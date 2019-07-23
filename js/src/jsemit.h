@@ -157,8 +157,10 @@ struct JSStmtInfo {
 
 #ifdef JS_SCOPE_DEPTH_METER
 # define JS_SCOPE_DEPTH_METERING(code) ((void) (code))
+# define JS_SCOPE_DEPTH_METERING_IF(cond, code) ((cond) ? (void) (code) : (void) 0)
 #else
 # define JS_SCOPE_DEPTH_METERING(code) ((void) 0)
+# define JS_SCOPE_DEPTH_METERING_IF(code, x) ((void) 0)
 #endif
 
 struct JSTreeContext {              
@@ -211,12 +213,12 @@ struct JSTreeContext {
 
 
     ~JSTreeContext() {
-        JS_SCOPE_DEPTH_METERING(maxScopeDepth == (uintN) -1 ||
-                                JS_BASIC_STATS_ACCUM(&compiler
-                                                       ->context
-                                                       ->runtime
-                                                       ->lexicalScopeDepthStats,
-                                                     maxScopeDepth));
+        JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
+                                   JS_BASIC_STATS_ACCUM(&compiler
+                                                          ->context
+                                                          ->runtime
+                                                          ->lexicalScopeDepthStats,
+                                                        maxScopeDepth));
     }
 
     uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
