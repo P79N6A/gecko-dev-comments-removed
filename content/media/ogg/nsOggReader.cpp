@@ -324,6 +324,7 @@ TheoraVersion(th_info* info,
   return (th_ver >= ver) ? 1 : 0;
 }
 
+#ifdef DEBUG
 
 
 static PRBool
@@ -341,6 +342,7 @@ AllFrameTimesIncrease(nsTArray<VideoData*>& aFrames)
   }
   return PR_TRUE;
 }
+#endif
 
 static void Clear(nsTArray<VideoData*>& aFrames) {
   for (PRUint32 i = 0; i < aFrames.Length(); ++i) {
