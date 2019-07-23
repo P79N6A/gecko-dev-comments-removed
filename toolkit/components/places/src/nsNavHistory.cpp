@@ -1967,7 +1967,9 @@ nsNavHistory::InternalAddVisit(PRInt64 aPageID, PRInt64 aReferringVisit,
 
 
 PRBool
-nsNavHistory::FindLastVisit(nsIURI* aURI, PRInt64* aVisitID,
+nsNavHistory::FindLastVisit(nsIURI* aURI,
+                            PRInt64* aVisitID,
+                            PRTime* aTime,
                             PRInt64* aSessionID)
 {
   mozStorageStatementScoper scoper(mDBRecentVisitOfURL);
@@ -1978,8 +1980,12 @@ nsNavHistory::FindLastVisit(nsIURI* aURI, PRInt64* aVisitID,
   rv = mDBRecentVisitOfURL->ExecuteStep(&hasMore);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
   if (hasMore) {
-    *aVisitID = mDBRecentVisitOfURL->AsInt64(0);
-    *aSessionID = mDBRecentVisitOfURL->AsInt64(1);
+    rv = mDBRecentVisitOfURL->GetInt64(0, aVisitID);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+    rv = mDBRecentVisitOfURL->GetInt64(1, aSessionID);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+    rv = mDBRecentVisitOfURL->GetInt64(2, aTime);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
     return PR_TRUE;
   }
   return PR_FALSE;
@@ -2771,8 +2777,9 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   PRInt64 referringVisitID = 0;
   PRInt64 referringSessionID;
+  PRTime referringTime;
   if (aReferringURI &&
-      !FindLastVisit(aReferringURI, &referringVisitID, &referringSessionID)) {
+      !FindLastVisit(aReferringURI, &referringVisitID, &referringTime, &referringSessionID)) {
     
     rv = AddVisit(aReferringURI, aTime - 1, nsnull, TRANSITION_LINK, PR_FALSE,
                   aSessionID, &referringVisitID);
@@ -4187,7 +4194,6 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
   addParams.EnumerateRead(BindAdditionalParameter, statement.get());
 
   
-  
   if (NeedToFilterResultSet(aQueries, aOptions)) {
     
     nsCOMArray<nsNavHistoryResultNode> toplevel;
@@ -5147,45 +5153,60 @@ nsNavHistory::AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,
 
 
 nsresult
-nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
-                            PRBool aToplevel, PRBool aIsRedirect,
-                            nsIURI* aReferrerURI, PRInt64* aVisitID,
-                            PRInt64* aSessionID, PRInt64* aRedirectBookmark)
+nsNavHistory::AddVisitChain(nsIURI* aURI,
+                            PRTime aTime,
+                            PRBool aToplevel,
+                            PRBool aIsRedirect,
+                            nsIURI* aReferrerURI,
+                            PRInt64* aVisitID,
+                            PRInt64* aSessionID,
+                            PRInt64* aRedirectBookmark)
 {
-  PRUint32 transitionType = 0;
-  PRInt64 referringVisit = 0;
-  PRTime visitTime = 0;
+  
+  
   nsCOMPtr<nsIURI> fromVisitURI = aReferrerURI;
 
   nsCAutoString spec;
   nsresult rv = aURI->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCAutoString redirectSource;
-  if (GetRedirectFor(spec, redirectSource, &visitTime, &transitionType)) {
+  
+  PRUint32 transitionType = 0;
+  PRTime redirectTime = 0;
+  nsCAutoString redirectSourceUrl;
+  if (GetRedirectFor(spec, redirectSourceUrl, &redirectTime, &transitionType)) {
     
-    nsCOMPtr<nsIURI> redirectURI;
-    rv = NS_NewURI(getter_AddRefs(redirectURI), redirectSource);
+    
+    nsCOMPtr<nsIURI> redirectSourceURI;
+    rv = NS_NewURI(getter_AddRefs(redirectSourceURI), redirectSourceUrl);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     nsNavBookmarks *bookmarkService = nsNavBookmarks::GetBookmarksService();
     PRBool isBookmarked;
     if (bookmarkService &&
-        NS_SUCCEEDED(bookmarkService->IsBookmarked(redirectURI, &isBookmarked))
+        NS_SUCCEEDED(bookmarkService->IsBookmarked(redirectSourceURI, &isBookmarked))
         && isBookmarked) {
-      GetUrlIdFor(redirectURI, aRedirectBookmark, PR_FALSE);
+      GetUrlIdFor(redirectSourceURI, aRedirectBookmark, PR_FALSE);
     }
 
     
     
     
     
-    
-    rv = AddVisitChain(redirectURI, aTime - 1, aToplevel, PR_TRUE, aReferrerURI,
-                       &referringVisit, aSessionID, aRedirectBookmark);
+    PRTime sourceTime = NS_MIN(redirectTime, aTime - 1);
+    PRInt64 sourceVisitId = 0;
+    rv = AddVisitChain(redirectSourceURI, sourceTime, aToplevel,
+                       PR_TRUE, 
+                       aReferrerURI, 
+                       &sourceVisitId, 
+                       aSessionID,
+                       aRedirectBookmark);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    
+    
     
     
     if (!aToplevel) {
@@ -5195,18 +5216,20 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     
     
     
-    fromVisitURI = redirectURI;
-  } else if (aReferrerURI) {
     
     
+    fromVisitURI = redirectSourceURI;
+  }
+  else if (aReferrerURI) {
     
-    PRBool referrerIsSame;
-    if (NS_SUCCEEDED(aURI->Equals(aReferrerURI, &referrerIsSame)) && referrerIsSame)
-      return NS_OK;
 
     
     
-    
+    PRBool referrerIsSame;
+    if (NS_SUCCEEDED(aURI->Equals(aReferrerURI, &referrerIsSame)) &&
+        referrerIsSame)
+      return NS_OK;
+
     
     
     
@@ -5224,19 +5247,16 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
 
     
     
-    
-    
-    
-    visitTime = PR_Now();
-
-    
-    
-    if (!FindLastVisit(aReferrerURI, &referringVisit, aSessionID)) {
+    PRTime lastVisitTime;
+    PRInt64 referringVisitId;
+    if (!FindLastVisit(aReferrerURI, &referringVisitId, &lastVisitTime, aSessionID) ||
+        aTime - lastVisitTime > RECENT_EVENT_THRESHOLD) {
+      
       
       *aSessionID = GetNewSessionID();
     }
-  } else {
-    
+  }
+  else {
     
     
     
@@ -5253,12 +5273,13 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     else
       transitionType = nsINavHistoryService::TRANSITION_EMBED;
 
-    visitTime = PR_Now();
+    
+    
     *aSessionID = GetNewSessionID();
   }
 
   
-  return AddVisit(aURI, visitTime, fromVisitURI, transitionType,
+  return AddVisit(aURI, aTime, fromVisitURI, transitionType,
                   aIsRedirect, *aSessionID, aVisitID);
 }
 
@@ -5420,6 +5441,8 @@ nsNavHistory::AddDocumentRedirect(nsIChannel *aOldChannel,
   NS_ENSURE_ARG(aNewChannel);
 
   
+  
+  
   if (aFlags & nsIChannelEventSink::REDIRECT_INTERNAL)
     return NS_OK;
 
@@ -5446,9 +5469,9 @@ nsNavHistory::AddDocumentRedirect(nsIChannel *aOldChannel,
   RedirectInfo info;
 
   
+  
   if (mRecentRedirects.Get(newSpec, &info))
     mRecentRedirects.Remove(newSpec);
-
   
   info.mSourceURI = oldSpec;
   info.mTimeCreated = PR_Now();
@@ -6693,11 +6716,13 @@ nsNavHistory::ExpireNonrecentEvents(RecentEventHash* hashTable)
 
 PRBool
 nsNavHistory::GetRedirectFor(const nsACString& aDestination,
-                             nsACString& aSource, PRTime* aTime,
+                             nsACString& aSource,
+                             PRTime* aTime,
                              PRUint32* aRedirectType)
 {
   RedirectInfo info;
   if (mRecentRedirects.Get(aDestination, &info)) {
+    
     mRecentRedirects.Remove(aDestination);
     if (info.mTimeCreated < GetNow() - RECENT_EVENT_THRESHOLD)
       return PR_FALSE; 
