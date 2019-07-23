@@ -1048,7 +1048,7 @@ PRBool nsCaret::IsMenuPopupHidingCaret()
       return PR_FALSE;
     }
 
-    if (popupFrame->PopupType() == ePopupTypeMenu) {
+    if (popupFrame->PopupType() == ePopupTypeMenu && !popupFrame->IsContextMenu()) {
       
       
       
