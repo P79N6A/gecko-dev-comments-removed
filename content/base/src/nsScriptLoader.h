@@ -184,6 +184,15 @@ public:
 
 
 
+  static nsresult ShouldLoadScript(nsIDocument* aDocument,
+                                   nsISupports* aContext,
+                                   nsIURI* aURI,
+                                   const nsAString &aType);
+
+  
+
+
+
   static PRBool ShouldExecuteScript(nsIDocument* aDocument,
                                     nsIChannel* aChannel);
 
@@ -233,9 +242,10 @@ protected:
   
 
 
-  nsresult CheckContentPolicy(nsScriptLoadRequest *aRequest,
-                              nsISupports *aContext,
-                              const nsAString &aType);
+  static nsresult CheckContentPolicy(nsIDocument* aDocument,
+                                     nsISupports *aContext,
+                                     nsIURI *aURI,
+                                     const nsAString &aType);
 
   
 

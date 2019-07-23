@@ -3429,6 +3429,18 @@ nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, PRBool* aBlock)
 
     
     
+    rv = nsScriptLoader::ShouldLoadScript(
+                            this,
+                            static_cast<nsIDocument*>(this),
+                            aScriptProto->mSrcURI,
+                            NS_LITERAL_STRING("application/x-javascript"));
+    if (NS_FAILED(rv)) {
+      *aBlock = PR_FALSE;
+      return rv;
+    }
+
+    
+    
     NS_ASSERTION(!mCurrentScriptProto,
                  "still loading a script when starting another load?");
     mCurrentScriptProto = aScriptProto;
