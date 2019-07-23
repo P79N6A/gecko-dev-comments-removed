@@ -2070,6 +2070,10 @@ js_NewInstance(JSContext* cx, JSObject *ctor)
 
 JS_DEFINE_CALLINFO_2(extern, CONSTRUCTOR_RETRY, js_NewInstance, CONTEXT, CALLEE_PROTOTYPE, 0, 0)
 
+#else  
+
+# define js_Object_trcinfo NULL
+
 #endif 
 
 
