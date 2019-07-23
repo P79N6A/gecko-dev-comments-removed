@@ -63,13 +63,8 @@ namespace nanojit
 
 	void Assembler::nInit(AvmCore*)
 	{
-	#ifdef NJ_THUMB_JIT
 		
 		has_cmov = false;
-	#else
-		
-		has_cmov = true;
-	#endif
 	}
 
 	NIns* Assembler::genPrologue(RegisterMask needSaving)
@@ -84,15 +79,9 @@ namespace nanojit
 		uint32_t savingCount = 0;
 
 		uint32_t savingMask = 0;
-		#if defined(NJ_THUMB_JIT)
 		savingCount = 5; 
 		savingMask = 0xF0;
 		(void)needSaving;
-		#else
-		savingCount = 9; 
-		savingMask = SavedRegs | rmask(FRAME_PTR);
-		(void)needSaving;
-		#endif
 
 		
 		uint32_t stackPushed = 4 * (2+savingCount);
@@ -101,7 +90,6 @@ namespace nanojit
 
 		
 		if (amt)
-#ifdef NJ_THUMB_JIT
 		{
 			
 			if (amt>508)
@@ -120,11 +108,6 @@ namespace nanojit
 				SUBi(SP, amt); 
 
 		}
-#else
-		{ 
-			SUBi(SP, amt); 
-		}
-#endif
 		verbose_only( verbose_outputf("         %p:",_nIns); )
         verbose_only( verbose_output("         patch entry"); )
         NIns *patchEntry = _nIns;
@@ -149,13 +132,7 @@ namespace nanojit
 			
 			lr = placeGuardRecord(guard);
 
-#ifdef NJ_THUMB_JIT
 			BL(_epilogue);
-#else
-			
-			
-			BL_far(_epilogue);
-#endif
 
 			lr->jmp = _nIns;
 		}
@@ -178,7 +155,6 @@ namespace nanojit
 
 	NIns* Assembler::genEpilogue(RegisterMask restore)
 	{
-#ifdef NJ_THUMB_JIT
 		(void)restore;
 		if (false) {
 			
@@ -191,13 +167,6 @@ namespace nanojit
 		}
 		MR(R0,R2); 
 		return _nIns;
-#else
-		BX(LR); 
-		MR(R0,R2); 
-		RegisterMask savingMask = restore | rmask(FRAME_PTR) | rmask(LR);
-		POP_mask(savingMask); 
-		return _nIns;
-#endif
 	}
 	
 	void Assembler::asm_call(LInsp ins)
@@ -255,40 +224,12 @@ namespace nanojit
 			
 	Register Assembler::nRegisterAllocFromSet(int set)
 	{
-#ifdef NJ_THUMB_JIT
 		
 		int i=0;
 		while (!(set & rmask((Register)i)))
 			i ++;
 		_allocator.free &= ~rmask((Register)i);
 		return (Register) i;
-
-#else
-		
-#ifndef UNDER_CE
-#ifdef __ARMCC__
-		register int i;
-		__asm { clz i,set }
-		Register r = Register(31-i);
-		_allocator.free &= ~rmask(r);
-		return r;
-#else
-		
-		int i=0;
-		while (!(set & rmask((Register)i)))
-			i ++;
-		_allocator.free &= ~rmask((Register)i);
-		return (Register) i;
-#endif
-#else
-		Register r;
-		r = (Register)_CountLeadingZeros(set);
-		r = (Register)(31-r);
-		_allocator.free &= ~rmask(r);
-		return r;
-#endif
-#endif
-
 	}
 
 	void Assembler::nRegisterResetAll(RegAlloc& a)
@@ -313,22 +254,9 @@ namespace nanojit
 
 		
 
-#ifdef NJ_THUMB_JIT
 		NanoAssert(-(1<<21) <= offset && offset < (1<<21)); 
 		*branch++ = (NIns)(0xF000 | (offset>>12)&0x7FF);
 		*branch =   (NIns)(0xF800 | (offset>>1)&0x7FF);
-#else
-		
-		
-		if (-(1<<24) <= offset & offset < (1<<24)) {
-			
-			*branch = (NIns)( COND_AL | (0xA<<24) | ((offset >>2) & 0xFFFFFF) );
-		} else {
-			
-			*branch++ = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | ( 0x004 ) );
-			*branch = (NIns)target;
-		}
-#endif
 	}
 
 	RegisterMask Assembler::hint(LIns* i, RegisterMask allow )
@@ -491,15 +419,10 @@ namespace nanojit
 
 	void Assembler::nativePageReset()
 	{
-		#ifdef NJ_THUMB_JIT
 			_nPool = 0;
 			_nSlot = 0;
 			_nExitPool = 0;
 			_nExitSlot = 0;
-		#else
-			_nSlot = 0;
-			_nExitSlot = 0;
-		#endif
 	}
 
 	void Assembler::nativePageSetup()
@@ -508,7 +431,6 @@ namespace nanojit
 		if (!_nExitIns)  _nExitIns = pageAlloc(true);
 		
 	
-		#ifdef NJ_THUMB_JIT
 		if (!_nPool) {
 			_nSlot = _nPool = (int*)_nIns;
 
@@ -525,19 +447,6 @@ namespace nanojit
 
 			
         }
-		#else
-		if (!_nSlot)
-		{
-			
-			
-			_nIns--;
-			_nExitIns--;
-
-			
-			
-			_nSlot = pageDataStart(_nIns); 
-		}
-		#endif
 	}
 
 	void Assembler::flushCache(NIns* n1, NIns* n2) {
@@ -554,8 +463,6 @@ namespace nanojit
 		__asm __volatile ("swi 0 	@ sys_cacheflush" : "=r" (_beg) : "0" (_beg), "r" (_end), "r" (_flg), "r" (_swi));
 #endif
 	}
-
-#ifdef NJ_THUMB_JIT
 
 	NIns* Assembler::asm_adjustBranch(NIns* at, NIns* target)
 	{
@@ -896,104 +803,8 @@ namespace nanojit
 		}
 	}
 
-#else 
-	NIns* Assembler::asm_adjustBranch(NIns* at, NIns* target)
-	{
-		
-		
-		
-		NanoAssert(at[1] == (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) ));
-		NanoAssert(at[2] == (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) ));
-
-		NIns* was = (NIns*) at[3];
-
-		at[3] = (NIns)target;
-
-		flushCache(at, at+4);
-
-#ifdef AVMPLUS_PORTING_API
-		NanoJIT_PortAPI_FlushInstructionCache(at, at+4);
-#endif
-
-		return was;
-	}
-
-	void Assembler::underrunProtect(int bytes)
-	{
-		intptr_t u = bytes + sizeof(PageHeader)/sizeof(NIns) + 8;
-		if ( (samepage(_nIns,_nSlot) && (((intptr_t)_nIns-u) <= intptr_t(_nSlot+1))) ||
-			 (!samepage((intptr_t)_nIns-u,_nIns)) )
-		{
-			NIns* target = _nIns;
-
-			_nIns = pageAlloc(_inExit);
-
-			
-			
-			
-			
-			
-			
-			
-			_nIns--;
-
-			
-			
-			_nSlot = pageDataStart(_nIns);
-
-			
-			
-			
-			
-			JMP_nochk(target);
-		} else if (!_nSlot) {
-			
-			_nSlot = pageDataStart(_nIns);
-		}
-	}
-
-	void Assembler::BL_far(NIns* addr) {
-		
-		
-		underrunProtect(16);
-
-		
-		*(--_nIns) = (NIns)((addr));
-		
-		*(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
-		
-		*(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
-		
-		*(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (4));
-		asm_output1("bl %p (32-bit)", addr);
-	}
-
-	void Assembler::BL(NIns* addr) {
-		intptr_t offs = PC_OFFSET_FROM(addr,(intptr_t)_nIns-4);
-		if (JMP_S24_OFFSET_OK(offs)) {
-			
-			underrunProtect(4);
-			*(--_nIns) = (NIns)( COND_AL | (0xB<<24) | (((offs)>>2) & 0xFFFFFF) ); \
-			asm_output1("bl %p", addr);
-		} else {
-			BL_far(addr);
-		}
-	}
-
-	void Assembler::CALL(const CallInfo *ci)
-	{
-        intptr_t addr = ci->_address;
-		BL((NIns*)addr);
-		asm_output1("   (call %s)", ci->_name);
-	}
-
-#endif 
-
-	
 	void Assembler::LD32_nochk(Register r, int32_t imm)
 	{
-	#ifdef NJ_THUMB_JIT
-
 		
 		int offset = (int)(_nSlot) - (int)(_nIns);
 		if ((offset>=NJ_MAX_CPOOL_OFFSET || offset<0) ||
@@ -1023,25 +834,6 @@ namespace nanojit
 		int data_off = int(data) - (int(_nIns+1)&~3);
 		*(--_nIns) = (NIns)(0x4800 | r<<8 | data_off>>2);
 		asm_output3("ldr %s,%d(PC) [%X]",gpn(r),data_off,(int)data);
-
-
-	#else
-
-		
-		underrunProtect(8);
-
-		*(++_nSlot) = (int)imm;
-
-		
-
-		int offset = PC_OFFSET_FROM(_nSlot,(intptr_t)(_nIns)-4);
-
-		NanoAssert(JMP_S24_OFFSET_OK(offset) && (offset < 0));
-
-		*(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | ((r)<<12) | ((-offset) & 0xFFFFFF) );
-		asm_output2("ld %s,%d",gpn(r),imm);
-	#endif
-
 	}
     #endif 
 }
