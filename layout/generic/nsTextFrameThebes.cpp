@@ -5358,6 +5358,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   gfxFloat trimmableWidth = 0;
+  PRBool brokeText = forceBreak >= 0 || transformedCharsFit < transformedLength;
   if (canTrimTrailingWhitespace) {
     
     
@@ -5365,7 +5366,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    if (forceBreak >= 0 || transformedCharsFit < transformedLength) {
+    if (brokeText) {
       
       
       AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
@@ -5381,17 +5382,19 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
         
         textMetrics.mBoundingBox.MoveBy(gfxPoint(trimmedWidth, 0));
       }
-
-      
-      
-      if (lastBreak >= 0) {
-        lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak,
-            textMetrics.mAdvanceWidth <= aReflowState.availableWidth);
-      }
     }
   }
+
+  if (!brokeText && lastBreak >= 0) {
+    
+    
+    NS_ASSERTION(textMetrics.mAdvanceWidth - trimmableWidth <= aReflowState.availableWidth,
+                 "If the text doesn't fit, and we have a break opportunity, why didn't MeasureText use it?");
+    lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak, PR_TRUE);
+  }
+
   PRInt32 contentLength = offset + charsFit - GetContentOffset();
-  
+
   
   
   
