@@ -62,7 +62,7 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
   is(tree.editingRow, -1, testid + " initial editingRow");
   is(tree.editingColumn, null, testid + " initial editingColumn");
 
-  testtag_tree_UI_editing(tree, testid);
+  testtag_tree_UI_editing(tree, testid, rowInfo);
 
   var ecolumn = tree.columns[0];
   tree.startEditing(1, ecolumn);
@@ -577,23 +577,49 @@ function testtag_tree_TreeSelection_UI(tree, testid, multiple)
     testtag_tree_TreeSelection_State(tree, testid + "mouse on row", 1, [1], 0,
                                      tree.selType == "cell" ? tree.columns[1] : null);
   }
+
+  
+  synthesizeKey("VK_HOME", {});
 }
 
-function testtag_tree_UI_editing(tree, testid)
+function testtag_tree_UI_editing(tree, testid, rowInfo)
 {
   testid += " editing UI ";
 
   
-  var ecolumn = tree.columns[1];
+  var ecolumn = tree.columns[0];
+  var rowIndex = 2;
   var inputField = tree.inputField;
-  tree.startEditing(0, ecolumn);
+
+  
+  var wasEditable = tree.editable;
+  if (!wasEditable)
+    tree.editable = true;
+
+  
+  var row = rowInfo.rows[rowIndex];
+  var wasOpen = null;
+  if (tree.view.isContainer(row))
+    wasOpen = tree.view.isContainerOpen(row);
+
+  mouseDblClickOnCell(tree, rowIndex, ecolumn, testid + "edit on double click");
+  is(tree.editingColumn, ecolumn, testid + "editing column");
+  is(tree.editingRow, rowIndex, testid + "editing row");
+
+  
+  if (wasOpen != null)
+    is(tree.view.isContainerOpen(row), wasOpen, testid + "opened container node on edit");
+
+  
+  if (!wasEditable)
+    tree.editable = false;
 
   var ci = tree.currentIndex;
 
   
   var testKey = function(key) {
     synthesizeKeyExpectEvent(key, {}, tree, "!select", "key " + key + " with editing");
-    is(tree.editingRow == 0 && tree.editingColumn == ecolumn && tree.currentIndex == ci,
+    is(tree.editingRow == rowIndex && tree.editingColumn == ecolumn && tree.currentIndex == ci,
                   true, testid + "key " + key + " while editing");
   }
 
@@ -800,6 +826,9 @@ function testtag_tree_TreeSelection_UI_cell(tree, testid, rowInfo)
     testtag_tree_TreeSelection_State(tree, testid + "key up unselectable cell",
                                      3, [3], 3, secondcolumn);
   }
+
+  
+  synthesizeKey("VK_HOME", {});
 }
 
 function testtag_tree_TreeView(tree, testid, rowInfo)
@@ -1164,9 +1193,23 @@ function checkColumns(aTree, aReference, aMessage)
 function mouseOnCell(tree, row, column, testname)
 {
   var x = {}, y = {}, width = {}, height = {};
-  tree.boxObject.getCoordsForCellItem(row, column, "cell", x, y, width, height);
+  tree.boxObject.getCoordsForCellItem(row, column, "text", x, y, width, height);
 
-  synthesizeMouseExpectEvent(tree.body, x.value + 2, y.value + 2, {}, tree, "select", testname);
+  synthesizeMouseExpectEvent(tree.body, x.value, y.value, {}, tree, "select", testname);
+}
+
+function mouseDblClickOnCell(tree, row, column, testname)
+{
+  
+  var selection = tree.view.selection;
+  selection.select(row);
+  tree.treeBoxObject.ensureRowIsVisible(row);
+
+  
+  var x = {}, y = {}, width = {}, height = {};
+  tree.treeBoxObject.getCoordsForCellItem(row, column, "text", x, y, width, height);
+
+  synthesizeMouse(tree.body, x.value, y.value, { clickCount: 2 }, null);
 }
 
 function compareArrays(arr1, arr2)
