@@ -586,7 +586,8 @@ Assembler::nPatchBranch(NIns* at, NIns* target)
     } else {
         
         
-        NanoAssert(at[0] == (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) ));
+        at[0] = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4) );
+        
         at[1] = (NIns)(target);
     }
     VALGRIND_DISCARD_TRANSLATIONS(at, 2*sizeof(NIns));

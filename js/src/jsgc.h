@@ -284,9 +284,9 @@ typedef struct JSGCChunkInfo JSGCChunkInfo;
 
 struct JSGCArenaList {
     JSGCArenaInfo   *last;          
-    uint16          lastCount;      
+    uint32          lastCount;      
 
-    uint16          thingSize;      
+    uint32          thingSize;      
 
     JSGCThing       *freeList;      
 };
