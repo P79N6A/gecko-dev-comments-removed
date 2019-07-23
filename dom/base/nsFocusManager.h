@@ -73,7 +73,14 @@ public:
   
 
 
-  static nsIFocusManager* GetFocusManager() { return sInstance; }
+  static nsFocusManager* GetFocusManager() { return sInstance; }
+
+  
+
+
+
+
+  nsIContent* GetFocusedContent() { return mFocusedContent; }
 
   
 
@@ -437,7 +444,7 @@ protected:
   nsTArray<nsDelayedBlurOrFocusEvent> mDelayedBlurFocusEvents;
 
   
-  static nsIFocusManager* sInstance;
+  static nsFocusManager* sInstance;
 };
 
 nsresult
