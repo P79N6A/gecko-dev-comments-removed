@@ -1220,7 +1220,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
         TreeInfo* ti, unsigned stackSlots, unsigned ngslots, uint8* typeMap,
         VMSideExit* innermostNestedGuard, jsbytecode* outer)
 {
-    JS_ASSERT(!_fragment->vmprivate && ti);
+    JS_ASSERT(!_fragment->vmprivate && ti && cx->fp->regs->pc == (jsbytecode*)_fragment->ip);
 
     
     _fragment->lastIns = NULL;
@@ -1241,6 +1241,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
     this->loop = true; 
     this->wasRootFragment = _fragment == _fragment->root;
     this->outer = outer;
+    this->pendingTraceableNative = NULL;
     this->generatedTraceableNative = new JSTraceableNative();
     JS_ASSERT(generatedTraceableNative);
 
@@ -1754,7 +1755,7 @@ skip:
 
 
 JS_REQUIRES_STACK void
-TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
+TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8 t,
                       const char *prefix, uintN index, JSStackFrame *fp)
 {
     LIns* ins;
@@ -1767,7 +1768,7 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         ins = lir->insLoadi(base, offset);
         ins = lir->ins1(LIR_i2f, ins);
     } else {
-        JS_ASSERT(t == JSVAL_BOXED || isNumber(*p) == (t == JSVAL_DOUBLE));
+        JS_ASSERT_IF(t != JSVAL_BOXED, isNumber(*p) == (t == JSVAL_DOUBLE));
         if (t == JSVAL_DOUBLE) {
             ins = lir->insLoad(LIR_ldq, base, offset);
         } else if (t == JSVAL_BOOLEAN) {
@@ -1778,6 +1779,7 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
     }
     checkForGlobalObjectReallocation();
     tracker.set(p, ins);
+
 #ifdef DEBUG
     char name[64];
     JS_ASSERT(strlen(prefix) < 10);
@@ -1836,23 +1838,47 @@ TraceRecorder::import(TreeInfo* treeInfo, LIns* sp, unsigned stackSlots, unsigne
 
     
 
-    if (ngslots < length)
+
+
+    if (ngslots < length) {
         mergeTypeMaps(&globalTypeMap, &ngslots,
                       treeInfo->globalTypeMap(), length,
                       (uint8*)alloca(sizeof(uint8) * length));
+    }
     JS_ASSERT(ngslots == treeInfo->nGlobalTypes());
 
     
+
+
+
+    ptrdiff_t offset = -treeInfo->nativeStackBase;
+    uint8* m = typeMap;
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
+        if (*m == JSVAL_BOXED) {
+            import(sp, offset, vp, JSVAL_BOXED, "boxed", vpnum, cx->fp);
+            LIns* vp_ins = get(vp);
+            unbox_jsval(*vp, vp_ins, copy(anchor));
+            set(vp, vp_ins);
+        }
+        m++; offset += sizeof(double);
+    );
+
+    
+
+
     uint16* gslots = treeInfo->globalSlots->data();
-    uint8* m = globalTypeMap;
+    m = globalTypeMap;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
+        JS_ASSERT(*m != JSVAL_BOXED);
         import(lirbuf->state, nativeGlobalOffset(vp), vp, *m, vpname, vpnum, NULL);
         m++;
     );
-    ptrdiff_t offset = -treeInfo->nativeStackBase;
+    offset = -treeInfo->nativeStackBase;
     m = typeMap;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        import(sp, offset, vp, *m, vpname, vpnum, fp);
+        if (*m != JSVAL_BOXED) {
+            import(sp, offset, vp, *m, vpname, vpnum, fp);
+        }
         m++; offset += sizeof(double);
     );
 }
@@ -2081,6 +2107,10 @@ TraceRecorder::snapshot(ExitType exitType)
     const JSCodeSpec& cs = js_CodeSpec[*pc];
 
     
+
+
+
+
     bool resumeAfter = (pendingTraceableNative &&
                         JSTN_ERRTYPE(pendingTraceableNative) == FAIL_STATUS);
     if (resumeAfter) {
@@ -2113,11 +2143,13 @@ TraceRecorder::snapshot(ExitType exitType)
 
     
 
-    if (resumeAfter) {
-        if (pendingTraceableNative->flags & JSTN_UNBOX_AFTER)
-            typemap[stackSlots - 1] = JSVAL_BOXED;
 
-        
+
+    if (pendingTraceableNative && (pendingTraceableNative->flags & JSTN_UNBOX_AFTER))
+        typemap[stackSlots - 1] = JSVAL_BOXED;
+
+    
+    if (resumeAfter) {
         MUST_FLOW_LABEL(restore_pc);
         regs->pc = pc - cs.length;
     } else {
@@ -2134,6 +2166,8 @@ TraceRecorder::snapshot(ExitType exitType)
 
     
 
+
+
     VMSideExit** exits = treeInfo->sideExits.data();
     unsigned nexits = treeInfo->sideExits.length();
     if (exitType == LOOP_EXIT) {
@@ -2141,15 +2175,8 @@ TraceRecorder::snapshot(ExitType exitType)
             VMSideExit* e = exits[n];
             if (e->pc == pc && e->imacpc == fp->imacpc &&
                 !memcmp(getFullTypeMap(exits[n]), typemap, typemap_size)) {
-                LIns* data = lir->skip(sizeof(GuardRecord));
-                GuardRecord* rec = (GuardRecord*)data->payload();
-                
-                memset(rec, 0, sizeof(GuardRecord));
-                VMSideExit* exit = exits[n];
-                rec->exit = exit;
-                exit->addGuard(rec);
                 AUDIT(mergedLoopExits);
-                return data;
+                return clone(exits[n]);
             }
         }
     }
@@ -2176,9 +2203,11 @@ TraceRecorder::snapshot(ExitType exitType)
                            (stackSlots + ngslots) * sizeof(uint8));
     GuardRecord* rec = (GuardRecord*)data->payload();
     VMSideExit* exit = (VMSideExit*)(rec + 1);
+
     
     memset(rec, 0, sizeof(GuardRecord));
     rec->exit = exit;
+
     
     memset(exit, 0, sizeof(VMSideExit));
     exit->from = fragment;
@@ -2206,24 +2235,77 @@ TraceRecorder::snapshot(ExitType exitType)
     return data;
 }
 
+JS_REQUIRES_STACK LIns*
+TraceRecorder::clone(VMSideExit* exit)
+{
+    LIns* data = lir->skip(sizeof(GuardRecord));
+    GuardRecord* rec = (GuardRecord*)data->payload();
+    
+    memset(rec, 0, sizeof(GuardRecord));
+    rec->exit = exit;
+    exit->addGuard(rec);
+    return data;
+}
+
+JS_REQUIRES_STACK LIns*
+TraceRecorder::copy(VMSideExit* copy)
+{
+    unsigned typemap_size = copy->numGlobalSlots + copy->numStackSlots;
+    LIns* data = lir->skip(sizeof(GuardRecord) +
+                           sizeof(VMSideExit) +
+                           typemap_size * sizeof(uint8));
+    GuardRecord* rec = (GuardRecord*)data->payload();
+    VMSideExit* exit = (VMSideExit*)(rec + 1);
+
+    
+    memset(rec, 0, sizeof(GuardRecord));
+    rec->exit = exit;
+
+    
+    memcpy(exit, copy, sizeof(VMSideExit) + typemap_size * sizeof(uint8));
+    exit->guards = rec;
+    exit->from = fragment;
+    exit->target = NULL;
+
+    
 
 
-LIns*
+
+    if (exit->exitType == LOOP_EXIT)
+        treeInfo->sideExits.add(exit);
+    return data;
+}
+
+
+
+JS_REQUIRES_STACK void
 TraceRecorder::guard(bool expected, LIns* cond, LIns* exit)
 {
     if (!cond->isCond()) {
         expected = !expected;
         cond = lir->ins_eq0(cond);
     }
-    return lir->insGuard(expected ? LIR_xf : LIR_xt, cond, exit);
+#ifdef DEBUG
+    LIns* guard =
+#endif
+    lir->insGuard(expected ? LIR_xf : LIR_xt, cond, exit);
+#ifdef DEBUG
+    if (guard) {
+        GuardRecord* lr = guard->record();
+        VMSideExit* e = (VMSideExit*)lr->exit;
+        debug_only_v(printf("    lr=%p exitType=%d\n", (SideExit*)e, e->exitType);)
+    } else {
+        debug_only_v(printf("    redundant guard, eliminated\n");)
+    }
+#endif
 }
 
 
 
-JS_REQUIRES_STACK LIns*
+JS_REQUIRES_STACK void
 TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 {
-    return guard(expected, cond, snapshot(exitType));
+    guard(expected, cond, snapshot(exitType));
 }
 
 
@@ -2806,18 +2888,26 @@ JS_REQUIRES_STACK void
 TraceRecorder::emitTreeCall(Fragment* inner, VMSideExit* exit)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
+
     
     LIns* args[] = { INS_CONSTPTR(inner), lirbuf->state }; 
     LIns* ret = lir->insCall(&js_CallTree_ci, args);
+
     
+    JS_ASSERT(!memchr(getGlobalTypeMap(exit), JSVAL_BOXED, exit->numGlobalSlots) &&
+              !memchr(getStackTypeMap(exit), JSVAL_BOXED, exit->numStackSlots));
     import(ti, inner_sp_ins, exit->numStackSlots, exit->numGlobalSlots,
            exit->calldepth, getFullTypeMap(exit));
+
     
     if (callDepth > 0) {
         lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
     }
+
     
+
+
 
     guard(true, lir->ins2(LIR_eq, ret, INS_CONSTPTR(exit)), NESTED_EXIT);
     
@@ -6057,7 +6147,7 @@ TraceRecorder::box_jsval(jsval v, LIns*& v_ins)
 }
 
 JS_REQUIRES_STACK void
-TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins)
+TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins, LIns* exit)
 {
     if (isNumber(v)) {
         
@@ -6068,7 +6158,7 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins)
                                                 lir->ins2(LIR_piand, v_ins,
                                                           INS_CONST(JSVAL_TAGMASK)),
                                                 JSVAL_DOUBLE))),
-              MISMATCH_EXIT);
+              exit);
         LIns* args[] = { v_ins };
         v_ins = lir->insCall(&js_UnboxDouble_ci, args);
         return;
@@ -6079,16 +6169,15 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins)
               lir->ins2i(LIR_eq,
                          lir->ins2(LIR_piand, v_ins, INS_CONST(JSVAL_TAGMASK)),
                          JSVAL_BOOLEAN),
-              MISMATCH_EXIT);
+              exit);
         v_ins = lir->ins2i(LIR_ush, v_ins, JSVAL_TAGBITS);
         return;
       case JSVAL_OBJECT:
         if (JSVAL_IS_NULL(v)) {
             
-            guard(true, lir->ins_eq0(v_ins), MISMATCH_EXIT);
+            guard(true, lir->ins_eq0(v_ins), exit);
         } else {
             
-            LIns* exit = snapshot(MISMATCH_EXIT);
             guard(true,
                   lir->ins2i(LIR_eq,
                              lir->ins2(LIR_piand, v_ins, INS_CONST(JSVAL_TAGMASK)),
@@ -6103,7 +6192,7 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins)
               lir->ins2i(LIR_eq,
                         lir->ins2(LIR_piand, v_ins, INS_CONST(JSVAL_TAGMASK)),
                         JSVAL_STRING),
-              MISMATCH_EXIT);
+              exit);
         v_ins = lir->ins2(LIR_piand, v_ins, INS_CONST(~JSVAL_TAGMASK));
         return;
     }
@@ -6151,10 +6240,11 @@ TraceRecorder::guardDenseArrayIndex(JSObject* obj, jsint idx, LIns* obj_ins,
 
     bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < capacity);
     if (cond) {
+        LIns* exit = snapshot(exitType);
         
-        LIns* exit = guard(true,
-                           lir->ins2(LIR_ult, idx_ins, stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
-                           exitType)->oprnd2();
+        guard(true,
+              lir->ins2(LIR_ult, idx_ins, stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
+              exit);
         
         guard(false,
               lir->ins_eq0(dslots_ins),
@@ -7869,7 +7959,6 @@ TraceRecorder::record_FastNativeCallComplete()
 
 
 
-
     if (JSTN_ERRTYPE(pendingTraceableNative) == FAIL_STATUS) {
 #ifdef DEBUG
         
@@ -7922,7 +8011,13 @@ TraceRecorder::record_FastNativeCallComplete()
 
     bool ok = true;
     if (pendingTraceableNative->flags & JSTN_UNBOX_AFTER) {
-        unbox_jsval(v, v_ins);
+        
+
+
+
+
+        JS_ASSERT(&v == &cx->fp->regs->sp[-1] && get(&v) == v_ins);
+        unbox_jsval(v, v_ins, snapshot(BRANCH_EXIT));
         set(&v, v_ins);
     } else if (JSTN_ERRTYPE(pendingTraceableNative) == FAIL_NEG) {
         
@@ -8035,8 +8130,13 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
                 LIns* args[] = { INS_CONSTPTR(sprop), obj_ins, cx_ins };
                 v_ins = lir->insCall(&js_CallGetter_ci, args);
                 guard(false, lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_ERROR_COOKIE)), OOM_EXIT);
+                
+
+
+
                 unbox_jsval((sprop->shortid == REGEXP_SOURCE) ? JSVAL_STRING : JSVAL_BOOLEAN,
-                             v_ins);
+                            v_ins,
+                            snapshot(MISMATCH_EXIT));
                 return true;
             }
             ABORT_TRACE("non-stub getter");
@@ -8066,7 +8166,8 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
     }
 
     v_ins = stobj_get_slot(obj_ins, slot, dslots_ins);
-    unbox_jsval(STOBJ_GET_SLOT(obj, slot), v_ins);
+    unbox_jsval(STOBJ_GET_SLOT(obj, slot), v_ins, snapshot(BRANCH_EXIT));
+
     return true;
 }
 
@@ -8129,7 +8230,7 @@ TraceRecorder::elem(jsval& oval, jsval& idx, jsval*& vp, LIns*& v_ins, LIns*& ad
 
     
     v_ins = lir->insLoad(LIR_ldp, addr_ins, 0);
-    unbox_jsval(*vp, v_ins);
+    unbox_jsval(*vp, v_ins, snapshot(BRANCH_EXIT));
 
     if (JSVAL_TAG(*vp) == JSVAL_BOOLEAN) {
         
