@@ -337,6 +337,10 @@ typedef enum {
   
   , NPPVpluginEventModel = 1001
 #endif
+
+#ifdef MOZ_PLATFORM_HILDON
+  , NPPVpluginWindowlessLocalBool = 2002
+#endif
 } NPPVariable;
 
 
@@ -379,6 +383,9 @@ typedef enum {
 #endif
   , NPNVsupportsCocoaBool = 3001 
 #endif
+#ifdef MOZ_PLATFORM_HILDON
+  , NPNVSupportsWindowlessLocal = 2002
+#endif
 } NPNVariable;
 
 typedef enum {
@@ -419,6 +426,21 @@ typedef struct _NPWindow
   NPWindowType type; 
 } NPWindow;
 
+typedef struct _NPImageExpose
+{
+  char*    data;       
+  int32_t  stride;     
+  int32_t  depth;      
+  int32_t  x;          
+  int32_t  y;          
+  uint32_t width;      
+  uint32_t height;     
+  NPSize   dataSize;   
+  float    translateX; 
+  float    translateY; 
+  float    scaleX;     
+  float    scaleY;     
+} NPImageExpose;
 
 typedef struct _NPFullPrint
 {

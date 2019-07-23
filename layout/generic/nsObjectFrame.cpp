@@ -139,6 +139,8 @@
 #include "gfxWindowsSurface.h"
 #endif
 
+#include "gfxImageSurface.h"
+
 
 #ifdef ACCESSIBILITY
 #include "nsIAccessibilityService.h"
@@ -169,7 +171,6 @@ enum { XKeyPress = KeyPress };
 #endif
 
 #ifdef MOZ_PLATFORM_HILDON
-#define MOZ_POST_VISIBILITY_EVENTS 1
 #define MOZ_COMPOSITED_PLUGINS 1
 #endif
 
@@ -543,7 +544,19 @@ private:
     const nsIntRect& mDirtyRect;
   };
 #endif
+#ifdef MOZ_PLATFORM_HILDON
 
+  
+  
+  
+  unsigned char*  mImageExposeBuffer;
+  gfxIntSize mImageExposeBufferSize;
+
+  nsresult NativeImageDraw(gfxContext *aContext,
+                           NPWindow* mWindow,
+                           const nsIntSize& mPluginSize,
+                           const nsIntRect& mDirtyRect);
+#endif
 };
 
   
@@ -2383,6 +2396,10 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mLastPoint = nsIntPoint(0,0);
 #endif
 
+#ifdef MOZ_PLATFORM_HILDON
+  mImageExposeBuffer = nsnull;
+  mImageExposeBufferSize = gfxIntSize(0,0);
+#endif
   PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
          ("nsPluginInstanceOwner %p created\n", this));
 }
@@ -2436,6 +2453,13 @@ nsPluginInstanceOwner::~nsPluginInstanceOwner()
   if (mInstance) {
     mInstance->InvalidateOwner();
   }
+
+#ifdef MOZ_PLATFORM_HILDON
+  if (mImageExposeBuffer)
+    free(mImageExposeBuffer);
+  mImageExposeBuffer = nsnull;
+#endif
+
 }
 
 
@@ -4762,7 +4786,6 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   NPWindow* window;
   GetWindow(window);
 
-  Renderer renderer(window, mInstance, pluginSize, pluginDirtyRect);
   PRUint32 rendererFlags =
     Renderer::DRAW_SUPPORTS_OFFSET |
     Renderer::DRAW_SUPPORTS_CLIP_RECT |
@@ -4778,6 +4801,16 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
   gfxContextAutoSaveRestore autoSR(aContext);
   aContext->Translate(pluginRect.pos);
 
+#ifdef MOZ_PLATFORM_HILDON
+  PRBool simpleImageRender = PR_FALSE;
+  mInstance->GetValueFromPlugin(NPPVpluginWindowlessLocalBool, (void *)&simpleImageRender);
+
+  if (simpleImageRender && NS_SUCCEEDED(NativeImageDraw(aContext, window, pluginSize, pluginDirtyRect)))
+    return;
+
+#endif
+
+  Renderer renderer(window, mInstance, pluginSize, pluginDirtyRect);
   renderer.Draw(aContext, window->width, window->height,
                 rendererFlags, nsnull);
 }
@@ -4796,6 +4829,164 @@ DepthOfVisual(const Screen* screen, const Visual* visual)
 
   NS_ERROR("Visual not on Screen.");
   return 0;
+}
+#endif
+
+#ifdef MOZ_PLATFORM_HILDON
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult
+nsPluginInstanceOwner::NativeImageDraw(gfxContext *aContext,
+                                       NPWindow* mWindow,
+                                       const nsIntSize& mPluginSize,
+                                       const nsIntRect& mDirtyRect)
+{
+  PRBool doupdatewindow = PR_FALSE;
+
+  if (mWindow->x || mWindow->y) {
+    mWindow->x = 0;
+    mWindow->y = 0;
+    doupdatewindow = PR_TRUE;
+  }
+
+  if (nsIntSize(mWindow->width, mWindow->height) != mPluginSize) {
+    mWindow->width = mPluginSize.width;
+    mWindow->height = mPluginSize.height;
+    doupdatewindow = PR_TRUE;
+  }
+
+  
+  nsIntRect clipRect;
+  clipRect.x = 0;
+  clipRect.y = 0;
+  clipRect.width  = mWindow->width;
+  clipRect.height = mWindow->height;
+
+  NPRect newClipRect;
+  newClipRect.left = clipRect.x;
+  newClipRect.top = clipRect.y;
+  newClipRect.right = clipRect.XMost();
+  newClipRect.bottom = clipRect.YMost();
+  if (mWindow->clipRect.left    != newClipRect.left   ||
+      mWindow->clipRect.top     != newClipRect.top    ||
+      mWindow->clipRect.right   != newClipRect.right  ||
+      mWindow->clipRect.bottom  != newClipRect.bottom) {
+    mWindow->clipRect = newClipRect;
+    doupdatewindow = PR_TRUE;
+  }
+
+  NPSetWindowCallbackStruct* ws_info =
+    static_cast<NPSetWindowCallbackStruct*>(mWindow->ws_info);
+  ws_info->visual = 0;
+  ws_info->colormap = 0;
+  if (ws_info->depth != 24) {
+    ws_info->depth = 24;
+    doupdatewindow = PR_TRUE;
+  }
+
+  if (doupdatewindow)
+    mInstance->SetWindow(mWindow);
+
+  nsIntRect dirtyRect = mDirtyRect;
+
+  
+  
+  if (!dirtyRect.IntersectRect(mDirtyRect, clipRect))
+    return NS_ERROR_FAILURE;
+
+  XEvent pluginEvent;
+  NPImageExpose imageExpose;
+  XGraphicsExposeEvent& exposeEvent = pluginEvent.xgraphicsexpose;
+
+  
+  exposeEvent.type = GraphicsExpose;
+  exposeEvent.display = 0;
+
+  
+  exposeEvent.drawable = (Drawable)&imageExpose;
+  exposeEvent.x = mDirtyRect.x;
+  exposeEvent.y = mDirtyRect.y;
+  exposeEvent.width = mDirtyRect.width;
+  exposeEvent.height = mDirtyRect.height;
+  exposeEvent.count = 0;
+
+  
+  exposeEvent.serial = 0;
+  exposeEvent.send_event = False;
+  exposeEvent.major_code = 0;
+  exposeEvent.minor_code = 0;
+
+  
+  imageExpose.depth = 24;
+  imageExpose.translateX = 1;
+  imageExpose.translateY = 1;
+  imageExpose.scaleX = 1;
+  imageExpose.scaleY = 1;
+
+  
+  imageExpose.x = mDirtyRect.x;
+  imageExpose.y = mDirtyRect.y;
+  imageExpose.width = mDirtyRect.width;
+  imageExpose.height = mDirtyRect.height;
+
+  
+  
+  if (!mImageExposeBuffer ||
+      (mImageExposeBufferSize.width * mImageExposeBufferSize.height < mWindow->width * mWindow->height)) {
+    if (mImageExposeBuffer)
+      free(mImageExposeBuffer);
+
+    mImageExposeBuffer = (unsigned char*) malloc (mWindow->width * mWindow->height * 4);
+    mImageExposeBufferSize = gfxIntSize(mWindow->width, mWindow->height);
+  }
+
+  NS_ENSURE_TRUE(mImageExposeBuffer, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  
+  memset(mImageExposeBuffer, 0, mImageExposeBufferSize.height * mImageExposeBufferSize.width * 4);
+
+  nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(mImageExposeBuffer,
+                                                       mImageExposeBufferSize,
+                                                       mImageExposeBufferSize.width * 4,
+                                                       gfxASurface::ImageFormatRGB24);
+  NS_ENSURE_TRUE(surf, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  imageExpose.stride = surf->Stride();
+  imageExpose.data = reinterpret_cast<char*>(surf->Data());
+  imageExpose.dataSize.width = surf->Width();
+  imageExpose.dataSize.height = surf->Height(); 
+
+  PRBool eventHandled = PR_FALSE;
+  
+  
+  mInstance->HandleEvent(&pluginEvent, &eventHandled);
+  
+  if (eventHandled) {
+    nsRefPtr<gfxPattern> pat = new gfxPattern(surf);
+    aContext->NewPath();
+    aContext->PixelSnappedRectangleAndSetPattern(gfxRect(0, 0, mWindow->width, mWindow->height), pat);
+    aContext->Fill();
+  }
+  return NS_OK;
 }
 #endif
 
