@@ -830,6 +830,9 @@ function getNormalizedLeafName(aFile, aDefaultExtension)
   
   aFile = aFile.replace(/[\s.]+$/, "");
 #endif
+
+  
+  aFile = aFile.replace(/^\.+/, "");
       
   
   var i = aFile.lastIndexOf(".");
