@@ -454,24 +454,6 @@ nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame)
   vm->MoveViewTo(view, pt.x, pt.y);
 }
 
-static PRBool
-IsMenuPopup(nsIFrame *aFrame)
-{
-  nsIAtom *frameType = aFrame->GetType();
-
-  
-  if (frameType == nsGkAtoms::listControlFrame) {
-    nsListControlFrame *listControlFrame = static_cast<nsListControlFrame*>(aFrame);
-      
-    if (listControlFrame) {
-      return listControlFrame->IsInDropDownMode();
-    }
-  }
-
-  
-  return (frameType == nsGkAtoms::menuPopupFrame);
-}
-
 static nsIWidget*
 GetPresContextContainerWidget(nsPresContext* aPresContext)
 {
