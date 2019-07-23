@@ -250,14 +250,20 @@ namespace nanojit
 	Reservation* Assembler::reserveAlloc(LInsp i)
 	{
 		uint32_t item = _resvFree;
-        Reservation *r = &_resvTable[item];
+		
+
+
+
+		if (!item) {
+			setError(ResvFull); 
+			item = 1;
+		}
+		Reservation *r = &_resvTable[item];
 		_resvFree = r->arIndex;
 		r->reg = UnknownReg;
 		r->arIndex = 0;
-        r->used = 1;
-		if (!item) 
-			setError(ResvFull); 
-        i->setresv(item);
+		r->used = 1;
+		i->setresv(item);
 		return r;
 	}
 
