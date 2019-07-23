@@ -146,6 +146,41 @@ mozStorageStatement::Initialize(mozIStorageConnection *aDBConnection, const nsAC
         mColumnNames.AppendCString(nsDependentCString(name));
     }
 
+#ifdef DEBUG
+    
+    
+    
+    
+    const nsCaseInsensitiveCStringComparator c;
+    nsACString::const_iterator start, end, e;
+    aSQLStatement.BeginReading(start);
+    aSQLStatement.EndReading(end);
+    e = end;
+    while (FindInReadable(NS_LITERAL_CSTRING(" LIKE"), start, e, c)) {
+        
+        
+        
+        nsACString::const_iterator s1, s2, s3;
+        s1 = s2 = s3 = start;
+
+        if (!(FindInReadable(NS_LITERAL_CSTRING(" LIKE ?"), s1, end, c) ||
+              FindInReadable(NS_LITERAL_CSTRING(" LIKE :"), s2, end, c) ||
+              FindInReadable(NS_LITERAL_CSTRING(" LIKE @"), s3, end, c))) {
+            
+            
+            
+            NS_WARNING("Unsafe use of LIKE detected!  Please ensure that you "
+                       "are using mozIStorageConnection::escapeStringForLIKE "
+                       "and that you are binding that result to the statement "
+                       "to prevent SQL injection attacks.");
+        }
+
+        
+        start = e;
+        e = end;
+    }
+#endif
+
     
     
     
