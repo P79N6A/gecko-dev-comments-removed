@@ -2359,18 +2359,34 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
 {
   
   
+  PRBool theme_is_qt = PR_FALSE;
+  GtkSettings* settings =
+    gtk_settings_get_for_screen(gdk_display_get_default_screen(display));
+  gchar *theme_name;
+  g_object_get(settings, "gtk-theme-name", &theme_name, NULL);
+  if (theme_name) {
+    theme_is_qt = strcmp(theme_name, "Qt") == 0;
+    if (theme_is_qt)
+      NS_WARNING("wallpaper bug 417163 for Qt theme");
+    g_free(theme_name);
+  }
+
   
   
-  if(gtk_check_version(2,10,0) != NULL) {
+  
+  
+  if (gtk_check_version(2,10,0) != NULL) {
     
     
     
     
     Display* dpy = GDK_DISPLAY_XDISPLAY(display);
-    XCloseDisplay(dpy);
+    if (!theme_is_qt)
+      XCloseDisplay(dpy);
   }
   else {
-    gdk_display_close(display);
+    if (!theme_is_qt)
+      gdk_display_close(display);
 #if GTK_CHECK_VERSION(2,8,0) && \
   (defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) || defined(NS_TRACE_MALLOC))
     cairo_debug_reset_static_data();
