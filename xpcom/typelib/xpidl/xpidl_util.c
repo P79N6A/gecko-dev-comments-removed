@@ -521,7 +521,7 @@ check_param_attribute(IDL_tree method_tree, IDL_tree param,
         }
         if (referred_param == param) {
             IDL_tree_error(method_tree,
-                           "attribute [%s(%s)] refers to it's own parameter",
+                           "attribute [%s(%s)] refers to its own parameter",
                            attr_name, referred_name);
             return FALSE;
         }
