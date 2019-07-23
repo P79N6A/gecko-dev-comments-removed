@@ -1290,6 +1290,7 @@ mozJSComponentLoader::UnloadModules()
 }
 
 
+
 NS_IMETHODIMP
 mozJSComponentLoader::Import(const nsACString & registryLocation)
 {
