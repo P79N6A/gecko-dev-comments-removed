@@ -201,6 +201,13 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 void
 nsXBLProtoImpl::Traverse(nsCycleCollectionTraversalCallback &cb) const
 {
+  
+  
+  
+  if (!mClassObject) {
+    return;
+  }
+
   nsXBLProtoImplMember *member;
   for (member = mMembers; member; member = member->GetNext()) {
     member->Traverse(cb);
