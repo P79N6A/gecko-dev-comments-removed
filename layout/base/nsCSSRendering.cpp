@@ -1936,6 +1936,10 @@ DrawBorderImage(nsPresContext*       aPresContext,
     split.bottom,
   };
 
+  
+  
+  
+  
   for (int i = LEFT; i <= RIGHT; i++) {
     for (int j = TOP; j <= BOTTOM; j++) {
       nsRect destArea(borderX[i], borderY[j], borderWidth[i], borderHeight[j]);
@@ -1961,14 +1965,14 @@ DrawBorderImage(nsPresContext*       aPresContext,
         else if (0 < border.right && 0 < split.right)
           vFactor = gfxFloat(border.right)/split.right;
         else
-          vFactor = 1.0;
+          vFactor = nsPresContext::CSSPixelsToAppUnits(1);
 
         if (0 < border.top && 0 < split.top)
           hFactor = gfxFloat(border.top)/split.top;
         else if (0 < border.bottom && 0 < split.bottom)
           hFactor = gfxFloat(border.bottom)/split.bottom;
         else
-          hFactor = 1.0;
+          hFactor = nsPresContext::CSSPixelsToAppUnits(1);
 
         unitSize.width = splitWidth[i]*hFactor;
         unitSize.height = splitHeight[j]*vFactor;
@@ -1978,9 +1982,11 @@ DrawBorderImage(nsPresContext*       aPresContext,
       } else if (i == MIDDLE) { 
         
         
-        gfxFloat factor = 1.0;
+        gfxFloat factor;
         if (0 < borderHeight[j] && 0 < splitHeight[j])
           factor = gfxFloat(borderHeight[j])/splitHeight[j];
+        else
+          factor = nsPresContext::CSSPixelsToAppUnits(1);
 
         unitSize.width = splitWidth[i]*factor;
         unitSize.height = borderHeight[j];
@@ -1988,9 +1994,11 @@ DrawBorderImage(nsPresContext*       aPresContext,
         fillStyleV = NS_STYLE_BORDER_IMAGE_STRETCH;
 
       } else if (j == MIDDLE) { 
-        gfxFloat factor = 1.0;
+        gfxFloat factor;
         if (0 < borderWidth[i] && 0 < splitWidth[i])
           factor = gfxFloat(borderWidth[i])/splitWidth[i];
+        else
+          factor = nsPresContext::CSSPixelsToAppUnits(1);
 
         unitSize.width = borderWidth[i];
         unitSize.height = splitHeight[j]*factor;
