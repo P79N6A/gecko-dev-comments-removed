@@ -230,7 +230,7 @@ bool UndefineDosDevice(const unsigned short* device_name) {
                           target_path.get()) == TRUE;
 }
 
-bool DefineDosDeviceIfNotExists(unsigned short* device_name) {
+bool DefineDosDeviceIfNotExists(unsigned short* device_name, bool* dosDeviceDefined) {
 
   
   nsString target_path;
@@ -254,6 +254,7 @@ bool DefineDosDeviceIfNotExists(unsigned short* device_name) {
                         target_path.get())) {
     return false;
   }
+  *dosDeviceDefined = true;
   
   return QueryDosDeviceW(device_name, target, kStringLength) > 0 &&
     target_path.Equals(target);
@@ -364,7 +365,8 @@ nsWifiMonitor::DoScan()
         unsigned short *service_name = (PRUnichar*) s->get();
         
 #ifndef WINCE        
-        if (!DefineDosDeviceIfNotExists(service_name))
+        bool dosDeviceDefined = false;
+        if (!DefineDosDeviceIfNotExists(service_name, &dosDeviceDefined))
           continue;
 
         
@@ -463,7 +465,8 @@ nsWifiMonitor::DoScan()
         }
         
 #ifndef WINCE
-        UndefineDosDevice(service_name);
+        if (dosDeviceDefined)
+          UndefineDosDevice(service_name);
 #endif
       }
      
