@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsNavBookmarks.h"
 #include "nsNavHistory.h"
@@ -2531,6 +2532,15 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI *aNewURI)
   if (!placeId)
     return NS_ERROR_INVALID_ARG;
 
+  
+  
+  nsCOMPtr<nsIURI> oldURI;
+  PRInt64 oldPlaceId;
+  rv = GetBookmarkURI(aBookmarkId, getter_AddRefs(oldURI));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = History()->GetUrlIdFor(oldURI, &oldPlaceId, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCOMPtr<mozIStorageStatement> statement;
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "UPDATE moz_bookmarks SET fk = ?1 WHERE id = ?2"),
@@ -2549,16 +2559,53 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI *aNewURI)
 
   
   
+  
   rv = History()->UpdateFrecency(placeId, PR_TRUE );
   NS_ENSURE_SUCCESS(rv, rv);
 
-#if 0
   
   
   
-  rv = History()->UpdateFrecency(oldPlaceId,  PR_FALSE );
+  
+  
+  
+  PRBool isBookmarked = PR_FALSE;
+
+  nsCOMPtr<mozIStorageStatement> isBookmarkedStmt;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT id "
+      "FROM moz_bookmarks "
+      "WHERE fk = ?1 AND "
+            "type = ?2 AND "
+            "parent NOT IN ("
+              "SELECT a.item_id "
+              "FROM moz_items_annos a "
+              "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
+              "WHERE n.name = ?3"
+            ")"),
+    getter_AddRefs(isBookmarkedStmt));
   NS_ENSURE_SUCCESS(rv, rv);
-#endif
+
+  {
+    mozStorageStatementScoper scope(isBookmarkedStmt);
+
+    rv = isBookmarkedStmt->BindInt64Parameter(0, oldPlaceId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = isBookmarkedStmt->BindInt32Parameter(1, TYPE_BOOKMARK);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = isBookmarkedStmt->BindUTF8StringParameter(
+           2, NS_LITERAL_CSTRING(LMANNO_FEEDURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    rv = isBookmarkedStmt->ExecuteStep(&isBookmarked);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  rv = History()->UpdateFrecency(oldPlaceId, isBookmarked);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCAutoString spec;
   rv = aNewURI->GetSpec(spec);

@@ -629,7 +629,12 @@ function startExpireBoth() {
   dump("starting expiration test 3: both criteria met\n");
   
   
-  bmsvc.changeBookmarkURI(bookmark, testURI);
+  
+  
+  
+  
+  
+  
   
   
   var age = (Date.now() - (86400 * 2 * 1000)) * 1000;
