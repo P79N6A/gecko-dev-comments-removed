@@ -504,6 +504,12 @@ public:
   
 
 
+  static nsIFrame*
+  GetNextContinuationOrSpecialSibling(nsIFrame *aFrame);
+
+  
+
+
 
 
 

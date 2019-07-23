@@ -479,20 +479,6 @@ GetLastSpecialSibling(nsFrameManager* aFrameManager, nsIFrame* aFrame)
   return nsnull;
 }
 
-
-
-static nsIFrame*
-GetNifOrSpecialSibling(nsFrameManager *aFrameManager, nsIFrame *aFrame)
-{
-  nsIFrame *result = aFrame->GetNextContinuation();
-  if (result)
-    return result;
-
-  if (IsFrameSpecial(aFrame))
-    GetSpecialSibling(aFrameManager, aFrame, &result);
-  return result;
-}
-
 static void
 SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
 {
@@ -9672,7 +9658,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
   NS_PRECONDITION(gInApplyRenderingChangeToTree,
                   "should only be called within ApplyRenderingChangeToTree");
 
-  for ( ; aFrame; aFrame = GetNifOrSpecialSibling(aFrameManager, aFrame)) {
+  for ( ; aFrame; aFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(aFrame)) {
     
     
     
@@ -10749,7 +10735,7 @@ nsCSSFrameConstructor::FindFrameWithContent(nsFrameManager*  aFrameManager,
             nsIFrame *parentFrame = kidFrame->GetParent();
             kidFrame = nsnull;
             if (parentFrame) {
-              parentFrame = GetNifOrSpecialSibling(aFrameManager, parentFrame);
+              parentFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(parentFrame);
             }
             if (parentFrame) {
               
@@ -10832,7 +10818,7 @@ nsCSSFrameConstructor::FindFrameWithContent(nsFrameManager*  aFrameManager,
 
     
     
-    aParentFrame = GetNifOrSpecialSibling(aFrameManager, aParentFrame);
+    aParentFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(aParentFrame);
 #ifdef NOISY_FINDFRAME
     if (aParentFrame) {
       FFWC_nextInFlows++;
