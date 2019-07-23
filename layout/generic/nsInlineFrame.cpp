@@ -790,6 +790,16 @@ nsInlineFrame::PullOneFrame(nsPresContext* aPresContext,
         ReparentFloatsForInlineChild(irs.mLineContainer, frame, PR_FALSE);
       }
       nextInFlow->mFrames.RemoveFirstChild();
+
+      
+      
+      if (!nextInFlow->mFrames.FirstChild()) {
+        nsAutoPtr<nsFrameList> overflowFrames(nextInFlow->StealOverflowFrames());
+        if (overflowFrames) {
+          nextInFlow->mFrames.SetFrames(*overflowFrames);
+        }
+      }
+
       mFrames.InsertFrame(this, irs.mPrevFrame, frame);
       isComplete = PR_FALSE;
       if (irs.mLineLayout) {
