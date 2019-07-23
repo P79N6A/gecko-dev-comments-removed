@@ -65,4 +65,10 @@ function do_test() {
 
   
   do_check_false(pb.autoStarted);
+
+  
+  pb.privateBrowsingEnabled = true;
+
+  
+  do_check_true(pb.autoStarted);
 }

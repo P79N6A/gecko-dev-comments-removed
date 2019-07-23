@@ -1218,7 +1218,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
     focusElement(content);
 
   if (gURLBar)
-    gURLBar.setAttribute("emptytext", gURLBar.getAttribute("delayedemptytext"));
+    gURLBar.setAttribute("emptytext", gURLBarEmptyText.value);
 
   gNavToolbox.customizeDone = BrowserToolboxCustomizeDone;
   gNavToolbox.customizeChange = BrowserToolboxCustomizeChange;
@@ -1232,6 +1232,8 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
                            gAutoHideTabbarPrefListener, false);
 
   gPrefService.addObserver(gHomeButton.prefDomain, gHomeButton, false);
+
+  gPrefService.addObserver(gURLBarEmptyText.domain, gURLBarEmptyText, false);
 
   var homeButton = document.getElementById("home-button");
   gHomeButton.updateTooltip(homeButton);
@@ -1401,6 +1403,7 @@ function BrowserShutdown()
     gPrefService.removeObserver(gAutoHideTabbarPrefListener.domain,
                                 gAutoHideTabbarPrefListener);
     gPrefService.removeObserver(gHomeButton.prefDomain, gHomeButton);
+    gPrefService.removeObserver(gURLBarEmptyText.domain, gURLBarEmptyText);
   } catch (ex) {
     Components.utils.reportError(ex);
   }
@@ -1459,7 +1462,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome:
+  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1748,14 +1751,14 @@ function openLocation() {
     }
     else {
       
-      win = window.openDialog("chrome:
+      win = window.openDialog("chrome://browser/content/", "_blank",
                               "chrome,all,dialog=no", "about:blank");
       win.addEventListener("load", openLocationCallback, false);
     }
     return;
   }
 #endif
-  openDialog("chrome:
+  openDialog("chrome://browser/content/openLocation.xul", "_blank",
              "chrome,modal,titlebar", window);
 }
 
@@ -1769,7 +1772,7 @@ function BrowserOpenTab()
 {
   if (!gBrowser) {
     
-    window.openDialog("chrome:
+    window.openDialog("chrome://browser/content/", "_blank",
                       "chrome,all,dialog=no", "about:blank");
     return;
   }
@@ -2036,7 +2039,7 @@ function BrowserPageInfo(doc, initialTab)
   var args = {doc: doc, initialTab: initialTab};
   return toOpenDialogByTypeAndUrl("Browser:page-info",
                                   doc ? doc.location : window.content.document.location,
-                                  "chrome:
+                                  "chrome://browser/content/pageinfo/pageInfo.xul",
                                   "chrome,toolbar,dialog=no,resizable",
                                   args);
 }
@@ -2262,11 +2265,11 @@ function BrowserImport()
   if (win)
     win.focus();
   else {
-    window.openDialog("chrome:
+    window.openDialog("chrome://browser/content/migration/migration.xul",
                       "migration", "centerscreen,chrome,resizable=no");
   }
 #else
-  window.openDialog("chrome:
+  window.openDialog("chrome://browser/content/migration/migration.xul",
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
@@ -2299,7 +2302,7 @@ function BrowserOnCommand(event) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
         
-        window.openDialog('chrome:
+        window.openDialog('chrome://pippki/content/exceptionDialog.xul',
                           '','chrome,centerscreen,modal', params);
         
         
@@ -2382,7 +2385,7 @@ function BrowserOnCommand(event) {
         notificationBox.appendNotification(
           title,
           "blocked-badware-page",
-          "chrome:
+          "chrome://global/skin/icons/blacklist_favicon.png",
           notificationBox.PRIORITY_CRITICAL_HIGH,
           buttons
         );
@@ -2556,10 +2559,10 @@ function getMarkupDocumentViewer()
 function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
-  if (tipElement.namespaceURI == "http:
+  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul")
     return retVal;
 
-  const XLinkNS = "http:
+  const XLinkNS = "http://www.w3.org/1999/xlink";
 
 
   var titleText = null;
@@ -3014,7 +3017,7 @@ const BrowserSearch = {
           setTimeout(BrowserSearch.webSearch, 0);
         }
 
-        win = window.openDialog("chrome://browser/content/", "_blank",
+        win = window.openDialog("chrome:
                                 "chrome,all,dialog=no", "about:blank");
         win.addEventListener("load", webSearchCallback, false);
       }
@@ -3163,7 +3166,7 @@ function addToUrlbarHistory(aUrlToAdd) {
 
 function toJavaScriptConsole()
 {
-  toOpenWindowByType("global:console", "chrome://global/content/console.xul");
+  toOpenWindowByType("global:console", "chrome:
 }
 
 function BrowserDownloadsUI()
@@ -3290,7 +3293,7 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   if (aToolboxChanged) {
     gURLBar = document.getElementById("urlbar");
     if (gURLBar)
-      gURLBar.emptyText = gURLBar.getAttribute("delayedemptytext");
+      gURLBar.emptyText = gURLBarEmptyText.value;
 
     gProxyFavIcon = document.getElementById("page-proxy-favicon");
     gHomeButton.updateTooltip();
@@ -6952,9 +6955,8 @@ let gPrivateBrowsingUI = {
 
     if (this._privateBrowsingAutoStarted) {
       
-      let pbMenuItem = document.getElementById("privateBrowsingItem");
-      if (pbMenuItem)
-        pbMenuItem.setAttribute("disabled", "true");
+      document.getElementById("privateBrowsingItem")
+              .setAttribute("disabled", "true");
       document.getElementById("Tools:PrivateBrowsing")
               .setAttribute("disabled", "true");
     }
@@ -6994,15 +6996,19 @@ let gPrivateBrowsingUI = {
       docElement.setAttribute("browsingmode", "normal");
     }
 
+    
+    document.getElementById("privateBrowsingItem")
+            .removeAttribute("disabled");
+    document.getElementById("Tools:PrivateBrowsing")
+            .removeAttribute("disabled");
+
     this._privateBrowsingAutoStarted = false;
   },
 
   _setPBMenuTitle: function PBUI__setPBMenuTitle(aMode) {
     let pbMenuItem = document.getElementById("privateBrowsingItem");
-    if (pbMenuItem) {
-      pbMenuItem.setAttribute("label", pbMenuItem.getAttribute(aMode + "label"));
-      pbMenuItem.setAttribute("accesskey", pbMenuItem.getAttribute(aMode + "accesskey"));
-    }
+    pbMenuItem.setAttribute("label", pbMenuItem.getAttribute(aMode + "label"));
+    pbMenuItem.setAttribute("accesskey", pbMenuItem.getAttribute(aMode + "accesskey"));
   },
 
   toggleMode: function PBUI_toggleMode() {
@@ -7017,5 +7023,39 @@ let gPrivateBrowsingUI = {
 
   get privateBrowsingEnabled PBUI_get_privateBrowsingEnabled() {
     return this._privateBrowsingService.privateBrowsingEnabled;
+  }
+};
+
+let gURLBarEmptyText = {
+  domain: "browser.urlbar.",
+
+  observe: function UBET_observe(aSubject, aTopic, aPrefName) {
+    if (aTopic == "nsPref:changed") {
+      switch (aPrefName) {
+      case "browser.urlbar.autocomplete.enabled":
+      case "browser.urlbar.default.behavior":
+        gURLBar.emptyText = this.value;
+        break;
+      }
+    }
+  },
+
+  get value UBET_get_value() {
+    let type = "none";
+    if (gPrefService.getBoolPref("browser.urlbar.autocomplete.enabled")) {
+      
+      switch (gPrefService.getIntPref("browser.urlbar.default.behavior") & 3) {
+      case 0:
+        type = "bookmarkhistory";
+        break;
+      case 1:
+        type = "history";
+        break;
+      case 2:
+        type = "bookmark";
+        break;
+      }
+    }
+    return gURLBar.getAttribute(type + "emptytext");
   }
 };
