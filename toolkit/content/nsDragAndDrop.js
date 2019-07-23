@@ -38,9 +38,6 @@
 # ***** END LICENSE BLOCK *****
 
 
-const kNonStringDataLength = 4;
-
-
 
 
 
@@ -479,6 +476,9 @@ var nsDragAndDrop = {
           if (Array.indexOf(types, modtype) >= 0) {
             var data = dt.mozGetDataAt(modtype, i);
             if (data) {
+              
+              const kNonStringDataLength = 4;
+
               var length = (typeof data == "string") ? data.length : kNonStringDataLength;
               dataArray[i] = FlavourToXfer(data, length, flavourSet.flavourTable[type]);
               break;
