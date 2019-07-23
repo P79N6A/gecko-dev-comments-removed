@@ -19,6 +19,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsgfxdefs_h
 #define _nsgfxdefs_h
 
