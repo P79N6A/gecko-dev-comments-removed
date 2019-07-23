@@ -49,37 +49,30 @@
 
 
 
-#if defined(_WIN32) && (_MSC_VER >= 1300) && defined(_M_IX86)
-#  include <stdlib.h>
-#  pragma intrinsic(_byteswap_ushort,_byteswap_ulong)
-#  define GFX_BYTESWAP16(x) _byteswap_ushort(x)
-#  define GFX_BYTESWAP32(x) _byteswap_ulong(x)
-#  define _GFX_USE_INTRIN_BYTESWAP_
-#elif defined(FREEBSD) && defined(__i386__)
-#  include <sys/endian.h>
-#  define GFX_BYTESWAP16(x) bswap16(x)
-#  define GFX_BYTESWAP32(x) bswap32(x)
-#  define _GFX_USE_INTRIN_BYTESWAP_
-#elif defined(__GNUC__) && (__GNUC__ >= 2) && defined(__i386__) && !defined(XP_MACOSX) && !defined(XP_OS2)
-#  include <byteswap.h>
-#  define GFX_BYTESWAP16(x) bswap_16(x)
-#  define GFX_BYTESWAP32(x) bswap_32(x)
-#  define _GFX_USE_INTRIN_BYTESWAP_
+
+
+
+#if defined(_WIN32)
+  #if defined(IS_BIG_ENDIAN)
+    #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+         ( (*((PRUint32 *)(pbptr)) >> 8) | (0xFF << 24) )
+  #elif (_MSC_VER >= 1300) 
+    #include <stdlib.h>
+    #pragma intrinsic(_byteswap_ulong)
+    #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+         ( (_byteswap_ulong(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24) )
+  #else
+    
+    #define GFX_BYTESWAP24FF(x) \
+         ( ((((x) << 16) | ((x) >> 16)) | 0xFF00FF00) & ((x) | 0xFFFF00FF) )
+    #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+         ( GFX_BYTESWAP24FF(*((PRUint32 *)(pbptr))) )
+    #endif
 #else
-#  define GFX_BYTESWAP16(x) ( (((x) & 0xff) << 8) | (((x) >> 8) & 0xff) )
-#  define GFX_BYTESWAP32(x) ( (GFX_BYTESWAP16((x) & 0xffff) << 16) | GFX_BYTESWAP16(x >> 16) )
+  #include "prio.h" 
+  #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
+       ( (ntohl(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24) )
 #endif
-
-
-
-
-#ifndef IS_BIG_ENDIAN
-#  define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-     (GFX_BYTESWAP32(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24)
-#else
-#  define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-     (*((PRUint32 *)(pbptr)) >> 8) | (0xFF << 24)
-#endif 
 
 
 
