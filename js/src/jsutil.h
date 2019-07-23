@@ -74,17 +74,6 @@ JS_Assert(const char *s, const char *file, JSIntn ln);
 
 #endif 
 
-#ifdef HAVE_SSE2
-#ifdef MUST_DETECT_SSE2
-extern bool js_use_SSE2;
-
-bool
-js_DetectSSE2();
-#else
-static const bool js_use_SSE2 = true;
-#endif
-#endif
-
 
 
 
