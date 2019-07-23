@@ -59,7 +59,7 @@ public:
 
   PRBool ClipHitTest(nsISVGChildFrame* aParent,
                      nsIDOMSVGMatrix *aMatrix,
-                     float aX, float aY);
+                     const nsPoint &aPoint);
 
   
   

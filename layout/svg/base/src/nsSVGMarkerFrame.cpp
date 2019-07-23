@@ -205,7 +205,7 @@ nsSVGMarkerFrame::RegionMark(nsSVGPathGeometryFrame *aMarkedFrame,
   
   
   if (mInUse)
-    return nsRect();
+    return nsRect(0,0,0,0);
 
   AutoMarkerReferencer markerRef(this, aMarkedFrame);
 

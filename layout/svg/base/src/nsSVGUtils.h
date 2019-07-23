@@ -203,25 +203,25 @@ public:
 
   static void UnPremultiplyImageDataAlpha(PRUint8 *data, 
                                           PRInt32 stride, 
-                                          const nsRect &rect);
+                                          const nsIntRect &rect);
   
 
 
   static void PremultiplyImageDataAlpha(PRUint8 *data, 
                                         PRInt32 stride, 
-                                        const nsRect &rect);
+                                        const nsIntRect &rect);
   
 
 
   static void ConvertImageDataToLinearRGB(PRUint8 *data, 
                                           PRInt32 stride, 
-                                          const nsRect &rect);
+                                          const nsIntRect &rect);
   
 
 
   static void ConvertImageDataFromLinearRGB(PRUint8 *data, 
                                             PRInt32 stride, 
-                                            const nsRect &rect);
+                                            const nsIntRect &rect);
 
   
 
@@ -341,7 +341,7 @@ public:
 
   static void
   PaintChildWithEffects(nsSVGRenderState *aContext,
-                        nsRect *aDirtyRect,
+                        nsIntRect *aDirtyRect,
                         nsIFrame *aFrame);
 
   
@@ -353,15 +353,13 @@ public:
 
   
 
-
-
   static PRBool
-  HitTestClip(nsIFrame *aFrame, float x, float y);
+  HitTestClip(nsIFrame *aFrame, const nsPoint &aPoint);
+  
+  
 
-  
-  
-  static void
-  HitTestChildren(nsIFrame *aFrame, float x, float y, nsIFrame **aResult);
+  static nsIFrame *
+  HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint);
 
   
   static void
@@ -393,9 +391,10 @@ public:
 
 
   static nsRect
-  ToBoundingPixelRect(double xmin, double ymin, double xmax, double ymax);
+  ToAppPixelRect(nsPresContext *aPresContext,
+                 double xmin, double ymin, double xmax, double ymax);
   static nsRect
-  ToBoundingPixelRect(const gfxRect& rect);
+  ToAppPixelRect(nsPresContext *aPresContext, const gfxRect& rect);
 
   
 
