@@ -106,16 +106,17 @@
 
 
 
+
+
 #define CREATE_PLACES_VIEW_UPDATE_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMPORARY TRIGGER moz_places_view_update_trigger " \
   "INSTEAD OF UPDATE " \
   "ON moz_places_view " \
   "BEGIN " \
-    "INSERT INTO moz_places_temp " \
+    "INSERT OR IGNORE INTO moz_places_temp " \
     "SELECT * " \
     "FROM moz_places " \
-    "WHERE id = OLD.id " \
-    "AND id NOT IN (SELECT id FROM moz_places_temp); " \
+    "WHERE id = OLD.id; " \
     "UPDATE moz_places_temp " \
     "SET url = IFNULL(NEW.url, OLD.url), " \
         "title = IFNULL(NEW.title, OLD.title), " \
@@ -135,6 +136,8 @@
 
 
 
+
+
 #define CREATE_HISTORYVISITS_VIEW_INSERT_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMPORARY TRIGGER moz_historyvisits_view_insert_trigger " \
   "INSTEAD OF INSERT " \
@@ -147,12 +150,19 @@
                 "(SELECT IFNULL(MAX(id), 0) FROM moz_historyvisits)) + 1, " \
             "NEW.from_visit, NEW.place_id, NEW.visit_date, NEW.visit_type, " \
             "NEW.session); " \
-    "UPDATE moz_places_view " \
+    "INSERT OR IGNORE INTO moz_places_temp " \
+    "SELECT * " \
+    "FROM moz_places " \
+    "WHERE id = NEW.place_id " \
+    "AND NEW.visit_type NOT IN (0, 4, 7); " \
+    "UPDATE moz_places_temp " \
     "SET visit_count = visit_count + 1 " \
     "WHERE id = NEW.place_id " \
     "AND NEW.visit_type NOT IN (0, 4, 7); " /* invalid, EMBED, DOWNLOAD */ \
   "END" \
 )
+
+
 
 
 
@@ -169,12 +179,19 @@
     "WHERE id = OLD.id; " \
     "DELETE FROM moz_historyvisits " \
     "WHERE id = OLD.id; " \
-    "UPDATE moz_places_view " \
+    "INSERT OR IGNORE INTO moz_places_temp " \
+    "SELECT * " \
+    "FROM moz_places " \
+    "WHERE id = OLD.place_id " \
+    "AND OLD.visit_type NOT IN (0, 4, 7); " \
+    "UPDATE moz_places_temp " \
     "SET visit_count = visit_count - 1 " \
-    "WHERE moz_places_view.id = OLD.place_id " \
+    "WHERE id = OLD.place_id " \
     "AND OLD.visit_type NOT IN (0, 4, 7); " /* invalid, EMBED, DOWNLOAD */ \
   "END" \
 )
+
+
 
 
 
@@ -187,11 +204,10 @@
   "INSTEAD OF UPDATE " \
   "ON moz_historyvisits_view " \
   "BEGIN " \
-    "INSERT INTO moz_historyvisits_temp " \
+    "INSERT OR IGNORE INTO moz_historyvisits_temp " \
     "SELECT * " \
     "FROM moz_historyvisits " \
-    "WHERE id = OLD.id " \
-    "AND id NOT IN (SELECT id FROM moz_historyvisits_temp); " \
+    "WHERE id = OLD.id; " \
     "UPDATE moz_historyvisits_temp " \
     "SET from_visit = IFNULL(NEW.from_visit, OLD.from_visit), " \
         "place_id = IFNULL(NEW.place_id, OLD.place_id), " \
