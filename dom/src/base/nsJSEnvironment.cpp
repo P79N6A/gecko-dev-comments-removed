@@ -407,7 +407,7 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
 
     static PRInt32 errorDepth; 
     ++errorDepth;
-    
+
     if (presContext && errorDepth < 2) {
       
       
@@ -619,7 +619,7 @@ LocaleToUnicode(JSContext *cx, char *src, jsval *rval)
 
   if (!gDecoder) {
     
-    nsCOMPtr<nsILocaleService> localeService = 
+    nsCOMPtr<nsILocaleService> localeService =
       do_GetService(NS_LOCALESERVICE_CONTRACTID, &rv);
     if (NS_SUCCEEDED(rv)) {
       nsCOMPtr<nsILocale> appLocale;
@@ -929,9 +929,9 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   if (debugPossible) {
     PRBool jsds_IsOn = PR_FALSE;
     const char jsdServiceCtrID[] = "@mozilla.org/js/jsd/debugger-service;1";
-    nsCOMPtr<jsdIExecutionHook> jsdHook;  
+    nsCOMPtr<jsdIExecutionHook> jsdHook;
     nsCOMPtr<jsdIDebuggerService> jsds = do_GetService(jsdServiceCtrID, &rv);
-  
+
     
     if (NS_SUCCEEDED(rv)) {
       jsds->GetDebuggerHook(getter_AddRefs(jsdHook));
@@ -959,7 +959,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   stringService->CreateBundle(kDOMStringBundleURL, getter_AddRefs(bundle));
   if (!bundle)
     return JS_TRUE;
-  
+
   nsXPIDLString title, msg, stopButton, waitButton, debugButton, neverShowDlg;
 
   rv = bundle->GetStringFromName(NS_LITERAL_STRING("KillScriptTitle").get(),
@@ -1515,10 +1515,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   
   
-  
-  
-  
-  jsval val;
+  jsval val = JSVAL_VOID;
+  jsval* vp = aRetValue ? &val : NULL;
 
   nsJSContext::TerminationFuncHolder holder(this);
 
@@ -1536,7 +1534,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
                                               aScript.Length(),
                                               aURL,
                                               aLineNo,
-                                              &val);
+                                              vp);
 
     if (!ok) {
       
@@ -1962,7 +1960,7 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
       stack->Pop(nsnull);
       return rv;
     }
-  
+
     AutoFreeJSStack stackGuard(mContext, mark); 
 
     jsval funval = OBJECT_TO_JSVAL(aHandler);
@@ -2025,7 +2023,7 @@ nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, void *aScope,
   NS_ENSURE_SUCCESS(rv, rv);
 
   JSObject *funobj = (JSObject*) aHandler;
-  
+
   JSAutoRequest ar(mContext);
 
   NS_ASSERTION(JS_TypeOfValue(mContext, OBJECT_TO_JSVAL(funobj)) == JSTYPE_FUNCTION,
@@ -2080,10 +2078,10 @@ nsJSContext::GetBoundEventHandler(nsISupports* aTarget, void *aScope,
     const char *charName = AtomToEventHandlerName(aName);
 
     jsval funval;
-    if (!JS_LookupProperty(mContext, obj, 
+    if (!JS_LookupProperty(mContext, obj,
                            charName, &funval))
         return NS_ERROR_FAILURE;
-    
+
     if (JS_TypeOfValue(mContext, funval) != JSTYPE_FUNCTION) {
         NS_WARNING("Event handler object not a function");
         aHandler.drop();
@@ -2221,7 +2219,7 @@ nsJSContext::Deserialize(nsIObjectInputStream* aStream,
     
     
     NS_ENSURE_SUCCESS(rv, rv);
-    
+
     return aResult.set(result);
 }
 
@@ -2378,7 +2376,7 @@ nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
   if (!global) {
     nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(aGlobalObject));
     PRUint32 flags = 0;
-    
+
     if (chromeWindow) {
       
       
@@ -2545,7 +2543,7 @@ nsJSContext::ConvertSupportsTojsvals(nsISupports *aArgs,
       }
       nsCOMPtr<nsIVariant> variant(do_QueryInterface(arg));
       if (variant != nsnull) {
-        rv = xpc->VariantToJS(mContext, (JSObject *)aScope, variant, 
+        rv = xpc->VariantToJS(mContext, (JSObject *)aScope, variant,
                               thisval);
       } else {
         
@@ -2617,7 +2615,7 @@ nsJSContext::AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv)
 
       p->GetData(data);
 
-      
+
       JSString *str = ::JS_NewStringCopyN(cx, data.get(), data.Length());
       NS_ENSURE_TRUE(str, NS_ERROR_OUT_OF_MEMORY);
 
@@ -2814,7 +2812,7 @@ nsJSContext::FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder)
   JSObject *globalObj;
   aHolder->GetJSObject(&globalObj);
   NS_ASSERTION(globalObj, "Must have global by now!");
-      
+
   const char* arg = "arg";
   NS_NAMED_LITERAL_STRING(body, "return new XPCNativeWrapper(arg);");
 
@@ -2834,7 +2832,7 @@ nsJSContext::FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder)
 
   jsval globalVal = OBJECT_TO_JSVAL(globalObj);
   jsval wrapper;
-      
+
   JSBool ok = ::JS_CallFunction(mContext, globalObj, fun,
                                 1, &globalVal, &wrapper);
   if (!ok) {
@@ -3166,7 +3164,7 @@ nsJSContext::InitClasses(void *aGlobalObj)
 #endif
 
   JSOptionChangedCallback(js_options_dot_str, this);
-    
+
   return rv;
 }
 
@@ -3256,7 +3254,7 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
     
     nsJSContext::TerminationFuncClosure* start = mTerminations;
     mTerminations = nsnull;
-    
+
     for (nsJSContext::TerminationFuncClosure* cur = start;
          cur;
          cur = cur->mNext) {
