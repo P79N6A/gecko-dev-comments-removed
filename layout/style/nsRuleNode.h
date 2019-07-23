@@ -332,6 +332,42 @@ private:
                        
   nsIStyleRule* mRule; 
 
+  struct Key {
+    nsIStyleRule* mRule;
+    PRUint8 mLevel;
+    PRPackedBool mIsImportantRule;
+
+    Key(nsIStyleRule* aRule, PRUint8 aLevel, PRPackedBool aIsImportantRule)
+      : mRule(aRule), mLevel(aLevel), mIsImportantRule(aIsImportantRule)
+    {}
+
+    PRBool operator==(const Key& aOther) const
+    {
+      return mRule == aOther.mRule &&
+             mLevel == aOther.mLevel &&
+             mIsImportantRule == aOther.mIsImportantRule;
+    }
+
+    PRBool operator!=(const Key& aOther) const
+    {
+      return !(*this == aOther);
+    }
+  };
+
+  static PR_CALLBACK PLDHashNumber
+  ChildrenHashHashKey(PLDHashTable *aTable, const void *aKey);
+
+  static PR_CALLBACK PRBool
+  ChildrenHashMatchEntry(PLDHashTable *aTable,
+                         const PLDHashEntryHdr *aHdr,
+                         const void *aKey);
+
+  static PLDHashTableOps ChildrenHashOps;
+
+  Key GetKey() const {
+    return Key(mRule, GetLevel(), IsImportantRule());
+  }
+
   
   
   
@@ -629,16 +665,29 @@ protected:
 #endif
 
 private:
-  nsRuleNode(nsPresContext* aPresContext, nsIStyleRule* aRule,
-             nsRuleNode* aParent) NS_HIDDEN;
+  nsRuleNode(nsPresContext* aPresContext, nsRuleNode* aParent,
+             nsIStyleRule* aRule, PRUint8 aLevel, PRBool aIsImportant)
+    NS_HIDDEN;
   ~nsRuleNode() NS_HIDDEN;
 
 public:
   static NS_HIDDEN_(nsRuleNode*) CreateRootNode(nsPresContext* aPresContext);
 
-  NS_HIDDEN_(nsresult) Transition(nsIStyleRule* aRule, nsRuleNode** aResult);
+  NS_HIDDEN_(nsRuleNode*) Transition(nsIStyleRule* aRule, PRUint8 aLevel,
+                                     PRPackedBool aIsImportantRule);
   nsRuleNode* GetParent() const { return mParent; }
   PRBool IsRoot() const { return mParent == nsnull; }
+
+  
+  PRUint8 GetLevel() const { 
+    NS_ASSERTION(!IsRoot(), "can't call on root");
+    return (mDependentBits & NS_RULE_NODE_LEVEL_MASK) >>
+             NS_RULE_NODE_LEVEL_SHIFT;
+  }
+  PRBool IsImportantRule() const {
+    NS_ASSERTION(!IsRoot(), "can't call on root");
+    return (mDependentBits & NS_RULE_NODE_IS_IMPORTANT) != 0;
+  }
 
   
   nsIStyleRule* GetRule() const { return mRule; }

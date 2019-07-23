@@ -115,23 +115,37 @@ struct ChildrenHashEntry : public PLDHashEntryHdr {
   nsRuleNode *mRuleNode;
 };
 
-PR_STATIC_CALLBACK(PRBool)
-ChildrenHashMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
-                         const void *key)
+ PR_CALLBACK PLDHashNumber
+nsRuleNode::ChildrenHashHashKey(PLDHashTable *aTable, const void *aKey)
 {
-  const ChildrenHashEntry *entry =
-    NS_STATIC_CAST(const ChildrenHashEntry*, hdr);
-  return entry->mRuleNode->GetRule() == key;
+  const nsRuleNode::Key *key =
+    NS_STATIC_CAST(const nsRuleNode::Key*, aKey);
+  
+  
+  return PL_DHashVoidPtrKeyStub(aTable, key->mRule);
 }
 
-static PLDHashTableOps ChildrenHashOps = {
+ PR_CALLBACK PRBool
+nsRuleNode::ChildrenHashMatchEntry(PLDHashTable *aTable,
+                                   const PLDHashEntryHdr *aHdr,
+                                   const void *aKey)
+{
+  const ChildrenHashEntry *entry =
+    NS_STATIC_CAST(const ChildrenHashEntry*, aHdr);
+  const nsRuleNode::Key *key =
+    NS_STATIC_CAST(const nsRuleNode::Key*, aKey);
+  return entry->mRuleNode->GetKey() == *key;
+}
+
+ PLDHashTableOps
+nsRuleNode::ChildrenHashOps = {
   
   
   
   
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  PL_DHashVoidPtrKeyStub,
+  ChildrenHashHashKey,
   ChildrenHashMatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
@@ -401,21 +415,28 @@ nsRuleNode::Destroy()
 
 nsRuleNode* nsRuleNode::CreateRootNode(nsPresContext* aPresContext)
 {
-  return new (aPresContext) nsRuleNode(aPresContext, nsnull, nsnull);
+  return new (aPresContext)
+    nsRuleNode(aPresContext, nsnull, nsnull, 0xff, PR_FALSE);
 }
 
 nsILanguageAtomService* nsRuleNode::gLangService = nsnull;
 
-nsRuleNode::nsRuleNode(nsPresContext* aContext, nsIStyleRule* aRule, nsRuleNode* aParent)
+nsRuleNode::nsRuleNode(nsPresContext* aContext, nsRuleNode* aParent,
+                       nsIStyleRule* aRule, PRUint8 aLevel,
+                       PRBool aIsImportant)
   : mPresContext(aContext),
     mParent(aParent),
     mRule(aRule),
     mChildrenTaggedPtr(nsnull),
-    mDependentBits(0),
+    mDependentBits((PRUint32(aLevel) << NS_RULE_NODE_LEVEL_SHIFT) |
+                   (aIsImportant ? NS_RULE_NODE_IS_IMPORTANT : 0)),
     mNoneBits(0)
 {
   MOZ_COUNT_CTOR(nsRuleNode);
   NS_IF_ADDREF(mRule);
+
+  NS_ASSERTION(IsRoot() || GetLevel() == aLevel, "not enough bits");
+  NS_ASSERTION(IsRoot() || IsImportantRule() == aIsImportant, "yikes");
 }
 
 PR_STATIC_CALLBACK(PLDHashOperator)
@@ -441,15 +462,17 @@ nsRuleNode::~nsRuleNode()
   NS_IF_RELEASE(mRule);
 }
 
-nsresult 
-nsRuleNode::Transition(nsIStyleRule* aRule, nsRuleNode** aResult)
+nsRuleNode*
+nsRuleNode::Transition(nsIStyleRule* aRule, PRUint8 aLevel,
+                       PRPackedBool aIsImportantRule)
 {
   nsRuleNode* next = nsnull;
+  nsRuleNode::Key key(aRule, aLevel, aIsImportantRule);
 
   if (HaveChildren() && !ChildrenAreHashed()) {
     PRInt32 numKids = 0;
     nsRuleList* curr = ChildrenList();
-    while (curr && curr->mRuleNode->mRule != aRule) {
+    while (curr && curr->mRuleNode->GetKey() != key) {
       curr = curr->mNext;
       ++numKids;
     }
@@ -461,40 +484,36 @@ nsRuleNode::Transition(nsIStyleRule* aRule, nsRuleNode** aResult)
 
   if (ChildrenAreHashed()) {
     ChildrenHashEntry *entry = NS_STATIC_CAST(ChildrenHashEntry*,
-        PL_DHashTableOperate(ChildrenHash(), aRule, PL_DHASH_ADD));
+        PL_DHashTableOperate(ChildrenHash(), &key, PL_DHASH_ADD));
     if (!entry) {
-      *aResult = nsnull;
-      return NS_ERROR_OUT_OF_MEMORY;
+      return nsnull;
     }
     if (entry->mRuleNode)
       next = entry->mRuleNode;
     else {
-      next = entry->mRuleNode =
-          new (mPresContext) nsRuleNode(mPresContext, aRule, this);
+      next = entry->mRuleNode = new (mPresContext)
+        nsRuleNode(mPresContext, this, aRule, aLevel, aIsImportantRule);
       if (!next) {
         PL_DHashTableRawRemove(ChildrenHash(), entry);
-        *aResult = nsnull;
-        return NS_ERROR_OUT_OF_MEMORY;
+        return nsnull;
       }
     }
   } else if (!next) {
     
-    next = new (mPresContext) nsRuleNode(mPresContext, aRule, this);
+    next = new (mPresContext)
+      nsRuleNode(mPresContext, this, aRule, aLevel, aIsImportantRule);
     if (!next) {
-      *aResult = nsnull;
-      return NS_ERROR_OUT_OF_MEMORY;
+      return nsnull;
     }
     nsRuleList* newChildrenList = new (mPresContext) nsRuleList(next, ChildrenList());
     if (NS_UNLIKELY(!newChildrenList)) {
       next->Destroy();
-      *aResult = nsnull;
-      return NS_ERROR_OUT_OF_MEMORY;
+      return nsnull;
     }
     SetChildrenList(newChildrenList);
   }
   
-  *aResult = next;
-  return NS_OK;
+  return next;
 }
 
 void

@@ -163,6 +163,7 @@ class nsStyleSet
     eSheetTypeCount
     
     
+    
   };
 
   
