@@ -4323,6 +4323,15 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         }
 
         
+        
+        if (authRetry || (mAuthRetryPending && NS_FAILED(status))) {
+            NS_ASSERTION(NS_FAILED(status), "should have a failure code here");
+            
+            
+            mListener->OnStartRequest(this, mListenerContext);
+        }
+
+        
         if (mTransactionReplaced)
             return NS_OK;
     }
