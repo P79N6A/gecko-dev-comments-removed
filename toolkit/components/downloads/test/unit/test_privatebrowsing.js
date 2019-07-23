@@ -149,40 +149,35 @@ function run_test() {
         case dm.DOWNLOAD_DOWNLOADING:
           if (aDownload.id == downloadC && !this.handledC && this.phase == 2) {
             
+            do_check_true(dlC.resumable);
+
+            
             pb.privateBrowsingEnabled = true;
             do_check_true(pb.privateBrowsingEnabled);
 
             
+            do_check_eq(dlC.state, dm.DOWNLOAD_PAUSED);
             do_check_eq(dm.activeDownloadCount, 0);
             do_check_false(is_download_available(downloadC, downloadCSource,
               fileC, downloadCName));
 
             
-            ++this.phase;
+            pb.privateBrowsingEnabled = false;
+            do_check_false(pb.privateBrowsingEnabled);
 
             
-            let timer = Cc["@mozilla.org/timer;1"].
-                        createInstance(Ci.nsITimer);
-            timer.initWithCallback(function (aTimer) {
-              
-              pb.privateBrowsingEnabled = false;
-              do_check_false(pb.privateBrowsingEnabled);
+            do_check_true(is_download_available(downloadA, downloadASource,
+              fileA, downloadAName));
 
-              
-              do_check_true(is_download_available(downloadA, downloadASource,
-                fileA, downloadAName));
+            
+            do_check_false(is_download_available(downloadB, downloadBSource,
+              fileB, downloadBName));
 
-              
-              do_check_false(is_download_available(downloadB, downloadBSource,
-                fileB, downloadBName));
+            
+            do_check_true(is_download_available(downloadC, downloadCSource,
+              fileC, downloadCName));
 
-              
-              do_check_true(is_download_available(downloadC, downloadCSource,
-                fileC, downloadCName));
-
-              
-              ++listener.phase;
-            }, 3000, Ci.nsITimer.TYPE_ONE_SHOT);
+            
             this.handledC = true;
           }
           break;
@@ -247,7 +242,7 @@ function run_test() {
             fileB, downloadBName));
 
           
-          let dlC = addDownload({
+          dlC = addDownload({
             targetFile: fileC,
             sourceURI: downloadCSource,
             downloadName: downloadCName,
@@ -263,15 +258,11 @@ function run_test() {
           downloadC = dlC.id;
 
           
+          ++this.phase;
         }
         break;
 
-        case 3:
-          
-          do_throw("Download-C has been finished inside private browsing mode");
-          break;
-
-        case 4: {
+        case 3: {
           do_check_eq(dm.activeDownloadCount, 0);
 
           
@@ -332,6 +323,9 @@ function run_test() {
   let fileC = tmpDir.clone();
   fileC.append(downloadCDest);
   fileC.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+
+  
+  let dlC;
 
   
   let dlA = addDownload({
