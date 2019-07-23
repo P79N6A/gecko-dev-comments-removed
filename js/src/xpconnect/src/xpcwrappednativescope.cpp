@@ -272,8 +272,13 @@ WrappedNativeJSGCThingTracer(JSDHashTable *table, JSDHashEntryHdr *hdr,
         JS_CALL_OBJECT_TRACER(trc, wrapper->GetFlatJSObject(),
                               "XPCWrappedNative::mFlatJSObject");
 
-        if (JS_IsGCMarkingTracer(trc))
-          nsCycleCollector_suspectCurrent(wrapper);
+        
+        
+        
+        
+        
+        
+        
     }
     return JS_DHASH_NEXT;
 }
