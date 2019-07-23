@@ -1,3 +1,39 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsNotifyAddrListener.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
@@ -13,19 +49,11 @@ static const GUID nal_DestNetInternet =
         { 0x436ef144, 0xb4fb, 0x4863, { 0xa0, 0x41, 0x8f, 0x90, 0x5a, 0x62, 0xc5, 0x72 } };
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsNotifyAddrListener,
-                              nsINetworkLinkService,
-                              nsITimerCallback)
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsNotifyAddrListener,
+                              nsINetworkLinkService)
 
 nsNotifyAddrListener::nsNotifyAddrListener()
-#ifdef wINCE_WINDOWS_MOBILE
-    : mLinkUp(PR_FALSE)  
-    , mStatusKnown(PR_FALSE)
-#else
-    : mLinkUp(PR_TRUE)  
-    , mStatusKnown(PR_TRUE)
-#endif
-    , mConnectionHandle(NULL)
+: mConnectionHandle(NULL)
 {
 }
 
@@ -34,9 +62,6 @@ nsNotifyAddrListener::~nsNotifyAddrListener()
 #ifdef WINCE_WINDOWS_MOBILE
   if (mConnectionHandle)
     ConnMgrReleaseConnection(mConnectionHandle, 0);
-
-  if (mTimer)
-    mTimer->Cancel();
 #endif
 }
 
@@ -57,11 +82,6 @@ nsNotifyAddrListener::Init(void)
   ConnMgrEstablishConnection(&conn_info, 
                              &mConnectionHandle);
 
-  mTimer = do_CreateInstance("@mozilla.org/timer;1");
-  if (mTimer)
-      mTimer->InitWithCallback(this,
-                               15*1000, 
-                               nsITimer::TYPE_REPEATING_SLACK);
 #endif
   return NS_OK;
 }
@@ -69,50 +89,33 @@ nsNotifyAddrListener::Init(void)
 NS_IMETHODIMP
 nsNotifyAddrListener::GetIsLinkUp(PRBool *aIsUp)
 {
-  *aIsUp = mLinkUp;
+#ifdef WINCE_WINDOWS_MOBILE
+  DWORD status;
+  HRESULT result = ConnMgrConnectionStatus(mConnectionHandle, &status);
+  if (FAILED(result)) {
+    *aIsUp = PR_FALSE;
+    return NS_ERROR_FAILURE;
+  }
+  *aIsUp = status == CONNMGR_STATUS_CONNECTED;
+#else
+  *aIsUp = PR_TRUE;
+#endif
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsNotifyAddrListener::GetLinkStatusKnown(PRBool *aIsUp)
-{
-  *aIsUp = mStatusKnown;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNotifyAddrListener::Notify(nsITimer* aTimer)
+nsNotifyAddrListener::GetLinkStatusKnown(PRBool *aIsKnown)
 {
 #ifdef WINCE_WINDOWS_MOBILE
   DWORD status;
   HRESULT result = ConnMgrConnectionStatus(mConnectionHandle, &status);
-
   if (FAILED(result)) {
-    mLinkUp = PR_FALSE;
-    mStatusKnown = PR_FALSE;
+    *aIsKnown = PR_FALSE;
+    return NS_ERROR_FAILURE;
   }
-  else
-  {
-    mLinkUp = (status==CONNMGR_STATUS_CONNECTED);
-    mStatusKnown = PR_TRUE;
-  }
-
-  nsCOMPtr<nsIObserverService> observerService =
-      do_GetService("@mozilla.org/observer-service;1");
-
-  if (!observerService)
-      return NS_ERROR_FAILURE;
-  
-  const char *event;
-  if (!mStatusKnown)
-      event = NS_NETWORK_LINK_DATA_UNKNOWN;
-  else
-      event = mLinkUp ? NS_NETWORK_LINK_DATA_UP
-          : NS_NETWORK_LINK_DATA_DOWN;
-  
-  observerService->NotifyObservers(static_cast<nsINetworkLinkService*>(this),
-                                   NS_NETWORK_LINK_TOPIC,
-                                   NS_ConvertASCIItoUTF16(event).get());
+  *aIsKnown = status != CONNMGR_STATUS_UNKNOWN;
+#else
+  *aIsKnown = PR_TRUE;
 #endif
   return NS_OK;
 }
