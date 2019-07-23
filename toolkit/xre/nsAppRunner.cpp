@@ -729,6 +729,13 @@ nsXULAppInfo::GetXPCOMABI(nsACString& aResult)
 #endif
 }
 
+NS_IMETHODIMP
+nsXULAppInfo::GetWidgetToolkit(nsACString& aResult)
+{
+  aResult.AssignLiteral(MOZ_WIDGET_TOOLKIT);
+  return NS_OK;
+}
+
 #ifdef XP_WIN
 
 
