@@ -3191,21 +3191,14 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
     return PR_FALSE;
   }
 
+  doc->MayDispatchMutationEvent(aTargetForSubtreeModified);
+
   
   nsCOMPtr<nsPIDOMWindow> window;
   window = do_QueryInterface(doc->GetScriptGlobalObject());
-  
-  
   if (window && !window->HasMutationListeners(aType)) {
     return PR_FALSE;
   }
-
-  if (aNode->IsNodeOfType(nsINode::eCONTENT) &&
-      static_cast<nsIContent*>(aNode)->IsInNativeAnonymousSubtree()) {
-    return PR_FALSE;
-  }
-
-  doc->MayDispatchMutationEvent(aTargetForSubtreeModified);
 
   
   nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(window));

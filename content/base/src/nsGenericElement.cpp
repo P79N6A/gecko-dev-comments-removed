@@ -2291,9 +2291,11 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
   if (isAnonForEvents) {
     
     
-    NS_ASSERTION(aVisitor.mEvent->eventStructType != NS_MUTATION_EVENT ||
-                 aVisitor.mDOMEvent,
-                 "Mutation event dispatched in native anonymous content!?!");
+    if (aVisitor.mEvent->eventStructType == NS_MUTATION_EVENT) {
+      aVisitor.mParentTarget = nsnull;
+      return NS_OK;
+    }
+
     aVisitor.mEventTargetAtParent = parent;
   } else if (parent) {
     nsCOMPtr<nsIContent> content(do_QueryInterface(aVisitor.mEvent->target));
