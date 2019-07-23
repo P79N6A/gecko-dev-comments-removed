@@ -480,6 +480,19 @@ public:
 
 
 
+
+  static PRBool CheckForBOM(const unsigned char* aBuffer, PRUint32 aLength,
+                            nsACString& aCharset);
+
+
+  
+
+
+
+
+
+
+
   static PRBool BelongsInForm(nsIDOMHTMLFormElement *aForm,
                               nsIContent *aContent);
 
