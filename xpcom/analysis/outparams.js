@@ -642,43 +642,46 @@ let ps = {
 
 
 OutparamCheck.prototype.func_param_semantics = function(callable) {
-  let ans = [];
   let ftype = TREE_TYPE(callable);
   if (TREE_CODE(ftype) == POINTER_TYPE) ftype = TREE_TYPE(ftype);
-  let is_func = TREE_CODE(callable) == FUNCTION_DECL;
-  if (is_func) {
-    ans = [ param_semantics(p) for (p in function_decl_params(callable)) ];
-  }
   
-  if (ans.every(function (p) p == ps.CONST)) {
-    if (is_func) {
-      ans = [ param_semantics_by_type(TREE_TYPE(p)) 
-              for (p in function_decl_params(callable)) ];
-    } else {
-      ans = [ param_semantics_by_type(p) 
-              for (p in function_type_args(ftype)) 
+  let nofail = TREE_TYPE(TREE_TYPE(ftype)) == VOID_TYPE;
+
+  
+  let params;     
+  let types;      
+  let string_mutator = false;
+  if (TREE_CODE(callable) == FUNCTION_DECL) {
+    params = [ p for (p in function_decl_params(callable)) ];
+    types = [ TREE_TYPE(p) for each (p in params) ];
+    string_mutator = is_string_mutator(callable);
+  } else {
+    types = [ p for (p in function_type_args(ftype)) 
                 if (TREE_CODE(p) != VOID_TYPE) ];
-    }
-    
-    for (let i = 0; i < ans.length - 1; ++i) {
-      if (ans[i] == ps.OUT) ans[i] = ps.MAYBE;
-    }
-    
-  }
-  
-  
-  if (is_func && is_string_mutator(callable)) {
-    ans[0] = ps.OUTNOFAIL;
-  }
-  
-  if (TREE_CODE(TREE_TYPE(ftype)) == VOID_TYPE) {
-    for (let i = 0; i < ans.length; ++i) {
-      if (ans[i] == ps.OUT) ans[i] = ps.OUTNOFAIL;
-    }
   }
 
+  
+  let ans = [];
+  for (let i = 0; i < types.length; ++i) {
+    let sem;
+    if (i == 0 && string_mutator) {
+      
+      sem = ps.OUTNOFAIL;
+    } else {
+      if (params) sem = param_semantics(params[i]);
+      if (sem == undefined) {
+        sem = param_semantics_by_type(types[i]);
+        
+        if (i < types.length - 1 && sem == ps.OUT) sem = ps.MAYBE;
+      }
+      if (sem == ps.OUT && nofail) sem = ps.OUTNOFAIL;
+    }
+    if (ans == undefined) throw new Error("assert");
+    ans.push(sem);
+  }
   return ans;
-};
+}
+
 
 
 function param_semantics(decl) {
@@ -689,11 +692,13 @@ function param_semantics(decl) {
           return ps.OUT;
         } else if (arg == 'NS_inoutparam') {
           return ps.INOUT;
+        } else if (arg == 'NS_inparam') {
+          return ps.CONST;
         }
       }
     }
   }
-  return ps.CONST;
+  return undefined;
 }
 
 
