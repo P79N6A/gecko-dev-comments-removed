@@ -691,6 +691,7 @@ nsresult nsDocAccessible::RemoveEventListeners()
   if (mScrollWatchTimer) {
     mScrollWatchTimer->Cancel();
     mScrollWatchTimer = nsnull;
+    NS_RELEASE_THIS(); 
   }
 
   nsRefPtr<nsRootAccessible> rootAccessible(GetRootAccessible());
@@ -827,6 +828,7 @@ void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
     if (docAcc->mScrollWatchTimer) {
       docAcc->mScrollWatchTimer->Cancel();
       docAcc->mScrollWatchTimer = nsnull;
+      NS_RELEASE(docAcc); 
     }
   }
 }
@@ -879,6 +881,7 @@ NS_IMETHODIMP nsDocAccessible::ScrollPositionDidChange(nsIScrollableView *aScrol
   else {
     mScrollWatchTimer = do_CreateInstance("@mozilla.org/timer;1");
     if (mScrollWatchTimer) {
+      NS_ADDREF_THIS(); 
       mScrollWatchTimer->InitWithFuncCallback(ScrollTimerCallback, this,
                                               kScrollPosCheckWait,
                                               nsITimer::TYPE_REPEATING_SLACK);
