@@ -245,13 +245,13 @@ nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
 void
 nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
                                            const nsStyleDisplay* aDisplay,
-                                           PRBool aBandHasFloats,
-                                           const nsRect& aFloatAvailableSpace,
+                                           const nsFlowAreaRect& aFloatAvailableSpace,
                                            PRBool aBlockAvoidsFloats,
                                            nsRect& aResult)
 {
 #ifdef REALLY_NOISY_REFLOW
-  printf("CBAS frame=%p has floats %d\n", aFrame, aBandHasFloats);
+  printf("CBAS frame=%p has floats %d\n",
+         aFrame, aFloatAvailableSpace.mHasFloats);
 #endif
   aResult.y = mY;
   aResult.height = GetFlag(BRS_UNCONSTRAINEDHEIGHT)
@@ -279,7 +279,7 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
                  !aBlockAvoidsFloats,
                "unexpected replaced width");
   if (!aBlockAvoidsFloats) {
-    if (aBandHasFloats) {
+    if (aFloatAvailableSpace.mHasFloats) {
       
       
       const nsStyleBorder* borderStyle = aFrame->GetStyleBorder();
@@ -295,8 +295,8 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
           {
             
             
-            aResult.x = aFloatAvailableSpace.x + borderPadding.left;
-            aResult.width = aFloatAvailableSpace.width;
+            aResult.x = aFloatAvailableSpace.mRect.x + borderPadding.left;
+            aResult.width = aFloatAvailableSpace.mRect.width;
           }
           break;
       }
@@ -315,12 +315,12 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
     if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
       replacedWidth = &replacedWidthStruct;
       replacedWidthStruct =
-        nsBlockFrame::WidthToClearPastFloats(*this, aFloatAvailableSpace,
+        nsBlockFrame::WidthToClearPastFloats(*this, aFloatAvailableSpace.mRect,
                                              aFrame);
     }
 
     nscoord leftOffset, rightOffset;
-    ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace,
+    ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace.mRect,
                                          leftOffset, rightOffset,
                                          replacedWidth);
     aResult.x = borderPadding.left + leftOffset;
@@ -332,11 +332,10 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
 #endif
 }
 
-PRBool
+nsFlowAreaRect
 nsBlockReflowState::GetFloatAvailableSpaceWithState(
                       nscoord aY, PRBool aRelaxHeightConstraint,
-                      nsFloatManager::SavedState *aState,
-                      nsRect& aResult) const
+                      nsFloatManager::SavedState *aState) const
 {
 #ifdef DEBUG
   
@@ -346,24 +345,24 @@ nsBlockReflowState::GetFloatAvailableSpaceWithState(
                "bad coord system");
 #endif
 
-  PRBool hasFloats;
-  aResult = 
+  nsFlowAreaRect result =
     mFloatManager->GetBand(aY - BorderPadding().top, 
                            aRelaxHeightConstraint ? nscoord_MAX
                                                   : mContentArea.height,
-                           mContentArea.width, aState, &hasFloats);
+                           mContentArea.width, aState);
   
-  if (aResult.width < 0)
-    aResult.width = 0;
+  if (result.mRect.width < 0)
+    result.mRect.width = 0;
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
     nsFrame::IndentBy(stdout, nsBlockFrame::gNoiseIndent);
     printf("GetAvailableSpace: band=%d,%d,%d,%d hasfloats=%d\n",
-           aResult.x, aResult.y, aResult.width, aResult.height, hasFloats);
+           result.mRect.x, result.mRect.y, result.mRect.width,
+           result.mRect.height, result.mHasFloats);
   }
 #endif
-  return hasFloats;
+  return result;
 }
 
 
@@ -580,8 +579,7 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
   
   
   
-  nsRect floatAvailableSpace;
-  GetFloatAvailableSpace(floatAvailableSpace);
+  nsRect floatAvailableSpace = GetFloatAvailableSpace().mRect;
   if (mBelowCurrentLineFloats.IsEmpty() &&
       (aLineLayout.LineIsEmpty() ||
        mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aPlaceholder) <=
@@ -596,10 +594,11 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
                  "If we asked for force-fit, it should have been placed");
     if (forceFit || (placed && !NS_FRAME_IS_TRUNCATED(aReflowStatus))) {
       
-      nsRect floatAvailSpace;
-      GetFloatAvailableSpace(mY, forceFit, floatAvailSpace);
-      nsRect availSpace(nsPoint(floatAvailSpace.x + BorderPadding().left, mY),
-                        floatAvailSpace.Size());
+      nsFlowAreaRect floatAvailSpace =
+        GetFloatAvailableSpace(mY, forceFit);
+      nsRect availSpace(nsPoint(floatAvailSpace.mRect.x + BorderPadding().left,
+                                mY),
+                        floatAvailSpace.mRect.Size());
       aLineLayout.UpdateBand(availSpace, isLeftFloat,
                              aPlaceholder->GetOutOfFlowFrame());
       
@@ -653,15 +652,15 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
 
 PRBool
 nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
-                                  const nsRect& aFloatAvailableSpace,
-                                  PRBool aBandHasFloats, PRBool aForceFit)
+                                  const nsFlowAreaRect& aFloatAvailableSpace,
+                                  PRBool aForceFit)
 {
   
   
   PRBool result = PR_TRUE;
-  if (aBandHasFloats) {
+  if (aFloatAvailableSpace.mHasFloats) {
     
-    if (aFloatAvailableSpace.width < aFloatSize.width) {
+    if (aFloatAvailableSpace.mRect.width < aFloatSize.width) {
       
       
       result = PR_FALSE;
@@ -674,7 +673,8 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
   
   
   
-  if (NSCoordGreaterThan(aFloatSize.height, aFloatAvailableSpace.height)) {
+  if (NSCoordGreaterThan(aFloatSize.height,
+                         aFloatAvailableSpace.mRect.height)) {
     
     
     
@@ -685,16 +685,16 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
     
     nscoord xa;
     if (NS_STYLE_FLOAT_LEFT == aFloats) {
-      xa = aFloatAvailableSpace.x;
+      xa = aFloatAvailableSpace.mRect.x;
     }
     else {
-      xa = aFloatAvailableSpace.XMost() - aFloatSize.width;
+      xa = aFloatAvailableSpace.mRect.XMost() - aFloatSize.width;
 
       
       
       
-      if (xa < aFloatAvailableSpace.x) {
-        xa = aFloatAvailableSpace.x;
+      if (xa < aFloatAvailableSpace.mRect.x) {
+        xa = aFloatAvailableSpace.mRect.x;
       }
     }
     nscoord xb = xa + aFloatSize.width;
@@ -714,22 +714,21 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
     nscoord yb = ya + aFloatSize.height;
 
     nscoord saveY = mY;
-    nsRect floatAvailableSpace(aFloatAvailableSpace);
+    nsFlowAreaRect floatAvailableSpace(aFloatAvailableSpace);
     for (;;) {
       
-      if (floatAvailableSpace.height <= 0) {
+      if (floatAvailableSpace.mRect.height <= 0) {
         
         result = PR_FALSE;
         break;
       }
 
-      mY += floatAvailableSpace.height;
-      PRBool bandHasFloats =
-        GetFloatAvailableSpace(mY, aForceFit, floatAvailableSpace);
+      mY += floatAvailableSpace.mRect.height;
+      floatAvailableSpace = GetFloatAvailableSpace(mY, aForceFit);
 
-      if (bandHasFloats) {
-        if (xa < floatAvailableSpace.x ||
-            xb > floatAvailableSpace.XMost()) {
+      if (floatAvailableSpace.mHasFloats) {
+        if (xa < floatAvailableSpace.mRect.x ||
+            xb > floatAvailableSpace.mRect.XMost()) {
           
           result = PR_FALSE;
           break;
@@ -737,7 +736,7 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
       }
 
       
-      if (yb <= mY + floatAvailableSpace.height) {
+      if (yb <= mY + floatAvailableSpace.mRect.height) {
         
         
         break;
@@ -786,16 +785,14 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
     mY = ClearFloats(mY, floatDisplay->mBreakType);
   }
     
-  nsRect floatAvailableSpace;
-  PRBool bandHasFloats =
-    GetFloatAvailableSpace(mY, aForceFit, floatAvailableSpace);
+  nsFlowAreaRect floatAvailableSpace = GetFloatAvailableSpace(mY, aForceFit);
 
   NS_ASSERTION(floatFrame->GetParent() == mBlock,
                "Float frame has wrong parent");
 
   
   nsMargin floatMargin;
-  mBlock->ReflowFloat(*this, floatAvailableSpace, placeholder,
+  mBlock->ReflowFloat(*this, floatAvailableSpace.mRect, placeholder,
                       floatMargin, aReflowStatus);
 
 #ifdef DEBUG
@@ -823,8 +820,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   PRBool keepFloatOnSameLine = PR_FALSE;
 
   while (!CanPlaceFloat(floatSize, floatDisplay->mFloats, floatAvailableSpace,
-                        bandHasFloats, aForceFit)) {
-    if (floatAvailableSpace.height <= 0) {
+                        aForceFit)) {
+    if (floatAvailableSpace.mRect.height <= 0) {
       
       mY = saveY;
       return PR_FALSE;
@@ -834,9 +831,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
     if (NS_STYLE_DISPLAY_TABLE != floatDisplay->mDisplay ||
           eCompatibility_NavQuirks != mPresContext->CompatibilityMode() ) {
 
-      mY += floatAvailableSpace.height;
-      bandHasFloats =
-        GetFloatAvailableSpace(mY, aForceFit, floatAvailableSpace);
+      mY += floatAvailableSpace.mRect.height;
+      floatAvailableSpace = GetFloatAvailableSpace(mY, aForceFit);
     } else {
       
       
@@ -874,14 +870,13 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
       }
 
       
-      mY += floatAvailableSpace.height;
-      bandHasFloats =
-        GetFloatAvailableSpace(mY, aForceFit, floatAvailableSpace);
+      mY += floatAvailableSpace.mRect.height;
+      floatAvailableSpace = GetFloatAvailableSpace(mY, aForceFit);
       
       
       
       
-      mBlock->ReflowFloat(*this, floatAvailableSpace, placeholder,
+      mBlock->ReflowFloat(*this, floatAvailableSpace.mRect, placeholder,
                           floatMargin, aReflowStatus);
       
       floatSize = floatFrame->GetSize() +
@@ -901,18 +896,18 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   nscoord floatX, floatY;
   if (NS_STYLE_FLOAT_LEFT == floatDisplay->mFloats) {
     isLeftFloat = PR_TRUE;
-    floatX = floatAvailableSpace.x;
+    floatX = floatAvailableSpace.mRect.x;
   }
   else {
     isLeftFloat = PR_FALSE;
     if (!keepFloatOnSameLine) {
-      floatX = floatAvailableSpace.XMost() - floatSize.width;
+      floatX = floatAvailableSpace.mRect.XMost() - floatSize.width;
     } 
     else {
       
       
       
-      floatX = floatAvailableSpace.x;
+      floatX = floatAvailableSpace.mRect.x;
     }
   }
   *aIsLeftFloat = isLeftFloat;
@@ -1106,25 +1101,25 @@ nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
 
   if (aReplacedBlock) {
     for (;;) {
-      nsRect floatAvailableSpace;
-      PRBool bandHasFloats =
-        GetFloatAvailableSpace(newY, PR_FALSE, floatAvailableSpace);
+      nsFlowAreaRect floatAvailableSpace = 
+        GetFloatAvailableSpace(newY, PR_FALSE);
       nsBlockFrame::ReplacedElementWidthToClear replacedWidth =
-        nsBlockFrame::WidthToClearPastFloats(*this, floatAvailableSpace,
+        nsBlockFrame::WidthToClearPastFloats(*this, floatAvailableSpace.mRect,
                                              aReplacedBlock);
-      if (!bandHasFloats ||
-          PR_MAX(floatAvailableSpace.x, replacedWidth.marginLeft) +
+      if (!floatAvailableSpace.mHasFloats ||
+          PR_MAX(floatAvailableSpace.mRect.x, replacedWidth.marginLeft) +
             replacedWidth.borderBoxWidth +
             PR_MAX(mContentArea.width -
-                     PR_MIN(mContentArea.width, floatAvailableSpace.XMost()),
+                     PR_MIN(mContentArea.width,
+                            floatAvailableSpace.mRect.XMost()),
                    replacedWidth.marginRight) <=
           mContentArea.width) {
         break;
       }
       
-      if (floatAvailableSpace.height > 0) {
+      if (floatAvailableSpace.mRect.height > 0) {
         
-        newY += floatAvailableSpace.height;
+        newY += floatAvailableSpace.mRect.height;
       } else {
         if (mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE) {
           

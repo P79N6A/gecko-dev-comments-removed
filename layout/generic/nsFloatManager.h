@@ -52,6 +52,22 @@ class nsIFrame;
 struct nsHTMLReflowState;
 class nsPresContext;
 
+
+
+
+
+
+
+
+struct nsFlowAreaRect {
+  nsRect mRect;
+  PRPackedBool mHasFloats;
+
+  nsFlowAreaRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
+                 PRBool aHasFloats)
+    : mRect(aX, aY, aWidth, aHeight), mHasFloats(aHasFloats) {}
+};
+
 #define NS_FLOAT_MANAGER_CACHE_SIZE 4
 
 class nsFloatManager {
@@ -117,8 +133,8 @@ public:
 
 
 
-  nsRect GetBand(nscoord aY, nscoord aMaxHeight, nscoord aContentAreaWidth,
-                 SavedState* aState, PRBool* aHasFloats) const;
+  nsFlowAreaRect GetBand(nscoord aY, nscoord aMaxHeight,
+                         nscoord aContentAreaWidth, SavedState* aState) const;
 
   
 
