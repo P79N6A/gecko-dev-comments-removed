@@ -592,6 +592,9 @@ nsDownloadManager::RestoreDatabaseState()
   rv = stmt->BindInt32Parameter(i++, nsIDownloadManager::DOWNLOAD_DOWNLOADING);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   for (nsTArray<PRUint32>::size_type i = 0; i < ids.Length(); i++)
     (void)RetryDownload(ids[i]);
@@ -697,12 +700,6 @@ nsDownloadManager::Init()
   if (doImport)
     ImportDownloadHistory();
 
-  rv = RestoreDatabaseState();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = RestoreActiveDownloads();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr<nsIStringBundleService> bundleService =
     do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -730,6 +727,13 @@ nsDownloadManager::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  rv = RestoreDatabaseState();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = RestoreActiveDownloads();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   
