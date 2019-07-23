@@ -48,6 +48,7 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIDOMWindow.h"
 #include "xpcJSWeakReference.h"
+#include "XPCWrapper.h"
 
 #ifdef MOZ_JSLOADER
 #include "mozJSComponentLoader.h"
@@ -2725,6 +2726,21 @@ nsXPCComponents_Utils::GetSandbox(nsIXPCComponents_utils_Sandbox **aSandbox)
     return NS_OK;
 }
 
+static JSBool
+MethodWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
+              jsval *rval)
+{
+    jsval v;
+    if (!JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(argv[-2]), 0, &v) ||
+        !JS_CallFunctionValue(cx, obj, v, argc, argv, rval)) {
+        return JS_FALSE;
+    }
+
+    if (JSVAL_IS_PRIMITIVE(*rval))
+       return JS_TRUE;
+    return XPCNativeWrapperCtor(cx, nsnull, 1, rval, rval);
+}
+
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::LookupMethod()
@@ -2833,8 +2849,33 @@ nsXPCComponents_Utils::LookupMethod()
 
     
     *retval = funval;
-    cc->SetReturnValueWasSet(PR_TRUE);
 
+    
+    
+    
+    
+    
+    NS_ASSERTION(JSVAL_IS_OBJECT(funval), "Function is not an object");
+    JSContext *outercx;
+    cc->GetJSContext(&outercx);
+    JSFunction *oldfunction = JS_ValueToFunction(outercx, funval);
+    NS_ASSERTION(oldfunction, "Function is not a function");
+
+    JSFunction *f = JS_NewFunction(outercx, MethodWrapper,
+                                   JS_GetFunctionArity(oldfunction), 0,
+                                   JS_GetScopeChain(outercx),
+                                   JS_GetFunctionName(oldfunction));
+    if(!f)
+        return NS_ERROR_FAILURE;
+
+    JSObject *funobj = JS_GetFunctionObject(f);
+    if(!JS_SetReservedSlot(outercx, funobj, 0, funval))
+        return NS_ERROR_FAILURE;
+
+    *retval = OBJECT_TO_JSVAL(funobj);
+
+    
+    cc->SetReturnValueWasSet(PR_TRUE);
     return NS_OK;
 }
 
@@ -3010,7 +3051,7 @@ SandboxFunForwarder(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
     if (JSVAL_IS_PRIMITIVE(*rval))
         return JS_TRUE; 
-    
+
     XPCThrower::Throw(NS_ERROR_NOT_IMPLEMENTED, cx);
     return JS_FALSE;
 }
@@ -3023,7 +3064,7 @@ SandboxImport(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
         XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
         return JS_FALSE;
     }
-    
+
     JSFunction *fun = JS_ValueToFunction(cx, argv[0]);
     if (!fun) {
         XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
