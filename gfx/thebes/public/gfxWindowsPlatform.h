@@ -84,7 +84,7 @@ public:
 
 
 
-    FontEntry *FindFontForChar(PRUint32 aCh, gfxWindowsFont *aFont);
+    already_AddRefed<gfxWindowsFont> FindFontForChar(PRUint32 aCh, gfxWindowsFont *aFont);
 
     
     FontFamily *FindFontFamily(const nsAString& aName);
