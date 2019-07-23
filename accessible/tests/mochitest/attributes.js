@@ -22,7 +22,7 @@ function testAttrs(aAccOrElmOrID, aAttrs, aSkipUnexpectedAttrs)
 
 
 
-function testAbsentAttrs(aAccOrElmOrID, aAbsentAttrs, aSkipUnexpectedAttrs)
+function testAbsentAttrs(aAccOrElmOrID, aAbsentAttrs)
 {
   testAttrsInternal(aAccOrElmOrID, {}, true, aAbsentAttrs);
 }
@@ -190,6 +190,7 @@ function testAttrsInternal(aAccOrElmOrID, aAttrs, aSkipUnexpectedAttrs,
 function compareAttrs(aErrorMsg, aAttrs, aExpectedAttrs, aSkipUnexpectedAttrs,
                       aAbsentAttrs)
 {
+  
   var enumerate = aAttrs.enumerate();
   while (enumerate.hasMoreElements()) {
     var prop = enumerate.getNext().QueryInterface(nsIPropertyElement);
@@ -209,6 +210,7 @@ function compareAttrs(aErrorMsg, aAttrs, aExpectedAttrs, aSkipUnexpectedAttrs,
     }
   }
 
+  
   for (var name in aExpectedAttrs) {
     var value = "";
     try {
@@ -220,18 +222,20 @@ function compareAttrs(aErrorMsg, aAttrs, aExpectedAttrs, aSkipUnexpectedAttrs,
          "There is no expected attribute '" + name + "' " + aErrorMsg);
   }
 
-  if (aAbsentAttrs)
+  
+  if (aAbsentAttrs) {
     for (var name in aAbsentAttrs) {
-      var value = "";
-      try {
-        value = aAttrs.getStringProperty(name);
-      } catch(e) { }
+      var wasFound = false;
 
-      if (value)
-        ok(false,
-           "There is an unexpected attribute '" + name + "' " + aErrorMsg);
-      else
-        ok(true,
-           "There is no unexpected attribute '" + name + "' " + aErrorMsg);
+      var enumerate = aAttrs.enumerate();
+      while (enumerate.hasMoreElements()) {
+        var prop = enumerate.getNext().QueryInterface(nsIPropertyElement);
+        if (prop.key == name)
+          wasFound = true;
+      }
     }
+
+    ok(!wasFound,
+       "There is an unexpected attribute '" + name + "' " + aErrorMsg);
+  }
 }

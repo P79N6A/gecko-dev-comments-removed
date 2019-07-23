@@ -286,7 +286,12 @@ public:
 
 
 
-  static void GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
+
+
+
+
+
+  static PRBool GetLiveAttrValue(PRUint32 aRule, nsAString& aValue);
 
   
 
