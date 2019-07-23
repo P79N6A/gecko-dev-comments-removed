@@ -38,6 +38,11 @@
 
 
 
+#ifdef MOZ_PLATFORM_HILDON
+#define MAEMO_CHANGES
+#include <gtk/gtkimcontext.h>
+#endif
+
 #include "prlink.h"
 
 #include "nsWindow.h"
@@ -6114,6 +6119,13 @@ nsWindow::SetIMEEnabled(PRUint32 aState)
         
         
         focusedWin->IMESetFocus();
+#ifdef MOZ_PLATFORM_HILDON
+        if (mIMEData->mEnabled)
+            hildon_gtk_im_context_show (focusedIm);
+        else
+            hildon_gtk_im_context_hide (focusedIm);
+#endif
+        
     } else {
         if (IsIMEEditableState(mIMEData->mEnabled))
             ResetInputState();
