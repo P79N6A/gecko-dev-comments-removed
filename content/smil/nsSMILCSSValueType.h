@@ -40,16 +40,18 @@
 #ifndef NS_SMILCSSVALUETYPE_H_
 #define NS_SMILCSSVALUETYPE_H_
 
-#include "nsISMILCSSValueType.h"
+#include "nsISMILType.h"
+#include "nsCSSProperty.h"
 #include "nscore.h" 
 
+class nsPresContext;
 class nsIContent;
+class nsAString;
 
 
 
 
-
-class nsSMILCSSValueType : public nsISMILCSSValueType
+class nsSMILCSSValueType : public nsISMILType
 {
 public:
   
@@ -70,14 +72,37 @@ public:
                                            nsSMILValue& aResult) const;
 
   
-  
-  NS_OVERRIDE virtual PRBool ValueFromString(nsCSSProperty aPropID,
-                                             nsIContent* aTargetElement,
-                                             const nsAString& aString,
-                                             nsSMILValue& aValue) const;
 
-  NS_OVERRIDE virtual PRBool ValueToString(const nsSMILValue& aValue,
-                                           nsAString& aString) const;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  PRBool ValueFromString(nsCSSProperty aPropID, nsIContent* aTargetElement,
+                         const nsAString& aString, nsSMILValue& aValue) const;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  PRBool ValueToString(const nsSMILValue& aValue, nsAString& aString) const;
 
   
   static nsSMILCSSValueType sSingleton;
