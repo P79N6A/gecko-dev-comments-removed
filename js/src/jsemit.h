@@ -200,7 +200,7 @@ struct JSTreeContext {
       : flags(0), ngvars(0), bodyid(0), blockidGen(0),
         topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
         compiler(jsc), scopeChain(NULL), parent(NULL), staticLevel(0),
-        funbox(NULL), functionList(NULL)
+        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
     {
         JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
     }
@@ -225,6 +225,13 @@ struct JSTreeContext {
 
     
     bool inStatement(JSStmtType type);
+
+    
+
+
+
+    int sharpSlotBase;
+    bool ensureSharpSlots();
 };
 
 
@@ -420,6 +427,16 @@ struct JSCodeGenerator : public JSTreeContext
 
 
     ~JSCodeGenerator();
+
+    bool hasSharps() {
+        bool rv = flags & TCF_HAS_SHARPS;
+        JS_ASSERT((sharpSlotBase >= 0) == rv);
+        return rv;
+    }
+
+    uintN sharpSlots() {
+        return hasSharps() ? 2 : 0;
+    }
 };
 
 #define CG_TS(cg)               TS((cg)->compiler)

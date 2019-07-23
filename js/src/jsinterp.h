@@ -122,8 +122,6 @@ struct JSStackFrame {
     JSObject        *scopeChain;
     JSObject        *blockChain;
 
-    uintN           sharpDepth;     
-    JSObject        *sharpArray;    
     uint32          flags;          
     JSStackFrame    *dormantNext;   
     JSStackFrame    *displaySave;   
