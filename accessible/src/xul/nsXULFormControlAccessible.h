@@ -54,12 +54,12 @@ public:
   nsXULButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
@@ -73,12 +73,12 @@ public:
   nsXULCheckboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -89,12 +89,12 @@ public:
   nsXULDropmarkerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 private:
@@ -107,11 +107,11 @@ public:
   nsXULGroupboxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
   NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
                                nsIAccessibleRelation **aRelation);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetNameInternal(nsAString& aName);
 };
 
@@ -122,8 +122,10 @@ class nsXULProgressMeterAccessible : public nsFormControlAccessible
 
 public:
   nsXULProgressMeterAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
-  NS_IMETHOD GetRole(PRUint32 *aRole); 
   NS_IMETHOD GetValue(nsAString &aValue);
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
 class nsXULRadioButtonAccessible : public nsRadioButtonAccessible
@@ -143,9 +145,7 @@ public:
   nsXULRadioGroupAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
-
-  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -153,7 +153,9 @@ class nsXULStatusBarAccessible : public nsAccessibleWrap
 {
 public:
   nsXULStatusBarAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
-  NS_IMETHOD GetRole(PRUint32 *aRole);
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
 class nsXULToolbarButtonAccessible : public nsXULButtonAccessible
@@ -168,7 +170,9 @@ class nsXULToolbarAccessible : public nsAccessibleWrap
 {
 public:
   nsXULToolbarAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
 class nsXULToolbarSeparatorAccessible : public nsLeafAccessible
@@ -177,9 +181,7 @@ public:
   nsXULToolbarSeparatorAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
-
-  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -194,7 +196,6 @@ public:
 
   
   NS_IMETHOD GetValue(nsAString& aValue);
-  NS_IMETHOD GetRole(PRUint32 *aRole);
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
@@ -204,6 +205,7 @@ public:
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:

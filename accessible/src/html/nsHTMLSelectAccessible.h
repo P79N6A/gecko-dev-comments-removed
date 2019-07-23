@@ -126,9 +126,7 @@ public:
   virtual ~nsHTMLSelectListAccessible() {}
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
-
-  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
@@ -161,10 +159,10 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
-  NS_IMETHOD GetRole(PRUint32 *aRole);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
@@ -194,12 +192,12 @@ public:
   virtual ~nsHTMLSelectOptGroupAccessible() {}
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
   NS_IMETHOD DoAction(PRUint8 index);  
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
@@ -224,7 +222,6 @@ public:
   virtual ~nsHTMLComboboxAccessible() {}
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval);
   NS_IMETHOD GetValue(nsAString& _retval);
   NS_IMETHOD GetDescription(nsAString& aDescription);
   NS_IMETHOD DoAction(PRUint8 index);
@@ -235,6 +232,7 @@ public:
   virtual nsresult Shutdown();
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
@@ -284,13 +282,13 @@ public:
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD GetParent(nsIAccessible **_retval);
-  NS_IMETHOD GetRole(PRUint32 *_retval);
   NS_IMETHOD GetName(nsAString& aName);
 
   
   NS_IMETHOD GetUniqueID(void **aUniqueID);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   
 protected:

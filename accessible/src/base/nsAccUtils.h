@@ -244,10 +244,15 @@ public:
   {
     PRUint32 role = nsIAccessibleRole::ROLE_NOTHING;
     if (aAcc)
-      aAcc->GetFinalRole(&role);
+      aAcc->GetRole(&role);
 
     return role;
   }
+
+  
+
+
+  static PRUint32 RoleInternal(nsIAccessible *aAcc);
 
   
 

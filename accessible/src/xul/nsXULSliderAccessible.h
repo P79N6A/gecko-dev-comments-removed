@@ -49,7 +49,6 @@ public:
   nsXULSliderAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
@@ -61,6 +60,9 @@ public:
 
   
   NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 
 protected:
   already_AddRefed<nsIContent> GetSliderNode();
@@ -82,7 +84,7 @@ public:
   nsXULThumbAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
 #endif

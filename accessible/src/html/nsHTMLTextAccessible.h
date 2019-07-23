@@ -53,10 +53,10 @@ public:
   
   
   NS_IMETHOD GetName(nsAString& aName);
-  NS_IMETHOD GetRole(PRUint32 *aRole);
 
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -64,7 +64,9 @@ class nsHTMLHRAccessible : public nsLeafAccessible
 {
 public:
   nsHTMLHRAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
-  NS_IMETHOD GetRole(PRUint32 *aRole); 
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
 class nsHTMLBRAccessible : public nsLeafAccessible
@@ -73,10 +75,8 @@ public:
   nsHTMLBRAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
-
-  
   virtual nsresult GetNameInternal(nsAString& aName);
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -88,13 +88,13 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval); 
   NS_IMETHOD GetFirstChild(nsIAccessible **aFirstChild);
   NS_IMETHOD GetLastChild(nsIAccessible **aLastChild);
   NS_IMETHOD GetChildCount(PRInt32 *aAccChildCount);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -108,7 +108,6 @@ public:
   NS_IMETHOD GetUniqueID(void **aUniqueID);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
   NS_IMETHOD GetName(nsAString& aName);
 
   
@@ -121,6 +120,7 @@ public:
   virtual nsresult Shutdown();
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
   
@@ -144,9 +144,7 @@ public:
     nsHyperTextAccessibleWrap(aDOMNode, aShell) { }
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole) { *aRole = nsIAccessibleRole::ROLE_LIST; return NS_OK; }
-
-  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -157,13 +155,13 @@ public:
                      const nsAString& aBulletText);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole) { *aRole = nsIAccessibleRole::ROLE_LISTITEM; return NS_OK; }
   NS_IMETHOD GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
 
   
   virtual nsresult Shutdown();
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:

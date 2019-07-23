@@ -49,7 +49,8 @@ nsXULTreeAccessible(aDOMNode, aShell)
 {
 }
 
-NS_IMETHODIMP nsXULTreeAccessibleWrap::GetRole(PRUint32 *aRole)
+nsresult
+nsXULTreeAccessibleWrap::GetRoleInternal(PRUint32 *aRole)
 {
   NS_ENSURE_STATE(mTree);
 
@@ -80,7 +81,8 @@ nsXULTreeitemAccessible(aParent, aDOMNode, aShell, aRow, aColumn)
 {
 }
 
-NS_IMETHODIMP nsXULTreeitemAccessibleWrap::GetRole(PRUint32 *aRole)
+nsresult
+nsXULTreeitemAccessibleWrap::GetRoleInternal(PRUint32 *aRole)
 {
   
   

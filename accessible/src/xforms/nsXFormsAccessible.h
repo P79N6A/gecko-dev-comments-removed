@@ -128,11 +128,11 @@ public:
   nsXFormsContainerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *aRole);
-
-  
   
   NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
 

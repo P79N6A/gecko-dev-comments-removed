@@ -48,10 +48,10 @@ public:
   nsXULColorPickerTileAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval);
   NS_IMETHOD GetValue(nsAString& _retval);
 
   
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -61,9 +61,7 @@ public:
   nsXULColorPickerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetRole(PRUint32 *_retval);
-
-  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 

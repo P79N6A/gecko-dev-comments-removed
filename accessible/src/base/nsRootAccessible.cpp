@@ -164,7 +164,8 @@ NS_IMETHODIMP nsRootAccessible::GetParent(nsIAccessible * *aParent)
 }
 
 
-NS_IMETHODIMP nsRootAccessible::GetRole(PRUint32 *aRole) 
+nsresult
+nsRootAccessible::GetRoleInternal(PRUint32 *aRole) 
 { 
   if (!mDocument) {
     return NS_ERROR_FAILURE;
@@ -184,7 +185,7 @@ NS_IMETHODIMP nsRootAccessible::GetRole(PRUint32 *aRole)
     }
   }
 
-  return nsDocAccessibleWrap::GetRole(aRole);
+  return nsDocAccessibleWrap::GetRoleInternal(aRole);
 }
 
 #ifdef MOZ_XUL
@@ -493,8 +494,8 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   PRUint32 role = nsAccUtils::Role(finalFocusAccessible);
   if (role == nsIAccessibleRole::ROLE_MENUITEM) {
     if (!mCurrentARIAMenubar) {  
-      PRUint32 naturalRole; 
-      finalFocusAccessible->GetRole(&naturalRole);
+      
+      PRUint32 naturalRole = nsAccUtils::RoleInternal(finalFocusAccessible);
       if (role != naturalRole) { 
         nsCOMPtr<nsIAccessible> menuBarAccessible =
           nsAccUtils::GetAncestorWithRole(finalFocusAccessible,
