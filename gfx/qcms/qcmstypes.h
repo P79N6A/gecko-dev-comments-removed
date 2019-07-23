@@ -13,7 +13,13 @@ typedef PRInt32 int32_t;
 typedef PRUint32 uint32_t;
 typedef PRInt64 int64_t;
 typedef PRUint64 uint64_t;
+
+#ifdef __OS2__
+
+#include <stdlib.h>
+#else
 typedef PRUptrdiff uintptr_t;
+#endif
 
 #else
 
