@@ -1227,18 +1227,11 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   nsCOMPtr<nsIURI> uri;
   PRBool authp = PR_FALSE;
 
-  if (mState & XML_HTTP_REQUEST_ABORTED) {
-    
-    
-    
-    
-
-    mState &= ~XML_HTTP_REQUEST_ABORTED;
-  } else if (mState & (XML_HTTP_REQUEST_OPENED |
-                       XML_HTTP_REQUEST_LOADED |
-                       XML_HTTP_REQUEST_INTERACTIVE |
-                       XML_HTTP_REQUEST_SENT |
-                       XML_HTTP_REQUEST_STOPPED)) {
+  if (mState & (XML_HTTP_REQUEST_OPENED |
+                XML_HTTP_REQUEST_LOADED |
+                XML_HTTP_REQUEST_INTERACTIVE |
+                XML_HTTP_REQUEST_SENT |
+                XML_HTTP_REQUEST_STOPPED)) {
     
     Abort();
 
@@ -1247,8 +1240,15 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
     
     
     
+  }
 
-    return NS_OK;
+  if (mState & XML_HTTP_REQUEST_ABORTED) {
+    
+    
+    
+    
+
+    mState &= ~XML_HTTP_REQUEST_ABORTED;
   }
 
   if (async) {
