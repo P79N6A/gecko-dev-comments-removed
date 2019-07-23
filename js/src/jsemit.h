@@ -464,7 +464,9 @@ struct JSCodeGenerator : public JSTreeContext
     uintN           arrayCompDepth; 
 
     uintN           emitLevel;      
-    JSAtomList      constList;      
+
+    typedef js::HashMap<JSAtom *, jsval> ConstMap;
+    ConstMap        constMap;       
 
     JSCGObjectList  objectList;     
     JSCGObjectList  regexpList;     
@@ -481,6 +483,8 @@ struct JSCodeGenerator : public JSTreeContext
     JSCodeGenerator(js::Parser *parser,
                     JSArenaPool *codePool, JSArenaPool *notePool,
                     uintN lineno);
+
+    bool init();
 
     
 
