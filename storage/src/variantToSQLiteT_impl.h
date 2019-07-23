@@ -43,19 +43,6 @@
 
 
 
-template <typename T>
-int sqlite3_T_int(T aObj, int aValue);
-template <typename T>
-int sqlite3_T_int64(T aObj, sqlite_int64 aValue);
-template <typename T>
-int sqlite3_T_double(T aObj, double aValue);
-template <typename T>
-int sqlite3_T_text16(T aObj, nsString aValue);
-template <typename T>
-int sqlite3_T_null(T aObj);
-template <typename T>
-int sqlite3_T_blob(T aObj, const void *aBlob, int aSize);
-
 
 
 
@@ -108,14 +95,23 @@ variantToSQLiteT(T aObj,
       return sqlite3_T_int(aObj, value ? 1 : 0);
     }
     case nsIDataType::VTYPE_CHAR:
-    case nsIDataType::VTYPE_WCHAR:
-    case nsIDataType::VTYPE_DOMSTRING:
     case nsIDataType::VTYPE_CHAR_STR:
-    case nsIDataType::VTYPE_WCHAR_STR:
     case nsIDataType::VTYPE_STRING_SIZE_IS:
-    case nsIDataType::VTYPE_WSTRING_SIZE_IS:
     case nsIDataType::VTYPE_UTF8STRING:
     case nsIDataType::VTYPE_CSTRING:
+    {
+      nsCAutoString value;
+      
+      
+      
+      nsresult rv = aValue->GetAsAUTF8String(value);
+      NS_ENSURE_SUCCESS(rv, SQLITE_MISMATCH);
+      return sqlite3_T_text(aObj, value);
+    }
+    case nsIDataType::VTYPE_WCHAR:
+    case nsIDataType::VTYPE_DOMSTRING:
+    case nsIDataType::VTYPE_WCHAR_STR:
+    case nsIDataType::VTYPE_WSTRING_SIZE_IS:
     case nsIDataType::VTYPE_ASTRING:
     {
       nsAutoString value;

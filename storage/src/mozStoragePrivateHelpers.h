@@ -93,13 +93,6 @@ bindJSValue(JSContext *aCtx,
             int aIdx,
             jsval aValue);
 
-
-
-
-template <typename T>
-int variantToSQLiteT(T aObj, nsIVariant *aValue);
-#include "variantToSQLiteT_impl.h" 
-
 } 
 } 
 
