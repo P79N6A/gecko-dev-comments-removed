@@ -69,8 +69,8 @@ public:
   NS_IMETHOD  RemoveFrame(nsIAtom*        aListName,
                           nsIFrame*       aOldFrame);
 
-  
-  
+  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);  
+  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
 
   virtual nsIFrame* GetContentInsertionFrame() {
     return GetFirstChild(nsnull)->GetContentInsertionFrame();
@@ -196,6 +196,19 @@ static nscoord GetAvailableContentHeight(const nsHTMLReflowState& aReflowState) 
   return PR_MAX(0, aReflowState.availableHeight - borderPaddingHeight);
 }
 
+static nscoord
+GetColumnGap(nsColumnSetFrame* aFrame, const nsStyleColumn* aColStyle) {
+  switch (aColStyle->mColumnGap.GetUnit()) {
+    case eStyleUnit_Coord:
+      return aColStyle->mColumnGap.GetCoordValue();
+    case eStyleUnit_Normal:
+      return aFrame->GetStyleFont()->mFont.size;
+    default:
+      NS_NOTREACHED("Unknown gap type");
+  }
+  return 0;
+}
+
 nsColumnSetFrame::ReflowConfig
 nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
 {
@@ -209,24 +222,7 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
     colHeight = aReflowState.mComputedHeight;
   }
 
-  nscoord colGap = 0;
-  switch (colStyle->mColumnGap.GetUnit()) {
-    case eStyleUnit_Coord:
-      colGap = colStyle->mColumnGap.GetCoordValue();
-      break;
-    case eStyleUnit_Percent:
-      if (availContentWidth != NS_INTRINSICSIZE) {
-        colGap = NSToCoordRound(colStyle->mColumnGap.GetPercentValue()*availContentWidth);
-      }
-      break;
-    case eStyleUnit_Normal:
-      colGap = GetStyleFont()->mFont.size;
-      break;
-    default:
-      NS_NOTREACHED("Unknown gap type");
-      break;
-  }
-
+  nscoord colGap = GetColumnGap(this, colStyle);
   PRInt32 numColumns = colStyle->mColumnCount;
 
   nscoord colWidth = NS_INTRINSICSIZE;
@@ -324,6 +320,58 @@ static void MoveChildTo(nsIFrame* aParent, nsIFrame* aChild, nsPoint aOrigin) {
   r += aOrigin;
   aParent->Invalidate(r);
   PlaceFrameView(aChild);
+}
+
+nscoord
+nsColumnSetFrame::GetMinWidth(nsIRenderingContext *aRenderingContext) {
+  nscoord width = 0;
+  if (mFrames.FirstChild()) {
+    width = mFrames.FirstChild()->GetMinWidth(aRenderingContext);
+  }
+  const nsStyleColumn* colStyle = GetStyleColumn();
+  if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
+    
+    
+    
+    width = PR_MIN(width, colStyle->mColumnWidth.GetCoordValue());
+  } else {
+    NS_ASSERTION(colStyle->mColumnCount > 0, "column-count and column-width can't both be auto");
+    
+    
+    width *= colStyle->mColumnCount;
+  }
+  
+  
+  return width;
+}
+
+nscoord
+nsColumnSetFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext) {
+  
+  
+  
+  
+  const nsStyleColumn* colStyle = GetStyleColumn();
+  nscoord colGap = GetColumnGap(this, colStyle);
+
+  nscoord colWidth;
+  if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
+    colWidth = colStyle->mColumnWidth.GetCoordValue();
+  } else {
+    if (mFrames.FirstChild()) {
+      colWidth = mFrames.FirstChild()->GetPrefWidth(aRenderingContext);
+    } else {
+      colWidth = 0;
+    }
+  }
+
+  PRInt32 numColumns = colStyle->mColumnCount;
+   if (numColumns <= 0) {
+    
+    numColumns = 1;
+  }
+
+  return colWidth*numColumns + colGap*(numColumns - 1);
 }
 
 PRBool
