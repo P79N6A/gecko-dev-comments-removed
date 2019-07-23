@@ -284,11 +284,7 @@ public:
 #endif
 
   PRInt32 GetContentOffset() const { return mContentOffset; }
-  PRInt32 GetContentLength() const
-  {
-    NS_ASSERTION(GetContentEnd() - mContentOffset >= 0, "negative length");
-    return GetContentEnd() - mContentOffset;
-  }
+  PRInt32 GetContentLength() const { return GetContentEnd() - mContentOffset; }
   PRInt32 GetContentEnd() const;
   
   
