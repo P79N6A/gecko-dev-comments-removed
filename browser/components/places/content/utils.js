@@ -742,6 +742,13 @@ var PlacesUIUtils = {
 
   getViewForNode: function PU_getViewForNode(aNode) {
     var node = aNode;
+
+    
+    
+    if (node.localName == "menu" && !node.node &&
+        node.firstChild.getAttribute("type") == "places")
+      return node.firstChild;
+
     while (node) {
       
       if (node.getAttribute("type") == "places")
