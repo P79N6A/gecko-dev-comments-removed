@@ -513,8 +513,8 @@ protected:
   PRInt32       mMenuCmdId;
 
   
-  DWORD         mOldStyle;
-  DWORD         mOldExStyle;
+  DWORD_PTR     mOldStyle;
+  DWORD_PTR     mOldExStyle;
 
   
   HIMC          mOldIMC;
