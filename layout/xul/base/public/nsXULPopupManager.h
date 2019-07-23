@@ -68,7 +68,6 @@
 
 
 
-
 class nsIPresShell;
 class nsMenuFrame;
 class nsMenuPopupFrame;
@@ -730,10 +729,10 @@ protected:
   nsMenuBarFrame* mActiveMenuBar;
 
   
-  nsMenuChainItem* mCurrentMenu;
+  nsMenuChainItem* mPopups;
 
   
-  nsMenuChainItem* mPanels;
+  nsMenuChainItem* mNoHidePanels;
 
   
   nsCOMPtr<nsITimer> mCloseTimer;
