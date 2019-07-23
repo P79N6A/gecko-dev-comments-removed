@@ -263,7 +263,7 @@ FeedWriter.prototype = {
 
   _setTitleImage: function FW__setTitleImage(container) {
     try {
-      var parts = this._getPropertyAsBag(container, "image");
+      var parts = container.image;
       
       
       var feedTitleImage = this._document.getElementById("feedTitleImage");
