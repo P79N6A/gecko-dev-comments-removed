@@ -90,16 +90,16 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
   nsCOMPtr<nsIWindowWatcher> wwatcher = do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
   if (NS_FAILED(rv)) return rv;
 
-  nsCOMPtr<nsIDOMWindow> parent = aParent;
-  if (!parent) {
-    wwatcher->GetActiveWindow(getter_AddRefs(parent));
-  }
-
   nsCOMPtr<nsISupports> arguments = do_QueryInterface(block);
   nsCOMPtr<nsIDOMWindow> dialog;
-  rv = wwatcher->OpenWindow(parent, "chrome://cookie/content/cookieAcceptDialog.xul", "_blank",
-                             "centerscreen,chrome,modal,titlebar", arguments,
-                             getter_AddRefs(dialog));
+
+  
+  
+  
+  
+  rv = wwatcher->OpenWindow(nsnull, "chrome://cookie/content/cookieAcceptDialog.xul", "_blank",
+                            "centerscreen,chrome,modal,titlebar", arguments,
+                            getter_AddRefs(dialog));
 
   if (NS_FAILED(rv)) return rv;
 
