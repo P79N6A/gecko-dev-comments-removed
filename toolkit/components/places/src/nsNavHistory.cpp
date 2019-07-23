@@ -2280,16 +2280,16 @@ nsNavHistory::SetPageDetails(nsIURI* aURI, const nsAString& aTitle,
   
   
   if (aTitle.IsVoid())
-    statement->BindNullParameter(1);
+    rv = statement->BindNullParameter(1);
   else
-    statement->BindStringParameter(1, StringHead(aTitle, HISTORY_TITLE_LENGTH_MAX));
+    rv = statement->BindStringParameter(1, StringHead(aTitle, HISTORY_TITLE_LENGTH_MAX));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  statement->BindInt32Parameter(3, aVisitCount);
+  rv = statement->BindInt32Parameter(3, aVisitCount);
   NS_ENSURE_SUCCESS(rv, rv);
-  statement->BindInt32Parameter(4, aHidden ? 1 : 0);
+  rv = statement->BindInt32Parameter(4, aHidden ? 1 : 0);
   NS_ENSURE_SUCCESS(rv, rv);
-  statement->BindInt32Parameter(5, aTyped ? 1 : 0);
+  rv = statement->BindInt32Parameter(5, aTyped ? 1 : 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = statement->Execute();
@@ -3720,29 +3720,34 @@ nsNavHistory::IsVisited(nsIURI *aURI, PRBool *_retval)
 
 
 
-
-
-
 NS_IMETHODIMP
-nsNavHistory::SetPageTitle(nsIURI *aURI,
-                           const nsAString & aTitle)
+nsNavHistory::SetPageTitle(nsIURI* aURI,
+                           const nsAString& aTitle)
 {
-  if (aTitle.IsEmpty())
-    return NS_OK;
+  
+  
+  
 
 #ifdef LAZY_ADD
   LazyMessage message;
   nsresult rv = message.Init(LazyMessage::Type_Title, aURI);
   NS_ENSURE_SUCCESS(rv, rv);
   message.title = aTitle;
+  if (aTitle.IsEmpty())
+    message.title.SetIsVoid(PR_TRUE);
   return AddLazyMessage(message);
 #else
+  if (aTitle.IsEmpty()) {
+    nsString voidString;
+    voidString.SetIsVoid(PR_TRUE);
+    return SetPageTitleInternal(aURI, voidString);
+  }
   return SetPageTitleInternal(aURI, aTitle);
 #endif
 }
 
 NS_IMETHODIMP
-nsNavHistory::GetPageTitle(nsIURI *aURI, nsAString &aTitle)
+nsNavHistory::GetPageTitle(nsIURI* aURI, nsAString& aTitle)
 {
   aTitle.Truncate(0);
 
@@ -5456,8 +5461,7 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
   
   
   
-  if (aTitle.IsVoid() == title.IsVoid() &&
-      aTitle == title)
+  if ((aTitle.IsVoid() && title.IsVoid()) || aTitle == title)
     return NS_OK;
 
   nsCOMPtr<mozIStorageStatement> dbModStatement;
