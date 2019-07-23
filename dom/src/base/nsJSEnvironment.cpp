@@ -783,15 +783,7 @@ PrintWinCodebase(nsGlobalWindow *win)
 #endif
 
 
-#define MAYBE_GC_OPERATION_COUNT_MASK 0x00000fff // 4095
-
-
-
-
-
-
-#define INITIALIZE_TIME_OPERATION_COUNT_MASK 0x000000ff // 255
-
+const PRUint32 MAYBE_GC_OPERATION_WEIGHT = 5000 * JS_OPERATION_WEIGHT_BASE;
 
 JSBool JS_DLL_CALLBACK
 nsJSContext::DOMOperationCallback(JSContext *cx)
@@ -804,49 +796,34 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     return JS_TRUE;
   }
 
-  PRUint32 callbackCount = ++ctx->mOperationCallbackCount;
-
-  if (callbackCount & INITIALIZE_TIME_OPERATION_COUNT_MASK) {
-    return JS_TRUE;
-  }
-
-  if (callbackCount == INITIALIZE_TIME_OPERATION_COUNT_MASK + 1 &&
-      LL_IS_ZERO(ctx->mOperationCallbackTime)) {
-    
-    
-    ctx->mOperationCallbackTime = PR_Now();
-
-    ctx->mIsTrackingChromeCodeTime =
-      ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx));
-
-    return JS_TRUE;
-  }
-
-  if (callbackCount & MAYBE_GC_OPERATION_COUNT_MASK) {
-    return JS_TRUE;
-  }
-
   
   
   
   
   PRTime callbackTime = ctx->mOperationCallbackTime;
 
-  
   JS_MaybeGC(cx);
 
   
   ctx->mOperationCallbackTime = callbackTime;
-  ctx->mOperationCallbackCount = callbackCount;
 
   PRTime now = PR_Now();
+
+  if (LL_IS_ZERO(callbackTime)) {
+    
+    
+    ctx->mOperationCallbackTime = now;
+    return JS_TRUE;
+  }
 
   PRTime duration;
   LL_SUB(duration, now, callbackTime);
 
   
   
-  if (duration < (ctx->mIsTrackingChromeCodeTime ?
+  PRBool isTrackingChromeCodeTime =
+    ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx));
+  if (duration < (isTrackingChromeCodeTime ?
                   sMaxChromeScriptRunTime : sMaxScriptRunTime)) {
     return JS_TRUE;
   }
@@ -991,7 +968,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
       nsIPrefBranch *prefBranch = nsContentUtils::GetPrefBranch();
 
       if (prefBranch) {
-        prefBranch->SetIntPref(ctx->mIsTrackingChromeCodeTime ?
+        prefBranch->SetIntPref(isTrackingChromeCodeTime ?
                                "dom.max_chrome_script_run_time" :
                                "dom.max_script_run_time", 0);
       }
@@ -1116,7 +1093,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
                                          this);
 
     ::JS_SetOperationCallback(mContext, DOMOperationCallback,
-                              JS_OPERATION_WEIGHT_BASE);
+                              MAYBE_GC_OPERATION_WEIGHT);
 
     static JSLocaleCallbacks localeCallbacks =
       {
@@ -1132,10 +1109,8 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
   mNumEvaluations = 0;
   mTerminations = nsnull;
   mScriptsEnabled = PR_TRUE;
-  mOperationCallbackCount = 0;
   mOperationCallbackTime = LL_ZERO;
   mProcessingScriptTag = PR_FALSE;
-  mIsTrackingChromeCodeTime = PR_FALSE;
 }
 
 nsJSContext::~nsJSContext()
@@ -3244,7 +3219,6 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
   }
 #endif
 
-  mOperationCallbackCount = 0;
   mOperationCallbackTime = LL_ZERO;
 }
 

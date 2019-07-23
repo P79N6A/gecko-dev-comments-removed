@@ -277,11 +277,9 @@ private:
   PRPackedBool mScriptsEnabled;
   PRPackedBool mGCOnDestruction;
   PRPackedBool mProcessingScriptTag;
-  PRPackedBool mIsTrackingChromeCodeTime;
 
-  PRUint32 mOperationCallbackCount;
-  PRTime mOperationCallbackTime;
   PRUint32 mDefaultJSOptions;
+  PRTime mOperationCallbackTime;
 
   
   
