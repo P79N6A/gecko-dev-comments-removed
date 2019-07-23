@@ -61,6 +61,15 @@ public:
 
 
 
+  static void CharacterDataWillChange(nsIContent* aContent,
+                                      CharacterDataChangeInfo* aInfo);
+
+  
+
+
+
+
+
   static void CharacterDataChanged(nsIContent* aContent,
                                    CharacterDataChangeInfo* aInfo);
 

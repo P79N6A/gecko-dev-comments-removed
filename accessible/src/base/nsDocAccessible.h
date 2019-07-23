@@ -159,8 +159,15 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
     
 
 
-    void FireTextChangedEventOnDOMCharacterDataModified(nsIContent *aContent,
-                                                        CharacterDataChangeInfo* aInfo);
+
+
+
+
+
+
+    void FireTextChangeEventForText(nsIContent *aContent,
+                                    CharacterDataChangeInfo* aInfo,
+                                    PRBool aIsInserted);
 
     
 
