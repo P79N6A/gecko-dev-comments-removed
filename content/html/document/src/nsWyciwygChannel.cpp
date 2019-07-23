@@ -81,6 +81,7 @@ nsWyciwygChannel::Init(nsIURI* uri)
 {
   NS_ENSURE_ARG_POINTER(uri);
   mURI = uri;
+  mOriginalURI = uri;
   return NS_OK;
 }
 
@@ -177,16 +178,18 @@ nsWyciwygChannel::GetOriginalURI(nsIURI* *aURI)
 {
   
   
-  NS_ASSERTION(mOriginalURI, "nsWyciwygChannel::GetOriginalURI - mOriginalURI not set!\n");
-
-  *aURI = mOriginalURI ? mOriginalURI : mURI;
-  NS_IF_ADDREF(*aURI);
+  NS_ASSERTION(mOriginalURI != mURI,
+               "nsWyciwygChannel::GetOriginalURI - mOriginalURI not set!\n");
+  
+  *aURI = mOriginalURI;
+  NS_ADDREF(*aURI);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsWyciwygChannel::SetOriginalURI(nsIURI* aURI)
 {
+  NS_ENSURE_ARG_POINTER(aURI);
   mOriginalURI = aURI;
   return NS_OK;
 }

@@ -155,10 +155,12 @@ public:
   void SetURI(nsIURI *uri) {
     NS_ASSERTION(uri, "must specify a non-null URI");
     NS_ASSERTION(!mURI, "must not modify URI");
+    NS_ASSERTION(!mOriginalURI, "how did that get set so early?");
     mURI = uri;
+    mOriginalURI = uri;
   }
   nsIURI *OriginalURI() {
-    return mOriginalURI ? mOriginalURI : mURI;
+    return mOriginalURI;
   }
 
   
