@@ -986,8 +986,10 @@ nsMediaCache::Update()
     if (stream->mStreamLength >= 0 &&
         desiredOffset >= stream->mStreamLength) {
       
+      
+      
       LOG(PR_LOG_DEBUG, ("Stream %p at end of stream", stream));
-      enableReading = PR_FALSE;
+      enableReading = PR_TRUE;
     } else if (desiredOffset < stream->mStreamOffset) {
       
       

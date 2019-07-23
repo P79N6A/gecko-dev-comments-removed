@@ -501,17 +501,25 @@ void nsMediaChannelStream::Suspend(PRBool aCloseImmediately)
 {
   NS_ASSERTION(NS_IsMainThread(), "Don't call on main thread");
 
+  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  if (!element) {
+    
+    return;
+  }
+
   if (mChannel) {
     if (aCloseImmediately && mCacheStream.IsSeekable()) {
       
       mIgnoreClose = PR_TRUE;
       CloseChannel();
+      element->DownloadSuspended();
     } else if (mSuspendCount == 0) {
       {
         nsAutoLock lock(mLock);
         mChannelStatistics.Stop(TimeStamp::Now());
       }
       mChannel->Suspend();
+      element->DownloadSuspended();
     }
   }
 
@@ -522,6 +530,12 @@ void nsMediaChannelStream::Resume()
 {
   NS_ASSERTION(NS_IsMainThread(), "Don't call on main thread");
   NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
+
+  nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+  if (!element) {
+    
+    return;
+  }
 
   --mSuspendCount;
   if (mSuspendCount == 0) {
@@ -535,9 +549,11 @@ void nsMediaChannelStream::Resume()
       
       mReopenOnError = PR_TRUE;
       mChannel->Resume();
+      element->DownloadResumed();
     } else {
       
       CacheClientSeek(mOffset, PR_FALSE);
+      element->DownloadResumed();
     }
   }
 }

@@ -130,6 +130,20 @@ public:
 
   
   
+  
+  void DownloadSuspended();
+
+  
+  
+  
+  void DownloadResumed();
+
+  
+  
+  void DownloadStalled();
+
+  
+  
   void Paint(gfxContext* aContext,
              gfxPattern::GraphicsFilter aFilter,
              const gfxRect& aRect);
