@@ -6732,8 +6732,7 @@ TraceRecorder::functionCall(bool constructing, uintN argc)
 
 
 
-
-    if (tval == JSVAL_NULL && !guardCallee(fval))
+    if (!get(&fval)->isconst() && !guardCallee(fval))
         return false;
 
     
@@ -7266,6 +7265,8 @@ JS_DEFINE_TRCINFO_1(GetElement,
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_GETELEM()
 {
+    bool call = js_GetOpcode(cx, cx->fp->script, cx->fp->regs->pc) == JSOP_CALLELEM;
+
     jsval& idx = stackval(-1);
     jsval& lval = stackval(-2);
 
@@ -7274,6 +7275,8 @@ TraceRecorder::record_JSOP_GETELEM()
 
     
     if (JSVAL_IS_STRING(lval) && isInt32(idx)) {
+        if (call)
+            ABORT_TRACE("JSOP_CALLELEM on a string");
         int i = asInt32(idx);
         if (size_t(i) >= JSSTRING_LENGTH(JSVAL_TO_STRING(lval)))
             ABORT_TRACE("Invalid string index in JSOP_GETELEM");
@@ -7309,7 +7312,7 @@ TraceRecorder::record_JSOP_GETELEM()
         if (!guardNotGlobalObject(obj, obj_ins))
             return false;
 
-        return call_imacro(getelem_imacros.getprop);
+        return call_imacro(call ? callelem_imacros.callprop : getelem_imacros.getprop);
     }
 
     
@@ -7317,7 +7320,7 @@ TraceRecorder::record_JSOP_GETELEM()
         if (!guardNotGlobalObject(obj, obj_ins))
             return false;
 
-        return call_imacro(getelem_imacros.getelem);
+        return call_imacro(call ? callelem_imacros.callelem : getelem_imacros.getelem);
     }
 
     
@@ -7326,6 +7329,8 @@ TraceRecorder::record_JSOP_GETELEM()
     if (!elem(lval, idx, vp, v_ins, addr_ins))
         return false;
     set(&lval, v_ins);
+    if (call)
+        set(&idx, obj_ins);
     return true;
 }
 
@@ -9108,7 +9113,7 @@ TraceRecorder::record_JSOP_RESETBASE0()
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_CALLELEM()
 {
-    return false;
+    return record_JSOP_GETELEM();
 }
 
 JS_REQUIRES_STACK bool
