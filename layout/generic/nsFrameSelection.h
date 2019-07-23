@@ -627,10 +627,15 @@ private:
   nsresult SelectRowOrColumn(nsIContent *aCellContent, PRUint32 aTarget);
   nsresult GetCellIndexes(nsIContent *aCell, PRInt32 &aRowIndex, PRInt32 &aColIndex);
 
-  nsresult GetFirstSelectedCellAndRange(nsIDOMNode **aCell, nsIDOMRange **aRange);
-  nsresult GetNextSelectedCellAndRange(nsIDOMNode **aCell, nsIDOMRange **aRange);
-  nsresult GetFirstCellNodeInRange(nsIDOMRange *aRange,
-                                   nsIDOMNode **aCellNode) const;
+  
+  
+  
+  nsIRange* GetFirstCellRange();
+  
+  
+  
+  nsIRange* GetNextCellRange();
+  nsIContent* GetFirstCellNodeInRange(nsIRange *aRange) const;
   
   PRBool   IsInSameTable(nsIContent *aContent1, nsIContent *aContent2,
                          nsIContent **aTableNode) const;
