@@ -492,6 +492,34 @@ var PlacesUtils = {
 
 
 
+  getIndexOfNode: function PU_getIndexOfNode(aNode) {
+    var parent = aNode.parent;
+    if (!parent)
+      return -1;
+    var wasOpen = parent.containerOpen;
+    var result, oldViewer;
+    if (!wasOpen) {
+      result = parent.parentResult;
+      oldViewer = result.viewer;
+      result.viewer = null;
+      parent.containerOpen = true;
+    }
+    var cc = parent.childCount;
+    for (var i = 0; i < cc && parent.getChild(i) != aNode; ++i);
+    if (!wasOpen) {
+      parent.containerOpen = false;
+      result.viewer = oldViewer;
+    }
+    return i < cc ? i : -1;
+  },
+
+  
+
+
+
+
+
+
 
 
 
@@ -501,44 +529,40 @@ var PlacesUtils = {
 
 
   wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI, aForceCopy) {
-    let self = this;
+    var self = this;
 
-    
     
     
     
     
     function convertNode(cNode) {
       if (self.nodeIsFolder(cNode) && asQuery(cNode).queryOptions.excludeItems) {
-        let concreteId = self.getConcreteItemId(cNode);
-        return [self.getFolderContents(concreteId, false, true).root, true];
+        var concreteId = self.getConcreteItemId(cNode);
+        return self.getFolderContents(concreteId, false, true).root;
       }
-
-      
-      return [cNode, false];
+      return cNode;
     }
 
     switch (aType) {
       case this.TYPE_X_MOZ_PLACE:
       case this.TYPE_X_MOZ_PLACE_SEPARATOR:
       case this.TYPE_X_MOZ_PLACE_CONTAINER:
-        let writer = {
+        var writer = {
           value: "",
           write: function PU_wrapNode__write(aStr, aLen) {
             this.value += aStr;
           }
         };
-
-        let [node, shouldClose] = convertNode(aNode);
+        var node = convertNode(aNode);
         self.serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
-        if (shouldClose)
+        
+        if (self.nodeIsContainer(node))
           node.containerOpen = false;
-
         return writer.value;
       case this.TYPE_X_MOZ_URL:
         function gatherDataUrl(bNode) {
           if (self.nodeIsLivemarkContainer(bNode)) {
-            let siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
+            var siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
             return siteURI + NEWLINE + bNode.title;
           }
           if (self.nodeIsURI(bNode))
@@ -546,13 +570,14 @@ var PlacesUtils = {
           
           return "";
         }
-
-        let [node, shouldClose] = convertNode(aNode);
-        let dataUrl = gatherDataUrl(node);
-        if (shouldClose)
+        var node = convertNode(aNode);
+        var dataUrl = gatherDataUrl(node);
+        
+        if (self.nodeIsContainer(node))
           node.containerOpen = false;
-
         return dataUrl;
+        
+
       case this.TYPE_HTML:
         function gatherDataHtml(bNode) {
           function htmlEscape(s) {
@@ -564,20 +589,20 @@ var PlacesUtils = {
             return s;
           }
           
-          let escapedTitle = bNode.title ? htmlEscape(bNode.title) : "";
+          var escapedTitle = bNode.title ? htmlEscape(bNode.title) : "";
           if (self.nodeIsLivemarkContainer(bNode)) {
-            let siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
+            var siteURI = self.livemarks.getSiteURI(bNode.itemId).spec;
             return "<A HREF=\"" + siteURI + "\">" + escapedTitle + "</A>" + NEWLINE;
           }
           if (self.nodeIsContainer(bNode)) {
             asContainer(bNode);
-            let wasOpen = bNode.containerOpen;
+            var wasOpen = bNode.containerOpen;
             if (!wasOpen)
               bNode.containerOpen = true;
 
-            let childString = "<DL><DT>" + escapedTitle + "</DT>" + NEWLINE;
-            let cc = bNode.childCount;
-            for (let i = 0; i < cc; ++i)
+            var childString = "<DL><DT>" + escapedTitle + "</DT>" + NEWLINE;
+            var cc = bNode.childCount;
+            for (var i = 0; i < cc; ++i)
               childString += "<DD>"
                              + NEWLINE
                              + gatherDataHtml(bNode.getChild(i))
@@ -592,30 +617,28 @@ var PlacesUtils = {
             return "<HR>" + NEWLINE;
           return "";
         }
-
-        let [node, shouldClose] = convertNode(aNode);
-        let dataHtml = gatherDataHtml(node);
-        if (shouldClose)
+        var node = convertNode(aNode);
+        var dataHtml = gatherDataHtml(node);
+        
+        if (self.nodeIsContainer(node))
           node.containerOpen = false;
-
         return dataHtml;
     }
-
     
     function gatherDataText(bNode) {
       if (self.nodeIsLivemarkContainer(bNode))
         return self.livemarks.getSiteURI(bNode.itemId).spec;
       if (self.nodeIsContainer(bNode)) {
         asContainer(bNode);
-        let wasOpen = bNode.containerOpen;
+        var wasOpen = bNode.containerOpen;
         if (!wasOpen)
           bNode.containerOpen = true;
 
-        let childString = bNode.title + NEWLINE;
-        let cc = bNode.childCount;
-        for (let i = 0; i < cc; ++i) {
-          let child = bNode.getChild(i);
-          let suffix = i < (cc - 1) ? NEWLINE : "";
+        var childString = bNode.title + NEWLINE;
+        var cc = bNode.childCount;
+        for (var i = 0; i < cc; ++i) {
+          var child = bNode.getChild(i);
+          var suffix = i < (cc - 1) ? NEWLINE : "";
           childString += gatherDataText(child) + suffix;
         }
         bNode.containerOpen = wasOpen;
@@ -628,12 +651,11 @@ var PlacesUtils = {
       return "";
     }
 
-    let [node, shouldClose] = convertNode(aNode);
-    let dataText = gatherDataText(node);
+    var node = convertNode(aNode);
+    var dataText = gatherDataText(node);
     
-    if (shouldClose)
+    if (self.nodeIsContainer(node))
       node.containerOpen = false;
-
     return dataText;
   },
 

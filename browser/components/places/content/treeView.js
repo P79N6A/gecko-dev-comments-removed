@@ -52,6 +52,11 @@ PlacesTreeView.prototype = {
     return this._atoms[aName];
   },
 
+  _ensureValidRow: function PTV__ensureValidRow(aRow) {
+    if (aRow < 0 || aRow >= this._visibleElements.length)
+      throw Cr.NS_ERROR_INVALID_ARG;
+  },
+
   __dateService: null,
   get _dateService() {
     if (!this.__dateService) {
@@ -75,10 +80,11 @@ PlacesTreeView.prototype = {
 
 
   _finishInit: function PTV__finishInit() {
-    let selection = this.selection;
+    var selection = this.selection;
     if (selection)
       selection.selectEventsSuppressed = true;
 
+    this._rootNode._viewIndex = -1;
     if (!this._rootNode.containerOpen) {
       
       this._rootNode.containerOpen = true;
@@ -91,168 +97,6 @@ PlacesTreeView.prototype = {
 
     if (selection)
       selection.selectEventsSuppressed = false;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _isPlainContainer: function PTV__isPlainContainer(aContainer) {
-    if (aContainer._plainContainer !== undefined)
-      return aContainer._plainContainer;
-
-    
-    if (!(aContainer instanceof Ci.nsINavHistoryQueryResultNode))
-      return aContainer._plainContainer = false;
-
-    let resultType = aContainer.queryOptions.resultType;
-    switch (resultType) {
-      case Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY:
-      case Ci.nsINavHistoryQueryOptions.RESULTS_AS_SITE_QUERY:
-      case Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY:
-      case Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_QUERY:
-        return aContainer._plainContainer = false;
-    }
-
-    
-    let nodeType = aContainer.type;
-    return aContainer._plainContainer =
-           (nodeType != Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER &&
-            nodeType != Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _getRowForNode:
-  function PTV__getRowForNode(aNode, aForceBuild, aParentRow, aNodeIndex) {
-    if (aNode == this._rootNode)
-      throw "The root node is never visible";
-
-    let parent = aNode.parent;
-    if (!parent || !parent.containerOpen)
-      throw "Invisible node passed to _getRowForNode";
-
-    
-    let parentIsPlain = this._isPlainContainer(parent);
-    if (!parentIsPlain) {
-      if (parent == this._rootNode)
-        return this._rows.indexOf(aNode);
-
-      return this._rows.indexOf(aNode, aParentRow);
-    }
-
-    let row = -1;
-    let useNodeIndex = typeof(aNodeIndex) == "number";
-    if (parent == this._rootNode)
-      row = useNodeIndex ? aNodeIndex : this._rootNode.getChildIndex(aNode);
-    else if (useNodeIndex && typeof(aParentRow) == "number") {
-      
-      
-      row = aParentRow + aNodeIndex + 1;
-    }
-    else {
-      
-      
-      
-      row = this._rows.indexOf(aNode, aParentRow);
-      if (row == -1 && aForceBuild) {
-        let parentRow = typeof(aParentRow) == "number" ? aParentRow
-                                                       : this._getRowForNode(parent);
-        row = parentRow + parent.getChildIndex(aNode) + 1;
-      }
-    }
-
-    if (row != -1)
-      this._rows[row] = aNode;
-
-    return row;
-  },
-
-  
-
-
-
-
-
-
-  _getParentByChildRow: function PTV__getParentByChildRow(aChildRow) {
-    let parent = this._getNodeForRow(aChildRow).parent;
-
-    
-    if (parent == this._rootNode)
-      return [this._rootNode, -1];
-
-    let parentRow = this._rows.lastIndexOf(parent, aChildRow - 1);
-    return [parent, parentRow];
-  },
-
-  
-
-
-  _getNodeForRow: function PTV__getNodeForRow(aRow) {
-    let node = this._rows[aRow];
-    if (node !== undefined)
-      return node;
-
-    
-    let rowNode, row;
-    for (let i = aRow - 1; i >= 0 && rowNode === undefined; i--) {
-      rowNode = this._rows[i];
-      row = i;
-    }
-
-    
-    
-    if (!rowNode)
-      return this._rows[aRow] = this._rootNode.getChild(aRow);
-
-    
-    
-    if (rowNode instanceof Ci.nsINavHistoryContainerResultNode)
-      return this._rows[aRow] = rowNode.getChild(aRow - row - 1);
-
-    let [parent, parentRow] = this._getParentByChildRow(row);
-    return this._rows[aRow] = parent.getChild(aRow - parentRow - 1);
   },
 
   _rootNode: null,
@@ -269,130 +113,65 @@ PlacesTreeView.prototype = {
 
 
 
-
-
-
   _buildVisibleSection:
-  function PTV__buildVisibleSection(aContainer, aFirstChildRow, aToOpen)
+  function PTV__buildVisibleSection(aContainer, aVisible, aToOpen, aVisibleStartIndex)
   {
-    
     if (!aContainer.containerOpen)
-      return;
-
-    
-    
-    
-    let cc = aContainer.childCount;
-    let newElements = new Array(cc);
-    this._rows =
-      this._rows.slice(0, aFirstChildRow).concat(newElements)
-          .concat(this._rows.slice(aFirstChildRow, this._rows.length));
-
-    if (this._isPlainContainer(aContainer))
-      return cc;
+      return;  
 
     const openLiteral = PlacesUIUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");
     const trueLiteral = PlacesUIUtils.RDF.GetLiteral("true");
-    let sortingMode = this._result.sortingMode;
 
-    let rowsInsertedCounter = 0;
-    for (let i = 0; i < cc; i++) {
-      let curChild = aContainer.getChild(i);
-      let curChildType = curChild.type;
-
-      let row = aFirstChildRow + rowsInsertedCounter;
+    var cc = aContainer.childCount;
+    var sortingMode = this._result.sortingMode;
+    for (var i=0; i < cc; i++) {
+      var curChild = aContainer.getChild(i);
+      var curChildType = curChild.type;
 
       
       if (curChildType == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
         if (sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
-          
-          
-          
-          this._rows.splice(row, 1);
+          curChild._viewIndex = -1;
           continue;
         }
       }
 
-      this._rows[row] = curChild;
-      rowsInsertedCounter++;
+      
+      curChild._viewIndex = aVisibleStartIndex + aVisible.length;
+      aVisible.push(curChild);
 
       
       if (!this._flatList &&
           curChild instanceof Ci.nsINavHistoryContainerResultNode) {
-        let resource = this._getResourceForNode(curChild);
-        let isopen = resource != null &&
-                     PlacesUIUtils.localStore.HasAssertion(resource,
-                                                           openLiteral,
+        var resource = this._getResourceForNode(curChild);
+        var isopen = resource != null &&
+                     PlacesUIUtils.localStore.HasAssertion(resource, openLiteral,
                                                            trueLiteral, true);
         if (isopen != curChild.containerOpen)
           aToOpen.push(curChild);
         else if (curChild.containerOpen && curChild.childCount > 0)
-          rowsAddedCounter += this._buildVisibleSection(curChild, aToOpen,
-                                                        row + 1);
+          this._buildVisibleSection(curChild, aVisible, aToOpen, aVisibleStartIndex);
       }
     }
-
-    return rowsInsertedCounter;
   },
 
   
 
 
 
-  _countVisibleRowsForNodeAtRow:
-  function PTV__countVisibleRowsForNodeAtRow(aNodeRow) {
-    let node = this._rows[aNodeRow];
+  _countVisibleRowsForNode: function PTV__countVisibleRowsForNode(aNode) {
+    if (aNode == this._rootNode)
+      return this._visibleElements.length;
 
-    
-    if (node === undefined ||
-        !(node instanceof Ci.nsINavHistoryContainerResultNode))
-      return 1;
-
-    let outerLevel = node.indentLevel;
-    for (let i = aNodeRow + 1; i < this._rows.length; i++) {
-      let rowNode = this._rows[i];
-      if (rowNode && rowNode.indentLevel <= outerLevel)
-        return i - aNodeRow;
+    var viewIndex = aNode._viewIndex;
+    NS_ASSERT(viewIndex >= 0, "Node is not visible, no rows to count");
+    var outerLevel = aNode.indentLevel;
+    for (var i = viewIndex + 1; i < this._visibleElements.length; i++) {
+      if (this._visibleElements[i].indentLevel <= outerLevel)
+        return i - viewIndex;
     }
-
     
-    return this._rows.length - aNodeRow;
-  },
-
-  _getSelectedNodesInRange:
-  function PTV__getSelectedNodesInRange(aFirstRow, aLastRow) {
-    let selection = this.selection;
-    let rc = selection.getRangeCount();
-    if (rc == 0)
-      return [];
-
-    
-    
-    let firstVisibleRow = this._tree.getFirstVisibleRow();
-    let lastVisibleRow = this._tree.getLastVisibleRow();
-
-    let nodesInfo = [];
-    for (let rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
-      let min = { }, max = { };
-      selection.getRangeAt(rangeIndex, min, max);
-
-      
-      
-      if (max.value < aFirstRow || min.value > aLastRow)
-        continue;
-
-      let firstRow = Math.max(min.value, aFirstRow);
-      let lastRow = Math.min(max.value, aLastRow);
-      for (let i = firstRow; i <= lastRow; i++) {
-        nodesInfo.push({
-          node: this._rows[i],
-          oldRow: i,
-          wasVisbile: i >= firstVisibleRow && i <= lastVisibleRow
-        });
-      }
-    }
-
-    return nodesInfo;
+    return this._visibleElements.length - viewIndex;
   },
 
   
@@ -403,84 +182,156 @@ PlacesTreeView.prototype = {
 
 
 
-
-
-
-
-
-
-
-  _getNewRowForRemovedNode:
-  function PTV__getNewRowForRemovedNode(aUpdatedContainer, aOldNode) {
-    let parent = aOldNode.parent;
-    if (parent) {
-      
-      
-      
-      if (parent.containerOpen)
-        return this._getRowForNode(aOldNode, true);
-
-      return -1;
-    }
-
-    
-    
-    
-    
-    
-    let newNode = aUpdatedContainer.findNodeByDetails(aOldNode.uri,
-                                                      aOldNode.time,
-                                                      aOldNode.itemId,
-                                                      true);
-    if (!newNode)
-      return -1;
-
-    return this._getRowForNode(newNode, true);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _restoreSelection:
-  function PTV__restoreSelection(aNodesInfo, aUpdatedContainer) {
-    if (aNodesInfo.length == 0)
+  _refreshVisibleSection: function PTV__refreshVisibleSection(aContainer) {
+    NS_ASSERT(this._result, "Need to have a result to update");
+    if (!this._tree)
       return;
 
-    let selection = this.selection;
+    
+    if (aContainer != this._rootNode) {
+      if (aContainer._viewIndex < 0 ||
+          aContainer._viewIndex > this._visibleElements.length)
+        throw "Trying to expand a node that is not visible";
+
+      NS_ASSERT(this._visibleElements[aContainer._viewIndex] == aContainer,
+                "Visible index is out of sync!");
+    }
+
+    var startReplacement = aContainer._viewIndex + 1;
+    var replaceCount = this._countVisibleRowsForNode(aContainer);
 
     
     
-    let scrollToRow = -1;
-    for (let i = 0; i < aNodesInfo.length; i++) {
-      let nodeInfo = aNodesInfo[i];
-      let row = this._getNewRowForRemovedNode(aUpdatedContainer,
-                                              aNodesInfo[i].node);
+    
+    if (aContainer != this._rootNode)
+      replaceCount -= 1;
+
+    
+    var previouslySelectedNodes = [];
+    var selection = this.selection;
+    var rc = selection.getRangeCount();
+    for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
+      var min = { }, max = { };
+      selection.getRangeAt(rangeIndex, min, max);
+      var lastIndex = Math.min(max.value, startReplacement + replaceCount -1);
       
-      if (row != -1) {
-        selection.rangedSelect(row, row, true);
-        if (nodeInfo.wasVisible && scrollToRow == -1)
-          scrollToRow = row;
+      
+      if (max.value < startReplacement || min.value > lastIndex)
+        continue;
+
+      
+      
+      var firstIndex = Math.max(min.value, startReplacement);
+      for (var nodeIndex = firstIndex; nodeIndex <= lastIndex; nodeIndex++) {
+        
+        
+        var node = this._visibleElements[nodeIndex];
+        if (nodeIndex >= startReplacement &&
+            nodeIndex < startReplacement + replaceCount)
+          node._viewIndex = -1;
+
+        previouslySelectedNodes.push(
+          { node: node, oldIndex: nodeIndex });
       }
     }
 
     
+    var newElements = [];
+    var toOpenElements = [];
+    this._buildVisibleSection(aContainer,
+                              newElements, toOpenElements, startReplacement);
+
     
-    if (aNodesInfo.length == 1 && selection.getRangeCount() == 0) {
-      let row = Math.min(aNodesInfo[0].oldRow, this._rows.length - 1);
-      selection.rangedSelect(row, row, true);
-      if (aNodesInfo[0].wasVisible && scrollToRow == -1)
-        scrollToRow = aNodesInfo[0].oldRow;
+    
+    
+    this._visibleElements =
+      this._visibleElements.slice(0, startReplacement).concat(newElements)
+          .concat(this._visibleElements.slice(startReplacement + replaceCount,
+                                              this._visibleElements.length));
+
+    
+    
+    if (replaceCount != newElements.length) {
+      for (var i = startReplacement + newElements.length;
+           i < this._visibleElements.length; i++) {
+        this._visibleElements[i]._viewIndex = i;
+      }
     }
 
-    if (scrollToRow != -1)
-      this._tree.ensureRowIsVisible(scrollToRow);
+    
+    selection.selectEventsSuppressed = true;
+    this._tree.beginUpdateBatch();
+
+    if (replaceCount)
+      this._tree.rowCountChanged(startReplacement, -replaceCount);
+    if (newElements.length)
+      this._tree.rowCountChanged(startReplacement, newElements.length);
+
+    if (!this._flatList) {
+      
+      for (var i = 0; i < toOpenElements.length; i++) {
+        var item = toOpenElements[i];
+        var parent = item.parent;
+        
+        while (parent) {
+          if (parent.uri == item.uri)
+            break;
+          parent = parent.parent;
+        }
+        
+        
+        if (!parent && !item.containerOpen)
+          item.containerOpen = true;
+      }
+    }
+
+    this._tree.endUpdateBatch();
+
+    
+    if (previouslySelectedNodes.length > 0) {
+      for (var i = 0; i < previouslySelectedNodes.length; i++) {
+        var nodeInfo = previouslySelectedNodes[i];
+        var index = nodeInfo.node._viewIndex;
+
+        
+        
+        if (index == -1) {
+          
+          var itemId = PlacesUtils.getConcreteItemId(nodeInfo.node);
+          if (itemId != 1) {
+            
+            for (var j = 0; j < newElements.length && index == -1; j++) {
+              if (PlacesUtils.getConcreteItemId(newElements[j]) == itemId)
+                index = newElements[j]._viewIndex;
+            }
+          }
+          else {
+            
+            var uri = nodeInfo.node.uri;
+            if (uri) {
+              for (var j = 0; j < newElements.length && index == -1; j++) {
+                if (newElements[j].uri == uri)
+                  index = newElements[j]._viewIndex;
+              }
+            }
+          }
+        }
+
+        
+        if (index != -1)
+          selection.rangedSelect(index, index, true);
+      }
+
+      
+      
+      if (previouslySelectedNodes.length == 1 &&
+          selection.getRangeCount() == 0 &&
+          this._visibleElements.length > previouslySelectedNodes[0].oldIndex) {
+        selection.rangedSelect(previouslySelectedNodes[0].oldIndex,
+                               previouslySelectedNodes[0].oldIndex, true);
+      }
+    }
+    selection.selectEventsSuppressed = false;
   },
 
   _convertPRTimeToString: function PTV__convertPRTimeToString(aTime) {
@@ -521,7 +372,7 @@ PlacesTreeView.prototype = {
   COLUMN_TYPE_TAGS: 9,
 
   _getColumnType: function PTV__getColumnType(aColumn) {
-    let columnType = aColumn.element.getAttribute("anonid") || aColumn.id;
+    var columnType = aColumn.element.getAttribute("anonid") || aColumn.id;
 
     switch (columnType) {
       case "title":
@@ -593,67 +444,85 @@ PlacesTreeView.prototype = {
 
   
   nodeInserted: function PTV_nodeInserted(aParentNode, aNode, aNewIndex) {
-    NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree || !this._result)
+    if (!this._tree)
       return;
+    if (!this._result)
+      throw Cr.NS_ERROR_UNEXPECTED;
 
-    
     if (PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
+        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
+      aNode._viewIndex = -1;
       return;
-
-    let parentRow;
-    if (aParentNode != this._rootNode) {
-      parentRow = this._getRowForNode(aParentNode);
-
-      
-      if (aParentNode.childCount == 1)
-        this._tree.invalidateRow(parentRow);
     }
 
     
-    let row = -1;
-    if (aNewIndex == 0 || this._isPlainContainer(aParentNode)) {
+    
+    if (aParentNode.childCount == 1)
+      this._tree.invalidateRow(aParentNode._viewIndex);
+
+    
+    var newViewIndex = -1;
+    if (aNewIndex == 0) {
       
       
-      if (aParentNode == this._rootNode)
-        row = aNewIndex;
-      else
-        row = parentRow + aNewIndex + 1;
+      
+      newViewIndex = aParentNode._viewIndex + 1;
     }
     else {
       
       
       
       
-      let cc = aParentNode.childCount;
-      let separatorsAreHidden = PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE;
-      for (let i = aNewIndex + 1; i < cc; i++) {
-        let node = aParentNode.getChild(i);
-        if (!separatorsAreHidden || PlacesUtils.nodeIsSeparator(node)) {
+      for (var i = aNewIndex + 1; i < aParentNode.childCount; i++) {
+        var viewIndex = aParentNode.getChild(i)._viewIndex;
+        if (viewIndex >= 0) {
           
           
-          row = this._getRowForNode(node, false, parentRow, i);
+          newViewIndex = viewIndex;
           break;
         }
       }
-      if (row < 0) {
+      if (newViewIndex < 0) {
         
         
         
-        let prevChild = aParentNode.getChild(aNewIndex - 1);
-        let prevIndex = this._getRowForNode(prevChild, false, parentRow,
-                                            aNewIndex - 1);
-        row = prevIndex + this._countVisibleRowsForNodeAtRow(prevIndex);
+        var prevChild = aParentNode.getChild(aNewIndex - 1);
+        newViewIndex = prevChild._viewIndex + this._countVisibleRowsForNode(prevChild);
       }
     }
 
-    this._rows.splice(row, 0, aNode);
-    this._tree.rowCountChanged(row, 1);
+    aNode._viewIndex = newViewIndex;
+    this._visibleElements.splice(newViewIndex, 0, aNode);
+    for (var i = newViewIndex + 1;
+         i < this._visibleElements.length; i++) {
+      this._visibleElements[i]._viewIndex = i;
+    }
+    this._tree.rowCountChanged(newViewIndex, 1);
 
     if (PlacesUtils.nodeIsContainer(aNode) && asContainer(aNode).containerOpen)
-      this.invalidateContainer(aNode);
+      this._refreshVisibleSection(aNode);
+  },
+
+  
+  
+  _fixViewIndexOnRemove: function PTV_fixViewIndexOnRemove(aNode,
+                                                           aParentNode) {
+    var oldViewIndex = aNode._viewIndex;
+    
+    var count = this._countVisibleRowsForNode(aNode);
+
+    if (oldViewIndex > this._visibleElements.length)
+      throw("Trying to remove a node with an invalid viewIndex");
+
+    this._visibleElements.splice(oldViewIndex, count);
+    for (var i = oldViewIndex; i < this._visibleElements.length; i++)
+      this._visibleElements[i]._viewIndex = i;
+
+    this._tree.rowCountChanged(oldViewIndex, -count);
+
+    
+    if (!aParentNode.hasChildren)
+      this._tree.invalidateRow(aParentNode._viewIndex);
   },
 
   
@@ -667,28 +536,21 @@ PlacesTreeView.prototype = {
 
   nodeRemoved: function PTV_nodeRemoved(aParentNode, aNode, aOldIndex) {
     NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree || !this._result)
+    if (!this._tree)
+      return; 
+
+    var oldViewIndex = aNode._viewIndex;
+    if (oldViewIndex < 0) {
+      
       return;
-
-    
-    if (aNode == this._rootNode)
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-
-    
-    if (PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
-      return;
-
-    let oldRow = this._getRowForNode(aNode, true);
-    if (oldRow < 0)
-      throw Cr.NS_ERROR_UNEXPECTED;
+    }
 
     
     
-    let selectNext = false;
-    let selection = this.selection;
+    var selectNext = false;
+    var selection = this.selection;
     if (selection.getRangeCount() == 1) {
-      let min = { }, max = { };
+      var min = { }, max = { };
       selection.getRangeAt(0, min, max);
       if (min.value == max.value &&
           this.nodeForTreeIndex(min.value) == aNode)
@@ -696,64 +558,72 @@ PlacesTreeView.prototype = {
     }
 
     
-    let count = this._countVisibleRowsForNodeAtRow(oldRow);
-    this._rows.splice(oldRow, count);
-    this._tree.rowCountChanged(oldRow, -count);
-
-    
-    if (aParentNode != this._rootNode && !aParentNode.hasChildren) {
-      let parentRow = oldRow - 1;
-      this._tree.invalidateRow(parentRow);
-    }
+    this._fixViewIndexOnRemove(aNode, aParentNode);
 
     
     if (!selectNext)
       return;
 
     
-    let rowToSelect = Math.min(oldRow,  this._rows.length - 1);
-    this.selection.rangedSelect(rowToSelect, rowToSelect, true);
+    if (this._visibleElements.length > oldViewIndex)
+      selection.rangedSelect(oldViewIndex, oldViewIndex, true);    
+    else if (this._visibleElements.length > 0) {
+      
+      selection.rangedSelect(this._visibleElements.length - 1,
+                             this._visibleElements.length - 1, true);
+    }
   },
+
+  
+
+
 
   nodeMoved:
   function PTV_nodeMoved(aNode, aOldParent, aOldIndex, aNewParent, aNewIndex) {
     NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree || !this._result)
+    if (!this._tree)
+      return; 
+
+    var oldViewIndex = aNode._viewIndex;
+    if (oldViewIndex < 0) {
+      
       return;
-
-    
-    if (PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
-      return;
-
-    let oldRow = this._getRowForNode(aNode, true);
-
-    
-    let count = this._countVisibleRowsForNodeAtRow(oldRow);
-
-    
-    let nodesToReselect =
-      this._getSelectedNodesInRange(oldRow, oldRow + count);
-    if (nodesToReselect.length > 0)
-      this.selection.selectEventsSuppressed = true;
-
-    
-    if (aOldParent != this._rootNode && !aOldParent.hasChildren) {
-      let parentRow = oldRow - 1;
-      this._tree.invalidateRow(parentRow);
     }
 
     
-    this._rows.splice(oldRow, count);
-    this._tree.rowCountChanged(oldRow, -count);
+    var count = this._countVisibleRowsForNode(aNode);
+
+    
+    var nodesToSelect = [];
+    var selection = this.selection;
+    var rc = selection.getRangeCount();
+    for (var rangeIndex = 0; rangeIndex < rc; rangeIndex++) {
+      var min = { }, max = { };
+      selection.getRangeAt(rangeIndex, min, max);
+      var lastIndex = Math.min(max.value, oldViewIndex + count -1);
+      if (min.value < oldViewIndex || min.value > lastIndex)
+        continue;
+
+      for (var nodeIndex = min.value; nodeIndex <= lastIndex; nodeIndex++)
+        nodesToSelect.push(this._visibleElements[nodeIndex]);
+    }
+    if (nodesToSelect.length > 0)
+      selection.selectEventsSuppressed = true;
+
+    
+    this._fixViewIndexOnRemove(aNode, aOldParent);
 
     
     this.nodeInserted(aNewParent, aNode, aNewIndex);
 
     
-    if (nodesToReselect.length > 0) {
-      this._restoreSelection(nodesToReselect, aNewParent);
-      this.selection.selectEventsSuppressed = false;
+    if (nodesToSelect.length > 0) {
+      for (var i = 0; i < nodesToSelect.length; i++) {
+        var node = nodesToSelect[i];
+        var index = node._viewIndex;
+        selection.rangedSelect(index, index, true);
+      }
+      selection.selectEventsSuppressed = false;
     }
   },
 
@@ -763,38 +633,38 @@ PlacesTreeView.prototype = {
 
   nodeReplaced:
   function PTV_nodeReplaced(aParentNode, aOldNode, aNewNode, aIndexDoNotUse) {
-    NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree || !this._result)
+    if (!this._tree)
       return;
 
-    
-    let row = this._getRowForNode(aOldNode);
-    if (row != -1) {
-      this._rows[row] = aNewNode;
-      this._tree.invalidateRow(row);
+    var viewIndex = aOldNode._viewIndex;
+    aNewNode._viewIndex = viewIndex;
+    if (viewIndex >= 0 &&
+        viewIndex < this._visibleElements.length) {
+      this._visibleElements[viewIndex] = aNewNode;
     }
+    aOldNode._viewIndex = -1;
+    this._tree.invalidateRow(viewIndex);
   },
 
   _invalidateCellValue: function PTV__invalidateCellValue(aNode,
                                                           aColumnType) {
     NS_ASSERT(this._result, "Got a notification but have no result!");
-    if (!this._tree || !this._result)
+    let viewIndex = aNode._viewIndex;
+    if (viewIndex == -1) 
       return;
 
-    let row = this._getRowForNode(aNode);
-    if (row == -1)
-      return;
+    if (this._tree) {
+      let column = this._findColumnByType(aColumnType);
+      if (column && !column.element.hidden)
+        this._tree.invalidateCell(viewIndex, column);
 
-    let column = this._findColumnByType(aColumnType);
-    if (column && !column.element.hidden)
-      this._tree.invalidateCell(row, column);
-
-    
-    if (aColumnType != this.COLUMN_TYPE_LASTMODIFIED) {
-      let lastModifiedColumn =
-        this._findColumnByType(this.COLUMN_TYPE_LASTMODIFIED);
-      if (lastModifiedColumn && !lastModifiedColumn.hidden)
-        this._tree.invalidateCell(row, lastModifiedColumn);
+      
+      if (aColumnType != this.COLUMN_TYPE_LASTMODIFIED) {
+        let lastModifiedColumn =
+          this._findColumnByType(this.COLUMN_TYPE_LASTMODIFIED);
+        if (lastModifiedColumn && !lastModifiedColumn.hidden)
+          this._tree.invalidateCell(viewIndex, lastModifiedColumn);
+      }
     }
   },
 
@@ -847,102 +717,16 @@ PlacesTreeView.prototype = {
     this.invalidateContainer(aNode);
   },
 
-  invalidateContainer: function PTV_invalidateContainer(aContainer) {
-    NS_ASSERT(this._result, "Need to have a result to update");
+  invalidateContainer: function PTV_invalidateContainer(aNode) {
+    NS_ASSERT(this._result, "Got a notification but have no result!");
     if (!this._tree)
-      return;
+      return; 
 
-    let startReplacement, replaceCount;
-    if (aContainer == this._rootNode) {
-      startReplacement = 0;
-      replaceCount = this._rows.length;
-
+    if (aNode._viewIndex >= this._visibleElements.length) {
       
-      if (!this._rootNode.containerOpen) {
-        this._rows = [];
-        if (replaceCount)
-          this._tree.rowCountChanged(startReplacement, -replaceCount);
-
-        return;
-      }
+      throw Cr.NS_ERROR_UNEXPECTED;
     }
-    else {
-      
-      let row = this._getRowForNode(aContainer);
-      this._tree.invalidateRow(row);
-
-      
-      
-      startReplacement = row + 1;
-      replaceCount = this._countVisibleRowsForNodeAtRow(row) - 1;
-    }
-
-    
-    let nodesToReselect =
-      this._getSelectedNodesInRange(startReplacement,
-                                    startReplacement + replaceCount);
-
-    
-    this.selection.selectEventsSuppressed = true;
-
-    
-    this._rows.splice(startReplacement, replaceCount);
-
-    
-    if (!aContainer.containerOpen) {
-      let oldSelectionCount = this.selection.count;
-      if (replaceCount)
-        this._tree.rowCountChanged(startReplacement, -replaceCount);
-
-      
-      
-      if (nodesToReselect.length > 0 &&
-          nodesToReselect.length == oldSelectionCount) {
-        this.selection.rangedSelect(startReplacement, startReplacement, true);
-        this._tree.ensureRowIsVisible(startReplacement);
-      }
-
-      this.selection.selectEventsSuppressed = false;
-      return;
-    }
-
-    
-    this._tree.beginUpdateBatch();
-    if (replaceCount)
-      this._tree.rowCountChanged(startReplacement, -replaceCount);
-
-    let toOpenElements = [];
-    let elementsAddedCount = this._buildVisibleSection(aContainer,
-                                                       startReplacement,
-                                                       toOpenElements);
-    if (elementsAddedCount)
-      this._tree.rowCountChanged(startReplacement, elementsAddedCount);
-
-    if (!this._flatList) {
-      
-      for (let i = 0; i < toOpenElements.length; i++) {
-        let item = toOpenElements[i];
-        let parent = item.parent;
-
-        
-        while (parent) {
-          if (parent.uri == item.uri)
-            break;
-          parent = parent.parent;
-        }
-
-        
-        
-        if (!parent && !item.containerOpen)
-          item.containerOpen = true;
-      }
-    }
-
-    this._tree.endUpdateBatch();
-
-    
-    this._restoreSelection(nodesToReselect, aContainer);
-    this.selection.selectEventsSuppressed = false;
+    this._refreshVisibleSection(aNode);
   },
 
   _columns: [],
@@ -950,9 +734,9 @@ PlacesTreeView.prototype = {
     if (this._columns[aColumnType])
       return this._columns[aColumnType];
 
-    let columns = this._tree.columns;
-    let colCount = columns.count;
-    for (let i = 0; i < colCount; i++) {
+    var columns = this._tree.columns;
+    var colCount = columns.count;
+    for (var i = 0; i < colCount; i++) {
       let column = columns.getColumnAt(i);
       let columnType = this._getColumnType(column);
       this._columns[columnType] = column;
@@ -972,10 +756,10 @@ PlacesTreeView.prototype = {
     
     window.updateCommands("sort");
 
-    let columns = this._tree.columns;
+    var columns = this._tree.columns;
 
     
-    let sortedColumn = columns.getSortedColumn();
+    var sortedColumn = columns.getSortedColumn();
     if (sortedColumn)
       sortedColumn.element.removeAttribute("sortDirection");
 
@@ -983,17 +767,20 @@ PlacesTreeView.prototype = {
     if (aSortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
       return;
 
-    let [desiredColumn, desiredIsDescending] =
+    var [desiredColumn, desiredIsDescending] =
       this._sortTypeToColumnType(aSortingMode);
-    let colCount = columns.count;
-    let column = this._findColumnByType(desiredColumn);
+    var colCount = columns.count;
+    var column = this._findColumnByType(desiredColumn);
     if (column) {
       let sortDir = desiredIsDescending ? "descending" : "ascending";
       column.element.setAttribute("sortDirection", sortDir);
     }
   },
 
-  get result() this._result,
+  get result() {
+    return this._result;
+  },
+
   set result(val) {
     
     
@@ -1015,44 +802,53 @@ PlacesTreeView.prototype = {
   },
 
   nodeForTreeIndex: function PTV_nodeForTreeIndex(aIndex) {
-    if (aIndex > this._rows.length)
+    if (aIndex > this._visibleElements.length)
       throw Cr.NS_ERROR_INVALID_ARG;
 
-    return this._getNodeForRow(aIndex);
+    return this._visibleElements[aIndex];
   },
 
   treeIndexForNode: function PTV_treeNodeForIndex(aNode) {
-    
-    try {
-      return this._getRowForNode(aNode, true);
-    }
-    catch(ex) { }
+    var viewIndex = aNode._viewIndex;
+    if (viewIndex < 0)
+      return Ci.nsINavHistoryResultTreeViewer.INDEX_INVISIBLE;
 
-    return Ci.nsINavHistoryResultTreeViewer.INDEX_INVISIBLE;
+    NS_ASSERT(this._visibleElements[viewIndex] == aNode,
+              "Node's visible index and array out of sync");
+    return viewIndex;
   },
 
   _getResourceForNode: function PTV_getResourceForNode(aNode)
   {
-    let uri = aNode.uri;
+    var uri = aNode.uri;
     NS_ASSERT(uri, "if there is no uri, we can't persist the open state");
     return uri ? PlacesUIUtils.RDF.GetResource(uri) : null;
   },
 
   
-  get rowCount() this._rows.length,
-  get selection() this._selection,
-  set selection(val) this._selection = val,
+  get rowCount() {
+    return this._visibleElements.length;
+  },
 
-  getRowProperties: function() { },
+  get selection() {
+    return this._selection;
+  },
 
-  getCellProperties:
-  function PTV_getCellProperties(aRow, aColumn, aProperties) {
+  set selection(val) {
+    return this._selection = val;
+  },
+
+  getRowProperties: function PTV_getRowProperties(aRow, aProperties) { },
+
+  getCellProperties: function PTV_getCellProperties(aRow, aColumn, aProperties) {
+    this._ensureValidRow(aRow);
+
     
-    let columnType = aColumn.element.getAttribute("anonid");
+    var columnType = aColumn.element.getAttribute("anonid");
     if (columnType)
       aProperties.AppendElement(this._getAtomFor(columnType));
     else
-      columnType = aColumn.id;
+      var columnType = aColumn.id;
 
     
     if (columnType == "url")
@@ -1061,11 +857,11 @@ PlacesTreeView.prototype = {
     if (columnType != "title")
       return;
 
-    let node = this._getNodeForRow(aRow);
+    var node = this._visibleElements[aRow];
     if (!node._cellProperties) {
       let properties = new Array();
-      let itemId = node.itemId;
-      let nodeType = node.type;
+      var itemId = node.itemId;
+      var nodeType = node.type;
       if (PlacesUtils.containerTypes.indexOf(nodeType) != -1) {
         if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY) {
           properties.push(this._getAtomFor("query"));
@@ -1083,7 +879,7 @@ PlacesTreeView.prototype = {
         }
 
         if (itemId != -1) {
-          let queryName = PlacesUIUtils.getLeftPaneQueryNameFromId(itemId);
+          var queryName = PlacesUIUtils.getLeftPaneQueryNameFromId(itemId);
           if (queryName)
             properties.push(this._getAtomFor("OrganizerQuery_" + queryName));
         }
@@ -1100,18 +896,16 @@ PlacesTreeView.prototype = {
 
       node._cellProperties = properties;
     }
-    for (let i = 0; i < node._cellProperties.length; i++)
+    for (var i = 0; i < node._cellProperties.length; i++)
       aProperties.AppendElement(node._cellProperties[i]);
   },
 
   getColumnProperties: function(aColumn, aProperties) { },
 
   isContainer: function PTV_isContainer(aRow) {
-    
-    let node = this._rows[aRow];
-    if (!node)
-      return false;
+    this._ensureValidRow(aRow);
 
+    var node = this._visibleElements[aRow];
     if (PlacesUtils.nodeIsContainer(node)) {
       
       
@@ -1120,7 +914,7 @@ PlacesTreeView.prototype = {
 
       
       if (PlacesUtils.nodeIsQuery(node)) {
-        let parent = node.parent;
+        var parent = node.parent;
         if ((PlacesUtils.nodeIsQuery(parent) ||
              PlacesUtils.nodeIsFolder(parent)) &&
             !node.hasChildren)
@@ -1135,22 +929,21 @@ PlacesTreeView.prototype = {
     if (this._flatList)
       return false;
 
-    
-    return this._rows[aRow].containerOpen;
+    this._ensureValidRow(aRow);
+    return this._visibleElements[aRow].containerOpen;
   },
 
   isContainerEmpty: function PTV_isContainerEmpty(aRow) {
     if (this._flatList)
       return true;
 
-    
-    return !this._rows[aRow].hasChildren;
+    this._ensureValidRow(aRow);
+    return !this._visibleElements[aRow].hasChildren;
   },
 
   isSeparator: function PTV_isSeparator(aRow) {
-    
-    let node = this._rows[aRow];
-    return node && PlacesUtils.nodeIsSeparator(node);
+    this._ensureValidRow(aRow);
+    return PlacesUtils.nodeIsSeparator(this._visibleElements[aRow]);
   },
 
   isSorted: function PTV_isSorted() {
@@ -1166,17 +959,17 @@ PlacesTreeView.prototype = {
     if (this.isSorted())
       return false;
 
-    let ip = this._getInsertionPoint(aRow, aOrientation);
+    var ip = this._getInsertionPoint(aRow, aOrientation);
     return ip && PlacesControllerDragHelper.canDrop(ip);
   },
 
   _getInsertionPoint: function PTV__getInsertionPoint(index, orientation) {
-    let container = this._result.root;
-    let dropNearItemId = -1;
+    var container = this._result.root;
+    var dropNearItemId = -1;
     
     
     if (index != -1) {
-      let lastSelected = this.nodeForTreeIndex(index);
+      var lastSelected = this.nodeForTreeIndex(index);
       if (this.isContainer(index) && orientation == Ci.nsITreeView.DROP_ON) {
         
         
@@ -1194,23 +987,16 @@ PlacesTreeView.prototype = {
       }
       else {
         
-        container = lastSelected.parent;
         
         
-        
-        
-        
-        
-        
-        if (!container || !container.containerOpen)
-          return null;
+        container = lastSelected.parent || container;
 
         
         
         if (PlacesControllerDragHelper.disallowInsertion(container))
           return null;
 
-        let queryOptions = asQuery(this._result.root).queryOptions;
+        var queryOptions = asQuery(this._result.root).queryOptions;
         if (queryOptions.sortingMode !=
               Ci.nsINavHistoryQueryOptions.SORT_BY_NONE) {
           
@@ -1226,7 +1012,7 @@ PlacesTreeView.prototype = {
           dropNearItemId = lastSelected.itemId;
         }
         else {
-          let lsi = container.getChildIndex(lastSelected);
+          var lsi = PlacesUtils.getIndexOfNode(lastSelected);
           index = orientation == Ci.nsITreeView.DROP_BEFORE ? lsi : lsi + 1;
         }
       }
@@ -1245,62 +1031,64 @@ PlacesTreeView.prototype = {
     
     
     
-    let ip = this._getInsertionPoint(aRow, aOrientation);
+    var ip = this._getInsertionPoint(aRow, aOrientation);
     if (!ip)
       return;
-
     PlacesControllerDragHelper.onDrop(ip);
   },
 
   getParentIndex: function PTV_getParentIndex(aRow) {
-    let [parentNode, parentRow] = this._getParentByChildRow(aRow);
-    return parentRow;
+    this._ensureValidRow(aRow);
+    var parent = this._visibleElements[aRow].parent;
+    if (!parent || parent._viewIndex < 0)
+      return -1;
+
+    return parent._viewIndex;
   },
 
   hasNextSibling: function PTV_hasNextSibling(aRow, aAfterIndex) {
-    if (aRow == this._rows.length - 1) {
+    this._ensureValidRow(aRow);
+    if (aRow == this._visibleElements.length -1) {
       
       return false;
     }
 
-    let node = this._rows[aRow];
-    if (node === undefined || this._isPlainContainer(node.parent)) {
-      
-      
-      
-      let nextNode = this._rows[aRow + 1];
-      return (nextNode == undefined || nextNode.parent == node.parent);
-    }
-
-    let thisLevel = node.indentLevel;
-    for (let i = aAfterIndex + 1; i < this._rows.length; ++i) {
-      let rowNode = this._getNodeForRow(i);
-      let nextLevel = rowNode.indentLevel;
+    var thisLevel = this._visibleElements[aRow].indentLevel;
+    for (var i = aAfterIndex + 1; i < this._visibleElements.length; ++i) {
+      var nextLevel = this._visibleElements[i].indentLevel;
       if (nextLevel == thisLevel)
         return true;
       if (nextLevel < thisLevel)
         break;
     }
-
     return false;
   },
 
-  getLevel: function(aRow) this._getNodeForRow(aRow).indentLevel,
+  getLevel: function PTV_getLevel(aRow) {
+    this._ensureValidRow(aRow);
+
+    
+    return this._visibleElements[aRow].indentLevel;
+  },
 
   getImageSrc: function PTV_getImageSrc(aRow, aColumn) {
+    this._ensureValidRow(aRow);
+
     
     if (this._getColumnType(aColumn) != this.COLUMN_TYPE_TITLE)
       return "";
 
-    return this._getNodeForRow(aRow).icon;
+    return this._visibleElements[aRow].icon;
   },
 
   getProgressMode: function(aRow, aColumn) { },
   getCellValue: function(aRow, aColumn) { },
 
   getCellText: function PTV_getCellText(aRow, aColumn) {
-    let node = this._getNodeForRow(aRow);
-    let columnType = this._getColumnType(aColumn);
+    this._ensureValidRow(aRow);
+
+    var node = this._visibleElements[aRow];
+    var columnType = this._getColumnType(aColumn);
     switch (columnType) {
       case this.COLUMN_TYPE_TITLE:
         
@@ -1356,7 +1144,7 @@ PlacesTreeView.prototype = {
   },
 
   setTree: function PTV_setTree(aTree) {
-    let hasOldTree = this._tree != null;
+    var hasOldTree = this._tree != null;
     this._tree = aTree;
 
     if (this._result) {
@@ -1374,14 +1162,15 @@ PlacesTreeView.prototype = {
   toggleOpenState: function PTV_toggleOpenState(aRow) {
     if (!this._result)
       throw Cr.NS_ERROR_UNEXPECTED;
+    this._ensureValidRow(aRow);
 
-    let node = this._rows[aRow];
+    var node = this._visibleElements[aRow];
     if (this._flatList && this._openContainerCallback) {
       this._openContainerCallback(node);
       return;
     }
 
-    let resource = this._getResourceForNode(node);
+    var resource = this._getResourceForNode(node);
     if (resource) {
       const openLiteral = PlacesUIUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");
       const trueLiteral = PlacesUIUtils.RDF.GetLiteral("true");
@@ -1410,14 +1199,14 @@ PlacesTreeView.prototype = {
     
     
     
-    let allowTriState = PlacesUtils.nodeIsFolder(this._result.root);
+    var allowTriState = PlacesUtils.nodeIsFolder(this._result.root);
 
-    let oldSort = this._result.sortingMode;
-    let oldSortingAnnotation = this._result.sortingAnnotation;
-    let newSort;
-    let newSortingAnnotation = "";
+    var oldSort = this._result.sortingMode;
+    var oldSortingAnnotation = this._result.sortingAnnotation;
+    var newSort;
+    var newSortingAnnotation = "";
     const NHQO = Ci.nsINavHistoryQueryOptions;
-    let columnType = this._getColumnType(aColumn);
+    var columnType = this._getColumnType(aColumn);
     switch (columnType) {
       case this.COLUMN_TYPE_TITLE:
         if (oldSort == NHQO.SORT_BY_TITLE_ASCENDING)
@@ -1525,41 +1314,27 @@ PlacesTreeView.prototype = {
     if (aColumn.index != 0)
       return false;
 
-    
-    let node = this._rows[aRow];
-    if (!node || node.itemId == -1)
-      return false;
+    var node = this.nodeForTreeIndex(aRow);
+    if (!PlacesUtils.nodeIsReadOnly(node) &&
+        (PlacesUtils.nodeIsFolder(node) ||
+         (PlacesUtils.nodeIsBookmark(node) &&
+          !PlacesUtils.nodeIsLivemarkItem(node))))
+      return true;
 
-    
-    
-    
-    
-    
-    if (PlacesUtils.nodeIsReadOnly(node) ||
-        PlacesUtils.nodeIsLivemarkItem(node) ||
-        PlacesUtils.nodeIsSeparator(node))
-      return false;
-
-    if (PlacesUtils.nodeIsFolder(node)) {
-      let itemId = PlaceUtils.getConcreteItemId(node);
-      if (PlacesUtils.isRootItem(itemId))
-        return false;
-    }
-
-    return true;
+    return false;
   },
 
   setCellText: function PTV_setCellText(aRow, aColumn, aText) {
     
-    let node = this._rows[aRow];
+    var node = this.nodeForTreeIndex(aRow);
     if (node.title != aText) {
-      let txn = PlacesUIUtils.ptm.editItemTitle(node.itemId, aText);
+      var txn = PlacesUIUtils.ptm.editItemTitle(node.itemId, aText);
       PlacesUIUtils.ptm.doTransaction(txn);
     }
   },
 
   selectionChanged: function() { },
-  cycleCell: function(aRow, aColumn) { },
+  cycleCell: function PTV_cycleCell(aRow, aColumn) { },
   isSelectable: function(aRow, aColumn) { return false; },
   performAction: function(aAction) { },
   performActionOnRow: function(aAction, aRow) { },
@@ -1570,7 +1345,7 @@ function PlacesTreeView(aFlatList, aOnOpenFlatContainer) {
   this._tree = null;
   this._result = null;
   this._selection = null;
-  this._rows = [];
+  this._visibleElements = [];
   this._flatList = aFlatList;
   this._openContainerCallback = aOnOpenFlatContainer;
 }
