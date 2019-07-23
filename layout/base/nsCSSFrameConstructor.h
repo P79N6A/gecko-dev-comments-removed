@@ -132,6 +132,8 @@ public:
   
   
   
+  
+  
   nsresult AddLazyChildren(nsIContent* aContent,
                            nsLazyFrameConstructionCallback* aCallback,
                            void* aArg, PRBool aIsSynch = PR_FALSE);
@@ -1099,6 +1101,7 @@ private:
   class LazyGenerateChildrenEvent;
   friend class LazyGenerateChildrenEvent;
 
+  
   class LazyGenerateChildrenEvent : public nsRunnable {
   public:
     NS_DECL_NSIRUNNABLE

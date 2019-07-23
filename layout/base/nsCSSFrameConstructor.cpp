@@ -13365,8 +13365,12 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
     
     
     nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame *>(frame);
-    if (menuPopupFrame->HasGeneratedChildren())
+    if (menuPopupFrame->HasGeneratedChildren()) {
+      if (mCallback)
+        mCallback(mContent, frame, mArg);
+      
       return NS_OK;
+    }     
 
     
     menuPopupFrame->SetGeneratedChildren();
