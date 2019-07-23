@@ -53,6 +53,7 @@
 #include "nsIKBStateControl.h"
 #include "nsIFocusController.h"
 #include "nsIDOMWindow.h"
+#include "nsContentUtils.h"
 
 
 
@@ -123,13 +124,13 @@ nsIMEStateManager::OnChangeFocus(nsPresContext* aPresContext,
       
       return NS_OK;
     }
-    PRBool enabled;
+    PRUint32 enabled;
     if (NS_FAILED(kb->GetIMEEnabled(&enabled))) {
       
       return NS_OK;
     }
-    if ((enabled && newEnabledState == nsIContent::IME_STATUS_ENABLE) ||
-        (!enabled && newEnabledState == nsIContent::IME_STATUS_DISABLE)) {
+    if (enabled ==
+        nsContentUtils::GetKBStateControlStatusFromIMEStatus(newEnabledState)) {
       
       return NS_OK;
     }
@@ -172,9 +173,20 @@ nsIMEStateManager::OnDeactivate(nsPresContext* aPresContext)
 {
   NS_ENSURE_ARG_POINTER(aPresContext);
   NS_ENSURE_TRUE(aPresContext->Document()->GetWindow(), NS_ERROR_FAILURE);
-  if (sActiveWindow ==
+  if (sActiveWindow !=
       aPresContext->Document()->GetWindow()->GetPrivateRoot())
-    sActiveWindow = nsnull;
+    return NS_OK;
+
+  sActiveWindow = nsnull;
+#ifdef NS_KBSC_USE_SHARED_CONTEXT
+  
+  
+  sContent = nsnull;
+  
+  nsIKBStateControl* kb = GetKBStateControl(aPresContext);
+  if (kb)
+    SetIMEState(aPresContext, nsIContent::IME_STATUS_ENABLE, kb);
+#endif 
   return NS_OK;
 }
 
@@ -238,8 +250,9 @@ nsIMEStateManager::SetIMEState(nsPresContext*     aPresContext,
                                nsIKBStateControl* aKB)
 {
   if (aState & nsIContent::IME_STATUS_MASK_ENABLED) {
-    PRBool enable = (aState & nsIContent::IME_STATUS_ENABLE);
-    aKB->SetIMEEnabled(enable);
+    PRUint32 state =
+      nsContentUtils::GetKBStateControlStatusFromIMEStatus(aState);
+    aKB->SetIMEEnabled(state);
   }
   if (aState & nsIContent::IME_STATUS_MASK_OPENED) {
     PRBool open = (aState & nsIContent::IME_STATUS_OPEN);

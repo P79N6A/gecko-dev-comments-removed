@@ -98,7 +98,6 @@ union nsPluginPort;
   
   NSRange mMarkedRange;
   NSRange mSelectedRange;
-  BOOL mInComposition;
   BOOL mIgnoreDoCommand;
 
   BOOL mInHandScroll; 
@@ -126,11 +125,40 @@ union nsPluginPort;
 
 - (void)viewsWindowDidBecomeKey;
 - (void)viewsWindowDidResignKey;
-
-- (BOOL)isComposing;
 @end
 
 
+
+
+
+
+
+
+
+class nsTSMManager {
+public:
+  static PRBool IsComposing() { return sComposingView ? PR_TRUE : PR_FALSE; }
+  static PRBool IsIMEEnabled() { return sIsIMEEnabled; }
+
+  
+  
+  static PRBool IsRomanKeyboardsOnly() { return sIsRomanKeyboardsOnly; }
+
+  static PRBool GetIMEOpenState();
+
+  static void StartComposing(NSView<mozView>* aComposingView);
+  static void EndComposing();
+  static void EnableIME(PRBool aEnable);
+  static void SetIMEOpenState(PRBool aOpen);
+  static void SetRomanKeyboardsOnly(PRBool aRomanOnly);
+
+  static void CommitIME();
+  static void CancelIME();
+private:
+  static PRBool sIsIMEEnabled;
+  static PRBool sIsRomanKeyboardsOnly;
+  static NSView<mozView>* sComposingView;
+};
 
 
 
@@ -157,8 +185,8 @@ public:
   NS_IMETHOD              ResetInputState();
   NS_IMETHOD              SetIMEOpenState(PRBool aState);
   NS_IMETHOD              GetIMEOpenState(PRBool* aState);
-  NS_IMETHOD              SetIMEEnabled(PRBool aState);
-  NS_IMETHOD              GetIMEEnabled(PRBool* aState);
+  NS_IMETHOD              SetIMEEnabled(PRUint32 aState);
+  NS_IMETHOD              GetIMEEnabled(PRUint32* aState);
   NS_IMETHOD              CancelIMEComposition();
  
   

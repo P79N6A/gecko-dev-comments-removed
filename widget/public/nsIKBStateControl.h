@@ -43,9 +43,18 @@
 
 
 #define NS_IKBSTATECONTROL_IID \
-{ 0x8c636698, 0x8075, 0x4547, \
-{ 0x80, 0xad, 0xb0, 0x32, 0xf0, 0x8e, 0xf2, 0xd3 } }
+{ 0xbc33e975, 0xc433, 0x4df5, \
+{ 0xb4, 0xba, 0x04, 0x1c, 0xde, 0x6d, 0x1a, 0x17 } }
 
+
+#if defined(XP_MACOSX)
+
+
+
+
+
+#define NS_KBSC_USE_SHARED_CONTEXT 1
+#endif
 
 
 
@@ -89,15 +98,34 @@ class nsIKBStateControl : public nsISupports {
 
 
 
+    enum {
+      
 
-    NS_IMETHOD SetIMEEnabled(PRBool aState) = 0;
+
+
+      IME_STATUS_DISABLED = 0,
+      
+
+
+      IME_STATUS_ENABLED = 1,
+      
+
+
+
+
+
+      IME_STATUS_PASSWORD = 2
+    };
 
     
 
 
+    NS_IMETHOD SetIMEEnabled(PRUint32 aState) = 0;
+
+    
 
 
-    NS_IMETHOD GetIMEEnabled(PRBool* aState) = 0;
+    NS_IMETHOD GetIMEEnabled(PRUint32* aState) = 0;
 
     
 

@@ -1019,6 +1019,10 @@ public:
     void *mObject;
   };
 
+  
+
+
+  static PRUint32 GetKBStateControlStatusFromIMEStatus(PRUint32 aState);
 private:
 
   static PRBool InitializeEventTable();
