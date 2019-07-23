@@ -94,7 +94,7 @@ template <typename T> struct Tracker<T>::Page*
 Tracker<T>::addPage(const void* v) {
     jsuword base = getPageBase(v);
     struct Tracker::Page* p = (struct Tracker::Page*)
-        GC::Alloc(sizeof(struct Tracker::Page) + (NJ_PAGE_SIZE >> 2) * sizeof(T));
+        GC::Alloc(sizeof(*p) - sizeof(p->map) + (NJ_PAGE_SIZE >> 2) * sizeof(T));
     p->base = base;
     p->next = pagelist;
     pagelist = p;
@@ -435,8 +435,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento, Fragment* _fra
     if (fragment->vmprivate == NULL) {
         
         unsigned entryNativeFrameSlots = nativeFrameSlots(entryFrame, entryRegs);
-        LIns* data = lir_buf_writer->skip(sizeof(VMFragmentInfo) +
-                entryNativeFrameSlots * sizeof(char));
+        LIns* data = lir_buf_writer->skip(sizeof(*fragmentInfo) -
+                sizeof(fragmentInfo->typeMap) + entryNativeFrameSlots * sizeof(char));
         fragmentInfo = (VMFragmentInfo*)data->payload();
         fragmentInfo->entryNativeFrameSlots = entryNativeFrameSlots;
         fragmentInfo->nativeStackBase = (entryNativeFrameSlots -
@@ -1004,18 +1004,17 @@ js_LoopEdge(JSContext* cx)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
-    
-    if (tm->recorder) {
 #ifdef JS_THREADSAFE
-        
-        if (OBJ_SCOPE(tm->recorder->getGlobalFrame()->varobj)->title.ownercx != cx) {
+    if (GET_SCOPE(varobj)->title.owner_cx != cx) {
 #ifdef DEBUG
-            printf("Global object not owned by this context.\n");
+        printf("Global object not owned by this context.\n");
 #endif
-            return false; 
-        }
+        return false; 
+    }
 #endif
 
+    
+    if (tm->recorder) {
         if (tm->recorder->loopEdge())
             return true; 
         js_DeleteRecorder(cx);
