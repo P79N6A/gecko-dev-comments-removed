@@ -49,8 +49,11 @@
 #include "nsIVariant.h"
 #include "mozStorage.h"
 #include "jsapi.h"
+#include "nsAutoPtr.h"
 
+class mozIStorageCompletionCallback;
 class mozIStorageStatement;
+class nsIRunnable;
 
 namespace mozilla {
 namespace storage {
@@ -87,11 +90,28 @@ void checkAndLogStatementPerformance(sqlite3_stmt *aStatement);
 
 
 
-bool
-bindJSValue(JSContext *aCtx,
-            mozIStorageStatement *aStatement,
-            int aIdx,
-            jsval aValue);
+
+
+
+
+
+
+
+
+
+
+bool bindJSValue(JSContext *aCtx, mozIStorageStatement *aStatement, int aIdx,
+                 jsval aValue);
+
+
+
+
+
+
+
+
+already_AddRefed<nsIRunnable>
+newCompletionEvent(mozIStorageCompletionCallback *aCallback);
 
 
 
