@@ -243,12 +243,17 @@ nsHTMLAreaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     RegUnRegAccessKey(PR_FALSE);
   }
 
+  nsresult rv =
+    nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue, aNotify);
+
+  
+  
+  
+  
+  
   if (aName == nsGkAtoms::href && aNameSpaceID == kNameSpaceID_None) {
     Link::ResetLinkState(!!aNotify);
   }
-
-  nsresult rv =
-    nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue, aNotify);
 
   if (aName == nsGkAtoms::accesskey && aNameSpaceID == kNameSpaceID_None &&
       !aValue.IsEmpty()) {

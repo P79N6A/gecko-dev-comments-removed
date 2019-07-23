@@ -431,20 +431,30 @@ nsHTMLAnchorElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aPrefix, const nsAString& aValue,
                              PRBool aNotify)
 {
-  if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
-    nsAutoString val;
-    GetHref(val);
-    if (!val.Equals(aValue)) {
-      Link::ResetLinkState(!!aNotify);
-    }
-  }
-
   if (aName == nsGkAtoms::accesskey && kNameSpaceID_None == aNameSpaceID) {
     RegUnRegAccessKey(PR_FALSE);
   }
 
+  bool reset = false;
+  if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
+    nsAutoString val;
+    GetHref(val);
+    if (!val.Equals(aValue)) {
+      reset = true;
+    }
+  }
+
   nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
                                               aValue, aNotify);
+
+  
+  
+  
+  
+  
+  if (reset) {
+    Link::ResetLinkState(!!aNotify);
+  }
 
   if (aName == nsGkAtoms::accesskey && kNameSpaceID_None == aNameSpaceID &&
       !aValue.IsEmpty()) {
