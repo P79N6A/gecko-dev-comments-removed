@@ -2081,7 +2081,11 @@ protected:
   nsTextFrame*          mFrame;
   gfxSkipCharsIterator  mStart;  
   gfxSkipCharsIterator  mTempIterator;
-  nsTArray<gfxFloat>*   mTabWidths;  
+  
+  
+  
+  nsTArray<gfxFloat>*   mTabWidths;
+
   PRInt32               mLength; 
   gfxFloat              mWordSpacing;     
   gfxFloat              mLetterSpacing;   
@@ -2266,6 +2270,16 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
         return nsnull;
       }
     } else {
+      if (!mLineContainer) {
+        
+        
+        
+        
+        
+        NS_WARNING("Preformatted tabs encountered in intrinsic width situation");
+        return nsnull;
+      }
+
       nsAutoPtr<nsTArray<gfxFloat> > tabs(new nsTArray<gfxFloat>());
       if (!tabs)
         return nsnull;
@@ -2288,47 +2302,38 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
     if (!mTabWidths->AppendElements(aStart + aLength - tabsEnd))
       return nsnull;
     
-    PRUint32 i;
-    if (!mLineContainer) {
-      NS_WARNING("Tabs encountered in a situation where we don't support tabbing");
-      for (i = tabsEnd; i < aStart + aLength; ++i) {
+    gfxFloat tabWidth = NS_round(8*mTextRun->GetAppUnitsPerDevUnit()*
+      GetFontMetrics(GetFontGroupForFrame(mLineContainer)).spaceWidth);
+    for (PRUint32 i = tabsEnd; i < aStart + aLength; ++i) {
+      Spacing spacing;
+      GetSpacingInternal(i, 1, &spacing, PR_TRUE);
+      mOffsetFromBlockOriginForTabs += spacing.mBefore;
+
+      if (mTextRun->GetChar(i) != '\t') {
         (*mTabWidths)[i - startOffset] = 0;
-      }
-    } else {
-      gfxFloat tabWidth = NS_round(8*mTextRun->GetAppUnitsPerDevUnit()*
-        GetFontMetrics(GetFontGroupForFrame(mLineContainer)).spaceWidth);
-      
-      for (i = tabsEnd; i < aStart + aLength; ++i) {
-        Spacing spacing;
-        GetSpacingInternal(i, 1, &spacing, PR_TRUE);
-        mOffsetFromBlockOriginForTabs += spacing.mBefore;
-  
-        if (mTextRun->GetChar(i) != '\t') {
-          (*mTabWidths)[i - startOffset] = 0;
-          if (mTextRun->IsClusterStart(i)) {
-            PRUint32 clusterEnd = i + 1;
-            while (clusterEnd < mTextRun->GetLength() &&
-                   !mTextRun->IsClusterStart(clusterEnd)) {
-              ++clusterEnd;
-            }
-            mOffsetFromBlockOriginForTabs +=
-              mTextRun->GetAdvanceWidth(i, clusterEnd - i, nsnull);
+        if (mTextRun->IsClusterStart(i)) {
+          PRUint32 clusterEnd = i + 1;
+          while (clusterEnd < mTextRun->GetLength() &&
+                 !mTextRun->IsClusterStart(clusterEnd)) {
+            ++clusterEnd;
           }
-        } else {
-          
-          
-          
-          static const double EPSILON = 0.000001;
-          double nextTab = NS_ceil(mOffsetFromBlockOriginForTabs/tabWidth)*tabWidth;
-          if (nextTab < mOffsetFromBlockOriginForTabs + EPSILON) {
-            nextTab += tabWidth;
-          }
-          (*mTabWidths)[i - startOffset] = nextTab - mOffsetFromBlockOriginForTabs;
-          mOffsetFromBlockOriginForTabs = nextTab;
+          mOffsetFromBlockOriginForTabs +=
+            mTextRun->GetAdvanceWidth(i, clusterEnd - i, nsnull);
         }
-  
-        mOffsetFromBlockOriginForTabs += spacing.mAfter;
+      } else {
+        
+        
+        
+        static const double EPSILON = 0.000001;
+        double nextTab = NS_ceil(mOffsetFromBlockOriginForTabs/tabWidth)*tabWidth;
+        if (nextTab < mOffsetFromBlockOriginForTabs + EPSILON) {
+          nextTab += tabWidth;
+        }
+        (*mTabWidths)[i - startOffset] = nextTab - mOffsetFromBlockOriginForTabs;
+        mOffsetFromBlockOriginForTabs = nextTab;
       }
+
+      mOffsetFromBlockOriginForTabs += spacing.mAfter;
     }
   }
 
