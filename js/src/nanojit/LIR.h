@@ -301,7 +301,7 @@ namespace nanojit
         LIR_pirsh   = LIR_rshp,
         LIR_pursh   = LIR_rshup,
 
-        LIR_pcmov   = LIR_cmovp,
+        LIR_pcmov   = LIR_cmovp
     };
 
     
