@@ -1717,9 +1717,21 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
 
   JSAutoRequest ar(cx);
 
+  PRUint32 generation = sNPObjWrappers.generation;
+
   
 
   JSObject *obj = ::JS_NewObject(cx, &sNPObjectJSWrapperClass, nsnull, nsnull);
+
+  if (generation != sNPObjWrappers.generation) {
+      
+      
+
+      entry = static_cast<NPObjWrapperHashEntry *>
+        (PL_DHashTableOperate(&sNPObjWrappers, npobj, PL_DHASH_LOOKUP));
+      NS_ASSERTION(entry && PL_DHASH_ENTRY_IS_BUSY(entry),
+                   "Hashtable didn't find what we just added?");
+  }
 
   if (!obj) {
     
