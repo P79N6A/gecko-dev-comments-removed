@@ -1628,9 +1628,15 @@ namespace nanojit
         while (allow && len > 0) {
             
             Register hi = tosave[0];
-            LIns *i = regs->getActive(hi);
-            Register r = findRegFor(i, allow);
-			allow &= ~rmask(r);
+            if (!(rmask(hi) & SavedRegs)) {
+                LIns *i = regs->getActive(hi);
+                Register r = findRegFor(i, allow);
+			    allow &= ~rmask(r);
+            }
+            else {
+                
+                allow &= ~rmask(hi);
+            }
 
             
             if (allow && --len > 0) {
