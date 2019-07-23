@@ -102,9 +102,6 @@ PL_DHashStubEnumRemove(PLDHashTable    *table,
 
 
 
-
-
-
 template<class EntryType>
 class nsTHashtable
 {
