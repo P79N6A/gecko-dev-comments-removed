@@ -179,40 +179,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-+ (void) notifyWithTitle:(NSString *)title
-			 description:(NSString *)description
-		notificationName:(NSString *)notifName
-				iconData:(NSData *)iconData
-				priority:(signed int)priority
-				isSticky:(BOOL)isSticky
-			clickContext:(id)clickContext
-			  identifier:(NSString *)identifier;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 + (void) notifyWithDictionary:(NSDictionary *)userInfo;
 
 #pragma mark -
