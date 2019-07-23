@@ -451,6 +451,7 @@ BrowserGlue.prototype = {
       var collapsed = this._rdf.GetResource("collapsed");
       var target;
       var moveHome;
+      var homePattern = /(?:^|,)home-button(?:$|,)/;
 
       
       var personalBar = this._rdf.GetResource("chrome://browser/content/browser.xul#PersonalToolbar");
@@ -460,15 +461,19 @@ BrowserGlue.prototype = {
       var navBar = this._rdf.GetResource("chrome://browser/content/browser.xul#nav-bar");
       target = this._getPersist(navBar, currentSet);
       if (target) {
-        
-        moveHome = !personalBarCollapsed && (target.indexOf("home-button") != -1);
-        if (moveHome)
-          target = target.replace("home-button", "");
+        let originalTarget = target;
 
         
-        target = "unified-back-forward-button," + target;
+        if (!personalBarCollapsed)
+          target = target.replace(homePattern, ",");
+        moveHome = (target != originalTarget);
 
-        this._setPersist(navBar, currentSet, target);
+        
+        if (!/(?:^|,)unified-back-forward-button(?:$|,)/.test(target))
+          target = "unified-back-forward-button," + target;
+
+        if (target != originalTarget)
+          this._setPersist(navBar, currentSet, target);
       } else {
         
         
@@ -479,7 +484,7 @@ BrowserGlue.prototype = {
         
         
         target = this._getPersist(personalBar, currentSet);
-        if (target && target.indexOf("home-button") == -1)
+        if (target && !homePattern.test(target))
           this._setPersist(personalBar, currentSet, "home-button," + target);
 
         
