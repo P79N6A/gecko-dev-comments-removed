@@ -55,7 +55,6 @@ class   nsIDeviceContext;
 class   nsIRegion;
 struct  nsRect;
 struct  nsFont;
-class   nsIMenuBar;
 class   nsIEventListener;
 class   nsIRollupListener;
 class   nsGUIEvent;
@@ -97,8 +96,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x517a0eef, 0xcd1c, 0x48b3, \
-  { 0x96, 0xf0, 0xe3, 0x41, 0xa5, 0x0f, 0x12, 0x0d } }
+{ 0x00e25b3d, 0xc872, 0x4985, \
+  { 0xa1, 0x5e, 0x8e, 0x65, 0x0b, 0x7b, 0x8f, 0xf6 } }
 
 
 
@@ -879,7 +878,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetMenuBar(nsIMenuBar * aMenuBar) = 0;
+    NS_IMETHOD SetMenuBar(void* aMenuBar) = 0;
 
     
 
@@ -1104,6 +1103,20 @@ class nsIWidget : public nsISupports {
                                               PRUint32 aModifierFlags,
                                               const nsAString& aCharacters,
                                               const nsAString& aUnmodifiedCharacters) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual nsresult ActivateNativeMenuItemAt(const nsAString& indexString) = 0;
 
 protected:
     
