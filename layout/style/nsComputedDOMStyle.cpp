@@ -95,8 +95,6 @@ NS_NewComputedDOMStyle(nsIDOMElement *aElement, const nsAString &aPseudoElt,
                        nsIPresShell *aPresShell,
                        nsComputedDOMStyle **aComputedStyle)
 {
-  NS_ENSURE_ARG_POINTER(aComputedStyle);
-
   nsRefPtr<nsComputedDOMStyle> computedStyle;
   if (sCachedComputedDOMStyle) {
     
@@ -302,7 +300,6 @@ nsComputedDOMStyle::GetLength(PRUint32* aLength)
 NS_IMETHODIMP
 nsComputedDOMStyle::GetParentRule(nsIDOMCSSRule** aParentRule)
 {
-  NS_ENSURE_ARG_POINTER(aParentRule);
   *aParentRule = nsnull;
 
   return NS_OK;
@@ -332,7 +329,8 @@ NS_IMETHODIMP
 nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName,
                                         nsIDOMCSSValue** aReturn)
 {
-  NS_ENSURE_ARG_POINTER(aReturn);
+  NS_ASSERTION(!mStyleContextHolder, "bad state");
+
   *aReturn = nsnull;
 
   nsCOMPtr<nsIDocument> document = do_QueryReferent(mDocumentWeak);
@@ -377,14 +375,7 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName,
 
   mOuterFrame = mPresShell->GetPrimaryFrameFor(mContent);
   mInnerFrame = mOuterFrame;
-  if (!mOuterFrame || mPseudo) {
-    
-    mStyleContextHolder =
-      nsInspectorCSSUtils::GetStyleContextForContent(mContent,
-                                                     mPseudo,
-                                                     mPresShell);
-    NS_ENSURE_TRUE(mStyleContextHolder, NS_ERROR_OUT_OF_MEMORY);
-  } else {
+  if (mOuterFrame && !mPseudo) {
     nsIAtom* type = mOuterFrame->GetType();
     if (type == nsGkAtoms::tableOuterFrame) {
       
@@ -398,6 +389,33 @@ nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName,
 
     mStyleContextHolder = mInnerFrame->GetStyleContext();
     NS_ASSERTION(mStyleContextHolder, "Frame without style context?");
+  }
+
+  if (!mStyleContextHolder || mStyleContextHolder->HasPseudoElementData()) {
+#ifdef DEBUG
+    if (mStyleContextHolder) {
+      
+      
+      
+      
+      nsStyleContext *topWithPseudoElementData = mStyleContextHolder;
+      while (topWithPseudoElementData->GetParent()->HasPseudoElementData()) {
+        topWithPseudoElementData = topWithPseudoElementData->GetParent();
+      }
+      NS_ASSERTION(nsCSSPseudoElements::PseudoElementContainsElements(
+                     topWithPseudoElementData->GetPseudoType()),
+                   "we should be in a pseudo-element that is expected to "
+                   "contain elements");
+    }
+#endif
+    
+    mStyleContextHolder =
+      nsInspectorCSSUtils::GetStyleContextForContent(mContent,
+                                                     mPseudo,
+                                                     mPresShell);
+    NS_ENSURE_TRUE(mStyleContextHolder, NS_ERROR_OUT_OF_MEMORY);
+    NS_ASSERTION(mPseudo || !mStyleContextHolder->HasPseudoElementData(),
+                 "should not have pseudo-element data");
   }
 
   

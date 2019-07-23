@@ -101,8 +101,6 @@ nsStyleContext*
 nsInspectorCSSUtils::GetStyleContextForFrame(nsIFrame* aFrame)
 {
     nsStyleContext* styleContext = aFrame->GetStyleContext();
-    if (!styleContext)
-        return nsnull;
 
     
 
@@ -127,9 +125,13 @@ nsInspectorCSSUtils::GetStyleContextForContent(nsIContent* aContent,
         if (frame) {
             nsStyleContext* result = GetStyleContextForFrame(frame);
             
-            if (result)
+            
+            
+            if (!result->HasPseudoElementData()) {
+                
                 result->AddRef();
-            return result;
+                return result;
+            }
         }
     }
 
