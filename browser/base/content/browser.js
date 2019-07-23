@@ -2549,13 +2549,8 @@ function FillInHTMLTooltip(tipElement)
 var proxyIconDNDObserver = {
   onDragStart: function (aEvent, aXferData, aDragAction)
     {
-      var value = gURLBar.value;
-      
-      
-      
-      if (!value) return;
-
-      var urlString = value + "\n" + window.content.document.title;
+      var value = content.location.href;
+      var urlString = value + "\n" + content.document.title;
       var htmlString = "<a href=\"" + value + "\">" + value + "</a>";
 
       aXferData.data = new TransferData();
