@@ -147,7 +147,7 @@ extern "C++" {
 template <class T, size_t MinInlineCapacity = 0> class JSTempVector;
 
 
-typedef JSTempVector<jschar, 32> JSCharVector;
+typedef JSTempVector<jschar, 32> JSCharBuffer;
 
 }
 #endif  
