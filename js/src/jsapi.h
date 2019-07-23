@@ -1430,15 +1430,6 @@ struct JSObjectOps {
     JSSetRequiredSlotOp setRequiredSlot;
 };
 
-struct JSXMLObjectOps {
-    JSObjectOps         base;
-    JSGetMethodOp       getMethod;
-    JSSetMethodOp       setMethod;
-    JSEnumerateValuesOp enumerateValues;
-    JSEqualityOp        equality;
-    JSConcatenateOp     concatenate;
-};
-
 
 
 

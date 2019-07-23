@@ -145,7 +145,6 @@ typedef struct JSPropertySpec    JSPropertySpec;
 typedef struct JSObject          JSObject;
 typedef struct JSObjectMap       JSObjectMap;
 typedef struct JSObjectOps       JSObjectOps;
-typedef struct JSXMLObjectOps    JSXMLObjectOps;
 typedef struct JSRuntime         JSRuntime;
 typedef struct JSRuntime         JSTaskState;   
 typedef struct JSScript          JSScript;
@@ -276,10 +275,6 @@ typedef void
 
 typedef void
 (* JSStringFinalizeOp)(JSContext *cx, JSString *str);
-
-
-
-
 
 
 
