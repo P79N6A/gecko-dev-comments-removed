@@ -3137,10 +3137,10 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
 static void InitializeEventRecord(EventRecord* event)
 {
-    memset(event, 0, sizeof(EventRecord));
-    ::GetGlobalMouse(&event->where);
-    event->when = ::TickCount();
-    event->modifiers = ::GetCurrentEventKeyModifiers();
+  memset(event, 0, sizeof(EventRecord));
+  ::GetGlobalMouse(&event->where);
+  event->when = ::TickCount();
+  event->modifiers = ::GetCurrentEventKeyModifiers();
 }
 
 NPDrawingModel nsPluginInstanceOwner::GetDrawingModel()
@@ -3592,10 +3592,10 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
 static unsigned int XInputEventState(const nsInputEvent& anEvent)
 {
   unsigned int state = 0;
-  if(anEvent.isShift) state |= ShiftMask;
-  if(anEvent.isControl) state |= ControlMask;
-  if(anEvent.isAlt) state |= Mod1Mask;
-  if(anEvent.isMeta) state |= Mod4Mask;
+  if (anEvent.isShift) state |= ShiftMask;
+  if (anEvent.isControl) state |= ControlMask;
+  if (anEvent.isAlt) state |= Mod1Mask;
+  if (anEvent.isMeta) state |= Mod4Mask;
   return state;
 }
 #endif
@@ -4336,10 +4336,10 @@ void nsPluginInstanceOwner::StartTimer(unsigned int aDelay)
 
 void nsPluginInstanceOwner::CancelTimer()
 {
-    if (mPluginTimer) {
-        mPluginTimer->Cancel();
-        mPluginTimer = nsnull;
-    }
+  if (mPluginTimer) {
+    mPluginTimer->Cancel();
+    mPluginTimer = nsnull;
+  }
 }
 
 nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
@@ -4714,5 +4714,3 @@ void nsPluginInstanceOwner::FixUpURLS(const nsString &name, nsAString &value)
       value = newURL;
   }
 }
-
-
