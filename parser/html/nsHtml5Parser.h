@@ -86,7 +86,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD_(nsIContentSink*) GetContentSink(void);
+    NS_IMETHOD_(nsIContentSink*) GetContentSink();
 
     
 
@@ -203,7 +203,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD        Terminate(void);
+    NS_IMETHOD Terminate();
 
     
 
@@ -233,7 +233,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD BuildModel(void);
+    NS_IMETHOD BuildModel();
 
     
 

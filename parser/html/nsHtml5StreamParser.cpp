@@ -1024,7 +1024,6 @@ nsHtml5StreamParser::TimerFlush()
   
   
   if (mTreeBuilder->IsDiscretionaryFlushSafe()) {
-    mTreeBuilder->flushCharacters();
     if (mTreeBuilder->Flush()) {
       if (NS_FAILED(NS_DispatchToMainThread(mExecutorFlusher))) {
         NS_WARNING("failed to dispatch executor flush event");

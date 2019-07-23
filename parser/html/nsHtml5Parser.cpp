@@ -75,8 +75,10 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsHtml5Parser)
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsHtml5Parser)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsHtml5Parser)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mExecutor, nsIContentSink)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mStreamParser, nsIStreamListener)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mExecutor,
+                                                       nsIContentSink)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mStreamParser,
+                                                       nsIStreamListener)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsHtml5Parser)
@@ -111,7 +113,7 @@ nsHtml5Parser::SetContentSink(nsIContentSink* aSink)
 }
 
 NS_IMETHODIMP_(nsIContentSink*)
-nsHtml5Parser::GetContentSink(void)
+nsHtml5Parser::GetContentSink()
 {
   return static_cast<nsIContentSink*> (mExecutor);
 }
@@ -136,13 +138,15 @@ nsHtml5Parser::SetCommand(eParserCommands aParserCommand)
 }
 
 NS_IMETHODIMP_(void)
-nsHtml5Parser::SetDocumentCharset(const nsACString& aCharset, PRInt32 aCharsetSource)
+nsHtml5Parser::SetDocumentCharset(const nsACString& aCharset,
+                                  PRInt32 aCharsetSource)
 {
   NS_PRECONDITION(!mExecutor->HasStarted(),
                   "Document charset set too late.");
-  NS_PRECONDITION(mStreamParser, "Tried to set charset on a script-only parser.");
+  NS_PRECONDITION(mStreamParser, "Setting charset on a script-only parser.");
   mStreamParser->SetDocumentCharset(aCharset, aCharsetSource);
-  mExecutor->SetDocumentCharsetAndSource((nsACString&)aCharset, aCharsetSource);
+  mExecutor->SetDocumentCharsetAndSource((nsACString&)aCharset,
+                                         aCharsetSource);
   mCharsetSource = aCharsetSource; 
 }
 
@@ -218,9 +222,9 @@ nsHtml5Parser::Parse(nsIURI* aURL,
 
 
   NS_PRECONDITION(!mExecutor->HasStarted(), 
-                  "Tried to start parse without initializing the parser properly.");
+                  "Tried to start parse without initializing the parser.");
   NS_PRECONDITION(mStreamParser, 
-                  "Can't call this variant of Parse() on script-created parser");
+                  "Can't call this Parse() variant on script-created parser");
   mStreamParser->SetObserver(aObserver);
   mExecutor->SetStreamParser(mStreamParser);
   mExecutor->SetParser(this);
@@ -235,7 +239,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
                      PRBool aLastCall,
                      nsDTDMode aMode) 
 {
-  NS_PRECONDITION(!mExecutor->IsFragmentMode(), "Document.write called in fragment mode!");
+  NS_PRECONDITION(!mExecutor->IsFragmentMode(),
+                  "Document.write called in fragment mode!");
 
   
   
@@ -246,7 +251,6 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip(mStreamParser);
   nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
 
-  
   if (!mExecutor->HasStarted()) {
     NS_ASSERTION(!mStreamParser,
                  "Had stream parser but document.write started life cycle.");
@@ -263,9 +267,12 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
 
     mExecutor->WillBuildModel(eDTDMode_unknown);
   }
+
+  
   if (mExecutor->IsComplete()) {
     return NS_OK;
   }
+
   if (aLastCall && aSourceBuffer.IsEmpty() && aKey == GetRootContextKey()) {
     
     NS_ASSERTION(!mStreamParser,
@@ -277,17 +284,21 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     return NS_OK;
   }
 
-  NS_PRECONDITION(IsInsertionPointDefined(), 
-                  "Document.write called when insertion point not defined.");
+  NS_ASSERTION(IsInsertionPointDefined(),
+               "Doc.write reached parser with undefined insertion point.");
 
-  NS_PRECONDITION(!(mStreamParser && !aKey), "Got a null key in a non-script-created parser");
+  NS_ASSERTION(!(mStreamParser && !aKey),
+               "Got a null key in a non-script-created parser");
 
   if (aSourceBuffer.IsEmpty()) {
     return NS_OK;
   }
 
-  nsRefPtr<nsHtml5UTF16Buffer> buffer = new nsHtml5UTF16Buffer(aSourceBuffer.Length());
-  memcpy(buffer->getBuffer(), aSourceBuffer.BeginReading(), aSourceBuffer.Length() * sizeof(PRUnichar));
+  nsRefPtr<nsHtml5UTF16Buffer> buffer =
+    new nsHtml5UTF16Buffer(aSourceBuffer.Length());
+  memcpy(buffer->getBuffer(),
+         aSourceBuffer.BeginReading(),
+         aSourceBuffer.Length() * sizeof(PRUnichar));
   buffer->setEnd(aSourceBuffer.Length());
 
   
@@ -300,7 +311,9 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   
   nsHtml5UTF16Buffer* prevSearchBuf = nsnull;
   nsHtml5UTF16Buffer* searchBuf = mFirstBuffer;
-  if (aKey) { 
+
+  
+  if (aKey) {
     while (searchBuf != mLastBuffer) {
       if (searchBuf->key == aKey) {
         
@@ -339,47 +352,39 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     }
   }
 
-  if (!mBlocked) {
-    while (buffer->hasMore()) {
-      buffer->adjust(mLastWasCR);
-      mLastWasCR = PR_FALSE;
-      if (buffer->hasMore()) {
-
-        PRInt32 lineNumberSave;
-        PRBool inRootContext = (!mStreamParser && (aKey == mRootContextKey));
-        if (inRootContext) {
-          mTokenizer->setLineNumber(mRootContextLineNumber);
-        } else {
-          
-          
-          lineNumberSave = mTokenizer->getLineNumber();
-        }
-
-        mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
-
-        if (inRootContext) {
-          mRootContextLineNumber = mTokenizer->getLineNumber();
-        } else {
-          mTokenizer->setLineNumber(lineNumberSave);
-        }
-
-        if (mTreeBuilder->HasScript()) {
-          
-          mTreeBuilder->Flush(); 
-          mExecutor->FlushDocumentWrite(); 
-        }
-        if (mBlocked) {
-          break;
-        }
+  while (!mBlocked && buffer->hasMore()) {
+    buffer->adjust(mLastWasCR);
+    mLastWasCR = PR_FALSE;
+    if (buffer->hasMore()) {
+      PRInt32 lineNumberSave;
+      PRBool inRootContext = (!mStreamParser && (aKey == mRootContextKey));
+      if (inRootContext) {
+        mTokenizer->setLineNumber(mRootContextLineNumber);
+      } else {
         
+        
+        lineNumberSave = mTokenizer->getLineNumber();
       }
+
+      mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
+
+      if (inRootContext) {
+        mRootContextLineNumber = mTokenizer->getLineNumber();
+      } else {
+        mTokenizer->setLineNumber(lineNumberSave);
+      }
+
+      if (mTreeBuilder->HasScript()) {
+        mTreeBuilder->Flush(); 
+        mExecutor->FlushDocumentWrite(); 
+      }
+      
     }
   }
 
   if (!mBlocked) { 
     NS_ASSERTION(!buffer->hasMore(), "Buffer wasn't tokenized to completion?");  
     
-    mTreeBuilder->flushCharacters(); 
     mTreeBuilder->Flush(); 
     mExecutor->FlushDocumentWrite(); 
   }
@@ -397,7 +402,7 @@ nsHtml5Parser::GetRootContextKey()
 }
 
 NS_IMETHODIMP
-nsHtml5Parser::Terminate(void)
+nsHtml5Parser::Terminate()
 {
   
   
@@ -442,28 +447,31 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   nsIURI* uri = doc->GetDocumentURI();
   NS_ENSURE_TRUE(uri, NS_ERROR_NOT_AVAILABLE);
 
-  nsCOMPtr<nsISupports> container = doc->GetContainer();
-  
-
-  Initialize(doc, uri, container, nsnull);
+  Initialize(doc, uri, nsnull, nsnull);
 
   
   mExecutor->SetBaseUriFromDocument();
   mExecutor->SetParser(this);
-  mExecutor->SetNodeInfoManager(target->GetOwnerDoc()->NodeInfoManager());
+  mExecutor->SetNodeInfoManager(doc->NodeInfoManager());
 
   nsIContent* weakTarget = target;
-  mTreeBuilder->setFragmentContext(aContextLocalName, aContextNamespace, &weakTarget, aQuirks);
+  mTreeBuilder->setFragmentContext(aContextLocalName,
+                                   aContextNamespace,
+                                   &weakTarget,
+                                   aQuirks);
   mExecutor->EnableFragmentMode();
   
-  NS_PRECONDITION(!mExecutor->HasStarted(), "Tried to start parse without initializing the parser properly.");
+  NS_PRECONDITION(!mExecutor->HasStarted(),
+                  "Tried to start parse without initializing the parser.");
   mTreeBuilder->setScriptingEnabled(mExecutor->IsScriptEnabled());
   mTokenizer->start();
   mExecutor->Start(); 
   if (!aSourceBuffer.IsEmpty()) {
     PRBool lastWasCR = PR_FALSE;
     nsHtml5UTF16Buffer buffer(aSourceBuffer.Length());
-    memcpy(buffer.getBuffer(), aSourceBuffer.BeginReading(), aSourceBuffer.Length() * sizeof(PRUnichar));
+    memcpy(buffer.getBuffer(),
+           aSourceBuffer.BeginReading(),
+           aSourceBuffer.Length() * sizeof(PRUnichar));
     buffer.setEnd(aSourceBuffer.Length());
     while (buffer.hasMore()) {
       buffer.adjust(lastWasCR);
@@ -484,7 +492,7 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
 }
 
 NS_IMETHODIMP
-nsHtml5Parser::BuildModel(void)
+nsHtml5Parser::BuildModel()
 {
   NS_NOTREACHED("Don't call this!");
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -518,7 +526,9 @@ nsHtml5Parser::Reset()
 PRBool
 nsHtml5Parser::CanInterrupt()
 {
-  return !mExecutor->IsFragmentMode();
+  
+  
+  return PR_TRUE;
 }
 
 PRBool
@@ -559,7 +569,8 @@ nsHtml5Parser::IsScriptCreated()
 void
 nsHtml5Parser::ParseUntilBlocked()
 {
-  NS_PRECONDITION(!mExecutor->IsFragmentMode(), "ParseUntilBlocked called in fragment mode.");
+  NS_PRECONDITION(!mExecutor->IsFragmentMode(),
+                  "ParseUntilBlocked called in fragment mode.");
 
   if (mBlocked) {
     return;
@@ -586,28 +597,22 @@ nsHtml5Parser::ParseUntilBlocked()
           mExecutor->FlushDocumentWrite();
           mTokenizer->end();
           return;            
-        } else {
-          
-          NS_ASSERTION(!mLastBuffer->getStart(), 
-            "Sentinel buffer had its indeces changed.");
-          NS_ASSERTION(!mLastBuffer->getEnd(), 
-            "Sentinel buffer had its indeces changed.");
-          if (mStreamParser && 
-              mReturnToStreamParserPermitted && 
-              !mExecutor->IsScriptExecuting()) {
-            mTreeBuilder->flushCharacters();
-            mTreeBuilder->Flush();
-            mReturnToStreamParserPermitted = PR_FALSE;
-            mStreamParser->ContinueAfterScripts(mTokenizer, 
-                                                mTreeBuilder, 
-                                                mLastWasCR);
-          }
-          return; 
         }
-      } else {
-        mFirstBuffer = mFirstBuffer->next;
-        continue;
+        
+        NS_ASSERTION(!mLastBuffer->getStart() && !mLastBuffer->getEnd(),
+                     "Sentinel buffer had its indeces changed.");
+        if (mStreamParser && mReturnToStreamParserPermitted
+            && !mExecutor->IsScriptExecuting()) {
+          mTreeBuilder->Flush();
+          mReturnToStreamParserPermitted = PR_FALSE;
+          mStreamParser->ContinueAfterScripts(mTokenizer,
+                                              mTreeBuilder,
+                                              mLastWasCR);
+        }
+        return; 
       }
+      mFirstBuffer = mFirstBuffer->next;
+      continue;
     }
 
     if (mBlocked || mExecutor->IsComplete()) {
@@ -618,7 +623,8 @@ nsHtml5Parser::ParseUntilBlocked()
     mFirstBuffer->adjust(mLastWasCR);
     mLastWasCR = PR_FALSE;
     if (mFirstBuffer->hasMore()) {
-      PRBool inRootContext = (!mStreamParser && (mFirstBuffer->key == mRootContextKey));
+      PRBool inRootContext = (!mStreamParser &&
+                              (mFirstBuffer->key == mRootContextKey));
       if (inRootContext) {
         mTokenizer->setLineNumber(mRootContextLineNumber);
       }
@@ -654,7 +660,8 @@ nsHtml5Parser::StartTokenizer(PRBool aScriptingEnabled) {
 }
 
 void
-nsHtml5Parser::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, PRInt32 aLine)
+nsHtml5Parser::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState,
+                                             PRInt32 aLine)
 {
   mTokenizer->resetToDataState();
   mTokenizer->setLineNumber(aLine);
@@ -676,7 +683,9 @@ nsHtml5Parser::internalEncodingDeclaration(nsString* aEncoding)
 {
   
   
-  if (mCharsetSource >= kCharsetFromMetaTag) { 
+
+  
+  if (mCharsetSource >= kCharsetFromMetaTag) {
     return;
   }
 
