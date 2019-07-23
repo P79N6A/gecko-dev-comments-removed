@@ -42,7 +42,7 @@
 #include "nsIPlugin.h"
 #include "prlink.h"
 #include "npfunctions.h"
-#include "nsPluginHostImpl.h"
+#include "nsPluginHost.h"
 
 
 
