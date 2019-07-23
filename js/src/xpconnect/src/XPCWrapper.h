@@ -258,7 +258,8 @@ public:
   
 
 
-  static JSBool AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+  static JSBool AddProperty(JSContext *cx, JSObject *wrapperObj,
+                            JSObject *innerObj, jsval id, jsval *vp);
 
   
 
