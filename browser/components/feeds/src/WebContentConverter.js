@@ -62,6 +62,7 @@ const PREF_CONTENTHANDLERS_BRANCH = "browser.contentHandlers.types.";
 const PREF_SELECTED_WEB = "browser.feeds.handlers.webservice";
 const PREF_SELECTED_ACTION = "browser.feeds.handler";
 const PREF_SELECTED_READER = "browser.feeds.handler.default";
+const PREF_ALLOW_DIFFERENT_HOST = "gecko.handlerService.allowRegisterFromDifferentHost";
 
 const STRING_BUNDLE_URI = "chrome://browser/locale/feeds/subscribe.properties";
 
@@ -346,7 +347,7 @@ WebContentConverterRegistrar.prototype = {
   },
 
   _checkAndGetURI:
-  function WCCR_checkAndGetURI(aURIString)
+  function WCCR_checkAndGetURI(aURIString, aContentWindow)
   {
     try {
       var uri = this._makeURI(aURIString);
@@ -361,6 +362,14 @@ WebContentConverterRegistrar.prototype = {
     
     if (uri.scheme != "http" && uri.scheme != "https")
       throw("Permission denied to add " + uri.spec + " as a content or protocol handler");
+
+    
+    
+    var pb = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+    if ((!pb.prefHasUserValue(PREF_ALLOW_DIFFERENT_HOST) ||
+         !pb.getBoolPref(PREF_ALLOW_DIFFERENT_HOST)) &&
+        aContentWindow.location.hostname != uri.host)
+      throw("Permision denied to add " + uri.spec + " as a content or protocol handler");
 
     
     if (uri.spec.indexOf("%s") < 0)
@@ -413,7 +422,7 @@ WebContentConverterRegistrar.prototype = {
       throw("Permission denied to add " + aURIString + "as a protocol handler");
     }
  
-    var uri = this._checkAndGetURI(aURIString);
+    var uri = this._checkAndGetURI(aURIString, aContentWindow);
 
     var buttons, message;
     if (this._protocolHandlerRegistered(aProtocol, uri.spec))
@@ -489,7 +498,7 @@ WebContentConverterRegistrar.prototype = {
     if (contentType != TYPE_MAYBE_FEED)
       return;
 
-    var uri = this._checkAndGetURI(aURIString);
+    var uri = this._checkAndGetURI(aURIString, aContentWindow);
 
     var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
     var browserElement = this._getBrowserForContentWindow(browserWindow, aContentWindow);

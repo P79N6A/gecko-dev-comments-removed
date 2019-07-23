@@ -542,6 +542,9 @@ pref("gecko.handlerService.defaultHandlersVersion", "0");
 pref("gecko.handlerService.schemes.webcal.0.name", "WebCal Test Handler");
 pref("gecko.handlerService.schemes.webcal.0.uriTemplate", "http://handler-test.mozilla.org/webcal?url=%s");
 
+
+pref("gecko.handlerService.allowRegisterFromDifferentHost", false);
+
 #ifdef MOZ_SAFE_BROWSING
 
 pref("browser.safebrowsing.enabled", true);
