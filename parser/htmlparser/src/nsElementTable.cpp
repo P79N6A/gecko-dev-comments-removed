@@ -808,7 +808,7 @@ const nsHTMLElement gHTMLElements[] = {
               &gInHead,&gInHead,
      0,0,0,0,
               kAllTags - kHeadContent, kNone, kNone,
-           kNonContainer|kPreferHead,kDefaultPropRange,
+           kNonContainer|kPreferHead|kLegalOpen,kDefaultPropRange,
            &gInHead,0,eHTMLTag_unknown,
                         0
   },
@@ -1118,7 +1118,7 @@ const nsHTMLElement gHTMLElements[] = {
               &gRootTags,&gRootTags,
      0,0,0,0,
               kAllTags - kHeadContent, kCDATA, kNone,
-           kNoStyleLeaksIn|kPreferHead, kNoPropRange,
+           kNoStyleLeaksIn|kPreferHead|kLegalOpen, kNoPropRange,
            0,0,eHTMLTag_unknown,
                         0
   },
