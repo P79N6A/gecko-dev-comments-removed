@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsBaseAppShell.h"
 #include "nsThreadUtils.h"
 #include "nsIObserverService.h"
@@ -50,14 +51,15 @@ NS_IMPL_THREADSAFE_ISUPPORTS3(nsBaseAppShell, nsIAppShell, nsIThreadObserver,
 
 nsBaseAppShell::nsBaseAppShell()
   : mSuspendNativeCount(0)
+  , mBlockedWait(nsnull)
   , mFavorPerf(0)
-  , mNativeEventPending(PR_FALSE)
+  , mNativeEventPending(0)
   , mStarvationDelay(0)
   , mSwitchTime(0)
   , mLastNativeEventTime(0)
+  , mEventloopNestingState(eEventloopNone)
   , mRunWasCalled(PR_FALSE)
   , mExiting(PR_FALSE)
-  , mProcessingNextNativeEvent(PR_FALSE)
 {
 }
 
@@ -90,26 +92,20 @@ nsBaseAppShell::NativeEventCallback()
   
   
   
-  
-  
-  
-  if (mProcessingNextNativeEvent) {
-#if 0
+  if (mEventloopNestingState == eEventloopXPCOM) {
+    mEventloopNestingState = eEventloopOther;
     
     
-    
-    mProcessingNextNativeEvent = PR_FALSE;
-    if (NS_HasPendingEvents(NS_GetCurrentThread()))
-      OnDispatchedEvent(nsnull);
-#endif
     return;
   }
 
   
   
 
+  EventloopNestingState prevVal = mEventloopNestingState;
   nsIThread *thread = NS_GetCurrentThread();
   NS_ProcessPendingEvents(thread, THREAD_EVENT_STARVATION_LIMIT);
+  mEventloopNestingState = prevVal;
 
   
   
@@ -131,11 +127,12 @@ nsBaseAppShell::DoProcessNextNativeEvent(PRBool mayWait)
   
   
   
-  PRBool prevVal = mProcessingNextNativeEvent;
+  EventloopNestingState prevVal = mEventloopNestingState;
+  mEventloopNestingState = eEventloopXPCOM;
 
-  mProcessingNextNativeEvent = PR_TRUE;
-  PRBool result = ProcessNextNativeEvent(mayWait); 
-  mProcessingNextNativeEvent = prevVal;
+  PRBool result = ProcessNextNativeEvent(mayWait);
+
+  mEventloopNestingState = prevVal;
   return result;
 }
 
@@ -203,7 +200,7 @@ nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
   PRInt32 lastVal = PR_AtomicSet(&mNativeEventPending, 1);
   if (lastVal == 1)
     return NS_OK;
-    
+
   ScheduleNativeEventCallback();
   return NS_OK;
 }
@@ -215,6 +212,18 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
 {
   PRIntervalTime start = PR_IntervalNow();
   PRIntervalTime limit = THREAD_EVENT_STARVATION_LIMIT;
+
+  
+  if (mBlockedWait)
+    *mBlockedWait = PR_FALSE;
+
+  PRBool *oldBlockedWait = mBlockedWait;
+  mBlockedWait = &mayWait;
+
+  
+  
+  
+  PRBool needEvent = mayWait;
 
   if (mFavorPerf <= 0 && start > mSwitchTime + mStarvationDelay) {
     
@@ -232,21 +241,19 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
     }
   }
 
-  
-  
-  
-  PRBool needEvent = mayWait;
-
   while (!NS_HasPendingEvents(thr)) {
     
     
-    if (mExiting && mayWait)
+    
+    if (mExiting)
       mayWait = PR_FALSE;
 
     mLastNativeEventTime = PR_IntervalNow();
     if (!DoProcessNextNativeEvent(mayWait) || !mayWait)
       break;
   }
+
+  mBlockedWait = oldBlockedWait;
 
   
   

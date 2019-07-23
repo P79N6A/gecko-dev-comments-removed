@@ -100,14 +100,26 @@ private:
   PRBool DoProcessNextNativeEvent(PRBool mayWait);
 
   nsCOMPtr<nsIRunnable> mDummyEvent;
+  
+
+
+
+
+
+  PRBool *mBlockedWait;
   PRInt32 mFavorPerf;
   PRInt32 mNativeEventPending;
   PRIntervalTime mStarvationDelay;
   PRIntervalTime mSwitchTime;
   PRIntervalTime mLastNativeEventTime;
+  enum EventloopNestingState {
+    eEventloopNone,  
+    eEventloopXPCOM, 
+    eEventloopOther  
+  };
+  EventloopNestingState mEventloopNestingState;
   PRPackedBool mRunWasCalled;
   PRPackedBool mExiting;
-  PRPackedBool mProcessingNextNativeEvent;
 };
 
 #endif 
