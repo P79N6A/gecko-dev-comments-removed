@@ -84,19 +84,24 @@ function run_test() {
 
   var tag1node = tagRoot.getChild(0)
                         .QueryInterface(Ci.nsINavHistoryContainerResultNode);
+  var tag1itemId = tag1node.itemId;
+
   do_check_eq(tag1node.title, "tag 1");
   tag1node.containerOpen = true;
   do_check_eq(tag1node.childCount, 2);
 
   
+  
   tagssvc.tagURI(uri1, ["tag 1"]);
   do_check_eq(tag1node.childCount, 2);
+  tagssvc.tagURI(uri1, [tag1itemId]);
+  do_check_eq(tag1node.childCount, 2);
+  do_check_eq(tagRoot.childCount, 1);
 
   
-  do_check_eq(tagRoot.childCount, 1);
-  
-  tagssvc.tagURI(uri1, ["tag 1", "tag 2", "Tag 1", "Tag 2"]);
+  tagssvc.tagURI(uri1, [tag1itemId, "tag 1", "tag 2", "Tag 1", "Tag 2"]);
   do_check_eq(tagRoot.childCount, 2);
+  do_check_eq(tag1node.childCount, 2);
 
   
   var uri1tags = tagssvc.getTagsForURI(uri1, {});
@@ -126,4 +131,5 @@ function run_test() {
   
   tagssvc.untagURI(uri2, ["tag 1"]);
   do_check_eq(tagRoot.childCount, 1);
+  
 }
