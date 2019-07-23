@@ -948,6 +948,33 @@ NS_NewBufferedOutputStream(nsIOutputStream **result,
 }
 
 
+
+
+
+
+
+
+
+
+
+
+inline already_AddRefed<nsIOutputStream>
+NS_BufferOutputStream(nsIOutputStream *aOutputStream,
+                      PRUint32 aBufferSize)
+{
+    NS_ASSERTION(aOutputStream, "No output stream given!");
+
+    nsCOMPtr<nsIOutputStream> bos;
+    nsresult rv = NS_NewBufferedOutputStream(getter_AddRefs(bos), aOutputStream,
+                                             aBufferSize);
+    if (NS_SUCCEEDED(rv))
+        return bos.forget();
+
+    NS_ADDREF(aOutputStream);
+    return aOutputStream;
+}
+
+
 inline nsresult
 NS_NewPostDataStream(nsIInputStream  **result,
                      PRBool            isFile,
