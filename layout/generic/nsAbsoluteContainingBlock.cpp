@@ -418,11 +418,16 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
                kidDesiredSize.width, kidDesiredSize.height);
   aKidFrame->SetRect(rect);
 
-  
-  
-  nsContainerFrame::SyncFrameViewAfterReflow(aPresContext, aKidFrame,
-                                             aKidFrame->GetView(),
-                                             &kidDesiredSize.mOverflowArea);
+  nsIView* view = aKidFrame->GetView();
+  if (view) {
+    
+    
+    nsContainerFrame::SyncFrameViewAfterReflow(aPresContext, aKidFrame,
+                                               view,
+                                               &kidDesiredSize.mOverflowArea);
+  } else {
+    nsContainerFrame::PositionChildViews(aKidFrame);
+  }
 
   if (oldRect.TopLeft() != rect.TopLeft() || 
       (aDelegatingFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) ||
@@ -436,7 +441,6 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
     aKidFrame->GetParent()->Invalidate(oldOverflowRect);
     aKidFrame->GetParent()->Invalidate(kidDesiredSize.mOverflowArea +
                                        rect.TopLeft());
-    nsContainerFrame::PositionChildViews(aKidFrame);
   } else if (oldRect.Size() != rect.Size()) {
     
     nscoord innerWidth = PR_MIN(oldRect.width, rect.width);
