@@ -969,22 +969,22 @@ GetSubjectAltNames(CERTCertificate *nssCert,
   PRArenaPool *san_arena = nsnull;
   SECItem altNameExtension = {siBuffer, NULL, 0 };
   CERTGeneralName *sanNameList = nsnull;
-  PRBool ok = PR_FALSE;
-
-  san_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-  if (!san_arena)
-    return ok;
 
   nsresult rv;
   rv = CERT_FindCertExtension(nssCert, SEC_OID_X509_SUBJECT_ALT_NAME,
                               &altNameExtension);
   if (rv != SECSuccess)
-    goto loser;
+    return PR_FALSE;
+
+  san_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+  if (!san_arena)
+    return PR_FALSE;
 
   sanNameList = CERT_DecodeAltNameExtension(san_arena, &altNameExtension);
-  SECITEM_FreeItem(&altNameExtension, PR_FALSE);
   if (!sanNameList)
-    goto loser;
+    return PR_FALSE;
+
+  SECITEM_FreeItem(&altNameExtension, PR_FALSE);
 
   CERTGeneralName *current = sanNameList;
   do {
@@ -1031,11 +1031,9 @@ GetSubjectAltNames(CERTCertificate *nssCert,
     }
     current = CERT_GetNextGeneralName(current);
   } while (current != sanNameList); 
-  ok = PR_TRUE;
 
-loser:
   PORT_FreeArena(san_arena, PR_FALSE);
-  return ok;
+  return PR_TRUE;
 }
 
 static void
