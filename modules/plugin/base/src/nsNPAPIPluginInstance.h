@@ -44,10 +44,10 @@
 #include "nsTArray.h"
 #include "nsIPlugin.h"
 #include "nsIPluginInstance.h"
-#include "nsIPluginInstancePeer.h"
 #include "nsIPluginTagInfo2.h"
 #include "nsIPluginInstanceInternal.h"
 #include "nsPIDOMWindow.h"
+#include "nsIPluginInstanceOwner.h"
 
 #include "npfunctions.h"
 #include "prlink.h"
@@ -119,24 +119,25 @@ public:
     
     nsresult SetCached(PRBool aCache) { mCached = aCache; return NS_OK; }
 
-    
-    nsIPluginInstancePeer *Peer()
-    {
-        return mPeer;
-    }
-
     already_AddRefed<nsPIDOMWindow> GetDOMWindow();
 
     nsresult PrivateModeStateChanged();
+
+    nsresult GetDOMElement(nsIDOMElement* *result);
+
 protected:
 
-    nsresult InitializePlugin(nsIPluginInstancePeer* peer);
+    nsresult InitializePlugin();
 
     
     nsresult GetValueInternal(NPPVariable variable, void* value);
 
-    
-    nsCOMPtr<nsIPluginInstancePeer> mPeer;
+    nsresult GetTagType(nsPluginTagType *result);
+    nsresult GetAttributes(PRUint16& n, const char*const*& names,
+                           const char*const*& values);
+    nsresult GetParameters(PRUint16& n, const char*const*& names,
+                           const char*const*& values);
+    nsresult GetMode(nsPluginMode *result);
 
     
     
@@ -169,6 +170,10 @@ public:
     nsTArray<PopupControlState> mPopupStates;
 
     nsMIMEType mMIMEType;
+
+    
+    
+    nsIPluginInstanceOwner  *mOwner;
 };
 
 #endif 

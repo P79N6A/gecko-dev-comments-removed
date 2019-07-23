@@ -117,15 +117,6 @@
 
 
 
-
-#include "nsIPluginInstancePeer.h"
-
-
-
-
-
-
-
 #include "nsIPluginTagInfo.h"
 
 

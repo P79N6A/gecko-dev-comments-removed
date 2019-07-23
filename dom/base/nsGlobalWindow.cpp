@@ -73,7 +73,6 @@
 #include "nsPluginArray.h"
 #include "nsIPluginHost.h"
 #include "nsPIPluginHost.h"
-#include "nsIPluginInstancePeer.h"
 #include "nsGeolocation.h"
 #include "nsContentCID.h"
 #include "nsLayoutStatics.h"
@@ -437,14 +436,7 @@ nsDummyJavaPluginOwner::Destroy()
   
   if (mInstance) {
     mInstance->Stop();
-
-    nsCOMPtr<nsIPluginInstancePeer> peer;
-    mInstance->GetPeer(getter_AddRefs(peer));
-
-    
-    if (peer)
-      peer->InvalidateOwner();
-
+    mInstance->InvalidateOwner();
     mInstance = nsnull;
   }
 
@@ -538,8 +530,7 @@ nsDummyJavaPluginOwner::ForceRedraw()
 }
 
 NS_IMETHODIMP
-nsDummyJavaPluginOwner::GetValue(nsPluginInstancePeerVariable variable,
-                                 void *value)
+nsDummyJavaPluginOwner::GetNetscapeWindow(void *value)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

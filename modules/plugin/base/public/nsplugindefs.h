@@ -186,12 +186,6 @@ enum nsPluginManagerVariable {
     nsPluginManagerVariable_SupportsXEmbed            = 14
 };
 
-enum nsPluginInstancePeerVariable {
-    nsPluginInstancePeerVariable_NetscapeWindow      = 3
-
-
-};
-
 enum nsPluginInstanceVariable {
     nsPluginInstanceVariable_WindowlessBool          = 3,
     nsPluginInstanceVariable_TransparentBool         = 4,
@@ -398,7 +392,6 @@ class nsIPlugin;
 class nsIPluginInstance;                
 
 
-class nsIPluginInstancePeer;            
 class nsIPluginTagInfo;                 
 
 
