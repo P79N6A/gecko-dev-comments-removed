@@ -511,9 +511,9 @@ mozJSComponentLoader::ReallyInit()
     uint32 options = JS_GetOptions(mContext);
     JS_SetOptions(mContext, options | JSOPTION_XML);
 
-    
-    JS_SetVersion(mContext, JSVERSION_1_7);
-    
+  
+  JS_SetVersion(mContext, JSVERSION_LATEST);
+
 #ifndef XPCONNECT_STANDALONE
     nsCOMPtr<nsIScriptSecurityManager> secman = 
         do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);

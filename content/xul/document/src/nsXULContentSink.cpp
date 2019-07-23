@@ -1040,6 +1040,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
           if (isJavaScript) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
+              version = JSVERSION_LATEST;
           } else {
               
               nsCOMPtr<nsIScriptRuntime> runtime;
@@ -1059,20 +1060,20 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
                                              EmptyCString(), PR_FALSE, nsnull,
                                              versionName);
             if (NS_FAILED(rv)) {
+              if (rv != NS_ERROR_INVALID_ARG)
+                return rv;
               
-                  if (rv != NS_ERROR_INVALID_ARG)
-                      return rv;
-              } else {
-                nsCOMPtr<nsIScriptRuntime> runtime;
-                rv = NS_GetScriptRuntimeByID(langID, getter_AddRefs(runtime));
-                if (NS_FAILED(rv))
-                    return rv;
-                rv = runtime->ParseVersion(versionName, &version);
-                if (NS_FAILED(rv)) {
-                    NS_WARNING("This script language version is not supported - ignored");
-                    langID = nsIProgrammingLanguage::UNKNOWN;
-                  }
+            } else {
+              nsCOMPtr<nsIScriptRuntime> runtime;
+              rv = NS_GetScriptRuntimeByID(langID, getter_AddRefs(runtime));
+              if (NS_FAILED(rv))
+                return rv;
+              rv = runtime->ParseVersion(versionName, &version);
+              if (NS_FAILED(rv)) {
+                NS_WARNING("This script language version is not supported - ignored");
+                langID = nsIProgrammingLanguage::UNKNOWN;
               }
+            }
           }
           
           if (langID == nsIProgrammingLanguage::JAVASCRIPT) {

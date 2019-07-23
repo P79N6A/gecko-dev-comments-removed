@@ -590,7 +590,7 @@ NS_IMETHODIMP nsJSSh::Init()
   JS_SetOptions(mJSContext, JS_GetOptions(mJSContext) | JSOPTION_XML);
   
   
-  JS_SetVersion(mJSContext, JSVERSION_1_7);
+  JS_SetVersion(mJSContext, JSVERSION_LATEST);
   
   mContextStack = do_GetService("@mozilla.org/js/xpc/ContextStack;1");
   if (!mContextStack) {
