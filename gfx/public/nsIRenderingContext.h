@@ -147,12 +147,6 @@ public:
   
 
 
-
-  NS_IMETHOD GetHints(PRUint32& aResult) = 0;
-
-  
-
-
   NS_IMETHOD PushState(void) = 0;
 
   
@@ -622,28 +616,6 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD GetClusterInfo(const PRUnichar *aText,
-                            PRUint32 aLength,
-                            PRUint8 *aClusterStarts) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   virtual PRInt32 GetPosition(const PRUnichar *aText,
                               PRUint32 aLength,
                               nsPoint aPt) = 0;
@@ -708,64 +680,6 @@ public:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRenderingContext, NS_IRENDERING_CONTEXT_IID)
-
-
-
-
-
-
-
-
-
-#define NS_RENDERING_HINT_FAST_8BIT_TEXT   0x1
-
-
-
-
-
-#define NS_RENDERING_HINT_REMOTE_RENDERING 0x2
-
-
-
-
-
-#define NS_RENDERING_HINT_BIDI_REORDERING 0x4
-
-
-
-
-
-#define NS_RENDERING_HINT_ARABIC_SHAPING 0x8
-
-
-
-
-#define NS_RENDERING_HINT_FAST_MEASURE 0x10
-
-
-
-
-
-#define NS_RENDERING_HINT_TEXT_CLUSTERS 0x20
-
-
-
-
-
-
-
-#define NS_RENDERING_HINT_REORDER_SPACED_TEXT 0x40
-
-
-
-
-
-
-
-
-
-
-#define NS_RENDERING_HINT_NEW_TEXT_RUNS 0x80
 
 
 

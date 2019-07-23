@@ -2282,24 +2282,17 @@ nsLayoutUtils::GetStringWidth(const nsIFrame*      aFrame,
                               PRInt32              aLength)
 {
 #ifdef IBMBIDI
-  PRUint32 hints = 0;
-  aContext->GetHints(hints);
-  
-  
-  
-  if (hints & NS_RENDERING_HINT_NEW_TEXT_RUNS) {
-    nsPresContext* presContext = aFrame->PresContext();
-    if (presContext->BidiEnabled()) {
-      nsBidiPresUtils* bidiUtils = presContext->GetBidiUtils();
+  nsPresContext* presContext = aFrame->PresContext();
+  if (presContext->BidiEnabled()) {
+    nsBidiPresUtils* bidiUtils = presContext->GetBidiUtils();
 
-      if (bidiUtils) {
-        const nsStyleVisibility* vis = aFrame->GetStyleVisibility();
-        nsBidiDirection direction =
-          (NS_STYLE_DIRECTION_RTL == vis->mDirection) ?
-          NSBIDI_RTL : NSBIDI_LTR;
-        return bidiUtils->MeasureTextWidth(aString, aLength,
-                                           direction, presContext, *aContext);
-      }
+    if (bidiUtils) {
+      const nsStyleVisibility* vis = aFrame->GetStyleVisibility();
+      nsBidiDirection direction =
+        (NS_STYLE_DIRECTION_RTL == vis->mDirection) ?
+        NSBIDI_RTL : NSBIDI_LTR;
+      return bidiUtils->MeasureTextWidth(aString, aLength,
+                                         direction, presContext, *aContext);
     }
   }
 #endif 

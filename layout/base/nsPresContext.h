@@ -700,22 +700,6 @@ public:
 
   
   NS_HIDDEN_(PRUint32) GetBidi() const;
-
-  
-
-
-
-  void SetIsBidiSystem(PRBool aIsBidi)
-  {
-    NS_ASSERTION(!(aIsBidi & ~1), "Value must be true or false");
-    mIsBidiSystem = aIsBidi;
-  }
-
-  
-
-
-
-  PRBool IsBidiSystem() const { return mIsBidiSystem; }
 #endif 
 
   
@@ -918,7 +902,6 @@ protected:
 
 #ifdef IBMBIDI
   unsigned              mIsVisual : 1;
-  unsigned              mIsBidiSystem : 1;
 
 #endif
 #ifdef DEBUG

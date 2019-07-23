@@ -5542,12 +5542,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
   nsLineLayout& lineLayout = *aReflowState.mLineLayout;
 
-  if (aPresContext->BidiEnabled()) {
-    
-    
-    aPresContext->SetIsBidiSystem(PR_TRUE);
-  }
-
   if (aReflowState.mFlags.mBlinks) {
     if (0 == (mState & TEXT_BLINK_ON)) {
       mState |= TEXT_BLINK_ON;
@@ -6327,59 +6321,6 @@ nsTextFrame::List(FILE* out, PRInt32 aIndent) const
   return NS_OK;
 }
 #endif
-
-void nsTextFrame::AdjustSelectionPointsForBidi(SelectionDetails *sdptr,
-                                               PRInt32 textLength,
-                                               PRBool isRTLChars,
-                                               PRBool isOddLevel,
-                                               PRBool isBidiSystem)
-{
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  if (isOddLevel ^ (isRTLChars && isBidiSystem)) {
-
-    PRInt32 swap  = sdptr->mStart;
-    sdptr->mStart = textLength - sdptr->mEnd;
-    sdptr->mEnd   = textLength - swap;
-
-    
-    
-    
-    
-    NS_ASSERTION((sdptr->mStart >= 0) , "mStart >= 0");
-    if(sdptr->mStart < 0 )
-      sdptr->mStart = 0;
-
-    NS_ASSERTION((sdptr->mEnd >= 0) , "mEnd >= 0");
-    if(sdptr->mEnd < 0 )
-      sdptr->mEnd = 0;
-
-    NS_ASSERTION((sdptr->mStart <= sdptr->mEnd), "mStart <= mEnd");
-    if(sdptr->mStart > sdptr->mEnd)
-      sdptr->mEnd = sdptr->mStart;
-  }
-  
-  return;
-}
 
 void
 nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)

@@ -91,23 +91,10 @@ static PRInt32 FindSafeLength(nsRenderingContextImpl* aContext,
     return aLength;
   
   PRUint8 buffer[MAX_GFX_TEXT_BUF_SIZE + 1];
-  
-  PRUint32 clusterHint;
-  aContext->GetHints(clusterHint);
-  clusterHint &= NS_RENDERING_HINT_TEXT_CLUSTERS;
-
   PRInt32 len = aMaxChunkLength;
 
-  if (clusterHint) {
-    nsresult rv =
-      aContext->GetClusterInfo(aString, aMaxChunkLength + 1, buffer);
-    if (NS_FAILED(rv))
-      return len;
-  }
-
   
-  while (len > 0 &&
-         (NS_IS_LOW_SURROGATE(aString[len]) || (clusterHint && !buffer[len]))) {
+  while (len > 0 && NS_IS_LOW_SURROGATE(aString[len])) {
     len--;
   }
   if (len == 0) {

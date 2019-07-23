@@ -193,21 +193,7 @@ public:
                              PRUnichar*      aText,
                              PRInt32&        aTextLength,
                              nsCharType      aCharType,
-                             PRBool          aIsOddLevel,
-                             PRBool          aIsBidiSystem,
-                             PRBool          aIsNewTextRunSystem);
-
-  
-
-
-
-
-  nsresult ReorderUnicodeText(PRUnichar*      aText,
-                              PRInt32&        aTextLength,
-                              nsCharType      aCharType,
-                              PRBool          aIsOddLevel,
-                              PRBool          aIsBidiSystem,
-                              PRBool          aIsNewTextRunSystem);
+                             PRBool          aIsOddLevel);
 
   
 
