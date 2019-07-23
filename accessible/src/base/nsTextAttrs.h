@@ -368,4 +368,34 @@ private:
   nsIDeviceContext *mDC;
 };
 
+
+
+
+
+
+class nsFontWeightTextAttr : public nsTextAttr<PRInt32>
+{
+public:
+  nsFontWeightTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame);
+
+  
+  virtual nsIAtom *GetName() { return nsAccessibilityAtoms::fontWeight; }
+
+protected:
+
+  
+  virtual PRBool GetValueFor(nsIDOMElement *aElm, PRInt32 *aValue);
+  virtual void Format(const PRInt32& aValue, nsAString& aFormattedValue);
+
+private:
+
+  
+
+
+
+
+
+  PRInt32 GetFontWeight(nsIFrame *aFrame);
+};
+
 #endif

@@ -41,6 +41,10 @@
 #include "nsAccessNode.h"
 #include "nsHyperTextAccessibleWrap.h"
 
+#include "gfxFont.h"
+#include "gfxUserFontSet.h"
+#include "nsIThebesFontMetrics.h"
+
 
 
 
@@ -67,7 +71,6 @@ static nsCSSTextAttrMapItem gCSSTextAttrsMap[] =
   { "color",             kAnyValue,       &nsAccessibilityAtoms::color,                 kCopyValue },
   { "font-family",       kAnyValue,       &nsAccessibilityAtoms::fontFamily,            kCopyValue },
   { "font-style",        kAnyValue,       &nsAccessibilityAtoms::fontStyle,             kCopyValue },
-  { "font-weight",       kAnyValue,       &nsAccessibilityAtoms::fontWeight,            kCopyValue },
   { "text-decoration",   "line-through",  &nsAccessibilityAtoms::textLineThroughStyle,  "solid" },
   { "text-decoration",   "underline",     &nsAccessibilityAtoms::textUnderlineStyle,    "solid" },
   { "vertical-align",    kAnyValue,       &nsAccessibilityAtoms::textPosition,          kCopyValue }
@@ -132,19 +135,15 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontStyleTextAttr));
 
   
-  nsCSSTextAttr fontWeightTextAttr(3, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontWeightTextAttr));
-
-  
-  nsCSSTextAttr lineThroughTextAttr(4, hyperTextElm, offsetElm);
+  nsCSSTextAttr lineThroughTextAttr(3, hyperTextElm, offsetElm);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&lineThroughTextAttr));
 
   
-  nsCSSTextAttr underlineTextAttr(5, hyperTextElm, offsetElm);
+  nsCSSTextAttr underlineTextAttr(4, hyperTextElm, offsetElm);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&underlineTextAttr));
 
   
-  nsCSSTextAttr posTextAttr(6, hyperTextElm, offsetElm);
+  nsCSSTextAttr posTextAttr(5, hyperTextElm, offsetElm);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&posTextAttr));
 
   
@@ -154,6 +153,10 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
   
   nsFontSizeTextAttr fontSizeTextAttr(rootFrame, frame);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontSizeTextAttr));
+
+  
+  nsFontWeightTextAttr fontWeightTextAttr(rootFrame, frame);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontWeightTextAttr));
 
   
   if (aAttributes) {
@@ -602,4 +605,84 @@ nsFontSizeTextAttr::GetFontSize(nsIFrame *aFrame)
     (nsStyleFont*)(aFrame->GetStyleDataExternal(eStyleStruct_Font));
 
   return styleFont->mSize;
+}
+
+
+
+
+
+nsFontWeightTextAttr::nsFontWeightTextAttr(nsIFrame *aRootFrame,
+                                           nsIFrame *aFrame) :
+  nsTextAttr<PRInt32>(aFrame == nsnull)
+{
+  mRootNativeValue = GetFontWeight(aRootFrame);
+  mIsRootDefined = PR_TRUE;
+
+  if (aFrame) {
+    mNativeValue = GetFontWeight(aFrame);
+    mIsDefined = PR_TRUE;
+  }
+}
+
+PRBool
+nsFontWeightTextAttr::GetValueFor(nsIDOMElement *aElm, PRInt32 *aValue)
+{
+  nsIFrame *frame = nsCoreUtils::GetFrameFor(aElm);
+  if (!frame)
+    return PR_FALSE;
+
+  *aValue = GetFontWeight(frame);
+  return PR_TRUE;
+}
+
+void
+nsFontWeightTextAttr::Format(const PRInt32& aValue, nsAString& aFormattedValue)
+{
+  nsAutoString value;
+  value.AppendInt(aValue);
+  aFormattedValue = value;
+}
+
+PRInt32
+nsFontWeightTextAttr::GetFontWeight(nsIFrame *aFrame)
+{
+  
+  
+  nsStyleFont* styleFont =
+    (nsStyleFont*)(aFrame->GetStyleDataExternal(eStyleStruct_Font));
+
+  gfxUserFontSet *fs = aFrame->PresContext()->GetUserFontSet();
+
+  nsCOMPtr<nsIFontMetrics> fm;
+  aFrame->PresContext()->DeviceContext()->
+    GetMetricsFor(styleFont->mFont, aFrame->GetStyleVisibility()->mLangGroup,
+                  fs, *getter_AddRefs(fm));
+
+  nsCOMPtr<nsIThebesFontMetrics> tfm = do_QueryInterface(fm);
+  gfxFontGroup *fontGroup = tfm->GetThebesFontGroup();
+  gfxFont *font = fontGroup->GetFontAt(0);
+
+  
+  
+  
+  
+  
+  if (font->IsSyntheticBold())
+    return 700;
+
+#ifdef MOZ_PANGO
+  
+  
+  
+  return font->GetStyle()->weight;
+#else
+  
+  
+  
+  
+  
+  
+  gfxFontEntry *fontEntry = font->GetFontEntry();
+  return fontEntry->Weight();
+#endif
 }
