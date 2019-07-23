@@ -627,7 +627,7 @@ struct nsStyleOutline {
 #endif
  
   nsStyleSides  mOutlineRadius;    
-  																
+                                   
 
   
   
@@ -853,13 +853,13 @@ struct nsStyleVisibility {
   nsCOMPtr<nsIAtom> mLangGroup;        
  
   PRBool IsVisible() const {
-		return (mVisible == NS_STYLE_VISIBILITY_VISIBLE);
-	}
+    return (mVisible == NS_STYLE_VISIBILITY_VISIBLE);
+  }
 
-	PRBool IsVisibleOrCollapsed() const {
-		return ((mVisible == NS_STYLE_VISIBILITY_VISIBLE) ||
-						(mVisible == NS_STYLE_VISIBILITY_COLLAPSE));
-	}
+  PRBool IsVisibleOrCollapsed() const {
+    return ((mVisible == NS_STYLE_VISIBILITY_VISIBLE) ||
+            (mVisible == NS_STYLE_VISIBILITY_COLLAPSE));
+  }
 };
 
 struct nsStyleDisplay {
