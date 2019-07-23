@@ -4969,18 +4969,115 @@ nsNavHistory::RemoveDuplicateURIs()
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
-  nsresult rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("DELETE FROM moz_historyvisits WHERE place_id IN "
-      "(SELECT id FROM moz_places GROUP BY url HAVING( COUNT(url) > 1))"));
+  
+  
+  nsCOMPtr<mozIStorageStatement> selectStatement;
+  nsresult rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING("SELECT "
+        "(SELECT h.id FROM moz_places h WHERE h.url=url ORDER BY h.visit_count DESC LIMIT 1), "
+        "url, SUM(visit_count) "
+        "FROM moz_places "
+        "GROUP BY url HAVING( COUNT(url) > 1)"),
+      getter_AddRefs(selectStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE id IN "
-      "(SELECT id FROM moz_places GROUP BY url HAVING( COUNT(url) > 1))"));
+  nsCOMPtr<mozIStorageStatement> updateStatement;
+  rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING(
+        "UPDATE moz_historyvisits "
+        "SET place_id = ?1 "
+        "WHERE place_id IN (SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
+      getter_AddRefs(updateStatement));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return transaction.Commit();
+  
+  nsCOMPtr<mozIStorageStatement> bookmarkStatement;
+  rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING(
+        "UPDATE moz_bookmarks "
+        "SET fk = ?1 "
+        "WHERE fk IN (SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
+      getter_AddRefs(bookmarkStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<mozIStorageStatement> annoStatement;
+  rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING(
+        "UPDATE moz_annos "
+        "SET place_id = ?1 "
+        "WHERE place_id IN (SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
+      getter_AddRefs(annoStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  nsCOMPtr<mozIStorageStatement> deleteStatement;
+  rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE url = ?1 AND id <> ?2"),
+      getter_AddRefs(deleteStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<mozIStorageStatement> countStatement;
+  rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING("UPDATE moz_places SET visit_count = ?1 WHERE id = ?2"),
+      getter_AddRefs(countStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRBool hasMore;
+  while (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasMore)) && hasMore) {
+    PRUint64 id = selectStatement->AsInt64(0);
+    nsCAutoString url;
+    rv = selectStatement->GetUTF8String(1, url);
+    NS_ENSURE_SUCCESS(rv, rv);
+    PRUint64 visit_count = selectStatement->AsInt64(2);
+
+    
+    rv = updateStatement->BindInt64Parameter(0, id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = updateStatement->BindUTF8StringParameter(1, url);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = updateStatement->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = bookmarkStatement->BindInt64Parameter(0, id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = bookmarkStatement->BindUTF8StringParameter(1, url);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = bookmarkStatement->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = annoStatement->BindInt64Parameter(0, id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = annoStatement->BindUTF8StringParameter(1, url);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = annoStatement->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    rv = deleteStatement->BindUTF8StringParameter(0, url);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = deleteStatement->BindInt64Parameter(1, id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = deleteStatement->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = countStatement->BindInt64Parameter(0, visit_count);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = countStatement->BindInt64Parameter(1, id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = countStatement->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  rv = transaction.Commit();
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
 }
 
 
