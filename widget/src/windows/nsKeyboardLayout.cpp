@@ -153,9 +153,20 @@ PRUint32 VirtualKey::GetUniChars (PRUint8 aShiftState, PRUint16* aUniChars, PRUi
 
     if (numOfChars)
     {
-      if (!(numOfChars == numOfUnshiftedChars &&
-            memcmp (aUniChars, unshiftedChars, numOfChars * sizeof (PRUint16)) == 0))
+      if ((aShiftState & (eAlt | eCtrl)) == (eAlt | eCtrl)) {
+        
+        
+        
+        
+        
         *aFinalShiftState &= ~(eAlt | eCtrl);
+      } else if (!(numOfChars == numOfUnshiftedChars &&
+                   memcmp (aUniChars, unshiftedChars,
+                           numOfChars * sizeof (PRUint16)) == 0)) {
+        
+        
+        *aFinalShiftState &= ~(eAlt | eCtrl);
+      }
     } else
     {
       if (numOfUnshiftedChars)
