@@ -257,48 +257,67 @@ class SystemAllocPolicy
 
 
 
+
+
+template <size_t nbytes>
+struct AlignedStorage
+{
+    union U {
+        char bytes[nbytes];
+        uint64_t _;
+    } u;
+
+    const void *addr() const { return u.bytes; }
+    void *addr() { return u.bytes; }
+};
+
+
+
+
+
+
+
+
+
 template <class T>
 class LazilyConstructed
 {
-    union {
-        uint64 align;
-        char bytes[sizeof(T) + 1];
-    };
+    AlignedStorage<sizeof(T)> storage;
+    bool constructed;
 
-    T &asT() { return *reinterpret_cast<T *>(bytes); }
-    char & constructed() { return bytes[sizeof(T)]; }
+    T &asT() { return *reinterpret_cast<T *>(storage.addr()); }
 
   public:
-    LazilyConstructed() { constructed() = false; }
-    ~LazilyConstructed() { if (constructed()) asT().~T(); }
+    LazilyConstructed() { constructed = false; }
+    ~LazilyConstructed() { if (constructed) asT().~T(); }
 
-    bool empty() const { return !constructed(); }
+    bool empty() const { return !constructed; }
 
     void construct() {
-        JS_ASSERT(!constructed());
-        new(bytes) T();
-        constructed() = true;
+        JS_ASSERT(!constructed);
+        new(storage.addr()) T();
+        constructed = true;
     }
 
     template <class T1>
     void construct(const T1 &t1) {
-        JS_ASSERT(!constructed());
-        new(bytes) T(t1);
-        constructed() = true;
+        JS_ASSERT(!constructed);
+        new(storage.addr()) T(t1);
+        constructed = true;
     }
 
     template <class T1, class T2>
     void construct(const T1 &t1, const T2 &t2) {
-        JS_ASSERT(!constructed());
-        new(bytes) T(t1, t2);
-        constructed() = true;
+        JS_ASSERT(!constructed);
+        new(storage.addr()) T(t1, t2);
+        constructed = true;
     }
 
     template <class T1, class T2, class T3>
     void construct(const T1 &t1, const T2 &t2, const T3 &t3) {
-        JS_ASSERT(!constructed());
-        new(bytes) T(t1, t2, t3);
-        constructed() = true;
+        JS_ASSERT(!constructed);
+        new(storage.addr()) T(t1, t2, t3);
+        constructed = true;
     }
 };
 

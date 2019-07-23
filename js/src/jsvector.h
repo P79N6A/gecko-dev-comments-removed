@@ -228,22 +228,7 @@ class Vector : AllocPolicy
 
     union {
         BufferPtrs ptrs;
-        char mBuf[sInlineBytes];
-
-#if __GNUC__
-        
-
-
-
-
-
-
-
-
-
-
-        jschar unused1_;
-#endif
+        AlignedStorage<sInlineBytes> storage;
     } u;
 
     
@@ -259,12 +244,12 @@ class Vector : AllocPolicy
 
     T *inlineBegin() const {
         JS_ASSERT(usingInlineStorage());
-        return (T *)u.mBuf;
+        return (T *)u.storage.addr();
     }
 
     T *inlineEnd() const {
         JS_ASSERT(usingInlineStorage());
-        return (T *)u.mBuf + mLengthOrCapacity;
+        return (T *)u.storage.addr() + mLengthOrCapacity;
     }
 
     
