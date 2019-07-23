@@ -94,7 +94,7 @@ struct JSTraceableNative {
 
 
 
-#define JSVAL_ERROR_COOKIE OBJECT_TO_JSVAL((void*)0x10)
+#define JSVAL_ERROR_COOKIE OBJECT_TO_JSVAL((JSObject*)0x10)
 
 
 #ifdef DEBUG
