@@ -1132,7 +1132,7 @@ namespace nanojit
     }
 
     void LInsHashSet::clear() {
-        memset(m_list, 0, sizeof(LInsp)*m_cap);
+        VMPI_memset(m_list, 0, sizeof(LInsp)*m_cap);
         m_used = 0;
     }
 
@@ -1461,6 +1461,7 @@ namespace nanojit
         LIns* i;
         RetiredEntry(): live(NULL), i(NULL) {}
     };
+
     class LiveTable
     {
         Allocator& alloc;
@@ -1510,6 +1511,13 @@ namespace nanojit
             return live.containsKey(i);
         }
     };
+
+    
+
+
+
+
+
 
     void live(Allocator& alloc, Fragment *frag, LogControl *logc)
     {
@@ -1565,7 +1573,8 @@ namespace nanojit
 
         logc->printf("  Live instruction count %d, total %u, max pressure %d\n",
                      live.retiredCount, total, live.maxlive);
-        logc->printf("  Side exits %u\n", exits);
+        if (exits > 0)
+            logc->printf("  Side exits %u\n", exits);
         logc->printf("  Showing LIR instructions with live-after variables\n");
         logc->printf("\n");
 
@@ -1605,9 +1614,9 @@ namespace nanojit
 
     void LirNameMap::addName(LInsp i, const char* name) {
         if (!names.containsKey(i)) {
-            char *copy = new (allocator) char[VMPI_strlen(name)+1];
+            char *copy = new (alloc) char[VMPI_strlen(name)+1];
             VMPI_strcpy(copy, name);
-            Entry *e = new (allocator) Entry(copy);
+            Entry *e = new (alloc) Entry(copy);
             names.put(i, e);
         }
     }
@@ -2157,7 +2166,6 @@ namespace nanojit
             if (found)
                 return found;
             return exprs.add(out->insLoad(v,base,disp), k);
-
         }
         return out->insLoad(v, base, disp);
     }
@@ -2252,6 +2260,7 @@ namespace nanojit
     const char *LabelMap::dup(const char *b)
     {
         size_t need = VMPI_strlen(b)+1;
+        NanoAssert(need <= sizeof(buf));
         char *s = end;
         end += need;
         if (end > buf+sizeof(buf)) {

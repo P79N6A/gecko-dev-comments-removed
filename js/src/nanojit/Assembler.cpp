@@ -47,8 +47,6 @@
 
 namespace nanojit
 {
-    int UseSoftfloat = 0;
-
 #ifdef NJ_VERBOSE
     class VerboseBlockReader: public LirFilter
     {
@@ -123,7 +121,7 @@ namespace nanojit
             , _title(title)
             , _strs(alloc)
             , _logc(logc)
-         { }
+        { }
 
         void finish()
         {
@@ -257,7 +255,6 @@ namespace nanojit
 
     void Assembler::reset()
     {
-        
         _nIns = 0;
         _nExitIns = 0;
         codeStart = codeEnd = 0;
@@ -341,7 +338,7 @@ namespace nanojit
             {
                 if (regs->isFree(r))
                 {
-                    NanoAssert(regs->getActive(r)==0);
+                    NanoAssertMsgf(regs->getActive(r)==0, "register %s is free but assigned to ins", gpn(r));
                 }
                 else
                 {
@@ -552,7 +549,7 @@ namespace nanojit
     void Assembler::patch(SideExit *exit)
     {
         GuardRecord *rec = exit->guards;
-        AvmAssert(rec);
+        NanoAssert(rec);
         while (rec) {
             patch(rec);
             rec = rec->next;
@@ -656,6 +653,7 @@ namespace nanojit
         _activation.lowwatermark = 1;
         _activation.tos = _activation.lowwatermark;
         _activation.highwatermark = _activation.tos;
+        _inExit = false;
 
         counter_reset(native);
         counter_reset(exitnative);
@@ -709,7 +707,7 @@ namespace nanojit
         
         verbose_only( if (_logc->lcbits & LC_ReadLIR) {
         pp_init = new (alloc) ReverseLister(prev, alloc, frag->lirbuf->names, _logc,
-                                            "Initial LIR");
+                                    "Initial LIR");
         prev = pp_init;
         })
 
@@ -749,7 +747,6 @@ namespace nanojit
         gen(prev, loopJumps, labels, patches);
         frag->loopEntry = _nIns;
         
-        
 
         if (!error()) {
             
@@ -772,9 +769,9 @@ namespace nanojit
         
         
         verbose_only(
-        if (pp_init)       pp_init->finish();
-        if (pp_after_sf1)  pp_after_sf1->finish();
-        if (pp_after_sf2)  pp_after_sf2->finish();
+        if (pp_init)        pp_init->finish();
+        if (pp_after_sf1)   pp_after_sf1->finish();
+        if (pp_after_sf2)   pp_after_sf2->finish();
         )
     }
 
@@ -976,7 +973,7 @@ namespace nanojit
             bool required = ins->isStmt() || ins->resv()->used;
             if (!required)
                 continue;
- 
+
             LOpcode op = ins->opcode();
             switch(op)
             {
