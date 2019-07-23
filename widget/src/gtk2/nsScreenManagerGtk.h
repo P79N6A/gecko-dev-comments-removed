@@ -35,13 +35,14 @@
 
 
 
+
 #ifndef nsScreenManagerGtk_h___
 #define nsScreenManagerGtk_h___
 
 #include "nsIScreenManager.h"
 #include "nsIScreen.h"
 #include "nsCOMPtr.h"
-#include "nsISupportsArray.h"
+#include "nsCOMArray.h"
 
 
 
@@ -60,7 +61,7 @@ private:
 
   
   
-  nsCOMPtr<nsISupportsArray> mCachedScreenArray;
+  nsCOMArray<nsIScreen> mCachedScreenArray;
   
   int mNumScreens;
 

@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsScreenManagerGtk.h"
 #include "nsScreenGtk.h"
 #include "nsIComponentManager.h"
@@ -72,11 +73,7 @@ NS_IMPL_ISUPPORTS1(nsScreenManagerGtk, nsIScreenManager)
 nsresult
 nsScreenManagerGtk :: EnsureInit(void)
 {
-  if (!mCachedScreenArray) {
-    mCachedScreenArray = do_CreateInstance("@mozilla.org/supports-array;1");
-    if (!mCachedScreenArray) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+  if (mNumScreens == 0) {
     XineramaScreenInfo *screenInfo = NULL;
 
     
@@ -104,8 +101,7 @@ nsScreenManagerGtk :: EnsureInit(void)
 
       screen->Init();
 
-      nsISupports *supportsScreen = screen;
-      mCachedScreenArray->AppendElement(supportsScreen);
+      mCachedScreenArray.AppendObject(screen);
     }
     
     
@@ -124,8 +120,7 @@ nsScreenManagerGtk :: EnsureInit(void)
         
         screen->Init(&screenInfo[i]);
 
-        nsISupports *screenSupports = screen;
-        mCachedScreenArray->AppendElement(screenSupports);
+        mCachedScreenArray.AppendObject(screen);
       }
     }
 
@@ -165,17 +160,12 @@ nsScreenManagerGtk :: ScreenForRect ( PRInt32 aX, PRInt32 aY,
   if (mNumScreens > 1) {
     
     
-    PRUint32 count;
-    mCachedScreenArray->Count(&count);
-    PRUint32 i;
     PRUint32 area = 0;
     nsRect   windowRect(aX, aY, aWidth, aHeight);
-    for (i=0; i < count; i++) {
+    for (PRInt32 i = 0, i_end = mCachedScreenArray.Count(); i < i_end; ++i) {
       PRInt32  x, y, width, height;
       x = y = width = height = 0;
-      nsCOMPtr<nsIScreen> screen;
-      mCachedScreenArray->GetElementAt(i, getter_AddRefs(screen));
-      screen->GetRect(&x, &y, &width, &height);
+      mCachedScreenArray[i]->GetRect(&x, &y, &width, &height);
       
       nsRect screenRect(x, y, width, height);
       screenRect.IntersectRect(screenRect, windowRect);
@@ -186,9 +176,7 @@ nsScreenManagerGtk :: ScreenForRect ( PRInt32 aX, PRInt32 aY,
       }
     }
   }
-  nsCOMPtr<nsIScreen> outScreen;
-  mCachedScreenArray->GetElementAt(which, getter_AddRefs(outScreen));
-  *aOutScreen = outScreen.get();
+  *aOutScreen = mCachedScreenArray.SafeObjectAt(which);
   NS_IF_ADDREF(*aOutScreen);
   return NS_OK;
     
@@ -210,9 +198,7 @@ nsScreenManagerGtk :: GetPrimaryScreen(nsIScreen * *aPrimaryScreen)
     NS_ERROR("nsScreenManagerGtk::EnsureInit() failed from GetPrimaryScreen\n");
     return rv;
   }
-  nsCOMPtr <nsIScreen> screen;
-  mCachedScreenArray->GetElementAt(0, getter_AddRefs(screen));
-  *aPrimaryScreen = screen.get();
+  *aPrimaryScreen = mCachedScreenArray.SafeObjectAt(0);
   NS_IF_ADDREF(*aPrimaryScreen);
   return NS_OK;
   
