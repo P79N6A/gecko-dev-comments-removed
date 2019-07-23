@@ -10,11 +10,13 @@ function test() {
   
   
   
+  window.addEventListener("DOMContentLoaded", testMalware, true);
   newBrowser.contentWindow.location = 'http://www.mozilla.com/firefox/its-an-attack.html';
-  window.setTimeout(testMalware, 2000);
 }
 
 function testMalware() {
+  window.removeEventListener("DOMContentLoaded", testMalware, true);
+
   
   var el = newBrowser.contentDocument.getElementById("ignoreWarningButton");
   ok(el, "Ignore warning button should be present for malware");
@@ -23,11 +25,13 @@ function testMalware() {
   is(style.display, "-moz-box", "Ignore Warning button should be display:-moz-box for malware");
   
   
+  window.addEventListener("DOMContentLoaded", testPhishing, true);
   newBrowser.contentWindow.location = 'http://www.mozilla.com/firefox/its-a-trap.html';
-  window.setTimeout(testPhishing, 2000);
 }
 
 function testPhishing() {
+  window.removeEventListener("DOMContentLoaded", testPhishing, true);
+  
   var el = newBrowser.contentDocument.getElementById("ignoreWarningButton");
   ok(el, "Ignore warning button should be present for phishing");
   
