@@ -800,8 +800,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
   
   
   nsIntPoint ptDevPx;
-  nsPoint oldScrollPosition =
-    mInner.ClampAndRestrictToDevPixels(mInner.GetScrollPosition(), &ptDevPx);
+  nsPoint oldScrollPosition = mInner.GetScrollPosition();
   
   state.mComputedBorder = aReflowState.mComputedBorderPadding -
     aReflowState.mComputedPadding;
@@ -809,6 +808,9 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
   nsresult rv = ReflowContents(&state, aDesiredSize);
   if (NS_FAILED(rv))
     return rv;
+
+  
+  
   
   PlaceScrollArea(state, oldScrollPosition);
   if (!mInner.mPostedReflowCallback) {
@@ -1345,13 +1347,11 @@ nsGfxScrollFrameInner::AsyncScrollCallback(nsITimer *aTimer, void* anInstance)
     }
 
     self->ScrollToImpl(destination);
-    
   } else {
     delete self->mAsyncScroll;
     self->mAsyncScroll = nsnull;
 
     self->ScrollToImpl(self->mDestination);
-    
   }
 }
 
@@ -2913,6 +2913,9 @@ nsGfxScrollFrameInner::ReflowFinished()
   mPostedReflowCallback = PR_FALSE;
 
   ScrollToRestoredPosition();
+
+  
+  ScrollToImpl(GetScrollPosition());
 
   if (NS_SUBTREE_DIRTY(mOuter) || !mUpdateScrollbarAttributes)
     return PR_FALSE;
