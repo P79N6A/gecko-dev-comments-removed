@@ -97,59 +97,6 @@ clearDB();
 
 
 
-
-
-
-function dump_table(aName)
-{
-  let db = Cc["@mozilla.org/browser/nav-history-service;1"].
-           getService(Ci.nsPIPlacesDatabase).
-           DBConnection;
-  let stmt = db.createStatement("SELECT * FROM " + aName);
-
-  dump("\n*** Printing data from " + aName + ":\n");
-  let count = 0;
-  while (stmt.executeStep()) {
-    let columns = stmt.numEntries;
-
-    if (count == 0) {
-      
-      for (let i = 0; i < columns; i++)
-        dump(stmt.getColumnName(i) + "\t");
-      dump("\n");
-    }
-
-    
-    for (let i = 0; i < columns; i++) {
-      switch (stmt.getTypeOfIndex(i)) {
-        case Ci.mozIStorageValueArray.VALUE_TYPE_NULL:
-          dump("NULL\t");
-          break;
-        case Ci.mozIStorageValueArray.VALUE_TYPE_INTEGER:
-          dump(stmt.getInt64(i) + "\t");
-          break;
-        case Ci.mozIStorageValueArray.VALUE_TYPE_FLOAT:
-          dump(stmt.getDouble(i) + "\t");
-          break;
-        case Ci.mozIStorageValueArray.VALUE_TYPE_TEXT:
-          dump(stmt.getString(i) + "\t");
-          break;
-      }
-    }
-    dump("\n");
-
-    count++;
-  }
-  dump("*** There were a total of " + count + " rows of data.\n\n");
-
-  stmt.reset();
-  stmt.finalize();
-  stmt = null;
-}
-
-
-
-
 function remove_all_bookmarks() {
   var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
            getService(Ci.nsINavBookmarksService);
@@ -178,14 +125,4 @@ function check_no_bookmarks() {
   root.containerOpen = true;
   do_check_eq(root.childCount, 0);
   root.containerOpen = false;
-}
-
-
-
-
-function flush_main_thread_events()
-{
-  let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
-  while (tm.mainThread.hasPendingEvents())
-    tm.mainThread.processNextEvent(false);
 }
