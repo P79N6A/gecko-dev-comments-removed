@@ -1,0 +1,323 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+
+var gStateObject;
+var gTreeData;
+
+
+
+window.onload = function() {
+  
+  
+  var sessionData = document.getElementById("sessionData");
+  if (!sessionData.value) {
+    var ss = Cc["@mozilla.org/browser/sessionstartup;1"].getService(Ci.nsISessionStartup);
+    sessionData.value = ss.state;
+    if (!sessionData.value)
+      return;
+  }
+  
+  var event = document.createEvent("UIEvents");
+  event.initUIEvent("input", true, true, window, 0);
+  sessionData.dispatchEvent(event);
+  
+  var s = new Components.utils.Sandbox("about:blank");
+  gStateObject = Components.utils.evalInSandbox("(" + sessionData.value + ")", s);
+  
+  initTreeView();
+  
+  document.getElementById("errorTryAgain").focus();
+};
+
+function initTreeView() {
+  var tabList = document.getElementById("tabList");
+  var winLabel = tabList.getAttribute("_window_label");
+  
+  gTreeData = [];
+  gStateObject.windows.forEach(function(aWinData, aIx) {
+    var winState = {
+      label: winLabel.replace("%S", (aIx + 1)),
+      open: true,
+      checked: true,
+      ix: aIx
+    };
+    winState.tabs = aWinData.tabs.map(function(aTabData) {
+      var entry = aTabData.entries[aTabData.index - 1] || { url: "about:blank" };
+      return {
+        label: entry.title || entry.url,
+        checked: true,
+        src: aTabData.attributes.image || null,
+        parent: winState
+      };
+    });
+    gTreeData.push(winState);
+    for each (var tab in winState.tabs)
+      gTreeData.push(tab);
+  }, this);
+  
+  tabList.view = treeView;
+  tabList.view.selection.select(0);
+}
+
+
+
+function restoreSession() {
+  
+  var ix = gStateObject.windows.length - 1;
+  for (var t = gTreeData.length - 1; t >= 0; t--) {
+    if (treeView.isContainer(t)) {
+      if (gTreeData[t].checked === 0)
+        
+        gStateObject.windows[ix].tabs =
+          gStateObject.windows[ix].tabs.filter(function(aTabData, aIx)
+                                                 gTreeData[t].tabs[aIx].checked);
+      else if (!gTreeData[t].checked)
+        
+        gStateObject.windows.splice(ix, 1);
+      ix--;
+    }
+  }
+  var stateString = gStateObject.toSource();
+  
+  
+  var top = getBrowserWindow();
+  var selfBrowser = top.gBrowser.getBrowserForDocument(document);
+  var newWindow = top.openDialog(top.location, "_blank", "chrome,dialog=no,all");
+  newWindow.addEventListener("load", function() {
+    newWindow.removeEventListener("load", arguments.callee, true);
+    
+    var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+    ss.setWindowState(newWindow, stateString, true);
+    
+    var tabbrowser = top.gBrowser;
+    if (tabbrowser.tabContainer.childNodes.length == 1)
+      top.close();
+    else
+      tabbrowser.removeTab(getTabForBrowser(selfBrowser));
+  }, true);
+}
+
+function startNewSession() {
+  getBrowserWindow().BrowserHome();
+}
+
+function onListClick(aEvent) {
+  
+  if (aEvent.button == 2)
+    return;
+  
+  var row = {}, col = {};
+  treeView.treeBox.getCellAt(aEvent.clientX, aEvent.clientY, row, col, {});
+  if (col.value) {
+    
+    
+    if ((aEvent.button == 1 || aEvent.ctrlKey) && col.value.id == "title" &&
+        !treeView.isContainer(row.value))
+      restoreSingleTab(row.value, aEvent.shiftKey);
+    else if (col.value.id == "restore")
+      toggleRowChecked(row.value);
+  }
+}
+
+function onListKeyDown(aEvent) {
+  switch (aEvent.keyCode)
+  {
+  case KeyEvent.DOM_VK_SPACE:
+    toggleRowChecked(document.getElementById("tabList").currentIndex);
+    break;
+  case KeyEvent.DOM_VK_RETURN:
+    var ix = document.getElementById("tabList").currentIndex;
+    if (aEvent.ctrlKey && !treeView.isContainer(ix))
+      restoreSingleTab(ix, aEvent.shiftKey);
+    break;
+  case KeyEvent.DOM_VK_UP:
+  case KeyEvent.DOM_VK_DOWN:
+  case KeyEvent.DOM_VK_PAGE_UP:
+  case KeyEvent.DOM_VK_PAGE_DOWN:
+  case KeyEvent.DOM_VK_HOME:
+  case KeyEvent.DOM_VK_END:
+    aEvent.preventDefault(); 
+    break;
+  }
+}
+
+
+
+function getBrowserWindow() {
+  return window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation)
+               .QueryInterface(Ci.nsIDocShellTreeItem).rootTreeItem
+               .QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+}
+
+function getTabForBrowser(aBrowser) {
+  return Array.filter(getBrowserWindow().gBrowser.tabContainer.childNodes,
+                      function(aTab) aTab.linkedBrowser == aBrowser)[0];
+}
+
+function toggleRowChecked(aIx) {
+  var item = gTreeData[aIx];
+  item.checked = !item.checked;
+  treeView.treeBox.invalidateRow(aIx);
+  
+  function isChecked(aItem) aItem.checked;
+  
+  if (treeView.isContainer(aIx)) {
+    
+    for each (var tab in item.tabs) {
+      tab.checked = item.checked;
+      treeView.treeBox.invalidateRow(gTreeData.indexOf(tab));
+    }
+  }
+  else {
+    
+    item.parent.checked = item.parent.tabs.every(isChecked) ? true :
+                          item.parent.tabs.some(isChecked) ? 0 : false;
+    treeView.treeBox.invalidateRow(gTreeData.indexOf(item.parent));
+  }
+  
+  document.getElementById("errorTryAgain").disabled = !gTreeData.some(isChecked);
+}
+
+function restoreSingleTab(aIx, aShifted) {
+  var tabbrowser = getBrowserWindow().gBrowser;
+  var newTab = tabbrowser.addTab();
+  var item = gTreeData[aIx];
+  
+  var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+  var tabState = gStateObject.windows[item.parent.ix]
+                             .tabs[aIx - gTreeData.indexOf(item.parent) - 1];
+  ss.setTabState(newTab, tabState.toSource());
+  
+  
+  var prefBranch = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+  if (prefBranch.getBoolPref("browser.tabs.loadInBackground") != !aShifted)
+    tabbrowser.selectedTab = newTab;
+}
+
+
+
+var treeView = {
+  _atoms: {},
+  _getAtom: function(aName)
+  {
+    if (!this._atoms[aName]) {
+      var as = Cc["@mozilla.org/atom-service;1"].getService(Ci.nsIAtomService);
+      this._atoms[aName] = as.getAtom(aName);
+    }
+    return this._atoms[aName];
+  },
+
+  treeBox: null,
+  selection: null,
+
+  get rowCount()                     { return gTreeData.length; },
+  setTree: function(treeBox)         { this.treeBox = treeBox; },
+  getCellText: function(idx, column) { return gTreeData[idx].label; },
+  isContainer: function(idx)         { return "open" in gTreeData[idx]; },
+  getCellValue: function(idx, column){ return gTreeData[idx].checked; },
+  isContainerOpen: function(idx)     { return gTreeData[idx].open; },
+  isContainerEmpty: function(idx)    { return false; },
+  isSeparator: function(idx)         { return false; },
+  isSorted: function()               { return false; },
+  isEditable: function(idx, column)  { return false; },
+  getLevel: function(idx)            { return this.isContainer(idx) ? 0 : 1; },
+
+  getParentIndex: function(idx) {
+    if (!this.isContainer(idx))
+      for (var t = idx - 1; t >= 0 ; t--)
+        if (this.isContainer(t))
+          return t;
+    return -1;
+  },
+
+  hasNextSibling: function(idx, after) {
+    var thisLevel = this.getLevel(idx);
+    for (var t = idx + 1; t < gTreeData.length && this.getLevel(t) > thisLevel; t++);
+    return thisLevel == this.getLevel(t);
+  },
+
+  toggleOpenState: function(idx) {
+    if (!this.isContainer(idx))
+      return;
+    var item = gTreeData[idx];
+    if (item.open) {
+      
+      var thisLevel = this.getLevel(idx);
+      for (var t = idx + 1; t < gTreeData.length && this.getLevel(t) > thisLevel; t++);
+      var deletecount = t - idx - 1;
+      gTreeData.splice(idx + 1, deletecount);
+      this.treeBox.rowCountChanged(idx + 1, -deletecount);
+    }
+    else {
+      
+      var toinsert = gTreeData[idx].tabs;
+      for (var i = 0; i < toinsert.length; i++)
+        gTreeData.splice(idx + i + 1, 0, toinsert[i]);
+      this.treeBox.rowCountChanged(idx + 1, toinsert.length);
+    }
+    item.open = !item.open;
+  },
+
+  getCellProperties: function(idx, column, prop) {
+    if (column.id == "restore" && this.isContainer(idx) && gTreeData[idx].checked === 0)
+      prop.AppendElement(this._getAtom("partial"));
+    if (column.id == "title")
+      prop.AppendElement(this._getAtom(this.getImageSrc(idx, column) ? "icon" : "noicon"));
+  },
+
+  getRowProperties: function(idx, prop) {
+    var winState = gTreeData[idx].parent || gTreeData[idx];
+    if (winState.ix % 2 != 0)
+      prop.AppendElement(this._getAtom("alternate"));
+  },
+
+  getImageSrc: function(idx, column) {
+    if (column.id == "title")
+      return gTreeData[idx].src || null;
+    return null;
+  },
+
+  getProgressMode : function(idx, column) { },
+  cycleHeader: function(column) { },
+  cycleCell: function(idx, column) { },
+  selectionChanged: function() { },
+  performAction: function(action) { },
+  performActionOnCell: function(action, index, column) { },
+  getColumnProperties: function(column, prop) { }
+};
