@@ -422,7 +422,7 @@ int main(int argc, char **argv)
   }
 }
 
-#if defined(XP_WIN) && !defined(DEBUG) && !defined(__GNUC__)
+#if defined(XP_WIN) && !defined(__GNUC__)
 
 
 int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR args, int )
