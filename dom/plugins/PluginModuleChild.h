@@ -298,6 +298,24 @@ public:
 
 private:
     static PLDHashOperator CollectForInstance(NPObjectData* d, void* userArg);
+
+#if defined(OS_WIN)
+    NS_OVERRIDE
+    virtual void EnteredCall();
+    NS_OVERRIDE
+    virtual void ExitedCall();
+
+    
+    
+    nsAutoTArray<bool, 8> mIncallPumpingStack;
+
+    static LRESULT CALLBACK NestedInputEventHook(int code,
+                                                 WPARAM wParam,
+                                                 LPARAM lParam);
+    void SetNestedInputEventHook();
+    void ResetNestedInputEventHook();
+    HHOOK mNestedEventHook;
+#endif
 };
 
 } 

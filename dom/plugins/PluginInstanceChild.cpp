@@ -101,8 +101,6 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mPluginWindowHWND(0)
     , mPluginWndProc(0)
     , mPluginParentHWND(0)
-    , mNestedEventHook(0)
-    , mNestedEventLevelDepth(0)
     , mCachedWinlessPluginHWND(0)
     , mWinlessPopupSurrogateHWND(0)
     , mWinlessThrottleOldWndProc(0)
@@ -1096,61 +1094,6 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
 
 
 
-
-
-
-
-
-static PluginInstanceChild* gTempChildPointer;
-
-LRESULT CALLBACK
-PluginInstanceChild::NestedInputEventHook(int nCode,
-                                          WPARAM wParam,
-                                          LPARAM lParam)
-{
-    if (!gTempChildPointer) {
-        return CallNextHookEx(NULL, nCode, wParam, lParam);
-    }
-
-    if (nCode >= 0) {
-        NS_ASSERTION(gTempChildPointer, "Never should be null here!");
-        gTempChildPointer->ResetNestedEventHook();
-        gTempChildPointer->SendProcessNativeEventsInRPCCall();
-
-        gTempChildPointer = NULL;
-    }
-    return CallNextHookEx(NULL, nCode, wParam, lParam);
-}
-
-void
-PluginInstanceChild::SetNestedInputEventHook()
-{
-    NS_ASSERTION(!mNestedEventHook,
-        "mNestedEventHook already setup in call to SetNestedInputEventHook?");
-
-    PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
-
-    
-    
-    
-    
-    mNestedEventHook = SetWindowsHookEx(WH_MSGFILTER,
-                                        NestedInputEventHook,
-                                        NULL,
-                                        GetCurrentThreadId());
-}
-
-void
-PluginInstanceChild::ResetNestedEventHook()
-{
-    PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
-    if (mNestedEventHook)
-        UnhookWindowsHookEx(mNestedEventHook);
-    mNestedEventHook = NULL;
-}
-
-
-
 BOOL
 WINAPI
 PluginInstanceChild::TrackPopupHookProc(HMENU hMenu,
@@ -1331,16 +1274,6 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
     
     int16_t handled;
 
-    mNestedEventLevelDepth++;
-    PLUGIN_LOG_DEBUG(("WinlessHandleEvent start depth: %i", mNestedEventLevelDepth));
-
-    
-    if (mNestedEventLevelDepth == 1) {
-        NS_ASSERTION(!gTempChildPointer, "valid gTempChildPointer here?");
-        gTempChildPointer = this;
-        SetNestedInputEventHook();
-    }
-
     
     
     
@@ -1350,21 +1283,10 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
       sWinlessPopupSurrogateHWND = mWinlessPopupSurrogateHWND;
     }
 
-    bool old_state = MessageLoop::current()->NestableTasksAllowed();
-    MessageLoop::current()->SetNestableTasksAllowed(true);
     handled = mPluginIface->event(&mData, reinterpret_cast<void*>(&event));
-    MessageLoop::current()->SetNestableTasksAllowed(old_state);
 
-    gTempChildPointer = NULL;
     sWinlessPopupSurrogateHWND = NULL;
 
-    mNestedEventLevelDepth--;
-    PLUGIN_LOG_DEBUG(("WinlessHandleEvent end depth: %i", mNestedEventLevelDepth));
-
-    NS_ASSERTION(!(mNestedEventLevelDepth < 0), "mNestedEventLevelDepth < 0?");
-    if (mNestedEventLevelDepth <= 0) {
-        ResetNestedEventHook();
-    }
     return handled;
 }
 
@@ -2084,7 +2006,6 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
 
 #if defined(OS_WIN)
     SharedSurfaceRelease();
-    ResetNestedEventHook();
     DestroyWinlessPopupSurrogate();
 #endif
 
