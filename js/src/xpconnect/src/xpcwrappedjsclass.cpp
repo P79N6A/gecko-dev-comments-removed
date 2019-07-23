@@ -112,18 +112,19 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
 
 JSBool xpc_IsReportableErrorCode(nsresult code)
 {
+    if (NS_SUCCEEDED(code))
+        return JS_FALSE;
+
     switch(code)
     {
-        case NS_ERROR_XPC_JS_THREW_NULL:
-        case NS_ERROR_XPC_JS_THREW_JS_OBJECT:
-        case NS_ERROR_XPC_JS_THREW_NATIVE_OBJECT:
-        case NS_ERROR_XPC_JS_THREW_STRING:
-        case NS_ERROR_XPC_JS_THREW_NUMBER:
-        case NS_ERROR_XPC_JAVASCRIPT_ERROR_WITH_DETAILS:
-        case NS_ERROR_XPC_JAVASCRIPT_ERROR:
-            return JS_TRUE;
+        
+        
+        case NS_ERROR_FACTORY_REGISTER_AGAIN:
+        case NS_BASE_STREAM_WOULD_BLOCK:
+            return JS_FALSE;
     }
-    return JS_FALSE;
+
+    return JS_TRUE;
 }
 
 
@@ -908,7 +909,8 @@ nsXPCWrappedJSClass::CleanupPointerTypeObject(const nsXPTType& type,
 nsresult
 nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
                                        const char * aPropertyName,
-                                       const char * anInterfaceName)
+                                       const char * anInterfaceName,
+                                       PRBool aForceReport)
 {
     XPCContext * xpcc = ccx.GetXPCContext();
     JSContext * cx = ccx.GetJSContext();
@@ -929,7 +931,8 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
     {
         if(!xpc_exception)
             XPCConvert::JSValToXPCException(ccx, js_exception, anInterfaceName,
-                                            aPropertyName, getter_AddRefs(xpc_exception));
+                                            aPropertyName,
+                                            getter_AddRefs(xpc_exception));
 
         
         if(!xpc_exception)
@@ -944,7 +947,52 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
         nsresult e_result;
         if(NS_SUCCEEDED(xpc_exception->GetResult(&e_result)))
         {
-            if(xpc_IsReportableErrorCode(e_result))
+            
+            PRBool reportable = xpc_IsReportableErrorCode(e_result);
+            if(reportable)
+            {
+                
+                
+                reportable = aForceReport ||
+                    NS_ERROR_GET_MODULE(e_result) == NS_ERROR_MODULE_XPCONNECT;
+
+                
+                
+                
+                if(!reportable)
+                    reportable = nsXPConnect::ReportAllJSExceptions();
+
+                
+                
+                if(!reportable)
+                {
+                    PRBool onlyNativeStackFrames = PR_TRUE;
+                    JSStackFrame * fp = nsnull;
+                    while((fp = JS_FrameIterator(cx, &fp)))
+                    {
+                        if(!JS_IsNativeFrame(cx, fp))
+                        {
+                            onlyNativeStackFrames = PR_FALSE;
+                            break;
+                        }
+                    }
+                    reportable = onlyNativeStackFrames;
+                }
+                
+                
+                
+                
+                
+                
+                if(reportable && e_result == NS_ERROR_NO_INTERFACE &&
+                   !strcmp(anInterfaceName, "nsIInterfaceRequestor") &&
+                   !strcmp(aPropertyName, "getInterface"))
+                {
+                    reportable = PR_FALSE;
+                }
+            }
+
+            if(reportable)
             {
 #ifdef DEBUG
                 static const char line[] =
@@ -1502,7 +1550,14 @@ pre_call_clean_up:
 
     if (!success)
     {
-        retval = CheckForException(ccx, name, GetInterfaceName());
+        PRBool forceReport;
+        if(NS_FAILED(mInfo->IsFunction(&forceReport)))
+            forceReport = PR_FALSE;
+
+        
+        
+
+        retval = CheckForException(ccx, name, GetInterfaceName(), forceReport);
         goto done;
     }
 
