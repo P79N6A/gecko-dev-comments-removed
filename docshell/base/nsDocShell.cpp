@@ -3952,6 +3952,12 @@ nsDocShell::Stop(PRUint32 aStopFlags)
     
     mRestorePresentationEvent.Revoke();
 
+    if (mLoadType == LOAD_ERROR_PAGE && mLSHE) {
+        
+        SetHistoryEntry(&mOSHE, mLSHE);
+        SetHistoryEntry(&mLSHE, nsnull);
+    }
+
     if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
         
         if (mContentViewer)
