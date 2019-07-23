@@ -558,16 +558,43 @@ protected:
 
 
 
-  void PushChildren(const nsAutoVoidArray& aFrames, PRInt32 aPushFrom);
+  typedef nsAutoTPtrArray<nsIFrame, 8> FrameArray;
+  void PushChildren(const FrameArray& aFrames, PRInt32 aPushFrom);
 
 public:
   
   
-  void OrderRowGroups(nsVoidArray&           aChildren,
-                      PRUint32&              aNumRowGroups,
-                      nsTableRowGroupFrame** aHead      = nsnull,
-                      nsTableRowGroupFrame** aFoot      = nsnull) const;
+  
+  
+  
+  typedef nsAutoTPtrArray<nsTableRowGroupFrame, 8> RowGroupArray;
+  void OrderRowGroups(RowGroupArray& aChildren) const;
 
+  
+  nsTableRowGroupFrame* GetTHead() const;
+
+  
+  nsTableRowGroupFrame* GetTFoot() const;
+
+protected:
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRUint32 OrderRowGroups(FrameArray& aChildren,
+                          nsTableRowGroupFrame** aHead,
+                          nsTableRowGroupFrame** aFoot) const;
+
+public:
   
   
   
