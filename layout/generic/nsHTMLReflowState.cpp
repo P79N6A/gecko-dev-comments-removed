@@ -289,17 +289,6 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
 
   InitResizeFlags(aPresContext);
 
-  
-  
-  
-  
-  
-  
-  imgIRequest *borderImage = mStyleBorder->GetBorderImage();
-  if (borderImage) {
-    aPresContext->LoadBorderImage(borderImage, frame);
-  }
-
   NS_ASSERTION((mFrameType == NS_CSS_FRAME_TYPE_INLINE &&
                 !frame->IsFrameOfType(nsIFrame::eReplaced)) ||
                frame->GetType() == nsGkAtoms::textFrame ||

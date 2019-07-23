@@ -1064,24 +1064,6 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
   return aMinChange;
 }
 
-static PRBool
-ShouldStopImage(imgIRequest *aOldImage, imgIRequest *aNewImage)
-{
-  if (!aOldImage)
-    return PR_FALSE;
-
-  PRBool stopImages = !aNewImage;
-  if (!stopImages) {
-    nsCOMPtr<nsIURI> oldURI, newURI;
-    aOldImage->GetURI(getter_AddRefs(oldURI));
-    aNewImage->GetURI(getter_AddRefs(newURI));
-    PRBool equal;
-    stopImages =
-      NS_FAILED(oldURI->Equals(newURI, &equal)) || !equal;
-  }
-  return stopImages;
-}
-
 nsChangeHint
 nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
                                       nsIFrame          *aFrame,
@@ -1216,33 +1198,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
         if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
           
           aFrame->SetStyleContext(newContext);
-        }
-        
-        
-        if (ShouldStopImage(
-              oldContext->GetStyleBackground()->mBackgroundImage,
-              newContext->GetStyleBackground()->mBackgroundImage)) {
-          
-          aPresContext->StopBackgroundImageFor(aFrame);
-        }
-
-        imgIRequest *newBorderImage =
-          newContext->GetStyleBorder()->GetBorderImage();
-        if (ShouldStopImage(oldContext->GetStyleBorder()->GetBorderImage(),
-                            newBorderImage)) {
-          
-          aPresContext->StopBorderImageFor(aFrame);
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        if (newBorderImage) {
-          aPresContext->LoadBorderImage(newBorderImage, aFrame);
         }
       }
       oldContext->Release();
