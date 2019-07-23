@@ -87,13 +87,6 @@
 
 
 
-#ifndef CSS_PROP_NOTIMPLEMENTED
-#define CSS_PROP_NOTIMPLEMENTED(name_, id_, method_, flags_)
-#define DEFINED_CSS_PROP_NOTIMPLEMENTED
-#endif
-
-
-
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_)
 #define DEFINED_CSS_PROP_SHORTHAND
@@ -746,11 +739,6 @@ CSS_PROP_TABLE(X, X, X, 0, Table, mSpan, eCSSType_Value, nsnull)
 #endif
 
 #endif 
-
-#ifdef DEFINED_CSS_PROP_NOTIMPLEMENTED
-#undef CSS_PROP_NOTIMPLEMENTED
-#undef DEFINED_CSS_PROP_NOTIMPLEMENTED
-#endif
 
 #ifdef DEFINED_CSS_PROP_SHORTHAND
 #undef CSS_PROP_SHORTHAND
