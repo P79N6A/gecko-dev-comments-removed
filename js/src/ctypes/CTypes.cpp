@@ -4659,7 +4659,7 @@ FunctionType::Call(JSContext* cx,
   
   AutoValueAutoArray values;
   AutoValueAutoArray strings;
-  if (!values.resize(fninfo->mArgTypes.length())) {
+  if (!values.resize(argc)) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
