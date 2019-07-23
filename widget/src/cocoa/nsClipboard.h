@@ -58,13 +58,15 @@ public:
 
   
   static NSDictionary* PasteboardDictFromTransferable(nsITransferable *aTransferable);
-  static nsresult CopyPasteboardDataToTransferable(NSPasteboard* aPasteboard, nsITransferable* aTransferable, PRUint32 aItemIndex);
 
 protected:
 
   
   NS_IMETHOD SetNativeClipboardData(PRInt32 aWhichClipboard);
   NS_IMETHOD GetNativeClipboardData(nsITransferable * aTransferable, PRInt32 aWhichClipboard);
+  
+private:
+  int mChangeCount; 
 
 };
 
