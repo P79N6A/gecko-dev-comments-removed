@@ -116,6 +116,13 @@ nsDisplayXULTreeColSplitterTarget::HitTest(nsDisplayListBuilder* aBuilder,
   else if (nsPresContext::CSSPixelsToAppUnits(4) > pt.x)
     left = PR_TRUE;
 
+  
+  if (mFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    PRBool tmp = left;
+    left = right;
+    right = tmp;
+  }
+
   if (left || right) {
     
     nsFrameList frames(mFrame->GetParent()->GetFirstChild(nsnull));
