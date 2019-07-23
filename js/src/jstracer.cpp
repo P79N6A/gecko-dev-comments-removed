@@ -2400,12 +2400,35 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->frame.pcDisabledSave = 0;
 #endif
 
+    
+
+
+
+    newifp->callerVersion = (JSVersion) cx->fp->script->version;
+
     cx->fp->regs = &newifp->callerRegs;
     cx->fp = &newifp->frame;
 
     if (fun->flags & JSFUN_HEAVYWEIGHT) {
+        
+
+
+
+        newifp->hookData = NULL;
         if (!js_GetCallObject(cx, &newifp->frame, newifp->frame.scopeChain))
             return -1;
+    }
+
+    
+
+
+
+    JSInterpreterHook hook = cx->debugHooks->callHook;
+    if (hook) {
+        newifp->hookData = hook(cx, &newifp->frame, JS_TRUE, 0,
+                                cx->debugHooks->callHookData);
+    } else {
+        newifp->hookData = NULL;
     }
 
     
