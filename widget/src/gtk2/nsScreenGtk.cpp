@@ -38,12 +38,9 @@
 
 #include "nsScreenGtk.h"
 
-#include <gdk/gdk.h>
-#ifdef MOZ_X11
 #include <gdk/gdkx.h>
-#include <X11/Xatom.h>
-#endif
 #include <gtk/gtk.h>
+#include <X11/Xatom.h>
 
 nsScreenGtk :: nsScreenGtk (  )
   : mScreenNum(0),
@@ -116,7 +113,6 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
   
   mAvailRect = mRect = nsRect(0, 0, gdk_screen_width(), gdk_screen_height());
 
-#ifdef MOZ_X11
   
   
 
@@ -180,10 +176,8 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
     }
   }
   g_free (workareas);
-#endif
 }
 
-#ifdef MOZ_X11
 void
 nsScreenGtk :: Init (XineramaScreenInfo *aScreenInfo)
 {
@@ -194,4 +188,3 @@ nsScreenGtk :: Init (XineramaScreenInfo *aScreenInfo)
 
   mAvailRect = mRect = xineRect;
 }
-#endif
