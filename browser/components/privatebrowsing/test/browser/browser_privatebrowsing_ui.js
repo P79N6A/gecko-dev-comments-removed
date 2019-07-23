@@ -60,7 +60,6 @@ function test() {
   let blankTab = gBrowser.addTab();
   gBrowser.selectedTab = blankTab;
   let originalTitle = document.title;
-  let privateBrowsingTitle = document.documentElement.getAttribute("titlemodifier_privatebrowsing");
 
   
   ok(gPrivateBrowsingUI, "The gPrivateBrowsingUI object exists");
@@ -83,7 +82,7 @@ function test() {
   
   is(observer.data, "enter", "Private Browsing mode was activated using the command object");
   
-  is(document.title, privateBrowsingTitle, "Private browsing mode has correctly changed the title");
+  isnot(document.title, originalTitle, "Private browsing mode has correctly changed the title");
   func.call(cmd);
   
   is(observer.data, "exit", "Private Browsing mode was deactivated using the command object");

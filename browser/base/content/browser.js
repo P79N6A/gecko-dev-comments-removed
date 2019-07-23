@@ -6911,16 +6911,10 @@ let gPrivateBrowsingUI = {
     if (!this._privateBrowsingAutoStarted) {
       
       let docElement = document.documentElement;
-#ifdef XP_MACOSX 
-      docElement.setAttribute("titlemodifier",
-        docElement.getAttribute("titlemodifier_privatebrowsing"));
-      docElement.setAttribute("titledefault", "");
-#else
       docElement.setAttribute("title",
         docElement.getAttribute("title_privatebrowsing"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_privatebrowsing"));
-#endif
       docElement.setAttribute("browsingmode", "private");
     }
     else {
@@ -6945,16 +6939,10 @@ let gPrivateBrowsingUI = {
     if (!this._privateBrowsingAutoStarted) {
       
       let docElement = document.documentElement;
-#ifdef XP_MACOSX 
-      docElement.setAttribute("titlemodifier", "");
-      docElement.setAttribute("titledefault",
-        docElement.getAttribute("titlemodifier_normal"));
-#else
       docElement.setAttribute("title",
         docElement.getAttribute("title_normal"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_normal"));
-#endif
       docElement.setAttribute("browsingmode", "normal");
     }
     else
