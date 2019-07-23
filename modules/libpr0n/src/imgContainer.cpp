@@ -1089,7 +1089,19 @@ nsresult imgContainer::DrawFrameTo(gfxIImageFrame *aSrc,
   dstImg->GetSurface(getter_AddRefs(dstSurf));
 
   gfxContext dst(dstSurf);
+  
+  
+  PRInt32 blendMethod;
+  aSrc->GetBlendMethod(&blendMethod);
+  gfxContext::GraphicsOperator defaultOperator = dst.CurrentOperator();
+  if (blendMethod == imgIContainer::kBlendSource) {
+    dst.SetOperator(gfxContext::OPERATOR_CLEAR);
+    dst.Rectangle(gfxRect(aDstRect.x, aDstRect.y, aDstRect.width, aDstRect.height));
+    dst.Fill();
+  }
+  
   dst.NewPath();
+  dst.SetOperator(defaultOperator);
   
   
   

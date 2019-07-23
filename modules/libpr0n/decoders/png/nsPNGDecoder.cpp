@@ -136,13 +136,13 @@ void nsPNGDecoder::SetAnimFrameInfo()
 {
   png_uint_16 delay_num, delay_den; 
   png_byte dispose_op;
+  png_byte blend_op;
   PRInt32 timeout; 
   
   delay_num = png_get_next_frame_delay_num(mPNG, mInfo);
   delay_den = png_get_next_frame_delay_den(mPNG, mInfo);
   dispose_op = png_get_next_frame_dispose_op(mPNG, mInfo);
-
-  
+  blend_op = png_get_next_frame_blend_op(mPNG, mInfo);
 
   if (delay_num == 0) {
     timeout = 0; 
@@ -163,6 +163,11 @@ void nsPNGDecoder::SetAnimFrameInfo()
       mFrame->SetFrameDisposalMethod(imgIContainer::kDisposeClear);
   else
       mFrame->SetFrameDisposalMethod(imgIContainer::kDisposeKeep);
+  
+  if (blend_op == PNG_BLEND_OP_SOURCE)
+      mFrame->SetBlendMethod(imgIContainer::kBlendSource);
+  
+
 }
 
 

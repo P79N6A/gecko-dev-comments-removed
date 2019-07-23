@@ -46,7 +46,8 @@ gfxImageFrame::gfxImageFrame() :
   mInitialized(PR_FALSE),
   mMutable(PR_TRUE),
   mTimeout(100),
-  mDisposalMethod(0)
+  mDisposalMethod(0), 
+  mBlendMethod(1) 
 {
   
 }
@@ -340,6 +341,24 @@ NS_IMETHODIMP gfxImageFrame::SetFrameDisposalMethod(PRInt32 aFrameDisposalMethod
     return NS_ERROR_NOT_INITIALIZED;
 
   mDisposalMethod = aFrameDisposalMethod;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP gfxImageFrame::GetBlendMethod(PRInt32 *aBlendMethod)
+{
+  if (!mInitialized)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  *aBlendMethod = mBlendMethod;
+  return NS_OK;
+}
+NS_IMETHODIMP gfxImageFrame::SetBlendMethod(PRInt32 aBlendMethod)
+{
+  if (!mInitialized)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  mBlendMethod = (PRInt8)aBlendMethod;
   return NS_OK;
 }
 

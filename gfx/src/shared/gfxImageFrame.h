@@ -80,4 +80,5 @@ private:
   PRInt32      mTimeout; 
   nsIntPoint   mOffset;
   PRInt32      mDisposalMethod;
+  PRInt8       mBlendMethod;
 };
