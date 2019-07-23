@@ -68,6 +68,7 @@
 #include "nsISelectionController.h"
 #include "nsDisplayList.h"
 #include "nsCaret.h"
+#include "nsTextFrame.h"
 
 
 
@@ -608,6 +609,54 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
   return PR_TRUE;
 }
 
+
+
+
+
+
+
+static nsIFrame*
+CheckForTrailingTextFrameRecursive(nsIFrame* aFrame, nsIFrame* aStopAtFrame)
+{
+  if (aFrame == aStopAtFrame ||
+      ((aFrame->GetType() == nsGkAtoms::textFrame &&
+       (static_cast<nsTextFrame*>(aFrame))->IsAtEndOfLine())))
+    return aFrame;
+  if (!aFrame->IsFrameOfType(nsIFrame::eLineParticipant))
+    return nsnull;
+
+  for (nsIFrame* f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling())
+  {
+    nsIFrame* r = CheckForTrailingTextFrameRecursive(f, aStopAtFrame);
+    if (r)
+      return r;
+  }
+  return nsnull;
+}
+
+static void
+AdjustCaretFrameForLineEnd(nsIFrame** aFrame, PRInt32* aOffset)
+{
+  nsBlockFrame* block = nsLayoutUtils::FindNearestBlockAncestor(*aFrame);
+  if (!block)
+    return;
+  nsLineBox* line = block->FindLineFor(nsLayoutUtils::FindChildContainingDescendant(block, *aFrame));
+  PRInt32 count = line->GetChildCount();
+  for (nsIFrame* f = line->mFirstChild; count > 0; --count, f = f->GetNextSibling())
+  {
+    nsIFrame* r = CheckForTrailingTextFrameRecursive(f, *aFrame);
+    if (r == *aFrame)
+      return;
+    if (r)
+    {
+      *aFrame = r;
+      NS_ASSERTION(r->GetType() == nsGkAtoms::textFrame, "Expected text frame");
+      *aOffset = (static_cast<nsTextFrame*>(r))->GetContentEnd();
+      return;
+    }
+  }
+}
+
 NS_IMETHODIMP 
 nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
                                     PRInt32                 aOffset,
@@ -634,6 +683,12 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   if (!theFrame)
     return NS_ERROR_FAILURE;
 
+  
+  
+  
+  
+  AdjustCaretFrameForLineEnd(&theFrame, &theFrameOffset);
+  
   
   
   

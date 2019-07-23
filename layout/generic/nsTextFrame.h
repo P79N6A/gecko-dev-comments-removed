@@ -180,6 +180,12 @@ public:
 
 
   virtual PRBool HasTerminalNewline() const;
+
+  
+
+
+
+  PRBool IsAtEndOfLine() const;
   
 #ifdef ACCESSIBILITY
   NS_IMETHOD GetAccessible(nsIAccessible** aAccessible);
