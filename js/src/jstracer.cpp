@@ -1743,9 +1743,11 @@ skip:
         }
         for (; n != 0; fp = fp->down) {
             --n;
-            if (fp->callee) { 
+            if (fp->callee) {
                 JS_ASSERT(JSVAL_IS_OBJECT(fp->argv[-1]));
                 fp->thisp = JSVAL_TO_OBJECT(fp->argv[-1]);
+                if (fp->flags & JSFRAME_CONSTRUCTING) 
+                    fp->flags |= JSFRAME_COMPUTED_THIS;
             }
         }
     }
@@ -4348,8 +4350,6 @@ LeaveTree(InterpState& state, VMSideExit* lr)
     
     for (JSStackFrame* fp = cx->fp; fp; fp = fp->down) {
         JS_ASSERT_IF(fp->callee, JSVAL_IS_OBJECT(fp->argv[-1]));
-        JS_ASSERT_IF(fp->callee && fp->thisp != JSVAL_TO_OBJECT(fp->argv[-1]),
-                     !(fp->flags & JSFRAME_COMPUTED_THIS) && !fp->thisp);
     }
 #endif
 #ifdef JS_JIT_SPEW
@@ -6239,13 +6239,32 @@ TraceRecorder::unbox_jsval(jsval v, LIns*& v_ins, LIns* exit)
 JS_REQUIRES_STACK bool
 TraceRecorder::getThis(LIns*& this_ins)
 {
-    if (cx->fp->callee) { 
-        if (JSVAL_IS_NULL(cx->fp->argv[-1]))
-            return false;
-        this_ins = get(&cx->fp->argv[-1]);
-        guard(false, lir->ins_eq0(this_ins), MISMATCH_EXIT);
-    } else { 
-        this_ins = scopeChain();
+    JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
+    if (!thisObj)
+        ABORT_TRACE("js_ComputeThis failed");
+    if (!cx->fp->callee || JSVAL_IS_NULL(cx->fp->argv[-1])) {
+        JS_ASSERT(callDepth == 0);
+        
+
+
+
+        this_ins = INS_CONSTPTR(thisObj);
+        set(&cx->fp->argv[-1], this_ins);
+        return true;
+    }
+    this_ins = get(&cx->fp->argv[-1]);
+
+    
+
+
+
+
+
+    if (callDepth == 0) {
+        LIns* map_ins = lir->insLoad(LIR_ldp, this_ins, (int)offsetof(JSObject, map));
+        LIns* ops_ins = lir->insLoad(LIR_ldp, map_ins, (int)offsetof(JSObjectMap, ops));
+        LIns* op_ins = lir->insLoad(LIR_ldp, ops_ins, (int)offsetof(JSObjectOps, thisObject));
+        guard(true, lir->ins_eq0(op_ins), MISMATCH_EXIT);
     }
     return true;
 }
