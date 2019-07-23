@@ -413,6 +413,7 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
   
 
   
+  nsCAutoString path;
   char* argv1 = getenv("MOZ_APP_LAUNCHER");
 
   if(!argv1) {
@@ -425,8 +426,6 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
     rv = gDirServiceProvider->GetFile(XRE_EXECUTABLE_FILE, &dummy, getter_AddRefs(executablePath));
 
     if (NS_SUCCEEDED(rv)) {
-      nsCAutoString path;
-
       
       nsCAutoString leafName;
       rv = executablePath->GetNativeLeafName(leafName);
