@@ -244,6 +244,15 @@ const kSaveAsType_Text     = 2;
 
 
 
+
+
+
+
+
+
+
+
+
 function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
                       aContentType, aShouldBypassCache, aFilePickerTitleKey,
                       aChosenData, aReferrer, aSkipPrompt)
@@ -448,7 +457,7 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
   }
 }
 
-function getTargetFile(aFpP, aSkipPrompt)
+function getTargetFile(aFpP,  aSkipPrompt)
 {
   const prefSvcContractID = "@mozilla.org/preferences-service;1";
   const prefSvcIID = Components.interfaces.nsIPrefService;                              
