@@ -60,6 +60,21 @@ struct sa_stream {
 
 
 
+static void
+quiet_error_handler(const char* file,
+                    int         line,
+                    const char* function,
+                    int         err,
+                    const char* format,
+                    ...)
+{
+}
+
+
+
+
+
+
 
 int
 sa_stream_create_pcm(
@@ -115,6 +130,9 @@ sa_stream_open(sa_stream_t *s) {
   if (s->output_unit != NULL) {
     return SA_ERROR_INVALID;
   }
+
+  
+  snd_lib_error_set_handler(quiet_error_handler);
 
   if (snd_pcm_open(&s->output_unit, 
                    "default", 
