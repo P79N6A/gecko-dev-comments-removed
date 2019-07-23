@@ -1098,6 +1098,13 @@ nsOperaProfileMigrator::CopyBookmarks(PRBool aReplace)
   rv = ParseBookmarksFolder(lineInputStream, parentFolder, toolbar, bms);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  NS_ENSURE_TRUE(pref, NS_ERROR_FAILURE);
+  rv = pref->SetBoolPref("browser.places.importBookmarksHTML", PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
 

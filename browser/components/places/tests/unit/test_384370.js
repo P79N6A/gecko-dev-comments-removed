@@ -36,11 +36,6 @@
 
 
 
-
-
-Cc["@mozilla.org/browser/livemark-service;2"].getService(Ci.nsILivemarkService);
-Cc["@mozilla.org/feed-processor;1"].createInstance(Ci.nsIFeedProcessor);
-
 const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
 const POST_DATA_ANNO = "bookmarkProperties/POSTData";
