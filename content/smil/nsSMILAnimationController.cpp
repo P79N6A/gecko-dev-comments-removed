@@ -52,17 +52,6 @@
 
 
 
-
-
-
-
-
-
-
-
-const PRUint32 nsSMILAnimationController::kTimerInterval = 22;
-
-
 static nsRefreshDriver*
 GetRefreshDriverForDoc(nsIDocument* aDoc)
 {
@@ -91,8 +80,6 @@ nsSMILAnimationController::nsSMILAnimationController()
 nsSMILAnimationController::~nsSMILAnimationController()
 {
   StopSampling(GetRefreshDriverForDoc(mDocument));
-  mTimer = nsnull;
-
   NS_ASSERTION(mAnimationElementTable.Count() == 0,
                "Animation controller shouldn't be tracking any animation"
                " elements when it dies");
@@ -117,9 +104,6 @@ nsresult
 nsSMILAnimationController::Init(nsIDocument* aDoc)
 {
   NS_ENSURE_ARG_POINTER(aDoc);
-
-  mTimer = do_CreateInstance("@mozilla.org/timer;1");
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_OUT_OF_MEMORY);
 
   
   mDocument = aDoc;
@@ -170,7 +154,6 @@ nsSMILAnimationController::GetParentTime() const
 
 NS_IMPL_ADDREF(nsSMILAnimationController)
 NS_IMPL_RELEASE(nsSMILAnimationController)
-
 
 
 void
@@ -256,39 +239,29 @@ nsSMILAnimationController::Unlink()
 
 
 
- void
-nsSMILAnimationController::Notify(nsITimer* timer, void* aClosure)
-{
-  nsSMILAnimationController* controller = (nsSMILAnimationController*)aClosure;
-
-  NS_ASSERTION(controller->mTimer == timer,
-               "nsSMILAnimationController::Notify called with incorrect timer");
-
-  controller->Sample();
-}
-
-nsresult
+void
 nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
 {
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
-  NS_ASSERTION(mPauseState == 0, "Starting timer but controller is paused");
-
-  
-  
-  
-  
-  return mTimer->InitWithFuncCallback(nsSMILAnimationController::Notify,
-                                      this,
-                                      kTimerInterval,
-                                      nsITimer::TYPE_REPEATING_SLACK);
+  NS_ASSERTION(mPauseState == 0, "Starting sampling but controller is paused");
+  if (aRefreshDriver) {
+    NS_ABORT_IF_FALSE(!GetRefreshDriverForDoc(mDocument) ||
+                      aRefreshDriver == GetRefreshDriverForDoc(mDocument),
+                      "Starting sampling with wrong refresh driver");
+    aRefreshDriver->AddRefreshObserver(this, Flush_Style);
+  }
 }
 
-nsresult
+void
 nsSMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver)
 {
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
-
-  return mTimer->Cancel();
+  if (aRefreshDriver) {
+    
+    
+    NS_ABORT_IF_FALSE(!GetRefreshDriverForDoc(mDocument) ||
+                      aRefreshDriver == GetRefreshDriverForDoc(mDocument),
+                      "Stopping sampling with wrong refresh driver");
+    aRefreshDriver->RemoveRefreshObserver(this, Flush_Style);
+  }
 }
 
 

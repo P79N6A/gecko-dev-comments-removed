@@ -111,8 +111,9 @@ public:
   void Unlink();
 
   
-  nsresult StartSampling(nsRefreshDriver* aRefreshDriver);
-  nsresult StopSampling(nsRefreshDriver* aRefreshDriver);
+  
+  void StartSampling(nsRefreshDriver* aRefreshDriver);
+  void StopSampling(nsRefreshDriver* aRefreshDriver);
 
 protected:
   
@@ -149,9 +150,6 @@ protected:
       nsSMILCompositor* aCompositor, void* aArg);
 
   
-  static void Notify(nsITimer* aTimer, void* aClosure);
-
-  
   virtual void DoSample();
   void DoSample(PRBool aSkipUnchangedContainers);
   void DoMilestoneSamples();
@@ -179,7 +177,6 @@ protected:
   NS_DECL_OWNINGTHREAD
 
   static const PRUint32      kTimerInterval;
-  nsCOMPtr<nsITimer>         mTimer;
   AnimationElementHashtable  mAnimationElementTable;
   TimeContainerHashtable     mChildContainerTable;
   PRPackedBool               mResampleNeeded;
