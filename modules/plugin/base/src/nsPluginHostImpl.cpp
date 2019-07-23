@@ -2028,11 +2028,6 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
     }
   }
 
-  nsCAutoString contentType;
-  rv = channel->GetContentType(contentType);
-  if (NS_FAILED(rv)) 
-    return rv;
-
   
   
   
@@ -2042,20 +2037,6 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
     nsPluginTagType tagType;
     if (NS_FAILED(pti2->GetTagType(&tagType)))
       return NS_ERROR_FAILURE;  
-
-    
-    nsCOMPtr<nsIDOMElement> element;
-    pti2->GetDOMElement(getter_AddRefs(element));
-
-    nsCOMPtr<nsIDOMHTMLObjectElement> object(do_QueryInterface(element));
-    if (object) {
-      object->SetType(NS_ConvertASCIItoUTF16(contentType));
-    } else {
-      nsCOMPtr<nsIDOMHTMLEmbedElement> embed(do_QueryInterface(element));
-      if (embed) {
-        embed->SetType(NS_ConvertASCIItoUTF16(contentType));
-      }
-    }
   }
 
   
