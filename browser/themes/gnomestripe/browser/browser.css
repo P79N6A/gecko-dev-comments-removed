@@ -1310,6 +1310,20 @@ tabpanels {
 }
 
 
+.alltabs-item > .menu-iconic-left > .menu-iconic-icon {
+  list-style-image: url("chrome://global/skin/icons/folder-item.png");
+  -moz-image-region: rect(0px, 16px, 16px, 0px);
+}
+
+.alltabs-item[selected="true"] {
+  font-weight: bold;
+}
+
+.alltabs-item[busy] > .menu-iconic-left > .menu-iconic-icon {
+  list-style-image: url("chrome://global/skin/icons/loading_16.png");
+}
+
+
 #sidebar-box .tabs-closebutton {
   margin-bottom: 0px !important;
   padding: 0px 2px 0px 2px !important;
