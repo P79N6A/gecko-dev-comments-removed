@@ -221,8 +221,6 @@ NS_IMETHODIMP nsSVGTransform::GetType(PRUint16 *aType)
 
 NS_IMETHODIMP nsSVGTransform::GetMatrix(nsIDOMSVGMatrix * *aMatrix)
 {
-  
-  
   *aMatrix = mMatrix;
   NS_IF_ADDREF(*aMatrix);
   return NS_OK;
@@ -238,6 +236,8 @@ NS_IMETHODIMP nsSVGTransform::GetAngle(float *aAngle)
 
 NS_IMETHODIMP nsSVGTransform::SetMatrix(nsIDOMSVGMatrix *matrix)
 {
+  float a, b, c, d, e, f;
+
   if (!matrix)
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
 
@@ -248,10 +248,19 @@ NS_IMETHODIMP nsSVGTransform::SetMatrix(nsIDOMSVGMatrix *matrix)
   mOriginX = 0.0f;
   mOriginY = 0.0f;
   
-  
-  NS_REMOVE_SVGVALUE_OBSERVER(mMatrix);
-  mMatrix = matrix;
-  NS_ADD_SVGVALUE_OBSERVER(mMatrix);
+  matrix->GetA(&a);
+  matrix->GetB(&b);
+  matrix->GetC(&c);
+  matrix->GetD(&d);
+  matrix->GetE(&e);
+  matrix->GetF(&f);
+
+  mMatrix->SetA(a);
+  mMatrix->SetB(b);
+  mMatrix->SetC(c);
+  mMatrix->SetD(d);
+  mMatrix->SetE(e);
+  mMatrix->SetF(f);
 
   DidModify();
   return NS_OK;
