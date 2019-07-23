@@ -6,7 +6,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -58,7 +58,7 @@ var onTable  = false;
 var onTitle  = false;
 var onLang   = false;
 
-// Interface for image loading content
+
 const nsIImageLoadingContent = Components.interfaces.nsIImageLoadingContent;
 
 const prefs = Components.classes["@mozilla.org/preferences-service;1"].
@@ -76,18 +76,18 @@ const PREF_PINGS_ENABLED = "browser.send_pings";
 const PREF_PINGS_MAX_PER_LINK = "browser.send_pings.max_per_link";
 const PREF_PINGS_REQUIRE_SAME_HOST = "browser.send_pings.require_same_host";
 
-/**
- * This function generates an array of pings that will be sent if the given
- * anchor element is clicked.  It basically duplicates the pref checking logic
- * found in nsWebShell.cpp.  It might be nice to expose that functionality on
- * some interface that both of these sections of code could share.
- *
- * @param elem
- *   An anchor or area element
- * @return 
- *   An array of URL strings corresponding to the pings that would occur if
- *   the element's href were loaded.
- */
+
+
+
+
+
+
+
+
+
+
+
+
 function getPings(elem)
 {
   var result = [];
@@ -107,7 +107,7 @@ function getPings(elem)
   var doc = elem.ownerDocument;
   var docURI = ios.newURI(doc.documentURI, doc.characterSet, null);
 
-  // The URL strings returned by elem.ping are absolute URLs.
+  
   var pings = elem.ping;
   if (!pings)
     return result;
@@ -139,7 +139,7 @@ function onLoad()
 
 function showMetadataFor(elem)
 {
-  // skip past non-element nodes
+  
   while (elem && elem.nodeType != Node.ELEMENT_NODE)
     elem = elem.parentNode;
 
@@ -151,18 +151,18 @@ function showMetadataFor(elem)
   if (elem.ownerDocument.getElementsByName && !elem.ownerDocument.namespaceURI)
     htmlMode = true;
   
-  // htmllocalname is "" if it's not an html tag, or the name of the tag if it is.
+  
   var htmllocalname = "";
   if (isHTMLElement(elem,"")) { 
     htmllocalname = elem.localName.toLowerCase();
   }
   
-  // We only look for images once
+  
   checkForImage(elem, htmllocalname);
   
-  // Walk up the tree, looking for elements of interest.
-  // Each of them could be at a different level in the tree, so they each
-  // need their own boolean to tell us to stop looking.
+  
+  
+  
   while (elem && elem.nodeType == Node.ELEMENT_NODE) {
     htmllocalname = "";
     if (isHTMLElement(elem,"")) { 
@@ -179,7 +179,7 @@ function showMetadataFor(elem)
     elem = elem.parentNode;
   }
   
-  // Decide which sections to show
+  
   var onMisc = onTable || onTitle || onLang;
   if (!onMisc)   hideNode("misc-sec");
   if (!onLink)   hideNode("link-sec");
@@ -187,16 +187,16 @@ function showMetadataFor(elem)
   if (!onInsDel) hideNode("insdel-sec");
   if (!onQuote)  hideNode("quote-sec");
 
-  // Fix the Misc section visibilities
+  
   if (onMisc) {
     if (!onTable) hideNode("misc-tblsummary");
     if (!onLang)  hideNode("misc-lang");
     if (!onTitle) hideNode("misc-title");
   }
 
-  // Get rid of the "No properties" message. This is a backstop -
-  // it should really never show, as long as nsContextMenu.js's
-  // checking doesn't get broken.
+  
+  
+  
   if (onLink || onImage || onInsDel || onQuote || onMisc)
     hideNode("no-properties")
 }
@@ -205,10 +205,10 @@ function showMetadataFor(elem)
 function checkForImage(elem, htmllocalname)
 {
   var img;
-  var imgType; // "img" = <img>
-               // "object" = <object>
-               // "input" = <input type=image>
-               // "background" = css background (to be added later)
+  var imgType; 
+               
+               
+               
   var ismap = false;
 
   if (htmllocalname === "img") {
@@ -228,7 +228,7 @@ function checkForImage(elem, htmllocalname)
 
   } else if (htmllocalname === "area" || htmllocalname === "a") {
 
-    // Clicked in image map?
+    
     var map = elem;
     ismap = true;
     setAlt(map);
@@ -260,10 +260,21 @@ function checkForImage(elem, htmllocalname)
 
     var imageRequest = img.QueryInterface(nsIImageLoadingContent)
                           .getRequest(nsIImageLoadingContent.CURRENT_REQUEST);
-    if (imageRequest)
-      setInfo("image-type", imageRequest.mimeType);
-    else
-      setInfo("image-type", "");
+    var imageType = "";
+    if (imageRequest) {
+      imageType = imageRequest.mimeType;
+      var imageMimeType = /^image\/(.*)/.exec(imageType);
+      if (imageMimeType) {
+        imageType = imageMimeType[1].toUpperCase();
+        var frameCount = imageRequest.image.numFrames;
+        if (frameCount > 1)
+          imageType = gMetadataBundle.getFormattedString("animatedImageType",
+                                                         [imageType, frameCount]);
+        else
+          imageType = gMetadataBundle.getFormattedString("imageType", [imageType]);
+      }
+    }
+    setInfo("image-type", imageType);
 
     var imageSize = "";
     if (img.width) {
@@ -429,13 +440,13 @@ function checkForTitle(elem, htmllocalname)
   }    
 }
 
-/*
- * Set text of node id to value
- * if value="" the node with specified id is hidden.
- * Node should be have one of these forms
- * <xul:label id="id-text" value=""/>
- * <xul:description id="id-text"/>
- */
+
+
+
+
+
+
+
 function setInfo(id, value)
 {
   if (!value) {
@@ -456,21 +467,21 @@ function setInfo(id, value)
   }
 }
 
-// Hide node with specified id
+
 function hideNode(id)
 {
     var style = document.getElementById(id).getAttribute("style");
     document.getElementById(id).setAttribute("style", "display:none;" + style);
 }
 
-/*
- * Find <img> or <object> which uses an imagemap.
- * If more then one object is found we can't determine which one
- * was clicked.
- *
- * This code has to be changed once bug 1882 is fixed.
- * Once bug 72527 is fixed this code should use the .images collection.
- */
+
+
+
+
+
+
+
+
 function getImageForMap(map)
 {
   var mapuri = "#" + map.getAttribute("name");
@@ -516,7 +527,7 @@ function getHTMLElements(node, name)
   return node.getElementsByTagNameNS(XHTMLNS, name);
 }
 
-// name should be in lower case
+
 function isHTMLElement(node, name)
 {
   if (node.nodeType != Node.ELEMENT_NODE)
@@ -528,8 +539,8 @@ function isHTMLElement(node, name)
   return (!name || node.localName == name) && node.namespaceURI == XHTMLNS;
 }
 
-// This function coded according to the spec at:
-// http://www.bath.ac.uk/~py8ieh/internet/discussion/metadata.txt
+
+
 function convertLanguageCode(abbr)
 {
   if (!abbr) return "";
@@ -541,19 +552,19 @@ function convertLanguageCode(abbr)
 
   if (tokens[0] === "x" || tokens[0] === "i")
   {
-    // x and i prefixes mean unofficial ones. So we upper-case the first
-    // word and leave the rest.
+    
+    
     tokens.shift();
 
     if (tokens[0])
     {
-      // Upper-case first letter
+      
       language = tokens[0].substr(0, 1).toUpperCase() + tokens[0].substr(1);
       tokens.shift();
 
       if (tokens[0])
       {
-        // Add on the rest as space-separated strings inside the brackets
+        
         region = tokens.join(" ");
         is_region_set = true;
       }
@@ -561,15 +572,15 @@ function convertLanguageCode(abbr)
   }
   else
   {
-    // Otherwise we treat the first as a lang, the second as a region
-    // and the rest as strings.
+    
+    
     try
     {
       language = gLangBundle.getString(tokens[0].toLowerCase());
     }
     catch (e) 
     {
-      // Language not present in lang bundle
+      
       language = tokens[0]; 
     }
 
@@ -579,21 +590,21 @@ function convertLanguageCode(abbr)
     {
       try
       {
-        // We don't add it on to the result immediately
-        // because we want to get the spacing right.
+        
+        
         region = gRegionBundle.getString(tokens[0].toLowerCase());
 
         tokens.shift();
 
         if (tokens[0])
         {
-          // Add on the rest as space-separated strings inside the brackets
+          
           region += " " + tokens.join(" ");
         }
       }
       catch (e) 
       {
-        // Region not present in region bundle
+        
         region = tokens.join(" ");
       }
 
@@ -610,7 +621,7 @@ function convertLanguageCode(abbr)
   return result;
 }
 
-// Returns the size of the URL in bytes; must be cached and therefore an HTTP or FTP URL
+
 function getSize(url) {
   try
   {
