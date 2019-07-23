@@ -2090,8 +2090,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     rval = "";
 
                   do_forloop:
+                    JS_ASSERT(SN_TYPE(sn) == SRC_FOR);
+
                     
-                    pc++;
+                    pc += JSOP_NOP_LENGTH;
 
                     
                     cond = js_GetSrcNoteOffset(sn, 0);
@@ -2102,13 +2104,12 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
+                    pc2 = pc;
                     if (cond != tail) {
                         LOCAL_ASSERT(*pc == JSOP_GOTO || *pc == JSOP_GOTOX);
-                        pc += (*pc == JSOP_GOTO)
-                              ? JSOP_GOTO_LENGTH
-                              : JSOP_GOTOX_LENGTH;
+                        pc2 += (*pc == JSOP_GOTO) ? JSOP_GOTO_LENGTH : JSOP_GOTOX_LENGTH;
                     }
-                    LOCAL_ASSERT(tail == -GetJumpOffset(pc+tail, pc+tail));
+                    LOCAL_ASSERT(tail + GetJumpOffset(pc+tail, pc+tail) == pc2 - pc);
 
                     
                     js_printf(jp, "\tfor (%s;", rval);
@@ -2124,15 +2125,28 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                     if (next != cond) {
                         
-                        DECOMPILE_CODE(pc + next,
-                                       cond - next - JSOP_POP_LENGTH);
-                        js_printf(jp, " %s", POP_STR());
+
+
+
+
+
+
+
+                        uintN saveTop = ss->top;
+
+                        DECOMPILE_CODE(pc + next, cond - next - JSOP_POP_LENGTH);
+                        LOCAL_ASSERT(ss->top - saveTop <= 1U);
+                        rval = (ss->top == saveTop)
+                               ? ss->sprinter.base + ss->sprinter.offset
+                               : POP_STR();
+                        js_printf(jp, " %s", rval);
                     }
 
                     
                     js_printf(jp, ") {\n");
                     jp->indent += 4;
-                    DECOMPILE_CODE(pc, next);
+                    next -= pc2 - pc;
+                    DECOMPILE_CODE(pc2, next);
                     jp->indent -= 4;
                     js_printf(jp, "\t}\n");
 
@@ -2298,12 +2312,23 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-                    if (newtop < oldtop) {
+                    if (newtop == oldtop) {
+                        ss->sprinter.offset = todo;
+                    } else {
+                        
+
+
+
+
+
+                        LOCAL_ASSERT(newtop < oldtop);
                         ss->sprinter.offset = GetOff(ss, newtop);
                         ss->top = newtop;
                     }
 
                   end_groupassignment:
+                    LOCAL_ASSERT(*pc == JSOP_POPN);
+
                     
 
 
@@ -2318,15 +2343,15 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     rval = OFF2STR(&ss->sprinter, todo);
                     todo = -2;
                     pc2 = pc + oplen;
-                    switch (*pc2) {
-                      case JSOP_NOP:
-                        
+                    if (*pc2 == JSOP_NOP) {
                         sn = js_GetSrcNote(jp->script, pc2);
                         if (sn) {
                             if (SN_TYPE(sn) == SRC_FOR) {
+                                op = JSOP_NOP;
                                 pc = pc2;
                                 goto do_forloop;
                             }
+
                             if (SN_TYPE(sn) == SRC_DECL) {
                                 if (ss->top == StackDepth(jp->script)) {
                                     
@@ -2334,33 +2359,34 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-                                    pc = pc2 + 1;
+                                    pc = pc2 + JSOP_NOP_LENGTH;
                                     len = js_GetSrcNoteOffset(sn, 0);
                                     LOCAL_ASSERT(pc[len] == JSOP_LEAVEBLOCK);
                                     js_printf(jp, "\tlet (%s) {\n", rval);
                                     js_printf(jp, "\t}\n");
-                                    goto end_popn;
+                                    break;
                                 }
                                 todo = SprintCString(&ss->sprinter, rval);
                                 if (todo < 0 || !PushOff(ss, todo, JSOP_NOP))
                                     return NULL;
                                 op = JSOP_POP;
-                                pc = pc2 + 1;
+                                pc = pc2 + JSOP_NOP_LENGTH;
                                 goto do_letheadbody;
                             }
-                        }
-                        break;
+                        } else {
+                            
 
-                      case JSOP_GOTO:
-                      case JSOP_GOTOX:
-                        
-                        cond = GetJumpOffset(pc2, pc2);
-                        sn = js_GetSrcNote(jp->script, pc2 + cond - 1);
-                        if (sn && SN_TYPE(sn) == SRC_FOR) {
+
+
+
+
+
+
+                            if (GET_UINT16(pc) == 0)
+                                break;
                             todo = SprintCString(&ss->sprinter, rval);
                             saveop = JSOP_NOP;
                         }
-                        break;
                     }
 
                     
@@ -2369,7 +2395,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                     if (todo == -2)
                         js_printf(jp, "\t%s;\n", rval);
-                  end_popn:
                     break;
                 }
 #endif
