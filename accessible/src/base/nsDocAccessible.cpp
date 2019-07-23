@@ -1440,20 +1440,9 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   
 
   nsCOMPtr<nsIAccessible> containerAccessible;
-  if (childNode == mDOMNode) {
-    
-    
-    nsCOMPtr<nsISupports> container = mDocument->GetContainer();
-    nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem(do_QueryInterface(container));
-    NS_ENSURE_TRUE(docShellTreeItem, NS_ERROR_FAILURE);
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
-    docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-    if (sameTypeRoot == docShellTreeItem) {
-      containerAccessible = this;  
-    }
-  }
+  GetAccessibleInParentChain(childNode, getter_AddRefs(containerAccessible));
   if (!containerAccessible) {
-    GetAccessibleInParentChain(childNode, getter_AddRefs(containerAccessible));
+    containerAccessible = this;
   }
   nsCOMPtr<nsPIAccessible> privateContainerAccessible =
     do_QueryInterface(containerAccessible);
