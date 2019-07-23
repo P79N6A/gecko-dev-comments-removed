@@ -159,7 +159,6 @@ class nsWaveDecoder : public nsMediaDecoder
   virtual void SetVolume(float aVolume);
 
   virtual nsresult Play();
-  virtual void Stop();
   virtual void Pause();
 
   
@@ -222,6 +221,9 @@ class nsWaveDecoder : public nsMediaDecoder
 
   
   virtual void MoveLoadsToBackground();
+
+  
+  void Stop();
 
 private:
   

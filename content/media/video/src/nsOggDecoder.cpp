@@ -280,6 +280,7 @@ public:
   void Shutdown();
   void Decode();
   void Seek(float aTime);
+  void StopStepDecodeThread(nsAutoMonitor* aMonitor);
 
   NS_IMETHOD Run();
 
@@ -568,7 +569,14 @@ private:
   
   
   
+  
+  
   PRPackedBool mDecodingCompleted;
+
+  
+  
+  
+  PRPackedBool mExitStepDecodeThread;
 
   
   
@@ -620,23 +628,26 @@ public:
     OggPlayErrorCode r = E_OGGPLAY_TIMEOUT;
     nsAutoMonitor mon(mDecodeStateMachine->mDecoder->GetMonitor());
     nsOggDecoder* decoder = mDecodeStateMachine->mDecoder;
+    NS_ASSERTION(!mDecodeStateMachine->mDecodingCompleted,
+                 "State machine should have cleared this flag");
 
-    do {
+    while (!mDecodeStateMachine->mExitStepDecodeThread &&
+           !InStopDecodingState() &&
+           (r == E_OGGPLAY_TIMEOUT ||
+            r == E_OGGPLAY_USER_INTERRUPT ||
+            r == E_OGGPLAY_CONTINUE)) {
       if (mDecodeStateMachine->mBufferExhausted) {
         mon.Wait();
-        if (InStopDecodingState())
-          break;
-      }
-      else {
+      } else {
+        
+        
+        
         PRInt64 initialDownloadPosition =
           decoder->mReader->Stream()->GetCachedDataEnd(decoder->mDecoderPosition);
 
         mon.Exit();
         r = oggplay_step_decoding(mPlayer);
         mon.Enter();
-
-        if (InStopDecodingState())
-          break;
 
         
         
@@ -650,11 +661,7 @@ public:
           mDecodeStateMachine->mBufferExhausted = PR_TRUE;
         }
       }
-    } while (!mDecodeStateMachine->mDecodingCompleted &&
-             !InStopDecodingState() &&
-             (r == E_OGGPLAY_TIMEOUT ||
-              r == E_OGGPLAY_USER_INTERRUPT ||
-              r == E_OGGPLAY_CONTINUE));
+    }
 
     mDecodeStateMachine->mDecodingCompleted = PR_TRUE;
     return NS_OK;
@@ -688,6 +695,7 @@ nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder) :
   mSeekable(PR_TRUE),
   mPositionChangeQueued(PR_FALSE),
   mDecodingCompleted(PR_FALSE),
+  mExitStepDecodeThread(PR_FALSE),
   mBufferExhausted(PR_FALSE),
   mGotDurationFromHeader(PR_FALSE)
 {
@@ -1148,17 +1156,7 @@ void nsOggDecodeStateMachine::Shutdown()
     
     
     
-    mBufferExhausted = PR_FALSE;
     oggplay_prepare_for_close(mPlayer);
-  }
-  if (mStepDecodeThread) {
-    
-    
-    
-    mon.Exit();
-    mStepDecodeThread->Shutdown();
-    mon.Enter();
-    mStepDecodeThread = nsnull;
   }
 }
 
@@ -1267,6 +1265,30 @@ nsresult nsOggDecodeStateMachine::Seek(float aTime, nsChannelReader* aReader)
   return (rv < 0) ? NS_ERROR_FAILURE : NS_OK;
 }
 
+void nsOggDecodeStateMachine::StopStepDecodeThread(nsAutoMonitor* aMonitor)
+{
+  PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mDecoder->GetMonitor());
+
+  if (!mStepDecodeThread)
+    return;
+
+  if (!mDecodingCompleted) {
+    
+    
+    mExitStepDecodeThread = PR_TRUE;
+    
+    
+    delete NextFrame();
+    
+    aMonitor->NotifyAll();
+  }
+
+  aMonitor->Exit();
+  mStepDecodeThread->Shutdown();
+  aMonitor->Enter();
+  mStepDecodeThread = nsnull;
+}
+
 nsresult nsOggDecodeStateMachine::Run()
 {
   nsChannelReader* reader = mDecoder->GetReader();
@@ -1278,6 +1300,9 @@ nsresult nsOggDecodeStateMachine::Run()
       if (mPlaying) {
         StopPlayback();
       }
+      StopStepDecodeThread(&mon);
+      NS_ASSERTION(mState == DECODER_STATE_SHUTDOWN,
+                   "How did we escape from the shutdown state???");
       return NS_OK;
 
     case DECODER_STATE_DECODING_METADATA:
@@ -1340,7 +1365,7 @@ nsresult nsOggDecodeStateMachine::Run()
         
         
         
-        if (!mDecodingCompleted && !mStepDecodeThread) {
+        if (!mStepDecodeThread) {
           nsresult rv = NS_NewThread(getter_AddRefs(mStepDecodeThread));
           if (NS_FAILED(rv)) {
             mState = DECODER_STATE_SHUTDOWN;
@@ -1349,6 +1374,7 @@ nsresult nsOggDecodeStateMachine::Run()
 
           mBufferExhausted = PR_FALSE;
           mDecodingCompleted = PR_FALSE;
+          mExitStepDecodeThread = PR_FALSE;
           nsCOMPtr<nsIRunnable> event = new nsOggStepDecodeEvent(this, mPlayer);
           mStepDecodeThread->Dispatch(event, NS_DISPATCH_NORMAL);
         }
@@ -1368,11 +1394,7 @@ nsresult nsOggDecodeStateMachine::Run()
         if (mDecodingCompleted) {
           LOG(PR_LOG_DEBUG, ("Changed state from DECODING to COMPLETED"));
           mState = DECODER_STATE_COMPLETED;
-          mDecodingCompleted = PR_FALSE;
-          mBufferExhausted = PR_FALSE;
-          mon.NotifyAll();
-          mStepDecodeThread->Shutdown();
-          mStepDecodeThread = nsnull;
+          StopStepDecodeThread(&mon);
           continue;
         }
 
@@ -1436,25 +1458,12 @@ nsresult nsOggDecodeStateMachine::Run()
         
         
         
+        StopStepDecodeThread(&mon);
+        if (mState == DECODER_STATE_SHUTDOWN)
+          continue;
+
         float seekTime = mSeekTime;
         mDecoder->StopProgressUpdates();
-
-        if (mStepDecodeThread) {
-          mDecodingCompleted = PR_TRUE;
-          mBufferExhausted = PR_FALSE;
-          mon.NotifyAll();
-
-          
-          
-          
-          delete NextFrame();
-
-          mon.Exit();
-          mStepDecodeThread->Shutdown();
-          mon.Enter();
-          mDecodingCompleted = PR_FALSE;
-          mStepDecodeThread = nsnull;
-        }
 
         StopPlayback();
 
@@ -1765,14 +1774,57 @@ PRBool nsOggDecoder::Init(nsHTMLMediaElement* aElement)
   return mMonitor && nsMediaDecoder::Init(aElement);
 }
 
+void nsOggDecoder::Stop()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");
+
+  
+  
+  
+  if (mDecodeThread)
+    mDecodeThread->Shutdown();
+
+  mDecodeThread = nsnull;
+  mDecodeStateMachine = nsnull;
+  mReader = nsnull;
+}
+
 void nsOggDecoder::Shutdown()
 {
+  NS_ASSERTION(NS_IsMainThread(), 
+               "nsOggDecoder::Shutdown called on non-main thread");  
+  
+  if (mShuttingDown)
+    return;
+
   mShuttingDown = PR_TRUE;
+
+  
+  
+  
+  if (mDecodeStateMachine) {
+    mDecodeStateMachine->Shutdown();
+  }
+
+  
+  
+  mReader->Stream()->Close();
 
   ChangeState(PLAY_STATE_SHUTDOWN);
   nsMediaDecoder::Shutdown();
 
-  Stop();
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event =
+    NS_NEW_RUNNABLE_METHOD(nsOggDecoder, this, Stop);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+
+  UnregisterShutdownObserver();
 }
 
 nsOggDecoder::~nsOggDecoder()
@@ -1784,10 +1836,6 @@ nsOggDecoder::~nsOggDecoder()
 nsresult nsOggDecoder::Load(nsIURI* aURI, nsIChannel* aChannel,
                             nsIStreamListener** aStreamListener)
 {
-  
-  
-  mStopping = PR_FALSE;
-
   
   mDecoderPosition = 0;
   mPlaybackPosition = 0;
@@ -1889,92 +1937,6 @@ nsresult nsOggDecoder::Seek(float aTime)
 nsresult nsOggDecoder::PlaybackRateChanged()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-
-class nsDestroyStateMachine : public nsRunnable {
-public:
-  nsDestroyStateMachine(nsOggDecoder *aDecoder,
-                        nsOggDecodeStateMachine *aMachine,
-                        nsChannelReader *aReader,
-                        nsIThread *aThread)
-  : mDecoder(aDecoder),
-    mDecodeStateMachine(aMachine),
-    mReader(aReader),
-    mDecodeThread(aThread)
-  {
-  }
-
-  NS_IMETHOD Run() {
-    NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");
-    
-    
-    
-    if (mDecodeThread)
-      mDecodeThread->Shutdown();
-    mDecodeThread = nsnull;
-    mDecodeStateMachine = nsnull;
-    mReader = nsnull;
-    mDecoder = nsnull;
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsOggDecoder> mDecoder;
-  nsCOMPtr<nsOggDecodeStateMachine> mDecodeStateMachine;
-  nsAutoPtr<nsChannelReader> mReader;
-  nsCOMPtr<nsIThread> mDecodeThread;
-};
-
-void nsOggDecoder::Stop()
-{
-  NS_ASSERTION(NS_IsMainThread(), 
-               "nsOggDecoder::Stop called on non-main thread");  
-  
-  if (mStopping)
-    return;
-
-  mStopping = PR_TRUE;
-
-  ChangeState(PLAY_STATE_ENDED);
-
-  StopProgress();
-
-  
-  
-  mReader->Stream()->Close();
-
-  
-  
-  
-  if (mDecodeStateMachine) {
-    mDecodeStateMachine->Shutdown();
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIRunnable> event = new nsDestroyStateMachine(this,
-                                                          mDecodeStateMachine,
-                                                          mReader.forget(),
-                                                          mDecodeThread);
-  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
-
-  
-  mDecodeThread = nsnull;
-  mDecodeStateMachine = nsnull;
-  UnregisterShutdownObserver();
 }
 
 float nsOggDecoder::GetCurrentTime()
@@ -2083,12 +2045,13 @@ void nsOggDecoder::ResourceLoaded()
 
 void nsOggDecoder::NetworkError()
 {
-  if (mStopping || mShuttingDown)
+  if (mShuttingDown)
     return;
 
   if (mElement)
     mElement->NetworkError();
-  Stop();
+
+  Shutdown();
 }
 
 PRBool nsOggDecoder::IsSeeking() const

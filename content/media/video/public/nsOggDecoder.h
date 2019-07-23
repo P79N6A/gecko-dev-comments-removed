@@ -319,9 +319,6 @@ class nsOggDecoder : public nsMediaDecoder
   virtual nsresult Play();
 
   
-  virtual void Stop();
-
-  
   virtual nsresult Seek(float time);
 
   virtual nsresult PlaybackRateChanged();
@@ -383,6 +380,10 @@ class nsOggDecoder : public nsMediaDecoder
 
   
   virtual void MoveLoadsToBackground();
+
+  
+  
+  void Stop();
 
 protected:
 

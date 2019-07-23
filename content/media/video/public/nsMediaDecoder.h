@@ -108,9 +108,6 @@ public:
   virtual nsresult Play() = 0;
 
   
-  virtual void Stop() = 0;
-
-  
   
   
   
@@ -308,12 +305,6 @@ protected:
   
   
   PRPackedBool mShuttingDown;
-
-  
-  
-  
-  
-  PRPackedBool mStopping;
 };
 
 #endif

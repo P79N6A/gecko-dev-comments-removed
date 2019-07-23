@@ -1240,14 +1240,6 @@ nsWaveDecoder::Play()
 void
 nsWaveDecoder::Stop()
 {
-  if (mStopping) {
-    return;
-  }
-
-  mStopping = PR_TRUE;
-
-  StopProgress();
-
   if (mPlaybackStateMachine) {
     mPlaybackStateMachine->Shutdown();
   }
@@ -1275,8 +1267,6 @@ nsWaveDecoder::Stop()
 nsresult
 nsWaveDecoder::Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStreamListener)
 {
-  mStopping = PR_FALSE;
-
   
   mResourceLoaded = PR_FALSE;
   mResourceLoadedReported = PR_FALSE;
@@ -1389,7 +1379,7 @@ nsWaveDecoder::NetworkError()
   if (mElement) {
     mElement->NetworkError();
   }
-  Stop();
+  Shutdown();
 }
 
 PRBool
@@ -1446,38 +1436,23 @@ nsWaveDecoder::NotifyDownloadEnded(nsresult aStatus)
   UpdateReadyStateForData();
 }
 
-
-
-
-
-
-
-class nsWaveDecoderShutdown : public nsRunnable
-{
-public:
-  nsWaveDecoderShutdown(nsWaveDecoder* aDecoder)
-    : mDecoder(aDecoder)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    mDecoder->Stop();
-    return NS_OK;
-  }
-
-private:
-  nsRefPtr<nsWaveDecoder> mDecoder;
-};
-
 void
 nsWaveDecoder::Shutdown()
 {
+  if (mShuttingDown)
+    return;
+
   mShuttingDown = PR_TRUE;
 
   nsMediaDecoder::Shutdown();
 
-  nsCOMPtr<nsIRunnable> event = new nsWaveDecoderShutdown(this);
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIRunnable> event =
+    NS_NEW_RUNNABLE_METHOD(nsWaveDecoder, this, Stop);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 
