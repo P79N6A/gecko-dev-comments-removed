@@ -41,6 +41,7 @@
 #include "nsAccessibilityService.h"
 #include "nsCoreUtils.h"
 #include "nsAccUtils.h"
+#include "nsARIAGridAccessible.h"
 #include "nsARIAMap.h"
 #include "nsIContentViewer.h"
 #include "nsCURILoader.h"
@@ -1493,31 +1494,18 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     return NS_OK;
   }
 
-  
-  
-  nsresult rv = GetAccessibleByType(aNode, getter_AddRefs(newAcc));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!newAcc && !isHTML) {
-    if (content->GetNameSpaceID() == kNameSpaceID_SVG &&
-             content->Tag() == nsAccessibilityAtoms::svg) {
-      newAcc = new nsEnumRoleAccessible(aNode, aWeakShell,
-                                        nsIAccessibleRole::ROLE_DIAGRAM);
-    }
-    else if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-             content->Tag() == nsAccessibilityAtoms::math) {
-      newAcc = new nsEnumRoleAccessible(aNode, aWeakShell,
-                                        nsIAccessibleRole::ROLE_EQUATION);
-    }
-  } else if (!newAcc) {  
+  if (!newAcc && isHTML) {  
     PRBool tryTagNameOrFrame = PR_TRUE;
 
     nsIAtom *frameType = frame->GetType();
-    if (!roleMapEntry &&
-        (frameType == nsAccessibilityAtoms::tableCaptionFrame ||
-         frameType == nsAccessibilityAtoms::tableCellFrame ||
-         frameType == nsAccessibilityAtoms::tableRowGroupFrame ||
-         frameType == nsAccessibilityAtoms::tableRowFrame)) {
+
+    PRBool partOfHTMLTable =
+      frameType == nsAccessibilityAtoms::tableCaptionFrame ||
+      frameType == nsAccessibilityAtoms::tableCellFrame ||
+      frameType == nsAccessibilityAtoms::tableRowGroupFrame ||
+      frameType == nsAccessibilityAtoms::tableRowFrame;
+
+    if (!roleMapEntry && partOfHTMLTable) {
       
       
       
@@ -1562,14 +1550,27 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         tryTagNameOrFrame = PR_FALSE;
     }
 
-    if (tryTagNameOrFrame) {
+    if (roleMapEntry && (!partOfHTMLTable || !tryTagNameOrFrame ||
+        frameType != nsAccessibilityAtoms::tableOuterFrame)) {
+      
+      if (roleMapEntry->role == nsIAccessibleRole::ROLE_TABLE ||
+          roleMapEntry->role == nsIAccessibleRole::ROLE_TREE_TABLE) {
+        newAcc = new nsARIAGridAccessible(aNode, aWeakShell);
+      } else if (roleMapEntry->role == nsIAccessibleRole::ROLE_GRID_CELL ||
+                 roleMapEntry->role == nsIAccessibleRole::ROLE_ROWHEADER ||
+                 roleMapEntry->role == nsIAccessibleRole::ROLE_COLUMNHEADER) {
+        newAcc = new nsARIAGridCellAccessible(aNode, aWeakShell);
+      }
+    }
+
+    if (!newAcc && tryTagNameOrFrame) {
       
       
       
       
       
-      rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
-                                        getter_AddRefs(newAcc));
+      nsresult rv = CreateHTMLAccessibleByMarkup(frame, aWeakShell, aNode,
+                                                 getter_AddRefs(newAcc));
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!newAcc) {
@@ -1588,6 +1589,27 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         }
         frame->GetAccessible(getter_AddRefs(newAcc)); 
       }
+    }
+  }
+
+  if (!newAcc) {
+    
+    
+    nsresult rv = GetAccessibleByType(aNode, getter_AddRefs(newAcc));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (!newAcc) {
+    
+    if (content->GetNameSpaceID() == kNameSpaceID_SVG &&
+        content->Tag() == nsAccessibilityAtoms::svg) {
+      newAcc = new nsEnumRoleAccessible(aNode, aWeakShell,
+                                        nsIAccessibleRole::ROLE_DIAGRAM);
+    }
+    else if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
+             content->Tag() == nsAccessibilityAtoms::math) {
+      newAcc = new nsEnumRoleAccessible(aNode, aWeakShell,
+                                        nsIAccessibleRole::ROLE_EQUATION);
     }
   }
 
