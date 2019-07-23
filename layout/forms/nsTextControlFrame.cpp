@@ -2978,6 +2978,9 @@ nsTextControlFrame::UpdateValueDisplay(PRBool aNotify,
   }
 
   
+  
+  
+  if (!aBeforeEditorInit)
   {
     nsWeakFrame weakFrame(this);
     if (value.IsEmpty()) {
