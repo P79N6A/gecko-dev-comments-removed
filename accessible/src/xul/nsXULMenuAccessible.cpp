@@ -513,7 +513,7 @@ nsXULMenuitemAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribu
   nsresult rv = nsAccessible::GetAttributesInternal(aAttributes);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAccUtils::SetAccAttrsForXULContainerItem(mDOMNode, aAttributes);
+  nsCoreUtils::SetAccAttrsForXULContainerItem(mDOMNode, aAttributes);
   return NS_OK;
 }
 

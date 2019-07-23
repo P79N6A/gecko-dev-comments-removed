@@ -110,8 +110,8 @@ nsHTMLLinkAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     
     
     
-    PRBool isOnclick = nsAccUtils::HasListener(content,
-                                               NS_LITERAL_STRING("click"));
+    PRBool isOnclick = nsCoreUtils::HasListener(content,
+                                                NS_LITERAL_STRING("click"));
     if (!isOnclick)
       return NS_OK;
   }
