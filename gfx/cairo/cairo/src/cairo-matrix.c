@@ -629,6 +629,35 @@ _cairo_matrix_is_integer_translation (const cairo_matrix_t *matrix,
 
 
 
+cairo_private cairo_bool_t
+_cairo_matrix_is_pixel_exact (const cairo_matrix_t *matrix)
+{
+    cairo_fixed_t x0_fixed, y0_fixed;
+
+    if (matrix->xy == 0.0 && matrix->yx == 0.0) {
+	if (! (matrix->xx == 1.0 || matrix->xx == -1.0))
+	    return FALSE;
+	if (! (matrix->yy == 1.0 || matrix->yy == -1.0))
+	    return FALSE;
+    } else if (matrix->xx == 0.0 && matrix->yy == 0.0) {
+	if (! (matrix->xy == 1.0 || matrix->xy == -1.0))
+	    return FALSE;
+	if (! (matrix->yx == 1.0 || matrix->yx == -1.0))
+	    return FALSE;
+    } else
+	return FALSE;
+
+    x0_fixed = _cairo_fixed_from_double (matrix->x0);
+    y0_fixed = _cairo_fixed_from_double (matrix->y0);
+
+    return _cairo_fixed_is_integer (x0_fixed) && _cairo_fixed_is_integer (y0_fixed);
+}
+
+
+
+
+
+
 
 
 

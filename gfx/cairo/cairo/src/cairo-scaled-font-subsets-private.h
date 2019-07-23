@@ -293,6 +293,41 @@ _cairo_scaled_font_subsets_foreach_unscaled (cairo_scaled_font_subsets_t        
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_private cairo_status_t
+_cairo_scaled_font_subsets_foreach_user (cairo_scaled_font_subsets_t		  *font_subsets,
+					 cairo_scaled_font_subset_callback_func_t  font_subset_callback,
+					 void					  *closure);
+
+
+
+
+
+
+
+
+
+
+
+
+
 cairo_private cairo_int_status_t
 _cairo_scaled_font_subset_create_glyph_names (cairo_scaled_font_subset_t *subset);
 

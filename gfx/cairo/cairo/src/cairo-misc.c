@@ -257,7 +257,7 @@ _cairo_validate_text_clusters (const char		   *utf8,
 			       int			    num_glyphs,
 			       const cairo_text_cluster_t  *clusters,
 			       int			    num_clusters,
-			       cairo_bool_t		    backward)
+			       cairo_text_cluster_flags_t   cluster_flags)
 {
     cairo_status_t status;
     unsigned int n_bytes  = 0;

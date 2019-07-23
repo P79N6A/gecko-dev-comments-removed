@@ -42,7 +42,7 @@
 #include "cairo-arc-private.h"
 #include "cairo-path-private.h"
 
-#define CAIRO_TOLERANCE_MINIMUM	0.0002 /* We're limited by 16 bits of sub-pixel precision */
+#define CAIRO_TOLERANCE_MINIMUM	_cairo_fixed_to_double(1)
 
 static const cairo_t _cairo_nil = {
   CAIRO_REFERENCE_COUNT_INVALID,	
@@ -84,8 +84,7 @@ static const cairo_t _cairo_nil = {
 cairo_status_t
 _cairo_error (cairo_status_t status)
 {
-    assert (status > CAIRO_STATUS_SUCCESS &&
-	    status <= CAIRO_STATUS_LAST_STATUS);
+    assert (_cairo_status_is_error (status));
 
     return status;
 }
@@ -288,7 +287,7 @@ cairo_set_user_data (cairo_t			 *cr,
 		     cairo_destroy_func_t	 destroy)
 {
     if (CAIRO_REFERENCE_COUNT_IS_INVALID (&cr->ref_count))
-	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
+	return cr->status;
 
     return _cairo_user_data_array_set_data (&cr->user_data,
 					    key, user_data, destroy);
@@ -926,6 +925,7 @@ cairo_set_line_width (cairo_t *cr, double width)
     if (status)
 	_cairo_set_error (cr, status);
 }
+slim_hidden_def (cairo_set_line_width);
 
 
 
@@ -955,6 +955,7 @@ cairo_set_line_cap (cairo_t *cr, cairo_line_cap_t line_cap)
     if (status)
 	_cairo_set_error (cr, status);
 }
+slim_hidden_def (cairo_set_line_cap);
 
 
 
@@ -984,6 +985,7 @@ cairo_set_line_join (cairo_t *cr, cairo_line_join_t line_join)
     if (status)
 	_cairo_set_error (cr, status);
 }
+slim_hidden_def (cairo_set_line_join);
 
 
 
@@ -2087,6 +2089,7 @@ cairo_stroke (cairo_t *cr)
 
     cairo_new_path (cr);
 }
+slim_hidden_def(cairo_stroke);
 
 
 
@@ -3077,8 +3080,9 @@ cairo_show_text (cairo_t *cr, const char *utf8)
     cairo_glyph_t *glyphs = NULL, *last_glyph;
     cairo_text_cluster_t *clusters = NULL;
     int utf8_len, num_glyphs, num_clusters;
-    cairo_bool_t backward;
+    cairo_text_cluster_flags_t cluster_flags;
     double x, y;
+    cairo_bool_t has_show_text_glyphs;
 
     if (cr->status)
 	return;
@@ -3090,12 +3094,15 @@ cairo_show_text (cairo_t *cr, const char *utf8)
 
     utf8_len = strlen (utf8);
 
+    has_show_text_glyphs =
+	cairo_surface_has_show_text_glyphs (cairo_get_target (cr));
+
     status = _cairo_gstate_text_to_glyphs (cr->gstate,
 					   x, y,
 					   utf8, utf8_len,
 					   &glyphs, &num_glyphs,
-					   cairo_has_show_text_glyphs (cr) ? &clusters : NULL, &num_clusters,
-					   &backward);
+					   has_show_text_glyphs ? &clusters : NULL, &num_clusters,
+					   &cluster_flags);
     if (status)
 	goto BAIL;
 
@@ -3106,7 +3113,7 @@ cairo_show_text (cairo_t *cr, const char *utf8)
 					     utf8, utf8_len,
 					     glyphs, num_glyphs,
 					     clusters, num_clusters,
-					     backward);
+					     cluster_flags);
     if (status)
 	goto BAIL;
 
@@ -3192,35 +3199,6 @@ cairo_show_glyphs (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs)
 
 
 
-cairo_bool_t
-cairo_has_show_text_glyphs (cairo_t			   *cr)
-{
-    return _cairo_gstate_has_show_text_glyphs (cr->gstate);
-}
-slim_hidden_def (cairo_has_show_text_glyphs);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3240,7 +3218,7 @@ cairo_show_text_glyphs (cairo_t			   *cr,
 			int			    num_glyphs,
 			const cairo_text_cluster_t *clusters,
 			int			    num_clusters,
-			cairo_bool_t		    backward)
+			cairo_text_cluster_flags_t  cluster_flags)
 {
     cairo_status_t status;
 
@@ -3275,8 +3253,7 @@ cairo_show_text_glyphs (cairo_t			   *cr,
 
     status = _cairo_validate_text_clusters (utf8, utf8_len,
 					    glyphs, num_glyphs,
-					    clusters, num_clusters,
-					    backward);
+					    clusters, num_clusters, cluster_flags);
     if (status == CAIRO_STATUS_INVALID_CLUSTERS) {
 	
 
@@ -3297,8 +3274,7 @@ cairo_show_text_glyphs (cairo_t			   *cr,
     status = _cairo_gstate_show_text_glyphs (cr->gstate,
 					     utf8, utf8_len,
 					     glyphs, num_glyphs,
-					     clusters, num_clusters,
-					     !!backward);
+					     clusters, num_clusters, cluster_flags);
     if (status)
 	_cairo_set_error (cr, status);
 }
@@ -3585,6 +3561,7 @@ cairo_get_line_width (cairo_t *cr)
 
     return _cairo_gstate_get_line_width (cr->gstate);
 }
+slim_hidden_def (cairo_get_line_width);
 
 
 

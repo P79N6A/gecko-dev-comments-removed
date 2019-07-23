@@ -121,7 +121,6 @@ _cairo_cache_fini (cairo_cache_t *cache)
 
 
 
-
 cairo_cache_t *
 _cairo_cache_create (cairo_cache_keys_equal_func_t keys_equal,
 		     cairo_destroy_func_t	   entry_destroy,

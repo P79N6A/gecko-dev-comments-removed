@@ -65,7 +65,7 @@ struct _cairo_paginated_surface_backend {
 
 
     cairo_warn cairo_int_status_t
-    (*set_bounding_box)	(void	   	*surface,
+    (*set_bounding_box)	(void		*surface,
 			 cairo_box_t	*bbox);
 
     
@@ -73,8 +73,11 @@ struct _cairo_paginated_surface_backend {
 
 
     cairo_warn cairo_int_status_t
-    (*set_fallback_images_required)(void   	  *surface,
-				    cairo_bool_t   fallbacks_required);
+    (*set_fallback_images_required) (void	    *surface,
+				     cairo_bool_t    fallbacks_required);
+
+    cairo_bool_t
+    (*supports_fine_grained_fallbacks) (void		    *surface);
 };
 
 

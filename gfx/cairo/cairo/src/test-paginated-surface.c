@@ -93,14 +93,16 @@ _cairo_test_paginated_surface_create_for_data (unsigned char		*data,
     paginated =  _cairo_paginated_surface_create (&surface->base,
 	                                          content, width, height,
 						  &test_paginated_surface_paginated_backend);
-
-    
-    cairo_surface_destroy (&surface->base);
-
-    if (paginated->status) {
-	cairo_surface_destroy (target);
+    status = paginated->status;
+    if (status == CAIRO_STATUS_SUCCESS) {
+	
+	cairo_surface_destroy (&surface->base);
+	return paginated;
     }
-    return paginated;
+
+    cairo_surface_destroy (target);
+    free (surface);
+    return _cairo_surface_create_in_error (status);
 }
 
 static cairo_status_t
@@ -250,35 +252,19 @@ _test_paginated_surface_show_text_glyphs (void			    *abstract_surface,
 					  int			     num_glyphs,
 					  const cairo_text_cluster_t *clusters,
 					  int			     num_clusters,
-					  cairo_bool_t		     backward,
+					  cairo_text_cluster_flags_t cluster_flags,
 					  cairo_scaled_font_t	    *scaled_font)
 {
     test_paginated_surface_t *surface = abstract_surface;
-    cairo_int_status_t status;
 
     if (surface->paginated_mode == CAIRO_PAGINATED_MODE_ANALYZE)
 	return CAIRO_STATUS_SUCCESS;
 
-    
-
-
-
-
-
-
-
-
-
-    CAIRO_MUTEX_UNLOCK (scaled_font->mutex);
-    status = _cairo_surface_show_text_glyphs (surface->target, op, source,
-					      utf8, utf8_len,
-					      glyphs, num_glyphs,
-					      clusters, num_clusters,
-					      backward,
-					      scaled_font);
-    CAIRO_MUTEX_LOCK (scaled_font->mutex);
-
-    return status;
+    return _cairo_surface_show_text_glyphs (surface->target, op, source,
+					    utf8, utf8_len,
+					    glyphs, num_glyphs,
+					    clusters, num_clusters, cluster_flags,
+					    scaled_font);
 }
 
 

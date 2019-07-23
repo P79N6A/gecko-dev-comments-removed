@@ -90,6 +90,7 @@ _cairo_array_init_snapshot (cairo_array_t	*array,
 
 
 
+
 void
 _cairo_array_fini (cairo_array_t *array)
 {
@@ -101,6 +102,7 @@ _cairo_array_fini (cairo_array_t *array)
 	free (array->elements);
     }
 }
+
 
 
 
@@ -163,6 +165,7 @@ _cairo_array_grow_by (cairo_array_t *array, unsigned int additional)
 
 
 
+
 void
 _cairo_array_truncate (cairo_array_t *array, unsigned int num_elements)
 {
@@ -171,6 +174,9 @@ _cairo_array_truncate (cairo_array_t *array, unsigned int num_elements)
     if (num_elements < array->num_elements)
 	array->num_elements = num_elements;
 }
+
+
+
 
 
 
@@ -219,11 +225,13 @@ _cairo_array_index (cairo_array_t *array, unsigned int index)
 
 
 
+
 void
 _cairo_array_copy_element (cairo_array_t *array, int index, void *dst)
 {
     memcpy (dst, _cairo_array_index (array, index), array->element_size);
 }
+
 
 
 
@@ -247,6 +255,7 @@ _cairo_array_append (cairo_array_t	*array,
 
     return _cairo_array_append_multiple (array, element, 1);
 }
+
 
 
 
@@ -290,6 +299,7 @@ _cairo_array_append_multiple (cairo_array_t	*array,
 
 
 
+
 cairo_status_t
 _cairo_array_allocate (cairo_array_t	 *array,
 		       unsigned int	  num_elements,
@@ -317,11 +327,15 @@ _cairo_array_allocate (cairo_array_t	 *array,
 
 
 
+
+
 int
 _cairo_array_num_elements (cairo_array_t *array)
 {
     return array->num_elements;
 }
+
+
 
 
 

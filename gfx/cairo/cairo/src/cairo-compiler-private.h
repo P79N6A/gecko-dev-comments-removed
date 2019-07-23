@@ -38,6 +38,8 @@
 #ifndef CAIRO_COMPILER_PRIVATE_H
 #define CAIRO_COMPILER_PRIVATE_H
 
+#include "cairo.h"
+
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -109,6 +111,34 @@
 # define CAIRO_FUNCTION_ALIAS(old, new)
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if __GNUC__ >= 3
+#define cairo_pure __attribute__((pure))
+#define cairo_const __attribute__((const))
+#else
+#define cairo_pure
+#define cairo_const
+#endif
+
 #ifndef __GNUC__
 #undef __attribute__
 #define __attribute__(x)
@@ -116,6 +146,7 @@
 
 #if (defined(__WIN32__) && !defined(__WINE__)) || defined(_MSC_VER)
 #define snprintf _snprintf
+#define popen _popen
 #endif
 
 #ifdef _MSC_VER

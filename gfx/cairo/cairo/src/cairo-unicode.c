@@ -305,6 +305,8 @@ _cairo_utf8_to_ucs4 (const char *str,
 
 
 
+
+
 int
 _cairo_ucs4_to_utf8 (uint32_t  unicode,
 		     char     *utf8)

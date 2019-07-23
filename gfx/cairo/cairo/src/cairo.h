@@ -51,7 +51,11 @@
 #endif
 
 #ifndef cairo_public
-# define cairo_public
+# if defined (_MSC_VER) && ! defined (CAIRO_WIN32_STATIC_BUILD)
+#  define cairo_public __declspec(dllimport)
+# else
+#  define cairo_public
+# endif
 #endif
 
 CAIRO_BEGIN_DECLS
@@ -901,6 +905,19 @@ cairo_text_cluster_free (cairo_text_cluster_t *clusters);
 
 
 
+typedef enum _cairo_text_cluster_flags {
+    CAIRO_TEXT_CLUSTER_FLAG_BACKWARD = 0x00000001
+} cairo_text_cluster_flags_t;
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1042,28 +1059,6 @@ typedef enum _cairo_subpixel_order {
 
 
 
-typedef enum _cairo_lcd_filter {
-    CAIRO_LCD_FILTER_DEFAULT,
-    CAIRO_LCD_FILTER_NONE,
-    CAIRO_LCD_FILTER_INTRA_PIXEL,
-    CAIRO_LCD_FILTER_FIR3,
-    CAIRO_LCD_FILTER_FIR5
-} cairo_lcd_filter_t;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1156,12 +1151,6 @@ cairo_public cairo_subpixel_order_t
 cairo_font_options_get_subpixel_order (const cairo_font_options_t *options);
 
 cairo_public void
-cairo_font_options_set_lcd_filter (cairo_font_options_t   *options,
-				   cairo_lcd_filter_t  lcd_filter);
-cairo_public cairo_lcd_filter_t
-cairo_font_options_get_lcd_filter (const cairo_font_options_t *options);
-
-cairo_public void
 cairo_font_options_set_hint_style (cairo_font_options_t *options,
 				   cairo_hint_style_t     hint_style);
 cairo_public cairo_hint_style_t
@@ -1220,9 +1209,6 @@ cairo_show_text (cairo_t *cr, const char *utf8);
 cairo_public void
 cairo_show_glyphs (cairo_t *cr, const cairo_glyph_t *glyphs, int num_glyphs);
 
-cairo_public cairo_bool_t
-cairo_has_show_text_glyphs (cairo_t *cr);
-
 cairo_public void
 cairo_show_text_glyphs (cairo_t			   *cr,
 			const char		   *utf8,
@@ -1231,7 +1217,7 @@ cairo_show_text_glyphs (cairo_t			   *cr,
 			int			    num_glyphs,
 			const cairo_text_cluster_t *clusters,
 			int			    num_clusters,
-			cairo_bool_t		    backward);
+			cairo_text_cluster_flags_t  cluster_flags);
 
 cairo_public void
 cairo_text_path  (cairo_t *cr, const char *utf8);
@@ -1376,16 +1362,16 @@ cairo_scaled_font_glyph_extents (cairo_scaled_font_t   *scaled_font,
 				 cairo_text_extents_t  *extents);
 
 cairo_public cairo_status_t
-cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t   *scaled_font,
-				  double		 x,
-				  double		 y,
-				  const char	        *utf8,
-				  int		         utf8_len,
-				  cairo_glyph_t	       **glyphs,
-				  int		        *num_glyphs,
-				  cairo_text_cluster_t **clusters,
-				  int		        *num_clusters,
-				  cairo_bool_t	        *backward);
+cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t        *scaled_font,
+				  double		      x,
+				  double		      y,
+				  const char	             *utf8,
+				  int		              utf8_len,
+				  cairo_glyph_t	            **glyphs,
+				  int		             *num_glyphs,
+				  cairo_text_cluster_t      **clusters,
+				  int		             *num_clusters,
+				  cairo_text_cluster_flags_t *cluster_flags);
 
 cairo_public cairo_font_face_t *
 cairo_scaled_font_get_font_face (cairo_scaled_font_t *scaled_font);
@@ -1577,18 +1563,14 @@ typedef cairo_status_t (*cairo_user_scaled_font_render_glyph_func_t) (cairo_scal
 
 
 
-
-
-
-
-typedef cairo_status_t (*cairo_user_scaled_font_text_to_glyphs_func_t) (cairo_scaled_font_t   *scaled_font,
-									const char	      *utf8,
-									int		       utf8_len,
-									cairo_glyph_t	     **glyphs,
-									int		      *num_glyphs,
-									cairo_text_cluster_t **clusters,
-									int		      *num_clusters,
-									cairo_bool_t	      *backward);
+typedef cairo_status_t (*cairo_user_scaled_font_text_to_glyphs_func_t) (cairo_scaled_font_t        *scaled_font,
+									const char	           *utf8,
+									int		            utf8_len,
+									cairo_glyph_t	          **glyphs,
+									int		           *num_glyphs,
+									cairo_text_cluster_t      **clusters,
+									int		           *num_clusters,
+									cairo_text_cluster_flags_t *cluster_flags);
 
 
 
@@ -1931,8 +1913,7 @@ typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_SVG,
     CAIRO_SURFACE_TYPE_OS2,
     CAIRO_SURFACE_TYPE_WIN32_PRINTING,
-    CAIRO_SURFACE_TYPE_QUARTZ_IMAGE,
-    CAIRO_SURFACE_TYPE_QPAINTER
+    CAIRO_SURFACE_TYPE_QUARTZ_IMAGE
 } cairo_surface_type_t;
 
 cairo_public cairo_surface_type_t

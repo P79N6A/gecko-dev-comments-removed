@@ -829,7 +829,6 @@ _cairo_stroker_line_to (void *closure, cairo_point_t *point)
 static cairo_status_t
 _cairo_stroker_line_to_dashed (void *closure, cairo_point_t *point)
 {
-    cairo_status_t status = CAIRO_STATUS_SUCCESS;
     cairo_stroker_t *stroker = closure;
     double mag, remain, step_length = 0;
     double slope_dx, slope_dy;
@@ -838,17 +837,19 @@ _cairo_stroker_line_to_dashed (void *closure, cairo_point_t *point)
     cairo_point_t *p1 = &stroker->current_point;
     cairo_point_t *p2 = point;
     cairo_slope_t dev_slope;
-    cairo_bool_t fully_in_bounds = TRUE;
     cairo_line_t segment;
+    cairo_bool_t fully_in_bounds;
+    cairo_status_t status;
 
     stroker->has_initial_sub_path = stroker->dash_starts_on;
 
     if (p1->x == p2->x && p1->y == p2->y)
 	return CAIRO_STATUS_SUCCESS;
 
+    fully_in_bounds = TRUE;
     if (stroker->has_bounds &&
-	(!_cairo_box_contains_point (&stroker->bounds, p1) ||
-	 !_cairo_box_contains_point (&stroker->bounds, p2)))
+	(! _cairo_box_contains_point (&stroker->bounds, p1) ||
+	 ! _cairo_box_contains_point (&stroker->bounds, p2)))
     {
 	fully_in_bounds = FALSE;
     }
@@ -858,8 +859,11 @@ _cairo_stroker_line_to_dashed (void *closure, cairo_point_t *point)
     slope_dx = _cairo_fixed_to_double (p2->x - p1->x);
     slope_dy = _cairo_fixed_to_double (p2->y - p1->y);
 
-    if (!_compute_normalized_device_slope (&slope_dx, &slope_dy, stroker->ctm_inverse, &mag))
+    if (! _compute_normalized_device_slope (&slope_dx, &slope_dy,
+					   stroker->ctm_inverse, &mag))
+    {
 	return CAIRO_STATUS_SUCCESS;
+    }
 
     remain = mag;
     segment.p1 = *p1;
@@ -872,48 +876,57 @@ _cairo_stroker_line_to_dashed (void *closure, cairo_point_t *point)
 	segment.p2.x = _cairo_fixed_from_double (dx2) + p1->x;
 	segment.p2.y = _cairo_fixed_from_double (dy2) + p1->y;
 
-	if (fully_in_bounds ||
-	    _cairo_box_intersects_line_segment (&stroker->bounds, &segment))
+	if (stroker->dash_on &&
+	    (fully_in_bounds ||
+	     (! stroker->has_first_face && stroker->dash_starts_on) ||
+	     _cairo_box_intersects_line_segment (&stroker->bounds, &segment)))
 	{
-	    if (stroker->dash_on) {
-		status = _cairo_stroker_add_sub_edge (stroker, &segment.p1, &segment.p2, &dev_slope, slope_dx, slope_dy, &sub_start, &sub_end);
+	    status = _cairo_stroker_add_sub_edge (stroker,
+						  &segment.p1, &segment.p2,
+						  &dev_slope,
+						  slope_dx, slope_dy,
+						  &sub_start, &sub_end);
+	    if (status)
+		return status;
+
+	    if (stroker->has_current_face) {
+		
+		status = _cairo_stroker_join (stroker,
+					      &stroker->current_face,
+					      &sub_start);
 		if (status)
 		    return status;
 
-		if (stroker->has_current_face) {
-		    
-		    status = _cairo_stroker_join (stroker, &stroker->current_face, &sub_start);
-		    stroker->has_current_face = FALSE;
-		    if (status)
-			return status;
-		} else if (!stroker->has_first_face && stroker->dash_starts_on) {
-		    
-		    stroker->first_face = sub_start;
-		    stroker->has_first_face = TRUE;
-		} else {
-		    
-		    status = _cairo_stroker_add_leading_cap (stroker, &sub_start);
-		    if (status)
-			return status;
-		}
-
-		if (remain) {
-		    
-		    status = _cairo_stroker_add_trailing_cap (stroker, &sub_end);
-		    if (status)
-			return status;
-		} else {
-		    stroker->current_face = sub_end;
-		    stroker->has_current_face = TRUE;
-		}
+		stroker->has_current_face = FALSE;
+	    } else if (! stroker->has_first_face && stroker->dash_starts_on) {
+		
+		stroker->first_face = sub_start;
+		stroker->has_first_face = TRUE;
 	    } else {
-		if (stroker->has_current_face) {
-		    
-		    status = _cairo_stroker_add_trailing_cap (stroker, &stroker->current_face);
-		    if (status)
-			return status;
-		    stroker->has_current_face = FALSE;
-		}
+		
+		status = _cairo_stroker_add_leading_cap (stroker, &sub_start);
+		if (status)
+		    return status;
+	    }
+
+	    if (remain) {
+		
+		status = _cairo_stroker_add_trailing_cap (stroker, &sub_end);
+		if (status)
+		    return status;
+	    } else {
+		stroker->current_face = sub_end;
+		stroker->has_current_face = TRUE;
+	    }
+	} else {
+	    if (stroker->has_current_face) {
+		
+		status = _cairo_stroker_add_trailing_cap (stroker,
+							  &stroker->current_face);
+		if (status)
+		    return status;
+
+		stroker->has_current_face = FALSE;
 	    }
 	}
 
@@ -921,7 +934,7 @@ _cairo_stroker_line_to_dashed (void *closure, cairo_point_t *point)
 	segment.p1 = segment.p2;
     }
 
-    if (stroker->dash_on && !stroker->has_current_face) {
+    if (stroker->dash_on && ! stroker->has_current_face) {
 	
 
 
@@ -929,16 +942,24 @@ _cairo_stroker_line_to_dashed (void *closure, cairo_point_t *point)
 
 
 
-	_compute_face (point, &dev_slope, slope_dx, slope_dy, stroker, &stroker->current_face);
-	stroker->has_current_face = TRUE;
-	status = _cairo_stroker_add_leading_cap (stroker, &stroker->current_face);
+
+
+	_compute_face (point, &dev_slope,
+		       slope_dx, slope_dy,
+		       stroker,
+		       &stroker->current_face);
+
+	status = _cairo_stroker_add_leading_cap (stroker,
+						 &stroker->current_face);
 	if (status)
 	    return status;
+
+	stroker->has_current_face = TRUE;
     }
 
     stroker->current_point = *point;
 
-    return status;
+    return CAIRO_STATUS_SUCCESS;
 }
 
 static cairo_status_t
@@ -1257,12 +1278,12 @@ _cairo_rectilinear_stroker_emit_segments (cairo_rectilinear_stroker_t *stroker)
     cairo_status_t status;
     cairo_line_cap_t line_cap = stroker->stroke_style->line_cap;
     cairo_fixed_t half_line_width = stroker->half_line_width;
-    cairo_bool_t lengthen_initial, shorten_final, lengthen_final;
-    cairo_point_t *a, *b;
-    cairo_point_t r[4];
     int i;
 
     for (i = 0; i < stroker->num_segments; i++) {
+	cairo_point_t *a, *b;
+	cairo_bool_t lengthen_initial, shorten_final, lengthen_final;
+
 	a = &stroker->segments[i].p1;
 	b = &stroker->segments[i].p2;
 
@@ -1315,6 +1336,14 @@ _cairo_rectilinear_stroker_emit_segments (cairo_rectilinear_stroker_t *stroker)
 		else if (lengthen_final)
 		    b->x -= half_line_width;
 	    }
+
+	    if (a->x > b->x) {
+		cairo_point_t *t;
+
+		t = a;
+		a = b;
+		b = t;
+	    }
 	} else {
 	    if (a->y < b->y) {
 		if (lengthen_initial)
@@ -1331,27 +1360,27 @@ _cairo_rectilinear_stroker_emit_segments (cairo_rectilinear_stroker_t *stroker)
 		else if (lengthen_final)
 		    b->y -= half_line_width;
 	    }
+
+	    if (a->y > b->y) {
+		cairo_point_t *t;
+
+		t = a;
+		a = b;
+		b = t;
+	    }
 	}
 
 	
 
-	r[0] = *a;
-	r[1] = *b;
-	r[2] = *b;
-	r[3] = *a;
 	if (a->y == b->y) {
-	    r[0].y -= half_line_width;
-	    r[1].y -= half_line_width;
-	    r[2].y += half_line_width;
-	    r[3].y += half_line_width;
+	    a->y -= half_line_width;
+	    b->y += half_line_width;
 	} else {
-	    r[0].x -= half_line_width;
-	    r[1].x -= half_line_width;
-	    r[2].x += half_line_width;
-	    r[3].x += half_line_width;
+	    a->x -= half_line_width;
+	    b->x += half_line_width;
 	}
 
-	status = _cairo_traps_tessellate_convex_quad (stroker->traps, r);
+	status = _cairo_traps_tessellate_rectangle (stroker->traps, a, b);
 	if (status)
 	    return status;
     }
@@ -1484,11 +1513,10 @@ _cairo_path_fixed_stroke_rectilinear (cairo_path_fixed_t	*path,
     status = _cairo_rectilinear_stroker_emit_segments (&rectilinear_stroker);
 
 BAIL:
-
     _cairo_rectilinear_stroker_fini (&rectilinear_stroker);
 
     if (status)
-	_cairo_traps_fini (traps);
+	_cairo_traps_clear (traps);
 
     return status;
 }

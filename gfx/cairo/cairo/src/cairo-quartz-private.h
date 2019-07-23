@@ -40,7 +40,7 @@
 
 #include "cairoint.h"
 
-#ifdef CAIRO_HAS_QUARTZ_SURFACE
+#if CAIRO_HAS_QUARTZ_SURFACE
 #include "cairo-quartz.h"
 
 typedef struct cairo_quartz_surface {
@@ -95,11 +95,10 @@ _cairo_quartz_create_cgimage (cairo_format_t format,
 CGFontRef
 _cairo_quartz_scaled_font_get_cg_font_ref (cairo_scaled_font_t *sfont);
 
-#endif 
+#else
 
-#if CAIRO_HAS_CGFONT_FONT
-CGFontRef
-_cairo_cgfont_scaled_font_get_cg_font_ref (cairo_scaled_font_t *sfont);
+# error Cairo was not compiled with support for the quartz backend
+
 #endif 
 
 #endif 

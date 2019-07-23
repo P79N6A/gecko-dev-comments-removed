@@ -232,6 +232,12 @@ void _buffer_free (void *buffer)
 #endif
 }
 
+
+
+
+
+
+
 #ifdef BUILD_CAIRO_DLL
 
 
@@ -1197,6 +1203,8 @@ cairo_os2_surface_set_manual_window_refresh (cairo_surface_t *surface,
 
     local_os2_surface->blit_as_changes = !manual_refresh;
 }
+
+
 
 
 

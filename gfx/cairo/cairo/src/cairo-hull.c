@@ -78,6 +78,13 @@ _cairo_hull_init (cairo_hull_t			*hull,
     }
 }
 
+static inline cairo_int64_t
+_slope_length (cairo_slope_t *slope)
+{
+    return _cairo_int64_add (_cairo_int32x32_64_mul (slope->dx, slope->dx),
+			     _cairo_int32x32_64_mul (slope->dy, slope->dy));
+}
+
 static int
 _cairo_hull_vertex_compare (const void *av, const void *bv)
 {
@@ -90,18 +97,18 @@ _cairo_hull_vertex_compare (const void *av, const void *bv)
     
 
 
+
     if (ret == 0) {
-	cairo_fixed_48_16_t a_dist, b_dist;
-	a_dist = ((cairo_fixed_48_16_t) a->slope.dx * a->slope.dx +
-		  (cairo_fixed_48_16_t) a->slope.dy * a->slope.dy);
-	b_dist = ((cairo_fixed_48_16_t) b->slope.dx * b->slope.dx +
-		  (cairo_fixed_48_16_t) b->slope.dy * b->slope.dy);
+	int cmp;
+
+	cmp = _cairo_int64_cmp (_slope_length (&a->slope),
+				_slope_length (&b->slope));
+
 	
 
 
 
-
-	if (a_dist < b_dist || (a_dist == b_dist && a->id < b->id)) {
+	if (cmp < 0 || (cmp == 0 && a->id < b->id)) {
 	    a->discard = 1;
 	    ret = -1;
 	} else {
