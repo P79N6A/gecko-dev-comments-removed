@@ -246,6 +246,9 @@ function run_test() {
   controller.input = input;
 
   
+  prefs.setIntPref("browser.urlbar.search.sources", 3);
+
+  
   do_test_pending();
 
   var numSearchesStarted = 0;

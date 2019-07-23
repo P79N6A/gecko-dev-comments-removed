@@ -88,8 +88,18 @@ function run_test() {
     "view-source:http://www.google.com/"];
 
   for each (var currentURL in urlsToIgnore) {
-    var cantAddUri = uri(currentURL);
-    add_uri_to_history(cantAddUri);
-    do_check_false(gh.isVisited(cantAddUri));
+    try {
+      var cantAddUri = uri(currentURL);
+    }
+    catch(e) {
+      
+      
+      
+      print("Exception thrown for '" + currentURL + "', ignored.");
+    }
+    if (cantAddUri) {
+      add_uri_to_history(cantAddUri);
+      do_check_false(gh.isVisited(cantAddUri));
+    }
   }
 }

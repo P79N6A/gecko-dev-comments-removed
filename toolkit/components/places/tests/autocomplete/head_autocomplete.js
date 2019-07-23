@@ -205,6 +205,9 @@ function addPageBook(aURI, aTitle, aBook, aTags, aKey)
 function run_test() {
   print("\n");
   
+  prefs.setIntPref("browser.urlbar.search.sources", 3);
+
+  
   do_test_pending();
 
   
