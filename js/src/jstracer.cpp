@@ -1145,9 +1145,9 @@ TraceRecorder::writeBack(LIns* i, LIns* base, ptrdiff_t offset)
     
 
 
-     if (isPromoteInt(i))
-         i = ::demote(lir, i);
-     return lir->insStorei(i, base, offset);
+    if (isPromoteInt(i)) 
+        i = ::demote(lir, i);
+    return lir->insStorei(i, base, offset);
 }
 
 
@@ -1260,7 +1260,6 @@ TraceRecorder::snapshot(ExitType exitType)
         *m = isNumber(*vp)
                ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
                : JSVAL_TAG(*vp);
-               if (*m == JSVAL_INT && JSVAL_TAG(*vp) == 2)
         JS_ASSERT((*m != JSVAL_INT) || isInt32(*vp));
         ++m;
     );
@@ -1459,6 +1458,8 @@ TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
         lir->insStorei(lir->ins2i(LIR_piadd, lirbuf->rp, rp_adj),
                 lirbuf->state, offsetof(InterpState, rp));
     }
+    
+    snapshot(SNAPSHOT_ONLY);
 }
 
 
@@ -1466,6 +1467,24 @@ void
 TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
+    JSTraceMonitor* tm = traceMonitor;
+    JS_ASSERT(exit.exitType == SNAPSHOT_ONLY);
+    
+
+    uint8* m = exit.typeMap;
+    uint8* z = tm->globalTypeMap->data(); 
+    FORALL_GLOBAL_SLOTS(cx, exit.numGlobalSlots, tm->globalSlots->data(),
+        if (*m == JSVAL_INT && *z == JSVAL_DOUBLE)
+            lir->insStorei(get(vp), gp_ins, nativeGlobalOffset(vp));
+        ++m; ++z;
+    );
+    m = exit.typeMap + exit.numGlobalSlots;
+    z = ti->stackTypeMap.data();
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
+        if (*m == JSVAL_INT && *z == JSVAL_DOUBLE)
+            lir->insStorei(get(vp), lirbuf->sp, -treeInfo->nativeStackBase + nativeStackOffset(vp));
+        ++m; ++z;
+    );
     
     LIns* args[] = { lir->insImmPtr(inner), lirbuf->state }; 
     LIns* ret = lir->insCall(F_CallTree, args);
@@ -1797,7 +1816,9 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
 
 
         r->emitTreeCallStackSetup(f);
+        debug_only(printf("first fragment: %p\n", f)); 
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
+        debug_only(printf("actual fragment: %p\n", f)); 
         if (!lr) {
             js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
             return false;
@@ -1831,25 +1852,8 @@ static inline GuardRecord*
 js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
 {
     Fragment* f = *treep;
-
+    JS_ASSERT(f->code() && f->vmprivate);
     
-    if (!f->code()) {
-        JS_ASSERT(!f->vmprivate);
-        return NULL;
-    }
-    JS_ASSERT(f->vmprivate);
-
-    AUDIT(traceTriggered);
-
-    
-    TreeInfo* ti = (TreeInfo*)f->vmprivate;
-
-#ifdef DEBUG
-    printf("entering trace at %s:%u@%u, native stack slots: %u\n",
-           cx->fp->script->filename, js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
-           cx->fp->regs->pc - cx->fp->script->code, ti->maxNativeStackSlots);
-#endif
-
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
     unsigned ngslots = tm->globalSlots->length();
     uint16* gslots = tm->globalSlots->data();
@@ -1874,18 +1878,35 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
         return NULL;
     }
 
-    if (!BuildNativeStackFrame(cx, 0, ti->stackTypeMap.data(), stack)) {
+    TreeInfo* ti = NULL;
+    for ( ; f != NULL; f = f->peer) {
+        
+        if (!f->code()) {
+            JS_ASSERT(!f->vmprivate);
+            continue;
+        }
+        JS_ASSERT(f->vmprivate);
+
+        AUDIT(traceTriggered);
+
+        
+        ti = (TreeInfo*)f->vmprivate;
+
+#ifdef DEBUG
+        printf("entering trace at %s:%u@%u, native stack slots: %u\n",
+               cx->fp->script->filename, js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
+               cx->fp->regs->pc - cx->fp->script->code, ti->maxNativeStackSlots);
+#endif
+
+        if (BuildNativeStackFrame(cx, 0, ti->stackTypeMap.data(), stack))
+            break;
+        
         AUDIT(typeMapMismatchAtEntry);
         debug_only(printf("type-map mismatch.\n");)
-        if (++ti->mismatchCount > MAX_MISMATCH) {
-            debug_only(printf("excessive mismatches, flushing tree.\n"));
-            js_TrashTree(cx, f);
-            f->blacklist();
-        }
-        return NULL;
     }
-
-    ti->mismatchCount = 0;
+    if (!f) 
+        return NULL;
+    *treep = f;
 
     double* entry_sp = &stack[ti->nativeStackBase/sizeof(double)];
     FrameInfo* callstack = (FrameInfo*) alloca(MAX_CALL_STACK_ENTRIES * sizeof(FrameInfo));
@@ -2039,14 +2060,20 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     
 
     GuardRecord* lr = NULL;
-    if (f->code() || f->peer)
+    if (f->code())
         lr = js_ExecuteTree(cx, &f, inlineCallCount);
     if (!lr) {
         JS_ASSERT(!tm->recorder);
         
 
-        if (!f->code() && (++f->hits() >= HOTLOOP))
+
+        if (f->code()) {
+            f = tm->fragmento->newLoop(f->ip);
             return js_RecordTree(cx, tm, f);
+        } else {
+            if (++f->hits() >= HOTLOOP)
+                return js_RecordTree(cx, tm, f);
+        }
         return false;
     }
     
