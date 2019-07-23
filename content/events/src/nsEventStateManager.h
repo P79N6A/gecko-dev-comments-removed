@@ -334,10 +334,12 @@ protected:
 
 
 
+
   void DetermineDragTarget(nsPresContext* aPresContext,
                            nsIContent* aSelectionTarget,
                            nsDOMDataTransfer* aDataTransfer,
                            PRBool* aIsSelection,
+                           PRBool* aIsInEditor,
                            nsIContent** aTargetNode);
 
   

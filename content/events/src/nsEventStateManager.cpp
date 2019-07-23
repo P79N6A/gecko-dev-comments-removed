@@ -119,6 +119,7 @@
 #include "nsIDOMDocumentView.h"
 #include "nsIDOMNSUIEvent.h"
 #include "nsDOMDragEvent.h"
+#include "nsIDOMNSEditableElement.h"
 
 #include "nsIDOMRange.h"
 #include "nsCaret.h"
@@ -2005,13 +2006,15 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       if (!dataTransfer)
         return;
 
+      PRBool isInEditor = PR_FALSE;
       PRBool isSelection = PR_FALSE;
       nsCOMPtr<nsIContent> eventContent, targetContent;
       mCurrentTarget->GetContentForEvent(aPresContext, aEvent,
                                          getter_AddRefs(eventContent));
       if (eventContent)
         DetermineDragTarget(aPresContext, eventContent, dataTransfer,
-                            &isSelection, getter_AddRefs(targetContent));
+                            &isSelection, &isInEditor,
+                            getter_AddRefs(targetContent));
 
       
       
@@ -2047,9 +2050,12 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       mCurrentTargetContent = targetContent;
 
       
+      
+      
       nsEventStatus status = nsEventStatus_eIgnore;
-      nsEventDispatcher::Dispatch(targetContent, aPresContext, &startEvent, nsnull,
-                                  &status);
+      if (!isInEditor)
+        nsEventDispatcher::Dispatch(targetContent, aPresContext, &startEvent, nsnull,
+                                    &status);
 
       nsDragEvent* event = &startEvent;
       if (status != nsEventStatus_eConsumeNoDefault) {
@@ -2087,9 +2093,11 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
                                          nsIContent* aSelectionTarget,
                                          nsDOMDataTransfer* aDataTransfer,
                                          PRBool* aIsSelection,
+                                         PRBool* aIsInEditor,
                                          nsIContent** aTargetNode)
 {
   *aTargetNode = nsnull;
+  *aIsInEditor = PR_FALSE;
 
   nsCOMPtr<nsISupports> container = aPresContext->GetContainer();
   nsCOMPtr<nsIDOMWindow> window = do_GetInterface(container);
@@ -2156,6 +2164,17 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
         
       }
       dragContent = dragContent->GetParent();
+
+      
+      
+      
+      
+      
+      nsCOMPtr<nsIDOMNSEditableElement> editableElement = do_QueryInterface(dragContent);
+      if (editableElement) {
+        *aIsInEditor = PR_TRUE;
+        break;
+      }
     }
   }
 
