@@ -739,16 +739,17 @@ void
 nsPresContext::PreferenceChanged(const char* aPrefName)
 {
   if (!nsCRT::strcmp(aPrefName, "layout.css.dpi")) {
-    
-    
-    nscoord oldWidthAppUnits, oldHeightAppUnits;
-    nsIViewManager* vm = GetViewManager();
-    vm->GetWindowDimensions(&oldWidthAppUnits, &oldHeightAppUnits);
-    float oldWidthDevPixels = oldWidthAppUnits/AppUnitsPerDevPixel();
-    float oldHeightDevPixels = oldHeightAppUnits/AppUnitsPerDevPixel();
-
+    PRInt32 oldAppUnitsPerDevPixel = AppUnitsPerDevPixel();
     if (mDeviceContext->CheckDPIChange() && mShell) {
       mDeviceContext->FlushFontCache();
+
+      
+      
+      nscoord oldWidthAppUnits, oldHeightAppUnits;
+      nsIViewManager* vm = GetViewManager();
+      vm->GetWindowDimensions(&oldWidthAppUnits, &oldHeightAppUnits);
+      float oldWidthDevPixels = oldWidthAppUnits/oldAppUnitsPerDevPixel;
+      float oldHeightDevPixels = oldHeightAppUnits/oldAppUnitsPerDevPixel;
 
       nscoord width = NSToCoordRound(oldWidthDevPixels*AppUnitsPerDevPixel());
       nscoord height = NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel());
