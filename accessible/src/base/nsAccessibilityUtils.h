@@ -112,6 +112,16 @@ public:
 
 
 
+
+
+
+  static void SetAccAttrsForXULContainerItem(nsIDOMNode *aNode,
+                                             nsIPersistentProperties *aAttributes);
+
+  
+
+
+
   static PRBool HasListener(nsIContent *aContent, const nsAString& aEventType);
 
   
