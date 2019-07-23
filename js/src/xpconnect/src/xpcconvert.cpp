@@ -1155,7 +1155,9 @@ XPCConvert::NativeInterface2JSObject(XPCCallContext& ccx,
             uint32 flags = 0;
             JSObject *flat = wrapper->GetFlatJSObject();
             jsval v = OBJECT_TO_JSVAL(flat);
-            if (allowNativeWrapper && wrapper->GetScope() != xpcscope)
+
+            if (allowNativeWrapper &&
+                !xpc_SameOrigin(wrapper->GetScope(), xpcscope))
             {
                 
                 
