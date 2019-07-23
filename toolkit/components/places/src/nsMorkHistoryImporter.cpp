@@ -227,6 +227,8 @@ nsNavHistory::ImportHistory(nsIFile* aFile)
   }
 
   
+  
+  
   mozIStorageConnection *conn = GetStorageConnection();
   NS_ENSURE_TRUE(conn, NS_ERROR_NOT_INITIALIZED);
   mozStorageTransaction transaction(conn, PR_FALSE);

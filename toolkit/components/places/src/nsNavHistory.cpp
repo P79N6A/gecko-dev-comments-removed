@@ -158,7 +158,7 @@
 
 
 
-#define VACUUM_IDLE_TIME_IN_MSECS (900000)
+#define LONG_IDLE_TIME_IN_MSECS (900000)
 
 
 
@@ -1888,8 +1888,7 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
 
   
   
-  mozStorageTransaction transaction(mDBConn, PR_FALSE,
-                                  mozIStorageConnection::TRANSACTION_EXCLUSIVE);
+  mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
   mozStorageStatementScoper scoper(mDBGetPageVisitStats);
@@ -3403,17 +3402,15 @@ nsNavHistory::OnIdle()
 
   
   
-  if (idleTime > VACUUM_IDLE_TIME_IN_MSECS) {
+  if (idleTime > LONG_IDLE_TIME_IN_MSECS) {
     
     
     PRBool oldIndexExists = PR_FALSE;
     rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_places_urlindex"), &oldIndexExists);
     if (oldIndexExists) {
       
-      mozStorageTransaction urlindexTransaction(
-          mDBConn, PR_FALSE, mozIStorageConnection::TRANSACTION_EXCLUSIVE);
+      mozStorageTransaction urlindexTransaction(mDBConn, PR_FALSE);
       
-      PRTime start = PR_Now();
       rv = mDBConn->ExecuteSimpleSQL(
           NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_urlindex"));
       NS_ENSURE_SUCCESS(rv, rv);
