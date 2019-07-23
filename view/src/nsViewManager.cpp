@@ -1284,7 +1284,9 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus *aS
           if ((aEvent->message == NS_MOUSE_MOVE &&
                static_cast<nsMouseEvent*>(aEvent)->reason ==
                  nsMouseEvent::eReal) ||
-              aEvent->message == NS_MOUSE_ENTER) {
+              aEvent->message == NS_MOUSE_ENTER ||
+              aEvent->message == NS_MOUSE_BUTTON_DOWN ||
+              aEvent->message == NS_MOUSE_BUTTON_UP) {
             
             
             nsPoint rootOffset = baseView->GetDimensions().TopLeft();
