@@ -138,7 +138,7 @@ def RunStartupTests(profile_configs, num_runs):
     ffinfo.GetMetricsFromBrowser(config[2], profile_dir)
 
     
-    times = RunStartupTest(config[2], profile_dir, 5, 10)
+    times = RunStartupTest(config[2], profile_dir, num_runs, 10)
     all_times.append(times)
 
     
