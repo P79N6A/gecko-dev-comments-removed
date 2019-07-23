@@ -37,6 +37,8 @@
 #
 # ***** END LICENSE BLOCK *****
 
+const Cc = Components.classes;
+const Ci = Components.interfaces;
 const pageLoaderIface = Components.interfaces.nsIWebPageDescriptor;
 const nsISelectionPrivate = Components.interfaces.nsISelectionPrivate;
 const nsISelectionController = Components.interfaces.nsISelectionController;
@@ -64,10 +66,49 @@ var gSelectionListener = {
   }
 }
 
+var gViewSourceProgressListener = {
+
+  QueryInterface: function (aIID) {
+    if (aIID.equals(Ci.nsIWebProgressListener) ||
+        aIID.equals(Ci.nsISupportsWeakReference))
+      return this;
+    throw Cr.NS_NOINTERFACE;
+  },
+
+  onStateChange: function (aWebProgress, aRequest, aStateFlags, aStatus) {
+  },
+
+  onProgressChange: function (aWebProgress, aRequest,
+                              aCurSelfProgress, aMaxSelfProgress,
+                              aCurTotalProgress, aMaxTotalProgress) {
+  },
+
+  onLocationChange: function (aWebProgress, aRequest, aLocationURI) {
+    UpdateBackForwardCommands(getBrowser().webNavigation);
+  },
+
+  onStatusChange: function (aWebProgress, aRequest, aStatus, aMessage) {
+  },
+
+  onSecurityChange: function (aWebProgress, aRequest, aState) {
+  }
+
+}
+
 function onLoadViewSource() 
 {
   viewSource(window.arguments[0]);
   document.commandDispatcher.focusedWindow = content;
+  
+  
+  getBrowser().addProgressListener(gViewSourceProgressListener, 
+      Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+}
+
+function onUnloadViewSource() 
+{
+  
+  getBrowser().removeProgressListener(gViewSourceProgressListener);
 }
 
 function getBrowser()
@@ -97,6 +138,8 @@ function viewSource(url)
 {
   if (!url)
     return false; 
+    
+  var viewSrcUrl = "view-source:" + url;
 
   getBrowser().addEventListener("unload", onUnloadContent, true);
   getBrowser().addEventListener("load", onLoadContent, true);
@@ -170,6 +213,14 @@ function viewSource(url)
           
           
           PageLoader.loadPage(arg, pageLoaderIface.DISPLAY_AS_SOURCE);
+
+          
+          var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].createInstance(Ci.nsISHEntry);
+          shEntry.setURI(makeURI(viewSrcUrl, null, null));
+          shEntry.setTitle(viewSrcUrl);
+          shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
+          getBrowser().webNavigation.sessionHistory.addEntry(shEntry, true);
+
           
           loadFromURL = false;
         }
@@ -183,14 +234,9 @@ function viewSource(url)
   if (loadFromURL) {
     
     
-    var webNavigation = getBrowser().webNavigation;
-    webNavigation.sessionHistory = Components.classes["@mozilla.org/browser/shistory;1"].createInstance();
-    
-    
     
     var loadFlags = Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE;
-    var viewSrcUrl = "view-source:" + url;
-    webNavigation.loadURI(viewSrcUrl, loadFlags, null, null, null);
+    getBrowser().webNavigation.loadURI(viewSrcUrl, loadFlags, null, null, null);
   }
 
   
@@ -378,7 +424,7 @@ function goToLine(line)
   
 
   selection.QueryInterface(nsISelectionPrivate)
-    .interlinePosition = true;	
+    .interlinePosition = true;
 
   selection.addRange(result.range);
 
@@ -629,5 +675,43 @@ function BrowserSetForcedDetector(doReload)
   {
     var PageLoader = getBrowser().webNavigation.QueryInterface(pageLoaderIface);
     PageLoader.loadPage(PageLoader.currentDescriptor, pageLoaderIface.DISPLAY_NORMAL);
+  }
+}
+
+function BrowserForward(aEvent) {
+  try {
+    getBrowser().goForward();
+  }
+  catch(ex) {
+  }
+}
+
+function BrowserBack(aEvent) {
+  try {
+    getBrowser().goBack();
+  }
+  catch(ex) {
+  }
+}
+
+function UpdateBackForwardCommands(aWebNavigation) {
+  var backBroadcaster = document.getElementById("Browser:Back");
+  var forwardBroadcaster = document.getElementById("Browser:Forward");
+
+  var backDisabled = backBroadcaster.hasAttribute("disabled");
+  var forwardDisabled = forwardBroadcaster.hasAttribute("disabled");
+
+  if (backDisabled == aWebNavigation.canGoBack) {
+    if (backDisabled)
+      backBroadcaster.removeAttribute("disabled");
+    else
+      backBroadcaster.setAttribute("disabled", true);
+  }
+
+  if (forwardDisabled == aWebNavigation.canGoForward) {
+    if (forwardDisabled)
+      forwardBroadcaster.removeAttribute("disabled");
+    else
+      forwardBroadcaster.setAttribute("disabled", true);
   }
 }
