@@ -411,7 +411,6 @@ Assembler::asm_call(LInsp ins)
     Reservation *callRes = getresv(ins);
 
     uint32_t atypes = call->_argtypes;
-    uint32_t roffset = 0;
 
     
     ArgSize rsize = (ArgSize)(atypes & 3);
@@ -441,7 +440,8 @@ Assembler::asm_call(LInsp ins)
     }
 
     
-    BL((NIns*)(call->_address));
+    
+    BranchWithLink((NIns*)(call->_address));
 
     ArgSize sizes[MAXARGS];
     uint32_t argc = call->get_sizes(sizes);
@@ -1084,7 +1084,7 @@ Assembler::JMP_far(NIns* addr)
         
         *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | (4));
 
-        asm_output("b %p (32-bit)", addr);
+        asm_output("ldr pc, =%p", addr);
     }
 }
 
@@ -1114,7 +1114,65 @@ Assembler::BL(NIns* addr)
         
         *(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
 
-        asm_output("bl %p (32-bit)", addr);
+        asm_output("ldr pc, =%p", addr);
+        asm_output("add lr, pc+4");
+    }
+}
+
+
+
+
+
+
+
+
+
+void
+Assembler::BranchWithLink(NIns* addr)
+{
+    
+    
+    
+    
+    underrunProtect(4+LD32_size);
+
+    
+    
+    NanoAssert(AvmCore::config.arch >= 5);
+
+    
+    
+    intptr_t offs = PC_OFFSET_FROM(addr,_nIns-1);
+
+    
+    
+    if (isS24(offs>>2)) {
+
+        if (((intptr_t)addr & 1) == 0) {
+            
+
+            
+            NanoAssert( ((offs>>2) & ~0xffffff) == 0);
+            *(--_nIns) = (NIns)( (COND_AL) | (0xB<<24) | (offs>>2) );
+            asm_output("bl %p", addr);
+        } else {
+            
+
+            
+            uint32_t    H = (offs & 0x2) << 23;
+
+            
+            NanoAssert( ((offs>>2) & ~0xffffff) == 0);
+            *(--_nIns) = (NIns)( (0xF << 28) | (0x5<<25) | (H) | (offs>>2) );
+            asm_output("blx %p", addr);
+        }
+    } else {
+        
+        *(--_nIns) = (NIns)( (COND_AL) | (0x12<<20) | (0xFFF<<8) | (0x3<<4) | (IP) );
+        asm_output("blx ip (=%p)", addr);
+
+        
+        LD32_nochk(IP, (int32_t)addr);
     }
 }
 
