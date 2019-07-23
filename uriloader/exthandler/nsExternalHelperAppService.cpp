@@ -2142,12 +2142,7 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
   
   
   
-  
-  
-  nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
-  mMimeInfo->GetPreferredAction(&action);
-  if (mTempFile &&
-      (!mReceivedDispositionInfo || action != nsIMIMEInfo::saveToDisk))
+  if (mTempFile && !mReceivedDispositionInfo)
   {
     mTempFile->Remove(PR_FALSE);
     mTempFile = nsnull;

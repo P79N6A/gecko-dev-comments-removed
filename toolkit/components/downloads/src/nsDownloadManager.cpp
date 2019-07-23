@@ -1161,6 +1161,7 @@ nsDownloadManager::CancelDownload(PRUint32 aID)
   
   
   
+  
   if (dl->mTempFile) {
     PRBool exists;
     dl->mTempFile->Exists(&exists);
