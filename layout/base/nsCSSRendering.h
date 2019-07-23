@@ -202,10 +202,16 @@ struct nsCSSRendering {
                                      PRUint8              aEndBevelSide = 0,
                                      nscoord              aEndBevelOffset = 0);
 
+  enum {
+    DECORATION_STYLE_NONE   = 0,
+    DECORATION_STYLE_SOLID  = 1,
+    DECORATION_STYLE_DOTTED = 2,
+    DECORATION_STYLE_DASHED = 3,
+    DECORATION_STYLE_DOUBLE = 4,
+    DECORATION_STYLE_WAVY   = 5
+  };
+
   
-
-
-
 
 
 
@@ -257,15 +263,20 @@ struct nsCSSRendering {
 
 
 
-
-
-
   static nsRect GetTextDecorationRect(nsPresContext* aPresContext,
                                       const gfxSize& aLineSize,
                                       const gfxFloat aAscent,
                                       const gfxFloat aOffset,
                                       const PRUint8 aDecoration,
                                       const PRUint8 aStyle);
+
+protected:
+  static gfxRect GetTextDecorationRectInternal(const gfxPoint& aPt,
+                                               const gfxSize& aLineSize,
+                                               const gfxFloat aAscent,
+                                               const gfxFloat aOffset,
+                                               const PRUint8 aDecoration,
+                                               const PRUint8 aStyle);
 };
 
 

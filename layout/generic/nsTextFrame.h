@@ -442,8 +442,10 @@ protected:
   };
   TextDecorations GetTextDecorations(nsPresContext* aPresContext);
 
-  PRBool HasSelectionOverflowingDecorations(nsPresContext* aPresContext,
-                                            float* aRatio = nsnull);
+  
+  
+  PRBool CombineSelectionUnderlineRect(nsPresContext* aPresContext,
+                                       nsRect& aRect);
 
   PRBool IsFloatingFirstLetterChild();
 };
