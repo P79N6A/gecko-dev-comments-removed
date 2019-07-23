@@ -976,6 +976,8 @@ public:
             const PRUnichar *str =
                 mAlternativeString ? mAlternativeString : mString;
             mScriptItem->a.fLogicalOrder = PR_TRUE;
+            mScriptItem->a.s.fDisplayZWG = PR_TRUE;
+
             rv = ScriptShape(shapeDC, mCurrentFont->ScriptCache(),
                              str, mLength,
                              mMaxGlyphs, &mScriptItem->a,
@@ -1016,55 +1018,44 @@ public:
         GenerateAlternativeString();
     }
 
-    static PRBool IsZeroWidthUnicodeChar(PRUnichar aChar) {
-        return aChar == 0x200b; 
-    }
-
     
 
+    PRBool IsMissingGlyphsCMap() {
+        HRESULT rv;
+        HDC cmapDC = nsnull;
 
+        while (PR_TRUE) {
+            rv = ScriptGetCMap(cmapDC, mCurrentFont->ScriptCache(),
+                               mString, mLength, 0, mGlyphs);
 
-    PRBool IsGlyphMissing(SCRIPT_FONTPROPERTIES *aSFP, PRUint32 aGlyphIndex,
-                          PRUint32 aCharIndex) {
-        WORD glyph = mGlyphs[aGlyphIndex];
-        if (glyph == aSFP->wgDefault ||
-            (glyph == aSFP->wgInvalid && glyph != aSFP->wgBlank))
-            return PR_TRUE;
-        
-        
-        
-        
-        if (mAttr[aGlyphIndex].fZeroWidth && !ScriptProperties()->fComplex &&
-            !IsZeroWidthUnicodeChar(mString[aCharIndex])) {
-            PR_LOG(gFontLog, PR_LOG_WARNING, ("crappy font? glyph %04x is zero-width", glyph));
+            if (rv == E_PENDING) {
+                SelectFont();
+                cmapDC = mDC;
+                continue;
+            }
+
+            if (rv == S_OK)
+                return PR_FALSE;
+
+            PR_LOG(gFontLog, PR_LOG_WARNING, ("cmap is missing a glyph"));
+            for (PRUint32 i = 0; i < mLength; i++)
+                PR_LOG(gFontLog, PR_LOG_WARNING, (" - %d", mGlyphs[i]));
             return PR_TRUE;
         }
-        return PR_FALSE;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
+    PRBool IsGlyphMissing(SCRIPT_FONTPROPERTIES *aSFP, PRUint32 aGlyphIndex) {
+        if (mGlyphs[aGlyphIndex] == aSFP->wgDefault)
+            return PR_TRUE;
+        return PR_FALSE;
+    }
 
     PRBool IsMissingGlyphs() {
         SCRIPT_FONTPROPERTIES sfp;
         ScriptFontProperties(&sfp);
         PRUint32 charIndex = 0;
         for (int i = 0; i < mNumGlyphs; ++i) {
-            
-            
-            while (charIndex + 1 < mLength && mClusters[charIndex + 1] <= i) {
-                ++charIndex;
-            }
-            if (IsGlyphMissing(&sfp, i, charIndex))
+            if (IsGlyphMissing(&sfp, i))
                 return PR_TRUE;
 #ifdef DEBUG_pavlov 
             PR_LOG(gFontLog, PR_LOG_DEBUG, ("%04x %04x %04x", sfp.wgBlank, sfp.wgDefault, sfp.wgInvalid));
@@ -1173,7 +1164,7 @@ public:
                 PRUint32 k = mClusters[offset];
                 PRUint32 glyphCount = mNumGlyphs - k;
                 PRUint32 nextClusterOffset;
-                PRBool missing = IsGlyphMissing(&sfp, k, offset);
+                PRBool missing = IsGlyphMissing(&sfp, k);
                 for (nextClusterOffset = offset + 1; nextClusterOffset < mLength; ++nextClusterOffset) {
                     if (mClusters[nextClusterOffset] > k) {
                         glyphCount = mClusters[nextClusterOffset] - k;
@@ -1182,7 +1173,7 @@ public:
                 }
                 PRUint32 j;
                 for (j = 1; j < glyphCount; ++j) {
-                    if (IsGlyphMissing(&sfp, k + j, offset)) {
+                    if (IsGlyphMissing(&sfp, k + j)) {
                         missing = PR_TRUE;
                     }
                 }
@@ -1466,6 +1457,10 @@ public:
         mIsComplex(ScriptIsComplex(aString, aLength, SIC_COMPLEX) == S_OK),
         mItems(nsnull) {
     }
+    ~Uniscribe() {
+        if (mItems)
+            free(mItems);
+    }
 
     void Init() {
         memset(&mControl, 0, sizeof(SCRIPT_CONTROL));
@@ -1567,6 +1562,15 @@ gfxWindowsFontGroup::InitTextRunUniscribe(gfxContext *aContext, gfxTextRun *aRun
                 if (PR_LOG_TEST(gFontLog, PR_LOG_DEBUG))
                     PR_LOG(gFontLog, PR_LOG_DEBUG, ("trying: %s", NS_LossyConvertUTF16toASCII(font->GetName()).get()));
 
+                PRBool cmapHasGlyphs = PR_FALSE; 
+
+                if (!giveUp && !(aRun->GetFlags() & TEXT_HAS_SURROGATES)) {
+                    if (item->IsMissingGlyphsCMap())
+                        continue;
+                    else
+                        cmapHasGlyphs = PR_TRUE;
+                }
+
                 rv = item->Shape();
 
                 if (giveUp) {
@@ -1574,8 +1578,13 @@ gfxWindowsFontGroup::InitTextRunUniscribe(gfxContext *aContext, gfxTextRun *aRun
                         PR_LOG(gFontLog, PR_LOG_DEBUG, ("%s - gave up", NS_LossyConvertUTF16toASCII(font->GetName()).get()));
                     goto SCRIPT_PLACE;
                 }
-                if (FAILED(rv) || item->IsMissingGlyphs())
+
+                if (FAILED(rv))
                     continue;
+
+                if (!cmapHasGlyphs && item->IsMissingGlyphs())
+                    continue;
+
             } else {
 #if 0
                 
