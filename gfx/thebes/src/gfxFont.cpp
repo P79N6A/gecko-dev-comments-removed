@@ -118,9 +118,6 @@ gfxFontCache::Lookup(const nsAString &aName,
 
     gfxFont *font = entry->mFont;
     NS_ADDREF(font);
-    if (font->GetExpirationState()->IsTracked()) {
-        RemoveObject(font);
-    }
     return font;
 }
 
@@ -131,15 +128,16 @@ gfxFontCache::AddNew(gfxFont *aFont)
     HashEntry *entry = mFonts.PutEntry(key);
     if (!entry)
         return;
-    if (entry->mFont) {
-        
-        
-        
-        if (entry->mFont->GetExpirationState()->IsTracked()) {
-            RemoveObject(entry->mFont);
-        }
-    }
+    gfxFont *oldFont = entry->mFont;
     entry->mFont = aFont;
+    
+    
+    if (oldFont && oldFont->GetExpirationState()->IsTracked()) {
+        
+        
+        NS_ASSERTION(aFont != oldFont, "new font is tracked for expiry!");
+        NotifyExpired(oldFont);
+    }
 }
 
 void
@@ -168,7 +166,11 @@ void
 gfxFontCache::DestroyFont(gfxFont *aFont)
 {
     Key key(aFont->GetName(), aFont->GetStyle());
-    mFonts.RemoveEntry(key);
+    HashEntry *entry = mFonts.GetEntry(key);
+    if (entry && entry->mFont == aFont)
+        mFonts.RemoveEntry(key);
+    NS_ASSERTION(aFont->GetRefCount() == 0,
+                 "Destroying with non-zero ref count!");
     delete aFont;
 }
 
