@@ -142,9 +142,9 @@ Sanitizer.prototype = {
       
       get canClear()
       {
-        var globalHistory = Components.classes["@mozilla.org/browser/global-history;2"]
-                                      .getService(Components.interfaces.nsIBrowserHistory);
-        return globalHistory.count != 0;
+        
+        
+        return true;
       }
     },
     
