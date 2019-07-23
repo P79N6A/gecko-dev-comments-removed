@@ -1176,6 +1176,14 @@ SessionStoreService.prototype = {
       tabData.entries[0] = { url: browser.currentURI.spec };
       tabData.index = 1;
     }
+    else if (browser.currentURI.spec == "about:blank" &&
+             browser.userTypedValue) {
+      
+      
+      
+      tabData.entries[0] = { url: browser.userTypedValue };
+      tabData.index = 1;
+    }
     
     var disallow = [];
     for (var i = 0; i < CAPABILITIES.length; i++)
