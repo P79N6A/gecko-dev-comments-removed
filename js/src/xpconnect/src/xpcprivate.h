@@ -108,6 +108,7 @@
 #include "nsIPropertyBag.h"
 #include "nsIProperty.h"
 #include "nsSupportsArray.h"
+#include "nsTArray.h"
 
 #include "nsIXPCScriptNotify.h"  
 
@@ -2772,6 +2773,15 @@ private:
 
 
 
+struct JSContextAndFrame {
+    JSContextAndFrame(JSContext* aCx) :
+        cx(aCx),
+        frame(nsnull)
+    {}
+    JSContext* cx;
+    JSStackFrame* frame;  
+                          
+};
 
 class XPCJSContextStack
 {
@@ -2786,14 +2796,14 @@ public:
     JSBool DEBUG_StackHasJSContext(JSContext*  aJSContext);
 #endif
 
-    const nsDeque &GetStack()
-    { return mStack; }
+    const nsTArray<JSContextAndFrame>* GetStack()
+    { return &mStack; }
 
 private:
     void SyncJSContexts();
 
 private:
-    nsDeque     mStack;
+    nsTArray<JSContextAndFrame> mStack;
     JSContext*  mSafeJSContext;
 
     
@@ -2814,8 +2824,8 @@ public:
     NS_DECL_NSIJSCONTEXTSTACKITERATOR
 
 private:
-    
-    nsAutoPtr<nsDequeIterator> mIterator;
+    const nsTArray<JSContextAndFrame> *mStack;
+    PRUint32 mPosition;
 };
 
 
