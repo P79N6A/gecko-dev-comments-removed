@@ -43,10 +43,11 @@ const LoginTest = {
 
 
 
-  initStorage : function (storage, aInputPathName,  aInputFileName,
-                          aOutputPathName, aOutputFileName, aExpectedError,
-                          preserveOutputFile) {
+  initStorage : function (aInputPathName,  aInputFileName,
+                          aOutputPathName, aOutputFileName, aExpectedError) {
     var err = null;
+
+    var newStorage = this.newStorage();
 
     var inputFile = null;
     if (aInputFileName) {
@@ -63,19 +64,58 @@ const LoginTest = {
         outputFile.initWithPath(aOutputPathName);
         outputFile.append(aOutputFileName);
 
-        if (!preserveOutputFile && outputFile.exists())
+        
+        
+        if (outputFile.exists())
             outputFile.remove(false);
     }
 
     try {
-        storage.initWithFile(inputFile, outputFile);
+        newStorage.initWithFile(inputFile, outputFile);
     } catch (e) {
         err = e;
     }
 
     this.checkExpectedError(aExpectedError, err);
 
-    return;
+    return newStorage;
+  },
+
+
+  
+
+
+
+
+  reloadStorage : function (aInputPathName, aInputFileName) {
+    var err = null;
+    var newStorage = this.newStorage();
+
+    var inputFile = null;
+    if (aInputFileName) {
+        var inputFile  = Cc["@mozilla.org/file/local;1"].
+                         createInstance(Ci.nsILocalFile);
+        inputFile.initWithPath(aInputPathName);
+        inputFile.append(aInputFileName);
+    }
+
+    try {
+        
+        
+        
+        if (STORAGE_TYPE == "legacy")
+            newStorage.initWithFile(inputFile, null);
+        else if (STORAGE_TYPE == "mozStorage")
+            newStorage.initWithFile(null, inputFile);
+        else
+            throw "Unknown STORAGE_TYPE";
+    } catch (e) {
+        err = e;
+    }
+
+    do_check_true(err == null);
+
+    return newStorage;
   },
 
 
@@ -167,8 +207,17 @@ const LoginTest = {
     return lineCount;
   },
 
-  newMozStorage : function () {
-    var storage = Cc["@mozilla.org/login-manager/storage/mozStorage;1"].
+  newStorage : function () {
+    var ID;
+
+    if (STORAGE_TYPE == "legacy")
+        ID = "@mozilla.org/login-manager/storage/legacy;1"; 
+    else if (STORAGE_TYPE == "mozStorage")
+        ID = "@mozilla.org/login-manager/storage/mozStorage;1"; 
+    else
+        throw "Unknown STORAGE_TYPE";
+
+    var storage = Cc[ID].
                   createInstance(Ci.nsILoginManagerStorage);
     if (!storage)
       throw "Couldn't create storage instance.";
@@ -180,8 +229,13 @@ const LoginTest = {
     createInstance(Ci.nsILocalFile);
     file.initWithPath(pathname);
     file.append(filename);
-    if (file.exists())
-      file.remove(false);
+    
+    
+    
+    try {
+      if (file.exists())
+        file.remove(false);
+    } catch (e) {}
   }
 
 };
