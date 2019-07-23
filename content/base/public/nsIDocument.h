@@ -51,9 +51,12 @@
 #include "nsIAtom.h"
 #include "nsCompatibility.h"
 #include "nsTObserverArray.h"
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
 #include "nsNodeInfoManager.h"
 #include "nsIStreamListener.h"
 #include "nsIObserver.h"
+#include "nsAutoPtr.h"
 #ifdef MOZ_SMIL
 class nsSMILAnimationController;
 #endif 
@@ -102,8 +105,8 @@ class nsIBoxObject;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x62579239, 0xb619, 0x4bf2, \
-  { 0x8d, 0x39, 0x0b, 0x73, 0xe8, 0x66, 0x3a, 0x85 } }
+  { 0x9abf0b96, 0xc9e2, 0x4d49, \
+    { 0x9c, 0x0a, 0x37, 0xc1, 0x22, 0x39, 0x83, 0x50 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1119,6 +1122,12 @@ public:
 
   PRBool IsShowing() { return mIsShowing; }
 
+  void RegisterFreezableElement(nsIContent* aContent);
+  PRBool UnregisterFreezableElement(nsIContent* aContent);
+  typedef void (* FreezableElementEnumerator)(nsIContent*, void*);
+  void EnumerateFreezableElements(FreezableElementEnumerator aEnumerator,
+                                  void* aData);
+
 #ifdef MOZ_SMIL
   
   virtual nsSMILAnimationController* GetAnimationController() = 0;
@@ -1180,6 +1189,12 @@ protected:
   
   nsNodeInfoManager* mNodeInfoManager; 
   nsICSSLoader* mCSSLoader; 
+
+  
+  
+  
+  
+  nsAutoPtr<nsTHashtable<nsPtrHashKey<nsIContent> > > mFreezableElements;
 
   
   nsPropertyTable mPropertyTable;

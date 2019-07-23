@@ -969,6 +969,19 @@ protected:
     return static_cast<nsDOMSlots*>(GetExistingSlots());
   }
 
+  void RegisterFreezableElement() {
+    nsIDocument* doc = GetOwnerDoc();
+    if (doc) {
+      doc->RegisterFreezableElement(this);
+    }
+  }
+  void UnregisterFreezableElement() {
+    nsIDocument* doc = GetOwnerDoc();
+    if (doc) {
+      doc->UnregisterFreezableElement(this);
+    }
+  }
+
   
 
 
