@@ -37,6 +37,7 @@
 
 
 
+
 #include "TestHarness.h"
 #include "nsTObserverArray.h"
 
@@ -164,7 +165,39 @@ int main(int argc, char **argv)
   arr.PrependElementUnlessExists(7);
   DO_TEST(ForwardIterator, test19Expected, );
 
+  DO_TEST(ForwardIterator, test19Expected,
+          if (count == 1) {
+            arr.PrependElementUnlessExists(9);
+          }
+          );
+
+  static int test22Expected[] = { 9, 3, 4, 7, 2, 8 };
+  DO_TEST(ForwardIterator, test22Expected, );
+
   
+  static int test23Expected[] = { 8, 2, 7, 4, 3, 9 };
+  DO_TEST(BackwardIterator, test23Expected, );
+
+  
+  static int test24Expected[] = { 8, 2, 7, 4, 9 };
+  DO_TEST(BackwardIterator, test24Expected,
+          if (count == 1) arr.RemoveElementAt(1);
+          );
+
+  
+  DO_TEST(BackwardIterator, test24Expected,
+          if (count == 1) arr.AppendElement(1);
+          );
+
+  static int test26Expected[] = { 1, 8, 2, 7, 4, 9 };
+  DO_TEST(BackwardIterator, test26Expected, );
+
+  
+  static int test27Expected[] = { 1, 8, 2, 7, 4, 9, 3 };
+  DO_TEST(BackwardIterator, test27Expected,
+          if (count == 1) arr.PrependElementUnlessExists(3);
+          );
+
   
 
 
@@ -172,8 +205,5 @@ int main(int argc, char **argv)
 
 
 
-
-
-  
   return rv;
 }
