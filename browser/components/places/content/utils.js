@@ -411,7 +411,7 @@ var PlacesUtils = {
     
     
     return this.nodeIsFolder(aNode) &&
-           this._annotations.itemHasAnnotation(aNode, LMANNO_FEEDURI);
+           this.annotations.itemHasAnnotation(aNode.itemId, LMANNO_FEEDURI);
   },
 
  
