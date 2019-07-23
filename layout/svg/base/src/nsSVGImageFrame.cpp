@@ -89,11 +89,6 @@ public:
   NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit);
 
   
-  
-  virtual nsresult GetStrokePaintType() { return eStyleSVGPaintType_None; }
-  virtual nsresult GetFillPaintType() { return eStyleSVGPaintType_Color; }
-
-  
   virtual PRUint16 GetHittestMask();
 
   
