@@ -140,6 +140,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsContentErrors.h"
 #include "nsUnicharUtilCIID.h"
 #include "nsICaseConversion.h"
+#include "nsCompressedCharMap.h"
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -652,6 +653,23 @@ nsContentUtils::CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSr
   CopyNormalizeNewlines<sink_traits> normalizer(&dest_traits);
   copy_string(aSrcStart, aSrcEnd, normalizer);
   return normalizer.GetCharsWritten();
+}
+
+
+
+
+
+
+
+
+#include "punct_marks.ccmap"
+DEFINE_CCMAP(gPuncCharsCCMap, const);
+
+
+PRBool
+nsContentUtils::IsPunctuationMark(PRUnichar aChar)
+{
+  return CCMAP_HAS_CHAR(gPuncCharsCCMap, aChar);
 }
 
 

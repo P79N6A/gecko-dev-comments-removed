@@ -338,6 +338,12 @@ public:
   static const nsDependentSubstring TrimWhitespace(const nsAString& aStr,
                                                    PRBool aTrimTrailing = PR_TRUE);
 
+  
+
+
+
+  static PRBool IsPunctuationMark(PRUnichar aChar);
+
   static void Shutdown();
 
   

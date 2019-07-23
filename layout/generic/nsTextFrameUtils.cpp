@@ -40,7 +40,6 @@
 #include "nsContentUtils.h"
 #include "nsIWordBreaker.h"
 #include "gfxFont.h"
-#include "nsCompressedCharMap.h"
 #include "nsUnicharUtils.h"
 #include "nsBidiUtils.h"
 
@@ -50,26 +49,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-#include "punct_marks.ccmap"
-DEFINE_CCMAP(gPuncCharsCCMap, const);
-  
 #define UNICODE_ZWSP 0x200B
   
-PRBool
-nsTextFrameUtils::IsPunctuationMark(PRUnichar aChar)
-{
-  return CCMAP_HAS_CHAR(gPuncCharsCCMap, aChar);
-}
-
 static PRBool IsDiscardable(PRUnichar ch, PRUint32* aFlags)
 {
   

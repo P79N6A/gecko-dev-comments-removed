@@ -57,7 +57,17 @@ public:
 
 
   virtual void SetBreaks(PRUint32 aStart, PRUint32 aLength, PRPackedBool* aBreakBefore) = 0;
+  
+  
+
+
+
+  virtual void SetCapitalization(PRUint32 aStart, PRUint32 aLength, PRPackedBool* aCapitalize) = 0;
 };
+
+
+
+
 
 
 
@@ -137,7 +147,12 @@ public:
 
 
 
-    BREAK_SKIP_SETTING_NO_BREAKS = 0x04
+    BREAK_SKIP_SETTING_NO_BREAKS = 0x04,
+    
+
+
+
+    BREAK_NEED_CAPITALIZATION = 0x08
   };
 
   
