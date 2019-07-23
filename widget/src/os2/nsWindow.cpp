@@ -763,19 +763,8 @@ void nsWindow::DoCreate( HWND hwndP, nsWindow *aParent,
    }
 
    
-   if(mOS2Toolkit && !mOS2Toolkit->IsGuiThread())
-   {
-      ULONG args[7] = { hwndP, (ULONG) aParent, (ULONG) &aRect,
-                        (ULONG) aHandleEventFunction,
-                        (ULONG) aContext, (ULONG) aAppShell,
-                        (ULONG) aInitData };
-      MethodInfo info( this, nsWindow::CREATE, 7, args);
-      mOS2Toolkit->CallMethod( &info);
-   }
-   else
-      
-      RealDoCreate( hwndP, aParent, aRect, aHandleEventFunction,
-                    aContext, aAppShell, aInitData);
+   RealDoCreate( hwndP, aParent, aRect, aHandleEventFunction,
+                 aContext, aAppShell, aInitData);
 
    mWindowState = nsWindowState_eLive;
 }
@@ -999,34 +988,26 @@ NS_METHOD nsWindow::Destroy()
 {
   
   
+  if ((mWindowState & nsWindowState_eLive) && mParent) {
+    nsBaseWidget::Destroy();
+  }
+
   
-  if (mToolkit && !mOS2Toolkit->IsGuiThread()) {
-    MethodInfo info(this, nsWindow::DESTROY);
-    mOS2Toolkit->CallMethod(&info);
-  } else {
-    
-    
-    if ((mWindowState & nsWindowState_eLive) && mParent) {
-      nsBaseWidget::Destroy();
+  
+  if (this == gRollupWidget) {
+    if (gRollupListener) {
+      gRollupListener->Rollup(PR_UINT32_MAX, nsnull);
     }
+    CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
+  }
 
-    
-    
-    if (this == gRollupWidget) {
-      if (gRollupListener) {
-        gRollupListener->Rollup(PR_UINT32_MAX, nsnull);
-      }
-      CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
+  if (mWnd) {
+    HWND hwndBeingDestroyed = mFrameWnd ? mFrameWnd : mWnd;
+    DEBUGFOCUS(Destroy);
+    if (hwndBeingDestroyed == WinQueryFocus(HWND_DESKTOP)) {
+      WinSetFocus(HWND_DESKTOP, WinQueryWindow(hwndBeingDestroyed, QW_PARENT));
     }
-
-    if (mWnd) {
-      HWND hwndBeingDestroyed = mFrameWnd ? mFrameWnd : mWnd;
-      DEBUGFOCUS(Destroy);
-      if (hwndBeingDestroyed == WinQueryFocus(HWND_DESKTOP)) {
-        WinSetFocus(HWND_DESKTOP, WinQueryWindow(hwndBeingDestroyed, QW_PARENT));
-      }
-      WinDestroyWindow(hwndBeingDestroyed);
-    }
+    WinDestroyWindow(hwndBeingDestroyed);
   }
   return NS_OK;
 }
@@ -1397,17 +1378,6 @@ NS_METHOD nsWindow::IsEnabled(PRBool *aState)
 
 NS_METHOD nsWindow::SetFocus(PRBool aRaise)
 {
-    
-    
-    
-    
-    
-    if( !mOS2Toolkit->IsGuiThread())
-    {
-        MethodInfo info(this, nsWindow::SET_FOCUS);
-        mOS2Toolkit->CallMethod(&info);
-    }
-    else
     if (mWnd) {
         if (!mInSetFocus) {
            DEBUGFOCUS(SetFocus);
@@ -1943,13 +1913,6 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect &aRect, PRBool aIsSynchronous)
 
 NS_IMETHODIMP nsWindow::Update()
 {
-  
-  if( !mOS2Toolkit->IsGuiThread())
-  {
-    MethodInfo info(this, nsWindow::UPDATE_WINDOW);
-    mOS2Toolkit->CallMethod(&info);
-  }
-  else 
   if (mWnd)
     WinUpdateWindow( mWnd);
   return NS_OK;
@@ -2134,63 +2097,6 @@ void nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
 
   if (hps)
     ReleaseIfDragHPS(hps);
-}
-
-
-
-
-
-
-
-BOOL nsWindow::CallMethod(MethodInfo *info)
-{
-    BOOL bRet = TRUE;
-
-    switch (info->methodId) {
-        case nsWindow::CREATE:
-            NS_ASSERTION(info->nArgs == 7, "Wrong number of arguments to CallMethod Create");
-            DoCreate( (HWND)               info->args[0],
-                      (nsWindow*)          info->args[1],
-                      (const nsIntRect&)*(nsIntRect*) (info->args[2]),
-                      (EVENT_CALLBACK)    (info->args[3]), 
-                      (nsIDeviceContext*) (info->args[4]),
-                      (nsIAppShell*)      (info->args[5]),
-                      nsnull, 
-                      (nsWidgetInitData*) (info->args[6]));
-            break;
-
-        case nsWindow::DESTROY:
-            NS_ASSERTION(info->nArgs == 0, "Wrong number of arguments to CallMethod Destroy");
-            Destroy();
-            break;
-
-        case nsWindow::SET_FOCUS:
-            NS_ASSERTION(info->nArgs == 0, "Wrong number of arguments to CallMethod SetFocus");
-            SetFocus(PR_FALSE);
-            break;
-
-        case nsWindow::UPDATE_WINDOW:
-            NS_ASSERTION(info->nArgs == 0, "Wrong number of arguments to CallMethod UpdateWindow");
-            Update();
-            break;
-
-        case nsWindow::SET_TITLE:
-            NS_ASSERTION(info->nArgs == 1, "Wrong number of arguments to CallMethod SetTitle");
-            SetTitle( (const nsAString &) info->args[0]);
-            break;
-
-        case nsWindow::GET_TITLE:
-            NS_ASSERTION(info->nArgs == 2, "Wrong number of arguments to CallMethod GetTitle");
-            GetWindowText( *((nsString*) info->args[0]),
-                           (PRUint32*)info->args[1]);
-            break;
-
-        default:
-            bRet = FALSE;
-            break;
-    }
-
-    return bRet;
 }
 
 
@@ -3254,14 +3160,7 @@ PRBool nsWindow::OnHScroll( MPARAM mp1, MPARAM mp2)
 
 NS_METHOD nsWindow::SetTitle(const nsAString& aTitle) 
 {
-   
-   if( mOS2Toolkit && !mOS2Toolkit->IsGuiThread())
-   {
-      ULONG ulong = (ULONG) &aTitle;
-      MethodInfo info( this, nsWindow::SET_TITLE, 1, &ulong);
-      mOS2Toolkit->CallMethod( &info);
-   }
-   else if (mWnd)
+   if (mWnd)
    {
       PRUnichar* uchtemp = ToNewUnicode(aTitle);
       for (PRUint32 i=0;i<aTitle.Length();i++) {
@@ -3352,14 +3251,7 @@ nsWindow::HasPendingInputEvent()
 
 nsresult nsWindow::GetWindowText( nsString &aStr, PRUint32 *rc)
 {
-   
-   if( !mOS2Toolkit->IsGuiThread())
-   {
-      ULONG args[] = { (ULONG) &aStr, (ULONG) rc };
-      MethodInfo info( this, nsWindow::GET_TITLE, 2, args);
-      mOS2Toolkit->CallMethod( &info);
-   }
-   else if( mWnd)
+   if( mWnd)
    {
       
       int length = WinQueryWindowTextLength( mWnd);
