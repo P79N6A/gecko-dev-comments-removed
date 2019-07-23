@@ -177,12 +177,12 @@ nsSVGPointList::SetValueString(const nsAString& aValue)
     
     float x = float(PR_strtod(token1, &end));
     if (*end != '\0' || !NS_FloatIsFinite(x)) {
-      rv = NS_ERROR_FAILURE;
+      rv = NS_ERROR_DOM_SYNTAX_ERR;
       break; 
     }
     float y = float(PR_strtod(token2, &end));
     if (*end != '\0' || !NS_FloatIsFinite(y)) {
-      rv = NS_ERROR_FAILURE;
+      rv = NS_ERROR_DOM_SYNTAX_ERR;
       break; 
     }
     
@@ -197,7 +197,7 @@ nsSVGPointList::SetValueString(const nsAString& aValue)
 
   if (token1 || NS_FAILED(rv)) {
     
-    rv = NS_ERROR_FAILURE;
+    rv = NS_ERROR_DOM_SYNTAX_ERR;
   } else {
     WillModify();
     ReleasePoints();
