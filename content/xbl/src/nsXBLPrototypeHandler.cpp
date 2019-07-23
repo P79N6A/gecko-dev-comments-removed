@@ -60,7 +60,7 @@
 #include "nsIDOMText.h"
 #include "nsIFocusController.h"
 #include "nsIEventListenerManager.h"
-#include "nsIDOMEventReceiver.h"
+#include "nsIDOMEventTarget.h"
 #include "nsIDOMEventListener.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsIDOMNSEvent.h"
@@ -212,7 +212,7 @@ nsXBLPrototypeHandler::InitAccessKeys()
 }
 
 nsresult
-nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
+nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
                                       nsIDOMEvent* aEvent)
 {
   nsresult rv = NS_ERROR_FAILURE;
@@ -273,14 +273,14 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
     nsCOMPtr<nsIController> controller;
     nsCOMPtr<nsIFocusController> focusController;
 
-    nsCOMPtr<nsPIWindowRoot> windowRoot(do_QueryInterface(aReceiver));
+    nsCOMPtr<nsPIWindowRoot> windowRoot(do_QueryInterface(aTarget));
     if (windowRoot) {
       windowRoot->GetFocusController(getter_AddRefs(focusController));
     }
     else {
-      nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(aReceiver));
+      nsCOMPtr<nsPIDOMWindow> privateWindow(do_QueryInterface(aTarget));
       if (!privateWindow) {
-        nsCOMPtr<nsIContent> elt(do_QueryInterface(aReceiver));
+        nsCOMPtr<nsIContent> elt(do_QueryInterface(aTarget));
         nsCOMPtr<nsIDocument> doc;
         
         
@@ -290,7 +290,7 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
           doc = elt->GetOwnerDoc();
 
         if (!doc)
-          doc = do_QueryInterface(aReceiver);
+          doc = do_QueryInterface(aTarget);
 
         if (!doc)
           return NS_ERROR_FAILURE;
@@ -307,7 +307,7 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
     if (focusController)
       focusController->GetControllerForCommand(command.get(), getter_AddRefs(controller));
     else
-      controller = GetController(aReceiver); 
+      controller = GetController(aTarget); 
 
     nsAutoString type;
     mEventName->ToString(type);
@@ -418,7 +418,7 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
 
   
   nsCOMPtr<nsIScriptGlobalObject> boundGlobal;
-  nsCOMPtr<nsPIWindowRoot> winRoot(do_QueryInterface(aReceiver));
+  nsCOMPtr<nsPIWindowRoot> winRoot(do_QueryInterface(aTarget));
   nsCOMPtr<nsIDOMWindowInternal> focusedWin;
 
   if (winRoot) {
@@ -441,13 +441,13 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
 
     boundGlobal = do_QueryInterface(piWin->GetPrivateRoot());
   }
-  else boundGlobal = do_QueryInterface(aReceiver);
+  else boundGlobal = do_QueryInterface(aTarget);
 
   if (!boundGlobal) {
-    nsCOMPtr<nsIDocument> boundDocument(do_QueryInterface(aReceiver));
+    nsCOMPtr<nsIDocument> boundDocument(do_QueryInterface(aTarget));
     if (!boundDocument) {
       
-      nsCOMPtr<nsIContent> content(do_QueryInterface(aReceiver));
+      nsCOMPtr<nsIContent> content(do_QueryInterface(aTarget));
       if (!content)
         return NS_OK;
       boundDocument = content->GetOwnerDoc();
@@ -472,7 +472,7 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventReceiver* aReceiver,
   if (winRoot) {
     scriptTarget = boundGlobal;
   } else {
-    scriptTarget = aReceiver;
+    scriptTarget = aTarget;
   }
   
   
@@ -522,30 +522,30 @@ nsXBLPrototypeHandler::GetEventName()
 }
 
 already_AddRefed<nsIController>
-nsXBLPrototypeHandler::GetController(nsIDOMEventReceiver* aReceiver)
+nsXBLPrototypeHandler::GetController(nsPIDOMEventTarget* aTarget)
 {
   
   
   nsCOMPtr<nsIControllers> controllers;
 
-  nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(aReceiver));
+  nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(aTarget));
   if (xulElement)
     xulElement->GetControllers(getter_AddRefs(controllers));
 
   if (!controllers) {
-    nsCOMPtr<nsIDOMNSHTMLTextAreaElement> htmlTextArea(do_QueryInterface(aReceiver));
+    nsCOMPtr<nsIDOMNSHTMLTextAreaElement> htmlTextArea(do_QueryInterface(aTarget));
     if (htmlTextArea)
       htmlTextArea->GetControllers(getter_AddRefs(controllers));
   }
 
   if (!controllers) {
-    nsCOMPtr<nsIDOMNSHTMLInputElement> htmlInputElement(do_QueryInterface(aReceiver));
+    nsCOMPtr<nsIDOMNSHTMLInputElement> htmlInputElement(do_QueryInterface(aTarget));
     if (htmlInputElement)
       htmlInputElement->GetControllers(getter_AddRefs(controllers));
   }
 
   if (!controllers) {
-    nsCOMPtr<nsIDOMWindowInternal> domWindow(do_QueryInterface(aReceiver));
+    nsCOMPtr<nsIDOMWindowInternal> domWindow(do_QueryInterface(aTarget));
     if (domWindow)
       domWindow->GetControllers(getter_AddRefs(controllers));
   }

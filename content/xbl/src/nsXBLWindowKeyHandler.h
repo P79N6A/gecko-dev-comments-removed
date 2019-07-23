@@ -45,7 +45,8 @@
 
 class nsIAtom;
 class nsIDOMElement;
-class nsIDOMEventReceiver;
+class nsIDOMEventTarget;
+class nsPIDOMEventTarget;
 class nsIXBLDocumentInfo;
 class nsXBLSpecialDocInfo;
 class nsXBLPrototypeHandler;
@@ -53,7 +54,7 @@ class nsXBLPrototypeHandler;
 class nsXBLWindowKeyHandler : public nsIDOMKeyListener
 {
 public:
-  nsXBLWindowKeyHandler(nsIDOMElement* aElement, nsIDOMEventReceiver* aReceiver);
+  nsXBLWindowKeyHandler(nsIDOMElement* aElement, nsPIDOMEventTarget* aTarget);
   virtual ~nsXBLWindowKeyHandler();
   
   
@@ -95,7 +96,7 @@ protected:
   already_AddRefed<nsIDOMElement> GetElement();
   
   nsWeakPtr              mWeakPtrForElement;
-  nsIDOMEventReceiver*   mReceiver; 
+  nsPIDOMEventTarget*    mTarget; 
 
   
   
@@ -109,7 +110,7 @@ protected:
 
 nsresult
 NS_NewXBLWindowKeyHandler(nsIDOMElement* aElement,
-                          nsIDOMEventReceiver* aReceiver,
+                          nsPIDOMEventTarget* aTarget,
                           nsXBLWindowKeyHandler** aResult);
 
 #endif
