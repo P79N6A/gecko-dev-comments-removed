@@ -432,11 +432,22 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
       }
     }
     if (buffer->hasMore()) {
+      
+      
+      
+      
+      
+      
+      
+      
       nsHtml5UTF16Buffer* prevSearchBuf = nsnull;
       nsHtml5UTF16Buffer* searchBuf = mFirstBuffer;
       if (aKey) { 
         while (searchBuf != mLastBuffer) {
           if (searchBuf->key == aKey) {
+            
+            
+            
             buffer->next = searchBuf;
             if (prevSearchBuf) {
               prevSearchBuf->next = buffer;
