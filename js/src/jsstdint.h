@@ -58,7 +58,8 @@
 
 
 
-#if ! defined(JS_HAVE_STDINT_H)
+#if ! defined(JS_HAVE_STDINT_H) && \
+    ! defined(JS_SYS_TYPES_H_DEFINES_EXACT_SIZE_TYPES)
 
 typedef JSInt8  int8_t;
 typedef JSInt16 int16_t;
