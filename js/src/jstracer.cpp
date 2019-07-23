@@ -13115,62 +13115,9 @@ TraceRecorder::record_JSOP_POPN()
 
 
 JS_REQUIRES_STACK RecordingStatus
-TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *targetObj,
-                                  LIns *&targetIns)
+TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *obj2, LIns *&obj2_ins)
 {
     VMSideExit* exit = NULL;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool foundCallObj = false;
-    bool foundBlockObj = false;
-    JSObject* searchObj = obj;
-
-    for (;;) {
-        if (searchObj != globalObj) {
-            JSClass* cls = STOBJ_GET_CLASS(searchObj);
-            if (cls == &js_BlockClass) {
-                foundBlockObj = true;
-            } else if (cls == &js_CallClass &&
-                       JSFUN_HEAVYWEIGHT_TEST(js_GetCallObjectFunction(searchObj)->flags)) {
-                foundCallObj = true;
-            }
-        }
-
-        if (searchObj == targetObj)
-            break;
-
-        searchObj = STOBJ_GET_PARENT(searchObj);
-    }
-
-    if (!foundCallObj) {
-        JS_ASSERT(targetObj == globalObj);
-        targetIns = INS_CONSTPTR(globalObj);
-        return RECORD_CONTINUE;
-    }
-
-    if (foundBlockObj)
-        RETURN_STOP("cannot traverse this scope chain on trace");
-
-    
     for (;;) {
         if (obj != globalObj) {
             if (!js_IsCacheableNonGlobalScope(obj))
@@ -13192,16 +13139,16 @@ TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *target
             }
         }
 
-        JS_ASSERT(STOBJ_GET_CLASS(obj) != &js_BlockClass);
-
-        if (obj == targetObj)
+        if (obj == obj2)
             break;
 
         obj = STOBJ_GET_PARENT(obj);
+        if (!obj)
+            RETURN_STOP("target object not reached on scope chain");
         obj_ins = stobj_get_parent(obj_ins);
     }
 
-    targetIns = obj_ins;
+    obj2_ins = obj_ins;
     return RECORD_CONTINUE;
 }
 
