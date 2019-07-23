@@ -42,6 +42,18 @@
 #define __nanojit_Native__
 
 
+
+
+
+#define PEDANTIC 0
+#if PEDANTIC
+#  define UNLESS_PEDANTIC(...)
+#  define IF_PEDANTIC(...) __VA_ARGS__
+#else
+#  define UNLESS_PEDANTIC(...) __VA_ARGS__
+#  define IF_PEDANTIC(...)
+#endif
+
 #ifdef NANOJIT_IA32
 #include "Nativei386.h"
 #elif defined(NANOJIT_ARM)
@@ -50,8 +62,8 @@
 #include "NativePpc.h"
 #elif defined(NANOJIT_SPARC)
 #include "NativeSparc.h"
-#elif defined(NANOJIT_AMD64)
-#include "NativeAMD64.h"
+#elif defined(NANOJIT_X64)
+#include "NativeX64.h"
 #else
 #error "unknown nanojit architecture"
 #endif

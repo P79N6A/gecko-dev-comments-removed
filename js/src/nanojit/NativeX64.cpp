@@ -243,6 +243,12 @@ namespace nanojit
         emitrr(X64_movqr, d, s);
     }
 
+    void Assembler::JMPl(NIns* target) {
+        NanoAssert(!target || isS32(target - _nIns));
+        underrunProtect(8); 
+        emit32(X64_jmp, target ? target - _nIns : 0);
+    }
+
     void Assembler::JMP(NIns *target) {
         if (!target || isS32(target - _nIns)) {
             underrunProtect(8); 
@@ -899,6 +905,10 @@ namespace nanojit
 
     void Assembler::asm_ret(LIns *ins) {
         genEpilogue();
+
+        
+        MR(RSP,FP);
+
         assignSavedRegs();
         LIns *value = ins->oprnd1();
         Register r = ins->isop(LIR_ret) ? RAX : XMM0;
@@ -1168,10 +1178,8 @@ namespace nanojit
     NIns* Assembler::genEpilogue() {
         
         
-        
         emit(X64_ret);
         emitr(X64_popr, RBP);
-        MR(RSP, RBP);
         return _nIns;
     }
 
@@ -1229,8 +1237,33 @@ namespace nanojit
     #endif
     }
 
-    void Assembler::nFragExit(LIns*) {
-        TODO(nFragExit);
+    void Assembler::nFragExit(LIns *guard) {
+        SideExit *exit = guard->record()->exit;
+        Fragment *frag = exit->target;
+        GuardRecord *lr = 0;
+        bool destKnown = (frag && frag->fragEntry);
+        
+        
+        if (guard->isop(LIR_xtbl)) {
+            NanoAssert(!guard->isop(LIR_xtbl));
+        } else {
+            
+            if (destKnown) {
+                JMP(frag->fragEntry);
+                lr = 0;
+            } else {  
+                if (!_epilogue)
+                    _epilogue = genEpilogue();
+                lr = guard->record();
+                JMPl(_epilogue);
+                lr->jmp = _nIns;
+            }
+        }
+
+        MR(RSP, RBP);
+
+        
+        emit_quad(RAX, uintptr_t(lr));
     }
 
     void Assembler::nInit(AvmCore*) {
