@@ -2081,23 +2081,23 @@ CanFlattenUpvar(JSDefinition *dn, JSFunctionBox *funbox, uint32 tcflags)
 static void
 FlagHeavyweights(JSDefinition *dn, JSFunctionBox *funbox, uint32& tcflags)
 {
-    JSFunctionBox *afunbox = funbox->parent;
     uintN dnLevel = dn->frameLevel();
 
-    while (afunbox) {
+    while ((funbox = funbox->parent) != NULL) {
         
 
 
 
 
 
-        if (afunbox->level + 1U == dnLevel || (dnLevel == 0 && dn->isLet())) {
-            afunbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
+        if (funbox->level + 1U == dnLevel || (dnLevel == 0 && dn->isLet())) {
+            funbox->tcflags |= TCF_FUN_HEAVYWEIGHT;
             break;
         }
-        afunbox = afunbox->parent;
+        funbox->tcflags |= TCF_FUN_ENTRAINS_SCOPES;
     }
-    if (!afunbox && (tcflags & TCF_IN_FUNCTION))
+
+    if (!funbox && (tcflags & TCF_IN_FUNCTION))
         tcflags |= TCF_FUN_HEAVYWEIGHT;
 }
 
@@ -2172,10 +2172,11 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
         JSFunction *fun = (JSFunction *) funbox->object;
 
+        JS_ASSERT(FUN_KIND(fun) == JSFUN_INTERPRETED);
+
         FUN_METER(allfun);
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
             FUN_METER(heavy);
-            JS_ASSERT(FUN_KIND(fun) == JSFUN_INTERPRETED);
         } else if (pn->pn_type != TOK_UPVARS) {
             
 
@@ -2247,7 +2248,9 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                 if (nupvars == 0) {
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
-                } else if (!mutation && !(funbox->tcflags & TCF_FUN_IS_GENERATOR)) {
+                } else if (!mutation &&
+                           !(~funbox->tcflags
+                             & (TCF_FUN_IS_GENERATOR | TCF_FUN_ENTRAINS_SCOPES))) {
                     
 
 

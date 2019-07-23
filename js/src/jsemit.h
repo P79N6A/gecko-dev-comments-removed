@@ -316,6 +316,15 @@ struct JSTreeContext {
 
 
 
+
+
+
+
+#define TCF_FUN_ENTRAINS_SCOPES 0x400000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
