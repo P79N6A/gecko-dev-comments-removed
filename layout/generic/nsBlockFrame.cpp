@@ -2242,6 +2242,7 @@ nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
     
     
     
+    
     nsRect lineCombinedArea(aLine->GetCombinedArea());
     if (oldCombinedArea.TopLeft() != lineCombinedArea.TopLeft() ||
         oldBounds.TopLeft() != newBounds.TopLeft()) {

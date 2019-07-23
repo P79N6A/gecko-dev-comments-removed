@@ -491,7 +491,10 @@ public:
 
 
 
-  static void InvalidateFrame(nsIFrame* aFrame, const nsRect& aOrigRect,
+
+  static void InvalidateFrame(nsIFrame* aFrame,
+                              const nsRect& aOrigRect,
+                              const nsRect& aOrigOverflowRect,
                               PRBool aIsFirstReflow);
 
 protected:
@@ -582,7 +585,8 @@ protected:
   void PlaceChild(nsTableReflowState&  aReflowState,
                   nsIFrame*            aKidFrame,
                   nsHTMLReflowMetrics& aKidDesiredSize,
-                  const nsRect&        aOriginalKidRect);
+                  const nsRect&        aOriginalKidRect,
+                  const nsRect&        aOriginalKidOverflowRect);
 
   nsIFrame* GetFirstBodyRowGroupFrame();
   PRBool MoveOverflowToChildList(nsPresContext* aPresContext);
