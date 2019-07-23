@@ -48,11 +48,12 @@ class nsEventChainPostVisitor;
 class nsIEventListenerManager;
 class nsIDOMEventListener;
 class nsIDOMEventGroup;
+class nsIScriptContext;
 
 
 #define NS_PIDOMEVENTTARGET_IID \
-  { 0xf35ffc3b, 0xc8c0, 0x43fd, \
-    { 0xb0, 0xb0, 0xf3, 0x39, 0xe9, 0x5f, 0x57, 0x4a } }
+  { 0x25982813, 0xaf2e, 0x4ab6, \
+    { 0xb5, 0x12, 0xe6, 0xc6, 0xad, 0xa6, 0xd0, 0xec } }
 
 class nsPIDOMEventTarget : public nsISupports
 {
@@ -157,6 +158,12 @@ public:
 
 
   virtual nsresult GetSystemEventGroup(nsIDOMEventGroup** aGroup) = 0;
+
+  
+
+
+
+  virtual nsresult GetContextForEventHandlers(nsIScriptContext** aContext) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMEventTarget, NS_PIDOMEVENTTARGET_IID)

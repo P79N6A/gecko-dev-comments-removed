@@ -2681,33 +2681,15 @@ nsCxPusher::Push(nsISupports *aCurrentTarget)
     return PR_FALSE;
   }
 
-  nsCOMPtr<nsIScriptGlobalObject> sgo;
-  nsCOMPtr<nsINode> node(do_QueryInterface(aCurrentTarget));
-  nsCOMPtr<nsIDocument> document;
-
-  if (node) {
-    document = node->GetOwnerDoc();
-    if (document) {
-      PRBool hasHadScriptObject = PR_TRUE;
-      sgo = document->GetScriptHandlingObject(hasHadScriptObject);
-      
-      
-      NS_ENSURE_TRUE(sgo || !hasHadScriptObject, PR_FALSE);
-    }
-  } else {
-    sgo = do_QueryInterface(aCurrentTarget);
-  }
-
-  JSContext *cx = nsnull;
-
+  nsCOMPtr<nsPIDOMEventTarget> eventTarget = do_QueryInterface(aCurrentTarget);
+  NS_ENSURE_TRUE(eventTarget, PR_FALSE);
   nsCOMPtr<nsIScriptContext> scx;
+  nsresult rv = eventTarget->GetContextForEventHandlers(getter_AddRefs(scx));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  JSContext* cx = nsnull;
 
-  if (sgo) {
-    scx = sgo->GetContext();
-
-    if (scx) {
-      cx = (JSContext *)scx->GetNativeContext();
-    }
+  if (scx) {
+    cx = static_cast<JSContext*>(scx->GetNativeContext());
     
     NS_ENSURE_TRUE(cx, PR_FALSE);
   }
@@ -4336,6 +4318,29 @@ nsContentUtils::URIIsLocalFile(nsIURI *aURI)
                                 nsIProtocolHandler::URI_IS_LOCAL_FILE,
                                 &isFile)) &&
          isFile;
+}
+
+
+nsresult
+nsContentUtils::GetContextForEventHandlers(nsINode* aNode,
+                                           nsIScriptContext** aContext)
+{
+  *aContext = nsnull;
+  nsIDocument* ownerDoc = aNode->GetOwnerDoc();
+  NS_ENSURE_STATE(ownerDoc);
+  nsCOMPtr<nsIScriptGlobalObject> sgo;
+  PRBool hasHadScriptObject = PR_TRUE;
+  sgo = ownerDoc->GetScriptHandlingObject(hasHadScriptObject);
+  
+  
+  NS_ENSURE_STATE(sgo || !hasHadScriptObject);
+  if (sgo) {
+    NS_IF_ADDREF(*aContext = sgo->GetContext());
+    
+    NS_ENSURE_STATE(*aContext);
+  }
+
+  return NS_OK;
 }
 
 

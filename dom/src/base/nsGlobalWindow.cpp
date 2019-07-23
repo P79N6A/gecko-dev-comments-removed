@@ -6650,6 +6650,15 @@ nsGlobalWindow::GetSystemEventGroup(nsIDOMEventGroup **aGroup)
   return NS_ERROR_FAILURE;
 }
 
+nsresult
+nsGlobalWindow::GetContextForEventHandlers(nsIScriptContext** aContext)
+{
+  NS_IF_ADDREF(*aContext = GetContext());
+  
+  NS_ENSURE_STATE(*aContext);
+  return NS_OK;
+}
+
 
 
 

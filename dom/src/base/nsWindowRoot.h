@@ -83,6 +83,11 @@ public:
   virtual nsresult RemoveEventListenerByIID(nsIDOMEventListener *aListener,
                                             const nsIID& aIID);
   virtual nsresult GetSystemEventGroup(nsIDOMEventGroup** aGroup);
+  virtual nsresult GetContextForEventHandlers(nsIScriptContext** aContext)
+  {
+    *aContext = nsnull;
+    return NS_OK;
+  }
 
   
   NS_IMETHOD GetFocusController(nsIFocusController** aResult);
