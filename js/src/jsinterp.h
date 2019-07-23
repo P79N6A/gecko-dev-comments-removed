@@ -198,8 +198,12 @@ typedef struct JSInlineFrame {
 
 #define SHAPE_OVERFLOW_BIT      JS_BIT(32 - PCVCAP_TAGBITS)
 
+
+
+
+
 extern uint32
-js_GenerateShape(JSContext *cx, JSBool gcLocked);
+js_GenerateShape(JSContext *cx, JSBool gcLocked, JSScopeProperty *sprop);
 
 struct JSPropCacheEntry {
     jsbytecode          *kpc;           

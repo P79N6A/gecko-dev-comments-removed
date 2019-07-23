@@ -3675,7 +3675,7 @@ out:
         goto restart;
     }
 
-    if (rt->shapeGen & SHAPE_OVERFLOW_BIT) {
+    if (rt->shapeGen >= SHAPE_OVERFLOW_BIT - 1) {
         
 
 
