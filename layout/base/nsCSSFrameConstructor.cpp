@@ -2165,7 +2165,11 @@ static PRBool
 NeedFrameFor(nsIFrame*   aParentFrame,
              nsIContent* aChildContent) 
 {
-  NS_PRECONDITION(!aChildContent->GetPrimaryFrame(), "Why did we get called?");
+  
+  
+  NS_PRECONDITION(!aChildContent->GetPrimaryFrame() ||
+                  aChildContent->GetPrimaryFrame()->GetContent() != aChildContent,
+                  "Why did we get called?");
 
   
   
