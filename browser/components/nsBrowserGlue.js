@@ -205,8 +205,10 @@ BrowserGlue.prototype = {
 
     var dirService = Components.classes["@mozilla.org/file/directory_service;1"]
                                .getService(Components.interfaces.nsIProperties);
+    var profDir = dirService.get("ProfD", Components.interfaces.nsILocalFile);
 
-    var bookmarksFile = dirService.get("BMarks", Components.interfaces.nsILocalFile);
+    var bookmarksFile = profDir.clone(); 
+    bookmarksFile.append("bookmarks.html");
 
     if (bookmarksFile.exists()) {
       
@@ -222,7 +224,6 @@ BrowserGlue.prototype = {
 
       
       
-      var profDir = dirService.get("ProfD", Components.interfaces.nsILocalFile);
       var bookmarksBackup = profDir.clone();
       bookmarksBackup.append("bookmarks.preplaces.html");
       if (!bookmarksBackup.exists()) {
