@@ -105,6 +105,8 @@ class mozIAnnotationService;
 class nsNavHistory;
 class nsNavBookmarks;
 class QueryKeyValuePair;
+class nsIEffectiveTLDService;
+class nsIIDNService;
 
 
 
@@ -304,8 +306,8 @@ public:
 
   static nsresult AsciiHostNameFromHostString(const nsACString& aHostName,
                                               nsACString& aAscii);
-  static void DomainNameFromHostName(const nsCString& aHostName,
-                                     nsACString& aDomainName);
+  void DomainNameFromURI(nsIURI* aURI,
+                         nsACString& aDomainName);
   static PRTime NormalizeTime(PRUint32 aRelative, PRTime aOffset);
   nsresult RecursiveGroup(nsNavHistoryQueryResultNode *aResultNode,
                           const nsCOMArray<nsNavHistoryResultNode>& aSource,
@@ -564,6 +566,10 @@ protected:
 
   
   nsMaybeWeakPtrArray<nsINavHistoryObserver> mObservers;
+
+  
+  nsCOMPtr<nsIEffectiveTLDService> mTLDService;
+  nsCOMPtr<nsIIDNService>          mIDNService;
 
   
   nsCOMPtr<nsIStringBundle> mBundle;

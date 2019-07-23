@@ -74,6 +74,8 @@
 #include "nsEscape.h"
 #include "nsIVariant.h"
 #include "nsVariant.h"
+#include "nsIEffectiveTLDService.h"
+#include "nsIIDNService.h"
 
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
@@ -224,13 +226,7 @@ NS_INTERFACE_MAP_END
 
 static nsresult GetReversedHostname(nsIURI* aURI, nsAString& host);
 static void GetReversedHostname(const nsString& aForward, nsAString& aReversed);
-static void GetSubstringFromNthDot(const nsCString& aInput, PRInt32 aStartingSpot,
-                                   PRInt32 aN, PRBool aIncludeDot,
-                                   nsACString& aSubstr);
 static nsresult GenerateTitleFromURI(nsIURI* aURI, nsAString& aTitle);
-static PRInt32 GetTLDCharCount(const nsCString& aHost);
-static PRInt32 GetTLDType(const nsCString& aHostTail);
-static PRBool IsNumericHostName(const nsCString& aHost);
 static PRInt64 GetSimpleBookmarksQueryFolder(
     const nsCOMArray<nsNavHistoryQuery>& aQueries,
     nsNavHistoryQueryOptions* aOptions);
@@ -290,7 +286,6 @@ const PRInt32 nsNavHistory::kAutoCompleteIndex_ItemId = 3;
 const PRInt32 nsNavHistory::kAutoCompleteIndex_ParentId = 4;
 const PRInt32 nsNavHistory::kAutoCompleteIndex_BookmarkTitle = 5;
 
-static nsDataHashtable<nsCStringHashKey, int>* gTldTypes;
 static const char* gQuitApplicationMessage = "quit-application";
 static const char* gXpcomShutdown = "xpcom-shutdown";
 
@@ -406,6 +401,12 @@ nsNavHistory::Init()
     else
       mLastSessionID = 1;
   }
+
+  
+  mTLDService = do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<nsIStringBundleService> bundleService =
@@ -1952,20 +1953,21 @@ nsNavHistory::EvaluateQueryForNode(const nsCOMArray<nsNavHistoryQuery>& aQueries
         if (NS_FAILED(NS_NewURI(getter_AddRefs(nodeUri), aNode->mURI)))
           continue;
       }
-      nsCAutoString host;
-      if (NS_FAILED(nodeUri->GetAsciiHost(host)))
-        continue;
       nsCAutoString asciiRequest;
       if (NS_FAILED(AsciiHostNameFromHostString(query->Domain(), asciiRequest)))
         continue;
 
       if (query->DomainIsHost()) {
+        nsCAutoString host;
+        if (NS_FAILED(nodeUri->GetAsciiHost(host)))
+          continue;
+
         if (! asciiRequest.Equals(host))
           continue; 
       }
       
       nsCAutoString domain;
-      DomainNameFromHostName(host, domain);
+      DomainNameFromURI(nodeUri, domain);
       if (! asciiRequest.Equals(domain))
         continue; 
     }
@@ -2033,22 +2035,17 @@ nsNavHistory::AsciiHostNameFromHostString(const nsACString& aHostName,
 
 
 
-void 
-nsNavHistory::DomainNameFromHostName(const nsCString& aHostName,
-                                     nsACString& aDomainName)
+void
+nsNavHistory::DomainNameFromURI(nsIURI *aURI,
+                                nsACString& aDomainName)
 {
-  if (IsNumericHostName(aHostName)) {
+  
+  
+  nsresult rv = mTLDService->GetBaseDomain(aURI, 0, aDomainName);
+  if (NS_FAILED(rv)) {
     
-    aDomainName = aHostName;
-  } else {
     
-    PRInt32 tldLength = GetTLDCharCount(aHostName);
-    if (tldLength < PRInt32(aHostName.Length())) {
-      
-      GetSubstringFromNthDot(aHostName,
-                             aHostName.Length() - tldLength - 2,
-                             1, PR_FALSE, aDomainName);
-    }
+    aURI->GetAsciiHost(aDomainName);
   }
 }
 
@@ -3975,10 +3972,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
       mAutoCompleteTimer->Cancel();
       mAutoCompleteTimer = nsnull;
     }
-    if (gTldTypes) {
-      delete gTldTypes;
-      gTldTypes = nsnull;
-    }
     nsresult rv;
     nsCOMPtr<nsIPrefService> prefService =
       do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
@@ -4622,20 +4615,27 @@ nsNavHistory::GroupByHost(nsNavHistoryQueryResultNode *aResultNode,
 
     
     nsCOMPtr<nsIURI> uri;
-    nsCAutoString fullHostName;
-    if (NS_FAILED(NS_NewURI(getter_AddRefs(uri), aSource[i]->mURI)) ||
-        NS_FAILED(uri->GetHost(fullHostName))) {
+    nsresult rv = NS_NewURI(getter_AddRefs(uri), aSource[i]->mURI);
+    nsCAutoString curHostName;
+    if (NS_SUCCEEDED(rv)) {
+      if (aIsDomain) {
+        nsCAutoString domainName;
+        DomainNameFromURI(uri, domainName);
+
+        
+        
+        PRBool isAscii;
+        rv = mIDNService->ConvertToDisplayIDN(domainName, &isAscii, curHostName);
+
+      } else {
+        
+        rv = uri->GetHost(curHostName);
+      }
+    }
+    if (NS_FAILED(rv)) {
       
       aDest->AppendObject(aSource[i]);
       continue;
-    }
-
-    nsCAutoString curHostName;
-    if (aIsDomain) {
-      DomainNameFromHostName(fullHostName, curHostName);
-    } else {
-      
-      curHostName = fullHostName;
     }
 
     nsNavHistoryContainerResultNode* curTopGroup = nsnull;
@@ -5716,32 +5716,6 @@ GetReversedHostname(const nsString& aForward, nsAString& aRevHost)
 
 
 
-
-
-PRBool IsNumericHostName(const nsCString& aHost)
-{
-  PRInt32 periodCount = 0;
-  for (PRUint32 i = 0; i < aHost.Length(); i ++) {
-    PRUnichar cur = aHost[i];
-    if (cur == '.')
-      periodCount ++;
-    else if (cur < '0' || cur > '9')
-      return PR_FALSE;
-  }
-  return (periodCount == 3);
-}
-
-
-
-
-
-
-
-
-
-
-
-
 static PRInt64
 GetSimpleBookmarksQueryFolder(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                               nsNavHistoryQueryOptions* aOptions)
@@ -5861,124 +5835,6 @@ GenerateTitleFromURI(nsIURI* aURI, nsAString& aTitle)
   }
   aTitle = NS_ConvertUTF8toUTF16(name);
   return NS_OK;
-}
-
-
-
-
-
-
-
-
-
-
-PRInt32
-GetTLDCharCount(const nsCString& aHost)
-{
-  nsCAutoString trailing;
-  GetSubstringFromNthDot(aHost, aHost.Length() - 1, 1,
-                         PR_FALSE, trailing);
-
-  switch (GetTLDType(trailing)) {
-    case 0:
-      
-      return 0;
-    case 1:
-      
-      return trailing.Length();
-    case 2: {
-      
-      nsCAutoString trailingMore;
-      GetSubstringFromNthDot(aHost, aHost.Length() - 1,
-                             2, PR_FALSE, trailingMore);
-      if (GetTLDType(trailingMore))
-        return trailingMore.Length();
-      else
-        return trailing.Length();
-    }
-    default:
-      NS_NOTREACHED("Invalid TLD type");
-      return 0;
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PRInt32
-GetTLDType(const nsCString& aHostTail)
-{
-  
-  if (! gTldTypes) {
-    
-    gTldTypes = new nsDataHashtable<nsCStringHashKey, int>();
-    if (! gTldTypes)
-      return 0;
-
-    gTldTypes->Init(256);
-
-    gTldTypes->Put(NS_LITERAL_CSTRING("com"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("org"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("net"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("edu"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("gov"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("mil"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("uk"), 2);
-    gTldTypes->Put(NS_LITERAL_CSTRING("co.uk"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("kr"), 2);
-    gTldTypes->Put(NS_LITERAL_CSTRING("co.kr"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("hu"), 1);
-    gTldTypes->Put(NS_LITERAL_CSTRING("us"), 1);
-
-    
-  }
-
-  PRInt32 type = 0;
-  if (gTldTypes->Get(aHostTail, &type))
-    return type;
-  else
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-void GetSubstringFromNthDot(const nsCString& aInput, PRInt32 aStartingSpot,
-                            PRInt32 aN, PRBool aIncludeDot, nsACString& aSubstr)
-{
-  PRInt32 dotsFound = 0;
-  for (PRInt32 i = aStartingSpot; i >= 0; i --) {
-    if (aInput[i] == '.') {
-      dotsFound ++;
-      if (dotsFound == aN) {
-        if (aIncludeDot)
-          aSubstr = Substring(aInput, i, aInput.Length() - i);
-        else
-          aSubstr = Substring(aInput, i + 1, aInput.Length() - i - 1);
-        return;
-      }
-    }
-  }
-  aSubstr = aInput; 
 }
 
 
