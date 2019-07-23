@@ -1921,7 +1921,14 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
   }
   if (mainWidget) {
     nsCOMPtr<nsIDeviceContext> ctx = mainWidget->GetDeviceContext();
-    devPixelsPerCSSPixel = float(ctx->AppUnitsPerCSSPixel()) / ctx->AppUnitsPerDevPixel();
+    
+    if (ctx) {
+      PRInt32 unitsPerDevPixel = ctx->AppUnitsPerDevPixel();
+      if (unitsPerDevPixel) {
+        devPixelsPerCSSPixel = float(ctx->AppUnitsPerCSSPixel()) /
+                                     unitsPerDevPixel;
+      }
+    }
   }
 
   
