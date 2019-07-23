@@ -1044,16 +1044,13 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     return;
   }
 
-  if (aNameSpaceID == kNameSpaceID_XHTML2_Unofficial ||
-      aNameSpaceID == kNameSpaceID_XHTML) {
-    if (aAttribute == nsAccessibilityAtoms::role)
-      InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
-    return;
-  }
-
-  if (aAttribute == nsAccessibilityAtoms::href ||
+  if (aAttribute == nsAccessibilityAtoms::role ||
+      aAttribute == nsAccessibilityAtoms::href ||
       aAttribute == nsAccessibilityAtoms::onclick ||
       aAttribute == nsAccessibilityAtoms::droppable) {
+    
+    
+    
     InvalidateCacheSubtree(aContent, nsIAccessibleEvent::EVENT_DOM_SIGNIFICANT_CHANGE);
     return;
   }

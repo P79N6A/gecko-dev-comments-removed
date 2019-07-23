@@ -837,32 +837,28 @@ nsAccessNode::GetLanguage(nsAString& aLanguage)
 PRBool
 nsAccessNode::GetARIARole(nsIContent *aContent, nsString& aRole)
 {
-  nsAutoString prefix;
-  PRBool strictPrefixChecking = PR_TRUE;
   aRole.Truncate();
 
-  if (aContent->IsNodeOfType(nsINode::eHTML)) { 
+  PRBool allowPrefixLookup = PR_TRUE;
+
+  if (aContent->IsNodeOfType(nsINode::eHTML)) {
     
-    aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::role, aRole);
-    
+    if (!aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::role, aRole)) {
+      return PR_FALSE;
+    }
     nsCOMPtr<nsIDOMNSDocument> doc(do_QueryInterface(aContent->GetDocument()));
     if (doc) {
-      
-      
-      
-      
       nsAutoString mimeType;
       doc->GetContentType(mimeType);
       if (mimeType.EqualsLiteral("text/html")) {
-        prefix = NS_LITERAL_STRING("wairole:");
-        strictPrefixChecking = PR_FALSE;
+        allowPrefixLookup = PR_FALSE;
       }
     }
   }
-
   
-  if (aRole.IsEmpty() && !aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole) &&
-      !aContent->GetAttr(kNameSpaceID_XHTML2_Unofficial, nsAccessibilityAtoms::role, aRole)) {
+  
+  else if (!aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole) &&
+           !aContent->GetAttr(kNameSpaceID_XHTML2_Unofficial, nsAccessibilityAtoms::role, aRole)) {
     return PR_FALSE;
   }
 
@@ -871,16 +867,23 @@ nsAccessNode::GetARIARole(nsIContent *aContent, nsString& aRole)
   if (!hasPrefix) {
     
     
-    if (strictPrefixChecking) {
-      
-      aRole.Truncate();
-      return PR_FALSE;
-    }
     return PR_TRUE;
   }
 
   
-  if (strictPrefixChecking) {  
+
+  
+  NS_NAMED_LITERAL_STRING(hardcodedWairolePrefix, "wairole:");
+  if (StringBeginsWith(aRole, hardcodedWairolePrefix)) {
+    
+    
+    aRole.Cut(0, hardcodedWairolePrefix.Length());
+    return PR_TRUE;
+  }
+
+  
+  nsAutoString prefix;
+  if (allowPrefixLookup) {  
     
     
     
@@ -890,14 +893,13 @@ nsAccessNode::GetARIARole(nsIContent *aContent, nsString& aRole)
       NS_NAMED_LITERAL_STRING(kWAIRoles_Namespace, "http://www.w3.org/2005/01/wai-rdf/GUIRoleTaxonomy#");
       dom3Node->LookupPrefix(kWAIRoles_Namespace, prefix);
       prefix += ':';
+      PRUint32 length = prefix.Length();
+      if (length > 1 && StringBeginsWith(aRole, prefix)) {
+        
+        
+        aRole.Cut(0, length);
+      }
     }
-  }
-
-  PRUint32 length = prefix.Length();
-  if (length > 1 && StringBeginsWith(aRole, prefix)) {
-    
-    
-    aRole.Cut(0, length);
   }
 
   return PR_TRUE;
