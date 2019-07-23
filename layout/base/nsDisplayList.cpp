@@ -1069,7 +1069,7 @@ PRBool
 nsDisplayBackground::IsOpaque(nsDisplayListBuilder* aBuilder) {
   
   if (mIsThemed)
-    return PR_FALSE;
+    return mThemeTransparency == nsITheme::eOpaque;
 
   const nsStyleBackground* bg;
 
