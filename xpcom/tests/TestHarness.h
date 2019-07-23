@@ -62,7 +62,7 @@ void fail(const char* msg, ...)
 {
   va_list ap;
 
-  printf("FAIL ");
+  printf("TEST-UNEXPECTED-FAIL | ");
 
   va_start(ap, msg);
   vprintf(msg, ap);
