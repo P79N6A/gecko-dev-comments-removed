@@ -374,8 +374,6 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   
   mRect = GetTransformedRegion(x, y, w, h, ctm, PresContext());
 
-  nsSVGUtils::UpdateFilterRegion(this);
-
   return NS_OK;
 }
 

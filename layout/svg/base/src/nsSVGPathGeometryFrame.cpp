@@ -274,7 +274,6 @@ nsSVGPathGeometryFrame::UpdateCoveredRegion()
   
   mRect = GetCoveredRegion();
 
-  nsSVGUtils::UpdateFilterRegion(this);
   return NS_OK;
 }
 

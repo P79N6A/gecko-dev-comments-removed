@@ -125,13 +125,13 @@ protected:
 class nsSVGFilterProperty :
   public nsSVGRenderingObserver, public nsISVGFilterProperty {
 public:
-  nsSVGFilterProperty(nsIURI *aURI, nsIFrame *aFilteredFrame);
+  nsSVGFilterProperty(nsIURI *aURI, nsIFrame *aFilteredFrame)
+    : nsSVGRenderingObserver(aURI, aFilteredFrame) {}
 
   
 
 
   nsSVGFilterFrame *GetFilterFrame();
-  void UpdateRect();
 
   
   NS_DECL_ISUPPORTS
@@ -142,12 +142,6 @@ public:
 private:
   
   virtual void DoUpdate();
-  
-  
-  
-  
-  
-  nsRect mFilterRect;
 };
 
 class nsSVGMarkerProperty : public nsSVGRenderingObserver {
