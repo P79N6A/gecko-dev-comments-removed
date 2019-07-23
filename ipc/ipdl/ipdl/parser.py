@@ -519,8 +519,15 @@ def p_Param(p):
     p[0] = Param(locFromTok(p, 1), p[1], p[2])
 
 def p_Type(p):
-    """Type : ActorType
-            | CxxID"""          
+    """Type : ScalarType
+            | ScalarType '[' ']'"""
+    if 4 == len(p):
+        p[1].array = 1
+    p[0] = p[1]
+
+def p_ScalarType(p):
+    """ScalarType : ActorType
+                  | CxxID"""    
                                 
     if isinstance(p[1], TypeSpec):
         p[0] = p[1]

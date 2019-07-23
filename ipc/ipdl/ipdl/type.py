@@ -35,7 +35,58 @@ import os, sys
 from ipdl.ast import CxxInclude, Decl, Loc, QualifiedId, State, TypeSpec, UsingStmt, Visitor, ASYNC, SYNC, RPC, IN, OUT, INOUT, ANSWER, CALL, RECV, SEND
 import ipdl.builtin as builtin
 
+
+class TypeVisitor:
+    def defaultVisit(self, node, *args):
+        raise Exception, "INTERNAL ERROR: no visitor for node type `%s'"% (
+            node.__class__.__name__)
+
+    def visitVoidType(self, v, *args):
+        pass
+
+    def visitBuiltinCxxType(self, t, *args):
+        pass
+
+    def visitImportedCxxType(self, t, *args):
+        pass
+
+    def visitStateType(self, s, *args):
+        pass
+
+    def visitMessageType(self, m, *args):
+        for param in m.params:
+            param.accept(self, *args)
+        for ret in m.returns:
+            ret.accept(self, *args)
+        if m.cdtype is not None:
+            m.cdtype.accept(self, *args)
+
+    def visitProtocolType(self, p, *args):
+        
+        
+        pass
+
+    def visitActorType(self, a, *args):
+        a.protocol.accept(self, *args)
+        a.state.accept(self, *args)
+
+    def visitUnionType(self, u, *args):
+        for component in u.components:
+            component.accept(self, *args)
+
+    def visitArrayType(self, a, *args):
+        a.basetype.accept(self, *args)
+
+
 class Type:
+    def __cmp__(self, o):
+        return cmp(self.fullname(), o.fullname())
+    def __eq__(self, o):
+        return (self.__class__ == o.__class__
+                and self.fullname() == o.fullname())
+    def __hash__(self):
+        return hash(self.fullname())
+
     
     def isCxx(self):
         return False
@@ -52,6 +103,12 @@ class Type:
 
     def name(self): raise Exception, 'NYI'
     def fullname(self): raise Exception, 'NYI'
+
+    def accept(self, visitor, *args):
+        visit = getattr(visitor, 'visit'+ self.__class__.__name__, None)
+        if visit is None:
+            return getattr(visitor, 'defaultVisit')(self, *args)
+        return visit(self, *args)
 
 class VoidType(Type):
     
@@ -106,10 +163,6 @@ class ImportedCxxType(CxxType):
     def fullname(self):
         return str(self.qname)
 
-class GeneratedCxxType(CxxType):
-    def isGenerated(self): return True
-    def isVisible(self):   return False
-
 
 class IPDLType(Type):
     def isIPDL(self):  return True
@@ -119,6 +172,7 @@ class IPDLType(Type):
     def isProtocol(self): return False
     def isActor(self): return False
     def isUnion(self): return False
+    def isArray(self): return False
 
     def isAsync(self): return self.sendSemantics is ASYNC
     def isSync(self): return self.sendSemantics is SYNC
@@ -218,6 +272,35 @@ class UnionType(IPDLType):
     def isUnion(self): return True
     def name(self): return self.qname.baseid
     def fullname(self): return str(self.qname)
+
+class ArrayType(IPDLType):
+    def __init__(self, basetype):
+        self.basetype = basetype
+
+    def isArray(self): return True
+    def name(self): return self.basetype.name() +'[]'
+    def fullname(self): return self.basetype.fullname() +'[]'
+
+
+def iteractortypes(type):
+    """Iterate over any actor(s) buried in |type|."""
+    
+    if not type or not type.isIPDL():
+        return
+    elif type.isActor():
+        yield type
+    elif type.isArray():
+        for actor in iteractortypes(type.basetype):
+            yield actor
+    elif type.isUnion():
+        for c in type.components:
+            for actor in iteractortypes(c):
+                yield actor
+
+def hasactor(type):
+    """Return true iff |type| is an actor or has one buried within."""
+    for _ in iteractortypes(type): return True
+    return False
 
 
 _builtinloc = Loc('<builtin>', 0)
@@ -448,18 +531,19 @@ class GatherDecls(TcheckVisitor):
             fullname = str(qname)
         components = [ ]
 
-        nactors = 0                     
-        
         for c in ud.components:
-            ctype = self.symtab.lookup(str(c)).type
+            cdecl = self.symtab.lookup(str(c))
+            if cdecl is None:
+                self.error(c.loc, "unknown component type `%s' of union `%s'",
+                           str(c), ud.name)
+                continue
+            ctype = cdecl.type
             if ctype.isIPDL() and ctype.isProtocol():
                 ctype = ActorType(ctype)
-                nactors += 1
+            if c.array:
+                ctype = ArrayType(ctype)
             components.append(ctype)
 
-        if nactors > 1:
-            self.error(ud.loc, 'sorry, IPDL currently limits you to one actor type per union. file a bug against :cjones')
-       
         ud.decl = self.declare(
             loc=ud.loc,
             type=UnionType(qname, components),
@@ -537,22 +621,30 @@ class GatherDecls(TcheckVisitor):
 
         
         
-        def resolvestate(param):
-            if param.type.state is None:
-                
-                
-                
-                
-                param.type.state = State.ANY
+        def resolvestate(loc, actortype):
+            assert actortype.isIPDL() and actortype.isActor()
 
-            loc = param.loc
-            statename = param.type.state.name
+            
+            if isinstance(actortype.state, Decl):
+                return
+            
+            if actortype.state is None:
+                
+                
+                
+                
+                actortype.state = State.ANY
+
+            statename = actortype.state.name
+            
+            
+            
             statedecl = self.symtab.lookup(statename)
             if statedecl is None:
                 self.error(
                     loc,
                     "protocol `%s' does not have the state `%s'",
-                    param.type.protocol.name(),
+                    actortype.protocol.name(),
                     statename)
             elif not statedecl.type.isState():
                 self.error(
@@ -561,15 +653,17 @@ class GatherDecls(TcheckVisitor):
                     statename,
                     statedecl.type.typename())
             else:
-                param.type.state = statedecl
+                actortype.state = statedecl
 
         for msg in p.messageDecls:
             for iparam in msg.inParams:
-                if iparam.type and iparam.type.isIPDL() and iparam.type.isActor():
-                    resolvestate(iparam)
+                loc = iparam.loc
+                for actortype in iteractortypes(iparam.type):
+                    resolvestate(loc, actortype)
             for oparam in msg.outParams:
-                if oparam.type and oparam.type.isIPDL() and oparam.type.isActor():
-                    resolvestate(oparam)
+                loc = oparam.loc
+                for actortype in iteractortypes(oparam.type):
+                    resolvestate(loc, actortype)
 
         
         
@@ -687,6 +781,10 @@ class GatherDecls(TcheckVisitor):
                                       param.typespec.state)
                 else:
                     ptype = ptdecl.type
+
+                if param.typespec.array:
+                    ptype = ArrayType(ptype)
+                
                 return self.declare(
                     loc=ploc,
                     type=ptype,
