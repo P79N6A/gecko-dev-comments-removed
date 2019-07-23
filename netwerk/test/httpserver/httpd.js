@@ -55,7 +55,7 @@ const CC = Components.Constructor;
 const PR_UINT32_MAX = Math.pow(2, 32) - 1;
 
 
-var DEBUG = true; 
+var DEBUG = false; 
 
 var gGlobalObject = this;
 
