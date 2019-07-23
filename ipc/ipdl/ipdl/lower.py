@@ -2801,6 +2801,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 self.cls.addstmts([ managermeth, Whitespace.NL ])
 
         
+        
         for managed in ptype.manages:
             arrvar = ExprVar('aArr')
             meth = MethodDefn(MethodDecl(
@@ -2810,7 +2811,15 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 const=1))
             meth.addstmt(StmtExpr(ExprAssn(
                 arrvar, p.managedVar(managed, self.side))))
-            self.cls.addstmts([ meth, Whitespace.NL ])
+
+            refmeth = MethodDefn(MethodDecl(
+                p.managedMethod(managed, self.side).name,
+                params=[ ],
+                ret=p.managedVarType(managed, self.side, const=1, ref=1),
+                const=1))
+            refmeth.addstmt(StmtReturn(p.managedVar(managed, self.side)))
+            
+            self.cls.addstmts([ meth, refmeth, Whitespace.NL ])
 
         
 
