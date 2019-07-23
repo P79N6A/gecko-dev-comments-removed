@@ -4933,7 +4933,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
     
     nscoord width =
       NSToCoordCeil(mTextRun->GetAdvanceWidth(start, flowEndInTextRun - start, &provider));
-    aData->currentLine += width;
+    aData->currentLine = NSCoordSaturatingAdd(aData->currentLine, width);
 
     PRUint32 trimStart = GetEndOfTrimmedText(provider.GetFragment(), start,
                                              flowEndInTextRun, &iter);
