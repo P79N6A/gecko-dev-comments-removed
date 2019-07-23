@@ -341,7 +341,7 @@ var WinTaskbarJumpList =
                      createInstance(Ci.nsILocalHandlerApp);
     handlerApp.executable = file;
     
-    if (name.length != 0)
+    if (name && name.length != 0)
       handlerApp.name = name;
     handlerApp.detailedDescription = description;
     handlerApp.appendParameter(args);
