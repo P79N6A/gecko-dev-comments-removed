@@ -1405,9 +1405,6 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
           nsIFrame *tableFrame = aPresShell->GetPrimaryFrameFor(tableContent);
           if (tableFrame &&
               tableFrame->GetType() == nsAccessibilityAtoms::tableOuterFrame) {
-            
-            
-            
 
             nsCOMPtr<nsIDOMNode> tableNode(do_QueryInterface(tableContent));
             if (tableNode) {
