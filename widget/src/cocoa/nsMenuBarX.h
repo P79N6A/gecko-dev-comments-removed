@@ -91,9 +91,7 @@ class nsMenuBarX : public nsIMenuBar,
 public:
     nsMenuBarX();
     virtual ~nsMenuBarX();
-    
-    enum {kApplicationMenuID = 1};
-    
+
     
     static NativeMenuItemTarget* sNativeEventTarget;
     
