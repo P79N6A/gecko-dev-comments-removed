@@ -52,6 +52,7 @@
 #include "nsHttp.h"
 #include "nsIHttpAuthenticator.h"
 #include "nsIApplicationCacheService.h"
+#include "nsIApplicationCacheContainer.h"
 #include "nsIAuthInformation.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIAuthPromptProvider.h"
@@ -129,6 +130,8 @@ nsHttpChannel::nsHttpChannel()
     , mCacheForOfflineUse(PR_FALSE)
     , mCachingOpportunistically(PR_FALSE)
     , mFallbackChannel(PR_FALSE)
+    , mInheritApplicationCache(PR_TRUE)
+    , mChooseApplicationCache(PR_FALSE)
     , mTracingEnabled(PR_TRUE)
 {
     LOG(("Creating nsHttpChannel @%x\n", this));
@@ -1537,7 +1540,8 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
     else
         accessRequested = nsICache::ACCESS_READ_WRITE; 
 
-    if (!mApplicationCache) {
+    if (!mApplicationCache && mInheritApplicationCache) {
+        
         
         nsCOMPtr<nsIApplicationCacheContainer> appCacheContainer;
         GetCallback(appCacheContainer);
@@ -1545,18 +1549,19 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
         if (appCacheContainer) {
             appCacheContainer->GetApplicationCache(getter_AddRefs(mApplicationCache));
         }
+    }
 
-        if ((mLoadFlags & LOAD_CHECK_OFFLINE_CACHE) && !mApplicationCache) {
-            
-            
-            
-            nsCOMPtr<nsIApplicationCacheService> appCacheService =
-                do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
-            if (appCacheService) {
-                nsresult rv = appCacheService->ChooseApplicationCache
-                    (cacheKey, getter_AddRefs(mApplicationCache));
-                NS_ENSURE_SUCCESS(rv, rv);
-            }
+    if (!mApplicationCache &&
+        (mChooseApplicationCache || (mLoadFlags & LOAD_CHECK_OFFLINE_CACHE))) {
+        
+        
+        
+        nsCOMPtr<nsIApplicationCacheService> appCacheService =
+            do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
+        if (appCacheService) {
+            nsresult rv = appCacheService->ChooseApplicationCache
+                (cacheKey, getter_AddRefs(mApplicationCache));
+            NS_ENSURE_SUCCESS(rv, rv);
         }
     }
 
@@ -2566,6 +2571,9 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     if (mConnectionInfo->UsingSSL())
         newLoadFlags &= ~INHIBIT_PERSISTENT_CACHING;
 
+    
+    newLoadFlags &= ~LOAD_CHECK_OFFLINE_CACHE;
+
     newChannel->SetOriginalURI(mOriginalURI);
     newChannel->SetLoadGroup(mLoadGroup); 
     newChannel->SetNotificationCallbacks(mCallbacks);
@@ -2635,12 +2643,12 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     }
 
     
-    if (mApplicationCache) {
-        nsCOMPtr<nsIApplicationCacheContainer> appCacheContainer =
-            do_QueryInterface(newChannel);
-        if (appCacheContainer) {
-            appCacheContainer->SetApplicationCache(mApplicationCache);
-        }
+    nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
+        do_QueryInterface(newChannel);
+    if (appCacheChannel) {
+        appCacheChannel->SetApplicationCache(mApplicationCache);
+        appCacheChannel->SetInheritApplicationCache(mInheritApplicationCache);
+        
     }
 
     
@@ -3696,6 +3704,7 @@ NS_INTERFACE_MAP_BEGIN(nsHttpChannel)
     NS_INTERFACE_MAP_ENTRY(nsIProxiedChannel)
     NS_INTERFACE_MAP_ENTRY(nsITraceableChannel)
     NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheContainer)
+    NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheChannel)
 NS_INTERFACE_MAP_END_INHERITING(nsHashPropertyBag)
 
 
@@ -5229,10 +5238,43 @@ nsHttpChannel::GetApplicationCache(nsIApplicationCache **out)
 NS_IMETHODIMP
 nsHttpChannel::SetApplicationCache(nsIApplicationCache *appCache)
 {
+    NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+
     mApplicationCache = appCache;
     return NS_OK;
 }
 
+NS_IMETHODIMP
+nsHttpChannel::GetInheritApplicationCache(PRBool *aInherit)
+{
+    *aInherit = mInheritApplicationCache;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetInheritApplicationCache(PRBool aInherit)
+{
+    NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+
+    mInheritApplicationCache = aInherit;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetChooseApplicationCache(PRBool *aChoose)
+{
+    *aChoose = mChooseApplicationCache;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetChooseApplicationCache(PRBool aChoose)
+{
+    NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+
+    mChooseApplicationCache = aChoose;
+    return NS_OK;
+}
 
 
 

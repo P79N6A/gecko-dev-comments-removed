@@ -1567,12 +1567,13 @@ nsDocument::~nsDocument()
     mBoxObjectTable->EnumerateRead(ClearAllBoxObjects, nsnull);
     delete mBoxObjectTable;
   }
+
+  delete mContentWrapperHash;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocument)
 
 NS_INTERFACE_TABLE_HEAD(nsDocument)
-  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_DOCUMENT_INTERFACE_TABLE_BEGIN(nsDocument)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsINode)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsIDocument)
@@ -1752,7 +1753,9 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mCatalogSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mVisitednessChangedURIs)
 
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_PRESERVED_WRAPPER
+  
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[preserved wrapper]");
+  cb.NoteXPCOMChild(tmp->GetReference(tmp));
 
   if (tmp->mSubDocuments && tmp->mSubDocuments->ops) {
     PL_DHashTableEnumerate(tmp->mSubDocuments, SubDocTraverser, &cb);
@@ -1783,9 +1786,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
-  tmp->mParentDocument = nsnull;
+  
+  delete tmp->mContentWrapperHash;
+  tmp->mContentWrapperHash = nsnull;
 
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
+  tmp->mParentDocument = nsnull;
 
   
   
@@ -2571,6 +2576,15 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
 NS_IMETHODIMP
 nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
 {
+  return ElementFromPointHelper(aX, aY, PR_FALSE, PR_TRUE, aReturn);
+}
+
+nsresult
+nsDocument::ElementFromPointHelper(PRInt32 aX, PRInt32 aY,
+                                   PRBool aIgnoreRootScrollFrame,
+                                   PRBool aFlushLayout,
+                                   nsIDOMElement** aReturn)
+{
   NS_ENSURE_ARG_POINTER(aReturn);
   *aReturn = nsnull;
   
@@ -2583,7 +2597,8 @@ nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
 
   
   
-  FlushPendingNotifications(Flush_Layout);
+  if (aFlushLayout)
+    FlushPendingNotifications(Flush_Layout);
 
   nsIPresShell *ps = GetPrimaryShell();
   NS_ENSURE_STATE(ps);
@@ -2593,7 +2608,8 @@ nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
   if (!rootFrame)
     return NS_OK; 
 
-  nsIFrame *ptFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, pt, PR_TRUE);
+  nsIFrame *ptFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, pt, PR_TRUE,
+                                                      aIgnoreRootScrollFrame);
   if (!ptFrame)
     return NS_OK;
 
@@ -6223,6 +6239,41 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
   }
 }
 
+void
+nsDocument::AddReference(void *aKey, nsISupports *aReference)
+{
+  if (mScriptGlobalObject) {
+    if (!mContentWrapperHash) {
+      mContentWrapperHash = new nsInterfaceHashtable<nsVoidPtrHashKey, nsISupports>;
+      if (mContentWrapperHash) {
+        mContentWrapperHash->Init(10);
+      }
+    }
+    
+    if (mContentWrapperHash)
+      mContentWrapperHash->Put(aKey, aReference);
+  }
+}
+
+nsISupports*
+nsDocument::GetReference(void *aKey)
+{
+  
+  
+    
+  if (mContentWrapperHash)
+    return mContentWrapperHash->GetWeak(aKey);
+  return nsnull;
+}
+
+void
+nsDocument::RemoveReference(void *aKey)
+{
+  if (mContentWrapperHash) {
+    mContentWrapperHash->Remove(aKey);
+  }
+}
+
 nsIScriptEventManager*
 nsDocument::GetScriptEventManager()
 {
@@ -6833,6 +6884,13 @@ nsDocument::Destroy()
   
   
   mExternalResourceMap.Shutdown();
+
+  
+  
+  
+  
+  delete mContentWrapperHash;
+  mContentWrapperHash = nsnull;
 }
 
 void
