@@ -2475,14 +2475,7 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
     
     STOBJ_SET_PROTO(obj, proto);
     STOBJ_SET_PARENT(obj, parent);
-
-    
-
-
-
-    JS_ASSERT(((jsuword) clasp & 3) == 0);
     STOBJ_SET_SLOT(obj, JSSLOT_CLASS, PRIVATE_TO_JSVAL(clasp));
-    JS_ASSERT(!STOBJ_IS_SYSTEM(obj));
 
     
     for (i = JSSLOT_PRIVATE; i != JS_INITIAL_NSLOTS; ++i)

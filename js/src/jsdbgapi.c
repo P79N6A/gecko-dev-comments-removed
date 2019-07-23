@@ -1643,21 +1643,16 @@ JS_FlagScriptFilenamePrefix(JSRuntime *rt, const char *prefix, uint32 flags)
 JS_PUBLIC_API(JSBool)
 JS_IsSystemObject(JSContext *cx, JSObject *obj)
 {
-    return STOBJ_IS_SYSTEM(obj);
+    return (*js_GetGCThingFlags(obj) & GCF_SYSTEM) != 0;
 }
 
 JS_PUBLIC_API(void)
 JS_FlagSystemObject(JSContext *cx, JSObject *obj)
 {
-    
+    uint8 *flagp;
 
-
-
-
-
-
-
-    STOBJ_SET_SYSTEM(obj);
+    flagp = js_GetGCThingFlags(obj);
+    *flagp |= GCF_SYSTEM;
 }
 
 
