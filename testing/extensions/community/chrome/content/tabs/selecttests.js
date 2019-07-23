@@ -10,12 +10,13 @@
 			if (window.arguments.length > 0) {
 				updateFunction = window.arguments[0];   
                 handleCancel = window.arguments[1];     
-            }
+            } 
 			litmus.getTestruns(populateTestRuns);
 		}
 
         function handleRunSelect() {
             var id = document.getElementById("qa-st-testrun").selectedItem.getAttribute("value");
+            if (id == "") return;  
             litmus.getTestrun(id, populateTestGroups);
         }
 
