@@ -476,7 +476,7 @@ static int const num_args[] =
 };
 
 cairo_status_t
-_cairo_path_fixed_interpret (cairo_path_fixed_t			*path,
+_cairo_path_fixed_interpret (const cairo_path_fixed_t		*path,
 			     cairo_direction_t			 dir,
 			     cairo_path_fixed_move_to_func_t	*move_to,
 			     cairo_path_fixed_line_to_func_t	*line_to,
@@ -485,7 +485,7 @@ _cairo_path_fixed_interpret (cairo_path_fixed_t			*path,
 			     void				*closure)
 {
     cairo_status_t status;
-    cairo_path_buf_t *buf;
+    const cairo_path_buf_t *buf;
     cairo_path_op_t op;
     cairo_bool_t forward = (dir == CAIRO_DIRECTION_FORWARD);
     int step = forward ? 1 : -1;
@@ -541,6 +541,52 @@ _cairo_path_fixed_interpret (cairo_path_fixed_t			*path,
     return CAIRO_STATUS_SUCCESS;
 }
 
+static cairo_status_t
+_append_move_to (void		 *closure,
+	  cairo_point_t  *point)
+{
+    cairo_path_fixed_t *path = (cairo_path_fixed_t *) closure;
+    return _cairo_path_fixed_move_to (path, point->x, point->y);
+}
+
+static cairo_status_t
+_append_line_to (void		 *closure,
+	  cairo_point_t *point)
+{
+    cairo_path_fixed_t *path = (cairo_path_fixed_t *) closure;
+    return _cairo_path_fixed_line_to (path, point->x, point->y);
+}
+
+static cairo_status_t
+_append_curve_to (void	  *closure,
+	   cairo_point_t *p0,
+	   cairo_point_t *p1,
+	   cairo_point_t *p2)
+{
+    cairo_path_fixed_t *path = (cairo_path_fixed_t *) closure;
+    return _cairo_path_fixed_curve_to (path, p0->x, p0->y, p1->x, p1->y, p2->x, p2->y);
+}
+
+static cairo_status_t
+_append_close_path (void *closure)
+{
+    cairo_path_fixed_t *path = (cairo_path_fixed_t *) closure;
+    return _cairo_path_fixed_close_path (path);
+}
+
+cairo_private cairo_status_t
+_cairo_path_fixed_append (cairo_path_fixed_t		  *path,
+			  const cairo_path_fixed_t	  *other,
+			  cairo_direction_t		   dir)
+{
+    return _cairo_path_fixed_interpret (other, dir,
+					_append_move_to,
+					_append_line_to,
+					_append_curve_to,
+					_append_close_path,
+					path);
+}
+
 static void
 _cairo_path_fixed_offset_and_scale (cairo_path_fixed_t *path,
 				    cairo_fixed_t offx,
@@ -575,20 +621,38 @@ _cairo_path_fixed_offset_and_scale (cairo_path_fixed_t *path,
 
 
 
-
-
 void
-_cairo_path_fixed_device_transform (cairo_path_fixed_t	*path,
-				    cairo_matrix_t	*device_transform)
+_cairo_path_fixed_transform (cairo_path_fixed_t	*path,
+			     cairo_matrix_t     *matrix)
 {
-    assert (device_transform->yx == 0.0 && device_transform->xy == 0.0);
-    
+    cairo_path_buf_t *buf;
+    int i;
+    double dx, dy;
 
-    _cairo_path_fixed_offset_and_scale (path,
-					_cairo_fixed_from_double (device_transform->x0),
-					_cairo_fixed_from_double (device_transform->y0),
-					_cairo_fixed_from_double (device_transform->xx),
-					_cairo_fixed_from_double (device_transform->yy));
+    if (matrix->yx == 0.0 && matrix->xy == 0.0) {
+	
+	_cairo_path_fixed_offset_and_scale (path,
+					    _cairo_fixed_from_double (matrix->x0),
+					    _cairo_fixed_from_double (matrix->y0),
+					    _cairo_fixed_from_double (matrix->xx),
+					    _cairo_fixed_from_double (matrix->yy));
+	return;
+    }
+
+    buf = &path->buf_head.base;
+    while (buf) {
+	 for (i = 0; i < buf->num_points; i++) {
+	    dx = _cairo_fixed_to_double (buf->points[i].x);
+	    dy = _cairo_fixed_to_double (buf->points[i].y);
+
+	    cairo_matrix_transform_point (matrix, &dx, &dy);
+
+	    buf->points[i].x = _cairo_fixed_from_double (dx);
+	    buf->points[i].y = _cairo_fixed_from_double (dy);
+	 }
+
+	 buf = buf->next;
+    }
 }
 
 cairo_bool_t
@@ -701,7 +765,7 @@ _cpf_close_path (void *closure)
 
 
 cairo_status_t
-_cairo_path_fixed_interpret_flat (cairo_path_fixed_t			*path,
+_cairo_path_fixed_interpret_flat (const cairo_path_fixed_t		*path,
 				  cairo_direction_t			dir,
 				  cairo_path_fixed_move_to_func_t	*move_to,
 				  cairo_path_fixed_line_to_func_t	*line_to,
@@ -804,6 +868,8 @@ _cairo_path_fixed_is_box (cairo_path_fixed_t *path,
 
     return FALSE;
 }
+
+
 
 
 

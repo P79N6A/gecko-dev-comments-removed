@@ -1627,7 +1627,8 @@ _cairo_xcb_surface_show_glyphs (void                *abstract_dst,
 				 cairo_pattern_t     *src_pattern,
 				 cairo_glyph_t       *glyphs,
 				 int		      num_glyphs,
-				 cairo_scaled_font_t *scaled_font);
+				 cairo_scaled_font_t *scaled_font,
+				 int		     *remaining_glyphs);
 
 static cairo_bool_t
 _cairo_xcb_surface_is_similar (void *surface_a,
@@ -2310,7 +2311,8 @@ _cairo_xcb_surface_show_glyphs (void                *abstract_dst,
 				 cairo_pattern_t     *src_pattern,
 				 cairo_glyph_t       *glyphs,
 				 int		      num_glyphs,
-				 cairo_scaled_font_t *scaled_font)
+				 cairo_scaled_font_t *scaled_font,
+				 int		     *remaining_glyphs)
 {
     cairo_int_status_t status = CAIRO_STATUS_SUCCESS;
     cairo_xcb_surface_t *dst = abstract_dst;
@@ -2330,7 +2332,7 @@ _cairo_xcb_surface_show_glyphs (void                *abstract_dst,
 
     cairo_xcb_surface_show_glyphs_func_t show_glyphs_func;
 
-    cairo_pattern_union_t solid_pattern;
+    cairo_solid_pattern_t solid_pattern;
 
     if (!CAIRO_SURFACE_RENDER_HAS_COMPOSITE_TEXT (dst) || dst->xrender_format.id == XCB_NONE)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
@@ -2393,7 +2395,7 @@ _cairo_xcb_surface_show_glyphs (void                *abstract_dst,
 
 
     if (op == CAIRO_OPERATOR_CLEAR) {
-	_cairo_pattern_init_solid (&solid_pattern.solid, CAIRO_COLOR_WHITE,
+	_cairo_pattern_init_solid (&solid_pattern, CAIRO_COLOR_WHITE,
 				   CAIRO_CONTENT_COLOR);
 	src_pattern = &solid_pattern.base;
 	op = CAIRO_OPERATOR_DEST_OUT;
