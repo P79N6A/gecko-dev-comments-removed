@@ -2287,11 +2287,19 @@ gc_lock_traversal(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 num,
 
 
 
-    if (IS_GC_MARKING_TRACER(trc) && (n = lhe->count - 1) != 0) {
-        rt = trc->context->runtime;
-        if (rt->gcThingCallback) {
+    n = lhe->count - 1;
+    if (n != 0) {
+        if (IS_GC_MARKING_TRACER(trc)) {
+            rt = trc->context->runtime;
+            if (rt->gcThingCallback) {
+                do {
+                    rt->gcThingCallback(thing, flags,
+                                        rt->gcThingCallbackClosure);
+                } while (--n != 0);
+            }
+        } else {
             do {
-                rt->gcThingCallback(thing, flags, rt->gcThingCallbackClosure);
+                JS_CALL_TRACER(trc, thing, traceKind, "locked object");
             } while (--n != 0);
         }
     }
