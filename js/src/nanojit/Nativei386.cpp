@@ -270,7 +270,6 @@ namespace nanojit
     {
         
         a.clear();
-        a.used = 0;
         a.free = SavedRegs | ScratchRegs;
         if (!config.sse2)
             a.free &= ~XmmRegs;

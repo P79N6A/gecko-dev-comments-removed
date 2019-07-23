@@ -141,7 +141,6 @@ namespace nanojit
             RegisterMask preferredAndFree = allowedAndFree & SavedRegs;
             RegisterMask set = ( preferredAndFree ? preferredAndFree : allowedAndFree );
             Register r = nRegisterAllocFromSet(set);
-            regs.used |= rmask(r);
             return r;
         }
 
@@ -449,12 +448,7 @@ namespace nanojit
 
     void Assembler::evictIfActive(Register r)
     {
-        if (_allocator.isFree(r)) {
-            
-            _allocator.used |= rmask(r);
-        } else {
-            
-            LIns* vic = _allocator.getActive(r);
+        if (LIns* vic = _allocator.getActive(r)) {
             evict(r, vic);
         }
     }
@@ -1200,7 +1194,7 @@ namespace nanojit
                     }
                     else {
                         
-                        NanoAssert(label->addr == 0 && label->regs.isValid());
+                        NanoAssert(label->addr == 0);
                         
                         intersectRegisterState(label->regs);
                         label->addr = _nIns;
@@ -1721,7 +1715,6 @@ namespace nanojit
             if (i && !(skip&rmask(r)))
                 findSpecificRegFor(i, r);
         }
-        debug_only(saved.used = 0);  
     }
 
     

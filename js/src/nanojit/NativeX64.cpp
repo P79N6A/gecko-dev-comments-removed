@@ -1179,7 +1179,6 @@ namespace nanojit
     void Assembler::nRegisterResetAll(RegAlloc &a) {
         
         a.clear();
-        a.used = 0;
 #ifdef _MSC_VER
         a.free = 0x001fffcf; 
 #else
