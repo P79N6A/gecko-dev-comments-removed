@@ -148,30 +148,14 @@ public:
 
 
 
-
-
-
   void AddExecuteBlocker()
   {
-    if (!mBlockerCount++) {
-      mHadPendingScripts = mPendingRequests.Count() != 0;
-    }
+    ++mBlockerCount;
   }
   void RemoveExecuteBlocker()
   {
     if (!--mBlockerCount) {
-      
-      
-      
-      
-      
-      
-      if (mHadPendingScripts) {
-        ProcessPendingRequestsAsync();
-      }
-      else {
-        ProcessPendingRequests();
-      }
+      ProcessPendingRequestsAsync();
     }
   }
 
@@ -246,7 +230,6 @@ protected:
   nsTArray< nsRefPtr<nsScriptLoader> > mPendingChildLoaders;
   PRUint32 mBlockerCount;
   PRPackedBool mEnabled;
-  PRPackedBool mHadPendingScripts;
 };
 
 #endif 

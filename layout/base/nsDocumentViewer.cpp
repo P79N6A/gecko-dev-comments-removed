@@ -1048,6 +1048,8 @@ DocumentViewerImpl::PermitUnload(PRBool *aPermitUnload)
     return NS_OK;
   }
 
+  NS_ASSERTION(nsContentUtils::IsSafeToRunScript(), "This is unsafe");
+
   
   
   nsEventStatus status = nsEventStatus_eIgnore;

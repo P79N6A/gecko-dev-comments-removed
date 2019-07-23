@@ -108,6 +108,7 @@
 #include "nsDisplayList.h"
 #include "nsAttrName.h"
 #include "nsDataHashtable.h"
+#include "nsDOMClassInfo.h"
 
 
 #include "nsIScriptGlobalObject.h"
@@ -1857,20 +1858,6 @@ nsObjectFrame::NotifyContentObjectWrapper()
 
   if (!wrapper) {
     
-    return;
-  }
-
-  nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(mContent));
-  if (!ci)
-    return;
-
-  nsCOMPtr<nsISupports> s;
-  ci->GetHelperForLanguage(nsIProgrammingLanguage::JAVASCRIPT,
-                           getter_AddRefs(s));
-
-  nsCOMPtr<nsIXPCScriptable> helper(do_QueryInterface(s));
-
-  if (!helper) {
     
     return;
   }
@@ -1880,13 +1867,7 @@ nsObjectFrame::NotifyContentObjectWrapper()
   if (NS_FAILED(rv))
     return;
 
-  nsCxPusher cxPusher;
-  if (cxPusher.Push(mContent)) {
-    
-    
-    
-    helper->PostCreate(wrapper, cx, obj);
-  }
+  nsHTMLPluginObjElementSH::SetupProtoChain(wrapper, cx, obj);
 }
 
 
