@@ -65,6 +65,9 @@ for (var p in jitProps)
 
 function test(f)
 {
+  
+  gc();
+
   if (!testName || testName == f.name) {
     var expectedJITstats = f.jitstats;
     if (hadJITstats && expectedJITstats)
