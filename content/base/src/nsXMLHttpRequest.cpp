@@ -1106,9 +1106,14 @@ nsXMLHttpRequest::Abort()
     mACGetChannel->Cancel(NS_BINDING_ABORTED);
   }
   mDocument = nsnull;
+  mResponseBody.Truncate();
   mState |= XML_HTTP_REQUEST_ABORTED;
 
-  ChangeState(XML_HTTP_REQUEST_COMPLETED, PR_TRUE, PR_TRUE);
+  if (!(mState & (XML_HTTP_REQUEST_UNINITIALIZED |
+                  XML_HTTP_REQUEST_OPENED |
+                  XML_HTTP_REQUEST_COMPLETED))) {
+    ChangeState(XML_HTTP_REQUEST_COMPLETED, PR_TRUE, PR_TRUE);
+  }
 
   
   
@@ -2591,9 +2596,12 @@ nsXMLHttpRequest::ChangeState(PRUint32 aState, PRBool aBroadcast,
 
   
   nsCOMArray<nsIDOMEventListener> readystatechangeEventListeners;
-  CopyEventListeners(mOnReadystatechangeListener,
-                     mReadystatechangeEventListeners,
-                     readystatechangeEventListeners);
+
+  if (aBroadcast) {
+    CopyEventListeners(mOnReadystatechangeListener,
+                       mReadystatechangeEventListeners,
+                       readystatechangeEventListeners);
+  }
 
   if (aClearEventListeners) {
     ClearEventListeners();
