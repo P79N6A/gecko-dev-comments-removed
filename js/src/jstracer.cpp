@@ -1887,12 +1887,19 @@ TraceRecorder::snapshot(ExitType exitType)
 }
 
 
+
+LIns*
+TraceRecorder::guard(bool expected, nanojit::LIns* cond, nanojit::LIns* exit)
+{
+    return lir->insGuard(expected ? LIR_xf : LIR_xt, cond, exit);
+}
+
+
+
 LIns*
 TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 {
-    return lir->insGuard(expected ? LIR_xf : LIR_xt,
-                         cond,
-                         snapshot(exitType));
+    return guard(expected, cond, snapshot(exitType));
 }
 
 
@@ -4095,19 +4102,45 @@ TraceRecorder::guardDenseArrayIndex(JSObject* obj, jsint idx, LIns* obj_ins,
                                     LIns* dslots_ins, LIns* idx_ins, ExitType exitType)
 {
     jsuint length = ARRAY_DENSE_LENGTH(obj);
-    bool cond = ((jsuint)idx < length && idx < obj->fslots[JSSLOT_ARRAY_LENGTH]);
 
-    LIns* length_ins = stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH);
-    LIns* capacity_ins = lir->insLoad(LIR_ldp, dslots_ins, 0 - (int)sizeof(jsval));
-
-    LIns* min_ins = lir->ins_choose(lir->ins2(LIR_ult, length_ins, capacity_ins),
-                                    length_ins,
-                                    capacity_ins);
-    
-    
-    guard(cond, lir->ins2(LIR_ult, idx_ins, min_ins), exitType);
-
-    return cond;
+    bool cond = (jsuint(idx) < jsuint(obj->fslots[JSSLOT_ARRAY_LENGTH]) && jsuint(idx) < length);
+    if (cond) {
+        
+        LIns* exit = guard(true,
+                           lir->ins2(LIR_ult, idx_ins, stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
+                           exitType)->oprnd2();
+        
+        guard(false,
+              lir->ins_eq0(dslots_ins),
+              exit);
+        
+        guard(true,
+              lir->ins2(LIR_ult,
+                        idx_ins,
+                        lir->insLoad(LIR_ldp, dslots_ins, 0 - (int)sizeof(jsval))),
+              exit);
+    } else {
+         
+        LIns* br1 = lir->insBranch(LIR_jf, 
+                                   lir->ins2(LIR_ult, 
+                                             idx_ins, 
+                                             stobj_get_fslot(obj_ins, JSSLOT_ARRAY_LENGTH)),
+                                   NULL);
+        
+        LIns* br2 = lir->insBranch(LIR_jt, lir->ins_eq0(dslots_ins), NULL);
+        
+        LIns* br3 = lir->insBranch(LIR_jf,
+                                   lir->ins2(LIR_ult,
+                                             idx_ins,
+                                             lir->insLoad(LIR_ldp, dslots_ins, 0 - (int)sizeof(jsval))),
+                                   NULL);
+        lir->insGuard(LIR_x, lir->insImm(1), snapshot(exitType));
+        LIns* label = lir->ins0(LIR_label);
+        br1->target(label);
+        br2->target(label);
+        br3->target(label);
+    }
+    return cond;    
 }
 
 
