@@ -697,6 +697,13 @@ function OnDocumentLoad(event)
        ps.footerStrCenter = "";
        ps.footerStrRight = "";
        gBrowser.docShell.contentViewer.setPageMode(true, ps);
+
+       
+       
+       
+       
+       gURLs[0].minAsserts += 2;
+       gURLs[0].maxAsserts += 2;
     }
 
     setupZoom(contentRootElement);
