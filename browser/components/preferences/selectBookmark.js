@@ -69,8 +69,8 @@ var SelectBookmarkDialog = {
 
   onItemDblClick: function SBD_onItemDblClick() {
     var bookmarks = document.getElementById("bookmarks");
-    if (bookmarks.hasSingleSelection && 
-        PlacesUtils.nodeIsURI(bookmarks.selectedNode)) {
+    var selectedNode = bookmarks.selectedNode;
+    if (selectedNode && PlacesUtils.nodeIsURI(selectedNode)) {
       
 
 
