@@ -348,6 +348,33 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
+    getAllEncryptedLogins : function (count) {
+        var result = [];
+
+        
+        for each (var hostLogins in this._logins) {
+            
+            
+            for each (var login in hostLogins) {
+                var clone = new this._nsLoginInfo();
+                clone.init(login.hostname, login.formSubmitURL, login.httpRealm,
+                           login.wrappedJSObject.encryptedUsername,
+                           login.wrappedJSObject.encryptedPassword,
+                           login.usernameField, login.passwordField);
+                result.push(clone);
+            }
+        }
+
+        count.value = result.length; 
+        return result;
+    },
+
+
+    
+
+
+
+
     removeAllLogins : function () {
         
         this._removeOldSignonsFiles();

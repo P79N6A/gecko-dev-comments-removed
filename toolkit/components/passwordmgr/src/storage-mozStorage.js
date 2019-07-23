@@ -139,8 +139,6 @@ LoginManagerStorage_mozStorage.prototype = {
     _signonsFile  : null,  
     _importFile   : null,  
     _debug        : false, 
-    _initialized  : false, 
-    _initializing : false, 
 
 
     
@@ -201,27 +199,7 @@ LoginManagerStorage_mozStorage.prototype = {
             token.initPassword("");
         }
 
-        
-        
-    },
-
-
-    
-
-
-
-
-
-
-
-    _deferredInit : function () {
         let isFirstRun;
-        
-        if (this._initializing)
-            throw "Already initializing";
-
-        
-        this._initializing = true;
         try {
             
             if (!this._signonsFile) {
@@ -248,24 +226,6 @@ LoginManagerStorage_mozStorage.prototype = {
             if (isFirstRun && e == "Import failed")
                 this._dbCleanup(false);
             throw "Initialization failed";
-        } finally {
-            this._initializing = false;
-        }
-    },
-
-
-    
-
-
-
-
-
-
-
-    _checkInitializationState : function () {
-        if (!this._initialized) {
-            this.log("Trying to initialize.");
-            this._deferredInit();
         }
     },
 
@@ -275,8 +235,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     addLogin : function (login) {
-        this._checkInitializationState();
-        this._addLogin(login);
+        this._addLogin(login, false);
     },
 
 
@@ -285,14 +244,20 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
 
-    _addLogin : function (login) {
+    _addLogin : function (login, isEncrypted) {
+        let userCanceled, encUsername, encPassword;
+
         
         this._checkLoginValues(login);
 
-        
-        let [encUsername, encPassword, userCanceled] = this._encryptLogin(login);
-        if (userCanceled)
-            throw "User canceled master password entry, login not added.";
+        if (isEncrypted) {
+            [encUsername, encPassword] = [login.username, login.password];
+        } else {
+            
+            [encUsername, encPassword, userCanceled] = this._encryptLogin(login);
+            if (userCanceled)
+                throw "User canceled master password entry, login not added.";
+        }
 
         let query =
             "INSERT INTO moz_logins " +
@@ -329,8 +294,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     removeLogin : function (login) {
-        this._checkInitializationState();
-
         let idToDelete = this._getIdForLogin(login);
         if (!idToDelete)
             throw "No matching logins";
@@ -356,8 +319,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     modifyLogin : function (oldLogin, newLogin) {
-        this._checkInitializationState();
-
         
         this._checkLoginValues(newLogin);
 
@@ -411,8 +372,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     getAllLogins : function (count) {
-        this._checkInitializationState();
-
         let userCanceled;
         let [logins, ids] = this._queryLogins("", "", "");
 
@@ -434,8 +393,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     removeAllLogins : function () {
-        this._checkInitializationState();
-
         this.log("Removing all logins");
         
         this._removeOldSignonsFiles();
@@ -460,8 +417,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     getAllDisabledHosts : function (count) {
-        this._checkInitializationState();
-
         let disabledHosts = this._queryDisabledHosts(null);
 
         this.log("_getAllDisabledHosts: returning " + disabledHosts.length + " disabled hosts.");
@@ -475,8 +430,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     getLoginSavingEnabled : function (hostname) {
-        this._checkInitializationState();
-
         this.log("Getting login saving is enabled for " + hostname);
         return this._queryDisabledHosts(hostname).length == 0
     },
@@ -487,7 +440,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     setLoginSavingEnabled : function (hostname, enabled) {
-        this._checkInitializationState();
         this._setLoginSavingEnabled(hostname, enabled);
     },
 
@@ -529,8 +481,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     findLogins : function (count, hostname, formSubmitURL, httpRealm) {
-        this._checkInitializationState();
-
         let userCanceled;
         let [logins, ids] =
             this._queryLogins(hostname, formSubmitURL, httpRealm);
@@ -555,8 +505,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     countLogins : function (hostname, formSubmitURL, httpRealm) {
-        this._checkInitializationState();
-
         
         let [conditions, params] =
             this._buildConditionsAndParams(hostname, formSubmitURL, httpRealm);
@@ -813,9 +761,9 @@ LoginManagerStorage_mozStorage.prototype = {
                 legacy.init();
 
             
-            let logins = legacy.getAllLogins({});
+            let logins = legacy.getAllEncryptedLogins({});
             for each (let login in logins)
-                this._addLogin(login);
+                this._addLogin(login, true);
             let disabledHosts = legacy.getAllDisabledHosts({});
             for each (let hostname in disabledHosts)
                 this._setLoginSavingEnabled(hostname, false);
@@ -971,7 +919,15 @@ LoginManagerStorage_mozStorage.prototype = {
         let plainText = null, userCanceled = false;
 
         try {
-            let plainOctet = this._decoderRing.decryptString(cipherText);
+            let plainOctet;
+            if (cipherText.charAt(0) == '~') {
+                
+                
+                
+                plainOctet = atob(cipherText.substring(1));
+            } else {
+                plainOctet = this._decoderRing.decryptString(cipherText);
+            }
             plainText = this._utfConverter.ConvertToUnicode(plainOctet);
         } catch (e) {
             this.log("Failed to decrypt string: " + cipherText +

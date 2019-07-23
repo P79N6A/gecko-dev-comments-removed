@@ -43,14 +43,7 @@ testnum++;
 var testdesc = "Initialization, reinitialization, & importing"
 
 var storage;
-
-storage = LoginTest.initStorage(INDIR, "signons-00.txt");
-try {
-    storage.getAllLogins({});
-} catch (e) {
-    var error = e;
-}
-LoginTest.checkExpectedError(/Initialization failed/, error);
+storage = LoginTest.initStorage(INDIR, "signons-00.txt", null, null, /Initialization failed/);
 
 
 
@@ -88,19 +81,19 @@ corruptDB.copyTo(PROFDIR, filename)
 do_check_true(cfile.exists());
 
 
-storage = LoginTest.reloadStorage(OUTDIR, filename);
-try {
-    storage.getAllLogins({});
-} catch (e) {
-    var error = e;
-}
-LoginTest.checkExpectedError(/Initialization failed/, error);
+storage = LoginTest.reloadStorage(OUTDIR, filename, /Initialization failed/);
 
 
 var buFile = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
 buFile.initWithPath(OUTDIR);
 buFile.append(filename + ".corrupt");
 do_check_true(buFile.exists());
+
+
+do_check_false(cfile.exists());
+
+
+storage = LoginTest.reloadStorage(OUTDIR, filename);
 
 
 storage.addLogin(testuser1);
