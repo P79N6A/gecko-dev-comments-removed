@@ -2403,9 +2403,11 @@ nsNavHistory::MarkPageAsFollowedBookmark(nsIURI* aURI)
 
 
 
-nsresult
+NS_IMETHODIMP
 nsNavHistory::CanAddURI(nsIURI* aURI, PRBool* canAdd)
 {
+  NS_ENSURE_ARG_POINTER(aURI);
+
   nsCAutoString scheme;
   nsresult rv = aURI->GetScheme(scheme);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2450,6 +2452,8 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
                        PRInt32 aTransitionType, PRBool aIsRedirect,
                        PRInt64 aSessionID, PRInt64* aVisitID)
 {
+  NS_ENSURE_ARG_POINTER(aURI);
+
   
   PRBool canAdd = PR_FALSE;
   nsresult rv = CanAddURI(aURI, &canAdd);
