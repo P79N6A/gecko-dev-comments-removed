@@ -4388,8 +4388,16 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #if !defined(WINCE)
   case WM_MOUSEWHEEL:
   case WM_MOUSEHWHEEL:
-    if (OnMouseWheel(msg, wParam, lParam, getWheelInfo, result, aRetValue))
-      return result;
+    {
+      
+      
+      
+      
+      
+      
+      if (OnMouseWheel(msg, wParam, lParam, getWheelInfo, result, aRetValue))
+        return result;
+    }
     break;
 #endif
 
@@ -5027,7 +5035,7 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
   
 
   if (result)
-    result = isVertical ? 0 : TRUE;
+    *aRetValue = isVertical ? 0 : TRUE;
   
   return PR_FALSE; 
 } 
