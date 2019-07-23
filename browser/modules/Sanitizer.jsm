@@ -110,7 +110,7 @@ Sanitizer.prototype = {
         
         try {
           cacheDir = cc["@mozilla.org/preferences-service;1"]
-                       .getService(ci.nsIBranch)
+                       .getService(ci.nsIPrefBranch)
                        .getComplexValue("browser.cache.disk.parent_directory",
                                         ci.nsILocalFile);
         } catch(er) {
@@ -137,8 +137,10 @@ Sanitizer.prototype = {
           } catch(er) {}
         }
         
-        
-        cacheService.evictEntries(ci.nsICache.STORE_ANYWHERE);
+        try {
+          
+          cacheService.evictEntries(ci.nsICache.STORE_ANYWHERE);
+        } catch(er) {}
         
       },
       
