@@ -131,7 +131,7 @@ struct REHashKey;
 struct FrameInfo;
 struct VMSideExit;
 struct TreeFragment;
-struct InterpState;
+struct TracerState;
 template<typename T> class Queue;
 typedef Queue<uint16> SlotList;
 class TypeMap;
@@ -165,7 +165,7 @@ class ContextAllocPolicy
 };
 
 
-struct InterpState
+struct TracerState 
 {
     JSContext*     cx;                  
     double*        stackBase;           
@@ -185,7 +185,7 @@ struct InterpState
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
     uint64         startTime;
-    InterpState*   prev;
+    TracerState*   prev;
 
     
     
@@ -199,9 +199,9 @@ struct InterpState
     uintN          nativeVpLen;
     jsval*         nativeVp;
 
-    InterpState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
+    TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
-    ~InterpState();
+    ~TracerState();
 };
 
 
@@ -721,7 +721,11 @@ struct JSClassProtoCache {
 #endif
 };
 
-typedef js::Vector<JSGCChunkInfo*, 0, js::SystemAllocPolicy> GCEmptyChunks;
+namespace js {
+
+typedef Vector<JSGCChunkInfo *, 32, SystemAllocPolicy> GCChunks;
+
+} 
 
 struct JSRuntime {
     
@@ -745,8 +749,11 @@ struct JSRuntime {
     uint32              protoHazardShape;
 
     
-    JSGCChunkInfo       *gcChunkList;
-    GCEmptyChunks       gcEmptyChunks;
+    js::GCChunks        gcChunks;
+    size_t              gcChunkCursor;
+#ifdef DEBUG
+    JSGCArena           *gcEmptyArenaList;
+#endif
     JSGCArenaList       gcArenaList[FINALIZE_LIMIT];
     JSGCDoubleArenaList gcDoubleArenaList;
     JSDHashTable        gcRootsHash;
@@ -1391,7 +1398,7 @@ struct JSContext
 
 
 
-    js::InterpState     *interpState;
+    js::TracerState     *tracerState;
     js::VMSideExit      *bailExit;
 
     
@@ -1670,14 +1677,19 @@ class AutoGCRooter {
     void operator=(AutoGCRooter &ida);
 };
 
-class AutoSaveWeakRoots : private AutoGCRooter
+class AutoSaveRestoreWeakRoots : private AutoGCRooter
 {
   public:
-    explicit AutoSaveWeakRoots(JSContext *cx
-                               JS_GUARD_OBJECT_NOTIFIER_PARAM)
+    explicit AutoSaveRestoreWeakRoots(JSContext *cx
+                                      JS_GUARD_OBJECT_NOTIFIER_PARAM)
       : AutoGCRooter(cx, WEAKROOTS), savedRoots(cx->weakRoots)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    ~AutoSaveRestoreWeakRoots()
+    {
+        context->weakRoots = savedRoots;
     }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
