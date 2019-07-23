@@ -50,6 +50,9 @@
 #include "nsContentUtils.h"
 #include "nsICharsetDetector.h"
 #include "nsIScriptElement.h"
+#include "nsIMarkupDocumentViewer.h"
+#include "nsIDocShellTreeItem.h"
+#include "nsIContentViewer.h"
 
 #include "nsHtml5DocumentMode.h"
 #include "nsHtml5Tokenizer.h"
@@ -878,12 +881,48 @@ nsHtml5Parser::FlushPendingNotifications(mozFlushType aType)
 NS_IMETHODIMP
 nsHtml5Parser::SetDocumentCharset(nsACString& aCharset)
 {
-  
-  
+  if (mDocShell) {
+    
+    
+    
+    
+    nsCOMPtr<nsIMarkupDocumentViewer> muCV;
+    nsCOMPtr<nsIContentViewer> cv;
+    mDocShell->GetContentViewer(getter_AddRefs(cv));
+    if (cv) {
+       muCV = do_QueryInterface(cv);
+    } else {
+      
+      
+      
+
+      nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
+        do_QueryInterface(mDocShell);
+      NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
+
+      nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
+      docShellAsItem->GetSameTypeParent(getter_AddRefs(parentAsItem));
+
+      nsCOMPtr<nsIDocShell> parent(do_QueryInterface(parentAsItem));
+      if (parent) {
+        nsCOMPtr<nsIContentViewer> parentContentViewer;
+        nsresult rv =
+          parent->GetContentViewer(getter_AddRefs(parentContentViewer));
+        if (NS_SUCCEEDED(rv) && parentContentViewer) {
+          muCV = do_QueryInterface(parentContentViewer);
+        }
+      }
+    }
+
+    if (muCV) {
+      muCV->SetPrevDocCharacterSet(aCharset);
+    }
+  }
+
   if (mDocument) {
     mDocument->SetDocumentCharacterSet(aCharset);
   }
-  
+
   return NS_OK;
 }
 
@@ -914,6 +953,7 @@ nsHtml5Parser::Notify(const char* aCharset, nsDetectionConfident aConf)
   if (aConf == eBestAnswer || aConf == eSureAnswer) {
     mCharset.Assign(aCharset);
     mCharsetSource = kCharsetFromAutoDetection;
+    SetDocumentCharset(mCharset);
   }
   return NS_OK;
 }
@@ -931,6 +971,7 @@ nsHtml5Parser::SetupDecodingAndWriteSniffingBufferAndCurrentSegment(const PRUint
     mCharset.Assign("windows-1252"); 
     mCharsetSource = kCharsetFromWeakDocTypeDefault;
     rv = convManager->GetUnicodeDecoderRaw(mCharset.get(), getter_AddRefs(mUnicodeDecoder));  
+    SetDocumentCharset(mCharset);
   }
   NS_ENSURE_SUCCESS(rv, rv);
   mUnicodeDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Recover);
@@ -971,6 +1012,7 @@ nsHtml5Parser::SetupDecodingFromBom(const char* aCharsetName, const char* aDecod
 
   mCharset.Assign(aCharsetName);
   mCharsetSource = kCharsetFromByteOrderMark;
+  SetDocumentCharset(mCharset);
   if (mSniffingBuffer) {
     delete[] mSniffingBuffer;
     mSniffingBuffer = nsnull;
@@ -1020,6 +1062,7 @@ nsHtml5Parser::FinalizeSniffing(const PRUint8* aFromSegment,
     
     mCharset.Assign("windows-1252");
     mCharsetSource = kCharsetFromWeakDocTypeDefault;
+    SetDocumentCharset(mCharset);
   }
   return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(aFromSegment, aCount, aWriteCount);
 }
@@ -1111,6 +1154,7 @@ nsHtml5Parser::SniffStreamBytes(const PRUint8* aFromSegment,
       mUnicodeDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Recover);
       
       mCharsetSource = kCharsetFromMetaPrescan;
+      SetDocumentCharset(mCharset);
       delete mMetaScanner;
       mMetaScanner = nsnull;
       return WriteSniffingBufferAndCurrentSegment(aFromSegment, aCount, aWriteCount);
@@ -1124,6 +1168,7 @@ nsHtml5Parser::SniffStreamBytes(const PRUint8* aFromSegment,
   if (mUnicodeDecoder) {
     
     mCharsetSource = kCharsetFromMetaPrescan;
+    SetDocumentCharset(mCharset);
     delete mMetaScanner;
     mMetaScanner = nsnull;
     return WriteSniffingBufferAndCurrentSegment(aFromSegment, aCount, aWriteCount);
