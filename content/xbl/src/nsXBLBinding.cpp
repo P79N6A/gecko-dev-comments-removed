@@ -283,6 +283,9 @@ nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
 
 nsXBLBinding::~nsXBLBinding(void)
 {
+  if (mContent) {
+    nsXBLBinding::UninstallAnonymousContent(mContent->GetOwnerDoc(), mContent);
+  }
   delete mInsertionPointTable;
   nsIXBLDocumentInfo* info = mPrototypeBinding->XBLDocumentInfo();
   NS_RELEASE(info);
@@ -307,6 +310,10 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsXBLBinding)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(nsXBLBinding)
   
   
+  if (tmp->mContent) {
+    nsXBLBinding::UninstallAnonymousContent(tmp->mContent->GetOwnerDoc(),
+                                            tmp->mContent);
+  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mContent)
   
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
@@ -368,6 +375,29 @@ nsXBLBinding::InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElem
     nsCOMPtr<nsIXULDocument> xuldoc(do_QueryInterface(doc));
     if (xuldoc)
       xuldoc->AddSubtreeToDocument(child);
+#endif
+  }
+}
+
+void
+nsXBLBinding::UninstallAnonymousContent(nsIDocument* aDocument,
+                                        nsIContent* aAnonParent)
+{
+  nsAutoScriptBlocker scriptBlocker;
+  
+  nsCOMPtr<nsIContent> anonParent = aAnonParent;
+#ifdef MOZ_XUL
+  nsCOMPtr<nsIXULDocument> xuldoc =
+    do_QueryInterface(aDocument);
+#endif
+  PRUint32 childCount = aAnonParent->GetChildCount();
+  for (PRUint32 i = 0; i < childCount; ++i) {
+    nsIContent* child = aAnonParent->GetChildAt(i);
+    child->UnbindFromTree();
+#ifdef MOZ_XUL
+    if (xuldoc) {
+      xuldoc->RemoveSubtreeFromDocument(child);
+    }
 #endif
   }
 }
@@ -726,19 +756,7 @@ nsXBLBinding::GenerateAnonymousContent()
                     (localName != nsGkAtoms::observes &&
                      localName != nsGkAtoms::_template)) {
                   
-                  PRUint32 childCount = mContent->GetChildCount();
-#ifdef MOZ_XUL
-                  nsCOMPtr<nsIXULDocument> xuldoc(do_QueryInterface(doc));
-#endif
-                  for (PRUint32 k = 0; k < childCount; ++k) {
-                    nsIContent* child = mContent->GetChildAt(k);
-                    child->UnbindFromTree();
-#ifdef MOZ_XUL
-                    if (xuldoc) {
-                      xuldoc->RemoveSubtreeFromDocument(child);
-                    }
-#endif
-                  }
+                  UninstallAnonymousContent(doc, mContent);
 
                   
                   mContent = nsnull;
@@ -1153,28 +1171,7 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
         mInsertionPointTable->Enumerate(ChangeDocumentForDefaultContent,
                                         nsnull);
 
-#ifdef MOZ_XUL
-      nsCOMPtr<nsIXULDocument> xuldoc(do_QueryInterface(aOldDocument));
-#endif
-
-      nsAutoScriptBlocker scriptBlocker;
-      
-      
-      
-      PRUint32 childCount = anonymous->GetChildCount();
-      for (PRUint32 i = 0; i < childCount; i++) {
-        anonymous->GetChildAt(i)->UnbindFromTree();
-      }
-      
-      anonymous->UnbindFromTree(); 
-
-#ifdef MOZ_XUL
-      
-      
-      
-      if (xuldoc)
-        xuldoc->RemoveSubtreeFromDocument(anonymous);
-#endif
+      nsXBLBinding::UninstallAnonymousContent(aOldDocument, anonymous);
     }
 
     

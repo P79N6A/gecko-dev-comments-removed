@@ -38,6 +38,7 @@
 
 #include "nsXBLInsertionPoint.h"
 #include "nsContentUtils.h"
+#include "nsXBLBinding.h"
 
 nsXBLInsertionPoint::nsXBLInsertionPoint(nsIContent* aParentElement,
                                          PRUint32 aIndex,
@@ -50,6 +51,10 @@ nsXBLInsertionPoint::nsXBLInsertionPoint(nsIContent* aParentElement,
 
 nsXBLInsertionPoint::~nsXBLInsertionPoint()
 {
+  if (mDefaultContent) {
+    nsXBLBinding::UninstallAnonymousContent(mDefaultContent->GetOwnerDoc(),
+                                            mDefaultContent);
+  }
 }
 
 nsrefcnt
@@ -69,6 +74,10 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsXBLInsertionPoint)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(nsXBLInsertionPoint)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mElements)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDefaultContentTemplate)
+  if (tmp->mDefaultContent) {
+    nsXBLBinding::UninstallAnonymousContent(tmp->mDefaultContent->GetOwnerDoc(),
+                                            tmp->mDefaultContent);
+  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDefaultContent)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_BEGIN(nsXBLInsertionPoint)
@@ -117,17 +126,6 @@ nsXBLInsertionPoint::UnbindDefaultContent()
   }
 
   
-  nsCOMPtr<nsIContent> defContent = mDefaultContent;
-
-  nsAutoScriptBlocker scriptBlocker;
-
-  
-  
-  
-  PRUint32 childCount = mDefaultContent->GetChildCount();
-  for (PRUint32 i = 0; i < childCount; i++) {
-    defContent->GetChildAt(i)->UnbindFromTree();
-  }
-
-  defContent->UnbindFromTree();
+  nsXBLBinding::UninstallAnonymousContent(mDefaultContent->GetOwnerDoc(),
+                                          mDefaultContent);
 }
