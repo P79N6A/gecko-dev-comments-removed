@@ -38,6 +38,7 @@
 #ifndef nsNativeThemeColors_h_
 #define nsNativeThemeColors_h_
 
+#include "nsToolkit.h"
 #import <Cocoa/Cocoa.h>
 
 enum ColorName {
@@ -65,8 +66,25 @@ static const int sLeopardThemeColors[][2] = {
   { 0x96, 0xCF }  
 };
 
+static const int sSnowLeopardThemeColors[][2] = {
+  
+  
+  { 0xD1, 0xEE }, 
+  { 0xA7, 0xD8 }, 
+  { 0x51, 0x99 }, 
+  { 0xD0, 0xF1 }, 
+  
+  { 0x51, 0x99 }, 
+  { 0xE8, 0xF6 }, 
+  { 0xCB, 0xEA }, 
+  { 0xA7, 0xDE }  
+};
+
 static int NativeGreyColorAsInt(ColorName name, BOOL isMain)
 {
+  if (nsToolkit::OnSnowLeopardOrLater())
+    return sSnowLeopardThemeColors[name][isMain ? 0 : 1];
+
   return sLeopardThemeColors[name][isMain ? 0 : 1];
 }
 
