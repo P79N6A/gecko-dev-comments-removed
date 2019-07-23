@@ -713,6 +713,9 @@ NS_IMETHODIMP nsWebBrowserPersist::OnStopRequest(
     OutputData *data = (OutputData *) mOutputMap.Get(&key);
     if (data)
     {
+        if (NS_SUCCEEDED(mPersistResult) && NS_FAILED(status))
+            SendErrorStatusChange(PR_TRUE, status, request, data->mFile);
+
 #if defined(XP_OS2)
         
         
@@ -773,7 +776,7 @@ NS_IMETHODIMP nsWebBrowserPersist::OnStopRequest(
     if (completed)
     {
         
-        EndDownload(NS_OK);
+        EndDownload(status);
     }
 
     if (mProgressListener)
