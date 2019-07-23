@@ -284,7 +284,14 @@ public:
     void               IMEComposeEnd     (void);
     GtkIMContext*      IMEGetContext     (void);
     nsWindow*          IMEGetOwningWindow(void);
-    PRBool             IMEIsEnabled      (void);
+    
+    
+    PRBool             IMEIsEnabledState (void);
+    
+    
+    
+    
+    PRBool             IMEIsEditableState(void);
     nsWindow*          IMEComposingWindow(void);
     void               IMECreateContext  (void);
     PRBool             IMEFilterEvent    (GdkEventKey *aEvent);
@@ -299,6 +306,11 @@ public:
     struct nsIMEData {
         
         GtkIMContext       *mContext;
+        
+        
+        
+        
+        GtkIMContext       *mSimpleContext;
         
         
         
@@ -322,6 +334,7 @@ public:
         PRUint32           mEnabled;
         nsIMEData(nsWindow* aOwner) {
             mContext         = nsnull;
+            mSimpleContext   = nsnull;
             mDummyContext    = nsnull;
             mComposingWindow = nsnull;
             mOwner           = aOwner;
