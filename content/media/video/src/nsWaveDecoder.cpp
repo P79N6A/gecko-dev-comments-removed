@@ -1357,6 +1357,8 @@ nsWaveDecoder::Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStr
 
   
   mResourceLoaded = PR_FALSE;
+  mResourceLoadedReported = PR_FALSE;
+  mMetadataLoadedReported = PR_FALSE;
 
   if (aStreamListener) {
     *aStreamListener = nsnull;
