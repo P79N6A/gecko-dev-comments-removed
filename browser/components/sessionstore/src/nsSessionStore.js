@@ -1889,9 +1889,8 @@ SessionStoreService.prototype = {
     
     if (aTabs.length > 0) {
       
-      let tabScrollBoxObject = tabbrowser.tabContainer.mTabstrip.scrollBoxObject;
-      let tabBoxObject = aTabs[0].boxObject;
-      let maxVisibleTabs = Math.ceil(tabScrollBoxObject.width / tabBoxObject.width);
+      let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
+                                     aTabs[0].clientWidth);
 
       
       if (maxVisibleTabs < aTabs.length && aSelectTab > 1) {
