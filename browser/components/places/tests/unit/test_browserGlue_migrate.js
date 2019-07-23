@@ -73,7 +73,7 @@ function run_test() {
 
   
   
-  bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+  let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
            getService(Ci.nsINavBookmarksService);
   bs.insertBookmark(bs.bookmarksMenuFolder, uri("http://mozilla.org/"),
                     bs.DEFAULT_INDEX, "migrated");
