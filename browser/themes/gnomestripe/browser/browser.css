@@ -1112,11 +1112,6 @@ statusbarpanel#statusbar-display {
 }
 
 
-tabpanels {
-  -moz-appearance: none;
-}
-
-
 .tabbrowser-tab {
   border: none !important;
   padding: 0px;
