@@ -84,3 +84,35 @@ private:
 #define MOZ_AUTO_DOC_UPDATE(doc,type,notify) \
   mozAutoDocUpdate MOZ_AUTO_DOC_UPDATE_PASTE(_autoDocUpdater_, __LINE__) \
   (doc,type,notify)
+
+
+
+
+
+
+
+
+
+
+class mozAutoDocConditionalContentUpdateBatch
+{
+public:
+  mozAutoDocConditionalContentUpdateBatch(nsIDocument* aDocument,
+                                          PRBool aNotify) :
+    mDocument(aNotify ? aDocument : nsnull)
+  {
+    if (mDocument) {
+      mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
+    }
+  }
+
+  ~mozAutoDocConditionalContentUpdateBatch()
+  {
+    if (mDocument) {
+      mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
+    }
+  }
+
+private:
+  nsCOMPtr<nsIDocument> mDocument;
+};
