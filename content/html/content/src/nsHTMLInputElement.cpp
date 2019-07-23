@@ -331,6 +331,11 @@ protected:
                             nsITextControlFrame* aFrame,
                             PRBool aUserInput);
 
+  void ClearFileNames() {
+    nsTArray<nsString> fileNames;
+    SetFileNames(fileNames);
+  }
+
   void SetSingleFileName(const nsAString& aFileName) {
     nsAutoTArray<nsString, 1> fileNames;
     fileNames.AppendElement(aFileName);
@@ -912,8 +917,11 @@ nsHTMLInputElement::SetValue(const nsAString& aValue)
         
         return NS_ERROR_DOM_SECURITY_ERR;
       }
+      SetSingleFileName(aValue);
     }
-    SetSingleFileName(aValue);
+    else {
+      ClearFileNames();
+    }
   }
   else {
     SetValueInternal(aValue, nsnull, PR_FALSE);
@@ -1007,7 +1015,11 @@ void
 nsHTMLInputElement::SetFileNames(const nsTArray<nsString>& aFileNames)
 {
   mFileNames = aFileNames;
-
+#if DEBUG
+  for (PRUint32 i = 0; i < (PRUint32)aFileNames.Length(); ++i) {
+    NS_ASSERTION(!aFileNames[i].IsEmpty(), "Empty file name");
+  }
+#endif
   
   
   
@@ -2161,14 +2173,11 @@ nsHTMLInputElement::ParseAttribute(PRInt32 aNamespaceID,
         
         
         
-        if (newType == NS_FORM_INPUT_FILE) {
+        if (newType == NS_FORM_INPUT_FILE || mType == NS_FORM_INPUT_FILE) {
           
           
           
-          SetSingleFileName(EmptyString());
-          SetValueInternal(EmptyString(), nsnull, PR_FALSE);
-        } else if (mType == NS_FORM_INPUT_FILE) {
-          SetSingleFileName(EmptyString());
+          ClearFileNames();
         }
 
         mType = newType;
@@ -2519,7 +2528,7 @@ nsHTMLInputElement::Reset()
     case NS_FORM_INPUT_FILE:
     {
       
-      SetSingleFileName(EmptyString());
+      ClearFileNames();
       break;
     }
     
