@@ -894,28 +894,12 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, const nsRect &aRect, PRU
     return NS_OK;
   }
 
+  nsView* displayRoot = GetDisplayRootFor(view);
   
   
   
-  
-  if (view->GetFloating()) {
-    nsView* widgetParent = view;
-
-    while (!widgetParent->HasWidget()) {
-      widgetParent->ConvertToParentCoords(&damagedRect.x, &damagedRect.y);
-      widgetParent = widgetParent->GetParent();
-    }
-
-    UpdateWidgetArea(widgetParent, nsRegion(damagedRect), nsnull);
-  } else {
-    
-    
-    
-    
-    damagedRect.MoveBy(ComputeViewOffset(view));
-
-    UpdateWidgetArea(RootViewManager()->GetRootView(), nsRegion(damagedRect), nsnull);
-  }
+  damagedRect.MoveBy(view->GetOffsetTo(displayRoot));
+  UpdateWidgetArea(displayRoot, nsRegion(damagedRect), nsnull);
 
   RootViewManager()->IncrementUpdateCount();
 
@@ -2027,29 +2011,6 @@ NS_IMETHODIMP nsViewManager::ForceUpdate()
   }
   
   return NS_OK;
-}
-
-nsPoint nsViewManager::ComputeViewOffset(const nsView *aView)
-{
-  NS_PRECONDITION(aView, "Null view in ComputeViewOffset?");
-  
-  nsPoint origin(0, 0);
-#ifdef DEBUG
-  const nsView* rootView;
-  const nsView* origView = aView;
-#endif
-
-  while (aView) {
-#ifdef DEBUG
-    rootView = aView;
-#endif
-    origin += aView->GetPosition();
-    aView = aView->GetParent();
-  }
-  NS_ASSERTION(rootView ==
-               origView->GetViewManager()->RootViewManager()->GetRootView(),
-               "Unexpected root view");
-  return origin;
 }
 
 void nsViewManager::ViewToWidget(nsView *aView, nsView* aWidgetView, nsRect &aRect) const

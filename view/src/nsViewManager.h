@@ -416,11 +416,6 @@ public:
 
   nsresult CreateRegion(nsIRegion* *result);
 
-  
-  
-  
-  static nsPoint ComputeViewOffset(const nsView *aView);
-
   PRBool IsRefreshEnabled() { return RootViewManager()->mRefreshEnabled; }
 
   nsIViewObserver* GetViewObserver() { return mObserver; }
