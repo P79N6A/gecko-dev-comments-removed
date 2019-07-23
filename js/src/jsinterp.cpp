@@ -2900,14 +2900,12 @@ JS_INTERPRET(JSContext *cx)
     if (JS_LIKELY(!fp->spbase)) {
         ASSERT_NOT_THROWING(cx);
         JS_ASSERT(!fp->regs);
-        vp = js_AllocRawStack(cx, script->loopHeaders + script->depth, &mark);
-        if (!vp) {
+        fp->spbase = js_AllocRawStack(cx, script->depth, &mark);
+        if (!fp->spbase) {
             ok = JS_FALSE;
             goto exit2;
         }
         JS_ASSERT(mark);
-        memset(vp, 0, script->loopHeaders * sizeof(jsval));
-        fp->spbase = vp + script->loopHeaders;
         regs.pc = script->code;
         regs.sp = fp->spbase;
         fp->regs = &regs;
@@ -3023,47 +3021,47 @@ JS_INTERPRET(JSContext *cx)
           END_EMPTY_CASES
 
           BEGIN_CASE(JSOP_HEADER)
-          {
-            slot = script->loopBase + GET_UINT8(regs.pc);
-            JS_ASSERT(slot < rt->loopTableSlotGen);
+            if (script->loopBase != LOOP_TABLE_NO_SLOT) {
+                slot = GET_UINT8(regs.pc);
+                JS_ASSERT(slot < script->loopHeaders);
+                slot += script->loopBase;
+                JS_ASSERT(slot < (uint32) rt->loopTableCursor);
 
-            JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
-            if (slot >= tm->loopTableSize && !js_GrowLoopTable(cx, slot))
-                goto error;
+                JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
+                if (slot >= tm->loopTableSize && !js_GrowLoopTable(cx, slot))
+                    goto error;
 
-            vp = &JS_TRACE_MONITOR(cx).loopTable[slot];
-            rval = *vp;
-            if (JSVAL_IS_INT(rval)) {
-                
-
-
-
-                if (JSVAL_TO_INT(rval) >= TRACE_THRESHOLD) {
+                vp = &JS_TRACE_MONITOR(cx).loopTable[slot];
+                rval = *vp;
+                if (JSVAL_IS_INT(rval)) {
                     
 
 
 
+                    if (JSVAL_TO_INT(rval) >= TRACE_THRESHOLD) {
+                        
 
 
 
-                    obj = js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0);
-                    if (!obj)
-                        goto error;
-                    *vp = OBJECT_TO_JSVAL(obj);
+
+
+
+                        obj = js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0);
+                        if (!obj)
+                            goto error;
+                        *vp = OBJECT_TO_JSVAL(obj);
+                    } else {
+                        
+
+
+
+                        *vp = rval + 2;
+                    }
                 } else {
+                    JS_ASSERT(JSVAL_IS_GCTHING(rval));
                     
-
-
-
-
-
-                    JS_ATOMIC_ADD(vp, 2);
                 }
-            } else {
-                JS_ASSERT(JSVAL_IS_GCTHING(rval));
-                
             }
-          }
           END_CASE(JSOP_HEADER)
 
           
@@ -4899,8 +4897,7 @@ JS_INTERPRET(JSContext *cx)
                     nvars = fun->u.i.nvars;
                     script = fun->u.i.script;
                     atoms = script->atomMap.vector;
-                    nbytes = (nframeslots + nvars + script->loopHeaders +
-                              script->depth) * sizeof(jsval);
+                    nbytes = (nframeslots + nvars + script->depth) * sizeof(jsval);
 
                     
                     a = cx->stackPool.current;
@@ -4987,10 +4984,6 @@ JS_INTERPRET(JSContext *cx)
                     
                     while (nvars--)
                         *newsp++ = JSVAL_VOID;
-
-                    
-                    memset(newsp, 0, script->loopHeaders * sizeof(jsval));
-                    newsp += script->loopHeaders;
 
                     newifp->frame.regs = NULL;
                     newifp->frame.spbase = NULL;
@@ -7146,22 +7139,6 @@ JS_INTERPRET(JSContext *cx)
     JS_ASSERT(fp->regs == &regs);
 
     if (JS_LIKELY(mark != NULL)) {
-#ifdef JS_DUMP_LOOP_STATS
-        if (script->loopHeaders) {
-            jsval *lp = fp->spbase;
-            jsval *end = lp - script->loopHeaders;
-
-            do {
-                JS_ASSERT(end < lp && lp <= fp->spbase);
-                lval = *--lp;
-                if (JSVAL_IS_NULL(lval))
-                    continue;
-                JS_ASSERT(JSVAL_IS_INT(lval));
-                JS_BASIC_STATS_ACCUM(&rt->loopStats, JSVAL_TO_INT(lval));
-            } while (lp > end);
-        }
-#endif
-
         JS_ASSERT(!fp->blockChain);
         JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
         JS_ASSERT(!(fp->flags & JSFRAME_GENERATOR));

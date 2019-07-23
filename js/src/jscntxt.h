@@ -400,7 +400,7 @@ struct JSRuntime {
     JSPropertyCache     propertyCache;
 
     JSTraceMonitor      traceMonitor;
-    
+
 #define JS_GSN_CACHE(cx)        ((cx)->runtime->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   ((cx)->runtime->propertyCache)
 #define JS_TRACE_MONITOR(cx)    ((cx)->runtime->traceMonitor)
@@ -411,8 +411,14 @@ struct JSRuntime {
 
 
 
-    uint32              loopTableSlotGen;
-    
+
+#define LOOP_TABLE_LIMIT        2048
+#define LOOP_TABLE_BITMAP_WORDS JS_HOWMANY(LOOP_TABLE_LIMIT, JS_BITS_PER_WORD)
+#define LOOP_TABLE_NO_SLOT      ((uint32) -1)
+
+    jsword              loopTableCursor;
+    jsbitmap            loopTableBitmap[LOOP_TABLE_BITMAP_WORDS];
+
     
 
 
