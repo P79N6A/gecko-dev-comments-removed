@@ -4461,33 +4461,23 @@ class SlotMap : public SlotVisitorBase
     }
 
     JS_REQUIRES_STACK virtual void
-    adjustTail(TypeConsensus consensus)
-    {
-    }
-
-    JS_REQUIRES_STACK virtual void
     adjustTypes()
     {
-        for (unsigned i = 0; i < length(); i++)
-            adjustType(get(i));
-    }
+        for (unsigned i = 0; i < length(); i++) {
+            SlotInfo& info = get(i);
+            JS_ASSERT(info.lastCheck != TypeCheck_Undemote && info.lastCheck != TypeCheck_Bad);
+            if (info.lastCheck == TypeCheck_Promote) {
+                JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
+                mRecorder.set(info.v, mRecorder.f2i(mRecorder.get(info.v)));
+            } else if (info.lastCheck == TypeCheck_Demote) {
+                JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
+                JS_ASSERT(mRecorder.get(info.v)->isQuad());
 
-  protected:
-    JS_REQUIRES_STACK virtual void
-    adjustType(SlotInfo& info) {
-        JS_ASSERT(info.lastCheck != TypeCheck_Undemote && info.lastCheck != TypeCheck_Bad);
-        if (info.lastCheck == TypeCheck_Promote) {
-            JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
-            mRecorder.set(info.v, mRecorder.f2i(mRecorder.get(info.v)));
-        } else if (info.lastCheck == TypeCheck_Demote) {
-            JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
-            JS_ASSERT(mRecorder.get(info.v)->isQuad());
-
-            
-            mRecorder.set(info.v, mRecorder.get(info.v), false, false);
+                
+                mRecorder.set(info.v, mRecorder.get(info.v), false, false);
+            }
         }
     }
-
   private:
     TypeCheckResult
     checkType(unsigned i, JSTraceType t)
@@ -4662,12 +4652,8 @@ TraceRecorder::closeLoop(SlotMap& slotMap, VMSideExit* exit)
     
 
 
-
     if (consensus == TypeConsensus_Okay)
         slotMap.adjustTypes();
-
-    
-    slotMap.adjustTail(consensus);
 
     if (consensus != TypeConsensus_Okay || peer) {
         fragment->lastIns = lir->insGuard(LIR_x, NULL, createGuardRecord(exit));
@@ -14740,6 +14726,12 @@ TraceRecorder::determineGlobalTypes(JSTraceType* typeMap)
 {
     DetermineTypesVisitor detVisitor(*this, typeMap);
     VisitGlobalSlots(detVisitor, cx, *treeInfo->globalSlots);
+}
+
+LIns*
+TraceRecorder::demoteIns(LIns* ins)
+{
+    return ::demote(lir, ins);
 }
 
 #include "jsrecursion.cpp"
