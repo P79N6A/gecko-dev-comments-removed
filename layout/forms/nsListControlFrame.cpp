@@ -55,7 +55,6 @@
 #include "nsIDOMHTMLOptionElement.h" 
 #include "nsComboboxControlFrame.h"
 #include "nsIViewManager.h"
-#include "nsIScrollableView.h"
 #include "nsIDOMHTMLOptGroupElement.h"
 #include "nsWidgetsCID.h"
 #include "nsIPresShell.h"
@@ -277,7 +276,6 @@ void nsListControlFrame::PaintFocus(nsIRenderingContext& aRC, nsPoint aPt)
   }
 
   nsPresContext* presContext = PresContext();
-  if (!GetScrollableView()) return;
 
   nsIFrame* containerFrame = GetOptionsContainer();
   if (!containerFrame) return;
@@ -2057,7 +2055,7 @@ nsListControlFrame::UpdateInListState(nsIDOMEvent* aEvent)
     return;
 
   nsPoint pt = nsLayoutUtils::GetDOMEventCoordinatesRelativeTo(aEvent, this);
-  nsRect borderInnerEdge = GetScrollableView()->View()->GetBounds();
+  nsRect borderInnerEdge = GetScrollPortRect();
   if (pt.y >= borderInnerEdge.y && pt.y < borderInnerEdge.YMost()) {
     mItemSelectionStarted = PR_TRUE;
   }
@@ -2115,7 +2113,7 @@ nsListControlFrame::GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent,
   if (nsIPresShell::GetCapturingContent() != mContent) {
     
     nsPoint pt = nsLayoutUtils::GetDOMEventCoordinatesRelativeTo(aMouseEvent, this);
-    nsRect borderInnerEdge = GetScrollableView()->View()->GetBounds();
+    nsRect borderInnerEdge = GetScrollPortRect();
     if (!borderInnerEdge.Contains(pt)) {
       return NS_ERROR_FAILURE;
     }
@@ -2311,72 +2309,33 @@ nsListControlFrame::ScrollToIndex(PRInt32 aIndex)
 nsresult
 nsListControlFrame::ScrollToFrame(nsIContent* aOptElement)
 {
-  nsIScrollableView* scrollableView = GetScrollableView();
-
-  if (scrollableView) {
-    
-    if (nsnull == aOptElement) {
-      scrollableView->ScrollTo(0, 0, 0);
-      return NS_OK;
-    }
   
+  if (nsnull == aOptElement) {
+    ScrollTo(nsPoint(0, 0), nsIScrollableFrame::INSTANT);
+    return NS_OK;
+  }
+
+  
+  nsIFrame *childFrame = aOptElement->GetPrimaryFrame();
+  if (childFrame) {
+    nsPoint pt = GetScrollPosition();
     
-    nsIFrame * childframe;
-    if (aOptElement) {
-      childframe = aOptElement->GetPrimaryFrame();
-    } else {
-      return NS_ERROR_FAILURE;
-    }
+    nsRect rect = GetScrollPortRect() + pt;
+    
+    nsRect fRect(childFrame->GetOffsetTo(GetScrolledFrame()),
+                 childFrame->GetSize());
 
-    if (childframe) {
-      if (scrollableView) {
-        nscoord x;
-        nscoord y;
-        scrollableView->GetScrollPosition(x,y);
-        
-        nsRect rect = scrollableView->View()->GetBounds();
-        
-        rect.x = x;
-        rect.y = y;
-
-        
-        nsRect fRect = childframe->GetRect();
-        nsPoint pnt;
-        nsIView * view;
-        childframe->GetOffsetFromView(pnt, &view);
-
-        
-
-        
-        
-        
-        
-        
-        nsCOMPtr<nsIContent> parentContent = aOptElement->GetParent();
-        nsCOMPtr<nsIDOMHTMLOptGroupElement> optGroup(do_QueryInterface(parentContent));
-        nsRect optRect(0,0,0,0);
-        if (optGroup) {
-          nsIFrame * optFrame = parentContent->GetPrimaryFrame();
-          if (optFrame) {
-            optRect = optFrame->GetRect();
-          }
-        }
-        fRect.y += optRect.y;
-
-        
-        
-        
-        if (!(rect.y <= fRect.y && fRect.YMost() <= rect.YMost())) {
-          
-          if (fRect.YMost() > rect.YMost()) {
-            y = fRect.y-(rect.height-fRect.height);
-          } else {
-            y = fRect.y;
-          }
-          scrollableView->ScrollTo(pnt.x, y, 0);
-        }
-
+    
+    
+    
+    if (!(rect.y <= fRect.y && fRect.YMost() <= rect.YMost())) {
+      
+      if (fRect.YMost() > rect.YMost()) {
+        pt.y = fRect.y - (rect.height - fRect.height);
+      } else {
+        pt.y = fRect.y;
       }
+      ScrollTo(nsPoint(fRect.x, pt.y), nsIScrollableFrame::INSTANT);
     }
   }
   return NS_OK;
