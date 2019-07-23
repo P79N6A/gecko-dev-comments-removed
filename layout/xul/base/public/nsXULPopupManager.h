@@ -46,6 +46,7 @@
 #include "nsIRollupListener.h"
 #include "nsIMenuRollup.h"
 #include "nsIDOMKeyListener.h"
+#include "nsPoint.h"
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 #include "nsITimer.h"
@@ -360,7 +361,8 @@ public:
   
   void GetMouseLocation(nsIDOMNode** aNode, PRInt32* aOffset);
   
-  void SetMouseLocation(nsIDOMEvent* aEvent);
+  
+  void SetMouseLocation(nsIDOMEvent* aEvent, nsIContent* aPopup);
 
   
 
@@ -626,6 +628,7 @@ protected:
   
   nsCOMPtr<nsIDOMNode> mRangeParent;
   PRInt32 mRangeOffset;
+  nsPoint mCachedMousePoint;
 
   
   nsMenuBarFrame* mActiveMenuBar;
