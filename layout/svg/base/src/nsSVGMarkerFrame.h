@@ -98,7 +98,7 @@ public:
 private:
   
   nsSVGPathGeometryFrame *mMarkedFrame;
-  float mStrokeWidth, mX, mY, mAngle;
+  float mStrokeWidth, mX, mY, mAutoAngle;
 
   
   virtual gfxMatrix GetCanvasTM();
