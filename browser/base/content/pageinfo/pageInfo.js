@@ -41,12 +41,8 @@
 # ***** END LICENSE BLOCK *****
 
 
-function pageInfoTreeView(columnids, copycol)
+function pageInfoTreeView(copycol)
 {
-  
-  this.columnids = columnids;
-  this.colcount = columnids.length;
-
   
   
   this.copycol = copycol;
@@ -69,7 +65,6 @@ pageInfoTreeView.prototype = {
 
   getCellText: function(row, column)
   {
-    
     
     
     
@@ -167,10 +162,8 @@ const COPYCOL_META_CONTENT = 1;
 const COPYCOL_IMAGE = COL_IMAGE_ADDRESS;
 
 
-var gMetaView = new pageInfoTreeView(["meta-name","meta-content"], COPYCOL_META_CONTENT);
-var gImageView = new pageInfoTreeView(["image-address","image-type","image-size",
-                                       "image-alt","image-count","image-node","image-bg"],
-                                      COPYCOL_IMAGE);
+var gMetaView = new pageInfoTreeView(COPYCOL_META_CONTENT);
+var gImageView = new pageInfoTreeView(COPYCOL_IMAGE);
 
 gImageView.getCellProperties = function(row, col, props) {
   var aserv = Components.classes[ATOM_CONTRACTID]
