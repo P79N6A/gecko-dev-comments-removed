@@ -631,23 +631,19 @@ nsXULElement::PerformAccesskey(PRBool aKeyCausesActivation,
         return;
 
     nsCOMPtr<nsIDOMXULElement> elm(do_QueryInterface(content));
-    if (elm) {
+
+    
+    nsIAtom *tag = content->Tag();
+    if (tag == nsGkAtoms::textbox || tag == nsGkAtoms::menulist) {
         
-        nsIAtom *tag = content->Tag();
-        if (tag == nsGkAtoms::textbox || tag == nsGkAtoms::menulist) {
-            
-            elm->Focus();
-        } else if (tag == nsGkAtoms::toolbarbutton) {
-            
-            elm->Click();
-        } else {
-            
-            elm->Focus();
-            elm->Click();
-        }
-    }
-    else {
-        content->PerformAccesskey(aKeyCausesActivation, aIsTrustedEvent);
+        elm->Focus();
+    } else if (tag == nsGkAtoms::toolbarbutton) {
+        
+        elm->Click();
+    } else {
+        
+        elm->Focus();
+        elm->Click();
     }
 }
 
