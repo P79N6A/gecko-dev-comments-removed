@@ -156,7 +156,7 @@
 #include "nsIController.h"
 
 #ifdef XP_MACOSX
-#include <Carbon/Carbon.h>
+#import <ApplicationServices/ApplicationServices.h>
 #endif
 
 
@@ -1585,7 +1585,7 @@ nsEventStateManager::FireContextClick()
   
   
   
-  if (!::StillDown())
+  if (!CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, kCGMouseButtonLeft))
     return;
 #endif
 
