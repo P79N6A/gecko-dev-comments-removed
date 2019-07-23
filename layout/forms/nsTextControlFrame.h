@@ -62,7 +62,6 @@ class nsIAccessible;
 #endif
 class nsTextInputSelectionImpl;
 class nsTextControlFrame;
-class EditorInitializerEntryTracker;
 
 class nsAnonDivObserver : public nsStubMutationObserver
 {
@@ -176,13 +175,6 @@ public:
 
   nsresult GetPhonetic(nsAString& aPhonetic);
 
-  
-
-
-
-
-  virtual nsresult EnsureEditorInitialized();
-
 
 
   virtual nsIAtom* GetType() const;
@@ -256,7 +248,7 @@ protected:
           mWeakFrame.GetFrame()->PresContext()->GetPresShell();
         PRBool observes = shell->ObservesNativeAnonMutationsForPrint();
         shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
-        mFrame->EnsureEditorInitializedInternal();
+        mFrame->DelayedEditorInit();
         shell->ObserveNativeAnonMutationsForPrint(observes);
       }
       return NS_OK;
@@ -267,6 +259,10 @@ protected:
     nsTextControlFrame* mFrame;
   };
 
+  
+  
+  void DelayedEditorInit();
+
   nsresult DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset, PRInt32 *aResult);
   nsresult OffsetToDOMPoint(PRInt32 aOffset, nsIDOMNode** aResult, PRInt32* aPosition);
 
@@ -276,23 +272,23 @@ protected:
 
 
   PRBool IsScrollable() const;
-
   
 
 
 
 
-  nsresult UpdateValueDisplay(PRBool aNotify,
-                              PRBool aBeforeEditorInit = PR_FALSE,
-                              const nsAString *aValue = nsnull);
+  nsresult InitEditor();
+  
 
+
+
+  void RemoveNewlines(nsString &aString);
   
 
 
 
 
   PRBool GetMaxLength(PRInt32* aMaxLength);
-
   
 
 
@@ -306,6 +302,9 @@ protected:
 
 
   void PreDestroy();
+  
+
+
 
   
   
@@ -313,12 +312,10 @@ protected:
 
 
   PRInt32 GetCols();
-
   
 
 
   PRInt32 GetWrapCols();
-
   
 
 
@@ -345,11 +342,6 @@ private:
   nsresult SetPlaceholderClass(PRBool aVisible, PRBool aNotify);
   nsresult UpdatePlaceholderText(PRBool aNotify); 
 
-  
-  
-  
-  virtual nsresult EnsureEditorInitializedInternal();
-
 private:
   nsCOMPtr<nsIContent> mValueDiv;
   nsCOMPtr<nsIContent> mPlaceholderDiv;
@@ -365,11 +357,6 @@ private:
   
   PRPackedBool mFireChangeEventState;
   PRPackedBool mInSecureKeyboardInputMode;
-
-#ifdef DEBUG
-  PRPackedBool mInEditorInitialization;
-  friend class EditorInitializerEntryTracker;
-#endif
 
   nsRefPtr<nsTextInputSelectionImpl> mSelCon;
   nsCOMPtr<nsFrameSelection> mFrameSel;

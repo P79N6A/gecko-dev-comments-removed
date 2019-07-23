@@ -118,7 +118,6 @@
 #include "nsINativeKeyBindings.h"
 #include "nsIJSContextStack.h"
 #include "nsFocusManager.h"
-#include "nsTextEditRules.h"
 
 #define DEFAULT_COLUMN_WIDTH 20
 
@@ -135,6 +134,18 @@ static const PRInt32 DEFAULT_UNDO_CAP = 1000;
 
 static nsINativeKeyBindings *sNativeInputBindings = nsnull;
 static nsINativeKeyBindings *sNativeTextAreaBindings = nsnull;
+
+static void
+PlatformToDOMLineBreaks(nsString &aString)
+{
+  
+  aString.ReplaceSubstring(NS_LITERAL_STRING("\r\n").get(),
+                           NS_LITERAL_STRING("\n").get());
+
+  
+  aString.ReplaceSubstring(NS_LITERAL_STRING("\r").get(),
+                           NS_LITERAL_STRING("\n").get());
+}
 
 
 typedef enum {
@@ -939,31 +950,6 @@ NS_IMETHODIMP nsTextControlFrame::GetAccessible(nsIAccessible** aAccessible)
 }
 #endif
 
-#ifdef DEBUG
-class EditorInitializerEntryTracker {
-public:
-  explicit EditorInitializerEntryTracker(nsTextControlFrame &frame)
-    : mFrame(frame)
-    , mFirstEntry(PR_FALSE)
-  {
-    if (!mFrame.mInEditorInitialization) {
-      mFrame.mInEditorInitialization = PR_TRUE;
-      mFirstEntry = PR_TRUE;
-    }
-  }
-  ~EditorInitializerEntryTracker()
-  {
-    if (mFirstEntry) {
-      mFrame.mInEditorInitialization = PR_FALSE;
-    }
-  }
-  PRBool EnteredMoreThanOnce() const { return !mFirstEntry; }
-private:
-  nsTextControlFrame &mFrame;
-  PRBool mFirstEntry;
-};
-#endif
-
 nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aContext)
   : nsStackFrame(aShell, aContext)
   , mUseEditor(PR_FALSE)
@@ -973,9 +959,6 @@ nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aCo
   , mFireChangeEventState(PR_FALSE)
   , mInSecureKeyboardInputMode(PR_FALSE)
   , mTextListener(nsnull)
-#ifdef DEBUG
-  , mInEditorInitialization(PR_FALSE)
-#endif
 {
 }
 
@@ -1316,6 +1299,38 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
   return NS_OK;
 }
 
+void
+nsTextControlFrame::DelayedEditorInit()
+{
+  nsIDocument* doc = mContent->GetCurrentDoc();
+  if (!doc) {
+    return;
+  }
+  
+  nsWeakFrame weakFrame(this);
+
+  
+  
+  
+  doc->FlushPendingNotifications(Flush_ContentAndNotify);
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
+  
+  
+  
+  nsAutoScriptBlocker scriptBlocker;
+
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
+  InitEditor();
+  if (IsFocusedContent(GetContent()))
+    SetFocus(PR_TRUE, PR_FALSE);
+}
+
 PRInt32
 nsTextControlFrame::GetWrapCols()
 {
@@ -1337,67 +1352,22 @@ nsTextControlFrame::GetWrapCols()
 }
 
 nsresult
-nsTextControlFrame::EnsureEditorInitialized()
-{
-  nsWeakFrame weakFrame(this);
-  nsresult rv = EnsureEditorInitializedInternal();
-  NS_ENSURE_STATE(weakFrame.IsAlive());
-  return rv;
-}
-
-nsresult
-nsTextControlFrame::EnsureEditorInitializedInternal()
+nsTextControlFrame::InitEditor()
 {
   
+  
+  
+  
+  
+  
+  
+  
 
   
   
-  
-  
-  
-  
-  
-  
-  
 
-  
-  
   if (mUseEditor)
     return NS_OK;
-
-  nsIDocument* doc = mContent->GetCurrentDoc();
-  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
-
-  nsWeakFrame weakFrame(this);
-
-  
-  
-  
-  doc->FlushPendingNotifications(Flush_ContentAndNotify);
-  NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_ERROR_FAILURE);
-
-  
-  
-  nsAutoScriptBlocker scriptBlocker;
-
-  
-  
-  nsCxPusher pusher;
-  pusher.PushNull();
-
-  
-  class EnsureSetFocus {
-  public:
-    explicit EnsureSetFocus(nsTextControlFrame* aFrame)
-      : mFrame(aFrame) {}
-    ~EnsureSetFocus() {
-      if (IsFocusedContent(mFrame->GetContent()))
-        mFrame->SetFocus(PR_TRUE, PR_FALSE);
-    }
-  private:
-    nsTextControlFrame *mFrame;
-  };
-  EnsureSetFocus makeSureSetFocusHappens(this);
 
   
 
@@ -1438,9 +1408,6 @@ nsTextControlFrame::EnsureEditorInitializedInternal()
   nsCOMPtr<nsIDOMDocument> domdoc = do_QueryInterface(shell->GetDocument());
   if (!domdoc)
     return NS_ERROR_FAILURE;
-
-  
-  UpdateValueDisplay(PR_FALSE, PR_TRUE);
 
   rv = mEditor->Init(domdoc, shell, mValueDiv, mSelCon, editorFlags);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1532,53 +1499,48 @@ nsTextControlFrame::EnsureEditorInitializedInternal()
   
   mUseEditor = PR_TRUE;
 
-#ifdef DEBUG
-  
-  
-  const EditorInitializerEntryTracker tracker(*this);
-  NS_ASSERTION(!tracker.EnteredMoreThanOnce(),
-               "EnsureEditorInitialized has been called while a previous call was in progress");
-#endif
-
   
   
   
   
-  
-  
-  
-
-  
-  
-  
-
-  rv = mEditor->SetFlags(editorFlags |
-                         nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-
-  rv = mEditor->EnableUndo(PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  SetValue(defaultValue);
-
-  rv = mEditor->EnableUndo(PR_TRUE);
-  NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
-
-  
-  rv = mEditor->SetFlags(editorFlags);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!defaultValue.IsEmpty()) {
+    
+    
+    
+
+    rv = mEditor->SetFlags(editorFlags |
+                           nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
+
+    if (NS_FAILED(rv))
+      return rv;
+
+    
+    
+    
+    
+
+    rv = mEditor->EnableUndo(PR_FALSE);
+
+    if (NS_FAILED(rv))
+      return rv;
+
+    SetValue(defaultValue);
+
+    rv = mEditor->EnableUndo(PR_TRUE);
+    NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
+
+    
+    rv = mEditor->SetFlags(editorFlags);
+
     
     
     nsWeakFrame weakFrame(this);
     HidePlaceholder();
     NS_ENSURE_STATE(weakFrame.IsAlive());
+
+    if (NS_FAILED(rv))
+      return rv;
   }
 
   nsCOMPtr<nsITransactionManager> transMgr;
@@ -1609,7 +1571,7 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 {
   mState |= NS_FRAME_INDEPENDENT_SELECTION;
 
-  nsIPresShell *shell = PresContext()->GetPresShell();
+  nsIPresShell* shell = PresContext()->GetPresShell();
   if (!shell)
     return NS_ERROR_FAILURE;
 
@@ -1658,13 +1620,6 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  rv = CreatePlaceholderDiv(aElements, doc->NodeInfoManager());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = UpdateValueDisplay(PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
 
   mFrameSel = do_CreateInstance(kFrameSelectionCID, &rv);
   if (NS_FAILED(rv))
@@ -1704,15 +1659,16 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
                                              (mTextListener));
   }
 
-  if (!IsSingleLineTextControl()) {
-    
-    NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
-                 "Someone forgot a script blocker?");
+  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
+               "Someone forgot a script blocker?");
 
-    if (!nsContentUtils::AddScriptRunner(new EditorInitializer(this))) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+  if (!nsContentUtils::AddScriptRunner(new EditorInitializer(this))) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
+
+  
+  rv = CreatePlaceholderDiv(aElements, doc->NodeInfoManager());
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -1978,7 +1934,7 @@ nsresult nsTextControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aV
     mIsProcessing = PR_FALSE;
   }
   return NS_OK;
-}
+}      
 
 nsresult
 nsTextControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
@@ -1990,7 +1946,7 @@ nsTextControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
     GetValue(aValue, PR_FALSE);
   }
   return NS_OK;
-}
+}  
 
 
 
@@ -1998,10 +1954,6 @@ NS_IMETHODIMP
 nsTextControlFrame::GetEditor(nsIEditor **aEditor)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
-
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   *aEditor = mEditor;
   NS_IF_ADDREF(*aEditor);
   return NS_OK;
@@ -2137,9 +2089,8 @@ nsTextControlFrame::SetSelectionEndPoints(PRInt32 aSelStart, PRInt32 aSelEnd)
 NS_IMETHODIMP
 nsTextControlFrame::SetSelectionRange(PRInt32 aSelStart, PRInt32 aSelEnd)
 {
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_INITIALIZED);
+  
   if (aSelStart > aSelEnd) {
     
     
@@ -2154,12 +2105,11 @@ nsTextControlFrame::SetSelectionRange(PRInt32 aSelStart, PRInt32 aSelEnd)
 NS_IMETHODIMP
 nsTextControlFrame::SetSelectionStart(PRInt32 aSelectionStart)
 {
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_INITIALIZED);
 
   PRInt32 selStart = 0, selEnd = 0; 
 
-  rv = GetSelectionRange(&selStart, &selEnd);
+  nsresult rv = GetSelectionRange(&selStart, &selEnd);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aSelectionStart > selEnd) {
@@ -2175,12 +2125,11 @@ nsTextControlFrame::SetSelectionStart(PRInt32 aSelectionStart)
 NS_IMETHODIMP
 nsTextControlFrame::SetSelectionEnd(PRInt32 aSelectionEnd)
 {
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_INITIALIZED);
+  
   PRInt32 selStart = 0, selEnd = 0; 
 
-  rv = GetSelectionRange(&selStart, &selEnd);
+  nsresult rv = GetSelectionRange(&selStart, &selEnd);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aSelectionEnd < selStart) {
@@ -2202,9 +2151,6 @@ nsTextControlFrame::DOMPointToOffset(nsIDOMNode* aNode,
 
   *aResult = 0;
 
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr<nsIDOMElement> rootElement;
   mEditor->GetRootElement(getter_AddRefs(rootElement));
   nsCOMPtr<nsIDOMNode> rootNode(do_QueryInterface(rootElement));
@@ -2213,7 +2159,7 @@ nsTextControlFrame::DOMPointToOffset(nsIDOMNode* aNode,
 
   nsCOMPtr<nsIDOMNodeList> nodeList;
 
-  rv = rootNode->GetChildNodes(getter_AddRefs(nodeList));
+  nsresult rv = rootNode->GetChildNodes(getter_AddRefs(nodeList));
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
 
@@ -2282,9 +2228,6 @@ nsTextControlFrame::OffsetToDOMPoint(PRInt32 aOffset,
   *aResult = nsnull;
   *aPosition = 0;
 
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsCOMPtr<nsIDOMElement> rootElement;
   mEditor->GetRootElement(getter_AddRefs(rootElement));
   nsCOMPtr<nsIDOMNode> rootNode(do_QueryInterface(rootElement));
@@ -2293,7 +2236,7 @@ nsTextControlFrame::OffsetToDOMPoint(PRInt32 aOffset,
 
   nsCOMPtr<nsIDOMNodeList> nodeList;
 
-  rv = rootNode->GetChildNodes(getter_AddRefs(nodeList));
+  nsresult rv = rootNode->GetChildNodes(getter_AddRefs(nodeList));
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
 
@@ -2373,14 +2316,13 @@ NS_IMETHODIMP
 nsTextControlFrame::GetSelectionRange(PRInt32* aSelectionStart, PRInt32* aSelectionEnd)
 {
   
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_INITIALIZED);
 
   *aSelectionStart = 0;
   *aSelectionEnd = 0;
 
   nsCOMPtr<nsISelection> selection;
-  rv = mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL, getter_AddRefs(selection));  
+  nsresult rv = mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL, getter_AddRefs(selection));  
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
@@ -2442,15 +2384,6 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                      nsIAtom*        aAttribute,
                                      PRInt32         aModType)
 {
-  
-  
-  if (nsGkAtoms::placeholder == aAttribute)
-  {
-    nsWeakFrame weakFrame(this);
-    UpdatePlaceholderText(PR_TRUE);
-    NS_ENSURE_STATE(weakFrame.IsAlive());
-  }
-
   if (!mEditor || !mSelCon) 
     return nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);;
 
@@ -2491,7 +2424,7 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
       if (!(flags & nsIPlaintextEditor::eEditorDisabledMask) &&
           IsFocusedContent(mContent))
         mSelCon->SetCaretEnabled(PR_TRUE);
-    }
+    }    
     mEditor->SetFlags(flags);
   }
   else if (nsGkAtoms::disabled == aAttribute) 
@@ -2509,11 +2442,14 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
     { 
       flags &= ~(nsIPlaintextEditor::eEditorDisabledMask);
       mSelCon->SetDisplaySelection(nsISelectionController::SELECTION_HIDDEN);
-    }
+    }    
     mEditor->SetFlags(flags);
   }
-  else if (!mUseEditor && nsGkAtoms::value == aAttribute) {
-    UpdateValueDisplay(PR_TRUE);
+  else if (nsGkAtoms::placeholder == aAttribute)
+  {
+    nsWeakFrame weakFrame(this);
+    UpdatePlaceholderText(PR_TRUE);
+    NS_ENSURE_STATE(weakFrame.IsAlive());
   }
   
   
@@ -2532,7 +2468,7 @@ nsTextControlFrame::GetText(nsString& aText)
   if (IsSingleLineTextControl()) {
     
     GetValue(aText, PR_TRUE);
-    nsContentUtils::RemoveNewlines(aText);
+    RemoveNewlines(aText);
   } else {
     nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea = do_QueryInterface(mContent);
     if (textArea) {
@@ -2547,10 +2483,8 @@ nsresult
 nsTextControlFrame::GetPhonetic(nsAString& aPhonetic)
 {
   aPhonetic.Truncate(0); 
-
-  nsresult rv = EnsureEditorInitialized();
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  if (!mEditor)
+    return NS_ERROR_NOT_INITIALIZED;
   nsCOMPtr<nsIEditorIMESupport> imeSupport = do_QueryInterface(mEditor);
   if (imeSupport) {
     nsCOMPtr<nsIPhonetic> phonetic = do_QueryInterface(imeSupport);
@@ -2561,6 +2495,14 @@ nsTextControlFrame::GetPhonetic(nsAString& aPhonetic)
 }
 
 
+
+
+void nsTextControlFrame::RemoveNewlines(nsString &aString)
+{
+  
+  static const char badChars[] = {10, 13, 0};
+  aString.StripChars(badChars);
+}
 
 
 PRBool
@@ -2734,7 +2676,9 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
       
       
       nsString newValue(aValue);
-      nsContentUtils::PlatformToDOMLineBreaks(newValue);
+      if (aValue.FindChar(PRUnichar('\r')) != -1) {
+        ::PlatformToDOMLineBreaks(newValue);
+      }
 
       nsCOMPtr<nsIDOMDocument> domDoc;
       editor->GetDocument(getter_AddRefs(domDoc));
@@ -2849,12 +2793,6 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
     {
       textControl->TakeTextFrameValue(aValue);
     }
-    
-    
-    
-    if (!mEditor) {
-      UpdateValueDisplay(PR_TRUE, PR_FALSE, &aValue);
-    }
   }
   return NS_OK;
 }
@@ -2920,115 +2858,6 @@ nsTextControlFrame::SetValueChanged(PRBool aValueChanged)
     elem->SetValueChanged(aValueChanged);
   }
 }
-
-
-nsresult
-nsTextControlFrame::UpdateValueDisplay(PRBool aNotify,
-                                       PRBool aBeforeEditorInit,
-                                       const nsAString *aValue)
-{
-  if (!IsSingleLineTextControl()) 
-    return NS_OK;
-
-  NS_PRECONDITION(mValueDiv, "Must have a div content\n");
-  NS_PRECONDITION(!mUseEditor,
-                  "Do not call this after editor has been initialized");
-  NS_ASSERTION(mValueDiv->GetChildCount() <= 1,
-               "Cannot have more than one child node");
-  NS_ASSERTION(mPlaceholderDiv, "A placeholder div must exist");
-
-  enum {
-    NO_NODE,
-    TXT_NODE,
-    BR_NODE
-  } childNodeType = NO_NODE;
-  nsIContent* childNode = mValueDiv->GetChildAt(0);
-#ifdef NS_DEBUG
-  if (aBeforeEditorInit)
-    NS_ASSERTION(childNode, "A child node should exist before initializing the editor");
-#endif
-
-  if (childNode) {
-    if (childNode->IsNodeOfType(nsINode::eELEMENT))
-      childNodeType = BR_NODE;
-    else if (childNode->IsNodeOfType(nsINode::eTEXT))
-      childNodeType = TXT_NODE;
-#ifdef NS_DEBUG
-    else
-      NS_NOTREACHED("Invalid child node found");
-#endif
-  }
-
-  
-  nsAutoString value;
-  if (aValue) {
-    value = *aValue;
-  } else {
-    GetValue(value, PR_TRUE);
-  }
-
-  
-  {
-    nsWeakFrame weakFrame(this);
-    if (value.IsEmpty()) {
-      ShowPlaceholder();
-    } else {
-      HidePlaceholder();
-    }
-    NS_ENSURE_STATE(weakFrame.IsAlive());
-  }
-
-  if (aBeforeEditorInit && value.IsEmpty()) {
-    mValueDiv->RemoveChildAt(0, PR_TRUE, PR_FALSE);
-    return NS_OK;
-  }
-
-  nsTextEditRules::HandleNewLines(value, -1);
-  nsresult rv;
-  if (value.IsEmpty()) {
-    if (childNodeType != BR_NODE) {
-      nsCOMPtr<nsINodeInfo> nodeInfo;
-      nodeInfo = mContent->NodeInfo()
-                         ->NodeInfoManager()
-                         ->GetNodeInfo(nsGkAtoms::br, nsnull,
-                                       kNameSpaceID_XHTML);
-      NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
-
-      nsCOMPtr<nsIContent> brNode;
-      rv = NS_NewHTMLElement(getter_AddRefs(brNode), nodeInfo, PR_FALSE);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      nsCOMPtr<nsIDOMElement> brElement = do_QueryInterface(brNode);
-      NS_ENSURE_TRUE(brElement, NS_ERROR_UNEXPECTED);
-      brElement->SetAttribute(kMOZEditorBogusNodeAttr, kMOZEditorBogusNodeValue);
-
-      mValueDiv->RemoveChildAt(0, aNotify, PR_FALSE);
-      mValueDiv->AppendChildTo(brNode, aNotify);
-    }
-  } else {
-    if (IsPasswordTextControl())
-      nsTextEditRules::FillBufWithPWChars(&value, value.Length());
-
-    
-    nsCOMPtr<nsIContent> textNode;
-    if (childNodeType != TXT_NODE) {
-      rv = NS_NewTextNode(getter_AddRefs(textNode),
-                          mContent->NodeInfo()->NodeInfoManager());
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      NS_ASSERTION(textNode, "Must have textcontent!\n");
-
-      mValueDiv->RemoveChildAt(0, aNotify, PR_FALSE);
-      mValueDiv->AppendChildTo(textNode, aNotify);
-    } else {
-      textNode = childNode;
-    }
-
-    textNode->SetText(value, aNotify);
-  }
-  return NS_OK;
-}
-
 
  void
 nsTextControlFrame::ShutDown()
@@ -3112,7 +2941,7 @@ nsTextControlFrame::UpdatePlaceholderText(PRBool aNotify)
   nsAutoString placeholderValue;
 
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::placeholder, placeholderValue);
-  nsContentUtils::RemoveNewlines(placeholderValue);
+  RemoveNewlines(placeholderValue);
   NS_ASSERTION(mPlaceholderDiv->GetChildAt(0), "placeholder div has no child");
   mPlaceholderDiv->GetChildAt(0)->SetText(placeholderValue, aNotify);
 

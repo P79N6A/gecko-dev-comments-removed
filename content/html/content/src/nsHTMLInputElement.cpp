@@ -110,8 +110,6 @@
 #include "mozAutoDocUpdate.h"
 #include "nsHTMLFormElement.h"
 
-#include "nsTextEditRules.h"
-
 
 
 static NS_DEFINE_CID(kXULControllersCID,  NS_XULCONTROLLERS_CID);
@@ -424,12 +422,6 @@ protected:
 
 
   nsresult UpdateFileList();
-
-  
-
-
-
-  PRBool NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisitor) const;
 
   nsCOMPtr<nsIControllers> mControllers;
 
@@ -882,13 +874,6 @@ nsHTMLInputElement::GetValue(nsAString& aValue)
       } else {
         CopyUTF8toUTF16(mValue, aValue);
       }
-
-      
-      
-      
-      nsString value(aValue);
-      nsTextEditRules::HandleNewLines(value, -1);
-      aValue.Assign(value);
     }
 
     return NS_OK;
@@ -1016,9 +1001,7 @@ nsHTMLInputElement::TakeTextFrameValue(const nsAString& aValue)
   if (mValue) {
     nsMemory::Free(mValue);
   }
-  nsString value(aValue);
-  nsContentUtils::PlatformToDOMLineBreaks(value);
-  mValue = ToNewUTF8String(value);
+  mValue = ToNewUTF8String(aValue);
   return NS_OK;
 }
 
@@ -1139,8 +1122,9 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
       
       
       
-      return formControlFrame->SetFormProperty(
+      formControlFrame->SetFormProperty(
         aUserInput ? nsGkAtoms::userInput : nsGkAtoms::value, aValue);
+      return NS_OK;
     }
 
     SetValueChanged(PR_TRUE);
@@ -1590,32 +1574,6 @@ nsHTMLInputElement::Click()
   return NS_OK;
 }
 
-PRBool
-nsHTMLInputElement::NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisitor) const
-{
-  
-  
-  
-  
-  
-  if ((mType == NS_FORM_INPUT_TEXT ||
-       mType == NS_FORM_INPUT_PASSWORD) &&
-      aVisitor.mEvent->eventStructType != NS_MUTATION_EVENT) {
-
-    switch (aVisitor.mEvent->message) {
-    case NS_MOUSE_MOVE:
-    case NS_MOUSE_ENTER:
-    case NS_MOUSE_EXIT:
-    case NS_MOUSE_ENTER_SYNTH:
-    case NS_MOUSE_EXIT_SYNTH:
-      return PR_FALSE;
-      break;
-    }
-    return PR_TRUE;
-  }
-  return PR_FALSE;
-}
-
 nsresult
 nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
@@ -1640,13 +1598,6 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
         return NS_OK;
       }
     }
-  }
-
-  
-  if (NeedToInitializeEditorForEvent(aVisitor)) {
-    nsITextControlFrame* textControlFrame = do_QueryFrame(GetPrimaryFrame());
-    if (textControlFrame)
-      textControlFrame->EnsureEditorInitialized();
   }
 
   
