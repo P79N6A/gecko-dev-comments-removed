@@ -155,25 +155,7 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define JAVASCRIPT nsIProgrammingLanguage::JAVASCRIPT
 
 
-#define NS_MAX_DELAYED_CCOLLECT     45
 
-
-#define NS_CC_SOFT_LIMIT_INACTIVE   6
-
-
-#define NS_CC_SOFT_LIMIT_ACTIVE     12
-
-
-#define NS_PROBABILITY_MULTIPLIER   3
-
-#define NS_MIN_CC_INTERVAL          10000 // ms
-
-
-
-static PRUint32 sDelayedCCollectCount;
-static PRUint32 sCCollectCount;
-static PRTime sPreviousCCTime;
-static PRBool sPreviousCCDidCollect;
 static nsITimer *sGCTimer;
 static PRBool sReadyForGC;
 
@@ -216,75 +198,6 @@ static nsIScriptSecurityManager *sSecurityManager;
 static nsICollation *gCollation;
 
 static nsIUnicodeDecoder *gDecoder;
-
-
-
-
-
-
-
-
-
-
-
-class nsUserActivityObserver : public nsIObserver
-{
-public:
-  nsUserActivityObserver()
-  : mUserActivityCounter(0), mOldCCollectCount(0), mUserIsActive(PR_FALSE) {}
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-private:
-  PRUint32 mUserActivityCounter;
-  PRUint32 mOldCCollectCount;
-  PRBool   mUserIsActive;
-};
-
-NS_IMPL_ISUPPORTS1(nsUserActivityObserver, nsIObserver)
-
-NS_IMETHODIMP
-nsUserActivityObserver::Observe(nsISupports* aSubject, const char* aTopic,
-                                const PRUnichar* aData)
-{
-  if (mOldCCollectCount != sCCollectCount) {
-    mOldCCollectCount = sCCollectCount;
-    
-    
-    mUserActivityCounter = 0;
-  }
-  PRBool higherProbability = PR_FALSE;
-  ++mUserActivityCounter;
-  if (!strcmp(aTopic, "user-interaction-inactive")) {
-#ifdef DEBUG_smaug
-    printf("user-interaction-inactive\n");
-#endif
-    if (mUserIsActive) {
-      mUserIsActive = PR_FALSE;
-      if (!sGCTimer) {
-        nsJSContext::CC();
-        return NS_OK;
-      }
-    }
-    higherProbability = (mUserActivityCounter > NS_CC_SOFT_LIMIT_INACTIVE);
-  } else if (!strcmp(aTopic, "user-interaction-active")) {
-#ifdef DEBUG_smaug
-    printf("user-interaction-active\n");
-#endif
-    mUserIsActive = PR_TRUE;
-    higherProbability = (mUserActivityCounter > NS_CC_SOFT_LIMIT_ACTIVE);
-  } else if (!strcmp(aTopic, "xpcom-shutdown")) {
-    nsCOMPtr<nsIObserverService> obs =
-      do_GetService("@mozilla.org/observer-service;1");
-    if (obs) {
-      obs->RemoveObserver(this, "user-interaction-active");
-      obs->RemoveObserver(this, "user-interaction-inactive");
-      obs->RemoveObserver(this, "xpcom-shutdown");
-    }
-    return NS_OK;
-  }
-  nsJSContext::MaybeCC(higherProbability);
-  return NS_OK;
-}
 
 
 
@@ -3307,67 +3220,6 @@ nsJSContext::PreserveWrapper(nsIXPConnectWrappedNative *aWrapper)
   return nsDOMClassInfo::PreserveNodeWrapper(aWrapper);
 }
 
-
-void
-nsJSContext::MaybeCCOrGC(JSContext* aContext)
-{
-  if (!nsJSContext::MaybeCC(PR_TRUE) && aContext) {
-#ifdef DEBUG_smaug
-  printf("Will call JS_GC\n");
-#endif
-    ::JS_GC(aContext);
-#ifdef DEBUG_smaug
-  printf("Did call JS_GC\n");
-#endif
-  }
-}
-
-
-void
-nsJSContext::CC()
-{
-#ifdef DEBUG_smaug
-  printf("Will run cycle collector\n");
-#endif
-  sPreviousCCTime = PR_Now();
-  sDelayedCCollectCount = 0;
-  ++sCCollectCount;
-  
-  
-  sPreviousCCDidCollect = nsCycleCollector_collect();
-#ifdef DEBUG_smaug
-  printf("%s\n", sPreviousCCDidCollect ?
-                   "Cycle collector did collect nodes" :
-                   "Cycle collector did not collect nodes");
-#endif
-}
-
-
-PRBool
-nsJSContext::MaybeCC(PRBool aHigherProbability)
-{
-  ++sDelayedCCollectCount;
-  
-  
-  if (aHigherProbability || sPreviousCCDidCollect) {
-    sDelayedCCollectCount *= NS_PROBABILITY_MULTIPLIER;
-  }
-
-  if (!sGCTimer && (sDelayedCCollectCount > NS_MAX_DELAYED_CCOLLECT)) {
-    if ((PR_Now() - sPreviousCCTime) >=
-        PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
-      nsJSContext::CC();
-      return PR_TRUE;
-    }
-#ifdef DEBUG_smaug
-    else {
-      printf("Running cycle collector was delayed: NS_MIN_CC_INTERVAL\n");
-    }
-#endif
-  }
-  return PR_FALSE;
-}
-
 NS_IMETHODIMP
 nsJSContext::Notify(nsITimer *timer)
 {
@@ -3386,7 +3238,9 @@ nsJSContext::Notify(nsITimer *timer)
     
     sPendingLoadCount = 0;
 
-    MaybeCCOrGC(mContext);
+    
+    
+    nsCycleCollector_collect();
   } else {
     FireGCTimer(PR_TRUE);
   }
@@ -3405,7 +3259,7 @@ nsJSContext::LoadStart()
 
 
 void
-nsJSContext::LoadEnd(nsIScriptGlobalObject* aGlobalObject)
+nsJSContext::LoadEnd()
 {
   
   
@@ -3415,18 +3269,13 @@ nsJSContext::LoadEnd(nsIScriptGlobalObject* aGlobalObject)
 
   if (!sPendingLoadCount && sLoadInProgressGCTimer) {
     sGCTimer->Cancel();
+
     NS_RELEASE(sGCTimer);
     sLoadInProgressGCTimer = PR_FALSE;
 
-    JSContext* cx = nsnull;
-    nsCOMPtr<nsIScriptContext> scx;
-    if (aGlobalObject) {
-      scx = aGlobalObject->GetContext();
-      if (scx) {
-        cx = static_cast<JSContext*>(scx->GetNativeContext());
-      }
-    }
-    MaybeCCOrGC(cx);
+    
+    
+    nsCycleCollector_collect();
   }
 }
 
@@ -3453,7 +3302,10 @@ nsJSContext::FireGCTimer(PRBool aLoadInProgress)
     
     sLoadInProgressGCTimer = PR_FALSE;
 
-    MaybeCCOrGC(mContext);
+    
+    
+    nsCycleCollector_collect();
+
     return;
   }
 
@@ -3561,10 +3413,6 @@ void
 nsJSRuntime::Startup()
 {
   
-  sDelayedCCollectCount = 0;
-  sCCollectCount = 0;
-  sPreviousCCTime = 0;
-  sPreviousCCDidCollect = PR_FALSE;
   sGCTimer = nsnull;
   sReadyForGC = PR_FALSE;
   sLoadInProgressGCTimer = PR_FALSE;
@@ -3698,15 +3546,6 @@ nsJSRuntime::Init()
                                        nsnull);
   MaxScriptRunTimePrefChangedCallback("dom.max_chrome_script_run_time",
                                       nsnull);
-
-  nsCOMPtr<nsIObserverService> obs =
-    do_GetService("@mozilla.org/observer-service;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsIObserver* activityObserver = new nsUserActivityObserver();
-  NS_ENSURE_TRUE(activityObserver, NS_ERROR_OUT_OF_MEMORY);
-  obs->AddObserver(activityObserver, "user-interaction-inactive", PR_FALSE);
-  obs->AddObserver(activityObserver, "user-interaction-active", PR_FALSE);
-  obs->AddObserver(activityObserver, "xpcom-shutdown", PR_FALSE);
 
   rv = CallGetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &sSecurityManager);
 
