@@ -920,8 +920,6 @@ function delayedStartup()
 
   gBrowser.addEventListener("pageshow", function(evt) { setTimeout(pageShowEventHandlers, 0, evt); }, true);
 
-  window.addEventListener("keypress", onBrowserKeyPress, false);
-
   
   Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
@@ -1300,20 +1298,6 @@ SanitizeListener.prototype =
         gNavigatorBundle.getString("sanitizeWithPromptLabel") : 
         this._defaultLabel;
     document.getElementById("sanitizeItem").setAttribute("label", label);
-  }
-}
-
-function onBrowserKeyPress(event)
-{
-  if (event.altKey && event.keyCode == KeyEvent.DOM_VK_RETURN) {
-    
-    
-    
-    if (!(document.commandDispatcher.focusedElement instanceof HTMLAnchorElement)) {
-      
-      event.preventDefault();
-      return;
-    }
   }
 }
 
