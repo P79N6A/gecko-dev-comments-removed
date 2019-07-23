@@ -55,8 +55,8 @@ class nsIPrincipal;
 
 
 #define NS_ICSS_STYLE_SHEET_IID     \
-{ 0x74fa10f3, 0xfab7, 0x425a, \
- { 0xa7, 0xdd, 0xe2, 0xaf, 0xd1, 0xba, 0x7a, 0x07 } }
+{ 0x363c1c5f, 0x81ec, 0x4d83, \
+ { 0xad, 0x8a, 0xb4, 0x8d, 0x48, 0xf1, 0x39, 0x8d } }
 
 class nsICSSStyleSheet : public nsIStyleSheet {
 public:
@@ -121,6 +121,12 @@ public:
 
   NS_IMETHOD  AddRuleProcessor(nsCSSRuleProcessor* aProcessor) = 0;
   NS_IMETHOD  DropRuleProcessor(nsCSSRuleProcessor* aProcessor) = 0;
+
+  
+
+
+  NS_IMETHOD InsertRuleInternal(const nsAString& aRule,
+                                PRUint32 aIndex, PRUint32* aReturn) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICSSStyleSheet, NS_ICSS_STYLE_SHEET_IID)

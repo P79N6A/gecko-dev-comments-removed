@@ -1108,7 +1108,8 @@ protected:
   nsresult DoFlushPendingNotifications(mozFlushType aType,
                                        PRBool aInterruptibleReflow);
 
-  nsICSSStyleSheet*         mPrefStyleSheet; 
+  nsCOMPtr<nsICSSStyleSheet> mPrefStyleSheet; 
+                                              
 #ifdef DEBUG
   PRUint32                  mUpdateCount;
 #endif
@@ -1845,7 +1846,7 @@ nsresult PresShell::ClearPreferenceStyleRules(void)
       printf("PrefStyleSheet removed\n");
 #endif
       
-      NS_RELEASE(mPrefStyleSheet);
+      mPrefStyleSheet = nsnull;
     }
   }
   return result;
@@ -1854,7 +1855,8 @@ nsresult PresShell::ClearPreferenceStyleRules(void)
 nsresult PresShell::CreatePreferenceStyleSheet(void)
 {
   NS_ASSERTION(!mPrefStyleSheet, "prefStyleSheet already exists");
-  nsresult result = CallCreateInstance(kCSSStyleSheetCID, &mPrefStyleSheet);
+  nsresult result;
+  mPrefStyleSheet = do_CreateInstance(kCSSStyleSheetCID, &result);
   if (NS_SUCCEEDED(result)) {
     NS_ASSERTION(mPrefStyleSheet, "null but no error");
     nsCOMPtr<nsIURI> uri;
@@ -1864,23 +1866,24 @@ nsresult PresShell::CreatePreferenceStyleSheet(void)
       result = mPrefStyleSheet->SetURIs(uri, nsnull, uri);
       if (NS_SUCCEEDED(result)) {
         mPrefStyleSheet->SetComplete();
-        nsCOMPtr<nsIDOMCSSStyleSheet> sheet(do_QueryInterface(mPrefStyleSheet));
-        if (sheet) {
-          PRUint32 index;
-          result = sheet->InsertRule(NS_LITERAL_STRING("@namespace url(http://www.w3.org/1999/xhtml);"),
-                                     0, &index);
-          NS_ENSURE_SUCCESS(result, result);
+        PRUint32 index;
+        result =
+          mPrefStyleSheet->InsertRuleInternal(NS_LITERAL_STRING("@namespace url(http://www.w3.org/1999/xhtml);"),
+                                              0, &index);
+        if (NS_SUCCEEDED(result)) {
+          mStyleSet->AppendStyleSheet(nsStyleSet::eUserSheet, mPrefStyleSheet);
         }
-        mStyleSet->AppendStyleSheet(nsStyleSet::eUserSheet, mPrefStyleSheet);
       }
     }
-  } else {
-    result = NS_ERROR_OUT_OF_MEMORY;
   }
 
 #ifdef DEBUG_attinasi
   printf("CreatePrefStyleSheet completed: error=%ld\n",(long)result);
 #endif
+
+  if (NS_FAILED(result)) {
+    mPrefStyleSheet = nsnull;
+  }
 
   return result;
 }
@@ -1908,12 +1911,11 @@ PresShell::SetPrefNoScriptRule()
       rv = CreatePreferenceStyleSheet();
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    
-    nsCOMPtr<nsIDOMCSSStyleSheet> sheet(do_QueryInterface(mPrefStyleSheet, &rv));
-    NS_ENSURE_SUCCESS(rv, rv);
+
     PRUint32 index = 0;
-    rv = sheet->InsertRule(NS_LITERAL_STRING("noscript{display:none!important}"),
-                           sInsertPrefSheetRulesAt, &index);
+    mPrefStyleSheet->
+      InsertRuleInternal(NS_LITERAL_STRING("noscript{display:none!important}"),
+                         sInsertPrefSheetRulesAt, &index);
   }
 
   return rv;
@@ -1935,10 +1937,6 @@ nsresult PresShell::SetPrefNoFramesRule(void)
   
   NS_ASSERTION(mPrefStyleSheet, "prefstylesheet should not be null");
   
-  
-  nsCOMPtr<nsIDOMCSSStyleSheet> sheet(do_QueryInterface(mPrefStyleSheet, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
   PRBool allowSubframes = PR_TRUE;
   nsCOMPtr<nsISupports> container = mPresContext->GetContainer();     
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(container));
@@ -1947,11 +1945,13 @@ nsresult PresShell::SetPrefNoFramesRule(void)
   }
   if (!allowSubframes) {
     PRUint32 index = 0;
-    rv = sheet->InsertRule(NS_LITERAL_STRING("noframes{display:block}"),
-                           sInsertPrefSheetRulesAt, &index);
+    rv = mPrefStyleSheet->
+      InsertRuleInternal(NS_LITERAL_STRING("noframes{display:block}"),
+                         sInsertPrefSheetRulesAt, &index);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = sheet->InsertRule(NS_LITERAL_STRING("frame, frameset, iframe {display:none!important}"),
-                           sInsertPrefSheetRulesAt, &index);
+    rv = mPrefStyleSheet->
+      InsertRuleInternal(NS_LITERAL_STRING("frame, frameset, iframe {display:none!important}"),
+                         sInsertPrefSheetRulesAt, &index);
   }
   return rv;
 }
@@ -1973,10 +1973,6 @@ nsresult PresShell::SetPrefLinkRules(void)
   NS_ASSERTION(mPrefStyleSheet, "prefstylesheet should not be null");
   
   
-  nsCOMPtr<nsIDOMCSSStyleSheet> sheet(do_QueryInterface(mPrefStyleSheet, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
   
   
   
@@ -1992,23 +1988,26 @@ nsresult PresShell::SetPrefLinkRules(void)
 
   
   ColorToString(linkColor, strColor);
-  rv = sheet->InsertRule(NS_LITERAL_STRING("*|*:link{color:") +
-                         strColor + ruleClose,
-                         sInsertPrefSheetRulesAt, &index);
+  rv = mPrefStyleSheet->
+    InsertRuleInternal(NS_LITERAL_STRING("*|*:link{color:") +
+                       strColor + ruleClose,
+                       sInsertPrefSheetRulesAt, &index);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   ColorToString(visitedColor, strColor);
-  rv = sheet->InsertRule(NS_LITERAL_STRING("*|*:visited{color:") +
-                         strColor + ruleClose,
-                         sInsertPrefSheetRulesAt, &index);
+  rv = mPrefStyleSheet->
+    InsertRuleInternal(NS_LITERAL_STRING("*|*:visited{color:") +
+                       strColor + ruleClose,
+                       sInsertPrefSheetRulesAt, &index);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   ColorToString(activeColor, strColor);
-  rv = sheet->InsertRule(NS_LITERAL_STRING("*|*:-moz-any-link:active{color:") +
-                         strColor + ruleClose,
-                         sInsertPrefSheetRulesAt, &index);
+  rv = mPrefStyleSheet->
+    InsertRuleInternal(NS_LITERAL_STRING("*|*:-moz-any-link:active{color:") +
+                       strColor + ruleClose,
+                       sInsertPrefSheetRulesAt, &index);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool underlineLinks =
@@ -2020,11 +2019,13 @@ nsresult PresShell::SetPrefLinkRules(void)
     
     
     
-    rv = sheet->InsertRule(NS_LITERAL_STRING("*|*:-moz-any-link{text-decoration:underline}"),
-                           sInsertPrefSheetRulesAt, &index);
+    rv = mPrefStyleSheet->
+      InsertRuleInternal(NS_LITERAL_STRING("*|*:-moz-any-link{text-decoration:underline}"),
+                         sInsertPrefSheetRulesAt, &index);
   } else {
-    rv = sheet->InsertRule(NS_LITERAL_STRING("*|*:-moz-any-link{text-decoration:none}"),
-                           sInsertPrefSheetRulesAt, &index);
+    rv = mPrefStyleSheet->
+      InsertRuleInternal(NS_LITERAL_STRING("*|*:-moz-any-link{text-decoration:none}"),
+                         sInsertPrefSheetRulesAt, &index);
   }
 
   return rv;          
@@ -2044,58 +2045,58 @@ nsresult PresShell::SetPrefFocusRules(void)
   if (NS_SUCCEEDED(result)) {
     NS_ASSERTION(mPrefStyleSheet, "prefstylesheet should not be null");
 
-    
-    nsCOMPtr<nsIDOMCSSStyleSheet> sheet(do_QueryInterface(mPrefStyleSheet,&result));
-    if (NS_SUCCEEDED(result)) {
-      if (mPresContext->GetUseFocusColors()) {
-        nscolor focusBackground(mPresContext->FocusBackgroundColor());
-        nscolor focusText(mPresContext->FocusTextColor());
+    if (mPresContext->GetUseFocusColors()) {
+      nscolor focusBackground(mPresContext->FocusBackgroundColor());
+      nscolor focusText(mPresContext->FocusTextColor());
 
-        
-        PRUint32 index = 0;
-        nsAutoString strRule, strColor;
+      
+      PRUint32 index = 0;
+      nsAutoString strRule, strColor;
 
-        
-        
-        ColorToString(focusText,strColor);
-        strRule.AppendLiteral("*:focus,*:focus>font {color: ");
-        strRule.Append(strColor);
-        strRule.AppendLiteral(" !important; background-color: ");
-        ColorToString(focusBackground,strColor);
-        strRule.Append(strColor);
-        strRule.AppendLiteral(" !important; } ");
-        
-        result = sheet->InsertRule(strRule, sInsertPrefSheetRulesAt, &index);
-      }
-      PRUint8 focusRingWidth = mPresContext->FocusRingWidth();
-      PRBool focusRingOnAnything = mPresContext->GetFocusRingOnAnything();
+      
+      
+      ColorToString(focusText,strColor);
+      strRule.AppendLiteral("*:focus,*:focus>font {color: ");
+      strRule.Append(strColor);
+      strRule.AppendLiteral(" !important; background-color: ");
+      ColorToString(focusBackground,strColor);
+      strRule.Append(strColor);
+      strRule.AppendLiteral(" !important; } ");
+      
+      result = mPrefStyleSheet->
+        InsertRuleInternal(strRule, sInsertPrefSheetRulesAt, &index);
+    }
+    PRUint8 focusRingWidth = mPresContext->FocusRingWidth();
+    PRBool focusRingOnAnything = mPresContext->GetFocusRingOnAnything();
 
-      if ((NS_SUCCEEDED(result) && focusRingWidth != 1 && focusRingWidth <= 4 ) || focusRingOnAnything) {
-        PRUint32 index = 0;
-        nsAutoString strRule;
-        if (!focusRingOnAnything)
-          strRule.AppendLiteral("*|*:link:focus, *|*:visited");    
-        strRule.AppendLiteral(":focus {outline: ");     
+    if ((NS_SUCCEEDED(result) && focusRingWidth != 1 && focusRingWidth <= 4 ) || focusRingOnAnything) {
+      PRUint32 index = 0;
+      nsAutoString strRule;
+      if (!focusRingOnAnything)
+        strRule.AppendLiteral("*|*:link:focus, *|*:visited");    
+      strRule.AppendLiteral(":focus {outline: ");     
+      strRule.AppendInt(focusRingWidth);
+      strRule.AppendLiteral("px dotted WindowText !important; } ");     
+      
+      result = mPrefStyleSheet->
+        InsertRuleInternal(strRule, sInsertPrefSheetRulesAt, &index);
+      NS_ENSURE_SUCCESS(result, result);
+      if (focusRingWidth != 1) {
+        
+        strRule.AssignLiteral("button::-moz-focus-inner, input[type=\"reset\"]::-moz-focus-inner,");
+        strRule.AppendLiteral("input[type=\"button\"]::-moz-focus-inner, ");
+        strRule.AppendLiteral("input[type=\"submit\"]::-moz-focus-inner { padding: 1px 2px 1px 2px; border: ");
         strRule.AppendInt(focusRingWidth);
-        strRule.AppendLiteral("px dotted WindowText !important; } ");     
-        
-        result = sheet->InsertRule(strRule, sInsertPrefSheetRulesAt, &index);
+        strRule.AppendLiteral("px dotted transparent !important; } ");
+        result = mPrefStyleSheet->
+          InsertRuleInternal(strRule, sInsertPrefSheetRulesAt, &index);
         NS_ENSURE_SUCCESS(result, result);
-        if (focusRingWidth != 1) {
           
-          strRule.AssignLiteral("button::-moz-focus-inner, input[type=\"reset\"]::-moz-focus-inner,");
-          strRule.AppendLiteral("input[type=\"button\"]::-moz-focus-inner, ");
-          strRule.AppendLiteral("input[type=\"submit\"]::-moz-focus-inner { padding: 1px 2px 1px 2px; border: ");
-          strRule.AppendInt(focusRingWidth);
-          strRule.AppendLiteral("px dotted transparent !important; } ");
-          result = sheet->InsertRule(strRule, sInsertPrefSheetRulesAt, &index);
-          NS_ENSURE_SUCCESS(result, result);
-          
-          strRule.AssignLiteral("button:focus::-moz-focus-inner, input[type=\"reset\"]:focus::-moz-focus-inner,");
-          strRule.AppendLiteral("input[type=\"button\"]:focus::-moz-focus-inner, input[type=\"submit\"]:focus::-moz-focus-inner {");
-          strRule.AppendLiteral("border-color: ButtonText !important; }");
-          result = sheet->InsertRule(strRule, sInsertPrefSheetRulesAt, &index);
-        }
+        strRule.AssignLiteral("button:focus::-moz-focus-inner, input[type=\"reset\"]:focus::-moz-focus-inner,");
+        strRule.AppendLiteral("input[type=\"button\"]:focus::-moz-focus-inner, input[type=\"submit\"]:focus::-moz-focus-inner {");
+        strRule.AppendLiteral("border-color: ButtonText !important; }");
+        result = mPrefStyleSheet->
+          InsertRuleInternal(strRule, sInsertPrefSheetRulesAt, &index);
       }
     }
   }

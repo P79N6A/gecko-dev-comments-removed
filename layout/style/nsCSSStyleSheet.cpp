@@ -1334,7 +1334,7 @@ nsCSSStyleSheet::SubjectSubsumesInnerPrincipal() const
   securityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
 
   if (!subjectPrincipal) {
-    return NS_OK;
+    return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   PRBool subsumes;
@@ -1508,16 +1508,24 @@ nsCSSStyleSheet::InsertRule(const nsAString& aRule,
                             PRUint32* aReturn)
 {
   
+  
+  nsresult rv = SubjectSubsumesInnerPrincipal();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return InsertRuleInternal(aRule, aIndex, aReturn);
+}
+
+NS_IMETHODIMP
+nsCSSStyleSheet::InsertRuleInternal(const nsAString& aRule, 
+                                    PRUint32 aIndex, 
+                                    PRUint32* aReturn)
+{
+  
   PRBool complete;
   GetComplete(complete);
   if (!complete) {
     return NS_ERROR_DOM_INVALID_ACCESS_ERR;
   }
-
-  
-  
-  nsresult rv = SubjectSubsumesInnerPrincipal();
-  NS_ENSURE_SUCCESS(rv, rv);
 
   if (aRule.IsEmpty()) {
     
