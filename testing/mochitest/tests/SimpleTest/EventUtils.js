@@ -488,7 +488,8 @@ function synthesizeDragStart(element, expectedDragData, aWindow)
 
 
 
-function synthesizeDrop(element, dragData, aWindow)
+
+function synthesizeDrop(element, dragData, dropEffect, aWindow)
 {
   if (!aWindow)
     aWindow = window;
@@ -502,6 +503,7 @@ function synthesizeDrop(element, dragData, aWindow)
         dataTransfer.mozSetDataAt(item[j].type, item[j].data, i);
       }
     }
+    dataTransfer.dropEffect = dropEffect || "move";
     event.preventDefault();
     event.stopPropagation();
   }
