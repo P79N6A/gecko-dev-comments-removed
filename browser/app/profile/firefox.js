@@ -693,6 +693,10 @@ pref("browser.ssl_override_behavior", 1);
 pref("browser.identity.ssl_domain_display", 0);
 
 
+
+pref("browser.offline-apps.notify", true);
+
+
 pref("browser.zoom.full", true);
 
 
