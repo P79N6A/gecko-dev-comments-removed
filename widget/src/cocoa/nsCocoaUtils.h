@@ -64,6 +64,21 @@ private:
   id mObject;  
 };
 
+
+class nsAutoreleasePool {
+public:
+  nsAutoreleasePool()
+  {
+    mLocalPool = [[NSAutoreleasePool alloc] init];
+  }
+  ~nsAutoreleasePool()
+  {
+    [mLocalPool release];
+  }
+private:
+  NSAutoreleasePool *mLocalPool;
+};
+
 @interface NSApplication (Undocumented)
 
 
