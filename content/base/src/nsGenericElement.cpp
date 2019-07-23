@@ -3794,6 +3794,74 @@ nsGenericElement::CreateSlots()
   return new nsDOMSlots(mFlagsOrSlots);
 }
 
+PRBool
+nsGenericElement::CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
+                                                       nsIURI** aURI) const
+{
+  if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
+      !NS_IS_TRUSTED_EVENT(aVisitor.mEvent) ||
+      !aVisitor.mPresContext) {
+    return PR_FALSE;
+  }
+
+  
+  return IsLink(aURI);
+}
+
+nsresult
+nsGenericElement::PreHandleEventForLinks(nsEventChainPreVisitor& aVisitor)
+{
+  
+  
+  switch (aVisitor.mEvent->message) {
+  case NS_MOUSE_ENTER_SYNTH:
+  case NS_FOCUS_CONTENT:
+  case NS_MOUSE_EXIT_SYNTH:
+  case NS_BLUR_CONTENT:
+    break;
+  default:
+    return NS_OK;
+  }
+
+  
+  nsCOMPtr<nsIURI> absURI;
+  if (!CheckHandleEventForLinksPrecondition(aVisitor, getter_AddRefs(absURI))) {
+    return NS_OK;
+  }
+
+  nsresult rv = NS_OK;
+
+  
+  
+  switch (aVisitor.mEvent->message) {
+  
+  case NS_MOUSE_ENTER_SYNTH:
+    aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+    
+  case NS_FOCUS_CONTENT:
+    {
+      nsAutoString target;
+      GetLinkTarget(target);
+      rv = TriggerLink(aVisitor.mPresContext, absURI, target, PR_FALSE, PR_TRUE);
+    }
+    break;
+
+  case NS_MOUSE_EXIT_SYNTH:
+    aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+    
+  case NS_BLUR_CONTENT:
+    rv = LeaveLink(aVisitor.mPresContext);
+    break;
+
+  default:
+    
+    NS_NOTREACHED("switch statements not in sync");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  return rv;
+}
+
 nsresult
 nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
 {
@@ -3804,24 +3872,14 @@ nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
   case NS_MOUSE_CLICK:
   case NS_UI_ACTIVATE:
   case NS_KEY_PRESS:
-  case NS_MOUSE_ENTER_SYNTH:
-  case NS_FOCUS_CONTENT:
-  case NS_MOUSE_EXIT_SYNTH:
-  case NS_BLUR_CONTENT:
     break;
   default:
     return NS_OK;
   }
 
-  if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
-      !NS_IS_TRUSTED_EVENT(aVisitor.mEvent) ||
-      !aVisitor.mPresContext) {
-    return NS_OK;
-  }
-
   
   nsCOMPtr<nsIURI> absURI;
-  if (!IsLink(getter_AddRefs(absURI))) {
+  if (!CheckHandleEventForLinksPrecondition(aVisitor, getter_AddRefs(absURI))) {
     return NS_OK;
   }
 
@@ -3906,27 +3964,6 @@ nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
         }
       }
     }
-    break;
-
-  
-  case NS_MOUSE_ENTER_SYNTH:
-    aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-    
-  case NS_FOCUS_CONTENT:
-    {
-      nsAutoString target;
-      GetLinkTarget(target);
-      rv = TriggerLink(aVisitor.mPresContext, absURI, target, PR_FALSE, PR_TRUE);
-    }
-    break;
-
-  case NS_MOUSE_EXIT_SYNTH:
-    aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-    rv = LeaveLink(aVisitor.mPresContext);
-    break;
-
-  case NS_BLUR_CONTENT:
-    rv = LeaveLink(aVisitor.mPresContext);
     break;
 
   default:

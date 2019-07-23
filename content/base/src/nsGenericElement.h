@@ -1008,6 +1008,26 @@ protected:
 
 
 
+
+  
+
+
+
+
+
+
+
+  PRBool CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
+                                              nsIURI** aURI) const;
+
+  
+
+
+  nsresult PreHandleEventForLinks(nsEventChainPreVisitor& aVisitor);
+
+  
+
+
   nsresult PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor);
 
   
