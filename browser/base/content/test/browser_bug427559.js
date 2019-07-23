@@ -51,7 +51,8 @@ function test() {
   gBrowser.selectedTab = testTab;
   let testBrowser = gBrowser.getBrowserForTab(testTab);
 
-  testBrowser.addEventListener("load", function() {
+  
+  testBrowser.addEventListener("load", function() setTimeout(function() {
     
     
     
@@ -65,7 +66,7 @@ function test() {
        "content window is focused");
     gBrowser.removeCurrentTab();
     finish();
-  }, true);
+  }, 0), true);
 
   
   testBrowser.contentWindow.location = testPage;
