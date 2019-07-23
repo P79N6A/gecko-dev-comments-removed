@@ -270,8 +270,6 @@ protected:
   
   nsMenuPopupFrame* mPopupFrame;
 
-  nsSize mLastPref;
-
   
   nsRefPtr<nsMenuTimerMediator> mTimerMediator;
 
