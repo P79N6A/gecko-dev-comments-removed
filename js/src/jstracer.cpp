@@ -496,7 +496,7 @@ TraceRecorder::getCallDepth() const
 
 
 JSStackFrame*
-TraceRecorder::findFrame(void* p) const
+TraceRecorder::findFrame(jsval* p) const
 {
     jsval* vp = (jsval*) p;
     JSStackFrame* fp = cx->fp;
@@ -517,14 +517,14 @@ TraceRecorder::findFrame(void* p) const
 
 
 bool
-TraceRecorder::onFrame(void* p) const
+TraceRecorder::onFrame(jsval* p) const
 {
     return isGlobal(p) || findFrame(p) != NULL;
 }
 
 
 bool
-TraceRecorder::isGlobal(void* p) const
+TraceRecorder::isGlobal(jsval* p) const
 {
     JSObject* varobj = global->varobj;
 
@@ -558,7 +558,7 @@ TraceRecorder::nativeFrameSlots(JSStackFrame* fp, JSFrameRegs& regs) const
 
 
 size_t
-TraceRecorder::nativeFrameOffset(void* p) const
+TraceRecorder::nativeFrameOffset(jsval* p) const
 {
     JSStackFrame* currentFrame = cx->fp;
     size_t offset = 0;
@@ -735,7 +735,7 @@ TraceRecorder::import(jsval* p, uint8& t, char *prefix, int index)
 
 
 void
-TraceRecorder::set(void* p, LIns* i)
+TraceRecorder::set(jsval* p, LIns* i)
 {
     tracker.set(p, i);
     if (onFrame(p))
@@ -743,7 +743,7 @@ TraceRecorder::set(void* p, LIns* i)
 }
 
 LIns*
-TraceRecorder::get(void* p)
+TraceRecorder::get(jsval* p)
 {
     return tracker.get(p);
 }
