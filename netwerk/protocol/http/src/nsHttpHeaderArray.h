@@ -73,7 +73,9 @@ public:
 
     
     
-    void ParseHeaderLine(char *line, nsHttpAtom *header=nsnull, char **value=nsnull);
+    void ParseHeaderLine(const char *line,
+                         nsHttpAtom *header=nsnull,
+                         char **value=nsnull);
 
     void Flatten(nsACString &, PRBool pruneProxyHeaders=PR_FALSE);
 

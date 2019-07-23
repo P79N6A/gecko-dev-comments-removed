@@ -101,10 +101,10 @@ public:
     nsresult Parse(char *block);
 
     
-    void     ParseStatusLine(char *line);
+    void     ParseStatusLine(const char *line);
 
     
-    void     ParseHeaderLine(char *line);
+    void     ParseHeaderLine(const char *line);
 
     
     nsresult ComputeFreshnessLifetime(PRUint32 *);

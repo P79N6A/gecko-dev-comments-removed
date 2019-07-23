@@ -130,7 +130,9 @@ nsHttpHeaderArray::VisitHeaders(nsIHttpHeaderVisitor *visitor)
 }
 
 void
-nsHttpHeaderArray::ParseHeaderLine(char *line, nsHttpAtom *hdr, char **val)
+nsHttpHeaderArray::ParseHeaderLine(const char *line,
+                                   nsHttpAtom *hdr,
+                                   char **val)
 {
     
     

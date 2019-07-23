@@ -163,7 +163,7 @@ nsHttpResponseHead::Parse(char *block)
 }
 
 void
-nsHttpResponseHead::ParseStatusLine(char *line)
+nsHttpResponseHead::ParseStatusLine(const char *line)
 {
     
     
@@ -198,7 +198,7 @@ nsHttpResponseHead::ParseStatusLine(char *line)
 }
 
 void
-nsHttpResponseHead::ParseHeaderLine(char *line)
+nsHttpResponseHead::ParseHeaderLine(const char *line)
 {
     nsHttpAtom hdr = {0};
     char *val;
