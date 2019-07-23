@@ -54,7 +54,8 @@ class nsSVGInnerSVGFrame : public nsSVGInnerSVGFrameBase,
   friend nsIFrame*
   NS_NewSVGInnerSVGFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
 protected:
-  nsSVGInnerSVGFrame(nsStyleContext* aContext);
+  nsSVGInnerSVGFrame(nsStyleContext* aContext) :
+    nsSVGInnerSVGFrameBase(aContext), mPropagateTransform(PR_TRUE) {}
   
    
   NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
@@ -122,15 +123,13 @@ protected:
 nsIFrame*
 NS_NewSVGInnerSVGFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext)
 {
+  nsCOMPtr<nsIDOMSVGSVGElement> svg = do_QueryInterface(aContent);
+  if (!svg) {
+    NS_ERROR("Can't create frame! Content is not an SVG 'svg' element!");
+    return nsnull;
+  }
+
   return new (aPresShell) nsSVGInnerSVGFrame(aContext);
-}
-
-nsSVGInnerSVGFrame::nsSVGInnerSVGFrame(nsStyleContext* aContext) :
-  nsSVGInnerSVGFrameBase(aContext), mPropagateTransform(PR_TRUE)
-{
-#ifdef DEBUG
-
-#endif
 }
 
 
