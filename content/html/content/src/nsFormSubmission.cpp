@@ -73,52 +73,21 @@
 #include "nsIFileStreams.h"
 #include "nsBidiUtils.h"
 
-
-
-
-
-
-
-
-static void GetSubmitCharset(nsGenericHTMLElement* aForm,
-                             PRUint8 aCtrlsModAtSubmit,
-                             nsACString& aCharset);
-
-
-
-
-
-
-static nsresult GetEncoder(nsGenericHTMLElement* aForm,
-                           const nsACString& aCharset,
-                           nsISaveAsCharset** aEncoder);
-
-
-
-
-
-
-
-
-static void GetEnumAttr(nsGenericHTMLElement* aForm,
-                        nsIAtom* aAtom, PRInt32* aValue);
-
-
-
-
-
-
-
-
-
-
-
-
-
 static void
 SendJSWarning(nsIDocument* aDocument,
               const char* aWarningName,
-              const PRUnichar** aWarningArgs, PRUint32 aWarningArgsLen);
+              const PRUnichar** aWarningArgs, PRUint32 aWarningArgsLen)
+{
+  nsContentUtils::ReportToConsole(nsContentUtils::eFORMS_PROPERTIES,
+                                  aWarningName,
+                                  aWarningArgs, aWarningArgsLen,
+                                  aDocument ? aDocument->GetDocumentURI() :
+                                              nsnull,
+                                  EmptyString(), 0, 0,
+                                  nsIScriptError::warningFlag,
+                                  "HTML");
+}
+
 
 
 class nsFSURLEncoded : public nsFormSubmission
@@ -144,18 +113,15 @@ public:
   {
   }
 
-  
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
                                    nsIFile* aFile);
 
 protected:
-  
   NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
                                   nsIInputStream** aPostDataStream);
 
-  
   
 
 
@@ -188,22 +154,16 @@ nsFSURLEncoded::AddNameValuePair(const nsAString& aName,
                                  const nsAString& aValue)
 {
   
-  
-  
   nsCString convValue;
   nsresult rv = URLEncode(aValue, convValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
   
   nsCAutoString convName;
   rv = URLEncode(aName, convName);
   NS_ENSURE_SUCCESS(rv, rv);
 
 
-  
-  
   
   if (mQueryString.IsEmpty()) {
     mQueryString += convName + NS_LITERAL_CSTRING("=") + convValue;
@@ -359,8 +319,6 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
 
   } else {
     
-    
-    
     PRBool schemeIsJavaScript;
     rv = aURI->SchemeIs("javascript", &schemeIsJavaScript);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -444,18 +402,15 @@ public:
                         nsISaveAsCharset* aEncoder,
                         PRInt32 aBidiOptions);
  
-  
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
                                    nsIFile* aFile);
 
 protected:
-  
   NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
                                   nsIInputStream** aPostDataStream);
 
-  
   
 
 
@@ -486,9 +441,6 @@ private:
   nsCString mBoundary;
 };
 
-
-
-
 nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset,
                                              nsISaveAsCharset* aEncoder,
                                              PRInt32 aBidiOptions)
@@ -502,9 +454,6 @@ nsFSMultipartFormData::nsFSMultipartFormData(const nsACString& aCharset,
   mBoundary.AppendInt(rand());
   mBoundary.AppendInt(rand());
 }
-
-
-
 
 nsresult
 nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
@@ -525,8 +474,7 @@ nsFSMultipartFormData::AddNameValuePair(const nsAString& aName,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
+
   
   
   
@@ -610,8 +558,6 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
        + NS_LITERAL_CSTRING(CRLF CRLF);
 
   
-  
-  
   if (fileStream) {
     
     
@@ -620,8 +566,6 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
     mPostDataStream->AppendStream(fileStream);
   }
 
-  
-  
   
   mPostDataChunk.AppendLiteral(CRLF);
 
@@ -635,18 +579,12 @@ nsFSMultipartFormData::GetEncodedSubmission(nsIURI* aURI,
   nsresult rv;
 
   
-  
-  
   mPostDataChunk += NS_LITERAL_CSTRING("--") + mBoundary
                   + NS_LITERAL_CSTRING("--" CRLF);
 
   
-  
-  
   AddPostDataStream();
 
-  
-  
   
   nsCOMPtr<nsIMIMEInputStream> mimeStream
     = do_CreateInstance("@mozilla.org/network/mime-input-stream;1", &rv);
@@ -686,8 +624,6 @@ nsFSMultipartFormData::AddPostDataStream()
 
 
 
-
-
 class nsFSTextPlain : public nsFormSubmission
 {
 public:
@@ -698,14 +634,12 @@ public:
   {
   }
 
-  
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
                                    nsIFile* aFile);
 
 protected:
-  
   NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
                                   nsIInputStream** aPostDataStream);
 
@@ -791,6 +725,8 @@ nsFSTextPlain::GetEncodedSubmission(nsIURI* aURI,
   return rv;
 }
 
+
+
 nsFormSubmission::nsFormSubmission(const nsACString& aCharset,
                                    nsISaveAsCharset* aEncoder,
                                    PRInt32 aBidiOptions)
@@ -815,85 +751,6 @@ nsFormSubmission::Release()
   }
 }
 
-static void
-SendJSWarning(nsIDocument* aDocument,
-              const char* aWarningName,
-              const PRUnichar** aWarningArgs, PRUint32 aWarningArgsLen)
-{
-  nsContentUtils::ReportToConsole(nsContentUtils::eFORMS_PROPERTIES,
-                                  aWarningName,
-                                  aWarningArgs, aWarningArgsLen,
-                                  aDocument ? aDocument->GetDocumentURI() :
-                                              nsnull,
-                                  EmptyString(), 0, 0,
-                                  nsIScriptError::warningFlag,
-                                  "HTML");
-}
-
-nsresult
-GetSubmissionFromForm(nsGenericHTMLElement* aForm,
-                      nsFormSubmission** aFormSubmission)
-{
-  
-  
-  
-  nsIDocument* doc = aForm->GetCurrentDoc();
-  NS_ASSERTION(doc, "Should have doc if we're building submission!");
-
-  
-  PRUint8 ctrlsModAtSubmit = 0;
-  PRUint32 bidiOptions = doc->GetBidiOptions();
-  ctrlsModAtSubmit = GET_BIDI_OPTION_CONTROLSTEXTMODE(bidiOptions);
-
-  
-  PRInt32 enctype = NS_FORM_ENCTYPE_URLENCODED;
-  GetEnumAttr(aForm, nsGkAtoms::enctype, &enctype);
-
-  
-  PRInt32 method = NS_FORM_METHOD_GET;
-  GetEnumAttr(aForm, nsGkAtoms::method, &method);
-
-  
-  nsCAutoString charset;
-  GetSubmitCharset(aForm, ctrlsModAtSubmit, charset);
-
-  
-  nsCOMPtr<nsISaveAsCharset> encoder;
-  GetEncoder(aForm, charset, getter_AddRefs(encoder));
-
-  
-  
-  
-  
-  
-  
-  
-  
-  if (method == NS_FORM_METHOD_POST &&
-      enctype == NS_FORM_ENCTYPE_MULTIPART) {
-    *aFormSubmission = new nsFSMultipartFormData(charset, encoder,
-                                                 bidiOptions);
-  } else if (method == NS_FORM_METHOD_POST &&
-             enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
-    *aFormSubmission = new nsFSTextPlain(charset, encoder, bidiOptions);
-  } else {
-    if (enctype == NS_FORM_ENCTYPE_MULTIPART ||
-        enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
-      nsAutoString enctypeStr;
-      aForm->GetAttr(kNameSpaceID_None, nsGkAtoms::enctype, enctypeStr);
-      const PRUnichar* enctypeStrPtr = enctypeStr.get();
-      SendJSWarning(aForm->GetOwnerDoc(), "ForgotPostWarning",
-                    &enctypeStrPtr, 1);
-    }
-    *aFormSubmission = new nsFSURLEncoded(charset, encoder, bidiOptions,
-                                          method, aForm->GetOwnerDoc());
-  }
-  NS_ENSURE_TRUE(*aFormSubmission, NS_ERROR_OUT_OF_MEMORY);
-  NS_ADDREF(*aFormSubmission);
-
-  return NS_OK;
-}
-
 nsresult
 nsFormSubmission::SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
                            nsIContent* aSource, nsILinkHandler* aLinkHandler,
@@ -902,14 +759,10 @@ nsFormSubmission::SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
   nsresult rv;
 
   
-  
-  
   nsCOMPtr<nsIInputStream> postDataStream;
   rv = GetEncodedSubmission(aActionURI, getter_AddRefs(postDataStream));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
   
   NS_ENSURE_ARG_POINTER(aLinkHandler);
 
@@ -917,111 +770,6 @@ nsFormSubmission::SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
                                        PromiseFlatString(aTarget).get(),
                                        postDataStream, nsnull,
                                        aDocShell, aRequest);
-}
-
-void
-GetSubmitCharset(nsGenericHTMLElement* aForm,
-                 PRUint8 aCtrlsModAtSubmit,
-                 nsACString& oCharset)
-{
-  oCharset.AssignLiteral("UTF-8"); 
-
-  nsresult rv = NS_OK;
-  nsAutoString acceptCharsetValue;
-  aForm->GetAttr(kNameSpaceID_None, nsGkAtoms::acceptcharset,
-                 acceptCharsetValue);
-
-  PRInt32 charsetLen = acceptCharsetValue.Length();
-  if (charsetLen > 0) {
-    PRInt32 offset=0;
-    PRInt32 spPos=0;
-    
-    nsCOMPtr<nsICharsetAlias> calias(do_GetService(NS_CHARSETALIAS_CONTRACTID, &rv));
-    if (NS_FAILED(rv)) {
-      return;
-    }
-    if (calias) {
-      do {
-        spPos = acceptCharsetValue.FindChar(PRUnichar(' '), offset);
-        PRInt32 cnt = ((-1==spPos)?(charsetLen-offset):(spPos-offset));
-        if (cnt > 0) {
-          nsAutoString uCharset;
-          acceptCharsetValue.Mid(uCharset, offset, cnt);
-
-          if (NS_SUCCEEDED(calias->
-                           GetPreferred(NS_LossyConvertUTF16toASCII(uCharset),
-                                        oCharset)))
-            return;
-        }
-        offset = spPos + 1;
-      } while (spPos != -1);
-    }
-  }
-  
-  
-  nsIDocument* doc = aForm->GetDocument();
-  if (doc) {
-    oCharset = doc->GetDocumentCharacterSet();
-  }
-
-  if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
-     && oCharset.Equals(NS_LITERAL_CSTRING("windows-1256"),
-                        nsCaseInsensitiveCStringComparator())) {
-
-    oCharset.AssignLiteral("IBM864");
-  }
-  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_LOGICAL
-          && oCharset.Equals(NS_LITERAL_CSTRING("IBM864"),
-                             nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864i");
-  }
-  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
-          && oCharset.Equals(NS_LITERAL_CSTRING("ISO-8859-6"),
-                             nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864");
-  }
-  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
-          && oCharset.Equals(NS_LITERAL_CSTRING("UTF-8"),
-                             nsCaseInsensitiveCStringComparator())) {
-    oCharset.AssignLiteral("IBM864");
-  }
-
-}
-
-nsresult
-GetEncoder(nsGenericHTMLElement* aForm,
-           const nsACString& aCharset,
-           nsISaveAsCharset** aEncoder)
-{
-  *aEncoder = nsnull;
-  nsresult rv = NS_OK;
-
-  nsCAutoString charset(aCharset);
-  
-  
-  if (charset.EqualsLiteral("ISO-8859-1")) {
-    charset.AssignLiteral("windows-1252");
-  }
-
-  
-  
-  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16")) || 
-      StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-32"))) {
-    charset.AssignLiteral("UTF-8");
-  }
-
-  rv = CallCreateInstance( NS_SAVEASCHARSET_CONTRACTID, aEncoder);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "create nsISaveAsCharset failed");
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = (*aEncoder)->Init(charset.get(),
-                         (nsISaveAsCharset::attr_EntityAfterCharsetConv + 
-                          nsISaveAsCharset::attr_FallbackDecimalNCR),
-                         0);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "initialize nsISaveAsCharset failed");
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
 }
 
 
@@ -1089,9 +837,124 @@ nsFormSubmission::UnicodeToNewBytes(const nsAString& aStr,
   return NS_OK;
 }
 
+nsresult
+nsFormSubmission::EncodeVal(const nsAString& aStr, nsACString& aOut)
+{
+  NS_ASSERTION(mEncoder, "Encoder not available. Losing data !");
+  if (mEncoder)
+    return UnicodeToNewBytes(aStr, mEncoder, aOut);
+
+  
+  CopyUTF16toUTF8(aStr, aOut);
+  return NS_OK;
+}
 
 
-void
+
+static void
+GetSubmitCharset(nsGenericHTMLElement* aForm,
+                 PRUint8 aCtrlsModAtSubmit,
+                 nsACString& oCharset)
+{
+  oCharset.AssignLiteral("UTF-8"); 
+
+  nsresult rv = NS_OK;
+  nsAutoString acceptCharsetValue;
+  aForm->GetAttr(kNameSpaceID_None, nsGkAtoms::acceptcharset,
+                 acceptCharsetValue);
+
+  PRInt32 charsetLen = acceptCharsetValue.Length();
+  if (charsetLen > 0) {
+    PRInt32 offset=0;
+    PRInt32 spPos=0;
+    
+    nsCOMPtr<nsICharsetAlias> calias(do_GetService(NS_CHARSETALIAS_CONTRACTID, &rv));
+    if (NS_FAILED(rv)) {
+      return;
+    }
+    if (calias) {
+      do {
+        spPos = acceptCharsetValue.FindChar(PRUnichar(' '), offset);
+        PRInt32 cnt = ((-1==spPos)?(charsetLen-offset):(spPos-offset));
+        if (cnt > 0) {
+          nsAutoString uCharset;
+          acceptCharsetValue.Mid(uCharset, offset, cnt);
+
+          if (NS_SUCCEEDED(calias->
+                           GetPreferred(NS_LossyConvertUTF16toASCII(uCharset),
+                                        oCharset)))
+            return;
+        }
+        offset = spPos + 1;
+      } while (spPos != -1);
+    }
+  }
+  
+  
+  nsIDocument* doc = aForm->GetDocument();
+  if (doc) {
+    oCharset = doc->GetDocumentCharacterSet();
+  }
+
+  if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
+     && oCharset.Equals(NS_LITERAL_CSTRING("windows-1256"),
+                        nsCaseInsensitiveCStringComparator())) {
+    oCharset.AssignLiteral("IBM864");
+  }
+  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_LOGICAL
+          && oCharset.Equals(NS_LITERAL_CSTRING("IBM864"),
+                             nsCaseInsensitiveCStringComparator())) {
+    oCharset.AssignLiteral("IBM864i");
+  }
+  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
+          && oCharset.Equals(NS_LITERAL_CSTRING("ISO-8859-6"),
+                             nsCaseInsensitiveCStringComparator())) {
+    oCharset.AssignLiteral("IBM864");
+  }
+  else if (aCtrlsModAtSubmit==IBMBIDI_CONTROLSTEXTMODE_VISUAL
+          && oCharset.Equals(NS_LITERAL_CSTRING("UTF-8"),
+                             nsCaseInsensitiveCStringComparator())) {
+    oCharset.AssignLiteral("IBM864");
+  }
+}
+
+static nsresult
+GetEncoder(nsGenericHTMLElement* aForm,
+           const nsACString& aCharset,
+           nsISaveAsCharset** aEncoder)
+{
+  *aEncoder = nsnull;
+  nsresult rv = NS_OK;
+
+  nsCAutoString charset(aCharset);
+  
+  
+  if (charset.EqualsLiteral("ISO-8859-1")) {
+    charset.AssignLiteral("windows-1252");
+  }
+
+  
+  
+  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16")) || 
+      StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-32"))) {
+    charset.AssignLiteral("UTF-8");
+  }
+
+  rv = CallCreateInstance( NS_SAVEASCHARSET_CONTRACTID, aEncoder);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "create nsISaveAsCharset failed");
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = (*aEncoder)->Init(charset.get(),
+                         (nsISaveAsCharset::attr_EntityAfterCharsetConv + 
+                          nsISaveAsCharset::attr_FallbackDecimalNCR),
+                         0);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "initialize nsISaveAsCharset failed");
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+static void
 GetEnumAttr(nsGenericHTMLElement* aContent,
             nsIAtom* atom, PRInt32* aValue)
 {
@@ -1102,13 +965,56 @@ GetEnumAttr(nsGenericHTMLElement* aContent,
 }
 
 nsresult
-nsFormSubmission::EncodeVal(const nsAString& aStr, nsACString& aOut)
+GetSubmissionFromForm(nsGenericHTMLElement* aForm,
+                      nsFormSubmission** aFormSubmission)
 {
-  NS_ASSERTION(mEncoder, "Encoder not available. Losing data !");
-  if (mEncoder)
-    return UnicodeToNewBytes(aStr, mEncoder, aOut);
+  
+  nsIDocument* doc = aForm->GetCurrentDoc();
+  NS_ASSERTION(doc, "Should have doc if we're building submission!");
 
   
-  CopyUTF16toUTF8(aStr, aOut);
+  PRUint8 ctrlsModAtSubmit = 0;
+  PRUint32 bidiOptions = doc->GetBidiOptions();
+  ctrlsModAtSubmit = GET_BIDI_OPTION_CONTROLSTEXTMODE(bidiOptions);
+
+  
+  PRInt32 enctype = NS_FORM_ENCTYPE_URLENCODED;
+  GetEnumAttr(aForm, nsGkAtoms::enctype, &enctype);
+
+  
+  PRInt32 method = NS_FORM_METHOD_GET;
+  GetEnumAttr(aForm, nsGkAtoms::method, &method);
+
+  
+  nsCAutoString charset;
+  GetSubmitCharset(aForm, ctrlsModAtSubmit, charset);
+
+  
+  nsCOMPtr<nsISaveAsCharset> encoder;
+  GetEncoder(aForm, charset, getter_AddRefs(encoder));
+
+  
+  if (method == NS_FORM_METHOD_POST &&
+      enctype == NS_FORM_ENCTYPE_MULTIPART) {
+    *aFormSubmission = new nsFSMultipartFormData(charset, encoder,
+                                                 bidiOptions);
+  } else if (method == NS_FORM_METHOD_POST &&
+             enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
+    *aFormSubmission = new nsFSTextPlain(charset, encoder, bidiOptions);
+  } else {
+    if (enctype == NS_FORM_ENCTYPE_MULTIPART ||
+        enctype == NS_FORM_ENCTYPE_TEXTPLAIN) {
+      nsAutoString enctypeStr;
+      aForm->GetAttr(kNameSpaceID_None, nsGkAtoms::enctype, enctypeStr);
+      const PRUnichar* enctypeStrPtr = enctypeStr.get();
+      SendJSWarning(aForm->GetOwnerDoc(), "ForgotPostWarning",
+                    &enctypeStrPtr, 1);
+    }
+    *aFormSubmission = new nsFSURLEncoded(charset, encoder, bidiOptions,
+                                          method, aForm->GetOwnerDoc());
+  }
+  NS_ENSURE_TRUE(*aFormSubmission, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(*aFormSubmission);
+
   return NS_OK;
 }
