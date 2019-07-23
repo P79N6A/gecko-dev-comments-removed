@@ -70,7 +70,7 @@ main(int argc, char* argv[])
     
     
     if (0 != strcmp("false", crashReporterArg)
-        && !XRE_SetRemoteExceptionHandler())
+        && !XRE_SetRemoteExceptionHandler(NULL))
         return 1;
 #  else
 #    error "OOP crash reporting unsupported on this platform"
