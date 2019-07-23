@@ -119,7 +119,8 @@ function run_test() {
   
   do_check_true(bmsvc.placesRoot > 0);
   do_check_true(bmsvc.bookmarksRoot > 0);
-  do_check_true(bmsvc.toolbarFolder > 0);
+  
+  
 
   
   
