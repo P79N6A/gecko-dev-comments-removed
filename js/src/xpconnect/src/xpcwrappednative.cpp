@@ -1192,6 +1192,9 @@ XPCWrappedNative::FinishInit(XPCCallContext &ccx)
             "MainThread only wrapper created on the wrong thread", this);
 #endif
 
+    
+    ccx.GetJSContext()->updateMallocCounter(2 * sizeof(XPCWrappedNative));
+
     return JS_TRUE;
 }
 
