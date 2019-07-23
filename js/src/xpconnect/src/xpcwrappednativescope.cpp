@@ -262,7 +262,7 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
 
 
 JS_STATIC_DLL_CALLBACK(JSDHashOperator)
-WrappedNativeJSGCThingMarker(JSDHashTable *table, JSDHashEntryHdr *hdr,
+WrappedNativeJSGCThingTracer(JSDHashTable *table, JSDHashEntryHdr *hdr,
                              uint32 number, void *arg)
 {
     XPCWrappedNative* wrapper = ((Native2WrappedNativeMap::Entry*)hdr)->value;
@@ -288,9 +288,13 @@ void
 XPCWrappedNativeScope::TraceJS(JSTracer* trc, XPCJSRuntime* rt)
 {
     
+    
+    XPCAutoLock lock(rt->GetMapLock());
+
+    
     for(XPCWrappedNativeScope* cur = gScopes; cur; cur = cur->mNext)
     {
-        cur->mWrappedNativeMap->Enumerate(WrappedNativeJSGCThingMarker, trc);
+        cur->mWrappedNativeMap->Enumerate(WrappedNativeJSGCThingTracer, trc);
     }
 }
 
@@ -299,13 +303,14 @@ void
 XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
 {
     
+    
     XPCAutoLock lock(rt->GetMapLock());
 
-    TraceJS(JS_GetGCMarkingTracer(cx), rt);
-
     
     
     
+    NS_ASSERTION(gDyingScopes == nsnull,
+                 "JSGC_MARK_END without JSGC_FINALIZE_END");
 
     XPCWrappedNativeScope* prev = nsnull;
     XPCWrappedNativeScope* cur = gScopes;
@@ -354,6 +359,8 @@ XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC(JSContext* cx)
     if(!rt)
         return;
 
+    
+    
     
     XPCAutoLock lock(rt->GetMapLock());
     KillDyingScopes();

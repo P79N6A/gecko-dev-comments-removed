@@ -250,8 +250,10 @@ ContextCallback(JSContext *cx, uintN operation)
 }
 
 
-void XPCJSRuntime::TraceJS(JSTracer *trc, XPCJSRuntime* self)
+void XPCJSRuntime::TraceJS(JSTracer* trc, void* data)
 {
+    XPCJSRuntime* self = (XPCJSRuntime*)data;
+
     
     
     if(!self->GetXPConnect()->IsShuttingDown())
@@ -272,6 +274,8 @@ void XPCJSRuntime::TraceJS(JSTracer *trc, XPCJSRuntime* self)
             }
         }
     }
+
+    XPCWrappedNativeScope::TraceJS(trc, self);
 }
 
 
@@ -302,8 +306,6 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                     NS_ASSERTION(!self->mThreadRunningGC, "bad state");
                     self->mThreadRunningGC = PR_GetCurrentThread();
                 }
-
-                TraceJS(JS_GetGCMarkingTracer(cx), self);
 
                 dyingWrappedJSArray = &self->mWrappedJSToReleaseArray;
                 {
@@ -843,6 +845,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect,
         gOldJSContextCallback = JS_SetContextCallback(mJSRuntime,
                                                       ContextCallback);
         gOldJSGCCallback = JS_SetGCCallbackRT(mJSRuntime, GCCallback);
+        JS_SetExtraGCRoots(mJSRuntime, TraceJS, this);
     }
 
     

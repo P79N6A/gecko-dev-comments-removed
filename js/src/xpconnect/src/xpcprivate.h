@@ -630,7 +630,7 @@ public:
         return mStrings[index];
     }
 
-    static void TraceJS(JSTracer *trc, XPCJSRuntime* self);
+    static void JS_DLL_CALLBACK TraceJS(JSTracer* trc, void* data);
 
     static JSBool JS_DLL_CALLBACK GCCallback(JSContext *cx, JSGCStatus status);
 
@@ -1730,10 +1730,6 @@ public:
 
     void DebugDump(PRInt16 depth);
 
-    
-    
-    
-    
     void TraceJS(JSTracer* trc)
     {
         if(mJSProtoObject)
