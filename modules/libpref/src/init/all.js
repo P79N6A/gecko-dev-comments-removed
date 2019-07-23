@@ -2713,6 +2713,11 @@ pref("signon.autofillForms",                true);
 pref("signon.debug",                        false); 
 
 
+pref("browser.formfill.enable",     true);
+pref("browser.formfill.debug",      false);
+
+
+
 pref("browser.zoom.full", false);
 pref("zoom.minPercent", 30);
 pref("zoom.maxPercent", 300);
