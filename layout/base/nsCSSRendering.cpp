@@ -909,35 +909,6 @@ nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 PRBool
 nsCSSRendering::IsCanvasFrame(nsIFrame *aFrame)
 {
@@ -949,8 +920,8 @@ nsCSSRendering::IsCanvasFrame(nsIFrame *aFrame)
          frameType == nsGkAtoms::viewportFrame;
 }
 
-const nsStyleBackground*
-nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
+nsIFrame*
+nsCSSRendering::FindRootFrame(nsIFrame *aForFrame)
 {
   const nsStyleBackground* result = aForFrame->GetStyleBackground();
 
@@ -976,13 +947,49 @@ nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
       if (bodyContent) {
         nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
           GetPrimaryFrameFor(bodyContent);
-        if (bodyFrame)
-          result = bodyFrame->GetStyleBackground();
+        if (bodyFrame) {
+          return bodyFrame;
+        }
       }
     }
   }
 
-  return result;
+  return aForFrame;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const nsStyleBackground*
+nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
+{
+  return FindRootFrame(aForFrame)->GetStyleBackground();
 }
 
 inline void
