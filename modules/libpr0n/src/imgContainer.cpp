@@ -652,6 +652,8 @@ NS_IMETHODIMP imgContainer::RestoreDataDone (void)
 
 NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
 {
+  
+  
   nsresult rv = RestoreDiscardedData();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -661,7 +663,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
   NS_ASSERTION(mAnim->timer == timer,
                "imgContainer::Notify() called with incorrect timer");
 
-  if (!(mAnim->animating) || !(mAnim->timer))
+  if (!mAnim->animating || !mAnim->timer)
     return NS_OK;
 
   nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
@@ -1305,15 +1307,23 @@ imgContainer::sDiscardTimerCallback(nsITimer *aTimer, void *aClosure)
 nsresult
 imgContainer::ResetDiscardTimer (void)
 {
-  if (!DiscardingEnabled())
+  if (!mRestoreDataDone)
+    return NS_OK;
+
+  if (mDiscardTimer) {
+    
+    nsresult rv = mDiscardTimer->Cancel();
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+    mDiscardTimer = nsnull;
+  }
+
+  
+  if (mAnim && mAnim->animating)
     return NS_OK;
 
   if (!mDiscardTimer) {
     mDiscardTimer = do_CreateInstance("@mozilla.org/timer;1");
     NS_ENSURE_TRUE(mDiscardTimer, NS_ERROR_OUT_OF_MEMORY);
-  } else {
-    nsresult rv = mDiscardTimer->Cancel();
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
   }
 
   return mDiscardTimer->InitWithFuncCallback(sDiscardTimerCallback,
