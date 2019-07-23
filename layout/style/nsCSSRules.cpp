@@ -71,6 +71,7 @@
 #include "nsDOMError.h"
 #include "nsStyleUtil.h"
 #include "nsCSSDeclaration.h"
+#include "nsPrintfCString.h"
 
 #define IMPL_STYLE_RULE_INHERIT(_class, super) \
 NS_IMETHODIMP _class::GetStyleSheet(nsIStyleSheet*& aSheet) const { return super::GetStyleSheet(aSheet); }  \
@@ -1535,6 +1536,52 @@ AppendSerializedFontSrc(const nsCSSValue& src, nsAString & aResult NS_OUTPARAM)
 }
 
 
+static void
+AppendSerializedUnicodePoint(PRUint32 aCode, nsACString &aBuf NS_OUTPARAM)
+{
+  aBuf.Append(nsPrintfCString("%04X", aCode));
+}
+
+
+
+
+
+static void
+AppendSerializedUnicodeRange(nsCSSValue const & aValue,
+                             nsAString & aResult NS_OUTPARAM)
+{
+  NS_PRECONDITION(aValue.GetUnit() == eCSSUnit_Null ||
+                  aValue.GetUnit() == eCSSUnit_Array,
+                  "improper value unit for unicode-range:");
+  aResult.Truncate();
+  if (aValue.GetUnit() != eCSSUnit_Array)
+    return;
+
+  nsCSSValue::Array const & sources = *aValue.GetArrayValue();
+  nsCAutoString buf;
+
+  NS_ABORT_IF_FALSE(sources.Count() % 2 == 0,
+                    "odd number of entries in a unicode-range: array");
+
+  for (PRUint32 i = 0; i < sources.Count(); i += 2) {
+    PRUint32 min = sources[i].GetIntValue();
+    PRUint32 max = sources[i+1].GetIntValue();
+
+    
+    buf.AppendLiteral("U+");
+    AppendSerializedUnicodePoint(min, buf);
+
+    if (min != max) {
+      buf.Append('-');
+      AppendSerializedUnicodePoint(max, buf);
+    }
+    buf.AppendLiteral(", ");
+  }
+  buf.Truncate(buf.Length() - 2); 
+  CopyASCIItoUTF16(buf, aResult);
+}
+
+
 
 nsCSSValue nsCSSFontFaceStyleDecl::* const
 nsCSSFontFaceStyleDecl::Fields[] = {
@@ -1606,7 +1653,7 @@ nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
     return NS_OK;
 
   case eCSSFontDesc_UnicodeRange:
-    
+    AppendSerializedUnicodeRange(val, aResult);
     return NS_OK;
 
   case eCSSFontDesc_UNKNOWN:

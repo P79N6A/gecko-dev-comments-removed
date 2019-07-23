@@ -7980,8 +7980,53 @@ CSSParserImpl::ParseFontSrcFormat(nsTArray<nsCSSValue> & values)
 PRBool
 CSSParserImpl::ParseFontRanges(nsCSSValue& aValue)
 {
-  
-  return PR_FALSE;
+  nsTArray<PRUint32> ranges;
+  for (;;) {
+    if (!GetToken(PR_TRUE))
+      break;
+
+    if (mToken.mType != eCSSToken_URange) {
+      UngetToken();
+      break;
+    }
+
+    
+    
+    if (!mToken.mIntegerValid)
+      return PR_FALSE;
+
+    PRUint32 low = mToken.mInteger;
+    PRUint32 high = mToken.mInteger2;
+
+    
+    
+    
+    
+    if (low <= 0x10FFFF && low <= high) {
+      if (high > 0x10FFFF)
+        high = 0x10FFFF;
+
+      ranges.AppendElement(low);
+      ranges.AppendElement(high);
+    }
+    if (!ExpectSymbol(',', PR_TRUE))
+      break;
+  }
+
+  if (ranges.Length() == 0)
+    return PR_FALSE;
+
+  nsRefPtr<nsCSSValue::Array> srcVals
+    = nsCSSValue::Array::Create(ranges.Length());
+  if (!srcVals) {
+    mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+    return PR_FALSE;
+  }
+
+  for (PRUint32 i = 0; i < ranges.Length(); i++)
+    srcVals->Item(i).SetIntValue(ranges[i], eCSSUnit_Integer);
+  aValue.SetArrayValue(srcVals, eCSSUnit_Array);
+  return PR_TRUE;
 }
 
 PRBool

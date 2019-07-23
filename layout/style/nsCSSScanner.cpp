@@ -143,12 +143,31 @@ IsIdent(PRInt32 ch) {
   return ch >= 0 && (ch >= 256 || (gLexTable[ch] & IS_IDENT) != 0);
 }
 
+static inline PRUint32
+DecimalDigitValue(PRInt32 ch)
+{
+  return ch - '0';
+}
+
+static inline PRUint32
+HexDigitValue(PRInt32 ch)
+{
+  if (IsDigit(ch)) {
+    return DecimalDigitValue(ch);
+  } else {
+    
+    
+    
+    return (ch & 0x7) + 9;
+  }
+}
+
 nsCSSToken::nsCSSToken()
 {
   mType = eCSSToken_Symbol;
 }
 
-void 
+void
 nsCSSToken::AppendToString(nsString& aBuffer)
 {
   switch (mType) {
@@ -160,6 +179,7 @@ nsCSSToken::AppendToString(nsString& aBuffer)
     case eCSSToken_URL:
     case eCSSToken_InvalidURL:
     case eCSSToken_HTMLComment:
+    case eCSSToken_URange:
       aBuffer.Append(mIdent);
       break;
     case eCSSToken_Number:
@@ -695,6 +715,10 @@ nsCSSScanner::Next(nsCSSToken& aToken)
     }
 
     
+    if ((ch == 'u' || ch == 'U') && Peek() == '+')
+      return ParseURange(ch, aToken);
+
+    
     if (StartsIdent(ch, Peek()))
       return ParseIdent(ch, aToken);
 
@@ -921,14 +945,7 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput)
         Pushback(ch);
         break;
       } else if (IsHexDigit(ch)) {
-        if (IsDigit(ch)) {
-          rv = rv * 16 + (ch - '0');
-        } else {
-          
-          
-          
-          rv = rv * 16 + ((ch & 0x7) + 9);
-        }
+        rv = rv * 16 + HexDigitValue(ch);
       } else {
         NS_ASSERTION(IsWhitespace(ch), "bad control flow");
         
@@ -1069,8 +1086,6 @@ nsCSSScanner::ParseAtKeyword(PRInt32 aChar, nsCSSToken& aToken)
   return GatherIdent(0, aToken.mIdent);
 }
 
-#define CHAR_TO_DIGIT(_c) ((_c) - '0')
-
 PRBool
 nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
 {
@@ -1109,7 +1124,7 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
     
     NS_ASSERTION(IsDigit(c), "Why did we get called?");
     do {
-      intPart = 10*intPart + CHAR_TO_DIGIT(c);
+      intPart = 10*intPart + DecimalDigitValue(c);
       c = Read();
       
     } while (IsDigit(c));
@@ -1124,7 +1139,7 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
     
     float divisor = 10;
     do {
-      fracPart += CHAR_TO_DIGIT(c) / divisor;
+      fracPart += DecimalDigitValue(c) / divisor;
       divisor *= 10;
       c = Read();
       
@@ -1149,7 +1164,7 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
       c = Read();
       NS_ASSERTION(IsDigit(c), "Peek() must have lied");
       do {
-        exponent = 10*exponent + CHAR_TO_DIGIT(c);
+        exponent = 10*exponent + DecimalDigitValue(c);
         c = Read();
         
       } while (IsDigit(c));
@@ -1274,5 +1289,97 @@ nsCSSScanner::ParseString(PRInt32 aStop, nsCSSToken& aToken)
       aToken.mIdent.Append(ch);
     }
   }
+  return PR_TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+nsCSSScanner::ParseURange(PRInt32 aChar, nsCSSToken& aResult)
+{
+  PRInt32 intro2 = Read();
+  PRInt32 ch = Peek();
+
+  
+  NS_ASSERTION(aChar == 'u' || aChar == 'U',
+               "unicode-range called with improper introducer (U)");
+  NS_ASSERTION(intro2 == '+',
+               "unicode-range called with improper introducer (+)");
+
+  
+  
+  
+  if (!IsHexDigit(ch) && ch != '?') {
+    Pushback(intro2);
+    Pushback(aChar);
+    return ParseIdent(aChar, aResult);
+  }
+
+  aResult.mIdent.Truncate();
+  aResult.mIdent.Append(aChar);
+  aResult.mIdent.Append(intro2);
+
+  PRBool valid = PR_TRUE;
+  PRBool haveQues = PR_FALSE;
+  PRUint32 low = 0;
+  PRUint32 high = 0;
+  int i = 0;
+
+  for (;;) {
+    ch = Read();
+    i++;
+    if (i == 7 || !(IsHexDigit(ch) || ch == '?')) {
+      break;
+    }
+
+    aResult.mIdent.Append(ch);
+    if (IsHexDigit(ch)) {
+      if (haveQues) {
+        valid = PR_FALSE; 
+      }
+      low = low*16 + HexDigitValue(ch);
+      high = high*16 + HexDigitValue(ch);
+    } else {
+      haveQues = PR_TRUE;
+      low = low*16 + 0x0;
+      high = high*16 + 0xF;
+    }
+  }
+
+  if (ch == '-' && IsHexDigit(Peek())) {
+    if (haveQues) {
+      valid = PR_FALSE;
+    }
+
+    aResult.mIdent.Append(ch);
+    high = 0;
+    i = 0;
+    for (;;) {
+      ch = Read();
+      i++;
+      if (i == 7 || !IsHexDigit(ch)) {
+        break;
+      }
+      aResult.mIdent.Append(ch);
+      high = high*16 + HexDigitValue(ch);
+    }
+  }
+  Pushback(ch);
+
+  aResult.mInteger = low;
+  aResult.mInteger2 = high;
+  aResult.mIntegerValid = valid;
+  aResult.mType = eCSSToken_URange;
   return PR_TRUE;
 }
