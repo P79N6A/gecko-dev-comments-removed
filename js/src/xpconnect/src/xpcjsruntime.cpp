@@ -62,7 +62,8 @@ const char* XPCJSRuntime::mStrings[] = {
     "item",                 
     "__proto__",            
     "__iterator__",         
-    "__parent__"            
+    "__parent__",           
+    "__exposedProps__"      
 };
 
 
