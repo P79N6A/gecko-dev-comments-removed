@@ -59,6 +59,7 @@
 #include "nsCategoryCache.h"
 #include "nsICharsetResolver.h"
 #include "nsNetCID.h"
+#include "nsToolkitCompsCID.h"
 
 #include "nsINavBookmarksService.h"
 #include "nsIPrivateBrowsingService.h"
@@ -128,7 +129,7 @@ public:
   
 
 
-  static nsNavHistory *GetSingleton();
+  static nsNavHistory * GetSingleton();
 
   
 
@@ -140,15 +141,14 @@ public:
 
 
 
-  static nsNavHistory* GetHistoryService()
+  static nsNavHistory * GetHistoryService()
   {
-    if (gHistoryService)
-      return gHistoryService;
-
-    nsCOMPtr<nsINavHistoryService> serv =
-      do_GetService("@mozilla.org/browser/nav-history-service;1");
-    NS_ENSURE_TRUE(serv, nsnull);
-
+    if (!gHistoryService) {
+      nsCOMPtr<nsINavHistoryService> serv =
+        do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
+      NS_ENSURE_TRUE(serv, nsnull);
+      NS_ASSERTION(gHistoryService, "Should have static instance pointer now");
+    }
     return gHistoryService;
   }
 
@@ -373,7 +373,7 @@ public:
   ~nsNavHistory();
 
   
-  static nsNavHistory* gHistoryService;
+  static nsNavHistory *gHistoryService;
 
 protected:
 

@@ -44,6 +44,7 @@
 #include "mozIStorageConnection.h"
 #include "mozIStorageValueArray.h"
 #include "mozIStorageStatement.h"
+#include "nsToolkitCompsCID.h"
 
 
 
@@ -60,6 +61,15 @@ class nsFaviconService : public nsIFaviconService
 {
 public:
   nsFaviconService();
+
+  
+
+
+  static nsFaviconService * GetSingleton();
+
+  
+
+
   nsresult Init();
 
   
@@ -69,21 +79,14 @@ public:
 
 
 
-  static nsFaviconService* GetFaviconService()
+  static nsFaviconService * GetFaviconService()
   {
-    if (! gFaviconService) {
-      
-      
-      nsresult rv;
-      nsCOMPtr<nsIFaviconService> serv(do_GetService("@mozilla.org/browser/favicon-service;1", &rv));
-      NS_ENSURE_SUCCESS(rv, nsnull);
-
-      
-      
-      NS_ASSERTION(gFaviconService, "Favicon service creation failed");
+    if (!gFaviconService) {
+      nsCOMPtr<nsIFaviconService> serv =
+        do_GetService(NS_FAVICONSERVICE_CONTRACTID);
+      NS_ENSURE_TRUE(serv, nsnull);
+      NS_ASSERTION(gFaviconService, "Should have static instance pointer now");
     }
-    
-    
     return gFaviconService;
   }
 
@@ -143,7 +146,7 @@ private:
   nsCOMPtr<mozIStorageStatement> mDBUpdateIcon;
   nsCOMPtr<mozIStorageStatement> mDBSetPageFavicon;
 
-  static nsFaviconService* gFaviconService;
+  static nsFaviconService *gFaviconService;
 
   
 

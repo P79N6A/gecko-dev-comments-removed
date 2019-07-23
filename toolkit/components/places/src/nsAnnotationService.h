@@ -46,11 +46,20 @@
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
 #include "nsServiceManagerUtils.h"
+#include "nsToolkitCompsCID.h"
 
 class nsAnnotationService : public nsIAnnotationService
 {
 public:
   nsAnnotationService();
+
+  
+
+
+  static nsAnnotationService *GetSingleton();
+
+  
+
 
   nsresult Init();
 
@@ -60,21 +69,15 @@ public:
 
 
 
-  static nsAnnotationService* GetAnnotationService()
+  static nsAnnotationService * GetAnnotationService()
   {
-    if (! gAnnotationService) {
-      
-      
-      nsresult rv;
-      nsCOMPtr<nsIAnnotationService> serv(do_GetService("@mozilla.org/browser/annotation-service;1", &rv));
-      NS_ENSURE_SUCCESS(rv, nsnull);
-
-      
-      
-      NS_ASSERTION(gAnnotationService, "Annotation service creation failed");
+    if (!gAnnotationService) {
+      nsCOMPtr<nsIAnnotationService> serv =
+        do_GetService(NS_ANNOTATIONSERVICE_CONTRACTID);
+      NS_ENSURE_TRUE(serv, nsnull);
+      NS_ASSERTION(gAnnotationService,
+                   "Should have static instance pointer now");
     }
-    
-    
     return gAnnotationService;
   }
 
@@ -111,7 +114,7 @@ protected:
 
   nsCOMArray<nsIAnnotationObserver> mObservers;
 
-  static nsAnnotationService* gAnnotationService;
+  static nsAnnotationService *gAnnotationService;
 
   static const int kAnnoIndex_ID;
   static const int kAnnoIndex_PageOrItem;
