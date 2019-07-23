@@ -1229,14 +1229,9 @@ public:
         else if(mCallBeginRequest == CALLED_BEGINREQUEST)
             JS_EndRequest(mCx);
     }
-    void SetWrapper(JSObject* currentJSObject,
-                    XPCWrappedNative* wrapper,
-                    XPCWrappedNativeTearOff* tearoff)
-    {
-        mCurrentJSObject = currentJSObject;
-        mWrapper = wrapper;
-        mTearOff = tearoff;
-    }
+    void SetWrapper(XPCWrappedNative* wrapper,
+                    XPCWrappedNativeTearOff* tearoff);
+    void SetWrapper(JSObject* currentJSObject);
 
     JSContext *GetJSContext()
     {
@@ -2481,7 +2476,6 @@ public:
                 XPCNativeInterface* Interface,
                 XPCWrappedNative** wrapper);
 
-    
     
     
     static XPCWrappedNative*
