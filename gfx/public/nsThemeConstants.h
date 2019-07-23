@@ -216,3 +216,8 @@
 #define NS_THEME_MENURADIO                                 216
 #define NS_THEME_MENUSEPARATOR                             217
 #define NS_THEME_MENUARROW                                 218
+
+#define NS_THEME_MENUIMAGE                                 219
+
+#define NS_THEME_MENUITEMTEXT                              220
+

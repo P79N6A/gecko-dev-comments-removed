@@ -81,6 +81,13 @@ class imgIContainer;
 #define COLOREF_2_NSRGB(color) \
             NS_RGB(GetRValue(color), GetGValue(color), GetBValue(color))
 
+#define WIN2K_VERSION   0x500
+#define WINXP_VERSION   0x501
+#define WIN2K3_VERSION  0x502
+#define VISTA_VERSION   0x600
+
+PRInt32 GetWindowsVersion();
+
 
 
 
@@ -419,6 +426,7 @@ protected:
   PRPackedBool  mIsTranslucent;
   PRPackedBool  mIsTopTranslucent;     
 #endif
+  PRPackedBool  mHasAeroGlass;
   PRPackedBool  mIsTopWidgetWindow;
   PRPackedBool  mHas3DBorder;
   PRPackedBool  mIsShiftDown;
