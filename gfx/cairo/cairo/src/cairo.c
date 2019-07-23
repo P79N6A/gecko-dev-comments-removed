@@ -636,8 +636,6 @@ slim_hidden_def(cairo_pop_group_to_source);
 
 
 
-
-
 void
 cairo_set_operator (cairo_t *cr, cairo_operator_t op)
 {
@@ -651,6 +649,9 @@ cairo_set_operator (cairo_t *cr, cairo_operator_t op)
 	_cairo_set_error (cr, status);
 }
 slim_hidden_def (cairo_set_operator);
+
+
+
 
 
 
@@ -682,6 +683,9 @@ cairo_set_source_rgb (cairo_t *cr, double red, double green, double blue)
     cairo_set_source (cr, pattern);
     cairo_pattern_destroy (pattern);
 }
+
+
+
 
 
 
@@ -892,6 +896,8 @@ cairo_set_antialias (cairo_t *cr, cairo_antialias_t antialias)
 
 
 
+
+
 void
 cairo_set_fill_rule (cairo_t *cr, cairo_fill_rule_t fill_rule)
 {
@@ -960,6 +966,8 @@ cairo_set_line_width (cairo_t *cr, double width)
 
 
 
+
+
 void
 cairo_set_line_cap (cairo_t *cr, cairo_line_cap_t line_cap)
 {
@@ -972,6 +980,8 @@ cairo_set_line_cap (cairo_t *cr, cairo_line_cap_t line_cap)
     if (status)
 	_cairo_set_error (cr, status);
 }
+
+
 
 
 
@@ -1097,6 +1107,15 @@ cairo_get_dash (cairo_t *cr,
 
     _cairo_gstate_get_dash (cr->gstate, dashes, NULL, offset);
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2579,6 +2598,31 @@ cairo_copy_clip_rectangle_list (cairo_t *cr)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 cairo_select_font_face (cairo_t              *cr,
 			const char           *family,
@@ -2681,6 +2725,10 @@ cairo_get_font_face (cairo_t *cr)
 
     return font_face;
 }
+
+
+
+
 
 
 

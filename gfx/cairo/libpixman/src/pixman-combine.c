@@ -16,7 +16,6 @@
 
 
 
-
 FASTCALL static void
 pixman_fbCombineMaskU (uint32_t *src, const uint32_t *mask, int width)
 {
@@ -1210,6 +1209,7 @@ static CombineFuncU pixman_fbCombineFuncU[] = {
     fbCombineConjointAtopU,
     fbCombineConjointAtopReverseU,
     fbCombineConjointXorU,
+    NULL 
 };
 
 static CombineFuncC pixman_fbCombineFuncC[] = {
@@ -1257,6 +1257,7 @@ static CombineFuncC pixman_fbCombineFuncC[] = {
     fbCombineConjointAtopC,
     fbCombineConjointAtopReverseC,
     fbCombineConjointXorC,
+    NULL 
 };
 
 FbComposeFunctions pixman_composeFunctions = {
