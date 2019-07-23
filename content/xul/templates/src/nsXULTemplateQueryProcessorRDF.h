@@ -339,9 +339,6 @@ protected:
     TestNode* mSimpleRuleMemberTest;
 
     
-    nsFixedSizeAllocator mPool;
-
-    
     nsCOMPtr<nsIAtom> mRefVariable;
 
     
@@ -395,8 +392,6 @@ public:
     static nsIRDFContainerUtils*     gRDFContainerUtils;
     static nsIRDFResource*           kNC_BookmarkSeparator;
     static nsIRDFResource*           kRDF_type;
-
-    nsFixedSizeAllocator& GetPool() { return mPool; }
 };
 
 #endif 
