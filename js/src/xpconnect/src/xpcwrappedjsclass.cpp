@@ -504,6 +504,12 @@ static JSContext *
 GetContextFromObject(JSObject *obj)
 {
     
+    nsAXPCNativeCallContext *cc = nsnull;
+    nsXPConnect::GetXPConnect()->GetCurrentNativeCallContext(&cc);
+    if(cc)
+        return nsnull;
+
+    
     XPCCallContext ccx(NATIVE_CALLER);
     XPCWrappedNativeScope* scope =
         XPCWrappedNativeScope::FindInJSObjectScope(ccx, obj);
