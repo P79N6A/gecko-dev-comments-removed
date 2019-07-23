@@ -1825,6 +1825,18 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
             js_GC(cx, GC_LAST_DITCH);
             METER(astats->retry++);
             canGC = false;
+
+            
+
+
+
+
+            JSGCThing *freeList = JS_THREAD_DATA(cx)->gcFreeLists.
+                                  finalizables[thingKind];
+            if (freeList) {
+                JS_UNLOCK_GC(rt);
+                return freeList;
+            }
         }
 
         while ((a = arenaList->cursor) != NULL) {
@@ -1919,7 +1931,11 @@ NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
 
         thing = RefillFinalizableFreeList(cx, thingKind);
         if (thing) {
-            JS_ASSERT(!*freeListp);
+            
+
+
+
+            JS_ASSERT(!*freeListp || *freeListp == thing);
             *freeListp = thing->link;
             break;
         }
