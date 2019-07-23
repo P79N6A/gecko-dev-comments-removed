@@ -37,6 +37,7 @@
 
 
 #include "nsTPriorityQueue.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 template<class T, class Compare>
