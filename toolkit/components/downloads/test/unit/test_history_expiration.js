@@ -38,6 +38,7 @@
 
 
 
+
 function run_test()
 {
   let dm = Cc["@mozilla.org/download-manager;1"].
@@ -86,6 +87,10 @@ function run_test()
                    histsvc.TRANSITION_DOWNLOAD, false, 0);
 
   
+  let histobs = dm.QueryInterface(Ci.nsINavHistoryObserver);
+  histobs.onBeginUpdateBatch();
+
+  
   let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
   const kRemoveTopic = "download-manager-remove-download";
@@ -99,6 +104,7 @@ function run_test()
       do_check_eq(id.data, theId);
 
       
+      histobs.onEndUpdateBatch();
       obs.removeObserver(testObs, kRemoveTopic);
       do_test_finished();
     }

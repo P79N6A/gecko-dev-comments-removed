@@ -1802,11 +1802,8 @@ nsDownloadManager::OnBeginUpdateBatch()
 NS_IMETHODIMP
 nsDownloadManager::OnEndUpdateBatch()
 {
-  if (mHistoryTransaction) {
-    
-    delete mHistoryTransaction;
-    mHistoryTransaction = nsnull;
-  }
+  
+  mHistoryTransaction = nsnull;
 
   return NS_OK;
 }
