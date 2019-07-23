@@ -95,6 +95,9 @@ public:
     PRInt32 Count() const {
         return mArray.Count();
     }
+    
+    
+    PRBool SetCount(PRInt32 aNewCount);
 
     nsISupports* ObjectAt(PRInt32 aIndex) const {
         return static_cast<nsISupports*>(mArray.FastElementAt(aIndex));

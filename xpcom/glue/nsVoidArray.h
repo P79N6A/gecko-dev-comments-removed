@@ -63,6 +63,8 @@ public:
     return mImpl ? mImpl->mCount : 0;
   }
   
+  PRBool SetCount(PRInt32 aNewCount);
+  
   inline PRInt32 GetArraySize() const {
     return mImpl ? (PRInt32(mImpl->mBits) & kArraySizeMask) : 0;
   }
