@@ -5899,11 +5899,7 @@ nsDocShell::RestoreFromHistory()
 
     
     
-    nsCOMPtr<nsIDOMNSDocument> nsDoc = do_QueryInterface(document);
-    if (nsDoc) {
-        const nsAFlatString &title = document->GetDocumentTitle();
-        nsDoc->SetTitle(title);
-    }
+    document->NotifyPossibleTitleChange(PR_FALSE);
 
     
     for (i = 0; i < childShells.Count(); ++i) {
