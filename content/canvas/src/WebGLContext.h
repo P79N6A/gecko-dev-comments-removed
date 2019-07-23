@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ *   Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2007
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com> (original author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef WEBGLCONTEXT_H_
 #define WEBGLCONTEXT_H_
@@ -52,6 +52,7 @@
 #include "nsICanvasRenderingContextInternal.h"
 #include "nsWeakReference.h"
 #include "nsIDOMHTMLElement.h"
+#include "nsIJSNativeInitializer.h"
 
 #include "SimpleBuffer.h"
 #include "nsGLPbuffer.h"
@@ -60,7 +61,7 @@ class nsIDocShell;
 
 namespace mozilla {
 
-class WebGLNumberArray;
+class WebGLArray;
 class WebGLTexture;
 class WebGLBuffer;
 class WebGLProgram;
@@ -87,8 +88,8 @@ protected:
 
     void Zero() {
         if (mRawPtr) {
-            
-            
+            // Note: RemoveRefOwner isn't called here, because
+            // the entire owner array will be cleared.
             mRawPtr->Release();
             mRawPtr = 0;
         }
@@ -128,7 +129,7 @@ public:
 
     WebGLObjectRefPtr(const already_AddRefed<T>& aSmartPtr)
         : WebGLObjectBaseRefPtr(aSmartPtr.mRawPtr)
-          
+          // construct from |dont_AddRef(expr)|
     {
         if (mRawPtr) {
             RawPtr()->AddRef();
@@ -230,7 +231,7 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICANVASRENDERINGCONTEXTWEBGL
 
-    
+    // nsICanvasRenderingContextInternal
     NS_IMETHOD SetCanvasElement(nsICanvasElement* aParentCanvas);
     NS_IMETHOD SetDimensions(PRInt32 width, PRInt32 height);
     NS_IMETHOD InitializeWithSurface(nsIDocShell *docShell, gfxASurface *surface, PRInt32 width, PRInt32 height)
@@ -265,13 +266,13 @@ protected:
 
     GLuint mActiveTexture;
 
-    
+    // the buffers bound to the current program's attribs
     nsTArray<WebGLVertexAttribData> mAttribBuffers;
 
-    
+    // the textures bound to any sampler uniforms
     nsTArray<WebGLObjectRefPtr<WebGLTexture> > mUniformTextures;
 
-    
+    // textures bound to 
     nsTArray<WebGLObjectRefPtr<WebGLTexture> > mBound2DTextures;
     nsTArray<WebGLObjectRefPtr<WebGLTexture> > mBoundCubeMapTextures;
 
@@ -285,7 +286,7 @@ protected:
 
     nsRefPtr<WebGLRenderbuffer> mBoundRenderbuffer;
 
-    
+    // lookup tables for GL name -> object wrapper
     nsRefPtrHashtable<nsUint32HashKey, WebGLTexture> mMapTextures;
     nsRefPtrHashtable<nsUint32HashKey, WebGLBuffer> mMapBuffers;
     nsRefPtrHashtable<nsUint32HashKey, WebGLProgram> mMapPrograms;
@@ -293,15 +294,15 @@ protected:
     nsRefPtrHashtable<nsUint32HashKey, WebGLFramebuffer> mMapFramebuffers;
     nsRefPtrHashtable<nsUint32HashKey, WebGLRenderbuffer> mMapRenderbuffers;
 
-    
+    // console logging helpers
     void LogMessage (const char *fmt, ...);
     nsresult ErrorMessage (const char *fmt, ...);
 };
 
-
-
-
-
+// this class is a mixin for the named type wrappers, and is used
+// by WebGLObjectRefPtr to tell the object who holds references, so that
+// we can zero them out appropriately when the object is deleted, because
+// it will be unbound in the GL.
 class WebGLZeroingObject
 {
 public:
@@ -348,7 +349,7 @@ public:
     PRBool Deleted() { return mDeleted; }
     GLuint GLName() { return mName; }
 
-    void Set(nsIWebGLNumberArray *na) {
+    void Set(nsIWebGLArray *na) {
         mGLType = na->NativeType();
         mElementSize = na->NativeElementSize();
         mCount = na->NativeCount();
@@ -491,19 +492,30 @@ protected:
     PRBool mDeleted;
 };
 
-
-
-
+//
+// array wrapper classes
+//
 
 class WebGLFloatArray :
-    public nsIWebGLFloatArray
+    public nsIWebGLFloatArray,
+    public nsIJSNativeInitializer
 {
 public:
+    WebGLFloatArray();
     WebGLFloatArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
 
     NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBGLNUMBERARRAY
+    NS_DECL_NSIWEBGLARRAY
     NS_DECL_NSIWEBGLFLOATARRAY
+
+    static nsresult NewCanvasFloatArray(nsISupports **aNewObject);
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+
 protected:
     SimpleBuffer mBuffer;
     PRUint32 mLength;
@@ -512,32 +524,23 @@ protected:
     PRUint32 mCount;
 };
 
-class WebGLShortArray :
-    public nsIWebGLShortArray
+class WebGLByteArray :
+    public nsIWebGLByteArray,
+    public nsIJSNativeInitializer
 {
 public:
-    WebGLShortArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+    WebGLByteArray();
+    WebGLByteArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
 
     NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBGLNUMBERARRAY
-    NS_DECL_NSIWEBGLSHORTARRAY
-protected:
-    SimpleBuffer mBuffer;
-    PRUint32 mLength;
-    PRUint32 mSize;
-    PRUint32 mElementSize;
-    PRUint32 mCount;
-};
+    NS_DECL_NSIWEBGLARRAY
+    NS_DECL_NSIWEBGLBYTEARRAY
 
-class WebGLUnsignedShortArray :
-    public nsIWebGLUnsignedShortArray
-{
-public:
-    WebGLUnsignedShortArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBGLNUMBERARRAY
-    NS_DECL_NSIWEBGLUNSIGNEDSHORTARRAY
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
 protected:
     SimpleBuffer mBuffer;
     PRUint32 mLength;
@@ -547,14 +550,22 @@ protected:
 };
 
 class WebGLUnsignedByteArray :
-    public nsIWebGLUnsignedByteArray
+    public nsIWebGLUnsignedByteArray,
+    public nsIJSNativeInitializer
 {
 public:
+    WebGLUnsignedByteArray();
     WebGLUnsignedByteArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
 
     NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBGLNUMBERARRAY
+    NS_DECL_NSIWEBGLARRAY
     NS_DECL_NSIWEBGLUNSIGNEDBYTEARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
 protected:
     SimpleBuffer mBuffer;
     PRUint32 mLength;
@@ -563,6 +574,105 @@ protected:
     PRUint32 mCount;
 };
 
+class WebGLShortArray :
+    public nsIWebGLShortArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLShortArray();
+    WebGLShortArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIWEBGLARRAY
+    NS_DECL_NSIWEBGLSHORTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLUnsignedShortArray :
+    public nsIWebGLUnsignedShortArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLUnsignedShortArray();
+    WebGLUnsignedShortArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIWEBGLARRAY
+    NS_DECL_NSIWEBGLUNSIGNEDSHORTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLIntArray :
+    public nsIWebGLIntArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLIntArray();
+    WebGLIntArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIWEBGLARRAY
+    NS_DECL_NSIWEBGLINTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
+
+class WebGLUnsignedIntArray :
+    public nsIWebGLUnsignedIntArray,
+    public nsIJSNativeInitializer
+{
+public:
+    WebGLUnsignedIntArray();
+    WebGLUnsignedIntArray(JSContext *cx, JSObject *arrayObj, jsuint arrayLen);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIWEBGLARRAY
+    NS_DECL_NSIWEBGLUNSIGNEDINTARRAY
+
+    NS_IMETHOD Initialize(nsISupports* aOwner,
+                          JSContext* aCx,
+                          JSObject* aObj,
+                          PRUint32 aArgc,
+                          jsval* aArgv);
+protected:
+    SimpleBuffer mBuffer;
+    PRUint32 mLength;
+    PRUint32 mSize;
+    PRUint32 mElementSize;
+    PRUint32 mCount;
+};
 
 }
 
