@@ -35,6 +35,21 @@
 
 
 
+function waitForBrowserState(aState, aSetStateCallback) {
+  let os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
+  let observer = {
+    observe: function(aSubject, aTopic, aData) {
+      os.removeObserver(this, "sessionstore-browser-state-restored");
+      executeSoon(aSetStateCallback);
+    }
+  };
+  os.addObserver(observer, "sessionstore-browser-state-restored", false);
+  let ss = Cc["@mozilla.org/browser/sessionstore;1"].
+           getService(Ci.nsISessionStore);
+  ss.setBrowserState(JSON.stringify(aState));
+}
+
 function test() {
   
   
@@ -87,26 +102,28 @@ function test() {
                "The reopened window was removed from Recently Closed Windows");
 
             newWin2.addEventListener("load", function(aEvent) {
-              this.removeEventListener("load", arguments.callee, false);
+              newWin2.removeEventListener("load", arguments.callee, false);
               newWin2.gBrowser.addEventListener("SSTabRestored", function(aEvent) {
                 newWin2.gBrowser.removeEventListener("SSTabRestored", arguments.callee, true);
 
-                is(newWin2.gBrowser.tabContainer.childNodes.length, 2,
-                   "The window correctly restored 2 tabs");
-                is(newWin2.gBrowser.currentURI.spec, testURL,
-                   "The window correctly restored the URL");
+                executeSoon(function() {
+                  is(newWin2.gBrowser.tabContainer.childNodes.length, 2,
+                     "The window correctly restored 2 tabs");
+                  is(newWin2.gBrowser.currentURI.spec, testURL,
+                     "The window correctly restored the URL");
 
-                let textbox = newWin2.content.document.getElementById("textbox");
-                is(textbox.wrappedJSObject.value, uniqueText,
-                   "The window correctly restored the form");
-                is(ss.getWindowValue(newWin2, uniqueKey), uniqueValue,
-                   "The window correctly restored the data associated with it");
+                  let textbox = newWin2.content.document.getElementById("textbox");
+                  is(textbox.wrappedJSObject.value, uniqueText,
+                     "The window correctly restored the form");
+                  is(ss.getWindowValue(newWin2, uniqueKey), uniqueValue,
+                     "The window correctly restored the data associated with it");
 
-                
-                newWin2.close();
-                if (gPrefService.prefHasUserValue("browser.sessionstore.max_windows_undo"))
-                  gPrefService.clearUserPref("browser.sessionstore.max_windows_undo");
-                executeSoon(callback);
+                  
+                  newWin2.close();
+                  if (gPrefService.prefHasUserValue("browser.sessionstore.max_windows_undo"))
+                    gPrefService.clearUserPref("browser.sessionstore.max_windows_undo");
+                  executeSoon(callback);
+                });
               }, true);
             }, false);
           });
@@ -144,7 +161,7 @@ function test() {
       let url = "http://window" + windowsToOpen.length + ".example.com";
       let window = openDialog(location, "_blank", settings, url);
       window.addEventListener("load", function(aEvent) {
-        this.removeEventListener("load", arguments.callee, true);
+        this.removeEventListener("load", arguments.callee, false);
         window.gBrowser.addEventListener("load", function(aEvent) {
           this.removeEventListener("load", arguments.callee, true);
           
@@ -159,7 +176,7 @@ function test() {
             });
           });
         }, true);
-      }, true);
+      }, false);
     }
 
     let windowsToOpen = [{isPopup: false},
@@ -189,8 +206,6 @@ function test() {
     function countOpenTabsByTitle(aOpenTabList, aTitle)
       aOpenTabList.filter(function(aData) aData.entries.some(function(aEntry) aEntry.title == aTitle) ).length
 
-    
-    let oldState = ss.getBrowserState();
     
     const REMEMBER = Date.now(), FORGET = Math.random();
     let testState = {
@@ -249,43 +264,49 @@ function test() {
     };
     
     
-    ss.setBrowserState(JSON.stringify(testState));
+    waitForBrowserState(testState, function() {
+      
+      pb.removeDataFromDomain("mozilla.org");
 
-    
-    pb.removeDataFromDomain("mozilla.org");
+      let closedWindowData = JSON.parse(ss.getClosedWindowData());
 
-    let closedWindowData = JSON.parse(ss.getClosedWindowData());
+      
+      let window = closedWindowData[0];
+      is(window.tabs.length, 1, "1 tab was removed");
+      is(countOpenTabsByTitle(window.tabs, FORGET), 0,
+         "The correct tab was removed");
+      is(countOpenTabsByTitle(window.tabs, REMEMBER), 1,
+         "The correct tab was remembered");
+      is(window.selected, 1, "Selected tab has changed");
+      is(window.title, REMEMBER, "The window title was correctly updated");
 
-    
-    let window = closedWindowData[0];
-    is(window.tabs.length, 1, "1 tab was removed");
-    is(countOpenTabsByTitle(window.tabs, FORGET), 0,
-       "The correct tab was removed");
-    is(countOpenTabsByTitle(window.tabs, REMEMBER), 1,
-       "The correct tab was remembered");
-    is(window.selected, 1, "Selected tab has changed");
-    is(window.title, REMEMBER, "The window title was correctly updated");
+      
+      window = closedWindowData[1];
+      is(window.tabs.length, 3, "2 tabs were removed");
+      is(countOpenTabsByTitle(window.tabs, FORGET), 0,
+         "The correct tabs were removed");
+      is(countOpenTabsByTitle(window.tabs, REMEMBER), 3,
+         "The correct tabs were remembered");
+      is(window.selected, 3, "Selected tab has changed");
+      is(window.title, REMEMBER, "The window title was correctly updated");
 
-    
-    window = closedWindowData[1];
-    is(window.tabs.length, 3, "2 tabs were removed");
-    is(countOpenTabsByTitle(window.tabs, FORGET), 0,
-       "The correct tabs were removed");
-    is(countOpenTabsByTitle(window.tabs, REMEMBER), 3,
-       "The correct tabs were remembered");
-    is(window.selected, 3, "Selected tab has changed");
-    is(window.title, REMEMBER, "The window title was correctly updated");
+      
+      window = closedWindowData[2];
+      is(countClosedTabsByTitle(window._closedTabs, REMEMBER), 1,
+         "The correct number of tabs were removed, and the correct ones");
+      is(countClosedTabsByTitle(window._closedTabs, FORGET), 0,
+         "All tabs to be forgotten were indeed removed");
 
-    
-    window = closedWindowData[2];
-    is(countClosedTabsByTitle(window._closedTabs, REMEMBER), 1,
-       "The correct number of tabs were removed, and the correct ones");
-    is(countClosedTabsByTitle(window._closedTabs, FORGET), 0,
-       "All tabs to be forgotten were indeed removed");
-
-    
-    ss.setBrowserState(oldState);
-    executeSoon(callback);
+      
+      let blankState = {
+        windows: [{
+          tabs: [{ entries: [{ url: "about:blank" }] }],
+          _closedTabs: []
+        }],
+        _closedWindows: []
+      };
+      waitForBrowserState(blankState, callback);
+    });
   }
   
   test_basic(function() {
