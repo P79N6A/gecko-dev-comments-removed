@@ -346,7 +346,7 @@ var LightweightThemeManager = {
 
 
 
-  getAddon: function(aId, aCallback) {
+  getAddonByID: function(aId, aCallback) {
     let id = _getInternalID(aId);
     if (!id) {
       aCallback(null);

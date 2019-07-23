@@ -51,12 +51,12 @@ function run_test()
   
   startupManager();
   installAllFiles([do_get_addon(ADDON)], function() {
-    AddonManager.getAddon(ID, function(addon) {
+    AddonManager.getAddonByID(ID, function(addon) {
       do_check_neq(addon, null);
       do_check_eq(addon.name, "Test theme");
       restartManager();
 
-      AddonManager.getAddon(ID, function(addon) {
+      AddonManager.getAddonByID(ID, function(addon) {
         do_check_neq(addon, null);
         do_check_eq(addon.optionsURL, null);
         do_check_eq(addon.aboutURL, null);
