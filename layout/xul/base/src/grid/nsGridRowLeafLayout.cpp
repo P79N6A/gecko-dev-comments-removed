@@ -144,46 +144,46 @@ nsGridRowLeafLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, ns
   
   
   if (grid) {
-   nsGridRow* column;
-   PRInt32 count = grid->GetColumnCount(isHorizontal); 
-   nsBoxSize* start = nsnull;
-   nsBoxSize* last = nsnull;
-   nsBoxSize* current = nsnull;
-   nsIBox* child = aBox->GetChildBox();
-   for (int i=0; i < count; i++)
-   {
-     column = grid->GetColumnAt(i,isHorizontal); 
+    nsGridRow* column;
+    PRInt32 count = grid->GetColumnCount(isHorizontal); 
+    nsBoxSize* start = nsnull;
+    nsBoxSize* last = nsnull;
+    nsBoxSize* current = nsnull;
+    nsIBox* child = aBox->GetChildBox();
+    for (int i=0; i < count; i++)
+    {
+      column = grid->GetColumnAt(i,isHorizontal); 
 
-     
-     
-     nscoord pref =
-       grid->GetPrefRowHeight(aState, i, !isHorizontal); 
-     nscoord min = 
-       grid->GetMinRowHeight(aState, i, !isHorizontal);  
-     nscoord max = 
-       grid->GetMaxRowHeight(aState, i, !isHorizontal);  
-     nscoord flex =
-       grid->GetRowFlex(aState, i, !isHorizontal);       
-     nscoord left  = 0;
-     nscoord right  = 0;
-     grid->GetRowOffsets(aState, i, left, right, !isHorizontal); 
-     nsIBox* box = column->GetBox();
-     PRBool collapsed = PR_FALSE;
-     nscoord topMargin = column->mTopMargin;
-     nscoord bottomMargin = column->mBottomMargin;
+      
+      
+      nscoord pref =
+        grid->GetPrefRowHeight(aState, i, !isHorizontal); 
+      nscoord min = 
+        grid->GetMinRowHeight(aState, i, !isHorizontal);  
+      nscoord max = 
+        grid->GetMaxRowHeight(aState, i, !isHorizontal);  
+      nscoord flex =
+        grid->GetRowFlex(aState, i, !isHorizontal);       
+      nscoord left  = 0;
+      nscoord right  = 0;
+      grid->GetRowOffsets(aState, i, left, right, !isHorizontal); 
+      nsIBox* box = column->GetBox();
+      PRBool collapsed = PR_FALSE;
+      nscoord topMargin = column->mTopMargin;
+      nscoord bottomMargin = column->mBottomMargin;
 
-     if (box) 
-       collapsed = box->IsCollapsed(aState);
+      if (box) 
+        collapsed = box->IsCollapsed(aState);
 
-     pref = pref - (left + right);
-     if (pref < 0)
-       pref = 0;
+      pref = pref - (left + right);
+      if (pref < 0)
+        pref = 0;
 
-     
-     
-     
-     
-     
+      
+      
+      
+      
+      
       PRInt32 firstIndex = 0;
       PRInt32 lastIndex = 0;
       nsGridRow* firstRow = nsnull;
@@ -218,33 +218,33 @@ nsGridRowLeafLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, ns
         }
       }
     
-     
-     max = PR_MAX(min, max);
-     pref = nsBox::BoundsCheck(min, pref, max);
+      
+      max = PR_MAX(min, max);
+      pref = nsBox::BoundsCheck(min, pref, max);
    
-     current = new (aState) nsBoxSize();
-     current->pref = pref;
-     current->min = min;
-     current->max = max;
-     current->flex = flex;
-     current->bogus = column->mIsBogus;
-     current->left = left + topMargin;
-     current->right = right + bottomMargin;
-     current->collapsed = collapsed;
+      current = new (aState) nsBoxSize();
+      current->pref = pref;
+      current->min = min;
+      current->max = max;
+      current->flex = flex;
+      current->bogus = column->mIsBogus;
+      current->left = left + topMargin;
+      current->right = right + bottomMargin;
+      current->collapsed = collapsed;
 
-     if (!start) {
+      if (!start) {
         start = current;
         last = start;
-     } else {
+      } else {
         last->next = current;
         last = current;
-     }
+      }
 
-     if (child && !column->mIsBogus)
-       child = child->GetNextBox();
+      if (child && !column->mIsBogus)
+        child = child->GetNextBox();
 
-   }
-   aBoxSizes = start;
+    }
+    aBoxSizes = start;
   }
 
   nsSprocketLayout::PopulateBoxSizes(aBox, aState, aBoxSizes, aComputedBoxSizes, aMinSize, aMaxSize, aFlexes);
@@ -260,47 +260,49 @@ nsGridRowLeafLayout::ComputeChildSizes(nsIBox* aBox,
   
   
   if (aBox) {
-     PRBool isHorizontal = aBox->IsHorizontal();
+    PRBool isHorizontal = aBox->IsHorizontal();
 
-     
-     aBox = aBox->GetParentBox();
-     nsIBox* scrollbox = nsGrid::GetScrollBox(aBox);
-       
-       nsCOMPtr<nsIScrollableFrame> scrollable = do_QueryInterface(scrollbox);
-       if (scrollable) {
-          nsMargin scrollbarSizes = scrollable->GetActualScrollbarSizes();
+    
+    nscoord diff = 0;
+    nsCOMPtr<nsIGridPart> parent;
+    nsIBox* parentBox;
+    GetParentGridPart(aBox, &parentBox, getter_AddRefs(parent));
+    while (parentBox) {
+      nsIBox* scrollbox = nsGrid::GetScrollBox(parentBox);
+      nsCOMPtr<nsIScrollableFrame> scrollable = do_QueryInterface(scrollbox);
+      if (scrollable) {
+        nsMargin scrollbarSizes = scrollable->GetActualScrollbarSizes();
 
-          nsRect ourRect(scrollbox->GetRect());
-          nsMargin padding(0,0,0,0);
-          scrollbox->GetBorderAndPadding(padding);
-          ourRect.Deflate(padding);
+        if (isHorizontal) {
+          diff += scrollbarSizes.left + scrollbarSizes.right;
+        } else {
+          diff += scrollbarSizes.top + scrollbarSizes.bottom;
+        }
+      }
 
-          nscoord diff;
-          if (isHorizontal) {
-            diff = scrollbarSizes.left + scrollbarSizes.right;
-          } else {
-            diff = scrollbarSizes.top + scrollbarSizes.bottom;
-          }
+      GetParentGridPart(parentBox, &parentBox, getter_AddRefs(parent));
+    }
 
-          if (diff > 0) {
-            aGivenSize += diff;
+    if (diff > 0) {
+      aGivenSize += diff;
 
-            nsSprocketLayout::ComputeChildSizes(aBox, aState, aGivenSize, aBoxSizes, aComputedBoxSizes);
+      nsSprocketLayout::ComputeChildSizes(aBox, aState, aGivenSize, aBoxSizes, aComputedBoxSizes);
 
-            aGivenSize -= diff;
+      aGivenSize -= diff;
 
-            nsComputedBoxSize* s    = aComputedBoxSizes;
-            nsComputedBoxSize* last = aComputedBoxSizes;
-            while(s)
-            {
-              last = s;
-              s = s->next;
-            }
+      nsComputedBoxSize* s    = aComputedBoxSizes;
+      nsComputedBoxSize* last = aComputedBoxSizes;
+      while(s)
+      {
+        last = s;
+        s = s->next;
+      }
   
-            if (last) 
-                last->size -= diff;                         
-          }
-       }
+      if (last) 
+        last->size -= diff;                         
+
+      return;
+    }
   }
       
   nsSprocketLayout::ComputeChildSizes(aBox, aState, aGivenSize, aBoxSizes, aComputedBoxSizes);
