@@ -122,6 +122,12 @@ function run_test()
 {
   
   
+  let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+  while (tm.mainThread.hasPendingEvents())
+    tm.mainThread.processNextEvent(false);
+
+  
+  
   prefs.setIntPref(kSyncPrefName, SYNC_INTERVAL);
 
   
