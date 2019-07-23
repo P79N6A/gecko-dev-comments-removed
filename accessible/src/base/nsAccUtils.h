@@ -88,43 +88,30 @@ public:
   
 
 
-  static void GetAccGroupAttrs(nsIPersistentProperties *aAttributes,
-                               PRInt32 *aLevel,
-                               PRInt32 *aPosInSet,
-                               PRInt32 *aSetSize);
-
-  
-
-
-  static PRBool HasAccGroupAttrs(nsIPersistentProperties *aAttributes);
-
-  
-
-
   static void SetAccGroupAttrs(nsIPersistentProperties *aAttributes,
-                               PRInt32 aLevel,
-                               PRInt32 aPosInSet,
-                               PRInt32 aSetSize);
+                               PRInt32 aLevel, PRInt32 aSetSize,
+                               PRInt32 aPosInSet);
 
   
 
 
 
-
-
-
-  static void SetAccAttrsForXULSelectControlItem(nsIDOMNode *aNode,
-                                                 nsIPersistentProperties *aAttributes);
+  static void GetPositionAndSizeForXULSelectControlItem(nsIDOMNode *aNode,
+                                                        PRInt32 *aPosInSet,
+                                                        PRInt32 *aSetSize);
 
   
 
 
 
+  static void GetPositionAndSizeForXULContainerItem(nsIDOMNode *aNode,
+                                                    PRInt32 *aPosInSet,
+                                                    PRInt32 *aSetSize);
+
+  
 
 
-
-  static void SetAccAttrsForXULContainerItem(nsIDOMNode *aNode,
-                                             nsIPersistentProperties *aAttributes);
+  static PRInt32 GetLevelForXULContainerItem(nsIDOMNode *aNode);
 
   
 

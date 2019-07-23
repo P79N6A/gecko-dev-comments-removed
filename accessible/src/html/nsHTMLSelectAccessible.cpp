@@ -449,6 +449,8 @@ nsHyperTextAccessibleWrap(aDOMNode, aShell)
 }
 
 
+
+
 nsresult
 nsHTMLSelectOptionAccessible::GetRoleInternal(PRUint32 *aRole)
 {
@@ -489,49 +491,6 @@ nsHTMLSelectOptionAccessible::GetNameInternal(nsAString& aName)
   }
 
   return NS_OK;
-}
-
-nsresult
-nsHTMLSelectOptionAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
-{
-  NS_ENSURE_ARG_POINTER(aAttributes);
-  if (!mDOMNode) {
-    return NS_ERROR_FAILURE;  
-  }
-
-  nsresult rv = nsHyperTextAccessibleWrap::GetAttributesInternal(aAttributes);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIDOMNode> parentNode;
-  mDOMNode->GetParentNode(getter_AddRefs(parentNode));
-  nsCOMPtr<nsIDOMElement> parentElement(do_QueryInterface(parentNode));
-  NS_ENSURE_TRUE(parentElement, NS_ERROR_FAILURE);
-  nsAutoString parentTagName;
-  parentNode->GetLocalName(parentTagName);
-
-  PRInt32 level = parentTagName.LowerCaseEqualsLiteral("optgroup") ? 2 : 1;
-  if (level == 1 && nsAccUtils::Role(this) != nsIAccessibleRole::ROLE_HEADING) {
-    level = 0; 
-  }
-
-  nsAutoString tagName;
-  mDOMNode->GetLocalName(tagName);  
-  nsCOMPtr<nsIDOMNodeList> siblings;
-  parentElement->GetElementsByTagName(tagName, getter_AddRefs(siblings));
-  PRInt32 posInSet = 0;
-  PRUint32 setSize = 0;
-  if (siblings) {
-    siblings->GetLength(&setSize);
-    nsCOMPtr<nsIDOMNode> itemNode;
-    while (NS_SUCCEEDED(siblings->Item(posInSet ++, getter_AddRefs(itemNode))) &&
-           itemNode != mDOMNode) {
-      
-    }
-  }
-
-  nsAccUtils::SetAccGroupAttrs(aAttributes, level, posInSet,
-                               static_cast<PRInt32>(setSize));
-  return  NS_OK;
 }
 
 nsIFrame* nsHTMLSelectOptionAccessible::GetBoundsFrame()
@@ -641,6 +600,54 @@ nsHTMLSelectOptionAccessible::GetStateInternal(PRUint32 *aState,
   return NS_OK;
 }
 
+PRInt32
+nsHTMLSelectOptionAccessible::GetLevelInternal()
+{
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  nsIContent *parentContent = content->GetParent();
+
+  PRInt32 level =
+    parentContent->NodeInfo()->Equals(nsAccessibilityAtoms::optgroup) ? 2 : 1;
+
+  if (level == 1 &&
+      nsAccUtils::Role(this) != nsIAccessibleRole::ROLE_HEADING) {
+    level = 0; 
+  }
+
+  return level;
+}
+
+void
+nsHTMLSelectOptionAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
+                                                         PRInt32 *aSetSize)
+{  
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  nsIContent *parentContent = content->GetParent();
+
+  PRInt32 posInSet = 0, setSize = 0;
+  PRBool isContentFound = PR_FALSE;
+
+  PRUint32 childCount = parentContent->GetChildCount();
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsIContent *childContent = parentContent->GetChildAt(childIdx);
+    if (childContent->NodeInfo()->Equals(content->NodeInfo())) {
+      if (!isContentFound) {
+        if (childContent == content)
+          isContentFound = PR_TRUE;
+
+        posInSet++;
+      }
+      setSize++;
+    }
+  }
+
+  *aSetSize = setSize;
+  *aPosInSet = posInSet;
+}
+
+
+
+
 
 NS_IMETHODIMP nsHTMLSelectOptionAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
@@ -714,6 +721,9 @@ NS_IMETHODIMP nsHTMLSelectOptionAccessible::DoAction(PRUint8 index)
 
   return NS_ERROR_INVALID_ARG;
 }
+
+
+
 
 
 
@@ -812,6 +822,9 @@ void nsHTMLSelectOptionAccessible::SelectionChangedIfOption(nsIContent *aPossibl
 
   nsAccUtils::FireAccEvent(eventType, optionAccessible);
 }
+
+
+
 
 nsIContent* nsHTMLSelectOptionAccessible::GetSelectState(PRUint32* aState,
                                                          PRUint32* aExtraState)

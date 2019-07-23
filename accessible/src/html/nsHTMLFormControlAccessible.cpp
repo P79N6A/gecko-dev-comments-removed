@@ -143,6 +143,8 @@ nsHTMLCheckboxAccessible::GetStateInternal(PRUint32 *aState,
 
 
 
+
+
 nsHTMLRadioButtonAccessible::nsHTMLRadioButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
 nsRadioButtonAccessible(aNode, aShell)
 { 
@@ -169,22 +171,16 @@ nsHTMLRadioButtonAccessible::GetStateInternal(PRUint32 *aState,
   return NS_OK;
 }
 
-nsresult
-nsHTMLRadioButtonAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
+void
+nsHTMLRadioButtonAccessible::GetPositionAndSizeInternal(PRInt32 *aPosInSet,
+                                                        PRInt32 *aSetSize)
 {
-  NS_ENSURE_ARG_POINTER(aAttributes);
-  NS_ENSURE_TRUE(mDOMNode, NS_ERROR_FAILURE);
-
-  nsresult rv = nsRadioButtonAccessible::GetAttributesInternal(aAttributes);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   nsAutoString nsURI;
   mDOMNode->GetNamespaceURI(nsURI);
   nsAutoString tagName;
   mDOMNode->GetLocalName(tagName);
 
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  NS_ENSURE_STATE(content);
 
   nsAutoString type;
   content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::type, type);
@@ -205,7 +201,7 @@ nsHTMLRadioButtonAccessible::GetAttributesInternal(nsIPersistentProperties *aAtt
       document->GetElementsByTagNameNS(nsURI, tagName, getter_AddRefs(inputs));
   }
 
-  NS_ENSURE_TRUE(inputs, NS_OK);
+  NS_ENSURE_TRUE(inputs, );
 
   PRUint32 inputsCount = 0;
   inputs->GetLength(&inputsCount);
@@ -232,10 +228,11 @@ nsHTMLRadioButtonAccessible::GetAttributesInternal(nsIPersistentProperties *aAtt
     }
   }
 
-  nsAccUtils::SetAccGroupAttrs(aAttributes, 0, indexOf, count);
-
-  return  NS_OK;
+  *aPosInSet = indexOf;
+  *aSetSize = count;
 }
+
+
 
 
 

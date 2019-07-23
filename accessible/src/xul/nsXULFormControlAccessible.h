@@ -148,6 +148,9 @@ public:
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
 
+
+
+
 class nsXULRadioButtonAccessible : public nsRadioButtonAccessible
 {
 
@@ -155,8 +158,9 @@ public:
   nsXULRadioButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
+                                          PRInt32 *aSetSize);
 };
 
 class nsXULRadioGroupAccessible : public nsXULSelectableAccessible
@@ -182,7 +186,11 @@ class nsXULToolbarButtonAccessible : public nsXULButtonAccessible
 {
 public:
   nsXULToolbarButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+
+  
+  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
+                                          PRInt32 *aSetSize);
+
   static PRBool IsSeparator(nsIAccessible *aAccessible);
 };
 

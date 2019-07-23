@@ -371,19 +371,10 @@ __try {
   nsAutoString description;
 
   
-  
-  
-  nsCOMPtr<nsIPersistentProperties> attributes;
-  nsresult rv = xpAccessible->GetAttributes(getter_AddRefs(attributes));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!attributes)
-    return NS_ERROR_FAILURE;
-
   PRInt32 groupLevel = 0;
   PRInt32 itemsInGroup = 0;
   PRInt32 positionInGroup = 0;
-  nsAccUtils::GetAccGroupAttrs(attributes, &groupLevel, &positionInGroup,
-                               &itemsInGroup);
+  GroupPosition(&groupLevel, &itemsInGroup, &positionInGroup);
 
   if (positionInGroup > 0) {
     if (groupLevel > 0) {
@@ -1340,18 +1331,22 @@ __try {
   PRInt32 groupLevel = 0;
   PRInt32 similarItemsInGroup = 0;
   PRInt32 positionInGroup = 0;
+
   nsresult rv = GroupPosition(&groupLevel, &similarItemsInGroup,
                               &positionInGroup);
+  if (NS_FAILED(rv))
+    return GetHRESULT(rv);
+
+  
+  
+  
+  if (!similarItemsInGroup && !positionInGroup)
+    return S_FALSE;
 
   *aGroupLevel = groupLevel;
   *aSimilarItemsInGroup = similarItemsInGroup;
   *aPositionInGroup = positionInGroup;
 
-  if (NS_FAILED(rv))
-    return GetHRESULT(rv);
-
-  if (groupLevel ==0 && similarItemsInGroup == 0 && positionInGroup == 0)
-    return S_FALSE;
   return S_OK;
 
 } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }

@@ -35,17 +35,33 @@ function testAbsentAttrs(aAccOrElmOrID, aAbsentAttrs)
 
 
 
+
 function testGroupAttrs(aAccOrElmOrID, aPosInSet, aSetSize, aLevel)
 {
-  var attrs = {
-    "posinset": String(aPosInSet),
-    "setsize": String(aSetSize)
-  };
+  var acc = getAccessible(aAccOrElmOrID);
+  var levelObj = {}, posInSetObj = {}, setSizeObj = {};
+  acc.groupPosition(levelObj, setSizeObj, posInSetObj);
 
-  if (aLevel)
-    attrs["level"] = String(aLevel);
+  if (aPosInSet && aSetSize) {
+    is(posInSetObj.value, aPosInSet,
+       "Wrong group position (posinset) for " + prettyName(aAccOrElmOrID));
+    is(setSizeObj.value, aSetSize,
+       "Wrong size of the group (setsize) for " + prettyName(aAccOrElmOrID));
 
-  testAttrs(aAccOrElmOrID, attrs, true);
+    var attrs = {
+      "posinset": String(aPosInSet),
+      "setsize": String(aSetSize)
+    };
+    testAttrs(aAccOrElmOrID, attrs, true);
+  }
+
+  if (aLevel) {
+    is(levelObj.value, aLevel,
+       "Wrong group level for " + prettyName(aAccOrElmOrID));
+
+    var attrs = { "level" : String(aLevel) };
+    testAttrs(aAccOrElmOrID, attrs, true);
+  }
 }
 
 
