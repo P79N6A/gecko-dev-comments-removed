@@ -37,7 +37,7 @@
 
 
 
-import re, sys, os, os.path, logging, shutil
+import re, sys, os, os.path, logging, shutil, signal
 from glob import glob
 from optparse import OptionParser
 from subprocess import Popen, PIPE, STDOUT
@@ -232,8 +232,13 @@ def runTests(xpcshell, xrePath=None, symbolsPath=None,
 
         proc = Popen(cmdH + cmdT + xpcsRunArgs,
                      stdout=pStdout, stderr=pStderr, env=env, cwd=testdir)
+
+        
+        
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         
         stdout, stderr = proc.communicate()
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         if interactive:
           
