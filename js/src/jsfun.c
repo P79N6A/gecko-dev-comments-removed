@@ -964,15 +964,28 @@ JSClass js_CallClass = {
 
 
 
+
+
+
 #define LENGTH_PROP_ATTRS (JSPROP_READONLY|JSPROP_PERMANENT|JSPROP_SHARED)
 
 static JSPropertySpec function_props[] = {
-    {js_arguments_str, CALL_ARGUMENTS, JSPROP_PERMANENT,  0,0},
-    {js_arity_str,     FUN_ARITY,      JSPROP_PERMANENT,  0,0},
-    {js_caller_str,    FUN_CALLER,     JSPROP_PERMANENT,  0,0},
     {js_length_str,    ARGS_LENGTH,    LENGTH_PROP_ATTRS, 0,0},
-    {js_name_str,      FUN_NAME,       JSPROP_PERMANENT,  0,0},
     {0,0,0,0,0}
+};
+
+typedef struct LazyFunctionProp {
+    uint16      atomOffset;
+    int8        tinyid;
+    uint8       attrs;
+} LazyFunctionProp;
+
+
+static LazyFunctionProp lazy_function_props[] = {
+    {ATOM_OFFSET(arguments), CALL_ARGUMENTS, JSPROP_PERMANENT},
+    {ATOM_OFFSET(arity),     FUN_ARITY,      JSPROP_PERMANENT},
+    {ATOM_OFFSET(caller),    FUN_CALLER,     JSPROP_PERMANENT},
+    {ATOM_OFFSET(name),      FUN_NAME,       JSPROP_PERMANENT},
 };
 
 static JSBool
@@ -1094,46 +1107,71 @@ fun_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
             JSObject **objp)
 {
     JSFunction *fun;
-    JSString *str;
-    JSAtom *prototypeAtom;
-
-    
-
-
-
-
-
-    if (flags & (JSRESOLVE_ASSIGNING | JSRESOLVE_HIDDEN))
-        return JS_TRUE;
+    JSAtom *atom;
+    uintN i;
 
     if (!JSVAL_IS_STRING(id))
         return JS_TRUE;
 
     
     fun = (JSFunction *)JS_GetInstancePrivate(cx, obj, &js_FunctionClass, NULL);
-    if (!fun || !fun->object)
+    JS_ASSERT(fun && fun->object);
+
+    
+
+
+
+    if (flags & JSRESOLVE_HIDDEN) {
+        if (fun->object != obj) {
+            JSObject *pobj;
+            JSProperty *prop;
+
+            atom = js_AtomizeString(cx, JSVAL_TO_STRING(id), 0);
+            if (!atom)
+                return JS_FALSE;
+            if (!js_LookupHiddenProperty(cx, fun->object, ATOM_TO_JSID(atom),
+                                         &pobj, &prop)) {
+                return JS_FALSE;
+            }
+            if (prop) {
+                JS_ASSERT(pobj == fun->object);
+                *objp = pobj;
+                OBJ_DROP_PROPERTY(cx, pobj, prop);
+            }
+        }
+        return JS_TRUE;
+    }
+
+    
+
+
+
+
+    if (flags & JSRESOLVE_ASSIGNING)
         return JS_TRUE;
 
     
 
 
 
-    str = JSVAL_TO_STRING(id);
-    prototypeAtom = cx->runtime->atomState.classPrototypeAtom;
-    if (str == ATOM_TO_STRING(prototypeAtom)) {
+    atom = cx->runtime->atomState.classPrototypeAtom;
+    if (id == ATOM_KEY(atom)) {
         JSObject *proto, *parentProto;
         jsval pval;
 
         proto = parentProto = NULL;
-        if (fun->object != obj && fun->object) {
+        if (fun->object != obj &&
+            (!cx->runtime->findObjectPrincipals ||
+             cx->runtime->findObjectPrincipals(cx, obj) ==
+             cx->runtime->findObjectPrincipals(cx, fun->object))) {
             
 
 
 
-            if (!OBJ_GET_PROPERTY(cx, fun->object, ATOM_TO_JSID(prototypeAtom),
-                                  &pval)) {
+
+
+            if (!OBJ_GET_PROPERTY(cx, fun->object, ATOM_TO_JSID(atom), &pval))
                 return JS_FALSE;
-            }
             if (!JSVAL_IS_PRIMITIVE(pval)) {
                 
 
@@ -1175,6 +1213,24 @@ fun_resolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
             return JS_FALSE;
         }
         *objp = obj;
+        return JS_TRUE;
+    }
+
+    for (i = 0; i < JS_ARRAY_LENGTH(lazy_function_props); i++) {
+        LazyFunctionProp *lfp = &lazy_function_props[i];
+
+        atom = OFFSET_TO_ATOM(cx->runtime, lfp->atomOffset);
+        if (id == ATOM_KEY(atom)) {
+            if (!js_DefineNativeProperty(cx, obj,
+                                         ATOM_TO_JSID(atom), JSVAL_VOID,
+                                         NULL, NULL, lfp->attrs,
+                                         SPROP_HAS_SHORTID, lfp->tinyid,
+                                         NULL)) {
+                return JS_FALSE;
+            }
+            *objp = obj;
+            return JS_TRUE;
+        }
     }
 
     return JS_TRUE;
@@ -1457,8 +1513,10 @@ fun_trace(JSTracer *trc, JSObject *obj)
     fun = (JSFunction *) JS_GetPrivate(trc->context, obj);
     if (fun) {
         JS_CALL_TRACER(trc, fun, JSTRACE_FUNCTION, "private");
+        if (fun->object != obj)
+            JS_CALL_TRACER(trc, fun->object, JSTRACE_OBJECT, "object");
         if (fun->atom)
-            JS_CALL_TRACER(trc, fun->atom, JSTRACE_ATOM, "name");
+            JS_CALL_TRACER(trc, fun->atom, JSTRACE_ATOM, "atom");
         if (FUN_INTERPRETED(fun) && fun->u.i.script)
             js_TraceScript(trc, fun->u.i.script);
     }
@@ -2170,7 +2228,7 @@ js_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent)
     JSFunction *fun;
 
     JS_ASSERT(OBJ_GET_CLASS(cx, funobj) == &js_FunctionClass);
-    newfunobj = js_NewObject(cx, &js_FunctionClass, funobj, parent);
+    newfunobj = js_NewObject(cx, &js_FunctionClass, NULL, parent);
     if (!newfunobj)
         return NULL;
     fun = (JSFunction *) JS_GetPrivate(cx, funobj);
