@@ -332,6 +332,7 @@
 #include "nsIDOMXULCommandDispatcher.h"
 #include "nsIDOMCrypto.h"
 #include "nsIDOMCRMFObject.h"
+#include "nsIDOMPkcs11.h"
 #include "nsIControllers.h"
 #include "nsISelection.h"
 #include "nsIBoxObject.h"
@@ -445,6 +446,8 @@
 
 
 #include "nsIDOMLoadStatus.h"
+#include "nsIDOMLoadStatusEvent.h"
+
 
 #include "nsIDOMGeoGeolocation.h"
 #include "nsIDOMGeoPosition.h"
@@ -856,6 +859,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(CRMFObject, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(Pkcs11, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   
   NS_DEFINE_CLASSINFO_DATA(TreeWalker, nsDOMGenericSH,
@@ -1182,7 +1187,7 @@ static nsDOMClassInfoData sClassInfoData[] = {
   
   
   
-  NS_DEFINE_CLASSINFO_DATA(StorageObsolete, nsStorageSH,
+  NS_DEFINE_CLASSINFO_DATA(Storage, nsStorageSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS |
                            nsIXPCScriptable::WANT_NEWRESOLVE |
                            nsIXPCScriptable::WANT_GETPROPERTY |
@@ -1191,7 +1196,7 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |
                            nsIXPCScriptable::WANT_NEWENUMERATE)
 
-  NS_DEFINE_CLASSINFO_DATA(Storage, nsStorage2SH,
+  NS_DEFINE_CLASSINFO_DATA(Storage2, nsStorage2SH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS |
                            nsIXPCScriptable::WANT_NEWRESOLVE |
                            nsIXPCScriptable::WANT_GETPROPERTY |
@@ -1241,6 +1246,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            ARRAY_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(LoadStatus, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(LoadStatusEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(FileList, nsFileListSH,
@@ -2050,7 +2057,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDocumentFragment)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOM3Node)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNodeSelector)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(Element, nsIDOMElement)
@@ -2065,7 +2071,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMAttr)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOM3Node)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOM3Attr)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(Text, nsIDOMText)
@@ -2641,6 +2646,10 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(CRMFObject, nsIDOMCRMFObject)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMCRMFObject)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(Pkcs11, nsIDOMPkcs11)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMPkcs11)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(XMLStylesheetProcessingInstruction, nsIDOMProcessingInstruction)
@@ -3396,12 +3405,12 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMXPathResult)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(StorageObsolete, nsIDOMStorageObsolete)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorageObsolete)
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(Storage, nsIDOMStorage)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorage)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(Storage2, nsIDOMStorage2)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorage2)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(StorageList, nsIDOMStorageList)
@@ -3469,6 +3478,11 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(LoadStatus, nsIDOMLoadStatus)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMLoadStatus)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(LoadStatusEvent, nsIDOMLoadStatusEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMLoadStatusEvent)
+    DOM_CLASSINFO_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(ClientRect, nsIDOMClientRect)
@@ -6458,7 +6472,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       PRBool ok =
         ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                               ::JS_GetStringLength(str),
-                              winVal, JS_PropertyStub, JS_PropertyStub,
+                              winVal, nsnull, nsnull,
                               JSPROP_READONLY | JSPROP_ENUMERATE);
 
       sDoSecurityCheckInAddProperty = doSecurityCheckInAddProperty;
@@ -6520,8 +6534,10 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   
+  JSStackFrame *fp = NULL;
   if ((flags & JSRESOLVE_ASSIGNING) &&
       !(flags & JSRESOLVE_WITH) &&
+      !(JS_FrameIterator(cx, &fp) && fp->regs && (JSOp)*fp->regs->pc == JSOP_BINDNAME) &&
       win->IsInnerWindow()) {
     JSObject *realObj;
     wrapper->GetJSObject(&realObj);
@@ -6555,14 +6571,9 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       
       
       
-      
-      
-      
-      
 
       JSString *str = JSVAL_TO_STRING(id);
-      if (!::js_CheckUndeclaredVarAssignment(cx) ||
-          !::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
+      if (!::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
                                  ::JS_GetStringLength(str), JSVAL_VOID,
                                  JS_PropertyStub, JS_PropertyStub,
                                  JSPROP_ENUMERATE)) {
@@ -6915,8 +6926,7 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
 
     *parentObj = globalObj;
 
-    return node->IsInNativeAnonymousSubtree() ?
-      NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
+    return NS_OK;
   }
 
   
@@ -6977,8 +6987,7 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
 
       *parentObj = globalObj;
 
-      return node->IsInNativeAnonymousSubtree() ?
-        NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
+      return NS_OK;
     }
   }
 
@@ -6992,8 +7001,7 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
       (wrapper = static_cast<nsIXPConnectJSObjectHolder*>(doc->GetWrapper()))) {
     wrapper->GetJSObject(parentObj);
     if(*parentObj) {
-      return node->IsInNativeAnonymousSubtree() ?
-        NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
+      return NS_OK;
     }
   }
 
@@ -7001,12 +7009,10 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
   nsresult rv = WrapNative(cx, globalObj, native_parent, &v,
                            getter_AddRefs(holder));
-  NS_ENSURE_SUCCESS(rv, rv);
 
   *parentObj = JSVAL_TO_OBJECT(v);
 
-  return node->IsInNativeAnonymousSubtree() ?
-    NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -7561,8 +7567,7 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   
   
-  nsCOMPtr<nsIURI> uri;
-  nsCOMPtr<nsIPrincipal> principal;
+  nsRefPtr<nsXBLBinding> binding;
   {
     
     nsRefPtr<nsStyleContext> sc = pctx->StyleSet()->ResolveStyleFor(content,
@@ -7575,19 +7580,16 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
 
-    uri = bindingURL->mURI;
-    principal = bindingURL->mOriginPrincipal;
+    
+    PRBool dummy;
+
+    nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
+    NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
+
+    xblService->LoadBindings(content, bindingURL->mURI,
+                             bindingURL->mOriginPrincipal, PR_FALSE,
+                             getter_AddRefs(binding), &dummy);
   }
-
-  
-  PRBool dummy;
-
-  nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
-  NS_ENSURE_TRUE(xblService, NS_ERROR_NOT_AVAILABLE);
-
-  nsRefPtr<nsXBLBinding> binding;
-  xblService->LoadBindings(content, uri, principal, PR_FALSE,
-                           getter_AddRefs(binding), &dummy);
   
   if (binding) {
     if (nsContentUtils::IsSafeToRunScript()) {
@@ -8203,9 +8205,8 @@ nsDocumentSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     if (!::JS_DefineUCProperty(cx, JSVAL_TO_OBJECT(winVal),
                                reinterpret_cast<const jschar *>
                                                (doc_str.get()),
-                               doc_str.Length(), OBJECT_TO_JSVAL(obj),
-                               JS_PropertyStub, JS_PropertyStub,
-                               JSPROP_READONLY | JSPROP_ENUMERATE)) {
+                               doc_str.Length(), OBJECT_TO_JSVAL(obj), nsnull,
+                               nsnull, JSPROP_READONLY | JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -8403,16 +8404,6 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
   
   if (id == sItem_id || id == sNamedItem_id) {
     return JS_TRUE;
-  }
-
-  while (STOBJ_GET_CLASS(obj) != &sHTMLDocumentAllClass) {
-    obj = STOBJ_GET_PROTO(obj);
-
-    if (!obj) {
-      NS_ERROR("The JS engine lies!");
-
-      return JS_TRUE;
-    }
   }
 
   nsIHTMLDocument *doc = (nsIHTMLDocument *)::JS_GetPrivate(cx, obj);
@@ -10259,7 +10250,7 @@ nsStorageSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
-  nsCOMPtr<nsIDOMStorageObsolete> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
 
   
   
@@ -10295,7 +10286,7 @@ nsStorageSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
                          JSContext *cx, JSObject *obj, jsval id,
                          jsval *vp, PRBool *_retval)
 {
-  nsCOMPtr<nsIDOMStorageObsolete> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(storage, NS_ERROR_UNEXPECTED);
 
   JSString *key = ::JS_ValueToString(cx, id);
@@ -10318,7 +10309,7 @@ nsStorageSH::DelProperty(nsIXPConnectWrappedNative *wrapper,
                          JSContext *cx, JSObject *obj, jsval id,
                          jsval *vp, PRBool *_retval)
 {
-  nsCOMPtr<nsIDOMStorageObsolete> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(storage, NS_ERROR_UNEXPECTED);
 
   JSString *key = ::JS_ValueToString(cx, id);
@@ -10429,7 +10420,7 @@ nsStorage2SH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
 
-  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage2> storage(do_QueryWrappedNative(wrapper));
 
   
   
@@ -10454,7 +10445,7 @@ NS_IMETHODIMP
 nsStorage2SH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                           JSObject *obj, jsval id, jsval *vp, PRBool *_retval)
 {
-  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage2> storage(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(storage, NS_ERROR_UNEXPECTED);
 
   nsAutoString val;
@@ -10498,7 +10489,7 @@ nsStorage2SH::SetProperty(nsIXPConnectWrappedNative *wrapper,
                           JSContext *cx, JSObject *obj, jsval id,
                           jsval *vp, PRBool *_retval)
 {
-  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage2> storage(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(storage, NS_ERROR_UNEXPECTED);
 
   JSString *key = ::JS_ValueToString(cx, id);
@@ -10521,7 +10512,7 @@ nsStorage2SH::DelProperty(nsIXPConnectWrappedNative *wrapper,
                           JSContext *cx, JSObject *obj, jsval id,
                           jsval *vp, PRBool *_retval)
 {
-  nsCOMPtr<nsIDOMStorage> storage(do_QueryWrappedNative(wrapper));
+  nsCOMPtr<nsIDOMStorage2> storage(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(storage, NS_ERROR_UNEXPECTED);
 
   JSString *key = ::JS_ValueToString(cx, id);
