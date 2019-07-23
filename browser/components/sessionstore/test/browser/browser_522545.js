@@ -207,24 +207,43 @@ function test() {
     
     
     
-    gBrowser.addEventListener("load", function(aEvent) {
-      gBrowser.removeEventListener("load", arguments.callee, true);
+    gBrowser.addTabsProgressListener({
+      onLocationChange: function (aBrowser) {
+        if (uris.indexOf(aBrowser.currentURI.spec) > -1) {
+          gBrowser.removeTabsProgressListener(this);
+          firstLocationChange();
+        }
+      },
+      onProgressChange: function () {},
+      onSecurityChange: function () {},
+      onStateChange: function () {},
+      onStatusChange: function () {}
+    });
 
+    function firstLocationChange() {
       let state = JSON.parse(ss.getBrowserState());
-
-      let hasSH = state.windows[0].tabs.some(function(aTab) {
-        return !("userTypedValue" in aTab) && aTab.entries[0].url;
-      });
       let hasUTV = state.windows[0].tabs.some(function(aTab) {
         return aTab.userTypedValue && aTab.userTypedClear && !aTab.entries.length;
       });
 
+      ok(hasUTV, "At least one tab has a userTypedValue with userTypedClear with no loaded URL");
+
+      gBrowser.addEventListener("load", firstLoad, true);
+    }
+
+    function firstLoad() {
+      gBrowser.removeEventListener("load", firstLoad, true);
+
+      let state = JSON.parse(ss.getBrowserState());
+      let hasSH = state.windows[0].tabs.some(function(aTab) {
+        return !("userTypedValue" in aTab) && aTab.entries[0].url;
+      });
+
       ok(hasSH, "At least one tab has its entry in SH");
-      
 
       runNextTest();
+    }
 
-    }, true);
     gBrowser.loadTabs(uris);
   }
 
