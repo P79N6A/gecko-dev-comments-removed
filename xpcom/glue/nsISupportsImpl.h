@@ -307,35 +307,6 @@ public:
 
 
 
-
-
-
-
-
-#define NS_INLINE_DECL_REFCOUNTING(_class)                                    \
-public:                                                                       \
-  void AddRef(void) {                                                         \
-    NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");                 \
-    ++mRefCnt;                                                                \
-    NS_LOG_ADDREF(this, mRefCnt, #_class, sizeof(*this));                     \
-  }                                                                           \
-  void Release(void) {                                                        \
-    NS_PRECONDITION(0 != mRefCnt, "dup release");                             \
-    --mRefCnt;                                                                \
-    NS_LOG_RELEASE(this, mRefCnt, #_class);                                   \
-    if (mRefCnt == 0) {                                                       \
-      mRefCnt = 1; /* stabilize */                                            \
-      NS_DELETEXPCOM(this);                                                   \
-    }                                                                         \
-  }                                                                           \
-protected:                                                                    \
-  nsAutoRefCnt mRefCnt;                                                       \
-public:
-
-
-
-
-
 #define NS_IMPL_ADDREF(_class)                                                \
 NS_IMETHODIMP_(nsrefcnt) _class::AddRef(void)                                 \
 {                                                                             \
