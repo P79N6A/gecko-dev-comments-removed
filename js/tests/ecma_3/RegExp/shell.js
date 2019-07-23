@@ -41,6 +41,10 @@
 
 
 
+
+
+gTestsubsuite = 'RegExp';
+
 var MSG_PATTERN = '\nregexp = ';
 var MSG_STRING = '\nstring = ';
 var MSG_EXPECT = '\nExpect: ';
@@ -91,45 +95,45 @@ function testRegExp(statuses, patterns, strings, actualmatches, expectedmatches)
         
         lExpect = expectedmatch.length;
         lActual = actualmatch.length;
- 
-        expected = formatArray(expectedmatch);
+
+        var expected = formatArray(expectedmatch);
 
         if (lActual != lExpect)
         {
-          reportFailure(
+          reportCompare(lExpect, lActual,
                         state + ERR_LENGTH +
                         MSG_EXPECT + expected +
                         MSG_ACTUAL + actual +
                         CHAR_NL
-                       );
+	    );
           continue;
         }
 
         
         if (expected != actual)
         {
-          reportFailure(
+          reportCompare(expected, actual,
                         state + ERR_MATCH +
                         MSG_EXPECT + expected +
                         MSG_ACTUAL + actual +
                         CHAR_NL
-                       );
+	    );
         }
         else
         {
           reportCompare(expected, actual, state)
-        }
+	    }
 
       }
       else 
       {
         expected = expectedmatch;
-        reportFailure(
+        reportCompare(expected, actual,
                       state + ERR_UNEXP_MATCH +
                       MSG_EXPECT + expectedmatch +
                       MSG_ACTUAL + actual +
                       CHAR_NL
-                     );
+	  );
       }
 
     }
@@ -138,12 +142,12 @@ function testRegExp(statuses, patterns, strings, actualmatches, expectedmatches)
       if (expectedmatch)
       {
         actual = actualmatch;
-        reportFailure(
+        reportCompare(expected, actual,
                       state + ERR_NO_MATCH +
                       MSG_EXPECT + expectedmatch +
                       MSG_ACTUAL + actualmatch +
                       CHAR_NL
-                     );
+	  );
       }
       else 
       {
@@ -230,15 +234,15 @@ function toSource(arr)
 
     switch(true)
     {
-      case (typeof elt === TYPE_STRING) :
-        ret += doubleQuote(elt);
-        break;
+    case (typeof elt === TYPE_STRING) :
+      ret += doubleQuote(elt);
+      break;
 
-      case (elt === undefined || elt === null) :
-        break; 
+    case (elt === undefined || elt === null) :
+      break; 
 
-      default:
-        ret += elt.toString();
+    default:
+      ret += elt.toString();
     }
 
     if ((i < len-1) || (elt === undefined))

@@ -35,13 +35,15 @@
 
 
 
-var bug = 341510;
+var gTestfile = 'regress-341510.js';
+
+var BUGNUMBER = 341510;
 var summary = 'Iterators: crash in close handler with assignment to ' +
   'non-existing name';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 function gen(i) {

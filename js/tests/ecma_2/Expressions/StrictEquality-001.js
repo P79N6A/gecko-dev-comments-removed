@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'StrictEquality-001.js';
+
+
+
+
+
+
+
+
+
 var SECTION = "StrictEquality-001 - 11.9.6";
 var VERSION = "ECMA_2";
 var TITLE   =  "The strict equality operator ( === )";

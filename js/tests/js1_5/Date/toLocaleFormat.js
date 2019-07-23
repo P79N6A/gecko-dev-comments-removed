@@ -36,16 +36,18 @@
 
 
 
-var bug = 291494;
+var gTestfile = 'toLocaleFormat.js';
+
+var BUGNUMBER = 291494;
 var summary = 'Date.prototype.toLocaleFormat extension';
 var actual = '';
 var expect = '';
 var temp;
 
 enterFunc ('test');
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 var date = new Date("06/05/2005 00:00:00 GMT-0000");
 
 expect = date.getTimezoneOffset() > 0 ? 'Sat' : 'Sun';
@@ -129,12 +131,12 @@ reportCompare(expect, actual, 'Date.toLocaleFormat("%d")');
 
 
 expect = '0';
-actual = String((Number(date.toLocaleFormat('%H')) + 
+actual = String((Number(date.toLocaleFormat('%H')) +
                  date.getTimezoneOffset()/60) % 24);
 reportCompare(expect, actual, 'Date.toLocaleFormat(%H)');
 
 expect = '12';
-actual = String(Number(date.toLocaleFormat('%I')) + 
+actual = String(Number(date.toLocaleFormat('%I')) +
                 date.getTimezoneOffset()/60);
 reportCompare(expect, actual, 'Date.toLocaleFormat(%I)');
 
@@ -225,7 +227,7 @@ reportCompare(expect, actual, 'Date.toLocaleFormat("%W")');
 
 expect = date.toLocaleTimeString();
 actual = date.toLocaleFormat('%X');
-reportCompare(expect, actual, 'Date.toLocaleTimeString() == ' + 
+reportCompare(expect, actual, 'Date.toLocaleTimeString() == ' +
               'Date.toLocaleFormat("%X")');
 
 expect = '05';

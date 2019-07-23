@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-76054.js';
 var UBound = 0;
-var bug = 76054;
+var BUGNUMBER = 76054;
 var summary = 'Testing that String HTML methods produce all lower-case';
 var statprefix = 'Currently testing String.';
 var status = '';
@@ -139,9 +142,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], getStatus(i));

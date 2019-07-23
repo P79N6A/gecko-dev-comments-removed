@@ -35,7 +35,9 @@
 
 
 
-var bug = 352008;
+var gTestfile = 'regress-352008.js';
+
+var BUGNUMBER = 352008;
 var summary = 'decompilation of |for([k,v] in o| should not assert';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   printStatus('Repeat after me: destructuring decompilation isn\'t working yet. ;-)');
   printStatus('bug 352008 is fixed if this test does not assert');
 

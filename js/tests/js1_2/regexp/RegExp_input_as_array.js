@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'RegExp_input_as_array.js';
+
 
 
 
@@ -51,9 +53,6 @@ var TITLE   = 'RegExp: input';
 
 writeHeaderToLog('Executing script: RegExp_input.js');
 writeHeaderToLog( SECTION + " "+ TITLE);
-
-var count = 0;
-var testcases = new Array();
 
 RegExp['$_'] = "abcd12357efg";
 

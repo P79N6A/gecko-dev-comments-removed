@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '15.9.5.37-3.js';
+
+
 
 
 
@@ -70,7 +73,7 @@ writeHeaderToLog( SECTION + " Date.prototype.setUTCFullYear(year [, mon [, date 
 
 
 var UTC_FEB_29_1972 = TIME_1970 + TimeInYear(1970) + TimeInYear(1971) +
-31*msPerDay + 28*msPerDay;
+  31*msPerDay + 28*msPerDay;
 
 var PST_FEB_29_1972 = UTC_FEB_29_1972 - TZ_DIFF * msPerHour;
 

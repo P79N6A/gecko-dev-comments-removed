@@ -36,15 +36,17 @@
 
 
 
-var bug = 281606;
+var gTestfile = 'regress-281606.js';
+
+var BUGNUMBER = 281606;
 var summary = 'l instanceof r throws TypeError if r does not support [[HasInstance]]';
 var actual = '';
 var expect = '';
 var status;
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 var o = {};
 
 status = summary + ' ' + inSection(1) + ' o instanceof Math ';

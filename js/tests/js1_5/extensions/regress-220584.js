@@ -43,8 +43,10 @@
 
 
 
+
+var gTestfile = 'regress-220584.js';
 var UBound = 0;
-var bug = 220584;
+var BUGNUMBER = 220584;
 var summary = 'Testing __parent__ and __proto__ of Script object';
 var status = '';
 var statusitems = [];
@@ -59,7 +61,9 @@ var s;
 status = inSection(1);
 if (typeof Script == 'undefined')
 {
-  print('Test skipped. Script not defined.');
+  reportCompare("Script not defined, Test skipped.",
+                "Script not defined, Test skipped.",
+                summary);
 }
 else
 {
@@ -131,7 +135,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

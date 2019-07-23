@@ -36,25 +36,27 @@
 
 
 
+var gTestfile = 'regress-254974.js';
 
 
 
 
-var bug = 254974;
+
+var BUGNUMBER = 254974;
 var summary = 'all var and arg properties should be JSPROP_SHARED';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 function testfunc(tokens) {
-function eek(y) {} 
-    return tokens.split(/\]?(?:\[|$)/).shift();
+  function eek(y) {} 
+  return tokens.split(/\]?(?:\[|$)/).shift();
 }
 bad=testfunc;
 function testfunc(tokens) {
-    return tokens.split(/\]?(?:\[|$)/).shift();
+  return tokens.split(/\]?(?:\[|$)/).shift();
 }
 good=testfunc;
 
@@ -66,5 +68,5 @@ printStatus(badvalue);
 
 expect = goodvalue;
 actual = badvalue;
-  
+ 
 reportCompare(expect, actual, summary);

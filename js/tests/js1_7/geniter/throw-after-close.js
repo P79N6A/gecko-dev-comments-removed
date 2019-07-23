@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'throw-after-close.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "gen.close(); gen.throw(ex) throws ex forever";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'object-002.js';
+
 
 
 
@@ -119,17 +121,17 @@ i++;
 
 
 for ( i = 0; i < java_array.length; i++ ) {
-    CompareValues( java_array[i], test_array[i] );
+  CompareValues( java_array[i], test_array[i] );
 }
 
 test();
 
 function CompareValues( javaval, testval ) {
-    
-    new TestCase( SECTION,
-		  "typeof (" + testval.description +" )",
-		  testval.type,
-		  javaval.type );
+  
+  new TestCase( SECTION,
+		"typeof (" + testval.description +" )",
+		testval.type,
+		javaval.type );
 
 
 
@@ -137,28 +139,28 @@ function CompareValues( javaval, testval ) {
 
 
 
-    
-    new TestCase( SECTION,
-		  testval.description +".getClass().equals( " +
-		  "java.lang.Class.forName( '" + testval.classname +
-		  "' ) )",
-		  true,
-		  javaval.javaclass.equals( testval.javaclass ) );
+  
+  new TestCase( SECTION,
+		testval.description +".getClass().equals( " +
+		"java.lang.Class.forName( '" + testval.classname +
+		"' ) )",
+		true,
+		javaval.javaclass.equals( testval.javaclass ) );
 }
 function JavaValue( value ) {
-    this.type   = typeof value;
+  this.type   = typeof value;
 
-    
+  
 
 
-    this.javaclass = value.getClass();
-    return this;
+  this.javaclass = value.getClass();
+  return this;
 }
 function TestValue( description, classname ) {
-    this.description = description;
-    this.classname = classname;
-    this.type =  E_TYPE;
-    this.jsclass = E_JSCLASS;
-    this.javaclass = java.lang.Class.forName( classname );
-    return this;
+  this.description = description;
+  this.classname = classname;
+  this.type =  E_TYPE;
+  this.jsclass = E_JSCLASS;
+  this.javaclass = java.lang.Class.forName( classname );
+  return this;
 }

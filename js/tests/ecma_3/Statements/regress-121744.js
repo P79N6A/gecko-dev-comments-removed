@@ -65,8 +65,11 @@
 
 
 
+
+
+var gTestfile = 'regress-121744.js';
 var UBound = 0;
-var bug = 121744;
+var BUGNUMBER = 121744;
 var summary = 'JS should error on |for(i in undefined)|, |for(i in null)|';
 var TEST_PASSED = 'TypeError';
 var TEST_FAILED = 'Generated an error, but NOT a TypeError!';
@@ -202,9 +205,9 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
- 
+
   for (var i=0; i<UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

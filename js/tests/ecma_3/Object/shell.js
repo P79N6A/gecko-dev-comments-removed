@@ -53,6 +53,10 @@
 
 
 
+
+
+gTestsubsuite = 'Object';
+
 var cnNoObject = 'Unexpected Error!!! Parameter to this function must be an object';
 var cnNoClass = 'Unexpected Error!!! Cannot find Class property';
 var cnObjectToString = Object.prototype.toString;
@@ -87,7 +91,7 @@ function findClass(sType)
 {
   var re =  /^\[.*\s+(\w+)\s*\]$/;
   var a = sType.match(re);
-  
+ 
   if (a && a[1])
     return a[1];
   return cnNoClass;

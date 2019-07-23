@@ -35,12 +35,14 @@
 
 
 
-var bug = 301738;
+var gTestfile = 'regress-301738-02.js';
+
+var BUGNUMBER = 301738;
 var summary = 'Date parse compatibilty with MSIE';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'regexparg-1.js';
+
 
 
 
@@ -81,8 +83,8 @@ new TestCase( SECTION,
 new TestCase( SECTION,
 	      "f(/abc/)+'')",
 	      "/abc/",
-	      f(/abc/) +'');    
-        
+	      f(/abc/) +'');   
+       
 new TestCase( SECTION,
 	      "typeof f(/abc/)",
 	      "object",

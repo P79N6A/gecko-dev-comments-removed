@@ -46,8 +46,11 @@
 
 
 
+
+
+var gTestfile = 'regress-49286.js';
 var UBound = 0;
-var bug = 49286;
+var BUGNUMBER = 49286;
 var summary = 'Invoking try...catch through Function.call';
 var cnErrorCaught = 'Error caught';
 var cnErrorNotCaught = 'Error NOT caught';
@@ -83,7 +86,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

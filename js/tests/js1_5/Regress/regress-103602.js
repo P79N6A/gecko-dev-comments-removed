@@ -51,8 +51,12 @@
 
 
 
+
+
+
+var gTestfile = 'regress-103602.js';
 var UBound = 0;
-var bug = 103602;
+var BUGNUMBER = 103602;
 var summary = 'Reassignment to a const is NOT an error per ECMA';
 var status = '';
 var statusitems = [];
@@ -152,9 +156,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

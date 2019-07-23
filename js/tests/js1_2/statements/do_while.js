@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'do_while.js';
+
 
 
 
@@ -56,12 +58,12 @@ var done = false;
 var x = 0;
 do
 {
-    if (x++ == 3) done = true;
+  if (x++ == 3) done = true;
 } while (!done);
-	
+
 new TestCase( SECTION, "do_while ",
 	      4, x);
-	
+
 
 test();
 

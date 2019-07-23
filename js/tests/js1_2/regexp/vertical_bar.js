@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'vertical_bar.js';
+
 
 
 

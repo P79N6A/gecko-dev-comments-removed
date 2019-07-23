@@ -45,8 +45,11 @@
 
 
 
+
+
+var gTestfile = 'regress-181834.js';
 var UBound = 0;
-var bug = 181834;
+var BUGNUMBER = 181834;
 var summary = 'Testing scope';
 var status = '';
 var statusitems = [];
@@ -168,7 +171,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

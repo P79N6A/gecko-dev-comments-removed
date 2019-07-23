@@ -39,8 +39,10 @@
 
 
 
+gTestfile = 'regress-271545.js';
+
 START('XML("") should create empty text node');
-BUG(271545);
+printBugNumber(271545);
 
 
 

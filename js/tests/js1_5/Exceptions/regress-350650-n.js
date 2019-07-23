@@ -35,7 +35,9 @@
 
 
 
-var bug = 350650;
+var gTestfile = 'regress-350650-n.js';
+
+var BUGNUMBER = 350650;
 var summary = 'js reports "uncaught exception';
 var actual = 'Error';
 var expect = 'Error';
@@ -49,9 +51,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   function exc() { this.toString = function() { return "EXC"; } }
   throw new exc();
 

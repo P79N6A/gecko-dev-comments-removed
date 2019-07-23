@@ -36,15 +36,15 @@
 
 
 
-START("section - description");
+gTestfile = 'template.js';
 
-var bug = 99999;
-var summary = '';
+var summary = 'section - description";
+var BUGNUMBER = 99999;
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
-printStatus (summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 
 

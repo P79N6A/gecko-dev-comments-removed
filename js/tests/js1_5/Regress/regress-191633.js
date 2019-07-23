@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-191633.js';
 var UBound = 0;
-var bug = 191633;
+var BUGNUMBER = 191633;
 var summary = 'Testing script with huge number of comments';
 var status = '';
 var statusitems = [];
@@ -92,7 +95,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

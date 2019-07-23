@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = '15.7.4.7-1.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing Number.prototype.toPrecision(precision)';
 var cnIsRangeError = 'instanceof RangeError';
 var cnNotRangeError = 'NOT instanceof RangeError';
@@ -108,9 +111,9 @@ function captureThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

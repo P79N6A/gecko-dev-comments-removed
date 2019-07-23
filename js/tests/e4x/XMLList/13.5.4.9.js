@@ -41,6 +41,8 @@
 
 
 
+gTestfile = '13.5.4.9.js';
+
 START("13.5.4.9 - XMLList descendants()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("descendants"));
@@ -67,9 +69,9 @@ expect = 4;
 actual = descendants.length();
 TEST(2, expect, actual)
 
-expect = 'nodeKind(): element, name(): name;\n' + 
+expect = 'nodeKind(): element, name(): name;\n' +
          'nodeKind(): text, name(): null;\n' +
-         'nodeKind(): element, name(): name;\n' + 
+         'nodeKind(): element, name(): name;\n' +
          'nodeKind(): text, name(): null;\n';
 
 actual = '';

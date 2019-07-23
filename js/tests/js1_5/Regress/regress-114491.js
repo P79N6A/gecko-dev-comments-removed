@@ -47,8 +47,11 @@
 
 
 
+
+
+var gTestfile = 'regress-114491.js';
 var UBound = 0;
-var bug = 114491;
+var BUGNUMBER = 114491;
 var summary = 'Regression test for bug 114491';
 var status = '';
 var statusitems = [];
@@ -91,9 +94,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

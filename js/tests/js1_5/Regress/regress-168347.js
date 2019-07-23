@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-168347.js';
 var UBound = 0;
-var bug = 168347;
+var BUGNUMBER = 168347;
 var summary = "Testing F.toString()";
 var status = '';
 var statusitems = [];
@@ -205,7 +208,7 @@ function stripWhite(str)
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

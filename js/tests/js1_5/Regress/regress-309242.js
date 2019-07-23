@@ -35,12 +35,14 @@
 
 
 
-var bug = 309242;
+var gTestfile = 'regress-309242.js';
+
+var BUGNUMBER = 309242;
 var summary = 'E4X should be on by default while preserving comment hack';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 
@@ -50,17 +52,17 @@ printStatus (summary);
 
 
 expect = true;
-actual = true; 
+actual = true;
 
 <!-- comment -->; actual = false;
 
 reportCompare(expect, actual, summary + ': &lt;!-- is comment to end of line');
 
 expect = true;
-actual = false; 
+actual = false;
 
-<!-- 
-actual = true;
+<!--
+ actual = true;
 
 
 reportCompare(expect, actual, summary + ': comment hack works inside script');

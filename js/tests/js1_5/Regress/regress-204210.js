@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-204210.js';
 var UBound = 0;
-var bug = 204210;
+var BUGNUMBER = 204210;
 var summary = "eval() is not a constructor, but don't crash on |new eval();|";
 var status = '';
 var statusitems = [];
@@ -53,7 +56,7 @@ var actualvalues = [];
 var expect= '';
 var expectedvalues = [];
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

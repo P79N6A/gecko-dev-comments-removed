@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'question_mark.js';
+
 
 
 

@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = '15.3.4.4-1.js';
 var UBound = 0;
-var bug = 145791;
+var BUGNUMBER = 145791;
 var summary = 'Testing ECMA conformance of Function.prototype.call';
 var status = '';
 var statusitems = [];
@@ -170,7 +173,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

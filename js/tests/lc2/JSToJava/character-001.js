@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'character-001.js';
+
 
 
 
@@ -110,12 +112,12 @@ a[i++] = new TestObject( "new java.lang.Character( Number(5.5) )",
 
 for ( var i = 0; i < a.length; i++ ) {
 
-    
-    new TestCase(
-	SECTION,
-	"typeof (" + a[i].description +")",
-	a[i].type,
-	typeof a[i].javavalue );
+  
+  new TestCase(
+    SECTION,
+    "typeof (" + a[i].description +")",
+    a[i].type,
+    typeof a[i].javavalue );
 
 
 
@@ -124,12 +126,12 @@ for ( var i = 0; i < a.length; i++ ) {
 
 
 
-    
-    new TestCase(
-	SECTION,
-	"Number(" + a[i].description +")",
-	a[i].jsvalue,
-	Number( a[i].javavalue.charValue() ) );
+  
+  new TestCase(
+    SECTION,
+    "Number(" + a[i].description +")",
+    a[i].jsvalue,
+    Number( a[i].javavalue.charValue() ) );
 }
 
 test();
@@ -139,9 +141,9 @@ function TestObject( description, javavalue, jsvalue ) {
 
 
 
-    this.description = description;
-    this.javavalue = javavalue;
-    this.jsvalue = jsvalue;
-    this.type = E_TYPE;
-    return this;
+  this.description = description;
+  this.javavalue = javavalue;
+  this.jsvalue = jsvalue;
+  this.type = E_TYPE;
+  return this;
 }

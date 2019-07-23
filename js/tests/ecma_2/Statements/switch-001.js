@@ -10,6 +10,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'switch-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "switch-001";
 var VERSION = "ECMA_2";
 var TITLE   = "The switch statement";

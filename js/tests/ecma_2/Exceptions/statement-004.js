@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'statement-004.js';
+
+
+
+
+
+
+
+
+
 var SECTION = "statement-004";
 var VERSION = "JS1_4";
 var TITLE   = "The for..in statement";

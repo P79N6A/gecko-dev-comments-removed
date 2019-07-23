@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-191479.js';
 var i = 0;
-var bug = 191479;
+var BUGNUMBER = 191479;
 var summary = 'Testing regular expressions of form /(x|y){n,}/';
 var status = '';
 var statusmessages = new Array();
@@ -188,7 +191,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

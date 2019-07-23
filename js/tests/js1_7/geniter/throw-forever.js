@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'throw-forever.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "gen.throw(ex) returns ex for an exhausted gen";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

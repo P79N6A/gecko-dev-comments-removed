@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-72964.js';
 var i = 0;
-var bug = 72964;
+var BUGNUMBER = 72964;
 var summary = 'Testing regular expressions containing non-Latin1 characters';
 var cnSingleSpace = ' ';
 var status = '';
@@ -60,34 +63,34 @@ var expectedmatches = new Array();
 
 
 pattern = /[\S]+/;
-    
-    status = inSection(1);
-    string = '\u00BF\u00CD\u00BB\u00A7';
-    actualmatch = string.match(pattern);
-    expectedmatch = Array(string);
-    addThis();
 
-    
-    status = inSection(2);
-    string = '\u00BF\u00CD \u00BB\u00A7';
-    actualmatch = string.match(pattern);
-    expectedmatch = Array('\u00BF\u00CD');
-    addThis();
+status = inSection(1);
+string = '\u00BF\u00CD\u00BB\u00A7';
+actualmatch = string.match(pattern);
+expectedmatch = Array(string);
+addThis();
 
 
-    
-    status = inSection(3);
-    string = '\u4e00\uac00\u4e03\u4e00';
-    actualmatch = string.match(pattern);
-    expectedmatch = Array(string);
-    addThis();
+status = inSection(2);
+string = '\u00BF\u00CD \u00BB\u00A7';
+actualmatch = string.match(pattern);
+expectedmatch = Array('\u00BF\u00CD');
+addThis();
 
-    
-    status = inSection(4);
-    string = '\u4e00\uac00 \u4e03\u4e00';
-    actualmatch = string.match(pattern);
-    expectedmatch = Array('\u4e00\uac00');
-    addThis();
+
+
+status = inSection(3);
+string = '\u4e00\uac00\u4e03\u4e00';
+actualmatch = string.match(pattern);
+expectedmatch = Array(string);
+addThis();
+
+
+status = inSection(4);
+string = '\u4e00\uac00 \u4e03\u4e00';
+actualmatch = string.match(pattern);
+expectedmatch = Array('\u4e00\uac00');
+addThis();
 
 
 
@@ -111,7 +114,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

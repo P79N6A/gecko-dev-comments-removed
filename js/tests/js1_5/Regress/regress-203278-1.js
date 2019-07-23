@@ -36,12 +36,14 @@
 
 
 
-var bug = 203278;
+var gTestfile = 'regress-203278-1.js';
+
+var BUGNUMBER = 203278;
 var summary = 'Don\'t crash in recursive js_MarkGCThing';
 var actual = 'FAIL';
 var expect = 'PASS';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 function test1() {}

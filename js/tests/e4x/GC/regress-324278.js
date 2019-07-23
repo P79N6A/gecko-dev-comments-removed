@@ -35,13 +35,16 @@
 
 
 
-var bug = 324278;
+gTestfile = 'regress-324278.js';
+
+
+var BUGNUMBER = 324278;
 var summary = 'GC without recursion';
 var actual;
 var expect;
 
-printBugNumber (bug);
-printStatus (summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 var N = 1000 * 1000;
 
@@ -51,7 +54,7 @@ function prepare_list(N)
 {
     var cursor = null;
     for (var i = 0; i != N; ++i) {
-        var ns = new Namespace("protocol:address");  
+        var ns = new Namespace("protocol:address"); 
         ns.property = cursor;
         var xml = <xml/>;
         xml.addNamespace(ns);
@@ -79,5 +82,5 @@ actual = count;
 TEST(1, expect, actual);
 
 gc();
-  
+ 
 END();

@@ -35,6 +35,7 @@
 
 
 
+var gTestfile = 'regress-10278.js';
 
 
 
@@ -42,7 +43,8 @@
 
 
 
-var bug = 10278;
+
+var BUGNUMBER = 10278;
 var summary = 'Function declarations do not need to be separated by semi-colon';
 var actual;
 var expect;
@@ -55,17 +57,17 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   expect = 'pass';
-  try 
+  try
   {
     eval("function f(){}function g(){}");
     actual = "pass";
     printStatus('no exception thrown');
-  } 
-  catch ( e ) 
+  }
+  catch ( e )
   {
     actual = "fail";
     printStatus('exception ' + e.toString() + ' thrown');

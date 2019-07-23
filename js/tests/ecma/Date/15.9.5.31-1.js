@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.9.5.31-1.js';
+
 
 
 
@@ -70,7 +72,7 @@ var SECTION = "15.9.5.31-1";
 var VERSION = "ECMA_1";
 startTest();
 
-writeHeaderToLog(SECTION + 
+writeHeaderToLog(SECTION +
                  " Date.prototype.setUTCHours(hour [, min [, sec [, ms ]]] )");
 
 addNewTestCase( 0, 0, void 0, void 0, void 0,
@@ -168,7 +170,7 @@ function addNewTestCase( time, hours, min, sec, ms, DateString, UTCDate, LocalDa
   DateCase.toString = Object.prototype.toString;
 
   new TestCase( SECTION,
-                DateString+".toString=Object.prototype.toString;" + 
+                DateString+".toString=Object.prototype.toString;" +
                 DateString+".toString()",
                 "[object Date]",
                 DateCase.toString() );

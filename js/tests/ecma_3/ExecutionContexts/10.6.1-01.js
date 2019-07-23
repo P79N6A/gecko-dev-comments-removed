@@ -35,12 +35,14 @@
 
 
 
-var bug = 290774;
+var gTestfile = '10.6.1-01.js';
+
+var BUGNUMBER = 290774;
 var summary = 'activation object never delegates to Object.prototype';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var toStringResult;
@@ -53,9 +55,9 @@ var watch = undefined;
 var parseInt = 'fooParseInt';
 
 
-function toString() 
-{ 
-  return 'fooString'; 
+function toString()
+{
+  return 'fooString';
 }
 
 function normal()
@@ -73,12 +75,12 @@ function outerinnervar()
   watchResult = watch;
   parseIntResult = parseInt;
   function inner()
-    {
-      
-      
-      
-      printStatus(toString);
-    }
+  {
+    
+    
+    
+    printStatus(toString);
+  }
 }
 
 expect = true;

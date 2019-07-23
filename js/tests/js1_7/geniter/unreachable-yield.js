@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'unreachable-yield.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "Iterator with unreachable yield statement";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

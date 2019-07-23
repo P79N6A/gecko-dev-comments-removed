@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'multiple-close.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "calling it.close multiple times is harmless";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

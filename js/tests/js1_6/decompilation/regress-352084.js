@@ -35,7 +35,9 @@
 
 
 
-var bug = 352084;
+var gTestfile = 'regress-352084.js';
+
+var BUGNUMBER = 352084;
 var summary = 'decompilation of comma expression lists';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   f = function() { h = {x:5, y:(a,b)}}  ;

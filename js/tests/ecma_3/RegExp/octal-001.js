@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'octal-001.js';
 var i = 0;
-var bug = 141078;
+var BUGNUMBER = 141078;
 var summary = 'Testing octal sequences in regexps';
 var status = '';
 var statusmessages = new Array();
@@ -126,7 +129,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

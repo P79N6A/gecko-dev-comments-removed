@@ -35,6 +35,44 @@
 
 
 
+gTestfile = 'statement-002.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var SECTION = "statement-002";
 var VERSION = "JS1_4";

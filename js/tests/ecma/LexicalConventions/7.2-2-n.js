@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '7.2-2-n.js';
+
 
 
 
@@ -66,7 +68,7 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 DESCRIPTION = "\r\r\r\nb";
 EXPECTED = "error"
 
-new TestCase( SECTION,   DESCRIPTION,     "error",     eval("\r\r\r\nb"));
+  new TestCase( SECTION,   DESCRIPTION,     "error",     eval("\r\r\r\nb"));
 
 test();
 

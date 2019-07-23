@@ -36,6 +36,7 @@
 
 
 
+gTestfile = '11.4.2.js';
 
 
 
@@ -44,12 +45,13 @@
 
 
 
-    var SECTION = "11.4.2";
-    var VERSION = "ECMA_1";
-    startTest();
-    var TITLE   = "The void operator";
 
-    writeHeaderToLog( SECTION + " "+ TITLE);
+var SECTION = "11.4.2";
+var VERSION = "ECMA_1";
+startTest();
+var TITLE   = "The void operator";
+
+writeHeaderToLog( SECTION + " "+ TITLE);
 
 new TestCase( SECTION,   "void(new String('string object'))",      void 0,  void(new String( 'string object' )) );
 new TestCase( SECTION,   "void('string primitive')",               void 0,  void("string primitive") );

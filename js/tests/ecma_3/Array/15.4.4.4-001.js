@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = '15.4.4.4-001.js';
 var UBound = 0;
-var bug = 169795;
+var BUGNUMBER = 169795;
 var summary = 'Testing Array.prototype.concat()';
 var status = '';
 var statusitems = [];
@@ -138,7 +141,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

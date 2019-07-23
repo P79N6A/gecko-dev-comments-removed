@@ -40,6 +40,8 @@
 
 
 
+gTestfile = '9.1.1.12.js';
+
 START("9.1.1.12 - XML [[Replace]]");
 
 var actual = 'Test not implemented';

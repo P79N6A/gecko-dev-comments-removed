@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-137181.js';
 var UBound = 0;
-var bug = 137181;
+var BUGNUMBER = 137181;
 var summary = 'delete arguments[i] should break connection to local reference';
 var status = '';
 var statusitems = [];
@@ -98,7 +101,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

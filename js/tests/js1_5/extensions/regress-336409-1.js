@@ -35,12 +35,14 @@
 
 
 
-var bug = 336409;
+var gTestfile = 'regress-336409-1.js';
+
+var BUGNUMBER = 336409;
 var summary = 'Integer overflow in js_obj_toSource';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 expectExitCode(0);

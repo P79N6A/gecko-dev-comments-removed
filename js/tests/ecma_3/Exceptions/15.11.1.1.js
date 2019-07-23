@@ -40,8 +40,11 @@
 
 
 
+
+
+var gTestfile = '15.11.1.1.js';
 var UBound = 0;
-var bug = '';
+var BUGNUMBER = '';
 var summary = 'Ensuring normal function call of Error (ECMA-262 Ed.3 15.11.1.1)';
 var status = '';
 var statusitems = [];
@@ -122,7 +125,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

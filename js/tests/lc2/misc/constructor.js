@@ -36,6 +36,10 @@
 
 
 
+gTestfile = 'constructor.js';
+
+
+
 
 
 
@@ -82,19 +86,19 @@ test();
 
 
 function test_typeof( eType, someObject ) {
-    new TestCase( SECTION,
-		  "typeof( " +someObject+")",
-		  eType,
-		  typeof someObject );
+  new TestCase( SECTION,
+		"typeof( " +someObject+")",
+		eType,
+		typeof someObject );
 }
 
 
 
 
 function test_class( eClass, javaObject ) {
-    new TestCase( SECTION,
-		  javaObject +".getClass().equals( java.lang.Class.forName( " +
-		  eClass +")",
-		  true,
-		  (javaObject.getClass()).equals( java.lang.Class.forName(eClass)) );
+  new TestCase( SECTION,
+		javaObject +".getClass().equals( java.lang.Class.forName( " +
+		eClass +")",
+		true,
+		(javaObject.getClass()).equals( java.lang.Class.forName(eClass)) );
 }

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'concat.js';
+
 
 
 

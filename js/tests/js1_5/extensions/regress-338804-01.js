@@ -35,12 +35,14 @@
 
 
 
-var bug = 338804;
+var gTestfile = 'regress-338804-01.js';
+
+var BUGNUMBER = 338804;
 var summary = 'GC hazards in constructor functions';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 printStatus ('Uses Intel Assembly');
 
@@ -96,5 +98,5 @@ function fillHeap() {
 }
 
 
-  
+ 
 reportCompare(expect, actual, summary);

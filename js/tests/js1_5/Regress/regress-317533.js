@@ -35,14 +35,16 @@
 
 
 
-var bug = 317533;
+var gTestfile = 'regress-317533.js';
+
+var BUGNUMBER = 317533;
 var summary = 'improve function does not always return a value warnings';
 var actual = '';
 var expect = 'TypeError: anonymous function does not always return a value';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 var code;
 
 options('strict');
@@ -50,7 +52,7 @@ options('werror');
 
 try
 {
-  actual = ''; 
+  actual = '';
   code = "(function(x){ if(x) return x; })";
   print(code);
   eval(code);

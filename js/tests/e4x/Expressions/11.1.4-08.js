@@ -36,15 +36,17 @@
 
 
 
-START("11.1.4 - XML Initializer - {} Expressions");
+gTestfile = '11.1.4-08.js';
 
-var bug = 325750;
-var summary = 'E4X: inconsistencies in the use of {} syntax Part Deux';
+var summary = "11.1.4 - XML Initializer - {} Expressions - 08";
+
+var BUGNUMBER = 325750;
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
-printStatus (summary);
+printBugNumber(BUGNUMBER);
+START(summary);
+printStatus('E4X: inconsistencies in the use of {} syntax Part Deux');
 
 
 
@@ -138,14 +140,14 @@ function evalStr(exprs, iexpr)
 
   passfail = (valid === obj.valid);
 
-  msg = iexpr + ': ' + (passfail ? 'PASS':'FAIL') + 
-        ' expected: ' + (obj.valid ? 'valid':'invalid') + 
-        ', actual: ' + (valid ? 'valid':'invalid') + '\n' + 
-        'input: ' + '\n' + 
-        obj.expr + '\n' + 
+  msg = iexpr + ': ' + (passfail ? 'PASS':'FAIL') +
+        ' expected: ' + (obj.valid ? 'valid':'invalid') +
+        ', actual: ' + (valid ? 'valid':'invalid') + '\n' +
+        'input: ' + '\n' +
+        obj.expr + '\n' +
         'output: ' + '\n' +
         value + '\n\n';
-  
+ 
   printStatus(msg);
 
   TEST(iexpr, obj.valid, valid);

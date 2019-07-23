@@ -35,7 +35,9 @@
 
 
 
-var bug = 360681;
+var gTestfile = 'regress-360681-02.js';
+
+var BUGNUMBER = 360681;
 var summary = 'Regression from bug 224128';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   expect = actual = 'No Crash';
 
   var N = 1000;
@@ -75,13 +77,13 @@ function test()
   gc();
 
   var firstCall = true;
-  a.sort(function (a, b) { 
-    if (firstCall) {
-      firstCall = false;
-      gc();
-    }
-    return a - b;
-  });
+  a.sort(function (a, b) {
+	   if (firstCall) {
+	     firstCall = false;
+	     gc();
+	   }
+	   return a - b;
+	 });
 
   reportCompare(expect, actual, summary);
 

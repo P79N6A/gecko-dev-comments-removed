@@ -36,18 +36,20 @@
 
 
 
+var gTestfile = 'regress-229006.js';
 
 
 
 
-var bug = 229006;
+
+var BUGNUMBER = 229006;
 var summary = 'JS parser should not fail when line number &gt 2^16';
 var actual = 'FAIL';
 var expect = 'PASS';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 
 
 

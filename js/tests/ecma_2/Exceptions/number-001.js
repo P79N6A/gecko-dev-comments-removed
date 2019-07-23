@@ -18,6 +18,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'number-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "number-001";
 var VERSION = "JS1_4";
 var TITLE   = "Exceptions for Number.toString()";

@@ -35,12 +35,14 @@
 
 
 
-var bug = 312260;
+var gTestfile = 'regress-312260.js';
+
+var BUGNUMBER = 312260;
 var summary = 'Switch discriminant detecting case should not warn';
 var actual = 'No warning';
 var expect = 'No warning';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 options('strict');

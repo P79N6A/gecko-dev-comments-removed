@@ -44,10 +44,13 @@
 
 
 
-var bug = 144834;
+
+
+gTestfile = 'regress-144834.js';
+var BUGNUMBER = 144834;
 var summary = 'Local var having same name as switch label inside function';
 
-print(bug);
+print(BUGNUMBER);
 print(summary);
 
 
@@ -57,7 +60,7 @@ function RedrawSched()
 
   switch (i)
   {
-    case MinBound :
+  case MinBound :
   }
 }
 

@@ -36,6 +36,7 @@
 
 
 
+var gTestfile = 'regress-83293.js';
 
 
 
@@ -65,9 +66,11 @@
 
 
 
- 
 
-var bug = 103351; 
+
+
+
+var BUGNUMBER = 103351; 
 var summ_OLD = 'Testing str.replace(strA, strB) == str.replace(new RegExp(strA),strB)';
 var summ_NEW = 'Testing String.prototype.replace(x,y) when x is a string';
 var summary = summ_NEW;
@@ -96,7 +99,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
 

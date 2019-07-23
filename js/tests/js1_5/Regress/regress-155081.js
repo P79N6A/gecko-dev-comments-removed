@@ -36,14 +36,16 @@
 
 
 
-var bug = 155081;
+var gTestfile = 'regress-155081.js';
+
+var BUGNUMBER = 155081;
 var summary = 'Limit of 64k literals';
 var actual = 'No Crash';
 var expect = 'No Crash, No Error';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 function f(A,B,C,D) {}
 
 try

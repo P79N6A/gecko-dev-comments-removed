@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '7.4.3-5-n.js';
+
 
 
 
@@ -60,7 +62,7 @@ startTest();
 var TITLE   = "Future Reserved Words";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
-    
+   
 DESCRIPTION = "var catch = true";
 EXPECTED = "error";
 

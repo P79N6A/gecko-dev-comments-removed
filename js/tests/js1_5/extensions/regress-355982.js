@@ -35,7 +35,9 @@
 
 
 
-var bug = 355982;
+var gTestfile = 'regress-355982.js';
+
+var BUGNUMBER = 355982;
 var summary = 'Script("") should not fail';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   expect = 'No Error';
   actual = 'No Error';
   try

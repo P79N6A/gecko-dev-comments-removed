@@ -47,7 +47,10 @@
 
 
 
-var bug = 68498;
+
+
+var gTestfile = 'regress-68498-002.js';
+var BUGNUMBER = 68498;
 var summary = 'Creating a Deletable local variable using eval';
 var statprefix = '; currently at expect[';
 var statsuffix = '] within test -';
@@ -77,12 +80,12 @@ test();
 
 
 
-function test() 
+function test()
 {
-  enterFunc ('test'); 
-  printBugNumber (bug);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   for (var i in expect)
   {
     reportCompare(expect[i], actual[i], getStatus(i));

@@ -53,10 +53,13 @@
 
 
 
+
+
+var gTestfile = 'regress-118849.js';
 var UBound = 0;
-var bug = 118849;
+var BUGNUMBER = 118849;
 var summary = 'Should not crash if we provide Function() with bad arguments'
-var status = '';
+  var status = '';
 var statusitems = [];
 var actual = '';
 var actualvalues = [];
@@ -171,9 +174,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

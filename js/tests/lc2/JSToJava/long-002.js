@@ -36,6 +36,10 @@
 
 
 
+gTestfile = 'long-002.js';
+
+
+
 
 
 
@@ -106,12 +110,12 @@ a[i++] = new TestObject( "java.lang.Long.toString(-9.9)",
 
 for ( var i = 0; i < a.length; i++ ) {
 
-    
-    new TestCase(
-	SECTION,
-	"typeof (" + a[i].description +")",
-	a[i].type,
-	typeof a[i].javavalue );
+  
+  new TestCase(
+    SECTION,
+    "typeof (" + a[i].description +")",
+    a[i].type,
+    typeof a[i].javavalue );
 
 
 
@@ -120,23 +124,23 @@ for ( var i = 0; i < a.length; i++ ) {
 
 
 
-    
-    new TestCase(
-	SECTION,
-	"String(" + a[i].description +")",
-	a[i].jsvalue,
-	String( a[i].javavalue ) );
+  
+  new TestCase(
+    SECTION,
+    "String(" + a[i].description +")",
+    a[i].jsvalue,
+    String( a[i].javavalue ) );
 }
 
 test();
 
 function TestObject( description, javavalue, jsvalue ) {
-    this.description = description;
-    this.javavalue = javavalue;
-    this.jsvalue = jsvalue;
-    this.type = E_TYPE;
+  this.description = description;
+  this.javavalue = javavalue;
+  this.jsvalue = jsvalue;
+  this.type = E_TYPE;
 
 
 
-    return this;
+  return this;
 }

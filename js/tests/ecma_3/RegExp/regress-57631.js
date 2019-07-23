@@ -45,7 +45,10 @@
 
 
 
-var bug = '57631';
+
+
+var gTestfile = 'regress-57631.js';
+var BUGNUMBER = '57631';
 var summary = 'Testing new RegExp(pattern,flag) with illegal pattern or flag';
 var statprefix = 'Testing for error creating illegal RegExp object on pattern ';
 var statsuffix =  'and flag ';
@@ -91,12 +94,12 @@ test();
 
 
 
-function test() 
+function test()
 {
-  enterFunc ('test'); 
-  printBugNumber (bug);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   testIllegalRegExps(legalpatterns, illegalflags);
   testIllegalRegExps(illegalpatterns, legalflags);
   testIllegalRegExps(illegalpatterns, illegalflags);
@@ -109,37 +112,37 @@ function test()
 function testIllegalRegExps(patterns, flags)
 {
   for (i in patterns)
+  {
+    s = patterns[i];
+ 
+    for (j in flags)
     {
-      s = patterns[i];
-  
-      for (j in flags)
+      f = flags[j];
+      status = getStatus(s, f);
+      actual = cnFAILURE;
+      expect = cnSUCCESS;
+ 
+      try
       {
-        f = flags[j];
-        status = getStatus(s, f);
-        actual = cnFAILURE;
-        expect = cnSUCCESS;
-  
-        try 
-        {
-          
-          eval('obj = new RegExp(s, f);');  
-        }  
-        catch(e) 
-        {
-          
-          if (e instanceof SyntaxError)
-            actual = cnSUCCESS;
-        }
-        
-        reportCompare(expect, actual, status);
+	
+	eval('obj = new RegExp(s, f);'); 
+      } 
+      catch(e)
+      {
+	
+	if (e instanceof SyntaxError)
+	  actual = cnSUCCESS;
       }
+       
+      reportCompare(expect, actual, status);
     }
+  }
 }
 
 
 function getStatus(regexp, flag)
-{ 
-  return (statprefix  +  quote(regexp) +  statsuffix  +   quote(flag)); 
+{
+  return (statprefix  +  quote(regexp) +  statsuffix  +   quote(flag));
 }
 
 

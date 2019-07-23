@@ -40,15 +40,17 @@
 
 
 
+gTestfile = '13.5.1.js';
+
 START("13.5.1 - XMLList Constructor as Function");
 
 x = XMLList();
 
-TEST(1, "xml", typeof(x));   
+TEST(1, "xml", typeof(x));  
 TEST(2, true, x instanceof XMLList);
 
 
-x = 
+x =
 <>
     <alpha>one</alpha>
     <bravo>two</bravo>

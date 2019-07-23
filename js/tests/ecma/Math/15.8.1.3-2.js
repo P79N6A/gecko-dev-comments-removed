@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '15.8.1.3-2.js';
+
+
 
 
 
@@ -56,14 +59,14 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 
 var MATH_LN2 = 0.6931471805599453;
 
-new TestCase( SECTION, 
-	      "delete(Math.LN2)",              
-	      false,          
+new TestCase( SECTION,
+	      "delete(Math.LN2)",             
+	      false,         
 	      eval("delete(Math.LN2)") );
 
-new TestCase( SECTION, 
-	      "delete(Math.LN2); Math.LN2",    
-	      MATH_LN2,       
+new TestCase( SECTION,
+	      "delete(Math.LN2); Math.LN2",   
+	      MATH_LN2,      
 	      eval("delete(Math.LN2); Math.LN2") );
 
 test();

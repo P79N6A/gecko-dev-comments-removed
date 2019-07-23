@@ -35,7 +35,9 @@
 
 
 
-var bug = 351104;
+var gTestfile = 'regress-351104.js';
+
+var BUGNUMBER = 351104;
 var summary = 'decompilation of for with ternary as initializer';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   f = function () { for((0 ? 2 : ({})); ; ) { } }

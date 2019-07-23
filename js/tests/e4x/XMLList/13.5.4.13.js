@@ -40,12 +40,14 @@
 
 
 
+gTestfile = '13.5.4.13.js';
+
 START("13.5.4.13 - XMLList hasSimpleContent()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("hasSimpleContent"));
 
 
-x = 
+x =
 <>
 <alpha attr1="value1">
     <bravo>one</bravo>
@@ -77,7 +79,7 @@ TEST(10, true, x.bravo.child(0).hasSimpleContent());
 TEST(11, false, x.india.hasSimpleContent());
 
 
-x = 
+x =
 <>
 <alpha>one</alpha>
 <bravo>two</bravo>

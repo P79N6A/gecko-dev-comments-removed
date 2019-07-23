@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'arguments-001.js';
 var UBound = 0;
-var bug = 72884;
+var BUGNUMBER = 72884;
 var summary = 'Testing the arguments object';
 var status = '';
 var statusitems = [ ];
@@ -154,7 +157,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

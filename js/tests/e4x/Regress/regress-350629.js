@@ -35,12 +35,15 @@
 
 
 
-var bug     = "350629";
+gTestfile = 'regress-350629.js';
+
+
+var BUGNUMBER     = "350629";
 var summary = ".toXMLString can include invalid generated prefixes";
 var actual, expect;
 
-printBugNumber(bug);
-printStatus(summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 
 

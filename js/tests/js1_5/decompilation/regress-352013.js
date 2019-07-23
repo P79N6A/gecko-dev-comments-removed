@@ -35,7 +35,9 @@
 
 
 
-var bug = 352013;
+var gTestfile = 'regress-352013.js';
+
+var BUGNUMBER = 352013;
 var summary = 'decompilation of new parenthetic expressions';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f, g, h;

@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'builtin-Iterator-function.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "Iterator() test";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

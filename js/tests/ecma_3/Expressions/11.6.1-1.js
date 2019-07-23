@@ -46,8 +46,11 @@
 
 
 
+
+
+var gTestfile = '11.6.1-1.js';
 var UBound = 0;
-var bug = 196290;
+var BUGNUMBER = 196290;
 var summary = 'Testing left-associativity of the + operator';
 var status = '';
 var statusitems = [];
@@ -161,7 +164,7 @@ function quoteThis(x)
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

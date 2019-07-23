@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.9.5.8.js';
+
 
 
 
@@ -91,17 +93,17 @@ function addTestCase( t ) {
                   "(new Date("+(t+1)+")).getMonth()",
                   MonthFromTime(LocalTime(t+1)),
                   (new Date(t+1)).getMonth() );
- 
+
     new TestCase( SECTION,
                   "(new Date("+(t-1)+")).getMonth()",
                   MonthFromTime(LocalTime(t-1)),
                   (new Date(t-1)).getMonth() );
- 
+
     new TestCase( SECTION,
                   "(new Date("+(t-TZ_ADJUST)+")).getMonth()",
                   MonthFromTime(LocalTime(t-TZ_ADJUST)),
                   (new Date(t-TZ_ADJUST)).getMonth() );
- 
+
     new TestCase( SECTION,
                   "(new Date("+(t+TZ_ADJUST)+")).getMonth()",
                   MonthFromTime(LocalTime(t+TZ_ADJUST)),

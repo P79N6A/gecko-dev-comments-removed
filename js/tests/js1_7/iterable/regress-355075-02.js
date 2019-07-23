@@ -35,7 +35,9 @@
 
 
 
-var bug = 355075;
+var gTestfile = 'regress-355075-02.js';
+
+var BUGNUMBER = 355075;
 var summary = 'Regression tests from bug 354750';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   options('strict');
@@ -62,7 +64,7 @@ function test()
   }
 
   f();
-  
+ 
   reportCompare(expect, actual, summary);
 
   exitFunc ('test');

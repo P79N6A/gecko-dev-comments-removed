@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'send-no-rhs.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "|it.send(o)| without an RHS";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-102725.js';
 var UBound = 0;
-var bug = 102725;
+var BUGNUMBER = 102725;
 var summary = 'Testing converting numbers to strings';
 var status = '';
 var statusitems = [];
@@ -84,7 +87,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

@@ -60,8 +60,11 @@
 
 
 
+
+
+var gTestfile = 'regress-192465.js';
 var UBound = 0;
-var bug = 192465;
+var BUGNUMBER = 192465;
 var summary = 'Object.toSource() recursion should check stack overflow';
 var status = '';
 var statusitems = [];
@@ -120,11 +123,11 @@ function make_deep_nest(level)
   }
 
   cursor.toSource = function()
-  {
-    if (level != 0)
-      return make_deep_nest(level - 1);
-    return "END";
-  }
+    {
+      if (level != 0)
+	return make_deep_nest(level - 1);
+      return "END";
+    }
 
   return head.toSource();
 }
@@ -142,7 +145,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-203402.js';
 var UBound = 0;
-var bug = 203402;
+var BUGNUMBER = 203402;
 var summary = 'Testing the ternary query operator';
 var status = '';
 var statusitems = [];
@@ -80,7 +83,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

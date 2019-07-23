@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'array_split_1.js';
+
+
 
 
 
@@ -54,7 +57,7 @@ startTest();
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 
- 
+
 new TestCase( SECTION,
 	      "('a,b,c'.split(',')).length",
 	      3,

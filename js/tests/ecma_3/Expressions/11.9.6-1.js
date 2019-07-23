@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = '11.9.6-1.js';
 var UBound = 0;
-var bug = 126722;
+var BUGNUMBER = 126722;
 var summary = 'Testing the comparison |undefined === null|';
 var status = '';
 var statusitems = [];
@@ -66,12 +69,12 @@ addThis();
 status = inSection(2);
 switch(true)
 {
-  case (undefined === null) :
-    actual = true;
-    break;
+case (undefined === null) :
+  actual = true;
+  break;
 
-  default:
-    actual = false;
+default:
+  actual = false;
 }
 expect = false;
 addThis();
@@ -85,12 +88,12 @@ function f3(x)
 
   switch(true)
   {
-    case (x === null) :
-      res = true;
-      break;
+  case (x === null) :
+    res = true;
+    break;
 
-    default:
-      
+  default:
+    
   }
 
   return res;
@@ -114,12 +117,12 @@ function f4(arr)
 
     switch(true)
     {
-      case (elt === null) :
-        res = true;
-        break;
+    case (elt === null) :
+      res = true;
+      break;
 
-      default:
-        
+    default:
+      
     }
   }
 
@@ -140,7 +143,7 @@ function f5(arr)
 
   for(var i=0; (arr[i]===undefined) && (i<len); i++)
     ; 
-  
+ 
   return i;
 }
 
@@ -198,7 +201,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

@@ -41,8 +41,11 @@
 
 
 
+
+
+var gTestfile = 'scope-002.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing visibility of outer function from inner function';
 var cnCousin = 'Fred';
 var cnColor = 'red';
@@ -127,7 +130,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

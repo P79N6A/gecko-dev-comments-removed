@@ -72,8 +72,10 @@
 
 
 
+
+var gTestfile = 'regress-226507.js';
 var UBound = 0;
-var bug = 226507;
+var BUGNUMBER = 226507;
 var summary = 'Testing for recursion check in js_EmitTree';
 var status = '';
 var statusitems = [];
@@ -108,11 +110,11 @@ function f()
 
 
 var source = "".concat(
-	repeat_str("try { f(); } finally {\n", N),
-	"f(",
-	repeat_str("1,", N),
-	"1);\n",
-	repeat_str("}", N));
+  repeat_str("try { f(); } finally {\n", N),
+  "f(",
+  repeat_str("1,", N),
+  "1);\n",
+  repeat_str("}", N));
 
 
 source += source;
@@ -166,7 +168,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

@@ -37,12 +37,14 @@
 
 
 
-var bug = 255245;
+var gTestfile = 'regress-255245.js';
+
+var BUGNUMBER = 255245;
 var summary = 'Function.prototype.toSource/.toString show "setrval" instead of "return"';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 function f() {
@@ -52,7 +54,7 @@ function f() {
   }
   finally {
   }
-} 
+}
 
 if (typeof f.toSource != 'undefined')
 {

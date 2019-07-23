@@ -44,8 +44,10 @@
 
 
 
+
+var gTestfile = 'regress-225831.js';
 var UBound = 0;
-var bug = 225831;
+var BUGNUMBER = 225831;
 var summary = 'Stressing the byte code generator';
 var status = '';
 var statusitems = [];
@@ -182,7 +184,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

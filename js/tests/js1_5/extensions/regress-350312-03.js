@@ -35,7 +35,9 @@
 
 
 
-var bug = 350312;
+var gTestfile = 'regress-350312-03.js';
+
+var BUGNUMBER = 350312;
 var summary = 'Accessing wrong stack slot with nested catch/finally';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var pfx  = "(function (x) {try {if (x > 41) throw x}",

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'backspace.js';
+
 
 
 

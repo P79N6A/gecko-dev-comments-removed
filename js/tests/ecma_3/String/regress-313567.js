@@ -35,20 +35,22 @@
 
 
 
-var bug = 313567;
+var gTestfile = 'regress-313567.js';
+
+var BUGNUMBER = 313567;
 var summary = 'String.prototype.length should not be generic';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var s = new String("1");
 s.toString = function() {
-    return "22";
+  return "22";
 }
-var expect = 1;
+  var expect = 1;
 var actual = s.length;
 printStatus("expect="+expect+" actual="+actual);
-  
+ 
 reportCompare(expect, actual, summary);

@@ -35,17 +35,19 @@
 
 
 
-var bug = 325269;
+var gTestfile = 'regress-325269.js';
+
+var BUGNUMBER = 325269;
 var summary = 'GC hazard in js_ConstructObject';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 
 
-  
+ 
 var SavedArray = Array;
 
 function Redirector() { }
@@ -53,21 +55,21 @@ function Redirector() { }
 Redirector.prototype = 1;
 Redirector.__defineGetter__('prototype', function() {
 
-        gc();
-        return SavedArray.prototype;
-});
+			      gc();
+			      return SavedArray.prototype;
+			    });
 
 
 Array = Function('');
 Array.prototype = 1;
-Array.__defineGetter__('prototype', function() { 
+Array.__defineGetter__('prototype', function() {
 
-        Array = Redirector;
-        gc();
-        new Object();
-        new Object();
-        return undefined;
-});
+			 Array = Redirector;
+			 gc();
+			 new Object();
+			 new Object();
+			 return undefined;
+		       });
 
 new Object();
 

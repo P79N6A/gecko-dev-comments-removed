@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'date-001-n.js';
+
+
 
 
 
@@ -54,20 +57,20 @@ startTest();
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 function MyDate() {
-    this.foo = "bar";
+  this.foo = "bar";
 }
 MyDate.prototype = new Date();
 
-DESCRIPTION = 
-"function MyDate() { this.foo = \"bar\"; }; MyDate.prototype = new Date(); new MyDate().toString()";
+DESCRIPTION =
+  "function MyDate() { this.foo = \"bar\"; }; MyDate.prototype = new Date(); new MyDate().toString()";
 EXPECTED = "error";
 
 new TestCase(
-    SECTION,
-    "function MyDate() { this.foo = \"bar\"; }; "+
-    "MyDate.prototype = new Date(); " +
-    "new MyDate().toString()",
-    "error",
-    new MyDate().toString() );
+  SECTION,
+  "function MyDate() { this.foo = \"bar\"; }; "+
+  "MyDate.prototype = new Date(); " +
+  "new MyDate().toString()",
+  "error",
+  new MyDate().toString() );
 
 test();

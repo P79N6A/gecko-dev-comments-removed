@@ -35,12 +35,14 @@
 
 
 
-var bug = 314890;
+var gTestfile = 'regress-314890.js';
+
+var BUGNUMBER = 314890;
 var summary = 'String == should short circuit for object identify';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var s1 = 'x';
@@ -49,7 +51,7 @@ var count = 0;
 
 var data = {X:[], Y:[]};
 for (var power = 0; power < 20; power++)
-{  
+{ 
   s1 = s1 + s1;
   s2 = s1;
 
@@ -71,7 +73,7 @@ var order = BigO(data);
 
 var msg = '';
 for (var p = 0; p < data.X.length; p++)
-{ 
+{
   msg += '(' + data.X[p] + ', ' + data.Y[p] + '); ';
 }
 printStatus(msg);

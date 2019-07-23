@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'eval-002.js';
+
+
 
 
 
@@ -76,19 +79,19 @@ var MY_EVAL = eval;
 var RESULT = "";
 var EXPECT = 1 + "testString"
 
-EvalTest();
+  EvalTest();
 
 test();
 
 
-function EvalTest() 
-{    
-    MY_EVAL( "RESULT = EXPECT" );
- 
-    new TestCase(
-        SECTION,
-        "Call eval indirectly",
-        EXPECT,
-        RESULT );
+function EvalTest()
+{   
+  MY_EVAL( "RESULT = EXPECT" );
+
+  new TestCase(
+    SECTION,
+    "Call eval indirectly",
+    EXPECT,
+    RESULT );
 }
 

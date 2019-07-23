@@ -35,7 +35,9 @@
 
 
 
-var bug = 349851;
+var gTestfile = 'regress-349851.js';
+
+var BUGNUMBER = 349851;
 var summary = 'decompilation of yield \\n, 3';
 var actual = '';
 var expect = 'SyntaxError';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   
   try
   {

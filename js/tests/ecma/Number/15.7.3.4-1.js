@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.7.3.4-1.js';
+
 
 
 
@@ -56,9 +58,9 @@ var TITLE   = "Number.NaN";
 
 writeHeaderToLog( SECTION + " "+ TITLE );
 
-new TestCase(SECTION, 
-	     "NaN",        
-	     NaN,        
+new TestCase(SECTION,
+	     "NaN",       
+	     NaN,       
 	     Number.NaN );
 
 test();

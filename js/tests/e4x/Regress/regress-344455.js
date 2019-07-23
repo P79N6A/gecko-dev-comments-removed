@@ -36,15 +36,15 @@
 
 
 
-START("Error - tag name mismatch error message should include tag name");
+gTestfile = 'regress-344455.js';
 
-var bug = 344455;
-var summary = 'Error - tag name mismatch error message should include tag name';
+var summary = "Error - tag name mismatch error message should include tag name";
+var BUGNUMBER = 344455;
 var actual = '';
 var expect = 'SyntaxError: XML tag name mismatch (expected foo)';
 
-printBugNumber (bug);
-printStatus (summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 try
 {

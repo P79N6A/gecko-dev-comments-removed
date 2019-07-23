@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '7.4.3-7-n.js';
+
+
 
 
 
@@ -86,9 +89,9 @@ if (actual == 'error')
   throw actual;
 }
 
-new TestCase( SECTION,  
-              "var extends = true",     
-              "error",    
+new TestCase( SECTION, 
+              "var extends = true",    
+              "error",   
               actual);
 
 test();

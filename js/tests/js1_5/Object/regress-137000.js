@@ -46,8 +46,11 @@
 
 
 
+
+
+var gTestfile = 'regress-137000.js';
 var UBound = 0;
-var bug = 137000;
+var BUGNUMBER = 137000;
 var summary = 'Function param or local var with same name as a function prop';
 var status = '';
 var statusitems = [];
@@ -195,7 +198,7 @@ function setFProperty(val)
 
 function F()
 {
- var propA = 'Local variable in F';
+  var propA = 'Local variable in F';
 }
 
 status = inSection(8);
@@ -225,7 +228,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

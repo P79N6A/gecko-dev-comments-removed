@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'function-001.js';
+
+
 
 
 
@@ -67,10 +70,10 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 result = "passed";
 
 new TestCase(
-    SECTION,
-    "eval(\"function f(){}function g(){}\")",
-    void 0,
-    eval("function f(){}function g(){}") );
+  SECTION,
+  "eval(\"function f(){}function g(){}\")",
+  void 0,
+  eval("function f(){}function g(){}") );
 
 test();
 

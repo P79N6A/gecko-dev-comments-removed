@@ -35,12 +35,14 @@
 
 
 
-var bug     = "364104";
+var gTestfile = 'regress-364104.js';
+
+var BUGNUMBER     = "364104";
 var summary = "Array.prototype.indexOf, Array.prototype.lastIndexOf issues " +
-              "with the optional second fromIndex argument";
+  "with the optional second fromIndex argument";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

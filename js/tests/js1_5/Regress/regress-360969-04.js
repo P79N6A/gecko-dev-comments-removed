@@ -35,16 +35,18 @@
 
 
 
-var bug = 360969;
+var gTestfile = 'regress-360969-04.js';
+
+var BUGNUMBER = 360969;
 var summary = '2^17: global const';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
 var global = this;
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 var start = new Date();
 var p;
 var i;

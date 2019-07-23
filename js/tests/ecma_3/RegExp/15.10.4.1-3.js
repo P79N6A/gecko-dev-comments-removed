@@ -65,7 +65,10 @@
 
 
 
-var bug = '61266';
+
+
+var gTestfile = '15.10.4.1-3.js';
+var BUGNUMBER = '61266';
 var summary = 'Passing a RegExp object to a RegExp() constructor';
 var statprefix = 'Applying RegExp() twice to pattern ';
 var statmiddle = ' and flag ';
@@ -74,8 +77,8 @@ var singlequote = "'";
 var i = -1; var j = -1; var s = '';
 var obj1 = {}; var obj2 = {};
 var status = ''; var actual = ''; var expect = ''; var msg = '';
-var patterns = new Array();  
-var flags = new Array();  
+var patterns = new Array(); 
+var flags = new Array(); 
 
 
 
@@ -99,23 +102,23 @@ test();
 
 
 
-function test() 
+function test()
 {
-  enterFunc ('test'); 
-  printBugNumber (bug);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (i in patterns)
   {
     s = patterns[i];
-    
+   
     for (j in flags)
     {
       f = flags[j];
-      status = getStatus(s, f);  
-      obj1 = new RegExp(s, f); 
-      obj2 = new RegExp(obj1); 
-  
+      status = getStatus(s, f); 
+      obj1 = new RegExp(s, f);
+      obj2 = new RegExp(obj1);
+ 
       reportCompare (obj1 + '', obj2 + '', status);
     }
   }
@@ -125,8 +128,8 @@ function test()
 
 
 function getStatus(regexp, flag)
-{ 
-  return (statprefix  +  quote(regexp) +  statmiddle  +  flag  +  statsuffix); 
+{
+  return (statprefix  +  quote(regexp) +  statmiddle  +  flag  +  statsuffix);
 }
 
 

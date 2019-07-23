@@ -47,8 +47,11 @@
 
 
 
+
+
+var gTestfile = 'regress-191276.js';
 var UBound = 0;
-var bug = 191276;
+var BUGNUMBER = 191276;
 var summary = 'Testing |this[name]| via Function.prototype.call(), apply()';
 var status = '';
 var statusitems = [];
@@ -113,7 +116,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

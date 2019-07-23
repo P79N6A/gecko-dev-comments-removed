@@ -40,15 +40,17 @@
 
 
 
+gTestfile = '13.5.2.js';
+
 START("13.5.2 - XMLList Constructor");
 
 x = new XMLList();
-TEST(1, "xml", typeof(x));   
+TEST(1, "xml", typeof(x));  
 TEST(2, true, x instanceof XMLList);
 
 
 
-x = 
+x =
 <>
     <alpha>one</alpha>
     <bravo>two</bravo>
@@ -59,7 +61,7 @@ y = new XMLList(x);
 x += <charlie>three</charlie>;
 
 TEST(3, "<alpha>one</alpha>\n<bravo>two</bravo>", y.toString());
-   
+  
 
 x = new XMLList(<alpha>one</alpha>);
 TEST_XML(4, "<alpha>one</alpha>", x);

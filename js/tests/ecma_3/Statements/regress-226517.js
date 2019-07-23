@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-226517.js';
 var UBound = 0;
-var bug = 226517;
+var BUGNUMBER = 226517;
 var summary = '|finally| statement should execute even after a |return|';
 var status = '';
 var statusitems = [];
@@ -97,7 +100,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

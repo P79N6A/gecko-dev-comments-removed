@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '12.6.3-8-n.js';
+
 
 
 
@@ -76,7 +78,6 @@ var SECTION = "12.6.3-4";
 var VERSION = "ECMA_1";
 startTest();
 var TITLE   = "The for..in statement";
-var error = err;
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 

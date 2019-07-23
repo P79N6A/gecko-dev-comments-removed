@@ -35,7 +35,9 @@
 
 
 
-var bug = 344052;
+var gTestfile = 'regress-344052.js';
+
+var BUGNUMBER = 344052;
 var summary = 'Function prototype - simple shared property';
 var actual = '';
 var expect = 'true';
@@ -50,7 +52,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   actual = String(y.foo);

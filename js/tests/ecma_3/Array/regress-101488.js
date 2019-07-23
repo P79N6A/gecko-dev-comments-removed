@@ -52,8 +52,11 @@
 
 
 
+
+
+var gTestfile = 'regress-101488.js';
 var UBound = 0;
-var bug = 101488;
+var BUGNUMBER = 101488;
 var summary = 'Try assigning arr.length = new Number(n)';
 var status = '';
 var statusitems = [];
@@ -134,7 +137,7 @@ test();
 
 function tryThis(s)
 {
-  try 
+  try
   {
     eval(s);
   }
@@ -157,7 +160,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

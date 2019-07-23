@@ -46,8 +46,11 @@
 
 
 
+
+
+var gTestfile = 'regress-85880.js';
 var UBound = 0;
-var bug = 85880;
+var BUGNUMBER = 85880;
 var summary = 'Arguments object of g(){f()} should not be null';
 var cnNonNull = 'Arguments != null';
 var cnNull = 'Arguments == null';
@@ -152,7 +155,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)
@@ -167,4 +170,4 @@ function test()
 function isThisNull(bool)
 {
   return bool? cnNull : cnNonNull
-}
+    }

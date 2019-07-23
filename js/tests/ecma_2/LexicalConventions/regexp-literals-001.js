@@ -8,6 +8,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'regexp-literals-001.js';
+
+
+
+
+
+
+
+
+
+
 var SECTION = "LexicalConventions/regexp-literals-001.js";
 var VERSION = "ECMA_2";
 var TITLE   = "Regular Expression Literals";
@@ -19,7 +57,7 @@ startTest();
 
 s = 
 
-"passed";
+  "passed";
 
 AddTestCase(
   "// should be a comment, not a regular expression literal",

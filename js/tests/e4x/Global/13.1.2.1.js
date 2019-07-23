@@ -39,10 +39,12 @@
 
 
 
+gTestfile = '13.1.2.1.js';
+
 START("13.1.2.1 - isXMLName()");
 
-var bug = 289630;
-printBugNumber (bug);
+var BUGNUMBER = 289630;
+printBugNumber(BUGNUMBER);
 
 
 TEST(1, true, typeof isXMLName == "function");
@@ -484,7 +486,7 @@ function testIsXMLName(buffer)
 
         var namestart = isXMLName(c + 'x');
         var nameother = isXMLName('x' + c);
-  
+ 
         if (marker == 0 && namestart)
         {
             message += ': Invalid char accepted as start ';

@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-31316.js';
 var i = 0;
-var bug = 31316;
+var BUGNUMBER = 31316;
 var summary = 'Regression test for Bugzilla bug 31316';
 var cnEmptyString = '';
 var status = '';
@@ -86,7 +89,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

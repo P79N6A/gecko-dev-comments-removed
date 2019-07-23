@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'RegExp_lastMatch_as_array.js';
+
 
 
 

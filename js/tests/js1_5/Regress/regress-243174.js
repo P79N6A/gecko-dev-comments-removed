@@ -36,13 +36,15 @@
 
 
 
-var bug = 243174;
+var gTestfile = 'regress-243174.js';
+
+var BUGNUMBER = 243174;
 var summary = 'Don\'t Crash on Regular Expression';
 var actual = 'Crash';
 var expect = 'No Crash';
 
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 

@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-193418.js';
 var UBound = 0;
-var bug = 193418;
+var BUGNUMBER = 193418;
 var summary = 'Testing empty blocks';
 var status = '';
 var statusitems = [];
@@ -89,7 +92,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

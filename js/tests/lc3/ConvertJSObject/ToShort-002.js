@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'ToShort-002.js';
+
+
 
 
 
@@ -45,73 +48,73 @@
 var SECTION = "Preferred argument conversion:  JavaScript Object to int";
 var VERSION = "1_4";
 var TITLE   = "LiveConnect 3.0 JavaScript to Java Data Type Conversion " +
-SECTION;
+  SECTION;
 startTest();
 
 var TEST_CLASS = new Packages.com.netscape.javascript.qa.lc3.jsobject.JSObject_008;
 
 function MyFunction() {
-    return "hello";
+  return "hello";
 }
 MyFunction.valueOf = new Function( "return 999" );
 
 function MyOtherFunction() {
-    return "goodbye";
+  return "goodbye";
 }
 MyOtherFunction.valueOf = null;
 MyOtherFunction.toString = new Function( "return 999" );
 
 function MyObject(value) {
-    this.value = value;
-    this.valueOf = new Function("return this.value");
+  this.value = value;
+  this.valueOf = new Function("return this.value");
 }
 
 function MyOtherObject(stringValue) {
-    this.stringValue = String( stringValue );
-    this.toString = new Function( "return this.stringValue" );
-    this.valueOf = null;
+  this.stringValue = String( stringValue );
+  this.toString = new Function( "return this.stringValue" );
+  this.valueOf = null;
 }
 
 function AnotherObject( value ) {
-    this.value = value;
-    this.valueOf = new Function( "return this.value" );
-    this.toString = new Function( "return 666" );
+  this.value = value;
+  this.valueOf = new Function( "return this.value" );
+  this.toString = new Function( "return 666" );
 }
 
 
 
 new TestCase(
-    "TEST_CLASS.ambiguous( MyFunction ) +''",
-    "SHORT",
-    TEST_CLASS.ambiguous( MyFunction )+'' );
+  "TEST_CLASS.ambiguous( MyFunction ) +''",
+  "SHORT",
+  TEST_CLASS.ambiguous( MyFunction )+'' );
 
 
 
 new TestCase(
-    "TEST_CLASS.ambiguous( MyOtherFunction ) +''",
-    "SHORT",
-    TEST_CLASS.ambiguous( MyOtherFunction )+'' );
+  "TEST_CLASS.ambiguous( MyOtherFunction ) +''",
+  "SHORT",
+  TEST_CLASS.ambiguous( MyOtherFunction )+'' );
 
 
 
 new TestCase(
-    "TEST_CLASS.ambiguous( new MyObject(12345) ) +''",
-    "SHORT",
-    TEST_CLASS.ambiguous( new MyObject(12345) )+'' );
+  "TEST_CLASS.ambiguous( new MyObject(12345) ) +''",
+  "SHORT",
+  TEST_CLASS.ambiguous( new MyObject(12345) )+'' );
 
 
 
 new TestCase(
-    "TEST_CLASS.ambiguous( new MyOtherObject(\"12345\") ) +''",
-    "SHORT",
-    TEST_CLASS.ambiguous( new MyOtherObject("12345") )+'' );
+  "TEST_CLASS.ambiguous( new MyOtherObject(\"12345\") ) +''",
+  "SHORT",
+  TEST_CLASS.ambiguous( new MyOtherObject("12345") )+'' );
 
 
 
 new TestCase(
-    "TEST_CLASS.ambiguous( new AnotherObject(\"12345\") ) +''",
-    "SHORT",
-    TEST_CLASS.ambiguous( new AnotherObject("12345") )+'' );
+  "TEST_CLASS.ambiguous( new AnotherObject(\"12345\") ) +''",
+  "SHORT",
+  TEST_CLASS.ambiguous( new AnotherObject("12345") )+'' );
 
 test();
 

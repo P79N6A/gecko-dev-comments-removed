@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-90596-001.js';
 var UBound = 0;
-var bug = 90596;
+var BUGNUMBER = 90596;
 var summary = 'A [DontEnum] prop, if overridden, should appear in toSource()';
 var cnCOMMA = ',';
 var cnLBRACE = '{';
@@ -224,17 +227,17 @@ function isWhiteSpace(charCode)
 {
   switch (charCode)
   {
-    case (0x0009):
-    case (0x000B):
-    case (0x000C):
-    case (0x0020):
-    case (0x000A):  
-    case (0x000D):  
-      return true;
-      break;
+  case (0x0009):
+  case (0x000B):
+  case (0x000C):
+  case (0x0020):
+  case (0x000A):  
+  case (0x000D):  
+    return true;
+    break;
 
-    default:
-      return false;
+  default:
+    return false;
   }
 }
 
@@ -284,7 +287,7 @@ function addParens(text)
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

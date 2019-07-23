@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-203841.js';
 var UBound = 0;
-var bug = 203841;
+var BUGNUMBER = 203841;
 var summary = 'Testing merged if-clauses';
 var status = '';
 var statusitems = [];
@@ -149,7 +152,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

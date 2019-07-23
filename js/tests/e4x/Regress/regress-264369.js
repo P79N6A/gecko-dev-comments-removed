@@ -39,8 +39,10 @@
 
 
 
+gTestfile = 'regress-264369.js';
+
 START("toXMLString() should escape '>'");
-BUG(264369);
+printBugNumber(264369);
 
 var x = <a/>;
 var chars = "<>&";

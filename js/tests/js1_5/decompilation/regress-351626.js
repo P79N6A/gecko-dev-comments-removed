@@ -35,7 +35,9 @@
 
 
 
-var bug = 351626;
+var gTestfile = 'regress-351626.js';
+
+var BUGNUMBER = 351626;
 var summary = 'decompilation of if(lamda)';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f;

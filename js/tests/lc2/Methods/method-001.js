@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'method-001.js';
+
 
 
 
@@ -83,17 +85,17 @@ i++;
 
 
 for ( i = 0; i < java_array.length; i++ ) {
-    CompareValues( java_array[i], test_array[i] );
+  CompareValues( java_array[i], test_array[i] );
 }
 
 test();
 
 function CompareValues( javaval, testval ) {
-    
-    new TestCase( SECTION,
-		  "typeof (" + testval.description +" )",
-		  testval.type,
-		  javaval.type );
+  
+  new TestCase( SECTION,
+		"typeof (" + testval.description +" )",
+		testval.type,
+		javaval.type );
 
 
 
@@ -101,37 +103,37 @@ function CompareValues( javaval, testval ) {
 
 
 
-    
-    new TestCase( SECTION,
-		  "("+testval.description +").getClass().equals( " +
-		  "java.lang.Class.forName( '" + testval.classname +
-		  "' ) )",
-		  true,
-		  (javaval.javaclass).equals( testval.javaclass ) );
-    
-    new TestCase(
-        SECTION,
-        "("+testval.description+") +''",
-        testval.stringval,
-        javaval.value +"" );
+  
+  new TestCase( SECTION,
+		"("+testval.description +").getClass().equals( " +
+		"java.lang.Class.forName( '" + testval.classname +
+		"' ) )",
+		true,
+		(javaval.javaclass).equals( testval.javaclass ) );
+  
+  new TestCase(
+    SECTION,
+    "("+testval.description+") +''",
+    testval.stringval,
+    javaval.value +"" );
 }
 function JavaValue( value ) {
-    this.type   = typeof value;
-    this.value = value;
+  this.type   = typeof value;
+  this.value = value;
 
 
 
 
-    this.javaclass = value.getClass();
+  this.javaclass = value.getClass();
 
-    return this;
+  return this;
 }
 function TestValue( description, type, classname, stringval ) {
-    this.description = description;
-    this.type =  type;
-    this.classname = classname;
-    this.javaclass = java.lang.Class.forName( classname );
-    this.stringval = stringval;
+  this.description = description;
+  this.type =  type;
+  this.classname = classname;
+  this.javaclass = java.lang.Class.forName( classname );
+  this.stringval = stringval;
 
-    return this;
+  return this;
 }

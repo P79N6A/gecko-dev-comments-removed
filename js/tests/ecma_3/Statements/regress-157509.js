@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-157509.js';
 var UBound = 0;
-var bug = 157509;
+var BUGNUMBER = 157509;
 var summary = "Testing for SyntaxError on usage of '\\' in identifiers";
 var TEST_PASSED = 'SyntaxError';
 var TEST_FAILED = 'Generated an error, but NOT a SyntaxError!';
@@ -96,7 +99,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

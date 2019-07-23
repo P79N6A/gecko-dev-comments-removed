@@ -35,7 +35,10 @@
 
 
 
- 
+
+gTestfile = 'array-008-n.js';
+
+
 
 
 
@@ -65,9 +68,9 @@ DESCRIPTION = "dt.PUB_ARRAY_BYTE.length = "+ ba_length;
 EXPECTED = "error";
 
 new TestCase(
-    SECTION,
-    "dt.PUB_ARRAY_BYTE.length = "+ ba_length,
-    "error",
-    dt.PUB_ARRAY_BYTE[ba_length] );
+  SECTION,
+  "dt.PUB_ARRAY_BYTE.length = "+ ba_length,
+  "error",
+  dt.PUB_ARRAY_BYTE[ba_length] );
 
 test();

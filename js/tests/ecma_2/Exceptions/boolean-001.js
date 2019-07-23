@@ -11,6 +11,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'boolean-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "boolean-001.js";
 var VERSION = "JS1_4";
 var TITLE   = "Boolean.prototype.toString()";

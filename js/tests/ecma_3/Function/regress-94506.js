@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-94506.js';
 var UBound = 0;
-var bug = 94506;
+var BUGNUMBER = 94506;
 var summary = 'Testing functions employing identifiers named "arguments"';
 var status = '';
 var statusitems = [];
@@ -148,7 +151,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

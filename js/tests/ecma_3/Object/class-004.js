@@ -49,9 +49,13 @@
 
 
 
+
+
+
+var gTestfile = 'class-004.js';
 var i = 0;
 var UBound = 0;
-var bug = 56868;
+var BUGNUMBER = 56868;
 var summary = 'Testing the internal [[Class]] property of native error constructors';
 var statprefix = 'Current constructor is: ';
 var status = ''; var statusList = [ ];
@@ -117,9 +121,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalue[i], actualvalue[i], getStatus(i));

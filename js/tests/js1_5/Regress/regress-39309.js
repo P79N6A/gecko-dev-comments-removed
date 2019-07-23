@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-39309.js';
 var UBound = 0;
-var bug = 39309;
+var BUGNUMBER = 39309;
 var summary = 'Testing concatenation of string + number';
 var status = '';
 var statusitems = [];
@@ -55,12 +58,12 @@ var expectedvalues = [];
 
 function f(textProp, len)
 {
-    var i = 0;
-    while (++i <= len)
-    {
-       var name = textProp + i;
-       actual = name;
-    }
+  var i = 0;
+  while (++i <= len)
+  {
+    var name = textProp + i;
+    actual = name;
+  }
 }
 
 
@@ -95,7 +98,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

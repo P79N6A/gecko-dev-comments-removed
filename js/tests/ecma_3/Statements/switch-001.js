@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'switch-001.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing the switch statement';
 var cnMatch = 'Match';
 var cnNoMatch = 'NoMatch';
@@ -95,11 +98,11 @@ function match(x, y, F, G)
 {
   switch (x)
   {
-    case F(G(y)):
-      return cnMatch;
+  case F(G(y)):
+    return cnMatch;
 
-    default:
-      return cnNoMatch;
+  default:
+    return cnNoMatch;
   }
 }
 
@@ -116,9 +119,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

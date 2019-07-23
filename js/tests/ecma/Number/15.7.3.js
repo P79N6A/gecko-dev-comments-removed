@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.7.3.js';
+
 
 
 
@@ -59,9 +61,9 @@ var TITLE   = "Properties of the Number Constructor";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 
-new TestCase(SECTION, 
-	     "Number.length",      
-	     1,                  
+new TestCase(SECTION,
+	     "Number.length",     
+	     1,                 
 	     Number.length );
 
 test();

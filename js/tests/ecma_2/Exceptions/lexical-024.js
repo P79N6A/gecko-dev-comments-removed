@@ -24,6 +24,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'lexical-024.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "lexical-024";
 var VERSION = "JS1_4";
 var TITLE   = "Keywords";

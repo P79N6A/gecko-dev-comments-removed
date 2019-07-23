@@ -35,7 +35,9 @@
 
 
 
-var bug = 349596;
+var gTestfile = 'regress-349596.js';
+
+var BUGNUMBER = 349596;
 var summary = 'decompilation of labeled if(0)...';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f = function() { L: if (0) return 5 }

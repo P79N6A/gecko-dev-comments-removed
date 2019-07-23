@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '7.4.3-4-n.js';
+
+
 
 
 
@@ -78,7 +81,7 @@ catch(e)
 }
 
 DESCRIPTION = "var super = true"
-EXPECTED = "error";
+  EXPECTED = "error";
 
 
 if (actual == 'error')
@@ -86,8 +89,8 @@ if (actual == 'error')
   throw actual;
 }
 
-new TestCase( SECTION,  
-              "var super = true",     
-              "error",    
+new TestCase( SECTION, 
+              "var super = true",    
+              "error",   
               actual );
 test();

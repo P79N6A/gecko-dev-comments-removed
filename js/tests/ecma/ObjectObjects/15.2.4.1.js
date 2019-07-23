@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.2.4.1.js';
+
 
 
 
@@ -54,7 +56,7 @@ var TITLE   = "Object.prototype.constructor";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 
-new TestCase( SECTION,  
+new TestCase( SECTION, 
 	      "Object.prototype.constructor",
 	      Object,
 	      Object.prototype.constructor );

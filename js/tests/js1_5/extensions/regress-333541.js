@@ -35,14 +35,16 @@
 
 
 
-var bug = 333541;
+var gTestfile = 'regress-333541.js';
+
+var BUGNUMBER = 333541;
 var summary = '1..toSource()';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 function a(){
   return 1..toSource();
 }
@@ -100,13 +102,13 @@ function b(){
 try
 {
   expect = "function b() {\n    x = (1).toSource();\n" +
-                           "    x = (1).a;\n" + 
-                           "    x = (1).a;\n" +
-                           "    x = (1)['\"a\"'];\n" + 
-                           "    x = (1)[\'\\'a\\''];\n" + 
-                           "    x = (1)['1'];\n" + 
-                           "    x = (1)['#'];\n" + 
-                           "}";
+    "    x = (1).a;\n" +
+    "    x = (1).a;\n" +
+    "    x = (1)['\"a\"'];\n" +
+    "    x = (1)[\'\\'a\\''];\n" +
+    "    x = (1)['1'];\n" +
+    "    x = (1)['#'];\n" +
+    "}";
   actual = "" + b;
   compareSource(expect, actual, summary + ': 5');
 }

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.2.3.1-4.js';
+
 
 
 
@@ -60,7 +62,7 @@ var TITLE   = "Object.prototype";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 
-new TestCase( SECTION,  
+new TestCase( SECTION, 
 	      "delete( Object.prototype ); Object.prototype",
 	      Object.prototype,
 	      eval("delete(Object.prototype); Object.prototype") );

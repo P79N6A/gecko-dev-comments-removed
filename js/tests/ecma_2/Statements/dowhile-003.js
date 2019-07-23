@@ -10,6 +10,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'dowhile-003.js';
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "dowhile-003";
 var VERSION = "ECMA_2";
 var TITLE   = "do...while with a labeled continue statement";

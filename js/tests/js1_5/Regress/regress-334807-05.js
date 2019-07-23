@@ -35,19 +35,21 @@
 
 
 
-var bug = 334807;
+var gTestfile = 'regress-334807-05.js';
+
+var BUGNUMBER = 334807;
 var summary = '12.14 - exception prototype is the original Object prototype.';
 var actual = 'No Error';
 var expect = 'ReferenceError';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-try 
+try
 {
   x.y;
 }
-catch(ex) 
+catch(ex)
 {
   try
   {

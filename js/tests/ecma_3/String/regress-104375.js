@@ -41,8 +41,11 @@
 
 
 
+
+
+var gTestfile = 'regress-104375.js';
 var UBound = 0;
-var bug = 104375;
+var BUGNUMBER = 104375;
 var summary = 'Testing string.replace() with backreferences';
 var status = '';
 var statusitems = [];
@@ -99,7 +102,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

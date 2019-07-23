@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'tostring_1.js';
+
+
 
 
 
@@ -58,9 +61,9 @@ var a = new Array();
 var VERSION = 0;
 
 if ( version() == 120 ) {
-    VERSION = "120";
+  VERSION = "120";
 } else {
-    VERSION = "";
+  VERSION = "";
 }
 
 new TestCase ( SECTION,
@@ -105,7 +108,7 @@ new TestCase( SECTION,
 var b = new Array(1000);
 var bstring = "";
 for ( blen=0; blen<999; blen++) {
-    bstring += ",";
+  bstring += ",";
 }
 
 

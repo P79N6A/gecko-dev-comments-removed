@@ -37,6 +37,8 @@
 
 
 
+gTestfile = '9.2.js';
+
 
 
 

@@ -56,8 +56,11 @@
 
 
 
+
+
+var gTestfile = 'regress-187133.js';
 var i = 0;
-var bug = 187133;
+var BUGNUMBER = 187133;
 var summary = 'RegExp conformance test';
 var status = '';
 var statusmessages = new Array();
@@ -72,43 +75,43 @@ var expectedmatches = new Array();
 
 
 pattern = /(\.(?!com|org)|\/)/;
-  status = inSection(1);
-  string = 'ah.info';
-  actualmatch = string.match(pattern);
-  expectedmatch = ['.', '.'];
-  addThis();
+status = inSection(1);
+string = 'ah.info';
+actualmatch = string.match(pattern);
+expectedmatch = ['.', '.'];
+addThis();
 
-  status = inSection(2);
-  string = 'ah/info';
-  actualmatch = string.match(pattern);
-  expectedmatch = ['/', '/'];
-  addThis();
+status = inSection(2);
+string = 'ah/info';
+actualmatch = string.match(pattern);
+expectedmatch = ['/', '/'];
+addThis();
 
-  status = inSection(3);
-  string = 'ah.com';
-  actualmatch = string.match(pattern);
-  expectedmatch = null;
-  addThis();
+status = inSection(3);
+string = 'ah.com';
+actualmatch = string.match(pattern);
+expectedmatch = null;
+addThis();
 
 
 pattern = /(?!a|b)|c/;
-  status = inSection(4);
-  string = '';
-  actualmatch = string.match(pattern);
-  expectedmatch = [''];
-  addThis();
+status = inSection(4);
+string = '';
+actualmatch = string.match(pattern);
+expectedmatch = [''];
+addThis();
 
-  status = inSection(5);
-  string = 'bc';
-  actualmatch = string.match(pattern);
-  expectedmatch = [''];
-  addThis();
+status = inSection(5);
+string = 'bc';
+actualmatch = string.match(pattern);
+expectedmatch = [''];
+addThis();
 
-  status = inSection(6);
-  string = 'd';
-  actualmatch = string.match(pattern);
-  expectedmatch = [''];
-  addThis();
+status = inSection(6);
+string = 'd';
+actualmatch = string.match(pattern);
+expectedmatch = [''];
+addThis();
 
 
 
@@ -132,7 +135,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

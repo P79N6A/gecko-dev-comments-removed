@@ -40,6 +40,8 @@
 
 
 
+gTestfile = '12.1.js';
+
 START("12.1 - Default XML Namespace");
 
 
@@ -50,7 +52,7 @@ default xml namespace = soap;
 
 
 message =
-<Envelope 
+<Envelope
     xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
     soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <Body>
@@ -65,7 +67,7 @@ encodingStyle = message.@soap::encodingStyle;
 TEST_XML(1, "http://schemas.xmlsoap.org/soap/encoding/", encodingStyle);
 
 
-correct = 
+correct =
 <Body
     xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
     <stock:GetLastTradePrice xmlns:stock="http://mycompany.com/stocks">
@@ -78,7 +80,7 @@ TEST_XML(2, correct.toXMLString(), body);
 
 
 correct =
-<Envelope 
+<Envelope
     xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
     soap:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <Body>

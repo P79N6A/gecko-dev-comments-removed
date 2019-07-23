@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'character_class.js';
+
 
 
 

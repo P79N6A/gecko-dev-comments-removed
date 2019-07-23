@@ -41,8 +41,11 @@
 
 
 
+
+
+var gTestfile = 'getset-004.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing  obj.__defineSetter__(), obj.__defineGetter__()';
 var statprefix = 'Status: ';
 var status = '';
@@ -162,15 +165,15 @@ addThis();
 
 
 obj2.name = obj.name +  obj2.name;
-  status = 'obj2 = new TestObject() after 2 sets, 1 get';
-  actual = [obj2.nameSETS,obj2.nameGETS];
-  expect = [2,1];
-  addThis();
+status = 'obj2 = new TestObject() after 2 sets, 1 get';
+actual = [obj2.nameSETS,obj2.nameGETS];
+expect = [2,1];
+addThis();
 
-  status = 'In SECTION3 of test after 3 sets, 3 gets';
-  actual = [obj.nameSETS,obj.nameGETS];
-  expect = [3,3];  
-  addThis();
+status = 'In SECTION3 of test after 3 sets, 3 gets';
+actual = [obj.nameSETS,obj.nameGETS];
+expect = [3,3];  
+addThis();
 
 
 
@@ -190,9 +193,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], getStatus(i));

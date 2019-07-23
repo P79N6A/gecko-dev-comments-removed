@@ -36,12 +36,14 @@
 
 
 
-var bug = 299641;
+var gTestfile = 'regress-299641.js';
+
+var BUGNUMBER = 299641;
 var summary = '12.6.4 - LHS for (LHS in expression) execution';
 var actual = '';
 var expect = 0;
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 function f() {
@@ -52,5 +54,5 @@ function f() {
   return(i);
 }
 actual = f();
-  
+ 
 reportCompare(expect, actual, summary);

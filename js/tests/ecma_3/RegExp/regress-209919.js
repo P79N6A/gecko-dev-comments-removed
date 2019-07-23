@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-209919.js';
 var i = 0;
-var bug = 209919;
+var BUGNUMBER = 209919;
 var summary = 'Testing regexp submatches with quantifiers';
 var status = '';
 var statusmessages = new Array();
@@ -123,23 +126,23 @@ addThis();
 
 pattern = /^\-?(\d{1,}|\.{0,})*(\,\d{1,})?$/;
 
-  status = inSection(5);
-  string = '100.00';
-  actualmatch = string.match(pattern);
-  expectedmatch = Array(string, '00', undefined);
-  addThis();
+status = inSection(5);
+string = '100.00';
+actualmatch = string.match(pattern);
+expectedmatch = Array(string, '00', undefined);
+addThis();
 
-  status = inSection(6);
-  string = '100,00';
-  actualmatch = string.match(pattern);
-  expectedmatch = Array(string, '100', ',00');
-  addThis();
+status = inSection(6);
+string = '100,00';
+actualmatch = string.match(pattern);
+expectedmatch = Array(string, '100', ',00');
+addThis();
 
-  status = inSection(7);
-  string = '1.000,00';
-  actualmatch = string.match(pattern);
-  expectedmatch = Array(string, '000', ',00');
-  addThis();
+status = inSection(7);
+string = '1.000,00';
+actualmatch = string.match(pattern);
+expectedmatch = Array(string, '000', ',00');
+addThis();
 
 
 
@@ -164,7 +167,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

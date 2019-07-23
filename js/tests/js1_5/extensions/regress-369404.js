@@ -35,7 +35,9 @@
 
 
 
-var bug = 369404;
+var gTestfile = 'regress-369404.js';
+
+var BUGNUMBER = 369404;
 var summary = 'Assertion failure: !SPROP_HAS_STUB_SETTER(sprop) || (sprop->attrs & JSPROP_GETTER) ';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -48,20 +50,20 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   if (typeof window != 'undefined')
   {
     gDelayTestDriverEnd = true;
-    document.write('<span id="r"> </span>' + 
-                   '<script>' + 
-                   'f = function(){};' + 
-                   'f.prototype = document.getElementById("r").childNodes;' + 
+    document.write('<span id="r"> </span>' +
+                   '<script>' +
+                   'f = function(){};' +
+                   'f.prototype = document.getElementById("r").childNodes;' +
                    'j = new f();' +
                    'j[0] = null;' +
                    '</script>');
-    window.addEventListener('load', crash, false); 
+    window.addEventListener('load', crash, false);
   }
   else
   {

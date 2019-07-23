@@ -35,7 +35,9 @@
 
 
 
-var bug = 350837;
+var gTestfile = 'regress-350837.js';
+
+var BUGNUMBER = 350837;
 var summary = 'clear cx->throwing in finally';
 var actual = '';
 var expect = '';
@@ -48,15 +50,15 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   expect = 'F';
 
   function f()
-    {
-      actual = "F";
-    }
+  {
+    actual = "F";
+  }
 
   try
   {

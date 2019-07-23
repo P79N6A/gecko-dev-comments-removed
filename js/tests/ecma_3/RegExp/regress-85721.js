@@ -45,7 +45,10 @@
 
 
 
-var bug = 85721;
+
+
+var gTestfile = 'regress-85721.js';
+var BUGNUMBER = 85721;
 var summary = 'Performance: execution of regular expression';
 var FAST = 100; 
 var MSG_FAST = 'Execution took less than ' + FAST + ' ms';
@@ -57,7 +60,7 @@ var status = '';
 var actual = '';
 var expect= '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 
@@ -78,7 +81,7 @@ function isThisFast(ms)
 
 
 
- 
+
 str='<sql:connection id="conn1"> <sql:url>www.m.com</sql:url> <sql:driver>drive.class</sql:driver>\n<sql:userId>foo</sql:userId> <sql:password>goo</sql:password> </sql:connection>';
 re = /<sql:connection id="([^\r\n]*?)">\s*<sql:url>\s*([^\r\n]*?)\s*<\/sql:url>\s*<sql:driver>\s*([^\r\n]*?)\s*<\/sql:driver>\s*(\s*<sql:userId>\s*([^\r\n]*?)\s*<\/sql:userId>\s*)?\s*(\s*<sql:password>\s*([^\r\n]*?)\s*<\/sql:password>\s*)?\s*<\/sql:connection>/;
 expect = Array("<sql:connection id=\"conn1\"> <sql:url>www.m.com</sql:url> <sql:driver>drive.class</sql:driver>\n<sql:userId>foo</sql:userId> <sql:password>goo</sql:password> </sql:connection>","conn1","www.m.com","drive.class","<sql:userId>foo</sql:userId> ","foo","<sql:password>goo</sql:password> ","goo");
@@ -103,10 +106,10 @@ testRegExp([status], [re], [str], [result], [expect]);
 
 
 
- 
 
 
-$esc        = '\\\\';      
+
+$esc        = '\\\\';     
 $Period      = '\.';
 $space      = '\040';              $tab         = '\t';
 $OpenBR     = '\\[';               $CloseBR     = '\\]';
@@ -125,102 +128,102 @@ $ctext   =  '[^' + $esc + $NonASCII + $CRlist + '()]';
 
 
 
-$Cnested = 
-   $OpenParen +                                 
-      $ctext + '*' +                            
-      '(?:' + $quoted_pair + $ctext + '*)*' +   
-   $CloseParen;                                 
+$Cnested =
+  $OpenParen +                                 
+  $ctext + '*' +                            
+  '(?:' + $quoted_pair + $ctext + '*)*' +   
+  $CloseParen;                                 
 
 
 
 
-$comment = 
-   $OpenParen +                                           
-       $ctext + '*' +                                     
-       '(?:' +                                            
-          '(?:' + $quoted_pair + '|' + $Cnested + ')' +   
-           $ctext + '*' +                                 
-       ')*' +                                             
-   $CloseParen;                                           
+$comment =
+  $OpenParen +                                           
+  $ctext + '*' +                                     
+  '(?:' +                                            
+  '(?:' + $quoted_pair + '|' + $Cnested + ')' +   
+  $ctext + '*' +                                 
+  ')*' +                                             
+  $CloseParen;                                           
 
 
 
 
-$X = 
-   '[' + $space + $tab + ']*' +					       
-   '(?:' + $comment + '[' + $space + $tab + ']*)*';    
+$X =
+  '[' + $space + $tab + ']*' +					       
+  '(?:' + $comment + '[' + $space + $tab + ']*)*';    
 
 
 
 $atom_char   = '[^(' + $space + '<>\@,;:\".' + $esc + $OpenBR + $CloseBR + $ctrl + $NonASCII + ']';
-$atom = 
+$atom =
   $atom_char + '+' +            
   '(?!' + $atom_char + ')';     
 
 
 $quoted_str =
-    '\"' +                                         
-       $qtext + '*' +                              
-       '(?:' + $quoted_pair + $qtext + '*)*' +     
-    '\"';                                          
+  '\"' +                                         
+  $qtext + '*' +                              
+  '(?:' + $quoted_pair + $qtext + '*)*' +     
+  '\"';                                          
 
 
-$word = 
-    '(?:' +
-       $atom +                
-       '|' +                  
-       $quoted_str +          
-     ')'
+$word =
+  '(?:' +
+  $atom +                
+  '|' +                  
+  $quoted_str +          
+  ')'
 
 
-$domain_ref  = $atom;
+  $domain_ref  = $atom;
 
 
-$domain_lit  = 
-    $OpenBR +								   	     
-    '(?:' + $dtext + '|' + $quoted_pair + ')*' +     
-    $CloseBR;                                        
+$domain_lit  =
+  $OpenBR +								   	     
+  '(?:' + $dtext + '|' + $quoted_pair + ')*' +     
+  $CloseBR;                                        
 
 
 $sub_domain  =
-  '(?:' + 
-    $domain_ref + 
-    '|' +
-    $domain_lit +
-   ')' +
-   $X;                 
+  '(?:' +
+  $domain_ref +
+  '|' +
+  $domain_lit +
+  ')' +
+  $X;                 
 
 
-$domain = 
-     $sub_domain +
-     '(?:' +
-        $Period + $X + $sub_domain +
-     ')*';
+$domain =
+  $sub_domain +
+  '(?:' +
+  $Period + $X + $sub_domain +
+  ')*';
 
 
-$route = 
-    '\@' + $X + $domain +
-    '(?:,' + $X + '\@' + $X + $domain + ')*' +  
-    ':' +
-    $X;					
+$route =
+  '\@' + $X + $domain +
+  '(?:,' + $X + '\@' + $X + $domain + ')*' +  
+  ':' +
+  $X;					
 
 
-$local_part = 
-    $word + $X
-    '(?:' + 
-        $Period + $X + $word + $X +		
-    ')*';
+$local_part =
+  $word + $X
+  '(?:' +
+  $Period + $X + $word + $X +		
+  ')*';
 
 
-$addr_spec  = 
+$addr_spec  =
   $local_part + '\@' + $X + $domain;
 
 
 $route_addr =
-    '<' + $X +                     
-       '(?:' + $route + ')?' +     
-       $addr_spec +                
-    '>';                           
+  '<' + $X +                     
+  '(?:' + $route + ')?' +     
+  $addr_spec +                
+  '>';                           
 
 
 $phrase_ctrl = '\000-\010\012-\037'; 
@@ -228,26 +231,26 @@ $phrase_ctrl = '\000-\010\012-\037';
 
 
 $phrase_char =
-   '[^()<>\@,;:\".' + $esc + $OpenBR + $CloseBR + $NonASCII + $phrase_ctrl + ']';
+  '[^()<>\@,;:\".' + $esc + $OpenBR + $CloseBR + $NonASCII + $phrase_ctrl + ']';
 
 
 
-$phrase = 
-   $word +                                                  
-   $phrase_char + '*' +                                     
-   '(?:' +
-      '(?:' + $comment + '|' + $quoted_str + ')' +          
-      $phrase_char + '*' +                                  
-   ')*';
+$phrase =
+  $word +                                                  
+  $phrase_char + '*' +                                     
+  '(?:' +
+  '(?:' + $comment + '|' + $quoted_str + ')' +          
+  $phrase_char + '*' +                                  
+  ')*';
 
 
-$mailbox = 
-    $X +                                
-    '(?:' +
-            $phrase + $route_addr +     
-            '|' +                       
-            $addr_spec +                
-     ')';
+$mailbox =
+  $X +                                
+  '(?:' +
+  $phrase + $route_addr +     
+  '|' +                       
+  $addr_spec +                
+  ')';
 
 
 

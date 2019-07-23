@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '7.8.2-n.js';
+
+
 
 
 
@@ -46,7 +49,7 @@
 
 var SECTION="7.8.2";
 var VERSION="ECMA_1"
-startTest();
+  startTest();
 writeHeaderToLog(SECTION+" "+"Examples of Semicolon Insertion");
 
 

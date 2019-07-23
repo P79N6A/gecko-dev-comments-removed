@@ -35,7 +35,9 @@
 
 
 
-var bug = 352609;
+var gTestfile = 'regress-352609.js';
+
+var BUGNUMBER = 352609;
 var summary = 'decompilation of |let| expression for |is not a function| error';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   expect = 'TypeError: 0 is not a function';
   try
   {
@@ -77,7 +79,7 @@ function test()
   try
   {
     var p = {}; (p.z = let(x) x)()
-  }
+		  }
   catch(ex)
   {
     actual = ex + '';

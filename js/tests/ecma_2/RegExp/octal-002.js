@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'octal-002.js';
+
+
+
+
+
+
+
+
+
 var SECTION = "RegExp/octal-002.js";
 var VERSION = "ECMA_2";
 var TITLE   = "RegExp patterns that contain OctalEscapeSequences";

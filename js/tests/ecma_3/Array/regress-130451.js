@@ -52,8 +52,11 @@
 
 
 
+
+
+var gTestfile = 'regress-130451.js';
 var UBound = 0;
-var bug = 130451;
+var BUGNUMBER = 130451;
 var summary = 'Array.prototype.sort() should not (re-)define .length';
 var status = '';
 var statusitems = [];
@@ -204,7 +207,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

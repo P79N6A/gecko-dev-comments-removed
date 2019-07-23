@@ -37,7 +37,9 @@
 
 
 
-var bug = 346794;
+var gTestfile = 'regress-346794.js';
+
+var BUGNUMBER = 346794;
 var summary = 'Do not crash';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -50,7 +52,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   

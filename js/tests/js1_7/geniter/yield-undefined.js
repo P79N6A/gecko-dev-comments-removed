@@ -35,14 +35,16 @@
 
 
 
+var gTestfile = 'yield-undefined.js';
 
 
 
-var bug     = "(none)";
+
+var BUGNUMBER     = "(none)";
 var summary = "|yield;| is equivalent to |yield undefined;| ";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

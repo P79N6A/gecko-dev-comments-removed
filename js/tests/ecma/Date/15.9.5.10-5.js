@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.9.5.10-5.js';
+
 
 
 
@@ -55,7 +57,7 @@ startTest();
 var TITLE   = "Date.prototype.getDate()";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
- 
+
 addTestCase( TIME_2000 );
 
 new TestCase( SECTION,

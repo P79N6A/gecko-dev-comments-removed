@@ -69,7 +69,10 @@
 
 
 
-var bug = '61266';
+
+
+var gTestfile = '15.10.3.1-2.js';
+var BUGNUMBER = '61266';
 var summary = 'Passing (RegExp object,flag) to RegExp() function';
 var statprefix = 'RegExp(new RegExp(';
 var comma =  ', '; var singlequote = "'"; var closeparens = '))';
@@ -79,7 +82,7 @@ var i = -1; var j = -1; var s = ''; var f = '';
 var obj = {};
 var status = ''; var actual = ''; var expect = '';
 var patterns = new Array();
-var flags = new Array();  
+var flags = new Array(); 
 
 
 
@@ -103,10 +106,10 @@ test();
 
 
 
-function test() 
+function test()
 {
-  enterFunc ('test'); 
-  printBugNumber (bug);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (i in patterns)
@@ -117,21 +120,21 @@ function test()
     {
       f = flags[j];
       status = getStatus(s, f);
-      obj = new RegExp(s, f);   
+      obj = new RegExp(s, f);  
 
       actual = (obj == RegExp(obj, undefined))? cnSUCCESS : cnFAILURE ;
       expect = cnSUCCESS;
       reportCompare (expect, actual, status);
     }
   }
-  
+ 
   exitFunc ('test');
 }
 
 
 function getStatus(regexp, flag)
-{ 
-  return (statprefix  +  quote(regexp) +  comma  +   flag  +  closeparens); 
+{
+  return (statprefix  +  quote(regexp) +  comma  +   flag  +  closeparens);
 }
 
 

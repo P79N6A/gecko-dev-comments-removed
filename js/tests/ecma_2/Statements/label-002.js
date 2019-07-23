@@ -10,6 +10,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'label-002.js';
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "label-002";
 var VERSION = "ECMA_2";
 var TITLE   = "Labeled statements";
@@ -42,10 +80,10 @@ function LabelTest2( object, expect1, expect2 ) {
 
 yoohoo:  { for ( property in object ) { result += object[property]; break yoohoo } }; ;
 
-new TestCase(
-  SECTION,
-  "yoohoo: for ( property in object ) { result += object[property]; break yoohoo }}",
-  true,
-  result == expect1 || result == expect2 );
+  new TestCase(
+    SECTION,
+    "yoohoo: for ( property in object ) { result += object[property]; break yoohoo }}",
+    true,
+    result == expect1 || result == expect2 );
 }
 

@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'tostring_2.js';
+
+
 
 
 
@@ -56,9 +59,9 @@ var a = [];
 
 
 if ( version() == 120 ) {
-    VERSION = "120";
+  VERSION = "120";
 } else {
-    VERSION = "";
+  VERSION = "";
 }
 
 new TestCase ( SECTION,

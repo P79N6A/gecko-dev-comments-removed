@@ -36,12 +36,15 @@
 
 
 
-var bug     = "352097";
+gTestfile = 'regress-352097.js';
+
+
+var BUGNUMBER     = "352097";
 var summary = "Avoid adding unnecessary spaces to PIs";
 var actual, expect;
 
-printBugNumber(bug);
-printStatus(summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 
 

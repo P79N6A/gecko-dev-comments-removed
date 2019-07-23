@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-156354.js';
 var UBound = 0;
-var bug = 156354;
+var BUGNUMBER = 156354;
 var summary = 'Testing propertyIsEnumerable() on non-existent property';
 var status = '';
 var statusitems = [];
@@ -116,7 +119,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

@@ -47,12 +47,15 @@
 
 
 
-var bug = 108440;
+
+
+var gTestfile = 'regress-108440.js';
+var BUGNUMBER = 108440;
 var summary = "Shouldn't crash trying to add an array as an element of itself";
 var self = this;
 var temp = '';
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

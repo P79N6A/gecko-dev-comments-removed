@@ -35,7 +35,9 @@
 
 
 
-var bug = 350529;
+var gTestfile = 'regress-350529.js';
+
+var BUGNUMBER = 350529;
 var summary = "x--' causes Assertion ";
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   try

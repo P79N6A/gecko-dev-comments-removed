@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '11.13.1.js';
+
+
 
 
 
@@ -60,9 +63,9 @@ startTest();
 
 writeHeaderToLog( SECTION + " Simple Assignment ( = )");
 
-new TestCase( SECTION,    
-              "SOMEVAR = true",     
-              true,   
+new TestCase( SECTION,   
+              "SOMEVAR = true",    
+              true,  
               SOMEVAR = true );
 
 test();

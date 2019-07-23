@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-216591.js';
 var i = 0;
-var bug = 216591;
+var BUGNUMBER = 216591;
 var summary = 'Regexp conformance test';
 var status = '';
 var statusmessages = new Array();
@@ -107,7 +110,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-57572.js';
 var i = 0;
-var bug = 57572;
+var BUGNUMBER = 57572;
 var summary = 'Testing regular expressions containing "?"';
 var cnEmptyString = ''; var cnSingleSpace = ' ';
 var status = '';
@@ -140,7 +143,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

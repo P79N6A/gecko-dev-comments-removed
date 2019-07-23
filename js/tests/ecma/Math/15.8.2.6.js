@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '15.8.2.6.js';
+
+
 
 
 
@@ -72,7 +75,7 @@ new TestCase( SECTION,
 
 new TestCase( SECTION,
 	      "Math.ceil(null)",
-	      0,  
+	      0, 
 	      Math.ceil(null) );
 
 new TestCase( SECTION,

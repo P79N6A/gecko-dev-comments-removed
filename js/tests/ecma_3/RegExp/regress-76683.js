@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-76683.js';
 var i = 0;
-var bug = 76683;
+var BUGNUMBER = 76683;
 var summary = 'Regression test for Bugzilla bug 76683';
 var status = '';
 var statusmessages = new Array();
@@ -63,24 +66,24 @@ var expectedmatches = new Array();
 
 
 string = 'abc';
-    status = inSection(1);
-    pattern = /(<!--([^-]|-[^-]|--[^>])*-->)|(<([\$\w:\.\-]+)((([ ][^\/>]*)?\/>)|(([ ][^>]*)?>)))/;
-    actualmatch = string.match(pattern);
-    expectedmatch = null;
-    addThis();
+status = inSection(1);
+pattern = /(<!--([^-]|-[^-]|--[^>])*-->)|(<([\$\w:\.\-]+)((([ ][^\/>]*)?\/>)|(([ ][^>]*)?>)))/;
+actualmatch = string.match(pattern);
+expectedmatch = null;
+addThis();
 
-    status = inSection(2);
-    pattern = /(<!--([^-]|-[^-]|--[^>])*-->)|(<(tagPattern)((([ ][^\/>]*)?\/>)|(([ ][^>]*)?>)))/;
-    actualmatch = string.match(pattern);
-    expectedmatch = null;
-    addThis();
+status = inSection(2);
+pattern = /(<!--([^-]|-[^-]|--[^>])*-->)|(<(tagPattern)((([ ][^\/>]*)?\/>)|(([ ][^>]*)?>)))/;
+actualmatch = string.match(pattern);
+expectedmatch = null;
+addThis();
 
-    
-    status = inSection(3);
-    pattern = /(<!--([^-]|-[^-]|--[^>])*-->)|(<(tagPattern)((([ ][^\/>]*)?\/>)|(([ ][^>]*)?>)))|(<\/tagPattern[^>]*>)/;
-    actualmatch = string.match(pattern);
-    expectedmatch = null;
-    addThis();
+
+status = inSection(3);
+pattern = /(<!--([^-]|-[^-]|--[^>])*-->)|(<(tagPattern)((([ ][^\/>]*)?\/>)|(([ ][^>]*)?>)))|(<\/tagPattern[^>]*>)/;
+actualmatch = string.match(pattern);
+expectedmatch = null;
+addThis();
 
 
 
@@ -104,7 +107,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

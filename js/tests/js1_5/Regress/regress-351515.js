@@ -35,7 +35,9 @@
 
 
 
-var bug = 351515;
+var gTestfile = 'regress-351515.js';
+
+var BUGNUMBER = 351515;
 var summary = 'js17 features must be enabled by version request';
 var actual = 'No Error';
 var expect = 'No Error';
@@ -51,9 +53,9 @@ let   = 1;
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   function f(yield, let) { return yield+let; }
 
   var yield = 1;

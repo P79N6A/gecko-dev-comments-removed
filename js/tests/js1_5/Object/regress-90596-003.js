@@ -51,8 +51,12 @@
 
 
 
+
+
+
+var gTestfile = 'regress-90596-003.js';
 var UBound = 0;
-var bug = 90596;
+var BUGNUMBER = 90596;
 var summary = '[DontEnum] props (if overridden) should appear in for-in loops';
 var cnCOMMA = ',';
 var cnCOLON = ':';
@@ -248,17 +252,17 @@ function isWhiteSpace(charCode)
 {
   switch (charCode)
   {
-    case (0x0009):
-    case (0x000B):
-    case (0x000C):
-    case (0x0020):
-    case (0x000A):  
-    case (0x000D):  
-      return true;
-      break;
+  case (0x0009):
+  case (0x000B):
+  case (0x000C):
+  case (0x0020):
+  case (0x000A):  
+  case (0x000D):  
+    return true;
+    break;
 
-    default:
-      return false;
+  default:
+    return false;
   }
 }
 
@@ -267,13 +271,13 @@ function isQuote(charCode)
 {
   switch (charCode)
   {
-    case (0x0027): 
-    case (0x0022): 
-      return true;
-      break;
+  case (0x0027): 
+  case (0x0022): 
+    return true;
+    break;
 
-    default:
-      return false;
+  default:
+    return false;
   }
 }
 
@@ -296,7 +300,7 @@ function stripBraces(text)
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

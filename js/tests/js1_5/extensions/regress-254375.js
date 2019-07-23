@@ -36,14 +36,16 @@
 
 
 
-var bug = 254375;
+var gTestfile = 'regress-254375.js';
+
+var BUGNUMBER = 254375;
 var summary = 'Object.toSource for negative number property names';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 if (typeof uneval != 'undefined')
 {
   try

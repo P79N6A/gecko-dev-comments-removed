@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.9.3.2-3.js';
+
 
 
 
@@ -117,7 +119,7 @@ test();
 
 function addNewTestCase( DateCase, DateString, ResultArray ) {
   
-  adjustResultArray(ResultArray); 
+  adjustResultArray(ResultArray);
 
   new TestCase( SECTION, DateString+".getTime()", ResultArray[TIME],       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()", ResultArray[TIME],       DateCase.valueOf() );

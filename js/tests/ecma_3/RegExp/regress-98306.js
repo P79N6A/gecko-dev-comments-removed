@@ -43,7 +43,10 @@
 
 
 
-var bug = 98306;
+
+
+var gTestfile = 'regress-98306.js';
+var BUGNUMBER = 98306;
 var summary = "Testing that we don't crash on this code -";
 var cnUBOUND = 10;
 var re;
@@ -58,7 +61,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   s = '"Hello".match(/[/]/)';

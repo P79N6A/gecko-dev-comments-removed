@@ -36,7 +36,9 @@
 
 
 
-var bug = 346642;
+var gTestfile = 'regress-346642-02.js';
+
+var BUGNUMBER = 346642;
 var summary = 'decompilation of destructuring assignment';
 var actual = '';
 var expect = '';
@@ -49,9 +51,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   f = function f() { [z] = 3 }

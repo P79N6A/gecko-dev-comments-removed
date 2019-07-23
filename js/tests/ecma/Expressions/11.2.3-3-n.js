@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '11.2.3-3-n.js';
+
 
 
 
@@ -81,9 +83,9 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 DESCRIPTION = "(void 0).valueOf()";
 EXPECTED = "error";
 
-new TestCase( SECTION, 
-              "(void 0).valueOf()", 
-              "error", 
+new TestCase( SECTION,
+              "(void 0).valueOf()",
+              "error",
               eval("(void 0).valueOf()") );
 test();
 

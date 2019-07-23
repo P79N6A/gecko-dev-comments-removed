@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'RegExp_input.js';
+
 
 
 

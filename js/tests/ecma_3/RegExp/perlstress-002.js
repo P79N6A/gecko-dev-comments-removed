@@ -57,8 +57,11 @@
 
 
 
+
+
+var gTestfile = 'perlstress-002.js';
 var i = 0;
-var bug = 85721;
+var BUGNUMBER = 85721;
 var summary = 'Testing regular expression edge cases';
 var cnSingleSpace = ' ';
 var status = '';
@@ -1832,7 +1835,7 @@ function omitCurrentSection()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

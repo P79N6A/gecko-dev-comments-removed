@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'simple_form.js';
+
 
 
 

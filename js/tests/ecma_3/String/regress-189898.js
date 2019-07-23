@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-189898.js';
 var UBound = 0;
-var bug = 189898;
+var BUGNUMBER = 189898;
 var summary = 'Regression test for bug 189898';
 var status = '';
 var statusitems = [];
@@ -55,22 +58,22 @@ var expectedvalues = [];
 
 status = inSection(1);
 actual = 'XaXY'.replace('XY', '--')
-expect = 'Xa--';
+  expect = 'Xa--';
 addThis();
 
 status = inSection(2);
 actual = '$a$^'.replace('$^', '--')
-expect = '$a--';
+  expect = '$a--';
 addThis();
 
 status = inSection(3);
 actual = 'ababc'.replace('abc', '--')
-expect = 'ab--';
+  expect = 'ab--';
 addThis();
 
 status = inSection(4);
 actual = 'ababc'.replace('abc', '^$')
-expect = 'ab^$';
+  expect = 'ab^$';
 addThis();
 
 
@@ -84,42 +87,42 @@ addThis();
 
 status = inSection(5);
 actual = 'XaXY'.replace(/XY/, '--')
-expect = 'Xa--';
+  expect = 'Xa--';
 addThis();
 
 status = inSection(6);
 actual = 'XaXY'.replace(/XY/g, '--')
-expect = 'Xa--';
+  expect = 'Xa--';
 addThis();
 
 status = inSection(7);
 actual = '$a$^'.replace(/\$\^/, '--')
-expect = '$a--';
+  expect = '$a--';
 addThis();
 
 status = inSection(8);
 actual = '$a$^'.replace(/\$\^/g, '--')
-expect = '$a--';
+  expect = '$a--';
 addThis();
 
 status = inSection(9);
 actual = 'ababc'.replace(/abc/, '--')
-expect = 'ab--';
+  expect = 'ab--';
 addThis();
 
 status = inSection(10);
 actual = 'ababc'.replace(/abc/g, '--')
-expect = 'ab--';
+  expect = 'ab--';
 addThis();
 
 status = inSection(11);
 actual = 'ababc'.replace(/abc/, '^$')
-expect = 'ab^$';
+  expect = 'ab^$';
 addThis();
 
 status = inSection(12);
 actual = 'ababc'.replace(/abc/g, '^$')
-expect = 'ab^$';
+  expect = 'ab^$';
 addThis();
 
 
@@ -142,7 +145,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

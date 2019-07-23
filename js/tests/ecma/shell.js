@@ -36,212 +36,8 @@
 
 
 
+gTestsuite = 'ecma';
 
-
-
-
-
-var completed = false;
-var testcases = new Array();
-var tc = testcases.length; 
-
-var SECTION = "";
-var VERSION = "";
-var BUGNUMBER = "";
-
-
-
-
-var GLOBAL = "[object global]";
-var PASSED = " PASSED!"
-var FAILED = " FAILED! expected: ";
-
-var DEBUG = false;
-
-var DESCRIPTION;
-var EXPECTED;
-
-
-
-
-
-
-function AddTestCase( description, expect, actual ) {
-  new TestCase( SECTION, description, expect, actual );
-}
-
-
-
-
-
-
-function TestCase( n, d, e, a ) {
-  this.path = (typeof gTestPath == 'undefined') ? '' : gTestPath;
-  this.name        = n;
-  this.description = d;
-  this.expect      = e;
-  this.actual      = a;
-  this.passed      = true;
-  this.reason      = "";
-  this.bugnumber   = BUGNUMBER;
-
-  this.passed = getTestCaseResult( this.expect, this.actual );
-  if ( DEBUG ) {
-    print( "added " + this.description );
-  }
-  
-
-
-
-
-
-
-  
-  testcases[tc++] = this;
-}
-
-
-
-
-
-function startTest() {
-  if ( version ) {
-    
-    if ( VERSION == "ECMA_1" ) {
-      version ( "130" );
-    }
-    if ( VERSION == "JS_1.3" ) {
-      version ( "130" );
-    }
-    if ( VERSION == "JS_1.2" ) {
-      version ( "120" );
-    }
-    if ( VERSION  == "JS_1.1" ) {
-      version ( "110" );
-    }
-    
-    
-  }
-
-  
-
-  if ( BUGNUMBER ) {
-    print ("BUGNUMBER: " + BUGNUMBER );
-  }
-}
-
-function test() {
-  for ( tc=0; tc < testcases.length; tc++ ) {
-    
-    try
-    {
-    testcases[tc].passed = writeTestCaseResult(
-      testcases[tc].expect,
-      testcases[tc].actual,
-      testcases[tc].description +" = "+ testcases[tc].actual );
-    testcases[tc].reason += ( testcases[tc].passed ) ? "" : "wrong value ";
-    }
-    catch(e)
-    {
-      print('test(): empty testcase for tc = ' + tc + ' ' + e);
-    }
-  }
-  stopTest();
-  return ( testcases );
-}
-
-
-
-
-
-function getTestCaseResult( expect, actual ) {
-  
-  
-  if ( actual != actual ) {
-    if ( typeof actual == "object" ) {
-      actual = "NaN object";
-    } else {
-      actual = "NaN number";
-    }
-  }
-  if ( expect != expect ) {
-    if ( typeof expect == "object" ) {
-      expect = "NaN object";
-    } else {
-      expect = "NaN number";
-    }
-  }
-
-  var passed = ( expect == actual ) ? true : false;
-
-  
-  
-  if ( !passed
-       && typeof(actual) == "number"
-       && typeof(expect) == "number"
-    ) {
-    if ( Math.abs(actual-expect) < 0.0000001 ) {
-      passed = true;
-    }
-  }
-
-  
-  if ( typeof(expect) != typeof(actual) ) {
-    passed = false;
-  }
-
-  return passed;
-}
-
-
-
-
-
-
-
-
-function writeTestCaseResult( expect, actual, string ) {
-  var passed = getTestCaseResult( expect, actual );
-  writeFormattedResult( expect, actual, string, passed );
-  return passed;
-}
-function writeFormattedResult( expect, actual, string, passed ) {
-  var s = string ;
-  s += ( passed ) ? PASSED : FAILED + expect;
-  print( s);
-  return passed;
-}
-
-function writeHeaderToLog( string ) {
-  print( string );
-}
-
-
-
-
-
-
-
-
-function stopTest() {
-  var gc;
-  if ( gc != undefined ) {
-    gc();
-  }
-}
-
-
-
-
-
-
-function getFailedCases() {
-  for ( var i = 0; i < testcases.length; i++ ) {
-    if ( ! testcases[i].passed ) {
-      print( testcases[i].description +" = " +testcases[i].actual +" expected: "+ testcases[i].expect );
-    }
-  }
-}
 
 
 
@@ -258,7 +54,7 @@ var TZ_ADJUST  = TZ_DIFF * msPerHour;
 var TZ_PST = -8;  
 var PST_DIFF = TZ_DIFF - TZ_PST;  
 var PST_ADJUST = TZ_PST * msPerHour;
-var TIME_0000  = (function () 
+var TIME_0000  = (function ()
   { 
     for ( var time = 0, year = 1969; year >= 0; year-- ) {
       time -= TimeInYear(year);
@@ -270,7 +66,7 @@ var TIME_2000  = 946684800000;
 var TIME_1900  = -2208988800000;
 var UTC_FEB_29_2000 = TIME_2000 + 31*msPerDay + 28*msPerDay;
 var UTC_JAN_1_2005 = TIME_2000 + TimeInYear(2000) + TimeInYear(2001) +
-    TimeInYear(2002) + TimeInYear(2003) + TimeInYear(2004);
+  TimeInYear(2002) + TimeInYear(2003) + TimeInYear(2004);
 var now = new Date();
 var TIME_NOW = now.valueOf();  
                                
@@ -307,7 +103,7 @@ function adjustResultArray(ResultArray, msMode)
 
 
 
- 
+
   if (msMode)
   {
     
@@ -315,11 +111,11 @@ function adjustResultArray(ResultArray, msMode)
     var t = ResultArray[TIME]  +  TZ_DIFF*msPerHour;
 
     
-    ResultArray[HOURS] = HourFromTime(t); 
+    ResultArray[HOURS] = HourFromTime(t);
     ResultArray[DAY] = WeekDay(t);
     ResultArray[DATE] = DateFromTime(t);
     ResultArray[MONTH] = MonthFromTime(t);
-    ResultArray[YEAR] = YearFromTime(t);  
+    ResultArray[YEAR] = YearFromTime(t); 
   }
   else
   {
@@ -329,7 +125,7 @@ function adjustResultArray(ResultArray, msMode)
 
     
     ResultArray[TIME] = t;
-    ResultArray[UTC_HOURS] = HourFromTime(t); 
+    ResultArray[UTC_HOURS] = HourFromTime(t);
     ResultArray[UTC_DAY] = WeekDay(t);
     ResultArray[UTC_DATE] = DateFromTime(t);
     ResultArray[UTC_MONTH] = MonthFromTime(t);
@@ -543,7 +339,7 @@ function DaylightSavingTA( t ) {
   var dst_start = GetDSTStart(t);
   var dst_end   = GetDSTEnd(t);
 
-  if ( t >= dst_start && t < dst_end ) 
+  if ( t >= dst_start && t < dst_end )
     return msPerHour;
 
   return 0;
@@ -638,7 +434,7 @@ function GetDSTStart( t )
 function GetDSTEnd( t )
 {
   return (GetFirstSundayInMonth(t, 10) + 2*msPerHour - LocalTZA());
- }
+}
 
 function GetOldDSTStart( t )
 {

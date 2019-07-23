@@ -46,9 +46,13 @@
 
 
 
+
+
+
+var gTestfile = 'class-005.js';
 var i = 0;
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing the internal [[Class]] property of user-defined types';
 var statprefix = 'Current user-defined type is: ';
 var status = ''; var statusList = [ ];
@@ -90,9 +94,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalue[i], actualvalue[i], getStatus(i));

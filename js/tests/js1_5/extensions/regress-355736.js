@@ -35,7 +35,9 @@
 
 
 
-var bug = 355736;
+var gTestfile = 'regress-355736.js';
+
+var BUGNUMBER = 355736;
 var summary = 'Decompilation of "[reserved]" has extra quotes';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   f = function() { [super] = q; };
   expect = 'function() { [super] = q; }';
   actual = f + '';

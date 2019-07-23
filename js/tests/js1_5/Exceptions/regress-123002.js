@@ -56,10 +56,13 @@
 
 
 
+
+
+var gTestfile = 'regress-123002.js';
 var LENGTH_RHINO = 1;
 var LENGTH_SPIDERMONKEY = 3;
 var UBound = 0;
-var bug = 123002;
+var BUGNUMBER = 123002;
 var summary = 'Testing Error.length';
 var QUOTE = '"';
 var status = '';
@@ -73,13 +76,13 @@ var expectedvalues = [];
 
 
 
-var LENGTH_EXPECTED = inRhino()? LENGTH_RHINO : LENGTH_SPIDERMONKEY; 
+var LENGTH_EXPECTED = inRhino()? LENGTH_RHINO : LENGTH_SPIDERMONKEY;
 
 
 
 
 var errObjects = [new Error(), new EvalError(), new RangeError(),
-new ReferenceError(), new SyntaxError(), new TypeError(), new URIError()];
+		  new ReferenceError(), new SyntaxError(), new TypeError(), new URIError()];
 
 
 for (var i in errObjects)
@@ -111,7 +114,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

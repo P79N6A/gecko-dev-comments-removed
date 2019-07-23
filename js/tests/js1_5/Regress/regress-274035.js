@@ -36,12 +36,14 @@
 
 
 
-var bug = 274035;
+var gTestfile = 'regress-274035.js';
+
+var BUGNUMBER = 274035;
 var summary = 'Array.prototype[concat|slice|splice] lengths';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 status = summary + ' ' + inSection(1) + ' Array.prototype.concat.length ';
@@ -58,4 +60,4 @@ status = summary + ' ' + inSection(3) + ' Array.prototype.splice.length ';
 expect = 2;
 actual   = Array.prototype.splice.length;
 reportCompare(expect, actual, status);
-  
+ 

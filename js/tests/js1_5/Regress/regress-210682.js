@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-210682.js';
 var UBound = 0;
-var bug = 210682;
+var BUGNUMBER = 210682;
 var summary = 'testing line ending with |continue| and only terminated by CR';
 var status = '';
 var statusitems = [];
@@ -57,8 +60,8 @@ var expectedvalues = [];
 
 for (i=0; i<100; i++)
 {
-   if (i%2 == 0) continue
-   this.lasti = i;
+  if (i%2 == 0) continue
+    this.lasti = i;
 }
 
 status = inSection(1);
@@ -86,7 +89,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

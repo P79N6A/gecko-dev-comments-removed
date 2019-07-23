@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = '8.6.2.6-001.js';
 var UBound = 0;
-var bug = 167325;
+var BUGNUMBER = 167325;
 var summary = "Test for TypeError on invalid default string value of object";
 var TEST_PASSED = 'TypeError';
 var TEST_FAILED = 'Generated an error, but NOT a TypeError!';
@@ -98,7 +101,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

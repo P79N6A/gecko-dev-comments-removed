@@ -85,8 +85,11 @@
 
 
 
+
+
+var gTestfile = 'perlstress-001.js';
 var i = 0;
-var bug = 85721;
+var BUGNUMBER = 85721;
 var summary = 'Testing regular expression edge cases';
 var cnSingleSpace = ' ';
 var status = '';
@@ -2333,24 +2336,24 @@ addThis();
 
 status = inSection(312);
 pattern = /([[:]+)/;
-string = 'a:[b]:';
-actualmatch = string.match(pattern);
-expectedmatch = Array(':[', ':[');
-addThis();
+	    string = 'a:[b]:';
+	    actualmatch = string.match(pattern);
+	    expectedmatch = Array(':[', ':[');
+	    addThis();
 
-status = inSection(313);
-pattern = /([[=]+)/;
-string = 'a=[b]=';
-actualmatch = string.match(pattern);
-expectedmatch = Array('=[', '=[');
-addThis();
+	    status = inSection(313);
+	    pattern = /([[=]+)/;
+			string = 'a=[b]=';
+			actualmatch = string.match(pattern);
+			expectedmatch = Array('=[', '=[');
+			addThis();
 
-status = inSection(314);
-pattern = /([[.]+)/;
-string = 'a.[b].';
-actualmatch = string.match(pattern);
-expectedmatch = Array('.[', '.[');
-addThis();
+			status = inSection(314);
+			pattern = /([[.]+)/;
+				    string = 'a.[b].';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('.[', '.[');
+				    addThis();
 
 
 
@@ -2400,12 +2403,12 @@ addThis();
 
 
 
-status = inSection(321);
-pattern = /$/;
-string = 'a\nb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('');
-addThis();
+				    status = inSection(321);
+				    pattern = /$/;
+				    string = 'a\nb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('');
+				    addThis();
 
 
 
@@ -2423,12 +2426,12 @@ addThis();
 
 
 
-status = inSection(324);
-pattern = /$/;
-string = 'b\na\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('');
-addThis();
+				    status = inSection(324);
+				    pattern = /$/;
+				    string = 'b\na\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('');
+				    addThis();
 
 
 
@@ -2446,12 +2449,12 @@ addThis();
 
 
 
-status = inSection(327);
-pattern = /$/;
-string = 'b\na';
-actualmatch = string.match(pattern);
-expectedmatch = Array('');
-addThis();
+				    status = inSection(327);
+				    pattern = /$/;
+				    string = 'b\na';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('');
+				    addThis();
 
 
 
@@ -2469,12 +2472,12 @@ addThis();
 
 
 
-status = inSection(330);
-pattern = /$/m;
-string = 'a\nb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('');
-addThis();
+				    status = inSection(330);
+				    pattern = /$/m;
+				    string = 'a\nb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('');
+				    addThis();
 
 
 
@@ -2492,12 +2495,12 @@ addThis();
 
 
 
-status = inSection(333);
-pattern = /$/m;
-string = 'b\na\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('');
-addThis();
+				    status = inSection(333);
+				    pattern = /$/m;
+				    string = 'b\na\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('');
+				    addThis();
 
 
 
@@ -2515,12 +2518,12 @@ addThis();
 
 
 
-status = inSection(336);
-pattern = /$/m;
-string = 'b\na';
-actualmatch = string.match(pattern);
-expectedmatch = Array('');
-addThis();
+				    status = inSection(336);
+				    pattern = /$/m;
+				    string = 'b\na';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('');
+				    addThis();
 
 
 
@@ -2556,19 +2559,19 @@ addThis();
 
 
 
-status = inSection(341);
-pattern = /a$/;
-string = 'b\na';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a');
-addThis();
+				    status = inSection(341);
+				    pattern = /a$/;
+				    string = 'b\na';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a');
+				    addThis();
 
-status = inSection(342);
-pattern = /a$/m;
-string = 'a\nb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a');
-addThis();
+				    status = inSection(342);
+				    pattern = /a$/m;
+				    string = 'a\nb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a');
+				    addThis();
 
 
 
@@ -2579,12 +2582,12 @@ addThis();
 
 
 
-status = inSection(344);
-pattern = /a$/m;
-string = 'b\na\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a');
-addThis();
+				    status = inSection(344);
+				    pattern = /a$/m;
+				    string = 'b\na\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a');
+				    addThis();
 
 
 
@@ -2602,12 +2605,12 @@ addThis();
 
 
 
-status = inSection(347);
-pattern = /a$/m;
-string = 'b\na';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a');
-addThis();
+				    status = inSection(347);
+				    pattern = /a$/m;
+				    string = 'b\na';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a');
+				    addThis();
 
 
 
@@ -2643,19 +2646,19 @@ addThis();
 
 
 
-status = inSection(352);
-pattern = /aa$/;
-string = 'b\naa';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aa');
-addThis();
+				    status = inSection(352);
+				    pattern = /aa$/;
+				    string = 'b\naa';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aa');
+				    addThis();
 
-status = inSection(353);
-pattern = /aa$/m;
-string = 'aa\nb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aa');
-addThis();
+				    status = inSection(353);
+				    pattern = /aa$/m;
+				    string = 'aa\nb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aa');
+				    addThis();
 
 
 
@@ -2666,12 +2669,12 @@ addThis();
 
 
 
-status = inSection(355);
-pattern = /aa$/m;
-string = 'b\naa\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aa');
-addThis();
+				    status = inSection(355);
+				    pattern = /aa$/m;
+				    string = 'b\naa\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aa');
+				    addThis();
 
 
 
@@ -2689,12 +2692,12 @@ addThis();
 
 
 
-status = inSection(358);
-pattern = /aa$/m;
-string = 'b\naa';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aa');
-addThis();
+				    status = inSection(358);
+				    pattern = /aa$/m;
+				    string = 'b\naa';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aa');
+				    addThis();
 
 
 
@@ -2730,19 +2733,19 @@ addThis();
 
 
 
-status = inSection(363);
-pattern = /ab$/;
-string = 'b\nab';
-actualmatch = string.match(pattern);
-expectedmatch = Array('ab');
-addThis();
+				    status = inSection(363);
+				    pattern = /ab$/;
+				    string = 'b\nab';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('ab');
+				    addThis();
 
-status = inSection(364);
-pattern = /ab$/m;
-string = 'ab\nb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('ab');
-addThis();
+				    status = inSection(364);
+				    pattern = /ab$/m;
+				    string = 'ab\nb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('ab');
+				    addThis();
 
 
 
@@ -2753,12 +2756,12 @@ addThis();
 
 
 
-status = inSection(366);
-pattern = /ab$/m;
-string = 'b\nab\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('ab');
-addThis();
+				    status = inSection(366);
+				    pattern = /ab$/m;
+				    string = 'b\nab\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('ab');
+				    addThis();
 
 
 
@@ -2776,12 +2779,12 @@ addThis();
 
 
 
-status = inSection(369);
-pattern = /ab$/m;
-string = 'b\nab';
-actualmatch = string.match(pattern);
-expectedmatch = Array('ab');
-addThis();
+				    status = inSection(369);
+				    pattern = /ab$/m;
+				    string = 'b\nab';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('ab');
+				    addThis();
 
 
 
@@ -2817,19 +2820,19 @@ addThis();
 
 
 
-status = inSection(374);
-pattern = /abb$/;
-string = 'b\nabb';
-actualmatch = string.match(pattern);
-expectedmatch = Array('abb');
-addThis();
+				    status = inSection(374);
+				    pattern = /abb$/;
+				    string = 'b\nabb';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('abb');
+				    addThis();
 
-status = inSection(375);
-pattern = /abb$/m;
-string = 'abb\nb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('abb');
-addThis();
+				    status = inSection(375);
+				    pattern = /abb$/m;
+				    string = 'abb\nb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('abb');
+				    addThis();
 
 
 
@@ -2840,12 +2843,12 @@ addThis();
 
 
 
-status = inSection(377);
-pattern = /abb$/m;
-string = 'b\nabb\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('abb');
-addThis();
+				    status = inSection(377);
+				    pattern = /abb$/m;
+				    string = 'b\nabb\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('abb');
+				    addThis();
 
 
 
@@ -2863,40 +2866,40 @@ addThis();
 
 
 
-status = inSection(380);
-pattern = /abb$/m;
-string = 'b\nabb';
-actualmatch = string.match(pattern);
-expectedmatch = Array('abb');
-addThis();
+				    status = inSection(380);
+				    pattern = /abb$/m;
+				    string = 'b\nabb';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('abb');
+				    addThis();
 
-status = inSection(381);
-pattern = /(^|x)(c)/;
-string = 'ca';
-actualmatch = string.match(pattern);
-expectedmatch = Array('c', '', 'c');
-addThis();
+				    status = inSection(381);
+				    pattern = /(^|x)(c)/;
+				    string = 'ca';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('c', '', 'c');
+				    addThis();
 
-status = inSection(382);
-pattern = /foo.bart/;
-string = 'foo.bart';
-actualmatch = string.match(pattern);
-expectedmatch = Array('foo.bart');
-addThis();
+				    status = inSection(382);
+				    pattern = /foo.bart/;
+				    string = 'foo.bart';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('foo.bart');
+				    addThis();
 
-status = inSection(383);
-pattern = /^d[x][x][x]/m;
-string = 'abcd\ndxxx';
-actualmatch = string.match(pattern);
-expectedmatch = Array('dxxx');
-addThis();
+				    status = inSection(383);
+				    pattern = /^d[x][x][x]/m;
+				    string = 'abcd\ndxxx';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('dxxx');
+				    addThis();
 
-status = inSection(384);
-pattern = /tt+$/;
-string = 'xxxtt';
-actualmatch = string.match(pattern);
-expectedmatch = Array('tt');
-addThis();
+				    status = inSection(384);
+				    pattern = /tt+$/;
+				    string = 'xxxtt';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('tt');
+				    addThis();
 
 
 
@@ -2937,152 +2940,152 @@ addThis();
 
 
 
-status = inSection(390);
-pattern = /(\d+\.\d+)/;
-string = '3.1415926';
-actualmatch = string.match(pattern);
-expectedmatch = Array('3.1415926', '3.1415926');
-addThis();
+				    status = inSection(390);
+				    pattern = /(\d+\.\d+)/;
+				    string = '3.1415926';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('3.1415926', '3.1415926');
+				    addThis();
 
-status = inSection(391);
-pattern = /\.c(pp|xx|c)?$/i;
-string = 'IO.c';
-actualmatch = string.match(pattern);
-expectedmatch = Array('.c', undefined);
-addThis();
+				    status = inSection(391);
+				    pattern = /\.c(pp|xx|c)?$/i;
+				    string = 'IO.c';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('.c', undefined);
+				    addThis();
 
-status = inSection(392);
-pattern = /(\.c(pp|xx|c)?$)/i;
-string = 'IO.c';
-actualmatch = string.match(pattern);
-expectedmatch = Array('.c', '.c', undefined);
-addThis();
+				    status = inSection(392);
+				    pattern = /(\.c(pp|xx|c)?$)/i;
+				    string = 'IO.c';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('.c', '.c', undefined);
+				    addThis();
 
-status = inSection(393);
-pattern = /(^|a)b/;
-string = 'ab';
-actualmatch = string.match(pattern);
-expectedmatch = Array('ab', 'a');
-addThis();
+				    status = inSection(393);
+				    pattern = /(^|a)b/;
+				    string = 'ab';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('ab', 'a');
+				    addThis();
 
-status = inSection(394);
-pattern = /^([ab]*?)(b)?(c)$/;
-string = 'abac';
-actualmatch = string.match(pattern);
-expectedmatch = Array('abac', 'aba', undefined, 'c');
-addThis();
+				    status = inSection(394);
+				    pattern = /^([ab]*?)(b)?(c)$/;
+				    string = 'abac';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('abac', 'aba', undefined, 'c');
+				    addThis();
 
-status = inSection(395);
-pattern = /^(?:.,){2}c/i;
-string = 'a,b,c';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a,b,c');
-addThis();
+				    status = inSection(395);
+				    pattern = /^(?:.,){2}c/i;
+				    string = 'a,b,c';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a,b,c');
+				    addThis();
 
-status = inSection(396);
-pattern = /^(.,){2}c/i;
-string = 'a,b,c';
-actualmatch = string.match(pattern);
-expectedmatch =  Array('a,b,c', 'b,');
-addThis();
+				    status = inSection(396);
+				    pattern = /^(.,){2}c/i;
+				    string = 'a,b,c';
+				    actualmatch = string.match(pattern);
+				    expectedmatch =  Array('a,b,c', 'b,');
+				    addThis();
 
-status = inSection(397);
-pattern = /^(?:[^,]*,){2}c/;
-string = 'a,b,c';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a,b,c');
-addThis();
+				    status = inSection(397);
+				    pattern = /^(?:[^,]*,){2}c/;
+				    string = 'a,b,c';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a,b,c');
+				    addThis();
 
-status = inSection(398);
-pattern = /^([^,]*,){2}c/;
-string = 'a,b,c';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a,b,c', 'b,');
-addThis();
+				    status = inSection(398);
+				    pattern = /^([^,]*,){2}c/;
+				    string = 'a,b,c';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a,b,c', 'b,');
+				    addThis();
 
-status = inSection(399);
-pattern = /^([^,]*,){3}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(399);
+				    pattern = /^([^,]*,){3}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(400);
-pattern = /^([^,]*,){3,}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(400);
+				    pattern = /^([^,]*,){3,}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(401);
-pattern = /^([^,]*,){0,3}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(401);
+				    pattern = /^([^,]*,){0,3}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(402);
-pattern = /^([^,]{1,3},){3}d/i;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(402);
+				    pattern = /^([^,]{1,3},){3}d/i;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(403);
-pattern = /^([^,]{1,3},){3,}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(403);
+				    pattern = /^([^,]{1,3},){3,}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(404);
-pattern = /^([^,]{1,3},){0,3}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(404);
+				    pattern = /^([^,]{1,3},){0,3}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(405);
-pattern = /^([^,]{1,},){3}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(405);
+				    pattern = /^([^,]{1,},){3}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(406);
-pattern = /^([^,]{1,},){3,}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(406);
+				    pattern = /^([^,]{1,},){3,}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(407);
-pattern = /^([^,]{1,},){0,3}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(407);
+				    pattern = /^([^,]{1,},){0,3}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(408);
-pattern = /^([^,]{0,3},){3}d/i;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(408);
+				    pattern = /^([^,]{0,3},){3}d/i;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(409);
-pattern = /^([^,]{0,3},){3,}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(409);
+				    pattern = /^([^,]{0,3},){3,}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
-status = inSection(410);
-pattern = /^([^,]{0,3},){0,3}d/;
-string = 'aaa,b,c,d';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaa,b,c,d', 'c,');
-addThis();
+				    status = inSection(410);
+				    pattern = /^([^,]{0,3},){0,3}d/;
+				    string = 'aaa,b,c,d';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaa,b,c,d', 'c,');
+				    addThis();
 
 
 
@@ -3093,40 +3096,40 @@ addThis();
 
 
 
-status = inSection(412);
-pattern = /^(a(b)?)+$/;
-string = 'aba';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aba', 'a', undefined);
-addThis();
+				    status = inSection(412);
+				    pattern = /^(a(b)?)+$/;
+				    string = 'aba';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aba', 'a', undefined);
+				    addThis();
 
-status = inSection(413);
-pattern = /^(aa(bb)?)+$/;
-string = 'aabbaa';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aabbaa', 'aa', undefined);
-addThis();
+				    status = inSection(413);
+				    pattern = /^(aa(bb)?)+$/;
+				    string = 'aabbaa';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aabbaa', 'aa', undefined);
+				    addThis();
 
-status = inSection(414);
-pattern = /^.{9}abc.*\n/m;
-string = '123\nabcabcabcabc\n';
-actualmatch = string.match(pattern);
-expectedmatch = Array('abcabcabcabc\n');
-addThis();
+				    status = inSection(414);
+				    pattern = /^.{9}abc.*\n/m;
+				    string = '123\nabcabcabcabc\n';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('abcabcabcabc\n');
+				    addThis();
 
-status = inSection(415);
-pattern = /^(a)?a$/;
-string = 'a';
-actualmatch = string.match(pattern);
-expectedmatch = Array('a', undefined);
-addThis();
+				    status = inSection(415);
+				    pattern = /^(a)?a$/;
+				    string = 'a';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('a', undefined);
+				    addThis();
 
-status = inSection(416);
-pattern = /^(a\1?)(a\1?)(a\2?)(a\3?)$/;
-string = 'aaaaaa';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaaaaa', 'a', 'aa', 'a', 'aa');
-addThis();
+				    status = inSection(416);
+				    pattern = /^(a\1?)(a\1?)(a\2?)(a\3?)$/;
+				    string = 'aaaaaa';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaaaaa', 'a', 'aa', 'a', 'aa');
+				    addThis();
 
 
 
@@ -3137,91 +3140,91 @@ addThis();
 
 
 
-status = inSection(418);
-pattern = /^(0+)?(?:x(1))?/;
-string = 'x1';
-actualmatch = string.match(pattern);
-expectedmatch = Array('x1', undefined, '1');
-addThis();
+				    status = inSection(418);
+				    pattern = /^(0+)?(?:x(1))?/;
+				    string = 'x1';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('x1', undefined, '1');
+				    addThis();
 
-status = inSection(419);
-pattern = /^([0-9a-fA-F]+)(?:x([0-9a-fA-F]+)?)(?:x([0-9a-fA-F]+))?/;
-string = '012cxx0190';
-actualmatch = string.match(pattern);
-expectedmatch = Array('012cxx0190', '012c', undefined, '0190');
-addThis();
+				    status = inSection(419);
+				    pattern = /^([0-9a-fA-F]+)(?:x([0-9a-fA-F]+)?)(?:x([0-9a-fA-F]+))?/;
+				    string = '012cxx0190';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('012cxx0190', '012c', undefined, '0190');
+				    addThis();
 
-status = inSection(420);
-pattern = /^(b+?|a){1,2}c/;
-string = 'bbbac';
-actualmatch = string.match(pattern);
-expectedmatch = Array('bbbac', 'a');
-addThis();
+				    status = inSection(420);
+				    pattern = /^(b+?|a){1,2}c/;
+				    string = 'bbbac';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('bbbac', 'a');
+				    addThis();
 
-status = inSection(421);
-pattern = /^(b+?|a){1,2}c/;
-string = 'bbbbac';
-actualmatch = string.match(pattern);
-expectedmatch = Array('bbbbac', 'a');
-addThis();
+				    status = inSection(421);
+				    pattern = /^(b+?|a){1,2}c/;
+				    string = 'bbbbac';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('bbbbac', 'a');
+				    addThis();
 
-status = inSection(422);
-pattern = /((?:aaaa|bbbb)cccc)?/;
-string = 'aaaacccc';
-actualmatch = string.match(pattern);
-expectedmatch = Array('aaaacccc', 'aaaacccc');
-addThis();
+				    status = inSection(422);
+				    pattern = /((?:aaaa|bbbb)cccc)?/;
+				    string = 'aaaacccc';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('aaaacccc', 'aaaacccc');
+				    addThis();
 
-status = inSection(423);
-pattern = /((?:aaaa|bbbb)cccc)?/;
-string = 'bbbbcccc';
-actualmatch = string.match(pattern);
-expectedmatch = Array('bbbbcccc', 'bbbbcccc');
-addThis();
+				    status = inSection(423);
+				    pattern = /((?:aaaa|bbbb)cccc)?/;
+				    string = 'bbbbcccc';
+				    actualmatch = string.match(pattern);
+				    expectedmatch = Array('bbbbcccc', 'bbbbcccc');
+				    addThis();
 
 
 
 
 
-test();
+				    test();
 
 
 
 
-function addThis()
-{
-  if(omitCurrentSection())
-    return;
+				    function addThis()
+			  {
+			    if(omitCurrentSection())
+			      return;
 
-  statusmessages[i] = status;
-  patterns[i] = pattern;
-  strings[i] = string;
-  actualmatches[i] = actualmatch;
-  expectedmatches[i] = expectedmatch;
-  i++;
-}
+			    statusmessages[i] = status;
+			    patterns[i] = pattern;
+			    strings[i] = string;
+			    actualmatches[i] = actualmatch;
+			    expectedmatches[i] = expectedmatch;
+			    i++;
+			  }
 
 
-function omitCurrentSection()
-{
-  try
-  {
-    
-    var n = status.match(/(\d+)/)[1];
-    return ((n < cnLBOUND) || (n > cnUBOUND));
-  }
-  catch(e)
-  {
-    return false;
-  }
-}
+				    function omitCurrentSection()
+			  {
+			    try
+			    {
+			      
+			      var n = status.match(/(\d+)/)[1];
+			      return ((n < cnLBOUND) || (n > cnUBOUND));
+			    }
+			    catch(e)
+			    {
+			      return false;
+			    }
+			  }
 
 
-function test()
-{
-  enterFunc ('test');
-  printBugNumber (bug);
-  printStatus (summary);
-  testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
-  exitFunc ('test');
-}
+				    function test()
+			  {
+			    enterFunc ('test');
+			    printBugNumber(BUGNUMBER);
+			    printStatus (summary);
+			    testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
+			    exitFunc ('test');
+			  }

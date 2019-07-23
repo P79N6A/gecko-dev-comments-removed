@@ -35,7 +35,10 @@
 
 
 
- 
+
+gTestfile = '15.8.2.4.js';
+
+
 
 
 
@@ -121,12 +124,12 @@ new TestCase( SECTION,
 	      Math.atan(0)          );
 
 new TestCase( SECTION,
-	      "Math.atan(-0)",	 
+	      "Math.atan(-0)",	
 	      -0,
 	      Math.atan(-0)         );
 
 new TestCase( SECTION,
-	      "Infinity/Math.atan(-0)", 
+	      "Infinity/Math.atan(-0)",
 	      -Infinity,
 	      Infinity/Math.atan(-0) );
 

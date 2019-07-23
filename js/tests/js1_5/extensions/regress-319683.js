@@ -35,11 +35,13 @@
 
 
 
-var bug = 319683;
+var gTestfile = 'regress-319683.js';
+
+var BUGNUMBER = 319683;
 var summary = 'Do not crash in call_enumerate';
 var actual = 'No Crash';
 var expect = 'No Crash';
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 function crash(){
@@ -51,11 +53,11 @@ function crash(){
   }
 
   
-  f.__proto__={}; 
+  f.__proto__={};
 
   
   f();
-}  
+} 
 
 crash();
 

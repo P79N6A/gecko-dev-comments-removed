@@ -45,8 +45,11 @@
 
 
 
+
+
+var gTestfile = 'getset-006.js';
 var UBound = 0;
-var bug = 71992;
+var BUGNUMBER = 71992;
 var summary = 'Testing  obj.__lookupGetter__(), obj.__lookupSetter__()';
 var statprefix = 'Status: ';
 var status = '';
@@ -65,7 +68,7 @@ var obj = {};
 var obj2 = {};
 var s;
 
- 
+
 
 var cnNameSetter = function(newValue) {this._name=newValue; this.nameSETS++;};
 var cnNameGetter = function() {this.nameGETS++; return this._name;};
@@ -173,9 +176,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], getStatus(i));

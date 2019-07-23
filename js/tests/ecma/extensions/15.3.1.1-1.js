@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.3.1.1-1.js';
+
 
 
 
@@ -70,9 +72,9 @@ myfunc.toString = Object.prototype.toString;
 
 myfunc.toString = Object.prototype.toString;
 
-new TestCase( SECTION,  
-	      "MyObject.__proto__ == Function.prototype",     
-	      true,   
+new TestCase( SECTION, 
+	      "MyObject.__proto__ == Function.prototype",    
+	      true,  
 	      MyObject.__proto__ == Function.prototype );
 
 test();

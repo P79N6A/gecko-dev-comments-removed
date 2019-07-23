@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-140974.js';
 var UBound = 0;
-var bug = 140974;
+var BUGNUMBER = 140974;
 var TEST_PASSED = 'variable was created';
 var TEST_FAILED = 'variable was NOT created';
 var summary = '|if (false) {var x;}| should create the variable x';
@@ -125,7 +128,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

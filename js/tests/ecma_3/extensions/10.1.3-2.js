@@ -47,8 +47,11 @@
 
 
 
+
+
+var gTestfile = '10.1.3-2.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing functions having duplicate formal parameter names';
 var status = '';
 var statusitems = [];
@@ -147,7 +150,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

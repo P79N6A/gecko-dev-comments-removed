@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.2.4.js';
+
 
 
 
@@ -55,7 +57,7 @@ var TITLE   = "Properties of the Object.prototype object";
 
 writeHeaderToLog( SECTION + " "+ TITLE);
 
-new TestCase( SECTION,  
+new TestCase( SECTION, 
 	      "Object.prototype.__proto__",
 	      null,
 	      Object.prototype.__proto__ );

@@ -35,7 +35,9 @@
 
 
 
-var bug = 350666;
+var gTestfile = 'regress-350666.js';
+
+var BUGNUMBER = 350666;
 var summary = 'decompilation for (;; delete expr)';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f;

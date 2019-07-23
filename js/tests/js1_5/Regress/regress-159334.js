@@ -52,8 +52,11 @@
 
 
 
+
+
+var gTestfile = 'regress-159334.js';
 var UBound = 0;
-var bug = 159334;
+var BUGNUMBER = 159334;
 var summary = 'Testing script with at least 64K of different string literals';
 var status = '';
 var statusitems = [];
@@ -114,7 +117,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

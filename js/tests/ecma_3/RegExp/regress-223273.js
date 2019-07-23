@@ -55,8 +55,12 @@
 
 
 
+
+
+
+var gTestfile = 'regress-223273.js';
 var UBound = 0;
-var bug = 223273;
+var BUGNUMBER = 223273;
 var summary = 'Unescaped, unbalanced parens in regexp should be a SyntaxError';
 var TEST_PASSED = 'SyntaxError';
 var TEST_FAILED = 'Generated an error, but NOT a SyntaxError!';
@@ -263,7 +267,7 @@ function checkThis(sValidSyntax)
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

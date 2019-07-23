@@ -36,7 +36,9 @@
 
 
 
-var bug = 347559;
+var gTestfile = 'regress-347559.js';
+
+var BUGNUMBER = 347559;
 var summary = 'Let declarations should not warn that function does not ' +
   'return a value';
 var actual = '';
@@ -50,7 +52,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   actual = 'No Warning';

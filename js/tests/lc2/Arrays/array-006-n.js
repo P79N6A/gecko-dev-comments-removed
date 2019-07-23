@@ -35,7 +35,10 @@
 
 
 
- 
+
+gTestfile = 'array-006-n.js';
+
+
 
 
 
@@ -63,10 +66,10 @@ DESCRIPTION = "byte_array[\"foo\"]";
 EXPECTED = "error";
 
 new TestCase(
-    SECTION,
-    "byte_array[\"foo\"]",
-    void 0,
-    byte_array["foo"] );
+  SECTION,
+  "byte_array[\"foo\"]",
+  void 0,
+  byte_array["foo"] );
 
 test();
 

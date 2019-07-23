@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'RegExp_lastIndex.js';
+
 
 
 

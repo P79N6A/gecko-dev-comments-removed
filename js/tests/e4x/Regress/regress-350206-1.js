@@ -35,13 +35,16 @@
 
 
 
-var bug     = "350206";
+gTestfile = 'regress-350206-1.js';
+
+
+var BUGNUMBER     = "350206";
 var summary = "Order of destructuring, destructuring in the presence of " +
               "exceptions";
 var actual, expect;
 
-printBugNumber(bug);
-printStatus(summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 
 

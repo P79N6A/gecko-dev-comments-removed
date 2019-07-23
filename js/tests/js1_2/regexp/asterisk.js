@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'asterisk.js';
+
 
 
 

@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-220362.js';
 var UBound = 0;
-var bug = 220362;
+var BUGNUMBER = 220362;
 var summary = 'Calling a local function from global scope';
 var status = '';
 var statusitems = [];
@@ -101,7 +104,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

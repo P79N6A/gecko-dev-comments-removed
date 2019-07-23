@@ -8,6 +8,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'call-1.js';
+
+
+
+
+
+
+
+
+
+
 var SECTION = "call-1";
 var VERSION = "ECMA_2";
 var TITLE   = "Function.prototype.call";

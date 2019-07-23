@@ -35,7 +35,9 @@
 
 
 
-var bug = 349663;
+var gTestfile = 'regress-349663.js';
+
+var BUGNUMBER = 349663;
 var summary = 'decompilation of Function with const *=';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f, g;

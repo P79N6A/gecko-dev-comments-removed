@@ -45,8 +45,11 @@
 
 
 
+
+
+var gTestfile = 'regress-94257.js';
 var UBound = 0;
-var bug = 94257;
+var BUGNUMBER = 94257;
 var summary = "Making sure we don't crash on this code -";
 var status = '';
 var statusitems = [];
@@ -105,7 +108,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

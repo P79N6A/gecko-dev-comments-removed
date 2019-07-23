@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'constructor-001.js';
+
+
+
+
+
+
+
+
+
 var SECTION = "RegExp/constructor-001";
 var VERSION = "ECMA_2";
 var TITLE   = "new RegExp()";

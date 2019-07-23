@@ -36,6 +36,7 @@
 
 
 
+var gTestfile = '15.10.4.1-5-n.js';
 
 
 
@@ -64,7 +65,8 @@
 
 
 
-var bug = '61266';
+
+var BUGNUMBER = '61266';
 var summary = 'Negative test: Passing (RegExp object, flag) to RegExp() constructor';
 var statprefix = 'Passing RegExp object on pattern ';
 var statsuffix =  '; passing flag ';
@@ -73,7 +75,7 @@ var singlequote = "'";
 var i = -1; var j = -1; var s = ''; var f = '';
 var obj1 = {}; var obj2 = {};
 var patterns = new Array();
-var flags = new Array();  
+var flags = new Array(); 
 
 
 
@@ -91,7 +93,7 @@ flags[2] = 'm';
 
 
 DESCRIPTION = "Negative test: Passing (RegExp object, flag) to RegExp() constructor"
-EXPECTED = "error";
+  EXPECTED = "error";
 
 
 
@@ -99,39 +101,39 @@ test();
 
 
 
-function test() 
+function test()
 {
-    enterFunc ('test'); 
-    printBugNumber (bug);
-    printStatus (summary);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
+  printStatus (summary);
 
-    for (i in patterns)
+  for (i in patterns)
+  {
+    s = patterns[i];
+
+    for (j in flags)
     {
-        s = patterns[i];
+      f = flags[j];
+      printStatus(getStatus(s, f));
+      obj1 = new RegExp(s, f);  
+      obj2 = new RegExp(obj1, f);   
 
-        for (j in flags)
-        {
-            f = flags[j];
-            printStatus(getStatus(s, f));
-            obj1 = new RegExp(s, f);   
-            obj2 = new RegExp(obj1, f);   
-
-            
-            reportFailure(cnFAILURE);
-        }
+      
+      reportCompare('PASS', 'FAIL', cnFAILURE);
     }
+  }
 
-    exitFunc ('test');
+  exitFunc ('test');
 }
 
 
 function getStatus(regexp, flag)
-{ 
-    return (statprefix  +  quote(regexp) +  statsuffix  +   flag); 
+{
+  return (statprefix  +  quote(regexp) +  statsuffix  +   flag);
 }
 
 
 function quote(text)
 {
-    return (singlequote  +  text  + singlequote);
+  return (singlequote  +  text  + singlequote);
 }

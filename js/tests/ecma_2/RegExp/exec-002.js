@@ -9,6 +9,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'exec-002.js';
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "RegExp/exec-002";
 var VERSION = "ECMA_2";
 var TITLE   = "RegExp.prototype.exec(string)";
@@ -130,46 +168,44 @@ AddRegExpCases(
 
     AddRegExpCases(
         /"(.|[^"\\\\])*"/,
-	  "xx\"ma\"yy",
-	  2,
-	  ["\"ma\"", "a"] );
+	      "xx\"ma\"yy",
+	      2,
+	      ["\"ma\"", "a"] );
 
-test();
+	   test();
 
-function AddRegExpCases(
-regexp, pattern, index, matches_array ) {
-
-
-
-if ( regexp.exec(pattern) == null || matches_array == null ) {
-AddTestCase(
-regexp + ".exec(" + pattern +")",
-  matches_array,
-  regexp.exec(pattern) );
-
-return;
-}
-AddTestCase(
-regexp + ".exec(" + pattern +").length",
-  matches_array.length,
-  regexp.exec(pattern).length );
-
-AddTestCase(
-regexp + ".exec(" + pattern +").index",
-  index,
-  regexp.exec(pattern).index );
-
-AddTestCase(
-regexp + ".exec(" + pattern +").input",
-  pattern,
-  regexp.exec(pattern).input );
-
-AddTestCase(
-regexp + ".exec(" + pattern +").toString()",
-  matches_array.toString(),
-  regexp.exec(pattern).toString() );
+	   function AddRegExpCases(
+	     regexp, pattern, index, matches_array ) {
 
 
+
+	     if ( regexp.exec(pattern) == null || matches_array == null ) {
+	       AddTestCase(
+		 regexp + ".exec(" + pattern +")",
+		 matches_array,
+		 regexp.exec(pattern) );
+
+	       return;
+	     }
+	     AddTestCase(
+	       regexp + ".exec(" + pattern +").length",
+	       matches_array.length,
+	       regexp.exec(pattern).length );
+
+	     AddTestCase(
+	       regexp + ".exec(" + pattern +").index",
+	       index,
+	       regexp.exec(pattern).index );
+
+	     AddTestCase(
+	       regexp + ".exec(" + pattern +").input",
+	       pattern,
+	       regexp.exec(pattern).input );
+
+	     AddTestCase(
+	       regexp + ".exec(" + pattern +").toString()",
+	       matches_array.toString(),
+	       regexp.exec(pattern).toString() );
 
 
 
@@ -180,4 +216,6 @@ regexp + ".exec(" + pattern +").toString()",
 
 
 
-}
+
+
+	   }

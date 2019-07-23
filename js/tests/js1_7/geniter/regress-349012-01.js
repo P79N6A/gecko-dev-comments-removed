@@ -35,7 +35,9 @@
 
 
 
-var bug = 349012;
+var gTestfile = 'regress-349012-01.js';
+
+var BUGNUMBER = 349012;
 var summary = 'closing a generator fails to report error if yield during close is ignored';
 var actual = '';
 var expect = '';
@@ -53,7 +55,7 @@ if (typeof quit != 'undefined')
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   expect = "Inner finally,Outer finally";

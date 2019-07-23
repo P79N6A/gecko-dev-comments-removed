@@ -36,12 +36,15 @@
 
 
 
-var bug     = "352103";
+gTestfile = 'regress-352103.js';
+
+
+var BUGNUMBER     = "352103";
 var summary = "<??> XML initializer should generate a SyntaxError";
 var actual, expect;
 
-printBugNumber(bug);
-printStatus(summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 
 

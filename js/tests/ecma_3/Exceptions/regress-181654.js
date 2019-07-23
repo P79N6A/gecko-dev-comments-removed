@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-181654.js';
 var UBound = 0;
-var bug = '181654';
+var BUGNUMBER = '181654';
 var summary = 'Calling toString for an object derived from the Error class should be possible.';
 var status = '';
 var statusitems = [];
@@ -58,7 +61,7 @@ var EXPECTED_FORMAT = 0;
 
 function MyError( msg )
 {
-	this.message = msg;
+  this.message = msg;
 }
 MyError.prototype = new Error();
 MyError.prototype.name = "MyError";
@@ -96,7 +99,7 @@ try
 }
 catch(err5)
 {
- actual = examineThis(err5, "thrown");
+  actual = examineThis(err5, "thrown");
 }
 expect = EXPECTED_FORMAT;
 addThis();
@@ -140,7 +143,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

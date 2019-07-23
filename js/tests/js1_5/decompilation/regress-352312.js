@@ -35,7 +35,9 @@
 
 
 
-var bug = 352312;
+var gTestfile = 'regress-352312.js';
+
+var BUGNUMBER = 352312;
 var summary = 'decompilation of |new| with unary expression';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
   f = function() { new (-2) }
   expect = 'function() { new (-2); }';

@@ -9,11 +9,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'instanceof-001.js';
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "instanceof-001";
 var VERSION = "ECMA_2";
 var TITLE   = "instanceof"
 
-startTest();
+  startTest();
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 function InstanceOf( object_1, object_2, expect ) {
@@ -71,7 +109,7 @@ function GenB(value) {
   this.toString = new Function ( "return \"(instance of Gen\"+this.generation+\")\"" );
 }
 GenB.name = "B"
-GenB.prototype = void 0;
+  GenB.prototype = void 0;
 
 
 

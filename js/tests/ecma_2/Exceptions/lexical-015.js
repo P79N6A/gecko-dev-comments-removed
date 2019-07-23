@@ -18,6 +18,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'lexical-015.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "lexical-015";
 var VERSION = "JS1_4";
 var TITLE   = "Future Reserved Words";

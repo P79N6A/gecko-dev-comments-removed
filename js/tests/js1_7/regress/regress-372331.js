@@ -35,7 +35,9 @@
 
 
 
-var bug = 372331;
+var gTestfile = 'regress-372331.js';
+
+var BUGNUMBER = 372331;
 var summary = 'for-in should not bind name too early';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var index;
   var obj = { index: 1 };
 

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'switch-001.js';
+
 
 
 
@@ -63,20 +65,20 @@ result = "fail:  did not enter switch";
 
 switch (true) {
 case 1:
-    result = "fail:  version 130 should force strict equality";
-    break;
+  result = "fail:  version 130 should force strict equality";
+  break;
 case true:
-    result = "pass";
-    break;
+  result = "pass";
+  break;
 default:
-    result = "fail: evaluated default statement";
+  result = "fail: evaluated default statement";
 }
 
 new TestCase(
-    SECTION,
-    "switch / case should use strict equality in version of JS < 1.4",
-    "pass",
-    result );
+  SECTION,
+  "switch / case should use strict equality in version of JS < 1.4",
+  "pass",
+  result );
 
 test();
 

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'short-001.js';
+
 
 
 
@@ -108,12 +110,12 @@ a[i++] = new TestObject( "new java.lang.Short( Number(5.5) )",
 
 for ( var i = 0; i < a.length; i++ ) {
 
-    
-    new TestCase(
-	SECTION,
-	"typeof (" + a[i].description +")",
-	a[i].type,
-	typeof a[i].javavalue );
+  
+  new TestCase(
+    SECTION,
+    "typeof (" + a[i].description +")",
+    a[i].type,
+    typeof a[i].javavalue );
 
 
 
@@ -122,23 +124,23 @@ for ( var i = 0; i < a.length; i++ ) {
 
 
 
-    
-    new TestCase(
-	SECTION,
-	"Number(" + a[i].description +")",
-	a[i].jsvalue,
-	Number( a[i].javavalue ) );
+  
+  new TestCase(
+    SECTION,
+    "Number(" + a[i].description +")",
+    a[i].jsvalue,
+    Number( a[i].javavalue ) );
 }
 
 test();
 
 function TestObject( description, javavalue, jsvalue ) {
-    this.description = description;
-    this.javavalue = javavalue;
-    this.jsvalue = jsvalue;
-    this.type = E_TYPE;
+  this.description = description;
+  this.javavalue = javavalue;
+  this.jsvalue = jsvalue;
+  this.type = E_TYPE;
 
 
 
-    return this;
+  return this;
 }

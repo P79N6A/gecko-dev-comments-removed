@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-131964.js';
 var UBound = 0;
-var bug =   131964;
+var BUGNUMBER =   131964;
 var summary = 'Functions defined in global or function scope are {DontDelete}';
 var status = '';
 var statusitems = [];
@@ -181,7 +184,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

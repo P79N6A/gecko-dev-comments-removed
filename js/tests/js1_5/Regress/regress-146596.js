@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-146596.js';
 var UBound = 0;
-var bug = 146596;
+var BUGNUMBER = 146596;
 var summary = "Shouldn't crash when catch parameter is 'hidden' by varX";
 var status = '';
 var statusitems = [];
@@ -144,7 +147,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

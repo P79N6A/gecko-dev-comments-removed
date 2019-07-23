@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-225343.js';
 var i = 0;
-var bug = 225343;
+var BUGNUMBER = 225343;
 var summary = 'Testing regexp character classes and the case-insensitive flag';
 var status = '';
 var statusmessages = new Array();
@@ -115,7 +118,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

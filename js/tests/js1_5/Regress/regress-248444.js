@@ -36,12 +36,14 @@
 
 
 
-var bug = 248444;
+var gTestfile = 'regress-248444.js';
+
+var BUGNUMBER = 248444;
 var summary = 'toString/toSource of RegExp should escape slashes';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var re;

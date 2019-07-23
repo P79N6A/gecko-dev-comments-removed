@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'digit.js';
+
 
 
 
@@ -95,24 +97,24 @@ var i;
 
 for (i = 0; i < digits.length; ++i)
 {
-    s = 'ab' + digits[i] + 'cd';
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(new RegExp('\\d'))",
-		   String([digits[i]]), String(s.match(new RegExp('\\d'))));
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(/\\d/)",
-		   String([digits[i]]), String(s.match(/\d/)));
+  s = 'ab' + digits[i] + 'cd';
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(new RegExp('\\d'))",
+		 String([digits[i]]), String(s.match(new RegExp('\\d'))));
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(/\\d/)",
+		 String([digits[i]]), String(s.match(/\d/)));
 }
 
 for (i = 0; i < non_digits.length; ++i)
 {
-    s = '12' + non_digits[i] + '34';
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(new RegExp('\\D'))",
-		   String([non_digits[i]]), String(s.match(new RegExp('\\D'))));
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(/\\D/)",
-		   String([non_digits[i]]), String(s.match(/\D/)));
+  s = '12' + non_digits[i] + '34';
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(new RegExp('\\D'))",
+		 String([non_digits[i]]), String(s.match(new RegExp('\\D'))));
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(/\\D/)",
+		 String([non_digits[i]]), String(s.match(/\D/)));
 }
 
 test();

@@ -38,6 +38,8 @@
 
 
 
+gTestfile = 'apply-001-n.js';
+
 print("STATUS: f.apply crash test.");
 
 print("BUGNUMBER: 21836");

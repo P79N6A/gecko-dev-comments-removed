@@ -47,8 +47,11 @@
 
 
 
+
+
+var gTestfile = 'regress-96284-002.js';
 var UBound = 0;
-var bug = 96284;
+var BUGNUMBER = 96284;
 var summary = 'Double quotes should be escaped in Error.prototype.toSource()';
 var status = '';
 var statusitems = [];
@@ -167,7 +170,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

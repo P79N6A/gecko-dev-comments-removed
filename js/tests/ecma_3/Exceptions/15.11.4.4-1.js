@@ -70,8 +70,11 @@
 
 
 
+
+
+var gTestfile = '15.11.4.4-1.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing Error.prototype.toString()';
 var status = '';
 var statusitems = [];
@@ -115,7 +118,7 @@ try
 }
 catch(err5)
 {
- actual = examineThis(err5, '.*');
+  actual = examineThis(err5, '.*');
 }
 expect = EXPECTED_FORMAT;
 addThis();
@@ -159,7 +162,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

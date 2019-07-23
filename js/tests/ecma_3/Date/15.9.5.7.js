@@ -57,12 +57,14 @@
 
 
 
+
+var gTestfile = '15.9.5.7.js';
 var SECTION = "15.9.5.7";
-var VERSION = "ECMA_3";  
-var TITLE   = "Date.prototype.toLocaleTimeString()"; 
-   
+var VERSION = "ECMA_3"; 
+var TITLE   = "Date.prototype.toLocaleTimeString()";
+  
 var status = '';
-var actual = '';  
+var actual = ''; 
 var expect = '';
 var givenDate;
 var year = '';
@@ -77,20 +79,20 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 
 
 
-status = "typeof (now.toLocaleTimeString())";  
+status = "typeof (now.toLocaleTimeString())"; 
 actual =   typeof (now.toLocaleTimeString());
 expect = "string";
 addTestCase();
 
-status = "Date.prototype.toLocaleTimeString.length";   
+status = "Date.prototype.toLocaleTimeString.length";  
 actual =  Date.prototype.toLocaleTimeString.length;
-expect =  0;   
+expect =  0;  
 addTestCase();
 
 
 addDateTestCase(0);
 addDateTestCase(TZ_ADJUST);
-   
+  
 
 addDateTestCase(TIME_1900);
 addDateTestCase(TIME_1900 - TZ_ADJUST);
@@ -98,12 +100,12 @@ addDateTestCase(TIME_1900 - TZ_ADJUST);
 
 addDateTestCase(TIME_2000);
 addDateTestCase(TIME_2000 - TZ_ADJUST);
-    
+   
 
 addDateTestCase(UTC_29_FEB_2000);
 addDateTestCase(UTC_29_FEB_2000 - 1000);
 addDateTestCase(UTC_29_FEB_2000 - TZ_ADJUST);
- 
+
 
 addDateTestCase( TIME_NOW);
 addDateTestCase( TIME_NOW - TZ_ADJUST);
@@ -117,7 +119,11 @@ test();
 
 function addTestCase()
 {
-  new TestCase( SECTION, status, expect, actual); 
+  new TestCase(
+    SECTION,
+    status,
+    expect,
+    actual);
 }
 
 
@@ -125,11 +131,11 @@ function addDateTestCase(date_given_in_milliseconds)
 {
   var s = 'new Date(' +  date_given_in_milliseconds + ')';
   givenDate = new Date(date_given_in_milliseconds);
-   
-  status = 'd = ' + s + 
-    '; d == new Date(d.toDateString() + " " + d.toLocaleTimeString())';   
+  
+  status = 'd = ' + s +
+    '; d == new Date(d.toDateString() + " " + d.toLocaleTimeString())';  
   expect = givenDate.toString();
-  actual = new Date(givenDate.toDateString() + 
+  actual = new Date(givenDate.toDateString() +
                     ' ' + givenDate.toLocaleTimeString()).toString();
   addTestCase();
 }

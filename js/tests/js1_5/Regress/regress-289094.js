@@ -36,14 +36,16 @@
 
 
 
-var bug = 289094;
+var gTestfile = 'regress-289094.js';
+
+var BUGNUMBER = 289094;
 var summary = 'argument shadowing function property special case for lambdas';
 var actual = '';
 var expect = 'function:function';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 function fn()
 {
   var o = {

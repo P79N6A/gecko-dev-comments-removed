@@ -36,14 +36,16 @@
 
 
 
-var bug = 226078;
+var gTestfile = 'regress-226078.js';
+
+var BUGNUMBER = 226078;
 var summary = 'Do not Crash @ js_Interpret 3127f864';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 
 function SetLangHead(l){
   with(p){

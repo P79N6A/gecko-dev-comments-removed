@@ -35,12 +35,14 @@
 
 
 
-var bug = 253150;
+var gTestfile = 'regress-253150.js';
+
+var BUGNUMBER = 253150;
 var summary = 'Do not warn on detecting properties';
 var actual = '';
 var expect = 'No warning';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var testobject = {};

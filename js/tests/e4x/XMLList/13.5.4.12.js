@@ -40,12 +40,14 @@
 
 
 
+gTestfile = '13.5.4.12.js';
+
 START("13.5.4.12 - XMLList hasComplexContent()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("hasComplexContent"));
 
 
-x = 
+x =
 <>
 <alpha attr1="value1">
     <bravo>one</bravo>
@@ -77,7 +79,7 @@ TEST(10, false, x.bravo.child(0).hasComplexContent());
 TEST(11, true, x.india.hasComplexContent());
 
 
-x = 
+x =
 <>
 <alpha>one</alpha>
 <bravo>two</bravo>
@@ -99,5 +101,5 @@ x =
 </root>;
 
 TEST(14, false, x.@*.hasComplexContent());
-   
+  
 END();

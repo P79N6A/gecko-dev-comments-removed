@@ -36,23 +36,25 @@
 
 
 
-var bug = 341360;
+var gTestfile = 'regress-341360.js';
+
+var BUGNUMBER = 341360;
 var summary = 'clearInterval broken';
 var actual = '';
 var expect = 'Ok';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-function xxx() 
+function xxx()
 {
-  if(t != null) 
+  if(t != null)
   {
     print('Clearing interval...');
     window.clearInterval(t);
     t = null;
     setTimeout('yyy()', 2000);
-    
+   
   }
   else {
     print('Clearing interval failed...');

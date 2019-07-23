@@ -35,12 +35,14 @@
 
 
 
-var bug = 322430;
+var gTestfile = 'regress-322430.js';
+
+var BUGNUMBER = 322430;
 var summary = 'Remove deprecated with statement warning';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 options('strict');
@@ -51,7 +53,7 @@ expect = 'No Warning';
 try
 {
   var obj = {foo: 'baz'};
-  
+ 
   
   
   

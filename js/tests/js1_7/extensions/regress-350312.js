@@ -35,7 +35,9 @@
 
 
 
-var bug = 350312;
+var gTestfile = 'regress-350312.js';
+
+var BUGNUMBER = 350312;
 var summary = 'Accessing wrong stack slot with nested catch/finally';
 var actual = '';
 var expect = '';
@@ -48,22 +50,22 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var iter;
   function gen()
-    { 
-      try {
-        yield iter;
-      } catch (e if e == null) {
-        actual += 'CATCH,';
-        print("CATCH");
-      } finally {
-        actual += 'FINALLY';
-        print("FINALLY");
-      }
+  {
+    try {
+      yield iter;
+    } catch (e if e == null) {
+      actual += 'CATCH,';
+      print("CATCH");
+    } finally {
+      actual += 'FINALLY';
+      print("FINALLY");
     }
+  }
 
   expect = 'FINALLY';
   actual = '';
@@ -98,7 +100,7 @@ function test()
   var actualexcp = '';
   try
   {
-    (iter = gen()).next().next();      
+    (iter = gen()).next().next();     
   }
   catch(ex)
   {

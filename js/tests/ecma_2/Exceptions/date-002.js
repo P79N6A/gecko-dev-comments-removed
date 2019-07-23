@@ -14,6 +14,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'date-002.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "date-002";
 var VERSION = "JS1_4";
 var TITLE   = "Date.prototype.setTime()";

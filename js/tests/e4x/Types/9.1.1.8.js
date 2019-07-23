@@ -40,6 +40,8 @@
 
 
 
+gTestfile = '9.1.1.8.js';
+
 
 START("9.1.1.8 - XML [[Descendants]]");
 

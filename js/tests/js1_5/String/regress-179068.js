@@ -90,8 +90,11 @@
 
 
 
+
+
+var gTestfile = 'regress-179068.js';
 var UBound = 0;
-var bug = 179068;
+var BUGNUMBER = 179068;
 var summary = 'Test that interpreter can handle string literals exceeding 64K';
 var status = '';
 var statusitems = [];
@@ -110,7 +113,7 @@ eval("str='".concat(long_str, "';"));
 
 status = inSection(1);
 actual = str.length == LONG_STR_SEED.length * N
-expect = true;
+  expect = true;
 addThis();
 
 
@@ -144,7 +147,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

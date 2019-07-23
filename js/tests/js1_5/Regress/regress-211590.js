@@ -36,14 +36,16 @@
 
 
 
-var bug = 211590;
+var gTestfile = 'regress-211590.js';
+
+var BUGNUMBER = 211590;
 var summary = 'Math.random should be random';
 var actual = '';
 var expect = 'between 49% and 51%';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 var r = Math.random;
 var c = Math.pow( 2, 53 );
 
@@ -51,12 +53,12 @@ var n = 10000;
 var odd1 = 0;
 var odd2 = 0;
 
-for ( var i = 0; i < n; ++i ) 
+for ( var i = 0; i < n; ++i )
 {
   var v= r() * c;
-  if ( v & 1 ) 
+  if ( v & 1 )
     ++odd1;
-  if ( v - c + c & 1 ) 
+  if ( v - c + c & 1 )
     ++odd2;
 }
 

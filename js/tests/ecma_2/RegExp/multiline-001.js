@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'multiline-001.js';
+
+
+
+
+
+
+
+
+
 var SECTION = "RegExp/multiline-001";
 var VERSION = "ECMA_2";
 var TITLE   = "RegExp: multiline flag";
@@ -15,7 +53,7 @@ var BUGNUMBER="343901";
 startTest();
 
 var woodpeckers = "ivory-billed\ndowny\nhairy\nacorn\nyellow-bellied sapsucker\n" +
-"northern flicker\npileated\n";
+  "northern flicker\npileated\n";
 
 AddRegExpCases( /.*[y]$/m, woodpeckers, woodpeckers.indexOf("downy"), ["downy"] );
 

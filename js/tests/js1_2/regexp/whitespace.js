@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'whitespace.js';
+
 
 
 
@@ -99,24 +101,24 @@ var i;
 
 for (i = 0; i < whitespace.length; ++i)
 {
-    s = 'ab' + whitespace[i] + 'cd';
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(new RegExp('\\\\s'))",
-		   String([whitespace[i]]), String(s.match(new RegExp('\\s'))));
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(/\s/)",
-		   String([whitespace[i]]), String(s.match(/\s/)));
+  s = 'ab' + whitespace[i] + 'cd';
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(new RegExp('\\\\s'))",
+		 String([whitespace[i]]), String(s.match(new RegExp('\\s'))));
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(/\s/)",
+		 String([whitespace[i]]), String(s.match(/\s/)));
 }
 
 for (i = 0; i < non_whitespace.length; ++i)
 {
-    s = '  ' + non_whitespace[i] + '  ';
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(new RegExp('\\\\S'))",
-		   String([non_whitespace[i]]), String(s.match(new RegExp('\\S'))));
-    new TestCase ( SECTION,
-		   "'" + s + "'.match(/\S/)",
-		   String([non_whitespace[i]]), String(s.match(/\S/)));
+  s = '  ' + non_whitespace[i] + '  ';
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(new RegExp('\\\\S'))",
+		 String([non_whitespace[i]]), String(s.match(new RegExp('\\S'))));
+  new TestCase ( SECTION,
+		 "'" + s + "'.match(/\S/)",
+		 String([non_whitespace[i]]), String(s.match(/\S/)));
 }
 
 

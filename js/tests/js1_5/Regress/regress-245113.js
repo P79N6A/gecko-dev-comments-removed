@@ -36,20 +36,22 @@
 
 
 
-var bug = 245113;
+var gTestfile = 'regress-245113.js';
+
+var BUGNUMBER = 245113;
 var summary = 'instanceof operator should return false for class prototype';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 Date.prototype.test = function() {
-	return (this instanceof Date);
+  return (this instanceof Date);
 };
 
 String.prototype.test = function() {
-	return (this instanceof String);
+  return (this instanceof String);
 };
 
 status = summary + inSection(1);

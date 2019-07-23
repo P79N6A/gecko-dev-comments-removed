@@ -36,19 +36,21 @@
 
 
 
-var bug = 244470;
+var gTestfile = 'regress-244470.js';
+
+var BUGNUMBER = 244470;
 var summary = 'Don\'t Crash';
 var actual = 'Crash';
 var expect = 'No Crash';
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var g;
 for (var i=1; ; ++i) {
 
-  g=new Function("ABCDEFGHIJK", "1234"); 
   g=new Function("ABCDEFGHIJK", "1234");
-  g=new Function("ABCDEFGHIJK", "1234"); 
+  g=new Function("ABCDEFGHIJK", "1234");
+  g=new Function("ABCDEFGHIJK", "1234");
   g=new Function("ABCDEFGHIJK", "1234");
   g=new Function("ABCDEFGHIJK", "1234");
   g=new Function("ABCDEFGHIJK", "1234");
@@ -1096,16 +1098,16 @@ for (var i=1; ; ++i) {
     printStatus("This doesn't want to crash now, please keep trying.");
     break;
   }
-	
+
 }
 
 
 
-function dummy(){} 
+function dummy(){}
 function dummy2(){}
 function dummy3(){}
 
 actual = 'No Crash';
-  
+ 
 reportCompare(expect, actual, summary);
 

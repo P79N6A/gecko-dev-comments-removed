@@ -35,7 +35,9 @@
 
 
 
-var bug = 350793;
+var gTestfile = 'regress-350793-02.js';
+
+var BUGNUMBER = 350793;
 var summary = 'for-in loops must be yieldable';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -48,11 +50,11 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var gen = function() { for(let y in [5,6,7,8]) yield ({}); };
-  for (let it in gen()) 
+  for (let it in gen())
     ;
   gc();
 

@@ -35,6 +35,8 @@
 
 
 
+gTestfile = 'regress-7224.js';
+
 
 
 
@@ -75,14 +77,14 @@ o.foo("a", "b", "c");
 
 
 AddTestCase(
-    "var f = new Function( 'return arguments.caller' ); f()",
-    undefined,
-    f() );
+  "var f = new Function( 'return arguments.caller' ); f()",
+  undefined,
+  f() );
 
 AddTestCase(
-    "var o = {}; o.foo = f; o.foo('a')",
-    undefined,
-    o.foo('a') );
+  "var o = {}; o.foo = f; o.foo('a')",
+  undefined,
+  o.foo('a') );
 
 test();       
 

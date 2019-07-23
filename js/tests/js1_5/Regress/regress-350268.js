@@ -35,7 +35,9 @@
 
 
 
-var bug = 350268;
+var gTestfile = 'regress-350268.js';
+
+var BUGNUMBER = 350268;
 var summary = 'new Function with unbalanced braces';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f;

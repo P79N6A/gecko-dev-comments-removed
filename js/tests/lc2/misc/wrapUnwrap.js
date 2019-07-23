@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'wrapUnwrap.js';
+
+
 
 
 
@@ -58,7 +61,7 @@ jsEquals(hashtable,sameHashtable);
 javaEquals(hashtable,sameHashtable);
 
 function returnString(theString) {
-    return theString;
+  return theString;
 }
 var someString = new java.lang.String("foo");
 var sameString = returnString(someString);
@@ -71,9 +74,9 @@ jsEquals(someString,assignToProperty.assignedString);
 javaEquals(someString,assignToProperty.assignedString);
 
 function laConstructor(a,b,c) {
-    this.one = a;
-    this.two = b;
-    this.three = c;
+  this.one = a;
+  this.two = b;
+  this.three = c;
 }
 var stack1 = new java.util.Stack();
 var stack2 = new java.util.Stack();
@@ -86,15 +89,15 @@ jsEquals(num, constructed.three);
 test();
 
 function jsEquals(expectedResult, actualResult, message) {
-    new TestCase( SECTION,
-		  expectedResult +" == "+actualResult,
-		  expectedResult,
-		  actualResult );
+  new TestCase( SECTION,
+		expectedResult +" == "+actualResult,
+		expectedResult,
+		actualResult );
 }
 
 function javaEquals(expectedResult, actualResult, message) {
-    new TestCase( SECTION,
-		  expectedResult +" == "+actualResult,
-		  expectedResult,
-		  actualResult );
+  new TestCase( SECTION,
+		expectedResult +" == "+actualResult,
+		expectedResult,
+		actualResult );
 }

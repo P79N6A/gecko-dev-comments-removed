@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '15.3.4-1.js';
+
+
 
 
 
@@ -73,19 +76,19 @@ new TestCase( SECTION,
 
 
 
-new TestCase( SECTION,  
-	      "Function.prototype.valueOf",       
-	      Object.prototype.valueOf,   
+new TestCase( SECTION, 
+	      "Function.prototype.valueOf",      
+	      Object.prototype.valueOf,  
 	      Function.prototype.valueOf );
 
-new TestCase( SECTION,  
-	      "Function.prototype()",             
-	      (void 0),                   
+new TestCase( SECTION, 
+	      "Function.prototype()",            
+	      (void 0),                  
 	      Function.prototype() );
 
-new TestCase( SECTION,  
-	      "Function.prototype(1,true,false,'string', new Date(),null)",  
-	      (void 0), 
+new TestCase( SECTION, 
+	      "Function.prototype(1,true,false,'string', new Date(),null)", 
+	      (void 0),
 	      Function.prototype(1,true,false,'string', new Date(),null) );
 
 test();

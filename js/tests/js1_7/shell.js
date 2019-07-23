@@ -39,9 +39,11 @@
 
 
 
+gTestsuite = 'js1_7';
+
 
 if (typeof version != 'undefined')
 {
-    version(170);
+  version(170);
 }
 

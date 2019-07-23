@@ -35,7 +35,9 @@
 
 
 
-var bug = 351626;
+var gTestfile = 'regress-351693.js';
+
+var BUGNUMBER = 351626;
 var summary = 'decompilation of ternary with parenthesized constant condition';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   f = function() { (0) ? x : y }

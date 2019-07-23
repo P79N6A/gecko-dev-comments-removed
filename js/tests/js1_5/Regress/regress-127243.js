@@ -36,15 +36,17 @@
 
 
 
-var bug = 127243;
+var gTestfile = 'regress-127243.js';
+
+var BUGNUMBER = 127243;
 var summary = 'Do not crash on watch';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-if (typeof window != 'undefined' && typeof document != 'undefined')  
+if (typeof window != 'undefined' && typeof document != 'undefined') 
 {
   
   gDelayTestDriverEnd = true;

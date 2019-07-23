@@ -36,8 +36,10 @@
 
 
 
+var gTestfile = 'regress-3649-n.js';
 
-var bug = 3649;
+
+var BUGNUMBER = 3649;
 var summary = 'gc-checking branch callback.';
 var actual = 'error';
 var expect = 'error';
@@ -45,9 +47,9 @@ var expect = 'error';
 DESCRIPTION = summary;
 EXPECTED = expect;
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 expectExitCode(0);
 expectExitCode(5);
 

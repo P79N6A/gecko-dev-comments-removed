@@ -35,12 +35,15 @@
 
 
 
-var bug     = "352285";
+gTestfile = 'decompile-xml-escapes.js';
+
+
+var BUGNUMBER     = "352285";
 var summary = "Decompiler escapes line breaks/backslashes in E4X literals";
 var actual, expect;
 
-printBugNumber(bug);
-printStatus(summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 
 

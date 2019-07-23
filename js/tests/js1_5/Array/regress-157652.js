@@ -113,12 +113,14 @@
 
 
 
-var bug = 157652;
+
+var gTestfile = 'regress-157652.js';
+var BUGNUMBER = 157652;
 var summary = "Testing that Array.sort() doesn't crash on very large arrays";
 var expect = 'No Crash';
 var actual = 'No Crash';
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 expectExitCode(5);

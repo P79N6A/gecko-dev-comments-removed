@@ -35,13 +35,15 @@
 
 
 
-var bug = 340526;
-var summary = 'Iterators: cross-referenced objects with close handler can ' + 
+var gTestfile = 'regress-340526-01.js';
+
+var BUGNUMBER = 340526;
+var summary = 'Iterators: cross-referenced objects with close handler can ' +
   'delay close handler execution';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 try
@@ -55,5 +57,5 @@ catch(ex)
 {
   print(ex + '');
 }
-  
+ 
 reportCompare(expect, actual, summary);

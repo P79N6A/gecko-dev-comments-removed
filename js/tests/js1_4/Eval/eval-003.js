@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'eval-003.js';
+
+
 
 
 
@@ -76,13 +79,13 @@ var MY_EVAL = eval;
 var RESULT = "";
 var EXPECT= "";
 var h = function f(x,y){var g = function(z){return Math.exp(z);}; return g(x+y);};
-    
+   
 
 new EvalTest();
 
 test();
 
-function EvalTest() 
+function EvalTest()
 {
   with( this ) {
     MY_EVAL( "RESULT = h(-1, 1)" );

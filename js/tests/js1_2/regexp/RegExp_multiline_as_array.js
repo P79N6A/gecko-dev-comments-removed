@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'RegExp_multiline_as_array.js';
+
 
 
 

@@ -53,8 +53,11 @@
 
 
 
+
+
+var gTestfile = 'regress-222029-001.js';
 var UBound = 0;
-var bug = 222029;
+var BUGNUMBER = 222029;
 var summary = "Make our f.caller property match IE's wrt f.apply and f.call";
 var status = '';
 var statusitems = [];
@@ -145,7 +148,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

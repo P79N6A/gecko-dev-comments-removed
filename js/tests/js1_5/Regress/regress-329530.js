@@ -35,12 +35,14 @@
 
 
 
-var bug = 329530;
+var gTestfile = 'regress-329530.js';
+
+var BUGNUMBER = 329530;
 var summary = 'Do not crash when calling toString on a deeply nested function';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 expectExitCode(0);
@@ -67,5 +69,5 @@ catch(ex)
   printStatus(ex + '');
 }
 
-  
+ 
 reportCompare(expect, actual, summary);

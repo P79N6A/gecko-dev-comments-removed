@@ -48,7 +48,10 @@
 
 
 
-var bug = 68498;
+
+
+var gTestfile = 'regress-68498-003.js';
+var BUGNUMBER = 68498;
 var summary = 'Testing calling obj.eval(str)';
 var statprefix = '; currently at expect[';
 var statsuffix = '] within test -';
@@ -81,12 +84,12 @@ test();
 
 
 
-function test() 
+function test()
 {
-  enterFunc ('test'); 
-  printBugNumber (bug);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   for (var i in expect)
   {
     reportCompare(expect[i], actual[i], getStatus(i));

@@ -35,12 +35,14 @@
 
 
 
-var bug = 306788;
+var gTestfile = 'regress-306788.js';
+
+var BUGNUMBER = 306788;
 var summary = 'Do not crash sorting Arrays due to GC';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var array = new Array();
@@ -51,5 +53,5 @@ for (var i = 0; i < 5000; i++)
 }
 
 array.sort();
-  
+ 
 reportCompare(expect, actual, summary);

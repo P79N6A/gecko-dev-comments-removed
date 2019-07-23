@@ -35,6 +35,44 @@
 
 
 
+gTestfile = 'match-004.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "String/match-004.js";
 var VERSION = "ECMA_2";
 var TITLE   = "String.prototype.match( regexp )";

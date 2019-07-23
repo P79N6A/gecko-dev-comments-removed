@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.8.2.12.js';
+
 
 
 
@@ -104,46 +106,46 @@ new TestCase( SECTION,
 
 new TestCase( SECTION,
 	      "Math.min(NaN,0)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(Number.NaN,0) );
 
 new TestCase( SECTION,
 	      "Math.min(NaN,1)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(Number.NaN,1) );
 
 new TestCase( SECTION,
 	      "Math.min(NaN,-1)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(Number.NaN,-1) );
 
 new TestCase( SECTION,
 	      "Math.min(0,NaN)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(0,Number.NaN) );
 
 new TestCase( SECTION,
 	      "Math.min(1,NaN)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(1,Number.NaN) );
 
 new TestCase( SECTION,
 	      "Math.min(-1,NaN)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(-1,Number.NaN) );
 
 new TestCase( SECTION,
 	      "Math.min(NaN,NaN)",
-	      Number.NaN, 
+	      Number.NaN,
 	      Math.min(Number.NaN,Number.NaN) );
 
 new TestCase( SECTION,
-	      "Math.min(1,1.0000000001)", 
+	      "Math.min(1,1.0000000001)",
 	      1,
 	      Math.min(1,1.0000000001) );
 
 new TestCase( SECTION,
-	      "Math.min(1.0000000001,1)", 
+	      "Math.min(1.0000000001,1)",
 	      1,
 	      Math.min(1.0000000001,1) );
 

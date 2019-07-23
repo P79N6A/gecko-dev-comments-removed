@@ -35,12 +35,14 @@
 
 
 
-var bug = 234389;
+var gTestfile = 'regress-234389.js';
+
+var BUGNUMBER = 234389;
 var summary = 'Do not Crash when overloaded toString causes infinite recursion';
 var actual = ''
-var expect = 'Internal Error: too much recursion';
+  var expect = 'Internal Error: too much recursion';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var foo = {
@@ -50,9 +52,9 @@ var foo = {
     }
     return this.value;
   },
-  
+ 
   value: "foo",
-  
+ 
   re: /bar/
 };
 

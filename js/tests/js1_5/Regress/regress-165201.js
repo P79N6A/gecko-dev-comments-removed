@@ -36,7 +36,9 @@
 
 
 
-var bug = 165201;
+var gTestfile = 'regress-165201.js';
+
+var BUGNUMBER = 165201;
 var summary = '';
 var actual = '';
 var expect = '';
@@ -44,7 +46,7 @@ var expect = '';
 
 summary = 'RegExp.prototype.toSource should not affect RegExp.prototype.toString';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 
@@ -52,9 +54,9 @@ printStatus (summary);
 
 
 
-function f() 
-{ 
-  return /abc/; 
+function f()
+{
+  return /abc/;
 }
 
 RegExp.prototype.toSource = function() { return 'Hi there'; };
@@ -69,17 +71,17 @@ reportCompare(expect, actual, summary);
 
 
 summary = 'Array.prototype.toSource should not affect Array.prototype.toString';
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-function g() 
-{ 
-  return [1,2,3]; 
+function g()
+{
+  return [1,2,3];
 }
 
 Array.prototype.toSource = function() { return 'Hi there'; }
 
-expect = -1;
+  expect = -1;
 actual = g.toString().indexOf('Hi there');
 
 reportCompare(expect, actual, summary);

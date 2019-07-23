@@ -35,6 +35,8 @@
 
 
 
+gTestfile = 'template.js';
+
 
 
 

@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = '11.4.1-001.js';
 var UBound = 0;
-var bug = 201987;
+var BUGNUMBER = 201987;
 var summary = '|delete x.y| should return |true| if |x| has no property |y|';
 var status = '';
 var statusitems = [];
@@ -105,7 +108,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

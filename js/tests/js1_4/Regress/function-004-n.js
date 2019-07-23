@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'function-004-n.js';
+
+
 
 
 
@@ -60,9 +63,9 @@ DESCRIPTION = "var o = {}; o.call = Function.prototype.call; o.call()";
 EXPECTED = "error";
 
 new TestCase(
-    SECTION,
-    "var o = {}; o.call = Function.prototype.call; o.call()",
-    "error",
-    o.call() );
+  SECTION,
+  "var o = {}; o.call = Function.prototype.call; o.call()",
+  "error",
+  o.call() );
 
 test();

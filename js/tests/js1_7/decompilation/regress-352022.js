@@ -35,7 +35,9 @@
 
 
 
-var bug = 352022;
+var gTestfile = 'regress-352022.js';
+
+var BUGNUMBER = 352022;
 var summary = 'decompilation of let, delete and parens';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   f = function() { g(h) = (delete let (y) 3); }

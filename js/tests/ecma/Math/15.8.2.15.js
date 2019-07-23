@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.8.2.15.js';
+
 
 
 
@@ -138,7 +140,7 @@ new TestCase( SECTION,
 	      Infinity/Math.round(-0) );
 
 new TestCase( SECTION,
-	      "Math.round(Infinity)", 
+	      "Math.round(Infinity)",
 	      Number.POSITIVE_INFINITY,
 	      Math.round(Number.POSITIVE_INFINITY));
 

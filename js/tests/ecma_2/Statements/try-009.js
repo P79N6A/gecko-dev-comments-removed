@@ -11,6 +11,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'try-009.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "try-009";
 var VERSION = "ECMA_2";
 var TITLE   = "The try statement: try in a while block";

@@ -43,9 +43,12 @@
 
 
 
+
+
+var gTestfile = 'class-001.js';
 var i = 0;
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing the internal [[Class]] property of objects';
 var statprefix = 'Current object is: ';
 var status = ''; var statusList = [ ];
@@ -128,9 +131,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalue[i], actualvalue[i], getStatus(i));

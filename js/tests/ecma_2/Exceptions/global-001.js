@@ -12,6 +12,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'global-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "global-001";
 var VERSION = "ECMA_1";
 var TITLE   = "The Global Object";

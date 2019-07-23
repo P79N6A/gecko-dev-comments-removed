@@ -9,6 +9,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'exception-008.js';
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "exception-008";
 var VERSION = "js1_4";
 var TITLE   = "Tests for JavaScript Standard Exceptions: SyntaxError";

@@ -35,7 +35,9 @@
 
 
 
-var bug = 345855;
+var gTestfile = 'regress-345855.js';
+
+var BUGNUMBER = 345855;
 var summary = 'Blank yield expressions are not syntax errors';
 var actual = '';
 var expect = 'No Error';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   expect = 'SyntaxError: syntax error';
   try
   {

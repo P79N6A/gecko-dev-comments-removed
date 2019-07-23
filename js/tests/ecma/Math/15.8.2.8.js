@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.8.2.8.js';
+
 
 
 
@@ -125,7 +127,7 @@ new TestCase( SECTION,
 	      Math.exp(Number.POSITIVE_INFINITY) );
 
 new TestCase( SECTION,
-	      "Math.exp(-Infinity)",  
+	      "Math.exp(-Infinity)", 
 	      0,
 	      Math.exp(Number.NEGATIVE_INFINITY) );
 

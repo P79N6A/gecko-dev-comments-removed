@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'function-003.js';
+
+
 
 
 
@@ -66,7 +69,7 @@ function StripSpaces( s ) {
         currentChar < s.length; currentChar++ )
   {
     if (!IsWhiteSpace(s.charAt(currentChar))) {
-	    strippedString += s.charAt(currentChar);
+      strippedString += s.charAt(currentChar);
     }
   }
   return strippedString;

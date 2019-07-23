@@ -41,8 +41,11 @@
 
 
 
+
+
+var gTestfile = 'regress-77578-001.js';
 var UBound = 0;
-var bug = 77578;
+var BUGNUMBER = 77578;
 var summary = 'Testing eval scope inside a function';
 var cnEquals = '=';
 var status = '';
@@ -70,7 +73,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   

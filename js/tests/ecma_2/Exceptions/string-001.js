@@ -16,6 +16,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'string-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "string-001";
 var VERSION = "JS1_4";
 var TITLE   = "String.prototype.toString";

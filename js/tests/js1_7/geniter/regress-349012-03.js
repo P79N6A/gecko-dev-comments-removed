@@ -35,7 +35,9 @@
 
 
 
-var bug = 349012;
+var gTestfile = 'regress-349012-03.js';
+
+var BUGNUMBER = 349012;
 var summary = 'generator recursively calling itself via send is a TypeError';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   function gen() {

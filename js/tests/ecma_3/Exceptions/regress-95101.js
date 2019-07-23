@@ -41,8 +41,11 @@
 
 
 
+
+
+var gTestfile = 'regress-95101.js';
 var UBound = 0;
-var bug = 95101;
+var BUGNUMBER = 95101;
 var summary = 'Invoking an undefined function should produce a ReferenceError';
 var msgERR_REF_YES = 'ReferenceError';
 var msgERR_REF_NO = 'did NOT generate a ReferenceError';
@@ -96,7 +99,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

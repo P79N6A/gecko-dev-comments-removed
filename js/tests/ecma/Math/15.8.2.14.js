@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '15.8.2.14.js';
+
+
 
 
 
@@ -57,9 +60,9 @@ var TITLE   = "Math.random()";
 writeHeaderToLog( SECTION + " "+ TITLE);
 
 for ( var item = 0; item < 100; item++ ) {
-  var testcase = new TestCase( SECTION,  
-			       "Math.random()",    
-			       "pass",    
+  var testcase = new TestCase( SECTION, 
+			       "Math.random()",   
+			       "pass",   
 			       null );
   testcase.reason = Math.random();
   testcase.actual = "pass";

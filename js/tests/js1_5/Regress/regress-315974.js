@@ -35,6 +35,7 @@
 
 
 
+var gTestfile = 'regress-315974.js';
 
 
 
@@ -43,13 +44,14 @@
 
 
 
-var bug = 315974;
+
+var BUGNUMBER = 315974;
 var summary = 'Test internal printf() for wide characters';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
-enterFunc (String (bug));
+enterFunc (String (BUGNUMBER));
 
 var goodSurrogatePair = '\uD841\uDC42';
 var badSurrogatePair = '\uD841badbad';
@@ -65,7 +67,7 @@ var actual = goodSurrogatePair.quote();
 var expect = goodSurrogatePairQuotedUtf8;
 
 if (actual != expect && actual == goodSurrogatePairQuotedNoUtf8)
-	expect = actual;
+  expect = actual;
 reportCompare(expect, actual, status);
 
 
@@ -78,4 +80,4 @@ actual = badSurrogatePair.quote();
 
 reportCompare(badSurrogatePairQuotedNoUtf8, actual, status);
 
-exitFunc (String (bug));
+exitFunc (String (BUGNUMBER));

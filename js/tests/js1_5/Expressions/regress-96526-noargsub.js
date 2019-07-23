@@ -46,8 +46,11 @@
 
 
 
+
+
+var gTestfile = 'regress-96526-noargsub.js';
 var UBound = 0;
-var bug = 96526;
+var BUGNUMBER = 96526;
 var summary = 'Testing "use" and "set" ops on expressions like a[i][j][k]';
 var status = '';
 var statusitems = [];
@@ -110,7 +113,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

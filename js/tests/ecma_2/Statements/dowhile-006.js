@@ -9,6 +9,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'dowhile-006.js';
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "dowhile-006";
 var VERSION = "ECMA_2";
 var TITLE   = "do...while";
@@ -44,30 +82,30 @@ function DoWhile( object ) {
   var result2 = false;
 
 outie: {
-innie: {
-  do {
-    if ( object.breakOut )
-      break outie;
+  innie: {
+      do {
+	if ( object.breakOut )
+	  break outie;
 
-    if ( object.breakIn )
-      break innie;
+	if ( object.breakIn )
+	  break innie;
 
-  } while ( looping(object) );
+      } while ( looping(object) );
 
-  
-  
-  
+      
+      
+      
 
-  result1 = true;
+      result1 = true;
 
-}
-
-
+    }
 
 
 
 
-result2 = true;
+
+
+    result2 = true;
   }
 
   new TestCase(

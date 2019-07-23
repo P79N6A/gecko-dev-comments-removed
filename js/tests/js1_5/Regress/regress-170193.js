@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-170193.js';
 var UBound = 0;
-var bug = 170193;
+var BUGNUMBER = 170193;
 var summary = 'adding property after middle-delete of function w duplicate formal args';
 var status = '';
 var statusitems = [];
@@ -96,7 +99,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

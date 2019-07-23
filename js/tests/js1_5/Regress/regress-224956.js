@@ -44,8 +44,10 @@
 
 
 
+
+var gTestfile = 'regress-224956.js';
 var UBound = 0;
-var bug = 224956;
+var BUGNUMBER = 224956;
 var summary = "|expr()| should cause TypeError if |typeof expr| != 'function'";
 var TEST_PASSED = 'TypeError';
 var TEST_FAILED = 'Generated an error, but NOT a TypeError! ';
@@ -273,7 +275,7 @@ function checkThis(sValidSyntax)
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

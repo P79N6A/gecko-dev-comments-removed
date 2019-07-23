@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'class-001.js';
+
 
 
 
@@ -103,16 +105,16 @@ i++;
 
 
 for ( i = 0; i < java_array.length; i++ ) {
-    CompareValues( java_array[i], test_array[i] );
+  CompareValues( java_array[i], test_array[i] );
 }
 
 test();
 function CompareValues( javaval, testval ) {
-    
-    new TestCase( SECTION,
-		  "typeof (" + testval.description +")",
-		  testval.type,
-		  javaval.type );
+  
+  new TestCase( SECTION,
+		"typeof (" + testval.description +")",
+		testval.type,
+		javaval.type );
 
 
 
@@ -120,33 +122,33 @@ function CompareValues( javaval, testval ) {
 
 
 
-    
-    new TestCase( SECTION,
-		  "(" + testval.description +") +''",
-		  testval.classname,
-		  javaval.classname );
+  
+  new TestCase( SECTION,
+		"(" + testval.description +") +''",
+		testval.classname,
+		javaval.classname );
 }
 function JavaValue( value ) {
-    
+  
 
 
 
-    this.classname = value +"";
-    this.type   = typeof value;
-    return this;
+  this.classname = value +"";
+  this.type   = typeof value;
+  return this;
 }
 function TestValue( description, value ) {
-    this.description = description;
-    this.type =  E_TYPE;
-    this.jclass = E_JSCLASS;
-    this.lcclass = java.lang.Class.forName( description );
+  this.description = description;
+  this.type =  E_TYPE;
+  this.jclass = E_JSCLASS;
+  this.lcclass = java.lang.Class.forName( description );
 
-    this.classname = "[JavaClass " +
-	(  ( description.substring(0,9) == "Packages." )
-	   ? description.substring(9,description.length)
-	   : description
-	    ) + "]"
+  this.classname = "[JavaClass " +
+    (  ( description.substring(0,9) == "Packages." )
+       ? description.substring(9,description.length)
+       : description
+      ) + "]"
 
 
-	return this;
+    return this;
 }

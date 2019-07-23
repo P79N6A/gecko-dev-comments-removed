@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-193555.js';
 var UBound = 0;
-var bug = 193555;
+var BUGNUMBER = 193555;
 var summary = 'Testing access to function name from inside function';
 var status = '';
 var statusitems = [];
@@ -121,7 +124,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

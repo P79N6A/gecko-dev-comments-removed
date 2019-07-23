@@ -35,14 +35,16 @@
 
 
 
-var bug = 352197;
+var gTestfile = 'regress-352197.js';
+
+var BUGNUMBER = 352197;
 var summary = 'Strict warning for return e; vs. return;';
 var actual = '';
 var expect = 'TypeError: function f does not always return a value';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 options('strict');
 options('werror');
 

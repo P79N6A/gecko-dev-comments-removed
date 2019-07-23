@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '15.9.3.8-2.js';
+
+
 
 
 
@@ -91,7 +94,7 @@ var MS          = 16;
 
 
 
-var tc= 0;
+var gTc= 0;
 var TITLE = "Date constructor:  new Date( value )";
 var SECTION = "15.9.3.8";
 var VERSION = "ECMA_1";
@@ -127,7 +130,7 @@ test();
 
 function addNewTestCase( DateCase, DateString, ResultArray ) {
   
-  adjustResultArray(ResultArray, 'msMode'); 
+  adjustResultArray(ResultArray, 'msMode');
 
   new TestCase( SECTION, DateString+".getTime()", ResultArray[TIME],       DateCase.getTime() );
   new TestCase( SECTION, DateString+".valueOf()", ResultArray[TIME],       DateCase.valueOf() );

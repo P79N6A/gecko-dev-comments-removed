@@ -35,11 +35,13 @@
 
 
 
-var bug     = 326466;  
+var gTestfile = 'simple-fib.js';
+
+var BUGNUMBER     = 326466;  
 var summary = "Simple Fibonacci iterator";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

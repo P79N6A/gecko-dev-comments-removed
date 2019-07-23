@@ -64,8 +64,11 @@
 
 
 
+
+
+var gTestfile = 'scope-003.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing scope with nested functions';
 var statprefix = 'Section ';
 var statsuffix = ' of test -';
@@ -85,10 +88,10 @@ function a()
   }
 
   this.c = function()
-  {
-    capture(this.toString());
-    b();
-  }
+    {
+      capture(this.toString());
+      b();
+    }
 
   b();
 }
@@ -122,9 +125,9 @@ function capture(val)
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i=0; i<UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

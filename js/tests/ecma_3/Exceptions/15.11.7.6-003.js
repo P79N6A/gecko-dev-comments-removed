@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = '15.11.7.6-003.js';
 var UBound = 0;
-var bug = 201989;
+var BUGNUMBER = 201989;
 var summary = 'Prototype of predefined error objects should be ReadOnly';
 var status = '';
 var statusitems = [];
@@ -72,15 +75,15 @@ function testReadOnly(F)
 
 
 var list = [
-    "Error",
-    "ConversionError",
-    "EvalError",
-    "RangeError",
-    "ReferenceError",
-    "SyntaxError",
-    "TypeError",
-    "URIError"
-];
+  "Error",
+  "ConversionError",
+  "EvalError",
+  "RangeError",
+  "ReferenceError",
+  "SyntaxError",
+  "TypeError",
+  "URIError"
+  ];
 
 
 for (i in list)
@@ -117,7 +120,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

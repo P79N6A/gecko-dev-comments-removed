@@ -35,7 +35,9 @@
 
 
 
-var bug = 363040;
+var gTestfile = 'regress-363040-01.js';
+
+var BUGNUMBER = 363040;
 var summary = 'Array.prototype.reduce, Array.prototype.reduceRight';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   function f(x,y) { return '(' + x + '+' + y + ')';}
 
   var testdesc;

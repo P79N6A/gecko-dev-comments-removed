@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'enum-002.js';
+
 
 
 
@@ -64,14 +66,14 @@ v.addElement("TRUE");
 for (e = v.elements(), result = new Array(), i = 0 ; e.hasMoreElements();
      i++ )
 {
-    result[i] = (new java.lang.Boolean(e.nextElement())).booleanValue();
+  result[i] = (new java.lang.Boolean(e.nextElement())).booleanValue();
 }
 
 for ( i = 0; i < result.length; i++ ) {
-    new TestCase( SECTION,
-		  "test enumeration of a java object:  element at " + i,
-		  "true",
-		  String( result[i] ) );
+  new TestCase( SECTION,
+		"test enumeration of a java object:  element at " + i,
+		"true",
+		String( result[i] ) );
 }
 
 test();

@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-74474-001.js';
 var UBound = 0;
-var bug = 74474;
+var BUGNUMBER = 74474;
 var summary = 'Testing switch statements with duplicate labels';
 var status = '';
 var statusitems = [ ];
@@ -59,10 +62,10 @@ status = 'Section A of test: the string literal "1" as a duplicate label';
 actual = '';
 switch ('1')
 {
-  case '1':
-    actual += 'a';
-  case '1':
-    actual += 'b';
+case '1':
+  actual += 'a';
+case '1':
+  actual += 'b';
 }
 expect = 'ab';
 addThis();
@@ -72,10 +75,10 @@ status = 'Section B of test: the numeric literal 1 as a duplicate label';
 actual = '';
 switch (1)
 {
-  case 1:
-    actual += 'a';
-  case 1:
-    actual += 'b';
+case 1:
+  actual += 'a';
+case 1:
+  actual += 'b';
 }
 expect = 'ab';
 addThis();
@@ -89,10 +92,10 @@ function tryThis(x)
 
   switch (x)
   {
-    case x:
-      actual += 'a';
-    case x:
-      actual += 'b';
+  case x:
+    actual += 'a';
+  case x:
+    actual += 'b';
   }
 }
 expect = 'ab';
@@ -118,9 +121,9 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], getStatus(i));

@@ -7,6 +7,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'expression-010.js';
+
+
+
+
+
+
+
+
+
 var SECTION = "expression-010";
 var VERSION = "JS1_4";
 var TITLE   = "The new operator";

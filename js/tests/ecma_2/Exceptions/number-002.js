@@ -13,6 +13,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'number-002.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "number-002";
 var VERSION = "JS1_4";
 var TITLE   = "Exceptions for Number.valueOf()";

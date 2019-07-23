@@ -43,7 +43,10 @@
 
 
 
-var bug = 96128;
+
+
+var gTestfile = 'regress-96128-n.js';
+var BUGNUMBER = 96128;
 var summary = 'Testing that JS infinite recursion protection works';
 
 
@@ -69,14 +72,14 @@ test();
 
 
 
-function test() 
+function test()
 {
-  enterFunc ('test'); 
-  printBugNumber (bug);
+  enterFunc ('test');
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   
   var obj = new objRecurse();
- 
+
   exitFunc ('test');
 }

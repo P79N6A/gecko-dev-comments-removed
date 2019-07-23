@@ -11,6 +11,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'lexical-041.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "lexical-041";
 var VERSION = "ECMA_1";
 var TITLE   = "Identifiers";

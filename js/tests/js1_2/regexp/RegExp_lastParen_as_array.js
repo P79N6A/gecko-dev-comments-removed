@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'RegExp_lastParen_as_array.js';
+
 
 
 

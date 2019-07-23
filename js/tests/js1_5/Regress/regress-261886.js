@@ -36,12 +36,14 @@
 
 
 
-var bug = 261886;
+var gTestfile = 'regress-261886.js';
+
+var BUGNUMBER = 261886;
 var summary = 'Always evaluate delete operand expression';
 var actual = '';
 var expect = '';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var o = {a:1};
@@ -57,5 +59,5 @@ catch(e)
   actual = o.a;
   summary += ' ' + e;
 }
-  
+ 
 reportCompare(expect, actual, summary);

@@ -46,14 +46,17 @@
 
 
 
-var bug = 104584;
+
+
+var gTestfile = 'regress-104584.js';
+var BUGNUMBER = 104584;
 var summary = "Testing that we don't crash on this code -";
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 F();
-G(); 
+G();
 
 reportCompare('No Crash', 'No Crash', '');
 

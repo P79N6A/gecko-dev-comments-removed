@@ -40,10 +40,12 @@
 
 
 
+gTestfile = '12.2.js';
+
 START("12.2 - For-in statement");
 
 
-e = 
+e =
 <employees>
     <employee id="1">
         <name>Joe</name>
@@ -67,7 +69,7 @@ TEST("1.count", 2, i);
 
 
 
-order = 
+order =
 <order>
     <customer>
         <name>John Smith</name>

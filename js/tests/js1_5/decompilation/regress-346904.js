@@ -35,7 +35,9 @@
 
 
 
-var bug = 346904;
+var gTestfile = 'regress-346904.js';
+
+var BUGNUMBER = 346904;
 var summary = 'uneval expressions with double negation, negation decrement';
 var actual = '';
 var expect = '';
@@ -48,13 +50,13 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   
-  expect = 
+  expect =
     'function () {\n' +
     '    return - --x;\n' +
     '}';
@@ -71,7 +73,7 @@ function test()
   }
 
   
-  expect = 
+  expect =
     'function () {\n' +
     '    return - - x;\n' +
     '}';
@@ -102,7 +104,7 @@ function test()
   }
 
   
-  expect = 
+  expect =
     'function () {\n' +
     '    return + ++x;\n' +
     '}';
@@ -119,7 +121,7 @@ function test()
   }
 
   
-  expect = 
+  expect =
     'function () {\n' +
     '    return + + x;\n' +
     '}';
@@ -136,7 +138,7 @@ function test()
   }
 
   
- 
+
   expect = 'SyntaxError';
   try
   {

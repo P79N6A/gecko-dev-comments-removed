@@ -36,7 +36,9 @@
 
 
 
-var bug = 352011;
+var gTestfile = 'regress-352011.js';
+
+var BUGNUMBER = 352011;
 var summary = 'decompilation of statements that begin with object literals';
 var actual = '';
 var expect = '';
@@ -49,9 +51,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var f;
 
   f = function() { ({}.y = i); }

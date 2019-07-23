@@ -1,4 +1,40 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function doImport()
 {
   var lines =
@@ -20,7 +56,7 @@ function doImport()
     {
       var ary = lines[l].match (/(.*)\/(.*)\/(.*)/);
 
-      if (!ary) 
+      if (!ary)
       {
         if (!confirm ("Line " + l + " '" +
                       lines[l] + "' is confusing, " +
@@ -29,8 +65,8 @@ function doImport()
           return;
         }
       }
-                  
-      if (suites[ary[1]] && 
+                 
+      if (suites[ary[1]] &&
           suites[ary[1]].testDirs[ary[2]] &&
           suites[ary[1]].testDirs[ary[2]].tests[ary[3]])
       {
@@ -38,7 +74,7 @@ function doImport()
         var radio = elems[radioname];
         if (!radio.checked)
         {
-          radio.checked = true;  
+          radio.checked = true; 
           window.opener.onRadioClick(radio);
         }
       }
@@ -46,5 +82,5 @@ function doImport()
   }
 
   setTimeout('window.close();', 200);
-                  
+                 
 }

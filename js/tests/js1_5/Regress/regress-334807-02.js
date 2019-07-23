@@ -35,12 +35,14 @@
 
 
 
-var bug = 334807;
+var gTestfile = 'regress-334807-02.js';
+
+var BUGNUMBER = 334807;
 var summary = '10.1.8 - arguments prototype is the original Object prototype.';
 var actual = 'No Error';
 var expect = 'TypeError';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 printStatus('set Object = Array');
@@ -49,7 +51,7 @@ Object = Array;
 
 try
 {
-  (function () { printStatus( arguments.join()); })( 1, 2, 3 );  
+  (function () { printStatus( arguments.join()); })( 1, 2, 3 ); 
 }
 catch(ex)
 {

@@ -47,8 +47,11 @@
 
 
 
+
+
+var gTestfile = 'regress-202564.js';
 var i = 0;
-var bug = 202564;
+var BUGNUMBER = 202564;
 var summary = 'Testing regexp with many backreferences';
 var status = '';
 var statusmessages = new Array();
@@ -91,7 +94,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

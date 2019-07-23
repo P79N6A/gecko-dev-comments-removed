@@ -35,12 +35,14 @@
 
 
 
-var bug = 319384;
+var gTestfile = 'regress-319384.js';
+
+var BUGNUMBER = 319384;
 var summary = 'Do not crash converting string to number';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 printStatus('This test only runs in the browser');
@@ -55,5 +57,5 @@ if (typeof clearTimeout === 'function')
   {
   }
 }
-  
+ 
 reportCompare(expect, actual, summary);

@@ -36,6 +36,9 @@
 
 
 
+gTestfile = 'boolean-001.js';
+
+
 
 
 
@@ -59,16 +62,16 @@ BooleanTest( "false",              false,              false );
 test();
 
 function BooleanTest( string, object, expect ) {
-    if ( object ) {
-        result = true;
-    } else {
-        result = false;
-    }
+  if ( object ) {
+    result = true;
+  } else {
+    result = false;
+  }
 
-    new TestCase(
-        SECTION,
-        string,
-        expect,
-        result );
+  new TestCase(
+    SECTION,
+    string,
+    expect,
+    result );
 }
 

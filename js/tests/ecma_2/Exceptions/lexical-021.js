@@ -18,6 +18,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'lexical-021.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "lexical-021.js";
 var VERSION = "ECMA_1";
 var TITLE   = "Future Reserved Words";

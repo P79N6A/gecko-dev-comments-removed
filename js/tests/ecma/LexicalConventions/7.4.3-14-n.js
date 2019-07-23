@@ -36,6 +36,9 @@
 
 
 
+gTestfile = '7.4.3-14-n.js';
+
+
 
 
 
@@ -86,9 +89,9 @@ if (actual == 'error')
   throw actual;
 }
 
-new TestCase( SECTION,  
-              "var enum = true",     
-              "error",    
+new TestCase( SECTION, 
+              "var enum = true",    
+              "error",   
               actual );
 
 test();

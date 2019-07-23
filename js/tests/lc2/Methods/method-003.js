@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'method-003.js';
+
 
 
 
@@ -73,34 +75,34 @@ test_array[i] = new TestValue(  "java.lang.System.out.println" );
 i++;
 
 for ( i = 0; i < java_array.length; i++ ) {
-    CompareValues( java_array[i], test_array[i] );
+  CompareValues( java_array[i], test_array[i] );
 }
 
 test();
 
 function CompareValues( javaval, testval ) {
-    
-    new TestCase( SECTION,
-		  "typeof (" + testval.description +" )",
-		  testval.type,
-		  javaval.type );
+  
+  new TestCase( SECTION,
+		"typeof (" + testval.description +" )",
+		testval.type,
+		javaval.type );
 
-    
-    new TestCase( SECTION,
-		  "(" + testval.description +" ).getJSClass()",
-		  testval.jsclass,
-		  javaval.jsclass );
+  
+  new TestCase( SECTION,
+		"(" + testval.description +" ).getJSClass()",
+		testval.jsclass,
+		javaval.jsclass );
 }
 function JavaValue( value ) {
-    this.type   = typeof value;
-    
-    value.getJSClass = Object.prototype.toString;
-    this.jsclass = value.getJSClass();
-    return this;
+  this.type   = typeof value;
+  
+  value.getJSClass = Object.prototype.toString;
+  this.jsclass = value.getJSClass();
+  return this;
 }
 function TestValue( description  ) {
-    this.description = description;
-    this.type =  E_TYPE;
-    this.jsclass = E_JSCLASS;
-    return this;
+  this.description = description;
+  this.type =  E_TYPE;
+  this.jsclass = E_JSCLASS;
+  return this;
 }

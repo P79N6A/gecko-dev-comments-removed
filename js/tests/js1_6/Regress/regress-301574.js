@@ -36,12 +36,14 @@
 
 
 
-var bug = 301574;
+var gTestfile = 'regress-301574.js';
+
+var BUGNUMBER = 301574;
 var summary = 'E4X should be enabled even when e4x=1 not specified';
 var actual = 'No error';
 var expect = 'No error';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 try
@@ -51,7 +53,7 @@ try
 catch(e)
 {
   actual = 'error: ' + e;
-}  
+} 
 
 reportCompare(expect, actual, summary + ': XML()');
 
@@ -62,6 +64,6 @@ try
 catch(e)
 {
   actual = 'error: ' + e;
-}  
+} 
 
 reportCompare(expect, actual, summary + ': XMLList()');

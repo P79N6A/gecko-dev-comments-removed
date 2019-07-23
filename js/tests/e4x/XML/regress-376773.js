@@ -36,15 +36,17 @@
 
 
 
-var bug = 376773;
+gTestfile = 'regress-376773.js';
+
+var BUGNUMBER = 376773;
 var summary = 'xmlsimple.stringmethod === xmlsimple.function::stringmethod';
 var actual = '';
 var expect = '';
 var actualcall = '';
 var expectcall = '';
 
-printBugNumber (bug);
-printStatus (summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 var nTest = 0;
 var xml = <a>TEXT</a>;

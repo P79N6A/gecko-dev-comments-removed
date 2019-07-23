@@ -36,19 +36,21 @@
 
 
 
-var bug = 249211;
+var gTestfile = 'regress-249211.js';
+
+var BUGNUMBER = 249211;
 var summary = 'support export and import for 4xp';
 var actual = '';
 var expect = 'no error';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 try
 {
-  var o = {}; 
-  var f = function(){}; 
-  export *; 
+  var o = {};
+  var f = function(){};
+  export *;
   import o.*;
   actual = 'no error';
 }

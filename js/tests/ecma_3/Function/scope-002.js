@@ -52,8 +52,11 @@
 
 
 
+
+
+var gTestfile = 'scope-002.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing that functions are scoped statically, not dynamically';
 var self = this;  
 var status = '';
@@ -230,9 +233,9 @@ function resetTestVars()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   for (var i = 0; i < UBound; i++)
   {
     reportCompare(expectedvalues[i], actualvalues[i], statusitems[i]);

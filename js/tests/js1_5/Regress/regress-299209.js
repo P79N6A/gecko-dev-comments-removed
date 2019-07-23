@@ -35,12 +35,14 @@
 
 
 
-var bug = 299209;
+var gTestfile = 'regress-299209.js';
+
+var BUGNUMBER = 299209;
 var summary = 'anonymous function expression statement => JS stack overflow';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 try
@@ -50,5 +52,5 @@ try
 catch(e)
 {
 }
- 
+
 reportCompare(expect, actual, summary);

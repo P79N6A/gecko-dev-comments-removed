@@ -35,9 +35,11 @@
 
 
 
-var bug = 351794;
+var gTestfile = 'regress-351794.js';
+
+var BUGNUMBER = 351794;
 var summary = 'Assertion: CG_NOTE_COUNT(cg) == 0 || ' +
-              'CG_LAST_NOTE_OFFSET(cg) != CG_OFFSET(cg)';
+  'CG_LAST_NOTE_OFFSET(cg) != CG_OFFSET(cg)';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
@@ -49,16 +51,16 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
-  new Function("for(let y in [5,6,7,8]) x")  
-  reportCompare(expect, actual, summary);
+ 
+  new Function("for(let y in [5,6,7,8]) x") 
+    reportCompare(expect, actual, summary);
 
   var f = function f(){for(let y in [5,6,7,8]) x}
   actual = f + '';
   expect = 'function f() {\n    for (let y in [5, 6, 7, 8]) {\n' +
-           '        x;\n    }\n}';
+    '        x;\n    }\n}';
   reportCompare(expect, actual, summary);
 
   exitFunc ('test');

@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-192226.js';
 var UBound = 0;
-var bug = 192226;
+var BUGNUMBER = 192226;
 var summary = 'Testing a nested function call under |with| or |catch|';
 var status = '';
 var statusitems = [];
@@ -110,7 +113,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

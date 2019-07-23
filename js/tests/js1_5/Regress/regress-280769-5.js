@@ -36,12 +36,14 @@
 
 
 
-var bug = 280769;
+var gTestfile = 'regress-280769-5.js';
+
+var BUGNUMBER = 280769;
 var summary = 'Do not overflow 64K string offset';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var N = 100 * 1000;

@@ -35,6 +35,8 @@
 
 
 
+gTestfile = 'template.js';
+
 
 
 
@@ -65,4 +67,4 @@ startTest();
 
 
 
-test();       
+test();      

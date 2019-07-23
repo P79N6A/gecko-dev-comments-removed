@@ -35,7 +35,9 @@
 
 
 
-var bug = 341821;
+var gTestfile = 'regress-341821.js';
+
+var BUGNUMBER = 341821;
 var summary = 'Close hook crash';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -49,7 +51,7 @@ var ialert = 0;
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   function generator()
@@ -101,10 +103,10 @@ function runtest()
 
 if (typeof window != 'undefined')
 {
-    
-    gDelayTestDriverEnd = true;
+  
+  gDelayTestDriverEnd = true;
 
-    window.addEventListener("load", init, false);
+  window.addEventListener("load", init, false);
 }
 else
 {

@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.7.3.6-1.js';
+
 
 
 
@@ -55,9 +57,9 @@ var TITLE   = "Number.POSITIVE_INFINITY";
 
 writeHeaderToLog( SECTION + " "+TITLE);
 
-new TestCase( SECTION, 
-	      "Number.POSITIVE_INFINITY",      
-	      Infinity,   
+new TestCase( SECTION,
+	      "Number.POSITIVE_INFINITY",     
+	      Infinity,  
 	      Number.POSITIVE_INFINITY );
 
 test();

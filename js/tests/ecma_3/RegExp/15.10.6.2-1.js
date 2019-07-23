@@ -78,8 +78,11 @@
 
 
 
+
+
+var gTestfile = '15.10.6.2-1.js';
 var i = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing regexps with the global flag set';
 var status = '';
 var statusmessages = new Array();
@@ -130,7 +133,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
   testRegExp(statusmessages, patterns, strings, actualmatches, expectedmatches);
   exitFunc ('test');

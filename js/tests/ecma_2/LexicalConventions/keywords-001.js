@@ -8,6 +8,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'keywords-001.js';
+
+
+
+
+
+
+
+
+
+
 var SECTION = "";
 var VERSION = "ECMA_2";
 var TITLE   = "Keywords";
@@ -23,7 +61,7 @@ var result = "failed";
 
 try {
   eval("super;");
-} 
+}
 catch (x) {
   if (x instanceof SyntaxError)
     result = x.name;

@@ -35,7 +35,9 @@
 
 
 
-var bug = 361856;
+var gTestfile = 'regress-361856.js';
+
+var BUGNUMBER = 361856;
 var summary = 'Assertion: overwriting @ js_AddScopeProperty';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   function testit() {

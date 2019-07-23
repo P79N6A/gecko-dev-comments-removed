@@ -68,26 +68,26 @@ function userOnAfterPage()
   win.reportHTML = function () { win.__Report(); gPageCompleted = true; };
 
 
-  win.reportCallBack = function (testwin) 
+  win.reportCallBack = function (testwin)
     {
       if (testwin.wrappedJSObject)
       {
         testwin = testwin.wrappedJSObject;
       }
-      var testcases = testwin.testcases;
-      if (typeof testcases == 'undefined')
+      var gTestcases = testwin.gTestcases;
+      if (typeof gTestcases == 'undefined')
       {
         return;
       }
-      for (var i = 0; i < testcases.length; i++)
+      for (var i = 0; i < gTestcases.length; i++)
       {
-        var testcase = testcases[i];
+        var testcase = gTestcases[i];
         cdump('test: '    + testcase.path + ' ' +
-              'bug: '         + testcase.bugnumber + ' ' + 
+              'bug: '         + testcase.bugnumber + ' ' +
               'result: ' + (testcase.passed ? 'PASSED':'FAILED') + ' ' +
-              'type: browser ' + 
-              'description: ' + testcase.description + ' ' + 
-              'expected: '    + testcase.expect + ' ' + 
+              'type: browser ' +
+              'description: ' + testcase.description + ' ' +
+              'expected: '    + testcase.expect + ' ' +
               'actual: '      + testcase.actual + ' ' +
               'reason: '      + testcase.reason);
       }
@@ -112,8 +112,8 @@ function userOnStop()
 }
 
 
-gConsoleListener.onConsoleMessage = 
-function userOnConsoleMessage(s)
+gConsoleListener.onConsoleMessage =
+  function userOnConsoleMessage(s)
 {
   dump(s);
 };

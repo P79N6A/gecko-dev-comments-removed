@@ -35,14 +35,16 @@
 
 
 
-var bug = 306794;
+var gTestfile = 'regress-306794.js';
+
+var BUGNUMBER = 306794;
 var summary = 'Assertion parsing foo getter';
 var actual = 'No Assertion';
 var expect = 'No Assertion';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 try
 {
   eval('getter\n');

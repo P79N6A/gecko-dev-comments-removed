@@ -36,13 +36,15 @@
 
 
 
-var bug = 256798;
+var gTestfile = 'regress-256798.js';
+
+var BUGNUMBER = 256798;
 var summary = 'regexp zero-width positive lookahead';
 var actual = '';
 var expect = '';
 
-  printBugNumber (bug);
-  printStatus (summary);
+printBugNumber(BUGNUMBER);
+printStatus (summary);
 
 var status;
 

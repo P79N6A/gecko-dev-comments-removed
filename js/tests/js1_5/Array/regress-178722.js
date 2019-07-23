@@ -59,8 +59,10 @@
 
 
 
+
+var gTestfile = 'regress-178722.js';
 var UBound = 0;
-var bug = 178722;
+var BUGNUMBER = 178722;
 var summary = 'arr.sort() should not output |undefined| when |arr| is empty';
 var status = '';
 var statusitems = [];
@@ -150,7 +152,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

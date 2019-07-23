@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'beginLine.js';
+
 
 
 

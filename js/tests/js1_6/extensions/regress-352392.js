@@ -35,7 +35,9 @@
 
 
 
-var bug = 352392;
+var gTestfile = 'regress-352392.js';
+
+var BUGNUMBER = 352392;
 var summary = 'Do not hang/crash |for each| over object with getter set to map';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   expect = 'SyntaxError: invalid for each loop';
@@ -62,7 +64,7 @@ function test()
   {
     actual = ex + '';
   }
- 
+
   reportCompare(expect, actual, summary);
 
   exitFunc ('test');

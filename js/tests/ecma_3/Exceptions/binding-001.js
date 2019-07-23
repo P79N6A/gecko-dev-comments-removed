@@ -50,8 +50,11 @@
 
 
 
+
+
+var gTestfile = 'binding-001.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Testing binding of function names';
 var ERR_REF_YES = 'ReferenceError';
 var ERR_REF_NO = 'did NOT generate a ReferenceError';
@@ -106,7 +109,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i = 0; i < UBound; i++)

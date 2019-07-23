@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'delete-001.js';
+
 
 
 
@@ -60,13 +62,13 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 
 
 for ( p in this ) {
-    delete p;
+  delete p;
 }
 
 var result ="";
 
 for ( p in this ) {
-    result += String( p );
+  result += String( p );
 }
 
 

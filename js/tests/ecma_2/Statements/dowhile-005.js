@@ -13,6 +13,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'dowhile-005.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "dowhile-005";
 var VERSION = "ECMA_2";
 var TITLE   = "do...while with a labeled continue statement";
@@ -36,12 +74,12 @@ outer: {
     do {
     inner: {
 
-      break inner;
-      result1 = "fail: did break out of inner label";
-    }
-    result2 = "pass";
-    break outer;
-    print(i);
+	break inner;
+	result1 = "fail: did break out of inner label";
+      }
+      result2 = "pass";
+      break outer;
+      print(i);
     } while ( i++ < 100 );
 
   }

@@ -36,14 +36,16 @@
 
 
 
+var gTestfile = 'regress-256617.js';
 
-var bug = 256617;
+
+var BUGNUMBER = 256617;
 var summary = 'throw statement: eol should not be allowed';
 var actual = '';
 var expect = '';
 
-  printBugNumber (bug);
-  printStatus (summary);
+printBugNumber(BUGNUMBER);
+printStatus (summary);
 
 expect = 'syntax error';
 
@@ -63,5 +65,5 @@ catch(e)
     actual = 'no error';
   }
 }
-  
-  reportCompare(expect, actual, summary);
+ 
+reportCompare(expect, actual, summary);

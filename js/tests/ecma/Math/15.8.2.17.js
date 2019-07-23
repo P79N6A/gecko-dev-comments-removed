@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.8.2.17.js';
+
 
 
 
@@ -98,7 +100,7 @@ new TestCase( SECTION,
 	      Math.sqrt(Number.NaN) );
 
 new TestCase( SECTION,
-	      "Math.sqrt(-Infinity)", 
+	      "Math.sqrt(-Infinity)",
 	      Number.NaN,
 	      Math.sqrt(Number.NEGATIVE_INFINITY));
 

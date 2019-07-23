@@ -44,8 +44,10 @@
 
 
 
+
+var gTestfile = 'regress-194364.js';
 var UBound = 0;
-var bug = 194364;
+var BUGNUMBER = 194364;
 var summary = 'Testing eval statements with conditional function expressions';
 var status = '';
 var statusitems = [];
@@ -138,7 +140,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

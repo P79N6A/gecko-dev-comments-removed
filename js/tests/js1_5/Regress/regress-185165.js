@@ -42,8 +42,11 @@
 
 
 
+
+
+var gTestfile = 'regress-185165.js';
 var UBound = 0;
-var bug = 185165;
+var BUGNUMBER = 185165;
 var summary = 'Decompilation of "\\\\" should give "\\\\"';
 var status = '';
 var statusitems = [];
@@ -55,7 +58,7 @@ var expectedvalues = [];
 
 
 var f1 = function() { return "\\"; }
-var s1 = f1.toString();
+  var s1 = f1.toString();
 
 var f2;
 eval("f2=" + s1);
@@ -86,7 +89,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

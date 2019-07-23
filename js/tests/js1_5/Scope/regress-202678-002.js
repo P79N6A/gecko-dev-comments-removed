@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-202678-002.js';
 var UBound = 0;
-var bug = 202678;
+var BUGNUMBER = 202678;
 var summary = 'Testing nested function scope capture';
 var status = '';
 var statusitems = [];
@@ -122,7 +125,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

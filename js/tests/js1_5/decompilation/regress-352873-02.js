@@ -35,7 +35,9 @@
 
 
 
-var bug = 352873;
+var gTestfile = 'regress-352873-02.js';
+
+var BUGNUMBER = 352873;
 var summary = 'decompilation of nested |try...catch| with |with|';
 var actual = '';
 var expect = '';
@@ -48,7 +50,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   var f;

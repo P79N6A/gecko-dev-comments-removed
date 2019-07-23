@@ -35,12 +35,14 @@
 
 
 
-var bug = 310607;
+var gTestfile = 'regress-310607.js';
+
+var BUGNUMBER = 310607;
 var summary = 'Do not crash iterating over Object.prototype';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 var f = new Foo();
@@ -56,5 +58,5 @@ function Foo() {
     printStatus("End");
   };
 }
-  
+ 
 reportCompare(expect, actual, summary);

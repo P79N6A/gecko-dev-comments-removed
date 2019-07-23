@@ -43,8 +43,11 @@
 
 
 
+
+
+var gTestfile = 'regress-208496-001.js';
 var UBound = 0;
-var bug = 208496;
+var BUGNUMBER = 208496;
 var summary = 'Testing |with (f)| inside the definition of |function f()|';
 var status = '';
 var statusitems = [];
@@ -159,7 +162,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

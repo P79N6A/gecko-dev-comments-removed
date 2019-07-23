@@ -48,7 +48,11 @@
 
 
 
-var bug = 72773;
+
+
+
+var gTestfile = 'regress-72773.js';
+var BUGNUMBER = 72773;
 var summary = "Regression test: we shouldn't crash on this code";
 var status = '';
 var actual = '';
@@ -84,7 +88,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   reportCompare(expect, actual, status);

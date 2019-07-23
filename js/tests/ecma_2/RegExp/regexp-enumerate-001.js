@@ -24,6 +24,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'regexp-enumerate-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "regexp-enumerate-001";
 var VERSION = "ECMA_2";
 var TITLE   = "Regression Test for Enumerating Properties";
@@ -75,8 +113,8 @@ function addProperty(name, value) {
 		false,
 		pass );
 
-  if ( testcases[ testcases.length-1].passed == false ) {
-    testcases[testcases.length-1].reason = "property already enumerated";
+  if ( gTestcases[ gTestcases.length-1].passed == false ) {
+    gTestcases[gTestcases.length-1].reason = "property already enumerated";
 
   }
 

@@ -35,11 +35,13 @@
 
 
 
-var bug     = "(none)";
+var gTestfile = 'pi-generator.js';
+
+var BUGNUMBER     = "(none)";
 var summary = "A (slow) generator of pi";
 var actual, expect;
 
-printBugNumber(bug);
+printBugNumber(BUGNUMBER);
 printStatus(summary);
 
 

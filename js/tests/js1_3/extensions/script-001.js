@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'script-001.js';
+
 
 
 
@@ -148,6 +150,10 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 if (typeof Script == 'undefined')
 {
   print('Test skipped. Script not defined.');
+  new TestCase( SECTION,
+                "var s = new Script(); typeof s",
+                "Script not supported, test skipped.",
+                "Script not supported, test skipped." );
 }
 else
 {

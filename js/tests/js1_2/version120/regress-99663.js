@@ -35,8 +35,12 @@
 
 
 
+
+gTestfile = 'regress-99663.js';
+
+
 var UBound = 0;
-var bug = 99663;
+var BUGNUMBER = 99663;
 var summary = 'Regression test for Bugzilla bug 99663';
 
 

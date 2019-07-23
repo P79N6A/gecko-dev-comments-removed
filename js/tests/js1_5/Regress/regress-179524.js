@@ -49,8 +49,11 @@
 
 
 
+
+
+var gTestfile = 'regress-179524.js';
 var UBound = 0;
-var bug = 179524;
+var BUGNUMBER = 179524;
 var summary = "Don't crash on extraneous arguments to str.match(), etc.";
 var status = '';
 var statusitems = [];
@@ -353,7 +356,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

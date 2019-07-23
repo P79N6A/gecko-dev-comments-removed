@@ -36,15 +36,15 @@
 
 
 
-START("E4X - Should not repress exceptions");
+gTestfile = 'regress-301553.js';
 
-var bug = 301553;
-var summary = 'Throw exceptions';
+var summary = "E4X - Should not repress exceptions";
+var BUGNUMBER = 301553;
 var actual = 'No exception';
 var expect = 'exception';
 
-printBugNumber (bug);
-printStatus (summary);
+printBugNumber(BUGNUMBER);
+START(summary);
 
 try
 {

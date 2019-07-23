@@ -49,8 +49,11 @@
 
 
 
+
+
+var gTestfile = 'regress-184107.js';
 var UBound = 0;
-var bug = 184107;
+var BUGNUMBER = 184107;
 var summary = 'with(...) { function f ...} should set f in the global scope';
 var status = '';
 var statusitems = [];
@@ -112,7 +115,7 @@ function addThis()
 function test()
 {
   enterFunc('test');
-  printBugNumber(bug);
+  printBugNumber(BUGNUMBER);
   printStatus(summary);
 
   for (var i=0; i<UBound; i++)

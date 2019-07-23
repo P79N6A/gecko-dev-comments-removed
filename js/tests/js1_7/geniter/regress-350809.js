@@ -35,7 +35,9 @@
 
 
 
-var bug = 350809;
+var gTestfile = 'regress-350809.js';
+
+var BUGNUMBER = 350809;
 var summary = 'Assertion if yield in xml filtering predicate';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -48,16 +50,16 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   try
   {
     eval('(function(){ <x/>.(yield 4) })().next();');
   }
   catch(ex)
   {
-    actual = expect = 
+    actual = expect =
       'InternalError: yield not yet supported from filtering predicate';
   }
 

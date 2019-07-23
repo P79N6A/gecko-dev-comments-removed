@@ -44,8 +44,11 @@
 
 
 
+
+
+var gTestfile = 'regress-101964.js';
 var UBound = 0;
-var bug = 101964;
+var BUGNUMBER = 101964;
 var summary = 'Performance: truncating even very large arrays should be fast!';
 var BIG = 10000000;
 var LITTLE = 10;
@@ -104,7 +107,7 @@ function isThisFast(ms)
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

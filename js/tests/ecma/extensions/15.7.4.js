@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.7.4.js';
+
 
 
 
@@ -71,14 +73,14 @@ new TestCase( SECTION,
 	      "[object Number]",
 	      eval("Number.prototype.toString=Object.prototype.toString;Number.prototype.toString()") );
 
-new TestCase( SECTION, 
-	      "typeof Number.prototype",   
-	      "object", 
+new TestCase( SECTION,
+	      "typeof Number.prototype",  
+	      "object",
 	      typeof Number.prototype );
 
 new TestCase( SECTION,
-	      "Number.prototype.valueOf()",  
-	      0, 
+	      "Number.prototype.valueOf()", 
+	      0,
 	      Number.prototype.valueOf() );
 
 

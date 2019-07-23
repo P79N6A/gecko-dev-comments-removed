@@ -8,6 +8,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'properties-002.js';
+
+
+
+
+
+
+
+
+
+
 var SECTION = "RegExp/properties-002.js";
 var VERSION = "ECMA_2";
 var TITLE   = "Properties of RegExp Instances";
@@ -45,7 +83,7 @@ AddRegExpCases( re_5, "\\B", false, false, false, Math.pow(2,30) );
 
 
 
- 
+
 re_6 = /\B/;
 re_6.lastIndex = Math.pow(2,32);
 AddRegExpCases( re_6, "\\B", false, false, false, Math.pow(2,32) );

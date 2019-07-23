@@ -36,12 +36,14 @@
 
 
 
-var bug = 280769;
+var gTestfile = 'regress-280769-1.js';
+
+var BUGNUMBER = 280769;
 var summary = 'Do not crash on overflow of 64K boundary of [] offset in regexp search string ';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
 
 status = summary + ' ' + inSection(1) + ' (new RegExp("zzz...[AB]").exec("zzz...A") ';

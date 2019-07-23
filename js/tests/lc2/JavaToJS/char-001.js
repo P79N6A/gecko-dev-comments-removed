@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'char-001.js';
+
 
 
 
@@ -84,33 +86,33 @@ test_array[i] = new TestValue(  "(new java.lang.String( 'JavaScript' )).charAt(0
 i++;
 
 for ( i = 0; i < java_array.length; i++ ) {
-    CompareValues( java_array[i], test_array[i] );
+  CompareValues( java_array[i], test_array[i] );
 
 }
 
 test();
 
 function CompareValues( javaval, testval ) {
-    
-    new TestCase( SECTION,
-		  testval.description,
-		  testval.value,
-		  javaval.value );
-    
-    new TestCase( SECTION,
-		  "typeof (" + testval.description +")",
-		  testval.type,
-		  javaval.type );
+  
+  new TestCase( SECTION,
+		testval.description,
+		testval.value,
+		javaval.value );
+  
+  new TestCase( SECTION,
+		"typeof (" + testval.description +")",
+		testval.type,
+		javaval.type );
 
 }
 function JavaValue( value ) {
-    this.value  = value;
-    this.type   = typeof value;
-    return this;
+  this.value  = value;
+  this.type   = typeof value;
+  return this;
 }
 function TestValue( description, value ) {
-    this.description = description;
-    this.value = value;
-    this.type =  E_TYPE;
-    return this;
+  this.description = description;
+  this.value = value;
+  this.type =  E_TYPE;
+  return this;
 }

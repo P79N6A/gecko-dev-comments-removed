@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'method-004-n.js';
+
 
 
 
@@ -59,10 +61,10 @@ EXPECTED = "error";
 var string = new java.lang.String("");
 
 new TestCase(
-    SECTION,
-    "var string = new java.lang.String(\"\"); string.charAt(\"foo\")",
-    "error",
-    string.charAt("foo") );
+  SECTION,
+  "var string = new java.lang.String(\"\"); string.charAt(\"foo\")",
+  "error",
+  string.charAt("foo") );
 
 test();
 

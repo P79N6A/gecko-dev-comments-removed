@@ -52,7 +52,10 @@
 
 
 
-var bug = 68498;
+
+
+var gTestfile = 'regress-68498-004.js';
+var BUGNUMBER = 68498;
 var summary = 'Testing self.eval(str) inside a function';
 var statprefix = '; currently at expect[';
 var statsuffix = '] within test -';
@@ -112,7 +115,7 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i in expect)

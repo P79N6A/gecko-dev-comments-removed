@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.4.1.3.js';
+
 
 
 
@@ -71,7 +73,7 @@ new TestCase(   SECTION,
 
 new TestCase(   SECTION,
 		"(Array()).length",
-		0,          
+		0,         
 		(Array()).length );
 
 new TestCase(   SECTION,

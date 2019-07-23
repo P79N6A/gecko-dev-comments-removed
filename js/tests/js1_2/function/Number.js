@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'Number.js';
+
 
 
 

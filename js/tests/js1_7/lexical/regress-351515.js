@@ -35,7 +35,9 @@
 
 
 
-var bug = 351515;
+var gTestfile = 'regress-351515.js';
+
+var BUGNUMBER = 351515;
 var summary = 'Invalid uses of yield, let keywords in js17';
 var actual = '';
 var expect = '';
@@ -50,7 +52,7 @@ try
   expect = 'SyntaxError: yield not in function';
   eval('yield = 1;');
   actual = 'No Error'
-}
+    }
 catch(ex)
 {
   actual = ex + '';
@@ -72,9 +74,9 @@ reportCompare(expect, actual, summary + ': let = 1');
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   try
   {
     expect = 'SyntaxError: missing formal parameter';
@@ -86,7 +88,7 @@ function test()
     actual = ex + '';
   }
   reportCompare(expect, actual, summary +
-    ': function f(yield, let) { return yield+let; }');
+		': function f(yield, let) { return yield+let; }');
 
   try
   {

@@ -35,7 +35,9 @@
 
 
 
-var bug = 314874;
+var gTestfile = 'regress-314874.js';
+
+var BUGNUMBER = 314874;
 var summary = 'Function.call/apply with non-primitive argument';
 var actual = '';
 var expect = '';
@@ -48,9 +50,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   var thisArg = { valueOf: function() { return {a: 'a', b: 'b'}; } };
 
   var f = function () { return (this); };

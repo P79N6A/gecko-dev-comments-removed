@@ -35,7 +35,9 @@
 
 
 
-var bug = 367120;
+var gTestfile = 'regress-367120-02.js';
+
+var BUGNUMBER = 367120;
 var summary = 'memory corruption in script_toString';
 var actual = 'No Crash';
 var expect = 'No Crash';
@@ -47,9 +49,9 @@ test();
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
-  
+ 
   if (typeof Script == 'undefined')
   {
     print('Test skipped. Script not defined.');

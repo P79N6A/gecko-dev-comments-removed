@@ -35,14 +35,16 @@
 
 
 
-var bug = 312278;
+var gTestfile = 'regress-312278.js';
+
+var BUGNUMBER = 312278;
 var summary = 'Do no access GC-ed object in Error.prototype.toSource';
 var actual = 'No Crash';
 var expect = 'No Crash';
 
-printBugNumber (bug);
+printBugNumber(BUGNUMBER);
 printStatus (summary);
-  
+ 
 function wrapInsideWith(obj)
 {
   var f;
@@ -58,15 +60,15 @@ function customToSource()
 }
 
 Error.prototype.__defineGetter__('message', function() {
-	var obj = {
-    toSource: "something"
-  }
-	obj.__defineGetter__('toSource', function() {
-		gc();
-		return customToSource;
-  });
-  return wrapInsideWith(obj);
-});
+				   var obj = {
+				     toSource: "something"
+				   }
+				   obj.__defineGetter__('toSource', function() {
+							  gc();
+							  return customToSource;
+							});
+				   return wrapInsideWith(obj);
+				 });
 
 printStatus(Error.prototype.toSource());
 

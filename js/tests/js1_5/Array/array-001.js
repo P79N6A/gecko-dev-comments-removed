@@ -41,8 +41,11 @@
 
 
 
+
+
+var gTestfile = 'array-001.js';
 var UBound = 0;
-var bug = '(none)';
+var BUGNUMBER = '(none)';
 var summary = 'Truncating arrays that have decimal property names';
 var BIG_INDEX = 4294967290;
 var status = '';
@@ -107,7 +110,7 @@ function addThis()
 function test()
 {
   enterFunc ('test');
-  printBugNumber (bug);
+  printBugNumber(BUGNUMBER);
   printStatus (summary);
 
   for (var i=0; i<UBound; i++)

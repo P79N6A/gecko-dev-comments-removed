@@ -36,6 +36,8 @@
 
 
 
+gTestfile = 'definition-1.js';
+
 
 
 
@@ -54,7 +56,7 @@ writeHeaderToLog( SECTION + " "+ TITLE);
 
 f1 = function() { return "passed!" }
 
-function f2() { f3 = function() { return "passed!" }; return f3(); }
+  function f2() { f3 = function() { return "passed!" }; return f3(); }
 
 new TestCase( SECTION,
 	      'f1 = function() { return "passed!" }; f1()',

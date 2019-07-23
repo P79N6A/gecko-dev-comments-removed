@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.5.4.js';
+
 
 
 
@@ -60,24 +62,24 @@ new TestCase( SECTION,
 
 delete String.prototype.getClass;
 
-new TestCase( SECTION, 
-              "typeof String.prototype",   
-              "object",   
+new TestCase( SECTION,
+              "typeof String.prototype",  
+              "object",  
               typeof String.prototype );
 
-new TestCase( SECTION, 
-              "String.prototype.valueOf()", 
-              "",        
+new TestCase( SECTION,
+              "String.prototype.valueOf()",
+              "",       
               String.prototype.valueOf() );
 
-new TestCase( SECTION, 
-              "String.prototype +''",       
-              "",        
+new TestCase( SECTION,
+              "String.prototype +''",      
+              "",       
               String.prototype + '' );
 
-new TestCase( SECTION, 
-              "String.prototype.length",    
-              0,         
+new TestCase( SECTION,
+              "String.prototype.length",   
+              0,        
               String.prototype.length );
 
 var prop;

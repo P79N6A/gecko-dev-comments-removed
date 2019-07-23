@@ -11,6 +11,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'try-010.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "try-010";
 var VERSION = "ECMA_2";
 var TITLE   = "The try statement: try in a tryblock";

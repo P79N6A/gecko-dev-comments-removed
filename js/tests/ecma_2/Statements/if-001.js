@@ -10,6 +10,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'if-001.js';
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "for-001";
 var VERSION = "ECMA_2";
 var TITLE   = "The if  statement";

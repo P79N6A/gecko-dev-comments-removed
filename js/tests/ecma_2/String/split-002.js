@@ -25,6 +25,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+gTestfile = 'split-002.js';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var SECTION = "ecma_2/String/split-002.js";
 var VERSION = "ECMA_2";
 var TITLE   = "String.prototype.split( regexp, [,limit] )";
@@ -156,7 +194,7 @@ function string_split ( __this, separator, limit ) {
     A[0] = S;
     return A;
   }
-	
+
   if ( separator.constructor == RegExp )         
     R = separator;
   else
@@ -168,7 +206,7 @@ function string_split ( __this, separator, limit ) {
     A[0] = S;
     return A;
   }
-	
+
   if (s == 0) {		                          
     z = SplitMatch(R, S, 0);
     if (z != false) return A;
@@ -178,10 +216,10 @@ function string_split ( __this, separator, limit ) {
 
   var q = p;									  
 loop:
-  while (true ) { 
-		
-    if ( q == s ) break;					  
+  while (true ) {
 	
+    if ( q == s ) break;					  
+
     z = SplitMatch(R, S, q);                  
 
 
@@ -205,13 +243,13 @@ loop:
 	  i = i + 1;							
 	  A[A.length] = cap[i]				
 	    if (A.length == lim) return A;		
-	} 
+	}
       }
     }
 
     q = q + 1;                               
   }
-	
+
   T = S.slice(p, q);
   A[A.length] = T;
   return A;
@@ -248,7 +286,7 @@ function ToUint32( n ) {
   n = Number( n );
   var sign = ( n < 0 ) ? -1 : 1;
 
-  if ( Math.abs( n ) == 0 
+  if ( Math.abs( n ) == 0
        || Math.abs( n ) == Number.POSITIVE_INFINITY
        || n != n) {
     return 0;

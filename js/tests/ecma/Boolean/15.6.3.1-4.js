@@ -36,6 +36,8 @@
 
 
 
+gTestfile = '15.6.3.1-4.js';
+
 
 
 
@@ -56,7 +58,7 @@ var SECTION = "15.6.3.1-4";
 var VERSION = "ECMA_1";
 startTest();
 var TITLE   = "Boolean.prototype"
-writeHeaderToLog( SECTION + TITLE );
+  writeHeaderToLog( SECTION + TITLE );
 
 var BOOL_PROTO = Boolean.prototype;
 
