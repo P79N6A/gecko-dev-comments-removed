@@ -142,6 +142,12 @@ protected:
                                          PRUint8 aBidiLevel,
                                          PRBool aInvalidate);
 
+    struct Metrics {
+      nscoord mBidiIndicatorSize; 
+      nscoord mCaretWidth;        
+    };
+    Metrics ComputeMetrics(nsPresContext *aPresContext);
+
     
     
     
@@ -152,7 +158,8 @@ protected:
     void          DrawCaret(PRBool aInvalidate);
     void          DrawCaretAfterBriefDelay();
     nsresult      UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
-    nsresult      UpdateHookRect(nsPresContext* aPresContext);
+    nsresult      UpdateHookRect(nsPresContext* aPresContext,
+                                 const Metrics& aMetrics);
     static void   InvalidateRects(const nsRect &aRect, const nsRect &aHook,
                                   nsIFrame *aFrame);
     nsRect        GetHookRect()
@@ -185,11 +192,11 @@ protected:
     nsCOMPtr<nsITimer>              mBlinkTimer;
     nsCOMPtr<nsIRenderingContext>   mRendContext;
 
+    
+    
     PRUint32              mBlinkRate;         
-
-    nscoord               mCaretWidth;   
-    nscoord               mBidiIndicatorSize;   
-
+    nscoord               mCaretWidthCSSPx;   
+    
     PRPackedBool          mVisible;           
 
     PRPackedBool          mDrawn;             

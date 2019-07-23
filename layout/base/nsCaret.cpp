@@ -75,7 +75,7 @@
 
 
 
-static const PRUint32 kMinBidiIndicatorPixels = 2;
+static const PRInt32 kMinBidiIndicatorPixels = 2;
 
 #ifdef IBMBIDI
 #include "nsIBidiKeyboard.h"
@@ -119,23 +119,19 @@ NS_IMETHODIMP nsCaret::Init(nsIPresShell *inPresShell)
   nsILookAndFeel *lookAndFeel = nsnull;
   nsPresContext *presContext = inPresShell->GetPresContext();
   
-  PRInt32 caretPixelsWidth = 1;
+  
+  
+  mCaretWidthCSSPx = 1;
   if (presContext && (lookAndFeel = presContext->LookAndFeel())) {
     PRInt32 tempInt;
     if (NS_SUCCEEDED(lookAndFeel->GetMetric(nsILookAndFeel::eMetric_CaretWidth, tempInt)))
-      caretPixelsWidth = (nscoord)tempInt;
+      mCaretWidthCSSPx = (nscoord)tempInt;
     if (NS_SUCCEEDED(lookAndFeel->GetMetric(nsILookAndFeel::eMetric_CaretBlinkTime, tempInt)))
       mBlinkRate = (PRUint32)tempInt;
     if (NS_SUCCEEDED(lookAndFeel->GetMetric(nsILookAndFeel::eMetric_ShowCaretDuringSelection, tempInt)))
       mShowDuringSelection = tempInt ? PR_TRUE : PR_FALSE;
   }
   
-  mCaretWidth = presContext->DevPixelsToAppUnits(caretPixelsWidth);
-  mBidiIndicatorSize = presContext->DevPixelsToAppUnits(kMinBidiIndicatorPixels);
-  if (mBidiIndicatorSize < mCaretWidth) {
-    mBidiIndicatorSize = mCaretWidth;
-  }
-
   
   
 
@@ -167,6 +163,21 @@ NS_IMETHODIMP nsCaret::Init(nsIPresShell *inPresShell)
   return NS_OK;
 }
 
+nsCaret::Metrics nsCaret::ComputeMetrics(nsPresContext *aPresContext)
+{
+  
+  nscoord caretWidth = nsPresContext::CSSPixelsToAppUnits(mCaretWidthCSSPx);
+  nscoord bidiIndicatorSize = nsPresContext::CSSPixelsToAppUnits(kMinBidiIndicatorPixels);
+  bidiIndicatorSize = PR_MAX(caretWidth, bidiIndicatorSize);
+
+  
+  
+  PRUint32 tpp = aPresContext->AppUnitsPerDevPixel();
+  Metrics result;
+  result.mCaretWidth = NS_ROUND_BORDER_TO_PIXELS(caretWidth, tpp);
+  result.mBidiIndicatorSize = NS_ROUND_BORDER_TO_PIXELS(bidiIndicatorSize, tpp);
+  return result;
+}
 
 
 NS_IMETHODIMP nsCaret::Terminate()
@@ -339,7 +350,7 @@ NS_IMETHODIMP nsCaret::GetCaretCoordinates(EViewCoordinates aRelativeToType,
   outCoordinates->x = viewOffset.x;
   outCoordinates->y = viewOffset.y;
   outCoordinates->height = theFrame->GetSize().height;
-  outCoordinates->width  = mCaretWidth;
+  outCoordinates->width = ComputeMetrics(theFrame->PresContext()).mCaretWidth;
   
   return NS_OK;
 }
@@ -1148,7 +1159,8 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
   }
 
   mCaretRect += framePos;
-  mCaretRect.width = mCaretWidth;
+  Metrics metrics = ComputeMetrics(presContext);
+  mCaretRect.width = metrics.mCaretWidth;
 
   
   
@@ -1183,10 +1195,11 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
   if (NS_STYLE_DIRECTION_RTL == vis->mDirection)
     mCaretRect.x -= mCaretRect.width;
 
-  return UpdateHookRect(presContext);
+  return UpdateHookRect(presContext, metrics);
 }
 
-nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext)
+nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext,
+                                 const Metrics& aMetrics)
 {
   mHookRect.Empty();
 
@@ -1232,11 +1245,12 @@ nsresult nsCaret::UpdateHookRect(nsPresContext* aPresContext)
     
     
     
+    nscoord bidiIndicatorSize = aMetrics.mBidiIndicatorSize;
     mHookRect.SetRect(mCaretRect.x + ((isCaretRTL) ?
-                      mBidiIndicatorSize * -1 :
+                      bidiIndicatorSize * -1 :
                       mCaretRect.width),
-                      mCaretRect.y + mBidiIndicatorSize,
-                      mBidiIndicatorSize,
+                      mCaretRect.y + bidiIndicatorSize,
+                      bidiIndicatorSize,
                       mCaretRect.width);
   }
 #endif 
