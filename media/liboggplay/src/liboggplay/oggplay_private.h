@@ -261,6 +261,7 @@ struct _OggPlay {
   int                       shutdown;               
   int                       pt_update_valid;        
   ogg_int64_t               duration;	              
+  int                       max_video_frame_pixels; 
 };
 
 void

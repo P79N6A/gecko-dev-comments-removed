@@ -349,6 +349,24 @@ oggplay_get_duration(OggPlay * player);
 int
 oggplay_media_finished_retrieving(OggPlay * player);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int
+oggplay_set_max_video_frame_pixels(OggPlay *player,
+                                   int max_frame_pixels);
+
 #ifdef __cplusplus
 }
 #endif

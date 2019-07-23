@@ -497,9 +497,7 @@ oggz_read_sync (OGGZ * oggz)
     }
 
     
-    if (cb_ret == OGGZ_STOP_OK || 
-	cb_ret == OGGZ_STOP_ERR || 
-	cb_ret == OGGZ_ERR_HOLE_IN_DATA) 
+    if (cb_ret < 0 || cb_ret == OGGZ_STOP_OK) 
       return cb_ret;
 
     if(oggz_read_get_next_page (oggz, &og) < 0)

@@ -68,8 +68,10 @@ static PRLogModuleInfo* gOggDecoderLog;
 
 
 
-#define MAX_VIDEO_WIDTH  2000
-#define MAX_VIDEO_HEIGHT 2000
+
+
+#define MAX_VIDEO_WIDTH  4000
+#define MAX_VIDEO_HEIGHT 3000
 
 
 
@@ -1755,90 +1757,124 @@ nsresult nsOggDecodeStateMachine::Run()
   return NS_OK;
 }
 
+
+static OggPlay*
+OggPlayOpen(OggPlayReader* reader,
+            int max_frame_pixels)
+{
+  OggPlay *me = NULL;
+  int r;
+
+  if ((me = oggplay_new_with_reader(reader)) == NULL) {
+    return NULL;
+  }
+
+  r = oggplay_set_max_video_frame_pixels(me, max_frame_pixels);
+  if (r != E_OGGPLAY_OK) {
+    oggplay_close(me);
+    return NULL;
+  }
+
+  do {
+    r = oggplay_initialise(me, 0);
+  } while (r == E_OGGPLAY_TIMEOUT);
+
+  if (r != E_OGGPLAY_OK) {
+    oggplay_close(me);
+    return NULL;
+  }
+
+  return me;
+}
+
 void nsOggDecodeStateMachine::LoadOggHeaders(nsChannelReader* aReader) 
 {
   LOG(PR_LOG_DEBUG, ("%p Loading Ogg Headers", mDecoder));
-  mPlayer = oggplay_open_with_reader(aReader);
-  if (mPlayer) {
-    LOG(PR_LOG_DEBUG, ("%p There are %d tracks", mDecoder, oggplay_get_num_tracks(mPlayer)));
+  mPlayer = OggPlayOpen(aReader, MAX_VIDEO_WIDTH * MAX_VIDEO_HEIGHT);
+  if (!mPlayer) {
+    nsAutoMonitor mon(mDecoder->GetMonitor());
+    mState = DECODER_STATE_SHUTDOWN;
+    HandleDecodeErrors(E_OGGPLAY_UNINITIALISED);
+    return;
+  }
+  LOG(PR_LOG_DEBUG, ("%p There are %d tracks", mDecoder, oggplay_get_num_tracks(mPlayer)));
 
-    for (int i = 0; i < oggplay_get_num_tracks(mPlayer); ++i) {
-      LOG(PR_LOG_DEBUG, ("%p Tracks %d: %s", mDecoder, i, oggplay_get_track_typename(mPlayer, i)));
-      if (mVideoTrack == -1 && oggplay_get_track_type(mPlayer, i) == OGGZ_CONTENT_THEORA) {
-        oggplay_set_callback_num_frames(mPlayer, i, 1);
-        mVideoTrack = i;
+  for (int i = 0; i < oggplay_get_num_tracks(mPlayer); ++i) {
+    LOG(PR_LOG_DEBUG, ("%p Tracks %d: %s", mDecoder, i, oggplay_get_track_typename(mPlayer, i)));
+    if (mVideoTrack == -1 && oggplay_get_track_type(mPlayer, i) == OGGZ_CONTENT_THEORA) {
+      oggplay_set_callback_num_frames(mPlayer, i, 1);
+      mVideoTrack = i;
 
-        int fpsd, fpsn;
-        oggplay_get_video_fps(mPlayer, i, &fpsd, &fpsn);
-        mFramerate = fpsd == 0 ? 0.0 : float(fpsn)/float(fpsd);
-        mCallbackPeriod = 1.0 / mFramerate;
-        LOG(PR_LOG_DEBUG, ("%p Frame rate: %f", mDecoder, mFramerate));
+      int fpsd, fpsn;
+      oggplay_get_video_fps(mPlayer, i, &fpsd, &fpsn);
+      mFramerate = fpsd == 0 ? 0.0 : float(fpsn)/float(fpsd);
+      mCallbackPeriod = 1.0 / mFramerate;
+      LOG(PR_LOG_DEBUG, ("%p Frame rate: %f", mDecoder, mFramerate));
 
-        int aspectd, aspectn;
-        
-        
-        OggPlayErrorCode r =
-          oggplay_get_video_aspect_ratio(mPlayer, i, &aspectd, &aspectn);
-        mAspectRatio = r == E_OGGPLAY_OK && aspectd > 0 ?
-            float(aspectn)/float(aspectd) : 1.0;
+      int aspectd, aspectn;
+      
+      
+      OggPlayErrorCode r =
+        oggplay_get_video_aspect_ratio(mPlayer, i, &aspectd, &aspectn);
+      mAspectRatio = r == E_OGGPLAY_OK && aspectd > 0 ?
+          float(aspectn)/float(aspectd) : 1.0;
 
-        int y_width;
-        int y_height;
-        oggplay_get_video_y_size(mPlayer, i, &y_width, &y_height);
-        mDecoder->SetRGBData(y_width, y_height, mFramerate, mAspectRatio, nsnull);
-      }
-      else if (mAudioTrack == -1 && oggplay_get_track_type(mPlayer, i) == OGGZ_CONTENT_VORBIS) {
-        mAudioTrack = i;
-        oggplay_set_offset(mPlayer, i, OGGPLAY_AUDIO_OFFSET);
-        oggplay_get_audio_samplerate(mPlayer, i, &mAudioRate);
-        oggplay_get_audio_channels(mPlayer, i, &mAudioChannels);
-        LOG(PR_LOG_DEBUG, ("%p samplerate: %d, channels: %d", mDecoder, mAudioRate, mAudioChannels));
-      }
+      int y_width;
+      int y_height;
+      oggplay_get_video_y_size(mPlayer, i, &y_width, &y_height);
+      mDecoder->SetRGBData(y_width, y_height, mFramerate, mAspectRatio, nsnull);
     }
+    else if (mAudioTrack == -1 && oggplay_get_track_type(mPlayer, i) == OGGZ_CONTENT_VORBIS) {
+      mAudioTrack = i;
+      oggplay_set_offset(mPlayer, i, OGGPLAY_AUDIO_OFFSET);
+      oggplay_get_audio_samplerate(mPlayer, i, &mAudioRate);
+      oggplay_get_audio_channels(mPlayer, i, &mAudioChannels);
+      LOG(PR_LOG_DEBUG, ("%p samplerate: %d, channels: %d", mDecoder, mAudioRate, mAudioChannels));
+    }
+  }
 
-    if (mVideoTrack == -1 && mAudioTrack == -1) {
-      nsAutoMonitor mon(mDecoder->GetMonitor());
-      HandleDecodeErrors(E_OGGPLAY_UNINITIALISED);
+  if (mVideoTrack == -1 && mAudioTrack == -1) {
+    nsAutoMonitor mon(mDecoder->GetMonitor());
+    HandleDecodeErrors(E_OGGPLAY_UNINITIALISED);
+    return;
+  }
+
+  SetTracksActive();
+
+  if (mVideoTrack == -1) {
+    oggplay_set_callback_num_frames(mPlayer, mAudioTrack, OGGPLAY_FRAMES_PER_CALLBACK);
+    mCallbackPeriod = 1.0 / (float(mAudioRate) / OGGPLAY_FRAMES_PER_CALLBACK);
+  }
+  LOG(PR_LOG_DEBUG, ("%p Callback Period: %f", mDecoder, mCallbackPeriod));
+
+  oggplay_use_buffer(mPlayer, OGGPLAY_BUFFER_SIZE);
+
+  
+  
+  
+  
+  
+  {
+    nsAutoMonitor mon(mDecoder->GetMonitor());
+    mGotDurationFromHeader = (mDuration != -1);
+    if (mState != DECODER_STATE_SHUTDOWN &&
+        aReader->Stream()->GetLength() >= 0 &&
+        mSeekable &&
+        mDuration == -1) {
+      mDecoder->StopProgressUpdates();
+      
+      
+      
+      mon.Exit();
+      PRInt64 d = oggplay_get_duration(mPlayer);
+      oggplay_seek(mPlayer, 0);
+      mon.Enter();
+      mDuration = d;
+      mDecoder->StartProgressUpdates();
+      mDecoder->UpdatePlaybackRate();
+    }
+    if (mState == DECODER_STATE_SHUTDOWN)
       return;
-    }
-
-    SetTracksActive();
-
-    if (mVideoTrack == -1) {
-      oggplay_set_callback_num_frames(mPlayer, mAudioTrack, OGGPLAY_FRAMES_PER_CALLBACK);
-      mCallbackPeriod = 1.0 / (float(mAudioRate) / OGGPLAY_FRAMES_PER_CALLBACK);
-    }
-    LOG(PR_LOG_DEBUG, ("%p Callback Period: %f", mDecoder, mCallbackPeriod));
-
-    oggplay_use_buffer(mPlayer, OGGPLAY_BUFFER_SIZE);
-
-    
-    
-    
-    
-    
-    {
-      nsAutoMonitor mon(mDecoder->GetMonitor());
-      mGotDurationFromHeader = (mDuration != -1);
-      if (mState != DECODER_STATE_SHUTDOWN &&
-          aReader->Stream()->GetLength() >= 0 &&
-          mSeekable &&
-          mDuration == -1) {
-        mDecoder->StopProgressUpdates();
-        
-        
-        
-        mon.Exit();
-        PRInt64 d = oggplay_get_duration(mPlayer);
-        oggplay_seek(mPlayer, 0);
-        mon.Enter();
-        mDuration = d;
-        mDecoder->StartProgressUpdates();
-        mDecoder->UpdatePlaybackRate();
-      }
-      if (mState == DECODER_STATE_SHUTDOWN)
-        return;
-    }
   }
 }
 
