@@ -1710,7 +1710,7 @@ js_AttemptToExtendTree(JSContext* cx, GuardRecord* lr, Fragment* f)
     return false;
 }
 
-GuardRecord*
+static GuardRecord*
 js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount);
 
 bool
@@ -1742,7 +1742,6 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
     if (nesting_enabled && f && f->code() && !((TreeInfo*)f->vmprivate)->globalSlots.length()) {
-        JS_ASSERT(f->vmprivate);
         
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
         if (!lr) {
@@ -1774,10 +1773,17 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     return false; 
 }
 
-GuardRecord*
+static inline GuardRecord*
 js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
 {
     Fragment* f = *treep;
+
+    
+    if (!f->code()) {
+        JS_ASSERT(!f->vmprivate);
+        return NULL;
+    }
+    JS_ASSERT(f->vmprivate);
     
     AUDIT(traceTriggered);
 
@@ -1971,18 +1977,23 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     }
 
     
-    if (!f->code()) {
-        if (++f->hits() >= HOTLOOP)
+
+    GuardRecord* lr = NULL;
+    if (f->code() || f->peer)
+        lr = js_ExecuteTree(cx, &f, inlineCallCount);
+    if (!lr) {
+        JS_ASSERT(!tm->recorder);
+        
+
+        if (!f->code() && (++f->hits() >= HOTLOOP))
             return js_RecordTree(cx, tm, f);
         return false;
     }
-    JS_ASSERT(!tm->recorder);
-
     
-    GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
-    if (lr && (lr->from->root == f) && (lr->exit->exitType == BRANCH_EXIT))
+    if ((lr->from->root == f) && (lr->exit->exitType == BRANCH_EXIT))
         return js_AttemptToExtendTree(cx, lr, f);
     
+
     return false;
 }
 
