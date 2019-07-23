@@ -5409,41 +5409,54 @@ PresShell::Paint(nsIView*             aView,
                  const nsRegion&      aDirtyRegion)
 {
   AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Paint);
-  nsIFrame* frame;
-  nsresult  rv = NS_OK;
 
-  if (mIsDestroying) {
-    NS_ASSERTION(PR_FALSE, "A paint message was dispatched to a destroyed PresShell");
-    return NS_OK;
-  }
+  NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
+  NS_ASSERTION(aView, "null view");
 
-  NS_ASSERTION(!(nsnull == aView), "null view");
+  
+  
+  
+  
+  
+  
 
-  frame = static_cast<nsIFrame*>(aView->GetClientData());
+  PRBool needTransparency = PR_FALSE;
+  nsIViewManager *lastMgr = mViewManager;
   nscolor backgroundColor;
-  mViewManager->GetDefaultBackgroundColor(&backgroundColor);
+  lastMgr->GetDefaultBackgroundColor(&backgroundColor);
+
   for (nsIView *view = aView; view; view = view->GetParent()) {
-    if (view->HasWidget()) {
-      
-      if (eTransparencyOpaque != view->GetWidget()->GetTransparencyMode()) {
-        backgroundColor = NS_RGBA(0,0,0,0);
-        break;
+    if (view->HasWidget() &&
+        view->GetWidget()->GetTransparencyMode() != eTransparencyOpaque) {
+      backgroundColor = NS_RGBA(0,0,0,0);
+      needTransparency = PR_TRUE;
+      break;
+    }
+    if (NS_GET_A(backgroundColor) < 255) {
+      nsIViewManager *thisMgr = view->GetViewManager();
+      NS_ASSERTION(thisMgr, "view without view manager");
+      if (lastMgr != thisMgr) {
+        nscolor underColor;
+        thisMgr->GetDefaultBackgroundColor(&underColor);
+        backgroundColor = NS_ComposeColors(underColor, backgroundColor);
+        lastMgr = thisMgr;
       }
     }
   }
+
+  NS_ASSERTION(needTransparency || NS_GET_A(backgroundColor) == 255,
+               "root view manager's default background isn't opaque");
   
-  if (!frame) {
-    if (NS_GET_A(backgroundColor) > 0) {
-      aRenderingContext->SetColor(backgroundColor);
-      aRenderingContext->FillRect(aDirtyRegion.GetBounds());
-    }
-    return NS_OK;
+  nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
+  if (frame) {
+    nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion,
+                              backgroundColor);
+  } else if (NS_GET_A(backgroundColor) > 0) {
+    aRenderingContext->SetColor(backgroundColor);
+    aRenderingContext->FillRect(aDirtyRegion.GetBounds());
   }
 
-  nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion,
-                            backgroundColor);
-
-  return rv;
+  return NS_OK;
 }
 
 nsIFrame*
