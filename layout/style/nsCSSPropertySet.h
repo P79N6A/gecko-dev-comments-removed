@@ -40,6 +40,7 @@
 #define nsCSSPropertySet_h__
 
 #include "nsCSSProperty.h"
+#include <limits.h> 
 
 
 
@@ -57,22 +58,28 @@ public:
                      "out of bounds");
     }
 
+    
+    
+
     void AddProperty(nsCSSProperty aProperty) {
         AssertInSetRange(aProperty);
-        mProperties[aProperty / kBitsInChunk] |=
-            property_set_type(1 << (aProperty % kBitsInChunk));
+        size_t p = aProperty;
+        mProperties[p / kBitsInChunk] |=
+          property_set_type(1) << (p % kBitsInChunk);
     }
 
     void RemoveProperty(nsCSSProperty aProperty) {
         AssertInSetRange(aProperty);
-        mProperties[aProperty / kBitsInChunk] &=
-            ~property_set_type(1 << (aProperty % kBitsInChunk));
+        size_t p = aProperty;
+        mProperties[p / kBitsInChunk] &=
+            ~(property_set_type(1) << (p % kBitsInChunk));
     }
 
-    PRBool HasProperty(nsCSSProperty aProperty) const {
+    bool HasProperty(nsCSSProperty aProperty) const {
         AssertInSetRange(aProperty);
-        return (mProperties[aProperty / kBitsInChunk] &
-                (1 << (aProperty % kBitsInChunk))) != 0;
+        size_t p = aProperty;
+        return (mProperties[p / kBitsInChunk] &
+                (property_set_type(1) << (p % kBitsInChunk))) != 0;
     }
 
     void Empty() {
@@ -80,33 +87,32 @@ public:
     }
 
     void AssertIsEmpty(const char* aText) const {
-        for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mProperties); ++i) {
+        for (size_t i = 0; i < NS_ARRAY_LENGTH(mProperties); ++i) {
             NS_ASSERTION(mProperties[i] == 0, aText);
         }
     }
 
 private:
-    typedef PRUint8 property_set_type;
+    typedef unsigned long property_set_type;
 public:
-    enum { kBitsInChunk = 8 }; 
-                                          
     
-    enum { kChunkCount =
-             (eCSSProperty_COUNT_no_shorthands + (kBitsInChunk-1)) /
-             kBitsInChunk };
+    static const size_t kBitsInChunk = sizeof(property_set_type)*CHAR_BIT;
+    
+    static const size_t kChunkCount =
+        (eCSSProperty_COUNT_no_shorthands + kBitsInChunk - 1) / kBitsInChunk;
 
     
 
 
 
 
-    PRBool HasPropertyInChunk(PRUint32 aChunk) const {
+    bool HasPropertyInChunk(size_t aChunk) const {
         return mProperties[aChunk] != 0;
     }
-    PRBool HasPropertyAt(PRUint32 aChunk, PRInt32 aBit) const {
-        return (mProperties[aChunk] & (1 << aBit)) != 0;
+    bool HasPropertyAt(size_t aChunk, size_t aBit) const {
+        return (mProperties[aChunk] & (property_set_type(1) << aBit)) != 0;
     }
-    static nsCSSProperty CSSPropertyAt(PRUint32 aChunk, PRInt32 aBit) {
+    static nsCSSProperty CSSPropertyAt(size_t aChunk, size_t aBit) {
         return nsCSSProperty(aChunk * kBitsInChunk + aBit);
     }
 
@@ -114,4 +120,4 @@ private:
     property_set_type mProperties[kChunkCount];
 };
 
-#endif
+#endif 
