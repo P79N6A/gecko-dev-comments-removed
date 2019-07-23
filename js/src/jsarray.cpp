@@ -2221,6 +2221,17 @@ array_splice(JSContext *cx, uintN argc, jsval *vp)
     JSTempValueRooter tvr;
 
     
+
+
+
+
+
+    obj2 = js_NewArrayObject(cx, 0, NULL);
+    if (!obj2)
+        return JS_FALSE;
+    *vp = OBJECT_TO_JSVAL(obj2);
+
+    
     if (argc == 0)
         return JS_TRUE;
     argv = JS_ARGV(cx, vp);
@@ -2263,17 +2274,6 @@ array_splice(JSContext *cx, uintN argc, jsval *vp)
         argc--;
         argv++;
     }
-
-    
-
-
-
-
-
-    obj2 = js_NewArrayObject(cx, 0, NULL);
-    if (!obj2)
-        return JS_FALSE;
-    *vp = OBJECT_TO_JSVAL(obj2);
 
     
     JS_PUSH_SINGLE_TEMP_ROOT(cx, JSVAL_NULL, &tvr);
