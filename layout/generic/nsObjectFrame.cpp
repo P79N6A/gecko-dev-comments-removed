@@ -1965,6 +1965,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetValue(nsPluginInstancePeerVariable varia
     case nsPluginInstancePeerVariable_NetscapeWindow:
     {      
       if (mOwner) {
+#if defined(XP_WIN) || defined(XP_OS2)
         void** pvalue = (void**)value;
         nsIViewManager* vm = mOwner->PresContext()->GetViewManager();
         if (vm) {
@@ -1988,7 +1989,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetValue(nsPluginInstancePeerVariable varia
           
           
           if (mPluginWindow && mPluginWindow->type == nsPluginWindowType_Drawable) {
-            if (mOwner) {
               
               
               
@@ -2015,7 +2015,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetValue(nsPluginInstancePeerVariable varia
                     return NS_OK;
                 }
               }
-            }
           }
 #endif
           
@@ -2025,6 +2024,19 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetValue(nsPluginInstancePeerVariable varia
             *pvalue = (void*)widget->GetNativeData(NS_NATIVE_WINDOW);
           } else NS_ASSERTION(widget, "couldn't get doc's widget in getting doc's window handle");
         } else NS_ASSERTION(vm, "couldn't get view manager in getting doc's window handle");
+#elif defined(MOZ_WIDGET_GTK2)
+        
+        nsIWidget* win = mOwner->GetWindow();
+        if (!win)
+          return rv;
+        GdkWindow* gdkWindow =
+          NS_STATIC_CAST(GdkWindow*, win->GetNativeData(NS_NATIVE_WINDOW));
+        if (!gdkWindow)
+          return rv;
+        gdkWindow = gdk_window_get_toplevel(gdkWindow);
+        *NS_STATIC_CAST(Window*, value) = GDK_WINDOW_XID(gdkWindow);
+        return NS_OK;
+#endif
       } else NS_ASSERTION(mOwner, "plugin owner has no owner in getting doc's window handle");
       break;
     }
