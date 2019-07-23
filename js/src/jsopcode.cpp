@@ -72,6 +72,7 @@
 #include "jsscript.h"
 #include "jsstr.h"
 #include "jsstaticcheck.h"
+#include "jstracer.h"
 
 #include "jsautooplen.h"
 
@@ -104,7 +105,8 @@ static const char *CodeToken[] = {
 #undef OPDEF
 };
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(JS_JIT_SPEW)
+
 
 
 
