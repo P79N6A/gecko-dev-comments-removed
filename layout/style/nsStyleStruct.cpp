@@ -1102,6 +1102,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     (mZIndex == aOther.mZIndex) ? NS_STYLE_HINT_NONE : nsChangeHint_RepaintFrame;
 
   if (mBoxSizing != aOther.mBoxSizing) {
+    
     return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
   }
 
@@ -1111,9 +1112,11 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     
     
     
-    hint = NS_CombineHint(hint,
-                          NS_CombineHint(nsChangeHint_NeedReflow,
-                                         nsChangeHint_NeedDirtyReflow));
+    
+    
+    return NS_CombineHint(hint,
+                          NS_SubtractHint(nsChangeHint_ReflowFrame,
+                                          nsChangeHint_ClearDescendantIntrinsics));
   }
 
   if ((mWidth == aOther.mWidth) &&
