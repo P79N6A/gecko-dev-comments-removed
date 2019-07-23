@@ -641,16 +641,7 @@ public:
 
 
 
-  virtual const nsStyleStruct* GetStyleDataExternal(nsStyleStructID aSID) const = 0;
-
-  const nsStyleStruct* GetStyleData(nsStyleStructID aSID) const {
-#ifdef _IMPL_NS_LAYOUT
-    NS_ASSERTION(mStyleContext, "No style context found!");
-    return mStyleContext->GetStyleData(aSID);
-#else
-    return GetStyleDataExternal(aSID);
-#endif
-  }
+  virtual const void* GetStyleDataExternal(nsStyleStructID aSID) const = 0;
 
   
 

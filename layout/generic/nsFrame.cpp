@@ -5635,7 +5635,7 @@ nsIFrame::UnsetProperty(nsIAtom* aPropName, nsresult* aStatus) const
                                                           aStatus);
 }
 
- const nsStyleStruct*
+ const void*
 nsFrame::GetStyleDataExternal(nsStyleStructID aSID) const
 {
   NS_ASSERTION(mStyleContext, "unexpected null pointer");

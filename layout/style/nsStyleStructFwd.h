@@ -60,8 +60,6 @@ nsStyleStructID_Length
 
 };
 
-struct nsStyleStruct;
-
 
 #define NS_STYLE_INHERIT_BIT(sid_)        (1 << PRInt32(eStyleStruct_##sid_))
 

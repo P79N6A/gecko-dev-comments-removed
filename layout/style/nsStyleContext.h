@@ -109,7 +109,7 @@ public:
   NS_HIDDEN_(PRBool)    Equals(const nsStyleContext* aOther) const;
   PRBool    HasTextDecorations() { return !!(mBits & NS_STYLE_HAS_TEXT_DECORATIONS); }
 
-  NS_HIDDEN_(void) SetStyle(nsStyleStructID aSID, nsStyleStruct* aStruct);
+  NS_HIDDEN_(void) SetStyle(nsStyleStructID aSID, void* aStruct);
 
   nsRuleNode* GetRuleNode() { return mRuleNode; }
   void AddStyleBit(const PRUint32& aBit) { mBits |= aBit; }
@@ -135,10 +135,7 @@ public:
 
 
 
-
-
-
-  NS_HIDDEN_(const nsStyleStruct*) NS_FASTCALL GetStyleData(nsStyleStructID aSID);
+  NS_HIDDEN_(const void*) NS_FASTCALL GetStyleData(nsStyleStructID aSID);
 
   
 
@@ -154,9 +151,9 @@ public:
   #undef STYLE_STRUCT
 
 
-  NS_HIDDEN_(const nsStyleStruct*) PeekStyleData(nsStyleStructID aSID);
+  NS_HIDDEN_(const void*) PeekStyleData(nsStyleStructID aSID);
 
-  NS_HIDDEN_(nsStyleStruct*) GetUniqueStyleData(const nsStyleStructID& aSID);
+  NS_HIDDEN_(void*) GetUniqueStyleData(const nsStyleStructID& aSID);
 
   NS_HIDDEN_(nsChangeHint) CalcStyleDifference(nsStyleContext* aOther);
 

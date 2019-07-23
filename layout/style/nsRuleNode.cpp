@@ -1116,7 +1116,7 @@ nsRuleNode::CheckSpecifiedProperties(const nsStyleStructID aSID,
   return result;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetDisplayData(nsStyleContext* aContext)
 {
   nsRuleDataDisplay displayData; 
@@ -1126,7 +1126,7 @@ nsRuleNode::GetDisplayData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Display, aContext, &ruleData, &displayData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetVisibilityData(nsStyleContext* aContext)
 {
   nsRuleDataDisplay displayData; 
@@ -1136,7 +1136,7 @@ nsRuleNode::GetVisibilityData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Visibility, aContext, &ruleData, &displayData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetTextData(nsStyleContext* aContext)
 {
   nsRuleDataText textData; 
@@ -1146,42 +1146,42 @@ nsRuleNode::GetTextData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Text, aContext, &ruleData, &textData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetTextResetData(nsStyleContext* aContext)
 {
   nsRuleDataText textData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(TextReset), mPresContext, aContext);
   ruleData.mTextData = &textData;
 
-  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_TextReset, aContext, &ruleData, &textData);
+  const void* res = WalkRuleTree(eStyleStruct_TextReset, aContext, &ruleData, &textData);
   textData.mTextShadow = nsnull; 
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetUserInterfaceData(nsStyleContext* aContext)
 {
   nsRuleDataUserInterface uiData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(UserInterface), mPresContext, aContext);
   ruleData.mUserInterfaceData = &uiData;
 
-  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_UserInterface, aContext, &ruleData, &uiData);
+  const void* res = WalkRuleTree(eStyleStruct_UserInterface, aContext, &ruleData, &uiData);
   uiData.mCursor = nsnull; 
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetUIResetData(nsStyleContext* aContext)
 {
   nsRuleDataUserInterface uiData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(UIReset), mPresContext, aContext);
   ruleData.mUserInterfaceData = &uiData;
 
-  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_UIReset, aContext, &ruleData, &uiData);
+  const void* res = WalkRuleTree(eStyleStruct_UIReset, aContext, &ruleData, &uiData);
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetFontData(nsStyleContext* aContext)
 {
   nsRuleDataFont fontData; 
@@ -1191,7 +1191,7 @@ nsRuleNode::GetFontData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Font, aContext, &ruleData, &fontData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetColorData(nsStyleContext* aContext)
 {
   nsRuleDataColor colorData; 
@@ -1201,7 +1201,7 @@ nsRuleNode::GetColorData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Color, aContext, &ruleData, &colorData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetBackgroundData(nsStyleContext* aContext)
 {
   nsRuleDataColor colorData; 
@@ -1211,7 +1211,7 @@ nsRuleNode::GetBackgroundData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Background, aContext, &ruleData, &colorData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetMarginData(nsStyleContext* aContext)
 {
   nsRuleDataMargin marginData; 
@@ -1221,7 +1221,7 @@ nsRuleNode::GetMarginData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Margin, aContext, &ruleData, &marginData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetBorderData(nsStyleContext* aContext)
 {
   nsRuleDataMargin marginData; 
@@ -1231,7 +1231,7 @@ nsRuleNode::GetBorderData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Border, aContext, &ruleData, &marginData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetPaddingData(nsStyleContext* aContext)
 {
   nsRuleDataMargin marginData; 
@@ -1241,7 +1241,7 @@ nsRuleNode::GetPaddingData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Padding, aContext, &ruleData, &marginData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetOutlineData(nsStyleContext* aContext)
 {
   nsRuleDataMargin marginData; 
@@ -1251,7 +1251,7 @@ nsRuleNode::GetOutlineData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Outline, aContext, &ruleData, &marginData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetListData(nsStyleContext* aContext)
 {
   nsRuleDataList listData; 
@@ -1261,7 +1261,7 @@ nsRuleNode::GetListData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_List, aContext, &ruleData, &listData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetPositionData(nsStyleContext* aContext)
 {
   nsRuleDataPosition posData; 
@@ -1271,7 +1271,7 @@ nsRuleNode::GetPositionData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Position, aContext, &ruleData, &posData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetTableData(nsStyleContext* aContext)
 {
   nsRuleDataTable tableData; 
@@ -1281,7 +1281,7 @@ nsRuleNode::GetTableData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_Table, aContext, &ruleData, &tableData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetTableBorderData(nsStyleContext* aContext)
 {
   nsRuleDataTable tableData; 
@@ -1291,32 +1291,32 @@ nsRuleNode::GetTableBorderData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_TableBorder, aContext, &ruleData, &tableData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetContentData(nsStyleContext* aContext)
 {
   nsRuleDataContent contentData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Content), mPresContext, aContext);
   ruleData.mContentData = &contentData;
 
-  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_Content, aContext, &ruleData, &contentData);
+  const void* res = WalkRuleTree(eStyleStruct_Content, aContext, &ruleData, &contentData);
   contentData.mCounterIncrement = contentData.mCounterReset = nsnull;
   contentData.mContent = nsnull; 
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetQuotesData(nsStyleContext* aContext)
 {
   nsRuleDataContent contentData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Quotes), mPresContext, aContext);
   ruleData.mContentData = &contentData;
 
-  const nsStyleStruct* res = WalkRuleTree(eStyleStruct_Quotes, aContext, &ruleData, &contentData);
+  const void* res = WalkRuleTree(eStyleStruct_Quotes, aContext, &ruleData, &contentData);
   contentData.mQuotes = nsnull; 
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetXULData(nsStyleContext* aContext)
 {
   nsRuleDataXUL xulData; 
@@ -1326,7 +1326,7 @@ nsRuleNode::GetXULData(nsStyleContext* aContext)
   return WalkRuleTree(eStyleStruct_XUL, aContext, &ruleData, &xulData);
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetColumnData(nsStyleContext* aContext)
 {
   nsRuleDataColumn columnData; 
@@ -1337,19 +1337,19 @@ nsRuleNode::GetColumnData(nsStyleContext* aContext)
 }
 
 #ifdef MOZ_SVG
-const nsStyleStruct*
+const void*
 nsRuleNode::GetSVGData(nsStyleContext* aContext)
 {
   nsRuleDataSVG svgData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(SVG), mPresContext, aContext);
   ruleData.mSVGData = &svgData;
 
-  const nsStyleStruct *res = WalkRuleTree(eStyleStruct_SVG, aContext, &ruleData, &svgData);
+  const void *res = WalkRuleTree(eStyleStruct_SVG, aContext, &ruleData, &svgData);
   svgData.mStrokeDasharray = nsnull; 
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::GetSVGResetData(nsStyleContext* aContext)
 {
   nsRuleDataSVG svgData; 
@@ -1360,14 +1360,14 @@ nsRuleNode::GetSVGResetData(nsStyleContext* aContext)
 }
 #endif
 
-const nsStyleStruct*
+const void*
 nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
                          nsStyleContext* aContext, 
                          nsRuleData* aRuleData,
                          nsRuleDataStruct* aSpecificData)
 {
   
-  nsStyleStruct* startStruct = nsnull;
+  void* startStruct = nsnull;
   
   nsRuleNode* ruleNode = this;
   nsRuleNode* highestNode = nsnull; 
@@ -1485,9 +1485,9 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
       
       
       
-      const nsStyleStruct* parentStruct = parentContext->GetStyleData(aSID);
+      const void* parentStruct = parentContext->GetStyleData(aSID);
       aContext->AddStyleBit(bit); 
-      aContext->SetStyle(aSID, const_cast<nsStyleStruct*>(parentStruct));
+      aContext->SetStyle(aSID, const_cast<void*>(parentStruct));
       return parentStruct;
     }
     else
@@ -1497,7 +1497,7 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
   }
 
   
-  const nsStyleStruct* res;
+  const void* res;
 #define STYLE_STRUCT_TEST aSID
 #define STYLE_STRUCT(name, checkdata_cb, ctor_args)                           \
   res = Compute##name##Data(startStruct, *aSpecificData, aContext,            \
@@ -1508,13 +1508,13 @@ nsRuleNode::WalkRuleTree(const nsStyleStructID aSID,
 
   
   if (aRuleData->mPostResolveCallback && (NS_LIKELY(res != nsnull)))
-    (*aRuleData->mPostResolveCallback)((nsStyleStruct*)res, aRuleData);
+    (*aRuleData->mPostResolveCallback)(const_cast<void*>(res), aRuleData);
 
   
   return res;
 }
 
-const nsStyleStruct*
+const void*
 nsRuleNode::SetDefaultOnRoot(const nsStyleStructID aSID, nsStyleContext* aContext)
 {
   switch (aSID) {
@@ -2492,7 +2492,7 @@ nsRuleNode::SetGenericFont(nsPresContext* aPresContext,
     
     
     if (ruleData.mPostResolveCallback)
-      (ruleData.mPostResolveCallback)((nsStyleStruct*)aFont, &ruleData);
+      (ruleData.mPostResolveCallback)(aFont, &ruleData);
 
     parentFont = *aFont;
   }
@@ -2510,8 +2510,8 @@ static PRBool ExtractGeneric(const nsString& aFamily, PRBool aGeneric,
   return PR_TRUE;
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeFontData(void* aStartStruct,
                             const nsRuleDataStruct& aData, 
                             nsStyleContext* aContext, 
                             nsRuleNode* aHighestNode,
@@ -2603,8 +2603,8 @@ nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(Font, font)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeTextData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeTextData(void* aStartStruct,
                             const nsRuleDataStruct& aData, 
                             nsStyleContext* aContext, 
                             nsRuleNode* aHighestNode,
@@ -2710,8 +2710,8 @@ nsRuleNode::ComputeTextData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(Text, text)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeTextResetData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeTextResetData(void* aStartStruct,
                                  const nsRuleDataStruct& aData, 
                                  nsStyleContext* aContext, 
                                  nsRuleNode* aHighestNode,
@@ -2769,8 +2769,8 @@ nsRuleNode::ComputeTextResetData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(TextReset, text)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeUserInterfaceData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeUserInterfaceData(void* aStartStruct,
                                      const nsRuleDataStruct& aData, 
                                      nsStyleContext* aContext, 
                                      nsRuleNode* aHighestNode,
@@ -2888,8 +2888,8 @@ nsRuleNode::ComputeUserInterfaceData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(UserInterface, ui)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeUIResetData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeUIResetData(void* aStartStruct,
                                const nsRuleDataStruct& aData, 
                                nsStyleContext* aContext, 
                                nsRuleNode* aHighestNode,
@@ -2941,8 +2941,8 @@ nsRuleNode::ComputeUIResetData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(UIReset, ui)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeDisplayData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeDisplayData(void* aStartStruct,
                                const nsRuleDataStruct& aData, 
                                nsStyleContext* aContext, 
                                nsRuleNode* aHighestNode,
@@ -3303,8 +3303,8 @@ nsRuleNode::ComputeDisplayData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Display, display)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeVisibilityData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeVisibilityData(void* aStartStruct,
                                   const nsRuleDataStruct& aData, 
                                   nsStyleContext* aContext, 
                                   nsRuleNode* aHighestNode,
@@ -3361,8 +3361,8 @@ nsRuleNode::ComputeVisibilityData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(Visibility, visibility)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeColorData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeColorData(void* aStartStruct,
                              const nsRuleDataStruct& aData, 
                              nsStyleContext* aContext, 
                              nsRuleNode* aHighestNode,
@@ -3390,8 +3390,8 @@ nsRuleNode::ComputeColorData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(Color, color)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeBackgroundData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeBackgroundData(void* aStartStruct,
                                   const nsRuleDataStruct& aData, 
                                   nsStyleContext* aContext, 
                                   nsRuleNode* aHighestNode,
@@ -3577,8 +3577,8 @@ nsRuleNode::ComputeBackgroundData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Background, bg)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeMarginData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeMarginData(void* aStartStruct,
                               const nsRuleDataStruct& aData, 
                               nsStyleContext* aContext, 
                               nsRuleNode* aHighestNode,
@@ -3613,8 +3613,8 @@ nsRuleNode::ComputeMarginData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Margin, margin)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeBorderData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeBorderData(void* aStartStruct,
                               const nsRuleDataStruct& aData, 
                               nsStyleContext* aContext, 
                               nsRuleNode* aHighestNode,
@@ -3818,8 +3818,8 @@ nsRuleNode::ComputeBorderData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Border, border)
 }
   
-const nsStyleStruct*
-nsRuleNode::ComputePaddingData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputePaddingData(void* aStartStruct,
                                const nsRuleDataStruct& aData, 
                                nsStyleContext* aContext, 
                                nsRuleNode* aHighestNode,
@@ -3854,8 +3854,8 @@ nsRuleNode::ComputePaddingData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Padding, padding)
 }
 
-const nsStyleStruct*
-nsRuleNode::ComputeOutlineData(nsStyleStruct* aStartStruct,
+const void*
+nsRuleNode::ComputeOutlineData(void* aStartStruct,
                                const nsRuleDataStruct& aData, 
                                nsStyleContext* aContext, 
                                nsRuleNode* aHighestNode,
@@ -3942,8 +3942,8 @@ nsRuleNode::ComputeOutlineData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Outline, outline)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeListData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeListData(void* aStartStruct,
                             const nsRuleDataStruct& aData, 
                             nsStyleContext* aContext, 
                             nsRuleNode* aHighestNode,
@@ -4027,8 +4027,8 @@ nsRuleNode::ComputeListData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(List, list)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputePositionData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputePositionData(void* aStartStruct,
                                 const nsRuleDataStruct& aData, 
                                 nsStyleContext* aContext, 
                                 nsRuleNode* aHighestNode,
@@ -4094,8 +4094,8 @@ nsRuleNode::ComputePositionData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Position, pos)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeTableData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeTableData(void* aStartStruct,
                              const nsRuleDataStruct& aData, 
                              nsStyleContext* aContext, 
                              nsRuleNode* aHighestNode,
@@ -4135,8 +4135,8 @@ nsRuleNode::ComputeTableData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Table, table)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeTableBorderData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeTableBorderData(void* aStartStruct,
                                    const nsRuleDataStruct& aData, 
                                    nsStyleContext* aContext, 
                                    nsRuleNode* aHighestNode,
@@ -4197,8 +4197,8 @@ nsRuleNode::ComputeTableBorderData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(TableBorder, table)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeContentData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeContentData(void* aStartStruct,
                                const nsRuleDataStruct& aData, 
                                nsStyleContext* aContext, 
                                nsRuleNode* aHighestNode,
@@ -4384,8 +4384,8 @@ nsRuleNode::ComputeContentData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(Content, content)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeQuotesData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeQuotesData(void* aStartStruct,
                               const nsRuleDataStruct& aData, 
                               nsStyleContext* aContext, 
                               nsRuleNode* aHighestNode,
@@ -4439,8 +4439,8 @@ nsRuleNode::ComputeQuotesData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(Quotes, quotes)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeXULData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeXULData(void* aStartStruct,
                            const nsRuleDataStruct& aData, 
                            nsStyleContext* aContext, 
                            nsRuleNode* aHighestNode,
@@ -4521,8 +4521,8 @@ nsRuleNode::ComputeXULData(nsStyleStruct* aStartStruct,
   COMPUTE_END_RESET(XUL, xul)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeColumnData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeColumnData(void* aStartStruct,
                               const nsRuleDataStruct& aData, 
                               nsStyleContext* aContext, 
                               nsRuleNode* aHighestNode,
@@ -4609,8 +4609,8 @@ SetSVGOpacity(const nsCSSValue& aValue, float parentOpacity, float& opacity, PRB
   }
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeSVGData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeSVGData(void* aStartStruct,
                            const nsRuleDataStruct& aData, 
                            nsStyleContext* aContext, 
                            nsRuleNode* aHighestNode,
@@ -4879,8 +4879,8 @@ nsRuleNode::ComputeSVGData(nsStyleStruct* aStartStruct,
   COMPUTE_END_INHERITED(SVG, svg)
 }
 
-const nsStyleStruct* 
-nsRuleNode::ComputeSVGResetData(nsStyleStruct* aStartStruct,
+const void* 
+nsRuleNode::ComputeSVGResetData(void* aStartStruct,
                                 const nsRuleDataStruct& aData,
                                 nsStyleContext* aContext, 
                                 nsRuleNode* aHighestNode,
@@ -4970,7 +4970,7 @@ nsRuleNode::ComputeSVGResetData(nsStyleStruct* aStartStruct,
 }
 #endif
 
-inline const nsStyleStruct* 
+inline const void* 
 nsRuleNode::GetParentData(const nsStyleStructID aSID)
 {
   NS_PRECONDITION(mDependentBits & nsCachedStyleData::GetBitForSID(aSID),
@@ -5014,12 +5014,12 @@ nsRuleNode::GetParent##name_()                                              \
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 
-const nsStyleStruct* 
+const void* 
 nsRuleNode::GetStyleData(nsStyleStructID aSID, 
                          nsStyleContext* aContext,
                          PRBool aComputeData)
 {
-  const nsStyleStruct *data;
+  const void *data;
   if (mDependentBits & nsCachedStyleData::GetBitForSID(aSID)) {
     
     
