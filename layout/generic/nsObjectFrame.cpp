@@ -136,6 +136,7 @@
 
 #ifdef XP_WIN
 #include "gfxWindowsNativeDrawing.h"
+#include "gfxWindowsSurface.h"
 #endif
 
 
@@ -356,7 +357,7 @@ public:
   nsEventStatus ProcessEvent(const nsGUIEvent & anEvent);
   
 #ifdef XP_WIN
-  void Paint(const nsRect& aDirtyRect, HDC ndc);
+  void Paint(const RECT& aDirty, HDC aDC);
 #elif defined(XP_MACOSX)
   void Paint(const nsRect& aDirtyRect);  
 #elif defined(MOZ_X11) || defined(MOZ_DFB)
@@ -1269,27 +1270,17 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
 
   
   ctx->NewPath();
-  ctx->Rectangle(gfxRect(window.x, window.y,
-                         window.width, window.height));
+  gfxRect r(window.x, window.y, window.width, window.height);
+  ctx->Rectangle(r);
   ctx->Clip();
 
-  
-
-
-
-  if (windowless)
-    ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-  else
-    ctx->PushGroup(gfxASurface::CONTENT_COLOR);
-
-  gfxWindowsNativeDrawing nativeDraw(ctx,
-                                     gfxRect(window.x, window.y,
-                                             window.width, window.height));
+  gfxWindowsNativeDrawing nativeDraw(ctx, r);
   do {
     HDC dc = nativeDraw.BeginNativeDrawing();
     if (!dc)
       return;
 
+    
     npprint.print.embedPrint.platformPrint = dc;
     npprint.print.embedPrint.window = window;
     
@@ -1298,9 +1289,6 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
     nativeDraw.EndNativeDrawing();
   } while (nativeDraw.ShouldRenderAgain());
   nativeDraw.PaintToContext();
-
-  ctx->PopGroupToSource();
-  ctx->Paint();
 
   ctx->Restore();
 
@@ -1396,22 +1384,154 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
     }
   }
 #elif defined(MOZ_X11) || defined(MOZ_DFB)
-  if (mInstanceOwner)
-    {
-      nsPluginWindow * window;
-      mInstanceOwner->GetWindow(window);
+  if (mInstanceOwner) {
+    nsPluginWindow * window;
+    mInstanceOwner->GetWindow(window);
 
-      if (window->type == nsPluginWindowType_Drawable) {
-        gfxRect frameGfxRect =
-          PresContext()->AppUnitsToGfxUnits(nsRect(aFramePt, GetSize()));
-        gfxRect dirtyGfxRect =
-          PresContext()->AppUnitsToGfxUnits(aDirtyRect);
-        gfxContext* ctx = aRenderingContext.ThebesContext();
+    if (window->type == nsPluginWindowType_Drawable) {
+      gfxRect frameGfxRect =
+        PresContext()->AppUnitsToGfxUnits(nsRect(aFramePt, GetSize()));
+      gfxRect dirtyGfxRect =
+        PresContext()->AppUnitsToGfxUnits(aDirtyRect);
+      gfxContext* ctx = aRenderingContext.ThebesContext();
 
-        mInstanceOwner->Paint(ctx, frameGfxRect, dirtyGfxRect);
+      mInstanceOwner->Paint(ctx, frameGfxRect, dirtyGfxRect);
+    }
+  }
+#elif defined(XP_WIN)
+  nsCOMPtr<nsIPluginInstance> inst;
+  GetPluginInstance(*getter_AddRefs(inst));
+  if (inst) {
+    gfxRect frameGfxRect =
+      PresContext()->AppUnitsToGfxUnits(nsRect(aFramePt, GetSize()));
+    gfxRect dirtyGfxRect =
+      PresContext()->AppUnitsToGfxUnits(aDirtyRect);
+    gfxContext *ctx = aRenderingContext.ThebesContext();
+    gfxMatrix currentMatrix = ctx->CurrentMatrix();
+
+    if (ctx->UserToDevicePixelSnapped(frameGfxRect, PR_FALSE)) {
+      dirtyGfxRect = ctx->UserToDevice(dirtyGfxRect);
+      ctx->IdentityMatrix();
+    }
+    dirtyGfxRect.RoundOut();
+
+    
+    nsPluginWindow * window;
+    mInstanceOwner->GetWindow(window);
+
+    if (window->type == nsPluginWindowType_Drawable) {
+      
+      PRBool doupdatewindow = PR_FALSE;
+      
+      nsPoint origin;
+      
+      gfxWindowsNativeDrawing nativeDraw(ctx, frameGfxRect);
+      do {
+        HDC hdc = nativeDraw.BeginNativeDrawing();
+        if (!hdc)
+          return;
+
+        RECT dest;
+        nativeDraw.TransformToNativeRect(frameGfxRect, dest);
+        RECT dirty;
+        nativeDraw.TransformToNativeRect(dirtyGfxRect, dirty);
+
+        
+        
+        if (reinterpret_cast<HDC>(window->window) != hdc ||
+            window->x != dest.left || window->y != dest.top) {
+          window->window = reinterpret_cast<nsPluginPort*>(hdc);
+          window->x = dest.left;
+          window->y = dest.top;
+
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+
+          nsIntPoint origin = GetWindowOriginInPixels(PR_TRUE);
+          nsRect winlessRect = nsRect(origin, nsSize(window->width, window->height));
+          
+          
+          
+          
+          
+          if (mWindowlessRect != winlessRect) {
+            mWindowlessRect = winlessRect;
+
+            WINDOWPOS winpos;
+            memset(&winpos, 0, sizeof(winpos));
+            winpos.x = mWindowlessRect.x;
+            winpos.y = mWindowlessRect.y;
+            winpos.cx = mWindowlessRect.width;
+            winpos.cy = mWindowlessRect.height;
+
+            
+            nsPluginEvent pluginEvent;
+            pluginEvent.event = WM_WINDOWPOSCHANGED;
+            pluginEvent.wParam = 0;
+            pluginEvent.lParam = (uint32)&winpos;
+            PRBool eventHandled = PR_FALSE;
+
+            inst->HandleEvent(&pluginEvent, &eventHandled);
+          }
+
+          inst->SetWindow(window);        
+        }
+
+        mInstanceOwner->Paint(dirty, hdc);
+        nativeDraw.EndNativeDrawing();
+      } while (nativeDraw.ShouldRenderAgain());
+
+      nativeDraw.PaintToContext();
+    } else if (!(ctx->GetFlags() & gfxContext::FLAG_DESTINED_FOR_SCREEN)) {
+      
+      
+      typedef BOOL (WINAPI * PrintWindowPtr)
+          (HWND hwnd, HDC hdcBlt, UINT nFlags);
+      PrintWindowPtr printProc = nsnull;
+      HMODULE module = ::GetModuleHandleW(L"user32.dll");
+      if (module) {
+        printProc = reinterpret_cast<PrintWindowPtr>
+          (::GetProcAddress(module, "PrintWindow"));
+      }
+      if (printProc) {
+        HWND hwnd = reinterpret_cast<HWND>(window->window);
+        RECT rc;
+        GetWindowRect(hwnd, &rc);
+        nsRefPtr<gfxWindowsSurface> surface =
+          new gfxWindowsSurface(gfxIntSize(rc.right - rc.left, rc.bottom - rc.top));
+
+        if (surface && printProc) {
+          
+          
+          
+          HWND parent = ::GetParent(hwnd);
+          ::SetParent(hwnd, NULL);
+          printProc(hwnd, surface->GetDC(), 0);
+          ::SetParent(hwnd, parent);
+          
+        
+          ctx->Translate(frameGfxRect.pos);
+          ctx->SetSource(surface);
+          gfxRect r = frameGfxRect.Intersect(dirtyGfxRect) - frameGfxRect.pos;
+          ctx->NewPath();
+          ctx->Rectangle(r);
+          ctx->Fill();
+        }
       }
     }
-#elif defined (XP_WIN) || defined(XP_OS2)
+
+    ctx->SetMatrix(currentMatrix);
+  }
+#elif defined(XP_OS2)
   nsCOMPtr<nsIPluginInstance> inst;
   GetPluginInstance(*getter_AddRefs(inst));
   if (inst) {
@@ -1438,6 +1558,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
 
 
       gfxContext *ctx = aRenderingContext.ThebesContext();
+
       gfxMatrix ctxMatrix = ctx->CurrentMatrix();
       if (ctxMatrix.HasNonTranslation()) {
         
@@ -1466,21 +1587,6 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
         return;
       }
 
-#ifdef XP_WIN
-      
-      HDC hdc = (HDC)aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_WINDOWS_DC);
-
-      if (reinterpret_cast<HDC>(window->window) != hdc) {
-        window->window = reinterpret_cast<nsPluginPort*>(hdc);
-        doupdatewindow = PR_TRUE;
-      }
-
-      SaveDC(hdc);
-
-      POINT origViewportOrigin;
-      GetViewportOrgEx(hdc, &origViewportOrigin);
-      SetViewportOrgEx(hdc, origViewportOrigin.x + (int) xoff, origViewportOrigin.y + (int) yoff, NULL);
-#else 
       
       HPS hps = (HPS)aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_OS2_PS);
       if (reinterpret_cast<HPS>(window->window) != hps) {
@@ -1498,7 +1604,6 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
           GpiSetPageViewport(hps, &rclViewport);
         }
       }
-#endif
 
       if ((window->x != origin.x) || (window->y != origin.y)) {
         window->x = origin.x;
@@ -1508,63 +1613,13 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
 
       
       if (doupdatewindow) {
-#ifdef XP_WIN    
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-
-              origin = GetWindowOriginInPixels(PR_TRUE);
-              nsRect winlessRect = nsRect(origin, nsSize(window->width, window->height));
-              
-              
-              
-              
-              
-              if (mWindowlessRect != winlessRect) {
-                mWindowlessRect = winlessRect;
-
-                WINDOWPOS winpos;
-                memset(&winpos, 0, sizeof(winpos));
-                winpos.x = mWindowlessRect.x;
-                winpos.y = mWindowlessRect.y;
-                winpos.cx = mWindowlessRect.width;
-                winpos.cy = mWindowlessRect.height;
-
-                
-                nsPluginEvent pluginEvent;
-                pluginEvent.event = WM_WINDOWPOSCHANGED;
-                pluginEvent.wParam = 0;
-                pluginEvent.lParam = (uint32)&winpos;
-                PRBool eventHandled = PR_FALSE;
-
-                inst->HandleEvent(&pluginEvent, &eventHandled);
-              }
-#endif
-
         inst->SetWindow(window);        
       }
 
-#ifdef XP_WIN
-      
-      
-      
-      
-      mInstanceOwner->Paint(aDirtyRect, hdc);
-
-      RestoreDC(hdc, -1);
-#else 
       mInstanceOwner->Paint(aDirtyRect, hps);
       if (lPSid >= 1) {
         GpiRestorePS(hps, lPSid);
       }
-#endif
       surf->MarkDirty();
     }
   }
@@ -3943,30 +3998,15 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect)
 #endif
 
 #ifdef XP_WIN
-void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HDC ndc)
+void nsPluginInstanceOwner::Paint(const RECT& aDirty, HDC aDC)
 {
   if (!mInstance || !mOwner)
     return;
 
-  nsPluginWindow * window;
-  GetWindow(window);
-  nsRect relDirtyRect = nsRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
-  nsIntRect relDirtyRectInPixels;
-  ConvertAppUnitsToPixels(*mOwner->PresContext(), relDirtyRect,
-                          relDirtyRectInPixels);
-
-  
-  
-  RECT drc;
-  drc.left   = relDirtyRectInPixels.x + window->x;
-  drc.top    = relDirtyRectInPixels.y + window->y;
-  drc.right  = drc.left + relDirtyRectInPixels.width;
-  drc.bottom = drc.top + relDirtyRectInPixels.height;
-
   nsPluginEvent pluginEvent;
   pluginEvent.event = WM_PAINT;
-  pluginEvent.wParam = (uint32)ndc;
-  pluginEvent.lParam = (uint32)&drc;
+  pluginEvent.wParam = WPARAM(aDC);
+  pluginEvent.lParam = LPARAM(&aDirty);
   PRBool eventHandled = PR_FALSE;
   mInstance->HandleEvent(&pluginEvent, &eventHandled);
 }
