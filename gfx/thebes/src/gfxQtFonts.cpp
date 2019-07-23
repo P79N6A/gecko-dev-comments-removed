@@ -706,8 +706,8 @@ gfxQtFont::CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, QFont &aQFont)
     cairo_font_options_t *fontOptions = cairo_font_options_create();
 
     cairo_scaled_font_t* scaledFont = 
+                cairo_scaled_font_create( CairoFontFace(&aQFont),
 
-                cairo_scaled_font_create( CairoFontFace(), 
                                           &fontMatrix,
                                           aCTM,
                                           fontOptions);
