@@ -761,8 +761,10 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame)
   if (!parent)
     return NS_OK;
 
-  return frame->PresContext()->PresShell()->
+  frame->PresContext()->PresShell()->
     FrameNeedsReflow(frame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+
+  return NS_OK;
 }
 
 
@@ -839,9 +841,10 @@ nsMathMLContainerFrame::AttributeChanged(PRInt32         aNameSpaceID,
   
   
   
-  return PresContext()->PresShell()->
-           FrameNeedsReflow(this, nsIPresShell::eStyleChange,
-                            NS_FRAME_IS_DIRTY);
+  PresContext()->PresShell()->
+    FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+
+  return NS_OK;
 }
 
 void

@@ -1828,10 +1828,7 @@ nsFrameSelection::TakeFocus(nsIContent *aNewFocus,
     
 
     NS_ENSURE_STATE(mShell);
-    PRInt16 displaySelection;
-    nsresult result = mShell->GetSelectionFlags(&displaySelection);
-    if (NS_FAILED(result))
-      return result;
+    PRInt16 displaySelection = mShell->GetSelectionFlags();
 
     
     if (displaySelection == nsISelectionDisplay::DISPLAY_ALL)

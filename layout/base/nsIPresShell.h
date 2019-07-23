@@ -127,8 +127,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-{ 0x0e170e5f, 0xf6d4, 0x44c5, \
-  { 0xbc, 0x2c, 0x44, 0x94, 0x20, 0x7e, 0xcc, 0x30 } }
+{ 0x94c34e88, 0x2da3, 0x49d4, \
+  { 0xa5, 0x35, 0x51, 0xa4, 0x16, 0x92, 0xa5, 0x79 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -182,11 +182,11 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIPresShell_base, NS_IPRESSHELL_IID)
 class nsIPresShell : public nsIPresShell_base
 {
 public:
-  NS_IMETHOD Init(nsIDocument* aDocument,
-                  nsPresContext* aPresContext,
-                  nsIViewManager* aViewManager,
-                  nsStyleSet* aStyleSet,
-                  nsCompatibility aCompatMode) = 0;
+  virtual NS_HIDDEN_(nsresult) Init(nsIDocument* aDocument,
+                                   nsPresContext* aPresContext,
+                                   nsIViewManager* aViewManager,
+                                   nsStyleSet* aStyleSet,
+                                   nsCompatibility aCompatMode) = 0;
 
   
 
@@ -195,8 +195,8 @@ public:
 
 
 
-  NS_IMETHOD Destroy() = 0;
-  
+  virtual NS_HIDDEN_(void) Destroy() = 0;
+
   PRBool IsDestroying() { return mIsDestroying; }
 
   
@@ -232,7 +232,7 @@ public:
   virtual void PushStackMemory() = 0;
   virtual void PopStackMemory() = 0;
   virtual void* AllocateStackMemory(size_t aSize) = 0;
-  
+
   nsIDocument* GetDocument() const { return mDocument; }
 
   nsPresContext* GetPresContext() { return mPresContext; }
@@ -288,7 +288,7 @@ public:
 
 
 
-  NS_IMETHOD SetPreferenceStyleRules(PRBool aForceReflow) = 0;
+  virtual NS_HIDDEN_(nsresult) SetPreferenceStyleRules(PRBool aForceReflow) = 0;
 
   
 
@@ -305,10 +305,10 @@ public:
 
   
   
-  NS_IMETHOD BeginObservingDocument() = 0;
+  virtual NS_HIDDEN_(void) BeginObservingDocument() = 0;
 
   
-  NS_IMETHOD EndObservingDocument() = 0;
+  virtual NS_HIDDEN_(void) EndObservingDocument() = 0;
 
   
 
@@ -326,18 +326,18 @@ public:
 
 
 
-  NS_IMETHOD InitialReflow(nscoord aWidth, nscoord aHeight) = 0;
+  virtual NS_HIDDEN_(nsresult) InitialReflow(nscoord aWidth, nscoord aHeight) = 0;
 
   
 
 
 
-  NS_IMETHOD ResizeReflow(nscoord aWidth, nscoord aHeight) = 0;
+  virtual NS_HIDDEN_(nsresult) ResizeReflow(nscoord aWidth, nscoord aHeight) = 0;
 
   
 
 
-  NS_IMETHOD StyleChangeReflow() = 0;
+  virtual NS_HIDDEN_(void) StyleChangeReflow() = 0;
 
   
 
@@ -376,7 +376,7 @@ public:
 
 
 
-  NS_IMETHOD GetPageSequenceFrame(nsIPageSequenceFrame** aResult) const = 0;
+  virtual NS_HIDDEN_(nsIPageSequenceFrame*) GetPageSequenceFrame() const = 0;
 
   
 
@@ -391,8 +391,7 @@ public:
 
 
 
-  NS_IMETHOD GetPlaceholderFrameFor(nsIFrame*  aFrame,
-                                    nsIFrame** aPlaceholderFrame) const = 0;
+  virtual NS_HIDDEN_(nsIFrame*) GetPlaceholderFrameFor(nsIFrame* aFrame) const = 0;
 
   
 
@@ -407,9 +406,9 @@ public:
     eTreeChange, 
     eStyleChange 
   };
-  NS_IMETHOD FrameNeedsReflow(nsIFrame *aFrame,
-                              IntrinsicDirty aIntrinsicDirty,
-                              nsFrameState aBitToAdd) = 0;
+  virtual NS_HIDDEN_(void) FrameNeedsReflow(nsIFrame *aFrame,
+                                            IntrinsicDirty aIntrinsicDirty,
+                                            nsFrameState aBitToAdd) = 0;
 
   
 
@@ -422,9 +421,9 @@ public:
 
 
 
-  NS_IMETHOD_(void) FrameNeedsToContinueReflow(nsIFrame *aFrame) = 0;
+  virtual NS_HIDDEN_(void) FrameNeedsToContinueReflow(nsIFrame *aFrame) = 0;
 
-  NS_IMETHOD CancelAllPendingReflows() = 0;
+  virtual NS_HIDDEN_(void) CancelAllPendingReflows() = 0;
 
   
 
@@ -433,24 +432,24 @@ public:
 
   void PostRecreateFramesFor(nsIContent* aContent);
   void RestyleForAnimation(nsIContent* aContent);
-  
-  
-
-
-
-
-  NS_IMETHOD IsSafeToFlush(PRBool& aIsSafeToFlush) = 0;
 
   
 
 
 
 
+  virtual NS_HIDDEN_(PRBool) IsSafeToFlush() = 0;
+
+  
 
 
 
 
-  NS_IMETHOD FlushPendingNotifications(mozFlushType aType) = 0;
+
+
+
+
+  virtual NS_HIDDEN_(void) FlushPendingNotifications(mozFlushType aType) = 0;
 
   
 
@@ -614,7 +613,6 @@ public:
 
 
 
-
   NS_IMETHOD SetSelectionFlags(PRInt16 aInEnable) = 0;
 
   
@@ -622,10 +620,8 @@ public:
 
 
 
+  virtual NS_HIDDEN_(PRInt16) GetSelectionFlags() = 0;
 
-
-  NS_IMETHOD GetSelectionFlags(PRInt16 *aOutEnabled) = 0;
-  
   virtual nsISelection* GetCurrentSelection(SelectionType aType) = 0;
 
   

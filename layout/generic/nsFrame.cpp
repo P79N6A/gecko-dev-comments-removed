@@ -908,10 +908,7 @@ nsFrame::DisplaySelectionOverlay(nsDisplayListBuilder*   aBuilder,
   if (!shell)
     return NS_OK;
 
-  PRInt16 displaySelection;
-  nsresult rv = shell->GetSelectionFlags(&displaySelection);
-  if (NS_FAILED(rv))
-    return rv;
+  PRInt16 displaySelection = shell->GetSelectionFlags();
   if (!(displaySelection & aContentType))
     return NS_OK;
 
@@ -1703,10 +1700,7 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
   *aContentOffset = 0;
   *aTarget = 0;
 
-  PRInt16 displaySelection;
-  nsresult result = aPresShell->GetSelectionFlags(&displaySelection);
-  if (NS_FAILED(result))
-    return result;
+  PRInt16 displaySelection = aPresShell->GetSelectionFlags();
 
   PRBool selectingTableCells = aFrameSelection->GetTableCellSelection();
 
@@ -1748,9 +1742,7 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
   
   
   
-  result = NS_OK;
-
-  while (frame && NS_SUCCEEDED(result))
+  while (frame)
   {
     
     nsITableCellLayout *cellElement = do_QueryFrame(frame);
@@ -1775,7 +1767,6 @@ nsFrame::GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
         break;
       } else {
         frame = frame->GetParent();
-        result = NS_OK;
         
         if (frame && frame->GetContent() == limiter)
           break;
@@ -1910,8 +1901,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   
   
   
-  PRInt16 isEditor = 0;
-  shell->GetSelectionFlags ( &isEditor );
+  PRInt16 isEditor = shell->GetSelectionFlags();
   
   isEditor = isEditor == nsISelectionDisplay::DISPLAY_ALL;
 
@@ -4683,13 +4673,12 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
 
         
         
-        PRInt16 isEditor = 0;
         nsIPresShell *shell = aPresContext->GetPresShell();
         if (!shell)
           return NS_ERROR_FAILURE;
-        shell->GetSelectionFlags ( &isEditor );
+        PRInt16 isEditor = shell->GetSelectionFlags();
         isEditor = isEditor == nsISelectionDisplay::DISPLAY_ALL;
-        if ( isEditor ) 
+        if ( isEditor )
         {
           if (resultFrame->GetType() == nsGkAtoms::tableOuterFrame)
           {

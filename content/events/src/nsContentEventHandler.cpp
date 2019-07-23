@@ -86,8 +86,7 @@ nsContentEventHandler::InitCommon()
 
   
   
-  nsresult rv = mPresShell->FlushPendingNotifications(Flush_Layout);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mPresShell->FlushPendingNotifications(Flush_Layout);
 
   nsCopySupport::GetSelectionForCopy(mPresShell->GetDocument(),
                                      getter_AddRefs(mSelection));
@@ -96,7 +95,7 @@ nsContentEventHandler::InitCommon()
 
 
   nsCOMPtr<nsIDOMRange> firstRange;
-  rv = mSelection->GetRangeAt(0, getter_AddRefs(firstRange));
+  nsresult rv = mSelection->GetRangeAt(0, getter_AddRefs(firstRange));
   
   if (NS_FAILED(rv))
     return NS_ERROR_NOT_AVAILABLE;
