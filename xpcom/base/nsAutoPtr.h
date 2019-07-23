@@ -1042,6 +1042,17 @@ class nsRefPtr
           return temp;
         }
 
+      void
+      forget( T** rhs )
+          
+          
+          
+        {
+          NS_ASSERTION(rhs, "Null pointer passed to forget!");
+          *rhs = 0;
+          swap(*rhs);
+        }
+
       T*
       get() const
           

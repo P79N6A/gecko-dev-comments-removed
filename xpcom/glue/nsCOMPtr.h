@@ -829,6 +829,17 @@ class nsCOMPtr
           return temp;
         }
 
+      void
+      forget( T** rhs )
+          
+          
+          
+        {
+          NS_ASSERTION(rhs, "Null pointer passed to forget!");
+          *rhs = 0;
+          swap(*rhs);
+        }
+
       T*
       get() const
           
@@ -1139,6 +1150,16 @@ class nsCOMPtr<nsISupports>
           mRawPtr = temp;
         }
 
+      void
+      forget( nsISupports** rhs )
+          
+          
+          
+        {
+          NS_ASSERTION(rhs, "Null pointer passed to forget!");
+          *rhs = 0;
+          swap(*rhs);
+        }
 
         
 
