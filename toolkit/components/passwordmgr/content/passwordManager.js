@@ -197,8 +197,7 @@ function AskUserShowPasswords() {
   
   return prompter.confirmEx(window,
           null,
-          kSignonBundle.getString("noMasterPasswordPrompt"),
-          prompter.BUTTON_TITLE_YES * prompter.BUTTON_POS_0 + prompter.BUTTON_TITLE_NO * prompter.BUTTON_POS_1,
+          kSignonBundle.getString("noMasterPasswordPrompt"), prompter.STD_YES_NO_BUTTONS,
           null, null, null, null, dummy) == 0;    
 }
 
