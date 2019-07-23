@@ -438,7 +438,10 @@ GetTextRunBoundingMetrics(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aLengt
 {
     StubPropertyProvider provider;
     gfxTextRun::Metrics theMetrics =
-        aTextRun->MeasureText(aStart, aLength, PR_TRUE, aContext->ThebesContext(), &provider);
+        aTextRun->MeasureText(aStart, aLength, gfxFont::TIGHT_HINTED_OUTLINE_EXTENTS,
+                              aContext->ThebesContext(), &provider);
+        
+        
 
     aBoundingMetrics.leftBearing = NSToCoordFloor(theMetrics.mBoundingBox.X());
     aBoundingMetrics.rightBearing = NSToCoordCeil(theMetrics.mBoundingBox.XMost());

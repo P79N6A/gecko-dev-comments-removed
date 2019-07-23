@@ -507,6 +507,33 @@ protected:
 public:
     virtual ~gfxFont();
 
+    
+    typedef enum {
+        LOOSE_INK_EXTENTS,
+            
+            
+            
+        TIGHT_INK_EXTENTS,
+            
+            
+            
+            
+        TIGHT_HINTED_OUTLINE_EXTENTS
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+    } BoundingBoxType;
+
     const nsString& GetName() const { return mFontEntry->Name(); }
     const gfxFontStyle *GetStyle() const { return &mStyle; }
 
@@ -633,7 +660,7 @@ public:
 
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
                                PRUint32 aStart, PRUint32 aEnd,
-                               PRBool aTightBoundingBox,
+                               BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
     
@@ -953,7 +980,7 @@ public:
 
 
     Metrics MeasureText(PRUint32 aStart, PRUint32 aLength,
-                        PRBool aTightBoundingBox,
+                        gfxFont::BoundingBoxType aBoundingBoxType,
                         gfxContext *aRefContextForTightBoundingBox,
                         PropertyProvider *aProvider);
 
@@ -1059,7 +1086,8 @@ public:
                                  PropertyProvider *aProvider,
                                  PRBool aSuppressInitialBreak,
                                  gfxFloat *aTrimWhitespace,
-                                 Metrics *aMetrics, PRBool aTightBoundingBox,
+                                 Metrics *aMetrics,
+                                 gfxFont::BoundingBoxType aBoundingBoxType,
                                  gfxContext *aRefContextForTightBoundingBox,
                                  PRBool *aUsedHyphenation,
                                  PRUint32 *aLastBreak,
@@ -1473,14 +1501,15 @@ private:
     
     gfxFloat GetPartialLigatureWidth(PRUint32 aStart, PRUint32 aEnd, PropertyProvider *aProvider);
     void AccumulatePartialLigatureMetrics(gfxFont *aFont,
-                                          PRUint32 aStart, PRUint32 aEnd, PRBool aTight,
+                                          PRUint32 aStart, PRUint32 aEnd,
+                                          gfxFont::BoundingBoxType aBoundingBoxType,
                                           gfxContext *aRefContext,
                                           PropertyProvider *aProvider,
                                           Metrics *aMetrics);
 
     
-    void AccumulateMetricsForRun(gfxFont *aFont, PRUint32 aStart,
-                                 PRUint32 aEnd, PRBool aTight,
+    void AccumulateMetricsForRun(gfxFont *aFont, PRUint32 aStart, PRUint32 aEnd,
+                                 gfxFont::BoundingBoxType aBoundingBoxType,
                                  gfxContext *aRefContext,
                                  PropertyProvider *aProvider,
                                  PRUint32 aSpacingStart, PRUint32 aSpacingEnd,
