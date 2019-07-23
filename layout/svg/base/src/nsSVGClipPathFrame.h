@@ -44,7 +44,7 @@ typedef nsSVGContainerFrame nsSVGClipPathFrameBase;
 class nsSVGClipPathFrame : public nsSVGClipPathFrameBase
 {
   friend nsIFrame*
-  NS_NewSVGClipPathFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
+  NS_NewSVGClipPathFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   nsSVGClipPathFrame(nsStyleContext* aContext) :
     nsSVGClipPathFrameBase(aContext),
@@ -65,6 +65,12 @@ public:
   
   
   PRBool IsTrivial();
+
+#ifdef DEBUG
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
+#endif
 
   
 

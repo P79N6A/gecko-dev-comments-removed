@@ -469,6 +469,12 @@ public:
   GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH, nsIDOMSVGRect *aBBox,
                   nsIFrame *aFrame);
 
+  
+
+
+
+  static nsIFrame* GetFirstNonAAncestorFrame(nsIFrame* aStartFrame);
+
 #ifdef DEBUG
   static void
   WritePPM(const char *fname, gfxImageSurface *aSurface);

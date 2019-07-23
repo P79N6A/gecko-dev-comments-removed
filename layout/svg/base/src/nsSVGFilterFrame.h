@@ -47,7 +47,7 @@ typedef nsSVGContainerFrame nsSVGFilterFrameBase;
 class nsSVGFilterFrame : public nsSVGFilterFrameBase
 {
   friend nsIFrame*
-  NS_NewSVGFilterFrame(nsIPresShell* aPresShell, nsIContent* aContent, nsStyleContext* aContext);
+  NS_NewSVGFilterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   nsSVGFilterFrame(nsStyleContext* aContext) : nsSVGFilterFrameBase(aContext) {}
 
@@ -78,6 +78,12 @@ public:
 
 
   nsIntRect GetFilterBBox(nsIFrame *aTarget, const nsIntRect *aSourceBBox);
+
+#ifdef DEBUG
+  NS_IMETHOD Init(nsIContent*      aContent,
+                  nsIFrame*        aParent,
+                  nsIFrame*        aPrevInFlow);
+#endif
 
   
 
