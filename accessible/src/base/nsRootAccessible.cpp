@@ -649,24 +649,13 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     return NS_OK;
   }
 
-  if (eventType.EqualsLiteral("popuphiding")) {
-    
-    
-    
-    
-    
-    
-    if (!gLastFocusedNode ||
-        !nsCoreUtils::IsAncestorOf(aTargetNode, gLastFocusedNode)) {
-      return NS_OK;  
-    }
-    
-    FireCurrentFocusEvent();
-  }
-
   nsCOMPtr<nsIAccessible> accessible;
   accService->GetAccessibleInShell(aTargetNode, eventShell,
                                    getter_AddRefs(accessible));
+
+  if (eventType.EqualsLiteral("popuphiding"))
+    return HandlePopupHidingEvent(aTargetNode, accessible);
+
   nsCOMPtr<nsPIAccessible> privAcc(do_QueryInterface(accessible));
   if (!privAcc)
     return NS_OK;
@@ -831,22 +820,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ALERT, accessible);
   }
   else if (eventType.EqualsLiteral("popupshown")) {
-    
-    PRUint32 role = nsAccUtils::Role(accessible);
-    PRInt32 event = 0;
-    if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
-      event = nsIAccessibleEvent::EVENT_MENUPOPUP_START;
-    }
-    else if (role == nsIAccessibleRole::ROLE_TOOLTIP) {
-      
-      
-      
-      
-      event = nsIAccessibleEvent::EVENT_ASYNCH_SHOW;
-    }
-    if (event) {
-      nsAccUtils::FireAccEvent(event, accessible);
-    }
+    HandlePopupShownEvent(accessible);
   }
   else if (eventType.EqualsLiteral("DOMMenuInactive")) {
     if (nsAccUtils::Role(accessible) == nsIAccessibleRole::ROLE_MENUPOPUP) {
@@ -1099,6 +1073,94 @@ NS_IMETHODIMP nsRootAccessible::FireDocLoadEvents(PRUint32 aEventType)
   
   mIsContentLoaded = (aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE ||
                       aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED);
+
+  return NS_OK;
+}
+
+nsresult
+nsRootAccessible::HandlePopupShownEvent(nsIAccessible *aAccessible)
+{
+  PRUint32 role = nsAccUtils::Role(aAccessible);
+
+  if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+    
+    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
+                                    aAccessible);
+  }
+
+  if (role == nsIAccessibleRole::ROLE_TOOLTIP) {
+    
+    
+    
+    
+    return nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_ASYNCH_SHOW,
+                                    aAccessible);
+  }
+
+  if (role == nsIAccessibleRole::ROLE_COMBOBOX_LIST) {
+    
+    nsCOMPtr<nsIAccessible> comboboxAcc;
+    nsresult rv = aAccessible->GetParent(getter_AddRefs(comboboxAcc));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRUint32 comboboxRole = nsAccUtils::Role(comboboxAcc);
+    if (comboboxRole == nsIAccessibleRole::ROLE_COMBOBOX ||
+        comboboxRole == nsIAccessibleRole::ROLE_AUTOCOMPLETE) {
+      nsCOMPtr<nsIAccessibleStateChangeEvent> event =
+        new nsAccStateChangeEvent(comboboxAcc,
+                                  nsIAccessibleStates::STATE_EXPANDED,
+                                  PR_FALSE, PR_TRUE);
+      NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
+
+      nsCOMPtr<nsPIAccessible> pComboboxAcc(do_QueryInterface(comboboxAcc));
+
+      return pComboboxAcc->FireAccessibleEvent(event);
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsRootAccessible::HandlePopupHidingEvent(nsIDOMNode *aNode,
+                                         nsIAccessible *aAccessible)
+{
+  
+  
+  
+  
+  
+  if (gLastFocusedNode &&
+      nsCoreUtils::IsAncestorOf(aNode, gLastFocusedNode)) {
+    
+    FireCurrentFocusEvent();
+  }
+
+  
+  if (!aAccessible)
+    return NS_OK;
+
+  PRUint32 role = nsAccUtils::Role(aAccessible);
+  if (role != nsIAccessibleRole::ROLE_COMBOBOX_LIST)
+    return NS_OK;
+
+  nsCOMPtr<nsIAccessible> comboboxAcc;
+  nsresult rv = aAccessible->GetParent(getter_AddRefs(comboboxAcc));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRUint32 comboboxRole = nsAccUtils::Role(comboboxAcc);
+  if (comboboxRole == nsIAccessibleRole::ROLE_COMBOBOX ||
+      comboboxRole == nsIAccessibleRole::ROLE_AUTOCOMPLETE) {
+    nsCOMPtr<nsIAccessibleStateChangeEvent> event =
+      new nsAccStateChangeEvent(comboboxAcc,
+                                nsIAccessibleStates::STATE_EXPANDED,
+                                PR_FALSE, PR_FALSE);
+    NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
+
+    nsCOMPtr<nsPIAccessible> pComboboxAcc(do_QueryInterface(comboboxAcc));
+
+    return pComboboxAcc->FireAccessibleEvent(event);
+  }
 
   return NS_OK;
 }

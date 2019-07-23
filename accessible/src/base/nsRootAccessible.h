@@ -135,13 +135,13 @@ class nsRootAccessible : public nsDocAccessibleWrap,
     
 
 
+    nsresult HandlePopupShownEvent(nsIAccessible *aAccessible);
+    nsresult HandlePopupHidingEvent(nsIDOMNode *aNode,
+                                    nsIAccessible *aAccessible);
+
 #ifdef MOZ_XUL
     nsresult HandleTreeRowCountChangedEvent(nsIDOMEvent *aEvent,
                                             nsIAccessibleTreeCache *aAccessible);
-
-    
-
-
     nsresult HandleTreeInvalidatedEvent(nsIDOMEvent *aEvent,
                                         nsIAccessibleTreeCache *aAccessible);
 

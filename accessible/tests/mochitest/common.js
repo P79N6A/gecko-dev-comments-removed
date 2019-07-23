@@ -4,6 +4,9 @@
 const nsIAccessibleRetrieval = Components.interfaces.nsIAccessibleRetrieval;
 
 const nsIAccessibleEvent = Components.interfaces.nsIAccessibleEvent;
+const nsIAccessibleStateChangeEvent =
+  Components.interfaces.nsIAccessibleStateChangeEvent;
+
 const nsIAccessibleStates = Components.interfaces.nsIAccessibleStates;
 const nsIAccessibleRole = Components.interfaces.nsIAccessibleRole;
 const nsIAccessibleTypes = Components.interfaces.nsIAccessibleTypes;
@@ -203,6 +206,71 @@ function unregisterA11yEventListener(aEventType, aEventHandler)
 
 
 
+
+
+
+
+
+
+
+
+function eventQueue(aEventType)
+{
+  
+
+
+  this.push = function eventQueue_push(aEventInvoker)
+  {
+    this.mInvokers.push(aEventInvoker);
+  }
+
+  
+
+
+  this.invoke = function eventQueue_invoke()
+  {
+    window.setTimeout(
+      function(aQueue)
+      {
+        if (aQueue.mIndex == aQueue.mInvokers.length - 1) {
+          unregisterA11yEventListener(aQueue.mEventType, aQueue.mEventHandler);
+
+          for (var idx = 0; idx < aQueue.mInvokers.length; idx++)
+            ok(aQueue.mInvokers[idx].wasCaught, "test " + idx + " failed.");
+
+          SimpleTest.finish();
+          return;
+        }
+
+        aQueue.mInvokers[++aQueue.mIndex].invoke();
+
+        aQueue.invoke();
+      },
+      100, this
+    );
+  }
+
+  this.getInvoker = function eventQueue_getInvoker()
+  {
+    return this.mInvokers[this.mIndex];
+  }
+
+  this.mEventType = aEventType;
+  this.mEventHandler = new eventHandlerForEventQueue(this);
+
+  registerA11yEventListener(this.mEventType, this.mEventHandler);
+
+  this.mInvokers = new Array();
+  this.mIndex = -1;
+}
+
+
+
+
+
+
+
+
 function initialize()
 {
   gAccRetrieval = Components.classes["@mozilla.org/accessibleRetrieval;1"].
@@ -235,3 +303,18 @@ var gA11yEventObserver =
       listenersArray[index].handleEvent(event);
   }
 };
+
+function eventHandlerForEventQueue(aQueue)
+{
+  this.handleEvent = function eventHandlerForEventQueue_handleEvent(aEvent)
+  {
+    var invoker = this.mQueue.getInvoker();
+    if (aEvent.DOMNode == invoker.DOMNode) {
+      invoker.check(aEvent);
+      invoker.wasCaught = true;
+    }
+  }
+  
+  this.mQueue = aQueue;
+}
+
