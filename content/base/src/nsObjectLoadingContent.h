@@ -256,7 +256,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    static void FirePluginNotFound(nsIContent* thisContent);
+    static void FirePluginError(nsIContent* thisContent, PRBool blocklisted);
 
     ObjectType GetTypeOfContent(const nsCString& aMIMEType);
 
@@ -300,6 +300,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       ePluginUnsupported,  
       ePluginDisabled,     
                            
+      ePluginBlocklisted,  
       ePluginOtherState    
                            
     };
