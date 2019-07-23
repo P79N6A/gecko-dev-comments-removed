@@ -2402,9 +2402,13 @@ WebGLContext::ValidateGL()
 
     
 
-    gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_UNITS, &val);
+    
+    
+    
+    
+    gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &val);
     if (val == 0) {
-        LogMessage("GL_MAX_TEXTURE_UNITS is 0!");
+        LogMessage("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS is 0!");
         return PR_FALSE;
     }
 
