@@ -183,7 +183,6 @@ nsAutoCompleteController::StartSearch(const nsAString &aSearchString)
 { 
   mSearchString = aSearchString;
   StartSearchTimer();
-
   return NS_OK;
 }
 
@@ -1029,7 +1028,11 @@ nsAutoCompleteController::StopSearch()
       mSearches->GetElementAt(i, getter_AddRefs(search));
       search->StopSearch();
     }
-  }
+    mSearchesOngoing = 0;
+    
+    
+    PostSearchCleanup();
+  } 
   return NS_OK;
 }
 
@@ -1227,17 +1230,15 @@ nsAutoCompleteController::ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteRes
   else
     ClosePopup();
 
-  
-  
-  
-  if (mEnterAfterSearch && mSearchesOngoing) {
-    StopSearch();
-    mSearchesOngoing = 0;  
-  }
-
-  
-  if (mSearchesOngoing == 0)
+  if (mSearchesOngoing == 0) {
+    
     PostSearchCleanup();
+  }
+  else if (mEnterAfterSearch) {
+    
+    
+    StopSearch();
+  }
 
   return NS_OK;
 }
