@@ -5583,6 +5583,13 @@ nsDocument::Destroy()
   mLayoutHistoryState = nsnull;
 
   nsContentList::OnDocumentDestroy(this);
+
+  
+  
+  
+  
+  delete mContentWrapperHash;
+  mContentWrapperHash = nsnull;
 }
 
 already_AddRefed<nsILayoutHistoryState>

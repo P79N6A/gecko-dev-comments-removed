@@ -988,7 +988,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
 
   
   if (tmp->mDoc) {
-    tmp->mDoc->RemoveReference(tmp->mDoc.get());
+    tmp->mDoc->RemoveReference(tmp);
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDoc)
   }
 
