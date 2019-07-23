@@ -60,7 +60,7 @@
 #include "nsIScrollableView.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIPresShell.h"
-#include "nsFrameNavigator.h"
+#include "nsFrameList.h"
 #include "nsHTMLParts.h"
 #include "nsILookAndFeel.h"
 #include "nsStyleContext.h"
@@ -740,15 +740,17 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
   mParentBox = mOuter->GetParentBox();
   if (!mParentBox)
     return NS_OK;
-  
+
   
   nsPresContext* outerPresContext = mOuter->PresContext();
-  nscoord childIndex = nsFrameNavigator::IndexOf(outerPresContext, mParentBox, mOuter);
+  nsFrameList siblingList(mParentBox->GetFirstChild(nsnull));
+  PRInt32 childIndex = siblingList.IndexOf(mOuter);
   
-  if (childIndex == 0)
+  
+  if (childIndex <= 0)
     return NS_OK;
 
-  PRInt32 childCount = nsFrameNavigator::CountFrames(outerPresContext, mParentBox);
+  PRInt32 childCount = siblingList.GetLength();
   
   if (childIndex == childCount - 1 && GetResizeAfter() != Grow)
     return NS_OK;
@@ -973,14 +975,18 @@ nsSplitterFrameInner::UpdateState()
     return;
   }
 
-  if (SupportsCollapseDirection(Before) || SupportsCollapseDirection(After)) {
-    nsIBox* splitter = mOuter;
+  if ((SupportsCollapseDirection(Before) || SupportsCollapseDirection(After)) &&
+      mOuter->GetParent()->IsBoxFrame()) {
     
-    nsIBox* splitterSibling =
-      nsFrameNavigator::GetChildBeforeAfter(mOuter->PresContext(), splitter,
-                                            (newState == CollapsedBefore ||
-                                             mState == CollapsedBefore));
-    if (splitterSibling) {
+    nsIFrame* splitterSibling;
+    if (newState == CollapsedBefore || mState == CollapsedBefore) {
+      splitterSibling =
+        nsFrameList(mOuter->GetParent()).GetPrevSiblingFor(mOuter);
+    } else {
+      splitterSibling = mOuter->GetNextSibling();
+    }
+
+    if (splitterSibling && splitterSibling->IsBoxFrame()) {
       nsCOMPtr<nsIContent> sibling = splitterSibling->GetContent();
       if (sibling) {
         if (mState == CollapsedBefore || mState == CollapsedAfter) {
