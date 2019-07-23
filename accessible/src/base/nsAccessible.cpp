@@ -184,23 +184,19 @@ nsresult nsAccessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
   }
 
   if (aIID.Equals(NS_GET_IID(nsIAccessibleSelectable))) {
-    nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-    if (!content) {
-      return NS_ERROR_FAILURE; 
-    }
-    if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) {
+    if (mRoleMapEntry &&
+        (mRoleMapEntry->attributeMap1 == eARIAMultiSelectable ||
+         mRoleMapEntry->attributeMap2 == eARIAMultiSelectable ||
+         mRoleMapEntry->attributeMap3 == eARIAMultiSelectable)) {
+
       
       
       
       
-      
-      nsAutoString multiselectable;
-      if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_multiselectable,
-                               nsAccessibilityAtoms::_true, eCaseMatters)) {
-        *aInstancePtr = static_cast<nsIAccessibleSelectable*>(this);
-        NS_ADDREF_THIS();
-        return NS_OK;
-      }
+
+      *aInstancePtr = static_cast<nsIAccessibleSelectable*>(this);
+      NS_ADDREF_THIS();
+      return NS_OK;
     }
   }
 
@@ -1183,7 +1179,7 @@ NS_IMETHODIMP nsAccessible::SetSelected(PRBool aSelect)
   PRUint32 state = nsAccUtils::State(this);
   if (state & nsIAccessibleStates::STATE_SELECTABLE) {
     nsCOMPtr<nsIAccessible> multiSelect =
-      nsAccUtils::GetMultiSelectFor(mDOMNode);
+      nsAccUtils::GetMultiSelectableContainer(mDOMNode);
     if (!multiSelect) {
       return aSelect ? TakeFocus() : NS_ERROR_FAILURE;
     }
@@ -1213,7 +1209,7 @@ NS_IMETHODIMP nsAccessible::TakeSelection()
   PRUint32 state = nsAccUtils::State(this);
   if (state & nsIAccessibleStates::STATE_SELECTABLE) {
     nsCOMPtr<nsIAccessible> multiSelect =
-      nsAccUtils::GetMultiSelectFor(mDOMNode);
+      nsAccUtils::GetMultiSelectableContainer(mDOMNode);
     if (multiSelect) {
       nsCOMPtr<nsIAccessibleSelectable> selectable = do_QueryInterface(multiSelect);
       selectable->ClearSelection();

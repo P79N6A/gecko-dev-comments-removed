@@ -183,6 +183,21 @@ public:
 
 
 
+
+
+  static already_AddRefed<nsIAccessible>
+    GetSelectableContainer(nsIAccessible *aAccessible, PRUint32 aState);
+
+  
+
+
+  static already_AddRefed<nsIAccessible>
+    GetMultiSelectableContainer(nsIDOMNode *aNode);
+
+  
+
+
+
   static PRBool IsARIASelected(nsIAccessible *aAccessible);
 
   
@@ -466,11 +481,6 @@ public:
 
 
   static PRBool IsNodeRelevant(nsIDOMNode *aNode);
-
-  
-
-
-  static already_AddRefed<nsIAccessible> GetMultiSelectFor(nsIDOMNode *aNode);
 
   
 

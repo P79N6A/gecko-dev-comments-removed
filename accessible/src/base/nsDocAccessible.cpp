@@ -1169,7 +1169,7 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
       aAttribute == nsAccessibilityAtoms::aria_selected) {
     
     nsCOMPtr<nsIAccessible> multiSelect =
-      nsAccUtils::GetMultiSelectFor(targetNode);
+      nsAccUtils::GetMultiSelectableContainer(targetNode);
     
     
     
