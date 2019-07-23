@@ -120,13 +120,6 @@ public:
   void RemoveLocator(nsGeolocation* locator);
 
   
-  already_AddRefed<nsIDOMGeoPosition> GetLastKnownPosition();
-  
-  
-  
-  PRBool   IsDeviceReady();
-
-  
   PRBool   HasGeolocationProvider();
 
   
