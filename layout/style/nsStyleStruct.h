@@ -1125,6 +1125,7 @@ struct nsStyleUIReset: public nsStyleStruct {
 
   PRUint8   mUserSelect;      
   PRUint8   mForceBrokenImageIcon; 
+  PRUint8   mIMEMode;         
 };
 
 struct nsCursorImage {

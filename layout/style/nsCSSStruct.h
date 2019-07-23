@@ -427,6 +427,7 @@ struct nsCSSUserInterface : public nsCSSStruct  {
   
   nsCSSValueList* mCursor;
   nsCSSValue      mForceBrokenImageIcon;
+  nsCSSValue      mIMEMode;
 };
 
 struct nsRuleDataUserInterface : public nsCSSUserInterface {

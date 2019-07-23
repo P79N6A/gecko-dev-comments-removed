@@ -820,8 +820,9 @@ void nsStyleContext::DumpRegressionData(nsPresContext* aPresContext, FILE* out, 
   
   IndentBy(out,aIndent);
   const nsStyleUIReset* uiReset = GetStyleUIReset();
-  fprintf(out, "<uireset data=\"%d\" />\n",
-    (int)uiReset->mUserSelect);
+  fprintf(out, "<uireset data=\"%d %d\" />\n",
+    (int)uiReset->mUserSelect,
+    (int)uiReset->mIMEMode);
 
   
   IndentBy(out,aIndent);

@@ -131,6 +131,7 @@ input > .anonymous-div {
   
 
   text-decoration: inherit;
+  ime-mode: inherit;
 }
 
 select {
