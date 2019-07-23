@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsINameSpaceManager.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"
@@ -146,10 +147,13 @@ nsTreeColumn::GetRect(nsTreeBodyFrame* aBodyFrame, nscoord aY, nscoord aHeight, 
     return NS_ERROR_FAILURE;
   }
 
+  PRBool isRTL = aBodyFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
   *aResult = frame->GetRect();
   aResult->y = aY;
   aResult->height = aHeight;
-  if (IsLastVisible(aBodyFrame))
+  if (isRTL)
+    aResult->x += aBodyFrame->mAdjustWidth;
+  else if (IsLastVisible(aBodyFrame))
     aResult->width += aBodyFrame->mAdjustWidth;
   return NS_OK;
 }
