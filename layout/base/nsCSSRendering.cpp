@@ -2356,17 +2356,18 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
                 oRect.size.width - (2*width) / (2.0 * twipsPerPixel),
                 oRect.size.height - (2*width) / (2.0 * twipsPerPixel));
 
+  nscolor outlineColor;
+
   
   
-  nscolor outlineColor(ourColor->mColor);
+  if (!aOutlineStyle.GetOutlineColor(outlineColor))
+    outlineColor = ourColor->mColor;
+
+  PRUint8 outlineStyle = aOutlineStyle.GetOutlineStyle();
 
   
   nsRefPtr<gfxContext> ctx = (gfxContext*)
     aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
-
-  PRUint8 outlineStyle = aOutlineStyle.GetOutlineStyle();
-  if (!aOutlineStyle.GetOutlineColor(outlineColor))
-    return;
 
   ctx->Save();
 
