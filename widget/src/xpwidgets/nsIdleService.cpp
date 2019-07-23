@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsIdleService.h"
 #include "nsString.h"
 #include "nsIServiceManager.h"
@@ -48,9 +49,8 @@
 #define OBSERVER_TOPIC_IDLE "idle"
 #define OBSERVER_TOPIC_BACK "back"
 
-#define IDLE_POLL_INTERVAL 5000
-
-
+#define MIN_IDLE_POLL_INTERVAL 5000
+#define MAX_IDLE_POLL_INTERVAL 300000
 
 
 class IdleListenerComparator
@@ -69,8 +69,9 @@ nsIdleService::nsIdleService()
 
 nsIdleService::~nsIdleService()
 {
-    if (mTimer)
+    if (mTimer) {
         mTimer->Cancel();
+    }
 }
 
 NS_IMETHODIMP
@@ -80,20 +81,16 @@ nsIdleService::AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime)
     NS_ENSURE_ARG(aIdleTime);
 
     
-    IdleListener listener(aObserver, aIdleTime);
+    IdleListener listener(aObserver, aIdleTime * 1000);
 
     if (!mArrayListeners.AppendElement(listener))
         return NS_ERROR_OUT_OF_MEMORY;
 
     
-    if (!mTimer)
-    {
+    if (!mTimer) {
         nsresult rv;
         mTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
-        if (NS_FAILED(rv))
-            return rv;
-        mTimer->InitWithFuncCallback(IdleTimerCallback, this, IDLE_POLL_INTERVAL,
-                                     nsITimer::TYPE_REPEATING_SLACK);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
@@ -107,16 +104,13 @@ nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTime)
 {
     NS_ENSURE_ARG_POINTER(aObserver);
     NS_ENSURE_ARG(aTime);
-    IdleListener listener(aObserver, aTime);
+    IdleListener listener(aObserver, aTime * 1000);
 
     
     IdleListenerComparator c;
-    if (mArrayListeners.RemoveElement(listener, c))
-    {
-        if (mTimer && mArrayListeners.IsEmpty())
-        {
+    if (mArrayListeners.RemoveElement(listener, c)) {
+        if (mTimer && mArrayListeners.IsEmpty()) {
             mTimer->Cancel();
-            mTimer = nsnull;
         }
         return NS_OK;
     }
@@ -139,6 +133,9 @@ nsIdleService::CheckAwayState()
     if (NS_FAILED(GetIdleTime(&idleTime)))
         return;
 
+    
+    PRUint32 nextPoll = MAX_IDLE_POLL_INTERVAL;
+
     nsAutoString timeStr;
     timeStr.AppendInt(idleTime);
 
@@ -146,33 +143,54 @@ nsIdleService::CheckAwayState()
     
     nsCOMArray<nsIObserver> idleListeners;
     nsCOMArray<nsIObserver> hereListeners;
-    for (PRUint32 i = 0; i < mArrayListeners.Length(); i++)
-    {
+    for (PRUint32 i = 0; i < mArrayListeners.Length(); i++) {
         IdleListener& curListener = mArrayListeners.ElementAt(i);
-        if ((curListener.reqIdleTime * 1000 <= idleTime) &&
-            !curListener.isIdle)
-        {
-            curListener.isIdle = PR_TRUE;
-            idleListeners.AppendObject(curListener.observer);
+
+        
+        PRUint32 curPoll = curListener.reqIdleTime - idleTime;
+
+        
+        if (!curListener.isIdle) {
+            
+            if (idleTime >= curListener.reqIdleTime) {
+                curListener.isIdle = PR_TRUE;
+                idleListeners.AppendObject(curListener.observer);
+
+                
+                curPoll = MIN_IDLE_POLL_INTERVAL;
+            }
         }
-        else if ((curListener.reqIdleTime * 1000 > idleTime) &&
-                 curListener.isIdle)
-        {
-            curListener.isIdle = PR_FALSE;
-            hereListeners.AppendObject(curListener.observer);
+        
+        else {
+            
+            if (idleTime < curListener.reqIdleTime) {
+                curListener.isIdle = PR_FALSE;
+                hereListeners.AppendObject(curListener.observer);
+            }
+            
+            else {
+                curPoll = MIN_IDLE_POLL_INTERVAL;
+            }
         }
+
+        
+        nextPoll = PR_MIN(nextPoll, curPoll);
     }
 
     
-    for (PRInt32 i = 0; i < idleListeners.Count(); i++)
-    {
+    for (PRInt32 i = 0; i < idleListeners.Count(); i++) {
         idleListeners[i]->Observe(this, OBSERVER_TOPIC_IDLE, timeStr.get());
     }
 
     
-    for (PRInt32 i = 0; i < hereListeners.Count(); i++)
-    {
+    for (PRInt32 i = 0; i < hereListeners.Count(); i++) {
         hereListeners[i]->Observe(this, OBSERVER_TOPIC_BACK, timeStr.get());
     }
-}
 
+    
+    if (mTimer) {
+        mTimer->Cancel();
+        mTimer->InitWithFuncCallback(IdleTimerCallback, this, nextPoll,
+                                     nsITimer::TYPE_ONE_SHOT);
+    }
+}
