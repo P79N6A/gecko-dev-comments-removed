@@ -278,11 +278,15 @@ nsFileInputStream::Available(PRUint32* aResult)
         return NS_BASE_STREAM_CLOSED;
     }
 
-    PRInt32 avail = PR_Available(mFD);
+    
+    
+    PRInt64 avail = PR_Available64(mFD);
     if (avail == -1) {
         return NS_ErrorAccordingToNSPR();
     }
-    *aResult = avail;
+
+    
+    *aResult = avail > PR_UINT32_MAX ? PR_UINT32_MAX : (PRUint32)avail;
     return NS_OK;
 }
 
