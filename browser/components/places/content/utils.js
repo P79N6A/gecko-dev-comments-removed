@@ -1604,26 +1604,35 @@ var PlacesUtils = {
       }
     }
     else {
-      let result, oldViewer;
+      let result, oldViewer, wasOpen;
       try {
         let wasOpen = aNode.containerOpen;
+        result = aNode.parentResult;
+        oldViewer = result.viewer;
         if (!wasOpen) {
-          result = aNode.parentResult;
-          oldViewer = result.viewer;
           result.viewer = null;
           aNode.containerOpen = true;
         }
         for (let i = 0; i < aNode.childCount; ++i) {
           
           let child = aNode.getChild(i);
-          if (child.viewIndex != -1 && this.nodeIsURI(child))
-            urls.push({uri: child.uri, isBookmark: this.nodeIsBookmark(child)});
+          if (this.nodeIsURI(child)) {
+            
+            
+            
+            if ((wasOpen && oldViewer && child.viewIndex != -1) ||
+                (oldViewer && !oldViewer.collapseDuplicates) ||
+                urls.indexOf(child.uri) == -1) {
+              urls.push({ uri: child.uri,
+                          isBookmark: this.nodeIsBookmark(child) });
+            }
+          }
         }
         if (!wasOpen)
           aNode.containerOpen = false;
       }
       finally {
-        if (oldViewer)
+        if (!wasOpen)
           result.viewer = oldViewer;
       }
     }
