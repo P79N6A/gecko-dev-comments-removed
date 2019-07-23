@@ -61,6 +61,9 @@ public:
 
   
   NS_DECL_NSIDOMNSUIEVENT
+
+  
+  NS_IMETHOD DuplicatePrivateData();
   
   
   NS_IMETHOD GetCompositionReply(nsTextEventReply** aReply);
@@ -82,6 +85,9 @@ protected:
   nsCOMPtr<nsIDOMAbstractView> mView;
   PRInt32 mDetail;
   nsPoint mClientPoint;
+  
+  nsPoint mLayerPoint;
+  nsPoint mPagePoint;
 };
 
 #define NS_FORWARD_TO_NSDOMUIEVENT \
