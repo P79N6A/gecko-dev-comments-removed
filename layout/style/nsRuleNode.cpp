@@ -707,9 +707,13 @@ CheckFontCallback(const nsRuleDataStruct& aData,
   }
 
   
-  if ((fontData.mSize.IsRelativeLengthUnit() &&
-       fontData.mSize.GetUnit() != eCSSUnit_Pixel) ||
-      fontData.mSize.GetUnit() == eCSSUnit_Percent) {
+  
+  const nsCSSValue& size = fontData.mSize;
+  if ((size.IsRelativeLengthUnit() && size.GetUnit() != eCSSUnit_Pixel) ||
+      size.GetUnit() == eCSSUnit_Percent ||
+      (size.GetUnit() == eCSSUnit_Enumerated &&
+       (size.GetIntValue() == NS_STYLE_FONT_SIZE_SMALLER ||
+        size.GetIntValue() == NS_STYLE_FONT_SIZE_LARGER))) {
     NS_ASSERTION(aResult == nsRuleNode::eRulePartialReset ||
                  aResult == nsRuleNode::eRuleFullReset ||
                  aResult == nsRuleNode::eRulePartialMixed ||
