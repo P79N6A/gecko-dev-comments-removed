@@ -670,7 +670,6 @@ box_jsval(JSContext* cx, jsval& v, uint8 t, double* slot)
       store_double:
         
 
-        JS_ASSERT(cx->doubleFreeList != NULL);
         return js_NewDoubleInRootedValue(cx, d, &v);
       case JSVAL_STRING:
         v = STRING_TO_JSVAL(*(JSString**)slot);
@@ -688,13 +687,15 @@ box_jsval(JSContext* cx, jsval& v, uint8 t, double* slot)
 
 
 static bool
-unbox(JSStackFrame* entryFrame, JSStackFrame* currentFrame, uint8* m, double* native)
+unbox(JSStackFrame* entryFrame, JSStackFrame* currentFrame, uint8* map, double* native)
 {
     verbose_only(printf("unbox native@%p ", native);)
+    double* np = native;
+    uint8* mp = map;
     FORALL_SLOTS_IN_PENDING_FRAMES(entryFrame, currentFrame,
-        if (vp && !unbox_jsval(*vp, *m, native))
+        if (vp && !unbox_jsval(*vp, *mp, np))
             return false;
-        ++m; ++native
+        ++mp; ++np;
     );
     verbose_only(printf("\n");)
     return true;
@@ -703,13 +704,26 @@ unbox(JSStackFrame* entryFrame, JSStackFrame* currentFrame, uint8* m, double* na
 
 
 static bool
-box(JSContext* cx, JSStackFrame* entryFrame, JSStackFrame* currentFrame, uint8* m, double* native)
+box(JSContext* cx, JSStackFrame* entryFrame, JSStackFrame* currentFrame, uint8* map, double* native)
 {
     verbose_only(printf("box native@%p ", native);)
+    double* np = native;
+    uint8* mp = map;
+    
     FORALL_SLOTS_IN_PENDING_FRAMES(entryFrame, currentFrame,
-        if (vp && !box_jsval(cx, *vp, *m, native))
+        if (vp && (*mp == JSVAL_STRING || *mp == JSVAL_OBJECT) && !box_jsval(cx, *vp, *mp, np))
             return false;
-        ++m; ++native
+        ++mp; ++np
+    );
+    
+
+
+    np = native;
+    mp = map;
+    FORALL_SLOTS_IN_PENDING_FRAMES(entryFrame, currentFrame,
+        if (vp && !box_jsval(cx, *vp, *mp, np))
+            return false;
+        ++mp; ++np
     );
     verbose_only(printf("\n");)
     return true;
