@@ -37,7 +37,9 @@
 
 
 
+#ifdef MOZ_IPC
 #include "base/basictypes.h"
+#endif
 
 #include "mozilla/XPCOM.h"
 #include "nsXULAppAPI.h"
