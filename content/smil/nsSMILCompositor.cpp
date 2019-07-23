@@ -114,10 +114,9 @@ nsSMILCompositor::ComposeAttribute()
   }
   UpdateCachedBaseValue(sandwichResultValue);
 
-  
-  
-  
-  
+  if (!mForceCompositing) {
+    return;
+  }
 
   
   PRUint32 length = mAnimationFunctions.Length();
