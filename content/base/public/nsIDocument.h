@@ -115,8 +115,8 @@ class Link;
 } 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x3e162645, 0x4827, 0x4600, \
- { 0x9c, 0xaa, 0xe8, 0xdd, 0xcb, 0x05, 0xfd, 0x85 } }
+{ 0x17e1c0ce, 0x3883, 0x4efc, \
+  { 0xbf, 0xdf, 0x40, 0xa6, 0x26, 0x9f, 0xbd, 0x2c } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -641,7 +641,10 @@ public:
 
 
 
-  virtual nsPIDOMWindow *GetInnerWindow() = 0;
+  nsPIDOMWindow* GetInnerWindow()
+  {
+    return mRemovedFromDocShell ? GetInnerWindowInternal() : mWindow;
+  }
 
   
 
@@ -1354,6 +1357,9 @@ protected:
   }
 
   
+  virtual nsPIDOMWindow *GetInnerWindowInternal() = 0;
+
+  
 
 
 
@@ -1486,6 +1492,10 @@ protected:
   PRUint32 mEventsSuppressed;
 
   nsString mPendingStateObject;
+
+  
+  
+  nsPIDOMWindow *mWindow;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

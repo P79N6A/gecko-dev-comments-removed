@@ -658,13 +658,6 @@ public:
   
 
 
-
-
-  virtual nsPIDOMWindow *GetInnerWindow();
-
-  
-
-
   virtual nsScriptLoader* ScriptLoader();
 
   
@@ -1016,6 +1009,8 @@ protected:
                               const nsAString& aType,
                               PRBool aPersisted);
 
+  virtual nsPIDOMWindow *GetInnerWindowInternal();
+
   
   static PRBool MatchClassNames(nsIContent* aContent, PRInt32 aNamespaceID,
                                 nsIAtom* aAtom, void* aData);
@@ -1062,9 +1057,6 @@ protected:
   
   
   nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
-  
-  
-  nsPIDOMWindow *mWindow;
 
   
   
