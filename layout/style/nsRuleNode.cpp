@@ -664,40 +664,6 @@ CheckFontCallback(const nsRuleDataStruct& aData,
 {
   const nsRuleDataFont& fontData =
       static_cast<const nsRuleDataFont&>(aData);
-  if (eCSSUnit_Enumerated == fontData.mFamily.GetUnit()) {
-    
-    
-    NS_ASSERTION(aResult == nsRuleNode::eRulePartialReset ||
-                 aResult == nsRuleNode::eRuleFullReset ||
-                 aResult == nsRuleNode::eRulePartialMixed ||
-                 aResult == nsRuleNode::eRuleFullMixed,
-                 "we know we already have a reset-counted property");
-    PRInt32 family = fontData.mFamily.GetIntValue();
-    if ((family == NS_STYLE_FONT_CAPTION) ||
-        (family == NS_STYLE_FONT_ICON) ||
-        (family == NS_STYLE_FONT_MENU) ||
-        (family == NS_STYLE_FONT_MESSAGE_BOX) ||
-        (family == NS_STYLE_FONT_SMALL_CAPTION) ||
-        (family == NS_STYLE_FONT_STATUS_BAR) ||
-        (family == NS_STYLE_FONT_WINDOW) ||
-        (family == NS_STYLE_FONT_DOCUMENT) ||
-        (family == NS_STYLE_FONT_WORKSPACE) ||
-        (family == NS_STYLE_FONT_DESKTOP) ||
-        (family == NS_STYLE_FONT_INFO) ||
-        (family == NS_STYLE_FONT_DIALOG) ||
-        (family == NS_STYLE_FONT_BUTTON) ||
-        (family == NS_STYLE_FONT_PULL_DOWN_MENU) ||
-        (family == NS_STYLE_FONT_LIST) ||
-        (family == NS_STYLE_FONT_FIELD)) {
-      
-      if (aResult == nsRuleNode::eRulePartialMixed ||
-          aResult == nsRuleNode::eRuleFullMixed) {
-        aResult = nsRuleNode::eRuleFullMixed;
-      } else {
-        aResult = nsRuleNode::eRuleFullReset;
-      }
-    }
-  }
 
   
   
@@ -1930,8 +1896,6 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
   if (eCSSUnit_Enumerated == aFontData.mSystemFont.GetUnit()) {
     nsSystemFontID sysID;
     switch (aFontData.mSystemFont.GetIntValue()) {
-      
-      
       case NS_STYLE_FONT_CAPTION:       sysID = eSystemFont_Caption;      break;    
       case NS_STYLE_FONT_ICON:          sysID = eSystemFont_Icon;         break;
       case NS_STYLE_FONT_MENU:          sysID = eSystemFont_Menu;         break;
@@ -2326,6 +2290,17 @@ nsRuleNode::ComputeFontData(nsStyleStruct* aStartStruct,
 {
   COMPUTE_START_INHERITED(Font, (mPresContext), font, parentFont,
                           Font, fontData)
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   
   nscoord minimumFontSize = 
