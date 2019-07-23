@@ -311,10 +311,11 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
     }
   }
 
-  nsPresContext* aPresContext = PresContext();
+  nsPresContext* presContext = PresContext();
+  nsIPresShell* shell = presContext->PresShell();
 
   
-  nsIViewManager* viewMan = aPresContext->GetViewManager();
+  nsIViewManager* viewMan = shell->GetViewManager();
 
   nsIView *parView = GetAncestorWithView()->GetView();
   nsRect boundBox(0, 0, 0, 0); 
@@ -325,11 +326,9 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
   
   viewMan->InsertChild(parView, view, nsnull, PR_TRUE);
   SetView(view);
-
-  nsIPresShell *shell = aPresContext->PresShell();
   
   nsFrameborder  frameborder = GetFrameBorder();
-  PRInt32 borderWidth = GetBorderWidth(aPresContext, PR_FALSE);
+  PRInt32 borderWidth = GetBorderWidth(presContext, PR_FALSE);
   nscolor borderColor = GetBorderColor();
  
   
@@ -1575,7 +1574,7 @@ nsHTMLFramesetFrame::MouseDrag(nsPresContext* aPresContext,
     }
 
     
-    nsIViewManager* vm = aPresContext->GetViewManager();
+    nsIViewManager* vm = aPresContext->GetPresShell()->GetViewManager();
     if (vm) {
       nsIView* root;
       vm->GetRootView(root);

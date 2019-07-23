@@ -5134,16 +5134,15 @@ nsTypedSelection::ScrollPointIntoClipView(nsPresContext *aPresContext, nsIView *
 
   if (dx != 0 || dy != 0)
   {
-    nsCOMPtr<nsIPresShell> presShell;
-    GetPresShell(getter_AddRefs(presShell));
-    NS_ASSERTION(presShell, "no pres shell");
+    nsCOMPtr<nsIPresShell> presShell = aPresContext->GetPresShell();
+    NS_ENSURE_STATE(presShell);
 
     nsWeakView weakView = scrollableView->View();
 
     
     
     
-    nsCOMPtr<nsIViewManager> viewManager = aPresContext->GetViewManager();
+    nsCOMPtr<nsIViewManager> viewManager = presShell->GetViewManager();
     viewManager->Composite();
 
     if (!weakView.IsAlive()) {

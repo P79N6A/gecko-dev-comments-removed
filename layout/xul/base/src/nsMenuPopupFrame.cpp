@@ -1083,7 +1083,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   
   
   nsPoint viewPoint = screenPoint - rootScreenRect.TopLeft();
-  presContext->GetViewManager()->MoveViewTo(GetView(), viewPoint.x, viewPoint.y); 
+  presContext->GetPresShell()->GetViewManager()->
+    MoveViewTo(GetView(), viewPoint.x, viewPoint.y);
 
   
   nsBoxFrame::SetPosition(viewPoint - GetParent()->GetOffsetTo(rootFrame));
