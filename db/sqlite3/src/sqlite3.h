@@ -31,7 +31,7 @@ extern "C" {
 #ifdef SQLITE_VERSION
 # undef SQLITE_VERSION
 #endif
-#define SQLITE_VERSION         "3.3.17"
+#define SQLITE_VERSION         "3.3.5"
 
 
 
@@ -48,7 +48,7 @@ extern "C" {
 #ifdef SQLITE_VERSION_NUMBER
 # undef SQLITE_VERSION_NUMBER
 #endif
-#define SQLITE_VERSION_NUMBER 3003017
+#define SQLITE_VERSION_NUMBER 3003005
 
 
 
@@ -182,7 +182,7 @@ int sqlite3_exec(
 #define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
 #define SQLITE_FULL        13   /* Insertion failed because database is full */
 #define SQLITE_CANTOPEN    14   /* Unable to open the database file */
-#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_PROTOCOL    15   /* Database lock protocol error */
 #define SQLITE_EMPTY       16   /* Database is empty */
 #define SQLITE_SCHEMA      17   /* The database schema changed */
 #define SQLITE_TOOBIG      18   /* NOT USED. Too much data for one row */
@@ -207,50 +207,7 @@ int sqlite3_exec(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
-#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
-#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
-#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
-#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
-#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
-#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
-#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
-#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
-#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
-
-
-
-
-int sqlite3_extended_result_codes(sqlite3*, int onoff);
-
-
-
-
-
-
-
-
 sqlite_int64 sqlite3_last_insert_rowid(sqlite3*);
-
-
-
-
-
-
 
 
 
@@ -298,14 +255,7 @@ int sqlite3_total_changes(sqlite3*);
 
 
 
-
-
-
 void sqlite3_interrupt(sqlite3*);
-
-
-
-
 
 
 
@@ -320,23 +270,6 @@ void sqlite3_interrupt(sqlite3*);
 
 int sqlite3_complete(const char *sql);
 int sqlite3_complete16(const void *sql);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -472,18 +405,8 @@ void sqlite3_free_table(char **result);
 
 char *sqlite3_mprintf(const char*,...);
 char *sqlite3_vmprintf(const char*, va_list);
+void sqlite3_free(char *z);
 char *sqlite3_snprintf(int,char*,const char*, ...);
-
-
-
-
-
-
-
-
-void *sqlite3_malloc(int);
-void *sqlite3_realloc(void*, int);
-void sqlite3_free(void*);
 
 #ifndef SQLITE_OMIT_AUTHORIZATION
 
@@ -543,9 +466,7 @@ int sqlite3_set_authorizer(
 #define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
 #define SQLITE_REINDEX              27   /* Index Name      NULL            */
 #define SQLITE_ANALYZE              28   /* Table Name      NULL            */
-#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
-#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
-#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+
 
 
 
@@ -725,34 +646,8 @@ int sqlite3_prepare16(
 
 
 
-
-
-
-
-
-
-int sqlite3_prepare_v2(
-  sqlite3 *db,            
-  const char *zSql,       
-  int nBytes,             
-  sqlite3_stmt **ppStmt,  
-  const char **pzTail     
-);
-int sqlite3_prepare16_v2(
-  sqlite3 *db,            
-  const void *zSql,       
-  int nBytes,             
-  sqlite3_stmt **ppStmt,  
-  const void **pzTail     
-);
-
-
-
-
-
 typedef struct sqlite3_context sqlite3_context;
 typedef struct Mem sqlite3_value;
-
 
 
 
@@ -1031,7 +926,6 @@ const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
 const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
 int sqlite3_column_type(sqlite3_stmt*, int iCol);
 int sqlite3_column_numeric_type(sqlite3_stmt*, int iCol);
-sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
 
 
 
@@ -1199,12 +1093,8 @@ void sqlite3_set_auxdata(sqlite3_context*, int, void*, void (*)(void*));
 
 
 
-
-
-
-typedef void (*sqlite3_destructor_type)(void*);
-#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
-#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+#define SQLITE_STATIC      ((void(*)(void *))0)
+#define SQLITE_TRANSIENT   ((void(*)(void *))-1)
 
 
 
@@ -1582,302 +1472,22 @@ int sqlite3_table_column_metadata(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int sqlite3_load_extension(
-  sqlite3 *db,          
-  const char *zFile,    
-  const char *zProc,    
-  char **pzErrMsg       
-);
-
-
-
-
-
-
-
-
-
-
-
-int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int sqlite3_auto_extension(void *xEntryPoint);
-
-
-
-
-
-
-
-
-
-
-
-void sqlite3_reset_auto_extension(void);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef struct sqlite3_vtab sqlite3_vtab;
-typedef struct sqlite3_index_info sqlite3_index_info;
-typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
-typedef struct sqlite3_module sqlite3_module;
-
-
-
-
-
-
-struct sqlite3_module {
-  int iVersion;
-  int (*xCreate)(sqlite3*, void *pAux,
-               int argc, const char *const*argv,
-               sqlite3_vtab **ppVTab, char**);
-  int (*xConnect)(sqlite3*, void *pAux,
-               int argc, const char *const*argv,
-               sqlite3_vtab **ppVTab, char**);
-  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
-  int (*xDisconnect)(sqlite3_vtab *pVTab);
-  int (*xDestroy)(sqlite3_vtab *pVTab);
-  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
-  int (*xClose)(sqlite3_vtab_cursor*);
-  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
-                int argc, sqlite3_value **argv);
-  int (*xNext)(sqlite3_vtab_cursor*);
-  int (*xEof)(sqlite3_vtab_cursor*);
-  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
-  int (*xRowid)(sqlite3_vtab_cursor*, sqlite_int64 *pRowid);
-  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite_int64 *);
-  int (*xBegin)(sqlite3_vtab *pVTab);
-  int (*xSync)(sqlite3_vtab *pVTab);
-  int (*xCommit)(sqlite3_vtab *pVTab);
-  int (*xRollback)(sqlite3_vtab *pVTab);
-  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
-                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
-                       void **ppArg);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct sqlite3_index_info {
-  
-  const int nConstraint;     
-  const struct sqlite3_index_constraint {
-     int iColumn;              
-     unsigned char op;         
-     unsigned char usable;     
-     int iTermOffset;          
-  } *const aConstraint;      
-  const int nOrderBy;        
-  const struct sqlite3_index_orderby {
-     int iColumn;              
-     unsigned char desc;       
-  } *const aOrderBy;         
-
-  
-  struct sqlite3_index_constraint_usage {
-    int argvIndex;           
-    unsigned char omit;      
-  } *const aConstraintUsage;
-  int idxNum;                
-  char *idxStr;              
-  int needToFreeIdxStr;      
-  int orderByConsumed;       
-  double estimatedCost;      
-};
-#define SQLITE_INDEX_CONSTRAINT_EQ    2
-#define SQLITE_INDEX_CONSTRAINT_GT    4
-#define SQLITE_INDEX_CONSTRAINT_LE    8
-#define SQLITE_INDEX_CONSTRAINT_LT    16
-#define SQLITE_INDEX_CONSTRAINT_GE    32
-#define SQLITE_INDEX_CONSTRAINT_MATCH 64
-
-
-
-
-
-
-
-int sqlite3_create_module(
-  sqlite3 *db,               
-  const char *zName,         
-  const sqlite3_module *,    
-  void *                     
-);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct sqlite3_vtab {
-  const sqlite3_module *pModule;  
-  int nRef;                       
-  char *zErrMsg;                  
-  
-};
-
-
-
-
-
-
-
-
-
-
-struct sqlite3_vtab_cursor {
-  sqlite3_vtab *pVtab;      
-  
-};
-
-
-
-
-
-
-int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef SQLITE_OMIT_FLOATING_POINT
 # undef double
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3Preload(sqlite3* db);
 
 #ifdef __cplusplus
 }  
