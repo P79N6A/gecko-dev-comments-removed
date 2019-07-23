@@ -44,6 +44,7 @@
 #if JS_HAS_FILE_OBJECT
 
 #include "jsfile.h"
+#include "jsstdint.h"
 
 
 #if defined(XP_WIN) || defined(XP_OS2)
