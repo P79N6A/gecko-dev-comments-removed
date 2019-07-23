@@ -193,6 +193,8 @@
 
 #include "nsIPopupWindowManager.h"
 
+#include "nsIPermissionManager.h"
+
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1
@@ -2984,7 +2986,7 @@ nsGlobalWindow::SetInnerWidth(PRInt32 aInnerWidth)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -3057,7 +3059,7 @@ nsGlobalWindow::SetInnerHeight(PRInt32 aInnerHeight)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -3121,7 +3123,7 @@ nsGlobalWindow::SetOuterWidth(PRInt32 aOuterWidth)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3173,7 +3175,7 @@ nsGlobalWindow::SetOuterHeight(PRInt32 aOuterHeight)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3220,7 +3222,7 @@ nsGlobalWindow::SetScreenX(PRInt32 aScreenX)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3268,7 +3270,7 @@ nsGlobalWindow::SetScreenY(PRInt32 aScreenY)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3841,6 +3843,42 @@ nsGlobalWindow::MakeScriptDialogTitle(nsAString &aOutTitle)
   }
 }
 
+
+PRBool
+nsGlobalWindow::CanMoveResizeWindows()
+{
+  
+  if (nsContentUtils::IsCallerTrustedForWrite())
+    return PR_TRUE;
+
+  nsCOMPtr<nsIPrincipal> principal;
+  nsresult rv = nsContentUtils::GetSecurityManager()->
+    GetSubjectPrincipal(getter_AddRefs(principal));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
+  
+  if (!principal)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIURI> uri;
+  rv = principal->GetURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+
+  
+  if (!uri)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIPermissionManager> pm =
+    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  
+  PRUint32 testResult;
+  rv = pm->TestPermission(uri, "moveresize", &testResult);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
+  
+  return testResult == nsIPermissionManager::ALLOW_ACTION;
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::Alert(const nsAString& aString)
 {
@@ -4281,7 +4319,7 @@ nsGlobalWindow::MoveTo(PRInt32 aXPos, PRInt32 aYPos)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4308,7 +4346,7 @@ nsGlobalWindow::MoveBy(PRInt32 aXDif, PRInt32 aYDif)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4339,7 +4377,7 @@ nsGlobalWindow::ResizeTo(PRInt32 aWidth, PRInt32 aHeight)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4366,7 +4404,7 @@ nsGlobalWindow::ResizeBy(PRInt32 aWidthDif, PRInt32 aHeightDif)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4402,7 +4440,7 @@ nsGlobalWindow::SizeToContent()
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
