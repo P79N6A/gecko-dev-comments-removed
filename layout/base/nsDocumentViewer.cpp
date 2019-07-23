@@ -2344,19 +2344,6 @@ DocumentViewerImpl::FindContainerView()
 
   
   
-  nsIViewManager* containerVM = containerView->GetViewManager();
-  nsIView* pView = containerView;
-  do {
-    pView = pView->GetParent();
-  } while (pView && pView->GetViewManager() == containerVM);
-  if (pView)
-    return containerView;
-
-  
-  
-  
-  
-  
   
   
   
