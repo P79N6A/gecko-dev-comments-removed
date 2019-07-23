@@ -43,6 +43,10 @@
 
 
 
+#ifdef DEBUG
+#include <stdio.h>
+#endif
+
 #include "jstypes.h"
 #include "jslock.h"
 #include "jsobj.h"
@@ -549,13 +553,20 @@ js_CastAsObjectJSVal(JSPropertyOp op)
 }
 
 struct JSScopeProperty {
+    friend class JSScope;
+    friend void js_SweepScopeProperties(JSContext *cx);
+    friend JSScopeProperty * js_GetPropertyTreeChild(JSContext *cx, JSScopeProperty *parent,
+                                                     const JSScopeProperty &child);
+
     jsid            id;                 
     JSPropertyOp    getter;             
     JSPropertyOp    setter;             
 
     uint32          slot;               
     uint8           attrs;              
+private:
     uint8           flags;              
+public:
     int16           shortid;            
     JSScopeProperty *parent;            
     union {
@@ -568,17 +579,47 @@ struct JSScopeProperty {
     };
     uint32          shape;              
 
+private:
+    
+    enum {
+        
+        MARK =          0x01,
 
-#define SPROP_MARK                      0x01
-#define SPROP_IS_ALIAS                  0x02
-#define SPROP_HAS_SHORTID               0x04
-#define SPROP_FLAG_SHAPE_REGEN          0x08
-#define SPROP_IS_METHOD                 0x10
-#define SPROP_IN_DICTIONARY             0x20
+        
 
-    bool isMethod() const {
-        return flags & SPROP_IS_METHOD;
-    }
+
+
+
+        SHAPE_REGEN =   0x08,
+
+        
+        IN_DICTIONARY = 0x20
+    };
+
+    bool marked() const { return (flags & MARK) != 0; }
+    void mark() { flags |= MARK; }
+    void clearMark() { flags &= ~MARK; }
+
+    bool hasRegenFlag() const { return (flags & SHAPE_REGEN) != 0; }
+    void setRegenFlag() { flags |= SHAPE_REGEN; }
+    void clearRegenFlag() { flags &= ~SHAPE_REGEN; }
+
+    bool inDictionary() const { return (flags & IN_DICTIONARY) != 0; }
+
+public:
+    
+    enum {
+        ALIAS =         0x02,
+        HAS_SHORTID =   0x04,
+        METHOD =        0x10,
+        PUBLIC_FLAGS = ALIAS | HAS_SHORTID | METHOD
+    };
+
+    uintN getFlags() const { return flags & PUBLIC_FLAGS; }
+    bool isAlias() const { return (flags & ALIAS) != 0; }
+    bool hasShortID() const { return (flags & HAS_SHORTID) != 0; }
+    bool isMethod() const { return (flags & METHOD) != 0; }
+
     JSObject *methodObject() const {
         JS_ASSERT(isMethod());
         return js_CastAsObject(getter);
@@ -610,6 +651,11 @@ struct JSScopeProperty {
         return setterVal;
     }
 
+    inline JSDHashNumber hash() const;
+    inline bool matches(const JSScopeProperty *p) const;
+    inline bool matchesParamsAfterId(JSPropertyOp agetter, JSPropertyOp asetter, uint32 aslot,
+                                     uintN aattrs, uintN aflags, intN ashortid) const;
+
     bool get(JSContext* cx, JSObject* obj, JSObject *pobj, jsval* vp);
     bool set(JSContext* cx, JSObject* obj, jsval* vp);
 
@@ -625,6 +671,11 @@ struct JSScopeProperty {
     bool isAccessorDescriptor() {
         return (attrs & (JSPROP_SETTER | JSPROP_GETTER)) != 0;
     }
+
+#ifdef DEBUG
+    void dump(JSContext *cx, FILE *fp);
+    void dumpSubtree(JSContext *cx, int level, FILE *fp);
+#endif
 };
 
 
@@ -693,11 +744,11 @@ inline void
 JSScope::removeDictionaryProperty(JSScopeProperty *sprop)
 {
     JS_ASSERT(inDictionaryMode());
-    JS_ASSERT(sprop->flags & SPROP_IN_DICTIONARY);
+    JS_ASSERT(sprop->inDictionary());
     JS_ASSERT(sprop->childp);
     JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
 
-    JS_ASSERT(lastProp->flags & SPROP_IN_DICTIONARY);
+    JS_ASSERT(lastProp->inDictionary());
     JS_ASSERT(lastProp->childp == &lastProp);
     JS_ASSERT_IF(lastProp != sprop, !JSVAL_IS_NULL(lastProp->id));
     JS_ASSERT_IF(lastProp->parent, !JSVAL_IS_NULL(lastProp->parent->id));
@@ -716,12 +767,12 @@ JSScope::insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **chil
 
 
 
-    JS_ASSERT(sprop->flags & SPROP_IN_DICTIONARY);
+    JS_ASSERT(sprop->inDictionary());
     JS_ASSERT(!sprop->childp);
     JS_ASSERT(!JSVAL_IS_NULL(sprop->id));
 
-    JS_ASSERT_IF(*childp, (*childp)->flags & SPROP_IN_DICTIONARY);
-    JS_ASSERT_IF(lastProp, lastProp->flags & SPROP_IN_DICTIONARY);
+    JS_ASSERT_IF(*childp, (*childp)->inDictionary());
+    JS_ASSERT_IF(lastProp, lastProp->inDictionary());
     JS_ASSERT_IF(lastProp, lastProp->childp == &lastProp);
     JS_ASSERT_IF(lastProp, !JSVAL_IS_NULL(lastProp->id));
 
@@ -738,8 +789,8 @@ JSScope::insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **chil
 
 
 #define SPROP_USERID(sprop)                                                   \
-    (((sprop)->flags & SPROP_HAS_SHORTID) ? INT_TO_JSVAL((sprop)->shortid)    \
-                                          : ID_TO_VALUE((sprop)->id))
+    ((sprop)->hasShortID() ? INT_TO_JSVAL((sprop)->shortid)                   \
+                           : ID_TO_VALUE((sprop)->id))
 
 #define SLOT_IN_SCOPE(slot,scope)         ((slot) < (scope)->freeslot)
 #define SPROP_HAS_VALID_SLOT(sprop,scope) SLOT_IN_SCOPE((sprop)->slot, scope)

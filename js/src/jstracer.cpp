@@ -7883,7 +7883,7 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
         }
 
         
-        JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+        JS_ASSERT(sprop->hasShortID());
 
         if (frameIfInRange(obj)) {
             
@@ -7932,7 +7932,7 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
         }
 
         
-        JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+        JS_ASSERT(sprop->hasShortID());
 
         LIns* base = lir->insLoad(LIR_ldp, obj_ins, offsetof(JSObject, dslots));
         LIns* val_ins = lir->insLoad(LIR_ldp, base, dslot_index * sizeof(jsval));
@@ -7962,7 +7962,7 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
         }
 
         
-        JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+        JS_ASSERT(sprop->hasShortID());
 
         call_ins = lir->insCall(ci, args);
 
@@ -11346,14 +11346,14 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty
     JSStackFrame *fp = frameIfInRange(callobj);
     if (fp) {
         if (sprop->setter == SetCallArg) {
-            JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+            JS_ASSERT(sprop->hasShortID());
             uintN slot = uint16(sprop->shortid);
             jsval *vp2 = &fp->argv[slot];
             set(vp2, v_ins);
             return RECORD_CONTINUE;
         }
         if (sprop->setter == SetCallVar) {
-            JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+            JS_ASSERT(sprop->hasShortID());
             uintN slot = uint16(sprop->shortid);
             jsval *vp2 = &fp->slots[slot];
             set(vp2, v_ins);
@@ -11382,7 +11382,7 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty
         
         
         
-        JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
+        JS_ASSERT(sprop->hasShortID());
 
         LIns* base = lir->insLoad(LIR_ldp, callobj_ins, offsetof(JSObject, dslots));
         lir->insStorei(box_jsval(v, v_ins), base, dslot_index * sizeof(jsval));
