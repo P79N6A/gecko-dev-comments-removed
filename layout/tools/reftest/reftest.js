@@ -215,7 +215,7 @@ function StartTests()
 {
     try {
         
-        args = window.arguments[0].wrappedJSObject;
+        var args = window.arguments[0].wrappedJSObject;
 
         if ("nocache" in args && args["nocache"])
             gNoCanvasCache = true;
