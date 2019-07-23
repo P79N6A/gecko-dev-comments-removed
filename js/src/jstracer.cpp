@@ -66,6 +66,7 @@
 #include "jsregexp.h"
 #include "jsscope.h"
 #include "jsscript.h"
+#include "jsdate.h"
 #include "jstracer.h"
 
 #include "jsautooplen.h"        
@@ -2224,6 +2225,7 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
     
     uint32 globalShape = OBJ_SHAPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain));
     if (tm->globalShape != globalShape) {
+        AUDIT(globalShapeMismatchAtEntry);
         debug_only_v(printf("Global shape mismatch (%u vs. %u) in RecordTree, flushing cache.\n",
                           globalShape, tm->globalShape);)
         js_FlushJITCache(cx);
@@ -2676,6 +2678,17 @@ js_MonitorLoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
         
     }
     JS_ASSERT(!tm->recorder);
+
+    
+
+
+    uint32 globalShape = OBJ_SHAPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain));
+    if (tm->globalShape != globalShape) {
+        debug_only_v(printf("Global shape mismatch (%u vs. %u) in js_MonitorLoopEdge, flushing cache.\n",
+                            globalShape, tm->globalShape);)
+        js_FlushJITCache(cx);
+        
+    }
 
     
     jsbytecode* pc = cx->fp->regs->pc;
@@ -5045,6 +5058,7 @@ TraceRecorder::record_JSOP_CALL()
         { js_str_substring,            F_String_p_substring_1, "SC",  "i",    FAIL_NULL },
         { js_str_toLowerCase,          F_toLowerCase,          "SC",   "",    FAIL_NULL },
         { js_str_toUpperCase,          F_toUpperCase,          "SC",   "",    FAIL_NULL },
+        { js_date_now,                 F_Date_now,             "C",    "",    INFALLIBLE },
     };
 
     uintN i = 0;
