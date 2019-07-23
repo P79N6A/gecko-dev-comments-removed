@@ -350,6 +350,46 @@ protected:
 
   
   
+  
+  
+  enum AnimationAttributeIdx {
+    BF_ACCUMULATE  = 0,
+    BF_ADDITIVE    = 1,
+    BF_CALC_MODE   = 2,
+    BF_KEY_TIMES   = 3,
+    BF_KEY_SPLINES = 4,
+    BF_KEY_POINTS  = 5 
+  };
+
+  inline void SetAccumulateErrorFlag(PRBool aNewValue) {
+    SetErrorFlag(BF_ACCUMULATE, aNewValue);
+  }
+  inline void SetAdditiveErrorFlag(PRBool aNewValue) {
+    SetErrorFlag(BF_ADDITIVE, aNewValue);
+  }
+  inline void SetCalcModeErrorFlag(PRBool aNewValue) {
+    SetErrorFlag(BF_CALC_MODE, aNewValue);
+  }
+  inline void SetKeyTimesErrorFlag(PRBool aNewValue) {
+    SetErrorFlag(BF_KEY_TIMES, aNewValue);
+  }
+  inline void SetKeySplinesErrorFlag(PRBool aNewValue) {
+    SetErrorFlag(BF_KEY_SPLINES, aNewValue);
+  }
+  inline void SetKeyPointsErrorFlag(PRBool aNewValue) {
+    SetErrorFlag(BF_KEY_POINTS, aNewValue);
+  }
+  
+  inline void SetErrorFlag(AnimationAttributeIdx aField, PRBool aValue) {
+    if (aValue) {
+      mErrorFlags |=  (0x01 << aField);
+    } else {
+      mErrorFlags &= ~(0x01 << aField);
+    }
+  }
+
+  
+  
 
   static nsAttrValue::EnumTable sAdditiveTable[];
   static nsAttrValue::EnumTable sCalcModeTable[];
