@@ -43,9 +43,7 @@
 #include "nsRect.h"
 #include "gfxRect.h"
 
-#ifdef MOZ_CAIRO_GFX
 class gfxASurface;
-#endif
 
 class nsIDeviceContext;
 
@@ -71,13 +69,6 @@ typedef enum {
 
 #define  nsImageUpdateFlags_kColorMapChanged 0x1
 #define  nsImageUpdateFlags_kBitsChanged     0x2
-
-#ifndef MOZ_CAIRO_GFX
-
-#if defined(XP_WIN) || defined(XP_OS2) || defined(XP_MACOSX)
-#define MOZ_PLATFORM_IMAGES_BOTTOM_TO_TOP
-#endif
-#endif
 
 
 
