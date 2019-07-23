@@ -87,8 +87,20 @@ public:
 
 
 
+
+
+
+
+  PRBool GetFloatAvailableSpace(nsRect& aResult) const
+    { return GetFloatAvailableSpace(mY, PR_FALSE, aResult); }
+  PRBool GetFloatAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint,
+                                nsRect& aResult) const;
+  
   void GetAvailableSpace() { GetAvailableSpace(mY, PR_FALSE); }
-  void GetAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint);
+  void GetAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint) {
+    mBandHasFloats =
+      GetFloatAvailableSpace(aY, aRelaxHeightConstraint, mAvailSpaceRect);
+  }
 
   
 
