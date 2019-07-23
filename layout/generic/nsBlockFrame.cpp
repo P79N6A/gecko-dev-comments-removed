@@ -5359,6 +5359,11 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
         
         
         
+        
+        
+        
+        
+        aFlags &= ~FRAMES_ARE_EMPTY;
         break;
       }
 
