@@ -1000,6 +1000,7 @@ nsSVGUtils::NotifyChildrenCanvasTMChanged(nsIFrame *aFrame, PRBool suppressInval
     if (SVGFrame) {
       SVGFrame->NotifyCanvasTMChanged(suppressInvalidation); 
     } else {
+      NS_ASSERTION(aKid->IsFrameOfType(nsIFrame::eSVG), "SVG frame expected");
       
       
       nsSVGUtils::NotifyChildrenCanvasTMChanged(aKid, suppressInvalidation);
