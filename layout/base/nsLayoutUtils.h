@@ -444,6 +444,22 @@ public:
 
 
 
+
+
+  static nsresult GetFramesForArea(nsIFrame* aFrame, const nsRect& aRect,
+                                   nsTArray<nsIFrame*> &aOutFrames,
+                                   PRBool aShouldIgnoreSuppression = PR_FALSE,
+                                   PRBool aIgnoreRootScrollFrame = PR_FALSE);
+
+  
+
+
+
+
+
+
+
+
   static nsPoint InvertTransformsToRoot(nsIFrame* aFrame,
                                         const nsPoint &aPt);
 
