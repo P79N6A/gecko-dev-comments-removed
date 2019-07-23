@@ -94,14 +94,6 @@ private:
   const void* mObject;
 };
 
-
-
-#define DOM_USER_DATA         1
-#define DOM_USER_DATA_HANDLER 2
-#ifdef MOZ_SMIL
-#define SMIL_MAPPED_ATTR_ANIMVAL 3
-#endif 
-
 class nsPropertyTable
 {
  public:
@@ -113,16 +105,7 @@ class nsPropertyTable
                     nsIAtom    *aPropertyName,
                     nsresult   *aResult = nsnull)
   {
-    return GetPropertyInternal(aObject, 0, aPropertyName, PR_FALSE, aResult);
-  }
-
-  void* GetProperty(nsPropertyOwner aObject,
-                    PRUint16    aCategory,
-                    nsIAtom    *aPropertyName,
-                    nsresult   *aResult = nsnull)
-  {
-    return GetPropertyInternal(aObject, aCategory, aPropertyName, PR_FALSE,
-                               aResult);
+    return GetPropertyInternal(aObject, aPropertyName, PR_FALSE, aResult);
   }
 
   
@@ -150,7 +133,7 @@ class nsPropertyTable
                                    PRBool              aTransfer = PR_FALSE,
                                    void              **aOldValue = nsnull)
   {
-    return SetPropertyInternal(aObject, 0, aPropertyName, aPropertyValue,
+    return SetPropertyInternal(aObject, aPropertyName, aPropertyValue,
                                aDtor, aDtorData, aTransfer, aOldValue);
   }
 
@@ -158,49 +141,7 @@ class nsPropertyTable
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) SetProperty(nsPropertyOwner     aObject,
-                                   PRUint16            aCategory,
-                                   nsIAtom            *aPropertyName,
-                                   void               *aPropertyValue,
-                                   NSPropertyDtorFunc  aDtor,
-                                   void               *aDtorData,
-                                   PRBool              aTransfer = PR_FALSE,
-                                   void              **aOldValue = nsnull)
-  {
-    return SetPropertyInternal(aObject, aCategory, aPropertyName,
-                               aPropertyValue, aDtor, aDtorData, aTransfer,
-                               aOldValue);
-  }
-
-  
-
-
-
   NS_HIDDEN_(nsresult) DeleteProperty(nsPropertyOwner aObject,
-                                      nsIAtom    *aPropertyName)
-  {
-    return DeleteProperty(aObject, 0, aPropertyName);
-  }
-
-  
-
-
-
-  NS_HIDDEN_(nsresult) DeleteProperty(nsPropertyOwner aObject,
-                                      PRUint16    aCategory,
                                       nsIAtom    *aPropertyName);
 
   
@@ -212,21 +153,7 @@ class nsPropertyTable
                       nsIAtom    *aPropertyName,
                       nsresult   *aStatus = nsnull)
   {
-    return GetPropertyInternal(aObject, 0, aPropertyName, PR_TRUE, aStatus);
-  }
-
-  
-
-
-
-
-  void* UnsetProperty(nsPropertyOwner aObject,
-                      PRUint16    aCategory,
-                      nsIAtom    *aPropertyName,
-                      nsresult   *aStatus = nsnull)
-  {
-    return GetPropertyInternal(aObject, aCategory, aPropertyName, PR_TRUE,
-                               aStatus);
+    return GetPropertyInternal(aObject, aPropertyName, PR_TRUE, aStatus);
   }
 
   
@@ -234,13 +161,6 @@ class nsPropertyTable
 
 
   NS_HIDDEN_(void) DeleteAllPropertiesFor(nsPropertyOwner aObject);
-
-  
-
-
-
-  NS_HIDDEN_(void) DeleteAllPropertiesFor(nsPropertyOwner aObject,
-                                          PRUint16 aCategory);
 
   
 
@@ -258,7 +178,7 @@ class nsPropertyTable
 
 
 
-  NS_HIDDEN_(void) Enumerate(nsPropertyOwner aObject, PRUint16 aCategory,
+  NS_HIDDEN_(void) Enumerate(nsPropertyOwner aObject,
                              NSPropertyFunc aCallback, void *aData);
 
   
@@ -266,7 +186,8 @@ class nsPropertyTable
 
 
   NS_HIDDEN_(void) DeleteAllProperties();
-  
+
+  nsPropertyTable() : mPropertyList(nsnull) {}  
   ~nsPropertyTable() {
     DeleteAllProperties();
   }
@@ -283,15 +204,12 @@ class nsPropertyTable
 
  private:
   NS_HIDDEN_(void) DestroyPropertyList();
-  NS_HIDDEN_(PropertyList*) GetPropertyListFor(PRUint16 aCategory,
-                                               nsIAtom *aPropertyName) const;
+  NS_HIDDEN_(PropertyList*) GetPropertyListFor(nsIAtom *aPropertyName) const;
   NS_HIDDEN_(void*) GetPropertyInternal(nsPropertyOwner aObject,
-                                        PRUint16    aCategory,
                                         nsIAtom    *aPropertyName,
                                         PRBool      aRemove,
                                         nsresult   *aStatus);
   NS_HIDDEN_(nsresult) SetPropertyInternal(nsPropertyOwner     aObject,
-                                           PRUint16            aCategory,
                                            nsIAtom            *aPropertyName,
                                            void               *aPropertyValue,
                                            NSPropertyDtorFunc  aDtor,

@@ -250,6 +250,14 @@ private:
 };
 
 
+
+#define DOM_USER_DATA         1
+#define DOM_USER_DATA_HANDLER 2
+#ifdef MOZ_SMIL
+#define SMIL_MAPPED_ATTR_ANIMVAL 3
+#endif 
+
+
 #define NS_INODE_IID \
 { 0xbc347b50, 0xa9b8, 0x419e, \
  { 0xb1, 0x21, 0x76, 0x8f, 0x90, 0x05, 0x8d, 0xbf } } 

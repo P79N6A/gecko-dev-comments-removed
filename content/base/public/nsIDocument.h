@@ -816,7 +816,16 @@ public:
 
   virtual PRInt32 GetDefaultNamespaceID() const = 0;
 
-  nsPropertyTable* PropertyTable() { return &mPropertyTable; }
+  void DeleteAllProperties();
+  void DeleteAllPropertiesFor(nsINode* aNode);
+
+  nsPropertyTable* PropertyTable(PRUint16 aCategory) {
+    if (aCategory == 0)
+      return &mPropertyTable;
+    return GetExtraPropertyTable(aCategory);
+  }
+  PRUint32 GetPropertyTableCount()
+  { return mExtraPropertyTables.Length() + 1; }
 
   
 
@@ -1356,6 +1365,8 @@ protected:
     
   }
 
+  nsPropertyTable* GetExtraPropertyTable(PRUint16 aCategory);
+
   
   virtual nsPIDOMWindow *GetInnerWindowInternal() = 0;
 
@@ -1405,6 +1416,7 @@ protected:
 
   
   nsPropertyTable mPropertyTable;
+  nsTArray<nsAutoPtr<nsPropertyTable> > mExtraPropertyTables;
 
   
   nsCompatibility mCompatMode;
