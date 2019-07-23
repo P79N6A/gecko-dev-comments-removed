@@ -94,10 +94,10 @@ nsGridRowGroupLayout::AddWidth(nsSize& aSize, nscoord aSize2, PRBool aIsHorizont
     size += aSize2;
 }
 
-NS_IMETHODIMP
-nsGridRowGroupLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState, nsSize& aSize)
+nsSize
+nsGridRowGroupLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState)
 { 
-  nsresult rv = nsGridRowLayout::GetPrefSize(aBox, aState, aSize); 
+  nsSize vpref = nsGridRowLayout::GetPrefSize(aBox, aState); 
 
 
  
@@ -121,17 +121,17 @@ nsGridRowGroupLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState, nsSize
       nscoord pref =
         grid->GetPrefRowHeight(aState, i+start, !isHorizontal); 
 
-      AddWidth(aSize, pref, isHorizontal);
+      AddWidth(vpref, pref, isHorizontal);
     }
   }
 
-  return rv;
+  return vpref;
 }
 
-NS_IMETHODIMP
-nsGridRowGroupLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState, nsSize& aSize)
+nsSize
+nsGridRowGroupLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState)
 {
- nsresult rv = nsGridRowLayout::GetMaxSize(aBox, aState, aSize); 
+ nsSize maxSize = nsGridRowLayout::GetMaxSize(aBox, aState); 
 
   PRInt32 index = 0;
   nsGrid* grid = GetGrid(aBox, &index);
@@ -147,17 +147,17 @@ nsGridRowGroupLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState, nsSize&
       nscoord max =
         grid->GetMaxRowHeight(aState, i+start, !isHorizontal); 
 
-      AddWidth(aSize, max, isHorizontal);
+      AddWidth(maxSize, max, isHorizontal);
     }
   }
 
-  return rv;
+  return maxSize;
 }
 
-NS_IMETHODIMP
-nsGridRowGroupLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState, nsSize& aSize)
+nsSize
+nsGridRowGroupLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState)
 {
- nsresult rv = nsGridRowLayout::GetMinSize(aBox, aState, aSize); 
+  nsSize minSize = nsGridRowLayout::GetMinSize(aBox, aState); 
 
   PRInt32 index = 0;
   nsGrid* grid = GetGrid(aBox, &index);
@@ -172,11 +172,11 @@ nsGridRowGroupLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState, nsSize&
     {
       nscoord min = 
         grid->GetMinRowHeight(aState, i+start, !isHorizontal); 
-      AddWidth(aSize, min, isHorizontal);
+      AddWidth(minSize, min, isHorizontal);
     }
   }
 
-  return rv;
+  return minSize;
 }
 
 
