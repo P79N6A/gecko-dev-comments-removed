@@ -76,10 +76,16 @@ nsresult SetSubmitReports(PRBool aSubmitReport);
 #ifdef MOZ_IPC
 
 
+#if defined(XP_WIN32)
+typedef HANDLE ProcessHandle;
+#else
+typedef int ProcessHandle;
+#endif
 
 
 
-bool TakeMinidumpForChild(PRUint32 childPid, nsIFile** dump NS_OUTPARAM);
+
+bool TakeMinidumpForChild(ProcessHandle childPid, nsIFile** dump NS_OUTPARAM);
 
 #  if defined(XP_WIN32)
 
