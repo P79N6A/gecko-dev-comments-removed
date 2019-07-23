@@ -61,8 +61,6 @@ public:
 
 protected:
   nsresult ChangeSelection(PRInt32 aIndex, PRUint8 aMethod, PRBool *aSelState);
-  nsresult AppendFlatStringFromSubtree(nsIContent *aContent, nsAString *aFlatString)
-    { return NS_OK; }  
 
   
   

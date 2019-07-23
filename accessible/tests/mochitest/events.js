@@ -1,10 +1,48 @@
 
 
 
+const EVENT_REORDER = nsIAccessibleEvent.EVENT_REORDER;
+const EVENT_DOM_DESTROY = nsIAccessibleEvent.EVENT_DOM_DESTROY;
+
+
+
+
 
 
 
 var gA11yEventDumpID = "";
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForEvent(aEventType, aTarget, aFunc, aContext, aArg1, aArg2)
+{
+  var handler = {
+    handleEvent: function handleEvent(aEvent) {
+      if (!aTarget || aTarget == aEvent.DOMNode) {
+        unregisterA11yEventListener(aEventType, this);
+
+        window.setTimeout(
+          function ()
+          {
+            aFunc.call(aContext, aArg1, aArg2);
+          },
+          0
+        );
+      }
+    }
+  };
+
+  registerA11yEventListener(aEventType, handler);
+}
 
 
 
@@ -386,6 +424,9 @@ function removeA11yEventListener(aEventType, aEventHandler)
 
 function dumpInfoToDOM(aInfo)
 {
+  if (!gA11yEventDumpID)
+    return;
+
   var dumpElm = document.getElementById(gA11yEventDumpID);
   var div = document.createElement("div");      
   div.textContent = aInfo;

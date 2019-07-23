@@ -41,6 +41,10 @@
 
 #include "nsAccessNodeWrap.h"
 
+#include "nsARIAMap.h"
+#include "nsRelUtils.h"
+#include "nsTextEquivUtils.h"
+
 #include "nsIAccessible.h"
 #include "nsPIAccessible.h"
 #include "nsIAccessibleHyperLink.h"
@@ -50,15 +54,12 @@
 #include "nsIAccessibleStates.h"
 #include "nsIAccessibleEvent.h"
 
-#include "nsRelUtils.h"
-
 #include "nsIDOMNodeList.h"
 #include "nsINameSpaceManager.h"
 #include "nsWeakReference.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsIDOMDOMStringList.h"
-#include "nsARIAMap.h"
 
 struct nsRect;
 class nsIContent;
@@ -182,18 +183,6 @@ protected:
   PRBool IsVisible(PRBool *aIsOffscreen); 
 
   
-
-  
-
-
-
-
-
-
-
-  nsresult GetTextFromRelationID(nsIAtom *aIDProperty, nsString &aName);
-
-  
   
 
   
@@ -205,14 +194,6 @@ protected:
 
 
   nsresult GetXULName(nsAString& aName);
-
-  
-  
-  nsresult AppendFlatStringFromSubtree(nsIContent *aContent, nsAString *aFlatString);
-  nsresult AppendNameFromAccessibleFor(nsIContent *aContent, nsAString *aFlatString,
-                                       PRBool aFromValue = PR_FALSE);
-  nsresult AppendFlatStringFromContentNode(nsIContent *aContent, nsAString *aFlatString);
-  nsresult AppendStringWithSpaces(nsAString *aFlatString, const nsAString& textEquivalent);
 
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);

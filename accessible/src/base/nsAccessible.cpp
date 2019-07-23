@@ -40,7 +40,6 @@
 #include "nsAccessible.h"
 #include "nsAccessibleRelation.h"
 #include "nsHyperTextAccessibleWrap.h"
-#include "nsNameUtils.h"
 
 #include "nsIAccessibleDocument.h"
 #include "nsIAccessibleHyperText.h"
@@ -329,7 +328,9 @@ NS_IMETHODIMP nsAccessible::GetDescription(nsAString& aDescription)
   }
   if (!content->IsNodeOfType(nsINode::eTEXT)) {
     nsAutoString description;
-    nsresult rv = GetTextFromRelationID(nsAccessibilityAtoms::aria_describedby, description);
+    nsresult rv = nsTextEquivUtils::
+      GetTextEquivFromIDRefs(this, nsAccessibilityAtoms::aria_describedby,
+                             description);
     if (NS_FAILED(rv)) {
       PRBool isXUL = content->IsNodeOfType(nsINode::eXUL);
       if (isXUL) {
@@ -341,7 +342,8 @@ NS_IMETHODIMP nsAccessible::GetDescription(nsAString& aDescription)
 
         if (descriptionContent) {
           
-          AppendFlatStringFromSubtree(descriptionContent, &description);
+          nsTextEquivUtils::
+            AppendTextEquivFromContent(this, descriptionContent, &description);
         }
       }
       if (description.IsEmpty()) {
@@ -1456,284 +1458,6 @@ nsAccessible::TakeFocus()
   return NS_OK;
 }
 
-nsresult nsAccessible::AppendStringWithSpaces(nsAString *aFlatString, const nsAString& textEquivalent)
-{
-  
-  if (!textEquivalent.IsEmpty()) {
-    if (!aFlatString->IsEmpty())
-      aFlatString->Append(PRUnichar(' '));
-    aFlatString->Append(textEquivalent);
-    aFlatString->Append(PRUnichar(' '));
-  }
-  return NS_OK;
-}
-
-nsresult nsAccessible::AppendNameFromAccessibleFor(nsIContent *aContent,
-                                                   nsAString *aFlatString,
-                                                   PRBool aFromValue)
-{
-  nsAutoString textEquivalent, value;
-
-  nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(aContent));
-  nsCOMPtr<nsIAccessible> accessible;
-  if (domNode == mDOMNode) {
-    accessible = this;
-    if (!aFromValue) {
-      
-      return NS_OK;
-    }
-  }
-  else {
-    nsCOMPtr<nsIAccessibilityService> accService =
-      do_GetService("@mozilla.org/accessibilityService;1");
-    NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
-    accService->GetAccessibleInWeakShell(domNode, mWeakShell, getter_AddRefs(accessible));
-  }
-  if (accessible) {
-    if (aFromValue) {
-      accessible->GetValue(textEquivalent);
-    }
-    else {
-      accessible->GetName(textEquivalent);
-    }
-  }
-
-  textEquivalent.CompressWhitespace();
-  return AppendStringWithSpaces(aFlatString, textEquivalent);
-}
-
-
-
-
-
-
-
-
-
-
-nsresult nsAccessible::AppendFlatStringFromContentNode(nsIContent *aContent, nsAString *aFlatString)
-{
-  if (aContent->IsNodeOfType(nsINode::eTEXT)) {
-    
-    PRBool isHTMLBlock = PR_FALSE;
-    nsCOMPtr<nsIPresShell> shell = GetPresShell();
-    if (!shell) {
-      return NS_ERROR_FAILURE;  
-    }
-
-    nsIContent *parentContent = aContent->GetParent();
-    nsCOMPtr<nsIContent> appendedSubtreeStart(do_QueryInterface(mDOMNode));
-    if (parentContent && parentContent != appendedSubtreeStart) {
-      nsIFrame *frame = shell->GetPrimaryFrameFor(parentContent);
-      if (frame) {
-        
-        
-        
-        const nsStyleDisplay* display = frame->GetStyleDisplay();
-        if (display->IsBlockOutside() ||
-          display->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL) {
-          isHTMLBlock = PR_TRUE;
-          if (!aFlatString->IsEmpty()) {
-            aFlatString->Append(PRUnichar(' '));
-          }
-        }
-      }
-    }
-    if (aContent->TextLength() > 0) {
-      nsIFrame *frame = shell->GetPrimaryFrameFor(aContent);
-      if (frame) {
-        nsresult rv = frame->GetRenderedText(aFlatString);
-        NS_ENSURE_SUCCESS(rv, rv);
-      } else {
-        
-        aContent->AppendTextTo(*aFlatString);
-      }
-      if (isHTMLBlock && !aFlatString->IsEmpty()) {
-        aFlatString->Append(PRUnichar(' '));
-      }
-    }
-    return NS_OK;
-  }
-
-  nsAutoString textEquivalent;
-  if (!aContent->IsNodeOfType(nsINode::eHTML)) {
-    if (aContent->IsNodeOfType(nsINode::eXUL)) {
-      nsCOMPtr<nsIDOMXULLabeledControlElement> labeledEl(do_QueryInterface(aContent));
-      if (labeledEl) {
-        labeledEl->GetLabel(textEquivalent);
-      }
-      else {
-        if (aContent->NodeInfo()->Equals(nsAccessibilityAtoms::label, kNameSpaceID_XUL)) {
-          aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value, textEquivalent);
-        }
-        if (textEquivalent.IsEmpty()) {
-          aContent->GetAttr(kNameSpaceID_None,
-                            nsAccessibilityAtoms::tooltiptext, textEquivalent);
-        }
-      }
-      AppendNameFromAccessibleFor(aContent, &textEquivalent, PR_TRUE );
-
-      return AppendStringWithSpaces(aFlatString, textEquivalent);
-    }
-    return NS_OK; 
-  }
-
-  nsCOMPtr<nsIAtom> tag = aContent->Tag();
-  if (tag == nsAccessibilityAtoms::img) {
-    return AppendNameFromAccessibleFor(aContent, aFlatString);
-  }
-
-  if (tag == nsAccessibilityAtoms::input) {
-    static nsIContent::AttrValuesArray strings[] =
-      {&nsAccessibilityAtoms::button, &nsAccessibilityAtoms::submit,
-       &nsAccessibilityAtoms::reset, &nsAccessibilityAtoms::image, nsnull};
-    if (aContent->FindAttrValueIn(kNameSpaceID_None, nsAccessibilityAtoms::type,
-                                  strings, eIgnoreCase) >= 0) {
-      return AppendNameFromAccessibleFor(aContent, aFlatString);
-    }
-  }
-
-  if (tag == nsAccessibilityAtoms::object && !aContent->GetChildCount()) {
-    
-    aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title, textEquivalent);
-  }
-  else if (tag == nsAccessibilityAtoms::br) {
-    
-    aFlatString->AppendLiteral("\r\n");
-    return NS_OK;
-  }
-  else if (tag != nsAccessibilityAtoms::a && tag != nsAccessibilityAtoms::area) { 
-    AppendNameFromAccessibleFor(aContent, aFlatString, PR_TRUE );
-  }
-
-  textEquivalent.CompressWhitespace();
-  return AppendStringWithSpaces(aFlatString, textEquivalent);
-}
-
-
-nsresult nsAccessible::AppendFlatStringFromSubtree(nsIContent *aContent, nsAString *aFlatString)
-{
-  static PRBool isAlreadyHere; 
-  if (isAlreadyHere) {
-    return NS_OK;
-  }
-
-  isAlreadyHere = PR_TRUE;
-
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
-  NS_ENSURE_TRUE(shell, NS_ERROR_FAILURE);
-
-  nsIFrame *frame = shell->GetPrimaryFrameFor(aContent);
-  PRBool isHidden = (!frame || !frame->GetStyleVisibility()->IsVisible());
-  nsresult rv = AppendFlatStringFromSubtreeRecurse(aContent, aFlatString,
-                                                   isHidden);
-
-  isAlreadyHere = PR_FALSE;
-
-  if (NS_SUCCEEDED(rv) && !aFlatString->IsEmpty()) {
-    nsAString::const_iterator start, end;
-    aFlatString->BeginReading(start);
-    aFlatString->EndReading(end);
-
-    PRInt32 spacesToTruncate = 0;
-    while (-- end != start && *end == ' ')
-      ++ spacesToTruncate;
-
-    if (spacesToTruncate > 0)
-      aFlatString->Truncate(aFlatString->Length() - spacesToTruncate);
-  }
-
-  return rv;
-}
-
-nsresult
-nsAccessible::AppendFlatStringFromSubtreeRecurse(nsIContent *aContent,
-                                                 nsAString *aFlatString,
-                                                 PRBool aIsRootHidden)
-{
-  
-  
-  PRUint32 numChildren = 0;
-  nsCOMPtr<nsIDOMXULSelectControlElement> selectControlEl(do_QueryInterface(aContent));
-  nsCOMPtr<nsIAtom> tag = aContent->Tag();
-
-  if (!selectControlEl && 
-      tag != nsAccessibilityAtoms::textarea && 
-      tag != nsAccessibilityAtoms::select) {
-    
-    
-    
-    
-    
-    numChildren = aContent->GetChildCount();
-  }
-
-  if (numChildren == 0) {
-    
-    AppendFlatStringFromContentNode(aContent, aFlatString);
-    return NS_OK;
-  }
-
-  
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
-  NS_ENSURE_TRUE(shell, NS_ERROR_FAILURE);
-
-  PRUint32 index;
-  for (index = 0; index < numChildren; index++) {
-    nsCOMPtr<nsIContent> childContent = aContent->GetChildAt(index);
-
-    
-    
-    if (!aIsRootHidden) {
-      nsIFrame *childFrame = shell->GetPrimaryFrameFor(childContent);
-      if (!childFrame || !childFrame->GetStyleVisibility()->IsVisible())
-        continue;
-    }
-
-    AppendFlatStringFromSubtreeRecurse(childContent, aFlatString,
-                                       aIsRootHidden);
-  }
-
-  return NS_OK;
-}
-
-nsresult nsAccessible::GetTextFromRelationID(nsIAtom *aIDProperty, nsString &aName)
-{
-  
-  aName.Truncate();
-  NS_ASSERTION(mDOMNode, "Called from shutdown accessible");
-
-  nsCOMPtr<nsIContent> content = nsCoreUtils::GetRoleContent(mDOMNode);
-  if (!content)
-    return NS_OK;
-
-  nsCOMPtr<nsIArray> refElms;
-  nsCoreUtils::GetElementsByIDRefsAttr(content, aIDProperty,
-                                       getter_AddRefs(refElms));
-
-  if (!refElms)
-    return NS_OK;
-
-  PRUint32 count = 0;
-  nsresult rv = refElms->GetLength(&count);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIContent> refContent;
-  for (PRUint32 idx = 0; idx < count; idx++) {
-    refContent = do_QueryElementAt(refElms, idx, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!aName.IsEmpty())
-      aName += ' '; 
-
-    rv = AppendFlatStringFromSubtree(refContent, &aName);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  aName.CompressWhitespace();
-  return NS_OK;
-}
-
 nsresult
 nsAccessible::GetHTMLName(nsAString& aLabel)
 {
@@ -1746,7 +1470,8 @@ nsAccessible::GetHTMLName(nsAString& aLabel)
   nsIContent *labelContent = nsCoreUtils::GetHTMLLabelContent(content);
   if (labelContent) {
     nsAutoString label;
-    nsresult rv = AppendFlatStringFromSubtree(labelContent, &label);
+    nsresult rv =
+      nsTextEquivUtils::AppendTextEquivFromContent(this, labelContent, &label);
     NS_ENSURE_SUCCESS(rv, rv);
 
     label.CompressWhitespace();
@@ -1756,20 +1481,7 @@ nsAccessible::GetHTMLName(nsAString& aLabel)
     }
   }
 
-  PRUint32 role = nsAccUtils::Role(this);
-  PRUint32 canAggregateName =
-    nsNameUtils::gRoleToNameRulesMap[role] & eFromSubtree;
-
-  if (canAggregateName) {
-    
-    nsresult rv = AppendFlatStringFromSubtree(content, &aLabel);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!aLabel.IsEmpty())
-      return NS_OK;
-  }
-
-  return NS_OK;
+  return nsTextEquivUtils::GetNameFromSubtree(this, aLabel);
 }
 
 
@@ -1829,7 +1541,7 @@ nsAccessible::GetXULName(nsAString& aLabel)
     if (xulLabel && NS_SUCCEEDED(xulLabel->GetValue(label)) && label.IsEmpty()) {
       
       
-      AppendFlatStringFromSubtree(labelContent, &label);
+      nsTextEquivUtils::AppendTextEquivFromContent(this, labelContent, &label);
     }
   }
 
@@ -1854,12 +1566,7 @@ nsAccessible::GetXULName(nsAString& aLabel)
     parent = parent->GetParent();
   }
 
-  PRUint32 role = nsAccUtils::Role(this);
-  PRUint32 canAggregateName =
-    nsNameUtils::gRoleToNameRulesMap[role] & eFromSubtree;
-
-  return canAggregateName ?
-         AppendFlatStringFromSubtree(content, &aLabel) : NS_OK;
+  return nsTextEquivUtils::GetNameFromSubtree(this, aLabel);
 }
 
 NS_IMETHODIMP
@@ -3390,14 +3097,18 @@ nsAccessible::GetARIAName(nsAString& aName)
   
   nsAutoString label;
   if (content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label, label)) {
+    label.CompressWhitespace();
     aName = label;
     return NS_OK;
   }
   
   
-  nsresult rv = GetTextFromRelationID(nsAccessibilityAtoms::aria_labelledby, label);
-  if (NS_SUCCEEDED(rv))
+  nsresult rv = nsTextEquivUtils::
+    GetTextEquivFromIDRefs(this, nsAccessibilityAtoms::aria_labelledby, label);
+  if (NS_SUCCEEDED(rv)) {
+    label.CompressWhitespace();
     aName = label;
+  }
 
   return rv;
 }
