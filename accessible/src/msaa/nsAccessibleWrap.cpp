@@ -1511,17 +1511,11 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
   nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(accessible));
   NS_ENSURE_STATE(accessNode);
 
-  if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
-    
-    nsRefPtr<nsRootAccessible> rootAccessible = GetRootAccessible();
-    if (rootAccessible) {
-      nsCOMPtr<nsIAccessible> caretAccessible;
-      void* handle = nsnull;
-      rootAccessible->GetWindowHandle(&handle);
-      NotifyWinEvent(EVENT_OBJECT_LOCATIONCHANGE, (HWND)handle, OBJID_CARET, CHILDID_SELF);
-    }
+  if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED ||
+      eventType == nsIAccessibleEvent::EVENT_FOCUS) {
+    UpdateSystemCaret();
   }
-
+ 
   PRInt32 childID = GetChildIDFor(accessible); 
   if (!childID)
     return NS_OK; 
@@ -1662,5 +1656,40 @@ void nsAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild, nsIAccessibl
     }
   }
   NS_IF_ADDREF(*aXPAccessible);
+}
+
+void nsAccessibleWrap::UpdateSystemCaret()
+{
+  
+  
+  ::DestroyCaret();
+
+  nsRefPtr<nsRootAccessible> rootAccessible = GetRootAccessible();
+  if (!rootAccessible) {
+    return;
+  }
+
+  nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
+  if (!caretAccessible) {
+    return;
+  }
+
+  nsIWidget *widget;
+  nsRect caretRect = caretAccessible->GetCaretRect(&widget);        
+  HWND caretWnd; 
+  if (caretRect.IsEmpty() || !(caretWnd = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW))) {
+    return;
+  }
+
+  
+  
+  HBITMAP caretBitMap = CreateBitmap(1, caretRect.height, 1, 1, NULL);
+  if (::CreateCaret(caretWnd, caretBitMap, 1, caretRect.height)) {  
+    ::ShowCaret(caretWnd);
+    RECT windowRect;
+    ::GetWindowRect(caretWnd, &windowRect);
+    ::SetCaretPos(caretRect.x - windowRect.left, caretRect.y - windowRect.top);
+    ::DeleteObject(caretBitMap);
+  }
 }
 

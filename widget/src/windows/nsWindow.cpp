@@ -5223,30 +5223,19 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
 #ifdef ACCESSIBILITY
     case WM_GETOBJECT:
     {
-      LRESULT lAcc = 0;
-      IAccessible *msaaAccessible = NULL;
+      *aRetValue = 0;
       if (lParam == OBJID_CLIENT) { 
         nsCOMPtr<nsIAccessible> rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
+          IAccessible *msaaAccessible = NULL;
           rootAccessible->GetNativeInterface((void**)&msaaAccessible); 
-        }
-      }
-      else if (lParam == OBJID_CARET) {  
-        nsCOMPtr<nsIAccessible> rootAccessible = GetRootAccessible();  
-        nsCOMPtr<nsIAccessibleDocument> accDoc(do_QueryInterface(rootAccessible));
-        if (accDoc) {
-          nsCOMPtr<nsIAccessible> accessibleCaret;
-          accDoc->GetCaretAccessible(getter_AddRefs(accessibleCaret));
-          if (accessibleCaret) {
-            accessibleCaret->GetNativeInterface((void**)&msaaAccessible);
+          if (msaaAccessible) {
+            *aRetValue = LresultFromObject(IID_IAccessible, wParam, msaaAccessible); 
+            msaaAccessible->Release(); 
+            result = PR_TRUE;  
           }
         }
       }
-      if (msaaAccessible) {
-        lAcc = LresultFromObject(IID_IAccessible, wParam, msaaAccessible); 
-        msaaAccessible->Release(); 
-      }
-      return (*aRetValue = lAcc) != 0;
     }
 #endif
 

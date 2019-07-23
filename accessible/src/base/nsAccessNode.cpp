@@ -354,9 +354,9 @@ already_AddRefed<nsRootAccessible> nsAccessNode::GetRootAccessible()
 
   
   
-  nsRootAccessible* foo;
-  accDoc->QueryInterface(NS_GET_IID(nsRootAccessible), (void**)&foo); 
-  return foo;
+  nsRootAccessible* rootAccessible;
+  accDoc->QueryInterface(NS_GET_IID(nsRootAccessible), (void**)&rootAccessible); 
+  return rootAccessible;
 }
 
 nsIFrame* nsAccessNode::GetFrame()

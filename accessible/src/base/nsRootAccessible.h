@@ -41,11 +41,11 @@
 #include "nsDocAccessibleWrap.h"
 #include "nsHashtable.h"
 #include "nsIAccessibleDocument.h"
+#include "nsCaretAccessible.h"
 #include "nsIDocument.h"
 #include "nsIDOMFocusListener.h"
 #include "nsIDOMFormListener.h"
 #include "nsIDOMXULListener.h"
-#include "nsIAccessibleCaret.h"
 #include "nsITimer.h"
 
 #define NS_ROOTACCESSIBLE_IMPL_CID                      \
@@ -82,9 +82,6 @@ class nsRootAccessible : public nsDocAccessibleWrap,
     NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
     
-    NS_IMETHOD GetCaretAccessible(nsIAccessible **aAccessibleCaret);
-
-    
     NS_IMETHOD Init();
     NS_IMETHOD Shutdown();
 
@@ -106,6 +103,8 @@ class nsRootAccessible : public nsDocAccessibleWrap,
                                     nsIDOMEvent *aFocusEvent,
                                     PRBool aForceEvent = PR_FALSE);
 
+    already_AddRefed<nsCaretAccessible> GetCaretAccessible();
+
   private:
     nsCOMPtr<nsITimer> mFireFocusTimer;
     static void FireFocusCallback(nsITimer *aTimer, void *aClosure);
@@ -124,7 +123,7 @@ class nsRootAccessible : public nsDocAccessibleWrap,
 #endif
     already_AddRefed<nsIDocShellTreeItem>
            GetContentDocShell(nsIDocShellTreeItem *aStart);
-    nsCOMPtr<nsIAccessibleCaret> mCaretAccessible;
+    nsRefPtr<nsCaretAccessible> mCaretAccessible;
     PRPackedBool mIsInDHTMLMenu;
 };
 

@@ -296,6 +296,15 @@ class nsAccessibleWrap : public nsAccessible,
   
   static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
 
+  
+
+
+
+
+
+
+  void UpdateSystemCaret();
+
   virtual void GetXPAccessibleFor(const VARIANT& aVarChild, nsIAccessible **aXPAccessible);
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 
