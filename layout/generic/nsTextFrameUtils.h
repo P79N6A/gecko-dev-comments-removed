@@ -63,7 +63,8 @@ public:
     TEXT_INCOMING_WHITESPACE = 0x200000,
     TEXT_TRAILING_WHITESPACE = 0x400000,
     TEXT_COMPRESSED_LEADING_WHITESPACE = 0x800000,
-    TEXT_IS_UNCACHED         = 0x1000000
+    TEXT_IS_UNCACHED         = 0x1000000,
+    TEXT_NO_BREAKS           = 0x2000000
   };
 
   static PRBool
@@ -106,39 +107,6 @@ public:
                                 PRPackedBool* aIncomingWhitespace,
                                 gfxSkipCharsBuilder* aSkipChars,
                                 PRUint32* aAnalysisFlags);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static PRInt32
-  FindWordBoundary(const nsTextFragment* aText,
-                   gfxTextRun* aTextRun,
-                   gfxSkipCharsIterator* aIterator,
-                   PRInt32 aOffset, PRInt32 aLength,
-                   PRInt32 aPosition, PRInt32 aDirection,
-                   PRBool aBreakBeforePunctuation,
-                   PRBool aBreakAfterPunctuation,
-                   PRBool* aWordIsWhitespace);
 };
 
 class nsSkipCharsRunIterator {
