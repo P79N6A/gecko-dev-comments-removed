@@ -436,6 +436,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
     aKidFrame->GetParent()->Invalidate(oldOverflowRect);
     aKidFrame->GetParent()->Invalidate(kidDesiredSize.mOverflowArea +
                                        rect.TopLeft());
+    nsContainerFrame::PositionChildViews(aKidFrame);
   } else if (oldRect.Size() != rect.Size()) {
     
     nscoord innerWidth = PR_MIN(oldRect.width, rect.width);
