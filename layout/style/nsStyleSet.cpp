@@ -145,7 +145,8 @@ nsStyleSet::BeginReconstruct()
   
   delete mRuleWalker;
   
-  mRoots.Clear();
+  
+  
 
   mRuleTree = newTree;
   mRuleWalker = ruleWalker;
@@ -156,6 +157,22 @@ nsStyleSet::BeginReconstruct()
 void
 nsStyleSet::EndReconstruct()
 {
+#ifdef DEBUG
+  for (PRInt32 i = mRoots.Length() - 1; i >= 0; --i) {
+    nsRuleNode *n = mRoots[i]->GetRuleNode();
+    while (n->GetParent()) {
+      n = n->GetParent();
+    }
+    
+    
+    
+    
+    
+    
+
+    NS_ABORT_IF_FALSE(n == mRuleTree, "style context has old rule node");
+  }
+#endif
   NS_ASSERTION(mOldRuleTree, "Unmatched begin/end?");
   
   mDestroyedCount = 0;
