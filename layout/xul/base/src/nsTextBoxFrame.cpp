@@ -781,8 +781,6 @@ nsTextBoxFrame::UpdateAccessTitle()
 
 
 
-
-
     PRInt32 menuAccessKey;
     nsMenuBarListener::GetMenuAccessKey(&menuAccessKey);
     if (!menuAccessKey || mAccessKey.IsEmpty())
