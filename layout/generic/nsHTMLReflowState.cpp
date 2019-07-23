@@ -758,10 +758,14 @@ struct nsHypotheticalBox {
   nscoord       mLeft, mRight;
   
   nscoord       mTop;
+#ifdef DEBUG
   PRPackedBool  mLeftIsExact, mRightIsExact;
+#endif
 
   nsHypotheticalBox() {
+#ifdef DEBUG
     mLeftIsExact = mRightIsExact = PR_FALSE;
+#endif
   }
 };
       
@@ -1018,17 +1022,23 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     } else {
       aHypotheticalBox.mLeft = aBlockLeftContentEdge;
     }
+#ifdef DEBUG
     aHypotheticalBox.mLeftIsExact = PR_TRUE;
+#endif
 
     if (knowBoxWidth) {
       aHypotheticalBox.mRight = aHypotheticalBox.mLeft + boxWidth;
+#ifdef DEBUG
       aHypotheticalBox.mRightIsExact = PR_TRUE;
+#endif
     } else {
       
       
       
       aHypotheticalBox.mRight = aBlockLeftContentEdge + aBlockContentWidth;
+#ifdef DEBUG
       aHypotheticalBox.mRightIsExact = PR_FALSE;
+#endif
     }
 
   } else {
@@ -1038,17 +1048,23 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     } else {
       aHypotheticalBox.mRight = aBlockLeftContentEdge + aBlockContentWidth;
     }
+#ifdef DEBUG
     aHypotheticalBox.mRightIsExact = PR_TRUE;
+#endif
     
     if (knowBoxWidth) {
       aHypotheticalBox.mLeft = aHypotheticalBox.mRight - boxWidth;
+#ifdef DEBUG
       aHypotheticalBox.mLeftIsExact = PR_TRUE;
+#endif
     } else {
       
       
       
       aHypotheticalBox.mLeft = aBlockLeftContentEdge;
+#ifdef DEBUG
       aHypotheticalBox.mLeftIsExact = PR_FALSE;
+#endif
     }
 
   }
@@ -1148,25 +1164,15 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     
     
     if (NS_STYLE_DIRECTION_LTR == cbFrame->GetStyleVisibility()->mDirection) {
-      if (hypotheticalBox.mLeftIsExact) {
-        mComputedOffsets.left = hypotheticalBox.mLeft;
-        leftIsAuto = PR_FALSE;
-      } else {
-        
-        
-        mComputedOffsets.right = hypotheticalBox.mRight;
-        rightIsAuto = PR_FALSE;
-      }
+      NS_ASSERTION(hypotheticalBox.mLeftIsExact, "should always have "
+                   "exact value on containing block's start side");
+      mComputedOffsets.left = hypotheticalBox.mLeft;
+      leftIsAuto = PR_FALSE;
     } else {
-      if (hypotheticalBox.mRightIsExact) {
-        mComputedOffsets.right = containingBlockWidth - hypotheticalBox.mRight;
-        rightIsAuto = PR_FALSE;
-      } else {
-        
-        
-        mComputedOffsets.left = hypotheticalBox.mLeft;
-        leftIsAuto = PR_FALSE;
-      }
+      NS_ASSERTION(hypotheticalBox.mRightIsExact, "should always have "
+                   "exact value on containing block's start side");
+      mComputedOffsets.right = containingBlockWidth - hypotheticalBox.mRight;
+      rightIsAuto = PR_FALSE;
     }
   }
 
