@@ -49,7 +49,7 @@ const PREF_GETADDONS_GETRECOMMENDED      = "extensions.getAddons.recommended.url
 const PREF_GETADDONS_BROWSESEARCHRESULTS = "extensions.getAddons.search.browseURL";
 const PREF_GETADDONS_GETSEARCHRESULTS    = "extensions.getAddons.search.url";
 
-const XMLURI_PARSE_ERROR  = "http://www.mozilla.org/newlayout/xml/parsererror.xml"
+const XMLURI_PARSE_ERROR  = "http://www.mozilla.org/newlayout/xml/parsererror.xml";
 
 function AddonSearchResult() {
 }
@@ -89,14 +89,7 @@ AddonRepository.prototype = {
   _request: null,
 
   
-  
-  _emptyCount: null,
-
-  
   _callback: null,
-
-  
-  _retrieveURI: null,
 
   
   _maxResults: null,
@@ -145,14 +138,13 @@ AddonRepository.prototype = {
     this._addons = [];
     this._callback = aCallback;
     this._recommended = true;
-    this._emptyCount = 0;
     this._maxResults = aMaxResults;
 
     var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
                          .getService(Components.interfaces.nsIURLFormatter);
 
-    this._retrieveURI = urlf.formatURLPref(PREF_GETADDONS_GETRECOMMENDED);
-    this._loadList();
+    var uri = urlf.formatURLPref(PREF_GETADDONS_GETRECOMMENDED);
+    this._loadList(uri);
   },
 
   searchAddons: function(aSearchTerms, aMaxResults, aCallback) {
@@ -163,7 +155,6 @@ AddonRepository.prototype = {
     this._addons = [];
     this._callback = aCallback;
     this._recommended = false;
-    this._emptyCount = 0;
     this._maxResults = aMaxResults;
 
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
@@ -171,10 +162,10 @@ AddonRepository.prototype = {
     var urlf = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
                          .getService(Components.interfaces.nsIURLFormatter);
 
-    this._retrieveURI = prefs.getCharPref(PREF_GETADDONS_GETSEARCHRESULTS);
-    this._retrieveURI = this._retrieveURI.replace(/%TERMS%/g, encodeURIComponent(aSearchTerms));
-    this._retrieveURI = urlf.formatURL(this._retrieveURI);
-    this._loadList();
+    var uri = prefs.getCharPref(PREF_GETADDONS_GETSEARCHRESULTS);
+    uri = uri.replace(/%TERMS%/g, encodeURIComponent(aSearchTerms));
+    uri = urlf.formatURL(uri);
+    this._loadList(uri);
   },
 
   
@@ -317,7 +308,6 @@ AddonRepository.prototype = {
       return;
     }
     var elements = responseXML.documentElement.getElementsByTagName("addon");
-    var oldcount = this._addons.length;
     for (var i = 0; i < elements.length; i++) {
       this._parseAddon(elements[i]);
 
@@ -328,26 +318,14 @@ AddonRepository.prototype = {
         return;
       }
     }
-
-    
-    if (oldcount == this._addons.length)
-      this._emptyCount++;
-    else
-      this._emptyCount = 0;
-
-    
-
-    if (this._recommended && this._emptyCount < 5)
-      this._loadList();
-    else
-      this._reportSuccess(elements.length);
+    this._reportSuccess(elements.length);
   },
 
   
-  _loadList: function() {
+  _loadList: function(aURI) {
     this._request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
                     createInstance(Ci.nsIXMLHttpRequest);
-    this._request.open("GET", this._retrieveURI, true);
+    this._request.open("GET", aURI, true);
     this._request.overrideMimeType("text/xml");
 
     var self = this;
