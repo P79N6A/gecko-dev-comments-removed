@@ -954,12 +954,6 @@ var gApplicationsPane = {
         continue;
 
       
-      
-      
-      if (handlerInfo.handledOnlyByPlugin && handlerInfo.isDisabledPluginType)
-        continue;
-
-      
       if (this._filter.value && !this._matchesFilter(handlerInfo))
         continue;
 
