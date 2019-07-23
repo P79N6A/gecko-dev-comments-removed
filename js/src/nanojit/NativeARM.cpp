@@ -471,7 +471,7 @@ Assembler::genPrologue()
 
     
     
-    uint32_t stackNeeded = STACK_GRANULARITY * _activation.highwatermark + NJ_STACK_OFFSET;
+    uint32_t stackNeeded = max_out_args + STACK_GRANULARITY * _activation.highwatermark;
     uint32_t savingCount = 2;
 
     uint32_t savingMask = rmask(FP) | rmask(LR);
@@ -582,24 +582,9 @@ Assembler::genEpilogue()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
 Assembler::asm_arg(ArgSize sz, LInsp p, Register r)
 {
-    
-    
     NanoAssert(0);
 }
 
@@ -612,204 +597,347 @@ Assembler::asm_arg(ArgSize sz, LInsp p, Register r)
 
 
 
-void
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void 
 Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
 {
-    NanoAssert((sz == ARGSIZE_F) || (sz == ARGSIZE_LO));
+    
+    NanoAssert((stkd & 3) == 0);
 
     if (sz == ARGSIZE_F) {
+        
+        asm_arg_64(arg, r, stkd);
+    } else if (sz & ARGSIZE_MASK_INT) {
+        
+        if (r < R4) {
+            asm_regarg(sz, arg, r);
+            r = nextreg(r);
+        } else {
+            asm_stkarg(arg, stkd);
+            stkd += 4;
+        }
+    } else {
+        NanoAssert(sz == ARGSIZE_Q);
+        
+        NanoAssert(false);
+    }
+}
+
+
+
+
+void
+Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
+{
+    
+    NanoAssert((stkd & 3) == 0);
+    
+    
+    NanoAssert(AvmCore::config.vfp || arg->isop(LIR_qjoin));
+
+    Register    fp_reg = UnknownReg;
+
+    if (AvmCore::config.vfp) {
+        fp_reg = findRegFor(arg, FpRegs);
+        NanoAssert(fp_reg != UnknownReg);
+    }
+
 #ifdef NJ_ARM_EABI
-        NanoAssert(r == UnknownReg || r == R0 || r == R2);
+    
+    
+    
+    
+    
+    if ((r == R1) || (r == R3)) {
+        r = nextreg(r);
+    }
+#endif
+
+    if (r < R3) {
+        Register    ra = r;
+        Register    rb = nextreg(r);
+        r = nextreg(rb);
+
+#ifdef NJ_ARM_EABI
+        
+        
+        NanoAssert( ((ra == R0) && (rb == R1)) || ((ra == R2) && (rb == R3)) );
+#endif
 
         
         
-        if (r == UnknownReg && (stkd&7) != 0) {
-            SUBis(SP, SP, 4, 0);
+        
+        if (AvmCore::config.vfp) {
+            FMRRD(ra, rb, fp_reg);
+        } else {
+            asm_regarg(ARGSIZE_LO, arg->oprnd1(), ra);
+            asm_regarg(ARGSIZE_LO, arg->oprnd2(), rb);
+        }
+
+#ifndef NJ_ARM_EABI
+    } else if (r == R3) {
+        
+        
+        
+        Register    ra = r;
+        r = nextreg(r);
+
+        
+        
+        NanoAssert(r == R4);
+
+        
+        
+        NanoAssert(stkd == 0);
+
+        if (AvmCore::config.vfp) {
+            
+            
+            
+
+            
+            
+            STR(IP, SP, 0);
+            stkd += 4;
+            FMRRD(ra, IP, fp_reg);
+        } else {
+            
+            
+            
+            asm_regarg(ARGSIZE_LO, arg->oprnd1(), ra);
+            asm_stkarg(arg->oprnd2(), 0);
             stkd += 4;
         }
 #endif
-
-        Reservation* argRes = getresv(arg);
-
+    } else {
         
-        if (arg->isop(LIR_qjoin)) {
-            NanoAssert(!AvmCore::config.vfp);
-            asm_arg(ARGSIZE_LO, arg->oprnd1(), r, stkd);
-            asm_arg(ARGSIZE_LO, arg->oprnd2(), r, stkd);
-        } else if (!argRes || argRes->reg == UnknownReg || !AvmCore::config.vfp) {
+#ifdef NJ_ARM_EABI
+        
+        if ((stkd & 7) != 0) {
             
             
-            if (arg->isop(LIR_quad)) {
-
-                
-                int32_t v = arg->imm64_0();     
-                for (int k = 0; k < 2; k++) {
-                    if (r != UnknownReg) {
-                        asm_ld_imm(r, v);
-                        r = nextreg(r);
-                        if (r == R4)
-                            r = UnknownReg;
-                    } else {
-                        STR_preindex(IP, SP, -4);
-                        asm_ld_imm(IP, v);
-                        stkd += 4;
-                    }
-                    v = arg->imm64_1();         
-                }
-            } else {
-                int d = findMemFor(arg);
-
-                for (int k = 0; k < 2; k++) {
-                    if (r != UnknownReg) {
-                        LDR(r, FP, d + k*4);
-                        r = nextreg(r);
-                        if (r == R4)
-                            r = UnknownReg;
-                    } else {
-                        STR_preindex(IP, SP, -4);
-                        LDR(IP, FP, d + k*4);
-                        stkd += 4;
-                    }
-                }
-            }
-        } else {
-            
-            Register sr = argRes->reg;
-            if (r != UnknownReg && r < R3) {
-                FMRRD(r, nextreg(r), sr);
-
-                
-                if (r == R0)
-                    r = R2;
-                else
-                    r = UnknownReg;
-            } else if (r == R3) {
-                
-                STR_preindex(IP, SP, -4);
-                FMRDL(IP, sr);
-                FMRDH(r, sr);
-                stkd += 4;
-
-                r = UnknownReg;
-            } else {
-                FSTD(sr, SP, 0);
-                SUBis(SP, SP, 8, 0);
-                stkd += 8;
-                r = UnknownReg;
-            }
+            stkd += 4;
         }
-    } else if (sz == ARGSIZE_LO) {
-        if (r != UnknownReg) {
-            NanoAssert(r <= R3);
+#endif
+        asm_stkarg(arg, stkd);
+        stkd += 8;
+    }
+}
 
-            if (arg->isconst()) {
-                asm_ld_imm(r, arg->imm32());
-            } else {
-                Reservation* argRes = getresv(arg);
-                if (argRes) {
-                    if (argRes->reg == UnknownReg) {
-                        
-                        int d = findMemFor(arg);
-                        if (arg->isop(LIR_ialloc)) {
-                            asm_add_imm(r, FP, d);
-                        } else {
-                            LDR(r, FP, d);
-                        }
+void 
+Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
+{
+    NanoAssert(r != UnknownReg);
+    if (sz & ARGSIZE_MASK_INT)
+    {
+        
+        if (p->isconst()) {
+            asm_ld_imm(r, p->imm32());
+        } else {
+            Reservation* rA = getresv(p);
+            if (rA) {
+                if (rA->reg == UnknownReg) {
+                    
+                    int d = findMemFor(p);
+                    if (p->isop(LIR_ialloc)) {
+                        asm_add_imm(r, FP, d, 0);
                     } else {
-                        MOV(r, argRes->reg);
+                        LDR(r, FP, d);
                     }
                 } else {
-                    findSpecificRegFor(arg, r);
+                    
+                    MOV(r, rA->reg);
                 }
             }
-
-            if (r < R3) {
-                r = nextreg(r);
-            } else {
-                r = UnknownReg;
+            else {
+                
+                
+                findSpecificRegFor(p, r);
             }
+        }
+    }
+    else if (sz == ARGSIZE_Q) {
+        
+        NanoAssert(false);
+    }
+    else
+    {
+        NanoAssert(sz == ARGSIZE_F);
+        
+        
+        NanoAssert(false);
+    }
+}
+
+void
+Assembler::asm_stkarg(LInsp arg, int stkd)
+{
+    Reservation*    argRes = getresv(arg);
+    bool            isQuad = arg->isQuad();
+
+    if (argRes && (argRes->reg != UnknownReg)) {
+        
+        
+        if (!isQuad) {
+            NanoAssert(IsGpReg(argRes->reg));
+
+            STR(argRes->reg, SP, stkd);
         } else {
-            int d = findMemFor(arg);
-            STR_preindex(IP, SP, -4);
+            
+            
+            
+            
+            
+            
+            NanoAssert(AvmCore::config.vfp);
+            NanoAssert(IsFpReg(argRes->reg));
+
+#ifdef NJ_ARM_EABI
+            
+            NanoAssert((stkd & 7) == 0);
+#endif
+
+            FSTD(argRes->reg, SP, stkd);
+        }
+    } else {
+        
+        
+        int d = findMemFor(arg);
+        if (!isQuad) {
+            STR(IP, SP, stkd);
             if (arg->isop(LIR_ialloc)) {
                 asm_add_imm(IP, FP, d);
             } else {
                 LDR(IP, FP, d);
             }
-            stkd += 4;
+        } else {
+#ifdef NJ_ARM_EABI
+            
+            NanoAssert((stkd & 7) == 0);
+#endif
+
+            STR_preindex(IP, SP, stkd+4);
+            LDR(IP, FP, d+4);
+            STR_preindex(IP, SP, stkd);
+            LDR(IP, FP, d);
         }
-    } else {
-        NanoAssert(0);
     }
 }
 
 void
 Assembler::asm_call(LInsp ins)
 {
-    const CallInfo* call = ins->callInfo();
-    Reservation *callRes = getresv(ins);
-
-    uint32_t atypes = call->_argtypes;
-
-    
-    ArgSize rsize = (ArgSize)(atypes & ARGSIZE_MASK_ANY);
-
-    atypes >>= ARGSIZE_SHIFT;
+    CallInfo const *    call = ins->callInfo();
+    ArgSize             sizes[MAXARGS];
+    uint32_t            argc = call->get_sizes(sizes);
 
     
     
     
+    Register            indirect_reg = UnknownReg;
+#if 0   
+    
+    
+    if (call->isIndirect()) {
+        
+        
+        
+        RegisterMask    allow = SavedRegs & GpRegs;
+        indirect_reg = findRegFor(ins->arg(--argc), allow);
+        NanoAssert(indirect_reg != UnknownReg);
+    }
+#endif
 
-    if (AvmCore::config.vfp && rsize == ARGSIZE_F) {
-        NanoAssert(ins->opcode() == LIR_fcall);
-        NanoAssert(callRes);
+    
+    
+    
+    
+    
+    
+    NanoAssert(AvmCore::config.vfp || ins->isop(LIR_call));
 
-        Register rr = callRes->reg;
-        int d = disp(callRes);
-        freeRsrcOf(ins, rr != UnknownReg);
+    
+    
+    
+    
+    if(AvmCore::config.vfp) {
+        
+        ArgSize         rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
 
-        if (rr != UnknownReg) {
-            NanoAssert(IsFpReg(rr));
-            FMDRR(rr,R0,R1);
-        } else {
-            NanoAssert(d);
-            STR(R0, FP, d+0);
-            STR(R1, FP, d+4);
+        
+        
+        if (rsize == ARGSIZE_F) {
+            Reservation *   callRes = getresv(ins);
+            Register        rr = callRes->reg;
+
+            NanoAssert(ins->opcode() == LIR_fcall);
+
+            
+            
+            
+            freeRsrcOf(ins, rr != UnknownReg);
+
+            if (rr == UnknownReg) {
+                int d = disp(callRes);
+                NanoAssert(d != 0);
+
+                
+                
+                STR(R0, FP, d+0);
+                STR(R1, FP, d+4);
+            } else {
+                Register    rr = callRes->reg;
+                NanoAssert(IsFpReg(rr));
+
+                
+                FMDRR(rr, R0, R1);
+            }
         }
     }
 
     
+    if (indirect_reg == UnknownReg) {
+        verbose_only(if (_logc->lcbits & LC_Assembly)
+            outputf("        %p:", _nIns);
+        )
+
+        
+        
+        BranchWithLink((NIns*)(call->_address));
+    } else {
+        
+        
+        BLX(indirect_reg);
+    }
+
     
-    BranchWithLink((NIns*)(call->_address));
-
-    ArgSize sizes[MAXARGS];
-    uint32_t argc = call->get_sizes(sizes);
-
-    Register r = R0;
-    int stkd = 0;
+    Register    r = R0;
+    int         stkd = 0;
 
     
     
     
     
+    uint32_t    i = argc;
+    while(i--) {
+        asm_arg(sizes[i], ins->arg(i), r, stkd);
+    }
 
-    for(uint32_t i = 0; i < argc; i++) {
-        uint32_t j = argc - i - 1;
-        ArgSize sz = sizes[j];
-        LInsp arg = ins->arg(j);
-
-        NanoAssert(r < R4 || r == UnknownReg);
-
-#ifdef NJ_ARM_EABI
-        if (sz == ARGSIZE_F) {
-            if (r == R1)
-                r = R2;
-            else if (r == R3)
-                r = UnknownReg;
-        }
-#endif
-
-        asm_arg(sz, arg, r, stkd);
+    if (stkd > max_out_args) {
+        max_out_args = stkd;
     }
 }
 
@@ -1395,10 +1523,6 @@ Assembler::BranchWithLink(NIns* addr)
 
     
     
-    NanoAssert(AvmCore::config.arch >= 5);
-
-    
-    
     intptr_t offs = PC_OFFSET_FROM(addr,_nIns-1);
 
     
@@ -1418,6 +1542,11 @@ Assembler::BranchWithLink(NIns* addr)
             
 
             
+            
+            
+            NanoAssert(AvmCore::config.arch >= 5);
+
+            
             uint32_t    H = (offs & 0x2) << 23;
 
             
@@ -1426,12 +1555,36 @@ Assembler::BranchWithLink(NIns* addr)
         }
     } else {
         
-        *(--_nIns) = (NIns)( (COND_AL) | (0x12<<20) | (0xFFF<<8) | (0x3<<4) | (IP) );
-        asm_output("blx ip (=%p)", (void*)addr);
+        
+        BLX(IP, false);
 
         
         asm_ld_imm(IP, (int32_t)addr, false);
     }
+}
+
+
+
+inline void
+Assembler::BLX(Register addr, bool chk )
+{
+    
+    
+    
+    NanoAssert(AvmCore::config.arch >= 5);
+
+    NanoAssert(IsGpReg(addr));
+    
+    
+    NanoAssert(addr != LR);
+
+    if (chk) {
+        underrunProtect(4);
+    }
+
+    
+    *(--_nIns) = (NIns)( (COND_AL) | (0x12<<20) | (0xFFF<<8) | (0x3<<4) | (addr) );
+    asm_output("blx ip");
 }
 
 
@@ -1633,14 +1786,12 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
         if(_chk) underrunProtect(8);
         *(--_nIns) = (NIns)(_t);
         *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | 0x4 );
-    } else if (PC_OFFSET_FROM(_nSlot, _nIns-1) > -0x1000 ) {
+    } else if (PC_OFFSET_FROM(_nSlot, _nIns-1) > -0x1000) {
         if(_chk) underrunProtect(8);
-        *(_nSlot++) = (NIns)(_t);
-        offs = PC_OFFSET_FROM(_nSlot-1,_nIns-1);
+        *(++_nSlot) = (NIns)(_t);
+        offs = PC_OFFSET_FROM(_nSlot,_nIns-1);
         NanoAssert(offs < 0);
-        *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | ((-offs) & 0xFFF) );
-        asm_output("ldr%s %s, [%s, #-%d]", condNames[_c], gpn(PC), gpn(PC), -offs);
-        NanoAssert(uintptr_t(_nIns)+8+offs == uintptr_t(_nSlot-1));
+        *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | ((-offs) & 0xFFFFFF) );
     } else {
         if(_chk) underrunProtect(12);
         
@@ -1751,6 +1902,7 @@ Register
 Assembler::asm_prep_fcall(Reservation*, LInsp)
 {
     
+
 
 
 
