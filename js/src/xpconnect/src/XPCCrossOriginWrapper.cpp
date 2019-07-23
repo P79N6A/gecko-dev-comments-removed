@@ -245,6 +245,7 @@ nsresult
 CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
 {
   
+  
   nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
   if (!ssm) {
     ThrowException(NS_ERROR_NOT_INITIALIZED, cx);
@@ -271,18 +272,6 @@ CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
     return NS_OK;
   }
 
-  
-  
-  if (fp) {
-    void *annotation = JS_GetFrameAnnotation(cx, fp);
-    rv = subjectPrin->IsCapabilityEnabled("UniversalXPConnect", annotation,
-                                          &isSystem);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (isSystem) {
-      return NS_OK;
-    }
-  }
-
   nsCOMPtr<nsIPrincipal> objectPrin;
   rv = ssm->GetObjectPrincipal(cx, wrappedObj, getter_AddRefs(objectPrin));
   if (NS_FAILED(rv)) {
@@ -299,7 +288,14 @@ CanAccessWrapper(JSContext *cx, JSObject *wrappedObj)
   PRBool subsumes;
   rv = subjectPrin->Subsumes(objectPrin, &subsumes);
   if (NS_SUCCEEDED(rv) && !subsumes) {
-    rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    
+    
+    rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &isSystem);
+    if (NS_SUCCEEDED(rv) && isSystem) {
+      rv = NS_OK;
+    } else {
+      rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    }
   }
   return rv;
 }

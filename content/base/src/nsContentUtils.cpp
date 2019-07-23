@@ -5029,11 +5029,8 @@ nsContentUtils::CanAccessNativeAnon()
     fp = nsnull;
   }
 
-  void *annotation = fp ? JS_GetFrameAnnotation(cx, fp) : nsnull;
   PRBool privileged;
-  if (NS_SUCCEEDED(principal->IsCapabilityEnabled("UniversalXPConnect",
-                                                  annotation,
-                                                  &privileged)) &&
+  if (NS_SUCCEEDED(sSecurityManager->IsSystemPrincipal(principal, &privileged)) &&
       privileged) {
     
     return PR_TRUE;
@@ -5046,6 +5043,12 @@ nsContentUtils::CanAccessNativeAnon()
   if (fp && fp->script &&
       (filename = fp->script->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
+    return PR_TRUE;
+  }
+
+  
+  nsresult rv = sSecurityManager->IsCapabilityEnabled("UniversalXPConnect", &privileged);
+  if (NS_SUCCEEDED(rv) && privileged) {
     return PR_TRUE;
   }
 

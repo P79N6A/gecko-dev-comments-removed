@@ -164,6 +164,7 @@ GetWrappedObject(JSContext *cx, JSObject *wrapper)
 JSBool
 AllowedToAct(JSContext *cx, jsval idval)
 {
+  
   nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
   if (!ssm) {
     return JS_TRUE;
@@ -187,11 +188,8 @@ AllowedToAct(JSContext *cx, jsval idval)
     fp = nsnull;
   }
 
-  void *annotation = fp ? JS_GetFrameAnnotation(cx, fp) : nsnull;
   PRBool privileged;
-  if (NS_SUCCEEDED(principal->IsCapabilityEnabled("UniversalXPConnect",
-                                                  annotation,
-                                                  &privileged)) &&
+  if (NS_SUCCEEDED(ssm->IsSystemPrincipal(principal, &privileged)) &&
       privileged) {
     
     return JS_TRUE;
@@ -216,6 +214,12 @@ AllowedToAct(JSContext *cx, jsval idval)
       JS_ReportError(cx, "Permission denied to access property '%hs' from a non-chrome context",
                      JS_GetStringChars(str));
     }
+  }
+
+  
+  nsresult rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged);
+  if (NS_SUCCEEDED(rv) && privileged) {
+    return JS_TRUE;
   }
 
   return JS_FALSE;
