@@ -85,7 +85,7 @@ nsLineBreaker::FlushCurrentWord()
 
   if (!mCurrentWordContainsCJK) {
     
-    memset(breakState.Elements(), 0, mCurrentWord.Length());
+    memset(breakState.Elements(), PR_FALSE, mCurrentWord.Length());
   } else {
     nsContentUtils::LineBreaker()->
       GetJISx4051Breaks(mCurrentWord.Elements(), mCurrentWord.Length(), breakState.Elements());
@@ -105,7 +105,10 @@ nsLineBreaker::FlushCurrentWord()
       memset(breakState.Elements() + offset + exclude, PR_FALSE, ti->mLength - exclude);
     }
 
-    PRUint32 skipSet = i > 0 ? 1 : 0;
+    
+    
+    
+    PRUint32 skipSet = i == 0 ? 1 : 0;
     ti->mSink->SetBreaks(ti->mSinkOffset + skipSet, ti->mLength - skipSet,
                          breakState.Elements() + offset + skipSet);
     offset += ti->mLength;
