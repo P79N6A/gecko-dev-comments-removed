@@ -186,7 +186,7 @@ using namespace mozilla::places;
 
 
 #define DATE_CONT_NUM(_expireDays) \
-  (ADDITIONAL_DATE_CONT_NUM + PR_MIN(6, (_expireDays/30)))
+  (ADDITIONAL_DATE_CONT_NUM + NS_MIN(6, (_expireDays/30)))
 
 
 
