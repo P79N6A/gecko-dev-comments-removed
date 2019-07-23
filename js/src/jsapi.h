@@ -2405,7 +2405,7 @@ typedef JSBool (* JSONWriteCallback)(const jschar *buf, uint32 len, void *data);
 
 
 JS_PUBLIC_API(JSBool)
-JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, 
+JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacer,
              JSONWriteCallback callback, void *data);
 
 
