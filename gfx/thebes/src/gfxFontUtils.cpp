@@ -488,6 +488,8 @@ typedef struct {
     AutoSwap_PRUint16 arrays[1];
 } Format4Cmap;
 
+#pragma pack()
+
 PRUint32
 gfxFontUtils::MapCharToGlyphFormat4(const PRUint8 *aBuf, PRUnichar aCh)
 {
@@ -772,6 +774,8 @@ struct KernTableSubtableHeaderVersion1 {
     AutoSwap_PRUint16    coverage;
     AutoSwap_PRUint16    tupleIndex;
 };
+
+#pragma pack()
 
 static PRBool
 IsValidSFNTVersion(PRUint32 version)
@@ -1538,6 +1542,7 @@ gfxFontUtils::ReadNames(nsTArray<PRUint8>& aNameTable, PRUint32 aNameID,
     return NS_OK;
 }
 
+#ifdef XP_WIN
 
 
 
@@ -1550,6 +1555,9 @@ gfxFontUtils::ReadNames(nsTArray<PRUint8>& aNameTable, PRUint32 aNameID,
 
 
 
+
+
+#pragma pack(1)
 
 struct EOTFixedHeader {
 
@@ -1587,9 +1595,9 @@ struct EOTFixedHeader {
 
 };
 
+#pragma pack()
 
 
-#ifdef XP_WIN
 
 
 
