@@ -358,7 +358,7 @@ js_InitRuntimeStringState(JSContext *cx);
 
 
 
-#define UNIT_STRING_LIMIT 256
+#define UNIT_STRING_LIMIT 256U
 
 
 
