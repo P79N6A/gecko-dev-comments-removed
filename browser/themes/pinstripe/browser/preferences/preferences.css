@@ -250,6 +250,21 @@ caption {
 
 
 
+
+
+.inline-link {
+  color: -moz-nativehyperlinktext;
+  text-decoration: underline;
+  cursor: pointer;
+}
+  
+.inline-link:focus, .inline-link:hover:active {
+  color: red;
+}
+
+
+
+
 #autoInstallOptions {
   -moz-margin-start: 20px;
 }
