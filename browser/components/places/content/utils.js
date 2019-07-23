@@ -47,6 +47,7 @@ const Cr = Components.results;
 
 const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
+const POST_DATA_ANNO = "URIProperties/POSTData";
 
 function QI_node(aNode, aIID) {
   var result = null;
@@ -752,13 +753,16 @@ var PlacesUtils = {
 
 
 
+
+
   showAddBookmarkUI: function PU_showAddBookmarkUI(aURI,
                                                    aTitle,
                                                    aDescription,
                                                    aDefaultInsertionPoint,
                                                    aShowPicker,
                                                    aLoadInSidebar,
-                                                   aKeyword) {
+                                                   aKeyword,
+                                                   aPostData) {
     var info = {
       action: "add",
       type: "bookmark"
@@ -783,8 +787,11 @@ var PlacesUtils = {
     if (aLoadInSidebar)
       info.loadBookmarkInSidebar = true;
 
-    if (typeof(aKeyword) == "string")
+    if (typeof(aKeyword) == "string") {
       info.keyword = aKeyword;
+      if (typeof(aPostData) == "string")
+        info.postData = aPostData;
+    }
 
     return this._showBookmarkDialog(info);
   },
@@ -803,11 +810,11 @@ var PlacesUtils = {
   showMinimalAddBookmarkUI:
   function PU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
                                        aDefaultInsertionPoint, aShowPicker,
-                                       aLoadInSidebar, aKeyword) {
+                                       aLoadInSidebar, aKeyword, aPostData) {
     var info = {
       action: "add",
       type: "bookmark",
-      hiddenRows: ["location", "keyword", "description", "load in sidebar"]
+      hiddenRows: ["location", "description", "load in sidebar"]
     };
     if (aURI)
       info.uri = aURI;
@@ -828,8 +835,11 @@ var PlacesUtils = {
     if (aLoadInSidebar)
       info.loadBookmarkInSidebar = true;
 
-    if (typeof(aKeyword) == "string")
+    if (typeof(aKeyword) == "string") {
       info.keyword = aKeyword;
+      if (typeof(aPostData) == "string")
+        info.postData = aPostData;
+    }
     else
       info.hiddenRows.push("keyword");
 
@@ -1313,6 +1323,33 @@ var PlacesUtils = {
       this._toolbarFolderId = this.bookmarks.toolbarFolder;
 
     return this._toolbarFolderId;
+  },
+
+  
+
+
+
+
+
+  setPostDataForURI: function PU_setPostDataForURI(aURI, aPostData) {
+    const annos = this.annotations;
+    if (aPostData)
+      annos.setPageAnnotationString(aURI, POST_DATA_ANNO, aPostData, 0, 0);
+    else if (annos.pageHasAnnotation(aURI, POST_DATA_ANNO))
+      annos.removePageAnnotation(aURI, POST_DATA_ANNO);
+  },
+
+  
+
+
+
+
+  getPostDataForURI: function PU_getPostDataForURI(aURI) {
+    const annos = this.annotations;
+    if (annos.pageHasAnnotation(aURI, POST_DATA_ANNO))
+      return annos.getPageAnnotationString(aURI, POST_DATA_ANNO);
+
+    return null;
   }
 };
 

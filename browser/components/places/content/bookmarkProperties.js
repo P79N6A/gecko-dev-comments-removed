@@ -88,6 +88,7 @@
 
 
 
+
 const LAST_USED_ANNO = "bookmarkPropertiesDialog/lastUsed";
 
 
@@ -132,6 +133,7 @@ var BookmarkPropertiesPanel = {
   _itemDescription: "",
   _microsummaries: null,
   _URIList: null,
+  _postData: null,
 
   
   
@@ -223,8 +225,11 @@ var BookmarkPropertiesPanel = {
           if ("loadBookmarkInSidebar" in dialogInfo)
             this._loadBookmarkInSidebar = dialogInfo.loadBookmarkInSidebar;
 
-          if ("keyword" in dialogInfo)
+          if ("keyword" in dialogInfo) {
             this._bookmarkKeyword = dialogInfo.keyword;
+            if ("postData" in dialogInfo)
+              this._postData = dialogInfo.postData;
+          }
 
           break;
         case "folder":
@@ -896,9 +901,17 @@ var BookmarkPropertiesPanel = {
     }
 
     var [container, index] = this._getInsertionPointDetails();
-    return new PlacesCreateItemTransaction(uri, container, index,
-                                           title, keyword, annotations,
-                                           childTransactions);
+    var transactions = [new PlacesCreateItemTransaction(uri, container, index,
+                                                        title, keyword,
+                                                        annotations,
+                                                        childTransactions)];
+
+    if (this._postData) {
+      transactions.push(new PlacesEditURIPostDataTransaction(uri,
+                                                             this._postData));
+    }
+    return new PlacesAggregateTransaction(this._getDialogTitle(),
+                                          transactions);
   },
 
   
