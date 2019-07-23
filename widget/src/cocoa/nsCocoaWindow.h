@@ -50,6 +50,11 @@
 class nsCocoaWindow;
 class nsChildView;
 
+typedef struct _nsCocoaWindowList {
+  _nsCocoaWindowList() : prev(NULL), window(NULL) {}
+  struct _nsCocoaWindowList *prev;
+  nsCocoaWindow *window; 
+} nsCocoaWindowList;
 
 @interface NSApplication (Undocumented)
 
@@ -250,7 +255,10 @@ public:
     PRBool IsResizing () const { return mIsResizing; }
     void StartResizing () { mIsResizing = PR_TRUE; }
     void StopResizing () { mIsResizing = PR_FALSE; }
-    
+
+    PRBool HasModalDescendents() { return mNumModalDescendents > 0; }
+    NSWindow *GetCocoaWindow() { return mWindow; }
+
     
     NS_IMETHOD ResetInputState();
     
@@ -273,6 +281,8 @@ protected:
   PRPackedBool         mSheetNeedsShow; 
                                         
   PRPackedBool         mModal;
+
+  PRInt32              mNumModalDescendents;
 };
 
 

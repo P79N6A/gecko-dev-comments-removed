@@ -312,8 +312,14 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
 
 #ifdef XP_MACOSX
   
+  
+  
+  
+  
+  
   PRUint32 sheetMask = nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
-    nsIWebBrowserChrome::CHROME_MODAL;
+                       nsIWebBrowserChrome::CHROME_MODAL |
+                       nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
   if (aParent && ((aChromeMask & sheetMask) == sheetMask))
     widgetInitData.mWindowType = eWindowType_sheet;
 #endif
