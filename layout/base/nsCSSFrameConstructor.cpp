@@ -7887,12 +7887,20 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     
     
-  } else {
+  } else if (aIndexInContainer != -1) {
+    
+    
     
     iter.seek(aIndexInContainer);
     NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
   }
-
+#ifdef DEBUG
+  else {
+    NS_WARNING("Someone passed native anonymous content directly into frame "
+               "construction.  Stop doing that!");
+  }
+#endif
+  
   nsIFrame* prevSibling = FindPreviousSibling(first, iter);
 
   PRBool    isAppend = PR_FALSE;
