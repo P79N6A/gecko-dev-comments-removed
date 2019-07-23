@@ -2136,10 +2136,20 @@ nsNavHistoryQueryResultNode::FillChildren()
   if (comparator)
     RecursiveSort(sortingAnnotation.get(), comparator);
 
-  
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
-  result->AddEverythingObserver(this);
+
+  if (mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY ||
+      mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_UNIFIED) {
+    
+    result->AddHistoryObserver(this);
+  }
+
+  if (mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS ||
+      mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_UNIFIED) {
+    
+    result->AddAllBookmarksObserver(this);
+  }
 
   mContentsValid = PR_TRUE;
   return NS_OK;
@@ -2166,8 +2176,10 @@ nsNavHistoryQueryResultNode::ClearChildren(PRBool aUnregister)
 
   if (aUnregister && mContentsValid) {
     nsNavHistoryResult* result = GetResult();
-    if (result)
-      result->RemoveEverythingObserver(this);
+    if (result) {
+      result->RemoveHistoryObserver(this);
+      result->RemoveAllBookmarksObserver(this);
+    }
   }
   mContentsValid = PR_FALSE;
 }
@@ -2192,10 +2204,14 @@ nsNavHistoryQueryResultNode::Refresh()
     return NS_OK; 
   }
 
+  if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS)
+    ClearChildren(PR_TRUE);
+  else
+    ClearChildren(PR_FALSE);
+
   
   
-  ClearChildren(PR_FALSE);
-  FillChildren();
+  (void)FillChildren();
 
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
@@ -2564,7 +2580,14 @@ nsNavHistoryQueryResultNode::OnItemChanged(PRInt64 aItemId,
                                            PRBool aIsAnnotationProperty,
                                            const nsACString& aValue)
 {
-  NS_NOTREACHED("Everything observers should not get OnItemChanged, but should get the corresponding history notifications instead");
+  
+  
+  
+  
+  if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS)
+    return Refresh();
+  else
+    NS_NOTREACHED("history observers should not get OnItemChanged, but should get the corresponding history notifications instead");
   return NS_OK;
 }
 
@@ -2572,7 +2595,10 @@ NS_IMETHODIMP
 nsNavHistoryQueryResultNode::OnItemVisited(PRInt64 aItemId,
                                            PRInt64 aVisitId, PRTime aTime)
 {
-  NS_NOTREACHED("Everything observers should not get OnItemVisited, but should get OnVisit instead");
+  
+  
+  if (mLiveUpdate != QUERYUPDATE_COMPLEX_WITH_BOOKMARKS)
+    NS_NOTREACHED("history observers should not get OnItemVisited, but should get OnVisit instead");
   return NS_OK;
 }
 NS_IMETHODIMP
@@ -2874,7 +2900,7 @@ nsNavHistoryFolderResultNode::FillChildren()
   
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
-  result->AddBookmarkObserver(this, mItemId);
+  result->AddBookmarkFolderObserver(this, mItemId);
 
   mContentsValid = PR_TRUE;
   return NS_OK;
@@ -2895,7 +2921,7 @@ nsNavHistoryFolderResultNode::ClearChildren(PRBool unregister)
   if (unregister && mContentsValid) {
     nsNavHistoryResult* result = GetResult();
     if (result)
-      result->RemoveBookmarkObserver(this, mItemId);
+      result->RemoveBookmarkFolderObserver(this, mItemId);
   }
   mContentsValid = PR_FALSE;
 }
@@ -2909,17 +2935,17 @@ nsNavHistoryFolderResultNode::ClearChildren(PRBool unregister)
 nsresult
 nsNavHistoryFolderResultNode::Refresh()
 {
+  ClearChildren(PR_TRUE);
+
   if (! mExpanded) {
     
-    ClearChildren(PR_TRUE);
     return NS_OK; 
   }
 
   
   
   
-  ClearChildren(PR_TRUE);
-  FillChildren();
+  (void)FillChildren();
 
   nsNavHistoryResult* result = GetResult();
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
@@ -3358,15 +3384,16 @@ NS_INTERFACE_MAP_END
 nsNavHistoryResult::nsNavHistoryResult(nsNavHistoryContainerResultNode* aRoot) :
   mRootNode(aRoot),
   mIsHistoryObserver(PR_FALSE),
-  mIsBookmarksObserver(PR_FALSE)
+  mIsBookmarkFolderObserver(PR_FALSE),
+  mIsAllBookmarksObserver(PR_FALSE)
 {
   mRootNode->mResult = this;
 }
 
 PR_STATIC_CALLBACK(PLDHashOperator)
-RemoveBookmarkObserversCallback(nsTrimInt64HashKey::KeyType aKey,
-                                nsNavHistoryResult::FolderObserverList*& aData,
-                                void* userArg)
+RemoveBookmarkFolderObserversCallback(nsTrimInt64HashKey::KeyType aKey,
+                                      nsNavHistoryResult::FolderObserverList*& aData,
+                                      void* userArg)
 {
   delete aData;
   return PL_DHASH_REMOVE;
@@ -3375,7 +3402,7 @@ RemoveBookmarkObserversCallback(nsTrimInt64HashKey::KeyType aKey,
 nsNavHistoryResult::~nsNavHistoryResult()
 {
   
-  mBookmarkObservers.Enumerate(&RemoveBookmarkObserversCallback, nsnull);
+  mBookmarkFolderObservers.Enumerate(&RemoveBookmarkFolderObserversCallback, nsnull);
 }
 
 
@@ -3409,7 +3436,7 @@ nsNavHistoryResult::Init(nsINavHistoryQuery** aQueries,
   NS_ENSURE_SUCCESS(rv, rv);
 
   mPropertyBags.Init();
-  if (! mBookmarkObservers.Init(128))
+  if (! mBookmarkFolderObservers.Init(128))
     return NS_ERROR_OUT_OF_MEMORY;
 
   NS_ASSERTION(mRootNode->mIndentLevel == -1,
@@ -3480,11 +3507,8 @@ nsNavHistoryResult::PropertyBagFor(nsISupports* aObject,
 
 
 
-
-
-
 void
-nsNavHistoryResult::AddEverythingObserver(nsNavHistoryQueryResultNode* aNode)
+nsNavHistoryResult::AddHistoryObserver(nsNavHistoryQueryResultNode* aNode)
 {
   if (! mIsHistoryObserver) {
       nsNavHistory* history = nsNavHistory::GetHistoryService();
@@ -3492,11 +3516,32 @@ nsNavHistoryResult::AddEverythingObserver(nsNavHistoryQueryResultNode* aNode)
       history->AddObserver(this, PR_TRUE);
       mIsHistoryObserver = PR_TRUE;
   }
-  if (mEverythingObservers.IndexOf(aNode) != mEverythingObservers.NoIndex) {
+  if (mHistoryObservers.IndexOf(aNode) != mHistoryObservers.NoIndex) {
     NS_NOTREACHED("Attempting to register an observer twice!");
     return;
   }
-  mEverythingObservers.AppendElement(aNode);
+  mHistoryObservers.AppendElement(aNode);
+}
+
+
+
+void
+nsNavHistoryResult::AddAllBookmarksObserver(nsNavHistoryQueryResultNode* aNode)
+{
+  if (! mIsAllBookmarksObserver) {
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    if (! bookmarks) {
+      NS_NOTREACHED("Can't create bookmark service");
+      return;
+    }
+    bookmarks->AddObserver(this, PR_TRUE);
+    mIsAllBookmarksObserver = PR_TRUE;
+  }
+  if (mAllBookmarksObservers.IndexOf(aNode) != mAllBookmarksObservers.NoIndex) {
+    NS_NOTREACHED("Attempting to register an observer twice!");
+    return;
+  }
+  mAllBookmarksObservers.AppendElement(aNode);
 }
 
 
@@ -3505,19 +3550,20 @@ nsNavHistoryResult::AddEverythingObserver(nsNavHistoryQueryResultNode* aNode)
 
 
 void
-nsNavHistoryResult::AddBookmarkObserver(nsNavHistoryFolderResultNode* aNode,
+nsNavHistoryResult::AddBookmarkFolderObserver(nsNavHistoryFolderResultNode* aNode,
                                         PRInt64 aFolder)
 {
-  if (! mIsBookmarksObserver) {
+  if (! mIsBookmarkFolderObserver) {
     nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
     if (! bookmarks) {
       NS_NOTREACHED("Can't create bookmark service");
       return;
     }
     bookmarks->AddObserver(this, PR_TRUE);
-    mIsBookmarksObserver = PR_TRUE;
+    mIsBookmarkFolderObserver = PR_TRUE;
   }
-  FolderObserverList* list = BookmarkObserversForId(aFolder, PR_TRUE);
+
+  FolderObserverList* list = BookmarkFolderObserversForId(aFolder, PR_TRUE);
   if (list->IndexOf(aNode) != list->NoIndex) {
     NS_NOTREACHED("Attempting to register an observer twice!");
     return;
@@ -3529,19 +3575,27 @@ nsNavHistoryResult::AddBookmarkObserver(nsNavHistoryFolderResultNode* aNode,
 
 
 void
-nsNavHistoryResult::RemoveEverythingObserver(nsNavHistoryQueryResultNode* aNode)
+nsNavHistoryResult::RemoveHistoryObserver(nsNavHistoryQueryResultNode* aNode)
 {
-  mEverythingObservers.RemoveElement(aNode);
+  mHistoryObservers.RemoveElement(aNode);
+}
+
+
+
+void
+nsNavHistoryResult::RemoveAllBookmarksObserver(nsNavHistoryQueryResultNode* aNode)
+{
+  mAllBookmarksObservers.RemoveElement(aNode);
 }
 
 
 
 
 void
-nsNavHistoryResult::RemoveBookmarkObserver(nsNavHistoryFolderResultNode* aNode,
-                                           PRInt64 aFolder)
+nsNavHistoryResult::RemoveBookmarkFolderObserver(nsNavHistoryFolderResultNode* aNode,
+                                                 PRInt64 aFolder)
 {
-  FolderObserverList* list = BookmarkObserversForId(aFolder, PR_FALSE);
+  FolderObserverList* list = BookmarkFolderObserversForId(aFolder, PR_FALSE);
   if (! list)
     return; 
   list->RemoveElement(aNode);
@@ -3551,17 +3605,17 @@ nsNavHistoryResult::RemoveBookmarkObserver(nsNavHistoryFolderResultNode* aNode,
 
 
 nsNavHistoryResult::FolderObserverList*
-nsNavHistoryResult::BookmarkObserversForId(PRInt64 aFolderId, PRBool aCreate)
+nsNavHistoryResult::BookmarkFolderObserversForId(PRInt64 aFolderId, PRBool aCreate)
 {
   FolderObserverList* list;
-  if (mBookmarkObservers.Get(aFolderId, &list))
+  if (mBookmarkFolderObservers.Get(aFolderId, &list))
     return list;
   if (! aCreate)
     return nsnull;
 
   
   list = new FolderObserverList;
-  mBookmarkObservers.Put(aFolderId, list);
+  mBookmarkFolderObservers.Put(aFolderId, list);
   return list;
 }
 
@@ -3660,9 +3714,9 @@ nsNavHistoryResult::GetRoot(nsINavHistoryQueryResultNode** aRoot)
 
 
 
-#define ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(_folderId, _functionCall) \
+#define ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(_folderId, _functionCall) \
   { \
-    FolderObserverList* _fol = BookmarkObserversForId(_folderId, PR_FALSE); \
+    FolderObserverList* _fol = BookmarkFolderObserversForId(_folderId, PR_FALSE); \
     if (_fol) { \
       FolderObserverList _listCopy(*_fol); \
       for (PRUint32 _fol_i = 0; _fol_i < _listCopy.Length(); _fol_i ++) { \
@@ -3671,9 +3725,17 @@ nsNavHistoryResult::GetRoot(nsINavHistoryQueryResultNode** aRoot)
       } \
     } \
   }
+#define ENUMERATE_ALL_BOOKMARKS_OBSERVERS(_functionCall) \
+  { \
+    nsTArray<nsNavHistoryQueryResultNode*> observerCopy(mAllBookmarksObservers); \
+    for (PRUint32 _obs_i = 0; _obs_i < observerCopy.Length(); _obs_i ++) { \
+      if (observerCopy[_obs_i]) \
+      observerCopy[_obs_i]->_functionCall; \
+    } \
+  }
 #define ENUMERATE_HISTORY_OBSERVERS(_functionCall) \
   { \
-    nsTArray<nsNavHistoryQueryResultNode*> observerCopy(mEverythingObservers); \
+    nsTArray<nsNavHistoryQueryResultNode*> observerCopy(mHistoryObservers); \
     for (PRUint32 _obs_i = 0; _obs_i < observerCopy.Length(); _obs_i ++) { \
       if (observerCopy[_obs_i]) \
       observerCopy[_obs_i]->_functionCall; \
@@ -3686,6 +3748,7 @@ NS_IMETHODIMP
 nsNavHistoryResult::OnBeginUpdateBatch()
 {
   ENUMERATE_HISTORY_OBSERVERS(OnBeginUpdateBatch());
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(OnBeginUpdateBatch());
   return NS_OK;
 }
 
@@ -3696,6 +3759,7 @@ NS_IMETHODIMP
 nsNavHistoryResult::OnEndUpdateBatch()
 {
   ENUMERATE_HISTORY_OBSERVERS(OnEndUpdateBatch());
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(OnEndUpdateBatch());
   return NS_OK;
 }
 
@@ -3707,9 +3771,10 @@ nsNavHistoryResult::OnItemAdded(PRInt64 aItemId,
                                 PRInt64 aFolder,
                                 PRInt32 aIndex)
 {
-  ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(aFolder,
+  ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(aFolder,
       OnItemAdded(aItemId, aFolder, aIndex));
   ENUMERATE_HISTORY_OBSERVERS(OnItemAdded(aItemId, aFolder, aIndex));
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(OnItemAdded(aItemId, aFolder, aIndex));
   return NS_OK;
 }
 
@@ -3720,9 +3785,12 @@ NS_IMETHODIMP
 nsNavHistoryResult::OnItemRemoved(PRInt64 aItemId,
                                   PRInt64 aFolder, PRInt32 aIndex)
 {
-  ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(aFolder,
+  ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(aFolder,
       OnItemRemoved(aItemId, aFolder, aIndex));
-  ENUMERATE_HISTORY_OBSERVERS(OnItemRemoved(aItemId, aFolder, aIndex));
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(
+      OnItemRemoved(aItemId, aFolder, aIndex));
+  ENUMERATE_HISTORY_OBSERVERS(
+      OnItemRemoved(aItemId, aFolder, aIndex));
   return NS_OK;
 }
 
@@ -3738,6 +3806,8 @@ nsNavHistoryResult::OnItemChanged(PRInt64 aItemId,
   nsNavBookmarks* bookmarkService = nsNavBookmarks::GetBookmarksService();
   NS_ENSURE_TRUE(bookmarkService, NS_ERROR_OUT_OF_MEMORY);
 
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(
+    OnItemChanged(aItemId, aProperty, aIsAnnotationProperty, aValue));
 
   PRUint16 itemType;
   nsresult rv = bookmarkService->GetItemType(aItemId, &itemType);
@@ -3745,8 +3815,7 @@ nsNavHistoryResult::OnItemChanged(PRInt64 aItemId,
 
   if (itemType == nsINavBookmarksService::TYPE_FOLDER) {
     
-    NS_ENSURE_SUCCESS(rv, rv);
-    ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(aItemId,
+    ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(aItemId,
         OnItemChanged(aItemId, aProperty, aIsAnnotationProperty, aValue));
     return NS_OK;
   }
@@ -3756,7 +3825,7 @@ nsNavHistoryResult::OnItemChanged(PRInt64 aItemId,
   rv = bookmarkService->GetFolderIdForItem(aItemId, &folderId);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  FolderObserverList* list = BookmarkObserversForId(folderId, PR_FALSE);
+  FolderObserverList* list = BookmarkFolderObserversForId(folderId, PR_FALSE);
   if (!list)
     return NS_OK;
 
@@ -3793,9 +3862,10 @@ nsNavHistoryResult::OnItemVisited(PRInt64 aItemId, PRInt64 aVisitId,
   PRInt64 folderId;
   rv = bookmarkService->GetFolderIdForItem(aItemId, &folderId);
   NS_ENSURE_SUCCESS(rv, rv);
-  ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(folderId,
+  ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(folderId,
       OnItemVisited(aItemId, aVisitId, aVisitTime));
-
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(
+      OnItemVisited(aItemId, aVisitId, aVisitTime));
   
   
   
@@ -3814,13 +3884,15 @@ nsNavHistoryResult::OnItemMoved(PRInt64 aItemId,
                                 PRInt64 aNewParent, PRInt32 aNewIndex)
 {
   { 
-    ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(aOldParent,
+    ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(aOldParent,
         OnItemMoved(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex));
   }
   if (aNewParent != aOldParent) {
-    ENUMERATE_BOOKMARK_OBSERVERS_FOR_FOLDER(aNewParent,
+    ENUMERATE_BOOKMARK_FOLDER_OBSERVERS(aNewParent,
         OnItemMoved(aItemId, aOldParent, aOldIndex, aNewParent, aNewIndex));
   }
+  ENUMERATE_ALL_BOOKMARKS_OBSERVERS(OnItemMoved(aItemId, aOldParent, aOldIndex,
+                                                aNewParent, aNewIndex));
   ENUMERATE_HISTORY_OBSERVERS(OnItemMoved(aItemId, aOldParent, aOldIndex,
                                           aNewParent, aNewIndex));
   return NS_OK;
