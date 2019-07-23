@@ -184,8 +184,8 @@ public:
 
 
 
-  static nsresult DowngradePrincipalIfNeeded(nsIDocument* aDocument,
-                                             nsIChannel* aChannel);
+  static PRBool ShouldExecuteScript(nsIDocument* aDocument,
+                                    nsIChannel* aChannel);
 
 protected:
   

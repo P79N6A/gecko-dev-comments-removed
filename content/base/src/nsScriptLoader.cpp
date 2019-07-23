@@ -850,11 +850,9 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
                  "Could not convert external JavaScript to Unicode!");
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    
-    
-    rv = DowngradePrincipalIfNeeded(mDocument, channel);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (!ShouldExecuteScript(mDocument, channel)) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
   }
 
   
@@ -871,48 +869,31 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
 }
 
 
-nsresult
-nsScriptLoader::DowngradePrincipalIfNeeded(nsIDocument* aDocument,
-                                           nsIChannel* aChannel)
+PRBool
+nsScriptLoader::ShouldExecuteScript(nsIDocument* aDocument,
+                                    nsIChannel* aChannel)
 {
   if (!aChannel) {
-    return NS_ERROR_UNEXPECTED;
+    return PR_FALSE;
+  }
+
+  PRBool hasCert;
+  nsIPrincipal* docPrincipal = aDocument->NodePrincipal();
+  docPrincipal->GetHasCertificate(&hasCert);
+  if (!hasCert) {
+    return PR_TRUE;
   }
 
   nsCOMPtr<nsIPrincipal> channelPrincipal;
   nsresult rv = nsContentUtils::GetSecurityManager()->
     GetChannelPrincipal(aChannel, getter_AddRefs(channelPrincipal));
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   NS_ASSERTION(channelPrincipal, "Gotta have a principal here!");
 
   
   
-  
-
-  PRBool hasCert;
-  nsIPrincipal* docPrincipal = aDocument->NodePrincipal();
-  docPrincipal->GetHasCertificate(&hasCert);
-  if (hasCert) {
-    PRBool equal;
-    docPrincipal->Equals(channelPrincipal, &equal);
-    if (!equal) {
-      nsCOMPtr<nsIURI> uri, domain;
-      docPrincipal->GetURI(getter_AddRefs(uri));
-      docPrincipal->GetDomain(getter_AddRefs(domain));
-
-      nsCOMPtr<nsIPrincipal> newPrincipal;
-      rv = nsContentUtils::GetSecurityManager()->
-        GetCodebasePrincipal(uri, getter_AddRefs(newPrincipal));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      NS_ASSERTION(newPrincipal, "Gotta have a new principal");
-      if (domain) {
-        newPrincipal->SetDomain(domain);
-      }
-      aDocument->SetPrincipal(newPrincipal);
-    }
-  }
-
-  return NS_OK;
+  PRBool equal;
+  rv = docPrincipal->Equals(channelPrincipal, &equal);
+  return NS_SUCCEEDED(rv) && equal;
 }
