@@ -48,6 +48,13 @@
 
 static PRBool gDisableOptimize = PR_FALSE;
 
+
+#include "cairo.h"
+
+#ifdef CAIRO_HAS_DDRAW_SURFACE
+#include "gfxDDrawSurface.h"
+#endif
+
 #ifdef XP_WIN
 static PRUint32 gTotalDDBs = 0;
 static PRUint32 gTotalDDBSize = 0;
@@ -129,6 +136,12 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
     
 #ifdef XP_WIN
     if (!mNeverUseDeviceSurface && !ShouldUseImageSurfaces()) {
+#if defined(WINCE) && defined(CAIRO_HAS_DDRAW_SURFACE)
+        
+        
+        
+        mWinSurface = nsnull;
+#else
         mWinSurface = new gfxWindowsSurface(gfxIntSize(mWidth, mHeight), format);
         if (mWinSurface && mWinSurface->CairoStatus() == 0) {
             
@@ -136,6 +149,7 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
         } else {
             mWinSurface = nsnull;
         }
+#endif
     }
 #endif
 
@@ -800,7 +814,12 @@ nsThebesImage::ShouldUseImageSurfaces()
 #if defined(WINCE)
     
     
+#if defined(WINCE) && defined(CAIRO_HAS_DDRAW_SURFACE)
+    return PR_FALSE;
+#else
+    
     return PR_TRUE;
+#endif
 
 #elif defined(XP_WIN)
     static const DWORD kGDIObjectsHighWaterMark = 7000;
