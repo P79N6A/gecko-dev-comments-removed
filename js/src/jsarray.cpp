@@ -826,21 +826,19 @@ JSBool
 js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj)
 {
     
-    for (;;) {
-        obj = JSVAL_TO_OBJECT(obj->fslots[JSSLOT_PROTO]);
 
+
+
+
+   while ((obj = JSVAL_TO_OBJECT(obj->fslots[JSSLOT_PROTO])) != NULL) {
         
 
 
 
-        if (!obj)
-            break;
 
-        
-
-
-
-        if (OBJ_IS_DENSE_ARRAY(cx, obj) || (SCOPE_HAS_INDEXED_PROPERTIES(OBJ_SCOPE(obj))))
+        if (!OBJ_IS_NATIVE(obj))
+            return JS_TRUE;
+        if (SCOPE_HAS_INDEXED_PROPERTIES(OBJ_SCOPE(obj)))
             return JS_TRUE;
     }
     return JS_FALSE;
