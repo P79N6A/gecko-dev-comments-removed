@@ -169,6 +169,7 @@ public:
   
   
   void ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
+                                            const nsRect& aFloatAvailableSpace,
                                             nscoord& aLeftResult,
                                             nscoord& aRightResult,
                                        nsBlockFrame::ReplacedElementWidthToClear
@@ -177,6 +178,8 @@ public:
   
   void ComputeBlockAvailSpace(nsIFrame* aFrame,
                               const nsStyleDisplay* aDisplay,
+                              PRBool aBandHasFloats,
+                              const nsRect& aFloatAvailableSpace,
                               PRBool aBlockAvoidsFloats,
                               nsRect& aResult);
 

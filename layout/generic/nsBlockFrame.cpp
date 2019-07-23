@@ -2951,15 +2951,17 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     
     
     
-    aState.GetAvailableSpace();
+    nsRect floatAvailableSpace;
+    PRBool isImpacted = aState.GetFloatAvailableSpace(floatAvailableSpace);
 #ifdef REALLY_NOISY_REFLOW
-    printf("setting line %p isImpacted to %s\n", aLine.get(), aState.IsImpactedByFloat()?"true":"false");
+    printf("setting line %p isImpacted to %s\n",
+           aLine.get(), isImpacted?"true":"false");
 #endif
-    PRBool isImpacted = aState.IsImpactedByFloat() ? PR_TRUE : PR_FALSE;
     aLine->SetLineIsImpactedByFloat(isImpacted);
     nsRect availSpace;
-    aState.ComputeBlockAvailSpace(frame, display, replacedBlock != nsnull,
-                                  availSpace);
+    aState.ComputeBlockAvailSpace(frame, display,
+                                  isImpacted, floatAvailableSpace,
+                                  replacedBlock != nsnull, availSpace);
     
     
     
@@ -6850,6 +6852,7 @@ nsBlockFrame::BlockCanIntersectFloats(nsIFrame* aFrame)
 
 nsBlockFrame::ReplacedElementWidthToClear
 nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
+                                     const nsRect& aFloatAvailableSpace,
                                      nsIFrame* aFrame)
 {
   nscoord leftOffset, rightOffset;
@@ -6903,7 +6906,8 @@ nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
       }
     }
 
-    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, leftOffset, rightOffset,
+    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace,
+                                                leftOffset, rightOffset,
                                                 &result);
 
     
@@ -6927,7 +6931,8 @@ nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
       offsetState.mComputedBorderPadding.LeftRight() -
       (result.marginLeft + result.marginRight);
   } else {
-    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, leftOffset, rightOffset);
+    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace,
+                                                leftOffset, rightOffset);
     nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset;
 
     
