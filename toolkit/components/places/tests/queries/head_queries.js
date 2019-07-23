@@ -233,6 +233,7 @@ function populateDB(aArray) {
       if (qdata.isBookmark) {
         bmsvc.insertBookmark(qdata.parentFolder, uri(qdata.uri), qdata.index,
                                qdata.title);
+        LOG("added bookmark");
       }
 
       if (qdata.isDynContainer) {
@@ -260,6 +261,7 @@ function populateDB(aArray) {
 
 function queryData(obj) {
   this.isVisit = obj.isVisit ? obj.isVisit : false;
+  this.isBookmark = obj.isBookmark ? obj.isBookmark: false;
   this.uri = obj.uri ? obj.uri : "";
   this.lastVisit = obj.lastVisit ? obj.lastVisit : today;
   this.referrer = obj.referrer ? obj.referrer : null;
@@ -315,19 +317,25 @@ queryData.prototype = { }
 
 function compareArrayToResult(aArray, aRoot) {
   LOG("Comparing Array to Results");
-  var validResults = 0;
+
   if (!aRoot.containerOpen)
     aRoot.containerOpen = true;
 
+  
+  var expectedResultCount = aArray.filter(function(aEl) { return aEl.isInQuery; }).length;
+  do_check_eq(expectedResultCount, aRoot.childCount);
+
+  var inQueryIndex = 0;
   for (var i=0; i < aArray.length; i++) {
     if (aArray[i].isInQuery) {
-      do_check_eq(aArray[i].uri, aRoot.getChild(i).uri);
-      do_check_eq(aArray[i].title, aRoot.getChild(i).title);
-      validResults++;
+      var child = aRoot.getChild(inQueryIndex);
+      LOG("testing testData[" + i + "] vs result[" + inQueryIndex + "]");
+      LOG("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
+      
+      
+      inQueryIndex++;
     }
   }
-  
-  do_check_eq(validResults, aRoot.childCount);
   LOG("Comparing Array to Results passes");
 }
 
