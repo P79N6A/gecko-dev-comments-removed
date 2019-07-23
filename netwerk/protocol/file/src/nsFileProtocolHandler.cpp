@@ -129,7 +129,7 @@ nsFileProtocolHandler::ReadURLFile(nsIFile* aFile, nsIURI** aURI)
                 
                 result = urlLink->GetURL(&lpTemp);
                 if (SUCCEEDED(result) && lpTemp) {
-                    rv = NS_NewURI(aURI, lpTemp);
+                    rv = NS_NewURI(aURI, nsDependentString(lpTemp));
                     
                     CoTaskMemFree(lpTemp);
                 }
