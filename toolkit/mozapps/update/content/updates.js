@@ -1197,6 +1197,8 @@ var gDownloadingPage = {
   _startTime: null,
   _pausedStatus: "",
 
+  _hiding: false,
+
   
 
 
@@ -1363,7 +1365,22 @@ var gDownloadingPage = {
   
 
 
+
+  onWizardCancel: function() {
+    if (this._hiding)
+      return;
+
+    this.removeDownloadListener();
+ },
+
+  
+
+
   onHide: function() {
+    
+    
+    this._hiding = true;
+
     
     
     
