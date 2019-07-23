@@ -1650,6 +1650,12 @@ nsNativeThemeWin::ThemeNeedsComboboxDropmarker()
   return PR_TRUE;
 }
 
+nsTransparencyMode
+nsNativeThemeWin::GetWidgetTransparency(PRUint8 aWidgetType)
+{
+  return eTransparencyOpaque;
+}
+
 
 
 PRBool 

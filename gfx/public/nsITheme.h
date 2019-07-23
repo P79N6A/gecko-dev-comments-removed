@@ -59,11 +59,17 @@ class nsIAtom;
 
 
 #define NS_ITHEME_IID     \
-{ 0xdf8baf21, 0x5ea7, 0x49eb, { 0xa2, 0xbc, 0xf2, 0xfd, 0x4a, 0x9f, 0xd8, 0x96 } }
+{ 0xf5eb2e02, 0xed3f, 0x4340, { 0x82, 0xfc, 0x22, 0xf5, 0x5b, 0xb5, 0x56, 0xf9 } }
 
 
 #define NS_THEMERENDERER_CID \
 { 0xd930e29b, 0x6909, 0x44e5, { 0xab, 0x4b, 0xaf, 0x10, 0xd6, 0x92, 0x37, 0x5 } }
+
+enum nsTransparencyMode {
+  eTransparencyOpaque = 0,  
+  eTransparencyTransparent, 
+  eTransparencyGlass        
+};
 
 
 
@@ -132,6 +138,8 @@ public:
                                   PRUint8 aWidgetType,
                                   nsSize* aResult,
                                   PRBool* aIsOverridable)=0;
+
+  virtual nsTransparencyMode GetWidgetTransparency(PRUint8 aWidgetType)=0;
 
   NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType, 
                                 nsIAtom* aAttribute, PRBool* aShouldRepaint)=0;

@@ -46,6 +46,7 @@
 #include "prthread.h"
 #include "nsEvent.h"
 #include "nsCOMPtr.h"
+#include "nsITheme.h"
 
 
 class   nsIAppShell;
@@ -235,12 +236,6 @@ enum nsTopLevelWidgetZPlacement {
   eZPlacementBottom = 0,  
   eZPlacementBelow,       
   eZPlacementTop          
-};
-
-enum nsTransparencyMode {
-  eTransparencyOpaque = 0,  
-  eTransparencyTransparent, 
-  eTransparencyGlass        
 };
 
 
