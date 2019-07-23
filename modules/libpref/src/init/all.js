@@ -1175,12 +1175,6 @@ pref("browser.popups.showPopupBlocker", true);
 pref("viewmanager.do_doublebuffering", true);
 
 
-
-pref("roaming.default.files", "bookmarks.html,abook.mab,cookies.txt");
-
-pref("roaming.showInitialWarning", true);
-
-
 pref("config.use_system_prefs", false);
 
 
