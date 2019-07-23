@@ -1,4 +1,3 @@
-version(180);
 
 
 
@@ -148,7 +147,7 @@ function run_test() {
     do_check_eq(controller.matchCount, 1);
 
     
-    do_check_eq(controller.getValueAt(0), decoded);
+    do_check_eq(controller.getValueAt(0), url.spec);
 
     do_test_finished();
   };
