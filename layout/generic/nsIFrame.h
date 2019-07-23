@@ -633,7 +633,7 @@ public:
   }
 
   
-  NS_IMETHOD DidSetStyleContext() = 0;
+  virtual void DidSetStyleContext() = 0;
 
   
 

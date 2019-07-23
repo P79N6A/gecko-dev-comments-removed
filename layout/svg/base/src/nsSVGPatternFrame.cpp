@@ -76,11 +76,11 @@ nsSVGPatternFrame::nsSVGPatternFrame(nsStyleContext* aContext) :
 
 
 
-NS_IMETHODIMP
+ void
 nsSVGPatternFrame::DidSetStyleContext()
 {
   nsSVGEffects::InvalidateRenderingObservers(this);
-  return nsSVGPatternFrameBase::DidSetStyleContext();
+  nsSVGPatternFrameBase::DidSetStyleContext();
 }
 
 NS_IMETHODIMP

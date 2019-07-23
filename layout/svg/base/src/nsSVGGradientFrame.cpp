@@ -63,11 +63,11 @@ nsSVGGradientFrame::nsSVGGradientFrame(nsStyleContext* aContext) :
 
 
 
-NS_IMETHODIMP
+ void
 nsSVGGradientFrame::DidSetStyleContext()
 {
   nsSVGEffects::InvalidateRenderingObservers(this);
-  return nsSVGGradientFrameBase::DidSetStyleContext();
+  nsSVGGradientFrameBase::DidSetStyleContext();
 }
 
 NS_IMETHODIMP

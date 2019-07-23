@@ -389,21 +389,23 @@ nsImageBoxFrame::PaintImage(nsIRenderingContext& aRenderingContext,
 
 
 
-NS_IMETHODIMP
+ void
 nsImageBoxFrame::DidSetStyleContext()
 {
+  nsLeafBoxFrame::DidSetStyleContext();
+
   
   const nsStyleList* myList = GetStyleList();
   mSubRect = myList->mImageRegion; 
 
   if (mUseSrcAttr || mSuppressStyleCheck)
-    return NS_OK; 
+    return; 
 
   
   const nsStyleDisplay* disp = GetStyleDisplay();
   if (disp->mAppearance && nsBox::gTheme && 
       nsBox::gTheme->ThemeSupportsWidget(nsnull, this, disp->mAppearance))
-    return NS_OK;
+    return;
 
   
   nsCOMPtr<nsIURI> oldURI, newURI;
@@ -415,10 +417,9 @@ nsImageBoxFrame::DidSetStyleContext()
   if (newURI == oldURI ||   
       (newURI && oldURI &&
        NS_SUCCEEDED(newURI->Equals(oldURI, &equal)) && equal))
-    return NS_OK;
+    return;
 
   UpdateImage();
-  return NS_OK;
 } 
 
 void

@@ -555,7 +555,7 @@ protected:
   PRInt16 DisplaySelection(nsPresContext* aPresContext, PRBool isOkToTurnOn = PR_FALSE);
   
   
-  NS_IMETHOD DidSetStyleContext();
+  virtual void DidSetStyleContext();
 
 public:
   

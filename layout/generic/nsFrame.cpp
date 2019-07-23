@@ -552,7 +552,8 @@ nsFrame::GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const
 }
 
 
-NS_IMETHODIMP nsFrame::DidSetStyleContext()
+ void
+nsFrame::DidSetStyleContext()
 {
   
   
@@ -574,8 +575,6 @@ NS_IMETHODIMP nsFrame::DidSetStyleContext()
   }
 
   PresContext()->SetImageNotifiers(this, notifierChain);
-
-  return NS_OK;
 }
 
  nsMargin
