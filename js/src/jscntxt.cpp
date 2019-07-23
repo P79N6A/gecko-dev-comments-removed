@@ -301,6 +301,8 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
         return NULL;
     }
 
+    cx->resolveFlags = 0;
+
     
 
 
