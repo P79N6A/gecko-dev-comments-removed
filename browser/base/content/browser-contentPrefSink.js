@@ -75,14 +75,12 @@ var ContentPrefSink = {
   
 
   init: function ContentPrefSink_init() {
-    gBrowser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
     gBrowser.addEventListener("DOMContentLoaded", this, false);
     
   },
 
   destroy: function ContentPrefSink_destroy() {
     gBrowser.removeEventListener("DOMContentLoaded", this, false);
-    gBrowser.removeProgressListener(this);
 
     
     
@@ -101,31 +99,12 @@ var ContentPrefSink = {
 
   
 
-  onLocationChange: function ContentPrefSink_onLocationChange(progress, request, uri) {
-    
-    
-    try {
-      this._handleLocationChanged(uri);
-    }
-    catch(ex) {
-      Components.utils.reportError(ex);
-    }
-  },
-  onStateChange: function ContentPrefSink_onStateChange(progress, request, flags, status) {},
-  onProgressChange: function ContentPrefSink_onProgressChange(progress, request, curSelfProgress,
-                                                              maxSelfProgress, curTotalProgress,
-                                                              maxTotalProgress) {},
-  onStatusChange: function ContentPrefSink_onStatusChange(progress, request, status, message) {},
-  onSecurityChange: function ContentPrefSink_onSecurityChange(progress, request, state) {},
-
-  
-
   handleEvent: function ContentPrefSink_handleEvent(event) {
     
     this._handleDOMContentLoaded(event);
   },
 
-  _handleLocationChanged: function ContentPrefSink__handleLocationChanged(uri) {
+  handleLocationChanged: function ContentPrefSink_handleLocationChanged(uri) {
     if (!uri)
       return;
 

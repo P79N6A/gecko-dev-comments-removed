@@ -3573,6 +3573,15 @@ nsBrowserStatusHandler.prototype =
     } 
     else
       this.asyncUpdateUI();
+
+    
+    
+    try {
+      ContentPrefSink.handleLocationChanged(aLocationURI);
+    }
+    catch(ex) {
+      Components.utils.reportError(ex);
+    }
   },
   
   asyncUpdateUI : function () {
