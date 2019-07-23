@@ -864,10 +864,12 @@ PlacesController.prototype = {
 
 
 
-  _removeRange: function PC__removeRange(range, transactions) {
-    NS_ASSERT(transactions instanceof Array, "Must pass a transactions array");
 
-    var removedFolders = [];
+
+  _removeRange: function PC__removeRange(range, transactions, removedFolders) {
+    NS_ASSERT(transactions instanceof Array, "Must pass a transactions array");
+    if (!removedFolders)
+      removedFolders = [];
 
     for (var i = 0; i < range.length; ++i) {
       var node = range[i];
@@ -906,10 +908,11 @@ PlacesController.prototype = {
   _removeRowsFromBookmarks: function PC__removeRowsFromBookmarks(txnName) {
     var ranges = this._view.getRemovableSelectionRanges();
     var transactions = [];
-    
-    
-    for (var i = ranges.length - 1; i >= 0 ; --i)
-      this._removeRange(ranges[i], transactions);
+    var removedFolders = [];
+
+    for (var i = 0; i < ranges.length; i++)
+      this._removeRange(ranges[i], transactions, removedFolders);
+
     if (transactions.length > 0) {
       var txn = PlacesUIUtils.ptm.aggregateTransactions(txnName, transactions);
       PlacesUIUtils.ptm.doTransaction(txn);
