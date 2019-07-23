@@ -260,7 +260,7 @@ namespace nanojit {
     public:
         
         
-        void printf( const char* format, ... ) PRINTF_CHECK(2,3);
+        virtual void printf( const char* format, ... ) PRINTF_CHECK(2,3);
 
         
         uint32_t lcbits;
