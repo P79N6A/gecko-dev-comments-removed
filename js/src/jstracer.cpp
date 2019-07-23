@@ -1769,6 +1769,7 @@ js_InitJIT(JSContext* cx)
 extern void
 js_DestroyJIT(JSContext* cx)
 {
+    
 #ifdef DEBUG
     printf("recorder: started(%llu), aborted(%llu), completed(%llu), different header(%llu), "
            "trees trashed(%llu), slot promoted(%llu), "
