@@ -208,11 +208,6 @@ public:
     return mEditingState;
   }
 
-  virtual void DisableCookieAccess()
-  {
-    mDisableCookieAccess = PR_TRUE;
-  }
-
   virtual nsIContent* GetBodyContentExternal();
 
   void EndUpdate(nsUpdateType aUpdateType);
@@ -390,8 +385,6 @@ protected:
   
   
   PRInt32 mDefaultNamespaceID;
-
-  PRBool mDisableCookieAccess;
 
   
   nsCOMPtr<nsIParser> mFragmentParser;

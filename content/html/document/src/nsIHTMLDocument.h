@@ -176,11 +176,6 @@ public:
   
 
 
-  virtual void DisableCookieAccess() = 0;
-
-  
-
-
 
   virtual nsIContent* GetBodyContentExternal() = 0;
 

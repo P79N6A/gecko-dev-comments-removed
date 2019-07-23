@@ -1987,10 +1987,6 @@ nsHTMLDocument::GetCookie(nsAString& aCookie)
   aCookie.Truncate(); 
                       
 
-  if (mDisableCookieAccess) {
-    return NS_OK;
-  }
-
   
   nsCOMPtr<nsICookieService> service = do_GetService(NS_COOKIESERVICE_CONTRACTID);
   if (service) {
@@ -2017,10 +2013,6 @@ nsHTMLDocument::GetCookie(nsAString& aCookie)
 NS_IMETHODIMP
 nsHTMLDocument::SetCookie(const nsAString& aCookie)
 {
-  if (mDisableCookieAccess) {
-    return NS_OK;
-  }
-
   
   nsCOMPtr<nsICookieService> service = do_GetService(NS_COOKIESERVICE_CONTRACTID);
   if (service && mDocumentURI) {
