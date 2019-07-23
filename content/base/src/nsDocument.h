@@ -321,6 +321,7 @@ private:
   void FireChangeCallbacks(nsIContent* aOldContent, nsIContent* aNewContent);
 
   
+  
   nsSmallVoidArray mIdContentList;
   
   nsBaseContentList *mNameContentList;
