@@ -92,6 +92,9 @@ CSS_PSEUDO_CLASS(mozHasHandlerRef, ":-moz-has-handlerref")
 CSS_PSEUDO_CLASS(mozIsHTML, ":-moz-is-html")
 
 
+CSS_PSEUDO_CLASS(mozSystemMetric, ":-moz-system-metric")
+
+
 
 CSS_PSEUDO_CLASS(required, ":required")
 CSS_PSEUDO_CLASS(optional, ":optional")
