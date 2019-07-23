@@ -153,7 +153,6 @@ public:
     return (mType & NS_HANDLER_ALLOW_UNTRUSTED) != 0;
   }
 
-  void Traverse(nsCycleCollectionTraversalCallback &cb) const;
   void Trace(TraceCallback aCallback, void *aClosure) const;
   void Unlink();
 	
@@ -233,7 +232,7 @@ protected:
 
   
   void *mCachedHandler;
-  nsCOMPtr<nsIScriptGlobalObject> mGlobalForCachedHandler;
+  nsWeakPtr mGlobalForCachedHandler;
 
   
   nsXBLPrototypeHandler* mNextHandler;

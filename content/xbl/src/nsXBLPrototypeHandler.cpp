@@ -162,12 +162,6 @@ nsXBLPrototypeHandler::~nsXBLPrototypeHandler()
 }
 
 void
-nsXBLPrototypeHandler::Traverse(nsCycleCollectionTraversalCallback &cb) const
-{
-  cb.NoteXPCOMChild(mGlobalForCachedHandler);
-}
-
-void
 nsXBLPrototypeHandler::Trace(TraceCallback aCallback, void *aClosure) const
 {
   if (mCachedHandler)
@@ -375,12 +369,16 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
                                           nsScriptObjectHolder &aHandler)
 {
   
-  if (mCachedHandler && mGlobalForCachedHandler == aGlobal) {
-    aHandler.set(mCachedHandler);
-    if (!aHandler)
-      return NS_ERROR_FAILURE;
-
-    return NS_OK;
+  if (mCachedHandler) {
+    nsCOMPtr<nsIScriptGlobalObject> cachedGlobal =
+      do_QueryReferent(mGlobalForCachedHandler);
+    if (cachedGlobal == aGlobal) {
+      aHandler.set(mCachedHandler);
+      if (!aHandler)
+        return NS_ERROR_FAILURE;
+  
+      return NS_OK;
+    }
   }
 
   
@@ -401,7 +399,7 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
   NS_ENSURE_SUCCESS(rv, rv);
 
   mCachedHandler = aHandler;
-  mGlobalForCachedHandler = aGlobal;
+  mGlobalForCachedHandler = do_GetWeakReference(aGlobal);
 
   return NS_OK;
 }
