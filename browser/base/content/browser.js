@@ -1950,11 +1950,11 @@ function checkForDirectoryListing()
   }
 }
 
-function URLBarSetURI(aURI, aMustUseURI) {
+function URLBarSetURI(aURI) {
   var value = getBrowser().userTypedValue;
   var state = "invalid";
 
-  if (!value || aMustUseURI) {
+  if (!value) {
     if (aURI) {
       
       
@@ -1969,39 +1969,42 @@ function URLBarSetURI(aURI, aMustUseURI) {
       aURI = getWebNavigation().currentURI;
     }
 
-    value = aURI.spec;
-    if (value == "about:blank") {
+    if (aURI.spec == "about:blank") {
       
       
-      if (!content.opener)
-        value = "";
+      value = content.opener ? aURI.spec : "";
     } else {
-      
-      if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value))
-        try {
-          value = decodeURI(value)
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    .replace(/%(?!3B|2F|3F|3A|40|26|3D|2B|24|2C|23)|[\r\n\t]/ig,
-                             encodeURIComponent);
-        } catch (e) {}
-
-      
-      
-      value = value.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
-                            encodeURIComponent);
-
+      value = losslessDecodeURI(aURI);
       state = "valid";
     }
   }
 
   gURLBar.value = value;
   SetPageProxyState(state);
+}
+
+function losslessDecodeURI(aURI) {
+  var value = aURI.spec;
+  
+  if (!/%25(?:3B|2F|3F|3A|40|26|3D|2B|24|2C|23)/i.test(value))
+    try {
+      value = decodeURI(value)
+                
+                
+                
+                
+                
+                
+                
+                .replace(/%(?!3B|2F|3F|3A|40|26|3D|2B|24|2C|23)|[\r\n\t]/ig,
+                         encodeURIComponent);
+    } catch (e) {}
+
+  
+  
+  value = value.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
+                        encodeURIComponent);
+  return value;
 }
 
 
