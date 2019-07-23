@@ -1362,9 +1362,11 @@ _wrap_image (cairo_surface_t *src,
 
 
 
+
 cairo_status_t
 _cairo_surface_clone_similar (cairo_surface_t  *surface,
 			      cairo_surface_t  *src,
+			      cairo_content_t	content,
 			      int               src_x,
 			      int               src_y,
 			      int               width,
@@ -1385,6 +1387,7 @@ _cairo_surface_clone_similar (cairo_surface_t  *surface,
 
     if (surface->backend->clone_similar) {
 	status = surface->backend->clone_similar (surface, src,
+						  content,
 						  src_x, src_y,
 						  width, height,
 						  clone_offset_x,
@@ -1400,7 +1403,7 @@ _cairo_surface_clone_similar (cairo_surface_t  *surface,
 		cairo_surface_t *similar;
 
 		similar = cairo_surface_create_similar (surface,
-							src->content,
+							src->content & content,
 							width, height);
 		status = similar->status;
 		if (unlikely (status))
@@ -1429,6 +1432,7 @@ _cairo_surface_clone_similar (cairo_surface_t  *surface,
 		} else {
 		    status =
 		    surface->backend->clone_similar (surface, &image->base,
+						     content,
 						     src_x, src_y,
 						     width, height,
 						     clone_offset_x,
@@ -1444,6 +1448,7 @@ _cairo_surface_clone_similar (cairo_surface_t  *surface,
     if (status == CAIRO_INT_STATUS_UNSUPPORTED) {
 	status =
 	    _cairo_surface_fallback_clone_similar (surface, src,
+						   content,
 						   src_x, src_y,
 						   width, height,
 						   clone_offset_x,
