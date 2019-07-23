@@ -977,6 +977,13 @@ public:
                         const nsRect&               aDirtyRect,
                         nsDisplayList*              aList);
 
+  
+
+
+
+
+  virtual nscolor GetCaretColorAt(PRInt32 aOffset);
+
   PRBool IsThemed(nsTransparencyMode* aTransparencyMode = nsnull) {
     return IsThemed(GetStyleDisplay(), aTransparencyMode);
   }

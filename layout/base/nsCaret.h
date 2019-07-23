@@ -137,7 +137,9 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsIFrame*     GetCaretFrame();
+
+
+    nsIFrame*     GetCaretFrame(PRInt32 *aOffset = nsnull);
 
     
 
