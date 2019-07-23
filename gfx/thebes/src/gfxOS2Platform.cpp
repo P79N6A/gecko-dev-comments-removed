@@ -189,7 +189,7 @@ gfxOS2Platform::FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont)
     
     nsTArray<nsString> fontList;
     nsCAutoString generic;
-    nsresult rv = GetFontList(aFont->GetStyle()->langGroup, generic, fontList);
+    nsresult rv = GetFontList(aFont->GetStyle()->language, generic, fontList);
     if (NS_SUCCEEDED(rv)) {
         
         for (PRUint32 i = 3; i < fontList.Length(); i++) {
