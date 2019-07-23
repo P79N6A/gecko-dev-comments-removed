@@ -970,6 +970,7 @@ nsNavHistory::CleanUpOnQuit()
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT user_title FROM moz_places"), getter_AddRefs(statement2));
   if (NS_SUCCEEDED(rv)) {
+    mozStorageTransaction transaction(mDBConn, PR_FALSE);
     
     
     
@@ -1036,6 +1037,7 @@ nsNavHistory::CleanUpOnQuit()
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DROP TABLE moz_places_backup"));
     NS_ENSURE_SUCCESS(rv, rv);
+    transaction.Commit();
   }
   return NS_OK;
 }
