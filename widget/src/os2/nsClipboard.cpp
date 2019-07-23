@@ -157,7 +157,7 @@ PRBool nsClipboard::GetClipboardDataByID(ULONG ulFormatID, const char *aFlavor)
         PRInt32 bufLength;
         MultiByteToWideChar(0, static_cast<char*>(pDataMem), NumOfChars,
                             buffer, bufLength);
-        pDataMem = ToNewUnicode(nsDependentString(buffer.get()));
+        pDataMem = ToNewUnicode(nsDependentString(buffer.Elements()));
         TempBufAllocated = PR_TRUE;
         NumOfBytes = bufLength * sizeof(UniChar);
       }
@@ -321,7 +321,7 @@ void nsClipboard::SetClipboardData(const char *aFlavor)
           PRInt32 bufLength;
           WideCharToMultiByte(0, static_cast<PRUnichar*>(pMozData),
                               NumOfBytes, buffer, bufLength);
-          memcpy(pByteMem, buffer.get(), NumOfBytes);
+          memcpy(pByteMem, buffer.Elements(), NumOfBytes);
           
           
           
