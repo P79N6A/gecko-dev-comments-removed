@@ -397,7 +397,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBGetPageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBUpdatePageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBAddNewPage; 
-  nsCOMPtr<mozIStorageStatement> mDBURIHasTag; 
+  nsCOMPtr<mozIStorageStatement> mDBGetTags; 
   nsCOMPtr<mozIStorageStatement> mFoldersWithAnnotationQuery;  
 
   
@@ -590,10 +590,6 @@ protected:
   void TitleForDomain(const nsCString& domain, nsACString& aTitle);
 
   nsresult SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle);
-
-  PRBool URIHasTag(const nsACString& aURISpec, const nsAString& aTag);
-  PRBool URIHasAnyTagFromTerms(const nsACString& aURISpec, const nsStringArray& aTerms);
-  void CreateTermsFromTokens(const nsStringArray& aTagTokens, nsStringArray& aTerms);
 
   nsresult FilterResultSet(nsNavHistoryQueryResultNode *aParentNode,
                            const nsCOMArray<nsNavHistoryResultNode>& aSet,
