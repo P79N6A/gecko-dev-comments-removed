@@ -237,6 +237,9 @@ nsSplashScreenWin::Update(PRInt32 progress)
 void
 nsSplashScreenWin::OnPaint(HDC dc, const PAINTSTRUCT *ps)
 {
+    RECT progressBar;
+
+    
     if (mSplashBitmapDC) {
         BitBlt(dc,
                0, 0, gSplashScreen->mWidth, gSplashScreen->mHeight,
@@ -250,40 +253,32 @@ nsSplashScreenWin::OnPaint(HDC dc, const PAINTSTRUCT *ps)
         DeleteObject(bkgr);
     }
 
-#define BOTTOM_OFFSET 10
-#define PROGRESS_HEIGHT 11
+    
+    if (mSplashBitmapDC &&
+        gSplashScreen->mWidth == 440 &&
+        gSplashScreen->mHeight == 180) {
+        
+        
+        progressBar.left   = 183;
+        progressBar.right  = 410;
+        progressBar.top    = 148;
+        progressBar.bottom = 153;
+    } else {
+        
+        
+        progressBar.left   = (mWidth / 6);
+        progressBar.right  = mWidth - (mWidth / 6);
+        progressBar.top    = mHeight - 19;
+        progressBar.bottom = mHeight - 10;
+    }
 
     if (mProgress != -1) {
-        HBRUSH border = CreateSolidBrush(RGB(0x33,0x33,0x99));
-        HBRUSH fill = CreateSolidBrush(RGB(0x33,0x66,0xFF));
+        HBRUSH fill = CreateSolidBrush(RGB(0x77,0xC7,0x1C));
 
-        
-        
-        
-        int leftBorder = (mWidth * 2 / 3) / 2;
+        int maxWidth = progressBar.right - progressBar.left;
+        progressBar.right = progressBar.left + maxWidth * mProgress / 100;
+        FillRect(dc, &progressBar, fill);
 
-        
-        RECT outerRect = { leftBorder, mHeight - BOTTOM_OFFSET - PROGRESS_HEIGHT,
-                           mWidth - leftBorder, mHeight - BOTTOM_OFFSET };
-
-
-	HBRUSH oldBrush = (HBRUSH)SelectObject(dc, border);
-        MoveToEx(dc, outerRect.left, outerRect.top, (LPPOINT) NULL);
-        LineTo(dc, outerRect.right, outerRect.top);
-        LineTo(dc, outerRect.right, outerRect.bottom);
-        LineTo(dc, outerRect.left, outerRect.bottom);
-        LineTo(dc, outerRect.left, outerRect.top);
-        SelectObject(dc, oldBrush);
-
-        outerRect.top += 2;
-        outerRect.left += 2;
-        outerRect.right -= 2;
-        outerRect.bottom -= 1;
-
-        outerRect.right = outerRect.left + (outerRect.right - outerRect.left) * mProgress / 100;
-        FillRect(dc, &outerRect, fill);
-
-        DeleteObject(border);
         DeleteObject(fill);
     }
 }
