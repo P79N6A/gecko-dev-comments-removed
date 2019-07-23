@@ -3728,7 +3728,7 @@ nsEventStateManager::FireDragEnterOrExit(nsPresContext* aPresContext,
                                   nsnull, &status);
 
     
-    if (status != nsEventStatus_eConsumeNoDefault)
+    if (status == nsEventStatus_eConsumeNoDefault || aMsg == NS_DRAGDROP_EXIT)
       SetContentState((aMsg == NS_DRAGDROP_ENTER) ? aTargetContent : nsnull,
                       NS_EVENT_STATE_DRAGOVER);
   }
