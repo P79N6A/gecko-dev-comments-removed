@@ -204,6 +204,11 @@ public:
   nsresult GetHrefURIForAnchors(nsIURI** aURI) const;
 
   
+  
+  
+  void GetHrefURIToMutate(nsIURI** aURI);
+
+  
   void Compact() { mAttrsAndChildren.Compact(); }
   const nsAttrValue* GetParsedAttr(nsIAtom* aAttr) const
   {
@@ -693,8 +698,11 @@ protected:
 
 
 
+
+
+
   NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
-                                nsIURI** aURI) const;
+                                PRBool aCloneIfCached, nsIURI** aURI) const;
 
   
 
