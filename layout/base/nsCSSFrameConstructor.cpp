@@ -3656,8 +3656,8 @@ nsCSSFrameConstructor::ConstructTableCaptionFrame(nsFrameConstructorState& aStat
   nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, nsnull, PR_FALSE);
 
   PRBool haveFirstLetterStyle, haveFirstLineStyle;
-  HaveSpecialBlockStyle(aContent, aStyleContext,
-                        &haveFirstLetterStyle, &haveFirstLineStyle);
+  ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                              &haveFirstLetterStyle, &haveFirstLineStyle);
 
   
   nsFrameConstructorSaveState floatSaveState;
@@ -4000,8 +4000,8 @@ nsCSSFrameConstructor::ConstructTableCellFrame(nsFrameConstructorState& aState,
 
   if (!aIsPseudo) {
     PRBool haveFirstLetterStyle, haveFirstLineStyle;
-    HaveSpecialBlockStyle(aContent, aStyleContext,
-                          &haveFirstLetterStyle, &haveFirstLineStyle);
+    ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                                &haveFirstLetterStyle, &haveFirstLineStyle);
 
     
     nsFrameConstructorSaveState floatSaveState;
@@ -4338,8 +4338,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
 
     if (isBlockFrame) {
       PRBool haveFirstLetterStyle, haveFirstLineStyle;
-      HaveSpecialBlockStyle(aDocElement, styleContext,
-                            &haveFirstLetterStyle, &haveFirstLineStyle);
+      ShouldHaveSpecialBlockStyle(aDocElement, styleContext,
+                                  &haveFirstLetterStyle, &haveFirstLineStyle);
       mInitialContainingBlockIsAbsPosContainer = PR_TRUE;
       aState.PushAbsoluteContainingBlock(contentFrame, absoluteSaveState);
       aState.PushFloatContainingBlock(contentFrame, floatSaveState,
@@ -4801,8 +4801,8 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
     
     
     PRBool haveFirstLetterStyle, haveFirstLineStyle;
-    HaveSpecialBlockStyle(aContent, aStyleContext,
-                          &haveFirstLetterStyle, &haveFirstLineStyle);
+    ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                                &haveFirstLetterStyle, &haveFirstLineStyle);
     nsFrameConstructorSaveState floatSaveState;
     aState.PushFloatContainingBlock(areaFrame, floatSaveState,
                                     haveFirstLetterStyle,
@@ -5060,8 +5060,8 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
 
   
   PRBool haveFirstLetterStyle, haveFirstLineStyle;
-  HaveSpecialBlockStyle(aContent, aStyleContext,
-                        &haveFirstLetterStyle, &haveFirstLineStyle);
+  ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                              &haveFirstLetterStyle, &haveFirstLineStyle);
   nsFrameConstructorSaveState floatSaveState;
   aState.PushFloatContainingBlock(scrolledFrame, floatSaveState,
                                   haveFirstLetterStyle, haveFirstLineStyle);
@@ -5128,8 +5128,8 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
 
   
   PRBool haveFirstLetterStyle, haveFirstLineStyle;
-  HaveSpecialBlockStyle(aContent, aStyleContext,
-                        &haveFirstLetterStyle, &haveFirstLineStyle);
+  ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                              &haveFirstLetterStyle, &haveFirstLineStyle);
   nsFrameConstructorSaveState floatSaveState;
   aState.PushFloatContainingBlock(areaFrame, floatSaveState,
                                   haveFirstLetterStyle,
@@ -5519,8 +5519,9 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
       }
       if (isFloatContainer) {
         PRBool haveFirstLetterStyle, haveFirstLineStyle;
-        HaveSpecialBlockStyle(aContent, aStyleContext,
-                              &haveFirstLetterStyle, &haveFirstLineStyle);
+        ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                                    &haveFirstLetterStyle,
+                                    &haveFirstLineStyle);
         aState.PushFloatContainingBlock(newFrame, floatSaveState,
                                         PR_FALSE, PR_FALSE);
       }
@@ -8473,10 +8474,10 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   PRBool haveFirstLetterStyle = PR_FALSE, haveFirstLineStyle = PR_FALSE;
   nsIFrame* containingBlock = state.mFloatedItems.containingBlock;
   if (containingBlock) {
-    haveFirstLetterStyle = HaveFirstLetterStyle(containingBlock);
+    haveFirstLetterStyle = HasFirstLetterStyle(containingBlock);
     haveFirstLineStyle =
-      HaveFirstLineStyle(containingBlock->GetContent(),
-                         containingBlock->GetStyleContext());
+      ShouldHaveFirstLineStyle(containingBlock->GetContent(),
+                               containingBlock->GetStyleContext());
   }
 
   if (haveFirstLetterStyle) {
@@ -9001,10 +9002,10 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       (NS_STYLE_DISPLAY_INLINE_BLOCK == parentDisplay->mDisplay)) {
     
     if (containingBlock) {
-      haveFirstLetterStyle = HaveFirstLetterStyle(containingBlock);
+      haveFirstLetterStyle = HasFirstLetterStyle(containingBlock);
       haveFirstLineStyle =
-        HaveFirstLineStyle(containingBlock->GetContent(),
-                           containingBlock->GetStyleContext());
+        ShouldHaveFirstLineStyle(containingBlock->GetContent(),
+                                 containingBlock->GetStyleContext());
     }
 
     if (haveFirstLetterStyle) {
@@ -9463,7 +9464,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent*     aContainer,
     
     
     nsIFrame* containingBlock = GetFloatContainingBlock(parentFrame);
-    PRBool haveFLS = containingBlock && HaveFirstLetterStyle(containingBlock);
+    PRBool haveFLS = containingBlock && HasFirstLetterStyle(containingBlock);
     if (haveFLS) {
       
       
@@ -9841,7 +9842,7 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
       
       nsIContent* blockContent = block->GetContent();
       nsStyleContext* blockSC = block->GetStyleContext();
-      haveFirstLetterStyle = HaveFirstLetterStyle(block);
+      haveFirstLetterStyle = HasFirstLetterStyle(block);
       if (haveFirstLetterStyle) {
         RemoveLetterFrames(mPresShell->GetPresContext(), mPresShell,
                            mPresShell->FrameManager(), block);
@@ -11163,8 +11164,8 @@ nsCSSFrameConstructor::GetFirstLineStyle(nsIContent* aContent,
 
 
 PRBool
-nsCSSFrameConstructor::HaveFirstLetterStyle(nsIContent* aContent,
-                                            nsStyleContext* aStyleContext)
+nsCSSFrameConstructor::ShouldHaveFirstLetterStyle(nsIContent* aContent,
+                                                  nsStyleContext* aStyleContext)
 {
   return nsLayoutUtils::HasPseudoStyle(aContent, aStyleContext,
                                        nsCSSPseudoElements::firstLetter,
@@ -11172,7 +11173,7 @@ nsCSSFrameConstructor::HaveFirstLetterStyle(nsIContent* aContent,
 }
 
 PRBool
-nsCSSFrameConstructor::HaveFirstLetterStyle(nsIFrame* aBlockFrame)
+nsCSSFrameConstructor::HasFirstLetterStyle(nsIFrame* aBlockFrame)
 {
   NS_PRECONDITION(aBlockFrame, "Need a frame");
   
@@ -11188,8 +11189,8 @@ nsCSSFrameConstructor::HaveFirstLetterStyle(nsIFrame* aBlockFrame)
 }
 
 PRBool
-nsCSSFrameConstructor::HaveFirstLineStyle(nsIContent* aContent,
-                                          nsStyleContext* aStyleContext)
+nsCSSFrameConstructor::ShouldHaveFirstLineStyle(nsIContent* aContent,
+                                                nsStyleContext* aStyleContext)
 {
   return nsLayoutUtils::HasPseudoStyle(aContent, aStyleContext,
                                        nsCSSPseudoElements::firstLine,
@@ -11197,15 +11198,15 @@ nsCSSFrameConstructor::HaveFirstLineStyle(nsIContent* aContent,
 }
 
 void
-nsCSSFrameConstructor::HaveSpecialBlockStyle(nsIContent* aContent,
-                                             nsStyleContext* aStyleContext,
-                                             PRBool* aHaveFirstLetterStyle,
-                                             PRBool* aHaveFirstLineStyle)
+nsCSSFrameConstructor::ShouldHaveSpecialBlockStyle(nsIContent* aContent,
+                                                   nsStyleContext* aStyleContext,
+                                                   PRBool* aHaveFirstLetterStyle,
+                                                   PRBool* aHaveFirstLineStyle)
 {
   *aHaveFirstLetterStyle =
-    HaveFirstLetterStyle(aContent, aStyleContext);
+    ShouldHaveFirstLetterStyle(aContent, aStyleContext);
   *aHaveFirstLineStyle =
-    HaveFirstLineStyle(aContent, aStyleContext);
+    ShouldHaveFirstLineStyle(aContent, aStyleContext);
 }
 
 
@@ -12341,8 +12342,8 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
 
   
   PRBool haveFirstLetterStyle, haveFirstLineStyle;
-  HaveSpecialBlockStyle(aContent, aStyleContext,
-                        &haveFirstLetterStyle, &haveFirstLineStyle);
+  ShouldHaveSpecialBlockStyle(aContent, aStyleContext,
+                              &haveFirstLetterStyle, &haveFirstLineStyle);
 
   
   nsFrameItems childItems;

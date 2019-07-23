@@ -759,20 +759,20 @@ private:
   GetFirstLineStyle(nsIContent*      aContent,
                     nsStyleContext*  aStyleContext);
 
-  PRBool HaveFirstLetterStyle(nsIContent*      aContent,
-                              nsStyleContext*  aStyleContext);
+  PRBool ShouldHaveFirstLetterStyle(nsIContent*      aContent,
+                                    nsStyleContext*  aStyleContext);
 
   
   
-  PRBool HaveFirstLetterStyle(nsIFrame* aBlockFrame);
+  PRBool HasFirstLetterStyle(nsIFrame* aBlockFrame);
 
-  PRBool HaveFirstLineStyle(nsIContent*      aContent,
-                            nsStyleContext*  aStyleContext);
+  PRBool ShouldHaveFirstLineStyle(nsIContent*      aContent,
+                                  nsStyleContext*  aStyleContext);
 
-  void HaveSpecialBlockStyle(nsIContent*      aContent,
-                             nsStyleContext*  aStyleContext,
-                             PRBool*          aHaveFirstLetterStyle,
-                             PRBool*          aHaveFirstLineStyle);
+  void ShouldHaveSpecialBlockStyle(nsIContent*      aContent,
+                                   nsStyleContext*  aStyleContext,
+                                   PRBool*          aHaveFirstLetterStyle,
+                                   PRBool*          aHaveFirstLineStyle);
 
   
   
