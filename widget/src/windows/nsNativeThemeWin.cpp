@@ -1498,6 +1498,18 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
                                    PRUint8 aWidgetType,
                                    nsMargin* aResult)
 {
+  switch (aWidgetType) {
+    
+    
+    
+    case NS_THEME_CHECKBOX:
+    case NS_THEME_CHECKBOX_SMALL:
+    case NS_THEME_RADIO:
+    case NS_THEME_RADIO_SMALL:
+      aResult->SizeTo(0, 0, 0, 0);
+      return PR_TRUE;
+  }
+
   HANDLE theme = GetTheme(aWidgetType);
   if (!theme && aWidgetType != NS_THEME_MENUITEMTEXT)
     return PR_FALSE;

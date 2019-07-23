@@ -94,6 +94,17 @@ nsFormControlFrame::GetIntrinsicHeight()
   return nsPresContext::CSSPixelsToAppUnits(13 - 2 * 2);
 }
 
+nscoord
+nsFormControlFrame::GetBaseline() const
+{
+  NS_ASSERTION(!NS_SUBTREE_DIRTY(this),
+               "frame must not be dirty");
+  
+  
+  
+  return mRect.height - GetUsedBorderAndPadding().bottom;
+}
+
 NS_METHOD
 nsFormControlFrame::Reflow(nsPresContext*          aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,

@@ -74,6 +74,8 @@ public:
                          nsGUIEvent* aEvent,
                          nsEventStatus* aEventStatus);
 
+  virtual nscoord GetBaseline() const;
+
   
 
 
