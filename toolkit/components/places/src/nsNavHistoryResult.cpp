@@ -2391,6 +2391,12 @@ nsNavHistoryQueryResultNode::Refresh()
   if (mBatchInProgress)
     return NS_OK;
 
+  
+  
+  
+  if (mIndentLevel > -1 && !mParent)
+    return NS_OK;
+
   if (! mExpanded) {
     
     ClearChildren(PR_TRUE);
