@@ -35,13 +35,20 @@
 
 
 
+
+
 #include "gfxOS2Platform.h"
 #include "gfxOS2Surface.h"
 #include "gfxImageSurface.h"
 #include "gfxOS2Fonts.h"
 
+#include "gfxFontconfigUtils.h"
 
 
+
+
+
+gfxFontconfigUtils *gfxOS2Platform::sFontconfigUtils = nsnull;
 
 gfxOS2Platform::gfxOS2Platform()
     : mDC(NULL), mPS(NULL), mBitmap(NULL)
@@ -55,6 +62,9 @@ gfxOS2Platform::gfxOS2Platform()
 #ifdef DEBUG_thebes
     printf("  cairo_os2_init() was called\n");
 #endif
+    if (!sFontconfigUtils) {
+        sFontconfigUtils = gfxFontconfigUtils::GetFontconfigUtils();
+    }
 }
 
 gfxOS2Platform::~gfxOS2Platform()
@@ -62,6 +72,8 @@ gfxOS2Platform::~gfxOS2Platform()
 #ifdef DEBUG_thebes
     printf("gfxOS2Platform::~gfxOS2Platform()\n");
 #endif
+    gfxFontconfigUtils::Shutdown();
+    sFontconfigUtils = nsnull;
 
     if (mBitmap) {
         GpiSetBitmap(mPS, NULL);
@@ -84,7 +96,7 @@ already_AddRefed<gfxASurface>
 gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
                                        gfxASurface::gfxImageFormat aImageFormat)
 {
-#ifdef DEBUG_thebes
+#ifdef DEBUG_thebes_2
     printf("gfxOS2Platform::CreateOffscreenSurface(%d/%d, %d)\n",
            aSize.width, aSize.height, aImageFormat);
 #endif
@@ -146,8 +158,17 @@ gfxOS2Platform::GetFontList(const nsACString& aLangGroup,
          *family = ToNewCString(aGenericFamily);
     printf("gfxOS2Platform::GetFontList(%s, %s, ..)\n",
            langgroup, family);
+    free(langgroup);
+    free(family);
 #endif
-    return NS_ERROR_NOT_IMPLEMENTED;
+    return sFontconfigUtils->GetFontList(aLangGroup, aGenericFamily,
+                                         aListOfFonts);
+    
+}
+
+nsresult gfxOS2Platform::UpdateFontList()
+{
+    return sFontconfigUtils->UpdateFontList();
 }
 
 nsresult
@@ -158,9 +179,12 @@ gfxOS2Platform::ResolveFontName(const nsAString& aFontName,
 #ifdef DEBUG_thebes
     char *fontname = ToNewCString(aFontName);
     printf("gfxOS2Platform::ResolveFontName(%s, ...)\n", fontname);
+    free(fontname);
 #endif
-    aAborted = !(*aCallback)(aFontName, aClosure);
-    return NS_OK;
+    return sFontconfigUtils->ResolveFontName(aFontName, aCallback, aClosure,
+                                             aAborted);
+    
+    
 }
 
 gfxFontGroup *
