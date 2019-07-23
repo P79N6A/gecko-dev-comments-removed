@@ -186,6 +186,11 @@ public:
 
 
 
+
+
+
+
+
   virtual nsresult CompileEventHandler(nsIAtom* aName,
                                        PRUint32 aArgCount,
                                        const char** aArgNames,
