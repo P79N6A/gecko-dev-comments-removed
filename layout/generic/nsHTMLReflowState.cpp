@@ -425,7 +425,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     mStylePosition->mMaxHeight.GetUnit() == eStyleUnit_Percent ||
     mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Percent ||
     mStylePosition->mOffset.GetBottomUnit() == eStyleUnit_Percent ||
-    frame->IsBoxFrame();
+    frame->IsBoxFrame() ||
+    frame->GetIntrinsicSize().height.GetUnit() == eStyleUnit_Percent;
 
   
   

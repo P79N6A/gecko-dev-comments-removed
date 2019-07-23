@@ -45,6 +45,14 @@
 #include "nsStubMutationObserver.h"
 #include "gfxContext.h"
 #include "nsPresShellIterator.h"
+#include "nsIDOMSVGAnimatedRect.h"
+#include "nsIContentViewer.h"
+#include "nsIDocShell.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMWindowInternal.h"
+#include "nsPIDOMWindow.h"
+#include "nsIObjectLoadingContent.h"
+#include "nsIInterfaceRequestorUtils.h"
 
 #if defined(DEBUG) && defined(SVG_DEBUG_PRINTING)
 #include "nsIDeviceContext.h"
@@ -193,80 +201,164 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGOuterSVGFrameBase)
 
 
 
+ nscoord
+nsSVGOuterSVGFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+{
+  nscoord result;
+  DISPLAY_MIN_WIDTH(this, result);
+
+  result = nscoord(0);
+
+  return result;
+}
+
+ nscoord
+nsSVGOuterSVGFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+{
+  nscoord result;
+  DISPLAY_PREF_WIDTH(this, result);
+
+  nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(mContent);
+  nsSVGLength2 &width = svg->mLengthAttributes[nsSVGSVGElement::WIDTH];
+
+  if (width.GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+    result = nscoord(0);
+  } else {
+    result = nsPresContext::CSSPixelsToAppUnits(width.GetAnimValue(svg));
+  }
+
+  return result;
+}
+
+ nsIFrame::IntrinsicSize
+nsSVGOuterSVGFrame::GetIntrinsicSize()
+{
+  
+  
+
+  IntrinsicSize intrinsicSize;
+
+  nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
+  nsSVGLength2 &width  = content->mLengthAttributes[nsSVGSVGElement::WIDTH];
+  nsSVGLength2 &height = content->mLengthAttributes[nsSVGSVGElement::HEIGHT];
+
+  if (width.GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+    float val = width.GetAnimValInSpecifiedUnits() / 100.0f;
+    if (val < 0.0f) val = 0.0f;
+    intrinsicSize.width.SetPercentValue(val);
+  } else {
+    nscoord val = nsPresContext::CSSPixelsToAppUnits(width.GetAnimValue(content));
+    if (val < 0) val = 0;
+    intrinsicSize.width.SetCoordValue(val);
+  }
+
+  if (height.GetSpecifiedUnitType() == nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+    float val = height.GetAnimValInSpecifiedUnits() / 100.0f;
+    if (val < 0.0f) val = 0.0f;
+    intrinsicSize.height.SetPercentValue(val);
+  } else {
+    nscoord val = nsPresContext::CSSPixelsToAppUnits(height.GetAnimValue(content));
+    if (val < 0) val = 0;
+    intrinsicSize.height.SetCoordValue(val);
+  }
+
+  return intrinsicSize;
+}
+
+ nsSize
+nsSVGOuterSVGFrame::GetIntrinsicRatio()
+{
+  
+  
+  
+
+  nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
+  nsSVGLength2 &width  = content->mLengthAttributes[nsSVGSVGElement::WIDTH];
+  nsSVGLength2 &height = content->mLengthAttributes[nsSVGSVGElement::HEIGHT];
+
+  if (width.GetSpecifiedUnitType()  != nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE &&
+      height.GetSpecifiedUnitType() != nsIDOMSVGLength::SVG_LENGTHTYPE_PERCENTAGE) {
+    return nsSize(width.GetAnimValue(content), height.GetAnimValue(content));
+  }
+
+  if (content->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
+    
+    
+    float viewBoxWidth, viewBoxHeight;
+    nsCOMPtr<nsIDOMSVGRect> viewBox;
+    content->mViewBox->GetAnimVal(getter_AddRefs(viewBox));
+    viewBox->GetWidth(&viewBoxWidth);
+    viewBox->GetHeight(&viewBoxHeight);
+    return nsSize(viewBoxWidth, viewBoxHeight);
+  }
+
+  return nsSVGOuterSVGFrameBase::GetIntrinsicRatio();
+}
+
+ nsSize
+nsSVGOuterSVGFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
+                                nsSize aCBSize, nscoord aAvailableWidth,
+                                nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                                PRBool aShrinkWrap)
+{
+  if (EmbeddedByReference()) {
+    
+    
+    return aCBSize;
+  }
+
+  return nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
+                            aRenderingContext, this,
+                            GetIntrinsicSize(), GetIntrinsicRatio(), aCBSize,
+                            aMargin, aBorder, aPadding);
+}
+
 NS_IMETHODIMP
-nsSVGOuterSVGFrame::Reflow(nsPresContext*          aPresContext,
+nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
-  if (!aReflowState.ShouldReflowAllKids()) {
-    
-    
-    
-    
-    
-    
-    aDesiredSize.width = mRect.width;
-    aDesiredSize.height = mRect.height;
-    aDesiredSize.mOverflowArea.SetRect(0, 0, mRect.width, mRect.height);
-    FinishAndStoreOverflow(&aDesiredSize);
-    aStatus = NS_FRAME_COMPLETE;
-    return NS_OK;
-  }
+  DO_GLOBAL_REFLOW_COUNT("nsSVGOuterSVGFrame");
+  DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
+  NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
+                  ("enter nsSVGOuterSVGFrame::Reflow: availSize=%d,%d",
+                  aReflowState.availableWidth, aReflowState.availableHeight));
 
-  
+  NS_PRECONDITION(mState & NS_FRAME_IN_REFLOW, "frame is not in reflow");
 
-  SuspendRedraw();
+  aStatus = NS_FRAME_COMPLETE;
 
-  
-  
-  
-  
-  
-  
-  
-  
+  aDesiredSize.width  = aReflowState.ComputedWidth() +
+                          aReflowState.mComputedBorderPadding.LeftRight();
+  aDesiredSize.height = aReflowState.ComputedHeight() +
+                          aReflowState.mComputedBorderPadding.TopBottom();
 
-  nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
-  float oldViewportWidth  = svgElem->mViewportWidth;
-  float oldViewportHeight = svgElem->mViewportHeight;
-
-  
-  
-
-  nsRect maxRect, preferredRect;
-  CalculateAvailableSpace(&maxRect, &preferredRect, aPresContext, aReflowState);
-  float preferredWidth = nsPresContext::AppUnitsToFloatCSSPixels(preferredRect.width);
-  float preferredHeight = nsPresContext::AppUnitsToFloatCSSPixels(preferredRect.height);
-
-  nsCOMPtr<nsIDOMSVGRect> r;
-  NS_NewSVGRect(getter_AddRefs(r), 0, 0, preferredWidth, preferredHeight);
-  svgElem->SetCoordCtxRect(r);
-
-  
-
-  aDesiredSize.width =
-    nsPresContext::CSSPixelsToAppUnits(svgElem->mViewportWidth);
-  aDesiredSize.height =
-    nsPresContext::CSSPixelsToAppUnits(svgElem->mViewportHeight);
-
-  
+  NS_ASSERTION(!GetPrevInFlow(), "SVG can't currently be broken across pages.");
 
   
   
   aDesiredSize.mOverflowArea.SetRect(0, 0, aDesiredSize.width, aDesiredSize.height);
   FinishAndStoreOverflow(&aDesiredSize);
 
-  aStatus = NS_FRAME_COMPLETE;
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+  
+  
 
-  if (svgElem->mViewportWidth != oldViewportWidth ||
-      svgElem->mViewportHeight != oldViewportHeight) {
+  svgFloatSize newViewportSize(
+    nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedWidth()),
+    nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedHeight()));
+
+  nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
+
+  if (newViewportSize != svgElem->GetViewportSize()) {
+    svgElem->SetViewportSize(newViewportSize);
     NotifyViewportChange();
   }
 
-  UnsuspendRedraw();
-  
+  NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
+                  ("exit nsSVGOuterSVGFrame::Reflow: size=%d,%d",
+                  aDesiredSize.width, aDesiredSize.height));
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;
 }
 
@@ -333,16 +425,44 @@ nsDisplaySVG::Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
     Paint(*aCtx, aDirtyRect, aBuilder->ToReferenceFrame(mFrame));
 }
 
+
+static inline PRBool
+DependsOnIntrinsicSize(const nsIFrame* aEmbeddingFrame)
+{
+  const nsStylePosition *pos = aEmbeddingFrame->GetStylePosition();
+  nsStyleUnit widthUnit  = pos->mWidth.GetUnit();
+  nsStyleUnit heightUnit = pos->mHeight.GetUnit();
+
+  
+  
+  
+  return (widthUnit != eStyleUnit_Coord) || (heightUnit != eStyleUnit_Coord);
+}
+
 NS_IMETHODIMP
-nsSVGOuterSVGFrame::AttributeChanged(PRInt32         aNameSpaceID,
-                                     nsIAtom*        aAttribute,
-                                     PRInt32         aModType)
+nsSVGOuterSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
+                                     nsIAtom* aAttribute,
+                                     PRInt32  aModType)
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       !(GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
       (aAttribute == nsGkAtoms::width || aAttribute == nsGkAtoms::height)) {
-    PresContext()->PresShell()->
-      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+    nsIFrame* embeddingFrame;
+    EmbeddedByReference(&embeddingFrame);
+    if (embeddingFrame) {
+      if (DependsOnIntrinsicSize(embeddingFrame)) {
+        
+        
+        embeddingFrame->PresContext()->PresShell()->
+          FrameNeedsReflow(embeddingFrame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+      }
+      
+    } else {
+      
+      
+      PresContext()->PresShell()->
+        FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+    }
   }
 
   return NS_OK;
@@ -377,8 +497,9 @@ nsSVGOuterSVGFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                      const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
-  
-  
+  nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return aLists.Content()->AppendNewToTop(new (aBuilder) nsDisplaySVG(this));
 }
 
@@ -414,12 +535,19 @@ nsSVGOuterSVGFrame::Paint(nsIRenderingContext& aRenderingContext,
   
   
   aRenderingContext.PushState();
-  
+
+  nsMargin bp = GetUsedBorderAndPadding();
+  ApplySkipSides(bp);
+
+  nsRect viewportRect = GetContentRect();
+  nsPoint viewportOffset = aPt + nsPoint(bp.left, bp.top);
+  viewportRect.MoveTo(viewportOffset);
+
   nsRect clipRect;
-  clipRect.IntersectRect(aDirtyRect, nsRect(aPt, GetSize()));
+  clipRect.IntersectRect(aDirtyRect, viewportRect);
   aRenderingContext.SetClipRect(clipRect, nsClipCombine_kIntersect);
-  aRenderingContext.Translate(aPt.x, aPt.y);
-  nsRect dirtyRect = clipRect - aPt;
+  aRenderingContext.Translate(viewportRect.x, viewportRect.y);
+  nsRect dirtyRect = clipRect - viewportOffset;
 
 #if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
   PRTime start = PR_Now();
@@ -595,33 +723,31 @@ nsSVGOuterSVGFrame::GetCanvasTM()
 
 
 
-void
-nsSVGOuterSVGFrame::CalculateAvailableSpace(nsRect *maxRect,
-                                            nsRect *preferredRect,
-                                            nsPresContext* aPresContext,
-                                            const nsHTMLReflowState& aReflowState)
+PRBool
+nsSVGOuterSVGFrame::EmbeddedByReference(nsIFrame **aEmbeddingFrame)
 {
-  *preferredRect = aPresContext->GetVisibleArea();
-  
-  
-  if (aReflowState.availableWidth != NS_INTRINSICSIZE)
-    maxRect->width = aReflowState.availableWidth;
-  else if (aReflowState.parentReflowState &&
-           aReflowState.parentReflowState->ComputedWidth() != NS_INTRINSICSIZE)
-    maxRect->width = aReflowState.parentReflowState->ComputedWidth();
-  else
-    maxRect->width = NS_MAXSIZE;
-  
-  if (aReflowState.availableHeight != NS_INTRINSICSIZE)
-    maxRect->height = aReflowState.availableHeight;    
-  else if (aReflowState.parentReflowState &&
-           aReflowState.parentReflowState->ComputedHeight() != NS_INTRINSICSIZE)
-    maxRect->height = aReflowState.parentReflowState->ComputedHeight();
-  else
-    maxRect->height = NS_MAXSIZE;
-
-  if (preferredRect->width > maxRect->width)
-    preferredRect->width = maxRect->width;
-  if (preferredRect->height > maxRect->height)
-    preferredRect->height = maxRect->height;
-}  
+  if (mContent->GetParent() == nsnull) {
+    
+    nsCOMPtr<nsISupports> container = PresContext()->GetContainer();
+    nsCOMPtr<nsIDOMWindowInternal> window = do_GetInterface(container);
+    if (window) {
+      nsCOMPtr<nsIDOMElement> frameElement;
+      window->GetFrameElement(getter_AddRefs(frameElement));
+      nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(frameElement);
+      if (olc) {
+        
+        if (aEmbeddingFrame) {
+          nsCOMPtr<nsIContent> element = do_QueryInterface(frameElement);
+          *aEmbeddingFrame =
+            static_cast<nsGenericElement*>(element.get())->GetPrimaryFrame();
+          NS_ASSERTION(*aEmbeddingFrame, "Yikes, no embedding frame!");
+        }
+        return PR_TRUE;
+      }
+    }
+  }
+  if (aEmbeddingFrame) {
+    *aEmbeddingFrame = nsnull;
+  }
+  return PR_FALSE;
+}

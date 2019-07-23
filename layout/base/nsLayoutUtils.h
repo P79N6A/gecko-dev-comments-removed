@@ -619,9 +619,15 @@ public:
                    nscoord              aContainingBlockHeight,
                    const nsStyleCoord&  aCoord);
 
+  
+
+
+
+
   static nsSize ComputeSizeWithIntrinsicDimensions(
-                    nsIRenderingContext* aRenderingContext,
-                    nsIFrame* aFrame, nsSize aIntrinsicSize, nsSize aCBSize,
+                    nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
+                    nsIFrame::IntrinsicSize& aIntrinsicSize,
+                    nsSize aIntrinsicRatio, nsSize aCBSize,
                     nsSize aMargin, nsSize aBorder, nsSize aPadding);
 
   

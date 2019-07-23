@@ -55,6 +55,19 @@
 
 typedef nsSVGStylableElement nsSVGSVGElementBase;
 
+class svgFloatSize {
+public:
+  svgFloatSize(float aWidth, float aHeight)
+    : width(aWidth)
+    , height(aHeight)
+  {}
+  PRBool operator!=(const svgFloatSize& rhs) {
+    return width != rhs.width || height != rhs.height;
+  }
+  float width;
+  float height;
+};
+
 class nsSVGSVGElement : public nsSVGSVGElementBase,
                         public nsIDOMSVGSVGElement,
                         public nsIDOMSVGFitToViewBox,
@@ -71,9 +84,6 @@ protected:
   virtual ~nsSVGSVGElement();
   nsresult Init();
   
-  
-  void SetCoordCtxRect(nsIDOMSVGRect* aCtxRect);
-
 public:
 
   
@@ -147,6 +157,15 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
+  svgFloatSize GetViewportSize() {
+    return svgFloatSize(mViewportWidth, mViewportHeight);
+  }
+
+  void SetViewportSize(svgFloatSize& aSize) {
+    mViewportWidth  = aSize.width;
+    mViewportHeight = aSize.height;
+  }
+
 protected:
   
   PRBool IsEventName(nsIAtom* aName);
@@ -174,7 +193,16 @@ protected:
   nsCOMPtr<nsIDOMSVGAnimatedRect>   mViewBox;
   nsCOMPtr<nsIDOMSVGAnimatedPreserveAspectRatio> mPreserveAspectRatio;
 
-  float mViewportWidth, mViewportHeight;  
+  
+  
+  
+  
+  
+  
+  
+  
+  float mViewportWidth, mViewportHeight;
+
   float mCoordCtxMmPerPx;
 
   

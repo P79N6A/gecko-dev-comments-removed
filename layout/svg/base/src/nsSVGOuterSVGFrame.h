@@ -65,8 +65,16 @@ private:
 
 public:
   
-  
-  
+  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+
+  virtual IntrinsicSize GetIntrinsicSize();
+  virtual nsSize  GetIntrinsicRatio();
+
+  virtual nsSize ComputeSize(nsIRenderingContext *aRenderingContext,
+                             nsSize aCBSize, nscoord aAvailableWidth,
+                             nsSize aMargin, nsSize aBorder, nsSize aPadding,
+                             PRBool aShrinkWrap);
 
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -124,9 +132,11 @@ public:
 
 protected:
 
-  void CalculateAvailableSpace(nsRect *maxRect, nsRect *preferredRect,
-                               nsPresContext* aPresContext,
-                               const nsHTMLReflowState& aReflowState);
+  
+
+
+
+  PRBool EmbeddedByReference(nsIFrame **aEmbeddingFrame = nsnull);
 
   PRUint32 mRedrawSuspendCount;
   nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;

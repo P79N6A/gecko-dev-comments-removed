@@ -1259,6 +1259,29 @@ public:
 
 
 
+  struct IntrinsicSize {
+    nsStyleCoord width, height;
+
+    IntrinsicSize()
+      : width(eStyleUnit_None), height(eStyleUnit_None)
+    {}
+    IntrinsicSize(const IntrinsicSize& rhs)
+      : width(rhs.width), height(rhs.height)
+    {}
+    IntrinsicSize& operator=(const IntrinsicSize& rhs) {
+      width = rhs.width; height = rhs.height; return *this;
+    }
+  };
+  virtual IntrinsicSize GetIntrinsicSize() = 0;
+
+  
+
+
+
+
+
+
+
 
   virtual nsSize GetIntrinsicRatio() = 0;
 

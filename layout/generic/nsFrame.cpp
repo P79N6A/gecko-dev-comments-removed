@@ -2943,6 +2943,12 @@ nsFrame::IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext)
   return result;
 }
 
+ nsIFrame::IntrinsicSize
+nsFrame::GetIntrinsicSize()
+{
+  return IntrinsicSize(); 
+}
+
  nsSize
 nsFrame::GetIntrinsicRatio()
 {
