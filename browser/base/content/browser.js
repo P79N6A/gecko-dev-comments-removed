@@ -6681,6 +6681,14 @@ var gIdentityHandler = {
       position = 'after_end';
 
     
+    this._identityBox.setAttribute("open", "true");
+    var self = this;
+    this._identityPopup.addEventListener("popuphidden", function (e) {
+      e.currentTarget.removeEventListener("popuphidden", arguments.callee, false);
+      self._identityBox.removeAttribute("open");
+    }, false);
+
+    
     this._identityPopup.openPopup(this._identityBox, position);
   }
 };
