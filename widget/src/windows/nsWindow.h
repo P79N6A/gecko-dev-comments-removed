@@ -211,7 +211,12 @@ public:
 
   NS_IMETHOD              GetAttention(PRInt32 aCycleCount);
   NS_IMETHOD              GetLastInputEventTime(PRUint32& aTime);
-  nsWindow*               GetTopLevelWindow();
+
+  
+  
+  
+  
+  nsWindow*               GetTopLevelWindow(PRBool aStopOnDialogOrPopup);
 
   gfxASurface             *GetThebesSurface();
 
@@ -287,7 +292,7 @@ protected:
 
   static nsWindow*        GetNSWindowPtr(HWND aWnd);
   static BOOL             SetNSWindowPtr(HWND aWnd, nsWindow * ptr);
-  nsWindow*               GetParent(PRBool aStopOnFirstTopLevel);
+  nsWindow*               GetParentWindow();
 
   void                    DispatchPendingEvents();
   virtual PRBool          ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT *aRetValue);
@@ -520,7 +525,12 @@ protected:
 
 public:
   static void GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-  static HWND GetTopLevelHWND(HWND aWnd, PRBool aStopOnFirstTopLevel = PR_FALSE);
+  
+  
+  
+  
+  static HWND GetTopLevelHWND(HWND aWnd,
+                              PRBool aStopOnDialogOrPopup = PR_FALSE);
 };
 
 
