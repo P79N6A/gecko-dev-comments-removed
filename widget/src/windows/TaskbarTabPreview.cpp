@@ -69,8 +69,8 @@ TaskbarTabPreview::~TaskbarTabPreview() {
     ::DestroyIcon(mIcon);
     mIcon = NULL;
   }
-  
-  (void) SetVisible(PR_FALSE);
+  if (mWnd)
+    DetachFromNSWindow();
 }
 
 nsresult
@@ -265,15 +265,12 @@ TaskbarTabPreview::Disable() {
 }
 
 void
-TaskbarTabPreview::DetachFromNSWindow(PRBool windowIsAlive) {
+TaskbarTabPreview::DetachFromNSWindow() {
   (void) SetVisible(PR_FALSE);
+  WindowHook &hook = GetWindowHook();
+  hook.RemoveMonitor(WM_WINDOWPOSCHANGED, MainWindowHook, this);
 
-  if (windowIsAlive) {
-    WindowHook &hook = GetWindowHook();
-    hook.RemoveMonitor(WM_WINDOWPOSCHANGED, MainWindowHook, this);
-  }
-
-  TaskbarPreview::DetachFromNSWindow(windowIsAlive);
+  TaskbarPreview::DetachFromNSWindow();
 }
 
 

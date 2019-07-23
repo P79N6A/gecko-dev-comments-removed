@@ -74,7 +74,7 @@ protected:
   virtual nsresult Disable();
 
   
-  virtual void DetachFromNSWindow(PRBool windowIsAlive);
+  virtual void DetachFromNSWindow();
 
   
   virtual nsresult ShowActive(PRBool active) = 0;
