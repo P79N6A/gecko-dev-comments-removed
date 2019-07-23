@@ -6880,6 +6880,17 @@ js_Interpret(JSContext *cx)
     }
 
     JS_ASSERT((size_t)(regs.pc - script->code) < script->length);
+
+#ifdef JS_TRACER
+    
+
+
+
+
+    if (TRACE_RECORDER(cx))
+        js_AbortRecording(cx, "error or exception while recording");
+#endif
+
     if (!cx->throwing) {
         
         ok = JS_FALSE;
