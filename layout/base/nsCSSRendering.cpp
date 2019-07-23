@@ -1056,14 +1056,13 @@ nsCSSRendering::PaintBoxShadow(nsPresContext* aPresContext,
                                const nsPoint& aForFramePt,
                                const nsRect& aDirtyRect)
 {
-  nsMargin      borderValues;
-  PRIntn        sidesToSkip;
-  nsRect        frameRect;
-
   const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
-  borderValues = styleBorder->GetActualBorder();
-  sidesToSkip = aForFrame->GetSkipSides();
-  frameRect = nsRect(aForFramePt, aForFrame->GetSize());
+  if (!styleBorder->mBoxShadow)
+    return;
+
+  nsMargin borderValues = styleBorder->GetActualBorder();
+  PRIntn sidesToSkip = aForFrame->GetSkipSides();
+  nsRect frameRect = nsRect(aForFramePt, aForFrame->GetSize());
 
   
   nscoord twipsRadii[8];
