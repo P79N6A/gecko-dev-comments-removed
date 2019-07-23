@@ -6537,8 +6537,13 @@ void nsBlockFrame::CollectFloats(nsIFrame* aFrame, nsFrameList& aList, nsIFrame*
         *aTail = outOfFlowFrame;
       }
 
-      CollectFloats(aFrame->GetFirstChild(nsnull), aList, aTail, aFromOverflow,
-                    PR_TRUE);
+      CollectFloats(aFrame->GetFirstChild(nsnull), 
+                    aList, aTail, aFromOverflow, PR_TRUE);
+      
+      
+      
+      CollectFloats(aFrame->GetFirstChild(nsGkAtoms::overflowList), 
+                    aList, aTail, aFromOverflow, PR_TRUE);
     }
     if (!aCollectSiblings)
       break;
