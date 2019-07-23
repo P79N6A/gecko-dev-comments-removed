@@ -4325,7 +4325,7 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect)
   ConvertRelativeToWindowAbsolute(mOwner, rel, abs, *getter_AddRefs(containerWidget));
 
   
-  nsIntRect absDirtyRect = nsRect::ToOutsidePixels(nsRect(abs, aDirtyRect.Size()), *mOwner->GetPresContext()->AppUnitsPerDevPixel());
+  nsIntRect absDirtyRect = nsRect(abs, aDirtyRect.Size()).ToOutsidePixels(*mOwner->GetPresContext()->AppUnitsPerDevPixel());
 #endif
 
   nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
@@ -4369,7 +4369,7 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HPS aHPS)
 
   nsPluginWindow * window;
   GetWindow(window);
-  nsIntRect relDirtyRect = nsRect::ToOutsidePixels(aDirtyRect, mOwner->PresContext()->AppUnitsPerDevPixel());
+  nsIntRect relDirtyRect = aDirtyRect.ToOutsidePixels(mOwner->PresContext()->AppUnitsPerDevPixel());
 
   
   

@@ -1052,7 +1052,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
                              &screenRectPixels.width, &screenRectPixels.height);
     }
   }
-  nsRect screenRect = nsIntRect::ToAppUnits(screenRectPixels, presContext->AppUnitsPerDevPixel());
+  nsRect screenRect = screenRectPixels.ToAppUnits(presContext->AppUnitsPerDevPixel());
 
   
   screenRect.SizeBy(-nsPresContext::CSSPixelsToAppUnits(3),
