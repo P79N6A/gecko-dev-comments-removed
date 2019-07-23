@@ -131,6 +131,7 @@ nsPlacesDBFlush.prototype = {
           
           
           pip.finalizeInternalStatements();
+          this._self._cachedStatements.forEach(function(stmt) stmt.finalize());
           this._self._db.close();
         }
       }, Ci.nsIThread.DISPATCH_NORMAL);
@@ -238,9 +239,6 @@ nsPlacesDBFlush.prototype = {
 
     
     this._db.executeAsync(statements, statements.length, this);
-
-    
-    statements.forEach(function(stmt) stmt.finalize());
   },
 
   
@@ -252,8 +250,13 @@ nsPlacesDBFlush.prototype = {
 
 
 
+  _cachedStatements: [],
   _getSyncTableStatement: function DBFlush_getSyncTableStatement(aTableName)
   {
+    
+    if (aTableName in this._cachedStatements)
+      return this._cachedStatements[aTableName];
+
     
     
     
@@ -278,7 +281,8 @@ nsPlacesDBFlush.prototype = {
         break;
     }
 
-    return this._db.createStatement("DELETE FROM moz_" + aTableName + "_temp " + condition);
+    let sql = "DELETE FROM moz_" + aTableName + "_temp " + condition;
+    return this._cachedStatements[aTableName] = this._db.createStatement(sql);
   },
 
   
