@@ -262,7 +262,7 @@ ViewportFrame::Reflow(nsPresContext*          aPresContext,
   
   
   
-  nsRect kidRect(0,0,aReflowState.availableWidth,aReflowState.availableHeight);
+  nscoord kidHeight = 0;
 
   nsresult rv = NS_OK;
   
@@ -284,10 +284,11 @@ ViewportFrame::Reflow(nsPresContext*          aPresContext,
       kidReflowState.SetComputedHeight(aReflowState.availableHeight);
       rv = ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
                        0, 0, 0, aStatus);
-      kidRect.width = kidDesiredSize.width;
-      kidRect.height = kidDesiredSize.height;
+      kidHeight = kidDesiredSize.height;
 
       FinishReflowChild(kidFrame, aPresContext, nsnull, kidDesiredSize, 0, 0, 0);
+    } else {
+      kidHeight = mFrames.FirstChild()->GetSize().height;
     }
   }
 
@@ -300,7 +301,7 @@ ViewportFrame::Reflow(nsPresContext*          aPresContext,
   
   aDesiredSize.height = aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE
                           ? aReflowState.availableHeight
-                          : kidRect.height;
+                          : kidHeight;
 
   
   

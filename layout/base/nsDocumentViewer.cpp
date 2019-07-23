@@ -3084,11 +3084,10 @@ NS_IMETHODIMP DocumentViewerImpl::SizeToContent()
 
    
    nsRect shellArea = presContext->GetVisibleArea();
-   if (shellArea.width == NS_UNCONSTRAINEDSIZE ||
-       shellArea.height == NS_UNCONSTRAINEDSIZE) {
-     
-     return NS_ERROR_FAILURE;
-   }
+   
+   NS_ENSURE_TRUE(shellArea.width != NS_UNCONSTRAINEDSIZE &&
+                  shellArea.height != NS_UNCONSTRAINEDSIZE,
+                  NS_ERROR_FAILURE);
    width = presContext->AppUnitsToDevPixels(shellArea.width);
    height = presContext->AppUnitsToDevPixels(shellArea.height);
 

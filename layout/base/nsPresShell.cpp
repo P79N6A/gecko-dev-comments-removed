@@ -2489,14 +2489,17 @@ NS_IMETHODIMP
 PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
 {
   NS_PRECONDITION(!mIsReflowing, "Shouldn't be in reflow here!");
+  NS_PRECONDITION(aWidth != NS_UNCONSTRAINEDSIZE,
+                  "shouldn't use unconstrained widths anymore");
   
   
   
   
   nsIFrame* rootFrame = FrameManager()->GetRootFrame();
 
-  if (!rootFrame &&
-      (aWidth == NS_UNCONSTRAINEDSIZE || aHeight == NS_UNCONSTRAINEDSIZE)) {
+  if (!rootFrame && aHeight == NS_UNCONSTRAINEDSIZE) {
+    
+    
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -2540,6 +2543,11 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     }
 
     batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  }
+
+  if (aHeight == NS_UNCONSTRAINEDSIZE) {
+    mPresContext->SetVisibleArea(
+      nsRect(0, 0, aWidth, rootFrame->GetRect().height));
   }
 
   if (!mIsDestroying) {
