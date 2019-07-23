@@ -1435,66 +1435,11 @@ nsLocalFile::CopySingleFile(nsIFile *sourceFile, nsIFile *destParent,
     if (!move)
         copyOK = ::CopyFileW(filePath.get(), destPath.get(), PR_TRUE);
     else
-    {
-        
-        
-        
-        
+        copyOK = ::MoveFileExW(filePath.get(), destPath.get(),
+                               MOVEFILE_REPLACE_EXISTING |
+                               MOVEFILE_COPY_ALLOWED |
+                               MOVEFILE_WRITE_THROUGH);
 
-        nsAutoString backup;
-        PRFileInfo64 fileInfo64;
-        if (NS_SUCCEEDED(GetFileInfo(destPath, &fileInfo64)))
-        {
-
-            
-            
-            if (fileInfo64.type == PR_FILE_FILE)
-            {
-                backup.Append(destPath);
-                backup.Append(L".moztmp");
-
-                
-                
-                
-                
-                
-                
-                
-               (void)_wchmod(backup.get(), _S_IREAD | _S_IWRITE);
-
-                
-                
-                
-               (void)_wremove(backup.get());
-
-                
-                copyOK = ::MoveFileW(destPath.get(), backup.get());
-                if (!copyOK)
-                {
-                    
-                    rv = ConvertWinError(GetLastError());
-                    return rv;
-                }
-            }
-        }
-        
-        copyOK = ::MoveFileW(filePath.get(), destPath.get());
-
-        if (!backup.IsEmpty())
-        {
-            if (copyOK)
-            {
-                
-                _wremove(backup.get());
-            }
-            else
-            {
-                
-                int backupOk = ::MoveFileW(backup.get(), destPath.get());
-                NS_ASSERTION(backupOk, "move backup failed");
-            }
-        }
-    }
     if (!copyOK)  
         rv = ConvertWinError(GetLastError());
 
