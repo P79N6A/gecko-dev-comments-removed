@@ -4669,6 +4669,14 @@ nsRuleNode::ComputeSVGResetData(nsStyleStruct* aStartStruct,
   }
 
   
+  if (eCSSUnit_Initial == SVGData.mLightingColor.GetUnit()) {
+    svgReset->mLightingColor = NS_RGB(255, 255, 255);
+  } else {
+    SetColor(SVGData.mLightingColor, parentSVGReset->mLightingColor,
+             mPresContext, aContext, svgReset->mLightingColor, inherited);
+  }
+
+  
   if (eCSSUnit_URL == SVGData.mClipPath.GetUnit()) {
     svgReset->mClipPath = SVGData.mClipPath.GetURLValue();
   } else if (eCSSUnit_None == SVGData.mClipPath.GetUnit() ||

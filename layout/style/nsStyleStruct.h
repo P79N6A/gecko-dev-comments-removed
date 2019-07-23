@@ -1308,6 +1308,7 @@ struct nsStyleSVGReset : public nsStyleStruct {
 
   nscolor          mStopColor;        
   nscolor          mFloodColor;       
+  nscolor          mLightingColor;    
   nsCOMPtr<nsIURI> mClipPath;         
   nsCOMPtr<nsIURI> mFilter;           
   nsCOMPtr<nsIURI> mMask;             

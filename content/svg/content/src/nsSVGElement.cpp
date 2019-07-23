@@ -488,6 +488,13 @@ nsSVGElement::sFEFloodMap[] = {
 };
 
 
+ const nsGenericElement::MappedAttributeEntry
+nsSVGElement::sLightingEffectsMap[] = {
+  { &nsGkAtoms::lighting_color },
+  { nsnull }
+};
+
+
 
 
 NS_IMETHODIMP
