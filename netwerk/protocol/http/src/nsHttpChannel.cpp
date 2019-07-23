@@ -390,6 +390,9 @@ nsHttpChannel::DoNotifyListener()
         mListener = 0;
         mListenerContext = 0;
     }
+    
+    mCallbacks = nsnull;
+    mProgressSink = nsnull;
 }
 
 void
@@ -2419,6 +2422,9 @@ nsHttpChannel::ProcessRedirection(PRUint32 redirectType)
     
     mListener = 0;
     mListenerContext = 0;
+    
+    mCallbacks = nsnull;
+    mProgressSink = nsnull;
     return NS_OK;
 }
 
