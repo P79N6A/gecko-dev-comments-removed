@@ -5751,30 +5751,7 @@ js_Interpret(JSContext *cx)
                                              ? JS_EXTENSION (JSPropertyOp) obj
                                              : JS_PropertyStub,
                                              attrs,
-                                             &prop);
-
-                    
-
-
-
-
-
-                    if (ok && index < script->nfixed) {
-                        JS_ASSERT(OBJ_IS_NATIVE(obj));
-                        sprop = (JSScopeProperty *) prop;
-                        if (SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(obj)) &&
-                            SPROP_HAS_STUB_GETTER(sprop) &&
-                            SPROP_HAS_STUB_SETTER(sprop)) {
-                            
-
-
-
-
-
-
-                            fp->slots[index] = INT_TO_JSVAL(sprop->slot);
-                        }
-                    }
+                                             NULL);
                 }
             }
 
