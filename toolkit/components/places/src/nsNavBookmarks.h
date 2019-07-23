@@ -66,7 +66,7 @@ public:
   
 
 
-  static nsNavBookmarks* GetSingleton();
+  static nsNavBookmarks *GetSingleton();
 
   
 
@@ -76,7 +76,7 @@ public:
   
   static nsresult InitTables(mozIStorageConnection* aDBConn);
 
-  static nsNavBookmarks* GetBookmarksService() {
+  static nsNavBookmarks * GetBookmarksService() {
     if (!gBookmarksService) {
       nsCOMPtr<nsINavBookmarksService> serv =
         do_GetService(NS_NAVBOOKMARKSSERVICE_CONTRACTID);
@@ -89,16 +89,15 @@ public:
 
   nsresult AddBookmarkToHash(PRInt64 aBookmarkId, PRTime aMinTime);
 
-  nsresult ResultNodeForContainer(PRInt64 aID,
-                                  nsNavHistoryQueryOptions* aOptions,
-                                  nsNavHistoryResultNode** aNode);
+  nsresult ResultNodeForContainer(PRInt64 aID, nsNavHistoryQueryOptions *aOptions,
+                                  nsNavHistoryResultNode **aNode);
 
   
   
   
   nsresult QueryFolderChildren(PRInt64 aFolderId,
-                               nsNavHistoryQueryOptions* aOptions,
-                               nsCOMArray<nsNavHistoryResultNode>* children);
+                               nsNavHistoryQueryOptions *aOptions,
+                               nsCOMArray<nsNavHistoryResultNode> *children);
 
   
   
@@ -130,7 +129,7 @@ public:
   nsresult FinalizeStatements();
 
 private:
-  static nsNavBookmarks* gBookmarksService;
+  static nsNavBookmarks *gBookmarksService;
 
   ~nsNavBookmarks();
 
@@ -138,17 +137,14 @@ private:
   nsresult InitDefaults();
   nsresult InitStatements();
   nsresult CreateRoot(mozIStorageStatement* aGetRootStatement,
-                      const nsCString& name,
-                      PRInt64* aID,
-                      PRInt64 aParentID,
-                      PRBool* aWasCreated);
+                      const nsCString& name, PRInt64* aID,
+                      PRInt64 aParentID, PRBool* aWasCreated);
 
   nsresult AdjustIndices(PRInt64 aFolder,
-                         PRInt32 aStartIndex,
-                         PRInt32 aEndIndex,
+                         PRInt32 aStartIndex, PRInt32 aEndIndex,
                          PRInt32 aDelta);
 
-  nsresult RemoveFolder(PRInt64 aFolderId);
+  NS_HIDDEN_(nsresult) RemoveFolder(PRInt64 aFolderId);
 
   
 
@@ -159,9 +155,9 @@ private:
 
 
 
-  nsresult FolderCount(PRInt64 aFolderId, PRInt32* aFolderCount);
+  nsresult FolderCount(PRInt64 aFolderId, PRInt32 *aFolderCount);
 
-  nsresult GetFolderType(PRInt64 aFolder, nsACString& aType);
+  nsresult GetFolderType(PRInt64 aFolder, nsACString &aType);
 
   nsresult GetLastChildId(PRInt64 aFolder, PRInt64* aItemId);
 
@@ -193,20 +189,16 @@ private:
   nsDataHashtable<nsTrimInt64HashKey, PRInt64> mBookmarksHash;
   nsDataHashtable<nsTrimInt64HashKey, PRInt64>* GetBookmarksHash();
   nsresult FillBookmarksHash();
-  nsresult RecursiveAddBookmarkHash(PRInt64 aBookmarkId,
-                                    PRInt64 aCurrentSource,
+  nsresult RecursiveAddBookmarkHash(PRInt64 aBookmarkId, PRInt64 aCurrentSource,
                                     PRTime aMinTime);
   nsresult UpdateBookmarkHashOnRemove(PRInt64 aPlaceId);
 
-  nsresult GetParentAndIndexOfFolder(PRInt64 aFolder,
-                                     PRInt64* aParent,
+  nsresult GetParentAndIndexOfFolder(PRInt64 aFolder, PRInt64* aParent, 
                                      PRInt32* aIndex);
 
   nsresult IsBookmarkedInDatabase(PRInt64 aBookmarkID, PRBool* aIsBookmarked);
 
-  nsresult SetItemDateInternal(mozIStorageStatement* aStatement,
-                               PRInt64 aItemId,
-                               PRTime aValue);
+  nsresult SetItemDateInternal(mozIStorageStatement* aStatement, PRInt64 aItemId, PRTime aValue);
 
   
   struct folderChildrenInfo
@@ -268,19 +260,19 @@ private:
                               enum ItemType aItemType,
                               PRInt64 aParentId,
                               PRInt32 aIndex,
-                              const nsACString& aTitle,
+                              const nsACString &aTitle,
                               PRTime aDateAdded,
                               PRTime aLastModified,
-                              const nsAString& aServiceContractId,
-                              PRInt64* _retval);
+                              const nsAString &aServiceContractId,
+                              PRInt64 *_retval);
 
   
 
 
 
 
-  nsresult GetBookmarkIdsForURITArray(nsIURI* aURI,
-                                      nsTArray<PRInt64>& aResult);
+  nsresult GetBookmarkIdsForURITArray(nsIURI *aURI,
+                                      nsTArray<PRInt64> &aResult);
 
   
   nsCOMPtr<mozIStorageStatement> mDBGetChildren;
@@ -341,18 +333,6 @@ private:
   nsCOMPtr<mozIStorageStatement> mDBGetKeywordForBookmark;
   nsCOMPtr<mozIStorageStatement> mDBGetURIForKeyword;
 
-  
-
-
-
-  mozIStorageStatement* GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt);
-  nsCOMPtr<mozIStorageStatement> mDBAdjustPosition;
-  nsCOMPtr<mozIStorageStatement> mDBRemoveItem;
-  nsCOMPtr<mozIStorageStatement> mDBGetLastChildId;
-  nsCOMPtr<mozIStorageStatement> mDBMoveItem;
-  nsCOMPtr<mozIStorageStatement> mDBSetItemTitle;
-  nsCOMPtr<mozIStorageStatement> mDBChangeBookmarkURI;
-
   class RemoveFolderTransaction : public nsITransaction {
   public:
     RemoveFolderTransaction(PRInt64 aID) : mID(aID) {}
@@ -409,21 +389,19 @@ private:
   
   bool mCanNotify;
   nsCategoryCache<nsINavBookmarkObserver> mCacheObservers;
-
-  bool mShuttingDown;
 };
 
 struct nsBookmarksUpdateBatcher
 {
   nsBookmarksUpdateBatcher()
   {
-    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
     if (bookmarks)
       bookmarks->BeginUpdateBatch();
   }
   ~nsBookmarksUpdateBatcher()
   {
-    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
     if (bookmarks)
       bookmarks->EndUpdateBatch();
   }
