@@ -214,8 +214,10 @@ moz_gtk_widget_paint(GtkThemeWidgetType widget, GdkDrawable* drawable,
 
 
 
-gint moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* xthickness,
-                               gint* ythickness);
+
+
+gint moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* left, gint* top, 
+                               gint* right, gint* bottom, gboolean inhtml);
 
 
 
