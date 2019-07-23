@@ -954,12 +954,7 @@ LoginManagerStorage_mozStorage.prototype = {
         
         if (!this._dbStmts[query]) {
             this.log("Creating new statement for query: " + query);
-            let stmt = this._dbConnection.createStatement(query);
-
-            let wrappedStmt = Cc["@mozilla.org/storage/statement-wrapper;1"].
-                              createInstance(Ci.mozIStorageStatementWrapper);
-            wrappedStmt.initialize(stmt);
-            this._dbStmts[query] = wrappedStmt;
+            this._dbStmts[query] = this._dbConnection.createStatement(query);
         }
         
         if (params)
@@ -1082,7 +1077,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
         
         for (let i = 0; i < this._dbStmts.length; i++)
-            this._dbStmts[i].statement.finalize();
+            this._dbStmts[i].finalize();
         this._dbStmts = [];
 
         
