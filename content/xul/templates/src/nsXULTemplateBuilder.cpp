@@ -1147,10 +1147,8 @@ nsXULTemplateBuilder::ContentRemoved(nsIDocument* aDocument,
         
         
         nsXULElement *xulcontent = nsXULElement::FromContent(mRoot);
-        if (xulcontent) {
-            xulcontent->ClearLazyState(nsXULElement::eTemplateContentsBuilt);
-            xulcontent->ClearLazyState(nsXULElement::eContainerContentsBuilt);
-        }
+        if (xulcontent)
+            xulcontent->ClearTemplateGenerated();
 
         mDB = nsnull;
         mCompDB = nsnull;

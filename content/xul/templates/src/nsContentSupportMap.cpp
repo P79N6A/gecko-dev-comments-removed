@@ -62,19 +62,7 @@ nsContentSupportMap::Remove(nsIContent* aElement)
 
     PL_DHashTableOperate(&mMap, aElement, PL_DHASH_REMOVE);
 
-    PRUint32 count;
-
-    
-    
-    
-    nsXULElement *xulcontent = nsXULElement::FromContent(aElement);
-    if (xulcontent) {
-        count = xulcontent->PeekChildCount();
-    }
-    else {
-        count = aElement->GetChildCount();
-    }
-
+    PRUint32 count = aElement->GetChildCount();
     for (PRUint32 i = 0; i < count; ++i) {
         Remove(aElement->GetChildAt(i));
     }

@@ -100,31 +100,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsXULContentBuilder : public nsXULTemplateBuilder
 {
 public:
@@ -163,7 +138,6 @@ protected:
     CloseContainer(nsIContent* aElement);
 
     
-
 
 
 
@@ -238,46 +212,11 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     nsresult
     CreateTemplateAndContainerContents(nsIContent* aElement,
-                                       PRBool aForceCreation,
-                                       nsIContent** aContainer,
-                                       PRInt32* aNewIndexInContainer);
+                                       PRBool aForceCreation);
 
     
-
-
-
 
 
 
@@ -292,8 +231,7 @@ protected:
                             nsIXULTemplateResult* aResult,
                             PRBool aForceCreation,
                             PRBool aNotify,
-                            nsIContent** aContainer,
-                            PRInt32* aNewIndexInContainer);
+                            PRBool aNotifyAtEnd);
 
     
 
@@ -322,22 +260,6 @@ protected:
 
 
 
-    nsresult
-    CreateTemplateContents(nsIContent* aElement,
-                           nsIContent* aTemplateElement,
-                           nsIContent** aContainer,
-                           PRInt32* aNewIndexInContainer);
-
-    
-
-
-
-
-
-
-
-
-
 
     nsresult
     EnsureElementHasGenericChild(nsIContent* aParent,
@@ -351,9 +273,6 @@ protected:
 
     nsresult
     RemoveGeneratedContent(nsIContent* aElement);
-
-    PRBool
-    IsLazyWidgetItem(nsIContent* aElement);
 
     nsresult
     GetElementsForResult(nsIXULTemplateResult* aResult,
@@ -676,14 +595,6 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 
                 
                 
-                nsXULElement *xulcontent = nsXULElement::FromContent(realKid);
-                if (xulcontent) {
-                    xulcontent->SetLazyState(nsXULElement::eTemplateContentsBuilt);
-                }
-
-                
-                
-                
                 if (aContainer && !*aContainer) {
                     *aContainer = aRealNode;
                     NS_ADDREF(*aContainer);
@@ -825,46 +736,24 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
 
             
             
-            nsXULElement *xulcontent = nsXULElement::FromContent(realKid);
-            if (xulcontent && mRoot->IsNodeOfType(nsINode::eXUL)) {
-                PRUint32 count2 = tmplKid->GetChildCount();
-
-                if (count2 == 0 && !isGenerationElement) {
-                    
-                    
-                    
-                    
-                    
-                    xulcontent->SetLazyState(nsXULElement::eTemplateContentsBuilt);
-                    xulcontent->SetLazyState(nsXULElement::eContainerContentsBuilt);
-                }
-                else if (!aIsSelfReference) {
-                    
-                    
-                    
-                    xulcontent->SetLazyState(nsXULElement::eChildrenMustBeRebuilt);
-                }
-            }
-            else {
+            
+            if (!aIsSelfReference && !isUnique) {
                 
                 
                 
                 
                 
-                
-                
-                
-                rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, isUnique,
-                                              aIsSelfReference, aChild, PR_FALSE, aMatch,
+                rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_FALSE,
+                                              PR_FALSE, aChild, PR_FALSE, aMatch,
                                               nsnull ,
                                               nsnull );
-
                 if (NS_FAILED(rv)) return rv;
 
-                if (isGenerationElement) {
-                    rv = CreateContainerContents(realKid, aChild, PR_FALSE, PR_FALSE,
-                                                 nsnull ,
-                                                 nsnull );
+                if (isGenerationElement && !(mFlags & eDontRecurse)) {
+                    
+                    
+                    rv = CreateContainerContents(realKid, aChild, PR_FALSE,
+                                                 PR_FALSE, PR_FALSE);
                     if (NS_FAILED(rv)) return rv;
                 }
             }
@@ -1034,49 +923,35 @@ nsXULContentBuilder::SynchronizeUsingTemplate(nsIContent* aTemplateNode,
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    PRBool contentsGenerated = PR_TRUE;
-    nsXULElement *xulcontent = nsXULElement::FromContent(aRealElement);
-    if (xulcontent) {
-        contentsGenerated = xulcontent->GetLazyState(nsXULElement::eTemplateContentsBuilt);
-    }
-    else {
+    PRUint32 count = aTemplateNode->GetChildCount();
+
+    for (PRUint32 loop = 0; loop < count; ++loop) {
+        nsIContent *tmplKid = aTemplateNode->GetChildAt(loop);
+
+        if (! tmplKid)
+            break;
+
+        nsIContent *realKid = aRealElement->GetChildAt(loop);
+        if (! realKid)
+            break;
+
         
-    }
-
-    if (contentsGenerated) {
-        PRUint32 count = aTemplateNode->GetChildCount();
-
-        for (PRUint32 loop = 0; loop < count; ++loop) {
-            nsIContent *tmplKid = aTemplateNode->GetChildAt(loop);
-
-            if (! tmplKid)
-                break;
-
-            nsIContent *realKid = aRealElement->GetChildAt(loop);
-
-            if (! realKid)
-                break;
-
-            
-            
-            if (tmplKid->NodeInfo()->Equals(nsGkAtoms::textnode,
-                                            kNameSpaceID_XUL)) {
-                PRUnichar attrbuf[128];
-                nsFixedString attrValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
-                tmplKid->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
-                if (!attrValue.IsEmpty()) {
-                    nsAutoString value;
-                    rv = SubstituteText(aResult, attrValue, value);
-                    if (NS_FAILED(rv)) return rv;
-                    realKid->SetText(value, PR_TRUE);
-                }
+        
+        if (tmplKid->NodeInfo()->Equals(nsGkAtoms::textnode,
+                                        kNameSpaceID_XUL)) {
+            PRUnichar attrbuf[128];
+            nsFixedString attrValue(attrbuf, NS_ARRAY_LENGTH(attrbuf), 0);
+            tmplKid->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
+            if (!attrValue.IsEmpty()) {
+                nsAutoString value;
+                rv = SubstituteText(aResult, attrValue, value);
+                if (NS_FAILED(rv)) return rv;
+                realKid->SetText(value, PR_TRUE);
             }
-
-            rv = SynchronizeUsingTemplate(tmplKid, realKid, aResult);
-            if (NS_FAILED(rv)) return rv;
         }
+
+        rv = SynchronizeUsingTemplate(tmplKid, realKid, aResult);
+        if (NS_FAILED(rv)) return rv;
     }
 
     return NS_OK;
@@ -1110,9 +985,7 @@ nsXULContentBuilder::RemoveMember(nsIContent* aContent)
 
 nsresult
 nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
-                                                        PRBool aForceCreation,
-                                                        nsIContent** aContainer,
-                                                        PRInt32* aNewIndexInContainer)
+                                                        PRBool aForceCreation)
 {
     
     
@@ -1124,21 +997,6 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
 
     if (! mQueryProcessor)
         return NS_OK;
-
-    
-    
-    if (aContainer) {
-        *aContainer = nsnull;
-        *aNewIndexInContainer = -1;
-    }
-
-    
-    
-    nsCOMPtr<nsIContent> tmpl;
-    mTemplateMap.GetTemplateFor(aElement, getter_AddRefs(tmpl));
-
-    if (tmpl)
-        CreateTemplateContents(aElement, tmpl, aContainer, aNewIndexInContainer);
 
     
     if (aElement == mRoot) {
@@ -1156,7 +1014,7 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
 
         if (mRootResult) {
             CreateContainerContents(aElement, mRootResult, aForceCreation,
-                                    PR_FALSE, aContainer, aNewIndexInContainer);
+                                    PR_FALSE, PR_TRUE);
         }
     }
     else if (!(mFlags & eDontRecurse)) {
@@ -1172,7 +1030,7 @@ nsXULContentBuilder::CreateTemplateAndContainerContents(nsIContent* aElement,
                 return rv;
 
             CreateContainerContents(aElement, match->mResult, aForceCreation,
-                                    PR_FALSE, aContainer, aNewIndexInContainer);
+                                    PR_FALSE, PR_TRUE);
         }
     }
 
@@ -1187,9 +1045,11 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
                                              nsIXULTemplateResult* aResult,
                                              PRBool aForceCreation,
                                              PRBool aNotify,
-                                             nsIContent** aContainer,
-                                             PRInt32* aNewIndexInContainer)
+                                             PRBool aNotifyAtEnd)
 {
+    if (!aForceCreation && !IsOpen(aElement))
+        return NS_OK;
+
     nsCOMPtr<nsIRDFResource> refResource;
     GetResultResource(aResult, getter_AddRefs(refResource));
     if (! refResource)
@@ -1202,12 +1062,8 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
     ActivationEntry entry(refResource, &mTop);
 
     
-    
-    nsresult rv;
-
-    
     if (! mQueriesCompiled) {
-        rv = CompileQueries();
+        nsresult rv = CompileQueries();
         if (NS_FAILED(rv))
             return rv;
     }
@@ -1215,40 +1071,21 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
     if (mQuerySets.Length() == 0)
         return NS_OK;
 
-    if (aContainer) {
-        
-        
-        NS_IF_RELEASE(*aContainer);
-        *aNewIndexInContainer = -1;
-    }
-
-    
-    
-    
-    if (!aForceCreation && IsLazyWidgetItem(aElement) && !IsOpen(aElement))
-        return NS_OK;
-
     
     
     
     nsXULElement *xulcontent = nsXULElement::FromContent(aElement);
     if (xulcontent) {
-        if (xulcontent->GetLazyState(nsXULElement::eContainerContentsBuilt))
+        if (xulcontent->GetTemplateGenerated())
             return NS_OK;
 
         
         
-        xulcontent->SetLazyState(nsXULElement::eContainerContentsBuilt);
+        xulcontent->SetTemplateGenerated();
     }
-    else {
-        
-        
-        
-        
-        
-        
-        
-    }
+
+    PRInt32 newIndexInContainer = -1;
+    nsIContent* container = nsnull;
 
     PRInt32 querySetCount = mQuerySets.Length();
 
@@ -1259,12 +1096,17 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
         if (tag && tag != aElement->Tag())
             continue;
 
-        
-        
-        
         CreateContainerContentsForQuerySet(aElement, aResult, aNotify, queryset,
-                                           aContainer, aNewIndexInContainer);
+                                           &container, &newIndexInContainer);
     }
+
+    if (aNotifyAtEnd && container) {
+        MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
+                            PR_TRUE);
+        nsNodeUtils::ContentAppended(container, newIndexInContainer);
+    }
+
+    NS_IF_RELEASE(container);
 
     return NS_OK;
 }
@@ -1422,48 +1264,6 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
 }
 
 nsresult
-nsXULContentBuilder::CreateTemplateContents(nsIContent* aElement,
-                                            nsIContent* aTemplateElement,
-                                            nsIContent** aContainer,
-                                            PRInt32* aNewIndexInContainer)
-{
-    
-    
-    
-    
-    nsXULElement *xulcontent = nsXULElement::FromContent(aElement);
-    if (! xulcontent)
-        return NS_OK; 
-
-    if (xulcontent->GetLazyState(nsXULElement::eTemplateContentsBuilt))
-        return NS_OK;
-
-    
-    
-    xulcontent->SetLazyState(nsXULElement::eTemplateContentsBuilt);
-
-    
-    
-
-    nsTemplateMatch* match = nsnull;
-    nsCOMPtr<nsIContent> element;
-    for (element = aElement;
-         element && element != mRoot;
-         element = element->GetParent()) {
-
-        if (mContentSupportMap.Get(element, &match))
-            break;
-    }
-
-    if (!match)
-        return NS_ERROR_FAILURE;
-
-    return BuildContentFromTemplate(aTemplateElement, aElement, aElement,
-                                    PR_FALSE, PR_FALSE, match->mResult, PR_FALSE,
-                                    match, aContainer, aNewIndexInContainer);
-}
-
-nsresult
 nsXULContentBuilder::EnsureElementHasGenericChild(nsIContent* parent,
                                                   PRInt32 nameSpaceID,
                                                   nsIAtom* tag,
@@ -1502,20 +1302,20 @@ PRBool
 nsXULContentBuilder::IsOpen(nsIContent* aElement)
 {
     
+    if (!aElement->IsNodeOfType(nsINode::eXUL))
+        return PR_TRUE;
 
+    
     nsIAtom *tag = aElement->Tag();
-
-    
-    
-    if ((aElement == mRoot) && aElement->IsNodeOfType(nsINode::eXUL) &&
-        (tag != nsGkAtoms::menu) &&
-        (tag != nsGkAtoms::menubutton) &&
-        (tag != nsGkAtoms::toolbarbutton) &&
-        (tag != nsGkAtoms::button))
-      return PR_TRUE;
-
-    return aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
-                                 nsGkAtoms::_true, eCaseMatters);
+    if (tag == nsGkAtoms::menu ||
+        tag == nsGkAtoms::menulist ||
+        tag == nsGkAtoms::menubutton ||
+        tag == nsGkAtoms::toolbarbutton ||
+        tag == nsGkAtoms::button ||
+        tag == nsGkAtoms::treeitem)
+        return aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
+                                     nsGkAtoms::_true, eCaseMatters);
+    return PR_TRUE;
 }
 
 nsresult
@@ -1574,27 +1374,6 @@ nsXULContentBuilder::RemoveGeneratedContent(nsIContent* aElement)
     }
 
     return NS_OK;
-}
-
-PRBool
-nsXULContentBuilder::IsLazyWidgetItem(nsIContent* aElement)
-{
-    
-
-    if (!aElement->IsNodeOfType(nsINode::eXUL)) {
-        return PR_FALSE;
-    }
-
-    
-
-    nsIAtom *tag = aElement->Tag();
-
-    return (tag == nsGkAtoms::menu ||
-            tag == nsGkAtoms::menulist ||
-            tag == nsGkAtoms::menubutton ||
-            tag == nsGkAtoms::toolbarbutton ||
-            tag == nsGkAtoms::button ||
-            tag == nsGkAtoms::treeitem);
 }
 
 nsresult
@@ -1691,20 +1470,12 @@ nsXULContentBuilder::CreateContents(nsIContent* aElement, PRBool aForceCreation)
     if (! aElement)
         return NS_ERROR_NULL_POINTER;
 
-    nsCOMPtr<nsIContent> container;
-    PRInt32 newIndex;
-    nsresult rv = CreateTemplateAndContainerContents(aElement, aForceCreation,
-                                                     getter_AddRefs(container), &newIndex);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     
-    if (aForceCreation && container) {
-        MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
-                            PR_TRUE);
-        nsNodeUtils::ContentAppended(container, newIndex);
-    }
+    
+    if (!aForceCreation && !IsOpen(aElement))
+        return NS_OK;
 
-    return NS_OK;
+    return CreateTemplateAndContainerContents(aElement, aForceCreation);
 }
 
 NS_IMETHODIMP
@@ -1873,10 +1644,7 @@ nsXULContentBuilder::GetInsertionLocations(nsIXULTemplateResult* aResult,
             
             
             nsXULElement *xulcontent = nsXULElement::FromContent(content);
-            if (!xulcontent ||
-                xulcontent->GetLazyState(nsXULElement::eContainerContentsBuilt)) {
-                
-                
+            if (!xulcontent || xulcontent->GetTemplateGenerated()) {
                 found = PR_TRUE;
                 continue;
             }
@@ -1990,15 +1758,7 @@ nsXULContentBuilder::SynchronizeResult(nsIXULTemplateResult* aResult)
 nsresult
 nsXULContentBuilder::OpenContainer(nsIContent* aElement)
 {
-    
-    
-    nsCOMPtr<nsIXULTemplateResult> result;
-    if (aElement == mRoot) {
-        result = mRootResult;
-        if (!result)
-            return NS_OK;
-    }
-    else {
+    if (aElement != mRoot) {
         if (mFlags & eDontRecurse)
             return NS_OK;
 
@@ -2024,37 +1784,9 @@ nsXULContentBuilder::OpenContainer(nsIContent* aElement)
 
         if (! rightBuilder)
             return NS_OK;
-
-        nsTemplateMatch* match;
-        if (mContentSupportMap.Get(aElement, &match))
-            result = match->mResult;
-
-        if (!result)
-            return NS_OK;
-
-        
-        PRBool mayProcessChildren;
-        nsresult rv = result->GetMayProcessChildren(&mayProcessChildren);
-        if (NS_FAILED(rv) || !mayProcessChildren)
-            return rv;
     }
 
-    
-    
-    
-    
-    nsCOMPtr<nsIContent> container;
-    PRInt32 newIndex;
-    CreateContainerContents(aElement, result, PR_FALSE,
-                            PR_FALSE, getter_AddRefs(container), &newIndex);
-
-    if (container && IsLazyWidgetItem(aElement)) {
-        
-        
-        MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
-                            PR_TRUE);
-        nsNodeUtils::ContentAppended(container, newIndex);
-    }
+    CreateTemplateAndContainerContents(aElement, PR_FALSE);
 
     return NS_OK;
 }
@@ -2070,35 +1802,13 @@ nsXULContentBuilder::RebuildAll()
 {
     NS_ENSURE_TRUE(mRoot, NS_ERROR_NOT_INITIALIZED);
 
-    nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
-
     
+    nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
     if (!doc)
         return NS_OK;
 
-    
-    
-    
-    
-    nsXULElement *xulcontent = nsXULElement::FromContent(mRoot);
-
-
-
-
-
-
-
-
-
-
-
     if (mQueriesCompiled)
         Uninit(PR_FALSE);
-
-    
-    
-    if (xulcontent)
-        xulcontent->ClearLazyState(nsXULElement::eChildrenMustBeRebuilt);
 
     nsresult rv = CompileQueries();
     if (NS_FAILED(rv))
@@ -2107,25 +1817,13 @@ nsXULContentBuilder::RebuildAll()
     if (mQuerySets.Length() == 0)
         return NS_OK;
 
-    
-    
-    if (xulcontent) {
-        xulcontent->SetLazyState(nsXULElement::eChildrenMustBeRebuilt);
-        xulcontent->ClearLazyState(nsXULElement::eTemplateContentsBuilt);
-        xulcontent->ClearLazyState(nsXULElement::eContainerContentsBuilt);
-    }
+    nsXULElement *xulcontent = nsXULElement::FromContent(mRoot);
+    if (xulcontent)
+        xulcontent->ClearTemplateGenerated();
 
     
     
-    nsCOMPtr<nsIContent> container;
-    PRInt32 newIndex;
-    CreateTemplateAndContainerContents(mRoot, PR_FALSE, getter_AddRefs(container), &newIndex);
-
-    if (container) {
-        MOZ_AUTO_DOC_UPDATE(container->GetCurrentDoc(), UPDATE_CONTENT_MODEL,
-                            PR_TRUE);
-        nsNodeUtils::ContentAppended(container, newIndex);
-    }
+    CreateTemplateAndContainerContents(mRoot, PR_FALSE);
 
     return NS_OK;
 }
