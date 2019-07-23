@@ -1708,8 +1708,7 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
         
         
         
-        nsAccReorderEvent* reorderEvent = nsnull;
-        CallQueryInterface(accessibleEvent, &reorderEvent);
+        nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(accessibleEvent);
         if (reorderEvent->IsUnconditionalEvent() ||
             reorderEvent->HasAccessibleInReasonSubtree()) {
           nsAccEvent::PrepareForEvent(accessibleEvent);
