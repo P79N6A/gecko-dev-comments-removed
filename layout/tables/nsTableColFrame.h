@@ -67,7 +67,8 @@ public:
 
 
 
-  friend nsIFrame* NS_NewTableColFrame(nsIPresShell* aPresShell, nsStyleContext*  aContext);
+  friend nsTableColFrame* NS_NewTableColFrame(nsIPresShell* aPresShell,
+                                              nsStyleContext*  aContext);
 
   PRInt32 GetColIndex() const;
   
@@ -103,7 +104,7 @@ public:
 #endif
 
   
-  virtual PRInt32 GetSpan ();
+  PRInt32 GetSpan();
 
   
   nsVoidArray * GetCells();
