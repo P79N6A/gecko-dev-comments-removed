@@ -6651,7 +6651,7 @@ TraceRecorder::getThis(LIns*& this_ins)
         JS_ASSERT(callDepth == 0);
         JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
         if (!thisObj)
-            ABORT_TRACE_ERROR("error in js_ComputeThis");
+            ABORT_TRACE_ERROR("error in js_ComputeThisForFrame");
         this_ins = INS_CONSTPTR(thisObj);
 
         
@@ -6660,6 +6660,8 @@ TraceRecorder::getThis(LIns*& this_ins)
         return JSRS_CONTINUE;
     }
 
+    jsval& thisv = cx->fp->argv[-1];
+
     
 
 
@@ -6667,18 +6669,18 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
-    if (JSVAL_IS_NULL(cx->fp->argv[-1])) {
+    if (JSVAL_IS_NULL(thisv)) {
         JSObject* thisObj = js_ComputeThisForFrame(cx, cx->fp);
         if (!thisObj)
-            ABORT_TRACE_ERROR("js_ComputeThis failed");
-        JS_ASSERT(!JSVAL_IS_PRIMITIVE(cx->fp->argv[-1]));
+            ABORT_TRACE_ERROR("js_ComputeThisForName failed");
+        JS_ASSERT(!JSVAL_IS_PRIMITIVE(thisv));
         if (thisObj != globalObj)
             ABORT_TRACE("global object was wrapped while recording");
         this_ins = INS_CONSTPTR(thisObj);
-        set(&cx->fp->argv[-1], this_ins);
+        set(&thisv, this_ins);
         return JSRS_CONTINUE;
     }
-    this_ins = get(&cx->fp->argv[-1]);
+    this_ins = get(&thisv);
 
     
 
@@ -6686,12 +6688,11 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
-    if (callDepth == 0) {
-        LIns* map_ins = lir->insLoad(LIR_ldp, this_ins, (int)offsetof(JSObject, map));
-        LIns* ops_ins = lir->insLoad(LIR_ldp, map_ins, (int)offsetof(JSObjectMap, ops));
-        LIns* op_ins = lir->insLoad(LIR_ldp, ops_ins, (int)offsetof(JSObjectOps, thisObject));
-        guard(true, lir->ins_eq0(op_ins), MISMATCH_EXIT);
-    }
+
+
+    if (guardClass(JSVAL_TO_OBJECT(thisv), this_ins, &js_WithClass, snapshot(MISMATCH_EXIT)))
+        ABORT_TRACE("can't trace getThis on With object");
+
     return JSRS_CONTINUE;
 }
 
@@ -7577,6 +7578,10 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
             return status;
     }
 
+    JSFastNative native = (JSFastNative)fun->u.n.native;
+    if (native == js_fun_apply || native == js_fun_call)
+        ABORT_TRACE("trying to call native apply or call");
+
     
     uintN vplen = 2 + JS_MAX(argc, FUN_MINARGS(fun)) + fun->u.n.extra;
     if (!(fun->flags & JSFUN_FAST_NATIVE))
@@ -7616,29 +7621,27 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
         this_ins = INS_CONSTWORD(OBJECT_TO_JSVAL(OBJ_GET_PARENT(cx, funobj)));
     } else {
         this_ins = get(&vp[1]);
-        if (mode == JSOP_APPLY) {
-            
-            
-            
-            
+        
+
+
+
+
+
+        if (!(fun->flags & JSFUN_FAST_NATIVE)) {
             if (JSVAL_IS_NULL(vp[1])) {
-                
-                
-                
-                if (!(fun->flags & JSFUN_FAST_NATIVE))
-                    ABORT_TRACE("slowNative.apply(null, args)");
-            } else if (!JSVAL_IS_PRIMITIVE(vp[1])) {
-                
-                if (JSVAL_TO_OBJECT(vp[1])->map->ops->thisObject)
-                    ABORT_TRACE("|this| argument with thisObject hook");
-                LIns* map_ins = lir->insLoad(LIR_ldp, this_ins, (int) offsetof(JSObject, map));
-                LIns* ops_ins = lir->insLoad(LIR_ldp, map_ins, (int) offsetof(JSObjectMap, ops));
-                LIns* hook_ins = lir->insLoad(LIR_ldp, ops_ins,
-                                              (int) offsetof(JSObjectOps, thisObject));
-                guard(true, lir->ins_eq0(hook_ins), MISMATCH_EXIT);
+                JSObject* thisObj = js_ComputeThis(cx, JS_FALSE, vp + 2);
+                if (!thisObj)
+                    ABORT_TRACE_ERROR("error in js_ComputeGlobalThis");
+                this_ins = INS_CONSTPTR(thisObj);
+            } else if (!JSVAL_IS_OBJECT(vp[1])) {
+                ABORT_TRACE("slow native(primitive, args)");
             } else {
-                if (!PRIMITIVE_THIS_TEST(fun, vp[1]))
-                    ABORT_TRACE("fun.apply(primitive, args)");
+                if (guardClass(JSVAL_TO_OBJECT(vp[1]), this_ins, &js_WithClass, snapshot(MISMATCH_EXIT)))
+                    ABORT_TRACE("can't trace slow native invocation on With object");
+
+                this_ins = lir->ins_choose(lir->ins_eq0(stobj_get_fslot(this_ins, JSSLOT_PARENT)),
+                                           INS_CONSTPTR(globalObj),
+                                           this_ins);
             }
         }
         box_jsval(vp[1], this_ins);
@@ -10376,6 +10379,8 @@ TraceRecorder::record_JSOP_GETTHISPROP()
 
     CHECK_STATUS(getThis(this_ins));
     
+
+
 
     CHECK_STATUS(getProp(cx->fp->thisp, this_ins));
     return JSRS_CONTINUE;
