@@ -40,12 +40,15 @@
 #define nsIMEStateManager_h__
 
 #include "nscore.h"
+#include "nsGUIEvent.h"
 
 class nsIContent;
 class nsPIDOMWindow;
 class nsPresContext;
 class nsIWidget;
 class nsIFocusController;
+class nsTextStateManager;
+class nsISelection;
 
 
 
@@ -62,6 +65,25 @@ public:
   static nsresult OnActivate(nsPresContext* aPresContext);
   static nsresult OnDeactivate(nsPresContext* aPresContext);
   static void OnInstalledMenuKeyboardListener(PRBool aInstalling);
+
+  
+  
+  
+
+  
+  
+  
+  
+  static nsresult OnTextStateBlur(nsPresContext* aPresContext,
+                                  nsIContent* aContent);
+  
+  
+  
+  static nsresult OnTextStateFocus(nsPresContext* aPresContext,
+                                   nsIContent* aContent);
+  
+  static nsresult GetFocusSelectionAndRoot(nsISelection** aSel,
+                                           nsIContent** aRoot);
 protected:
   static void SetIMEState(nsPresContext* aPresContext,
                           PRUint32 aState,
@@ -78,6 +100,8 @@ protected:
   static nsPresContext* sPresContext;
   static nsPIDOMWindow* sActiveWindow;
   static PRBool         sInstalledMenuKeyboardListener;
+
+  static nsTextStateManager* sTextStateObserver;
 };
 
 #endif 
