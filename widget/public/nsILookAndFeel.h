@@ -173,7 +173,11 @@ public:
     
     
     
-    eColor__moz_nativehyperlinktext,		
+    eColor__moz_nativehyperlinktext,
+
+    
+    eColor__moz_comboboxtext,
+    eColor__moz_combobox,
 
     
     eColor_LAST_COLOR
