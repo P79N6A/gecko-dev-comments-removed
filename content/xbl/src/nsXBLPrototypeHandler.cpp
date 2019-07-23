@@ -334,11 +334,9 @@ nsXBLPrototypeHandler::ExecuteHandler(nsPIDOMEventTarget* aTarget,
   
   nsCOMPtr<nsIDOMEventListener> eventListener;
   NS_NewJSEventListener(boundContext, scope,
-                        scriptTarget, getter_AddRefs(eventListener));
+                        scriptTarget, onEventAtom,
+                        getter_AddRefs(eventListener));
 
-  nsCOMPtr<nsIJSEventListener> jsListener(do_QueryInterface(eventListener));
-  jsListener->SetEventName(onEventAtom);
-  
   
   eventListener->HandleEvent(aEvent);
   return NS_OK;
