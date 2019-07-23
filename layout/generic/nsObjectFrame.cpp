@@ -3120,7 +3120,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
   mNumCachedParams = 0;
   nsCOMArray<nsIDOMElement> ourParams;
- 
+
   
   
   nsCOMPtr<nsIDOMElement> mydomElement = do_QueryInterface(mContent);
@@ -3131,7 +3131,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   
   nsCOMPtr<nsIPluginInstanceOwner> kungFuDeathGrip(this);
-  
+ 
   NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
 
   mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
@@ -3210,6 +3210,11 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   }
 
   
+  
+  nsAdoptingCString wmodeType = nsContentUtils::GetCharPref("plugins.force.wmode");
+  if (!wmodeType.IsEmpty())
+    mNumCachedAttrs++;
+  
   mCachedAttrParamNames  = (char **)PR_Calloc(sizeof(char *) * (mNumCachedAttrs + 1 + mNumCachedParams), 1);
   NS_ENSURE_TRUE(mCachedAttrParamNames,  NS_ERROR_OUT_OF_MEMORY);
   mCachedAttrParamValues = (char **)PR_Calloc(sizeof(char *) * (mNumCachedAttrs + 1 + mNumCachedParams), 1);
@@ -3236,6 +3241,11 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     start = 0;
     end = numRealAttrs;
     increment = 1;
+  }
+  if (!wmodeType.IsEmpty()) {
+    mCachedAttrParamNames [c] = ToNewUTF8String(NS_LITERAL_STRING("wmode"));
+    mCachedAttrParamValues[c] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
+    c++;
   }
   for (PRInt16 index = start; index != end; index += increment) {
     const nsAttrName* attrName = mContent->GetAttrNameAt(index);
