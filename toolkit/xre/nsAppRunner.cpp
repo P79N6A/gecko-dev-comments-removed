@@ -41,6 +41,10 @@
 
 
 
+#if defined(XP_OS2) && defined(MOZ_OS2_HIGH_MEMORY)
+
+#include <os2safe.h>
+#endif
 
 #define XPCOM_TRANSLATE_NSGM_ENTRY_POINT 1
 
@@ -148,10 +152,6 @@
 #include <shlobj.h>
 #include "nsThreadUtils.h"
 #endif
-
-#ifdef XP_OS2
-#include <process.h>
-#endif 
 
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
@@ -1422,6 +1422,92 @@ XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
 #include "nsWindowsRestart.cpp"
 #endif
 
+#if defined(XP_OS2) && (__GNUC__ == 3 && __GNUC_MINOR__ == 3) 
+
+
+
+char *createEnv()
+{
+  
+  
+  char *env = (char *)calloc(0x6000, sizeof(char));
+  if (!env) {
+    return NULL;
+  }
+
+  
+  
+  
+  char *penv = env; 
+  int i = 0, space = 0x6000;
+  while (environ[i] && environ[i][0]) {
+    int len = strlen(environ[i]);
+    if (space - len <= 0) {
+      break;
+    }
+    strcpy(penv, environ[i]);
+    i++; 
+    penv += len + 1; 
+    space -= len - 1; 
+  }
+
+  return env;
+}
+
+
+
+
+
+
+int OS2LaunchChild(const char *aExePath, int aArgc, char **aArgv)
+{
+  
+  int len = 0;
+  for (int i = 0; i < aArgc; i++) {
+    len += strlen(aArgv[i]) + 1; 
+  }
+  len++; 
+  
+  
+  char *args = (char *)calloc(len, sizeof(char));
+  if (!args) {
+    return -1;
+  }
+  char *pargs = args; 
+  
+  
+  for (int i = 0; i < aArgc; i++, *pargs++ = ' ') {
+    strcpy(pargs, aArgv[i]);
+    pargs += strlen(aArgv[i]);
+  }
+  if (aArgc > 1) {
+    *(pargs-1) = '\0'; 
+  }
+  *pargs = '\0';
+  
+  pargs = strchr(args, ' ');
+  if (pargs) {
+    *pargs = '\0';
+  }
+
+  char *env = createEnv();
+
+  char error[CCHMAXPATH] = { 0 };
+  RESULTCODES crc = { 0 };
+  ULONG rc = DosExecPgm(error, sizeof(error), EXEC_ASYNC, args, env,
+                        &crc, (PSZ)aExePath);
+  free(args); 
+  if (env) {
+    free(env);
+  }
+  if (rc != NO_ERROR) {
+    return -1;
+  }
+
+  return 0;
+}
+#endif
+
 
 
 
@@ -1456,6 +1542,10 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
 
 #if defined(XP_WIN)
   if (!WinLaunchChild(exePath.get(), gRestartArgc, gRestartArgv, needElevation))
+    return NS_ERROR_FAILURE;
+#elif defined(XP_OS2) && (__GNUC__ == 3 && __GNUC_MINOR__ == 3)
+  
+  if (OS2LaunchChild(exePath.get(), gRestartArgc, gRestartArgv) == -1)
     return NS_ERROR_FAILURE;
 #elif defined(XP_OS2)
   if (_execv(exePath.get(), gRestartArgv) == -1)
