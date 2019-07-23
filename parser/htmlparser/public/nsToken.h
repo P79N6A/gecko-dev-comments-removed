@@ -130,13 +130,14 @@ class CToken {
 
     static void operator delete (void*,size_t) {}
 
-  public:
+  protected:
     
 
 
 
     virtual ~CToken();
 
+  private:
     
 
 
@@ -147,18 +148,24 @@ class CToken {
       aArenaPool.Free(aToken, sz);
     }
 
+  public:
     
 
 
 
-    void AddRef() { ++mUseCount; }
+    void AddRef() {
+      ++mUseCount;
+      NS_LOG_ADDREF(this, mUseCount, "CToken", sizeof(*this));
+    }
     
     
 
 
 
     void Release(nsFixedSizeAllocator& aArenaPool) {
-      if(--mUseCount==0)
+      --mUseCount;
+      NS_LOG_RELEASE(this, mUseCount, "CToken");
+      if (mUseCount==0)
         Destroy(this, aArenaPool);
     }
 

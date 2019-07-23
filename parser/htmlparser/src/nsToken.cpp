@@ -56,11 +56,6 @@ int CToken::GetTokenCount() {
 
 
 CToken::CToken(PRInt32 aTag) {
-  
-  
-#ifdef MATCH_CTOR_DTOR 
-  MOZ_COUNT_CTOR(CToken);
-#endif 
   mAttrCount=0;
   mNewlineCount=0;
   mLineNumber = 0;
@@ -72,6 +67,7 @@ CToken::CToken(PRInt32 aTag) {
   
   
   mUseCount=1;
+  NS_LOG_ADDREF(this, 1, "CToken", sizeof(*this));
 
 #ifdef NS_DEBUG
   ++TokenCount;
@@ -84,12 +80,13 @@ CToken::CToken(PRInt32 aTag) {
 
 
 CToken::~CToken() {
-  
-  
-#ifdef MATCH_CTOR_DTOR 
-  MOZ_COUNT_DTOR(CToken);
-#endif
   ++DelTokenCount;
+#ifdef NS_BUILD_REFCNT_LOGGING
+  if (mUseCount == 1) {
+    
+    NS_LOG_RELEASE(this, 0, "CToken");
+  }
+#endif
   mUseCount=0;
 }
 
