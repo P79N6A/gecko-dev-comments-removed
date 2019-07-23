@@ -1291,15 +1291,15 @@ nsFrameConstructorState::~nsFrameConstructorState()
 }
 
 static nsIFrame*
-AdjustAbsoluteContainingBlock(nsPresContext* aPresContext,
-                              nsIFrame*       aContainingBlockIn)
+AdjustAbsoluteContainingBlock(nsIFrame* aContainingBlockIn)
 {
   if (!aContainingBlockIn) {
     return nsnull;
   }
   
   
-  return aContainingBlockIn->GetFirstInFlow();
+  
+  return aContainingBlockIn->GetFirstContinuation();
 }
 
 void
@@ -1311,8 +1311,7 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
   aSaveState.mChildListName = nsGkAtoms::absoluteList;
   aSaveState.mState = this;
   mAbsoluteItems = 
-    nsAbsoluteItems(AdjustAbsoluteContainingBlock(mPresContext,
-                                                  aNewAbsoluteContainingBlock));
+    nsAbsoluteItems(AdjustAbsoluteContainingBlock(aNewAbsoluteContainingBlock));
 }
 
 void
@@ -7992,9 +7991,9 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
   }
 
   
+  
   if (containingBlock)
-    return AdjustAbsoluteContainingBlock(mPresShell->GetPresContext(),
-                                         containingBlock);
+    return AdjustAbsoluteContainingBlock(containingBlock);
 
   
   
