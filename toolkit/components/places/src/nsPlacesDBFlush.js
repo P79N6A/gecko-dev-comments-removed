@@ -131,7 +131,7 @@ nsPlacesDBFlush.prototype = {
           
           
           pip.finalizeInternalStatements();
-          this._self._cachedStatements.forEach(function(stmt) stmt.finalize());
+          this._self._finalizeInternalStatements();
           this._self._db.close();
         }
       }, Ci.nsIThread.DISPATCH_NORMAL);
@@ -245,12 +245,23 @@ nsPlacesDBFlush.prototype = {
 
 
 
+  _finalizeInternalStatements: function DBFlush_finalizeInternalStatements()
+  {
+    for each (let stmt in this._cachedStatements)
+      if (stmt instanceof Ci.mozIStorageStatement)
+        stmt.finalize();
+  },
+
+  
 
 
 
 
 
-  _cachedStatements: [],
+
+
+
+  _cachedStatements: {},
   _getSyncTableStatement: function DBFlush_getSyncTableStatement(aTableName)
   {
     
