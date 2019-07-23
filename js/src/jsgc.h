@@ -58,7 +58,32 @@ JS_BEGIN_EXTERN_C
 
 #define JSTRACE_LIMIT       4
 
+
+
+
+
+#define GCX_OBJECT              JSTRACE_OBJECT      /* JSObject */
+#define GCX_DOUBLE              JSTRACE_DOUBLE      /* jsdouble */
+#define GCX_STRING              JSTRACE_STRING      /* JSString */
+#define GCX_XML                 JSTRACE_XML         /* JSXML */
+#define GCX_EXTERNAL_STRING     JSTRACE_LIMIT       /* JSString with external
+                                                       chars */
 const uintN JS_EXTERNAL_STRING_LIMIT = 8;
+
+
+
+
+
+#define GCX_NTYPES              (GCX_EXTERNAL_STRING + JS_EXTERNAL_STRING_LIMIT)
+#define GCX_LIMIT_LOG2         4           /* type index bits */
+#define GCX_LIMIT              JS_BIT(GCX_LIMIT_LOG2)
+
+
+#define GCF_TYPEMASK    JS_BITMASK(GCX_LIMIT_LOG2)
+#define GCF_MARK        JS_BIT(GCX_LIMIT_LOG2)
+#define GCF_FINAL       JS_BIT(GCX_LIMIT_LOG2 + 1)
+#define GCF_LOCKSHIFT   (GCX_LIMIT_LOG2 + 2)   /* lock bit shift */
+#define GCF_LOCK        JS_BIT(GCF_LOCKSHIFT)   /* lock request bit in API */
 
 
 
@@ -125,6 +150,19 @@ typedef struct JSPtrTable {
 
 extern JSBool
 js_RegisterCloseableIterator(JSContext *cx, JSObject *obj);
+
+
+
+
+struct JSGCThing {
+    JSGCThing   *next;
+    uint8       *flagp;
+};
+
+#define GC_NBYTES_MAX           (10 * sizeof(JSGCThing))
+#define GC_NUM_FREELISTS        (GC_NBYTES_MAX / sizeof(JSGCThing))
+#define GC_FREELIST_NBYTES(i)   (((i) + 1) * sizeof(JSGCThing))
+#define GC_FREELIST_INDEX(n)    (((n) / sizeof(JSGCThing)) - 1)
 
 
 
@@ -251,36 +289,6 @@ typedef enum JSGCInvocationKind {
 extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
-
-
-
-
-enum JSFinalizeGCThingKind {
-    FINALIZE_OBJECT,
-    FINALIZE_FUNCTION,
-#if JS_HAS_XML_SUPPORT
-    FINALIZE_XML,
-#endif
-    FINALIZE_STRING,
-    FINALIZE_EXTERNAL_STRING0,
-    FINALIZE_EXTERNAL_STRING1,
-    FINALIZE_EXTERNAL_STRING2,
-    FINALIZE_EXTERNAL_STRING3,
-    FINALIZE_EXTERNAL_STRING4,
-    FINALIZE_EXTERNAL_STRING5,
-    FINALIZE_EXTERNAL_STRING6,
-    FINALIZE_EXTERNAL_STRING7,
-    FINALIZE_EXTERNAL_STRING_LAST = FINALIZE_EXTERNAL_STRING7,
-    FINALIZE_LIMIT
-};
-
-static inline bool
-IsFinalizableStringKind(unsigned thingKind)
-{
-    return unsigned(FINALIZE_STRING) <= thingKind &&
-           thingKind <= unsigned(FINALIZE_EXTERNAL_STRING_LAST);
-}
-
 typedef struct JSGCArenaInfo JSGCArenaInfo;
 typedef struct JSGCArenaList JSGCArenaList;
 typedef struct JSGCChunkInfo JSGCChunkInfo;
@@ -289,7 +297,6 @@ struct JSGCArenaList {
     JSGCArenaInfo   *last;          
     uint32          lastCount;      
 
-    uint32          thingKind;      
     uint32          thingSize;      
 
     JSGCThing       *freeList;      
@@ -352,8 +359,15 @@ class JSFreePointerListTask : public JSBackgroundTask {
 };
 #endif
 
+
+
+
+
+
+
+
 extern void
-js_FinalizeStringRT(JSRuntime *rt, JSString *str);
+js_FinalizeStringRT(JSRuntime *rt, JSString *str, intN type, JSContext *cx);
 
 #ifdef DEBUG_notme
 #define JS_GCMETER 1
@@ -402,7 +416,7 @@ typedef struct JSGCStats {
     uint32  closelater; 
     uint32  maxcloselater; 
 
-    JSGCArenaStats  arenaStats[FINALIZE_LIST_LIMIT];
+    JSGCArenaStats  arenaStats[GC_NUM_FREELISTS];
     JSGCArenaStats  doubleArenaStats;
 } JSGCStats;
 
