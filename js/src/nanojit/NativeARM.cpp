@@ -474,6 +474,8 @@ Assembler::genPrologue()
     uint32_t stackNeeded = max_out_args + STACK_GRANULARITY * _activation.tos;
     uint32_t savingCount = 2;
 
+    uint32_t savingMask = rmask(FP) | rmask(LR);
+
     
     uint32_t stackPushed = STACK_GRANULARITY * savingCount;
     uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
@@ -488,7 +490,7 @@ Assembler::genPrologue()
     NIns *patchEntry = _nIns;
 
     MOV(FP, SP);
-    PUSH_mask((rmask(FP) | rmask(LR)));
+    PUSH_mask(savingMask);
     return patchEntry;
 }
 
@@ -517,7 +519,13 @@ Assembler::nFragExit(LInsp guard)
         
         JMP_far(_epilogue);
 
-        asm_ld_imm(R0, int(gr));
+        
+        
+        
+        
+        
+        
+        asm_ld_imm(R2, int(gr));
 
         
         
@@ -544,7 +552,13 @@ Assembler::genEpilogue()
     
     NanoAssert(AvmCore::config.arch >= 5);
 
-    POP_mask((rmask(FP) | rmask(PC))); 
+    RegisterMask savingMask = rmask(FP) | rmask(PC);
+
+    POP_mask(savingMask); 
+
+    
+    
+    MOV(R0,R2); 
 
     return _nIns;
 }
