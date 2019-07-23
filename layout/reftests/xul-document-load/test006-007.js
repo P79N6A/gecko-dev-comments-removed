@@ -1,3 +1,6 @@
+
+
+
 function checkDOM(target, data) {
   
   var piNode = document.firstChild;
