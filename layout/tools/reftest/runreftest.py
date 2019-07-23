@@ -85,7 +85,7 @@ def main():
                     default = [],
                     help = "copy specified files/dirs to testing profile")
   options, args = parser.parse_args()
-  
+
   if len(args) != 1:
     print >>sys.stderr, "No reftest.list specified."
     sys.exit(1)
@@ -135,18 +135,16 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
     
     
     log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
-    (status, start) = automation.runApp(None, browserEnv, options.app,
-                                        profileDir,
-                                        extraArgs = ["-silent"])
+    status = automation.runApp(None, browserEnv, options.app, profileDir,
+                               extraArgs = ["-silent"])
     
     log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
 
     
     log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
     reftestlist = getFullPath(args[0])
-    (status, start) = automation.runApp(None, browserEnv, options.app,
-                                        profileDir,
-                                        extraArgs = ["-reftest", reftestlist])
+    status = automation.runApp(None, browserEnv, options.app, profileDir,
+                               extraArgs = ["-reftest", reftestlist])
     processLeakLog()
     log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
   finally:
