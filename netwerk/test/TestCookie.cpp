@@ -764,7 +764,7 @@ main(PRInt32 argc, char *argv[])
       
       
       nsCAutoString host;
-      for (PRInt32 i = 0; i < 1010; ++i) {
+      for (PRInt32 i = 0; i < 3010; ++i) {
         host = NS_LITERAL_CSTRING("http://eviction.");
         host.AppendInt(i);
         host += NS_LITERAL_CSTRING(".tests/");
@@ -793,7 +793,7 @@ main(PRInt32 argc, char *argv[])
         PRInt32 numInts = PR_sscanf(domain.get(), "eviction.%ld.tests", &hostNumber);
         if (numInts != 1 || hostNumber < 10) break;
       }
-      rv[2] = i == 1000;
+      rv[2] = i == 3000;
 
       allTestsPassed = PrintResult(rv, 3) && allTestsPassed;
 

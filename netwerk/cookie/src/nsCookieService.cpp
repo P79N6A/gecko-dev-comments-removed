@@ -94,7 +94,7 @@ static const char kOldCookieFileName[] = "cookies.txt";
 
 
 
-static const PRUint32 kMaxNumberOfCookies = 1000;
+static const PRUint32 kMaxNumberOfCookies = 3000;
 static const PRUint32 kMaxCookiesPerHost  = 50;
 static const PRUint32 kMaxBytesPerCookie  = 4096;
 static const PRUint32 kMaxBytesPerPath    = 1024;
