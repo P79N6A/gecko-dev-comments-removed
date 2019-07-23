@@ -252,16 +252,17 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   
   
   nsIScriptGlobalObject *globalObject = mDocument->GetScriptGlobalObject();
-  if (globalObject)
-  {
-    nsIScriptContext *context = globalObject->GetScriptContext(
-                                          nsIProgrammingLanguage::JAVASCRIPT);
+  if (!globalObject) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  
+  nsIScriptContext *context = globalObject->GetScriptContext(
+                                        nsIProgrammingLanguage::JAVASCRIPT);
 
-    
-    
-    if (context && !context->GetScriptsEnabled()) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
+  
+  
+  if (!context || !context->GetScriptsEnabled()) {
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   
@@ -423,57 +424,55 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    if (globalObject) {
-      PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
-      nsIURI *docURI = mDocument->GetDocumentURI();
-      rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_SCRIPT,
-                                     scriptURI,
-                                     docURI,
-                                     aElement,
-                                     NS_LossyConvertUTF16toASCII(type),
-                                     nsnull,    
-                                     &shouldLoad,
-                                     nsContentUtils::GetContentPolicy());
-      if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
-        if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
-          return NS_ERROR_CONTENT_BLOCKED;
-        }
-        return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
+    PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
+    nsIURI *docURI = mDocument->GetDocumentURI();
+    rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_SCRIPT,
+                                   scriptURI,
+                                   docURI,
+                                   aElement,
+                                   NS_LossyConvertUTF16toASCII(type),
+                                   nsnull,    
+                                   &shouldLoad,
+                                   nsContentUtils::GetContentPolicy());
+    if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
+      if (NS_FAILED(rv) || shouldLoad != nsIContentPolicy::REJECT_TYPE) {
+        return NS_ERROR_CONTENT_BLOCKED;
       }
-
-      request->mURI = scriptURI;
-      request->mIsInline = PR_FALSE;
-      request->mLoading = PR_TRUE;
-
-      nsCOMPtr<nsILoadGroup> loadGroup = mDocument->GetDocumentLoadGroup();
-      nsCOMPtr<nsIStreamLoader> loader;
-
-      nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(globalObject));
-      nsIDocShell *docshell = window->GetDocShell();
-
-      nsCOMPtr<nsIInterfaceRequestor> prompter(do_QueryInterface(docshell));
-
-      nsCOMPtr<nsIChannel> channel;
-      rv = NS_NewChannel(getter_AddRefs(channel),
-                         scriptURI, nsnull, loadGroup,
-                         prompter, nsIRequest::LOAD_NORMAL);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
-      if (httpChannel) {
-        
-        httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
-                                      NS_LITERAL_CSTRING("*/*"),
-                                      PR_FALSE);
-        httpChannel->SetReferrer(mDocument->GetDocumentURI());
-      }
-
-      rv = NS_NewStreamLoader(getter_AddRefs(loader), this);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = channel->AsyncOpen(loader, request);
-      NS_ENSURE_SUCCESS(rv, rv);
+      return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
     }
+
+    request->mURI = scriptURI;
+    request->mIsInline = PR_FALSE;
+    request->mLoading = PR_TRUE;
+
+    nsCOMPtr<nsILoadGroup> loadGroup = mDocument->GetDocumentLoadGroup();
+    nsCOMPtr<nsIStreamLoader> loader;
+
+    nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(globalObject));
+    nsIDocShell *docshell = window->GetDocShell();
+
+    nsCOMPtr<nsIInterfaceRequestor> prompter(do_QueryInterface(docshell));
+
+    nsCOMPtr<nsIChannel> channel;
+    rv = NS_NewChannel(getter_AddRefs(channel),
+                       scriptURI, nsnull, loadGroup,
+                       prompter, nsIRequest::LOAD_NORMAL);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
+    if (httpChannel) {
+      
+      httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Accept"),
+                                    NS_LITERAL_CSTRING("*/*"),
+                                    PR_FALSE);
+      httpChannel->SetReferrer(mDocument->GetDocumentURI());
+    }
+
+    rv = NS_NewStreamLoader(getter_AddRefs(loader), this);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = channel->AsyncOpen(loader, request);
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     request->mLoading = PR_FALSE;
     request->mIsInline = PR_TRUE;
