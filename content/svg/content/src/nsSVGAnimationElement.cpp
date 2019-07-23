@@ -165,31 +165,45 @@ nsSVGAnimationElement::GetTargetElement(nsIDOMSVGElement** aTarget)
   return NS_OK;
 }
 
+
 NS_IMETHODIMP
 nsSVGAnimationElement::GetStartTime(float* retval)
 {
-  
-  *retval = 0.f;
-  NS_NOTYETIMPLEMENTED("nsSVGAnimationElement::GetStartTime");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsSMILTimeValue startTime = mTimedElement.GetStartTime();
+  if (startTime.IsResolved()) {
+    *retval = double(startTime.GetMillis()) / PR_MSEC_PER_SEC;
+  } else {
+    *retval = 0.f;
+  }
+
+  return NS_OK;
 }
+
 
 NS_IMETHODIMP
 nsSVGAnimationElement::GetCurrentTime(float* retval)
 {
-  
-  *retval = 0.f;
-  NS_NOTYETIMPLEMENTED("nsSVGAnimationElement::GetCurrentTime");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsSMILTimeContainer* root = GetTimeContainer();
+  if (root) {
+    *retval = double(root->GetCurrentTime()) / PR_MSEC_PER_SEC;
+  } else {
+    *retval = 0.f;
+  }
+  return NS_OK;
 }
+
 
 NS_IMETHODIMP
 nsSVGAnimationElement::GetSimpleDuration(float* retval)
 {
-  
-  *retval = 0.f;
-  NS_NOTYETIMPLEMENTED("nsSVGAnimationElement::GetSimpleDuration");
-  return NS_ERROR_NOT_IMPLEMENTED;
+  nsSMILTimeValue simpleDur = mTimedElement.GetSimpleDuration();
+  if (!simpleDur.IsResolved()) {
+    *retval = 0.f;
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  }
+
+  *retval = double(simpleDur.GetMillis()) / PR_MSEC_PER_SEC;
+  return NS_OK;
 }
 
 

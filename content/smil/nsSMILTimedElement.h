@@ -96,6 +96,48 @@ public:
 
 
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsSMILTimeValue GetStartTime() const;
+
+  
+
+
+
+
+  nsSMILTimeValue GetSimpleDuration() const
+  {
+    return mSimpleDur;
+  }
+
+  
+
+
+
+  
+
+
+
 
 
 
