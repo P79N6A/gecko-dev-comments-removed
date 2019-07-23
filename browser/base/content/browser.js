@@ -1959,6 +1959,11 @@ function URLBarSetURI(aURI) {
                              encodeURIComponent);
         } catch (e) {}
 
+      
+      
+      value = value.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
+                            encodeURIComponent);
+
       state = "valid";
     }
   }
@@ -3400,7 +3405,10 @@ nsBrowserStatusHandler.prototype =
 
   setOverLink : function(link, b)
   {
-    this.overLink = link;
+    
+    
+    this.overLink = link.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
+                                 encodeURIComponent);
     this.updateStatusField();
   },
 
