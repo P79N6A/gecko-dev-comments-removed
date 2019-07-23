@@ -1,0 +1,100 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url("chrome://global/skin/");
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+#HelpToolbar toolbarbutton {
+  -moz-box-orient: horizontal !important;
+  min-width: 0px;
+  margin: 0 !important;
+  padding: 4px 5px;
+}
+
+#help-back-button {
+  list-style-image: url("moz-icon://stock/gtk-go-back?size=toolbar");
+}
+
+#help-back-button[disabled="true"] {
+  list-style-image: url("moz-icon://stock/gtk-go-back?size=toolbar&state=disabled");
+}
+
+#help-forward-button {
+  list-style-image: url("moz-icon://stock/gtk-go-forward?size=toolbar");
+}
+
+#help-forward-button[disabled="true"] {
+  list-style-image: url("moz-icon://stock/gtk-go-forward?size=toolbar&state=disabled");
+}
+
+#help-home-button {
+  list-style-image: url("moz-icon://stock/gtk-home?size=toolbar");
+}
+
+#help-home-button[disabled="true"] {
+  list-style-image: url("moz-icon://stock/gtk-home?size=toolbar&state=disabled");
+}
+
+#help-print-button {
+  list-style-image: url("moz-icon://stock/gtk-print?size=toolbar");
+}
+
+#help-print-button[disabled="true"] {
+  list-style-image: url("moz-icon://stock/gtk-print?size=toolbar&state=disabled");
+}
+
+
+
+#HelpToolbar .toolbarbutton-text {
+  display: none;
+}
+
+
+
+#HelpToolbar .toolbarbutton-icon {
+  -moz-margin-end: 0;
+}
+
+
+#help-sidebar { min-width: 15em; width: 20em; max-width: 25em; }
+
+#search-sidebar-closebutton {
+  list-style-image: url("moz-icon://stock/gtk-close?size=menu");
+}
+
+#context-copy[disabled="true"] {
+  display: none;
+}
