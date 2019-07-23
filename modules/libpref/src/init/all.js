@@ -669,7 +669,7 @@ pref("network.IDN.blacklist_chars", "\u0020\u00A0\u00BC\u00BD\u01C3\u0337\u0338\
 
 
 
-pref("network.dns.ipv4OnlyDomains", ".doubleclick.net");
+pref("network.dns.ipv4OnlyDomains", "");
 
 
 pref("network.dns.disableIPv6", false);
