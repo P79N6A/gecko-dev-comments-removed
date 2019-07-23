@@ -711,11 +711,10 @@ namespace nanojit
         verbose_only( int32_t nativeSave = _stats.native );
         verbose_only( verbose_outputf("----------------------------------- ## END exit block %p", guard);)
 
+        
+        
+        
         RegAlloc capture = _allocator;
-
-        
-        
-        
         releaseRegisters();
 
         swapCodeChunks();
@@ -1606,7 +1605,6 @@ namespace nanojit
     void Assembler::assignSavedRegs()
     {
         
-        releaseRegisters();
         LirBuffer *b = _thisfrag->lirbuf;
         for (int i=0, n = NumSavedRegs; i < n; i++) {
             LIns *p = b->savedRegs[i];
@@ -1625,7 +1623,6 @@ namespace nanojit
         }
     }
 
-    
     void Assembler::assignParamRegs()
     {
         LInsp state = _thisfrag->lirbuf->state;

@@ -2031,6 +2031,7 @@ namespace nanojit
         
         MR(SP,FP);
 
+        releaseRegisters();
         assignSavedRegs();
 
         LIns *val = ins->oprnd1();

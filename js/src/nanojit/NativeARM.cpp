@@ -2640,6 +2640,7 @@ Assembler::asm_ret(LIns *ins)
     
     MOV(SP,FP);
 
+    releaseRegisters();
     assignSavedRegs();
     LIns *value = ins->oprnd1();
     if (ins->isop(LIR_ret)) {
