@@ -1518,6 +1518,12 @@ SessionStoreService.prototype = {
       
       
       
+      let activeIndex = (aTabs[t].index || aTabs[t].entries.length) - 1;
+      let activePageData = aTabs[t].entries[activeIndex] || null;
+      browser.userTypedValue = activePageData ? activePageData.url || null : null;
+      
+      
+      
       browser.parentNode.__SS_data = aTabs[t];
     }
     
