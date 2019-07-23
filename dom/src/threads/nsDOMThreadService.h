@@ -50,6 +50,7 @@
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsRefPtrHashtable.h"
+#include "nsStringGlue.h"
 #include "nsTPtrArray.h"
 #include "prmon.h"
 
@@ -73,6 +74,7 @@ class nsDOMThreadService : public nsIEventTarget,
                            public nsIThreadPoolListener
 {
   friend class nsDOMWorker;
+  friend class nsDOMWorkerNavigator;
   friend class nsDOMWorkerPool;
   friend class nsDOMWorkerRunnable;
   friend class nsDOMWorkerThread;
@@ -138,6 +140,11 @@ private:
   nsresult RegisterWorker(nsDOMWorker* aWorker,
                           nsIScriptGlobalObject* aGlobalObject);
 
+  void GetAppName(nsAString& aAppName);
+  void GetAppVersion(nsAString& aAppVersion);
+  void GetPlatform(nsAString& aPlatform);
+  void GetUserAgent(nsAString& aUserAgent);
+
   
   nsCOMPtr<nsIThreadPool> mThreadPool;
 
@@ -150,6 +157,13 @@ private:
 
   
   nsRefPtrHashtable<nsVoidPtrHashKey, nsDOMWorkerRunnable> mWorkersInProgress;
+
+  nsString mAppName;
+  nsString mAppVersion;
+  nsString mPlatform;
+  nsString mUserAgent;
+
+  PRBool mNavigatorStringsLoaded;
 };
 
 #endif 
