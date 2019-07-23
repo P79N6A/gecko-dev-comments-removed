@@ -2092,11 +2092,25 @@ function BrowserViewSourceOfDocument(aDocument)
 
 function BrowserPageInfo(doc, initialTab, imageElement) {
   var args = {doc: doc, initialTab: initialTab, imageElement: imageElement};
-  return toOpenDialogByTypeAndUrl("Browser:page-info",
-                                  doc ? doc.location : window.content.document.location,
-                                  "chrome:
-                                  "chrome,toolbar,dialog=no,resizable",
-                                  args);
+  var windows = Cc['@mozilla.org/appshell/window-mediator;1']
+                  .getService(Ci.nsIWindowMediator)
+                  .getEnumerator("Browser:page-info");
+
+  var documentURL = doc ? doc.location : window.content.document.location;
+
+  
+  while (windows.hasMoreElements()) {
+    var currentWindow = windows.getNext();
+    if (currentWindow.document.documentElement.getAttribute("relatedUrl") == documentURL) {
+      currentWindow.focus();
+      currentWindow.resetPageInfo(args);
+      return currentWindow;
+    }
+  }
+
+  
+  return openDialog("chrome://browser/content/pageinfo/pageInfo.xul", "",
+                    "chrome,toolbar,dialog=no,resizable", args);
 }
 
 #ifdef DEBUG
@@ -2311,11 +2325,11 @@ function BrowserImport()
   if (win)
     win.focus();
   else {
-    window.openDialog("chrome:
+    window.openDialog("chrome://browser/content/migration/migration.xul",
                       "migration", "centerscreen,chrome,resizable=no");
   }
 #else
-  window.openDialog("chrome:
+  window.openDialog("chrome://browser/content/migration/migration.xul",
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
@@ -2348,7 +2362,7 @@ function BrowserOnCommand(event) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
         
-        window.openDialog('chrome:
+        window.openDialog('chrome://pippki/content/exceptionDialog.xul',
                           '','chrome,centerscreen,modal', params);
         
         
@@ -2436,7 +2450,7 @@ function BrowserOnCommand(event) {
         notificationBox.appendNotification(
           title,
           value,
-          "chrome:
+          "chrome://global/skin/icons/blacklist_favicon.png",
           notificationBox.PRIORITY_CRITICAL_HIGH,
           buttons
         );
@@ -2606,10 +2620,10 @@ function getMarkupDocumentViewer()
 function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
-  if (tipElement.namespaceURI == "http:
+  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul")
     return retVal;
 
-  const XLinkNS = "http:
+  const XLinkNS = "http://www.w3.org/1999/xlink";
 
 
   var titleText = null;
@@ -3251,28 +3265,6 @@ function toOpenWindowByType(inType, uri, features)
     window.open(uri, "_blank", features);
   else
     window.open(uri, "_blank", "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar");
-}
-
-function toOpenDialogByTypeAndUrl(inType, relatedUrl, windowUri, features, extraArgument)
-{
-  var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService();
-  var windowManagerInterface = windowManager.QueryInterface(Components.interfaces.nsIWindowMediator);
-  var windows = windowManagerInterface.getEnumerator(inType);
-
-  
-  while (windows.hasMoreElements()) {
-    var currentWindow = windows.getNext();
-    if (currentWindow.document.documentElement.getAttribute("relatedUrl") == relatedUrl) {
-    	currentWindow.focus();
-    	return;
-    }
-  }
-
-  
-  if (features)
-    return window.openDialog(windowUri, "_blank", features, extraArgument);
-
-  return window.openDialog(windowUri, "_blank", "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar", extraArgument);
 }
 
 function OpenBrowserWindow()
