@@ -101,12 +101,19 @@ typedef struct _nsCocoaWindowList {
 @interface WindowDelegate : NSObject
 {
   nsCocoaWindow* mGeckoWindow; 
+  
+  
+  
+  PRBool mToplevelActiveState;
 }
 + (void)paintMenubarForWindow:(NSWindow*)aWindow;
 - (id)initWithGeckoWindow:(nsCocoaWindow*)geckoWind;
 - (void)windowDidResize:(NSNotification*)aNotification;
 - (void)sendFocusEvent:(PRUint32)eventType;
 - (nsCocoaWindow*)geckoWidget;
+- (PRBool)toplevelActiveState;
+- (void)sendToplevelActivateEvents;
+- (void)sendToplevelDeactivateEvents;
 @end
 
 
