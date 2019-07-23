@@ -1218,7 +1218,9 @@ namespace nanojit
 		NIns* was = (NIns*)( (intptr_t)*(int32_t*)(at+1)+(intptr_t)(at+5) );
 		_nIns = at +5; 
 		intptr_t tt = (intptr_t)target - (intptr_t)_nIns;
+#if defined NANOJIT_AMD64
         NanoAssert(tt <= INT_MAX && tt >= INT_MIN);
+#endif
 		IMM32(tt);
 		*(--_nIns) = JMPc;
 		_nIns = save;
@@ -1228,6 +1230,9 @@ namespace nanojit
 	void Assembler::nativePageReset()
 	{
 #if defined NANOJIT_AMD64
+        
+
+
 		_pageData = 0;
 		_dblNegPtr = NULL;
 		_negOnePtr = NULL;
