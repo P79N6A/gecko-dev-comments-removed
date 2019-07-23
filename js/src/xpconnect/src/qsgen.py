@@ -125,6 +125,8 @@ import sys
 
 
 
+MAX_TRACEABLE_NATIVE_ARGS = 8
+
 
 make_dependencies = []
 make_targets = []
@@ -201,8 +203,15 @@ def removeStubMember(memberId, member):
 def addStubMember(memberId, member, traceable):
     mayTrace = False
     if member.kind == 'method':
-        if len(member.params) <= 3:
-            mayTrace = True
+        
+        haveCallee = memberNeedsCallee(member)
+        
+        
+        
+        
+        
+        prefixArgCount = 3 if haveCallee else 2
+        mayTrace = (len(member.params) <= MAX_TRACEABLE_NATIVE_ARGS - prefixArgCount)
 
         for param in member.params:
             for attrname, value in vars(param).items():
@@ -685,6 +694,12 @@ def anyParamRequiresCcx(member):
             return True
     return False
 
+def memberNeedsCcx(member):
+    return member.kind == 'method' and anyParamRequiresCcx(member)
+
+def memberNeedsCallee(member):
+    return memberNeedsCcx(member) or isInterfaceType(member.realtype)
+
 def validateParam(member, param):
     def pfail(msg):
         raise UserError(
@@ -787,7 +802,7 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
                 "        return JS_FALSE;\n")
 
     
-    haveCcx = isMethod and anyParamRequiresCcx(member)
+    haveCcx = memberNeedsCcx(member)
     if haveCcx:
         f.write("    XPCCallContext ccx(JS_CALLER, cx, obj, "
                 "JSVAL_TO_OBJECT(JS_CALLEE(cx, vp)));\n")
@@ -1188,7 +1203,7 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
         'params': ["CONTEXT", "THIS"]
         }
 
-    haveCcx = (member.kind == 'method') and anyParamRequiresCcx(member)
+    haveCcx = memberNeedsCcx(member)
 
     customMethodCall = customMethodCalls.get(stubName, None)
 
@@ -1198,7 +1213,8 @@ def writeTraceableQuickStub(f, customMethodCalls, member, stubName):
     
     f.write("static %sFASTCALL\n" % getTraceReturnType(member.realtype))
     f.write("%s(JSContext *cx, JSObject *obj" % (stubName + "_tn"))
-    if haveCcx or isInterfaceType(member.realtype):
+    
+    if memberNeedsCallee(member):
         f.write(", JSObject *callee")
         traceInfo["params"].append("CALLEE")
     for i, param in enumerate(member.params):
