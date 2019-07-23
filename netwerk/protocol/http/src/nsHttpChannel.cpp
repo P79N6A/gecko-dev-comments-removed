@@ -803,7 +803,8 @@ nsHttpChannel::ProcessResponse()
         
         
         
-        if (mResuming) {
+        
+        if (mResuming && mStartPos != 0) {
             LOG(("Server ignored our Range header, cancelling [this=%p]\n", this));
             Cancel(NS_ERROR_NOT_RESUMABLE);
             rv = CallOnStartRequest();
@@ -917,7 +918,8 @@ nsHttpChannel::ProcessNormal()
             
             Cancel(NS_ERROR_NOT_RESUMABLE);
         }
-        else if (mResponseHead->Status() != 206) {
+        else if (mResponseHead->Status() != 206 &&
+                 mResponseHead->Status() != 200) {
             
             
             LOG(("Unexpected response status while resuming, aborting [this=%p]\n",

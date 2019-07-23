@@ -87,18 +87,29 @@ function run_test() {
     chan.nsIResumableChannel.resumeAt(1, entityID);
     chan.asyncOpen(new ChannelListener(try_resume, null, CL_EXPECT_FAILURE), null);
   }
+
   function try_resume(request, data, ctx) {
     do_check_eq(request.status, NS_ERROR_NOT_RESUMABLE);
 
     
     var chan = make_channel("http://localhost:4444/range");
     chan.nsIResumableChannel.resumeAt(1, entityID);
+    chan.asyncOpen(new ChannelListener(try_resume_zero, null), null);
+  }
+
+  function try_resume_zero(request, data, ctx) {
+    do_check_true(request.nsIHttpChannel.requestSucceeded);
+    do_check_eq(data, rangeBody.substring(1));
+
+    
+    var chan = make_channel("http://localhost:4444/range");
+    chan.nsIResumableChannel.resumeAt(0, entityID);
     chan.asyncOpen(new ChannelListener(success, null), null);
   }
 
   function success(request, data, ctx) {
     do_check_true(request.nsIHttpChannel.requestSucceeded);
-    do_check_eq(data, rangeBody.substring(1));
+    do_check_eq(data, rangeBody);
 
     
     
@@ -251,10 +262,9 @@ function rangeHandler(metadata, response) {
       return;
     }
     body = body.substring(from, to + 1);
-    if (body.length != rangeBody.length) {
-      response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
-      response.setHeader("Content-Range", from + "-" + to + "/" + rangeBody.length);
-    }
+    
+    response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
+    response.setHeader("Content-Range", from + "-" + to + "/" + rangeBody.length);
   }
 
   response.bodyOutputStream.write(body, body.length);
