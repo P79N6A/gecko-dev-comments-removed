@@ -3964,7 +3964,7 @@ nsPluginHostImpl::TrySetUpPluginInstance(const char *aMimeType,
   
   
   nsPluginTag* pluginTag = FindPluginForType(aMimeType, PR_TRUE);
-  if (aURL && !pluginTag) {
+  if (!pluginTag) {
     nsCOMPtr<nsIURL> url = do_QueryInterface(aURL);
     if (!url) return NS_ERROR_FAILURE;
 
