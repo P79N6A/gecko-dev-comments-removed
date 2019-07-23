@@ -34,6 +34,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const LAST_DIR_PREF = "browser.download.lastDir";
 const PBSVC_CID = "@mozilla.org/privatebrowsing;1";
 const nsILocalFile = Components.interfaces.nsILocalFile;
