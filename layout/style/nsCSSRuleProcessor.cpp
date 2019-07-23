@@ -827,6 +827,10 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
   mParentData = nsnull;
   mLanguage = nsnull;
   mClasses = nsnull;
+  mNthIndices[0][0] = -2;
+  mNthIndices[0][1] = -2;
+  mNthIndices[1][0] = -2;
+  mNthIndices[1][1] = -2;
 
   
   if (!aCompat) {
@@ -942,6 +946,57 @@ const nsString* RuleProcessorData::GetLang()
     }
   }
   return mLanguage;
+}
+
+static inline PRInt32
+CSSNameSpaceID(nsIContent *aContent)
+{
+  return aContent->IsNodeOfType(nsINode::eHTML)
+           ? kNameSpaceID_XHTML
+           : aContent->GetNameSpaceID();
+}
+
+PRInt32
+RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd)
+{
+  NS_ASSERTION(mParentContent, "caller should check mParentContent");
+
+  PRInt32 &slot = mNthIndices[aIsOfType][aIsFromEnd];
+  if (slot != -2)
+    return slot;
+
+  PRInt32 result = 1;
+  nsIContent* parent = mParentContent;
+
+  PRUint32 cur;
+  PRInt32 increment;
+  if (aIsFromEnd) {
+    cur = parent->GetChildCount() - 1;
+    increment = -1;
+  } else {
+    cur = 0;
+    increment = 1;
+  }
+
+  for (;;) {
+    nsIContent* child = parent->GetChildAt(cur);
+    if (!child) {
+      
+      result = 0; 
+      break;
+    }
+    cur += increment;
+    if (child == mContent)
+      break;
+    if (child->IsNodeOfType(nsINode::eELEMENT) &&
+        (!aIsOfType ||
+         (child->Tag() == mContentTag &&
+          CSSNameSpaceID(child) == mNameSpaceID)))
+      ++result;
+  }
+
+  slot = result;
+  return result;
 }
 
 static const PRUnichar kNullCh = PRUnichar('\0');
@@ -1141,6 +1196,48 @@ static PRBool SelectorMatches(RuleProcessorData &data,
         }
       }
       result = (data.mContent == onlyChild && moreChild == nsnull);
+    }
+    else if (nsCSSPseudoClasses::nthChild == pseudoClass->mAtom ||
+             nsCSSPseudoClasses::nthLastChild == pseudoClass->mAtom ||
+             nsCSSPseudoClasses::nthOfType == pseudoClass->mAtom ||
+             nsCSSPseudoClasses::nthLastOfType == pseudoClass->mAtom) {
+      nsIContent *parent = data.mParentContent;
+      if (parent) {
+        PRBool isOfType =
+          nsCSSPseudoClasses::nthOfType == pseudoClass->mAtom ||
+          nsCSSPseudoClasses::nthLastOfType == pseudoClass->mAtom;
+        PRBool isFromEnd =
+          nsCSSPseudoClasses::nthLastChild == pseudoClass->mAtom ||
+          nsCSSPseudoClasses::nthLastOfType == pseudoClass->mAtom;
+        if (setNodeFlags) {
+          if (isFromEnd)
+            parent->SetFlags(NODE_HAS_SLOW_SELECTOR);
+          else
+            parent->SetFlags(NODE_HAS_SLOW_SELECTOR_NOAPPEND);
+        }
+
+        const PRInt32 index = data.GetNthIndex(isOfType, isFromEnd);
+        if (index <= 0) {
+          
+          result = PR_FALSE;
+        } else {
+          const PRInt32 a = pseudoClass->u.mNumbers[0];
+          const PRInt32 b = pseudoClass->u.mNumbers[1];
+          
+          
+          if (a == 0) {
+            result = b == index;
+          } else {
+            
+            
+            
+            const PRInt32 n = (index - b) / a;
+            result = n >= 0 && (a * n == index - b);
+          }
+        }
+      } else {
+        result = PR_FALSE;
+      }
     }
     else if (nsCSSPseudoClasses::empty == pseudoClass->mAtom ||
              nsCSSPseudoClasses::mozOnlyWhitespace == pseudoClass->mAtom) {

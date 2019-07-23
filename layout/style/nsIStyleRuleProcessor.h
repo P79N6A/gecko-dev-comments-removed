@@ -41,6 +41,7 @@
 
 
 
+
 #ifndef nsIStyleRuleProcessor_h___
 #define nsIStyleRuleProcessor_h___
 
@@ -82,7 +83,12 @@ struct RuleProcessorData {
 
   const nsString* GetLang();
 
-  nsPresContext*   mPresContext;
+  
+  
+  
+  PRInt32 GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd);
+
+  nsPresContext*    mPresContext;
   nsIContent*       mContent;       
   nsIContent*       mParentContent; 
   nsRuleWalker*     mRuleWalker; 
@@ -106,6 +112,13 @@ struct RuleProcessorData {
 
 protected:
   nsAutoString *mLanguage; 
+
+  
+  
+  
+  
+  
+  PRInt32 mNthIndices[2][2];
 };
 
 struct ElementRuleProcessorData : public RuleProcessorData {

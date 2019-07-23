@@ -105,7 +105,8 @@ enum nsCSSTokenType {
 
 struct nsCSSToken {
   nsCSSTokenType  mType;
-  PRPackedBool    mIntegerValid;
+  PRPackedBool    mIntegerValid; 
+  PRPackedBool    mHasSign; 
   nsAutoString    mIdent;
   float           mNumber;
   PRInt32         mInteger;
@@ -178,6 +179,12 @@ class nsCSSScanner {
   
   PRBool NextURL(nsresult& aErrorCode, nsCSSToken& aTokenResult);
 
+  
+  
+  
+  
+  void Pushback(PRUnichar aChar);
+
   static inline PRBool
   IsIdentStart(PRInt32 aChar)
   {
@@ -212,7 +219,6 @@ protected:
   PRBool EnsureData(nsresult& aErrorCode);
   PRInt32 Read(nsresult& aErrorCode);
   PRInt32 Peek(nsresult& aErrorCode);
-  void Pushback(PRUnichar aChar);
   PRBool LookAhead(nsresult& aErrorCode, PRUnichar aChar);
   PRBool EatWhiteSpace(nsresult& aErrorCode);
   PRBool EatNewline(nsresult& aErrorCode);

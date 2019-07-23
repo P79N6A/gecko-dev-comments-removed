@@ -269,6 +269,10 @@ protected:
                                                        nsIAtom*       aPseudo,
                                                        nsresult&      aErrorCode);
 
+  nsSelectorParsingStatus ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
+                                                         nsIAtom*       aPseudo,
+                                                         nsresult&      aErrorCode);
+
   nsSelectorParsingStatus ParseNegatedSimpleSelector(PRInt32&       aDataMask,
                                                      nsCSSSelector& aSelector,
                                                      nsresult&      aErrorCode);
@@ -2560,7 +2564,8 @@ CSSParserImpl::ParsePseudoSelector(PRInt32&       aDataMask,
        isTree ||
 #endif
        nsCSSPseudoClasses::notPseudo == pseudo ||
-       nsCSSPseudoClasses::HasStringArg(pseudo))) {
+       nsCSSPseudoClasses::HasStringArg(pseudo) ||
+       nsCSSPseudoClasses::HasNthPairArg(pseudo))) {
     
     REPORT_UNEXPECTED_TOKEN(PEPseudoSelNonFunc);
     UngetToken();
@@ -2598,7 +2603,13 @@ CSSParserImpl::ParsePseudoSelector(PRInt32&       aDataMask,
         return parsingStatus;
       }
     }
-    
+    else if (nsCSSPseudoClasses::HasNthPairArg(pseudo)) {
+      nsSelectorParsingStatus parsingStatus =
+        ParsePseudoClassWithNthPairArg(aSelector, pseudo, aErrorCode);
+      if (eSelectorParsingStatus_Continue != parsingStatus) {
+        return parsingStatus;
+      }
+    }
     else {
       aSelector.AddPseudoClass(pseudo);
     }
@@ -2763,6 +2774,7 @@ CSSParserImpl::ParsePseudoClassWithIdentArg(nsCSSSelector& aSelector,
   if (eCSSToken_Ident != mToken.mType) {
     REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotIdent);
     UngetToken();
+    
     return eSelectorParsingStatus_Error;
   }
 
@@ -2772,11 +2784,143 @@ CSSParserImpl::ParsePseudoClassWithIdentArg(nsCSSSelector& aSelector,
   
   if (!ExpectSymbol(aErrorCode, ')', PR_TRUE)) {
     REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoClose);
+    
     return eSelectorParsingStatus_Error;
   }
 
   return eSelectorParsingStatus_Continue;
 }
+
+CSSParserImpl::nsSelectorParsingStatus
+CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
+                                              nsIAtom*       aPseudo,
+                                              nsresult&      aErrorCode)
+{
+  PRInt32 numbers[2] = { 0, 0 };
+  PRBool lookForB = PR_TRUE;
+  
+  
+  if (!ExpectSymbol(aErrorCode, '(', PR_FALSE)) {
+    REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoArg);
+    return eSelectorParsingStatus_Error;
+  }
+
+  
+  
+
+  if (! GetToken(aErrorCode, PR_TRUE)) {
+    REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
+    return eSelectorParsingStatus_Error;
+  }
+
+  if (eCSSToken_Ident == mToken.mType || eCSSToken_Dimension == mToken.mType) {
+    
+    
+    
+    
+    
+    PRUint32 truncAt = 0;
+    if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("n-"))) {
+      truncAt = 1;
+    } else if (StringBeginsWith(mToken.mIdent, NS_LITERAL_STRING("-n-"))) {
+      truncAt = 2;
+    }
+    if (truncAt != 0) {
+      for (PRUint32 i = mToken.mIdent.Length() - 1; i >= truncAt; --i) {
+        mScanner.Pushback(mToken.mIdent[i]);
+      }
+      mToken.mIdent.Truncate(truncAt);
+    }
+  }
+  
+  if (eCSSToken_Ident == mToken.mType) {
+    if (mToken.mIdent.EqualsIgnoreCase("odd")) {
+      numbers[0] = 2;
+      numbers[1] = 1;
+      lookForB = PR_FALSE;
+    }
+    else if (mToken.mIdent.EqualsIgnoreCase("even")) {
+      numbers[0] = 2;
+      numbers[1] = 0;
+      lookForB = PR_FALSE;
+    }
+    else if (mToken.mIdent.EqualsIgnoreCase("n")) {
+      numbers[0] = 1;
+    }
+    else if (mToken.mIdent.EqualsIgnoreCase("-n")) {
+      numbers[0] = -1;
+    }
+    else {
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+      
+      return eSelectorParsingStatus_Error;
+    }
+  }
+  else if (eCSSToken_Number == mToken.mType) {
+    if (!mToken.mIntegerValid) {
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+      
+      return eSelectorParsingStatus_Error;
+    }
+    numbers[1] = mToken.mInteger;
+    lookForB = PR_FALSE;
+  }
+  else if (eCSSToken_Dimension == mToken.mType) {
+    if (!mToken.mIntegerValid || !mToken.mIdent.EqualsIgnoreCase("n")) {
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+      
+      return eSelectorParsingStatus_Error;
+    }
+    numbers[0] = mToken.mInteger;
+  }
+  
+  else {
+    REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+    
+    return eSelectorParsingStatus_Error;
+  }
+
+  if (! GetToken(aErrorCode, PR_TRUE)) {
+    REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
+    return eSelectorParsingStatus_Error;
+  }
+  if (lookForB && !mToken.IsSymbol(')')) {
+    
+    
+    
+    PRBool haveSign = PR_FALSE;
+    PRInt32 sign = 1;
+    if (mToken.IsSymbol('+') || mToken.IsSymbol('-')) {
+      haveSign = PR_TRUE;
+      if (mToken.IsSymbol('-')) {
+        sign = -1;
+      }
+      if (! GetToken(aErrorCode, PR_TRUE)) {
+        REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
+        return eSelectorParsingStatus_Error;
+      }
+    }
+    if (eCSSToken_Number != mToken.mType ||
+        !mToken.mIntegerValid || mToken.mHasSign == haveSign) {
+      REPORT_UNEXPECTED_TOKEN(PEPseudoClassArgNotNth);
+      
+      return eSelectorParsingStatus_Error;
+    }
+    numbers[1] = mToken.mInteger * sign;
+    if (! GetToken(aErrorCode, PR_TRUE)) {
+      REPORT_UNEXPECTED_EOF(PEPseudoClassArgEOF);
+      return eSelectorParsingStatus_Error;
+    }
+  }
+  if (!mToken.IsSymbol(')')) {
+    REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoClose);
+    
+    return eSelectorParsingStatus_Error;
+  }
+  aSelector.AddPseudoClass(aPseudo, numbers);
+  return eSelectorParsingStatus_Continue;
+}
+
 
 
 
