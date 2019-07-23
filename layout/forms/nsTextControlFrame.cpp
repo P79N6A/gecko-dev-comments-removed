@@ -1023,6 +1023,12 @@ nsTextControlFrame::PreDestroy()
       
       
       SetValue(value);
+
+      
+      
+      
+      
+      mUseEditor = PR_TRUE;
     }
     mEditor->PreDestroy(PR_TRUE);
   }
@@ -1064,6 +1070,7 @@ nsTextControlFrame::PreDestroy()
     }
   }
 
+  mUseEditor = PR_FALSE;
   mEditor = nsnull;
   if (mSelCon) {
     mSelCon->SetScrollableFrame(nsnull);
