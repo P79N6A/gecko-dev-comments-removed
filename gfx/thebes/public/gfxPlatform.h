@@ -61,6 +61,7 @@ class gfxUserFontSet;
 class gfxFontEntry;
 class gfxProxyFontEntry;
 class gfxPlatformFontList;
+class gfxTextRun;
 class nsIURI;
 
 
@@ -150,6 +151,8 @@ public:
 
 
 
+    virtual void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
+
     
 
 
@@ -232,6 +235,9 @@ public:
     void GetPrefFonts(const char *aLangGroup, nsString& array, PRBool aAppendUnicode = PR_TRUE);
 
     
+    void GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
+    
+    
 
 
 
@@ -248,6 +254,9 @@ public:
     
     static const char* GetPrefLangName(eFontPrefLang aLang);
    
+    
+    static eFontPrefLang GetFontPrefLangFor(PRUint8 aUnicodeRange);
+
     
     static PRBool IsLangCJK(eFontPrefLang aLang);
     
@@ -318,6 +327,9 @@ protected:
     gfxPlatform() { }
     virtual ~gfxPlatform();
 
+    void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
+                            eFontPrefLang aCharLang, eFontPrefLang aPageLang);
+                                               
     
 
 
@@ -326,6 +338,8 @@ protected:
 
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();
+
+    nsTArray<PRUint32> mCJKPrefLangs;
 
     nsCOMPtr<nsIObserver> overrideObserver;
 };

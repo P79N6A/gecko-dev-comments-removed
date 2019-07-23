@@ -53,6 +53,7 @@
 #include "gfxRect.h"
 #include "nsExpirationTracker.h"
 #include "gfxFontConstants.h"
+#include "gfxPlatform.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -220,6 +221,8 @@ public:
 
     const nsString& FamilyName();
 
+    already_AddRefed<gfxFont> GetOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold);
+
     nsString         mName;
 
     PRPackedBool     mItalic      : 1;
@@ -259,6 +262,11 @@ protected:
 
     virtual nsresult GetFontTable(PRUint32 aTableTag, nsTArray<PRUint8>& aBuffer) {
         return NS_ERROR_FAILURE; 
+    }
+
+    virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, PRBool aNeedsBold) {
+        NS_NOTREACHED("oops, somebody didn't override CreateFontInstance");
+        return nsnull;
     }
 
     gfxFontFamily *mFamily;
@@ -663,6 +671,10 @@ protected:
 public:
     virtual ~gfxFont();
 
+    PRBool Valid() {
+        return mIsValid;
+    }
+
     
     typedef enum {
         LOOSE_INK_EXTENTS,
@@ -850,6 +862,13 @@ public:
         if (!mIsValid)
             return PR_FALSE;
         return mFontEntry->HasCharacter(ch); 
+    }
+
+    virtual void InitTextRun(gfxTextRun *aTextRun,
+                             const PRUnichar *aString,
+                             PRUint32 aRunStart,
+                             PRUint32 aRunLength) {
+        NS_NOTREACHED("oops, somebody didn't override InitTextRun");
     }
 
 protected:
@@ -1685,10 +1704,9 @@ private:
 };
 
 class THEBES_API gfxFontGroup : public gfxTextRunFactory {
-protected:
+public:
     gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet = nsnull);
 
-public:
     virtual ~gfxFontGroup();
 
     virtual gfxFont *GetFontAt(PRInt32 i) {
@@ -1715,7 +1733,7 @@ public:
 
     const gfxFontStyle *GetStyle() const { return &mStyle; }
 
-    virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle) = 0;
+    virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle);
 
     
 
@@ -1741,7 +1759,7 @@ public:
 
 
     virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags) = 0;
+                                    const Parameters *aParams, PRUint32 aFlags);
     
 
 
@@ -1749,7 +1767,7 @@ public:
 
 
     virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags) = 0;
+                                    const Parameters *aParams, PRUint32 aFlags);
 
     
 
@@ -1762,6 +1780,12 @@ public:
                               FontCreationCallback fc,
                               void *closure);
     PRBool ForEachFont(FontCreationCallback fc, void *closure);
+
+    
+
+
+
+    PRBool HasFont(const gfxFontEntry *aFontEntry);
 
     const nsString& GetFamilies() { return mFamilies; }
 
@@ -1779,9 +1803,10 @@ public:
 
     already_AddRefed<gfxFont> FindFontForChar(PRUint32 ch, PRUint32 prevCh, PRUint32 nextCh, gfxFont *aPrevMatchedFont);
 
-    virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh) { return nsnull; }
+    
+    virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh);
 
-    virtual already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh) { return nsnull; }
+    virtual already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh);
 
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges, const PRUnichar *aString, PRUint32 begin, PRUint32 end);
 
@@ -1795,7 +1820,7 @@ public:
 
     
     
-    virtual void UpdateFontList() { }
+    virtual void UpdateFontList();
 
 protected:
     nsString mFamilies;
@@ -1807,6 +1832,13 @@ protected:
     PRUint64 mCurrGeneration;  
 
     
+    nsRefPtr<gfxFontFamily> mLastPrefFamily;
+    nsRefPtr<gfxFont>       mLastPrefFont;
+    eFontPrefLang           mLastPrefLang;       
+    PRBool                  mLastPrefFirstFont;  
+    eFontPrefLang           mPageLang;
+
+    
     
     void SetUserFontSet(gfxUserFontSet *aUserFontSet);
 
@@ -1814,6 +1846,10 @@ protected:
     
     
     void InitMetricsForBadFont(gfxFont* aBadFont);
+
+    void InitTextRun(gfxTextRun *aTextRun,
+                     const PRUnichar *aString,
+                     PRUint32 aLength);
 
     
 
@@ -1832,10 +1868,14 @@ protected:
 
     static PRBool FontResolverProc(const nsAString& aName, void *aClosure);
 
+    static PRBool FindPlatformFont(const nsAString& aName,
+                                   const nsACString& aGenericName,
+                                   void *closure);
+
     inline gfxFont* WhichFontSupportsChar(nsTArray< nsRefPtr<gfxFont> >& aFontList, PRUint32 aCh) {
         PRUint32 len = aFontList.Length();
         for (PRUint32 i = 0; i < len; i++) {
-            gfxFont* font = aFontList.ElementAt(i).get();
+            gfxFont* font = aFontList.ElementAt(i);
             if (font && font->HasCharacter(aCh))
                 return font;
         }

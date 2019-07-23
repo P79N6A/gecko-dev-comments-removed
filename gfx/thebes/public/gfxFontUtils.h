@@ -557,6 +557,43 @@ public:
         return (ch == 0xFFFD);
     }
 
+    
+    
+    
+    enum {
+        kUnicodeBidiScriptsStart = 0x0590,
+        kUnicodeBidiScriptsEnd = 0x08FF,
+        kUnicodeBidiPresentationStart = 0xFB1D,
+        kUnicodeBidiPresentationEnd = 0xFEFC,
+        kUnicodeFirstHighSurrogateBlock = 0xD800,
+        kUnicodeRLM = 0x200F,
+        kUnicodeRLE = 0x202B,
+        kUnicodeRLO = 0x202E
+    };
+
+    static inline PRBool PotentialRTLChar(PRUnichar aCh) {
+        if (aCh >= kUnicodeBidiScriptsStart && aCh <= kUnicodeBidiScriptsEnd)
+            
+            return PR_TRUE;
+
+        if (aCh == kUnicodeRLM || aCh == kUnicodeRLE || aCh == kUnicodeRLO)
+            
+            return PR_TRUE;
+
+        if (aCh >= kUnicodeBidiPresentationStart &&
+            aCh <= kUnicodeBidiPresentationEnd)
+            
+            return PR_TRUE;
+
+        if ((aCh & 0xFF00) == kUnicodeFirstHighSurrogateBlock)
+            
+            
+            return PR_TRUE;
+
+        
+        return PR_FALSE;
+    }
+
     static PRUint8 CharRangeBit(PRUint32 ch);
     
     

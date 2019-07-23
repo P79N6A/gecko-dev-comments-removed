@@ -92,9 +92,6 @@ public:
     nsresult UpdateFontList();
 
     
-    void GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
-    
-    
     
     PRInt32 OSXVersion();
 
@@ -110,21 +107,14 @@ public:
 #endif
 
     
-    static void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
-
-    
-    static eFontPrefLang GetFontPrefLangFor(PRUint8 aUnicodeRange);
+    virtual void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
 
 private:
-    void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
-                            eFontPrefLang aCharLang, eFontPrefLang aPageLang);
-                                               
     virtual qcms_profile* GetPlatformCMSOutputProfile();
     
     
     static PRUint32 ReadAntiAliasingThreshold();    
     
-    nsTArray<PRUint32> mCJKPrefLangs;
     PRInt32 mOSXVersion;
     PRUint32 mFontAntiAliasingThreshold;
 

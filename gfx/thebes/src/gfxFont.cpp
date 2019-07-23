@@ -54,6 +54,7 @@
 #include "gfxPlatformFontList.h"
 #include "nsMathUtils.h"
 #include "nsBidiUtils.h"
+#include "nsUnicodeRange.h"
 
 #include "cairo.h"
 #include "gfxFontTest.h"
@@ -107,6 +108,27 @@ const nsString& gfxFontEntry::FamilyName()
 {
     NS_ASSERTION(mFamily, "gfxFontEntry is not a member of a family");
     return mFamily->Name();
+}
+
+already_AddRefed<gfxFont>
+gfxFontEntry::GetOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold)
+{
+    
+    nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(Name(), aStyle);
+    if (!font) {
+        gfxFont *newFont = CreateFontInstance(aStyle, aNeedsBold);
+        if (!newFont)
+            return nsnull;
+        if (!newFont->Valid()) {
+            delete newFont;
+            return nsnull;
+        }
+        font = newFont;
+        gfxFontCache::GetCache()->AddNew(font);
+    }
+    gfxFont *f = nsnull;
+    font.swap(f);
+    return f;
 }
 
 
@@ -1327,6 +1349,83 @@ gfxFontGroup::gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyl
 {
     mUserFontSet = nsnull;
     SetUserFontSet(aUserFontSet);
+
+
+
+#if defined(XP_MACOSX) || defined(XP_WIN)
+    ForEachFont(FindPlatformFont, this);
+    
+    if (mFonts.Length() == 0) {
+        PRBool needsBold;
+        gfxFontEntry *defaultFont = 
+            gfxPlatformFontList::PlatformFontList()->GetDefaultFont(aStyle, needsBold);
+        NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
+
+        nsRefPtr<gfxFont> font = defaultFont->GetOrMakeFont(aStyle, needsBold);
+        if (font) {
+            mFonts.AppendElement(font);
+        }
+    }
+
+    mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());
+
+    if (!mStyle.systemFont) {
+        for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
+            gfxFont* font = mFonts[i];
+            if (font->GetFontEntry()->mIsBadUnderlineFont) {
+                gfxFloat first = mFonts[0]->GetMetrics().underlineOffset;
+                gfxFloat bad = font->GetMetrics().underlineOffset;
+                mUnderlineOffset = PR_MIN(first, bad);
+                break;
+            }
+        }
+    }
+#endif
+}
+
+PRBool
+gfxFontGroup::FindPlatformFont(const nsAString& aName,
+                               const nsACString& aGenericName,
+                               void *aClosure)
+{
+    gfxFontGroup *fontGroup = static_cast<gfxFontGroup*>(aClosure);
+    const gfxFontStyle *fontStyle = fontGroup->GetStyle();
+
+
+    PRBool needsBold;
+    gfxFontEntry *fe = nsnull;
+
+    
+    gfxUserFontSet *fs = fontGroup->GetUserFontSet();
+    if (fs) {
+        fe = fs->FindFontEntry(aName, *fontStyle, needsBold);
+    }
+
+    
+    if (!fe) {
+        fe = gfxPlatformFontList::PlatformFontList()->
+            FindFontForFamily(aName, fontStyle, needsBold);
+    }
+
+    
+    if (fe && !fontGroup->HasFont(fe)) {
+        nsRefPtr<gfxFont> font = fe->GetOrMakeFont(fontStyle, needsBold);
+        if (font) {
+            fontGroup->mFonts.AppendElement(font);
+        }
+    }
+
+    return PR_TRUE;
+}
+
+PRBool
+gfxFontGroup::HasFont(const gfxFontEntry *aFontEntry)
+{
+    for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
+        if (mFonts.ElementAt(i)->GetFontEntry() == aFontEntry)
+            return PR_TRUE;
+    }
+    return PR_FALSE;
 }
 
 gfxFontGroup::~gfxFontGroup() {
@@ -1334,6 +1433,11 @@ gfxFontGroup::~gfxFontGroup() {
     SetUserFontSet(nsnull);
 }
 
+gfxFontGroup *
+gfxFontGroup::Copy(const gfxFontStyle *aStyle)
+{
+    return new gfxFontGroup(mFamilies, aStyle, mUserFontSet);
+}
 
 PRBool 
 gfxFontGroup::IsInvalidChar(PRUnichar ch) {
@@ -1557,6 +1661,151 @@ gfxFontGroup::MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags)
     return textRun.forget();
 }
 
+#define UNICODE_LRO 0x202d
+#define UNICODE_RLO 0x202e
+#define UNICODE_PDF 0x202c
+
+inline void
+AppendDirectionalIndicatorStart(PRUint32 aFlags, nsAString& aString)
+{
+    static const PRUnichar overrides[2] = { UNICODE_LRO, UNICODE_RLO };
+    aString.Append(overrides[(aFlags & gfxTextRunFactory::TEXT_IS_RTL) != 0]);    
+    aString.Append(' ');
+}
+
+inline void
+AppendDirectionalIndicatorEnd(PRBool aNeedDirection, nsAString& aString)
+{
+    
+    
+    
+    
+    aString.Append(' ');
+    if (!aNeedDirection)
+        return;
+
+    aString.Append('.');
+    aString.Append(UNICODE_PDF);
+}
+
+gfxTextRun *
+gfxFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
+                          const Parameters *aParams, PRUint32 aFlags)
+{
+    NS_ASSERTION(aLength > 0, "should use MakeEmptyTextRun for zero-length text");
+    NS_ASSERTION(aFlags & TEXT_IS_8BIT, "should be marked 8bit");
+    gfxTextRun *textRun = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
+    if (!textRun)
+        return nsnull;
+
+    nsDependentCSubstring cString(reinterpret_cast<const char*>(aString),
+                                  reinterpret_cast<const char*>(aString) + aLength);
+
+    nsAutoString utf16;
+    AppendASCIItoUTF16(cString, utf16);
+
+    InitTextRun(textRun, utf16.get(), utf16.Length());
+
+    textRun->FetchGlyphExtents(aParams->mContext);
+
+    return textRun;
+}
+
+gfxTextRun *
+gfxFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
+                          const Parameters *aParams, PRUint32 aFlags)
+{
+    NS_ASSERTION(aLength > 0, "should use MakeEmptyTextRun for zero-length text");
+    gfxTextRun *textRun = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
+    if (!textRun)
+        return nsnull;
+
+    gfxPlatform::GetPlatform()->SetupClusterBoundaries(textRun, aString);
+
+    InitTextRun(textRun, aString, aLength);
+
+    textRun->FetchGlyphExtents(aParams->mContext);
+
+    return textRun;
+}
+
+#define SMALL_GLYPH_RUN 128 // preallocated size of our auto arrays for per-glyph data;
+                            
+                            
+
+void
+gfxFontGroup::InitTextRun(gfxTextRun *aTextRun,
+                          const PRUnichar *aString,
+                          PRUint32 aLength)
+{
+    gfxFont *mainFont = mFonts[0].get();
+
+    PRUint32 runStart = 0;
+    nsAutoTArray<gfxTextRange,3> fontRanges;
+    ComputeRanges(fontRanges, aString, 0, aLength);
+    PRUint32 numRanges = fontRanges.Length();
+
+    nsAutoTArray<PRPackedBool,SMALL_GLYPH_RUN> unmatchedArray;
+    PRPackedBool *unmatched = NULL;
+
+    for (PRUint32 r = 0; r < numRanges; r++) {
+        const gfxTextRange& range = fontRanges[r];
+        PRUint32 matchedLength = range.Length();
+        gfxFont *matchedFont = (range.font ? range.font.get() : nsnull);
+
+        if (matchedFont) {
+            
+            aTextRun->AddGlyphRun(matchedFont, runStart, (matchedLength > 0));
+
+            
+            matchedFont->InitTextRun(aTextRun, aString, runStart, matchedLength);
+        } else {
+            
+            if (unmatched == NULL) {
+                if (unmatchedArray.SetLength(aLength)) {
+                    unmatched = unmatchedArray.Elements();
+                    ::memset(unmatched, PR_FALSE, aLength*sizeof(PRPackedBool));
+                }
+            }
+
+            
+            aTextRun->AddGlyphRun(mainFont, runStart, matchedLength);
+
+            for (PRUint32 index = runStart; index < runStart + matchedLength; index++) {
+                
+                if (NS_IS_HIGH_SURROGATE(aString[index]) &&
+                    index + 1 < aLength &&
+                    NS_IS_LOW_SURROGATE(aString[index+1])) {
+                    aTextRun->SetMissingGlyph(index,
+                                              SURROGATE_TO_UCS4(aString[index],
+                                                                aString[index+1]));
+                    index++;
+                } else {
+                    aTextRun->SetMissingGlyph(index, aString[index]);
+                }
+            }
+
+            
+            
+            
+            if (unmatched)
+                ::memset(unmatched + runStart, PR_TRUE, matchedLength);
+        }
+
+        runStart += matchedLength;
+    }
+
+    
+    
+    
+    
+    aTextRun->SanitizeGlyphRuns();
+
+    
+    
+    aTextRun->SortGlyphRuns();
+}
+
 
 
 already_AddRefed<gfxFont>
@@ -1686,6 +1935,129 @@ gfxFontGroup::GetGeneration()
     return mUserFontSet->GetGeneration();
 }
 
+void
+gfxFontGroup::UpdateFontList()
+{
+    
+    if (mUserFontSet && mCurrGeneration != GetGeneration()) {
+        
+        mFonts.Clear();
+        mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
+        ForEachFont(FindPlatformFont, this);
+        mCurrGeneration = GetGeneration();
+    }
+}
+
+struct PrefFontCallbackData {
+    PrefFontCallbackData(nsTArray<nsRefPtr<gfxFontFamily> >& aFamiliesArray)
+        : mPrefFamilies(aFamiliesArray)
+    {}
+
+    nsTArray<nsRefPtr<gfxFontFamily> >& mPrefFamilies;
+
+    static PRBool AddFontFamilyEntry(eFontPrefLang aLang, const nsAString& aName, void *aClosure)
+    {
+        PrefFontCallbackData *prefFontData = static_cast<PrefFontCallbackData*>(aClosure);
+
+        gfxFontFamily *family = gfxPlatformFontList::PlatformFontList()->FindFamily(aName);
+        if (family) {
+            prefFontData->mPrefFamilies.AppendElement(family);
+        }
+        return PR_TRUE;
+    }
+};
+
+already_AddRefed<gfxFont>
+gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
+{
+    gfxFont *font;
+
+    
+    if (aCh > 0xFFFF)
+        return nsnull;
+
+    
+    PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
+    eFontPrefLang charLang = gfxPlatform::GetPlatform()->GetFontPrefLangFor(unicodeRange);
+
+    
+    if (mLastPrefFont && charLang == mLastPrefLang &&
+        mLastPrefFirstFont && mLastPrefFont->HasCharacter(aCh)) {
+        font = mLastPrefFont;
+        NS_ADDREF(font);
+        return font;
+    }
+
+    
+    eFontPrefLang prefLangs[kMaxLenPrefLangList];
+    PRUint32 i, numLangs = 0;
+
+    gfxPlatform::GetPlatform()->GetLangPrefs(prefLangs, numLangs, charLang, mPageLang);
+
+    for (i = 0; i < numLangs; i++) {
+        nsAutoTArray<nsRefPtr<gfxFontFamily>, 5> families;
+        eFontPrefLang currentLang = prefLangs[i];
+
+        gfxPlatformFontList *fontList = gfxPlatformFontList::PlatformFontList();
+
+        
+        if (!fontList->GetPrefFontFamilyEntries(currentLang, &families)) {
+            eFontPrefLang prefLangsToSearch[1] = { currentLang };
+            PrefFontCallbackData prefFontData(families);
+            gfxPlatform::ForEachPrefFont(prefLangsToSearch, 1, PrefFontCallbackData::AddFontFamilyEntry,
+                                           &prefFontData);
+            fontList->SetPrefFontFamilyEntries(currentLang, families);
+        }
+
+        
+        PRUint32  i, numPrefs;
+        numPrefs = families.Length();
+        for (i = 0; i < numPrefs; i++) {
+            
+            gfxFontFamily *family = families[i];
+            if (!family) continue;
+
+            
+            
+            
+            
+            if (family == mLastPrefFamily && mLastPrefFont->HasCharacter(aCh)) {
+                font = mLastPrefFont;
+                NS_ADDREF(font);
+                return font;
+            }
+
+            PRBool needsBold;
+            gfxFontEntry *fe = family->FindFontForStyle(mStyle, needsBold);
+            
+            if (fe && fe->TestCharacterMap(aCh)) {
+                nsRefPtr<gfxFont> prefFont = fe->GetOrMakeFont(&mStyle, needsBold);
+                if (!prefFont) continue;
+                mLastPrefFamily = family;
+                mLastPrefFont = prefFont;
+                mLastPrefLang = charLang;
+                mLastPrefFirstFont = (i == 0);
+                return prefFont.forget();
+            }
+
+        }
+    }
+
+    return nsnull;
+}
+
+already_AddRefed<gfxFont>
+gfxFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
+{
+    gfxFontEntry *fe = 
+        gfxPlatformFontList::PlatformFontList()->FindFontForChar(aCh, GetFontAt(0));
+    if (fe) {
+        nsRefPtr<gfxFont> font = fe->GetOrMakeFont(&mStyle, PR_FALSE); 
+        return font.forget();
+    }
+
+    return nsnull;
+}
 
 #define DEFAULT_PIXEL_FONT_SIZE 16.0f
 

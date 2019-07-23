@@ -171,7 +171,7 @@ gfxAtsuiFont::gfxAtsuiFont(MacOSFontEntry *aFontEntry,
 
 ATSFontRef gfxAtsuiFont::GetATSFontRef()
 {
-    return GetFontEntry()->GetFontRef();
+    return static_cast<MacOSFontEntry*>(GetFontEntry())->GetFontRef();
 }
 
 static void
@@ -364,7 +364,8 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     fprintf (stderr, "    maxAscent: %f maxDescent: %f maxAdvance: %f\n", mMetrics.maxAscent, mMetrics.maxDescent, mMetrics.maxAdvance);
     fprintf (stderr, "    internalLeading: %f externalLeading: %f\n", mMetrics.internalLeading, mMetrics.externalLeading);
     fprintf (stderr, "    spaceWidth: %f aveCharWidth: %f xHeight: %f\n", mMetrics.spaceWidth, mMetrics.aveCharWidth, mMetrics.xHeight);
-    fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
+    fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize,
+                              mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
 #endif
 }
 
@@ -500,441 +501,6 @@ gfxAtsuiFont::HasMirroringInfo()
     return mHasMirroring;
 }
 
-PRBool gfxAtsuiFont::TestCharacterMap(PRUint32 aCh) {
-    if (!mIsValid) return PR_FALSE;
-    return GetFontEntry()->TestCharacterMap(aCh);
-}
-
-MacOSFontEntry*
-gfxAtsuiFont::GetFontEntry()
-{
-    return static_cast<MacOSFontEntry*> (mFontEntry.get());
-}
-
-
-
-
-
-
- 
-static already_AddRefed<gfxAtsuiFont>
-GetOrMakeFont(MacOSFontEntry *aFontEntry, const gfxFontStyle *aStyle, PRBool aNeedsBold)
-{
-    
-    nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aFontEntry->Name(), aStyle);
-    if (!font) {
-        gfxAtsuiFont *newFont = new gfxAtsuiFont(aFontEntry, aStyle, aNeedsBold);
-        if (!newFont)
-            return nsnull;
-        if (!newFont->Valid()) {
-            delete newFont;
-            return nsnull;
-        }
-        font = newFont;
-        gfxFontCache::GetCache()->AddNew(font);
-    }
-    gfxFont *f = nsnull;
-    font.swap(f);
-    return static_cast<gfxAtsuiFont *>(f);
-}
-
-
-gfxAtsuiFontGroup::gfxAtsuiFontGroup(const nsAString& families,
-                                     const gfxFontStyle *aStyle,
-                                     gfxUserFontSet *aUserFontSet)
-    : gfxFontGroup(families, aStyle, aUserFontSet)
-{
-    mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.langGroup.get());
-
-    InitFontList();
-}
-
-PRBool
-gfxAtsuiFontGroup::FindATSFont(const nsAString& aName,
-                               const nsACString& aGenericName,
-                               void *aClosure)
-{
-    gfxAtsuiFontGroup *fontGroup = static_cast<gfxAtsuiFontGroup*>(aClosure);
-    const gfxFontStyle *fontStyle = fontGroup->GetStyle();
-
-
-    PRBool needsBold;
-    MacOSFontEntry *fe = nsnull;
-    
-    
-    gfxUserFontSet *fs = fontGroup->GetUserFontSet();
-    gfxFontEntry *gfe;
-    if (fs && (gfe = fs->FindFontEntry(aName, *fontStyle, needsBold))) {
-        
-        fe = static_cast<MacOSFontEntry*> (gfe);
-    }
-    
-    
-    if (!fe) {
-        fe = static_cast<MacOSFontEntry*>
-            (gfxMacPlatformFontList::PlatformFontList()->FindFontForFamily(aName, fontStyle, needsBold));
-    }
-
-    if (fe && !fontGroup->HasFont(fe->GetFontRef())) {
-        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(fe, fontStyle, needsBold);
-        if (font) {
-            fontGroup->mFonts.AppendElement(font);
-        }
-    }
-
-    return PR_TRUE;
-}
-
-gfxFontGroup *
-gfxAtsuiFontGroup::Copy(const gfxFontStyle *aStyle)
-{
-    return new gfxAtsuiFontGroup(mFamilies, aStyle, mUserFontSet);
-}
-
-#define UNICODE_LRO 0x202d
-#define UNICODE_RLO 0x202e
-#define UNICODE_PDF 0x202c
-
-static void
-AppendDirectionalIndicatorStart(PRUint32 aFlags, nsAString& aString)
-{
-    static const PRUnichar overrides[2] = { UNICODE_LRO, UNICODE_RLO };
-    aString.Append(overrides[(aFlags & gfxTextRunFactory::TEXT_IS_RTL) != 0]);
-}
-
-
-
-static PRUint32
-AppendDirectionalIndicatorEnd(PRBool aNeedDirection, nsAString& aString)
-{
-    
-    
-    
-    
-    
-    
-    
-    aString.Append(' ');
-    if (!aNeedDirection)
-        return 1;
-
-    
-    
-    aString.Append('.');
-    aString.Append(UNICODE_PDF);
-    return 2;
-}
-
-
-
-
-
-
-
-
-static PRUint32
-FindTextRunSegmentLength(gfxTextRun *aTextRun, PRUint32 aOffset, PRUint32 aMaxLength)
-{
-    if (aOffset + aMaxLength >= aTextRun->GetLength()) {
-        
-        
-        return aTextRun->GetLength() - aOffset;
-    }
-
-    
-    
-    PRUint32 end;
-    for (end = aOffset + aMaxLength; end > aOffset; --end) {
-        if (aTextRun->IsClusterStart(end) &&
-            (aTextRun->GetChar(end) == ' ' || aTextRun->GetChar(end - 1) == ' '))
-            return end - aOffset;
-    }
-
-    
-    for (end = aOffset + aMaxLength; end > aOffset; --end) {
-        if (aTextRun->IsClusterStart(end))
-            return end - aOffset;
-    }
-
-    
-    
-    for (end = aOffset + 1; end < aTextRun->GetLength(); ++end) {
-        if (aTextRun->IsClusterStart(end))
-            return end - aOffset;
-    }
-    return aTextRun->GetLength() - aOffset;
-}
-
-PRUint32
-gfxAtsuiFontGroup::GuessMaximumStringLength()
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    PRUint32 maxAdvance = PRUint32(GetFontAt(0)->GetMetrics().maxAdvance);
-    PRUint32 chars = 0x7FFF/PR_MAX(1, maxAdvance);
-    
-    PRUint32 realGuessMax = PR_MAX(1, chars);
-    
-    
-    
-    
-    
-    realGuessMax = PR_MIN(500, realGuessMax);
-
-    return realGuessMax;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-gfxTextRun *
-gfxAtsuiFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                               const Parameters *aParams, PRUint32 aFlags)
-{
-    NS_ASSERTION(aLength > 0, "should use MakeEmptyTextRun for zero-length text");
-    gfxTextRun *textRun = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
-    if (!textRun)
-        return nsnull;
-
-    gfxPlatformMac::SetupClusterBoundaries(textRun, aString);
-
-    PRUint32 maxLen;
-    nsAutoString utf16;
-    for (maxLen = GuessMaximumStringLength(); maxLen > 0; maxLen /= 2) {
-        PRUint32 start = 0;
-        while (start < aLength) {
-            PRUint32 len = FindTextRunSegmentLength(textRun, start, maxLen);
-
-            utf16.Truncate();
-            AppendDirectionalIndicatorStart(aFlags, utf16);
-            PRUint32 layoutStart = utf16.Length();
-            utf16.Append(aString + start, len);
-            
-            
-            PRUint32 trailingCharsToIgnore =
-                AppendDirectionalIndicatorEnd(PR_TRUE, utf16);
-            PRUint32 layoutLength = len + trailingCharsToIgnore;
-            if (!InitTextRun(textRun, utf16.get(), utf16.Length(),
-                             layoutStart, layoutLength,
-                             start, len) && maxLen > 1)
-                break;
-            start += len;
-        }
-        if (start == aLength)
-            break;
-        textRun->ResetGlyphRuns();
-    }
-
-    textRun->FetchGlyphExtents(aParams->mContext);
-
-    return textRun;
-}
-
-gfxTextRun *
-gfxAtsuiFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                               const Parameters *aParams, PRUint32 aFlags)
-{
-    NS_ASSERTION(aLength > 0, "should use MakeEmptyTextRun for zero-length text");
-    NS_ASSERTION(aFlags & TEXT_IS_8BIT, "should be marked 8bit");
-    gfxTextRun *textRun = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
-    if (!textRun)
-        return nsnull;
-
-    PRUint32 maxLen;
-    nsAutoString utf16;
-    for (maxLen = GuessMaximumStringLength(); maxLen > 0; maxLen /= 2) {
-        PRUint32 start = 0;
-        while (start < aLength) {
-            PRUint32 len = FindTextRunSegmentLength(textRun, start, maxLen);
-
-            nsDependentCSubstring cString(reinterpret_cast<const char*>(aString + start),
-                                          reinterpret_cast<const char*>(aString + start + len));
-            utf16.Truncate();
-            PRBool wrapBidi = (aFlags & TEXT_IS_RTL) != 0;
-            if (wrapBidi) {
-                AppendDirectionalIndicatorStart(aFlags, utf16);
-            }
-            PRUint32 layoutStart = utf16.Length();
-            AppendASCIItoUTF16(cString, utf16);
-            PRUint32 trailingCharsToIgnore =
-                AppendDirectionalIndicatorEnd(wrapBidi, utf16);
-            PRUint32 layoutLength = len + trailingCharsToIgnore;
-            if (!InitTextRun(textRun, utf16.get(), utf16.Length(),
-                             layoutStart, layoutLength,
-                             start, len) && maxLen > 1)
-                break;
-            start += len;
-        }
-        if (start == aLength)
-            break;
-        textRun->ResetGlyphRuns();
-    }
-
-    textRun->FetchGlyphExtents(aParams->mContext);
-
-    return textRun;
-}
-
-PRBool
-gfxAtsuiFontGroup::HasFont(ATSFontRef aFontRef)
-{
-    for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
-        if (aFontRef == static_cast<gfxAtsuiFont *>(mFonts.ElementAt(i).get())->GetATSFontRef())
-            return PR_TRUE;
-    }
-    return PR_FALSE;
-}
-
-struct PrefFontCallbackData {
-    PrefFontCallbackData(nsTArray<nsRefPtr<gfxFontFamily> >& aFamiliesArray) 
-        : mPrefFamilies(aFamiliesArray)
-    {}
-
-    nsTArray<nsRefPtr<gfxFontFamily> >& mPrefFamilies;
-
-    static PRBool AddFontFamilyEntry(eFontPrefLang aLang, const nsAString& aName, void *aClosure)
-    {
-        PrefFontCallbackData *prefFontData = static_cast<PrefFontCallbackData*>(aClosure);
-        
-        gfxFontFamily *family = gfxMacPlatformFontList::PlatformFontList()->FindFamily(aName);
-        if (family) {
-            prefFontData->mPrefFamilies.AppendElement(family);
-        }
-        return PR_TRUE;
-    }
-};
-
-
-already_AddRefed<gfxFont>
-gfxAtsuiFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
-{
-    gfxFont *font;
-
-    
-    if (aCh > 0xFFFF)
-        return nsnull;
-
-    
-    PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
-    eFontPrefLang charLang = gfxPlatformMac::GetFontPrefLangFor(unicodeRange);
-
-    
-    if (mLastPrefFont && charLang == mLastPrefLang && mLastPrefFirstFont && mLastPrefFont->TestCharacterMap(aCh)) {
-        font = mLastPrefFont;
-        NS_ADDREF(font);
-        return font;
-    }
-
-    
-    eFontPrefLang prefLangs[kMaxLenPrefLangList];
-    PRUint32 i, numLangs = 0;
-
-    gfxPlatformMac *macPlatform = gfxPlatformMac::GetPlatform();
-    macPlatform->GetLangPrefs(prefLangs, numLangs, charLang, mPageLang);
-
-    for (i = 0; i < numLangs; i++) {
-        nsAutoTArray<nsRefPtr<gfxFontFamily>, 5> families;
-        eFontPrefLang currentLang = prefLangs[i];
-        
-        gfxMacPlatformFontList *fc = gfxMacPlatformFontList::PlatformFontList();
-
-        
-        if (!fc->GetPrefFontFamilyEntries(currentLang, &families)) {
-            eFontPrefLang prefLangsToSearch[1] = { currentLang };
-            PrefFontCallbackData prefFontData(families);
-            gfxPlatform::ForEachPrefFont(prefLangsToSearch, 1, PrefFontCallbackData::AddFontFamilyEntry,
-                                           &prefFontData);
-            fc->SetPrefFontFamilyEntries(currentLang, families);
-        }
-
-        
-        PRUint32  i, numPrefs;
-        numPrefs = families.Length();
-        for (i = 0; i < numPrefs; i++) {
-            
-            gfxFontFamily *family = families[i];
-            if (!family) continue;
-            
-            
-            
-            
-            
-            if (family == mLastPrefFamily && mLastPrefFont->TestCharacterMap(aCh)) {
-                font = mLastPrefFont;
-                NS_ADDREF(font);
-                return font;
-            }
-            
-            PRBool needsBold;
-            MacOSFontEntry *fe =
-                static_cast<MacOSFontEntry*>(family->FindFontForStyle(mStyle, needsBold));
-            
-            if (fe && fe->TestCharacterMap(aCh)) {
-                nsRefPtr<gfxAtsuiFont> prefFont = GetOrMakeFont(fe, &mStyle, needsBold);
-                if (!prefFont) continue;
-                mLastPrefFamily = family;
-                mLastPrefFont = prefFont;
-                mLastPrefLang = charLang;
-                mLastPrefFirstFont = (i == 0);
-                nsRefPtr<gfxFont> font2 = prefFont.get();
-                return font2.forget();
-            }
-
-        }
-    }
-
-    return nsnull;
-}
-
-already_AddRefed<gfxFont> 
-gfxAtsuiFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
-{
-    MacOSFontEntry *fe;
-
-    fe = static_cast<MacOSFontEntry*>
-        (gfxMacPlatformFontList::PlatformFontList()->FindFontForChar(aCh, GetFontAt(0)));
-    if (fe) {
-        nsRefPtr<gfxAtsuiFont> atsuiFont = GetOrMakeFont(fe, &mStyle, PR_FALSE); 
-        nsRefPtr<gfxFont> font = atsuiFont.get(); 
-        return font.forget();
-    }
-
-    return nsnull;
-}
-
-void
-gfxAtsuiFontGroup::UpdateFontList()
-{
-    
-    if (mUserFontSet && mCurrGeneration != GetGeneration()) {
-        
-        mFonts.Clear();
-        mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
-        InitFontList();
-        mCurrGeneration = GetGeneration();
-    }
-}
-
-
 
 
 
@@ -977,9 +543,8 @@ private:
 
 static PRBool
 PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
-                   const PRUnichar *aString, PRInt32 aLayoutLength,
-                   PRInt32 aOffsetInTextRun, PRInt32 aLengthInTextRun,
-                   const PRPackedBool *aUnmatched)
+                   const PRUnichar *aString, PRInt32 aStartOffset,
+                   PRInt32 aRunStart, PRInt32 aRunLength)
 {
     AutoLayoutDataArrayPtr baselineDeltasArray(aLine, kATSUDirectDataBaselineDeltaFixedArray);
     Fixed *baselineDeltas = static_cast<Fixed *>(baselineDeltasArray.mArray);
@@ -1001,23 +566,6 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
 
     PRBool isLTR = !aTextRun->IsRightToLeft();
 
-    PRUint32 trailingCharactersToIgnore = aLayoutLength - aLengthInTextRun;
-    if (trailingCharactersToIgnore > 0) {
-        
-        
-        if (isLTR) {
-            NS_ASSERTION((PRInt32)glyphRecords[numGlyphs - trailingCharactersToIgnore].originalOffset == aLengthInTextRun*2,
-                         "Couldn't find glyph for trailing marker");
-        } else {
-            NS_ASSERTION((PRInt32)glyphRecords[trailingCharactersToIgnore - 1].originalOffset == aLengthInTextRun*2,
-                         "Couldn't find glyph for trailing marker");
-            glyphRecords += trailingCharactersToIgnore;
-        }
-        numGlyphs -= trailingCharactersToIgnore;
-        if (numGlyphs == 0)
-            return PR_FALSE;
-    }
-
     PRUint32 allFlags = 0;
     PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
 
@@ -1028,17 +576,20 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
 
     static const PRInt32 NO_GLYPH = -1;
     nsAutoTArray<PRInt32,128> charToGlyphArray;
-    if (!charToGlyphArray.SetLength(aLengthInTextRun))
+    if (!charToGlyphArray.SetLength(aRunLength))
         return NS_ERROR_OUT_OF_MEMORY;
 
     PRInt32 *charToGlyph = charToGlyphArray.Elements();
-    for (PRInt32 offset = 0; offset < aLengthInTextRun; ++offset) {
+    for (PRInt32 offset = 0; offset < aRunLength; ++offset) {
         charToGlyph[offset] = NO_GLYPH;
     }
     for (PRInt32 g = 0; g < numGlyphs; ++g) {
         
         
-        charToGlyph[glyphRecords[g].originalOffset/2] = g;
+        PRInt32 loc = glyphRecords[g].originalOffset/2;
+        if (loc >= 0 && loc < aRunLength) {
+            charToGlyph[loc] = g;
+        }
     }
 
     
@@ -1058,15 +609,15 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
     
 
     PRInt32 glyphStart = 0; 
-    PRInt32 charStart = isLTR ? 0 : aLengthInTextRun-1; 
+    PRInt32 charStart = isLTR ? 0 : aRunLength-1; 
     PRInt32 direction = isLTR ? 1 : -1; 
 
     while (glyphStart < numGlyphs) { 
 
-        PRInt32 charEnd = (PRInt32)glyphRecords[glyphStart].originalOffset/2;
-        PRInt32 charLimit = isLTR ? aLengthInTextRun : -1;
-        PRInt32 glyphEnd = glyphStart;
         PRBool inOrder = PR_TRUE;
+        PRInt32 charEnd = (PRInt32)glyphRecords[glyphStart].originalOffset/2;
+        PRInt32 glyphEnd = glyphStart;
+        PRInt32 charLimit = isLTR ? aRunLength : -1;
         do {
             
             
@@ -1120,6 +671,11 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
                 break;
             }
 
+            if (glyphEnd == glyphStart) {
+                
+                continue;
+            }
+
             
             
             
@@ -1160,15 +716,15 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
         
         PRInt32 baseCharIndex, endCharIndex;
         if (isLTR) {
-            baseCharIndex = charStart;
-            endCharIndex = charEnd;
+            baseCharIndex = charStart + aRunStart;
+            endCharIndex = charEnd + aRunStart;
         } else {
-            baseCharIndex = charEnd + 1;
-            endCharIndex = charStart + 1;
+            baseCharIndex = charEnd + aRunStart + 1;
+            endCharIndex = charStart + aRunStart + 1;
         }
 
         
-        if (baseCharIndex >= aLayoutLength || endCharIndex <= 0) {
+        if (baseCharIndex >= aRunStart + aRunLength || endCharIndex <= aRunStart) {
             glyphStart = glyphEnd;
             charStart = charEnd;
             continue;
@@ -1176,27 +732,8 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
 
         
         
-        baseCharIndex = PR_MAX(baseCharIndex, 0);
-        endCharIndex = PR_MIN(endCharIndex, aLayoutLength);
-
-        
-        if (aUnmatched && aUnmatched[baseCharIndex]) {
-            for (PRInt32 i = baseCharIndex; i < endCharIndex; ++i) {
-                if (NS_IS_HIGH_SURROGATE(aString[i]) &&
-                    i + 1 < aLayoutLength &&
-                    NS_IS_LOW_SURROGATE(aString[i + 1])) {
-                    aTextRun->SetMissingGlyph(aOffsetInTextRun + i,
-                                              SURROGATE_TO_UCS4(aString[i],
-                                                                aString[i + 1]));
-                    ++i;
-                } else {
-                    aTextRun->SetMissingGlyph(aOffsetInTextRun + i, aString[i]);
-                }
-            }
-            glyphStart = glyphEnd;
-            charStart = charEnd;
-            continue;
-        }
+        baseCharIndex = PR_MAX(baseCharIndex, aRunStart);
+        endCharIndex = PR_MIN(endCharIndex, aRunStart + aRunLength);
 
         
         
@@ -1209,11 +746,6 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
                                        glyphRecords[glyphStart].realPos);
         }
         PRInt32 advance = PRInt32(toNextGlyph * appUnitsPerDevUnit);
-
-        
-        
-        baseCharIndex += aOffsetInTextRun;
-        endCharIndex += aOffsetInTextRun;
 
         
         PRInt32 glyphsInClump = glyphEnd - glyphStart;
@@ -1274,12 +806,9 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
 struct PostLayoutCallbackClosure {
     gfxTextRun                  *mTextRun;
     const PRUnichar             *mString;
-    PRUint32                     mLayoutLength;
+    PRUint32                     mStartOffset;
     PRUint32                     mOffsetInTextRun;
     PRUint32                     mLengthInTextRun;
-    
-    
-    nsAutoArrayPtr<PRPackedBool> mUnmatchedChars;
     
     PRPackedBool                 mOverrunningGlyphs;
 };
@@ -1297,176 +826,84 @@ PostLayoutOperationCallback(ATSULayoutOperationSelector iCurrentOperation,
     gCallbackClosure->mOverrunningGlyphs =
         PostLayoutCallback(iLineRef, gCallbackClosure->mTextRun,
                            gCallbackClosure->mString,
-                           gCallbackClosure->mLayoutLength,
+                           gCallbackClosure->mStartOffset,
                            gCallbackClosure->mOffsetInTextRun,
-                           gCallbackClosure->mLengthInTextRun,
-                           gCallbackClosure->mUnmatchedChars);
+                           gCallbackClosure->mLengthInTextRun);
     *oCallbackStatus = kATSULayoutOperationCallbackStatusContinue;
     return noErr;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void MirrorSubstring(ATSUTextLayout layout, nsAutoArrayPtr<PRUnichar>& mirroredStr,
-                            const PRUnichar *aString, PRUint32 aLength,
-                            UniCharArrayOffset runStart, UniCharCount runLength)
+void
+gfxAtsuiFont::InitTextRun(gfxTextRun *aTextRun,
+                          const PRUnichar *aString,
+                          PRUint32 aRunStart,
+                          PRUint32 aRunLength)
 {
-    UniCharArrayOffset  off;
+    
+    
+    
+    
+
+    PRBool isRTL = aTextRun->IsRightToLeft();
 
     
-    for (off = runStart; off < runStart + runLength; off++) {
-        PRUnichar  mirroredChar;
-        
-        mirroredChar = (PRUnichar) SymmSwap(aString[off]);
-        if (mirroredChar != aString[off]) {
-            
-            if (mirroredStr == NULL) {
-            
-                
-                mirroredStr = new PRUnichar[aLength];
-                memcpy(mirroredStr, aString, sizeof(PRUnichar) * aLength);
-                
-                
-                ATSUTextMoved(layout, mirroredStr);
-                
+    
+    PRBool bidiWrap = isRTL;
+    if (!bidiWrap && (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_IS_8BIT) == 0) {
+        PRUint32 i;
+        for (i = aRunStart; i < aRunStart + aRunLength; ++i) {
+            if (gfxFontUtils::PotentialRTLChar(aString[i])) {
+                bidiWrap = PR_TRUE;
+                break;
             }
-            mirroredStr[off] = mirroredChar;
         }
     }
-}
-
-
-
-static ATSUStyle
-SetLayoutRangeToFont(ATSUTextLayout layout, ATSUStyle mainStyle, UniCharArrayOffset offset,
-                      UniCharCount length, ATSUFontID fontID)
-{
-    ATSUStyle subStyle;
-    ATSUCreateStyle (&subStyle);
-    ATSUCopyAttributes (mainStyle, subStyle);
-
-    ATSUAttributeTag fontTags[] = { kATSUFontTag };
-    ByteCount fontArgSizes[] = { sizeof(ATSUFontID) };
-    ATSUAttributeValuePtr fontArgs[] = { &fontID };
-
-    ATSUSetAttributes (subStyle, 1, fontTags, fontArgSizes, fontArgs);
 
     
-    ATSUSetRunStyle (layout, subStyle, offset, length);
+    
+    const UniChar beginLTR[]    = { 0x202d };
+    const UniChar beginRTL[]    = { 0x202e };
+    const UniChar endBidiWrap[] = { 0x202c };
 
-    return subStyle;
-}
+    const UniChar *textPtr;
+    PRUint32 startOffset;
+    nsAutoArrayPtr<UniChar> textBuffer;
+    if (bidiWrap) {
+        startOffset = isRTL ?
+            sizeof(beginRTL) / sizeof(beginRTL[0]) : sizeof(beginLTR) / sizeof(beginLTR[0]);
+        UniCharCount len = startOffset + aRunLength + sizeof(endBidiWrap) / sizeof(endBidiWrap[0]);
+        textBuffer = new UniChar[len];
+        ::memcpy(textBuffer.get(), isRTL ? beginRTL : beginLTR, startOffset * sizeof(UniChar));
+        if (isRTL && !HasMirroringInfo()) {
+            
+            
+            
+            PRUint32 i;
+            for (i = 0; i < aRunLength; ++i) {
+                textBuffer[startOffset + i] = SymmSwap(aString[aRunStart + i]);
+            }
+        } else {
+            ::memcpy(textBuffer.get() + startOffset, aString + aRunStart, aRunLength * sizeof(UniChar));
+        }
+        ::memcpy(textBuffer.get() + startOffset + aRunLength, endBidiWrap, sizeof(endBidiWrap));
+        textPtr = textBuffer.get();
+    } else {
+        startOffset = 0;
+        textPtr = aString + aRunStart;
+    }
 
-PRBool
-gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
-                               const PRUnichar *aString, PRUint32 aLength,
-                               PRUint32 aLayoutStart, PRUint32 aLayoutLength,
-                               PRUint32 aOffsetInTextRun, PRUint32 aLengthInTextRun)
-{
     OSStatus status;
-    gfxAtsuiFont *firstFont = GetFontAt(0);
-    ATSUStyle mainStyle = firstFont->GetATSUStyle();
-    nsTArray<ATSUStyle> stylesToDispose;
-    const PRUnichar *layoutString = aString + aLayoutStart;
+    ATSUStyle atsuStyle = GetATSUStyle();
 
-#ifdef DUMP_TEXT_RUNS
-    NS_ConvertUTF16toUTF8 str(layoutString, aLengthInTextRun);
-    NS_ConvertUTF16toUTF8 families(mFamilies);
-    PR_LOG(gAtsuiTextRunLog, PR_LOG_DEBUG,\
-           ("InitTextRun %p fontgroup %p (%s) lang: %s len %d TEXTRUN \"%s\" ENDTEXTRUN\n",
-            aRun, this, families.get(), mStyle.langGroup.get(), aLengthInTextRun, str.get()) );
-
-
-
-#endif
-
-    if (aRun->GetFlags() & TEXT_DISABLE_OPTIONAL_LIGATURES) {
-        status = ATSUCreateAndCopyStyle(mainStyle, &mainStyle);
+    if (aTextRun->GetFlags() & gfxTextRunFactory::TEXT_DISABLE_OPTIONAL_LIGATURES) {
+        status = ::ATSUCreateAndCopyStyle(atsuStyle, &atsuStyle);
         if (status == noErr) {
-            stylesToDispose.AppendElement(mainStyle);
-            DisableCommonLigatures(mainStyle);
+            DisableCommonLigatures(atsuStyle);
+        } else {
+            
+            atsuStyle = GetATSUStyle();
         }
     }
-
-    UniCharCount runLengths = aLengthInTextRun;
-    ATSUTextLayout layout;
-    
-    
-    
-    
-    status = ATSUCreateTextLayoutWithTextPtr
-        (aString,
-         aLayoutStart,
-         aLayoutLength,
-         aLength,
-         1,
-         &runLengths,
-         &mainStyle,
-         &layout);
-    
-
-    PostLayoutCallbackClosure closure;
-    closure.mTextRun = aRun;
-    closure.mString = layoutString;
-    closure.mLayoutLength = aLayoutLength;
-    closure.mOffsetInTextRun = aOffsetInTextRun;
-    closure.mLengthInTextRun = aLengthInTextRun;
-    NS_ASSERTION(!gCallbackClosure, "Reentering InitTextRun? Expect disaster!");
-    gCallbackClosure = &closure;
-
-    ATSULayoutOperationOverrideSpecifier override;
-    override.operationSelector = kATSULayoutOperationPostLayoutAdjustment;
-    override.overrideUPP = PostLayoutOperationCallback;
-
-    
-    ATSLineLayoutOptions lineLayoutOptions = kATSLineKeepSpacesOutOfMargin | kATSLineHasNoHangers;
-
-    static ATSUAttributeTag layoutTags[] = {
-        kATSULineLayoutOptionsTag,
-        kATSULayoutOperationOverrideTag
-    };
-    static ByteCount layoutArgSizes[] = {
-        sizeof(ATSLineLayoutOptions),
-        sizeof(ATSULayoutOperationOverrideSpecifier)
-    };
-
-    ATSUAttributeValuePtr layoutArgs[] = {
-        &lineLayoutOptions,
-        &override
-    };
-    ATSUSetLayoutControls(layout,
-                          NS_ARRAY_LENGTH(layoutTags),
-                          layoutTags,
-                          layoutArgSizes,
-                          layoutArgs);
-
-    
-
-    nsAutoArrayPtr<PRUnichar> mirroredStr;
-
-    UniCharArrayOffset runStart = aLayoutStart;
-    UniCharCount runLength = aLengthInTextRun;
-
-    
-
-    nsTArray<gfxTextRange> fontRanges;
-
-    ComputeRanges(fontRanges, aString, runStart, runStart + runLength);
-
-    PRUint32 r, numRanges = fontRanges.Length();
 
     
     
@@ -1476,152 +913,97 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
     
     nsTArray<PRUint32> hackForLiGothic;
 
-    for (r = 0; r < numRanges; r++) {
-        const gfxTextRange& range = fontRanges[r];
-   
-        gfxAtsuiFont *matchedFont;
-        UniCharCount  matchedLength;
-        
-        
-        matchedLength = range.Length();
-        matchedFont = static_cast<gfxAtsuiFont*> (range.font ? range.font.get() : nsnull);
-
-#ifdef DUMP_TEXT_RUNS
-        PR_LOG(gAtsuiTextRunLog, PR_LOG_DEBUG, ("InitTextRun %p fontgroup %p font %p match %s (%d-%d)", aRun, this, matchedFont, (matchedFont ? NS_ConvertUTF16toUTF8(matchedFont->GetUniqueName()).get() : "<null>"), runStart, matchedLength));
-#endif
-        
-        
-        
-        if (aRun->IsRightToLeft() && matchedFont && !matchedFont->HasMirroringInfo()) {
-            MirrorSubstring(layout, mirroredStr, aString, aLength, runStart, runLength);
-        }       
-
-        
-        if (!matchedFont) {
-        
-            aRun->AddGlyphRun(firstFont, aOffsetInTextRun + runStart - aLayoutStart, PR_TRUE);
-            
-            if (!closure.mUnmatchedChars) {
-                closure.mUnmatchedChars = new PRPackedBool[aLength];
-                if (closure.mUnmatchedChars) {
-                    
-                    memset(closure.mUnmatchedChars.get(), PR_FALSE, aLength);
-                }
-            }
-
-            if (closure.mUnmatchedChars) {
-                
-                memset(closure.mUnmatchedChars.get() + runStart - aLayoutStart,
-                       PR_TRUE, matchedLength);
-            }
-            
-        } else {
-        
-            if (matchedFont != firstFont) {
-                
-                ATSUStyle subStyle = SetLayoutRangeToFont(layout, mainStyle, runStart,
-                                                          matchedLength, matchedFont->GetATSFontRef());
-                stylesToDispose.AppendElement(subStyle);
-            }
-
-            
-            aRun->AddGlyphRun(matchedFont, aOffsetInTextRun + runStart - aLayoutStart, PR_TRUE);
-
-            if (matchedFont->GetFontEntry()->UseLiGothicAtsuiHack()) {
-                PRUnichar *text = const_cast<PRUnichar*>(layoutString);
-                for (PRUint32 i = 0; i < matchedLength; ++i) {
-                    if (text[aOffsetInTextRun + runStart + i] ==
-                        kLiGothicBadCharUnicode) {
-                        hackForLiGothic.AppendElement(aOffsetInTextRun +
-                                                      runStart + i);
-                        text[aOffsetInTextRun + runStart + i] =
-                            kLiGothicBadCharUnicode + 1;
-                    }
-                }
+    MacOSFontEntry *fe = static_cast<MacOSFontEntry*>(GetFontEntry());
+    if (fe->UseLiGothicAtsuiHack()) {
+        PRUnichar *text = const_cast<PRUnichar*>(textPtr);
+        for (PRUint32 i = startOffset; i < startOffset + aRunLength; ++i) {
+            if (text[i] == kLiGothicBadCharUnicode) {
+                hackForLiGothic.AppendElement(i);
+                text[i] = kLiGothicBadCharUnicode + 1;
             }
         }
-        
-        runStart += matchedLength;
-        runLength -= matchedLength;    
     }
 
-
+    ATSUTextLayout layout;
+    
+    
+    
+    
+    UniCharCount runLength = aRunLength;
+    status = ::ATSUCreateTextLayoutWithTextPtr(textPtr,
+                                               startOffset,
+                                               aRunLength,
+                                               startOffset + aRunLength,
+                                               1,
+                                               &runLength,
+                                               &atsuStyle,
+                                               &layout);
     
 
+    PostLayoutCallbackClosure closure;
+    closure.mTextRun = aTextRun;
+    closure.mString = textPtr;
+    closure.mStartOffset = startOffset;
+    closure.mOffsetInTextRun = aRunStart;
+    closure.mLengthInTextRun = aRunLength;
+    NS_ASSERTION(!gCallbackClosure, "Reentering InitTextRun? Expect disaster!");
+    gCallbackClosure = &closure;
+
+    ATSULayoutOperationOverrideSpecifier override;
+    override.operationSelector = kATSULayoutOperationPostLayoutAdjustment;
+    override.overrideUPP = PostLayoutOperationCallback;
+
     
-    
-    aRun->SortGlyphRuns();
+    ATSLineLayoutOptions lineLayoutOptions = kATSLineKeepSpacesOutOfMargin | kATSLineHasNoHangers;
+    Boolean lineDirection = isRTL ? kATSURightToLeftBaseDirection : kATSULeftToRightBaseDirection;
+
+    static ATSUAttributeTag layoutTags[] = {
+        kATSULineLayoutOptionsTag,
+        kATSULayoutOperationOverrideTag,
+        kATSULineDirectionTag
+    };
+    static ByteCount layoutArgSizes[] = {
+        sizeof(ATSLineLayoutOptions),
+        sizeof(ATSULayoutOperationOverrideSpecifier),
+        sizeof(Boolean)
+    };
+
+    ATSUAttributeValuePtr layoutArgs[] = {
+        &lineLayoutOptions,
+        &override,
+        &lineDirection
+    };
+    ::ATSUSetLayoutControls(layout,
+                            NS_ARRAY_LENGTH(layoutTags),
+                            layoutTags,
+                            layoutArgSizes,
+                            layoutArgs);
 
     
     
     ATSTrapezoid trap;
     ItemCount trapCount;
-    ATSUGetGlyphBounds(layout, 0, 0, aLayoutStart, aLengthInTextRun,
-                       kATSUseFractionalOrigins, 1, &trap, &trapCount); 
+    ::ATSUGetGlyphBounds(layout, 0, 0, startOffset, aRunLength,
+                         kATSUseFractionalOrigins, 1, &trap, &trapCount); 
 
-    ATSUDisposeTextLayout(layout);
+    ::ATSUDisposeTextLayout(layout);
 
-    aRun->AdjustAdvancesForSyntheticBold(aOffsetInTextRun, aLengthInTextRun);
+    aTextRun->AdjustAdvancesForSyntheticBold(aRunStart, aRunLength);
 
     for (PRUint32 i = 0; i < hackForLiGothic.Length(); ++i) {
         gfxTextRun::CompressedGlyph glyph =
-            aRun->GetCharacterGlyphs()[hackForLiGothic[i]];
+            aTextRun->GetCharacterGlyphs()[aRunStart + hackForLiGothic[i]];
         if (glyph.IsSimpleGlyph()) {
-            aRun->SetSimpleGlyph(hackForLiGothic[i],
+            aTextRun->SetSimpleGlyph(aRunStart + hackForLiGothic[i],
                                  glyph.SetSimpleGlyph(glyph.GetSimpleAdvance(),
                                                       kLiGothicBadCharGlyph));
         }
     }
 
-    PRUint32 i;
-    for (i = 0; i < stylesToDispose.Length(); ++i) {
-        ATSUDisposeStyle(stylesToDispose[i]);
+    if (atsuStyle != GetATSUStyle()) {
+        ::ATSUDisposeStyle(atsuStyle);
     }
     gCallbackClosure = nsnull;
-    return !closure.mOverrunningGlyphs;
-}
-
-void
-gfxAtsuiFontGroup::InitFontList()
-{
-    ForEachFont(FindATSFont, this);
-
-    if (mFonts.Length() == 0) {
-        
-        
-        
-        
-        
-
-        
-
-        
-        
-        
-
-        PRBool needsBold;
-        MacOSFontEntry *defaultFont = static_cast<MacOSFontEntry*>
-            (gfxMacPlatformFontList::PlatformFontList()->GetDefaultFont(&mStyle, needsBold));
-        NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
-
-        nsRefPtr<gfxAtsuiFont> font = GetOrMakeFont(defaultFont, &mStyle, needsBold);
-
-        if (font) {
-            mFonts.AppendElement(font);
-        }
-    }
-
-    if (!mStyle.systemFont) {
-        for (PRUint32 i = 0; i < mFonts.Length(); ++i) {
-            gfxAtsuiFont* font = static_cast<gfxAtsuiFont*>(mFonts[i].get());
-            if (font->GetFontEntry()->mIsBadUnderlineFont) {
-                gfxFloat first = mFonts[0]->GetMetrics().underlineOffset;
-                gfxFloat bad = font->GetMetrics().underlineOffset;
-                mUnderlineOffset = PR_MIN(first, bad);
-                break;
-            }
-        }
-    }
 }
 
 #endif 
