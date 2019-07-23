@@ -128,7 +128,30 @@ struct JSObjectMap {
 
 struct JSObject {
     JSObjectMap *map;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     jsuword     classword;
+
     jsval       fslots[JS_INITIAL_NSLOTS];
     jsval       *dslots;        
 };
