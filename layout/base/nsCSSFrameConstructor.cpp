@@ -2295,7 +2295,8 @@ nsCSSFrameConstructor::CreateInputFrame(nsFrameConstructorState& aState,
                                         const nsStyleDisplay*    aStyleDisplay,
                                         PRBool&                  aFrameHasBeenInitialized,
                                         PRBool&                  aAddedToFrameList,
-                                        nsFrameItems&            aFrameItems)
+                                        nsFrameItems&            aFrameItems,
+                                        PRBool                   aHasPseudoParent)
 {
   
   
@@ -2315,7 +2316,8 @@ nsCSSFrameConstructor::CreateInputFrame(nsFrameConstructorState& aState,
 
       nsresult rv = ConstructButtonFrame(aState, aContent, aParentFrame,
                                          aTag, aStyleContext, aFrame,
-                                         aStyleDisplay, aFrameItems);
+                                         aStyleDisplay, aFrameItems,
+                                         aHasPseudoParent);
       aAddedToFrameList = PR_TRUE;
       aFrameHasBeenInitialized = PR_TRUE;
       return rv;
@@ -4764,8 +4766,13 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
                                             nsStyleContext*          aStyleContext,
                                             nsIFrame**               aNewFrame,
                                             const nsStyleDisplay*    aStyleDisplay,
-                                            nsFrameItems&            aFrameItems)
+                                            nsFrameItems&            aFrameItems,
+                                            PRBool                   aHasPseudoParent)
 {
+  if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
+    ProcessPseudoFrames(aState, aFrameItems); 
+  }      
+
   *aNewFrame = nsnull;
   nsIFrame* buttonFrame = nsnull;
   
@@ -5330,14 +5337,18 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
     triedFrame = PR_TRUE;
   }
   else if (nsGkAtoms::input == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-        ProcessPseudoFrames(aState, aFrameItems); 
-    }
     
     rv = CreateInputFrame(aState, aContent, aParentFrame,
                           aTag, aStyleContext, &newFrame,
                           display, frameHasBeenInitialized,
-                          addedToFrameList, aFrameItems);  
+                          addedToFrameList, aFrameItems,
+                          aHasPseudoParent);
+    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty() &&
+        newFrame && !addedToFrameList) {
+      
+      
+      ProcessPseudoFrames(aState, aFrameItems);       
+    }
   }
   else if (nsGkAtoms::textarea == aTag) {
     if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
@@ -5468,13 +5479,9 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
     triedFrame = PR_TRUE;
   }
   else if (nsGkAtoms::button == aTag) {
-    if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
-      ProcessPseudoFrames(aState, aFrameItems); 
-    }
-    
     rv = ConstructButtonFrame(aState, aContent, aParentFrame,
                               aTag, aStyleContext, &newFrame,
-                              display, aFrameItems);
+                              display, aFrameItems, aHasPseudoParent);
     
     
     

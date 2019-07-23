@@ -508,7 +508,8 @@ private:
                                 nsStyleContext*          aStyleContext,
                                 nsIFrame**               aNewFrame,
                                 const nsStyleDisplay*    aStyleDisplay,
-                                nsFrameItems&            aFrameItems);
+                                nsFrameItems&            aFrameItems,
+                                PRBool                   aHasPseudoParent);
 
   
   
@@ -675,7 +676,8 @@ private:
                             const nsStyleDisplay*    aStyleDisplay,
                             PRBool&                  aFrameHasBeenInitialized,
                             PRBool&                  aAddedToFrameList,
-                            nsFrameItems&            aFrameItems);
+                            nsFrameItems&            aFrameItems,
+                            PRBool                   aHasPseudoParent);
 
   
   typedef nsIFrame* (* ImageFrameCreatorFunc)(nsIPresShell*, nsStyleContext*);
