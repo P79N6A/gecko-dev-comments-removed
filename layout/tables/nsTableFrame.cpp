@@ -6426,6 +6426,8 @@ nsTableFrame::PaintBCBorders(nsIRenderingContext& aRenderingContext,
   
   
   
+  
+  
   if (!haveIntersect)
     return;  
   if (!inFlowRG || !inFlowRow) ABORT0();

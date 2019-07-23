@@ -280,11 +280,9 @@ nsBox::SetBounds(nsBoxLayoutState& aState, const nsRect& aRect, PRBool aRemoveOv
 
     
     
-    if (aRemoveOverflowArea && (GetStateBits() & NS_FRAME_OUTSIDE_CHILDREN)) {
+    if (aRemoveOverflowArea && HasOverflowRect()) {
       
-      PresContext()->PropertyTable()->
-        DeleteProperty(this, nsGkAtoms::overflowAreaProperty);
-      RemoveStateBits(NS_FRAME_OUTSIDE_CHILDREN);
+      ClearOverflowRect();
     }
 
     if (!(flags & NS_FRAME_NO_MOVE_VIEW))

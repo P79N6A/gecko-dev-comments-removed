@@ -162,9 +162,14 @@ enum {
   
   NS_FRAME_IS_FLUID_CONTINUATION =              0x00000004,
 
-  
-  
-  NS_FRAME_OUTSIDE_CHILDREN =                   0x00000008,
+
+
+
+
+
+
+
+
 
   
   
@@ -450,6 +455,24 @@ typedef PRBool nsDidReflowStatus;
 
 
 
+#define NS_FRAME_OVERFLOW_DELTA_MAX     0xfe // max delta we can store
+
+#define NS_FRAME_OVERFLOW_NONE    0x00000000 // there is no overflow rect;
+                                             
+                                             
+
+#define NS_FRAME_OVERFLOW_LARGE   0x000000ff // overflow is stored as a
+                                             
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -710,9 +733,32 @@ public:
   nsRect GetRect() const { return mRect; }
   nsPoint GetPosition() const { return nsPoint(mRect.x, mRect.y); }
   nsSize GetSize() const { return nsSize(mRect.width, mRect.height); }
-  void SetRect(const nsRect& aRect) { mRect = aRect; }
+
+  
+
+
+
+
+
+  void SetRect(const nsRect& aRect) {
+    if (HasOverflowRect() && mOverflow.mType != NS_FRAME_OVERFLOW_LARGE) {
+      nsRect r = GetOverflowRect();
+      mRect = aRect;
+      SetOverflowRect(r);
+    } else {
+      mRect = aRect;
+    }
+  }
+  void SetSize(const nsSize& aSize) {
+    if (HasOverflowRect() && mOverflow.mType != NS_FRAME_OVERFLOW_LARGE) {
+      nsRect r = GetOverflowRect();
+      mRect.SizeTo(aSize);
+      SetOverflowRect(r);
+    } else {
+      mRect.SizeTo(aSize);
+    }
+  }
   void SetPosition(const nsPoint& aPt) { mRect.MoveTo(aPt); }
-  void SetSize(const nsSize& aSize) { mRect.SizeTo(aSize); }
 
   
 
@@ -1814,6 +1860,22 @@ public:
 
 
 
+  PRBool HasOverflowRect() const {
+    return mOverflow.mType != NS_FRAME_OVERFLOW_NONE;
+  }
+
+  
+
+
+  void ClearOverflowRect() {
+    DeleteProperty(nsGkAtoms::overflowAreaProperty);
+    mOverflow.mType = NS_FRAME_OVERFLOW_NONE;
+  }
+
+  
+
+
+
   virtual PRIntn GetSkipSides() const { return 0; }
 
   
@@ -2255,6 +2317,25 @@ protected:
   nsIFrame*        mParent;
   nsIFrame*        mNextSibling;  
   nsFrameState     mState;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  union {
+    PRUint32  mType;
+    struct {
+      PRUint8 mLeft;
+      PRUint8 mTop;
+      PRUint8 mRight;
+      PRUint8 mBottom;
+    } mDeltas;
+  } mOverflow;
   
   
   
@@ -2357,6 +2438,7 @@ protected:
 
 private:
   nsRect* GetOverflowAreaProperty(PRBool aCreateIfNecessary = PR_FALSE);
+  void SetOverflowRect(const nsRect& aRect);
 };
 
 

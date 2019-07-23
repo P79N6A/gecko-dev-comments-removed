@@ -111,7 +111,7 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
     kidReflowState.mStylePadding->GetPadding(padding);
 
     
-    if (NS_FRAME_OUTSIDE_CHILDREN & frame->GetStateBits()) {
+    if (frame->HasOverflowRect()) {
       
       
       if (aDesiredSize.mOverflowArea.XMost() > aDesiredSize.width) {

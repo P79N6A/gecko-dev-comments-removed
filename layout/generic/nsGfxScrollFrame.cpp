@@ -2083,9 +2083,7 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState, const nsRect& aRect
     
     
     mInner.mScrolledFrame->SetBounds(aState, childRect);
-    PresContext()->PropertyTable()->
-        DeleteProperty(mInner.mScrolledFrame, nsGkAtoms::overflowAreaProperty);
-    mInner.mScrolledFrame->RemoveStateBits(NS_FRAME_OUTSIDE_CHILDREN);
+    mInner.mScrolledFrame->ClearOverflowRect();
   }
 
   aState.SetLayoutFlags(oldflags);
