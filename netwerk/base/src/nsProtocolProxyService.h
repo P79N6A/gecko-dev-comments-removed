@@ -306,8 +306,7 @@ public:
         PRUint32 host_len;
     };
 
-protected:
-
+    
     enum ProxyConfig {
         eProxyConfig_Direct,
         eProxyConfig_Manual,
@@ -317,6 +316,8 @@ protected:
         eProxyConfig_System, 
         eProxyConfig_Last
     };
+
+protected:
 
     
     struct HostInfo {
