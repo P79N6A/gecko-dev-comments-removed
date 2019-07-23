@@ -563,7 +563,10 @@ JS_StringToVersion(const char *string);
                                                    JS_SetBranchCallback may be
                                                    called with a null script
                                                    parameter, by native code
-                                                   that loops intensively */
+                                                   that loops intensively.
+                                                   Deprecated, use
+                                                   JS_SetOperationCallback
+                                                   instead */
 #define JSOPTION_DONT_REPORT_UNCAUGHT \
                                 JS_BIT(8)       /* When returning from the
                                                    outermost API call, prevent
@@ -2096,6 +2099,56 @@ extern JS_PUBLIC_API(JSBool)
 JS_CallFunctionValue(JSContext *cx, JSObject *obj, jsval fval, uintN argc,
                      jsval *argv, jsval *rval);
 
+
+
+
+
+#define JS_MAX_OPERATION_LIMIT ((uint32) 0x7FFFFFFF)
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback,
+                        uint32 operationLimit);
+
+extern JS_PUBLIC_API(void)
+JS_ClearOperationCallback(JSContext *cx);
+
+extern JS_PUBLIC_API(JSOperationCallback)
+JS_GetOperationCallback(JSContext *cx);
+
+
+
+
+
+
+extern JS_PUBLIC_API(uint32)
+JS_GetOperationLimit(JSContext *cx);
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetOperationLimit(JSContext *cx, uint32 operationLimit);
+
+
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSBranchCallback)
 JS_SetBranchCallback(JSContext *cx, JSBranchCallback cb);
 
@@ -2261,7 +2314,7 @@ JS_CStringsAreUTF8(void);
 
 
 JS_PUBLIC_API(void)
-JS_SetCStringsAreUTF8();
+JS_SetCStringsAreUTF8(void);
 
 
 
