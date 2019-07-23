@@ -725,6 +725,9 @@ BuildStyleRule(nsCSSProperty aProperty,
   nsCOMPtr<nsICSSParser> parser;
   nsCOMPtr<nsICSSStyleRule> styleRule;
 
+  nsCSSProperty propertyToCheck = nsCSSProps::IsShorthand(aProperty) ?
+    nsCSSProps::SubpropertyEntryFor(aProperty)[0] : aProperty;
+
   
   
   
@@ -737,7 +740,7 @@ BuildStyleRule(nsCSSProperty aProperty,
                                       aTargetElement->NodePrincipal(),
                                       declaration, &changed)) ||
       
-      !declaration->SlotForValue(aProperty) ||
+      !declaration->SlotForValue(propertyToCheck) ||
       NS_FAILED(NS_NewCSSStyleRule(getter_AddRefs(styleRule), nsnull,
                                    declaration))) {
     NS_WARNING("failure in BuildStyleRule");
@@ -834,7 +837,8 @@ nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
     return PR_FALSE;
   }
 
-  if (nsCSSProps::kAnimTypeTable[aProperty] == eStyleAnimType_None) {
+ if (nsCSSProps::IsShorthand(aProperty) ||
+     nsCSSProps::kAnimTypeTable[aProperty] == eStyleAnimType_None) {
     
     aComputedValue.SetUnparsedStringValue(nsString(aSpecifiedValue));
     return PR_TRUE;
