@@ -505,7 +505,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
     if (value->isconstq()) {
         const int32_t* p = (const int32_t*) (value-2);
 
-        underrunProtect(12 + LD32_size);
+        underrunProtect(12);
 
         asm_quad_nochk(rv, p);
     }
@@ -522,27 +522,23 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
 void
 Assembler::asm_quad_nochk(Register rr, const int32_t* p)
 {
-    *(++_nSlot) = p[0];
-    *(++_nSlot) = p[1];
-
-    intptr_t constAddr = (intptr_t) (_nSlot-1);
-    intptr_t realOffset = PC_OFFSET_FROM(constAddr, _nIns-1);
-    intptr_t offset = realOffset;
-    Register baseReg = PC;
-
+    
+    
     
     
 
     
-    if (!isS8(realOffset >> 2)) {
-        offset = 0;
-        baseReg = Scratch;
-    }
+    
+    
+    
+    
 
-    FLDD(rr, baseReg, offset);
+    FLDD(rr, PC, -16);
 
-    if (!isS8(realOffset >> 2))
-        LD32_nochk(Scratch, constAddr);
+    *(--_nIns) = (NIns) p[1];
+    *(--_nIns) = (NIns) p[0];
+
+    JMP_nochk(_nIns+2);
 }
 
 void
@@ -562,7 +558,7 @@ Assembler::asm_quad(LInsp ins)
     freeRsrcOf(ins, false);
 
     
-    underrunProtect(16 + LD32_size);
+    underrunProtect(d ? 20 : 16);
 
     
     
