@@ -42,7 +42,7 @@
 #include "nsString.h"
 #include "nsIComponentManager.h"
 #include "nsILocalFile.h"
-#include "nsMIMEInfoImpl.h"
+#include "nsMIMEInfoUnix.h"
 #include "nsAutoPtr.h"
 
 #include <glib.h>
@@ -304,7 +304,7 @@ nsGNOMERegistry::GetFromType(const char *aMIMEType)
   if (!handlerApp)
     return nsnull;
 
-  nsRefPtr<nsMIMEInfoImpl> mimeInfo = new nsMIMEInfoImpl(aMIMEType);
+  nsRefPtr<nsMIMEInfoUnix> mimeInfo = new nsMIMEInfoUnix(aMIMEType);
   NS_ENSURE_TRUE(mimeInfo, nsnull);
 
   
