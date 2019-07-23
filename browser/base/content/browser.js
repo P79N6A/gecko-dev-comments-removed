@@ -6606,7 +6606,13 @@ IdentityHandler.prototype = {
     this.setPopupMessages(this._identityBox.className);
     
     
-    this._identityPopup.openPopup(this._identityBox, 'after_start');
+    
+    var position = 'after_start';
+    if (gURLBar.getAttribute("chromedir") == "rtl")
+      position = 'after_end';
+
+    
+    this._identityPopup.openPopup(this._identityBox, position);
   }
 };
 
