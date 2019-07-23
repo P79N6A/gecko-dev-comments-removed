@@ -89,7 +89,7 @@ nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult);
 
 
 nsresult
-nsRange::CompareNodeToRange(nsIContent* aNode, nsIDOMRange* aRange,
+nsRange::CompareNodeToRange(nsINode* aNode, nsIDOMRange* aRange,
                             PRBool *outNodeBefore, PRBool *outNodeAfter)
 {
   nsresult rv;
@@ -101,7 +101,7 @@ nsRange::CompareNodeToRange(nsIContent* aNode, nsIDOMRange* aRange,
 
 
 nsresult
-nsRange::CompareNodeToRange(nsIContent* aNode, nsIRange* aRange,
+nsRange::CompareNodeToRange(nsINode* aNode, nsIRange* aRange,
                             PRBool *outNodeBefore, PRBool *outNodeAfter)
 {
   NS_ENSURE_STATE(aNode);
@@ -129,9 +129,6 @@ nsRange::CompareNodeToRange(nsIContent* aNode, nsIRange* aRange,
     parent = aNode;
     nodeStart = 0;
     nodeEnd = aNode->GetChildCount();
-    if (!nodeEnd) {
-      return NS_ERROR_FAILURE;
-    }
   }
   else {
     nodeStart = parent->IndexOf(aNode);
@@ -928,10 +925,10 @@ RangeSubtreeIterator::GetCurrentNode()
     NS_ADDREF(node = mEnd);
   else if (mIterState == eUseIterator && mIter)
   {
-    nsIContent *content = mIter->GetCurrentNode();
+    nsINode* n = mIter->GetCurrentNode();
 
-    if (content) {
-      CallQueryInterface(content, &node);
+    if (n) {
+      CallQueryInterface(n, &node);
     }
   }
 
@@ -1948,8 +1945,9 @@ nsresult nsRange::ToString(nsAString& aReturn)
 
 
   nsCOMPtr<nsIContentIterator> iter;
-  NS_NewContentIterator(getter_AddRefs(iter));
-  nsresult rv = iter->Init(this);
+  nsresult rv = NS_NewContentIterator(getter_AddRefs(iter));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = iter->Init(this);
   NS_ENSURE_SUCCESS(rv, rv);
   
   nsString tempString;
@@ -1958,23 +1956,23 @@ nsresult nsRange::ToString(nsAString& aReturn)
   
   while (!iter->IsDone())
   {
-    nsIContent *cN = iter->GetCurrentNode();
+    nsINode *n = iter->GetCurrentNode();
 
 #ifdef DEBUG_range
     
-    cN->List(stdout);
+    n->List(stdout);
 #endif 
-    nsCOMPtr<nsIDOMText> textNode( do_QueryInterface(cN) );
+    nsCOMPtr<nsIDOMText> textNode(do_QueryInterface(n));
     if (textNode) 
     {
-      if (cN == mStartParent) 
+      if (n == mStartParent) 
       {
         PRUint32 strLength;
         textNode->GetLength(&strLength);
         textNode->SubstringData(mStartOffset,strLength-mStartOffset,tempString);
         aReturn += tempString;
       }
-      else if (cN == mEndParent)  
+      else if (n == mEndParent)  
       {
         textNode->SubstringData(0,mEndOffset,tempString);
         aReturn += tempString;

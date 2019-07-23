@@ -140,10 +140,10 @@ public:
 
 
 
-  static nsresult CompareNodeToRange(nsIContent* aNode, nsIDOMRange* aRange,
+  static nsresult CompareNodeToRange(nsINode* aNode, nsIDOMRange* aRange,
                                      PRBool *outNodeBefore,
                                      PRBool *outNodeAfter);
-  static nsresult CompareNodeToRange(nsIContent* aNode, nsIRange* aRange,
+  static nsresult CompareNodeToRange(nsINode* aNode, nsIRange* aRange,
                                      PRBool *outNodeBefore,
                                      PRBool *outNodeAfter);
 
