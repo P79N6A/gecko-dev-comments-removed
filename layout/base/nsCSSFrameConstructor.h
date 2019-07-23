@@ -1541,7 +1541,7 @@ private:
 
   nsresult ReframeContainingBlock(nsIFrame* aFrame);
 
-  nsresult StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
+  nsresult StyleChangeReflow(nsIFrame* aFrame);
 
   
 

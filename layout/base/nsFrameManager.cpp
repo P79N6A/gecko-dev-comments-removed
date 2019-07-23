@@ -1091,16 +1091,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
   
   
   
-  if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aMinChange)) {
-    aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_NeedReflow);
-  }
-  
-  
-  
-  
-  
-  
-  
   
   NS_ASSERTION(aFrame->GetContent() || !aParentContent ||
                !aParentContent->GetParent(),

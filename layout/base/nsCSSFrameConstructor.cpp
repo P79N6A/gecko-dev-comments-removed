@@ -7571,8 +7571,7 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
 }
 
 nsresult
-nsCSSFrameConstructor::StyleChangeReflow(nsIFrame* aFrame,
-                                         nsChangeHint aHint)
+nsCSSFrameConstructor::StyleChangeReflow(nsIFrame* aFrame)
 {
   
   
@@ -7587,27 +7586,17 @@ nsCSSFrameConstructor::StyleChangeReflow(nsIFrame* aFrame,
   }
 #endif
 
-  nsIPresShell::IntrinsicDirty dirtyType;
-  if (aHint & nsChangeHint_ClearDescendantIntrinsics) {
-    NS_ASSERTION(aHint & nsChangeHint_ClearAncestorIntrinsics,
-                 "Please read the comments in nsChangeHint.h");
-    dirtyType = nsIPresShell::eStyleChange;
-  } else if (aHint & nsChangeHint_ClearAncestorIntrinsics) {
-    dirtyType = nsIPresShell::eTreeChange;
-  } else {
-    dirtyType = nsIPresShell::eResize;
-  }
-
-  nsFrameState dirtyBits;
-  if (aHint & nsChangeHint_NeedDirtyReflow) {
-    dirtyBits = NS_FRAME_IS_DIRTY;
-  } else {
-    dirtyBits = NS_FRAME_HAS_DIRTY_CHILDREN;
-  }
+  
+  
+  
+  
+  if (IsFrameSpecial(aFrame))
+    aFrame = GetIBContainingBlockFor(aFrame);
 
   do {
-    mPresShell->FrameNeedsReflow(aFrame, dirtyType, dirtyBits);
-    aFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(aFrame);
+    mPresShell->FrameNeedsReflow(aFrame, nsIPresShell::eStyleChange,
+                                 NS_FRAME_IS_DIRTY);
+    aFrame = aFrame->GetNextContinuation();
   } while (aFrame);
 
   return NS_OK;
@@ -7729,11 +7718,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     nsIContent* content;
     nsChangeHint hint;
     aChangeList.ChangeAt(index, frame, content, hint);
-
-    NS_ASSERTION(!(hint & nsChangeHint_ReflowFrame) ||
-                 (hint & nsChangeHint_NeedReflow),
-                 "Reflow hint bits set without actually asking for a reflow");
-
     if (frame && frame->GetContent() != content) {
       
       
@@ -7762,8 +7746,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         nsSVGEffects::UpdateEffects(frame);
       }
 #endif
-      if (hint & nsChangeHint_NeedReflow) {
-        StyleChangeReflow(frame, hint);
+      if (hint & nsChangeHint_ReflowFrame) {
+        StyleChangeReflow(frame);
         didReflow = PR_TRUE;
       }
       if (hint & (nsChangeHint_RepaintFrame | nsChangeHint_SyncFrameView)) {
