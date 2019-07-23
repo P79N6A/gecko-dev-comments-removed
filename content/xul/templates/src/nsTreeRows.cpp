@@ -117,7 +117,7 @@ nsTreeRows::Last()
     } while (current && ((count = current->Count()) != 0));
 
     
-    result.mLink[result.mTop].mChildIndex++;
+    result.GetTop().mChildIndex++;
 
     
     result.SetRowIndex(mRoot.GetSubtreeSize() + 1);
@@ -362,71 +362,64 @@ nsTreeRows::Subtree::RemoveRowAt(PRInt32 aIndex)
 
 
 nsTreeRows::iterator::iterator(const iterator& aIterator)
-    : mTop(aIterator.mTop),
-      mRowIndex(aIterator.mRowIndex)
+    : mRowIndex(aIterator.mRowIndex),
+      mLink(aIterator.mLink)
 {
-    for (PRInt32 i = mTop; i >= 0; --i)
-        mLink[i] = aIterator.mLink[i];
 }
 
 nsTreeRows::iterator&
 nsTreeRows::iterator::operator=(const iterator& aIterator)
 {
-    mTop = aIterator.mTop;
     mRowIndex = aIterator.mRowIndex;
-    for (PRInt32 i = mTop; i >= 0; --i)
-        mLink[i] = aIterator.mLink[i];
+    mLink = aIterator.mLink;
     return *this;
 }
 
 void
 nsTreeRows::iterator::Append(Subtree* aParent, PRInt32 aChildIndex)
 {
-    if (mTop < kMaxDepth - 1) {
-        ++mTop;
-        mLink[mTop].mParent     = aParent;
-        mLink[mTop].mChildIndex = aChildIndex;
+    Link *link = mLink.AppendElement();
+    if (link) {
+        link->mParent     = aParent;
+        link->mChildIndex = aChildIndex;
     }
     else
-        NS_ERROR("overflow");
+        NS_ERROR("out of memory");
 }
 
 void
 nsTreeRows::iterator::Push(Subtree *aParent, PRInt32 aChildIndex)
 {
-    if (mTop < kMaxDepth - 1) {
-        for (PRInt32 i = mTop; i >= 0; --i)
-            mLink[i + 1] = mLink[i];
-
-        mLink[0].mParent     = aParent;
-        mLink[0].mChildIndex = aChildIndex;
-        ++mTop;
+    Link *link = mLink.InsertElementAt(0);
+    if (link) {
+        link->mParent     = aParent;
+        link->mChildIndex = aChildIndex;
     }
     else
-        NS_ERROR("overflow");
+        NS_ERROR("out of memory");
 }
 
 PRBool
 nsTreeRows::iterator::operator==(const iterator& aIterator) const
 {
-    if (mTop != aIterator.mTop)
+    if (GetDepth() != aIterator.GetDepth())
         return PR_FALSE;
 
-    if (mTop == -1)
+    if (GetDepth() == 0)
         return PR_TRUE;
 
-    return PRBool(mLink[mTop] == aIterator.mLink[mTop]);
+    return GetTop() == aIterator.GetTop();
 }
 
 void
 nsTreeRows::iterator::Next()
 {
-    NS_PRECONDITION(mTop >= 0, "cannot increment an uninitialized iterator");
+    NS_PRECONDITION(GetDepth() > 0, "cannot increment an uninitialized iterator");
 
     
     ++mRowIndex;
 
-    Link& top = mLink[mTop];
+    Link& top = GetTop();
 
     
     
@@ -443,7 +436,7 @@ nsTreeRows::iterator::Next()
         
         
         PRInt32 unfinished;
-        for (unfinished = mTop - 1; unfinished >= 0; --unfinished) {
+        for (unfinished = GetDepth() - 2; unfinished >= 0; --unfinished) {
             const Link& link = mLink[unfinished];
             if (link.mChildIndex < link.mParent->Count() - 1)
                 break;
@@ -459,31 +452,31 @@ nsTreeRows::iterator::Next()
 
         
         
-        mTop = unfinished;
+        mLink.SetLength(unfinished + 1);
     }
 
     
-    ++(mLink[mTop].mChildIndex);
+    ++(GetTop().mChildIndex);
 }
 
 void
 nsTreeRows::iterator::Prev()
 {
-    NS_PRECONDITION(mTop >= 0, "cannot increment an uninitialized iterator");
+    NS_PRECONDITION(GetDepth() > 0, "cannot increment an uninitialized iterator");
 
     
     --mRowIndex;
 
     
-    --(mLink[mTop].mChildIndex);
+    --(GetTop().mChildIndex);
 
     
-    if (mLink[mTop].mChildIndex < 0) {
+    if (GetTop().mChildIndex < 0) {
         
         
         
         PRInt32 unfinished;
-        for (unfinished = mTop - 1; unfinished >= 0; --unfinished) {
+        for (unfinished = GetDepth() - 2; unfinished >= 0; --unfinished) {
             const Link& link = mLink[unfinished];
             if (link.mChildIndex >= 0)
                 break;
@@ -497,15 +490,15 @@ nsTreeRows::iterator::Prev()
 
         
         
-        mTop = unfinished;
+        mLink.SetLength(unfinished + 1);
         return;
     }
 
     
     
     
-    Subtree* parent = mLink[mTop].GetParent();
-    PRInt32 index = mLink[mTop].GetChildIndex();
+    Subtree* parent = GetTop().GetParent();
+    PRInt32 index = GetTop().GetChildIndex();
 
     Subtree* subtree = (*parent)[index].mSubtree;
 

@@ -40,6 +40,7 @@
 #define nsTreeRows_h__
 
 #include "nsCOMPtr.h"
+#include "nsTArray.h"
 #include "pldhash.h"
 #include "nsIXULTemplateResult.h"
 #include "nsTemplateMatch.h"
@@ -186,8 +187,6 @@ public:
 
     friend class Subtree;
 
-    enum { kMaxDepth = 32 };
-
 protected:
     
 
@@ -222,9 +221,8 @@ public:
 
     class iterator {
     protected:
-        PRInt32 mTop;
         PRInt32 mRowIndex;
-        Link    mLink[kMaxDepth];
+        nsAutoTArray<Link, 8> mLink;
 
         void Next();
         void Prev();
@@ -247,8 +245,14 @@ public:
 
         void SetRowIndex(PRInt32 aRowIndex) { mRowIndex = aRowIndex; }
 
+        
+
+
+        Link& GetTop() { return mLink[mLink.Length() - 1]; }
+        const Link& GetTop() const { return mLink[mLink.Length() - 1]; }
+
     public:
-        iterator() : mTop(-1), mRowIndex(-1) {}
+        iterator() : mRowIndex(-1) {}
 
         iterator(const iterator& aIterator);
         iterator& operator=(const iterator& aIterator);
@@ -258,11 +262,11 @@ public:
         PRBool operator!=(const iterator& aIterator) const {
             return !aIterator.operator==(*this); }
 
-        const Row& operator*() const { return mLink[mTop].GetRow(); }
-        Row& operator*() { return mLink[mTop].GetRow(); }
+        const Row& operator*() const { return GetTop().GetRow(); }
+        Row& operator*() { return GetTop().GetRow(); }
 
-        const Row* operator->() const { return &(mLink[mTop].GetRow()); }
-        Row* operator->() { return &(mLink[mTop].GetRow()); }
+        const Row* operator->() const { return &(GetTop().GetRow()); }
+        Row* operator->() { return &(GetTop().GetRow()); }
 
         iterator& operator++() { Next(); return *this; }
         iterator operator++(int) { iterator temp(*this); Next(); return temp; }
@@ -272,23 +276,20 @@ public:
         
 
 
-        Subtree* GetParent() {
-            return mLink[mTop].GetParent(); }
+        Subtree* GetParent() { return GetTop().GetParent(); }
 
-        const Subtree* GetParent() const {
-            return mLink[mTop].GetParent(); }
+        const Subtree* GetParent() const { return GetTop().GetParent(); }
 
         
 
 
-        PRInt32 GetChildIndex() const {
-            return mLink[mTop].GetChildIndex(); }
+        PRInt32 GetChildIndex() const { return GetTop().GetChildIndex(); }
 
         
 
 
 
-        PRInt32 GetDepth() const { return mTop + 1; }
+        PRInt32 GetDepth() const { return mLink.Length(); }
 
         
 
@@ -298,7 +299,7 @@ public:
         
 
 
-        iterator& Pop() { --mTop; return *this; }
+        iterator& Pop() { mLink.SetLength(GetDepth() - 1); return *this; }
     };
 
     
