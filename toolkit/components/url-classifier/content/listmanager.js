@@ -82,8 +82,20 @@ function PROT_ListManager() {
                                           true );
 
   
-  this.urlCrypto_ = null;
   
+  this.keyManager_ = null;
+
+  this.rekeyObserver_ = new G_ObserverServiceObserver(
+                                          'url-classifier-rekey-requested',
+                                          BindToObject(this.rekey_, this),
+                                          false);
+  this.updateWaitingForKey_ = false;
+
+  this.cookieObserver_ = new G_ObserverServiceObserver(
+                                          'cookie-changed',
+                                          BindToObject(this.cookieChanged_, this),
+                                          false);
+
   this.requestBackoff_ = new RequestBackoff(3 ,
                                    10*60*1000 ,
                                    60*60*1000 ,
@@ -145,10 +157,15 @@ PROT_ListManager.prototype.setGethashUrl = function(url) {
 
 PROT_ListManager.prototype.setKeyUrl = function(url) {
   G_Debug(this, "Set key url: " + url);
-  if (!this.urlCrypto_)
-    this.urlCrypto_ = new PROT_UrlCrypto();
-  
-  this.urlCrypto_.manager_.setKeyUrl(url);
+  if (!this.keyManager_) {
+    this.keyManager_ = new PROT_UrlCryptoKeyManager();
+    this.keyManager_.onNewKey(BindToObject(this.newKey_, this));
+
+    this.hashCompleter_.setKeys(this.keyManager_.getClientKey(),
+                                this.keyManager_.getWrappedKey());
+  }
+
+  this.keyManager_.setKeyUrl(url);
 }
 
 
@@ -371,6 +388,27 @@ PROT_ListManager.prototype.checkForUpdates = function() {
 
 
 PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
+  if (!this.keyManager_)
+    return;
+
+  if (!this.keyManager_.hasKey()) {
+    
+    
+
+    
+    if (this.updateWaitingForKey_)
+      return;
+
+    
+    
+    
+    
+    if (this.keyManager_.maybeReKey())
+      this.updateWaitingForKey_ = true;
+
+    return;
+  }
+
   var tableNames = {};
   for (var tableName in this.tablesData) {
     if (this.tablesData[tableName].needsUpdate)
@@ -385,7 +423,7 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
   for (var i = 0; i < lines.length; i++) {
     var fields = lines[i].split(";");
     if (tableNames[fields[0]]) {
-      request += lines[i] + "\n";
+      request += lines[i] + ":mac\n";
       delete tableNames[fields[0]];
     }
   }
@@ -393,20 +431,22 @@ PROT_ListManager.prototype.makeUpdateRequest_ = function(tableData) {
   
   
   for (var tableName in tableNames) {
-    request += tableName + ";\n";
+    request += tableName + ";:mac\n";
   }
 
   G_Debug(this, 'checkForUpdates: scheduling request..');
   var streamer = Cc["@mozilla.org/url-classifier/streamupdater;1"]
                  .getService(Ci.nsIUrlClassifierStreamUpdater);
   try {
-    streamer.updateUrl = this.updateserverURL_;
+    streamer.updateUrl = this.updateserverURL_ +
+                         "&wrkey=" + this.keyManager_.getWrappedKey();
   } catch (e) {
     G_Debug(this, 'invalid url');
     return;
   }
 
   if (!streamer.downloadUpdates(request,
+                                this.keyManager_.getClientKey(),
                                 BindToObject(this.updateSuccess_, this),
                                 BindToObject(this.updateError_, this),
                                 BindToObject(this.downloadError_, this))) {
@@ -456,6 +496,46 @@ PROT_ListManager.prototype.downloadError_ = function(status) {
   
   this.currentUpdateChecker_ =
     new G_Alarm(BindToObject(this.checkForUpdates, this), 60000);
+}
+
+
+
+
+
+PROT_ListManager.prototype.rekey_ = function() {
+  G_Debug(this, "rekey requested");
+
+  
+  this.keyManager_.dropKey();
+  this.keyManager_.maybeReKey();
+}
+
+
+
+
+PROT_ListManager.prototype.cookieChanged_ = function(subject, topic, data) {
+  if (data != "cleared")
+    return;
+
+  G_Debug(this, "cookies cleared");
+  this.keyManager_.dropKey();
+}
+
+
+
+
+PROT_ListManager.prototype.newKey_ = function() {
+  G_Debug(this, "got a new MAC key");
+
+  this.hashCompleter_.setKeys(this.keyManager_.getClientKey(),
+                              this.keyManager_.getWrappedKey());
+
+  if (this.keyManager_.hasKey()) {
+    if (this.updateWaitingForKey_) {
+      this.updateWaitingForKey_ = false;
+      this.checkForUpdates();
+    }
+  }
 }
 
 PROT_ListManager.prototype.QueryInterface = function(iid) {

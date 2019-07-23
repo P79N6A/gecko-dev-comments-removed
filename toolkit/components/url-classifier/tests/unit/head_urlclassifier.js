@@ -109,7 +109,7 @@ function buildBareUpdate(chunks, hashSize) {
 
 
 
-function doSimpleUpdate(updateText, success, failure) {
+function doSimpleUpdate(updateText, success, failure, clientKey) {
   var listener = {
     QueryInterface: function(iid)
     {
@@ -125,8 +125,8 @@ function doSimpleUpdate(updateText, success, failure) {
     updateSuccess: function(requestedTimeout) { success(requestedTimeout); }
   };
 
-  dbservice.beginUpdate(listener);
-  dbservice.beginStream("");
+  dbservice.beginUpdate(listener, clientKey);
+  dbservice.beginStream("", "");
   dbservice.updateStream(updateText);
   dbservice.finishStream();
   dbservice.finishUpdate();
@@ -136,14 +136,14 @@ function doSimpleUpdate(updateText, success, failure) {
 
 
 
-function doStreamUpdate(updateText, success, failure, downloadFailure) {
+function doStreamUpdate(updateText, success, failure, downloadFailure, clientKey) {
   var dataUpdate = "data:," + encodeURIComponent(updateText);
 
   if (!downloadFailure)
     downloadFailure = failure;
 
   streamUpdater.updateUrl = dataUpdate;
-  streamUpdater.downloadUpdates("", success, failure, downloadFailure);
+  streamUpdater.downloadUpdates("", clientKey, success, failure, downloadFailure);
 }
 
 var gAssertions = {
@@ -153,12 +153,13 @@ tableData : function(expectedTables, cb)
   dbservice.getTables(function(tables) {
       
       var parts = tables.split("\n");
+      while (parts[parts.length - 1] == '') {
+        parts.pop();
+      }
       parts.sort();
       tables = parts.join("\n");
 
-      
-      
-      do_check_eq(tables, "\n" + expectedTables);
+      do_check_eq(tables, expectedTables);
       cb();
     });
 },
@@ -236,11 +237,15 @@ function updateError(arg)
 }
 
 
-function doUpdateTest(updates, assertions, successCallback, errorCallback) {
+function doUpdateTest(updates, assertions, successCallback, errorCallback, clientKey) {
+  var errorUpdate = function() {
+    checkAssertions(assertions, errorCallback);
+  }
+
   var runUpdate = function() {
     if (updates.length > 0) {
       var update = updates.shift();
-      doStreamUpdate(update, runUpdate, errorCallback);
+      doStreamUpdate(update, runUpdate, errorUpdate, null, clientKey);
     } else {
       checkAssertions(assertions, successCallback);
     }

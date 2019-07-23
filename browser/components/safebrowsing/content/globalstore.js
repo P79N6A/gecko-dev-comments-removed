@@ -132,8 +132,12 @@ PROT_DataProvider.prototype.updateListManager_ = function() {
 
   
   
-  
-  var isEnabled = this.prefs_.getPref(kPhishWardenEnabledPref, false);
+  var isEnabled = this.prefs_.getPref(kPhishWardenEnabledPref, false) ||
+                  this.prefs_.getPref(kMalwareWardenEnabledPref, false);
+  if (isEnabled) {
+    listManager.setKeyUrl(this.keyURL_);
+  }
+
   listManager.setGethashUrl(this.getGethashURL());
 }
 

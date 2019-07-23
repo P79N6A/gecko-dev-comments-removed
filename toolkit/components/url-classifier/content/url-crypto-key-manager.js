@@ -67,7 +67,7 @@
 
 
 
-const kKeyFilename = "kf.txt";
+const kKeyFilename = "urlclassifierkey3.txt";
 
 
 
@@ -96,6 +96,7 @@ function PROT_UrlCryptoKeyManager(opt_keyFilename, opt_testing) {
   this.clientKeyArray_ = null;     
   this.wrappedKey_ = null;         
   this.rekeyTries_ = 0;
+  this.updating_ = false;
 
   
   this.keyUrl_ = null;
@@ -103,16 +104,14 @@ function PROT_UrlCryptoKeyManager(opt_keyFilename, opt_testing) {
   this.keyFilename_ = opt_keyFilename ? 
                       opt_keyFilename : kKeyFilename;
 
+  this.onNewKey_ = null;
+
   
   this.MAX_REKEY_TRIES = PROT_UrlCryptoKeyManager.MAX_REKEY_TRIES;
   this.CLIENT_KEY_NAME = PROT_UrlCryptoKeyManager.CLIENT_KEY_NAME;
   this.WRAPPED_KEY_NAME = PROT_UrlCryptoKeyManager.WRAPPED_KEY_NAME;
 
   if (!this.testing_) {
-    G_Assert(this, !PROT_UrlCrypto.prototype.manager_,
-             "Already have manager?");
-    PROT_UrlCrypto.prototype.manager_ = this;
-
     this.maybeLoadOldKey();
   }
 }
@@ -125,12 +124,19 @@ PROT_UrlCryptoKeyManager.MAX_REKEY_TRIES = 2;
 PROT_UrlCryptoKeyManager.NEXT_REKEY_PREF = "urlclassifier.keyupdatetime.";
 
 
-PROT_UrlCryptoKeyManager.KEY_MIN_UPDATE_TIME = 24 * 60 * 60;
+PROT_UrlCryptoKeyManager.KEY_MIN_UPDATE_TIME = 30 * 24 * 60 * 60;
 
 
 PROT_UrlCryptoKeyManager.CLIENT_KEY_NAME = "clientkey";
 PROT_UrlCryptoKeyManager.WRAPPED_KEY_NAME = "wrappedkey";
 
+
+
+
+
+PROT_UrlCryptoKeyManager.prototype.getClientKey = function() {
+  return this.clientKey_;
+}
 
 
 
@@ -193,7 +199,11 @@ PROT_UrlCryptoKeyManager.prototype.getPrefName_ = function(url) {
 
 
 PROT_UrlCryptoKeyManager.prototype.reKey = function() {
-  
+  if (this.updating_) {
+    G_Debug(this, "Already re-keying, ignoring this request");
+    return true;
+  }
+
   if (this.rekeyTries_ > this.MAX_REKEY_TRIES)
     throw new Error("Have already rekeyed " + this.rekeyTries_ + " times");
 
@@ -204,6 +214,7 @@ PROT_UrlCryptoKeyManager.prototype.reKey = function() {
   if (!this.testing_ && this.keyUrl_) {
     (new PROT_XMLFetcher()).get(this.keyUrl_,
                                 BindToObject(this.onGetKeyResponse, this));
+    this.updating_ = true;
 
     
     var prefs = new G_Preferences(PROT_UrlCryptoKeyManager.NEXT_REKEY_PREF);
@@ -234,7 +245,16 @@ PROT_UrlCryptoKeyManager.prototype.maybeReKey = function() {
 
 
 
-PROT_UrlCryptoKeyManager.prototype.hasKey_ = function() {
+
+PROT_UrlCryptoKeyManager.prototype.dropKey = function() {
+  this.rekeyTries_ = 0;
+  this.replaceKey_(null, null);
+}
+
+
+
+
+PROT_UrlCryptoKeyManager.prototype.hasKey = function() {
   return this.clientKey_ != null && this.wrappedKey_ != null;
 }
 
@@ -258,6 +278,10 @@ PROT_UrlCryptoKeyManager.prototype.replaceKey_ = function(clientKey,
   this.wrappedKey_ = wrappedKey;
 
   this.serializeKey_(this.clientKey_, this.wrappedKey_);
+
+  if (this.onNewKey_) {
+    this.onNewKey_();
+  }
 }
 
 
@@ -278,6 +302,12 @@ PROT_UrlCryptoKeyManager.prototype.serializeKey_ = function() {
                  .getService(Ci.nsIProperties)
                  .get("ProfD", Ci.nsILocalFile); 
     keyfile.append(this.keyFilename_);
+
+    if (!this.clientKey_ || !this.wrappedKey_) {
+      keyfile.remove(true);
+      return;
+    }
+
     var data = (new G_Protocol4Parser()).serialize(map);
 
     try {
@@ -312,12 +342,24 @@ PROT_UrlCryptoKeyManager.prototype.onGetKeyResponse = function(responseText) {
   var clientKey = response[this.CLIENT_KEY_NAME];
   var wrappedKey = response[this.WRAPPED_KEY_NAME];
 
+  this.updating_ = false;
+
   if (response && clientKey && wrappedKey) {
     G_Debug(this, "Got new key from: " + responseText);
     this.replaceKey_(clientKey, wrappedKey);
   } else {
-    G_Debug(this, "Not a valid response for /getkey");
+    G_Debug(this, "Not a valid response for /newkey");
   }
+}
+
+
+
+
+
+
+PROT_UrlCryptoKeyManager.prototype.onNewKey = function(callback) 
+{
+  this.onNewKey_ = callback;
 }
 
 
@@ -365,7 +407,7 @@ PROT_UrlCryptoKeyManager.prototype.maybeLoadOldKey = function() {
   var clientKey = oldKey[this.CLIENT_KEY_NAME];
   var wrappedKey = oldKey[this.WRAPPED_KEY_NAME];
 
-  if (oldKey && clientKey && wrappedKey && !this.hasKey_()) {
+  if (oldKey && clientKey && wrappedKey && !this.hasKey()) {
     G_Debug(this, "Read old key from disk.");
     this.replaceKey_(clientKey, wrappedKey);
   }
@@ -401,21 +443,21 @@ function TEST_PROT_UrlCryptoKeyManager() {
 
     
 
-    G_Assert(z, !km.hasKey_(), "KM already has key?");
+    G_Assert(z, !km.hasKey(), "KM already has key?");
     km.maybeLoadOldKey();
-    G_Assert(z, !km.hasKey_(), "KM loaded non-existent key?");
+    G_Assert(z, !km.hasKey(), "KM loaded non-existent key?");
     km.onGetKeyResponse(null);
-    G_Assert(z, !km.hasKey_(), "KM got key from null response?");
+    G_Assert(z, !km.hasKey(), "KM got key from null response?");
     km.onGetKeyResponse("");
-    G_Assert(z, !km.hasKey_(), "KM got key from empty response?");
+    G_Assert(z, !km.hasKey(), "KM got key from empty response?");
     km.onGetKeyResponse("aslkaslkdf:34:a230\nskdjfaljsie");
-    G_Assert(z, !km.hasKey_(), "KM got key from garbage response?");
+    G_Assert(z, !km.hasKey(), "KM got key from garbage response?");
     
     var realResponse = "clientkey:24:zGbaDbx1pxoYe7siZYi8VA==\n" +
                        "wrappedkey:24:MTr1oDt6TSOFQDTvKCWz9PEn";
     km.onGetKeyResponse(realResponse);
     
-    G_Assert(z, km.hasKey_(), "KM couldn't get key from real response?");
+    G_Assert(z, km.hasKey(), "KM couldn't get key from real response?");
     G_Assert(z, km.clientKey_ == "zGbaDbx1pxoYe7siZYi8VA==", 
              "Parsed wrong client key from response?");
     G_Assert(z, km.wrappedKey_ == "MTr1oDt6TSOFQDTvKCWz9PEn", 
@@ -424,9 +466,9 @@ function TEST_PROT_UrlCryptoKeyManager() {
     
     
     km = new PROT_UrlCryptoKeyManager(kf, true );
-    G_Assert(z, !km.hasKey_(), "KM already has key?");
+    G_Assert(z, !km.hasKey(), "KM already has key?");
     km.maybeLoadOldKey();
-    G_Assert(z, km.hasKey_(), "KM couldn't load existing key from disk?");
+    G_Assert(z, km.hasKey(), "KM couldn't load existing key from disk?");
     G_Assert(z, km.clientKey_ == "zGbaDbx1pxoYe7siZYi8VA==", 
              "Parsed wrong client key from disk?");
     G_Assert(z, km.wrappedKey_ == "MTr1oDt6TSOFQDTvKCWz9PEn", 
@@ -435,18 +477,18 @@ function TEST_PROT_UrlCryptoKeyManager() {
                         "wrappedkey:24:MTpPH3pnLDKihecOci+0W5dk";
     km.onGetKeyResponse(realResponse2);
     
-    G_Assert(z, km.hasKey_(), "KM couldn't replace key from server response?");
+    G_Assert(z, km.hasKey(), "KM couldn't replace key from server response?");
     G_Assert(z, km.clientKey_ == "dtmbEN1kgN/LmuEoYifaFw==",
              "Replace client key from server failed?");
-    G_Assert(z, km.wrappedKey_ == "MTpPH3pnLDKihecOci+0W5dk", 
+    G_Assert(z, km.wrappedKey == "MTpPH3pnLDKihecOci+0W5dk", 
              "Replace wrapped key from server failed?");
 
     
 
     km = new PROT_UrlCryptoKeyManager(kf, true );
-    G_Assert(z, !km.hasKey_(), "KM already has key?");
+    G_Assert(z, !km.hasKey(), "KM already has key?");
     km.maybeLoadOldKey();
-    G_Assert(z, km.hasKey_(), "KM couldn't load existing key from disk?");
+    G_Assert(z, km.hasKey(), "KM couldn't load existing key from disk?");
     G_Assert(z, km.clientKey_ == "dtmbEN1kgN/LmuEoYifaFw==",
              "Replace client on from disk failed?");
     G_Assert(z, km.wrappedKey_ == "MTpPH3pnLDKihecOci+0W5dk", 
