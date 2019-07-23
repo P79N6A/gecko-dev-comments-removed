@@ -93,8 +93,7 @@ private:
   
   nsUrlClassifierDBService(nsUrlClassifierDBService&);
 
-  nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c,
-                     PRBool forceCheck, PRBool *didCheck);
+  nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c);
 
   
   nsresult Shutdown();
