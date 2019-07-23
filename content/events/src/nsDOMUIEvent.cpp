@@ -37,6 +37,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "base/basictypes.h"
+#include "IPC/IPCMessageUtils.h"
+#endif
 #include "nsCOMPtr.h"
 #include "nsDOMUIEvent.h"
 #include "nsIPresShell.h"
@@ -370,7 +374,8 @@ nsDOMUIEvent::GetIsChar(PRBool* aIsChar)
 
 NS_METHOD nsDOMUIEvent::GetCompositionReply(nsTextEventReply** aReply)
 {
-  if((mEvent->message == NS_COMPOSITION_START))
+  if((mEvent->message == NS_COMPOSITION_START) ||
+     (mEvent->message == NS_COMPOSITION_QUERY))
   {
     *aReply = &(static_cast<nsCompositionEvent*>(mEvent)->theReply);
     return NS_OK;
@@ -392,6 +397,28 @@ nsDOMUIEvent::DuplicatePrivateData()
     mEvent->refPoint = screenPoint;
   }
   return rv;
+}
+
+void
+nsDOMUIEvent::Serialize(IPC::Message* aMsg, PRBool aSerializeInterfaceType)
+{
+  if (aSerializeInterfaceType) {
+    IPC::WriteParam(aMsg, NS_LITERAL_STRING("uievent"));
+  }
+
+  nsDOMEvent::Serialize(aMsg, PR_FALSE);
+
+  PRInt32 detail = 0;
+  GetDetail(&detail);
+  IPC::WriteParam(aMsg, detail);
+}
+
+PRBool
+nsDOMUIEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
+{
+  NS_ENSURE_TRUE(nsDOMEvent::Deserialize(aMsg, aIter), PR_FALSE);
+  NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &mDetail), PR_FALSE);
+  return PR_TRUE;
 }
 
 nsresult NS_NewDOMUIEvent(nsIDOMEvent** aInstancePtrResult,
