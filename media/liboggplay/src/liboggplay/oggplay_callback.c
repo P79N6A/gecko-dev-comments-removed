@@ -508,6 +508,7 @@ OggPlayCallbackFunctions callbacks[] = {
   {NULL, NULL, NULL, sizeof(OggPlayDecode)}, 
   {oggplay_init_kate, oggplay_callback_kate, oggplay_shutdown_kate,
         sizeof(OggPlayKateDecode)},          
+  {NULL, NULL, NULL, sizeof(OggPlayDecode)}, 
   {NULL, NULL, NULL, sizeof(OggPlayDecode)}  
 };
 
