@@ -189,20 +189,17 @@ protected:
   nsresult GetDOM2EventGroup(nsIDOMEventGroup** aGroup);
   PRBool ListenerCanHandle(nsListenerStruct* aLs, nsEvent* aEvent);
 
-  nsVoidArray       mListeners;
-  nsISupports*      mTarget;  
-  PRPackedBool      mListenersRemoved;
-  PRPackedBool      mListenerRemoved;
-  PRPackedBool      mHandlingEvent;
-  PRPackedBool      mMayHaveMutationListeners;
+  nsTObserverArray<nsListenerStruct> mListeners;
+  nsISupports*                       mTarget;  
+  PRUint32                           mMayHaveMutationListeners : 1;
   
   
   
-  PRUint32          mNoListenerForEvent;
-  nsCOMPtr<nsIAtom> mNoListenerForEventAtom;
+  PRUint32                           mNoListenerForEvent : 31;
+  nsCOMPtr<nsIAtom>                  mNoListenerForEventAtom;
 
-  static PRUint32   mInstanceCount;
-  static jsval      sAddListenerID;
+  static PRUint32                    mInstanceCount;
+  static jsval                       sAddListenerID;
 };
 
 #endif 

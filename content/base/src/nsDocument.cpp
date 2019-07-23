@@ -2032,7 +2032,8 @@ nsDocument::doCreateShell(nsPresContext* aContext,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  NS_ENSURE_TRUE(mPresShells.AppendObserver(shell), NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(mPresShells.AppendObserverUnlessExists(shell),
+                 NS_ERROR_OUT_OF_MEMORY);
   shell.swap(*aInstancePtrResult);
 
   return NS_OK;
@@ -2640,7 +2641,7 @@ void
 nsDocument::AddObserver(nsIDocumentObserver* aObserver)
 {
   
-  mObservers.AppendObserver(aObserver);
+  mObservers.AppendObserverUnlessExists(aObserver);
   AddMutationObserver(aObserver);
 }
 

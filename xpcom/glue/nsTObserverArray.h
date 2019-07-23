@@ -69,6 +69,9 @@ class NS_COM_GLUE nsTObserverArray_base {
         void* GetSafeElementAt(PRInt32 aIndex) {
           return mArray.mObservers.SafeElementAt(aIndex);
         }
+        void* FastElementAt(PRInt32 aIndex) {
+          return mArray.mObservers.FastElementAt(aIndex);
+        }
 
         
         
@@ -119,6 +122,10 @@ template<class T>
 class nsTObserverArray : public nsTObserverArray_base {
   public:
 
+    PRUint32 Count() const {
+      return mObservers.Count();
+    }
+
     
 
 
@@ -140,8 +147,17 @@ class nsTObserverArray : public nsTObserverArray_base {
 
 
 
-    PRBool AppendObserver(T* aObserver) {
+    PRBool AppendObserverUnlessExists(T* aObserver) {
       return Contains(aObserver) || mObservers.AppendElement(aObserver);
+    }
+
+    
+
+
+
+
+    PRBool AppendObserver(T* aObserver) {
+      return mObservers.AppendElement(aObserver);
     }
 
     
@@ -161,6 +177,17 @@ class nsTObserverArray : public nsTObserverArray_base {
       return PR_TRUE;
     }
 
+    
+
+
+
+    void RemoveObserverAt(PRUint32 aIndex) {
+      if (aIndex < (PRUint32)mObservers.Count()) {
+        mObservers.RemoveElementAt(aIndex);
+        AdjustIterators(aIndex, -1);
+      }
+    }
+
     PRBool Contains(T* aObserver) const {
       return mObservers.IndexOf(aObserver) >= 0;
     }
@@ -171,6 +198,10 @@ class nsTObserverArray : public nsTObserverArray_base {
 
     T* SafeObserverAt(PRInt32 aIndex) const {
       return static_cast<T*>(mObservers.SafeElementAt(aIndex));
+    }
+
+    T* FastObserverAt(PRInt32 aIndex) const {
+      return static_cast<T*>(mObservers.FastElementAt(aIndex));
     }
 
     
@@ -185,6 +216,15 @@ class nsTObserverArray : public nsTObserverArray_base {
         ForwardIterator(const nsTObserverArray<T>& aArray)
           : Iterator_base(0, aArray) {
         }
+        ForwardIterator(const nsTObserverArray<T>& aArray, PRInt32 aPos)
+          : Iterator_base(aPos, aArray) {
+        }
+
+        PRBool operator <(const ForwardIterator& aOther) {
+          NS_ASSERTION(&mArray == &aOther.mArray,
+                       "not iterating the same array");
+          return mPosition < aOther.mPosition;
+        }
 
         
 
@@ -195,6 +235,33 @@ class nsTObserverArray : public nsTObserverArray_base {
         T* GetNext() {
           return static_cast<T*>(GetSafeElementAt(mPosition++));
         }
+    };
+
+    
+    
+    class EndLimitedIterator : private ForwardIterator {
+      public:
+        typedef typename nsTObserverArray<T>::ForwardIterator base_type;
+
+        EndLimitedIterator(const nsTObserverArray<T>& aArray)
+          : ForwardIterator(aArray),
+            mEnd(aArray, aArray.Count()) {
+        }
+
+        
+
+
+
+
+
+        T* GetNext() {
+          return (*this < mEnd) ?
+                 static_cast<T*>(FastElementAt(base_type::mPosition++)) :
+                 nsnull;
+        }
+
+      private:
+        ForwardIterator mEnd;
     };
 };
 
