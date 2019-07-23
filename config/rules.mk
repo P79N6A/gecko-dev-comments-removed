@@ -930,7 +930,7 @@ else
 ifeq (WINNT_,$(HOST_OS_ARCH)_$(GNU_CC))
 	$(HOST_LD) -NOLOGO -OUT:$@ -PDB:$(PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
-ifneq (,$(HOST_CPPSRCS)$(USE_HOST_CXX))
+ifdef HOST_CPPSRCS
 	$(HOST_CXX) $(HOST_OUTOPTION)$@ $(HOST_CXXFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
 	$(HOST_CC) $(HOST_OUTOPTION)$@ $(HOST_CFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
@@ -1141,15 +1141,6 @@ else # os2 vacpp
 	$(MKSHLIB) -O:$@ -DLL -INC:_dllentry $(LDFLAGS) $(OBJS) $(LOBJS) $(EXTRA_DSO_LDOPTS) $(OS_LIBS) $(EXTRA_LIBS) $(DEF_FILE)
 endif # !os2 vacpp
 	chmod +x $@
-ifndef NO_COMPONENT_LINK_MAP
-ifndef MOZ_COMPONENTS_VERSION_SCRIPT_LDFLAGS
-ifndef MOZ_DEBUG
-ifeq ($(OS_ARCH)_$(IS_COMPONENT),Darwin_1)
-	nmedit -s $(BUILD_TOOLS)/gnu-ld-scripts/components-export-list $@
-endif
-endif
-endif
-endif
 ifdef ENABLE_STRIP
 	$(STRIP) $@
 endif
