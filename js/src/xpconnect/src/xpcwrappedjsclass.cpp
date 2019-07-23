@@ -112,18 +112,16 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
 
 JSBool xpc_IsReportableErrorCode(nsresult code)
 {
-    if(NS_SUCCEEDED(code))
-        return JS_FALSE;
-
     switch(code)
     {
-        
-        
-        case NS_ERROR_FACTORY_REGISTER_AGAIN:
-        case NS_BASE_STREAM_WOULD_BLOCK:
-            return JS_FALSE;
+        case NS_ERROR_XPC_JS_THREW_NULL:
+        case NS_ERROR_XPC_JS_THREW_JS_OBJECT:
+        case NS_ERROR_XPC_JS_THREW_NATIVE_OBJECT:
+        case NS_ERROR_XPC_JAVASCRIPT_ERROR_WITH_DETAILS:
+        case NS_ERROR_XPC_JAVASCRIPT_ERROR:
+            return JS_TRUE;
     }
-    return JS_TRUE;
+    return JS_FALSE;
 }
 
 
