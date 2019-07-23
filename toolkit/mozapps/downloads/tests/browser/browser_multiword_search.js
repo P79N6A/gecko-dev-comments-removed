@@ -53,19 +53,22 @@ function test()
     "INSERT INTO moz_downloads (name, target, source, state, endTime, maxBytes) " +
     "VALUES (?1, ?2, ?3, ?4, ?5, ?6)");
 
-  for each (let site in ["ed.agadak.net", "mozilla.org"]) {
-    stmt.bindStringParameter(0, "Super Pimped Download");
-    stmt.bindStringParameter(1, "file://dummy/file");
-    stmt.bindStringParameter(2, "http://" + site + "/file");
-    stmt.bindInt32Parameter(3, dm.DOWNLOAD_FINISHED);
-    stmt.bindInt64Parameter(4, new Date(1985, 7, 2) * 1000);
-    stmt.bindInt64Parameter(5, 111222333444);
+  try {
+    for each (let site in ["ed.agadak.net", "mozilla.org"]) {
+      stmt.bindStringParameter(0, "Super Pimped Download");
+      stmt.bindStringParameter(1, "file://dummy/file");
+      stmt.bindStringParameter(2, "http://" + site + "/file");
+      stmt.bindInt32Parameter(3, dm.DOWNLOAD_FINISHED);
+      stmt.bindInt64Parameter(4, new Date(1985, 7, 2) * 1000);
+      stmt.bindInt64Parameter(5, 111222333444);
 
-    
-    stmt.execute();
+      
+      stmt.execute();
+    }
+  } finally {
+    stmt.reset();
+    stmt.finalize();
   }
-
-  stmt.finalize();
 
   
   let wm = Cc["@mozilla.org/appshell/window-mediator;1"].
@@ -73,67 +76,54 @@ function test()
   let win = wm.getMostRecentWindow("Download:Manager");
   if (win) win.close();
 
-  
-  let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-           getService(Ci.nsIWindowWatcher);
-  ww.registerNotification({
-    observe: function(aSubject, aTopic, aData) {
-      ww.unregisterNotification(this);
-      aSubject.QueryInterface(Ci.nsIDOMEventTarget).
-      addEventListener("DOMContentLoaded", doTest, false);
-    }
-  });
+  let obs = Cc["@mozilla.org/observer-service;1"].
+            getService(Ci.nsIObserverService);
+  const DLMGR_UI_DONE = "download-manager-ui-done";
 
   let testPhase = 0;
+  let testObs = {
+    observe: function(aSubject, aTopic, aData) {
+      if (aTopic != DLMGR_UI_DONE)
+        return;
 
-  
-  let doTest = function() setTimeout(function() {
-    win = wm.getMostRecentWindow("Download:Manager");
-    let $ = function(id) win.document.getElementById(id);
+      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      let $ = function(aId) win.document.getElementById(aId);
+      let downloadView = $("downloadView");
+      let searchbox = $("searchbox");
 
-    let downloadView = $("downloadView");
-    let searchbox = $("searchbox");
-
-    
-    if (downloadView.selectedIndex)
-      return doTest();
-
-    
-    switch (testPhase) {
-      case 0:
-        
-        searchbox.value = "download super pimped 104 GB august 2";
+      let search = function(aTerms) {
+        searchbox.value = aTerms;
         searchbox.doCommand();
+      };
 
-        
-        testPhase++;
-        return doTest();
-      case 1:
-        
-        ok(downloadView.itemCount > 0, "Search found something");
+      
+      switch (testPhase++) {
+        case 0:
+          
+          search("download super pimped 104 GB august 2");
 
-        
-        testPhase++;
-        return doTest();
-      case 2:
-        
-        ok(downloadView.itemCount == 2, "Search matched both downloads");
+          break;
+        case 1:
+          
+          ok(downloadView.itemCount == 2, "Search matched both downloads");
 
-        
-        searchbox.value = "agadak aug 2 downl 104";
-        searchbox.doCommand();
+          
+          search("agadak aug 2 downl 104");
 
-        
-        testPhase++;
-        return doTest();
-      case 3:
-        
-        ok(downloadView.itemCount == 1, "Found the single download");
+          break;
+        case 2:
+          
+          ok(downloadView.itemCount == 1, "Found the single download");
 
-        
-        return finish();
+          
+          obs.removeObserver(testObs, DLMGR_UI_DONE);
+          finish();
+
+          break;
+      }
     }
-  }, 0);
+  };
+  obs.addObserver(testObs, DLMGR_UI_DONE, false);
  
   
   Cc["@mozilla.org/download-manager-ui;1"].

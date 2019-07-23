@@ -1096,8 +1096,14 @@ function buildDownloadList(aForceBuild)
 function stepListBuilder(aNumItems) {
   try {
     
-    if (!gStmt.executeStep())
+    if (!gStmt.executeStep()) {
+      
+      Cc["@mozilla.org/observer-service;1"].
+      getService(Ci.nsIObserverService).
+      notifyObservers(window, "download-manager-ui-done", null);
+
       return;
+    }
 
     
     let attrs = {
