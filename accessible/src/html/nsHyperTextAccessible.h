@@ -53,6 +53,7 @@ enum EGetTextType { eGetBefore=-1, eGetAt=0, eGetAfter=1 };
 
 
 const PRUnichar kEmbeddedObjectChar = 0xfffc;
+const PRUnichar kImaginaryEmbeddedObjectChar = ' ';
 const PRUnichar kForcedNewLineChar = '\n';
 
 #define NS_HYPERTEXTACCESSIBLE_IMPL_CID                 \
