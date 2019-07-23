@@ -110,30 +110,14 @@ public:
     SetAppUnits(NSToCoordRound(aValue));
   }
 
-  void SetIdent(nsIAtom* aAtom)
-  {
-    NS_PRECONDITION(aAtom, "Don't pass in a null atom");
-    Reset();
-    NS_ADDREF(mValue.mAtom = aAtom);
-    mType = CSS_IDENT;
-  }
-
-  
   void SetIdent(nsCSSKeyword aKeyword)
   {
-    SetIdent(nsCSSKeywords::GetStringValue(aKeyword));
-  }
-
-  void SetIdent(const nsACString& aString)
-  {
+    NS_PRECONDITION(aKeyword != eCSSKeyword_UNKNOWN &&
+                    0 <= aKeyword && aKeyword < eCSSKeyword_COUNT,
+                    "bad keyword");
     Reset();
-    mValue.mAtom = NS_NewAtom(aString);
-    if (mValue.mAtom) {
-      mType = CSS_IDENT;
-    } else {
-      
-      mType = CSS_UNKNOWN;
-    }
+    mValue.mKeyword = aKeyword;
+    mType = CSS_IDENT;
   }
 
   
@@ -202,8 +186,6 @@ public:
   {
     switch (mType) {
       case CSS_IDENT:
-        NS_ASSERTION(mValue.mAtom, "Null atom should never happen");
-        NS_RELEASE(mValue.mAtom);
         break;
       case CSS_STRING:
       case CSS_ATTR:
@@ -238,7 +220,7 @@ private:
     nsIDOMRect*     mRect;
     PRUnichar*      mString;
     nsIURI*         mURI;
-    nsIAtom*        mAtom; 
+    nsCSSKeyword    mKeyword;
   } mValue;
   
   PRInt32 mAppUnitsPerInch;
