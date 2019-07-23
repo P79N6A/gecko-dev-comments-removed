@@ -84,7 +84,6 @@ function PROT_Application() {
 #endif
   
   
-  this.G_TabbedBrowserWatcher = G_TabbedBrowserWatcher;
   this.PROT_Controller = PROT_Controller;
   this.PROT_PhishingWarden = PROT_PhishingWarden;
 

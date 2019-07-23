@@ -71,11 +71,9 @@ var safebrowsing = {
 
     
 
-    var contentArea = document.getElementById("content");
-
     safebrowsing.progressListener.QueryInterface(Ci.nsIWebProgressListener);
     var phishWarden = new appContext.PROT_PhishingWarden(
-          safebrowsing.progressListener, document.getElementById("content"));
+        safebrowsing.progressListener, getBrowser());
     safebrowsing.phishWarden = phishWarden;
 
     
@@ -88,14 +86,8 @@ var safebrowsing = {
 
     
     phishWarden.maybeToggleUpdateChecking();
-    var tabWatcher = new appContext.G_TabbedBrowserWatcher(
-        contentArea,
-        "safebrowsing-watcher",
-        true );
     safebrowsing.controller = new appContext.PROT_Controller(
-        window,
-        tabWatcher,
-        phishWarden);
+        window, getBrowser(), phishWarden);
 
     
     

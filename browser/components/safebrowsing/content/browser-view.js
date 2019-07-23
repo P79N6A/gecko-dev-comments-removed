@@ -112,48 +112,11 @@
 
 
 
-
-
-
-
-
-
-
  
-function PROT_BrowserView(tabWatcher, doc) {
+function PROT_BrowserView(tabBrowser) {
   this.debugZone = "browserview";
-  this.tabWatcher_ = tabWatcher;
-  this.doc_ = doc;
-}
-
-
-
-
-
-
-
-
-
-
-PROT_BrowserView.prototype.getFirstUnhandledDocWithURL_ = function(url) {
-  var docs = this.tabWatcher_.getDocumentsFromURL(url);
-  if (!docs.length)
-    return null;
-
-  for (var i = 0; i < docs.length; i++) {
-    
-    
-    if (docs[i].defaultView.top != docs[i].defaultView)
-      continue;
-
-    var browser = this.tabWatcher_.getBrowserFromDocument(docs[i]);
-    G_Assert(this, !!browser, "Found doc but can't find browser???");
-    var alreadyHandled = this.getProblem_(docs[i], browser);
-
-    if (!alreadyHandled)
-      return docs[i];
-  }
-  return null;
+  this.tabBrowser_ = tabBrowser;
+  this.doc_ = this.tabBrowser_.ownerDocument;
 }
 
 
@@ -172,16 +135,19 @@ PROT_BrowserView.prototype.getFirstUnhandledDocWithURL_ = function(url) {
 
 PROT_BrowserView.prototype.tryToHandleProblemRequest = function(warden,
                                                                 request) {
+  
+  
+  var url = request.name;
+  var browsers = this.tabBrowser_.browsers;
+  for (var i = 0; i < browsers.length; i++) {
+    var browser = browsers[i];
+    var doc = browser.contentDocument;
 
-  var doc = this.getFirstUnhandledDocWithURL_(request.name);
-  if (doc) {
-    var browser = this.tabWatcher_.getBrowserFromDocument(doc);
-    G_Assert(this, !!browser, "Couldn't get browser from problem doc???");
-    G_Assert(this, !this.getProblem_(doc, browser),
-             "Doc is supposedly unhandled, but has state?");
     
-    this.isProblemDocument_(browser, doc, warden);
-    return true;
+    if (doc.location.href == url && !this.getProblem_(doc, browser)) {
+      this.isProblemDocument_(browser, doc, warden);
+      return true;
+    }
   }
   return false;
 }
@@ -403,7 +369,7 @@ PROT_BrowserView.prototype.unqueueNextProblem_ = function(browser) {
     
     
     
-    if (this.tabWatcher_.getCurrentBrowser() === browser)
+    if (this.tabBrowser_.selectedBrowser === browser)
       new G_Alarm(BindToObject(this.problemBrowserMaybeSelected, 
                                this, 
                                browser),
@@ -549,7 +515,7 @@ PROT_BrowserView.prototype.problemBrowserUnselected = function(browser) {
 PROT_BrowserView.prototype.problemBrowserMaybeSelected = function(browser) {
   var problem = this.getCurrentProblem_(browser);
 
-  if (this.tabWatcher_.getCurrentBrowser() === browser &&
+  if (this.tabBrowser_.selectedBrowser === browser &&
       problem &&
       problem.displayer_.isActive()) 
     this.problemBrowserSelected(browser);
