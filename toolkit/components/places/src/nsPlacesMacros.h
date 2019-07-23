@@ -39,7 +39,7 @@
 
 
 
-#define ENUMERATE_OBSERVERS(canFire, cache, array, type, method)               \
+#define NOTIFY_OBSERVERS(canFire, cache, array, type, method)                  \
   PR_BEGIN_MACRO                                                               \
   if (canFire) {                                                               \
     const nsCOMArray<type> &entries = cache.GetEntries();                      \
