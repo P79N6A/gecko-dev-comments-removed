@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsUnicharUtils.h"
 
 #include "nsHTMLEditor.h"
@@ -610,7 +611,9 @@ nsresult nsHTMLEditor::SplitStyleAbovePoint(nsCOMPtr<nsIDOMNode> *aNode,
          isSet)                                         
     {
       
-      SplitNodeDeep(tmp, *aNode, *aOffset, &offset, PR_FALSE, outLeftNode, outRightNode);
+      nsresult rv = SplitNodeDeep(tmp, *aNode, *aOffset, &offset, PR_FALSE,
+                                  outLeftNode, outRightNode);
+      NS_ENSURE_SUCCESS(rv, rv);
       
       tmp->GetParentNode(getter_AddRefs(*aNode));
       *aOffset = offset;
