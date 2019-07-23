@@ -1185,6 +1185,8 @@ TraceRecorder::snapshot(ExitType exitType)
     exit.ip_adj = fp->regs->pc - (jsbytecode*)fragment->root->ip;
     exit.sp_adj = (stackSlots - treeInfo->entryNativeStackSlots) * sizeof(double);
     exit.rp_adj = exit.calldepth * sizeof(FrameInfo);
+    if (exitType == NESTED_EXIT)
+        exit.this_adj = nativeStackOffset(&cx->fp->argv[-1]);
     uint8* m = exit.typeMap = (uint8 *)data->payload();
     
 
@@ -1774,22 +1776,43 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
 
 
     if (lr->exit->exitType == NESTED_EXIT) {
-        debug_only(printf("nested side exit, using guard %p instead of %p\n",
-                          state.nestedExit, lr);)
+        
+
+        while (lr->exit->exitType == NESTED_EXIT) {
+            debug_only(printf("processing tree call guard %p, calldepth=%d\n", lr, lr->calldepth);)
+            unsigned calldepth = lr->calldepth;
+            if (calldepth > 0) {
+                
+                for (unsigned i = 0; i < calldepth; ++i) 
+                    js_SynthesizeFrame(cx, callstack[i]);
+                
+
+
+
+                FlushNativeStackFrame(cx, calldepth, 
+                                      lr->exit->typeMap + lr->exit->numGlobalSlots,
+                                      stack);
+                callstack += calldepth;
+                inlineCallCount += calldepth;
+                stack += (lr->exit->this_adj / sizeof(double));
+            }
+            JS_ASSERT(lr->guard->oprnd1()->oprnd2()->isconstp());
+            lr = (GuardRecord*)lr->guard->oprnd1()->oprnd2()->constvalp();
+        }
+        
         lr = state.nestedExit;
     }
+    
 
+    JS_ASSERT(state.rp == callstack);
+    
     
 
     ti = (TreeInfo*)lr->from->root->vmprivate;
     
     
 
-
-
-    int calldepth = (((FrameInfo*)state.rp) - callstack) + lr->exit->calldepth;
-
-    for (int32 i = 0; i < calldepth; ++i)
+    for (int32 i = 0; i < lr->calldepth; ++i)
         js_SynthesizeFrame(cx, callstack[i]);
 
     
@@ -1819,8 +1842,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     JS_ASSERT(*(uint64*)&global[globalFrameSize] == 0xdeadbeefdeadbeefLL);
     
     
-    FlushNativeStackFrame(cx, e->calldepth, e->typeMap + e->numGlobalSlots, 
-                          stack + (((double*)state.sp) - ((double*)entry_sp)));
+    FlushNativeStackFrame(cx, e->calldepth, e->typeMap + e->numGlobalSlots, stack);
     
     AUDIT(sideExitIntoInterpreter);
 
@@ -1828,7 +1850,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
         return NULL;
 
     
-    inlineCallCount += calldepth;
+    inlineCallCount += lr->calldepth;
 
     return lr;
 }
