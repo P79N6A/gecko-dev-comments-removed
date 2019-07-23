@@ -203,7 +203,9 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
 
   aStatus = NS_FRAME_COMPLETE;  
 
-  if (!(GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN))) {
+  
+  
+  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
     aDesiredSize.height  = mSize.height;
     aDesiredSize.width   = mSize.width;
