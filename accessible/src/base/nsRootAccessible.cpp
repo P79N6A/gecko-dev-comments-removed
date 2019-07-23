@@ -401,11 +401,12 @@ void nsRootAccessible::TryFireEarlyLoadEvent(nsIDOMNode *aDocNode)
   }
 }
 
-PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
-                                                  nsIDOMNode *aNode,
-                                                  nsIDOMEvent *aFocusEvent,
-                                                  PRBool aForceEvent,
-                                                  PRBool aIsAsynch)
+PRBool
+nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
+                                           nsIDOMNode *aNode,
+                                           nsIDOMEvent *aFocusEvent,
+                                           PRBool aForceEvent,
+                                           PRBool aIsAsynch)
 {
   if (mCaretAccessible) {
     nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aFocusEvent));
@@ -531,10 +532,16 @@ PRBool nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
   if (docAccessible) {
     
     nsCOMPtr<nsIDOMNode> realFocusedNode = GetCurrentFocus();
-    if (realFocusedNode != aNode || realFocusedNode == mDOMNode) {
+    if ((realFocusedNode != aNode || realFocusedNode == mDOMNode) &&
+        !(nsAccUtils::ExtendedState(finalFocusAccessible) &
+                    nsIAccessibleStates::EXT_STATE_EDITABLE)) {
       
       
       
+      
+
+      
+
       return PR_FALSE;
     }
   }

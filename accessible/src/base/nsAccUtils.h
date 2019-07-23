@@ -282,6 +282,19 @@ public:
   
 
 
+  static PRUint32 ExtendedState(nsIAccessible *aAcc)
+  {
+    PRUint32 state = 0;
+    PRUint32 extstate = 0;
+    if (aAcc)
+      aAcc->GetState(&state, &extstate);
+
+    return extstate;
+  }
+
+  
+
+
 
 
 
