@@ -907,8 +907,40 @@ nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PRBool
-nsCSSRendering::IsCanvasFrame(nsIFrame* aFrame)
+nsCSSRendering::IsCanvasFrame(nsIFrame *aFrame)
 {
   nsIAtom* frameType = aFrame->GetType();
   return frameType == nsGkAtoms::canvasFrame ||
@@ -918,8 +950,8 @@ nsCSSRendering::IsCanvasFrame(nsIFrame* aFrame)
          frameType == nsGkAtoms::viewportFrame;
 }
 
-nsIFrame*
-nsCSSRendering::FindRootFrame(nsIFrame* aForFrame)
+const nsStyleBackground*
+nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
 {
   const nsStyleBackground* result = aForFrame->GetStyleBackground();
 
@@ -929,67 +961,29 @@ nsCSSRendering::FindRootFrame(nsIFrame* aForFrame)
     
     
     
-    if (content) {
-      nsIDocument* document = content->GetOwnerDoc();
-      nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
-      if (htmlDoc) {
-        nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (bodyContent) {
-          nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
-            GetPrimaryFrameFor(bodyContent);
-          if (bodyFrame) {
-            return bodyFrame;
-          }
-        }
+    nsIDocument* document = content->GetOwnerDoc();
+    nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
+    if (htmlDoc) {
+      nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (bodyContent) {
+        nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
+          GetPrimaryFrameFor(bodyContent);
+        if (bodyFrame)
+          result = bodyFrame->GetStyleBackground();
       }
     }
   }
 
-  return aForFrame;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const nsStyleBackground*
-nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
-{
-  return FindRootFrame(aForFrame)->GetStyleBackground();
+  return result;
 }
 
 inline void

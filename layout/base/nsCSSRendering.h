@@ -121,11 +121,6 @@ struct nsCSSRendering {
   
 
 
-  static nsIFrame* FindRootFrame(nsIFrame* aForFrame);
-
-  
-
-
   static PRBool IsCanvasFrame(nsIFrame* aFrame);
 
   
