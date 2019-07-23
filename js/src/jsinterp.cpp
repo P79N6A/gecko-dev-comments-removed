@@ -1318,7 +1318,7 @@ have_fun:
                 goto out;
             }
         }
-        ok = js_Interpret(cx);
+        ok = js_Interpret(cx, 0);
     } else {
         
         frame.scopeChain = NULL;
@@ -1541,7 +1541,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
                         cx->debugHooks->executeHookData);
     }
 
-    ok = js_Interpret(cx);
+    ok = js_Interpret(cx, 0);
     *result = frame.rval;
 
     if (hookData) {
@@ -2682,7 +2682,7 @@ JS_STATIC_ASSERT(JSOP_SETNAME_LENGTH == JSOP_SETPROP_LENGTH);
 JS_STATIC_ASSERT(JSOP_DEFFUN_LENGTH == JSOP_CLOSURE_LENGTH);
 
 JSBool
-JS_INTERPRET(JSContext *cx)
+JS_INTERPRET(JSContext *cx, JSInterpreterState *state)
 {
     JSRuntime *rt;
     JSStackFrame *fp;
@@ -2749,9 +2749,7 @@ JS_INTERPRET(JSContext *cx)
 # include "jsopcode.tbl"
 # undef OPDEF
     };
-
-    METER_OP_INIT(op);      
-
+    
 # define DO_OP()            JS_EXTENSION_(goto *jumpTable[op])
 # define DO_NEXT_OP(n)      JS_BEGIN_MACRO                                    \
                                 METER_OP_PAIR(op, regs.pc[n]);                \
@@ -2800,6 +2798,40 @@ JS_INTERPRET(JSContext *cx)
 # define END_EMPTY_CASES    goto advance_pc_by_one;
 
 #endif
+
+    
+
+
+
+
+
+#if JS_THREADED_INTERP
+# define LOAD_INTERRUPT_HANDLER(cx)                                           \
+    ((void) (jumpTable = (cx)->debugHooks->interruptHandler                   \
+                         ? interruptJumpTable                                 \
+                         : normalJumpTable))
+#else
+# define LOAD_INTERRUPT_HANDLER(cx)                                           \
+    ((void) (switchMask = (cx)->debugHooks->interruptHandler ? 0 : 255))
+#endif
+
+    LOAD_INTERRUPT_HANDLER(cx);
+
+    if (state != 0) {
+        rt = state->rt;
+        fp = state->fp;
+        script = state->script;
+        inlineCallCount = state->inlineCallCount;
+        atoms = state->atoms;
+        currentVersion = state->currentVersion;
+        originalVersion = state->originalVersion;
+        mark = state->mark;
+        regs = state->regs;
+        op = (JSOp) *regs.pc;
+        DO_OP();
+    }
+
+    METER_OP_INIT(op);      
 
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
@@ -2883,24 +2915,6 @@ JS_INTERPRET(JSContext *cx)
     
 
 
-
-
-
-
-
-#if JS_THREADED_INTERP
-# define LOAD_INTERRUPT_HANDLER(cx)                                           \
-    ((void) (jumpTable = (cx)->debugHooks->interruptHandler                   \
-                         ? interruptJumpTable                                 \
-                         : normalJumpTable))
-#else
-# define LOAD_INTERRUPT_HANDLER(cx)                                           \
-    ((void) (switchMask = (cx)->debugHooks->interruptHandler ? 0 : 255))
-#endif
-
-    LOAD_INTERRUPT_HANDLER(cx);
-
-     
 
 
 
