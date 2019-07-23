@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef mozilla_storage_Variant_h__
 #define mozilla_storage_Variant_h__
 
@@ -302,6 +303,37 @@ struct variant_blob_traits<PRUint8[]>
 
 
 
+
+class NullVariant : public Variant_base
+{
+public:
+  NS_IMETHOD GetDataType(PRUint16 *_type)
+  {
+    NS_ENSURE_ARG_POINTER(_type);
+    *_type = nsIDataType::VTYPE_EMPTY;
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetAsAUTF8String(nsACString &_str)
+  {
+    
+    _str.Truncate(0);
+    _str.SetIsVoid(PR_TRUE);
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetAsAString(nsAString &_str)
+  {
+    
+    _str.Truncate(0);
+    _str.SetIsVoid(PR_TRUE);
+    return NS_OK;
+  }
+};
+
+
+
+
 template <typename DataType>
 class Variant : public Variant_base
 {
@@ -361,7 +393,6 @@ typedef Variant<double> FloatVariant;
 typedef Variant<nsString> TextVariant;
 typedef Variant<nsCString> UTF8TextVariant;
 typedef Variant<PRUint8[]> BlobVariant;
-typedef Variant_base NullVariant;
 
 } 
 } 
