@@ -956,17 +956,25 @@ BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState
 
 
 
+
 static void
 BuildTextRuns(gfxContext* aContext, nsTextFrame* aForFrame,
-              nsIFrame* aLineContainer, const nsLineList::iterator* aForFrameLine)
+              nsIFrame* aLineContainer,
+              const nsLineList::iterator* aForFrameLine)
 {
-  NS_ASSERTION(aForFrame || (aForFrameLine && aLineContainer),
-               "One of aForFrame or aForFrameLine+aLineContainer must be set!");
+  NS_ASSERTION(aForFrame || aLineContainer,
+               "One of aForFrame or aLineContainer must be set!");
+  NS_ASSERTION(!aForFrameLine || aLineContainer,
+               "line but no line container");
   
-  if (!aLineContainer || !aForFrameLine) {
+  if (!aLineContainer) {
     aLineContainer = FindLineContainer(aForFrame);
   } else {
-    NS_ASSERTION(!aForFrame || aLineContainer == FindLineContainer(aForFrame), "Wrong line container hint");
+    NS_ASSERTION(!aForFrame ||
+                 (aLineContainer == FindLineContainer(aForFrame) ||
+                  (aLineContainer->GetType() == nsGkAtoms::letterFrame &&
+                   aLineContainer->GetStyleDisplay()->IsFloating())),
+                 "Wrong line container hint");
   }
 
   nsPresContext* presContext = aLineContainer->PresContext();
@@ -5369,7 +5377,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   PRUint32 flowEndInTextRun;
   gfxContext* ctx = aRenderingContext->ThebesContext();
   gfxSkipCharsIterator iter =
-    EnsureTextRun(ctx, nsnull, aData->line, &flowEndInTextRun);
+    EnsureTextRun(ctx, aData->lineContainer, aData->line, &flowEndInTextRun);
   if (!mTextRun)
     return;
 
@@ -5471,6 +5479,15 @@ nsTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
     
     
     if (f == this || f->mTextRun != lastTextRun) {
+      nsIFrame* lc;
+      if (aData->lineContainer &&
+          aData->lineContainer != (lc = FindLineContainer(f))) {
+        NS_ASSERTION(f != this, "wrong InlineMinWidthData container"
+                                " for first continuation");
+        aData->line = nsnull;
+        aData->lineContainer = lc;
+      }
+
       
       f->AddInlineMinWidthForFlow(aRenderingContext, aData);
       lastTextRun = f->mTextRun;
@@ -5487,7 +5504,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
   PRUint32 flowEndInTextRun;
   gfxContext* ctx = aRenderingContext->ThebesContext();
   gfxSkipCharsIterator iter =
-    EnsureTextRun(ctx, nsnull, aData->line, &flowEndInTextRun);
+    EnsureTextRun(ctx, aData->lineContainer, aData->line, &flowEndInTextRun);
   if (!mTextRun)
     return;
 
@@ -5586,6 +5603,15 @@ nsTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
     
     
     if (f == this || f->mTextRun != lastTextRun) {
+      nsIFrame* lc;
+      if (aData->lineContainer &&
+          aData->lineContainer != (lc = FindLineContainer(f))) {
+        NS_ASSERTION(f != this, "wrong InlinePrefWidthData container"
+                                " for first continuation");
+        aData->line = nsnull;
+        aData->lineContainer = lc;
+      }
+
       
       f->AddInlinePrefWidthForFlow(aRenderingContext, aData);
       lastTextRun = f->mTextRun;

@@ -1173,6 +1173,7 @@ public:
   struct InlineIntrinsicWidthData {
     InlineIntrinsicWidthData()
       : line(nsnull)
+      , lineContainer(nsnull)
       , prevLines(0)
       , currentLine(0)
       , skipWhitespace(PR_TRUE)
@@ -1182,6 +1183,9 @@ public:
     
     
     const nsLineList_iterator* line;
+
+    
+    nsIFrame* lineContainer;
 
     
     nscoord prevLines;
