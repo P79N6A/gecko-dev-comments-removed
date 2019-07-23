@@ -39,8 +39,6 @@
 
 #include "nsAutoPtr.h"
 #include "nsIUrlClassifierUtils.h"
-#include "nsTArray.h"
-#include "nsDataHashtable.h"
 
 class nsUrlClassifierUtils : public nsIUrlClassifierUtils
 {
@@ -122,105 +120,6 @@ private:
   void CleanupHostname(const nsACString & host, nsACString & _retval);
 
   nsAutoPtr<Charmap> mEscapeCharmap;
-};
-
-
-
-
-class nsUrlClassifierFragmentSet
-{
-public:
-  nsUrlClassifierFragmentSet() : mFirst(nsnull), mLast(nsnull) {}
-
-  PRBool Init(PRUint32 maxEntries) {
-    if (!mEntryStorage.SetCapacity(maxEntries))
-      return PR_FALSE;
-
-    if (!mEntries.Init())
-      return PR_FALSE;
-
-    return PR_TRUE;
-  }
-
-  PRBool Put(const nsACString &fragment) {
-    Entry *entry;
-    if (mEntries.Get(fragment, &entry)) {
-      
-      
-      UnlinkEntry(entry);
-    } else {
-      if (mEntryStorage.Length() < mEntryStorage.Capacity()) {
-        entry = mEntryStorage.AppendElement();
-        if (!entry)
-          return PR_FALSE;
-      } else {
-        
-        entry = mLast;
-        UnlinkEntry(entry);
-        mEntries.Remove(entry->mFragment);
-      }
-      entry->mFragment = fragment;
-      mEntries.Put(fragment, entry);
-    }
-
-    
-    entry->mPrev = nsnull;
-    entry->mNext = mFirst;
-    mFirst = entry;
-    if (!mLast) {
-      mLast = entry;
-    }
-
-    return PR_TRUE;
-  }
-
-  PRBool Has(const nsACString &fragment) {
-    return mEntries.Get(fragment, nsnull);
-  }
-
-  void Clear() {
-    mFirst = mLast = nsnull;
-    mEntries.Clear();
-  }
-
-private:
-  
-  
-  class Entry {
-  public:
-    Entry() : mNext(nsnull), mPrev(nsnull) {};
-    ~Entry() { }
-
-    Entry *mNext;
-    Entry *mPrev;
-    nsCString mFragment;
-  };
-
-  void UnlinkEntry(Entry *entry)
-  {
-    if (entry->mPrev)
-      entry->mPrev->mNext = entry->mNext;
-    else
-      mFirst = entry->mNext;
-
-    if (entry->mNext)
-      entry->mNext->mPrev = entry->mPrev;
-    else
-      mLast = entry->mPrev;
-
-    entry->mPrev = entry->mNext = nsnull;
-  }
-
-  
-  Entry *mFirst;
-  
-  Entry *mLast;
-
-  
-  nsTArray<Entry> mEntryStorage;
-
-  
-  nsDataHashtable<nsCStringHashKey, Entry*> mEntries;
 };
 
 #endif 
