@@ -2726,7 +2726,9 @@ SearchService.prototype = {
 
     if (engineToRemove._readOnly) {
       
+      
       engineToRemove.hidden = true;
+      engineToRemove.alias = null;
     } else {
       
       engineToRemove._remove();
