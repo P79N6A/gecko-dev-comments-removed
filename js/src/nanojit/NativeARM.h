@@ -38,8 +38,8 @@
 
 
 
-#ifndef __nanojit_NativeARM__
-#define __nanojit_NativeARM__
+#ifndef __nanojit_NativeArm__
+#define __nanojit_NativeArm__
 
 
 #ifdef PERFM
