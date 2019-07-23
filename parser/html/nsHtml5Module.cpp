@@ -48,13 +48,13 @@
 #include "nsHtml5Module.h"
 
 
-PRBool nsHtml5Module::Enabled = PR_FALSE;
+PRBool nsHtml5Module::sEnabled = PR_FALSE;
 
 
 void
 nsHtml5Module::InitializeStatics()
 {
-  nsContentUtils::AddBoolPrefVarCache("html5.enable", &Enabled);
+  nsContentUtils::AddBoolPrefVarCache("html5.enable", &sEnabled);
   nsHtml5Atoms::AddRefAtoms();
   nsHtml5AttributeName::initializeStatics();
   nsHtml5ElementName::initializeStatics();

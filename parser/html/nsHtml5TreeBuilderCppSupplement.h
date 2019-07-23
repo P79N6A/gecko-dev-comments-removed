@@ -92,7 +92,6 @@ nsHtml5TreeBuilder::~nsHtml5TreeBuilder()
 nsIContent*
 nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5HtmlAttributes* aAttributes)
 {
-  
   nsIContent* newContent;
   nsCOMPtr<nsINodeInfo> nodeInfo = parser->GetNodeInfoManager()->GetNodeInfo(aName, nsnull, aNamespace);
   NS_ASSERTION(nodeInfo, "Got null nodeinfo.");
@@ -299,12 +298,16 @@ nsHtml5TreeBuilder::appendDoctypeToDocument(nsIAtom* aName, nsString* aPublicId,
   nsCOMPtr<nsIDOMDocumentType> docType;
   nsAutoString voidString;
   voidString.SetIsVoid(PR_TRUE);
-  NS_NewDOMDocumentType(getter_AddRefs(docType), parser->GetNodeInfoManager(), nsnull,
-                             aName, nsnull, nsnull, *aPublicId, *aSystemId,
-                             voidString);
-
-
-
+  NS_NewDOMDocumentType(getter_AddRefs(docType),
+                        parser->GetNodeInfoManager(),
+                        nsnull,
+                        aName,
+                        nsnull,
+                        nsnull,
+                        *aPublicId,
+                        *aSystemId,
+                        voidString);
+  NS_ASSERTION(docType, "Doctype creation failed.");
   nsCOMPtr<nsIContent> content = do_QueryInterface(docType);
   NS_ASSERTION(content, "doctype isn't content?");
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
