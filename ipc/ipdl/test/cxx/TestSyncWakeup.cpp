@@ -1,3 +1,7 @@
+#if defined(OS_POSIX)
+#include <unistd.h>             
+#endif
+
 #include "TestSyncWakeup.h"
 
 #include "IPDLUnitTests.h"      
@@ -42,7 +46,12 @@ TestSyncWakeupParent::RecvSync1()
     
     
     
+#if defined(OS_POSIX)
+    
+    
+    
     sleep(5);
+#endif
 
     return true;
 }
@@ -53,8 +62,10 @@ TestSyncWakeupParent::RecvSync2()
     if (!SendNote2())
         fail("sending Note2()");
 
+#if defined(OS_POSIX)
     
     sleep(5);
+#endif
 
     return true;
 }
