@@ -58,6 +58,10 @@ ifndef JS_DISABLE_SHELL
 DIRS += shell
 endif
 
+ifdef ENABLE_LIRASM
+DIRS += lirasm
+endif
+
 MODULE		    = js
 LIBRARY_NAME	    = mozjs
 STATIC_LIBRARY_NAME = js_static
@@ -144,6 +148,7 @@ CPPSRCS		= \
 		jsscope.cpp \
 		jsscript.cpp \
 		jsstr.cpp \
+		jstask.cpp \
 		jsutil.cpp \
 		jsxdrapi.cpp \
 		jsxml.cpp \
@@ -200,6 +205,7 @@ INSTALLED_HEADERS = \
 		jsscript.h \
 		jsstaticcheck.h \
 		jsstr.h \
+		jstask.h \
 		jstracer.h \
 		jstypes.h \
 		jsutil.h \
@@ -272,6 +278,15 @@ EXTRA_DSO_LDOPTS += $(NSPR_LIBS)
 ifdef MOZ_MEMORY
 ifeq ($(OS_ARCH),SunOS)
 EXTRA_DSO_LDOPTS += $(call EXPAND_LIBNAME_PATH,jemalloc,$(DIST)/lib)
+endif
+endif
+
+# When using gcc the assembly is inlined in the C-file (see jslock.cpp)
+ifeq ($(OS_ARCH),SunOS)
+ifneq (86,$(findstring 86,$(OS_TEST)))
+ifndef GNU_CC
+ASFILES		= lock_$(OS_ARCH).s
+endif
 endif
 endif
 
@@ -428,12 +443,15 @@ endif
 ifeq ($(OS_ARCH),SunOS)
 ifeq ($(TARGET_CPU),sparc)
 
+ifdef JS_ULTRASPARC_OPTS
+DEFINES += -DULTRA_SPARC
 ifdef GNU_CC
-CFLAGS   += -mcpu=v9
-CXXFLAGS += -mcpu=v9
+CFLAGS   += -Wa,-xarch=v8plus,-DULTRA_SPARC,-P,-L,-D_ASM,-D__STDC__=0
+CXXFLAGS += -Wa,-xarch=v8plus,-DULTRA_SPARC,-P,-L,-D_ASM,-D__STDC__=0,-K,PIC
 else
-ASFLAGS  += -xarch=v8plus -P -L -D_ASM -D__STDC__=0 -K PIC
+ASFLAGS  += -xarch=v8plus -DULTRA_SPARC -P -L -D_ASM -D__STDC__=0 -K PIC
 endif # GNU_CC
+endif # JS_ULTRASPARC_OPTS
 
 endif
 ifeq ($(OS_RELEASE),4.1)
