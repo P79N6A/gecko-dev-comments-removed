@@ -108,6 +108,16 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
   virtual nsReStyleHint
     HasAttributeDependentStyle(AttributeRuleProcessorData* aData) = 0;
 

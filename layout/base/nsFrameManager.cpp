@@ -1686,15 +1686,15 @@ nsReStyleHint
 nsFrameManager::HasAttributeDependentStyle(nsIContent *aContent,
                                            nsIAtom *aAttribute,
                                            PRInt32 aModType,
-                                           PRUint32 aStateMask)
+                                           PRBool aAttrHasChanged)
 {
   nsReStyleHint hint = mStyleSet->HasAttributeDependentStyle(GetPresContext(),
                                                              aContent,
                                                              aAttribute,
                                                              aModType,
-                                                             aStateMask);
+                                                             aAttrHasChanged);
 
-  if (aAttribute == nsGkAtoms::style) {
+  if (aAttrHasChanged && aAttribute == nsGkAtoms::style) {
     
     
     

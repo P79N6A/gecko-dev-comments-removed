@@ -524,6 +524,11 @@ nsReStyleHint
 nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 {
   
+  if (!aData->mAttrHasChanged) {
+    return nsReStyleHint(0);
+  }
+
+  
   
   
 

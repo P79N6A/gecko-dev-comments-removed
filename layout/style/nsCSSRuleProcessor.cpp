@@ -1281,11 +1281,9 @@ static PRBool AttrMatchesValue(const nsAttrSelector* aAttrSelector,
 
 
 
-
 static PRBool SelectorMatches(RuleProcessorData &data,
                               nsCSSSelector* aSelector,
                               PRInt32 aStateMask, 
-                              nsIAtom* aAttribute, 
                               PRBool aForStyling,
                               PRBool* const aDependence = nsnull) 
 
@@ -1304,12 +1302,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 
   nsAtomList* IDList = aSelector->mIDList;
   if (IDList) {
-    
-    if (aAttribute && aAttribute == data.mContent->GetIDAttributeName()) {
-      if (aDependence)
-        *aDependence = PR_TRUE;
-    }
-    else if (data.mContentID) {
+    if (data.mContentID) {
       
       const PRBool isCaseSensitive =
         data.mCompatMode != eCompatibility_NavQuirks;
@@ -1343,29 +1336,23 @@ static PRBool SelectorMatches(RuleProcessorData &data,
   nsAtomList* classList = aSelector->mClassList;
   if (classList) {
     
-    if (aAttribute && aAttribute == data.mContent->GetClassAttributeName()) {
-      if (aDependence)
-        *aDependence = PR_TRUE;
+    const nsAttrValue *elementClasses = data.mClasses;
+    if (!elementClasses) {
+      
+      return PR_FALSE;
     }
-    else {
-      const nsAttrValue *elementClasses = data.mClasses;
-      if (!elementClasses) {
-        
+
+    
+    const PRBool isCaseSensitive =
+      data.mCompatMode != eCompatibility_NavQuirks;
+
+    while (classList) {
+      if (!elementClasses->Contains(classList->mAtom,
+                                    isCaseSensitive ?
+                                      eCaseMatters : eIgnoreCase)) {
         return PR_FALSE;
       }
-
-      
-      const PRBool isCaseSensitive =
-        data.mCompatMode != eCompatibility_NavQuirks;
-
-      while (classList) {
-        if (!elementClasses->Contains(classList->mAtom,
-                                      isCaseSensitive ?
-                                        eCaseMatters : eIgnoreCase)) {
-          return PR_FALSE;
-        }
-        classList = classList->mNext;
-      }
+      classList = classList->mNext;
     }
   }
 
@@ -1376,7 +1363,10 @@ static PRBool SelectorMatches(RuleProcessorData &data,
   
   
   
-  const PRBool setNodeFlags = aForStyling && aStateMask == 0 && !aAttribute;
+  NS_ASSERTION(aStateMask == 0 || !aForStyling,
+               "aForStyling must be false if we're just testing for "
+               "state-dependence");
+  const PRBool setNodeFlags = aForStyling;
 
   
   
@@ -1817,27 +1807,19 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 
   if (result && aSelector->mAttrList) {
     
-    if (!data.mHasAttributes && !aAttribute) {
+    if (!data.mHasAttributes) {
       
-      result = PR_FALSE;
+      return PR_FALSE;
     } else {
       NS_ASSERTION(data.mContent,
-                   "Must have content if either data.mHasAttributes or "
-                   "aAttribute is set!");
+                   "Must have content if data.mHasAttributes is true!");
       result = PR_TRUE;
       nsAttrSelector* attr = aSelector->mAttrList;
       nsIAtom* matchAttribute;
 
       do {
         matchAttribute = data.mIsHTML ? attr->mLowercaseAttr : attr->mCasedAttr;
-        if (matchAttribute == aAttribute) {
-          
-          
-          result = PR_TRUE;
-          if (aDependence)
-            *aDependence = PR_TRUE;
-        }
-        else if (attr->mNameSpace == kNameSpaceID_Unknown) {
+        if (attr->mNameSpace == kNameSpaceID_Unknown) {
           
           
           
@@ -1908,8 +1890,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
          result && negation; negation = negation->mNegations) {
       PRBool dependence = PR_FALSE;
       result = !SelectorMatches(data, negation, aStateMask,
-                                aAttribute, aForStyling, &dependence);
-      
+                                aForStyling, &dependence);
       
       
       
@@ -1949,7 +1930,8 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
         nsIContent* content = prevdata->mContent;
         nsIContent* parent = prevdata->mParentContent;
         if (parent) {
-          parent->SetFlags(NODE_HAS_SLOW_SELECTOR_NOAPPEND);
+          if (aForStyling)
+            parent->SetFlags(NODE_HAS_SLOW_SELECTOR_NOAPPEND);
 
           PRInt32 index = parent->IndexOf(content);
           while (0 <= --index) {
@@ -1984,7 +1966,7 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
     if (! data) {
       return PR_FALSE;
     }
-    if (SelectorMatches(*data, selector, 0, nsnull, aForStyling)) {
+    if (SelectorMatches(*data, selector, 0, aForStyling)) {
       
       
       
@@ -2027,7 +2009,7 @@ static void ContentEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
 {
   ElementRuleProcessorData* data = (ElementRuleProcessorData*)aData;
 
-  if (SelectorMatches(*data, aSelector, 0, nsnull, PR_TRUE)) {
+  if (SelectorMatches(*data, aSelector, 0, PR_TRUE)) {
     nsCSSSelector *next = aSelector->mNext;
     if (!next || SelectorMatchesTree(*data, next, PR_TRUE)) {
       
@@ -2083,7 +2065,7 @@ static void PseudoEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
       if (PRUnichar('+') == selector->mOperator) {
         return; 
       }
-      if (SelectorMatches(*data, selector, 0, nsnull, PR_TRUE)) {
+      if (SelectorMatches(*data, selector, 0, PR_TRUE)) {
         selector = selector->mNext;
       }
       else {
@@ -2164,8 +2146,8 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData,
       
       
       if ((possibleChange & ~(*aResult)) &&
-          SelectorMatches(*aData, selector, aData->mStateMask, nsnull, PR_TRUE) &&
-          SelectorMatchesTree(*aData, selector->mNext, PR_TRUE)) {
+          SelectorMatches(*aData, selector, aData->mStateMask, PR_FALSE) &&
+          SelectorMatchesTree(*aData, selector->mNext, PR_FALSE)) {
         *aResult = nsReStyleHint(*aResult | possibleChange);
       }
     }
@@ -2194,9 +2176,8 @@ AttributeEnumFunc(nsCSSSelector* aSelector, AttributeEnumData* aData)
   
   
   if ((possibleChange & ~(aData->change)) &&
-      SelectorMatches(*data, aSelector, data->mStateMask, data->mAttribute,
-                      PR_TRUE) &&
-      SelectorMatchesTree(*data, aSelector->mNext, PR_TRUE)) {
+      SelectorMatches(*data, aSelector, 0, PR_FALSE) &&
+      SelectorMatchesTree(*data, aSelector->mNext, PR_FALSE)) {
     aData->change = nsReStyleHint(aData->change | possibleChange);
   }
 }
@@ -2207,38 +2188,45 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
   NS_PRECONDITION(aData->mContent->IsNodeOfType(nsINode::eELEMENT),
                   "content must be element");
 
+  
+  
+
   AttributeEnumData data(aData);
 
   
   
-  
-  if (aData->mAttribute == nsGkAtoms::href &&
-      aData->mIsHTMLContent &&
-      (aData->mContentTag == nsGkAtoms::a ||
-       aData->mContentTag == nsGkAtoms::area ||
-       aData->mContentTag == nsGkAtoms::link)) {
-    data.change = nsReStyleHint(data.change | eReStyle_Self);
-  }
-  
+  if (aData->mAttrHasChanged) {
+    
+    
+    
+    if (aData->mAttribute == nsGkAtoms::href &&
+        aData->mIsHTMLContent &&
+        (aData->mContentTag == nsGkAtoms::a ||
+         aData->mContentTag == nsGkAtoms::area ||
+         aData->mContentTag == nsGkAtoms::link)) {
+      data.change = nsReStyleHint(data.change | eReStyle_Self);
+    }
+    
 #ifdef MOZ_SVG
-  
-  if (aData->mAttribute == nsGkAtoms::href &&
-      aData->mNameSpaceID == kNameSpaceID_SVG &&
-      aData->mContentTag == nsGkAtoms::a) {
-    data.change = nsReStyleHint(data.change | eReStyle_Self);
-  }
+    
+    if (aData->mAttribute == nsGkAtoms::href &&
+        aData->mNameSpaceID == kNameSpaceID_SVG &&
+        aData->mContentTag == nsGkAtoms::a) {
+      data.change = nsReStyleHint(data.change | eReStyle_Self);
+    }
 #endif
-  
-  
+    
+    
 
-  
-  if ((aData->mAttribute == nsGkAtoms::localedir ||
-       aData->mAttribute == nsGkAtoms::lwtheme ||
-       aData->mAttribute == nsGkAtoms::lwthemetextcolor) &&
-      aData->mNameSpaceID == kNameSpaceID_XUL &&
-      aData->mContent == aData->mContent->GetOwnerDoc()->GetRootContent())
-  {
-    data.change = nsReStyleHint(data.change | eReStyle_Self);
+    
+    if ((aData->mAttribute == nsGkAtoms::localedir ||
+         aData->mAttribute == nsGkAtoms::lwtheme ||
+         aData->mAttribute == nsGkAtoms::lwthemetextcolor) &&
+        aData->mNameSpaceID == kNameSpaceID_XUL &&
+        aData->mContent == aData->mContent->GetOwnerDoc()->GetRootContent())
+      {
+        data.change = nsReStyleHint(data.change | eReStyle_Self);
+      }
   }
 
   RuleCascadeData* cascade = GetRuleCascade(aData->mPresContext);
@@ -2246,7 +2234,9 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
   
   
   
-
+  
+  
+  
   if (cascade) {
     if (aData->mAttribute == aData->mContent->GetIDAttributeName()) {
       nsCSSSelector **iter = cascade->mIDSelectors.Elements(),
@@ -2701,7 +2691,7 @@ nsCSSRuleProcessor::SelectorListMatches(RuleProcessorData& aData,
   while (aSelectorList) {
     nsCSSSelector* sel = aSelectorList->mSelectors;
     NS_ASSERTION(sel, "Should have *some* selectors");
-    if (SelectorMatches(aData, sel, 0, nsnull, PR_FALSE)) {
+    if (SelectorMatches(aData, sel, 0, PR_FALSE)) {
       nsCSSSelector* next = sel->mNext;
       if (!next || SelectorMatchesTree(aData, next, PR_FALSE)) {
         return PR_TRUE;

@@ -191,10 +191,12 @@ public:
                           nsChangeHint aMinChange);
 
   
+  
+  
   NS_HIDDEN_(nsReStyleHint) HasAttributeDependentStyle(nsIContent *aContent,
                                                        nsIAtom *aAttribute,
                                                        PRInt32 aModType,
-                                                       PRUint32 aStateMask);
+                                                       PRBool aAttrHasChanged);
 
   
 

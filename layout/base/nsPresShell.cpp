@@ -866,6 +866,7 @@ public:
 
   
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
+  NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTEWILLCHANGE
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -5030,6 +5031,26 @@ PresShell::ContentStatesChanged(nsIDocument* aDocument,
   }
 }
 
+void
+PresShell::AttributeWillChange(nsIDocument* aDocument,
+                               nsIContent*  aContent,
+                               PRInt32      aNameSpaceID,
+                               nsIAtom*     aAttribute,
+                               PRInt32      aModType)
+{
+  NS_PRECONDITION(!mIsDocumentGone, "Unexpected AttributeChanged");
+  NS_PRECONDITION(aDocument == mDocument, "Unexpected aDocument");
+
+  
+  
+  
+  if (mDidInitialReflow) {
+    nsAutoCauseReflowNotifier crNotifier(this);
+    mFrameConstructor->AttributeWillChange(aContent, aNameSpaceID,
+                                           aAttribute, aModType);
+    VERIFY_STYLE_TREE;
+  }
+}
 
 void
 PresShell::AttributeChanged(nsIDocument* aDocument,

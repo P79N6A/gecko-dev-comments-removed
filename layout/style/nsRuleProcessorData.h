@@ -212,18 +212,18 @@ struct AttributeRuleProcessorData : public RuleProcessorData {
                              nsIContent* aContent,
                              nsIAtom* aAttribute,
                              PRInt32 aModType,
-                             PRUint32 aStateMask)
+                             PRBool aAttrHasChanged)
     : RuleProcessorData(aPresContext, aContent, nsnull),
       mAttribute(aAttribute),
       mModType(aModType),
-      mStateMask(aStateMask)
+      mAttrHasChanged(aAttrHasChanged)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aContent, "null pointer");
   }
   nsIAtom* mAttribute; 
   PRInt32 mModType;    
-  PRUint32 mStateMask; 
+  PRBool mAttrHasChanged; 
 };
 
 #endif 

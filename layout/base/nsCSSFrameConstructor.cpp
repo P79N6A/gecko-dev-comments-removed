@@ -8021,15 +8021,27 @@ nsCSSFrameConstructor::DoContentStateChanged(nsIContent* aContent,
   }
 }
 
-nsresult
+void
+nsCSSFrameConstructor::AttributeWillChange(nsIContent* aContent,
+                                           PRInt32 aNameSpaceID,
+                                           nsIAtom* aAttribute,
+                                           PRInt32 aModType)
+{
+  nsReStyleHint rshint =
+    mPresShell->FrameManager()->HasAttributeDependentStyle(aContent,
+                                                           aAttribute,
+                                                           aModType,
+                                                           PR_FALSE);
+  PostRestyleEvent(aContent, rshint, NS_STYLE_HINT_NONE);
+}
+
+void
 nsCSSFrameConstructor::AttributeChanged(nsIContent* aContent,
                                         PRInt32 aNameSpaceID,
                                         nsIAtom* aAttribute,
                                         PRInt32 aModType,
                                         PRUint32 aStateMask)
 {
-  nsresult  result = NS_OK;
-
   
   
   
@@ -8061,7 +8073,7 @@ nsCSSFrameConstructor::AttributeChanged(nsIContent* aContent,
     if (namespaceID == kNameSpaceID_XUL &&
         (tag == nsGkAtoms::listitem ||
          tag == nsGkAtoms::listcell))
-      return NS_OK;
+      return;
   }
 
   if (aAttribute == nsGkAtoms::tooltiptext ||
@@ -8093,8 +8105,7 @@ nsCSSFrameConstructor::AttributeChanged(nsIContent* aContent,
     }
    
     
-    result = primaryFrame->AttributeChanged(aNameSpaceID, aAttribute,
-                                            aModType);
+    primaryFrame->AttributeChanged(aNameSpaceID, aAttribute, aModType);
     
     
     
@@ -8107,11 +8118,9 @@ nsCSSFrameConstructor::AttributeChanged(nsIContent* aContent,
   nsReStyleHint rshint = frameManager->HasAttributeDependentStyle(aContent,
                                                                   aAttribute,
                                                                   aModType,
-                                                                  aStateMask);
+                                                                  PR_TRUE);
 
   PostRestyleEvent(aContent, rshint, hint);
-
-  return result;
 }
 
 void
