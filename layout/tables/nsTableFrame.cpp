@@ -1384,6 +1384,14 @@ nsTableFrame::DisplayGenericTablePart(nsDisplayListBuilder* aBuilder,
   currentItem->UpdateForFrameBackground(aFrame);
   
   
+  if (aFrame->IsVisibleForPainting(aBuilder) &&
+      aFrame->GetStyleBorder()->mBoxShadow) {
+    nsDisplayItem* item = new (aBuilder) nsDisplayBoxShadow(aFrame);
+    nsresult rv = lists->BorderBackground()->AppendNewToTop(item);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
   
   
   if (aBuilder->IsForEventDelivery() &&
