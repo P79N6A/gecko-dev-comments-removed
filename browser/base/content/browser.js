@@ -128,17 +128,6 @@ function pageShowEventHandlers(event)
     
     XULBrowserWindow.asyncUpdateUI();
   }
-
-  
-  var targetBrowser = null;
-  if (gBrowser.mTabbedMode) {
-    var targetBrowserIndex = gBrowser.getBrowserIndexForDocument(event.originalTarget);
-    if (targetBrowserIndex == -1)
-      return;
-    targetBrowser = gBrowser.getBrowserAtIndex(targetBrowserIndex);
-  } else {
-    targetBrowser = gBrowser.mCurrentBrowser;
-  }
 }
 
 
@@ -998,8 +987,6 @@ function prepareForStartup()
 
   
   gBrowser.addEventListener("DOMLinkAdded", DOMLinkHandler, false);
-
-  gBrowser.addEventListener("pagehide", FeedHandler.onPageHide, false);
 }
 
 function delayedStartup()
@@ -5295,12 +5282,6 @@ function convertFromUnicode(charset, str)
 
 
 var FeedHandler = {
-  onPageHide: function(event) {
-    var theBrowser = gBrowser.getBrowserForDocument(event.target);
-    if (theBrowser)
-      theBrowser.feeds = null;
-  },
-  
   
 
 
