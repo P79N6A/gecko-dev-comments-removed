@@ -614,13 +614,6 @@ mozStorageStatement::ExecuteAsync(mozIStorageStatementCallback *aCallback,
 }
 
 
-sqlite3_stmt*
-mozStorageStatement::GetNativeStatementPointer()
-{
-    return mDBStatement;
-}
-
-
 NS_IMETHODIMP
 mozStorageStatement::GetState(PRInt32 *_retval)
 {
