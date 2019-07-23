@@ -104,6 +104,10 @@ CSS_PSEUDO_CLASS(mozIsHTML, ":-moz-is-html")
 
 CSS_PSEUDO_CLASS(mozSystemMetric, ":-moz-system-metric")
 
+
+
+CSS_PSEUDO_CLASS(mozLocaleDir, ":-moz-locale-dir")
+
 #ifdef MOZ_MATHML
 CSS_PSEUDO_CLASS(mozMathIncrementScriptLevel, ":-moz-math-increment-script-level")
 #endif

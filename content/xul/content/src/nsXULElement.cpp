@@ -1119,6 +1119,15 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
             SetTitlebarColor(color, aName == nsGkAtoms::activetitlebarcolor);
         }
 
+        
+        if (aName == nsGkAtoms::localedir &&
+            document && document->GetRootContent() == this) {
+            nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(document);
+            if (xuldoc) {
+                xuldoc->ResetDocumentDirection();
+            }
+        }
+
         if (aName == nsGkAtoms::src && document) {
             LoadSrc();
         }
@@ -1363,6 +1372,15 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
             doc && doc->GetRootContent() == this) {
             
             SetTitlebarColor(NS_RGBA(0, 0, 0, 0), aName == nsGkAtoms::activetitlebarcolor);
+        }
+
+        
+        if (aName == nsGkAtoms::localedir &&
+            doc && doc->GetRootContent() == this) {
+            nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
+            if (xuldoc) {
+                xuldoc->ResetDocumentDirection();
+            }
         }
 
         
@@ -1792,7 +1810,6 @@ nsXULElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
         
         retval = NS_STYLE_HINT_FRAMECHANGE;
     } else {
-        
         
         
         if (nsGkAtoms::left == aAttribute || nsGkAtoms::top == aAttribute)

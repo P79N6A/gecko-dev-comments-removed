@@ -122,6 +122,11 @@ public:
 
 
   virtual PRBool OnDocumentParserError() = 0;
+
+  
+
+
+  virtual void ResetDocumentDirection() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIXULDocument, NS_IXULDOCUMENT_IID)

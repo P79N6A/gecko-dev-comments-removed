@@ -6628,9 +6628,7 @@ var gIdentityHandler = {
     
     
     
-    var position = 'after_start';
-    if (gURLBar.getAttribute("chromedir") == "rtl")
-      position = 'after_end';
+    var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_end' : 'after_start';
 
     
     this._identityBox.setAttribute("open", "true");

@@ -3,8 +3,6 @@
 %brandDTD;
 <!ENTITY % browserDTD SYSTEM "chrome:
 %browserDTD;
-<!ENTITY % globalDTD SYSTEM "chrome:
-%globalDTD;
 <!ENTITY % globalRegionDTD SYSTEM "chrome:
 %globalRegionDTD;
 <!ENTITY % charsetDTD SYSTEM "chrome:

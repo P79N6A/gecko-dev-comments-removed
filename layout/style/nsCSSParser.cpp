@@ -3314,6 +3314,14 @@ CSSParserImpl::ParsePseudoClassWithIdentArg(nsCSSSelector& aSelector,
   }
 
   
+  if (aPseudo == nsCSSPseudoClasses::mozLocaleDir) {
+    if (!mToken.mIdent.EqualsLiteral("ltr") &&
+        !mToken.mIdent.EqualsLiteral("rtl")) {
+      return eSelectorParsingStatus_Error;
+    }
+  }
+
+  
   aSelector.AddPseudoClass(aPseudo, mToken.mIdent.get());
 
   

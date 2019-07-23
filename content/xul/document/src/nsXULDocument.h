@@ -182,6 +182,10 @@ public:
 
     virtual void EndUpdate(nsUpdateType aUpdateType);
 
+    virtual PRBool IsDocumentRightToLeft();
+
+    virtual void ResetDocumentDirection() { mDocDirection = Direction_Uninitialized; }
+
     static PRBool
     MatchAttribute(nsIContent* aContent,
                    PRInt32 aNameSpaceID,
@@ -244,7 +248,8 @@ protected:
         return kNameSpaceID_XUL;
     }
 
-protected:
+    static NS_HIDDEN_(int) DirectionChanged(const char* aPrefName, void* aData);
+
     
     static PRInt32 gRefCnt;
 
@@ -325,6 +330,17 @@ protected:
 
 
     nsCOMPtr<nsIDOMNode>    mTooltipNode;          
+
+    
+
+
+    enum DocumentDirection {
+      Direction_Uninitialized, 
+      Direction_LeftToRight,
+      Direction_RightToLeft
+    };
+
+    DocumentDirection               mDocDirection;
 
     
 

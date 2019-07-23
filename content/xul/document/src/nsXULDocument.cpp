@@ -126,6 +126,7 @@
 #include "nsXULPopupManager.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsURILoader.h"
+#include "nsCSSFrameConstructor.h"
 
 
 
@@ -222,6 +223,7 @@ nsRefMapEntry::RemoveContent(nsIContent* aContent)
 
 nsXULDocument::nsXULDocument(void)
     : nsXMLDocument("application/vnd.mozilla.xul+xml"),
+      mDocDirection(Direction_Uninitialized),
       mState(eState_Master),
       mResolutionPhase(nsForwardReference::eStart)
 {
@@ -259,6 +261,10 @@ nsXULDocument::~nsXULDocument()
     }
 
     delete mTemplateBuilderTable;
+
+    nsContentUtils::UnregisterPrefCallback("intl.uidirection.",
+                                           nsXULDocument::DirectionChanged,
+                                           this);
 
     if (--gRefCnt == 0) {
         NS_IF_RELEASE(gRDFService);
@@ -1988,6 +1994,10 @@ nsXULDocument::Init()
           return NS_ERROR_FAILURE;
         }
     }
+
+    nsContentUtils::RegisterPrefCallback("intl.uidirection.",
+                                         nsXULDocument::DirectionChanged,
+                                         this);
 
 #ifdef PR_LOGGING
     if (! gXULLog)
@@ -4625,6 +4635,100 @@ nsXULDocument::GetFocusController(nsIFocusController** aFocusController)
         NS_IF_ADDREF(*aFocusController = windowPrivate->GetRootFocusController());
     } else
         *aFocusController = nsnull;
+}
+
+PRBool
+nsXULDocument::IsDocumentRightToLeft()
+{
+    if (mDocDirection == Direction_Uninitialized) {
+        mDocDirection = Direction_LeftToRight; 
+
+        
+        
+        nsIContent* content = GetRootContent();
+        if (content) {
+            static nsIContent::AttrValuesArray strings[] =
+                {&nsGkAtoms::ltr, &nsGkAtoms::rtl, nsnull};
+            switch (content->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::localedir,
+                                             strings, eCaseMatters)) {
+                case 0: mDocDirection = Direction_LeftToRight; return PR_FALSE;
+                case 1: mDocDirection = Direction_RightToLeft; return PR_TRUE;
+                default: break;
+            }
+        }
+
+        
+        
+        nsCOMPtr<nsIXULChromeRegistry> reg =
+            do_GetService(NS_CHROMEREGISTRY_CONTRACTID);
+        if (reg) {
+            nsCAutoString package;
+            PRBool isChrome;
+            if (NS_SUCCEEDED(mDocumentURI->SchemeIs("chrome", &isChrome)) &&
+                isChrome) {
+                mDocumentURI->GetHostPort(package);
+            }
+            else {
+                
+                
+                PRBool isAbout, isResource;
+                if (NS_SUCCEEDED(mDocumentURI->SchemeIs("about", &isAbout)) &&
+                    isAbout) {
+                    package.AssignLiteral("global");
+                }
+                else if (NS_SUCCEEDED(mDocumentURI->SchemeIs("resource", &isResource)) &&
+                    isResource) {
+                    package.AssignLiteral("global");
+                }
+                else {
+                    return PR_FALSE;
+                }
+            }
+
+            nsCAutoString locale;
+            reg->GetSelectedLocale(package, locale);
+            if (locale.Length() >= 2) {
+                
+                
+                
+                
+                nsCAutoString prefString =
+                    NS_LITERAL_CSTRING("intl.uidirection.") + locale;
+                nsAdoptingCString dir = nsContentUtils::GetCharPref(prefString.get());
+                if (dir.IsEmpty()) {
+                    PRInt32 hyphen = prefString.FindChar('-');
+                    if (hyphen >= 1) {
+                        nsCAutoString shortPref(Substring(prefString, 0, hyphen));
+                        dir = nsContentUtils::GetCharPref(shortPref.get());
+                    }
+                }
+
+                mDocDirection = dir.EqualsLiteral("rtl") ?
+                                Direction_RightToLeft : Direction_LeftToRight;
+            }
+        }
+    }
+
+    return (mDocDirection == Direction_RightToLeft);
+}
+
+int
+nsXULDocument::DirectionChanged(const char* aPrefName, void* aData)
+{
+  
+  
+  
+  nsXULDocument* doc = (nsXULDocument *)aData;
+  if (doc)
+      doc->ResetDocumentDirection();
+
+  nsIPresShell *shell = doc->GetPrimaryShell();
+  if (shell) {
+      shell->FrameConstructor()->
+          PostRestyleEvent(doc->GetRootContent(), eReStyle_Self, NS_STYLE_HINT_NONE);
+  }
+
+  return 0;
 }
 
 NS_IMETHODIMP
