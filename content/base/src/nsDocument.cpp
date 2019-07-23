@@ -1481,8 +1481,7 @@ nsDOMImplementation::Init(nsIURI* aDocumentURI, nsIURI* aBaseURI,
   
 
 nsDocument::nsDocument(const char* aContentType)
-  : nsIDocument(),
-    mVisible(PR_TRUE)
+  : nsIDocument()
 {
   mContentType = aContentType;
   

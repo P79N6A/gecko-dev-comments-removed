@@ -129,6 +129,8 @@ public:
       mCompatMode(eCompatibility_FullStandards),
       mIsInitialDocumentInWindow(PR_FALSE),
       mMayStartLayout(PR_TRUE),
+      mVisible(PR_TRUE),
+      mRemovedFromDocShell(PR_FALSE),
       
       
       
@@ -1120,6 +1122,16 @@ public:
 
 
   PRBool IsShowing() { return mIsShowing; }
+  
+
+
+
+  PRBool IsVisible() { return mVisible; }
+  
+
+
+
+  PRBool IsActive() { return mDocumentContainer && !mRemovedFromDocShell; }
 
   void RegisterFreezableElement(nsIContent* aContent);
   PRBool UnregisterFreezableElement(nsIContent* aContent);
@@ -1280,6 +1292,15 @@ protected:
 
   
   PRPackedBool mIsShowing;
+
+  
+  
+  PRPackedBool mVisible;
+
+  
+  
+  
+  PRPackedBool mRemovedFromDocShell;
 
   
   
