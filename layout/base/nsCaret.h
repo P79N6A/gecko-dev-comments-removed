@@ -146,7 +146,7 @@ protected:
       nscoord mBidiIndicatorSize; 
       nscoord mCaretWidth;        
     };
-    Metrics ComputeMetrics(nsPresContext *aPresContext);
+    Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset);
 
     
     
