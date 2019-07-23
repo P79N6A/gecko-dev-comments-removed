@@ -1063,6 +1063,9 @@ extern JSBool
 js_ReportIsNullOrUndefined(JSContext *cx, intN spindex, jsval v,
                            JSString *fallback);
 
+extern void
+js_ReportMissingArg(JSContext *cx, jsval *vp, uintN arg);
+
 
 
 

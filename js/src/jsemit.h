@@ -511,8 +511,7 @@ js_DefineCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 
 
 extern JSStmtInfo *
-js_LexicalLookup(JSTreeContext *tc, JSAtom *atom, jsint *slotp,
-                 uintN declType);
+js_LexicalLookup(JSTreeContext *tc, JSAtom *atom, jsint *slotp);
 
 
 
