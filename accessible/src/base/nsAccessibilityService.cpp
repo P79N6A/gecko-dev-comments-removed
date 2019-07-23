@@ -1334,7 +1334,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   
   
-  nsWeakFrame weakFrame = *aFrameHint;
+  nsWeakFrame weakFrame(*aFrameHint);
 
 #ifdef DEBUG_A11Y
   
@@ -1460,8 +1460,10 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     *aIsHidden = PR_TRUE;
   }
 
-  if (*aIsHidden)
+  if (*aIsHidden) {
+    *aFrameHint = weakFrame.GetFrame();
     return NS_OK;
+  }
 
   
 
@@ -1475,13 +1477,17 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
       if (renderedWhitespace.IsEmpty()) {
         
         *aIsHidden = PR_TRUE;
+        *aFrameHint = weakFrame.GetFrame();
         return NS_OK;
       }
     }
     if (weakFrame.IsAlive()) {
       weakFrame.GetFrame()->GetAccessible(getter_AddRefs(newAcc));
     }
-    return InitAccessible(newAcc, aAccessible, nsnull);
+
+    nsresult rv = InitAccessible(newAcc, aAccessible, nsnull);
+    *aFrameHint = weakFrame.GetFrame();
+    return rv;
   }
 
   PRBool isHTML = content->IsHTML();
@@ -1498,12 +1504,16 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::name, name);
     if (!name.IsEmpty()) {
       *aIsHidden = PR_TRUE;
+      *aFrameHint = weakFrame.GetFrame();
       return NS_OK;
     }
     
     nsresult rv =
       CreateHyperTextAccessible(weakFrame.GetFrame(), getter_AddRefs(newAcc));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+      *aFrameHint = weakFrame.GetFrame();
+      return rv;
+    }
   }
 
   nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(aNode);
@@ -1512,6 +1522,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     
     
     
+    *aFrameHint = weakFrame.GetFrame();
     return NS_OK;
   }
 
@@ -1569,6 +1580,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
             
             
             
+            *aFrameHint = weakFrame.GetFrame();
             return NS_OK;
           }
 
@@ -1616,7 +1628,10 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
       nsresult rv =
         CreateHTMLAccessibleByMarkup(weakFrame.GetFrame(), aWeakShell, aNode,
                                      getter_AddRefs(newAcc));
-      NS_ENSURE_SUCCESS(rv, rv);
+      if (NS_FAILED(rv)) {
+        *aFrameHint = weakFrame.GetFrame();
+        return rv;
+      }
 
       if (!newAcc) {
         
@@ -1634,6 +1649,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
           
           
           *aIsHidden = PR_TRUE;
+          *aFrameHint = weakFrame.GetFrame();
           return NS_OK;
         }
         f->GetAccessible(getter_AddRefs(newAcc)); 
@@ -1645,7 +1661,10 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     
     
     nsresult rv = GetAccessibleByType(aNode, getter_AddRefs(newAcc));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+      *aFrameHint = weakFrame.GetFrame();
+      return rv;
+    }
   }
 
   if (!newAcc) {
@@ -1688,7 +1707,9 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     }
   }
 
-  return InitAccessible(newAcc, aAccessible, roleMapEntry);
+  nsresult rv = InitAccessible(newAcc, aAccessible, roleMapEntry);
+  *aFrameHint = weakFrame.GetFrame();
+  return rv;
 }
 
 PRBool
