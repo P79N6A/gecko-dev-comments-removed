@@ -274,7 +274,21 @@ var FullZoom = {
   onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
     if (!aURI || (aIsTabSwitch && !this.siteSpecific))
       return;
-    this._applyPrefToSetting(this._cps.getPref(aURI, this.name), aBrowser);
+
+    
+    if (aURI.spec == "about:blank") {
+      this._applyPrefToSetting();
+      return;
+    }
+
+    var self = this;
+    this._cps.getPref(aURI, this.name, function(aResult) {
+      
+      let isSaneURI = (aBrowser && aBrowser.currentURI) ?
+        aURI.equals(aBrowser.currentURI) : false;
+      if (!aBrowser || isSaneURI)
+        self._applyPrefToSetting(aResult, aBrowser);
+    });
   },
 
   
@@ -331,7 +345,7 @@ var FullZoom = {
         gInPrintPreviewMode)
       return;
 
-    var browser = aBrowser || gBrowser.selectedBrowser;
+    var browser = aBrowser || (gBrowser && gBrowser.selectedBrowser);
     try {
       if (browser.contentDocument instanceof Ci.nsIImageDocument ||
           this._inPrivateBrowsing)
