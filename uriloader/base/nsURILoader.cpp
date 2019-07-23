@@ -438,6 +438,7 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
     }
 
     
+    
     if (!(mFlags & nsIURILoader::DONT_RETARGET)) {
 
       
@@ -516,44 +517,39 @@ nsresult nsDocumentOpenInfo::DispatchContent(nsIRequest *request, nsISupports * 
           return rv;
         }
       }
+    } else {
+      LOG(("  DONT_RETARGET flag set, so skipped over random other content "
+           "listeners and content handlers"));
     }
-  } else if (mFlags & nsIURILoader::DONT_RETARGET) {
+
     
     
-    LOG(("  External handling forced, but not allowed to retarget -> aborting"));
-    return NS_ERROR_WONT_HANDLE_CONTENT;
+    
+    
+    
+    
+    
+    
+    
+    if (mContentType != anyType) {
+      rv = ConvertData(request, m_contentListener, mContentType, anyType);
+      if (NS_FAILED(rv)) {
+        m_targetStreamListener = nsnull;
+      } else if (m_targetStreamListener) {
+        
+        
+        LOG(("  Converter taking over now"));
+        return NS_OK;
+      }
+    }
   }
 
   NS_ASSERTION(!m_targetStreamListener,
                "If we found a listener, why are we not using it?");
   
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  if (mContentType != anyType) {
-    rv = ConvertData(request, m_contentListener, mContentType, anyType);
-    if (NS_FAILED(rv)) {
-      m_targetStreamListener = nsnull;
-    } else if (m_targetStreamListener) {
-      
-      
-      LOG(("  Converter taking over now"));
-      return NS_OK;
-    }
-  }
-
   if (mFlags & nsIURILoader::DONT_RETARGET) {
-    LOG(("  Listener not interested and no stream converter exists, and retargeting disallowed -> aborting"));
+    LOG(("  External handling forced or (listener not interested and no "
+         "stream converter exists), and retargeting disallowed -> aborting"));
     return NS_ERROR_WONT_HANDLE_CONTENT;
   }
 
