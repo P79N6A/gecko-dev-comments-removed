@@ -200,10 +200,10 @@ public:
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
   NS_IMETHOD AppendFrames(nsIAtom*        aListName,
-                          nsIFrame*       aFrameList);
+                          nsFrameList&    aFrameList);
   NS_IMETHOD InsertFrames(nsIAtom*        aListName,
                           nsIFrame*       aPrevFrame,
-                          nsIFrame*       aFrameList);
+                          nsFrameList&    aFrameList);
   NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
                          nsIFrame*       aOldFrame);
 
@@ -501,20 +501,10 @@ public:
   
 
 
+  void InsertRowGroups(const nsFrameList::Slice& aRowGroups);
 
-  void AppendRowGroups(nsIFrame* aFirstRowGroupFrame);
-
-  
-
-
-
-
-  void InsertRowGroups(nsIFrame*       aFirstRowGroupFrame,
-                       nsIFrame*       aLastRowGroupFrame);
-
-  void InsertColGroups(PRInt32         aColIndex,
-                       nsIFrame*       aFirstFrame,
-                       nsIFrame*       aLastFrame = nsnull);
+  void InsertColGroups(PRInt32                   aStartColIndex,
+                       const nsFrameList::Slice& aColgroups);
 
   virtual void RemoveCol(nsTableColGroupFrame* aColGroupFrame,
                          PRInt32               aColIndex,
@@ -748,10 +738,7 @@ public:
 
 
 
-
-
-  void ResetRowIndices(nsIFrame* aFirstRowGroupFrame = nsnull,
-                       nsIFrame* aLastRowGroupFrame = nsnull);
+  void ResetRowIndices(const nsFrameList::Slice& aRowGroupsToExclude);
 
   nsTArray<nsTableColFrame*>& GetColCache();
 

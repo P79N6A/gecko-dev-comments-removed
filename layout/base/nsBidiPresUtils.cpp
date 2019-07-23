@@ -132,19 +132,23 @@ SplitInlineAncestors(nsIFrame*     aFrame)
     
     
     frame->SetNextSibling(nsnull);
-    rv = newParent->InsertFrames(nsGkAtoms::nextBidi, nsnull, newFrame);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+    
+    
+    nsFrameList temp(newFrame);
 
     
-    rv = nsHTMLContainerFrame::ReparentFrameViewList(presContext, newFrame, parent, newParent);
+    rv = nsHTMLContainerFrame::ReparentFrameViewList(presContext, temp, parent, newParent);
     if (NS_FAILED(rv)) {
       return rv;
     }
     
+    rv = newParent->InsertFrames(nsGkAtoms::nextBidi, nsnull, temp);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     
-    rv = grandparent->InsertFrames(nsGkAtoms::nextBidi, parent, newParent);
+    nsFrameList temp2(newParent);
+    rv = grandparent->InsertFrames(nsGkAtoms::nextBidi, parent, temp2);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -204,7 +208,9 @@ CreateBidiContinuation(nsIFrame*       aFrame,
   }
   
   
-  rv = parent->InsertFrames(nsGkAtoms::nextBidi, aFrame, *aNewFrame);
+  
+  nsFrameList temp(*aNewFrame);
+  rv = parent->InsertFrames(nsGkAtoms::nextBidi, aFrame, temp);
   if (NS_FAILED(rv)) {
     return rv;
   }

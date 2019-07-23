@@ -56,7 +56,7 @@ NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
 
 NS_IMETHODIMP
 nsSVGContainerFrame::AppendFrames(nsIAtom* aListName,
-                                  nsIFrame* aFrameList)
+                                  nsFrameList& aFrameList)
 {
   return InsertFrames(aListName, mFrames.LastChild(), aFrameList);  
 }
@@ -64,7 +64,7 @@ nsSVGContainerFrame::AppendFrames(nsIAtom* aListName,
 NS_IMETHODIMP
 nsSVGContainerFrame::InsertFrames(nsIAtom* aListName,
                                   nsIFrame* aPrevFrame,
-                                  nsIFrame* aFrameList)
+                                  nsFrameList& aFrameList)
 {
   NS_ASSERTION(!aListName, "unexpected child list");
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
@@ -110,14 +110,14 @@ nsSVGDisplayContainerFrame::Init(nsIContent* aContent,
 NS_IMETHODIMP
 nsSVGDisplayContainerFrame::InsertFrames(nsIAtom* aListName,
                                          nsIFrame* aPrevFrame,
-                                         nsIFrame* aFrameList)
+                                         nsFrameList& aFrameList)
 {
   
-  nsIFrame* lastNewFrame = nsnull;
-  {
-    nsFrameList tmpList(aFrameList);
-    lastNewFrame = tmpList.LastChild();
-  }
+  
+  
+  nsIFrame* firstOldFrame = aPrevFrame ?
+    aPrevFrame->GetNextSibling() : GetChildList(aListName).FirstChild();
+  nsIFrame* firstNewFrame = aFrameList.FirstChild();
   
   
   nsSVGContainerFrame::InsertFrames(aListName, aPrevFrame, aFrameList);
@@ -125,11 +125,7 @@ nsSVGDisplayContainerFrame::InsertFrames(nsIAtom* aListName,
   
   
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    nsIFrame* end = nsnull;
-    if (lastNewFrame)
-      end = lastNewFrame->GetNextSibling();
-
-    for (nsIFrame* kid = aFrameList; kid != end;
+    for (nsIFrame* kid = firstNewFrame; kid != firstOldFrame;
          kid = kid->GetNextSibling()) {
       nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
       if (SVGFrame) {

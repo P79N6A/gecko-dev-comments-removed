@@ -199,18 +199,19 @@ nsTableRowFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
 NS_IMETHODIMP
 nsTableRowFrame::AppendFrames(nsIAtom*        aListName,
-                              nsIFrame*       aFrameList)
+                              nsFrameList&    aFrameList)
 {
   NS_ASSERTION(!aListName, "unexpected child list");
 
   
-  mFrames.AppendFrames(nsnull, aFrameList);
+  
+  
+  const nsFrameList::Slice& newCells = mFrames.AppendFrames(nsnull, aFrameList);
 
   
   nsTableFrame *tableFrame =  nsTableFrame::GetTableFrame(this);
-  for (nsIFrame* childFrame = aFrameList; childFrame;
-       childFrame = childFrame->GetNextSibling()) {
-    nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
+  for (nsFrameList::Enumerator e(newCells) ; !e.AtEnd(); e.Next()) {
+    nsTableCellFrame *cellFrame = do_QueryFrame(e.get());
     NS_ASSERTION(cellFrame, "Unexpected frame");
     if (cellFrame) {
       
@@ -229,7 +230,7 @@ nsTableRowFrame::AppendFrames(nsIAtom*        aListName,
 NS_IMETHODIMP
 nsTableRowFrame::InsertFrames(nsIAtom*        aListName,
                               nsIFrame*       aPrevFrame,
-                              nsIFrame*       aFrameList)
+                              nsFrameList&    aFrameList)
 {
   NS_ASSERTION(!aListName, "unexpected child list");
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
@@ -239,12 +240,13 @@ nsTableRowFrame::InsertFrames(nsIAtom*        aListName,
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
   
   
+  
+  
   nsIAtom* cellFrameType = (tableFrame->IsBorderCollapse()) ? nsGkAtoms::bcTableCellFrame : nsGkAtoms::tableCellFrame;
   nsTableCellFrame* prevCellFrame = (nsTableCellFrame *)nsTableFrame::GetFrameAtOrBefore(this, aPrevFrame, cellFrameType);
   nsTArray<nsTableCellFrame*> cellChildren;
-  for (nsIFrame* childFrame = aFrameList; childFrame;
-       childFrame = childFrame->GetNextSibling()) {
-    nsTableCellFrame *cellFrame = do_QueryFrame(childFrame);
+  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
+    nsTableCellFrame *cellFrame = do_QueryFrame(e.get());
     NS_ASSERTION(cellFrame, "Unexpected frame");
     if (cellFrame) {
       cellChildren.AppendElement(cellFrame);

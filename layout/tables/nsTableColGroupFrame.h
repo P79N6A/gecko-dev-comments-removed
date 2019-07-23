@@ -105,9 +105,7 @@ public:
 
 
 
-
-  static PRBool GetLastRealColGroup(nsTableFrame* aTableFrame, 
-                                    nsIFrame**    aLastColGroup);
+  static nsTableColGroupFrame* GetLastRealColGroup(nsTableFrame* aTableFrame);
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
@@ -115,10 +113,10 @@ public:
   
 
   NS_IMETHOD AppendFrames(nsIAtom*        aListName,
-                          nsIFrame*       aFrameList);
+                          nsFrameList&    aFrameList);
   NS_IMETHOD InsertFrames(nsIAtom*        aListName,
                           nsIFrame*       aPrevFrame,
-                          nsIFrame*       aFrameList);
+                          nsFrameList&    aFrameList);
   NS_IMETHOD RemoveFrame(nsIAtom*        aListName,
                          nsIFrame*       aOldFrame);
 
@@ -168,11 +166,9 @@ public:
 
 
 
-
-  nsresult AddColsToTable(PRInt32          aFirstColIndex,
-                          PRBool           aResetSubsequentColIndices,
-                          nsIFrame*        aFirstFrame,
-                          nsIFrame*        aLastFrame = nsnull);
+  nsresult AddColsToTable(PRInt32                   aFirstColIndex,
+                          PRBool                    aResetSubsequentColIndices,
+                          const nsFrameList::Slice& aCols);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
@@ -237,9 +233,8 @@ public:
 protected:
   nsTableColGroupFrame(nsStyleContext* aContext);
 
-  void InsertColsReflow(PRInt32         aColIndex,
-                        nsIFrame*       aFirstFrame,
-                        nsIFrame*       aLastFrame = nsnull);
+  void InsertColsReflow(PRInt32                   aColIndex,
+                        const nsFrameList::Slice& aCols);
 
   
   virtual PRIntn GetSkipSides() const;

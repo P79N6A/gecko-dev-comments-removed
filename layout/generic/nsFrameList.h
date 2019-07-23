@@ -325,20 +325,48 @@ public:
       mEnd(aOther.mEnd)
     {}
 
-    PRBool AtEnd() const { return mFrame == mEnd; }
+    PRBool AtEnd() const {
+      
+      
+      
+      return !mFrame || mFrame == mEnd;
+    }
 
     
 
 
     inline void Next();
 
-    nsIFrame* get() const { return mFrame; }
+    
+
+
+
+    nsIFrame* get() const {
+      NS_PRECONDITION(!AtEnd(), "Enumerator is at end");
+      return mFrame;
+    }
+
+    
+
+
+
+    Enumerator GetUnlimitedEnumerator() const {
+      return Enumerator(*this, nsnull);
+    }
 
 #ifdef DEBUG
     const nsFrameList& List() const { return mSlice.mList; }
 #endif
 
   protected:
+    Enumerator(const Enumerator& aOther, const nsIFrame* const aNewEnd):
+#ifdef DEBUG
+      mSlice(aOther.mSlice),
+#endif
+      mFrame(aOther.mFrame),
+      mEnd(aNewEnd)
+    {}
+
 #ifdef DEBUG
     
 

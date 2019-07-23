@@ -354,8 +354,8 @@ nsTableFrame::SetInitialChildList(nsIAtom*        aListName,
   if (!GetPrevInFlow()) {
     
     
-    InsertColGroups(0, mColGroups.FirstChild());
-    AppendRowGroups(mFrames.FirstChild());
+    InsertColGroups(0, mColGroups);
+    InsertRowGroups(mFrames);
     
     if (IsBorderCollapse()) {
       nsRect damageArea(0, 0, GetColCount(), GetRowCount());
@@ -527,9 +527,11 @@ void nsTableFrame::AdjustRowIndices(PRInt32         aRowIndex,
 }
 
 
-void nsTableFrame::ResetRowIndices(nsIFrame* aFirstRowGroupFrame,
-                                   nsIFrame* aLastRowGroupFrame)
+void nsTableFrame::ResetRowIndices(const nsFrameList::Slice& aRowGroupsToExclude)
 {
+  
+  
+  
   
   
   RowGroupArray rowGroups;
@@ -537,68 +539,60 @@ void nsTableFrame::ResetRowIndices(nsIFrame* aFirstRowGroupFrame,
 
   PRInt32 rowIndex = 0;
   nsTableRowGroupFrame* newRgFrame = nsnull;
-  nsIFrame* omitRgFrame = aFirstRowGroupFrame;
-  if (omitRgFrame) {
-    newRgFrame = GetRowGroupFrame(omitRgFrame);
-    if (omitRgFrame == aLastRowGroupFrame)
-      omitRgFrame = nsnull;
+  nsFrameList::Enumerator excludeRowGroupsEnumerator(aRowGroupsToExclude);
+  if (!excludeRowGroupsEnumerator.AtEnd()) {
+    newRgFrame = GetRowGroupFrame(excludeRowGroupsEnumerator.get());
+    excludeRowGroupsEnumerator.Next();
   }
 
   for (PRUint32 rgX = 0; rgX < rowGroups.Length(); rgX++) {
     nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
     if (rgFrame == newRgFrame) {
       
-      if (omitRgFrame) {
-        omitRgFrame = omitRgFrame->GetNextSibling();
-        if (omitRgFrame) {
-          newRgFrame  = GetRowGroupFrame(omitRgFrame);
-          if (omitRgFrame == aLastRowGroupFrame)
-            omitRgFrame = nsnull;
-        }
+      if (!excludeRowGroupsEnumerator.AtEnd()) {
+        newRgFrame = GetRowGroupFrame(excludeRowGroupsEnumerator.get());
+        excludeRowGroupsEnumerator.Next();
       }
     }
     else {
-      nsIFrame* rowFrame = rgFrame->GetFirstChild(nsnull);
-      for ( ; rowFrame; rowFrame = rowFrame->GetNextSibling()) {
-        if (NS_STYLE_DISPLAY_TABLE_ROW==rowFrame->GetStyleDisplay()->mDisplay) {
-          ((nsTableRowFrame *)rowFrame)->SetRowIndex(rowIndex);
+      const nsFrameList& rowFrames = rgFrame->GetChildList(nsnull);
+      for (nsFrameList::Enumerator rows(rowFrames); !rows.AtEnd(); rows.Next()) {
+        if (NS_STYLE_DISPLAY_TABLE_ROW==rows.get()->GetStyleDisplay()->mDisplay) {
+          ((nsTableRowFrame *)rows.get())->SetRowIndex(rowIndex);
           rowIndex++;
         }
       }
     }
   }
 }
-void nsTableFrame::InsertColGroups(PRInt32         aStartColIndex,
-                                   nsIFrame*       aFirstFrame,
-                                   nsIFrame*       aLastFrame)
+void nsTableFrame::InsertColGroups(PRInt32                   aStartColIndex,
+                                   const nsFrameList::Slice& aColGroups)
 {
   PRInt32 colIndex = aStartColIndex;
-  nsTableColGroupFrame* firstColGroupToReset = nsnull;
-  nsIFrame* kidFrame = aFirstFrame;
-  PRBool didLastFrame = PR_FALSE;
-  while (kidFrame) {
-    if (nsGkAtoms::tableColGroupFrame == kidFrame->GetType()) {
-      if (didLastFrame) {
-        firstColGroupToReset = (nsTableColGroupFrame*)kidFrame;
-        break;
-      }
-      else {
-        nsTableColGroupFrame* cgFrame = (nsTableColGroupFrame*)kidFrame;
-        cgFrame->SetStartColumnIndex(colIndex);
-        nsIFrame* firstCol = kidFrame->GetFirstChild(nsnull);
-        cgFrame->AddColsToTable(colIndex, PR_FALSE, firstCol);
-        PRInt32 numCols = cgFrame->GetColCount();
-        colIndex += numCols;
-      }
-    }
-    if (kidFrame == aLastFrame) {
-      didLastFrame = PR_TRUE;
-    }
-    kidFrame = kidFrame->GetNextSibling();
+  nsFrameList::Enumerator colGroups(aColGroups);
+  for (; !colGroups.AtEnd(); colGroups.Next()) {
+    nsTableColGroupFrame* cgFrame =
+      static_cast<nsTableColGroupFrame*>(colGroups.get());
+    cgFrame->SetStartColumnIndex(colIndex);
+    
+    
+    
+    
+
+    
+    
+    
+    
+    cgFrame->AddColsToTable(colIndex, PR_FALSE,
+                              colGroups.get()->GetChildList(nsnull));
+    PRInt32 numCols = cgFrame->GetColCount();
+    colIndex += numCols;
   }
 
-  if (firstColGroupToReset) {
-    nsTableColGroupFrame::ResetColIndices(firstColGroupToReset, colIndex);
+  nsFrameList::Enumerator remainingColgroups = colGroups.GetUnlimitedEnumerator();
+  if (!remainingColgroups.AtEnd()) {
+    nsTableColGroupFrame::ResetColIndices(
+      static_cast<nsTableColGroupFrame*>(remainingColgroups.get()), colIndex);
   }
 }
 
@@ -764,9 +758,8 @@ nsTableFrame::AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
   }
   nsFrameList& cols = aColGroupFrame->GetWritableChildList();
   nsIFrame* oldLastCol = cols.LastChild();
-  nsIFrame* firstNewCol = newColFrames.FirstChild();
-  nsIFrame* lastNewCol = newColFrames.lastChild;
-  cols.InsertFrames(nsnull, oldLastCol, newColFrames);
+  const nsFrameList::Slice& newCols =
+    cols.InsertFrames(nsnull, oldLastCol, newColFrames);
   if (aAddToTable) {
     
     PRInt32 startColIndex;
@@ -777,8 +770,7 @@ nsTableFrame::AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
       startColIndex = aColGroupFrame->GetStartColumnIndex();
     }
 
-    aColGroupFrame->AddColsToTable(startColIndex, PR_TRUE, 
-                                   firstNewCol, lastNewCol);
+    aColGroupFrame->AddColsToTable(startColIndex, PR_TRUE, newCols);
   }
 }
 
@@ -1023,17 +1015,6 @@ void nsTableFrame::RemoveRows(nsTableRowFrame& aFirstRowFrame,
 #endif
 }
 
-void nsTableFrame::AppendRowGroups(nsIFrame* aFirstRowGroupFrame)
-{
-  if (aFirstRowGroupFrame) {
-    nsTableCellMap* cellMap = GetCellMap();
-    if (cellMap) {
-      nsFrameList newList(aFirstRowGroupFrame);
-      InsertRowGroups(aFirstRowGroupFrame, newList.LastChild());
-    }
-  }
-}
-
 nsTableRowGroupFrame*
 nsTableFrame::GetRowGroupFrame(nsIFrame* aFrame,
                                nsIAtom*  aFrameTypeIn)
@@ -1086,8 +1067,7 @@ nsTableFrame::CollectRows(nsIFrame*                   aFrame,
 }
 
 void
-nsTableFrame::InsertRowGroups(nsIFrame* aFirstRowGroupFrame,
-                              nsIFrame* aLastRowGroupFrame)
+nsTableFrame::InsertRowGroups(const nsFrameList::Slice& aRowGroups)
 {
 #ifdef DEBUG_TABLE_CELLMAP
   printf("=== insertRowGroupsBefore\n");
@@ -1101,11 +1081,13 @@ nsTableFrame::InsertRowGroups(nsIFrame* aFirstRowGroupFrame,
     nsAutoTArray<nsTableRowFrame*, 8> rows;
     
     
+    
+    
     PRUint32 rgIndex;
     for (rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
-      nsIFrame* kidFrame = aFirstRowGroupFrame;
-      while (kidFrame) {
-        nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(kidFrame);
+      for (nsFrameList::Enumerator rowgroups(aRowGroups); !rowgroups.AtEnd();
+           rowgroups.Next()) {
+        nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(rowgroups.get());
 
         if (orderedRowGroups[rgIndex] == rgFrame) {
           nsTableRowGroupFrame* priorRG =
@@ -1115,28 +1097,22 @@ nsTableFrame::InsertRowGroups(nsIFrame* aFirstRowGroupFrame,
         
           break;
         }
-        else {
-          if (kidFrame == aLastRowGroupFrame) {
-            break;
-          }
-          kidFrame = kidFrame->GetNextSibling();
-        }
       }
     }
     cellMap->Synchronize(this);
-    ResetRowIndices(aFirstRowGroupFrame, aLastRowGroupFrame);
+    ResetRowIndices(aRowGroups);
 
     
     for (rgIndex = 0; rgIndex < orderedRowGroups.Length(); rgIndex++) {
-      nsIFrame* kidFrame = aFirstRowGroupFrame;
-      while (kidFrame) {
-        nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(kidFrame);
+      for (nsFrameList::Enumerator rowgroups(aRowGroups); !rowgroups.AtEnd();
+           rowgroups.Next()) {
+        nsTableRowGroupFrame* rgFrame = GetRowGroupFrame(rowgroups.get());
 
         if (orderedRowGroups[rgIndex] == rgFrame) {
           nsTableRowGroupFrame* priorRG =
             (0 == rgIndex) ? nsnull : orderedRowGroups[rgIndex - 1]; 
           
-          PRInt32 numRows = CollectRows(kidFrame, rows);
+          PRInt32 numRows = CollectRows(rowgroups.get(), rows);
           if (numRows > 0) {
             PRInt32 rowIndex = 0;
             if (priorRG) {
@@ -1147,12 +1123,6 @@ nsTableFrame::InsertRowGroups(nsIFrame* aFirstRowGroupFrame,
             rows.Clear();
           }
           break;
-        }
-        else {
-          if (kidFrame == aLastRowGroupFrame) {
-            break;
-          }
-          kidFrame = kidFrame->GetNextSibling();
         }
       }
     }    
@@ -2020,10 +1990,9 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
     }
     
     
-    for (nsIFrame* f = frames.FirstChild(); f; f = f->GetNextSibling()) {
-      nsHTMLContainerFrame::ReparentFrameView(PresContext(), f, this, nextInFlow);
-    }
-    nextInFlow->mFrames.InsertFrames(GetNextInFlow(), prevSibling, frames.FirstChild());
+    ReparentFrameViewList(PresContext(), frames, this, nextInFlow);
+    nextInFlow->mFrames.InsertFrames(nextInFlow, prevSibling,
+                                     frames);
   }
   else if (frames.NotEmpty()) {
     
@@ -2138,7 +2107,7 @@ nsTableFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 
 NS_IMETHODIMP
 nsTableFrame::AppendFrames(nsIAtom*        aListName,
-                           nsIFrame*       aFrameList)
+                           nsFrameList&    aFrameList)
 {
   NS_ASSERTION(!aListName || aListName == nsGkAtoms::colGroupList,
                "unexpected child list");
@@ -2147,43 +2116,33 @@ nsTableFrame::AppendFrames(nsIAtom*        aListName,
   
   
   
-  nsIFrame* f = aFrameList;
-  while (f) {
-    
-    nsIFrame* next = f->GetNextSibling();
-    f->SetNextSibling(nsnull);
+  while (!aFrameList.IsEmpty()) {
+    nsIFrame* f = aFrameList.FirstChild();
+    aFrameList.RemoveFrame(f);
 
     
     const nsStyleDisplay* display = f->GetStyleDisplay();
 
     if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == display->mDisplay) {
-      nsTableColGroupFrame* lastColGroup;
-      PRBool doAppend = nsTableColGroupFrame::GetLastRealColGroup(this, (nsIFrame**) &lastColGroup);
+      nsTableColGroupFrame* lastColGroup =
+        nsTableColGroupFrame::GetLastRealColGroup(this);
       PRInt32 startColIndex = (lastColGroup) 
         ? lastColGroup->GetStartColumnIndex() + lastColGroup->GetColCount() : 0;
-      if (doAppend) {
-        
-        mColGroups.AppendFrame(nsnull, f);
-      }
-      else {
-        
-          mColGroups.InsertFrame(nsnull, lastColGroup, f);
-      }
+      mColGroups.InsertFrame(nsnull, lastColGroup, f);
       
-      InsertColGroups(startColIndex, f, f);
+      InsertColGroups(startColIndex,
+                      nsFrameList::Slice(mColGroups, f, f->GetNextSibling()));
     } else if (IsRowGroup(display->mDisplay)) {
       
       mFrames.AppendFrame(nsnull, f);
 
       
-      InsertRowGroups(f, f);
+      InsertRowGroups(nsFrameList::Slice(mFrames, f, nsnull));
     } else {
       
+      NS_NOTREACHED("How did we get here?  Frame construction screwed up");
       mFrames.AppendFrame(nsnull, f);
     }
-
-    
-    f = next;
   }
 
 #ifdef DEBUG_TABLE_CELLMAP
@@ -2200,7 +2159,7 @@ nsTableFrame::AppendFrames(nsIAtom*        aListName,
 NS_IMETHODIMP
 nsTableFrame::InsertFrames(nsIAtom*        aListName,
                            nsIFrame*       aPrevFrame,
-                           nsIFrame*       aFrameList)
+                           nsFrameList&    aFrameList)
 {
   
   
@@ -2212,22 +2171,20 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
                "inserting after sibling frame with different parent");
 
   if ((aPrevFrame && !aPrevFrame->GetNextSibling()) ||
-      (!aPrevFrame && !GetFirstChild(aListName))) {
+      (!aPrevFrame && GetChildList(aListName).IsEmpty())) {
     
     return AppendFrames(aListName, aFrameList);
   }
 
   
-  const nsStyleDisplay* display = aFrameList->GetStyleDisplay();
+  const nsStyleDisplay* display = aFrameList.FirstChild()->GetStyleDisplay();
 #ifdef DEBUG
   
-  nsIFrame* nextFrame = aFrameList->GetNextSibling();
-  while (nextFrame) {
-    const nsStyleDisplay* nextDisplay = nextFrame->GetStyleDisplay();
+  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
+    const nsStyleDisplay* nextDisplay = e.get()->GetStyleDisplay();
     NS_ASSERTION((display->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP) ==
         (nextDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP),
       "heterogenous childlist");  
-    nextFrame = nextFrame->GetNextSibling();    
   }
 #endif  
   if (aPrevFrame) {
@@ -2238,7 +2195,7 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
       
       
       
-      nsIFrame* pseudoFrame = aFrameList;
+      nsIFrame* pseudoFrame = aFrameList.FirstChild();
       nsIContent* parentContent = GetContent();
       nsIContent* content;
       aPrevFrame = nsnull;
@@ -2255,8 +2212,7 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
         nsTableColGroupFrame* lastColGroup;
         if (isColGroup) {
           kidFrame = mColGroups.FirstChild();
-          nsTableColGroupFrame::GetLastRealColGroup(this,
-                                                   (nsIFrame**) &lastColGroup);
+          lastColGroup = nsTableColGroupFrame::GetLastRealColGroup(this);
         }
         else {
           kidFrame = mFrames.FirstChild();
@@ -2289,9 +2245,8 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
     NS_ASSERTION(!aListName || aListName == nsGkAtoms::colGroupList,
                  "unexpected child list");
     
-    nsFrameList frames(aFrameList); 
-    nsIFrame* lastFrame = frames.LastChild();
-    mColGroups.InsertFrames(nsnull, aPrevFrame, aFrameList);
+    const nsFrameList::Slice& newColgroups =
+      mColGroups.InsertFrames(nsnull, aPrevFrame, aFrameList);
     
     PRInt32 startColIndex = 0;
     if (aPrevFrame) {
@@ -2302,17 +2257,17 @@ nsTableFrame::InsertFrames(nsIAtom*        aListName,
         startColIndex = prevColGroup->GetStartColumnIndex() + prevColGroup->GetColCount();
       }
     }
-    InsertColGroups(startColIndex, aFrameList, lastFrame);
+    InsertColGroups(startColIndex, newColgroups);
   } else if (IsRowGroup(display->mDisplay)) {
     NS_ASSERTION(!aListName, "unexpected child list");
-    nsFrameList newList(aFrameList);
-    nsIFrame* lastSibling = newList.LastChild();
     
-    mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
+    const nsFrameList::Slice& newRowGroups =
+      mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
 
-    InsertRowGroups(aFrameList, lastSibling);
+    InsertRowGroups(newRowGroups);
   } else {
     NS_ASSERTION(!aListName, "unexpected child list");
+    NS_NOTREACHED("How did we even get here?");
     
     mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
     return NS_OK;
@@ -2377,7 +2332,8 @@ nsTableFrame::RemoveFrame(nsIAtom*        aListName,
       
       if (cellMap) {
         cellMap->Synchronize(this);
-        ResetRowIndices();
+        
+        ResetRowIndices(nsFrameList::Slice(mFrames, nsnull, nsnull));
         nsRect damageArea;
         cellMap->RebuildConsideringCells(nsnull, nsnull, 0, 0, PR_FALSE, damageArea);
       }

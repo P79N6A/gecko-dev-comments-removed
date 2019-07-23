@@ -109,8 +109,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-  { 0x7b437d20, 0xa34e, 0x11dd, \
-    { 0xad, 0x8b, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
+  { 0x2871104e, 0x2738, 0x4ad7,                       \
+    { 0xb8, 0x6a, 0xed, 0xe6, 0x3c, 0x71, 0xf1, 0xc2 } }
 
 
 
@@ -565,8 +565,10 @@ public:
 
 
 
+
+
   NS_IMETHOD AppendFrames(nsIAtom*        aListName,
-                          nsIFrame*       aFrameList) = 0;
+                          nsFrameList&    aFrameList) = 0;
 
   
 
@@ -583,9 +585,11 @@ public:
 
 
 
+
+
   NS_IMETHOD InsertFrames(nsIAtom*        aListName,
                           nsIFrame*       aPrevFrame,
-                          nsIFrame*       aFrameList) = 0;
+                          nsFrameList&    aFrameList) = 0;
 
   
 
