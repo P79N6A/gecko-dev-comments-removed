@@ -156,39 +156,11 @@ public:
   
   
   
-  
-
-#ifdef DEBUG_A11Y
-  static PRBool IsTextInterfaceSupportCorrect(nsIAccessible *aAccessible);
-#endif
-
-  static PRBool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
-  static PRUint32 State(nsIAccessible *aAcc) { PRUint32 state = 0; if (aAcc) aAcc->GetFinalState(&state, nsnull); return state; }
-  static PRUint32 Role(nsIAccessible *aAcc) { PRUint32 role = nsIAccessibleRole::ROLE_NOTHING; if (aAcc) aAcc->GetFinalRole(&role); return role; }
-  static PRBool IsText(nsIAccessible *aAcc) { PRUint32 role = Role(aAcc); return role == nsIAccessibleRole::ROLE_TEXT_LEAF || role == nsIAccessibleRole::ROLE_STATICTEXT; }
-  static PRBool IsEmbeddedObject(nsIAccessible *aAcc) { PRUint32 role = Role(aAcc); return role != nsIAccessibleRole::ROLE_TEXT_LEAF && role != nsIAccessibleRole::ROLE_WHITESPACE && role != nsIAccessibleRole::ROLE_STATICTEXT; }
-  static PRInt32 TextLength(nsIAccessible *aAccessible); 
-  static PRBool IsLeaf(nsIAccessible *aAcc) { PRInt32 numChildren; aAcc->GetChildCount(&numChildren); return numChildren > 0; }
-  static PRBool IsNodeRelevant(nsIDOMNode *aNode); 
-  
-
-
-  static PRBool MustPrune(nsIAccessible *aAccessible);
-  
   already_AddRefed<nsIAccessible> GetParent() {
     nsIAccessible *parent = nsnull;
     GetParent(&parent);
     return parent;
   }
-  
-  
-
-
-
-
-
-
-  static nsIContent *GetRoleContent(nsIDOMNode *aDOMNode);
 
 protected:
   PRBool MappedAttrState(nsIContent *aContent, PRUint32 *aStateInOut, nsStateMapEntry *aStateMapEntry);
@@ -207,9 +179,6 @@ protected:
 
 
   nsresult GetTextFromRelationID(nsIAtom *aIDProperty, nsString &aName);
-
-  static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
-  static nsIContent *GetLabelContent(nsIContent *aForNode);
 
   
   nsresult GetHTMLName(nsAString& _retval, PRBool aCanAggregateSubtree = PR_TRUE);
@@ -259,9 +228,6 @@ protected:
 
    
   already_AddRefed<nsIAccessible> GetFirstAvailableAccessible(nsIDOMNode *aStartNode, PRBool aRequireLeaf = PR_FALSE);
-
-  
-  static already_AddRefed<nsIAccessible> GetMultiSelectFor(nsIDOMNode *aNode);
 
   
   virtual nsresult GetLinkOffset(PRInt32* aStartOffset, PRInt32* aEndOffset);

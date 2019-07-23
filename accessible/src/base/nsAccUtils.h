@@ -41,6 +41,7 @@
 
 #include "nsIAccessible.h"
 #include "nsIAccessNode.h"
+#include "nsIAccessibleRole.h"
 #include "nsARIAMap.h"
 
 #include "nsIDOMNode.h"
@@ -210,8 +211,92 @@ public:
 
 
 
-   static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
+  static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
+
+  
+
+
+  static PRUint32 Role(nsIAccessible *aAcc)
+  {
+    PRUint32 role = nsIAccessibleRole::ROLE_NOTHING;
+    if (aAcc)
+      aAcc->GetFinalRole(&role);
+
+    return role;
+  }
+
+  
+
+
+  static PRUint32 State(nsIAccessible *aAcc)
+  {
+    PRUint32 state = 0;
+    if (aAcc)
+      aAcc->GetFinalState(&state, nsnull);
+
+    return state;
+  }
+
+#ifdef DEBUG_A11Y
+  
+
+
+
+  static PRBool IsTextInterfaceSupportCorrect(nsIAccessible *aAccessible);
+#endif
+
+  
+
+
+  static PRBool IsText(nsIAccessible *aAcc)
+  {
+    PRUint32 role = Role(aAcc);
+    return role == nsIAccessibleRole::ROLE_TEXT_LEAF ||
+           role == nsIAccessibleRole::ROLE_STATICTEXT;
+  }
+
+  
+
+
+  static PRInt32 TextLength(nsIAccessible *aAccessible);
+
+  
+
+
+  static PRBool IsEmbeddedObject(nsIAccessible *aAcc)
+  {
+    PRUint32 role = Role(aAcc);
+    return role != nsIAccessibleRole::ROLE_TEXT_LEAF &&
+           role != nsIAccessibleRole::ROLE_WHITESPACE &&
+           role != nsIAccessibleRole::ROLE_STATICTEXT;
+  }
+
+  
+
+
+  static PRBool IsLeaf(nsIAccessible *aAcc)
+  {
+    PRInt32 numChildren;
+    aAcc->GetChildCount(&numChildren);
+    return numChildren > 0;
+  }
+
+  
+
+
+
+  static PRBool MustPrune(nsIAccessible *aAccessible);
+
+  
+
+
+
+  static PRBool IsNodeRelevant(nsIDOMNode *aNode);
+
+  
+
+
+  static already_AddRefed<nsIAccessible> GetMultiSelectFor(nsIDOMNode *aNode);
 };
 
 #endif
-

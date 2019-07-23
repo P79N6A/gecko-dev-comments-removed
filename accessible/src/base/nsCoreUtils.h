@@ -93,6 +93,17 @@ public:
 
 
 
+
+
+  static nsIContent *GetRoleContent(nsIDOMNode *aDOMNode);
+
+  
+
+
+
+
+
+
    static PRBool IsAncestorOf(nsIDOMNode *aPossibleAncestorNode,
                               nsIDOMNode *aPossibleDescendantNode);
 
@@ -178,6 +189,25 @@ public:
 
 
 
+  static PRBool IsCorrectFrameType(nsIFrame* aFrame, nsIAtom* aAtom);
+
+  
+
+
+  static already_AddRefed<nsIPresShell> GetPresShellFor(nsIDOMNode *aNode);
+
+  
+
+
+  static already_AddRefed<nsIDOMNode>
+    GetDOMNodeForContainer(nsIDocShellTreeItem *aContainer);
+
+  
+
+
+
+
+
   static PRBool GetID(nsIContent *aContent, nsAString& aID);
 
   
@@ -197,6 +227,13 @@ public:
 
   static void GetLanguageFor(nsIContent *aContent, nsIContent *aRootContent,
                              nsAString& aLanguage);
+
+  
+
+
+  static void GetComputedStyleDeclaration(const nsAString& aPseudoElt,
+                                          nsIDOMNode *aNode,
+                                          nsIDOMCSSStyleDeclaration **aCssDecl);
 
   
 
@@ -266,6 +303,18 @@ public:
                                                     PRUint32 aAttrNum = 1,
                                                     nsIContent *aExcludeContent = nsnull,
                                                     nsIAtom *aTagType = nsAccessibilityAtoms::label);
+
+  
+
+
+  static nsIContent *GetLabelContent(nsIContent *aForNode);
+
+  
+
+
+  static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
+
+  
 };
 
 #endif

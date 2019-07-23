@@ -448,7 +448,7 @@ nsXULGroupboxAccessible::GetAccessibleRelated(PRUint32 aRelationType,
     
     nsCOMPtr<nsIAccessible> testLabelAccessible;
     while (NextChild(testLabelAccessible)) {
-      if (Role(testLabelAccessible) == nsIAccessibleRole::ROLE_LABEL) {
+      if (nsAccUtils::Role(testLabelAccessible) == nsIAccessibleRole::ROLE_LABEL) {
         
         nsCOMPtr<nsIAccessible> testGroupboxAccessible;
         testLabelAccessible->GetAccessibleRelated(nsIAccessibleRelation::RELATION_LABEL_FOR,
