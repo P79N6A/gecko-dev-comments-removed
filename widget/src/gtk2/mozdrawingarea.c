@@ -87,8 +87,6 @@ moz_drawingarea_new (MozDrawingarea *parent, MozContainer *widget_parent,
 
     drawingarea = g_object_new(MOZ_DRAWINGAREA_TYPE, NULL);
 
-    drawingarea->parent = parent;
-
     if (!parent)
         moz_drawingarea_create_windows(drawingarea,
                                        GTK_WIDGET(widget_parent)->window,
@@ -124,6 +122,24 @@ moz_drawingarea_reparent (MozDrawingarea *drawingarea, GdkWindow *aNewParent)
 {
     gdk_window_reparent(drawingarea->clip_window,
                         aNewParent, 0, 0);
+}
+
+static void
+nullify_widget_pointers (gpointer data, GObject *widget)
+{
+    MozDrawingarea *drawingarea = data;
+
+#ifdef DEBUG
+    gpointer user_data;
+    
+
+    gdk_window_get_user_data(drawingarea->inner_window, &user_data);
+    if (user_data && widget && user_data != widget)
+        g_critical("user_data does not match widget");
+#endif
+
+    gdk_window_set_user_data(drawingarea->inner_window, NULL);
+    gdk_window_set_user_data(drawingarea->clip_window, NULL);
 }
 
 void
@@ -173,6 +189,8 @@ moz_drawingarea_create_windows (MozDrawingarea *drawingarea, GdkWindow *parent,
                                                 &attributes, attributes_mask);
     gdk_window_set_user_data(drawingarea->inner_window, widget);
 
+    g_object_weak_ref(G_OBJECT(widget), nullify_widget_pointers, drawingarea);
+
     
 
     gdk_window_set_back_pixmap(drawingarea->inner_window, NULL, FALSE);
@@ -186,14 +204,19 @@ void
 moz_drawingarea_finalize (GObject *object)
 {
     MozDrawingarea *drawingarea;
+    gpointer user_data;
 
     g_return_if_fail(IS_MOZ_DRAWINGAREA(object));
 
     drawingarea = MOZ_DRAWINGAREA(object);
 
-    gdk_window_set_user_data(drawingarea->inner_window, NULL);
+    gdk_window_get_user_data(drawingarea->inner_window, &user_data);
+    if (user_data) {
+        g_object_weak_unref(user_data, nullify_widget_pointers, drawingarea);
+        nullify_widget_pointers(drawingarea, NULL);
+    }
+
     gdk_window_destroy(drawingarea->inner_window);
-    gdk_window_set_user_data(drawingarea->clip_window, NULL);
     gdk_window_destroy(drawingarea->clip_window);
 
     (* parent_class->finalize) (object);
