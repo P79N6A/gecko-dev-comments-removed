@@ -1351,6 +1351,9 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
         
         mappedFlow->mContentEndOffset =
           PR_MAX(mappedFlow->mContentEndOffset, frame->GetContentEnd());
+        if (mCurrentFramesAllSameTextRun != frame->GetTextRun()) {
+          mCurrentFramesAllSameTextRun = nsnull;
+        }
         AccumulateRunInfo(frame);
         return;
       }
@@ -5542,20 +5545,9 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     
     PRInt32 numJustifiableCharacters =
       provider.ComputeJustifiableCharacters(offset, charsFit);
-    
-    
-    
-    if (canTrimTrailingWhitespace) {
-      
-      PRUint32 charIndex = transformedOffset + transformedCharsFit;
-      while (charIndex > transformedOffset &&
-             mTextRun->GetChar(charIndex - 1) == ' ') {
-        --charIndex;
-      }
-    }
 
     NS_ASSERTION(numJustifiableCharacters <= charsFit,
-                 "Justifiable characters combined???");
+                 "Bad justifiable character count");
     lineLayout.SetTextJustificationWeights(numJustifiableCharacters,
         charsFit - numJustifiableCharacters);
   }
