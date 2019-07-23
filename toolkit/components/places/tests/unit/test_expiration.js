@@ -533,10 +533,11 @@ function checkExpireNeither() {
 
 
 function startExpireDaysOnly() {
-  dump("startExpireDaysOnly()\n");
   
   histsvc.removeAllPages();
   observer.expiredURI = null;
+
+  dump("startExpireDaysOnly()\n");
 
   
   histsvc.addVisit(testURI, (Date.now() - (86400 * 2 * 1000)) * 1000, 0, histsvc.TRANSITION_TYPED, false, 0);
@@ -548,7 +549,9 @@ function startExpireDaysOnly() {
   
   prefs.setIntPref("browser.history_expire_sites", 2);
   
-  prefs.setIntPref("browser.history_expire_days", 2);
+  prefs.setIntPref("browser.history_expire_days_min", 2);
+  
+  prefs.setIntPref("browser.history_expire_days", 3);
 
   
   ghist.addURI(triggerURI, false, true, null); 
@@ -560,8 +563,8 @@ function startExpireDaysOnly() {
 function checkExpireDaysOnly() {
   try {
     
-    do_check_eq(observer.expiredURI, testURI.spec);
-    do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 0);
+    do_check_eq(observer.expiredURI, null);
+    do_check_eq(annosvc.getPageAnnotationNames(testURI, {}).length, 1);
     
     do_check_neq(histsvc.getPageTitle(uri("http://unexpirable.com")), null);
   } catch(ex) {}
@@ -591,10 +594,10 @@ function checkExpireDaysOnly() {
 
 
 function startExpireBoth() {
-  dump("starting expiration test 3: both criteria met\n");
   
   histsvc.removeAllPages();
   observer.expiredURI = null;
+  dump("starting expiration test 3: both criteria met\n");
 
   
   
@@ -609,7 +612,7 @@ function startExpireBoth() {
   
   prefs.setIntPref("browser.history_expire_days", 3);
   
-  prefs.setIntPref("browser.history_expire_days", 1);
+  prefs.setIntPref("browser.history_expire_days_min", 1);
 
   
   ghist.addURI(triggerURI, false, true, null);
