@@ -129,6 +129,11 @@ var gViewSourceUtils = {
           webBrowserPersist.persistFlags = this.mnsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES;
           webBrowserPersist.progressListener = this.viewSourceProgressListener;
           webBrowserPersist.saveURI(uri, null, null, null, null, file);
+
+          
+          Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
+                    .getService(Components.interfaces.nsPIExternalAppLauncher)
+                    .deleteTemporaryFileOnExit(file);
         } else {
           
           
@@ -240,6 +245,11 @@ var gViewSourceUtils = {
             
             coStream.close();
             foStream.close();
+
+            
+            Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
+                      .getService(Components.interfaces.nsPIExternalAppLauncher)
+                      .deleteTemporaryFileOnExit(this.file);
           }
 
           
