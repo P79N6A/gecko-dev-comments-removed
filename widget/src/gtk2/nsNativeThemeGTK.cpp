@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsNativeThemeGTK.h"
 #include "nsThemeConstants.h"
 #include "gtkdrawing.h"
@@ -620,6 +621,27 @@ ConvertToGdkRect(const nsRect &aRect, PRInt32 aP2A)
   return gdk_rect;
 }
 
+static GdkRectangle
+ConvertGfxToGdkRect(const gfxRect &aRect, const gfxPoint &aTranslation)
+{
+  GdkRectangle gdk_rect;
+  gdk_rect.x = NSToIntRound(aRect.X()) - NSToIntRound(aTranslation.x);
+  gdk_rect.y = NSToIntRound(aRect.Y()) - NSToIntRound(aTranslation.y);
+  gdk_rect.width = NSToIntRound(aRect.Width());
+  gdk_rect.height = NSToIntRound(aRect.Height());
+  return gdk_rect;
+}
+
+static gfxRect
+ConvertToGfxRect(const nsRect &aRect, PRInt32 aP2A)
+{
+  gfxRect rect(NSAppUnitsToFloatPixels(aRect.x, aP2A),
+               NSAppUnitsToFloatPixels(aRect.y, aP2A),
+               NSAppUnitsToFloatPixels(aRect.width, aP2A),
+               NSAppUnitsToFloatPixels(aRect.height, aP2A));
+  return rect;
+}
+
 NS_IMETHODIMP
 nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
                                        nsIFrame* aFrame,
@@ -663,26 +685,38 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
     oldHandler = XSetErrorHandler(NativeThemeErrorHandler);
   }
 
-  
-  
-  
-  
-  
-  
-  PRUint32 rendererFlags = gfxXlibNativeRenderer::DRAW_SUPPORTS_OFFSET;
-  GdkRectangle gdk_rect = ConvertToGdkRect(aRect - drawingRect.TopLeft(), p2a);
-  GdkRectangle gdk_clip = ConvertToGdkRect(aClipRect - drawingRect.TopLeft(), p2a);
-  ThemeRenderer renderer(state, gtkWidgetType, flags, gdk_rect, gdk_clip);
-
   gfxContext* ctx =
     (gfxContext*)aContext->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
+  gfxMatrix current = ctx->CurrentMatrix();
+
+  
+  
+  
+  
+  
+  
+  GdkRectangle gdk_rect, gdk_clip;
+  gfxRect gfx_rect = ConvertToGfxRect(aRect - drawingRect.TopLeft(), p2a);
+  gfxRect gfx_clip = ConvertToGfxRect(aClipRect - drawingRect.TopLeft(), p2a);
+  if (ctx->UserToDevicePixelSnapped(gfx_rect) &&
+      ctx->UserToDevicePixelSnapped(gfx_clip)) {
+    gfxPoint currentTranslation = current.GetTranslation();
+    gdk_rect = ConvertGfxToGdkRect(gfx_rect, currentTranslation);
+    gdk_clip = ConvertGfxToGdkRect(gfx_clip, currentTranslation);
+  }
+  else {
+    gdk_rect = ConvertToGdkRect(aRect - drawingRect.TopLeft(), p2a);
+    gdk_clip = ConvertToGdkRect(aClipRect - drawingRect.TopLeft(), p2a);
+  }
+  ThemeRenderer renderer(state, gtkWidgetType, flags, gdk_rect, gdk_clip);
 
   
   gfxRect rect(0, 0, NSAppUnitsToIntPixels(drawingRect.width, p2a),
                      NSAppUnitsToIntPixels(drawingRect.height, p2a));
+
+  PRUint32 rendererFlags = gfxXlibNativeRenderer::DRAW_SUPPORTS_OFFSET;
   
   
-  gfxMatrix current = ctx->CurrentMatrix();
   PRBool snapXY = ctx->UserToDevicePixelSnapped(rect) &&
     !current.HasNonTranslation();
   if (snapXY) {
