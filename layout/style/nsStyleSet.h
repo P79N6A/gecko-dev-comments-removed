@@ -53,10 +53,8 @@
 #include "nsRuleNode.h"
 #include "nsTArray.h"
 #include "nsCOMArray.h"
-#include "nsAutoPtr.h"
 
 class nsIURI;
-class nsCSSFontFaceRule;
 
 
 
@@ -114,11 +112,6 @@ class nsStyleSet
   ProbePseudoStyleFor(nsIContent* aParentContent,
                       nsIAtom* aPseudoTag,
                       nsStyleContext* aParentContext);
-
-  
-  
-  PRBool AppendFontFaceRules(nsPresContext* aPresContext,
-                             nsTArray< nsRefPtr<nsCSSFontFaceRule> >& aArray);
 
   
   

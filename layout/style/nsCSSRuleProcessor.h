@@ -47,12 +47,9 @@
 
 #include "nsIStyleRuleProcessor.h"
 #include "nsCSSStyleSheet.h"
-#include "nsTArray.h"
-#include "nsAutoPtr.h"
 
 struct RuleCascadeData;
 struct nsCSSSelectorList;
-class nsCSSFontFaceRule;
 
 
 
@@ -100,11 +97,6 @@ public:
   NS_IMETHOD MediumFeaturesChanged(nsPresContext* aPresContext,
                                    PRBool* aRulesChanged);
 
-  
-  
-  PRBool AppendFontFaceRules(nsPresContext* aPresContext,
-                             nsTArray< nsRefPtr<nsCSSFontFaceRule> >& aArray);
-
 #ifdef DEBUG
   void AssertQuirksChangeOK() {
     NS_ASSERTION(!mRuleCascades, "can't toggle quirks style sheet without "
@@ -113,7 +105,7 @@ public:
 #endif
 
 private:
-  static PRBool CascadeSheetEnumFunc(nsICSSStyleSheet* aSheet, void* aData);
+  static PRBool CascadeSheetRulesInto(nsICSSStyleSheet* aSheet, void* aData);
 
   RuleCascadeData* GetRuleCascade(nsPresContext* aPresContext);
   void RefreshRuleCascade(nsPresContext* aPresContext);
