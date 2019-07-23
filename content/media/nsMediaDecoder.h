@@ -113,7 +113,8 @@ public:
   
   
   
-  virtual nsresult Load(nsIChannel* aChannel,
+  
+  virtual nsresult Load(nsMediaStream* aStream,
                         nsIStreamListener **aListener) = 0;
 
   

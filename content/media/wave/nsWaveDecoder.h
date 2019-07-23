@@ -176,7 +176,8 @@ class nsWaveDecoder : public nsMediaDecoder
 
   
   
-  virtual nsresult Load(nsIChannel* aChannel, nsIStreamListener** aStreamListener);
+  virtual nsresult Load(nsMediaStream* aStream,
+                        nsIStreamListener** aStreamListener);
 
   
   
