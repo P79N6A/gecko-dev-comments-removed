@@ -1,3 +1,5 @@
+
+
 function testSideExitInConstructor() {
     var FCKConfig = {};
     FCKConfig.CoreStyles =
