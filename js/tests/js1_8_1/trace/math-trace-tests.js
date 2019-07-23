@@ -267,11 +267,17 @@ function testmath(funcname, args, expected) {
     }
     testfunc.name = funcname + "(" + args + ")";
     testfunc.expected = expected;
-    testfunc.jitstats = {
-        recorderStarted: 1,
-        recorderAborted: 0,
-        traceTriggered: 1
-    };
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     test(testfunc);
 }
 
