@@ -275,6 +275,10 @@ js_strtod(JSContext *cx, const jschar *s, const jschar *send,
 
 
 
+
+
+
+
 extern JSBool
 js_strtointeger(JSContext *cx, const jschar *s, const jschar *send,
                 const jschar **ep, jsint radix, jsdouble *dp);
