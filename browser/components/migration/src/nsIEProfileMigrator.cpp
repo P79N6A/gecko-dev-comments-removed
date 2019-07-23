@@ -67,6 +67,8 @@
 #include "nsIProfileMigrator.h"
 #include "nsIBrowserProfileMigrator.h"
 #include "nsIObserverService.h"
+#include "nsILocalFileWin.h"
+#include "nsAutoPtr.h"
 
 #include <objbase.h>
 #include <shlguid.h>
@@ -439,10 +441,23 @@ nsIEProfileMigrator::GetMigrateData(const PRUnichar* aProfile,
                                     PRBool aReplace,
                                     PRUint16* aResult)
 {
-  
-  *aResult = nsIBrowserProfileMigrator::SETTINGS | nsIBrowserProfileMigrator::COOKIES | 
-             nsIBrowserProfileMigrator::HISTORY | nsIBrowserProfileMigrator::FORMDATA |
-             nsIBrowserProfileMigrator::PASSWORDS | nsIBrowserProfileMigrator::BOOKMARKS;
+  if (TestForIE7()) {
+    
+    
+    *aResult = nsIBrowserProfileMigrator::SETTINGS |
+               nsIBrowserProfileMigrator::COOKIES | 
+               nsIBrowserProfileMigrator::HISTORY |
+               nsIBrowserProfileMigrator::BOOKMARKS;
+  }
+  else {
+    *aResult = nsIBrowserProfileMigrator::SETTINGS |
+               nsIBrowserProfileMigrator::COOKIES | 
+               nsIBrowserProfileMigrator::HISTORY |
+               nsIBrowserProfileMigrator::FORMDATA |
+               nsIBrowserProfileMigrator::PASSWORDS |
+               nsIBrowserProfileMigrator::BOOKMARKS;
+  }
+
   return NS_OK;
 }
 
@@ -511,6 +526,75 @@ nsIEProfileMigrator::nsIEProfileMigrator()
 
 nsIEProfileMigrator::~nsIEProfileMigrator() 
 {
+}
+
+
+
+PRBool 
+nsIEProfileMigrator::TestForIE7()
+{
+  nsCOMPtr<nsIWindowsRegKey> regKey =  
+    do_CreateInstance("@mozilla.org/windows-registry-key;1"); 
+  if (!regKey)  
+    return PR_FALSE;  
+
+  NS_NAMED_LITERAL_STRING(key,
+      "Applications\\iexplore.exe\\shell\\open\\command");
+  if (NS_FAILED(regKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
+                             key, nsIWindowsRegKey::ACCESS_QUERY_VALUE)))
+    return PR_FALSE;
+
+  nsAutoString iePath;
+  if (NS_FAILED(regKey->ReadStringValue(EmptyString(), iePath)))
+    return PR_FALSE; 
+
+  
+  PRUint32 bufLength =  
+    ::ExpandEnvironmentStringsW(iePath.get(), 
+                               L"", 0); 
+  if (bufLength == 0) 
+    return PR_FALSE; 
+
+  nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]); 
+  if (!destination) 
+    return PR_FALSE; 
+
+  if (!::ExpandEnvironmentStringsW(iePath.get(), 
+                                   destination, 
+                                   bufLength)) 
+    return PR_FALSE; 
+
+  iePath = destination; 
+
+  if (StringBeginsWith(iePath, NS_LITERAL_STRING("\""))) {
+    iePath.Cut(0,1);
+    PRUint32 index = iePath.FindChar('\"', 0);
+    if (index > 0)
+      iePath.Cut(index,iePath.Length());
+  }
+
+  nsCOMPtr<nsILocalFile> lf; 
+  NS_NewLocalFile(iePath, PR_TRUE, getter_AddRefs(lf)); 
+
+  nsCOMPtr<nsILocalFileWin> lfw = do_QueryInterface(lf); 
+  if (!lfw)
+   return PR_FALSE;
+   
+  nsAutoString ieVersion;
+  if (NS_FAILED(lfw->GetVersionInfoField("FileVersion", ieVersion)))
+   return PR_FALSE;
+
+  if (ieVersion.Length() > 2) {
+    PRUint32 index = ieVersion.FindChar('.', 0);
+    if (index < 0)
+      return PR_FALSE;
+    ieVersion.Cut(index, ieVersion.Length());
+    PRInt32 ver = wcstol(ieVersion.get(), nsnull, 0);
+    if (ver >= 7) 
+      return PR_TRUE;
+  }
+
+  return PR_FALSE;
 }
 
 nsresult
