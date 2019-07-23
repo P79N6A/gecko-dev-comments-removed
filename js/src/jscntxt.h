@@ -186,6 +186,7 @@ struct JSRuntime {
     uint32              gcMaxMallocBytes;
     uint32              gcLevel;
     uint32              gcNumber;
+    JSTracer            *gcMarkingTracer;
 
     
 
@@ -508,14 +509,14 @@ typedef struct JSLocalRootStack {
 
 typedef struct JSTempValueRooter JSTempValueRooter;
 typedef void
-(* JS_DLL_CALLBACK JSTempValueMarker)(JSContext *cx, JSTempValueRooter *tvr);
+(* JS_DLL_CALLBACK JSTempValueTrace)(JSTracer *trc, JSTempValueRooter *tvr);
 
 typedef union JSTempValueUnion {
     jsval               value;
     JSObject            *object;
     JSString            *string;
     void                *gcthing;
-    JSTempValueMarker   marker;
+    JSTempValueTrace    trace;
     JSScopeProperty     *sprop;
     JSWeakRoots         *weakRoots;
     jsval               *array;
@@ -565,7 +566,7 @@ struct JSTempValueRooter {
 };
 
 #define JSTVU_SINGLE        (-1)
-#define JSTVU_MARKER        (-2)
+#define JSTVU_TRACE         (-2)
 #define JSTVU_SPROP         (-3)
 #define JSTVU_WEAK_ROOTS    (-4)
 
@@ -591,10 +592,10 @@ struct JSTempValueRooter {
         JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
     JS_END_MACRO
 
-#define JS_PUSH_TEMP_ROOT_MARKER(cx,marker_,tvr)                              \
+#define JS_PUSH_TEMP_ROOT_TRACE(cx,trace_,tvr)                                \
     JS_BEGIN_MACRO                                                            \
-        (tvr)->count = JSTVU_MARKER;                                          \
-        (tvr)->u.marker = (marker_);                                          \
+        (tvr)->count = JSTVU_TRACE;                                           \
+        (tvr)->u.trace = (trace_);                                            \
         JS_PUSH_TEMP_ROOT_COMMON(cx, tvr);                                    \
     JS_END_MACRO
 
@@ -773,11 +774,6 @@ struct JSContext {
 
     
     JSTempValueRooter   *tempValueRooters;
-
-#ifdef GC_MARK_DEBUG
-    
-    void                *gcCurrentMarkNode;
-#endif
 };
 
 #ifdef JS_THREADSAFE
@@ -935,7 +931,7 @@ extern int
 js_PushLocalRoot(JSContext *cx, JSLocalRootStack *lrs, jsval v);
 
 extern void
-js_MarkLocalRoots(JSContext *cx, JSLocalRootStack *lrs);
+js_TraceLocalRoots(JSTracer *trc, JSLocalRootStack *lrs);
 
 
 

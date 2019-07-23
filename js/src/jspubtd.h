@@ -130,6 +130,7 @@ typedef struct JSContext         JSContext;
 typedef struct JSErrorReport     JSErrorReport;
 typedef struct JSFunction        JSFunction;
 typedef struct JSFunctionSpec    JSFunctionSpec;
+typedef struct JSTracer          JSTracer;
 typedef struct JSIdArray         JSIdArray;
 typedef struct JSProperty        JSProperty;
 typedef struct JSPropertySpec    JSPropertySpec;
@@ -333,21 +334,70 @@ typedef JSBool
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef uint32
 (* JS_DLL_CALLBACK JSMarkOp)(JSContext *cx, JSObject *obj, void *arg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void
+(* JS_DLL_CALLBACK JSTraceOp)(JSTracer *trc, JSObject *obj);
+
+#if defined __GNUC__ && __GNUC__ >= 4
+# define JS_CLASS_TRACE(method)                                               \
+    (__builtin_types_compatible_p(JSTraceOp, __typeof(&method))               \
+     ? (JSMarkOp)(method)                                                     \
+     : JS_WrongTypeForClassTacer)
+
+extern JSMarkOp JS_WrongTypeForClassTacer;
+
+#else
+# define JS_CLASS_TRACE(method) ((JSMarkOp)(method))
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void
+(* JS_DLL_CALLBACK JSTraceCallback)(JSTracer *trc, void *thing, uint32 kind);
+
+
+
+
+
+#ifdef DEBUG
+typedef void
+(* JS_DLL_CALLBACK JSTraceNamePrinter)(JSTracer *trc, char *buf,
+                                       size_t bufsize);
+#endif
 
 
 

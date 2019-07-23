@@ -347,12 +347,12 @@ js_FinishAtomState(JSAtomState *state);
 
 
 
-typedef void
-(*JSGCThingMarker)(void *thing, void *data);
 
 extern void
-js_MarkAtomState(JSAtomState *state, JSBool keepAtoms, JSGCThingMarker mark,
-                 void *data);
+js_TraceAtom(JSTracer *trc, JSAtom *atom);
+
+extern void
+js_TraceLockedAtoms(JSTracer *trc, JSBool allAtoms);
 
 extern void
 js_SweepAtomState(JSAtomState *state);
