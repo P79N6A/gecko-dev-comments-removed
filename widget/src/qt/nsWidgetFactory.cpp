@@ -59,6 +59,7 @@
 
 
 
+#include "nsFilePicker.h"
 #include "nsClipboard.h"
 #include "nsClipboardHelper.h"
 #include "nsIdleServiceQt.h"
@@ -66,7 +67,6 @@
 #include "nsSound.h"
 #include "nsBidiKeyboard.h"
 #include "nsNativeThemeQt.h"
-
 
 
 
@@ -101,7 +101,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsIdleServiceQt)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSound)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsNativeThemeQt)
 
-
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsFilePicker)
 
 
 static const nsModuleComponentInfo components[] =
@@ -169,21 +169,18 @@ static const nsModuleComponentInfo components[] =
     { "Native Theme Renderer",
       NS_THEMERENDERER_CID,
       "@mozilla.org/chrome/chrome-native-theme;1",
-      nsNativeThemeQtConstructor }
-
-
-
-
-
+      nsNativeThemeQtConstructor },
+    { "Qt File Picker",
+      NS_FILEPICKER_CID,
+      "@mozilla.org/filepicker;1",
+      nsFilePickerConstructor }
 
 };
 
 PR_STATIC_CALLBACK(void)
 nsWidgetQtModuleDtor(nsIModule *aSelf)
 {
-
     nsSound::Shutdown();
-
     nsAppShellShutdown(aSelf);
 }
 
