@@ -454,15 +454,38 @@ nsAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
         }
       }
     } else {
+#ifdef XP_MACOSX
       
-      PRUint32 resultCount;
-      mResults->Count(&resultCount);
-      if (resultCount) {
-        if (mRowCount) {
-          OpenPopup();
-        }
-      } else
-        StartSearchTimer();
+      
+      
+      
+      PRInt32 start, end;
+      if (aKey == nsIDOMKeyEvent::DOM_VK_UP) {
+        input->GetSelectionStart(&start);
+        input->GetSelectionEnd(&end);
+        if (start > 0 || start != end)
+          *_retval = PR_FALSE;
+      }
+      else if (aKey == nsIDOMKeyEvent::DOM_VK_DOWN) {
+        nsAutoString text;
+        input->GetTextValue(text);
+        input->GetSelectionStart(&start);
+        input->GetSelectionEnd(&end);
+        if (start != end || end < (PRInt32)text.Length())
+          *_retval = PR_FALSE;
+      }
+#endif
+      if (*_retval) {
+        
+        PRUint32 resultCount;
+        mResults->Count(&resultCount);
+        if (resultCount) {
+          if (mRowCount) {
+            OpenPopup();
+          }
+        } else
+          StartSearchTimer();
+      }
     }    
   } else if (   aKey == nsIDOMKeyEvent::DOM_VK_LEFT 
              || aKey == nsIDOMKeyEvent::DOM_VK_RIGHT 
