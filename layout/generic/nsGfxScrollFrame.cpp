@@ -2209,11 +2209,8 @@ nsGfxScrollFrameInner::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
   
   PRBool canHaveHorizontal;
   PRBool canHaveVertical;
-  
-  
-  
-  ScrollbarStyles styles = scrollable->GetScrollbarStyles();
   if (!mIsRoot) {
+    ScrollbarStyles styles = scrollable->GetScrollbarStyles();
     canHaveHorizontal = styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN;
     canHaveVertical = styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN;
     if (!canHaveHorizontal && !canHaveVertical && !isResizable) {
