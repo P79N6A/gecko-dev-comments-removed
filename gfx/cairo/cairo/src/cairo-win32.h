@@ -164,6 +164,15 @@ void cairo_d2d_present_backbuffer(cairo_surface_t *surface);
 
 
 void cairo_d2d_scroll(cairo_surface_t *surface, int x, int y, cairo_rectangle_t *clip);
+
+
+
+
+
+
+
+
+cairo_bool_t cairo_d2d_has_support();
 #endif
 
 CAIRO_END_DECLS
