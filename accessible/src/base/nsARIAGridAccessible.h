@@ -107,12 +107,6 @@ protected:
 
 
 
-  PRBool IsARIASelected(nsIAccessible *aAccessible);
-
-  
-
-
-
 
 
 
@@ -123,7 +117,7 @@ protected:
   
 
 
-  nsresult GetSelectedColumnsArray(PRUint32 *aColumnsCount,
+  nsresult GetSelectedColumnsArray(PRUint32 *acolumnCount,
                                    PRInt32 **aColumns = nsnull);
 };
 
@@ -131,13 +125,17 @@ protected:
 
 
 
-class nsARIAGridCellAccessible : public nsHyperTextAccessibleWrap
+class nsARIAGridCellAccessible : public nsHyperTextAccessibleWrap,
+                                 public nsIAccessibleTableCell
 {
 public:
   nsARIAGridCellAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
 
   
   NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_DECL_NSIACCESSIBLETABLECELL
 
   
   virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);

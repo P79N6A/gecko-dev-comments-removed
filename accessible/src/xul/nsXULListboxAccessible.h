@@ -35,8 +35,10 @@
 
 
 
-#ifndef __nsXULSelectAccessible_h__
-#define __nsXULSelectAccessible_h__
+
+
+#ifndef __nsXULListboxAccessible_h__
+#define __nsXULListboxAccessible_h__
 
 #include "nsIAccessibleTable.h"
 
@@ -84,25 +86,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsXULListboxAccessible : public nsXULSelectableAccessible,
                                public nsIAccessibleTable
 {
@@ -121,7 +104,7 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
-  PRBool IsTree();
+  PRBool IsMulticolumn();
 };
 
 
@@ -159,44 +142,21 @@ private:
 
 
 
-class nsXULListCellAccessible : public nsHyperTextAccessibleWrap
+class nsXULListCellAccessible : public nsHyperTextAccessibleWrap,
+                                public nsIAccessibleTableCell
 {
 public:
   nsXULListCellAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
 
   
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
+  NS_DECL_NSIACCESSIBLETABLECELL
+
+  
+  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
-};
-
-
-
-
-
-
-
-
-class nsXULComboboxAccessible : public nsAccessibleWrap
-{
-public:
-  enum { eAction_Click = 0 };
-
-  nsXULComboboxAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
-  virtual ~nsXULComboboxAccessible() {}
-
-  
-  NS_IMETHOD GetValue(nsAString& _retval);
-  NS_IMETHOD GetDescription(nsAString& aDescription);
-  NS_IMETHOD DoAction(PRUint8 index);
-  NS_IMETHOD GetNumActions(PRUint8 *aNumActions);
-  NS_IMETHOD GetActionName(PRUint8 index, nsAString& aName);
-
-  
-  virtual nsresult Init();
-
-  
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
-  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-  virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
 #endif

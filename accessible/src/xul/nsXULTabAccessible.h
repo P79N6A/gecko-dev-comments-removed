@@ -41,7 +41,7 @@
 
 
 #include "nsBaseWidgetAccessible.h"
-#include "nsXULSelectAccessible.h"
+#include "nsXULMenuAccessible.h"
 
 
 

@@ -183,6 +183,12 @@ public:
 
 
 
+  static PRBool IsARIASelected(nsIAccessible *aAccessible);
+
+  
+
+
+
 
 
 
@@ -452,6 +458,32 @@ public:
 
 
   static already_AddRefed<nsIAccessible> GetMultiSelectFor(nsIDOMNode *aNode);
+
+  
+
+
+  enum {
+    
+    eRowHeaderCells,
+    
+    eColumnHeaderCells
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult GetHeaderCellsFor(nsIAccessibleTable *aTable,
+                                    nsIAccessibleTableCell *aCell,
+                                    PRInt32 aRowOrColHeaderCells,
+                                    nsIArray **aCells);
 };
 
 #endif

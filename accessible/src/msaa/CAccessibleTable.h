@@ -44,9 +44,11 @@
 #include "nsISupports.h"
 
 #include "AccessibleTable.h"
+#include "AccessibleTable2.h"
 
 class CAccessibleTable: public nsISupports,
-                        public IAccessibleTable
+                        public IAccessibleTable,
+                        public IAccessibleTable2
 {
 public:
 
@@ -170,6 +172,29 @@ public:
   virtual  HRESULT STDMETHODCALLTYPE get_modelChange(
        IA2TableModelChange *modelChange);
 
+
+  
+
+  virtual  HRESULT STDMETHODCALLTYPE get_cellAt(
+       long row,
+       long column,
+       IUnknown **cell);
+
+  virtual  HRESULT STDMETHODCALLTYPE get_nSelectedCells(
+       long *cellCount);
+
+  virtual  HRESULT STDMETHODCALLTYPE get_selectedCells(
+       IUnknown ***cells,
+       long *nSelectedCells);
+
+  virtual  HRESULT STDMETHODCALLTYPE get_selectedColumns(
+       long **selectedColumns,
+       long *nColumns);
+
+  virtual  HRESULT STDMETHODCALLTYPE get_selectedRows(
+       long **selectedRows, 
+       long *nRows);
+
 private:
   enum eItemsType {
     ITEMSTYPE_CELLS,
@@ -177,9 +202,7 @@ private:
     ITEMSTYPE_ROWS
   };
 
-  HRESULT GetSelectedItems(long aMaxItems, long **aItems, long *aItemsCount,
-                           eItemsType aType);
+  HRESULT GetSelectedItems(long **aItems, long *aItemsCount, eItemsType aType);
 };
 
 #endif
-

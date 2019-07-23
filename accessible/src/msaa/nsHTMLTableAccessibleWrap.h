@@ -42,7 +42,13 @@
 #define _NSHTMLTABLEACCESSIBLEWRAP_H
 
 #include "nsHTMLTableAccessible.h"
+
 #include "CAccessibleTable.h"
+#include "CAccessibleTableCell.h"
+
+
+
+
 
 class nsHTMLTableAccessibleWrap : public nsHTMLTableAccessible,
                                   public CAccessibleTable
@@ -58,12 +64,37 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 };
 
-class nsHTMLTableHeadAccessibleWrap : public nsHTMLTableHeadAccessible,
-                                      public CAccessibleTable
+
+
+
+
+
+class nsHTMLTableCellAccessibleWrap : public nsHTMLTableCellAccessible,
+                                      public CAccessibleTableCell
 {
 public:
-  nsHTMLTableHeadAccessibleWrap(nsIDOMNode* aNode, nsIWeakReference* aShell) :
-    nsHTMLTableHeadAccessible(aNode, aShell){}
+  nsHTMLTableCellAccessibleWrap(nsIDOMNode* aNode, nsIWeakReference* aShell) :
+    nsHTMLTableCellAccessible(aNode, aShell) {}
+
+  
+  DECL_IUNKNOWN_INHERITED
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
+};
+
+
+
+
+
+
+class nsHTMLTableHeaderCellAccessibleWrap : public nsHTMLTableHeaderCellAccessible,
+                                            public CAccessibleTableCell
+{
+public:
+  nsHTMLTableHeaderCellAccessibleWrap(nsIDOMNode* aNode,
+                                      nsIWeakReference* aShell) :
+    nsHTMLTableHeaderCellAccessible(aNode, aShell) {}
 
   
   DECL_IUNKNOWN_INHERITED

@@ -32,6 +32,7 @@ const nsIAccessibleHyperText = Components.interfaces.nsIAccessibleHyperText;
 const nsIAccessibleImage = Components.interfaces.nsIAccessibleImage;
 const nsIAccessibleSelectable = Components.interfaces.nsIAccessibleSelectable;
 const nsIAccessibleTable = Components.interfaces.nsIAccessibleTable;
+const nsIAccessibleTableCell = Components.interfaces.nsIAccessibleTableCell;
 const nsIAccessibleValue = Components.interfaces.nsIAccessibleValue;
 
 const nsIObserverService = Components.interfaces.nsIObserverService;
@@ -293,6 +294,15 @@ function ensureAccessibleTree(aAccOrElmOrID)
 
 
 
+
+
+
+
+
+
+
+
+
 function testAccessibleTree(aAccOrElmOrID, aAccTree)
 {
   var acc = getAccessible(aAccOrElmOrID);
@@ -300,7 +310,7 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree)
     return;
 
   for (var prop in aAccTree) {
-    var msg = "Wrong value of property '" + prop + "'.";
+    var msg = "Wrong value of property '" + prop + "' for " + prettyName(acc) + ".";
     if (prop == "role") {
       is(roleToString(acc[prop]), roleToString(aAccTree[prop]), msg);
 

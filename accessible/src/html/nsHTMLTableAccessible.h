@@ -39,15 +39,17 @@
 #ifndef _nsHTMLTableAccessible_H_
 #define _nsHTMLTableAccessible_H_
 
-#include "nsBaseWidgetAccessible.h"
+#include "nsHyperTextAccessibleWrap.h"
 #include "nsIAccessibleTable.h"
 
 class nsITableLayout;
+class nsITableCellLayout;
 
 
 
 
-class nsHTMLTableCellAccessible : public nsHyperTextAccessibleWrap
+class nsHTMLTableCellAccessible : public nsHyperTextAccessibleWrap,
+                                  public nsIAccessibleTableCell
 {
 public:
   nsHTMLTableCellAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
@@ -56,72 +58,48 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-  
+  NS_DECL_NSIACCESSIBLETABLECELL
+
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
 protected:
+  
+
+
   already_AddRefed<nsIAccessibleTable> GetTableAccessible();
+  
+  
+
+
+  nsITableCellLayout* GetCellLayout();
+
+  
+
+
   nsresult GetCellIndexes(PRInt32& aRowIdx, PRInt32& aColIdx);
-
+  
   
 
 
-  enum {
-    
-    eHeadersForCell,
-    
-    eCellsForRowHeader,
-    
-    eCellsForColumnHeader
-  };
-
-  
-
-
-
-
-
-
-
-  nsresult FindCellsForRelation(PRInt32 aSearchHint, PRUint32 aRelationType,
-                                nsIAccessibleRelation **aRelation);
-
-  
-
-
-
-
-
-
-
-
-
-
-  nsIContent* FindCell(nsHTMLTableAccessible *aTableAcc, nsIContent *aAnchorCell,
-                       PRInt32 aRowIdx, PRInt32 aColIdx,
-                       PRInt32 aLookForHeader);
+  nsresult GetHeaderCells(PRInt32 aRowOrColumnHeaderCell,
+                          nsIArray **aHeaderCells);
 };
 
 
 
 
 
-class nsHTMLTableHeaderAccessible : public nsHTMLTableCellAccessible
+class nsHTMLTableHeaderCellAccessible : public nsHTMLTableCellAccessible
 {
 public:
-  nsHTMLTableHeaderAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
+  nsHTMLTableHeaderCellAccessible(nsIDOMNode* aDomNode,
+                                  nsIWeakReference* aShell);
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
-
-  
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
 };
 
 
@@ -184,7 +162,18 @@ public:
 
   nsresult GetCellAt(PRInt32 aRowIndex, PRInt32 aColIndex,
                      nsIDOMElement* &aCell);
+
+  
+
+
+  nsITableLayout* GetTableLayout();
+
 protected:
+
+  
+  virtual void CacheChildren();
+
+  
 
   
 
@@ -208,10 +197,6 @@ protected:
                                             PRUint32 aTarget,
                                             PRBool aIsOuter);
 
-  virtual void CacheChildren();
-  nsresult GetTableNode(nsIDOMNode **_retval);
-  nsresult GetTableLayout(nsITableLayout **aLayoutObject);
-
   
 
 
@@ -230,22 +215,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsHTMLTableAccessible,
                               NS_TABLEACCESSIBLE_IMPL_CID)
 
 
-class nsHTMLTableHeadAccessible : public nsHTMLTableAccessible
-{
-public:
-  NS_DECL_ISUPPORTS_INHERITED
 
-  nsHTMLTableHeadAccessible(nsIDOMNode *aDomNode, nsIWeakReference *aShell);
 
-  
-  NS_IMETHOD GetCaption(nsIAccessible **aCaption);
-  NS_IMETHOD GetSummary(nsAString &aSummary);
-  NS_IMETHOD GetColumnHeader(nsIAccessibleTable **aColumnHeader);
-  NS_IMETHOD GetRows(PRInt32 *aRows);
-
-  
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
-};
 
 class nsHTMLCaptionAccessible : public nsHyperTextAccessibleWrap
 {
