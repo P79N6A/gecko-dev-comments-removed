@@ -35,7 +35,7 @@
 
 
 
-#include "IENUMFE.H"
+#include "IEnumFE.h"
 #include <stdio.h>
 #include "nsISupports.h"
 
