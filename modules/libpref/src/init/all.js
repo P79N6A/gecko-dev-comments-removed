@@ -133,6 +133,10 @@ pref("browser.triple_click_selects_paragraph", true);
 
 
 
+pref("browser.media.enforce_same_site_origin", false);
+
+
+
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");
 pref("gfx.color_management.rendering_intent", 0);
