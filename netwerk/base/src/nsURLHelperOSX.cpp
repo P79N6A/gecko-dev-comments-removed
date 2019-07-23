@@ -168,6 +168,7 @@ net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
 
   
   
+  
   escPath.ReplaceSubstring(";", "%3b");
 
   
