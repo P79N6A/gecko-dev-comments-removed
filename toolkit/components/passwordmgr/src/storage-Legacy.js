@@ -207,10 +207,20 @@ LoginManagerStorage_legacy.prototype = {
 
         
         
-        this._decryptLogins(logins);
-
+        
+        
         for (var i = 0; i < logins.length; i++) {
-            if (logins[i].equals(login)) {
+
+            var [[decryptedLogin], userCanceled] =
+                        this._decryptLogins([logins[i]]);
+
+            if (userCanceled)
+                return;
+
+            if (!decryptedLogin)
+                continue;
+
+            if (decryptedLogin.equals(login)) {
                 logins.splice(i, 1); 
                 break;
                 
@@ -703,16 +713,16 @@ LoginManagerStorage_legacy.prototype = {
         var result = [], userCanceled = false;
 
         for each (var login in logins) {
-            if (!login.username)
-                [login.username, userCanceled] =
-                    this._decrypt(login.wrappedJSObject.encryptedUsername);
+            var username, password;
+
+            [username, userCanceled] =
+                this._decrypt(login.wrappedJSObject.encryptedUsername);
 
             if (userCanceled)
                 break;
 
-            if (!login.password)
-                [login.password, userCanceled] =
-                    this._decrypt(login.wrappedJSObject.encryptedPassword);
+            [password, userCanceled] =
+                this._decrypt(login.wrappedJSObject.encryptedPassword);
 
             
             if (userCanceled)
@@ -720,8 +730,15 @@ LoginManagerStorage_legacy.prototype = {
 
             
             
-            if (!login.username || !login.password)
+            if (!username || !password)
                 continue;
+
+            
+            
+            
+            
+            login.username = username;
+            login.password = password;
 
             
             if (login.wrappedJSObject.encryptedUsername &&
