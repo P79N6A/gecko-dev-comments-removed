@@ -38,6 +38,8 @@
 #ifndef nsPIListBoxObject_h__
 #define nsPIListBoxObject_h__
 
+class nsListBoxBodyFrame;
+
 
 #define NS_PILISTBOXOBJECT_IID \
 { 0xfa9549f7, 0xee09, 0x48fc, \
@@ -52,7 +54,7 @@ class nsPIListBoxObject : public nsIListBoxObject {
 
 
 
-  virtual nsIListBoxObject* GetListBoxBody(PRBool aFlush) = 0;
+  virtual nsListBoxBodyFrame* GetListBoxBody(PRBool aFlush) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIListBoxObject, NS_PILISTBOXOBJECT_IID)
