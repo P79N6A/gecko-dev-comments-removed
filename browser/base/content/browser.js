@@ -2207,16 +2207,6 @@ function PageProxyClickHandler(aEvent)
     middleMousePaste(aEvent);
 }
 
-function URLBarOnInput(evt)
-{
-  gBrowser.userTypedValue = gURLBar.value;
-  
-  
-  var ih = getIdentityHandler();
-  if(ih._identityPopup)
-    ih._identityPopup.hidePopup();
-}
-
 function BrowserImport()
 {
 #ifdef XP_MACOSX
