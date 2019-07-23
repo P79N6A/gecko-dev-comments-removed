@@ -91,6 +91,7 @@ struct _cairo_scaled_font {
 
     
     cairo_matrix_t scale;	  
+    cairo_matrix_t scale_inverse; 
     cairo_font_extents_t extents; 
 
     
