@@ -41,7 +41,11 @@
 
 
 
+#ifndef nsRuleWalker_h_
+#define nsRuleWalker_h_
+
 #include "nsRuleNode.h"
+#include "nsIStyleRule.h"
 
 class nsRuleWalker {
 public:
@@ -75,6 +79,28 @@ public:
   PRBool GetImportance() const { return mImportance; }
   PRBool GetCheckForImportantRules() const { return mCheckForImportantRules; }
 
+  
+  
+  enum VisitedHandlingType {
+    
+    eRelevantLinkUnvisited,
+    
+    
+    eRelevantLinkVisited,
+    
+    
+    
+    eLinksVisitedOrUnvisited
+  };
+
+  void ResetForVisitedMatching() {
+    Reset();
+    mVisitedHandling = eRelevantLinkVisited;
+  }
+  VisitedHandlingType VisitedHandling() const { return mVisitedHandling; }
+  void SetHaveRelevantLink() { mHaveRelevantLink = PR_TRUE; }
+  PRBool HaveRelevantLink() const { return mHaveRelevantLink; }
+
 private:
   nsRuleNode* mCurrent; 
   nsRuleNode* mRoot; 
@@ -84,10 +110,28 @@ private:
                                         
                                         
 
+  
+  
+  
+  
+  
+  
+  
+  PRBool mHaveRelevantLink;
+
+  VisitedHandlingType mVisitedHandling;
+
 public:
-  nsRuleWalker(nsRuleNode* aRoot) :mCurrent(aRoot), mRoot(aRoot) {
+  nsRuleWalker(nsRuleNode* aRoot)
+    : mCurrent(aRoot)
+    , mRoot(aRoot)
+    , mHaveRelevantLink(PR_FALSE)
+    , mVisitedHandling(eRelevantLinkUnvisited)
+  {
     NS_ASSERTION(mCurrent, "Caller screwed up and gave us null node");
     MOZ_COUNT_CTOR(nsRuleWalker);
   }
   ~nsRuleWalker() { MOZ_COUNT_DTOR(nsRuleWalker); }
 };
+
+#endif 
