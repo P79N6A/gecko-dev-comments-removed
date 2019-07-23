@@ -38,6 +38,7 @@
 
 
 
+
 #include "windows.h"
 #include "wlanapi.h"
 
@@ -53,6 +54,13 @@
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIMutableArray.h"
+
+#ifdef WINCE
+#include <Iphlpapi.h>  
+#include <nuiouser.h>  
+
+typedef DWORD (*GETADAPTERSINFO)(PIP_ADAPTER_INFO pAdapterInfo, PULONG pOutBufLen);
+#endif
 
 
 
@@ -75,7 +83,7 @@ PRBool ResizeBuffer(int requested_size, BYTE **buffer)
     return false;
   }
 
-  BYTE *new_buffer = reinterpret_cast<BYTE*>(realloc(*buffer, requested_size));
+  BYTE *new_buffer = (BYTE*)realloc(*buffer, requested_size);
   if (new_buffer == NULL) {
     free(*buffer);
     *buffer = NULL;
@@ -87,7 +95,92 @@ PRBool ResizeBuffer(int requested_size, BYTE **buffer)
 }
 
 
+#ifdef WINCE
+int PerformQuery(HANDLE &ndis_handle,
+                 TCHAR *device_name,
+                 BYTE *buffer,
+                 DWORD buffer_size,
+                 BYTE *&data,
+                 DWORD *bytes_out) {
+  
+  NDISUIO_QUERY_OID *query = (NDISUIO_QUERY_OID*)(buffer);
+  query->ptcDeviceName = device_name;
+  query->Oid = OID_802_11_BSSID_LIST;
+  
+  if (!DeviceIoControl(ndis_handle,
+                       IOCTL_NDISUIO_QUERY_OID_VALUE,
+                       query,
+                       sizeof(NDISUIO_QUERY_OID),
+                       query,
+                       buffer_size,
+                       bytes_out,
+                       NULL)) {
+    return GetLastError();
+  }
+  
+  data = &query->Data[0];
+  return ERROR_SUCCESS;
+}
 
+ 	
+
+void GetNetworkInterfaces(GETADAPTERSINFO pGetAdaptersInfo, nsStringArray& interfaces){
+  
+  ULONG buffer_size = 0;
+  
+  
+  if (pGetAdaptersInfo(NULL, &buffer_size) != ERROR_BUFFER_OVERFLOW)      
+    return;
+  
+  
+  IP_ADAPTER_INFO *adapter_info = (IP_ADAPTER_INFO*)malloc(buffer_size);
+  if (adapter_info == NULL){
+    free (adapter_info);
+    return;
+  }
+  
+  if (pGetAdaptersInfo(adapter_info, &buffer_size) != ERROR_SUCCESS){
+    free (adapter_info);
+    return;
+  }
+  
+  
+  while (adapter_info) {      
+    
+    nsString adapterName;
+    
+    adapterName.AppendWithConversion(adapter_info->AdapterName);      
+    interfaces.AppendString(adapterName);
+    adapter_info = adapter_info->Next;
+  }
+  free (adapter_info);
+}
+
+nsresult SetupWince(HANDLE& ndis_handle, GETADAPTERSINFO& pGetAdaptersInfo){
+  
+  
+  
+  
+
+  ndis_handle = CreateFile(NDISUIO_DEVICE_NAME, GENERIC_READ,
+			   FILE_SHARE_READ, NULL, OPEN_EXISTING,
+			   FILE_ATTRIBUTE_READONLY, NULL);
+  if (INVALID_HANDLE_VALUE == ndis_handle)
+    return NS_ERROR_FAILURE;
+  
+  HINSTANCE hIpDLL = LoadLibraryW(L"Iphlpapi.dll");
+  if (!hIpDLL)
+    return NS_ERROR_NOT_AVAILABLE;
+  
+  pGetAdaptersInfo = (GETADAPTERSINFO) GetProcAddress(hIpDLL, "GetAdaptersInfo");
+  
+  if (!pGetAdaptersInfo)
+    return NS_ERROR_FAILURE;
+
+  return NS_OK;
+}
+
+#else
 int PerformQuery(HANDLE adapter_handle,
                  BYTE *buffer,
                  DWORD buffer_size,
@@ -166,7 +259,7 @@ bool DefineDosDeviceIfNotExists(unsigned short* device_name) {
     target_path.Equals(target);
 } 
 
-void GetNetworkInterfacesFromRegistry(nsStringArray& interfaces)
+void GetNetworkInterfaces(nsStringArray& interfaces)
 {
   HKEY network_cards_key = NULL;
   if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
@@ -213,7 +306,7 @@ void GetNetworkInterfacesFromRegistry(nsStringArray& interfaces)
                          L"ServiceName",
                          NULL,
                          &type,
-                         reinterpret_cast<LPBYTE>(service_name),
+                         (LPBYTE)service_name,
                          &service_name_size) == ERROR_SUCCESS) {
  
       interfaces.AppendString(nsString(service_name));  
@@ -238,11 +331,20 @@ PRBool IsRunningOnVista() {
 
   return (6 == os_major_version) && (VER_PLATFORM_WIN32_NT == platform_id);
 }
+#endif
 
 nsresult
 nsWifiMonitor::DoScan()
 {
+#ifndef WINCE
   if (!IsRunningOnVista()) {
+#else
+    HANDLE ndis_handle;
+    GETADAPTERSINFO pGetAdaptersInfo;
+    nsresult rc = SetupWince(ndis_handle, pGetAdaptersInfo);
+    if (rc != NS_OK)
+      return rc;
+#endif
 
     nsCOMArray<nsWifiAccessPoint> lastAccessPoints;
     nsCOMArray<nsWifiAccessPoint> accessPoints;
@@ -251,12 +353,17 @@ nsWifiMonitor::DoScan()
       accessPoints.Clear();
 
       nsStringArray interfaces;
-      GetNetworkInterfacesFromRegistry(interfaces);
+#ifdef WINCE
+      GetNetworkInterfaces(pGetAdaptersInfo, interfaces);
+#else
+      GetNetworkInterfaces(interfaces);
+#endif
       
       for (int i = 0; i < interfaces.Count(); i++) {
         nsString *s = interfaces.StringAt(i);
         unsigned short *service_name = (PRUnichar*) s->get();
         
+#ifndef WINCE        
         if (!DefineDosDeviceIfNotExists(service_name))
           continue;
 
@@ -266,10 +373,13 @@ nsWifiMonitor::DoScan()
         HANDLE adapter_handle = GetFileHandle(service_name);
         if (adapter_handle == INVALID_HANDLE_VALUE)
           continue;
+#else
+        BYTE *data; 
+#endif
 
         
         
-        BYTE *buffer = reinterpret_cast<BYTE*>(malloc(oid_buffer_size_));
+        BYTE *buffer = (BYTE*)malloc(oid_buffer_size_);
         if (buffer == NULL)
           return NS_ERROR_OUT_OF_MEMORY;
           
@@ -278,7 +388,11 @@ nsWifiMonitor::DoScan()
         
         while (true) {     
           bytes_out = 0; 
+#ifdef WINCE
+          result = PerformQuery(ndis_handle, service_name, buffer, oid_buffer_size_, data, &bytes_out);
+#else
           result = PerformQuery(adapter_handle, buffer, oid_buffer_size_, &bytes_out);
+#endif
           
           if (result == ERROR_GEN_FAILURE ||  
               result == ERROR_INSUFFICIENT_BUFFER ||
@@ -306,15 +420,19 @@ nsWifiMonitor::DoScan()
         }
           
         if (result == ERROR_SUCCESS) {
-          NDIS_802_11_BSSID_LIST* bssid_list = reinterpret_cast<NDIS_802_11_BSSID_LIST*>(buffer);
+#ifdef WINCE
+          NDIS_802_11_BSSID_LIST* bssid_list = (NDIS_802_11_BSSID_LIST*)data;
+#else
+          NDIS_802_11_BSSID_LIST* bssid_list = (NDIS_802_11_BSSID_LIST*)buffer;
+#endif
           
           
           int found = 0;
-          const uint8 *iterator = reinterpret_cast<const uint8*>(&bssid_list->Bssid[0]);
-          const uint8 *end_of_buffer = reinterpret_cast<const uint8*>(&bssid_list) + oid_buffer_size_;
+          const uint8 *iterator = (const uint8*)&bssid_list->Bssid[0];
+          const uint8 *end_of_buffer = (const uint8*)buffer + oid_buffer_size_;
           for (int i = 0; i < static_cast<int>(bssid_list->NumberOfItems); ++i) {
             
-            const NDIS_WLAN_BSSID *bss_id = reinterpret_cast<const NDIS_WLAN_BSSID*>(iterator);
+            const NDIS_WLAN_BSSID *bss_id = (const NDIS_WLAN_BSSID*)iterator;
             
             
             if (bss_id->Length < sizeof(NDIS_WLAN_BSSID) ||
@@ -339,10 +457,14 @@ nsWifiMonitor::DoScan()
           free(buffer); 
 
           
+#ifndef WINCE
           CloseHandle(adapter_handle);
+#endif
         }
         
+#ifndef WINCE
         UndefineDosDevice(service_name);
+#endif
       }
      
  
@@ -407,6 +529,10 @@ nsWifiMonitor::DoScan()
 
 
 
+#ifdef WINCE
+    
+    CloseHandle(ndis_handle);
+#else
   }
   else {
 
@@ -558,5 +684,6 @@ nsWifiMonitor::DoScan()
     }
     while (mKeepGoing == PR_TRUE);
   }
+#endif
   return NS_OK;
 }
