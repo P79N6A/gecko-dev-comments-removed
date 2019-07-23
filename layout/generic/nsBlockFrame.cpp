@@ -2145,6 +2145,8 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       ReparentFloats(toMove->mFirstChild, nextInFlow, collectOverflowFloats, PR_TRUE);
 
+      NS_ASSERTION(aState.mPrevChild || mLines.empty(), "should have a prevchild here");
+
       
       if (aState.mPrevChild) {
         aState.mPrevChild->SetNextSibling(toMove->mFirstChild);
@@ -2484,8 +2486,6 @@ nsBlockFrame::PullFrame(nsBlockReflowState& aState,
 
 
 
-
-
 PRBool
 nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
                             nsLineBox* aLine,
@@ -2511,9 +2511,15 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
   else {
     
     nsIFrame* frame = fromLine->mFirstChild;
+    nsIFrame* newFirstChild = frame->GetNextSibling();
 
     if (aFromContainer != this) {
-      aLine->LastChild()->SetNextSibling(frame);
+      NS_ASSERTION(aState.mPrevChild == aLine->LastChild(),
+        "mPrevChild should be the LastChild of the line we are adding to");
+      
+      
+      frame->SetNextSibling(nsnull);
+      aState.mPrevChild->SetNextSibling(frame);
     }
     
     
@@ -2524,7 +2530,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
       
       fromLine->SetChildCount(fromLineChildCount);
       fromLine->MarkDirty();
-      fromLine->mFirstChild = frame->GetNextSibling();
+      fromLine->mFirstChild = newFirstChild;
     }
     else {
       
@@ -2556,13 +2562,6 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
       NS_ASSERTION(frame->GetParent() == aFromContainer, "unexpected parent frame");
 
       ReparentFrame(frame, aFromContainer, this);
-
-      
-      
-      frame->SetNextSibling(nsnull);
-      if (nsnull != aState.mPrevChild) {
-        aState.mPrevChild->SetNextSibling(frame);
-      }
 
       
       
