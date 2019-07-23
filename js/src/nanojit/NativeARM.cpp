@@ -69,7 +69,7 @@ void
 Assembler::nInit(AvmCore*)
 {
     
-    has_cmov = true;
+    avmplus::AvmCore::cmov_available = true;
 }
 
 NIns*

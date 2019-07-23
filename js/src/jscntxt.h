@@ -169,9 +169,6 @@ struct JSThread {
     uint32              gcMallocBytes;
 
     
-    JSGCThing           *gcFreeLists[GC_NUM_FREELISTS];
-
-    
 
 
 
@@ -249,6 +246,7 @@ struct JSRuntime {
     JSGCChunkInfo       *gcChunkList;
     JSGCArenaList       gcArenaList[GC_NUM_FREELISTS];
     JSGCDoubleArenaList gcDoubleArenaList;
+    JSGCFreeListSet     *gcFreeListsPool;
     JSDHashTable        gcRootsHash;
     JSDHashTable        *gcLocksHash;
     jsrefcount          gcKeepAtoms;
@@ -726,6 +724,9 @@ JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(void *));
 #define JS_PUSH_TEMP_ROOT_SCRIPT(cx,script_,tvr)                              \
     JS_PUSH_TEMP_ROOT_COMMON(cx, script_, tvr, JSTVU_SCRIPT, script)
 
+
+#define JSRESOLVE_INFER         0xffff  /* infer bits from current bytecode */
+
 struct JSContext {
     
     JSCList             links;
@@ -878,6 +879,10 @@ struct JSContext {
     
     JSTempValueRooter   *tempValueRooters;
 
+#ifdef JS_THREADSAFE
+    JSGCFreeListSet     *gcLocalFreeLists;
+#endif
+
     
     JSGCDoubleCell      *doubleFreeList;
 
@@ -889,6 +894,9 @@ struct JSContext {
 
     
     JSArenaPool         regexpPool;
+
+    
+    uintN               resolveFlags;
 };
 
 #ifdef JS_THREADSAFE
@@ -921,6 +929,21 @@ class JSAutoTempValueRooter
 
     JSContext *mContext;
     JSTempValueRooter mTvr;
+};
+
+class JSAutoResolveFlags
+{
+  public:
+    JSAutoResolveFlags(JSContext *cx, uintN flags)
+        : mContext(cx), mSaved(cx->resolveFlags) {
+        cx->resolveFlags = flags;
+    }
+
+    ~JSAutoResolveFlags() { mContext->resolveFlags = mSaved; }
+
+  private:
+    JSContext *mContext;
+    uintN mSaved;
 };
 #endif
 
