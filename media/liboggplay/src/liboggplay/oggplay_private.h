@@ -69,6 +69,12 @@
 #endif
 #endif
 
+#ifdef OS2
+#define INCL_DOSSEMAPHORES
+#define INCL_DOSPROCESS
+#include <os2.h>
+#endif
+
 
 #include "std_semaphore.h"
 
