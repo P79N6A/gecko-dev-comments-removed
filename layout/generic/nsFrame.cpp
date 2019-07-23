@@ -99,6 +99,7 @@
 #include "nsITextControlFrame.h"
 #include "nsINameSpaceManager.h"
 #include "nsIPercentHeightObserver.h"
+#include "nsStyleStructInlines.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -553,6 +554,16 @@ nsFrame::GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const
  void
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  
+  
+  
+  
+  
+  
+  imgIRequest *borderImage = GetStyleBorder()->GetBorderImage();
+  if (borderImage) {
+    PresContext()->LoadBorderImage(borderImage, this);
+  }
 }
 
  nsMargin
