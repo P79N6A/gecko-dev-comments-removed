@@ -52,7 +52,8 @@ struct DeepTreeStackItem
 {
   nsCOMPtr<nsIDOMNode> node;
   nsCOMPtr<nsIDOMNodeList> kids;
-  PRUint32 lastIndex;
+  PRUint32 lastIndex; 
+                      
 };
 
 
