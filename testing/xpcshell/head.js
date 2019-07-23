@@ -49,6 +49,7 @@ var _quit = false;
 var _passed = true;
 var _tests_pending = 0;
 var _passedChecks = 0, _falsePassedChecks = 0;
+var _cleanupFunctions = [];
 
 
 
@@ -135,6 +136,11 @@ function _execute_test() {
 
   
   _load_files(_TAIL_FILES);
+
+  
+  var func;
+  while ((func = _cleanupFunctions.pop()))
+    func();
 
   if (!_passed)
     return;
@@ -336,4 +342,16 @@ function do_parse_document(aPath, aType) {
   stream = null;
   lf = null;
   return doc;
+}
+
+
+
+
+
+
+
+
+function do_register_cleanup(aFunction)
+{
+  _cleanupFunctions.push(aFunction);
 }
