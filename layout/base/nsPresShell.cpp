@@ -1708,15 +1708,6 @@ PresShell::Init(nsIDocument* aDocument,
     }
 #endif
 
-#ifdef MOZ_SMIL
-  if (mDocument->HasAnimationController()) {
-    nsSMILAnimationController* animCtrl = mDocument->GetAnimationController();
-    if (!animCtrl->IsPaused()) {
-      animCtrl->StartSampling(GetPresContext()->RefreshDriver());
-    }
-  }
-#endif 
-
   return NS_OK;
 }
 
@@ -1826,15 +1817,10 @@ PresShell::Destroy()
     mDocument->DeleteShell();
   }
 
-  nsRefreshDriver* rd = GetPresContext()->RefreshDriver();
-  if (mDocument->HasAnimationController()) {
-    mDocument->GetAnimationController()->StopSampling(rd);
-  }
-
   
   
   
-  rd->RemoveRefreshObserver(this, Flush_Layout);
+  GetPresContext()->RefreshDriver()->RemoveRefreshObserver(this, Flush_Layout);
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
     mAsyncResizeEventTimer->Cancel();

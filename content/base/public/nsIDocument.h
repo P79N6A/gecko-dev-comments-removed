@@ -1360,7 +1360,7 @@ protected:
 
 #ifdef MOZ_SMIL
   
-  nsRefPtr<nsSMILAnimationController> mAnimationController;
+  nsAutoPtr<nsSMILAnimationController> mAnimationController;
 #endif 
 
   
