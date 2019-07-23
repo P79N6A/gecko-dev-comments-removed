@@ -71,8 +71,10 @@ class nsVideoDecoder : public nsIObserver
   virtual PRBool Init();
 
   
-  
   virtual void GetCurrentURI(nsIURI** aURI) = 0;
+
+  
+  virtual nsIPrincipal* GetCurrentPrincipal() = 0;
 
   
   

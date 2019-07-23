@@ -118,6 +118,9 @@ public:
   
   void ChangeReadyState(nsMediaReadyState aState);
 
+  
+  nsIPrincipal* GetCurrentPrincipal();
+
 protected:
   nsresult PickMediaElement(nsAString& aChosenMediaResource);
   virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);

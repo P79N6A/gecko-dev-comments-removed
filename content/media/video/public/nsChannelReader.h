@@ -44,6 +44,7 @@
 #include "nsIOutputStream.h"
 #include "nsIRequestObserver.h"
 #include "nsIStreamListener.h"
+#include "nsIPrincipal.h"
 
 #include "oggplay/oggplay.h"
 
@@ -72,9 +73,12 @@ class nsChannelToPipeListener : public nsIStreamListener
   void Stop();
   double BytesPerSecond() const;
 
+  nsIPrincipal* GetCurrentPrincipal();
+
 private:
   nsCOMPtr<nsIInputStream> mInput;
   nsCOMPtr<nsIOutputStream> mOutput;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
   nsOggDecoder* mDecoder;
 
   
@@ -104,7 +108,10 @@ public:
   
   
   double BytesPerSecond() const;
+
   
+  nsIPrincipal* GetCurrentPrincipal();
+
 public:
   nsCOMPtr<nsIChannel>  mChannel;
   nsCOMPtr<nsIInputStream>  mInput;
