@@ -1145,14 +1145,6 @@ public:
 
 
 
-    static JSBool Initialize(JSContext * aJSContext,
-                             JSObject* aGlobalJSObj);
-    
-
-
-
-
-
 
 
 

@@ -63,11 +63,6 @@ const char* XPCJSRuntime::mStrings[] = {
     "__proto__",            
     "__iterator__",         
     "__parent__"            
-#ifdef XPC_IDISPATCH_SUPPORT
-    , "GeckoActiveXObject"  
-    , "COMObject"           
-    , "supports"            
-#endif
 };
 
 
