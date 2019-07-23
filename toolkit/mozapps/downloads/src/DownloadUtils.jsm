@@ -297,7 +297,8 @@ let DownloadUtils = {
       pair2 = replaceInsert(pair2, 2, unit2);
 
       
-      if (aSeconds < 3600 || time2 == 0) {
+      
+      if ((aSeconds < 3600 && time1 >= 4) || time2 == 0) {
         timeLeft = replaceInsert(gStr.timeLeftSingle, 1, pair1);
       } else {
         
