@@ -126,46 +126,28 @@ nsHTMLImageAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsHTMLImageAccessible::GetName(nsAString& aName)
+nsresult
+nsHTMLImageAccessible::GetNameInternal(nsAString& aName)
 {
-  aName.Truncate();
+  
+  
+  
 
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-  
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-    
-  
-  
-  
   PRBool hasAltAttrib =
     content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt, aName);
-  if (aName.IsEmpty()) {
-    if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_label) ||
-        content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_labelledby)) {
-      
-      
-      nsresult rv = GetARIAName(aName);
-      NS_ENSURE_SUCCESS(rv, rv);
+  if (!aName.IsEmpty())
+    return NS_OK;
 
-      if (!aName.IsEmpty())
-        return NS_OK;
+  nsresult rv = GetHTMLName(aName, PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = GetHTMLName(aName, PR_FALSE);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    if (aName.IsEmpty()) { 
-      content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title, aName);
-      if (!hasAltAttrib && aName.IsEmpty()) { 
-        
-        
-        
-        aName.SetIsVoid(PR_TRUE);
-      }
-    }
+  if (aName.IsVoid() && hasAltAttrib) {
+    
+    
+    aName.Truncate();
   }
+
   return NS_OK;
 }
 
