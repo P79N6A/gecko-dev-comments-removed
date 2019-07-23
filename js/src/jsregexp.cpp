@@ -5138,24 +5138,24 @@ JS_FRIEND_API(void)
 js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
                              JSTempValueRooter *tvr)
 {
-  *statics = cx->regExpStatics;
-  JS_PUSH_TEMP_ROOT_STRING(cx, statics->input, tvr);
-  
+    *statics = cx->regExpStatics;
+    JS_PUSH_TEMP_ROOT_STRING(cx, statics->input, tvr);
+    
 
 
 
-  cx->regExpStatics.moreParens = NULL;
-  JS_ClearRegExpStatics(cx);
+    cx->regExpStatics.moreParens = NULL;
+    JS_ClearRegExpStatics(cx);
 }
 
 JS_FRIEND_API(void)
 js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
                         JSTempValueRooter *tvr)
 {
-  
-  JS_ClearRegExpStatics(cx);
-  cx->regExpStatics = *statics;
-  JS_POP_TEMP_ROOT(cx, tvr);
+    
+    JS_ClearRegExpStatics(cx);
+    cx->regExpStatics = *statics;
+    JS_POP_TEMP_ROOT(cx, tvr);
 }
 
 void
