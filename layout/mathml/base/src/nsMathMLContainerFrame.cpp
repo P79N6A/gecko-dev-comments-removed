@@ -1020,6 +1020,62 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
+ nscoord
+nsMathMLContainerFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
+{
+  nscoord result;
+  DISPLAY_MIN_WIDTH(this, result);
+  result = GetIntrinsicWidth(aRenderingContext);
+  return result;
+}
+
+ nscoord
+nsMathMLContainerFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
+{
+  nscoord result;
+  DISPLAY_MIN_WIDTH(this, result);
+  result = GetIntrinsicWidth(aRenderingContext);
+  return result;
+}
+
+ nscoord
+nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext *aRenderingContext)
+{
+  
+  nsIFrame* childFrame = mFrames.FirstChild();
+  while (childFrame) {
+    
+    
+    
+    nscoord width =
+      nsLayoutUtils::IntrinsicForContainer(aRenderingContext, childFrame,
+                                           nsLayoutUtils::PREF_WIDTH);
+
+    nsHTMLReflowMetrics childDesiredSize;
+    childDesiredSize.width = width;
+    childDesiredSize.mBoundingMetrics.width = width;
+    
+    childDesiredSize.mBoundingMetrics.leftBearing = 0;
+    childDesiredSize.mBoundingMetrics.rightBearing = width;
+
+    SaveReflowAndBoundingMetricsFor(childFrame, childDesiredSize,
+                                    childDesiredSize.mBoundingMetrics);
+
+    childFrame = childFrame->GetNextSibling();
+  }
+
+  
+  nsHTMLReflowMetrics desiredSize;
+  nsresult rv = Place(*aRenderingContext, PR_FALSE, desiredSize);
+  if (NS_FAILED(rv)) {
+    ReflowError(*aRenderingContext, desiredSize);
+  }
+
+  ClearSavedChildMetrics();
+
+  return desiredSize.width;
+}
+
 
 
 

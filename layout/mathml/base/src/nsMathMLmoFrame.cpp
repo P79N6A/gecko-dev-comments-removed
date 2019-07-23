@@ -613,11 +613,11 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
     NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags);
 
   nsBoundingMetrics charSize;
+  nsBoundingMetrics container = aDesiredStretchSize.mBoundingMetrics;
+  PRBool isVertical = PR_FALSE;
   if (useMathMLChar) {
     nsBoundingMetrics initialSize = aDesiredStretchSize.mBoundingMetrics;
-    nsBoundingMetrics container = initialSize;
 
-    PRBool isVertical = PR_FALSE;
     PRUint32 stretchHint = NS_STRETCH_NORMAL;
 
     
@@ -756,35 +756,6 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
       mFlags &= ~NS_MATHML_OPERATOR_FORM;
       useMathMLChar = PR_FALSE;
     }
-    else {
-      
-      mBoundingMetrics = charSize;
-
-      
-      
-      if (mMathMLChar.GetStretchDirection() != NS_STRETCH_DIRECTION_UNSUPPORTED ||
-          NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
-
-        if (isVertical || NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
-          
-          
-          
-
-          height = mBoundingMetrics.ascent + mBoundingMetrics.descent;
-          if (NS_MATHML_OPERATOR_IS_SYMMETRIC(mFlags) ||
-              NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
-            
-            
-            mBoundingMetrics.descent = height/2 - axisHeight;
-          }
-          else {
-            
-            mBoundingMetrics.descent = container.descent;
-          }
-          mBoundingMetrics.ascent = height - mBoundingMetrics.descent;
-        }
-      }
-    }
   }
 
   
@@ -793,6 +764,36 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
   if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
     
     DidReflowChildren(mFrames.FirstChild());
+  }
+
+  if (useMathMLChar) {
+    
+    mBoundingMetrics = charSize;
+
+    
+    
+    if (mMathMLChar.GetStretchDirection() != NS_STRETCH_DIRECTION_UNSUPPORTED ||
+        NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
+
+      if (isVertical || NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
+        
+        
+        
+
+        height = mBoundingMetrics.ascent + mBoundingMetrics.descent;
+        if (NS_MATHML_OPERATOR_IS_SYMMETRIC(mFlags) ||
+            NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
+          
+          
+          mBoundingMetrics.descent = height/2 - axisHeight;
+        }
+        else {
+          
+          mBoundingMetrics.descent = container.descent;
+        }
+        mBoundingMetrics.ascent = height - mBoundingMetrics.descent;
+      }
+    }
   }
 
   
@@ -874,7 +875,7 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
       aDesiredStretchSize.mBoundingMetrics.rightBearing += leftSpace;
 
       if (useMathMLChar) {
-	nsRect rect;
+        nsRect rect;
         mMathMLChar.GetRect(rect);
         mMathMLChar.SetRect(nsRect(rect.x + leftSpace, rect.y, rect.width, rect.height));
       }
@@ -889,6 +890,8 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
     }
   }
 
+  
+  ClearSavedChildMetrics();
   
   GatherAndStoreOverflow(&aDesiredStretchSize);
 

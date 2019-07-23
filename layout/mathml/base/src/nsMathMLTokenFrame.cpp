@@ -147,14 +147,10 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
 
     SaveReflowAndBoundingMetricsFor(childFrame, childDesiredSize,
                                     childDesiredSize.mBoundingMetrics);
-    
-    aDesiredSize.mBoundingMetrics += childDesiredSize.mBoundingMetrics;
 
     childFrame = childFrame->GetNextSibling();
   }
 
-  
-  mBoundingMetrics = aDesiredSize.mBoundingMetrics;
 
   
   FinalizeReflow(*aReflowState.rendContext, aDesiredSize);
@@ -172,6 +168,18 @@ nsMathMLTokenFrame::Place(nsIRenderingContext& aRenderingContext,
                           PRBool               aPlaceOrigin,
                           nsHTMLReflowMetrics& aDesiredSize)
 {
+  mBoundingMetrics.Clear();
+  nsIFrame* childFrame = GetFirstChild(nsnull);
+  while (childFrame) {
+    nsHTMLReflowMetrics childSize;
+    GetReflowAndBoundingMetricsFor(childFrame, childSize,
+                                   childSize.mBoundingMetrics, nsnull);
+    
+    mBoundingMetrics += childSize.mBoundingMetrics;
+
+    childFrame = childFrame->GetNextSibling();
+  }
+
   nsCOMPtr<nsIFontMetrics> fm =
     PresContext()->GetMetricsFor(GetStyleFont()->mFont);
   nscoord ascent, descent;

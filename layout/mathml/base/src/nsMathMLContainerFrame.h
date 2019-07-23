@@ -134,6 +134,18 @@ public:
   RemoveFrame(nsIAtom*        aListName,
               nsIFrame*       aOldFrame);
 
+  
+
+
+
+  virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
+  virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
+
+  
+
+
+  virtual nscoord GetIntrinsicWidth(nsIRenderingContext *aRenderingContext);
+
   NS_IMETHOD
   Reflow(nsPresContext*          aPresContext,
          nsHTMLReflowMetrics&     aDesiredSize,
