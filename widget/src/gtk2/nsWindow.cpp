@@ -104,7 +104,6 @@ static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsAutoPtr.h"
 
-#ifdef MOZ_CAIRO_GFX
 #include "gfxPlatformGtk.h"
 #include "gfxXlibSurface.h"
 #include "gfxContext.h"
@@ -113,7 +112,6 @@ static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility"
 #ifdef MOZ_ENABLE_GLITZ
 #include "gfxGlitzSurface.h"
 #include "glitz-glx.h"
-#endif
 #endif
 
 
@@ -464,11 +462,9 @@ nsWindow::Destroy(void)
     
     mWindowGroup = nsnull;
 
-#ifdef MOZ_CAIRO_GFX
     
     
     mThebesSurface = nsnull;
-#endif
 
     if (mDragMotionTimerID) {
         gtk_timeout_remove(mDragMotionTimerID);
@@ -1652,7 +1648,6 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
 
     nsCOMPtr<nsIRenderingContext> rc = getter_AddRefs(GetRenderingContext());
 
-#ifdef MOZ_CAIRO_GFX
     PRBool translucent;
     GetWindowTranslucency(translucent);
     nsIntRect boundsRect;
@@ -1722,16 +1717,17 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         }
 #endif 
     }
-#endif 
 
+#if 0
     
     
     
-#if !defined(MOZ_CAIRO_GFX) && defined(DEBUG)
+#ifdef DEBUG
     if (WANT_PAINT_FLASHING && aEvent->window)
         gdk_window_flash(aEvent->window, 1, 100, aEvent->region);
-#endif 
-    
+#endif
+#endif
+
     nsPaintEvent event(PR_TRUE, NS_PAINT, this);
     event.refPoint.x = aEvent->area.x;
     event.refPoint.y = aEvent->area.y;
@@ -1745,8 +1741,6 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
     
     
     if (NS_LIKELY(!mIsDestroyed)) {
-
-#ifdef MOZ_CAIRO_GFX
         if (status != nsEventStatus_eIgnore) {
             if (translucent) {
                 nsRefPtr<gfxPattern> pattern = ctx->PopGroup();
@@ -1794,8 +1788,6 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         }
 
         ctx->Restore();
-#endif 
-
     }
 
     g_free(rects);
@@ -5728,7 +5720,6 @@ IM_get_input_context(nsWindow *aWindow)
 
 #endif
 
-#ifdef MOZ_CAIRO_GFX
 
 gfxASurface*
 nsWindow::GetThebesSurface()
@@ -5791,4 +5782,3 @@ nsWindow::GetThebesSurface()
 
     return mThebesSurface;
 }
-#endif
