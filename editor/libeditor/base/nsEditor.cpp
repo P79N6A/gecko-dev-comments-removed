@@ -131,10 +131,6 @@ extern nsIParserService *sParserService;
 
 
 
-nsIAtom *nsEditor::gTypingTxnName;
-nsIAtom *nsEditor::gIMETxnName;
-nsIAtom *nsEditor::gDeleteTxnName;
-
 nsEditor::nsEditor()
 :  mModCount(0)
 ,  mPresShellWeak(nsnull)
@@ -161,56 +157,11 @@ nsEditor::nsEditor()
 ,  mPhonetic(nsnull)
 {
   
-  if (!gTypingTxnName)
-    gTypingTxnName = NS_NewAtom("Typing");
-  else
-    NS_ADDREF(gTypingTxnName);
-  if (!gIMETxnName)
-    gIMETxnName = NS_NewAtom("IME");
-  else
-    NS_ADDREF(gIMETxnName);
-  if (!gDeleteTxnName)
-    gDeleteTxnName = NS_NewAtom("Deleting");
-  else
-    NS_ADDREF(gDeleteTxnName);
 }
 
 nsEditor::~nsEditor()
 {
-  
-
-
-
-
-
-
-  if (mTxnMgr) { 
-    mTxnMgr = 0;
-  }
-  nsrefcnt refCount=0;
-  if (gTypingTxnName)  
-  { 
-    refCount = gTypingTxnName->Release();
-    if (0==refCount) {
-      gTypingTxnName = nsnull; 
-    }
-  }
-
-  if (gIMETxnName)  
-  { 
-    refCount = gIMETxnName->Release();
-    if (0==refCount) {
-      gIMETxnName = nsnull;
-    }
-  }
-
-  if (gDeleteTxnName)  
-  { 
-    refCount = gDeleteTxnName->Release();
-    if (0==refCount) {
-      gDeleteTxnName = nsnull;
-    }
-  }
+  mTxnMgr = nsnull;
 
   delete mPhonetic;
  

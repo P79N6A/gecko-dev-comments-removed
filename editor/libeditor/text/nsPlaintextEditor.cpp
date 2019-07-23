@@ -79,6 +79,7 @@
 #include "nsAOLCiter.h"
 #include "nsInternetCiter.h"
 #include "nsEventDispatcher.h"
+#include "nsGkAtoms.h"
 
 
 #include "nsIClipboard.h"
@@ -417,7 +418,7 @@ NS_IMETHODIMP nsPlaintextEditor::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent)
 NS_IMETHODIMP nsPlaintextEditor::TypedText(const nsAString& aString,
                                       PRInt32 aAction)
 {
-  nsAutoPlaceHolderBatch batch(this, gTypingTxnName);
+  nsAutoPlaceHolderBatch batch(this, nsGkAtoms::TypingTxnName);
 
   switch (aAction)
   {
@@ -643,7 +644,7 @@ NS_IMETHODIMP nsPlaintextEditor::DeleteSelection(nsIEditor::EDirection aAction)
   nsresult result;
 
   
-  nsAutoPlaceHolderBatch batch(this, gDeleteTxnName);
+  nsAutoPlaceHolderBatch batch(this, nsGkAtoms::DeleteTxnName);
   nsAutoRules beginRulesSniffing(this, kOpDeleteSelection, aAction);
 
   
@@ -1712,7 +1713,7 @@ nsPlaintextEditor::SetCompositionString(const nsAString& aCompositionString, nsI
     
     
     {
-      nsAutoPlaceHolderBatch batch(this, gIMETxnName);
+      nsAutoPlaceHolderBatch batch(this, nsGkAtoms::IMETxnName);
 
       SetIsIMEComposing(); 
 

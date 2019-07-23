@@ -581,13 +581,6 @@ public:
   
   nsIDOMElement *GetRoot();
 
-public:
-  
-  
-  static nsIAtom *gTypingTxnName;
-  static nsIAtom *gIMETxnName;
-  static nsIAtom *gDeleteTxnName;
-
 protected:
 
   PRUint32        mModCount;		
