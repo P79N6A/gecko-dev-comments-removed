@@ -589,6 +589,16 @@ nsPostUpdateWin.prototype = {
   },
 
   run: function() {
+    
+    
+    var updateUninstallFile = getFile(KEY_APPDIR); 
+    updateUninstallFile.append("uninstall");
+    updateUninstallFile.append("uninstall.update");
+    if (updateUninstallFile.exists()) {
+      LOG("nothing to do, uninstall.log has already been updated"); 
+      return;
+    }
+
     try {
       installLogWriter = new InstallLogWriter();
       try {
