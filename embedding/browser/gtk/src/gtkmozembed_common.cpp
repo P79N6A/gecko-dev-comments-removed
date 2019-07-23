@@ -650,7 +650,17 @@ gtk_moz_embed_common_get_security_mode(guint sec_state)
 {
   GtkMozEmbedSecurityMode sec_mode;
 
-  switch (sec_state) {
+  const guint wpl_security_bits = nsIWebProgressListener::STATE_IS_SECURE |
+                                  nsIWebProgressListener::STATE_IS_BROKEN |
+                                  nsIWebProgressListener::STATE_IS_INSECURE |
+                                  nsIWebProgressListener::STATE_SECURE_HIGH |
+                                  nsIWebProgressListener::STATE_SECURE_MED |
+                                  nsIWebProgressListener::STATE_SECURE_LOW;
+
+  
+
+
+  switch (sec_state & wpl_security_bits) {
     case nsIWebProgressListener::STATE_IS_INSECURE:
       sec_mode = GTK_MOZ_EMBED_NO_SECURITY;
       
