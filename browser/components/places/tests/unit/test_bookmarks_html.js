@@ -51,6 +51,15 @@ try {
 }
 
 
+try {
+  var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].getService(Ci.nsIAnnotationService);
+} catch(ex) {
+  do_throw("Could not get annotation service\n");
+} 
+
+const DESCRIPTION_ANNO = "bookmarkProperties/description";
+
+
 function run_test() {
   
   var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].getService(Ci.nsIPlacesImportExportService);
@@ -61,9 +70,9 @@ function run_test() {
   bookmarksFileNew.append("bookmarks.exported.html");
 
   
-  if (!bookmarksFileOld.exists())
-    bookmarksFileOld.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
-  if (!bookmarksFileOld.exists())
+  if (!bookmarksFileNew.exists())
+    bookmarksFileNew.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
+  if (!bookmarksFileNew.exists())
     do_throw("couldn't create file: bookmarks.exported.html");
 
   
@@ -125,12 +134,17 @@ function testCanonicalBookmarks(aFolder) {
     var rootNode = result.root;
     rootNode.containerOpen = true;
     
-    var idx = 3; 
-    var testFolder = rootNode.getChild(idx);
+    var testFolder = rootNode.getChild(3);
     do_check_eq(testFolder.type, testFolder.RESULT_TYPE_FOLDER);
     do_check_eq(testFolder.title, "test");
     testFolder = testFolder.QueryInterface(Ci.nsINavHistoryFolderResultNode);
     do_check_eq(testFolder.hasChildren, true);
+    
+    do_check_true(annosvc.itemHasAnnotation(testFolder.itemId,
+                                            DESCRIPTION_ANNO));
+    do_check_eq("folder test comment",
+                annosvc.getItemAnnotationString(testFolder.itemId,
+                                                DESCRIPTION_ANNO));
     
     testFolder.containerOpen = true;
     var cc = testFolder.childCount;
@@ -149,7 +163,11 @@ function testCanonicalBookmarks(aFolder) {
     
     
     
-
+    do_check_true(annosvc.itemHasAnnotation(testBookmark1.itemId,
+                                            DESCRIPTION_ANNO));
+    do_check_eq("item description",
+                annosvc.getItemAnnotationString(testBookmark1.itemId,
+                                                DESCRIPTION_ANNO));
     
     var testBookmark2 = testFolder.getChild(1);
     
