@@ -47,11 +47,21 @@
 class nsGlyphTable;
 
 
-#define NS_STRETCH_NORMAL  0x00000001 // try to stretch to requested size - DEFAULT
-#define NS_STRETCH_NEARER  0x00000002 // stretch very close to requested size
-#define NS_STRETCH_SMALLER 0x00000004 // don't stretch more than requested size
-#define NS_STRETCH_LARGER  0x00000008 // don't stretch less than requested size
-#define NS_STRETCH_LARGEOP 0x00000010 // for a largeop in displaystyle
+enum {
+  
+  NS_STRETCH_NONE     = 0x00,
+  
+  NS_STRETCH_VARIABLE_MASK = 0x0F,
+  NS_STRETCH_NORMAL   = 0x01, 
+  NS_STRETCH_NEARER   = 0x02, 
+  NS_STRETCH_SMALLER  = 0x04, 
+  NS_STRETCH_LARGER   = 0x08, 
+  
+  NS_STRETCH_LARGEOP  = 0x10,
+  
+  
+  NS_STRETCH_MAXWIDTH = 0x20
+};
 
 
 
@@ -123,12 +133,12 @@ public:
   
   
   nsresult
-  Stretch(nsPresContext*      aPresContext,
-          nsIRenderingContext& aRenderingContext,
-          nsStretchDirection   aStretchDirection,
-          nsBoundingMetrics&   aContainerSize,
-          nsBoundingMetrics&   aDesiredStretchSize,
-          PRUint32             aStretchHint = NS_STRETCH_NORMAL);
+  Stretch(nsPresContext*           aPresContext,
+          nsIRenderingContext&     aRenderingContext,
+          nsStretchDirection       aStretchDirection,
+          const nsBoundingMetrics& aContainerSize,
+          nsBoundingMetrics&       aDesiredStretchSize,
+          PRUint32                 aStretchHint = NS_STRETCH_NORMAL);
 
   void
   SetData(nsPresContext* aPresContext,
@@ -180,6 +190,24 @@ public:
   
   
   
+  
+  
+  
+  nscoord
+  GetMaxWidth(nsPresContext* aPresContext,
+              nsIRenderingContext& aRenderingContext,
+              PRUint32 aStretchHint = NS_STRETCH_NORMAL,
+              float aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
+              
+              
+              
+              PRBool aMaxSizeIsAbsolute = PR_FALSE);
+
+  
+  
+  
+  
+  
   void
   GetBoundingMetrics(nsBoundingMetrics& aBoundingMetrics) {
     aBoundingMetrics = mBoundingMetrics;
@@ -218,28 +246,19 @@ private:
   
   nsString           mFamily;
 
+  class StretchEnumContext;
+  friend class StretchEnumContext;
+
   
-  PRBool
-  TryVariants(nsPresContext*       aPresContext,
-              nsIRenderingContext& aRenderingContext,
-              nsGlyphTable*        aGlyphTable,
-              nscoord              aTargetSize,
-              PRUint32             aStretchHint,
-              const nsAString&     aFamilies);
-
-  PRBool
-  TryParts(nsPresContext*       aPresContext,
-           nsIRenderingContext& aRenderingContext,
-           nsGlyphTable*        aGlyphTable,
-           nscoord              aTargetSize,
-           PRUint32             aStretchHint,
-           const nsAString&     aFamilies);
-
-  static PRBool
-  StretchResolverCallback (const nsAString& aFamily, void *aData);
-
-  static PRBool
-  StretchEnumCallback(const nsString& aFamily, PRBool aGeneric, void *aData);
+  nsresult
+  StretchInternal(nsPresContext*           aPresContext,
+                  nsIRenderingContext&     aRenderingContext,
+                  nsStretchDirection&      aStretchDirection,
+                  const nsBoundingMetrics& aContainerSize,
+                  nsBoundingMetrics&       aDesiredStretchSize,
+                  PRUint32                 aStretchHint,
+                  float           aMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY,
+                  PRBool          aMaxSizeIsAbsolute = PR_FALSE);
 
   nsresult
   ComposeChildren(nsPresContext*       aPresContext,

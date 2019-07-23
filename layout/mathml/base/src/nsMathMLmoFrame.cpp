@@ -112,17 +112,22 @@ nsMathMLmoFrame::IsFrameInSelection(nsIFrame* aFrame)
   return PR_TRUE;
 }
 
+PRBool
+nsMathMLmoFrame::UseMathMLChar()
+{
+  return (NS_MATHML_OPERATOR_GET_FORM(mFlags) &&
+          NS_MATHML_OPERATOR_IS_MUTABLE(mFlags)) ||
+    NS_MATHML_OPERATOR_IS_CENTERED(mFlags) ||
+    NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags);
+}
+
 NS_IMETHODIMP
 nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                   const nsRect&           aDirtyRect,
                                   const nsDisplayListSet& aLists)
 {
   nsresult rv = NS_OK;
-  PRBool useMathMLChar =
-    (NS_MATHML_OPERATOR_GET_FORM(mFlags) &&
-     NS_MATHML_OPERATOR_IS_MUTABLE(mFlags)) ||
-    NS_MATHML_OPERATOR_IS_CENTERED(mFlags) ||
-    NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags);
+  PRBool useMathMLChar = UseMathMLChar();
 
   if (!useMathMLChar) {
     
@@ -503,7 +508,7 @@ nsMathMLmoFrame::ProcessOperatorData()
     mFlags |= NS_MATHML_OPERATOR_SYMMETRIC;
 
   
-  mMinSize = float(NS_UNCONSTRAINEDSIZE);
+  mMinSize = 0.0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::minsize_,
                value);
   if (!value.IsEmpty()) {
@@ -518,7 +523,7 @@ nsMathMLmoFrame::ProcessOperatorData()
         mMinSize = cssValue.GetPercentValue();
       else if (eCSSUnit_Null != unit) {
         mMinSize = float(CalcLength(presContext, mStyleContext, cssValue));
-        mFlags |= NS_MATHML_OPERATOR_MINSIZE_EXPLICIT;
+        mFlags |= NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE;
       }
 
       if ((eCSSUnit_Number == unit) || (eCSSUnit_Percent == unit)) {
@@ -529,7 +534,7 @@ nsMathMLmoFrame::ProcessOperatorData()
           if (ParseNumericValue(value, cssValue)) {
             if (cssValue.IsLengthUnit()) {
               mMinSize *= float(CalcLength(presContext, mStyleContext, cssValue));
-              mFlags |= NS_MATHML_OPERATOR_MINSIZE_EXPLICIT;
+              mFlags |= NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE;
             }
           }
         }
@@ -538,7 +543,7 @@ nsMathMLmoFrame::ProcessOperatorData()
   }
 
   
-  mMaxSize = float(NS_UNCONSTRAINEDSIZE);
+  mMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::maxsize_,
                value);
   if (!value.IsEmpty()) {
@@ -553,7 +558,7 @@ nsMathMLmoFrame::ProcessOperatorData()
         mMaxSize = cssValue.GetPercentValue();
       else if (eCSSUnit_Null != unit) {
         mMaxSize = float(CalcLength(presContext, mStyleContext, cssValue));
-        mFlags |= NS_MATHML_OPERATOR_MAXSIZE_EXPLICIT;
+        mFlags |= NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE;
       }
 
       if ((eCSSUnit_Number == unit) || (eCSSUnit_Percent == unit)) {
@@ -564,13 +569,48 @@ nsMathMLmoFrame::ProcessOperatorData()
           if (ParseNumericValue(value, cssValue)) {
             if (cssValue.IsLengthUnit()) {
               mMaxSize *= float(CalcLength(presContext, mStyleContext, cssValue));
-              mFlags |= NS_MATHML_OPERATOR_MAXSIZE_EXPLICIT;
+              mFlags |= NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE;
             }
           }
         }
       }
     }
   }
+}
+
+static PRUint32
+GetStretchHint(nsOperatorFlags aFlags, nsPresentationData aPresentationData,
+               PRBool aIsVertical)
+{
+  PRUint32 stretchHint = NS_STRETCH_NONE;
+  
+  
+  if (NS_MATHML_OPERATOR_IS_MUTABLE(aFlags)) {
+    
+    
+    
+    
+    
+    if (NS_MATHML_IS_DISPLAYSTYLE(aPresentationData.flags) &&
+        NS_MATHML_OPERATOR_IS_LARGEOP(aFlags)) {
+      stretchHint = NS_STRETCH_LARGEOP; 
+      if (NS_MATHML_OPERATOR_IS_STRETCHY(aFlags)) {
+        stretchHint |= NS_STRETCH_NEARER | NS_STRETCH_LARGER;
+      }
+    }
+    else if(NS_MATHML_OPERATOR_IS_STRETCHY(aFlags)) {
+      if (aIsVertical) {
+        
+        stretchHint = NS_STRETCH_NEARER;
+      }
+      else {
+        stretchHint = NS_STRETCH_NORMAL;
+      }
+    }
+    
+    
+  }
+  return stretchHint;
 }
 
 
@@ -606,11 +646,7 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
   
   
   
-  PRBool useMathMLChar =
-    (NS_MATHML_OPERATOR_GET_FORM(mFlags) &&
-     NS_MATHML_OPERATOR_IS_MUTABLE(mFlags)) ||
-    NS_MATHML_OPERATOR_IS_CENTERED(mFlags) ||
-    NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags);
+  PRBool useMathMLChar = UseMathMLChar();
 
   nsBoundingMetrics charSize;
   nsBoundingMetrics container = aDesiredStretchSize.mBoundingMetrics;
@@ -618,43 +654,18 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
   if (useMathMLChar) {
     nsBoundingMetrics initialSize = aDesiredStretchSize.mBoundingMetrics;
 
-    PRUint32 stretchHint = NS_STRETCH_NORMAL;
+    if (((aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL) ||
+         (aStretchDirection == NS_STRETCH_DIRECTION_DEFAULT))  &&
+        (mEmbellishData.direction == NS_STRETCH_DIRECTION_VERTICAL)) {
+      isVertical = PR_TRUE;
+    }
 
-    
-    PRBool isMutable = NS_MATHML_OPERATOR_IS_MUTABLE(mFlags);
-    
-    
-    if (!NS_MATHML_OPERATOR_IS_STRETCHY(mFlags) &&
-        !NS_MATHML_OPERATOR_IS_LARGEOP(mFlags))
-      isMutable = PR_FALSE;
+    PRUint32 stretchHint =
+      GetStretchHint(mFlags, mPresentationData, isVertical);
 
-    if (isMutable) {
+    if (stretchHint != NS_STRETCH_NONE) {
 
       container = aContainerSize;
-
-      if (((aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL) ||
-           (aStretchDirection == NS_STRETCH_DIRECTION_DEFAULT))  &&
-          (mEmbellishData.direction == NS_STRETCH_DIRECTION_VERTICAL))
-      {
-        isVertical = PR_TRUE;
-      }
-
-      
-      
-      
-      
-      
-      if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags) &&
-          NS_MATHML_OPERATOR_IS_LARGEOP(mFlags)) {
-        stretchHint = NS_STRETCH_LARGEOP; 
-        if (NS_MATHML_OPERATOR_IS_STRETCHY(mFlags)) {
-          stretchHint |= NS_STRETCH_NEARER | NS_STRETCH_LARGER;
-        }
-      }
-      else if (isVertical) {
-        
-        stretchHint = NS_STRETCH_NEARER;
-      }
 
       
 
@@ -674,10 +685,10 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
 
       
 
-      if (mMaxSize != float(NS_UNCONSTRAINEDSIZE) && mMaxSize > 0.0f) {
+      if (mMaxSize != NS_MATHML_OPERATOR_SIZE_INFINITY && mMaxSize > 0.0f) {
         
         
-        if (NS_MATHML_OPERATOR_MAXSIZE_IS_EXPLICIT(mFlags)) {
+        if (NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(mFlags)) {
           
           
           float aspect = mMaxSize / float(initialSize.ascent + initialSize.descent);
@@ -707,7 +718,7 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
         }
       }
 
-      if (mMinSize != float(NS_UNCONSTRAINEDSIZE) && mMinSize > 0.0f) {
+      if (mMinSize > 0.0f) {
         
         
         
@@ -718,7 +729,7 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
           
           container = initialSize;
         }
-        if (NS_MATHML_OPERATOR_MINSIZE_IS_EXPLICIT(mFlags)) {
+        if (NS_MATHML_OPERATOR_MINSIZE_IS_ABSOLUTE(mFlags)) {
           
           
           float aspect = mMinSize / float(initialSize.ascent + initialSize.descent);
@@ -985,9 +996,17 @@ nsMathMLmoFrame::MarkIntrinsicWidthsDirty()
 nsMathMLmoFrame::GetIntrinsicWidth(nsIRenderingContext *aRenderingContext)
 {
   ProcessOperatorData();
-  
-  
-  nscoord width = nsMathMLTokenFrame::GetIntrinsicWidth(aRenderingContext);
+  nscoord width;
+  if (UseMathMLChar()) {
+    PRUint32 stretchHint = GetStretchHint(mFlags, mPresentationData, PR_TRUE);
+    width = mMathMLChar.
+      GetMaxWidth(PresContext(), *aRenderingContext,
+                  stretchHint, mMaxSize,
+                  NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(mFlags));
+  }
+  else {
+    width = nsMathMLTokenFrame::GetIntrinsicWidth(aRenderingContext);
+  }
 
   
   
