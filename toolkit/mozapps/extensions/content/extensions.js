@@ -1296,8 +1296,8 @@ XPInstallDownloadManager.prototype = {
       }
     }
 
-    gExtensionManager.addDownloads(items, items.length, aManager);
     gInstalling = true;
+    gExtensionManager.addDownloads(items, items.length, aManager);
     updateOptionalViews();
     updateGlobalCommands();
     
@@ -2227,8 +2227,8 @@ function installUpdatesAll() {
       items.push(gExtensionManager.getItemForID(getIDFromResourceURI(children[i].id)));
   }
   if (items.length > 0) {
-    gExtensionManager.addDownloads(items, items.length, null);
     gInstalling = true;
+    gExtensionManager.addDownloads(items, items.length, null);
     showView("installs");
     
     updateOptionalViews();
@@ -2580,8 +2580,8 @@ var gExtensionsViewController = {
 
       showView("installs");
       var item = gExtensionManager.getItemForID(getIDFromResourceURI(aSelectedItem.id));
-      gExtensionManager.addDownloads([item], 1, null);
       gInstalling = true;
+      gExtensionManager.addDownloads([item], 1, null);
       
       updateOptionalViews();
       updateGlobalCommands();
