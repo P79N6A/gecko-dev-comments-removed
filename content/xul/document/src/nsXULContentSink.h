@@ -49,8 +49,6 @@
 #include "nsVoidArray.h"
 #include "nsWeakPtr.h"
 
-class nsICSSLoader;
-class nsICSSParser;
 class nsIDocument;
 class nsIScriptSecurityManager;
 class nsAttrName;
@@ -173,8 +171,6 @@ protected:
 
     
     nsIParser*             mParser;               
-    nsCOMPtr<nsICSSLoader> mCSSLoader;            
-    nsCOMPtr<nsICSSParser> mCSSParser;            
     nsCOMPtr<nsIScriptSecurityManager> mSecMan;
 };
 

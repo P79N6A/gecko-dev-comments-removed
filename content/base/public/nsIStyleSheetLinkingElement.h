@@ -40,14 +40,13 @@
 
 #include "nsISupports.h"
 
-class nsIParser;
 class nsIDocument;
 class nsICSSLoaderObserver;
 class nsIURI;
 
 #define NS_ISTYLESHEETLINKINGELEMENT_IID          \
-  {0x259f8226, 0x8dd7, 0x11db,                    \
-  {0x98, 0x5e, 0x92, 0xb7, 0x56, 0xd8, 0x95, 0x93}}
+{ 0xd753c84a, 0x17fd, 0x4d5f, \
+ { 0xb2, 0xe9, 0x63, 0x52, 0x8c, 0x87, 0x99, 0x7a } }
 
 class nsIStyleSheet;
 
@@ -78,10 +77,7 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD InitStyleLinkElement(nsIParser *aParser, PRBool aDontLoadStyle) = 0;
+  NS_IMETHOD InitStyleLinkElement(PRBool aDontLoadStyle) = 0;
 
   
 
@@ -93,9 +89,13 @@ public:
 
 
 
-  NS_IMETHOD UpdateStyleSheet(nsIDocument *aOldDocument,
-                              nsICSSLoaderObserver* aObserver,
-                              PRBool aForceUpdate = PR_FALSE) = 0;
+
+
+
+
+  NS_IMETHOD UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
+                              PRBool *aWillNotify,
+                              PRBool *aIsAlternate) = 0;
 
   
 

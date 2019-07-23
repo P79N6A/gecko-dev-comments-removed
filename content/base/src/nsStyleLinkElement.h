@@ -50,7 +50,6 @@
 #include "nsIDOMLinkStyle.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsIStyleSheet.h"
-#include "nsIParser.h"
 #include "nsIURI.h"
 
 class nsIDocument;
@@ -71,26 +70,10 @@ public:
   
   NS_IMETHOD SetStyleSheet(nsIStyleSheet* aStyleSheet);
   NS_IMETHOD GetStyleSheet(nsIStyleSheet*& aStyleSheet);
-  NS_IMETHOD InitStyleLinkElement(nsIParser *aParser, PRBool aDontLoadStyle);
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD UpdateStyleSheet(nsIDocument *aOldDocument = nsnull,
-                              nsICSSLoaderObserver* aObserver = nsnull,
-                              PRBool aForceUpdate = PR_FALSE);
+  NS_IMETHOD InitStyleLinkElement(PRBool aDontLoadStyle);
+  NS_IMETHOD UpdateStyleSheet(nsICSSLoaderObserver* aObserver,
+                              PRBool* aWillNotify,
+                              PRBool* aIsAlternate);
   NS_IMETHOD SetEnableUpdates(PRBool aEnableUpdates);
   NS_IMETHOD GetCharset(nsAString& aCharset);
 
@@ -100,6 +83,17 @@ public:
   static void ParseLinkTypes(const nsAString& aTypes, nsStringArray& aResult);
 
 protected:
+  
+
+
+
+
+
+
+
+  nsresult UpdateStyleSheetInternal(nsIDocument *aOldDocument,
+                                    PRBool aForceUpdate = PR_FALSE);
+
   virtual void GetStyleSheetURL(PRBool* aIsInline,
                                 nsIURI** aURI) = 0;
   virtual void GetStyleSheetInfo(nsAString& aTitle,
@@ -107,9 +101,23 @@ protected:
                                  nsAString& aMedia,
                                  PRBool* aIsAlternate) = 0;
 
+private:
+  
 
+
+
+
+
+
+
+  nsresult DoUpdateStyleSheet(nsIDocument *aOldDocument,
+                              nsICSSLoaderObserver* aObserver,
+                              PRBool* aWillNotify,
+                              PRBool* aIsAlternate,
+                              PRBool aForceUpdate);
+
+protected:
   nsCOMPtr<nsIStyleSheet> mStyleSheet;
-  nsCOMPtr<nsIParser> mParser;
   PRPackedBool mDontLoadStyle;
   PRPackedBool mUpdatesEnabled;
   PRUint32 mLineNumber;

@@ -112,7 +112,7 @@ public:
 
 protected:
     
-    void MaybeStartLayout();
+    virtual void MaybeStartLayout(PRBool aIgnorePendingSheets);
 
     PRBool OnOpenContainer(const PRUnichar **aAtts, 
                            PRUint32 aAttsCount, 

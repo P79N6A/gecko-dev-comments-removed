@@ -50,7 +50,6 @@ class nsICSSParser;
 class nsICSSStyleSheet;
 class nsPresContext;
 class nsIContent;
-class nsIParser;
 class nsIDocument;
 class nsIUnicharInputStream;
 class nsICSSLoaderObserver;
@@ -60,8 +59,8 @@ class nsICSSImportRule;
 
 
 #define NS_ICSS_LOADER_IID     \
-{ 0x446711e6, 0xad01, 0x4702, \
- { 0x8a, 0x9b, 0xce, 0x3f, 0x5e, 0x5d, 0x30, 0xf0 } }
+{ 0x5da3a869, 0x270c, 0x4f10, \
+ { 0x97, 0xd1, 0x99, 0xea, 0xa1, 0x50, 0xeb, 0x4e } }
 
 typedef void (*nsCSSLoaderCallbackFunc)(nsICSSStyleSheet* aSheet, void *aData, PRBool aDidNotify);
 
@@ -104,15 +103,11 @@ public:
 
 
 
-
-
-
   NS_IMETHOD LoadInlineStyle(nsIContent* aElement,
                              nsIUnicharInputStream* aStream, 
                              PRUint32 aLineNumber,
                              const nsSubstring& aTitle,
                              const nsSubstring& aMedia,
-                             nsIParser* aParserToUnblock,
                              nsICSSLoaderObserver* aObserver,
                              PRBool* aCompleted,
                              PRBool* aIsAlternate) = 0;
@@ -136,15 +131,11 @@ public:
 
 
 
-
-
-
   NS_IMETHOD LoadStyleLink(nsIContent* aElement,
                            nsIURI* aURL, 
                            const nsSubstring& aTitle,
                            const nsSubstring& aMedia,
                            PRBool aHasAlternateRel,
-                           nsIParser* aParserToUnblock,
                            nsICSSLoaderObserver* aObserver,
                            PRBool* aIsAlternate) = 0;
 

@@ -106,8 +106,10 @@ public:
                           PRBool &aIsAlternate);
 
 protected:
-  virtual void MaybeStartLayout();
-  void StartLayout();
+  
+  
+  
+  virtual void MaybeStartLayout(PRBool aIgnorePendingSheets);
 
   virtual nsresult AddAttributes(const PRUnichar** aNode, nsIContent* aContent);
   nsresult AddText(const PRUnichar* aString, PRInt32 aLength);

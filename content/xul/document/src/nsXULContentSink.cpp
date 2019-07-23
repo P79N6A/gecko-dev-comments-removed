@@ -50,9 +50,6 @@
 #include "nsXULContentSink.h"
 #include "nsCOMPtr.h"
 #include "nsForwardReference.h"
-#include "nsICSSLoader.h"
-#include "nsICSSParser.h"
-#include "nsICSSStyleSheet.h"
 #include "nsIContentSink.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMEventListener.h"
@@ -370,9 +367,7 @@ XULContentSinkImpl::Init(nsIDocument* aDocument,
     }
 
     
-    
-    mCSSLoader = aDocument->CSSLoader();
-    mCSSLoader->SetPreferredSheet(preferredStyle);
+    aDocument->CSSLoader()->SetPreferredSheet(preferredStyle);
 
     mNodeInfoManager = aPrototype->GetNodeInfoManager();
     if (! mNodeInfoManager)

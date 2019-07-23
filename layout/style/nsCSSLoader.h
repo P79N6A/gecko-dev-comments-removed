@@ -53,7 +53,6 @@
 
 class CSSLoaderImpl;
 class nsIURI;
-class nsIParser;
 class nsICSSStyleSheet;
 class nsIStyleSheetLinkingElement;
 class nsICSSLoaderObserver;
@@ -113,7 +112,6 @@ public:
   
   SheetLoadData(CSSLoaderImpl* aLoader,
                 const nsSubstring& aTitle,
-                nsIParser* aParserToUnblock,
                 nsIURI* aURI,
                 nsICSSStyleSheet* aSheet,
                 nsIStyleSheetLinkingElement* aOwningElement,
@@ -151,9 +149,6 @@ public:
 
   
   nsCString                  mCharset;
-
-  
-  nsCOMPtr<nsIParser>        mParserToUnblock;
 
   
   nsCOMPtr<nsIURI>           mURI;
@@ -261,17 +256,15 @@ public:
                              PRUint32 aLineNumber,
                              const nsSubstring& aTitle,
                              const nsSubstring& aMedia,
-                             nsIParser* aParserToUnblock,
                              nsICSSLoaderObserver* aObserver,
                              PRBool* aCompleted,
                              PRBool* aIsAlternate);
 
   NS_IMETHOD LoadStyleLink(nsIContent* aElement,
                            nsIURI* aURL, 
-                           const nsSubstring& aTitle, 
+                           const nsSubstring& aTitle,
                            const nsSubstring& aMedia,
                            PRBool aHasAlternateRel,
-                           nsIParser* aParserToUnblock,
                            nsICSSLoaderObserver* aObserver,
                            PRBool* aIsAlternate);
 
@@ -357,7 +350,6 @@ private:
   nsresult PostLoadEvent(nsIURI* aURI,
                          nsICSSStyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
-                         nsIParser* aParserToUnblock,
                          PRBool aWasAlternate);
 public:
   
@@ -372,16 +364,31 @@ protected:
 
   
   
+
+  
+  
+  
+  
   nsresult ParseSheet(nsIUnicharInputStream* aStream,
                       SheetLoadData* aLoadData,
                       PRBool& aCompleted);
 
 public:
+  
+  
   void SheetComplete(SheetLoadData* aLoadData, nsresult aStatus);
+
+private:
+  typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
+  
+  
+  
+  
+  void DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
+                       LoadDataArray& aDatasToNotify);
 
   static nsCOMArray<nsICSSParser>* gParsers;  
 
-protected:
   
   nsIDocument*      mDocument;  
 
@@ -389,7 +396,6 @@ protected:
   PRPackedBool            mSyncCallback;
 #endif
 
-private:
   PRPackedBool      mCaseSensitive; 
   PRPackedBool      mEnabled; 
   nsCompatibility   mCompatMode;
@@ -405,7 +411,7 @@ private:
 
   
   
-  nsTArray<nsRefPtr<SheetLoadData> > mPostedEvents;
+  LoadDataArray mPostedEvents;
 };
 
 #endif 

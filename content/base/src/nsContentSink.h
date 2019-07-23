@@ -74,6 +74,7 @@ class nsIChannel;
 class nsIContent;
 class nsIViewManager;
 class nsNodeInfoManager;
+class nsScriptLoader;
 
 #ifdef NS_DEBUG
 
@@ -169,7 +170,11 @@ protected:
 
   void ScrollToRef();
   nsresult RefreshIfEnabled(nsIViewManager* vm);
-  void StartLayout(PRBool aIsFrameset);
+
+  
+  
+  
+  void StartLayout(PRBool aIgnorePendingSheets);
 
   PRBool IsTimeToNotify();
 
@@ -219,6 +224,7 @@ protected:
   nsCOMPtr<nsIDocShell>         mDocShell;
   nsCOMPtr<nsICSSLoader>        mCSSLoader;
   nsRefPtr<nsNodeInfoManager>   mNodeInfoManager;
+  nsRefPtr<nsScriptLoader>      mScriptLoader;
 
   nsCOMArray<nsIScriptElement> mScriptElements;
 
@@ -230,6 +236,7 @@ protected:
   
   PRInt32 mNotificationInterval;
 
+  
   
   PRTime mLastNotificationTime;
 
@@ -256,6 +263,8 @@ protected:
   PRUint8 mInTitle : 1;
   PRUint8 mChangeScrollPosWhenScrollingToRef : 1;
   
+  PRUint8 mDeferredLayoutStart : 1;
+  
   
   PRUint32 mDelayTimerStart;
 
@@ -274,6 +283,8 @@ protected:
   PRInt32 mInMonolithicContainer;
 
   PRInt32 mInNotification;
+
+  PRUint32 mPendingSheetCount;
 
   
   MOZ_TIMER_DECLARE(mWatch)

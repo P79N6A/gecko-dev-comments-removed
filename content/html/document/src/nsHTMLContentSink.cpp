@@ -280,7 +280,7 @@ protected:
 
   nsresult FlushTags();
 
-  void StartLayout();
+  void StartLayout(PRBool aIgnorePendingSheets);
 
   
 
@@ -786,11 +786,11 @@ SinkContext::OpenContainer(const nsIParserNode& aNode)
     
     
     if (!mSink->mInsideNoXXXTag) {
-      ssle->InitStyleLinkElement(mSink->mParser, PR_FALSE);
+      ssle->InitStyleLinkElement(PR_FALSE);
     }
     else {
       
-      ssle->InitStyleLinkElement(nsnull, PR_TRUE);
+      ssle->InitStyleLinkElement(PR_TRUE);
     }
 
     ssle->SetEnableUpdates(PR_FALSE);
@@ -1811,7 +1811,6 @@ HTMLContentSink::WillBuildModel(void)
 NS_IMETHODIMP
 HTMLContentSink::DidBuildModel(void)
 {
-
   
 #ifdef MOZ_PERF_METRICS
   MOZ_TIMER_DEBUGLOG(("Stop: nsHTMLContentSink::DidBuildModel(), this=%p\n",
@@ -1845,7 +1844,7 @@ HTMLContentSink::DidBuildModel(void)
     }
 
     if (!bDestroying) {
-      StartLayout();
+      StartLayout(PR_FALSE);
     }
   }
 
@@ -2095,7 +2094,7 @@ HTMLContentSink::OpenBody(const nsIParserNode& aNode)
     mCurrentContext->mStack[parentIndex].mNumFlushed = childCount;
   }
 
-  StartLayout();
+  StartLayout(PR_FALSE);
 
   return NS_OK;
 }
@@ -2293,7 +2292,7 @@ HTMLContentSink::CloseFrameset()
   MOZ_TIMER_STOP(mWatch);
 
   if (done && mFramesEnabled) {
-    StartLayout();
+    StartLayout(PR_FALSE);
   }
 
   return rv;
@@ -2810,7 +2809,7 @@ HTMLContentSink::NotifyTagObservers(nsIParserNode* aNode)
 }
 
 void
-HTMLContentSink::StartLayout()
+HTMLContentSink::StartLayout(PRBool aIgnorePendingSheets)
 {
   if (mLayoutStarted) {
     return;
@@ -2818,7 +2817,7 @@ HTMLContentSink::StartLayout()
 
   mHTMLDocument->SetIsFrameset(mFrameset != nsnull);
 
-  nsContentSink::StartLayout(mFrameset != nsnull);
+  nsContentSink::StartLayout(aIgnorePendingSheets);
 }
 
 void
@@ -2967,10 +2966,10 @@ HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
     if (ssle) {
       
       if (!mInsideNoXXXTag) {
-        ssle->InitStyleLinkElement(mParser, PR_FALSE);
+        ssle->InitStyleLinkElement(PR_FALSE);
         ssle->SetEnableUpdates(PR_FALSE);
       } else {
-        ssle->InitStyleLinkElement(nsnull, PR_TRUE);
+        ssle->InitStyleLinkElement(PR_TRUE);
       }
     }
 
@@ -2985,7 +2984,13 @@ HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
 
     if (ssle) {
       ssle->SetEnableUpdates(PR_TRUE);
-      result = ssle->UpdateStyleSheet(nsnull, nsnull);
+      PRBool willNotify;
+      PRBool isAlternate;
+      result = ssle->UpdateStyleSheet(this, &willNotify, &isAlternate);
+      if (NS_SUCCEEDED(result) && willNotify && !isAlternate) {
+        ++mPendingSheetCount;
+        mScriptLoader->AddExecuteBlocker();
+      }
 
       
       nsAutoString relVal;
@@ -3175,7 +3180,13 @@ HTMLContentSink::ProcessSTYLEEndTag(nsGenericHTMLElement* content)
     
     
     ssle->SetEnableUpdates(PR_TRUE);
-    rv = ssle->UpdateStyleSheet(nsnull, nsnull);
+    PRBool willNotify;
+    PRBool isAlternate;
+    rv = ssle->UpdateStyleSheet(this, &willNotify, &isAlternate);
+    if (NS_SUCCEEDED(rv) && willNotify && !isAlternate) {
+      ++mPendingSheetCount;
+      mScriptLoader->AddExecuteBlocker();
+    }
   }
 
   return rv;
@@ -3196,7 +3207,7 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
     if (aType & Flush_OnlyReflow) {
       
       
-      StartLayout();
+      StartLayout(PR_TRUE);
     }
   }
 }
