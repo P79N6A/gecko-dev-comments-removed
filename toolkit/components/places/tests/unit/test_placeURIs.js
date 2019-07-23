@@ -49,19 +49,21 @@ function run_test() {
   
   
 
+  var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+           getService(Ci.nsINavBookmarksService);
   const NHQO = Ci.nsINavHistoryQueryOptions;
   
   var query = histsvc.getNewQuery();
-  query.setFolders([1],1);
+  query.setFolders([bs.placesRoot], 1);
   do_check_eq(histsvc.queriesToQueryString([query], 1, histsvc.getNewQueryOptions()),
-              "place:folder=1");
+              "place:folder=PLACES_ROOT");
 
   
   var options = histsvc.getNewQueryOptions();
   options.sortingAnnotation = "test anno";
   options.sortingMode = NHQO.SORT_BY_ANNOTATION_DESCENDING;
   var placeURI =
-    "place:folder=1&sort=" + NHQO.SORT_BY_ANNOTATION_DESCENDING +
+    "place:folder=PLACES_ROOT&sort=" + NHQO.SORT_BY_ANNOTATION_DESCENDING +
     "&sortingAnnotation=test%20anno";
   do_check_eq(histsvc.queriesToQueryString([query], 1, options),
               placeURI);
