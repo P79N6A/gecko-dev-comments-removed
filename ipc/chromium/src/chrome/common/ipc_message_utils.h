@@ -218,6 +218,8 @@ struct ParamTraits<unsigned long> {
   }
 };
 
+#if !(defined(CHROMIUM_MOZILLA_BUILD) && defined(OS_LINUX) && defined(ARCH_CPU_64_BITS))
+
 template <>
 struct ParamTraits<size_t> {
   typedef size_t param_type;
@@ -231,6 +233,25 @@ struct ParamTraits<size_t> {
     l->append(StringPrintf(L"%u", p));
   }
 };
+
+#else
+
+
+template <>
+struct ParamTraits<uint32> {
+  typedef uint32 param_type;
+  static void Write(Message* m, const param_type& p) {
+    m->WriteUInt32(p);
+  }
+  static bool Read(const Message* m, void** iter, param_type* r) {
+    return m->ReadUInt32(iter, r);
+  }
+  static void Log(const param_type& p, std::wstring* l) {
+    l->append(StringPrintf(L"%u", p));
+  }
+};
+
+#endif 
 
 #if defined(OS_MACOSX)
 
@@ -249,6 +270,8 @@ struct ParamTraits<uint32> {
   }
 };
 #endif  
+
+#if !(defined(CHROMIUM_MOZILLA_BUILD) && defined(OS_LINUX) && defined(ARCH_CPU_64_BITS))
 
 template <>
 struct ParamTraits<int64> {
@@ -285,6 +308,7 @@ struct ParamTraits<uint64> {
 #endif 
   }
 };
+#endif 
 
 template <>
 struct ParamTraits<double> {
