@@ -192,7 +192,7 @@ class ReentrancyGuard
 
 
 
-static JS_ALWAYS_INLINE size_t
+JS_ALWAYS_INLINE size_t
 RoundUpPow2(size_t x)
 {
     typedef tl::StaticAssert<tl::IsSameType<size_t,JSUword>::result>::result _;
@@ -209,7 +209,7 @@ RoundUpPow2(size_t x)
 
 
 template <class T>
-static JS_ALWAYS_INLINE size_t
+JS_ALWAYS_INLINE size_t
 PointerRangeSize(T *begin, T *end)
 {
     return (size_t(end) - size_t(begin)) / sizeof(T);
