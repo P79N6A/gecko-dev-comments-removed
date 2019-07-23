@@ -45,6 +45,9 @@ function test() {
   let pb = Cc["@mozilla.org/privatebrowsing;1"].
            getService(Ci.nsIPrivateBrowsingService);
   gPrefService.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+  let profilePath = Cc["@mozilla.org/file/directory_service;1"].
+                    getService(Ci.nsIProperties).
+                    get("ProfD", Ci.nsIFile);
 
   function getSessionstorejsModificationTime() {
     
@@ -65,10 +68,19 @@ function test() {
   let ss = Cc["@mozilla.org/browser/sessionstore;1"].
            getService(Ci.nsISessionStore);
   let ss_interval = gPrefService.getIntPref("browser.sessionstore.interval");
-  let start_mod_time = getSessionstorejsModificationTime();
+  
+  let sessionStoreJS = profilePath.clone();
+  sessionStoreJS.append("sessionstore.js");
+  if (sessionStoreJS.exists())
+    sessionStoreJS.remove(false);
+  
+  
   gPrefService.setIntPref("browser.sessionstore.interval", 0);
-  isnot(start_mod_time, getSessionstorejsModificationTime(),
-    "sessionstore.js should be modified when setting the interval to 0");
+  
+  sessionStoreJS = profilePath.clone();
+  sessionStoreJS.append("sessionstore.js");
+  ok(sessionStoreJS.exists(),
+    "sessionstore.js should be re-created after setting the interval to 0");
 
   
   
@@ -83,9 +95,6 @@ function test() {
 
     
     
-    let profilePath = Cc["@mozilla.org/file/directory_service;1"].
-                      getService(Ci.nsIProperties).
-                      get("ProfD", Ci.nsIFile);
     let sessionStoreJS = profilePath.clone();
     sessionStoreJS.append("sessionstore.js");
     ok(sessionStoreJS.exists(),
