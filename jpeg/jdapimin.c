@@ -32,8 +32,8 @@ int SSE2Available = 0;
 static int sse2support();
 #else
 static int sse2supportGCC();
-#endif ! HAVE_SSE2_INTEL_MNEMONICS
-#endif ! HAVE_SSE2_INTRINSICS
+#endif 
+#endif 
 
 
 
@@ -71,8 +71,8 @@ jpeg_CreateDecompress (j_decompress_ptr cinfo, int version, size_t structsize)
     cpuidDetected = 1;
   }
 
-#endif ! HAVE_SSE2_INTRINSICS
-#endif ! HAVE_MMX_INTEL_MNEMONICS
+#endif 
+#endif 
 
   
 
@@ -475,8 +475,8 @@ static int sse2supportGCC()
 #if defined(__GNUC__) && defined(__i386__)
 #if defined(XP_MACOSX)
   return 1;
-#endif ! XP_MACOSX
-#endif ! GNUC && i386
+#endif 
+#endif 
 
   
 
@@ -484,6 +484,6 @@ static int sse2supportGCC()
 
   return 2;
 }
-#endif ! HAVE_SSE2_INTRINSICS
-#endif ! HAVE_SSE2_INTEL_MNEMONICS
+#endif 
+#endif 
 

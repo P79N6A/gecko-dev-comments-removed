@@ -296,7 +296,7 @@ build_ycc_rgb_table (j_decompress_ptr cinfo)
     
     cconvert->Cb_g_tab[i] = (- FIX(0.34414)) * x + ONE_HALF;
   }
-#endif ! 0
+#endif 
 }
 
 
