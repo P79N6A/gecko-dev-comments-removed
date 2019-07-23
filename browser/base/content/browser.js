@@ -3863,9 +3863,10 @@ var XULBrowserWindow = {
       
       if (aRequest) {
         let msg = "";
+        let location;
         
         if (aRequest instanceof nsIChannel || "URI" in aRequest) {
-          let location = aRequest.URI;
+          location = aRequest.URI;
 
           
           if (location.scheme == "keyword" && aWebProgress.DOMWindow == content)
