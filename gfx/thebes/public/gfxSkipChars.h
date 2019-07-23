@@ -314,16 +314,24 @@ public:
 
 
     PRUint32 GetSkippedOffset() const { return mSkippedStringOffset; }
-  
+
+    PRInt32 GetOriginalEnd() const {
+        return mSkipChars->GetOriginalCharCount() -
+            mOriginalStringToSkipCharsOffset;
+    }
+
 private:
     void SetOffsets(PRUint32 aOffset, PRBool aInOriginalString);
   
     const gfxSkipChars* mSkipChars;
     PRInt32 mOriginalStringOffset;
     PRUint32 mSkippedStringOffset;
+
     
-    PRUint32 mOriginalStringToSkipCharsOffset;
     
+    
+    PRInt32 mOriginalStringToSkipCharsOffset;
+
     
 
 

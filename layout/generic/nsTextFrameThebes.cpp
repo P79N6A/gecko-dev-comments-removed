@@ -5788,10 +5788,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   gfxSkipCharsIterator iter =
     EnsureTextRun(ctx, lineContainer, lineLayout.GetLine(), &flowEndInTextRun);
 
-  PRInt32 skippedRunLength;
-  if (mTextRun && mTextRun->GetLength() == iter.GetSkippedOffset() &&
-      length > 0 &&
-      (!iter.IsOriginalCharSkipped(&skippedRunLength) || skippedRunLength < length)) {
+  if (mTextRun && iter.GetOriginalEnd() < offset + length) {
     
     
     
