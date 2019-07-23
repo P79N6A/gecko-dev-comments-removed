@@ -617,7 +617,17 @@ nsDocAccessible::Init()
   nsCOMPtr<nsIAccessible> parentAccessible;  
   GetParent(getter_AddRefs(parentAccessible));
 
-  return nsHyperTextAccessibleWrap::Init();
+  nsresult rv = nsHyperTextAccessibleWrap::Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nsCOMPtr<nsIAccessibleEvent> reorderEvent =
+    new nsAccReorderEvent(mParent, PR_FALSE, PR_TRUE, mDOMNode);
+  NS_ENSURE_TRUE(reorderEvent, NS_ERROR_OUT_OF_MEMORY);
+
+  FireDelayedAccessibleEvent(reorderEvent);
+  return NS_OK;
 }
 
 nsresult
