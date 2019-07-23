@@ -166,8 +166,6 @@ public:
   virtual nsresult DropScriptObject(void *object);
   virtual nsresult HoldScriptObject(void *object);
 
-  virtual void ReportPendingException();
-
   NS_DECL_NSIXPCSCRIPTNOTIFY
 
   NS_DECL_NSITIMERCALLBACK
@@ -216,6 +214,11 @@ protected:
   nsresult JSObjectFromInterface(nsISupports *aSup, void *aScript, 
                                  JSObject **aRet);
 
+  
+  
+  
+  
+  void ReportPendingException(PRBool aSetAsideFrameChain);
 private:
   void Unlink();
 
