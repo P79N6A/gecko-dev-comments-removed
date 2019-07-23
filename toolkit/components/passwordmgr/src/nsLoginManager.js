@@ -460,9 +460,9 @@ LoginManager.prototype = {
 
 
 
-    clearAllLogins : function () {
-        this.log("Clearing all logins");
-        this._storage.clearAllLogins();
+    removeAllLogins : function () {
+        this.log("Removing all logins");
+        this._storage.removeAllLogins();
     },
 
     

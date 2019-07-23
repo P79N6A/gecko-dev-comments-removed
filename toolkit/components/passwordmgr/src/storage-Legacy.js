@@ -242,7 +242,7 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-    clearAllLogins : function () {
+    removeAllLogins : function () {
         this._logins = {};
         
 
