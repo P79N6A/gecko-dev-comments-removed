@@ -704,6 +704,8 @@ public:
 
 
 
+
+
   NS_IMETHOD RenderDocument(const nsRect& aRect, PRBool aUntrusted,
                             PRBool aIgnoreViewportScrolling,
                             nscolor aBackgroundColor,
