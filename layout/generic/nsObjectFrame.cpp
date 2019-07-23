@@ -408,6 +408,19 @@ public:
     if (appShell) {
       PRUint32 currentLevel = 0;
       appShell->GetEventloopNestingLevel(&currentLevel);
+#ifdef XP_MACOSX
+      
+      
+      currentLevel++;
+#else
+      
+      
+      
+      
+      if (!currentLevel) {
+        currentLevel++;
+      }
+#endif
       if (currentLevel < mLastEventloopNestingLevel) {
         mLastEventloopNestingLevel = currentLevel;
       }
@@ -1813,7 +1826,9 @@ nsStopPluginRunnable::Run()
       if (!mTimer)
         mTimer = do_CreateInstance("@mozilla.org/timer;1");
       if (mTimer) {
-        nsresult rv = mTimer->InitWithCallback(this, 3000, nsITimer::TYPE_ONE_SHOT);
+        
+        
+        nsresult rv = mTimer->InitWithCallback(this, 100, nsITimer::TYPE_ONE_SHOT);
         if (NS_SUCCEEDED(rv)) {
           return rv;
         }
