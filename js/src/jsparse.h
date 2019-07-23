@@ -822,8 +822,8 @@ struct JSCompiler {
     JSTempValueRooter   tempRoot;       
 
     JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : context(cx), aleFreeList(NULL), principals(NULL), callerFrame(cfp),
-        nodeList(NULL), functionCount(0), traceListHead(NULL)
+      : context(cx), aleFreeList(NULL), tokenStream(cx), principals(NULL),
+        callerFrame(cfp), nodeList(NULL), functionCount(0), traceListHead(NULL)
     {
         memset(tempFreeList, 0, sizeof tempFreeList);
         setPrincipals(prin);

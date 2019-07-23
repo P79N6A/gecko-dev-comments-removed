@@ -48,6 +48,7 @@
 #include "jsopcode.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
+#include "jsvector.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -161,73 +162,6 @@ typedef enum JSTokenType {
 # define TOKEN_TYPE_IS_DECL(tt) ((tt) == TOK_VAR)
 #endif
 
-struct JSStringBuffer {
-    jschar      *base;
-    jschar      *limit;         
-    jschar      *ptr;           
-    void        *data;
-    JSBool      (*grow)(JSStringBuffer *sb, size_t newlength);
-    void        (*free)(JSStringBuffer *sb);
-};
-
-#define STRING_BUFFER_ERROR_BASE        ((jschar *) 1)
-#define STRING_BUFFER_OK(sb)            ((sb)->base != STRING_BUFFER_ERROR_BASE)
-#define STRING_BUFFER_OFFSET(sb)        ((sb)->ptr -(sb)->base)
-
-extern void
-js_InitStringBuffer(JSStringBuffer *sb);
-
-extern void
-js_FinishStringBuffer(JSStringBuffer *sb);
-
-static inline void
-js_RewindStringBuffer(JSStringBuffer *sb)
-{
-    JS_ASSERT(STRING_BUFFER_OK(sb));
-    sb->ptr = sb->base;
-}
-
-#define ENSURE_STRING_BUFFER(sb,n) \
-    ((sb)->ptr + (n) <= (sb)->limit || sb->grow(sb, n))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static inline void
-js_FastAppendChar(JSStringBuffer *sb, jschar c)
-{
-    JS_ASSERT(STRING_BUFFER_OK(sb));
-    if (!ENSURE_STRING_BUFFER(sb, 1))
-        return;
-    *sb->ptr++ = c;
-}
-
-extern void
-js_AppendChar(JSStringBuffer *sb, jschar c);
-
-extern void
-js_RepeatChar(JSStringBuffer *sb, jschar c, uintN count);
-
-extern void
-js_AppendCString(JSStringBuffer *sb, const char *asciiz);
-
-extern void
-js_AppendUCString(JSStringBuffer *sb, const jschar *buf, uintN len);
-
-extern void
-js_AppendJSString(JSStringBuffer *sb, JSString *str);
-
 struct JSTokenPtr {
     uint32              index;          
     uint32              lineno;         
@@ -320,7 +254,6 @@ struct JSTokenStream {
     uint32              linepos;        
     JSTokenBuf          linebuf;        
     JSTokenBuf          userbuf;        
-    JSStringBuffer      tokenbuf;       
     const char          *filename;      
     FILE                *file;          
     JSSourceHandler     listener;       
@@ -328,6 +261,29 @@ struct JSTokenStream {
     void                *listenerTSData;
     jschar              *saveEOL;       
 
+    JSCharBuffer        tokenbuf;       
+
+    
+
+
+
+
+
+
+
+
+
+    JSTokenStream(JSContext *);
+
+    
+
+
+
+    bool init(JSContext *, const jschar *base, size_t length,
+              FILE *fp, const char *filename, uintN lineno);
+
+    void close(JSContext *);
+    ~JSTokenStream() {}
 };
 
 #define CURRENT_TOKEN(ts)       ((ts)->tokens[(ts)->cursor])
@@ -379,19 +335,6 @@ struct JSTokenStream {
 
 #define LINE_SEPARATOR  0x2028
 #define PARA_SEPARATOR  0x2029
-
-
-
-
-
-
-
-
-
-extern JSBool
-js_InitTokenStream(JSContext *cx, JSTokenStream *ts,
-                   const jschar *base, size_t length,
-                   FILE *fp, const char *filename, uintN lineno);
 
 extern void
 js_CloseTokenStream(JSContext *cx, JSTokenStream *ts);
