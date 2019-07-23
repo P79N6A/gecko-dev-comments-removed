@@ -206,9 +206,31 @@ nsAppStartup::Quit(PRUint32 aMode)
   nsCOMPtr<nsIWindowMediator> mediator
     (do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
 
-  if (ferocity == eConsiderQuit && mConsiderQuitStopper == 0) {
-    
-    ferocity = eAttemptQuit;
+  
+  if (ferocity == eConsiderQuit) {
+    if (mConsiderQuitStopper == 0) {
+      
+      ferocity = eAttemptQuit;
+    }
+    else if (mConsiderQuitStopper == 1) {
+      
+      nsCOMPtr<nsIAppShellService> appShell
+        (do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+
+      
+      if (!appShell)
+        return NS_OK;
+
+      PRBool usefulHiddenWindow;
+      appShell->GetApplicationProvidedHiddenWindow(&usefulHiddenWindow);
+      nsCOMPtr<nsIXULWindow> hiddenWindow;
+      appShell->GetHiddenWindow(getter_AddRefs(hiddenWindow));
+      
+      if (!hiddenWindow || usefulHiddenWindow)
+        return NS_OK;
+
+      ferocity = eAttemptQuit;
+    }
   }
 
   
@@ -364,8 +386,8 @@ nsAppStartup::ExitLastWindowClosingSurvivalArea(void)
   NS_ASSERTION(mConsiderQuitStopper > 0, "consider quit stopper out of bounds");
   --mConsiderQuitStopper;
 
-  if (!mShuttingDown && mRunning && mConsiderQuitStopper == 0)
-    Quit(eAttemptQuit);
+  if (!mShuttingDown && mRunning && (mConsiderQuitStopper <= 1))
+    Quit(eConsiderQuit);
 
   return NS_OK;
 }
