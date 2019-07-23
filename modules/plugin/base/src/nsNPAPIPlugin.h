@@ -94,6 +94,11 @@ public:
   void SetPluginRefNum(short aRefNum);
 #endif
 
+#ifdef MOZ_IPC
+  
+  void PluginCrashed();
+#endif
+
 protected:
   friend class nsNPAPIPluginInstance;
   friend class nsNPAPIPluginStreamListener;
