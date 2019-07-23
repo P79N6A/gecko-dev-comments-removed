@@ -55,7 +55,8 @@ class TimeStamp;
 
 
 
-class TimeDuration {
+
+class NS_COM TimeDuration {
 public:
   
   TimeDuration() : mValue(0) {}
@@ -67,16 +68,14 @@ public:
   }
   
 
-  double ToSeconds() const { return double(mValue)/PR_TicksPerSecond(); }
+  double ToSeconds() const;
+  
+  
+  
+  double ToSecondsSigDigits() const;
 
-  static TimeDuration FromSeconds(PRInt32 aSeconds) {
-    
-    return TimeDuration::FromTicks(PRInt64(aSeconds)*PR_TicksPerSecond());
-  }
-  static TimeDuration FromMilliseconds(PRInt32 aMilliseconds) {
-    
-    return TimeDuration::FromTicks(PRInt64(aMilliseconds)*PR_TicksPerSecond()/1000);
-  }
+  static TimeDuration FromSeconds(PRInt32 aSeconds);
+  static TimeDuration FromMilliseconds(PRInt32 aMilliseconds);
 
   TimeDuration operator+(const TimeDuration& aOther) const {
     return TimeDuration::FromTicks(mValue + aOther.mValue);
@@ -110,6 +109,13 @@ public:
   
   
   
+  static TimeDuration Resolution();
+
+  
+  
+  
+  
+  
   
 
 private:
@@ -124,6 +130,10 @@ private:
   
   PRInt64 mValue;
 };
+
+
+
+
 
 
 
@@ -235,6 +245,8 @@ private:
   TimeStamp(PRUint64 aValue) : mValue(aValue) {}
 
   
+
+
 
 
 

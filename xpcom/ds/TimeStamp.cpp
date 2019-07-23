@@ -45,7 +45,42 @@ static PRLock* gTimeStampLock;
 static PRUint32 gRolloverCount;
 static PRIntervalTime gLastNow;
 
-nsresult TimeStamp::Startup()
+double
+TimeDuration::ToSeconds() const
+{
+ return double(mValue)/PR_TicksPerSecond();
+}
+
+double
+TimeDuration::ToSecondsSigDigits() const
+{
+  return ToSeconds();
+}
+
+TimeDuration
+TimeDuration::FromSeconds(PRInt32 aSeconds)
+{
+  
+  return TimeDuration::FromTicks(PRInt64(aSeconds)*PR_TicksPerSecond());
+}
+
+TimeDuration
+TimeDuration::FromMilliseconds(PRInt32 aMilliseconds)
+{
+  
+  return TimeDuration::FromTicks(PRInt64(aMilliseconds)*PR_TicksPerSecond()/1000);
+}
+
+TimeDuration
+TimeDuration::Resolution()
+{
+  
+  
+  return TimeDuration::FromTicks(1);
+}
+
+nsresult
+TimeStamp::Startup()
 {
   gTimeStampLock = PR_NewLock();
   gRolloverCount = 1;
@@ -53,7 +88,8 @@ nsresult TimeStamp::Startup()
   return gTimeStampLock ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
-void TimeStamp::Shutdown()
+void
+TimeStamp::Shutdown()
 {
   if (gTimeStampLock) {
     PR_DestroyLock(gTimeStampLock);
@@ -61,7 +97,8 @@ void TimeStamp::Shutdown()
   }
 }
 
-TimeStamp TimeStamp::Now()
+TimeStamp
+TimeStamp::Now()
 {
   
   
