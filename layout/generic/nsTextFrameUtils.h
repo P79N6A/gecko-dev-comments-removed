@@ -124,9 +124,6 @@ public:
 
 
 
-
-
-
   static PRInt32
   FindWordBoundary(const nsTextFragment* aText,
                    gfxTextRun* aTextRun,

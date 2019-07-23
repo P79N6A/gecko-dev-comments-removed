@@ -40,32 +40,20 @@
 
 #include "gfxFont.h"
 
-class nsCaseTransformingTextRun;
+class nsTransformedTextRun;
 class nsStyleContext;
 
-class nsTransformingTextRunFactory : public gfxTextRunFactory {
+class nsTransformingTextRunFactory {
 public:
-  nsTransformingTextRunFactory(gfxTextRunFactory* aInnerTextRunFactory,
-                               nsTransformingTextRunFactory* aInnerTransformingTextRunFactory)
-    : mInnerTextRunFactory(aInnerTextRunFactory),
-      mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
-      mStyles(nsnull) {}
+  virtual ~nsTransformingTextRunFactory() {}
 
   
-  
-  
-  virtual void SetStyles(nsStyleContext** aStyles) { mStyles = aStyles; }
-  
-  virtual gfxTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                                  Parameters* aParams);
-  
-  virtual gfxTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                                  Parameters* aParams) = 0;
+  gfxTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
+                          gfxFontGroup::Parameters* aParams, nsStyleContext** aStyles);
+  gfxTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
+                          gfxFontGroup::Parameters* aParams, nsStyleContext** aStyles);
 
-protected:
-  nsRefPtr<gfxTextRunFactory>            mInnerTextRunFactory;
-  nsRefPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
-  nsStyleContext**                       mStyles;
+  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun) = 0;
 };
 
 
@@ -75,17 +63,11 @@ protected:
 class nsFontVariantTextRunFactory : public nsTransformingTextRunFactory {
 public:
   nsFontVariantTextRunFactory(gfxFontGroup* aFontGroup)
-    : nsTransformingTextRunFactory(aFontGroup, nsnull), mFontGroup(aFontGroup) {}
+    : mFontGroup(aFontGroup) {}
     
-  
-  virtual gfxTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                                  Parameters* aParams) {
-    return nsTransformingTextRunFactory::MakeTextRun(aString, aLength, aParams);
-  }
-  virtual gfxTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                                  Parameters* aParams);
+  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun);
 
-private:
+protected:
   nsRefPtr<gfxFontGroup> mFontGroup;
 };
 
@@ -95,30 +77,25 @@ private:
 
 class nsCaseTransformTextRunFactory : public nsTransformingTextRunFactory {
 public:
-  nsCaseTransformTextRunFactory(gfxTextRunFactory* aInnerTextRunFactory,
+  
+  
+  
+  
+  
+  
+  nsCaseTransformTextRunFactory(gfxFontGroup* aFontGroup,
                                 nsTransformingTextRunFactory* aInnerTransformingTextRunFactory,
                                 PRBool aAllUppercase = PR_FALSE)
-    : nsTransformingTextRunFactory(aInnerTextRunFactory, aInnerTransformingTextRunFactory),
+    : mFontGroup(aFontGroup),
+      mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
       mAllUppercase(aAllUppercase) {}
 
-  
-  virtual gfxTextRun* MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                                  Parameters* aParams) {
-    return nsTransformingTextRunFactory::MakeTextRun(aString, aLength, aParams);
-  }
-  virtual gfxTextRun* MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                                  Parameters* aParams);
+  virtual void RebuildTextRun(nsTransformedTextRun* aTextRun);
 
-  
-  gfxTextRunFactory* GetInnerTextRunFactory() { return mInnerTextRunFactory; }
-  nsTransformingTextRunFactory* GetInnerTransformingTextRunFactory() {
-    return mInnerTransformingTextRunFactory;
-  }
-  nsStyleContext** GetStyles() { return mStyles; }
-  PRBool IsAllUppercase() { return mAllUppercase; }
-
-private:
-  PRPackedBool mAllUppercase;
+protected:
+  nsRefPtr<gfxFontGroup>                  mFontGroup;
+  nsAutoPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
+  PRPackedBool                            mAllUppercase;
 };
 
 #endif 
