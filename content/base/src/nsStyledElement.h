@@ -76,6 +76,8 @@ public:
                               nsIContent* aBindingParent,
                               PRBool aCompileEventHandlers);
 
+protected:
+
   
 
 
@@ -83,13 +85,9 @@ public:
 
 
 
-
-  static void ParseStyleAttribute(nsIContent* aContent,
-                                  const nsAString& aValue,
-                                  nsAttrValue& aResult,
-                                  PRBool aForceInDataDoc);
-
-protected:
+  void ParseStyleAttribute(const nsAString& aValue,
+                           nsAttrValue& aResult,
+                           PRBool aForceInDataDoc);
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID, nsIAtom* aAttribute,
                                 const nsAString& aValue, nsAttrValue& aResult);

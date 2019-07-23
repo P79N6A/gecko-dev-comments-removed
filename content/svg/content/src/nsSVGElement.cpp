@@ -218,11 +218,15 @@ nsSVGElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   if (oldVal && oldVal->Type() == nsAttrValue::eCSSStyleRule) {
     
     
+    
+    
+    
+    
     nsAttrValue attrValue;
     nsAutoString stringValue;
     oldVal->ToString(stringValue);
     
-    ParseStyleAttribute(this, stringValue, attrValue, PR_TRUE);
+    ParseStyleAttribute(stringValue, attrValue, PR_TRUE);
     
     
     rv = mAttrsAndChildren.SetAndTakeAttr(nsGkAtoms::style, attrValue);
