@@ -211,18 +211,6 @@ treechildren.autocomplete-treebody::-moz-tree-cell-text(selected) {
 
 
 
-.autocomplete-treebody::-moz-tree-row(menuactive) {
-  background-color: Highlight;
-}
-
-.autocomplete-treebody::-moz-tree-cell-text(menuactive)  {
-  color: HighlightText !important;
-}
-
-
-
-
-
 toolbarpaletteitem > toolbaritem > textbox > hbox > hbox > html|*.textbox-input {
   visibility: hidden;
 }
