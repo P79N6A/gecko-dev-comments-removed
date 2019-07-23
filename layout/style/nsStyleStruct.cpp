@@ -1116,9 +1116,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
       
       
       
-      
-      return NS_CombineHint(nsChangeHint_NeedReflow,
-                            nsChangeHint_ClearAncestorIntrinsics);;
+      return nsChangeHint_NeedReflow;
     }
   }
 
