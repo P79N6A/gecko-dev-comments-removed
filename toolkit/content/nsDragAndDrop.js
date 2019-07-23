@@ -42,6 +42,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
  
  
 var nsTransferable = {
@@ -574,6 +585,9 @@ var nsDragAndDrop = {
 
   dragDropSecurityCheck: function (aEvent, aDragSession, aDraggedText)
     {
+      if (!aDragSession)
+        aDragSession = this.mDragService.getCurrentSession();
+
       var sourceDoc = aDragSession.sourceDocument;
       if (!sourceDoc)
         return;
