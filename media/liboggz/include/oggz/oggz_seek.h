@@ -267,6 +267,30 @@ long oggz_seek_packets (OGGZ * oggz, long serialno, long packets, int whence);
 
 
 
+int oggz_get_preroll (OGGZ * oggz, long serialno);
+
+
+
+
+
+
+
+
+
+
+
+
+int oggz_set_preroll (OGGZ * oggz, long serialno, int preroll);
+
+
+
+
+
+
+
+
+
+
 int oggz_get_granuleshift (OGGZ * oggz, long serialno);
 
 
@@ -420,6 +444,8 @@ int oggz_set_metric (OGGZ * oggz, long serialno, OggzMetric metric,
 
 typedef int (*OggzOrder) (OGGZ * oggz, ogg_packet * op, void * target,
 			 void * user_data);
+
+
 
 
 

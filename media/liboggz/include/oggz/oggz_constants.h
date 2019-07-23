@@ -65,9 +65,13 @@ enum OggzFlags {
   
 
 
+
+
   OGGZ_PREFIX       = 0x40,
 
   
+
+
 
 
   OGGZ_SUFFIX       = 0x80
@@ -112,6 +116,7 @@ typedef enum OggzStreamContent {
   OGGZ_CONTENT_ANXDATA,
   OGGZ_CONTENT_CELT,
   OGGZ_CONTENT_KATE,
+  OGGZ_CONTENT_DIRAC,
   OGGZ_CONTENT_UNKNOWN
 } OggzStreamContent;
 
@@ -164,6 +169,12 @@ enum OggzError {
 
   
   OGGZ_ERR_IO_AGAIN                     = -16,
+
+  
+  OGGZ_ERR_HOLE_IN_DATA                 = -17,
+
+  
+  OGGZ_ERR_OUT_OF_MEMORY                = -18,
 
   
   OGGZ_ERR_BAD_SERIALNO                 = -20,
