@@ -1104,7 +1104,15 @@ StringMatch(const jschar *text, jsuint textlen,
 
 
 
-    if (textlen >= 512 && jsuint(patlen - 2) <= sBMHPatLenMax - 2) {
+
+
+
+
+
+
+
+
+    if (textlen >= 512 && patlen >= 11 && patlen <= sBMHPatLenMax) {
         jsint index = js_BoyerMooreHorspool(text, textlen, pat, patlen);
         if (index != sBMHBadPattern)
             return index;
