@@ -268,7 +268,7 @@ protected:
 
   friend class nsCellMap;
   friend class BCMapCellIterator;
-  friend class BCPaintBorderIterator;
+  friend class BCMapBorderIterator;
   friend class nsCellMapColumnIterator;
   
 
@@ -474,7 +474,7 @@ public:
 protected:
   friend class nsTableCellMap;
   friend class BCMapCellIterator;
-  friend class BCPaintBorderIterator;
+  friend class BCMapBorderIterator;
   friend class nsTableFrame;
   friend class nsCellMapColumnIterator;
 

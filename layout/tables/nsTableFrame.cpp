@@ -2367,9 +2367,9 @@ nsTableFrame::GetUsedPadding() const
 }
 
 static void
-DivideBCBorderSize(BCPixelSize  aPixelSize,
-                   BCPixelSize& aSmallHalf,
-                   BCPixelSize& aLargeHalf)
+DivideBCBorderSize(nscoord  aPixelSize,
+                   nscoord& aSmallHalf,
+                   nscoord& aLargeHalf)
 {
   aSmallHalf = aPixelSize / 2;
   aLargeHalf = aPixelSize - aSmallHalf;
@@ -5048,7 +5048,6 @@ BCCellBorders::BCCellBorders(PRInt32 aNumBorders,
 
 
 
-
 static PRBool
 SetBorder(const BCCellBorder&   aNewBorder,
           BCCellBorder&         aBorder)
@@ -6083,6 +6082,7 @@ nsTableFrame::CalcBCBorders()
       }
     }
   } 
+
   
   SetNeedToCalcBCBorders(PR_FALSE);
   propData->mDamageArea.x = propData->mDamageArea.y = propData->mDamageArea.width = propData->mDamageArea.height = 0;
@@ -6091,557 +6091,264 @@ nsTableFrame::CalcBCBorders()
 #endif
 }
 
-class BCPaintBorderIterator;
-
-struct BCVerticalSeg
-{
-  BCVerticalSeg();
- 
-  void Start(BCPaintBorderIterator& aIter,
-             BCBorderOwner          aBorderOwner,
-             BCPixelSize            aVerSegWidth,
-             BCPixelSize            aHorSegHeight);
-
-  void Initialize(BCPaintBorderIterator& aIter);
-  void GetBottomCorner(BCPaintBorderIterator& aIter,
-                       BCPixelSize            aHorSegHeight);
-
-
-   void Paint(BCPaintBorderIterator& aIter,
-              nsIRenderingContext&   aRenderingContext,
-              BCPixelSize            aHorSegHeight);
-  void AdvanceOffsetY();
-  void IncludeCurrentBorder(BCPaintBorderIterator& aIter);
-         
-  
-  union {
-    nsTableColFrame*  mCol;
-    PRInt32           mColWidth;
-  };
-  nscoord               mOffsetX;    
-  nscoord               mOffsetY;    
-  nscoord               mLength;     
-  BCPixelSize           mWidth;      
-
-  nsTableCellFrame*     mAjaCell;       
-                                        
-                                        
-  nsTableCellFrame*     mFirstCell;     
-  nsTableRowGroupFrame* mFirstRowGroup; 
-  nsTableRowFrame*      mFirstRow;      
-  nsTableCellFrame*     mLastCell;      
-                                        
-
-
-  PRUint8               mOwner;         
-                                        
-  PRUint8               mTopBevelSide;  
-  nscoord               mTopBevelOffset; 
-  BCPixelSize           mBottomHorSegHeight; 
-                                        
-  nscoord               mBottomOffset;  
-                                        
-                                        
-                                        
-  PRBool                mIsBottomBevel; 
-};
-
-struct BCHorizontalSeg
-{
-  BCHorizontalSeg();
-
-  void Start(BCPaintBorderIterator& aIter,
-             BCBorderOwner          aBorderOwner,
-             BCPixelSize            aBottomVerSegWidth,
-             BCPixelSize            aHorSegHeight);
-   void GetRightCorner(BCPaintBorderIterator& aIter,
-                       BCPixelSize            aLeftSegWidth);
-   void AdvanceOffsetX(PRInt32 aIncrement);
-   void IncludeCurrentBorder(BCPaintBorderIterator& aIter);
-   void Paint(BCPaintBorderIterator& aIter,
-              nsIRenderingContext&   aRenderingContext);
-  
-  nscoord            mOffsetX;       
-  nscoord            mOffsetY;       
-  nscoord            mLength;        
-  BCPixelSize        mWidth;         
-  nscoord            mLeftBevelOffset;   
-  PRUint8            mLeftBevelSide;     
-  PRBool             mIsRightBevel;        
-  nscoord            mRightBevelOffset;  
-  PRUint8            mRightBevelSide;    
-  nscoord            mEndOffset;         
-                                         
-                                         
-                                         
-  PRUint8            mOwner;             
-                                         
-  nsTableCellFrame*  mFirstCell;         
-  nsTableCellFrame*  mAjaCell;           
-                                         
-                                         
-};
 
 
 
-
-class BCPaintBorderIterator
+class BCMapBorderIterator
 {
 public:
-
-
-  BCPaintBorderIterator(nsTableFrame* aTable);
-  ~BCPaintBorderIterator() { if (mVerInfo) {
-                              delete [] mVerInfo;
-                           }}
-  void Reset();
-
-  PRBool SetDamageArea(nsRect aDirtyRect);
+  BCMapBorderIterator(nsTableFrame&         aTableFrame,
+                      nsTableRowGroupFrame& aRowGroupFrame,
+                      nsTableRowFrame&      aRowFrame,
+                      const nsRect&         aDamageArea);
+  void Reset(nsTableFrame&         aTableFrame,
+             nsTableRowGroupFrame& aRowGroupFrame,
+             nsTableRowFrame&      aRowFrame,
+             const nsRect&         aDamageArea);
   void First();
   void Next();
-  void AccumulateOrPaintHorizontalSegment(nsIRenderingContext& aRenderingContext);
-  void AccumulateOrPaintVerticalSegment(nsIRenderingContext& aRenderingContext);
-  void ResetVerInfo();
-  void StoreColumnWidth(PRInt32 aIndex);
-  PRBool VerticalSegmentOwnsCorner();
 
-  nsTableFrame*         mTable;
-  nsTableFrame*         mTableFirstInFlow;
-  nsTableCellMap*       mTableCellMap;
-  nsCellMap*            mCellMap;
-  PRBool                mTableIsLTR;
-  PRInt32               mColInc;            
-  const nsStyleBackground* mTableBgColor;
-  nsTableFrame::RowGroupArray mRowGroups;
+  nsTableFrame*         table;
+  nsTableCellMap*       tableCellMap;
+  nsCellMap*            cellMap;
 
-  nsTableRowGroupFrame* mPrevRg;
-  nsTableRowGroupFrame* mRg;
-  PRBool                mIsRepeatedHeader;
-  PRBool                mIsRepeatedFooter;
-  nsTableRowGroupFrame* mStartRg; 
-  PRInt32               mRgIndex; 
-                                        
-  PRInt32               mFifRgFirstRowIndex; 
-                                           
-  PRInt32               mRgFirstRowIndex; 
-                                          
-  PRInt32               mRgLastRowIndex; 
-                                         
-  PRInt32               mNumTableRows;   
-                                         
-  PRInt32               mNumTableCols;   
-  PRInt32               mColIndex;       
-  PRInt32               mRowIndex;       
-  PRInt32               mRepeatedHeaderRowIndex; 
-                                            
-                                            
-                                            
-                                            
-                                            
-  PRBool                mIsNewRow;
-  PRBool                mAtEnd;             
-                                             
-  nsTableRowFrame*      mPrevRow;
-  nsTableRowFrame*      mRow;
-  nsTableRowFrame*      mStartRow;    
+  nsTableFrame::RowGroupArray rowGroups;
+  nsTableRowGroupFrame* prevRg;
+  nsTableRowGroupFrame* rg;
+  PRInt32               rowGroupIndex;
+  PRInt32               fifRowGroupStart;
+  PRInt32               rowGroupStart;
+  PRInt32               rowGroupEnd;
+  PRInt32               numRows; 
 
+  nsTableRowFrame*      prevRow;
+  nsTableRowFrame*      row;
+  PRInt32               numCols;
+  PRInt32               x;
+  PRInt32               y;
 
-  
-  nsTableCellFrame*     mPrevCell;
-  nsTableCellFrame*     mCell;
-  BCCellData*           mPrevCellData;
-  BCCellData*           mCellData;
-  BCData*               mBCData;
+  nsTableCellFrame*     prevCell;
+  nsTableCellFrame*     cell;  
+  BCCellData*           prevCellData;
+  BCCellData*           cellData;
+  BCData*               bcData;
 
-  PRBool                IsTableTopMost()    {return (mRowIndex == 0) && !mTable->GetPrevInFlow();}
-  PRBool                IsTableRightMost()  {return (mColIndex >= mNumTableCols);}
-  PRBool                IsTableBottomMost() {return (mRowIndex >= mNumTableRows) && !mTable->GetNextInFlow();}
-  PRBool                IsTableLeftMost()   {return (mColIndex == 0);}
-  PRBool                IsDamageAreaTopMost()    {return (mRowIndex == mDamageArea.y);}
-  PRBool                IsDamageAreaRightMost()  {return (mColIndex >= mDamageArea.XMost());}
-  PRBool                IsDamageAreaBottomMost() {return (mRowIndex >= mDamageArea.YMost());}
-  PRBool                IsDamageAreaLeftMost()   {return (mColIndex == mDamageArea.x);}
-  PRInt32               GetRelativeColIndex() {return (mColIndex - mDamageArea.x);}
+  PRBool                IsTopMostTable()    { return (y == 0) && !table->GetPrevInFlow(); }
+  PRBool                IsRightMostTable()  { return (x >= numCols); }
+  PRBool                IsBottomMostTable() { return (y >= numRows) && !table->GetNextInFlow(); }
+  PRBool                IsLeftMostTable()   { return (x == 0); }
+  PRBool                IsTopMost()    { return (y == startY); }
+  PRBool                IsRightMost()  { return (x >= endX); }
+  PRBool                IsBottomMost() { return (y >= endY); }
+  PRBool                IsLeftMost()   { return (x == startX); }
+  PRBool                isNewRow;
 
-  nsRect                mDamageArea;        
-  PRBool                IsAfterRepeatedHeader() { return !mIsRepeatedHeader && (mRowIndex == (mRepeatedHeaderRowIndex + 1));}
-  PRBool                StartRepeatedFooter() {return mIsRepeatedFooter && (mRowIndex == mRgFirstRowIndex) && (mRowIndex != mDamageArea.y);}
-  nscoord               mInitialOffsetX;  
-                                            
-  nscoord               mInitialOffsetY;    
-                                            
-  nscoord               mNextOffsetY;       
-  BCVerticalSeg*        mVerInfo; 
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-                                  
-  BCHorizontalSeg       mHorSeg;            
-                                            
-  BCPixelSize           mPrevHorSegHeight;  
-                                            
+  PRInt32               startX;
+  PRInt32               startY;
+  PRInt32               endX;
+  PRInt32               endY;
+  PRBool                isRepeatedHeader;
+  PRBool                isRepeatedFooter;
+  PRBool                atEnd;
 
 private:
 
   PRBool SetNewRow(nsTableRowFrame* aRow = nsnull);
   PRBool SetNewRowGroup();
-  void   SetNewData(PRInt32 aRowIndex, PRInt32 aColIndex);
+  void   SetNewData(PRInt32 aY, PRInt32 aX);
 
 };
 
-
-
-BCPaintBorderIterator::BCPaintBorderIterator(nsTableFrame* aTable)
+BCMapBorderIterator::BCMapBorderIterator(nsTableFrame&         aTable,
+                                         nsTableRowGroupFrame& aRowGroup,
+                                         nsTableRowFrame&      aRow,
+                                         const nsRect&         aDamageArea)
 {
-  mTable      = aTable;
-  mVerInfo    = nsnull;
-  nsMargin childAreaOffset = mTable->GetChildAreaOffset(nsnull);
-  mTableFirstInFlow    = (nsTableFrame*) mTable->GetFirstInFlow();
-  mTableCellMap        = mTable->GetCellMap();
-  
-  mInitialOffsetY = (mTable->GetPrevInFlow()) ? 0 : childAreaOffset.top;
-  mNumTableRows  = mTable->GetRowCount();
-  mNumTableCols  = mTable->GetColCount();
-
-  
-  mTable->OrderRowGroups(mRowGroups);
-
-  mTableIsLTR = mTable->GetStyleVisibility()->mDirection ==
-                   NS_STYLE_DIRECTION_LTR;
-  mColInc = (mTableIsLTR) ? 1 : -1;
-
-  nsStyleContext* bgContext =
-    nsCSSRendering::FindNonTransparentBackground(mTable->GetStyleContext());
-  mTableBgColor = bgContext->GetStyleBackground();
-}
-
-
-
-
-
-
-
-PRBool
-BCPaintBorderIterator::SetDamageArea(nsRect aDirtyRect)
-{
-
-  PRUint32 startRowIndex, endRowIndex, startColIndex, endColIndex;
-  startRowIndex = endRowIndex = startColIndex = endColIndex = 0;
-  PRBool done = PR_FALSE;
-  PRBool haveIntersect = PR_FALSE;
-  
-  PRInt32 rowY = mInitialOffsetY;
-  for (PRUint32 rgX = 0; rgX < mRowGroups.Length() && !done; rgX++) {
-    nsTableRowGroupFrame* rgFrame = mRowGroups[rgX];
-    for (nsTableRowFrame* rowFrame = rgFrame->GetFirstRow(); rowFrame;
-         rowFrame = rowFrame->GetNextRow()) {
-      
-      nscoord topBorderHalf    = (mTable->GetPrevInFlow()) ? 0 :
-       nsPresContext::CSSPixelsToAppUnits(rowFrame->GetTopBCBorderWidth() + 1);
-      nscoord bottomBorderHalf = (mTable->GetNextInFlow()) ? 0 :
-        nsPresContext::CSSPixelsToAppUnits(rowFrame->GetBottomBCBorderWidth() + 1);
-      
-      nsSize rowSize = rowFrame->GetSize();
-      if (haveIntersect) {
-        if (aDirtyRect.YMost() >= (rowY - topBorderHalf)) {
-          nsTableRowFrame* fifRow =
-            (nsTableRowFrame*)rowFrame->GetFirstInFlow();
-          if (!fifRow) ABORT1(PR_FALSE);
-          endRowIndex = fifRow->GetRowIndex();
-        }
-        else done = PR_TRUE;
-      }
-      else {
-        if ((rowY + rowSize.height + bottomBorderHalf) >= aDirtyRect.y) {
-          mStartRg  = rgFrame;
-          mStartRow = rowFrame;
-          nsTableRowFrame* fifRow =
-            (nsTableRowFrame*)rowFrame->GetFirstInFlow();
-          if (!fifRow) ABORT1(PR_FALSE);
-          startRowIndex = endRowIndex = fifRow->GetRowIndex();
-          haveIntersect = PR_TRUE;
-        }
-        else {
-          mInitialOffsetY += rowSize.height;
-        }
-      }
-      rowY += rowSize.height;
-    }
-  }
-  mNextOffsetY = mInitialOffsetY;
-
-  
-  
-  
-  
-  
-  if (!haveIntersect)
-    return PR_FALSE;
-  
-  haveIntersect = PR_FALSE;
-  if (0 == mNumTableCols)
-    return PR_FALSE;
-  PRInt32 leftCol, rightCol; 
-
-  nsMargin childAreaOffset = mTable->GetChildAreaOffset(nsnull);
-  if (mTableIsLTR) {
-    mInitialOffsetX = childAreaOffset.left; 
-                                            
-    leftCol = 0;
-    rightCol = mNumTableCols;
-  } else {
-    
-    mInitialOffsetX = mTable->GetRect().width - childAreaOffset.right;
-    leftCol = mNumTableCols-1;
-    rightCol = -1;
-  }
-  nscoord x = 0;
-  PRInt32 colX;
-  for (colX = leftCol; colX != rightCol; colX += mColInc) {
-    nsTableColFrame* colFrame = mTableFirstInFlow->GetColFrame(colX);
-    if (!colFrame) ABORT1(PR_FALSE);
-    
-    nscoord leftBorderHalf =
-       nsPresContext::CSSPixelsToAppUnits(colFrame->GetLeftBorderWidth() + 1);
-    nscoord rightBorderHalf =
-      nsPresContext::CSSPixelsToAppUnits(colFrame->GetRightBorderWidth() + 1);
-    
-    nsSize size = colFrame->GetSize();
-    if (haveIntersect) {
-      if (aDirtyRect.XMost() >= (x - leftBorderHalf)) {
-        endColIndex = colX;
-      }
-      else break;
-    }
-    else {
-      if ((x + size.width + rightBorderHalf) >= aDirtyRect.x) {
-        startColIndex = endColIndex = colX;
-        haveIntersect = PR_TRUE;
-      }
-      else {
-        mInitialOffsetX += mColInc * size.width;
-      }
-    }
-    x += size.width;
-  }
-  if (!mTableIsLTR) {
-    PRUint32 temp;
-    mInitialOffsetX = mTable->GetRect().width - childAreaOffset.right;
-    temp = startColIndex; startColIndex = endColIndex; endColIndex = temp;
-    for (PRUint32 column = 0; column < startColIndex; column++) {
-      nsTableColFrame* colFrame = mTableFirstInFlow->GetColFrame(column);
-      if (!colFrame) ABORT1(PR_FALSE);
-      nsSize size = colFrame->GetSize();
-      mInitialOffsetX += mColInc * size.width;
-    }
-  }
-  if (!haveIntersect)
-    return PR_FALSE;
-  mDamageArea = nsRect(startColIndex, startRowIndex,
-                       1 + PR_ABS(PRInt32(endColIndex - startColIndex)),
-                       1 + endRowIndex - startRowIndex);
-
-  Reset();
-  mVerInfo = new BCVerticalSeg[mDamageArea.width + 1];
-  if (!mVerInfo)
-    return PR_FALSE;
-  return PR_TRUE;
+  Reset(aTable, aRowGroup, aRow, aDamageArea);
 }
 
 void
-BCPaintBorderIterator::Reset()
+BCMapBorderIterator::Reset(nsTableFrame&         aTable,
+                           nsTableRowGroupFrame& aRowGroup,
+                           nsTableRowFrame&      aRow,
+                           const nsRect&         aDamageArea)
 {
-  mAtEnd = PR_TRUE; 
-  mRg = mStartRg;
-  mPrevRow  = nsnull;
-  mRow      = mStartRow;
-  mRowIndex      = 0;
-  mColIndex      = 0;
-  mRgIndex       = -1;
-  mPrevCell      = nsnull;
-  mCell          = nsnull;
-  mPrevCellData  = nsnull;
-  mCellData      = nsnull;
-  mBCData        = nsnull;
-  ResetVerInfo();
- }
+  atEnd = PR_TRUE; 
 
+  table   = &aTable;
+  rg      = &aRowGroup; 
+  prevRow = nsnull;
+  row     = &aRow;                     
 
+  nsTableFrame* tableFif = (nsTableFrame*)table->GetFirstInFlow(); if (!tableFif) ABORT0();
+  tableCellMap = tableFif->GetCellMap();
 
+  startX   = aDamageArea.x;
+  startY   = aDamageArea.y;
+  endY     = aDamageArea.y + aDamageArea.height;
+  endX     = aDamageArea.x + aDamageArea.width;
 
+  numRows       = tableFif->GetRowCount();
+  y             = 0;
+  numCols       = tableFif->GetColCount();
+  x             = 0;
+  rowGroupIndex = -1;
+  prevCell      = nsnull;
+  cell          = nsnull;
+  prevCellData  = nsnull;
+  cellData      = nsnull;
+  bcData        = nsnull;
 
+  
+  table->OrderRowGroups(rowGroups);
+}
 
-void
-BCPaintBorderIterator::SetNewData(PRInt32 aY,
+void 
+BCMapBorderIterator::SetNewData(PRInt32 aY,
                                 PRInt32 aX)
 {
-  if (!mTableCellMap || !mTableCellMap->mBCInfo) ABORT0();
+  if (!tableCellMap || !tableCellMap->mBCInfo) ABORT0();
 
-  mColIndex    = aX;
-  mRowIndex    = aY;
-  mPrevCellData = mCellData;
-  if (IsTableRightMost() && IsTableBottomMost()) {
-   mCell = nsnull;
-   mBCData = &mTableCellMap->mBCInfo->mLowerRightCorner;
+  x            = aX;
+  y            = aY;
+  prevCellData = cellData;
+  if (IsRightMost() && IsBottomMost()) {
+    cell = nsnull;
+    bcData = &tableCellMap->mBCInfo->mLowerRightCorner;
   }
-  else if (IsTableRightMost()) {
-    mCellData = nsnull;
-    mBCData = &mTableCellMap->mBCInfo->mRightBorders.ElementAt(aY);
+  else if (IsRightMost()) {
+    cellData = nsnull;
+    bcData = &tableCellMap->mBCInfo->mRightBorders.ElementAt(aY);
   }
-  else if (IsTableBottomMost()) {
-    mCellData = nsnull;
-    mBCData = &mTableCellMap->mBCInfo->mBottomBorders.ElementAt(aX);
+  else if (IsBottomMost()) {
+    cellData = nsnull;
+    bcData = &tableCellMap->mBCInfo->mBottomBorders.ElementAt(aX);
   }
   else {
-    if (PRUint32(mRowIndex - mFifRgFirstRowIndex) < mCellMap->mRows.Length()) {
-      mBCData = nsnull;
-      mCellData =
-        (BCCellData*)mCellMap->mRows[mRowIndex - mFifRgFirstRowIndex].SafeElementAt(mColIndex);
-      if (mCellData) {
-        mBCData = &mCellData->mData;
-        if (!mCellData->IsOrig()) {
-          if (mCellData->IsRowSpan()) {
-            aY -= mCellData->GetRowSpanOffset();
+    if (PRUint32(y - fifRowGroupStart) < cellMap->mRows.Length()) { 
+      bcData = nsnull;
+      cellData =
+        (BCCellData*)cellMap->mRows[y - fifRowGroupStart].SafeElementAt(x);
+      if (cellData) {
+        bcData = &cellData->mData;
+        if (!cellData->IsOrig()) {
+          if (cellData->IsRowSpan()) {
+            aY -= cellData->GetRowSpanOffset();
           }
-          if (mCellData->IsColSpan()) {
-            aX -= mCellData->GetColSpanOffset();
+          if (cellData->IsColSpan()) {
+            aX -= cellData->GetColSpanOffset();
           }
           if ((aX >= 0) && (aY >= 0)) {
-            mCellData = (BCCellData*)mCellMap->mRows[aY - mFifRgFirstRowIndex][aX];
+            cellData = (BCCellData*)cellMap->mRows[aY - fifRowGroupStart][aX];
           }
         }
-        if (mCellData->IsOrig()) {
-          mPrevCell = mCell;
-          mCell = mCellData->GetCellFrame();
+        if (cellData->IsOrig()) {
+          prevCell = cell;
+          cell = cellData->GetCellFrame();
         }
       }
     }
   }
 }
 
-
-
-
-
-
 PRBool
-BCPaintBorderIterator::SetNewRow(nsTableRowFrame* aRow)
+BCMapBorderIterator::SetNewRow(nsTableRowFrame* aRow)
 {
-  mPrevRow = mRow;
-  mRow     = (aRow) ? aRow : mRow->GetNextRow();
-  if (mRow) {
-    mIsNewRow = PR_TRUE;
-    mRowIndex = mRow->GetRowIndex();
-    mColIndex = mDamageArea.x;
-    mPrevHorSegHeight = 0;
-    if (mIsRepeatedHeader) {
-      mRepeatedHeaderRowIndex = mRowIndex;
-    }
+  prevRow = row;
+  row      = (aRow) ? aRow : row->GetNextRow();
+ 
+  if (row) {
+    isNewRow = PR_TRUE;
+    y = row->GetRowIndex();
+    x = startX;
   }
   else {
-    mAtEnd = PR_TRUE;
+    atEnd = PR_TRUE;
   }
-  return !mAtEnd;
+  return !atEnd;
 }
 
 
-
-
 PRBool
-BCPaintBorderIterator::SetNewRowGroup()
+BCMapBorderIterator::SetNewRowGroup()
 {
+  rowGroupIndex++;
 
-  mRgIndex++;
+  isRepeatedHeader = PR_FALSE;
+  isRepeatedFooter = PR_FALSE;
 
-  mIsRepeatedHeader = PR_FALSE;
-  mIsRepeatedFooter = PR_FALSE;
+  if (PRUint32(rowGroupIndex) < rowGroups.Length()) {
+    prevRg = rg;
+    rg = rowGroups[rowGroupIndex];
+    fifRowGroupStart = ((nsTableRowGroupFrame*)rg->GetFirstInFlow())->GetStartRowIndex();
+    rowGroupStart    = rg->GetStartRowIndex(); 
+    rowGroupEnd      = rowGroupStart + rg->GetRowCount() - 1;
 
-  if (mRgIndex < mRowGroups.Length()) {
-    mPrevRg = mRg;
-    mRg = mRowGroups[mRgIndex];
-    mFifRgFirstRowIndex = ((nsTableRowGroupFrame*)mRg->GetFirstInFlow())->GetStartRowIndex();
-    mRgFirstRowIndex    = mRg->GetStartRowIndex();
-    mRgLastRowIndex     = mRgFirstRowIndex + mRg->GetRowCount() - 1;
-
-    if (SetNewRow(mRg->GetFirstRow())) {
-      mCellMap =
-        mTableCellMap->GetMapFor((nsTableRowGroupFrame*)mRg->GetFirstInFlow(),
-                                  nsnull);
-      if (!mCellMap) ABORT1(PR_FALSE);
+    if (SetNewRow(rg->GetFirstRow())) {
+      cellMap =
+        tableCellMap->GetMapFor((nsTableRowGroupFrame*)rg->GetFirstInFlow(),
+                                nsnull);
+      if (!cellMap) ABORT1(PR_FALSE);
     }
-    if (mRg && mTable->GetPrevInFlow() && !mRg->GetPrevInFlow()) {
+    if (rg && table->GetPrevInFlow() && !rg->GetPrevInFlow()) {
       
-      
-      const nsStyleDisplay* display = mRg->GetStyleDisplay();
-      if (mRowIndex == mDamageArea.y) {
-        mIsRepeatedHeader = (NS_STYLE_DISPLAY_TABLE_HEADER_GROUP == display->mDisplay);
+      const nsStyleDisplay* display = rg->GetStyleDisplay();
+      if (y == startY) {
+        isRepeatedHeader = (NS_STYLE_DISPLAY_TABLE_HEADER_GROUP == display->mDisplay);
       }
       else {
-        mIsRepeatedFooter = (NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP == display->mDisplay);
+        isRepeatedFooter = (NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP == display->mDisplay);
       }
     }
   }
   else {
-    mAtEnd = PR_TRUE;
+    atEnd = PR_TRUE;
   }
-  return !mAtEnd;
+  return !atEnd;
 }
 
-
-
-
-void
-BCPaintBorderIterator::First()
+void 
+BCMapBorderIterator::First()
 {
-  if (!mTable || (mDamageArea.x >= mNumTableCols) ||
-      (mDamageArea.y >= mNumTableRows)) ABORT0();
+  if (!table || (startX >= numCols) || (startY >= numRows)) ABORT0();
 
-  mAtEnd = PR_FALSE;
+  atEnd = PR_FALSE;
 
-  PRUint32 numRowGroups = mRowGroups.Length();
-  for (PRUint32 rgY = 0; rgY < numRowGroups; rgY++) {
-    nsTableRowGroupFrame* rowG = mRowGroups[rgY];
+  PRUint32 numRowGroups = rowGroups.Length();
+  for (PRUint32 rgX = 0; rgX < numRowGroups; rgX++) { 
+    nsTableRowGroupFrame* rowG = rowGroups[rgX];
     PRInt32 start = rowG->GetStartRowIndex();
     PRInt32 end   = start + rowG->GetRowCount() - 1;
-    if ((mDamageArea.y >= start) && (mDamageArea.y <= end)) {
-      mRgIndex = rgY - 1; 
-      if (SetNewRowGroup()) {
-        while ((mRowIndex < mDamageArea.y) && !mAtEnd) {
+    if ((startY >= start) && (startY <= end)) {
+      rowGroupIndex = rgX - 1; 
+      if (SetNewRowGroup()) { 
+        while ((y < startY) && !atEnd) {
           SetNewRow();
         }
-        if (!mAtEnd) {
-          SetNewData(mDamageArea.y, mDamageArea.x);
+        if (!atEnd) {
+          SetNewData(startY, startX);
         }
       }
       return;
     }
   }
-  mAtEnd = PR_TRUE;
+  atEnd = PR_TRUE;
 }
 
-
-
-
-void
-BCPaintBorderIterator::Next()
+void 
+BCMapBorderIterator::Next()
 {
-  if (mAtEnd) ABORT0();
-  mIsNewRow = PR_FALSE;
+  if (atEnd) ABORT0();
+  isNewRow = PR_FALSE;
 
-  mColIndex++;
-  if (mColIndex > mDamageArea.XMost()) {
-    mRowIndex++;
-    if (mRowIndex == mDamageArea.YMost()) {
-      mColIndex = mDamageArea.x;
+  x++;
+  if (x > endX) {
+    y++;
+    if (y == endY) {
+      x = startX;
     }
-    else if (mRowIndex < mDamageArea.YMost()) {
-      if (mRowIndex <= mRgLastRowIndex) {
+    else if (y < endY) {
+      if (y <= rowGroupEnd) {
         SetNewRow();
       }
       else {
@@ -6649,36 +6356,26 @@ BCPaintBorderIterator::Next()
       }
     }
     else {
-      mAtEnd = PR_TRUE;
+      atEnd = PR_TRUE;
     }
   }
-  if (!mAtEnd) {
-    SetNewData(mRowIndex, mColIndex);
+  if (!atEnd) {
+    SetNewData(y, x);
   }
 }
 
 
-
-
-
-
-
-
-
-
-
 static nscoord
-CalcVerCornerOffset(PRUint8     aCornerOwnerSide,
-                    BCPixelSize aCornerSubWidth,
-                    BCPixelSize aHorWidth,
-                    PRBool      aIsStartOfSeg,
-                    PRBool      aIsBevel)
+CalcVerCornerOffset(PRUint8 aCornerOwnerSide,
+                    nscoord aCornerSubWidth,
+                    nscoord aHorWidth,
+                    PRBool  aIsStartOfSeg,
+                    PRBool  aIsBevel)
 {
   nscoord offset = 0;
   
-  BCPixelSize smallHalf, largeHalf;
-  if ((NS_SIDE_TOP == aCornerOwnerSide) ||
-      (NS_SIDE_BOTTOM == aCornerOwnerSide)) {
+  nscoord smallHalf, largeHalf;
+  if ((NS_SIDE_TOP == aCornerOwnerSide) || (NS_SIDE_BOTTOM == aCornerOwnerSide)) {
     DivideBCBorderSize(aCornerSubWidth, smallHalf, largeHalf);
     if (aIsBevel) {
       offset = (aIsStartOfSeg) ? -largeHalf : smallHalf;
@@ -6708,19 +6405,19 @@ CalcVerCornerOffset(PRUint8     aCornerOwnerSide,
 
 
 
+
 static nscoord
-CalcHorCornerOffset(PRUint8     aCornerOwnerSide,
-                    BCPixelSize aCornerSubWidth,
-                    BCPixelSize aVerWidth,
-                    PRBool      aIsStartOfSeg,
-                    PRBool      aIsBevel,
-                    PRBool      aTableIsLTR)
+CalcHorCornerOffset(PRUint8 aCornerOwnerSide,
+                    nscoord aCornerSubWidth,
+                    nscoord aVerWidth,
+                    PRBool  aIsStartOfSeg,
+                    PRBool  aIsBevel,
+                    PRBool  aTableIsLTR)
 {
   nscoord offset = 0;
   
-  BCPixelSize smallHalf, largeHalf;
-  if ((NS_SIDE_LEFT == aCornerOwnerSide) ||
-      (NS_SIDE_RIGHT == aCornerOwnerSide)) {
+  nscoord smallHalf, largeHalf;
+  if ((NS_SIDE_LEFT == aCornerOwnerSide) || (NS_SIDE_RIGHT == aCornerOwnerSide)) {
     if (aTableIsLTR) {
       DivideBCBorderSize(aCornerSubWidth, smallHalf, largeHalf);
     }
@@ -6751,602 +6448,553 @@ CalcHorCornerOffset(PRUint8     aCornerOwnerSide,
   return nsPresContext::CSSPixelsToAppUnits(offset);
 }
 
-BCVerticalSeg::BCVerticalSeg()
+struct BCVerticalSeg
 {
-  mCol = nsnull;
-  mFirstCell = mLastCell = mAjaCell = nsnull;
-  mOffsetX = mOffsetY = mLength = mWidth = mTopBevelOffset = mTopBevelSide = 0;
-  mOwner = eCellOwner;
-}
-
-
-
-
-
-
-
-
-
-void
-BCVerticalSeg::Start(BCPaintBorderIterator& aIter,
-                     BCBorderOwner          aBorderOwner,
-                     BCPixelSize            aVerSegWidth,
-                     BCPixelSize            aHorSegHeight)
-{
-  PRUint8      ownerSide   = 0;
-  PRPackedBool bevel       = PR_FALSE;
-
-
-  nscoord cornerSubWidth  = (aIter.mBCData) ?
-                               aIter.mBCData->GetCorner(ownerSide, bevel) : 0;
-
-  PRBool  topBevel        = (aVerSegWidth > 0) ? bevel : PR_FALSE;
-  BCPixelSize maxHorSegHeight = PR_MAX(aIter.mPrevHorSegHeight, aHorSegHeight);
-  nscoord offset          = CalcVerCornerOffset(ownerSide, cornerSubWidth,
-                                                maxHorSegHeight, PR_TRUE,
-                                                topBevel);
-
-  mTopBevelOffset   = (topBevel) ?
-                      nsPresContext::CSSPixelsToAppUnits(maxHorSegHeight): 0;
+  BCVerticalSeg();
+ 
+  void Start(BCMapBorderIterator& aIter,
+             BCBorderOwner        aBorderOwner,
+             nscoord              aVerSegWidth,
+             nscoord              aPrevHorSegHeight,
+             nscoord              aHorSegHeight,
+             BCVerticalSeg*       aVerInfoArray);
   
-  mTopBevelSide     = (aHorSegHeight > 0) ? NS_SIDE_RIGHT : NS_SIDE_LEFT;
-  mOffsetY      += offset;
-  mLength        = -offset;
-  mWidth         = aVerSegWidth;
-  mOwner         = aBorderOwner;
-  mFirstCell     = aIter.mCell;
-  mFirstRowGroup = aIter.mRg;
-  mFirstRow      = aIter.mRow;
-  if (aIter.GetRelativeColIndex() > 0) {
-    mAjaCell = aIter.mVerInfo[aIter.GetRelativeColIndex() - 1].mLastCell;
-  }
-}
+  union {
+    nsTableColFrame*  col;
+    PRInt32           colWidth;
+  };
+  PRInt32               colX;
+  nsTableCellFrame*     ajaCell;
+  nsTableCellFrame*     firstCell;  
+  nsTableRowGroupFrame* firstRowGroup; 
+  nsTableRowFrame*      firstRow; 
+  nsTableCellFrame*     lastCell;   
+  PRInt32               segY;
+  PRInt32               segHeight;
+  PRInt16               segWidth;   
+  PRUint8               owner;
+  PRUint8               bevelSide;
+  PRUint16              bevelOffset;
+};
 
-
-
-
-
-
-void
-BCVerticalSeg::Initialize(BCPaintBorderIterator& aIter)
-{
-  PRInt32 relColIndex = aIter.GetRelativeColIndex();
-  mCol = aIter.IsTableRightMost() ? aIter.mVerInfo[relColIndex - 1].mCol :
-           aIter.mTableFirstInFlow->GetColFrame(aIter.mColIndex);
-  if (!mCol) ABORT0();
-  if (0 == relColIndex) {
-    mOffsetX = aIter.mInitialOffsetX;
-  }
-  
-  if (!aIter.IsDamageAreaRightMost()) {
-    aIter.mVerInfo[relColIndex + 1].mOffsetX = mOffsetX +
-                                         aIter.mColInc * mCol->GetSize().width;
-  }
-  mOffsetY = aIter.mInitialOffsetY;
-  mLastCell = aIter.mCell;
-}
-
-
-
-
-
-
-
-void
-BCVerticalSeg::GetBottomCorner(BCPaintBorderIterator& aIter,
-                               BCPixelSize            aHorSegHeight)
-{
-   PRUint8 ownerSide = 0;
-   nscoord cornerSubWidth = 0;
-   PRPackedBool bevel = PR_FALSE;
-   if (aIter.mBCData) {
-     cornerSubWidth = aIter.mBCData->GetCorner(ownerSide, bevel);
-   }
-   mIsBottomBevel = (mWidth > 0) ? bevel : PR_FALSE;
-   mBottomHorSegHeight = PR_MAX(aIter.mPrevHorSegHeight, aHorSegHeight);
-   mBottomOffset = CalcVerCornerOffset(ownerSide, cornerSubWidth,
-                                    mBottomHorSegHeight,
-                                    PR_FALSE, mIsBottomBevel);
-   mLength += mBottomOffset;
-}
-
-
-
-
-
-
-
-
-void
-BCVerticalSeg::Paint(BCPaintBorderIterator& aIter,
-                     nsIRenderingContext&   aRenderingContext,
-                     BCPixelSize            aHorSegHeight)
-{
-  
-  PRUint8 side = (aIter.IsDamageAreaRightMost()) ? NS_SIDE_RIGHT :
-                                                    NS_SIDE_LEFT;
-  PRInt32 relColIndex = aIter.GetRelativeColIndex();
-  nsTableColFrame* col           = mCol; if (!col) ABORT0();
-  nsTableCellFrame* cell         = mFirstCell; 
-  PRUint8 style = NS_STYLE_BORDER_STYLE_SOLID;
-  nscolor color = 0xFFFFFFFF;
-  PRBool ignoreIfRules = (aIter.IsTableRightMost() ||
-                          aIter.IsTableLeftMost());
-
-  switch (mOwner) {
-    case eTableOwner:
-      ::GetPaintStyleInfo(aIter.mTable, side, style, color, aIter.mTableIsLTR,
-                          PR_FALSE);
-      break;
-    case eAjaColGroupOwner:
-      side = NS_SIDE_RIGHT;
-      if (!aIter.IsTableRightMost() && (relColIndex > 0)) {
-        col = aIter.mVerInfo[relColIndex - 1].mCol;
-      } 
-    case eColGroupOwner:
-      if (col) {
-        nsIFrame* cg = col->GetParent();
-        if (cg) {
-          ::GetPaintStyleInfo(cg, side, style, color, aIter.mTableIsLTR,
-                              ignoreIfRules);
-        }
-      }
-      break;
-    case eAjaColOwner:
-      side = NS_SIDE_RIGHT;
-      if (!aIter.IsTableRightMost() && (relColIndex > 0)) {
-        col = aIter.mVerInfo[relColIndex - 1].mCol;
-      } 
-    case eColOwner:
-      if (col) {
-       ::GetPaintStyleInfo(col, side, style, color, aIter.mTableIsLTR,
-                           ignoreIfRules);
-      }
-      break;
-    case eAjaRowGroupOwner:
-      NS_ERROR("a neighboring rowgroup can never own a vertical border");
-      
-    case eRowGroupOwner:
-      NS_ASSERTION(aIter.IsTableLeftMost() || aIter.IsTableRightMost(),
-                  "row group can own border only at table edge");
-      if (mFirstRowGroup) {
-        ::GetPaintStyleInfo(mFirstRowGroup, side, style, color,
-                            aIter.mTableIsLTR, ignoreIfRules);
-      }
-      break;
-    case eAjaRowOwner:
-      NS_ASSERTION(PR_FALSE, "program error"); 
-    case eRowOwner:
-      NS_ASSERTION(aIter.IsTableLeftMost() || aIter.IsTableRightMost(),
-                   "row can own border only at table edge");
-      if (mFirstRow) {
-        ::GetPaintStyleInfo(mFirstRow, side, style, color, aIter.mTableIsLTR,
-                            ignoreIfRules);
-      }
-      break;
-    case eAjaCellOwner:
-      side = NS_SIDE_RIGHT;
-      cell = mAjaCell; 
-    case eCellOwner:
-      if (cell) {
-        ::GetPaintStyleInfo(cell, side, style, color, aIter.mTableIsLTR,
-                            PR_FALSE);
-      }
-      break;
-  }
-  BCPixelSize smallHalf, largeHalf;
-  DivideBCBorderSize(mWidth, smallHalf, largeHalf);
-  nsRect segRect(mOffsetX - nsPresContext::CSSPixelsToAppUnits(largeHalf),
-                 mOffsetY,
-                 nsPresContext::CSSPixelsToAppUnits(mWidth), mLength);
-  nscoord bottomBevelOffset = (mIsBottomBevel) ?
-                  nsPresContext::CSSPixelsToAppUnits(mBottomHorSegHeight) : 0;
-  PRUint8 bottomBevelSide = ((aHorSegHeight > 0) ^ !aIter.mTableIsLTR) ?
-                            NS_SIDE_RIGHT : NS_SIDE_LEFT;
-  PRUint8 topBevelSide = ((mTopBevelSide == NS_SIDE_RIGHT) ^ !aIter.mTableIsLTR)?
-                         NS_SIDE_RIGHT : NS_SIDE_LEFT;
-  nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color,
-                                         aIter.mTableBgColor, segRect,
-                                         nsPresContext::AppUnitsPerCSSPixel(),
-                                         topBevelSide, mTopBevelOffset,
-                                         bottomBevelSide, bottomBevelOffset);
-}
-
-
-
-
-void
-BCVerticalSeg::AdvanceOffsetY()
-{
-  mOffsetY +=  mLength - mBottomOffset;
-}
-
-
-
-
-void
-BCVerticalSeg::IncludeCurrentBorder(BCPaintBorderIterator& aIter)
-{
-  mLastCell = aIter.mCell;
-  mLength  += aIter.mRow->GetRect().height;
-}
-
-BCHorizontalSeg::BCHorizontalSeg()
-{
-  mOffsetX = mOffsetY = mLength = mWidth =  mLeftBevelOffset = 0;
-  mLeftBevelSide = 0;
-  mFirstCell = mAjaCell = nsnull;
+BCVerticalSeg::BCVerticalSeg() 
+{ 
+  col = nsnull; firstCell = lastCell = ajaCell = nsnull; colX = segY = segHeight = 0;
+  segWidth = bevelOffset = 0; bevelSide = 0; owner = eCellOwner; 
 }
  
-
-
-
-
-
-
 void
-BCHorizontalSeg::Start(BCPaintBorderIterator& aIter,
-                       BCBorderOwner        aBorderOwner,
-                       BCPixelSize          aBottomVerSegWidth,
-                       BCPixelSize          aHorSegHeight)
+BCVerticalSeg::Start(BCMapBorderIterator& aIter,
+                     BCBorderOwner        aBorderOwner,
+                     nscoord              aVerSegWidth,
+                     nscoord              aPrevHorSegHeight,
+                     nscoord              aHorSegHeight,
+                     BCVerticalSeg*       aVerInfoArray)
 {
-  PRUint8      cornerOwnerSide = 0;
+  PRUint8      ownerSide = 0;
   PRPackedBool bevel     = PR_FALSE;
+  PRInt32      xAdj      = aIter.x - aIter.startX;
 
-  mOwner = aBorderOwner;
-  nscoord cornerSubWidth  = (aIter.mBCData) ?
-                             aIter.mBCData->GetCorner(cornerOwnerSide,
-                                                       bevel) : 0;
+  nscoord cornerSubWidth  = (aIter.bcData) ? aIter.bcData->GetCorner(ownerSide, bevel) : 0;
+  PRBool  topBevel        = (aVerSegWidth > 0) ? bevel : PR_FALSE;
+  nscoord maxHorSegHeight = NS_MAX(aPrevHorSegHeight, aHorSegHeight);
+  nscoord offset          = CalcVerCornerOffset(ownerSide, cornerSubWidth, maxHorSegHeight, 
+                                                PR_TRUE, topBevel);
 
-  PRBool  leftBevel = (aHorSegHeight > 0) ? bevel : PR_FALSE;
-  PRInt32 relColIndex = aIter.GetRelativeColIndex();
-  nscoord maxVerSegWidth = PR_MAX(aIter.mVerInfo[relColIndex].mWidth,
-                                  aBottomVerSegWidth);
-  nscoord offset = CalcHorCornerOffset(cornerOwnerSide, cornerSubWidth,
-                                       maxVerSegWidth, PR_TRUE, leftBevel,
-                                       aIter.mTableIsLTR);
-  mLeftBevelOffset = (leftBevel && (aHorSegHeight > 0)) ? maxVerSegWidth : 0;
+  bevelOffset   = (topBevel) ? maxHorSegHeight : 0;
+  bevelSide     = (aHorSegHeight > 0) ? NS_SIDE_RIGHT : NS_SIDE_LEFT;
+  segY         += offset;
+  segHeight     = -offset;
+  segWidth      = aVerSegWidth;
+  owner         = aBorderOwner;
+  firstCell     = aIter.cell;
+  firstRowGroup = aIter.rg;
+  firstRow      = aIter.row;
+  if (xAdj > 0) {
+    ajaCell = aVerInfoArray[xAdj - 1].lastCell;
+  }
+}
+
+struct BCHorizontalSeg
+{
+  BCHorizontalSeg();
+
+  void Start(BCMapBorderIterator& aIter,
+             BCBorderOwner        aBorderOwner,
+             PRUint8              aCornerOwnerSide,
+             nscoord              aSubWidth,
+             PRBool               aBevel,
+             nscoord              aTopVerSegWidth,
+             nscoord              aBottomVerSegWidth,
+             nscoord              aHorSegHeight,
+             nsTableCellFrame*    aLastCell,
+             PRBool               aTableIsLTR);
   
-  mLeftBevelSide   = (aBottomVerSegWidth > 0) ? NS_SIDE_BOTTOM : NS_SIDE_TOP;
-  if (aIter.mTableIsLTR) {
-    mOffsetX += offset;
+  nscoord            x;
+  nscoord            y;
+  nscoord            width;
+  nscoord            height;
+  PRBool             leftBevel;
+  nscoord            leftBevelOffset;
+  PRUint8            leftBevelSide;
+  PRUint8            owner;
+  nsTableCellFrame*  firstCell; 
+  nsTableCellFrame*  ajaCell;
+};
+
+BCHorizontalSeg::BCHorizontalSeg() 
+{ 
+  x = y = width = height = leftBevel = leftBevelOffset = leftBevelSide = 0; 
+  firstCell = ajaCell = nsnull;
+}
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+BCHorizontalSeg::Start(BCMapBorderIterator& aIter,
+                       BCBorderOwner        aBorderOwner,
+                       PRUint8              aCornerOwnerSide,
+                       nscoord              aSubWidth,
+                       PRBool               aBevel,
+                       nscoord              aTopVerSegWidth,
+                       nscoord              aBottomVerSegWidth,
+                       nscoord              aHorSegHeight,
+                       nsTableCellFrame*    aLastCell,
+                       PRBool               aTableIsLTR)
+{
+  owner = aBorderOwner;
+  leftBevel = (aHorSegHeight > 0) ? aBevel : PR_FALSE;
+  nscoord maxVerSegWidth = NS_MAX(aTopVerSegWidth, aBottomVerSegWidth);
+  nscoord offset = CalcHorCornerOffset(aCornerOwnerSide, aSubWidth, maxVerSegWidth, 
+                                       PR_TRUE, leftBevel, aTableIsLTR);
+  leftBevelOffset = (leftBevel && (aHorSegHeight > 0)) ? maxVerSegWidth : 0;
+  leftBevelSide   = (aBottomVerSegWidth > 0) ? NS_SIDE_BOTTOM : NS_SIDE_TOP;
+  if (aTableIsLTR) {
+    x            += offset;
   }
   else {
-    mOffsetX -= offset;
+    x            -= offset;
   }
-  mLength          = -offset;
-  mWidth           = aHorSegHeight;
-  mFirstCell       = aIter.mCell;
-  mAjaCell         = (aIter.IsDamageAreaTopMost()) ? nsnull :
-                     aIter.mVerInfo[relColIndex].mLastCell;
+  width           = -offset;
+  height          = aHorSegHeight;
+  firstCell       = aIter.cell;
+  ajaCell         = (aIter.IsTopMost()) ? nsnull : aLastCell; 
 }
-
-
-
-
-
-
-
-void
-BCHorizontalSeg::GetRightCorner(BCPaintBorderIterator& aIter,
-                                BCPixelSize            aLeftSegWidth)
-{
-  PRUint8 ownerSide = 0;
-  nscoord cornerSubWidth = 0;
-  PRPackedBool bevel = PR_FALSE;
-  if (aIter.mBCData) {
-    cornerSubWidth = aIter.mBCData->GetCorner(ownerSide, bevel);
-  }
-
-  mIsRightBevel = (mWidth > 0) ? bevel : 0;
-  PRInt32 relColIndex = aIter.GetRelativeColIndex();
-  nscoord verWidth = PR_MAX(aIter.mVerInfo[relColIndex].mWidth, aLeftSegWidth);
-  mEndOffset = CalcHorCornerOffset(ownerSide, cornerSubWidth, verWidth,
-                                   PR_FALSE, mIsRightBevel, aIter.mTableIsLTR);
-  mLength += mEndOffset;
-  mRightBevelOffset = (mIsRightBevel) ?
-                       nsPresContext::CSSPixelsToAppUnits(verWidth) : 0;
-  mRightBevelSide = (aLeftSegWidth > 0) ? NS_SIDE_BOTTOM : NS_SIDE_TOP;
-}
-
-
-
-
-
-
-void
-BCHorizontalSeg::Paint(BCPaintBorderIterator& aIter,
-                       nsIRenderingContext&   aRenderingContext)
-{
-  
-  PRUint8 side = (aIter.IsDamageAreaBottomMost()) ? NS_SIDE_BOTTOM :
-                                                     NS_SIDE_TOP;
-  nsIFrame* rg   = aIter.mRg;   if (!rg) ABORT0();
-  nsIFrame* row  = aIter.mRow;        if (!row) ABORT0();
-  nsIFrame* cell = mFirstCell; if (!cell) ABORT0(); 
-  nsIFrame* col;
-
-  PRUint8 style = NS_STYLE_BORDER_STYLE_SOLID;
-  nscolor color = 0xFFFFFFFF;
-  PRBool ignoreIfRules = (aIter.IsTableTopMost() ||
-                          aIter.IsTableBottomMost());
-
-  switch (mOwner) {
-    case eTableOwner:
-      ::GetPaintStyleInfo(aIter.mTable, side, style, color, aIter.mTableIsLTR,
-                          PR_FALSE);
-      break;
-    case eAjaColGroupOwner:
-      NS_ERROR("neighboring colgroups can never own a horizontal border");
-      
-    case eColGroupOwner: {
-      NS_ASSERTION(aIter.IsTableTopMost() || aIter.IsTableBottomMost(),
-                   "col group can own border only at the table edge");
-      col = aIter.mTableFirstInFlow->GetColFrame(aIter.mColIndex - 1);
-      if (!col) ABORT0();
-      nsIFrame* cg = col->GetParent(); if (!cg) ABORT0();
-      ::GetPaintStyleInfo(cg, side, style, color, aIter.mTableIsLTR,
-                          ignoreIfRules);
-      break;
-    }
-    case eAjaColOwner:
-      NS_ERROR("neighboring column can never own a horizontal border");
-      
-    case eColOwner:
-      NS_ASSERTION(aIter.IsTableTopMost() || aIter.IsTableBottomMost(),
-                   "col can own border only at the table edge");
-      col = aIter.mTableFirstInFlow->GetColFrame(aIter.mColIndex - 1);
-      if (!col) ABORT0();
-      ::GetPaintStyleInfo(col, side, style, color, aIter.mTableIsLTR,
-                          ignoreIfRules);
-      break;
-    case eAjaRowGroupOwner:
-      side = NS_SIDE_BOTTOM;
-      rg = (aIter.IsTableBottomMost()) ? aIter.mRg : aIter.mPrevRg;
-      
-    case eRowGroupOwner:
-      if (rg) {
-        ::GetPaintStyleInfo(rg, side, style, color, aIter.mTableIsLTR,
-                            ignoreIfRules);
-      }
-      break;
-    case eAjaRowOwner:
-      side = NS_SIDE_BOTTOM;
-      row = (aIter.IsTableBottomMost()) ? aIter.mRow : aIter.mPrevRow;
-      
-      case eRowOwner:
-      if (row) {
-        ::GetPaintStyleInfo(row, side, style, color, aIter.mTableIsLTR,
-                            aIter.IsTableBottomMost());
-      }
-      break;
-    case eAjaCellOwner:
-      side = NS_SIDE_BOTTOM;
-      
-      
-      cell = mAjaCell;
-      
-      case eCellOwner:
-      if (cell) {
-        ::GetPaintStyleInfo(cell, side, style, color, aIter.mTableIsLTR,
-                            PR_FALSE);
-      }
-      break;
-  }
-  BCPixelSize smallHalf, largeHalf;
-  DivideBCBorderSize(mWidth, smallHalf, largeHalf);
-  nsRect segRect(mOffsetX,
-                 mOffsetY - nsPresContext::CSSPixelsToAppUnits(largeHalf),
-                 mLength,
-                 nsPresContext::CSSPixelsToAppUnits(mWidth));
-  if (aIter.mTableIsLTR) {
-    nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color,
-                                           aIter.mTableBgColor, segRect,
-                                           nsPresContext::AppUnitsPerCSSPixel(),
-                                           mLeftBevelSide,
-                                           nsPresContext::CSSPixelsToAppUnits(mLeftBevelOffset), 
-                                           mRightBevelSide, mRightBevelOffset);
-  }
-  else {
-    segRect.x -= segRect.width;
-    nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color,
-                                           aIter.mTableBgColor, segRect,
-                                           nsPresContext::AppUnitsPerCSSPixel(),
-                                           mRightBevelSide, mRightBevelOffset,
-                                           mLeftBevelSide,
-                                           nsPresContext::CSSPixelsToAppUnits(mLeftBevelOffset));
-  }
-}
-
-
-
-
-void
-BCHorizontalSeg::AdvanceOffsetX(PRInt32 aIncrement)
-{
-  mOffsetX += aIncrement * (mLength - mEndOffset);
-}
-
-
-
-
-void
-BCHorizontalSeg::IncludeCurrentBorder(BCPaintBorderIterator& aIter)
-{
-  mLength += aIter.mVerInfo[aIter.GetRelativeColIndex()].mColWidth;
-}
-
-
-
-
-void
-BCPaintBorderIterator::StoreColumnWidth(PRInt32 aIndex)
-{
-  if (IsTableRightMost()) {
-      mVerInfo[aIndex].mColWidth = mVerInfo[aIndex - 1].mColWidth;
-  }
-  else {
-    nsTableColFrame* col = mTableFirstInFlow->GetColFrame(mColIndex);
-    if (!col) ABORT0();
-    mVerInfo[aIndex].mColWidth = col->GetSize().width;
-  }
-}
-
-
-
-PRBool
-BCPaintBorderIterator::VerticalSegmentOwnsCorner()
-{
-  PRUint8 cornerOwnerSide = 0;
-  PRPackedBool bevel = PR_FALSE;
-  nscoord cornerSubWidth;
-  cornerSubWidth = (mBCData) ? mBCData->GetCorner(cornerOwnerSide, bevel) : 0;
-  
-  return  (NS_SIDE_TOP == cornerOwnerSide) ||
-          (NS_SIDE_BOTTOM == cornerOwnerSide);
-}
-
-
-
-
-
-void
-BCPaintBorderIterator::AccumulateOrPaintHorizontalSegment(nsIRenderingContext& aRenderingContext)
-{
-
-  PRInt32 relColIndex = GetRelativeColIndex();
-  
-  if (mVerInfo[relColIndex].mColWidth < 0) {
-    StoreColumnWidth(relColIndex);
-  }
-  
-  BCBorderOwner borderOwner = eCellOwner;
-  BCBorderOwner ignoreBorderOwner;
-  PRBool isSegStart = PR_TRUE;
-  PRBool ignoreSegStart;
-  
-  nscoord leftSegWidth = (mBCData) ? mBCData->GetLeftEdge(ignoreBorderOwner,
-                                                          ignoreSegStart) : 0;
-  nscoord topSegHeight = (mBCData) ? mBCData->GetTopEdge(borderOwner,
-                                                         isSegStart) : 0;
-
-  if (mIsNewRow || (IsDamageAreaLeftMost() && IsDamageAreaBottomMost())) {
-    
-    mHorSeg.mOffsetY = mNextOffsetY;
-    mNextOffsetY     = mNextOffsetY + mRow->GetSize().height;
-    mHorSeg.mOffsetX = mInitialOffsetX;
-    mHorSeg.Start(*this, borderOwner, leftSegWidth, topSegHeight);
-  }
-
-  if (!IsDamageAreaLeftMost() && (isSegStart || IsDamageAreaRightMost() ||
-                                  VerticalSegmentOwnsCorner())) {
-    
-    if (mHorSeg.mLength > 0) {
-      mHorSeg.GetRightCorner(*this, leftSegWidth);
-      if (mHorSeg.mWidth > 0) {
-        mHorSeg.Paint(*this, aRenderingContext);
-      }
-      mHorSeg.AdvanceOffsetX(mColInc);
-    }
-    mHorSeg.Start(*this, borderOwner, leftSegWidth, topSegHeight);
-  }
-  mHorSeg.IncludeCurrentBorder(*this);
-  mVerInfo[relColIndex].mWidth = leftSegWidth;
-  mVerInfo[relColIndex].mLastCell = mCell;
-}
-
-
-
-
-void
-BCPaintBorderIterator::AccumulateOrPaintVerticalSegment(nsIRenderingContext& aRenderingContext)
-{
-  BCBorderOwner borderOwner = eCellOwner;
-  BCBorderOwner ignoreBorderOwner;
-  PRBool isSegStart = PR_TRUE;
-  PRBool ignoreSegStart;
-
-  nscoord verSegWidth  = (mBCData) ? mBCData->GetLeftEdge(borderOwner,
-                                                          isSegStart) : 0;
-  nscoord horSegHeight = (mBCData) ? mBCData->GetTopEdge(ignoreBorderOwner,
-                                                         ignoreSegStart) : 0;
-
-  PRInt32 relColIndex = GetRelativeColIndex();
-  BCVerticalSeg& verSeg = mVerInfo[relColIndex];
-  if (!verSeg.mCol) { 
-                      
-    verSeg.Initialize(*this);
-    verSeg.Start(*this, borderOwner, verSegWidth, horSegHeight);
-  }
-
-  if (!IsDamageAreaTopMost() && (isSegStart || IsDamageAreaBottomMost() ||
-                                 IsAfterRepeatedHeader() ||
-                                 StartRepeatedFooter())) {
-    
-    if (verSeg.mLength > 0) {
-      verSeg.GetBottomCorner(*this, horSegHeight);
-      if (verSeg.mWidth > 0) {
-        verSeg.Paint(*this, aRenderingContext, horSegHeight);
-      }
-      verSeg.AdvanceOffsetY();
-    }
-    verSeg.Start(*this, borderOwner, verSegWidth, horSegHeight);
-  }
-  verSeg.IncludeCurrentBorder(*this);
-  mPrevHorSegHeight = horSegHeight;
-}
-
-
-
-
-void
-BCPaintBorderIterator::ResetVerInfo()
-{
-  if (mVerInfo) {
-    memset(mVerInfo, 0, mDamageArea.width * sizeof(BCVerticalSeg));
-    
-    for (PRInt32 xIndex = 0; xIndex < mDamageArea.width; xIndex++) {
-      mVerInfo[xIndex].mColWidth = -1;
-    }
-  }
-}
-
-
-
-
-
-
 
 void 
 nsTableFrame::PaintBCBorders(nsIRenderingContext& aRenderingContext,
                              const nsRect&        aDirtyRect)
 {
+  nsMargin childAreaOffset = GetChildAreaOffset(nsnull);
+  nsTableFrame* firstInFlow = (nsTableFrame*)GetFirstInFlow(); if (!firstInFlow) ABORT0();
+
+  PRInt32 startRowY = (GetPrevInFlow()) ? 0 : childAreaOffset.top; 
+
+  nsStyleContext* bgContext = nsCSSRendering::FindNonTransparentBackground(mStyleContext);
+  const nsStyleBackground* bgColor = bgContext->GetStyleBackground();
+  
+  PRUint32 startRowIndex, endRowIndex, startColIndex, endColIndex;
+  startRowIndex = endRowIndex = startColIndex = endColIndex = 0;
+
+  RowGroupArray rowGroups;
+  OrderRowGroups(rowGroups);
+  PRBool done = PR_FALSE;
+  PRBool haveIntersect = PR_FALSE;
+  nsTableRowGroupFrame* inFlowRG  = nsnull;
+  nsTableRowFrame*      inFlowRow = nsnull;
+  
+  PRInt32 rowY = startRowY;
+  for (PRUint32 rgX = 0; rgX < rowGroups.Length() && !done; rgX++) {
+    nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
+    for (nsTableRowFrame* rowFrame = rgFrame->GetFirstRow(); rowFrame;
+         rowFrame = rowFrame->GetNextRow()) {
+      
+      nscoord topBorderHalf    = (GetPrevInFlow()) ? 0 : nsPresContext::CSSPixelsToAppUnits(rowFrame->GetTopBCBorderWidth() + 1); 
+      nscoord bottomBorderHalf = (GetNextInFlow()) ? 0 : nsPresContext::CSSPixelsToAppUnits(rowFrame->GetBottomBCBorderWidth() + 1);
+      
+      nsSize rowSize = rowFrame->GetSize();
+      if (haveIntersect) {
+        if (aDirtyRect.YMost() >= (rowY - topBorderHalf)) {
+          nsTableRowFrame* fifRow = (nsTableRowFrame*)rowFrame->GetFirstInFlow(); if (!fifRow) ABORT0();
+          endRowIndex = fifRow->GetRowIndex();
+        }
+        else done = PR_TRUE;
+      }
+      else {
+        if ((rowY + rowSize.height + bottomBorderHalf) >= aDirtyRect.y) {
+          inFlowRG  = rgFrame;
+          inFlowRow = rowFrame;
+          nsTableRowFrame* fifRow = (nsTableRowFrame*)rowFrame->GetFirstInFlow(); if (!fifRow) ABORT0();
+          startRowIndex = endRowIndex = fifRow->GetRowIndex();
+          haveIntersect = PR_TRUE;
+        }
+        else {
+          startRowY += rowSize.height;
+        }
+      }
+      rowY += rowSize.height; 
+    }
+  }
   
   
-  BCPaintBorderIterator iter(this);
-  if (!iter.SetDamageArea(aDirtyRect))
+  
+  
+  
+  if (!haveIntersect)
+    return;  
+  if (!inFlowRG || !inFlowRow) ABORT0();
+
+  PRInt32 startColX;
+  
+  haveIntersect = PR_FALSE;
+  PRUint32 numCols = GetColCount();
+  if (0 == numCols) return;
+
+  PRInt32 leftCol, rightCol, colInc; 
+  PRBool tableIsLTR = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR;
+  if (tableIsLTR) {
+    startColX = childAreaOffset.left; 
+    leftCol = 0;
+    rightCol = numCols;
+    colInc = 1;
+  } else {
+    startColX = mRect.width - childAreaOffset.right; 
+    leftCol = numCols-1;
+    rightCol = -1;
+    colInc = -1;
+  }
+
+  nscoord x = 0;
+  PRInt32 colX;
+  for (colX = leftCol; colX != rightCol; colX += colInc) {
+    nsTableColFrame* colFrame = firstInFlow->GetColFrame(colX);
+    if (!colFrame) ABORT0();
+    
+    nscoord leftBorderHalf    = nsPresContext::CSSPixelsToAppUnits(colFrame->GetLeftBorderWidth() + 1); 
+    nscoord rightBorderHalf   = nsPresContext::CSSPixelsToAppUnits(colFrame->GetRightBorderWidth() + 1);
+    
+    nsSize size = colFrame->GetSize();
+    if (haveIntersect) {
+      if (aDirtyRect.XMost() >= (x - leftBorderHalf)) {
+        endColIndex = colX;
+      }
+      else break;
+    }
+    else {
+      if ((x + size.width + rightBorderHalf) >= aDirtyRect.x) {
+        startColIndex = endColIndex = colX;
+        haveIntersect = PR_TRUE;
+      }
+      else {
+        startColX += colInc * size.width;
+      }
+    }
+    x += size.width;
+  }
+
+  if (!tableIsLTR) {
+    PRUint32 temp;
+    startColX = mRect.width - childAreaOffset.right;
+    temp = startColIndex; startColIndex = endColIndex; endColIndex = temp;
+    for (PRUint32 column = 0; column < startColIndex; column++) {
+      nsTableColFrame* colFrame = firstInFlow->GetColFrame(column);
+      if (!colFrame) ABORT0();
+      nsSize size = colFrame->GetSize();
+      startColX += colInc * size.width;
+    }
+  }
+  if (!haveIntersect)
     return;
+  
+  nsRect damageArea(startColIndex, startRowIndex,
+                    1 + PR_ABS(PRInt32(endColIndex - startColIndex)), 
+                    1 + endRowIndex - startRowIndex);
+  BCVerticalSeg* verInfo = new BCVerticalSeg[damageArea.width + 1]; if (!verInfo) ABORT0();
+
+  BCBorderOwner borderOwner, ignoreBorderOwner;
+  PRUint8 ownerSide;
+  nscoord cornerSubWidth, smallHalf, largeHalf;
+  nsRect rowRect(0,0,0,0);
+  PRBool isSegStart, ignoreSegStart;
+  nscoord prevHorSegHeight = 0;
+  PRPackedBool bevel;
+  PRInt32 repeatedHeaderY = -99;
+  PRBool  afterRepeatedHeader = PR_FALSE;
+  PRBool  startRepeatedFooter = PR_FALSE;
 
   
   
   
-  
-  
-  
-  
-  
-  
-  for (iter.First(); !iter.mAtEnd; iter.Next()) {
-    iter.AccumulateOrPaintVerticalSegment(aRenderingContext);
-  }
+  BCMapBorderIterator iter(*this, *inFlowRG, *inFlowRow, damageArea); 
+  for (iter.First(); !iter.atEnd; iter.Next()) {
+    nscoord verSegWidth = (iter.bcData) ? iter.bcData->GetLeftEdge(borderOwner, isSegStart) : 0;
+    nscoord horSegHeight = (iter.bcData) ? iter.bcData->GetTopEdge(ignoreBorderOwner, ignoreSegStart) : 0;
+
+    PRInt32 xAdj = iter.x - iter.startX;
+    if (iter.isNewRow) {
+      prevHorSegHeight = 0;
+      rowRect = iter.row->GetRect();
+      if (iter.isRepeatedHeader) {
+        repeatedHeaderY = iter.y;
+      }
+      afterRepeatedHeader = !iter.isRepeatedHeader && (iter.y == (repeatedHeaderY + 1));
+      startRepeatedFooter = iter.isRepeatedFooter && (iter.y == iter.rowGroupStart) && (iter.y != iter.startY);
+    }
+    BCVerticalSeg& info = verInfo[xAdj];
+    if (!info.col) { 
+      info.col = iter.IsRightMostTable() ? verInfo[xAdj - 1].col : firstInFlow->GetColFrame(iter.x);
+      if (!info.col) ABORT0();
+      if (0 == xAdj) {
+        info.colX = startColX;
+      }
+      
+      if (!iter.IsRightMost()) {
+        verInfo[xAdj + 1].colX = info.colX + colInc * info.col->GetSize().width;
+      }
+      info.segY = startRowY; 
+      info.Start(iter, borderOwner, verSegWidth, prevHorSegHeight, horSegHeight, verInfo);
+      info.lastCell = iter.cell;
+    }
+
+    if (!iter.IsTopMost() && (isSegStart || iter.IsBottomMost() || afterRepeatedHeader || startRepeatedFooter)) {
+      
+      if (info.segHeight > 0) {
+        if (iter.bcData) {
+          cornerSubWidth = iter.bcData->GetCorner(ownerSide, bevel);
+        } else {
+          cornerSubWidth = 0;
+          ownerSide = 0; 
+          bevel = PR_FALSE; 
+        }
+        PRBool endBevel = (info.segWidth > 0) ? bevel : PR_FALSE; 
+        nscoord bottomHorSegHeight = NS_MAX(prevHorSegHeight, horSegHeight); 
+        nscoord endOffset = CalcVerCornerOffset(ownerSide, cornerSubWidth, bottomHorSegHeight, 
+                                                PR_FALSE, endBevel);
+        info.segHeight += endOffset;
+        if (info.segWidth > 0) {     
+          
+          PRUint8 side = (iter.IsRightMost()) ? NS_SIDE_RIGHT : NS_SIDE_LEFT;
+          nsTableRowFrame* row           = info.firstRow;
+          nsTableRowGroupFrame* rowGroup = info.firstRowGroup;
+          nsTableColFrame* col           = info.col; if (!col) ABORT0();
+          nsTableCellFrame* cell         = info.firstCell; 
+          PRUint8 style = NS_STYLE_BORDER_STYLE_SOLID;
+          nscolor color = 0xFFFFFFFF;
+          PRBool ignoreIfRules = (iter.IsRightMostTable() || iter.IsLeftMostTable());
+
+          switch (info.owner) {
+          case eTableOwner:
+            ::GetPaintStyleInfo(this, side, style, color, tableIsLTR, PR_FALSE);
+            break;
+          case eAjaColGroupOwner: 
+            side = NS_SIDE_RIGHT;
+            if (!iter.IsRightMostTable() && (xAdj > 0)) {
+              col = verInfo[xAdj - 1].col; 
+            } 
+          case eColGroupOwner:
+            if (col) {
+              nsIFrame* cg = col->GetParent();
+              if (cg) {
+                ::GetPaintStyleInfo(cg, side, style, color, tableIsLTR, ignoreIfRules);
+              }
+            }
+            break;
+          case eAjaColOwner: 
+            side = NS_SIDE_RIGHT;
+            if (!iter.IsRightMostTable() && (xAdj > 0)) {
+              col = verInfo[xAdj - 1].col; 
+            } 
+          case eColOwner:
+            if (col) {
+              ::GetPaintStyleInfo(col, side, style, color, tableIsLTR, ignoreIfRules);
+            }
+            break;
+          case eAjaRowGroupOwner:
+            NS_ASSERTION(PR_FALSE, "program error"); 
+          case eRowGroupOwner:
+            NS_ASSERTION(iter.IsLeftMostTable() || iter.IsRightMostTable(), "program error");
+            if (rowGroup) {
+              ::GetPaintStyleInfo(rowGroup, side, style, color, tableIsLTR, ignoreIfRules);
+            }
+            break;
+          case eAjaRowOwner:
+            NS_ASSERTION(PR_FALSE, "program error"); 
+          case eRowOwner: 
+            NS_ASSERTION(iter.IsLeftMostTable() || iter.IsRightMostTable(), "program error");
+            if (row) {
+              ::GetPaintStyleInfo(row, side, style, color, tableIsLTR, ignoreIfRules);
+            }
+            break;
+          case eAjaCellOwner:
+            side = NS_SIDE_RIGHT;
+            cell = info.ajaCell; 
+          case eCellOwner:
+            if (cell) {
+              ::GetPaintStyleInfo(cell, side, style, color, tableIsLTR, PR_FALSE);
+            }
+            break;
+          }
+          DivideBCBorderSize(info.segWidth, smallHalf, largeHalf);
+          nsRect segRect(info.colX - nsPresContext::CSSPixelsToAppUnits(largeHalf), info.segY, 
+                         nsPresContext::CSSPixelsToAppUnits(info.segWidth), info.segHeight);
+          nscoord bottomBevelOffset = (endBevel) ? nsPresContext::CSSPixelsToAppUnits(bottomHorSegHeight) : 0;
+          PRUint8 bottomBevelSide = ((horSegHeight > 0) ^ !tableIsLTR) ? NS_SIDE_RIGHT : NS_SIDE_LEFT;
+          PRUint8 topBevelSide = ((info.bevelSide == NS_SIDE_RIGHT) ^ !tableIsLTR)?  NS_SIDE_RIGHT : NS_SIDE_LEFT;
+          nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color, bgColor, segRect, nsPresContext::AppUnitsPerCSSPixel(), 
+                                                 topBevelSide, nsPresContext::CSSPixelsToAppUnits(info.bevelOffset), 
+                                                 bottomBevelSide, bottomBevelOffset);
+        } 
+        info.segY = info.segY + info.segHeight - endOffset;
+      } 
+      info.Start(iter, borderOwner, verSegWidth, prevHorSegHeight, horSegHeight, verInfo);
+    } 
+
+    info.lastCell   = iter.cell;
+    info.segHeight += rowRect.height;
+    prevHorSegHeight = horSegHeight;
+  } 
 
   
   
-  
-  iter.Reset();
-  for (iter.First(); !iter.mAtEnd; iter.Next()) {
-    iter.AccumulateOrPaintHorizontalSegment(aRenderingContext);
+  memset(verInfo, 0, damageArea.width * sizeof(BCVerticalSeg)); 
+  for (PRInt32 xIndex = 0; xIndex < damageArea.width; xIndex++) {
+    verInfo[xIndex].colWidth = -1;
   }
+  PRInt32 nextY = startRowY;
+  BCHorizontalSeg horSeg;
+
+  iter.Reset(*this, *inFlowRG, *inFlowRow, damageArea);
+  for (iter.First(); !iter.atEnd; iter.Next()) {
+    nscoord leftSegWidth = (iter.bcData) ? iter.bcData->GetLeftEdge(ignoreBorderOwner, ignoreSegStart) : 0;
+    nscoord topSegHeight = (iter.bcData) ? iter.bcData->GetTopEdge(borderOwner, isSegStart) : 0;
+
+    PRInt32 xAdj = iter.x - iter.startX;
+    
+    if (verInfo[xAdj].colWidth < 0) {
+      if (iter.IsRightMostTable()) {
+        verInfo[xAdj].colWidth = verInfo[xAdj - 1].colWidth;
+      }
+      else {
+        nsTableColFrame* col = firstInFlow->GetColFrame(iter.x); if (!col) ABORT0();
+        verInfo[xAdj].colWidth = col->GetSize().width;
+      }
+    }
+    cornerSubWidth = (iter.bcData) ? iter.bcData->GetCorner(ownerSide, bevel) : 0;
+    nscoord verWidth = NS_MAX(nscoord(verInfo[xAdj].segWidth), leftSegWidth);
+    if (iter.isNewRow || (iter.IsLeftMost() && iter.IsBottomMost())) {
+      horSeg.y = nextY;
+      nextY    = nextY + iter.row->GetSize().height;
+      horSeg.x = startColX;
+      horSeg.Start(iter, borderOwner, ownerSide, cornerSubWidth, bevel, verInfo[xAdj].segWidth, 
+                   leftSegWidth, topSegHeight, verInfo[xAdj].lastCell, tableIsLTR);
+    }
+    PRBool verOwnsCorner = (NS_SIDE_TOP == ownerSide) || (NS_SIDE_BOTTOM == ownerSide);
+    if (!iter.IsLeftMost() && (isSegStart || iter.IsRightMost() || verOwnsCorner)) {
+      
+      if (horSeg.width > 0) {
+        PRBool endBevel = (horSeg.height > 0) ? bevel : 0;
+        nscoord endOffset = CalcHorCornerOffset(ownerSide, cornerSubWidth, verWidth, PR_FALSE, endBevel, tableIsLTR);
+        horSeg.width += endOffset;
+        if (horSeg.height > 0) {
+          
+          PRUint8 side = (iter.IsBottomMost()) ? NS_SIDE_BOTTOM : NS_SIDE_TOP;
+          nsIFrame* rg   = iter.rg;          if (!rg) ABORT0();
+          nsIFrame* row  = iter.row;         if (!row) ABORT0();
+          nsIFrame* cell = horSeg.firstCell; if (!cell) ABORT0();
+          nsIFrame* col;
+
+          PRUint8 style = NS_STYLE_BORDER_STYLE_SOLID; 
+          nscolor color = 0xFFFFFFFF;
+          PRBool ignoreIfRules = (iter.IsTopMostTable() || iter.IsBottomMostTable());
+
+          switch (horSeg.owner) {
+          case eTableOwner:
+            ::GetPaintStyleInfo(this, side, style, color, tableIsLTR, PR_FALSE);
+            break;
+          case eAjaColGroupOwner: 
+            NS_ASSERTION(PR_FALSE, "program error"); 
+          case eColGroupOwner: {
+            NS_ASSERTION(iter.IsTopMostTable() || iter.IsBottomMostTable(), "program error");
+            col = firstInFlow->GetColFrame(iter.x - 1); if (!col) ABORT0();
+            nsIFrame* cg = col->GetParent(); if (!cg) ABORT0();
+            ::GetPaintStyleInfo(cg, side, style, color, tableIsLTR, ignoreIfRules);
+            break;
+          }
+          case eAjaColOwner: 
+            NS_ASSERTION(PR_FALSE, "program error"); 
+          case eColOwner:
+            NS_ASSERTION(iter.IsTopMostTable() || iter.IsBottomMostTable(), "program error");
+            col = firstInFlow->GetColFrame(iter.x - 1); if (!col) ABORT0();
+            ::GetPaintStyleInfo(col, side, style, color, tableIsLTR, ignoreIfRules);
+            break;
+          case eAjaRowGroupOwner: 
+            side = NS_SIDE_BOTTOM;
+            rg = (iter.IsBottomMostTable()) ? iter.rg : iter.prevRg; 
+          case eRowGroupOwner:
+            if (rg) {
+              ::GetPaintStyleInfo(rg, side, style, color, tableIsLTR, ignoreIfRules);
+            }
+            break;
+          case eAjaRowOwner: 
+            side = NS_SIDE_BOTTOM;
+            row = (iter.IsBottomMostTable()) ? iter.row : iter.prevRow; 
+          case eRowOwner:
+            if (row) {
+              ::GetPaintStyleInfo(row, side, style, color, tableIsLTR, iter.IsBottomMostTable());
+            }
+            break;
+          case eAjaCellOwner:
+            side = NS_SIDE_BOTTOM;
+            
+            cell = horSeg.ajaCell; 
+            
+          case eCellOwner:
+            if (cell) {
+              ::GetPaintStyleInfo(cell, side, style, color, tableIsLTR, PR_FALSE);
+            }
+            break;
+          }
+          
+          DivideBCBorderSize(horSeg.height, smallHalf, largeHalf);
+          nsRect segRect(horSeg.x, horSeg.y - nsPresContext::CSSPixelsToAppUnits(largeHalf), horSeg.width, 
+                         nsPresContext::CSSPixelsToAppUnits(horSeg.height));
+           if (!tableIsLTR)
+            segRect.x -= segRect.width;
+
+          nscoord rightBevelOffset = (endBevel) ? nsPresContext::CSSPixelsToAppUnits(verWidth) : 0;
+          PRUint8 rightBevelSide = (leftSegWidth > 0) ? NS_SIDE_BOTTOM : NS_SIDE_TOP;
+          if (tableIsLTR) {
+            nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color, bgColor, segRect, nsPresContext::AppUnitsPerCSSPixel(), horSeg.leftBevelSide,
+                                                 nsPresContext::CSSPixelsToAppUnits(horSeg.leftBevelOffset), 
+                                                 rightBevelSide, rightBevelOffset);
+          }
+          else {
+            nsCSSRendering::DrawTableBorderSegment(aRenderingContext, style, color, bgColor, segRect, nsPresContext::AppUnitsPerCSSPixel(), rightBevelSide, rightBevelOffset,
+                                                 horSeg.leftBevelSide, nsPresContext::CSSPixelsToAppUnits(horSeg.leftBevelOffset));
+          }
+
+        } 
+        horSeg.x += colInc * (horSeg.width - endOffset);
+      } 
+      horSeg.Start(iter, borderOwner, ownerSide, cornerSubWidth, bevel, verInfo[xAdj].segWidth, 
+                   leftSegWidth, topSegHeight, verInfo[xAdj].lastCell, tableIsLTR);
+    } 
+    horSeg.width += verInfo[xAdj].colWidth;
+    verInfo[xAdj].segWidth = leftSegWidth;
+    verInfo[xAdj].lastCell = iter.cell;
+  }
+  delete [] verInfo;
 }
 
 PRBool nsTableFrame::RowHasSpanningCells(PRInt32 aRowIndex, PRInt32 aNumEffCols)
