@@ -1617,7 +1617,7 @@ PRBool CSSParserImpl::ParseNameSpaceRule(nsresult& aErrorCode,
 
   if (eCSSToken_Ident == mToken.mType) {
     prefix = mToken.mIdent;
-    ToLowerCase(prefix); 
+    
     if (! GetToken(aErrorCode, PR_TRUE)) {
       REPORT_UNEXPECTED_EOF(PEAtNSURIEOF);
       return PR_FALSE;
@@ -2176,7 +2176,7 @@ CSSParserImpl::ParseTypeOrUniversalSelector(PRInt32&       aDataMask,
       aDataMask |= SEL_MASK_NSPACE;
       PRInt32 nameSpaceID = kNameSpaceID_Unknown;
       if (mNameSpaceMap) {
-        ToLowerCase(buffer); 
+        
         nsCOMPtr<nsIAtom> prefix = do_GetAtom(buffer);
         nameSpaceID = mNameSpaceMap->FindNameSpaceID(prefix);
       } 
@@ -2341,7 +2341,7 @@ CSSParserImpl::ParseAttributeSelector(PRInt32&       aDataMask,
     if (ExpectSymbol(aErrorCode, '|', PR_FALSE)) {  
       nameSpaceID = kNameSpaceID_Unknown;
       if (mNameSpaceMap) {
-        ToLowerCase(attr); 
+        
         nsCOMPtr<nsIAtom> prefix = do_GetAtom(attr);
         nameSpaceID = mNameSpaceMap->FindNameSpaceID(prefix);
       } 
@@ -4012,7 +4012,7 @@ PRBool CSSParserImpl::ParseAttr(nsresult& aErrorCode, nsCSSValue& aValue)
         if (ExpectSymbol(aErrorCode, '|', PR_FALSE)) {  
           PRInt32 nameSpaceID = kNameSpaceID_Unknown;
           if (mNameSpaceMap) {
-            ToLowerCase(holdIdent); 
+            
             nsCOMPtr<nsIAtom> prefix = do_GetAtom(holdIdent);
             nameSpaceID = mNameSpaceMap->FindNameSpaceID(prefix);
           } 
