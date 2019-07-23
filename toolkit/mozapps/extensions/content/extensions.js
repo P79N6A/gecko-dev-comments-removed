@@ -73,7 +73,7 @@ var gShowGetAddonsPane = false;
 var gRetrievedResults = false;
 var gRecommendedAddons = null;
 var gRDF              = null;
-var gPendingInstalls  = [];
+var gPendingInstalls  = {};
 
 const PREF_EM_CHECK_COMPATIBILITY           = "extensions.checkCompatibility";
 const PREF_EM_CHECK_UPDATE_SECURITY         = "extensions.checkUpdateSecurity";
@@ -1222,11 +1222,17 @@ XPInstallDownloadManager.prototype = {
       var certName = aParams.GetString(i++);
 
       
-      var pos = gPendingInstalls.indexOf(url);
-      if (pos >= 0)
-        gPendingInstalls.splice(pos, 1);
-      else
+      if (url in gPendingInstalls) {
+        
+        gSearchDS.Assert(gRDF.GetResource(gPendingInstalls[url]),
+                         gRDF.GetResource(PREFIX_NS_EM + "action"),
+                         gRDF.GetLiteral("installing"),
+                         true);
+        delete gPendingInstalls[url];
+      }
+      else {
         switchPane = true;
+      }
     }
 
     gExtensionManager.addDownloads(items, items.length, aManager);
@@ -2217,31 +2223,33 @@ function confirmOperation(aName, aTitle, aQueryMsg, aAcceptBtn, aCancelBtn,
 
 function installCallback(item, status) {
   var resultNode = gRDF.GetResource(item.id);
+  var actionArc = gRDF.GetResource(PREFIX_NS_EM + "action");
 
   
-  gSearchDS.Unassert(resultNode,
-                     gRDF.GetResource(PREFIX_NS_EM + "action"),
-                     gRDF.GetLiteral("installing"),
-                     true);
+  var targets = gSearchDS.GetTargets(resultNode, actionArc, true);
+  while (targets.hasMoreElements()) {
+    var value = targets.getNext().QueryInterface(Components.interfaces.nsIRDFNode);
+    if (value)
+      gSearchDS.Unassert(resultNode, actionArc, value);
+  }
 
   if (status == -210) {
     
-    var pos = gPendingInstalls.indexOf(item.getAttribute("xpiURL"));
-    if (pos >= 0)
-      gPendingInstalls.splice(pos, 1);
+    if (item.getAttribute("xpiURL") in gPendingInstalls)
+      delete gPendingInstalls[item.getAttribute("xpiURL")];
     return;
   }
   if (status < 0) {
     
     gSearchDS.Assert(resultNode,
-                     gRDF.GetResource(PREFIX_NS_EM + "action"),
+                     actionArc,
                      gRDF.GetLiteral("failed"),
                      true);
   }
   else {
     
     gSearchDS.Assert(resultNode,
-                     gRDF.GetResource(PREFIX_NS_EM + "action"),
+                     actionArc,
                      gRDF.GetLiteral("installed"),
                      true);
   }
@@ -2385,10 +2393,10 @@ var gExtensionsViewController = {
 
       gSearchDS.Assert(gRDF.GetResource(aSelectedItem.id),
                        gRDF.GetResource(PREFIX_NS_EM + "action"),
-                       gRDF.GetLiteral("installing"),
+                       gRDF.GetLiteral("connecting"),
                        true);
       
-      gPendingInstalls.push(details.URL);
+      gPendingInstalls[details.URL] = aSelectedItem.id;
       InstallTrigger.install(params, function(url, status) { installCallback(aSelectedItem, status); });
     },
 
