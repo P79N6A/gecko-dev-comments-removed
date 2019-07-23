@@ -194,6 +194,7 @@ namespace nanojit
         X64_divsd   = 0xC05E0F40F2000005LL, 
         X64_mulsd   = 0xC0590F40F2000005LL, 
         X64_addsd   = 0xC0580F40F2000005LL, 
+        X64_idiv    = 0xF8F7400000000003LL, 
         X64_imul    = 0xC0AF0F4000000004LL, 
         X64_imuli   = 0xC069400000000003LL, 
         X64_imul8   = 0x00C06B4000000004LL, 
@@ -371,6 +372,7 @@ namespace nanojit
         void asm_cmp_imm(LIns*);\
         void fcmp(LIns*, LIns*);\
         NIns* asm_fbranch(bool, LIns*, NIns*);\
+        void asm_div_mod(LIns *i);\
         int max_stk_used;
 
     #define swapptrs()  { NIns* _tins = _nIns; _nIns=_nExitIns; _nExitIns=_tins; }
