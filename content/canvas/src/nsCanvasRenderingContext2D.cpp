@@ -120,7 +120,8 @@ static inline bool
 DoubleIsFinite(double d)
 {
 #ifdef WIN32
-    return _finite(d);
+    
+    return !!_finite(d);
 #else
     return finite(d);
 #endif
