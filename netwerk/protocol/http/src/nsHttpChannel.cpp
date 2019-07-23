@@ -81,7 +81,6 @@
 #include "nsIOService.h"
 #include "nsAuthInformationHolder.h"
 #include "nsICacheService.h"
-#include "nsDNSPrefetch.h"
 
 
 #define BYPASS_LOCAL_CACHE(loadFlags) \
@@ -3995,13 +3994,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         return rv;
 
     
-    
-    nsRefPtr<nsDNSPrefetch> prefetch = new nsDNSPrefetch(mURI);
-    if (prefetch) {
-        prefetch->PrefetchMedium();
-    }
-
-    
     const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
     if (cookieHeader)
         mUserSetCookieHeader = cookieHeader;
@@ -4018,10 +4010,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (mRequestHead.HasHeaderValue(nsHttp::Connection, "close"))
         mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE | NS_HTTP_ALLOW_PIPELINING);
     
-    if ((mLoadFlags & VALIDATE_ALWAYS) || 
-        (BYPASS_LOCAL_CACHE(mLoadFlags)))
-        mCaps |= NS_HTTP_REFRESH_DNS;
-
     mIsPending = PR_TRUE;
     mWasOpened = PR_TRUE;
 

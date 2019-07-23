@@ -68,28 +68,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define MAX_NON_PRIORITY_REQUESTS 150
-
-#define HighThreadThreshold     4
-#define LongIdleTimeoutSeconds  300           // for threads 1 -> HighThreadThreshold
-#define ShortIdleTimeoutSeconds 60            // for threads HighThreadThreshold+1 -> MAX_RESOLVER_THREADS
-
-PR_STATIC_ASSERT (HighThreadThreshold <= MAX_RESOLVER_THREADS);
+#define MAX_THREADS 8
+#define IDLE_TIMEOUT PR_SecondsToInterval(60)
 
 
 
@@ -193,7 +173,7 @@ nsHostRecord::Create(const nsHostKey *key, nsHostRecord **result)
     }
 
     rec->host = ((char *) rec) + sizeof(nsHostRecord);
-    rec->flags = key->flags;
+    rec->flags = RES_KEY_FLAGS(key->flags);
     rec->af = key->af;
 
     rec->_refc = 1; 
@@ -204,7 +184,6 @@ nsHostRecord::Create(const nsHostKey *key, nsHostRecord **result)
     rec->addr = nsnull;
     rec->expiration = NowInMinutes();
     rec->resolving = PR_FALSE;
-    rec->onQueue = PR_FALSE;
     PR_INIT_CLIST(rec);
     PR_INIT_CLIST(&rec->callbacks);
     rec->negative = PR_FALSE;
@@ -235,7 +214,7 @@ static PLDHashNumber
 HostDB_HashKey(PLDHashTable *table, const void *key)
 {
     const nsHostKey *hk = static_cast<const nsHostKey *>(key);
-    return PL_DHashStringKey(table, hk->host) ^ RES_KEY_FLAGS(hk->flags) ^ hk->af;
+    return PL_DHashStringKey(table, hk->host) ^ hk->flags ^ hk->af;
 }
 
 static PRBool
@@ -247,7 +226,7 @@ HostDB_MatchEntry(PLDHashTable *table,
     const nsHostKey *hk = static_cast<const nsHostKey *>(key); 
 
     return !strcmp(he->rec->host, hk->host) &&
-            RES_KEY_FLAGS (he->rec->flags) == RES_KEY_FLAGS(hk->flags) &&
+            he->rec->flags == hk->flags &&
             he->rec->af == hk->af;
 }
 
@@ -329,26 +308,14 @@ nsHostResolver::nsHostResolver(PRUint32 maxCacheEntries,
     , mMaxCacheLifetime(maxCacheLifetime)
     , mLock(nsnull)
     , mIdleThreadCV(nsnull)
-    , mNumIdleThreads(0)
+    , mHaveIdleThread(PR_FALSE)
     , mThreadCount(0)
-    , mAnyPriorityThreadCount(0)
     , mEvictionQSize(0)
-    , mPendingCount(0)
     , mShutdown(PR_TRUE)
 {
     mCreationTime = PR_Now();
-    PR_INIT_CLIST(&mHighQ);
-    PR_INIT_CLIST(&mMediumQ);
-    PR_INIT_CLIST(&mLowQ);
+    PR_INIT_CLIST(&mPendingQ);
     PR_INIT_CLIST(&mEvictionQ);
-
-    mHighPriorityInfo.self = this;
-    mHighPriorityInfo.onlyHighPriority = PR_TRUE;
-    mAnyPriorityInfo.self = this;
-    mAnyPriorityInfo.onlyHighPriority = PR_FALSE;
-
-    mLongIdleTimeout  = PR_SecondsToInterval(LongIdleTimeoutSeconds);
-    mShortIdleTimeout = PR_SecondsToInterval(ShortIdleTimeoutSeconds);
 }
 
 nsHostResolver::~nsHostResolver()
@@ -393,28 +360,12 @@ nsHostResolver::Init()
 }
 
 void
-nsHostResolver::ClearPendingQueue(PRCList *aPendingQ)
-{
-    
-    if (!PR_CLIST_IS_EMPTY(aPendingQ)) {
-        PRCList *node = aPendingQ->next;
-        while (node != aPendingQ) {
-            nsHostRecord *rec = static_cast<nsHostRecord *>(node);
-            node = node->next;
-            OnLookupComplete(rec, NS_ERROR_ABORT, nsnull);
-        }
-    }
-}
-
-void
 nsHostResolver::Shutdown()
 {
     LOG(("nsHostResolver::Shutdown\n"));
 
-    PRCList pendingQHigh, pendingQMed, pendingQLow, evictionQ;
-    PR_INIT_CLIST(&pendingQHigh);
-    PR_INIT_CLIST(&pendingQMed);
-    PR_INIT_CLIST(&pendingQLow);
+    PRCList pendingQ, evictionQ;
+    PR_INIT_CLIST(&pendingQ);
     PR_INIT_CLIST(&evictionQ);
 
     {
@@ -422,23 +373,26 @@ nsHostResolver::Shutdown()
         
         mShutdown = PR_TRUE;
 
-        MoveCList(mHighQ, pendingQHigh);
-        MoveCList(mMediumQ, pendingQMed);
-        MoveCList(mLowQ, pendingQLow);
+        MoveCList(mPendingQ, pendingQ);
         MoveCList(mEvictionQ, evictionQ);
         mEvictionQSize = 0;
-        mPendingCount = 0;
-        
-        if (mNumIdleThreads)
+
+        if (mHaveIdleThread)
             PR_NotifyCondVar(mIdleThreadCV);
         
         
         PL_DHashTableEnumerate(&mDB, HostDB_RemoveEntry, nsnull);
     }
+
     
-    ClearPendingQueue(&pendingQHigh);
-    ClearPendingQueue(&pendingQMed);
-    ClearPendingQueue(&pendingQLow);
+    if (!PR_CLIST_IS_EMPTY(&pendingQ)) {
+        PRCList *node = pendingQ.next;
+        while (node != &pendingQ) {
+            nsHostRecord *rec = static_cast<nsHostRecord *>(node);
+            node = node->next;
+            OnLookupComplete(rec, NS_ERROR_ABORT, nsnull);
+        }
+    }
 
     if (!PR_CLIST_IS_EMPTY(&evictionQ)) {
         PRCList *node = evictionQ.next;
@@ -449,33 +403,6 @@ nsHostResolver::Shutdown()
         }
     }
 
-}
-
-static inline PRBool
-IsHighPriority(PRUint16 flags)
-{
-    return !(flags & (nsHostResolver::RES_PRIORITY_LOW | nsHostResolver::RES_PRIORITY_MEDIUM));
-}
-
-static inline PRBool
-IsMediumPriority(PRUint16 flags)
-{
-    return flags & nsHostResolver::RES_PRIORITY_MEDIUM;
-}
-
-static inline PRBool
-IsLowPriority(PRUint16 flags)
-{
-    return flags & nsHostResolver::RES_PRIORITY_LOW;
-}
-
-void 
-nsHostResolver::MoveQueue(nsHostRecord *aRec, PRCList &aDestQ)
-{
-    NS_ASSERTION(aRec->onQueue, "Moving Host Record Not Currently Queued");
-    
-    PR_REMOVE_LINK(aRec);
-    PR_APPEND_LINK(aRec, &aDestQ);
 }
 
 nsresult
@@ -557,37 +484,15 @@ nsHostResolver::ResolveHost(const char            *host,
                 
                 result = he->rec;
             }
-            else if (mPendingCount >= MAX_NON_PRIORITY_REQUESTS &&
-                     !IsHighPriority(flags) &&
-                     !he->rec->resolving) {
-                
-                rv = NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
-            }
             
             else {
                 
                 PR_APPEND_LINK(callback, &he->rec->callbacks);
 
                 if (!he->rec->resolving) {
-                    he->rec->flags = flags;
                     rv = IssueLookup(he->rec);
                     if (NS_FAILED(rv))
                         PR_REMOVE_AND_INIT_LINK(callback);
-                }
-                else if (he->rec->onQueue) {
-                    
-                    
-                    
-
-                    if (IsHighPriority(flags) && !IsHighPriority(he->rec->flags)) {
-                        
-                        MoveQueue(he->rec, mHighQ);
-                        he->rec->flags = flags;
-                    } else if (IsMediumPriority(flags) && IsLowPriority(he->rec->flags)) {
-                        
-                        MoveQueue(he->rec, mMediumQ);
-                        he->rec->flags = flags;
-                    }
                 }
             }
         }
@@ -646,48 +551,26 @@ nsHostResolver::IssueLookup(nsHostRecord *rec)
         PR_REMOVE_LINK(rec);
         mEvictionQSize--;
     }
-    
-    if (IsHighPriority(rec->flags))
-        PR_APPEND_LINK(rec, &mHighQ);
-    else if (IsMediumPriority(rec->flags))
-        PR_APPEND_LINK(rec, &mMediumQ);
-    else
-        PR_APPEND_LINK(rec, &mLowQ);
-    mPendingCount++;
-    
+    PR_APPEND_LINK(rec, &mPendingQ);
     rec->resolving = PR_TRUE;
-    rec->onQueue = PR_TRUE;
 
-    if (mNumIdleThreads) {
+    if (mHaveIdleThread) {
         
         PR_NotifyCondVar(mIdleThreadCV);
     }
-    else if ((mThreadCount < HighThreadThreshold) ||
-             (IsHighPriority(rec->flags) && mThreadCount < MAX_RESOLVER_THREADS)) {
+    else if (mThreadCount < MAX_THREADS) {
         
         NS_ADDREF_THIS(); 
-
-        struct nsHostResolverThreadInfo *info;
-        
-        if (mAnyPriorityThreadCount < HighThreadThreshold) {
-            info = &mAnyPriorityInfo;
-            mAnyPriorityThreadCount++;
-        }
-        else
-            info = &mHighPriorityInfo;
-
         mThreadCount++;
         PRThread *thr = PR_CreateThread(PR_SYSTEM_THREAD,
                                         ThreadFunc,
-                                        info,
+                                        this,
                                         PR_PRIORITY_NORMAL,
                                         PR_GLOBAL_THREAD,
                                         PR_UNJOINABLE_THREAD,
                                         0);
         if (!thr) {
             mThreadCount--;
-            if (info == &mAnyPriorityInfo)
-                mAnyPriorityThreadCount--;
             NS_RELEASE_THIS();
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -700,54 +583,25 @@ nsHostResolver::IssueLookup(nsHostRecord *rec)
     return NS_OK;
 }
 
-void
-nsHostResolver::DeQueue(PRCList &aQ, nsHostRecord **aResult)
-{
-    *aResult = static_cast<nsHostRecord *>(aQ.next);
-    PR_REMOVE_AND_INIT_LINK(*aResult);
-    mPendingCount--;
-    (*aResult)->onQueue = PR_FALSE;
-}
-
 PRBool
-nsHostResolver::GetHostToLookup(nsHostRecord **result, struct nsHostResolverThreadInfo *aID)
+nsHostResolver::GetHostToLookup(nsHostRecord **result)
 {
     nsAutoLock lock(mLock);
 
-    PRIntervalTime start = PR_IntervalNow(), timeout;
+    PRIntervalTime start = PR_IntervalNow(), timeout = IDLE_TIMEOUT;
     
-    while (!mShutdown) {
+    
+    
+    
+    
+    
+    
+    
+    while (PR_CLIST_IS_EMPTY(&mPendingQ) && !mHaveIdleThread && !mShutdown) {
         
-        
-        if (!PR_CLIST_IS_EMPTY(&mHighQ)) {
-            DeQueue (mHighQ, result);
-            return PR_TRUE;
-        }
-
-        if (! aID->onlyHighPriority) {
-            if (!PR_CLIST_IS_EMPTY(&mMediumQ)) {
-                DeQueue (mMediumQ, result);
-                return PR_TRUE;
-            }
-            
-            if (!PR_CLIST_IS_EMPTY(&mLowQ)) {
-                DeQueue (mLowQ, result);
-                return PR_TRUE;
-            }
-        }
-        
-        timeout = (mNumIdleThreads >= HighThreadThreshold) ? mShortIdleTimeout : mLongIdleTimeout;
-        
-        
-        
-        
-        
-        
-        
-        
-        mNumIdleThreads++;
+        mHaveIdleThread = PR_TRUE;
         PR_WaitCondVar(mIdleThreadCV, timeout);
-        mNumIdleThreads--;
+        mHaveIdleThread = PR_FALSE;
 
         PRIntervalTime delta = PR_IntervalNow() - start;
         if (delta >= timeout)
@@ -756,10 +610,15 @@ nsHostResolver::GetHostToLookup(nsHostRecord **result, struct nsHostResolverThre
         start += delta;
     }
 
+    if (!PR_CLIST_IS_EMPTY(&mPendingQ)) {
+        
+        *result = static_cast<nsHostRecord *>(mPendingQ.next);
+        PR_REMOVE_AND_INIT_LINK(*result);
+        return PR_TRUE;
+    }
+
     
     mThreadCount--;
-    if (!aID->onlyHighPriority)
-        mAnyPriorityThreadCount--;
     return PR_FALSE;
 }
 
@@ -838,11 +697,11 @@ nsHostResolver::ThreadFunc(void *arg)
 #if defined(RES_RETRY_ON_FAILURE)
     nsResState rs;
 #endif
-    struct nsHostResolverThreadInfo *info = (struct nsHostResolverThreadInfo *) arg;
-    nsHostResolver *resolver = info->self;
+
+    nsHostResolver *resolver = (nsHostResolver *) arg;
     nsHostRecord *rec;
     PRAddrInfo *ai;
-    while (resolver->GetHostToLookup(&rec, info)) {
+    while (resolver->GetHostToLookup(&rec)) {
         LOG(("resolving %s ...\n", rec->host));
 
         PRIntn flags = PR_AI_ADDRCONFIG;

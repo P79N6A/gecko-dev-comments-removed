@@ -106,10 +106,6 @@ typedef PRUint8 nsHttpVersion;
 
 
 
-#define NS_HTTP_REFRESH_DNS          (1<<3)
-
-
-
 
 
 

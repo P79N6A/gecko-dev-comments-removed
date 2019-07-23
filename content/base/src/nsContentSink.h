@@ -193,10 +193,6 @@ protected:
                     PRBool aExplicit);
 
   
-  
-  void PrefetchDNS(const nsAString &aHref);
-
-  
   nsresult GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey);
 
   

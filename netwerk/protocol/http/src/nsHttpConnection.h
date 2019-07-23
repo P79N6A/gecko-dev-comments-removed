@@ -125,7 +125,7 @@ private:
     
     nsresult ProxyStartSSL();
 
-    nsresult CreateTransport(PRUint8 caps);
+    nsresult CreateTransport();
     nsresult OnTransactionDone(nsresult reason);
     nsresult OnSocketWritable();
     nsresult OnSocketReadable();
