@@ -379,6 +379,9 @@ nsSVGForeignObjectFrame::InitialUpdate()
                "before our nsSVGOuterSVGFrame's initial Reflow()!!!");
 
   UpdateCoveredRegion();
+
+  
+  nsPresContext::InterruptPreventer noInterrupts(PresContext());
   DoReflow();
 
   NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW),
@@ -601,6 +604,9 @@ nsSVGForeignObjectFrame::MaybeReflowFromOuterSVGFrame()
   if (kid->GetStateBits() & NS_FRAME_HAS_DIRTY_CHILDREN) {
     return;
   }
+
+  
+  nsPresContext::InterruptPreventer noInterrupts(PresContext());
   DoReflow();
 }
 

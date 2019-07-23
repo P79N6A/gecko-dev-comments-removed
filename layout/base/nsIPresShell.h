@@ -103,8 +103,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xfa7f090d, 0xb19a, 0x4ef8, \
-  { 0x95, 0x52, 0x82, 0x99, 0x2a, 0x3b, 0x4a, 0x83 } }
+  { 0x4fb87dae, 0x8986, 0x429f, \
+    { 0xb6, 0xba, 0xf0, 0x40, 0x75, 0x0e, 0x3e, 0xe8 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -123,6 +123,8 @@ typedef PRUint32 nsFrameState;
 #define VERIFY_REFLOW_NOISY_RC        0x10
 #define VERIFY_REFLOW_REALLY_NOISY_RC 0x20
 #define VERIFY_REFLOW_DURING_RESIZE_REFLOW  0x40
+
+#undef NOISY_INTERRUPTIBLE_REFLOW
 
 
 
@@ -367,6 +369,19 @@ public:
                               IntrinsicDirty aIntrinsicDirty,
                               nsFrameState aBitToAdd) = 0;
 
+  
+
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD_(void) FrameNeedsToContinueReflow(nsIFrame *aFrame) = 0;
+
   NS_IMETHOD CancelAllPendingReflows() = 0;
 
   
@@ -461,7 +476,7 @@ public:
 
   NS_IMETHOD ScrollContentIntoView(nsIContent* aContent,
                                    PRIntn      aVPercent,
-                                   PRIntn      aHPercent) const = 0;
+                                   PRIntn      aHPercent) = 0;
 
   
 

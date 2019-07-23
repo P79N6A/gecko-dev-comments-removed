@@ -199,6 +199,7 @@ public:
 
   NS_IMETHOD              GetAttention(PRInt32 aCycleCount);
   NS_IMETHOD              GetLastInputEventTime(PRUint32& aTime);
+  virtual PRBool          HasPendingInputEvent();
 
   
   

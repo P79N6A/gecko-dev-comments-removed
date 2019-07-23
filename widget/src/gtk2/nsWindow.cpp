@@ -1911,6 +1911,39 @@ nsWindow::GetAttention(PRInt32 aCycleCount)
     return NS_OK;
 }
 
+PRBool
+nsWindow::HasPendingInputEvent()
+{
+    
+    
+    
+    
+    
+    PRBool haveEvent;
+#ifdef MOZ_X11
+    XEvent ev;
+    haveEvent =
+        XCheckMaskEvent(GDK_DISPLAY(),
+                        KeyPressMask | KeyReleaseMask | ButtonPressMask |
+                        ButtonReleaseMask | EnterWindowMask | LeaveWindowMask |
+                        PointerMotionMask | PointerMotionHintMask |
+                        Button1MotionMask | Button2MotionMask |
+                        Button3MotionMask | Button4MotionMask |
+                        Button5MotionMask | ButtonMotionMask | KeymapStateMask |
+                        VisibilityChangeMask | StructureNotifyMask |
+                        ResizeRedirectMask | SubstructureNotifyMask |
+                        SubstructureRedirectMask | FocusChangeMask |
+                        PropertyChangeMask | ColormapChangeMask |
+                        OwnerGrabButtonMask, &ev);
+    if (haveEvent) {
+        XPutBackEvent(GDK_DISPLAY(), &ev);
+    }
+#else
+    haveEvent = PR_FALSE;
+#endif
+    return haveEvent;
+}
+
 void
 nsWindow::LoseFocus(void)
 {

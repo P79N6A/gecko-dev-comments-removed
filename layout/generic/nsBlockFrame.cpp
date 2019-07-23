@@ -1122,12 +1122,20 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (mAbsoluteContainer.HasAbsoluteFrames()) {
-    if (aReflowState.WillReflowAgainForClearance()) {
+    PRBool haveInterrupt = aPresContext->HasPendingInterrupt();
+    if (aReflowState.WillReflowAgainForClearance() ||
+        haveInterrupt) {
       
       
       
       
-      mAbsoluteContainer.MarkSizeDependentFramesDirty();
+      
+      
+      if (haveInterrupt && (GetStateBits() & NS_FRAME_IS_DIRTY)) {
+        mAbsoluteContainer.MarkAllFramesDirty();
+      } else {
+        mAbsoluteContainer.MarkSizeDependentFramesDirty();
+      }
     } else {
       nsRect childBounds;
       nsSize containingBlockSize =
@@ -2016,6 +2024,18 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
     }
 
     DumpLine(aState, line, deltaY, -1);
+
+    if (aState.mPresContext->CheckForInterrupt(this)) {
+      willReflowAgain = PR_TRUE;
+      
+      
+      
+      
+      
+      
+      
+      MarkLineDirtyForInterrupt(line);
+    }
   }
 
   
@@ -2047,8 +2067,11 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
   
   
   
-  PRBool skipPull = willReflowAgain;
-  if (aState.mNextInFlow &&
+  
+  PRBool heightConstrained =
+    aState.mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE;
+  PRBool skipPull = willReflowAgain && heightConstrained;
+  if (!skipPull && heightConstrained && aState.mNextInFlow &&
       (aState.mReflowState.mFlags.mNextInFlowUntouched &&
        !lastLineMovedUp && 
        !(GetStateBits() & NS_FRAME_IS_DIRTY) &&
@@ -2067,13 +2090,17 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       
       if (!bifLineIter.Next() ||                
           !bifLineIter.GetLine()->IsDirty()) {
-        if (IS_TRUE_OVERFLOW_CONTAINER(aState.mNextInFlow))
-          NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
-        else
-          NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
         skipPull=PR_TRUE;
       }
     }
+  }
+
+  if (skipPull && aState.mNextInFlow) {
+    NS_ASSERTION(heightConstrained, "Height should be constrained here\n");
+    if (IS_TRUE_OVERFLOW_CONTAINER(aState.mNextInFlow))
+      NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
+    else
+      NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
   }
   
   if (!skipPull && aState.mNextInFlow) {
@@ -2157,28 +2184,38 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       AutoNoisyIndenter indent2(gNoisyReflow);
 #endif
 
-      
-      
-      
-      
-      while (line != end_lines()) {
-        rv = ReflowLine(aState, line, &keepGoing);
-        NS_ENSURE_SUCCESS(rv, rv);
-        DumpLine(aState, line, deltaY, -1);
-        if (!keepGoing) {
-          if (0 == line->GetChildCount()) {
-            DeleteLine(aState, line, line_end);
-          }
-          break;
-        }
-
-        if (LineHasClear(line.get())) {
-          foundAnyClears = PR_TRUE;
-        }
-
+      if (aState.mPresContext->HasPendingInterrupt()) {
+        MarkLineDirtyForInterrupt(line);
+      } else {
         
-        ++line;
-        aState.AdvanceToNextLine();
+        
+        
+        
+        while (line != end_lines()) {
+          rv = ReflowLine(aState, line, &keepGoing);
+          NS_ENSURE_SUCCESS(rv, rv);
+          DumpLine(aState, line, deltaY, -1);
+          if (!keepGoing) {
+            if (0 == line->GetChildCount()) {
+              DeleteLine(aState, line, line_end);
+            }
+            break;
+          }
+
+          if (LineHasClear(line.get())) {
+            foundAnyClears = PR_TRUE;
+          }
+
+          if (aState.mPresContext->CheckForInterrupt(this)) {
+            willReflowAgain = PR_TRUE;
+            MarkLineDirtyForInterrupt(line);
+            break;
+          }
+
+          
+          ++line;
+          aState.AdvanceToNextLine();
+        }
       }
     }
 
@@ -2214,6 +2251,54 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 #endif
 
   return rv;
+}
+
+static void MarkAllDescendantLinesDirty(nsBlockFrame* aBlock)
+{
+  nsLineList::iterator line = aBlock->begin_lines();
+  nsLineList::iterator endLine = aBlock->end_lines();
+  while (line != endLine) {
+    if (line->IsBlock()) {
+      nsIFrame* f = line->mFirstChild;
+      nsBlockFrame* bf = nsLayoutUtils::GetAsBlock(f);
+      if (bf) {
+        MarkAllDescendantLinesDirty(bf);
+      }
+    }
+    line->MarkDirty();
+    ++line;
+  }
+}
+
+void
+nsBlockFrame::MarkLineDirtyForInterrupt(nsLineBox* aLine)
+{
+  aLine->MarkDirty();
+
+  
+  
+  
+  
+  if (GetStateBits() & NS_FRAME_IS_DIRTY) {
+    
+    
+    PRInt32 n = aLine->GetChildCount();
+    for (nsIFrame* f = aLine->mFirstChild; n > 0;
+         f = f->GetNextSibling(), --n) {
+      f->AddStateBits(NS_FRAME_IS_DIRTY);
+    }
+  } else {
+    
+    
+    
+    
+    
+    
+    nsBlockFrame* bf = nsLayoutUtils::GetAsBlock(aLine->mFirstChild);
+    if (bf) {
+      MarkAllDescendantLinesDirty(bf);
+    }
+  }
 }
 
 void
@@ -4956,23 +5041,6 @@ nsBlockFrame::RemoveFloat(nsIFrame* aFloat) {
   
   aFloat->Destroy();
   return line_end;
-}
-
-static void MarkAllDescendantLinesDirty(nsBlockFrame* aBlock)
-{
-  nsLineList::iterator line = aBlock->begin_lines();
-  nsLineList::iterator endLine = aBlock->end_lines();
-  while (line != endLine) {
-    if (line->IsBlock()) {
-      nsIFrame* f = line->mFirstChild;
-      nsBlockFrame* bf = nsLayoutUtils::GetAsBlock(f);
-      if (bf) {
-        MarkAllDescendantLinesDirty(bf);
-      }
-    }
-    line->MarkDirty();
-    ++line;
-  }
 }
 
 static void MarkSameFloatManagerLinesDirty(nsBlockFrame* aBlock)

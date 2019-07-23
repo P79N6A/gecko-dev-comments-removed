@@ -1653,7 +1653,7 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
     else {
       FlushText(PR_FALSE);
     }
-    if (aType >= Flush_Layout) {
+    if (aType >= Flush_InterruptibleLayout) {
       
       
       MaybeStartLayout(PR_TRUE);
