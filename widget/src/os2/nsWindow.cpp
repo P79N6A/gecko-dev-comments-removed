@@ -2001,16 +2001,16 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
     
     
     
-    
-    w->Resize(configuration.mBounds.x, configuration.mBounds.y,
-              r.width + r.x, r.height + r.y, PR_FALSE);
+    w->Resize(configuration.mBounds.x + r.x, configuration.mBounds.y + r.y,
+              r.width, r.height, PR_FALSE);
 
     
     
     
     
     HWND hwnd = WinQueryWindow( w->mWnd, QW_TOP);
-    WinSetWindowPos(hwnd, 0, 0, r.height + r.y - configuration.mBounds.height,
+    WinSetWindowPos(hwnd, 0,
+                    -r.x, r.height + r.y - configuration.mBounds.height,
                     configuration.mBounds.width, configuration.mBounds.height,
                     SWP_MOVE | SWP_SIZE);
 
