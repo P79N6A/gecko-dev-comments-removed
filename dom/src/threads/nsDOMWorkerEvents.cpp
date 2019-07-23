@@ -283,10 +283,17 @@ nsDOMWorkerMessageEvent::GetData(nsAString& aData)
   rv = cc->GetRetValPtr(&retval);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (mCachedJSVal) {
+  if (mHaveCachedJSVal) {
+    cc->SetReturnValueWasSet(PR_TRUE);
     *retval = mCachedJSVal;
-    return cc->SetReturnValueWasSet(PR_TRUE);
+    return NS_OK;
   }
+
+  if (mHaveAttemptedConversion) {
+    
+    return NS_ERROR_FAILURE;
+  }
+  mHaveAttemptedConversion = PR_TRUE;
 
   JSContext* cx;
   rv = cc->GetJSContext(&cx);
@@ -328,8 +335,16 @@ nsDOMWorkerMessageEvent::GetData(nsAString& aData)
     mCachedJSVal = primitive;
   }
 
+  
+  mData.Truncate();
+
+  
+  
+  mHaveCachedJSVal = PR_TRUE;
+
   *retval = mCachedJSVal;
-  return cc->SetReturnValueWasSet(PR_TRUE);
+  cc->SetReturnValueWasSet(PR_TRUE);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
