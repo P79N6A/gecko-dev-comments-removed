@@ -40,6 +40,7 @@
 
 
 
+
 #include "nsExternalHelperAppService.h"
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -1326,7 +1327,7 @@ nsresult nsExternalHelperAppService::ExpungeTemporaryFiles()
   return NS_OK;
 }
 
-nsresult
+NS_IMETHODIMP
 nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme, 
                                                    nsIHandlerInfo **aHandlerInfo)
 {

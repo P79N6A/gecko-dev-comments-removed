@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsExternalHelperAppService_h__
 #define nsExternalHelperAppService_h__
 
@@ -229,13 +230,6 @@ public:
 
 
   NS_HIDDEN_(PRBool) MIMETypeIsInDataSource(const char * aContentType);
-
-  
-
-
-
-  NS_HIDDEN_(nsresult) GetProtocolHandlerInfo(const nsACString &aScheme,
-                                              nsIHandlerInfo **aHandlerInfo);
 
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,
                                                        PRBool *aExists) = 0;
