@@ -3975,24 +3975,17 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-
                     pc2 = pc + len;
                     LOCAL_ASSERT(pc2 < endpc ||
                                  endpc < outer->code + outer->length);
                     LOCAL_ASSERT(ss2.top == 1);
                     ss2.opcodes[0] = JSOP_POP;
-                    if (pc2 == endpc &&
-                        (JSOp) *endpc != JSOP_IFNE &&
-                        (JSOp) *endpc != JSOP_IFNEX) {
+                    if (pc2 == endpc) {
                         op = JSOP_SETNAME;
                     } else {
                         op = (JSOp) *pc2;
                         op = ((js_CodeSpec[op].format & JOF_PARENHEAD) ||
-                              ((js_CodeSpec[op].format & JOF_INVOKE) &&
-                               GET_ARGC(pc2) == 1) ||
-                              ((op == JSOP_IFEQ || op == JSOP_IFEQX) &&
-                               (sn2 = js_GetSrcNote(outer, pc2)) &&
-                               SN_TYPE(sn2) != SRC_COND))
+                              ((js_CodeSpec[op].format & JOF_INVOKE) && GET_ARGC(pc2) == 1))
                              ? JSOP_POP
                              : JSOP_SETNAME;
 
