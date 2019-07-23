@@ -246,7 +246,23 @@ nsNavHistoryExpire::ClearHistory()
   NS_ENSURE_TRUE(connection, NS_ERROR_OUT_OF_MEMORY);
 
   
+  
+  
+  
   nsresult rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_places SET frecency = -MAX(visit_count, 1) "
+    "WHERE id IN("
+      "SELECT h.id FROM moz_places h WHERE "
+        "EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) "
+        "OR EXISTS "
+        "(SELECT id FROM moz_annos WHERE place_id = h.id AND expiration = ") +
+      nsPrintfCString("%d", nsIAnnotationService::EXPIRE_NEVER) +
+      NS_LITERAL_CSTRING(")"));
+  if (NS_FAILED(rv))
+    NS_WARNING("failed to recent frecency");
+
+  
+  rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DELETE FROM moz_historyvisits"));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -265,14 +281,6 @@ nsNavHistoryExpire::ClearHistory()
   rv = ExpireInputHistoryParanoid(connection);
   if (NS_FAILED(rv))
     NS_WARNING("ExpireInputHistoryParanoid failed.");
-
-  
-  
-  
-  rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "UPDATE moz_places SET frecency = -1"));
-  if (NS_FAILED(rv))
-    NS_WARNING("failed to recent frecency");
 
   
   
@@ -536,7 +544,6 @@ nsNavHistoryExpire::EraseVisits(mozIStorageConnection* aConnection,
 {
   
   
-  
   nsCString deletedVisitIds;
   nsCString placeIds;
   nsTArray<PRInt64> deletedPlaceIdsArray, deletedVisitIdsArray;
@@ -559,30 +566,30 @@ nsNavHistoryExpire::EraseVisits(mozIStorageConnection* aConnection,
   if (deletedVisitIds.IsEmpty())
     return NS_OK;
 
+  
+  
+  
+  
+  
   nsresult rv = aConnection->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING(
+      "UPDATE moz_places "
+      "SET frecency = -MAX(visit_count, 1) "
+      "WHERE id IN ("
+        "SELECT h.id FROM moz_places h "
+        "WHERE NOT EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk = h.id) "
+          "AND NOT EXISTS "
+            "(SELECT v.id FROM moz_historyvisits v WHERE v.place_id = h.id AND "
+              "v.id NOT IN (") + deletedVisitIds +
+              NS_LITERAL_CSTRING(")) AND "
+              "h.id IN (") + placeIds +
+    NS_LITERAL_CSTRING("))"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = aConnection->ExecuteSimpleSQL(
     NS_LITERAL_CSTRING("DELETE FROM moz_historyvisits WHERE id IN (") +
     deletedVisitIds +
     NS_LITERAL_CSTRING(")"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (placeIds.IsEmpty())
-    return NS_OK;
-
-  
-  
-  
-  
-  rv = aConnection->ExecuteSimpleSQL(
-    NS_LITERAL_CSTRING(
-      "UPDATE moz_places "
-      "SET frecency = -1 "
-      "WHERE id IN ("
-        "SELECT h.id FROM moz_places h "
-        "LEFT OUTER JOIN moz_historyvisits v ON v.place_id = h.id "
-        "LEFT OUTER JOIN moz_bookmarks b ON b.fk = h.id "
-        "WHERE v.id IS NULL AND b.id IS NULL AND h.id IN (") +
-    placeIds +
-    NS_LITERAL_CSTRING("))"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
