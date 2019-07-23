@@ -5647,9 +5647,36 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
   
   aHandled = PR_FALSE; 
   POINT point;
-  DWORD dwPoints = GetMessagePos();
+  DWORD dwPoints = ::GetMessagePos();
   point.x = GET_X_LPARAM(dwPoints);
   point.y = GET_Y_LPARAM(dwPoints);
+
+  static PRBool sMayBeUsingLogitechMouse = PR_FALSE;
+  if (aMsg == WM_MOUSEHWHEEL) {
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!sMayBeUsingLogitechMouse && aLParam == 0 && aLParam != dwPoints &&
+        ::InSendMessage()) {
+      sMayBeUsingLogitechMouse = PR_TRUE;
+    } else if (sMayBeUsingLogitechMouse && aLParam != 0 && ::InSendMessage()) {
+      
+      
+      sMayBeUsingLogitechMouse = PR_FALSE;
+    }
+    
+    
+    
+    if (sMayBeUsingLogitechMouse && aLParam == 0 && dwPoints == 0) {
+      ::GetCursorPos(&point);
+    }
+  }
+
   HWND destWnd = ::WindowFromPoint(point);
   
   
