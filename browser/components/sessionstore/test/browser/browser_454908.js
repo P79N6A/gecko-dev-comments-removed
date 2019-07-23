@@ -1,0 +1,79 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function test() {
+  
+  
+  waitForExplicitFinish();
+  
+  let fieldValues = {
+    username: "User " + Math.random(),
+    passwd:   "pwd" + Date.now()
+  };
+  
+  
+  let privacy_level = gPrefService.getIntPref("browser.sessionstore.privacy_level");
+  gPrefService.setIntPref("browser.sessionstore.privacy_level", 0);
+  
+  let testURL = "chrome://mochikit/content/browser/" +
+    "browser/components/sessionstore/test/browser/browser_454908_sample.html";
+  let tab = gBrowser.addTab(testURL);
+  tab.linkedBrowser.addEventListener("load", function(aEvent) {
+    let doc = tab.linkedBrowser.contentDocument;
+    for (let id in fieldValues)
+      doc.getElementById(id).value = fieldValues[id];
+    
+    gBrowser.removeTab(tab);
+    undoCloseTab();
+    
+    tab = gBrowser.selectedTab;
+    tab.linkedBrowser.addEventListener("load", function(aEvent) {
+      let doc = tab.linkedBrowser.contentDocument;
+      for (let id in fieldValues) {
+        let node = doc.getElementById(id);
+        if (node.type == "password")
+          is(node.value, "", "password wasn't saved/restored");
+        else
+          is(node.value, fieldValues[id], "username was saved/restored");
+      }
+      
+      
+      gPrefService.setIntPref("browser.sessionstore.privacy_level", privacy_level);
+      gBrowser.removeTab(tab);
+      finish();
+    }, true);
+  }, true);
+}
