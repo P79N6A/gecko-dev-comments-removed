@@ -161,21 +161,16 @@ JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
 JS_PUBLIC_API(JSOp)
 JS_GetTrapOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
+    JSRuntime *rt;
     JSTrap *trap;
+    JSOp op;
 
-    DBG_LOCK_EVAL(cx->runtime, trap = FindTrap(cx->runtime, script, pc));
-    if (!trap) {
-#ifdef JS_THREADSAFE
-        
-
-
-
-#else
-        JS_ASSERT(0);   
-#endif
-        return JSOP_LIMIT;
-    }
-    return trap->op;
+    rt = cx->runtime;
+    DBG_LOCK(rt);
+    trap = FindTrap(rt, script, pc);
+    op = trap ? trap->op : (JSOp) *pc;
+    DBG_UNLOCK(rt);
+    return op;
 }
 
 static void

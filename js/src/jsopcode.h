@@ -304,8 +304,12 @@ js_puts(JSPrinter *jp, const char *s);
 
 
 
+
+
+
 uintN
-js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
+js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
+                        ptrdiff_t pcoff);
 
 
 
@@ -313,13 +317,13 @@ js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
 
 #define GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom)                       \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
+        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
         JS_GET_SCRIPT_ATOM((script), index_, atom);                           \
     JS_END_MACRO
 
 #define GET_OBJECT_FROM_BYTECODE(script, pc, pcoff, obj)                      \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
+        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
         JS_GET_SCRIPT_OBJECT((script), index_, obj);                          \
     JS_END_MACRO
 
@@ -331,7 +335,7 @@ js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
 
 #define GET_REGEXP_FROM_BYTECODE(script, pc, pcoff, obj)                      \
     JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
+        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
         JS_GET_SCRIPT_REGEXP((script), index_, obj);                          \
     JS_END_MACRO
 
