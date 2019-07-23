@@ -92,6 +92,93 @@ StartsWithJS(const nsAString &aString)
 }
 
 
+
+
+
+
+
+
+inline PRBool
+IsWordBoundary(const PRUnichar &aChar)
+{
+  
+  
+  
+  return !(PRUnichar('a') <= aChar && aChar <= PRUnichar('z'));
+}
+
+
+
+
+
+
+
+
+
+PRBool
+FindOnBoundary(const nsAString &aToken, const nsAString &aTarget)
+{
+  
+  const nsCaseInsensitiveStringComparator caseInsensitiveCompare;
+
+  
+  if (aTarget.IsEmpty())
+    return PR_FALSE;
+
+  nsAString::const_iterator tokenStart, tokenEnd;
+  aToken.BeginReading(tokenStart);
+  aToken.EndReading(tokenEnd);
+
+  nsAString::const_iterator targetStart, targetEnd;
+  aTarget.BeginReading(targetStart);
+  aTarget.EndReading(targetEnd);
+
+  
+  
+  do {
+    
+    nsAString::const_iterator testToken(tokenStart);
+    nsAString::const_iterator testTarget(targetStart);
+
+    
+    while (!caseInsensitiveCompare(*testToken, *testTarget)) {
+      
+      testToken++;
+      testTarget++;
+
+      
+      if (testToken == tokenEnd)
+        return PR_TRUE;
+
+      
+      if (testTarget == targetEnd)
+        return PR_FALSE;
+    }
+
+    
+    
+    
+    
+    if (!IsWordBoundary(*targetStart++))
+      while (targetStart != targetEnd && !IsWordBoundary(*targetStart))
+        targetStart++;
+
+    
+  } while (targetStart != targetEnd);
+
+  return PR_FALSE;
+}
+
+
+
+
+inline PRBool
+FindAnywhere(const nsAString &aToken, const nsAString &aTarget)
+{
+  return CaseInsensitiveFindInReadable(aToken, aTarget);
+}
+
+
 nsresult
 nsNavHistory::InitAutoComplete()
 {
@@ -487,6 +574,10 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
   PRBool filterJavascript = mAutoCompleteFilterJavascript &&
     !StartsWithJS(mCurrentSearchString);
 
+  
+  PRBool (*tokenMatchesTarget)(const nsAString &, const nsAString &) =
+    mAutoCompleteOnWordBoundary ? FindOnBoundary : FindAnywhere;
+
   PRBool hasMore = PR_FALSE;
   
   while (NS_SUCCEEDED(aQuery->ExecuteStep(&hasMore)) && hasMore) {
@@ -547,19 +638,19 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
             
             PRBool bookmarkMatch = parentId &&
-              CaseInsensitiveFindInReadable(*token, entryBookmarkTitle);
+              (*tokenMatchesTarget)(*token, entryBookmarkTitle);
             
             
             useBookmark |= bookmarkMatch;
 
             
-            PRBool tagsMatch = CaseInsensitiveFindInReadable(*token, entryTags);
+            PRBool tagsMatch = (*tokenMatchesTarget)(*token, entryTags);
             showTags |= tagsMatch;
 
             
             matchAll = bookmarkMatch || tagsMatch ||
-              CaseInsensitiveFindInReadable(*token, entryTitle) ||
-              CaseInsensitiveFindInReadable(*token, entryURL);
+              (*tokenMatchesTarget)(*token, entryTitle) ||
+              (*tokenMatchesTarget)(*token, entryURL);
           }
 
           
