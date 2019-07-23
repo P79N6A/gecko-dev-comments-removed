@@ -61,7 +61,7 @@ struct nsRect;
 
 
 
-class nsQueryContentEventHandler {
+class NS_STACK_CLASS nsQueryContentEventHandler {
 public:
   nsQueryContentEventHandler(nsPresContext *aPresContext);
 

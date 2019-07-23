@@ -41,7 +41,7 @@
 
 
 
-class mozAutoDocUpdate
+class NS_STACK_CLASS mozAutoDocUpdate
 {
 public:
   mozAutoDocUpdate(nsIDocument* aDocument, nsUpdateType aUpdateType,
@@ -94,7 +94,7 @@ private:
 
 
 
-class mozAutoDocConditionalContentUpdateBatch
+class NS_STACK_CLASS mozAutoDocConditionalContentUpdateBatch
 {
 public:
   mozAutoDocConditionalContentUpdateBatch(nsIDocument* aDocument,

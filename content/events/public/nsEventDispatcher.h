@@ -190,7 +190,7 @@ public:
 
 
 
-class nsDispatchingCallback {
+class NS_STACK_CLASS nsDispatchingCallback {
 public:
   virtual void HandleEvent(nsEventChainPostVisitor& aVisitor) = 0;
 };

@@ -79,7 +79,7 @@
 
 
 
-class nsSVGFilterResource
+class NS_STACK_CLASS nsSVGFilterResource
 {
 public:
   nsSVGFilterResource(nsSVGFE *aFilter, nsSVGFilterInstance* aInstance);

@@ -789,7 +789,7 @@ nsresult nsRange::SelectNodeContents(nsIDOMNode* aN)
 
 
 
-class RangeSubtreeIterator
+class NS_STACK_CLASS RangeSubtreeIterator
 {
 private:
 

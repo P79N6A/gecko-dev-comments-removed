@@ -87,7 +87,7 @@ private:
 
 
 
-class nsSVGValueAutoNotifier
+class NS_STACK_CLASS nsSVGValueAutoNotifier
 {
 public:
   nsSVGValueAutoNotifier(nsSVGValue* aVal,
