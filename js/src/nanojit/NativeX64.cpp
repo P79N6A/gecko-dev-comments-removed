@@ -297,7 +297,7 @@ namespace nanojit
             
             
             
-            NanoAssert(a->opcode() == LIR_quad || a->opcode() == LIR_ldq);
+            NanoAssert(a->isop(LIR_quad) || a->isop(LIR_ldq) || a->isop(LIR_ldqc));
             allow &= ~rmask(rr);
             ra = findRegFor(a, allow);
         }
@@ -1059,8 +1059,8 @@ namespace nanojit
         Register r;
         if (!resv || (r = resv->reg) == UnknownReg) {
             RegisterMask allow;
-            LOpcode op = value->opcode();
-            if ((op >= LIR_fneg && op <= LIR_fmod) || op == LIR_fcall) {
+            
+            if (value->isFloat() || value->isop(LIR_float) || value->isop(LIR_fmod)) {
                 allow = FpRegs;
             } else {
                 allow = GpRegs;
