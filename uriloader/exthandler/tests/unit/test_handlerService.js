@@ -51,6 +51,9 @@ function run_test() {
   const prefSvc = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefService);
                   
+  const ioService = Cc["@mozilla.org/network/io-service;1"].
+                    getService(Ci.nsIIOService);
+
   const rootPrefBranch = prefSvc.getBranch("");
   
   
@@ -336,4 +339,48 @@ function run_test() {
 
   
   
+
+  
+  
+
+  
+  var lolType = handlerSvc.getTypeFromExtension("lolcat");
+  do_check_eq(lolType, "");
+
+
+  
+  var lolHandler = mimeSvc.getFromTypeAndExtension("application/lolcat", null);
+
+  do_check_false(lolHandler.extensionExists("lolcat"));
+  lolHandler.preferredAction = Ci.nsIHandlerInfo.useHelperApp;
+  lolHandler.preferredApplicationHandler = localHandler;
+  lolHandler.alwaysAskBeforeHandling = false;
+
+  
+  do_check_false(handlerSvc.exists(lolHandler));
+  handlerSvc.store(lolHandler);
+  do_check_true(handlerSvc.exists(lolHandler));
+
+  
+  var rdfFile = HandlerServiceTest._dirSvc.get("UMimTyp", Ci.nsIFile);
+  var fileHandler = ioService.getProtocolHandler("file").QueryInterface(Ci.nsIFileProtocolHandler);
+  var rdfFileURI = fileHandler.getURLSpecFromFile(rdfFile);
+
+  
+  
+  
+
+  
+  var gRDF = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService);
+  var mimeSource    = gRDF.GetUnicodeResource("urn:mimetype:application/lolcat");
+  var valueProperty = gRDF.GetUnicodeResource("http://home.netscape.com/NC-rdf#fileExtensions");
+  var mimeLiteral   = gRDF.GetLiteral("lolcat");
+
+  var DS = gRDF.GetDataSourceBlocking(rdfFileURI);
+  DS.Assert(mimeSource, valueProperty, mimeLiteral, true);
+
+
+  
+  lolType = handlerSvc.getTypeFromExtension("lolcat");
+  do_check_eq(lolType, "application/lolcat");
 }

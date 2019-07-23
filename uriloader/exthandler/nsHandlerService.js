@@ -260,13 +260,11 @@ HandlerService.prototype = {
       let protoInfo = protoSvc.getProtocolHandlerInfoFromOS(scheme, 
                                osDefaultHandlerFound);
       
-      try {
+      if (this.exists(protoInfo))
         this.fillHandlerInfo(protoInfo, null);
-      } catch (ex) {
-        
+      else
         protoSvc.setProtocolHandlerDefaults(protoInfo, 
                                             osDefaultHandlerFound.value);
-      }
 
       
       let possibleHandlers = protoInfo.possibleApplicationHandlers;
@@ -404,8 +402,17 @@ HandlerService.prototype = {
   },
 
   exists: function HS_exists(aHandlerInfo) {
-    var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
-    return this._hasLiteralAssertion(typeID, NC_VALUE, aHandlerInfo.type);
+    var found;
+
+    try {
+      var typeID = this._getTypeID(this._getClass(aHandlerInfo), aHandlerInfo.type);
+      found = this._hasLiteralAssertion(typeID, NC_VALUE, aHandlerInfo.type);
+    } catch (e) {
+      
+      found = false;
+    }
+
+    return found;
   },
 
   remove: function HS_remove(aHandlerInfo) {
@@ -470,7 +477,7 @@ HandlerService.prototype = {
       return type;
     }
 
-    throw Cr.NS_ERROR_NOT_AVAILABLE;
+    return "";
   },
 
 
