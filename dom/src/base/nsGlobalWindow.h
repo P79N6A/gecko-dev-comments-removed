@@ -572,8 +572,6 @@ protected:
 
   static PRBool CanMoveResizeWindows();
 
-  nsresult ConvertCharset(const nsAString& aStr, char** aDest);
-
   PRBool   GetBlurSuppression();
 
   
