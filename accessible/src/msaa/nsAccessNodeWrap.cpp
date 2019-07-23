@@ -37,6 +37,7 @@
 
 
 #include "nsAccessNodeWrap.h"
+#include <tchar.h> 
 #include "ISimpleDOMNode_i.c"
 #include "nsAccessibilityAtoms.h"
 #include "nsIAccessibilityService.h"
@@ -66,6 +67,8 @@ LPFNNOTIFYWINEVENT nsAccessNodeWrap::gmNotifyWinEvent = nsnull;
 LPFNGETGUITHREADINFO nsAccessNodeWrap::gmGetGUIThreadInfo = nsnull;
 
 PRBool nsAccessNodeWrap::gIsEnumVariantSupportDisabled = 0;
+
+PRBool nsAccessNodeWrap::gIsIA2Disabled = PR_FALSE;
 
 nsIAccessibleTextChangeEvent *nsAccessNodeWrap::gTextEvent = nsnull;
 
@@ -599,6 +602,8 @@ void nsAccessNodeWrap::InitAccessibility()
       gmGetGUIThreadInfo = (LPFNGETGUITHREADINFO)GetProcAddress(gmUserLib,"GetGUIThreadInfo");
   }
 
+  DoATSpecificProcessing();
+  
   nsAccessNode::InitXPAccessibility();
 }
 
@@ -655,3 +660,40 @@ GetHRESULT(nsresult aResult)
   }
 }
 
+PRBool nsAccessNodeWrap::IsOnlyMsaaCompatibleJawsPresent()
+{
+  HMODULE jhookhandle = ::GetModuleHandleW(NS_LITERAL_STRING("jhook").get());
+  if (!jhookhandle)
+    return PR_FALSE;  
+
+  PRUnichar fileName[MAX_PATH];
+  ::GetModuleFileNameW(jhookhandle, fileName, MAX_PATH);
+
+  DWORD dummy;
+  DWORD length = ::GetFileVersionInfoSizeW(fileName, &dummy);
+
+  LPBYTE versionInfo = new BYTE[length];
+  ::GetFileVersionInfoW(fileName, 0, length, versionInfo);
+
+  UINT uLen;
+  VS_FIXEDFILEINFO *fixedFileInfo;
+  ::VerQueryValueW(versionInfo, L"\\", (LPVOID*)&fixedFileInfo, &uLen);
+  DWORD dwFileVersionMS = fixedFileInfo->dwFileVersionMS;
+  DWORD dwFileVersionLS = fixedFileInfo->dwFileVersionLS;
+  delete [] versionInfo;
+
+  DWORD dwLeftMost = HIWORD(dwFileVersionMS);
+
+  DWORD dwSecondRight = HIWORD(dwFileVersionLS);
+
+
+  return (dwLeftMost < 8
+          || (dwLeftMost == 8 && dwSecondRight < 2173));
+}
+
+void nsAccessNodeWrap::DoATSpecificProcessing()
+{
+  if (IsOnlyMsaaCompatibleJawsPresent())
+    
+    gIsIA2Disabled  = PR_TRUE;
+}
