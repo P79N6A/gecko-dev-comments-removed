@@ -4510,7 +4510,7 @@ class DefaultSlotMap : public SlotMap
     DefaultSlotMap(TraceRecorder& tr) : SlotMap(tr)
     {
     }
-    
+
     virtual ~DefaultSlotMap()
     {
     }
@@ -11323,6 +11323,23 @@ TraceRecorder::lookupForSetPropertyOp(JSObject* obj, LIns* obj_ins, jsid id,
     return RECORD_CONTINUE;
 }
 
+JS_REQUIRES_STACK RecordingStatus
+TraceRecorder::setPropertyWithScriptSetter(JSScopeProperty* sprop)
+{
+    if (!canCallImacro())
+        RETURN_STOP("cannot trace script setter, already in imacro");
+
+    
+    
+    JSObject *setterObj = JSVAL_TO_OBJECT(sprop->setterValue());
+    cx->fp->regs->sp += 2;                  
+    stackCopy(-2, -4);                      
+    stackCopy(-4, -3);                      
+    stackCopy(-1, -3);                      
+    stackStoreConstObject(-3, setterObj);   
+    return callImacroInfallibly(setprop_imacros.scriptsetter);
+}
+
 static JSBool FASTCALL
 MethodWriteBarrier(JSContext* cx, JSObject* obj, JSScopeProperty* sprop, JSObject* funobj)
 {
@@ -11388,7 +11405,7 @@ TraceRecorder::nativeSet(JSObject* obj, LIns* obj_ins, JSScopeProperty* sprop,
     
     if (!sprop->hasDefaultSetter()) {
         if (sprop->hasSetterValue())
-            RETURN_STOP("can't trace JavaScript function setter yet");
+            return setPropertyWithScriptSetter(sprop);
         emitNativePropertyOp(scope, sprop, obj_ins, true, boxed_ins);
     }
 
@@ -12039,6 +12056,33 @@ TraceRecorder::getPropertyWithNativeGetter(LIns* obj_ins, JSScopeProperty* sprop
     return RECORD_CONTINUE;
 }
 
+
+JS_REQUIRES_STACK void
+TraceRecorder::stackCopy(int dest, int src)
+{
+    jsval* sp = cx->fp->regs->sp;
+    sp[dest] = sp[src];
+    set(&sp[dest], get(&sp[src]));
+}
+
+
+JS_REQUIRES_STACK void
+TraceRecorder::stackStoreConstObject(int dest, JSObject *obj)
+{
+    jsval* sp = cx->fp->regs->sp;
+    sp[dest] = OBJECT_TO_JSVAL(obj);
+    set(&sp[dest], INS_CONSTOBJ(obj));
+}
+
+
+JS_REQUIRES_STACK void
+TraceRecorder::stackStore(int dest, JSObject* obj, LIns* obj_ins)
+{
+    jsval* sp = cx->fp->regs->sp;
+    sp[dest] = OBJECT_TO_JSVAL(obj);
+    set(&sp[dest], obj_ins);
+}
+
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::getPropertyWithScriptGetter(JSObject *obj, LIns* obj_ins, JSScopeProperty* sprop)
 {
@@ -12053,28 +12097,22 @@ TraceRecorder::getPropertyWithScriptGetter(JSObject *obj, LIns* obj_ins, JSScope
     switch (*cx->fp->regs->pc) {
       case JSOP_GETPROP:
         sp++;
-        sp[-1] = sp[-2];
-        set(&sp[-1], get(&sp[-2]));
-        sp[-2] = getter;
-        set(&sp[-2], INS_CONSTOBJ(JSVAL_TO_OBJECT(getter)));
+        stackCopy(-1, -2);
+        stackStoreConstObject(-2, JSVAL_TO_OBJECT(getter));
         return callImacroInfallibly(getprop_imacros.scriptgetter);
 
       case JSOP_CALLPROP:
         sp += 2;
-        sp[-2] = getter;
-        set(&sp[-2], INS_CONSTOBJ(JSVAL_TO_OBJECT(getter)));
-        sp[-1] = sp[-3];
-        set(&sp[-1], get(&sp[-3]));
+        stackStoreConstObject(-2, JSVAL_TO_OBJECT(getter));
+        stackCopy(-1, -3);
         return callImacroInfallibly(callprop_imacros.scriptgetter);
 
       case JSOP_GETTHISPROP:
       case JSOP_GETARGPROP:
       case JSOP_GETLOCALPROP:
         sp += 2;
-        sp[-2] = getter;
-        set(&sp[-2], INS_CONSTOBJ(JSVAL_TO_OBJECT(getter)));
-        sp[-1] = OBJECT_TO_JSVAL(obj);
-        set(&sp[-1], obj_ins);
+        stackStoreConstObject(-2, JSVAL_TO_OBJECT(getter));
+        stackStore(-1, obj, obj_ins);
         return callImacroInfallibly(getthisprop_imacros.scriptgetter);
 
       default:
@@ -12404,8 +12442,8 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
 
         
         
-        idx_ins = makeNumberInt32(idx_ins);            
-                                                       
+        idx_ins = makeNumberInt32(idx_ins);
+
         
         lir->insGuard(LIR_xf,
                       lir->ins2(LIR_ult,
@@ -12420,22 +12458,24 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         LIns* pidx_ins = lir->insUI2P(idx_ins);
         LIns* addr_ins = 0;
 
+        LIns* typed_v_ins = v_ins;
+
         
         
         
         if (!isNumber(v)) {
             if (JSVAL_IS_NULL(v)) {
-                v_ins = INS_CONST(0);
+                typed_v_ins = lir->insImmD(0);
             } else if (JSVAL_IS_VOID(v)) {
-                v_ins = lir->insImmD(js_NaN);
+                typed_v_ins = lir->insImmD(js_NaN);
             } else if (JSVAL_IS_STRING(v)) {
-                LIns* args[] = { v_ins, cx_ins };
-                v_ins = lir->insCall(&js_StringToNumber_ci, args);
+                LIns* args[] = { typed_v_ins, cx_ins };
+                typed_v_ins = lir->insCall(&js_StringToNumber_ci, args);
             } else if (JSVAL_IS_SPECIAL(v)) {
                 JS_ASSERT(JSVAL_IS_BOOLEAN(v));
-                v_ins = i2d(v_ins);
+                typed_v_ins = i2d(typed_v_ins);
             } else {
-                v_ins = lir->insImmD(js_NaN);
+                typed_v_ins = lir->insImmD(js_NaN);
             }
         }
 
@@ -12443,25 +12483,27 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
           case js::TypedArray::TYPE_INT8:
           case js::TypedArray::TYPE_INT16:
           case js::TypedArray::TYPE_INT32:
-            v_ins = d2i(v_ins);
+            typed_v_ins = d2i(typed_v_ins);
             break;
           case js::TypedArray::TYPE_UINT8:
           case js::TypedArray::TYPE_UINT16:
           case js::TypedArray::TYPE_UINT32:
-            v_ins = f2u(v_ins);
+            typed_v_ins = f2u(typed_v_ins);
             break;
           case js::TypedArray::TYPE_UINT8_CLAMPED:
-            if (isPromoteInt(v_ins)) {
-                v_ins = demote(lir, v_ins);
-                v_ins = lir->insChoose(lir->ins2ImmI(LIR_lt, v_ins, 0),
-                                        lir->insImmI(0),
-                                        lir->insChoose(lir->ins2ImmI(LIR_gt, v_ins, 0xff),
-                                                        lir->insImmI(0xff),
-                                                        v_ins,
-                                                        avmplus::AvmCore::use_cmov()),
+            if (isPromoteInt(typed_v_ins)) {
+                typed_v_ins = demote(lir, typed_v_ins);
+                typed_v_ins = lir->insChoose(lir->ins2ImmI(LIR_lt, typed_v_ins, 0),
+                                             lir->insImmI(0),
+                                             lir->insChoose(lir->ins2ImmI(LIR_gt,
+                                                                          typed_v_ins,
+                                                                          0xff),
+                                                            lir->insImmI(0xff),
+                                                            typed_v_ins,
+                                                            avmplus::AvmCore::use_cmov()),
                                         avmplus::AvmCore::use_cmov());
             } else {
-                v_ins = lir->insCall(&js_TypedArray_uint8_clamp_double_ci, &v_ins);
+                typed_v_ins = lir->insCall(&js_TypedArray_uint8_clamp_double_ci, &typed_v_ins);
             }
             break;
           case js::TypedArray::TYPE_FLOAT32:
@@ -12469,7 +12511,7 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
             
             break;
           default:
-            JS_NOT_REACHED("Unknown typed array type in tracer");       
+            JS_NOT_REACHED("Unknown typed array type in tracer");
         }
 
         switch (tarray->type) {
@@ -12477,28 +12519,28 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
           case js::TypedArray::TYPE_UINT8_CLAMPED:
           case js::TypedArray::TYPE_UINT8:
             addr_ins = lir->ins2(LIR_piadd, data_ins, pidx_ins);
-            lir->insStore(LIR_stb, v_ins, addr_ins, 0, ACC_OTHER);
+            lir->insStore(LIR_stb, typed_v_ins, addr_ins, 0, ACC_OTHER);
             break;
           case js::TypedArray::TYPE_INT16:
           case js::TypedArray::TYPE_UINT16:
             addr_ins = lir->ins2(LIR_piadd, data_ins, lir->ins2ImmI(LIR_pilsh, pidx_ins, 1));
-            lir->insStore(LIR_sts, v_ins, addr_ins, 0, ACC_OTHER);
+            lir->insStore(LIR_sts, typed_v_ins, addr_ins, 0, ACC_OTHER);
             break;
           case js::TypedArray::TYPE_INT32:
           case js::TypedArray::TYPE_UINT32:
             addr_ins = lir->ins2(LIR_piadd, data_ins, lir->ins2ImmI(LIR_pilsh, pidx_ins, 2));
-            lir->insStore(LIR_sti, v_ins, addr_ins, 0, ACC_OTHER);
+            lir->insStore(LIR_sti, typed_v_ins, addr_ins, 0, ACC_OTHER);
             break;
           case js::TypedArray::TYPE_FLOAT32:
             addr_ins = lir->ins2(LIR_piadd, data_ins, lir->ins2ImmI(LIR_pilsh, pidx_ins, 2));
-            lir->insStore(LIR_st32f, v_ins, addr_ins, 0, ACC_OTHER);
+            lir->insStore(LIR_st32f, typed_v_ins, addr_ins, 0, ACC_OTHER);
             break;
           case js::TypedArray::TYPE_FLOAT64:
             addr_ins = lir->ins2(LIR_piadd, data_ins, lir->ins2ImmI(LIR_pilsh, pidx_ins, 3));
-            lir->insStore(LIR_stfi, v_ins, addr_ins, 0, ACC_OTHER);
+            lir->insStore(LIR_stfi, typed_v_ins, addr_ins, 0, ACC_OTHER);
             break;
           default:
-            JS_NOT_REACHED("Unknown typed array type in tracer");       
+            JS_NOT_REACHED("Unknown typed array type in tracer");
         }
     } else if (JSVAL_TO_INT(idx) < 0 || !obj->isDenseArray()) {
         CHECK_STATUS_A(initOrSetPropertyByIndex(obj_ins, idx_ins, &v,
