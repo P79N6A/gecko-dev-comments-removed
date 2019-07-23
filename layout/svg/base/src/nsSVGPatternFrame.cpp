@@ -241,7 +241,9 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   if (surfaceSize.width <= 0 || surfaceSize.height <= 0)
     return NS_ERROR_FAILURE;
 
-  if (resultOverflows) {
+  if (resultOverflows ||
+      patternWidth != surfaceSize.width ||
+      patternHeight != surfaceSize.height) {
     
     nsCOMPtr<nsIDOMSVGMatrix> tempTM, aCTM;
     NS_NewSVGMatrix(getter_AddRefs(tempTM),
