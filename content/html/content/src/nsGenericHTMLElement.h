@@ -877,14 +877,6 @@ public:
   virtual PRInt32 IntrinsicState() const;
 
 protected:
-  
-
-
-
-
-
-  void FindAndSetForm();
-
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
 
