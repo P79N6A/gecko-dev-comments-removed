@@ -731,7 +731,7 @@ void nsWindow::DoCreate( HWND hwndP, nsWindow *aParent,
 
    if( aInitData != nsnull) {
      mWindowType = aInitData->mWindowType;
-     mBorerStyle = aInitData->mBorderStyle;
+     mBorderStyle = aInitData->mBorderStyle;
    }
 
    
