@@ -97,6 +97,13 @@
 #include "nsIDOMSVGTransformable.h"
 #endif 
 
+
+
+
+
+PR_STATIC_ASSERT(sizeof(void*) == sizeof(nsnull));
+
+
 nsSVGEnumMapping nsSVGElement::sSVGUnitTypesMap[] = {
   {&nsGkAtoms::userSpaceOnUse, nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE},
   {&nsGkAtoms::objectBoundingBox, nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX},
