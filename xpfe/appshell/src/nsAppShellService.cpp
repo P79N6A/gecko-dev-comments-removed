@@ -77,7 +77,7 @@
 #include "nsIUnicodeDecoder.h"
 
 
-#define DEFAULT_HIDDENWINDOW_URL "resource://gre-resources/hiddenWindow.html"
+#define DEFAULT_HIDDENWINDOW_URL "resource://gre/res/hiddenWindow.html"
 
 class nsIAppShell;
 
