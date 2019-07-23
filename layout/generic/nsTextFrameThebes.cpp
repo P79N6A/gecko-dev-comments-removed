@@ -654,6 +654,8 @@ public:
       if (mTextRun->SetPotentialLineBreaks(aOffset + mOffsetIntoTextRun, aLength,
                                            aBreakBefore, mContext)) {
         mChangedBreaks = PR_TRUE;
+        
+        mTextRun->ClearFlagBits(nsTextFrameUtils::TEXT_NO_BREAKS);
       }
     }
 
@@ -1627,38 +1629,29 @@ BuildTextRunsScanner::SetupBreakSinksForTextRun(gfxTextRun* aTextRun,
        : mMappedFlows[i + 1].mTransformedTextOffset)
       - offset;
 
+    PRUint32 flags = 0;
+    nsIFrame* initialBreakController = mappedFlow->mAncestorControllingInitialBreak;
+    if (!initialBreakController) {
+      initialBreakController = mLineContainer;
+    }
+    if (!initialBreakController->GetStyleText()->WhiteSpaceCanWrap()) {
+      flags |= nsLineBreaker::BREAK_SUPPRESS_INITIAL;
+    }
     nsTextFrame* startFrame = mappedFlow->mStartFrame;
+    const nsStyleText* textStyle = startFrame->GetStyleText();
+    if (!textStyle->WhiteSpaceCanWrap()) {
+      flags |= nsLineBreaker::BREAK_SUPPRESS_INSIDE;
+    }
+    if (aTextRun->GetFlags() & nsTextFrameUtils::TEXT_NO_BREAKS) {
+      flags |= nsLineBreaker::BREAK_SKIP_SETTING_NO_BREAKS;
+    }
+
     if (HasCompressedLeadingWhitespace(startFrame, mappedFlow->GetContentEnd(), iter)) {
-      mLineBreaker.AppendInvisibleWhitespace();
+      mLineBreaker.AppendInvisibleWhitespace(flags);
     }
 
     if (length > 0) {
-      PRUint32 flags = 0;
-      nsIFrame* initialBreakController = mappedFlow->mAncestorControllingInitialBreak;
-      if (!initialBreakController) {
-        initialBreakController = mLineContainer;
-      }
-      if (initialBreakController->GetStyleText()->WhiteSpaceCanWrap()) {
-        flags |= nsLineBreaker::BREAK_ALLOW_INITIAL;
-      }
-      const nsStyleText* textStyle = startFrame->GetStyleText();
-      if (textStyle->WhiteSpaceCanWrap()) {
-        
-        
-        
-        flags |= nsLineBreaker::BREAK_ALLOW_INSIDE;
-      }
-      
-      BreakSink* sink = *breakSink;
-      if (aSuppressSink) {
-        sink = nsnull;
-      } else if (flags) {
-        aTextRun->ClearFlagBits(nsTextFrameUtils::TEXT_NO_BREAKS);
-      } else if (aTextRun->GetFlags() & nsTextFrameUtils::TEXT_NO_BREAKS) {
-        
-        
-        sink = nsnull;
-      }
+      BreakSink* sink = aSuppressSink ? nsnull : (*breakSink).get();
       if (aTextRun->GetFlags() & gfxFontGroup::TEXT_IS_8BIT) {
         mLineBreaker.AppendText(lang, aTextRun->GetText8Bit() + offset,
                                 length, flags, sink);
@@ -1812,8 +1805,7 @@ nsTextFrame::GetTrimmedOffsets(const nsTextFragment* aFrag,
     offsets.mLength -= whitespaceCount;
   }
 
-  if (aTrimAfter && (GetStateBits() & TEXT_END_OF_LINE) &&
-      textStyle->WhiteSpaceCanWrap()) {
+  if (aTrimAfter && (GetStateBits() & TEXT_END_OF_LINE)) {
     PRInt32 whitespaceCount =
       GetTrimmableWhitespaceCount(aFrag, offsets.GetEnd() - 1,
                                   offsets.mLength, -1);
@@ -5216,8 +5208,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(!(NS_REFLOW_CALC_BOUNDING_METRICS & aMetrics.mFlags),
                "We shouldn't be passed NS_REFLOW_CALC_BOUNDING_METRICS anymore");
 #endif
-  PRBool suppressInitialBreak = !lineLayout.LineIsBreakable() ||
-    !lineLayout.HasTrailingTextFrame();
 
   PRInt32 limitLength = length;
   PRInt32 forceBreak = lineLayout.GetForcedBreakPosition(mContent);
@@ -5249,13 +5239,12 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   PRBool usedHyphenation;
   gfxFloat trimmedWidth = 0;
   gfxFloat availWidth = aReflowState.availableWidth;
-  PRBool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant() &&
-    textStyle->WhiteSpaceCanWrap();
+  PRBool canTrimTrailingWhitespace = !textStyle->WhiteSpaceIsSignificant();
   PRUint32 transformedCharsFit =
     mTextRun->BreakAndMeasureText(transformedOffset, transformedLength,
                                   (GetStateBits() & TEXT_START_OF_LINE) != 0,
                                   availWidth,
-                                  &provider, suppressInitialBreak,
+                                  &provider, !lineLayout.LineIsBreakable(),
                                   canTrimTrailingWhitespace ? &trimmedWidth : nsnull,
                                   &textMetrics, needTightBoundingBox, ctx,
                                   &usedHyphenation, &transformedLastBreak);
@@ -5293,26 +5282,38 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     AddStateBits(TEXT_HYPHEN_BREAK);
   }
 
-  
-  
-  
-  if (forceBreak < 0 && textMetrics.mAdvanceWidth + trimmedWidth <= availWidth) {
-    textMetrics.mAdvanceWidth += trimmedWidth;
-    if (mTextRun->IsRightToLeft()) {
+  gfxFloat trimmableWidth = 0;
+  if (canTrimTrailingWhitespace) {
+    
+    
+    
+    
+    
+    
+    if (forceBreak >= 0 || transformedCharsFit < transformedLength) {
       
       
-      textMetrics.mBoundingBox.MoveBy(gfxPoint(trimmedWidth, 0));
+      AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
+    } else {
+      
+      
+      
+      
+      textMetrics.mAdvanceWidth += trimmedWidth;
+      trimmableWidth = trimmedWidth;
+      if (mTextRun->IsRightToLeft()) {
+        
+        
+        textMetrics.mBoundingBox.MoveBy(gfxPoint(trimmedWidth, 0));
+      }
+
+      
+      
+      if (lastBreak >= 0) {
+        lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak,
+            textMetrics.mAdvanceWidth <= aReflowState.availableWidth);
+      }
     }
-    
-    if (lastBreak >= 0) {
-      lineLayout.NotifyOptionalBreakPosition(mContent, lastBreak,
-          textMetrics.mAdvanceWidth <= aReflowState.availableWidth);
-    }
-  } else {
-    
-    
-    
-    AddStateBits(TEXT_TRIMMED_TRAILING_WHITESPACE);
   }
   PRInt32 contentLength = offset + charsFit - GetContentOffset();
   
@@ -5347,25 +5348,19 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
 
-  if (charsFit > 0) {
-    lineLayout.SetHasTrailingTextFrame(PR_TRUE);
-    if (charsFit == length) {
-      if (textStyle->WhiteSpaceCanWrap() &&
-          IsTrimmableSpace(frag, offset + charsFit - 1)) {
-        
-        lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
-            textMetrics.mAdvanceWidth <= aReflowState.availableWidth);
-      } else if (HasSoftHyphenBefore(frag, mTextRun, offset, end)) {
-        
-        lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
-            textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth);
-      }
-    }
-  } else {
+  
+  
+  
+  
+  
+  if (transformedCharsFit > 0) {
+    lineLayout.SetTrimmableWidth(NSToCoordFloor(trimmableWidth));
+  }
+  if (charsFit > 0 && charsFit == length &&
+      HasSoftHyphenBefore(frag, mTextRun, offset, end)) {
     
-    
-    
-    lineLayout.SetHasTrailingTextFrame(PR_FALSE);
+    lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
+        textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth);
   }
   if (completedFirstLetter) {
     lineLayout.SetFirstLetterStyleOK(PR_FALSE);

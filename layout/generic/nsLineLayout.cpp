@@ -118,6 +118,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mPlacedFloats = 0;
   mTotalPlacedFrames = 0;
   mTopEdge = 0;
+  mTrimmableWidth = 0;
 
   
   
@@ -1034,7 +1035,9 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       }
       
       if (!continuingTextRun) {
-        SetHasTrailingTextFrame(PR_FALSE);
+        if (!pfd->GetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE)) {
+          mTrimmableWidth = 0;
+        }
         if (!psd->mNoWrap && (!CanPlaceFloatNow() || placedFloat)) {
           
           
@@ -1183,7 +1186,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
   
   
-  PRBool outside = pfd->mBounds.XMost() + endMargin > psd->mRightEdge;
+  PRBool outside = pfd->mBounds.XMost() - mTrimmableWidth + endMargin > psd->mRightEdge;
   if (!outside) {
     
 #ifdef NOISY_CAN_PLACE_FRAME

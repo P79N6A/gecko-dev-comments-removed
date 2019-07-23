@@ -114,22 +114,38 @@ public:
   
   
   
+
+  
+
+
   enum {
     
 
 
-    BREAK_ALLOW_INITIAL = 0x01,
+    BREAK_SUPPRESS_INITIAL = 0x01,
     
 
 
-    BREAK_ALLOW_INSIDE = 0x02
+
+    BREAK_SUPPRESS_INSIDE = 0x02,
+    
+
+
+
+
+
+
+
+
+    BREAK_SKIP_SETTING_NO_BREAKS = 0x04
   };
 
   
 
 
 
-  nsresult AppendInvisibleWhitespace();
+
+  nsresult AppendInvisibleWhitespace(PRUint32 aFlags);
 
   
 
@@ -185,7 +201,10 @@ private:
   PRPackedBool                mCurrentWordContainsComplexChar;
 
   
-  PRPackedBool                mAfterSpace;
+  PRPackedBool                mAfterBreakableSpace;
+  
+  
+  PRPackedBool                mBreakHere;
 };
 
 #endif 
