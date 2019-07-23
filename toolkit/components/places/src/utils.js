@@ -1332,7 +1332,7 @@ var PlacesUtils = {
               
               return false;
             }
-            return anno.name != "placesInternal/GUID";
+            return true;
           });
         } catch(ex) {
           LOG(ex);
