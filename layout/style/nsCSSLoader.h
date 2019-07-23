@@ -505,7 +505,7 @@ private:
   PRUint32 mDatasToNotifyOn;
 
   
-  nsTObserverArray<nsICSSLoaderObserver*> mObservers;
+  nsTObserverArray<nsICSSLoaderObserver> mObservers;
 };
 
 #endif 
