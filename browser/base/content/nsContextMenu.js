@@ -143,9 +143,29 @@ nsContextMenu.prototype = {
                           mailtoHandler.preferredAction == Ci.nsIHandlerInfo.useHelperApp &&
                           (mailtoHandler.preferredApplicationHandler instanceof Ci.nsIWebHandlerApp));
     }
-    var shouldShow = this.onSaveableLink || isMailtoInternal;
+
+    
+    if (this.isTextSelected) {
+      
+      var someText = document.commandDispatcher.focusedWindow
+                             .getSelection().toString();
+      try {
+       var uri = makeURI(someText);
+      }
+      catch (ex) { }
+ 
+      var onPlainTextLink = false;
+      if (uri && /^(https?|ftp)/i.test(uri.scheme) && uri.host) {
+        this.linkURI = uri;
+        this.linkURL = this.linkURI.spec;
+        onPlainTextLink = true;
+      }
+    }
+ 
+    var shouldShow = this.onSaveableLink || isMailtoInternal || onPlainTextLink;
     this.showItem("context-openlink", shouldShow);
     this.showItem("context-openlinkintab", shouldShow);
+    this.showItem("context-openlinkincurrent", onPlainTextLink);
     this.showItem("context-sep-open", shouldShow);
   },
 
@@ -653,6 +673,12 @@ nsContextMenu.prototype = {
   
   openLinkInTab: function() {
     openNewTabWith(this.linkURL, this.target.ownerDocument, null, null, false);
+  },
+
+  
+  openLinkInCurrent: function() {
+    openUILinkIn(this.linkURL, "current", null, null, 
+                 this.target.ownerDocument.documentURIObject);
   },
 
   
