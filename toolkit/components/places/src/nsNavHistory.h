@@ -474,6 +474,12 @@ protected:
 
 
   nsresult InitDB();
+
+  
+
+
+
+  nsresult InitAdditionalDBItems();
   nsresult InitTempTables();
   nsresult InitViews();
   nsresult InitFunctions();

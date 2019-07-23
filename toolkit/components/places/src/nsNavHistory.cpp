@@ -272,6 +272,44 @@ inline void ReverseString(const nsString& aInput, nsAString& aReversed)
     aReversed.Append(aInput[i]);
 }
 
+namespace mozilla {
+  namespace places {
+
+    bool hasRecentCorruptDB()
+    {
+      nsCOMPtr<nsIFile> profDir;
+      nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                                           getter_AddRefs(profDir));
+      NS_ENSURE_SUCCESS(rv, false);
+      nsCOMPtr<nsISimpleEnumerator> entries;
+      rv = profDir->GetDirectoryEntries(getter_AddRefs(entries));
+      NS_ENSURE_SUCCESS(rv, false);
+      PRBool hasMore;
+      while (NS_SUCCEEDED(entries->HasMoreElements(&hasMore)) && hasMore) {
+        nsCOMPtr<nsISupports> next;
+        rv = entries->GetNext(getter_AddRefs(next));
+        NS_ENSURE_SUCCESS(rv, false);
+        nsCOMPtr<nsIFile> currFile = do_QueryInterface(next, &rv);
+        NS_ENSURE_SUCCESS(rv, false);
+
+        nsAutoString leafName;
+        rv = currFile->GetLeafName(leafName);
+        NS_ENSURE_SUCCESS(rv, false);
+        if (leafName.Length() >= DB_CORRUPT_FILENAME.Length() &&
+            leafName.Find(".corrupt", DB_FILENAME.Length()) != -1) {
+          PRInt64 lastMod;
+          rv = currFile->GetLastModifiedTime(&lastMod);
+          NS_ENSURE_SUCCESS(rv, false);
+          if (PR_Now() - lastMod > (PRInt64)24 * 60 * 60 * 1000 * 1000)
+           return true;
+        }
+      }
+      return false;
+    }
+
+  }
+}
+
 
 
 
@@ -446,16 +484,19 @@ nsNavHistory::Init()
   LoadPrefs(PR_TRUE);
 
   
+  
   rv = InitDBFile(PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
   rv = InitDB();
   if (NS_FAILED(rv)) {
     
-    
     rv = InitDBFile(PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
+    
     rv = InitDB();
   }
   NS_ENSURE_SUCCESS(rv, rv);
@@ -463,7 +504,15 @@ nsNavHistory::Init()
   
   
   
-  nsCOMPtr<PlacesEvent> completeEvent = new PlacesEvent(PLACES_INIT_COMPLETE_EVENT_TOPIC);
+  
+  rv = InitAdditionalDBItems();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  nsRefPtr<PlacesEvent> completeEvent =
+    new PlacesEvent(PLACES_INIT_COMPLETE_EVENT_TOPIC);
   rv = NS_DispatchToMainThread(completeEvent);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -589,20 +638,39 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   rv = mDBFile->Append(DB_FILENAME);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
   if (aForceInit) {
     
-    nsCOMPtr<nsIFile> backup;
-    rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
-                                        getter_AddRefs(backup));
-    NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    
+    
+    if (!mozilla::places::hasRecentCorruptDB()) {
+      
+      nsCOMPtr<nsIFile> backup;
+      rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
+                                          getter_AddRefs(backup));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
+    
+    
     
     rv = mDBConn->Close();
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = mDBFile->Remove(PR_FALSE);
+    if (NS_FAILED(rv)) {
+      
+      
+      
+      
+      
+      
+      nsRefPtr<PlacesEvent> lockedEvent =
+        new PlacesEvent(PLACES_DB_LOCKED_EVENT_TOPIC);
+      (void)NS_DispatchToMainThread(lockedEvent);
+    }
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -649,7 +717,8 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     
     
     
-    nsCOMPtr<PlacesEvent> lockedEvent = new PlacesEvent(PLACES_DB_LOCKED_EVENT_TOPIC);
+    nsRefPtr<PlacesEvent> lockedEvent =
+      new PlacesEvent(PLACES_DB_LOCKED_EVENT_TOPIC);
     (void)NS_DispatchToMainThread(lockedEvent);
   }
   NS_ENSURE_SUCCESS(rv, rv);
@@ -894,10 +963,17 @@ nsNavHistory::InitDB()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-
+  
+  
   
 
-  rv = InitTempTables();
+  return NS_OK;
+}
+
+nsresult
+nsNavHistory::InitAdditionalDBItems()
+{
+  nsresult rv = InitTempTables();
   NS_ENSURE_SUCCESS(rv, rv);
   rv = InitViews();
   NS_ENSURE_SUCCESS(rv, rv);
