@@ -660,14 +660,29 @@ class nsTArray : public nsTArray_base {
     
     
     
+    
+    
     PRBool SetLength(size_type newLen) {
       size_type oldLen = Length();
       if (newLen > oldLen) {
         return InsertElementsAt(oldLen, newLen - oldLen) != nsnull;
       }
       
-      RemoveElementsAt(newLen, oldLen - newLen);
+      TruncateLength(newLen);
       return PR_TRUE;
+    }
+
+    
+    
+    
+    
+    
+    
+    void TruncateLength(size_type newLen) {
+      size_type oldLen = Length();
+      NS_ABORT_IF_FALSE(newLen <= oldLen,
+                        "caller should use SetLength instead");
+      RemoveElementsAt(newLen, oldLen - newLen);
     }
 
     
