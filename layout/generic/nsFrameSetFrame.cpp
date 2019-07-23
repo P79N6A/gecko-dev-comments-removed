@@ -1458,6 +1458,13 @@ void
 nsHTMLFramesetFrame::MouseDrag(nsPresContext* aPresContext, 
                                nsGUIEvent*     aEvent)
 {
+  
+  if (nsIPresShell::GetCapturingContent() != GetContent()) {
+    mDragger = nsnull;
+    gDragInProgress = PR_FALSE;
+    return;
+  }
+
   PRInt32 change; 
   nsWeakFrame weakFrame(this);
   if (mDragger->mVertical) {

@@ -6000,6 +6000,9 @@ PresShell::HandleEvent(nsIView         *aView,
   }
 #endif
 
+  nsIContent* capturingContent =
+    NS_IS_MOUSE_EVENT(aEvent) ? GetCapturingContent() : nsnull;
+
   nsCOMPtr<nsIDocument> retargetEventDoc;
   
   if (!sDontRetargetEvents) {
@@ -6020,10 +6023,10 @@ PresShell::HandleEvent(nsIView         *aView,
       retargetEventDoc = do_QueryInterface(piWindow->GetExtantDocument());
       if (!retargetEventDoc)
         return NS_OK;
-    } else if (NS_IS_MOUSE_EVENT(aEvent) && GetCapturingContent()) {
+    } else if (capturingContent) {
       
       
-      retargetEventDoc = gCaptureInfo.mContent->GetCurrentDoc();
+      retargetEventDoc = capturingContent->GetCurrentDoc();
     }
 
     if (retargetEventDoc) {
@@ -6093,43 +6096,7 @@ PresShell::HandleEvent(nsIView         *aView,
     return NS_OK;
   }
 
-  PRBool getDescendantPoint = PR_TRUE;
   nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
-
-  if (NS_IS_MOUSE_EVENT(aEvent) && GetCapturingContent()) {
-    
-    
-    
-    
-    
-    
-    nsIContent* capturingContent = gCaptureInfo.mContent;
-    frame = GetPrimaryFrameFor(capturingContent);
-    if (frame) {
-      getDescendantPoint = !gCaptureInfo.mRetargetToElement;
-      if (!capturingContent->GetParent()) {
-        frame = frame->GetParent();
-      }
-      else {
-        
-        if (capturingContent->Tag() == nsGkAtoms::select &&
-            capturingContent->IsNodeOfType(nsINode::eHTML)) {
-          nsIFrame* childframe = frame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
-          if (childframe) {
-            frame = childframe;
-          }
-        }
-
-        
-        nsIScrollableFrame* scrollFrame = do_QueryFrame(frame);
-        if (scrollFrame) {
-          frame = scrollFrame->GetScrolledFrame();
-        }
-      }
-      aView = frame->GetClosestView();
-    }
-  }
-
   PRBool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
 
   
@@ -6182,8 +6149,28 @@ PresShell::HandleEvent(nsIView         *aView,
 #endif
     }
 
+    PRBool captureRetarget = PR_FALSE;
+    if (capturingContent) {
+      captureRetarget = gCaptureInfo.mRetargetToElement;
+      
+      
+      if (!captureRetarget && capturingContent->Tag() == nsGkAtoms::select &&
+          capturingContent->IsNodeOfType(nsINode::eHTML)) {
+        nsIFrame* selectFrame = GetPrimaryFrameFor(capturingContent);
+        if (selectFrame) {
+          nsIFrame* childframe = selectFrame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
+          if (childframe) {
+            frame = childframe;
+          }
+        }
+      }
+    }
+
+    
+    
+    
     nsIFrame* targetFrame = nsnull;
-    if (getDescendantPoint) {
+    if (!captureRetarget) {
       nsPoint eventPoint
           = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, frame);
       {
@@ -6194,6 +6181,24 @@ PresShell::HandleEvent(nsIView         *aView,
         }
         targetFrame = nsLayoutUtils::GetFrameForPoint(frame, eventPoint,
                                                       PR_FALSE, ignoreRootScrollFrame);
+      }
+    }
+
+    
+    
+    
+    
+    if (capturingContent &&
+        (gCaptureInfo.mRetargetToElement ||
+         !targetFrame || !targetFrame->GetContent() ||
+         !nsContentUtils::ContentIsCrossDocDescendantOf(targetFrame->GetContent(),
+                                                        capturingContent))) {
+      
+      
+      nsIFrame* capturingFrame = GetPrimaryFrameFor(capturingContent);
+      if (capturingFrame) {
+        targetFrame = capturingFrame;
+        aView = targetFrame->GetClosestView();
       }
     }
 
