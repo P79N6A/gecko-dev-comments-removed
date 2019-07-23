@@ -36,6 +36,10 @@
 
 
   private:
+#ifdef DEBUG_hsivonen
+    static PRUint32 sInsertionBatchMaxLength;
+    static PRUint32 sAppendBatchMaxSize;
+#endif
     nsHtml5Parser* mParser; 
     PRBool         mHasProcessedBase;
     PRBool         mFlushing;
@@ -90,6 +94,11 @@
         iter->Fire(this);
       }
       mPendingNotifications.Clear();
+#ifdef DEBUG_hsivonen
+      if (mElementsSeenInThisAppendBatch.Length() > sAppendBatchMaxSize) {
+        sAppendBatchMaxSize = mElementsSeenInThisAppendBatch.Length();
+      }
+#endif
       mElementsSeenInThisAppendBatch.Clear();
     }
     
