@@ -49,7 +49,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsutil.h" 
 #include "jsdtoa.h"
@@ -970,8 +969,8 @@ PushOff(SprintStack *ss, ptrdiff_t off, JSOp op)
 
     
     ss->offsets[top] = off;
-    ss->opcodes[top] = (op == JSOP_GETPROP2) ? JSOP_GETPROP
-                     : (op == JSOP_GETELEM2) ? JSOP_GETELEM
+    ss->opcodes[top] = (op == JSOP_GETPROP2) ? (jsbytecode) JSOP_GETPROP
+                     : (op == JSOP_GETELEM2) ? (jsbytecode) JSOP_GETELEM
                      : (jsbytecode) op;
     ss->top = ++top;
     AddParenSlop(ss);
