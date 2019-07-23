@@ -1312,6 +1312,16 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
     if (PresContext()->CompatibilityMode() == eCompatibility_FullStandards) {
       aIntrinsicSize.width += 1;
     }
+
+    
+    
+    
+    nsMargin childPadding;
+    if (GetFirstChild(nsnull)->GetStylePadding()->GetPadding(childPadding)) {
+      aIntrinsicSize.width += childPadding.LeftRight();
+    } else {
+      NS_ERROR("Percentage padding on anonymous div?");
+    }
   }
 
   
