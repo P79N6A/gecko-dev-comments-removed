@@ -74,6 +74,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsITimelineService.h"
 #include "nsFind.h"
+#include "nsDOMError.h"
 
 #if DEBUG
 #include "nsIWebNavigation.h"
@@ -725,7 +726,6 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
 
     
     
-    
 
     
     nsCOMPtr<nsIDocument> theDoc = do_QueryInterface(domDoc);
@@ -735,20 +735,24 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
       do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
   
-    PRBool hasCap = PR_FALSE;
-    secMan->IsCapabilityEnabled("UniversalBrowserWrite", &hasCap);
-    if (!hasCap)
-      secMan->IsCapabilityEnabled("UniversalXPConnect", &hasCap);
+    nsCOMPtr<nsIPrincipal> subject;
+    rv = secMan->GetSubjectPrincipal(getter_AddRefs(subject));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!hasCap) {
-      nsCOMPtr<nsIPrincipal> subject;
-      rv = secMan->GetSubjectPrincipal(getter_AddRefs(subject));
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (subject) {
-        rv = secMan->CheckSameOriginPrincipal(subject,
-                                              theDoc->NodePrincipal());
+    if (subject) {
+        PRBool subsumes;
+        rv = subject->Subsumes(theDoc->NodePrincipal(), &subsumes);
         NS_ENSURE_SUCCESS(rv, rv);
-      }
+        if (!subsumes) {
+            PRBool hasCap = PR_FALSE;
+            secMan->IsCapabilityEnabled("UniversalBrowserWrite", &hasCap);
+            if (!hasCap) {
+                secMan->IsCapabilityEnabled("UniversalXPConnect", &hasCap);
+            }
+            if (!hasCap) {
+                return NS_ERROR_DOM_PROP_ACCESS_DENIED;
+            }
+        }
     }
 
     if (!mFind) {
