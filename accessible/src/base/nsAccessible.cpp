@@ -1963,7 +1963,7 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
           
           *aRole = nsIAccessibleRole::ROLE_TOGGLE_BUTTON;
         }
-        else if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_secret,
+        else if (content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_haspopup,
                                       nsAccessibilityAtoms::_true, eCaseMatters)) {
           
           *aRole = nsIAccessibleRole::ROLE_BUTTONMENU;
