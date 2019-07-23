@@ -1970,13 +1970,15 @@ nsresult nsAccessible::GetXULName(nsAString& aLabel, PRBool aCanAggregateSubtree
 NS_IMETHODIMP nsAccessible::FireToolkitEvent(PRUint32 aEvent, nsIAccessible *aTarget, void * aData)
 {
   
-  NS_ENSURE_TRUE(mWeakShell, NS_ERROR_FAILURE);
+  if (!mWeakShell)
+    return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIAccessibleEvent> accEvent =
-    new nsAccEvent(aEvent, aTarget, aData);
-  NS_ENSURE_TRUE(accEvent, NS_ERROR_OUT_OF_MEMORY);
+  nsCOMPtr<nsIAccessibleDocument> docAccessible(GetDocAccessible());
+  nsCOMPtr<nsPIAccessible> eventHandlingAccessible(do_QueryInterface(docAccessible));
+  if (eventHandlingAccessible)
+    return eventHandlingAccessible->FireToolkitEvent(aEvent, aTarget, aData);
 
-  return FireAccessibleEvent(accEvent);
+  return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP

@@ -72,6 +72,7 @@ public:
 public:
     
     NS_IMETHOD GetNativeInterface(void **aOutAccessible);
+    NS_IMETHOD FireAccessibleEvent(nsIAccessibleEvent *aEvent);
 
     AtkObject * GetAtkObject(void);
 
