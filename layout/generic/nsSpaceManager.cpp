@@ -234,6 +234,12 @@ nsSpaceManager::YMost(nscoord& aYMost) const
 
 
 
+
+
+
+
+
+
 nsresult
 nsSpaceManager::GetBandAvailableSpace(const BandRect* aBand,
                                       nscoord         aY,
@@ -251,7 +257,8 @@ nsSpaceManager::GetBandAvailableSpace(const BandRect* aBand,
 
   
   while (aBand->mTop == topOfBand) {
-    if (aBand->mRight > mX) {
+    if (aBand->mRight > mX ||
+        (aMaxSize.width == 0 && aBand->mRight == mX)) {
       break;
     }
 
@@ -264,7 +271,9 @@ nsSpaceManager::GetBandAvailableSpace(const BandRect* aBand,
   nscoord   left = mX;
 
   
-  while ((aBand->mTop == topOfBand) && (aBand->mLeft < rightEdge)) {
+  while ((aBand->mTop == topOfBand) && 
+         (aBand->mLeft < rightEdge || 
+          (aMaxSize.width == 0 && aBand->mLeft == mX))) {
     
     
     if (aBand->mLeft > left) {
