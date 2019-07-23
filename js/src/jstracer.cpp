@@ -587,7 +587,7 @@ TraceRecorder::nativeGlobalOffset(jsval* p) const
 }
 
 
-bool 
+bool
 TraceRecorder::isGlobal(jsval* p) const
 {
     return ((size_t(p - globalObj->fslots) < JS_INITIAL_NSLOTS) ||
@@ -853,7 +853,7 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
 
 void
 TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
-        const char *prefix, int index, jsuword *localNames)
+                      const char *prefix, int index, jsuword *localNames)
 {
     JS_ASSERT(t != TYPEMAP_TYPE_ANY);
     LIns* ins;
@@ -894,6 +894,7 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
     printf("import vp=%p name=%s type=%s flags=%d\n", p, name, typestr[t & 7], t >> 3);
 #endif
 }
+
 
 bool
 TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
@@ -961,6 +962,7 @@ TraceRecorder::get(jsval* p)
     return tracker.get(p);
 }
 
+
 static bool
 js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
 {
@@ -1018,6 +1020,7 @@ TraceRecorder::snapshot(ExitType exitType)
     return &exit;
 }
 
+
 LIns*
 TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 {
@@ -1025,6 +1028,8 @@ TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
                          cond,
                          snapshot(exitType));
 }
+
+
 
 bool
 TraceRecorder::checkType(jsval& v, uint8& t)
@@ -1100,11 +1105,13 @@ TraceRecorder::verifyTypeStability()
     return !recompileFlag;
 }
 
+
 bool
 TraceRecorder::isLoopHeader(JSContext* cx) const
 {
     return cx->fp->regs->pc == fragment->root->ip;
 }
+
 
 void
 TraceRecorder::closeLoop(Fragmento* fragmento)
