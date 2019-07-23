@@ -1435,6 +1435,9 @@ public:
     
     
     eReplacedContainsBlock =            1 << 5,
+    
+    
+    eLineParticipant =                  1 << 6,
 
 
     

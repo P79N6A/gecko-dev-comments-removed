@@ -374,7 +374,8 @@ public:
   {
     
     
-    return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced));
+    return nsFrame::IsFrameOfType(aFlags & ~(nsIFrame::eReplaced |
+                                             nsIFrame::eLineParticipant));
   }
 
 #ifdef DEBUG
