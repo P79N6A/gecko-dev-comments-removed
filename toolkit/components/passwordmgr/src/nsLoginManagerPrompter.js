@@ -459,23 +459,24 @@ LoginManagerPrompter.prototype = {
 
 
 
-
-
-
-    promptToChangePassword : function (aUsername) {
+    promptToChangePassword : function (aOldLogin, aNewLogin) {
         const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
 
         var dialogText  = this._getLocalizedString(
-                                    "passwordChangeText", [aUsername]);
+                                    "passwordChangeText",
+                                    [aOldLogin.username]);
         var dialogTitle = this._getLocalizedString(
                                     "passwordChangeTitle");
 
         
-        var result = this._promptService.confirmEx(this._window,
+        var ok = !this._promptService.confirmEx(this._window,
                                 dialogTitle, dialogText, buttonFlags,
                                 null, null, null,
                                 null, {});
-        return !result;
+        if (ok) {
+            this.log("Updating password for user " + aOldLogin.username);
+            this._pwmgr.modifyLogin(aOldLogin, aNewLogin);
+        }
     },
 
 
@@ -492,14 +493,13 @@ LoginManagerPrompter.prototype = {
 
 
 
-
-
-    promptToChangePasswordWithUsernames : function (usernames) {
+    promptToChangePasswordWithUsernames : function (logins, count, aNewLogin) {
         const buttonFlags = Ci.nsIPrompt.STD_YES_NO_BUTTONS;
 
+        var usernames = logins.map(function (l) l.username);
         var dialogText  = this._getLocalizedString("userSelectText");
         var dialogTitle = this._getLocalizedString("passwordChangeTitle");
-        var selectedUser = null, selectedIndex = { value: null };
+        var selectedIndex = { value: null };
 
         
         
@@ -507,10 +507,19 @@ LoginManagerPrompter.prototype = {
                                 dialogTitle, dialogText,
                                 usernames.length, usernames,
                                 selectedIndex);
-        if (ok)
-            selectedUser = usernames[selectedIndex.value];
+        if (ok) {
+            
+            
 
-        return [ok, selectedUser];
+            var selectedLogin = logins[selectedIndex.value];
+
+            this.log("Updating password for user " + selectedLogin.username);
+
+            aNewLogin.username      = selectedLogin.username;
+            aNewLogin.usernameField = selectedLogin.usernameField;
+
+            this._pwmgr.modifyLogin(selectedLogin, aNewLogin);
+        }
     },
 
 

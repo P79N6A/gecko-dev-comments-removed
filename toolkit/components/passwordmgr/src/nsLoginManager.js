@@ -781,7 +781,6 @@ LoginManager.prototype = {
         
         if (!usernameField && oldPasswordField) {
 
-            var ok, username;
             var logins = this.findLogins({}, hostname, formSubmitURL, null);
 
             
@@ -802,32 +801,16 @@ LoginManager.prototype = {
             var prompter = getPrompter(win);
 
             if (logins.length == 1) {
-                username = logins[0].username;
-                ok = prompter.promptToChangePassword(username);
+                var oldLogin = logins[0];
+                formLogin.username      = oldLogin.username;
+                formLogin.usernameField = oldLogin.usernameField;
+
+                prompter.promptToChangePassword(oldLogin, formLogin);
             } else {
-                var usernames = logins.map(function (l) l.username);
-                [ok, username] = prompter.promptToChangePasswordWithUsernames(
-                                                                usernames);
+                prompter.promptToChangePasswordWithUsernames(
+                                    logins, logins.length, formLogin);
             }
 
-            if (!ok)
-                return;
-
-            
-            
-            this.log("Updating password for username " + username);
-
-            var existingLogin;
-            logins.some(function(l) {
-                                    existingLogin = l;
-                                    return (l.username == username);
-                                });
-
-            formLogin.username      = username;
-            formLogin.usernameField = existingLogin.usernameField;
-
-            this.modifyLogin(existingLogin, formLogin);
-            
             return;
         }
 
