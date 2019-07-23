@@ -937,6 +937,12 @@ void nsOggDecodeStateMachine::PlayFrame() {
           (TimeStamp::Now() - mPlayStartTime - mPauseDuration).ToSeconds() :
           hwtime;
         
+        if (hwtime >= 0.0) {
+          mPlayStartTime = TimeStamp::Now();
+          mPlayStartTime -= TimeDuration::FromMilliseconds(hwtime * 1000.0);
+          mPauseDuration = TimeDuration(0);
+        }
+        
         
         PRInt64 wait = PRInt64((frame->mTime - time)*1000);
         if (wait <= 0)
