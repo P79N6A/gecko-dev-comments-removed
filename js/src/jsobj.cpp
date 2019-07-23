@@ -2284,7 +2284,7 @@ Detecting(JSContext *cx, jsbytecode *pc)
     script = cx->fp->script;
     endpc = script->code + script->length;
     for (;; pc += js_CodeSpec[op].length) {
-        JS_ASSERT(pc < endpc);
+        JS_ASSERT_IF(!cx->fp->imacpc, script->code <= pc && pc < endpc);
 
         
         op = js_GetOpcode(cx, script, pc);
@@ -2785,11 +2785,6 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
                 break;
             }
         }
-    }
-
-    if (xdr->mode == JSXDR_DECODE) {
-        
-        OBJ_SCOPE(obj)->object = NULL;
     }
 
     JS_POP_TEMP_ROOT(cx, &tvr);
@@ -4254,7 +4249,8 @@ js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
                 flags = JSREPORT_ERROR;
             } else {
                 if (!JS_HAS_STRICT_OPTION(cx) ||
-                    (op != JSOP_GETPROP && op != JSOP_GETELEM)) {
+                    (op != JSOP_GETPROP && op != JSOP_GETELEM) ||
+                    cx->fp->imacpc) {
                     return JS_TRUE;
                 }
 
