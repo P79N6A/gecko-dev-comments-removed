@@ -108,11 +108,16 @@ void MozQWidget::hoverMoveEvent(QGraphicsSceneHoverEvent* aEvent)
 
 void MozQWidget::keyPressEvent(QKeyEvent* aEvent)
 {
-    mReceiver->OnKeyPressEvent(aEvent);
+    
+    
+    
 }
 
 void MozQWidget::keyReleaseEvent(QKeyEvent* aEvent)
 {
+    
+    mReceiver->OnKeyPressEvent(aEvent);
+
     mReceiver->OnKeyReleaseEvent(aEvent);
 }
 
