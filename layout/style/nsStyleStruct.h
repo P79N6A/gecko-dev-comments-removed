@@ -1302,14 +1302,7 @@ struct nsStyleDisplay {
   
   
   nsRefPtr<nsCSSValue::URL> mBinding;    
-#if 0
-  
-  
-  
-  nsMargin  mClip;              
-#else
   nsRect    mClip;              
-#endif
   float   mOpacity;             
   PRUint8 mDisplay;             
   PRUint8 mOriginalDisplay;     
