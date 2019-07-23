@@ -964,7 +964,6 @@ private:
     ATSUDirectDataSelector mSelector;
 };
 
-#define ATSUI_SPECIAL_GLYPH_ID       0xFFFF
 
 
 
@@ -974,185 +973,23 @@ private:
 
 
 
-static PRInt32
-GetAdvanceAppUnits(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
-                   PRUint32 aAppUnitsPerDevUnit)
-{
-    Fixed fixedAdvance = aGlyphs[aGlyphCount].realPos - aGlyphs->realPos;
-    return PRInt32((PRInt64(fixedAdvance)*aAppUnitsPerDevUnit + (1 << 15)) >> 16);
-}
-
-
-
-
-
-
-static void
-SetGlyphsForCharacterGroup(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
-                           Fixed *aBaselineDeltas, PRUint32 aAppUnitsPerDevUnit,
-                           gfxTextRun *aRun, PRUint32 aOffsetInTextRun,
-                           const PRPackedBool *aUnmatched,
-                           const PRUnichar *aString,
-                           const PRUint32 aLength)
-{
-    NS_ASSERTION(aGlyphCount > 0, "Must set at least one glyph");
-    PRUint32 firstOffset = aGlyphs[0].originalOffset;
-    PRUint32 lastOffset = firstOffset;
-    PRUint32 i;
-    PRUint32 regularGlyphCount = 0;
-    ATSLayoutRecord *displayGlyph = nsnull;
-    PRBool inOrder = PR_TRUE;
-    PRBool allMatched = PR_TRUE;
-
-    for (i = 0; i < aGlyphCount; ++i) {
-        ATSLayoutRecord *glyph = &aGlyphs[i];
-        PRUint32 offset = glyph->originalOffset;
-        firstOffset = PR_MIN(firstOffset, offset);
-        lastOffset = PR_MAX(lastOffset, offset);
-        if (aUnmatched && aUnmatched[offset/2]) {
-            allMatched = PR_FALSE;
-        }
-        if (glyph->glyphID != ATSUI_SPECIAL_GLYPH_ID) {
-            ++regularGlyphCount;
-            displayGlyph = glyph;
-        }
-        if (i > 0 && aRun->IsRightToLeft() != (offset < aGlyphs[i - 1].originalOffset)) { 
-            inOrder = PR_FALSE;
-        }
-    }
-
-    NS_ASSERTION(!gfxFontGroup::IsInvalidChar(aString[firstOffset/2]),
-                 "Invalid char passed in");
-
-    if (!allMatched) {
-        for (i = firstOffset; i <= lastOffset; ++i) {
-            PRUint32 index = i/2;
-            if (NS_IS_HIGH_SURROGATE(aString[index]) &&
-                index + 1 < aLength &&
-                NS_IS_LOW_SURROGATE(aString[index + 1])) {
-                aRun->SetMissingGlyph(aOffsetInTextRun + index,
-                                      SURROGATE_TO_UCS4(aString[index],
-                                                        aString[index + 1]));
-            } else {
-                aRun->SetMissingGlyph(aOffsetInTextRun + index, aString[index]);
-            }
-        }
-        return;
-    }
-
-    gfxTextRun::CompressedGlyph g;
-    PRUint32 offset;
-    
-    
-    
-    
-    for (offset = firstOffset + 2; offset <= lastOffset; offset += 2) {
-        PRUint32 charIndex = aOffsetInTextRun + offset/2;
-        PRBool makeClusterStart = inOrder && aRun->IsClusterStart(charIndex);
-        g.SetComplex(makeClusterStart, PR_FALSE, 0);
-        aRun->SetGlyphs(charIndex, g, nsnull);
-    }
-
-    
-    PRInt32 advance = GetAdvanceAppUnits(aGlyphs, aGlyphCount, aAppUnitsPerDevUnit);
-    PRUint32 charIndex = aOffsetInTextRun + firstOffset/2;
-    if (regularGlyphCount == 1) {
-        if (advance >= 0 &&
-            (!aBaselineDeltas || aBaselineDeltas[displayGlyph - aGlyphs] == 0) &&
-            gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
-            gfxTextRun::CompressedGlyph::IsSimpleGlyphID(displayGlyph->glyphID) &&
-            aRun->IsClusterStart(charIndex)) {
-            aRun->SetSimpleGlyph(charIndex, g.SetSimpleGlyph(advance, displayGlyph->glyphID));
-            return;
-        }
-    }
-
-    nsAutoTArray<gfxTextRun::DetailedGlyph,10> detailedGlyphs;
-    ATSLayoutRecord *advanceStart = aGlyphs;
-    for (i = 0; i < aGlyphCount; ++i) {
-        ATSLayoutRecord *glyph = &aGlyphs[i];
-        if (glyph->glyphID != ATSUI_SPECIAL_GLYPH_ID) {
-            if (glyph->originalOffset > firstOffset) {
-                PRUint32 glyphCharIndex = aOffsetInTextRun + glyph->originalOffset/2;
-                PRUint32 glyphRunIndex = aRun->FindFirstGlyphRunContaining(glyphCharIndex);
-                PRUint32 numGlyphRuns;
-                const gfxTextRun::GlyphRun *glyphRun = aRun->GetGlyphRuns(&numGlyphRuns) + glyphRunIndex;
-
-                if (glyphRun->mCharacterOffset > charIndex) {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    NS_ERROR("Font change inside character group!");
-                    
-                    continue;
-                }
-            }
-
-            gfxTextRun::DetailedGlyph *details = detailedGlyphs.AppendElement();
-            if (!details)
-                return;
-            details->mAdvance = 0;
-            details->mGlyphID = glyph->glyphID;
-            details->mXOffset = 0;
-            if (detailedGlyphs.Length() > 1) {
-                details->mXOffset +=
-                    GetAdvanceAppUnits(advanceStart, glyph - advanceStart,
-                                       aAppUnitsPerDevUnit);
-            }
-            details->mYOffset = !aBaselineDeltas ? 0.0f
-                : - FixedToFloat(aBaselineDeltas[i])*aAppUnitsPerDevUnit;
-        }
-    }
-    if (detailedGlyphs.Length() == 0) {
-        NS_WARNING("No glyphs visible at all!");
-        aRun->SetGlyphs(aOffsetInTextRun + charIndex, g.SetMissing(0), nsnull);
-        return;
-    }
-
-    
-    PRInt32 clusterAdvance = GetAdvanceAppUnits(aGlyphs, aGlyphCount, aAppUnitsPerDevUnit);
-    if (aRun->IsRightToLeft())
-        detailedGlyphs[0].mAdvance = clusterAdvance;
-    else
-        detailedGlyphs[detailedGlyphs.Length() - 1].mAdvance = clusterAdvance;
-    g.SetComplex(aRun->IsClusterStart(charIndex), PR_TRUE, detailedGlyphs.Length());
-    aRun->SetGlyphs(charIndex, g, detailedGlyphs.Elements());
-}
-
-
-
-
 static PRBool
-PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aRun,
-                   const PRUnichar *aString, PRUint32 aLayoutLength,
-                   PRUint32 aOffsetInTextRun, PRUint32 aLengthInTextRun,
+PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
+                   const PRUnichar *aString, PRInt32 aLayoutLength,
+                   PRInt32 aOffsetInTextRun, PRInt32 aLengthInTextRun,
                    const PRPackedBool *aUnmatched)
 {
-    
-    
-    
     AutoLayoutDataArrayPtr baselineDeltasArray(aLine, kATSUDirectDataBaselineDeltaFixedArray);
     Fixed *baselineDeltas = static_cast<Fixed *>(baselineDeltasArray.mArray);
     AutoLayoutDataArrayPtr glyphRecordsArray(aLine, kATSUDirectDataLayoutRecordATSLayoutRecordCurrent);
 
-    PRUint32 numGlyphs = glyphRecordsArray.mItemCount;
+    PRInt32 numGlyphs = glyphRecordsArray.mItemCount;
     if (numGlyphs == 0 || !glyphRecordsArray.mArray) {
         NS_WARNING("Failed to retrieve key glyph data");
         return PR_FALSE;
     }
     ATSLayoutRecord *glyphRecords = static_cast<ATSLayoutRecord *>(glyphRecordsArray.mArray);
-    NS_ASSERTION(!baselineDeltas || baselineDeltasArray.mItemCount == numGlyphs,
+    NS_ASSERTION(!baselineDeltas || baselineDeltasArray.mItemCount == (PRUint32)numGlyphs,
                  "Mismatched glyph counts");
     NS_ASSERTION(glyphRecords[numGlyphs - 1].flags & kATSGlyphInfoTerminatorGlyph,
                  "Last glyph should be a terminator glyph");
@@ -1160,20 +997,19 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aRun,
     if (numGlyphs == 0)
         return PR_FALSE;
 
-    PRUint32 appUnitsPerDevUnit = aRun->GetAppUnitsPerDevUnit();
-    PRBool isRTL = aRun->IsRightToLeft();
+    PRBool isLTR = !aTextRun->IsRightToLeft();
 
     PRUint32 trailingCharactersToIgnore = aLayoutLength - aLengthInTextRun;
     if (trailingCharactersToIgnore > 0) {
         
         
-        if (isRTL) {
-            NS_ASSERTION(glyphRecords[trailingCharactersToIgnore - 1].originalOffset == aLengthInTextRun*2,
+        if (isLTR) {
+            NS_ASSERTION((PRInt32)glyphRecords[numGlyphs - trailingCharactersToIgnore].originalOffset == aLengthInTextRun*2,
+                         "Couldn't find glyph for trailing marker");
+        } else {
+            NS_ASSERTION((PRInt32)glyphRecords[trailingCharactersToIgnore - 1].originalOffset == aLengthInTextRun*2,
                          "Couldn't find glyph for trailing marker");
             glyphRecords += trailingCharactersToIgnore;
-        } else {
-            NS_ASSERTION(glyphRecords[numGlyphs - trailingCharactersToIgnore].originalOffset == aLengthInTextRun*2,
-                         "Couldn't find glyph for trailing marker");
         }
         numGlyphs -= trailingCharactersToIgnore;
         if (numGlyphs == 0)
@@ -1181,70 +1017,251 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aRun,
     }
 
     PRUint32 allFlags = 0;
-    
-    
-    PRInt32 direction = PRInt32(aRun->GetDirection());
-    while (numGlyphs > 0) {
-        PRUint32 glyphIndex = isRTL ? numGlyphs - 1 : 0;
-        PRUint32 lastOffset = glyphRecords[glyphIndex].originalOffset;
-        PRUint32 glyphCount = 1;
+    PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
+
+    nsAutoTArray<gfxTextRun::DetailedGlyph,8> detailedGlyphs;
+    gfxTextRun::CompressedGlyph g;
+
+    Fixed runWidth = glyphRecords[numGlyphs].realPos - glyphRecords[0].realPos;
+
+    static const PRInt32 NO_GLYPH = -1;
+    nsAutoTArray<PRInt32,128> charToGlyphArray;
+    if (!charToGlyphArray.SetLength(aLengthInTextRun))
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    PRInt32 *charToGlyph = charToGlyphArray.Elements();
+    for (PRInt32 offset = 0; offset < aLengthInTextRun; ++offset) {
+        charToGlyph[offset] = NO_GLYPH;
+    }
+    for (PRInt32 g = 0; g < numGlyphs; ++g) {
         
-        while (glyphCount < numGlyphs) {
-            ATSLayoutRecord *glyph = &glyphRecords[glyphIndex + direction*glyphCount];
-            PRUint32 glyphOffset = glyph->originalOffset;
-            PRUint32 nextIndex = isRTL ? glyphIndex - 1 : glyphIndex + 1;
-            PRUint32 nextOffset;
-            if (nextIndex >= 0 && nextIndex < numGlyphs) {
-                ATSLayoutRecord *nextGlyph = &glyphRecords[nextIndex + direction*glyphCount];
-                nextOffset = nextGlyph->originalOffset;
+        
+        charToGlyph[glyphRecords[g].originalOffset/2] = g;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    PRInt32 glyphStart = 0; 
+    PRInt32 charStart = isLTR ? 0 : aLengthInTextRun-1; 
+    PRInt32 direction = isLTR ? 1 : -1; 
+
+    while (glyphStart < numGlyphs) { 
+
+        PRInt32 charEnd = (PRInt32)glyphRecords[glyphStart].originalOffset/2;
+        PRInt32 charLimit = isLTR ? aLengthInTextRun : -1;
+        PRInt32 glyphEnd = glyphStart;
+        PRBool inOrder = PR_TRUE;
+        do {
+            
+            
+            
+            
+            
+            charEnd += direction;
+            while (charEnd != charLimit && charToGlyph[charEnd] == NO_GLYPH) {
+                charEnd += direction;
             }
-            else
-                nextOffset = glyphOffset;
-            allFlags |= glyph->flags;
-            if (glyphOffset <= lastOffset || nextOffset <= lastOffset) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-            } else {
-                
-                if (glyph->glyphID != ATSUI_SPECIAL_GLYPH_ID) {
-                    
-                    break;
-                }
-                if (aUnmatched && aUnmatched[glyphOffset/2]) {
-                    
-                    break;
-                }
-                
-                
-                lastOffset = glyphOffset;
+            
+            if (!isLTR && NS_IS_LOW_SURROGATE(aString[charEnd+1])) {
+                charEnd += 1;
             }
-            ++glyphCount;
-        }
-        if (isRTL) {
-            SetGlyphsForCharacterGroup(glyphRecords + numGlyphs - glyphCount,
-                                       glyphCount,
-                                       baselineDeltas ? baselineDeltas + numGlyphs - glyphCount : nsnull,
-                                       appUnitsPerDevUnit, aRun, aOffsetInTextRun,
-                                       aUnmatched, aString, aLengthInTextRun);
+
+            
+            for (PRInt32 i = charStart; i != charEnd; i += direction) {
+                if (charToGlyph[i] != NO_GLYPH) {
+                    glyphEnd = PR_MAX(glyphEnd, charToGlyph[i] + 1); 
+                }
+            }
+
+            
+            PRBool extendedCharRange = PR_FALSE;
+            while (glyphEnd < numGlyphs && glyphRecords[glyphEnd].glyphID == 0xffff) {
+                if (isLTR) {
+                    if ((PRInt32)glyphRecords[glyphEnd].originalOffset/2 >= charEnd) {
+                        
+                        
+                        charEnd = (PRInt32)glyphRecords[glyphEnd].originalOffset/2;
+                        extendedCharRange = PR_TRUE;
+                    }
+                } else {
+                    if ((PRInt32)glyphRecords[glyphEnd].originalOffset/2 <= charEnd) {
+                        charEnd = (PRInt32)glyphRecords[glyphEnd].originalOffset/2;
+                        extendedCharRange = PR_TRUE;
+                    }
+                }
+                ++glyphEnd;
+            }
+            if (extendedCharRange) {
+                
+                
+                continue;
+            }
+
+            if (glyphEnd == glyphStart + 1) {
+                
+                break;
+            }
+
+            
+            
+            
+            PRBool allGlyphsAreWithinCluster = PR_TRUE;
+            PRInt32 prevGlyphCharIndex = charStart;
+            for (PRInt32 i = glyphStart; i < glyphEnd; ++i) {
+                PRInt32 glyphCharIndex = (PRInt32)glyphRecords[i].originalOffset/2;
+                if (isLTR) {
+                    if (glyphCharIndex < charStart || glyphCharIndex >= charEnd) {
+                        allGlyphsAreWithinCluster = PR_FALSE;
+                        break;
+                    }
+                    if (glyphCharIndex < prevGlyphCharIndex) {
+                        inOrder = PR_FALSE;
+                    }
+                    prevGlyphCharIndex = glyphCharIndex;
+                } else {
+                    if (glyphCharIndex > charStart || glyphCharIndex <= charEnd) {
+                        allGlyphsAreWithinCluster = PR_FALSE;
+                        break;
+                    }
+                    if (glyphCharIndex > prevGlyphCharIndex) {
+                        inOrder = PR_FALSE;
+                    }
+                    prevGlyphCharIndex = glyphCharIndex;
+                }
+            }
+            if (allGlyphsAreWithinCluster) {
+                break;
+            }
+        } while (charEnd != charLimit);
+
+        NS_ASSERTION(glyphStart < glyphEnd, "character/glyph clump contains no glyphs!");
+        NS_ASSERTION(charStart != charEnd, "character/glyph contains no characters!");
+
+        
+        
+        
+        PRInt32 baseCharIndex, endCharIndex;
+        if (isLTR) {
+            baseCharIndex = charStart;
+            endCharIndex = charEnd;
         } else {
-            SetGlyphsForCharacterGroup(glyphRecords,
-                                       glyphCount, baselineDeltas,
-                                       appUnitsPerDevUnit, aRun, aOffsetInTextRun,
-                                       aUnmatched, aString, aLengthInTextRun);
-            glyphRecords += glyphCount;
-            if (baselineDeltas) {
-                baselineDeltas += glyphCount;
-            }
+            baseCharIndex = charEnd + 1;
+            endCharIndex = charStart + 1;
         }
-        numGlyphs -= glyphCount;
+
+        
+        if (baseCharIndex >= aLayoutLength || endCharIndex <= 0) {
+            glyphStart = glyphEnd;
+            charStart = charEnd;
+            continue;
+        }
+
+        
+        
+        baseCharIndex = PR_MAX(baseCharIndex, 0);
+        endCharIndex = PR_MIN(endCharIndex, aLayoutLength);
+
+        
+        if (aUnmatched && aUnmatched[baseCharIndex]) {
+            for (PRInt32 i = baseCharIndex; i < endCharIndex; ++i) {
+                if (NS_IS_HIGH_SURROGATE(aString[i]) &&
+                    i + 1 < aLayoutLength &&
+                    NS_IS_LOW_SURROGATE(aString[i + 1])) {
+                    aTextRun->SetMissingGlyph(aOffsetInTextRun + i,
+                                              SURROGATE_TO_UCS4(aString[i],
+                                                                aString[i + 1]));
+                    ++i;
+                } else {
+                    aTextRun->SetMissingGlyph(aOffsetInTextRun + i, aString[i]);
+                }
+            }
+            glyphStart = glyphEnd;
+            charStart = charEnd;
+            continue;
+        }
+
+        
+        
+        double toNextGlyph;
+        if (glyphStart < numGlyphs-1) {
+            toNextGlyph = FixedToFloat(glyphRecords[glyphStart+1].realPos -
+                                       glyphRecords[glyphStart].realPos);
+        } else {
+            toNextGlyph = FixedToFloat(glyphRecords[0].realPos + runWidth -
+                                       glyphRecords[glyphStart].realPos);
+        }
+        PRInt32 advance = PRInt32(toNextGlyph * appUnitsPerDevUnit);
+
+        
+        
+        baseCharIndex += aOffsetInTextRun;
+        endCharIndex += aOffsetInTextRun;
+
+        
+        PRInt32 glyphsInClump = glyphEnd - glyphStart;
+        if (glyphsInClump == 1 &&
+            gfxTextRun::CompressedGlyph::IsSimpleGlyphID(glyphRecords[glyphStart].glyphID) &&
+            gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+            aTextRun->IsClusterStart(baseCharIndex) &&
+            (!baselineDeltas || baselineDeltas[glyphStart] == 0))
+        {
+            aTextRun->SetSimpleGlyph(baseCharIndex,
+                                     g.SetSimpleGlyph(advance, glyphRecords[glyphStart].glyphID));
+        } else {
+            
+            
+            
+            while (1) {
+                gfxTextRun::DetailedGlyph *details = detailedGlyphs.AppendElement();
+                details->mGlyphID = glyphRecords[glyphStart].glyphID;
+                details->mXOffset = 0;
+                details->mYOffset = !baselineDeltas ? 0.0f
+                    : - FixedToFloat(baselineDeltas[glyphStart]) * appUnitsPerDevUnit;
+                details->mAdvance = advance;
+                if (++glyphStart >= glyphEnd) {
+                    break;
+                }
+                if (glyphStart < numGlyphs-1) {
+                    toNextGlyph = FixedToFloat(glyphRecords[glyphStart+1].realPos -
+                                               glyphRecords[glyphStart].realPos);
+                } else {
+                    toNextGlyph = FixedToFloat(glyphRecords[0].realPos + runWidth -
+                                               glyphRecords[glyphStart].realPos);
+                }
+                advance = PRInt32(toNextGlyph * appUnitsPerDevUnit);
+            }
+
+            gfxTextRun::CompressedGlyph g;
+            g.SetComplex(aTextRun->IsClusterStart(baseCharIndex),
+                         PR_TRUE, detailedGlyphs.Length());
+            aTextRun->SetGlyphs(baseCharIndex, g, detailedGlyphs.Elements());
+
+            detailedGlyphs.Clear();
+        }
+
+        
+        while (++baseCharIndex != endCharIndex) {
+            g.SetComplex(inOrder && aTextRun->IsClusterStart(baseCharIndex),
+                         PR_FALSE, 0);
+            aTextRun->SetGlyphs(baseCharIndex, g, nsnull);
+        }
+
+        glyphStart = glyphEnd;
+        charStart = charEnd;
     }
 
     return (allFlags & ATSUI_OVERRUNNING_GLYPH_FLAG) != 0;
