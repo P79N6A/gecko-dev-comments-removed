@@ -2987,7 +2987,7 @@ nsNSSBadCertHandler(void *arg, PRFileDesc *sslSocket)
     PRBool haveOverride;
     PRBool isTemporaryOverride; 
   
-    nsrv = overrideService->HasMatchingOverride(hostWithPortStringUTF16, 
+    nsrv = overrideService->HasMatchingOverride(hostString, port,
                                                 ix509, 
                                                 &overrideBits,
                                                 &isTemporaryOverride, 
