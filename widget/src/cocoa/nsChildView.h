@@ -105,8 +105,8 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
 
 @interface NSEvent (DeviceDelta)
-  - (float)deviceDeltaX;
-  - (float)deviceDeltaY;
+  - (CGFloat)deviceDeltaX;
+  - (CGFloat)deviceDeltaY;
 @end
 
 @interface ChildView : NSView<
