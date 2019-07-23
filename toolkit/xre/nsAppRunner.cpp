@@ -1558,7 +1558,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   
  
   if (aBlankCommandLine) {
-    gRestartArgc = 1 + (gRestartArgc - gArgc);
+    gRestartArgc = 1;
     gRestartArgv[gRestartArgc] = nsnull;
   }
 
@@ -2248,6 +2248,34 @@ static void RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfi
   file->Remove(PR_FALSE);
 }
 
+
+
+
+
+static struct {
+  const char *name;
+  char *value;
+} gSavedVars[] = {
+  {"XUL_APP_FILE", nsnull}
+};
+
+static void SaveStateForAppInitiatedRestart()
+{
+  for (size_t i = 0; i < NS_ARRAY_LENGTH(gSavedVars); ++i) {
+    const char *s = PR_GetEnv(gSavedVars[i].name);
+    if (s)
+      gSavedVars[i].value = PR_smprintf("%s=%s", gSavedVars[i].name, s);
+  }
+}
+
+static void RestoreStateForAppInitiatedRestart()
+{
+  for (size_t i = 0; i < NS_ARRAY_LENGTH(gSavedVars); ++i) {
+    if (gSavedVars[i].value)
+      PR_SetEnv(gSavedVars[i].value);
+  }
+}
+
 #ifdef MOZ_CRASHREPORTER
 
 
@@ -2275,12 +2303,6 @@ static void MakeOrSetMinidumpPath(nsIFile* profD)
 #endif
 
 const nsXREAppData* gAppData = nsnull;
-nsILocalFile* gAppDataFile = nsnull;
- 
-void XRE_SetAppDataFile(nsILocalFile* aAppDataFile)
-{
-  SetStrongPtr(gAppDataFile, aAppDataFile);
-}
 
 #if defined(XP_OS2)
 
@@ -2606,28 +2628,14 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   PR_SetEnv("MOZ_LAUNCHED_CHILD=");
 
   gRestartArgc = gArgc;
-  if (gAppDataFile) {
-    gRestartArgc += 2;
-  }
-  gRestartArgv = (char**) malloc(sizeof(char*) * (gRestartArgc + 1));
+  gRestartArgv = (char**) malloc(sizeof(char*) * (gArgc + 1));
   if (!gRestartArgv) return 1;
- 
-  int i = 0;
-  int j = 0;
-  if (gAppDataFile) {
-    
-    if (gArgc) {
-      gRestartArgv[j++] = gArgv[i++];
-    }
-    nsCAutoString iniPath;
-    gAppDataFile->GetNativePath(iniPath);
-    gRestartArgv[j++] = "--app";
-    gRestartArgv[j++] = strdup(iniPath.get());
+
+  int i;
+  for (i = 0; i < gArgc; ++i) {
+    gRestartArgv[i] = gArgv[i];
   }
-  while (i < gArgc) {
-    gRestartArgv[j++] = gArgv[i++];
-  }
-  gRestartArgv[gRestartArgc] = nsnull;
+  gRestartArgv[gArgc] = nsnull;
 
 #if defined(XP_OS2)
   PRBool StartOS2App(int aArgc, char **aArgv);
@@ -3080,6 +3088,8 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
         }
 
         if (!upgraded && !needsRestart) {
+          SaveStateForAppInitiatedRestart();
+
           
           
           PR_SetEnv("XRE_PROFILE_PATH=");
@@ -3088,6 +3098,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           PR_SetEnv("XRE_START_OFFLINE=");
           PR_SetEnv("XRE_IMPORT_PROFILES=");
           PR_SetEnv("NO_EM_RESTART=");
+          PR_SetEnv("XUL_APP_FILE=");
           PR_SetEnv("XRE_BINARY_PATH=");
 
 #ifdef XP_MACOSX
@@ -3178,7 +3189,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 
     
     if (needsRestart) {
-      if (!appInitiatedRestart) {
+      if (appInitiatedRestart) {
+        RestoreStateForAppInitiatedRestart();
+      }
+      else {
         char* noEMRestart = PR_GetEnv("NO_EM_RESTART");
         if (noEMRestart && *noEMRestart) {
           PR_SetEnv("NO_EM_RESTART=1");
