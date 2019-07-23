@@ -1210,6 +1210,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSStackFrame *fp, *caller;
     JSBool indirectCall;
+    JSObject *scopeobj;
     uint32 tcflags;
     JSPrincipals *principals;
     const char *file;
@@ -1233,28 +1234,19 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-
-
-
-
-    obj = js_GetWrappedObject(cx, obj);
-
-    
-
-
-
-
-    {
-        JSObject *parent = OBJ_GET_PARENT(cx, obj);
-        if (indirectCall || parent) {
-            uintN flags = parent
-                          ? JSREPORT_ERROR
-                          : JSREPORT_STRICT | JSREPORT_WARNING;
-            if (!JS_ReportErrorFlagsAndNumber(cx, flags, js_GetErrorMessage, NULL,
-                                              JSMSG_BAD_INDIRECT_CALL,
-                                              js_eval_str)) {
-                return JS_FALSE;
-            }
+    scopeobj = OBJ_GET_PARENT(cx, obj);
+    if (scopeobj) {
+        scopeobj = js_GetWrappedObject(cx, obj);
+        scopeobj = OBJ_GET_PARENT(cx, scopeobj);
+    }
+    if (indirectCall || scopeobj) {
+        uintN flags = scopeobj
+                      ? JSREPORT_ERROR
+                      : JSREPORT_STRICT | JSREPORT_WARNING;
+        if (!JS_ReportErrorFlagsAndNumber(cx, flags, js_GetErrorMessage, NULL,
+                                          JSMSG_BAD_INDIRECT_CALL,
+                                          js_eval_str)) {
+            return JS_FALSE;
         }
     }
 
@@ -1272,7 +1264,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         return JS_FALSE;
 
     
-    JSObject *scopeobj = NULL;
     if (argc >= 2) {
         if (!js_ValueToObject(cx, argv[1], &scopeobj))
             return JS_FALSE;
@@ -1338,12 +1329,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
             }
         }
     } else {
-        scopeobj = js_GetWrappedObject(cx, scopeobj);
-        OBJ_TO_INNER_OBJECT(cx, scopeobj);
-        if (!scopeobj) {
-            ok = JS_FALSE;
-            goto out;
-        }
         ok = js_CheckPrincipalsAccess(cx, scopeobj,
                                       JS_StackFramePrincipals(cx, caller),
                                       cx->runtime->atomState.evalAtom);
@@ -5386,7 +5371,7 @@ js_ValueToObject(JSContext *cx, jsval v, JSObject **objp)
         obj = JSVAL_TO_OBJECT(v);
         if (!OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_OBJECT, &v))
             return JS_FALSE;
-        if (JSVAL_IS_OBJECT(v))
+        if (!JSVAL_IS_PRIMITIVE(v))
             obj = JSVAL_TO_OBJECT(v);
     } else {
         if (!js_PrimitiveToObject(cx, &v))
