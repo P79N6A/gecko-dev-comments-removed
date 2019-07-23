@@ -349,7 +349,7 @@ optgroup[disabled] {
 
 input[type="hidden"] {
   -moz-appearance: none;
-  display: none;
+  display: none !important;
   padding: 0;
   border: 0;
   cursor: auto;
