@@ -229,10 +229,8 @@ extern XP_File vr_fileOpen(const char *name, const char * mode)
 {
     XP_File fh = NULL;
     struct stat st;
-    
-#ifdef STANDALONE_REGISTRY
+
     errno = 0; 
-#endif
 
     if ( name != NULL ) {
         if ( stat( name, &st ) == 0 )
@@ -247,7 +245,6 @@ extern XP_File vr_fileOpen(const char *name, const char * mode)
 }
 #endif 
 
-#if defined (XP_MACOSX)
 extern void vr_findGlobalRegName()
 {
     OSErr   err;
@@ -287,64 +284,7 @@ extern void vr_findGlobalRegName()
         }
     }
 }
-#else
-extern void vr_findGlobalRegName()
-{
-    FSSpec  regSpec;
-    OSErr   err;
-    short   foundVRefNum;
-    long    foundDirID;
-    int     bCreate = 0;
-    
-    err = FindFolder(kOnSystemDisk,'pref', false, &foundVRefNum, &foundDirID);
 
-    if (err == noErr)
-    {
-        err = FSMakeFSSpec(foundVRefNum, foundDirID, MAC_REG, &regSpec);
-
-        if (err == -43) 
-        {
-            err = FSpCreate(&regSpec, 'MOSS', 'REGS', smSystemScript);
-            bCreate = 1;
-        }
-
-        if (err == noErr)
-        {
-            Handle thePath;
-            short pathLen;
-            err = FSpGetFullPath(&regSpec, &pathLen, &thePath);
-            if (err == noErr && thePath)
-            {
-                
-            #if defined(STANDALONE_REGISTRY) || defined(USE_STDIO_MODES)
-                HLock(thePath);
-                globalRegName = (char *)XP_ALLOC(pathLen + 1);
-                XP_STRNCPY(globalRegName, *thePath, pathLen);
-                globalRegName[pathLen] = '\0';
-            #else
-                
-                const char* src;
-                char* dst;
-                HLock(thePath);
-                globalRegName = (char*)XP_ALLOC(pathLen + 2);
-                src = *(char**)thePath;
-                dst = globalRegName;
-                *dst++ = '/';
-                while (pathLen--)
-                {
-                    char c = *src++;
-                    *dst++ = (c == ':') ? '/' : c;
-                }
-                *dst = '\0';
-            #endif
-            }
-            DisposeHandle(thePath);
-        }
-    }
-}
-#endif 
-
-#ifdef XP_MACOSX
 extern char* vr_findVerRegName()
 {
     OSErr   err;
@@ -385,194 +325,6 @@ extern char* vr_findVerRegName()
     }
     return verRegName;
 }
-#else
-extern char* vr_findVerRegName()
-{
-    FSSpec  regSpec;
-    OSErr   err;
-    short   foundVRefNum;
-    long    foundDirID;
-    int     bCreate = 0;
-    
-    
-    if ( verRegName != NULL )
-        return verRegName;
-
-    err = FindFolder(kOnSystemDisk,'pref', false, &foundVRefNum, &foundDirID);
-
-    if (err == noErr)
-    {
-        err = FSMakeFSSpec(foundVRefNum, foundDirID, MAC_VERREG, &regSpec);
-
-        if (err == -43) 
-        {
-            err = FSpCreate(&regSpec, 'MOSS', 'REGS', smSystemScript);
-            bCreate = 1;
-        }
-
-        if (err == noErr)
-        {
-            Handle thePath;
-            short pathLen;
-            err = FSpGetFullPath(&regSpec, &pathLen, &thePath);
-            if (err == noErr && thePath)
-            {
-                
-             #if defined(STANDALONE_REGISTRY) || defined(USE_STDIO_MODES)
-                HLock(thePath);
-                verRegName = (char *)XP_ALLOC(pathLen + 1);
-                XP_STRNCPY(verRegName, *thePath, pathLen);
-                verRegName[pathLen] = '\0';
-            #else
-                
-                const char* src;
-                char* dst;
-                HLock(thePath);
-                verRegName = (char*)XP_ALLOC(pathLen + 2);
-                src = *(char**)thePath;
-                dst = verRegName;
-                *dst++ = '/';
-                while (pathLen--)
-                {
-                    char c = *src++;
-                    *dst++ = (c == ':') ? '/' : c;
-                }
-                *dst = '\0';
-            #endif
-            }
-            DisposeHandle(thePath);
-        }
-    }
-
-    return verRegName;
-}
-#endif 
-
-
-
-
-#ifndef XP_MACOSX 
-extern int nr_RenameFile(char *from, char *to)
-{
-    OSErr           err = -1;
-    FSSpec          fromSpec;
-    FSSpec          toSpec;
-    FSSpec          destDirSpec;
-    FSSpec          beforeRenameSpec;
-    
-#ifdef STANDALONE_REGISTRY
-    errno = 0; 
-#endif
-
-    if (from && to) {
-        err = FSpLocationFromFullPath(XP_STRLEN(from), from, &fromSpec);
-        if (err != noErr) goto exit;
-        
-        err = FSpLocationFromFullPath(XP_STRLEN(to), to, &toSpec);
-        if (err != noErr && err != fnfErr) goto exit;
-        
-        
-        err = FSMakeFSSpec(toSpec.vRefNum, toSpec.parID, nil, &destDirSpec);
-        if (err != noErr) goto exit; 
-
-        
-        err = FSpCatMove(&fromSpec, &destDirSpec);
-        if (err != noErr) goto exit;
-        
-        
-        err = FSMakeFSSpec(toSpec.vRefNum, toSpec.parID, fromSpec.name, &beforeRenameSpec);
-        if (err != noErr) goto exit;
-        
-        
-        err = FSpRename(&beforeRenameSpec, toSpec.name);
-    }
-        
-    exit:
-#ifdef STANDALONE_REGISTRY
-    if (err != noErr)
-        errno = err;
-#endif
-    return (err == noErr ? 0 : -1);
-}
-#endif
-
-
-#ifdef STANDALONE_REGISTRY
-#ifndef XP_MACOSX
-char *strdup(const char *source)
-{
-        char    *newAllocation;
-        size_t  stringLength;
-
-        stringLength = strlen(source) + 1;
-
-        newAllocation = (char *)XP_ALLOC(stringLength);
-        if (newAllocation == NULL)
-                return NULL;
-        BlockMoveData(source, newAllocation, stringLength);
-        return newAllocation;
-}
-
-int strcasecmp(const char *str1, const char *str2)
-{
-    char    currentChar1, currentChar2;
-
-    while (1) {
-    
-        currentChar1 = *str1;
-        currentChar2 = *str2;
-        
-        if ((currentChar1 >= 'a') && (currentChar1 <= 'z'))
-            currentChar1 += ('A' - 'a');
-        
-        if ((currentChar2 >= 'a') && (currentChar2 <= 'z'))
-            currentChar2 += ('A' - 'a');
-                
-        if (currentChar1 == '\0')
-            break;
-    
-        if (currentChar1 != currentChar2)
-            return currentChar1 - currentChar2;
-            
-        str1++;
-        str2++;
-    
-    }
-    
-    return currentChar1 - currentChar2;
-}
-
-int strncasecmp(const char *str1, const char *str2, int length)
-{
-    char    currentChar1, currentChar2;
-
-    while (length > 0) {
-
-        currentChar1 = *str1;
-        currentChar2 = *str2;
-
-        if ((currentChar1 >= 'a') && (currentChar1 <= 'z'))
-            currentChar1 += ('A' - 'a');
-
-        if ((currentChar2 >= 'a') && (currentChar2 <= 'z'))
-            currentChar2 += ('A' - 'a');
-
-        if (currentChar1 == '\0')
-            break;
-
-        if (currentChar1 != currentChar2)
-            return currentChar1 - currentChar2;
-
-        str1++;
-        str2++;
-
-        length--;
-    }
-
-    return currentChar1 - currentChar2;
-}
-#endif 
-#endif 
 
 #endif 
 
@@ -582,8 +334,7 @@ int strncasecmp(const char *str1, const char *str2, int length)
 
 
 
-
-#if (defined(STANDALONE_REGISTRY) && defined(XP_MAC)) || defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
+#if defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
 
 #include <stdlib.h>
 
