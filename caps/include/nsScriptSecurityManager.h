@@ -486,15 +486,15 @@ private:
     
     
     
-    static nsIPrincipal*
+    nsIPrincipal*
     GetSubjectPrincipal(JSContext* cx, nsresult* rv);
 
     
     
     
-    static nsIPrincipal*
+    nsIPrincipal*
     GetFramePrincipal(JSContext* cx, JSStackFrame* fp, nsresult* rv);
-                                                     
+
     
     
     
@@ -514,7 +514,7 @@ private:
     
     
     
-    static nsIPrincipal*
+    nsIPrincipal*
     GetPrincipalAndFrame(JSContext *cx,
                          JSStackFrame** frameResult,
                          nsresult* rv);
@@ -601,6 +601,17 @@ private:
     PrintPolicyDB();
 #endif
 
+    struct ContextPrincipal {
+        ContextPrincipal(ContextPrincipal *next, JSContext *cx,
+                         JSStackFrame *fp, nsIPrincipal *principal)
+            : mNext(next), mCx(cx), mFp(fp), mPrincipal(principal) {}
+
+        ContextPrincipal *mNext;
+        JSContext *mCx;
+        JSStackFrame *mFp;
+        nsCOMPtr<nsIPrincipal> mPrincipal;
+    };
+
     
     static jsval sEnabledID;
 
@@ -618,6 +629,7 @@ private:
     nsCOMPtr<nsISecurityPref> mSecurityPref;
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
     nsCOMPtr<nsIPrincipal> mSystemCertificate;
+    ContextPrincipal *mContextPrincipals;
     nsInterfaceHashtable<PrincipalKey, nsIPrincipal> mPrincipals;
     PRPackedBool mIsJavaScriptEnabled;
     PRPackedBool mIsWritingPrefs;

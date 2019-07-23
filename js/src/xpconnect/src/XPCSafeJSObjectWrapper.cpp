@@ -42,6 +42,7 @@
 #include "jsscript.h" 
 #include "XPCWrapper.h"
 #include "jsregexp.h"
+#include "nsJSPrincipals.h"
 
 static JSBool
 XPC_SJOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
@@ -167,23 +168,47 @@ CanCallerAccess(JSContext *cx, JSObject *unsafeObj)
   return PR_TRUE;
 }
 
-static JSPrincipals *
-FindObjectPrincipals(JSContext *cx, JSObject *obj)
+
+
+
+
+#define XPC_SJOW_SLOT_IS_RESOLVING           0
+
+
+
+
+#define XPC_SJOW_SLOT_PRINCIPAL              1
+
+
+
+static nsIPrincipal *
+FindObjectPrincipals(JSContext *cx, JSObject *safeObj, JSObject *innerObj)
 {
+  
+  jsval v;
+  if (!JS_GetReservedSlot(cx, safeObj, XPC_SJOW_SLOT_PRINCIPAL, &v)) {
+    return nsnull;
+  }
+
+  if (!JSVAL_IS_VOID(v)) {
+    
+    return static_cast<nsIPrincipal *>(JSVAL_TO_PRIVATE(v));
+  }
+
   nsCOMPtr<nsIPrincipal> objPrincipal;
-  nsresult rv = FindPrincipals(cx, obj, getter_AddRefs(objPrincipal), nsnull,
+  nsresult rv = FindPrincipals(cx, innerObj, getter_AddRefs(objPrincipal), nsnull,
                                nsnull);
   if (NS_FAILED(rv)) {
     return nsnull;
   }
 
-  JSPrincipals *jsprin;
-  rv = objPrincipal->GetJSPrincipals(cx, &jsprin);
-  if (NS_FAILED(rv)) {
+  if (!JS_SetReservedSlot(cx, safeObj, XPC_SJOW_SLOT_PRINCIPAL,
+                          PRIVATE_TO_JSVAL(objPrincipal.get()))) {
     return nsnull;
   }
 
-  return jsprin;
+  
+  return objPrincipal.forget().get();
 }
 
 
@@ -221,29 +246,6 @@ XPC_SJOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
 
 
-#define XPC_SJOW_SLOT_IS_RESOLVING           0
-
-
-
-#define XPC_SJOW_SLOT_SCRIPTED_GETSET        1
-
-
-
-#define XPC_SJOW_SLOT_SCRIPTED_FUN           2
-
-
-
-#define XPC_SJOW_SLOT_SCRIPTED_TOSTRING      3
-
-
-
-
-#define XPC_SJOW_SLOT_PRINCIPAL              4
-
-
-
-
-
 static JSBool
 WrapJSValue(JSContext *cx, JSObject *obj, jsval val, jsval *rval)
 {
@@ -266,21 +268,7 @@ WrapJSValue(JSContext *cx, JSObject *obj, jsval val, jsval *rval)
     
     *rval = OBJECT_TO_JSVAL(safeObj);
 
-    
-    
-    if (JS_GetGlobalForObject(cx, obj) == JS_GetGlobalForObject(cx, safeObj)) {
-      jsval rsval;
-      if (!::JS_GetReservedSlot(cx, obj, XPC_SJOW_SLOT_SCRIPTED_GETSET,
-                                &rsval) ||
-          !::JS_SetReservedSlot(cx, safeObj, XPC_SJOW_SLOT_SCRIPTED_GETSET,
-                                rsval) ||
-          !::JS_GetReservedSlot(cx, obj, XPC_SJOW_SLOT_SCRIPTED_FUN,
-                                &rsval) ||
-          !::JS_SetReservedSlot(cx, safeObj, XPC_SJOW_SLOT_SCRIPTED_FUN,
-                                rsval)) {
-        return JS_FALSE;
-      }
-    } else {
+    if (JS_GetGlobalForObject(cx, obj) != JS_GetGlobalForObject(cx, safeObj)) {
       
       
       
@@ -395,81 +383,6 @@ UnwrapJSValue(jsval val)
   return val;
 }
 
-
-
-
-
-
-
-
-static JSBool
-GetScriptedFunction(JSContext *cx, JSObject *obj, JSObject *unsafeObj,
-                    uint32 slotIndex, const nsAFlatCString& funScript,
-                    jsval *scriptedFunVal, uintN lineno)
-{
-  if (!::JS_GetReservedSlot(cx, obj, slotIndex, scriptedFunVal)) {
-    return JS_FALSE;
-  }
-
-  
-  
-  
-  
-  if (JSVAL_IS_VOID(*scriptedFunVal) ||
-      JS_GetGlobalForObject(cx, unsafeObj) !=
-      JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(*scriptedFunVal))) {
-    
-    jsval pv;
-    if (!::JS_GetReservedSlot(cx, obj, XPC_SJOW_SLOT_PRINCIPAL, &pv)) {
-      return JS_FALSE;
-    }
-
-    JSPrincipals *jsprin = nsnull;
-
-    if (!JSVAL_IS_VOID(pv)) {
-      nsIPrincipal *principal = (nsIPrincipal *)JSVAL_TO_PRIVATE(pv);
-
-      
-      
-      principal->GetJSPrincipals(cx, &jsprin);
-    } else {
-      
-      
-      jsprin = FindObjectPrincipals(cx, unsafeObj);
-    }
-
-    if (!jsprin) {
-      return ThrowException(NS_ERROR_UNEXPECTED, cx);
-    }
-
-    JSFunction *scriptedFun =
-      ::JS_CompileFunctionForPrincipals(cx,
-                                        JS_GetGlobalForObject(cx, unsafeObj),
-                                        jsprin, nsnull, 0, nsnull,
-                                        funScript.get(), funScript.Length(),
-                                        "XPCSafeJSObjectWrapper.cpp",
-                                        lineno);
-
-    JSPRINCIPALS_DROP(cx, jsprin);
-
-    if (!scriptedFun) {
-      return ThrowException(NS_ERROR_FAILURE, cx);
-    }
-
-    *scriptedFunVal = OBJECT_TO_JSVAL(::JS_GetFunctionObject(scriptedFun));
-
-    if (*scriptedFunVal == JSVAL_NULL ||
-        !::JS_SetReservedSlot(cx, obj, slotIndex, *scriptedFunVal)) {
-      return JS_FALSE;
-    }
-  }
-
-  return JS_TRUE;
-}
-
-#define GetScriptedFunction(cx, obj, unsafeObj, slotIndex, funScript, scriptedFunVal) \
-  (GetScriptedFunction)(cx, obj, unsafeObj, slotIndex, funScript, scriptedFunVal, __LINE__)
-
 static JSBool
 XPC_SJOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
@@ -523,22 +436,52 @@ XPC_SJOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
   return XPCWrapper::DelProperty(cx, unsafeObj, id, vp);
 }
 
-static inline JSBool
-CallWithoutStatics(JSContext *cx, JSObject *obj, jsval fval, uintN argc,
-                   jsval *argv, jsval *rval)
-{
+NS_STACK_CLASS class SafeCallGuard {
+public:
+  SafeCallGuard(JSContext *cx, nsIPrincipal *principal)
+    : cx(cx) {
+    nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+    if (ssm) {
+      
+      
+      nsresult rv = ssm->PushContextPrincipal(cx, nsnull, principal);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("Not allowing call because we're out of memory");
+        JS_ReportOutOfMemory(cx);
+        this->cx = nsnull;
+        return;
+      }
+    }
+
+    js_SaveAndClearRegExpStatics(cx, &statics, &tvr);
+    fp = JS_SaveFrameChain(cx);
+    options =
+      JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_DONT_REPORT_UNCAUGHT);
+  }
+
+  JSBool ready() {
+    return cx != nsnull;
+  }
+
+  ~SafeCallGuard() {
+    if (cx) {
+      JS_SetOptions(cx, options);
+      JS_RestoreFrameChain(cx, fp);
+      js_RestoreRegExpStatics(cx, &statics, &tvr);
+      nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+      if (ssm) {
+        ssm->PopContextPrincipal(cx);
+      }
+    }
+  }
+
+private:
+  JSContext *cx;
   JSRegExpStatics statics;
   JSTempValueRooter tvr;
-  js_SaveAndClearRegExpStatics(cx, &statics, &tvr);
-  JSStackFrame *fp = JS_SaveFrameChain(cx);
-  uint32 options =
-    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_DONT_REPORT_UNCAUGHT);
-  JSBool ok = ::JS_CallFunctionValue(cx, obj, fval, argc, argv, rval);
-  JS_SetOptions(cx, options);
-  JS_RestoreFrameChain(cx, fp);
-  js_RestoreRegExpStatics(cx, &statics, &tvr);
-  return ok;
-}
+  uint32 options;
+  JSStackFrame *fp;
+};
 
 static JSBool
 XPC_SJOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
@@ -563,35 +506,30 @@ XPC_SJOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return JS_FALSE;
   }
 
-  
-  
-  
-  
-  
-  
-  NS_NAMED_LITERAL_CSTRING(funScript,
-    "if (arguments.length == 1) return this[arguments[0]];"
-    "return this[arguments[0]] = arguments[1];");
+  {
+    SafeCallGuard guard(cx, FindObjectPrincipals(cx, obj, unsafeObj));
+    if (!guard.ready()) {
+      return JS_FALSE;
+    }
 
-  jsval scriptedFunVal;
-  if (!GetScriptedFunction(cx, obj, unsafeObj, XPC_SJOW_SLOT_SCRIPTED_GETSET,
-                           funScript, &scriptedFunVal)) {
-    return JS_FALSE;
+    jsid interned_id;
+    if (!JS_ValueToId(cx, id, &interned_id)) {
+      return JS_FALSE;
+    }
+
+    if (aIsSet) {
+      *vp = UnwrapJSValue(*vp);
+    }
+
+    JSBool ok = aIsSet
+                ? JS_SetPropertyById(cx, unsafeObj, interned_id, vp)
+                : JS_GetPropertyById(cx, unsafeObj, interned_id, vp);
+    if (!ok) {
+      return JS_FALSE;
+    }
   }
 
-  
-  jsval args[2];
-
-  args[0] = id;
-
-  if (aIsSet) {
-    args[1] = UnwrapJSValue(*vp);
-  }
-
-  jsval val;
-  JSBool ok = CallWithoutStatics(cx, unsafeObj, scriptedFunVal,
-                                 aIsSet ? 2 : 1, args, &val);
-  return ok && WrapJSValue(cx, obj, val, vp);
+  return WrapJSValue(cx, obj, *vp, vp);
 }
 
 static JSBool
@@ -766,7 +704,8 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     callThisObj = unsafeObj;
   }
 
-  JSObject *funToCall = GetUnsafeObject(JSVAL_TO_OBJECT(argv[-2]));
+  JSObject *safeObj = JSVAL_TO_OBJECT(argv[-2]);
+  JSObject *funToCall = GetUnsafeObject(safeObj);
 
   if (!funToCall) {
     
@@ -782,50 +721,20 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return JS_FALSE;
   }
 
-  
-  
-  
-  
-  
-  NS_NAMED_LITERAL_CSTRING(funScript,
-                           "var args = [];"
-                           "for (var i = 1; i < arguments.length; i++)"
-                           "args.push(arguments[i]);"
-                           "return arguments[0].apply(this, args);");
+  {
+    SafeCallGuard guard(cx, FindObjectPrincipals(cx, safeObj, funToCall));
 
-  
-  jsval scriptedFunVal;
-  if (!GetScriptedFunction(cx, obj, unsafeObj, XPC_SJOW_SLOT_SCRIPTED_FUN,
-                           funScript, &scriptedFunVal)) {
-    return JS_FALSE;
-  }
+    for (uintN i = 0; i < argc; ++i) {
+      argv[i] = UnwrapJSValue(argv[i]);
+    }
 
-  
-  jsval argsBuf[8];
-  jsval *args = argsBuf;
-
-  if (argc > 7) {
-    args = (jsval *)nsMemory::Alloc((argc + 1) * sizeof(jsval *));
-    if (!args) {
-      return ThrowException(NS_ERROR_OUT_OF_MEMORY, cx);
+    if (!JS_CallFunctionValue(cx, callThisObj, OBJECT_TO_JSVAL(funToCall),
+                              argc, argv, rval)) {
+      return JS_FALSE;
     }
   }
 
-  args[0] = OBJECT_TO_JSVAL(funToCall);
-
-  for (uintN i = 0; i < argc; ++i) {
-    args[i + 1] = UnwrapJSValue(argv[i]);
-  }
-
-  jsval val;
-  JSBool ok = CallWithoutStatics(cx, callThisObj, scriptedFunVal, argc + 1,
-                                 args, &val);
-
-  if (args != argsBuf) {
-    nsMemory::Free(args);
-  }
-
-  return ok && WrapJSValue(cx, obj, val, rval);
+  return WrapJSValue(cx, obj, *rval, rval);
 }
 
 JSBool
@@ -918,9 +827,19 @@ XPC_SJOW_Create(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return JS_FALSE;
   }
 
-  JSBool ok = CallWithoutStatics(cx, obj, OBJECT_TO_JSVAL(callee), argc, argv,
-                                 rval);
-  return ok && WrapJSValue(cx, callee, *rval, rval);
+  {
+    SafeCallGuard guard(cx, FindObjectPrincipals(cx, callee, unsafeObj));
+    if (!guard.ready()) {
+      return JS_FALSE;
+    }
+
+    if (!JS_CallFunctionValue(cx, obj, OBJECT_TO_JSVAL(callee),
+                              argc, argv, rval)) {
+      return JS_FALSE;
+    }
+  }
+
+  return WrapJSValue(cx, callee, *rval, rval);
 }
 
 static JSBool
@@ -1043,19 +962,19 @@ XPC_SJOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return JS_FALSE;
   }
 
-  
-  NS_NAMED_LITERAL_CSTRING(funScript, "return '' + this;");
+  {
+    SafeCallGuard guard(cx, FindObjectPrincipals(cx, obj, unsafeObj));
+    if (!guard.ready()) {
+      return JS_FALSE;
+    }
 
-  jsval scriptedFunVal;
-  if (!GetScriptedFunction(cx, obj, unsafeObj, XPC_SJOW_SLOT_SCRIPTED_TOSTRING,
-                           funScript, &scriptedFunVal)) {
-    return JS_FALSE;
+    JSString *str = JS_ValueToString(cx, OBJECT_TO_JSVAL(unsafeObj));
+    if (!str) {
+      return JS_FALSE;
+    }
+    *rval = STRING_TO_JSVAL(str);
   }
-
-  jsval val;
-  JSBool ok = CallWithoutStatics(cx, unsafeObj, scriptedFunVal, 0, nsnull,
-                                 &val);
-  return ok && WrapJSValue(cx, obj, val, rval);
+  return JS_TRUE;
 }
 
 PRBool

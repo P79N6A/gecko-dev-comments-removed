@@ -1384,6 +1384,20 @@ FullTrustSecMan::GetSubjectPrincipal(nsIPrincipal **_retval)
 
 
 NS_IMETHODIMP
+FullTrustSecMan::PushContextPrincipal(JSContext * cx, JSStackFrame * fp, nsIPrincipal *principal)
+{
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+FullTrustSecMan::PopContextPrincipal(JSContext * cx)
+{
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 FullTrustSecMan::GetSystemPrincipal(nsIPrincipal **_retval)
 {
     NS_IF_ADDREF(*_retval = mSystemPrincipal);
