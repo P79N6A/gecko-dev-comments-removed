@@ -2161,6 +2161,8 @@ static PRBool
 NeedFrameFor(nsIFrame*   aParentFrame,
              nsIContent* aChildContent) 
 {
+  NS_PRECONDITION(!aChildContent->GetPrimaryFrame(), "Why did we get called?");
+
   
   
   
@@ -6292,9 +6294,11 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 
   nsIAtom* frameType = parentFrame->GetType();
-
+  PRBool haveNoXBLChildren =
+    mDocument->BindingManager()->GetXBLChildNodesFor(aContainer) == nsnull;
   FrameConstructionItemList items;
-  if (aNewIndexInContainer > 0 && GetParentType(frameType) == eTypeBlock) {
+  if (aNewIndexInContainer > 0 && GetParentType(frameType) == eTypeBlock &&
+      haveNoXBLChildren) {
     
     
     
@@ -6345,8 +6349,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   
   
   
-  items.SetParentHasNoXBLChildren(
-      !mDocument->BindingManager()->GetXBLChildNodesFor(aContainer));
+  items.SetParentHasNoXBLChildren(haveNoXBLChildren);
 
   nsFrameItems frameItems;
   ConstructFramesFromItemList(state, items, parentFrame, frameItems);
@@ -6673,7 +6676,9 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
   FrameConstructionItemList items;
   ParentType parentType = GetParentType(frameType);
-  if (aIndexInContainer > 0 && parentType == eTypeBlock) {
+  PRBool haveNoXBLChildren =
+    mDocument->BindingManager()->GetXBLChildNodesFor(aContainer) == nsnull;
+  if (aIndexInContainer > 0 && parentType == eTypeBlock && haveNoXBLChildren) {
     
     
     
@@ -6686,7 +6691,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   AddFrameConstructionItems(state, aChild, aIndexInContainer, parentFrame, items);
 
   if (aIndexInContainer + 1 < PRInt32(aContainer->GetChildCount()) &&
-      parentType == eTypeBlock) {
+      parentType == eTypeBlock && haveNoXBLChildren) {
     
     
     
@@ -11294,6 +11299,7 @@ nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
 PRBool
 nsCSSFrameConstructor::FrameConstructionItem::IsWhitespace() const
 {
+  NS_PRECONDITION(!mContent->GetPrimaryFrame(), "How did that happen?");
   if (!mIsText) {
     return PR_FALSE;
   }
