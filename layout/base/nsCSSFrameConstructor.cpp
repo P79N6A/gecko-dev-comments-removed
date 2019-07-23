@@ -8720,10 +8720,12 @@ nsCSSFrameConstructor::NeedSpecialFrameReframe(nsIContent*     aParent1,
             aParentFrame = prevParent;
           }
         }
-        else { 
+        else {
           
           
-          NS_ASSERTION(PR_FALSE, "no last inline frame");
+          
+          
+          
           return PR_TRUE;
         }
       }
