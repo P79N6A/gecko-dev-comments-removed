@@ -102,6 +102,12 @@ public:
 
 
 
+
+
+
+
+
+
   NS_IMETHOD SetForm(nsIDOMHTMLFormElement* aForm,
                      PRBool aRemoveFromForm,
                      PRBool aNotify) = 0;
