@@ -21,6 +21,11 @@ ${INCLUDES}
 using mozilla::_ipdltest::IPDLUnitTestSubprocess;
 using mozilla::_ipdltest::IPDLUnitTestThreadChild;
 
+void* mozilla::_ipdltest::gParentActor;
+IPDLUnitTestSubprocess* mozilla::_ipdltest::gSubprocess;
+
+void* mozilla::_ipdltest::gChildActor;
+
 
 
 
@@ -111,10 +116,46 @@ IPDLUnitTest()
 
 
 
-namespace {
+namespace mozilla {
+namespace _ipdltest {
 
-void* gParentActor = NULL;
-IPDLUnitTestSubprocess* gSubprocess;
+void
+IPDLUnitTestMain(void* aData)
+{
+    char* testString = reinterpret_cast<char*>(aData);
+    IPDLUnitTestType test = IPDLUnitTestFromString(testString);
+    if (!test) {
+        
+        fprintf(stderr, MOZ_IPDL_TESTFAIL_LABEL "| %s | unknown unit test %s\\n",
+                "<--->", testString);
+        NS_RUNTIMEABORT("can't continue");
+    }
+    gIPDLUnitTestName = testString;
+
+    std::vector<std::string> testCaseArgs;
+    testCaseArgs.push_back(testString);
+
+    gSubprocess = new IPDLUnitTestSubprocess();
+    if (!gSubprocess->SyncLaunch(testCaseArgs))
+        fail("problem launching subprocess");
+
+    IPC::Channel* transport = gSubprocess->GetChannel();
+    if (!transport)
+        fail("no transport");
+
+    base::ProcessHandle child = gSubprocess->GetChildProcessHandle();
+
+    switch (test) {
+
+
+${PARENT_MAIN_CASES}
+
+
+    default:
+        fail("not reached");
+        return;                 
+    }
+}
 
 void
 DeleteParentActor()
@@ -158,50 +199,6 @@ DeferredParentShutdown()
       NewRunnableFunction(DeleteSubprocess, MessageLoop::current()));
 }
 
-}
-
-
-namespace mozilla {
-namespace _ipdltest {
-
-void
-IPDLUnitTestMain(void* aData)
-{
-    char* testString = reinterpret_cast<char*>(aData);
-    IPDLUnitTestType test = IPDLUnitTestFromString(testString);
-    if (!test) {
-        
-        fprintf(stderr, MOZ_IPDL_TESTFAIL_LABEL "| %s | unknown unit test %s\\n",
-                "<--->", testString);
-        NS_RUNTIMEABORT("can't continue");
-    }
-    gIPDLUnitTestName = testString;
-
-    std::vector<std::string> testCaseArgs;
-    testCaseArgs.push_back(testString);
-
-    gSubprocess = new IPDLUnitTestSubprocess();
-    if (!gSubprocess->SyncLaunch(testCaseArgs))
-        fail("problem launching subprocess");
-
-    IPC::Channel* transport = gSubprocess->GetChannel();
-    if (!transport)
-        fail("no transport");
-
-    base::ProcessHandle child = gSubprocess->GetChildProcessHandle();
-
-    switch (test) {
-
-
-${PARENT_MAIN_CASES}
-
-
-    default:
-        fail("not reached");
-        return;                 
-    }
-}
-
 void
 QuitParent()
 {
@@ -218,9 +215,8 @@ QuitParent()
 
 
 
-namespace {
-
-void* gChildActor = NULL;
+namespace mozilla {
+namespace _ipdltest {
 
 void
 DeleteChildActor()
@@ -236,12 +232,6 @@ ${CHILD_DELETE_CASES}
     default:  mozilla::_ipdltest::fail("???");
     }
 }
-
-}
-
-
-namespace mozilla {
-namespace _ipdltest {
 
 void
 IPDLUnitTestChildInit(IPC::Channel* transport,

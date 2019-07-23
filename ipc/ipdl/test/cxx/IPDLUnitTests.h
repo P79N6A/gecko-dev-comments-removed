@@ -100,12 +100,19 @@ inline void passed(const char* fmt, ...)
 
 
 
+class IPDLUnitTestSubprocess;
+
+extern void* gParentActor;
+extern IPDLUnitTestSubprocess* gSubprocess;
+
 void IPDLUnitTestMain(void* aData);
 
 void QuitParent();
 
 
 
+
+extern void* gChildActor;
 
 void IPDLUnitTestChildInit(IPC::Channel* transport,
                            base::ProcessHandle parent,
