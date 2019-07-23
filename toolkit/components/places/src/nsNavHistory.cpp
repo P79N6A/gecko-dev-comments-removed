@@ -998,8 +998,8 @@ nsNavHistory::MigrateV6Up(mozIStorageConnection* aDBConn)
   
   nsCOMPtr<mozIStorageStatement> statement;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-    "SELECT a.dateAdded, a.lastModified, b.dateAdded, b.lastModified "
-    "FROM moz_annos a, moz_items_annos b"), getter_AddRefs(statement));
+    "SELECT a.dateAdded, a.lastModified FROM moz_annos a"), 
+    getter_AddRefs(statement));
   if (NS_FAILED(rv)) {
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
@@ -1008,7 +1008,14 @@ nsNavHistory::MigrateV6Up(mozIStorageConnection* aDBConn)
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "ALTER TABLE moz_annos ADD lastModified INTEGER DEFAULT 0"));
     NS_ENSURE_SUCCESS(rv, rv);
+  }
 
+  
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+    "SELECT b.dateAdded, b.lastModified FROM moz_items_annos b"), 
+    getter_AddRefs(statement));
+  if (NS_FAILED(rv)) {
     
     rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "ALTER TABLE moz_items_annos ADD dateAdded INTEGER DEFAULT 0"));
