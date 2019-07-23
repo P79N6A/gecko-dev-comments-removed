@@ -2828,7 +2828,11 @@ nsresult
 PresShell::CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool aScrollIntoView)
 {
   nsIContent* root = mSelection->GetAncestorLimiter();
-  if (root) {
+  nsIDocument* doc;
+  if (root && (doc = root->GetOwnerDoc()) && doc->GetRootContent() != root) {
+    
+    
+    
     
     nsIContent* node = root;
     PRInt32 offset = 0;
