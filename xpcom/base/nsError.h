@@ -96,6 +96,7 @@
 #define NS_ERROR_MODULE_SVG        29
 #define NS_ERROR_MODULE_STORAGE    30
 #define NS_ERROR_MODULE_SCHEMA     31
+#define NS_ERROR_MODULE_DOM_FILE   32
 
 
 
