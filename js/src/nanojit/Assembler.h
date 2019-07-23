@@ -115,7 +115,7 @@ namespace nanojit
     typedef avmplus::SortedMap<LIns*,NIns*,avmplus::LIST_NonGCObjects> InsMap;
     typedef avmplus::SortedMap<NIns*,LIns*,avmplus::LIST_NonGCObjects> NInsMap;
 
-    class LabelState MMGC_SUBCLASS_DECL
+    class LabelState
     {
     public:
         RegAlloc regs;
@@ -126,18 +126,21 @@ namespace nanojit
 
     class LabelStateMap
     {
-        avmplus::GC *gc;
-        avmplus::SortedMap<LIns*, LabelState*, avmplus::LIST_GCObjects> labels;
+        Allocator& alloc;
+        HashMap<LIns*, LabelState*> labels;
     public:
-        LabelStateMap(avmplus::GC *gc) : gc(gc), labels(gc)
+        LabelStateMap(Allocator& alloc) : alloc(alloc), labels(alloc)
         {}
-        ~LabelStateMap();
 
         void add(LIns *label, NIns *addr, RegAlloc &regs);
         LabelState *get(LIns *);
     };
 
     typedef SeqBuilder<char*> StringList;
+
+    
+
+    typedef HashMap<SideExit*, RegAlloc*> RegAllocMap;
 
     
 
