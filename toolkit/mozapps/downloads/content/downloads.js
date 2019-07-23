@@ -173,9 +173,13 @@ function autoRemoveAndClose(aDownload)
     var autoClose = pref.getBoolPref(PREF_BDM_CLOSEWHENDONE);
     if (autoClose && (!window.opener ||
                       window.opener.location.href == window.location.href) &&
-        gCanAutoClose && !gUserInteracted)
+        gCanAutoClose && !gUserInteracted) {
       gCloseDownloadManager();
+      return true;
+    }
   }
+  
+  return false;
 }
 
 
@@ -571,7 +575,8 @@ function Startup()
   gDownloadsView.controllers.appendController(gDownloadViewController);
 
   
-  autoRemoveAndClose();
+  if (!autoRemoveAndClose())
+    gDownloadsView.focus();
 }
 
 function Shutdown() 
