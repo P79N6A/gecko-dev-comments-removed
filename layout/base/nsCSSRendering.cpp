@@ -2304,6 +2304,17 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
     ctx->SetMatrix(mat);
   }
 
+#ifdef MOZ_WIDGET_GTK2
+
+
+#define DISABLE_BORDER_ANTIALIAS
+#endif
+
+#ifdef DISABLE_BORDER_ANTIALIAS 
+  gfxContext::AntialiasMode oldMode = ctx->CurrentAntialiasMode();
+  ctx->SetAntialiasMode(gfxContext::MODE_ALIASED);
+#endif
+
   
   
   if (doSeparateSides) {
@@ -2324,10 +2335,12 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
       ctx->Clip();
     }
 
+#ifndef DISABLE_BORDER_ANTIALIAS
     
     
     ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
     ctx->SetOperator(gfxContext::OPERATOR_ADD);
+#endif
   } else if (aGap) {
     gfxRect gapRect(gfxFloat(aGap->x) / twipsPerPixel,
                     gfxFloat(aGap->y) / twipsPerPixel,
@@ -2417,10 +2430,17 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
       ctx->Restore();
   }
 
+#ifndef DISABLE_BORDER_ANTIALIAS
   if (doSeparateSides) {
     ctx->PopGroupToSource();
     ctx->Paint();
   }
+#endif
+
+#ifdef DISABLE_BORDER_ANTIALIAS 
+  
+  ctx->SetAntialiasMode(oldMode);
+#endif
 
   ctx->Restore();
 
