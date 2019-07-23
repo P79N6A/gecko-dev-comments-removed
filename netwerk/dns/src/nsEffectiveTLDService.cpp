@@ -130,7 +130,8 @@ nsEffectiveTLDService::GetPublicSuffix(nsIURI     *aURI,
   NS_ENSURE_ARG_POINTER(innerURI);
 
   nsCAutoString host;
-  innerURI->GetHost(host);
+  nsresult rv = innerURI->GetAsciiHost(host);
+  if (NS_FAILED(rv)) return rv;
 
   return GetBaseDomainInternal(host, 0, aPublicSuffix);
 }
@@ -149,7 +150,8 @@ nsEffectiveTLDService::GetBaseDomain(nsIURI     *aURI,
   NS_ENSURE_ARG_POINTER(innerURI);
 
   nsCAutoString host;
-  innerURI->GetHost(host);
+  nsresult rv = innerURI->GetAsciiHost(host);
+  if (NS_FAILED(rv)) return rv;
 
   return GetBaseDomainInternal(host, aAdditionalParts + 1, aBaseDomain);
 }
@@ -160,7 +162,13 @@ NS_IMETHODIMP
 nsEffectiveTLDService::GetPublicSuffixFromHost(const nsACString &aHostname,
                                                nsACString       &aPublicSuffix)
 {
-  return GetBaseDomainInternal(aHostname, 0, aPublicSuffix);
+  
+  
+  nsCAutoString normHostname(aHostname);
+  nsresult rv = NormalizeHostname(normHostname);
+  if (NS_FAILED(rv)) return rv;
+
+  return GetBaseDomainInternal(normHostname, 0, aPublicSuffix);
 }
 
 
@@ -171,7 +179,13 @@ nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
                                              PRUint32          aAdditionalParts,
                                              nsACString       &aBaseDomain)
 {
-  return GetBaseDomainInternal(aHostname, aAdditionalParts + 1, aBaseDomain);
+  
+  
+  nsCAutoString normHostname(aHostname);
+  nsresult rv = NormalizeHostname(normHostname);
+  if (NS_FAILED(rv)) return rv;
+
+  return GetBaseDomainInternal(normHostname, aAdditionalParts + 1, aBaseDomain);
 }
 
 
@@ -180,28 +194,21 @@ nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
 
 
 nsresult
-nsEffectiveTLDService::GetBaseDomainInternal(const nsACString &aHostname,
-                                             PRUint32          aAdditionalParts,
-                                             nsACString       &aBaseDomain)
+nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
+                                             PRUint32    aAdditionalParts,
+                                             nsACString &aBaseDomain)
 {
   if (aHostname.IsEmpty())
     return NS_ERROR_INVALID_ARG;
 
   
-  
-  nsCAutoString normHostname(aHostname);
-  nsresult rv = NormalizeHostname(normHostname);
-  if (NS_FAILED(rv))
-    return rv;
-
-  
-  PRBool trailingDot = normHostname.Last() == '.';
+  PRBool trailingDot = aHostname.Last() == '.';
   if (trailingDot)
-    normHostname.Truncate(normHostname.Length() - 1);
+    aHostname.Truncate(aHostname.Length() - 1);
 
   
   PRNetAddr addr;
-  PRStatus result = PR_StringToNetAddr(normHostname.get(), &addr);
+  PRStatus result = PR_StringToNetAddr(aHostname.get(), &addr);
   if (result == PR_SUCCESS)
     return NS_ERROR_HOST_IS_IP_ADDRESS;
 
@@ -209,9 +216,9 @@ nsEffectiveTLDService::GetBaseDomainInternal(const nsACString &aHostname,
   
   
   const char *prevDomain = nsnull;
-  const char *currDomain = normHostname.get();
+  const char *currDomain = aHostname.get();
   const char *nextDot = strchr(currDomain, '.');
-  const char *end = currDomain + normHostname.Length();
+  const char *end = currDomain + aHostname.Length();
   const char *eTLD = currDomain;
   while (1) {
     nsDomainEntry *entry = mHash.GetEntry(currDomain);
@@ -245,7 +252,7 @@ nsEffectiveTLDService::GetBaseDomainInternal(const nsACString &aHostname,
   }
 
   
-  const char *begin = normHostname.get();
+  const char *begin = aHostname.get();
   const char *iter = eTLD;
   while (1) {
     if (iter == begin)
@@ -271,22 +278,15 @@ nsEffectiveTLDService::GetBaseDomainInternal(const nsACString &aHostname,
 
 
 
-
 nsresult
 nsEffectiveTLDService::NormalizeHostname(nsCString &aHostname)
 {
   if (IsASCII(aHostname)) {
-    PRBool isACE;
-    if (NS_FAILED(mIDNService->IsACE(aHostname, &isACE)) || !isACE) {
-      ToLowerCase(aHostname);
-      return NS_OK;
-    }
-
-    nsresult rv = mIDNService->ConvertACEtoUTF8(aHostname, aHostname);
-    if (NS_FAILED(rv)) return rv;
+    ToLowerCase(aHostname);
+    return NS_OK;
   }
 
-  return mIDNService->Normalize(aHostname, aHostname);
+  return mIDNService->ConvertUTF8toACE(aHostname, aHostname);
 }
 
 
