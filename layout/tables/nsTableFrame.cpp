@@ -1880,31 +1880,6 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   PRBool haveDesiredHeight = PR_FALSE;
   SetHaveReflowedColGroups(PR_FALSE);
 
-      
-      
-      
-      
-      
-  if ((aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE &&
-       (aReflowState.ComputedHeight() +
-          aReflowState.mComputedBorderPadding.TopBottom() != GetSize().height ||
-        NS_SUBTREE_DIRTY(this) ||
-        aReflowState.mFlags.mHResize)) ||
-      
-      
-      
-      
-      aReflowState.mFlags.mVResize) {
-    
-    
-    
-    
-    
-    
-    
-    SetGeometryDirty();
-  }
-
   
   
   
@@ -1913,6 +1888,23 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
       aReflowState.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
       aReflowState.mFlags.mVResize) {
+
+    if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
+        
+        
+        
+        
+        aReflowState.mFlags.mVResize) {
+      
+      
+      
+      
+      
+      
+      
+      SetGeometryDirty();
+    }
+
     PRBool needToInitiateSpecialReflow =
       !!(GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
     
