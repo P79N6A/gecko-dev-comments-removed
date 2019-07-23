@@ -634,10 +634,38 @@ VARIANT_DONE:
     }
     else
     {
-        success = XPCConvert::NativeData2JS(ccx, pJSVal,
-                                            (const void*)&xpctvar.val,
-                                            xpctvar.type,
-                                            &iid, scope, pErr);
+        
+        
+        
+        *pJSVal = JSVAL_VOID;
+        if(type == nsIDataType::VTYPE_INTERFACE ||
+           type == nsIDataType::VTYPE_INTERFACE_IS)
+        {
+            nsISupports *src = NS_REINTERPRET_CAST(nsISupports *, xpctvar.val.p);
+            if(nsXPCWrappedJSClass::IsWrappedJS(src))
+            {
+                
+                nsCOMPtr<nsISupports> wrapper;
+                nsresult rv = src->QueryInterface(iid, getter_AddRefs(wrapper));
+                NS_ENSURE_SUCCESS(rv, JS_FALSE);
+
+                
+                nsCOMPtr<nsIXPConnectJSObjectHolder> holder =
+                    do_QueryInterface(wrapper);
+                NS_ENSURE_TRUE(holder, JS_FALSE);
+
+                JSObject *obj;
+                holder->GetJSObject(&obj);
+                *pJSVal = OBJECT_TO_JSVAL(obj);
+            }
+        }
+        if(!JSVAL_IS_OBJECT(*pJSVal))
+        {
+            success = XPCConvert::NativeData2JS(ccx, pJSVal,
+                                                (const void*)&xpctvar.val,
+                                                xpctvar.type,
+                                                &iid, scope, pErr);
+        }
     }
 
     if(xpctvar.IsValAllocated())
