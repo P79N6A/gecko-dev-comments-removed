@@ -700,7 +700,7 @@ LoginManagerStorage_legacy.prototype = {
         var log = this.log;
 
         function cleanupURL(aURL) {
-            var newURL, username = null;
+            var newURL, username = null, pathname = "";
 
             try {
                 var uri = ioService.newURI(aURL, null, null);
@@ -720,23 +720,31 @@ LoginManagerStorage_legacy.prototype = {
                 
                 if (scheme != "http" && scheme != "https" && uri.username)
                     username = uri.username;
-                
+
+                if (uri.path != "/")
+                    pathname = uri.path;
+
             } catch (e) {
-                log("Can't cleanup URL: " + aURL);
+                log("Can't cleanup URL: " + aURL + " e: " + e);
                 newURL = aURL;
             }
 
             if (newURL != aURL)
                 log("2E upgrade: " + aURL + " ---> " + newURL);
 
-            return [newURL, username];
+            return [newURL, username, pathname];
         }
 
+        const isMailNews = /^(ldaps?|smtp|imap|news|mailbox):\/\//;
+
+        
+        
         var isFormLogin = (aLogin.formSubmitURL ||
                            aLogin.usernameField ||
-                           aLogin.passwordField);
+                           aLogin.passwordField) &&
+                          !isMailNews.test(aLogin.hostname);
 
-        var [hostname, username] = cleanupURL(aLogin.hostname);
+        var [hostname, username, pathname] = cleanupURL(aLogin.hostname);
         aLogin.hostname = hostname;
 
         
@@ -750,7 +758,7 @@ LoginManagerStorage_legacy.prototype = {
 
 
         if (aLogin.formSubmitURL) {
-            [hostname, username] = cleanupURL(aLogin.formSubmitURL);
+            [hostname, username, pathname] = cleanupURL(aLogin.formSubmitURL);
             aLogin.formSubmitURL = hostname;
             
         }
@@ -767,14 +775,24 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-
-
-
-
         const isHTTP = /^https?:\/\//;
+        const isLDAP = /^ldaps?:\/\//;
         if (!isHTTP.test(aLogin.hostname) && !isFormLogin) {
-            aLogin.httpRealm = aLogin.hostname;
+            
+            if (isLDAP.test(aLogin.hostname))
+                aLogin.httpRealm = aLogin.hostname + pathname;
+            else
+                aLogin.httpRealm = aLogin.hostname;
+
             aLogin.formSubmitURL = null;
+
+            
+            
+            if (isMailNews.test(aLogin.hostname)) {
+                aLogin.usernameField = "";
+                aLogin.passwordField = "";
+            }
+
             this.log("2E upgrade: set empty realm to " + aLogin.httpRealm);
         }
 
