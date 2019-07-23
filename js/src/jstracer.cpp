@@ -7535,11 +7535,6 @@ js_InitJIT(JSTraceMonitor *tm)
 
         js_disable_debugger_exceptions();
 
-        
-        
-        bool            arm_vfp     = avmplus::AvmCore::config.vfp;
-
-
         bool            arm_vfp     = js_arm_check_vfp();
         bool            arm_thumb   = js_arm_check_thumb();
         bool            arm_thumb2  = js_arm_check_thumb2();
