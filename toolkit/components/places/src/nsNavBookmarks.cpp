@@ -1444,10 +1444,10 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
 
   
   if (itemType == TYPE_FOLDER) {
-    mozStorageStatementScoper scope(mDBGetItemProperties);
     PRInt64 p = aNewParent;
 
     while (p) {
+      mozStorageStatementScoper scope(mDBGetItemProperties);
       if (p == aItemId) {
         return NS_ERROR_INVALID_ARG;
       }
