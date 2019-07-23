@@ -286,6 +286,11 @@ public:
   
 
 
+  static double ComputeNormalizedHypotenuse(double aWidth, double aHeight);
+
+  
+
+
 
   static float ObjectSpace(nsIDOMSVGRect *aRect, nsSVGLength2 *aLength);
 
