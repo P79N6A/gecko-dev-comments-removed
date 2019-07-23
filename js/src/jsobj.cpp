@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
@@ -4010,9 +4011,14 @@ js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
                     return JS_TRUE;
 
                 
-                pc += js_CodeSpec[op].length;
-                if (Detecting(cx, pc))
+                if (cx->resolveFlags == JSRESOLVE_INFER) {
+                    js_LeaveTrace(cx);
+                    pc += js_CodeSpec[op].length;
+                    if (Detecting(cx, pc))
+                        return JS_TRUE;
+                } else if (cx->resolveFlags & JSRESOLVE_DETECTING) {
                     return JS_TRUE;
+                }
 
                 flags = JSREPORT_WARNING | JSREPORT_STRICT;
             }
