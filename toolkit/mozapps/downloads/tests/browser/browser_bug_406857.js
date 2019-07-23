@@ -39,11 +39,14 @@
 
 
 
-function run_test()
+function test()
 {
   let dm = Cc["@mozilla.org/download-manager;1"].
            getService(Ci.nsIDownloadManager);
   let db = dm.DBConnection;
+
+  
+  db.executeSimpleSQL("DELETE FROM moz_downloads");
 
   let stmt = db.createStatement(
     "INSERT INTO moz_downloads (source, target, state, referrer) " +
@@ -76,14 +79,15 @@ function run_test()
     {
       switch (aDownload.state) {
         case dm.DOWNLOAD_DOWNLOADING:
-          do_check_eq(aDownload.referrer.spec, referrer);
+          ok(aDownload.referrer.spec == referrer, "Got referrer on download");
           break;
         case dm.DOWNLOAD_FINISHED:
-          do_check_eq(aDownload.referrer.spec, referrer);
+          ok(aDownload.referrer.spec == referrer, "Got referrer on finish");
 
           dm.removeListener(listener);
+          obs.removeObserver(testObs, DLMGR_UI_DONE);
           try { file.remove(false); } catch(e) {  }
-          do_test_finished();
+          finish();
           break;
       }
     }
@@ -91,7 +95,30 @@ function run_test()
   dm.addListener(listener);
 
   
-  dm.retryDownload(1);
+  let wm = Cc["@mozilla.org/appshell/window-mediator;1"].
+           getService(Ci.nsIWindowMediator);
+  let win = wm.getMostRecentWindow("Download:Manager");
+  if (win) win.close();
 
-  do_test_pending();
+  let obs = Cc["@mozilla.org/observer-service;1"].
+            getService(Ci.nsIObserverService);
+  const DLMGR_UI_DONE = "download-manager-ui-done";
+
+  let testObs = {
+    observe: function(aSubject, aTopic, aData) {
+      if (aTopic != DLMGR_UI_DONE)
+        return;
+
+      
+      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      EventUtils.synthesizeKey("VK_ENTER", {}, win);
+    }
+  };
+  obs.addObserver(testObs, DLMGR_UI_DONE, false);
+
+  
+  Cc["@mozilla.org/download-manager-ui;1"].
+  getService(Ci.nsIDownloadManagerUI).show();
+
+  waitForExplicitFinish();
 }
