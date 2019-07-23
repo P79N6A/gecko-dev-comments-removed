@@ -55,6 +55,9 @@ function checkFocusedWindow()
 
 function toOpenWindow( aWindow )
 {
+  
+  if (aWindow.windowState == STATE_MINIMIZED)
+    aWindow.restore();
   aWindow.document.commandDispatcher.focusedWindow.focus();
 }
 
