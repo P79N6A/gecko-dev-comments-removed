@@ -100,17 +100,6 @@ static DWORD dirAccessTable[] = {
     FILE_GENERIC_EXECUTE
 };
 
-
-
-
-
-
-#ifdef __GNUC__
-static const PRTime _pr_filetime_offset = 116444736000000000LL;
-#else
-static const PRTime _pr_filetime_offset = 116444736000000000i64;
-#endif
-
 static PRBool IsPrevCharSlash(const char *str, const char *current);
 
 #define _NEED_351_FILE_LOCKING_HACK

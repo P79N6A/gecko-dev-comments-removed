@@ -261,17 +261,6 @@ static DWORD dirAccessTable[] = {
 };
 
 
-
-
-
-
-#if defined(__MINGW32__)
-static const PRTime _pr_filetime_offset = 116444736000000000LL;
-#else
-static const PRTime _pr_filetime_offset = 116444736000000000i64;
-#endif
-
-
 #ifndef WINCE
 typedef BOOL (WINAPI *GetFileAttributesExFn)(LPCTSTR,
                                              GET_FILEEX_INFO_LEVELS,

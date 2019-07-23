@@ -54,16 +54,18 @@
 #include <kernel/OS.h>
 #endif
 
-#ifdef WINNT
+#ifdef WIN32
 
 
 
-#ifndef  _WIN32_WINNT
-    #define _WIN32_WINNT 0x0400
-#elif   (_WIN32_WINNT < 0x0400)
-    #undef  _WIN32_WINNT
-    #define _WIN32_WINNT 0x0400
-#endif 
+#if !defined(WINVER) || (WINVER < 0x0500)
+#undef WINVER
+#define WINVER 0x0500
+#endif
+#if !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0500)
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0500
+#endif
 #endif 
 
 #include "nspr.h"
@@ -1215,6 +1217,13 @@ extern PRInt32 _PR_MD_FAST_ACCEPT_READ(PRFileDesc *sd, PROsfd *newSock,
 
 extern void _PR_MD_UPDATE_ACCEPT_CONTEXT(PROsfd s, PROsfd ls);
 #define _PR_MD_UPDATE_ACCEPT_CONTEXT _MD_UPDATE_ACCEPT_CONTEXT
+
+
+
+
+
+
+extern const PRTime _pr_filetime_offset;
 #endif 
 
 extern PRInt32 _PR_MD_SENDFILE(
