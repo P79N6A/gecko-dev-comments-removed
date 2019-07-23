@@ -3206,8 +3206,14 @@ PRBool nsWindow::OnPaint()
 #endif 
 
 #ifdef MOZ_CAIRO_GFX 
+        
+        
+        
+        SWP swp;
+        WinQueryWindowPos(mWnd, &swp);
         nsRefPtr<gfxASurface> targetSurface =
-          new gfxOS2Surface(hPS, gfxIntSize(rect.width, rect.height));
+          new gfxOS2Surface(hPS, gfxIntSize(swp.cx, swp.cy));
+        
         nsRefPtr<gfxContext> thebesContext = new gfxContext(targetSurface);
 
         nsCOMPtr<nsIRenderingContext> context;
