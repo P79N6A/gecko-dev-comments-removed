@@ -14,7 +14,7 @@
       if (data === "subframe-test-finished")
       {
         target = window.parent;
-        providedOrigin = "http://mochi.test:8888";
+        providedOrigin = "http://localhost:8888";
         response = "test-passed";
       }
       else if (data === "start-test")
@@ -26,7 +26,7 @@
       else
       {
         target = window.parent;
-        providedOrigin = "http://mochi.test:8888";
+        providedOrigin = "http://localhost:8888";
         response = "not reached";
       }
 
@@ -51,7 +51,7 @@
       if (data == "subframe-test-finished")
         origin = "http://example.org";
       else if (data === "start-test")
-        origin = "http://mochi.test:8888";
+        origin = "http://localhost:8888";
       else
         origin = "unreached";
 
