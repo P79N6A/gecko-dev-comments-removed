@@ -1639,15 +1639,14 @@ nsresult nsAccessible::AppendFlatStringFromContentNode(nsIContent *aContent, nsA
 
 nsresult nsAccessible::AppendFlatStringFromSubtree(nsIContent *aContent, nsAString *aFlatString)
 {
-  static nsIContent *startContent = nsnull;
-  
-  if (startContent == aContent) {
+  static PRBool isAlreadyHere; 
+  if (isAlreadyHere) {
     return NS_OK;
   }
-  if (!startContent) {
-    startContent = aContent;
-  }
+  isAlreadyHere = PR_TRUE;
   nsresult rv = AppendFlatStringFromSubtreeRecurse(aContent, aFlatString);
+  isAlreadyHere = PR_FALSE;
+
   if (NS_SUCCEEDED(rv) && !aFlatString->IsEmpty()) {
     nsAString::const_iterator start, end;
     aFlatString->BeginReading(start);
@@ -1661,10 +1660,6 @@ nsresult nsAccessible::AppendFlatStringFromSubtree(nsIContent *aContent, nsAStri
       aFlatString->Truncate(aFlatString->Length() - spacesToTruncate);
   }
 
-  if (startContent == aContent) {
-    
-    startContent = nsnull;
-  }
   return rv;
 }
 
