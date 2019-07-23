@@ -43,6 +43,7 @@
 #include "jsbit.h"
 
 #include <new>
+#include <string.h>
 
 namespace js {
 
@@ -295,6 +296,37 @@ class LazilyConstructed
         constructed = true;
     }
 };
+
+template <class T>
+JS_ALWAYS_INLINE static void
+PodZero(T *t)
+{
+    memset(t, 0, sizeof(T));
+}
+
+template <class T>
+JS_ALWAYS_INLINE static void
+PodZero(T *t, size_t nelem)
+{
+    memset(t, 0, nelem * sizeof(T));
+}
+
+
+
+
+
+
+
+
+template <class T, size_t N> static void PodZero(T (&)[N]);          
+template <class T, size_t N> static void PodZero(T (&)[N], size_t);  
+
+template <class T, size_t N>
+JS_ALWAYS_INLINE static void
+PodArrayZero(T (&t)[N])
+{
+    memset(t, 0, N * sizeof(T));
+}
 
 } 
 
