@@ -132,10 +132,16 @@ HandlerService.prototype = {
   },
 
   _updateDB: function HS__updateDB() {
-    
-    
-    var defaultHandlersVersion = this._datastoreDefaultHandlersVersion;
     try {
+      var defaultHandlersVersion = this._datastoreDefaultHandlersVersion;
+    } catch(ex) {
+      
+      return;
+    }
+
+    try {
+      
+      
       if (defaultHandlersVersion < this._prefsDefaultHandlersVersion) {
         
         
@@ -180,9 +186,7 @@ HandlerService.prototype = {
   get _datastoreDefaultHandlersVersion() {
     var version = this._getValue("urn:root", NC_DEFAULT_HANDLERS_VERSION); 
     
-    version = version ? version : -1;
-    
-    return version;
+    return version ? version : -1;
   },
 
   set _datastoreDefaultHandlersVersion(aNewVersion) {
