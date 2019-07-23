@@ -222,6 +222,35 @@ CompareVersion(verBlock vbVersionOld, verBlock vbVersionNew)
 
 
 
+static PRBool
+PreferNPRuntimeJavaPlugIn(const TCHAR* javaVersion)
+{
+  HKEY javaKey = NULL;
+  TCHAR keyName[_MAX_PATH];
+  _tcscpy(keyName, TEXT("Software\\JavaSoft\\Java Plug-in\\"));
+  _tcscat(keyName, javaVersion);
+  DWORD val;
+  DWORD valSize = sizeof(DWORD);
+
+  if (ERROR_SUCCESS != ::RegOpenKeyEx(HKEY_LOCAL_MACHINE,
+                                      keyName, 0, KEY_READ, &javaKey)) {
+    return TRUE;
+  }
+
+  
+  if (ERROR_SUCCESS != ::RegQueryValueEx(javaKey, TEXT("UseNewJavaPlugin"),
+                                         NULL, NULL,
+                                         (LPBYTE) &val,
+                                         &valSize)) {
+    val = 1;
+  }
+
+  ::RegCloseKey(javaKey);
+  return (val == 0) ? PR_FALSE : PR_TRUE;
+}
+
+
+
 
 
 nsPluginDirServiceProvider::nsPluginDirServiceProvider()
@@ -263,8 +292,9 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
   *persistant = PR_FALSE;
 
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (!prefs)
-    return NS_ERROR_FAILURE;
+  if (!prefs) {
+    return rv;
+  }
 
   if (nsCRT::strcmp(charProp, NS_WIN_4DOTX_SCAN_KEY) == 0) {
     
@@ -273,7 +303,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
     PRBool bScan4x;
     if (NS_SUCCEEDED(prefs->GetBoolPref(NS_WIN_4DOTX_SCAN_KEY, &bScan4x)) &&
         !bScan4x) {
-      return NS_ERROR_FAILURE;
+      return rv;
     }
 
     
@@ -337,6 +367,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
     TCHAR newestPath[JAVA_PATH_SIZE];
     const TCHAR mozPath[_MAX_PATH] = TEXT("Software\\mozilla.org\\Mozilla");
     TCHAR browserJavaVersion[_MAX_PATH];
+    PRBool preferNPRuntimeJavaPlugIn = PR_TRUE;
 
     newestPath[0] = 0;
     LONG result = ::RegOpenKeyEx(HKEY_LOCAL_MACHINE, curKey, 0, KEY_READ,
@@ -382,6 +413,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
             if (CompareVersion(curVer, minVer) >= 0) {
               if (!_tcsncmp(browserJavaVersion, curKey, _MAX_PATH)) {
                 _tcscpy(newestPath, path);
+                preferNPRuntimeJavaPlugIn = PreferNPRuntimeJavaPlugIn(curKey);
                 ::RegCloseKey(keyloc);
                 break;
               }
@@ -389,6 +421,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
               if (CompareVersion(curVer, maxVer) >= 0) {
                 _tcscpy(newestPath, path);
                 CopyVersion(&maxVer, &curVer);
+                preferNPRuntimeJavaPlugIn = PreferNPRuntimeJavaPlugIn(curKey);
               }
             }
           }
@@ -418,21 +451,30 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, PRBool *persistant,
       _tcscat(newestPath, TEXT("\\bin"));
 
       
-      TCHAR tmpPath[JAVA_PATH_SIZE];
-      nsCOMPtr<nsILocalFile> tmpFile;
+      
+      
+      
+      
+      
+      if (preferNPRuntimeJavaPlugIn) {
+        
+        TCHAR tmpPath[JAVA_PATH_SIZE];
+        nsCOMPtr<nsILocalFile> tmpFile;
+        nsresult rv;
 
-      _tcscpy(tmpPath, newestPath);
-      _tcscat(tmpPath, TEXT("\\new_plugin"));
-      rv = t_NS_NewNativeLocalFile(tmpPath, PR_TRUE, getter_AddRefs(tmpFile));
-      if (NS_SUCCEEDED(rv) && tmpFile) {
-        PRBool exists = PR_FALSE;
-        PRBool isDir = PR_FALSE;
-        if (NS_SUCCEEDED(tmpFile->Exists(&exists)) && exists &&
-            NS_SUCCEEDED(tmpFile->IsDirectory(&isDir)) && isDir) {
-          
-          
-          
-          _tcscpy(newestPath, tmpPath);
+        _tcscpy(tmpPath, newestPath);
+        _tcscat(tmpPath, TEXT("\\new_plugin"));
+        rv = t_NS_NewNativeLocalFile(tmpPath, PR_TRUE, getter_AddRefs(tmpFile));
+        if (NS_SUCCEEDED(rv) && tmpFile) {
+          PRBool exists = PR_FALSE;
+          PRBool isDir = PR_FALSE;
+          if (NS_SUCCEEDED(tmpFile->Exists(&exists)) && exists &&
+              NS_SUCCEEDED(tmpFile->IsDirectory(&isDir)) && isDir) {
+            
+            
+            
+            _tcscpy(newestPath, tmpPath);
+          }
         }
       }
 

@@ -1053,6 +1053,12 @@ nsresult PostPluginUnloadEvent(PRLibrary* aLibrary)
 
 void nsPluginTag::TryUnloadPlugin(PRBool aForceShutdown)
 {
+  PRBool isXPCOM = PR_FALSE;
+  if (!(mFlags & NS_PLUGIN_FLAG_NPAPI))
+    isXPCOM = PR_TRUE;
+
+  if (isXPCOM && !aForceShutdown) return;
+
   if (mEntryPoint) {
     mEntryPoint->Shutdown();
     mEntryPoint->Release();
@@ -1060,7 +1066,8 @@ void nsPluginTag::TryUnloadPlugin(PRBool aForceShutdown)
   }
 
   
-  if (mLibrary && mCanUnloadLibrary) {
+  
+  if (mLibrary && mCanUnloadLibrary && !isXPCOM) {
     
     if (!mXPConnected)
       
@@ -2653,7 +2660,11 @@ nsresult nsPluginHostImpl::ReloadPlugins(PRBool reloadPages)
     next = p->mNext;
 
     
-    if (!IsRunningPlugin(p)) {
+    
+    
+    
+    
+    if (!IsRunningPlugin(p) && (!p->mEntryPoint || p->HasFlag(NS_PLUGIN_FLAG_NPAPI))) {
       if (p == mPlugins)
         mPlugins = next;
       else
@@ -3520,6 +3531,8 @@ nsresult nsPluginHostImpl::AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
   
   
   
+  
+  
   nsPluginTag * pluginTag = nsnull;
   if (aPlugin) {
     for (pluginTag = mPlugins; pluginTag != nsnull; pluginTag = pluginTag->mNext) {
@@ -3695,38 +3708,61 @@ nsPluginHostImpl::TrySetUpPluginInstance(const char *aMimeType,
 
   NS_ASSERTION(pluginTag, "Must have plugin tag here!");
 
+  nsCAutoString contractID(
+          NS_LITERAL_CSTRING(NS_INLINE_PLUGIN_CONTRACTID_PREFIX) +
+          nsDependentCString(mimetype));
+
   GetPluginFactory(mimetype, getter_AddRefs(plugin));
 
-  if (plugin) {
-#if defined(XP_WIN) && !defined(WINCE)
-    static BOOL firstJavaPlugin = FALSE;
-    BOOL restoreOrigDir = FALSE;
-    char origDir[_MAX_PATH];
-    if (pluginTag->mIsJavaPlugin && !firstJavaPlugin) {
-      DWORD dw = ::GetCurrentDirectory(_MAX_PATH, origDir);
-      NS_ASSERTION(dw <= _MAX_PATH, "Falied to obtain the current directory, which may leads to incorrect class laoding");
-      nsCOMPtr<nsIFile> binDirectory;
-      result = NS_GetSpecialDirectory(NS_XPCOM_CURRENT_PROCESS_DIR,
-                                      getter_AddRefs(binDirectory));
+  instance = do_CreateInstance(contractID.get(), &result);
 
+  
+  
+  if (NS_FAILED(result)) {
+    if (plugin) {
+#if defined(XP_WIN) && !defined(WINCE)
+      static BOOL firstJavaPlugin = FALSE;
+      BOOL restoreOrigDir = FALSE;
+      char origDir[_MAX_PATH];
+      if (pluginTag->mIsJavaPlugin && !firstJavaPlugin) {
+        DWORD dw = ::GetCurrentDirectory(_MAX_PATH, origDir);
+        NS_ASSERTION(dw <= _MAX_PATH, "Falied to obtain the current directory, which may leads to incorrect class laoding");
+        nsCOMPtr<nsIFile> binDirectory;
+        result = NS_GetSpecialDirectory(NS_XPCOM_CURRENT_PROCESS_DIR,
+                                        getter_AddRefs(binDirectory));
+
+        if (NS_SUCCEEDED(result)) {
+          nsCAutoString path;
+          binDirectory->GetNativePath(path);
+          restoreOrigDir = ::SetCurrentDirectory(path.get());
+        }
+      }
+#endif
+      result = plugin->CreateInstance(NULL, kIPluginInstanceIID, (void **)getter_AddRefs(instance));
+
+#if defined(XP_WIN) && !defined(WINCE)
+      if (!firstJavaPlugin && restoreOrigDir) {
+        BOOL bCheck = ::SetCurrentDirectory(origDir);
+        NS_ASSERTION(bCheck, " Error restoring driectoy");
+        firstJavaPlugin = TRUE;
+      }
+#endif
+    }
+
+    if (NS_FAILED(result)) {
+      nsCOMPtr<nsIPlugin> bwPlugin =
+        do_GetService("@mozilla.org/blackwood/pluglet-engine;1", &result);
       if (NS_SUCCEEDED(result)) {
-        nsCAutoString path;
-        binDirectory->GetNativePath(path);
-        restoreOrigDir = ::SetCurrentDirectory(path.get());
+        result = bwPlugin->CreatePluginInstance(NULL,
+                                                kIPluginInstanceIID,
+                                                aMimeType,
+                                                (void **)getter_AddRefs(instance));
       }
     }
-#endif
-    result = plugin->CreateInstance(NULL, kIPluginInstanceIID, (void **)getter_AddRefs(instance));
-
-#if defined(XP_WIN) && !defined(WINCE)
-    if (!firstJavaPlugin && restoreOrigDir) {
-      BOOL bCheck = ::SetCurrentDirectory(origDir);
-      NS_ASSERTION(bCheck, " Error restoring driectoy");
-      firstJavaPlugin = TRUE;
-    }
-#endif
   }
 
+  
+  
   if (NS_FAILED(result))
     return result;
 
@@ -3769,6 +3805,7 @@ nsPluginHostImpl::SetUpDefaultPluginInstance(const char *aMimeType,
 {
   if (mDefaultPluginDisabled) {
     
+
     return NS_OK;
   }
 
@@ -3781,10 +3818,20 @@ nsPluginHostImpl::SetUpDefaultPluginInstance(const char *aMimeType,
 
   GetPluginFactory("*", getter_AddRefs(plugin));
 
-  nsresult result = NS_ERROR_OUT_OF_MEMORY;
-  if (plugin)
-    result = plugin->CreateInstance(NULL, kIPluginInstanceIID,
-                                    getter_AddRefs(instance));
+  nsresult result;
+  instance = do_CreateInstance(NS_INLINE_PLUGIN_CONTRACTID_PREFIX "*",
+                               &result);
+
+  
+  
+  if (NS_FAILED(result)) {
+    if (plugin)
+      result = plugin->CreateInstance(NULL, kIPluginInstanceIID,
+                                      getter_AddRefs(instance));
+  }
+
+  
+  
   if (NS_FAILED(result))
     return result;
 
@@ -4131,6 +4178,102 @@ nsPluginHostImpl::FindPluginEnabledForExtension(const char* aExtension,
   return nsnull;
 }
 
+#if defined(XP_MACOSX)
+
+
+
+
+#include <sys/stat.h>
+#include <sys/fcntl.h>
+#include <unistd.h>
+
+static inline PRBool is_directory(const char* path)
+{
+  struct stat sb;
+  return ::stat(path, &sb) == 0 && S_ISDIR(sb.st_mode);
+}
+
+static inline PRBool is_symbolic_link(const char* path)
+{
+  struct stat sb;
+  return ::lstat(path, &sb) == 0 && S_ISLNK(sb.st_mode);
+}
+
+static int open_executable(const char* path)
+{
+  int fd = 0;
+  char resolvedPath[PATH_MAX] = "\0";
+
+  
+  
+  
+  
+  if (is_symbolic_link(path)) {
+    path = realpath(path, resolvedPath);
+    if (!path)
+      return fd;
+  }
+
+  
+  if (is_directory(path)) {
+    CFBundleRef bundle = NULL;
+    CFStringRef pathRef = CFStringCreateWithCString(NULL, path, kCFStringEncodingUTF8);
+    if (pathRef) {
+      CFURLRef bundleURL = CFURLCreateWithFileSystemPath(NULL, pathRef, kCFURLPOSIXPathStyle, true);
+      CFRelease(pathRef);
+      if (bundleURL != NULL) {
+        bundle = CFBundleCreate(NULL, bundleURL);
+        CFRelease(bundleURL);
+        if (bundle) {
+          CFURLRef executableURL = CFBundleCopyExecutableURL(bundle);
+          if (executableURL) {
+            pathRef = CFURLCopyFileSystemPath(executableURL, kCFURLPOSIXPathStyle);
+            CFRelease(executableURL);
+            if (pathRef) {
+              CFIndex bufferSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(pathRef), kCFStringEncodingUTF8) + 1;
+              char* executablePath = new char[bufferSize];
+              if (executablePath && CFStringGetCString(pathRef, executablePath, bufferSize, kCFStringEncodingUTF8)) {
+                fd = open(executablePath, O_RDONLY, 0);
+                delete[] executablePath;
+                            }
+              CFRelease(pathRef);
+            }
+          }
+          CFRelease(bundle);
+        }
+      }
+    }
+  } else {
+    fd = open(path, O_RDONLY, 0);
+  }
+  return fd;
+}
+
+static PRBool IsCompatibleExecutable(const char* path)
+{
+  int fd = open_executable(path);
+  if (fd > 0) {
+    
+    
+    
+    
+    UInt32 magic;
+    ssize_t n = read(fd, &magic, sizeof(magic));
+    close(fd);
+    if (n == sizeof(magic)) {
+      if ((magic == MH_MAGIC) || (PR_ntohl(magic) == FAT_MAGIC))
+        return PR_TRUE;
+    }
+  }
+  return PR_FALSE;
+}
+
+#else
+
+inline PRBool IsCompatibleExecutable(const char* path) { return PR_TRUE; }
+
+#endif
+
 static nsresult ConvertToNative(nsIUnicodeEncoder *aEncoder,
                                 const nsACString& aUTF8String,
                                 nsACString& aNativeString)
@@ -4230,15 +4373,62 @@ NS_IMETHODIMP nsPluginHostImpl::GetPluginFactory(const char *aMimeType, nsIPlugi
     if (!plugin) {
       
       
+      nsCAutoString contractID(
+              NS_LITERAL_CSTRING(NS_INLINE_PLUGIN_CONTRACTID_PREFIX) +
+              nsDependentCString(aMimeType));
+      nsresult rv = CallGetClassObject(contractID.get(), &plugin);
+      if (NS_SUCCEEDED(rv) && plugin) {
+        
+        pluginTag->mEntryPoint = plugin;
+        plugin->Initialize();
+      }
+    }
+
+    if (!plugin) {
+      
+      
       nsIServiceManagerObsolete* serviceManager;
       nsServiceManager::GetGlobalServiceManager((nsIServiceManager**)&serviceManager);
 
       
-      rv = CreateNPAPIPlugin(serviceManager, pluginTag, &plugin);
-      if (NS_SUCCEEDED(rv))
-        pluginTag->mEntryPoint = plugin;
-      pluginTag->Mark(NS_PLUGIN_FLAG_NPAPI);
+      nsFactoryProc nsGetFactory = nsnull;
+#ifdef XP_OS2
+      nsGetFactory = (nsFactoryProc) PR_FindFunctionSymbol(pluginTag->mLibrary, "_NSGetFactory");
+#else
+      nsGetFactory = (nsFactoryProc) PR_FindFunctionSymbol(pluginTag->mLibrary, "NSGetFactory");
+#endif
+      if (nsGetFactory && IsCompatibleExecutable(pluginTag->mFullPath.get())) {
+        rv = nsGetFactory(serviceManager, kPluginCID, nsnull, nsnull,    
+                          (nsIFactory**)&pluginTag->mEntryPoint);
+        plugin = pluginTag->mEntryPoint;
+        if (plugin)
+          plugin->Initialize();
+      }
+#ifdef XP_OS2
       
+      else if (PR_FindSymbol(pluginTag->mLibrary, "NSGetFactory") &&
+               IsCompatibleExecutable(pluginTag->mFullPath.get())) {
+        
+        
+        nsCOMPtr<nsILegacyPluginWrapperOS2> wrapper =
+                       do_GetService(NS_LEGACY_PLUGIN_WRAPPER_CONTRACTID, &rv);
+        if (NS_SUCCEEDED(rv)) {
+          rv = wrapper->GetFactory(serviceManager, kPluginCID, nsnull, nsnull,
+                                   pluginTag->mLibrary, &pluginTag->mEntryPoint);
+          plugin = pluginTag->mEntryPoint;
+          if (plugin)
+            plugin->Initialize();
+        }
+      }
+#endif
+      else {
+        
+        rv = CreateNPAPIPlugin(serviceManager, pluginTag, &plugin);
+        if (NS_SUCCEEDED(rv))
+          pluginTag->mEntryPoint = plugin;
+        pluginTag->Mark(NS_PLUGIN_FLAG_NPAPI);
+        
+      }
     }
 
     if (plugin) {
@@ -4721,6 +4911,8 @@ nsresult nsPluginHostImpl::FindPlugins(PRBool aCreatePluginList, PRBool * aPlugi
 
   nsCOMPtr<nsIComponentManager> compManager;
   NS_GetComponentManager(getter_AddRefs(compManager));
+  if (compManager)
+    LoadXPCOMPlugins(compManager);
 
 #ifdef XP_WIN
   
@@ -4864,6 +5056,15 @@ nsresult nsPluginHostImpl::FindPlugins(PRBool aCreatePluginList, PRBool * aPlugi
   mCachedPlugins = nsnull;
 
   
+
+
+
+
+
+  if (aCreatePluginList)
+    ScanForRealInComponentsFolder(compManager);
+
+  
   nsRefPtr<nsPluginTag> next;
   nsRefPtr<nsPluginTag> prev;
   for (nsRefPtr<nsPluginTag> cur = mPlugins; cur; cur = next) {
@@ -4876,6 +5077,23 @@ nsresult nsPluginHostImpl::FindPlugins(PRBool aCreatePluginList, PRBool * aPlugi
 
   NS_TIMELINE_STOP_TIMER("LoadPlugins");
   NS_TIMELINE_MARK_TIMER("LoadPlugins");
+
+  return NS_OK;
+}
+
+nsresult
+nsPluginHostImpl::LoadXPCOMPlugins(nsIComponentManager* aComponentManager)
+{
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
 
   return NS_OK;
 }
@@ -6240,6 +6458,78 @@ nsPluginHostImpl::GetPluginName(nsIPluginInstance *aPluginInstance,
 }
 
 
+
+nsresult
+nsPluginHostImpl::ScanForRealInComponentsFolder(nsIComponentManager * aCompManager)
+{
+  nsresult rv = NS_OK;
+
+#ifdef XP_WIN
+
+  
+  if (NS_SUCCEEDED(IsPluginEnabledForType("audio/x-pn-realaudio-plugin")))
+    return rv;
+
+  
+  PRBool bSkipRealPlayerHack = PR_FALSE;
+  if (!mPrefService ||
+     (NS_SUCCEEDED(mPrefService->GetBoolPref("plugin.skip_real_player_hack", &bSkipRealPlayerHack)) &&
+     bSkipRealPlayerHack))
+  return rv;
+
+  
+  nsCOMPtr<nsIFile> RealPlugin;
+  if (NS_FAILED(NS_GetSpecialDirectory(NS_XPCOM_COMPONENT_DIR, getter_AddRefs(RealPlugin))) || !RealPlugin)
+    return rv;
+
+  
+  RealPlugin->AppendNative(nsDependentCString("nppl3260.dll"));
+  PRBool exists;
+  nsCAutoString filePath;
+  RealPlugin->Exists(&exists);
+  if (!exists || NS_FAILED(RealPlugin->GetNativePath(filePath)))
+    return rv;
+
+  
+  nsCOMPtr<nsILocalFile> localfile;
+  NS_NewNativeLocalFile(filePath,
+                        PR_TRUE,
+                        getter_AddRefs(localfile));
+
+  if (!nsPluginsDir::IsPluginFile(localfile))
+    return rv;
+
+  
+  nsPluginFile pluginFile(localfile);
+  nsPluginInfo info;
+  memset(&info, 0, sizeof(info));
+  if (NS_FAILED(pluginFile.GetPluginInfo(info)))
+    return rv;
+
+  nsCOMPtr<nsIComponentManager> compManager;
+  NS_GetComponentManager(getter_AddRefs(compManager));
+
+  
+  if (info.fMimeTypeArray) {
+    nsRefPtr<nsPluginTag> pluginTag = new nsPluginTag(&info);
+    if (pluginTag) {
+      pluginTag->SetHost(this);
+      pluginTag->mNext = mPlugins;
+      mPlugins = pluginTag;
+
+      
+      if (pluginTag->IsEnabled())
+        pluginTag->RegisterWithCategoryManager(mOverrideInternalTypes);
+    }
+  }
+
+  
+  pluginFile.FreePluginInfo(info);
+
+#endif
+
+  return rv;
+}
 
 nsresult nsPluginHostImpl::AddUnusedLibrary(PRLibrary * aLibrary)
 {
