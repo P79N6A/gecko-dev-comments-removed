@@ -167,6 +167,9 @@
 
 #define MAX_EXPIRE_RECORDS_ON_IDLE 200
 
+
+#define EXPIRATION_CAP_VISITS 20000
+
 NS_IMPL_ADDREF(nsNavHistory)
 NS_IMPL_RELEASE(nsNavHistory)
 
@@ -1388,7 +1391,10 @@ nsNavHistory::LoadPrefs()
     return NS_OK;
 
   mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS, &mExpireDays);
-  mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_VISITS, &mExpireVisits);
+  if (NS_FAILED(mPrefBranch->GetIntPref(PREF_BROWSER_HISTORY_EXPIRE_VISITS,
+                                        &mExpireVisits)))
+    mExpireVisits = EXPIRATION_CAP_VISITS;
+  
   PRBool oldCompleteOnlyTyped = mAutoCompleteOnlyTyped;
   mPrefBranch->GetBoolPref(PREF_AUTOCOMPLETE_ONLY_TYPED,
                            &mAutoCompleteOnlyTyped);
