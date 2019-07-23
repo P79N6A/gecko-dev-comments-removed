@@ -44,6 +44,12 @@
 #include "gfxQuartzFontCache.h"
 #include "gfxAtsuiFonts.h"
 
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
+#include "nsIPrefLocalizedString.h"
+#include "nsServiceManagerUtils.h"
+#include "nsCRT.h"
+
 #ifdef MOZ_ENABLE_GLITZ
 #include "gfxGlitzSurface.h"
 #include "glitz-agl.h"
@@ -176,6 +182,116 @@ gfxPlatformMac::UpdateFontList()
     gfxQuartzFontCache::SharedFontCache()->UpdateFontList();
     return NS_OK;
 }
+
+void 
+gfxPlatformMac::GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang)
+{
+    if (IsLangCJK(aCharLang)) {
+        AppendCJKPrefLangs(aPrefLangs, aLen, aCharLang, aPageLang);
+    } else {
+        AppendPrefLang(aPrefLangs, aLen, aCharLang);
+    }
+
+    AppendPrefLang(aPrefLangs, aLen, eFontPrefLang_Others);
+}
+
+void
+gfxPlatformMac::AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang)
+{
+    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+
+    
+    if (IsLangCJK(aPageLang)) {
+        AppendPrefLang(aPrefLangs, aLen, aPageLang);
+    }
+    
+    
+    if (mCJKPrefLangs.Length() == 0) {
+    
+        
+        eFontPrefLang tempPrefLangs[kMaxLenPrefLangList];
+        PRUint32 tempLen = 0;
+        
+        
+        nsCAutoString list;
+        nsresult rv;
+        if (prefs) {
+            nsCOMPtr<nsIPrefLocalizedString> prefString;
+            rv = prefs->GetComplexValue("intl.accept_languages", NS_GET_IID(nsIPrefLocalizedString), getter_AddRefs(prefString));
+            if (prefString) {
+                nsAutoString temp;
+                prefString->ToString(getter_Copies(temp));
+                LossyCopyUTF16toASCII(temp, list);
+            }
+        }
+        
+        if (NS_SUCCEEDED(rv) && !list.IsEmpty()) {
+            const char kComma = ',';
+            const char *p, *p_end;
+            list.BeginReading(p);
+            list.EndReading(p_end);
+            while (p < p_end) {
+                while (nsCRT::IsAsciiSpace(*p)) {
+                    if (++p == p_end)
+                        break;
+                }
+                if (p == p_end)
+                    break;
+                const char *start = p;
+                while (++p != p_end && *p != kComma)
+                     ;
+                nsCAutoString lang(Substring(start, p));
+                lang.CompressWhitespace(PR_FALSE, PR_TRUE);
+                eFontPrefLang fpl = gfxPlatform::GetFontPrefLangFor(lang.get());
+                switch (fpl) {
+                    case eFontPrefLang_Japanese:
+                    case eFontPrefLang_Korean:
+                    case eFontPrefLang_ChineseCN:
+                    case eFontPrefLang_ChineseHK:
+                    case eFontPrefLang_ChineseTW:
+                        AppendPrefLang(tempPrefLangs, tempLen, fpl);
+                        break;
+                    default:
+                        break;
+                }
+                p++;
+            }
+        }
+    
+        
+        ScriptCode sysScript = ::GetScriptManagerVariable(smSysScript);
+        
+        switch (sysScript) {
+            case smJapanese:    AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_Japanese); break;
+            case smTradChinese: AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseTW); break;
+            case smKorean:      AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_Korean); break;
+            case smSimpChinese: AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseCN); break;
+            default:            break;
+        }
+    
+        
+        AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_Japanese);
+        AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_Korean);
+        AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseCN);
+        AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseHK);
+        AppendPrefLang(tempPrefLangs, tempLen, eFontPrefLang_ChineseTW);
+        
+        
+        PRUint32 j;
+        for (j = 0; j < tempLen; j++) {
+            mCJKPrefLangs.AppendElement(tempPrefLangs[j]);
+        }
+    }
+    
+    
+    PRUint32  i, numCJKlangs = mCJKPrefLangs.Length();
+    
+    for (i = 0; i < numCJKlangs; i++) {
+        AppendPrefLang(aPrefLangs, aLen, (eFontPrefLang) (mCJKPrefLangs[i]));
+    }
+        
+}
+
 
 cmsHPROFILE
 gfxPlatformMac::GetPlatformCMSOutputProfile()

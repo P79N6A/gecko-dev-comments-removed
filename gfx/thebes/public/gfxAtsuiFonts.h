@@ -144,6 +144,9 @@ public:
         return nsnull;
     }
 
+   
+   already_AddRefed<gfxAtsuiFont> WhichPrefFontSupportsChar(PRUint32 aCh);
+   
    already_AddRefed<gfxAtsuiFont> FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh, PRUint32 aNextCh, gfxAtsuiFont* aPrevMatchedFont);
 
 protected:
