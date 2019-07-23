@@ -433,7 +433,7 @@ AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem, nsIContent* aOwningContent,
   nsAutoString value;
   PRBool isContent = PR_FALSE;
 
-  if (aOwningContent->IsNodeOfType(nsINode::eXUL)) {
+  if (aOwningContent->IsXUL()) {
       aOwningContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
   }
 
@@ -1154,7 +1154,7 @@ nsFrameLoader::TryNewProcess()
     return PR_FALSE;
   }
 
-  if (!mOwnerContent->IsNodeOfType(nsINode::eXUL)) {
+  if (!mOwnerContent->IsXUL()) {
     return PR_FALSE;
   }
 

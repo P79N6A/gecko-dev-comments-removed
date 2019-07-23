@@ -356,7 +356,7 @@ ForEachPing(nsIContent *content, ForEachPingCallback callback, void *closure)
 
   
   
-  if (!content->IsNodeOfType(nsINode::eHTML))
+  if (!content->IsHTML())
     return;
   nsIAtom *nameAtom = content->Tag();
   if (!nameAtom->EqualsUTF8(NS_LITERAL_CSTRING("a")) &&
@@ -4375,10 +4375,14 @@ nsDocShell::GetPositionAndSize(PRInt32 * x, PRInt32 * y, PRInt32 * cx,
 {
     
     
-    nsCOMPtr<nsIDOMDocument> document(do_GetInterface(GetAsSupports(mParent)));
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(document));
-    if (doc) {
-        doc->FlushPendingNotifications(Flush_Layout);
+    if (cx || cy) {
+        
+        
+        nsCOMPtr<nsIDOMDocument> document(do_GetInterface(GetAsSupports(mParent)));
+        nsCOMPtr<nsIDocument> doc(do_QueryInterface(document));
+        if (doc) {
+            doc->FlushPendingNotifications(Flush_Layout);
+        }
     }
     
     DoGetPositionAndSize(x, y, cx, cy);

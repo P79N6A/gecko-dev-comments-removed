@@ -42,14 +42,6 @@
 #endif
 #include <gtk/gtk.h>
 
-
-
-
-
-
-
-
-
 struct _PlatformData {
   Display* display;
   GtkWidget* plug;
@@ -549,4 +541,8 @@ int32_t pluginGetClipRegionRectEdge(InstanceData* instanceData,
     return rect.y + rect.height;
   }
   return NPTEST_INT32_ERROR;
+}
+
+void pluginDoInternalConsistencyCheck(InstanceData* instanceData, string& error)
+{
 }
