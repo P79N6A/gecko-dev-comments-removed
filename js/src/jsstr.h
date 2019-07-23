@@ -626,9 +626,24 @@ js_InflateStringToBuffer(JSContext *cx, const char *bytes, size_t length,
 
 
 
+extern JSBool
+js_InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
+                             jschar *chars, size_t *charsLength);
+
+
+
+
+
 extern size_t
 js_GetDeflatedStringLength(JSContext *cx, const jschar *chars,
                            size_t charsLength);
+
+
+
+
+extern size_t
+js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
+                               size_t charsLength);
 
 
 
@@ -639,6 +654,13 @@ js_GetDeflatedStringLength(JSContext *cx, const jschar *chars,
 extern JSBool
 js_DeflateStringToBuffer(JSContext *cx, const jschar *chars,
                          size_t charsLength, char *bytes, size_t *length);
+
+
+
+
+extern JSBool
+js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
+                             size_t charsLength, char *bytes, size_t *length);
 
 
 
