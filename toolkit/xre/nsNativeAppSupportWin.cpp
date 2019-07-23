@@ -581,6 +581,8 @@ struct MessageWindow {
 
         
 #ifdef WINCE
+        
+        
         NS_ConvertUTF16toUTF8 utf8buffer(L"dummy ");
         AppendUTF16toUTF8(cmd, utf8buffer);
 #else

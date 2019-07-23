@@ -207,11 +207,11 @@ ForwardToWindow(HWND wnd) {
   _wgetcwd(wCwd, MAX_PATH);
 
   
-  size_t len = wcslen(wPath) + wcslen(wCmd) + wcslen(wCwd) + 3;
+  size_t len = wcslen(wPath) + wcslen(wCmd) + wcslen(wCwd) + 2;
   WCHAR *wMsg = (WCHAR *)malloc(len * sizeof(*wMsg));
   wcscpy(wMsg, wPath);
   wcscpy(wMsg + wcslen(wPath), wCmd);                
-  wcscpy(wMsg + wcslen(wPath) + wcslen(wCmd) + 2, wCwd); 
+  wcscpy(wMsg + wcslen(wPath) + wcslen(wCmd) + 1, wCwd); 
 
   
   char *msg = (char *)malloc(len * 4);
@@ -437,7 +437,7 @@ main(int argc, char **argv)
     }
 
     
-    strncat(windowName, "MessageWindow", sizeof(windowName));
+    strncat(windowName, "MessageWindow", sizeof(windowName) - strlen(windowName));
     WCHAR wWindowName[512];
     MultiByteToWideChar(CP_UTF8, 0, windowName, -1, wWindowName, sizeof(wWindowName));
     HWND wnd = ::FindWindowW(wWindowName, NULL);
