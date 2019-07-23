@@ -39,6 +39,7 @@
 
 #ifndef gtkmozembed_common_h
 #define gtkmozembed_common_h
+#include "gtkmozembed.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -140,16 +141,6 @@ typedef enum
   GTK_MOZ_EMBED_UNKNOWN_SECURITY
 } GtkMozEmbedSecurityMode;
 
-
-
-
-typedef struct _GtkMozHistoryItem GtkMozHistoryItem;
-struct _GtkMozHistoryItem
-{
-    const gchar *title; 
-    const gchar *url;   
-    long accessed;      
-};
 typedef struct _GtkMozCookieList GtkMozCookieList;
 struct _GtkMozCookieList
 {
@@ -170,9 +161,9 @@ struct _GtkMozEmbedCookie
 typedef struct _GtkMozPlugin GtkMozPlugin;
 struct _GtkMozPlugin
 {
-    const gchar *title;  
-    const gchar *path;   
-    const gchar *type;   
+    gchar *title;  
+    gchar *path;   
+    gchar *type;   
     gboolean isDisabled; 
 };
 

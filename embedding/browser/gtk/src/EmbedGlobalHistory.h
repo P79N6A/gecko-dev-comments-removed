@@ -45,14 +45,8 @@
 #include <gtk/gtk.h>
 #include "nsDocShellCID.h"
 
-#ifdef MOZ_ENABLE_GNOMEVFS
-#include <libgnomevfs/gnome-vfs.h>
-#define OUTPUT_STREAM GnomeVFSHandle
-#define LOCAL_FILE GnomeVFSURI
-#else
 #define OUTPUT_STREAM nsIOutputStream
 #define LOCAL_FILE nsILocalFile
-#endif
 
 
 
@@ -123,10 +117,11 @@ class EmbedGlobalHistory: public nsIGlobalHistory2,
 
     nsresult          GetEntry(const char *);
     protected:
-    OUTPUT_STREAM    *mFileHandle;             
-    PRBool            mDataIsLoaded;           
-    PRInt32           mEntriesAddedSinceFlush; 
-    gchar*            mHistoryFile;            
+    OUTPUT_STREAM    *mFileHandle;              
+    PRBool            mDataIsLoaded;            
+    PRBool            mFlushModeFullWriteNeeded;
+    PRInt32           mEntriesAddedSinceFlush;  
+    gchar*            mHistoryFile;             
 };
 
 static const PRUint32 kDefaultMaxSize = 1000;

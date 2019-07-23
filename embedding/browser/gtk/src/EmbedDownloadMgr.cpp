@@ -69,27 +69,28 @@
 #include "nsILocalFile.h"
 #include "nsNetCID.h"
 #include <unistd.h>
-#include <gtkmozembed_download.h>
+#include "gtkmozembed_download.h"
+#include "nsIIOService.h"
+
+#define UNKNOWN_FILE_SIZE -1
+
 class EmbedDownloadMgr;
 class ProgressListener : public nsIWebProgressListener2
 {
 public:
-    ProgressListener(EmbedDownload *aDownload, nsCAutoString aFilename, nsISupports *aContext) : mFilename (aFilename)
-    {
-        mDownload = aDownload;
-        mContext = aContext;
-    };
-    ~ProgressListener()
+    ProgressListener(EmbedDownload *aDownload):mDownload(aDownload)
     {
     };
+
+    ~ProgressListener(void)
+    {
+    };
+
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBPROGRESSLISTENER
     NS_DECL_NSIWEBPROGRESSLISTENER2
+
     EmbedDownload *mDownload;
-    nsISupports *mContext;            
-    nsCOMPtr<nsILocalFile> mDestFile;
-    nsCAutoString mFilename;
-    nsCAutoString mLocalSaveFileName;
 };
 
 NS_IMPL_ISUPPORTS2(ProgressListener, nsIWebProgressListener2, nsIWebProgressListener)
@@ -103,197 +104,216 @@ EmbedDownloadMgr::~EmbedDownloadMgr(void)
 {
 }
 
-nsresult
-EmbedDownloadMgr::Init()
+static gchar *
+RemoveSchemeFromFilePath(gchar *path)
 {
-  return NS_OK;
+  gchar *new_path = path;
+
+  if (!strncmp(path, "file://", 7)) {
+    
+
+
+    new_path = g_strdup(path+sizeof("file:/"));
+    g_free(path);
+  }
+    
+  return new_path;
 }
 
 NS_IMETHODIMP
-EmbedDownloadMgr::Show(nsIHelperAppLauncher *aLauncher, nsISupports *aContext, PRUint32 aForced)
+EmbedDownloadMgr::Show(nsIHelperAppLauncher *aLauncher,
+                       nsISupports *aContext,
+                       PRUint32 aForced)
 {
   nsresult rv;
-  mContext = aContext;
-  mLauncher = aLauncher;
-  rv = GetDownloadInfo();
-  return NS_OK;
-}
 
-NS_METHOD EmbedDownloadMgr::GetDownloadInfo (void)
-{
-  nsresult rv;
   
-  GtkObject* instance = gtk_moz_embed_download_new ();
-  EmbedDownload *download = (EmbedDownload *) GTK_MOZ_EMBED_DOWNLOAD(instance)->data;
-  
-  rv = mLauncher->GetMIMEInfo (getter_AddRefs(mMIMEInfo));
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  nsCAutoString aMimeType;
-  rv = mMIMEInfo->GetMIMEType (aMimeType);
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  
-  nsCAutoString aTempFileName;
-  nsAutoString aSuggestedFileName;
-  rv = mLauncher->GetSuggestedFileName (aSuggestedFileName);
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  aTempFileName = NS_ConvertUTF16toUTF8 (aSuggestedFileName);
-  
-  rv = mLauncher->GetSource (getter_AddRefs(mUri));
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  rv = mUri->Resolve(NS_LITERAL_CSTRING("."), mSpec);
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  rv = mLauncher->GetTargetFile(getter_AddRefs(mDestFileTemp));
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  download->file_target = mDestFileTemp;
-  
-  nsCOMPtr<nsIWebProgressListener2> listener = new ProgressListener(download, aTempFileName, mContext);
-  rv = mLauncher->SetWebProgressListener(listener);
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-  
-  download->parent = instance;
-  download->started = 0;
-  download->downloaded_size = -1;
-  download->launcher = mLauncher;
-  download->file_name = g_strdup ((gchar *) aTempFileName.get());
-  download->server = g_strconcat(mSpec.get(), (gchar *) download->file_name, NULL);
-  download->file_type = g_strdup (aMimeType.get());
-  return NS_OK;
-}
+  GtkObject* instance = gtk_moz_embed_download_new();
+  mDownload = (EmbedDownload *) GTK_MOZ_EMBED_DOWNLOAD(instance)->data;
+  mDownload->parent = instance;
 
+  rv = GetDownloadInfo(aLauncher, aContext);
 
-NS_IMETHODIMP EmbedDownloadMgr::PromptForSaveToFile (nsIHelperAppLauncher *aLauncher,
-                                                        nsISupports *aWindowContext,
-                                                        const PRUnichar *aDefaultFile,
-                                                        const PRUnichar *aSuggestedFileExtension,
-                                                        nsILocalFile **_retval)
-{
-  return NS_OK;
-}
+  
+  nsCOMPtr<nsIDOMWindow> parentDOMWindow = do_GetInterface(aContext);
+  mDownload->gtkMozEmbedParentWidget = GetGtkWidgetForDOMWindow(parentDOMWindow);
 
+  gtk_signal_emit(GTK_OBJECT(mDownload->gtkMozEmbedParentWidget),
+                  moz_embed_signals[DOWNLOAD_REQUEST],
+                  mDownload->server,
+                  mDownload->file_name,
+                  mDownload->file_type,
+                  (gulong) mDownload->file_size,
+                   1);
 
+  gtk_signal_emit(GTK_OBJECT(mDownload->parent),
+                  moz_embed_download_signals[DOWNLOAD_STARTED_SIGNAL],
+                  &mDownload->file_name_with_path);
 
-NS_IMETHODIMP ProgressListener::OnStatusChange (nsIWebProgress *aWebProgress,
-                                                    nsIRequest *aRequest, nsresult aStatus,
-                                                    const PRUnichar *aMessage)
-{
-  if (NS_SUCCEEDED (aStatus))
+  if (!mDownload->file_name_with_path) {
+    gtk_moz_embed_download_do_command(GTK_MOZ_EMBED_DOWNLOAD(mDownload->parent),
+                                      GTK_MOZ_EMBED_DOWNLOAD_CANCEL);
     return NS_OK;
+  }
+
+  mDownload->file_name_with_path = RemoveSchemeFromFilePath(mDownload->file_name_with_path);
+
+  return aLauncher->SaveToDisk(nsnull, PR_FALSE);
+}
+
+NS_METHOD
+EmbedDownloadMgr::GetDownloadInfo(nsIHelperAppLauncher *aLauncher,
+                                  nsISupports *aContext)
+{
+  
+  nsCOMPtr<nsIMIMEInfo> mimeInfo;
+  nsresult rv = aLauncher->GetMIMEInfo(getter_AddRefs(mimeInfo));
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  nsCAutoString mimeType;
+  rv = mimeInfo->GetMIMEType(mimeType);
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  
+  nsCAutoString tempFileName;
+  nsAutoString suggestedFileName;
+  rv = aLauncher->GetSuggestedFileName(suggestedFileName);
+
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  tempFileName = NS_ConvertUTF16toUTF8(suggestedFileName);
+
+  
+  nsCOMPtr<nsIURI> uri;
+  rv = aLauncher->GetSource(getter_AddRefs(uri));
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  nsCAutoString spec;
+  rv = uri->Resolve(NS_LITERAL_CSTRING("."), spec);
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  
+  mDownload->launcher = aLauncher;
+  mDownload->downloaded_size = -1;
+  mDownload->file_name = g_strdup((gchar *) tempFileName.get());
+  mDownload->server = g_strconcat(spec.get(), (gchar *) mDownload->file_name, NULL);
+  mDownload->file_type = g_strdup(mimeType.get());
+  mDownload->file_size = UNKNOWN_FILE_SIZE;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP EmbedDownloadMgr::PromptForSaveToFile(nsIHelperAppLauncher *aLauncher,
+                                                    nsISupports *aWindowContext,
+                                                    const PRUnichar *aDefaultFile,
+                                                    const PRUnichar *aSuggestedFileExtension,
+                                                    nsILocalFile **_retval)
+{
+  *_retval = nsnull;
+
+  nsCAutoString filePath;
+  filePath.Assign(mDownload->file_name_with_path);
+
+  nsCOMPtr<nsILocalFile> destFile;
+  NS_NewNativeLocalFile(filePath,
+                        PR_TRUE,
+                        getter_AddRefs(destFile));
+  if (!destFile)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+
+  nsCOMPtr<nsIWebProgressListener2> listener = new ProgressListener(mDownload);
+  if (!listener)
+    return NS_ERROR_OUT_OF_MEMORY;
+  
+  nsresult rv = aLauncher->SetWebProgressListener(listener);
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  NS_ADDREF(*_retval = destFile);
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP ProgressListener::OnStatusChange(nsIWebProgress *aWebProgress,
+                                               nsIRequest *aRequest,
+                                               nsresult aStatus,
+                                               const PRUnichar *aMessage)
+{
+  if (NS_SUCCEEDED(aStatus))
+    return NS_OK;
+
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP ProgressListener::OnStateChange (nsIWebProgress *aWebProgress,
-                                                    nsIRequest *aRequest, PRUint32 aStateFlags,
-                                                    nsresult aStatus)
+NS_IMETHODIMP ProgressListener::OnStateChange(nsIWebProgress *aWebProgress,
+                                              nsIRequest *aRequest, PRUint32 aStateFlags,
+                                              nsresult aStatus)
 {
-  if (NS_SUCCEEDED (aStatus))
-    return NS_OK;
-  return NS_ERROR_FAILURE;
-}
+  if (NS_FAILED(aStatus))
+    return NS_ERROR_FAILURE;
 
-NS_IMETHODIMP ProgressListener::OnProgressChange (nsIWebProgress *aWebProgress,
-                                                    nsIRequest *aRequest, PRInt32 aCurSelfProgress,
-                                                    PRInt32 aMaxSelfProgress, PRInt32 aCurTotalProgress,
-                                                    PRInt32 aMaxTotalProgress)
-{
-  return OnProgressChange64 (aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress);
-}
-
-NS_IMETHODIMP ProgressListener::OnLocationChange (nsIWebProgress *aWebProgress,
-                                                    nsIRequest *aRequest, nsIURI *location)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP ProgressListener::OnSecurityChange (nsIWebProgress *aWebProgress,
-                                                    nsIRequest *aRequest, PRUint32 state)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP ProgressListener::OnProgressChange64 (nsIWebProgress *aWebProgress,
-                                                    nsIRequest *aRequest, PRInt64 aCurSelfProgress,
-                                                    PRInt64 aMaxSelfProgress, PRInt64 aCurTotalProgress,
-                                                    PRInt64 aMaxTotalProgress)
-{
-  nsresult rv;
-
-  if (!mDownload) return NS_OK;
-  if (mDownload->started == 0) {
-    mDownload->request = aRequest;
-    mDownload->started = 1;
-    
-    mDownload->file_size = aMaxSelfProgress;
-    nsCOMPtr<nsIDOMWindow> parentDOMWindow = do_GetInterface (mContext);
-    mDownload->gtkMozEmbedParentWidget = GetGtkWidgetForDOMWindow(parentDOMWindow);
-    if (mDownload->gtkMozEmbedParentWidget) {
-      gtk_signal_emit(GTK_OBJECT(mDownload->gtkMozEmbedParentWidget),
-                                    moz_embed_signals[DOWNLOAD_REQUEST],
-                                    mDownload->server,
-                                    mDownload->file_name,
-                                    mDownload->file_type,
-                                    (gulong) mDownload->file_size,
-                                    1);
-    }
-  }
-  if (mDownload->started == 1) {
-    
-    gtk_signal_emit(GTK_OBJECT(mDownload->parent),
-                    moz_embed_download_signals[DOWNLOAD_STARTED_SIGNAL], &mDownload->file_name_with_path);
-    
-    if (!mDownload->file_name_with_path) {
-      gtk_moz_embed_download_do_command (GTK_MOZ_EMBED_DOWNLOAD (mDownload->parent), GTK_MOZ_EMBED_DOWNLOAD_CANCEL);
-      return NS_OK;
-    }
-    
-    gchar *localUrl = nsnull, *localFileName = nsnull;
-    
-    if (g_str_has_prefix (mDownload->file_name_with_path, FILE_SCHEME)) {
-      
-      gchar *localUrlWithFileName = (g_strsplit (mDownload->file_name_with_path, FILE_SCHEME, -1))[1];
-      gint i;
-      gchar **localUrlSplitted = (char **) (g_strsplit(localUrlWithFileName, SLASH, -1));
-      for(i = 0; localUrlSplitted[i]; i++);
-          localFileName = localUrlSplitted[i-1];
-      localUrl = (gchar *) (g_strsplit(localUrlWithFileName, localFileName, -1))[0];
-    } else {
-      
-      localUrl = (char *) (g_strsplit (mDownload->file_name_with_path, mFilename.get(), -1))[0];
-      localFileName = g_strdup ((gchar *) mFilename.get());
-    }
-    nsCAutoString localSavePath;
-    if (localUrl) {
-      localSavePath.Assign(localUrl);
-      g_free (localUrl);
-      localUrl = nsnull;
-    }
-    if (localFileName) {
-      mLocalSaveFileName.Assign(localFileName);
-      g_free (localFileName);
-      localFileName = nsnull;
-    }
-    
-    mDestFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-    mDestFile->InitWithNativePath(localSavePath);
-    mDestFile->Create(nsIFile::NORMAL_FILE_TYPE, 0777);
-    mDownload->started = 2;
-  }
-  
-  
-  if (aCurSelfProgress == aMaxSelfProgress) {
-    
+  if (aStateFlags & STATE_STOP)
     gtk_signal_emit(GTK_OBJECT(mDownload->parent),
                     moz_embed_download_signals[DOWNLOAD_COMPLETED_SIGNAL]);
-  } else {
-    
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP ProgressListener::OnProgressChange(nsIWebProgress *aWebProgress,
+                                                 nsIRequest *aRequest, PRInt32 aCurSelfProgress,
+                                                 PRInt32 aMaxSelfProgress, PRInt32 aCurTotalProgress,
+                                                 PRInt32 aMaxTotalProgress)
+{
+  return OnProgressChange64(aWebProgress,
+                            aRequest,
+                            aCurSelfProgress,
+                            aMaxSelfProgress,
+                            aCurTotalProgress,
+                            aMaxTotalProgress);
+}
+
+NS_IMETHODIMP ProgressListener::OnLocationChange(nsIWebProgress *aWebProgress,
+                                                 nsIRequest *aRequest, nsIURI *location)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP ProgressListener::OnSecurityChange(nsIWebProgress *aWebProgress,
+                                                 nsIRequest *aRequest, PRUint32 state)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+NS_IMETHODIMP ProgressListener::OnProgressChange64(nsIWebProgress *aWebProgress,
+                                                   nsIRequest *aRequest, PRInt64 aCurSelfProgress,
+                                                   PRInt64 aMaxSelfProgress, PRInt64 aCurTotalProgress,
+                                                   PRInt64 aMaxTotalProgress)
+{
+  mDownload->request = aRequest;
+
+  if (aMaxSelfProgress != UNKNOWN_FILE_SIZE) {
     gtk_signal_emit(GTK_OBJECT(mDownload->parent),
                     moz_embed_download_signals[DOWNLOAD_PROGRESS_SIGNAL],
                     (gulong) aCurSelfProgress, (gulong) aMaxSelfProgress, 1);
   }
+  else {
+    gtk_signal_emit(GTK_OBJECT(mDownload->parent),
+                    moz_embed_download_signals[DOWNLOAD_PROGRESS_SIGNAL],
+                    (gulong) aCurSelfProgress, 0, 1);
+  }
+
   
   mDownload->downloaded_size = (gulong) aCurSelfProgress;
-  
-  rv = mDownload->file_target->MoveToNative (mDestFile, mLocalSaveFileName);
+
   return NS_OK;
 }
 

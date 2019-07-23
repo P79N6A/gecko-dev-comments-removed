@@ -37,41 +37,30 @@
 
 
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+
 
 #include "EmbedFilePicker.h"
 #include "EmbedGtkTools.h"
-#include "gtkmozembed.h"
-#include "nsCOMPtr.h"
-#include "nsIServiceManager.h"
-#include "nsIURI.h"
 #include "nsIFileURL.h"
 #include "nsILocalFile.h"
 #include "nsIDOMWindow.h"
-#include "nsNetCID.h"
-#include "nsIDOMWindowInternal.h"
-#ifndef MOZILLA_INTERNAL_API
-#include "nsComponentManagerUtils.h"
-#include "nsServiceManagerUtils.h"
-#endif
+#include "nsStringGlue.h"
+#include "nsNetUtil.h"
+#include "prenv.h"
+
 #ifdef MOZ_LOGGING
 #include <stdlib.h>
 #endif
 
 NS_IMPL_ISUPPORTS1(EmbedFilePicker, nsIFilePicker)
-EmbedFilePicker::EmbedFilePicker()
-: mParent (nsnull),
-  mMode(nsIFilePicker::modeOpen),
-  mFilename (nsnull)
+
+EmbedFilePicker::EmbedFilePicker(): mParent (nsnull),
+                                    mMode(nsIFilePicker::modeOpen)
 {
 }
 
 EmbedFilePicker::~EmbedFilePicker()
 {
-  if (mFilename)
-    g_free (mFilename);
 }
 
 
@@ -141,45 +130,48 @@ NS_IMETHODIMP EmbedFilePicker::SetDisplayDirectory(nsILocalFile *aDisplayDirecto
 
 NS_IMETHODIMP EmbedFilePicker::GetFile(nsILocalFile **aFile)
 {
-  if (!mFilename) return NS_OK;
-  
 
+  NS_ENSURE_ARG_POINTER(aFile);
 
-  gchar *strippedFileName = nsnull;
-  if (!strncmp (mFilename, GTK_MOZ_EMBED_COMMON_FILE_SCHEME, 7))
-    strippedFileName = (g_strsplit(mFilename, GTK_MOZ_EMBED_COMMON_FILE_SCHEME, -1))[1];
-  else if (!strncmp (mFilename, GTK_MOZ_EMBED_BLUETOOTH_FILE_SCHEME, 7))
-    strippedFileName = (g_strsplit(mFilename, GTK_MOZ_EMBED_BLUETOOTH_FILE_SCHEME, -1))[1];
-  else {
-    if (!mParent) return NS_OK;
-    GtkWidget* parentWidget = GetGtkWidgetForDOMWindow (mParent);
-    if (!parentWidget) return NS_OK;
-    g_signal_emit_by_name(GTK_OBJECT (parentWidget), "alert", "File protocol not supported." ,NULL);
-    
+  if (mFilename.IsEmpty())
+    return NS_OK;
+
+  nsCOMPtr<nsIURI> baseURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(baseURI), mFilename);
+
+  nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(baseURI, &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIFile> file;
+  rv = fileURL->GetFile(getter_AddRefs(file));
+
+  nsCOMPtr<nsILocalFile> localfile;
+  localfile = do_QueryInterface(file, &rv);
+
+  if (NS_SUCCEEDED(rv)) {
+    NS_ADDREF(*aFile = localfile);
     return NS_OK;
   }
-  if (strippedFileName)
-  {
-    nsCAutoString localSavePath (strippedFileName);
-    nsCOMPtr<nsILocalFile> file = do_CreateInstance (NS_LOCAL_FILE_CONTRACTID);
-    if (!file) return NS_OK;
-    file->InitWithNativePath (localSavePath);
-    NS_ADDREF (*aFile = file);
-    g_free (strippedFileName);
-    strippedFileName = nsnull;
-  }
+
+  NS_ENSURE_TRUE(mParent, NS_OK);
+  GtkWidget* parentWidget = GetGtkWidgetForDOMWindow(mParent);
+  NS_ENSURE_TRUE(parentWidget, NS_OK);
+  
+  g_signal_emit_by_name(GTK_OBJECT(parentWidget), "alert", "File protocol not supported.", NULL);
   return NS_OK;
 }
 
 
 NS_IMETHODIMP EmbedFilePicker::GetFileURL(nsIFileURL **aFileURL)
 {
+  NS_ENSURE_ARG_POINTER(aFileURL);
+  *aFileURL = nsnull;
+
   nsCOMPtr<nsILocalFile> file;
-  GetFile (getter_AddRefs(file));
-  if (!file) return NS_OK;
-  NS_ENSURE_TRUE (file, NS_ERROR_FAILURE);
-  nsCOMPtr<nsIFileURL> fileURL = do_CreateInstance (NS_STANDARDURL_CONTRACTID);
-  if (!fileURL) return NS_OK;
+  GetFile(getter_AddRefs(file));
+  NS_ENSURE_TRUE(file, NS_ERROR_FAILURE);
+  nsCOMPtr<nsIFileURL> fileURL = do_CreateInstance(NS_STANDARDURL_CONTRACTID);
+  NS_ENSURE_TRUE(fileURL, NS_ERROR_OUT_OF_MEMORY);
   fileURL->SetFile(file);
   NS_ADDREF(*aFileURL = fileURL);
   return NS_OK;
@@ -194,27 +186,27 @@ NS_IMETHODIMP EmbedFilePicker::GetFiles(nsISimpleEnumerator * *aFiles)
 
 NS_IMETHODIMP EmbedFilePicker::Show(PRInt16 *_retval)
 {
-  if (!mParent)
-    return NS_OK;
-  GtkWidget* parentWidget = GetGtkWidgetForDOMWindow (mParent);
-  if (!parentWidget)
-    return NS_OK;
-  if (mFilename) {
-    g_free (mFilename);
-    mFilename = nsnull;
-  }
-  int response;
-  g_signal_emit_by_name (
-    GTK_OBJECT (parentWidget),
-    "upload_dialog",
-    "/home/user", 
-    "",
-    &mFilename,
-    &response,
-    NULL);
-  if (response == 1 && mFilename != NULL)
-    *_retval = nsIFilePicker::returnOK;
-  else
-    *_retval = nsIFilePicker::returnCancel;
+  NS_ENSURE_ARG_POINTER(_retval);
+  NS_ENSURE_TRUE(mParent, NS_OK);
+
+  GtkWidget *parentWidget = GetGtkWidgetForDOMWindow(mParent);
+  NS_ENSURE_TRUE(parentWidget, NS_OK);
+
+  gboolean response = 0;
+  char *retname = nsnull;
+  g_signal_emit_by_name(GTK_OBJECT(parentWidget),
+                        "upload_dialog",
+                        PR_GetEnv("HOME"),
+                        "",
+                        &retname,
+                        &response,
+                        NULL);
+
+  *_retval = response ? nsIFilePicker::returnOK : nsIFilePicker::returnCancel;
+
+  mFilename = retname;
+  if (retname)
+    NS_Free(retname);
+
   return NS_OK;
 }
