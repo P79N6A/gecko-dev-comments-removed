@@ -71,6 +71,11 @@ nsHTMLEditor::ShowInlineTableEditingUI(nsIDOMElement * aCell)
   if (!nsHTMLEditUtils::IsTableCell(aCell))
     return NS_OK;
 
+  if (mInlineEditedCell) {
+    NS_ERROR("call HideInlineTableEditingUI first");
+    return NS_ERROR_UNEXPECTED;
+  }
+
   
   nsIDOMElement *bodyElement = GetRoot();
   if (!bodyElement)   return NS_ERROR_NULL_POINTER;
