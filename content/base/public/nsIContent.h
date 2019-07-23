@@ -217,7 +217,7 @@ public:
   {
     nsIDocument* doc = GetOwnerDoc();
     return doc && 
-           !doc->IsCaseSensitive();
+           doc->IsHTML();
   }
 
   

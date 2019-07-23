@@ -1055,6 +1055,7 @@ protected:
   nsIContent* GetHeadContent() {
     return GetHtmlChildContent(nsGkAtoms::head);
   }
+
   
   
   nsIContent* GetTitleContent(PRUint32 aNodeType);
@@ -1172,10 +1173,7 @@ protected:
   PRPackedBool mVisible:1;
   
   PRPackedBool mHasHadScriptHandlingObject:1;
-  
-  
-  
-  PRPackedBool mIsRegularHTML:1;
+
   
   
   PRPackedBool mMayHaveTitleElement:1;

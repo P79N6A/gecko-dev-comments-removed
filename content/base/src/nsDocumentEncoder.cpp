@@ -1185,7 +1185,7 @@ nsHTMLCopyEncoder::SetSelection(nsISelection* aSelection)
   
   
   nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
-  if (!htmlDoc || mDocument->IsCaseSensitive())
+  if (!(htmlDoc && mDocument->IsHTML()))
     mIsTextWidget = PR_TRUE;
   
   
