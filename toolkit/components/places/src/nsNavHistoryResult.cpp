@@ -199,7 +199,7 @@ nsNavHistoryResultNode::GetTags(nsAString& aTags) {
   mozStorageStatementScoper scoper(getTagsStatement);
   nsresult rv = getTagsStatement->BindStringParameter(0, NS_LITERAL_STRING(", "));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = getTagsStatement->BindInt32Parameter(1, history->GetTagsFolder());
+  rv = getTagsStatement->BindInt64Parameter(1, history->GetTagsFolder());
   NS_ENSURE_SUCCESS(rv, rv);
   rv = getTagsStatement->BindUTF8StringParameter(2, mURI);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2400,7 +2400,12 @@ nsNavHistoryQueryResultNode::FillChildren()
   if (mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY ||
       mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_UNIFIED) {
     
-    result->AddHistoryObserver(this);
+    
+    
+    if (!mParent || mParent->mOptions->ResultType() != nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY) {
+      
+      result->AddHistoryObserver(this);
+    }
   }
 
   if (mOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS ||
@@ -2668,10 +2673,9 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
       
       rv = history->VisitIdToResultNode(aVisitId, mOptions,
                                         getter_AddRefs(addition));
-      NS_ENSURE_SUCCESS(rv, rv);
 
       
-      if (!addition)
+      if (NS_FAILED(rv) || !addition)
           return NS_OK;
 
       break;
@@ -2681,8 +2685,8 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
       
       rv = history->VisitIdToResultNode(aVisitId, mOptions,
                                         getter_AddRefs(addition));
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (! history->EvaluateQueryForNode(mQueries, mOptions, addition))
+      if (NS_FAILED(rv) || !addition ||
+          !history->EvaluateQueryForNode(mQueries, mOptions, addition))
         return NS_OK; 
       break;
     }
