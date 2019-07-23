@@ -1963,12 +1963,14 @@ nsLocalFile::SetLastModifiedTimeOfLink(PRInt64 aLastModifiedTime)
 nsresult
 nsLocalFile::SetModDate(PRInt64 aLastModifiedTime, const PRUnichar *filePath)
 {
+    
+    
     HANDLE file = ::CreateFileW(filePath,          
                                 GENERIC_WRITE,     
                                 0,                 
                                 NULL,              
                                 OPEN_EXISTING,     
-                                0,                 
+                                FILE_FLAG_BACKUP_SEMANTICS,  
                                 NULL);
 
     if (file == INVALID_HANDLE_VALUE)
