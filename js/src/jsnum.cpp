@@ -790,14 +790,15 @@ js_InitNumberClass(JSContext *cx, JSObject *obj)
 
     
     rt = cx->runtime;
-    if (!JS_DefineProperty(cx, obj, js_NaN_str, rt->NaNValue,
-                           NULL, NULL, JSPROP_PERMANENT)) {
+    if (!JS_DefineProperty(cx, obj, js_NaN_str, rt->NaNValue, JS_PropertyStub, JS_PropertyStub,
+                           JSPROP_PERMANENT | JSPROP_READONLY)) {
         return NULL;
     }
 
     
     if (!JS_DefineProperty(cx, obj, js_Infinity_str, rt->positiveInfinityValue,
-                           NULL, NULL, JSPROP_PERMANENT)) {
+                           JS_PropertyStub, JS_PropertyStub,
+                           JSPROP_PERMANENT | JSPROP_READONLY)) {
         return NULL;
     }
     return proto;
