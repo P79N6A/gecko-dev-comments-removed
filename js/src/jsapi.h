@@ -2370,14 +2370,6 @@ JS_IsConstructing(JSContext *cx);
 
 
 
-extern JS_FRIEND_API(JSBool)
-JS_IsAssigning(JSContext *cx);
-
-
-
-
-
-
 
 
 
