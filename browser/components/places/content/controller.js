@@ -866,6 +866,15 @@ PlacesController.prototype = {
         transactions.push(PlacesUIUtils.ptm.untagURI(uri, [tagItemId]));
         continue;
       }
+      else if (PlacesUtils.nodeIsQuery(node.parent) &&
+               asQuery(node.parent).queryOptions.queryType ==
+                Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY &&
+               node.uri) {
+        
+        var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
+        bhist.removePage(PlacesUtils._uri(node.uri));
+        continue;
+      }
 
       transactions.push(PlacesUIUtils.ptm.removeItem(node.itemId));
     }
