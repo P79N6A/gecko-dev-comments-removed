@@ -39,7 +39,6 @@
 
 
 
-
 #ifndef nsIScrollFrame_h___
 #define nsIScrollFrame_h___
 
@@ -51,6 +50,12 @@
 #include "nsIFrame.h" 
 
 class nsBoxLayoutState;
+class nsIScrollPositionListener;
+
+
+
+
+
 
 class nsIScrollableFrame : public nsIScrollableViewProvider {
 public:
@@ -64,6 +69,10 @@ public:
   virtual nsIFrame* GetScrolledFrame() const = 0;
 
   typedef nsPresContext::ScrollbarStyles ScrollbarStyles;
+  
+
+
+
 
   virtual ScrollbarStyles GetScrollbarStyles() const = 0;
 
@@ -74,20 +83,68 @@ public:
 
 
   virtual nsMargin GetActualScrollbarSizes() const = 0;
-
   
 
 
 
   virtual nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState) = 0;
+  
+
+
+
   virtual nsMargin GetDesiredScrollbarSizes(nsPresContext* aPresContext,
                                             nsIRenderingContext* aRC) = 0;
+
   
+
+
+
+
+  virtual nsRect GetScrollPortRect() const = 0;
   
+
+
 
 
   virtual nsPoint GetScrollPosition() const = 0;
+  
 
+
+
+
+
+
+
+  virtual nsRect GetScrollRange() const = 0;
+
+  
+
+
+
+  virtual nsSize GetLineScrollAmount() const = 0;
+  
+
+
+
+  virtual nsSize GetPageScrollAmount() const = 0;
+
+  
+
+
+
+
+
+
+  enum ScrollMode { INSTANT, SMOOTH };
+  
+
+
+
+  virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode) = 0;
+  
+
+
+  enum ScrollUnit { DEVICE_PIXELS, LINES, PAGES, WHOLE };
   
 
 
@@ -97,21 +154,11 @@ public:
 
 
 
-  virtual void ScrollTo(nsPoint aScrollPosition, PRUint32 aFlags = 0)=0;
 
-  virtual nsIScrollableView* GetScrollableView() = 0;
-
+  virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
+                        nsIntPoint* aOverflow = nsnull) = 0;
   
 
-
-
-  virtual void SetScrollbarVisibility(PRBool aVerticalVisible, PRBool aHorizontalVisible) = 0;
-
-  virtual nsIBox* GetScrollbarBox(PRBool aVertical) = 0;
-
-  virtual void CurPosAttributeChanged(nsIContent* aChild, PRInt32 aModType) = 0;
-
-  
 
 
 
@@ -124,8 +171,34 @@ public:
 
 
 
+  virtual void AddScrollPositionListener(nsIScrollPositionListener* aListener) = 0;
+  
+
+
+  virtual void RemoveScrollPositionListener(nsIScrollPositionListener* aListener) = 0;
+
+  
+
+
+
+
+
+  virtual nsIBox* GetScrollbarBox(PRBool aVertical) = 0;
+
+  
+
+
+
+  virtual void CurPosAttributeChanged(nsIContent* aChild) = 0;
+
+  
+
+
+
   NS_IMETHOD PostScrolledAreaEventForCurrentArea() = 0;
 
+  
+  virtual nsIScrollableView* GetScrollableView() = 0;
 };
 
 #endif
