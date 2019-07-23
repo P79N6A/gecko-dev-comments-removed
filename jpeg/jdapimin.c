@@ -21,7 +21,48 @@
 #include "jpeglib.h"
 
 #ifdef HAVE_MMX_INTEL_MNEMONICS
+#if _MSC_VER >= 1400
 #include "intrin.h"
+#else
+
+void __stdcall __cpuid( int CPUInfo[4], int InfoType )
+{
+  int my_eax = 0, my_ebx = 0, my_ecx = 0, my_edx = 0;
+  __asm {
+    
+    pushfd             
+    pop eax            
+    mov ecx, eax       
+    xor eax, 0x200000  
+    push eax           
+    popfd              
+    pushfd             
+    pop eax
+    xor eax, ecx       
+    jz NOT_SUPPORTED   
+
+    
+    xor eax, eax       
+    cpuid
+    cmp eax, InfoType
+    jl NOT_SUPPORTED   
+
+    
+    mov eax, InfoType
+    cpuid
+    mov my_eax, eax
+    mov my_ebx, ebx
+    mov my_ecx, ecx
+    mov my_edx, edx
+NOT_SUPPORTED:
+  }
+  CPUInfo[0] = my_eax;
+  CPUInfo[1] = my_ebx;
+  CPUInfo[2] = my_ecx;
+  CPUInfo[3] = my_edx;
+}
+#endif
+
 int MMXAvailable;
 static int mmxsupport();
 #endif
