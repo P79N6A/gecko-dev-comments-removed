@@ -1138,7 +1138,7 @@ SessionStoreService.prototype = {
 
   _saveWindowHistory: function sss_saveWindowHistory(aWindow) {
     var tabbrowser = aWindow.gBrowser;
-    var tabs = tabbrowser.mTabs;
+    var tabs = tabbrowser.tabs;
     var tabsData = this._windows[aWindow.__SSi].tabs = [];
     
     for (var i = 0; i < tabs.length; i++)
@@ -1926,7 +1926,7 @@ SessionStoreService.prototype = {
       tabbrowser.moveTabTo(tabbrowser.selectedTab, newTabCount - 1);
     
     for (var t = 0; t < newTabCount; t++) {
-      tabs.push(t < openTabCount ? tabbrowser.mTabs[t] : tabbrowser.addTab());
+      tabs.push(t < openTabCount ? tabbrowser.tabs[t] : tabbrowser.addTab());
       
       if (!aOverwriteTabs && root._firstTabs) {
         tabbrowser.moveTabTo(tabs[t], t);
@@ -1935,7 +1935,7 @@ SessionStoreService.prototype = {
 
     
     if (aOverwriteTabs && newTabCount < openTabCount) {
-      Array.slice(tabbrowser.mTabs, newTabCount, openTabCount)
+      Array.slice(tabbrowser.tabs, newTabCount, openTabCount)
            .forEach(tabbrowser.removeTab, tabbrowser);
     }
     
