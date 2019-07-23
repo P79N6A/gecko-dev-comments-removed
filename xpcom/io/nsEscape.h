@@ -100,6 +100,9 @@ nsEscapeHTML2(const PRUnichar *aSourceBuffer,
 
 
 
+
+
+
 enum EscapeMask {
   
   esc_Scheme         = PR_BIT(0),
