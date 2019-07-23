@@ -57,6 +57,9 @@ const LOAD_FAILURE_TIMEOUT = 10000;
 
 var gBrowser;
 var gCanvas1, gCanvas2;
+
+
+var gCurrentCanvas = null;
 var gURLs;
 
 var gURIUseCounts;
@@ -513,19 +516,89 @@ function OnDocumentLoad(event)
         
         
         gFailureReason = "timed out waiting for reftest-wait to be removed (after onload fired)"
-        contentRootElement.addEventListener(
-            "DOMAttrModified",
-            function(event) {
-                if (!shouldWait()) {
-                    contentRootElement.removeEventListener(
-                        "DOMAttrModified",
-                        arguments.callee,
-                        false);
-                    if (doPrintMode())
-                        setupPrintMode();
-                    setTimeout(DocumentLoaded, 0);
-                }
-            }, false);
+
+        var stopAfterPaintReceived = false;
+        var currentDoc = gBrowser.contentDocument;
+        var utils = gBrowser.contentWindow.QueryInterface(CI.nsIInterfaceRequestor)
+            .getInterface(CI.nsIDOMWindowUtils);
+
+        function FlushRendering() {
+            
+            contentRootElement.getBoundingClientRect();
+            
+            utils.processUpdates();
+        }
+
+        function AfterPaintListener(event) {
+            if (event.target.document != currentDoc) {
+                
+                
+                return;
+            }
+
+            FlushRendering();
+            UpdateCurrentCanvasForEvent(event);
+            
+            
+            
+            if (stopAfterPaintReceived && !utils.isMozAfterPaintPending) {
+                FinishWaitingForTestEnd();
+            }
+        }
+
+        function FinishWaitingForTestEnd() {
+            gBrowser.removeEventListener("MozAfterPaint", AfterPaintListener, false);
+            setTimeout(DocumentLoaded, 0);
+        }
+
+        function AttrModifiedListener() {
+            if (shouldWait())
+                return;
+
+            
+            contentRootElement.removeEventListener("DOMAttrModified", AttrModifiedListener, false);
+            if (doPrintMode())
+                setupPrintMode();
+            FlushRendering();
+
+            if (utils.isMozAfterPaintPending) {
+                
+                
+                stopAfterPaintReceived = true;
+            } else {
+                
+                FinishWaitingForTestEnd();
+            }
+        }
+
+        function StartWaitingForTestEnd() {
+            FlushRendering();
+
+            gBrowser.addEventListener("MozAfterPaint", AfterPaintListener, false);
+            contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
+
+            
+            InitCurrentCanvasWithSnapshot();
+
+            if (!shouldWait()) {
+                
+                
+                
+                
+                AttrModifiedListener();
+                return;
+            }
+
+            
+            var notification = document.createEvent("Events");
+            notification.initEvent("MozReftestInvalidate", true, false);
+            contentRootElement.dispatchEvent(notification);
+        }
+
+        
+        
+        
+        setTimeout(StartWaitingForTestEnd, 0);
     } else {
         if (doPrintMode())
             setupPrintMode();
@@ -553,6 +626,58 @@ function UpdateCanvasCache(url, canvas)
     }
 }
 
+function InitCurrentCanvasWithSnapshot()
+{
+    gCurrentCanvas = AllocateCanvas();
+
+    
+
+
+    var win = gBrowser.contentWindow;
+    var ctx = gCurrentCanvas.getContext("2d");
+    var scale = gBrowser.markupDocumentViewer.fullZoom;
+    ctx.save();
+    
+    
+    
+    ctx.scale(scale, scale);
+    ctx.drawWindow(win, win.scrollX, win.scrollY,
+                   Math.ceil(gCurrentCanvas.width / scale),
+                   Math.ceil(gCurrentCanvas.height / scale),
+                   "rgb(255,255,255)");
+    ctx.restore();
+}
+
+function roundTo(x, fraction)
+{
+    return Math.round(x/fraction)*fraction;
+}
+
+function UpdateCurrentCanvasForEvent(event)
+{
+    var win = gBrowser.contentWindow;
+    var ctx = gCurrentCanvas.getContext("2d");
+    var scale = gBrowser.markupDocumentViewer.fullZoom;
+
+    var rectList = event.clientRects;
+    for (var i = 0; i < rectList.length; ++i) {
+        var r = rectList[i];
+        
+        var left = Math.floor(roundTo(r.left*scale, 0.001))/scale;
+        var top = Math.floor(roundTo(r.top*scale, 0.001))/scale;
+        var right = Math.ceil(roundTo(r.right*scale, 0.001))/scale;
+        var bottom = Math.ceil(roundTo(r.bottom*scale, 0.001))/scale;
+
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.translate(left, top);
+        ctx.drawWindow(win, left + win.scrollX, top + win.scrollY,
+                       right - left, bottom - top,
+                       "rgb(255,255,255)");
+        ctx.restore();
+    }
+}
+
 function DocumentLoaded()
 {
     
@@ -573,35 +698,17 @@ function DocumentLoaded()
         return;
     }
 
-    var canvas;
     if (gURICanvases[gCurrentURL]) {
-        canvas = gURICanvases[gCurrentURL];
-    } else {
-        canvas = AllocateCanvas();
-
-        
-
-
-        var win = gBrowser.contentWindow;
-        var ctx = canvas.getContext("2d");
-        var scale = gBrowser.markupDocumentViewer.fullZoom;
-        ctx.save();
-        
-        
-        
-        ctx.scale(scale, scale);
-        ctx.drawWindow(win, win.scrollX, win.scrollY,
-                       Math.ceil(canvas.width / scale),
-                       Math.ceil(canvas.height / scale),
-                       "rgb(255,255,255)");
-        ctx.restore();
+        gCurrentCanvas = gURICanvases[gCurrentURL];
+    } else if (gCurrentCanvas == null) {
+        InitCurrentCanvasWithSnapshot();
     }
-
     if (gState == 1) {
-        gCanvas1 = canvas;
+        gCanvas1 = gCurrentCanvas;
     } else {
-        gCanvas2 = canvas;
+        gCanvas2 = gCurrentCanvas;
     }
+    gCurrentCanvas = null;
 
     resetZoom();
 

@@ -57,4 +57,6 @@ protected:
   
   
   nsIWidget* GetWidget(nsPoint* aOffset = nsnull);
+
+  nsPresContext* GetPresContext();
 };

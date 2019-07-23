@@ -1961,7 +1961,7 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc)
       !MayHavePaintEventListener(mDocument->GetInnerWindow()))
     return;
 
-  if (mSameDocDirtyRegion.IsEmpty() && mCrossDocDirtyRegion.IsEmpty()) {
+  if (!IsDOMPaintEventPending()) {
     
     nsCOMPtr<nsIRunnable> ev =
       new nsRunnableMethod<nsPresContext>(this,
