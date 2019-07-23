@@ -393,10 +393,8 @@ typedef void
 
 
 
-#ifdef DEBUG
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
-#endif
 
 
 
