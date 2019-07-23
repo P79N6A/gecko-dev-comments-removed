@@ -57,9 +57,13 @@ var observer = {
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == kSyncFinished) {
       
-      hs.addVisit(uri(TEST_URI), Date.now() * 1000, null,
-                  hs.TRANSITION_TYPED, false, 0);
+      prefs.setIntPref(kSyncPrefName, SYNC_INTERVAL);
 
+      
+      
+      hs.addVisit(uri(TEST_URI), Date.now() * 1000, null,
+                  hs.TRANSITION_TYPED, false, 1);
+  
       
       var options = hs.getNewQueryOptions();
       options.maxResults = 10;
@@ -73,13 +77,22 @@ var observer = {
       root.containerOpen = false;
 
       
-      var options = hs.getNewQueryOptions();
+      options = hs.getNewQueryOptions();
       options.maxResults = 10;
       options.resultType = options.RESULTS_AS_URI;
       options.sortingMode = options.SORT_BY_VISITCOUNT_DESCENDING;
-      var query = hs.getNewQuery();
-      var result = hs.executeQuery(query, options);
-      var root = result.root;
+      query = hs.getNewQuery();
+      result = hs.executeQuery(query, options);
+      root = result.root;
+      root.containerOpen = true;
+      do_check_eq(root.childCount, 1);
+      root.containerOpen = false;
+
+      
+      options = hs.getNewQueryOptions();
+      query = hs.getNewQuery();
+      result = hs.executeQuery(query, options);
+      root = result.root;
       root.containerOpen = true;
       do_check_eq(root.childCount, 1);
       root.containerOpen = false;
@@ -94,14 +107,10 @@ os.addObserver(observer, kSyncFinished, false);
 function run_test()
 {
   
-  prefs.setIntPref(kSyncPrefName, SYNC_INTERVAL);
+  prefs.setIntPref(kSyncPrefName, 1);
 
   
   visitId = hs.addVisit(uri(TEST_URI), Date.now() * 1000, null,
                         hs.TRANSITION_TYPED, false, 0);
-
-  
-  bs.insertBookmark(bs.toolbarFolder, uri(TEST_URI), bs.DEFAULT_INDEX, "visited");
-
   do_test_pending();
 }
