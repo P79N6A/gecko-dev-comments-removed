@@ -223,9 +223,10 @@ nsHTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsHTMLAnchorElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  if (IsInDoc()) {
+  nsIDocument* doc = GetCurrentDoc();
+  if (doc) {
     RegUnRegAccessKey(PR_FALSE);
-    GetCurrentDoc()->ForgetLink(this);
+    doc->ForgetLink(this);
     
     
     mLinkState = eLinkState_Unknown;
