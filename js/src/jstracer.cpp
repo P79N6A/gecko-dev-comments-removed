@@ -2856,6 +2856,11 @@ TraceRecorder::cmp(LOpcode op, int flags)
         ABORT_TRACE("unsupported operand types for cmp");
     }
 
+    if (flags & CMP_CASE) {
+        guard(cond, x, BRANCH_EXIT);
+        return true;
+    }
+
     
 
     if (flags & CMP_TRY_BRANCH_AFTER_COND) 
@@ -2886,12 +2891,15 @@ TraceRecorder::equal(int flags)
         if (!negate)
             x = lir->ins_eq0(x);
 
+        if (flags & CMP_CASE) {
+            guard(cond, x, BRANCH_EXIT);
+            return true;
+        }
+
         
 
-        if (CMP_TRY_BRANCH_AFTER_COND) {
-            if (cx->fp->regs->pc[1] == JSOP_IFEQ || cx->fp->regs->pc[1] == JSOP_IFNE)
-                guard(cond, x, BRANCH_EXIT);
-        }
+        if (flags & CMP_TRY_BRANCH_AFTER_COND)
+            fuseIf(cx->fp->regs->pc + 1, cond, x);
 
         
 
@@ -2907,12 +2915,15 @@ TraceRecorder::equal(int flags)
         if (negate)
             x = lir->ins_eq0(x);
 
+        if (flags & CMP_CASE) {
+            guard(cond, x, BRANCH_EXIT);
+            return true;
+        }
+
         
 
-        if (CMP_TRY_BRANCH_AFTER_COND) {
-            if (cx->fp->regs->pc[1] == JSOP_IFEQ || cx->fp->regs->pc[1] == JSOP_IFNE)
-                guard(cond, x, BRANCH_EXIT);
-        }
+        if (flags & CMP_TRY_BRANCH_AFTER_COND)
+            fuseIf(cx->fp->regs->pc + 1, cond, x);
 
         
 
@@ -5245,11 +5256,7 @@ TraceRecorder::record_JSOP_CONDSWITCH()
 bool
 TraceRecorder::record_JSOP_CASE()
 {
-#if 0
-    return equal() && ifop();
-#else
-    return false;
-#endif
+    return equal(CMP_CASE);
 }
 
 bool
@@ -5432,7 +5439,7 @@ TraceRecorder::record_JSOP_GOSUBX()
 bool
 TraceRecorder::record_JSOP_CASEX()
 {
-    return equal() && ifop();
+    return equal(CMP_CASE);
 }
 
 bool
