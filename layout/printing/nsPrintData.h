@@ -42,7 +42,7 @@
 #include "nsIDeviceContext.h"
 #include "nsIPrintProgressParams.h"
 #include "nsIPrintOptions.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsCOMArray.h"
 
 
@@ -102,7 +102,7 @@ public:
 
   nsCOMPtr<nsIDOMWindow> mCurrentFocusWin; 
 
-  nsVoidArray*                mPrintDocList;
+  nsTArray<nsPrintObject*>    mPrintDocList;
   PRPackedBool                mIsIFrameSelected;
   PRPackedBool                mIsParentAFrameSet;
   PRPackedBool                mOnStartSent;

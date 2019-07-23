@@ -42,7 +42,7 @@
 
 #include "nsISupports.h"
 #include "nsCoord.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsStubMutationObserver.h"
 #include "nsIDOMFocusListener.h"
 #include "nsIFrame.h"
@@ -55,6 +55,7 @@ class nsIRenderingContext;
 class nsIURI;
 class nsString;
 class nsIDOMEvent;
+class Area;
 
 class nsImageMap : public nsStubMutationObserver, public nsIDOMFocusListener,
                    public nsIImageMap
@@ -118,7 +119,7 @@ protected:
   nsIPresShell* mPresShell; 
   nsIFrame* mImageFrame;  
   nsCOMPtr<nsIContent> mMap;
-  nsAutoVoidArray mAreas; 
+  nsAutoTArray<Area*, 8> mAreas; 
   PRBool mContainsBlockContents;
 };
 

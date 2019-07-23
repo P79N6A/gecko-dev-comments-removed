@@ -492,7 +492,7 @@ private:
   
   
   
-  nsAutoVoidArray   mParsingDatas;
+  nsAutoTArray<SheetLoadData*, 8> mParsingDatas;
 
   
   

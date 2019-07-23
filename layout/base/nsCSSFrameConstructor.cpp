@@ -123,6 +123,7 @@
 #include "nsStyleUtil.h"
 #include "nsIFocusEventSuppressor.h"
 #include "nsBox.h"
+#include "nsTArray.h"
 
 #ifdef MOZ_XUL
 #include "nsIRootBox.h"
@@ -8197,16 +8198,16 @@ nsCSSFrameConstructor::ReinsertContent(nsIContent* aContainer,
 }
 
 static void
-DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
-                       nsVoidArray&    aDestroyQueue,
-                       nsIFrame*       aRemovedFrame,
-                       nsIFrame*       aFrame);
+DoDeletingFrameSubtree(nsFrameManager*      aFrameManager,
+                       nsTArray<nsIFrame*>& aDestroyQueue,
+                       nsIFrame*            aRemovedFrame,
+                       nsIFrame*            aFrame);
 
 static void
-DoDeletingOverflowContainers(nsFrameManager* aFrameManager,
-                             nsVoidArray&    aDestroyQueue,
-                             nsIFrame*       aRemovedFrame,
-                             nsIFrame*       aFrame)
+DoDeletingOverflowContainers(nsFrameManager*      aFrameManager,
+                             nsTArray<nsIFrame*>& aDestroyQueue,
+                             nsIFrame*            aRemovedFrame,
+                             nsIFrame*            aFrame)
 {
   
   
@@ -8247,10 +8248,10 @@ DoDeletingOverflowContainers(nsFrameManager* aFrameManager,
 
 
 static void
-DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
-                       nsVoidArray&    aDestroyQueue,
-                       nsIFrame*       aRemovedFrame,
-                       nsIFrame*       aFrame)
+DoDeletingFrameSubtree(nsFrameManager*      aFrameManager,
+                       nsTArray<nsIFrame*>& aDestroyQueue,
+                       nsIFrame*            aRemovedFrame,
+                       nsIFrame*            aFrame)
 {
 #undef RECURSE
 #define RECURSE(top, child)                                                  \
@@ -8331,7 +8332,7 @@ DeletingFrameSubtree(nsFrameManager* aFrameManager,
     return NS_OK;
   }
 
-  nsAutoVoidArray destroyQueue;
+  nsAutoTArray<nsIFrame*, 8> destroyQueue;
 
   
   
@@ -8355,8 +8356,8 @@ DeletingFrameSubtree(nsFrameManager* aFrameManager,
 
   
   
-  for (PRInt32 i = destroyQueue.Count() - 1; i >= 0; --i) {
-    nsIFrame* outOfFlowFrame = static_cast<nsIFrame*>(destroyQueue[i]);
+  for (PRInt32 i = destroyQueue.Length() - 1; i >= 0; --i) {
+    nsIFrame* outOfFlowFrame = destroyQueue[i];
 
     
     

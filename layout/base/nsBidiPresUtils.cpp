@@ -361,7 +361,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
   PRInt32                  fragmentLength = 0;
   PRInt32                  temp;
   PRInt32                  frameIndex     = -1;
-  PRInt32                  frameCount     = mLogicalFrames.Count();
+  PRInt32                  frameCount     = mLogicalFrames.Length();
   PRInt32                  contentOffset  = 0;   
   PRInt32                  lineOffset     = 0;   
   PRInt32                  logicalLimit   = 0;
@@ -392,7 +392,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
       }
       contentOffset = 0;
       
-      frame = (nsIFrame*) (mLogicalFrames[frameIndex]);
+      frame = mLogicalFrames[frameIndex];
       frameType = frame->GetType();
       lineNeedsUpdate = PR_TRUE;
       if (nsGkAtoms::textFrame == frameType) {
@@ -594,7 +594,7 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*       aCurrentFrame)
 
       nsIContent* content = frame->GetContent();
       if (content) {
-        mContentToFrameIndex.Put(content, mLogicalFrames.Count());
+        mContentToFrameIndex.Put(content, mLogicalFrames.Length());
       }
       mLogicalFrames.AppendElement(frame);
     }
@@ -623,10 +623,10 @@ nsBidiPresUtils::CreateBlockBuffer()
   nsIFrame*                 frame;
   nsIContent*               prevContent = nsnull;
   PRUint32                  i;
-  PRUint32                  count = mLogicalFrames.Count();
+  PRUint32                  count = mLogicalFrames.Length();
 
   for (i = 0; i < count; i++) {
-    frame = (nsIFrame*) (mLogicalFrames[i]);
+    frame = mLogicalFrames[i];
     nsIAtom* frameType = frame->GetType();
 
     if (nsGkAtoms::textFrame == frameType) {
@@ -686,7 +686,7 @@ nsBidiPresUtils::Reorder(PRBool& aReordered, PRBool& aHasRTLFrames)
 {
   aReordered = PR_FALSE;
   aHasRTLFrames = PR_FALSE;
-  PRInt32 count = mLogicalFrames.Count();
+  PRInt32 count = mLogicalFrames.Length();
 
   if (mArraySize < count) {
     mArraySize = count << 1;
@@ -711,7 +711,7 @@ nsBidiPresUtils::Reorder(PRBool& aReordered, PRBool& aHasRTLFrames)
   PRInt32   i;
 
   for (i = 0; i < count; i++) {
-    frame = (nsIFrame*) (mLogicalFrames[i]);
+    frame = mLogicalFrames[i];
     mLevels[i] = GetFrameEmbeddingLevel(frame);
     if (mLevels[i] & 1) {
       aHasRTLFrames = PR_TRUE;
@@ -885,15 +885,15 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*              aFrame,
     
     
     
-    nsVoidArray childList;
+    nsTArray<nsIFrame*> childList;
     nsIFrame *frame = aFrame->GetFirstChild(nsnull);
     if (frame && aIsOddLevel) {
-      childList.AppendElement(nsnull);
+      childList.AppendElement((nsIFrame*)nsnull);
       while (frame) {
         childList.AppendElement(frame);
         frame = frame->GetNextSibling();
       }
-      frame = (nsIFrame*)childList[childList.Count() - 1];
+      frame = childList[childList.Length() - 1];
     }
 
     
@@ -905,7 +905,7 @@ nsBidiPresUtils::RepositionFrame(nsIFrame*              aFrame,
                       aContinuationStates);
       index++;
       frame = aIsOddLevel ?
-                (nsIFrame*)childList[childList.Count() - index - 1] :
+                childList[childList.Length() - index - 1] :
                 frame->GetNextSibling();
     }
 
@@ -959,7 +959,7 @@ nsBidiPresUtils::RepositionInlineFrames(nsIFrame* aFirstChild) const
 
   nscoord left = aFirstChild->GetPosition().x - leftSpace;
   nsIFrame* frame;
-  PRInt32 count = mVisualFrames.Count();
+  PRInt32 count = mVisualFrames.Length();
   PRInt32 index;
   nsContinuationStates continuationStates;
 
@@ -968,13 +968,12 @@ nsBidiPresUtils::RepositionInlineFrames(nsIFrame* aFirstChild) const
   
   
   for (index = 0; index < count; index++) {
-    InitContinuationStates((nsIFrame*)mVisualFrames[index],
-                           &continuationStates);
+    InitContinuationStates(mVisualFrames[index], &continuationStates);
   }
 
   
   for (index = 0; index < count; index++) {
-    frame = (nsIFrame*) (mVisualFrames[index]);
+    frame = mVisualFrames[index];
     RepositionFrame(frame,
                     (mLevels[mIndexMap[index]] & 1),
                     left,
@@ -1004,13 +1003,13 @@ nsBidiPresUtils::CheckLineOrder(nsIFrame*  aFirstFrameOnLine,
   PRBool isReordered;
   PRBool hasRTLFrames;
   Reorder(isReordered, hasRTLFrames);
-  PRInt32 count = mLogicalFrames.Count();
+  PRInt32 count = mLogicalFrames.Length();
   
   if (aFirstVisual) {
-    *aFirstVisual = (nsIFrame*)mVisualFrames[0];
+    *aFirstVisual = mVisualFrames[0];
   }
   if (aLastVisual) {
-    *aLastVisual = (nsIFrame*)mVisualFrames[count-1];
+    *aLastVisual = mVisualFrames[count-1];
   }
   
   
@@ -1027,14 +1026,14 @@ nsBidiPresUtils::GetFrameToRightOf(const nsIFrame*  aFrame,
   PRBool isReordered;
   PRBool hasRTLFrames;
   Reorder(isReordered, hasRTLFrames);
-  PRInt32 count = mVisualFrames.Count();
+  PRInt32 count = mVisualFrames.Length();
 
   if (aFrame == nsnull)
-    return (nsIFrame*)mVisualFrames[0];
+    return mVisualFrames[0];
   
   for (PRInt32 i = 0; i < count - 1; i++) {
-    if ((nsIFrame*)mVisualFrames[i] == aFrame) {
-      return (nsIFrame*)mVisualFrames[i+1];
+    if (mVisualFrames[i] == aFrame) {
+      return mVisualFrames[i+1];
     }
   }
   
@@ -1051,14 +1050,14 @@ nsBidiPresUtils::GetFrameToLeftOf(const nsIFrame*  aFrame,
   PRBool isReordered;
   PRBool hasRTLFrames;
   Reorder(isReordered, hasRTLFrames);
-  PRInt32 count = mVisualFrames.Count();
+  PRInt32 count = mVisualFrames.Length();
   
   if (aFrame == nsnull)
-    return (nsIFrame*)mVisualFrames[count-1];
+    return mVisualFrames[count-1];
   
   for (PRInt32 i = 1; i < count; i++) {
-    if ((nsIFrame*)mVisualFrames[i] == aFrame) {
-      return (nsIFrame*)mVisualFrames[i-1];
+    if (mVisualFrames[i] == aFrame) {
+      return mVisualFrames[i-1];
     }
   }
   
@@ -1084,8 +1083,8 @@ nsBidiPresUtils::EnsureBidiContinuation(nsIFrame*       aFrame,
   nsCharType charType = (nsCharType)NS_PTR_TO_INT32(aFrame->GetProperty(nsGkAtoms::charType));
   
   
-  while (aFrameIndex + 1 < mLogicalFrames.Count()) {
-    nsIFrame* frame = (nsIFrame*)mLogicalFrames[aFrameIndex + 1];
+  while (aFrameIndex + 1 < PRInt32(mLogicalFrames.Length())) {
+    nsIFrame* frame = mLogicalFrames[aFrameIndex + 1];
     if (frame->GetPrevInFlow() != aFrame) {
       
       if (frame->GetPrevContinuation() == aFrame) {
@@ -1134,7 +1133,7 @@ nsBidiPresUtils::RemoveBidiContinuation(nsIFrame*       aFrame,
   NS_ASSERTION(NS_SUCCEEDED(rv), "charType attribute missing from aFrame");
   
   for (PRInt32 index = aFirstIndex + 1; index <= aLastIndex; index++) {
-    nsIFrame* frame = (nsIFrame*) mLogicalFrames[index];
+    nsIFrame* frame = mLogicalFrames[index];
     if (nsGkAtoms::directionalFrame == frame->GetType()) {
       frame->Destroy();
       ++aOffset;
@@ -1428,7 +1427,7 @@ nsresult nsBidiPresUtils::ProcessText(const PRUnichar*       aText,
       
       nsAutoString runVisualText;
       runVisualText.Assign(aText + start, subRunLength);
-      if (runVisualText.Length() < subRunLength)
+      if (PRInt32(runVisualText.Length()) < subRunLength)
         return NS_ERROR_OUT_OF_MEMORY;
       FormatUnicodeText(aPresContext, runVisualText.BeginWriting(), subRunLength,
                         (nsCharType)charType, level & 1);
