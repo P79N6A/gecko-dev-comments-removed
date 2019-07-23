@@ -38,98 +38,19 @@
 
 
 
-
-var paths =
+var tests =
   [
-   "http://localhost:4444/objHandler",
-   "http://localhost:4444/functionHandler",
-   "http://localhost:4444/non-existent-path"  
+   new Test("http://localhost:4444/objHandler",
+            null, start_objHandler, null),
+   new Test("http://localhost:4444/functionHandler",
+            null, start_functionHandler, null),
+   new Test("http://localhost:4444/non-existent-path",
+            null, start_non_existent_path, null),
   ];
-var currPathIndex = 0;
-
-var listener =
-  {
-    
-    onDataAvailable: function(request, cx, inputStream, offset, count)
-    {
-      makeBIS(inputStream).readByteArray(count); 
-    },
-    
-    onStartRequest: function(request, cx)
-    {
-      var ch = request.QueryInterface(Ci.nsIHttpChannel)
-                      .QueryInterface(Ci.nsIHttpChannelInternal);
-
-      
-      
-      do_check_true(ch.contentLength > -1);
-      do_check_eq(ch.getResponseHeader("connection"), "close"); 
-      do_check_false(ch.isNoStoreResponse());
-
-      var reqMin = {}, reqMaj = {}, respMin = {}, respMaj = {};
-      switch (currPathIndex)
-      {
-        case 0:
-          do_check_eq(ch.responseStatus, 200);
-          do_check_true(ch.requestSucceeded);
-          do_check_eq(ch.getResponseHeader("content-type"), "text/plain");
-          do_check_eq(ch.responseStatusText, "OK");
-
-          ch.getRequestVersion(reqMaj, reqMin);
-          ch.getResponseVersion(respMaj, respMin);
-          do_check_true(reqMaj.value == respMaj.value &&
-                        reqMin.value == respMin.value);
-          break;
-
-        case 1:
-          do_check_eq(ch.responseStatus, 404);
-          do_check_false(ch.requestSucceeded);
-          do_check_eq(ch.getResponseHeader("foopy"), "quux-baz");
-          do_check_eq(ch.responseStatusText, "Page Not Found");
-
-          ch.getResponseVersion(respMaj, respMin);
-          do_check_true(respMaj.value == 1 && respMin.value == 1);
-          break;
-
-        case 2:
-          do_check_eq(ch.responseStatus, 404);
-          do_check_false(ch.requestSucceeded);
-          break;
-      }
-    },
-    onStopRequest: function(request, cx, status)
-    {
-      if (++currPathIndex == paths.length)
-        srv.stop();
-      else
-        performNextTest();
-      do_test_finished();
-    },
-    
-    QueryInterface: function(aIID)
-    {
-      if (aIID.equals(Ci.nsIStreamListener) ||
-          aIID.equals(Ci.nsIRequestObserver) ||
-          aIID.equals(Ci.nsISupports))
-        return this;
-      throw Cr.NS_ERROR_NO_INTERFACE;
-    }
-  };
-
-
-function performNextTest()
-{
-  do_test_pending();
-
-  var ch = makeChannel(paths[currPathIndex]);
-  ch.asyncOpen(listener, null);
-}
-
-var srv;
 
 function run_test()
 {
-  srv = createServer();
+  var srv = createServer();
 
   
   
@@ -144,8 +65,58 @@ function run_test()
 
   srv.start(4444);
 
-  performNextTest();
+  runHttpTests(tests, function() { srv.stop(); });
 }
+
+
+
+
+
+
+function commonCheck(ch)
+{
+  do_check_true(ch.contentLength > -1);
+  do_check_eq(ch.getResponseHeader("connection"), "close");
+  do_check_false(ch.isNoStoreResponse());
+}
+
+function start_objHandler(ch, cx)
+{
+  commonCheck(ch);
+
+  do_check_eq(ch.responseStatus, 200);
+  do_check_true(ch.requestSucceeded);
+  do_check_eq(ch.getResponseHeader("content-type"), "text/plain");
+  do_check_eq(ch.responseStatusText, "OK");
+
+  var reqMin = {}, reqMaj = {}, respMin = {}, respMaj = {};
+  ch.getRequestVersion(reqMaj, reqMin);
+  ch.getResponseVersion(respMaj, respMin);
+  do_check_true(reqMaj.value == respMaj.value &&
+                reqMin.value == respMin.value);
+}
+
+function start_functionHandler(ch, cx)
+{
+  commonCheck(ch);
+
+  do_check_eq(ch.responseStatus, 404);
+  do_check_false(ch.requestSucceeded);
+  do_check_eq(ch.getResponseHeader("foopy"), "quux-baz");
+  do_check_eq(ch.responseStatusText, "Page Not Found");
+
+  ch.getResponseVersion(respMaj, respMin);
+  do_check_true(respMaj.value == 1 && respMin.value == 1);
+}
+
+function start_non_existent_path(ch, cx)
+{
+  commonCheck(ch);
+
+  do_check_eq(ch.responseStatus, 404);
+  do_check_false(ch.requestSucceeded);
+}
+
 
 
 

@@ -39,60 +39,17 @@
 
 
 
-var paths =
+var tests =
   [
-   "http://localhost:4444/empty-body-unwritten",
-   "http://localhost:4444/empty-body-written"
+   new Test("http://localhost:4444/empty-body-unwritten",
+            null, ensureEmpty, null),
+   new Test("http://localhost:4444/empty-body-written",
+            null, ensureEmpty, null),
   ];
-var currPathIndex = 0;
-
-var listener =
-  {
-    
-    onDataAvailable: function(request, cx, inputStream, offset, count)
-    {
-      makeBIS(inputStream).readByteArray(count); 
-    },
-    
-    onStartRequest: function(request, cx)
-    {
-      var ch = request.QueryInterface(Ci.nsIHttpChannel)
-                      .QueryInterface(Ci.nsIHttpChannelInternal);
-      do_check_true(ch.contentLength == 0);
-    },
-    onStopRequest: function(request, cx, status)
-    {
-      if (++currPathIndex == paths.length)
-        srv.stop();
-      else
-        performNextTest();
-      do_test_finished();
-    },
-    
-    QueryInterface: function(aIID)
-    {
-      if (aIID.equals(Ci.nsIStreamListener) ||
-          aIID.equals(Ci.nsIRequestObserver) ||
-          aIID.equals(Ci.nsISupports))
-        return this;
-      throw Cr.NS_ERROR_NO_INTERFACE;
-    }
-  };
-
-
-function performNextTest()
-{
-  do_test_pending();
-
-  var ch = makeChannel(paths[currPathIndex]);
-  ch.asyncOpen(listener, null);
-}
-
-var srv;
 
 function run_test()
 {
-  srv = createServer();
+  var srv = createServer();
 
   
   srv.registerPathHandler("/empty-body-unwritten", emptyBodyUnwritten);
@@ -100,7 +57,14 @@ function run_test()
 
   srv.start(4444);
 
-  performNextTest();
+  runHttpTests(tests, function() { srv.stop(); });
+}
+
+
+
+function ensureEmpty(ch, cx)
+{
+  do_check_true(ch.contentLength == 0);
 }
 
 
