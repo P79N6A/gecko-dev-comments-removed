@@ -115,6 +115,7 @@ nsSVGForeignObjectFrame::AttributeChanged(PRInt32  aNameSpaceID,
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
       UpdateGraphic(); 
+      
       RequestReflow(nsIPresShell::eStyleChange);
     } else if (aAttribute == nsGkAtoms::x ||
                aAttribute == nsGkAtoms::y) {
@@ -344,6 +345,8 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   NS_STATIC_CAST(nsSVGForeignObjectElement*, mContent)->
     GetAnimatedLengthValues(&x, &y, &w, &h, nsnull);
 
+  
+  
   mRect = GetTransformedRegion(x, y, w, h, ctm);
   return NS_OK;
 }
@@ -368,6 +371,7 @@ NS_IMETHODIMP
 nsSVGForeignObjectFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
 {
   mCanvasTM = nsnull;
+  
   
   
   
@@ -514,10 +518,14 @@ void nsSVGForeignObjectFrame::UpdateGraphic()
     RemoveStateBits(NS_STATE_SVG_DIRTY);
 
     
+    
+    
     outerSVGFrame->InvalidateRect(mRect);
 
     UpdateCoveredRegion();
 
+    
+    
     
     nsRect filterRect = nsSVGUtils::FindFilterInvalidation(this);
     if (!filterRect.IsEmpty()) {
