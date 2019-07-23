@@ -156,7 +156,7 @@ public class StateSnapshot<T> implements TreeBuilderState<T> {
     
 
 
-    public int getListLength() {
+    public int getListOfActiveFormattingElementsLength() {
         return listOfActiveFormattingElements.length;
     }
 
