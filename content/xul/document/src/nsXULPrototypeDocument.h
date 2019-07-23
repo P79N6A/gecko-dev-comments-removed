@@ -48,6 +48,7 @@
 #include "nsTArray.h"
 #include "nsIScriptGlobalObjectOwner.h"
 #include "nsISerializable.h"
+#include "nsIDocument.h"
 #include "nsCycleCollectionParticipant.h"
 
 class nsIAtom;
@@ -102,7 +103,7 @@ public:
 
 
 
-    const nsTArray<nsXULPrototypePI*>& GetProcessingInstructions() const;
+    const nsTArray<nsRefPtr<nsXULPrototypePI> >& GetProcessingInstructions() const;
 
     
 
@@ -151,8 +152,8 @@ public:
 
 protected:
     nsCOMPtr<nsIURI> mURI;
-    nsXULPrototypeElement* mRoot;
-    nsTArray<nsXULPrototypePI*> mProcessingInstructions;
+    nsRefPtr<nsXULPrototypeElement> mRoot;
+    nsTArray<nsRefPtr<nsXULPrototypePI> > mProcessingInstructions;
     nsCOMArray<nsIURI> mStyleSheetReferences;
 
     nsRefPtr<nsXULPDGlobalObject> mGlobalObject;

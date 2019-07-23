@@ -880,7 +880,7 @@ nsXBLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
   }
 
   *aAppendContent = PR_TRUE;
-  nsXULPrototypeElement* prototype = new nsXULPrototypeElement();
+  nsRefPtr<nsXULPrototypeElement> prototype = new nsXULPrototypeElement();
   if (!prototype)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -891,15 +891,7 @@ nsXBLContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
 
   AddAttributesToXULPrototype(aAtts, aAttsCount, prototype);
 
-  nsresult rv = nsXULElement::Create(prototype, mDocument, PR_FALSE, aResult);
-
-  
-  
-  
-  
-  prototype->Release();
-
-  return rv;
+  return nsXULElement::Create(prototype, mDocument, PR_FALSE, aResult);
 #endif
 }
 

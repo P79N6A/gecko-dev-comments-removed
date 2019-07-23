@@ -124,6 +124,7 @@
 #include "nsIDocShellTreeOwner.h"
 #include "nsIXULWindow.h"
 #include "nsXULPopupManager.h"
+#include "nsCCUncollectableMarker.h"
 
 
 
@@ -333,6 +334,9 @@ TraverseObservers(nsIURI* aKey, nsIObserver* aData, void* aContext)
 }
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXULDocument, nsXMLDocument)
+    if (nsCCUncollectableMarker::InGeneration(tmp->GetMarkedCCGeneration())) {
+        return NS_OK;
+    }
     
     
 
@@ -2389,7 +2393,7 @@ nsXULDocument::PrepareToWalk()
                      "No root content when preparing to walk overlay!");
     }
 
-    const nsTArray<nsXULPrototypePI*>& processingInstructions =
+    const nsTArray<nsRefPtr<nsXULPrototypePI> >& processingInstructions =
         mCurrentPrototype->GetProcessingInstructions();
 
     PRUint32 total = processingInstructions.Length();
@@ -2829,7 +2833,7 @@ nsXULDocument::ResumeWalk()
             rv = mContextStack.Peek(&proto, getter_AddRefs(element), &indx);
             if (NS_FAILED(rv)) return rv;
 
-            if (indx >= (PRInt32)proto->mNumChildren) {
+            if (indx >= (PRInt32)proto->mChildren.Length()) {
                 if (element) {
                     
                     
@@ -2920,7 +2924,7 @@ nsXULDocument::ResumeWalk()
 
                 
                 
-                if (protoele->mNumChildren > 0) {
+                if (protoele->mChildren.Length() > 0) {
                     rv = mContextStack.Push(protoele, child);
                     if (NS_FAILED(rv)) return rv;
                 }
