@@ -98,12 +98,8 @@ PlacesTreeView.prototype = {
 
 
   _finishInit: function PTV__finishInit() {
-    if (this._tree && this._result) {
-      this._result.root
-          .QueryInterface(Ci.nsINavHistoryContainerResultNode)
-          .containerOpen = true;
+    if (this._tree && this._result)
       this.sortingChanged(this._result.sortingMode);
-    }
 
     
     this._buildVisibleList();
@@ -176,10 +172,24 @@ PlacesTreeView.prototype = {
     }
     this._visibleElements.splice(0);
 
-    if (this._result.root && this._tree) {
+    var rootNode = this._result.root;
+    if (rootNode && this._tree) {
       this._computeShowSessions();
-      this._buildVisibleSection(asContainer(this._result.root),
-                                this._visibleElements, 0);
+
+      asContainer(rootNode);
+      if (this._showRoot) {
+        
+        this._visibleElements.push(this._result.root);
+        this._result.root.viewIndex = 0;
+      }
+      else if (!rootNode.containerOpen) {
+        
+        
+        rootNode.containerOpen = true;
+        return;
+      }
+
+      this.invalidateContainer(rootNode);
     }
   },
 
@@ -253,6 +263,9 @@ PlacesTreeView.prototype = {
 
 
   _countVisibleRowsForItem: function PTV__countVisibleRowsForItem(aNode) {
+    if (aNode == this._result.root)
+      return this._visibleElements.length;
+
     var viewIndex = aNode.viewIndex;
     NS_ASSERT(viewIndex >= 0, "Item is not visible, no rows to count");
     var outerLevel = aNode.indentLevel;
@@ -280,22 +293,24 @@ PlacesTreeView.prototype = {
 
     
     
-    
-    if (aContainer == this._result.root) {
-      this._buildVisibleList();
-      return;
+    if (this._showRoot || aContainer != this._result.root) {
+      if (aContainer.viewIndex < 0 &&
+          aContainer.viewIndex > this._visibleElements.length)
+        throw "Trying to expand a node that is not visible";
+
+      NS_ASSERT(this._visibleElements[aContainer.viewIndex] == aContainer,
+                "Visible index is out of sync!");
     }
 
-    
-    
-    if (aContainer.viewIndex < 0 &&
-        aContainer.viewIndex > this._visibleElements.length)
-      throw "Trying to expand a node that is not visible";
-    NS_ASSERT(this._visibleElements[aContainer.viewIndex] == aContainer,
-              "Visible index is out of sync!");
-
     var startReplacement = aContainer.viewIndex + 1;
-    var replaceCount = this._countVisibleRowsForItem(aContainer) - 1;
+    var replaceCount = this._countVisibleRowsForItem(aContainer);
+
+    
+    
+    
+    
+    if (aContainer.viewIndex != -1)
+      replaceCount-=1;
 
     
     for (var i = startReplacement; i < replaceCount; i ++)
@@ -865,6 +880,15 @@ PlacesTreeView.prototype = {
 
   getLevel: function PTV_getLevel(aRow) {
     this._ensureValidRow(aRow);
+
+    
+    
+    
+    
+    
+    if (this._showRoot)
+      return this._visibleElements[aRow].indentLevel + 1;
+
     return this._visibleElements[aRow].indentLevel;
   },
 
@@ -1081,7 +1105,7 @@ PlacesTreeView.prototype = {
   }
 };
 
-function PlacesTreeView() {
+function PlacesTreeView(aShowRoot) {
   this._tree = null;
   this._result = null;
   this._collapseDuplicates = true;
@@ -1089,4 +1113,5 @@ function PlacesTreeView() {
   this._selection = null;
   this._visibleElements = [];
   this._observers = [];
+  this._showRoot = aShowRoot;
 }
