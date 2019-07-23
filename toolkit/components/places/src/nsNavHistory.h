@@ -429,12 +429,8 @@ protected:
 
 
 
+
   nsresult InitDBFile(PRBool aForceInit);
-
-  
-
-
-  nsresult BackupDBFile();
 
   
 
