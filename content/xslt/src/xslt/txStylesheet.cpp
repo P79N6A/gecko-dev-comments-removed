@@ -558,7 +558,6 @@ txStylesheet::addAttributeSet(txAttributeSetItem* aAttributeSetItem)
 
     aAttributeSetItem->mFirstInstruction.forget();
 
-    delete lastNonReturn->mNext;      
     lastNonReturn->mNext = oldInstr;  
 
     return NS_OK;
