@@ -303,6 +303,16 @@ public:
   nsresult EndUpdateBatch();
 
   
+  PRInt32 mBatchLevel;
+
+  
+  PRLock* mLock;
+
+  
+  
+  PRBool mBatchHasTransaction;
+
+  
   nsresult QueryStringToQueryArray(const nsACString& aQueryString,
                                    nsCOMArray<nsNavHistoryQuery>* aQueries,
                                    nsNavHistoryQueryOptions** aOptions);
@@ -511,7 +521,6 @@ protected:
 
   
   nsMaybeWeakPtrArray<nsINavHistoryObserver> mObservers;
-  PRInt32 mBatchesInProgress;
 
   
   nsCOMPtr<nsIStringBundle> mBundle;
