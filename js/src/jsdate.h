@@ -54,6 +54,15 @@ js_InitDateClass(JSContext *cx, JSObject *obj);
 extern JSBool
 js_date_now(JSContext *cx, uintN argc, jsval *vp);
 
+extern JSClass js_DateClass;
+
+
+
+
+
+#define JSSLOT_UTC_TIME    JSSLOT_PRIVATE
+#define JSSLOT_LOCAL_TIME  (JSSLOT_PRIVATE + 1)
+
 
 
 

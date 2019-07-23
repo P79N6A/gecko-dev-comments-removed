@@ -2026,6 +2026,26 @@ this.__proto__.a = 3; for (var j = 0; j < 4; ++j) { [a]; }
 testGlobalProtoAccess.expected = "ok";
 test(testGlobalProtoAccess);
 
+function testNewDate()
+{
+    
+    
+    
+    var start = new Date();
+    var time = new Date();
+    for (var j = 0; j < RUNLOOP; ++j) {
+	time = new Date();
+    }
+    return time > 0 && time >= start;
+}
+testNewDate.expected = true;
+testNewDate.jitstats = {
+    recorderStarted: 1,
+    recorderAborted: 0,
+    traceTriggered: 1
+};
+test(testNewDate);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
