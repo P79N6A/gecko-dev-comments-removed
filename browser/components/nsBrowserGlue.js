@@ -613,7 +613,8 @@ BrowserGlue.prototype = {
                      getService(Ci.nsIPrefBranch);
 
     
-    var smartBookmarksCurrentVersion = -1;
+    
+    var smartBookmarksCurrentVersion = 0;
     try {
       smartBookmarksCurrentVersion = prefBranch.getIntPref(SMART_BOOKMARKS_PREF);
     } catch(ex) {}
