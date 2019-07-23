@@ -368,13 +368,6 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
     aContent->GetAttr(namespaceID, attrName, valueStr);
 
     nsDependentAtomString nameStr(attrName);
-
-    
-    
-    
-    if (!nameStr.IsEmpty() && nameStr.First() == '-')
-      continue;
-
     PRBool isJS = PR_FALSE;
 
     if (kNameSpaceID_XHTML == contentNamespaceID) {

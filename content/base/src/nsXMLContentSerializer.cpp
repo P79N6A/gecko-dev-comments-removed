@@ -65,6 +65,8 @@
 #include "nsAttrName.h"
 #include "nsILineBreaker.h"
 
+static const char kMozStr[] = "moz";
+
 #define kXMLNS "xmlns"
 
 
@@ -853,6 +855,13 @@ nsXMLContentSerializer::SerializeAttributes(nsIContent* aContent,
     nsIAtom* attrName = name->LocalName();
     nsIAtom* attrPrefix = name->GetPrefix();
 
+    
+    nsDependentAtomString attrNameStr(attrName);
+    if (StringBeginsWith(attrNameStr, NS_LITERAL_STRING("_moz")) ||
+        StringBeginsWith(attrNameStr, NS_LITERAL_STRING("-moz"))) {
+      continue;
+    }
+
     if (attrPrefix) {
       attrPrefix->ToString(prefixStr);
     }
@@ -867,14 +876,8 @@ nsXMLContentSerializer::SerializeAttributes(nsIContent* aContent,
     }
     
     aContent->GetAttr(namespaceID, attrName, valueStr);
+
     nsDependentAtomString nameStr(attrName);
-
-    
-    
-    
-    if (!nameStr.IsEmpty() && nameStr.First() == '-')
-      continue;
-
     PRBool isJS = IsJavaScript(aContent, attrName, namespaceID, valueStr);
 
     SerializeAttr(prefixStr, nameStr, valueStr, aStr, !isJS);

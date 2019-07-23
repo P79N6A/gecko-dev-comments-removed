@@ -178,12 +178,12 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
 
   
   if (!rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::rowalign_) &&
-      !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MOZrowalign)) {
+      !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_)) {
     
     attr = GetValueAt(aTableFrame, nsGkAtoms::rowalign_, rowIndex);
     if (attr) {
       
-      rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZrowalign,
+      rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
                           nsDependentString(attr), PR_FALSE);
     }
   }
@@ -194,11 +194,11 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
   
   
   if (rowIndex > 0 &&
-      !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MOZrowline)) {
+      !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_)) {
     attr = GetValueAt(aTableFrame, nsGkAtoms::rowlines_, rowIndex-1);
     if (attr) {
       
-      rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZrowline,
+      rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_,
                           nsDependentString(attr), PR_FALSE);
     }
   }
@@ -221,7 +221,8 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
 
   
   if (!cellContent->HasAttr(kNameSpaceID_None, nsGkAtoms::columnalign_) &&
-      !cellContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MOZcolumnalign)) {
+      !cellContent->HasAttr(kNameSpaceID_None,
+                            nsGkAtoms::_moz_math_columnalign_)) {
     
     attr = GetValueAt(aRowFrame, nsGkAtoms::columnalign_, colIndex);
     if (!attr) {
@@ -230,7 +231,7 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
     }
     if (attr) {
       
-      cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZcolumnalign,
+      cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
                            nsDependentString(attr), PR_FALSE);
     }
   }
@@ -241,11 +242,12 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
   
   
   if (colIndex > 0 &&
-      !cellContent->HasAttr(kNameSpaceID_None, nsGkAtoms::MOZcolumnline)) {
+      !cellContent->HasAttr(kNameSpaceID_None,
+                            nsGkAtoms::_moz_math_columnline_)) {
     attr = GetValueAt(aTableFrame, nsGkAtoms::columnlines_, colIndex-1);
     if (attr) {
       
-      cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZcolumnline,
+      cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnline_,
                            nsDependentString(attr), PR_FALSE);
     }
   }
@@ -463,13 +465,13 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
   nsIAtom* MOZrowAtom = nsnull;
   nsIAtom* MOZcolAtom = nsnull;
   if (aAttribute == nsGkAtoms::rowalign_)
-    MOZrowAtom = nsGkAtoms::MOZrowalign;
+    MOZrowAtom = nsGkAtoms::_moz_math_rowalign_;
   else if (aAttribute == nsGkAtoms::rowlines_)
-    MOZrowAtom = nsGkAtoms::MOZrowline;
+    MOZrowAtom = nsGkAtoms::_moz_math_rowline_;
   else if (aAttribute == nsGkAtoms::columnalign_)
-    MOZcolAtom = nsGkAtoms::MOZcolumnalign;
+    MOZcolAtom = nsGkAtoms::_moz_math_columnalign_;
   else if (aAttribute == nsGkAtoms::columnlines_)
-    MOZcolAtom = nsGkAtoms::MOZcolumnline;
+    MOZcolAtom = nsGkAtoms::_moz_math_columnline_;
 
   if (!MOZrowAtom && !MOZcolAtom)
     return NS_OK;
@@ -708,7 +710,8 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
   if (aAttribute == nsGkAtoms::rowalign_) {
     
-    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::MOZrowalign, PR_FALSE);
+    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
+                        PR_FALSE);
     MapRowAttributesIntoCSS(nsTableFrame::GetTableFrame(this), this);
     
     return NS_OK;
@@ -727,7 +730,8 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
   for ( ; cellFrame; cellFrame = cellFrame->GetNextSibling()) {
     if (IS_TABLE_CELL(cellFrame->GetType())) {
       cellFrame->GetContent()->
-        UnsetAttr(kNameSpaceID_None, nsGkAtoms::MOZcolumnalign, PR_FALSE);
+        UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
+                  PR_FALSE);
       MapColAttributesIntoCSS(tableFrame, this, cellFrame);
     }
   }
@@ -807,7 +811,8 @@ nsMathMLmtdFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
   if (aAttribute == nsGkAtoms::columnalign_) {
     
-    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::MOZcolumnalign, PR_FALSE);
+    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
+                        PR_FALSE);
     MapColAttributesIntoCSS(nsTableFrame::GetTableFrame(this), mParent, this);
     return NS_OK;
   }
