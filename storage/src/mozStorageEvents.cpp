@@ -46,6 +46,7 @@
 
 #include "mozIStorageStatementCallback.h"
 #include "mozIStoragePendingStatement.h"
+#include "mozStorageHelper.h"
 #include "mozStorageResultSet.h"
 #include "mozStorageRow.h"
 #include "mozStorageBackground.h"
@@ -272,15 +273,19 @@ public:
   
 
 
-  AsyncExecute(sqlite3_stmt *aStatement,
+  AsyncExecute(nsTArray<sqlite3_stmt *> &aStatements,
+               mozIStorageConnection *aConnection,
                mozIStorageStatementCallback *aCallback) :
-      mStatement(aStatement)
+      mConnection(aConnection)
+    , mTransactionManager(nsnull)
     , mCallback(aCallback)
     , mCallingThread(do_GetCurrentThread())
     , mState(PENDING)
     , mStateMutex(nsAutoLock::NewLock("AsyncExecute::mStateMutex"))
     , mPendingEventsMutex(nsAutoLock::NewLock("AsyncExecute::mPendingEventsMutex"))
   {
+    (void)mStatements.SwapElements(aStatements);
+    NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
   }
 
   nsresult initialize()
@@ -302,92 +307,104 @@ public:
 
     
     
-    nsresult rv = NS_OK;
-    while (PR_TRUE) {
-      int rc = sqlite3_step(mStatement);
+    
+    if (mStatements.Length() > 1) {
       
-      if (rc == SQLITE_DONE)
-        break;
+      mTransactionManager = new mozStorageTransaction(mConnection, PR_FALSE,
+                                                      mozIStorageConnection::TRANSACTION_IMMEDIATE);
+    }
 
-      
-      if (rc != SQLITE_OK && rc != SQLITE_ROW) {
-        if (rc == SQLITE_BUSY) {
+    
+    nsresult rv = NS_OK;
+    for (PRUint32 i = 0; i < mStatements.Length(); i++) {
+      while (PR_TRUE) {
+        int rc = sqlite3_step(mStatements[i]);
+        
+        if (rc == SQLITE_DONE)
+          break;
+
+        
+        if (rc != SQLITE_OK && rc != SQLITE_ROW) {
+          if (rc == SQLITE_BUSY) {
+            
+            PR_Sleep(PR_INTERVAL_NO_WAIT);
+            continue;
+          }
+
           
-          PR_Sleep(PR_INTERVAL_NO_WAIT);
-          continue;
+          {
+            nsAutoLock mutex(mStateMutex);
+            mState = ERROR;
+          }
+
+          
+          sqlite3 *db = sqlite3_db_handle(mStatements[i]);
+          iCancelable *cancelable = ErrorNotifier::Dispatch(
+            mCallingThread, mCallback, this, rc, sqlite3_errmsg(db)
+          );
+          if (cancelable) {
+            nsAutoLock mutex(mPendingEventsMutex);
+            (void)mPendingEvents.AppendObject(cancelable);
+          }
+
+          
+          return Complete();
         }
 
         
         {
           nsAutoLock mutex(mStateMutex);
-          mState = ERROR;
+          if (mState == CANCELED)
+            return Complete();
         }
 
         
-        sqlite3 *db = sqlite3_db_handle(mStatement);
-        iCancelable *cancelable = ErrorNotifier::Dispatch(
-          mCallingThread, mCallback, this, rc, sqlite3_errmsg(db)
-        );
-        if (cancelable) {
+        
+        if (!mCallback)
+          break;
+
+        
+        
+        nsRefPtr<mozStorageResultSet> results(new mozStorageResultSet());
+        if (!results) {
+          rv = NS_ERROR_OUT_OF_MEMORY;
+          break;
+        }
+
+        nsRefPtr<mozStorageRow> row(new mozStorageRow());
+        if (!row) {
+          rv = NS_ERROR_OUT_OF_MEMORY;
+          break;
+        }
+
+        rv = row->initialize(mStatements[i]);
+        if (NS_FAILED(rv)) {
+          rv = NS_ERROR_OUT_OF_MEMORY;
+          break;
+        }
+
+        rv = results->add(row);
+        if (NS_FAILED(rv))
+          break;
+
+        
+        nsRefPtr<CallbackResultNotifier> notifier =
+          new CallbackResultNotifier(mCallback, results, this);
+        if (!notifier) {
+          rv = NS_ERROR_OUT_OF_MEMORY;
+          break;
+        }
+
+        nsresult status = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
+        if (NS_SUCCEEDED(status)) {
           nsAutoLock mutex(mPendingEventsMutex);
-          (void)mPendingEvents.AppendObject(cancelable);
+          (void)mPendingEvents.AppendObject(notifier);
         }
-
-        
-        return Complete();
       }
 
       
-      {
-        nsAutoLock mutex(mStateMutex);
-        if (mState == CANCELED)
-          return Complete();
-      }
-
-      
-      
-      if (!mCallback) {
-        nsAutoLock mutex(mStateMutex);
-        mState = COMPLETED;
-        return Complete();
-      }
-
-      
-      nsRefPtr<mozStorageResultSet> results(new mozStorageResultSet());
-      if (!results) {
-        rv = NS_ERROR_OUT_OF_MEMORY;
-        break;
-      }
-
-      nsRefPtr<mozStorageRow> row(new mozStorageRow());
-      if (!row) {
-        rv = NS_ERROR_OUT_OF_MEMORY;
-        break;
-      }
-
-      rv = row->initialize(mStatement);
-      if (NS_FAILED(rv)) {
-        rv = NS_ERROR_OUT_OF_MEMORY;
-        break;
-      }
-
-      rv = results->add(row);
       if (NS_FAILED(rv))
         break;
-
-      
-      nsRefPtr<CallbackResultNotifier> notifier =
-        new CallbackResultNotifier(mCallback, results, this);
-      if (!notifier) {
-        rv = NS_ERROR_OUT_OF_MEMORY;
-        break;
-      }
-
-      nsresult status = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
-      if (NS_SUCCEEDED(status)) {
-        nsAutoLock mutex(mPendingEventsMutex);
-        (void)mPendingEvents.AppendObject(notifier);
-      }
     }
 
     
@@ -475,8 +492,32 @@ private:
                  "Still in a pending state when calling Complete!");
 
     
-    (void)sqlite3_finalize(mStatement);
-    mStatement = NULL;
+    if (mTransactionManager) {
+      if (mState == COMPLETED) {
+        nsresult rv = mTransactionManager->Commit();
+        if (NS_FAILED(rv)) {
+          iCancelable *cancelable = ErrorNotifier::Dispatch(
+            mCallingThread, mCallback, this, mozIStorageError::ERROR,
+            "Transaction failed to commit"
+          );
+          if (cancelable) {
+            nsAutoLock mutex(mPendingEventsMutex);
+            (void)mPendingEvents.AppendObject(cancelable);
+          }
+        }
+      }
+      else {
+        (void)mTransactionManager->Rollback();
+      }
+      delete mTransactionManager;
+      mTransactionManager = nsnull;
+    }
+
+    
+    for (PRUint32 i = 0; i < mStatements.Length(); i++) {
+      (void)sqlite3_finalize(mStatements[i]);
+      mStatements[i] = NULL;
+    }
 
     
     if (mCallback) {
@@ -495,7 +536,9 @@ private:
     return NS_OK;
   }
 
-  sqlite3_stmt *mStatement;
+  nsTArray<sqlite3_stmt *> mStatements;
+  mozIStorageConnection *mConnection;
+  mozStorageTransaction *mTransactionManager;
   mozIStorageStatementCallback *mCallback;
   nsCOMPtr<nsIThread> mCallingThread;
 
@@ -527,12 +570,13 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(
 )
 
 nsresult
-NS_executeAsync(sqlite3_stmt *aStatement,
+NS_executeAsync(nsTArray<sqlite3_stmt *> &aStatements,
+                mozIStorageConnection *aConnection,
                 mozIStorageStatementCallback *aCallback,
                 mozIStoragePendingStatement **_stmt)
 {
   
-  nsRefPtr<AsyncExecute> event(new AsyncExecute(aStatement, aCallback));
+  nsRefPtr<AsyncExecute> event(new AsyncExecute(aStatements, aConnection, aCallback));
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   nsresult rv = event->initialize();

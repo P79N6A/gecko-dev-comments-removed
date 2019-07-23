@@ -578,29 +578,8 @@ nsresult
 mozStorageStatement::ExecuteAsync(mozIStorageStatementCallback *aCallback,
                                   mozIStoragePendingStatement **_stmt)
 {
-    
-    
-    
-    sqlite3 *db = mDBConnection->GetNativeConnection();
-    sqlite3_stmt *stmt;
-    int rc = sqlite3_prepare_v2(db, sqlite3_sql(mDBStatement), -1, &stmt, NULL);
-    if (rc != SQLITE_OK)
-        return ConvertResultCode(rc);
-
-    
-    rc = sqlite3_transfer_bindings(mDBStatement, stmt);
-    if (rc != SQLITE_OK)
-        return ConvertResultCode(rc);
-
-    
-    nsresult rv = NS_executeAsync(stmt, aCallback, _stmt);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = Reset();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return NS_OK;
+    mozIStorageStatement * stmts[1] = {this};
+    return mDBConnection->ExecuteAsync(stmts, 1, aCallback, _stmt);
 }
 
 
