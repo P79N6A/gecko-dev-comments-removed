@@ -180,6 +180,14 @@ public:
   HKL GetLayout() { return mKeyboardLayout; }
   UINT GetCodePage() { return mCodePage; }
   DWORD GetIMEProperty() { return mIMEProperty; }
+  PRBool ShouldDrawCompositionStringOurselves() const
+  {
+    
+    
+    
+    return !(mIMEProperty & IME_PROP_SPECIAL_UI) &&
+            (mIMEProperty & IME_PROP_AT_CARET);
+  }
 };
 
 #endif

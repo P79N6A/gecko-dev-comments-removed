@@ -210,7 +210,9 @@ KeyboardLayout::KeyboardLayout () :
 {
   mDeadKeyTableListHead = nsnull;
 
-  LoadLayout (::GetKeyboardLayout(0));
+  
+  
+  
 }
 
 KeyboardLayout::~KeyboardLayout ()

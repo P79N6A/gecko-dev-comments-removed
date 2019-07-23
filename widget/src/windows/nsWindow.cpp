@@ -370,6 +370,8 @@ PRInt32    nsWindow::sIMECompClauseArraySize   = 0;
 #define NO_IME_CARET -1
 long       nsWindow::sIMECursorPosition        = NO_IME_CARET;
 
+PRBool     nsWindow::sIMENativeCaretIsCreated  = PR_FALSE;
+
 RECT*      nsWindow::sIMECompCharPos           = nsnull;
 
 PRBool     nsWindow::gSwitchKeyboardLayout     = PR_FALSE;
@@ -452,17 +454,6 @@ static PRBool is_vk_down(int vk)
 #else
 #define IS_VK_DOWN(a) (GetKeyState(a) < 0)
 #endif
-
-
-
-
-
-#define IME_X_OFFSET  0
-#define IME_Y_OFFSET  0
-
-
-
-#define IS_IME_CODEPAGE(cp) ((932==(cp))||(936==(cp))||(949==(cp))||(950==(cp)))
 
 
 
@@ -6700,14 +6691,156 @@ NS_METHOD nsWindow::SetPreferredSize(PRInt32 aWidth, PRInt32 aHeight)
   return NS_OK;
 }
 
+static PRBool ShouldDrawCompositionStringOurselves()
+{
+#ifdef WINCE
+  
+  return PR_TRUE;
+#else
+  return gKbdLayout.ShouldDrawCompositionStringOurselves();
+#endif
+}
 
+PRBool
+nsWindow::GetCharacterRectOfSelectedTextAt(PRInt32 aOffset,
+                                           nsIntRect &aCharRect)
+{
+  nsIntPoint point(0, 0);
 
-#define ZH_CN_INTELLEGENT_ABC_IME ((HKL)0xe0040804L)
-#define ZH_CN_MS_PINYIN_IME_3_0 ((HKL)0xe00e0804L)
-#define ZH_CN_NEIMA_IME ((HKL)0xe0050804L)
-#define PINYIN_IME_ON_XP(kl) ((nsToolkit::mIsWinXP) && \
-                              (ZH_CN_MS_PINYIN_IME_3_0 == (kl)))
-PRBool gPinYinIMECaretCreated = PR_FALSE;
+  nsQueryContentEvent selection(PR_TRUE, NS_QUERY_SELECTED_TEXT, this);
+  InitEvent(selection, &point);
+  DispatchWindowEvent(&selection);
+  if (!selection.mSucceeded)
+    return PR_FALSE;
+
+  PRUint32 offset = selection.mReply.mOffset + aOffset;
+  PRBool useCaretRect = selection.mReply.mString.IsEmpty();
+  if (useCaretRect && ShouldDrawCompositionStringOurselves() &&
+      sIMEIsComposing && sIMECompUnicode && !sIMECompUnicode->IsEmpty()) {
+    
+    
+    useCaretRect = PR_FALSE;
+    if (sIMECursorPosition != NO_IME_CARET) {
+      PRUint32 cursorPosition =
+        PR_MIN(PRUint32(sIMECursorPosition), sIMECompUnicode->Length());
+      offset -= cursorPosition;
+      NS_ASSERTION(offset >= 0, "offset is negative!");
+    }
+  }
+
+  nsIntRect r;
+  if (!useCaretRect) {
+    nsQueryContentEvent charRect(PR_TRUE, NS_QUERY_TEXT_RECT, this);
+    charRect.InitForQueryTextRect(offset, 1);
+    InitEvent(charRect, &point);
+    DispatchWindowEvent(&charRect);
+    if (charRect.mSucceeded)
+      aCharRect = charRect.mReply.mRect;
+    else
+      useCaretRect = PR_TRUE;
+  }
+
+  return useCaretRect ? GetCaretRect(aCharRect) : PR_TRUE;
+}
+
+PRBool
+nsWindow::GetCaretRect(nsIntRect &aCaretRect)
+{
+  nsIntPoint point(0, 0);
+
+  nsQueryContentEvent selection(PR_TRUE, NS_QUERY_SELECTED_TEXT, this);
+  InitEvent(selection, &point);
+  DispatchWindowEvent(&selection);
+  if (!selection.mSucceeded)
+    return PR_FALSE;
+
+  PRUint32 offset = selection.mReply.mOffset;
+
+  nsQueryContentEvent caretRect(PR_TRUE, NS_QUERY_CARET_RECT, this);
+  caretRect.InitForQueryCaretRect(offset);
+  InitEvent(caretRect, &point);
+  DispatchWindowEvent(&caretRect);
+  if (!caretRect.mSucceeded)
+    return PR_FALSE;
+  aCaretRect = caretRect.mReply.mRect;
+  return PR_TRUE;
+}
+
+PRBool
+nsWindow::SetIMERelatedWindowsPos(HIMC aIMEContext)
+{
+  nsIntRect r;
+  
+  
+  PRBool ret = GetCharacterRectOfSelectedTextAt(0, r);
+  NS_ENSURE_TRUE(ret, PR_FALSE);
+  nsWindow* toplevelWindow = GetTopLevelWindow(PR_FALSE);
+  nsIntRect firstSelectedCharRect;
+  ResolveIMECaretPos(toplevelWindow, r, this, firstSelectedCharRect);
+
+  
+  
+  
+  nsIntRect caretRect(firstSelectedCharRect);
+  if (GetCaretRect(r)) {
+    ResolveIMECaretPos(toplevelWindow, r, this, caretRect);
+  } else {
+    NS_WARNING("failed to get caret rect");
+    caretRect.width = 1;
+  }
+  if (!sIMENativeCaretIsCreated) {
+    sIMENativeCaretIsCreated =
+      ::CreateCaret(mWnd, nsnull, caretRect.width, caretRect.height);
+  }
+  ::SetCaretPos(caretRect.x, caretRect.y);
+
+  if (ShouldDrawCompositionStringOurselves()) {
+    
+    if (sIMEIsComposing && sIMECompUnicode && !sIMECompUnicode->IsEmpty()) {
+      
+      
+      PRInt32 offset = 0;
+      for (int i = 0; i < sIMEAttributeArrayLength; i++) {
+        if (sIMEAttributeArray[i] == ATTR_TARGET_NOTCONVERTED ||
+            sIMEAttributeArray[i] == ATTR_TARGET_CONVERTED) {
+          offset = i;
+          break;
+        }
+      }
+      ret = GetCharacterRectOfSelectedTextAt(offset, r);
+      NS_ENSURE_TRUE(ret, PR_FALSE);
+    } else {
+      
+      ret = GetCharacterRectOfSelectedTextAt(0, r);
+      NS_ENSURE_TRUE(ret, PR_FALSE);
+    }
+    nsIntRect firstTargetCharRect;
+    ResolveIMECaretPos(toplevelWindow, r, this, firstTargetCharRect);
+
+    
+    CANDIDATEFORM candForm;
+    candForm.dwIndex = 0;
+    candForm.dwStyle = CFS_EXCLUDE;
+    candForm.ptCurrentPos.x = firstTargetCharRect.x;
+    candForm.ptCurrentPos.y = firstTargetCharRect.y;
+    candForm.rcArea.right = candForm.rcArea.left = candForm.ptCurrentPos.x;
+    candForm.rcArea.top = candForm.ptCurrentPos.y;
+    candForm.rcArea.bottom = candForm.ptCurrentPos.y + firstTargetCharRect.height;
+    ::ImmSetCandidateWindow(aIMEContext, &candForm);
+  } else {
+    
+    
+    
+    
+    COMPOSITIONFORM compForm;
+    compForm.dwStyle = CFS_POINT;
+    compForm.ptCurrentPos.x = firstSelectedCharRect.x;
+    compForm.ptCurrentPos.y = firstSelectedCharRect.y;
+    ::ImmSetCompositionWindow(aIMEContext, &compForm);
+  }
+
+  return PR_TRUE;
+}
 
 void
 nsWindow::HandleTextEvent(HIMC hIMEContext, PRBool aCheckAttr)
@@ -6717,6 +6850,15 @@ nsWindow::HandleTextEvent(HIMC hIMEContext, PRBool aCheckAttr)
 
   if (!sIMECompUnicode)
     return;
+
+  
+  
+  
+  if (aCheckAttr && !ShouldDrawCompositionStringOurselves()) {
+    
+    SetIMERelatedWindowsPos(hIMEContext);
+    return;
+  }
 
   nsTextEvent event(PR_TRUE, NS_TEXT_TEXT, this);
   nsIntPoint point(0, 0);
@@ -6744,40 +6886,15 @@ nsWindow::HandleTextEvent(HIMC hIMEContext, PRBool aCheckAttr)
   
   
   
+
+  SetIMERelatedWindowsPos(hIMEContext);
+
   if (event.theReply.mCursorPosition.width || event.theReply.mCursorPosition.height)
   {
     nsIntRect cursorPosition;
     ResolveIMECaretPos(event.theReply.mReferenceWidget,
                        event.theReply.mCursorPosition,
                        this, cursorPosition);
-    CANDIDATEFORM candForm;
-    candForm.dwIndex = 0;
-    candForm.dwStyle = CFS_EXCLUDE;
-    candForm.ptCurrentPos.x = cursorPosition.x;
-    candForm.ptCurrentPos.y = cursorPosition.y;
-    candForm.rcArea.right = candForm.rcArea.left = candForm.ptCurrentPos.x;
-    candForm.rcArea.top = candForm.ptCurrentPos.y;
-    candForm.rcArea.bottom = candForm.ptCurrentPos.y +
-                             cursorPosition.height;
-
-    if (gPinYinIMECaretCreated)
-    {
-      SetCaretPos(candForm.ptCurrentPos.x, candForm.ptCurrentPos.y);
-    }
-
-    ::ImmSetCandidateWindow(hIMEContext, &candForm);
-
-#ifndef WINCE
-    
-    
-    
-    if (gKbdLayout.GetLayout() == ZH_CN_INTELLEGENT_ABC_IME)
-    {
-      CreateCaret(mWnd, nsnull, 1, 1);
-      SetCaretPos(candForm.ptCurrentPos.x, candForm.ptCurrentPos.y);
-      DestroyCaret();
-    }
-#endif
 
     
     
@@ -6802,7 +6919,7 @@ nsWindow::HandleTextEvent(HIMC hIMEContext, PRBool aCheckAttr)
   }
 }
 
-BOOL
+void
 nsWindow::HandleStartComposition(HIMC hIMEContext)
 {
   NS_PRECONDITION(mIMEEnabled != nsIWidget::IME_STATUS_PLUGIN,
@@ -6814,46 +6931,25 @@ nsWindow::HandleStartComposition(HIMC hIMEContext)
   
   
   if (sIMEIsComposing)
-    return PR_TRUE;
+    return;
 
   nsCompositionEvent event(PR_TRUE, NS_COMPOSITION_START, this);
   nsIntPoint point(0, 0);
-  CANDIDATEFORM candForm;
-
   InitEvent(event, &point);
   DispatchWindowEvent(&event);
 
   
   
   
+
+  SetIMERelatedWindowsPos(hIMEContext);
+
   if (event.theReply.mCursorPosition.width || event.theReply.mCursorPosition.height)
   {
     nsIntRect cursorPosition;
     ResolveIMECaretPos(event.theReply.mReferenceWidget,
                        event.theReply.mCursorPosition,
                        this, cursorPosition);
-    candForm.dwIndex = 0;
-    candForm.dwStyle = CFS_CANDIDATEPOS;
-    candForm.ptCurrentPos.x = cursorPosition.x + IME_X_OFFSET;
-    candForm.ptCurrentPos.y = cursorPosition.y + IME_Y_OFFSET +
-                              cursorPosition.height;
-    candForm.rcArea.right = 0;
-    candForm.rcArea.left = 0;
-    candForm.rcArea.top = 0;
-    candForm.rcArea.bottom = 0;
-#ifdef DEBUG_IME2
-    printf("Candidate window position: x=%d, y=%d\n", candForm.ptCurrentPos.x, candForm.ptCurrentPos.y);
-#endif
-
-#ifndef WINCE  
-    if (!gPinYinIMECaretCreated && PINYIN_IME_ON_XP(gKbdLayout.GetLayout()))
-    {
-      gPinYinIMECaretCreated = CreateCaret(mWnd, nsnull, 1, 1);
-      SetCaretPos(candForm.ptCurrentPos.x, candForm.ptCurrentPos.y);
-    }
-#endif
-
-    ::ImmSetCandidateWindow(hIMEContext, &candForm);
 
     sIMECompCharPos = (RECT*)PR_MALLOC(IME_MAX_CHAR_POS*sizeof(RECT));
     if (sIMECompCharPos) {
@@ -6871,8 +6967,6 @@ nsWindow::HandleStartComposition(HIMC hIMEContext)
   if (!sIMECompUnicode)
     sIMECompUnicode = new nsString();
   sIMEIsComposing = PR_TRUE;
-
-  return PR_TRUE;
 }
 
 void
@@ -6889,10 +6983,9 @@ nsWindow::HandleEndComposition(void)
   nsCompositionEvent event(PR_TRUE, NS_COMPOSITION_END, this);
   nsIntPoint point(0, 0);
 
-  if (gPinYinIMECaretCreated)
-  {
-    DestroyCaret();
-    gPinYinIMECaretCreated = PR_FALSE;
+  if (sIMENativeCaretIsCreated) {
+    ::DestroyCaret();
+    sIMENativeCaretIsCreated = PR_FALSE;
   }
 
   InitEvent(event,&point);
@@ -6928,6 +7021,12 @@ nsWindow::GetTextRangeList(PRUint32* aListLength,
                            nsTextRangeArray* textRangeListResult)
 {
   NS_ASSERTION(sIMECompUnicode, "sIMECompUnicode is null");
+  
+  
+  
+  
+  NS_ASSERTION(ShouldDrawCompositionStringOurselves(),
+    "GetTextRangeList is called when we don't need to fire text event");
 
   if (!sIMECompUnicode)
     return;
@@ -6986,14 +7085,15 @@ BOOL nsWindow::OnInputLangChange(HKL aHKL)
 #ifdef KE_DEBUG
   printf("OnInputLanguageChange\n");
 #endif
-#ifndef WINCE
-  gKbdLayout.LoadLayout(aHKL);
-#endif
   ResetInputState();
 
   if (sIMEIsComposing) {
     HandleEndComposition();
   }
+
+#ifndef WINCE
+  gKbdLayout.LoadLayout(aHKL);
+#endif
 
   return PR_FALSE;   
 }
@@ -7003,35 +7103,14 @@ BOOL nsWindow::OnIMEChar(wchar_t uniChar, LPARAM aKeyState)
 #ifdef DEBUG_IME
   printf("OnIMEChar\n");
 #endif
-  int err = 0;
-
-#ifdef DEBUG_IME
-  if (!err) {
-    DWORD lastError = ::GetLastError();
-    switch (lastError)
-    {
-      case ERROR_INSUFFICIENT_BUFFER:
-        printf("ERROR_INSUFFICIENT_BUFFER\n");
-        break;
-
-      case ERROR_INVALID_FLAGS:
-        printf("ERROR_INVALID_FLAGS\n");
-        break;
-
-      case ERROR_INVALID_PARAMETER:
-        printf("ERROR_INVALID_PARAMETER\n");
-        break;
-
-      case ERROR_NO_UNICODE_TRANSLATION:
-        printf("ERROR_NO_UNICODE_TRANSLATION\n");
-        break;
-    }
-  }
-#endif
 
   
   
-  DispatchKeyEvent(NS_KEY_PRESS, uniChar, nsnull, 0, nsnull);
+  
+  
+
+  
+  
   return PR_TRUE;
 }
 
@@ -7297,7 +7376,7 @@ BOOL nsWindow::OnIMEComposition(LPARAM aGCS)
   }
 
   ::ImmReleaseContext(mWnd, hIMEContext);
-  return result;
+  return ShouldDrawCompositionStringOurselves() ? result : PR_FALSE;
 }
 
 BOOL nsWindow::OnIMECompositionFull()
@@ -7331,7 +7410,7 @@ BOOL nsWindow::OnIMEEndComposition()
     HandleEndComposition();
     ::ImmReleaseContext(mWnd, hIMEContext);
   }
-  return PR_TRUE;
+  return ShouldDrawCompositionStringOurselves();
 }
 
 BOOL nsWindow::OnIMENotify(WPARAM aIMN, LPARAM aData)
@@ -7484,38 +7563,9 @@ PRBool nsWindow::OnIMEQueryCharPosition(LPARAM aData, LRESULT *oResult)
       pCharPosition->dwCharPos > len)
     return PR_FALSE;
 
-  nsIntPoint point(0, 0);
-
-  nsQueryContentEvent selection(PR_TRUE, NS_QUERY_SELECTED_TEXT, this);
-  InitEvent(selection, &point);
-  DispatchWindowEvent(&selection);
-  if (!selection.mSucceeded)
-    return PR_FALSE;
-
-  PRUint32 offset = selection.mReply.mOffset + pCharPosition->dwCharPos;
-  PRBool useCaretRect = selection.mReply.mString.IsEmpty();
-
   nsIntRect r;
-  if (!useCaretRect) {
-    nsQueryContentEvent charRect(PR_TRUE, NS_QUERY_TEXT_RECT, this);
-    charRect.InitForQueryTextRect(offset, 1);
-    InitEvent(charRect, &point);
-    DispatchWindowEvent(&charRect);
-    if (charRect.mSucceeded)
-      r = charRect.mReply.mRect;
-    else
-      useCaretRect = PR_TRUE;
-  }
-
-  if (useCaretRect) {
-    nsQueryContentEvent caretRect(PR_TRUE, NS_QUERY_CARET_RECT, this);
-    caretRect.InitForQueryCaretRect(offset);
-    InitEvent(caretRect, &point);
-    DispatchWindowEvent(&caretRect);
-    if (!caretRect.mSucceeded)
-      return PR_FALSE;
-    r = caretRect.mReply.mRect;
-  }
+  PRBool ret = GetCharacterRectOfSelectedTextAt(pCharPosition->dwCharPos, r);
+  NS_ENSURE_TRUE(ret, PR_FALSE);
 
   nsIntRect screenRect;
   
@@ -7578,8 +7628,11 @@ BOOL nsWindow::OnIMESetContext(BOOL aActive, LPARAM& aISC)
   if (! aActive)
     ResetInputState();
 
-  aISC &= ~ISC_SHOWUICOMPOSITIONWINDOW;
+  if (ShouldDrawCompositionStringOurselves()) {
+    aISC &= ~ISC_SHOWUICOMPOSITIONWINDOW;
+  }
 
+  
   
   
   
@@ -7595,9 +7648,9 @@ BOOL nsWindow::OnIMEStartComposition()
   if (hIMEContext == NULL)
     return PR_TRUE;
 
-  PRBool rtn = HandleStartComposition(hIMEContext);
+  HandleStartComposition(hIMEContext);
   ::ImmReleaseContext(mWnd, hIMEContext);
-  return rtn;
+  return ShouldDrawCompositionStringOurselves();
 }
 
 
@@ -7857,37 +7910,6 @@ PRBool nsWindow::IMECompositionHitTest(POINT * ptPos)
     }
   }
   return IsHit;
-}
-
-void nsWindow::GetCompositionWindowPos(HIMC hIMC, PRUint32 aEventType, COMPOSITIONFORM *cpForm)
-{
-  nsTextEvent event(PR_TRUE, 0, this);
-  POINT point;
-  point.x = 0;
-  point.y = 0;
-  DWORD pos = ::GetMessagePos();
-
-  point.x = GET_X_LPARAM(pos);
-  point.y = GET_Y_LPARAM(pos);
-
-  if (mWnd != NULL) {
-    ::ScreenToClient(mWnd, &point);
-    event.refPoint.x = point.x;
-    event.refPoint.y = point.y;
-  } else {
-    event.refPoint.x = 0;
-    event.refPoint.y = 0;
-  }
-
-  ::ImmGetCompositionWindow(hIMC, cpForm);
-
-  cpForm->ptCurrentPos.x = event.theReply.mCursorPosition.x + IME_X_OFFSET;
-  cpForm->ptCurrentPos.y = event.theReply.mCursorPosition.y + IME_Y_OFFSET +
-                           event.theReply.mCursorPosition.height;
-  cpForm->rcArea.left = cpForm->ptCurrentPos.x;
-  cpForm->rcArea.top = cpForm->ptCurrentPos.y;
-  cpForm->rcArea.right = cpForm->ptCurrentPos.x + event.theReply.mCursorPosition.width;
-  cpForm->rcArea.bottom = cpForm->ptCurrentPos.y + event.theReply.mCursorPosition.height;
 }
 
 
