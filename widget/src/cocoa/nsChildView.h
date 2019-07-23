@@ -327,9 +327,6 @@ protected:
   virtual NSView*   CreateCocoaView(NSRect inFrame);
   void              TearDownView();
 
-  
-  GrafPtr           GetChildViewQuickDrawPort();
-
 protected:
 
   NSView<mozView>*      mView;      
@@ -357,7 +354,6 @@ protected:
   PRPackedBool          mPluginIsCG; 
   
   nsPluginPort          mPluginPort;
-  RgnHandle             mVisRgn;
 };
 
 
