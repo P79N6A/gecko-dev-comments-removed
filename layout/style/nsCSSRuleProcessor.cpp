@@ -731,8 +731,9 @@ RuleCascadeData::AttributeListFor(nsIAtom* aAttribute)
 
 
 nsCSSRuleProcessor::nsCSSRuleProcessor(const nsCOMArray<nsICSSStyleSheet>& aSheets)
-  : mSheets(aSheets),
-    mRuleCascades(nsnull)
+  : mSheets(aSheets)
+  , mRuleCascades(nsnull)
+  , mLastPresContext(nsnull)
 {
   for (PRInt32 i = mSheets.Count() - 1; i >= 0; --i)
     mSheets[i]->AddRuleProcessor(this);
@@ -2085,6 +2086,16 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsCSSRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext,
+                                          PRBool* aRulesChanged)
+{
+  RuleCascadeData *old = mRuleCascades;
+  RefreshRuleCascade(aPresContext);
+  *aRulesChanged = (old != mRuleCascades);
+  return NS_OK;
+}
+
 nsresult
 nsCSSRuleProcessor::ClearRuleCascades()
 {
@@ -2352,13 +2363,35 @@ nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
   
   
   
+  
 
-  RuleCascadeData **cascadep = &mRuleCascades;
-  RuleCascadeData *cascade;
-  while ((cascade = *cascadep)) {
-    if (cascade->mCacheKey.Matches(aPresContext))
-      return cascade;
-    cascadep = &cascade->mNext;
+  if (!mRuleCascades || aPresContext != mLastPresContext) {
+    RefreshRuleCascade(aPresContext);
+  }
+  mLastPresContext = aPresContext;
+
+  return mRuleCascades;
+}
+
+void
+nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
+{
+  
+  
+  
+  
+  
+
+  for (RuleCascadeData **cascadep = &mRuleCascades, *cascade;
+       (cascade = *cascadep); cascadep = &cascade->mNext) {
+    if (cascade->mCacheKey.Matches(aPresContext)) {
+      
+      *cascadep = cascade->mNext;
+      cascade->mNext = mRuleCascades;
+      mRuleCascades = cascade;
+
+      return;
+    }
   }
 
   if (mSheets.Count() != 0) {
@@ -2369,9 +2402,9 @@ nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
       CascadeEnumData data(aPresContext, newCascade->mCacheKey,
                            newCascade->mRuleHash.Arena());
       if (!data.mRulesByWeight.ops)
-        return nsnull;
+        return; 
       if (!mSheets.EnumerateForwards(CascadeSheetRulesInto, &data))
-        return nsnull;
+        return; 
 
       
       PRUint32 weightCount = data.mRulesByWeight.entryCount;
@@ -2393,16 +2426,17 @@ nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
           
           RuleValue *next = ruleValue->mNext;
           if (!AddRule(ruleValue, newCascade))
-            return nsnull;
+            return; 
           ruleValue = next;
         } while (ruleValue);
       }
 
-      *cascadep = newCascade;
-      cascade = newCascade.forget();
+      
+      newCascade->mNext = mRuleCascades;
+      mRuleCascades = newCascade.forget();
     }
   }
-  return cascade;
+  return;
 }
 
  PRBool

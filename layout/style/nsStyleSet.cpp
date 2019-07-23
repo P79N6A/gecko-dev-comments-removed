@@ -43,6 +43,7 @@
 
 
 
+
 #include "nsStyleSet.h"
 #include "nsNetUtil.h"
 #include "nsICSSStyleSheet.h"
@@ -961,4 +962,23 @@ nsStyleSet::HasAttributeDependentStyle(nsPresContext* aPresContext,
   }
 
   return result;
+}
+
+PRBool
+nsStyleSet::MediumFeaturesChanged(nsPresContext* aPresContext)
+{
+  
+  
+  PRBool stylesChanged = PR_FALSE;
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mRuleProcessors); ++i) {
+    nsIStyleRuleProcessor *processor = mRuleProcessors[i];
+    if (!processor) {
+      continue;
+    }
+    PRBool thisChanged = PR_FALSE;
+    processor->MediumFeaturesChanged(aPresContext, &thisChanged);
+    stylesChanged = stylesChanged || thisChanged;
+  }
+
+  return stylesChanged;
 }

@@ -43,6 +43,7 @@
 
 
 
+
 #ifndef nsStyleSet_h_
 #define nsStyleSet_h_
 
@@ -142,6 +143,13 @@ class nsStyleSet
                                            nsIAtom*       aAttribute,
                                            PRInt32        aModType,
                                            PRUint32       aStateMask);
+
+  
+
+
+
+
+  PRBool MediumFeaturesChanged(nsPresContext* aPresContext);
 
   
   

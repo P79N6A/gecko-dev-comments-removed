@@ -93,13 +93,21 @@ public:
   NS_IMETHOD HasAttributeDependentStyle(AttributeRuleProcessorData* aData,
                                         nsReStyleHint* aResult);
 
+  NS_IMETHOD MediumFeaturesChanged(nsPresContext* aPresContext,
+                                   PRBool* aRulesChanged);
+
 protected:
   RuleCascadeData* GetRuleCascade(nsPresContext* aPresContext);
+  void RefreshRuleCascade(nsPresContext* aPresContext);
 
   
   nsCOMArray<nsICSSStyleSheet> mSheets;
 
+  
   RuleCascadeData* mRuleCascades;
+
+  
+  nsPresContext *mLastPresContext;
 };
 
 #endif 
