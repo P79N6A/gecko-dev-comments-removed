@@ -558,7 +558,7 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
   var funcIdentifier = "[SimpleTest/SimpleTest.js, window.onerror] ";
 
   
-  ok(false, funcIdentifier + "An error occurred", errorMsg);
+  ok(false, funcIdentifier + "An error occurred", errorMsg + " at " + url + ":" + lineNumber);
   
 
   
