@@ -300,39 +300,44 @@ var Microformats = {
         return propnode.value;
       } else {
         var values = Microformats.getElementsByClassName(propnode, "value");
+        
+        for (let i = values.length-1; i >= 0; i--) {
+          if (values[i].parentNode != propnode) {
+            values.splice(i,1);
+          }
+        }
         if (values.length > 0) {
           var value = "";
           for (let j=0;j<values.length;j++) {
             value += Microformats.parser.defaultGetter(values[j], propnode, datatype);
           }
           return value;
+        }
+        var s;
+        if (datatype == "HTML") {
+          s = propnode.innerHTML;
         } else {
-          var s;
-          if (datatype == "HTML") {
-            s = propnode.innerHTML;
+          if (propnode.innerText) {
+            s = propnode.innerText;
           } else {
-            if (propnode.innerText) {
-              s = propnode.innerText;
-            } else {
-              s = propnode.textContent;
-            }
+            s = propnode.textContent;
           }
+        }
+        
+        if (!Microformats.matchClass(propnode, "value")) {
           
-          if (!Microformats.matchClass(propnode, "value")) {
-            
-            s	= s.replace(/[\n\r\t]/gi, ' ');
-            
-            s	= s.replace(/\s{2,}/gi, ' ');
-            
-            s	= s.replace(/\s{2,}/gi, '');
-            
-            s	= s.replace(/^\s+/, '');
-            
-            s	= s.replace(/\s+$/, '');
-          }
-          if (s.length > 0) {
-            return s;
-          }
+          s	= s.replace(/[\n\r\t]/gi, ' ');
+          
+          s	= s.replace(/\s{2,}/gi, ' ');
+          
+          s	= s.replace(/\s{2,}/gi, '');
+          
+          s	= s.replace(/^\s+/, '');
+          
+          s	= s.replace(/\s+$/, '');
+        }
+        if (s.length > 0) {
+          return s;
         }
       }
     },
