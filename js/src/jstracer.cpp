@@ -4531,6 +4531,26 @@ TraceRecorder::record_JSOP_NEW()
         return interpretedFunctionCall(fval, fun, argc, true);
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static JSTraceableNative knownNatives[] = {
         { (JSFastNative)js_Array,  &ci_FastNewArray,  "pC", "",    FAIL_NULL },
         { (JSFastNative)js_Array,  &ci_Array_1int,    "pC", "i",   FAIL_NULL },

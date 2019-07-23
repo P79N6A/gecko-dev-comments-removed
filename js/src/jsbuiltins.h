@@ -49,6 +49,31 @@ enum { JSTN_ERRTYPE_MASK = 7, JSTN_MORE = 8 };
 
 #define JSTN_ERRTYPE(jstn)  ((jstn)->flags & JSTN_ERRTYPE_MASK)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct JSTraceableNative {
     JSFastNative            native;
     const nanojit::CallInfo *builtin;
