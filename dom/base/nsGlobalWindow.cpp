@@ -3288,7 +3288,7 @@ nsGlobalWindow::SetOuterSize(PRInt32 aLengthCSSPixels, PRBool aIsWidth)
 
 
 
-  if (!CanMoveResizeWindows()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -3357,7 +3357,7 @@ nsGlobalWindow::SetScreenX(PRInt32 aScreenX)
 
 
 
-  if (!CanMoveResizeWindows()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -3408,7 +3408,7 @@ nsGlobalWindow::SetScreenY(PRInt32 aScreenY)
 
 
 
-  if (!CanMoveResizeWindows()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
