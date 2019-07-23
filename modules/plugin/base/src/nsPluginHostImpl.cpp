@@ -105,7 +105,6 @@
 #include "nsIScriptGlobalObjectOwner.h"
 #include "nsIPrincipal.h"
 
-#include "nsIServiceManager.h"
 #include "nsNetCID.h"
 #include "nsICookieService.h"
 #include "nsIDOMPlugin.h"
@@ -859,13 +858,11 @@ NS_IMPL_ISUPPORTS1(nsPluginTag, nsIPluginTag)
 static nsresult ConvertToUTF8(nsIUnicodeDecoder *aUnicodeDecoder,
                               nsAFlatCString& aString)
 {
-  nsresult rv;
-
   PRInt32 numberOfBytes = aString.Length();
   PRInt32 outUnicodeLen;
   nsAutoString buffer;
-  rv = aUnicodeDecoder->GetMaxLength(aString.get(), numberOfBytes,
-                                     &outUnicodeLen);
+  nsresult rv = aUnicodeDecoder->GetMaxLength(aString.get(), numberOfBytes,
+                                              &outUnicodeLen);
   NS_ENSURE_SUCCESS(rv, rv);
   if (!EnsureStringLength(buffer, outUnicodeLen))
     return NS_ERROR_OUT_OF_MEMORY;
@@ -4051,8 +4048,7 @@ static nsresult ConvertToNative(nsIUnicodeEncoder *aEncoder,
   return NS_OK;
 }
 
-static nsresult CreateNPAPIPlugin(nsIServiceManagerObsolete* aServiceManager,
-                                  const nsPluginTag *aPluginTag,
+static nsresult CreateNPAPIPlugin(const nsPluginTag *aPluginTag,
                                   nsIPlugin **aOutNPAPIPlugnin)
 {
   nsresult rv;
@@ -4127,16 +4123,10 @@ NS_IMETHODIMP nsPluginHostImpl::GetPluginFactory(const char *aMimeType, nsIPlugi
     nsIPlugin* plugin = pluginTag->mEntryPoint;
     if (!plugin) {
       
-      
-      nsIServiceManagerObsolete* serviceManager;
-      nsServiceManager::GetGlobalServiceManager((nsIServiceManager**)&serviceManager);
-
-      
-      rv = CreateNPAPIPlugin(serviceManager, pluginTag, &plugin);
+      rv = CreateNPAPIPlugin(pluginTag, &plugin);
       if (NS_SUCCEEDED(rv))
         pluginTag->mEntryPoint = plugin;
       pluginTag->Mark(NS_PLUGIN_FLAG_NPAPI);
-      
     }
 
     if (plugin) {
