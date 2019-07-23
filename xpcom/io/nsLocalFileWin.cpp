@@ -1145,6 +1145,24 @@ nsLocalFile::Normalize()
         WCHAR cwd[MAX_PATH];
         WCHAR * pcwd = cwd;
         int drive = TOUPPER(path.First()) - 'A' + 1;
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (!((1 << (drive - 1)) & _getdrives()))
+            return NS_ERROR_FILE_INVALID_PATH;
         if (!_wgetdcwd(drive, pcwd, MAX_PATH))
             pcwd = _wgetdcwd(drive, 0, 0);
         if (!pcwd)
