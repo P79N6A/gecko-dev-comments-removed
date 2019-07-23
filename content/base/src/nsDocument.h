@@ -899,14 +899,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDocument,
                                                          nsIDocument)
 
-  
-
-
-
-  static nsresult GetElementsByClassNameHelper(nsINode* aRootNode,
-                                               const nsAString& aClasses,
-                                               nsIDOMNodeList** aReturn);
-
   void DoNotifyPossibleTitleChange();
 
   nsExternalResourceMap& ExternalResourceMap()
@@ -1004,12 +996,6 @@ protected:
 
   virtual nsPIDOMWindow *GetWindowInternal();
   virtual nsPIDOMWindow *GetInnerWindowInternal();
-
-  
-  static PRBool MatchClassNames(nsIContent* aContent, PRInt32 aNamespaceID,
-                                nsIAtom* aAtom, void* aData);
-
-  static void DestroyClassNameArray(void* aData);
 
 #define NS_DOCUMENT_NOTIFY_OBSERVERS(func_, params_)                  \
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mObservers, nsIDocumentObserver, \

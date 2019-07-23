@@ -1594,6 +1594,15 @@ public:
   {
     sIsHandlingKeyBoardEvent = aHandling;
   }
+
+  
+
+
+
+  static nsresult GetElementsByClassName(nsINode* aRootNode,
+                                         const nsAString& aClasses,
+                                         nsIDOMNodeList** aReturn);
+
 private:
 
   static PRBool InitializeEventTable();

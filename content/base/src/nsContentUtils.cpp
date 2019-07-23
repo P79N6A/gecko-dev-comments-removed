@@ -195,7 +195,6 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "jstypedarray.h"
 #include "xpcprivate.h"
 #include "nsScriptSecurityManager.h"
-#include "nsDocument.h"
 
 using namespace mozilla::dom;
 
@@ -5768,11 +5767,9 @@ struct ClassMatchingInfo {
   nsCaseTreatment mCaseTreatment;
 };
 
-
-PRBool
-nsDocument::MatchClassNames(nsIContent* aContent,
-                            PRInt32 aNamespaceID,
-                            nsIAtom* aAtom, void* aData)
+static PRBool
+MatchClassNames(nsIContent* aContent, PRInt32 aNamespaceID, nsIAtom* aAtom,
+                void* aData)
 {
   
   const nsAttrValue* classAttr = aContent->GetClasses();
@@ -5794,9 +5791,8 @@ nsDocument::MatchClassNames(nsIContent* aContent,
   return PR_TRUE;
 }
 
-
-void
-nsDocument::DestroyClassNameArray(void* aData)
+static void
+DestroyClassNameArray(void* aData)
 {
   ClassMatchingInfo* info = static_cast<ClassMatchingInfo*>(aData);
   delete info;
@@ -5804,9 +5800,9 @@ nsDocument::DestroyClassNameArray(void* aData)
 
 
 nsresult
-nsDocument::GetElementsByClassNameHelper(nsINode* aRootNode,
-                                         const nsAString& aClasses,
-                                         nsIDOMNodeList** aReturn)
+nsContentUtils::GetElementsByClassName(nsINode* aRootNode,
+                                       const nsAString& aClasses,
+                                       nsIDOMNodeList** aReturn)
 {
   NS_PRECONDITION(aRootNode, "Must have root node");
   
