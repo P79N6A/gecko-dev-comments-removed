@@ -130,17 +130,6 @@ struct nsCSSRendering {
   
 
 
-  static void PaintGradient(nsPresContext* aPresContext,
-                            nsIRenderingContext& aRenderingContext,
-                            nsStyleGradient* aGradient,
-                            const nsRect& aDirtyRect,
-                            const nsRect& aOneCellArea,
-                            const nsRect& aFillArea,
-                            PRBool aRepeat);
-
-  
-
-
   static nsIFrame* FindRootFrame(nsIFrame* aForFrame);
 
   

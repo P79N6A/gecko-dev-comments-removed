@@ -124,68 +124,6 @@ struct nsStyleFont {
 #endif
 };
 
-struct nsStyleGradientStop {
-  nscolor mColor;
-  float mPosition; 
-};
-
-class nsStyleGradient {
-public:
-  nsStyleGradient();
-
-  PRPackedBool mIsRadial;
-
-  nsStyleCoord mStartX; 
-  nsStyleCoord mStartY; 
-
-  nsStyleCoord mEndX; 
-  nsStyleCoord mEndY; 
-
-  nscoord mStartRadius;
-  nscoord mEndRadius;
-
-  
-  nsTArray<nsStyleGradientStop> mStops;
-
-  nsrefcnt AddRef() {
-    if (mRefCnt == PR_UINT32_MAX) {
-      NS_WARNING("refcount overflow, leaking nsStyleGradient");
-      return mRefCnt;
-    }
-    ++mRefCnt;
-    NS_LOG_ADDREF(this, mRefCnt, "nsStyleGradient", sizeof(*this));
-    return mRefCnt;
-  }
-
-  nsrefcnt Release() {
-    if (mRefCnt == PR_UINT32_MAX) {
-      NS_WARNING("refcount overflow, leaking nsStyleGradient");
-      return mRefCnt;
-    }
-    --mRefCnt;
-    NS_LOG_RELEASE(this, mRefCnt, "nsStyleGradient");
-    if (mRefCnt == 0) {
-      delete this;
-      return 0;
-    }
-    return mRefCnt;
-  }
-
-  PRBool operator==(const nsStyleGradient& aOther) const;
-  PRBool operator!=(const nsStyleGradient& aOther) const {
-    return !(*this == aOther);
-  };
-
-private:
-  nsrefcnt mRefCnt;
-
-  ~nsStyleGradient() {}
-
-  
-  nsStyleGradient(const nsStyleGradient& aOther);
-  nsStyleGradient& operator=(const nsStyleGradient& aOther);
-};
-
 struct nsStyleColor {
   nsStyleColor(nsPresContext* aPresContext);
   nsStyleColor(const nsStyleColor& aOther);
@@ -207,12 +145,6 @@ struct nsStyleColor {
   
   
   nscolor mColor;                 
-};
-
-enum nsStyleBackgroundImageType {
-  eBackgroundImage_Null,
-  eBackgroundImage_Image,
-  eBackgroundImage_Gradient
 };
 
 struct nsStyleBackground {
@@ -296,46 +228,6 @@ struct nsStyleBackground {
     }
   };
 
-  struct Image;
-  friend struct Image;
-  struct Image {
-  public:
-    Image();
-    ~Image();
-    Image(const Image& aOther);
-    Image& operator=(const Image& aOther);
-
-    void SetImageData(imgIRequest* aImage);
-    void SetGradientData(nsStyleGradient* aGradient);
-    void SetNull();
-
-    nsStyleBackgroundImageType GetType() const {
-      return mType;
-    };
-    imgIRequest* GetImageData() const {
-      NS_ASSERTION(mType == eBackgroundImage_Image, "Data is not an image!");
-      return mImage;
-    };
-    nsStyleGradient* GetGradientData() const {
-      NS_ASSERTION(mType == eBackgroundImage_Gradient, "Data is not a gradient!");
-      return mGradient;
-    };
-
-    PRBool operator==(const Image& aOther) const;
-    PRBool operator!=(const Image& aOther) const {
-      return !(*this == aOther);
-    }
-
-  private:
-    void DoCopy(const Image& aOther);
-
-    nsStyleBackgroundImageType mType;
-    union {
-      imgIRequest* mImage;
-      nsStyleGradient* mGradient;
-    };
-  };
-
   struct Layer;
   friend struct Layer;
   struct Layer {
@@ -344,7 +236,7 @@ struct nsStyleBackground {
     PRUint8 mOrigin;                    
     PRUint8 mRepeat;                    
     Position mPosition;                 
-    Image mImage;                       
+    nsCOMPtr<imgIRequest> mImage;       
     Size mSize;                         
 
     
