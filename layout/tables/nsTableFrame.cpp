@@ -324,26 +324,18 @@ nsTableFrame::SetInitialChildList(nsIAtom*        aListName,
   
   
   
-  
-  nsIFrame *prevMainChild = nsnull;
-  nsIFrame *prevColGroupChild = nsnull;
-  while (aChildList.NotEmpty())
-  {
+  while (aChildList.NotEmpty()) {
     nsIFrame* childFrame = aChildList.FirstChild();
-    aChildList.RemoveFrame(childFrame);
+    aChildList.RemoveFirstChild();
     const nsStyleDisplay* childDisplay = childFrame->GetStyleDisplay();
 
-    if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == childDisplay->mDisplay)
-    {
+    if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == childDisplay->mDisplay) {
       NS_ASSERTION(nsGkAtoms::tableColGroupFrame == childFrame->GetType(),
                    "This is not a colgroup");
-      mColGroups.InsertFrame(nsnull, prevColGroupChild, childFrame);
-      prevColGroupChild = childFrame;
+      mColGroups.AppendFrame(nsnull, childFrame);
     }
-    else
-    { 
-      mFrames.InsertFrame(nsnull, prevMainChild, childFrame);
-      prevMainChild = childFrame;
+    else { 
+      mFrames.AppendFrame(nsnull, childFrame);
     }
   }
 
@@ -727,7 +719,7 @@ nsTableFrame::AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
   nsIPresShell *shell = PresContext()->PresShell();
 
   
-  nsFrameItems newColFrames;
+  nsFrameList newColFrames;
 
   PRInt32 startIndex = mColFrames.Length();
   PRInt32 lastIndex  = startIndex + aNumColsToAdd - 1; 
@@ -752,7 +744,7 @@ nsTableFrame::AppendAnonymousColFrames(nsTableColGroupFrame* aColGroupFrame,
     ((nsTableColFrame *) colFrame)->SetColType(aColType);
     colFrame->Init(iContent, aColGroupFrame, nsnull);
 
-    newColFrames.AddChild(colFrame);
+    newColFrames.AppendFrame(nsnull, colFrame);
   }
   nsFrameList& cols = aColGroupFrame->GetWritableChildList();
   nsIFrame* oldLastCol = cols.LastChild();
@@ -1960,7 +1952,6 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
 
   
   nsFrameList frames;
-  nsIFrame* lastFrame = nsnull;
   PRUint32 childX;
   nsIFrame* prevSiblingHint = aFrames.SafeElementAt(aPushFrom - 1);
   for (childX = aPushFrom; childX < aFrames.Length(); ++childX) {
@@ -1973,8 +1964,7 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
     NS_ASSERTION(rgFrame, "Unexpected non-row-group frame");
     if (!rgFrame || !rgFrame->IsRepeatable()) {
       mFrames.RemoveFrame(f, prevSiblingHint);
-      frames.InsertFrame(nsnull, lastFrame, f);
-      lastFrame = f;
+      frames.AppendFrame(nsnull, f);
     }
   }
 

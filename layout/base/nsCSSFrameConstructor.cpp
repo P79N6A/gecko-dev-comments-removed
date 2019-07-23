@@ -686,29 +686,31 @@ CleanupFrameReferences(nsFrameManager*  aFrameManager,
 
 
 
-nsFrameItems::nsFrameItems(nsIFrame* aFrame)
-  : nsFrameList(aFrame), lastChild(aFrame)
+
+struct nsFrameItems : public nsFrameList
 {
-}
+  
+  void AddChild(nsIFrame* aChild);
+};
 
 void 
 nsFrameItems::AddChild(nsIFrame* aChild)
 {
+  NS_PRECONDITION(aChild, "nsFrameItems::AddChild");
+
   
   
   
   
   if (IsEmpty()) {
-    nsFrameList::AppendFrames(nsnull, aChild);
+    SetFrames(aChild);
   }
-  else
-  {
-    NS_ASSERTION(aChild != lastChild,
+  else {
+    NS_ASSERTION(aChild != mLastChild,
                  "Same frame being added to frame list twice?");
-    lastChild->SetNextSibling(aChild);
+    mLastChild->SetNextSibling(aChild);
+    mLastChild = nsLayoutUtils::GetLastSibling(aChild);
   }
-  
-  lastChild = nsLayoutUtils::GetLastSibling(aChild);
 }
 
 
@@ -1239,15 +1241,14 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
     
     
     
-    nsIFrame* insertionPoint = nsnull;
     nsIFrame* firstNewFrame = aFrameItems.FirstChild();  
     if (!lastChild ||
         nsLayoutUtils::CompareTreePosition(lastChild, firstNewFrame, containingBlock) < 0) {
       
-      
-      insertionPoint = lastChild;
+      rv = containingBlock->AppendFrames(aChildListName, aFrameItems);
     } else {
       
+      nsIFrame* insertionPoint = nsnull;
       for (nsIFrame* f = childList.FirstChild(); f != lastChild;
            f = f->GetNextSibling()) {
         PRInt32 compare =
@@ -1259,10 +1260,9 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
         }
         insertionPoint = f;
       }
+      rv = containingBlock->InsertFrames(aChildListName, insertionPoint,
+                                         aFrameItems);
     }
-
-    rv = containingBlock->InsertFrames(aChildListName, insertionPoint,
-                                       aFrameItems);
   }
 
   NS_POSTCONDITION(aFrameItems.IsEmpty(), "How did that happen?");
@@ -5749,10 +5749,10 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
   if (!nextSibling &&
       IsFrameSpecial(aParentFrame) &&
       !IsInlineFrame(aParentFrame) &&
-      IsInlineOutside(aFrameList.lastChild)) {
+      IsInlineOutside(aFrameList.LastChild())) {
     
     nsFrameList::FrameLinkEnumerator lastBlock = FindLastBlock(aFrameList);
-    nsFrameItems inlineKids = aFrameList.ExtractTail(lastBlock);
+    nsFrameList inlineKids = aFrameList.ExtractTail(lastBlock);
 
     NS_ASSERTION(inlineKids.NotEmpty(), "How did that happen?");
 
@@ -9693,7 +9693,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
     link.Next();
   }
 
-  nsFrameItems firstLineChildren = aFrameItems.ExtractHead(link);
+  nsFrameList firstLineChildren = aFrameItems.ExtractHead(link);
 
   if (firstLineChildren.IsEmpty()) {
     
@@ -10730,7 +10730,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
 
   
-  nsFrameItems firstInlineKids = childItems.ExtractHead(firstBlockEnumerator);
+  nsFrameList firstInlineKids = childItems.ExtractHead(firstBlockEnumerator);
   newFrame->SetInitialChildList(nsnull, firstInlineKids);
                                              
   
@@ -10761,7 +10761,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   
   nsFrameList::FrameLinkEnumerator lastBlock = FindLastBlock(childItems);
-  nsFrameItems blockKids = childItems.ExtractHead(lastBlock);
+  nsFrameList blockKids = childItems.ExtractHead(lastBlock);
 
   if (blockFrame->HasView() || newFrame->HasView()) {
     
@@ -10843,7 +10843,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
 void
 nsCSSFrameConstructor::MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
                                                 nsIFrame* aExistingEndFrame,
-                                                nsFrameItems& aFramesToMove,
+                                                nsFrameList& aFramesToMove,
                                                 nsIFrame* aBlockPart,
                                                 nsFrameConstructorState* aTargetState)
 {

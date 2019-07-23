@@ -159,14 +159,8 @@ GetLastChildFrame(nsIFrame*       aFrame,
   
   nsIFrame* lastParentContinuation = nsLayoutUtils::GetLastContinuationWithChild(aFrame);
 
-  
-  nsIFrame* firstChildFrame = lastParentContinuation->GetFirstChild(nsnull);
-  if (firstChildFrame) {
-    nsFrameList frameList(firstChildFrame);
-    nsIFrame*   lastChildFrame = frameList.LastChild();
-
-    NS_ASSERTION(lastChildFrame, "unexpected error");
-
+  nsIFrame* lastChildFrame = lastParentContinuation->GetLastChild(nsnull);
+  if (lastChildFrame) {
     
     
     lastChildFrame = lastChildFrame->GetFirstContinuation();

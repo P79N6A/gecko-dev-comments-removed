@@ -35,8 +35,6 @@
 
 
 
-
-
 #ifndef nsFrameList_h___
 #define nsFrameList_h___
 
@@ -53,34 +51,25 @@ class nsIFrame;
 class nsFrameList {
 public:
   nsFrameList() :
-    mFirstChild(nsnull)
+    mFirstChild(nsnull), mLastChild(nsnull)
   {
     MOZ_COUNT_CTOR(nsFrameList);
   }
 
   
-  nsFrameList(nsIFrame* aHead) :
-    mFirstChild(aHead)
-  {
-    MOZ_COUNT_CTOR(nsFrameList);
-#ifdef DEBUG
-    CheckForLoops();
-#endif
-  }
+  nsFrameList(nsIFrame* aFirstFrame);
 
   nsFrameList(nsIFrame* aFirstFrame, nsIFrame* aLastFrame) :
-    mFirstChild(aFirstFrame)
+    mFirstChild(aFirstFrame), mLastChild(aLastFrame)
   {
-    NS_ASSERTION(aLastFrame == LastChild(), "wrong last frame");
-
     MOZ_COUNT_CTOR(nsFrameList);
 #ifdef DEBUG
-    CheckForLoops();
+    VerifyList();
 #endif
   }
 
   nsFrameList(const nsFrameList& aOther) :
-    mFirstChild(aOther.mFirstChild)
+    mFirstChild(aOther.mFirstChild), mLastChild(aOther.mLastChild)
   {
     MOZ_COUNT_CTOR(nsFrameList);
   }
@@ -90,23 +79,27 @@ public:
     
   }
 
+  
+
+
+
   void DestroyFrames();
 
   
+
+
+
   void Destroy();
 
-  void SetFrames(nsIFrame* aFrameList) {
-    mFirstChild = aFrameList;
-#ifdef DEBUG
-    CheckForLoops();
-#endif
-  }
+  void Clear() { mFirstChild = mLastChild = nsnull; }
 
-  void Clear() { SetFrames(nsnull); }
+  void SetFrames(nsIFrame* aFrameList);
 
   void SetFrames(nsFrameList& aFrameList) {
     NS_PRECONDITION(!mFirstChild, "Losing frames");
+
     mFirstChild = aFrameList.FirstChild();
+    mLastChild = aFrameList.LastChild();
     aFrameList.Clear();
   }
 
@@ -117,7 +110,8 @@ public:
 
 
   void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList) {
-    InsertFrames(aParent, LastChild(), aFrameList);
+    nsFrameList temp(aFrameList);
+    AppendFrames(aParent, temp);
   }
 
   
@@ -126,16 +120,18 @@ public:
 
 
   Slice AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList) {
-    NS_PRECONDITION(!aFrameList.IsEmpty(), "Unexpected empty list");
-    nsIFrame* firstNewFrame = aFrameList.FirstChild();
-    AppendFrames(aParent, firstNewFrame);
-    aFrameList.Clear();
-    return Slice(*this, firstNewFrame, nsnull);
+    return InsertFrames(aParent, LastChild(), aFrameList);
   }
+
 
   
 
-  inline void AppendFrame(nsIFrame* aParent, nsIFrame* aFrame);
+
+
+  void AppendFrame(nsIFrame* aParent, nsIFrame* aFrame) {
+    nsFrameList temp(aFrame, aFrame);
+    AppendFrames(aParent, temp);
+  }
 
   
 
@@ -158,8 +154,6 @@ public:
 
 
 
-
-
   PRBool RemoveFirstChild();
 
   
@@ -178,9 +172,12 @@ public:
 
 
 
+  void InsertFrame(nsIFrame* aParent, nsIFrame* aPrevSibling,
+                   nsIFrame* aFrame) {
+    nsFrameList temp(aFrame, aFrame);
+    InsertFrames(aParent, aPrevSibling, temp);
+  }
 
-  inline void InsertFrame(nsIFrame* aParent, nsIFrame* aPrevSibling,
-                          nsIFrame* aNewFrame);
 
   
 
@@ -189,7 +186,10 @@ public:
 
   void InsertFrames(nsIFrame* aParent,
                     nsIFrame* aPrevSibling,
-                    nsIFrame* aFrameList);
+                    nsIFrame* aFrameList) {
+    nsFrameList temp(aFrameList);
+    InsertFrames(aParent, aPrevSibling, temp);
+  }
 
   
 
@@ -197,10 +197,8 @@ public:
 
 
 
-
-
-  inline Slice InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
-                            nsFrameList& aFrameList);
+  Slice InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
+                     nsFrameList& aFrameList);
 
   class FrameLinkEnumerator;
 
@@ -208,9 +206,11 @@ public:
 
 
 
+
   nsFrameList ExtractHead(FrameLinkEnumerator& aLink);
 
   
+
 
 
 
@@ -228,7 +228,9 @@ public:
     return mFirstChild;
   }
 
-  nsIFrame* LastChild() const;
+  nsIFrame* LastChild() const {
+    return mLastChild;
+  }
 
   nsIFrame* FrameAt(PRInt32 aIndex) const;
   PRInt32 IndexOf(nsIFrame* aFrame) const;
@@ -259,6 +261,12 @@ public:
     return nsnull;
   }
 
+  
+
+
+
+  void ApplySetParent(nsIFrame* aParent) const;
+
 #ifdef IBMBIDI
   
 
@@ -275,6 +283,9 @@ public:
 
 #ifdef DEBUG
   void List(FILE* out) const;
+protected:
+  void VerifyList() const;
+public:
 #endif
 
   static nsresult Init();
@@ -439,14 +450,11 @@ public:
   };
 
 private:
-#ifdef DEBUG
-  void CheckForLoops();
-#endif
-
   static const nsFrameList* sEmptyList;
 
 protected:
   nsIFrame* mFirstChild;
+  nsIFrame* mLastChild;
 };
 
 #endif 

@@ -110,8 +110,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-  { 0x87f5b42a, 0x507d, 0x4707, \
-    { 0x97, 0x6c, 0x46, 0x81, 0x98, 0x67, 0xbc, 0x63 } }
+  { 0xf34d7229, 0xf179, 0x40d9, \
+    { 0xa9, 0x52, 0x8f, 0xcf, 0xa9, 0xbc, 0x36, 0x47 } }
 
 
 
@@ -872,16 +872,10 @@ public:
   nsIFrame* GetFirstChild(nsIAtom* aListName) const {
     return GetChildList(aListName).FirstChild();
   }
-
   
-
-
-
-
-
-
-
-  virtual nsIFrame* GetLastChild(nsIAtom* aListName) const;
+  nsIFrame* GetLastChild(nsIAtom* aListName) const {
+    return GetChildList(aListName).LastChild();
+  }
 
   
 
@@ -2537,37 +2531,10 @@ private:
 };
 
 inline void
-nsFrameList::Enumerator::Next() {
+nsFrameList::Enumerator::Next()
+{
   NS_ASSERTION(!AtEnd(), "Should have checked AtEnd()!");
   mFrame = mFrame->GetNextSibling();
 }
 
-inline nsFrameList::Slice
-nsFrameList::InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
-                          nsFrameList& aFrameList) {
-  NS_PRECONDITION(!aFrameList.IsEmpty(), "Unexpected empty list");
-  nsIFrame* firstNewFrame = aFrameList.FirstChild();
-  nsIFrame* nextSibling =
-    aPrevSibling ? aPrevSibling->GetNextSibling() : FirstChild();
-  InsertFrames(aParent, aPrevSibling, firstNewFrame);
-  aFrameList.Clear();
-  return Slice(*this, firstNewFrame, nextSibling);
-}
-
-inline void
-nsFrameList::AppendFrame(nsIFrame* aParent, nsIFrame* aFrame)
-{
-  NS_PRECONDITION(aFrame && !aFrame->GetNextSibling(),
-                  "Shouldn't be appending more than one frame");
-  AppendFrames(aParent, aFrame);
-}
-
-inline void
-nsFrameList::InsertFrame(nsIFrame* aParent,
-                         nsIFrame* aPrevSibling,
-                         nsIFrame* aNewFrame) {
-  NS_PRECONDITION(aNewFrame && !aNewFrame->GetNextSibling(),
-                  "Shouldn't be inserting more than one frame");
-  InsertFrames(aParent, aPrevSibling, aNewFrame);
-}
 #endif 
