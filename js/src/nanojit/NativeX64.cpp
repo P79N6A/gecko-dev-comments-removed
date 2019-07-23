@@ -932,7 +932,7 @@ namespace nanojit
 
     void Assembler::asm_regarg(ArgSize sz, LIns *p, Register r) {
         if (sz == ARGSIZE_I) {
-            NanoAssert(!p->isQuad());
+            NanoAssert(p->isI32());
             if (p->isconst()) {
                 asm_quad(r, int64_t(p->imm32()));
                 return;
@@ -940,7 +940,7 @@ namespace nanojit
             
             MOVSXDR(r, r);
         } else if (sz == ARGSIZE_U) {
-            NanoAssert(!p->isQuad());
+            NanoAssert(p->isI32());
             if (p->isconst()) {
                 asm_quad(r, uint64_t(uint32_t(p->imm32())));
                 return;
@@ -965,11 +965,11 @@ namespace nanojit
             MOVQSPR(stk_off, r);    
             if (sz == ARGSIZE_I) {
                 
-                NanoAssert(!p->isQuad());
+                NanoAssert(p->isI32());
                 MOVSXDR(r, r);
             } else if (sz == ARGSIZE_U) {
                 
-                NanoAssert(!p->isQuad());
+                NanoAssert(p->isI32());
                 MOVLR(r, r);
             }
         } else {
@@ -1003,7 +1003,7 @@ namespace nanojit
     void Assembler::asm_u2f(LIns *ins) {
         Register r = prepResultReg(ins, FpRegs);
         Register b = findRegFor(ins->oprnd1(), GpRegs);
-        NanoAssert(!ins->oprnd1()->isQuad());
+        NanoAssert(ins->oprnd1()->isI32());
         
         CVTSQ2SD(r, b);     
         XORPS(r);           
@@ -1013,7 +1013,7 @@ namespace nanojit
     void Assembler::asm_f2i(LIns *ins) {
         LIns *lhs = ins->oprnd1();
 
-        NanoAssert(!ins->isQuad() && lhs->isQuad());
+        NanoAssert(ins->isI32() && lhs->isF64());
         Register r = prepareResultReg(ins, GpRegs);
         Register b = findRegFor(lhs, FpRegs);
 
@@ -1027,8 +1027,8 @@ namespace nanojit
         LIns* iftrue  = ins->oprnd2();
         LIns* iffalse = ins->oprnd3();
         NanoAssert(cond->isCmp());
-        NanoAssert((ins->isop(LIR_qcmov) && iftrue->isQuad() && iffalse->isQuad()) ||
-                   (ins->isop(LIR_cmov) && !iftrue->isQuad() && !iffalse->isQuad()));
+        NanoAssert((ins->isop(LIR_cmov)  && iftrue->isI32() && iffalse->isI32()) ||
+                   (ins->isop(LIR_qcmov) && iftrue->isI64() && iffalse->isI64()));
 
         
         
@@ -1313,12 +1313,15 @@ namespace nanojit
         else {
             int d = findMemFor(ins);
             if (IsFpReg(r)) {
-                NanoAssert(ins->isQuad());
+                NanoAssert(ins->isI64() || ins->isF64());
                 
                 MOVSDRM(r, d, FP);
-            } else if (ins->isQuad()) {
+            } else if (ins->isI64() || ins->isF64()) {
+                NanoAssert(IsGpReg(r));
                 MOVQRM(r, d, FP);
             } else {
+                NanoAssert(ins->isI32());
+                NanoAssert(IsGpReg(r));
                 MOVLRM(r, d, FP);
             }
         }
@@ -1428,7 +1431,7 @@ namespace nanojit
     }
 
     void Assembler::asm_load32(LIns *ins) {
-        NanoAssert(!ins->isQuad());
+        NanoAssert(ins->isI32());
         Register r, b;
         int32_t d;
         regalloc_load(ins, GpRegs, r, d, b);
@@ -1461,7 +1464,7 @@ namespace nanojit
     }
 
     void Assembler::asm_store64(LOpcode op, LIns *value, int d, LIns *base) {
-        NanoAssert(value->isQuad());
+        NanoAssert(value->isI64() || value->isF64());
 
         switch (op) {
             case LIR_stqi: {
@@ -1498,7 +1501,7 @@ namespace nanojit
         
         const RegisterMask SrcRegs = (op == LIR_stb) ? SingleByteStoreRegs : GpRegs;
 
-        NanoAssert(!value->isQuad());
+        NanoAssert(value->isI32());
         Register b = getBaseReg(base, d, BaseRegs);
         Register r = findRegFor(value, SrcRegs & ~rmask(b));
 

@@ -259,6 +259,9 @@ namespace nanojit
     static const int NumSavedRegs = 18; 
 #endif
 
+    static inline bool IsGpReg(Register r) {
+        return r <= R31;
+    }
     static inline bool IsFpReg(Register r) {
         return r >= F0;
     }
