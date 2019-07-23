@@ -1161,6 +1161,14 @@ var gApplicationsPane = {
     }
 
     
+    {
+      let menuItem = document.createElementNS(kXULNS, "menuitem");
+      menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
+      menuItem.setAttribute("label", this._prefsBundle.getString("chooseApp"));
+      menuPopup.appendChild(menuItem);
+    }
+
+    
     
     
     
@@ -1178,13 +1186,6 @@ var gApplicationsPane = {
         menu.selectedItem = menuItem;
     }
 
-    
-    {
-      let menuItem = document.createElementNS(kXULNS, "menuitem");
-      menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
-      menuItem.setAttribute("label", this._prefsBundle.getString("chooseApp"));
-      menuPopup.appendChild(menuItem);
-    }
   },
 
 
