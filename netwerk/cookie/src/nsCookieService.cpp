@@ -467,13 +467,13 @@ nsCookieService::InitDB()
     return NS_ERROR_UNEXPECTED;
 
   
-  rv = storage->OpenDatabase(cookieFile, getter_AddRefs(mDBConn));
+  rv = storage->OpenUnsharedDatabase(cookieFile, getter_AddRefs(mDBConn));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     
     rv = cookieFile->Remove(PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = storage->OpenDatabase(cookieFile, getter_AddRefs(mDBConn));
+    rv = storage->OpenUnsharedDatabase(cookieFile, getter_AddRefs(mDBConn));
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -552,6 +552,9 @@ nsCookieService::InitDB()
 
   
   mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA synchronous = OFF"));
+
+  
+  mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("PRAGMA locking_mode = EXCLUSIVE"));
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
