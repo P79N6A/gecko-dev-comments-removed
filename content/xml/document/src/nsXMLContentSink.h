@@ -101,6 +101,9 @@ public:
   NS_IMETHOD OnDocumentCreated(nsIDocument *aResultDocument);
   NS_IMETHOD OnTransformDone(nsresult aResult, nsIDocument *aResultDocument);
 
+  
+  NS_IMETHOD StyleSheetLoaded(nsICSSStyleSheet* aSheet, PRBool aWasAlternate,
+                              nsresult aStatus);
   static void ParsePIData(const nsString &aData, nsString &aHref,
                           nsString &aTitle, nsString &aMedia,
                           PRBool &aIsAlternate);
@@ -190,7 +193,9 @@ protected:
   PRUint8 mPrettyPrintHasFactoredElements : 1;
   PRUint8 mHasProcessedBase : 1;
   PRUint8 mAllowAutoXLinks : 1;
-  PRUint8 unused : 2;  
+  PRUint8 mPrettyPrinting : 1;  
+                                
+  PRUint8 unused : 1;  
   
   nsTArray<StackNode>              mContentStack;
 

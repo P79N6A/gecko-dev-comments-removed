@@ -71,8 +71,11 @@ nsXMLPrettyPrinter::~nsXMLPrettyPrinter()
 }
 
 nsresult
-nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument)
+nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
+                                PRBool* aDidPrettyPrint)
 {
+    *aDidPrettyPrint = PR_FALSE;
+    
     
     if (!aDocument->GetPrimaryShell()) {
         return NS_OK;
@@ -119,6 +122,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument)
     }
 
     
+    *aDidPrettyPrint = PR_TRUE;
     nsresult rv = NS_OK;
 
     

@@ -72,6 +72,7 @@ class nsMediaList;
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsIPrincipal.h"
+#include "nsTObserverArray.h"
 
 
 
@@ -360,6 +361,10 @@ public:
   NS_IMETHOD GetEnabled(PRBool *aEnabled);
   NS_IMETHOD SetEnabled(PRBool aEnabled);
 
+  NS_IMETHOD_(PRBool) HasPendingLoads();
+  NS_IMETHOD AddObserver(nsICSSLoaderObserver* aObserver);
+  NS_IMETHOD_(void) RemoveObserver(nsICSSLoaderObserver* aObserver);  
+
   
 
   
@@ -417,15 +422,19 @@ private:
                          nsICSSStyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
                          PRBool aWasAlternate);
+
+  
+  void StartAlternateLoads();
+  
 public:
   
   void HandleLoadEvent(SheetLoadData* aEvent);
 
+protected:
   
   
   nsresult LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState);
 
-protected:
   friend class SheetLoadData;
 
   
@@ -439,14 +448,14 @@ protected:
                       SheetLoadData* aLoadData,
                       PRBool& aCompleted);
 
-public:
   
   
   void SheetComplete(SheetLoadData* aLoadData, nsresult aStatus);
 
-private:
+public:
   typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
   
+private:
   
   
   
@@ -481,6 +490,15 @@ private:
   
   
   LoadDataArray mPostedEvents;
+
+  
+  
+  
+  
+  PRUint32 mDatasToNotifyOn;
+
+  
+  nsTObserverArray<nsICSSLoaderObserver> mObservers;
 };
 
 #endif 

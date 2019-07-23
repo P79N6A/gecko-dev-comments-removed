@@ -237,6 +237,34 @@ public:
 
   NS_IMETHOD GetEnabled(PRBool *aEnabled) = 0;
   NS_IMETHOD SetEnabled(PRBool aEnabled) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD_(PRBool) HasPendingLoads() = 0;
+
+  
+
+
+
+
+
+
+
+
+  NS_IMETHOD AddObserver(nsICSSLoaderObserver* aObserver) = 0;
+
+  
+
+
+  NS_IMETHOD_(void) RemoveObserver(nsICSSLoaderObserver* aObserver) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICSSLoader, NS_ICSS_LOADER_IID)

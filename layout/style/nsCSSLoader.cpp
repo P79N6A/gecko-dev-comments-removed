@@ -263,7 +263,8 @@ CSSLoaderImpl::CSSLoaderImpl(void)
   : mDocument(nsnull), 
     mCaseSensitive(PR_FALSE),
     mEnabled(PR_TRUE), 
-    mCompatMode(eCompatibility_FullStandards)
+    mCompatMode(eCompatibility_FullStandards),
+    mDatasToNotifyOn(0)
 {
 }
 
@@ -304,15 +305,6 @@ CSSLoaderImpl::Init(nsIDocument* aDocument)
   return NS_OK;
 }
 
-PR_STATIC_CALLBACK(PLDHashOperator)
-StartAlternateLoads(nsURIAndPrincipalHashKey *aKey,
-                    SheetLoadData* &aData,
-                    void* aClosure)
-{
-  NS_STATIC_CAST(CSSLoaderImpl*,aClosure)->LoadSheet(aData, eSheetNeedsParser);
-  return PL_DHASH_REMOVE;
-}
-
 NS_IMETHODIMP
 CSSLoaderImpl::DropDocumentReference(void)
 {
@@ -320,8 +312,9 @@ CSSLoaderImpl::DropDocumentReference(void)
   
   
   
-  if (mPendingDatas.IsInitialized())
-    mPendingDatas.Enumerate(StartAlternateLoads, this);
+  if (mPendingDatas.IsInitialized()) {
+    StartAlternateLoads();
+  }
   return NS_OK;
 }
 
@@ -340,22 +333,20 @@ CSSLoaderImpl::SetCompatibilityMode(nsCompatibility aCompatMode)
 }
 
 PR_STATIC_CALLBACK(PLDHashOperator)
-StartNonAlternates(nsURIAndPrincipalHashKey *aKey,
-                   SheetLoadData* &aData,
-                   void* aClosure)
+CollectNonAlternates(nsURIAndPrincipalHashKey *aKey,
+                     SheetLoadData* &aData,
+                     void* aClosure)
 {
   NS_PRECONDITION(aData, "Must have a data");
-  NS_PRECONDITION(aClosure, "Must have a loader");
-  
-  CSSLoaderImpl* loader = NS_STATIC_CAST(CSSLoaderImpl*, aClosure);
+  NS_PRECONDITION(aClosure, "Must have an array");
   
   
-  if (loader->IsAlternate(aData->mTitle, PR_TRUE)) {
+  
+  if (aData->mLoader->IsAlternate(aData->mTitle, PR_TRUE)) {
     return PL_DHASH_NEXT;
   }
 
-  
-  loader->LoadSheet(aData, eSheetNeedsParser);
+  NS_STATIC_CAST(CSSLoaderImpl::LoadDataArray*,aClosure)->AppendElement(aData);
   return PL_DHASH_REMOVE;
 }
 
@@ -378,8 +369,17 @@ CSSLoaderImpl::SetPreferredSheet(const nsAString& aTitle)
   mPreferredSheet = aTitle;
 
   
-  if (mPendingDatas.IsInitialized())
-    mPendingDatas.Enumerate(StartNonAlternates, this);
+  if (mPendingDatas.IsInitialized()) {
+    LoadDataArray arr(mPendingDatas.Count());
+    mPendingDatas.Enumerate(CollectNonAlternates, &arr);
+
+    mDatasToNotifyOn += arr.Length();
+    for (PRUint32 i = 0; i < arr.Length(); ++i) {
+      --mDatasToNotifyOn;
+      LoadSheet(arr[i], eSheetNeedsParser);
+    }
+  }
+
   return NS_OK;
 }
 
@@ -1553,19 +1553,31 @@ CSSLoaderImpl::SheetComplete(SheetLoadData* aLoadData, nsresult aStatus)
 
   
   PRUint32 count = datasToNotify.Length();
+  mDatasToNotifyOn += count;
   for (PRUint32 i = 0; i < count; ++i) {
+    --mDatasToNotifyOn;
+    
     SheetLoadData* data = datasToNotify[i];
-    NS_ASSERTION(data && data->mMustNotify && data->mObserver,
-                 "How did this data get here?");
-    LOG(("  Notifying observer 0x%x for data 0x%s.  wasAlternate: %d",
-         data->mObserver.get(), data, data->mWasAlternate));
-    data->mObserver->StyleSheetLoaded(data->mSheet, data->mWasAlternate,
-                                      aStatus);
+    NS_ASSERTION(data && data->mMustNotify, "How did this data get here?");
+    if (data->mObserver) {
+      LOG(("  Notifying observer 0x%x for data 0x%s.  wasAlternate: %d",
+           data->mObserver.get(), data, data->mWasAlternate));
+      data->mObserver->StyleSheetLoaded(data->mSheet, data->mWasAlternate,
+                                        aStatus);
+    }
+
+    nsTObserverArray<nsICSSLoaderObserver>::ForwardIterator iter(mObservers);
+    nsCOMPtr<nsICSSLoaderObserver> obs;
+    while ((obs = iter.GetNext())) {
+      LOG(("  Notifying global observer 0x%x for data 0x%s.  wasAlternate: %d",
+           obs.get(), data, data->mWasAlternate));
+      obs->StyleSheetLoaded(data->mSheet, data->mWasAlternate, aStatus);
+    }
   }
 
   if (mLoadingDatas.Count() == 0 && mPendingDatas.Count() > 0) {
     LOG(("  No more loading sheets; starting alternates"));
-    mPendingDatas.Enumerate(StartAlternateLoads, this);
+    StartAlternateLoads();
   }
 }
 
@@ -1605,7 +1617,7 @@ CSSLoaderImpl::DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
 
     data->mSheet->SetModified(PR_FALSE); 
     data->mSheet->SetComplete();
-    if (data->mMustNotify && data->mObserver) {
+    if (data->mMustNotify && (data->mObserver || !mObservers.IsEmpty())) {
       
       
       aDatasToNotify.AppendElement(data);
@@ -2141,8 +2153,7 @@ StopLoadingSheetCallback(nsURIAndPrincipalHashKey* aKey,
   aData->mIsLoading = PR_FALSE; 
   aData->mIsCancelled = PR_TRUE;
   
-  NS_STATIC_CAST(CSSLoaderImpl*,aClosure)->SheetComplete(aData,
-                                                         NS_BINDING_ABORTED);
+  NS_STATIC_CAST(CSSLoaderImpl::LoadDataArray*,aClosure)->AppendElement(aData);
 
   return PL_DHASH_REMOVE;
 }
@@ -2150,24 +2161,53 @@ StopLoadingSheetCallback(nsURIAndPrincipalHashKey* aKey,
 NS_IMETHODIMP
 CSSLoaderImpl::Stop()
 {
+  PRUint32 pendingCount =
+    mPendingDatas.IsInitialized() ?  mPendingDatas.Count() : 0;
+  PRUint32 loadingCount =
+    mLoadingDatas.IsInitialized() ? mLoadingDatas.Count() : 0;
+  LoadDataArray arr(pendingCount + loadingCount + mPostedEvents.Length());
   
-  
-  if (mPendingDatas.IsInitialized() && mPendingDatas.Count() > 0) {
-    mPendingDatas.Enumerate(StopLoadingSheetCallback, this);
+  if (pendingCount) {
+    mPendingDatas.Enumerate(StopLoadingSheetCallback, &arr);
   }
-  if (mLoadingDatas.IsInitialized() && mLoadingDatas.Count() > 0) {
-    mLoadingDatas.Enumerate(StopLoadingSheetCallback, this);
+  if (loadingCount) {
+    mLoadingDatas.Enumerate(StopLoadingSheetCallback, &arr);
   }
-  for (PRUint32 i = 0; i < mPostedEvents.Length(); ++i) {
+
+  PRUint32 i;
+  for (i = 0; i < mPostedEvents.Length(); ++i) {
     SheetLoadData* data = mPostedEvents[i];
     data->mIsCancelled = PR_TRUE;
-    
-    NS_ADDREF(data);
-    data->mLoader->SheetComplete(data, NS_BINDING_ABORTED);
+    if (arr.AppendElement(data)) {
+      
+      NS_ADDREF(data);
+    }
+#ifdef DEBUG
+    else {
+      NS_NOTREACHED("We preallocated this memory... shouldn't really fail, "
+                    "except we never check that preallocation succeeds.");
+    }
+#endif
   }
   mPostedEvents.Clear();
+
+  mDatasToNotifyOn += arr.Length();
+  for (i = 0; i < arr.Length(); ++i) {
+    --mDatasToNotifyOn;
+    SheetComplete(arr[i], NS_BINDING_ABORTED);
+  }
   return NS_OK;
 }
+
+struct StopLoadingSheetsByURIClosure {
+  StopLoadingSheetsByURIClosure(nsIURI* aURI,
+                                CSSLoaderImpl::LoadDataArray& aArray) :
+    uri(aURI), array(aArray)
+  {}
+  
+  nsIURI* uri;
+  CSSLoaderImpl::LoadDataArray& array;
+};
 
 PR_STATIC_CALLBACK(PLDHashOperator)
 StopLoadingSheetByURICallback(nsURIAndPrincipalHashKey* aKey,
@@ -2177,15 +2217,16 @@ StopLoadingSheetByURICallback(nsURIAndPrincipalHashKey* aKey,
   NS_PRECONDITION(aData, "Must have a data!");
   NS_PRECONDITION(aClosure, "Must have a loader");
 
+  StopLoadingSheetsByURIClosure* closure =
+    NS_STATIC_CAST(StopLoadingSheetsByURIClosure*, aClosure);
+
   PRBool equal;
-  if (NS_SUCCEEDED(aData->mURI->Equals(NS_STATIC_CAST(nsIURI*, aClosure),
-                                       &equal)) &&
+  if (NS_SUCCEEDED(aData->mURI->Equals(closure->uri, &equal)) &&
       equal) {
     aData->mIsLoading = PR_FALSE; 
     aData->mIsCancelled = PR_TRUE;
 
-    aData->mLoader->SheetComplete(aData, NS_BINDING_ABORTED);
-
+    closure->array.AppendElement(aData);
     return PL_DHASH_REMOVE;
   }
 
@@ -2197,28 +2238,47 @@ CSSLoaderImpl::StopLoadingSheet(nsIURI* aURL)
 {
   NS_ENSURE_TRUE(aURL, NS_ERROR_NULL_POINTER);
 
-  
-  
-  if (mPendingDatas.IsInitialized() && mPendingDatas.Count() > 0) {
-    mPendingDatas.Enumerate(StopLoadingSheetByURICallback, aURL);
+  PRUint32 pendingCount =
+    mPendingDatas.IsInitialized() ?  mPendingDatas.Count() : 0;
+  PRUint32 loadingCount =
+    mLoadingDatas.IsInitialized() ? mLoadingDatas.Count() : 0;
+  LoadDataArray arr(pendingCount + loadingCount + mPostedEvents.Length());
+
+  StopLoadingSheetsByURIClosure closure(aURL, arr);
+  if (pendingCount) {
+    mPendingDatas.Enumerate(StopLoadingSheetByURICallback, &closure);
   }
-  if (mLoadingDatas.IsInitialized() && mLoadingDatas.Count() > 0) {
-    mLoadingDatas.Enumerate(StopLoadingSheetByURICallback, aURL);
+  if (loadingCount) {
+    mLoadingDatas.Enumerate(StopLoadingSheetByURICallback, &closure);
   }
 
-  for (PRUint32 i = 0; i < mPostedEvents.Length(); ++i) {
-    SheetLoadData* curData = mPostedEvents[i-1];
+  PRUint32 i;
+  for (i = 0; i < mPostedEvents.Length(); ++i) {
+    SheetLoadData* curData = mPostedEvents[i];
     PRBool equal;
     if (curData->mURI && NS_SUCCEEDED(curData->mURI->Equals(aURL, &equal)) &&
         equal) {
       curData->mIsCancelled = PR_TRUE;
-      
-      NS_ADDREF(curData);
-      SheetComplete(curData, NS_BINDING_ABORTED);
+      if (arr.AppendElement(curData)) {
+        
+        NS_ADDREF(curData);
+      }
+#ifdef DEBUG
+      else {
+        NS_NOTREACHED("We preallocated this memory... shouldn't really fail, "
+                      "except we never check that preallocation succeeds.");
+      }
+#endif
     }
   }
   mPostedEvents.Clear();
-          
+
+  mDatasToNotifyOn += arr.Length();
+  for (i = 0; i < arr.Length(); ++i) {
+    --mDatasToNotifyOn;
+    SheetComplete(arr[i], NS_BINDING_ABORTED);
+  }
+
   return NS_OK;
 }
 
@@ -2235,4 +2295,57 @@ CSSLoaderImpl::SetEnabled(PRBool aEnabled)
 {
   mEnabled = aEnabled;
   return NS_OK;
+}
+
+NS_IMETHODIMP_(PRBool)
+CSSLoaderImpl::HasPendingLoads()
+{
+  return
+    (mLoadingDatas.IsInitialized() && mLoadingDatas.Count() != 0) ||
+    (mPendingDatas.IsInitialized() && mPendingDatas.Count() != 0) ||
+    mPostedEvents.Length() != 0 ||
+    mDatasToNotifyOn != 0;
+}
+
+NS_IMETHODIMP
+CSSLoaderImpl::AddObserver(nsICSSLoaderObserver* aObserver)
+{
+  NS_PRECONDITION(aObserver, "Must have observer");
+  if (mObservers.AppendObserver(aObserver)) {
+    NS_ADDREF(aObserver);
+    return NS_OK;
+  }
+
+  return NS_ERROR_OUT_OF_MEMORY;
+}
+
+NS_IMETHODIMP_(void)
+CSSLoaderImpl::RemoveObserver(nsICSSLoaderObserver* aObserver)
+{
+  if (mObservers.RemoveObserver(aObserver)) {
+    NS_RELEASE(aObserver);
+  }
+}
+
+PR_STATIC_CALLBACK(PLDHashOperator)
+CollectLoadDatas(nsURIAndPrincipalHashKey *aKey,
+                 SheetLoadData* &aData,
+                 void* aClosure)
+{
+  NS_STATIC_CAST(CSSLoaderImpl::LoadDataArray*,aClosure)->AppendElement(aData);
+  return PL_DHASH_REMOVE;
+}
+
+void
+CSSLoaderImpl::StartAlternateLoads()
+{
+  NS_PRECONDITION(mPendingDatas.IsInitialized(), "Don't call me!");
+  LoadDataArray arr(mPendingDatas.Count());
+  mPendingDatas.Enumerate(CollectLoadDatas, &arr);
+
+  mDatasToNotifyOn += arr.Length();
+  for (PRUint32 i = 0; i < arr.Length(); ++i) {
+    --mDatasToNotifyOn;
+    LoadSheet(arr[i], eSheetNeedsParser);
+  }
 }

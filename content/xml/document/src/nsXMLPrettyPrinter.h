@@ -73,7 +73,9 @@ public:
 
 
 
-    nsresult PrettyPrint(nsIDocument* aDocument);
+
+
+    nsresult PrettyPrint(nsIDocument* aDocument, PRBool* aDidPrettyPrint);
 
 private:
     
