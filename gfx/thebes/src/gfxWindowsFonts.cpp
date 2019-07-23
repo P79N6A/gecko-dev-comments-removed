@@ -497,8 +497,9 @@ static void MakeUniqueFontName(nsAString& aName)
 
 
 FontEntry* 
-FontEntry::CreateFontEntry(const gfxProxyFontEntry &aProxyEntry, nsISupports *aLoader,
-             const PRUint8 *aFontData, PRUint32 aLength) {
+FontEntry::CreateFontEntry(const gfxProxyFontEntry &aProxyEntry, 
+                           nsISupports *aLoader,const PRUint8 *aFontData, 
+                           PRUint32 aLength) {
     
     if (!TTLoadEmbeddedFontPtr || !TTDeleteEmbeddedFontPtr)
         return nsnull;
