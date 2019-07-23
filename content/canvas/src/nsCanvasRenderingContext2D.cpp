@@ -3154,14 +3154,9 @@ nsCanvasRenderingContext2D::ThebesSurfaceFromElement(nsIDOMElement *imgElt,
         if (!forceCopy && canvas->CountContexts() == 1) {
             nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
             rv = srcCanvas->GetThebesSurface(getter_AddRefs(sourceSurface));
-#ifndef WINCE
             
             
             if (sourceSurface == mSurface || NS_FAILED(rv))
-#else
-            
-            if (NS_FAILED(rv))
-#endif
                 sourceSurface = nsnull;
         }
 
