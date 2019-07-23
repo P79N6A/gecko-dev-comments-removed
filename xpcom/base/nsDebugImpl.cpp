@@ -369,8 +369,11 @@ static void
 Abort(const char *aMsg)
 {
 #if defined(_WIN32)
+
+#ifndef WINCE
   
   raise(SIGABRT);
+#endif
   
   _exit(3);
 #elif defined(XP_UNIX)
