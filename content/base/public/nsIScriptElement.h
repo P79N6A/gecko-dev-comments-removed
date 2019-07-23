@@ -47,8 +47,8 @@
 #include "nsIParser.h"
 
 #define NS_ISCRIPTELEMENT_IID \
-{ 0xa28c198e, 0x14f0, 0x42b1, \
-{ 0x8f, 0x6b, 0x0e, 0x7f, 0xca, 0xb4, 0xf4, 0xe8 } }
+{ 0xa9d5732a, 0x8c1f, 0x439d, \
+{ 0x83, 0x75, 0x3d, 0xf6, 0xa9, 0xba, 0xa3, 0x7d } }
 
 
 
@@ -62,6 +62,9 @@ public:
       mIsEvaluated(PR_FALSE),
       mMalformed(PR_FALSE),
       mDoneAddingChildren(PR_TRUE),
+      mFrozen(PR_FALSE),
+      mDefer(PR_FALSE),
+      mAsync(PR_FALSE),
       mCreatorParser(nsnull)
   {
   }
@@ -76,7 +79,11 @@ public:
 
 
 
-  virtual already_AddRefed<nsIURI> GetScriptURI() = 0;
+  nsIURI* GetScriptURI()
+  {
+    NS_PRECONDITION(mFrozen, "Not ready for this call yet!");
+    return mUri;
+  }
   
   
 
@@ -88,12 +95,27 @@ public:
   
 
 
-  virtual PRBool GetScriptDeferred() = 0;
+
+
+  virtual void FreezeUriAsyncDefer() = 0;
 
   
 
 
-  virtual PRBool GetScriptAsync() = 0;
+  PRBool GetScriptDeferred()
+  {
+    NS_PRECONDITION(mFrozen, "Not ready for this call yet!");
+    return mDefer;
+  }
+
+  
+
+
+  PRBool GetScriptAsync()
+  {
+    NS_PRECONDITION(mFrozen, "Not ready for this call yet!");
+    return mAsync;  
+  }
 
   void SetScriptLineNumber(PRUint32 aLineNumber)
   {
@@ -134,8 +156,6 @@ public:
 
   void BeginEvaluating()
   {
-    
-    
     nsCOMPtr<nsIParser> parser = do_QueryReferent(mCreatorParser);
     if (parser) {
       parser->BeginEvaluatingParserInsertedScript();
@@ -147,8 +167,6 @@ public:
 
   void EndEvaluating()
   {
-    
-    
     nsCOMPtr<nsIParser> parser = do_QueryReferent(mCreatorParser);
     if (parser) {
       parser->EndEvaluatingParserInsertedScript();
@@ -165,11 +183,50 @@ public:
   }
 
 protected:
+  
+
+
   PRUint32 mLineNumber;
+  
+  
+
+
   PRPackedBool mIsEvaluated;
+  
+  
+
+
   PRPackedBool mMalformed;
+  
+  
+
+
   PRPackedBool mDoneAddingChildren;
-  nsWeakPtr    mCreatorParser;
+
+  
+
+
+  PRPackedBool mFrozen;
+  
+  
+
+
+  PRPackedBool mDefer;
+  
+  
+
+
+  PRPackedBool mAsync;
+  
+  
+
+
+  nsCOMPtr<nsIURI> mUri;
+  
+  
+
+
+  nsWeakPtr mCreatorParser;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptElement, NS_ISCRIPTELEMENT_IID)

@@ -76,12 +76,10 @@ public:
 
   
   virtual void GetScriptType(nsAString& type);
-  virtual already_AddRefed<nsIURI> GetScriptURI();
   virtual void GetScriptText(nsAString& text);
   virtual void GetScriptCharset(nsAString& charset);
-  virtual PRBool GetScriptDeferred();
-  virtual PRBool GetScriptAsync();
-
+  virtual void FreezeUriAsyncDefer();
+  
   
   virtual PRBool HasScriptContent();
 
@@ -199,22 +197,6 @@ nsSVGScriptElement::GetScriptType(nsAString& type)
   GetType(type);
 }
 
-
-
-
-already_AddRefed<nsIURI>
-nsSVGScriptElement::GetScriptURI()
-{
-  nsIURI *uri = nsnull;
-  nsAutoString src;
-  mStringAttributes[HREF].GetAnimValue(src, this);
-  if (!src.IsEmpty()) {
-    nsCOMPtr<nsIURI> baseURI = GetBaseURI();
-    NS_NewURI(&uri, src, nsnull, baseURI);
-  }
-  return uri;
-}
-
 void
 nsSVGScriptElement::GetScriptText(nsAString& text)
 {
@@ -227,16 +209,24 @@ nsSVGScriptElement::GetScriptCharset(nsAString& charset)
   charset.Truncate();
 }
 
-PRBool
-nsSVGScriptElement::GetScriptDeferred()
+void
+nsSVGScriptElement::FreezeUriAsyncDefer()
 {
-  return PR_FALSE;
-}
+  if (mFrozen) {
+    return;
+  }
 
-PRBool
-nsSVGScriptElement::GetScriptAsync()
-{
-  return PR_FALSE;
+  
+  
+  nsAutoString src;
+  mStringAttributes[HREF].GetAnimValue(src, this);
+  
+  if (!src.IsEmpty()) {
+    nsCOMPtr<nsIURI> baseURI = GetBaseURI();
+    NS_NewURI(getter_AddRefs(mUri), src, nsnull, baseURI);
+  }
+  
+  mFrozen = PR_TRUE;
 }
 
 
@@ -245,9 +235,10 @@ nsSVGScriptElement::GetScriptAsync()
 PRBool
 nsSVGScriptElement::HasScriptContent()
 {
-  nsAutoString str;
-  mStringAttributes[HREF].GetAnimValue(str, this);
-  return !str.IsEmpty() ||
+  nsAutoString src;
+  mStringAttributes[HREF].GetAnimValue(src, this);
+  
+  return (mFrozen ? !!mUri : !src.IsEmpty()) ||
          nsContentUtils::HasNonEmptyTextContent(this);
 }
 
@@ -278,7 +269,14 @@ nsresult
 nsSVGScriptElement::DoneAddingChildren(PRBool aHaveNotified)
 {
   mDoneAddingChildren = PR_TRUE;
-  return MaybeProcessScript();
+  nsresult rv = MaybeProcessScript();
+  if (!mIsEvaluated) {
+    
+    
+    mFrozen = PR_FALSE;
+    mUri = nsnull;
+  }
+  return rv;
 }
 
 nsresult
