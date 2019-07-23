@@ -55,7 +55,16 @@ var SidebarUtils = {
       var x = { }, y = { }, w = { }, h = { };
       tbo.getCoordsForCellItem(row.value, col.value, "image",
                                x, y, w, h);
-      mouseInGutter = aEvent.clientX < x.value;
+      
+      
+      
+      
+      
+      var isRTL = window.getComputedStyle(aTree, null).direction == "rtl";
+      if (isRTL)
+        mouseInGutter = aEvent.clientX > x.value;
+      else
+        mouseInGutter = aEvent.clientX < x.value;
     }
 
 #ifdef XP_MACOSX
