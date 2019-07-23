@@ -65,6 +65,8 @@ class nsChildContentList;
 class nsNodeWeakReference;
 class nsNodeSupportsWeakRefTearoff;
 class nsIEditor;
+class nsIVariant;
+class nsIDOMUserDataHandler;
 
 namespace mozilla {
 namespace dom {
@@ -967,6 +969,41 @@ public:
   virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
 
   void GetBaseURI(nsAString &aURI) const;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult SetUserData(const nsAString& aKey, nsIVariant* aData,
+                       nsIDOMUserDataHandler* aHandler, nsIVariant** aResult);
+
+  
+
+
+
+
+
+
+
+  nsIVariant* GetUserData(const nsAString& aKey)
+  {
+    nsCOMPtr<nsIAtom> key = do_GetAtom(aKey);
+    if (!key) {
+      return nsnull;
+    }
+
+    return static_cast<nsIVariant*>(GetProperty(DOM_USER_DATA, key));
+  }
 
 protected:
 

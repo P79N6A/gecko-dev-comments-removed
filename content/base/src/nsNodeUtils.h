@@ -40,9 +40,9 @@
 
 #include "nsDOMAttributeMap.h"
 #include "nsIDOMNode.h"
-#include "nsIMutationObserver.h"
 #include "nsINode.h"
 
+struct CharacterDataChangeInfo;
 struct JSContext;
 struct JSObject;
 class nsIVariant;
@@ -199,39 +199,6 @@ public:
 
     return rv;
   }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult SetUserData(nsINode *aNode, const nsAString &aKey,
-                              nsIVariant *aData,
-                              nsIDOMUserDataHandler *aHandler,
-                              nsIVariant **aResult);
-
-  
-
-
-
-
-
-
-
-
-
-  static nsresult GetUserData(nsINode *aNode, const nsAString &aKey,
-                              nsIVariant **aResult);
 
   
 
