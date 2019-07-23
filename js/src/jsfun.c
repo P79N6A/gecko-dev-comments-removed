@@ -2087,15 +2087,11 @@ Function(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
     if (argc) {
         str = js_ValueToString(cx, argv[argc-1]);
+        if (!str)
+            return JS_FALSE;
+        argv[argc-1] = STRING_TO_JSVAL(str);
     } else {
-        
-        str = js_NewStringCopyZ(cx, js_empty_ucstr, 0);
-    }
-    if (!str)
-        return JS_FALSE;
-    if (argv) {
-        
-        argv[(intN)(argc-1)] = STRING_TO_JSVAL(str);
+        str = cx->runtime->emptyString;
     }
 
     mark = JS_ARENA_MARK(&cx->tempPool);
