@@ -848,53 +848,53 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
   
   
   
+  
 
   aToken.mType = eCSSToken_InvalidURL;
   nsString& ident = aToken.mIdent;
   ident.SetLength(0);
 
-  if (ch == ')') {
-    Pushback(ch);
-    
-    aToken.mType = eCSSToken_URL;
-  } else {
-    
-    Pushback(ch);
-    PRBool ok = PR_TRUE;
-    for (;;) {
-      ch = Read();
-      if (ch < 0) break;
-      if (ch == CSS_ESCAPE) {
-        ParseAndAppendEscape(ident);
-      } else if ((ch == '"') || (ch == '\'') || (ch == '(')) {
-        
-        ok = PR_FALSE;
-      } else if (IsWhitespace(ch)) {
-        
+  Pushback(ch);
+
+  
+  PRBool ok = PR_TRUE;
+  for (;;) {
+    ch = Read();
+    if (ch < 0) break;
+    if (ch == CSS_ESCAPE) {
+      ParseAndAppendEscape(ident);
+    } else if ((ch == '"') || (ch == '\'') || (ch == '(')) {
+      
+      ok = PR_FALSE;
+      Pushback(ch); 
+                    
+      break;
+    } else if (IsWhitespace(ch)) {
+      
         EatWhiteSpace();
         if (LookAhead(')')) {
-          Pushback(')');  
-          
-          break;
-        }
-        
-        
-        ok = PR_FALSE;
-      } else if (ch == ')') {
-        Pushback(ch);
+        Pushback(')');  
         
         break;
-      } else {
-        
-        ident.Append(PRUnichar(ch));
       }
+      
+      
+      ok = PR_FALSE;
+      break;
+    } else if (ch == ')') {
+      Pushback(ch);
+      
+      break;
+    } else {
+      
+      ident.Append(PRUnichar(ch));
     }
+  }
 
-    
-    
-    if (ok) {
-      aToken.mType = eCSSToken_URL;
-    }
+  
+  
+  if (ok) {
+    aToken.mType = eCSSToken_URL;
   }
   return PR_TRUE;
 }
