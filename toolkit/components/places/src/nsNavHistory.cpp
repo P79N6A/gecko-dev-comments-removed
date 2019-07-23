@@ -3516,52 +3516,70 @@ PlacesSQLQueryBuilder::SelectAsDay()
     
     
     
-    nsCAutoString sqlFragmentBeginTime;
-    nsCAutoString sqlFragmentEndTime;
+    
+    nsCAutoString sqlFragmentContainerBeginTime, sqlFragmentContainerEndTime;
+    
+    nsCAutoString sqlFragmentSearchBeginTime, sqlFragmentSearchEndTime;
     switch(i) {
        case 0:
         
          history->GetStringFromName(
           NS_LITERAL_STRING("finduri-AgeInDays-is-0").get(), dateName);
         
-        sqlFragmentBeginTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','utc')*1000000)");
         
-        sqlFragmentEndTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','+1 day','utc')*1000000)");
+        
+        sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
+        sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
          break;
        case 1:
         
          history->GetStringFromName(
           NS_LITERAL_STRING("finduri-AgeInDays-is-1").get(), dateName);
         
-        sqlFragmentBeginTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','-1 day','utc')*1000000)");
         
-        sqlFragmentEndTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','utc')*1000000)");
+        
+        sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
+        sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
         break;
       case 2:
         
         history->GetAgeInDaysString(7,
           NS_LITERAL_STRING("finduri-AgeInDays-last-is").get(), dateName);
         
-        sqlFragmentBeginTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','-7 days','utc')*1000000)");
         
-        sqlFragmentEndTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','+1 day','utc')*1000000)");
+        
+        
+        sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
+        sqlFragmentSearchEndTime = NS_LITERAL_CSTRING(
+          "(strftime('%s','now','localtime','start of day','-2 days','utc')*1000000)");
         break;
       case 3:
         
         history->GetStringFromName(
           NS_LITERAL_STRING("finduri-AgeInMonths-is-0").get(), dateName);
         
-        sqlFragmentBeginTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of month','utc')*1000000)");
         
-        sqlFragmentEndTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of day','+1 day','utc')*1000000)");
+        
+        
+        sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
+        sqlFragmentSearchEndTime = NS_LITERAL_CSTRING(
+          "(strftime('%s','now','localtime','start of day','-7 days','utc')*1000000)");
          break;
        default:
         if (i == additionalContainers + 6) {
@@ -3569,11 +3587,14 @@ PlacesSQLQueryBuilder::SelectAsDay()
           history->GetAgeInDaysString(6,
             NS_LITERAL_STRING("finduri-AgeInMonths-isgreater").get(), dateName);
           
-          sqlFragmentBeginTime = NS_LITERAL_CSTRING(
+          sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
             "(datetime(0, 'unixepoch')*1000000)");
           
-          sqlFragmentEndTime = NS_LITERAL_CSTRING(
+          sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
             "(strftime('%s','now','localtime','start of day','-6 months','utc')*1000000)");
+          
+          sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
+          sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
           break;
         }
         PRInt32 MonthIndex = i - additionalContainers;
@@ -3592,17 +3613,20 @@ PlacesSQLQueryBuilder::SelectAsDay()
           dateName.Append(nsPrintfCString(" %d", tm.tm_year));
 
         
-        sqlFragmentBeginTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of month','-");
-        sqlFragmentBeginTime.AppendInt(MonthIndex);
-        sqlFragmentBeginTime.Append(NS_LITERAL_CSTRING(
+        sqlFragmentContainerBeginTime.AppendInt(MonthIndex);
+        sqlFragmentContainerBeginTime.Append(NS_LITERAL_CSTRING(
             " months','utc')*1000000)"));
         
-        sqlFragmentEndTime = NS_LITERAL_CSTRING(
+        sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
           "(strftime('%s','now','localtime','start of month','-");
-        sqlFragmentEndTime.AppendInt(MonthIndex - 1);
-        sqlFragmentEndTime.Append(NS_LITERAL_CSTRING(
+        sqlFragmentContainerEndTime.AppendInt(MonthIndex - 1);
+        sqlFragmentContainerEndTime.Append(NS_LITERAL_CSTRING(
             " months','utc')*1000000)"));
+        
+        sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
+        sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
         break;
     }
  
@@ -3625,13 +3649,13 @@ PlacesSQLQueryBuilder::SelectAsDay()
            "LIMIT 1 "
         ") ",
       dateName.get(),
-      sqlFragmentBeginTime.get(),
-      sqlFragmentEndTime.get(),
-      sqlFragmentBeginTime.get(),
-      sqlFragmentEndTime.get(),
+      sqlFragmentContainerBeginTime.get(),
+      sqlFragmentContainerEndTime.get(),
+      sqlFragmentSearchBeginTime.get(),
+      sqlFragmentSearchEndTime.get(),
        nsINavHistoryService::TRANSITION_EMBED,
-      sqlFragmentBeginTime.get(),
-      sqlFragmentEndTime.get(),
+      sqlFragmentSearchBeginTime.get(),
+      sqlFragmentSearchEndTime.get(),
       nsINavHistoryService::TRANSITION_EMBED);
 
     mQueryString.Append(dayRange);
