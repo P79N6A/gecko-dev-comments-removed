@@ -172,6 +172,7 @@ JSScope::createTable(JSContext *cx, bool report)
             JS_ReportOutOfMemory(cx);
         return false;
     }
+    cx->updateMallocCounter(JS_BIT(sizeLog2) * sizeof(JSScopeProperty *));
 
     hashShift = JS_DHASH_BITS - sizeLog2;
     for (sprop = lastProp; sprop; sprop = sprop->parent) {
@@ -409,6 +410,9 @@ JSScope::changeTable(JSContext *cx, int change)
     removedCount = 0;
     oldtable = table;
     table = newtable;
+
+    
+    cx->runtime->gcMallocBytes += nbytes;
 
     
     for (oldspp = oldtable; oldsize != 0; oldspp++) {
