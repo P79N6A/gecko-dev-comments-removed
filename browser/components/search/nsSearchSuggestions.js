@@ -198,6 +198,15 @@ SuggestAutoCompleteResult.prototype = {
 
 
 
+
+  getImageAt: function(index) {
+    return "";
+  },
+
+  
+
+
+
   removeValueAt: function(index, removeFromDatabase) {
     
     

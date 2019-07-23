@@ -65,6 +65,8 @@ protected:
   
   nsStringArray mValues;
   nsStringArray mComments;
+  nsStringArray mImages;
+  nsStringArray mStyles;
 
   nsString mSearchString;
   nsString mErrorDescription;
