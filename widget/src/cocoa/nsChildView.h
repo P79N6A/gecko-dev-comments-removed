@@ -174,8 +174,6 @@ enum {
   
   nsIDragService* mDragService;
   
-  PRUint32 mLastModifierState;
-
   
   
   
