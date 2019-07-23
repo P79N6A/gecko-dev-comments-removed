@@ -1347,7 +1347,7 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
         return NS_OK;
     }
 
-    if (mRequestHead.PeekHeader(nsHttp::Range)) {
+    if (mRequestHead.PeekHeader(nsHttp::Range) || mResuming) {
         
         
         
