@@ -581,9 +581,16 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
+    
+    
+    
+    
+    
+    
     PRBool skipIncremental = !(GetStateBits() & NS_FRAME_IS_DIRTY)
       && !NS_SUBTREE_DIRTY(child)
       && child->GetNextSibling()
+      && !(aUnboundedLastColumn && columnCount == aConfig.mBalanceColCount - 1)
       && !NS_SUBTREE_DIRTY(child->GetNextSibling());
     
     
@@ -1017,6 +1024,10 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.mCarriedOutBottomMargin = carriedOutBottomMargin;
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+
+  NS_ASSERTION(NS_FRAME_IS_COMPLETE(aStatus) ||
+               aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE,
+               "Column set should be complete if the available height is unconstrained");
 
   return NS_OK;
 }
