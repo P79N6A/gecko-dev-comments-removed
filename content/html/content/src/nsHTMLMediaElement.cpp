@@ -1346,10 +1346,13 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
   }
 
   
-  if (stats.mTotalBytes < 0 || stats.mTotalBytes == stats.mDownloadPosition) {
-    
-    
-    
+  
+  
+  
+  
+  
+  if (stats.mTotalBytes < 0 ? stats.mDownloadRateReliable :
+                              stats.mTotalBytes == stats.mDownloadPosition) {
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
     return;
   }
