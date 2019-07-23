@@ -483,36 +483,37 @@ struct REHashFn {
 };
 
 struct FrameInfo {
-    JSObject*       callee;     
     JSObject*       block;      
     jsbytecode*     pc;         
     jsbytecode*     imacpc;     
-    uint16          spdist;     
-
-    
-
-
-
-    uint16          argc;
+    uint32          spdist;     
 
     
 
 
 
 
-
-
-
-
-    int32          spoffset;
+    uint32          argc;
 
     
-    enum { CONSTRUCTING_MASK = 0x8000 };
+
+
+
+
+
+
+    uint32          callerHeight;
+
+    
+    uint32          callerArgc;
+
+    
+    enum { CONSTRUCTING_FLAG = 0x10000 };
     void   set_argc(uint16 argc, bool constructing) {
-        this->argc = argc | (constructing ? CONSTRUCTING_MASK : 0);
+        this->argc = uint32(argc) | (constructing ? CONSTRUCTING_FLAG: 0);
     }
-    uint16 get_argc() const { return argc & ~CONSTRUCTING_MASK; }
-    bool   is_constructing() const { return (argc & CONSTRUCTING_MASK) != 0; }
+    uint16 get_argc() const { return argc & ~CONSTRUCTING_FLAG; }
+    bool   is_constructing() const { return (argc & CONSTRUCTING_FLAG) != 0; }
 
     
     JSTraceType* get_typemap() { return (JSTraceType*) (this+1); }

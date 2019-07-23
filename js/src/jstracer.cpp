@@ -2363,6 +2363,22 @@ FlushNativeGlobalFrame(JSContext *cx, double *global, unsigned ngslots,
 
 
 
+static int32
+StackDepthFromCallStack(InterpState* state, uint32 callDepth)
+{
+    int32 nativeStackFramePos = 0;
+
+    
+    for (FrameInfo** fip = state->callstackBase; fip < state->rp + callDepth; fip++)
+        nativeStackFramePos += (*fip)->callerHeight;
+    return nativeStackFramePos;
+}
+
+
+
+
+
+
 
 
 
@@ -2380,9 +2396,22 @@ GetUpvarOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDepth, 
 
 
 
-    while (--fip >= state->callstackBase) {
+
+
+
+
+
+    int32 stackOffset = StackDepthFromCallStack(state, callDepth);
+    while (--fip > state->callstackBase) {
         FrameInfo* fi = *fip;
-        JSFunction* fun = GET_FUNCTION_PRIVATE(cx, fi->callee);
+
+        
+
+
+
+        stackOffset -= fi->callerHeight;
+        JSObject* callee = *(JSObject**)(&state->stackBase[stackOffset]);
+        JSFunction* fun = GET_FUNCTION_PRIVATE(cx, callee);
         uintN calleeLevel = fun->u.i.script->staticLevel;
         if (calleeLevel == upvarLevel) {
             
@@ -2390,14 +2419,8 @@ GetUpvarOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDepth, 
 
 
 
-
-            int32 nativeStackFramePos = state->callstackBase[0]->spoffset;
-            
-            for (FrameInfo** fip2 = state->callstackBase; fip2 <= fip; fip2++)
-                nativeStackFramePos += (*fip2)->spdist + 1 ;
-            nativeStackFramePos -= (3  + (*fip)->get_argc());
-            uint32 native_slot = T::native_slot((*fip)->get_argc(), slot);
-            *result = state->stackBase[nativeStackFramePos + native_slot];
+            uint32 native_slot = T::native_slot(fi->callerArgc, slot);
+            *result = state->stackBase[stackOffset + native_slot];
             return fi->get_typemap()[native_slot];
         }
     }
@@ -2477,7 +2500,8 @@ struct UpvarStackTraits {
 };
 
 uint32 JS_FASTCALL
-GetUpvarStackOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDepth, double* result)
+GetUpvarStackOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDepth,
+                     double* result)
 {
     return GetUpvarOnTrace<UpvarStackTraits>(cx, upvarLevel, slot, callDepth, result);
 }
@@ -2505,10 +2529,14 @@ GetFromClosure(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, 
     JS_ASSERT(OBJ_GET_CLASS(cx, call) == &js_CallClass);
 
     InterpState* state = cx->interpState;
+
+#ifdef DEBUG
+    int32 stackOffset = StackDepthFromCallStack(state, callDepth);
     FrameInfo** fip = state->rp + callDepth;
-    while (--fip >= state->callstackBase) {
+    while (--fip > state->callstackBase) {
         FrameInfo* fi = *fip;
-        if (fi->callee == call) {
+        JSObject* callee = *(JSObject**)(&state->stackBase[stackOffset]);
+        if (callee == call) {
             
             
             
@@ -2518,7 +2546,9 @@ GetFromClosure(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, 
             
             JS_NOT_REACHED("JSOP_NAME variable found in outer trace");
         }
+        stackOffset -= fi->callerHeight;
     }
+#endif
 
     
 
@@ -4544,13 +4574,11 @@ TrashTree(JSContext* cx, Fragment* f)
 }
 
 static int
-SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
+SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
 {
     VOUCH_DOES_NOT_REQUIRE_STACK();
 
-    JS_ASSERT(HAS_FUNCTION_CLASS(fi.callee));
-
-    JSFunction* fun = GET_FUNCTION_PRIVATE(cx, fi.callee);
+    JSFunction* fun = GET_FUNCTION_PRIVATE(cx, callee);
     JS_ASSERT(FUN_INTERPRETED(fun));
 
     
@@ -4625,7 +4653,7 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->frame.argsobj = NULL;
     newifp->frame.varobj = NULL;
     newifp->frame.script = script;
-    newifp->frame.callee = fi.callee; 
+    newifp->frame.callee = callee;
     newifp->frame.fun = fun;
 
     bool constructing = fi.is_constructing();
@@ -5713,12 +5741,16 @@ LeaveTree(InterpState& state, VMSideExit* lr)
 
     JS_ARENA_RELEASE(&cx->stackPool, state.stackMark);
     while (callstack < rp) {
+        FrameInfo* fi = *callstack;
+        
+        JSObject* callee = *(JSObject**)&stack[fi->callerHeight];
+
         
 
 
 
-        SynthesizeFrame(cx, **callstack);
-        int slots = FlushNativeStackFrame(cx, 1 , (JSTraceType*)(*callstack + 1),
+        SynthesizeFrame(cx, *fi, callee);
+        int slots = FlushNativeStackFrame(cx, 1 , (JSTraceType*)(fi + 1),
                                           stack, cx->fp);
 #ifdef DEBUG
         JSStackFrame* fp = cx->fp;
@@ -5746,8 +5778,14 @@ LeaveTree(InterpState& state, VMSideExit* lr)
     JS_ASSERT(rp == callstack);
     unsigned calldepth = innermost->calldepth;
     unsigned calldepth_slots = 0;
+    unsigned calleeOffset = 0;
     for (unsigned n = 0; n < calldepth; ++n) {
-        calldepth_slots += SynthesizeFrame(cx, *callstack[n]);
+        
+        calleeOffset += callstack[n]->callerHeight;
+        JSObject* callee = *(JSObject**)&stack[calleeOffset];
+
+        
+        calldepth_slots += SynthesizeFrame(cx, *callstack[n], callee);
         ++*state.inlineCallCountp;
 #ifdef DEBUG
         JSStackFrame* fp = cx->fp;
@@ -10621,10 +10659,8 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
     DetermineTypesVisitor detVisitor(*this, typemap);
     VisitStackSlots(detVisitor, cx, 0);
 
-    if (argc >= 0x8000)
-        ABORT_TRACE("too many arguments");
+    JS_ASSERT(argc < FrameInfo::CONSTRUCTING_FLAG);
 
-    fi->callee = JSVAL_TO_OBJECT(fval);
     treeInfo->gcthings.addUnique(fval);
     fi->block = fp->blockChain;
     if (fp->blockChain)
@@ -10633,13 +10669,12 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
     fi->imacpc = fp->imacpc;
     fi->spdist = fp->regs->sp - fp->slots;
     fi->set_argc(argc, constructing);
-    fi->spoffset = 2  + fp->argc;
+    fi->callerHeight = NativeStackSlots(cx, 0) - (2 + argc);
+    fi->callerArgc = fp->argc;
 
     unsigned callDepth = getCallDepth();
     if (callDepth >= treeInfo->maxCallDepth)
         treeInfo->maxCallDepth = callDepth + 1;
-    if (callDepth == 0)
-        fi->spoffset = -fp->script->nfixed;
 
     lir->insStorei(INS_CONSTPTR(fi), lirbuf->rp, callDepth * sizeof(FrameInfo*));
 
