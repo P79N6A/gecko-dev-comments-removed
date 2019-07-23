@@ -2870,7 +2870,6 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt;
     JSGCCallback callback;
-    bool keepAtoms;
     JSTracer trc;
     JSGCArena *emptyArenas, *a, **ap;
 #ifdef JS_THREADSAFE
@@ -3149,20 +3148,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     }
 #endif
 
-    if (gckind & GC_KEEP_ATOMS) {
-        
-
-
-
-        keepAtoms = true;
-    } else {
-        
-
-
-
-        keepAtoms = (rt->gcKeepAtoms != 0);
+    
+    if (!(gckind & GC_KEEP_ATOMS))
         JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
-    }
 
   restart:
     rt->gcNumber++;
@@ -3181,8 +3169,15 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         JS_ASSERT(!a->info.hasMarkedDoubles);
 #endif
 
-    js_TraceRuntime(&trc, keepAtoms);
-    js_MarkScriptFilenames(rt, keepAtoms);
+    {
+        
+
+
+
+        bool keepAtoms = (gckind & GC_KEEP_ATOMS) || rt->gcKeepAtoms != 0;
+        js_TraceRuntime(&trc, keepAtoms);
+        js_MarkScriptFilenames(rt, keepAtoms);
+    }
 
     
 
