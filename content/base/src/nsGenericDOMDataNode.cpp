@@ -297,8 +297,7 @@ nsGenericDOMDataNode::SubstringData(PRUint32 aStart, PRUint32 aCount,
 {
   aReturn.Truncate();
 
-  
-  PRUint32 textLength = PRUint32( mText.GetLength() );
+  PRUint32 textLength = mText.GetLength();
   if (aStart > textLength) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
@@ -366,6 +365,20 @@ nsGenericDOMDataNode::SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
+  if (aCount > textLength - aOffset) {
+    aCount = textLength - aOffset;
+  }
+
+  PRUint32 endOffset = aOffset + aCount;
+
+  
+  if (aLength > aCount && !mText.CanGrowBy(aLength - aCount)) {
+    
+    
+
+    return NS_ERROR_DOM_DOMSTRING_SIZE_ERR;
+  }
+
   nsIDocument *document = GetCurrentDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
 
@@ -379,12 +392,6 @@ nsGenericDOMDataNode::SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
     oldValue = GetCurrentValueAtom();
   }
     
-  PRUint32 endOffset = aOffset + aCount;
-  if (endOffset > textLength) {
-    aCount = textLength - aOffset;
-    endOffset = textLength;
-  }
-
   if (aNotify) {
     CharacterDataChangeInfo info = {
       aOffset == textLength,
@@ -412,10 +419,10 @@ nsGenericDOMDataNode::SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
     NS_ENSURE_TRUE(to, NS_ERROR_OUT_OF_MEMORY);
 
     
-    if (0 != aOffset) {
+    if (aOffset) {
       mText.CopyTo(to, 0, aOffset);
     }
-    if (0 != aLength) {
+    if (aLength) {
       memcpy(to + aOffset, aBuffer, aLength * sizeof(PRUnichar));
     }
     if (endOffset != textLength) {
