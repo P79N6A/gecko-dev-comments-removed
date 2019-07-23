@@ -909,6 +909,9 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
   
   
   *aIsOffscreen = PR_TRUE;
+  if (!mDOMNode) {
+    return PR_FALSE; 
+  }
 
   const PRUint16 kMinPixels  = 12;
    
@@ -978,8 +981,11 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
     }
   }
 
-  if (rectVisibility == nsRectVisibility_kZeroAreaRect || !mDOMNode) {
-    return PR_FALSE;   
+  if (rectVisibility == nsRectVisibility_kZeroAreaRect && frame && 
+      0 == (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+    
+    
+    return PR_FALSE;
   }
   
   
