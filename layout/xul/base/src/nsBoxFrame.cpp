@@ -722,6 +722,7 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
     prefSize = GetPrefSize(state);
     nsSize minSize = GetMinSize(state);
     nsSize maxSize = GetMaxSize(state);
+    
     prefSize = BoundsCheck(minSize, prefSize, maxSize);
   }
 
@@ -730,23 +731,25 @@ nsBoxFrame::Reflow(nsPresContext*          aPresContext,
 
   if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
     computedSize.height = prefSize.height;
+    
+    
+    nscoord outsideBoxSizing = 0;
+    switch (GetStylePosition()->mBoxSizing) {
+      case NS_STYLE_BOX_SIZING_CONTENT:
+        outsideBoxSizing = aReflowState.mComputedBorderPadding.TopBottom();
+        
+      case NS_STYLE_BOX_SIZING_PADDING:
+        outsideBoxSizing -= aReflowState.mComputedPadding.TopBottom();
+        break;
+    }
+    computedSize.height -= outsideBoxSizing;
+    
+    
+    aReflowState.ApplyMinMaxConstraints(nsnull, &computedSize.height);
+    computedSize.height += outsideBoxSizing;
   } else {
     computedSize.height += m.top + m.bottom;
   }
-
-  
-
-  if (computedSize.width > aReflowState.mComputedMaxWidth)
-    computedSize.width = aReflowState.mComputedMaxWidth;
-
-  if (computedSize.height > aReflowState.mComputedMaxHeight)
-    computedSize.height = aReflowState.mComputedMaxHeight;
-
-  if (computedSize.width < aReflowState.mComputedMinWidth)
-    computedSize.width = aReflowState.mComputedMinWidth;
-
-  if (computedSize.height < aReflowState.mComputedMinHeight)
-    computedSize.height = aReflowState.mComputedMinHeight;
 
   nsRect r(mRect.x, mRect.y, computedSize.width, computedSize.height);
 
