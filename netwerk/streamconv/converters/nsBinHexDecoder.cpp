@@ -98,7 +98,7 @@ NS_INTERFACE_MAP_END
 
 
 
-static char binhex_decode[256] =
+static signed char binhex_decode[256] =
 {
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
