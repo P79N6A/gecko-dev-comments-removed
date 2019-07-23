@@ -119,10 +119,6 @@ toolbarbutton.bookmark-item[open="true"] {
   display: -moz-box !important;
 }
 
-.bookmark-item[container] > .toolbarbutton-icon {
-  display: none !important;
-}
-
 .bookmarks-toolbar-customize {
   display: none;
   max-width: 15em !important;
