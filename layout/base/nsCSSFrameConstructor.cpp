@@ -1288,12 +1288,13 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
     
     
     
+    nsIFrame* insertionPoint = nsnull;
     if (!lastChild ||
         nsLayoutUtils::CompareTreePosition(lastChild, firstNewFrame, containingBlock) < 0) {
       
-      rv = containingBlock->AppendFrames(aChildListName, firstNewFrame);
+      
+      insertionPoint = lastChild;
     } else {
-      nsIFrame* insertionPoint = nsnull;
       
       for (nsIFrame* f = firstChild; f != lastChild; f = f->GetNextSibling()) {
         PRInt32 compare =
@@ -1305,10 +1306,10 @@ nsFrameConstructorState::ProcessFrameInsertions(nsAbsoluteItems& aFrameItems,
         }
         insertionPoint = f;
       }
-
-      rv = containingBlock->InsertFrames(aChildListName, insertionPoint,
-                                         firstNewFrame);
     }
+
+    rv = containingBlock->InsertFrames(aChildListName, insertionPoint,
+                                       firstNewFrame);
   }
   aFrameItems.childList = nsnull;
   
