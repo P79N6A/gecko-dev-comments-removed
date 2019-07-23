@@ -80,9 +80,9 @@ private:
   
   PRBool                  mHaveButtons;
   
-  THUMBBUTTON             mThumbButtons[nsITaskbarWindowPreview::MAX_TOOLBAR_BUTTONS];
+  THUMBBUTTON             mThumbButtons[nsITaskbarWindowPreview::NUM_TOOLBAR_BUTTONS];
   
-  nsWeakPtr               mWeakButtons[nsITaskbarWindowPreview::MAX_TOOLBAR_BUTTONS];
+  nsWeakPtr               mWeakButtons[nsITaskbarWindowPreview::NUM_TOOLBAR_BUTTONS];
 
   friend class TaskbarPreviewButton;
 };
