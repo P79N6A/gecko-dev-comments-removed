@@ -115,7 +115,7 @@ nsSVGForeignObjectFrame::AttributeChanged(PRInt32         aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      PostChildDirty();
+      RequestReflow(nsIPresShell::eStyleChange);
       UpdateGraphic();
     } else if (aAttribute == nsGkAtoms::x ||
                aAttribute == nsGkAtoms::y) {
@@ -140,26 +140,18 @@ nsSVGForeignObjectFrame::DidSetStyleContext()
  void
 nsSVGForeignObjectFrame::MarkIntrinsicWidthsDirty()
 {
-  if (GetStateBits() & NS_FRAME_FIRST_REFLOW)
-    
-    return;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  
-  
-  
-  nsIFrame* kid = GetFirstChild(nsnull);
-  if (!kid)
-    return;
-  
-  
-  
-  
-  kid->AddStateBits(NS_FRAME_IS_DIRTY);
-  
-  
-  
-  PresContext()->PresShell()->FrameNeedsReflow(kid,
-                                                  nsIPresShell::eResize);
+  RequestReflow(nsIPresShell::eResize);
 }
 
 NS_IMETHODIMP
@@ -363,6 +355,11 @@ NS_IMETHODIMP
 nsSVGForeignObjectFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
 {
   mCanvasTM = nsnull;
+  
+  
+  
+  
+  RequestReflow(nsIPresShell::eResize);
   UpdateGraphic();
   return NS_OK;
 }
@@ -487,13 +484,18 @@ nsSVGForeignObjectFrame::GetCanvasTM()
 
 
 
-void nsSVGForeignObjectFrame::PostChildDirty()
+void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
 {
+  if (GetStateBits() & NS_FRAME_FIRST_REFLOW)
+    
+    return;
+
   nsIFrame* kid = GetFirstChild(nsnull);
   if (!kid)
     return;
-  PresContext()->PresShell()->
-    FrameNeedsReflow(kid, nsIPresShell::eStyleChange);
+
+  kid->AddStateBits(NS_FRAME_IS_DIRTY);
+  PresContext()->PresShell()->FrameNeedsReflow(kid, aType);
 }
 
 void nsSVGForeignObjectFrame::UpdateGraphic()
