@@ -111,7 +111,7 @@ public:
   NS_IMETHOD GetParent(nsIAccessible **aParentAccessible);
 
   
-  NS_IMETHOD GetContentText(nsAString& aText);
+  NS_IMETHOD AppendTextTo(nsAString& aText, PRUint32 aStartOffset, PRUint32 aLength);
 
 protected:
   

@@ -90,6 +90,8 @@ class nsIAccessible;
 class nsDisplayListBuilder;
 class nsDisplayListSet;
 class nsDisplayList;
+class gfxSkipChars;
+class gfxSkipCharsIterator;
 
 struct nsPeekOffsetStruct;
 struct nsPoint;
@@ -1397,6 +1399,28 @@ public:
                                     nsIRenderingContext& aRC,
                                     nscoord& aDeltaWidth,
                                     PRBool& aLastCharIsJustifiable) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult GetRenderedText(nsAString* aAppendToString = nsnull,
+                                   gfxSkipChars* aSkipChars = nsnull,
+                                   gfxSkipCharsIterator* aSkipIter = nsnull,
+                                   PRUint32 aSkippedStartOffset = 0,
+                                   PRUint32 aSkippedMaxLength = PR_UINT32_MAX)
+  { return NS_ERROR_NOT_IMPLEMENTED; }
 
   
 

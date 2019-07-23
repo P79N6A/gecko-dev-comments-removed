@@ -60,7 +60,7 @@ public:
   NS_IMETHOD GetChildCount(PRInt32 *_retval);
 
   
-  NS_IMETHOD GetContentText(nsAString& aText);
+  NS_IMETHOD AppendTextTo(nsAString& aText, PRUint32 aStartOffset, PRUint32 aLength);
 };
 
 

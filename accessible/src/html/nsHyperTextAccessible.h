@@ -87,6 +87,14 @@ public:
   void CacheChildren();
 
   
+  static nsresult ContentToRenderedOffset(nsIFrame *aFrame, PRInt32 aContentOffset,
+                                          PRUint32 *aRenderedOffset);
+  
+  
+  static nsresult RenderedToContentOffset(nsIFrame *aFrame, PRUint32 aRenderedOffset,
+                                          PRInt32 *aContentOffset);
+
+  
 
 
 
@@ -101,9 +109,9 @@ public:
 
 
 
-  nsresult DOMPointToOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset,
-                            PRInt32 *aResultOffset,
-                            nsIAccessible **aFinalAccessible = nsnull);
+  nsresult DOMPointToHypertextOffset(nsIDOMNode* aNode, PRInt32 aNodeOffset,
+                                     PRInt32 *aHypertextOffset,
+                                     nsIAccessible **aFinalAccessible = nsnull);
 
 protected:
   PRBool IsHyperText();
@@ -149,7 +157,7 @@ protected:
   nsIFrame* GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset, nsAString *aText = nsnull,
                           nsIFrame **aEndFrame = nsnull, nsIntRect *aBoundsRect = nsnull);
 
-  nsIntRect GetBoundsForString(nsIFrame *aFrame, PRInt32 aStartOffset, PRInt32 aLength);
+  nsIntRect GetBoundsForString(nsIFrame *aFrame, PRInt32 aStartContentOffset, PRInt32 aEndContentOffset);
 
   
   virtual void SetEditor(nsIEditor *aEditor) { return; }
