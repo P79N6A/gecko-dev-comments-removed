@@ -3704,7 +3704,10 @@ nsContentUtils::IsNativeAnonymous(nsIContent* aContent)
     
     
     NS_ASSERTION(!aContent->IsNativeAnonymous() ||
-                 !aContent->GetCurrentDoc(),
+                 !aContent->GetCurrentDoc() ||
+                 (aContent->GetParent() &&
+                  aContent->GetParent()->NodeInfo()->
+                    Equals(nsGkAtoms::use, kNameSpaceID_SVG)),
                  "Native anonymous node with wrong binding parent");
     aContent = bindingParent;
   }
