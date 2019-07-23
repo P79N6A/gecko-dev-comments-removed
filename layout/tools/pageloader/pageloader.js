@@ -150,7 +150,6 @@ function plInit() {
                      browserWindow.focus();
 
                      content = browserWindow.getBrowser();
-                     content.addEventListener('load', plLoadHandler, true);
                      setTimeout(plLoadPage, 100);
                    }, 500);
       };
