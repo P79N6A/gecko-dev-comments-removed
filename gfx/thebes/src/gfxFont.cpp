@@ -1428,7 +1428,7 @@ gfxFontGroup::BuildFontList()
 {
 
 
-#if defined(XP_MACOSX) || defined(XP_WIN)
+#if defined(XP_MACOSX) || (defined(XP_WIN) && !defined(WINCE))
     ForEachFont(FindPlatformFont, this);
 
     if (mFonts.Length() == 0) {
