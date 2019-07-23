@@ -567,14 +567,6 @@ nsHTMLContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
     
     
     viewManager->InsertChild(parentView, view, insertBefore, insertBefore != nsnull);
-
-    if (nsnull != aContentParentFrame) {
-      nsIView* zParentView = aContentParentFrame->GetClosestView();
-      if (zParentView != parentView) {
-        insertBefore = nsLayoutUtils::FindSiblingViewFor(zParentView, aFrame);
-        viewManager->InsertZPlaceholder(zParentView, view, insertBefore, insertBefore != nsnull);
-      }
-    }
   }
 
   
