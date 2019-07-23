@@ -72,6 +72,7 @@ const NC_ALWAYS_ASK         = NC_NS + "alwaysAsk";
 
 
 const NC_PREFERRED_APP      = NC_NS + "externalApplication";
+const NC_POSSIBLE_APP       = NC_NS + "possibleApplication";
 
 
 
@@ -120,6 +121,7 @@ HandlerService.prototype = {
     this._ensureRecordsForType(aHandlerInfo);
     this._storePreferredAction(aHandlerInfo);
     this._storePreferredHandler(aHandlerInfo);
+    this._storePossibleHandlers(aHandlerInfo);
     this._storeAlwaysAsk(aHandlerInfo);
 
     
@@ -164,20 +166,20 @@ HandlerService.prototype = {
     switch(aHandlerInfo.preferredAction) {
       case Ci.nsIHandlerInfo.saveToDisk:
         this._setLiteral(infoID, NC_SAVE_TO_DISK, "true");
-        this._removeValue(infoID, NC_HANDLE_INTERNALLY);
-        this._removeValue(infoID, NC_USE_SYSTEM_DEFAULT);
+        this._removeTarget(infoID, NC_HANDLE_INTERNALLY);
+        this._removeTarget(infoID, NC_USE_SYSTEM_DEFAULT);
         break;
 
       case Ci.nsIHandlerInfo.handleInternally:
         this._setLiteral(infoID, NC_HANDLE_INTERNALLY, "true");
-        this._removeValue(infoID, NC_SAVE_TO_DISK);
-        this._removeValue(infoID, NC_USE_SYSTEM_DEFAULT);
+        this._removeTarget(infoID, NC_SAVE_TO_DISK);
+        this._removeTarget(infoID, NC_USE_SYSTEM_DEFAULT);
         break;
 
       case Ci.nsIHandlerInfo.useSystemDefault:
         this._setLiteral(infoID, NC_USE_SYSTEM_DEFAULT, "true");
-        this._removeValue(infoID, NC_SAVE_TO_DISK);
-        this._removeValue(infoID, NC_HANDLE_INTERNALLY);
+        this._removeTarget(infoID, NC_SAVE_TO_DISK);
+        this._removeTarget(infoID, NC_HANDLE_INTERNALLY);
         break;
 
       
@@ -186,9 +188,9 @@ HandlerService.prototype = {
       
       case Ci.nsIHandlerInfo.useHelperApp:
       default:
-        this._removeValue(infoID, NC_SAVE_TO_DISK);
-        this._removeValue(infoID, NC_HANDLE_INTERNALLY);
-        this._removeValue(infoID, NC_USE_SYSTEM_DEFAULT);
+        this._removeTarget(infoID, NC_SAVE_TO_DISK);
+        this._removeTarget(infoID, NC_HANDLE_INTERNALLY);
+        this._removeTarget(infoID, NC_USE_SYSTEM_DEFAULT);
         break;
     }
   },
@@ -199,20 +201,13 @@ HandlerService.prototype = {
     var handler = aHandlerInfo.preferredApplicationHandler;
 
     if (handler) {
-      
-      
-      
-      this._setLiteral(handlerID, NC_PRETTY_NAME, handler.name);
-      if (handler instanceof Ci.nsILocalHandlerApp) {
-        this._setLiteral(handlerID, NC_PATH, handler.executable.path);
-        this._removeValue(handlerID, NC_URI_TEMPLATE);
-      }
-      else {
-        handler.QueryInterface(Ci.nsIWebHandlerApp);
-        this._setLiteral(handlerID, NC_URI_TEMPLATE, handler.uriTemplate);
-        this._removeValue(handlerID, NC_PATH);
-      }
+      this._storeHandlerApp(handlerID, handler);
 
+      
+      
+      
+      
+      
       
       
       
@@ -221,10 +216,89 @@ HandlerService.prototype = {
     else {
       
       
-      this._removeValue(handlerID, NC_PRETTY_NAME);
-      this._removeValue(handlerID, NC_PATH);
-      this._removeValue(handlerID, NC_URI_TEMPLATE);
-      this._removeValue(infoID, NC_PREFERRED_APP);
+      this._removeTarget(infoID, NC_PREFERRED_APP);
+      this._removeAssertions(handlerID);
+    }
+  },
+
+  
+
+
+
+
+
+  _storePossibleHandlers: function HS__storePossibleHandlers(aHandlerInfo) {
+    var infoID = this._getInfoID(aHandlerInfo);
+
+    
+    
+    
+    var currentHandlerApps = {};
+    var currentHandlerTargets = this._getTargets(infoID, NC_POSSIBLE_APP);
+    while (currentHandlerTargets.hasMoreElements()) {
+      let handlerApp = currentHandlerTargets.getNext();
+      if (handlerApp instanceof Ci.nsIRDFResource) {
+        let handlerAppID = handlerApp.Value;
+        currentHandlerApps[handlerAppID] = true;
+      }
+    }
+
+    
+    var newHandlerApps =
+      aHandlerInfo.possibleApplicationHandlers.enumerate();
+    while (newHandlerApps.hasMoreElements()) {
+      let handlerApp =
+        newHandlerApps.getNext().QueryInterface(Ci.nsIHandlerApp);
+      let handlerAppID = this._getPossibleHandlerAppID(handlerApp);
+      if (!this._hasResourceTarget(infoID, NC_POSSIBLE_APP, handlerAppID)) {
+        this._storeHandlerApp(handlerAppID, handlerApp);
+        this._addResourceTarget(infoID, NC_POSSIBLE_APP, handlerAppID);
+      }
+      delete currentHandlerApps[handlerAppID];
+    }
+
+    
+    
+    
+    
+    
+    for (let handlerAppID in currentHandlerApps) {
+      this._removeTarget(infoID, NC_POSSIBLE_APP, handlerAppID);
+      if (!this._existsResourceTarget(NC_POSSIBLE_APP, handlerAppID))
+        this._removeAssertions(handlerAppID);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _storeHandlerApp: function HS__storeHandlerApp(aHandlerAppID, aHandlerApp) {
+    aHandlerApp.QueryInterface(Ci.nsIHandlerApp);
+    this._setLiteral(aHandlerAppID, NC_PRETTY_NAME, aHandlerApp.name);
+
+    
+    
+    
+    
+    
+
+    if (aHandlerApp instanceof Ci.nsILocalHandlerApp) {
+      this._setLiteral(aHandlerAppID, NC_PATH, aHandlerApp.executable.path);
+      this._removeTarget(aHandlerAppID, NC_URI_TEMPLATE);
+    }
+    else {
+      aHandlerApp.QueryInterface(Ci.nsIWebHandlerApp);
+      this._setLiteral(aHandlerAppID, NC_URI_TEMPLATE, aHandlerApp.uriTemplate);
+      this._removeTarget(aHandlerAppID, NC_PATH);
     }
   },
 
@@ -387,6 +461,30 @@ HandlerService.prototype = {
 
 
 
+  _getPossibleHandlerAppID: function HS__getPossibleHandlerAppID(aHandlerApp) {
+    var handlerAppID = "urn:handler:";
+
+    if (aHandlerApp instanceof Ci.nsILocalHandlerApp)
+      handlerAppID += "local:" + aHandlerApp.executable.path;
+    else {
+      aHandlerApp.QueryInterface(Ci.nsIWebHandlerApp);
+      handlerAppID += "web:" + aHandlerApp.uriTemplate;
+    }
+
+    return handlerAppID;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
 
   _ensureAndGetTypeList: function HS__ensureAndGetTypeList(aClass) {
     
@@ -529,6 +627,21 @@ HandlerService.prototype = {
 
 
 
+
+  _getTargets: function HS__getTargets(sourceURI, propertyURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+
+    return this._ds.GetTargets(source, property, true);
+  },
+
+  
+
+
+
+
+
+
   _setLiteral: function HS__setLiteral(sourceURI, propertyURI, value) {
     var source = this._rdf.GetResource(sourceURI);
     var property = this._rdf.GetResource(propertyURI);
@@ -544,15 +657,18 @@ HandlerService.prototype = {
 
 
 
-  _setResource: function HS__setResource(sourceURI, propertyURI, resourceURI) {
+  _setResource: function HS__setResource(sourceURI, propertyURI, targetURI) {
     var source = this._rdf.GetResource(sourceURI);
     var property = this._rdf.GetResource(propertyURI);
-    var target = this._rdf.GetResource(resourceURI);
+    var target = this._rdf.GetResource(targetURI);
     
     this._setTarget(source, property, target);
   },
 
   
+
+
+
 
 
 
@@ -576,7 +692,66 @@ HandlerService.prototype = {
 
 
 
-  _removeValue: function HS__removeValue(sourceURI, propertyURI) {
+
+
+
+
+
+  _addResourceTarget: function HS__addResourceTarget(sourceURI, propertyURI,
+                                                     targetURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetResource(targetURI);
+    
+    this._ds.Assert(source, property, target, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _hasResourceTarget: function HS__hasResourceTarget(sourceURI, propertyURI,
+                                                     targetURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetResource(targetURI);
+
+    return this._ds.HasAssertion(source, property, target, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _existsResourceTarget: function HS__existsResourceTarget(propertyURI,
+                                                           targetURI) {
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetResource(targetURI);
+
+    return this._ds.hasArcIn(target, property);
+  },
+
+  
+
+
+
+
+
+  _removeTarget: function HS__removeTarget(sourceURI, propertyURI) {
     var source = this._rdf.GetResource(sourceURI);
     var property = this._rdf.GetResource(propertyURI);
 

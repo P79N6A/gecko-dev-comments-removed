@@ -37,10 +37,27 @@
 function run_test() {
   
   
+
+  const handlerSvc = Cc["@mozilla.org/uriloader/handler-service;1"].
+                     getService(Ci.nsIHandlerService);
+
+  const mimeSvc = Cc["@mozilla.org/uriloader/external-helper-app-service;1"].
+                  getService(Ci.nsIMIMEService);
+
+
+  
+  
+
+  
+  
   
   
   
   var executable = HandlerServiceTest._dirSvc.get("TmpD", Ci.nsIFile);
+  
+  
+  
+  
 
   var localHandler = {
     name: "Local Handler",
@@ -57,12 +74,24 @@ function run_test() {
                    createInstance(Ci.nsIWebHandlerApp);
   webHandler.name = "Web Handler";
   webHandler.uriTemplate = "http://www.example.com/?%s";
-  
-  var handlerSvc = Cc["@mozilla.org/uriloader/handler-service;1"].
-                   getService(Ci.nsIHandlerService);
 
-  var mimeSvc = Cc["@mozilla.org/uriloader/external-helper-app-service;1"].
-                getService(Ci.nsIMIMEService);
+
+  
+  
+
+  function checkLocalHandlersAreEquivalent(handler1, handler2) {
+    do_check_eq(handler1.name, handler2.name);
+    do_check_eq(handler1.executable.path, handler2.executable.path);
+  }
+
+  function checkWebHandlersAreEquivalent(handler1, handler2) {
+    do_check_eq(handler1.name, handler2.name);
+    do_check_eq(handler1.uriTemplate, handler2.uriTemplate);
+  }
+
+  
+  
+  
 
 
   
@@ -167,6 +196,70 @@ function run_test() {
   removePreferredHandlerInfo =
     mimeSvc.getFromTypeAndExtension("nonexistent/rem-preferred-handler", null);
   do_check_eq(removePreferredHandlerInfo.preferredApplicationHandler, null);
+
+  
+  
+
+  
+  var possibleHandlersInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/possible-handlers", null);
+  do_check_eq(possibleHandlersInfo.possibleApplicationHandlers.length, 0);
+
+  
+  
+  handlerSvc.store(possibleHandlersInfo);
+  possibleHandlersInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/possible-handlers", null);
+  do_check_eq(possibleHandlersInfo.possibleApplicationHandlers.length, 0);
+
+  
+  
+  possibleHandlersInfo.possibleApplicationHandlers.appendElement(localHandler,
+                                                                 false);
+  possibleHandlersInfo.possibleApplicationHandlers.appendElement(webHandler,
+                                                                 false);
+  handlerSvc.store(possibleHandlersInfo);
+  possibleHandlersInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/possible-handlers", null);
+  do_check_eq(possibleHandlersInfo.possibleApplicationHandlers.length, 2);
+
+  
+  
+  
+  var handler1 = possibleHandlersInfo.possibleApplicationHandlers.
+                 queryElementAt(0, Ci.nsIHandlerApp);
+  var handler2 = possibleHandlersInfo.possibleApplicationHandlers.
+                 queryElementAt(1, Ci.nsIHandlerApp);
+  var localPossibleHandler, webPossibleHandler, localIndex;
+  if (handler1 instanceof Ci.nsILocalHandlerApp)
+    [localPossibleHandler, webPossibleHandler, localIndex] = [handler1,
+                                                              handler2,
+                                                              0];
+  else
+    [localPossibleHandler, webPossibleHandler, localIndex] = [handler2,
+                                                              handler1,
+                                                              1];
+  localPossibleHandler.QueryInterface(Ci.nsILocalHandlerApp);
+  webPossibleHandler.QueryInterface(Ci.nsIWebHandlerApp);
+
+  
+  checkLocalHandlersAreEquivalent(localPossibleHandler, localHandler);
+  checkWebHandlersAreEquivalent(webPossibleHandler, webHandler);
+
+  
+  
+  possibleHandlersInfo.possibleApplicationHandlers.removeElementAt(localIndex);
+  handlerSvc.store(possibleHandlersInfo);
+  possibleHandlersInfo =
+    mimeSvc.getFromTypeAndExtension("nonexistent/possible-handlers", null);
+  do_check_eq(possibleHandlersInfo.possibleApplicationHandlers.length, 1);
+
+  
+  checkWebHandlersAreEquivalent(possibleHandlersInfo.
+                                  possibleApplicationHandlers.
+                                  queryElementAt(0, Ci.nsIHandlerApp).
+                                  QueryInterface(Ci.nsIWebHandlerApp),
+                                webHandler);
 
   
   
