@@ -14,50 +14,54 @@ function run_test()
 
 
 
-  
-  dump("INFO | test_crashreporter.js | Disable crashreporter.\n");
-  cr.enabled = false;
-  do_check_false(cr.enabled);
-
-  try {
-    let su = cr.serverURL;
-    do_throw("Getting serverURL when disabled should have thrown!");
-  }
-  catch (ex) {
-    do_check_eq(ex.result, Components.results.NS_ERROR_NOT_INITIALIZED);
-  }
-
-  try {
-    let mdp = cr.minidumpPath;
-    do_throw("Getting minidumpPath when disabled should have thrown!");
-  }
-  catch (ex) {
-    do_check_eq(ex.result, Components.results.NS_ERROR_NOT_INITIALIZED);
-  }
-
-  try {
-    cr.annotateCrashReport(null, null);
-    do_throw("Calling annotateCrashReport() when disabled should have thrown!");
-  }
-  catch (ex) {
-    do_check_eq(ex.result, Components.results.NS_ERROR_NOT_INITIALIZED);
-  }
-
-  try {
-    cr.appendAppNotesToCrashReport(null);
-    do_throw("Calling appendAppNotesToCrashReport() when disabled should have thrown!");
-  }
-  catch (ex) {
-    do_check_eq(ex.result, Components.results.NS_ERROR_NOT_INITIALIZED);
-  }
-
-  
 
 
 
-  dump("INFO | test_crashreporter.js | Re-enable crashreporter (in default state).\n");
-  
-  cr.enabled = true;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   do_check_true(cr.enabled);
   
   cr.enabled = true;
@@ -137,11 +141,14 @@ function run_test()
   cr.appendAppNotesToCrashReport("additional testData4");
 
   
-  cr.enabled = false;
-  do_check_false(cr.enabled);
-  
-  cr.enabled = false;
-  do_check_false(cr.enabled);
+
+
+
+
+
+
+
+
 
   
 
