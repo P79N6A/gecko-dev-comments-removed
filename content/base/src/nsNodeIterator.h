@@ -90,8 +90,11 @@ private:
 
         nsINode *mNode;
         
+        
         nsINode *mNodeParent;
         PRBool mBeforeNode;
+        
+        
         PRInt32 mIndexInParent;
     };
 
