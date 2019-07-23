@@ -184,6 +184,12 @@ public:
 
 
 
+  nsFrameList ExtractTail(FrameLinkEnumerator& aLink);
+
+  
+
+
+
 
 
   void SortByContentOrder();
@@ -351,6 +357,12 @@ public:
       Enumerator(aOther),
       mPrev(aOther.mPrev)
     {}
+
+    void operator=(const FrameLinkEnumerator& aOther) {
+      NS_PRECONDITION(&List() == &aOther.List(), "Different lists?");
+      mFrame = aOther.mFrame;
+      mPrev = aOther.mPrev;
+    }
 
     void Next() {
       mPrev = mFrame;

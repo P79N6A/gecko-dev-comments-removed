@@ -149,6 +149,13 @@ struct nsFrameItems : public nsFrameList {
                         newLastChild);
   }
 
+  nsFrameItems ExtractTail(FrameLinkEnumerator& aLink) {
+    nsIFrame* newLastChild = lastChild;
+    lastChild = aLink.PrevFrame();
+    return nsFrameItems(nsFrameList::ExtractTail(aLink),
+                        newLastChild);
+  }
+
   void Clear() {
     mFirstChild = lastChild = nsnull;
   }
@@ -1504,7 +1511,7 @@ private:
 
   void MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
                                 nsIFrame* aExistingEndFrame,
-                                nsIFrame* aFramesToMove,
+                                nsFrameItems& aFramesToMove,
                                 nsIFrame* aBlockPart,
                                 nsFrameConstructorState* aTargetState);
 

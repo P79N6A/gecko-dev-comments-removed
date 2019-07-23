@@ -564,33 +564,35 @@ GetIBContainingBlockFor(nsIFrame* aFrame)
 
 
 
-static nsIFrame*
-FindFirstBlock(nsIFrame* aKid, nsIFrame** aPrevKid)
+
+
+
+static void
+FindFirstBlock(nsFrameList::FrameLinkEnumerator& aLink)
 {
-  nsIFrame* prevKid = nsnull;
-  while (aKid) {
-    if (!IsInlineOutside(aKid)) {
-      *aPrevKid = prevKid;
-      return aKid;
+  for ( ; !aLink.AtEnd(); aLink.Next()) {
+    if (!IsInlineOutside(aLink.NextFrame())) {
+      return;
     }
-    prevKid = aKid;
-    aKid = aKid->GetNextSibling();
   }
-  *aPrevKid = nsnull;
-  return nsnull;
 }
 
-static nsIFrame*
-FindLastBlock(nsIFrame* aKid)
+
+
+
+
+static nsFrameList::FrameLinkEnumerator
+FindLastBlock(const nsFrameList& aList)
 {
-  nsIFrame* lastBlock = nsnull;
-  while (aKid) {
-    if (!IsInlineOutside(aKid)) {
-      lastBlock = aKid;
+  nsFrameList::FrameLinkEnumerator cur(aList), last(aList);
+  for ( ; !cur.AtEnd(); cur.Next()) {
+    if (!IsInlineOutside(cur.NextFrame())) {
+      last = cur;
+      last.Next();
     }
-    aKid = aKid->GetNextSibling();
   }
-  return lastBlock;
+
+  return last;
 }
 
 
@@ -1358,6 +1360,10 @@ AdjustFloatParentPtrs(nsIFrame*                aFrame,
     childFrame = childFrame->GetNextSibling();
   }
 }
+
+
+
+
 
 
 
@@ -5707,18 +5713,10 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
       !IsInlineFrame(aParentFrame) &&
       IsInlineOutside(aFrameList.lastChild)) {
     
-    nsIFrame* lastBlock = FindLastBlock(aFrameList.FirstChild());
-    nsIFrame* firstTrailingInline;
-    if (lastBlock) {
-      firstTrailingInline = lastBlock->GetNextSibling();
-      lastBlock->SetNextSibling(nsnull);
-      aFrameList.lastChild = lastBlock;
-    } else {
-      firstTrailingInline = aFrameList.FirstChild();
-      aFrameList = nsFrameItems();
-    }
+    nsFrameList::FrameLinkEnumerator lastBlock = FindLastBlock(aFrameList);
+    nsFrameItems inlineKids = aFrameList.ExtractTail(lastBlock);
 
-    NS_ASSERTION(firstTrailingInline, "How did that happen?");
+    NS_ASSERTION(inlineKids.NotEmpty(), "How did that happen?");
 
     nsIFrame* inlineSibling = GetSpecialSibling(aParentFrame);
     NS_ASSERTION(inlineSibling, "How did that happen?");
@@ -5729,7 +5727,7 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
                                         GetAbsoluteContainingBlock(stateParent),
                                         GetFloatContainingBlock(stateParent));
 
-    MoveFramesToEndOfIBSplit(aState, inlineSibling, firstTrailingInline,
+    MoveFramesToEndOfIBSplit(aState, inlineSibling, inlineKids,
                              aParentFrame, &targetState);
   }
     
@@ -6068,7 +6066,7 @@ nsCSSFrameConstructor::AddTextItemIfNeeded(nsFrameConstructorState& aState,
                                            FrameConstructionItemList& aItems)
 {
   NS_ASSERTION(aContentIndex >= 0 &&
-               aContentIndex < aParentContent->GetChildCount(),
+               PRUint32(aContentIndex) < aParentContent->GetChildCount(),
                "child index out of range");
   nsIContent* content = aParentContent->GetChildAt(aContentIndex);
   if (!content->IsNodeOfType(nsINode::eTEXT) ||
@@ -6088,7 +6086,7 @@ nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
                                            PRInt32 aContentIndex)
 {
   NS_ASSERTION(aContentIndex >= 0 &&
-               aContentIndex < aParentContent->GetChildCount(),
+               PRUint32(aContentIndex) < aParentContent->GetChildCount(),
                "child index out of range");
   nsIContent* content = aParentContent->GetChildAt(aContentIndex);
   if (!content->IsNodeOfType(nsINode::eTEXT) ||
@@ -10655,14 +10653,12 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
     return rv;
   }
 
-  nsIFrame* list1 = childItems.FirstChild();
-  nsIFrame* prevToFirstBlock;
-  nsIFrame* list2;
+  nsFrameList::FrameLinkEnumerator firstBlockEnumerator(childItems);
+  if (!aItem.mIsAllInline) {
+    FindFirstBlock(firstBlockEnumerator);
+  }
 
-  if (aItem.mIsAllInline ||
-      
-      
-      !(list2 = FindFirstBlock(list1, &prevToFirstBlock))) {
+  if (aItem.mIsAllInline || firstBlockEnumerator.AtEnd()) { 
     
     
     
@@ -10687,26 +10683,8 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
 
   
-  if (prevToFirstBlock) {
-    prevToFirstBlock->SetNextSibling(nsnull);
-  }
-  else {
-    list1 = nsnull;
-  }
-
-  
-  
-  nsIFrame* afterFirstBlock = list2->GetNextSibling();
-  nsIFrame* list3 = nsnull;
-  nsIFrame* lastBlock = FindLastBlock(afterFirstBlock);
-  if (!lastBlock) {
-    lastBlock = list2;
-  }
-  list3 = lastBlock->GetNextSibling();
-  lastBlock->SetNextSibling(nsnull);
-
-  
-  newFrame->SetInitialChildList(nsnull, list1);
+  nsFrameItems firstInlineKids = childItems.ExtractHead(firstBlockEnumerator);
+  newFrame->SetInitialChildList(nsnull, firstInlineKids);
                                              
   
   
@@ -10733,13 +10711,18 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_FALSE);
 
+  
+  
+  nsFrameList::FrameLinkEnumerator lastBlock = FindLastBlock(childItems);
+  nsFrameItems blockKids = childItems.ExtractHead(lastBlock);
+
   if (blockFrame->HasView() || newFrame->HasView()) {
     
-    nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext, list2,
-                                                list2->GetParent(), blockFrame);
+    nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext, blockKids,
+                                                newFrame, blockFrame);
   }
 
-  blockFrame->SetInitialChildList(nsnull, list2);
+  blockFrame->SetInitialChildList(nsnull, blockKids);
 
   nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
                                 GetAbsoluteContainingBlock(blockFrame),
@@ -10750,8 +10733,8 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   
   
-  MoveChildrenTo(state.mFrameManager, blockFrame, list2, nsnull, &state,
-                 &aState);
+  MoveChildrenTo(state.mFrameManager, blockFrame, blockKids.FirstChild(), nsnull,
+                 &state, &aState);
 
   
   nsIFrame* inlineFrame;
@@ -10768,8 +10751,9 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   nsHTMLContainerFrame::CreateViewForFrame(inlineFrame, PR_FALSE);
 
-  if (list3) {
-    MoveFramesToEndOfIBSplit(aState, inlineFrame, list3, blockFrame, nsnull);
+  if (childItems.NotEmpty()) {
+    MoveFramesToEndOfIBSplit(aState, inlineFrame, childItems, blockFrame,
+                             nsnull);
   }
 
   
@@ -10811,19 +10795,21 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
 void
 nsCSSFrameConstructor::MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
                                                 nsIFrame* aExistingEndFrame,
-                                                nsIFrame* aFramesToMove,
+                                                nsFrameItems& aFramesToMove,
                                                 nsIFrame* aBlockPart,
                                                 nsFrameConstructorState* aTargetState)
 {
   NS_PRECONDITION(aBlockPart, "Must have a block part");
   NS_PRECONDITION(aExistingEndFrame, "Must have trailing inline");
-  NS_PRECONDITION(aFramesToMove, "Must have frames to move");
+  NS_PRECONDITION(aFramesToMove.NotEmpty(), "Must have frames to move");
 
-  if (aExistingEndFrame->HasView() || aFramesToMove->GetParent()->HasView()) {
+  nsIFrame* newFirstChild = aFramesToMove.FirstChild();
+  if (aExistingEndFrame->HasView() ||
+      newFirstChild->GetParent()->HasView()) {
     
     nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext,
                                                 aFramesToMove,
-                                                aFramesToMove->GetParent(),
+                                                newFirstChild->GetParent(),
                                                 aExistingEndFrame);
   }
 
@@ -10836,7 +10822,7 @@ nsCSSFrameConstructor::MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
     aExistingEndFrame->InsertFrames(nsnull, nsnull, aFramesToMove);
   }
   nsFrameConstructorState* startState = aTargetState ? &aState : nsnull;
-  MoveChildrenTo(aState.mFrameManager, aExistingEndFrame, aFramesToMove,
+  MoveChildrenTo(aState.mFrameManager, aExistingEndFrame, newFirstChild,
                  existingFirstChild, aTargetState, startState);
 }
 

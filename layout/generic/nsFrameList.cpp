@@ -274,6 +274,14 @@ nsFrameList::ExtractHead(FrameLinkEnumerator& aLink)
                   aLink.PrevFrame()->GetNextSibling() ==
                     aLink.NextFrame(),
                   "Unexpected PrevFrame()");
+  NS_PRECONDITION(aLink.PrevFrame() ||
+                  aLink.NextFrame() == FirstChild(),
+                  "Unexpected NextFrame()");
+  NS_PRECONDITION(!aLink.PrevFrame() ||
+                  aLink.NextFrame() != FirstChild(),
+                  "Unexpected NextFrame()");
+  NS_PRECONDITION(aLink.mEnd == nsnull,
+                  "Unexpected mEnd for frame link enumerator");
 
   nsIFrame* prev = aLink.PrevFrame();
   nsIFrame* newFirstFrame = nsnull;
@@ -287,6 +295,43 @@ nsFrameList::ExtractHead(FrameLinkEnumerator& aLink)
     aLink.mPrev = nsnull;
   }
   
+
+  return nsFrameList(newFirstFrame);
+}
+
+nsFrameList
+nsFrameList::ExtractTail(FrameLinkEnumerator& aLink)
+{
+  NS_PRECONDITION(&aLink.List() == this, "Unexpected list");
+  NS_PRECONDITION(!aLink.PrevFrame() ||
+                  aLink.PrevFrame()->GetNextSibling() ==
+                    aLink.NextFrame(),
+                  "Unexpected PrevFrame()");
+  NS_PRECONDITION(aLink.PrevFrame() ||
+                  aLink.NextFrame() == FirstChild(),
+                  "Unexpected NextFrame()");
+  NS_PRECONDITION(!aLink.PrevFrame() ||
+                  aLink.NextFrame() != FirstChild(),
+                  "Unexpected NextFrame()");
+  NS_PRECONDITION(aLink.mEnd == nsnull,
+                  "Unexpected mEnd for frame link enumerator");
+
+  nsIFrame* prev = aLink.PrevFrame();
+  nsIFrame* newFirstFrame;
+  if (prev) {
+    
+    prev->SetNextSibling(nsnull);
+    newFirstFrame = aLink.NextFrame();
+  } else {
+    
+    newFirstFrame = mFirstChild;
+    mFirstChild = nsnull;
+  }
+
+  
+  aLink.mFrame = nsnull;
+
+  NS_POSTCONDITION(aLink.AtEnd(), "What's going on here?");
 
   return nsFrameList(newFirstFrame);
 }
