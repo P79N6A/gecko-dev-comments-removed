@@ -3838,7 +3838,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_MOUSEMOVE:
     {
-#ifdef WINCE
+#ifdef WINCE_WINDOWS_MOBILE
       
       
       SetTimer(mWnd, KILL_PRIORITY_ID, 2000 , NULL);
