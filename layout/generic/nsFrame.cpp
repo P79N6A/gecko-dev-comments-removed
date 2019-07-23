@@ -2218,11 +2218,18 @@ NS_IMETHODIMP nsFrame::HandleDrag(nsPresContext* aPresContext,
                                     getter_AddRefs(parentContent),
                                     &contentOffset, &target);      
 
+  nsWeakFrame weakThis = this;
   if (NS_SUCCEEDED(result) && parentContent) {
     frameselection->HandleTableSelection(parentContent, contentOffset, target, me);
   } else {
     nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this);
     frameselection->HandleDrag(this, pt);
+  }
+
+  
+  
+  if (!weakThis.IsAlive()) {
+    return NS_OK;
   }
 
   
