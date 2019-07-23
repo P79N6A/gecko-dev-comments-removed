@@ -52,7 +52,6 @@
 #include "nsISelection.h"
 #include "nsCaret.h"
 #include "plarena.h"
-#include "nsLayoutUtils.h"
 
 #include <stdlib.h>
 
@@ -184,10 +183,7 @@ public:
 
 
 
-  PRBool IsMovingFrame(nsIFrame* aFrame) {
-    return aFrame == mMovingFrame || (mMovingFrame &&
-       nsLayoutUtils::IsProperAncestorFrameCrossDoc(mMovingFrame, aFrame, mReferenceFrame));
-  }
+  PRBool IsMovingFrame(nsIFrame* aFrame);
   
 
 

@@ -115,6 +115,7 @@
 #include "nsDataHashtable.h"
 #include "nsDOMClassInfo.h"
 #include "nsFocusManager.h"
+#include "nsLayoutUtils.h"
 
 
 #include "nsIScriptGlobalObject.h"
