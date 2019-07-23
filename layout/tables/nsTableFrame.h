@@ -214,9 +214,6 @@ public:
   nsMargin GetChildAreaOffset(const nsHTMLReflowState* aReflowState) const;
 
   
-  nsMargin GetContentAreaOffset(const nsHTMLReflowState* aReflowState) const;
-
-  
   static nsTableFrame* GetTableFrame(nsIFrame* aSourceFrame);
                                  
   typedef nsresult (* DisplayGenericTablePartTraversal)
@@ -285,23 +282,23 @@ public:
                                   nsPoint aPt);
 
   
-  
-  
+
+
+
   nsMargin GetOuterBCBorder() const;
 
   
-  
+
+
   nsMargin GetIncludedOuterBCBorder() const;
 
   
-  
-  
-  
+
+
+
   nsMargin GetExcludedOuterBCBorder() const;
 
   
-
-
 
 
 
