@@ -90,6 +90,31 @@ protected:
         PRBool       mFound;
     };
 
+    
+
+
+
+
+
+
+    enum DatabaseElementType {
+        INDEX,
+        TABLE
+    };
+
+    
+
+
+
+
+
+
+
+
+    nsresult DatabaseElementExists(enum DatabaseElementType aElementType,
+                                   const nsACString& aElementName,
+                                   PRBool *_exists);
+
     void HandleSqliteError(const char *aSqlStatement);
     static PLDHashOperator s_FindFuncEnum(const nsACString &aKey,
                                           nsISupports* aData, void* userArg);
