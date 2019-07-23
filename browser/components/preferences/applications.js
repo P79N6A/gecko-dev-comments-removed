@@ -47,6 +47,7 @@
 
 
 
+
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cr = Components.results;
@@ -270,6 +271,25 @@ HandlerInfoWrapper.prototype = {
         return;
     }
     this.possibleApplicationHandlers.appendElement(aNewHandler, false);
+  },
+
+  removePossibleApplicationHandler: function(aHandler) {
+    var defaultApp = this.preferredApplicationHandler;
+    if (defaultApp && aHandler.equals(defaultApp)) {
+      
+      
+      this.alwaysAskBeforeHandling = true;
+      this.preferredApplicationHandler = null;
+    }
+
+    var handlers = this.possibleApplicationHandlers;
+    for (var i = 0; i < handlers.length; ++i) {
+      var handler = handlers.queryElementAt(i, Ci.nsIHandlerApp);
+      if (handler.equals(aHandler)) {
+        handlers.removeElementAt(i);
+        break;
+      }
+    }
   },
 
   get hasDefaultHandler() {
@@ -566,6 +586,7 @@ var feedHandlerInfo = {
     
     this._possibleApplicationHandlers = {
       _inner: [],
+      _removed: [],
 
       QueryInterface: function(aIID) {
         if (aIID.equals(Ci.nsIMutableArray) ||
@@ -576,12 +597,25 @@ var feedHandlerInfo = {
         throw Cr.NS_ERROR_NO_INTERFACE;
       },
 
+      get length() {
+        return this._inner.length;
+      },
+
       enumerate: function() {
         return new ArrayEnumerator(this._inner);
       },
 
       appendElement: function(aHandlerApp, aWeak) {
         this._inner.push(aHandlerApp);
+      },
+
+      removeElementAt: function(aIndex) {
+        this._removed.push(this._inner[aIndex]);
+        this._inner.splice(aIndex, 1);
+      },
+
+      queryElementAt: function(aIndex, aInterface) {
+        return this._inner[aIndex].QueryInterface(aInterface);
       }
     };
 
@@ -752,7 +786,24 @@ var feedHandlerInfo = {
   
   
   
-  store: function() {},
+  store: function() {
+    for each (let app in this._possibleApplicationHandlers._removed) {
+      if (app instanceof Ci.nsILocalHandlerApp) {
+        let pref = this.element(PREF_FEED_SELECTED_APP);
+        var preferredAppFile = pref.value;
+        if (preferredAppFile) {
+          let preferredApp = getLocalHandlerApp(preferredAppFile);
+          if (app.equals(preferredApp))
+            pref.reset();
+        }
+      }
+      else {
+        app.QueryInterface(Ci.nsIWebContentHandlerInfo);
+        this._converterSvc.removeContentHandler(app.contentType, app.uri);
+      }
+    }
+    this._possibleApplicationHandlers._removed = [];
+  },
 
 
   
@@ -1137,15 +1188,17 @@ var gApplicationsPane = {
 
       case Ci.nsIHandlerInfo.useHelperApp:
         var preferredApp = aHandlerInfo.preferredApplicationHandler;
+        var name;
         if (preferredApp instanceof Ci.nsILocalHandlerApp)
-          return getDisplayNameForFile(preferredApp.executable);
+          name = getDisplayNameForFile(preferredApp.executable);
         else
-          return preferredApp.name;
+          name = preferredApp.name;
+        return this._prefsBundle.getFormattedString("useApp", [name]);
 
       case Ci.nsIHandlerInfo.handleInternally:
         
         if (aHandlerInfo.type == TYPE_MAYBE_FEED)
-          return this._prefsBundle.getFormattedString("liveBookmarksInApp",
+          return this._prefsBundle.getFormattedString("addLiveBookmarksInApp",
                                                       [this._brandShortName]);
 
         
@@ -1162,10 +1215,11 @@ var gApplicationsPane = {
         
 
       case Ci.nsIHandlerInfo.useSystemDefault:
-        return aHandlerInfo.defaultDescription;
+        return this._prefsBundle.getFormattedString("useDefault",
+                                                    [aHandlerInfo.defaultDescription]);
 
       case kActionUsePlugin:
-        return this._prefsBundle.getFormattedString("pluginName",
+        return this._prefsBundle.getFormattedString("usePluginIn",
                                                     [aHandlerInfo.plugin.name,
                                                      this._brandShortName]);
     }
@@ -1247,7 +1301,7 @@ var gApplicationsPane = {
       menuPopup.removeChild(menuPopup.lastChild);
 
     {
-      var askMenuItem = document.createElementNS(kXULNS, "menuitem");
+      var askMenuItem = document.createElement("menuitem");
       askMenuItem.setAttribute("alwaysAsk", "true");
       let label;
       if (handlerInfo.type == TYPE_MAYBE_FEED)
@@ -1262,27 +1316,44 @@ var gApplicationsPane = {
     }
 
     
+    
+    
+    
+    if ((handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) &&
+        handlerInfo.type != TYPE_MAYBE_FEED) {
+      var saveMenuItem = document.createElement("menuitem");
+      saveMenuItem.setAttribute("action", Ci.nsIHandlerInfo.saveToDisk);
+      let label = this._prefsBundle.getString("saveFile");
+      saveMenuItem.setAttribute("label", label);
+      saveMenuItem.setAttribute("tooltiptext", label);
+      saveMenuItem.setAttribute(APP_ICON_ATTR_NAME, "save");
+      menuPopup.appendChild(saveMenuItem);
+    }
+
+    
     if (handlerInfo.type == TYPE_MAYBE_FEED) {
-      var internalMenuItem = document.createElementNS(kXULNS, "menuitem");
+      var internalMenuItem = document.createElement("menuitem");
       internalMenuItem.setAttribute("action", Ci.nsIHandlerInfo.handleInternally);
-      let label = this._prefsBundle.getFormattedString("liveBookmarksInApp",
+      let label = this._prefsBundle.getFormattedString("addLiveBookmarksInApp",
                                                        [this._brandShortName]);
       internalMenuItem.setAttribute("label", label);
       internalMenuItem.setAttribute("tooltiptext", label);
       internalMenuItem.setAttribute(APP_ICON_ATTR_NAME, "feed");
       menuPopup.appendChild(internalMenuItem);
-
-      
-      
-      let menuItem = document.createElementNS(kXULNS, "menuseparator");
-      menuPopup.appendChild(menuItem);
     }
 
     
+    
+    let menuItem = document.createElement("menuseparator");
+    menuPopup.appendChild(menuItem);
+
+    
     if (handlerInfo.hasDefaultHandler) {
-      var defaultMenuItem = document.createElementNS(kXULNS, "menuitem");
+      var defaultMenuItem = document.createElement("menuitem");
       defaultMenuItem.setAttribute("action", Ci.nsIHandlerInfo.useSystemDefault);
-      defaultMenuItem.setAttribute("label", handlerInfo.defaultDescription);
+      let label = this._prefsBundle.getFormattedString("useDefault",
+                                                       [handlerInfo.defaultDescription]);
+      defaultMenuItem.setAttribute("label", label);
       defaultMenuItem.setAttribute("tooltiptext", handlerInfo.defaultDescription);
       defaultMenuItem.setAttribute("image", this._getIconURLForSystemDefault(handlerInfo));
 
@@ -1298,13 +1369,14 @@ var gApplicationsPane = {
       if (!this.isValidHandlerApp(possibleApp))
         continue;
 
-      let menuItem = document.createElementNS(kXULNS, "menuitem");
+      let menuItem = document.createElement("menuitem");
       menuItem.setAttribute("action", Ci.nsIHandlerInfo.useHelperApp);
       let label;
       if (possibleApp instanceof Ci.nsILocalHandlerApp)
         label = getDisplayNameForFile(possibleApp.executable);
       else
         label = possibleApp.name;
+      label = this._prefsBundle.getFormattedString("useApp", [label]);
       menuItem.setAttribute("label", label);
       menuItem.setAttribute("tooltiptext", label);
       menuItem.setAttribute("image", this._getIconURLForHandlerApp(possibleApp));
@@ -1319,9 +1391,9 @@ var gApplicationsPane = {
 
     
     if (handlerInfo.plugin) {
-      var pluginMenuItem = document.createElementNS(kXULNS, "menuitem");
+      var pluginMenuItem = document.createElement("menuitem");
       pluginMenuItem.setAttribute("action", kActionUsePlugin);
-      let label = this._prefsBundle.getFormattedString("pluginName",
+      let label = this._prefsBundle.getFormattedString("usePluginIn",
                                                        [handlerInfo.plugin.name,
                                                         this._brandShortName]);
       pluginMenuItem.setAttribute("label", label);
@@ -1339,27 +1411,22 @@ var gApplicationsPane = {
     if (handlerInfo.type != executableType)
 #endif
     {
-      let menuItem = document.createElementNS(kXULNS, "menuitem");
+      let menuItem = document.createElement("menuitem");
       menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
-      let label = this._prefsBundle.getString("chooseApp");
+      let label = this._prefsBundle.getString("useOtherApp");
       menuItem.setAttribute("label", label);
       menuItem.setAttribute("tooltiptext", label);
       menuPopup.appendChild(menuItem);
     }
 
     
-    
-    
-    
-    if ((handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) &&
-        handlerInfo.type != TYPE_MAYBE_FEED) {
-      var saveMenuItem = document.createElementNS(kXULNS, "menuitem");
-      saveMenuItem.setAttribute("action", Ci.nsIHandlerInfo.saveToDisk);
-      let label = this._prefsBundle.getString("saveFile");
-      saveMenuItem.setAttribute("label", label);
-      saveMenuItem.setAttribute("tooltiptext", label);
-      saveMenuItem.setAttribute(APP_ICON_ATTR_NAME, "save");
-      menuPopup.appendChild(saveMenuItem);
+    if (possibleAppMenuItems.length) {
+      let menuItem = document.createElement("menuseparator");
+      menuPopup.appendChild(menuItem);
+      menuItem = document.createElement("menuitem");
+      menuItem.setAttribute("oncommand", "gApplicationsPane.manageApp(event)");
+      menuItem.setAttribute("label", this._prefsBundle.getString("manageApp"));
+      menuPopup.appendChild(menuItem);
     }
 
     
@@ -1551,6 +1618,28 @@ var gApplicationsPane = {
       typeItem.setAttribute("actionIcon",
                             this._getIconURLForPreferredAction(handlerInfo));
     }
+  },
+
+  manageApp: function(aEvent) {
+    
+    
+    aEvent.stopPropagation();
+
+    var typeItem = this._list.selectedItem;
+    var handlerInfo = this._handledTypes[typeItem.type];
+
+    document.documentElement.openSubDialog("chrome://browser/content/preferences/applicationManager.xul",
+                                           "", handlerInfo);
+
+    
+    
+    this.rebuildActionsMenu();
+
+    
+    typeItem.setAttribute("actionDescription",
+                          this._describePreferredAction(handlerInfo));
+    typeItem.setAttribute("actionIcon",
+                          this._getIconURLForPreferredAction(handlerInfo));
   },
 
   chooseApp: function(aEvent) {
