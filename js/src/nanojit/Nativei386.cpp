@@ -36,6 +36,8 @@
 
 
 
+
+
 #ifdef _MAC
 
 #include <CoreServices/CoreServices.h>
@@ -324,7 +326,10 @@ namespace nanojit
 		#elif defined DARWIN || defined AVMPLUS_LINUX
 			intptr_t addr = (intptr_t)&page->code;
 			addr &= ~((uintptr_t)NJ_PAGE_SIZE - 1);
-			mprotect((void *)addr, count*NJ_PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC);
+			if (mprotect((void *)addr, count*NJ_PAGE_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC) == -1) {
+                AvmDebugLog(("FATAL ERROR: mprotect(PROT_EXEC) failed\n"));
+                abort();
+            }
 		#endif
 			(void)enable;
 	}

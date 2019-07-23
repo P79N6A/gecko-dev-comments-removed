@@ -37,6 +37,8 @@
 
 
 
+
+
 #ifndef __nanojit_Fragmento__
 #define __nanojit_Fragmento__
 
@@ -61,7 +63,12 @@ namespace nanojit
             NIns code[(NJ_PAGE_SIZE-sizeof(PageHeader))/sizeof(NIns)];
         };
     };
-	typedef avmplus::List<Page*,avmplus::LIST_NonGCObjects>	AllocList;
+    struct AllocEntry
+    {
+        Page *page;
+        uint32_t allocSize;
+    };
+	typedef avmplus::List<AllocEntry*,avmplus::LIST_NonGCObjects>	AllocList;
 
 	typedef avmplus::GCSortedMap<const void*, uint32_t, avmplus::LIST_NonGCObjects> BlockSortedMap;
 	class BlockHist: public BlockSortedMap
