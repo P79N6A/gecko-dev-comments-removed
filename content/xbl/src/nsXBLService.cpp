@@ -1321,7 +1321,7 @@ NS_NewXBLService(nsIXBLService** aResult)
 
   
   
-  nsCOMPtr<nsIObserverService> os = do_GetService("@mozilla.org/observer-service;1");
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os)
     os->AddObserver(result, "memory-pressure", PR_TRUE);
 

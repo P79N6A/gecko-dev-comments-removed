@@ -338,8 +338,7 @@ nsProtocolProxyService::Init()
     }
 
     
-    nsCOMPtr<nsIObserverService> obs =
-            do_GetService("@mozilla.org/observer-service;1");
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs)
         obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
 

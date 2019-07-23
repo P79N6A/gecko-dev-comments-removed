@@ -839,10 +839,9 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     
     
     nsCOMPtr<nsIObserverService> obsSvc =
-      do_GetService("@mozilla.org/observer-service;1");
-    if (obsSvc) {
+      mozilla::services::GetObserverService();
+    if (obsSvc)
       obsSvc->NotifyObservers(*_retval, "toplevel-window-ready", nsnull);
-    }
   }
 
   
@@ -1016,17 +1015,18 @@ NS_IMETHODIMP
 nsWindowWatcher::RegisterNotification(nsIObserver *aObserver)
 {
   
-  nsresult rv;
 
   if (!aObserver)
     return NS_ERROR_INVALID_ARG;
   
-  nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1", &rv));
-  if (os) {
-    rv = os->AddObserver(aObserver, "domwindowopened", PR_FALSE);
-    if (NS_SUCCEEDED(rv))
-      rv = os->AddObserver(aObserver, "domwindowclosed", PR_FALSE);
-  }
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (!os)
+    return NS_ERROR_FAILURE;
+
+  nsresult rv = os->AddObserver(aObserver, "domwindowopened", PR_FALSE);
+  if (NS_SUCCEEDED(rv))
+    rv = os->AddObserver(aObserver, "domwindowclosed", PR_FALSE);
+
   return rv;
 }
 
@@ -1034,17 +1034,18 @@ NS_IMETHODIMP
 nsWindowWatcher::UnregisterNotification(nsIObserver *aObserver)
 {
   
-  nsresult rv;
 
   if (!aObserver)
     return NS_ERROR_INVALID_ARG;
   
-  nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1", &rv));
-  if (os) {
-    os->RemoveObserver(aObserver, "domwindowopened");
-    os->RemoveObserver(aObserver, "domwindowclosed");
-  }
-  return rv;
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (!os)
+    return NS_ERROR_FAILURE;
+
+  os->RemoveObserver(aObserver, "domwindowopened");
+  os->RemoveObserver(aObserver, "domwindowclosed");
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1143,8 +1144,6 @@ nsWindowWatcher::SetActiveWindow(nsIDOMWindow *aActiveWindow)
 NS_IMETHODIMP
 nsWindowWatcher::AddWindow(nsIDOMWindow *aWindow, nsIWebBrowserChrome *aChrome)
 {
-  nsresult rv;
-
   if (!aWindow)
     return NS_ERROR_INVALID_ARG;
 
@@ -1188,13 +1187,12 @@ nsWindowWatcher::AddWindow(nsIDOMWindow *aWindow, nsIWebBrowserChrome *aChrome)
 
   
   
-  nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1", &rv));
-  if (os) {
-    nsCOMPtr<nsISupports> domwin(do_QueryInterface(aWindow));
-    rv = os->NotifyObservers(domwin, "domwindowopened", 0);
-  }
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (!os)
+    return NS_ERROR_FAILURE;
 
-  return rv;
+  nsCOMPtr<nsISupports> domwin(do_QueryInterface(aWindow));
+  return os->NotifyObservers(domwin, "domwindowopened", 0);
 }
 
 NS_IMETHODIMP
@@ -1257,7 +1255,6 @@ nsresult nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry *inInfo)
 {
   PRUint32  ctr,
             count = mEnumeratorList.Length();
-  nsresult rv;
 
   {
     
@@ -1273,16 +1270,16 @@ nsresult nsWindowWatcher::RemoveWindow(nsWatcherWindowEntry *inInfo)
 
   
   
-  nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1", &rv));
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os) {
 #ifdef USEWEAKREFS
     nsCOMPtr<nsISupports> domwin(do_QueryReferent(inInfo->mWindow));
     if (domwin)
-      rv = os->NotifyObservers(domwin, "domwindowclosed", 0);
+      os->NotifyObservers(domwin, "domwindowclosed", 0);
     
 #else
     nsCOMPtr<nsISupports> domwin(do_QueryInterface(inInfo->mWindow));
-    rv = os->NotifyObservers(domwin, "domwindowclosed", 0);
+    os->NotifyObservers(domwin, "domwindowclosed", 0);
 #endif
   }
 

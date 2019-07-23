@@ -95,6 +95,7 @@
 #include "nsXULPopupManager.h"
 #include "nsFocusManager.h"
 #include "nsIContentUtils.h"
+#include "mozilla/Services.h"
 
 #include "nsIEventListenerService.h"
 
@@ -355,7 +356,7 @@ Initialize(nsIModule* aSelf)
 
   
   nsCOMPtr<nsIObserverService> observerService =
-    do_GetService("@mozilla.org/observer-service;1");
+    mozilla::services::GetObserverService();
 
   if (observerService) {
     LayoutShutdownObserver* observer = new LayoutShutdownObserver();
