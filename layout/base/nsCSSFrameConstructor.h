@@ -322,10 +322,12 @@ private:
                           nsIFrame*                aParentFrame,
                           nsFrameItems&            aFrameItems);
 
-  void AddFrameConstructionItem(nsFrameConstructorState& aState,
-                                nsIContent*              aContent,
-                                nsIFrame*                aParentFrame,
-                                nsTArray<FrameConstructionItem>& aItems);
+  
+  
+  void AddFrameConstructionItems(nsFrameConstructorState& aState,
+                                 nsIContent*              aContent,
+                                 nsIFrame*                aParentFrame,
+                                 nsTArray<FrameConstructionItem>& aItems);
 
   nsresult ConstructDocElementFrame(nsFrameConstructorState& aState,
                                     nsIContent*              aDocElement,
@@ -739,8 +741,6 @@ private:
     
     nsRefPtr<nsStyleContext> mStyleContext;
     
-    PRPackedBool mAllowPageBreaks;
-    
     PRPackedBool mIsText;
     
     
@@ -834,21 +834,9 @@ private:
                               nsFrameItems&            aFrameItems,
                               PRBool                   aPseudoParent);
 
-  nsresult ConstructPageBreakFrame(nsFrameConstructorState& aState,
-                                   nsIContent*              aContent,
-                                   nsIFrame*                aParentFrame,
-                                   nsStyleContext*          aStyleContext,
-                                   nsFrameItems&            aFrameItems);
-
-  
-  
-  
-  PRBool PageBreakBefore(nsFrameConstructorState& aState,
-                         nsIContent*              aContent,
-                         nsIFrame*                aParentFrame,
-                         nsStyleContext*          aStyleContext,
-                         const FrameConstructionData* aFCData,
-                         nsFrameItems&            aFrameItems);
+  void AddPageBreakItem(nsIContent* aContent,
+                        nsStyleContext* aMainStyleContext,
+                        nsTArray<FrameConstructionItem>& aItems);
 
   
   
@@ -893,14 +881,15 @@ private:
 #define ITEM_ALLOW_PAGE_BREAK 0x2
   
 #define ITEM_IS_GENERATED_CONTENT 0x4
-  void AddFrameConstructionItemInternal(nsFrameConstructorState& aState,
-                                        nsIContent*              aContent,
-                                        nsIFrame*                aParentFrame,
-                                        nsIAtom*                 aTag,
-                                        PRInt32                  aNameSpaceID,
-                                        nsStyleContext*          aStyleContext,
-                                        PRUint32                 aFlags,
-                                        nsTArray<FrameConstructionItem>& aItems);
+  
+  void AddFrameConstructionItemsInternal(nsFrameConstructorState& aState,
+                                         nsIContent*              aContent,
+                                         nsIFrame*                aParentFrame,
+                                         nsIAtom*                 aTag,
+                                         PRInt32                  aNameSpaceID,
+                                         nsStyleContext*          aStyleContext,
+                                         PRUint32                 aFlags,
+                                         nsTArray<FrameConstructionItem>& aItems);
 
   
   nsresult ConstructFramesFromItem(nsFrameConstructorState& aState,
