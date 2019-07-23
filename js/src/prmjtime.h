@@ -78,6 +78,14 @@ extern JSInt64
 PRMJ_Now(void);
 
 
+#ifdef JS_THREADSAFE
+extern void
+PRMJ_NowShutdown(void);
+#else
+#define PRMJ_NowShutdown()
+#endif
+
+
 extern JSInt32
 PRMJ_LocalGMTDifference(void);
 
