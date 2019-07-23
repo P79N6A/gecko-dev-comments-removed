@@ -200,7 +200,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
           if (unit == nsAttrValue::eInteger || unit == nsAttrValue::eEnum) { 
             PRInt32 size;
             if (unit == nsAttrValue::eEnum) 
-              size = value->GetEnumValue() + 3;  
+              size = value->GetEnumValue() + 3;
             else
               size = value->GetIntegerValue();
 
