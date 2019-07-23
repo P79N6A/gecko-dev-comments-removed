@@ -145,25 +145,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         XRenderPictFormat* xrenderFormat =
             XRenderFindStandardFormat(display, xrenderFormatID);
 
-        if (!xrenderFormat) {
-            
-            
-            GdkVisual* vis;
-
-            if (imageFormat == gfxASurface::ImageFormatRGB24) {
-                vis = gdk_rgb_get_visual();
-                if (vis->type == GDK_VISUAL_TRUE_COLOR)
-                    pixmap = gdk_pixmap_new(nsnull, size.width, size.height, vis->depth);
-            }
-
-            if (pixmap) {
-                gdk_drawable_set_colormap(GDK_DRAWABLE(pixmap), nsnull);
-                newSurface = new gfxXlibSurface(display,
-                                                GDK_PIXMAP_XID(GDK_DRAWABLE(pixmap)),
-                                                GDK_VISUAL_XVISUAL(vis),
-                                                size);
-            }
-        } else {
+        if (xrenderFormat) {
             pixmap = gdk_pixmap_new(nsnull, size.width, size.height,
                                     xrenderFormat->depth);
 
@@ -174,20 +156,20 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
                                                 xrenderFormat,
                                                 size);
             }
-        }
 
-        if (newSurface && newSurface->CairoStatus() == 0) {
-            
-            
-            newSurface->SetData(&cairo_gdk_pixmap_key,
-                                pixmap,
-                                do_gdk_pixmap_unref);
-        } else {
-            
-            
-            if (pixmap)
-                gdk_pixmap_unref(pixmap);
-            newSurface = nsnull;
+            if (newSurface && newSurface->CairoStatus() == 0) {
+                
+                
+                newSurface->SetData(&cairo_gdk_pixmap_key,
+                                    pixmap,
+                                    do_gdk_pixmap_unref);
+            } else {
+                
+                
+                if (pixmap)
+                    gdk_pixmap_unref(pixmap);
+                newSurface = nsnull;
+            }
         }
 
         if (!newSurface) {
