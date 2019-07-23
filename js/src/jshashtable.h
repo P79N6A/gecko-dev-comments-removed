@@ -179,15 +179,8 @@ class HashTable : AllocPolicy
         void operator=(const Enum &);
 
       public:
-        
-        struct Init {
-            Init(Range r, HashTable &t) : range(r), table(t) {}
-            Range range;
-            HashTable &table;
-        };
-
-        
-        Enum(Init i) : Range(i.range), table(i.table), removed(false) {}
+        template<class Map>
+        Enum(Map &map) : Range(map.all()), table(map.impl), removed(false) {}
 
         
 
@@ -529,10 +522,6 @@ class HashTable : AllocPolicy
         return Range(table, table + tableCapacity);
     }
 
-    typename Enum::Init enumerate() {
-        return typename Enum::Init(all(), *this);
-    }
-
     bool empty() const {
         return !entryCount;
     }
@@ -715,6 +704,8 @@ class HashMap
     };
     typedef detail::HashTable<Entry, MapHashPolicy, AllocPolicy> Impl;
 
+    friend class Impl::Enum;
+
     
     HashMap(const HashMap &);
     HashMap &operator=(const HashMap &);
@@ -798,7 +789,6 @@ class HashMap
 
 
     typedef typename Impl::Enum Enum;
-    typename Enum::Init enumerate()                   { return impl.enumerate(); }
 
     
     void clear()                                      { impl.clear(); }
@@ -860,6 +850,8 @@ class HashSet
         static const KeyType &getKey(const T &t) { return t; }
     };
     typedef detail::HashTable<const T, SetOps, AllocPolicy> Impl;
+
+    friend class Impl::Enum;
 
     
     HashSet(const HashSet &);
@@ -940,7 +932,6 @@ class HashSet
 
 
     typedef typename Impl::Enum Enum;
-    typename Enum::Init enumerate()                   { return impl.enumerate(); }
 
     
     void clear()                                      { impl.clear(); }
