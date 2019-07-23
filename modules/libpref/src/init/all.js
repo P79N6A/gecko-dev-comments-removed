@@ -1092,6 +1092,18 @@ pref("layout.css.visited_links_enabled", true);
 
 
 
+pref("layout.css.dpi", -1);
+
+
+
+
+
+pref("layout.css.devPixelsPerPx", -1);
+
+
+
+
+
 
 pref("layout.scrollbar.side", 0);
 
@@ -1994,7 +2006,6 @@ pref("ui.panel.default_level_parent", false);
 #ifdef XP_OS2
 
 pref("ui.key.menuAccessKeyFocuses", true);
-pref("layout.css.dpi", -1); 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace,Tms Rmn,Helv,Courier,Times New Roman");
 
@@ -2195,8 +2206,6 @@ pref("ui.panel.default_level_parent", false);
 
 #ifdef XP_BEOS
 
-pref("layout.css.dpi", -1); 
-
 pref("intl.font_charset", "");
 pref("intl.font_spec_list", "");
 pref("mail.signature_date", 0);
@@ -2295,7 +2304,6 @@ pref("ui.panel.default_level_parent", false);
 pref("network.hosts.smtp_server", "localhost");
 pref("network.hosts.pop_server", "pop");
 pref("network.protocol-handler.warn-external.file", false);
-pref("layout.css.dpi", -1); 
 pref("browser.drag_out_of_frame_style", 1);
 pref("editor.singleLine.pasteNewlines", 0);
 

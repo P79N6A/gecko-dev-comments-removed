@@ -621,6 +621,18 @@ nsThebesDeviceContext::SetDPI()
 {
     PRInt32 dpi = -1;
     PRBool dotsArePixels = PR_TRUE;
+    
+    
+    
+    PRInt32 prefDevPixelsPerCSSPixel = -1;
+
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (prefs) {
+        nsresult rv = prefs->GetIntPref("layout.css.devPixelsPerPx", &prefDevPixelsPerCSSPixel);
+        if (NS_FAILED(rv)) {
+            prefDevPixelsPerCSSPixel = -1;
+        }
+    }
 
     
     if (mPrintingSurface &&
@@ -630,16 +642,12 @@ nsThebesDeviceContext::SetDPI()
         dpi = 72;
         dotsArePixels = PR_FALSE;
     } else {
-        
-        
-        
-        
-        
-        
-        
         nsresult rv;
-        PRInt32 prefDPI;
-        nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+        
+        
+        
+        
+        PRInt32 prefDPI = -1;
         if (prefs) {
             rv = prefs->GetIntPref("layout.css.dpi", &prefDPI);
             if (NS_FAILED(rv)) {
@@ -715,18 +723,23 @@ nsThebesDeviceContext::SetDPI()
     NS_ASSERTION(dpi != -1, "no dpi set");
 
     if (dotsArePixels) {
-        
-        
-        
-        
-        PRUint32 roundedDPIScaleFactor = (dpi + 48)/96;
+        if (prefDevPixelsPerCSSPixel <= 0) {
+            
+            
+            
+            
+            PRUint32 roundedDPIScaleFactor = (dpi + 48)/96;
 #ifdef MOZ_WIDGET_GTK2
-        
-        
-        roundedDPIScaleFactor = dpi/96;
+            
+            
+            roundedDPIScaleFactor = dpi/96;
 #endif
-        mAppUnitsPerDevNotScaledPixel =
-          PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
+            mAppUnitsPerDevNotScaledPixel =
+                PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
+        } else {
+            mAppUnitsPerDevNotScaledPixel =
+                PR_MAX(1, AppUnitsPerCSSPixel() / prefDevPixelsPerCSSPixel);
+        }
     } else {
         
 
