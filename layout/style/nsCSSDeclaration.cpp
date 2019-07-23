@@ -179,14 +179,6 @@ nsCSSDeclaration::GetValueOrImportantValue(nsCSSProperty aProperty, nsCSSValue& 
   return NS_OK;
 }
 
-nsresult
-nsCSSDeclaration::GetValue(const nsAString& aProperty,
-                           nsAString& aValue) const
-{
-  nsCSSProperty propID = nsCSSProps::LookupProperty(aProperty);
-  return GetValue(propID, aValue);
-}
-
 PRBool nsCSSDeclaration::AppendValueToString(nsCSSProperty aProperty, nsAString& aResult) const
 {
   nsCSSCompressedDataBlock *data = GetValueIsImportant(aProperty)
@@ -536,12 +528,104 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
   }
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRUint32 totalCount = 0, importantCount = 0,
+           initialCount = 0, inheritCount = 0;
   CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aProperty) {
-    if (!mData->StorageFor(*p) &&
-        (!mImportantData || !mImportantData->StorageFor(*p)))
+    if (*p == eCSSProperty__x_system_font ||
+         nsCSSProps::kFlagsTable[*p] & CSS_PROPERTY_DIRECTIONAL_SOURCE) {
       
-      if (*p != eCSSProperty__x_system_font)
-        return NS_OK;
+      continue;
+    }
+    ++totalCount;
+    const void *storage = mData->StorageFor(*p);
+    NS_ASSERTION(!storage || !mImportantData || !mImportantData->StorageFor(*p),
+                 "can't be in both blocks");
+    if (!storage && mImportantData) {
+      ++importantCount;
+      storage = mImportantData->StorageFor(*p);
+    }
+    if (!storage) {
+      
+      return NS_OK;
+    }
+    nsCSSUnit unit;
+    switch (nsCSSProps::kTypeTable[*p]) {
+      case eCSSType_Value: {
+        const nsCSSValue *val = static_cast<const nsCSSValue*>(storage);
+        unit = val->GetUnit();
+      } break;
+      case eCSSType_Rect: {
+        const nsCSSRect *rect = static_cast<const nsCSSRect*>(storage);
+        unit = rect->mTop.GetUnit();
+      } break;
+      case eCSSType_ValuePair: {
+        const nsCSSValuePair *pair = static_cast<const nsCSSValuePair*>(storage);
+        unit = pair->mXValue.GetUnit();
+      } break;
+      case eCSSType_ValueList: {
+        const nsCSSValueList* item =
+            *static_cast<nsCSSValueList*const*>(storage);
+        if (item) {
+          unit = item->mValue.GetUnit();
+        } else {
+          unit = eCSSUnit_Null;
+        }
+      } break;
+      case eCSSType_ValuePairList: {
+        const nsCSSValuePairList* item =
+            *static_cast<nsCSSValuePairList*const*>(storage);
+        if (item) {
+          unit = item->mXValue.GetUnit();
+        } else {
+          unit = eCSSUnit_Null;
+        }
+      } break;
+    }
+    if (unit == eCSSUnit_Inherit) {
+      ++inheritCount;
+    } else if (unit == eCSSUnit_Initial) {
+      ++initialCount;
+    }
+  }
+  if (importantCount != 0 && importantCount != totalCount) {
+    
+    return NS_OK;
+  }
+  if (initialCount == totalCount) {
+    
+    AppendCSSValueToString(eCSSProperty_UNKNOWN, nsCSSValue(eCSSUnit_Initial),
+                           aValue);
+    return NS_OK;
+  }
+  if (inheritCount == totalCount) {
+    
+    AppendCSSValueToString(eCSSProperty_UNKNOWN, nsCSSValue(eCSSUnit_Inherit),
+                           aValue);
+    return NS_OK;
+  }
+  if (initialCount != 0 || inheritCount != 0) {
+    
+    return NS_OK;
   }
 
 
@@ -795,6 +879,21 @@ nsCSSDeclaration::GetValueIsImportant(nsCSSProperty aProperty) const
     return PR_FALSE;
 
   
+  
+
+  if (nsCSSProps::IsShorthand(aProperty)) {
+    CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aProperty) {
+      if (*p == eCSSProperty__x_system_font) {
+        
+        continue;
+      }
+      if (!mImportantData->StorageFor(*p)) {
+        return PR_FALSE;
+      }
+    }
+    return PR_TRUE;
+  }
+
   return mImportantData->StorageFor(aProperty) != nsnull;
 }
 
