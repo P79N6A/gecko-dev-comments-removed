@@ -407,10 +407,21 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   },
   {
     
+    "2.16.578.1.26.1.3.3",
+    "Buypass Class 3 CA 1", 
+    SEC_OID_UNKNOWN,
+    "61:57:3A:11:DF:0E:D8:7E:D5:92:65:22:EA:D0:56:D7:44:B3:23:71",
+    "MEsxCzAJBgNVBAYTAk5PMR0wGwYDVQQKDBRCdXlwYXNzIEFTLTk4MzE2MzMyNzEd"
+    "MBsGA1UEAwwUQnV5cGFzcyBDbGFzcyAzIENBIDE=",
+    "Ag==",
+    nsnull
+  },
+  {
+    
     "0.0.0.0",
     0, 
     SEC_OID_UNKNOWN,
-    "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33",
+    "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33", 
     "Cg==",
     "Cg==",
     nsnull
