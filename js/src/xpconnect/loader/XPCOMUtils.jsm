@@ -82,6 +82,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
 
 const Ci = Components.interfaces;
@@ -129,6 +146,7 @@ var XPCOMUtils = {
         className:    component.prototype.classDescription,
         contractID:   component.prototype.contractID,
         factory:      this._getFactory(component),
+        categories:   component.prototype._xpcom_categories
       });
     }
 
@@ -149,6 +167,7 @@ var XPCOMUtils = {
         var componentCount = 0;
         debug("*** registering " + fileSpec.leafName + ": [ ");
         compMgr.QueryInterface(Ci.nsIComponentRegistrar);
+
         for each (let classDesc in classes) {
           debug((componentCount++ ? ", " : "") + classDesc.className);
           compMgr.registerFactoryLocation(classDesc.cid,
@@ -157,6 +176,17 @@ var XPCOMUtils = {
                                           fileSpec,
                                           location,
                                           type);
+          if (classDesc.categories) {
+            let catMan = XPCOMUtils.categoryManager;
+            for each (let cat in classDesc.categories) {
+              let defaultValue = (cat.service ? "service," : "") +
+                                 classDesc.contractID;
+              catMan.addCategoryEntry(cat.category,
+                                      cat.entry || classDesc.className,
+                                      cat.value || defaultValue,
+                                      true, true);
+            }
+          }
         }
 
         if (postRegister)
@@ -173,6 +203,13 @@ var XPCOMUtils = {
 
         for each (let classDesc in classes) {
           debug((componentCount++ ? ", " : "") + classDesc.className);
+          if (classDesc.categories) {
+            let catMan = XPCOMUtils.categoryManager;
+            for each (let cat in classDesc.categories) {
+              catMan.deleteCategoryEntry(cat.category,
+                                         cat.entry || classDesc.className);
+            }
+          }
           compMgr.unregisterFactoryLocation(classDesc.cid, fileSpec);
         }
         debug(" ]\n");

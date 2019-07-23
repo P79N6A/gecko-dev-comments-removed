@@ -1103,12 +1103,26 @@ BookmarkFolder.prototype = {
   },
 
   QueryInterface : XPCOMUtils.generateQI([Ci.fuelIBookmarkFolder, Ci.nsINavBookmarkObserver])
-}; 
+};
 
 
-const CLASS_ID = Components.ID("fe74cf80-aa2d-11db-abbd-0800200c9a66");
-const CLASS_NAME = "Application wrapper";
-const CONTRACT_ID = "@mozilla.org/fuel/application;1";
+
+
+
+
+var gSingleton = null;
+var ApplicationFactory = {
+  createInstance: function af_ci(aOuter, aIID) {
+    if (aOuter != null)
+      throw Components.results.NS_ERROR_NO_AGGREGATION;
+
+    if (gSingleton == null) {
+      gSingleton = new Application();
+    }
+
+    return gSingleton.QueryInterface(aIID);
+  }
+};
 
 
 
@@ -1135,6 +1149,23 @@ function Application() {
 
 
 Application.prototype = {
+  
+  classDescription: "Application",
+  classID:          Components.ID("fe74cf80-aa2d-11db-abbd-0800200c9a66"),
+  contractID:       "@mozilla.org/fuel/application;1",
+
+  
+  _xpcom_factory: ApplicationFactory,
+
+  
+  _xpcom_categories: [
+    
+    { category: "app-startup", service: true },
+
+    
+    { category: "JavaScript global privileged property" }
+  ],
+
   get id() {
     return this._info.ID;
   },
@@ -1194,9 +1225,6 @@ Application.prototype = {
   },
 
   
-  classDescription : "Application",
-  classID : CLASS_ID,
-  contractID : CONTRACT_ID,
   flags : Ci.nsIClassInfo.SINGLETON,
   implementationLanguage : Ci.nsIProgrammingLanguage.JAVASCRIPT,
 
@@ -1268,60 +1296,6 @@ Application.prototype = {
 };
 
 
-
-var gSingleton = null;
-var ApplicationFactory = {
-  createInstance: function af_ci(aOuter, aIID) {
-    if (aOuter != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-      
-    if (gSingleton == null) {
-      gSingleton = new Application();
-    }
-
-    return gSingleton.QueryInterface(aIID);
-  }
-};
-
-
-
-var ApplicationModule = {
-  registerSelf: function am_rs(aCompMgr, aFileSpec, aLocation, aType) {
-    aCompMgr = aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
-    aCompMgr.registerFactoryLocation(CLASS_ID, CLASS_NAME, CONTRACT_ID, aFileSpec, aLocation, aType);
-    
-    var categoryManager = Components.classes["@mozilla.org/categorymanager;1"]
-                                    .getService(Ci.nsICategoryManager);
-    
-    categoryManager.addCategoryEntry("app-startup", CLASS_NAME, "service," + CONTRACT_ID, true, true);
-
-    
-    categoryManager.addCategoryEntry("JavaScript global privileged property", "Application", CONTRACT_ID, true, true);
-  },
-
-  unregisterSelf: function am_us(aCompMgr, aLocation, aType) {
-    aCompMgr = aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
-    aCompMgr.unregisterFactoryLocation(CLASS_ID, aLocation);        
-
-    
-    var categoryManager = Components.classes["@mozilla.org/categorymanager;1"]
-                                    .getService(Ci.nsICategoryManager);
-    categoryManager.deleteCategoryEntry("app-startup", "service," + CONTRACT_ID, true);
-    categoryManager.deleteCategoryEntry("JavaScript global property", CONTRACT_ID, true);
-  },
-  
-  getClassObject: function am_gco(aCompMgr, aCID, aIID) {
-    if (!aIID.equals(Ci.nsIFactory))
-      throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-
-    if (aCID.equals(CLASS_ID))
-      return ApplicationFactory;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  },
-
-  canUnload: function am_cu(aCompMgr) { return true; }
-};
-
-
-function NSGetModule(aCompMgr, aFileSpec) { return ApplicationModule; }
+function NSGetModule(aCompMgr, aFileSpec) {
+  return XPCOMUtils.generateModule([Application]);
+}
