@@ -544,18 +544,23 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
 
   nsCOMPtr<nsIURI> page(aPageURI);
 
-  
   nsNavHistory* history = nsNavHistory::GetHistoryService();
   NS_ENSURE_TRUE(history, NS_ERROR_FAILURE);
-  if (history->IsHistoryDisabled()) {
-    
+
+  PRBool canAdd;
+  nsresult rv = history->CanAddURI(page, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  if (!canAdd || history->IsHistoryDisabled()) {
     
     nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
     NS_ENSURE_TRUE(bookmarks, NS_ERROR_UNEXPECTED);
 
     nsCOMPtr<nsIURI> bookmarkURI;
-    nsresult rv = bookmarks->GetBookmarkedURIFor(aPageURI,
-                                                 getter_AddRefs(bookmarkURI));
+    rv = bookmarks->GetBookmarkedURIFor(aPageURI,
+                                        getter_AddRefs(bookmarkURI));
     NS_ENSURE_SUCCESS(rv, rv);
     if (! bookmarkURI) {
       
@@ -571,7 +576,7 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
 
   
   PRBool previouslyFailed;
-  nsresult rv = IsFailedFavicon(aFaviconURI, &previouslyFailed);
+  rv = IsFailedFavicon(aFaviconURI, &previouslyFailed);
   NS_ENSURE_SUCCESS(rv, rv);
   if (previouslyFailed) {
     if (aForceReload)
@@ -579,13 +584,6 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
     else
       return NS_OK; 
   }
-
-  
-  PRBool canAdd;
-  rv = history->CanAddURI(page, &canAdd);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (! canAdd)
-    return NS_OK; 
 
   
   
@@ -673,6 +671,7 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
 
   rv = channel->SetNotificationCallbacks(listenerRequestor);
   NS_ENSURE_SUCCESS(rv, rv);
+
   rv = channel->AsyncOpen(listener, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
 

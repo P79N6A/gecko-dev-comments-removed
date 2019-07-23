@@ -81,6 +81,43 @@ function uri(spec) {
 }
 
 
+
+
+function readFileData(aFile) {
+  var inputStream = Cc["@mozilla.org/network/file-input-stream;1"].
+                    createInstance(Ci.nsIFileInputStream);
+  
+  inputStream.init(aFile, 0x01, -1, null);
+  var size = inputStream.available();
+
+  
+  var bis = Cc["@mozilla.org/binaryinputstream;1"].
+            createInstance(Ci.nsIBinaryInputStream);
+  bis.setInputStream(inputStream);
+
+  var bytes = bis.readByteArray(size);
+
+  if (size != bytes.length)
+      throw "Didn't read expected number of bytes";
+
+  return bytes;
+}
+
+
+
+
+function compareArrays(aArray1, aArray2) {
+  if (aArray1.length != aArray2.length)
+    return false;
+
+  for (var i = 0; i < aArray1.length; i++)
+    if (aArray1[i] != aArray2[i])
+      return false;
+
+  return true;
+}
+
+
 function clearDB() {
   try {
     var file = dirSvc.get('ProfD', Ci.nsIFile);
