@@ -271,11 +271,13 @@ typedef struct JSPropertyCache {
     JSPropCacheEntry    table[PROPERTY_CACHE_SIZE];
     JSBool              empty;
 #ifdef JS_PROPERTY_CACHE_METERING
+    JSPropCacheEntry    *pctestentry;   
     uint32              fills;          
     uint32              nofills;        
     uint32              rofills;        
     uint32              disfills;       
     uint32              oddfills;       
+    uint32              modfills;       
     uint32              brandfills;     
 
     uint32              noprotos;       
@@ -348,9 +350,9 @@ typedef struct JSPropertyCache {
 
 
 extern JS_REQUIRES_STACK JSPropCacheEntry *
-js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
-                     uintN scopeIndex, uintN protoIndex,
-                     JSObject *pobj, JSScopeProperty *sprop);
+js_FillPropertyCache(JSContext *cx, JSObject *obj,
+                     uintN scopeIndex, uintN protoIndex, JSObject *pobj,
+                     JSScopeProperty *sprop, JSBool addedSprop);
 
 
 
@@ -373,6 +375,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         JSPropertyCache *cache_ = &JS_PROPERTY_CACHE(cx);                     \
         uint32 kshape_ = (JS_ASSERT(OBJ_IS_NATIVE(obj)), OBJ_SHAPE(obj));     \
         entry = &cache_->table[PROPERTY_CACHE_HASH_PC(pc, kshape_)];          \
+        PCMETER(cache_->pctestentry = entry);                                 \
         PCMETER(cache_->tests++);                                             \
         JS_ASSERT(&obj != &pobj);                                             \
         if (entry->kpc == pc && entry->kshape == kshape_) {                   \

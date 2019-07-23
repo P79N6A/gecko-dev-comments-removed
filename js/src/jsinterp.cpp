@@ -108,18 +108,18 @@ js_GenerateShape(JSContext *cx, JSBool gcLocked)
 }
 
 JS_REQUIRES_STACK JSPropCacheEntry *
-js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
-                     uintN scopeIndex, uintN protoIndex,
-                     JSObject *pobj, JSScopeProperty *sprop)
+js_FillPropertyCache(JSContext *cx, JSObject *obj,
+                     uintN scopeIndex, uintN protoIndex, JSObject *pobj,
+                     JSScopeProperty *sprop, JSBool addedSprop)
 {
     JSPropertyCache *cache;
     jsbytecode *pc;
     JSScope *scope;
+    jsuword kshape, khash;
     JSOp op;
     const JSCodeSpec *cs;
     jsuword vword;
     ptrdiff_t pcoff;
-    jsuword khash;
     JSAtom *atom;
     JSPropCacheEntry *entry;
 
@@ -192,6 +192,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
     pc = cx->fp->regs->pc;
     op = js_GetOpcode(cx, cx->fp->script, pc);
     cs = &js_CodeSpec[op];
+    kshape = 0;
 
     do {
         
@@ -223,12 +224,12 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                         PCMETER(cache->brandfills++);
 #ifdef DEBUG_notme
                         fprintf(stderr,
-                            "branding %p (%s) for funobj %p (%s), kshape %lu\n",
+                            "branding %p (%s) for funobj %p (%s), shape %lu\n",
                             pobj, LOCKED_OBJ_GET_CLASS(pobj)->name,
                             JSVAL_TO_OBJECT(v),
                             JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx,
                                                  JSVAL_TO_OBJECT(v))),
-                            kshape);
+                            OBJ_SHAPE(obj));
 #endif
                         js_MakeScopeShapeUnique(cx, scope);
                         if (js_IsPropertyCacheDisabled(cx)) {
@@ -239,8 +240,6 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                             return JS_NO_PROP_CACHE_FILL;
                         }
                         SCOPE_SET_BRANDED(scope);
-                        if (OBJ_SCOPE(obj) == scope)
-                            kshape = scope->shape;
                     }
                     vword = JSVAL_OBJECT_TO_PCVAL(v);
                     break;
@@ -257,28 +256,55 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         } else {
             
             vword = SPROP_TO_PCVAL(sprop);
+            if (addedSprop &&
+                sprop == scope->lastProp &&
+                scope->shape == sprop->shape) {
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                JS_ASSERT(scope->object == obj);
+                if (sprop->parent) {
+                    kshape = sprop->parent->shape;
+                } else {
+                    JSObject *proto = STOBJ_GET_PROTO(obj);
+                    if (proto && OBJ_IS_NATIVE(proto))
+                        kshape = OBJ_SHAPE(proto);
+                }
+            }
         }
     } while (0);
 
-    
-
-
-
-
-
-
-
-
-
-
-    if (!(cs->format & (JOF_SET | JOF_INCDEC)) && obj == pobj)
-        kshape = scope->shape;
-
+    if (kshape == 0)
+        kshape = OBJ_SHAPE(obj);
     khash = PROPERTY_CACHE_HASH_PC(pc, kshape);
     if (obj == pobj) {
-        JS_ASSERT(kshape != 0 || scope->shape != 0);
         JS_ASSERT(scopeIndex == 0 && protoIndex == 0);
         JS_ASSERT(OBJ_SCOPE(obj)->object == obj);
+        JS_ASSERT(kshape != 0);
     } else {
         if (op == JSOP_LENGTH) {
             atom = cx->runtime->atomState.lengthAtom;
@@ -310,7 +336,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
     }
 
     entry = &cache->table[khash];
-    PCMETER(if (!PCVAL_IS_NULL(entry->vword)) cache->recycles++);
+    PCMETER(PCVAL_IS_NULL(entry->vword) || cache->recycles++);
     entry->kpc = pc;
     entry->kshape = kshape;
     entry->vcap = PCVCAP_MAKE(scope->shape, scopeIndex, protoIndex);
@@ -318,6 +344,13 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
 
     cache->empty = JS_FALSE;
     PCMETER(cache->fills++);
+
+    
+
+
+
+    PCMETER(entry == cache->pctestentry || cache->modfills++);
+    PCMETER(cache->pctestentry = NULL);
     return entry;
 }
 
@@ -471,6 +504,7 @@ js_PurgePropertyCache(JSContext *cx, JSPropertyCache *cache)
         P(rofills);
         P(disfills);
         P(oddfills);
+        P(modfills);
         P(brandfills);
         P(noprotos);
         P(longchains);
@@ -4574,6 +4608,7 @@ js_Interpret(JSContext *cx)
 
 
                     entry = &cache->table[PROPERTY_CACHE_HASH_PC(regs.pc, kshape)];
+                    PCMETER(cache->pctestentry = entry);
                     PCMETER(cache->tests++);
                     PCMETER(cache->settests++);
                     if (entry->kpc == regs.pc && entry->kshape == kshape) {
@@ -6280,6 +6315,7 @@ js_Interpret(JSContext *cx)
                 kshape = scope->shape;
                 cache = &JS_PROPERTY_CACHE(cx);
                 entry = &cache->table[PROPERTY_CACHE_HASH_PC(regs.pc, kshape)];
+                PCMETER(cache->pctestentry = entry);
                 PCMETER(cache->tests++);
                 PCMETER(cache->initests++);
 
