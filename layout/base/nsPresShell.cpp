@@ -4558,11 +4558,16 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
       mFrameConstructor->ProcessPendingRestyles();
     }
 
+
     
     
     
     
     if (aType >= Flush_Layout && !mIsDestroying) {
+      
+      
+      mPresContext->FlushUserFontSet();
+
       mFrameConstructor->RecalcQuotesAndCounters();
       mViewManager->FlushDelayedResize();
       ProcessReflowCommands(aInterruptibleReflow);
@@ -4777,17 +4782,21 @@ nsIPresShell::ReconstructStyleDataInternal()
 {
   mStylesHaveChanged = PR_FALSE;
 
-  if (!mDidInitialReflow) {
-    
-    return;
-  }
-
   if (mIsDestroying) {
     
     return;
   }
 
+  if (mPresContext) {
+    mPresContext->RebuildUserFontSet();
+  }
+
   nsIContent* root = mDocument->GetRootContent();
+  if (!mDidInitialReflow) {
+    
+    return;
+  }
+
   if (!root) {
     
     return;
@@ -6241,6 +6250,8 @@ PresShell::WillDoReflow()
     mCaret->InvalidateOutsideCaret();
     mCaret->UpdateCaretPosition();
   }
+
+  mPresContext->FlushUserFontSet();
 
   mFrameConstructor->BeginUpdate();
 }

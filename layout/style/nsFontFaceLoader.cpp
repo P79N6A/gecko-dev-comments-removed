@@ -128,6 +128,11 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     nsIPresShell *ps = loaderCtx->mPresContext->PresShell();
     if (ps) {
       
+      
+      
+      
+      
+      
       ps->StyleChangeReflow();
       LOG(("fontdownloader (%p) reflow\n", this));
     }
