@@ -93,6 +93,18 @@ const  int32 kint32max  = (( int32) 0x7FFFFFFF);
 const  int64 kint64min  = (( int64) GG_LONGLONG(0x8000000000000000));
 const  int64 kint64max  = (( int64) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+
+#  if defined(OS_POSIX)
+#    define __STDC_FORMAT_MACROS 1
+#    include <inttypes.h>           
+#  elif defined(OS_WIN)
+#    define PRd64 "I64d"
+#    define PRu64 "I64u"
+#    define PRx64 "I64x"
+#  endif
+#endif  
+
 
 
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
