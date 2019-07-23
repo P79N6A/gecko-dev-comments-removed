@@ -113,11 +113,6 @@ struct JSThread {
 
     uint32              gcMallocBytes;
 
-#if JS_HAS_GENERATORS
-    
-    JSBool              gcRunningCloseHooks;
-#endif
-
     
 
 
@@ -217,11 +212,6 @@ struct JSRuntime {
 
 
     JSPtrTable          gcIteratorTable;
-
-#if JS_HAS_GENERATORS
-    
-    JSGCCloseState      gcCloseState;
-#endif
 
 #ifdef JS_GCMETER
     JSGCStats           gcStats;
@@ -1030,7 +1020,6 @@ JS_STATIC_ASSERT((JSOW_BRANCH_CALLBACK & (JSOW_BRANCH_CALLBACK - 1)) == 0);
             (cx)->operationCounter = (((cx)->operationCounter + (weight)) |   \
                                       (~(JSOW_BRANCH_CALLBACK - 1) &          \
                                        (cx)->operationCounter))))
-
 
 
 

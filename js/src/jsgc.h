@@ -138,41 +138,6 @@ typedef struct JSPtrTable {
 extern JSBool
 js_RegisterCloseableIterator(JSContext *cx, JSObject *obj);
 
-#if JS_HAS_GENERATORS
-
-
-
-
-typedef struct JSGCCloseState {
-    
-
-
-
-    JSGenerator         *reachableList;
-
-    
-
-
-
-    JSGenerator         *todoQueue;
-
-#ifndef JS_THREADSAFE
-    
-
-
-
-    JSBool              runningCloseHook;
-#endif
-} JSGCCloseState;
-
-extern void
-js_RegisterGenerator(JSContext *cx, JSGenerator *gen);
-
-extern JSBool
-js_RunCloseHooks(JSContext *cx);
-
-#endif
-
 
 
 

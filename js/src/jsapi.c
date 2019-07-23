@@ -2350,24 +2350,12 @@ JS_IsGCMarkingTracer(JSTracer *trc)
 JS_PUBLIC_API(void)
 JS_GC(JSContext *cx)
 {
-#if JS_HAS_GENERATORS
-    
-    js_RunCloseHooks(cx);
-#endif
-
     
     if (cx->stackPool.current == &cx->stackPool.first)
         JS_FinishArenaPool(&cx->stackPool);
     if (cx->tempPool.current == &cx->tempPool.first)
         JS_FinishArenaPool(&cx->tempPool);
     js_GC(cx, GC_NORMAL);
-
-#if JS_HAS_GENERATORS
-    
-
-
-    js_RunCloseHooks(cx);
-#endif
 }
 
 JS_PUBLIC_API(void)
@@ -2439,12 +2427,6 @@ JS_MaybeGC(JSContext *cx)
         rt->gcMallocBytes >= rt->gcMaxMallocBytes) {
         JS_GC(cx);
     }
-#if JS_HAS_GENERATORS
-    else {
-        
-        js_RunCloseHooks(cx);
-    }
-#endif
 }
 
 JS_PUBLIC_API(JSGCCallback)
