@@ -347,8 +347,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         
         
         
-        if (modeEvent->mSizeMode == nsSizeMode_Maximized ||
-            modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
+        if (modeEvent->mSizeMode == nsSizeMode_Maximized) {
           PRUint32 zLevel;
           eventWindow->GetZLevel(&zLevel);
           if (zLevel > nsIXULWindow::normalZ)

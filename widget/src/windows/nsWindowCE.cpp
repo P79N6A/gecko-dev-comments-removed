@@ -343,8 +343,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
   
   
   if (mWindowType == eWindowType_dialog || mWindowType == eWindowType_toplevel) {
-    if (aMode == nsSizeMode_Normal)
-      aMode = nsSizeMode_Maximized;
+    aMode = nsSizeMode_Maximized;
   }
 #endif
 
@@ -354,7 +353,6 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
     int mode;
 
     switch (aMode) {
-      case nsSizeMode_Fullscreen :
       case nsSizeMode_Maximized :
         mode = SW_MAXIMIZE;
         break;
