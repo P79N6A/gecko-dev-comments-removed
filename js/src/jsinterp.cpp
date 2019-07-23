@@ -5610,6 +5610,10 @@ js_Interpret(JSContext *cx)
 
 
 
+#ifdef JS_TRACER
+                if (TRACE_RECORDER(cx))
+                    js_AbortRecording(cx, "SETGVAR with NULL slot");
+#endif
                 LOAD_ATOM(0);
                 id = ATOM_TO_JSID(atom);
                 if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
