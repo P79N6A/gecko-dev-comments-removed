@@ -441,6 +441,28 @@ GetFieldSetAreaFrame(nsIFrame* aFieldsetFrame)
 
 
 
+static PRBool
+IsInlineOutside(nsIFrame* aFrame)
+{
+  return aFrame->GetStyleDisplay()->IsInlineOutside();
+}
+
+
+
+
+
+
+
+
+
+static PRBool
+IsInlineFrame(const nsIFrame* aFrame)
+{
+  return aFrame->IsFrameOfType(nsIFrame::eLineParticipant);
+}
+
+
+
 
 
 
@@ -460,6 +482,20 @@ static nsIFrame* GetSpecialSibling(nsIFrame* aFrame)
   void* value = aFrame->GetProperty(nsGkAtoms::IBSplitSpecialSibling);
 
   return static_cast<nsIFrame*>(value);
+}
+
+static nsIFrame*
+GetIBSplitSpecialPrevSibling(nsIFrame* aFrame)
+{
+  NS_PRECONDITION(IsFrameSpecial(aFrame) && !IsInlineFrame(aFrame),
+                  "Shouldn't call this");
+  
+  
+  
+  return
+    static_cast<nsIFrame*>
+    (aFrame->GetFirstContinuation()->
+       GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling));
 }
 
 static nsIFrame*
@@ -530,28 +566,6 @@ GetIBContainingBlockFor(nsIFrame* aFrame)
 
 
 
-static PRBool
-IsInlineOutside(nsIFrame* aFrame)
-{
-  return aFrame->GetStyleDisplay()->IsInlineOutside();
-}
-
-
-
-
-
-
-
-
-
-static PRBool
-IsInlineFrame(const nsIFrame* aFrame)
-{
-  return aFrame->IsFrameOfType(nsIFrame::eLineParticipant);
-}
-
-
-
 
 
 
@@ -600,13 +614,11 @@ FindLastBlock(nsIFrame* aKid)
 
 
 inline void
-MarkIBSpecialPrevSibling(nsPresContext* aPresContext,
-                         nsIFrame *aAnonymousFrame,
+MarkIBSpecialPrevSibling(nsIFrame *aAnonymousFrame,
                          nsIFrame *aSpecialParent)
 {
-  aPresContext->PropertyTable()->SetProperty(aAnonymousFrame,
-                                      nsGkAtoms::IBSplitSpecialPrevSibling,
-                                             aSpecialParent, nsnull, nsnull);
+  aAnonymousFrame->SetProperty(nsGkAtoms::IBSplitSpecialPrevSibling,
+                               aSpecialParent, nsnull, nsnull);
 }
 
 
@@ -7933,11 +7945,7 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
       nsIContent* content = nsnull;
       nsStyleContext* styleContext = nsnull;
       if (!inlineSibling) {
-        nsIFrame* firstInline =
-          static_cast<nsIFrame*>
-                     (aState.mPresContext->PropertyTable()->
-                      GetProperty(parentFrame->GetFirstContinuation(),
-                                  nsGkAtoms::IBSplitSpecialPrevSibling));
+        nsIFrame* firstInline = GetIBSplitSpecialPrevSibling(parentFrame);
         NS_ASSERTION(firstInline, "How did that happen?");
 
         content = firstInline->GetContent();
@@ -12447,7 +12455,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   SetFrameIsSpecial(aNewFrame, blockFrame);
   SetFrameIsSpecial(blockFrame, inlineFrame);
-  MarkIBSpecialPrevSibling(aState.mPresContext, blockFrame, aNewFrame);
+  MarkIBSpecialPrevSibling(blockFrame, aNewFrame);
 
 #ifdef DEBUG
   if (gNoisyInlineConstruction) {
@@ -12653,7 +12661,26 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     
     if (aIsAppend) {
       
-      return PR_FALSE;
+      
+      
+      if (!aState.mFloatedItems.childList) {
+        return PR_FALSE;
+      }
+
+      
+      
+      
+      nsIFrame* floatContainer = aFrame;
+      do {
+        floatContainer =
+          GetFloatContainingBlock(GetIBSplitSpecialPrevSibling(floatContainer));
+        if (!floatContainer) {
+          break;
+        }
+        if (!IsFrameSpecial(floatContainer)) {
+          return PR_FALSE;
+        }
+      } while (1);
     }
     
     if (aPrevSibling && !aPrevSibling->GetNextSibling()) {
