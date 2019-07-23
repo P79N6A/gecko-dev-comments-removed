@@ -41,8 +41,8 @@
 #include "gfxColor.h"
 #include "gfxASurface.h"
 #include "gfxContext.h"
+#include "gfxXlibSurface.h"
 
-class QWidget;
 class QRect;
 
 
@@ -61,7 +61,8 @@ public:
 
 
 
-    virtual nsresult NativeDraw(QWidget * drawable, short offsetX, 
+    virtual nsresult NativeDraw(gfxXlibSurface *xsurf,
+            Colormap colormap, short offsetX,
             short offsetY, QRect * clipRects, PRUint32 numClipRects) = 0;
   
     enum {
