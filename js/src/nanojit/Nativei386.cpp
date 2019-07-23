@@ -188,14 +188,14 @@ namespace nanojit
     NIns *Assembler::genEpilogue(RegisterMask restore)
     {
         RET();
-        POP(FP); 
+        POPr(FP); 
         MR(SP,FP); 
 
 		
 		for (Register i=UnknownReg; i >= FirstReg; i = prevreg(i))
-			if (restore&rmask(i)) { POP(i); } 
+			if (restore&rmask(i)) { POPr(i); } 
 		
-		POP(FP); 
+		POPr(FP); 
         return  _nIns;
     }
 	
