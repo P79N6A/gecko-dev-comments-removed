@@ -491,42 +491,16 @@ static gint
 ensure_tree_header_cell_widget()
 {
     if(!gTreeHeaderCellWidget) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-        GtkTreeViewColumn* firstTreeViewColumn;
-        GtkTreeViewColumn* middleTreeViewColumn;
-        GtkTreeViewColumn* lastTreeViewColumn;
-
+        GtkTreeViewColumn* treeViewColumn;
         ensure_tree_view_widget();
 
-        
-        firstTreeViewColumn = gtk_tree_view_column_new();
-        gtk_tree_view_column_set_title(firstTreeViewColumn, "M");
-        gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), firstTreeViewColumn);
+        treeViewColumn = gtk_tree_view_column_new();
+        gtk_tree_view_column_set_title(treeViewColumn, "M");
 
-        middleTreeViewColumn = gtk_tree_view_column_new();
-        gtk_tree_view_column_set_title(middleTreeViewColumn, "M");
-        gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), middleTreeViewColumn);
-
-        lastTreeViewColumn = gtk_tree_view_column_new();
-        gtk_tree_view_column_set_title(lastTreeViewColumn, "M");
-        gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), lastTreeViewColumn);
-
-        
-        gTreeHeaderCellWidget = middleTreeViewColumn->button;
-        gtk_tree_view_column_set_sort_indicator(middleTreeViewColumn, TRUE);
-        gTreeHeaderSortArrowWidget = middleTreeViewColumn->arrow;
+        gtk_tree_view_append_column(GTK_TREE_VIEW(gTreeViewWidget), treeViewColumn);
+        gTreeHeaderCellWidget = treeViewColumn->button;
+        gtk_tree_view_column_set_sort_indicator(treeViewColumn, TRUE);
+        gTreeHeaderSortArrowWidget = treeViewColumn->arrow;
     }
     return MOZ_GTK_SUCCESS;
 }
