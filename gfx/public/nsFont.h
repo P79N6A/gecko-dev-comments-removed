@@ -79,7 +79,7 @@ struct NS_GFX nsFont {
 
   
   
-  PRPackedBool familyNameQuirks : 1;
+  PRUint8 familyNameQuirks : 1;
 
   
   PRUint16 weight;
