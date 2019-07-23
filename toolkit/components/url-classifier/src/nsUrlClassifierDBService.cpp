@@ -2084,6 +2084,11 @@ nsUrlClassifierDBService::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  nsCOMPtr<nsICryptoHash> hash =
+    do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   rv = NS_NewThread(&gDbBackgroundThread);
   if (NS_FAILED(rv))
     return rv;
