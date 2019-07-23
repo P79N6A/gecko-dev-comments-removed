@@ -49,6 +49,7 @@
 #include "nsString.h"
 #include "nsIDOMHTMLCollection.h"
 #include "nsIDOMNodeList.h"
+#include "nsINodeList.h"
 #include "nsStubMutationObserver.h"
 #include "nsIAtom.h"
 #include "nsINameSpaceManager.h"
@@ -73,7 +74,8 @@ class nsIDocument;
 class nsIDOMHTMLFormElement;
 
 
-class nsBaseContentList : public nsIDOMNodeList
+class nsBaseContentList : public nsIDOMNodeList,
+                          public nsINodeList
 {
 public:
   nsBaseContentList();
@@ -83,7 +85,11 @@ public:
 
   
   NS_DECL_NSIDOMNODELIST
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsBaseContentList)
+
+  
+  virtual nsINode* GetNodeAt(PRUint32 aIndex);
+  
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsBaseContentList, nsIDOMNodeList)
 
   void AppendElement(nsIContent *aContent);
   void RemoveElement(nsIContent *aContent);
@@ -232,6 +238,8 @@ public:
 
   
   virtual PRInt32 IndexOf(nsIContent *aContent, PRBool aDoFlush);
+  virtual nsINode* GetNodeAt(PRUint32 aIndex);
+  
 
   
   NS_HIDDEN_(nsISupports*) GetParentObject();

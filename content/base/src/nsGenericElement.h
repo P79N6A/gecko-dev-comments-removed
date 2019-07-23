@@ -101,7 +101,10 @@ public:
   virtual ~nsChildContentList();
 
   
-  NS_DECL_NSIDOMNODELIST
+  NS_IMETHOD GetLength(PRUint32* aLength);
+
+  
+  virtual nsINode* GetNodeAt(PRUint32 aIndex);  
   
   void DropReference()
   {
@@ -293,28 +296,6 @@ private:
 
 private:
   nsCOMPtr<nsIContent> mContent;
-};
-
-
-
-
-class nsStaticContentList : public nsIDOMNodeList {
-public:
-  nsStaticContentList() {}
-
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_NSIDOMNODELIST
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsStaticContentList)
-
-  PRBool AppendContent(nsIContent* aContent) {
-    return mList.AppendObject(aContent);
-  }
-
-private:
-  ~nsStaticContentList() {}
-  
-  nsCOMArray<nsIContent> mList;
 };
 
 
