@@ -176,7 +176,7 @@ struct JSTreeContext {
     JSParseNode     *blockNode;     
 
     JSAtomList      decls;          
-    JSCompiler      *compiler;      
+    js::Parser      *parser;        
 
     union {
         JSFunction  *fun;           
@@ -198,13 +198,13 @@ struct JSTreeContext {
     uint16          maxScopeDepth;  
 #endif
 
-    JSTreeContext(JSCompiler *jsc)
+    JSTreeContext(js::Parser *prs)
       : flags(0), ngvars(0), bodyid(0), blockidGen(0),
         topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
-        compiler(jsc), scopeChain(NULL), parent(jsc->tc), staticLevel(0),
+        parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
         funbox(NULL), functionList(NULL), sharpSlotBase(-1)
     {
-        jsc->tc = this;
+        prs->tc = this;
         JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
     }
 
@@ -214,9 +214,9 @@ struct JSTreeContext {
 
 
     ~JSTreeContext() {
-        compiler->tc = this->parent;
+        parser->tc = this->parent;
         JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
-                                   JS_BASIC_STATS_ACCUM(&compiler
+                                   JS_BASIC_STATS_ACCUM(&parser
                                                           ->context
                                                           ->runtime
                                                           ->lexicalScopeDepthStats,
@@ -260,7 +260,7 @@ struct JSTreeContext {
                                         own name */
 #define TCF_HAS_FUNCTION_STMT  0x800 /* block contains a function statement */
 #define TCF_GENEXP_LAMBDA     0x1000 /* flag lambda from generator expression */
-#define TCF_COMPILE_N_GO      0x2000 /* compiler-and-go mode of script, can
+#define TCF_COMPILE_N_GO      0x2000 /* compile-and-go mode of script, can
                                         optimize name references based on scope
                                         chain */
 #define TCF_NO_SCRIPT_RVAL    0x4000 /* API caller does not want result value
@@ -335,7 +335,7 @@ struct JSTreeContext {
 
 
 inline bool JSTreeContext::needStrictChecks() {
-    return JS_HAS_STRICT_OPTION(compiler->context) ||
+    return JS_HAS_STRICT_OPTION(parser->context) ||
            (flags & TCF_STRICT_MODE_CODE);
 }
 
@@ -469,7 +469,7 @@ struct JSCodeGenerator : public JSTreeContext
 
 
 
-    JSCodeGenerator(JSCompiler *jsc,
+    JSCodeGenerator(js::Parser *parser,
                     JSArenaPool *codePool, JSArenaPool *notePool,
                     uintN lineno);
 
@@ -493,7 +493,7 @@ struct JSCodeGenerator : public JSTreeContext
     }
 };
 
-#define CG_TS(cg)               TS((cg)->compiler)
+#define CG_TS(cg)               TS((cg)->parser)
 
 #define CG_BASE(cg)             ((cg)->current->base)
 #define CG_LIMIT(cg)            ((cg)->current->limit)

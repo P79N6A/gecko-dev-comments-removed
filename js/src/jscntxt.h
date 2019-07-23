@@ -1649,7 +1649,7 @@ class AutoGCRooter {
         JSVAL =        -1, 
         SPROP =        -2, 
         WEAKROOTS =    -3, 
-        COMPILER =     -4, 
+        PARSER =       -4, 
         SCRIPT =       -5, 
         ENUMERATOR =   -6, 
         IDARRAY =      -7, 

@@ -89,12 +89,17 @@ typedef uint8  jssrcnote;
 typedef uint32 jsatomid;
 
 
+namespace js {
+struct Parser;
+struct Compiler;
+}
+
+
 typedef struct JSArgumentFormatMap  JSArgumentFormatMap;
 typedef struct JSCodeGenerator      JSCodeGenerator;
 typedef struct JSGCThing            JSGCThing;
 typedef struct JSGenerator          JSGenerator;
 typedef struct JSNativeEnumerator   JSNativeEnumerator;
-typedef struct JSCompiler           JSCompiler;
 typedef struct JSFunctionBox        JSFunctionBox;
 typedef struct JSObjectBox          JSObjectBox;
 typedef struct JSParseNode          JSParseNode;

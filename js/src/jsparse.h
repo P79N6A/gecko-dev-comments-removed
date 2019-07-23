@@ -910,7 +910,10 @@ struct JSFunctionBoxQueue {
 
 typedef struct BindData BindData;
 
-struct JSCompiler : private js::AutoGCRooter {
+namespace js {
+
+struct Parser : private js::AutoGCRooter
+{
     JSContext           * const context; 
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
@@ -927,8 +930,8 @@ struct JSCompiler : private js::AutoGCRooter {
     
     js::AutoKeepAtoms   keepAtoms;
 
-    JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : js::AutoGCRooter(cx, COMPILER), context(cx),
+    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
+      : js::AutoGCRooter(cx, PARSER), context(cx),
         aleFreeList(NULL), tokenStream(cx), principals(NULL), callerFrame(cfp),
         callerVarObj(cfp ? cfp->varobj(cx->containingCallStack(cfp)) : NULL),
         nodeList(NULL), functionCount(0), traceListHead(NULL), tc(NULL),
@@ -939,10 +942,11 @@ struct JSCompiler : private js::AutoGCRooter {
         JS_ASSERT_IF(cfp, cfp->script);
     }
 
-    ~JSCompiler();
+    ~Parser();
 
     friend void js::AutoGCRooter::trace(JSTracer *trc);
     friend struct JSTreeContext;
+    friend struct Compiler;
 
     
 
@@ -1051,8 +1055,27 @@ private:
     JSParseNode *xmlElementOrList(JSBool allowList);
     JSParseNode *xmlElementOrListRoot(JSBool allowList);
 #endif 
+};
 
-public:
+struct Compiler
+{
+    Parser parser;
+
+    Compiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
+      : parser(cx, prin, cfp)
+    {
+    }
+
+    
+
+
+    inline bool
+    init(const jschar *base, size_t length,
+         FILE *fp, const char *filename, uintN lineno)
+    {
+        return parser.init(base, length, fp, filename, lineno);
+    }
+
     static bool
     compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
                         const jschar *chars, size_t length,
@@ -1067,10 +1090,12 @@ public:
                   unsigned staticLevel = 0);
 };
 
+} 
 
 
 
-#define TS(jsc) (&(jsc)->tokenStream)
+
+#define TS(p) (&(p)->tokenStream)
 
 extern JSBool
 js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc,

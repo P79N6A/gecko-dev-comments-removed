@@ -122,7 +122,7 @@ typedef enum JSOp {
 
 #define JOF_SHARPSLOT    (1U<<24) /* first immediate is uint16 stack slot no.
                                      that needs fixup when in global code (see
-                                     JSCompiler::compileScript) */
+                                     Compiler::compileScript) */
 
 
 #define JOF_TYPE(fmt)   ((fmt) & JOF_TYPEMASK)

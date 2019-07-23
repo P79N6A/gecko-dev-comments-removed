@@ -1412,11 +1412,11 @@ obj_eval(JSContext *cx, uintN argc, jsval *vp)
 
     JSStackFrame *callerFrame = (staticLevel != 0) ? caller : NULL;
     if (!script) {
-        script = JSCompiler::compileScript(cx, scopeobj, callerFrame,
-                                           principals,
-                                           TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT,
-                                           str->chars(), str->length(),
-                                           NULL, file, line, str, staticLevel);
+        script = Compiler::compileScript(cx, scopeobj, callerFrame,
+                                         principals,
+                                         TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT,
+                                         str->chars(), str->length(),
+                                         NULL, file, line, str, staticLevel);
         if (!script)
             return JS_FALSE;
     }
