@@ -202,15 +202,7 @@ function wrapToolbarItems()
 #endif
 
         if (isToolbarItem(item)) {
-          var nextSibling = item.nextSibling;
-          
           var wrapper = wrapToolbarItem(item);
-          
-          if (nextSibling)
-            toolbar.insertBefore(wrapper, nextSibling);
-          else
-            toolbar.appendChild(wrapper);
-
           cleanupItemForToolbar(item, wrapper);
         }
       }
@@ -242,9 +234,9 @@ function unwrapToolbarItems()
 
 
 
-function createWrapper(aId)
+function createWrapper(aId, aDocument)
 {
-  var wrapper = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
+  var wrapper = aDocument.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
                                          "toolbarpaletteitem");
 
   wrapper.id = "wrapper-"+aId;  
@@ -257,7 +249,7 @@ function createWrapper(aId)
 
 function wrapPaletteItem(aPaletteItem, aCurrentRow, aSpacer)
 {
-  var wrapper = createWrapper(aPaletteItem.id);
+  var wrapper = createWrapper(aPaletteItem.id, document);
 
   wrapper.setAttribute("flex", 1);
   wrapper.setAttribute("align", "center");
@@ -265,7 +257,6 @@ function wrapPaletteItem(aPaletteItem, aCurrentRow, aSpacer)
   wrapper.setAttribute("minheight", "0");
   wrapper.setAttribute("minwidth", "0");
 
-  document.adoptNode(aPaletteItem);
   wrapper.appendChild(aPaletteItem);
   
   
@@ -287,13 +278,11 @@ function wrapPaletteItem(aPaletteItem, aCurrentRow, aSpacer)
 
 function wrapToolbarItem(aToolbarItem)
 {
-  var wrapper = createWrapper(aToolbarItem.id);
-  gToolboxDocument.adoptNode(wrapper);
+  var wrapper = createWrapper(aToolbarItem.id, gToolboxDocument);
 
   wrapper.flex = aToolbarItem.flex;
 
-  if (aToolbarItem.parentNode)
-    aToolbarItem.parentNode.removeChild(aToolbarItem);
+  aToolbarItem.parentNode.replaceChild(wrapper, aToolbarItem);
   
   wrapper.appendChild(aToolbarItem);
   
@@ -361,7 +350,7 @@ function buildPalette()
   while (templateNode) {
     
     if (!(templateNode.id in currentItems)) {
-      var paletteItem = templateNode.cloneNode(true);
+      var paletteItem = document.importNode(templateNode, true);
 
       if (rowSlot == kRowMax) {
         
@@ -446,7 +435,8 @@ function cleanUpItemForPalette(aItem, aWrapper)
     aWrapper.setAttribute("title", aItem.getAttribute("title"));
   else if (isSpecialItem(aItem)) {
     var stringBundle = document.getElementById("stringBundle");
-    var title = stringBundle.getString(aItem.id + "Title");
+    
+    var title = stringBundle.getString(aItem.localName.slice(7) + "Title");
     aWrapper.setAttribute("title", title);
   }
   
@@ -586,8 +576,7 @@ function addNewToolbar()
 function restoreDefaultSet()
 {
   
-  
-  var savedAttributes = saveItemAttributes(["itemdisabled", "itemcommand"]);
+  unwrapToolbarItems();
 
   
   var child = gToolbox.lastChild;
@@ -595,6 +584,7 @@ function restoreDefaultSet()
     if (child.hasAttribute("customindex")) {
       var thisChild = child;
       child = child.previousSibling;
+      thisChild.currentSet = "__empty";
       gToolbox.removeChild(thisChild);
     } else {
       child = child.previousSibling;
@@ -627,47 +617,7 @@ function restoreDefaultSet()
   
   wrapToolbarItems();
 
-  
-  restoreItemAttributes(["itemdisabled", "itemcommand"], savedAttributes);
-
   toolboxChanged();
-}
-
-function saveItemAttributes(aAttributeList)
-{
-  var items = [];
-  var paletteItems = gToolbox.getElementsByTagName("toolbarpaletteitem");
-  for (var i = 0; i < paletteItems.length; i++) {
-    var paletteItem = paletteItems.item(i);
-    for (var j = 0; j < aAttributeList.length; j++) {
-      var attr = aAttributeList[j];
-      if (paletteItem.hasAttribute(attr)) {
-        items.push([paletteItem.id, attr, paletteItem.getAttribute(attr)]);
-      }
-    }
-  }
-  return items;
-}
-
-function restoreItemAttributes(aAttributeList, aSavedAttrList)
-{
-  var paletteItems = gToolbox.getElementsByTagName("toolbarpaletteitem");
-
-  for (var i = 0; i < paletteItems.length; i++) {
-    var paletteItem = paletteItems.item(i);
-
-    
-    
-    for (var j = 0; j < aAttributeList.length; j++)
-      paletteItem.removeAttribute(aAttributeList[j]);
-
-    for (var j = 0; j < aSavedAttrList.length; j++) {
-      var savedAttr = aSavedAttrList[j];
-      if (paletteItem.id == savedAttr[0]) {
-        paletteItem.setAttribute(savedAttr[1], savedAttr[2]);
-      }
-    }
-  }
 }
 
 function updateIconSize(aUseSmallIcons, localDefault)
@@ -881,8 +831,7 @@ var toolbarDNDObserver =
       
       
       
-      var wrapper = createWrapper("");
-      gToolboxDocument.adoptNode(wrapper);
+      var wrapper = createWrapper("", gToolboxDocument);
 
       
       var newItem = toolbar.insertItem(draggedItemId, gCurrentDragOverItem == toolbar ? null : gCurrentDragOverItem, wrapper);
@@ -974,27 +923,16 @@ var paletteDNDObserver =
       if (wrapper.parentNode.lastPermanentChild && wrapper.parentNode.lastPermanentChild.id == wrapper.firstChild.id)
         return;
 
-      
-      wrapper.parentNode.removeChild(wrapper);
-      
       var wrapperType = wrapper.getAttribute("type");
       if (wrapperType != "separator" &&
           wrapperType != "spacer" &&
           wrapperType != "spring") {
-        
-        var templateNode = gToolbox.palette.firstChild;
-        while (templateNode) {
-          if (templateNode.id == itemId)
-            break;
-          templateNode = templateNode.nextSibling;
-        }
-        if (!templateNode)
-          return;
-        
-        
-        var paletteItem = templateNode.cloneNode(true);
-        appendPaletteItem(paletteItem);
+        appendPaletteItem(document.importNode(wrapper.firstChild, true));
+        gToolbox.palette.appendChild(wrapper.firstChild);
       }
+
+      
+      wrapper.parentNode.removeChild(wrapper);
     }
     
     toolboxChanged();
