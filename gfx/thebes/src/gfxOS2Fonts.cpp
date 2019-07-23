@@ -312,6 +312,11 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
                (char *)str2, w2, i2, s2);
 #endif
         FcPatternDestroy(fcPattern);
+        if (mName == NS_LITERAL_STRING("Workplace Sans") && fcW >= FC_WEIGHT_DEMIBOLD) {
+            
+            
+            FcPatternAddBool(fcMatch, FC_EMBOLDEN, FcTrue);
+        }
         
         mFontFace = cairo_ft_font_face_create_for_pattern(fcMatch);
         FcPatternDestroy(fcMatch);
@@ -390,6 +395,13 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
            (unsigned)aStyle);
 #endif
 
+    
+    
+    int pos = 0;
+    if ((pos = mFamilies.Find("WarpSans", PR_FALSE, 0, -1)) > -1) {
+        mFamilies.Replace(pos, 8, NS_LITERAL_STRING("Workplace Sans"));
+    }
+
     nsStringArray familyArray;
     mFontCache.Init(15);
     ForEachFont(FontCallback, &familyArray);
@@ -405,10 +417,11 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
     gfxPlatform::GetPlatform()->GetPrefFonts("x-user-def", fontString, PR_FALSE);
     ForEachFont(fontString, NS_LITERAL_CSTRING("x-user-def"), FontCallback, &familyArray);
 
+    
+    
+    
     if (familyArray.Count() == 0) {
-        
-        
-        familyArray.AppendString(NS_LITERAL_STRING("WarpSans"));
+        familyArray.AppendString(NS_LITERAL_STRING("Helv"));
     }
 
     for (int i = 0; i < familyArray.Count(); i++) {
