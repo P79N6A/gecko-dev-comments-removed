@@ -198,7 +198,7 @@ void _PR_InitLinker(void)
 
 #elif defined(XP_UNIX)
 #ifdef HAVE_DLL
-#ifdef USE_DLFCN
+#if defined(USE_DLFCN) && !defined(NO_DLOPEN_NULL)
     h = dlopen(0, RTLD_LAZY);
     if (!h) {
         char *error;
@@ -214,8 +214,8 @@ void _PR_InitLinker(void)
 #elif defined(USE_HPSHL)
     h = NULL;
     
-#elif defined(USE_MACH_DYLD)
-    h = NULL; 
+#elif defined(USE_MACH_DYLD) || defined(NO_DLOPEN_NULL)
+    h = NULL;  
 #else
 #error no dll strategy
 #endif 
@@ -1354,7 +1354,7 @@ PR_LoadStaticLibrary(const char *name, const PRStaticLinkTable *slt)
 PR_IMPLEMENT(char *)
 PR_GetLibraryFilePathname(const char *name, PRFuncPtr addr)
 {
-#if defined(USE_DLFCN) && (defined(SOLARIS) || defined(FREEBSD) \
+#if defined(USE_DLFCN) && !defined(ANDROID) && (defined(SOLARIS) || defined(FREEBSD) \
         || defined(LINUX) || defined(__GNU__) || defined(__GLIBC__) \
         || defined(DARWIN))
     Dl_info dli;

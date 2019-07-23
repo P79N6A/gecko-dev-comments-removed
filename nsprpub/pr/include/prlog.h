@@ -248,14 +248,6 @@ NSPR_API(void) PR_Assert(const char *s, const char *file, PRIntn ln);
 
 #endif 
 
-
-
-
-
-
-#define PR_STATIC_ASSERT(condition) \
-    extern void pr_static_assert(int arg[(condition) ? 1 : -1])
-
 PR_END_EXTERN_C
 
 #endif 

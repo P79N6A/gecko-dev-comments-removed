@@ -95,7 +95,8 @@ PRLock *_pr_dnsLock = NULL;
 
 #if defined(SOLARIS) || (defined(BSDI) && defined(_REENTRANT)) \
 	|| (defined(LINUX) && defined(_REENTRANT) \
-        && !(defined(__GLIBC__) && __GLIBC__ >= 2))
+        && !(defined(__GLIBC__) && __GLIBC__ >= 2)) \
+        && !defined(ANDROID)
 #define _PR_HAVE_GETPROTO_R
 #define _PR_HAVE_GETPROTO_R_POINTER
 #endif
@@ -1184,6 +1185,16 @@ PR_IMPLEMENT(PRStatus) PR_GetHostByAddr(
 
 
 
+
+#if defined(ANDROID)
+
+
+
+
+
+#define getprotobyname_r _pr_getprotobyname_r
+#define getprotobynumber_r _pr_getprotobynumber_r
+#endif
 
 static struct protoent *getprotobyname_r(const char* name)
 {
