@@ -1105,11 +1105,6 @@ public:
   
 
 
-  virtual void DispatchContentLoadedEvents() = 0;
-
-  
-
-
 
 
   PRBool IsShowing() { return mIsShowing; }
