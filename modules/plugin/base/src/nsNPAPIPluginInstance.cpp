@@ -840,8 +840,11 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop(void)
     }
   }
 
-  if (!mStarted)
+  if (!mStarted) {
+    
+    mPeer = nsnull;
     return NS_OK;
+  }
 
   
   
@@ -857,8 +860,11 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop(void)
 
   OnPluginDestroy(&fNPP);
 
-  if (fCallbacks->destroy == NULL)
+  if (fCallbacks->destroy == NULL) {
+    
+    mPeer = nsnull;
     return NS_ERROR_FAILURE;
+  }
 
   NPSavedData *sdata = 0;
 
@@ -883,6 +889,9 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop(void)
   ("NPP Destroy called: this=%p, npp=%p, return=%d\n", this, &fNPP, error));
 
   nsJSNPRuntime::OnPluginDestroy(&fNPP);
+
+  
+  mPeer = nsnull;
 
   if (error != NPERR_NO_ERROR)
     return NS_ERROR_FAILURE;
