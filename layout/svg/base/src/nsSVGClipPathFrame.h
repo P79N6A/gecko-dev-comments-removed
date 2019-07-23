@@ -48,22 +48,22 @@ class nsSVGClipPathFrame : public nsSVGClipPathFrameBase
 
   NS_IMETHOD InitSVG();
 
- public:
   nsSVGClipPathFrame(nsStyleContext* aContext) : nsSVGClipPathFrameBase(aContext) {}
 
+ public:
   
-  NS_IMETHOD ClipPaint(nsSVGRenderState* aContext,
-                       nsISVGChildFrame* aParent,
-                       nsCOMPtr<nsIDOMSVGMatrix> aMatrix);
+  nsresult ClipPaint(nsSVGRenderState* aContext,
+                     nsISVGChildFrame* aParent,
+                     nsIDOMSVGMatrix *aMatrix);
 
-  NS_IMETHOD ClipHitTest(nsISVGChildFrame* aParent,
-                         nsCOMPtr<nsIDOMSVGMatrix> aMatrix,
-                         float aX, float aY, PRBool *aHit);
+  PRBool ClipHitTest(nsISVGChildFrame* aParent,
+                     nsIDOMSVGMatrix *aMatrix,
+                     float aX, float aY);
 
   
   
   
-  NS_IMETHOD IsTrivial(PRBool *aTrivial);
+  PRBool IsTrivial();
 
   
 
@@ -80,6 +80,24 @@ class nsSVGClipPathFrame : public nsSVGClipPathFrameBase
 #endif
 
  private:
+  
+  
+  
+  
+  class AutoClipPathReferencer
+  {
+  public:
+    AutoClipPathReferencer(nsSVGClipPathFrame *aFrame) {
+      NS_ASSERTION(mFrame->mInUse == PR_FALSE, "reference loop!");
+      mFrame->mInUse = PR_TRUE;
+    }
+    ~AutoClipPathReferencer() {
+      mFrame->mInUse = PR_FALSE;
+    }
+  private:
+    nsSVGClipPathFrame *mFrame;
+  };
+
   nsISVGChildFrame *mClipParent;
   nsCOMPtr<nsIDOMSVGMatrix> mClipParentMatrix;
 
