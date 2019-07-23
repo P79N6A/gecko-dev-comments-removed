@@ -183,11 +183,14 @@ using namespace mozilla::places;
 
 
 
-#define ADDITIONAL_DATE_CONT_NUM 3
+#define HISTORY_ADDITIONAL_DATE_CONT_NUM 3
 
 
-#define DATE_CONT_NUM(_expireDays) \
-  (ADDITIONAL_DATE_CONT_NUM + NS_MIN(6, (_expireDays/30)))
+#define HISTORY_DATE_CONT_NUM(_daysFromOldestVisit) \
+  (HISTORY_ADDITIONAL_DATE_CONT_NUM + \
+   NS_MIN(6, (PRInt32)NS_ceilf((float)_daysFromOldestVisit/30)))
+
+#define HISTORY_DATE_CONT_MAX 10
 
 
 
@@ -367,9 +370,6 @@ const PRInt32 nsNavHistory::kGetInfoIndex_ItemTags = 12;
 static const char* gXpcomShutdown = "xpcom-shutdown";
 static const char* gAutoCompleteFeedback = "autocomplete-will-enter-text";
 static const char* gIdleDaily = "idle-daily";
-
-
-const char nsNavHistory::kAnnotationPreviousEncoding[] = "history/encoding";
 
 
 
@@ -2115,6 +2115,29 @@ nsNavHistory::LoadPrefs(PRBool aInitializing)
   return NS_OK;
 }
 
+PRInt32
+nsNavHistory::GetDaysOfHistory() {
+  PRInt32 daysOfHistory = 0;
+  nsCOMPtr<mozIStorageStatement> statement;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT ROUND(( "
+        "strftime('%s','now','localtime','utc') - "
+        "( "
+          "SELECT visit_date FROM moz_historyvisits "
+          "UNION ALL "
+          "SELECT visit_date FROM moz_historyvisits_temp "
+          "ORDER BY visit_date ASC LIMIT 1 "
+        ")/1000000 "
+      ")/86400) AS daysOfHistory "),
+    getter_AddRefs(statement));
+  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Unable to create statement.");
+  NS_ENSURE_SUCCESS(rv, 0);
+  PRBool hasResult;
+  if (NS_SUCCEEDED(statement->ExecuteStep(&hasResult)) && hasResult)
+    statement->GetInt32(0, &daysOfHistory);
+
+  return daysOfHistory;
+}
 
 
 
@@ -3382,7 +3405,8 @@ PlacesSQLQueryBuilder::SelectAsDay()
    nsNavHistory *history = nsNavHistory::GetHistoryService();
    NS_ENSURE_STATE(history);
 
-  for (PRInt32 i = 0; i <= DATE_CONT_NUM(history->mExpireDaysMax); i++) {
+  PRInt32 daysOfHistory = history->GetDaysOfHistory();
+  for (PRInt32 i = 0; i <= HISTORY_DATE_CONT_NUM(daysOfHistory); i++) {
     nsCAutoString dateName;
     
     
@@ -3455,7 +3479,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
           "(strftime('%s','now','localtime','start of day','-7 days','utc')*1000000)");
          break;
        default:
-        if (i == ADDITIONAL_DATE_CONT_NUM + 6) {
+        if (i == HISTORY_ADDITIONAL_DATE_CONT_NUM + 6) {
           
           history->GetAgeInDaysString(6,
             NS_LITERAL_STRING("finduri-AgeInMonths-isgreater").get(), dateName);
@@ -3470,7 +3494,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
           sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
           break;
         }
-        PRInt32 MonthIndex = i - ADDITIONAL_DATE_CONT_NUM;
+        PRInt32 MonthIndex = i - HISTORY_ADDITIONAL_DATE_CONT_NUM;
         
         
         PRExplodedTime tm;
@@ -3540,8 +3564,8 @@ PlacesSQLQueryBuilder::SelectAsDay()
 
     mQueryString.Append(dayRange);
 
-    if (i < DATE_CONT_NUM(history->mExpireDaysMax))
-        mQueryString.Append(NS_LITERAL_CSTRING(" UNION ALL "));
+    if (i < HISTORY_DATE_CONT_NUM(daysOfHistory))
+      mQueryString.Append(NS_LITERAL_CSTRING(" UNION ALL "));
   }
 
   mQueryString.Append(NS_LITERAL_CSTRING(") ")); 
@@ -4122,7 +4146,7 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
   nsCString queryString;
   PRBool paramsPresent = PR_FALSE;
   nsNavHistory::StringHash addParams;
-  addParams.Init(DATE_CONT_NUM(mExpireDaysMax));
+  addParams.Init(HISTORY_DATE_CONT_MAX);
   nsresult rv = ConstructQueryString(aQueries, aOptions, queryString, 
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);

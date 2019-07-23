@@ -273,10 +273,12 @@ public:
                                    const nsAString& aValue);
 
   
-  PRTime GetNow();
+
+
+  PRInt32 GetDaysOfHistory();
 
   
-  static const char kAnnotationPreviousEncoding[];
+  PRTime GetNow();
 
   
   static PRUint32 GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQueries,
