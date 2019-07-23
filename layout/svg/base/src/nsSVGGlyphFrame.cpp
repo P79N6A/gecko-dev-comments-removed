@@ -1230,7 +1230,7 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
     
     
     gfxPoint p = m.Transform(gfxPoint(1, 1)) - m.Transform(gfxPoint(0, 0));
-    double contextScale = nsSVGUtils::ComputeNormalizedHypotenuse(p.x, p.y);
+    double contextScale = sqrt((p.x*p.x + p.y*p.y)/2);
 
     nsCAutoString langGroup;
     nsIAtom *langGroupAtom = presContext->GetLangGroup();
