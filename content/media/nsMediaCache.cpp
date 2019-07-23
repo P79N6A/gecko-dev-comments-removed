@@ -975,263 +975,297 @@ nsMediaCache::PredictNextUseForIncomingData(nsMediaCacheStream* aStream)
       PR_MIN(millisecondsAhead, PR_INT32_MAX));
 }
 
+enum StreamAction { NONE, SEEK, RESUME, SUSPEND };
+
 void
 nsMediaCache::Update()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
-  nsAutoMonitor mon(mMonitor);
-  mUpdateQueued = PR_FALSE;
+  
+  
+  
+  
+  nsAutoTArray<StreamAction,10> actions;
+
+  {
+    nsAutoMonitor mon(mMonitor);
+    mUpdateQueued = PR_FALSE;
 #ifdef DEBUG
-  mInUpdate = PR_TRUE;
+    mInUpdate = PR_TRUE;
 #endif
 
-  PRInt32 maxBlocks = GetMaxBlocks();
-  TimeStamp now = TimeStamp::Now();
+    PRInt32 maxBlocks = GetMaxBlocks();
+    TimeStamp now = TimeStamp::Now();
 
-  PRInt32 freeBlockCount = mFreeBlocks.GetCount();
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  TimeDuration latestPredictedUseForOverflow = 0;
-  for (PRInt32 blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
-       --blockIndex) {
-    if (IsBlockFree(blockIndex)) {
-      
-      --freeBlockCount;
-      continue;
-    }
-    TimeDuration predictedUse = PredictNextUse(now, blockIndex);
-    latestPredictedUseForOverflow = PR_MAX(latestPredictedUseForOverflow, predictedUse);
-  }
-
-  
-  for (PRInt32 blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
-       --blockIndex) {
-    if (IsBlockFree(blockIndex))
-      continue;
-
-    Block* block = &mIndex[blockIndex];
+    PRInt32 freeBlockCount = mFreeBlocks.GetCount();
     
     
     
-    PRInt32 destinationBlockIndex =
-      FindReusableBlock(now, block->mOwners[0].mStream,
-                        block->mOwners[0].mStreamBlock, maxBlocks);
-    if (destinationBlockIndex < 0) {
-      
-      
-      break;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    TimeDuration latestPredictedUseForOverflow = 0;
+    for (PRInt32 blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
+         --blockIndex) {
+      if (IsBlockFree(blockIndex)) {
+        
+        --freeBlockCount;
+        continue;
+      }
+      TimeDuration predictedUse = PredictNextUse(now, blockIndex);
+      latestPredictedUseForOverflow = PR_MAX(latestPredictedUseForOverflow, predictedUse);
     }
 
-    if (IsBlockFree(destinationBlockIndex) ||
-        PredictNextUse(now, destinationBlockIndex) > latestPredictedUseForOverflow) {
+    
+    for (PRInt32 blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
+         --blockIndex) {
+      if (IsBlockFree(blockIndex))
+        continue;
+
+      Block* block = &mIndex[blockIndex];
       
       
-      char buf[BLOCK_SIZE];
-      nsresult rv = ReadCacheFileAllBytes(blockIndex*BLOCK_SIZE, buf, sizeof(buf));
-      if (NS_SUCCEEDED(rv)) {
-        rv = WriteCacheFile(destinationBlockIndex*BLOCK_SIZE, buf, BLOCK_SIZE);
+      
+      PRInt32 destinationBlockIndex =
+        FindReusableBlock(now, block->mOwners[0].mStream,
+                          block->mOwners[0].mStreamBlock, maxBlocks);
+      if (destinationBlockIndex < 0) {
+        
+        
+        break;
+      }
+
+      if (IsBlockFree(destinationBlockIndex) ||
+          PredictNextUse(now, destinationBlockIndex) > latestPredictedUseForOverflow) {
+        
+        
+        char buf[BLOCK_SIZE];
+        nsresult rv = ReadCacheFileAllBytes(blockIndex*BLOCK_SIZE, buf, sizeof(buf));
         if (NS_SUCCEEDED(rv)) {
+          rv = WriteCacheFile(destinationBlockIndex*BLOCK_SIZE, buf, BLOCK_SIZE);
+          if (NS_SUCCEEDED(rv)) {
+            
+            LOG(PR_LOG_DEBUG, ("Swapping blocks %d and %d (trimming cache)",
+                blockIndex, destinationBlockIndex));
+            
+            
+            SwapBlocks(blockIndex, destinationBlockIndex);
+          } else {
+            
+            
+            LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)",
+                destinationBlockIndex));
+            FreeBlock(destinationBlockIndex);
+          }
           
-          LOG(PR_LOG_DEBUG, ("Swapping blocks %d and %d (trimming cache)",
-              blockIndex, destinationBlockIndex));
+          LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)",
+              blockIndex));
+          FreeBlock(blockIndex);
+        }
+      }
+    }
+    
+    Truncate();
+
+    
+    
+    
+    PRInt32 nonSeekableReadaheadBlockCount = 0;
+    for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
+      nsMediaCacheStream* stream = mStreams[i];
+      if (!stream->mIsSeekable) {
+        nonSeekableReadaheadBlockCount += stream->mReadaheadBlocks.GetCount();
+      }
+    }
+
+    
+    
+    TimeDuration latestNextUse;
+    if (freeBlockCount == 0) {
+      PRInt32 reusableBlock = FindReusableBlock(now, nsnull, 0, maxBlocks);
+      if (reusableBlock >= 0) {
+        latestNextUse = PredictNextUse(now, reusableBlock);
+      }
+    }
+
+    for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
+      actions.AppendElement(NONE);
+
+      nsMediaCacheStream* stream = mStreams[i];
+      if (stream->mClosed)
+        continue;
+
+      
+      
+      PRInt64 desiredOffset = stream->GetCachedDataEndInternal(stream->mStreamOffset);
+      if (stream->mIsSeekable) {
+        if (desiredOffset > stream->mChannelOffset &&
+            desiredOffset <= stream->mChannelOffset + SEEK_VS_READ_THRESHOLD) {
           
           
-          SwapBlocks(blockIndex, destinationBlockIndex);
+          desiredOffset = stream->mChannelOffset;
+        }
+      } else {
+        
+        if (stream->mChannelOffset > desiredOffset) {
+          
+          
+          
+          NS_WARNING("Can't seek backwards, so seeking to 0");
+          desiredOffset = 0;
+          
+          
+          
+          
+          ReleaseStreamBlocks(stream);
         } else {
           
           
-          LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)",
-              destinationBlockIndex));
-          FreeBlock(destinationBlockIndex);
+          desiredOffset = stream->mChannelOffset;
         }
-        
-        LOG(PR_LOG_DEBUG, ("Released block %d (trimming cache)",
-            blockIndex));
-        FreeBlock(blockIndex);
       }
-    }
-  }
-  
-  Truncate();
 
-  
-  
-  
-  PRInt32 nonSeekableReadaheadBlockCount = 0;
-  for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
-    nsMediaCacheStream* stream = mStreams[i];
-    if (!stream->mIsSeekable) {
-      nonSeekableReadaheadBlockCount += stream->mReadaheadBlocks.GetCount();
-    }
-  }
-
-  
-  
-  TimeDuration latestNextUse;
-  if (freeBlockCount == 0) {
-    PRInt32 reusableBlock = FindReusableBlock(now, nsnull, 0, maxBlocks);
-    if (reusableBlock >= 0) {
-      latestNextUse = PredictNextUse(now, reusableBlock);
-    }
-  }
-
-  
-  
-  
-  nsTArray<nsMediaCacheStream*> streamsToClose;
-  for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
-    nsMediaCacheStream* stream = mStreams[i];
-    if (stream->mClosed)
-      continue;
-
-    
-    
-    PRInt64 desiredOffset = stream->GetCachedDataEndInternal(stream->mStreamOffset);
-    if (stream->mIsSeekable) {
-      if (desiredOffset > stream->mChannelOffset &&
-          desiredOffset <= stream->mChannelOffset + SEEK_VS_READ_THRESHOLD) {
-        
-        
-        desiredOffset = stream->mChannelOffset;
-      }
-    } else {
       
-      if (stream->mChannelOffset > desiredOffset) {
+      
+      PRBool enableReading;
+      if (stream->mStreamLength >= 0 &&
+          desiredOffset >= stream->mStreamLength) {
         
         
         
-        NS_WARNING("Can't seek backwards, so seeking to 0");
-        desiredOffset = 0;
         
         
         
         
-        ReleaseStreamBlocks(stream);
+        
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p at end of stream", stream));
+        enableReading = !stream->mCacheSuspended &&
+          desiredOffset == stream->mChannelOffset;
+      } else if (desiredOffset < stream->mStreamOffset) {
+        
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p catching up", stream));
+        enableReading = PR_TRUE;
+      } else if (desiredOffset < stream->mStreamOffset + BLOCK_SIZE) {
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p feeding reader", stream));
+        enableReading = PR_TRUE;
+      } else if (!stream->mIsSeekable &&
+                 nonSeekableReadaheadBlockCount >= maxBlocks*NONSEEKABLE_READAHEAD_MAX) {
+        
+        
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p throttling non-seekable readahead", stream));
+        enableReading = PR_FALSE;
+      } else if (mIndex.Length() > PRUint32(maxBlocks)) {
+        
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p throttling to reduce cache size", stream));
+        enableReading = PR_FALSE;
+      } else if (freeBlockCount > 0 || mIndex.Length() < PRUint32(maxBlocks)) {
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p reading since there are free blocks", stream));
+        enableReading = PR_TRUE;
+      } else if (latestNextUse <= TimeDuration(0)) {
+        
+        LOG(PR_LOG_DEBUG, ("Stream %p throttling due to no reusable blocks", stream));
+        enableReading = PR_FALSE;
       } else {
         
         
-        desiredOffset = stream->mChannelOffset;
+        TimeDuration predictedNewDataUse = PredictNextUseForIncomingData(stream);
+        LOG(PR_LOG_DEBUG, ("Stream %p predict next data in %f, current worst block is %f",
+            stream, predictedNewDataUse.ToSeconds(), latestNextUse.ToSeconds()));
+        enableReading = predictedNewDataUse < latestNextUse;
       }
-    }
 
-    
-    
-    PRBool enableReading;
-    if (stream->mStreamLength >= 0 &&
-        desiredOffset >= stream->mStreamLength) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p at end of stream", stream));
-      enableReading = !stream->mCacheSuspended &&
-        desiredOffset == stream->mChannelOffset;
-    } else if (desiredOffset < stream->mStreamOffset) {
-      
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p catching up", stream));
-      enableReading = PR_TRUE;
-    } else if (desiredOffset < stream->mStreamOffset + BLOCK_SIZE) {
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p feeding reader", stream));
-      enableReading = PR_TRUE;
-    } else if (!stream->mIsSeekable &&
-               nonSeekableReadaheadBlockCount >= maxBlocks*NONSEEKABLE_READAHEAD_MAX) {
-      
-      
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p throttling non-seekable readahead", stream));
-      enableReading = PR_FALSE;
-    } else if (mIndex.Length() > PRUint32(maxBlocks)) {
-      
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p throttling to reduce cache size", stream));
-      enableReading = PR_FALSE;
-    } else if (freeBlockCount > 0 || mIndex.Length() < PRUint32(maxBlocks)) {
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p reading since there are free blocks", stream));
-      enableReading = PR_TRUE;
-    } else if (latestNextUse <= TimeDuration(0)) {
-      
-      LOG(PR_LOG_DEBUG, ("Stream %p throttling due to no reusable blocks", stream));
-      enableReading = PR_FALSE;
-    } else {
-      
-      
-      TimeDuration predictedNewDataUse = PredictNextUseForIncomingData(stream);
-      LOG(PR_LOG_DEBUG, ("Stream %p predict next data in %f, current worst block is %f",
-          stream, predictedNewDataUse.ToSeconds(), latestNextUse.ToSeconds()));
-      enableReading = predictedNewDataUse < latestNextUse;
-    }
-
-    if (enableReading) {
-      for (PRUint32 j = 0; j < i; ++j) {
-        nsMediaCacheStream* other = mStreams[j];
-        if (other->mResourceID == stream->mResourceID &&
-            !other->mCacheSuspended &&
-            other->mChannelOffset/BLOCK_SIZE == stream->mChannelOffset/BLOCK_SIZE) {
-          
-          
-          enableReading = PR_FALSE;
-          break;
+      if (enableReading) {
+        for (PRUint32 j = 0; j < i; ++j) {
+          nsMediaCacheStream* other = mStreams[j];
+          if (other->mResourceID == stream->mResourceID &&
+              !other->mCacheSuspended &&
+              other->mChannelOffset/BLOCK_SIZE == stream->mChannelOffset/BLOCK_SIZE) {
+            
+            
+            enableReading = PR_FALSE;
+            break;
+          }
         }
       }
-    }
 
+      if (stream->mChannelOffset != desiredOffset && enableReading) {
+        
+        NS_ASSERTION(stream->mIsSeekable || desiredOffset == 0,
+                     "Trying to seek in a non-seekable stream!");
+        
+        
+        
+        stream->mChannelOffset = (desiredOffset/BLOCK_SIZE)*BLOCK_SIZE;
+        actions[i] = SEEK;
+      } else if (enableReading && stream->mCacheSuspended) {
+        actions[i] = RESUME;
+      } else if (!enableReading && !stream->mCacheSuspended) {
+        actions[i] = SUSPEND;
+      }
+    }
+#ifdef DEBUG
+    mInUpdate = PR_FALSE;
+#endif
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
+    nsMediaCacheStream* stream = mStreams[i];
     nsresult rv = NS_OK;
-    if (stream->mChannelOffset != desiredOffset && enableReading) {
-      
-      NS_ASSERTION(stream->mIsSeekable || desiredOffset == 0,
-                   "Trying to seek in a non-seekable stream!");
-      
-      stream->mChannelOffset = (desiredOffset/BLOCK_SIZE)*BLOCK_SIZE;
+    switch (actions[i]) {
+    case SEEK:
       LOG(PR_LOG_DEBUG, ("Stream %p CacheSeek to %lld (resume=%d)", stream,
-          (long long)stream->mChannelOffset, stream->mCacheSuspended));
+           (long long)stream->mChannelOffset, stream->mCacheSuspended));
       rv = stream->mClient->CacheClientSeek(stream->mChannelOffset,
                                             stream->mCacheSuspended);
       stream->mCacheSuspended = PR_FALSE;
-    } else if (enableReading && stream->mCacheSuspended) {
+      break;
+
+    case RESUME:
       LOG(PR_LOG_DEBUG, ("Stream %p Resumed", stream));
       rv = stream->mClient->CacheClientResume();
       stream->mCacheSuspended = PR_FALSE;
-    } else if (!enableReading && !stream->mCacheSuspended) {
+      break;
+
+    case SUSPEND:
       LOG(PR_LOG_DEBUG, ("Stream %p Suspended", stream));
       rv = stream->mClient->CacheClientSuspend();
       stream->mCacheSuspended = PR_TRUE;
+      break;
+
+    default:
+      break;
     }
 
     if (NS_FAILED(rv)) {
-      streamsToClose.AppendElement(stream);
+      
+      
+      
+      nsAutoMonitor mon(mMonitor);
+      stream->CloseInternal(&mon);
     }
   }
-
-  
-  
-  
-  for (PRUint32 i = 0; i < streamsToClose.Length(); ++i) {
-    streamsToClose[i]->CloseInternal(&mon);
-  }
-#ifdef DEBUG
-  mInUpdate = PR_FALSE;
-#endif
 }
 
 class UpdateEvent : public nsRunnable

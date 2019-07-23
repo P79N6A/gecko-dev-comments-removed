@@ -220,13 +220,14 @@ public:
   
   
   nsMediaCacheStream(nsMediaChannelStream* aClient)
-    : mClient(aClient), mResourceID(0), mChannelOffset(0),
-      mStreamOffset(0), mStreamLength(-1), mPlaybackBytesPerSecond(10000),
-      mPinCount(0), mCurrentMode(MODE_PLAYBACK),
-      mInitialized(PR_FALSE), mClosed(PR_FALSE),
+    : mClient(aClient), mResourceID(0), mInitialized(PR_FALSE),
       mIsSeekable(PR_FALSE), mCacheSuspended(PR_FALSE),
+      mUsingNullPrincipal(PR_FALSE),
+      mChannelOffset(0), mStreamLength(-1),  
+      mStreamOffset(0), mPlaybackBytesPerSecond(10000),
+      mPinCount(0), mCurrentMode(MODE_PLAYBACK),
       mMetadataInPartialBlockBuffer(PR_FALSE),
-      mUsingNullPrincipal(PR_FALSE) {}
+      mClosed(PR_FALSE) {}
   ~nsMediaCacheStream();
 
   
@@ -432,16 +433,32 @@ private:
   
   
   PRInt64                mResourceID;
+  
+  PRPackedBool           mInitialized;
 
   
   
+
   
-  PRInt64           mChannelOffset;
+  PRPackedBool mIsSeekable;
+  
+  
+  
+  PRPackedBool mCacheSuspended;
+  
+  
+  PRPackedBool mUsingNullPrincipal;
+  
+  PRInt64      mChannelOffset;
+  
+  
+  PRInt64      mStreamLength;
+
+  
+  
+
   
   PRInt64           mStreamOffset;
-  
-  
-  PRInt64           mStreamLength;
   
   
   nsTArray<PRInt32> mBlocks;
@@ -461,21 +478,13 @@ private:
   
   ReadMode          mCurrentMode;
   
-  PRPackedBool      mInitialized;
-  
-  
-  PRPackedBool      mClosed;
-  
-  PRPackedBool      mIsSeekable;
-  
-  
-  
-  PRPackedBool      mCacheSuspended;
-  
   PRPackedBool      mMetadataInPartialBlockBuffer;
   
   
-  PRPackedBool      mUsingNullPrincipal;
+  PRPackedBool      mClosed;
+
+  
+  
 
   
   

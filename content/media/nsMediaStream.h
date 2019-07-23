@@ -317,6 +317,10 @@ public:
   
   
   void CacheClientNotifyDataEnded(nsresult aStatus);
+
+  
+  
+  
   
   
   
