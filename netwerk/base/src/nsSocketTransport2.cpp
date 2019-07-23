@@ -1594,8 +1594,15 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
             
             mFDconnected = PR_FALSE;
         }
-        mCallbacks = nsnull;
-        mEventSink = nsnull;
+
+        
+        
+        
+        
+        if (NS_FAILED(mCondition)) {
+            mCallbacks = nsnull;
+            mEventSink = nsnull;
+        }
     }
 }
 
