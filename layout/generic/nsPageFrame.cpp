@@ -52,7 +52,6 @@
 #include "nsTextFormatter.h" 
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
-#include "nsBidiPresUtils.h"
 #endif
 #include "nsIFontMetrics.h"
 #include "nsIPrintSettings.h"
@@ -369,6 +368,8 @@ nsPageFrame::DrawHeaderFooter(nsIRenderingContext& aRenderingContext,
     } else { 
       return; 
     }
+    
+    PresContext()->SetBidiEnabled(HasRTLChars(str));
 
     
     nscoord x = GetXPosition(aRenderingContext, aRect, aJust, str);

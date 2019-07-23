@@ -203,6 +203,12 @@ typedef enum nsCharType nsCharType;
 
   PRBool IsBidiControl(PRUint32 aChar);
 
+  
+
+
+
+  PRBool HasRTLChars(nsAString& aString);
+
 
 
 
