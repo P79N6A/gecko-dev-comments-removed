@@ -435,11 +435,12 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   }
   
   if (aName == nsHtml5Atoms::meta) {
+    nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
     
-
-    
+    treeOp->Init(eTreeOpProcessMeta, aElement);
     return;
   }
+
   return;
 }
 
