@@ -101,6 +101,10 @@ using namespace nanojit;
 static GC gc = GC();
 static avmplus::AvmCore* core = new (&gc) avmplus::AvmCore();
 
+
+
+static Oracle oracle;
+
 Tracker::Tracker()
 {
     pagelist = 0;
@@ -201,6 +205,65 @@ static inline bool isInt32(jsval v)
 static inline uint8 getCoercedType(jsval v)
 {
     return isInt32(v) ? JSVAL_INT : JSVAL_TAG(v);
+}
+
+
+void
+Oracle::markGlobalSlotUndemotable(unsigned slot)
+{
+    _dontDemote.set(&gc, (slot % ORACLE_SIZE));
+}
+
+
+bool
+Oracle::isGlobalSlotUndemotable(unsigned slot) const
+{
+    return _dontDemote.get(slot % ORACLE_SIZE);
+}
+
+
+void 
+Oracle::markStackSlotUndemotable(JSScript* script, jsbytecode* ip, unsigned slot)
+{
+    uint32 hash = uint32(ip) + slot;
+    hash %= ORACLE_SIZE;
+    _dontDemote.set(&gc, hash);
+}
+
+
+bool 
+Oracle::isStackSlotUndemotable(JSScript* script, jsbytecode* ip, unsigned slot) const
+{
+    uint32 hash = uint32(ip) + slot;
+    hash %= ORACLE_SIZE;
+    return _dontDemote.get(hash);
+}
+
+
+void TypeMap::rehash()
+{
+    _hashcode = 0;
+}
+
+
+uint32 TypeMap::hashcode()
+{
+    if (_hashcode)
+        return _hashcode;
+    uint8* p = data();
+    unsigned len = length();
+    unsigned hash = 0;
+    while (len-- > 0) {
+        hash += *p++;
+        hash ^= hash << 10;
+        hash += hash >> 1;
+    }
+    _hashcode = hash;
+#ifdef DEBUG    
+    if (!hash)
+        printf("hashcode is 0 for typemap, this will be slow.\n");
+#endif        
+    return hash;
 }
 
 static LIns* demote(LirWriter *out, LInsp i)
@@ -932,7 +995,10 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
         return true; 
     unsigned index = treeInfo->globalSlots.length();
     treeInfo->globalSlots.add(slot);
-    treeInfo->globalTypeMap.add(getCoercedType(*vp));
+    uint8 type = getCoercedType(*vp);
+    if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(slot))
+        type = JSVAL_DOUBLE;
+    treeInfo->globalTypeMap.add(type);
     import(gp_ins, slot*sizeof(double), vp, treeInfo->globalTypeMap.data()[index],
            "global", index, NULL);
     return true;
@@ -1073,7 +1139,7 @@ TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 
 
 bool
-TraceRecorder::checkType(jsval& v, uint8& t, bool& recompile)
+TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
 {
     if (t == JSVAL_INT) { 
         if (!isNumber(v))
@@ -1089,10 +1155,7 @@ TraceRecorder::checkType(jsval& v, uint8& t, bool& recompile)
                      : nativeGlobalOffset(&v));
 #endif
             AUDIT(slotPromoted);
-            if (fragment->root == fragment) 
-
-                t = JSVAL_DOUBLE; 
-            recompile = true;
+            unstable = true;
             return true; 
         }
         
@@ -1125,18 +1188,31 @@ TraceRecorder::verifyTypeStability()
 {
     unsigned ngslots = treeInfo->globalSlots.length();
     uint16* gslots = treeInfo->globalSlots.data();
-    uint8* m = treeInfo->globalTypeMap.data();
+    uint8* typemap = treeInfo->globalTypeMap.data();
     JS_ASSERT(treeInfo->globalTypeMap.length() == ngslots);
     bool recompile = false;
+    uint8* m = typemap;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
-        if (!checkType(*vp, *m, recompile))
+        bool demote = false;
+        if (!checkType(*vp, *m, demote))
             return false;
+        if (demote) {
+            oracle.markGlobalSlotUndemotable(gslots[n]);
+            recompile = true;
+        }
         ++m
     );
-    m = treeInfo->stackTypeMap.data();
+    typemap = treeInfo->stackTypeMap.data();
+    m = typemap;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if (!checkType(*vp, *m, recompile))
+        bool demote = false;
+        if (!checkType(*vp, *m, demote))
             return false;
+        if (demote) {
+            oracle.markStackSlotUndemotable(cx->fp->script, (jsbytecode*)fragment->ip, 
+                    unsigned(m - typemap));
+            recompile = true;
+        }
         ++m
     );
     if (recompile && fragment->root != fragment)
@@ -1398,32 +1474,38 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
         f->lirbuf->names = new (&gc) LirNameMap(&gc, builtins, tm->fragmento->labels);
 #endif
     }
+
+    if (f->vmprivate)
+        delete (TreeInfo*)f->vmprivate;
     
-    TreeInfo* ti = (TreeInfo*)f->vmprivate;
-    if (!ti) {
-        
-        ti = new TreeInfo(f); 
-        f->vmprivate = ti;
+    
+    TreeInfo* ti = new TreeInfo(f); 
+    f->vmprivate = ti;
 
-        
-        unsigned entryNativeStackSlots = nativeStackSlots(0, cx->fp);
-        ti->entryNativeStackSlots = entryNativeStackSlots;
-        ti->nativeStackBase = (entryNativeStackSlots -
+    
+    unsigned entryNativeStackSlots = nativeStackSlots(0, cx->fp);
+    ti->entryNativeStackSlots = entryNativeStackSlots;
+    ti->nativeStackBase = (entryNativeStackSlots -
             (cx->fp->regs->sp - StackBase(cx->fp))) * sizeof(double);
-        ti->maxNativeStackSlots = entryNativeStackSlots;
-        ti->maxCallDepth = 0;
+    ti->maxNativeStackSlots = entryNativeStackSlots;
+    ti->maxCallDepth = 0;
 
-        
-        ti->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->shape;
+    
+    ti->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->shape;
 
-        
-        ti->stackTypeMap.setLength(entryNativeStackSlots);
-        uint8* m = ti->stackTypeMap.data();
-        FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
-            *m++ = getCoercedType(*vp);
-        );
-    }
-    JS_ASSERT(ti->entryNativeStackSlots == nativeStackSlots(0, cx->fp));
+    
+    ti->stackTypeMap.setLength(ti->entryNativeStackSlots);
+
+    
+    uint8* map = ti->stackTypeMap.data();
+    uint8* m = map;
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
+        uint8 type = getCoercedType(*vp);
+        if ((type == JSVAL_INT) && oracle.isStackSlotUndemotable(cx->fp->script,
+                cx->fp->regs->pc, unsigned(m - map)))
+            type = JSVAL_DOUBLE;
+        *m++ = type;
+    );
 
     
     return js_StartRecorder(cx, NULL, f, ti->globalSlots.length(),
