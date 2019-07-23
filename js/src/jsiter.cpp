@@ -103,6 +103,10 @@ CloseNativeIterator(JSContext *cx, JSObject *iterobj)
         return;
 
     
+    if (JSVAL_IS_VOID(state))
+        return;
+
+    
     iterable = iterobj->getParent();
     if (iterable) {
 #if JS_HAS_XML_SUPPORT
