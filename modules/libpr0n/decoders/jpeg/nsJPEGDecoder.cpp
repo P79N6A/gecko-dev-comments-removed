@@ -599,7 +599,7 @@ nsJPEGDecoder::OutputScanlines()
           cmsDoTransform(mTransform,
                          mSamples[0], mSamples[0],
                          mInfo.output_width);
-      } else {
+      } else if (gfxPlatform::IsCMSEnabled()) {
         
         cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
         if (transform) {
