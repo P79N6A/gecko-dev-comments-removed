@@ -3851,13 +3851,6 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
       *aLineReflowStatus = LINE_REFLOW_STOP;
       rv = SplitLine(aState, aLineLayout, aLine, aFrame->GetNextSibling(), aLineReflowStatus);
       NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      nsLineList_iterator next = aLine.next();
-      if (next != end_lines() && !next->IsBlock()) {
-        next->MarkDirty();
-      }
     }
   }
 
