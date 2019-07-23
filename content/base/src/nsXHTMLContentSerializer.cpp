@@ -225,7 +225,8 @@ nsXHTMLContentSerializer::EscapeURI(nsIContent* aContent, const nsAString& aURI,
   aEscapedURI.Truncate(0);
 
   
-  while ((end = uri.FindCharInSet("%#;/?:@&=+$,", start)) != -1) {
+  
+  while ((end = uri.FindCharInSet("%#;/?:@&=+$,[]", start)) != -1) {
     part = Substring(aURI, start, (end-start));
     if (textToSubURI && !IsASCII(part)) {
       rv = textToSubURI->ConvertAndEscape(mCharset.get(), part.get(), getter_Copies(escapedURI));
