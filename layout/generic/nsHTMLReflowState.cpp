@@ -104,6 +104,7 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*       aPresContext,
   mFlags.mNextInFlowUntouched = PR_FALSE;
   mFlags.mAssumingHScrollbar = mFlags.mAssumingVScrollbar = PR_FALSE;
   mFlags.mHasClearance = PR_FALSE;
+  mFlags.mHeightDependsOnAncestorCell = PR_FALSE;
   mDiscoveredClearance = nsnull;
   mPercentHeightObserver = nsnull;
   mPercentHeightReflowInitiator = nsnull;
@@ -415,9 +416,12 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
   
   
   if (!mFlags.mVResize && mCBReflowState &&
-      IS_TABLE_CELL(mCBReflowState->frame->GetType()) &&
-      dependsOnCBHeight)
+      (IS_TABLE_CELL(mCBReflowState->frame->GetType()) || 
+       mCBReflowState->mFlags.mHeightDependsOnAncestorCell) &&
+      dependsOnCBHeight) {
     mFlags.mVResize = PR_TRUE;
+    mFlags.mHeightDependsOnAncestorCell = PR_TRUE;
+  }
 
   
 
