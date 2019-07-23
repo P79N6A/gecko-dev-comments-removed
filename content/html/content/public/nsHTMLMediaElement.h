@@ -272,8 +272,4 @@ protected:
   
   
   PRPackedBool mPausedBeforeFreeze;
-
-  
-  
-  PRPackedBool mPlayRequested;
 };
