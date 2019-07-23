@@ -2576,6 +2576,15 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
 NS_IMETHODIMP
 nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
 {
+  return ElementFromPointHelper(aX, aY, PR_FALSE, PR_TRUE, aReturn);
+}
+
+nsresult
+nsDocument::ElementFromPointHelper(PRInt32 aX, PRInt32 aY,
+                                   PRBool aIgnoreRootScrollFrame,
+                                   PRBool aFlushLayout,
+                                   nsIDOMElement** aReturn)
+{
   NS_ENSURE_ARG_POINTER(aReturn);
   *aReturn = nsnull;
   
@@ -2588,7 +2597,8 @@ nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
 
   
   
-  FlushPendingNotifications(Flush_Layout);
+  if (aFlushLayout)
+    FlushPendingNotifications(Flush_Layout);
 
   nsIPresShell *ps = GetPrimaryShell();
   NS_ENSURE_STATE(ps);
@@ -2598,7 +2608,8 @@ nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
   if (!rootFrame)
     return NS_OK; 
 
-  nsIFrame *ptFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, pt, PR_TRUE);
+  nsIFrame *ptFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, pt, PR_TRUE,
+                                                      aIgnoreRootScrollFrame);
   if (!ptFrame)
     return NS_OK;
 
