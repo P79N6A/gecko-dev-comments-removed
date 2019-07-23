@@ -157,7 +157,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     
     
     if (initialDir.IsEmpty())
-      initialDir = NS_LITERAL_STRING(".");
+      initialDir.AssignLiteral(".");
   }
 
   mUnicodeFile.Truncate();
