@@ -391,13 +391,18 @@ NS_IMETHODIMP nsXULMenuitemAccessible::GetDescription(nsAString& aDescription)
 }
 
 
-NS_IMETHODIMP nsXULMenuitemAccessible::GetKeyboardShortcut(nsAString& _retval)
+NS_IMETHODIMP
+nsXULMenuitemAccessible::GetKeyboardShortcut(nsAString& aAccessKey)
 {
+  aAccessKey.Truncate();
+
   static PRInt32 gMenuAccesskeyModifier = -1;  
 
   nsCOMPtr<nsIDOMElement> elt(do_QueryInterface(mDOMNode));
   if (elt) {
     nsAutoString accesskey;
+    
+    
     elt->GetAttribute(NS_LITERAL_STRING("accesskey"), accesskey);
     if (accesskey.IsEmpty())
       return NS_OK;
@@ -423,11 +428,11 @@ NS_IMETHODIMP nsXULMenuitemAccessible::GetKeyboardShortcut(nsAString& _retval)
           case nsIDOMKeyEvent::DOM_VK_META: propertyKey.AssignLiteral("VK_META"); break;
         }
         if (!propertyKey.IsEmpty())
-          nsAccessible::GetFullKeyName(propertyKey, accesskey, _retval);
+          nsAccessible::GetFullKeyName(propertyKey, accesskey, aAccessKey);
       }
     }
-    if (_retval.IsEmpty())
-      _retval = accesskey;
+    if (aAccessKey.IsEmpty())
+      aAccessKey = accesskey;
     return NS_OK;
   }
   return NS_ERROR_FAILURE;

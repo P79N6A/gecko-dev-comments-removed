@@ -112,6 +112,14 @@ public:
   
 
 
+
+
+
+  static PRUint32 GetAccessKeyFor(nsIContent *aContent);
+
+  
+
+
   static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
                                PRBool aIsAsynch = PR_FALSE);
 
