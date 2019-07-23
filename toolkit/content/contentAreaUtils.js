@@ -457,24 +457,22 @@ function getTargetFile(aFpP, aSkipPrompt)
   var useDownloadDir = prefs.getBoolPref("useDownloadDir");
   var dir = null;
   
-  try {
-    
-    
-    
+  
+  
+  
+  var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
+                          .getService(Components.interfaces.nsIDownloadManager);
+  try {                          
     var lastDir = prefs.getComplexValue("lastDir", nsILocalFile);
-    var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
-                            .getService(Components.interfaces.nsIDownloadManager);
-    if (!aSkipPrompt) {
+    if (!useDownloadDir && lastDir.exists())
       dir = lastDir;
-    } else {
+    else
       dir = dnldMgr.userDownloadsDirectory;
-    }
-  } catch (ex) {
+  } catch(ex) {
+    dir = dnldMgr.userDownloadsDirectory;
   }
 
   if (!aSkipPrompt || !useDownloadDir || !dir || (dir && !dir.exists())) {
-    
-    
     if (!dir || (dir && !dir.exists())) {
       
       var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
