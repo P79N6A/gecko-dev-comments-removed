@@ -213,9 +213,6 @@ public:
     nsFactoryEntry *GetFactoryEntry(const nsCID &aClass);
 
     nsresult SyncComponentsInDir(PRInt32 when, nsIFile *dirSpec);
-
-    
-    
     nsresult HashContractID(const char *acontractID, PRUint32 aContractIDLen,
                             nsFactoryEntry *fe_ptr);
 
