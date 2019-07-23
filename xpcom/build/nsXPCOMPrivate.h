@@ -231,6 +231,7 @@ NS_GetFrozenFunctions(XPCOMFunctions *entryPoints, const char* libraryPath);
 #define XUL_DLL   "libxul"MOZ_DLL_SUFFIX
 
 #else 
+#include <limits.h> 
 
 #define XPCOM_DLL "libxpcom"MOZ_DLL_SUFFIX
 
