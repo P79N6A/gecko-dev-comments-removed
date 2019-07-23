@@ -35,12 +35,13 @@
 
 
 
-var gTestfile = 'regress-452498-052.js';
+var gTestfile = 'regress-452498-168-2.js';
 
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';
 var actual = '';
 var expect = '';
+
 
 
 
@@ -55,26 +56,7 @@ function test()
 
 
 
-
-
-
-  for (var [x]=0 in null) ;
-
-
-
-  for (var f in null)
-    ;
-  var f = 1;
-  (f)
-
-
-
-
-    try { eval('let (x = 1) { var x; }'); } catch(ex) {}
-
-
-
-  (1 for each (x in x));
+  for (let x; __defineSetter__; (<{x}></{x}> for (x in x))) {}
 
   reportCompare(expect, actual, summary);
 
