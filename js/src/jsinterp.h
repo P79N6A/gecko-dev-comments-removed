@@ -336,12 +336,6 @@ js_AllocStack(JSContext *cx, uintN nslots, void **markp);
 extern JS_FRIEND_API(void)
 js_FreeStack(JSContext *cx, void *mark);
 
-extern jsval *
-js_AllocRawStack(JSContext *cx, uintN nslots, void **markp);
-
-extern void
-js_FreeRawStack(JSContext *cx, void *mark);
-
 
 
 
@@ -373,24 +367,6 @@ js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp);
 
 extern JSObject *
 js_ComputeThis(JSContext *cx, JSBool lazy, jsval *argv);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-JSObject *
-js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv);
 
 extern const uint16 js_PrimitiveTestFlags[];
 
@@ -469,6 +445,54 @@ js_CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
 extern JSBool
 js_StrictlyEqual(JSContext *cx, jsval lval, jsval rval);
 
+
+
+
+
+
+
+
+
+
+
+
+#ifndef JS_LONE_INTERPRET
+# ifdef _MSC_VER
+#  define JS_LONE_INTERPRET 0
+# else
+#  define JS_LONE_INTERPRET 1
+# endif
+#endif
+
+#if !JS_LONE_INTERPRET
+# define JS_STATIC_INTERPRET    static
+#else
+# define JS_STATIC_INTERPRET
+
+extern jsval *
+js_AllocRawStack(JSContext *cx, uintN nslots, void **markp);
+
+extern void
+js_FreeRawStack(JSContext *cx, void *mark);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSObject *
+js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv);
+
 extern JSBool
 js_EnterWith(JSContext *cx, jsint stackIndex);
 
@@ -522,6 +546,8 @@ js_MeterOpcodePair(JSOp op1, JSOp op2);
 
 extern void
 js_MeterSlotOpcode(JSOp op, uint32 slot);
+
+#endif 
 
 JS_END_EXTERN_C
 
