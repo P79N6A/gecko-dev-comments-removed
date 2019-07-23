@@ -615,10 +615,6 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
   if (rect.IsEmpty())
     return;
 
-  
-  
-  rect.UnionRect(rect, mRect);
-
   rect = nsSVGUtils::FindFilterInvalidation(this, rect);
   aOuter->InvalidateWithFlags(rect, aFlags);
 }
