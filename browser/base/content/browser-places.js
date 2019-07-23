@@ -599,16 +599,7 @@ var BookmarksEventHandler = {
       return;
 
     var target = aEvent.originalTarget;
-    if (target.node && PlacesUtils.nodeIsContainer(target.node)) {
-      
-      
-      
-      if (target.localName == "menu" || target.localName == "toolbarbutton")
-        PlacesUIUtils.openContainerNodeInTabs(target.node, aEvent);
-    }
-    else
-      this.onCommand(aEvent);
-
+    
     
     if (target.localName == "menu" || target.localName == "menuitem") {
       for (node = target.parentNode; node; node = node.parentNode) {
@@ -617,6 +608,18 @@ var BookmarksEventHandler = {
         else if (node.localName != "menu")
           break;
       }
+    }
+
+    if (target.node && PlacesUtils.nodeIsContainer(target.node)) {
+      
+      
+      
+      if (target.localName == "menu" || target.localName == "toolbarbutton")
+        PlacesUIUtils.openContainerNodeInTabs(target.node, aEvent);
+    }
+    else if (aEvent.button == 1) {
+      
+      this.onCommand(aEvent);
     }
   },
 
