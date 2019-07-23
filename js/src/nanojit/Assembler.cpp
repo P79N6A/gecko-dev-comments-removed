@@ -581,6 +581,10 @@ namespace nanojit
 		asm_spill(rr, d, pop, quad);
 	}
 
+    
+    
+    
+    
 	void Assembler::freeRsrcOf(LIns *i, bool pop)
 	{
 		Reservation* resv = getresv(i);
@@ -1574,8 +1578,8 @@ namespace nanojit
 			for (i=start; i < NJ_MAX_STACK_ENTRY; i+=2) {
                 if ( (ar.entry[i+stack_direction(1)] == 0) && (i==tos || (ar.entry[i] == 0)) ) {
                     
-                    NanoAssert(_activation.entry[i] == 0);
-                    NanoAssert(_activation.entry[i+stack_direction(1)] == 0);
+                    NanoAssert(ar.entry[i] == 0);
+                    NanoAssert(ar.entry[i+stack_direction(1)] == 0);
                     ar.entry[i] = l;
                     ar.entry[i+stack_direction(1)] = l;
                     break;   
@@ -1590,8 +1594,8 @@ namespace nanojit
                 if (canfit(size, i, ar)) {
 		            
                     for (int32_t j=0; j < size; j++) {
-                        NanoAssert(_activation.entry[i+stack_direction(j)] == 0);
-                        _activation.entry[i+stack_direction(j)] = l;
+                        NanoAssert(ar.entry[i+stack_direction(j)] == 0);
+                        ar.entry[i+stack_direction(j)] = l;
                     }
                     break;
                 }
@@ -1815,6 +1819,9 @@ namespace nanojit
     }
 
 	#ifdef NJ_VERBOSE
+        
+        
+        
 		char Assembler::outline[8192];
 		char Assembler::outlineEOL[512];
 
@@ -1826,35 +1833,52 @@ namespace nanojit
 			vsprintf(outlineEOL, format, args);
 		}
 
-		void Assembler::outputf(const char* format, ...)
-		{
-			va_list args;
-			va_start(args, format);
-			outline[0] = '\0';
-			vsprintf(outline, format, args);
-			output(outline);
-		}
+        void Assembler::outputf(const char* format, ...)
+        {
+            va_list     args;
+            va_start(args, format);
+            outline[0] = '\0';
 
-		void Assembler::output(const char* s)
-		{
-			if (_outputCache)
-			{
-				char* str = (char*)_gc->Alloc(strlen(s)+1);
-				strcpy(str, s);
-				_outputCache->add(str);
-			}
-			else
-			{
+            
+            
+            uint32_t outline_len = vsprintf(outline, format, args);
+
+            
+            
+            
+            strncat(outline, outlineEOL, sizeof(outline)-(outline_len+1));
+            outlineEOL[0] = '\0';
+
+            output(outline);
+        }
+
+        void Assembler::output(const char* s)
+        {
+            if (_outputCache)
+            {
+                char* str = (char*)_gc->Alloc(strlen(s)+1);
+                strcpy(str, s);
+                _outputCache->add(str);
+            }
+            else
+            {
                 nj_dprintf("%s\n", s);
-			}
-		}
+            }
+        }
 
-		void Assembler::output_asm(const char* s)
-		{
-			if (!verbose_enabled())
-				return;
-				output(s);
-		}
+        void Assembler::output_asm(const char* s)
+        {
+            if (!verbose_enabled())
+                return;
+
+            
+            
+            
+            strncat(outline, outlineEOL, sizeof(outline)-(strlen(outline)+1));
+            outlineEOL[0] = '\0';
+
+            output(s);
+        }
 
 		char* Assembler::outputAlign(char *s, int col) 
 		{

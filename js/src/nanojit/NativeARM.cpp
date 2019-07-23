@@ -77,6 +77,52 @@ const Register Assembler::argRegs[] = { R0, R1, R2, R3 };
 const Register Assembler::retRegs[] = { R0, R1 };
 const Register Assembler::savedRegs[] = { R4, R5, R6, R7, R8, R9, R10 };
 
+
+
+
+
+
+uint32_t
+Assembler::CountLeadingZeroes(uint32_t data)
+{
+    uint32_t    leading_zeroes;
+#if defined(__ARMCC__)
+    
+    leading_zeroes = __clz(data);
+#elif defined(__GNUC__)
+    
+    __asm (
+        "   clz     %0, %1  \n"
+        :   "=r"    (leading_zeroes)
+        :   "r"     (data)
+    );
+#elif defined(WINCE)
+    
+    leading_zeroes = _CountLeadingZeros(data);
+#else
+    
+    
+    uint32_t    try_shift;
+
+    leading_zeroes = 0;
+
+    
+    
+    for (try_shift = 16; try_shift != 0; try_shift /= 2) {
+        uint32_t    shift = leading_zeroes + try_shift;
+        if (((data << shift) >> shift) == data) {
+            leading_zeroes = shift;
+        }
+    }
+#endif
+
+    return leading_zeroes;
+}
+
+
+
+
+
 void
 Assembler::nInit(AvmCore*)
 {
@@ -444,26 +490,11 @@ Register
 Assembler::nRegisterAllocFromSet(int set)
 {
     
-#if defined(UNDER_CE)
-    Register r;
-    r = (Register)_CountLeadingZeros(set);
-    r = (Register)(31-r);
-    _allocator.free &= ~rmask(r);
-    return r;
-#elif defined(__ARMCC__)
-    register int i;
-    __asm { clz i,set }
-    Register r = Register(31-i);
-    _allocator.free &= ~rmask(r);
-    return r;
-#else
     
-    int i=0;
-    while (!(set & rmask((Register)i)))
-        i ++;
-    _allocator.free &= ~rmask((Register)i);
-    return (Register) i;
-#endif
+    
+    Register r = (Register)(31-CountLeadingZeroes(set));
+    _allocator.free &= ~rmask(r);
+    return r;
 }
 
 void
@@ -646,16 +677,21 @@ Assembler::asm_load64(LInsp ins)
 {
     
 
+    NanoAssert(ins->isQuad());
+
     LIns* base = ins->oprnd1();
     int offset = ins->oprnd2()->imm32();
 
     Reservation *resv = getresv(ins);
+    NanoAssert(resv);
     Register rr = resv->reg;
     int d = disp(resv);
 
-    freeRsrcOf(ins, false);
     Register rb = findRegFor(base, GpRegs);
     NanoAssert(IsGpReg(rb));
+    freeRsrcOf(ins, false);
+ 
+    
 
     if (AvmCore::config.vfp && rr != UnknownReg) {
         
@@ -673,6 +709,9 @@ Assembler::asm_load64(LInsp ins)
         
         NanoAssert(resv->reg == UnknownReg);
         NanoAssert(d != 0);
+
+        
+        NanoAssert((d & 0x7) == 0);
 
         
         asm_mmq(FP, d, rb, offset);
@@ -730,6 +769,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
     } else {
         int da = findMemFor(value);
         Register rb = findRegFor(base, GpRegs);
+        
         asm_mmq(rb, dr, FP, da);
     }
 
@@ -814,22 +854,76 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     
     
     
+    
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
     
     
     
     NanoAssert(rs != PC);
-
-    
-    Register t = registerAlloc(GpRegs & ~(rmask(rd)|rmask(rs)));
-    _allocator.addFree(t);
+    NanoAssert(rd != PC);
 
     
     
-    STR(IP, rd, dd+4);
-    STR(t, rd, dd);
-    LDR(IP, rs, ds+4);
-    LDR(t, rs, ds);
+    
+    RegisterMask    free = _allocator.free & GpRegs;
+
+    if (free) {
+        
+        
+        
+
+        
+        
+        Register    rr = (Register)(31-CountLeadingZeroes(free));
+
+        
+        
+        NanoAssert((free & rmask(PC)) == 0);
+        NanoAssert((free & rmask(LR)) == 0);
+        NanoAssert((free & rmask(SP)) == 0);
+        NanoAssert((free & rmask(IP)) == 0);
+        NanoAssert((free & rmask(FP)) == 0);
+
+        
+
+        STR(IP, rd, dd+4);
+        STR(rr, rd, dd);
+        LDR(IP, rs, ds+4);
+        LDR(rr, rs, ds);
+    } else {
+        
+        STR(IP, rd, dd+4);
+        LDR(IP, rs, ds+4);
+        STR(IP, rd, dd);
+        LDR(IP, rs, ds);
+    }
 }
 
 void
@@ -1663,6 +1757,7 @@ Assembler::asm_ld(LInsp ins)
     LOpcode op = ins->opcode();
     LIns* base = ins->oprnd1();
     LIns* disp = ins->oprnd2();
+
     Register rr = prepResultReg(ins, GpRegs);
     int d = disp->imm32();
     Register ra = getBaseReg(base, d, GpRegs);
@@ -1743,26 +1838,7 @@ Assembler::asm_qlo(LInsp ins)
     LIns *q = ins->oprnd1();
     int d = findMemFor(q);
     LD(rr, d, FP);
-
-#if 0
-    LIns *q = ins->oprnd1();
-
-    Reservation *resv = getresv(ins);
-    Register rr = resv->reg;
-    if (rr == UnknownReg) {
-        
-        int d = disp(resv);
-        freeRsrcOf(ins, false);
-        Register qr = findRegFor(q, XmmRegs);
-        SSE_MOVDm(d, FP, qr);
-    } else {
-        freeRsrcOf(ins, false);
-        Register qr = findRegFor(q, XmmRegs);
-        SSE_MOVD(rr,qr);
-    }
-#endif
 }
-
 
 void
 Assembler::asm_param(LInsp ins)

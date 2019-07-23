@@ -196,10 +196,10 @@ verbose_only( extern const char* shiftNames[]; )
     void asm_ldr_chk(Register d, Register b, int32_t off, bool chk);    \
     void asm_ld_imm(Register d, int32_t imm);                           \
     void asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd);        \
+    uint32_t CountLeadingZeroes(uint32_t data);                         \
     int* _nSlot;                                                        \
-    int* _startingSlot;                                                \
+    int* _startingSlot;                                                 \
     int* _nExitSlot;
-
 
 
 
