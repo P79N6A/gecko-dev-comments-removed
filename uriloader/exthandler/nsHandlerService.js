@@ -35,6 +35,7 @@
 
 
 
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cu = Components.utils;
@@ -674,7 +675,7 @@ HandlerService.prototype = {
       let handlerAppID = this._getPossibleHandlerAppID(handlerApp);
       if (!this._hasResourceAssertion(infoID, NC_POSSIBLE_APP, handlerAppID)) {
         this._storeHandlerApp(handlerAppID, handlerApp);
-        this._addResourceTarget(infoID, NC_POSSIBLE_APP, handlerAppID);
+        this._addResourceAssertion(infoID, NC_POSSIBLE_APP, handlerAppID);
       }
       delete currentHandlerApps[handlerAppID];
     }
@@ -685,7 +686,7 @@ HandlerService.prototype = {
     
     
     for (let handlerAppID in currentHandlerApps) {
-      this._removeTarget(infoID, NC_POSSIBLE_APP, handlerAppID);
+      this._removeResourceAssertion(infoID, NC_POSSIBLE_APP, handlerAppID);
       if (!this._existsResourceTarget(NC_POSSIBLE_APP, handlerAppID))
         this._removeAssertions(handlerAppID);
     }
@@ -1148,13 +1149,31 @@ HandlerService.prototype = {
 
 
 
-  _addResourceTarget: function HS__addResourceTarget(sourceURI, propertyURI,
-                                                     targetURI) {
+  _addResourceAssertion: function HS__addResourceAssertion(sourceURI,
+                                                           propertyURI,
+                                                           targetURI) {
     var source = this._rdf.GetResource(sourceURI);
     var property = this._rdf.GetResource(propertyURI);
     var target = this._rdf.GetResource(targetURI);
     
     this._ds.Assert(source, property, target, true);
+  },
+
+  
+
+
+
+
+
+
+  _removeResourceAssertion: function HS__removeResourceAssertion(sourceURI,
+                                                                 propertyURI,
+                                                                 targetURI) {
+    var source = this._rdf.GetResource(sourceURI);
+    var property = this._rdf.GetResource(propertyURI);
+    var target = this._rdf.GetResource(targetURI);
+
+    this._ds.Unassert(source, property, target);
   },
 
   
