@@ -3536,9 +3536,14 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
   
   aOwner->SetInstance(instance);
 
-  result = instance->Initialize(aOwner, mimetype);  
-  if (NS_FAILED(result))                
-    return result;                      
+  
+  
+  
+  result = instance->Initialize(aOwner, mimetype);
+  if (NS_FAILED(result)) {
+    aOwner->SetInstance(nsnull);
+    return result;
+  }
 
   
   result = AddInstanceToActiveList(plugin, instance, aURL, PR_FALSE);
@@ -3600,8 +3605,10 @@ nsPluginHost::SetUpDefaultPluginInstance(const char *aMimeType,
 
   
   result = instance->Initialize(aOwner, mimetype);
-  if (NS_FAILED(result))
+  if (NS_FAILED(result)) {
+    aOwner->SetInstance(nsnull);
     return result;
+  }
 
   
   result = AddInstanceToActiveList(plugin, instance, aURL, PR_TRUE);
