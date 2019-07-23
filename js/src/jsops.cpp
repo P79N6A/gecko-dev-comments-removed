@@ -260,7 +260,7 @@
 
 
 
-                ok &= fp->putActivationObjects(cx);
+                fp->putActivationObjects(cx);
 
 #ifdef INCLUDE_MOZILLA_DTRACE
                 
@@ -3496,7 +3496,7 @@
             if (rval == JSVAL_HOLE) {
                 JS_ASSERT(OBJ_IS_ARRAY(cx, obj));
                 JS_ASSERT(JSID_IS_INT(id));
-                JS_ASSERT((jsuint) JSID_TO_INT(id) < ARRAY_INIT_LIMIT);
+                JS_ASSERT(jsuint(JSID_TO_INT(id)) < JS_ARGS_LENGTH_MAX);
                 if (js_GetOpcode(cx, script, regs.pc + JSOP_INITELEM_LENGTH) == JSOP_ENDINIT &&
                     !js_SetLengthProperty(cx, obj, (jsuint) (JSID_TO_INT(id) + 1))) {
                     goto error;
