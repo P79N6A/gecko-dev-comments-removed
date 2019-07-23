@@ -2980,13 +2980,6 @@ nsEventStateManager::NotifyMouseOut(nsGUIEvent* aEvent, nsIContent* aMovingInto)
     return;
 
   if (mLastMouseOverFrame) {
-    if (nsContentUtils::GetTopLevelWidget(aEvent->widget) !=
-        nsContentUtils::GetTopLevelWidget(mLastMouseOverFrame->GetWindow())) {
-      
-      
-      return;
-    }
-
     
     
     nsIFrameFrame* subdocFrame;
@@ -3123,6 +3116,15 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
     {
       
       
+
+      if (mLastMouseOverFrame &&
+          nsContentUtils::GetTopLevelWidget(aEvent->widget) !=
+          nsContentUtils::GetTopLevelWidget(mLastMouseOverFrame->GetWindow())) {
+        
+        
+        break;
+      }
+
       NotifyMouseOut(aEvent, nsnull);
     }
     break;
