@@ -154,7 +154,7 @@ struct THEBES_API gfxFontStyle {
 
 class THEBES_API gfxFontCache : public nsExpirationTracker<gfxFont,3> {
 public:
-    enum { TIMEOUT_SECONDS = 1 }; 
+    enum { TIMEOUT_SECONDS = 10 };
     gfxFontCache()
         : nsExpirationTracker<gfxFont,3>(TIMEOUT_SECONDS*1000) { mFonts.Init(); }
     ~gfxFontCache() {
