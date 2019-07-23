@@ -55,6 +55,10 @@
 #include "MaemoLocationProvider.h"
 #endif
 
+#ifdef WINCE
+#include "WinMobileLocationProvider.h"
+#endif
+
 #include "nsIDOMDocument.h"
 #include "nsIDocument.h"
 
@@ -365,6 +369,12 @@ nsGeolocationService::nsGeolocationService()
     mProvider = new MaemoLocationProvider();
 #endif
 
+  
+#ifdef WINCE
+  if (!mProvider){
+    mProvider = new WinMobileLocationProvider();
+  }
+#endif
 }
 
 nsGeolocationService::~nsGeolocationService()
