@@ -57,6 +57,12 @@ class nsSMILTimeValueSpecParams;
 class nsSMILParserUtils
 {
 public:
+  
+  class GenericValueParser {
+  public:
+    virtual nsresult Parse(const nsAString& aValueStr) = 0;
+  };
+
   static nsresult ParseKeySplines(const nsAString& aSpec,
                                   nsTArray<double>& aSplineArray);
 
@@ -68,6 +74,11 @@ public:
                               const nsISMILAttr& aAttribute,
                               nsTArray<nsSMILValue>& aValuesArray,
                               PRBool& aCanCache);
+
+  
+  
+  static nsresult ParseValuesGeneric(const nsAString& aSpec,
+                                     GenericValueParser& aParser);
 
   static nsresult ParseRepeatCount(const nsAString& aSpec,
                                    nsSMILRepeatCount& aResult);
