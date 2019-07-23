@@ -5721,15 +5721,11 @@ function warnAboutClosingWindow() {
 #ifdef XP_MACOSX
   
   
+  
+  return gBrowser.warnAboutClosingTabs(true);
 #else
-  
-  
-  if (gPrivateBrowsingUI.privateBrowsingEnabled &&
-      gPrivateBrowsingUI.autoStarted)
-#endif
-    return gBrowser.warnAboutClosingTabs(true);
-
   return true;
+#endif
 }
 
 var MailIntegration = {
@@ -7042,10 +7038,6 @@ let gPrivateBrowsingUI = {
 
   get privateBrowsingEnabled PBUI_get_privateBrowsingEnabled() {
     return this._privateBrowsingService.privateBrowsingEnabled;
-  },
-
-  get autoStarted PBUI_get_autoStarted() {
-    return this._privateBrowsingService.autoStarted;
   }
 };
 
