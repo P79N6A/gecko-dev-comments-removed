@@ -296,6 +296,8 @@ imgRequestProxy::LockImage()
     return NS_ERROR_FAILURE;
 
   
+  if (mLockHeld)
+    return NS_OK;
   NS_ABORT_IF_FALSE(!mLockHeld, "Only call lockImage once per imgIRequest!");
   mLockHeld = PR_TRUE;
 
