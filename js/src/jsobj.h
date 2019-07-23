@@ -405,9 +405,11 @@ struct JSObject {
 
 
   private:
+    
     static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
-    static const uint32 JSSLOT_ARRAY_COUNT  = JSSLOT_PRIVATE + 1;
-    static const uint32 JSSLOT_ARRAY_UNUSED = JSSLOT_PRIVATE + 2;
+
+    
+    static const uint32 JSSLOT_DENSE_ARRAY_COUNT = JSSLOT_PRIVATE + 1;
 
     
     
@@ -418,11 +420,11 @@ struct JSObject {
     inline uint32 getArrayLength() const;
     inline void setArrayLength(uint32 length);
 
-    inline uint32 getArrayCount() const;
+    inline uint32 getDenseArrayCount() const;
     inline void voidDenseArrayCount();
-    inline void setArrayCount(uint32 count);
-    inline void incArrayCountBy(uint32 posDelta);
-    inline void decArrayCountBy(uint32 negDelta);
+    inline void setDenseArrayCount(uint32 count);
+    inline void incDenseArrayCountBy(uint32 posDelta);
+    inline void decDenseArrayCountBy(uint32 negDelta);
 
     inline uint32 getDenseArrayCapacity() const;
     inline void setDenseArrayCapacity(uint32 capacity); 
