@@ -84,6 +84,8 @@
 
 #ifdef XP_MACOSX
 #include <Carbon/Carbon.h>
+#include <ApplicationServices/ApplicationServices.h>
+#include <OpenGL/OpenGL.h>
 #endif
 
 
@@ -278,6 +280,30 @@ static PRInt32 OSXVersion()
   }
   return gOSXVersion;
 }
+
+
+
+#define CGLRendererIDMatchingMask 0x00FE7F00
+#define CGLRendererIntel900ID 0x00024000
+static PRBool GMA9XXGraphics()
+{
+  bool hasIntelGMA9XX = PR_FALSE;
+  CGLRendererInfoObj renderer = 0;
+  GLint rendererCount = 0;
+  if (::CGLQueryRendererInfo(0xffffffff, &renderer, &rendererCount) == kCGLNoError) {
+    for (GLint c = 0; c < rendererCount; c++) {
+      GLint rendProp = 0;
+      if (::CGLDescribeRenderer(renderer, c, kCGLRPRendererID, &rendProp) == kCGLNoError) {
+        if ((rendProp & CGLRendererIDMatchingMask) == CGLRendererIntel900ID) {
+          hasIntelGMA9XX = PR_TRUE;
+          break;
+        }
+      }
+    }
+    ::CGLDestroyRendererInfo(renderer);
+  }
+  return hasIntelGMA9XX;
+}
 #endif
 
 inline PRBool
@@ -294,6 +320,7 @@ RunPluginOOP(const char* aFilePath, const nsPluginTag *aPluginTag)
   }
   
   
+  
   if (aPluginTag && 
       aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
     
@@ -307,6 +334,11 @@ RunPluginOOP(const char* aFilePath, const nsPluginTag *aPluginTag)
       if (versionPrefix.EqualsASCII("10.0")) {
         return PR_FALSE;
       }
+    }
+    
+    
+    if (GMA9XXGraphics()) {
+      return PR_FALSE;
     }
   }
 #endif
