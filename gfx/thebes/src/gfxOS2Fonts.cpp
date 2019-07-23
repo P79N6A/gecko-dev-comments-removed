@@ -94,6 +94,11 @@ gfxOS2Font::~gfxOS2Font()
 #define CONVERT_DESIGN_UNITS_TO_PIXELS_Y(v) \
         CONVERT_DESIGN_UNITS_TO_PIXELS(v, face->size->metrics.y_scale)
 
+
+
+
+
+
 const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 {
 #ifdef DEBUG_thebes_1
@@ -115,7 +120,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         FT_Load_Glyph(face, gid, FT_LOAD_DEFAULT);
         
         
-        mMetrics->spaceWidth = CONVERT_DESIGN_UNITS_TO_PIXELS_X(face->glyph->advance.x) * 2;
+        mMetrics->spaceWidth = CONVERT_DESIGN_UNITS_TO_PIXELS_X(face->glyph->advance.x);
         
         mSpaceGlyph = gid;
     
@@ -134,11 +139,12 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         
         mMetrics->strikeoutOffset = mMetrics->xHeight / 2.0;
         mMetrics->strikeoutSize   = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->underline_thickness);
+        
         mMetrics->underlineOffset = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->underline_position);
         mMetrics->underlineSize   = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->underline_thickness);
     
         
-        mMetrics->emHeight        = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->size->metrics.y_ppem);
+        mMetrics->emHeight        = face->size->metrics.y_ppem;
         mMetrics->emAscent        = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->ascender);
         mMetrics->emDescent       = -CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->descender);
         mMetrics->maxHeight       = CONVERT_DESIGN_UNITS_TO_PIXELS_Y(face->height);
@@ -156,17 +162,27 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     
 #ifdef DEBUG_thebes_1
         printf("gfxOS2Font[%#x]::GetMetrics():\n"
+               "  %s\n"
                "  emHeight=%f==%f=gfxFont::mStyle.size\n"
                "  maxHeight=%f\n"
                "  xHeight=%f\n"
                "  aveCharWidth=%f==xWidth\n"
-               "  spaceWidth=%f\n",
+               "  spaceWidth=%f\n"
+               "  others: %f %f   %f %f   %f %f\n      %f %f %f   %f %f %f\n      %f %f\n",
                (unsigned)this,
+               NS_LossyConvertUTF16toASCII(mName).get(),
                mMetrics->emHeight, mStyle.size,
                mMetrics->maxHeight,
                mMetrics->xHeight,
                mMetrics->aveCharWidth,
-               mMetrics->spaceWidth);
+               mMetrics->spaceWidth,
+               mMetrics->superscriptOffset, mMetrics->subscriptOffset,
+               mMetrics->strikeoutOffset, mMetrics->strikeoutSize,
+               mMetrics->underlineOffset, mMetrics->underlineSize,
+               mMetrics->emAscent, mMetrics->emDescent, mMetrics->maxHeight,
+               mMetrics->maxAscent, mMetrics->maxDescent, mMetrics->maxAdvance,
+               mMetrics->internalLeading, mMetrics->externalLeading
+              );
 #endif
         cairo_ft_scaled_font_unlock_face(CairoScaledFont());
     }
