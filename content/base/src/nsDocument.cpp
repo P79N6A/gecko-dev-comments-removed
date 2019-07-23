@@ -1428,6 +1428,19 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
   }
 #endif
 
+  if (nsCRT::strcmp(kLoadAsData, aCommand) == 0) {
+    mLoadedAsData = PR_TRUE;
+    
+    
+    
+
+    
+    ScriptLoader()->SetEnabled(PR_FALSE);
+
+    
+    CSSLoader()->SetEnabled(PR_FALSE); 
+  }
+
   if (aReset) {
     Reset(aChannel, aLoadGroup);
   }

@@ -75,8 +75,6 @@ public:
 
   virtual void EndLoad();
 
-  virtual PRBool IsLoadedAsData();
-
   
   NS_IMETHOD CloneNode(PRBool aDeep, nsIDOMNode** aReturn);
 
@@ -112,7 +110,6 @@ protected:
   
   PRPackedBool mChannelIsPending;
   PRPackedBool mCrossSiteAccessEnabled;
-  PRPackedBool mLoadedAsData;
   PRPackedBool mLoadedAsInteractiveData;
   PRPackedBool mAsync;
   PRPackedBool mLoopingForSyncLoad;

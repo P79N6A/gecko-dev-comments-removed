@@ -1756,6 +1756,18 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
   if (!mScriptsEnabled) {
     return NS_OK;
   }
+
+  
+  
+  
+  nsCOMPtr<nsINode> nodeTarget = do_QueryInterface(aTarget);
+  if (nodeTarget) {
+    nsIDocument* doc = nodeTarget->GetOwnerDoc();
+    if (!doc || doc->IsLoadedAsData()) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+  }
+
   nsresult rv;
   JSObject* target = nsnull;
   nsAutoGCRoot root(&target, &rv);

@@ -157,11 +157,20 @@ protected:
   void ClearEventListeners();
   already_AddRefed<nsIHttpChannel> GetCurrentHttpChannel();
 
+  
+
+
+
+
+
+  nsresult CheckChannelForCrossSiteRequest();
+
   nsCOMPtr<nsISupports> mContext;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIRequest> mReadRequest;
   nsCOMPtr<nsIDOMDocument> mDocument;
+  nsCOMPtr<nsIChannel> mACGetChannel;
 
   nsCOMArray<nsIDOMEventListener> mLoadEventListeners;
   nsCOMArray<nsIDOMEventListener> mErrorEventListeners;
@@ -209,6 +218,10 @@ protected:
   nsCOMPtr<nsIProgressEventSink> mProgressEventSink;
 
   PRUint32 mState;
+
+  
+  
+  nsTArray<nsCString> mExtraRequestHeaders;
 };
 
 
