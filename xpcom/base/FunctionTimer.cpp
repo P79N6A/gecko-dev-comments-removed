@@ -55,6 +55,11 @@
 
 using namespace mozilla;
 
+
+
+
+static TimeStamp sAppStart;
+
 FunctionTimerLog *FunctionTimer::sLog = nsnull;
 char *FunctionTimer::sBuf1 = nsnull;
 char *FunctionTimer::sBuf2 = nsnull;
@@ -66,9 +71,13 @@ FunctionTimer::InitTimers()
     if (PR_GetEnv("MOZ_FT") == NULL)
         return 0;
 
+    
+    TimeStamp::Startup();
+
     sLog = new FunctionTimerLog(PR_GetEnv("MOZ_FT"));
     sBuf1 = (char *) malloc(BUF_LOG_LENGTH);
     sBuf2 = (char *) malloc(BUF_LOG_LENGTH);
+    sAppStart = TimeStamp::Now();
 
     return BUF_LOG_LENGTH;
 }
@@ -98,8 +107,8 @@ void
 FunctionTimerLog::LogString(const char *str)
 {
     if (mFile) {
-        fputs(str, (FILE*)mFile);
-        putc('\n', (FILE*)mFile);
+        TimeDuration elapsed = TimeStamp::Now() - sAppStart;
+        fprintf((FILE*)mFile, "[% 9.2f] %s\n", elapsed.ToSeconds() * 1000.0, str);
     }
 }
 
