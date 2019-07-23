@@ -92,6 +92,7 @@ static const PRUint32 kLazyWriteTimeout = 5000;
 static const PRUint32 kMaxNumberOfCookies = 1000;
 static const PRUint32 kMaxCookiesPerHost  = 50;
 static const PRUint32 kMaxBytesPerCookie  = 4096;
+static const PRUint32 kMaxBytesPerPath    = 1024;
 
 
 
@@ -1329,6 +1330,11 @@ nsCookieService::CheckAndAdd(nsIURI               *aHostURI,
     return;
   }
 
+  if (aAttributes.name.FindChar('\t') != kNotFound) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "invalid name character");
+    return;
+  }
+
   
   if (!CheckDomain(aAttributes, aHostURI)) {
     COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "failed the domain tests");
@@ -2022,8 +2028,12 @@ nsCookieService::CheckPath(nsCookieAttributes &aCookieAttributes,
       }
     }
 
-#if 0
   } else {
+    if (aCookieAttributes.path.Length() > kMaxBytesPerPath ||
+        aCookieAttributes.path.FindChar('\t') != kNotFound )
+      return PR_FALSE;
+
+#if 0
     
 
 
