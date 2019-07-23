@@ -200,6 +200,7 @@ verbose_only( extern const char* regNames[]; )
     void nativePageReset();                                             \
     void nativePageSetup();                                             \
     void asm_quad_nochk(Register, const int32_t*);                      \
+    void asm_add_imm(Register, Register, int32_t);                      \
     int* _nSlot;                                                        \
     int* _nExitSlot;
 
@@ -310,46 +311,7 @@ typedef enum {
 
 
 
-
-
-
-#define arm_ADDi(_d,_n,_imm)   do {                                     \
-        if ((_imm) > -256 && (_imm) < 256) {                            \
-            underrunProtect(4);                                         \
-            if ((_imm)>=0)                                              \
-                *(--_nIns) = (NIns)( COND_AL | OP_IMM | OP_STAT | (1<<23) | ((_n)<<16) | ((_d)<<12) | ((_imm)&0xFF) ); \
-            else                                                        \
-                *(--_nIns) = (NIns)( COND_AL | OP_IMM | OP_STAT | (1<<22) | ((_n)<<16) | ((_d)<<12) | ((-(_imm))&0xFF) ); \
-        } else {                                                        \
-            if ((_imm)>=0) {                                            \
-                if ((_imm)<=1020 && (((_imm)&3)==0) ) {                 \
-                    underrunProtect(4);                                 \
-                    *(--_nIns) = (NIns)( COND_AL | OP_IMM | OP_STAT | (1<<23) | ((_n)<<16) | ((_d)<<12) | (15<<8)| ((_imm)>>2) ); \
-                } else {                                                \
-                    underrunProtect(4+LD32_size);                       \
-                    *(--_nIns) = (NIns)( COND_AL | OP_STAT | (1<<23) | ((_n)<<16) | ((_d)<<12) | (Scratch)); \
-                    LD32_nochk(Scratch, _imm);                          \
-                }                                                       \
-            } else {                                                    \
-                underrunProtect(4+LD32_size);                           \
-                *(--_nIns) = (NIns)( COND_AL | OP_STAT | (1<<22) | ((_n)<<16) | ((_d)<<12) | (Scratch)); \
-                LD32_nochk(Scratch, -(_imm));                           \
-            }                                                           \
-        }                                                               \
-        asm_output3("add %s,%s,%d",gpn(_d),gpn(_n),(_imm));             \
-    } while(0)
-
-
-
-
-
-
-
-
-
-
-
-
+#define arm_ADDi(_d,_n,_imm)   asm_add_imm(_d,_n,_imm)
 #define ADDi(_r,_imm)  arm_ADDi(_r,_r,_imm)
 
 
