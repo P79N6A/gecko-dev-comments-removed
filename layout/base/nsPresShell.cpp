@@ -5807,9 +5807,10 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
 
       
       
-      if (NS_SUCCEEDED(rv)) {
-        rv = manager->PostHandleEvent(mPresContext, aEvent,
-                                      GetCurrentEventFrame(), aStatus, aView);
+      if (NS_SUCCEEDED (rv) &&
+          (GetCurrentEventFrame() || !NS_EVENT_NEEDS_FRAME(aEvent))) {
+        rv = manager->PostHandleEvent(mPresContext, aEvent, mCurrentEventFrame,
+                                      aStatus, aView);
       }
     }
   }
