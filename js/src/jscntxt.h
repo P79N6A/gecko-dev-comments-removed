@@ -344,12 +344,35 @@ struct JSEvalCacheMeter {
                         _(display), _(flat), _(setupvar), _(badfunarg)
 # define identity(x)    x
 
-typedef struct JSFunctionMeter {
+struct JSFunctionMeter {
     int32 FUNCTION_KIND_METER_LIST(identity);
-} JSFunctionMeter;
+};
 
 # undef identity
 #endif
+
+struct JSLocalRootChunk;
+
+#define JSLRS_CHUNK_SHIFT       8
+#define JSLRS_CHUNK_SIZE        JS_BIT(JSLRS_CHUNK_SHIFT)
+#define JSLRS_CHUNK_MASK        JS_BITMASK(JSLRS_CHUNK_SHIFT)
+
+struct JSLocalRootChunk {
+    jsval               roots[JSLRS_CHUNK_SIZE];
+    JSLocalRootChunk    *down;
+};
+
+struct JSLocalRootStack {
+    uint32              scopeMark;
+    uint32              rootCount;
+    JSLocalRootChunk    *topChunk;
+    JSLocalRootChunk    firstChunk;
+
+    
+    JSGCFreeLists       gcFreeLists;
+};
+
+const uint32 JSLRS_NULL_MARK = uint32(-1);
 
 struct JSThreadData {
     JSGCFreeLists       gcFreeLists;
@@ -365,6 +388,9 @@ struct JSThreadData {
 
     
     int64               rngSeed;
+
+    
+    JSLocalRootStack    *localRootStack;
 
 #ifdef JS_TRACER
     
@@ -392,18 +418,11 @@ struct JSThreadData {
 
     jsuword             nativeEnumCache[NATIVE_ENUM_CACHE_SIZE];
 
-#ifdef JS_THREADSAFE
-    
-
-
-    JSFreePointerListTask *deallocatorTask;
-#endif
-
-    void mark(JSTracer *trc) {
-#ifdef JS_TRACER
-        traceMonitor.mark(trc);
-#endif
-    }
+    void init();
+    void finish();
+    void mark(JSTracer *trc);
+    void purge(JSContext *cx);
+    void purgeGCFreeLists();
 };
 
 #ifdef JS_THREADSAFE
@@ -427,6 +446,11 @@ struct JSThread {
 
 
     ptrdiff_t           gcThreadMallocBytes;
+
+    
+
+
+    JSFreePointerListTask *deallocatorTask;
 
     
     JSThreadData        data;
@@ -938,26 +962,6 @@ typedef struct JSResolvingEntry {
 #define JSRESFLAG_LOOKUP        0x1     /* resolving id from lookup */
 #define JSRESFLAG_WATCH         0x2     /* resolving id from watch */
 
-typedef struct JSLocalRootChunk JSLocalRootChunk;
-
-#define JSLRS_CHUNK_SHIFT       8
-#define JSLRS_CHUNK_SIZE        JS_BIT(JSLRS_CHUNK_SHIFT)
-#define JSLRS_CHUNK_MASK        JS_BITMASK(JSLRS_CHUNK_SHIFT)
-
-struct JSLocalRootChunk {
-    jsval               roots[JSLRS_CHUNK_SIZE];
-    JSLocalRootChunk    *down;
-};
-
-typedef struct JSLocalRootStack {
-    uint32              scopeMark;
-    uint32              rootCount;
-    JSLocalRootChunk    *topChunk;
-    JSLocalRootChunk    firstChunk;
-} JSLocalRootStack;
-
-#define JSLRS_NULL_MARK ((uint32) -1)
-
 
 
 
@@ -1186,9 +1190,6 @@ struct JSContext {
     JSStackHeader       *stackHeaders;
 
     
-    JSLocalRootStack    *localRootStack;
-
-    
     JSTempValueRooter   *tempValueRooters;
 
     
@@ -1215,17 +1216,15 @@ struct JSContext {
 
 #ifdef JS_THREADSAFE
     inline void createDeallocatorTask() {
-        JSThreadData* tls = JS_THREAD_DATA(this);
-        JS_ASSERT(!tls->deallocatorTask);
+        JS_ASSERT(!thread->deallocatorTask);
         if (runtime->deallocatorThread && !runtime->deallocatorThread->busy())
-            tls->deallocatorTask = new JSFreePointerListTask();
+            thread->deallocatorTask = new JSFreePointerListTask();
     }
 
     inline void submitDeallocatorTask() {
-        JSThreadData* tls = JS_THREAD_DATA(this);
-        if (tls->deallocatorTask) {
-            runtime->deallocatorThread->schedule(tls->deallocatorTask);
-            tls->deallocatorTask = NULL;
+        if (thread->deallocatorTask) {
+            runtime->deallocatorThread->schedule(thread->deallocatorTask);
+            thread->deallocatorTask = NULL;
         }
     }
 #endif
@@ -1307,7 +1306,7 @@ struct JSContext {
         if (!p)
             return;
         if (thread) {
-            JSFreePointerListTask* task = JS_THREAD_DATA(this)->deallocatorTask;
+            JSFreePointerListTask* task = thread->deallocatorTask;
             if (task) {
                 task->add(p);
                 return;
@@ -1739,9 +1738,6 @@ js_ForgetLocalRoot(JSContext *cx, jsval v);
 
 extern int
 js_PushLocalRoot(JSContext *cx, JSLocalRootStack *lrs, jsval v);
-
-extern void
-js_TraceLocalRoots(JSTracer *trc, JSLocalRootStack *lrs);
 
 
 

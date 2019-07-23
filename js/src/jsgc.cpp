@@ -1392,6 +1392,15 @@ JSGCFreeLists::purge()
     doubles = NULL;
 }
 
+void
+JSGCFreeLists::moveTo(JSGCFreeLists *another)
+{
+    *another = *this;
+    doubles = NULL;
+    memset(finalizables, 0, sizeof(finalizables));
+    JS_ASSERT(isEmpty());
+}
+
 static inline bool
 IsGCThresholdReached(JSRuntime *rt)
 {
@@ -1408,10 +1417,20 @@ IsGCThresholdReached(JSRuntime *rt)
     return rt->isGCMallocLimitReached() || rt->gcBytes >= rt->gcTriggerBytes;
 }
 
+static inline JSGCFreeLists *
+GetGCFreeLists(JSContext *cx)
+{
+    JSThreadData *td = JS_THREAD_DATA(cx);
+    if (!td->localRootStack)
+        return &td->gcFreeLists;
+    JS_ASSERT(td->gcFreeLists.isEmpty());
+    return &td->localRootStack->gcFreeLists;
+}
+
 static JSGCThing *
 RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 {
-    JS_ASSERT(!JS_THREAD_DATA(cx)->gcFreeLists.finalizables[thingKind]);
+    JS_ASSERT(!GetGCFreeLists(cx)->finalizables[thingKind]);
     JSRuntime *rt = cx->runtime;
     JS_LOCK_GC(rt);
     JS_ASSERT(!rt->gcRunning);
@@ -1445,8 +1464,7 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 
 
 
-            JSGCThing *freeList = JS_THREAD_DATA(cx)->gcFreeLists.
-                                  finalizables[thingKind];
+            JSGCThing *freeList = GetGCFreeLists(cx)->finalizables[thingKind];
             if (freeList) {
                 JS_UNLOCK_GC(rt);
                 return freeList;
@@ -1495,8 +1513,20 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
     return MakeNewArenaFreeList(a, arenaList->thingSize, nthings);
 }
 
+static inline void
+CheckGCFreeListLink(JSGCThing *thing)
+{
+    
+
+
+
+    JS_ASSERT_IF(thing->link,
+                 THING_TO_ARENA(thing) == THING_TO_ARENA(thing->link));
+    JS_ASSERT_IF(thing->link, thing < thing->link);
+}
+
 void *
-NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
+js_NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
 {
     JS_ASSERT(thingKind < FINALIZE_LIMIT);
 #ifdef JS_THREADSAFE
@@ -1509,15 +1539,34 @@ NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
     JSGCThing **freeListp =
         JS_THREAD_DATA(cx)->gcFreeLists.finalizables + thingKind;
     JSGCThing *thing = *freeListp;
+    if (thing) {
+        JS_ASSERT(!JS_THREAD_DATA(cx)->localRootStack);
+        *freeListp = thing->link;
+        cx->weakRoots.finalizableNewborns[thingKind] = thing;
+        CheckGCFreeListLink(thing);
+        METER(astats->localalloc++);
+        return thing;
+    }
+
+    
+
+
+
+
+
+    JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
 #ifdef JS_TRACER
     bool fromTraceReserve = false;
 #endif
-
     for (;;) {
-        if (thing) {
-            *freeListp = thing->link;
-            METER(astats->localalloc++);
-            break;
+        if (lrs) {
+            freeListp = lrs->gcFreeLists.finalizables + thingKind;
+            thing = *freeListp;
+            if (thing) {
+                *freeListp = thing->link;
+                METER(astats->localalloc++);
+                break;
+            }
         }
 
 #ifdef JS_TRACER
@@ -1548,7 +1597,7 @@ NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
         return NULL;
     }
 
-    JSLocalRootStack *lrs = cx->localRootStack;
+    CheckGCFreeListLink(thing);
     if (lrs) {
         
 
@@ -1648,7 +1697,7 @@ TurnUsedArenaIntoDoubleList(JSGCArenaInfo *a)
 static JSGCThing *
 RefillDoubleFreeList(JSContext *cx)
 {
-    JS_ASSERT(!JS_THREAD_DATA(cx)->gcFreeLists.doubles);
+    JS_ASSERT(!GetGCFreeLists(cx)->doubles);
 
     JSRuntime *rt = cx->runtime;
     JS_ASSERT(!rt->gcRunning);
@@ -1663,6 +1712,13 @@ RefillDoubleFreeList(JSContext *cx)
             js_GC(cx, GC_LAST_DITCH);
             METER(rt->gcStats.doubleArenaStats.retry++);
             canGC = false;
+
+            
+            JSGCThing *freeList = GetGCFreeLists(cx)->doubles;
+            if (freeList) {
+                JS_UNLOCK_GC(rt);
+                return freeList;
+            }
         }
 
         
@@ -1685,11 +1741,6 @@ RefillDoubleFreeList(JSContext *cx)
         if (!canGC) {
             METER(rt->gcStats.doubleArenaStats.fail++);
             JS_UNLOCK_GC(rt);
-
-            if (!JS_ON_TRACE(cx)) {
-                
-                js_ReportOutOfMemory(cx);
-            }
             return NULL;
         }
         doGC = true;
@@ -1710,53 +1761,66 @@ js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
     METER(JSGCArenaStats *astats = &cx->runtime->gcStats.doubleArenaStats);
     METER(astats->alloc++);
 
-    JSGCThing *thing = JS_THREAD_DATA(cx)->gcFreeLists.doubles;
-    if (!thing) {
+    JSGCThing **freeListp = &JS_THREAD_DATA(cx)->gcFreeLists.doubles;
+    JSGCThing *thing = *freeListp;
+    if (thing) {
+        METER(astats->localalloc++);
+        JS_ASSERT(!JS_THREAD_DATA(cx)->localRootStack);
+        CheckGCFreeListLink(thing);
+        *freeListp = thing->link;
+
+        jsdouble *dp = reinterpret_cast<jsdouble *>(thing);
+        *dp = d;
+        *vp = DOUBLE_TO_JSVAL(dp);
+        return true;
+    }
+
+    JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
+    for (;;) {
+        if (lrs) {
+            freeListp = &lrs->gcFreeLists.doubles;
+            thing = *freeListp;
+            if (thing) {
+                METER(astats->localalloc++);
+                break;
+            }
+        }
 #ifdef JS_TRACER
         if (JS_TRACE_MONITOR(cx).useReservedObjects)
             return false;
 #endif
         thing = RefillDoubleFreeList(cx);
-        if (!thing) {
-            METER(astats->fail++);
-            return false;
+        if (thing) {
+            JS_ASSERT(!*freeListp || *freeListp == thing);
+            break;
         }
-    } else {
-        METER(astats->localalloc++);
+
+        if (!JS_ON_TRACE(cx)) {
+            
+            js_ReportOutOfMemory(cx);
+            METER(astats->fail++);
+        }
+        return false;
     }
 
-    
+    CheckGCFreeListLink(thing);
+    *freeListp = thing->link;
 
-
-
-    JS_ASSERT_IF(thing->link,
-                 THING_TO_ARENA(thing) == THING_TO_ARENA(thing->link));
-    JS_ASSERT_IF(thing->link, thing < thing->link);
-
-    JS_THREAD_DATA(cx)->gcFreeLists.doubles = thing->link;
     jsdouble *dp = reinterpret_cast<jsdouble *>(thing);
     *dp = d;
     *vp = DOUBLE_TO_JSVAL(dp);
-    return true;
+    return !lrs || js_PushLocalRoot(cx, lrs, *vp) >= 0;
 }
 
 jsdouble *
 js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d)
 {
     jsval v;
-    jsdouble *dp;
-
     if (!js_NewDoubleInRootedValue(cx, d, &v))
         return NULL;
 
-    JS_ASSERT(JSVAL_IS_DOUBLE(v));
-    dp = JSVAL_TO_DOUBLE(v);
-    if (cx->localRootStack) {
-        if (js_PushLocalRoot(cx, cx->localRootStack, v) < 0)
-            return NULL;
-    } else {
-        cx->weakRoots.newbornDouble = dp;
-    }
+    jsdouble *dp = JSVAL_TO_DOUBLE(v);
+    cx->weakRoots.newbornDouble = dp;
     return dp;
 }
 
@@ -2489,9 +2553,6 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
         TRACE_JSVALS(trc, sh->nslots, JS_STACK_SEGMENT(sh), "stack");
     }
 
-    if (acx->localRootStack)
-        js_TraceLocalRoots(trc, acx->localRootStack);
-
     for (tvr = acx->tempValueRooters; tvr; tvr = tvr->down) {
         switch (tvr->count) {
           case JSTVU_SINGLE:
@@ -2706,7 +2767,7 @@ static inline void
 FinalizeGCThing(JSContext *cx, JSFunction *fun, unsigned thingKind)
 {
     JS_ASSERT(thingKind == FINALIZE_FUNCTION);
-    FinalizeGCThing(cx, FUN_OBJECT(fun), thingKind);
+    ::FinalizeGCThing(cx, FUN_OBJECT(fun), thingKind);
 }
 
 #if JS_HAS_XML_SUPPORT
@@ -2858,7 +2919,7 @@ FinalizeArenaList(JSContext *cx, unsigned thingKind,
 
 
                 *flagp = 0;
-                FinalizeGCThing(cx, reinterpret_cast<T *>(thing), thingKind);
+                ::FinalizeGCThing(cx, reinterpret_cast<T *>(thing), thingKind);
 #ifdef DEBUG
                 memset(thing, JS_FREE_PATTERN, sizeof(T));
 #endif

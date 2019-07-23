@@ -1446,8 +1446,9 @@ js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
 
         *rval = *invokevp;
         if (JSVAL_IS_GCTHING(*rval) && *rval != JSVAL_NULL) {
-            if (cx->localRootStack) {
-                if (js_PushLocalRoot(cx, cx->localRootStack, *rval) < 0)
+            JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
+            if (lrs) {
+                if (js_PushLocalRoot(cx, lrs, *rval) < 0)
                     ok = JS_FALSE;
             } else {
                 cx->weakRoots.lastInternalResult = *rval;
@@ -2583,7 +2584,7 @@ AssertValidPropertyCacheHit(JSContext *cx, JSScript *script, JSFrameRegs& regs,
         jsval v;
         JS_ASSERT(PCVAL_IS_OBJECT(entry->vword));
         JS_ASSERT(entry->vword != PCVAL_NULL);
-        JS_ASSERT(OBJ_SCOPE(pobj)->branded() || OBJ_SCOPE(pobj)->hasMethodBarrier());
+        JS_ASSERT(OBJ_SCOPE(pobj)->branded());
         JS_ASSERT(SPROP_HAS_STUB_GETTER_OR_IS_METHOD(sprop));
         JS_ASSERT(SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(pobj)));
         v = LOCKED_OBJ_GET_SLOT(pobj, sprop->slot);
