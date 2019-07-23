@@ -914,7 +914,20 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
   CERTCertificateCleaner serverCertCleaner(serverCert);
 
   if (serverCert) {
+    nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
+    nsRefPtr<nsSSLStatus> status = infoObject->SSLStatus();
+    nsRefPtr<nsNSSCertificate> nsc;
+
+    if (!status || !status->mServerCert) {
+      nsc = new nsNSSCertificate(serverCert);
+    }
+
     if (SECSuccess == rv) {
+      if (nsc) {
+        PRBool dummyIsEV;
+        nsc->GetIsExtendedValidation(&dummyIsEV); 
+      }
+    
       CERTCertList *certList = CERT_GetCertChainFromCert(serverCert, PR_Now(), certUsageSSLCA);
 
       nsCOMPtr<nsINSSComponent> nssComponent;
@@ -958,15 +971,12 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
     
     
     
-    nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
-
-    nsRefPtr<nsSSLStatus> status = infoObject->SSLStatus();
     if (!status) {
       status = new nsSSLStatus();
       infoObject->SetSSLStatus(status);
     }
     if (status && !status->mServerCert) {
-      status->mServerCert = new nsNSSCertificate(serverCert);
+      status->mServerCert = nsc;
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
              ("AuthCertificateCallback setting NEW cert %p\n", status->mServerCert.get()));
     }
