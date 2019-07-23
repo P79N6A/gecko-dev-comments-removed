@@ -673,17 +673,16 @@ nsIFrame::Redraw(nsBoxLayoutState& aState,
 PRBool 
 nsIBox::AddCSSPrefSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 {
-    PRBool widthSet = PR_FALSE;
     PRBool heightSet = PR_FALSE;
 
     
     const nsStylePosition* position = aBox->GetStylePosition();
 
     
-    if (position->mWidth.GetUnit() == eStyleUnit_Coord)  {
-        aSize.width = position->mWidth.GetCoordValue();
-        widthSet = PR_TRUE;
-    }
+    PRBool widthSet = 
+      nsLayoutUtils::GetAbsoluteCoord(position->mWidth,
+                                      aState.GetRenderingContext(),
+                                      aBox, aSize.width);
     
     
     
@@ -761,8 +760,10 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 
     
     
-    if (position->mMinWidth.GetUnit() == eStyleUnit_Coord) {
-        nscoord min = position->mMinWidth.GetCoordValue();
+    nscoord min;
+    if (nsLayoutUtils::GetAbsoluteCoord(position->mMinWidth,
+                                        aState.GetRenderingContext(),
+                                        aBox, min)) {
         if (min && (!widthSet || (min > aSize.width && canOverride))) {
            aSize.width = min;
            widthSet = PR_TRUE;
@@ -829,19 +830,16 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 PRBool 
 nsIBox::AddCSSMaxSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 {  
-
-    PRBool widthSet = PR_FALSE;
     PRBool heightSet = PR_FALSE;
 
     
     const nsStylePosition* position = aBox->GetStylePosition();
 
     
-    if (position->mMaxWidth.GetUnit() == eStyleUnit_Coord) {
-        nscoord max = position->mMaxWidth.GetCoordValue();
-        aSize.width = max;
-        widthSet = PR_TRUE;
-    }
+    PRBool widthSet = 
+      nsLayoutUtils::GetAbsoluteCoord(position->mMaxWidth,
+                                      aState.GetRenderingContext(),
+                                      aBox, aSize.width);
     
     
     

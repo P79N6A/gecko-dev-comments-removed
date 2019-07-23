@@ -522,6 +522,19 @@ public:
 
 
 
+
+
+
+  static PRBool GetAbsoluteCoord(const nsStyleCoord& aStyle,
+                                 nsIRenderingContext* aRenderingContext,
+                                 nsIFrame* aFrame,
+                                 nscoord& aResult);
+  
+
+
+
+
+
   enum IntrinsicWidthType { MIN_WIDTH, PREF_WIDTH };
   static nscoord IntrinsicForContainer(nsIRenderingContext* aRenderingContext,
                                        nsIFrame* aFrame,
