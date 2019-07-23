@@ -806,7 +806,6 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
 {
   MOZ_COUNT_CTOR(RuleProcessorData);
 
-  NS_PRECONDITION(aPresContext, "null pointer");
   NS_ASSERTION(!aContent || aContent->IsNodeOfType(nsINode::eELEMENT),
                "non-element leaked into SelectorMatches");
 
@@ -834,12 +833,16 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
   mNthIndices[1][1] = -2;
 
   
-  if (!aCompat) {
+  
+  if (aCompat) {
+    mCompatMode = *aCompat;
+  } else if (NS_LIKELY(mPresContext)) {
     mCompatMode = mPresContext->CompatibilityMode();
   } else {
-    mCompatMode = *aCompat;
+    NS_ASSERTION(aContent, "Must have content");
+    NS_ASSERTION(aContent->GetOwnerDoc(), "Must have document");
+    mCompatMode = aContent->GetOwnerDoc()->GetCompatibilityMode();
   }
-
 
   if (aContent) {
     NS_ASSERTION(aContent->GetOwnerDoc(), "Document-less node here?");
@@ -849,7 +852,11 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mParentContent = aContent->GetParent();
 
     
-    mPresContext->EventStateManager()->GetContentState(aContent, mEventState);
+    if (mPresContext) {
+      mPresContext->EventStateManager()->GetContentState(aContent, mEventState);
+    } else {
+      mEventState = aContent->IntrinsicState();
+    }
 
     
     mContentID = aContent->GetID();
@@ -869,13 +876,15 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
       mNameSpaceID = aContent->GetNameSpaceID();
     }
 
-
-
     
     
+    nsILinkHandler* linkHandler =
+      mPresContext ? mPresContext->GetLinkHandler() : nsnull;
     if (mIsHTMLContent && mHasAttributes) {
       
-      if(nsStyleUtil::IsHTMLLink(aContent, mContentTag, mPresContext, &mLinkState)) {
+      if(nsStyleUtil::IsHTMLLink(aContent, mContentTag,
+                                 linkHandler, aRuleWalker != nsnull,
+                                 &mLinkState)) {
         mIsLink = PR_TRUE;
       }
     } 
@@ -885,7 +894,8 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     if(!mIsLink &&
        mHasAttributes && 
        !(mIsHTMLContent || aContent->IsNodeOfType(nsINode::eXUL)) && 
-       nsStyleUtil::IsLink(aContent, mPresContext, &mLinkState)) {
+       nsStyleUtil::IsLink(aContent, linkHandler,
+                           aRuleWalker != nsnull, &mLinkState)) {
       mIsLink = PR_TRUE;
     } 
   }
@@ -916,7 +926,7 @@ RuleProcessorData::~RuleProcessorData()
       }
 
       if (d != this)
-        d->Destroy(mPresContext);
+        d->Destroy();
     } while (destroyQueue.Count());
   }
 
@@ -964,10 +974,25 @@ RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
                                PRBool aCheckEdgeOnly)
 {
   NS_ASSERTION(mParentContent, "caller should check mParentContent");
+  NS_ASSERTION(!mPreviousSiblingData ||
+               mPreviousSiblingData->mContent->IsNodeOfType(nsINode::eELEMENT),
+               "Unexpected previous sibling data");
 
   PRInt32 &slot = mNthIndices[aIsOfType][aIsFromEnd];
   if (slot != -2 && (slot != -1 || aCheckEdgeOnly))
     return slot;
+
+  if (mPreviousSiblingData &&
+      (!aIsOfType ||
+       (mPreviousSiblingData->mNameSpaceID == mNameSpaceID &&
+        mPreviousSiblingData->mContentTag == mContentTag))) {
+    slot = mPreviousSiblingData->mNthIndices[aIsOfType][aIsFromEnd];
+    if (slot > 0) {
+      slot += (aIsFromEnd ? -1 : 1);
+      NS_ASSERTION(slot > 0, "How did that happen?");
+      return slot;
+    }
+  }
 
   PRInt32 result = 1;
   nsIContent* parent = mParentContent;
@@ -1009,8 +1034,6 @@ RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
   slot = result;
   return result;
 }
-
-static const PRUnichar kNullCh = PRUnichar('\0');
 
 static PRBool ValueIncludes(const nsSubstring& aValueList,
                             const nsSubstring& aValue,
@@ -1126,10 +1149,13 @@ static PRBool AttrMatchesValue(const nsAttrSelector* aAttrSelector,
 
 
 
+
+
 static PRBool SelectorMatches(RuleProcessorData &data,
                               nsCSSSelector* aSelector,
                               PRInt32 aStateMask, 
                               nsIAtom* aAttribute, 
+                              PRBool aForStyling,
                               PRBool* const aDependence = nsnull) 
 
 {
@@ -1148,7 +1174,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
   
   
   
-  const PRBool setNodeFlags = aStateMask == 0 && !aAttribute;
+  const PRBool setNodeFlags = aForStyling && aStateMask == 0 && !aAttribute;
 
   
   
@@ -1695,7 +1721,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
          result && negation; negation = negation->mNegations) {
       PRBool dependence = PR_FALSE;
       result = !SelectorMatches(data, negation, aStateMask,
-                                aAttribute, &dependence);
+                                aAttribute, aForStyling, &dependence);
       
       
       
@@ -1716,7 +1742,8 @@ static PRBool SelectorMatches(RuleProcessorData &data,
 #define NS_IS_GREEDY_OPERATOR(ch) (ch == PRUnichar(0) || ch == PRUnichar('~'))
 
 static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
-                                  nsCSSSelector* aSelector) 
+                                  nsCSSSelector* aSelector,
+                                  PRBool aForStyling) 
 {
   nsCSSSelector* selector = aSelector;
   RuleProcessorData* prevdata = &aPrevData;
@@ -1741,10 +1768,9 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
           while (0 <= --index) {
             content = parent->GetChildAt(index);
             if (content->IsNodeOfType(nsINode::eELEMENT)) {
-              data = new (prevdata->mPresContext)
-                          RuleProcessorData(prevdata->mPresContext, content,
-                                            prevdata->mRuleWalker,
-                                            &prevdata->mCompatMode);
+              data = RuleProcessorData::Create(prevdata->mPresContext, content,
+                                               prevdata->mRuleWalker,
+                                               prevdata->mCompatMode);
               prevdata->mPreviousSiblingData = data;    
               break;
             }
@@ -1761,10 +1787,9 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
         
         
         if (content && content->IsNodeOfType(nsINode::eELEMENT)) {
-          data = new (prevdata->mPresContext)
-                      RuleProcessorData(prevdata->mPresContext, content,
-                                        prevdata->mRuleWalker,
-                                        &prevdata->mCompatMode);
+          data = RuleProcessorData::Create(prevdata->mPresContext, content,
+                                           prevdata->mRuleWalker,
+                                           prevdata->mCompatMode);
           prevdata->mParentData = data;    
         }
       }
@@ -1772,7 +1797,7 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
     if (! data) {
       return PR_FALSE;
     }
-    if (SelectorMatches(*data, selector, 0, nsnull)) {
+    if (SelectorMatches(*data, selector, 0, nsnull, aForStyling)) {
       
       
       
@@ -1791,7 +1816,7 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
         
         
         
-        if (SelectorMatchesTree(*data, selector)) {
+        if (SelectorMatchesTree(*data, selector, aForStyling)) {
           return PR_TRUE;
         }
       }
@@ -1814,9 +1839,9 @@ static void ContentEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
 {
   ElementRuleProcessorData* data = (ElementRuleProcessorData*)aData;
 
-  if (SelectorMatches(*data, aSelector, 0, nsnull)) {
+  if (SelectorMatches(*data, aSelector, 0, nsnull, PR_TRUE)) {
     nsCSSSelector *next = aSelector->mNext;
-    if (!next || SelectorMatchesTree(*data, next)) {
+    if (!next || SelectorMatchesTree(*data, next, PR_TRUE)) {
       
       
       
@@ -1867,7 +1892,7 @@ static void PseudoEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
       if (PRUnichar('+') == selector->mOperator) {
         return; 
       }
-      if (SelectorMatches(*data, selector, 0, nsnull)) {
+      if (SelectorMatches(*data, selector, 0, nsnull, PR_TRUE)) {
         selector = selector->mNext;
       }
       else {
@@ -1878,7 +1903,7 @@ static void PseudoEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
     }
 
     if (selector && 
-        (! SelectorMatchesTree(*data, selector))) {
+        (! SelectorMatchesTree(*data, selector, PR_TRUE))) {
       return; 
     }
 
@@ -1938,8 +1963,8 @@ PR_STATIC_CALLBACK(PRBool) StateEnumFunc(void* aSelector, void* aData)
   
   
   if ((possibleChange & ~(enumData->change)) &&
-      SelectorMatches(*data, selector, data->mStateMask, nsnull) &&
-      SelectorMatchesTree(*data, selector->mNext)) {
+      SelectorMatches(*data, selector, data->mStateMask, nsnull, PR_TRUE) &&
+      SelectorMatchesTree(*data, selector->mNext, PR_TRUE)) {
     enumData->change = nsReStyleHint(enumData->change | possibleChange);
   }
 
@@ -1992,8 +2017,9 @@ PR_STATIC_CALLBACK(PRBool) AttributeEnumFunc(void* aSelector, void* aData)
   
   
   if ((possibleChange & ~(enumData->change)) &&
-      SelectorMatches(*data, selector, data->mStateMask, data->mAttribute) &&
-      SelectorMatchesTree(*data, selector->mNext)) {
+      SelectorMatches(*data, selector, data->mStateMask, data->mAttribute,
+                      PR_TRUE) &&
+      SelectorMatchesTree(*data, selector->mNext, PR_TRUE)) {
     enumData->change = nsReStyleHint(enumData->change | possibleChange);
   }
 
@@ -2371,4 +2397,24 @@ nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
     }
   }
   return cascade;
+}
+
+ PRBool
+nsCSSRuleProcessor::SelectorListMatches(RuleProcessorData& aData,
+                                        nsCSSSelectorList* aSelectorList)
+{
+  while (aSelectorList) {
+    nsCSSSelector* sel = aSelectorList->mSelectors;
+    NS_ASSERTION(sel, "Should have *some* selectors");
+    if (SelectorMatches(aData, sel, 0, nsnull, PR_FALSE)) {
+      nsCSSSelector* next = sel->mNext;
+      if (!next || SelectorMatchesTree(aData, next, PR_FALSE)) {
+        return PR_TRUE;
+      }
+    }
+
+    aSelectorList = aSelectorList->mNext;
+  }
+
+  return PR_FALSE;
 }

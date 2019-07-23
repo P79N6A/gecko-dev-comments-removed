@@ -1142,6 +1142,7 @@ NS_INTERFACE_TABLE_HEAD(nsDocument)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsISupportsWeakReference)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsIRadioGroupContainer)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsIMutationObserver)
+    NS_INTERFACE_TABLE_ENTRY(nsDocument, nsIDOMNodeSelector)
     
     
     
@@ -6628,4 +6629,18 @@ nsDocument::SetScriptTypeID(PRUint32 aScriptType)
 {
     NS_ERROR("Can't change default script type for a document");
     return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsDocument::QuerySelector(const nsAString& aSelector,
+                          nsIDOMElement **aReturn)
+{
+  return nsGenericElement::doQuerySelector(this, aSelector, aReturn);
+}
+
+NS_IMETHODIMP
+nsDocument::QuerySelectorAll(const nsAString& aSelector,
+                             nsIDOMNodeList **aReturn)
+{
+  return nsGenericElement::doQuerySelectorAll(this, aSelector, aReturn);
 }

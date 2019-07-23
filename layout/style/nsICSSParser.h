@@ -55,6 +55,7 @@ class nsICSSLoader;
 class nsICSSRule;
 class nsMediaList;
 class nsIPrincipal;
+struct nsCSSSelectorList;
 
 #define NS_ICSS_PARSER_IID    \
 { 0xad4a3778, 0xdae0, 0x4640, \
@@ -168,6 +169,15 @@ public:
                               nsIURI* aURL, 
                               PRUint32 aLineNumber, 
                               nscolor* aColor) = 0;
+
+  
+
+
+
+  NS_IMETHOD ParseSelectorString(const nsSubstring& aSelectorString,
+                                 nsIURI* aURL, 
+                                 PRUint32 aLineNumber, 
+                                 nsCSSSelectorList **aSelectorList) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICSSParser, NS_ICSS_PARSER_IID)

@@ -126,6 +126,9 @@
 #include "nsIFocusController.h"
 #include "nsIControllers.h"
 #include "nsXBLInsertionPoint.h"
+#include "nsICSSStyleRule.h" 
+#include "nsCSSRuleProcessor.h"
+
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
 #endif 
@@ -1153,6 +1156,68 @@ nsDOMEventRTTearoff::AddEventListener(const nsAString& aType,
 
   return listener_manager->AddEventListenerByType(aListener, aType, flags,
                                                   nsnull);
+}
+
+
+
+NS_IMPL_CYCLE_COLLECTION_1(nsNodeSelectorTearoff, mContent)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsNodeSelectorTearoff)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMNodeSelector)
+NS_INTERFACE_MAP_END_AGGREGATED(mContent)
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsNodeSelectorTearoff)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsNodeSelectorTearoff)
+
+NS_IMETHODIMP
+nsNodeSelectorTearoff::QuerySelector(const nsAString& aSelector,
+                                     nsIDOMElement **aReturn)
+{
+  return nsGenericElement::doQuerySelector(mContent, aSelector, aReturn);
+}
+
+NS_IMETHODIMP
+nsNodeSelectorTearoff::QuerySelectorAll(const nsAString& aSelector,
+                                        nsIDOMNodeList **aReturn)
+{
+  return nsGenericElement::doQuerySelectorAll(mContent, aSelector, aReturn);
+}
+
+
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsStaticContentList)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsStaticContentList)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mList)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsStaticContentList)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mList)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsStaticContentList)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsStaticContentList)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsStaticContentList)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMNodeList)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(NodeList)
+NS_INTERFACE_MAP_END
+
+NS_IMETHODIMP
+nsStaticContentList::GetLength(PRUint32* aLength)
+{
+  *aLength = mList.Count();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsStaticContentList::Item(PRUint32 aIndex, nsIDOMNode** aReturn)
+{
+  nsIContent* c = mList.SafeObjectAt(aIndex);
+  if (!c) {
+    *aReturn = nsnull;
+    return NS_OK;
+  }
+
+  return CallQueryInterface(c, aReturn);
 }
 
 
@@ -3583,6 +3648,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGenericElement)
                                  nsDOMEventRTTearoff::Create(this))
   NS_INTERFACE_MAP_ENTRY_TEAROFF(nsISupportsWeakReference,
                                  new nsNodeSupportsWeakRefTearoff(this))
+  NS_INTERFACE_MAP_ENTRY_TEAROFF(nsIDOMNodeSelector,
+                                 new nsNodeSelectorTearoff(this))
   
   
   
@@ -4529,3 +4596,198 @@ nsGenericElement::GetLinkTarget(nsAString& aTarget)
   aTarget.Truncate();
 }
 
+
+static nsresult
+ParseSelectorList(nsINode* aNode,
+                  const nsAString& aSelectorString,
+                  nsCSSSelectorList** aSelectorList,
+                  nsPresContext** aPresContext)
+{
+  NS_ENSURE_ARG(aNode);
+
+  nsIDocument* doc = aNode->GetOwnerDoc();
+  NS_ENSURE_STATE(doc);
+
+  nsCOMPtr<nsICSSParser> parser;
+  nsresult rv = doc->CSSLoader()->GetParserFor(nsnull, getter_AddRefs(parser));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = parser->ParseSelectorString(aSelectorString,
+                                   doc->GetDocumentURI(),
+                                   0, 
+                                   aSelectorList);
+  doc->CSSLoader()->RecycleParser(parser);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  *aPresContext = nsnull;
+  nsIPresShell* shell = doc->GetPrimaryShell();
+  if (shell) {
+    *aPresContext = shell->GetPresContext();
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+typedef PRBool
+(* PR_CALLBACK ElementMatchedCallback)(nsIContent* aMatchingElement,
+                                       void* aClosure);
+
+
+static PRBool
+TryMatchingElementsInSubtree(nsINode* aRoot,
+                             RuleProcessorData* aParentData,
+                             nsPresContext* aPresContext,
+                             nsCSSSelectorList* aSelectorList,
+                             ElementMatchedCallback aCallback,
+                             void* aClosure)
+{
+  PRUint32 count = aRoot->GetChildCount();
+  
+
+
+
+
+  char databuf[2 * sizeof(RuleProcessorData)];
+  RuleProcessorData* prevSibling = nsnull;
+  RuleProcessorData* data = reinterpret_cast<RuleProcessorData*>(databuf);
+  nsIContent * const * kidSlot = aRoot->GetChildArray();
+  nsIContent * const * end = kidSlot + count;
+
+  PRBool continueIteration = PR_TRUE;
+  for (; kidSlot != end; ++kidSlot) {
+    nsIContent* kid = *kidSlot;
+    if (!kid->IsNodeOfType(nsINode::eELEMENT)) {
+      continue;
+    }
+    
+    new (data) RuleProcessorData(aPresContext, kid, nsnull);
+    NS_ASSERTION(!data->mParentData, "Shouldn't happen");
+    NS_ASSERTION(!data->mPreviousSiblingData, "Shouldn't happen");
+    data->mParentData = aParentData;
+    data->mPreviousSiblingData = prevSibling;
+
+    if (nsCSSRuleProcessor::SelectorListMatches(*data, aSelectorList)) {
+      continueIteration = (*aCallback)(kid, aClosure);
+    }
+
+    if (continueIteration) {
+      continueIteration =
+        TryMatchingElementsInSubtree(kid, data, aPresContext, aSelectorList,
+                                     aCallback, aClosure);
+    }
+    
+    
+
+
+
+
+
+
+    NS_ASSERTION(!aParentData || data->mParentData == aParentData,
+                 "Unexpected parent");
+    NS_ASSERTION(data->mPreviousSiblingData == prevSibling,
+                 "Unexpected prev sibling");
+    data->mPreviousSiblingData = nsnull;
+    if (prevSibling) {
+      if (aParentData) {
+        prevSibling->mParentData = nsnull;
+      }
+      prevSibling->~RuleProcessorData();
+    } else {
+      
+
+      prevSibling = data + 1;
+    }
+
+    
+    RuleProcessorData* temp = prevSibling;
+    prevSibling = data;
+    data = temp;
+    if (!continueIteration) {
+      break;
+    }
+  }
+  if (prevSibling) {
+    if (aParentData) {
+      prevSibling->mParentData = nsnull;
+    }
+    
+    prevSibling->~RuleProcessorData();
+  }
+  return continueIteration;
+}
+
+PR_STATIC_CALLBACK(PRBool)
+FindFirstMatchingElement(nsIContent* aMatchingElement,
+                         void* aClosure)
+{
+  NS_PRECONDITION(aMatchingElement && aClosure, "How did that happen?");
+  nsIContent** slot = static_cast<nsIContent**>(aClosure);
+  *slot = aMatchingElement;
+  return PR_FALSE;
+}
+
+
+nsresult
+nsGenericElement::doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
+                                  nsIDOMElement **aReturn)
+{
+  NS_PRECONDITION(aReturn, "Null out param?");
+
+  nsAutoPtr<nsCSSSelectorList> selectorList;
+  nsPresContext* presContext;
+  nsresult rv = ParseSelectorList(aRoot, aSelector,
+                                  getter_Transfers(selectorList),
+                                  &presContext);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsIContent* foundElement = nsnull;
+  TryMatchingElementsInSubtree(aRoot, nsnull, presContext, selectorList,
+                               FindFirstMatchingElement, &foundElement);
+
+  if (foundElement) {
+    return CallQueryInterface(foundElement, aReturn);
+  }
+
+  *aReturn = nsnull;
+  return NS_OK;
+}
+
+PR_STATIC_CALLBACK(PRBool)
+AppendAllMatchingElements(nsIContent* aMatchingElement,
+                          void* aClosure)
+{
+  NS_PRECONDITION(aMatchingElement && aClosure, "How did that happen?");
+  static_cast<nsStaticContentList*>(aClosure)->AppendContent(aMatchingElement);
+  return PR_TRUE;
+}
+
+
+nsresult
+nsGenericElement::doQuerySelectorAll(nsINode* aRoot,
+                                     const nsAString& aSelector,
+                                     nsIDOMNodeList **aReturn)
+{
+  NS_PRECONDITION(aReturn, "Null out param?");
+
+  nsStaticContentList* contentList = new nsStaticContentList();
+  NS_ENSURE_TRUE(contentList, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(*aReturn = contentList);
+  
+  nsAutoPtr<nsCSSSelectorList> selectorList;
+  nsPresContext* presContext;
+  nsresult rv = ParseSelectorList(aRoot, aSelector,
+                                  getter_Transfers(selectorList),
+                                  &presContext);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  TryMatchingElementsInSubtree(aRoot, nsnull, presContext, selectorList,
+                               AppendAllMatchingElements, contentList);
+  return NS_OK;
+}

@@ -73,14 +73,43 @@ struct RuleProcessorData {
   
   ~RuleProcessorData();
 
+  
+  static RuleProcessorData* Create(nsPresContext* aPresContext,
+                                   nsIContent* aContent, 
+                                   nsRuleWalker* aRuleWalker,
+                                   nsCompatibility aCompat)
+  {
+    if (NS_LIKELY(aPresContext)) {
+      return new (aPresContext) RuleProcessorData(aPresContext, aContent,
+                                                  aRuleWalker, &aCompat);
+    }
+
+    return new RuleProcessorData(aPresContext, aContent, aRuleWalker,
+                                 &aCompat);
+  }
+  
+  void Destroy() {
+    nsPresContext * pc = mPresContext;
+    if (NS_LIKELY(pc)) {
+      this->~RuleProcessorData();
+      pc->FreeToShell(sizeof(RuleProcessorData), this);
+      return;
+    }
+    delete this;
+  }
+
+  
+  void* operator new(size_t sz, RuleProcessorData* aSlot) CPP_THROW_NEW {
+    return aSlot;
+  }
+private:
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW {
     return aContext->AllocateFromShell(sz);
   }
-  void Destroy(nsPresContext* aContext) {
-    this->~RuleProcessorData();
-    aContext->FreeToShell(sizeof(RuleProcessorData), this);
+  void* operator new(size_t sz) CPP_THROW_NEW {
+    return ::operator new(sz);
   }
-
+public:
   const nsString* GetLang();
 
   
@@ -132,6 +161,7 @@ struct ElementRuleProcessorData : public RuleProcessorData {
                            nsRuleWalker* aRuleWalker)
   : RuleProcessorData(aPresContext,aContent,aRuleWalker)
   {
+    NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aContent, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
   }
@@ -145,6 +175,7 @@ struct PseudoRuleProcessorData : public RuleProcessorData {
                           nsRuleWalker* aRuleWalker)
   : RuleProcessorData(aPresContext, aParentContent, aRuleWalker)
   {
+    NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aPseudoTag, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
     mPseudoTag = aPseudoTag;
@@ -162,6 +193,7 @@ struct StateRuleProcessorData : public RuleProcessorData {
     : RuleProcessorData(aPresContext, aContent, nsnull),
       mStateMask(aStateMask)
   {
+    NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aContent, "null pointer");
   }
   const PRInt32 mStateMask; 
@@ -179,6 +211,7 @@ struct AttributeRuleProcessorData : public RuleProcessorData {
       mModType(aModType),
       mStateMask(aStateMask)
   {
+    NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aContent, "null pointer");
   }
   nsIAtom* mAttribute; 

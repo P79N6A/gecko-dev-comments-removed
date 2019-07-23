@@ -49,6 +49,7 @@
 #include "nsCSSStyleSheet.h"
 
 struct RuleCascadeData;
+struct nsCSSSelectorList;
 
 
 
@@ -72,6 +73,14 @@ public:
   nsresult ClearRuleCascades();
 
   static void Shutdown();
+
+  
+
+
+
+
+  static PRBool SelectorListMatches(RuleProcessorData& aData,
+                                    nsCSSSelectorList* aSelectorList);
 
   
   NS_IMETHOD RulesMatching(ElementRuleProcessorData* aData);
