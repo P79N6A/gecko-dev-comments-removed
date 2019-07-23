@@ -364,6 +364,15 @@ function retryDownload(aDownload)
   gDownloadManager.retryDownload(aDownload.getAttribute("dlid"));
 }
 
+function copySourceLocation(aDownload)
+{
+  var uri = aDownload.getAttribute("uri");
+  var clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
+                  getService(Ci.nsIClipboardHelper);
+
+  clipboard.copyString(uri);
+}
+
 
 
 var gLastComputedMean = -1;
@@ -449,19 +458,26 @@ function Shutdown()
 
 var gContextMenus = [
   
-  ["menuitem_pause", "menuitem_cancel"],
+  ["menuitem_pause", "menuitem_cancel", "menuseparator_copy_location",
+   "menuitem_copyLocation"],
   
-  ["menuitem_open", "menuitem_show", "menuitem_remove"],
+  ["menuitem_open", "menuitem_show", "menuitem_remove",
+   "menuseparator_copy_location", "menuitem_copyLocation"],
   
-  ["menuitem_retry", "menuitem_remove"],
+  ["menuitem_retry", "menuitem_remove", "menuseparator_copy_location",
+   "menuitem_copyLocation"],
   
-  ["menuitem_retry", "menuitem_remove"],
+  ["menuitem_retry", "menuitem_remove", "menuseparator_copy_location",
+   "menuitem_copyLocation"],
   
-  ["menuitem_resume", "menuitem_cancel"],
+  ["menuitem_resume", "menuitem_cancel", "menuseparator_copy_location",
+   "menuitem_copyLocation"],
   
-  ["menuitem_cancel"],
+  ["menuitem_cancel", "menuseparator_copy_location",
+   "menuitem_copyLocation"],
   
-  ["menuitem_retry", "menuitem_remove"]
+  ["menuitem_retry", "menuitem_remove", "menuseparator_copy_location",
+   "menuitem_copyLocation"]
 ];
 
 function buildContextMenu(aEvent)
@@ -557,6 +573,7 @@ var gDownloadViewController = {
       case "cmd_retry":
         return dl.removable;
       case "cmd_showInfo":
+      case "cmd_copyLocation":
         return true;
     }
     return false;
@@ -616,6 +633,9 @@ var gDownloadViewController = {
     },
     cmd_showInfo: function(aSelectedItem) {
       showDownloadInfo(aSelectedItem);
+    },
+    cmd_copyLocation: function(aSelectedItem) {
+      copySourceLocation(aSelectedItem);
     }
   }
 };
