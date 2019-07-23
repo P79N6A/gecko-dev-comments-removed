@@ -124,8 +124,8 @@ pluginDraw(InstanceData* instanceData)
   
   int x = instanceData->hasWidget ? 0 : instanceData->window.x;
   int y = instanceData->hasWidget ? 0 : instanceData->window.y;
-  int width = instanceData->window.width - 1;
-  int height = instanceData->window.height - 1;
+  int width = instanceData->window.width;
+  int height = instanceData->window.height;
 
   
   Rect rect(x, y, width, height);
