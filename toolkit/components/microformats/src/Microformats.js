@@ -27,18 +27,34 @@ var Microformats = {
 
 
   get: function(name, rootElement, options, targetArray) {
-    if (!Microformats[name]) {
+    function isAncestor(haystack, needle) {
+      var parent = needle;
+      while (parent = parent.parentNode) {
+        
+        
+        if (parent == needle.parentNode) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (!Microformats[name] || !rootElement) {
       return;
     }
     targetArray = targetArray || [];
 
-    rootElement = rootElement || content.document;
+    
+    
+    var defaultView = rootElement.defaultView || rootElement.ownerDocument.defaultView;
+    var rootDocument = rootElement.ownerDocument || rootElement;
 
     
     if (!options || !options.hasOwnProperty("recurseFrames") || options.recurseFrames) {
-      if (rootElement.defaultView && rootElement.defaultView.frames.length > 0) {
-        for (let i=0; i < rootElement.defaultView.frames.length; i++) {
-          Microformats.get(name, rootElement.defaultView.frames[i].document, options, targetArray);
+      if (defaultView && defaultView.frames.length > 0) {
+        for (let i=0; i < defaultView.frames.length; i++) {
+          if (isAncestor(rootDocument, defaultView.frames[i].frameElement)) {
+            Microformats.get(name, defaultView.frames[i].document, options, targetArray);
+          }
         }
       }
     }
