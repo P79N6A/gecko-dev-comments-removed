@@ -3296,7 +3296,7 @@ NoteLValue(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, uintN dflag = PND_
 
 
 
-        if (!(dn->pn_dflags & (PND_INITIALIZED | PND_PLACEHOLDER)) &&
+        if (!(dn->pn_dflags & (PND_INITIALIZED | PND_CONST | PND_PLACEHOLDER)) &&
             dn->isBlockChild() &&
             pn->isBlockChild() &&
             dn->pn_blockid == pn->pn_blockid &&
