@@ -50,6 +50,7 @@
 #include "nsNetUtil.h"
 #include "nsSeamonkeyProfileMigrator.h"
 #include "nsVoidArray.h"
+#include "nsIProfileMigrator.h"
 
 
 
@@ -103,6 +104,15 @@ nsSeamonkeyProfileMigrator::Migrate(PRUint16 aItems, nsIProfileStartup* aStartup
   COPY_DATA(CopyHistory,      aReplace, nsIBrowserProfileMigrator::HISTORY);
   COPY_DATA(CopyPasswords,    aReplace, nsIBrowserProfileMigrator::PASSWORDS);
   COPY_DATA(CopyOtherData,    aReplace, nsIBrowserProfileMigrator::OTHERDATA);
+
+  
+  
+  
+  if (aStartup) {
+    rv = aStartup->DoStartup();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   COPY_DATA(CopyBookmarks,    aReplace, nsIBrowserProfileMigrator::BOOKMARKS);
 
   if (aReplace && 
@@ -724,10 +734,25 @@ nsresult
 nsSeamonkeyProfileMigrator::CopyBookmarks(PRBool aReplace)
 {
   if (aReplace) {
+    
     nsresult rv = InitializeBookmarks(mTargetProfile);
     NS_ENSURE_SUCCESS(rv, rv);
-    return CopyFile(FILE_NAME_BOOKMARKS, FILE_NAME_BOOKMARKS);
+
+    
+    nsCOMPtr<nsIFile> sourceFile;
+    mSourceProfile->Clone(getter_AddRefs(sourceFile));
+    sourceFile->Append(FILE_NAME_BOOKMARKS);
+    rv = ImportBookmarksHTML(sourceFile, PR_TRUE, PR_FALSE, EmptyString().get());
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return pref->SetBoolPref("browser.places.importBookmarksHTML", PR_FALSE);
   }
+
   return ImportNetscapeBookmarks(FILE_NAME_BOOKMARKS, 
                                  NS_LITERAL_STRING("sourceNameSeamonkey").get());
 }
