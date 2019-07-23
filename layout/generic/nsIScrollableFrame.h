@@ -49,7 +49,6 @@
 
 class nsBoxLayoutState;
 class nsIScrollPositionListener;
-class nsIScrollableView;
 
 
 
@@ -195,9 +194,6 @@ public:
 
 
   NS_IMETHOD PostScrolledAreaEventForCurrentArea() = 0;
-
-  
-  virtual nsIScrollableView* GetScrollableView() = 0;
 };
 
 #endif
