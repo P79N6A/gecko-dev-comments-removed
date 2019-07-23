@@ -4715,9 +4715,6 @@ NS_IMETHODIMP
 nsHttpChannel::GetEntityID(nsACString& aEntityID)
 {
     
-    if (mResponseHead && (mResponseHead->Version() < NS_HTTP_VERSION_1_1)) {
-        return NS_ERROR_NOT_RESUMABLE;
-    }
     
     if (mRequestHead.Method() != nsHttp::Get) {
         return NS_ERROR_NOT_RESUMABLE;
