@@ -38,6 +38,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
 
 const ORGANIZER_ROOT_BOOKMARKS = "place:folder=BOOKMARKS_MENU&excludeItems=1&queryType=1";
 const ORGANIZER_SUBSCRIPTIONS_QUERY = "place:annotation=livemark%2FfeedURI";
@@ -1330,7 +1332,7 @@ PlacesController.prototype = {
 
 
 
-var PlacesControllerDragHelper = {
+let PlacesControllerDragHelper = {
   
 
 
@@ -1342,19 +1344,11 @@ var PlacesControllerDragHelper = {
 
 
 
-  currentDataTransfer: null,
-
-  
-
-
-
-
-
 
 
 
   draggingOverChildNode: function PCDH_draggingOverChildNode(node) {
-    var currentNode = this.currentDropTarget;
+    let currentNode = this.currentDropTarget;
     while (currentNode) {
       if (currentNode == node)
         return true;
@@ -1367,9 +1361,7 @@ var PlacesControllerDragHelper = {
 
 
   getSession: function PCDH__getSession() {
-    var dragService = Cc["@mozilla.org/widget/dragservice;1"].
-                      getService(Ci.nsIDragService);
-    return dragService.getCurrentSession();
+    return this.dragService.getCurrentSession();
   },
 
   
@@ -1378,7 +1370,7 @@ var PlacesControllerDragHelper = {
 
 
   getFirstValidFlavor: function PCDH_getFirstValidFlavor(aFlavors) {
-    for (var i = 0; i < aFlavors.length; i++) {
+    for (let i = 0; i < aFlavors.length; i++) {
       if (this.GENERIC_VIEW_DROP_TYPES.indexOf(aFlavors[i]) != -1)
         return aFlavors[i];
     }
@@ -1391,17 +1383,14 @@ var PlacesControllerDragHelper = {
 
 
 
-  canDrop: function PCDH_canDrop(ip) {
-    var dt = this.currentDataTransfer;
-    var dropCount = dt.mozItemCount;
+  canDrop: function PCDH_canDrop(ip, dt) {
+    let dropCount = dt.mozItemCount;
 
     
-    for (var i = 0; i < dropCount; i++) {
-      var flavor = this.getFirstValidFlavor(dt.mozTypesAt(i));
+    for (let i = 0; i < dropCount; i++) {
+      let flavor = this.getFirstValidFlavor(dt.mozTypesAt(i));
       if (!flavor)
         return false;
-
-      var data = dt.mozGetDataAt(flavor, i);
 
       
       
@@ -1416,8 +1405,10 @@ var PlacesControllerDragHelper = {
       if (flavor == TAB_DROP_TYPE)
         continue;
 
+      let data = dt.mozGetDataAt(flavor, i);
+      let dragged;
       try {
-        var dragged = PlacesUtils.unwrapNodes(data, flavor)[0];
+        dragged = PlacesUtils.unwrapNodes(data, flavor)[0];
       } catch (e) {
         return false;
       }
@@ -1433,7 +1424,7 @@ var PlacesControllerDragHelper = {
       
       if (dragged.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER ||
           /^place:/.test(dragged.uri)) {
-        var parentId = ip.itemId;
+        let parentId = ip.itemId;
         while (parentId != PlacesUtils.placesRootId) {
           if (dragged.concreteId == parentId || dragged.id == parentId)
             return false;
@@ -1458,8 +1449,8 @@ var PlacesControllerDragHelper = {
     if (!aNode.parent)
       return false;
 
-    var parentId = PlacesUtils.getConcreteItemId(aNode.parent);
-    var concreteId = PlacesUtils.getConcreteItemId(aNode);
+    let parentId = PlacesUtils.getConcreteItemId(aNode.parent);
+    let concreteId = PlacesUtils.getConcreteItemId(aNode);
 
     
     if (PlacesUtils.nodeIsTagQuery(aNode.parent))
@@ -1513,29 +1504,28 @@ var PlacesControllerDragHelper = {
 
 
 
-  onDrop: function PCDH_onDrop(insertionPoint) {
-    var dt = this.currentDataTransfer;
-    var doCopy = ["copy", "link"].indexOf(dt.dropEffect) != -1;
+  onDrop: function PCDH_onDrop(insertionPoint, dt) {
+    let doCopy = ["copy", "link"].indexOf(dt.dropEffect) != -1;
 
-    var transactions = [];
-    var dropCount = dt.mozItemCount;
-    var movedCount = 0;
-    for (var i = 0; i < dropCount; ++i) {
-      var flavor = this.getFirstValidFlavor(dt.mozTypesAt(i));
+    let transactions = [];
+    let dropCount = dt.mozItemCount;
+    let movedCount = 0;
+    for (let i = 0; i < dropCount; ++i) {
+      let flavor = this.getFirstValidFlavor(dt.mozTypesAt(i));
       if (!flavor)
         return false;
 
-      var data = dt.mozGetDataAt(flavor, i);
-      var unwrapped;
+      let data = dt.mozGetDataAt(flavor, i);
+      let unwrapped;
       if (flavor != TAB_DROP_TYPE) {
         
         unwrapped = PlacesUtils.unwrapNodes(data, flavor)[0];
       }
       else if (data instanceof XULElement && data.localName == "tab" &&
                data.ownerDocument.defaultView instanceof ChromeWindow) {
-        var uri = data.linkedBrowser.currentURI;
-        var spec = uri ? uri.spec : "about:blank";
-        var title = data.label;
+        let uri = data.linkedBrowser.currentURI;
+        let spec = uri ? uri.spec : "about:blank";
+        let title = data.label;
         unwrapped = { uri: spec,
                       title: data.label,
                       type: PlacesUtils.TYPE_X_MOZ_URL};
@@ -1543,12 +1533,12 @@ var PlacesControllerDragHelper = {
       else
         throw("bogus data was passed as a tab")
 
-      var index = insertionPoint.index;
+      let index = insertionPoint.index;
 
       
       
       
-      var dragginUp = insertionPoint.itemId == unwrapped.parent &&
+      let dragginUp = insertionPoint.itemId == unwrapped.parent &&
                       index < PlacesUtils.bookmarks.getItemIndex(unwrapped.id);
       if (index != -1 && dragginUp)
         index+= movedCount++;
@@ -1556,8 +1546,8 @@ var PlacesControllerDragHelper = {
       
       if (insertionPoint.isTag &&
           insertionPoint.orientation == Ci.nsITreeView.DROP_ON) {
-        var uri = PlacesUtils._uri(unwrapped.uri);
-        var tagItemId = insertionPoint.itemId;
+        let uri = PlacesUtils._uri(unwrapped.uri);
+        let tagItemId = insertionPoint.itemId;
         transactions.push(PlacesUIUtils.ptm.tagURI(uri,[tagItemId]));
       }
       else {
@@ -1567,7 +1557,7 @@ var PlacesControllerDragHelper = {
       }
     }
 
-    var txn = PlacesUIUtils.ptm.aggregateTransactions("DropItems", transactions);
+    let txn = PlacesUIUtils.ptm.aggregateTransactions("DropItems", transactions);
     PlacesUIUtils.ptm.doTransaction(txn);
   },
 
@@ -1597,18 +1587,12 @@ var PlacesControllerDragHelper = {
                             PlacesUtils.TYPE_X_MOZ_URL,
                             TAB_DROP_TYPE,
                             PlacesUtils.TYPE_UNICODE],
-
-  
-
-
-  get flavourSet() {
-    delete this.flavourSet;
-    var flavourSet = new FlavourSet();
-    var acceptedDropFlavours = this.GENERIC_VIEW_DROP_TYPES;
-    acceptedDropFlavours.forEach(flavourSet.appendFlavour, flavourSet);
-    return this.flavourSet = flavourSet;
-  }
 };
+
+
+XPCOMUtils.defineLazyServiceGetter(PlacesControllerDragHelper, "dragService",
+                                   "@mozilla.org/widget/dragservice;1",
+                                   "nsIDragService");
 
 function goUpdatePlacesCommands() {
   

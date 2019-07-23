@@ -994,69 +994,24 @@ var BookmarksEventHandler = {
 
 
 
-
-var BookmarksMenuDropHandler = {
-  
-
-
-
-
-  onDragOver: function BMDH_onDragOver(event, flavor, session) {
-    if (!this.canDrop(event, session))
-      event.dataTransfer.effectAllowed = "none";
-  },
-
-  
-
-
-
-
-  getSupportedFlavours: function BMDH_getSupportedFlavours() {
-    var view = document.getElementById("bookmarksMenuPopup");
-    return view.getSupportedFlavours();
-  },
-
-  
-
-
-
-
-
-
-
-
-  canDrop: function BMDH_canDrop(event, session) {
-    PlacesControllerDragHelper.currentDataTransfer = event.dataTransfer;
-
-    var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1);  
-    return ip && PlacesControllerDragHelper.canDrop(ip);
-  },
-
-  
-
-
-
-
-
-
-
-
-  onDrop: function BMDH_onDrop(event, data, session) {
-    PlacesControllerDragHelper.currentDataTransfer = event.dataTransfer;
-
-  
-    var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1,
+let BookmarksMenuDropHandler = {
+  onDragOver: function BMDH_onDragOver(event) {
+    let ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
+                                PlacesUtils.bookmarks.DEFAULT_INDEX,
                                 Ci.nsITreeView.DROP_ON);
-    PlacesControllerDragHelper.onDrop(ip);
+    if (ip && PlacesControllerDragHelper.canDrop(ip, event.dataTransfer))
+      event.preventDefault();
+
+    event.stopPropagation();
   },
 
-  
-
-
-
-
-  onDragExit: function BMDH_onDragExit(event, session) {
-    PlacesControllerDragHelper.currentDataTransfer = null;
+  onDrop: function BMDH_onDrop(event) {
+    
+    let ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId,
+                                PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                Ci.nsITreeView.DROP_ON);
+    PlacesControllerDragHelper.onDrop(ip, event.dataTransfer);
+    event.stopPropagation();
   }
 };
 
