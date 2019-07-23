@@ -606,12 +606,14 @@ js_CheckForStringIndex(jsid id);
 extern void
 js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id);
 
+#ifdef __cplusplus 
 static JS_INLINE void
 js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
 {
     if (OBJ_IS_DELEGATE(cx, obj))
         js_PurgeScopeChainHelper(cx, obj, id);
 }
+#endif
 
 
 
