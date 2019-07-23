@@ -115,8 +115,18 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
   
+  
+  
+  
+  
+  
+  
   mimeType.AssignLiteral(kUnicodeMime);
-  PRUint32 flags = nsIDocumentEncoder::OutputPreformatted;
+  
+  
+  
+  
+  PRUint32 flags = nsIDocumentEncoder::OutputPreformatted | nsIDocumentEncoder::OutputRaw;
 
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDoc);
   NS_ASSERTION(domDoc, "Need a document");
