@@ -111,6 +111,22 @@ nanojit::LirNameMap::formatGuard(LIns *i, char *out)
             (long)x->line,
             i->record()->profGuardID);
 }
+
+void
+nanojit::LirNameMap::formatGuardXov(LIns *i, char *out)
+{
+    LasmSideExit *x;
+
+    x = (LasmSideExit *)i->record()->exit;
+    sprintf(out,
+            "%s = %s %s, %s -> line=%ld (GuardID=%03d)",
+            formatRef(i),
+            lirNames[i->opcode()],
+            formatRef(i->oprnd1()),
+            formatRef(i->oprnd2()),
+            (long)x->line,
+            i->record()->profGuardID);
+}
 #endif
 
 typedef int32_t (FASTCALL *RetInt)();
@@ -323,6 +339,7 @@ private:
     LIns *assemble_call(const string &);
     LIns *assemble_ret(ReturnType rt);
     LIns *assemble_guard(bool isCond);
+    LIns *assemble_guard_xov();
     void bad(const string &msg);
     void nyi(const string &opname);
     void extract_any_label(string &lab, char lab_delim);
@@ -760,6 +777,18 @@ FragmentAssembler::assemble_guard(bool isCond)
     return mLir->insGuard(mOpcode, ins_cond, guard);
 }
 
+LIns*
+FragmentAssembler::assemble_guard_xov()
+{
+    GuardRecord* guard = createGuardRecord(createSideExit());
+
+    need(2);
+
+    mReturnTypeBits |= RT_GUARD;
+
+    return mLir->insGuardXov(mOpcode, ref(mTokens[0]), ref(mTokens[1]), guard);
+}
+
 void
 FragmentAssembler::endFragment()
 {
@@ -918,7 +947,6 @@ FragmentAssembler::assembleFragment(LirTokenStream &in, bool implicitBegin, cons
           CASESF(LIR_qlo:)
           CASESF(LIR_qhi:)
           CASE64(LIR_q2i:)
-          case LIR_ov:
           CASE64(LIR_i2q:)
           CASE64(LIR_u2q:)
           case LIR_i2f:
@@ -1083,6 +1111,12 @@ FragmentAssembler::assembleFragment(LirTokenStream &in, bool implicitBegin, cons
           case LIR_xt:
           case LIR_xf:
             ins = assemble_guard(true);
+            break;
+
+          case LIR_addxov:
+          case LIR_subxov:
+          case LIR_mulxov:
+            ins = assemble_guard_xov();
             break;
 
           case LIR_icall:
@@ -1270,9 +1304,6 @@ const CallInfo ci_N_IQF = CI(f_N_IQF, argMask(I32, 1, 3) |
                                       argMask(F64, 3, 3) |
                                       retMask(ARGSIZE_NONE));
 #endif
-
-
-
 
 
 
@@ -1937,7 +1968,9 @@ FragmentAssembler::assembleRandomFragment(int nIns)
     delete[] classGenerator;
 
     
-    mReturnTypeBits |= RT_GUARD;
+    mReturnTypeBits |= RT_INT32;
+    mLir->ins1(LIR_ret, mLir->insImm(0));
+
     endFragment();
 }
 
@@ -1950,7 +1983,7 @@ Lirasm::Lirasm(bool verbose) :
     mLirbuf = new (mAlloc) LirBuffer(mAlloc);
 #ifdef DEBUG
     if (mVerbose) {
-        mLogc.lcbits = LC_Assembly | LC_RegAlloc | LC_Activation;
+        mLogc.lcbits = LC_ReadLIR | LC_Assembly | LC_RegAlloc | LC_Activation;
         mLabelMap = new (mAlloc) LabelMap(mAlloc, &mLogc);
         mLirbuf->names = new (mAlloc) LirNameMap(mAlloc, mLabelMap);
     }
@@ -2260,7 +2293,7 @@ main(int argc, char **argv)
           case RT_GUARD:
           {
             LasmSideExit *ls = (LasmSideExit*) i->second.rguard()->exit;
-            cout << "Output is: " << ls->line << endl;
+            cout << "Exited block on line: " << ls->line << endl;
             break;
           }
         }
