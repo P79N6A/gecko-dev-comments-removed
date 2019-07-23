@@ -96,9 +96,19 @@ bool TakeMinidumpForChild(PRUint32 childPid,
 
 #ifdef XP_WIN
 typedef HANDLE ProcessHandle;
+typedef DWORD ThreadId;
 #else
 typedef int ProcessHandle;
+typedef int ThreadId;
 #endif
+
+
+
+
+
+
+
+ThreadId CurrentThreadId();
 
 
 
@@ -108,6 +118,7 @@ typedef int ProcessHandle;
 
 
 bool CreatePairedMinidumps(ProcessHandle childPid,
+                           ThreadId childBlamedThread,
                            nsAString* pairGUID NS_OUTPARAM,
                            nsILocalFile** childDump NS_OUTPARAM,
                            nsILocalFile** parentDump NS_OUTPARAM);
