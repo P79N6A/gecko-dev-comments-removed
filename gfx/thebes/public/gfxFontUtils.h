@@ -317,11 +317,11 @@ public:
     }
     
     static nsresult
-    ReadCMAPTableFormat12(PRUint8 *aBuf, PRInt32 aLength, 
+    ReadCMAPTableFormat12(PRUint8 *aBuf, PRUint32 aLength, 
                           gfxSparseBitSet& aCharacterMap);
     
     static nsresult 
-    ReadCMAPTableFormat4(PRUint8 *aBuf, PRInt32 aLength, 
+    ReadCMAPTableFormat4(PRUint8 *aBuf, PRUint32 aLength, 
                          gfxSparseBitSet& aCharacterMap);
 
     static nsresult
@@ -336,9 +336,15 @@ public:
     
     
     static nsresult
-    MakeEOTHeader(nsIFile *aFontData, nsTArray<PRUint8> *aHeader, PRBool *aIsCFF);
+    MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
+                            nsTArray<PRUint8> *aHeader, PRBool *aIsCFF);
 #endif
 
+    
+    
+    static PRBool
+    ValidateSFNTHeaders(const PRUint8 *aFontData, PRUint32 aFontDataLength);
+    
     static inline bool IsJoiner(PRUint32 ch) {
         return (ch == 0x200C ||
                 ch == 0x200D ||

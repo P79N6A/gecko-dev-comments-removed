@@ -65,20 +65,6 @@ struct gfxFontFaceSrc {
 
 
 
-
-
-
-
-struct gfxDownloadedFontData {
-    nsCOMPtr<nsIFile>      mFontFile;     
-    nsCOMPtr<nsISupports>  mDownloader;   
-
-    
-    PRUint32               mFormatFlags;  
-};
-
-
-
 class gfxFontLoaderContext {
 public:
   gfxFontLoaderContext() { }
@@ -216,7 +202,7 @@ public:
     
     
     PRBool OnLoadComplete(gfxFontEntry *aFontToLoad, 
-                          const gfxDownloadedFontData& aFontData, 
+                          const PRUint8 *aFontData, PRUint32 aLength,
                           nsresult aDownloadStatus);
 
     
