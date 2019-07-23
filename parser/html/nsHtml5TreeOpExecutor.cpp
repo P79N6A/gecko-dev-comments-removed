@@ -104,13 +104,16 @@ nsHtml5TreeOpExecutor::DidBuildModel(PRBool aTerminated)
 {
   NS_PRECONDITION(mStarted, "Bad life cycle.");
 
-  
-  EndDocUpdate();
-  
-  
-  
-  if (!mParser) {
-    return NS_OK;
+  if (!aTerminated) {
+    
+    
+    EndDocUpdate();
+    
+    
+    
+    if (!mParser) {
+      return NS_OK;
+    }
   }
   
   static_cast<nsHtml5Parser*> (mParser.get())->DropStreamParser();
@@ -270,6 +273,7 @@ void
 nsHtml5TreeOpExecutor::Flush()
 {
   if (!mParser) {
+    mOpQueue.Clear(); 
     return;
   }
   if (mFlushState != eNotFlushing) {
