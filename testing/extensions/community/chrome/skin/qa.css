@@ -73,6 +73,21 @@
 }
 
 
+html|li {
+  list-style-type: none !important;
+}
+#qa-tab-litmus html|ul html|li {
+	list-style-type: disc !important;
+}
+#qa-tab-litmus html|ol html|li {
+	list-style-type: decimal !important;
+}
+
+#qa-tab-litmus html|ul, #qa-tab-litmus html|ol {
+	padding-left: 20px;
+}
+
+
 
 
 
@@ -190,18 +205,3 @@ tab:focus > .tab-middle {
   padding-left: 10px;
 }
 
-
-#qa-litmus-testoverview {
-	text-decoration: underline;
-	font-size: x-small;
-}
-.testoverview-previous {
-	background-color: #d8d8d8;
-}
-.testoverview-next {
-	background-color: #eaeaea;
-}
-.testoverview-current {
-	background-color: gray;
-	font-weight: bold;
-}
