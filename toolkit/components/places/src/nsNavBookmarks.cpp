@@ -2558,6 +2558,14 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI *aNewURI)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  rv = AddBookmarkToHash(placeId, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = UpdateBookmarkHashOnRemove(oldPlaceId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   
   
   rv = History()->UpdateFrecency(placeId, PR_TRUE );
