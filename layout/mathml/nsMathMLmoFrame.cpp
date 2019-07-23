@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -653,17 +654,18 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
   nsBoundingMetrics charSize;
   nsBoundingMetrics container = aDesiredStretchSize.mBoundingMetrics;
   PRBool isVertical = PR_FALSE;
+
+  if (((aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL) ||
+       (aStretchDirection == NS_STRETCH_DIRECTION_DEFAULT))  &&
+      (mEmbellishData.direction == NS_STRETCH_DIRECTION_VERTICAL)) {
+    isVertical = PR_TRUE;
+  }
+
+  PRUint32 stretchHint =
+    GetStretchHint(mFlags, mPresentationData, isVertical);
+
   if (useMathMLChar) {
     nsBoundingMetrics initialSize = aDesiredStretchSize.mBoundingMetrics;
-
-    if (((aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL) ||
-         (aStretchDirection == NS_STRETCH_DIRECTION_DEFAULT))  &&
-        (mEmbellishData.direction == NS_STRETCH_DIRECTION_VERTICAL)) {
-      isVertical = PR_TRUE;
-    }
-
-    PRUint32 stretchHint =
-      GetStretchHint(mFlags, mPresentationData, isVertical);
 
     if (stretchHint != NS_STRETCH_NONE) {
 
@@ -791,6 +793,10 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
     if (mMathMLChar.GetStretchDirection() != NS_STRETCH_DIRECTION_UNSUPPORTED ||
         NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
 
+      PRBool largeopOnly =
+        (NS_STRETCH_LARGEOP & stretchHint) != 0 &&
+        (NS_STRETCH_VARIABLE_MASK & stretchHint) == 0;
+
       if (isVertical || NS_MATHML_OPERATOR_IS_CENTERED(mFlags)) {
         
         
@@ -802,11 +808,11 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
           
           
           mBoundingMetrics.descent = height/2 - axisHeight;
-        }
-        else {
+        } else if (!largeopOnly) {
           
-          mBoundingMetrics.descent = container.descent;
-        }
+          mBoundingMetrics.descent = height/2 +
+            (container.ascent + container.descent)/2 - container.ascent;
+        } 
         mBoundingMetrics.ascent = height - mBoundingMetrics.descent;
       }
     }
