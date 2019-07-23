@@ -56,12 +56,12 @@ public:
 
 
     static void DrawMissingGlyph(gfxContext *aContext, const gfxRect& aRect,
-                                 PRUnichar aChar);
+                                 PRUint32 aChar);
     
 
 
 
-    static gfxFloat GetDesiredMinWidth();
+    static gfxFloat GetDesiredMinWidth(PRUint32 aChar);
 };
 
 #endif

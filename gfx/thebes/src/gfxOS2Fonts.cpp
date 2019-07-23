@@ -488,21 +488,6 @@ void gfxOS2FontGroup::InitTextRun(gfxTextRun *aTextRun, const PRUint8 *aUTF8Text
                       aUTF8Length - aUTF8HeaderLength);
 }
 
-static void SetMissingGlyphForUCS4(gfxTextRun *aTextRun, PRUint32 aIndex,
-                                   PRUint32 aCh)
-{
-    if (aCh < 0x10000) {
-        aTextRun->SetMissingGlyph(aIndex, PRUnichar(aCh));
-        return;
-    }
-
-    
-    aTextRun->SetMissingGlyph(aIndex, H_SURROGATE(aCh));
-    if (aIndex + 1 < aTextRun->GetLength()) {
-        aTextRun->SetMissingGlyph(aIndex + 1, L_SURROGATE(aCh));
-    }
-}
-
 
 
 
@@ -587,7 +572,7 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
                                             g.SetSimpleGlyph(advance, gid));
             } else if (gid == 0) {
                 
-                SetMissingGlyphForUCS4(aTextRun, utf16Offset, ch);
+                aTextRun->SetMissingGlyph(utf16Offset, ch);
             } else {
                 gfxTextRun::DetailedGlyph details;
                 details.mIsLastGlyph = PR_TRUE;

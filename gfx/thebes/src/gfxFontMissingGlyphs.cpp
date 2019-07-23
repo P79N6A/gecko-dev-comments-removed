@@ -145,6 +145,9 @@ static const PRUint16 glyphMicroFont[16] = {
 
 
 
+
+
+
 static const int MINIFONT_WIDTH = 3;
 
 static const int MINIFONT_HEIGHT = 5;
@@ -166,15 +169,6 @@ static const int BOX_BORDER_WIDTH = 1;
 
 
 static const gfxFloat BOX_BORDER_OPACITY = 0.5;
-
-
-
-
-static const int MIN_DESIRED_WIDTH =
-  BOX_HORIZONTAL_INSET + BOX_BORDER_WIDTH + HEX_CHAR_GAP +
-  MINIFONT_WIDTH + HEX_CHAR_GAP + MINIFONT_WIDTH +
-  HEX_CHAR_GAP + BOX_BORDER_WIDTH + BOX_HORIZONTAL_INSET;
-
 
 
 
@@ -201,7 +195,7 @@ DrawHexChar(gfxContext *aContext, const gfxPoint& aPt, PRUint32 aDigit)
 
 void
 gfxFontMissingGlyphs::DrawMissingGlyph(gfxContext *aContext, const gfxRect& aRect,
-                                       PRUnichar aChar)
+                                       PRUint32 aChar)
 {
     aContext->Save();
 
@@ -233,29 +227,60 @@ gfxFontMissingGlyphs::DrawMissingGlyph(gfxContext *aContext, const gfxRect& aRec
         aContext->Stroke();
     }
 
-    if (aRect.Width() >= 2*MINIFONT_WIDTH + HEX_CHAR_GAP &&
-        aRect.Height() >= 2*MINIFONT_HEIGHT + HEX_CHAR_GAP) {
-        aContext->SetColor(currentColor);
-        gfxPoint center(aRect.X() + aRect.Width()/2,
-                        aRect.Y() + aRect.Height()/2);
-        gfxFloat halfGap = HEX_CHAR_GAP/2.0;
-        gfxFloat left = -(MINIFONT_WIDTH + halfGap);
-        gfxFloat top = -(MINIFONT_HEIGHT + halfGap);
-        DrawHexChar(aContext,
-                    center + gfxPoint(left, top), (aChar >> 12) & 0xF);
-        DrawHexChar(aContext,
-                    center + gfxPoint(halfGap, top), (aChar >> 8) & 0xF);
-        DrawHexChar(aContext,
-                    center + gfxPoint(left, halfGap), (aChar >> 4) & 0xF);
-        DrawHexChar(aContext,
-                    center + gfxPoint(halfGap, halfGap), aChar & 0xF);
+    gfxPoint center(aRect.X() + aRect.Width()/2,
+                    aRect.Y() + aRect.Height()/2);
+    gfxFloat halfGap = HEX_CHAR_GAP/2.0;
+    gfxFloat top = -(MINIFONT_HEIGHT + halfGap);
+    if (aChar < 0x10000) {
+        if (aRect.Width() >= 2*MINIFONT_WIDTH + HEX_CHAR_GAP &&
+            aRect.Height() >= 2*MINIFONT_HEIGHT + HEX_CHAR_GAP) {
+            
+            aContext->SetColor(currentColor);
+            gfxFloat left = -(MINIFONT_WIDTH + halfGap);
+            DrawHexChar(aContext,
+                        center + gfxPoint(left, top), (aChar >> 12) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(halfGap, top), (aChar >> 8) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(left, halfGap), (aChar >> 4) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(halfGap, halfGap), aChar & 0xF);
+        }
+    } else {
+        if (aRect.Width() >= 3*MINIFONT_WIDTH + 2*HEX_CHAR_GAP &&
+            aRect.Height() >= 2*MINIFONT_HEIGHT + HEX_CHAR_GAP) {
+            
+            aContext->SetColor(currentColor);
+            gfxFloat first = -(MINIFONT_WIDTH * 1.5 + HEX_CHAR_GAP);
+            gfxFloat second = -(MINIFONT_WIDTH / 2.0);
+            gfxFloat third = (MINIFONT_WIDTH / 2.0 + HEX_CHAR_GAP);
+            DrawHexChar(aContext,
+                        center + gfxPoint(first, top), (aChar >> 20) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(second, top), (aChar >> 16) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(third, top), (aChar >> 12) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(first, halfGap), (aChar >> 8) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(second, halfGap), (aChar >> 4) & 0xF);
+            DrawHexChar(aContext,
+                        center + gfxPoint(third, halfGap), aChar & 0xF);
+        }
     }
 
     aContext->Restore();
 }
 
 gfxFloat
-gfxFontMissingGlyphs::GetDesiredMinWidth()
+gfxFontMissingGlyphs::GetDesiredMinWidth(PRUint32 aChar)
 {
-    return MIN_DESIRED_WIDTH;
+
+
+
+
+    return BOX_HORIZONTAL_INSET + BOX_BORDER_WIDTH + HEX_CHAR_GAP +
+        MINIFONT_WIDTH + HEX_CHAR_GAP + MINIFONT_WIDTH +
+         ((aChar < 0x10000) ? 0 : HEX_CHAR_GAP + MINIFONT_WIDTH) +
+        HEX_CHAR_GAP + BOX_BORDER_WIDTH + BOX_HORIZONTAL_INSET;
 }
