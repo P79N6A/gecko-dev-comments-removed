@@ -258,9 +258,22 @@ public:
 
   NS_IMETHOD UnlockImagePixels(PRBool aMaskPixels) = 0;
 
-#ifdef MOZ_CAIRO_GFX
+  
+
+
+
+
+
+
   NS_IMETHOD GetSurface(gfxASurface **aSurface) = 0;
-#endif
+
+  
+
+
+
+
+
+  virtual void SetHasNoAlpha() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIImage, NS_IIMAGE_IID)

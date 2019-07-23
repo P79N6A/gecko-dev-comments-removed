@@ -77,6 +77,9 @@
 #include "prlog.h"
 #include "GIF2.h"
 
+#include "nsIImage.h"
+#include "nsIInterfaceRequestorUtils.h"
+
 #include "nsGIFDecoder2.h"
 #include "nsIInputStream.h"
 #include "nsIComponentManager.h"
@@ -320,6 +323,7 @@ void nsGIFDecoder2::EndGIF()
 void nsGIFDecoder2::BeginImageFrame()
 {
   mImageFrame = nsnull; 
+  mFrameHasNoAlpha = PR_TRUE;
 
   if (!mGIFStruct.images_decoded) {
     
@@ -350,6 +354,11 @@ void nsGIFDecoder2::EndImageFrame()
     
     
     mImageFrame->SetTimeout(mGIFStruct.delay_time);
+
+    if (mFrameHasNoAlpha) {
+      nsCOMPtr<nsIImage> img(do_GetInterface(mImageFrame));
+      img->SetHasNoAlpha();
+    }
   }
   mImageContainer->EndFrameDecode(mGIFStruct.images_decoded, mGIFStruct.delay_time);
 
@@ -442,12 +451,14 @@ void nsGIFDecoder2::HaveDecodedRow(
     } else {
       PRUint8* rowBufIndex = aRowBufPtr;
       PRUint32* rgbRowIndex = (PRUint32*)mRGBLine;
+      PRBool rowHasNoAlpha = PR_TRUE;
 
       const PRInt32 tpixel = 
         mGIFStruct.is_transparent ? mGIFStruct.tpixel : -1;
 
       while (rowBufIndex != mGIFStruct.rowend) {
         if (*rowBufIndex >= cmapsize || *rowBufIndex == tpixel) {
+          rowHasNoAlpha = PR_FALSE;
           *rgbRowIndex++ = 0x00000000;
           ++rowBufIndex;
           continue;
@@ -462,6 +473,8 @@ void nsGIFDecoder2::HaveDecodedRow(
       }
       for (int i=0; i<aDuplicateCount; i++)
         mImageFrame->SetImageData(mRGBLine, bpr, (aRowNumber+i)*bpr);
+      if (!rowHasNoAlpha)
+        mFrameHasNoAlpha = PR_FALSE;
     }
 
     mCurrentRow = aRowNumber + aDuplicateCount - 1;

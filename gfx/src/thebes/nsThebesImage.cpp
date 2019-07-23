@@ -606,3 +606,16 @@ nsThebesImage::ShouldUseImageSurfaces()
 
     return PR_FALSE;
 }
+
+
+
+
+
+
+
+void
+nsThebesImage::SetHasNoAlpha()
+{
+    if (mFormat == gfxASurface::ImageFormatARGB32)
+        mFormat = gfxASurface::ImageFormatRGB24;
+}
