@@ -130,9 +130,9 @@ nsMathMLmfracFrame::TransmitAutomaticData()
   
   
   
-  SetIncrementScriptLevel(0, !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags));
-  
-  
+  PRBool increment = !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
+  SetIncrementScriptLevel(0, increment);
+  SetIncrementScriptLevel(1, increment);
 
   UpdatePresentationDataFromChildAt(0, -1,
     ~NS_MATHML_DISPLAYSTYLE,
