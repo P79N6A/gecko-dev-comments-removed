@@ -166,11 +166,6 @@ protected:
 #endif
 
     
-
-
-    static void NotifyA11yInitOrShutdown();
-
-    
     static nsIStringBundle *gStringBundle;
     static nsIStringBundle *gKeyStringBundle;
     static nsITimer *gDoCommandTimer;

@@ -636,8 +636,7 @@ public:
   virtual void VerifyStyleTree() = 0;
 #endif
 
-  static PRBool gIsAccessibilityActive;
-  static PRBool IsAccessibilityActive() { return gIsAccessibilityActive; }
+  PRBool IsAccessibilityActive() { return mIsAccessibilityActive; }
 
   
 
