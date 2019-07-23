@@ -421,10 +421,10 @@ struct nsStyleBackground {
     PRBool DependsOnFrameSize(nsStyleImageType aType) const {
       if (aType == eStyleImageType_Image) {
         return mWidthType <= ePercentage || mHeightType <= ePercentage;
-      } else if (aType == eStyleImageType_Gradient) {
-        return mWidthType <= eAuto || mHeightType <= eAuto;
       } else {
-        NS_NOTREACHED("unrecognized image type");
+        NS_ABORT_IF_FALSE(aType == eStyleImageType_Gradient,
+                          "unrecognized image type");
+        return mWidthType <= eAuto || mHeightType <= eAuto;
       }
     }
 
@@ -457,8 +457,6 @@ struct nsStyleBackground {
 
     void SetInitialValues();
 
-    
-    
     
     
     
