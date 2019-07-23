@@ -85,14 +85,8 @@ class NS_COM_GLUE nsTArray_base {
 #endif
 
   protected:
-#ifndef NS_BUILD_REFCNT_LOGGING
-    nsTArray_base()
-      : mHdr(&sEmptyHdr) {
-    }
-#else
     nsTArray_base();
     ~nsTArray_base();  
-#endif 
 
     
     
