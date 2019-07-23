@@ -1608,7 +1608,11 @@ NS_IMETHODIMP
 nsAccessible::GetRole(PRUint32 *aRole)
 {
   NS_ENSURE_ARG_POINTER(aRole);
+
   *aRole = nsIAccessibleRole::ROLE_NOTHING;
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
 
   if (mRoleMapEntry) {
     *aRole = mRoleMapEntry->role;
@@ -1652,20 +1656,11 @@ nsAccessible::GetRole(PRUint32 *aRole)
     }
 
     
-    
-    if (mRoleMapEntry != &nsARIAMap::gLandmarkRoleMap) {
-      
-      
-      
-      
-      
+    if (mRoleMapEntry->roleRule == kUseMapRole)
       return NS_OK;
-    }
   }
 
-  return mDOMNode ?
-    GetRoleInternal(aRole) :
-    NS_ERROR_FAILURE;  
+  return GetRoleInternal(aRole);
 }
 
 NS_IMETHODIMP

@@ -73,6 +73,10 @@ enum ELiveAttrRule
 };
 
 
+const PRBool kUseMapRole = PR_TRUE;
+const PRBool kUseNativeRole = PR_FALSE;
+
+
 
 
 
@@ -118,6 +122,9 @@ struct nsRoleMapEntry
   
   
   PRUint32 role;
+  
+  
+  PRBool roleRule;
   
   
   EValueRule valueRule;
