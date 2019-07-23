@@ -2234,6 +2234,29 @@ nsAccessible::GetFinalState(PRUint32 *aState, PRUint32 *aExtraState)
   
   *aState |= GetARIAState();
 
+  if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_PAGETAB) {
+    if (*aState & nsIAccessibleStates::STATE_FOCUSED) {
+      *aState |= nsIAccessibleStates::STATE_SELECTED;
+    } else {
+      
+      
+      nsCOMPtr<nsIAccessible> tabPanel;
+      rv = GetAccessibleRelated(nsIAccessibleRelation::RELATION_LABEL_FOR,
+                                getter_AddRefs(tabPanel));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (tabPanel && Role(tabPanel) == nsIAccessibleRole::ROLE_PROPERTYPAGE) {
+        nsCOMPtr<nsIAccessNode> tabPanelAccessNode(do_QueryInterface(tabPanel));
+        nsCOMPtr<nsIDOMNode> tabPanelNode;
+        tabPanelAccessNode->GetDOMNode(getter_AddRefs(tabPanelNode));
+        NS_ENSURE_STATE(tabPanelNode);
+
+        if (nsAccUtils::IsAncestorOf(tabPanelNode, gLastFocusedNode))
+          *aState |= nsIAccessibleStates::STATE_SELECTED;
+      }
+    }
+  }
+
   
   if (!aExtraState)
     return NS_OK;
