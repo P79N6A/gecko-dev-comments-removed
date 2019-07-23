@@ -668,6 +668,15 @@ struct JSRuntime {
     
     JSDebugHooks        globalDebugHooks;
 
+#ifdef JS_TRACER
+    
+    bool debuggerInhibitsJIT() const {
+        return (globalDebugHooks.interruptHandler ||
+                globalDebugHooks.callHook ||
+                globalDebugHooks.objectHook);
+    }
+#endif
+
     
     JSCList             trapList;
     JSCList             watchPointList;
@@ -1203,7 +1212,7 @@ struct JSContext {
     JSTempValueRooter   *tempValueRooters;
 
     
-    JSDebugHooks        *debugHooks;
+    const JSDebugHooks  *debugHooks;
 
     
     JSSecurityCallbacks *securityCallbacks;
@@ -1222,7 +1231,28 @@ struct JSContext {
 
     InterpState         *interpState;
     VMSideExit          *bailExit;
+
+    
+
+
+
+
+
+
+
+
+
+    bool                 jitEnabled;
 #endif
+
+    
+    void updateJITEnabled() {
+#ifdef JS_TRACER
+        jitEnabled = ((options & JSOPTION_JIT) &&
+                      !runtime->debuggerInhibitsJIT() &&
+                      debugHooks == &runtime->globalDebugHooks);
+#endif
+    }
 
 #ifdef JS_THREADSAFE
     inline void createDeallocatorTask() {
