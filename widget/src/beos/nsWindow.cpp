@@ -2553,8 +2553,7 @@ nsresult nsWindow::OnPaint(BRegion *breg)
 
 	
 #ifdef MOZ_CAIRO_GFX
-	nsRefPtr<gfxContext> ctx =
-		(gfxContext*)rc->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
+	nsRefPtr<gfxContext> ctx = rc->ThebesContext();
 	ctx->Save();
 
 	

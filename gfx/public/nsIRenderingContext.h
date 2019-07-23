@@ -696,6 +696,11 @@ public:
 
 
   NS_IMETHOD RenderEPS(const nsRect& aRect, FILE *aDataFile) = 0;
+
+  
+
+
+  virtual gfxContext *ThebesContext() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRenderingContext, NS_IRENDERING_CONTEXT_IID)
