@@ -64,6 +64,21 @@ enum EActionRule
 };
 
 
+
+
+
+
+
+
+const PRUint8 ATTR_EXPOSEOBJ  = 0x0001;
+
+
+
+
+
+const PRUint8 ATTR_VALTOKEN   = 0x0010;
+
+
 #define kBoolState 0
 
 
@@ -76,6 +91,13 @@ struct nsStateMapEntry
   nsIAtom** attributeName;  
   const char* attributeValue; 
   PRUint32 state;             
+};
+
+
+struct nsAttributeCharacteristics
+{
+  nsIAtom** attributeName;
+  const PRUint8 characteristics;
 };
 
 
@@ -142,6 +164,12 @@ struct nsARIAMap
 
 
   static nsStateMapEntry gWAIUnivStateMap[];
+  
+  
+
+
+  static nsAttributeCharacteristics gWAIUnivAttrMap[];
+  static PRUint32 gWAIUnivAttrMapLength;
 };
 
 #endif

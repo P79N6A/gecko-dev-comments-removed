@@ -134,12 +134,6 @@ public:
 
 
 
-  static PRBool IsARIAPropForObjectAttr(nsIAtom *aAtom);
-
-  
-
-
-
 
 
 
@@ -266,6 +260,15 @@ public:
 
     return state;
   }
+
+  
+
+
+
+
+
+
+  static PRUint8 GetAttributeCharacteristics(nsIAtom* aAtom);
 
   
 
