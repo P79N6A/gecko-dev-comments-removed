@@ -88,6 +88,13 @@ public:
     NS_ASSERTION(mUnit != eStyleUnit_Null, "reading uninitialized value");
     return mUnit;
   }
+
+  
+  
+  PRBool IsNull() const {
+    return mUnit == eStyleUnit_Null;
+  }
+
   nscoord     GetCoordValue(void) const;
   PRInt32     GetIntValue(void) const;
   float       GetPercentValue(void) const;
