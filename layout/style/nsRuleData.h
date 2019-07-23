@@ -51,7 +51,13 @@ class nsPresContext;
 class nsStyleContext;
 
 struct nsRuleData;
-typedef void (*nsPostResolveFunc)(void* aStyleStruct, nsRuleData* aData);
+typedef void (*nsPostResolveFunc)(void* aStyleStruct, nsRuleData* aData,
+                                  nsIStyleRule* aRule);
+
+struct nsPostResolveCallback {
+  nsPostResolveFunc mFunc;
+  nsIStyleRule *mRule;
+};
 
 struct nsRuleData
 {
@@ -63,7 +69,7 @@ struct nsRuleData
   nsStyleContext* mStyleContext;
   
   
-  nsTArray<nsPostResolveFunc> mPostResolveCallbacks;
+  nsTArray<nsPostResolveCallback> mPostResolveCallbacks;
   nsRuleDataFont* mFontData; 
   nsRuleDataDisplay* mDisplayData;
   nsRuleDataMargin* mMarginData;
