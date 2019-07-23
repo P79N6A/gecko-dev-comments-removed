@@ -1686,11 +1686,15 @@ nsXULPopupManager::IsValidMenuItem(nsPresContext* aPresContext,
 nsresult
 nsXULPopupManager::KeyUp(nsIDOMEvent* aKeyEvent)
 {
-  nsMenuChainItem* item = GetTopVisibleMenu();
-  if (item && item->PopupType() == ePopupTypeMenu) {
-    aKeyEvent->StopPropagation();
-    aKeyEvent->PreventDefault();
+  
+  if (!mActiveMenuBar) {
+    nsMenuChainItem* item = GetTopVisibleMenu();
+    if (!item || item->PopupType() != ePopupTypeMenu)
+      return NS_OK;
   }
+
+  aKeyEvent->StopPropagation();
+  aKeyEvent->PreventDefault();
 
   return NS_OK; 
 }
@@ -1699,9 +1703,11 @@ nsresult
 nsXULPopupManager::KeyDown(nsIDOMEvent* aKeyEvent)
 {
   
-  nsMenuChainItem* item = GetTopVisibleMenu();
-  if (!item || item->PopupType() != ePopupTypeMenu)
-    return NS_OK;
+  if (!mActiveMenuBar) {
+    nsMenuChainItem* item = GetTopVisibleMenu();
+    if (!item || item->PopupType() != ePopupTypeMenu)
+      return NS_OK;
+  }
 
   PRInt32 menuAccessKey = -1;
 
@@ -1730,7 +1736,10 @@ nsXULPopupManager::KeyDown(nsIDOMEvent* aKeyEvent)
       if (!(ctrl || alt || shift || meta)) {
         
         
-        Rollup();
+        if (mCurrentMenu)
+          Rollup();
+        else if (mActiveMenuBar)
+          mActiveMenuBar->MenuClosed();
       }
     }
   }
@@ -1775,6 +1784,9 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
     return NS_OK;
   }
 
+  
+  PRBool consume = (mCurrentMenu || mActiveMenuBar);
+
   if (theChar == NS_VK_LEFT ||
       theChar == NS_VK_RIGHT ||
       theChar == NS_VK_UP ||
@@ -1793,8 +1805,13 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
     else if (mActiveMenuBar)
       mActiveMenuBar->MenuClosed();
   }
-  else if (theChar == NS_VK_TAB) {
-    if (mCurrentMenu)
+  else if (theChar == NS_VK_TAB
+#ifndef XP_MACOSX
+           || theChar == NS_VK_F10
+#endif
+  ) {
+    
+    if (item)
       Rollup();
     else if (mActiveMenuBar)
       mActiveMenuBar->MenuClosed();
@@ -1815,19 +1832,11 @@ nsXULPopupManager::KeyPress(nsIDOMEvent* aKeyEvent)
       ShowMenu(content, PR_TRUE, PR_FALSE);
     }
   }
-#ifndef XP_MACOSX
-  else if (theChar == NS_VK_F10) {
-    
-    
-    Rollup();
-  }
-#endif 
   else {
     HandleShortcutNavigation(keyEvent, nsnull);
   }
 
-  if (mCurrentMenu) {
-    
+  if (consume) {
     aKeyEvent->StopPropagation();
     aKeyEvent->PreventDefault();
   }
