@@ -1463,14 +1463,15 @@ GetHyphenTextRun(gfxTextRun* aTextRun, gfxContext* aContext, nsTextFrame* aTextF
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
   PRUint32 flags = gfxFontGroup::TEXT_IS_PERSISTENT;
 
+  
+  
+  
   static const PRUnichar unicodeHyphen = 0x2010;
-  gfxTextRun* textRun =
-    gfxTextRunCache::MakeTextRun(&unicodeHyphen, 1, fontGroup, ctx,
-                                 aTextRun->GetAppUnitsPerDevUnit(), flags);
-  if (textRun && textRun->CountMissingGlyphs() == 0)
-    return textRun;
-
-  gfxTextRunCache::ReleaseTextRun(textRun);
+  gfxFont *font = fontGroup->GetFontAt(0);
+  if (font && font->HasCharacter(unicodeHyphen)) {
+    return gfxTextRunCache::MakeTextRun(&unicodeHyphen, 1, fontGroup, ctx,
+                                        aTextRun->GetAppUnitsPerDevUnit(), flags);
+  }
 
   static const PRUint8 dash = '-';
   return gfxTextRunCache::MakeTextRun(&dash, 1, fontGroup, ctx,
