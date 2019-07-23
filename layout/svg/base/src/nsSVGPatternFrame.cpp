@@ -43,7 +43,6 @@
 #include "nsStyleContext.h"
 #include "nsINameSpaceManager.h"
 #include "nsISVGChildFrame.h"
-#include "nsIDOMSVGRect.h"
 #include "nsSVGMatrix.h"
 #include "nsSVGRect.h"
 #include "nsSVGUtils.h"
@@ -56,11 +55,6 @@
 #include "gfxPlatform.h"
 #include "gfxPattern.h"
 
-#ifdef DEBUG_scooter
-static void printCTM(char *msg, gfxMatrix aCTM);
-static void printCTM(char *msg, nsIDOMSVGMatrix *aCTM);
-static void printRect(char *msg, nsIDOMSVGRect *aRect);
-#endif
 
 
 
@@ -202,10 +196,10 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   
   nsSVGElement *callerContent;
-  nsCOMPtr<nsIDOMSVGRect> callerBBox;
+  gfxRect callerBBox;
   nsCOMPtr<nsIDOMSVGMatrix> callerCTM;
-  if (NS_FAILED(GetCallerGeometry(getter_AddRefs(callerCTM),
-                                  getter_AddRefs(callerBBox),
+  if (NS_FAILED(GetTargetGeometry(getter_AddRefs(callerCTM),
+                                  &callerBBox,
                                   &callerContent, aSource)))
     return NS_ERROR_FAILURE;
 
@@ -217,28 +211,16 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   
   
-  nsCOMPtr<nsIDOMSVGRect> bbox;
-  if (NS_FAILED(GetPatternRect(getter_AddRefs(bbox),
-                               callerBBox, callerCTM,
-                               callerContent)))
-    return NS_ERROR_FAILURE;
+  gfxRect bbox = GetPatternRect(callerBBox, callerCTM, callerContent);
 
   
   
   *patternMatrix = GetPatternMatrix(bbox, callerBBox, callerCTM);
 
-#ifdef DEBUG_scooter
-  printRect("Geometry Rect: ", callerBBox);
-  printRect("Pattern Rect: ", bbox);
-  printCTM("Pattern TM ", *patternMatrix);
-  printCTM("Child TM ", mCTM);
-#endif
-
   
   
-  float patternWidth, patternHeight;
-  bbox->GetWidth(&patternWidth);
-  bbox->GetHeight(&patternHeight);
+  float patternWidth = bbox.Width();
+  float patternHeight = bbox.Height();
 
   PRBool resultOverflows;
   gfxIntSize surfaceSize =
@@ -263,10 +245,6 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
     patternMatrix->Scale(patternWidth / surfaceSize.width,
                          patternHeight / surfaceSize.height);
   }
-
-#ifdef DEBUG_scooter
-  printf("Creating %dX%d surface\n", int(surfaceSize.width), int(surfaceSize.height));
-#endif
 
   nsRefPtr<gfxASurface> tmpSurface =
     gfxPlatform::GetPlatform()->CreateOffscreenSurface(surfaceSize,
@@ -494,11 +472,10 @@ nsSVGPatternFrame::GetPatternWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
 
 
 
-nsresult
-nsSVGPatternFrame::GetPatternRect(nsIDOMSVGRect **patternRect,
-                                  nsIDOMSVGRect *bbox,
-                                  nsIDOMSVGMatrix *callerCTM,
-                                  nsSVGElement *content)
+gfxRect
+nsSVGPatternFrame::GetPatternRect(const gfxRect &aTargetBBox,
+                                  nsIDOMSVGMatrix *aTargetCTM,
+                                  nsSVGElement *aTarget)
 {
   
   PRUint16 type = GetPatternUnits();
@@ -514,19 +491,19 @@ nsSVGPatternFrame::GetPatternRect(nsIDOMSVGRect **patternRect,
   tmpWidth = GetWidth();
 
   if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
-    x = nsSVGUtils::ObjectSpace(bbox, tmpX);
-    y = nsSVGUtils::ObjectSpace(bbox, tmpY);
-    width = nsSVGUtils::ObjectSpace(bbox, tmpWidth);
-    height = nsSVGUtils::ObjectSpace(bbox, tmpHeight);
+    x = nsSVGUtils::ObjectSpace(aTargetBBox, tmpX);
+    y = nsSVGUtils::ObjectSpace(aTargetBBox, tmpY);
+    width = nsSVGUtils::ObjectSpace(aTargetBBox, tmpWidth);
+    height = nsSVGUtils::ObjectSpace(aTargetBBox, tmpHeight);
   } else {
-    float scale = nsSVGUtils::MaxExpansion(callerCTM);
-    x = nsSVGUtils::UserSpace(content, tmpX) * scale;
-    y = nsSVGUtils::UserSpace(content, tmpY) * scale;
-    width = nsSVGUtils::UserSpace(content, tmpWidth) * scale;
-    height = nsSVGUtils::UserSpace(content, tmpHeight) * scale;
+    float scale = nsSVGUtils::MaxExpansion(aTargetCTM);
+    x = nsSVGUtils::UserSpace(aTarget, tmpX) * scale;
+    y = nsSVGUtils::UserSpace(aTarget, tmpY) * scale;
+    width = nsSVGUtils::UserSpace(aTarget, tmpWidth) * scale;
+    height = nsSVGUtils::UserSpace(aTarget, tmpHeight) * scale;
   }
 
-  return NS_NewSVGRect(patternRect, x, y, width, height);
+  return gfxRect(x, y, width, height);
 }
 
 static float
@@ -537,7 +514,7 @@ GetLengthValue(const nsSVGLength2 *aLength)
 
 nsresult
 nsSVGPatternFrame::ConstructCTM(nsIDOMSVGMatrix **aCTM,
-                                nsIDOMSVGRect *callerBBox,
+                                const gfxRect &callerBBox,
                                 nsIDOMSVGMatrix *callerCTM)
 {
   nsCOMPtr<nsIDOMSVGMatrix> tCTM, tempTM;
@@ -547,12 +524,8 @@ nsSVGPatternFrame::ConstructCTM(nsIDOMSVGMatrix **aCTM,
   PRUint16 type = GetPatternContentUnits();
 
   if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
-    
-    float width, height;
-    callerBBox->GetWidth(&width);
-    callerBBox->GetHeight(&height);
-    NS_NewSVGMatrix(getter_AddRefs(tCTM), width, 0.0f, 0.0f,
-                    height, 0.0f, 0.0f);
+    NS_NewSVGMatrix(getter_AddRefs(tCTM), callerBBox.Width(), 0.0f, 0.0f,
+                    callerBBox.Height(), 0.0f, 0.0f);
   } else {
     float scale = nsSVGUtils::MaxExpansion(callerCTM);
     NS_NewSVGMatrix(getter_AddRefs(tCTM), scale, 0, 0, scale, 0, 0);
@@ -582,25 +555,21 @@ nsSVGPatternFrame::ConstructCTM(nsIDOMSVGMatrix **aCTM,
 }
 
 gfxMatrix
-nsSVGPatternFrame::GetPatternMatrix(nsIDOMSVGRect *bbox,
-                                    nsIDOMSVGRect *callerBBox,
+nsSVGPatternFrame::GetPatternMatrix(const gfxRect &bbox,
+                                    const gfxRect &callerBBox,
                                     nsIDOMSVGMatrix *callerCTM)
 {
   
   gfxMatrix patternTransform = GetPatternTransform();
 
   
-  float minx, miny;
-  bbox->GetX(&minx);
-  bbox->GetY(&miny);
+  float minx = bbox.X();
+  float miny = bbox.Y();
 
   PRUint16 type = GetPatternContentUnits();
   if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
-    float x, y;
-    callerBBox->GetX(&x);
-    callerBBox->GetY(&y);
-    minx += x;
-    miny += y;
+    minx += callerBBox.X();
+    miny += callerBBox.Y();
   }
 
   float scale = 1.0f / nsSVGUtils::MaxExpansion(callerCTM);
@@ -611,71 +580,54 @@ nsSVGPatternFrame::GetPatternMatrix(nsIDOMSVGRect *bbox,
 }
 
 nsresult
-nsSVGPatternFrame::GetCallerGeometry(nsIDOMSVGMatrix **aCTM,
-                                     nsIDOMSVGRect **aBBox,
-                                     nsSVGElement **aContent,
-                                     nsSVGGeometryFrame *aSource)
+nsSVGPatternFrame::GetTargetGeometry(nsIDOMSVGMatrix **aCTM,
+                                     gfxRect *aBBox,
+                                     nsSVGElement **aTargetContent,
+                                     nsSVGGeometryFrame *aTarget)
 {
   *aCTM = nsnull;
-  *aBBox = nsnull;
-  *aContent = nsnull;
+  *aTargetContent = nsnull;
 
   
   
   
   
-  nsIAtom *callerType = aSource->GetType();
+  nsIAtom *callerType = aTarget->GetType();
   if (callerType ==  nsGkAtoms::svgGlyphFrame) {
-    *aContent = static_cast<nsSVGElement*>
-                           (aSource->GetContent()->GetParent());
+    *aTargetContent = static_cast<nsSVGElement*>
+                        (aTarget->GetContent()->GetParent());
   } else {
-    *aContent = static_cast<nsSVGElement*>(aSource->GetContent());
+    *aTargetContent = static_cast<nsSVGElement*>(aTarget->GetContent());
   }
-  NS_ASSERTION(aContent,"Caller does not have any content!");
-  if (!aContent)
+  NS_ASSERTION(aTargetContent,"Caller does not have any content!");
+  if (!aTargetContent)
     return NS_ERROR_FAILURE;
 
   if (callerType == nsGkAtoms::svgGlyphFrame) {
-    *aBBox = nsSVGUtils::GetBBox(aSource->GetParent()).get();
+    *aBBox = nsSVGUtils::GetBBox(aTarget->GetParent());
   } else {
-    *aBBox = nsSVGUtils::GetBBox(aSource).get();
+    *aBBox = nsSVGUtils::GetBBox(aTarget);
   }
   
   
   PRUint16 type = GetPatternUnits();
   if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
-    float width, height;
-    (*aBBox)->GetWidth(&width);
-    (*aBBox)->GetHeight(&height);
-    if (width <= 0 || height <= 0) {
+    if (aBBox->Width() <= 0 || aBBox->Height() <= 0) {
       return NS_ERROR_FAILURE;
     }
   }
 
   
-  *aCTM = NS_NewSVGMatrix(aSource->GetCanvasTM()).get();
+  *aCTM = NS_NewSVGMatrix(aTarget->GetCanvasTM()).get();
 
   
   
   {
-    float x, y, width, height;
-    (*aBBox)->GetX(&x);
-    (*aBBox)->GetY(&y);
-    (*aBBox)->GetWidth(&width);
-    (*aBBox)->GetHeight(&height);
     float scale = nsSVGUtils::MaxExpansion(*aCTM);
-#ifdef DEBUG_scooter
-    fprintf(stderr, "pattern scale %f\n", scale);
-    fprintf(stderr, "x,y,width,height: %f %f %f %f\n", x, y, width, height);
-#endif
-    x *= scale;
-    y *= scale;
-    width *= scale;
-    height *= scale;
-    (*aBBox)->SetX(x);
-    (*aBBox)->SetY(y);
-    (*aBBox)->SetWidth(width);
-    (*aBBox)->SetHeight(height);
+    if (scale <= 0) {
+      return NS_ERROR_FAILURE;
+    }
+    aBBox->Scale(scale);
   }
   return NS_OK;
 }
@@ -736,32 +688,3 @@ nsIFrame* NS_NewSVGPatternFrame(nsIPresShell*   aPresShell,
   return new (aPresShell) nsSVGPatternFrame(aContext);
 }
 
-#ifdef DEBUG_scooter
-static void printCTM(char *msg, gfxMatrix aCTM)
-{
-  printf("%s {%f,%f,%f,%f,%f,%f}\n", msg,
-         aCTM.xx, aCTM.yx, aCTM.xy, aCTM.yy, aCTM.x0, aCTM.y0);
-}
-
-static void printCTM(char *msg, nsIDOMSVGMatrix *aCTM)
-{
-  float a,b,c,d,e,f;
-  aCTM->GetA(&a);
-  aCTM->GetB(&b);
-  aCTM->GetC(&c);
-  aCTM->GetD(&d);
-  aCTM->GetE(&e);
-  aCTM->GetF(&f);
-  printf("%s {%f,%f,%f,%f,%f,%f}\n",msg,a,b,c,d,e,f);
-}
-
-static void printRect(char *msg, nsIDOMSVGRect *aRect)
-{
-  float x,y,width,height;
-  aRect->GetX(&x);
-  aRect->GetY(&y);
-  aRect->GetWidth(&width);
-  aRect->GetHeight(&height);
-  printf("%s {%f,%f,%f,%f}\n",msg,x,y,width,height);
-}
-#endif

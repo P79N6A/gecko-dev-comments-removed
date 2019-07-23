@@ -155,20 +155,11 @@ nsSVGFilterInstance::BuildSources()
   mSourceAlpha.mImage.mFilterPrimitiveSubregion = filterRegion;
 
   nsIntRect sourceBoundsInt;
-  if (mTargetBBox) {
-    float x, y, w, h;
-    mTargetBBox->GetX(&x);
-    mTargetBBox->GetY(&y);
-    mTargetBBox->GetWidth(&w);
-    mTargetBBox->GetHeight(&h);
-
-    gfxRect sourceBounds = UserSpaceToFilterSpace(gfxRect(x, y, w, h));
-
-    sourceBounds.RoundOut();
-    
-    if (NS_FAILED(nsSVGUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt)))
-      return NS_ERROR_FAILURE;
-  }
+  gfxRect sourceBounds = UserSpaceToFilterSpace(mTargetBBox);
+  sourceBounds.RoundOut();
+  
+  if (NS_FAILED(nsSVGUtils::GfxRectToIntRect(sourceBounds, &sourceBoundsInt)))
+    return NS_ERROR_FAILURE;
 
   mSourceColorAlpha.mResultBoundingBox = sourceBoundsInt;
   mSourceAlpha.mResultBoundingBox = sourceBoundsInt;
@@ -200,11 +191,12 @@ nsSVGFilterInstance::BuildPrimitives()
   for (i = 0; i < mPrimitives.Length(); ++i) {
     PrimitiveInfo* info = &mPrimitives[i];
     nsSVGFE* filter = info->mFE;
-    nsAutoTArray<nsSVGString*,2> sources;
-    filter->GetSourceImageNames(&sources);
+    nsAutoTArray<nsSVGStringInfo,2> sources;
+    filter->GetSourceImageNames(sources);
  
     for (PRUint32 j=0; j<sources.Length(); ++j) {
-      const nsString& str = sources[j]->GetAnimValue();
+      nsAutoString str;
+      sources[j].mString->GetAnimValue(str, sources[j].mElement);
       PrimitiveInfo* sourceInfo;
 
       if (str.EqualsLiteral("SourceGraphic")) {
@@ -231,8 +223,10 @@ nsSVGFilterInstance::BuildPrimitives()
 
     ComputeFilterPrimitiveSubregion(info);
 
-    ImageAnalysisEntry* entry =
-      imageTable.PutEntry(filter->GetResultImageName()->GetAnimValue());
+    nsAutoString str;
+    filter->GetResultImageName().GetAnimValue(str, filter);
+
+    ImageAnalysisEntry* entry = imageTable.PutEntry(str);
     if (entry) {
       entry->mInfo = info;
     }
@@ -364,7 +358,20 @@ nsSVGFilterInstance::BuildSourceImages()
     if (NS_FAILED(rv))
       return rv;
 
-    tmpState.GetGfxContext()->Multiply(userSpaceToFilterSpace);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    gfxMatrix deviceToFilterSpace =
+      nsSVGUtils::ConvertSVGMatrixToThebes(GetFilterSpaceToDeviceSpaceTransform()).Invert();
+    tmpState.GetGfxContext()->Multiply(deviceToFilterSpace);
     mPaintCallback->Paint(&tmpState, mTargetFrame, &dirty);
 
     gfxContext copyContext(sourceColorAlpha);
@@ -479,8 +486,7 @@ nsSVGFilterInstance::Render(gfxASurface** aOutput)
       if (!input->mImage.mImage) {
         
         
-        input->mImage.mImage =
-          new gfxImageSurface(gfxIntSize(1, 1), gfxASurface::ImageFormatARGB32);
+        input->mImage.mImage = CreateImage();
         if (!input->mImage.mImage)
           return NS_ERROR_OUT_OF_MEMORY;
       }

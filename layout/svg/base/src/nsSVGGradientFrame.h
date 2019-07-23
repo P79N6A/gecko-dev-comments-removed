@@ -103,6 +103,8 @@ private:
   PRUint32 GetStopCount();
   void GetStopInformation(PRInt32 aIndex,
                           float *aOffset, nscolor *aColor, float *aStopOpacity);
+
+  
   gfxMatrix GetGradientTransform(nsSVGGeometryFrame *aSource);
 
 protected:

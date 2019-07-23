@@ -73,7 +73,6 @@ class gfxContext;
 class gfxASurface;
 class gfxPattern;
 class gfxImageSurface;
-struct gfxRect;
 struct gfxMatrix;
 struct gfxSize;
 struct gfxIntSize;
@@ -308,7 +307,7 @@ public:
 
 
 
-  static float ObjectSpace(nsIDOMSVGRect *aRect, const nsSVGLength2 *aLength);
+  static float ObjectSpace(const gfxRect &aRect, const nsSVGLength2 *aLength);
 
   
 
@@ -467,6 +466,13 @@ public:
   MaxExpansion(nsIDOMSVGMatrix *aMatrix);
 
   
+
+
+
+
+
+
+
   static already_AddRefed<nsIDOMSVGMatrix>
   AdjustMatrixForUnits(nsIDOMSVGMatrix *aMatrix,
                        nsSVGEnum *aUnits,
@@ -476,8 +482,7 @@ public:
 
 
 
-  static already_AddRefed<nsIDOMSVGRect>
-  GetBBox(nsIFrame *aFrame);
+  static gfxRect GetBBox(nsIFrame *aFrame);
   
 
 
@@ -488,8 +493,8 @@ public:
 
 
   static gfxRect
-  GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH, nsIDOMSVGRect *aBBox,
-                  nsIFrame *aFrame);
+  GetRelativeRect(PRUint16 aUnits, const nsSVGLength2 *aXYWH,
+                  const gfxRect &aBBox, nsIFrame *aFrame);
 
   
 
