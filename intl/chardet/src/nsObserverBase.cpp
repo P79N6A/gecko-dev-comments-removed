@@ -35,6 +35,8 @@
 
 
 
+
+
 #include "nsIServiceManager.h"
 #include "nsIWebShellServices.h"
 #include "nsObserverBase.h"
@@ -65,16 +67,24 @@ NS_IMETHODIMP nsObserverBase::NotifyDocShell(nsISupports* aDocShell,
    nsCOMPtr<nsIWebShellServices> wss;
    wss = do_QueryInterface(aDocShell,&res);
    if (NS_SUCCEEDED(res)) {
+
+#ifndef DONT_INFORM_DOCSHELL
      
-     if (NS_FAILED(wss->StopDocumentLoad())){
-       
+     if (NS_FAILED( res = wss->SetRendering(PR_FALSE) ))
+       rv = res;
+
+     
+
+     else if (NS_FAILED(res = wss->StopDocumentLoad())){
+             rv = wss->SetRendering(PR_TRUE); 
      }
-     else if (NS_FAILED(wss->ReloadDocument(charset, source))) {
-       
+     else if (NS_FAILED(res = wss->ReloadDocument(charset, source))) {
+             rv = wss->SetRendering(PR_TRUE); 
      }
      else {
        rv = NS_ERROR_HTMLPARSER_STOPPARSING; 
      }
+#endif
    }
 
    

@@ -2034,7 +2034,29 @@ nsXULDocument::StartLayout(void)
         if (! docShell)
             return NS_ERROR_UNEXPECTED;
 
+        
+        
+        
+        
+        
+        
         nsresult rv = NS_OK;
+        nsIViewManager* vm = shell->GetViewManager();
+        if (vm) {
+            nsCOMPtr<nsIContentViewer> contentViewer;
+            rv = docShell->GetContentViewer(getter_AddRefs(contentViewer));
+            if (NS_SUCCEEDED(rv) && (contentViewer != nsnull)) {
+                PRBool enabled;
+                contentViewer->GetEnableRendering(&enabled);
+                if (enabled) {
+                    vm->EnableRefresh(NS_VMREFRESH_IMMEDIATE);
+                }
+            }
+        }
+
+        
+        
+        
         nsRect r = cx->GetVisibleArea();
         rv = shell->InitialReflow(r.width, r.height);
         NS_ENSURE_SUCCESS(rv, rv);

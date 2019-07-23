@@ -149,6 +149,9 @@ public:
 
   NS_IMETHOD  GetDeviceContext(nsIDeviceContext *&aContext);
 
+  NS_IMETHOD  DisableRefresh(void);
+  NS_IMETHOD  EnableRefresh(PRUint32 aUpdateFlags);
+
   virtual nsIViewManager* BeginUpdateViewBatch(void);
   NS_IMETHOD  EndUpdateViewBatch(PRUint32 aUpdateFlags);
 
@@ -185,8 +188,6 @@ private:
                         nsView* aIgnoreWidgetView);
 
   void UpdateViews(nsView *aView, PRUint32 aUpdateFlags);
-
-  void TriggerRefresh(PRUint32 aUpdateFlags);
 
   void Refresh(nsView *aView, nsIRenderingContext *aContext,
                nsIRegion *region, PRUint32 aUpdateFlags);
@@ -275,7 +276,7 @@ public:
 
   nsresult CreateRegion(nsIRegion* *result);
 
-  PRBool IsRefreshEnabled() { return RootViewManager()->mUpdateBatchCnt == 0; }
+  PRBool IsRefreshEnabled() { return RootViewManager()->mRefreshEnabled; }
 
   nsIViewObserver* GetViewObserver() { return mObserver; }
 
@@ -310,6 +311,8 @@ private:
   PRInt32           mUpdateBatchCnt;
   PRUint32          mUpdateBatchFlags;
   PRInt32           mScrollCnt;
+  
+  PRPackedBool      mRefreshEnabled;
   
   PRPackedBool      mPainting;
   PRPackedBool      mRecursiveRefreshPending;

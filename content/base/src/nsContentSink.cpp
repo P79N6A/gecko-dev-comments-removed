@@ -1266,6 +1266,29 @@ nsContentSink::ScrollToRef()
   }
 }
 
+nsresult
+nsContentSink::RefreshIfEnabled(nsIViewManager* vm)
+{
+  if (!vm) {
+    
+    return NS_OK;
+  }
+
+  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIContentViewer> contentViewer;
+  mDocShell->GetContentViewer(getter_AddRefs(contentViewer));
+  if (contentViewer) {
+    PRBool enabled;
+    contentViewer->GetEnableRendering(&enabled);
+    if (enabled) {
+      vm->EnableRefresh(NS_VMREFRESH_IMMEDIATE);
+    }
+  }
+
+  return NS_OK;
+}
+
 void
 nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
 {
@@ -1308,6 +1331,9 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
     if (NS_FAILED(rv)) {
       return;
     }
+
+    
+    RefreshIfEnabled(shell->GetViewManager());
   }
 
   
