@@ -195,14 +195,91 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
     *aDoImport = PR_TRUE;
     rv = CreateTable();
     NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    
-    PRInt32 schemaVersion;
-    rv = mDBConn->GetSchemaVersion(&schemaVersion);
-    NS_ENSURE_SUCCESS(rv, rv);
+    return NS_OK;
+  }
 
-    if (0 == schemaVersion) {
-      NS_WARNING("Could not get downlaod's database schema version!");
+  
+  PRInt32 schemaVersion;
+  rv = mDBConn->GetSchemaVersion(&schemaVersion);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+
+  switch (schemaVersion) {
+  
+  
+  
+  
+  case 1: 
+    {
+      
+      mozStorageTransaction safeTransaction(mDBConn, PR_TRUE);
+
+      
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE TEMPORARY TABLE moz_downloads_backup ("
+          "id INTEGER PRIMARY KEY, "
+          "name TEXT, "
+          "source TEXT, "
+          "target TEXT, "
+          "startTime INTEGER, "
+          "endTime INTEGER, "
+          "state INTEGER"
+        ")"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "INSERT INTO moz_downloads_backup "
+        "SELECT id, name, source, target, startTime, endTime, state "
+        "FROM moz_downloads"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP TABLE moz_downloads"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "CREATE  TABLE moz_downloads ("
+          "id INTEGER PRIMARY KEY, "
+          "name TEXT, "
+          "source TEXT, "
+          "target TEXT, "
+          "startTime INTEGER, "
+          "endTime INTEGER, "
+          "state INTEGER"
+        ")"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "INSERT INTO moz_downloads "
+        "SELECT id, name, source, target, startTime, endTime, state "
+        "FROM moz_downloads_backup"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP TABLE moz_downloads_backup"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      schemaVersion = 2;
+      rv = mDBConn->SetSchemaVersion(schemaVersion);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    
+
+  case DM_SCHEMA_VERSION:
+    break;
+
+  case 0:
+    {
+      NS_WARNING("Could not get download database's schema version!");
 
       
       
@@ -210,115 +287,40 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
       
       rv = mDBConn->SetSchemaVersion(DM_SCHEMA_VERSION);
       NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      
-      
-      schemaVersion = DM_SCHEMA_VERSION + 1;
     }
+    
 
-    if (schemaVersion != DM_SCHEMA_VERSION) {
+  
+  
+  
+  
+  
+  
+  default:
+    {
+      nsCOMPtr<mozIStorageStatement> stmt;
+      rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+        "SELECT id, name, source, target, startTime, endTime, state "
+        "FROM moz_downloads"), getter_AddRefs(stmt));
+      if (NS_SUCCEEDED(rv))
+        break;
+
       
       
+      nsCOMPtr<nsIFile> backup;
+      rv = mDBConn->BackupDB(DM_DB_CORRUPT_FILENAME, nsnull,
+                             getter_AddRefs(backup));
+      NS_ENSURE_SUCCESS(rv, rv);
+
       
+      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+        "DROP TABLE moz_downloads"));
+      NS_ENSURE_SUCCESS(rv, rv);
 
-      if (schemaVersion > DM_SCHEMA_VERSION) {
-        
-        
-        
-        
-        
-        
-
-        nsCOMPtr<mozIStorageStatement> stmt;
-        rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-          "SELECT id, name, source, target, iconURL, startTime, endTime, state "
-          "FROM moz_downloads"), getter_AddRefs(stmt));
-        if (NS_FAILED(rv)) {
-          
-          
-          nsCOMPtr<nsIFile> backup;
-          rv = mDBConn->BackupDB(DM_DB_CORRUPT_FILENAME, nsnull,
-                                 getter_AddRefs(backup));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "DROP TABLE moz_downloads"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          rv = CreateTable();
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-      } else {
-        
-        
-        
-        
-        if (schemaVersion < 2) {
-          
-          
-          
-          mozStorageTransaction safeTransaction(mDBConn, PR_TRUE);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "CREATE TEMPORARY TABLE moz_downloads_backup ("
-              "id INTEGER PRIMARY KEY, "
-              "name TEXT, "
-              "source TEXT, "
-              "target TEXT, "
-              "startTime INTEGER, "
-              "endTime INTEGER, "
-              "state INTEGER"
-            ")"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "INSERT INTO moz_downloads_backup "
-            "SELECT id, name, source, target, startTime, endTime, state "
-            "FROM moz_downloads"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "DROP TABLE moz_downloads"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "CREATE  TABLE moz_downloads ("
-              "id INTEGER PRIMARY KEY, "
-              "name TEXT, "
-              "source TEXT, "
-              "target TEXT, "
-              "startTime INTEGER, "
-              "endTime INTEGER, "
-              "state INTEGER"
-            ")"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "INSERT INTO moz_downloads "
-            "SELECT id, name, source, target, startTime, endTime, state "
-            "FROM moz_downloads_backup"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-            "DROP TABLE moz_downloads_backup"));
-          NS_ENSURE_SUCCESS(rv, rv);
-
-          
-          schemaVersion = 2;
-          rv = mDBConn->SetSchemaVersion(schemaVersion);
-          NS_ENSURE_SUCCESS(rv, rv);
-        } 
-      } 
+      rv = CreateTable();
+      NS_ENSURE_SUCCESS(rv, rv);
     }
+    break;
   }
 
   return NS_OK;
