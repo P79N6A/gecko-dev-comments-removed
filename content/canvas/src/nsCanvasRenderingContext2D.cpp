@@ -374,7 +374,13 @@ protected:
 
 
 
-    PRBool mIsFrameInvalid;
+    PRBool mIsEntireFrameInvalid;
+
+    
+
+
+    PRUint32 mInvalidateCount;
+    static const PRUint32 kCanvasMaxInvalidateCount = 100;
 
     
 
@@ -463,7 +469,10 @@ protected:
 
 
 
-    nsresult DrawPath(Style style);
+
+
+
+    nsresult DrawPath(Style style, gfxRect *dirtyRect = nsnull);
 
     
 
@@ -653,8 +662,8 @@ NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 
 nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
     : mValid(PR_FALSE), mOpaque(PR_FALSE), mCanvasElement(nsnull),
-      mSaveCount(0), mIsFrameInvalid(PR_FALSE), mLastStyle(STYLE_MAX),
-      mStyleStack(20)
+      mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0),
+      mLastStyle(STYLE_MAX), mStyleStack(20)
 {
 }
 
@@ -669,7 +678,7 @@ nsCanvasRenderingContext2D::Destroy()
     mSurface = nsnull;
     mThebes = nsnull;
     mValid = PR_FALSE;
-    mIsFrameInvalid = PR_FALSE;
+    mIsEntireFrameInvalid = PR_FALSE;
 }
 
 nsresult
@@ -823,12 +832,11 @@ nsCanvasRenderingContext2D::Redraw()
     if (!mCanvasElement)
         return NS_OK;
 
-    if (!mIsFrameInvalid) {
-        mIsFrameInvalid = PR_TRUE;
-        return mCanvasElement->InvalidateFrame();
-    }
+    if (mIsEntireFrameInvalid)
+        return NS_OK;
 
-    return NS_OK;
+    mIsEntireFrameInvalid = PR_TRUE;
+    return mCanvasElement->InvalidateFrame();
 }
 
 nsresult
@@ -837,12 +845,13 @@ nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
     if (!mCanvasElement)
         return NS_OK;
 
-    if (!mIsFrameInvalid) {
-        mIsFrameInvalid = PR_TRUE;
-        return mCanvasElement->InvalidateFrameSubrect(r);
-    }
+    if (mIsEntireFrameInvalid)
+        return NS_OK;
 
-    return NS_OK;
+    if (++mInvalidateCount > kCanvasMaxInvalidateCount)
+        return Redraw();
+
+    return mCanvasElement->InvalidateFrameSubrect(r);
 }
 
 NS_IMETHODIMP
@@ -953,7 +962,9 @@ nsCanvasRenderingContext2D::Render(gfxContext *ctx, gfxPattern::GraphicsFilter a
     if (mOpaque)
         ctx->SetOperator(op);
 
-    mIsFrameInvalid = PR_FALSE;
+    mIsEntireFrameInvalid = PR_FALSE;
+    mInvalidateCount = 0;
+
     return rv;
 }
 
@@ -1458,7 +1469,7 @@ nsCanvasRenderingContext2D::ShadowFinalize(gfxAlphaBoxBlur& blur)
 }
 
 nsresult
-nsCanvasRenderingContext2D::DrawPath(Style style)
+nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
 {
     
 
@@ -1525,11 +1536,26 @@ nsCanvasRenderingContext2D::DrawPath(Style style)
     else
         mThebes->Stroke();
 
+    
+    
+    if (dirtyRect && style == STYLE_FILL && !doDrawShadow) {
+        *dirtyRect = mThebes->GetUserPathExtent();
+    }
+
     if (doUseIntermediateSurface) {
         mThebes->PopGroupToSource();
         DirtyAllStyles();
 
         mThebes->Paint(CurrentState().StyleIsColor(style) ? 1.0 : CurrentState().globalAlpha);
+    }
+
+    if (dirtyRect) {
+        if (style != STYLE_FILL || doDrawShadow) {
+            
+            *dirtyRect = mThebes->GetClipExtents();
+        }
+
+        *dirtyRect = mThebes->UserToDevice(*dirtyRect);
     }
 
     return NS_OK;
@@ -1553,7 +1579,8 @@ nsCanvasRenderingContext2D::ClearRect(float x, float y, float w, float h)
     mThebes->Rectangle(gfxRect(x, y, w, h));
     mThebes->Fill();
 
-    return Redraw();
+    gfxRect dirty = mThebes->UserToDevice(mThebes->GetUserPathExtent());
+    return Redraw(dirty);
 }
 
 nsresult
@@ -1567,11 +1594,12 @@ nsCanvasRenderingContext2D::DrawRect(const gfxRect& rect, Style style)
     mThebes->NewPath();
     mThebes->Rectangle(rect);
 
-    nsresult rv = DrawPath(style);
+    gfxRect dirty;
+    nsresult rv = DrawPath(style, &dirty);
     if (NS_FAILED(rv))
         return rv;
 
-    return Redraw();
+    return Redraw(dirty);
 }
 
 NS_IMETHODIMP
@@ -1607,19 +1635,21 @@ nsCanvasRenderingContext2D::ClosePath()
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Fill()
 {
-    nsresult rv = DrawPath(STYLE_FILL);
+    gfxRect dirty;
+    nsresult rv = DrawPath(STYLE_FILL, &dirty);
     if (NS_FAILED(rv))
         return rv;
-    return Redraw();
+    return Redraw(dirty);
 }
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Stroke()
 {
-    nsresult rv = DrawPath(STYLE_STROKE);
+    gfxRect dirty;
+    nsresult rv = DrawPath(STYLE_STROKE, &dirty);
     if (NS_FAILED(rv))
         return rv;
-    return Redraw();
+    return Redraw(dirty);
 }
 
 NS_IMETHODIMP
@@ -2235,8 +2265,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     processor.mThebes = mThebes;
     processor.mOp = aOp;
     processor.mBoundingBox = gfxRect(0, 0, 0, 0);
-    
-    processor.mDoMeasureBoundingBox = doDrawShadow;
+    processor.mDoMeasureBoundingBox = doDrawShadow || !mIsEntireFrameInvalid;
 
     processor.mFontgrp = GetCurrentFontStyle();
     NS_ASSERTION(processor.mFontgrp, "font group is null");
@@ -2331,6 +2360,9 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     }
 
     
+    gfxRect boundingBox = processor.mBoundingBox;
+
+    
     processor.mDoMeasureBoundingBox = PR_FALSE;
 
     if (doDrawShadow) {
@@ -2411,6 +2443,9 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     } else if (doUseIntermediateSurface)
         mThebes->Paint(CurrentState().StyleIsColor(STYLE_FILL) ? 1.0 : CurrentState().globalAlpha);
 
+    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_FILL && !doDrawShadow)
+        return Redraw(mThebes->UserToDevice(boundingBox));
+
     return Redraw();
 }
 
@@ -2476,7 +2511,8 @@ nsCanvasRenderingContext2D::MozDrawText(const nsAString& textToDraw)
                   nsnull,
                   nsnull,
                   nsnull);
-    return NS_OK;
+
+    return Redraw();
 }
 
 NS_IMETHODIMP
@@ -2585,10 +2621,12 @@ nsCanvasRenderingContext2D::MozTextAlongPath(const nsAString& textToDraw, PRBool
         x += 2 * halfAdvance;
     }
 
-    if(stroke)
+    if (stroke) {
         ApplyStyle(STYLE_STROKE);
-    else
+        mThebes->NewPath();
+    } else {
         ApplyStyle(STYLE_FILL);
+    }
 
     for(PRUint32 i = 0; i < strLength; i++)
     {
@@ -2613,9 +2651,12 @@ nsCanvasRenderingContext2D::MozTextAlongPath(const nsAString& textToDraw, PRBool
         mThebes->SetMatrix(matrix);
     }
 
+    if (stroke)
+        mThebes->Stroke();
+
     delete [] cp;
 
-    return NS_OK;
+    return Redraw();
 }
 
 
@@ -2853,6 +2894,7 @@ NS_IMETHODIMP
 nsCanvasRenderingContext2D::DrawImage()
 {
     nsresult rv;
+    gfxRect dirty;
 
     
     
@@ -3063,6 +3105,8 @@ nsCanvasRenderingContext2D::DrawImage()
         } else
             mThebes->Clip(clip);
 
+        dirty = mThebes->UserToDevice(clip);
+
         mThebes->Paint(CurrentState().globalAlpha);
     }
 
@@ -3079,7 +3123,7 @@ nsCanvasRenderingContext2D::DrawImage()
 
 FINISH:
     if (NS_SUCCEEDED(rv))
-        rv = Redraw();
+        rv = Redraw(dirty);
 
     return rv;
 }
@@ -3325,7 +3369,6 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
     
     
     gfxRect damageRect = mThebes->UserToDevice(gfxRect(0, 0, aW, aH));
-    damageRect.RoundOut();
 
     Redraw(damageRect);
 
