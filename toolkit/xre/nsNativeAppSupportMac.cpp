@@ -37,11 +37,7 @@
 
 #include "nsString.h"
 
-#include <Gestalt.h>
-#include <Dialogs.h>
-#include <Resources.h>
-#include <TextUtils.h>
-#include <ControlDefinitions.h>
+#include <Carbon/Carbon.h>
 
 #include "nsCOMPtr.h"
 #include "nsNativeAppSupportBase.h"
@@ -111,21 +107,13 @@ NS_IMETHODIMP nsNativeAppSupportMac::Start(PRBool *_retval)
   Str255 str1;
   Str255 str2;
   SInt16 outItemHit;
-  long   response = 0;
-  OSErr  err = ::Gestalt (gestaltSystemVersion, &response);
-  
-  if ( err || response < 0x850)
-  {
-    ::StopAlert (5000, NULL);
-    *_retval = PR_FALSE;
-    return NS_ERROR_FAILURE;
-  }
-  
-#if TARGET_CARBON
+  long response = 0;
+  OSErr err = ::Gestalt (gestaltSystemVersion, &response);
+
   
   
   
-  if (response >= 0x00001000 && response < 0x00001010)
+  if ((err != noErr) || response < 0x00001030)
   {
     
     Str255 continueButtonLabel;
@@ -152,28 +140,10 @@ NS_IMETHODIMP nsNativeAppSupportMac::Start(PRBool *_retval)
       if (outItemHit == kAlertStdAlertCancelButton)
         return PR_FALSE;
     }
-    else
-      return PR_FALSE;
-  }
-  
-  
-  
-  if (response < 0x00001000)
-  {
-    err = ::Gestalt (gestaltCarbonVersion, &response);
-    if (err || response < 0x00000140)
-    {
-      
-      ::GetIndString(str1, kNSOSVersErrsStrArrayID, eCarbonLibVersTooOldIndex);
-      ::GetIndString(str2, kNSOSVersErrsStrArrayID, eCarbonLibVersTooOldExplanationIndex);
-      if (StrLength(str1) && StrLength(str1))
-      {
-        ::StandardAlert(kAlertStopAlert, str1, str2, nil, &outItemHit);
-      }
+    else {
       return PR_FALSE;
     }
   }
-#endif
 
   *_retval = PR_TRUE;
   return NS_OK;
