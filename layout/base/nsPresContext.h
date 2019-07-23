@@ -60,7 +60,7 @@
 #include "nsPropertyTable.h"
 #include "nsGkAtoms.h"
 #include "nsIDocument.h"
-#include "nsRefPtrHashtable.h"
+#include "nsInterfaceHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsChangeHint.h"
 
@@ -364,9 +364,32 @@ public:
 
 
 
-  NS_HIDDEN_(void) SetImageLoaders(nsIFrame* aTargetFrame,
-                                   nsImageLoader* aImageLoaders);
+  NS_HIDDEN_(imgIRequest*) LoadImage(imgIRequest* aImage,
+                                     nsIFrame* aTargetFrame);
+  
 
+
+
+
+  NS_HIDDEN_(imgIRequest*) LoadBorderImage(imgIRequest* aImage,
+                                           nsIFrame* aTargetFrame);
+
+private:
+  typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsImageLoader> ImageLoaderTable;
+
+  NS_HIDDEN_(imgIRequest*) DoLoadImage(ImageLoaderTable& aTable,
+                                       imgIRequest* aImage,
+                                       nsIFrame* aTargetFrame,
+                                       PRBool aReflowOnLoad);
+
+  NS_HIDDEN_(void) DoStopImageFor(ImageLoaderTable& aTable,
+                                  nsIFrame* aTargetFrame);
+public:
+
+  NS_HIDDEN_(void) StopBackgroundImageFor(nsIFrame* aTargetFrame)
+  { DoStopImageFor(mImageLoaders, aTargetFrame); }
+  NS_HIDDEN_(void) StopBorderImageFor(nsIFrame* aTargetFrame)
+  { DoStopImageFor(mBorderImageLoaders, aTargetFrame); }
   
 
 
@@ -764,8 +787,8 @@ protected:
   nsILinkHandler*       mLinkHandler;   
   nsIAtom*              mLangGroup;     
 
-  nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoader> mImageLoaders;
-
+  ImageLoaderTable      mImageLoaders;
+  ImageLoaderTable      mBorderImageLoaders;
   nsWeakPtr             mContainer;
 
   float                 mTextZoom;      

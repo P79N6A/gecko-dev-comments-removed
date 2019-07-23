@@ -63,49 +63,36 @@
 
 NS_IMPL_ISUPPORTS2(nsImageLoader, imgIDecoderObserver, imgIContainerObserver)
 
-nsImageLoader::nsImageLoader(nsIFrame *aFrame, PRBool aReflowOnLoad, 
-                             nsImageLoader *aNextLoader)
-  : mFrame(aFrame),
-    mReflowOnLoad(aReflowOnLoad),
-    mNextLoader(aNextLoader)
+nsImageLoader::nsImageLoader() :
+  mFrame(nsnull), mPresContext(nsnull)
 {
 }
 
 nsImageLoader::~nsImageLoader()
 {
   mFrame = nsnull;
+  mPresContext = nsnull;
 
   if (mRequest) {
     mRequest->Cancel(NS_ERROR_FAILURE);
   }
 }
 
- already_AddRefed<nsImageLoader>
-nsImageLoader::Create(nsIFrame *aFrame, imgIRequest *aRequest, 
-                      PRBool aReflowOnLoad, nsImageLoader *aNextLoader)
+
+void
+nsImageLoader::Init(nsIFrame *aFrame, nsPresContext *aPresContext,
+                    PRBool aReflowOnLoad)
 {
-  nsRefPtr<nsImageLoader> loader =
-    new nsImageLoader(aFrame, aReflowOnLoad, aNextLoader);
-
-  loader->Load(aRequest);
-
-  return loader.forget();
+  mFrame = aFrame;
+  mPresContext = aPresContext;
+  mReflowOnLoad = aReflowOnLoad;
 }
 
 void
 nsImageLoader::Destroy()
 {
-  
-  nsRefPtr<nsImageLoader> list = mNextLoader;
-  mNextLoader = nsnull;
-  while (list) {
-    nsRefPtr<nsImageLoader> todestroy = list;
-    list = todestroy->mNextLoader;
-    todestroy->mNextLoader = nsnull;
-    todestroy->Destroy();
-  }
-
   mFrame = nsnull;
+  mPresContext = nsnull;
 
   if (mRequest) {
     mRequest->Cancel(NS_ERROR_FAILURE);
@@ -117,13 +104,27 @@ nsImageLoader::Destroy()
 nsresult
 nsImageLoader::Load(imgIRequest *aImage)
 {
-  NS_ASSERTION(!mRequest, "can't reuse image loaders");
-
   if (!mFrame)
     return NS_ERROR_NOT_INITIALIZED;
 
   if (!aImage)
     return NS_ERROR_FAILURE;
+
+  if (mRequest) {
+    nsCOMPtr<nsIURI> oldURI;
+    mRequest->GetURI(getter_AddRefs(oldURI));
+    nsCOMPtr<nsIURI> newURI;
+    aImage->GetURI(getter_AddRefs(newURI));
+    PRBool eq = PR_FALSE;
+    nsresult rv = newURI->Equals(oldURI, &eq);
+    if (NS_SUCCEEDED(rv) && eq) {
+      return NS_OK;
+    }
+
+    
+    mRequest->Cancel(NS_ERROR_FAILURE);
+    mRequest = nsnull;
+  }
 
   
   
@@ -146,7 +147,7 @@ NS_IMETHODIMP nsImageLoader::OnStartContainer(imgIRequest *aRequest,
 
 
 
-    aImage->SetAnimationMode(mFrame->PresContext()->ImageAnimationMode());
+    aImage->SetAnimationMode(mPresContext->ImageAnimationMode());
     
     aImage->StartAnimation();
   }
@@ -210,7 +211,7 @@ void
 nsImageLoader::RedrawDirtyFrame(const nsRect* aDamageRect)
 {
   if (mReflowOnLoad) {
-    nsIPresShell *shell = mFrame->PresContext()->GetPresShell();
+    nsIPresShell *shell = mPresContext->GetPresShell();
 #ifdef DEBUG
     nsresult rv = 
 #endif

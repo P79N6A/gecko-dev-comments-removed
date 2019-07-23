@@ -275,7 +275,7 @@ nsFrameManager::Destroy()
   
   mPresShell->SetIgnoreFrameDestruction(PR_TRUE);
 
-  mIsDestroying = PR_TRUE;  
+  mIsDestroyingFrames = PR_TRUE;  
 
   
   nsFrameManager::ClearPlaceholderFrameMap();
@@ -324,12 +324,12 @@ nsIFrame*
 nsFrameManager::GetPrimaryFrameFor(nsIContent* aContent,
                                    PRInt32 aIndexHint)
 {
-  NS_ASSERTION(!mIsDestroyingFrames,
-               "GetPrimaryFrameFor() called while frames are being destroyed!");
   NS_ENSURE_TRUE(aContent, nsnull);
 
-  if (mIsDestroying) {
-    NS_ERROR("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!");
+  if (mIsDestroyingFrames) {
+#ifdef DEBUG
+    printf("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!\n");
+#endif
     return nsnull;
   }
 
@@ -684,10 +684,6 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
                             nsIAtom*        aListName,
                             nsIFrame*       aOldFrame)
 {
-#ifdef DEBUG  
-  PRBool wasDestroyingFrames = mIsDestroyingFrames;
-  mIsDestroyingFrames = PR_TRUE;
-#endif
   
   
   
@@ -696,11 +692,7 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
   
   aOldFrame->Invalidate(aOldFrame->GetOverflowRect());
 
-  nsresult rv = aParentFrame->RemoveFrame(aListName, aOldFrame);
-#ifdef DEBUG  
-  mIsDestroyingFrames = wasDestroyingFrames;
-#endif
-  return rv;
+  return aParentFrame->RemoveFrame(aListName, aOldFrame);
 }
 
 
@@ -1072,6 +1064,24 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
   return aMinChange;
 }
 
+static PRBool
+ShouldStopImage(imgIRequest *aOldImage, imgIRequest *aNewImage)
+{
+  if (!aOldImage)
+    return PR_FALSE;
+
+  PRBool stopImages = !aNewImage;
+  if (!stopImages) {
+    nsCOMPtr<nsIURI> oldURI, newURI;
+    aOldImage->GetURI(getter_AddRefs(oldURI));
+    aNewImage->GetURI(getter_AddRefs(newURI));
+    PRBool equal;
+    stopImages =
+      NS_FAILED(oldURI->Equals(newURI, &equal)) || !equal;
+  }
+  return stopImages;
+}
+
 nsChangeHint
 nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
                                       nsIFrame          *aFrame,
@@ -1092,7 +1102,11 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
   nsStyleContext* oldContext = aFrame->GetStyleContext();
   nsStyleSet* styleSet = aPresContext->StyleSet();
 #ifdef ACCESSIBILITY
-  PRBool isVisible = aFrame->GetStyleVisibility()->IsVisible();
+  PRBool isAccessibilityActive = mPresShell->IsAccessibilityActive();
+  PRBool isVisible;
+  if (isAccessibilityActive) {
+    isVisible = aFrame->GetStyleVisibility()->IsVisible();
+  }
 #endif
 
   
@@ -1202,6 +1216,33 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
         if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
           
           aFrame->SetStyleContext(newContext);
+        }
+        
+        
+        if (ShouldStopImage(
+              oldContext->GetStyleBackground()->mBackgroundImage,
+              newContext->GetStyleBackground()->mBackgroundImage)) {
+          
+          aPresContext->StopBackgroundImageFor(aFrame);
+        }
+
+        imgIRequest *newBorderImage =
+          newContext->GetStyleBorder()->GetBorderImage();
+        if (ShouldStopImage(oldContext->GetStyleBorder()->GetBorderImage(),
+                            newBorderImage)) {
+          
+          aPresContext->StopBorderImageFor(aFrame);
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        if (newBorderImage) {
+          aPresContext->LoadBorderImage(newBorderImage, aFrame);
         }
       }
       oldContext->Release();
@@ -1404,7 +1445,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
   }
 
 #ifdef ACCESSIBILITY
-  if (mPresShell->IsAccessibilityActive() &&
+  if (isAccessibilityActive &&
       aFrame->GetStyleVisibility()->IsVisible() != isVisible &&
       !aFrame->GetPrevContinuation()) { 
     
@@ -1414,10 +1455,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext    *aPresContext,
     nsCOMPtr<nsIAccessibilityService> accService = 
       do_GetService("@mozilla.org/accessibilityService;1");
     if (accService) {
-      PRUint32 event = isVisible ?
-        PRUint32(nsIAccessibleEvent::EVENT_ASYNCH_HIDE) :
-        PRUint32(nsIAccessibleEvent::EVENT_ASYNCH_SHOW);
-      accService->InvalidateSubtreeFor(mPresShell, aFrame->GetContent(), event);
+      accService->InvalidateSubtreeFor(mPresShell, aFrame->GetContent(),
+                                       isVisible ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE :
+                                                   nsIAccessibleEvent::EVENT_ASYNCH_SHOW);
     }
   }
 #endif
