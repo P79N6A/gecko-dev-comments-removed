@@ -88,11 +88,7 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
   nsSVGPathGeometryFrameBase::DidSetStyleContext(aOldStyleContext);
 
-  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
-  if (outerSVGFrame) {
-    
-    outerSVGFrame->InvalidateCoveredRegion(this);
-  }
+  nsSVGUtils::InvalidateCoveredRegion(this);
 
   
   

@@ -262,6 +262,11 @@ public:
   
 
 
+  static void InvalidateCoveredRegion(nsIFrame *aFrame);
+
+  
+
+
   static void UpdateGraphic(nsISVGChildFrame *aSVGFrame);
 
   

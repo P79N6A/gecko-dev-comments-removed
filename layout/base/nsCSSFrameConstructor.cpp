@@ -1242,7 +1242,10 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
     mFloatedItems(aFloatContainingBlock),
     mFirstLetterStyle(PR_FALSE),
     mFirstLineStyle(PR_FALSE),
-    mFixedPosIsAbsPos(PR_FALSE),
+    
+    mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
+                      aAbsoluteContainingBlock->GetStyleDisplay()->
+                        HasTransform()),
     mFrameState(aHistoryState),
     mPseudoFrames(),
     mAdditionalStateBits(0)
@@ -1266,7 +1269,10 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
     mFloatedItems(aFloatContainingBlock),
     mFirstLetterStyle(PR_FALSE),
     mFirstLineStyle(PR_FALSE),
-    mFixedPosIsAbsPos(PR_FALSE),
+    
+    mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
+                      aAbsoluteContainingBlock->GetStyleDisplay()->
+                        HasTransform()),
     mPseudoFrames(),
     mAdditionalStateBits(0)
 {
@@ -1853,6 +1859,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mIsDestroyingFrameTree(PR_FALSE)
   , mRebuildAllStyleData(PR_FALSE)
   , mHasRootAbsPosContainingBlock(PR_FALSE)
+  , mRebuildAllExtraHint(nsChangeHint(0))
 {
   if (!gGotXBLFormPrefs) {
     gGotXBLFormPrefs = PR_TRUE;
@@ -13302,6 +13309,8 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
                "Use ReconstructDocElementHierarchy instead.");
 
   mRebuildAllStyleData = PR_FALSE;
+  NS_UpdateHint(aExtraHint, mRebuildAllExtraHint);
+  mRebuildAllExtraHint = nsChangeHint(0);
 
   if (!mPresShell || !mPresShell->GetRootFrame())
     return;
@@ -13340,49 +13349,47 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
 void
 nsCSSFrameConstructor::ProcessPendingRestyles()
 {
-  PRUint32 count = mPendingRestyles.Count();
-  if (!count) {
-    
-    return;
-  }
-  
   NS_PRECONDITION(mDocument, "No document?  Pshaw!\n");
 
-  
-  nsAutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
-  RestyleEnumerateData* restylesToProcess = restyleArr.AppendElements(count);
-  
-  if (!restylesToProcess) {
-    return;
-  }
+  PRUint32 count = mPendingRestyles.Count();
 
-  RestyleEnumerateData* lastRestyle = restylesToProcess;
-  mPendingRestyles.Enumerate(CollectRestyles, &lastRestyle);
-
-  NS_ASSERTION(lastRestyle - restylesToProcess == PRInt32(count),
-               "Enumeration screwed up somehow");
-
+  if (count) {
+    
+    nsAutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
+    RestyleEnumerateData* restylesToProcess = restyleArr.AppendElements(count);
   
-  
-  mPendingRestyles.Clear();
+    if (!restylesToProcess) {
+      return;
+    }
 
-  
-  
-  BeginUpdate();
+    RestyleEnumerateData* lastRestyle = restylesToProcess;
+    mPendingRestyles.Enumerate(CollectRestyles, &lastRestyle);
 
-  for (RestyleEnumerateData* currentRestyle = restylesToProcess;
-       currentRestyle != lastRestyle;
-       ++currentRestyle) {
-    ProcessOneRestyle(currentRestyle->mContent,
-                      currentRestyle->mRestyleHint,
-                      currentRestyle->mChangeHint);
-  }
+    NS_ASSERTION(lastRestyle - restylesToProcess == PRInt32(count),
+                 "Enumeration screwed up somehow");
 
-  EndUpdate();
+    
+    
+    mPendingRestyles.Clear();
+
+    
+    
+    BeginUpdate();
+
+    for (RestyleEnumerateData* currentRestyle = restylesToProcess;
+         currentRestyle != lastRestyle;
+         ++currentRestyle) {
+      ProcessOneRestyle(currentRestyle->mContent,
+                        currentRestyle->mRestyleHint,
+                        currentRestyle->mChangeHint);
+    }
+
+    EndUpdate();
 
 #ifdef DEBUG
-  mPresShell->VerifyStyleTree();
+    mPresShell->VerifyStyleTree();
 #endif
+  }
 
   if (mRebuildAllStyleData) {
     
@@ -13419,7 +13426,13 @@ nsCSSFrameConstructor::PostRestyleEvent(nsIContent* aContent,
   NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
 
   mPendingRestyles.Put(aContent, existingData);
+
+  PostRestyleEventInternal();
+}
     
+void
+nsCSSFrameConstructor::PostRestyleEventInternal()
+{
   if (!mRestyleEvent.IsPending()) {
     nsRefPtr<RestyleEvent> ev = new RestyleEvent(this);
     if (NS_FAILED(NS_DispatchToCurrentThread(ev))) {
@@ -13432,11 +13445,16 @@ nsCSSFrameConstructor::PostRestyleEvent(nsIContent* aContent,
 }
 
 void
-nsCSSFrameConstructor::PostRebuildAllStyleDataEvent()
+nsCSSFrameConstructor::PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint)
 {
+  NS_ASSERTION(!(aExtraHint & nsChangeHint_ReconstructFrame),
+               "Should not reconstruct the root of the frame tree.  "
+               "Use ReconstructDocElementHierarchy instead.");
+
   mRebuildAllStyleData = PR_TRUE;
+  NS_UpdateHint(mRebuildAllExtraHint, aExtraHint);
   
-  mPresShell->ReconstructStyleDataInternal();
+  PostRestyleEventInternal();
 }
 
 NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run()

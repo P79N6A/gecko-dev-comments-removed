@@ -197,10 +197,16 @@ public:
   
   void ProcessPendingRestyles();
   
+  
+  
+  
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   void PostRestyleEvent(nsIContent* aContent, nsReStyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint);
+private:
+  void PostRestyleEventInternal();
+public:
 
   
 
@@ -212,7 +218,7 @@ public:
 
 
 
-  void PostRebuildAllStyleDataEvent();
+  void PostRebuildAllStyleDataEvent(nsChangeHint aExtraHint);
 
   
   nsresult CreateContinuingFrame(nsPresContext* aPresContext,
@@ -1189,6 +1195,7 @@ private:
   PRPackedBool        mRebuildAllStyleData : 1;
   
   PRPackedBool        mHasRootAbsPosContainingBlock : 1;
+  nsChangeHint        mRebuildAllExtraHint;
 
   nsRevocableEventPtr<RestyleEvent> mRestyleEvent;
 
