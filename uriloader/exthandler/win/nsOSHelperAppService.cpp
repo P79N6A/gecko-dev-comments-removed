@@ -329,61 +329,11 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aTypeName,
   if (NS_FAILED(rv))
     return NS_OK;
 
-  nsAutoString handlerFilePath;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  NS_NAMED_LITERAL_STRING(rundllSegment, "rundll32.exe ");
-  if (StringBeginsWith(handlerCommand, rundllSegment)) {
-    PRInt32 lastCommaPos = handlerCommand.RFindChar(',');
-    PRUint32 rundllSegmentLength = rundllSegment.Length();
-    PRUint32 len;
-    if (lastCommaPos != kNotFound)
-      len = lastCommaPos - rundllSegmentLength;
-    else
-      len = handlerCommand.Length() - rundllSegmentLength;
-    handlerFilePath = Substring(handlerCommand, rundllSegmentLength, len);
-  }
-  else
-    handlerFilePath = handlerCommand;
-
-  
-  
-  RemoveParameters(handlerFilePath);
-
-  
-  
-  
-
-  DWORD required = ::ExpandEnvironmentStringsW(handlerFilePath.get(),
-                                               L"", 0);
-  if (!required) 
+  if (!CleanupCmdHandlerPath(handlerCommand))
     return NS_ERROR_FAILURE;
-
-  nsAutoArrayPtr<WCHAR> destination(new WCHAR[required]); 
-  if (!destination)
-    return NS_ERROR_OUT_OF_MEMORY;
-  if (!::ExpandEnvironmentStringsW(handlerFilePath.get(), destination,
-                                   required))
-    return NS_ERROR_FAILURE;
-
-  handlerFilePath = destination;
 
   nsCOMPtr<nsILocalFile> lf;
-  NS_NewLocalFile(handlerFilePath, PR_TRUE, getter_AddRefs(lf));
+  NS_NewLocalFile(handlerCommand, PR_TRUE, getter_AddRefs(lf));
   if (!lf)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -397,6 +347,83 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aTypeName,
   }
 
   return NS_OK;
+}
+
+
+ PRBool nsOSHelperAppService::CleanupCmdHandlerPath(nsAString& aCommandHandler)
+{
+  nsAutoString handlerFilePath;
+  nsAutoString handlerCommand(aCommandHandler);
+
+  
+  
+  
+
+  
+  
+  
+  
+
+
+  
+  PRUint32 bufLength = ::ExpandEnvironmentStringsW(handlerCommand.get(),
+                                                   L"", 0);
+  if (bufLength == 0) 
+    return PR_FALSE;
+
+  nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]);
+  if (!destination)
+    return PR_FALSE;
+  if (!::ExpandEnvironmentStringsW(handlerCommand.get(), destination,
+                                   bufLength))
+    return PR_FALSE;
+
+  handlerCommand = destination;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  NS_NAMED_LITERAL_STRING(rundllSegment, "rundll32.exe ");
+
+  PRInt32 index = handlerCommand.Find(rundllSegment);
+  if (index != kNotFound) {
+    
+    PRInt32 lastCommaPos = handlerCommand.RFindChar(',');
+    PRUint32 rundllSegmentLength = index + rundllSegment.Length();
+    PRUint32 len;
+
+    if (lastCommaPos == kNotFound) {
+      
+
+      
+      len = handlerCommand.Length() - rundllSegmentLength;
+    } else {
+      
+
+      
+
+      len = lastCommaPos - rundllSegmentLength;
+    }
+
+    
+    handlerFilePath = Substring(handlerCommand, rundllSegmentLength, len);
+  } else {
+    handlerFilePath = handlerCommand;
+  }
+
+  
+  
+  RemoveParameters(handlerFilePath);
+
+  aCommandHandler = handlerFilePath;
+  return PR_TRUE;
 }
 
 already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFlatString& aFileExt, const char *aTypeHint)
@@ -430,7 +457,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   }
   else {
     nsAutoString temp;
-    if (NS_FAILED(regKey->ReadStringValue(NS_LITERAL_STRING("Content Type"), 
+    if (NS_FAILED(regKey->ReadStringValue(NS_LITERAL_STRING("Content Type"),
                   temp))) {
       return nsnull; 
     }
@@ -443,14 +470,21 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
     return nsnull; 
 
   NS_ADDREF(mimeInfo);
+
   
   mimeInfo->AppendExtension(NS_ConvertUTF16toUTF8(Substring(fileExtToUse, 1)));
 
   mimeInfo->SetPreferredAction(nsIMIMEInfo::useSystemDefault);
 
   nsAutoString description;
-  PRBool found = NS_SUCCEEDED(regKey->ReadStringValue(EmptyString(), 
+  PRBool found = NS_SUCCEEDED(regKey->ReadStringValue(EmptyString(),
                                                       description));
+
+  
+  if (description.EqualsLiteral("XPSViewer.Document")) {
+    NS_IF_RELEASE(mimeInfo);
+    return nsnull;
+  }
 
   nsAutoString defaultDescription;
   nsCOMPtr<nsIFile> defaultApplication;

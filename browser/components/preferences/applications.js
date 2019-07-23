@@ -1499,12 +1499,42 @@ var gApplicationsPane = {
     
     aEvent.stopPropagation();
 
+    var handlerApp;
+
+#ifdef XP_WIN
+    var params = {};
+    var handlerInfo = this._handledTypes[this._list.selectedItem.type];
+
+    if (handlerInfo.type == TYPE_MAYBE_FEED) {
+      
+      params.mimeInfo = this._mimeSvc.getFromTypeAndExtension(handlerInfo.type, 
+                                                 handlerInfo.primaryExtension);
+    } else {
+      params.mimeInfo = handlerInfo.wrappedHandlerInfo;
+    }
+
+    params.title         = this._prefsBundle.getString("fpTitleChooseApp");
+    params.description   = handlerInfo.description;
+    params.filename      = null;
+    params.handlerApp    = null;
+
+    window.openDialog("chrome://global/content/appPicker.xul", null,
+                      "chrome,modal,centerscreen,titlebar,dialog=yes",
+                      params);
+
+    if (params.handlerApp && 
+        params.handlerApp.executable && 
+        params.handlerApp.executable.isFile()) {
+      handlerApp = params.handlerApp;
+
+      
+      handlerInfo.possibleApplicationHandlers.appendElement(handlerApp, false);
+    }
+#else
     var fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     var winTitle = this._prefsBundle.getString("fpTitleChooseApp");
     fp.init(window, winTitle, Ci.nsIFilePicker.modeOpen);
     fp.appendFilters(Ci.nsIFilePicker.filterApps);
-
-    var handlerApp;
 
     
     
@@ -1519,6 +1549,7 @@ var gApplicationsPane = {
       let handlerInfo = this._handledTypes[this._list.selectedItem.type];
       handlerInfo.possibleApplicationHandlers.appendElement(handlerApp, false);
     }
+#endif
 
     
     

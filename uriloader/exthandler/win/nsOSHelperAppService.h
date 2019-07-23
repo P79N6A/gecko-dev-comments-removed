@@ -71,6 +71,9 @@ public:
 
   static PRBool GetValueString(HKEY hKey, const PRUnichar* pValueName, nsAString& result);
 
+  
+  static PRBool CleanupCmdHandlerPath(nsAString& aCommandHandler);
+
 protected:
   nsresult GetDefaultAppInfo(const nsAString& aTypeName, nsAString& aDefaultDescription, nsIFile** aDefaultApplication);
   
