@@ -102,7 +102,7 @@ protected:
   PRBool SetTextStyle();
 
   
-  void SetQuotes();
+  void SetQuotes(PRBool aNotify);
 };
 
 #endif 
