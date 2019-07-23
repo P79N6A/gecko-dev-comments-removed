@@ -436,7 +436,9 @@ typedef enum {
   NPNVWindowNPObject = 15,
 
   
-  NPNVPluginElementNPObject = 16
+  NPNVPluginElementNPObject = 16,
+
+  NPNVSupportsWindowless = 17
 
 #ifdef XP_MACOSX
   
