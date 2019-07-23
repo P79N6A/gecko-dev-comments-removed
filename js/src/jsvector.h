@@ -381,10 +381,6 @@ class Vector : AllocPolicy
     void shrinkBy(size_t incr);
 
     
-
-
-
-
     bool growBy(size_t incr);
 
     
@@ -573,8 +569,7 @@ Vector<T,N,AP>::growBy(size_t incr)
         size_t freespace = sInlineCapacity - inlineLength();
         if (incr <= freespace) {
             T *newend = inlineEnd() + incr;
-            if (!tl::IsPodType<T>::result)
-                Impl::initialize(inlineEnd(), newend);
+            Impl::initialize(inlineEnd(), newend);
             inlineLength() += incr;
             JS_ASSERT(usingInlineStorage());
             return true;
@@ -594,8 +589,7 @@ Vector<T,N,AP>::growBy(size_t incr)
     
     JS_ASSERT(heapCapacity() - heapLength() >= incr);
     T *newend = heapEnd() + incr;
-    if (!tl::IsPodType<T>::result)
-        Impl::initialize(heapEnd(), newend);
+    Impl::initialize(heapEnd(), newend);
     heapEnd() = newend;
     return true;
 }
