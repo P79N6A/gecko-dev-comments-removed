@@ -175,6 +175,9 @@ JoinInlineAncestors(nsIFrame* aFrame)
                     "prev-in-flow is not prev continuation!");
       next->SetPrevInFlow(frame);
     }
+    
+    if (frame->GetNextSibling())
+      break;
     frame = frame->GetParent();
   }
 }
@@ -502,7 +505,8 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
         if (parent && IsBidiSplittable(parent))
           SplitInlineAncestors(child);
       }
-      else {
+      else if (!frame->GetNextSibling()) {
+        
         
         
         nsIFrame* parent = frame->GetParent();
