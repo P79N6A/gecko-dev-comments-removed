@@ -699,33 +699,6 @@ NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
     }
 }
 
-static uint8 GCTypeToTraceKindMap[GCX_NTYPES] = {
-    JSTRACE_OBJECT,     
-    JSTRACE_STRING,     
-    JSTRACE_DOUBLE,     
-    JSTRACE_FUNCTION,   
-    JSTRACE_NAMESPACE,  
-    JSTRACE_QNAME,      
-    JSTRACE_XML,        
-    (uint8)-1,          
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-    JSTRACE_STRING,     
-};
-
-
-uint8
-nsXPConnect::GetTraceKind(void *thing)
-{
-    uint8 type = *js_GetGCThingFlags(thing) & GCF_TYPEMASK;
-    return GCTypeToTraceKindMap[type];
-}
-
 NS_IMETHODIMP
 nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 {
@@ -734,7 +707,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 
     JSContext *cx = mCycleCollectionContext->GetJSContext();
 
-    uint8 ty = GetTraceKind(p);
+    uint32 traceKind = js_GetGCThingTraceKind(p);
 
     CCNodeType type;
 
@@ -750,7 +723,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         type = JS_IsAboutToBeFinalized(cx, p) ? GCUnmarked : GCMarked;
     }
 
-    if(ty == GCX_OBJECT)
+    if(traceKind == JSTRACE_OBJECT)
     {
         JSObject *obj = static_cast<JSObject*>(p);
         JSClass *clazz = OBJ_GET_CLASS(cx, obj);
@@ -857,8 +830,10 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     cb.DescribeNode(type, 0);
 #endif
 
-    if(ty != GCX_OBJECT && ty != GCX_NAMESPACE && ty != GCX_QNAME &&
-       ty != GCX_XML)
+    if(traceKind != JSTRACE_OBJECT &&
+       traceKind != JSTRACE_NAMESPACE &&
+       traceKind != JSTRACE_QNAME &&
+       traceKind != JSTRACE_XML)
         return NS_OK;
 
 #ifndef DEBUG_CC
@@ -873,9 +848,9 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     TraversalTracer trc(cb);
 
     JS_TRACER_INIT(&trc, cx, NoteJSChild);
-    JS_TraceChildren(&trc, p, GCTypeToTraceKindMap[ty]);
+    JS_TraceChildren(&trc, p, traceKind);
 
-    if(ty != GCX_OBJECT)
+    if(traceKind != JSTRACE_OBJECT)
         return NS_OK;
     
     JSObject *obj = static_cast<JSObject*>(p);
