@@ -1,0 +1,222 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#BrowserPreferences radio[pane] {
+  list-style-image: url("chrome://browser/skin/preferences/Options.png"); 
+}
+
+radio[pane=paneGeneral] {
+	-moz-image-region: rect(0px, 32px,  32px, 0px)
+}
+radio[pane=paneGeneral]:hover, radio[pane=paneGeneral][selected="true"]  {
+	-moz-image-region: rect(32px, 32px,  64px, 0px)
+}
+
+radio[pane=panePrivacy] {
+	-moz-image-region: rect(0px, 64px,  32px, 32px)
+}
+radio[pane=panePrivacy]:hover, radio[pane=panePrivacy][selected="true"]  {
+	-moz-image-region: rect(32px, 64px,  64px, 32px)
+}
+
+radio[pane=paneContent] {
+	-moz-image-region: rect(0px, 96px,  32px, 64px)
+}
+radio[pane=paneContent]:hover, radio[pane=paneContent][selected="true"]  {
+	-moz-image-region: rect(32px, 96px,  64px, 64px)
+}
+
+radio[pane=paneDownloads] {
+	-moz-image-region: rect(0px, 128px, 32px, 96px)
+}
+radio[pane=paneDownloads]:hover, radio[pane=paneDownloads][selected="true"] {
+	-moz-image-region: rect(32px, 128px, 64px, 96px)
+}
+
+radio[pane=paneTabs] {
+	-moz-image-region: rect(0px, 128px, 32px, 96px)
+}
+radio[pane=paneTabs]:hover, radio[pane=paneTabs][selected="true"] {
+	-moz-image-region: rect(32px, 128px, 64px, 96px)
+}
+
+radio[pane=paneAdvanced] {
+	-moz-image-region: rect(0px, 160px, 32px, 128px)
+}
+radio[pane=paneAdvanced]:hover, radio[pane=paneAdvanced][selected="true"] {
+	-moz-image-region: rect(32px, 160px, 64px, 128px)
+}
+
+
+#browserStartupHomepage {
+  padding: 2px 2px 3px 4px;
+}
+
+
+filefield {
+  margin: 2px 4px 2px 4px;
+  -moz-appearance: textfield;
+}
+
+.fileFieldContentBox {
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+  margin: 1px;
+}
+
+filefield[disabled="true"] .fileFieldContentBox {
+  -moz-opacity: 0.5;
+}
+
+filefield[disabled="true"] .fileFieldIcon {
+  -moz-opacity: 0.2;
+}
+
+.fileFieldIcon {
+  width: 16px;
+  height: 16px;
+  margin: 2px 4px 2px 2px;
+}
+
+.fileFieldLabel {
+  -moz-appearance: none;
+  background-color: transparent;
+  border: none;
+  padding: 1px 0px 0px 0px;
+  margin: 0px;
+}
+
+
+.windowDialog,
+.windowDialog prefpane {
+  padding: 0px;
+}
+
+.contentPane {
+  margin: 9px 8px 5px 8px;
+}
+
+.actionButtons {
+  margin: 0px 3px 6px 3px !important;
+}
+
+
+#cookiesChildren::-moz-tree-image(domainCol) {
+  width: 16px;
+  height: 16px;
+  margin: 0px 2px;
+  list-style-image: url("chrome://global/skin/icons/folder-item.png") !important;
+  -moz-image-region: rect(0px, 16px, 16px, 0px);
+}
+
+#cookiesChildren::-moz-tree-image(domainCol, container) {
+  -moz-image-region: rect(0px, 32px, 16px, 16px);
+}
+
+#cookiesChildren::-moz-tree-image(domainCol, container, open) {
+  -moz-image-region: rect(16px, 32px, 32px, 16px);
+}
+
+#cookieInfoBox {
+  border: 1px solid ThreeDShadow;
+  -moz-border-radius: 0px;
+  margin: 4px;
+  padding: 0px;
+}
+
+#cookieInfoBox textbox {
+  background-color: transparent;
+}
+
+#backgroundBox {
+  background-color: #FFFFFF; 
+  opacity: 0.5;
+}
+
+
+#fileExtension {
+  width: 5em; 
+}
+
+#extensionChildren::-moz-tree-image(fileExtension) {
+  margin: 0px 5px 0px 0px;
+}
+
+#typeField {
+  font-weight: bold; 
+}
+
+
+#typeIcon {
+  width: 32px;
+  height: 32px;
+  margin-right: 3px;
+}
+
+#typeField {
+  background-color: transparent;
+  margin: 1px 5px 2px 6px !important;
+}
+
+#extensionField {
+  color: GrayText;
+  font-weight: bold;
+}
+#ChangeActionDialog {  padding: 0px;
+}
+#ChangeActionDialog .dialog-button-box {
+  padding: 8px 10px 10px 8px;}
+#changeActionHeader {
+  border-bottom: 2px groove ThreeDFace;
+  margin: 0px;
+  padding: 10px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;  
+}
+#changeActionContent {
+  padding: 8px 10px 10px 9px;
+}
+#defaultAppIcon {
+  width: 16px;  height: 16px;
+  margin-left: 2px;}
+
+#defaultAppName {
+  margin-left: 6px !important; 
+  font-weight: bold;
+}
