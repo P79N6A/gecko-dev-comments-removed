@@ -254,11 +254,10 @@ typedef struct JSGCStats {
     uint32  maxdepth;   
     uint32  cdepth;     
     uint32  maxcdepth;  
-    uint32  untraced;   
+    uint32  unscanned;  
 
 #ifdef DEBUG
-    uint32  maxuntraced;
-
+    uint32  maxunscanned;       
 #endif
     uint32  maxlevel;   
     uint32  poke;       
@@ -277,9 +276,8 @@ js_DumpGCStats(JSRuntime *rt, FILE *fp);
 
 #endif 
 
-typedef struct JSGCArenaInfo JSGCArenaInfo;
+typedef struct JSGCArena JSGCArena;
 typedef struct JSGCArenaList JSGCArenaList;
-typedef struct JSGCChunkInfo JSGCChunkInfo;
 
 #ifdef JS_GCMETER
 typedef struct JSGCArenaStats JSGCArenaStats;
@@ -300,26 +298,25 @@ struct JSGCArenaStats {
 #endif
 
 struct JSGCArenaList {
-    JSGCArenaInfo   *last;          
-    uint16          lastCount;      
+    JSGCArena   *last;          
+    uint16      lastLimit;      
 
-    uint16          thingSize;      
-
-    JSGCThing       *freeList;      
+    uint16      thingSize;      
+    JSGCThing   *freeList;      
 #ifdef JS_GCMETER
-    JSGCArenaStats  stats;
+    JSGCArenaStats stats;
 #endif
 };
 
 struct JSWeakRoots {
     
-    void            *newborn[GCX_NTYPES];
+    JSGCThing           *newborn[GCX_NTYPES];
 
     
-    jsval           lastAtom;
+    jsval               lastAtom;
 
     
-    jsval           lastInternalResult;
+    jsval               lastInternalResult;
 };
 
 JS_STATIC_ASSERT(JSVAL_NULL == 0);
