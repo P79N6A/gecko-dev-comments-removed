@@ -62,7 +62,7 @@ function test()
 
 
 
-  function y([{x: x, x}]){}
+  function y([{x: x, y}]){}
 
 
 
