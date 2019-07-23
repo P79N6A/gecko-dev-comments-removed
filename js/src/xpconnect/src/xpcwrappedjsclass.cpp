@@ -1022,7 +1022,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                                 const XPTMethodDescriptor* info,
                                 nsXPTCMiniVariant* nativeParams)
 {
-    jsval* stackbase = nsnull;
+    jsval* stackbase;
     jsval* sp = nsnull;
     uint8 i;
     uint8 argc=0;
@@ -1440,8 +1440,26 @@ pre_call_clean_up:
     {
         if(!JSVAL_IS_PRIMITIVE(fval))
         {
-            success = js_Invoke(cx, argc, stackbase, JSINVOKE_INTERNAL);
-            result = *stackbase;
+            
+            
+            JSStackFrame *fp, *oldfp, frame;
+            jsval *oldsp;
+
+            fp = oldfp = cx->fp;
+            if(!fp)
+            {
+                memset(&frame, 0, sizeof frame);
+                cx->fp = fp = &frame;
+            }
+            oldsp = fp->sp;
+            fp->sp = sp;
+
+            success = js_Invoke(cx, argc, JSINVOKE_INTERNAL);
+
+            result = fp->sp[-1];
+            fp->sp = oldsp;
+            if(oldfp != fp)
+                cx->fp = oldfp;
         }
         else
         {
