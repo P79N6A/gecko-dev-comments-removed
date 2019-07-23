@@ -5532,16 +5532,15 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     
+    
     if (AtLineBoundary(aIter) &&
         !styleContext->GetStyleText()->NewlineIsSignificant() &&
         aIter.List()->ParentHasNoXBLChildren() &&
         !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
+        (item.mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) &&
         item.IsWhitespace())
       return NS_OK;
 
-    
-    
-    
     return ConstructTextFrame(item.mFCData, aState, item.mContent,
                               adjParentFrame, styleContext,
                               aFrameItems);
