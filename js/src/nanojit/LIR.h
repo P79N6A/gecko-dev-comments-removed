@@ -565,12 +565,13 @@ namespace nanojit
         
         
         bool isStmt() {
-            return isGuard() || isBranch() ||
-                   (isCall() && !isCse()) ||
-                   isStore() ||
-                   isop(LIR_label) || isop(LIR_live) || isop(LIR_flive) ||
-                   isop(LIR_regfence) ||
-                   isRet();
+            NanoAssert(!isop(LIR_start) && !isop(LIR_skip));
+            
+            
+            if (isCall())
+                return !isCse();
+            else
+                return retTypes[opcode()] == LTy_Void;
         }
 
         inline void* constvalp() const
