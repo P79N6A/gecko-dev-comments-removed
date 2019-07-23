@@ -5453,9 +5453,6 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
   
   nsIFrame* topFrame = nsnull;
 
-  
-  nsIFrame* origParentFrame = aParentFrame;
-
   NS_ASSERTION(aTag != nsnull, "null XUL tag");
   if (aTag == nsnull)
     return NS_OK;
@@ -5750,8 +5747,6 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
       
       
       
-      
-      aParentFrame = newFrame->GetParent();
       primaryFrameSet = PR_TRUE;
       frameHasBeenInitialized = PR_TRUE;
     }
@@ -5771,24 +5766,20 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
         topFrame = newFrame;
 
     
-    nsIFrame* geometricParent;
-#ifdef MOZ_XUL
-    if (isPopup) {
-      NS_ASSERTION(aState.mPopupItems.containingBlock, "How did we get here?");
-      geometricParent = aState.mPopupItems.containingBlock;
-    }
-    else
-#endif
-    {
-      geometricParent = aParentFrame;
-    }
-    
-    
-
-
-    
     if (!frameHasBeenInitialized) {
-
+      
+      nsIFrame* geometricParent;
+#ifdef MOZ_XUL
+      if (isPopup) {
+        NS_ASSERTION(aState.mPopupItems.containingBlock, "How did we get here?");
+        geometricParent = aState.mPopupItems.containingBlock;
+      }
+      else
+#endif
+      { 
+        geometricParent = aParentFrame;
+      }
+    
       rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, newFrame);
 
       if (NS_FAILED(rv)) {
@@ -5796,32 +5787,13 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
         return rv;
       }
       
-      
-
-
-
-
-
-
-
-
-        
-        nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
-
-      
-
-
-
-
-
-
-      
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
 
     
     
     rv = aState.AddChild(topFrame, aFrameItems, aContent, aStyleContext,
-                         origParentFrame, PR_FALSE, PR_FALSE, isPopup);
+                         aParentFrame, PR_FALSE, PR_FALSE, isPopup);
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -5861,14 +5833,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 #endif
 
 
-
   if (topFrame) {
-    
-    
-
-    
-    
-    
     if (!primaryFrameSet)
         aState.mFrameManager->SetPrimaryFrameFor(aContent, topFrame);
   }
