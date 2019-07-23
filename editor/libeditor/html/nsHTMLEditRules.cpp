@@ -1919,17 +1919,10 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
   nsresult res = NS_OK;
   PRBool bPlaintext = mFlags & nsIPlaintextEditor::eEditorPlaintextMask;
   
-  PRBool bCollapsed, join = PR_FALSE;
+  PRBool bCollapsed;
   res = aSelection->GetIsCollapsed(&bCollapsed);
   if (NS_FAILED(res)) return res;
-
   
-  
-  
-  
-  
-  
-  PRBool origCollapsed = bCollapsed;
   nsCOMPtr<nsIDOMNode> startNode, selNode;
   PRInt32 startOffset, selOffset;
   
@@ -2473,8 +2466,6 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
         if (NS_FAILED(res)) return res;
         if (!enumerator) return NS_ERROR_UNEXPECTED;
 
-        join = PR_TRUE;
-
         for (enumerator->First(); NS_OK!=enumerator->IsDone(); enumerator->Next())
         {
           nsCOMPtr<nsISupports> currentItem;
@@ -2501,17 +2492,6 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
             nsIDOMNode* somenode = arrayOfNodes[0];
             res = DeleteNonTableElements(somenode);
             arrayOfNodes.RemoveObjectAt(0);
-            
-            
-            if (join && origCollapsed) {
-              if (mHTMLEditor->IsTextNode(somenode)) {
-                mHTMLEditor->IsVisTextNode(somenode, &join, PR_TRUE);
-              }
-              else {
-                join = nsTextEditUtils::IsBreak(somenode) && 
-                       !mHTMLEditor->IsVisBreak(somenode);
-              }
-            }
           }
         }
         
@@ -2545,6 +2525,14 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
           }
         }
 
+        PRBool join = leftBlockParent == rightBlockParent;
+        if (!join) {
+          nsCOMPtr<nsINode> parent1 = do_QueryInterface(leftParent);
+          nsCOMPtr<nsINode> parent2 = do_QueryInterface(rightParent);
+          PRUint16 pos = nsContentUtils::ComparePosition(parent1, parent2);
+          join = (pos & (nsIDOM3Node::DOCUMENT_POSITION_CONTAINS |
+                         nsIDOM3Node::DOCUMENT_POSITION_CONTAINED_BY)) != 0;
+        }
         if (join) {
           res = JoinBlocks(address_of(leftParent), address_of(rightParent),
                            aCancel);
@@ -2553,15 +2541,7 @@ nsHTMLEditRules::WillDeleteSelection(nsISelection *aSelection,
       }
     }
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  if (join ? aAction == nsIEditor::eNext : aAction == nsIEditor::ePrevious)
+  if (aAction == nsIEditor::eNext)
   {
     res = aSelection->Collapse(endNode,endOffset);
   }
