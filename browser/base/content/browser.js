@@ -48,7 +48,6 @@
 #   Paul O’Shannessy <paul@oshannessy.com>
 #   Nils Maier <maierman@web.de>
 #   Rob Arnold <robarnold@cmu.edu>
-#   Dietrich Ayala <dietrich@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -152,12 +151,6 @@ XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
 #endif
   return null;
 });
-
-#ifdef MOZ_CRASHREPORTER
-XPCOMUtils.defineLazyServiceGetter(this, "gCrashReporter",
-                                   "@mozilla.org/xre/app-info;1",
-                                   "nsICrashReporter");
-#endif
 
 
 
@@ -1471,7 +1464,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
+  if (window.location.href == "chrome:
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1792,14 +1785,14 @@ function openLocation() {
     }
     else {
       
-      win = window.openDialog("chrome://browser/content/", "_blank",
+      win = window.openDialog("chrome:
                               "chrome,all,dialog=no", "about:blank");
       win.addEventListener("load", openLocationCallback, false);
     }
     return;
   }
 #endif
-  openDialog("chrome://browser/content/openLocation.xul", "_blank",
+  openDialog("chrome:
              "chrome,modal,titlebar", window);
 }
 
@@ -1813,7 +1806,7 @@ function BrowserOpenTab()
 {
   if (!gBrowser) {
     
-    window.openDialog("chrome://browser/content/", "_blank",
+    window.openDialog("chrome:
                       "chrome,all,dialog=no", "about:blank");
     return;
   }
@@ -4325,12 +4318,6 @@ var TabsProgressListener = {
   },
 
   onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
-    if (!aRequest.URI)
-      aRequest.QueryInterface(Ci.nsIChannel);
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_START &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
-      gCrashReporter.annotateCrashReport("URL", aRequest.URI.spec);
-    }
   },
 
   onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI) {
