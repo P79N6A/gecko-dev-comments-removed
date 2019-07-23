@@ -2326,6 +2326,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt;
     JSBool keepAtoms;
+    JSGCCallback callback;
     uintN i, type;
     JSTracer trc;
     uint32 thingSize, indexLimit;
@@ -2372,10 +2373,19 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-    if (rt->gcCallback &&
-        !rt->gcCallback(cx, JSGC_BEGIN) &&
-        gckind != GC_LAST_CONTEXT) {
-        return;
+
+
+    callback = rt->gcCallback;
+    if (callback) {
+        JSBool ok;
+
+        if (gckind & GC_LOCK_HELD)
+            JS_UNLOCK_GC(rt);
+        ok = callback(cx, JSGC_BEGIN);
+        if (gckind & GC_LOCK_HELD)
+            JS_LOCK_GC(rt);
+        if (!ok && gckind != GC_LAST_CONTEXT)
+            return;
     }
 
     
@@ -2771,7 +2781,12 @@ restart:
 #endif
 
     
-    if (rt->gcCallback) {
+
+
+
+
+    callback = rt->gcCallback;
+    if (callback) {
         JSWeakRoots savedWeakRoots;
         JSTempValueRooter tvr;
 
@@ -2787,7 +2802,7 @@ restart:
             JS_UNLOCK_GC(rt);
         }
 
-        (void) rt->gcCallback(cx, JSGC_END);
+        (void) callback(cx, JSGC_END);
 
         if (gckind == GC_LAST_DITCH) {
             JS_LOCK_GC(rt);
