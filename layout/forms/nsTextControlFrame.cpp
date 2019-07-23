@@ -1299,38 +1299,6 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
   return NS_OK;
 }
 
-void
-nsTextControlFrame::DelayedEditorInit()
-{
-  nsIDocument* doc = mContent->GetCurrentDoc();
-  if (!doc) {
-    return;
-  }
-  
-  nsWeakFrame weakFrame(this);
-
-  
-  
-  
-  doc->FlushPendingNotifications(Flush_ContentAndNotify);
-  if (!weakFrame.IsAlive()) {
-    return;
-  }
-  
-  
-  
-  nsAutoScriptBlocker scriptBlocker;
-
-  
-  
-  nsCxPusher pusher;
-  pusher.PushNull();
-
-  InitEditor();
-  if (IsFocusedContent(GetContent()))
-    SetFocus(PR_TRUE, PR_FALSE);
-}
-
 PRInt32
 nsTextControlFrame::GetWrapCols()
 {
@@ -1352,9 +1320,11 @@ nsTextControlFrame::GetWrapCols()
 }
 
 nsresult
-nsTextControlFrame::InitEditor()
+nsTextControlFrame::EnsureEditorInitialized()
 {
   
+
+  
   
   
   
@@ -1365,9 +1335,42 @@ nsTextControlFrame::InitEditor()
 
   
   
-
   if (mUseEditor)
     return NS_OK;
+
+  nsIDocument* doc = mContent->GetCurrentDoc();
+  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
+
+  nsWeakFrame weakFrame(this);
+
+  
+  
+  
+  doc->FlushPendingNotifications(Flush_ContentAndNotify);
+  NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_ERROR_FAILURE);
+
+  
+  
+  nsAutoScriptBlocker scriptBlocker;
+
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
+  
+  class EnsureSetFocus {
+  public:
+    explicit EnsureSetFocus(nsTextControlFrame* aFrame)
+      : mFrame(aFrame) {}
+    ~EnsureSetFocus() {
+      if (IsFocusedContent(mFrame->GetContent()))
+        mFrame->SetFocus(PR_TRUE, PR_FALSE);
+    }
+  private:
+    nsTextControlFrame *mFrame;
+  };
+  EnsureSetFocus makeSureSetFocusHappens(this);
 
   
 
@@ -1503,44 +1506,41 @@ nsTextControlFrame::InitEditor()
   
   
   
+  
+  
+  
+
+  
+  
+  
+
+  rv = mEditor->SetFlags(editorFlags |
+                         nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+
+  rv = mEditor->EnableUndo(PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  SetValue(defaultValue);
+
+  rv = mEditor->EnableUndo(PR_TRUE);
+  NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
+
+  
+  rv = mEditor->SetFlags(editorFlags);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!defaultValue.IsEmpty()) {
-    
-    
-    
-
-    rv = mEditor->SetFlags(editorFlags |
-                           nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
-
-    if (NS_FAILED(rv))
-      return rv;
-
-    
-    
-    
-    
-
-    rv = mEditor->EnableUndo(PR_FALSE);
-
-    if (NS_FAILED(rv))
-      return rv;
-
-    SetValue(defaultValue);
-
-    rv = mEditor->EnableUndo(PR_TRUE);
-    NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
-
-    
-    rv = mEditor->SetFlags(editorFlags);
-
     
     
     nsWeakFrame weakFrame(this);
     HidePlaceholder();
     NS_ENSURE_STATE(weakFrame.IsAlive());
-
-    if (NS_FAILED(rv))
-      return rv;
   }
 
   nsCOMPtr<nsITransactionManager> transMgr;
@@ -1571,7 +1571,7 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
 {
   mState |= NS_FRAME_INDEPENDENT_SELECTION;
 
-  nsIPresShell* shell = PresContext()->GetPresShell();
+  nsIPresShell *shell = PresContext()->GetPresShell();
   if (!shell)
     return NS_ERROR_FAILURE;
 
@@ -2424,7 +2424,7 @@ nsTextControlFrame::AttributeChanged(PRInt32         aNameSpaceID,
       if (!(flags & nsIPlaintextEditor::eEditorDisabledMask) &&
           IsFocusedContent(mContent))
         mSelCon->SetCaretEnabled(PR_TRUE);
-    }    
+    }
     mEditor->SetFlags(flags);
   }
   else if (nsGkAtoms::disabled == aAttribute) 
