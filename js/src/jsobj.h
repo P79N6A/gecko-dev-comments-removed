@@ -438,6 +438,13 @@ js_InitEval(JSContext *cx, JSObject *obj);
 extern JSObject *
 js_InitObjectClass(JSContext *cx, JSObject *obj);
 
+extern JSObject *
+js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
+             JSClass *clasp, JSNative constructor, uintN nargs,
+             JSPropertySpec *ps, JSFunctionSpec *fs,
+             JSPropertySpec *static_ps, JSFunctionSpec *static_fs,
+             JSTraceableNative *trcinfo);
+
 
 
 
@@ -484,6 +491,19 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent,
 extern JSObject *
 js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
                            JSObject *parent, uintN objectSize);
+
+
+
+
+
+
+
+
+
+
+
+extern JSObject*
+js_NewNativeObject(JSContext *cx, JSClass *clasp, JSObject *proto, uint32 slot);
 
 
 
