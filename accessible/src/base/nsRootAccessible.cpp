@@ -606,25 +606,6 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     return NS_OK;
   }
 
-  if (eventType.EqualsLiteral("popupshown")) {
-    
-    
-    
-    nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(aTargetNode));
-    if (popup) {
-      PRInt32 event = nsIAccessibleEvent::EVENT_MENUPOPUP_START;
-      nsCOMPtr<nsIContent> content(do_QueryInterface(aTargetNode));
-      if (content->NodeInfo()->Equals(nsAccessibilityAtoms::tooltip, kNameSpaceID_XUL)) {
-        
-        
-        
-        
-        event = nsIAccessibleEvent::EVENT_SHOW;
-      }
-      return FireDelayedToolkitEvent(event, aTargetNode, nsnull);
-    }
-  }
-
   if (eventType.EqualsLiteral("DOMContentLoaded")) {
     
     
@@ -780,6 +761,25 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_ALERT, 
                               accessible, nsnull);
   }
+  if (eventType.EqualsLiteral("popupshown")) {
+    
+    PRUint32 role = Role(accessible);
+    PRInt32 event = 0;
+    if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      event = nsIAccessibleEvent::EVENT_MENUPOPUP_START;
+    }
+    else if (role == nsIAccessibleRole::ROLE_TOOLTIP) {
+      
+      
+      
+      
+      event = nsIAccessibleEvent::EVENT_SHOW;
+    }
+    if (event) {
+      privAcc->FireToolkitEvent(event, accessible, nsnull);
+    }
+  }
+
   else if (eventType.EqualsLiteral("popuphiding")) {
     
     
@@ -802,8 +802,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     FireCurrentFocusEvent();
   }
   else if (eventType.EqualsLiteral("DOMMenuInactive")) {
-    nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(aTargetNode));
-    if (popup) {
+    if (Role(accessible) == nsIAccessibleRole::ROLE_MENUPOPUP) {
       privAcc->FireToolkitEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
                                 accessible, nsnull);
     }
