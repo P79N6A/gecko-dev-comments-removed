@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.6.23"
+#define SQLITE_VERSION        "3.6.23.1"
 #define SQLITE_VERSION_NUMBER 3006023
-#define SQLITE_SOURCE_ID      "2010-03-09 19:31:43 4ae453ea7be69018d8c16eb8dabe05617397dc4d"
+#define SQLITE_SOURCE_ID      "2010-03-26 22:28:06 b078b588d617e07886ad156e9f54ade6d823568e"
 
 
 
