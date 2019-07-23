@@ -224,14 +224,6 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   
   
-  gfxIntSize frameSize = container->GetCurrentSize();
-  if (frameSize.width == 0 || frameSize.height == 0) {
-    
-    return nsnull;
-  }
-
-  
-  
   
   nsPresContext* presContext = PresContext();
   gfxRect r = gfxRect(presContext->AppUnitsToGfxUnits(area.x),
@@ -249,7 +241,7 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   
   gfxMatrix transform;
   transform.Translate(r.pos);
-  transform.Scale(r.Width()/frameSize.width, r.Height()/frameSize.height);
+  transform.Scale(r.Width()/videoSize.width, r.Height()/videoSize.height);
   layer->SetTransform(gfx3DMatrix::From2D(transform));
   nsRefPtr<Layer> result = layer.forget();
   return result.forget();
