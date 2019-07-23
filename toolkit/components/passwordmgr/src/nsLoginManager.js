@@ -360,6 +360,13 @@ LoginManager.prototype = {
                 case "blur":
                     var acInputField = event.target;
                     var acForm = acInputField.form;
+
+                    
+                    
+                    
+                    if (!acInputField.value)
+                        return;
+
                     
                     
                     
@@ -618,9 +625,13 @@ LoginManager.prototype = {
             var logins = this.findLogins({}, origin, actionOrigin, null);
             var matchingLogins = [];
 
+            
+            
+            
             for (i = 0; i < logins.length; i++) {
                 var username = logins[i].username.toLowerCase();
-                if (aSearchString.length <= username.length &&
+                if (username &&
+                    aSearchString.length <= username.length &&
                     aSearchString.toLowerCase() ==
                         username.substr(0, aSearchString.length))
                 {
