@@ -215,6 +215,11 @@ public:
   static nsRect FindFilterInvalidation(nsIFrame *aFrame);
 
   
+
+
+  static void UpdateFilterRegion(nsIFrame *aFrame);
+
+  
   enum ctxDirection { X, Y, XY };
 
   
