@@ -72,7 +72,7 @@ button[type="default"] {
 
 
 button[disabled="true"] {
-  color: #777777 !important;
+  color: GrayText;
 }
 
 
