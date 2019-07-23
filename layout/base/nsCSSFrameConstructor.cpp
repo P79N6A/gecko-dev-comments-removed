@@ -9840,6 +9840,10 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   if (!count)
     return NS_OK;
 
+  
+  
+  BeginUpdate();
+
   nsPropertyTable *propTable = mPresShell->GetPresContext()->PropertyTable();
 
   
@@ -9904,6 +9908,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 #endif
   }
 
+  EndUpdate();
+  
   
   index = count;
   while (0 <= --index) {
