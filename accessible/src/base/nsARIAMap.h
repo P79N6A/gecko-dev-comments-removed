@@ -194,7 +194,7 @@ public:
   
 
 
-  nsStateMapEntry() {}
+  nsStateMapEntry();
 
   
 
@@ -240,33 +240,33 @@ public:
 
 private:
   
-  nsIAtom** attributeName;
+  nsIAtom** mAttributeName;
 
   
-  PRBool isToken;
+  PRBool mIsToken;
 
   
-  PRUint32 permanentState;
+  PRUint32 mPermanentState;
 
   
-  const char* value1;
-  PRUint32 state1;
-  PRUint32 extraState1;
+  const char* mValue1;
+  PRUint32 mState1;
+  PRUint32 mExtraState1;
 
-  const char* value2;
-  PRUint32 state2;
-  PRUint32 extraState2;
+  const char* mValue2;
+  PRUint32 mState2;
+  PRUint32 mExtraState2;
 
-  const char* value3;
-  PRUint32 state3;
-  PRUint32 extraState3;
-
-  
-  PRUint32 defaultState;
-  PRUint32 defaultExtraState;
+  const char* mValue3;
+  PRUint32 mState3;
+  PRUint32 mExtraState3;
 
   
-  PRBool definedIfAbsent;
+  PRUint32 mDefaultState;
+  PRUint32 mDefaultExtraState;
+
+  
+  PRBool mDefinedIfAbsent;
 };
 
 
