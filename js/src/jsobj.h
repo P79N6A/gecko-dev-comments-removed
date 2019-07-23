@@ -654,10 +654,7 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 #ifdef __cplusplus 
 
-
-
-
-extern JSPropCacheEntry *
+extern JSBool
 js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                         JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
                         uintN flags, intN shortid, JSProperty **propp,
@@ -736,10 +733,7 @@ js_GetMethod(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
 extern JS_FRIEND_API(JSBool)
 js_CheckUndeclaredVarAssignment(JSContext *cx);
 
-
-
-
-extern JSPropCacheEntry *
+extern JSBool
 js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, JSBool cacheResult,
                      jsval *vp);
 
