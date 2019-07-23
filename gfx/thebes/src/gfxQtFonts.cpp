@@ -46,6 +46,10 @@
 #include "gfxTypes.h"
 #include "gfxQtFonts.h"
 #include "qdebug.h"
+#include "qrect.h"
+#include <locale.h>
+
+#include <cairo.h>
 
 
 
@@ -68,7 +72,6 @@ gfxQtFontGroup::FontCallback (const nsAString& fontName,
                                  const nsACString& genericName,
                                  void *closure)
 {
-    qDebug(">>>>>>Func:%s::%d, fontname:%s, genName:%s\n", __PRETTY_FUNCTION__, __LINE__, NS_ConvertUTF16toUTF8(fontName).get(), nsCString(genericName).get());
     nsStringArray *sa = static_cast<nsStringArray*>(closure);
 
     
@@ -90,7 +93,6 @@ gfxQtFontGroup::FontCallback (const nsAString& fontName,
 static already_AddRefed<gfxQtFont>
 GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle)
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
     nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aName, aStyle);
     if (!font) {
         font = new gfxQtFont(aName, aStyle);
@@ -103,12 +105,61 @@ GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle)
     return static_cast<gfxQtFont *>(f);
 }
 
+void
+gfxQtFont::RealizeQFont()
+{
+    
+    if (mQFont)
+        return;
+    qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
 
 gfxQtFontGroup::gfxQtFontGroup (const nsAString& families,
                                 const gfxFontStyle *aStyle)
     : gfxFontGroup(families, aStyle)
 {
-    qDebug("Func:%s::%d, fam:%s\n\tNeed to create font metrics, otherwise - CRASH\n\n", __PRETTY_FUNCTION__, __LINE__, NS_ConvertUTF16toUTF8(families).get());
     nsStringArray familyArray;
 
     
@@ -119,7 +170,6 @@ gfxQtFontGroup::gfxQtFontGroup (const nsAString& families,
     
     nsAutoString fcFamilies;
     if (familyArray.Count()) {
-        qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
         int i = 0;
         while (1) {
             fcFamilies.Append(*familyArray[i]);
@@ -146,13 +196,11 @@ gfxQtFontGroup::gfxQtFontGroup (const nsAString& families,
 
 gfxQtFontGroup::~gfxQtFontGroup()
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
 }
 
 gfxFontGroup *
 gfxQtFontGroup::Copy(const gfxFontStyle *aStyle)
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
      return new gfxQtFontGroup(mFamilies, aStyle);
 }
 
@@ -171,23 +219,168 @@ gfxQtFontGroup::CanTakeFastPath(PRUint32 aFlags)
 }
 #endif
 
+#if defined(ENABLE_FAST_PATH_8BIT) || defined(ENABLE_FAST_PATH_ALWAYS)
+#define UTF8_COMPUTE(Char, Mask, Len)					      \
+  if (Char < 128)							      \
+    {									      \
+      Len = 1;								      \
+      Mask = 0x7f;							      \
+    }									      \
+  else if ((Char & 0xe0) == 0xc0)					      \
+    {									      \
+      Len = 2;								      \
+      Mask = 0x1f;							      \
+    }									      \
+  else if ((Char & 0xf0) == 0xe0)					      \
+    {									      \
+      Len = 3;								      \
+      Mask = 0x0f;							      \
+    }									      \
+  else if ((Char & 0xf8) == 0xf0)					      \
+    {									      \
+      Len = 4;								      \
+      Mask = 0x07;							      \
+    }									      \
+  else if ((Char & 0xfc) == 0xf8)					      \
+    {									      \
+      Len = 5;								      \
+      Mask = 0x03;							      \
+    }									      \
+  else if ((Char & 0xfe) == 0xfc)					      \
+    {									      \
+      Len = 6;								      \
+      Mask = 0x01;							      \
+    }									      \
+  else									      \
+    Len = -1;
+
+#define UTF8_GET(Result, Chars, Count, Mask, Len)			      \
+  (Result) = (Chars)[0] & (Mask);					      \
+  for ((Count) = 1; (Count) < (Len); ++(Count))				      \
+    {									      \
+      if (((Chars)[(Count)] & 0xc0) != 0x80)				      \
+	{								      \
+	  (Result) = -1;						      \
+	  break;							      \
+	}								      \
+      (Result) <<= 6;							      \
+      (Result) |= ((Chars)[(Count)] & 0x3f);				      \
+    }
+
+static const char utf8_skip_data[256] = {
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
+};
+
+const char * const g_utf8_skip = utf8_skip_data;
+#define g_utf8_next_char(p) (char *)((p) + g_utf8_skip[*(const unsigned char *)(p)])
+
+int
+g_utf8_get_char (const char *p)
+{
+  int i, mask = 0, len;
+  int result;
+  unsigned char c = (unsigned char) *p;
+
+  UTF8_COMPUTE (c, mask, len);
+  if (len == -1)
+    return (int)-1;
+  UTF8_GET (result, p, i, mask, len);
+  return result;
+}
+
+nsresult
+gfxQtFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
+                                    const char *aUTF8, PRUint32 aUTF8Length)
+{
+    const char *p = aUTF8;
+    gfxQtFont *font = GetFontAt(0);
+
+
+    PRUint32 utf16Offset = 0;
+    gfxTextRun::CompressedGlyph g;
+    const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
+
+    aTextRun->AddGlyphRun(font, 0);
+
+    while (p < aUTF8 + aUTF8Length) {
+        
+        
+        
+        
+        int ch = g_utf8_get_char(p);
+        p = g_utf8_next_char(p);
+
+        if (ch == 0) {
+            
+            
+            aTextRun->SetMissingGlyph(utf16Offset, 0);
+        } else {
+            NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
+            int glyph = 124;
+            
+            if (!glyph)                  
+                return NS_ERROR_FAILURE; 
+
+
+            QRect rect;
+
+            PRInt32 advance = 0;
+            
+            if (advance >= 0 &&
+                gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
+                gfxTextRun::CompressedGlyph::IsSimpleGlyphID(glyph)) {
+                aTextRun->SetSimpleGlyph(utf16Offset,
+                                         g.SetSimpleGlyph(advance, glyph));
+            } else {
+                gfxTextRun::DetailedGlyph details;
+                details.mGlyphID = glyph;
+                NS_ASSERTION(details.mGlyphID == glyph,
+                             "Seriously weird glyph ID detected!");
+                details.mAdvance = advance;
+                details.mXOffset = 0;
+                details.mYOffset = 0;
+                g.SetComplex(aTextRun->IsClusterStart(utf16Offset), PR_TRUE, 1);
+                aTextRun->SetGlyphs(utf16Offset, g, &details);
+            }
+
+            NS_ASSERTION(!IS_SURROGATE(ch), "Surrogates shouldn't appear in UTF8");
+            if (ch >= 0x10000) {
+                
+                ++utf16Offset;
+            }
+        }
+
+        ++utf16Offset;
+    }
+    return NS_OK;
+}
+#endif
+
+
 void
 gfxQtFontGroup::InitTextRun(gfxTextRun *aTextRun, const char *aUTF8Text,
                              PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength,
                              PRBool aTake8BitPath)
 {
-    qDebug(">>>>>>Func:%s::%d, Text:'%s'\n", __PRETTY_FUNCTION__, __LINE__, aUTF8Text);
 #if defined(ENABLE_FAST_PATH_ALWAYS)
-
+    CreateGlyphRunsFast(aTextRun, aUTF8Text + aUTF8HeaderLength, aUTF8Length - aUTF8HeaderLength);
 #else
 #if defined(ENABLE_FAST_PATH_8BIT)
     if (aTake8BitPath && CanTakeFastPath(aTextRun->GetFlags())) {
+        qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d, Text:'%s'\n", __PRETTY_FUNCTION__, __LINE__, aUTF8Text);
 
         if (NS_SUCCEEDED(rv))
             return;
     }
 #endif
-
+      qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d, Text:'%s'\n", __PRETTY_FUNCTION__, __LINE__, aUTF8Text);
 
 #endif
 }
@@ -209,7 +402,6 @@ gfxTextRun *
 gfxQtFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
                                const Parameters *aParams, PRUint32 aFlags)
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
     NS_ASSERTION(aFlags & TEXT_IS_8BIT, "8bit should have been set");
     gfxTextRun *run = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
     if (!run)
@@ -237,7 +429,6 @@ gfxTextRun *
 gfxQtFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
                                const Parameters *aParams, PRUint32 aFlags)
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
     gfxTextRun *run = gfxTextRun::Create(aParams, aString, aLength, this, aFlags);
     if (!run)
         return nsnull;
@@ -274,12 +465,10 @@ gfxQtFont::gfxQtFont(const nsAString &aName,
       mQFont(nsnull), mCairoFont(nsnull),
       mHasMetrics(PR_FALSE), mAdjustedSize(0)
 {
-    qDebug(">>>>>>Func:%s::%d, name:%s\n", __PRETTY_FUNCTION__, __LINE__, NS_ConvertUTF16toUTF8(aName).get());
 }
 
 gfxQtFont::~gfxQtFont()
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
 }
 
 const gfxFont::Metrics&
@@ -288,7 +477,8 @@ gfxQtFont::GetMetrics()
     if (mHasMetrics)
         return mMetrics;
 
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+    qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+
 #if 0
     
     
@@ -309,7 +499,7 @@ gfxQtFont::GetMetrics()
 nsString
 gfxQtFont::GetUniqueName()
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+    qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
     nsString result;
 
 
@@ -326,13 +516,45 @@ gfxQtFont::GetUniqueName()
  void
 gfxQtFont::Shutdown()
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+    qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+}
+
+static cairo_scaled_font_t*
+CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, void *aQFont)
+{
+    
+    
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return nsnull;
 }
 
 PRBool
 gfxQtFont::SetupCairoFont(gfxContext *aContext)
 {
-    qDebug(">>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
     cairo_t *cr = aContext->GetCairo();
     cairo_matrix_t currentCTM;
     cairo_get_matrix(cr, &currentCTM);
@@ -349,7 +571,9 @@ gfxQtFont::SetupCairoFont(gfxContext *aContext)
         }
     }
     if (!mCairoFont) {
-        
+        qDebug("QTFONT NOT_IMPLEMENTED!!!! Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
+        mCairoFont = CreateScaledFont(cr, &currentCTM, GetQFont());
+        return PR_FALSE;
     }
     if (cairo_scaled_font_status(mCairoFont) != CAIRO_STATUS_SUCCESS) {
         
