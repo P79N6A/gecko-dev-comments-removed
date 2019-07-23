@@ -262,7 +262,8 @@ protected:
     NS_IMETHOD EnsureContentViewer();
     
     
-    nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal);
+    nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
+                                           nsIURI* aBaseURI);
     NS_IMETHOD CreateContentViewer(const char * aContentType, 
         nsIRequest * request, nsIStreamListener ** aContentHandler);
     NS_IMETHOD NewContentViewerObj(const char * aContentType, 
