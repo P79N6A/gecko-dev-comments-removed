@@ -559,6 +559,10 @@ gfxPlatform::GetCMSOutputProfile()
         if (!gCMSOutputProfile) {
             gCMSOutputProfile = GetCMSsRGBProfile();
         }
+
+        
+
+        cmsPrecacheProfile(gCMSOutputProfile, CMS_PRECACHE_LI1616_REVERSE);
     }
 
     return gCMSOutputProfile;
@@ -567,8 +571,15 @@ gfxPlatform::GetCMSOutputProfile()
 cmsHPROFILE
 gfxPlatform::GetCMSsRGBProfile()
 {
-    if (!gCMSsRGBProfile)
+    if (!gCMSsRGBProfile) {
+
+        
         gCMSsRGBProfile = cmsCreate_sRGBProfile();
+
+        
+
+        cmsPrecacheProfile(gCMSsRGBProfile, CMS_PRECACHE_LI16W_FORWARD);
+    }
     return gCMSsRGBProfile;
 }
 

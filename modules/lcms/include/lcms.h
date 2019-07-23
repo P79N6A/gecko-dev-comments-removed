@@ -72,6 +72,19 @@
 
 
 
+#ifdef CMS_DEBUG
+#include <stdio.h>
+#define CMSASSERT(x) \
+{   if (!(x)) { \
+        fprintf(stderr, "CMS Assertion Failed: %s:%d\n", __FILE__, __LINE__);\
+        exit(-1); \
+    } \
+}
+#else
+#define CMSASSERT(x)
+#endif
+
+
 
 #define LCMS_VERSION        117
 
@@ -1452,7 +1465,7 @@ typedef struct {
 
 
 
-typedef icInt32Number Fixed32;       
+typedef icInt32Number Fixed32, *LPFixed32;    
 
 #define INT_TO_FIXED(x)         ((x)<<16)
 #define DOUBLE_TO_FIXED(x)      ((Fixed32) ((x)*65536.0+0.5))
@@ -1697,6 +1710,87 @@ LPSAMPLEDCURVE cdecl cmsJoinSampledCurves(LPSAMPLEDCURVE X, LPSAMPLEDCURVE Y, in
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef enum {
+             CMS_PRECACHE_LI1616_REVERSE = 0,   
+             CMS_PRECACHE_LI16W_FORWARD = 1,
+             PRECACHE_TYPE_COUNT
+             } LCMSPRECACHETYPE;
+
+#define IS_LI_REVERSE(Type) ((Type == CMS_PRECACHE_LI1616_REVERSE))
+#define IS_LI_FORWARD(Type) ((Type == CMS_PRECACHE_LI16W_FORWARD))
+
+
+
+typedef struct _lcms_precache_li1616_impl {
+
+               
+               LPWORD Cache[3];
+
+               } LCMSPRECACHELI1616IMPL, FAR* LPLCMSPRECACHELI1616IMPL;
+
+
+typedef struct _lcms_precache_li16w_impl {
+
+               
+               LPFixed32 Cache[3];
+
+               } LCMSPRECACHELI16WIMPL, FAR* LPLCMSPRECACHELI16WIMPL;
+
+
+
+typedef struct _lcms_precache_struct {
+
+               
+               
+               
+               
+               
+               unsigned RefCount;
+
+               
+               LCMSPRECACHETYPE Type;
+
+               
+               
+               union {
+                     LCMSPRECACHELI1616IMPL LI1616_REVERSE;
+                     LCMSPRECACHELI16WIMPL  LI16W_FORWARD;
+                     } Impl;
+
+               } LCMSPRECACHE, FAR* LPLCMSPRECACHE;
+
+#define PRECACHE_ADDREF(p) {++p->RefCount;}
+#define PRECACHE_RELEASE(p) {if (--p->RefCount == 0) cmsPrecacheFree(p);}
+
+
+LCMSAPI LCMSBOOL      LCMSEXPORT cmsPrecacheProfile(cmsHPROFILE hProfile, LCMSPRECACHETYPE Type);
+
+
+void    cdecl cmsPrecacheFree(LPLCMSPRECACHE Cache);
+
+
+
+
 #define MATSHAPER_HASMATRIX        0x0001        // Do-ops flags
 #define MATSHAPER_HASSHAPER        0x0002
 #define MATSHAPER_INPUT            0x0004        // Behaviour
@@ -1712,14 +1806,17 @@ typedef struct {
 
                L16PARAMS p16;       
                LPWORD L[3];
+               LPLCMSPRECACHE L_Precache;
                
                L16PARAMS p2_16;     
                LPWORD L2[3];
+               LPLCMSPRECACHE L2_Precache;
 
                } MATSHAPER, FAR* LPMATSHAPER;
 
 LPMATSHAPER cdecl cmsAllocMatShaper(LPMAT3 matrix, LPGAMMATABLE Shaper[], DWORD Behaviour);
-LPMATSHAPER cdecl cmsAllocMatShaper2(LPMAT3 matrix, LPGAMMATABLE In[], LPGAMMATABLE Out[], DWORD Behaviour);
+LPMATSHAPER cdecl cmsAllocMatShaper2(LPMAT3 matrix, LPGAMMATABLE In[], LPLCMSPRECACHE InPrecache,
+                                     LPGAMMATABLE Out[], LPLCMSPRECACHE OutPrecache, DWORD Behavior);
 
 void        cdecl cmsFreeMatShaper(LPMATSHAPER MatShaper);
 void        cdecl cmsEvalMatShaper(LPMATSHAPER MatShaper, WORD In[], WORD Out[]);
@@ -1752,6 +1849,7 @@ LPcmsNAMEDCOLORLIST  cdecl cmsAllocNamedColorList(int n);
 int                  cdecl cmsReadICCnamedColorList(cmsHTRANSFORM xform, cmsHPROFILE hProfile, icTagSignature sig);
 void                 cdecl cmsFreeNamedColorList(LPcmsNAMEDCOLORLIST List);
 LCMSBOOL             cdecl cmsAppendNamedColor(cmsHTRANSFORM xform, const char* Name, WORD PCS[3], WORD Colorant[MAXCHANNELS]);
+
 
 
 
@@ -1799,6 +1897,9 @@ typedef struct _lcms_iccprofile_struct {
                LCMSBOOL                SaveAs8Bits;
 
                struct tm               Created;
+
+               
+               LPLCMSPRECACHE Precache[PRECACHE_TYPE_COUNT];
 
                
 

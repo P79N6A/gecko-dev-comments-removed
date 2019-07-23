@@ -2534,6 +2534,11 @@ LCMSBOOL LCMSEXPORT cmsCloseProfile(cmsHPROFILE hProfile)
        if (!Icc) return FALSE;
 
        
+       for (i = 0; i < PRECACHE_TYPE_COUNT; ++i)
+              if (Icc->Precache[i] != NULL)
+                     PRECACHE_RELEASE(Icc->Precache[i]);
+
+       
        if (Icc ->IsWrite) {
 
            Icc ->IsWrite = FALSE;      
