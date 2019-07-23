@@ -41,6 +41,8 @@
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
 
+#include "base/message_loop.h"
+
 
 
 
@@ -59,7 +61,7 @@ nsBaseAppShell::nsBaseAppShell()
   , mSwitchTime(0)
   , mLastNativeEventTime(0)
   , mEventloopNestingState(eEventloopNone)
-  , mRunWasCalled(PR_FALSE)
+  , mRunning(PR_FALSE)
   , mExiting(PR_FALSE)
   , mBlockNativeEvent(PR_FALSE)
 {
@@ -161,21 +163,23 @@ nsBaseAppShell::DoProcessNextNativeEvent(PRBool mayWait)
 NS_IMETHODIMP
 nsBaseAppShell::Run(void)
 {
-  nsIThread *thread = NS_GetCurrentThread();
+  NS_ENSURE_STATE(!mRunning);  
+  mRunning = PR_TRUE;
 
-  NS_ENSURE_STATE(!mRunWasCalled);  
-  mRunWasCalled = PR_TRUE;
+  MessageLoop::current()->Run();
 
-  while (!mExiting)
-    NS_ProcessNextEvent(thread);
+  NS_ProcessPendingEvents(NS_GetCurrentThread());
 
-  NS_ProcessPendingEvents(thread);
+  mRunning = PR_FALSE;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsBaseAppShell::Exit(void)
 {
+  if (mRunning && !mExiting) {
+    MessageLoop::current()->Quit();
+  }
   mExiting = PR_TRUE;
   return NS_OK;
 }

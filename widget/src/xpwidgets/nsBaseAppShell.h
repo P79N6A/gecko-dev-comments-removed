@@ -119,7 +119,7 @@ private:
     eEventloopOther  
   };
   EventloopNestingState mEventloopNestingState;
-  PRPackedBool mRunWasCalled;
+  PRPackedBool mRunning;
   PRPackedBool mExiting;
   
 
