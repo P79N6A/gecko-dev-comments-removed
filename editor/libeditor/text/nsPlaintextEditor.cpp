@@ -78,10 +78,12 @@
 #include "nsContentCID.h"
 #include "nsAOLCiter.h"
 #include "nsInternetCiter.h"
+#include "nsEventDispatcher.h"
 
 
 #include "nsIClipboard.h"
 #include "nsITransferable.h"
+#include "nsCopySupport.h"
 
 
 nsresult NS_NewTextEditRules(nsIEditRules** aInstancePtrResult);
@@ -1133,53 +1135,150 @@ nsPlaintextEditor::Redo(PRUint32 aCount)
   return result;
 }
 
-NS_IMETHODIMP nsPlaintextEditor::Cut()
+nsresult nsPlaintextEditor::GetClipboardEventTarget(nsIDOMNode** aEventTarget)
 {
+  NS_ENSURE_ARG_POINTER(aEventTarget);
+  *aEventTarget = nsnull;
+
   nsCOMPtr<nsISelection> selection;
   nsresult res = GetSelection(getter_AddRefs(selection));
   if (NS_FAILED(res))
     return res;
 
+  return nsCopySupport::GetClipboardEventTarget(selection, aEventTarget);
+}
+
+NS_IMETHODIMP nsPlaintextEditor::Cut()
+{
+  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  if (!ps)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  
+  if (NS_SUCCEEDED(rv)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(PR_TRUE, NS_CUT);
+    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                                nsnull, &status);
+    
+    if (status == nsEventStatus_eConsumeNoDefault)
+      return NS_OK;
+  }
+
+  nsCOMPtr<nsISelection> selection;
+  rv = GetSelection(getter_AddRefs(selection));
+  if (NS_FAILED(rv))
+    return rv;
+
   PRBool isCollapsed;
   if (NS_SUCCEEDED(selection->GetIsCollapsed(&isCollapsed)) && isCollapsed)
     return NS_OK;  
 
-  res = Copy();
-  if (NS_SUCCEEDED(res))
-    res = DeleteSelection(eNone);
-  return res;
+  rv = ps->DoCopy();
+  if (NS_SUCCEEDED(rv))
+    rv = DeleteSelection(eNone);
+  return rv;
 }
 
 NS_IMETHODIMP nsPlaintextEditor::CanCut(PRBool *aCanCut)
 {
-  nsresult res = CanCopy(aCanCut);
-  if (NS_FAILED(res)) return res;
+  NS_ENSURE_ARG_POINTER(aCanCut);
+  *aCanCut = PR_FALSE;
+
+  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  if (!ps)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  
+  if (NS_SUCCEEDED(rv)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(PR_TRUE, NS_BEFORECUT);
+    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                                nsnull, &status);
     
-  *aCanCut = *aCanCut && IsModifiable();
+    if (status == nsEventStatus_eConsumeNoDefault) {
+      *aCanCut = PR_TRUE;
+      return NS_OK;
+    }
+  }
+
+  nsCOMPtr<nsISelection> selection;
+  rv = GetSelection(getter_AddRefs(selection));
+  if (NS_FAILED(rv)) return rv;
+    
+  PRBool isCollapsed;
+  rv = selection->GetIsCollapsed(&isCollapsed);
+  if (NS_FAILED(rv)) return rv;
+
+  *aCanCut = !isCollapsed && IsModifiable();
   return NS_OK;
 }
 
 NS_IMETHODIMP nsPlaintextEditor::Copy()
 {
-  if (!mPresShellWeak) return NS_ERROR_NOT_INITIALIZED;
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
+  if (!ps)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  
+  if (NS_SUCCEEDED(rv)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(PR_TRUE, NS_COPY);
+    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                                nsnull, &status);
+    
+    if (status == nsEventStatus_eConsumeNoDefault)
+      return NS_OK;
+    
+    
+  }
+
   return ps->DoCopy();
 }
 
 NS_IMETHODIMP nsPlaintextEditor::CanCopy(PRBool *aCanCopy)
 {
-  if (!aCanCopy)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_ARG_POINTER(aCanCopy);
   *aCanCopy = PR_FALSE;
+
+  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  if (!ps)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  
+  if (NS_SUCCEEDED(rv)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(PR_TRUE, NS_BEFORECOPY);
+    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                                nsnull, &status);
+    
+    if (status == nsEventStatus_eConsumeNoDefault) {
+      *aCanCopy = PR_TRUE;
+      return NS_OK;
+    }
+  }
   
   nsCOMPtr<nsISelection> selection;
-  nsresult res = GetSelection(getter_AddRefs(selection));
-  if (NS_FAILED(res)) return res;
+  rv = GetSelection(getter_AddRefs(selection));
+  if (NS_FAILED(rv)) return rv;
     
   PRBool isCollapsed;
-  res = selection->GetIsCollapsed(&isCollapsed);
-  if (NS_FAILED(res)) return res;
+  rv = selection->GetIsCollapsed(&isCollapsed);
+  if (NS_FAILED(rv)) return rv;
 
   *aCanCopy = !isCollapsed;
   return NS_OK;

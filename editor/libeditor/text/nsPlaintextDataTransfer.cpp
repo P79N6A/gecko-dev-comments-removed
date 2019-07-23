@@ -66,6 +66,7 @@
 #include "nsContentCID.h"
 #include "nsISelectionPrivate.h"
 #include "nsFrameSelection.h"
+#include "nsEventDispatcher.h"
 
 NS_IMETHODIMP nsPlaintextEditor::PrepareTransferable(nsITransferable **transferable)
 {
@@ -426,8 +427,31 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(PRInt32 aSelectionType)
 {
   ForceCompositionEnd();
 
+  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  if (!ps)
+    return NS_ERROR_NOT_INITIALIZED;
+
   
-  nsresult rv;
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  
+  if (NS_SUCCEEDED(rv)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(PR_TRUE, NS_PASTE);
+    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                                nsnull, &status);
+    
+    if (status == nsEventStatus_eConsumeNoDefault)
+      return NS_OK;
+
+    
+    
+    
+    if (mDidPreDestroy)
+      return NS_OK;
+  }
+
+  
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   if ( NS_FAILED(rv) )
     return rv;
@@ -456,15 +480,34 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(PRInt32 aSelectionType)
 
 NS_IMETHODIMP nsPlaintextEditor::CanPaste(PRInt32 aSelectionType, PRBool *aCanPaste)
 {
-  if (!aCanPaste)
-    return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_ARG_POINTER(aCanPaste);
   *aCanPaste = PR_FALSE;
+
+  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  if (!ps)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  
+  
+  nsCOMPtr<nsIDOMNode> eventTarget;
+  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  
+  if (NS_SUCCEEDED(rv)) {
+    nsEventStatus status = nsEventStatus_eIgnore;
+    nsEvent evt(PR_TRUE, NS_BEFOREPASTE);
+    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                                nsnull, &status);
+    
+    if (status == nsEventStatus_eConsumeNoDefault) {
+      *aCanPaste = PR_TRUE;
+      return NS_OK;
+    }
+  }
   
   
   if (!IsModifiable())
     return NS_OK;
 
-  nsresult rv;
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   if (NS_FAILED(rv)) return rv;
   

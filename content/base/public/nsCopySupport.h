@@ -47,6 +47,7 @@ class nsIContent;
 class nsITransferable;
 class nsACString;
 class nsAString;
+class nsIDOMNode;
 
 class nsCopySupport
 {
@@ -64,6 +65,11 @@ class nsCopySupport
     
     static nsresult ImageCopy(nsIImageLoadingContent* aImageElement,
                               PRInt32 aCopyFlags);
+
+    
+    
+    static nsresult GetClipboardEventTarget(nsISelection *aSel,
+                                            nsIDOMNode **aEventTarget);
 };
 
 #endif

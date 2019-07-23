@@ -545,3 +545,27 @@ static nsresult AppendDOMNode(nsITransferable *aTransferable,
   
   return AppendString(aTransferable, context, kHTMLContext);
 }
+
+
+
+nsresult nsCopySupport::GetClipboardEventTarget(nsISelection *aSel,
+                                                nsIDOMNode **aEventTarget)
+{
+  NS_ENSURE_ARG(aSel);
+  NS_ENSURE_ARG_POINTER(aEventTarget);
+  *aEventTarget = nsnull;
+
+  nsCOMPtr<nsIDOMRange> range;
+  nsresult rv = aSel->GetRangeAt(0, getter_AddRefs(range));
+  if (rv == NS_ERROR_INVALID_ARG) 
+    return NS_ERROR_FAILURE;
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!range)
+    return NS_ERROR_FAILURE;
+
+  rv = range->GetStartContainer(aEventTarget);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return (*aEventTarget) ? NS_OK : NS_ERROR_FAILURE;
+}

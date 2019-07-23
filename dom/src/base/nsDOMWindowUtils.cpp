@@ -224,7 +224,7 @@ nsDOMWindowUtils::SendKeyEvent(const nsAString& aType,
     return NS_ERROR_DOM_SECURITY_ERR;
 
   
-  nsIWidget* widget = GetWidget();
+  nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget)
     return NS_ERROR_FAILURE;
 

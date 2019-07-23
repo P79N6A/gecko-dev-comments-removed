@@ -214,6 +214,10 @@ protected:
   PRBool   mIgnoreSpuriousDragEvent;
   NS_IMETHOD IgnoreSpuriousDragEvent(PRBool aIgnoreSpuriousDragEvent) {mIgnoreSpuriousDragEvent = aIgnoreSpuriousDragEvent; return NS_OK;}
 
+  
+  
+  virtual nsresult GetClipboardEventTarget(nsIDOMNode** aEventTarget);
+
 
 protected:
 
