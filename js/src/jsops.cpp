@@ -2455,7 +2455,7 @@ BEGIN_CASE(JSOP_REGEXP)
 
 
     index = GET_FULL_INDEX(0);
-    obj = js_CloneRegExpObject(cx, script->getRegExp(index), NULL);
+    obj = js_CloneRegExpObject(cx, script->getRegExp(index));
     if (!obj)
         goto error;
     rval = OBJECT_TO_JSVAL(obj);
