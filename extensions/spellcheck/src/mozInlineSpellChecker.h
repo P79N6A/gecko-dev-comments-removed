@@ -48,7 +48,6 @@
 #include "nsIDOMTreeWalker.h"
 #include "nsWeakReference.h"
 #include "nsIEditor.h"
-#include "nsIDOMFocusListener.h"
 #include "nsIDOMMouseListener.h"
 #include "nsIDOMKeyListener.h"
 #include "nsWeakReference.h"
@@ -139,7 +138,7 @@ protected:
                                     nsIDOMRange** aRange);
 };
 
-class mozInlineSpellChecker : public nsIInlineSpellChecker, nsIEditActionListener, nsIDOMFocusListener, nsIDOMMouseListener, nsIDOMKeyListener,
+class mozInlineSpellChecker : public nsIInlineSpellChecker, nsIEditActionListener, nsIDOMMouseListener, nsIDOMKeyListener,
                                      nsSupportsWeakReference
 {
 private:
@@ -224,11 +223,6 @@ public:
 
   
   static PRBool CanEnableInlineSpellChecking();
-
-  
-  NS_IMETHOD Focus(nsIDOMEvent* aEvent);
-  NS_IMETHOD Blur(nsIDOMEvent* aEvent);
-  
 
   
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
