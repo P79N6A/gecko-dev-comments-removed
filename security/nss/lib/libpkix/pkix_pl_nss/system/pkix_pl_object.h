@@ -71,7 +71,7 @@ extern "C" {
 
 
 struct PKIX_PL_ObjectStruct {
-        PKIX_UInt32 magicHeader;
+        PRUint64    magicHeader;
         PKIX_UInt32 type;
         PKIX_Int32 references;
         PRLock *lock;

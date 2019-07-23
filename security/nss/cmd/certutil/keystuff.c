@@ -604,12 +604,12 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 				pwdata );
     
     switch (keytype) {
-    case rsaKey:                         break;
     case dsaKey: if (dsaparams) CERTUTIL_DestroyParamsPQG(dsaparams); 
 	                                                      break;
 #ifdef NSS_ENABLE_ECC
     case ecKey: SECITEM_FreeItem((SECItem *)params, PR_TRUE); break;
 #endif
+    default:                             break;
     }
     return privKey;
 }

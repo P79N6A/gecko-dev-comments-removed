@@ -852,7 +852,7 @@ sftkdb_CheckPassword(SFTKDBHandle *keydb, const char *pw, PRBool *tokenRemoved)
 	sftkdb_switchKeys(keydb, &key);
 
 	
-	if (keydb->update) {
+	if (((keydb->db->sdb_flags & SDB_RDONLY) == 0) && keydb->update) {
 	    
 	    if (keydb->peerDB) {
 		sftkdb_Update(keydb->peerDB, &key);

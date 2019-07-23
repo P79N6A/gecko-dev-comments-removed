@@ -149,6 +149,27 @@ extern SECStatus SEC_StringToOID(PLArenaPool *pool, SECItem *to,
 
 extern void UTIL_SetForkState(PRBool forked);
 
+
+
+
+
+
+
+
+
+
+
+
+extern SECStatus NSS_GetAlgorithmPolicy(SECOidTag tag, PRUint32 *pValue);
+
+
+
+
+
+extern SECStatus
+NSS_SetAlgorithmPolicy(SECOidTag tag, PRUint32 setBits, PRUint32 clearBits);
+
+
 SEC_END_PROTOS
 
 #endif 

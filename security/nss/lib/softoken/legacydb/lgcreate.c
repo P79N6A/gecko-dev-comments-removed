@@ -41,6 +41,7 @@
 #include "lowkeyi.h"
 #include "blapi.h"
 #include "secder.h"
+#include "secasn1.h"
 
 #include "keydbi.h" 
 
@@ -429,10 +430,16 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
      CK_OBJECT_HANDLE *handle, const CK_ATTRIBUTE *templ, CK_ULONG count)
 {
     CK_ATTRIBUTE_TYPE pubKeyAttr = CKA_VALUE;
-    CK_RV crv;
+    CK_RV crv = CKR_OK;
     NSSLOWKEYPrivateKey *priv;
-    SECItem pubKey;
+    SECItem pubKeySpace = {siBuffer, NULL, 0};
+    SECItem *pubKey;
+#ifdef NSS_ENABLE_ECC
+    SECItem pubKey2Space = {siBuffer, NULL, 0};
+    PRArenaPool *arena = NULL;
+#endif 
     NSSLOWKEYDBHandle *keyHandle = NULL;
+	
 
     switch (key_type) {
     case CKK_RSA:
@@ -451,34 +458,81 @@ lg_createPublicKeyObject(SDB *sdb, CK_KEY_TYPE key_type,
     }
 
 
-    crv = lg_Attribute2SSecItem(NULL,pubKeyAttr,templ,count,&pubKey);
+    pubKey = &pubKeySpace;
+    crv = lg_Attribute2SSecItem(NULL,pubKeyAttr,templ,count,pubKey);
     if (crv != CKR_OK) return crv;
 
-    PORT_Assert(pubKey.data);
+#ifdef NSS_ENABLE_ECC
+    if (key_type == CKK_EC) {
+	SECStatus rv;
+	
+
+
+	arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+	if (arena == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    goto done;
+	}
+	rv= SEC_QuickDERDecodeItem(arena, &pubKey2Space, 
+				   SEC_ASN1_GET(SEC_OctetStringTemplate), 
+				   pubKey);
+	if (rv != SECSuccess) {
+	    
+	    PORT_FreeArena(arena, PR_FALSE);
+	    arena = NULL;
+	} else {
+	    
+	    pubKey = &pubKey2Space;
+	}
+    }
+#endif 
+
+    PORT_Assert(pubKey->data);
+    if (pubKey->data == NULL) {
+	crv = CKR_ATTRIBUTE_VALUE_INVALID;
+	goto done;
+    }
     keyHandle = lg_getKeyDB(sdb);
     if (keyHandle == NULL) {
-	PORT_Free(pubKey.data);
-	return CKR_TOKEN_WRITE_PROTECTED;
+	crv = CKR_TOKEN_WRITE_PROTECTED;
+	goto done;
     }
     if (keyHandle->version != 3) {
 	unsigned char buf[SHA1_LENGTH];
-	SHA1_HashBuf(buf,pubKey.data,pubKey.len);
-	PORT_Memcpy(pubKey.data,buf,sizeof(buf));
-	pubKey.len = sizeof(buf);
+	SHA1_HashBuf(buf,pubKey->data,pubKey->len);
+	PORT_Memcpy(pubKey->data,buf,sizeof(buf));
+	pubKey->len = sizeof(buf);
     }
     
     
-    priv = nsslowkey_FindKeyByPublicKey(keyHandle, &pubKey, sdb );
+    priv = nsslowkey_FindKeyByPublicKey(keyHandle, pubKey, sdb );
+#ifdef NSS_ENABLE_ECC
+    if (priv == NULL && pubKey == &pubKey2Space) {
+	
+	pubKey = &pubKeySpace;
+    	priv = nsslowkey_FindKeyByPublicKey(keyHandle, pubKey, 
+					    sdb );
+    }
+#endif
     if (priv == NULL) {
-	PORT_Free(pubKey.data);
-	return crv;
+	
+
+	crv = CKR_ATTRIBUTE_VALUE_INVALID;
+	goto done;
     }
     nsslowkey_DestroyPrivateKey(priv);
+    crv = CKR_OK;
 
-    *handle = lg_mkHandle(sdb, &pubKey, LG_TOKEN_TYPE_PUB);
-    PORT_Free(pubKey.data);
+    *handle = lg_mkHandle(sdb, pubKey, LG_TOKEN_TYPE_PUB);
 
-    return CKR_OK;
+done:
+    PORT_Free(pubKeySpace.data);
+#ifdef NSS_ENABLE_ECC
+    if (arena) 
+	PORT_FreeArena(arena, PR_FALSE);
+#endif
+
+    return crv;
 }
 
 

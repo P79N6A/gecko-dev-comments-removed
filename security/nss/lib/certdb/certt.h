@@ -1255,6 +1255,12 @@ typedef enum CertStrictnessLevels {
 
 
 
+
+
+typedef char * (*CERT_StringFromCertFcn)(CERTCertificate *cert);
+
+
+
 #include "secasn1t.h"	
 
 

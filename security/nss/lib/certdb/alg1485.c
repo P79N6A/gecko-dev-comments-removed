@@ -102,7 +102,7 @@ static const NameToKind name2kinds[] = {
 
 
 
-    { "E",             128, SEC_OID_PKCS9_EMAIL_ADDRESS,SEC_ASN1_DS},
+    { "E",             128, SEC_OID_PKCS9_EMAIL_ADDRESS,SEC_ASN1_IA5_STRING},
 
 #if 0 
     { "pseudonym",      64, SEC_OID_AVA_PSEUDONYM,      SEC_ASN1_DS},
@@ -110,6 +110,28 @@ static const NameToKind name2kinds[] = {
 
     { 0,           256, SEC_OID_UNKNOWN                      , 0},
 };
+
+
+static const PRInt16 x2b[256] = {
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1, 
+ -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+
+#define IS_HEX(c) (x2b[(PRUint8)(c)] >= 0)
 
 #define C_DOUBLE_QUOTE '\042'
 
@@ -139,6 +161,17 @@ static const NameToKind name2kinds[] = {
      ((c) == ':') ||						\
      ((c) == '=') ||						\
      ((c) == '?'))
+
+
+
+
+
+
+#define NEEDS_ESCAPE(c) \
+    (c == C_DOUBLE_QUOTE || c == C_BACKSLASH)
+
+#define NEEDS_HEX_ESCAPE(c) \
+    ((PRUint8)c < 0x20 || c == 0x7f)
 
 int
 cert_AVAOidTagToMaxLen(SECOidTag tag)
@@ -222,11 +255,12 @@ scanTag(char **pbp, char *endptr, char *tagBuf, int tagBufSize)
     return SECSuccess;
 }
 
-static SECStatus
+
+static int
 scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)  
 {
     char *bp, *valBufp;
-    int vallen;
+    int vallen = 0;
     PRBool isQuoted;
     
     PORT_Assert(valBufSize > 0);
@@ -235,7 +269,7 @@ scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)
     skipSpace(pbp, endptr);
     if(*pbp == endptr) {
 	
-	return SECFailure;
+	return 0;
     }
     
     bp = *pbp;
@@ -250,7 +284,6 @@ scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)
     }
     
     valBufp = valBuf;
-    vallen = 0;
     while (bp < endptr) {
 	char c = *bp;
 	if (c == C_BACKSLASH) {
@@ -259,7 +292,12 @@ scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)
 	    if (bp >= endptr) {
 		
 		*pbp = bp;
-		return SECFailure;
+		return 0;
+	    }
+	    c = *bp;
+	    if (IS_HEX(c) && (endptr - bp) >= 2 && IS_HEX(bp[1])) {
+		bp++;
+		c = (char)((x2b[(PRUint8)c] << 4) | x2b[(PRUint8)*bp]); 
 	    }
 	} else if (c == '#' && bp == *pbp) {
 	    
@@ -274,27 +312,28 @@ scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)
         vallen++;
 	if (vallen >= valBufSize) {
 	    *pbp = bp;
-	    return SECFailure;
+	    return 0;
 	}
-	*valBufp++ = *bp++;
+	*valBufp++ = c;
+	bp++;
     }
     
     
     if (!isQuoted) {
-	if (valBufp > valBuf) {
-	    valBufp--;
-	    while ((valBufp > valBuf) && OPTIONAL_SPACE(*valBufp)) {
-		valBufp--;
-	    }
-	    valBufp++;
+	while (valBufp > valBuf) {
+	    char c = valBufp[-1];
+	    if (! OPTIONAL_SPACE(c))
+	        break;
+	    --valBufp;
 	}
+	vallen = valBufp - valBuf;
     }
     
     if (isQuoted) {
 	
 	if (*bp != C_DOUBLE_QUOTE) {
 	    *pbp = bp;
-	    return SECFailure;
+	    return 0;
 	}
 	
 	bp++;
@@ -303,36 +342,11 @@ scanVal(char **pbp, char *endptr, char *valBuf, int valBufSize)
     
     *pbp = bp;
     
-    if (valBufp == valBuf) {
-	
-	return SECFailure;
-    }
     
+    *valBufp = 0;
     
-    *valBufp++ = 0;
-    
-    return SECSuccess;
+    return vallen;
 }
-
-static const PRInt16 x2b[256] = 
-{
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
-  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1, 
- -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
- -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-};
 
 
 static SECStatus
@@ -379,14 +393,15 @@ ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr)
     SECOidTag kind  = SEC_OID_UNKNOWN;
     SECStatus rv    = SECFailure;
     SECItem   derOid = { 0, NULL, 0 };
+    SECItem   derVal = { 0, NULL, 0};
     char      sep   = 0;
 
     char tagBuf[32];
     char valBuf[384];
 
     PORT_Assert(arena);
-    if (scanTag(pbp, endptr, tagBuf, sizeof(tagBuf)) == SECFailure ||
-	scanVal(pbp, endptr, valBuf, sizeof(valBuf)) == SECFailure) {
+    if (SECSuccess != scanTag(pbp, endptr, tagBuf, sizeof tagBuf) ||
+	!(valLen    = scanVal(pbp, endptr, valBuf, sizeof valBuf))) {
 	goto loser;
     }
 
@@ -423,16 +438,13 @@ ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr)
     
     if ('#' == valBuf[0]) {
     	
-	SECItem  derVal = { 0, NULL, 0};
-	valLen = PORT_Strlen(valBuf+1);
-	rv = hexToBin(arena, &derVal, valBuf + 1, valLen);
+	rv = hexToBin(arena, &derVal, valBuf + 1, valLen - 1);
 	if (rv)
 	    goto loser;
 	a = CERT_CreateAVAFromRaw(arena, &derOid, &derVal);
     } else {
 	if (kind == SEC_OID_UNKNOWN)
 	    goto loser;
-	valLen = PORT_Strlen(valBuf);
 	if (kind == SEC_OID_AVA_COUNTRY_NAME && valLen != 2)
 	    goto loser;
 	if (vt == SEC_ASN1_PRINTABLE_STRING &&
@@ -446,7 +458,9 @@ ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr)
 		vt = SEC_ASN1_UTF8_STRING;
 	}
 
-	a = CERT_CreateAVA(arena, kind, vt, (char *)valBuf);
+	derVal.data = valBuf;
+	derVal.len  = valLen;
+	a = CERT_CreateAVAFromSECItem(arena, kind, vt, &derVal);
     }
     return a;
 
@@ -580,10 +594,26 @@ AppendStr(stringBuf *bufp, char *str)
     return SECSuccess;
 }
 
+typedef enum {
+    minimalEscape = 0,		
+    minimalEscapeAndQuote,	
+    fullEscape                  
+} EQMode;
+
+
+
+
+
+
+
+
+
+
 static int
-cert_RFC1485_GetRequiredLen(const char *src, int srclen, PRBool *pNeedsQuoting)
+cert_RFC1485_GetRequiredLen(const char *src, int srclen, EQMode *pEQMode)
 {
     int i, reqLen=0;
+    EQMode mode = pEQMode ? *pEQMode : minimalEscape;
     PRBool needsQuoting = PR_FALSE;
     char lastC = 0;
 
@@ -591,70 +621,90 @@ cert_RFC1485_GetRequiredLen(const char *src, int srclen, PRBool *pNeedsQuoting)
     for (i = 0; i < srclen; i++) {
 	char c = src[i];
 	reqLen++;
-	if (!needsQuoting && (SPECIAL_CHAR(c) ||
-	    (OPTIONAL_SPACE(c) && OPTIONAL_SPACE(lastC)))) {
-	    
-	    needsQuoting = PR_TRUE;
-	}
-	if (c == C_DOUBLE_QUOTE || c == C_BACKSLASH) {
-	    
+	if (NEEDS_HEX_ESCAPE(c)) {      
+	    reqLen += 2;
+	} else if (NEEDS_ESCAPE(c)) {   
 	    reqLen++;
+	} else if (SPECIAL_CHAR(c)) {
+	    if (mode == minimalEscapeAndQuote) 
+		needsQuoting = PR_TRUE; 
+	    else if (mode == fullEscape)
+	    	reqLen++;               
+	} else if (OPTIONAL_SPACE(c) && OPTIONAL_SPACE(lastC)) {
+	    if (mode == minimalEscapeAndQuote) 
+		needsQuoting = PR_TRUE; 
 	}
 	lastC = c;
     }
     
-    if (!needsQuoting && srclen > 0 && 
+    if (!needsQuoting && srclen > 0 && mode == minimalEscapeAndQuote && 
 	(OPTIONAL_SPACE(src[srclen-1]) || OPTIONAL_SPACE(src[0]))) {
 	needsQuoting = PR_TRUE;
     }
 
     if (needsQuoting) 
     	reqLen += 2;
-    if (pNeedsQuoting)
-    	*pNeedsQuoting = needsQuoting;
-
+    if (pEQMode && mode == minimalEscapeAndQuote && !needsQuoting)
+    	*pEQMode = minimalEscape;
     return reqLen;
 }
 
-SECStatus
-CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
+static const char hexChars[16] = { "0123456789abcdef" };
+
+static SECStatus
+escapeAndQuote(char *dst, int dstlen, char *src, int srclen, EQMode *pEQMode)
 {
     int i, reqLen=0;
-    char *d = dst;
-    PRBool needsQuoting = PR_FALSE;
+    EQMode mode = pEQMode ? *pEQMode : minimalEscape;
 
     
-    reqLen = cert_RFC1485_GetRequiredLen(src, srclen, &needsQuoting) + 1;
+    reqLen = cert_RFC1485_GetRequiredLen(src, srclen, &mode) + 1;
     if (reqLen > dstlen) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
 
-    d = dst;
-    if (needsQuoting) *d++ = C_DOUBLE_QUOTE;
+    if (mode == minimalEscapeAndQuote)
+        *dst++ = C_DOUBLE_QUOTE;
     for (i = 0; i < srclen; i++) {
 	char c = src[i];
-	if (c == C_DOUBLE_QUOTE || c == C_BACKSLASH) {
-	    
-	    *d++ = C_BACKSLASH;
+	if (NEEDS_HEX_ESCAPE(c)) {
+	    *dst++ = C_BACKSLASH;
+	    *dst++ = hexChars[ (c >> 4) & 0x0f ];
+	    *dst++ = hexChars[  c       & 0x0f ];
+	} else {
+	    if (NEEDS_ESCAPE(c) || (SPECIAL_CHAR(c) && mode == fullEscape)) {
+		*dst++ = C_BACKSLASH;
+	    }
+	    *dst++ = c;
 	}
-	*d++ = c;
     }
-    if (needsQuoting) *d++ = C_DOUBLE_QUOTE;
-    *d++ = 0;
+    if (mode == minimalEscapeAndQuote)
+    	*dst++ = C_DOUBLE_QUOTE;
+    *dst++ = 0;
+    if (pEQMode)
+    	*pEQMode = mode;
     return SECSuccess;
 }
+
+SECStatus
+CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
+{
+    EQMode mode = minimalEscapeAndQuote;
+    return escapeAndQuote(dst, dstlen, src, srclen, &mode);
+}
+
 
 
 
 char *
 CERT_GetOidString(const SECItem *oid)
 {
-    PRUint8 *end;
-    PRUint8 *d;
-    PRUint8 *e;
-    char *a         = NULL;
-    char *b;
+    PRUint8 *stop;   
+    PRUint8 *first;  
+    PRUint8 *last;   
+    char *rvString   = NULL;
+    char *prefix     = NULL;
 
 #define MAX_OID_LEN 1024 /* bytes */
 
@@ -664,74 +714,112 @@ CERT_GetOidString(const SECItem *oid)
     }
 
     
-    d = (PRUint8 *)oid->data;
+    first = (PRUint8 *)oid->data;
     
-    end = &d[ oid->len ];
+    stop = &first[ oid->len ];
 
     
 
 
-    if( (*d == 0x80) && (2 == oid->len) ) {
+    if ((*first == 0x80) && (2 == oid->len)) {
 	
-	a = PR_smprintf("%lu", (PRUint32)d[1]);
-	if( (char *)NULL == a ) {
+	rvString = PR_smprintf("%lu", (PRUint32)first[1]);
+	if (!rvString) {
 	    PORT_SetError(SEC_ERROR_NO_MEMORY);
-	    return (char *)NULL;
 	}
-	return a;
+	return rvString;
     }
 
-    for( ; d < end; d = &e[1] ) {
+    for (; first < stop; first = last + 1) {
+    	unsigned int bytesBeforeLast;
     
-	for( e = d; e < end; e++ ) {
-	    if( 0 == (*e & 0x80) ) {
+	for (last = first; last < stop; last++) {
+	    if (0 == (*last & 0x80)) {
 		break;
 	    }
 	}
-    
-	if( ((e-d) > 4) || (((e-d) == 4) && (*d & 0x70)) ) {
-	    
-	} else {
+	bytesBeforeLast = (unsigned int)(last - first);
+	if (bytesBeforeLast <= 3U) {        
 	    PRUint32 n = 0;
-      
-	    switch( e-d ) {
-	    case 4:
-		n |= ((PRUint32)(e[-4] & 0x0f)) << 28;
-	    case 3:
-		n |= ((PRUint32)(e[-3] & 0x7f)) << 21;
-	    case 2:
-		n |= ((PRUint32)(e[-2] & 0x7f)) << 14;
-	    case 1:
-		n |= ((PRUint32)(e[-1] & 0x7f)) <<  7;
-	    case 0:
-		n |= ((PRUint32)(e[-0] & 0x7f))      ;
+	    PRUint32 c;
+
+#define CGET(i, m) \
+		c  = last[-i] & m; \
+		n |= c << (7 * i)
+
+#define CASE(i, m) \
+	    case i:                      \
+		CGET(i, m);              \
+		if (!n) goto unsupported \
+		/* fall-through */
+
+	    switch (bytesBeforeLast) {
+	    CASE(3, 0x7f);
+	    CASE(2, 0x7f);
+	    CASE(1, 0x7f);
+	    case 0: n |= last[0]; 
+		break;
 	    }
       
-	    if( (char *)NULL == a ) {
+	    if (!rvString) {
 		
 		PRUint32 one = PR_MIN(n/40, 2); 
-		PRUint32 two = n - one * 40;
+		PRUint32 two = n - (one * 40);
         
-		a = PR_smprintf("OID.%lu.%lu", one, two);
-		if( (char *)NULL == a ) {
-		    PORT_SetError(SEC_ERROR_NO_MEMORY);
-		    return (char *)NULL;
-		}
+		rvString = PR_smprintf("OID.%lu.%lu", one, two);
 	    } else {
-		b = PR_smprintf("%s.%lu", a, n);
-		if( (char *)NULL == b ) {
-		    PR_smprintf_free(a);
-		    PORT_SetError(SEC_ERROR_NO_MEMORY);
-		    return (char *)NULL;
-		}
+		prefix = rvString;
+		rvString = PR_smprintf("%s.%lu", prefix, n);
+	    }
+	} else if (bytesBeforeLast <= 9U) { 
+	    PRUint64 n = 0;
+	    PRUint64 c;
+
+	    switch (bytesBeforeLast) {
+	    CASE(9, 0x01);
+	    CASE(8, 0x7f);
+	    CASE(7, 0x7f);
+	    CASE(6, 0x7f);
+	    CASE(5, 0x7f);
+	    CASE(4, 0x7f);
+	    CGET(3, 0x7f);
+	    CGET(2, 0x7f);
+	    CGET(1, 0x7f);
+	        n |= last[0]; 
+		break;
+	    }
+      
+	    if (!rvString) {
+		
+		PRUint64 one = PR_MIN(n/40, 2); 
+		PRUint64 two = n - (one * 40);
         
-		PR_smprintf_free(a);
-		a = b;
+		rvString = PR_smprintf("OID.%llu.%llu", one, two);
+	    } else {
+		prefix = rvString;
+		rvString = PR_smprintf("%s.%llu", prefix, n);
+	    }
+	} else {
+	    
+unsupported:
+	    if (!rvString)
+		rvString = PR_smprintf("OID.UNSUPPORTED");
+	    else {
+		prefix = rvString;
+		rvString = PR_smprintf("%s.UNSUPPORTED", prefix);
 	    }
 	}
-    }
 
-    return a;
+	if (prefix) {
+	    PR_smprintf_free(prefix);
+	    prefix = NULL;
+	}
+	if (!rvString) {
+	    PORT_SetError(SEC_ERROR_NO_MEMORY);
+	    break;
+	}
+    }
+    return rvString;
 }
 
 
@@ -826,6 +914,7 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
     SECStatus    rv;
     unsigned int len;
     int          nameLen, valueLen;
+    EQMode       mode        = minimalEscapeAndQuote;
     NameToKind   n2k         = { NULL, 32767, SEC_OID_UNKNOWN, SEC_ASN1_DS };
     char         tmpBuf[384];
 
@@ -907,7 +996,8 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 
     nameLen  = strlen(tagName);
     valueLen = (useHex ? avaValue->len : 
-            cert_RFC1485_GetRequiredLen(avaValue->data, avaValue->len, NULL));
+		cert_RFC1485_GetRequiredLen(avaValue->data, avaValue->len, 
+					    &mode));
     len = nameLen + valueLen + 2; 
 
     if (len <= sizeof(tmpBuf)) {
@@ -934,8 +1024,8 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
 	encodedAVA[nameLen + avaValue->len] = '\0';
 	rv = SECSuccess;
     } else 
-	rv = CERT_RFC1485_EscapeAndQuote(encodedAVA + nameLen, len - nameLen, 
-		    		        (char *)avaValue->data, avaValue->len);
+	rv = escapeAndQuote(encodedAVA + nameLen, len - nameLen, 
+		    	    (char *)avaValue->data, avaValue->len, &mode);
     SECITEM_FreeItem(avaValue, PR_TRUE);
     if (rv == SECSuccess)
 	rv = AppendStr(bufp, encodedAVA);
@@ -1044,44 +1134,58 @@ loser:
     return(retstr);
 }
 
+static char *
+avaToString(PRArenaPool *arena, CERTAVA *ava)
+{
+    char *    buf       = NULL;
+    SECItem*  avaValue;
+    int       valueLen;
+
+    avaValue = CERT_DecodeAVAValue(&ava->value);
+    if(!avaValue) {
+	return buf;
+    }
+    valueLen = cert_RFC1485_GetRequiredLen(avaValue->data, avaValue->len, 
+					   NULL) + 1;
+    if (arena) {
+	buf = (char *)PORT_ArenaZAlloc(arena, valueLen);
+    } else {
+	buf = (char *)PORT_ZAlloc(valueLen);
+    }
+    if (buf) {
+	SECStatus rv = escapeAndQuote(buf, valueLen, (char *)avaValue->data, 
+	                              avaValue->len, NULL);
+	if (rv != SECSuccess) {
+	    if (!arena)
+		PORT_Free(buf);
+	    buf = NULL;
+	}
+    }
+    SECITEM_FreeItem(avaValue, PR_TRUE);
+    return buf;
+}
+
 
 
 
 static char *
 CERT_GetNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
 {
-    CERTRDN** rdns;
-    CERTRDN *rdn;
-    char *buf = 0;
-    
-    rdns = name->rdns;
+    CERTRDN** rdns = name->rdns;
+    CERTRDN*  rdn;
+    CERTAVA*  ava  = NULL;
+
     while (rdns && (rdn = *rdns++) != 0) {
 	CERTAVA** avas = rdn->avas;
-	CERTAVA*  ava;
 	while (avas && (ava = *avas++) != 0) {
 	    int tag = CERT_GetAVATag(ava);
 	    if ( tag == wantedTag ) {
-		SECItem *decodeItem = CERT_DecodeAVAValue(&ava->value);
-		if(!decodeItem) {
-		    return NULL;
-		}
-		if (arena) {
-		    buf = (char *)PORT_ArenaZAlloc(arena,decodeItem->len + 1);
-		} else {
-		    buf = (char *)PORT_ZAlloc(decodeItem->len + 1);
-		}
-		if ( buf ) {
-		    PORT_Memcpy(buf, decodeItem->data, decodeItem->len);
-		    buf[decodeItem->len] = 0;
-		}
-		SECITEM_FreeItem(decodeItem, PR_TRUE);
-		goto done;
+		avas = NULL;
+		rdns = NULL; 
 	    }
 	}
     }
-    
-  done:
-    return buf;
+    return ava ? avaToString(arena, ava) : NULL;
 }
 
 
@@ -1091,12 +1195,10 @@ CERT_GetNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
 static char *
 CERT_GetLastNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
 {
-    CERTRDN** rdns;
-    CERTRDN *rdn;
-    CERTAVA * lastAva = NULL;
-    char *buf = 0;
+    CERTRDN** rdns    = name->rdns;
+    CERTRDN*  rdn;
+    CERTAVA*  lastAva = NULL;
     
-    rdns = name->rdns;
     while (rdns && (rdn = *rdns++) != 0) {
 	CERTAVA** avas = rdn->avas;
 	CERTAVA*  ava;
@@ -1107,24 +1209,7 @@ CERT_GetLastNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
 	    }
 	}
     }
-
-    if (lastAva) {
-	SECItem *decodeItem = CERT_DecodeAVAValue(&lastAva->value);
-	if(!decodeItem) {
-	    return NULL;
-	}
-	if (arena) {
-	    buf = (char *)PORT_ArenaZAlloc(arena,decodeItem->len + 1);
-	} else {
-	    buf = (char *)PORT_ZAlloc(decodeItem->len + 1);
-	}
-	if ( buf ) {
-	    PORT_Memcpy(buf, decodeItem->data, decodeItem->len);
-	    buf[decodeItem->len] = 0;
-	}
-	SECITEM_FreeItem(decodeItem, PR_TRUE);
-    }    
-    return buf;
+    return lastAva ? avaToString(arena, lastAva) : NULL;
 }
 
 char *

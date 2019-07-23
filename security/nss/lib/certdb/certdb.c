@@ -41,6 +41,7 @@
 
 
 
+
 #include "nssilock.h"
 #include "prmon.h"
 #include "prtime.h"
@@ -1451,27 +1452,56 @@ CERT_AddOKDomainName(CERTCertificate *cert, const char *hn)
 static SECStatus
 cert_TestHostName(char * cn, const char * hn)
 {
-    int regvalid = PORT_RegExpValid(cn);
-    if (regvalid != NON_SXP) {
-	SECStatus rv;
-	
-	int match = PORT_RegExpCaseSearch(hn, cn);
+    static int useShellExp = -1;
 
-	if ( match == 0 ) {
-	    rv = SECSuccess;
-	} else {
-	    PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
-	    rv = SECFailure;
+    if (useShellExp < 0) {
+        useShellExp = (NULL != PR_GetEnv("NSS_USE_SHEXP_IN_CERT_NAME"));
+    }
+    if (useShellExp) {
+    	
+	int regvalid = PORT_RegExpValid(cn);
+	if (regvalid != NON_SXP) {
+	    SECStatus rv;
+	    
+	    int match = PORT_RegExpCaseSearch(hn, cn);
+
+	    if ( match == 0 ) {
+		rv = SECSuccess;
+	    } else {
+		PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
+		rv = SECFailure;
+	    }
+	    return rv;
 	}
-	return rv;
-    } 
+    } else {
+	
+	char *wildcard    = PORT_Strchr(cn, '*');
+	char *firstcndot  = PORT_Strchr(cn, '.');
+	char *secondcndot = firstcndot ? PORT_Strchr(firstcndot+1, '.') : NULL;
+	char *firsthndot  = PORT_Strchr(hn, '.');
+
+	
+
+
+
+
+	if (wildcard && secondcndot && secondcndot[1] && firsthndot 
+	    && firstcndot  - wildcard  == 1
+	    && secondcndot - firstcndot > 1
+	    && PORT_Strrchr(cn, '*') == wildcard
+	    && !PORT_Strncasecmp(cn, hn, wildcard - cn)
+	    && !PORT_Strcasecmp(firstcndot, firsthndot)) {
+	    
+	    return SECSuccess;
+	}
+    }
     
 
-    
+
     if (PORT_Strcasecmp(hn, cn) == 0) {
 	return SECSuccess;
     }
-	    
+
     PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
     return SECFailure;
 }
@@ -1522,15 +1552,18 @@ cert_VerifySubjectAltName(CERTCertificate *cert, const char *hn)
 
 
 		int cnLen = current->name.other.len;
-		if (cnLen + 1 > cnBufLen) {
-		    cnBufLen = cnLen + 1;
+		rv = CERT_RFC1485_EscapeAndQuote(cn, cnBufLen, 
+					    current->name.other.data, cnLen);
+		if (rv != SECSuccess && PORT_GetError() == SEC_ERROR_OUTPUT_LEN) {
+		    cnBufLen = cnLen * 3 + 3; 
 		    cn = (char *)PORT_ArenaAlloc(arena, cnBufLen);
 		    if (!cn)
 			goto fail;
+		    rv = CERT_RFC1485_EscapeAndQuote(cn, cnBufLen, 
+					    current->name.other.data, cnLen);
 		}
-		PORT_Memcpy(cn, current->name.other.data, cnLen);
-		cn[cnLen] = 0;
-		rv = cert_TestHostName(cn ,hn);
+		if (rv == SECSuccess)
+		    rv = cert_TestHostName(cn ,hn);
 		if (rv == SECSuccess)
 		    goto finish;
 	    }

@@ -250,6 +250,10 @@ extern CERTAVA * CERT_CreateAVAFromRaw(PRArenaPool *pool,
                                const SECItem * OID, const SECItem * value);
 
 
+extern CERTAVA * CERT_CreateAVAFromSECItem(PRArenaPool *arena, SECOidTag kind, 
+                                           int valueType, SECItem *value);
+
+
 
 
 

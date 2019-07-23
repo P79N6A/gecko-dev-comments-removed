@@ -2568,6 +2568,304 @@ loser:
 
 
 
+static unsigned char *
+alloc_value(char *buf, int *len)
+{
+    unsigned char * value;
+    int i, count;
+
+    if (strncmp(buf, "<None>", 6) == 0) {
+	*len = 0;
+	return NULL;
+    }
+
+    
+    for (count = 0; isxdigit(buf[count]); count++);
+    *len = count/2;
+
+    if (*len == 0) {
+	return NULL;
+    }
+
+    value = PORT_Alloc(*len);
+    if (!value) {
+	*len = 0;
+	return NULL;
+    }
+	
+    for (i=0; i<*len; buf+=2 , i++) {
+	hex_to_byteval(buf, &value[i]);
+    }
+    return value;
+}
+
+PRBool
+isblankline(char *b)
+{
+   while (isspace(*b)) b++;
+   if ((*b == '\n') || (*b == 0)) {
+	return PR_TRUE;
+   }
+   return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+void
+drbg(char *reqfn)
+{
+    char buf[2000];   
+
+
+    char buf2[2000]; 
+    FILE *rngreq;       
+    FILE *rngresp;      
+    unsigned int i;
+    unsigned char *entropy = NULL;
+    int entropy_len = 0;
+    unsigned char *nonce =  NULL;
+    int nonce_len = 0;
+    unsigned char *personalization_string =  NULL;
+    int ps_len = 0;
+    unsigned char *return_bytes =  NULL;
+    unsigned char *predicted_return_bytes = NULL;
+    int return_bytes_len = 0;
+    unsigned char *additional_input =  NULL;
+    int additional_len = 0;
+    enum { NONE, INSTANTIATE, GENERATE, RESEED, UNINSTANTIATE } command =
+		NONE;
+    SECStatus rv;
+
+    rngreq = fopen(reqfn, "r");
+    rngresp = stdout;
+    while (fgets(buf, sizeof buf, rngreq) != NULL) {
+	
+	if (buf[0] == '#') { 
+	    fputs(buf, rngresp);
+	    continue;
+	}
+
+        if (isblankline(buf)) {
+	    switch (command) {
+	    case INSTANTIATE:
+		rv = PRNGTEST_Instantiate(entropy, entropy_len,
+				      nonce, nonce_len,
+				      personalization_string, ps_len);
+		if (rv != SECSuccess) {
+		    goto loser;
+		}
+		
+		if (entropy) {
+		    PORT_ZFree(entropy, entropy_len);
+		    entropy = NULL;
+		    entropy_len = 0;
+		}
+		if (nonce) {
+		    PORT_ZFree(nonce, nonce_len);
+		    nonce = NULL;
+		    nonce_len = 0;
+		}
+		if (personalization_string) {
+		    PORT_ZFree(personalization_string, ps_len);
+		    personalization_string = NULL;
+		    ps_len = 0;
+		}
+		break;
+	    case GENERATE:
+		rv = PRNGTEST_Generate(return_bytes, return_bytes_len,
+				      additional_input, additional_len);
+		if (rv != SECSuccess) {
+		    goto loser;
+		}
+		
+		if (predicted_return_bytes) {
+		    fputc('+', rngresp);
+		}
+	   	fputs("Returned bits = ", rngresp);
+		to_hex_str(buf2, return_bytes, return_bytes_len);
+		fputs(buf2, rngresp);
+		fputc('\n', rngresp);
+
+		if (predicted_return_bytes) {
+		    if (memcmp(return_bytes, 
+			   predicted_return_bytes, return_bytes_len) != 0) {
+			fprintf(stderr, "Generate failed:\n");
+			fputs(  "   predicted=", stderr);
+			to_hex_str(buf, predicted_return_bytes, 
+							return_bytes_len);
+			fputs(buf, stderr);
+			fputs("\n   actual  = ", stderr);
+			fputs(buf2, stderr);
+			fputc('\n', stderr);
+		    }
+		    PORT_ZFree(predicted_return_bytes, return_bytes_len);
+		    predicted_return_bytes = NULL;
+		}
+			
+		if (return_bytes) {
+		    PORT_ZFree(return_bytes, return_bytes_len);
+		    return_bytes = NULL;
+		    return_bytes_len = 0;
+		}
+		if (additional_input) {
+		    PORT_ZFree(additional_input, additional_len);
+		    additional_input = NULL;
+		    additional_len = 0;
+		}
+		
+		break;
+	    case RESEED:
+		rv = PRNGTEST_Reseed(entropy, entropy_len,
+				      additional_input, additional_len);
+		if (rv != SECSuccess) {
+		    goto loser;
+		}
+		
+		if (entropy) {
+		    PORT_ZFree(entropy, entropy_len);
+		    entropy = NULL;
+		    entropy_len = 0;
+		}
+		if (additional_input) {
+		    PORT_ZFree(additional_input, additional_len);
+		    additional_input = NULL;
+		    additional_len = 0;
+		}
+		break;
+	    case UNINSTANTIATE:
+		rv = PRNGTEST_Uninstantiate();
+		if (rv != SECSuccess) {
+		    goto loser;
+		}
+		break;
+	    } 
+	    fputs(buf, rngresp);
+	    command = NONE;
+	    continue;
+	}
+
+	
+	if (buf[0] == '[') {
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "INSTANTIATE", 11) == 0) {
+	    i = 11;
+
+	    command = INSTANTIATE;
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "GENERATE", 8) == 0) {
+	    i = 8;
+	    while (isspace(buf[i])) {
+		i++;
+	    }
+	    return_bytes_len = atoi(&buf[i])/8;
+	    return_bytes = PORT_Alloc(return_bytes_len);
+	    command = GENERATE;
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	if (strncmp(buf, "RESEED", 6) == 0) {
+	    i = 6;
+	    command = RESEED;
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	if (strncmp(buf, "UNINSTANTIATE", 13) == 0) {
+	    i = 13;
+	    command = UNINSTANTIATE;
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "Entropy input", 13) == 0) {
+	    i = 13;
+	    while (isspace(buf[i]) || buf[i] == '=') {
+		i++;
+	    }
+
+	    if ((command == INSTANTIATE) || (command == RESEED)) {
+		entropy = alloc_value(&buf[i], &entropy_len);
+	    }
+	    
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "Nonce", 5) == 0) {
+	    i = 5;
+	    while (isspace(buf[i]) || buf[i] == '=') {
+		i++;
+	    }
+
+	    if (command == INSTANTIATE) {
+		nonce = alloc_value(&buf[i], &nonce_len);
+	    }
+	    
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "Personalization string", 22) == 0) {
+	    i = 22;
+	    while (isspace(buf[i]) || buf[i] == '=') {
+		i++;
+	    }
+
+	    if (command == INSTANTIATE) {
+		personalization_string = alloc_value(&buf[i], &ps_len);
+	    }
+	    
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "Returned bits", 13) == 0) {
+	    i = 13;
+	    while (isspace(buf[i]) || buf[i] == '=') {
+		i++;
+	    }
+
+	    if (command == GENERATE) {
+		int len;
+		predicted_return_bytes = alloc_value(&buf[i], &len);
+	    }
+	    
+	    fputs(buf, rngresp);
+	    continue;
+	}
+	
+	if (strncmp(buf, "Additional input", 16) == 0) {
+	    i = 16;
+	    while (isspace(buf[i]) || buf[i] == '=') {
+		i++;
+	    }
+
+	    if ((command == GENERATE) || (command = RESEED)) {
+		additional_input = alloc_value(&buf[i], &additional_len);
+	    }
+	    
+	    fputs(buf, rngresp);
+	    continue;
+	}
+    }
+loser:
+    fclose(rngreq);
+}
+
+
+
+
+
 
 
 
@@ -4597,6 +4895,9 @@ int main(int argc, char **argv)
 	    
 	    rng_mct(argv[3]);
 	}
+    } else if (strcmp(argv[1], "drbg") == 0) {
+	
+	drbg(argv[2]);
     }
     return 0;
 }

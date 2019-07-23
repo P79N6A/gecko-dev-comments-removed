@@ -1108,6 +1108,17 @@ sftkdb_write(SFTKDBHandle *handle, SFTKObject *object,
     }
     db = SFTK_GET_SDB(handle);
 
+    
+
+
+
+
+
+
+    if (db == handle->update) {
+	return CKR_USER_NOT_LOGGED_IN;
+    }
+
     arena = PORT_NewArena(256);
     if (arena ==  NULL) {
 	return CKR_HOST_MEMORY;
@@ -1166,7 +1177,7 @@ sftkdb_write(SFTKDBHandle *handle, SFTKObject *object,
 
 loser:
     if (inTransaction) {
-	(*handle->db->sdb_Abort)(handle->db);
+	(*db->sdb_Abort)(db);
 	
 
 
@@ -1332,6 +1343,16 @@ sftkdb_SetAttributeValue(SFTKDBHandle *handle, SFTKObject *object,
     
     if (count == 0) {
 	return CKR_OK;
+    }
+    
+
+
+
+
+
+
+    if (db == handle->update) {
+	return CKR_USER_NOT_LOGGED_IN;
     }
 
     ntemplate = sftkdb_fixupTemplateIn(template, count, &data);

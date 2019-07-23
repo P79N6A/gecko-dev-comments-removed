@@ -469,6 +469,24 @@ CERT_GetOCSPAuthorityInfoAccessLocation(CERTCertificate *cert);
 
 
 
+extern SECStatus
+CERT_RegisterAlternateOCSPAIAInfoCallBack(
+			CERT_StringFromCertFcn   newCallback,
+			CERT_StringFromCertFcn * oldCallback);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

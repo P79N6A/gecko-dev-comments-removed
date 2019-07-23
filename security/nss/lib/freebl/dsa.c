@@ -41,6 +41,7 @@
 #include "stubs.h"
 #endif
 
+#include "prerror.h"
 #include "secerr.h"
 
 #include "prtypes.h"
@@ -55,9 +56,107 @@
  
 #define NSS_FREEBL_DSA_DEFAULT_CHUNKSIZE 2048
 
+#define FIPS_DSA_Q     160
+#define QSIZE      (FIPS_DSA_Q / PR_BITS_PER_BYTE)
 
-extern SECStatus 
-DSA_GenerateGlobalRandomBytes(void *dest, size_t len, const unsigned char *q);
+
+
+
+
+
+
+
+
+SECStatus
+FIPS186Change_ReduceModQForDSA(const PRUint8 *w,
+                               const PRUint8 *q,
+                               PRUint8 *xj)
+{
+    mp_int W, Q, Xj;
+    mp_err err;
+    SECStatus rv = SECSuccess;
+
+    
+    MP_DIGITS(&W) = 0;
+    MP_DIGITS(&Q) = 0;
+    MP_DIGITS(&Xj) = 0;
+    CHECK_MPI_OK( mp_init(&W) );
+    CHECK_MPI_OK( mp_init(&Q) );
+    CHECK_MPI_OK( mp_init(&Xj) );
+    
+
+
+    CHECK_MPI_OK( mp_read_unsigned_octets(&W, w, 2*QSIZE) );
+    CHECK_MPI_OK( mp_read_unsigned_octets(&Q, q, DSA_SUBPRIME_LEN) );
+    
+
+
+
+
+    CHECK_MPI_OK( mp_mod(&W, &Q, &Xj) );
+    CHECK_MPI_OK( mp_to_fixlen_octets(&Xj, xj, DSA_SUBPRIME_LEN) );
+cleanup:
+    mp_clear(&W);
+    mp_clear(&Q);
+    mp_clear(&Xj);
+    if (err) {
+	MP_TO_SEC_ERROR(err);
+	rv = SECFailure;
+    }
+    return rv;
+}
+
+
+
+
+
+
+
+
+
+SECStatus
+FIPS186Change_GenerateX(PRUint8 *XKEY, const PRUint8 *XSEEDj,
+                        PRUint8 *x_j)
+{
+    PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
+    return SECFailure;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static SECStatus 
+dsa_GenerateGlobalRandomBytes(void *dest, size_t len, const PRUint8 *q)
+{
+    SECStatus rv;
+    PRUint8 w[2*QSIZE];
+
+    PORT_Assert(q && len == DSA_SUBPRIME_LEN);
+    if (len != DSA_SUBPRIME_LEN) {
+	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+	return SECFailure;
+    }
+    if (*q == 0) {
+        ++q;
+    }
+    rv = RNG_GenerateGlobalRandomBytes(w, 2*QSIZE);
+    if (rv != SECSuccess) {
+	return rv;
+    }
+    FIPS186Change_ReduceModQForDSA(w, q, (PRUint8 *)dest);
+    return rv;
+}
 
 static void translate_mpi_error(mp_err err)
 {
@@ -150,7 +249,7 @@ DSA_NewKey(const PQGParams *params, DSAPrivateKey **privKey)
 
     do {
 	
-	if (DSA_GenerateGlobalRandomBytes(seed, DSA_SUBPRIME_LEN,
+	if (dsa_GenerateGlobalRandomBytes(seed, DSA_SUBPRIME_LEN,
 					  params->subPrime.data))
 	    return SECFailure;
 	
@@ -299,7 +398,7 @@ DSA_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest)
 
     PORT_SetError(0);
     do {
-	rv = DSA_GenerateGlobalRandomBytes(kSeed, DSA_SUBPRIME_LEN, 
+	rv = dsa_GenerateGlobalRandomBytes(kSeed, DSA_SUBPRIME_LEN, 
 					   key->params.subPrime.data);
 	if (rv != SECSuccess) 
 	    break;

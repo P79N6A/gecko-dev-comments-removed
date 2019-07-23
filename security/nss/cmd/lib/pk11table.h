@@ -2,6 +2,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _PK11_TABLE_H_
+#define _PK11_TABLE_H_
+
+
+
+
 #include <pkcs11.h>
 #include "nspr.h"
 #include "prtypes.h"
@@ -162,4 +199,14 @@ extern const Commands *commands;
 extern const int commandCount;
 extern const Topics *topics;
 extern const int topicCount;
+
+extern const char *
+getName(CK_ULONG value, ConstType type);
+
+extern const char *
+getNameFromAttribute(CK_ATTRIBUTE_TYPE type);
+
+extern int totalKnownType(ConstType type);
+
+#endif 
 

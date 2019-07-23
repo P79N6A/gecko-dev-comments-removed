@@ -62,9 +62,9 @@ struct PKIX_Alloc_Error_ObjectStruct {
 };
 typedef struct PKIX_Alloc_Error_ObjectStruct PKIX_Alloc_Error_Object;
 
-static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
+static const PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
     {
-        (PKIX_UInt32)PKIX_MAGIC_HEADER, 
+        PKIX_MAGIC_HEADER, 		
         (PKIX_UInt32)PKIX_ERROR_TYPE,   
         (PKIX_UInt32)1,                 
         
@@ -83,7 +83,7 @@ static PKIX_Alloc_Error_Object pkix_Alloc_Error_Data = {
 
 PKIX_Error* PKIX_ALLOC_ERROR(void)
 {
-    return &pkix_Alloc_Error_Data.error;
+    return (PKIX_Error *)&pkix_Alloc_Error_Data.error;
 }
 
 #ifdef PKIX_OBJECT_LEAK_TEST

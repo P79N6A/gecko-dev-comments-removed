@@ -107,6 +107,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
     CK_ATTRIBUTE *signedattr = NULL;
     CK_ATTRIBUTE *attrs = theTemplate;
     SECItem *ckaId = NULL;
+    SECItem *pubValue = NULL;
     int signedcount = 0;
     int templateCount = 0;
     SECStatus rv;
@@ -203,8 +204,23 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 	    PK11_SETATTRS(attrs, CKA_EC_PARAMS, 
 		          pubKey->u.ec.DEREncodedParams.data,
 		          pubKey->u.ec.DEREncodedParams.len); attrs++;
-	    PK11_SETATTRS(attrs, CKA_EC_POINT, pubKey->u.ec.publicValue.data,
+	    if (PR_GetEnv("NSS_USE_DECODED_CKA_EC_POINT")) {
+	    	PK11_SETATTRS(attrs, CKA_EC_POINT, 
+			  pubKey->u.ec.publicValue.data,
 			  pubKey->u.ec.publicValue.len); attrs++;
+	    } else {
+		pubValue = SEC_ASN1EncodeItem(NULL, NULL,
+			&pubKey->u.ec.publicValue,
+			SEC_ASN1_GET(SEC_OctetStringTemplate));
+		if (pubValue == NULL) {
+		    if (ckaId) {
+			SECITEM_FreeItem(ckaId,PR_TRUE);
+		    }
+		    return CK_INVALID_HANDLE;
+		}
+	    	PK11_SETATTRS(attrs, CKA_EC_POINT, 
+			  pubValue->data, pubValue->len); attrs++;
+	    }
 	    break;
 	default:
 	    PORT_SetError( SEC_ERROR_BAD_KEY );
@@ -222,6 +238,9 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 	if (ckaId) {
 	    SECITEM_FreeItem(ckaId,PR_TRUE);
 	}
+	if (pubValue) {
+	    SECITEM_FreeItem(pubValue,PR_TRUE);
+	}
 	if ( rv != SECSuccess) {
 	    return CK_INVALID_HANDLE;
 	}
@@ -237,7 +256,7 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
 
 
 static CK_RV
-pk11_Attr2SecItem(PRArenaPool *arena, CK_ATTRIBUTE *attr, SECItem *item) 
+pk11_Attr2SecItem(PRArenaPool *arena, const CK_ATTRIBUTE *attr, SECItem *item) 
 {
     item->data = NULL;
 
@@ -247,6 +266,309 @@ pk11_Attr2SecItem(PRArenaPool *arena, CK_ATTRIBUTE *attr, SECItem *item)
     } 
     PORT_Memcpy(item->data, attr->pValue, item->len);
     return CKR_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int
+pk11_get_EC_PointLenInBytes(PRArenaPool *arena, const SECItem *ecParams)
+{
+   SECItem oid;
+   SECOidTag tag;
+   SECStatus rv;
+
+   
+   rv = SEC_QuickDERDecodeItem(arena, &oid,
+		SEC_ASN1_GET(SEC_ObjectIDTemplate), ecParams);
+   if (rv != SECSuccess) {
+	
+
+
+
+
+	return 0;
+   }
+
+   tag = SECOID_FindOIDTag(&oid);
+   switch (tag) {
+    case SEC_OID_SECG_EC_SECP112R1:
+    case SEC_OID_SECG_EC_SECP112R2:
+	return 29; 
+    case SEC_OID_SECG_EC_SECT113R1:
+    case SEC_OID_SECG_EC_SECT113R2:
+	return 31; 
+    case SEC_OID_SECG_EC_SECP128R1:
+    case SEC_OID_SECG_EC_SECP128R2:
+	return 33; 
+    case SEC_OID_SECG_EC_SECT131R1:
+    case SEC_OID_SECG_EC_SECT131R2:
+	return 35; 
+    case SEC_OID_SECG_EC_SECP160K1:
+    case SEC_OID_SECG_EC_SECP160R1:
+    case SEC_OID_SECG_EC_SECP160R2:
+	return 41; 
+    case SEC_OID_SECG_EC_SECT163K1:
+    case SEC_OID_SECG_EC_SECT163R1:
+    case SEC_OID_SECG_EC_SECT163R2:
+    case SEC_OID_ANSIX962_EC_C2PNB163V1:
+    case SEC_OID_ANSIX962_EC_C2PNB163V2:
+    case SEC_OID_ANSIX962_EC_C2PNB163V3:
+	return 43; 
+    case SEC_OID_ANSIX962_EC_C2PNB176V1:
+	return 45; 
+    case SEC_OID_ANSIX962_EC_C2TNB191V1:
+    case SEC_OID_ANSIX962_EC_C2TNB191V2:
+    case SEC_OID_ANSIX962_EC_C2TNB191V3:
+    case SEC_OID_SECG_EC_SECP192K1:
+    case SEC_OID_ANSIX962_EC_PRIME192V1:
+    case SEC_OID_ANSIX962_EC_PRIME192V2:
+    case SEC_OID_ANSIX962_EC_PRIME192V3:
+	return 49; 
+    case SEC_OID_SECG_EC_SECT193R1:
+    case SEC_OID_SECG_EC_SECT193R2:
+	return 51; 
+    case SEC_OID_ANSIX962_EC_C2PNB208W1:
+	return 53; 
+    case SEC_OID_SECG_EC_SECP224K1:
+    case SEC_OID_SECG_EC_SECP224R1:
+	return 57; 
+    case SEC_OID_SECG_EC_SECT233K1:
+    case SEC_OID_SECG_EC_SECT233R1:
+    case SEC_OID_SECG_EC_SECT239K1:
+    case SEC_OID_ANSIX962_EC_PRIME239V1:
+    case SEC_OID_ANSIX962_EC_PRIME239V2:
+    case SEC_OID_ANSIX962_EC_PRIME239V3:
+    case SEC_OID_ANSIX962_EC_C2TNB239V1:
+    case SEC_OID_ANSIX962_EC_C2TNB239V2:
+    case SEC_OID_ANSIX962_EC_C2TNB239V3:
+	return 61; 
+    case SEC_OID_ANSIX962_EC_PRIME256V1:
+    case SEC_OID_SECG_EC_SECP256K1:
+	return 65; 
+    case SEC_OID_ANSIX962_EC_C2PNB272W1:
+	return 69; 
+    case SEC_OID_SECG_EC_SECT283K1:
+    case SEC_OID_SECG_EC_SECT283R1:
+	return 73; 
+    case SEC_OID_ANSIX962_EC_C2PNB304W1:
+	return 77; 
+    case SEC_OID_ANSIX962_EC_C2TNB359V1:
+	return 91; 
+    case SEC_OID_ANSIX962_EC_C2PNB368W1:
+	return 93; 
+    case SEC_OID_SECG_EC_SECP384R1:
+	return 97; 
+    case SEC_OID_SECG_EC_SECT409K1:
+    case SEC_OID_SECG_EC_SECT409R1:
+	return 105; 
+    case SEC_OID_ANSIX962_EC_C2TNB431R1:
+	return 109; 
+    case SEC_OID_SECG_EC_SECP521R1:
+	return 133; 
+    case SEC_OID_SECG_EC_SECT571K1:
+    case SEC_OID_SECG_EC_SECT571R1:
+	return 145; 
+    
+    default:
+	break;
+   }
+   return 0;
+}
+
+
+
+
+
+
+
+
+static CK_RV
+pk11_get_Decoded_ECPoint(PRArenaPool *arena, const SECItem *ecParams, 
+	const CK_ATTRIBUTE *ecPoint, SECItem *publicKeyValue)
+{
+    SECItem encodedPublicValue;
+    SECStatus rv;
+    int keyLen;
+
+    if (ecPoint->ulValueLen == 0) {
+	return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+    keyLen = pk11_get_EC_PointLenInBytes(arena, ecParams);
+    if (keyLen < 0) {
+	return CKR_ATTRIBUTE_VALUE_INVALID;
+    }
+
+
+    
+
+    if ((*((char *)ecPoint->pValue) == EC_POINT_FORM_UNCOMPRESSED) 
+	&& (ecPoint->ulValueLen == keyLen)) {
+	    return pk11_Attr2SecItem(arena, ecPoint, publicKeyValue);
+    }
+
+    
+    if (*((char *)ecPoint->pValue) == SEC_ASN1_OCTET_STRING) {
+	
+	encodedPublicValue.data = ecPoint->pValue;
+	encodedPublicValue.len = ecPoint->ulValueLen;
+	rv = SEC_QuickDERDecodeItem(arena, publicKeyValue,
+		SEC_ASN1_GET(SEC_OctetStringTemplate), &encodedPublicValue);
+
+	
+
+        if (keyLen && rv == SECSuccess && publicKeyValue->len == keyLen) {
+	    return CKR_OK;
+	}
+
+	
+
+	if (keyLen) {
+	    return CKR_ATTRIBUTE_VALUE_INVALID;
+	}
+		
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+	if ((rv != SECSuccess)
+	    || ((publicKeyValue->len & 1) != 1)
+	    || (publicKeyValue->data[0] != EC_POINT_FORM_UNCOMPRESSED)
+	    || (PORT_Memcmp(&encodedPublicValue.data[encodedPublicValue.len -
+		 	    publicKeyValue->len], publicKeyValue->data, 
+			    publicKeyValue->len) != 0)) {
+	    
+
+
+
+	    if ((encodedPublicValue.len & 1) == 0) {
+		return CKR_ATTRIBUTE_VALUE_INVALID;
+	    }
+	    return pk11_Attr2SecItem(arena, ecPoint, publicKeyValue);
+	}
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	return CKR_OK;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+	
+    return CKR_ATTRIBUTE_VALUE_INVALID;
 }
 
 
@@ -399,7 +721,7 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot,KeyType keyType,CK_OBJECT_HANDLE id)
 	PK11_SETATTRS(attrs, CKA_EC_POINT, NULL, 0); attrs++; 
 	templateCount = attrs - template;
 	PR_ASSERT(templateCount <= sizeof(template)/sizeof(CK_ATTRIBUTE));
-	crv = PK11_GetAttributes(tmp_arena,slot,id,template,templateCount);
+	crv = PK11_GetAttributes(arena,slot,id,template,templateCount);
 	if (crv != CKR_OK) break;
 
 	if ((keyClass != CKO_PUBLIC_KEY) || (pk11KeyType != CKK_EC)) {
@@ -410,8 +732,9 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot,KeyType keyType,CK_OBJECT_HANDLE id)
 	crv = pk11_Attr2SecItem(arena,ecparams,
 	                        &pubKey->u.ec.DEREncodedParams);
 	if (crv != CKR_OK) break;
-	crv = pk11_Attr2SecItem(arena,value,&pubKey->u.ec.publicValue);
-	if (crv != CKR_OK) break;
+	crv = pk11_get_Decoded_ECPoint(arena,
+		 &pubKey->u.ec.DEREncodedParams, value, 
+		 &pubKey->u.ec.publicValue);
 	break;
     case fortezzaKey:
     case nullKey:

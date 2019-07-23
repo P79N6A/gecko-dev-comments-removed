@@ -1084,20 +1084,6 @@ extern void RNG_SystemInfoForRNG(void);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern SECStatus
 FIPS186Change_GenerateX(unsigned char *XKEY,
                         const unsigned char *XSEEDj,
@@ -1115,6 +1101,27 @@ extern SECStatus
 FIPS186Change_ReduceModQForDSA(const unsigned char *w,
                                const unsigned char *q,
                                unsigned char *xj);
+
+
+
+
+
+extern SECStatus
+PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len, 
+		const PRUint8 *nonce, unsigned int nonce_len,
+		const PRUint8 *personal_string, unsigned int ps_len);
+
+extern SECStatus
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
+		  const PRUint8 *additional, unsigned int additional_len);
+
+extern SECStatus
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
+		  const PRUint8 *additional, unsigned int additional_len);
+
+extern SECStatus
+PRNGTEST_Uninstantiate(void);
+
 
 
 

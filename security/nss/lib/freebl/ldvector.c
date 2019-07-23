@@ -254,7 +254,14 @@ static const struct FREEBLVectorStr vector =
     
 
     BL_Init,
-    BL_SetForkState
+    BL_SetForkState,
+
+    
+
+    PRNGTEST_Instantiate,
+    PRNGTEST_Reseed,
+    PRNGTEST_Generate,
+    PRNGTEST_Uninstantiate
 
     
 };

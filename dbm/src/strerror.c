@@ -33,8 +33,6 @@
 static char sccsid[] = "@(#)strerror.c	8.1 (Berkeley) 6/4/93";
 #endif 
 
-#include "watcomfx.h"
-
 #include <string.h>
 
 #ifdef _DLL

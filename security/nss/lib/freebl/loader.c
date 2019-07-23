@@ -1655,3 +1655,45 @@ void BL_SetForkState(PRBool forked)
 	return;
     (vector->p_BL_SetForkState)(forked);
 }
+
+SECStatus
+PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len, 
+		const PRUint8 *nonce, unsigned int nonce_len,
+		const PRUint8 *personal_string, unsigned int ps_len)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Instantiate)(entropy, entropy_len, 
+					   nonce,  nonce_len,
+					   personal_string,  ps_len);
+}
+
+SECStatus
+PRNGTEST_Reseed(const PRUint8 *entropy, unsigned int entropy_len, 
+		  const PRUint8 *additional, unsigned int additional_len)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Reseed)(entropy, entropy_len, 
+				       additional, additional_len);
+}
+
+SECStatus
+PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len, 
+		  const PRUint8 *additional, unsigned int additional_len)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Generate)(bytes, bytes_len, 
+					 additional, additional_len);
+}
+
+SECStatus
+PRNGTEST_Uninstantiate()
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+	return SECFailure;
+    return (vector->p_PRNGTEST_Uninstantiate)();
+}
+
+

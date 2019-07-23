@@ -182,6 +182,17 @@ extern char *CERT_Hexify (SECItem *i, int do_colon);
 
 
 
+extern SECStatus
+CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen);
+
+
+
+
+
+
+
+
+
 
 
 
