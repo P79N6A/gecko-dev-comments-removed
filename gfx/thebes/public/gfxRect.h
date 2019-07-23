@@ -151,6 +151,10 @@ struct THEBES_API gfxRect {
     
     
     
+    void RoundIn();
+    
+    
+    
     void RoundOut();
 
     
