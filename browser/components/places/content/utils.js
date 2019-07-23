@@ -1170,9 +1170,6 @@ var PlacesUIUtils = {
         self.leftPaneQueries["AllBookmarks"] = itemId;
 
         
-        PlacesUtils.bookmarks.setFolderReadonly(allBookmarksId, true);
-
-        
         uri = PlacesUtils._uri("place:folder=TOOLBAR");
         itemId = PlacesUtils.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
         PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
