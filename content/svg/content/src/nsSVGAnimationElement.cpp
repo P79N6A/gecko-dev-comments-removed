@@ -386,12 +386,7 @@ nsSVGAnimationElement::BeginElementAt(float offset)
 
   ownerSVG->RequestSample();
 
-  
-  
-  
-  mTimedElement.BeginElementAt(offset, mTimedDocumentRoot);
-
-  return NS_OK;
+  return mTimedElement.BeginElementAt(offset, mTimedDocumentRoot);
 }
 
 
@@ -411,8 +406,5 @@ nsSVGAnimationElement::EndElementAt(float offset)
 
   ownerSVG->RequestSample();
 
-  
-  mTimedElement.EndElementAt(offset, mTimedDocumentRoot);
-
-  return NS_OK;
+  return mTimedElement.EndElementAt(offset, mTimedDocumentRoot);
 }

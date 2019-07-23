@@ -75,8 +75,8 @@ public:
 
 
 
-  PRBool BeginElementAt(double aOffsetSeconds,
-                        const nsSMILTimeContainer* aContainer);
+  nsresult BeginElementAt(double aOffsetSeconds,
+                          const nsSMILTimeContainer* aContainer);
 
   
 
@@ -89,8 +89,8 @@ public:
 
 
 
-  PRBool EndElementAt(double aOffsetSeconds,
-                      const nsSMILTimeContainer* aContainer);
+  nsresult EndElementAt(double aOffsetSeconds,
+                        const nsSMILTimeContainer* aContainer);
 
   
 

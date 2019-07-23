@@ -102,54 +102,30 @@ nsSMILTimedElement::nsSMILTimedElement()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-PRBool
+nsresult
 nsSMILTimedElement::BeginElementAt(double aOffsetSeconds,
                                    const nsSMILTimeContainer* aContainer)
 {
-  
-  
-  if ((mRestartMode == RESTART_NEVER &&
-       (mElementState == STATE_ACTIVE || mElementState == STATE_POSTACTIVE)) ||
-      (mRestartMode == RESTART_WHENNOTACTIVE &&
-       mElementState == STATE_ACTIVE)) {
-    return PR_FALSE;
-  }
-
   if (!AddInstanceTimeFromCurrentTime(aOffsetSeconds, PR_TRUE, aContainer)) {
     
     NS_ERROR("Failed to begin element");
-    return PR_FALSE;
+    return NS_ERROR_FAILURE;
   }
 
-  return PR_TRUE;
+  return NS_OK;
 }
 
-
-PRBool
+nsresult
 nsSMILTimedElement::EndElementAt(double aOffsetSeconds,
                                  const nsSMILTimeContainer* aContainer)
 {
-  if (mElementState != STATE_ACTIVE)
-    return PR_FALSE;
-
   if (!AddInstanceTimeFromCurrentTime(aOffsetSeconds, PR_FALSE, aContainer)) {
     
     NS_ERROR("Failed to end element");
-    return PR_FALSE;
+    return NS_ERROR_FAILURE;
   }
 
-  return PR_TRUE;
+  return NS_OK;
 }
 
 
@@ -190,10 +166,11 @@ void
 nsSMILTimedElement::AddInstanceTime(const nsSMILInstanceTime& aInstanceTime,
                                     PRBool aIsBegin)
 {
-  if (aIsBegin)
+  if (aIsBegin) {
     mBeginInstances.AppendElement(aInstanceTime);
-  else
+  } else {
     mEndInstances.AppendElement(aInstanceTime);
+  }
 
   UpdateCurrentInterval();
 }
