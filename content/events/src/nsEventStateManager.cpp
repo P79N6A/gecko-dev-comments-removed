@@ -377,6 +377,8 @@ public:
   static void BeginTransaction(nsIFrame* aTargetFrame,
                                PRInt32 aNumLines,
                                PRBool aScrollHorizontal);
+  
+  
   static PRBool UpdateTransaction(PRInt32 aNumLines,
                                   PRBool aScrollHorizontal);
   static void EndTransaction();
@@ -543,6 +545,10 @@ nsMouseWheelTransaction::OnFailToScrollTarget()
                     sTargetFrame->GetContent(),
                     NS_LITERAL_STRING("MozMouseScrollFailed"),
                     PR_TRUE, PR_TRUE);
+  
+  
+  if (!sTargetFrame)
+    EndTransaction();
 }
 
 void
@@ -2734,6 +2740,12 @@ nsEventStateManager::DoScrollText(nsPresContext* aPresContext,
     nsIScrollableViewProvider* svp = do_QueryFrame(lastScrollFrame);
     if (svp && (scrollView = svp->GetScrollableView())) {
       nsMouseWheelTransaction::UpdateTransaction(aNumLines, aScrollHorizontal);
+      
+      
+      
+      
+      if (!nsMouseWheelTransaction::GetTargetFrame())
+        return NS_OK;
     } else {
       nsMouseWheelTransaction::EndTransaction();
       lastScrollFrame = nsnull;
