@@ -431,7 +431,6 @@ nsresult nsHttpStreamStrategy::Read(char* aBuffer, PRUint32 aCount, PRUint32* aB
 
   
   
-  
   nsresult rv = mPipeInput->Read(aBuffer, aCount, aBytes);
   NS_ENSURE_SUCCESS(rv, rv);
   mPosition += *aBytes;
@@ -589,14 +588,21 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
       nsAutoArrayPtr<char> data(new char[bytesAhead]);
       if (!data)
         return NS_ERROR_OUT_OF_MEMORY;
+    
       
+      
+      
+      PRUint32 bytesRead = 0;
       PRUint32 bytes = 0;
-      
-      
-      
-      nsresult rv = mPipeInput->Read(data.get(), bytesAhead, &bytes);
-      NS_ENSURE_SUCCESS(rv, rv);
-      mPosition += bytesAhead;
+      do {
+        nsresult rv = mPipeInput->Read(data.get(),
+                                       (bytesAhead-bytesRead),
+                                       &bytes);
+        NS_ENSURE_SUCCESS(rv, rv);
+        NS_ENSURE_TRUE(bytes != 0, NS_ERROR_FAILURE); 
+        mPosition += bytes;
+        bytesRead += bytes;
+      } while (bytesRead != bytesAhead);
       return rv;
     }
   }

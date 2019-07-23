@@ -133,6 +133,8 @@ class nsMediaStream
   
   
   
+  
+  
   nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
 
   
