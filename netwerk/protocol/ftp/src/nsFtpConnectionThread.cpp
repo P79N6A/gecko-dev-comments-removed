@@ -1908,7 +1908,9 @@ nsFtpState::OnTransportStatus(nsITransport *transport, nsresult status,
 
     
     
-    mChannel->OnTransportStatus(nsnull, status, progress, mFileSize);
+    
+    mChannel->OnTransportStatus(nsnull, status, progress,
+                                mFileSize - mChannel->StartPos());
     return NS_OK;
 }
 
