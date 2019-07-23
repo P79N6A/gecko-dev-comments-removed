@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -4587,7 +4588,7 @@ js_generic_fast_native_method_dispatcher(JSContext *cx, uintN argc, jsval *vp)
     native =
 #ifdef JS_TRACER
              (fs->flags & JSFUN_TRACEABLE)
-             ? ((JSTraceableNative *) fs->call)->native
+             ? JS_FUNC_TO_DATA_PTR(JSTraceableNative *, fs->call)->native
              :
 #endif
                (JSFastNative) fs->call;
@@ -5153,9 +5154,9 @@ JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
     
     tmp = *script;
     if (part == JSEXEC_PROLOG) {
-        tmp.length = tmp.main - tmp.code;
+        tmp.length = PTRDIFF(tmp.main, tmp.code, jsbytecode);
     } else {
-        tmp.length -= tmp.main - tmp.code;
+        tmp.length -= PTRDIFF(tmp.main, tmp.code, jsbytecode);
         tmp.code = tmp.main;
     }
 
