@@ -1563,6 +1563,14 @@ nsNativeThemeWin::GetWidgetOverflow(nsIDeviceContext* aContext,
                                     PRUint8 aWidgetType,
                                     nsRect* aResult)
 {
+  
+
+
+
+
+
+
+#if 0
   if (mIsVistaOrLater) {
     
 
@@ -1580,6 +1588,7 @@ nsNativeThemeWin::GetWidgetOverflow(nsIDeviceContext* aContext,
       return PR_TRUE;
     }
   }
+#endif
 
   return PR_FALSE;
 }
