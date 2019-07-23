@@ -197,90 +197,6 @@ MakeCommandLine(int argc, PRUnichar **argv)
 
 
 
-static BOOL
-LaunchAsNormalUser(const PRUnichar *exePath, PRUnichar *cl)
-{
-#ifdef WINCE
-  return PR_FALSE;
-#else
-  if (!pCreateProcessWithTokenW) {
-    
-    *(FARPROC *)&pIsUserAnAdmin =
-        GetProcAddress(GetModuleHandleA("shell32.dll"), "IsUserAnAdmin");
-
-    
-    *(FARPROC *)&pCreateProcessWithTokenW =
-        GetProcAddress(GetModuleHandleA("advapi32.dll"),
-                       "CreateProcessWithTokenW");
-
-    if (!pCreateProcessWithTokenW)
-      return FALSE;
-  }
-
-  
-  if (!pIsUserAnAdmin || pIsUserAnAdmin && !pIsUserAnAdmin())
-    return FALSE;
-
-  
-  HWND hwndShell = FindWindowA("Progman", NULL);
-  DWORD dwProcessId;
-  GetWindowThreadProcessId(hwndShell, &dwProcessId);
-
-  HANDLE hProcessShell = OpenProcess(MAXIMUM_ALLOWED, FALSE, dwProcessId);
-  if (!hProcessShell)
-    return FALSE;
-
-  HANDLE hTokenShell;
-  BOOL ok = OpenProcessToken(hProcessShell, MAXIMUM_ALLOWED, &hTokenShell);
-  CloseHandle(hProcessShell);
-  if (!ok)
-    return FALSE;
-
-  HANDLE hNewToken;
-  ok = DuplicateTokenEx(hTokenShell,
-                        MAXIMUM_ALLOWED,
-                        NULL,
-                        SecurityDelegation,
-                        TokenPrimary,
-                        &hNewToken);
-  CloseHandle(hTokenShell);
-  if (!ok)
-    return FALSE;
-
-  STARTUPINFOW si = {sizeof(si), 0};
-  PROCESS_INFORMATION pi = {0};
-
-  
-  
-  
-  WCHAR* myenv = GetEnvironmentStringsW();
-
-  ok = pCreateProcessWithTokenW(hNewToken,
-                                0,    
-                                exePath,
-                                cl,
-                                CREATE_UNICODE_ENVIRONMENT,
-                                myenv, 
-                                NULL, 
-                                &si,
-                                &pi);
-
-  if (myenv)
-    FreeEnvironmentStringsW(myenv);
-
-  CloseHandle(hNewToken);
-  if (!ok)
-    return FALSE;
-
-  CloseHandle(pi.hProcess);
-  CloseHandle(pi.hThread);
-
-  return TRUE;
-#endif
-}
-
-
-
 
 static PRUnichar*
 AllocConvertUTF8toUTF16(const char *arg)
@@ -314,12 +230,11 @@ FreeAllocStrings(int argc, PRUnichar **argv)
 
 
 
+BOOL
+WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv);
 
 BOOL
-WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv, int needElevation);
-
-BOOL
-WinLaunchChild(const PRUnichar *exePath, int argc, char **argv, int needElevation)
+WinLaunchChild(const PRUnichar *exePath, int argc, char **argv)
 {
   PRUnichar** argvConverted = new PRUnichar*[argc];
   if (!argvConverted)
@@ -332,61 +247,37 @@ WinLaunchChild(const PRUnichar *exePath, int argc, char **argv, int needElevatio
     }
   }
 
-  BOOL ok = WinLaunchChild(exePath, argc, argvConverted, needElevation);
+  BOOL ok = WinLaunchChild(exePath, argc, argvConverted);
   FreeAllocStrings(argc, argvConverted);
   return ok;
 }
 
 BOOL
-WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv, int needElevation)
+WinLaunchChild(const PRUnichar *exePath, int argc, PRUnichar **argv)
 {
   PRUnichar *cl;
   BOOL ok;
-#ifndef WINCE
-  if (needElevation > 0) {
-    cl = MakeCommandLine(argc - 1, argv + 1);
-    if (!cl)
-      return FALSE;
-    ok = ShellExecuteW(NULL, 
-                       NULL, 
-                       exePath,
-                       cl,
-                       NULL, 
-                       SW_SHOWDEFAULT) > (HINSTANCE)32;
-    free(cl);
-    return ok;
-  }
-#endif
   cl = MakeCommandLine(argc, argv);
   if (!cl)
     return FALSE;
 
-  if (needElevation < 0) {
-    
-    ok = LaunchAsNormalUser(exePath, cl);
-    
-    if (!ok)
-      needElevation = 0;
-  }
-  if (needElevation == 0) {
-    STARTUPINFOW si = {sizeof(si), 0};
-    PROCESS_INFORMATION pi = {0};
+  STARTUPINFOW si = {sizeof(si), 0};
+  PROCESS_INFORMATION pi = {0};
 
-    ok = CreateProcessW(exePath,
-                        cl,
-                        NULL,  
-                        NULL,  
-                        FALSE, 
-                        0,     
-                        NULL,  
-                        NULL,  
-                        &si,
-                        &pi);
+  ok = CreateProcessW(exePath,
+                      cl,
+                      NULL,  
+                      NULL,  
+                      FALSE, 
+                      0,     
+                      NULL,  
+                      NULL,  
+                      &si,
+                      &pi);
 
-    if (ok) {
-      CloseHandle(pi.hProcess);
-      CloseHandle(pi.hThread);
-    }
+  if (ok) {
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
   }
 
   free(cl);

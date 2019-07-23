@@ -1093,20 +1093,42 @@ LaunchWinPostProcess(const WCHAR *appExe)
   WCHAR slogFile[MAXPATHLEN];
   _snwprintf(slogFile, MAXPATHLEN, L"%s/update.log", gSourcePath);
 
+  WCHAR dummyArg[13];
+  wcscpy(dummyArg, L"argv0ignored ");
+
+  int len = wcslen(exearg) + wcslen(dummyArg);
+  WCHAR *cmdline = (WCHAR *) malloc((len + 1) * sizeof(WCHAR));
+  if (!cmdline)
+    return;
+
+  wcscpy(cmdline, dummyArg);
+  wcscat(cmdline, exearg);
+
   
   
   
   NS_tremove(dlogFile);
   CopyFile(slogFile, dlogFile, FALSE);
 
-  static int    argc = 2;
-  static WCHAR* argv[3] = {
-    L"argv0ignoredbywinlaunchchild",
-    exearg,
-    L"\0"
-  };
- 
-  WinLaunchChild(exefullpath, argc, argv, 0);
+  STARTUPINFOW si = {sizeof(si), 0};
+  PROCESS_INFORMATION pi = {0};
+
+  BOOL ok = CreateProcessW(exefullpath,
+                           cmdline,
+                           NULL,  
+                           NULL,  
+                           FALSE, 
+                           0,     
+                           NULL,  
+                           NULL,  
+                           &si,
+                           &pi);
+  free(cmdline);
+
+  if (ok) {
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+  }
 }
 #endif
 
@@ -1124,7 +1146,7 @@ LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
 #elif defined(XP_MACOSX)
   LaunchChild(argc, argv);
 #elif defined(XP_WIN)
-  WinLaunchChild(argv[0], argc, argv, 0);
+  WinLaunchChild(argv[0], argc, argv);
 #else
 # warning "Need implementaton of LaunchCallbackApp"
 #endif
