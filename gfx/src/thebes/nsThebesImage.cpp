@@ -631,7 +631,7 @@ nsThebesImage::Draw(gfxContext*        aContext,
         
         switch (currentTarget->GetType()) {
         case gfxASurface::SurfaceTypeXlib:
-        case gfxASurface::SurfaceTypeXcb:
+        case gfxASurface::SurfaceTypeXcb: {
             
             
             
@@ -641,8 +641,21 @@ nsThebesImage::Draw(gfxContext*        aContext,
             
             
             
-            pattern->SetFilter(0);
+            
+            
+            
+            
+            
+            
+            
+            PRBool isDownscale =
+              deviceToImage.xx >= 1.0 && deviceToImage.yy >= 1.0 &&
+              deviceToImage.xy == 0.0 && deviceToImage.yx == 0.0;
+            if (!isDownscale) {
+                pattern->SetFilter(0);
+            }
             break;
+        }
   
         case gfxASurface::SurfaceTypeQuartz:
         case gfxASurface::SurfaceTypeQuartzImage:
