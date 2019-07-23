@@ -111,6 +111,10 @@ private:
 
 
 
+
+
+
+
 #define NS_NAVHISTORYRESULT_IID \
   { 0x455d1d40, 0x1b9b, 0x40e6, { 0xa6, 0x41, 0x8b, 0xb7, 0xe8, 0x82, 0x23, 0x87 } }
 
@@ -126,6 +130,9 @@ public:
                                    nsNavHistoryContainerResultNode* aRoot,
                                    nsNavHistoryResult** result);
 
+  
+  friend class nsNavHistoryResultTreeViewer;
+
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_NAVHISTORYRESULT_IID)
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -140,6 +147,10 @@ public:
   void RemoveBookmarkFolderObserver(nsNavHistoryFolderResultNode* aNode, PRInt64 aFolder);
   void RemoveAllBookmarksObserver(nsNavHistoryQueryResultNode* aNode);
   void StopObserving();
+
+  
+  nsINavHistoryResultViewer* GetView() const
+    { return mView; }
 
 public:
   
@@ -165,6 +176,8 @@ public:
   
   nsCString mSortingAnnotation;
 
+  nsCOMPtr<nsINavHistoryResultViewer> mView;
+
   
   PRBool mIsHistoryObserver;
   PRBool mIsBookmarkFolderObserver;
@@ -184,9 +197,6 @@ public:
   void InvalidateTree();
   
   PRBool mBatchInProgress;
-
-  nsMaybeWeakPtrArray<nsINavHistoryResultObserver> mObservers;
-  PRBool mSuppressNotifications;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsNavHistoryResult, NS_NAVHISTORYRESULT_IID)
@@ -530,7 +540,7 @@ public:
 
   
   virtual nsresult OpenContainer();
-  nsresult CloseContainer(PRBool aSuppressNotifications = PR_FALSE);
+  nsresult CloseContainer(PRBool aUpdateView = PR_TRUE);
 
   
   
@@ -557,7 +567,7 @@ public:
   nsCString mDynamicContainerType;
 
   void FillStats();
-  nsresult ReverseUpdateStats(PRInt32 aAccessCountChange);
+  void ReverseUpdateStats(PRInt32 aAccessCountChange);
 
   
   typedef nsCOMArray<nsNavHistoryResultNode>::nsCOMArrayComparatorFunc SortComparator;
@@ -643,10 +653,10 @@ public:
                          nsNavHistoryContainerResultNode* aContainer,
                          const nsCString& aSpec,
                          nsCOMArray<nsNavHistoryResultNode>* aMatches);
-  nsresult UpdateURIs(PRBool aRecursive, PRBool aOnlyOne, PRBool aUpdateSort,
-                      const nsCString& aSpec,
-                      nsresult (*aCallback)(nsNavHistoryResultNode*,void*, nsNavHistoryResult*),
-                      void* aClosure);
+  void UpdateURIs(PRBool aRecursive, PRBool aOnlyOne, PRBool aUpdateSort,
+                  const nsCString& aSpec,
+                  void (*aCallback)(nsNavHistoryResultNode*,void*, nsNavHistoryResult*),
+                  void* aClosure);
   nsresult ChangeTitles(nsIURI* aURI, const nsACString& aNewTitle,
                         PRBool aRecursive, PRBool aOnlyOne);
 };

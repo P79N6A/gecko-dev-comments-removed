@@ -63,7 +63,7 @@ PlacesTreeView.prototype = {
 
   QueryInterface: function PTV_QueryInterface(aIID) {
     if (aIID.equals(Ci.nsITreeView) ||
-        aIID.equals(Ci.nsINavHistoryResultObserver) ||
+        aIID.equals(Ci.nsINavHistoryResultViewer) ||
         aIID.equals(Ci.nsINavHistoryResultTreeViewer) ||
         aIID.equals(Ci.nsISupports))
       return this;
@@ -995,16 +995,22 @@ PlacesTreeView.prototype = {
 
   get result() this._result,
   set result(val) {
-    if (this._result)
-      this._rootNode.containerOpen = false;
-
-    this._result = val;
-    this._rootNode = val ? val.root : null;
-
     
-    if (this._tree && val)
-      this._finishInit();
+    
+    
+    
+    
+    if (this._result != val) {
+      if (this._result)
+        this._rootNode.containerOpen = false;
 
+      this._result = val;
+      this._rootNode = val ? val.root : null;
+
+      
+      if (this._tree && val)
+        this._finishInit();
+    }
     return val;
   },
 
@@ -1358,7 +1364,7 @@ PlacesTreeView.prototype = {
         
         
         if (!aTree)
-          this._result.removeObserver(this);
+          this._result.viewer = null;
       }
       if (aTree)
         this._finishInit();
