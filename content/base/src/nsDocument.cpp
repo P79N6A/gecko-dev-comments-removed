@@ -495,11 +495,13 @@ nsIdentifierMapEntry::RemoveIdContent(nsIContent* aContent)
   nsIContent* currentContent = static_cast<nsIContent*>(mIdContentList.SafeElementAt(0));
   if (!mIdContentList.RemoveElement(aContent))
     return PR_FALSE;
-  NS_RELEASE(aContent);
   if (currentContent == aContent) {
     FireChangeCallbacks(currentContent,
                         static_cast<nsIContent*>(mIdContentList.SafeElementAt(0)));
   }
+  
+  
+  NS_RELEASE(aContent);
   return mIdContentList.Count() == 0 && !mNameContentList && !mChangeCallbacks;
 }
 
