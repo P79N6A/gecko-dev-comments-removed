@@ -3049,18 +3049,18 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
                 return JS_FALSE;
             }
         } else {
-            bool error = (op == JSOP_DEFCONST ||
-                          dn_kind == JSDefinition::CONST ||
-                          (dn_kind == JSDefinition::LET &&
-                           (stmt->type != STMT_CATCH || OuterLet(tc, stmt, atom))));
-
             if (JS_HAS_STRICT_OPTION(cx)
                 ? op != JSOP_DEFVAR || dn_kind != JSDefinition::VAR
-                : error) {
+                : op == JSOP_DEFCONST ||
+                  dn_kind == JSDefinition::CONST ||
+                  (dn_kind == JSDefinition::LET &&
+                   (stmt->type != STMT_CATCH || OuterLet(tc, stmt, atom)))) {
                 name = js_AtomToPrintableString(cx, atom);
                 if (!name ||
                     !js_ReportCompileErrorNumber(cx, TS(tc->compiler), pn,
-                                                 !error
+                                                 (op != JSOP_DEFCONST &&
+                                                  dn_kind != JSDefinition::CONST &&
+                                                  dn_kind != JSDefinition::LET)
                                                  ? JSREPORT_WARNING | JSREPORT_STRICT
                                                  : JSREPORT_ERROR,
                                                  JSMSG_REDECLARED_VAR,
@@ -7568,7 +7568,6 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                     
                     js_MatchToken(cx, ts, TOK_COMMA);
                     pn2 = NewParseNode(PN_NULLARY, tc);
-                    pn->pn_xflags |= PNX_HOLEY;
                 } else {
                     pn2 = AssignExpr(cx, ts, tc);
                 }
