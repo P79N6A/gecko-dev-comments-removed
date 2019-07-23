@@ -1099,7 +1099,7 @@ nsFrameSelection::SetCaretBidiLevel(PRUint8 aLevel)
 {
   
   
-  PRBool afterInsert = mCaretBidiLevel & BIDI_LEVEL_UNDEFINED;
+  PRBool afterInsert = !!(mCaretBidiLevel & BIDI_LEVEL_UNDEFINED);
   mCaretBidiLevel = aLevel;
   
   nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
