@@ -207,6 +207,11 @@ public:
   
 
 
+
+  void IgnorePaintSuppression() { mIsBackgroundOnly = PR_FALSE; }
+  
+
+
   nsresult DisplayCaret(nsIFrame* aFrame, const nsRect& aDirtyRect,
       const nsDisplayListSet& aLists) {
     nsIFrame* frame = GetCaretFrame();

@@ -77,6 +77,8 @@
 #include "nsIDOMProcessingInstruction.h"
 #include "nsDOMString.h"
 #include "nsNodeUtils.h"
+#include "nsLayoutUtils.h" 
+#include "nsIFrame.h"
 
 #include "nsRange.h"
 #include "nsIDOMText.h"
@@ -1648,6 +1650,60 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
 
   
   return GetDocumentElement(aElement);
+}
+
+NS_IMETHODIMP
+nsDocument::ElementFromPoint(PRInt32 aX, PRInt32 aY, nsIDOMElement** aReturn)
+{
+  NS_ENSURE_ARG_POINTER(aReturn);
+  *aReturn = nsnull;
+  
+  if (aX < 0 || aY < 0)
+    return NS_OK;
+
+  nscoord x = nsPresContext::CSSPixelsToAppUnits(aX);
+  nscoord y = nsPresContext::CSSPixelsToAppUnits(aY);
+  nsPoint pt(x, y);
+
+  
+  
+  FlushPendingNotifications(Flush_Layout);
+
+  nsIPresShell *ps = GetPrimaryShell();
+  NS_ENSURE_STATE(ps);
+  nsIFrame *rootFrame = ps->GetRootFrame();
+
+  
+  if (!rootFrame)
+    return NS_OK; 
+
+  nsIFrame *ptFrame = nsLayoutUtils::GetFrameForPoint(rootFrame, pt, PR_TRUE);
+  if (!ptFrame)
+    return NS_OK;
+
+  nsIContent* ptContent = ptFrame->GetContent();
+  NS_ENSURE_STATE(ptContent);
+
+  
+  nsIDocument *currentDoc = ptContent->GetCurrentDoc();
+  if (currentDoc && (currentDoc != this)) {
+    *aReturn = CheckAncestryAndGetFrame(currentDoc).get();
+    return NS_OK;
+  }
+
+  
+  
+  
+  while (ptContent &&
+         !ptContent->IsNodeOfType(nsINode::eELEMENT) ||
+         ptContent->GetBindingParent() ||
+         ptContent->IsNativeAnonymous()) {
+    ptContent = ptContent->GetParent();
+  }
+ 
+  if (ptContent)
+    CallQueryInterface(ptContent, aReturn);
+  return NS_OK;
 }
 
 NS_IMETHODIMP

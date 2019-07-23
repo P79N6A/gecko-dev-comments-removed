@@ -379,7 +379,10 @@ public:
 
 
 
-  static nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt);
+
+
+  static nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt,
+                                    PRBool aShouldIgnoreSuppression = PR_FALSE);
 
   
 
