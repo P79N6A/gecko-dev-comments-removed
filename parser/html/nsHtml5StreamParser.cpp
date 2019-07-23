@@ -581,9 +581,7 @@ nsHtml5StreamParser::ParseUntilSuspend()
             return; 
           case STREAM_ENDING:
             mDone = PR_TRUE;
-            if (mExecutor->ReadyToCallDidBuildModel(PR_FALSE)) {
-              mExecutor->DidBuildModel();
-            }
+            mExecutor->DidBuildModel(PR_FALSE);
             return; 
           default:
             NS_NOTREACHED("It should be impossible to reach this.");

@@ -142,11 +142,6 @@ class nsHtml5TreeOpExecutor : public nsIContentSink,
   
     
 
-    virtual PRBool ReadyToCallDidBuildModel(PRBool aTerminated)
-    {
-      return ReadyToCallDidBuildModelImpl(aTerminated);
-    };
-
     
 
 
@@ -166,7 +161,7 @@ class nsHtml5TreeOpExecutor : public nsIContentSink,
     
 
 
-    NS_IMETHOD DidBuildModel();
+    NS_IMETHOD DidBuildModel(PRBool aTerminated);
 
     
 

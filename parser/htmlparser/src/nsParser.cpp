@@ -1602,10 +1602,9 @@ nsParser::DidBuildModel(nsresult anErrorCode)
       
       
       PRBool terminated = mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING;
-      if (mDTD && mSink &&
-          mSink->ReadyToCallDidBuildModel(terminated)) {
+      if (mDTD && mSink) {
         nsresult dtdResult =  mDTD->DidBuildModel(anErrorCode),
-                sinkResult = mSink->DidBuildModel();
+                sinkResult = mSink->DidBuildModel(terminated);
         
         
         
@@ -1768,7 +1767,7 @@ nsParser::Terminate(void)
   } else if (mSink) {
     
     
-    result = mSink->DidBuildModel();
+    result = mSink->DidBuildModel(PR_TRUE);
     NS_ENSURE_SUCCESS(result, result);
   }
 

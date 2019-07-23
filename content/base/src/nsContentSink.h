@@ -133,8 +133,7 @@ class nsContentSink : public nsICSSLoaderObserver,
   NS_HIDDEN_(nsresult) WillResumeImpl(void);
   NS_HIDDEN_(nsresult) DidProcessATokenImpl(void);
   NS_HIDDEN_(void) WillBuildModelImpl(void);
-  NS_HIDDEN_(void) DidBuildModelImpl(void);
-  NS_HIDDEN_(PRBool) ReadyToCallDidBuildModelImpl(PRBool aTerminated);
+  NS_HIDDEN_(void) DidBuildModelImpl(PRBool aTerminated);
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
   PRBool IsScriptExecutingImpl();
 
@@ -338,8 +337,6 @@ protected:
   PRUint8 mDeferredLayoutStart : 1;
   
   PRUint8 mDeferredFlushTags : 1;
-  
-  PRUint8 mDidGetReadyToCallDidBuildModelCall : 1;
   
   
   

@@ -357,11 +357,6 @@ nsContentSink::ScriptAvailable(nsresult aResult,
 
   
   if (count == 0 || aElement != mScriptElements[count - 1]) {
-    if (mDidGetReadyToCallDidBuildModelCall &&
-        !mScriptLoader->HasPendingOrCurrentScripts() &&
-        mParser && mParser->IsParserEnabled()) {
-      ContinueInterruptedParsingAsync();
-    }
     return NS_OK;
   }
 
@@ -404,11 +399,6 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
   
   PRInt32 count = mScriptElements.Count();
   if (count == 0 || aElement != mScriptElements[count - 1]) {
-    if (mDidGetReadyToCallDidBuildModelCall &&
-        !mScriptLoader->HasPendingOrCurrentScripts() &&
-        mParser && mParser->IsParserEnabled()) {
-      ContinueInterruptedParsingAsync();
-    }
     return NS_OK;
   }
 
@@ -1642,8 +1632,16 @@ nsContentSink::EndUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
 }
 
 void
-nsContentSink::DidBuildModelImpl(void)
+nsContentSink::DidBuildModelImpl(PRBool aTerminated)
 {
+  if (mDocument && !aTerminated) {
+    mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
+  }
+
+  if (mScriptLoader) {
+    mScriptLoader->ParsingComplete(aTerminated);
+  }
+
   if (!mDocument->HaveFiredDOMTitleChange()) {
     mDocument->NotifyPossibleTitleChange(PR_FALSE);
   }
@@ -1766,26 +1764,6 @@ nsContentSink::ContinueInterruptedParsingAsync()
     &nsContentSink::ContinueInterruptedParsingIfEnabled);
 
   NS_DispatchToCurrentThread(ev);
-}
-
-PRBool
-nsContentSink::ReadyToCallDidBuildModelImpl(PRBool aTerminated)
-{
-  if (!mDidGetReadyToCallDidBuildModelCall) {
-    if (mDocument && !aTerminated) {
-      mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
-    }
-
-    if (mScriptLoader) {
-      mScriptLoader->ParsingComplete(aTerminated);
-    }
-  }
-
-  mDidGetReadyToCallDidBuildModelCall = PR_TRUE;
-  
-  
-  return aTerminated || !mScriptLoader ||
-         !mScriptLoader->HasPendingOrCurrentScripts();
 }
 
 
