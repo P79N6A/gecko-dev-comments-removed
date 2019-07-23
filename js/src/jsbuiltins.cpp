@@ -125,17 +125,17 @@ int32 FASTCALL builtin_doubleToUint32(jsdouble d)
     return js_DoubleToECMAUint32(d);
 }
 
-jsdouble FASTCALL builtin_Math_dot_sin(jsdouble d)
+jsdouble FASTCALL builtin_Math_sin(jsdouble d)
 {
     return sin(d);
 }
 
-jsdouble FASTCALL builtin_Math_dot_cos(jsdouble d)
+jsdouble FASTCALL builtin_Math_cos(jsdouble d)
 {
     return cos(d);
 }
 
-jsdouble FASTCALL builtin_Math_dot_pow(jsdouble d, jsdouble p)
+jsdouble FASTCALL builtin_Math_pow(jsdouble d, jsdouble p)
 {
 #ifdef NOTYET
     
