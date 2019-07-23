@@ -6769,12 +6769,6 @@ nsGlobalWindow::DispatchAsyncHashchange()
 {
   FORWARD_TO_INNER(DispatchAsyncHashchange, (), NS_OK);
 
-  nsIDocument::ReadyState readyState = mDoc->GetReadyStateEnum();
-
-  
-  if (readyState != nsIDocument::READYSTATE_COMPLETE)
-      return NS_OK;
-
   nsCOMPtr<nsIRunnable> event =
     NS_NEW_RUNNABLE_METHOD(nsGlobalWindow, this, FireHashchange);
    
