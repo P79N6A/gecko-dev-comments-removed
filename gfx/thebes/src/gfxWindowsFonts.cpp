@@ -504,6 +504,16 @@ gfxWindowsFontGroup::Copy(const gfxFontStyle *aStyle)
     return new gfxWindowsFontGroup(mFamilies, aStyle);
 }
 
+static PRBool
+CanTakeFastPath(PRUint32 aFlags)
+{
+    
+    
+    return (aFlags &
+            (gfxTextRunFactory::TEXT_OPTIMIZE_SPEED | gfxTextRunFactory::TEXT_IS_RTL)) ==
+        gfxTextRunFactory::TEXT_OPTIMIZE_SPEED;
+}
+
 gfxTextRun *
 gfxWindowsFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
                                  const Parameters *aParams, PRUint32 aFlags)
@@ -522,8 +532,8 @@ gfxWindowsFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
 #ifdef FORCE_UNISCRIBE
     const PRBool isComplex = PR_TRUE;
 #else
-    const PRBool isComplex = ScriptIsComplex(aString, aLength, SIC_COMPLEX) == S_OK ||
-                             textRun->IsRightToLeft();
+    const PRBool isComplex = !CanTakeFastPath(aFlags) ||
+                             ScriptIsComplex(aString, aLength, SIC_COMPLEX) == S_OK;
 #endif
     if (isComplex)
         InitTextRunUniscribe(aParams->mContext, textRun, aString, aLength);
@@ -547,7 +557,7 @@ gfxWindowsFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
 #ifdef FORCE_UNISCRIBE
     const PRBool isComplex = PR_TRUE;
 #else
-    const PRBool isComplex = textRun->IsRightToLeft();
+    const PRBool isComplex = !CanTakeFastPath(aFlags);
 #endif
 
     

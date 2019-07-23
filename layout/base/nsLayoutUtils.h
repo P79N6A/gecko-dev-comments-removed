@@ -700,6 +700,17 @@ public:
 
 
   static PRBool FrameHasTransparency(nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+  static PRUint32 GetTextRunFlagsForStyle(nsStyleContext* aStyleContext,
+                                          const nsStyleText* aStyleText,
+                                          const nsStyleFont* aStyleFont);
 };
 
 #endif 

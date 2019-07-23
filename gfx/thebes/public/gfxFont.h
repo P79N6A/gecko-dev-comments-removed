@@ -489,7 +489,13 @@ public:
 
 
 
-        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0400
+        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0400,
+        
+
+
+
+
+        TEXT_OPTIMIZE_SPEED          = 0x0800
     };
 
     
