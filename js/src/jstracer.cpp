@@ -9751,8 +9751,12 @@ TraceRecorder::guardClass(JSObject* obj, LIns* obj_ins, JSClass* clasp, VMSideEx
     LIns* class_ins = lir->insLoad(LIR_ldp, obj_ins, offsetof(JSObject, classword));
     class_ins = lir->ins2(LIR_piand, class_ins, INS_CONSTWORD(~JSSLOT_CLASS_MASK_BITS));
 
+#ifdef JS_JIT_SPEW
     char namebuf[32];
     JS_snprintf(namebuf, sizeof namebuf, "guard(class is %s)", clasp->name);
+#else
+    static const char namebuf[] = "";
+#endif
     guard(cond, addName(lir->ins2(LIR_peq, class_ins, INS_CONSTPTR(clasp)), namebuf), exit);
     return cond;
 }
@@ -13961,17 +13965,6 @@ TraceRecorder::record_JSOP_ARGSUB()
     RETURN_STOP_A("can't trace JSOP_ARGSUB hard case");
 }
 
-JS_REQUIRES_STACK LIns*
-TraceRecorder::guardArgsLengthNotAssigned(LIns* argsobj_ins)
-{
-    
-    
-    LIns *len_ins = stobj_get_fslot(argsobj_ins, JSSLOT_ARGS_LENGTH);
-    LIns *ovr_ins = lir->ins2(LIR_piand, len_ins, INS_CONSTWORD(2));
-    guard(true, lir->ins_peq0(ovr_ins), snapshot(BRANCH_EXIT));
-    return len_ins;
-}
-
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_ARGCNT()
 {
@@ -13989,7 +13982,13 @@ TraceRecorder::record_JSOP_ARGCNT()
     LIns *a_ins = get(&cx->fp->argsobj);
     if (callDepth == 0) {
         LIns *br = lir->insBranch(LIR_jt, lir->ins_peq0(a_ins), NULL);
-        guardArgsLengthNotAssigned(a_ins);
+
+        
+        
+        LIns *len_ins = stobj_get_fslot(a_ins, JSSLOT_ARGS_LENGTH);
+        LIns *ovr_ins = lir->ins2(LIR_piand, len_ins, INS_CONSTWORD(2));
+
+        guard(true, lir->ins_peq0(ovr_ins), snapshot(BRANCH_EXIT));
         LIns *label = lir->ins0(LIR_label);
         br->setTarget(label);
     }
@@ -14832,15 +14831,7 @@ TraceRecorder::record_JSOP_LENGTH()
         if (!afp)
             RETURN_STOP_A("can't reach arguments object's frame");
 
-        
-        
-        if (js_IsOverriddenArgsLength(obj))
-            RETURN_STOP_A("can't trace JSOP_ARGCNT if arguments.length has been modified");
-        LIns* slot_ins = guardArgsLengthNotAssigned(obj_ins);
-
-        
-        
-        LIns* v_ins = lir->ins1(LIR_i2f, lir->ins2i(LIR_rsh, p2i(slot_ins), 2));
+        LIns* v_ins = lir->ins1(LIR_i2f, INS_CONST(afp->argc));
         set(&l, v_ins);
         return ARECORD_CONTINUE;
     }
