@@ -554,6 +554,67 @@ GetContextFromObject(JSObject *obj)
     return nsnull;
 }
 
+#ifndef XPCONNECT_STANDALONE
+class SameOriginCheckedComponent : public nsISecurityCheckedComponent
+{
+public:
+    SameOriginCheckedComponent(nsXPCWrappedJS* delegate)
+        : mDelegate(delegate)
+    {}
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSISECURITYCHECKEDCOMPONENT
+
+private:
+    nsRefPtr<nsXPCWrappedJS> mDelegate;
+};
+
+NS_IMPL_ADDREF(SameOriginCheckedComponent)
+NS_IMPL_RELEASE(SameOriginCheckedComponent)
+
+NS_INTERFACE_MAP_BEGIN(SameOriginCheckedComponent)
+    NS_INTERFACE_MAP_ENTRY(nsISecurityCheckedComponent)
+NS_INTERFACE_MAP_END_AGGREGATED(mDelegate)
+
+NS_IMETHODIMP
+SameOriginCheckedComponent::CanCreateWrapper(const nsIID * iid,
+                                             char **_retval NS_OUTPARAM)
+{
+    
+    
+    *_retval = NS_strdup("sameOrigin");
+    return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+}
+
+NS_IMETHODIMP
+SameOriginCheckedComponent::CanCallMethod(const nsIID * iid,
+                                          const PRUnichar *methodName,
+                                          char **_retval NS_OUTPARAM)
+{
+    *_retval = NS_strdup("sameOrigin");
+    return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+}
+
+NS_IMETHODIMP
+SameOriginCheckedComponent::CanGetProperty(const nsIID * iid,
+                                           const PRUnichar *propertyName,
+                                           char **_retval NS_OUTPARAM)
+{
+    *_retval = NS_strdup("sameOrigin");
+    return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+}
+
+NS_IMETHODIMP
+SameOriginCheckedComponent::CanSetProperty(const nsIID * iid,
+                                           const PRUnichar *propertyName,
+                                           char **_retval NS_OUTPARAM)
+{
+    *_retval = NS_strdup("sameOrigin");
+    return *_retval ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+}
+
+#endif
+
 NS_IMETHODIMP
 nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
                                              REFNSIID aIID,
@@ -659,6 +720,14 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
 
     if(aIID.Equals(NS_GET_IID(nsISecurityCheckedComponent)))
     {
@@ -666,29 +735,36 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         
         
 
+        *aInstancePtr = nsnull;
+
+        if(!XPCPerThreadData::IsMainThread(ccx.GetJSContext()))
+            return NS_NOINTERFACE;
+
         nsXPConnect *xpc = nsXPConnect::GetXPConnect();
         nsCOMPtr<nsIScriptSecurityManager> secMan =
             do_QueryInterface(xpc->GetDefaultSecurityManager());
         if(!secMan)
-        {
-            *aInstancePtr = nsnull;
             return NS_NOINTERFACE;
-        }
-        nsCOMPtr<nsIPrincipal> objPrin;
-        nsresult rv = secMan->GetObjectPrincipal(ccx, self->GetJSObject(),
-                                                 getter_AddRefs(objPrin));
-        if(NS_SUCCEEDED(rv))
-        {
-            nsCOMPtr<nsIPrincipal> systemPrin;
-            rv = secMan->GetSystemPrincipal(getter_AddRefs(systemPrin));
-            if(systemPrin != objPrin)
-                rv = NS_NOINTERFACE;
-        }
 
+        JSObject *selfObj = self->GetJSObject();
+        nsCOMPtr<nsIPrincipal> objPrin;
+        nsresult rv = secMan->GetObjectPrincipal(ccx, selfObj,
+                                                 getter_AddRefs(objPrin));
         if(NS_FAILED(rv))
-        {
-            *aInstancePtr = nsnull;
             return rv;
+
+        PRBool isSystem;
+        rv = secMan->IsSystemPrincipal(objPrin, &isSystem);
+        if((NS_FAILED(rv) || !isSystem) &&
+           !IS_WRAPPER_CLASS(STOBJ_GET_CLASS(selfObj)))
+        {
+            
+            nsRefPtr<SameOriginCheckedComponent> checked =
+                new SameOriginCheckedComponent(self);
+            if(!checked)
+                return NS_ERROR_OUT_OF_MEMORY;
+            *aInstancePtr = checked.forget().get();
+            return NS_OK;
         }
     }
 #endif
