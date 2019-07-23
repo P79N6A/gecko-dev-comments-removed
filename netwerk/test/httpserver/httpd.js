@@ -52,6 +52,8 @@ const Cr = Components.results;
 const Cu = Components.utils;
 const CC = Components.Constructor;
 
+const PR_UINT32_MAX = Math.pow(2, 32) - 1;
+
 
 var DEBUG = false; 
 
@@ -195,6 +197,9 @@ const ServerSocket = CC("@mozilla.org/network/server-socket;1",
 const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
                              "nsIBinaryInputStream",
                              "setInputStream");
+const BinaryOutputStream = CC("@mozilla.org/binaryoutputstream;1",
+                             "nsIBinaryOutputStream",
+                             "setOutputStream");
 const ScriptableInputStream = CC("@mozilla.org/scriptableinputstream;1",
                                  "nsIScriptableInputStream",
                                  "init");
@@ -951,10 +956,10 @@ function readBytes(inputStream, count)
 
 
 
-const READER_INITIAL    = 0;
-const READER_IN_HEADERS = 1;
-const READER_IN_BODY    = 2;
-
+const READER_IN_REQUEST_LINE = 0;
+const READER_IN_HEADERS      = 1;
+const READER_IN_BODY         = 2;
+const READER_FINISHED        = 3;
 
 
 
@@ -988,10 +993,15 @@ function RequestReader(connection)
 
   this._data = new LineData();
 
+  
+
+
+
+
   this._contentLength = 0;
 
   
-  this._state = READER_INITIAL;
+  this._state = READER_IN_REQUEST_LINE;
 
   
   this._metadata = new Request(connection.port);
@@ -1024,38 +1034,35 @@ RequestReader.prototype =
           gThreadManager.mainThread + ")");
     dumpn("*** this._state == " + this._state);
 
-    var count = input.available();
-
     
     
-    if (!this._data)
+    var data = this._data;
+    if (!data)
       return;
 
-    var moreAvailable = false;
-    var wasInBody = false;
-    
+    data.appendBytes(readBytes(input, input.available()));
+
     switch (this._state)
     {
-      case READER_INITIAL:
-        moreAvailable = this._processRequestLine(input, count);
-        break;
-
-      case READER_IN_HEADERS:
-        moreAvailable = this._processHeaders(input, count);
-        break;
-
-      case READER_IN_BODY:
-        wasInBody = true;
-        moreAvailable = this._processBody(input, count);
-        break;
       default:
         NS_ASSERT(false);
+        break;
+
+      case READER_IN_REQUEST_LINE:
+        if (!this._processRequestLine())
+          break;
+        
+
+      case READER_IN_HEADERS:
+        if (!this._processHeaders())
+          break;
+        
+
+      case READER_IN_BODY:
+        this._processBody();
     }
 
-    if (!wasInBody && this._state == READER_IN_BODY && moreAvailable)
-      moreAvailable = this._processBody(input, count);
-
-    if (moreAvailable)
+    if (this._state != READER_FINISHED)
       input.asyncWait(this, 0, 0, gThreadManager.currentThread);
   },
 
@@ -1080,21 +1087,14 @@ RequestReader.prototype =
 
 
 
-
-
-
-
-
-  _processRequestLine: function(input, count)
+  _processRequestLine: function()
   {
-    NS_ASSERT(this._state == READER_INITIAL);
+    NS_ASSERT(this._state == READER_IN_REQUEST_LINE);
 
+
+    
+    
     var data = this._data;
-    data.appendBytes(readBytes(input, count));
-
-
-    
-    
     var line = {};
     var readSuccess;
     while ((readSuccess = data.readLine(line)) && line.value == "")
@@ -1108,18 +1108,8 @@ RequestReader.prototype =
     try
     {
       this._parseRequestLine(line.value);
-
-      
-      if (!this._parseHeaders())
-        return true;
-
-      dumpn("_processRequestLine, Content-length="+this._contentLength);
-      if (this._contentLength > 0)
-        return true;
-
-      
-      this._validateRequest();
-      return this._handleResponse();
+      this._state = READER_IN_HEADERS;
+      return true;
     }
     catch (e)
     {
@@ -1135,11 +1125,7 @@ RequestReader.prototype =
 
 
 
-
-
-
-
-  _processHeaders: function(input, count)
+  _processHeaders: function()
   {
     NS_ASSERT(this._state == READER_IN_HEADERS);
 
@@ -1147,21 +1133,24 @@ RequestReader.prototype =
     
     
 
-    this._data.appendBytes(readBytes(input, count));
-
     try
     {
-      
-      if (!this._parseHeaders())
-        return true;
+      var done = this._parseHeaders();
+      if (done)
+      {
+        var request = this._metadata;
 
-      dumpn("_processHeaders, Content-length="+this._contentLength);
-      if (this._contentLength > 0)
-        return true;
+        
+        
+        
+        this._contentLength = request.hasHeader("Content-Length")
+                            ? parseInt(request.getHeader("Content-Length"), 10)
+                            : 0;
+        dumpn("_processHeaders, Content-length=" + this._contentLength);
 
-      
-      this._validateRequest();
-      return this._handleResponse();
+        this._state = READER_IN_BODY;
+      }
+      return done;
     }
     catch (e)
     {
@@ -1170,34 +1159,43 @@ RequestReader.prototype =
     }
   },
 
-  _processBody: function(input, count)
+  
+
+
+
+
+
+
+  _processBody: function()
   {
     NS_ASSERT(this._state == READER_IN_BODY);
+
+    
 
     try
     {
       if (this._contentLength > 0)
       {
-        var bodyData = this._data.purge();
-        if (!bodyData || bodyData.length == 0)
-        {
-          if (count > this._contentLength)
-            count = this._contentLength;
+        var data = this._data.purge();
+        var count = Math.min(data.length, this._contentLength);
+        dumpn("*** loading data=" + data + " len=" + data.length +
+              " excess=" + (data.length - count));
 
-          bodyData = readBytes(input, count);
-        }
-        dumpn("*** loading data="+bodyData+" len="+bodyData.length);
-
-        this._metadata._body.appendBytes(bodyData);
-        this._contentLength -= bodyData.length;
+        var bos = new BinaryOutputStream(this._metadata._bodyOutputStream);
+        bos.writeByteArray(data, count);
+        this._contentLength -= count;
       }
 
-      dumpn("*** remainig body data len="+this._contentLength);
-      if (this._contentLength > 0)
+      dumpn("*** remaining body data len=" + this._contentLength);
+      if (this._contentLength == 0)
+      {
+        this._validateRequest();
+        this._state = READER_FINISHED;
+        this._handleResponse();
         return true;
-
-      this._validateRequest();
-      return this._handleResponse();
+      }
+      
+      return false;
     }
     catch (e)
     {
@@ -1306,6 +1304,8 @@ RequestReader.prototype =
 
   _handleError: function(e)
   {
+    this._state = READER_FINISHED;
+
     var server = this._connection.server;
     if (e instanceof HttpError)
     {
@@ -1331,20 +1331,15 @@ RequestReader.prototype =
 
 
 
-
-
-
   _handleResponse: function()
   {
-    NS_ASSERT(this._state == READER_IN_BODY);
+    NS_ASSERT(this._state == READER_FINISHED);
 
     
     
     this._data = null;
 
     this._connection.process(this._metadata);
-
-    return false;
   },
 
 
@@ -1358,7 +1353,7 @@ RequestReader.prototype =
 
   _parseRequestLine: function(line)
   {
-    NS_ASSERT(this._state == READER_INITIAL);
+    NS_ASSERT(this._state == READER_IN_REQUEST_LINE);
 
     dumpn("*** _parseRequestLine('" + line + "')");
 
@@ -1449,9 +1444,6 @@ RequestReader.prototype =
     metadata._scheme = scheme;
     metadata._host = host;
     metadata._port = port;
-
-    
-    this._state = READER_IN_HEADERS;
   },
 
   
@@ -1517,12 +1509,6 @@ RequestReader.prototype =
 
         
         this._state = READER_IN_BODY;
-        try
-        {
-          this._contentLength = parseInt(headers.getHeader("Content-Length"));
-          dumpn("Content-Length="+this._contentLength);
-        }
-        catch (e) {}
         return true;
       }
       else if (firstChar == " " || firstChar == "\t")
@@ -1657,11 +1643,10 @@ LineData.prototype =
 
 
 
-
   purge: function()
   {
     var data = this._data;
-    this._data = null;
+    this._data = [];
     return data;
   }
 };
@@ -1979,8 +1964,13 @@ ServerHandler.prototype =
         if (metadata.method == "PUT")
         {
           
-          var data = metadata.body.purge();
-          data = String.fromCharCode.apply(null, data.splice(0, data.length + 2));
+          var avail;
+          var bytes = [];
+          var body = new BinaryInputStream(metadata.bodyInputStream);
+          while ((avail = body.available()) > 0)
+            Array.prototype.push.apply(bytes, body.readByteArray(avail));
+
+          var data = String.fromCharCode.apply(null, bytes);
           var contentType;
           try
           {
@@ -1991,13 +1981,13 @@ ServerHandler.prototype =
             contentType = "application/octet-stream";
           }
 
-          dumpn("PUT data \'"+data+"\' for "+path);
+          dumpn("PUT data \'" + data + "\' for " + path);
           this._putDataOverrides[path] =
             function(ametadata, aresponse)
             {
-              aresponse.setStatusLine(metadata.httpVersion, 200, "OK");
+              aresponse.setStatusLine(ametadata.httpVersion, 200, "OK");
               aresponse.setHeader("Content-Type", contentType, false);
-              dumpn("*** writting PUT data=\'"+data+"\'");
+              dumpn("*** writing PUT data=\'" + data + "\'");
               aresponse.bodyOutputStream.write(data, data.length);
             };
 
@@ -2008,12 +1998,12 @@ ServerHandler.prototype =
           if (path in this._putDataOverrides)
           {
             delete this._putDataOverrides[path];
-            dumpn("clearing PUT data for "+path);
+            dumpn("clearing PUT data for " + path);
             response.setStatusLine(metadata.httpVersion, 200, "OK");
           }
           else
           {
-            dumpn("no PUT data for "+path+" to delete");
+            dumpn("no PUT data for " + path + " to delete");
             response.setStatusLine(metadata.httpVersion, 204, "No Content");
           }
         }
@@ -2021,14 +2011,14 @@ ServerHandler.prototype =
         {
           
           
-          dumpn("calling PUT data override for "+path);
+          dumpn("calling PUT data override for " + path);
           this._putDataOverrides[path](metadata, response);
         }
         else if (path in this._overridePaths)
         {
           
           
-          dumpn("calling override for "+path);
+          dumpn("calling override for " + path);
           this._overridePaths[path](metadata, response);
         }
         else
@@ -3098,7 +3088,6 @@ Response.prototype =
 
     if (!this._bodyOutputStream && !this._outputProcessed)
     {
-      const PR_UINT32_MAX = Math.pow(2, 32) - 1;
       var pipe = new Pipe(false, false, 0, PR_UINT32_MAX, null);
       this._bodyOutputStream = pipe.outputStream;
       this._bodyInputStream = pipe.inputStream;
@@ -3683,8 +3672,13 @@ function Request(port)
   
   this._port = port;
 
+  var bodyPipe = new Pipe(false, false, 0, PR_UINT32_MAX, null);
+
   
-  this._body = new LineData();
+  this._bodyInputStream = bodyPipe.inputStream;
+
+  
+  this._bodyOutputStream = bodyPipe.outputStream;
 
   
 
@@ -3798,6 +3792,14 @@ Request.prototype =
   
   
   
+  get bodyInputStream()
+  {
+    return this._bodyInputStream;
+  },
+
+  
+  
+  
   getProperty: function(name) 
   {
     this._ensurePropertyBag();
@@ -3809,11 +3811,6 @@ Request.prototype =
   {
     if (!this._bag)
       this._bag = new WritablePropertyBag();
-  },
-
-  get body()
-  {
-    return this._body;
   }
 };
 

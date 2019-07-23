@@ -1,0 +1,97 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const PORT = 4444;
+
+var srv;
+
+function run_test()
+{
+  srv = createServer();
+  srv.registerPathHandler("/content-length", contentLength);
+  srv.start(PORT);
+
+  runHttpTests(tests, function() { srv.stop(); });
+}
+
+const REQUEST_DATA = "12345678901234567";
+
+function contentLength(request, response)
+{
+  do_check_eq(request.method, "POST");
+  do_check_eq(request.getHeader("Content-Length"), "017");
+
+  var body = new ScriptableInputStream(request.bodyInputStream);
+
+  var avail;
+  var data = "";
+  while ((avail = body.available()) > 0)
+    data += body.read(avail);
+
+  do_check_eq(data, REQUEST_DATA);
+}
+
+
+
+
+
+var tests = [
+             new Test("http://localhost:4444/content-length",
+                      init_content_length),
+            ];
+
+function init_content_length(ch)
+{
+  var content = Cc["@mozilla.org/io/string-input-stream;1"]
+                  .createInstance(Ci.nsIStringInputStream);
+  content.data = REQUEST_DATA;
+
+  ch.QueryInterface(Ci.nsIUploadChannel)
+    .setUploadStream(content, "text/plain", REQUEST_DATA.length);
+
+  
+  ch.requestMethod = "POST";
+  ch.setRequestHeader("Content-Length", "017", false); 
+}
