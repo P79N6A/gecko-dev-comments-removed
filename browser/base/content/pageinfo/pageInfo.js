@@ -283,6 +283,11 @@ function onLoadPageInfo()
              window.arguments.length >= 1 &&
              window.arguments[0];
 
+  if (!args || !args.doc) {
+    gWindow = window.opener.content;
+    gDocument = gWindow.document;
+  }
+
   
   var imageTree = document.getElementById("imagetree");
   imageTree.view = gImageView;
@@ -339,6 +344,7 @@ function resetPageInfo(args)
   
   onResetRegistry.forEach(function(func) { func(); });
 
+  
   loadTab(args);
 }
 
@@ -383,18 +389,7 @@ function loadTab(args)
     gDocument = args.doc;
     gWindow = gDocument.defaultView;
   }
-  else {
-    if ("gBrowser" in window.opener)
-      gWindow = window.opener.gBrowser.contentWindow;
-    else
-      gWindow = window.opener.frames[0];
-    gDocument = gWindow.document;
-  }
 
-  if (args && args.imageElement)
-    gImageElement = args.imageElement;
-
-  
   gImageElement = args && args.imageElement;
 
   
