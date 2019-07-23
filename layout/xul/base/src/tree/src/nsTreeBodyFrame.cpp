@@ -4267,23 +4267,26 @@ nsTreeBodyFrame::GetPseudoStyleContext(nsIAtom* aPseudoElement)
 NS_IMETHODIMP
 nsTreeBodyFrame::PseudoMatches(nsIAtom* aTag, nsCSSSelector* aSelector, PRBool* aResult)
 {
-  NS_ABORT_IF_FALSE(aSelector->mLowercaseTag == aTag,
-                   "should not have been called");
-  
-  
-  
-  
-  nsPseudoClassList* curr = aSelector->mPseudoClassList;
-  while (curr) {
-    PRInt32 index;
-    mScratchArray->GetIndexOf(curr->mAtom, &index);
-    if (index == -1) {
-      *aResult = PR_FALSE;
-      return NS_OK;
+  if (aSelector->mTag == aTag) {
+    
+    
+    
+    
+    nsPseudoClassList* curr = aSelector->mPseudoClassList;
+    while (curr) {
+      PRInt32 index;
+      mScratchArray->GetIndexOf(curr->mAtom, &index);
+      if (index == -1) {
+        *aResult = PR_FALSE;
+        return NS_OK;
+      }
+      curr = curr->mNext;
     }
-    curr = curr->mNext;
+    *aResult = PR_TRUE;
   }
-  *aResult = PR_TRUE;
+  else 
+    *aResult = PR_FALSE;
+
   return NS_OK;
 }
 
