@@ -181,8 +181,6 @@ protected:
 
   PRBool   Create(nsWindow*, PRUint32);
   PRBool   Destroy(void);
-  PRBool   Focus(void);
-  PRBool   Blur(void);
 
   
   
