@@ -174,36 +174,32 @@ nsDeque& nsDeque::Erase() {
 
 
 
-PRInt32 nsDeque::GrowCapacity() {
+PRBool nsDeque::GrowCapacity() {
   PRInt32 theNewSize=mCapacity<<2;
   NS_ASSERTION(theNewSize>mCapacity, "Overflow");
   if (theNewSize<=mCapacity)
-    return mCapacity;
+    return PR_FALSE;
   void** temp=new void*[theNewSize];
+  if (!temp)
+    return PR_FALSE;
 
   
   
   
   
 
-  if (temp) {
-    PRInt32 tempi=0;
-    PRInt32 i=0;
-    PRInt32 j=0;
-    for (i=mOrigin; i<mCapacity; i++) {
-      temp[tempi++]=mData[i]; 
-    }
-    for (j=0;j<mOrigin;j++) {
-      temp[tempi++]=mData[j]; 
-    }
-    if (mData != mBuffer) {
-      delete [] mData;
-    }
-    mCapacity=theNewSize;
-    mOrigin=0; 
-    mData=temp;
+  memcpy(temp, mData + mOrigin, sizeof(void*) * (mCapacity - mOrigin));
+  memcpy(temp + (mCapacity - mOrigin), mData, sizeof(void*) * mOrigin);
+
+  if (mData != mBuffer) {
+    delete [] mData;
   }
-  return mCapacity;
+
+  mCapacity=theNewSize;
+  mOrigin=0; 
+  mData=temp;
+
+  return PR_TRUE;
 }
 
 
@@ -215,8 +211,9 @@ PRInt32 nsDeque::GrowCapacity() {
 
 
 nsDeque& nsDeque::Push(void* aItem) {
-  if (mSize==mCapacity) {
-    GrowCapacity();
+  if (mSize==mCapacity && !GrowCapacity()) {
+    NS_WARNING("out of memory");
+    return *this;
   }
   mData[modulus(mOrigin + mSize, mCapacity)]=aItem;
   mSize++;
@@ -260,7 +257,10 @@ nsDeque& nsDeque::PushFront(void* aItem) {
   mOrigin--;
   modasgn(mOrigin,mCapacity);
   if (mSize==mCapacity) {
-    GrowCapacity();
+    if (!GrowCapacity()) {
+      NS_WARNING("out of memory");
+      return *this;
+    }
     
     mData[mSize]=mData[mOrigin];
   }
