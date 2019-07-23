@@ -166,17 +166,35 @@ private:
   nsresult SetItemDateInternal(mozIStorageStatement* aStatement, PRInt64 aItemId, PRTime aValue);
 
   
+  typedef struct folderChildrenInfo
+  {
+    PRInt64 itemId;
+    PRUint16 itemType;
+    PRInt64 placeId;
+    PRInt64 parentId;
+    PRInt64 grandParentId;
+    PRInt32 index;
+    nsCString url;
+    nsCString folderType;
+  };
+
+  
+  nsresult GetDescendantChildren(PRInt64 aFolderId,
+                                 PRInt64 aGrandParentId,
+                                 nsTArray<folderChildrenInfo>& aFolderChildrenArray);
+
+  
   nsCOMPtr<mozIStorageStatement> mDBGetChildren;
   static const PRInt32 kGetChildrenIndex_Position;
   static const PRInt32 kGetChildrenIndex_Type;
-  static const PRInt32 kGetChildrenIndex_ForeignKey;
+  static const PRInt32 kGetChildrenIndex_PlaceID;
   static const PRInt32 kGetChildrenIndex_FolderTitle;
-  static const PRInt32 kGetChildrenIndex_ID;
+  static const PRInt32 kGetChildrenIndex_ServiceContractId;
 
   nsCOMPtr<mozIStorageStatement> mDBFindURIBookmarks;  
   static const PRInt32 kFindBookmarksIndex_ID;
   static const PRInt32 kFindBookmarksIndex_Type;
-  static const PRInt32 kFindBookmarksIndex_ForeignKey;
+  static const PRInt32 kFindBookmarksIndex_PlaceID;
   static const PRInt32 kFindBookmarksIndex_Parent;
   static const PRInt32 kFindBookmarksIndex_Position;
   static const PRInt32 kFindBookmarksIndex_Title;
