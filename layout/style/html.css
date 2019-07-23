@@ -490,6 +490,7 @@ noembed, param {
 
 
 marquee {
+  width: -moz-available;
   display: inline-block;
   vertical-align: text-bottom;
   text-align: start;
