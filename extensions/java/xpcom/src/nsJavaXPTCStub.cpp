@@ -177,7 +177,9 @@ nsJavaXPTCStub::Destroy()
 
   if (!mMaster) {
     
-    mChildren.Clear();
+    for (PRInt32 i = 0; i < mChildren.Count(); i++) {
+      delete (nsJavaXPTCStub*) mChildren[i];
+    }
 
     
     
@@ -377,9 +379,9 @@ nsJavaXPTCStub::FindStubSupportingIID(const nsID &iid)
   if (SupportsIID(iid))
     return this;
 
-  for (PRUint32 i = 0; i < mChildren.Length(); i++)
+  for (PRInt32 i = 0; i < mChildren.Count(); i++)
   {
-    nsJavaXPTCStub *child = mChildren[i];
+    nsJavaXPTCStub *child = (nsJavaXPTCStub *) mChildren[i];
     if (child->SupportsIID(iid))
       return child;
   }

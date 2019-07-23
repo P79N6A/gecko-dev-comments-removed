@@ -142,10 +142,11 @@ nsViewManager::PostInvalidateEvent()
 
 #undef DEBUG_MOUSE_LOCATION
 
+PRInt32 nsViewManager::mVMCount = 0;
 nsIRenderingContext* nsViewManager::gCleanupContext = nsnull;
 
 
-nsTArray<nsViewManager*>* nsViewManager::gViewManagers = nsnull;
+nsVoidArray* nsViewManager::gViewManagers = nsnull;
 PRUint32 nsViewManager::gLastUserEventTime = 0;
 
 nsViewManager::nsViewManager()
@@ -154,8 +155,9 @@ nsViewManager::nsViewManager()
   , mRootViewManager(this)
 {
   if (gViewManagers == nsnull) {
+    NS_ASSERTION(mVMCount == 0, "View Manager count is incorrect");
     
-    gViewManagers = new nsTArray<nsViewManager*>;
+    gViewManagers = new nsVoidArray;
   }
  
   if (gCleanupContext == nsnull) {
@@ -166,6 +168,8 @@ nsViewManager::nsViewManager()
   }
 
   gViewManagers->AppendElement(this);
+
+  ++mVMCount;
 
   
   
@@ -194,13 +198,16 @@ nsViewManager::~nsViewManager()
 
   mRootScrollable = nsnull;
 
+  NS_ASSERTION((mVMCount > 0), "underflow of viewmanagers");
+  --mVMCount;
+
 #ifdef DEBUG
   PRBool removed =
 #endif
     gViewManagers->RemoveElement(this);
-  NS_ASSERTION(removed, "Viewmanager instance was not in the global list of viewmanagers");
+  NS_ASSERTION(removed, "Viewmanager instance not was not in the global list of viewmanagers");
 
-  if (gViewManagers->IsEmpty()) {
+  if (0 == mVMCount) {
     
     
    
@@ -2086,9 +2093,9 @@ nsViewManager::FlushPendingInvalidates()
     mRefreshEnabled = PR_FALSE;
     ++mUpdateBatchCnt;
     
-    PRUint32 index;
-    for (index = 0; index < gViewManagers->Length(); index++) {
-      nsViewManager* vm = gViewManagers->ElementAt(index);
+    PRInt32 index;
+    for (index = 0; index < mVMCount; index++) {
+      nsViewManager* vm = (nsViewManager*)gViewManagers->ElementAt(index);
       if (vm->RootViewManager() == this) {
         
         nsIViewObserver* observer = vm->GetViewObserver();
