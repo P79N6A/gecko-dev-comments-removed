@@ -53,7 +53,11 @@ class nsDOMCSSAttributeDeclaration : public nsDOMCSSDeclaration,
                                      public nsWrapperCache
 {
 public:
-  nsDOMCSSAttributeDeclaration(nsIContent *aContent);
+  nsDOMCSSAttributeDeclaration(nsIContent *aContent
+#ifdef MOZ_SMIL
+                               , PRBool aIsSMILOverride
+#endif 
+                               );
   ~nsDOMCSSAttributeDeclaration();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -79,6 +83,14 @@ protected:
   virtual nsresult DeclarationChanged();
   
   nsCOMPtr<nsIContent> mContent;
+
+#ifdef MOZ_SMIL
+  
+
+
+
+  const PRBool mIsSMILOverride;
+#endif 
 };
 
 #endif 

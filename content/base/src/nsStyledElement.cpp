@@ -177,7 +177,11 @@ nsStyledElement::GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
     
     ReparseStyleAttribute(PR_TRUE);
 
-    slots->mStyle = new nsDOMCSSAttributeDeclaration(this);
+    slots->mStyle = new nsDOMCSSAttributeDeclaration(this
+#ifdef MOZ_SMIL
+                                                     , PR_FALSE
+#endif 
+                                                     );
     NS_ENSURE_TRUE(slots->mStyle, NS_ERROR_OUT_OF_MEMORY);
     SetFlags(NODE_MAY_HAVE_STYLE);
   }

@@ -59,6 +59,7 @@ class nsTextFragment;
 class nsIDocShell;
 #ifdef MOZ_SMIL
 class nsISMILAttr;
+class nsIDOMCSSStyleDeclaration;
 #endif 
 
 enum nsLinkState {
@@ -69,9 +70,10 @@ enum nsLinkState {
 };
 
 
+
 #define NS_ICONTENT_IID       \
-{ 0x4aaa38b8, 0x6bc1, 0x4d01, \
-  { 0xb6, 0x3d, 0xcd, 0x11, 0xc0, 0x84, 0x56, 0x9e } }
+{ 0xb877753c, 0x316a, 0x422d, \
+  { 0x9a, 0xec, 0xa1, 0xd0, 0xcf, 0x09, 0x28, 0xb0 } }
 
 
 
@@ -864,6 +866,31 @@ public:
 
 
   virtual nsISMILAttr* GetAnimatedAttr(const nsIAtom* aName) = 0;
+
+   
+
+
+
+
+
+
+
+  virtual nsresult GetSMILOverrideStyle(nsIDOMCSSStyleDeclaration** aStyle) = 0;
+
+  
+
+
+
+
+  virtual nsICSSStyleRule* GetSMILOverrideStyleRule() = 0;
+
+  
+
+
+
+
+  virtual nsresult SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
+                                            PRBool aNotify) = 0;
 #endif 
 
 private:

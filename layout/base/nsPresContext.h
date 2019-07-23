@@ -870,6 +870,13 @@ public:
 
   PRBool HasPendingInterrupt() { return mHasPendingInterrupt; }
 
+#ifdef MOZ_SMIL
+  
+
+
+
+  void SMILOverrideStyleChanged(nsIContent* aContent);
+#endif 
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();

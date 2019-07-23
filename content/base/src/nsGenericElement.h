@@ -436,6 +436,10 @@ public:
   {
     return nsnull;
   }
+  virtual nsresult GetSMILOverrideStyle(nsIDOMCSSStyleDeclaration** aStyle);
+  virtual nsICSSStyleRule* GetSMILOverrideStyleRule();
+  virtual nsresult SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
+                                            PRBool aNotify);
 #endif 
 
 #ifdef DEBUG
@@ -928,6 +932,17 @@ public:
 
 
     nsRefPtr<nsDOMCSSDeclaration> mStyle;
+
+    
+
+
+
+    nsRefPtr<nsDOMCSSDeclaration> mSMILOverrideStyle;
+
+    
+
+
+    nsCOMPtr<nsICSSStyleRule> mSMILOverrideStyleRule;
 
     
 
