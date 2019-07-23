@@ -1868,14 +1868,11 @@ DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
   
   
   if (aDelayedStop
-#ifndef XP_WIN
+#if !(defined XP_WIN || defined MOZ_X11)
       && !aInstanceOwner->MatchPluginName("QuickTime")
       && !aInstanceOwner->MatchPluginName("Flip4Mac")
       && !aInstanceOwner->MatchPluginName("XStandard plugin")
       && !aInstanceOwner->MatchPluginName("CMISS Zinc Plugin")
-#endif
-#if defined(XP_UNIX) && defined(__arm__)
-      && !aInstanceOwner->MatchPluginName("Shockwave Flash")
 #endif
       ) {
     nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
@@ -2036,7 +2033,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
 
   nsWeakFrame weakFrame(this);
 
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(MOZ_X11)
   if (aDelayedStop) {
     
     
@@ -4276,7 +4273,7 @@ nsPluginInstanceOwner::Destroy()
 void
 nsPluginInstanceOwner::PrepareToStop(PRBool aDelayedStop)
 {
-#ifdef XP_WIN
+#if defined(XP_WIN) || defined(MOZ_X11)
   if (aDelayedStop && mWidget) {
     
     
