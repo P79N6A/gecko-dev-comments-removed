@@ -1026,11 +1026,21 @@ nsEditingSession::EndDocumentLoad(nsIWebProgress *aWebProgress,
     if (makeEditable)
     {
       
-      nsCOMPtr<nsIEditor> editor;
-      rv = editorDocShell->GetEditor(getter_AddRefs(editor));
-      if (NS_FAILED(rv))
-        return rv;
-      if (!editor)
+      
+      PRBool needsSetup;
+      if (mMakeWholeDocumentEditable) {
+        needsSetup = PR_TRUE;
+      } else {
+        
+        nsCOMPtr<nsIEditor> editor;
+        rv = editorDocShell->GetEditor(getter_AddRefs(editor));
+        if (NS_FAILED(rv))
+           return rv;
+
+        needsSetup = !editor;
+      }
+
+      if (needsSetup)
       {
         mCanCreateEditor = PR_FALSE;
         rv = SetupEditorOnWindow(domWindow);
