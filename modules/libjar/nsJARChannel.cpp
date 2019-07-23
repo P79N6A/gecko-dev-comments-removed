@@ -672,7 +672,8 @@ nsJARChannel::Open(nsIInputStream **stream)
 
     
     
-    mJarInput->EnsureJarStream();
+    rv = mJarInput->EnsureJarStream();
+    if (NS_FAILED(rv)) return rv;
 
     NS_ADDREF(*stream = mJarInput);
     return NS_OK;
