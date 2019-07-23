@@ -141,6 +141,9 @@ protected:
   nsCOMPtr<nsIURI> mOrigin;
   PRPackedBool mTrusted;
   PRPackedBool mInitialized;
+  
+  PRPackedBool mCodebaseImmutable;
+  PRPackedBool mDomainImmutable;
 };
 
 
