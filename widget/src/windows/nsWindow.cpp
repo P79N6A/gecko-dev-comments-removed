@@ -6028,7 +6028,7 @@ nsWindow::OnIMEFocusChange(PRBool aFocus)
 {
   nsresult rv = nsTextStore::OnFocusChange(aFocus, this, mIMEEnabled);
   if (rv == NS_ERROR_NOT_AVAILABLE)
-    rv = NS_OK; 
+    rv = NS_ERROR_NOT_IMPLEMENTED; 
   return rv;
 }
 
