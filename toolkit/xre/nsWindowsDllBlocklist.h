@@ -42,6 +42,11 @@
 
 #define ALL_VERSIONS   ((unsigned long long)-1LL)
 
+
+
+#define MAKE_VERSION(a,b,c,d)\
+  ((a##ULL << 48) + (b##ULL << 32) + (c##ULL << 16) + d##ULL)
+
 struct DllBlockInfo {
   
   
@@ -63,6 +68,12 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   
   
+  
+  
+  { "npffaddon.dll", ALL_VERSIONS},
+
+  
+  {"avgrsstx.dll", MAKE_VERSION(8,5,0,401)},
 
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
