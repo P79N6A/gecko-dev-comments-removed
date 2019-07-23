@@ -6317,9 +6317,6 @@ Boolish(JSParseNode *pn)
     return -1;
 }
 
-#define Truthy(pn) (Boolish(pn) == 1)
-#define Falsy(pn)  (Boolish(pn) == 0)
-
 JSBool
 js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
 {
@@ -6340,50 +6337,6 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
       }
 
       case PN_LIST:
-#if 0 
-        switch (pn->pn_type) {
-          case TOK_XMLELEM:
-          case TOK_XMLLIST:
-          case TOK_XMLPTAGC:
-            
-
-
-
-
-
-
-
-
-
-            if ((pn->pn_extra & (PNX_XMLROOT | PNX_CANTFOLD)) == PNX_XMLROOT &&
-                !(tc->flags & TCF_HAS_DEFXMLNS)) {
-                JSObject *obj;
-                JSParsedObjectBox *xmlpob;
-
-                obj = js_ParseNodeToXMLObject(cx, pn);
-                if (!obj)
-                    return JS_FALSE;
-                xmlpob = js_NewParsedObjectBox(cx, ts, obj);
-                if (!xmlpob)
-                    return JS_FALSE;
-                pn->pn_op = JSOP_XMLOBJECT;
-                pn->pn_arity = PN_NULLARY;
-                pn->pn_pob = xmlpob;
-                return JS_TRUE;
-            }
-
-            
-
-
-
-
-
-            break;
-
-          default:;
-        }
-#endif
-
         
         for (pn1 = pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
             if (!js_FoldConstants(cx, pn2, tc))
@@ -6528,25 +6481,57 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
         break;
 
       case TOK_OR:
-        if (inCond) {
-            if (Truthy(pn1)) {
-                RecycleTree(pn2, tc);
-                PN_MOVE_NODE(pn, pn1);
-            } else if (Falsy(pn1)) {
-                RecycleTree(pn1, tc);
-                PN_MOVE_NODE(pn, pn2);
-            }
-        }
-        break;
-
       case TOK_AND:
         if (inCond) {
-            if (Falsy(pn1)) {
-                RecycleTree(pn2, tc);
-                PN_MOVE_NODE(pn, pn1);
-            } else if (Truthy(pn1)) {
-                RecycleTree(pn1, tc);
-                PN_MOVE_NODE(pn, pn2);
+            if (pn->pn_arity == PN_LIST) {
+                JSParseNode **pnp = &pn->pn_head;
+                JS_ASSERT(*pnp == pn1);
+                do {
+                    int cond = Boolish(pn1);
+                    if (cond == (pn->pn_type == TOK_OR)) {
+                        for (pn2 = pn1->pn_next; pn2; pn2 = pn3) {
+                            pn3 = pn2->pn_next;
+                            RecycleTree(pn2, tc);
+                            --pn->pn_count;
+                        }
+                        pn1->pn_next = NULL;
+                        break;
+                    }
+                    if (cond != -1) {
+                        JS_ASSERT(cond == (pn->pn_type == TOK_AND));
+                        if (pn->pn_count == 1)
+                            break;
+                        *pnp = pn1->pn_next;
+                        RecycleTree(pn1, tc);
+                        --pn->pn_count;
+                    } else {
+                        pnp = &pn1->pn_next;
+                    }
+                } while ((pn1 = *pnp) != NULL);
+
+                
+                if (pn->pn_count == 2) {
+                    pn1 = pn->pn_head;
+                    pn2 = pn1->pn_next;
+                    pn1->pn_next = NULL;
+                    JS_ASSERT(!pn2->pn_next);
+                    pn->pn_arity = PN_BINARY;
+                    pn->pn_left = pn1;
+                    pn->pn_right = pn2;
+                } else if (pn->pn_count == 1) {
+                    PN_MOVE_NODE(pn, pn1);
+                    RecycleTree(pn1, tc);
+                }
+            } else {
+                int cond = Boolish(pn1);
+                if (cond == (pn->pn_type == TOK_OR)) {
+                    RecycleTree(pn2, tc);
+                    PN_MOVE_NODE(pn, pn1);
+                } else if (cond != -1) {
+                    JS_ASSERT(cond == (pn->pn_type == TOK_AND));
+                    RecycleTree(pn1, tc);
+                    PN_MOVE_NODE(pn, pn2);
+                }
             }
         }
         break;
