@@ -75,7 +75,6 @@ struct txKeyValueHashEntry : public PLDHashEntryHdr
     }
 
     
-    const void* GetKey();
     PRBool MatchEntry(const void* aKey) const;
     static PLDHashNumber HashKey(const void* aKey);
     
@@ -108,7 +107,6 @@ struct txIndexedKeyHashEntry : public PLDHashEntryHdr
     }
 
     
-    const void* GetKey();
     PRBool MatchEntry(const void* aKey) const;
     static PLDHashNumber HashKey(const void* aKey);
 
