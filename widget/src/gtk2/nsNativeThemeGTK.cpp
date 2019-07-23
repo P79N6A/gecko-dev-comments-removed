@@ -228,77 +228,72 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
       aState->isDefault = FALSE; 
       aState->canDefault = FALSE; 
 
-      if (aFrame && aFrame->GetContent()->IsNodeOfType(nsINode::eXUL)) {
+      
+      
+      
+      if (aWidgetType == NS_THEME_TEXTFIELD ||
+          aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
+          aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD ||
+          aWidgetType == NS_THEME_RADIO_CONTAINER ||
+          aWidgetType == NS_THEME_RADIO_LABEL ||
+          IsRadioWidgetType(aWidgetType)) {
+        aState->focused = IsFocused(aFrame);
+      }
+
+      if (aWidgetType == NS_THEME_SCROLLBAR_THUMB_VERTICAL ||
+          aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL) {
         
         
-        
-        if (aWidgetType == NS_THEME_TEXTFIELD ||
-            aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
-            aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD ||
-            aWidgetType == NS_THEME_RADIO_CONTAINER ||
-            aWidgetType == NS_THEME_RADIO_LABEL) {
-          aState->focused = IsFocused(aFrame);
-        } else if (IsRadioWidgetType(aWidgetType) ||
-                   IsCheckboxWidgetType(aWidgetType)) {
-          
-          aState->focused = FALSE;
+        nsIFrame *tmpFrame = aFrame->GetParent()->GetParent();
+
+        aState->curpos = CheckIntAttr(tmpFrame, nsWidgetAtoms::curpos);
+        aState->maxpos = CheckIntAttr(tmpFrame, nsWidgetAtoms::maxpos);
+      }
+
+      
+      
+      
+      if (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
+          aWidgetType == NS_THEME_SCROLLBAR_BUTTON_DOWN ||
+          aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT ||
+          aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT) {
+          if (CheckBooleanAttr(aFrame, nsWidgetAtoms::active))
+            aState->active = PR_TRUE;
+      }
+
+      
+      
+      
+      
+
+      if (aWidgetType == NS_THEME_MENUITEM ||
+          aWidgetType == NS_THEME_CHECKMENUITEM ||
+          aWidgetType == NS_THEME_RADIOMENUITEM) {
+        PRBool isTopLevel = PR_FALSE;
+        nsIMenuFrame *menuFrame;
+        CallQueryInterface(aFrame, &menuFrame);
+
+        if (menuFrame) {
+          nsIMenuParent *menuParent = menuFrame->GetMenuParent();
+          if (menuParent)
+            menuParent->IsMenuBar(isTopLevel);
         }
 
-        if (aWidgetType == NS_THEME_SCROLLBAR_THUMB_VERTICAL ||
-            aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL) {
-          
-          
-          nsIFrame *tmpFrame = aFrame->GetParent()->GetParent();
-
-          aState->curpos = CheckIntAttr(tmpFrame, nsWidgetAtoms::curpos);
-          aState->maxpos = CheckIntAttr(tmpFrame, nsWidgetAtoms::maxpos);
+        if (isTopLevel) {
+          PRBool isOpen;
+          menuFrame->MenuIsOpen(isOpen);
+          aState->inHover = isOpen;
+        } else {
+          aState->inHover = CheckBooleanAttr(aFrame, nsWidgetAtoms::mozmenuactive);
         }
 
+        aState->active = FALSE;
         
-        
-        
-        if (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
-            aWidgetType == NS_THEME_SCROLLBAR_BUTTON_DOWN ||
-            aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT ||
-            aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT) {
-            if (CheckBooleanAttr(aFrame, nsWidgetAtoms::active))
-              aState->active = PR_TRUE;
-        }
-
-        
-        
-        
-        
-
-        if (aWidgetType == NS_THEME_MENUITEM ||
-            aWidgetType == NS_THEME_CHECKMENUITEM ||
+        if (aWidgetType == NS_THEME_CHECKMENUITEM ||
             aWidgetType == NS_THEME_RADIOMENUITEM) {
-          PRBool isTopLevel = PR_FALSE;
-          nsIMenuFrame *menuFrame;
-          CallQueryInterface(aFrame, &menuFrame);
-
-          if (menuFrame) {
-            nsIMenuParent *menuParent = menuFrame->GetMenuParent();
-            if (menuParent)
-              menuParent->IsMenuBar(isTopLevel);
-          }
-
-          if (isTopLevel) {
-            PRBool isOpen;
-            menuFrame->MenuIsOpen(isOpen);
-            aState->inHover = isOpen;
-          } else {
-            aState->inHover = CheckBooleanAttr(aFrame, nsWidgetAtoms::mozmenuactive);
-          }
-
-          aState->active = FALSE;
-        
-          if (aWidgetType == NS_THEME_CHECKMENUITEM ||
-              aWidgetType == NS_THEME_RADIOMENUITEM) {
-            *aWidgetFlags = aFrame && aFrame->GetContent()->
-              AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::checked,
-                          nsWidgetAtoms::_true, eIgnoreCase);
-          }
+          *aWidgetFlags = aFrame && aFrame->GetContent()->
+            AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::checked,
+                        nsWidgetAtoms::_true, eIgnoreCase);
         }
       }
     }
