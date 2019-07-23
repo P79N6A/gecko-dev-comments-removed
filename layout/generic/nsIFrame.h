@@ -1122,18 +1122,29 @@ public:
   struct InlineMinWidthData : public InlineIntrinsicWidthData {
     InlineMinWidthData()
       : trailingTextFrame(nsnull)
+      , atStartOfLine(PR_TRUE)
     {}
 
-    void Break(nsIRenderingContext *aRenderingContext);
+    
+    
+    
+    
+    void ForceBreak(nsIRenderingContext *aRenderingContext);
+    void OptionallyBreak(nsIRenderingContext *aRenderingContext);
 
     
     
     
     nsIFrame *trailingTextFrame;
+
+    
+    
+    
+    PRBool atStartOfLine;
   };
 
   struct InlinePrefWidthData : public InlineIntrinsicWidthData {
-    void Break(nsIRenderingContext *aRenderingContext);
+    void ForceBreak(nsIRenderingContext *aRenderingContext);
   };
 
   
