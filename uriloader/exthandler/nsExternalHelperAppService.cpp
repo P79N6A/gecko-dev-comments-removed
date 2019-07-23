@@ -1176,6 +1176,10 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   b64 = nsnull;
 
   
+  
+  tempLeafName.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+
+  
   nsCAutoString ext;
   mMimeInfo->GetPrimaryExtension(ext);
   if (!ext.IsEmpty()) {
