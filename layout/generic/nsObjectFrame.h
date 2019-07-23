@@ -195,13 +195,10 @@ protected:
   static void PaintPrintPlugin(nsIFrame* aFrame,
                                nsIRenderingContext* aRenderingContext,
                                const nsRect& aDirtyRect, nsPoint aPt);
-  static void PaintPlugin(nsIFrame* aFrame,
-                               nsIRenderingContext* aRenderingContext,
-                               const nsRect& aDirtyRect, nsPoint aPt);
   void PrintPlugin(nsIRenderingContext& aRenderingContext,
                    const nsRect& aDirtyRect);
   void PaintPlugin(nsIRenderingContext& aRenderingContext,
-                   const nsRect& aDirtyRect, const nsPoint& aFramePt);
+                   const nsRect& aDirtyRect, const nsRect& aPluginRect);
 
   
 
@@ -229,6 +226,7 @@ protected:
 
 private:
   nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
+  nsIView*                        mInnerView;
   nsCOMPtr<nsIWidget>             mWidget;
   nsIntRect                       mWindowlessRect;
 

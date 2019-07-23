@@ -619,7 +619,7 @@ nsObjectFrame::Destroy()
   
   
   if (mWidget) {
-    GetView()->DetachWidgetEventHandler(mWidget);
+    mInnerView->DetachWidgetEventHandler(mWidget);
     mWidget->Destroy();
   }
 
@@ -701,6 +701,13 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   viewMan->MoveViewTo(view, origin.x, origin.y);
 
   if (!aViewOnly && !mWidget && usewidgets) {
+    mInnerView = viewMan->CreateView(GetContentRect() - GetPosition(), view);
+    if (!mInnerView) {
+      NS_ERROR("Could not create inner view");
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    viewMan->InsertChild(view, mInnerView, nsnull, PR_TRUE);
+
     nsresult rv;
     mWidget = do_CreateInstance(kWidgetCID, &rv);
     if (NS_FAILED(rv))
@@ -720,7 +727,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     
     
     
-    EVENT_CALLBACK eventHandler = view->AttachWidgetEventHandler(mWidget);
+    EVENT_CALLBACK eventHandler = mInnerView->AttachWidgetEventHandler(mWidget);
     mWidget->Create(parentWidget, nsnull, nsIntRect(0,0,0,0),
                     eventHandler, dx, nsnull, nsnull, &initData);
 
@@ -872,7 +879,16 @@ nsObjectFrame::Reflow(nsPresContext*           aPresContext,
     return NS_OK;
   }
 
-  FixupWindow(nsSize(aMetrics.width, aMetrics.height));
+  nsRect r(0, 0, aMetrics.width, aMetrics.height);
+  r.Deflate(aReflowState.mComputedBorderPadding);
+
+  if (mInnerView) {
+    nsIViewManager* vm = mInnerView->GetViewManager();
+    vm->MoveViewTo(mInnerView, r.x, r.y);
+    vm->ResizeView(mInnerView, nsRect(nsPoint(0, 0), r.Size()), PR_TRUE);
+  }
+
+  FixupWindow(r.Size());
 
   aStatus = NS_FRAME_COMPLETE;
 
@@ -1060,6 +1076,9 @@ nsIntPoint nsObjectFrame::GetWindowOriginInPixels(PRBool aWindowless)
     parentWithView->GetNearestWidget(&offsetToWidget);
     origin += offsetToWidget;
   }
+  
+  
+  origin += GetUsedBorderAndPadding().TopLeft();
 
   return nsIntPoint(PresContext()->AppUnitsToDevPixels(origin.x),
                     PresContext()->AppUnitsToDevPixels(origin.y));
@@ -1103,8 +1122,9 @@ nsObjectFrame::DidReflow(nsPresContext*            aPresContext,
 nsObjectFrame::PaintPrintPlugin(nsIFrame* aFrame, nsIRenderingContext* aCtx,
                                 const nsRect& aDirtyRect, nsPoint aPt)
 {
+  nsPoint pt = aPt + aFrame->GetUsedBorderAndPadding().TopLeft();
+  nsIRenderingContext::AutoPushTranslation translate(aCtx, pt.x, pt.y);
   
-  nsIRenderingContext::AutoPushTranslation translate(aCtx, aPt.x, aPt.y);
   static_cast<nsObjectFrame*>(aFrame)->PrintPlugin(*aCtx, aDirtyRect);
 }
 
@@ -1120,7 +1140,7 @@ nsDisplayPlugin::Paint(nsDisplayListBuilder* aBuilder,
                        nsIRenderingContext* aCtx)
 {
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-  f->PaintPlugin(*aCtx, mVisibleRect, GetBounds(aBuilder).TopLeft());
+  f->PaintPlugin(*aCtx, mVisibleRect, GetBounds(aBuilder));
 }
 
 PRBool
@@ -1143,8 +1163,9 @@ nsDisplayPlugin::GetWidgetConfiguration(nsDisplayListBuilder* aBuilder,
                                         nsTArray<nsIWidget::Configuration>* aConfigurations)
 {
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-  f->ComputeWidgetGeometry(mVisibleRegion, aBuilder->ToReferenceFrame(mFrame),
-                           aConfigurations);
+  nsPoint pluginOrigin = mFrame->GetUsedBorderAndPadding().TopLeft() +
+    aBuilder->ToReferenceFrame(mFrame);
+  f->ComputeWidgetGeometry(mVisibleRegion, pluginOrigin, aConfigurations);
 }
 
 void
@@ -1536,7 +1557,7 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
 
 void
 nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
-                           const nsRect& aDirtyRect, const nsPoint& aFramePt)
+                           const nsRect& aDirtyRect, const nsRect& aPluginRect)
 {
   
 #if defined(XP_MACOSX)
@@ -1546,8 +1567,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       PRInt32 appUnitsPerDevPixel = PresContext()->AppUnitsPerDevPixel();
       
       
-      nsRect content = GetContentRect() - GetPosition() + aFramePt;
-      nsIntRect contentPixels = content.ToNearestPixels(appUnitsPerDevPixel);
+      nsIntRect contentPixels = aPluginRect.ToNearestPixels(appUnitsPerDevPixel);
       nsIntRect dirtyPixels = aDirtyRect.ToOutsidePixels(appUnitsPerDevPixel);
       nsIntRect clipPixels;
       clipPixels.IntersectRect(contentPixels, dirtyPixels);
@@ -1618,7 +1638,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
     } else {
       
       nsIRenderingContext::AutoPushTranslation
-        translate(&aRenderingContext, aFramePt.x, aFramePt.y);
+        translate(&aRenderingContext, aPluginRect.x, aPluginRect.y);
 
       
       gfxRect tmpRect(0, 0, 0, 0);
@@ -1635,7 +1655,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
     if (window->type == NPWindowTypeDrawable) {
 #endif
       gfxRect frameGfxRect =
-        PresContext()->AppUnitsToGfxUnits(nsRect(aFramePt, GetSize()));
+        PresContext()->AppUnitsToGfxUnits(aPluginRect);
       gfxRect dirtyGfxRect =
         PresContext()->AppUnitsToGfxUnits(aDirtyRect);
       gfxContext* ctx = aRenderingContext.ThebesContext();
@@ -1648,7 +1668,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
   GetPluginInstance(*getter_AddRefs(inst));
   if (inst) {
     gfxRect frameGfxRect =
-      PresContext()->AppUnitsToGfxUnits(nsRect(aFramePt, GetSize()));
+      PresContext()->AppUnitsToGfxUnits(aPluginRect);
     gfxRect dirtyGfxRect =
       PresContext()->AppUnitsToGfxUnits(aDirtyRect);
     gfxContext *ctx = aRenderingContext.ThebesContext();
@@ -1781,7 +1801,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
     if (window->type == NPWindowTypeDrawable) {
       
       nsIRenderingContext::AutoPushTranslation
-        translate(&aRenderingContext, aFramePt.x, aFramePt.y);
+        translate(&aRenderingContext, aPluginRect.x, aPluginRect.y);
 
       
       PRBool doupdatewindow = PR_FALSE;
@@ -1977,7 +1997,7 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
   mInstanceOwner->SetPluginHost(pluginHost);
 
   
-  FixupWindow(mRect.Size());
+  FixupWindow(GetContentRect().Size());
 
   nsWeakFrame weakFrame(this);
 
@@ -2017,7 +2037,7 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
   nsWeakFrame weakFrame(this);
 
   
-  FixupWindow(mRect.Size());
+  FixupWindow(GetContentRect().Size());
 
   
   nsCOMPtr<nsIPluginHost> pluginHost(do_GetService(MOZ_PLUGIN_HOST_CONTRACTID, &rv));
@@ -3913,7 +3933,8 @@ nsEventStatus nsPluginInstanceOwner::ProcessEventX11Composited(const nsGUIEvent&
         
         const nsPresContext* presContext = mOwner->PresContext();
         nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner); 
+          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner) -
+          mOwner->GetUsedBorderAndPadding().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
         mLastPoint = pluginPoint;
@@ -4162,7 +4183,8 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
       void* event = anEvent.nativeMsg;
 
       if (!event) {
-        nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner);
+        nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner)
+          - mOwner->GetUsedBorderAndPadding().TopLeft();
         nsPresContext* presContext = mOwner->PresContext();
         nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x),
                         presContext->AppUnitsToDevPixels(pt.y));
@@ -4323,7 +4345,9 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
                    anEvent.message == NS_MOUSE_EXIT_SYNTH ||
                    anEvent.message == NS_MOUSE_MOVE,
                    "Incorrect event type for coordinate translation");
-      nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner);
+      nsPoint pt =
+        nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner) -
+        mOwner->GetUsedBorderAndPadding().TopLeft();
       nsPresContext* presContext = mOwner->PresContext();
       nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x),
                       presContext->AppUnitsToDevPixels(pt.y));
@@ -4377,7 +4401,8 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
         
         const nsPresContext* presContext = mOwner->PresContext();
         nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner); 
+          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner) -
+          mOwner->GetUsedBorderAndPadding().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
         const nsMouseEvent& mouseEvent =
