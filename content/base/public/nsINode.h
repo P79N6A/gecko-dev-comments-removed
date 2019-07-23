@@ -773,6 +773,22 @@ public:
   
 
 
+  PRBool IsInNativeAnonymousSubtree() const
+  {
+#ifdef DEBUG
+    if (HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)) {
+      return PR_TRUE;
+    }
+    CheckNotNativeAnonymous();
+    return PR_FALSE;
+#else
+    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE);
+#endif
+  }
+
+  
+
+
 
 
   nsIContent* GetTextEditorRootContent(nsIEditor** aEditor = nsnull);
@@ -891,6 +907,12 @@ protected:
   {
     return IsEditableInternal();
   }
+
+#ifdef DEBUG
+  
+  
+  virtual void CheckNotNativeAnonymous() const;
+#endif
 
   nsresult GetParentNode(nsIDOMNode** aParentNode);
   nsresult GetChildNodes(nsIDOMNodeList** aChildNodes);

@@ -176,29 +176,6 @@ public:
   
 
 
-  PRBool IsInNativeAnonymousSubtree() const
-  {
-#ifdef DEBUG
-    if (HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)) {
-      return PR_TRUE;
-    }
-    nsIContent* content = GetBindingParent();
-    while (content) {
-      if (content->IsRootOfNativeAnonymousSubtree()) {
-        NS_ERROR("Element not marked to be in native anonymous subtree!");
-        break;
-      }
-      content = content->GetBindingParent();
-    }
-    return PR_FALSE;
-#else
-    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE);
-#endif
-  }
-
-  
-
-
 
   PRBool IsRootOfAnonymousSubtree() const
   {

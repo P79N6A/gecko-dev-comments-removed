@@ -41,6 +41,7 @@
 
 
 
+
 #include "nsGenericElement.h"
 
 #include "nsDOMAttribute.h"
@@ -445,6 +446,23 @@ nsINode::GetChildNodesList()
 
   return slots->mChildNodes;
 }
+
+#ifdef DEBUG
+void
+nsINode::CheckNotNativeAnonymous() const
+{
+  if (!IsNodeOfType(eCONTENT))
+    return;
+  nsIContent* content = static_cast<const nsIContent *>(this)->GetBindingParent();
+  while (content) {
+    if (content->IsRootOfNativeAnonymousSubtree()) {
+      NS_ERROR("Element not marked to be in native anonymous subtree!");
+      break;
+    }
+    content = content->GetBindingParent();
+  }
+}
+#endif
 
 nsresult
 nsINode::GetParentNode(nsIDOMNode** aParentNode)
