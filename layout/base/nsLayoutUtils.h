@@ -252,8 +252,24 @@ public:
   
 
 
+
+
+
   static PRBool IsProperAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
                                               nsIFrame* aCommonAncestor = nsnull);
+
+  
+
+
+
+
+
+
+
+
+
+  static PRBool IsAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
+                                        nsIFrame* aCommonAncestor = nsnull);
 
   
 

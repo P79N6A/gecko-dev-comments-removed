@@ -319,6 +319,16 @@ nsLayoutUtils::IsProperAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame*
 
 
 PRBool
+nsLayoutUtils::IsAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
+                                       nsIFrame* aCommonAncestor)
+{
+  if (aFrame == aAncestorFrame)
+    return PR_TRUE;
+  return IsProperAncestorFrameCrossDoc(aAncestorFrame, aFrame, aCommonAncestor);
+}
+
+
+PRBool
 nsLayoutUtils::IsProperAncestorFrame(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
                                      nsIFrame* aCommonAncestor)
 {
