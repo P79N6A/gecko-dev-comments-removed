@@ -670,7 +670,6 @@ protected:
   
   
   
-  PRPackedBool                  mFullScreen : 1;
   PRPackedBool                  mIsClosed : 1;
   PRPackedBool                  mInClose : 1;
   
