@@ -1587,7 +1587,7 @@ void
 nsContentSink::BeginUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
 {
   
-  if (mInNotification && mUpdatesInNotification < 2) {
+  if (mInNotification > 0 && mUpdatesInNotification < 2) {
     ++mUpdatesInNotification;
   }
 
