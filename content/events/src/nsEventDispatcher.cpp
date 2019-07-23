@@ -96,7 +96,7 @@ public:
     return !!(mTarget);
   }
 
-  nsISupports* GetNewTarget()
+  nsPIDOMEventTarget* GetNewTarget()
   {
     return mNewTarget;
   }
@@ -280,7 +280,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
 {
   PRUint32 createdELMs = nsEventListenerManager::sCreatedCount;
   
-  nsCOMPtr<nsISupports> firstTarget = aVisitor.mEvent->target;
+  nsCOMPtr<nsPIDOMEventTarget> firstTarget = aVisitor.mEvent->target;
 
   
   nsEventTargetChainItem* item = this;
@@ -300,7 +300,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
       
       nsEventTargetChainItem* nextTarget = item->mChild;
       while (nextTarget) {
-        nsISupports* newTarget = nextTarget->GetNewTarget();
+        nsPIDOMEventTarget* newTarget = nextTarget->GetNewTarget();
         if (newTarget) {
           aVisitor.mEvent->target = newTarget;
           break;
@@ -333,7 +333,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_CAPTURE;
   item = item->mParent;
   while (item) {
-    nsISupports* newTarget = item->GetNewTarget();
+    nsPIDOMEventTarget* newTarget = item->GetNewTarget();
     if (newTarget) {
       
       
@@ -454,6 +454,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   NS_ENSURE_TRUE(!NS_IS_EVENT_IN_DISPATCH(aEvent),
                  NS_ERROR_ILLEGAL_VALUE);
   NS_ASSERTION(!aTargets || !aEvent->message, "Wrong parameters!");
+  nsCOMPtr<nsPIDOMEventTarget> target = do_QueryInterface(aTarget);
 
   if (aEvent->flags & NS_EVENT_FLAG_ONLY_CHROME_DISPATCH) {
     nsCOMPtr<nsINode> node = do_QueryInterface(aTarget);
@@ -471,13 +472,12 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
       
       NS_ENSURE_TRUE(win && win->GetChromeEventHandler(), NS_OK);
       
-      aEvent->target = aTarget;
+      aEvent->target = target;
       
       aTarget = win->GetChromeEventHandler();
     }
   }
 
-  nsCOMPtr<nsPIDOMEventTarget> target = do_QueryInterface(aTarget);
 #ifdef DEBUG
   if (!nsContentUtils::IsSafeToRunScript()) {
     nsresult rv = NS_ERROR_FAILURE;
@@ -532,9 +532,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     
     
     
-    nsCOMPtr<nsPIDOMEventTarget> t = do_QueryInterface(aEvent->target);
-    NS_ENSURE_STATE(t);
-    aEvent->target = t->GetTargetForEventTargetChain();
+    aEvent->target = aEvent->target->GetTargetForEventTargetChain();
     NS_ENSURE_STATE(aEvent->target);
   }
   aEvent->originalTarget = aEvent->target;
