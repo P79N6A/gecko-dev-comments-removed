@@ -663,7 +663,6 @@ JS_TypeOfValue(JSContext *cx, jsval v)
 
 
 
-
                 clasp = OBJ_GET_CLASS(cx, obj);
                 if ((ops == &js_ObjectOps)
                     ? (clasp->call

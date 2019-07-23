@@ -792,12 +792,8 @@ js_ComputeFilename(JSContext *cx, JSStackFrame *caller,
                    JSPrincipals *principals, uintN *linenop);
 
 
-static JS_INLINE JSBool
-js_IsCallable(JSContext *cx, JSObject *obj)
-{
-   return (obj && ((obj->map->ops == &js_ObjectOps) ? OBJ_GET_CLASS(cx, obj)->call
-                                                    : obj->map->ops->call));
-}
+extern JSBool
+js_IsCallable(JSObject *obj, JSContext *cx);
 
 #ifdef DEBUG
 JS_FRIEND_API(void) js_DumpChars(const jschar *s, size_t n);
