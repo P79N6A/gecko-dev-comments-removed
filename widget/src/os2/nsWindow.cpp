@@ -262,6 +262,13 @@ nsWindow::~nsWindow()
   }
 
   
+  
+  if (mClipWnd) {
+    WinDestroyWindow(mClipWnd);
+    mClipWnd = 0;
+  }
+ 
+  
   if (mFrame) {
     delete mFrame;
     mFrame = 0;
@@ -812,11 +819,11 @@ void nsWindow::Scroll(const nsIntPoint& aDelta,
         
         
         
-        if (w->mBounds.Intersects(affectedRect)) {
+        if (w->mWnd && w->mBounds.Intersects(affectedRect)) {
           if (!ClipRegionContainedInRect(configuration.mClipRegion,
-                                         affectedRect - (w->mBounds.TopLeft()
-                                                         + aDelta)) && mWnd) {
-            WinInvalidateRect(mWnd, 0, FALSE);
+                                         affectedRect - 
+                                         (w->mBounds.TopLeft() + aDelta))) {
+            WinInvalidateRect(w->mWnd, 0, FALSE);
           }
 
           

@@ -313,9 +313,14 @@ static MRESULT EXPENTRY PluginWndProc(HWND hWnd, ULONG msg, MPARAM mp1, MPARAM m
       
       
       
+      
+      
       if (SHORT1FROMMP(mp2) && (HWND)mp1 != hWnd) {
         HWND hFocus = WinQueryFocus(HWND_DESKTOP);
-        if (hFocus != hWnd) {
+        if (hFocus != hWnd &&
+            WinIsChild(hFocus, hWnd) &&
+            !WinIsChild((HWND)mp1, hWnd) &&
+            !WinIsChild(WinQueryWindow((HWND)mp1, QW_OWNER), hWnd)) {
           WinPostMsg(hWnd, WM_FOCUSCHANGED, (MPARAM)hFocus, mp2);
         }
       }
