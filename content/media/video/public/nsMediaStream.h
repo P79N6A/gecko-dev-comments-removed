@@ -70,7 +70,14 @@ public:
 
   
   
-  virtual nsresult Open() = 0;
+
+  
+
+
+
+
+
+  virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
   virtual nsresult Close() = 0;
   virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes) = 0;
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
@@ -122,8 +129,14 @@ class nsMediaStream
   ~nsMediaStream();
 
   
-  
-  nsresult Open(nsMediaDecoder *aDecoder, nsIURI* aURI);
+
+
+
+
+
+
+  nsresult Open(nsMediaDecoder* aDecoder, nsIURI* aURI,
+                nsIChannel* aChannel, nsIStreamListener** aListener);
 
   
   

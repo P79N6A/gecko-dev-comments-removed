@@ -49,6 +49,7 @@
 #include "nsIObserverService.h"
 #include "nsAutoLock.h"
 #include "nsTArray.h"
+#include "nsNetUtil.h"
 #include "nsOggDecoder.h"
 
 
@@ -1165,10 +1166,26 @@ nsOggDecoder::~nsOggDecoder()
   nsAutoMonitor::DestroyMonitor(mMonitor);
 }
 
-nsresult nsOggDecoder::Load(nsIURI* aURI) 
+nsresult nsOggDecoder::Load(nsIURI* aURI, nsIChannel* aChannel,
+                            nsIStreamListener** aStreamListener)
 {
-  nsresult rv;
-  mURI = aURI;
+  if (aStreamListener) {
+    *aStreamListener = nsnull;
+  }
+
+  if (aURI) {
+    NS_ASSERTION(!aStreamListener, "No listener should be requested here");
+    mURI = aURI;
+  } else {
+    NS_ASSERTION(aChannel, "Either a URI or a channel is required");
+    NS_ASSERTION(aStreamListener, "A listener should be requested here");
+
+    
+    
+    
+    nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(mURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   StartProgress();
 
@@ -1177,7 +1194,7 @@ nsresult nsOggDecoder::Load(nsIURI* aURI)
   mReader = new nsChannelReader();
   NS_ENSURE_TRUE(mReader, NS_ERROR_OUT_OF_MEMORY);
 
-  rv = mReader->Init(this, aURI);
+  nsresult rv = mReader->Init(this, mURI, aChannel, aStreamListener);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = NS_NewThread(getter_AddRefs(mDecodeThread));
@@ -1457,9 +1474,12 @@ void nsOggDecoder::ChangeState(PlayState aState)
     
     
     
+    
+    
+    
     mNextState = aState;
     mPlayState = PLAY_STATE_LOADING;
-    Load(mURI);
+    Load(mURI, nsnull, nsnull);
     return;
   }
 

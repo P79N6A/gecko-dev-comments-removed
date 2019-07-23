@@ -44,6 +44,9 @@
 
 #include "oggplay/oggplay.h"
 
+class nsIChannel;
+class nsIStreamListener;
+
 class nsChannelReader : public OggPlayReader
 {
 public:
@@ -51,7 +54,14 @@ public:
   ~nsChannelReader();
 
   
-  nsresult Init(nsMediaDecoder* aDecoder, nsIURI* aURI);
+
+
+
+
+
+
+  nsresult Init(nsMediaDecoder* aDecoder, nsIURI* aURI, nsIChannel* aChannel,
+                nsIStreamListener** aStreamListener);
 
   
   

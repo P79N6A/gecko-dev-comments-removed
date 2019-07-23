@@ -38,6 +38,7 @@
 #include "nsIDOMHTMLMediaElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsMediaDecoder.h"
+#include "nsIChannel.h"
 
 
 
@@ -50,6 +51,16 @@ class nsHTMLMediaElement : public nsGenericHTMLElement
 public:
   nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParser = PR_FALSE);
   virtual ~nsHTMLMediaElement();
+
+  
+
+
+
+
+
+
+ 
+  nsresult LoadWithChannel(nsIChannel *aChannel, nsIStreamListener **aListener);
 
   
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
@@ -147,9 +158,40 @@ public:
   void Freeze();
   void Thaw();
 
+  
+  
+  static PRBool CanHandleMediaType(const char* aMIMEType);
+
+  
+
+
+  static void InitMediaTypes();
+  
+
+
+  static void ShutdownMediaTypes();
+
 protected:
-  nsresult PickMediaElement(nsAString& aChosenMediaResource);
-  virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
+  
+
+
+
+  nsresult PickMediaElement();
+  
+
+
+
+  PRBool CreateDecoder(const nsACString& aMIMEType);
+  
+
+
+  nsresult InitializeDecoder(const nsAString& aURISpec);
+  
+
+
+
+  nsresult InitializeDecoderForChannel(nsIChannel *aChannel,
+                                       nsIStreamListener **aListener);
 
   nsRefPtr<nsMediaDecoder> mDecoder;
 

@@ -73,8 +73,4 @@ public:
   
   
   nsIntSize GetVideoSize(nsIntSize defaultSize);
-
-protected:
-  virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
-
 };

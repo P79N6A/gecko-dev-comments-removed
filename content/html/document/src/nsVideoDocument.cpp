@@ -1,0 +1,140 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsMediaDocument.h"
+#include "nsGkAtoms.h"
+#include "nsNodeInfoManager.h"
+#include "nsContentCreatorFunctions.h"
+#include "nsHTMLMediaElement.h"
+
+class nsVideoDocument : public nsMediaDocument
+{
+public:
+  virtual nsresult StartDocumentLoad(const char*         aCommand,
+                                     nsIChannel*         aChannel,
+                                     nsILoadGroup*       aLoadGroup,
+                                     nsISupports*        aContainer,
+                                     nsIStreamListener** aDocListener,
+                                     PRBool              aReset = PR_TRUE,
+                                     nsIContentSink*     aSink = nsnull);
+
+protected:
+  nsresult CreateSyntheticVideoDocument(nsIChannel* aChannel,
+                                        nsIStreamListener** aListener);
+
+  nsRefPtr<nsMediaDocumentStreamListener> mStreamListener;
+};
+
+nsresult
+nsVideoDocument::StartDocumentLoad(const char*         aCommand,
+                                   nsIChannel*         aChannel,
+                                   nsILoadGroup*       aLoadGroup,
+                                   nsISupports*        aContainer,
+                                   nsIStreamListener** aDocListener,
+                                   PRBool              aReset,
+                                   nsIContentSink*     aSink)
+{
+  nsresult rv =
+    nsMediaDocument::StartDocumentLoad(aCommand, aChannel, aLoadGroup,
+                                       aContainer, aDocListener, aReset,
+                                       aSink);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mStreamListener = new nsMediaDocumentStreamListener(this);
+  if (!mStreamListener)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  rv = CreateSyntheticVideoDocument(aChannel,
+      getter_AddRefs(mStreamListener->mNextStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ADDREF(*aDocListener = mStreamListener);
+  return rv;
+}
+
+nsresult
+nsVideoDocument::CreateSyntheticVideoDocument(nsIChannel* aChannel,
+                                              nsIStreamListener** aListener)
+{
+  
+  nsresult rv = nsMediaDocument::CreateSyntheticDocument();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsIContent* body = GetBodyContent();
+  if (!body) {
+    NS_WARNING("no body on video document!");
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsCOMPtr<nsINodeInfo> nodeInfo;
+  nodeInfo = mNodeInfoManager->GetNodeInfo(nsGkAtoms::video, nsnull,
+                                           kNameSpaceID_None);
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
+
+  nsRefPtr<nsHTMLMediaElement> element =
+    static_cast<nsHTMLMediaElement*>(NS_NewHTMLVideoElement(nodeInfo, PR_FALSE));
+  if (!element)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  element->SetAutoplay(PR_TRUE);
+  element->SetControls(PR_TRUE);
+  element->LoadWithChannel(aChannel, aListener);
+
+  return body->AppendChildTo(element, PR_FALSE);
+}
+
+nsresult
+NS_NewVideoDocument(nsIDocument** aResult)
+{
+  nsVideoDocument* doc = new nsVideoDocument();
+  if (!doc) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  NS_ADDREF(doc);
+  nsresult rv = doc->Init();
+
+  if (NS_FAILED(rv)) {
+    NS_RELEASE(doc);
+  }
+
+  *aResult = doc;
+
+  return rv;
+}

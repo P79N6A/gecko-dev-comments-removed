@@ -112,7 +112,10 @@ class nsMediaDecoder : public nsIObserver
   
   
   
-  virtual nsresult Load(nsIURI* aURI) = 0;
+  
+  virtual nsresult Load(nsIURI* aURI,
+                        nsIChannel* aChannel,
+                        nsIStreamListener **aListener) = 0;
 
   
   

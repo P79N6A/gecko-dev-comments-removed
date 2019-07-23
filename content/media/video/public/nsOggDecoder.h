@@ -297,34 +297,33 @@ class nsOggDecoder : public nsMediaDecoder
 
   
   
-  void Shutdown();
+  virtual void Shutdown();
   
-  float GetCurrentTime();
+  virtual float GetCurrentTime();
+
+  virtual nsresult Load(nsIURI* aURI,
+                        nsIChannel* aChannel,
+                        nsIStreamListener **aListener);
 
   
   
-  
-  nsresult Load(nsIURI* aURI);
-
-  
-  
-  nsresult Play();
+  virtual nsresult Play();
 
   
   virtual void Stop();
 
   
-  nsresult Seek(float time);
+  virtual nsresult Seek(float time);
 
-  nsresult PlaybackRateChanged();
+  virtual nsresult PlaybackRateChanged();
 
-  void Pause();
-  float GetVolume();
-  void SetVolume(float volume);
-  float GetDuration();
+  virtual void Pause();
+  virtual float GetVolume();
+  virtual void SetVolume(float volume);
+  virtual float GetDuration();
 
-  void GetCurrentURI(nsIURI** aURI);
-  nsIPrincipal* GetCurrentPrincipal();
+  virtual void GetCurrentURI(nsIURI** aURI);
+  virtual nsIPrincipal* GetCurrentPrincipal();
 
   virtual void UpdateBytesDownloaded(PRUint64 aBytes);
 
