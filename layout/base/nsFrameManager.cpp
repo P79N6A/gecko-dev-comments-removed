@@ -275,7 +275,7 @@ nsFrameManager::Destroy()
   
   mPresShell->SetIgnoreFrameDestruction(PR_TRUE);
 
-  mIsDestroyingFrames = PR_TRUE;  
+  mIsDestroying = PR_TRUE;  
 
   
   nsFrameManager::ClearPlaceholderFrameMap();
@@ -324,12 +324,12 @@ nsIFrame*
 nsFrameManager::GetPrimaryFrameFor(nsIContent* aContent,
                                    PRInt32 aIndexHint)
 {
+  NS_ASSERTION(!mIsDestroyingFrames,
+               "GetPrimaryFrameFor() called while frames are being destroyed!");
   NS_ENSURE_TRUE(aContent, nsnull);
 
-  if (mIsDestroyingFrames) {
-#ifdef DEBUG
-    printf("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!\n");
-#endif
+  if (mIsDestroying) {
+    NS_ERROR("GetPrimaryFrameFor() called while nsFrameManager is being destroyed!");
     return nsnull;
   }
 
@@ -684,6 +684,10 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
                             nsIAtom*        aListName,
                             nsIFrame*       aOldFrame)
 {
+#ifdef DEBUG  
+  PRBool wasDestroyingFrames = mIsDestroyingFrames;
+  mIsDestroyingFrames = PR_TRUE;
+#endif
   
   
   
@@ -692,7 +696,11 @@ nsFrameManager::RemoveFrame(nsIFrame*       aParentFrame,
   
   aOldFrame->Invalidate(aOldFrame->GetOverflowRect());
 
-  return aParentFrame->RemoveFrame(aListName, aOldFrame);
+  nsresult rv = aParentFrame->RemoveFrame(aListName, aOldFrame);
+#ifdef DEBUG  
+  mIsDestroyingFrames = wasDestroyingFrames;
+#endif
+  return rv;
 }
 
 

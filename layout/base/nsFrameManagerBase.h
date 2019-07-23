@@ -78,7 +78,10 @@ protected:
   PLDHashTable                    mPrimaryFrameMap;
   PLDHashTable                    mPlaceholderMap;
   UndisplayedMap*                 mUndisplayedMap;
-  PRBool                          mIsDestroyingFrames;
+  PRPackedBool                    mIsDestroying;        
+#ifdef DEBUG
+  PRPackedBool                    mIsDestroyingFrames;  
+#endif
 };
 
 #endif
