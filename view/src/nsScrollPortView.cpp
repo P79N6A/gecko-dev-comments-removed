@@ -520,6 +520,12 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta, nsPoin
 {
   if (aTwipsDelta.x != 0 || aTwipsDelta.y != 0)
   {
+    
+
+
+    if (aScrolledView->NeedsInvalidateFrameOnScroll())
+      GetViewManager()->GetViewObserver()->InvalidateFrameForView(aScrolledView);
+    
     nsIWidget *scrollWidget = GetWidget();
     nsRegion updateRegion;
     PRBool canBitBlit = scrollWidget &&

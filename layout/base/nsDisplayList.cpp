@@ -51,6 +51,8 @@
 #include "nsFrameManager.h"
 #include "gfxContext.h"
 #include "nsStyleStructInlines.h"
+#include "nsStyleTransformMatrix.h"
+#include "gfxMatrix.h"
 #ifdef MOZ_SVG
 #include "nsSVGIntegrationUtils.h"
 #endif
@@ -370,7 +372,7 @@ nsIFrame* nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, nsPoint aPt,
       }
     }
   }
-  NS_ASSERTION(aState->mItemBuffer.Length() == itemBufferStart,
+  NS_ASSERTION(aState->mItemBuffer.Length() == PRUint32(itemBufferStart),
                "How did we forget to pop some elements?");
   return nsnull;
 }
@@ -933,6 +935,395 @@ nsDisplayWrapList* nsDisplayClip::WrapWithClone(nsDisplayListBuilder* aBuilder,
                                                 nsDisplayItem* aItem) {
   return new (aBuilder)
     nsDisplayClip(aItem->GetUnderlyingFrame(), mClippingFrame, aItem, mClip);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#undef  UNIFIED_CONTINUATIONS
+#undef  DEBUG_HIT
+
+
+
+
+
+
+
+
+
+
+#ifndef UNIFIED_CONTINUATIONS
+
+nsRect
+nsDisplayTransform::GetFrameBoundsForTransform(const nsIFrame* aFrame)
+{
+  NS_PRECONDITION(aFrame, "Can't get the bounds of a nonexistent frame!");
+  return nsRect(nsPoint(0, 0), aFrame->GetSize());
+}
+
+#else
+
+nsRect
+nsDisplayTransform::GetFrameBoundsForTransform(const nsIFrame* aFrame)
+{
+  NS_PRECONDITION(aFrame, "Can't get the bounds of a nonexistent frame!");
+
+  nsRect result;
+  
+  
+
+
+  for (const nsIFrame *currFrame = aFrame->GetFirstContinuation();
+       currFrame != nsnull;
+       currFrame = currFrame->GetNextContinuation())
+    {
+      
+
+
+      result.UnionRect(result, nsRect(currFrame->GetOffsetTo(aFrame),
+                                      currFrame->GetSize()));
+    }
+
+  return result;
+}
+
+#endif
+
+
+
+
+
+static
+gfxPoint GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
+                                      float aFactor,
+                                      const nsRect* aBoundsOverride)
+{
+  NS_PRECONDITION(aFrame, "Can't get delta for a null frame!");
+  NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
+                  "Can't get a delta for an untransformed frame!");
+
+  
+
+
+
+  const nsStyleDisplay* display = aFrame->GetStyleDisplay();
+  nsRect boundingRect = (aBoundsOverride ? *aBoundsOverride :
+                         nsDisplayTransform::GetFrameBoundsForTransform(aFrame));
+
+  
+  gfxPoint result;
+  gfxFloat* coords[2] = {&result.x, &result.y};
+  const nscoord* dimensions[2] =
+    {&boundingRect.width, &boundingRect.height};
+
+  for (PRUint8 index = 0; index < 2; ++index) {
+    
+
+
+    if (display->mTransformOrigin[index].GetUnit() == eStyleUnit_Percent)
+      *coords[index] = NSAppUnitsToFloatPixels(*dimensions[index], aFactor) *
+        display->mTransformOrigin[index].GetPercentValue();
+    
+    
+    else
+      *coords[index] =
+        NSAppUnitsToFloatPixels(display->
+                                mTransformOrigin[index].GetCoordValue(),
+                                aFactor);
+  }
+  
+  
+  result.x += NSAppUnitsToFloatPixels(boundingRect.x, aFactor);
+  result.y += NSAppUnitsToFloatPixels(boundingRect.y, aFactor);
+
+  return result;
+}
+
+
+
+
+
+gfxMatrix
+nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
+                                                const nsPoint &aOrigin,
+                                                float aFactor,
+                                                const nsRect* aBoundsOverride)
+{
+  NS_PRECONDITION(aFrame, "Cannot get transform matrix for a null frame!");
+  NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
+                  "Cannot get transform matrix if frame isn't transformed!");
+
+  
+
+
+  gfxPoint toMozOrigin = GetDeltaToMozTransformOrigin(aFrame, aFactor, aBoundsOverride);
+  gfxPoint newOrigin = gfxPoint(NSAppUnitsToFloatPixels(aOrigin.x, aFactor),
+                                NSAppUnitsToFloatPixels(aOrigin.y, aFactor));
+
+  
+
+
+  const nsStyleDisplay* disp = aFrame->GetStyleDisplay();
+  nsRect bounds = (aBoundsOverride ? *aBoundsOverride :
+                   nsDisplayTransform::GetFrameBoundsForTransform(aFrame));
+
+  
+  return nsLayoutUtils::ChangeMatrixBasis
+    (newOrigin + toMozOrigin, disp->mTransform.GetThebesMatrix(bounds, aFactor));
+}
+
+
+
+
+void nsDisplayTransform::Paint(nsDisplayListBuilder *aBuilder,
+                               nsIRenderingContext *aCtx,
+                               const nsRect &aDirtyRect)
+{
+  
+
+
+
+
+
+
+
+
+
+  
+  gfxContext* gfx = aCtx->ThebesContext();
+  gfxContextAutoSaveRestore autoRestorer(gfx);
+
+  
+  float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
+
+  
+
+
+
+
+  gfxMatrix newTransformMatrix =
+    GetResultingTransformMatrix(mFrame, aBuilder->ToReferenceFrame(mFrame),
+                                factor, nsnull);
+
+  newTransformMatrix.Multiply(gfx->CurrentMatrix());
+
+  
+
+
+  gfx->SetMatrix(newTransformMatrix);
+
+  
+
+
+    
+  mStoredList.Paint(aBuilder, aCtx,
+                    UntransformRect(aDirtyRect, mFrame,
+                                    aBuilder->ToReferenceFrame(mFrame)));
+
+  
+}
+
+
+PRBool nsDisplayTransform::OptimizeVisibility(nsDisplayListBuilder *aBuilder,
+                                              nsRegion *aVisibleRegion)
+{
+  return PR_TRUE;
+}
+
+#ifdef DEBUG_HIT
+#include <time.h>
+#endif
+
+
+nsIFrame *nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
+                                      nsPoint aPt,
+                                      HitTestState *aState)
+{
+  
+
+
+
+
+
+
+  float factor = nsPresContext::AppUnitsPerCSSPixel();
+  gfxMatrix matrix =
+    GetResultingTransformMatrix(mFrame, aBuilder->ToReferenceFrame(mFrame),
+                                factor, nsnull);
+  if (matrix.IsSingular())
+    return nsnull;
+
+  
+
+
+
+  matrix.Invert();
+
+  
+  gfxPoint result = matrix.Transform(gfxPoint(NSAppUnitsToFloatPixels(aPt.x, factor),
+                                              NSAppUnitsToFloatPixels(aPt.y, factor)));
+
+#ifdef DEBUG_HIT
+  printf("Frame: %p\n", dynamic_cast<void *>(mFrame));
+  printf("  Untransformed point: (%f, %f)\n", result.x, result.y);
+#endif
+
+  nsIFrame* resultFrame =
+    mStoredList.HitTest(aBuilder,
+                        nsPoint(NSFloatPixelsToAppUnits(float(result.x), factor),
+                                NSFloatPixelsToAppUnits(float(result.y), factor)), aState);
+  
+#ifdef DEBUG_HIT
+  if (resultFrame)
+    printf("  Hit!  Time: %f, frame: %p\n", static_cast<double>(clock()),
+           dynamic_cast<void *>(resultFrame));
+  printf("=== end of hit test ===\n");
+#endif
+
+  return resultFrame;
+}
+
+
+
+
+nsRect nsDisplayTransform::GetBounds(nsDisplayListBuilder *aBuilder)
+{
+  return mFrame->GetOverflowRect() + aBuilder->ToReferenceFrame(mFrame);
+}
+
+
+
+
+
+
+
+
+
+
+
+PRBool nsDisplayTransform::IsOpaque(nsDisplayListBuilder *aBuilder)
+{
+  const nsStyleDisplay* disp = mFrame->GetStyleDisplay();
+  return disp->mTransform.GetMainMatrixEntry(1) == 0.0f &&
+    disp->mTransform.GetMainMatrixEntry(2) == 0.0f &&
+    mStoredList.IsOpaque(aBuilder);
+}
+
+
+
+
+
+PRBool nsDisplayTransform::IsUniform(nsDisplayListBuilder *aBuilder)
+{
+  const nsStyleDisplay* disp = mFrame->GetStyleDisplay();
+  return disp->mTransform.GetMainMatrixEntry(1) == 0.0f &&
+    disp->mTransform.GetMainMatrixEntry(2) == 0.0f &&
+    mStoredList.IsUniform(aBuilder);
+}
+
+
+
+
+
+#ifndef UNIFIED_CONTINUATIONS
+
+PRBool
+nsDisplayTransform::TryMerge(nsDisplayListBuilder *aBuilder,
+                             nsDisplayItem *aItem)
+{
+  return PR_FALSE;
+}
+
+#else
+
+PRBool
+nsDisplayTransform::TryMerge(nsDisplayListBuilder *aBuilder,
+                             nsDisplayItem *aItem)
+{
+  NS_PRECONDITION(aItem, "Why did you try merging with a null item?");
+  NS_PRECONDITION(aBuilder, "Why did you try merging with a null builder?");
+
+  
+  if (aItem->GetType() != TYPE_TRANSFORM)
+    return PR_FALSE;
+
+  
+  if (aItem->GetUnderlyingFrame()->GetContent() != mFrame->GetContent())
+    return PR_FALSE;
+
+  
+
+
+  mStoredList.GetList()->
+    AppendToBottom(&static_cast<nsDisplayTransform *>(aItem)->mStoredList);
+  return PR_TRUE;
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsRect nsDisplayTransform::TransformRect(const nsRect &aUntransformedBounds,
+                                         const nsIFrame* aFrame,
+                                         const nsPoint &aOrigin,
+                                         const nsRect* aBoundsOverride)
+{
+  NS_PRECONDITION(aFrame, "Can't take the transform based on a null frame!");
+  NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
+                  "Cannot transform a rectangle if there's no transformation!");
+
+  float factor = nsPresContext::AppUnitsPerCSSPixel();
+  return nsLayoutUtils::MatrixTransformRect
+    (aUntransformedBounds,
+     GetResultingTransformMatrix(aFrame, aOrigin, factor, aBoundsOverride),
+     factor);
+}
+
+nsRect nsDisplayTransform::UntransformRect(const nsRect &aUntransformedBounds,
+                                           const nsIFrame* aFrame,
+                                           const nsPoint &aOrigin)
+{
+  NS_PRECONDITION(aFrame, "Can't take the transform based on a null frame!");
+  NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
+                  "Cannot transform a rectangle if there's no transformation!");
+
+
+  
+
+
+  float factor = nsPresContext::AppUnitsPerCSSPixel();
+  gfxMatrix matrix = GetResultingTransformMatrix(aFrame, aOrigin, factor, nsnull);
+  if (matrix.IsSingular())
+    return nsRect();
+
+  
+  matrix.Invert();
+
+  return nsLayoutUtils::MatrixTransformRect(aUntransformedBounds, matrix,
+                                            factor);
 }
 
 #ifdef MOZ_SVG

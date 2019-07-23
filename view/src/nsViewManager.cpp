@@ -123,6 +123,7 @@ static PRBool IsViewVisible(nsView *aView)
     if (view->GetVisibility() == nsViewVisibility_kHide)
       return PR_FALSE;
   }
+
   
   
   
@@ -729,6 +730,7 @@ nsViewManager::WillBitBlit(nsView* aView, nsPoint aScrollAmount)
   }
 
   NS_PRECONDITION(aView, "Must have a view");
+  NS_PRECONDITION(!aView->NeedsInvalidateFrameOnScroll(), "We shouldn't be BitBlting.");
   NS_PRECONDITION(aView->HasWidget(), "View must have a widget");
 
   ++mScrollCnt;

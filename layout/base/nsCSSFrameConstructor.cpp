@@ -1076,10 +1076,12 @@ private:
   nsAbsoluteItems* mItems;                
   PRBool*          mFirstLetterStyle;
   PRBool*          mFirstLineStyle;
+  PRBool*          mFixedPosIsAbsPos;
 
   nsAbsoluteItems  mSavedItems;           
   PRBool           mSavedFirstLetterStyle;
   PRBool           mSavedFirstLineStyle;
+  PRBool           mSavedFixedPosIsAbsPos;
 
   
   nsIAtom* mChildListName;
@@ -1109,6 +1111,14 @@ public:
   nsAbsoluteItems           mFloatedItems;
   PRBool                    mFirstLetterStyle;
   PRBool                    mFirstLineStyle;
+
+  
+  
+  
+  
+  
+  PRBool                    mFixedPosIsAbsPos;
+
   nsCOMPtr<nsILayoutHistoryState> mFrameState;
   nsPseudoFrames            mPseudoFrames;
   
@@ -1189,6 +1199,21 @@ public:
                     PRBool aInsertAfter = PR_FALSE,
                     nsIFrame* aInsertAfterFrame = nsnull);
 
+  
+
+
+
+
+
+  nsAbsoluteItems& GetFixedItems()
+  {
+    return mFixedPosIsAbsPos ? mAbsoluteItems : mFixedItems;
+  }
+  const nsAbsoluteItems& GetFixedItems() const
+  {
+    return mFixedPosIsAbsPos ? mAbsoluteItems : mFixedItems;
+  }
+
 protected:
   friend class nsFrameConstructorSaveState;
 
@@ -1217,6 +1242,7 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
     mFloatedItems(aFloatContainingBlock),
     mFirstLetterStyle(PR_FALSE),
     mFirstLineStyle(PR_FALSE),
+    mFixedPosIsAbsPos(PR_FALSE),
     mFrameState(aHistoryState),
     mPseudoFrames(),
     mAdditionalStateBits(0)
@@ -1240,6 +1266,7 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
     mFloatedItems(aFloatContainingBlock),
     mFirstLetterStyle(PR_FALSE),
     mFirstLineStyle(PR_FALSE),
+    mFixedPosIsAbsPos(PR_FALSE),
     mPseudoFrames(),
     mAdditionalStateBits(0)
 {
@@ -1286,8 +1313,19 @@ nsFrameConstructorState::PushAbsoluteContainingBlock(nsIFrame* aNewAbsoluteConta
   aSaveState.mSavedItems = mAbsoluteItems;
   aSaveState.mChildListName = nsGkAtoms::absoluteList;
   aSaveState.mState = this;
+
+  
+  aSaveState.mFixedPosIsAbsPos = &mFixedPosIsAbsPos;
+  aSaveState.mSavedFixedPosIsAbsPos = mFixedPosIsAbsPos;
+
   mAbsoluteItems = 
     nsAbsoluteItems(AdjustAbsoluteContainingBlock(aNewAbsoluteContainingBlock));
+
+  
+
+
+  mFixedPosIsAbsPos = (aNewAbsoluteContainingBlock &&
+                       aNewAbsoluteContainingBlock->GetStyleDisplay()->HasTransform());
 }
 
 void
@@ -1350,8 +1388,8 @@ nsFrameConstructorState::GetGeometricParent(const nsStyleDisplay* aStyleDisplay,
   }
 
   if (aStyleDisplay->mPosition == NS_STYLE_POSITION_FIXED &&
-      mFixedItems.containingBlock) {
-    return mFixedItems.containingBlock;
+      GetFixedItems().containingBlock) {
+    return GetFixedItems().containingBlock;
   }
 
   return aContentParentFrame;
@@ -1402,11 +1440,11 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
       frameItems = &mAbsoluteItems;
     }
     if (disp->mPosition == NS_STYLE_POSITION_FIXED &&
-        mFixedItems.containingBlock) {
-      NS_ASSERTION(aNewFrame->GetParent() == mFixedItems.containingBlock,
+        GetFixedItems().containingBlock) {
+      NS_ASSERTION(aNewFrame->GetParent() == GetFixedItems().containingBlock,
                    "Fixed pos whose parent is not the fixed pos containing block?");
       needPlaceholder = PR_TRUE;
-      frameItems = &mFixedItems;
+      frameItems = &GetFixedItems();
     }
   }
 
@@ -1548,9 +1586,11 @@ nsFrameConstructorSaveState::nsFrameConstructorSaveState()
   : mItems(nsnull),
     mFirstLetterStyle(nsnull),
     mFirstLineStyle(nsnull),
+    mFixedPosIsAbsPos(nsnull),
     mSavedItems(nsnull),
     mSavedFirstLetterStyle(PR_FALSE),
     mSavedFirstLineStyle(PR_FALSE),
+    mSavedFixedPosIsAbsPos(PR_FALSE),
     mChildListName(nsnull),
     mState(nsnull)
 {
@@ -1574,6 +1614,9 @@ nsFrameConstructorSaveState::~nsFrameConstructorSaveState()
   }
   if (mFirstLineStyle) {
     *mFirstLineStyle = mSavedFirstLineStyle;
+  }
+  if (mFixedPosIsAbsPos) {
+    *mFixedPosIsAbsPos = mSavedFixedPosIsAbsPos;
   }
 }
 
@@ -6470,7 +6513,8 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     rv = ConstructBlock(aState, aDisplay, aContent, 
                         aState.GetGeometricParent(aDisplay, aParentFrame),
                         aParentFrame, aStyleContext, &newFrame, aFrameItems,
-                        aDisplay->mPosition == NS_STYLE_POSITION_RELATIVE);
+                        aDisplay->mPosition == NS_STYLE_POSITION_RELATIVE ||
+                        aDisplay->HasTransform());
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -6478,7 +6522,8 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     addedToFrameList = PR_TRUE;
   }
   
-  else if ((NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition) &&
+  else if ((NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition ||
+            aDisplay->HasTransform()) &&
            (aDisplay->IsBlockInside() ||
             (NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay))) {
     if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {

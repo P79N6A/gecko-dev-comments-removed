@@ -439,6 +439,12 @@ nsFrame::Init(nsIContent*      aContent,
     mState |= state & (NS_FRAME_INDEPENDENT_SELECTION |
                        NS_FRAME_GENERATED_CONTENT);
   }
+  if (GetStyleDisplay()->HasTransform()) {
+    
+    
+    mState |= NS_FRAME_MAY_BE_TRANSFORMED;
+  }
+  
   DidSetStyleContext();
 
   if (IsBoxWrapped())
@@ -664,6 +670,13 @@ nsIFrame::GetPaddingRect() const
   nsRect r(mRect);
   r.Deflate(b);
   return r;
+}
+
+PRBool
+nsIFrame::IsTransformed() const
+{
+  return (mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
+    GetStyleDisplay()->HasTransform();
 }
 
 nsRect
@@ -1181,6 +1194,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   PRBool applyAbsPosClipping =
       ApplyAbsPosClipping(aBuilder, disp, this, &absPosClip);
   nsRect dirtyRect = aDirtyRect;
+
+  
+
+
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && disp->HasTransform())
+    dirtyRect = nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0));
+  
   if (applyAbsPosClipping) {
     dirtyRect.IntersectRect(dirtyRect,
                             absPosClip - aBuilder->ToReferenceFrame(this));
@@ -1275,16 +1295,38 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   }
  
 #ifdef MOZ_SVG
+  
   if (usingSVGEffects) {
-    rv = aList->AppendNewToTop(new (aBuilder) nsDisplaySVGEffects(this, &resultList));
+    nsDisplaySVGEffects* svgList = new (aBuilder) nsDisplaySVGEffects(this, &resultList);
+    if (!svgList)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    
+    resultList.AppendToTop(svgList);
   } else
 #endif
+
+  
   if (disp->mOpacity < 1.0f) {
-    rv = aList->AppendNewToTop(new (aBuilder) nsDisplayOpacity(this, &resultList));
-  } else {
-    aList->AppendToTop(&resultList);
+    nsDisplayOpacity* opacityList = new (aBuilder) nsDisplayOpacity(this, &resultList);
+    if (!opacityList)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    resultList.AppendToTop(opacityList);
   }
 
+  
+
+
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && disp->HasTransform()) {
+    nsDisplayTransform* transform = new (aBuilder) nsDisplayTransform(this, &resultList);
+    if (!transform)  
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    resultList.AppendToTop(transform);
+  }
+
+  aList->AppendToTop(&resultList);
   return rv;
 }
 
@@ -1423,7 +1465,11 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       !PresContext()->GetTheme()->WidgetIsContainer(ourDisp->mAppearance))
     return NS_OK;
 
-  PRBool isComposited = disp->mOpacity != 1.0f
+  
+  
+  PRBool isComposited = disp->mOpacity != 1.0f ||
+    ((aChild->mState & NS_FRAME_MAY_BE_TRANSFORMED) && 
+     aChild->GetStyleDisplay()->HasTransform())
 #ifdef MOZ_SVG
     || nsSVGIntegrationUtils::UsingEffectsForFrame(aChild)
 #endif
@@ -3608,6 +3654,51 @@ nsIFrame::Invalidate(const nsRect& aDamageRect,
   InvalidateInternal(aDamageRect, 0, 0, nsnull, aImmediate);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+void
+nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
+                                        nscoord aY, PRBool aImmediate)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
+      GetStyleDisplay()->HasTransform()) {
+    nsRect newDamageRect;
+    newDamageRect.UnionRect(nsDisplayTransform::TransformRect
+                            (aDamageRect, this, nsPoint(-aX, -aY)), aDamageRect);
+    GetParent()->
+      InvalidateInternal(newDamageRect, aX + mRect.x, aY + mRect.y, this,
+                         aImmediate);
+  }
+  else 
+    GetParent()->
+      InvalidateInternal(aDamageRect, aX + mRect.x, aY + mRect.y, this, aImmediate);
+}
+
 void
 nsIFrame::InvalidateInternal(const nsRect& aDamageRect, nscoord aX, nscoord aY,
                              nsIFrame* aForChild, PRBool aImmediate)
@@ -3616,13 +3707,81 @@ nsIFrame::InvalidateInternal(const nsRect& aDamageRect, nscoord aX, nscoord aY,
   if (nsSVGIntegrationUtils::UsingEffectsForFrame(this)) {
     nsRect r = nsSVGIntegrationUtils::GetInvalidAreaForChangedSource(this,
             aDamageRect + nsPoint(aX, aY));
-    GetParent()->InvalidateInternal(r, mRect.x, mRect.y, this, aImmediate);
+    
+
+
+
+    InvalidateInternalAfterResize(r, 0, 0, aImmediate);
     return;
   }
 #endif
+  
+  InvalidateInternalAfterResize(aDamageRect, aX, aY, aImmediate);
+}
 
-  GetParent()->
-    InvalidateInternal(aDamageRect, aX + mRect.x, aY + mRect.y, this, aImmediate);
+gfxMatrix
+nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
+{
+  NS_PRECONDITION(aOutAncestor, "Need a place to put the ancestor!");
+
+  
+
+
+  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
+
+  
+
+
+
+  if (IsTransformed()) {
+    
+
+
+    NS_ASSERTION(*aOutAncestor, "Cannot transform the viewport frame!");
+    nsPoint delta = GetOffsetTo(*aOutAncestor);
+    PRInt32 scaleFactor = PresContext()->AppUnitsPerDevPixel();
+
+    gfxMatrix result =
+      nsDisplayTransform::GetResultingTransformMatrix(this, nsPoint(0, 0),
+                                                      scaleFactor);
+    
+    result *= gfxMatrix().Translate
+      (gfxPoint(NSAppUnitsToFloatPixels(delta.x, scaleFactor),
+                NSAppUnitsToFloatPixels(delta.y, scaleFactor)));
+    return result;
+  }
+  
+  
+
+
+
+
+
+
+
+  if (!*aOutAncestor)
+    return gfxMatrix();
+  
+  
+  while (!((*aOutAncestor)->mState & NS_FRAME_MAY_BE_TRANSFORMED)) {
+    
+    nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(*aOutAncestor);
+    if (!parent)
+      break;
+
+    *aOutAncestor = parent;
+  }
+
+  NS_ASSERTION(*aOutAncestor, "Somehow ended up with a null ancestor...?");
+
+  
+
+
+  nsPoint delta = GetOffsetTo(*aOutAncestor);
+  PRInt32 scaleFactor = PresContext()->AppUnitsPerDevPixel();
+  return gfxMatrix().Translate
+    (gfxPoint(NSAppUnitsToFloatPixels(delta.x, scaleFactor),
+              NSAppUnitsToFloatPixels(delta.y, scaleFactor)));
 }
 
 void
@@ -5439,6 +5598,17 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     aOverflowArea->UnionRectIncludeEmpty(*aOverflowArea,
                                          nsRect(nsPoint(0, 0), aNewSize));
 
+  
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) && 
+      GetStyleDisplay()->HasTransform()) {
+    
+
+
+
+    nsRect newBounds(nsPoint(0, 0), aNewSize);
+    *aOverflowArea = nsDisplayTransform::TransformRect(*aOverflowArea, this, nsPoint(0, 0), &newBounds);
+  }
+  
   PRBool geometricOverflow =
     aOverflowArea->x < 0 || aOverflowArea->y < 0 ||
     aOverflowArea->XMost() > aNewSize.width || aOverflowArea->YMost() > aNewSize.height;

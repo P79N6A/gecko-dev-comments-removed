@@ -213,7 +213,8 @@ nsCSSValueListRect::sides[4] = {
 
 
 
-nsCSSDisplay::nsCSSDisplay(void)
+
+nsCSSDisplay::nsCSSDisplay(void) : mTransform(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSDisplay);
 }

@@ -560,6 +560,12 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
   }
 
   nsIViewManager* vm = aView->GetViewManager();
+ 
+  
+
+
+  if (aFrame->GetStyleDisplay()->HasTransform())
+    aView->SetInvalidateFrameOnScroll();
 
   if (nsnull == aStyleContext) {
     aStyleContext = aFrame->GetStyleContext();
@@ -633,7 +639,7 @@ nsContainerFrame::FrameNeedsView(nsIFrame* aFrame)
       nsCSSAnonBoxes::scrolledContent) {
     return PR_TRUE;
   }
-  return aFrame->NeedsView();
+  return aFrame->NeedsView() || aFrame->GetStyleDisplay()->HasTransform();
 }
 
 static nscoord GetCoord(const nsStyleCoord& aCoord, nscoord aIfNotCoord)

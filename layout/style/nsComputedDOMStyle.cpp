@@ -49,6 +49,7 @@
 #include "nsDOMString.h"
 #include "nsIDOMCSS2Properties.h"
 #include "nsIDOMElement.h"
+#include "nsIDOMCSSPrimitiveValue.h"
 #include "nsStyleContext.h"
 #include "nsIScrollableFrame.h"
 #include "nsContentUtils.h"
@@ -72,6 +73,9 @@
 #include "nsInspectorCSSUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsFrameManager.h"
+#include "nsCSSKeywords.h"
+#include "nsStyleCoord.h"
+#include "nsDisplayList.h"
 
 #if defined(DEBUG_bzbarsky) || defined(DEBUG_caillon)
 #define DEBUG_ComputedDOMStyle
@@ -810,6 +814,125 @@ nsComputedDOMStyle::GetCounterIncrement(nsIDOMCSSValue** aValue)
   }
 
   return CallQueryInterface(valueList, aValue);
+}
+
+
+
+
+nsresult nsComputedDOMStyle::GetMozTransformOrigin(nsIDOMCSSValue **aValue)
+{
+  
+
+
+  nsAutoPtr<nsROCSSPrimitiveValue> width(GetROCSSPrimitiveValue());
+  nsAutoPtr<nsROCSSPrimitiveValue> height(GetROCSSPrimitiveValue());
+  if (!width || !height)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  const nsStyleDisplay* display = GetStyleDisplay();
+  SetValueToCoord(width, display->mTransformOrigin[0],
+                  &nsComputedDOMStyle::GetFrameBoundsWidthForTransform);
+  SetValueToCoord(height, display->mTransformOrigin[1],
+                  &nsComputedDOMStyle::GetFrameBoundsHeightForTransform);
+
+  
+  nsAutoPtr<nsDOMCSSValueList> valueList(GetROCSSValueList(PR_FALSE));
+  if (!valueList)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  if (!valueList->AppendCSSValue(width))
+    return NS_ERROR_OUT_OF_MEMORY;
+  width.forget();
+  if (!valueList->AppendCSSValue(height))
+    return NS_ERROR_OUT_OF_MEMORY;
+  height.forget();
+
+  
+  return CallQueryInterface(valueList.forget(), aValue);
+}
+
+
+
+
+
+nsresult nsComputedDOMStyle::GetMozTransform(nsIDOMCSSValue **aValue)
+{
+  static const PRInt32 NUM_FLOATS = 4;
+  
+  
+  const nsStyleDisplay* display = GetStyleDisplay();
+  
+  
+
+
+  if (!display->mTransformPresent) {
+    nsROCSSPrimitiveValue *val(GetROCSSPrimitiveValue());
+    if (!val)
+      return NS_ERROR_OUT_OF_MEMORY;
+    
+    
+    val->SetIdent(eCSSKeyword_none);
+    return CallQueryInterface(val, aValue);
+  }
+  
+  
+
+
+  nsAutoString resultString(NS_LITERAL_STRING("matrix("));
+  
+  
+
+
+
+  for (PRInt32 index = 0; index < NUM_FLOATS; ++index) {
+    resultString.AppendFloat(display->mTransform.GetMainMatrixEntry(index));
+    resultString.Append(NS_LITERAL_STRING(", "));
+  }
+  
+  
+
+
+  PRInt32 cssPxWidth = 0, cssPxHeight = 0;
+
+  
+
+
+
+
+
+
+
+
+  nsRect bounds =
+    (mInnerFrame ? nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame) :
+     nsRect(0, 0, 0, 0));
+
+  
+
+
+  
+  float deltaX = nsPresContext::AppUnitsToFloatCSSPixels
+    (display->mTransform.GetXTranslation(bounds));
+  float deltaY = nsPresContext::AppUnitsToFloatCSSPixels
+    (display->mTransform.GetYTranslation(bounds));
+     
+
+  
+  resultString.AppendFloat(deltaX);
+  resultString.Append(NS_LITERAL_STRING("px, "));
+  resultString.AppendFloat(deltaY);
+  resultString.Append(NS_LITERAL_STRING("px)"));
+
+  
+  nsROCSSPrimitiveValue* rv(GetROCSSPrimitiveValue());
+
+  if (!rv)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  rv->SetString(resultString);
+  return CallQueryInterface(rv, aValue);
 }
 
 nsresult
@@ -3301,6 +3424,42 @@ nsComputedDOMStyle::GetFrameBorderRectWidth(nscoord& aWidth)
   return PR_TRUE;
 }
 
+PRBool
+nsComputedDOMStyle::GetFrameBoundsWidthForTransform(nscoord& aWidth)
+{
+  
+  if (!mInnerFrame) {
+    return PR_FALSE;
+  }
+
+  FlushPendingReflows();
+
+  
+  if (!mInnerFrame->GetStyleDisplay()->HasTransform())
+    return PR_FALSE;
+
+  aWidth = nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame).width;
+  return PR_TRUE;
+}
+
+PRBool
+nsComputedDOMStyle::GetFrameBoundsHeightForTransform(nscoord& aHeight)
+{
+  
+  if (!mInnerFrame) {
+    return PR_FALSE;
+  }
+
+  FlushPendingReflows();
+
+  
+  if (!mInnerFrame->GetStyleDisplay()->HasTransform())
+    return PR_FALSE;
+
+  aHeight = nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame).height;
+  return PR_TRUE;
+}
+
 #ifdef MOZ_SVG
 
 nsresult
@@ -4011,6 +4170,8 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(_moz_outline_radius_topLeft,    OutlineRadiusTopLeft),
     COMPUTED_STYLE_MAP_ENTRY(_moz_outline_radius_topRight,   OutlineRadiusTopRight),
     COMPUTED_STYLE_MAP_ENTRY(stack_sizing,                  StackSizing),
+    COMPUTED_STYLE_MAP_ENTRY(_moz_transform,                MozTransform),
+    COMPUTED_STYLE_MAP_ENTRY(_moz_transform_origin,         MozTransformOrigin),
     COMPUTED_STYLE_MAP_ENTRY(user_focus,                    UserFocus),
     COMPUTED_STYLE_MAP_ENTRY(user_input,                    UserInput),
     COMPUTED_STYLE_MAP_ENTRY(user_modify,                   UserModify),

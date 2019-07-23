@@ -53,6 +53,7 @@
 #include "nsStyleContext.h"
 #include "nsIContent.h"
 #include "nsHTMLReflowMetrics.h"
+#include "gfxMatrix.h"
 
 
 
@@ -231,7 +232,11 @@ enum {
   
   NS_FRAME_IS_SPECIAL =                         0x00008000,
 
-  NS_FRAME_THIS_BIT_BELONGS_TO_ROC_DO_NOT_USE_OR_I_WILL_HUNT_YOU_DOWN = 0x00010000,
+  
+  
+  
+  
+  NS_FRAME_MAY_BE_TRANSFORMED =                 0x00010000,
 
 #ifdef IBMBIDI
   
@@ -905,6 +910,12 @@ public:
 
 
 
+  virtual PRBool IsTransformed() const;
+
+  
+
+
+
 
 
   virtual nsresult CreateWidgetForView(nsIView* aView);
@@ -1550,7 +1561,19 @@ public:
 
 
   virtual nsIAtom* GetType() const = 0;
+
   
+
+
+
+
+
+
+
+
+
+
+  virtual gfxMatrix GetTransformMatrix(nsIFrame **aOutAncestor);
 
   
 
@@ -1665,6 +1688,20 @@ public:
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,
                                   nsIFrame* aForChild, PRBool aImmediate);
+
+  
+
+
+
+
+
+
+
+
+
+
+  void InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
+                                     nscoord aY, PRBool aImmediate);
 
   
 

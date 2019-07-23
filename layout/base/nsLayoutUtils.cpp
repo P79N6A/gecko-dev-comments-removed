@@ -76,6 +76,8 @@
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIWidget.h"
+#include "gfxMatrix.h"
+#include "gfxTypes.h"
 
 #ifdef MOZ_SVG
 #include "nsSVGUtils.h"
@@ -640,18 +642,16 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
 
   
-  
+
+
+
   nsIFrame* rootFrame = aFrame;
+  PRBool transformFound = PR_FALSE;
+
   for (nsIFrame* f = aFrame; f; f = GetCrossDocParentFrame(f)) {
-#ifdef MOZ_SVG
-    if (f->IsFrameOfType(nsIFrame::eSVGForeignObject) && f->GetFirstChild(nsnull)) {
-      nsSVGForeignObjectFrame* fo = static_cast<nsSVGForeignObjectFrame*>(f);
-      nsIFrame* outer = nsSVGUtils::GetOuterSVGFrame(fo);
-      return fo->TransformPointFromOuter(
-          GetEventCoordinatesRelativeTo(aEvent, outer)) -
-        aFrame->GetOffsetTo(fo->GetFirstChild(nsnull));
-    }
-#endif
+    if (f->IsTransformed())
+      transformFound = PR_TRUE;
+
     rootFrame = f;
   }
 
@@ -666,7 +666,132 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
   if (widgetToView == nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE))
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
 
+  
+
+
+  if (transformFound)
+    return InvertTransformsToRoot(aFrame, widgetToView);
+  
+  
+
+
   return widgetToView - aFrame->GetOffsetTo(rootFrame);
+}
+
+gfxMatrix
+nsLayoutUtils::ChangeMatrixBasis(const gfxPoint &aOrigin,
+                                 const gfxMatrix &aMatrix)
+{
+  
+
+
+
+
+  gfxMatrix worldToOrigin(1.0, 0.0, 0.0, 1.0, -aOrigin.x, -aOrigin.y);
+  gfxMatrix originToWorld(1.0, 0.0, 0.0, 1.0,  aOrigin.x,  aOrigin.y);
+
+  
+  gfxMatrix result(worldToOrigin);
+  result.Multiply(aMatrix);
+  result.Multiply(originToWorld);
+  return result;
+}
+
+
+
+
+
+
+static void ConstrainToCoordValues(gfxFloat &aVal)
+{
+  if (aVal <= nscoord_MIN)
+    aVal = nscoord_MIN;
+  else if (aVal >= nscoord_MAX)
+    aVal = nscoord_MAX;
+}
+
+nsRect
+nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor)
+{ 
+   
+  gfxRect scaledRect(aRect.pos.x * aFactor, aRect.pos.y * aFactor,
+                     aRect.size.width * aFactor,
+                     aRect.size.height * aFactor);
+  
+  
+  scaledRect.RoundOut();
+
+  
+  ConstrainToCoordValues(scaledRect.pos.x);
+  ConstrainToCoordValues(scaledRect.pos.y);
+  ConstrainToCoordValues(scaledRect.size.width);
+  ConstrainToCoordValues(scaledRect.size.height);
+  
+  
+  return nsRect(nscoord(scaledRect.pos.x), nscoord(scaledRect.pos.y),
+                nscoord(scaledRect.size.width), nscoord(scaledRect.size.height));
+}
+
+nsRect
+nsLayoutUtils::MatrixTransformRect(const nsRect &aBounds,
+                                   const gfxMatrix &aMatrix, float aFactor)
+{
+  gfxRect image = aMatrix.TransformBounds(gfxRect(NSAppUnitsToFloatPixels(aBounds.x, aFactor),
+                                                  NSAppUnitsToFloatPixels(aBounds.y, aFactor),
+                                                  NSAppUnitsToFloatPixels(aBounds.width, aFactor),
+                                                  NSAppUnitsToFloatPixels(aBounds.height, aFactor)));
+  
+  return RoundGfxRectToAppRect(image, aFactor);
+}
+
+nsPoint
+nsLayoutUtils::MatrixTransformPoint(const nsPoint &aPoint,
+                                    const gfxMatrix &aMatrix, float aFactor)
+{
+  gfxPoint image = aMatrix.Transform(gfxPoint(NSAppUnitsToFloatPixels(aPoint.x, aFactor),
+                                              NSAppUnitsToFloatPixels(aPoint.y, aFactor)));
+  return nsPoint(NSFloatPixelsToAppUnits(float(image.x), aFactor),
+                 NSFloatPixelsToAppUnits(float(image.y), aFactor));
+}
+
+
+
+
+
+
+
+static gfxMatrix GetCTMAt(nsIFrame *aFrame)
+{
+  gfxMatrix ctm;
+
+  
+
+
+
+
+
+  while (aFrame)
+    ctm *= aFrame->GetTransformMatrix(&aFrame);
+  return ctm;
+}
+
+nsPoint
+nsLayoutUtils::InvertTransformsToRoot(nsIFrame *aFrame,
+                                      const nsPoint &aPoint)
+{
+  NS_PRECONDITION(aFrame, "Why are you inverting transforms when there is no frame?");
+
+  
+
+
+  gfxMatrix ctm = GetCTMAt(aFrame);
+
+  
+  if (ctm.IsSingular())
+    return nsPoint(0, 0);
+
+  
+  return MatrixTransformPoint(aPoint, ctm.Invert(), aFrame->PresContext()->AppUnitsPerDevPixel());
 }
 
 nsPoint

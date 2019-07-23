@@ -83,6 +83,8 @@
 #include "math.h"
 #include "nsContentUtils.h"
 #include "nsDOMError.h"
+#include "nsAutoPtr.h"
+#include "nsTArray.h"
 
 
 #define VARIANT_KEYWORD         0x000001  // K
@@ -268,6 +270,7 @@ protected:
 
   PRBool ExpectSymbol(PRUnichar aSymbol, PRBool aSkipWS);
   PRBool ExpectEndProperty();
+  PRBool CheckEndProperty();
   nsSubstring* NextIdent();
   void SkipUntil(PRUnichar aStopSymbol);
   void SkipRuleSet();
@@ -388,6 +391,8 @@ protected:
   PRBool ParseBackground();
   PRBool ParseBackgroundPosition();
   PRBool ParseBackgroundPositionValues();
+  PRBool ParseBoxPosition(nsCSSValuePair& aOut);
+  PRBool ParseBoxPositionValues(nsCSSValuePair& aOut);
   PRBool ParseBorderColor();
   PRBool ParseBorderColors(nsCSSValueList** aResult,
                            nsCSSProperty aProperty);
@@ -420,6 +425,7 @@ protected:
   PRBool ParseListStyle();
   PRBool ParseMargin();
   PRBool ParseMarks(nsCSSValue& aValue);
+  PRBool ParseMozTransform();
   PRBool ParseOutline();
   PRBool ParseOverflow();
   PRBool ParsePadding();
@@ -476,6 +482,20 @@ protected:
   PRBool IsParsingCompoundProperty(void) const {
     return mParsingCompoundProperty;
   }
+
+  
+  PRBool ReadSingleTransform(nsCSSValueList**& aTail);
+  PRBool ParseFunction(const nsString &aFunction, const PRInt32 aAllowedTypes[],
+                       PRUint16 aMinElems, PRUint16 aMaxElems,
+                       nsCSSValue &aValue);
+  PRBool ParseFunctionInternals(const PRInt32 aVariantMask[],
+                                PRUint16 aMinElems,
+                                PRUint16 aMaxElems,
+                                nsTArray<nsCSSValue>& aOutput);
+
+  
+  PRBool ParseMozTransformOrigin();
+
 
   
 
@@ -1256,21 +1276,36 @@ CSSParserImpl::ExpectSymbol(PRUnichar aSymbol,
   return PR_FALSE;
 }
 
+
+
 PRBool
-CSSParserImpl::ExpectEndProperty()
+CSSParserImpl::CheckEndProperty()
 {
   if (!GetToken(PR_TRUE)) {
     return PR_TRUE; 
   }
   if ((eCSSToken_Symbol == mToken.mType) &&
-      ((';' == mToken.mSymbol) || ('!' == mToken.mSymbol) || ('}' == mToken.mSymbol))) {
+      ((';' == mToken.mSymbol) ||
+       ('!' == mToken.mSymbol) ||
+       ('}' == mToken.mSymbol))) {
     
     
     UngetToken();
     return PR_TRUE;
   }
-  REPORT_UNEXPECTED_TOKEN(PEExpectEndValue);
   UngetToken();
+  return PR_FALSE;
+}
+
+
+PRBool
+CSSParserImpl::ExpectEndProperty()
+{
+  if (CheckEndProperty())
+    return PR_TRUE;
+
+  
+  REPORT_UNEXPECTED_TOKEN(PRExpectEndValue);
   return PR_FALSE;
 }
 
@@ -4178,7 +4213,7 @@ CSSParserImpl::ParsePositiveVariant(nsCSSValue& aValue,
         return PR_FALSE;
       }
     }
-    else if(aValue.GetUnit() == eCSSUnit_Percent) {
+    else if (aValue.GetUnit() == eCSSUnit_Percent) {
       if (aValue.GetPercentValue() < 0) {
         UngetToken();
         return PR_FALSE;
@@ -4786,6 +4821,8 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
     return ParseBorderRadius();
   case eCSSProperty__moz_outline_radius:
     return ParseOutlineRadius();
+  case eCSSProperty_box_shadow:
+    return ParseBoxShadow();
   case eCSSProperty_clip:
     return ParseRect(mTempData.mDisplay.mClip, eCSSProperty_clip);
   case eCSSProperty__moz_column_rule:
@@ -4849,8 +4886,10 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
     return ParseSize();
   case eCSSProperty_text_shadow:
     return ParseTextShadow();
-  case eCSSProperty_box_shadow:
-    return ParseBoxShadow();
+  case eCSSProperty__moz_transform:
+    return ParseMozTransform();
+  case eCSSProperty__moz_transform_origin:
+    return ParseMozTransformOrigin();
 
 #ifdef MOZ_SVG
   case eCSSProperty_fill:
@@ -4908,7 +4947,6 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
     
     REPORT_UNEXPECTED(PEInaccessibleProperty2);
     return PR_FALSE;
-
   default:  
     {
       nsCSSValue value;
@@ -4999,6 +5037,8 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
   case eCSSProperty_quotes:
   case eCSSProperty_size:
   case eCSSProperty_text_shadow:
+  case eCSSProperty__moz_transform:
+  case eCSSProperty__moz_transform_origin:
   case eCSSProperty_COUNT:
 #ifdef MOZ_SVG
   case eCSSProperty_fill:
@@ -5565,7 +5605,7 @@ CSSParserImpl::ParseAzimuth(nsCSSValue& aValue)
 }
 
 static nsCSSValue
-BackgroundPositionMaskToCSSValue(PRInt32 aMask, PRBool isX)
+BoxPositionMaskToCSSValue(PRInt32 aMask, PRBool isX)
 {
   PRInt32 val = NS_STYLE_BG_POSITION_CENTER;
   if (isX) {
@@ -5744,8 +5784,7 @@ CSSParserImpl::ParseBackground()
 PRBool
 CSSParserImpl::ParseBackgroundPosition()
 {
-  if (!ParseBackgroundPositionValues() ||
-      !ExpectEndProperty())
+  if (!ParseBoxPosition(mTempData.mColor.mBackPosition))
     return PR_FALSE;
   mTempData.SetPropertyBit(eCSSProperty_background_position);
   return PR_TRUE;
@@ -5754,9 +5793,28 @@ CSSParserImpl::ParseBackgroundPosition()
 PRBool
 CSSParserImpl::ParseBackgroundPositionValues()
 {
+  return ParseBoxPositionValues(mTempData.mColor.mBackPosition);
+}
+
+
+
+
+
+
+
+
+
+PRBool CSSParserImpl::ParseBoxPosition(nsCSSValuePair &aOut)
+{
   
-  nsCSSValue &xValue = mTempData.mColor.mBackPosition.mXValue,
-             &yValue = mTempData.mColor.mBackPosition.mYValue;
+  return ParseBoxPositionValues(aOut) && ExpectEndProperty();
+}
+
+PRBool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut)
+{
+  
+  nsCSSValue &xValue = aOut.mXValue,
+             &yValue = aOut.mYValue;
   if (ParseVariant(xValue, VARIANT_HLP, nsnull)) {
     if (eCSSUnit_Inherit == xValue.GetUnit() ||
         eCSSUnit_Initial == xValue.GetUnit()) {  
@@ -5776,7 +5834,7 @@ CSSParserImpl::ParseBackgroundPositionValues()
         
         return PR_FALSE;
       }
-      yValue = BackgroundPositionMaskToCSSValue(yVal, PR_FALSE);
+      yValue = BoxPositionMaskToCSSValue(yVal, PR_FALSE);
       return PR_TRUE;
     }
 
@@ -5812,7 +5870,7 @@ CSSParserImpl::ParseBackgroundPositionValues()
           return PR_FALSE;
         }
 
-        xValue = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
+        xValue = BoxPositionMaskToCSSValue(mask, PR_TRUE);
         return PR_TRUE;
       }
     }
@@ -5826,8 +5884,8 @@ CSSParserImpl::ParseBackgroundPositionValues()
   }
 
   
-  xValue = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
-  yValue = BackgroundPositionMaskToCSSValue(mask, PR_FALSE);
+  xValue = BoxPositionMaskToCSSValue(mask, PR_TRUE);
+  yValue = BoxPositionMaskToCSSValue(mask, PR_FALSE);
   return PR_TRUE;
 }
 
@@ -6323,7 +6381,7 @@ CSSParserImpl::ParseCounterData(nsCSSValuePairList** aResult,
            *sv_end = singleValues + NS_ARRAY_LENGTH(singleValues);
        sv != sv_end; ++sv) {
     if (ident->LowerCaseEqualsASCII(sv->str)) {
-      if (ExpectEndProperty()) {
+      if (CheckEndProperty()) {
         nsCSSValuePairList* dataHead = new nsCSSValuePairList();
         if (!dataHead) {
           mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
@@ -6614,6 +6672,373 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily)
   }
 }
 
+
+
+
+
+
+
+PRBool
+CSSParserImpl::ParseFunctionInternals(const PRInt32 aVariantMask[],
+                                      PRUint16 aMinElems,
+                                      PRUint16 aMaxElems,
+                                      nsTArray<nsCSSValue> &aOutput)
+{
+  for (PRUint16 index = 0; index < aMaxElems; ++index) {
+    nsCSSValue newValue;
+    if (!ParseVariant(newValue, aVariantMask[index], nsnull))
+      return PR_FALSE;
+
+    if (!aOutput.AppendElement(newValue)) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      return PR_FALSE;
+    }
+    
+    
+    if (!ExpectSymbol(',', PR_TRUE)) {
+      
+      
+      return ExpectSymbol(')', PR_TRUE) && (index + 1) >= aMinElems;
+    }
+  }
+
+  
+  
+  return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+CSSParserImpl::ParseFunction(const nsString &aFunction,
+                             const PRInt32 aAllowedTypes[],
+                             PRUint16 aMinElems, PRUint16 aMaxElems,
+                             nsCSSValue &aValue)
+{
+  typedef nsTArray<nsCSSValue>::size_type arrlen_t;
+
+  
+
+
+  static const arrlen_t MAX_ALLOWED_ELEMS = 0xFFFE;
+
+  
+
+
+
+  nsString functionName(aFunction);
+
+  
+  if (!ExpectSymbol('(', PR_TRUE))
+    return PR_FALSE;
+  
+  
+
+
+  nsTArray<nsCSSValue> foundValues;
+  if (!ParseFunctionInternals(aAllowedTypes, aMinElems, aMaxElems,
+                              foundValues))
+    return PR_FALSE;
+  
+  
+
+
+
+
+  PRUint16 numElements = (foundValues.Length() <= MAX_ALLOWED_ELEMS ?
+                          foundValues.Length() + 1 : MAX_ALLOWED_ELEMS);
+  nsRefPtr<nsCSSValue::Array> convertedArray =
+	  nsCSSValue::Array::Create(numElements);
+  if (!convertedArray) {
+    mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+    return PR_FALSE;
+  }
+  
+  
+  convertedArray->Item(0).SetStringValue(functionName, eCSSUnit_String);
+  for (PRUint16 index = 0; index + 1 < numElements; ++index)
+    convertedArray->Item(index + 1) = foundValues[static_cast<arrlen_t>(index)];
+  
+  
+  aValue.SetArrayValue(convertedArray, eCSSUnit_Function);
+  
+  
+  return PR_TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static PRBool GetFunctionParseInformation(nsCSSKeyword aToken,
+                                          PRUint16 &aMinElems,
+                                          PRUint16 &aMaxElems,
+                                          const PRInt32 *& aVariantMask)
+{
+
+
+
+
+  enum { eLengthPercent,
+         eTwoLengthPercents,
+         eAngle,
+         eNumber,
+         eTwoNumbers,
+         eMatrix,
+         eNumVariantMasks };
+  static const PRInt32 kMaxElemsPerFunction = 6;
+  static const PRInt32 kVariantMasks[eNumVariantMasks][kMaxElemsPerFunction] = {
+    {VARIANT_LENGTH | VARIANT_PERCENT},
+    {VARIANT_LENGTH | VARIANT_PERCENT, VARIANT_LENGTH | VARIANT_PERCENT},
+    {VARIANT_ANGLE},
+    {VARIANT_NUMBER},
+    {VARIANT_NUMBER, VARIANT_NUMBER},
+    {VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER, VARIANT_NUMBER,
+     VARIANT_LENGTH | VARIANT_PERCENT, VARIANT_LENGTH | VARIANT_PERCENT}};
+
+#ifdef DEBUG
+  static const PRUint8 kVariantMaskLengths[eNumVariantMasks] =
+    {1, 2, 1, 1, 2, 6};
+#endif
+
+  PRInt32 variantIndex = eNumVariantMasks;
+
+  switch (aToken) {
+  case eCSSKeyword_translatex:
+    
+    variantIndex = eLengthPercent;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_translatey:
+    
+    variantIndex = eLengthPercent;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_scalex:
+    
+    variantIndex = eNumber;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_scaley:
+    
+    variantIndex = eNumber;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_rotate:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_translate:
+    
+    variantIndex = eTwoLengthPercents;
+    aMinElems = 1U;
+    aMaxElems = 2U;
+    break;
+  case eCSSKeyword_skew:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_scale:
+    
+    variantIndex = eTwoNumbers;
+    aMinElems = 1U;
+    aMaxElems = 2U;
+    break;
+  case eCSSKeyword_skewx:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_skewy:
+    
+    variantIndex = eAngle;
+    aMinElems = 1U;
+    aMaxElems = 1U;
+    break;
+  case eCSSKeyword_matrix:
+    
+    variantIndex = eMatrix;
+    aMinElems = 6U;
+    aMaxElems = 6U;
+    break;    
+  default:
+    
+    return PR_FALSE;
+  }
+
+  NS_ASSERTION(aMinElems > 0, "Didn't update minimum elements!");
+  NS_ASSERTION(aMaxElems > 0, "Didn't update maximum elements!");
+  NS_ASSERTION(aMinElems <= aMaxElems, "aMinElems > aMaxElems!");
+  NS_ASSERTION(variantIndex >= 0, "Invalid variant mask!");
+  NS_ASSERTION(variantIndex < eNumVariantMasks, "Invalid variant mask!");
+#ifdef DEBUG
+  NS_ASSERTION(aMaxElems <= kVariantMaskLengths[variantIndex],
+               "Invalid aMaxElems for this variant mask.");
+#endif
+
+  
+  aVariantMask = kVariantMasks[variantIndex];
+
+  return PR_TRUE;
+}
+                                          
+
+
+
+
+PRBool CSSParserImpl::ReadSingleTransform(nsCSSValueList **& aTail)
+{
+  typedef nsTArray<nsCSSValue>::size_type arrlen_t;
+	
+  if (!GetToken(PR_TRUE))
+    return PR_FALSE;
+  
+  
+  if (mToken.mType != eCSSToken_Function) {
+    UngetToken();
+    return PR_FALSE;
+  }
+
+  
+
+
+  const PRInt32* variantMask;
+  PRUint16 minElems, maxElems;
+  if (!GetFunctionParseInformation(nsCSSKeywords::LookupKeyword(mToken.mIdent),
+                                   minElems, maxElems, variantMask))
+    return PR_FALSE;
+
+  
+  nsAutoPtr<nsCSSValue> newCell(new nsCSSValue);
+  if (!newCell) {
+    mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+    return PR_FALSE;
+  }
+
+  
+  if (!ParseFunction(mToken.mIdent, variantMask, minElems, maxElems, *newCell))
+    return PR_FALSE;
+
+  
+  nsAutoPtr<nsCSSValueList> toAppend(new nsCSSValueList);
+  if (!toAppend)
+    return PR_FALSE;
+
+  toAppend->mValue = *newCell;
+  
+  
+
+
+  *aTail = toAppend.forget();
+  aTail = &(*aTail)->mNext;
+  
+  
+  return PR_TRUE;
+}
+
+
+
+
+PRBool CSSParserImpl::ParseMozTransform()
+{
+  mTempData.mDisplay.mTransform = nsnull;
+ 
+  
+
+
+  nsCSSValue keywordValue;
+  if (ParseVariant(keywordValue, VARIANT_INHERIT | VARIANT_NONE, nsnull)) {
+    
+
+
+    mTempData.mDisplay.mTransform = new nsCSSValueList;
+    if (!mTempData.mDisplay.mTransform) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      return PR_FALSE;
+    }
+
+    
+    mTempData.mDisplay.mTransform->mValue = keywordValue;
+    mTempData.SetPropertyBit(eCSSProperty__moz_transform);
+    return PR_TRUE;
+  }
+  
+  
+
+
+
+  nsCSSValueList *transformList = nsnull;
+  nsCSSValueList **tail = &transformList;
+  do {
+    
+    if (!ReadSingleTransform(tail)) {
+      delete transformList;
+      return PR_FALSE;
+    }
+  }
+  while (!CheckEndProperty());
+
+  
+
+
+  if (!ExpectEndProperty()) {
+    delete transformList;
+    return PR_FALSE;
+  }
+  
+  
+  NS_ASSERTION(transformList, "Didn't read any transforms!");
+  
+  mTempData.SetPropertyBit(eCSSProperty__moz_transform);
+  mTempData.mDisplay.mTransform = transformList;
+
+  return PR_TRUE;
+}
+
+PRBool CSSParserImpl::ParseMozTransformOrigin()
+{
+  
+  if (!ParseBoxPosition(mTempData.mDisplay.mTransformOrigin))
+    return PR_FALSE;
+
+  
+  mTempData.SetPropertyBit(eCSSProperty__moz_transform_origin);
+  return PR_TRUE;
+}
+
 PRBool
 CSSParserImpl::ParseFamily(nsCSSValue& aValue)
 {
@@ -6823,7 +7248,7 @@ CSSParserImpl::ParseMarks(nsCSSValue& aValue)
 {
   if (ParseVariant(aValue, VARIANT_HOK, nsCSSProps::kPageMarksKTable)) {
     if (eCSSUnit_Enumerated == aValue.GetUnit()) {
-      if (PR_FALSE == ExpectEndProperty()) {
+      if (PR_FALSE == CheckEndProperty()) {
         nsCSSValue  second;
         if (ParseEnum(second, nsCSSProps::kPageMarksKTable)) {
           aValue.SetIntValue(aValue.GetIntValue() | second.GetIntValue(), eCSSUnit_Enumerated);
@@ -6967,7 +7392,7 @@ CSSParserImpl::ParseQuotes()
         
         if (ParseVariant(quotes->mYValue, VARIANT_STRING,
                          nsnull)) {
-          if (ExpectEndProperty()) {
+          if (CheckEndProperty()) {
             mTempData.SetPropertyBit(eCSSProperty_quotes);
             mTempData.mContent.mQuotes = quotesHead;
             return PR_TRUE;
@@ -7263,7 +7688,7 @@ CSSParserImpl::ParseDasharray()
     list->mValue = value;
 
     for (;;) {
-      if (ExpectEndProperty()) {
+      if (CheckEndProperty()) {
         mTempData.SetPropertyBit(eCSSProperty_stroke_dasharray);
         mTempData.mSVG.mStrokeDasharray = listHead;
         return PR_TRUE;

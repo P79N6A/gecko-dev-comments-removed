@@ -1236,6 +1236,9 @@ nsStyleDisplay::nsStyleDisplay()
   mClipFlags = NS_STYLE_CLIP_AUTO;
   mClip.SetRect(0,0,0,0);
   mOpacity = 1.0f;
+  mTransformPresent = PR_FALSE; 
+  mTransformOrigin[0].SetPercentValue(0.5f); 
+  mTransformOrigin[1].SetPercentValue(0.5f); 
 }
 
 nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
@@ -1254,6 +1257,15 @@ nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
   mClipFlags = aSource.mClipFlags;
   mClip = aSource.mClip;
   mOpacity = aSource.mOpacity;
+
+  
+  mTransformPresent = aSource.mTransformPresent;
+  if (mTransformPresent)
+    mTransform = aSource.mTransform;
+  
+  
+  mTransformOrigin[0] = aSource.mTransformOrigin[0];
+  mTransformOrigin[1] = aSource.mTransformOrigin[1];
 }
 
 nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
@@ -1285,6 +1297,32 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
   if (mOpacity != aOther.mOpacity)
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
 
+  
+
+
+  if (mTransformPresent != aOther.mTransformPresent) {
+    NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
+  }
+  else if (mTransformPresent) {
+    
+
+
+
+
+
+    if (mTransform != aOther.mTransform)
+      NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_ReflowFrame,
+                                         nsChangeHint_RepaintFrame));
+    
+    for (PRUint8 index = 0; index < 2; ++index)
+      if (mTransformOrigin[index] != aOther.mTransformOrigin[index]) {
+        NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_ReflowFrame,
+                                           nsChangeHint_RepaintFrame));
+        break;
+      }
+  }
+  
+  
   return hint;
 }
 

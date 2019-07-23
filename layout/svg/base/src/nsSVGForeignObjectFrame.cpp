@@ -305,6 +305,20 @@ nsSVGForeignObjectFrame::TransformPointFromOuterPx(const nsPoint &aIn,
                   PresContext()->DevPixelsToAppUnits(NSToIntRound(y)));
   return NS_OK;
 }
+
+gfxMatrix
+nsSVGForeignObjectFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
+{
+  NS_PRECONDITION(aOutAncestor, "We need an ancestor to write to!");
+
+  
+  *aOutAncestor = nsSVGUtils::GetOuterSVGFrame(this);
+  NS_ASSERTION(*aOutAncestor, "How did we end up without an outer frame?");
+
+  
+  nsCOMPtr<nsIDOMSVGMatrix> matrix = GetTMIncludingOffset();
+  return nsSVGUtils::ConvertSVGMatrixToThebes(matrix);
+}
  
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGForeignObjectFrame::GetFrameForPoint(const nsPoint &aPoint)

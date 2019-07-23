@@ -53,7 +53,6 @@
 #include "nsCaret.h"
 #include "plarena.h"
 #include "nsLayoutUtils.h"
-#include "nsTArray.h"
 
 #include <stdlib.h>
 
@@ -207,7 +206,7 @@ public:
 
 
 
-  nsPoint ToReferenceFrame(nsIFrame* aFrame) {
+  nsPoint ToReferenceFrame(const nsIFrame* aFrame) {
     return aFrame->GetOffsetTo(ReferenceFrame());
   }
   
@@ -395,7 +394,8 @@ public:
 #ifdef MOZ_SVG
     TYPE_SVG_EFFECTS,
 #endif
-    TYPE_WRAPLIST
+    TYPE_WRAPLIST,
+    TYPE_TRANSFORM
   };
 
   struct HitTestState {
@@ -1293,5 +1293,116 @@ private:
   nsRect    mBounds;
 };
 #endif
+
+
+
+
+
+
+ 
+class nsDisplayTransform: public nsDisplayItem
+{
+public:
+  
+
+
+  nsDisplayTransform(nsIFrame *aFrame, nsDisplayList *aList) :
+    nsDisplayItem(aFrame), mStoredList(aFrame, aList)
+  {
+    MOZ_COUNT_CTOR(nsDisplayTransform);
+  }
+
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayTransform()
+  {
+    MOZ_COUNT_DTOR(nsDisplayTransform);
+  }
+#endif
+
+  NS_DISPLAY_DECL_NAME("nsDisplayTransform");
+
+  virtual Type GetType() 
+  {
+    return TYPE_TRANSFORM;
+  }
+
+  virtual nsIFrame* HitTest(nsDisplayListBuilder *aBuilder, nsPoint aPt,
+                            HitTestState *aState);
+  virtual nsRect GetBounds(nsDisplayListBuilder *aBuilder);
+  virtual PRBool IsOpaque(nsDisplayListBuilder *aBuilder);
+  virtual PRBool IsUniform(nsDisplayListBuilder *aBuilder);
+  virtual void   Paint(nsDisplayListBuilder *aBuilder,
+                       nsIRenderingContext *aCtx,
+                       const nsRect &aDirtyRect);
+  virtual PRBool OptimizeVisibility(nsDisplayListBuilder *aBuilder,
+                                    nsRegion *aVisibleRegion);
+  virtual PRBool TryMerge(nsDisplayListBuilder *aBuilder, nsDisplayItem *aItem);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsRect TransformRect(const nsRect &aUntransformedBounds, 
+                              const nsIFrame* aFrame,
+                              const nsPoint &aOrigin,
+                              const nsRect* aBoundsOverride = nsnull);
+
+  
+
+
+  static nsRect UntransformRect(const nsRect &aUntransformedBounds, 
+                                const nsIFrame* aFrame,
+                                const nsPoint &aOrigin);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsRect GetFrameBoundsForTransform(const nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static gfxMatrix GetResultingTransformMatrix(const nsIFrame* aFrame,
+                                               const nsPoint& aOrigin,
+                                               float aFactor,
+                                               const nsRect* aBoundsOverride = nsnull);
+
+private:
+  nsDisplayWrapList mStoredList;
+};
 
 #endif

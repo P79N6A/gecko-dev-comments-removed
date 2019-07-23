@@ -83,6 +83,19 @@ public:
   
 
 
+  virtual PRBool IsTransformed() const
+  {
+    return PR_TRUE;
+  }
+
+  
+
+
+  virtual gfxMatrix GetTransformMatrix(nsIFrame **aOutAncestor);
+
+  
+
+
 
 
   virtual nsIAtom* GetType() const;

@@ -1392,8 +1392,15 @@ nsGfxScrollFrameInner::NeedsClipWidget() const
 {
   
   
+  
   for (nsIFrame* parentFrame = mOuter; parentFrame;
-       parentFrame = parentFrame->GetParent()) {
+       parentFrame = nsLayoutUtils::GetCrossDocParentFrame(parentFrame)) {
+    
+    
+    if (parentFrame->GetStyleDisplay()->HasTransform())
+      return PR_FALSE;
+
+    
     nsIFormControlFrame* fcFrame;
     if ((NS_SUCCEEDED(parentFrame->QueryInterface(NS_GET_IID(nsIFormControlFrame), (void**)&fcFrame)))) {
       return PR_FALSE;

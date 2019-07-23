@@ -394,8 +394,70 @@ public:
 
 
 
+
+
+
+
+  static gfxMatrix ChangeMatrixBasis(const gfxPoint &aOrigin, const gfxMatrix &aMatrix);
+
+  
+
+
+
+
+
+
+
   static nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt,
                                     PRBool aShouldIgnoreSuppression = PR_FALSE);
+
+  
+
+
+
+
+
+
+
+
+  static nsPoint InvertTransformsToRoot(nsIFrame* aFrame,
+                                        const nsPoint &aPt);
+
+
+  
+
+
+
+
+
+
+
+
+  static nsRect MatrixTransformRect(const nsRect &aBounds,
+                                    const gfxMatrix &aMatrix, float aFactor);
+
+  
+
+
+
+
+
+
+
+
+  static nsPoint MatrixTransformPoint(const nsPoint &aPoint,
+                                      const gfxMatrix &aMatrix, float aFactor);
+
+  
+
+
+
+
+
+
+
+  static nsRect RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor);
+
 
   
 

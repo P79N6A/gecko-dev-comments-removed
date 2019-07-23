@@ -87,6 +87,11 @@ enum nsViewVisibility {
 
 #define NS_VIEW_DISOWNS_WIDGET             0x0020
 
+
+
+
+#define NS_VIEW_FLAG_INVALIDATE_ON_SCROLL  0x0040
+
 struct nsViewZIndex {
   PRBool mIsAuto;
   PRInt32 mZIndex;
@@ -314,6 +319,22 @@ public:
   void DisownWidget() {
     mVFlags |= NS_VIEW_DISOWNS_WIDGET;
   }
+
+  
+
+
+
+  void SetInvalidateFrameOnScroll()
+  {
+    mVFlags |= NS_VIEW_FLAG_INVALIDATE_ON_SCROLL;
+  }
+
+  
+
+
+
+
+  PRBool NeedsInvalidateFrameOnScroll() const;
 
 #ifdef DEBUG
   

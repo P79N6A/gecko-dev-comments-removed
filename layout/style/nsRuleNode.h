@@ -742,6 +742,11 @@ public:
   
   static nscoord CalcLengthWithInitialFont(nsPresContext* aPresContext,
                                            const nsCSSValue& aValue);
+  
+  static nscoord CalcLength(const nsCSSValue& aValue,
+                            nsStyleContext* aStyleContext,
+                            nsPresContext* aPresContext,
+                            PRBool& aInherited);
 };
 
 #endif
