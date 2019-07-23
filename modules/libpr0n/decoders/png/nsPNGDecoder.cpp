@@ -676,6 +676,13 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
   
   if (png_get_first_frame_is_hidden(png_ptr, info_ptr))
     decoder->mFrame = nsnull;
+
+  
+
+
+
+
+  png_set_crc_action(png_ptr, NULL, PNG_CRC_ERROR_QUIT);
   
   return;
 }
