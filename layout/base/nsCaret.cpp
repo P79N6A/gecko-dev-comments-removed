@@ -1141,7 +1141,6 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
 
   
   
-  
   if (frameRect.height == 0)
   {
     nsCOMPtr<nsIFontMetrics> fm;
@@ -1153,8 +1152,12 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
       fm->GetMaxAscent(ascent);
       fm->GetMaxDescent(descent);
       frameRect.height = ascent + descent;
-      frameRect.y -= ascent; 
+
       
+      
+      
+      if (aFrame->GetType() == nsGkAtoms::brFrame)
+          frameRect.y -= ascent;
     }
   }
 
