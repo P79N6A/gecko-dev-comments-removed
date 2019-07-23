@@ -900,7 +900,7 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
   
   
   if (window != mFocusedWindow) {
-    nsCOMPtr<nsIWebNavigation> webnav(do_GetInterface(window));
+    nsCOMPtr<nsIWebNavigation> webnav(do_GetInterface(mFocusedWindow));
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(webnav);
     if (dsti) {
       nsCOMPtr<nsIDocShellTreeItem> parentDsti;
