@@ -270,6 +270,15 @@ protected:
     return mNotificationInterval;
   }
 
+  inline PRInt32 GetMaxTokenProcessingTime()
+  {
+    if (mDynamicLowerValue) {
+      return 3000;
+    }
+
+    return mMaxTokenProcessingTime;
+  }
+
   
   virtual void PreEvaluateScript()                            {return;}
   virtual void PostEvaluateScript(nsIScriptElement *aElement) {return;}
@@ -317,6 +326,12 @@ protected:
   nsCOMPtr<nsITimer> mNotificationTimer;
 
   
+  
+  
+  
+  PRUint8 mDeflectedCount;
+
+  
   PRPackedBool mNotifyOnTimer;
 
   
@@ -336,42 +351,15 @@ protected:
   PRUint8 mDidGetReadyToCallDidBuildModelCall : 1;
   
   
-  
-  
+  PRUint32 mDelayTimerStart;
 
   
-  
-  PRUint32 mDeflectedCount;
+  PRInt32 mMaxTokenProcessingTime;
 
   
-  PRInt32 mInteractiveDeflectCount;
-  PRInt32 mPerfDeflectCount;
+  PRInt32 mDynamicIntervalSwitchThreshold;
 
-  
-  
-  
-  PRInt32 mPendingEventMode;
-
-  
-  PRInt32 mEventProbeRate;
-
-  
-  PRBool mHasPendingEvent;
-
-  
-  PRInt32 mCurrentParseEndTime;
-
-  
-  PRInt32 mInteractiveParseTime;
-  PRInt32 mPerfParseTime;
-
-  
-  PRInt32 mInteractiveTime;
-  
-  PRInt32 mInitialPerfTime;
-
-  
-  PRBool mEnablePerfMode;
+  PRInt32 mMaxTokensDeflectedInLowFreqMode;
 
   PRInt32 mBeginLoadTime;
 

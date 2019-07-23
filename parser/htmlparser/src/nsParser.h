@@ -339,7 +339,7 @@ class nsParser : public nsIParser,
 
 
 
-    virtual PRBool CanInterrupt();
+    PRBool CanInterrupt(void);
 
     
 
