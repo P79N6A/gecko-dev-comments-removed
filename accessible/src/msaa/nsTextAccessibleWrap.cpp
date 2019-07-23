@@ -90,6 +90,8 @@ STDMETHODIMP nsTextAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
 STDMETHODIMP nsTextAccessibleWrap::get_domText( 
      BSTR __RPC_FAR *aDomText)
 {
+  *aDomText = nsnull;
+
   if (!mDOMNode) {
     return E_FAIL; 
   }
@@ -263,6 +265,8 @@ nsresult nsTextAccessibleWrap::GetCharacterExtents(PRInt32 aStartOffset, PRInt32
 STDMETHODIMP nsTextAccessibleWrap::get_fontFamily(
      BSTR __RPC_FAR *aFontFamily)
 {
+  *aFontFamily = nsnull;
+
   nsIFrame *frame = GetFrame();
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   if (!frame || !presShell) {
