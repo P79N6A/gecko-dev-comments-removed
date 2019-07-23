@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef _nsAccessibleEventData_H_
 #define _nsAccessibleEventData_H_
 
@@ -131,15 +132,10 @@ private:
 
 
 
-struct AtkChildrenChange {
-  PRInt32      index;  
-  nsIAccessible *child;   
-  PRBool        add;    
-};
-
 struct AtkTableChange {
   PRUint32 index;   
   PRUint32 count;   
 };
 
-#endif  
+#endif
+

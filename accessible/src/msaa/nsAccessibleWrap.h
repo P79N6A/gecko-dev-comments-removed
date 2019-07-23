@@ -295,6 +295,7 @@ class nsAccessibleWrap : public nsAccessible,
 
   
   static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
+  static HWND GetHWNDFor(nsIAccessible *aAccessible);
 
   
 

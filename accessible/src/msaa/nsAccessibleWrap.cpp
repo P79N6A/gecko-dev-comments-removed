@@ -1529,42 +1529,9 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
   } else {
     newAccessible = accessible;
   }
-  
-  HWND hWnd = 0;
-  nsCOMPtr<nsPIAccessNode> privateAccessNode =
-    do_QueryInterface(newAccessible);
-  if (privateAccessNode) {
-    nsIFrame *frame = privateAccessNode->GetFrame();
-    if (frame) {
-      nsIWidget *window = frame->GetWindow();
-      PRBool isVisible;
-      window->IsVisible(isVisible);
-      if (isVisible) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
-      }
-    }
-  }
 
-  if (!hWnd) {
-    void* handle = nsnull;
-    nsCOMPtr<nsIAccessibleDocument> accessibleDoc;
-    accessNode->GetAccessibleDocument(getter_AddRefs(accessibleDoc));
-    NS_ENSURE_STATE(accessibleDoc);
-    accessibleDoc->GetWindowHandle(&handle);
-    hWnd = (HWND)handle;
-  }
+  HWND hWnd = GetHWNDFor(accessible);
+  NS_ENSURE_TRUE(hWnd, NS_ERROR_FAILURE);
 
   
   
@@ -1596,6 +1563,54 @@ PRInt32 nsAccessibleWrap::GetChildIDFor(nsIAccessible* aAccessible)
   
   
   return - NS_PTR_TO_INT32(uniqueID);
+}
+
+HWND
+nsAccessibleWrap::GetHWNDFor(nsIAccessible *aAccessible)
+{
+  nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
+  nsCOMPtr<nsPIAccessNode> privateAccessNode(do_QueryInterface(accessNode));
+  if (!privateAccessNode)
+    return 0;
+
+  HWND hWnd = 0;
+
+  nsIFrame *frame = privateAccessNode->GetFrame();
+  if (frame) {
+    nsIWidget *window = frame->GetWindow();
+    PRBool isVisible;
+    window->IsVisible(isVisible);
+    if (isVisible) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
+    }
+  }
+
+  if (!hWnd) {
+    void* handle = nsnull;
+    nsCOMPtr<nsIAccessibleDocument> accessibleDoc;
+    accessNode->GetAccessibleDocument(getter_AddRefs(accessibleDoc));
+    if (!accessibleDoc)
+      return 0;
+
+    accessibleDoc->GetWindowHandle(&handle);
+    hWnd = (HWND)handle;
+  }
+
+  return hWnd;
 }
 
 IDispatch *nsAccessibleWrap::NativeAccessible(nsIAccessible *aXPAccessible)
