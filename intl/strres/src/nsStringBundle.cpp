@@ -385,7 +385,7 @@ nsStringBundle::FormatString(const PRUnichar *aFormatStr,
   
   
   
-  *aResult = 
+  PRUnichar *text = 
     nsTextFormatter::smprintf(aFormatStr,
                               aLength >= 1 ? aParams[0] : nsnull,
                               aLength >= 2 ? aParams[1] : nsnull,
@@ -397,7 +397,21 @@ nsStringBundle::FormatString(const PRUnichar *aFormatStr,
                               aLength >= 8 ? aParams[7] : nsnull,
                               aLength >= 9 ? aParams[8] : nsnull,
                               aLength >= 10 ? aParams[9] : nsnull);
-  return NS_OK;
+
+  if (!text) {
+    *aResult = nsnull;
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  
+  
+  
+  
+  *aResult = NS_strdup(text);
+  nsTextFormatter::smprintf_free(text);
+
+  return *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 NS_IMPL_ISUPPORTS1(nsExtensibleStringBundle, nsIStringBundle)
