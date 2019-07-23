@@ -271,43 +271,6 @@ test = new Test(PREPATH + "/handleAsync2",
 tests.push(test);
 
 
-const ASYNC_ERROR_BODY = "hi, I'm a body!";
-
-function handleAsyncError(request, response)
-{
-  response.setStatusLine(request.httpVersion, 200, "Async Error");
-  response.setHeader("X-Foo", "header value", false);
-
-  response.processAsync();
-
-  response.write(ASYNC_ERROR_BODY, ASYNC_ERROR_BODY.length);
-
-  
-  throw "Monkey wrench!";
-}
-handlers["/handleAsyncError"] = handleAsyncError;
-
-function start_handleAsyncError(ch, cx)
-{
-  do_check_eq(ch.responseStatus, 200);
-  do_check_eq(ch.responseStatusText, "Async Error");
-  do_check_eq(ch.getResponseHeader("X-Foo"), "header value");
-}
-
-function stop_handleAsyncError(ch, cx, status, data)
-{
-  
-  do_check_true(ch.requestSucceeded);
-
-  do_check_eq(data.length, ASYNC_ERROR_BODY.length);
-  do_check_eq(String.fromCharCode.apply(null, data), ASYNC_ERROR_BODY);
-}
-
-test = new Test(PREPATH + "/handleAsyncError",
-                null, start_handleAsyncError, stop_handleAsyncError);
-tests.push(test);
-
-
 
 
 

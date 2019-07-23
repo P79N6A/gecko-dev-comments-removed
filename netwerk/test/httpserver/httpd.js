@@ -227,12 +227,6 @@ function getRootPrefBranch()
 const ServerSocket = CC("@mozilla.org/network/server-socket;1",
                         "nsIServerSocket",
                         "init");
-const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
-                             "nsIBinaryInputStream",
-                             "setInputStream");
-const BinaryOutputStream = CC("@mozilla.org/binaryoutputstream;1",
-                             "nsIBinaryOutputStream",
-                             "setOutputStream");
 const ScriptableInputStream = CC("@mozilla.org/scriptableinputstream;1",
                                  "nsIScriptableInputStream",
                                  "init");
@@ -250,6 +244,13 @@ const WritablePropertyBag = CC("@mozilla.org/hash-property-bag;1",
 const SupportsString = CC("@mozilla.org/supports-string;1",
                           "nsISupportsString");
 
+
+var BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
+                           "nsIBinaryInputStream",
+                           "setInputStream");
+var BinaryOutputStream = CC("@mozilla.org/binaryoutputstream;1",
+                            "nsIBinaryOutputStream",
+                            "setOutputStream");
 
 
 
@@ -423,7 +424,7 @@ nsHttpServer.prototype =
     {
       var input = trans.openInputStream(0, SEGMENT_SIZE, SEGMENT_COUNT)
                        .QueryInterface(Ci.nsIAsyncInputStream);
-      var output = trans.openOutputStream(Ci.nsITransport.OPEN_BLOCKING, 0, 0);
+      var output = trans.openOutputStream(0, 0, 0);
     }
     catch (e)
     {
@@ -1289,7 +1290,7 @@ RequestReader.prototype =
     }
     catch (e)
     {
-      if (e.result !== Cr.NS_BASE_STREAM_CLOSED)
+      if (streamClosed(e))
       {
         dumpn("*** WARNING: unexpected error when reading from socket; will " +
               "be treated as if the input stream had been closed");
@@ -3404,6 +3405,8 @@ function Response(connection)
 
 
 
+
+
   this._asyncCopier = null;
 
   
@@ -3440,7 +3443,7 @@ Response.prototype =
 
     if (!this._bodyOutputStream)
     {
-      var pipe = new Pipe(false, false, Response.SEGMENT_SIZE, PR_UINT32_MAX,
+      var pipe = new Pipe(true, false, Response.SEGMENT_SIZE, PR_UINT32_MAX,
                           null);
       this._bodyOutputStream = pipe.outputStream;
       this._bodyInputStream = pipe.inputStream;
@@ -3786,6 +3789,37 @@ Response.prototype =
 
 
 
+  _startAsyncProcessor: function()
+  {
+    dumpn("*** _startAsyncProcessor()");
+
+    
+    
+    
+    
+    if (this._asyncCopier || this._ended)
+    {
+      dumpn("*** ignoring second call to _startAsyncProcessor");
+      return;
+    }
+
+    
+    
+    if (this._headers && !this._powerSeized)
+    {
+      this._sendHeaders();
+      return;
+    }
+
+    this._headers = null;
+    this._sendBody();
+  },
+
+  
+
+
+
+
 
 
   _sendHeaders: function()
@@ -3830,7 +3864,7 @@ Response.prototype =
     dumpn("*** header post-processing completed, sending response head...");
 
     
-    var preamble = statusLine;
+    var preambleData = [statusLine];
 
     
     var headEnum = headers.enumerator;
@@ -3841,26 +3875,58 @@ Response.prototype =
                               .data;
       var values = headers.getHeaderValues(fieldName);
       for (var i = 0, sz = values.length; i < sz; i++)
-        preamble += fieldName + ": " + values[i] + "\r\n";
+        preambleData.push(fieldName + ": " + values[i] + "\r\n");
     }
 
     
-    preamble += "\r\n";
+    preambleData.push("\r\n");
 
-    var connection = this._connection;
-    try
-    {
-      connection.output.write(preamble, preamble.length);
-    }
-    catch (e)
-    {
-      
-      
-      
-      dumpn("*** error writing headers to socket: " + e);
-      response.end();
-      return;
-    }
+    var preamble = preambleData.join("");
+
+    var responseHeadPipe = new Pipe(true, false, 0, PR_UINT32_MAX, null);
+    responseHeadPipe.outputStream.write(preamble, preamble.length);
+
+    var response = this;
+    var copyObserver =
+      {
+        onStartRequest: function(request, cx)
+        {
+          dumpn("*** preamble copying started");
+        },
+
+        onStopRequest: function(request, cx, statusCode)
+        {
+          dumpn("*** preamble copying complete " +
+                "[status=0x" + statusCode.toString(16) + "]");
+
+          if (!Components.isSuccessCode(statusCode))
+          {
+            dumpn("!!! header copying problems: non-success statusCode, " +
+                  "ending response");
+
+            response.end();
+          }
+          else
+          {
+            response._sendBody();
+          }
+        },
+
+        QueryInterface: function(aIID)
+        {
+          if (aIID.equals(Ci.nsIRequestObserver) || aIID.equals(Ci.nsISupports))
+            return this;
+
+          throw Cr.NS_ERROR_NO_INTERFACE;
+        }
+      };
+
+    var headerCopier = this._asyncCopier =
+      new WriteThroughCopier(responseHeadPipe.inputStream,
+                             this._connection.output,
+                             copyObserver, null);
+
+    responseHeadPipe.outputStream.close();
 
     
     this._headers = null;
@@ -3870,42 +3936,21 @@ Response.prototype =
 
 
 
-
-  _startAsyncProcessor: function()
+  _sendBody: function()
   {
-    dumpn("*** _startAsyncProcessor()");
+    dumpn("*** _sendBody");
 
-    
-    
-    
-    
-    if (this._asyncCopier || this._ended)
-    {
-      dumpn("*** ignoring second call to _startAsyncProcessor");
-      return;
-    }
-
-    
-    if (this._headers)
-    {
-      if (this._powerSeized)
-        this._headers = null;
-      else
-        this._sendHeaders();
-      NS_ASSERT(this._headers === null, "_sendHeaders() failed?");
-    }
-
-    var response = this;
-    var connection = this._connection;
+    NS_ASSERT(!this._headers, "still have headers around but sending body?");
 
     
     if (!this._bodyInputStream)
     {
       dumpn("*** empty body, response finished");
-      response.end();
+      this.end();
       return;
     }
 
+    var response = this;
     var copyObserver =
       {
         onStartRequest: function(request, context)
@@ -3932,8 +3977,7 @@ Response.prototype =
 
         QueryInterface: function(aIID)
         {
-          if (aIID.equals(Ci.nsIRequestObserver) ||
-              aIID.equals(Ci.nsISupports))
+          if (aIID.equals(Ci.nsIRequestObserver) || aIID.equals(Ci.nsISupports))
             return this;
 
           throw Cr.NS_ERROR_NO_INTERFACE;
@@ -3941,7 +3985,7 @@ Response.prototype =
       };
 
     dumpn("*** starting async copier of body data...");
-    var copier = this._asyncCopier =
+    this._asyncCopier =
       new WriteThroughCopier(this._bodyInputStream, this._connection.output,
                             copyObserver, null);
   },
@@ -3966,29 +4010,44 @@ function notImplemented()
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-function WriteThroughCopier(input, output, observer, context)
+function streamClosed(e)
 {
-  if (!input || !output || !observer)
+  return e === Cr.NS_BASE_STREAM_CLOSED ||
+         (typeof e === "object" && e.result === Cr.NS_BASE_STREAM_CLOSED);
+}
+
+
+function wouldBlock(e)
+{
+  return e === Cr.NS_BASE_STREAM_WOULD_BLOCK ||
+         (typeof e === "object" && e.result === Cr.NS_BASE_STREAM_WOULD_BLOCK);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function WriteThroughCopier(source, sink, observer, context)
+{
+  if (!source || !sink || !observer)
     throw Cr.NS_ERROR_NULL_POINTER;
 
   
-  this._input = input;
+  this._source = source;
 
   
-  this._output = new BinaryOutputStream(output);
+  this._sink = sink;
 
   
   this._observer = observer;
@@ -3997,6 +4056,15 @@ function WriteThroughCopier(input, output, observer, context)
   this._context = context;
 
   
+
+
+
+  this._canceled = false;
+
+  
+
+
+
   this._completed = false;
 
   
@@ -4010,14 +4078,20 @@ function WriteThroughCopier(input, output, observer, context)
   this.status = Cr.NS_OK;
 
   
+  this._pendingData = [];
+
+  
   try
   {
     observer.onStartRequest(this, context);
-    this._waitForData();
+    this._waitToReadData();
+    this._waitForSinkClosure();
   }
   catch (e)
   {
-    dumpn("!!! error starting copy: " + e);
+    dumpn("!!! error starting copy: " + e +
+          ("lineNumber" in e ? ", line " + e.lineNumber : ""));
+    dumpn(e.stack);
     this.cancel(Cr.NS_ERROR_UNEXPECTED);
   }
 }
@@ -4025,48 +4099,281 @@ WriteThroughCopier.prototype =
 {
   
 
-
-
-
-
-
-  cancel: function(status)
+  QueryInterface: function(iid)
   {
-    dumpn("*** cancel(" + status.toString(16) + ")");
-
-    if (this._completed)
+    if (iid.equals(Ci.nsIInputStreamCallback) ||
+        iid.equals(Ci.nsIOutputStreamCallback) ||
+        iid.equals(Ci.nsIRequest) ||
+        iid.equals(Ci.nsISupports))
     {
-      dumpn("*** ignoring cancel on already-canceled copier...");
-      return;
+      return this;
     }
 
-    this._completed = true;
-    this.status = status;
-
-    var self = this;
-    var cancelEvent =
-      {
-        run: function()
-        {
-          dumpn("*** onStopRequest async callback");
-          try
-          {
-            self._observer.onStopRequest(self, self._context, self.status);
-          }
-          catch (e)
-          {
-            NS_ASSERT(false, "how are we throwing an exception here?  " + e);
-          }
-        }
-      };
-    gThreadManager.currentThread
-                  .dispatch(cancelEvent, Ci.nsIThread.DISPATCH_NORMAL);
+    throw Cr.NS_ERROR_NO_INTERFACE;
   },
+
+
+  
 
   
 
 
 
+
+
+
+  onInputStreamReady: function(input)
+  {
+    if (this._source === null)
+      return;
+
+    dumpn("*** onInputStreamReady");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    var bytesWanted = 0, bytesConsumed = -1;
+    try
+    {
+      input = new BinaryInputStream(input);
+
+      bytesWanted = Math.min(input.available(), Response.SEGMENT_SIZE);
+      dumpn("*** input wanted: " + bytesWanted);
+
+      if (bytesWanted > 0)
+      {
+        var data = input.readByteArray(bytesWanted);
+        bytesConsumed = data.length;
+        this._pendingData.push(String.fromCharCode.apply(String, data));
+      }
+
+      dumpn("*** " + bytesConsumed + " bytes read");
+
+      
+      
+      if (bytesWanted === 0)
+        throw Cr.NS_BASE_STREAM_CLOSED;
+    }
+    catch (e)
+    {
+      if (streamClosed(e))
+      {
+        dumpn("*** input stream closed");
+        e = bytesWanted === 0 ? Cr.NS_OK : Cr.NS_ERROR_UNEXPECTED;
+      }
+      else
+      {
+        dumpn("!!! unexpected error reading from input, canceling: " + e);
+        e = Cr.NS_ERROR_UNEXPECTED;
+      }
+
+      this._doneReadingSource(e);
+      return;
+    }
+
+    var pendingData = this._pendingData;
+
+    NS_ASSERT(bytesConsumed > 0);
+    NS_ASSERT(pendingData.length > 0, "no pending data somehow?");
+    NS_ASSERT(pendingData[pendingData.length - 1].length > 0,
+              "buffered zero bytes of data?");
+
+    NS_ASSERT(this._source !== null);
+
+    
+    
+    
+    
+    if (this._sink === null)
+    {
+      pendingData.length = 0;
+      this._doneReadingSource(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
+    
+    
+    
+    
+    try
+    {
+      if (pendingData.length === 1)
+        this._waitToWriteData();
+    }
+    catch (e)
+    {
+      dumpn("!!! error waiting to write data just read, swallowing and " +
+            "writing only what we already have: " + e);
+      this._doneWritingToSink(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
+    
+    
+    try
+    {
+      this._waitToReadData();
+    }
+    catch (e)
+    {
+      dumpn("!!! error waiting to read more data: " + e);
+      this._doneReadingSource(Cr.NS_ERROR_UNEXPECTED);
+    }
+  },
+
+
+  
+
+  
+
+
+
+
+
+
+
+  onOutputStreamReady: function(output)
+  {
+    if (this._sink === null)
+      return;
+
+    dumpn("*** onOutputStreamReady");
+
+    var pendingData = this._pendingData;
+    if (pendingData.length === 0)
+    {
+      
+      
+      
+      
+      
+      
+      dumpn("!!! output stream closed prematurely, ending copy");
+
+      this._doneWritingToSink(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
+
+    NS_ASSERT(pendingData[0].length > 0, "queued up an empty quantum?");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    try
+    {
+      var quantum = pendingData[0];
+
+      
+      
+      
+      
+      var bytesWritten = output.write(quantum, quantum.length);
+      if (bytesWritten === quantum.length)
+        pendingData.shift();
+      else
+        pendingData[0] = quantum.substring(bytesWritten);
+
+      dumpn("*** wrote " + bytesWritten + " bytes of data");
+    }
+    catch (e)
+    {
+      if (wouldBlock(e))
+      {
+        NS_ASSERT(pendingData.length > 0,
+                  "stream-blocking exception with no data to write?");
+        NS_ASSERT(pendingData[0].length > 0,
+                  "stream-blocking exception with empty quantum?");
+        this._waitToWriteData();
+        return;
+      }
+
+      if (streamClosed(e))
+        dumpn("!!! output stream prematurely closed, signaling error...");
+      else
+        dumpn("!!! unknown error: " + e + ", quantum=" + quantum);
+
+      this._doneWritingToSink(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
+    
+    
+    try
+    {
+      if (pendingData.length > 0)
+      {
+        this._waitToWriteData();
+        return;
+      }
+    }
+    catch (e)
+    {
+      dumpn("!!! unexpected error waiting to write pending data: " + e);
+      this._doneWritingToSink(Cr.NS_ERROR_UNEXPECTED);
+      return;
+    }
+
+    
+    
+    if (this._source !== null)
+    {
+      
+
+
+
+
+
+
+       this._waitForSinkClosure();
+    }
+    else
+    {
+      
+
+
+
+
+      this._sink = null;
+      this._cancelOrDispatchCancelCallback(Cr.NS_OK);
+    }
+  },
+
+
+  
+
+  
   isPending: function()
   {
     return !this._completed;
@@ -4081,63 +4388,188 @@ WriteThroughCopier.prototype =
 
 
 
-  onInputStreamReady: function(input)
+
+
+
+
+  cancel: function(status)
   {
-    dumpn("*** onInputStreamReady");
-    if (this._completed)
+    dumpn("*** cancel(" + status.toString(16) + ")");
+
+    if (this._canceled)
     {
-      dumpn("*** ignoring stream-ready callback on a canceled copier...");
+      dumpn("*** suppressing a late cancel");
       return;
     }
 
-    input = new BinaryInputStream(input);
-    try
-    {
-      var avail = input.available();
-      var data = input.readByteArray(avail);
-      this._output.writeByteArray(data, data.length);
-    }
-    catch (e)
-    {
-      if (e === Cr.NS_BASE_STREAM_CLOSED ||
-          e.result === Cr.NS_BASE_STREAM_CLOSED)
-      {
-        this.cancel(Cr.NS_OK);
-      }
-      else
-      {
-        dumpn("!!! error copying from input to output: " + e);
-        this.cancel(Cr.NS_ERROR_UNEXPECTED);
-      }
-      return;
-    }
+    this._canceled = true;
+    this.status = status;
 
-    if (avail === 0)
-      this.cancel(Cr.NS_OK);
+    
+    
+    
+    
+    
+    
+
+    this._doneReadingSource(status);
+  },
+
+
+  
+
+  
+
+
+
+
+
+
+
+  _doneReadingSource: function(e)
+  {
+    dumpn("*** _doneReadingSource(0x" + e.toString(16) + ")");
+
+    this._finishSource(e);
+    if (this._pendingData.length === 0)
+      this._sink = null;
     else
-      this._waitForData();
-  },
+      NS_ASSERT(this._sink !== null, "null output?");
 
-  
-
-
-  _waitForData: function()
-  {
-    dumpn("*** _waitForData");
-    this._input.asyncWait(this, 0, 1, gThreadManager.mainThread);
-  },
-
-  
-  QueryInterface: function(iid)
-  {
-    if (iid.equals(Ci.nsIRequest) ||
-        iid.equals(Ci.nsISupports) ||
-        iid.equals(Ci.nsIInputStreamCallback))
+    
+    
+    if (this._sink === null)
     {
-      return this;
+      NS_ASSERT(this._pendingData.length === 0, "pending data still?");
+      this._cancelOrDispatchCancelCallback(e);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _doneWritingToSink: function(e)
+  {
+    dumpn("*** _doneWritingToSink(0x" + e.toString(16) + ")");
+
+    this._pendingData.length = 0;
+    this._sink = null;
+    this._doneReadingSource(e);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _cancelOrDispatchCancelCallback: function(status)
+  {
+    dumpn("*** _cancelOrDispatchCancelCallback(" + status + ")");
+
+    NS_ASSERT(this._source === null, "should have finished input");
+    NS_ASSERT(this._sink === null, "should have finished output");
+    NS_ASSERT(this._pendingData.length === 0, "should have no pending data");
+
+    if (!this._canceled)
+    {
+      this.cancel(status);
+      return;
     }
 
-    throw Cr.NS_ERROR_NO_INTERFACE;
+    var self = this;
+    var event =
+      {
+        run: function()
+        {
+          dumpn("*** onStopRequest async callback");
+
+          self._completed = true;
+          try
+          {
+            self._observer.onStopRequest(self, self._context, self.status);
+          }
+          catch (e)
+          {
+            NS_ASSERT(false,
+                      "how are we throwing an exception here?  we control " +
+                      "all the callers!  " + e);
+          }
+        }
+      };
+
+    gThreadManager.currentThread.dispatch(event, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  
+
+
+  _waitToReadData: function()
+  {
+    dumpn("*** _waitToReadData");
+    this._source.asyncWait(this, 0, Response.SEGMENT_SIZE,
+                           gThreadManager.mainThread);
+  },
+
+  
+
+
+  _waitToWriteData: function()
+  {
+    dumpn("*** _waitToWriteData");
+
+    var pendingData = this._pendingData;
+    NS_ASSERT(pendingData.length > 0, "no pending data to write?");
+    NS_ASSERT(pendingData[0].length > 0, "buffered an empty write?");
+
+    this._sink.asyncWait(this, 0, pendingData[0].length,
+                         gThreadManager.mainThread);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _waitForSinkClosure: function()
+  {
+    dumpn("*** _waitForSinkClosure");
+
+    this._sink.asyncWait(this, Ci.nsIAsyncOutputStream.WAIT_CLOSURE_ONLY, 0,
+                         gThreadManager.mainThread);
+  },
+
+  
+
+
+
+
+
+
+  _finishSource: function(status)
+  {
+    dumpn("*** _finishSource(" + status.toString(16) + ")");
+
+    if (this._source !== null)
+    {
+      this._source.closeWithStatus(status);
+      this._source = null;
+    }
   }
 };
 
