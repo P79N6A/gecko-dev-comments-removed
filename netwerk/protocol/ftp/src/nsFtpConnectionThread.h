@@ -269,6 +269,7 @@ private:
     PRPackedBool        mStorReplyReceived; 
                                             
     nsresult            mInternalError; 
+    PRPackedBool        mReconnectAndLoginAgain;
 
         
     PRInt32                mPort;       

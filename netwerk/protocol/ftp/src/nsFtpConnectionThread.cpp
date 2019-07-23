@@ -96,6 +96,7 @@ nsFtpState::nsFtpState()
     , mRetryPass(PR_FALSE)
     , mStorReplyReceived(PR_FALSE)
     , mInternalError(NS_OK)
+    , mReconnectAndLoginAgain(PR_FALSE)
     , mPort(21)
     , mAddressChecked(PR_FALSE)
     , mServerIsIPv6(PR_FALSE)
@@ -240,7 +241,12 @@ nsFtpState::OnControlError(nsresult status)
          this, mControlConnection.get(), status, mTryingCachedControl));
 
     mControlStatus = status;
-    if (mTryingCachedControl && NS_SUCCEEDED(mInternalError)) {
+    if (mReconnectAndLoginAgain && NS_SUCCEEDED(mInternalError)) {
+        mReconnectAndLoginAgain = PR_FALSE;
+        mAnonymous = PR_FALSE;
+        mControlStatus = NS_OK;
+        Connect();
+    } else if (mTryingCachedControl && NS_SUCCEEDED(mInternalError)) {
         mTryingCachedControl = PR_FALSE;
         Connect();
     } else {
@@ -370,6 +376,12 @@ nsFtpState::Process()
                 
                 
                 
+                mState = FTP_COMMAND_CONNECT;
+            } else if (mAnonymous && 
+                       mInternalError == NS_ERROR_FTP_LOGIN) {
+                
+                
+                mAnonymous = PR_FALSE;
                 mState = FTP_COMMAND_CONNECT;
             } else {
                 LOG(("FTP:(%x) FTP_ERROR - calling StopProcessing\n", this));
@@ -658,9 +670,13 @@ nsFtpState::S_user() {
     nsresult rv;
     nsCAutoString usernameStr("USER ");
 
+    mResponseMsg = "";
+
     if (mAnonymous) {
+        mReconnectAndLoginAgain = PR_TRUE;
         usernameStr.AppendLiteral("anonymous");
     } else {
+        mReconnectAndLoginAgain = PR_FALSE;
         if (mUsername.IsEmpty()) {
             nsCOMPtr<nsIAuthPrompt2> prompter;
             NS_QueryAuthPrompt2(static_cast<nsIChannel*>(mChannel),
@@ -694,6 +710,7 @@ nsFtpState::S_user() {
 
 FTP_STATE
 nsFtpState::R_user() {
+    mReconnectAndLoginAgain = PR_FALSE;
     if (mResponseCode/100 == 3) {
         
         return FTP_S_PASS;
@@ -708,13 +725,6 @@ nsFtpState::R_user() {
         return FTP_ERROR;
     }
     
-    if (mAnonymous) {
-        
-        
-        
-        mAnonymous = PR_FALSE;
-        return FTP_S_USER;
-    }
     return FTP_ERROR;
 }
 
@@ -805,13 +815,9 @@ nsFtpState::R_pass() {
         
         
 
-        
-        if (mAnonymous) {
-            mAnonymous = PR_FALSE;
-            return FTP_S_USER;
-        }
+        if (!mAnonymous)
+            mRetryPass = PR_TRUE;
 
-        mRetryPass = PR_TRUE;
         return FTP_ERROR;
     }
     
