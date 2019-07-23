@@ -50,15 +50,7 @@ public:
   nsXBLInsertionPoint(nsIContent* aParentElement, PRUint32 aIndex, nsIContent* aDefContent);
   ~nsXBLInsertionPoint();
 
-  nsrefcnt AddRef()
-  {
-    ++mRefCnt;
-    NS_LOG_ADDREF(this, mRefCnt, "nsXBLInsertionPoint",
-                  sizeof(nsXBLInsertionPoint));
-    return mRefCnt;
-  }
-
-  nsrefcnt Release();
+  NS_INLINE_DECL_REFCOUNTING(nsXBLInsertionPoint)
 
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsXBLInsertionPoint)
 
@@ -90,7 +82,6 @@ public:
   void UnbindDefaultContent();
 
 protected:
-  nsAutoRefCnt mRefCnt;
   nsIContent* mParentElement;            
   PRInt32 mIndex;                        
   nsCOMArray<nsIContent> mElements;      
