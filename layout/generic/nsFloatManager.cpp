@@ -200,7 +200,6 @@ nsFloatManager::GetBand(nscoord aYOffset,
       }
     } else if (floatBottom > top) {
       
-      haveFloats = PR_TRUE;
 
       
       if (floatBottom < bottom) {
@@ -213,12 +212,19 @@ nsFloatManager::GetBand(nscoord aYOffset,
         nscoord rightEdge = fi.mRect.XMost();
         if (rightEdge > left) {
           left = rightEdge;
+          
+          
+          
+          
+          haveFloats = PR_TRUE;
         }
       } else {
         
         nscoord leftEdge = fi.mRect.x;
         if (leftEdge < right) {
           right = leftEdge;
+          
+          haveFloats = PR_TRUE;
         }
       }
     }
