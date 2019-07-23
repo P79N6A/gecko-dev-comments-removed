@@ -135,20 +135,35 @@ function run_test() {
 
 
   var removeAllTestURI = uri("http://removeallpages.com");
+  var removeAllTestURINever = uri("http://removeallpagesnever.com");
   histsvc.addVisit(removeAllTestURI, Date.now(), 0, histsvc.TRANSITION_TYPED, false, 0);
+  var bmURI = uri("http://bookmarked");
+  bmsvc.insertBookmark(bmsvc.bookmarksRoot, bmURI, bmsvc.DEFAULT_INDEX, "foo");
+  
+  var placeURI = uri("place:folder=23");
+  bhist.addPageWithDetails(placeURI, "place uri", Date.now());
   annosvc.setPageAnnotation(removeAllTestURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
-  annosvc.setPageAnnotation(removeAllTestURI, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+  annosvc.setPageAnnotation(removeAllTestURINever, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   bhist.removeAllPages();
   try {
-    annosvc.getPageAnnotation(testAnnoName + "Hist");
-    do_throw("nsIBrowserHistory.removePagesFromHost() didn't remove an EXPIRE_WITH_HISTORY annotation");
+    annosvc.getPageAnnotation(removeAllTestURI, testAnnoName + "Hist");
+    do_throw("nsIBrowserHistory.removeAllPages() didn't remove an EXPIRE_WITH_HISTORY annotation");
   } catch(ex) {}
+  
+  do_check_eq(histsvc.getPageTitle(removeAllTestURI), null);
   try {
-    do_check_eq(annosvc.getPageAnnotation(removeAllTestURI, testAnnoName + "Never"), testAnnoVal);
-    annosvc.removePageAnnotation(removeAllTestURI, testAnnoName + "Never");
+    do_check_eq(annosvc.getPageAnnotation(removeAllTestURINever, testAnnoName + "Never"), testAnnoVal);
+    annosvc.removePageAnnotation(removeAllTestURINever, testAnnoName + "Never");
   } catch(ex) {
     do_throw("nsIBrowserHistory.removeAllPages deleted EXPIRE_NEVER annos!");
   }
+  
+  do_check_neq(histsvc.getPageTitle(removeAllTestURINever), null);
+  
+  do_check_neq(histsvc.getPageTitle(placeURI), null);
+  
+  do_check_neq(histsvc.getPageTitle(bmURI), null);
+  
 
   
 
