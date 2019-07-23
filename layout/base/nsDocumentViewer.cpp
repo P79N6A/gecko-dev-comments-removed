@@ -1031,6 +1031,13 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   nsCOMPtr<nsIDocumentViewer> kungFuDeathGrip(this);
 
   
+  if (mPresShell && !mStopped) {
+    
+    nsCOMPtr<nsIPresShell> shell = mPresShell;
+    shell->FlushPendingNotifications(Flush_Layout);
+  }
+  
+  
   PRBool restoring = PR_FALSE;
   if(NS_SUCCEEDED(aStatus)) {
     nsEventStatus status = nsEventStatus_eIgnore;
