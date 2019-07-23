@@ -54,14 +54,17 @@
 #include "nsDependentString.h"
 #include "nsAutoPtr.h"
 #include "nsNetUtil.h"
+#include "nsIProtocolHandler.h"
+#include "nsIFileURL.h"
 
 #include "jsapi.h"
+#include "jsdbgapi.h"
 
 
 #define LOAD_ERROR_NOSERVICE "Error creating IO Service."
 #define LOAD_ERROR_NOURI "Error creating URI (invalid URL scheme?)"
 #define LOAD_ERROR_NOSCHEME "Failed to get URI scheme.  This is bad."
-#define LOAD_ERROR_URI_NOT_CHROME "Trying to load a non-chrome URI."
+#define LOAD_ERROR_URI_NOT_LOCAL "Trying to load a non-local URI."
 #define LOAD_ERROR_NOSTREAM  "Error opening input stream (invalid filename?)"
 #define LOAD_ERROR_NOCONTENT "ContentLength not available (not a local URL?)"
 #define LOAD_ERROR_BADREAD   "File Read Error."
@@ -139,11 +142,10 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
         rv = secman->GetSystemPrincipal(getter_AddRefs(mSystemPrincipal));
         if (NS_FAILED(rv) || !mSystemPrincipal)
             return rv;
-
     }
 
     JSAutoRequest ar(cx);
-    
+
     char     *url;
     JSObject *target_obj = nsnull;
     ok = JS_ConvertArguments (cx, argc, argv, "s / o", &url, &target_obj);
@@ -153,7 +155,7 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
         
         return NS_OK;
     }
-    
+
     if (!target_obj)
     {
         
@@ -225,6 +227,25 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
     nsCAutoString uriStr;
     nsCAutoString scheme;
 
+    JSStackFrame* frame = nsnull;
+    JSScript* script = nsnull;
+
+    
+    do
+    {
+        frame = JS_FrameIterator(cx, &frame);
+
+        if (frame)
+            script = JS_GetFrameScript(cx, frame);
+    } while (frame && !script);
+
+    if (!script)
+    {
+        
+
+        return NS_ERROR_FAILURE;
+    }
+
     nsCOMPtr<nsIIOService> serv = do_GetService(NS_IOSERVICE_CONTRACTID);
     if (!serv)
     {
@@ -240,14 +261,36 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
         goto return_exception;
     }
 
-    rv = uri->GetScheme(scheme);
+    rv = uri->GetSpec(uriStr);
     if (NS_FAILED(rv)) {
+        errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_NOSPEC);
+        goto return_exception;
+    }    
+
+    rv = uri->GetScheme(scheme);
+    if (NS_FAILED(rv))
+    {
         errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_NOSCHEME);
         goto return_exception;
     }
-    if (!scheme.EqualsLiteral("chrome")) {
-        errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_URI_NOT_CHROME);
-        goto return_exception;
+
+    if (!scheme.EqualsLiteral("chrome"))
+    {
+        
+        nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(uri);
+        if (!fileURL)
+        {
+            errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_URI_NOT_LOCAL);
+            goto return_exception;
+        }
+
+        
+        
+        nsCAutoString tmp(JS_GetScriptFilename(cx, script));
+        tmp.AppendLiteral(" -> ");
+        tmp.Append(uriStr);
+
+        uriStr = tmp;
     }        
         
     rv = NS_OpenURI(getter_AddRefs(instream), uri, serv,
@@ -295,12 +338,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar *
         errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_NOPRINCIPALS);
         goto return_exception;
     }
-
-    rv = uri->GetSpec(uriStr);
-    if (NS_FAILED(rv)) {
-        errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_NOSPEC);
-        goto return_exception;
-    }    
 
     
 
