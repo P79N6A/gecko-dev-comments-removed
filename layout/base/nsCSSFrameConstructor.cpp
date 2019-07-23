@@ -6994,7 +6994,7 @@ nsCSSFrameConstructor::GetAbsoluteContainingBlock(nsIFrame* aFrame)
     
     const nsStyleDisplay* disp = frame->GetStyleDisplay();
 
-    if (disp->IsPositioned() && !IsTableRelated(disp->mDisplay)) {
+    if (disp->IsPositioned() && !IsTableRelated(frame->GetType(), PR_TRUE)) {
       
       for (nsIFrame* wrappedFrame = aFrame; wrappedFrame != frame->GetParent();
            wrappedFrame = wrappedFrame->GetParent()) {
