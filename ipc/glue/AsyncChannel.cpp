@@ -296,15 +296,6 @@ AsyncChannel::NotifyMaybeChannelError()
 {
     
     
-    
-    
-    {
-        MutexAutoLock lock(mMutex);
-        
-    }
-
-    
-    
     if (ChannelClosing == mChannelState) {
         
         
