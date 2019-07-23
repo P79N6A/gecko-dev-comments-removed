@@ -43,7 +43,7 @@ const nsIBLS = Ci.nsIBlocklistService;
 
 function get_test_plugintag() {
   var host = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
-  var tags = host.getPluginTags({});
+  var tags = host.getPluginTags();
   for (var i = 0; i < tags.length; i++) {
     if (tags[i].name == "Test Plug-in")
       return tags[i];
