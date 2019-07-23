@@ -138,7 +138,11 @@ void LaunchChild(int argc, char **argv);
 
 
 
+#if (__GNUC__ >= 4) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
+extern "C"  __attribute__((visibility("default"))) unsigned int BZ2_crc32Table[256];
+#else
 extern "C" unsigned int BZ2_crc32Table[256];
+#endif
 
 static unsigned int
 crc32(const unsigned char *buf, unsigned int len)
