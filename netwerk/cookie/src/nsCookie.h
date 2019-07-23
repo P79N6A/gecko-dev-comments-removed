@@ -75,8 +75,7 @@ class nsCookie : public nsICookie2
              PRBool          aIsSession,
              PRBool          aIsSecure,
              PRBool          aIsHttpOnly)
-     : mNext(nsnull)
-     , mName(aName)
+     : mName(aName)
      , mValue(aValue)
      , mHost(aHost)
      , mPath(aPath)
@@ -128,17 +127,12 @@ class nsCookie : public nsICookie2
     
     inline void SetCreationID(PRInt64 aID)        { mCreationID = aID; }
 
-    
-    inline nsCookie*& Next() { return mNext; }
-
   protected:
     
     
     
     
     
-
-    nsCookie    *mNext;
     const char  *mName;
     const char  *mValue;
     const char  *mHost;
