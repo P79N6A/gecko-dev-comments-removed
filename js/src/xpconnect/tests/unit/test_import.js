@@ -41,19 +41,19 @@ function run_test() {
   var scope = {};
   Components.utils.import("resource://gre/modules/XPCOMUtils.jsm", scope);
   do_check_eq(typeof(scope.XPCOMUtils), "object");
-  do_check_eq(typeof(scope.XPCOMUtils.generateFactory), "function");
+  do_check_eq(typeof(scope.XPCOMUtils.generateModule), "function");
   
   
   do_check_eq(typeof(Components.utils.import), "function");
   Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
   do_check_eq(typeof(XPCOMUtils), "object");
-  do_check_eq(typeof(XPCOMUtils.generateFactory), "function");
+  do_check_eq(typeof(XPCOMUtils.generateModule), "function");
   
   
   var scope2 = {};
   Components.utils.import("resource://gre/modules/XPCOMUtils.jsm", scope2);
   do_check_eq(typeof(scope2.XPCOMUtils), "object");
-  do_check_eq(typeof(scope2.XPCOMUtils.generateFactory), "function");
+  do_check_eq(typeof(scope2.XPCOMUtils.generateModule), "function");
   
   do_check_true(scope2.XPCOMUtils == scope.XPCOMUtils);
 
@@ -62,7 +62,7 @@ function run_test() {
   try {
       Components.utils.import("resource://gre/modules/XPCOMUtils.jsm", "wrong");
   } catch (ex) {
-      print("ex: " + ex);
+      print("exception (expected): " + ex);
       didThrow = true;
   }
   do_check_true(didThrow);
@@ -74,6 +74,17 @@ function run_test() {
   var foo = Components.classes[contractID + "1"]
                       .createInstance(Components.interfaces.nsIClassInfo);
   do_check_true(Boolean(foo));
+  do_check_true(foo.contractID == contractID + "1");
+  
+  
+  
+  
+
+  
+  const cid = "{6b933fe6-6eba-4622-ac86-e4f654f1b474}";
+  do_check_true(cid in Components.classesByID);
+  foo = Components.classesByID[cid]
+                  .createInstance(Components.interfaces.nsIClassInfo);
   do_check_true(foo.contractID == contractID + "1");
 
   
