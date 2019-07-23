@@ -166,21 +166,6 @@
   #define NSCAP_LOG_RELEASE(this, ptr)
 #endif
 
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
 template <class T>
 struct already_AddRefed
     
