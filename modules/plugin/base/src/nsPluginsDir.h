@@ -35,8 +35,8 @@
 
 
 
-#ifndef nsPluginsDir_h_
-#define nsPluginsDir_h_
+#ifndef nsPluginsDir_h___
+#define nsPluginsDir_h___
 
 #include "nsError.h"
 #include "nsIFile.h"
@@ -66,6 +66,9 @@ struct nsPluginInfo {
 	char* fFileName;
 	char* fFullPath;
 	char* fVersion;
+#ifdef XP_MACOSX
+  PRBool fBundle;
+#endif
 };
 
 
@@ -101,6 +104,9 @@ public:
 
 
 	nsresult FreePluginInfo(nsPluginInfo &PluginInfo);
+
+	
+	short OpenPluginResource(void);
 };
 
 #endif 
