@@ -48,39 +48,6 @@
 #include "nsCSSValue.h"
 #include <stdio.h>
 
-struct nsCSSStruct {
-  
-};
-
-
-
-
-
-
-
-
-
-typedef nsCSSStruct nsRuleDataStruct;
-
-
-struct nsCSSFont : public nsCSSStruct {
-  nsCSSFont(void);
-  nsCSSFont(const nsCSSFont& aCopy);
-  ~nsCSSFont(void);
-
-  nsCSSValue mFamily;
-  nsCSSValue mStyle;
-  nsCSSValue mVariant;
-  nsCSSValue mWeight;
-  nsCSSValue mSize;
-  nsCSSValue mSizeAdjust; 
-  nsCSSValue mStretch; 
-};
-
-struct nsRuleDataFont : public nsCSSFont {
-  PRBool mFamilyFromHTML; 
-};
-
 
 struct nsCSSValueList {
   nsCSSValueList(void);
@@ -91,47 +58,6 @@ struct nsCSSValueList {
 
   nsCSSValue      mValue;
   nsCSSValueList* mNext;
-};
-
-struct nsCSSColor : public nsCSSStruct  {
-  nsCSSColor(void);
-  nsCSSColor(const nsCSSColor& aCopy);
-  ~nsCSSColor(void);
-
-  nsCSSValue      mColor;
-  nsCSSValue      mBackColor;
-  nsCSSValue      mBackImage;
-  nsCSSValue      mBackRepeat;
-  nsCSSValue      mBackAttachment;
-  nsCSSValue      mBackPositionX;
-  nsCSSValue      mBackPositionY;
-  nsCSSValue      mBackClip;
-  nsCSSValue      mBackOrigin;
-  nsCSSValue      mBackInlinePolicy;
-};
-
-struct nsRuleDataColor : public nsCSSColor {
-};
-
-struct nsCSSText : public nsCSSStruct  {
-  nsCSSText(void);
-  nsCSSText(const nsCSSText& aCopy);
-  ~nsCSSText(void);
-
-  nsCSSValue mWordSpacing;
-  nsCSSValue mLetterSpacing;
-  nsCSSValue mVerticalAlign;
-  nsCSSValue mTextTransform;
-  nsCSSValue mTextAlign;
-  nsCSSValue mTextIndent;
-  nsCSSValue mDecoration;
-  nsCSSValueList* mTextShadow; 
-  nsCSSValue mUnicodeBidi;  
-  nsCSSValue mLineHeight;
-  nsCSSValue mWhiteSpace;
-};
-
-struct nsRuleDataText : public nsCSSText {
 };
 
 struct nsCSSRect {
@@ -226,6 +152,107 @@ struct nsCSSValueListRect {
 
   typedef nsCSSValueList* nsCSSValueListRect::*side_type;
   static const side_type sides[4];
+};
+
+
+struct nsCSSCounterData {
+  nsCSSCounterData(void);
+  nsCSSCounterData(const nsCSSCounterData& aCopy);
+  ~nsCSSCounterData(void);
+
+  static PRBool Equal(nsCSSCounterData* aList1, nsCSSCounterData* aList2);
+
+  nsCSSValue        mCounter;
+  nsCSSValue        mValue;
+  nsCSSCounterData* mNext;
+};
+
+
+struct nsCSSQuotes {
+  nsCSSQuotes(void);
+  nsCSSQuotes(const nsCSSQuotes& aCopy);
+  ~nsCSSQuotes(void);
+
+  static PRBool Equal(nsCSSQuotes* aList1, nsCSSQuotes* aList2);
+
+  nsCSSValue    mOpen;
+  nsCSSValue    mClose;
+  nsCSSQuotes*  mNext;
+};
+
+
+
+struct nsCSSStruct {
+  
+};
+
+
+
+
+
+
+
+
+
+typedef nsCSSStruct nsRuleDataStruct;
+
+
+struct nsCSSFont : public nsCSSStruct {
+  nsCSSFont(void);
+  nsCSSFont(const nsCSSFont& aCopy);
+  ~nsCSSFont(void);
+
+  nsCSSValue mFamily;
+  nsCSSValue mStyle;
+  nsCSSValue mVariant;
+  nsCSSValue mWeight;
+  nsCSSValue mSize;
+  nsCSSValue mSizeAdjust; 
+  nsCSSValue mStretch; 
+};
+
+struct nsRuleDataFont : public nsCSSFont {
+  PRBool mFamilyFromHTML; 
+};
+
+struct nsCSSColor : public nsCSSStruct  {
+  nsCSSColor(void);
+  nsCSSColor(const nsCSSColor& aCopy);
+  ~nsCSSColor(void);
+
+  nsCSSValue      mColor;
+  nsCSSValue      mBackColor;
+  nsCSSValue      mBackImage;
+  nsCSSValue      mBackRepeat;
+  nsCSSValue      mBackAttachment;
+  nsCSSValuePair  mBackPosition;
+  nsCSSValue      mBackClip;
+  nsCSSValue      mBackOrigin;
+  nsCSSValue      mBackInlinePolicy;
+};
+
+struct nsRuleDataColor : public nsCSSColor {
+};
+
+struct nsCSSText : public nsCSSStruct  {
+  nsCSSText(void);
+  nsCSSText(const nsCSSText& aCopy);
+  ~nsCSSText(void);
+
+  nsCSSValue mWordSpacing;
+  nsCSSValue mLetterSpacing;
+  nsCSSValue mVerticalAlign;
+  nsCSSValue mTextTransform;
+  nsCSSValue mTextAlign;
+  nsCSSValue mTextIndent;
+  nsCSSValue mDecoration;
+  nsCSSValueList* mTextShadow; 
+  nsCSSValue mUnicodeBidi;  
+  nsCSSValue mLineHeight;
+  nsCSSValue mWhiteSpace;
+};
+
+struct nsRuleDataText : public nsCSSText {
 };
 
 struct nsCSSDisplay : public nsCSSStruct  {
@@ -371,32 +398,6 @@ struct nsCSSPage : public nsCSSStruct  {
 };
 
 struct nsRuleDataPage : public nsCSSPage {
-};
-
-
-struct nsCSSCounterData {
-  nsCSSCounterData(void);
-  nsCSSCounterData(const nsCSSCounterData& aCopy);
-  ~nsCSSCounterData(void);
-
-  static PRBool Equal(nsCSSCounterData* aList1, nsCSSCounterData* aList2);
-
-  nsCSSValue        mCounter;
-  nsCSSValue        mValue;
-  nsCSSCounterData* mNext;
-};
-
-
-struct nsCSSQuotes {
-  nsCSSQuotes(void);
-  nsCSSQuotes(const nsCSSQuotes& aCopy);
-  ~nsCSSQuotes(void);
-
-  static PRBool Equal(nsCSSQuotes* aList1, nsCSSQuotes* aList2);
-
-  nsCSSValue    mOpen;
-  nsCSSValue    mClose;
-  nsCSSQuotes*  mNext;
 };
 
 struct nsCSSContent : public nsCSSStruct  {

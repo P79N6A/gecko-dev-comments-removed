@@ -85,10 +85,6 @@
 
 
 
-
-
-
-
 #ifndef CSS_PROP_NOTIMPLEMENTED
 #define CSS_PROP_NOTIMPLEMENTED(name_, id_, method_)
 #define DEFINED_CSS_PROP_NOTIMPLEMENTED
@@ -281,12 +277,8 @@ CSS_PROP_BACKGROUND(background-color, background_color, BackgroundColor, Color, 
 CSS_PROP_BACKGROUND(background-image, background_image, BackgroundImage, Color, mBackImage, eCSSType_Value, nsnull)
 CSS_PROP_BACKGROUND(-moz-background-inline-policy, _moz_background_inline_policy, MozBackgroundInlinePolicy, Color, mBackInlinePolicy, eCSSType_Value, kBackgroundInlinePolicyKTable)
 CSS_PROP_BACKGROUND(-moz-background-origin, _moz_background_origin, MozBackgroundOrigin, Color, mBackOrigin, eCSSType_Value, kBackgroundOriginKTable)
-CSS_PROP_SHORTHAND(background-position, background_position, BackgroundPosition)
+CSS_PROP_BACKGROUND(background-position, background_position, BackgroundPosition, Color, mBackPosition, eCSSType_ValuePair, nsnull)
 CSS_PROP_BACKGROUND(background-repeat, background_repeat, BackgroundRepeat, Color, mBackRepeat, eCSSType_Value, kBackgroundRepeatKTable)
-#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL
-CSS_PROP_BACKGROUND(-x-background-x-position, background_x_position, BackgroundXPosition, Color, mBackPositionX, eCSSType_Value, kBackgroundXPositionKTable) 
-CSS_PROP_BACKGROUND(-x-background-y-position, background_y_position, BackgroundYPosition, Color, mBackPositionY, eCSSType_Value, kBackgroundYPositionKTable) 
-#endif 
 CSS_PROP_DISPLAY(-moz-binding, binding, MozBinding, Display, mBinding, eCSSType_Value, nsnull) 
 CSS_PROP_SHORTHAND(border, border, Border)
 CSS_PROP_SHORTHAND(border-bottom, border_bottom, BorderBottom)

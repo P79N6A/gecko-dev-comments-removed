@@ -306,6 +306,7 @@ protected:
   PRBool ParseAzimuth(nsresult& aErrorCode, nsCSSValue& aValue);
   PRBool ParseBackground(nsresult& aErrorCode);
   PRBool ParseBackgroundPosition(nsresult& aErrorCode);
+  PRBool ParseBackgroundPositionValues(nsresult& aErrorCode);
   PRBool ParseBorderColor(nsresult& aErrorCode);
   PRBool ParseBorderColors(nsresult& aErrorCode,
                            nsCSSValueList** aResult,
@@ -4185,6 +4186,8 @@ PRBool CSSParserImpl::ParseDirectionalBoxProperty(nsresult& aErrorCode,
 PRBool CSSParserImpl::ParseProperty(nsresult& aErrorCode,
                                     nsCSSProperty aPropID)
 {
+  NS_ASSERTION(aPropID < eCSSProperty_COUNT, "index out of range");
+
   switch (aPropID) {  
   case eCSSProperty_background:
     return ParseBackground(aErrorCode);
@@ -4303,9 +4306,6 @@ PRBool CSSParserImpl::ParseProperty(nsresult& aErrorCode,
 #endif
 
   
-  
-  case eCSSProperty_background_x_position:
-  case eCSSProperty_background_y_position:
   case eCSSProperty_margin_end_value:
   case eCSSProperty_margin_left_value:
   case eCSSProperty_margin_right_value:
@@ -4458,10 +4458,6 @@ PRBool CSSParserImpl::ParseSingleValueProperty(nsresult& aErrorCode,
   case eCSSProperty_background_repeat:
     return ParseVariant(aErrorCode, aValue, VARIANT_HK,
                         nsCSSProps::kBackgroundRepeatKTable);
-  case eCSSProperty_background_x_position: 
-  case eCSSProperty_background_y_position: 
-    return ParseVariant(aErrorCode, aValue, VARIANT_HKLP,
-                        kBackgroundXYPositionKTable);
   case eCSSProperty_binding:
     return ParseVariant(aErrorCode, aValue, VARIANT_HUO, nsnull);
   case eCSSProperty_border_collapse:
@@ -4855,144 +4851,183 @@ BackgroundPositionMaskToCSSValue(PRInt32 aMask, PRBool isX)
 
 PRBool CSSParserImpl::ParseBackground(nsresult& aErrorCode)
 {
-  const PRInt32 numProps = 6;
-  static const nsCSSProperty kBackgroundIDs[numProps] = {
-    eCSSProperty_background_color,
-    eCSSProperty_background_image,
-    eCSSProperty_background_repeat,
-    eCSSProperty_background_attachment,
-    eCSSProperty_background_x_position,
-    eCSSProperty_background_y_position
-  };
-
-  nsCSSValue  values[numProps];
-  PRInt32 found = ParseChoice(aErrorCode, values, kBackgroundIDs, numProps);
-  if ((found < 1) || (PR_FALSE == ExpectEndProperty(aErrorCode, PR_TRUE))) {
-    return PR_FALSE;
-  }
-
-  if (0 != (found & 0x30)) {  
-    if (0 == (found & 0x20)) {
-      if (eCSSUnit_Enumerated == values[4].GetUnit()) {
-        PRInt32 mask = values[4].GetIntValue();
-        values[4] = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
-        values[5] = BackgroundPositionMaskToCSSValue(mask, PR_FALSE);
-      }
-      else {
-        values[5].SetPercentValue(0.5f);
-      }
-    }
-    else { 
-      nsCSSUnit xUnit = values[4].GetUnit();
-      nsCSSUnit yUnit = values[5].GetUnit();
-      if (eCSSUnit_Enumerated == xUnit) {
-        PRInt32 xValue = values[4].GetIntValue();
-        if (eCSSUnit_Enumerated == yUnit) {
-          PRInt32 yValue = values[5].GetIntValue();
-          if (0 != (xValue & (BG_LEFT | BG_RIGHT)) &&  
-              0 != (yValue & (BG_LEFT | BG_RIGHT))) {  
-            return PR_FALSE;
-          }
-          if (0 != (xValue & (BG_TOP | BG_BOTTOM)) &&  
-              0 != (yValue & (BG_TOP | BG_BOTTOM))) {  
-            return PR_FALSE;
-          }
-          if (0 != (xValue & (BG_TOP | BG_BOTTOM)) ||  
-              0 != (yValue & (BG_LEFT | BG_RIGHT))) {  
-            PRInt32 holdXValue = xValue;
-            xValue = yValue;
-            yValue = holdXValue;
-          }
-          NS_ASSERTION(xValue & BG_CLR, "bad x value");
-          NS_ASSERTION(yValue & BG_CTB, "bad y value");
-          values[4] = BackgroundPositionMaskToCSSValue(xValue, PR_TRUE);
-          values[5] = BackgroundPositionMaskToCSSValue(yValue, PR_FALSE);
-        }
-        else {
-          if (!(xValue & BG_CLR)) {
-            
-            return PR_FALSE;
-          }
-          values[4] = BackgroundPositionMaskToCSSValue(xValue, PR_TRUE);
-        }
-      }
-      else {
-        if (eCSSUnit_Enumerated == yUnit) {
-          PRInt32 yValue = values[5].GetIntValue();
-          if (!(yValue & BG_CTB)) {
-            
-            return PR_FALSE;
-          }
-          values[5] = BackgroundPositionMaskToCSSValue(yValue, PR_FALSE);
-        }
-      }
-    }
-  }
+  nsAutoParseCompoundProperty compound(this);
 
   
-  if ((found & 0x01) == 0) {
-    values[0].SetIntValue(NS_STYLE_BG_COLOR_TRANSPARENT, eCSSUnit_Enumerated);
-  }
-  if ((found & 0x02) == 0) {
-    values[1].SetNoneValue();
-  }
-  if ((found & 0x04) == 0) {
-    values[2].SetIntValue(NS_STYLE_BG_REPEAT_XY, eCSSUnit_Enumerated);
-  }
-  if ((found & 0x08) == 0) {
-    values[3].SetIntValue(NS_STYLE_BG_ATTACHMENT_SCROLL, eCSSUnit_Enumerated);
-  }
-  if ((found & 0x30) == 0) {
-    values[4].SetPercentValue(0.0f);
-    values[5].SetPercentValue(0.0f);
-  }
-
-  PRInt32 index;
-  for (index = 0; index < numProps; ++index) {
-    AppendValue(kBackgroundIDs[index], values[index]);
-  }
+  
+  mTempData.mColor.mBackColor.SetIntValue(NS_STYLE_BG_COLOR_TRANSPARENT,
+                                          eCSSUnit_Enumerated);
+  mTempData.SetPropertyBit(eCSSProperty_background_color);
+  mTempData.mColor.mBackImage.SetNoneValue();
+  mTempData.SetPropertyBit(eCSSProperty_background_image);
+  mTempData.mColor.mBackRepeat.SetIntValue(NS_STYLE_BG_REPEAT_XY,
+                                           eCSSUnit_Enumerated);
+  mTempData.SetPropertyBit(eCSSProperty_background_repeat);
+  mTempData.mColor.mBackAttachment.SetIntValue(NS_STYLE_BG_ATTACHMENT_SCROLL,
+                                               eCSSUnit_Enumerated);
+  mTempData.SetPropertyBit(eCSSProperty_background_attachment);
+  mTempData.mColor.mBackPosition.mXValue.SetPercentValue(0.0f);
+  mTempData.mColor.mBackPosition.mYValue.SetPercentValue(0.0f);
+  mTempData.SetPropertyBit(eCSSProperty_background_position);
+  
+  mTempData.mColor.mBackClip.SetInitialValue();
+  mTempData.SetPropertyBit(eCSSProperty__moz_background_clip);
+  mTempData.mColor.mBackOrigin.SetInitialValue();
+  mTempData.SetPropertyBit(eCSSProperty__moz_background_origin);
+  mTempData.mColor.mBackInlinePolicy.SetInitialValue();
+  mTempData.SetPropertyBit(eCSSProperty__moz_background_inline_policy);
 
   
-  static const PRInt32 numResetProps = 3;
-  static const nsCSSProperty kBackgroundResetIDs[numResetProps] = {
-    eCSSProperty__moz_background_clip,
-    eCSSProperty__moz_background_inline_policy,
-    eCSSProperty__moz_background_origin
-  };
+  
+  
+  
 
-  nsCSSValue initial;
-  initial.SetInitialValue();
-  for (index = 0; index < numResetProps; ++index) {
-    AppendValue(kBackgroundResetIDs[index], initial);
+  PRBool haveColor = PR_FALSE,
+         haveImage = PR_FALSE,
+         haveRepeat = PR_FALSE,
+         haveAttach = PR_FALSE,
+         havePosition = PR_FALSE;
+  while (GetToken(aErrorCode, PR_TRUE)) {
+    nsCSSTokenType tt = mToken.mType;
+    UngetToken(); 
+    if (tt == eCSSToken_Symbol) {
+      
+      
+      break;
+    }
+
+    if (tt == eCSSToken_Ident) {
+      nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(mToken.mIdent);
+      PRInt32 dummy;
+      if (keyword == eCSSKeyword_inherit ||
+          keyword == eCSSKeyword__moz_initial) {
+        if (haveColor || haveImage || haveRepeat || haveAttach || havePosition)
+          return PR_FALSE;
+        haveColor = haveImage = haveRepeat = haveAttach = havePosition =
+          PR_TRUE;
+        GetToken(aErrorCode, PR_TRUE); 
+        nsCSSValue val;
+        if (keyword == eCSSKeyword_inherit) {
+          val.SetInheritValue();
+        } else {
+          val.SetInitialValue();
+        }
+        mTempData.mColor.mBackColor = val;
+        mTempData.mColor.mBackImage = val;
+        mTempData.mColor.mBackRepeat = val;
+        mTempData.mColor.mBackAttachment = val;
+        mTempData.mColor.mBackPosition.mXValue = val;
+        mTempData.mColor.mBackPosition.mYValue = val;
+        
+        
+        
+        mTempData.mColor.mBackClip = val;
+        mTempData.mColor.mBackOrigin = val;
+        mTempData.mColor.mBackInlinePolicy = val;
+        break;
+      } else if (keyword == eCSSKeyword_none) {
+        if (haveImage)
+          return PR_FALSE;
+        haveImage = PR_TRUE;
+        if (!ParseSingleValueProperty(aErrorCode, mTempData.mColor.mBackImage,
+                                      eCSSProperty_background_image)) {
+          NS_NOTREACHED("should be able to parse");
+          return PR_FALSE;
+        }
+      } else if (nsCSSProps::FindKeyword(keyword,
+                   nsCSSProps::kBackgroundAttachmentKTable, dummy)) {
+        if (haveAttach)
+          return PR_FALSE;
+        haveAttach = PR_TRUE;
+        if (!ParseSingleValueProperty(aErrorCode,
+                                      mTempData.mColor.mBackAttachment,
+                                      eCSSProperty_background_attachment)) {
+          NS_NOTREACHED("should be able to parse");
+          return PR_FALSE;
+        }
+      } else if (nsCSSProps::FindKeyword(keyword,
+                   nsCSSProps::kBackgroundRepeatKTable, dummy)) {
+        if (haveRepeat)
+          return PR_FALSE;
+        haveRepeat = PR_TRUE;
+        if (!ParseSingleValueProperty(aErrorCode, mTempData.mColor.mBackRepeat,
+                                      eCSSProperty_background_repeat)) {
+          NS_NOTREACHED("should be able to parse");
+          return PR_FALSE;
+        }
+      } else if (nsCSSProps::FindKeyword(keyword,
+                   kBackgroundXYPositionKTable, dummy)) {
+        if (havePosition)
+          return PR_FALSE;
+        havePosition = PR_TRUE;
+        if (!ParseBackgroundPositionValues(aErrorCode)) {
+          return PR_FALSE;
+        }
+      } else {
+        if (haveColor)
+          return PR_FALSE;
+        haveColor = PR_TRUE;
+        if (!ParseSingleValueProperty(aErrorCode, mTempData.mColor.mBackColor,
+                                      eCSSProperty_background_color)) {
+          return PR_FALSE;
+        }
+      }
+    } else if (eCSSToken_Function == tt && 
+               mToken.mIdent.LowerCaseEqualsLiteral("url")) {
+      if (haveImage)
+        return PR_FALSE;
+      haveImage = PR_TRUE;
+      if (!ParseSingleValueProperty(aErrorCode, mTempData.mColor.mBackImage,
+                                    eCSSProperty_background_image)) {
+        return PR_FALSE;
+      }
+    } else if (mToken.IsDimension() || tt == eCSSToken_Percentage) {
+      if (havePosition)
+        return PR_FALSE;
+      havePosition = PR_TRUE;
+      if (!ParseBackgroundPositionValues(aErrorCode)) {
+        return PR_FALSE;
+      }
+    } else {
+      if (haveColor)
+        return PR_FALSE;
+      haveColor = PR_TRUE;
+      if (!ParseSingleValueProperty(aErrorCode, mTempData.mColor.mBackColor,
+                                    eCSSProperty_background_color)) {
+        return PR_FALSE;
+      }
+    }
   }
 
-  return PR_TRUE;
+  return ExpectEndProperty(aErrorCode, PR_TRUE) &&
+         (haveColor || haveImage || haveRepeat || haveAttach || havePosition);
 }
 
 PRBool CSSParserImpl::ParseBackgroundPosition(nsresult& aErrorCode)
 {
+  if (!ParseBackgroundPositionValues(aErrorCode) ||
+      !ExpectEndProperty(aErrorCode, PR_TRUE)) 
+    return PR_FALSE;
+  mTempData.SetPropertyBit(eCSSProperty_background_position);
+  return PR_TRUE;
+}
+
+PRBool CSSParserImpl::ParseBackgroundPositionValues(nsresult& aErrorCode)
+{
   
-  nsCSSValue xValue, yValue;
+  nsCSSValue &xValue = mTempData.mColor.mBackPosition.mXValue,
+             &yValue = mTempData.mColor.mBackPosition.mYValue;
   if (ParseVariant(aErrorCode, xValue, VARIANT_HLP, nsnull)) {
     if (eCSSUnit_Inherit == xValue.GetUnit() ||
         eCSSUnit_Initial == xValue.GetUnit()) {  
-      if (ExpectEndProperty(aErrorCode, PR_TRUE)) {
-        AppendValue(eCSSProperty_background_x_position, xValue);
-        AppendValue(eCSSProperty_background_y_position, xValue);
-        return PR_TRUE;
-      }
-      return PR_FALSE;
+      yValue = xValue;
+      return PR_TRUE;
     }
     
     
     if (ParseVariant(aErrorCode, yValue, VARIANT_LP, nsnull)) {
       
-      if (ExpectEndProperty(aErrorCode, PR_TRUE)) {
-        AppendValue(eCSSProperty_background_x_position, xValue);
-        AppendValue(eCSSProperty_background_y_position, yValue);
-        return PR_TRUE;
-      }
-      return PR_FALSE;
+      return PR_TRUE;
     }
 
     if (ParseEnum(aErrorCode, yValue, kBackgroundXYPositionKTable)) {
@@ -5001,23 +5036,14 @@ PRBool CSSParserImpl::ParseBackgroundPosition(nsresult& aErrorCode)
         
         return PR_FALSE;
       }
-      if (ExpectEndProperty(aErrorCode, PR_TRUE)) {
-        yValue = BackgroundPositionMaskToCSSValue(yVal, PR_FALSE);
-        AppendValue(eCSSProperty_background_x_position, xValue);
-        AppendValue(eCSSProperty_background_y_position, yValue);
-        return PR_TRUE;
-      }
-      return PR_FALSE;
+      yValue = BackgroundPositionMaskToCSSValue(yVal, PR_FALSE);
+      return PR_TRUE;
     }
 
     
     
-    if (ExpectEndProperty(aErrorCode, PR_TRUE)) {
-      AppendValue(eCSSProperty_background_x_position, xValue);
-      AppendValue(eCSSProperty_background_y_position, nsCSSValue(0.5f, eCSSUnit_Percent));
-      return PR_TRUE;
-    }
-    return PR_FALSE;
+    yValue.SetPercentValue(0.5f);
+    return PR_TRUE;
   }
 
   
@@ -5046,13 +5072,8 @@ PRBool CSSParserImpl::ParseBackgroundPosition(nsresult& aErrorCode)
           return PR_FALSE;
         }
 
-        if (ExpectEndProperty(aErrorCode, PR_TRUE)) {
-          xValue = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
-          AppendValue(eCSSProperty_background_x_position, xValue);
-          AppendValue(eCSSProperty_background_y_position, yValue);
-          return PR_TRUE;
-        }
-        return PR_FALSE;
+        xValue = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
+        return PR_TRUE;
       }
     }
   }
@@ -5064,15 +5085,10 @@ PRBool CSSParserImpl::ParseBackgroundPosition(nsresult& aErrorCode)
     return PR_FALSE;
   }
 
-  if (ExpectEndProperty(aErrorCode, PR_TRUE)) {
-    
-    xValue = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
-    yValue = BackgroundPositionMaskToCSSValue(mask, PR_FALSE);
-    AppendValue(eCSSProperty_background_x_position, xValue);
-    AppendValue(eCSSProperty_background_y_position, yValue);
-    return PR_TRUE;
-  }
-  return PR_FALSE;
+  
+  xValue = BackgroundPositionMaskToCSSValue(mask, PR_TRUE);
+  yValue = BackgroundPositionMaskToCSSValue(mask, PR_FALSE);
+  return PR_TRUE;
 }
 
 

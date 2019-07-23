@@ -112,8 +112,6 @@ const char* gShorthandPropertiesWithDOMProp[] = {
 const char *gInaccessibleProperties[] = {
     
     
-    "-x-background-x-position",
-    "-x-background-y-position",
     "margin-end-value",
     "margin-left-value",
     "margin-right-value",
