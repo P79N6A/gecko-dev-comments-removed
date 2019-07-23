@@ -48,10 +48,13 @@
 
 
 
+
 var Cc = Components.classes;
 var Ci = Components.interfaces;
 var Cr = Components.results;
 var TYPE_MAYBE_FEED = "application/vnd.mozilla.maybe.feed";
+var TYPE_MAYBE_AUDIO_FEED = "application/vnd.mozilla.maybe.audio.feed";
+var TYPE_MAYBE_VIDEO_FEED = "application/vnd.mozilla.maybe.video.feed";
 const kXULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
@@ -91,6 +94,16 @@ const PREF_FEED_SELECTED_APP    = "browser.feeds.handlers.application";
 const PREF_FEED_SELECTED_WEB    = "browser.feeds.handlers.webservice";
 const PREF_FEED_SELECTED_ACTION = "browser.feeds.handler";
 const PREF_FEED_SELECTED_READER = "browser.feeds.handler.default";
+
+const PREF_VIDEO_FEED_SELECTED_APP    = "browser.videoFeeds.handlers.application";
+const PREF_VIDEO_FEED_SELECTED_WEB    = "browser.videoFeeds.handlers.webservice";
+const PREF_VIDEO_FEED_SELECTED_ACTION = "browser.videoFeeds.handler";
+const PREF_VIDEO_FEED_SELECTED_READER = "browser.videoFeeds.handler.default";
+
+const PREF_AUDIO_FEED_SELECTED_APP    = "browser.audioFeeds.handlers.application";
+const PREF_AUDIO_FEED_SELECTED_WEB    = "browser.audioFeeds.handlers.webservice";
+const PREF_AUDIO_FEED_SELECTED_ACTION = "browser.audioFeeds.handler";
+const PREF_AUDIO_FEED_SELECTED_READER = "browser.audioFeeds.handler.default";
 
 
 
@@ -175,6 +188,9 @@ ArrayEnumerator.prototype = {
   }
 };
 
+function isFeedType(t) {
+  return t == TYPE_MAYBE_FEED || t == TYPE_MAYBE_VIDEO_FEED || t == TYPE_MAYBE_AUDIO_FEED;
+}
 
 
 
@@ -505,10 +521,13 @@ HandlerInfoWrapper.prototype = {
 
 
 
-var feedHandlerInfo = {
 
-  __proto__: new HandlerInfoWrapper(TYPE_MAYBE_FEED, null),
+function FeedHandlerInfo(aMIMEType) {
+  HandlerInfoWrapper.call(this, aMIMEType, null);
+}
 
+FeedHandlerInfo.prototype = {
+  __proto__: HandlerInfoWrapper.prototype,
 
   
   
@@ -530,24 +549,23 @@ var feedHandlerInfo = {
   
 
   get description() {
-    return this.element("bundlePreferences").getString("webFeed");
+    return this.element("bundlePreferences").getString(this._appPrefLabel);
   },
 
   get preferredApplicationHandler() {
-    switch (this.element(PREF_FEED_SELECTED_READER).value) {
+    switch (this.element(this._prefSelectedReader).value) {
       case "client":
-        var file = this.element(PREF_FEED_SELECTED_APP).value;
+        var file = this.element(this._prefSelectedApp).value;
         if (file)
           return getLocalHandlerApp(file);
 
         return null;
 
       case "web":
-        var uri = this.element(PREF_FEED_SELECTED_WEB).value;
+        var uri = this.element(this._prefSelectedWeb).value;
         if (!uri)
           return null;
-        return this._converterSvc.getWebContentHandlerByURI(TYPE_MAYBE_FEED,
-                                                            uri);
+        return this._converterSvc.getWebContentHandlerByURI(this.type, uri);
 
       case "bookmarks":
       default:
@@ -560,12 +578,12 @@ var feedHandlerInfo = {
 
   set preferredApplicationHandler(aNewValue) {
     if (aNewValue instanceof Ci.nsILocalHandlerApp) {
-      this.element(PREF_FEED_SELECTED_APP).value = aNewValue.executable;
-      this.element(PREF_FEED_SELECTED_READER).value = "client";
+      this.element(this._prefSelectedApp).value = aNewValue.executable;
+      this.element(this._prefSelectedReader).value = "client";
     }
     else if (aNewValue instanceof Ci.nsIWebContentHandlerInfo) {
-      this.element(PREF_FEED_SELECTED_WEB).value = aNewValue.uri;
-      this.element(PREF_FEED_SELECTED_READER).value = "web";
+      this.element(this._prefSelectedWeb).value = aNewValue.uri;
+      this.element(this._prefSelectedReader).value = "web";
       
       
       
@@ -625,7 +643,7 @@ var feedHandlerInfo = {
     
     
     
-    var preferredAppFile = this.element(PREF_FEED_SELECTED_APP).value;
+    var preferredAppFile = this.element(this._prefSelectedApp).value;
     if (preferredAppFile) {
       let preferredApp = getLocalHandlerApp(preferredAppFile);
       let defaultApp = this._defaultApplicationHandler;
@@ -696,7 +714,7 @@ var feedHandlerInfo = {
 
   
   get preferredAction() {
-    switch (this.element(PREF_FEED_SELECTED_ACTION).value) {
+    switch (this.element(this._prefSelectedAction).value) {
 
       case "bookmarks":
         return Ci.nsIHandlerInfo.handleInternally;
@@ -734,31 +752,31 @@ var feedHandlerInfo = {
     switch (aNewValue) {
 
       case Ci.nsIHandlerInfo.handleInternally:
-        this.element(PREF_FEED_SELECTED_READER).value = "bookmarks";
+        this.element(this._prefSelectedReader).value = "bookmarks";
         break;
 
       case Ci.nsIHandlerInfo.useHelperApp:
-        this.element(PREF_FEED_SELECTED_ACTION).value = "reader";
+        this.element(this._prefSelectedAction).value = "reader";
         
         
         break;
 
       case Ci.nsIHandlerInfo.useSystemDefault:
-        this.element(PREF_FEED_SELECTED_ACTION).value = "reader";
+        this.element(this._prefSelectedAction).value = "reader";
         this.preferredApplicationHandler = this._defaultApplicationHandler;
         break;
     }
   },
 
   get alwaysAskBeforeHandling() {
-    return this.element(PREF_FEED_SELECTED_ACTION).value == "ask";
+    return this.element(this._prefSelectedAction).value == "ask";
   },
 
   set alwaysAskBeforeHandling(aNewValue) {
     if (aNewValue == true)
-      this.element(PREF_FEED_SELECTED_ACTION).value = "ask";
+      this.element(this._prefSelectedAction).value = "ask";
     else
-      this.element(PREF_FEED_SELECTED_ACTION).value = "reader";
+      this.element(this._prefSelectedAction).value = "reader";
   },
 
   
@@ -810,14 +828,47 @@ var feedHandlerInfo = {
   
 
   get smallIcon() {
-    return "chrome://browser/skin/feeds/feedIcon16.png";
+    return this._smallIcon;
   },
 
   get largeIcon() {
-    return "chrome://browser/skin/feeds/feedIcon.png";
+    return this._largeIcon;
   }
 
 };
+
+var feedHandlerInfo = {
+  __proto__: new FeedHandlerInfo(TYPE_MAYBE_FEED),
+  _prefSelectedApp: PREF_FEED_SELECTED_APP, 
+  _prefSelectedWeb: PREF_FEED_SELECTED_WEB, 
+  _prefSelectedAction: PREF_FEED_SELECTED_ACTION, 
+  _prefSelectedReader: PREF_FEED_SELECTED_READER,
+  _smallIcon: "chrome://browser/skin/feeds/feedIcon16.png",
+  _largeIcon: "chrome://browser/skin/feeds/feedIcon.png",
+  _appPrefLabel: "webFeed"
+}
+
+var videoFeedHandlerInfo = {
+  __proto__: new FeedHandlerInfo(TYPE_MAYBE_VIDEO_FEED),
+  _prefSelectedApp: PREF_VIDEO_FEED_SELECTED_APP, 
+  _prefSelectedWeb: PREF_VIDEO_FEED_SELECTED_WEB, 
+  _prefSelectedAction: PREF_VIDEO_FEED_SELECTED_ACTION, 
+  _prefSelectedReader: PREF_VIDEO_FEED_SELECTED_READER,
+  _smallIcon: "chrome://browser/skin/feeds/videoFeedIcon16.png",
+  _largeIcon: "chrome://browser/skin/feeds/videoFeedIcon.png",
+  _appPrefLabel: "videoPodcastFeed"
+}
+
+var audioFeedHandlerInfo = {
+  __proto__: new FeedHandlerInfo(TYPE_MAYBE_AUDIO_FEED),
+  _prefSelectedApp: PREF_AUDIO_FEED_SELECTED_APP, 
+  _prefSelectedWeb: PREF_AUDIO_FEED_SELECTED_WEB, 
+  _prefSelectedAction: PREF_AUDIO_FEED_SELECTED_ACTION, 
+  _prefSelectedReader: PREF_AUDIO_FEED_SELECTED_READER,
+  _smallIcon: "chrome://browser/skin/feeds/audioFeedIcon16.png",
+  _largeIcon: "chrome://browser/skin/feeds/audioFeedIcon.png",
+  _appPrefLabel: "audioPodcastFeed"
+}
 
 
 
@@ -892,6 +943,17 @@ var gApplicationsPane = {
     this._prefSvc.addObserver(PREF_FEED_SELECTED_ACTION, this, false);
     this._prefSvc.addObserver(PREF_FEED_SELECTED_READER, this, false);
 
+    this._prefSvc.addObserver(PREF_VIDEO_FEED_SELECTED_APP, this, false);
+    this._prefSvc.addObserver(PREF_VIDEO_FEED_SELECTED_WEB, this, false);
+    this._prefSvc.addObserver(PREF_VIDEO_FEED_SELECTED_ACTION, this, false);
+    this._prefSvc.addObserver(PREF_VIDEO_FEED_SELECTED_READER, this, false);
+
+    this._prefSvc.addObserver(PREF_AUDIO_FEED_SELECTED_APP, this, false);
+    this._prefSvc.addObserver(PREF_AUDIO_FEED_SELECTED_WEB, this, false);
+    this._prefSvc.addObserver(PREF_AUDIO_FEED_SELECTED_ACTION, this, false);
+    this._prefSvc.addObserver(PREF_AUDIO_FEED_SELECTED_READER, this, false);
+
+
     
     window.addEventListener("unload", this, false);
 
@@ -933,6 +995,16 @@ var gApplicationsPane = {
     this._prefSvc.removeObserver(PREF_FEED_SELECTED_WEB, this);
     this._prefSvc.removeObserver(PREF_FEED_SELECTED_ACTION, this);
     this._prefSvc.removeObserver(PREF_FEED_SELECTED_READER, this);
+
+    this._prefSvc.removeObserver(PREF_VIDEO_FEED_SELECTED_APP, this);
+    this._prefSvc.removeObserver(PREF_VIDEO_FEED_SELECTED_WEB, this);
+    this._prefSvc.removeObserver(PREF_VIDEO_FEED_SELECTED_ACTION, this);
+    this._prefSvc.removeObserver(PREF_VIDEO_FEED_SELECTED_READER, this);
+
+    this._prefSvc.removeObserver(PREF_AUDIO_FEED_SELECTED_APP, this);
+    this._prefSvc.removeObserver(PREF_AUDIO_FEED_SELECTED_WEB, this);
+    this._prefSvc.removeObserver(PREF_AUDIO_FEED_SELECTED_ACTION, this);
+    this._prefSvc.removeObserver(PREF_AUDIO_FEED_SELECTED_READER, this);
   },
 
 
@@ -993,6 +1065,12 @@ var gApplicationsPane = {
   _loadFeedHandler: function() {
     this._handledTypes[TYPE_MAYBE_FEED] = feedHandlerInfo;
     feedHandlerInfo.handledOnlyByPlugin = false;
+
+    this._handledTypes[TYPE_MAYBE_VIDEO_FEED] = videoFeedHandlerInfo;
+    videoFeedHandlerInfo.handledOnlyByPlugin = false;
+
+    this._handledTypes[TYPE_MAYBE_AUDIO_FEED] = audioFeedHandlerInfo;
+    audioFeedHandlerInfo.handledOnlyByPlugin = false;
   },
 
   
@@ -1175,7 +1253,7 @@ var gApplicationsPane = {
     
     
     if (aHandlerInfo.alwaysAskBeforeHandling) {
-      if (aHandlerInfo.type == TYPE_MAYBE_FEED)
+      if (isFeedType(aHandlerInfo.type))
         return this._prefsBundle.getFormattedString("previewInApp",
                                                     [this._brandShortName]);
       else
@@ -1197,7 +1275,7 @@ var gApplicationsPane = {
 
       case Ci.nsIHandlerInfo.handleInternally:
         
-        if (aHandlerInfo.type == TYPE_MAYBE_FEED)
+        if (isFeedType(aHandlerInfo.type)) 
           return this._prefsBundle.getFormattedString("addLiveBookmarksInApp",
                                                       [this._brandShortName]);
 
@@ -1304,7 +1382,7 @@ var gApplicationsPane = {
       var askMenuItem = document.createElement("menuitem");
       askMenuItem.setAttribute("alwaysAsk", "true");
       let label;
-      if (handlerInfo.type == TYPE_MAYBE_FEED)
+      if (isFeedType(handlerInfo.type))
         label = this._prefsBundle.getFormattedString("previewInApp",
                                                      [this._brandShortName]);
       else
@@ -1320,7 +1398,7 @@ var gApplicationsPane = {
     
     
     if ((handlerInfo.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) &&
-        handlerInfo.type != TYPE_MAYBE_FEED) {
+        !isFeedType(handlerInfo.type)) {
       var saveMenuItem = document.createElement("menuitem");
       saveMenuItem.setAttribute("action", Ci.nsIHandlerInfo.saveToDisk);
       let label = this._prefsBundle.getString("saveFile");
@@ -1331,7 +1409,7 @@ var gApplicationsPane = {
     }
 
     
-    if (handlerInfo.type == TYPE_MAYBE_FEED) {
+    if (isFeedType(handlerInfo.type)) {
       var internalMenuItem = document.createElement("menuitem");
       internalMenuItem.setAttribute("action", Ci.nsIHandlerInfo.handleInternally);
       let label = this._prefsBundle.getFormattedString("addLiveBookmarksInApp",
@@ -1653,7 +1731,7 @@ var gApplicationsPane = {
     var params = {};
     var handlerInfo = this._handledTypes[this._list.selectedItem.type];
 
-    if (handlerInfo.type == TYPE_MAYBE_FEED) {
+    if (isFeedType(handlerInfo.type)) {
       
       params.mimeInfo = this._mimeSvc.getFromTypeAndExtension(handlerInfo.type, 
                                                  handlerInfo.primaryExtension);
@@ -1746,7 +1824,7 @@ var gApplicationsPane = {
         return true;
 
       case Ci.nsIHandlerInfo.handleInternally:
-        if (aHandlerInfo.type == TYPE_MAYBE_FEED) {
+        if (isFeedType(aHandlerInfo.type))
           aElement.setAttribute(APP_ICON_ATTR_NAME, "feed");
           return true;
         }
