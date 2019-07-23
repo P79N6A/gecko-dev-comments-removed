@@ -410,11 +410,8 @@ js_InitDeflatedStringCache(JSRuntime *rt);
 
 
 
-
-
-
 extern JSString *
-js_GetUnitString(JSContext *cx, jschar c);
+js_GetUnitString(JSContext *cx, JSString *str, size_t index);
 
 extern void
 js_FinishUnitStrings(JSRuntime *rt);
