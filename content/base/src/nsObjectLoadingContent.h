@@ -283,6 +283,14 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+
+    void HandleBeingBlockedByContentPolicy(nsresult aStatus,
+                                           PRInt16 aRetval);
+
+    
+
+
+
     nsresult TryInstantiate(const nsACString& aMIMEType, nsIURI* aURI);
 
     
