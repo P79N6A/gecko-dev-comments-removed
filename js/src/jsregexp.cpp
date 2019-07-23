@@ -5235,7 +5235,8 @@ js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
                              AutoValueRooter *tvr)
 {
     *statics = cx->regExpStatics;
-    tvr->setString(statics->input);
+    if (statics->input)
+        tvr->setString(statics->input);
     
 
 
