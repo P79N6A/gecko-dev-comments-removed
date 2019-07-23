@@ -62,6 +62,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -134,18 +135,33 @@ var dialog = {
       let elm = document.createElement("richlistitem");
       elm.setAttribute("type", "handler");
       elm.setAttribute("name", app.name);
-      try {
+      elm.obj = app;
+
+      if (app instanceof Ci.nsILocalHandlerApp) {
         
-        app = app.QueryInterface(Ci.nsILocalHandlerApp);
         let uri = Cc["@mozilla.org/network/util;1"].
                   getService(Ci.nsIIOService).
                   newFileURI(app.executable);
         elm.setAttribute("image", "moz-icon://" + uri.spec + "?size=32");
-      } catch (e) {
-        
-        
       }
-      elm.obj = app;
+      else if (app instanceof Ci.nsIWebHandlerApp) {
+        let uri = IO.newURI(app.uriTemplate);
+        if (/^https?/.test(uri.scheme)) {
+          let iconURI;
+          try {
+            iconURI = Cc["@mozilla.org/browser/favicon-service;1"].
+                      getService(Ci.nsIFaviconService).
+                      getFaviconForPage(IO.newURI(uri.prePath)).spec;
+          }
+          catch (e) {
+            iconURI = uri.prePath + "/favicon.ico";
+          }
+          elm.setAttribute("image", iconURI);
+        }
+        elm.setAttribute("description", uri.prePath);
+      }
+      else
+        throw "unknown handler type";
 
       items.insertBefore(elm, this._itemChoose);
       if (preferredHandler && app == preferredHandler)

@@ -5,6 +5,7 @@
 
 richlistitem[type] {
   min-height: 36px; 
+  -moz-padding-start: 2px;
  }
  
 richlistitem {
@@ -14,4 +15,12 @@ richlistitem {
 richlistbox {
   
   min-height: 110px;
+}
+
+.name {
+  font-weight: bold;
+}
+
+.description {
+  color: GrayText;
 }
