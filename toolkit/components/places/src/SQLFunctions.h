@@ -199,7 +199,8 @@ private:
 
 
 
-  static nsString fixupURISpec(const nsDependentCString &aURISpec);
+
+  static void fixupURISpec(const nsCString &aURISpec, nsString &_fixedSpec);
 };
 
 } 

@@ -71,29 +71,29 @@ namespace places {
   }
 
   
-  nsString
-  MatchAutoCompleteFunction::fixupURISpec(const nsDependentCString &aURISpec)
+  void
+  MatchAutoCompleteFunction::fixupURISpec(const nsCString &aURISpec,
+                                          nsString &_fixedSpec)
   {
-    nsCAutoString unescapedSpec;
+    nsCString unescapedSpec;
     (void)NS_UnescapeURL(aURISpec, esc_SkipControl | esc_AlwaysCopy,
                          unescapedSpec);
 
     
     
-    nsString fixedSpec;
+    NS_ASSERTION(_fixedSpec.IsEmpty(),
+                 "Passing a non-empty string as an out parameter!");
     if (IsUTF8(unescapedSpec))
-      CopyUTF8toUTF16(unescapedSpec, fixedSpec);
+      CopyUTF8toUTF16(unescapedSpec, _fixedSpec);
     else
-      CopyUTF8toUTF16(aURISpec, fixedSpec);
+      CopyUTF8toUTF16(aURISpec, _fixedSpec);
 
-    if (StringBeginsWith(fixedSpec, NS_LITERAL_STRING("http://")))
-      fixedSpec.Cut(0, 7);
-    else if (StringBeginsWith(fixedSpec, NS_LITERAL_STRING("https://")))
-      fixedSpec.Cut(0, 8);
-    else if (StringBeginsWith(fixedSpec, NS_LITERAL_STRING("ftp://")))
-      fixedSpec.Cut(0, 6);
-
-    return fixedSpec;
+    if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("http://")))
+      _fixedSpec.Cut(0, 7);
+    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("https://")))
+      _fixedSpec.Cut(0, 8);
+    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("ftp://")))
+      _fixedSpec.Cut(0, 6);
   }
 
   
@@ -214,9 +214,9 @@ namespace places {
     #define HAS_BEHAVIOR(aBitName) \
       (searchBehavior & mozIPlacesAutoComplete::BEHAVIOR_##aBitName)
 
-    nsDependentString searchString;
+    nsAutoString searchString;
     (void)aArguments->GetString(kArgSearchString, searchString);
-    nsDependentCString url;
+    nsCString url;
     (void)aArguments->GetUTF8String(kArgIndexURL, url);
 
     
@@ -232,7 +232,7 @@ namespace places {
     PRInt32 visitCount = aArguments->AsInt32(kArgIndexVisitCount);
     bool typed = aArguments->AsInt32(kArgIndexTyped) ? true : false;
     bool bookmark = aArguments->AsInt32(kArgIndexBookmark) ? true : false;
-    nsDependentString tags;
+    nsAutoString tags;
     (void)aArguments->GetString(kArgIndexTags, tags);
 
     
@@ -250,13 +250,14 @@ namespace places {
     }
 
     
-    nsString fixedURI = fixupURISpec(url);
+    nsString fixedURI;
+    fixupURISpec(url, fixedURI);
 
     
     PRInt32 matchBehavior = aArguments->AsInt32(kArgIndexMatchBehavior);
     searchFunctionPtr searchFunction = getSearchFunction(matchBehavior);
 
-    nsDependentString title;
+    nsAutoString title;
     (void)aArguments->GetString(kArgIndexTitle, title);
 
     
