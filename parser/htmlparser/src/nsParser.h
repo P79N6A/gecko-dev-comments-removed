@@ -186,14 +186,6 @@ class nsParser : public nsIParser,
 
 
 
-    NS_IMETHOD_(nsDTDMode) GetParseMode(void);
-
-    
-
-
-
-
-
 
     NS_IMETHOD Parse(nsIURI* aURL,
                      nsIRequestObserver* aListener = nsnull,

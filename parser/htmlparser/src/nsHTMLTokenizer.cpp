@@ -70,7 +70,7 @@ NS_IMPL_ISUPPORTS1(nsHTMLTokenizer, nsITokenizer)
 
 
 
-nsHTMLTokenizer::nsHTMLTokenizer(PRInt32 aParseMode,
+nsHTMLTokenizer::nsHTMLTokenizer(nsDTDMode aParseMode,
                                  eParserDocType aDocType,
                                  eParserCommands aCommand,
                                  PRUint16 aFlags) :

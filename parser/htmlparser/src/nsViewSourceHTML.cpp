@@ -312,20 +312,9 @@ nsresult CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
   else mDocType=aParserContext.mDocType;
 
   mLineNumber = 1;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  CParserContext& parserContext = const_cast<CParserContext&>(aParserContext);
-  parserContext.mDTDMode = eDTDMode_full_standards;
-  result = mSink->WillBuildModel();
-  
-  parserContext.mDTDMode = mDTDMode;
+
+  result = mSink->WillBuildModel(GetMode());
+
   START_TIMER();
   return result;
 }
@@ -610,6 +599,15 @@ NS_IMETHODIMP_(PRInt32)
 CViewSourceHTML::GetType() {
   return NS_IPARSER_FLAG_HTML;
 }
+
+NS_IMETHODIMP_(nsDTDMode)
+CViewSourceHTML::GetMode() const
+{
+  
+  
+  return eDTDMode_full_standards;
+}
+
 
 
 

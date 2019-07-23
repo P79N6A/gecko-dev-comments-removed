@@ -93,9 +93,9 @@ NS_INTERFACE_MAP_END
 
 
 NS_IMETHODIMP
-nsLoadSaveContentSink::WillBuildModel(void)
+nsLoadSaveContentSink::WillBuildModel(nsDTDMode aDTDMode)
 {
-  return mBaseSink->WillBuildModel();
+  return mBaseSink->WillBuildModel(aDTDMode);
 }
 
 NS_IMETHODIMP

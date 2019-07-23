@@ -1040,21 +1040,6 @@ nsParser::GetContentSink()
 
 
 
-NS_IMETHODIMP_(nsDTDMode)
-nsParser::GetParseMode()
-{
-  if (mParserContext) {
-    return mParserContext->mDTDMode;
-  }
-  NS_NOTREACHED("no parser context");
-  return eDTDMode_unknown;
-}
-
-
-
-
-
-
 
 
 
