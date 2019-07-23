@@ -922,11 +922,12 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&          aPresContext,
                                          nsTableRowFrame&         aFirstRow, 
                                          nsTableRowFrame&         aLastRow,  
                                          PRBool                   aFirstRowIsTopOfPage,
-                                         nscoord                  aAvailHeight,
+                                         nscoord                  aSpanningRowBottom,
                                          nsTableRowFrame*&        aContRow,
                                          nsTableRowFrame*&        aFirstTruncatedRow,
                                          nscoord&                 aDesiredHeight)
 {
+  NS_ASSERTION(aSpanningRowBottom >= 0, "Can't split negative heights");
   aFirstTruncatedRow = nsnull;
   aDesiredHeight     = 0;
 
@@ -946,7 +947,8 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&          aPresContext,
         nsReflowStatus status;
         
         
-        nscoord cellAvailHeight = aAvailHeight - rowPos.y;
+        nscoord cellAvailHeight = aSpanningRowBottom - rowPos.y;
+        NS_ASSERTION(cellAvailHeight >= 0, "No space for cell?");
         PRBool isTopOfPage = (row == &aFirstRow) && aFirstRowIsTopOfPage;
         nscoord cellHeight = row->ReflowCellFrame(&aPresContext, aReflowState,
                                                   isTopOfPage, cell,
@@ -1108,7 +1110,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
           
           
           
-          if (rowMetrics.height >= availSize.height) {
+          if (rowMetrics.height > availSize.height) {
             
             if (isTopOfPage) { 
               
@@ -1122,7 +1124,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
                 aDesiredSize.height += cellSpacingY;
               NS_WARNING("data loss - complete row needed more height than available, on top of page");
             }
-            else {  
+            else {
               
               rowIsOnPage = PR_FALSE;
             }
@@ -1135,10 +1137,11 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
       }
 
       nsTableRowFrame* lastRowThisPage = rowFrame;
+      nscoord spanningRowBottom = availHeight;
       if (!rowIsOnPage) {
         NS_ASSERTION(!contRow, "We should not have created a continuation if none of this row fits");
         if (prevRowFrame) {
-          availHeight -= prevRowFrame->GetRect().YMost();
+          spanningRowBottom = prevRowFrame->GetRect().YMost();
           lastRowThisPage = prevRowFrame;
           isTopOfPage = (lastRowThisPage == firstRowThisPage) && aReflowState.mFlags.mIsTopOfPage;
           aStatus = NS_FRAME_NOT_COMPLETE;
@@ -1155,7 +1158,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
       nsTableRowFrame* firstTruncatedRow;
       nscoord yMost;
       SplitSpanningCells(*aPresContext, aReflowState, *aTableFrame, *firstRowThisPage,
-                         *lastRowThisPage, aReflowState.mFlags.mIsTopOfPage, availHeight, contRow, 
+                         *lastRowThisPage, aReflowState.mFlags.mIsTopOfPage, spanningRowBottom, contRow, 
                          firstTruncatedRow, yMost);
       if (firstTruncatedRow) {
         
@@ -1174,7 +1177,8 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
         else { 
           
           nsTableRowFrame* rowBefore = ::GetRowBefore(*firstRowThisPage, *firstTruncatedRow);
-          availHeight -= rowBefore->GetRect().YMost();
+          nscoord oldSpanningRowBottom = spanningRowBottom;
+          spanningRowBottom = rowBefore->GetRect().YMost();
 
           UndoContinuedRow(aPresContext, contRow);
           contRow = nsnull;
@@ -1185,15 +1189,16 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
           
           SplitSpanningCells(*aPresContext, aReflowState, *aTableFrame, 
                              *firstRowThisPage, *rowBefore, aReflowState.mFlags.mIsTopOfPage, 
-                             availHeight, contRow, firstTruncatedRow, aDesiredSize.height);
+                             spanningRowBottom, contRow, firstTruncatedRow, aDesiredSize.height);
           if (firstTruncatedRow) {
             if (aReflowState.mFlags.mIsTopOfPage) {
               
               UndoContinuedRow(aPresContext, contRow);
               contRow = nsnull;
               lastRowThisPage = oldLastRowThisPage;
+              spanningRowBottom = oldSpanningRowBottom;
               SplitSpanningCells(*aPresContext, aReflowState, *aTableFrame, *firstRowThisPage,
-                                 *lastRowThisPage, aReflowState.mFlags.mIsTopOfPage, availHeight, contRow, 
+                                 *lastRowThisPage, aReflowState.mFlags.mIsTopOfPage, spanningRowBottom, contRow, 
                                  firstTruncatedRow, aDesiredSize.height);
               NS_WARNING("data loss in a row spanned cell");
             }
