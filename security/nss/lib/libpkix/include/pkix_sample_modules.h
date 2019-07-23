@@ -307,6 +307,68 @@ PKIX_PL_LdapCertStore_Create(
 
 
 
+PKIX_Error *
+PKIX_PL_EkuChecker_Create(
+        PKIX_ProcessingParams *params,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+pkix_pl_EkuChecker_GetRequiredEku(
+        PKIX_CertSelector *certSelector,
+        PKIX_UInt32 *pRequiredExtKeyUsage,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -359,45 +421,6 @@ PKIX_PL_NssContext_Create(
 PKIX_Error *
 PKIX_PL_NssContext_Destroy(
         void *nssContext);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PKIX_Error *
-PKIX_PL_NssContext_SetTimeout(PKIX_UInt32 timeout, PKIX_PL_NssContext *nssContext);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PKIX_Error *
-PKIX_PL_NssContext_SetMaxResponseLen(PKIX_UInt32 len, PKIX_PL_NssContext *nssContext);
 
 #ifdef __cplusplus
 }

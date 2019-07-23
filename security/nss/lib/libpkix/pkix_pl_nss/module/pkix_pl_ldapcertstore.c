@@ -1087,8 +1087,6 @@ PKIX_PL_LdapCertStore_Create(
                 pkix_pl_LdapCertStore_GetCertContinue,
                 pkix_pl_LdapCertStore_GetCRLContinue,
                 NULL,       
-                NULL,      
-                NULL,      
                 (PKIX_PL_Object *)client,
                 PKIX_TRUE,  
                 PKIX_FALSE, 

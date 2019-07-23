@@ -34,10 +34,6 @@
 
 
 
-#ifdef FREEBL_NO_DEPEND
-#include "stubs.h"
-#endif
-
 #include "secport.h"
 #include "hasht.h"
 #include "blapit.h"

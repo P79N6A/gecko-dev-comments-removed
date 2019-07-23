@@ -4483,16 +4483,13 @@ loser:
 
 
 
-
 char *
 ocsp_GetResponderLocation(CERTCertDBHandle *handle, CERTCertificate *cert,
-			  PRBool canUseDefault, PRBool *isDefault)
+			  PRBool *isDefault)
 {
-    ocspCheckingContext *ocspcx = NULL;
+    ocspCheckingContext *ocspcx;
 
-    if (canUseDefault) {
-        ocspcx = ocsp_GetCheckingContext(handle);
-    }
+    ocspcx = ocsp_GetCheckingContext(handle);
     if (ocspcx != NULL && ocspcx->useDefaultResponder) {
 	
 
@@ -4627,18 +4624,6 @@ ocsp_GetCachedOCSPResponseStatusIfFresh(CERTOCSPCertID *certID,
     return rv;
 }
 
-PRBool
-ocsp_FetchingFailureIsVerificationFailure()
-{
-    PRBool isFailure;
-
-    PR_EnterMonitor(OCSP_Global.monitor);
-    isFailure =
-        OCSP_Global.ocspFailureMode == ocspMode_FailureIsVerificationFailure;
-    PR_ExitMonitor(OCSP_Global.monitor);
-    return isFailure;
-}
-
 
 
 
@@ -4717,9 +4702,11 @@ CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
                                        &rvOcsp);
     if (rv != SECSuccess) {
         
-
-        rvOcsp = ocsp_FetchingFailureIsVerificationFailure() ?
-            SECFailure : SECSuccess;
+        PR_EnterMonitor(OCSP_Global.monitor);
+        rvOcsp = (OCSP_Global.ocspFailureMode 
+                  == ocspMode_FailureIsVerificationFailure)
+            ? SECFailure : SECSuccess;
+        PR_ExitMonitor(OCSP_Global.monitor);
     }
     if (!certIDWasConsumed) {
         CERT_DestroyOCSPCertID(certID);
@@ -4768,8 +4755,7 @@ ocsp_GetOCSPStatusFromNetwork(CERTCertDBHandle *handle,
 
 
 
-    location = ocsp_GetResponderLocation(handle, cert, PR_TRUE,
-                                         &locationIsDefault);
+    location = ocsp_GetResponderLocation(handle, cert, &locationIsDefault);
     if (location == NULL) {
        int err = PORT_GetError();
        if (err == SEC_ERROR_EXTENSION_NOT_FOUND ||

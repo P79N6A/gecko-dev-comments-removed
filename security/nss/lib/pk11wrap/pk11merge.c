@@ -13,7 +13,6 @@
 #include "keyhi.h"
 #include "hasht.h"
 #include "cert.h"
-#include "certdb.h"
 
 
 
@@ -676,63 +675,6 @@ done:
 
 
 
-static char *
-pk11_IncrementNickname(char *nickname)
-{
-    char *newNickname = NULL;
-    int end;
-    PRBool needCarry;
-    int digit;
-    int len = strlen(nickname);
-
-    
-    for (end = len - 1; 
-         end >= 2 && (digit = nickname[end]) <= '9' &&  digit >= '0'; 
-	 end--)   ;
-    if (len >= 3 &&
-        end < (len - 1)  &&
-	nickname[end]     == '#'  && 
-	nickname[end - 1] == ' ') {
-    	
-    } else {
-	
-	static const char num2[] = " #2";
-	newNickname = PORT_Realloc(nickname, len + sizeof(num2));
-	if (newNickname) {
-	    PORT_Strcat(newNickname, num2);
-	} else {
-	    PORT_Free(nickname);
-	}
-	return newNickname;
-    }
-
-    for (end = len - 1; 
-	 end >= 0 && (digit = nickname[end]) <= '9' &&  digit >= '0'; 
-	 end--) {
-	if (digit < '9') {
-	    nickname[end]++;
-	    return nickname;
-	}
-	nickname[end] = '0';
-    }
-
-    
-    newNickname = PORT_Realloc(nickname, len + 2);
-    if (newNickname) {
-	newNickname[++end] = '1';
-	PORT_Memset(&newNickname[end + 1], '0', len - end);
-	newNickname[len + 1] = 0;
-    } else {
-	PORT_Free(nickname);
-    }
-    return newNickname;
-}
-
-
-
-
-
-
 static SECStatus
 pk11_mergeCert(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
 		CK_OBJECT_HANDLE id, void *targetPwArg, void *sourcePwArg)
@@ -755,35 +697,6 @@ pk11_mergeCert(PK11SlotInfo *targetSlot, PK11SlotInfo *sourceSlot,
     }
 
     nickname = PK11_GetObjectNickname(sourceSlot, id);
-
-    
-
-
-    if (nickname) {
-	const char *tokenName = PK11_GetTokenName(targetSlot);
-	char *tokenNickname = NULL;
-
-	do {
-	    tokenNickname = PR_smprintf("%s:%s",tokenName, nickname);
-	    if (!tokenNickname) {
-		break;
-	    }
-	    if (!SEC_CertNicknameConflict(tokenNickname, 
-			&sourceCert->derSubject, CERT_GetDefaultCertDB())) {
-		break;
-	     }
-	    nickname = pk11_IncrementNickname(nickname);
-	    if (!nickname) {
-		break;
-	    }
-	    PR_smprintf_free(tokenNickname);
-	} while (1);
-	if (tokenNickname) {
-	    PR_smprintf_free(tokenNickname);
-	}
-    }
-
-	
 
     
     targetCertID = PK11_FindCertInSlot(targetSlot, sourceCert, targetPwArg);

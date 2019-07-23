@@ -156,17 +156,7 @@ cert_RememberOCSPProcessingFailure(CERTOCSPCertID *certID,
 char *
 ocsp_GetResponderLocation(CERTCertDBHandle *handle,
                           CERTCertificate *cert,
-                          PRBool canUseDefaultLocation,
                           PRBool *isDefault);
 
-
-
-
-
-
-
-
-PRBool
-ocsp_FetchingFailureIsVerificationFailure();
 
 #endif 

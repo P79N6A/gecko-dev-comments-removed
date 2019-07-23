@@ -34,10 +34,6 @@
 
 
 
-#ifdef FREEBL_NO_DEPEND
-#include "stubs.h"
-#endif
-
 #include "nspr.h"
 #include "sechash.h"
 #include "blapi.h"	

@@ -173,8 +173,8 @@ typedef PKIX_Error *
 
 PKIX_Error *
 PKIX_CRLSelector_Create(
-        PKIX_PL_Cert *issuer,
-        PKIX_PL_Date *date,
+        PKIX_CRLSelector_MatchCallback callback,
+        PKIX_PL_Object *crlSelectorContext,
         PKIX_CRLSelector **pSelector,
         void *plContext);
 

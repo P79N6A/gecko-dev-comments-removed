@@ -72,7 +72,7 @@ pkix_ProcessingParams_Destroy(
         PKIX_DECREF(params->date);
         PKIX_DECREF(params->initialPolicies);
         PKIX_DECREF(params->certChainCheckers);
-        PKIX_DECREF(params->revChecker);
+        PKIX_DECREF(params->revCheckers);
         PKIX_DECREF(params->certStores);
         PKIX_DECREF(params->resourceLimits);
 
@@ -224,7 +224,7 @@ pkix_ProcessingParams_Hashcode(
         PKIX_UInt32 initialHash = 0;
         PKIX_UInt32 rejectedHash = 0;
         PKIX_UInt32 certChainCheckersHash = 0;
-        PKIX_UInt32 revCheckerHash = 0;
+        PKIX_UInt32 revCheckersHash = 0;
         PKIX_UInt32 certStoresHash = 0;
         PKIX_UInt32 resourceLimitsHash = 0;
 
@@ -268,7 +268,7 @@ pkix_ProcessingParams_Hashcode(
                 constraintsHash + initialHash + rejectedHash;
 
         hash += ((((certStoresHash + resourceLimitsHash) << 7) +
-                certChainCheckersHash + revCheckerHash +
+                certChainCheckersHash + revCheckersHash +
                 procParams->isCrlRevocationCheckingEnabled +
                 procParams->isCrlRevocationCheckingEnabledWithNISTPolicy) << 7);
 
@@ -471,8 +471,8 @@ pkix_ProcessingParams_Duplicate(
                 PKIX_OBJECTDUPLICATEFAILED);
 
         PKIX_DUPLICATE
-                (params->revChecker,
-                &(paramsDuplicate->revChecker),
+                (params->revCheckers,
+                &(paramsDuplicate->revCheckers),
                 plContext,
                 PKIX_OBJECTDUPLICATEFAILED);
 
@@ -576,7 +576,7 @@ PKIX_ProcessingParams_Create(
         params->initialExplicitPolicy = PKIX_FALSE;
         params->qualifiersRejected = PKIX_FALSE;
         params->certChainCheckers = NULL;
-        params->revChecker = NULL;
+        params->revCheckers = NULL;
         params->certStores = NULL;
         params->resourceLimits = NULL;
 
@@ -997,18 +997,25 @@ cleanup:
 
 
 PKIX_Error *
-PKIX_ProcessingParams_GetRevocationChecker(
+PKIX_ProcessingParams_GetRevocationCheckers(
         PKIX_ProcessingParams *params,
-        PKIX_RevocationChecker **pChecker,
+        PKIX_List **pCheckers,  
         void *plContext)
 {
 
         PKIX_ENTER
             (PROCESSINGPARAMS, "PKIX_ProcessingParams_GetRevocationCheckers");
-        PKIX_NULLCHECK_TWO(params, pChecker);
+        PKIX_NULLCHECK_TWO(params, pCheckers);
 
-        PKIX_INCREF(params->revChecker);
-        *pChecker = params->revChecker;
+        if (params->revCheckers == NULL) {
+		PKIX_CHECK(PKIX_List_Create
+			(&(params->revCheckers), plContext),
+			PKIX_LISTCREATEFAILED);
+	}
+
+        PKIX_INCREF(params->revCheckers);
+
+        *pCheckers = params->revCheckers;
 
 cleanup:
 
@@ -1020,25 +1027,73 @@ cleanup:
 
 
 PKIX_Error *
-PKIX_ProcessingParams_SetRevocationChecker(
+PKIX_ProcessingParams_SetRevocationCheckers(
         PKIX_ProcessingParams *params,
-        PKIX_RevocationChecker *checker,
+        PKIX_List *checkers,  
         void *plContext)
 {
 
         PKIX_ENTER(PROCESSINGPARAMS,
-                   "PKIX_ProcessingParams_InitRevocationChecker");
+                   "PKIX_ProcessingParams_SetRevocationCheckers");
         PKIX_NULLCHECK_ONE(params);
 
-        PKIX_DECREF(params->revChecker);
-        PKIX_INCREF(checker);
-        params->revChecker = checker;
+        PKIX_DECREF(params->revCheckers);
+
+        PKIX_INCREF(checkers);
+        params->revCheckers = checkers;
 
         PKIX_CHECK(PKIX_PL_Object_InvalidateCache
                 ((PKIX_PL_Object *)params, plContext),
                 PKIX_OBJECTINVALIDATECACHEFAILED);
+
 cleanup:
 
+        if (PKIX_ERROR_RECEIVED && params) {
+            PKIX_DECREF(params->revCheckers);
+        }
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_AddRevocationChecker(
+        PKIX_ProcessingParams *params,
+        PKIX_RevocationChecker *checker,
+        void *plContext)
+{
+        PKIX_List *list = NULL;
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                   "PKIX_ProcessingParams_AddRevocationChecker");
+        PKIX_NULLCHECK_TWO(params, checker);
+
+        if (params->revCheckers == NULL) {
+
+                PKIX_CHECK(PKIX_List_Create(&list, plContext),
+                    PKIX_LISTCREATEFAILED);
+
+                params->revCheckers = list;
+        }
+
+        PKIX_CHECK(PKIX_List_AppendItem
+            (params->revCheckers, (PKIX_PL_Object *)checker, plContext),
+            PKIX_LISTAPPENDITEMFAILED);
+
+        PKIX_CHECK(PKIX_PL_Object_InvalidateCache
+            ((PKIX_PL_Object *)params, plContext),
+            PKIX_OBJECTINVALIDATECACHEFAILED);
+
+        list = NULL;
+
+cleanup:
+
+        if (list && params) {
+            PKIX_DECREF(params->revCheckers);
+        }
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 
@@ -1131,6 +1186,181 @@ PKIX_ProcessingParams_AddCertStore(
 cleanup:
 
         PKIX_DECREF(certStores);
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_IsCRLRevocationCheckingEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pEnabled,
+        void *plContext)
+{
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                    "PKIX_ProcessingParams_IsCRLRevocationCheckingEnabled");
+        PKIX_NULLCHECK_TWO(params, pEnabled);
+
+        *pEnabled = params->isCrlRevocationCheckingEnabled;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_SetRevocationEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean enabled,
+        void *plContext)
+{
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                    "PKIX_ProcessingParams_SetRevocationEnabled");
+        PKIX_NULLCHECK_ONE(params);
+
+        params->isCrlRevocationCheckingEnabled = enabled;
+
+        PKIX_CHECK(PKIX_PL_Object_InvalidateCache
+                    ((PKIX_PL_Object *)params, plContext),
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
+
+cleanup:
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+pkix_ProcessingParams_GetRevocationEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pEnabled,
+        void *plContext)
+{
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                    "pkix_ProcessingParams_GetRevocationEnabled");
+
+        PKIX_NULLCHECK_TWO(params, pEnabled);
+
+        *pEnabled = params->isCrlRevocationCheckingEnabled;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_IsNISTRevocationPolicyEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pEnabled,
+        void *plContext)
+{
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                    "PKIX_ProcessingParams_IsNISTRevocationPolicyEnabled");
+        PKIX_NULLCHECK_TWO(params, pEnabled);
+
+        *pEnabled = params->isCrlRevocationCheckingEnabledWithNISTPolicy;
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_SetNISTRevocationPolicyEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean enabled,
+        void *plContext)
+{
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                    "PKIX_ProcessingParams_SetNISTRevocationPolicyEnabled");
+        PKIX_NULLCHECK_ONE(params);
+
+        params->isCrlRevocationCheckingEnabledWithNISTPolicy = enabled;
+
+        PKIX_CHECK(PKIX_PL_Object_InvalidateCache
+                    ((PKIX_PL_Object *)params, plContext),
+                    PKIX_OBJECTINVALIDATECACHEFAILED);
+
+cleanup:
+
+        PKIX_RETURN(PROCESSINGPARAMS);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+pkix_ProcessingParams_GetNISTRevocationPolicyEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pEnabled,
+        void *plContext)
+{
+
+        PKIX_ENTER(PROCESSINGPARAMS,
+                    "pkix_ProcessingParams_GetNISTRevocationPolicyEnabled");
+
+        PKIX_NULLCHECK_TWO(params, pEnabled);
+
+        *pEnabled = params->isCrlRevocationCheckingEnabledWithNISTPolicy;
+
         PKIX_RETURN(PROCESSINGPARAMS);
 }
 

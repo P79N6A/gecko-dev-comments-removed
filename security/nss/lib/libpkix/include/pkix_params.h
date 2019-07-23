@@ -246,10 +246,12 @@ PKIX_ProcessingParams_AddCertChainChecker(
 
 
 
+
+
 PKIX_Error *
-PKIX_ProcessingParams_GetRevocationChecker(
+PKIX_ProcessingParams_GetRevocationCheckers(
         PKIX_ProcessingParams *params,
-        PKIX_RevocationChecker **pChecker,
+        PKIX_List **pRevCheckers, 
         void *plContext);
 
 
@@ -278,10 +280,45 @@ PKIX_ProcessingParams_GetRevocationChecker(
 
 
 
+
+
+
+
 PKIX_Error *
-PKIX_ProcessingParams_SetRevocationChecker(
+PKIX_ProcessingParams_SetRevocationCheckers(
         PKIX_ProcessingParams *params,
-        PKIX_RevocationChecker *revChecker,
+        PKIX_List *revCheckers,  
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_AddRevocationChecker(
+        PKIX_ProcessingParams *params,
+        PKIX_RevocationChecker *checker,
         void *plContext);
 
 
@@ -1048,6 +1085,139 @@ PKIX_Error *
 PKIX_ProcessingParams_SetPolicyMappingInhibited(
         PKIX_ProcessingParams *params,
         PKIX_Boolean inhibited,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_IsCRLRevocationCheckingEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pEnabled,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_SetRevocationEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean enabled,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_IsNISTRevocationPolicyEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pEnabled,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_SetNISTRevocationPolicyEnabled(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean enabled,
         void *plContext);
 
 

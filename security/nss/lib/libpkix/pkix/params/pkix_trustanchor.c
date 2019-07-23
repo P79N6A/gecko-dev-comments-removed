@@ -426,16 +426,6 @@ PKIX_TrustAnchor_CreateWithNameKeyPair(
         PKIX_TrustAnchor *anchor = NULL;
 
         PKIX_ENTER(TRUSTANCHOR, "PKIX_TrustAnchor_CreateWithNameKeyPair");
-
-#ifndef BUILD_LIBPKIX_TESTS
-        
-
-
-
-
-        PKIX_ERROR(PKIX_FUNCTIONMUSTNOTBEUSED);
-#endif
-
         PKIX_NULLCHECK_THREE(name, pubKey, pAnchor);
 
         PKIX_CHECK(PKIX_PL_Object_Alloc

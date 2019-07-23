@@ -39,10 +39,6 @@
 
 
 
-#ifdef FREEBL_NO_DEPEND
-#include "stubs.h"
-#endif
-
 #include "blapi.h"
 #include "secerr.h"
 #ifdef XP_UNIX_XXX

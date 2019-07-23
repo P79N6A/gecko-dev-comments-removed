@@ -51,18 +51,17 @@
 extern "C" {
 #endif
 
+typedef struct PKIX_PL_NssContextStruct PKIX_PL_NssContext;
+
 struct PKIX_PL_NssContextStruct {
         SECCertificateUsage certificateUsage;
         PRArenaPool *arena;
         void *wincx;
-        PKIX_UInt32 timeoutSeconds;
-        PKIX_UInt32 maxResponseLength;
 };
 
 PKIX_Error *
 pkix_pl_NssContext_GetCertUsage
         (PKIX_PL_NssContext *nssContext, SECCertificateUsage *pCertUsage);
-
 
 PKIX_Error *
 pkix_pl_NssContext_SetCertUsage
@@ -70,7 +69,6 @@ pkix_pl_NssContext_SetCertUsage
 
 PKIX_Error *
 pkix_pl_NssContext_GetWincx(PKIX_PL_NssContext *nssContext, void **pWincx);
-
 
 PKIX_Error *
 pkix_pl_NssContext_SetWincx(void *wincx, PKIX_PL_NssContext *nssContext);
