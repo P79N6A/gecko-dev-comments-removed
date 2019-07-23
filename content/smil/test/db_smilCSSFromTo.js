@@ -151,11 +151,23 @@ var _fromToTestLists = {
 
 var gFromToBundles = [
   new TestcaseBundle(gPropList.clip, [
-    
     new AnimTestcaseFromTo("rect(1px, 2px, 3px, 4px)",
                            "rect(11px, 22px, 33px, 44px)",
                            { midComp: "rect(6px, 12px, 18px, 24px)" }),
-  ], "need support for rect() values"),
+    new AnimTestcaseFromTo("rect(1px, auto, 3px, 4px)",
+                           "rect(11px, auto, 33px, 44px)",
+                           { midComp: "rect(6px, auto, 18px, 24px)" }),
+    new AnimTestcaseFromTo("auto", "auto"),
+    new AnimTestcaseFromTo("rect(auto, auto, auto, auto)",
+                           "rect(auto, auto, auto, auto)"),
+    
+    new AnimTestcaseFromTo("rect(1px, auto, 3px, auto)",
+                           "rect(11px, auto, 33px, 44px)"),
+    new AnimTestcaseFromTo("rect(1px, 2px, 3px, 4px)",
+                           "rect(11px, auto, 33px, 44px)"),
+    new AnimTestcaseFromTo("rect(1px, 2px, 3px, 4px)", "auto"),
+    new AnimTestcaseFromTo("auto", "rect(1px, 2px, 3px, 4px)"),
+  ]),
   new TestcaseBundle(gPropList.clip_path, _fromToTestLists.URIsAndNone),
   new TestcaseBundle(gPropList.clip_rule, [
     new AnimTestcaseFromTo("nonzero", "evenodd"),
