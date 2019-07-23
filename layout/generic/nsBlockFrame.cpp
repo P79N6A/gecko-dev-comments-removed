@@ -87,6 +87,7 @@
 #include "nsBoxLayoutState.h"
 #include "nsDisplayList.h"
 #include "nsContentErrors.h"
+#include "nsCSSAnonBoxes.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -5943,7 +5944,14 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
   else {
     nsPresContext* presContext = PresContext();
 
+    
+    
+    
+    
+    
     NS_ASSERTION(GetPrevContinuation() ||
+                 (GetStyleContext()->GetPseudoType() ==
+                  nsCSSAnonBoxes::mozAnonymousBlock) ||
                  (nsRefPtr<nsStyleContext>(GetFirstLetterStyle(presContext)) !=
                   nsnull) ==
                  ((mState & NS_BLOCK_HAS_FIRST_LETTER_STYLE) != 0),
