@@ -69,6 +69,8 @@ var security = {
 
     var isBroken =
       (ui.state == Components.interfaces.nsIWebProgressListener.STATE_IS_BROKEN);
+    var isEV =
+      (ui.state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL);
     ui.QueryInterface(nsISSLStatusProvider);
     var status = ui.SSLStatus;
 
@@ -84,6 +86,7 @@ var security = {
         encryptionAlgorithm : undefined,
         encryptionStrength : undefined,
         isBroken : isBroken,
+        isEV : isEV,
         cert : cert,
         fullLocation : gWindow.location
       };
@@ -103,6 +106,7 @@ var security = {
         encryptionAlgorithm : "",
         encryptionStrength : 0,
         isBroken : isBroken,
+        isEV : isEV,
         cert : null,
         fullLocation : gWindow.location        
       };
@@ -197,21 +201,29 @@ function securityOnLoad() {
   
   setText("security-identity-domain-value", info.hostName);
   
-  
-  
   var owner, verifier, generalPageIdentityString;
   if (info.cert && !info.isBroken) {
     
     
     
-    
-    owner = info.cert.organization || info.cert.commonName ||
-            info.cert.subjectName;
-    verifier = security.mapIssuerOrganization(info.cAName ||
-                                              info.cert.issuerCommonName ||
-                                              info.cert.issuerName);
-    generalPageIdentityString = pageInfoBundle.getFormattedString("generalSiteIdentity",
-                                                                  [owner, verifier]);
+    if (info.isEV) {
+      owner = info.cert.organization;
+      verifier = security.mapIssuerOrganization(info.cAName);
+      generalPageIdentityString = pageInfoBundle.getFormattedString("generalSiteIdentity",
+                                                                    [owner, verifier]);
+    }
+    else {
+      
+      
+      
+      
+      
+      owner = pageInfoBundle.getString("securityNoIdentity");
+      verifier = security.mapIssuerOrganization(info.cAName ||
+                                                info.cert.issuerCommonName ||
+                                                info.cert.issuerName);
+      generalPageIdentityString = owner;
+    }
   }
   else {
     
