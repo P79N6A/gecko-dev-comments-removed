@@ -418,8 +418,8 @@ js_AtomizePrimitiveValue(JSContext *cx, jsval v, JSAtom **atomp);
 
 
 
-extern JSAtom *
-js_ValueToStringAtom(JSContext *cx, jsval v);
+extern JSBool
+js_ValueToStringId(JSContext *cx, jsval v, jsid *idp);
 
 #ifdef DEBUG
 
