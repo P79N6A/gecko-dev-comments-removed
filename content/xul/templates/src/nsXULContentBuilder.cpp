@@ -177,6 +177,7 @@ protected:
                              nsIContent *aResourceNode,
                              nsIContent *aRealNode,
                              PRBool aIsUnique,
+                             PRBool aIsSelfReference,
                              nsIXULTemplateResult* aChild,
                              PRBool aNotify,
                              nsTemplateMatch* aMatch,
@@ -498,12 +499,19 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                                               nsIContent *aResourceNode,
                                               nsIContent *aRealNode,
                                               PRBool aIsUnique,
+                                              PRBool aIsSelfReference,
                                               nsIXULTemplateResult* aChild,
                                               PRBool aNotify,
                                               nsTemplateMatch* aMatch,
                                               nsIContent** aContainer,
                                               PRInt32* aNewIndexInContainer)
 {
+    
+    
+    
+    
+    
+    
     
     
     
@@ -690,7 +698,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
             
             
             rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, PR_TRUE,
-                                          aChild, aNotify, aMatch,
+                                          aIsSelfReference, aChild, aNotify, aMatch,
                                           aContainer, aNewIndexInContainer);
 
             if (NS_FAILED(rv))
@@ -826,7 +834,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                     xulcontent->SetLazyState(nsXULElement::eTemplateContentsBuilt);
                     xulcontent->SetLazyState(nsXULElement::eContainerContentsBuilt);
                 }
-                else {
+                else if (!aIsSelfReference) {
                     
                     
                     
@@ -843,7 +851,7 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
                 
                 
                 rv = BuildContentFromTemplate(tmplKid, aResourceNode, realKid, isUnique,
-                                              aChild, PR_FALSE, aMatch,
+                                              aIsSelfReference, aChild, PR_FALSE, aMatch,
                                               nsnull ,
                                               nsnull );
 
@@ -1374,6 +1382,7 @@ nsXULContentBuilder::CreateContainerContentsForQuerySet(nsIContent* aElement,
                 matchedrule->GetAction(getter_AddRefs(action));
 
                 BuildContentFromTemplate(action, aElement, aElement, PR_TRUE,
+                                         mRefVariable == matchedrule->GetMemberVariable(),
                                          nextresult, aNotify, newmatch,
                                          aContainer, aNewIndexInContainer);
             }
@@ -1437,8 +1446,8 @@ nsXULContentBuilder::CreateTemplateContents(nsIContent* aElement,
         return NS_ERROR_FAILURE;
 
     return BuildContentFromTemplate(aTemplateElement, aElement, aElement,
-                                    PR_FALSE, match->mResult, PR_FALSE, match,
-                                    aContainer, aNewIndexInContainer);
+                                    PR_FALSE, PR_FALSE, match->mResult, PR_FALSE,
+                                    match, aContainer, aNewIndexInContainer);
 }
 
 nsresult
@@ -1906,6 +1915,7 @@ nsXULContentBuilder::ReplaceMatch(nsIXULTemplateResult* aOldResult,
         aNewMatchRule->GetAction(getter_AddRefs(action));
 
         return BuildContentFromTemplate(action, content, content, PR_TRUE,
+                                        mRefVariable == aNewMatchRule->GetMemberVariable(),
                                         aNewMatch->mResult, PR_TRUE, aNewMatch,
                                         nsnull, nsnull);
     }
