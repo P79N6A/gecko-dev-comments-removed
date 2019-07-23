@@ -1053,12 +1053,6 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD GetAnimatedResize(PRUint16* aAnimation) = 0;
 
-    
-
-
-
-    virtual nsIWidget* GetTopLevelWindow(void) = 0;
-
 protected:
     
     
