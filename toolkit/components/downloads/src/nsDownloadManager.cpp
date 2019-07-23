@@ -150,7 +150,10 @@ nsDownloadManager::CompleteDownload(nsDownload *aDownload)
   
   aDownload->mCancelable = nsnull;
   aDownload->mEntityID.Truncate();
-  if (aDownload->mWasResumed)
+
+  
+  if (aDownload->mDownloadState == nsIDownloadManager::DOWNLOAD_FINISHED &&
+      aDownload->mWasResumed)
     (void)ExecuteDesiredAction(aDownload);
 
   (void)mCurrentDownloads.RemoveObject(aDownload);
@@ -161,8 +164,13 @@ nsDownloadManager::ExecuteDesiredAction(nsDownload *aDownload)
 {
   
   
-  if (!aDownload->mTempFile && !aDownload->mWasResumed)
+  if (!aDownload->mTempFile || !aDownload->mWasResumed)
     return NS_OK;
+
+  
+  PRBool fileExists;
+  if (NS_FAILED(aDownload->mTempFile->Exists(&fileExists)) || !fileExists)
+    return NS_ERROR_FAILURE;
 
   
   nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
@@ -183,7 +191,6 @@ nsDownloadManager::ExecuteDesiredAction(nsDownload *aDownload)
         
         
         
-        PRBool fileExists;
         if (NS_SUCCEEDED(target->Exists(&fileExists)) && fileExists) {
           rv = target->Remove(PR_FALSE);
           NS_ENSURE_SUCCESS(rv, rv);
