@@ -62,11 +62,18 @@
 
 
 
+
+
+
+
+
+
  
 
 #ifndef GOOGLE_BREAKPAD_COMMON_MINIDUMP_FORMAT_H__
 #define GOOGLE_BREAKPAD_COMMON_MINIDUMP_FORMAT_H__
 
+#include <stddef.h>
 
 #include "google_breakpad/common/breakpad_types.h"
 
@@ -502,8 +509,10 @@ typedef enum {
 typedef struct {
   u_int32_t length;     
 
-  u_int16_t buffer[0];  
+  u_int16_t buffer[1];  
 } MDString;  
+
+static const size_t MDString_minsize = offsetof(MDString, buffer[0]);
 
 
 typedef struct {
@@ -519,8 +528,11 @@ typedef struct {
 
 typedef struct {
   u_int32_t   number_of_threads;
-  MDRawThread threads[0];
+  MDRawThread threads[1];
 } MDRawThreadList;  
+
+static const size_t MDRawThreadList_minsize = offsetof(MDRawThreadList,
+                                                       threads[0]);
 
 
 typedef struct {
@@ -576,8 +588,11 @@ typedef struct {
   MDCVHeader cv_header;
   u_int32_t  signature;         
   u_int32_t  age;               
-  u_int8_t   pdb_file_name[0];  
+  u_int8_t   pdb_file_name[1];  
 } MDCVInfoPDB20;
+
+static const size_t MDCVInfoPDB20_minsize = offsetof(MDCVInfoPDB20,
+                                                     pdb_file_name[0]);
 
 #define MD_CVINFOPDB20_SIGNATURE 0x3031424e  /* cvHeader.signature = '01BN' */
 
@@ -585,9 +600,12 @@ typedef struct {
   u_int32_t cv_signature;
   MDGUID    signature;         
   u_int32_t age;               
-  u_int8_t  pdb_file_name[0];  
+  u_int8_t  pdb_file_name[1];  
 
 } MDCVInfoPDB70;
+
+static const size_t MDCVInfoPDB70_minsize = offsetof(MDCVInfoPDB70,
+                                                     pdb_file_name[0]);
 
 #define MD_CVINFOPDB70_SIGNATURE 0x53445352  /* cvSignature = 'SDSR' */
 
@@ -618,26 +636,36 @@ typedef struct {
   u_int32_t length;       
   u_int8_t  unicode;      
   u_int8_t  reserved[3];
-  u_int8_t  data[0];
+  u_int8_t  data[1];
 } MDImageDebugMisc;  
+
+static const size_t MDImageDebugMisc_minsize = offsetof(MDImageDebugMisc,
+                                                        data[0]);
 
 
 typedef struct {
   u_int32_t   number_of_modules;
-  MDRawModule modules[0];
+  MDRawModule modules[1];
 } MDRawModuleList;  
+
+static const size_t MDRawModuleList_minsize = offsetof(MDRawModuleList,
+                                                       modules[0]);
 
 
 typedef struct {
   u_int32_t          number_of_memory_ranges;
-  MDMemoryDescriptor memory_ranges[0];
+  MDMemoryDescriptor memory_ranges[1];
 } MDRawMemoryList;  
+
+static const size_t MDRawMemoryList_minsize = offsetof(MDRawMemoryList,
+                                                       memory_ranges[0]);
 
 
 #define MD_EXCEPTION_MAXIMUM_PARAMETERS 15
 
 typedef struct {
   u_int32_t exception_code;     
+
 
   u_int32_t exception_flags;    
 
@@ -848,12 +876,49 @@ typedef enum {
       
   
   
-  MD_EXCEPTION_CODE_MAC_X86_ALIGNMENT_FAULT            = 17,
+  MD_EXCEPTION_CODE_MAC_X86_ALIGNMENT_FAULT            = 17
       
   
   
 } MDExceptionCodeMac;
 
+
+
+typedef enum {
+  MD_EXCEPTION_CODE_LIN_SIGHUP = 1,      
+  MD_EXCEPTION_CODE_LIN_SIGINT = 2,      
+  MD_EXCEPTION_CODE_LIN_SIGQUIT = 3,     
+  MD_EXCEPTION_CODE_LIN_SIGILL = 4,      
+  MD_EXCEPTION_CODE_LIN_SIGTRAP = 5,     
+  MD_EXCEPTION_CODE_LIN_SIGABRT = 6,     
+  MD_EXCEPTION_CODE_LIN_SIGBUS = 7,      
+  MD_EXCEPTION_CODE_LIN_SIGFPE = 8,      
+  MD_EXCEPTION_CODE_LIN_SIGKILL = 9,     
+  MD_EXCEPTION_CODE_LIN_SIGUSR1 = 10,    
+  MD_EXCEPTION_CODE_LIN_SIGSEGV = 11,    
+  MD_EXCEPTION_CODE_LIN_SIGUSR2 = 12,    
+  MD_EXCEPTION_CODE_LIN_SIGPIPE = 13,    
+  MD_EXCEPTION_CODE_LIN_SIGALRM = 14,    
+  MD_EXCEPTION_CODE_LIN_SIGTERM = 15,    
+  MD_EXCEPTION_CODE_LIN_SIGSTKFLT = 16,  
+  MD_EXCEPTION_CODE_LIN_SIGCHLD = 17,    
+  MD_EXCEPTION_CODE_LIN_SIGCONT = 18,    
+  MD_EXCEPTION_CODE_LIN_SIGSTOP = 19,    
+  MD_EXCEPTION_CODE_LIN_SIGTSTP = 20,    
+  MD_EXCEPTION_CODE_LIN_SIGTTIN = 21,    
+  MD_EXCEPTION_CODE_LIN_SIGTTOU = 22,    
+  MD_EXCEPTION_CODE_LIN_SIGURG = 23,
+    
+  MD_EXCEPTION_CODE_LIN_SIGXCPU = 24,    
+  MD_EXCEPTION_CODE_LIN_SIGXFSZ = 25,
+    
+  MD_EXCEPTION_CODE_LIN_SIGVTALRM = 26,  
+  MD_EXCEPTION_CODE_LIN_SIGPROF = 27,    
+  MD_EXCEPTION_CODE_LIN_SIGWINCH = 28,   
+  MD_EXCEPTION_CODE_LIN_SIGIO = 29,      
+  MD_EXCEPTION_CODE_LIN_SIGPWR = 30,     
+  MD_EXCEPTION_CODE_LIN_SIGSYS = 31      
+} MDExceptionCodeLinux;
 
 typedef struct {
   u_int32_t            thread_id;         
@@ -885,13 +950,9 @@ typedef struct {
   u_int16_t        processor_level;         
   u_int16_t        processor_revision;      
 
-  union {
-    u_int16_t      reserved0;
-    struct {
-      u_int8_t     number_of_processors;
-      u_int8_t     product_type;          
-    };
-  };
+
+  u_int8_t         number_of_processors;
+  u_int8_t         product_type;            
 
   
 
@@ -907,13 +968,9 @@ typedef struct {
 
 
 
-  union {
-    u_int32_t      reserved1;
-    struct {
-      u_int16_t    suite_mask;  
-      u_int16_t    reserved2;
-    };
-  };
+  u_int16_t        suite_mask;       
+  u_int16_t        reserved2;
+
   MDCPUInformation cpu;
 } MDRawSystemInfo;  
 
@@ -947,7 +1004,7 @@ typedef enum {
   
   MD_OS_UNIX          = 0x8000,  
   MD_OS_MAC_OS_X      = 0x8101,  
-  MD_OS_LINUX         = 0x8201,  
+  MD_OS_LINUX         = 0x8201   
 } MDOSPlatform;
 
 

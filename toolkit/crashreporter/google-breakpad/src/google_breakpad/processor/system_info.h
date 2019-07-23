@@ -43,6 +43,9 @@ using std::string;
 
 struct SystemInfo {
  public:
+  SystemInfo() : os(), os_short(), os_version(), cpu(), cpu_info(),
+    cpu_count(0) {}
+
   
   void Clear() {
     os.clear();
@@ -50,6 +53,7 @@ struct SystemInfo {
     os_version.clear();
     cpu.clear();
     cpu_info.clear();
+    cpu_count = 0;
   }
 
   
@@ -82,6 +86,10 @@ struct SystemInfo {
   
   
   string cpu_info;
+
+  
+  
+  int cpu_count;
 };
 
 }  

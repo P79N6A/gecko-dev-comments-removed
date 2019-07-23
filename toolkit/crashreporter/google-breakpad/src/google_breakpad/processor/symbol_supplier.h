@@ -52,7 +52,7 @@ class SymbolSupplier {
     FOUND,
 
     
-    INTERRUPT,
+    INTERRUPT
   };
 
   virtual ~SymbolSupplier() {}
