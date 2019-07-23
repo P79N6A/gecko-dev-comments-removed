@@ -177,6 +177,8 @@ typedef enum {
   
   MOZ_GTK_TABPANELS,
   
+  MOZ_GTK_TAB_SCROLLARROW,
+  
   MOZ_GTK_TREEVIEW,
   
   MOZ_GTK_TREE_HEADER_CELL,
@@ -340,6 +342,15 @@ moz_gtk_get_scrollbar_metrics(MozGtkScrollbarMetrics* metrics);
 
 
 gint moz_gtk_get_dropdown_arrow_size(gint* width, gint* height);
+
+
+
+
+
+
+
+
+gint moz_gtk_get_tab_scroll_arrow_size(gint* width, gint* height);
 
 
 

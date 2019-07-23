@@ -115,6 +115,10 @@
 #define NS_THEME_TAB_PANELS                                65
 
 
+#define NS_THEME_TAB_SCROLLARROW_BACK                      66
+#define NS_THEME_TAB_SCROLLARROW_FORWARD                   67
+
+
 #define NS_THEME_TOOLTIP                                   71
 
 
