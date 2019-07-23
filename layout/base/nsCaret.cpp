@@ -373,7 +373,7 @@ NS_IMETHODIMP nsCaret::EraseCaret()
 {
   if (mDrawn) {
     DrawCaret(PR_TRUE);
-    if (mReadOnly) {
+    if (mReadOnly && mBlinkRate) {
       
       
       
@@ -399,7 +399,12 @@ NS_IMETHODIMP nsCaret::DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset)
   if (!frameSelection)
     return NS_ERROR_FAILURE;
   bidiLevel = frameSelection->GetCaretBidiLevel();
+
   
+  
+  
+  mBlinkRate = 0;
+
   
   nsresult rv = DrawAtPositionWithHint(aNode, aOffset,
                                        nsFrameSelection::HINTLEFT,

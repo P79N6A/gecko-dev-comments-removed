@@ -125,6 +125,7 @@ public:
 
 
 
+
   NS_IMETHOD DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset) = 0;
 
   
