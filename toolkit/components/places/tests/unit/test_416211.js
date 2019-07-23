@@ -1,4 +1,3 @@
-version(180);
 
 
 
@@ -40,15 +39,100 @@ version(180);
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+let current_test = 0;
 
+function AutoCompleteInput(aSearches) {
+  this.searches = aSearches;
+}
+AutoCompleteInput.prototype = {
+  timeout: 10,
+  textValue: "",
+  searches: null,
+  searchParam: "",
+  popupOpen: false,
+  minResultsForPopup: 0,
+  invalidate: function() {},
+  disableAutoComplete: false,
+  completeDefaultIndex: false,
+  get popup() { return this; },
+  onSearchBegin: function() {},
+  onSearchComplete: function() {},
+  setSelectedIndex: function() {},
+  get searchCount() { return this.searches.length; },
+  getSearchAt: function(aIndex) this.searches[aIndex],
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteInput, Ci.nsIAutoCompletePopup])
+};
 
+function ensure_results(aSearch, aExpected)
+{
+  let controller = Cc["@mozilla.org/autocomplete/controller;1"].
+                   getService(Ci.nsIAutoCompleteController);
 
+  
+  
+  let input = new AutoCompleteInput(["history"]);
 
+  controller.input = input;
 
+  let numSearchesStarted = 0;
+  input.onSearchBegin = function() {
+    numSearchesStarted++;
+    do_check_eq(numSearchesStarted, 1);
+  };
 
+  input.onSearchComplete = function() {
+    do_check_eq(numSearchesStarted, 1);
+    aExpected = aExpected.slice();
 
+    
+    for (let i = 0; i < controller.matchCount; i++) {
+      let value = controller.getValueAt(i);
+      let comment = controller.getCommentAt(i);
 
+      print("Looking for an expected result of " + value + ", " + comment + "...");
+      let j;
+      for (j = 0; j < aExpected.length; j++) {
+        let [uri, title] = aExpected[j];
 
+        
+        if (uri == undefined) continue;
+
+        
+        [uri, title] = [iosvc.newURI(kURIs[uri], null, null).spec, kTitles[title]];
+
+        
+        if (uri == value && title == comment) {
+          print("Got it at index " + j + "!!");
+          
+          aExpected[j] = [,];
+          break;
+        }
+      }
+
+      
+      if (j == aExpected.length)
+        do_throw("Didn't find the current result (" + value + ", " + comment + ") in expected: " + aExpected);
+    }
+
+    
+    do_check_eq(controller.matchCount, aExpected.length);
+
+    
+    do_check_eq(controller.searchStatus, aExpected.length ?
+                Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH :
+                Ci.nsIAutoCompleteController.STATUS_COMPLETE_NO_MATCH);
+
+    
+    if (++current_test < gTests.length)
+      run_test();
+
+    do_test_finished();
+  };
+
+  print("Searching for.. " + aSearch);
+  controller.startSearch(aSearch);
+}
 
 
 try {
@@ -57,110 +141,91 @@ try {
   var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
   var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
               getService(Ci.nsINavBookmarksService);
-  var tagssvc = Cc["@mozilla.org/browser/tagging-service;1"].
-                getService(Ci.nsITaggingService);
-} catch (ex) {
+  var tagsvc = Cc["@mozilla.org/browser/tagging-service;1"].
+               getService(Ci.nsITaggingService);
+  var iosvc = Cc["@mozilla.org/network/io-service;1"].
+              getService(Ci.nsIIOService);
+} catch(ex) {
   do_throw("Could not get services\n");
 }
 
-function add_visit(aURI, aVisitDate, aVisitType) {
-  var isRedirect = aVisitType == histsvc.TRANSITION_REDIRECT_PERMANENT ||
-                   aVisitType == histsvc.TRANSITION_REDIRECT_TEMPORARY;
-  var placeID = histsvc.addVisit(aURI, aVisitDate, null,
-                                 aVisitType, isRedirect, 0);
-  do_check_true(placeID > 0);
-  return placeID;
-}
 
+let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 
-var theTag = "superTag";
-var url = uri("http://www.foobar.com/");
-var title = "Cool Title";
-bhist.addPageWithDetails(url, theTag, Date.now());
+function addPageBook(aURI, aTitle, aBook, aTags, aKey)
+{
+  let uri = iosvc.newURI(kURIs[aURI], null, null);
+  let title = kTitles[aTitle];
 
-tagssvc.tagURI(url, [theTag]);
-bmsvc.insertBookmark(bmsvc.unfiledBookmarksFolder, url, bmsvc.DEFAULT_INDEX, title);
-
-function AutoCompleteInput(aSearches) {
-  this.searches = aSearches;
-}
-
-AutoCompleteInput.prototype = {
-  constructor: AutoCompleteInput, 
-
-  searches: null,
-
-  minResultsForPopup: 0,
-  timeout: 10,
-  searchParam: "",
-  textValue: "",
-  disableAutoComplete: false,  
-  completeDefaultIndex: false,
-
-  get searchCount() {
-    return this.searches.length;
-  },
-
-  getSearchAt: function(aIndex) {
-    return this.searches[aIndex];
-  },
-
-  onSearchComplete: function() {},
-
-  popupOpen: false,
-
-  popup: {
-    setSelectedIndex: function(aIndex) {},
-    invalidate: function() {},
-
-    
-    QueryInterface: function(iid) {
-      if (iid.equals(Ci.nsISupports) ||
-          iid.equals(Ci.nsIAutoCompletePopup))
-        return this;
-
-      throw Components.results.NS_ERROR_NO_INTERFACE;
-    }
-  },
+  let out = [aURI, aTitle, aBook, aTags, aKey];
+  out.push("\nuri=" + kURIs[aURI]);
+  out.push("\ntitle=" + title);
 
   
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsISupports) ||
-        iid.equals(Ci.nsIAutoCompleteInput))
-      return this;
+  bhist.addPageWithDetails(uri, title, gDate);
 
-    throw Components.results.NS_ERROR_NO_INTERFACE;
+  
+  if (aBook != undefined) {
+    let book = kTitles[aBook];
+    let bmid = bmsvc.insertBookmark(bmsvc.unfiledBookmarksFolder, uri,
+      bmsvc.DEFAULT_INDEX, book);
+    out.push("\nbook=" + book);
+
+    
+    if (aKey != undefined)
+      bmsvc.setKeywordForBookmark(bmid, aKey);
+
+    
+    if (aTags != undefined && aTags.length > 0) {
+      
+      let tags = aTags.map(function(aTag) kTitles[aTag]);
+      tagsvc.tagURI(uri, tags);
+      out.push("\ntags=" + tags);
+    }
   }
+
+  print("\nAdding page/book/tag: " + out.join(", "));
 }
 
 function run_test() {
-  var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
-                   getService(Components.interfaces.nsIAutoCompleteController);
-
-  
-  
-  var input = new AutoCompleteInput(["history"]);
-
-  controller.input = input;
-
+  print("\n");
   
   do_test_pending();
 
-  input.onSearchComplete = function() {
-    do_check_eq(controller.searchStatus,
-                Ci.nsIAutoCompleteController.STATUS_COMPLETE_MATCH);
+  
+  let [description, search, expected, func] = gTests[current_test];
+  print(description);
 
-    
-    do_check_eq(controller.matchCount, 1);
+  
+  if (func)
+    func();
 
-    
-    do_check_eq(controller.getCommentAt(0), title);
-    
-
-
-
-    do_test_finished();
-  };
-
-  controller.startSearch(theTag);
+  ensure_results(search, expected);
 }
+
+
+
+
+
+let theTag = "superTag";
+
+
+let kURIs = [
+  "http://theuri/",
+];
+let kTitles = [
+  "Page title",
+  "Bookmark title",
+  theTag,
+];
+
+
+addPageBook(0, 0, 1, [2]);
+
+
+
+
+let gTests = [
+  ["0: Make sure the tag match gives the bookmark title",
+   theTag, [[0,1]]],
+];

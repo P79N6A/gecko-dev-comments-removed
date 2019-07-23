@@ -44,10 +44,6 @@
 
 
 
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 let current_test = 0;
 
@@ -92,6 +88,7 @@ function ensure_results(aSearch, aExpected)
 
   input.onSearchComplete = function() {
     do_check_eq(numSearchesStarted, 1);
+    aExpected = aExpected.slice();
 
     
     for (let i = 0; i < controller.matchCount; i++) {
