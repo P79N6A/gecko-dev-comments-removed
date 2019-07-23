@@ -63,11 +63,10 @@ class AutoSetInstantiatingToFalse;
 enum PluginSupportState {
   ePluginUnsupported,  
   ePluginDisabled,     
-                       
   ePluginBlocklisted,  
   ePluginOutdated,     
-  ePluginOtherState    
-                       
+  ePluginOtherState,   
+  ePluginCrashed
 };
 
 
@@ -422,7 +421,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     PRPackedBool                mUserDisabled  : 1;
     PRPackedBool                mSuppressed    : 1;
     
-    PluginSupportState          mPluginState;
+    PluginSupportState          mFallbackReason;
 
     nsWeakFrame                 mPrintFrame;
 
