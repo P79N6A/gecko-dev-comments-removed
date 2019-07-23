@@ -890,8 +890,6 @@ static PRBool AreAllEarlierInFlowFramesEmpty(nsIFrame* aFrame,
 
 
 
-
-
 void
 nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
                                             nsIFrame*         aPlaceholderFrame,
@@ -1089,9 +1087,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   
   
   nsPoint cbOffset;
-  if (mStyleDisplay->mPosition == NS_STYLE_POSITION_FIXED &&
-      
-      nsLayoutUtils::IsReallyFixedPos(frame)) {
+  if (mStyleDisplay->mPosition == NS_STYLE_POSITION_FIXED) {
     
     
     
@@ -1105,10 +1101,6 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
       aContainingBlock = aContainingBlock->GetParent();
     } while (aContainingBlock != cbrs->frame);
   } else {
-    
-    
-    
-    
     cbOffset = aContainingBlock->GetOffsetTo(cbrs->frame);
   }
   aHypotheticalBox.mLeft += cbOffset.x;

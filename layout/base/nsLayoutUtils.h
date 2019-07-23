@@ -922,14 +922,6 @@ public:
 
 
 
-
-
-  static PRBool IsReallyFixedPos(nsIFrame* aFrame);
-
-  
-
-
-
   static PRBool sDisableGetUsedXAssertions;
 };
 
