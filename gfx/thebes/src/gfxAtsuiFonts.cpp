@@ -62,7 +62,7 @@
 #include "nsUnicodeRange.h"
 
 
-#define DUMP_TEXT_RUNS
+
 
 #ifdef DUMP_TEXT_RUNS
 static PRLogModuleInfo *gAtsuiTextRunLog = PR_NewLogModule("atsuiTextRun");
@@ -694,7 +694,16 @@ gfxAtsuiFontGroup::GuessMaximumStringLength()
     
     PRUint32 maxAdvance = PRUint32(GetFontAt(0)->GetMetrics().maxAdvance);
     PRUint32 chars = 0x7FFF/PR_MAX(1, maxAdvance);
-    return PR_MAX(1, chars);
+    
+    PRUint32 realGuessMax = PR_MAX(1, chars);
+    
+    
+    
+    if (gfxPlatformMac::GetPlatform()->OSXVersion() >= MAC_OS_X_VERSION_10_5_HEX) {
+        realGuessMax = PR_MIN(500, realGuessMax);
+    }
+
+    return realGuessMax;
 }
 
 
