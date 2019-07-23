@@ -46,7 +46,7 @@
 #include "nsGkAtoms.h"
 #include "nsIFontMetrics.h"
 #include "nsIRenderingContext.h"
-#include "nsTextTransformer.h"
+#include "nsLayoutUtils.h"
 
 #ifdef ACCESSIBILITY
 #include "nsIServiceManager.h"
@@ -144,7 +144,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       
       
-      SetFontFromStyle(aReflowState.rendContext, mStyleContext);
+      nsLayoutUtils::SetFontFromStyle(aReflowState.rendContext, mStyleContext);
       nsCOMPtr<nsIFontMetrics> fm;
       aReflowState.rendContext->GetFontMetrics(*getter_AddRefs(fm));
       if (fm) {

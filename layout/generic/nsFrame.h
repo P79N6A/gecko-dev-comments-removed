@@ -115,10 +115,6 @@
 
 
 
-void SetFontFromStyle(nsIRenderingContext* aRC, nsStyleContext* aSC);
-
-
-
 struct nsBoxLayoutMetrics;
 
 

@@ -1615,7 +1615,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
   
   nsStyleContext* styleContext = spanFrame->GetStyleContext();
   nsIRenderingContext* rc = mBlockReflowState->rendContext;
-  SetFontFromStyle(mBlockReflowState->rendContext, styleContext);
+  nsLayoutUtils::SetFontFromStyle(mBlockReflowState->rendContext, styleContext);
   nsCOMPtr<nsIFontMetrics> fm;
   rc->GetFontMetrics(*getter_AddRefs(fm));
 

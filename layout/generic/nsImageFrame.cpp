@@ -941,7 +941,7 @@ nsImageFrame::DisplayAltText(nsPresContext*      aPresContext,
 {
   
   aRenderingContext.SetColor(GetStyleColor()->mColor);
-  SetFontFromStyle(&aRenderingContext, mStyleContext);
+  nsLayoutUtils::SetFontFromStyle(&aRenderingContext, mStyleContext);
 
   
   nsIFontMetrics* fm;

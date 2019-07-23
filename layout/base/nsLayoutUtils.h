@@ -647,6 +647,22 @@ public:
                             const nsRect& aDestRect,
                             const nsRect& aDirtyRect,
                             const nsRect* aSourceRect = nsnull);
+
+  
+
+
+  static void SetFontFromStyle(nsIRenderingContext* aRC, nsStyleContext* aSC);
+
+  
+
+
+
+
+
+
+  static nscoord CharsToCoord(const nsStyleCoord& aStyle,
+                              nsIRenderingContext* aRenderingContext,
+                              nsStyleContext* aStyleContext);
 };
 
 #endif 
