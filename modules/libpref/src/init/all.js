@@ -1544,6 +1544,9 @@ pref("intl.jis0208.map", "CP932");
 pref("intl.keyboard.per_window_layout", false);
 
 
+pref("intl.enable_tsf_support", false);
+
+
 pref("ui.panel.default_level_parent", false);
 
 # WINNT

@@ -569,6 +569,13 @@ public:
 
   static nsresult GetHashFromHrefString(const nsAString &aHref,
                                         nsAString& aHash);
+
+  
+
+
+  NS_HIDDEN_(nsresult) GetEditor(nsIEditor** aEditor);
+  NS_HIDDEN_(nsresult) GetEditorInternal(nsIEditor** aEditor);
+
 protected:
   
 
@@ -727,12 +734,6 @@ protected:
 
 
   NS_HIDDEN_(nsresult) GetURIListAttr(nsIAtom* aAttr, nsAString& aResult);
-
-  
-
-
-  NS_HIDDEN_(nsresult) GetEditor(nsIEditor** aEditor);
-  NS_HIDDEN_(nsresult) GetEditorInternal(nsIEditor** aEditor);
 
   
 
