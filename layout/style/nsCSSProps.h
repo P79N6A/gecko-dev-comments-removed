@@ -86,6 +86,9 @@ enum nsStyleAnimType {
   eStyleAnimType_Color,
 
   
+  eStyleAnimType_PaintServer,
+
+  
   eStyleAnimType_None
 };
 
