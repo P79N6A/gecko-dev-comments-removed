@@ -51,6 +51,18 @@ class FontEntry;
 
 class THEBES_API gfxQtPlatform : public gfxPlatform {
 public:
+
+    enum RenderMode {
+        
+        RENDER_QPAINTER = 0,
+        
+        RENDER_XLIB,
+        
+        RENDER_SHARED_IMAGE,
+        
+        RENDER_MODE_MAX
+    };
+
     gfxQtPlatform();
     virtual ~gfxQtPlatform();
 
@@ -87,6 +99,9 @@ public:
 
     FT_Library GetFTLibrary();
 
+    RenderMode GetRenderMode() { return mRenderMode; }
+    void SetRenderMode(RenderMode rmode) { mRenderMode = rmode; }
+
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
 
@@ -96,7 +111,8 @@ private:
     
     nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<gfxFontEntry> > > mPrefFonts;
 
+    RenderMode mRenderMode;
 };
 
-#endif 
+#endif
 
