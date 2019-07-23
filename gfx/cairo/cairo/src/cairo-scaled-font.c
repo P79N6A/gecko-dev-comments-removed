@@ -299,6 +299,7 @@ slim_hidden_def (cairo_scaled_font_status);
 #define CAIRO_SCALED_FONT_MAX_HOLDOVERS 256
 
 typedef struct _cairo_scaled_font_map {
+    cairo_scaled_font_t *mru_scaled_font;
     cairo_hash_table_t *hash_table;
     cairo_scaled_font_t *holdovers[CAIRO_SCALED_FONT_MAX_HOLDOVERS];
     int num_holdovers;
@@ -319,6 +320,7 @@ _cairo_scaled_font_map_lock (void)
 	if (cairo_scaled_font_map == NULL)
 	    goto CLEANUP_MUTEX_LOCK;
 
+	cairo_scaled_font_map->mru_scaled_font = NULL;
 	cairo_scaled_font_map->hash_table =
 	    _cairo_hash_table_create (_cairo_scaled_font_keys_equal);
 
@@ -358,11 +360,17 @@ _cairo_scaled_font_map_destroy (void)
         goto CLEANUP_MUTEX_LOCK;
     }
 
+    scaled_font = font_map->mru_scaled_font;
+    if (scaled_font != NULL) {
+	CAIRO_MUTEX_UNLOCK (_cairo_scaled_font_map_mutex);
+	cairo_scaled_font_destroy (scaled_font);
+	CAIRO_MUTEX_LOCK (_cairo_scaled_font_map_mutex);
+    }
+
     
 
     while (font_map->num_holdovers) {
 	scaled_font = font_map->holdovers[font_map->num_holdovers-1];
-
 	assert (! CAIRO_REFERENCE_COUNT_HAS_REFERENCE (&scaled_font->ref_count));
 	_cairo_hash_table_remove (font_map->hash_table,
 				  &scaled_font->hash_entry);
@@ -673,7 +681,7 @@ _cairo_scaled_font_set_metrics (cairo_scaled_font_t	    *scaled_font,
     cairo_status_t status;
     double  font_scale_x, font_scale_y;
 
-    status = _cairo_matrix_compute_scale_factors (&scaled_font->font_matrix,
+    status = _cairo_matrix_compute_basis_scale_factors (&scaled_font->font_matrix,
 						  &font_scale_x, &font_scale_y,
 						  1);
     if (status)
@@ -745,7 +753,7 @@ cairo_scaled_font_create (cairo_font_face_t          *font_face,
 {
     cairo_status_t status;
     cairo_scaled_font_map_t *font_map;
-    cairo_scaled_font_t key, *scaled_font = NULL;
+    cairo_scaled_font_t key, *old = NULL, *scaled_font = NULL;
 
     if (font_face->status)
 	return _cairo_scaled_font_create_in_error (font_face->status);
@@ -763,42 +771,12 @@ cairo_scaled_font_create (cairo_font_face_t          *font_face,
 
     _cairo_scaled_font_init_key (&key, font_face,
 				 font_matrix, ctm, options);
-
-
-    while (_cairo_hash_table_lookup (font_map->hash_table, &key.hash_entry,
-				     (cairo_hash_entry_t**) &scaled_font))
+    scaled_font = font_map->mru_scaled_font;
+    if (scaled_font != NULL &&
+	scaled_font->hash_entry.hash == key.hash_entry.hash &&
+	_cairo_scaled_font_keys_equal (scaled_font, &key))
     {
-	if (!scaled_font->placeholder)
-	    break;
-
-	
-
-	_cairo_scaled_font_placeholder_wait_for_creation_to_finish (scaled_font);
-    }
-
-    
-    if (scaled_font)
-    {
-	
-
-
-
-	if (! CAIRO_REFERENCE_COUNT_HAS_REFERENCE (&scaled_font->ref_count)) {
-	    int i;
-
-	    for (i = 0; i < font_map->num_holdovers; i++)
-		if (font_map->holdovers[i] == scaled_font)
-		    break;
-	    assert (i < font_map->num_holdovers);
-
-	    font_map->num_holdovers--;
-	    memmove (&font_map->holdovers[i],
-		     &font_map->holdovers[i+1],
-		     (font_map->num_holdovers - i) * sizeof (cairo_scaled_font_t*));
-
-	    
-	    scaled_font->status = CAIRO_STATUS_SUCCESS;
-	}
+	assert (! scaled_font->placeholder);
 
 	if (scaled_font->status == CAIRO_STATUS_SUCCESS) {
 	    
@@ -814,6 +792,66 @@ cairo_scaled_font_create (cairo_font_face_t          *font_face,
 	_cairo_hash_table_remove (font_map->hash_table, &key.hash_entry);
 	scaled_font->hash_entry.hash = ZOMBIE;
     }
+    else
+    {
+	while (_cairo_hash_table_lookup (font_map->hash_table, &key.hash_entry,
+					 (cairo_hash_entry_t**) &scaled_font))
+	{
+	    if (! scaled_font->placeholder)
+		break;
+
+	    
+
+	    _cairo_scaled_font_placeholder_wait_for_creation_to_finish (scaled_font);
+	}
+
+	
+	if (scaled_font != NULL) {
+	    
+
+
+
+	    if (! CAIRO_REFERENCE_COUNT_HAS_REFERENCE (&scaled_font->ref_count)) {
+		int i;
+
+		for (i = 0; i < font_map->num_holdovers; i++)
+		    if (font_map->holdovers[i] == scaled_font)
+			break;
+		assert (i < font_map->num_holdovers);
+
+		font_map->num_holdovers--;
+		memmove (&font_map->holdovers[i],
+			 &font_map->holdovers[i+1],
+			 (font_map->num_holdovers - i) * sizeof (cairo_scaled_font_t*));
+
+		
+		scaled_font->status = CAIRO_STATUS_SUCCESS;
+	    }
+
+	    if (scaled_font->status == CAIRO_STATUS_SUCCESS) {
+		
+
+
+
+
+		old = font_map->mru_scaled_font;
+		font_map->mru_scaled_font = scaled_font;
+		
+		_cairo_reference_count_inc (&scaled_font->ref_count);
+		
+		_cairo_reference_count_inc (&scaled_font->ref_count);
+		_cairo_scaled_font_map_unlock ();
+
+		cairo_scaled_font_destroy (old);
+
+		return scaled_font;
+	    }
+
+	    
+	    _cairo_hash_table_remove (font_map->hash_table, &key.hash_entry);
+	    scaled_font->hash_entry.hash = ZOMBIE;
+	}
+    }
 
     
     status = font_face->backend->scaled_font_create (font_face, font_matrix,
@@ -826,6 +864,12 @@ cairo_scaled_font_create (cairo_font_face_t          *font_face,
 
     status = _cairo_hash_table_insert (font_map->hash_table,
 				       &scaled_font->hash_entry);
+    if (status == CAIRO_STATUS_SUCCESS) {
+	old = font_map->mru_scaled_font;
+	font_map->mru_scaled_font = scaled_font;
+	_cairo_reference_count_inc (&scaled_font->ref_count);
+    }
+
     _cairo_scaled_font_map_unlock ();
 
     if (status) {
@@ -836,6 +880,8 @@ cairo_scaled_font_create (cairo_font_face_t          *font_face,
 	free (scaled_font);
 	return _cairo_scaled_font_create_in_error (status);
     }
+
+    cairo_scaled_font_destroy (old);
 
     return scaled_font;
 }
@@ -1109,7 +1155,7 @@ cairo_scaled_font_text_extents (cairo_scaled_font_t   *scaled_font,
 				cairo_text_extents_t  *extents)
 {
     cairo_status_t status;
-    cairo_glyph_t *glyphs;
+    cairo_glyph_t *glyphs = NULL;
     int num_glyphs;
 
     if (scaled_font->status)
@@ -1118,7 +1164,11 @@ cairo_scaled_font_text_extents (cairo_scaled_font_t   *scaled_font,
     if (utf8 == NULL)
 	goto ZERO_EXTENTS;
 
-    status = _cairo_scaled_font_text_to_glyphs (scaled_font, 0., 0., utf8, &glyphs, &num_glyphs);
+    status = cairo_scaled_font_text_to_glyphs (scaled_font, 0., 0.,
+					       utf8, -1,
+					       &glyphs, &num_glyphs,
+					       NULL, NULL,
+					       NULL);
     if (status)
 	goto ZERO_EXTENTS;
 
@@ -1166,15 +1216,15 @@ cairo_scaled_font_glyph_extents (cairo_scaled_font_t   *scaled_font,
     cairo_bool_t visible = FALSE;
     cairo_scaled_glyph_t *scaled_glyph = NULL;
 
-    if (scaled_font->status) {
-	extents->x_bearing = 0.0;
-	extents->y_bearing = 0.0;
-	extents->width  = 0.0;
-	extents->height = 0.0;
-	extents->x_advance = 0.0;
-	extents->y_advance = 0.0;
+    extents->x_bearing = 0.0;
+    extents->y_bearing = 0.0;
+    extents->width  = 0.0;
+    extents->height = 0.0;
+    extents->x_advance = 0.0;
+    extents->y_advance = 0.0;
+
+    if (scaled_font->status)
 	return;
-    }
 
     if (num_glyphs == 0)
 	return;
@@ -1264,71 +1314,326 @@ cairo_scaled_font_glyph_extents (cairo_scaled_font_t   *scaled_font,
 }
 slim_hidden_def (cairo_scaled_font_glyph_extents);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cairo_status_t
-_cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t *scaled_font,
-				   double		x,
-				   double		y,
-				   const char          *utf8,
-				   cairo_glyph_t      **glyphs,
-				   int 		       *num_glyphs)
+cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t   *scaled_font,
+				  double		 x,
+				  double		 y,
+				  const char	        *utf8,
+				  int		         utf8_len,
+				  cairo_glyph_t	       **glyphs,
+				  int		        *num_glyphs,
+				  cairo_text_cluster_t **clusters,
+				  int		        *num_clusters,
+				  cairo_bool_t	        *backward)
 {
     int i;
-    uint32_t *ucs4 = NULL;
+    int num_chars = 0;
+    const char *p;
     cairo_status_t status;
-    cairo_scaled_glyph_t *scaled_glyph;
-
-    *num_glyphs = 0;
-    *glyphs = NULL;
+    cairo_glyph_t *orig_glyphs;
+    cairo_text_cluster_t *orig_clusters;
 
     status = scaled_font->status;
     if (status)
 	return status;
 
-    if (utf8[0] == '\0')
-	return CAIRO_STATUS_SUCCESS;
+    
+
+    
+    if (glyphs     == NULL ||
+	num_glyphs == NULL) {
+	status = CAIRO_STATUS_NULL_POINTER;
+	goto BAIL;
+    }
+
+    
+    if (utf8 == NULL && utf8_len == -1)
+	utf8_len = 0;
+
+    
+    if ((utf8_len && utf8         == NULL) ||
+	(clusters && num_clusters == NULL) ||
+	(clusters && backward     == NULL)) {
+	status = CAIRO_STATUS_NULL_POINTER;
+	goto BAIL;
+    }
+
+    
+    if (utf8_len == -1)
+	utf8_len = strlen (utf8);
+
+    
+    if (glyphs && *glyphs == NULL)
+	*num_glyphs = 0;
+
+    
+    if (clusters && *clusters == NULL)
+	*num_clusters = 0;
+
+    if (!clusters && num_clusters) {
+	num_clusters = NULL;
+    }
+
+    if (backward) {
+	*backward = FALSE;
+    }
+
+    if (!clusters && backward) {
+	backward = NULL;
+    }
+
+    
+    if (utf8_len < 0 ||
+	*num_glyphs < 0 ||
+	(num_clusters && *num_clusters < 0)) {
+	status = CAIRO_STATUS_NEGATIVE_COUNT;
+	goto BAIL;
+    }
+
+    if (utf8_len == 0) {
+	status = CAIRO_STATUS_SUCCESS;
+	goto BAIL;
+    }
+
+    
+    status = _cairo_utf8_to_ucs4 (utf8, utf8_len, NULL, &num_chars);
+    if (status)
+	goto BAIL;
 
     CAIRO_MUTEX_LOCK (scaled_font->mutex);
     _cairo_scaled_font_freeze_cache (scaled_font);
 
+    orig_glyphs = *glyphs;
+    orig_clusters = clusters ? *clusters : NULL;
+
     if (scaled_font->backend->text_to_glyphs) {
 
-	
-	status = _cairo_utf8_to_ucs4 (utf8, -1, NULL, NULL);
-	if (status)
-	    goto DONE;
+	status = scaled_font->backend->text_to_glyphs (scaled_font, x, y,
+						       utf8, utf8_len,
+						       glyphs, num_glyphs,
+						       clusters, num_clusters,
+						       backward);
 
-	status = scaled_font->backend->text_to_glyphs (scaled_font,
-						       x, y, utf8,
-						       glyphs, num_glyphs);
+        if (status != CAIRO_INT_STATUS_UNSUPPORTED) {
 
-        if (status != CAIRO_INT_STATUS_UNSUPPORTED)
+	    if (status == CAIRO_STATUS_SUCCESS) {
+
+	        
+
+
+
+	        if (*num_glyphs < 0) {
+		    status = CAIRO_STATUS_NEGATIVE_COUNT;
+		    goto DONE;
+		}
+		if (num_glyphs && *glyphs == NULL) {
+		    status = CAIRO_STATUS_NULL_POINTER;
+		    goto DONE;
+		}
+
+		if (clusters) {
+
+		    if (*num_clusters < 0) {
+			status = CAIRO_STATUS_NEGATIVE_COUNT;
+			goto DONE;
+		    }
+		    if (num_clusters && *clusters == NULL) {
+			status = CAIRO_STATUS_NULL_POINTER;
+			goto DONE;
+		    }
+
+		    
+		    status = _cairo_validate_text_clusters (utf8, utf8_len,
+							    *glyphs, *num_glyphs,
+							    *clusters, *num_clusters,
+							    *backward);
+		}
+	    }
+
             goto DONE;
+	}
     }
 
-    status = _cairo_utf8_to_ucs4 (utf8, -1, &ucs4, num_glyphs);
-    if (status)
-	goto DONE;
+    if (*num_glyphs < num_chars) {
+	*glyphs = cairo_glyph_allocate (num_chars);
+	if (*glyphs == NULL) {
+	    status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+	    goto DONE;
+	}
+    }
+    *num_glyphs = num_chars;
 
-    *glyphs = (cairo_glyph_t *) _cairo_malloc_ab ((*num_glyphs), sizeof (cairo_glyph_t));
-
-    if (*glyphs == NULL) {
-	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
-	goto DONE;
+    if (clusters) {
+	if (*num_clusters < num_chars) {
+	    *clusters = cairo_text_cluster_allocate (num_chars);
+	    if (*clusters == NULL) {
+		status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
+		goto DONE;
+	    }
+	}
+	*num_clusters = num_chars;
     }
 
-    for (i = 0; i < *num_glyphs; i++) {
-        (*glyphs)[i].index = (*scaled_font->backend->
-			      ucs4_to_index) (scaled_font, ucs4[i]);
+    p = utf8;
+    for (i = 0; i < num_chars; i++) {
+	int num_bytes;
+	uint32_t unicode;
+	cairo_scaled_glyph_t *scaled_glyph;
+
+	num_bytes = _cairo_utf8_get_char_validated (p, &unicode);
+	p += num_bytes;
+
+        (*glyphs)[i].index = (*scaled_font->backend->ucs4_to_index) (scaled_font, unicode);
 	(*glyphs)[i].x = x;
 	(*glyphs)[i].y = y;
+
+	if (clusters) {
+	    (*clusters)[i].num_bytes  = num_bytes;
+	    (*clusters)[i].num_glyphs = 1;
+	}
 
 	status = _cairo_scaled_glyph_lookup (scaled_font,
 					     (*glyphs)[i].index,
 					     CAIRO_SCALED_GLYPH_INFO_METRICS,
 					     &scaled_glyph);
 	if (status) {
-	    free (*glyphs);
-	    *glyphs = NULL;
 	    goto DONE;
 	}
 
@@ -1336,15 +1641,39 @@ _cairo_scaled_font_text_to_glyphs (cairo_scaled_font_t *scaled_font,
         y += scaled_glyph->metrics.y_advance;
     }
 
- DONE:
+ DONE: 
     _cairo_scaled_font_thaw_cache (scaled_font);
     CAIRO_MUTEX_UNLOCK (scaled_font->mutex);
 
-    if (ucs4)
-	free (ucs4);
+    if (status) {
+	*num_glyphs = 0;
+	if (*glyphs != orig_glyphs) {
+	    cairo_glyph_free (*glyphs);
+	    *glyphs = orig_glyphs;
+	}
+
+	if (clusters) {
+	    *num_clusters = 0;
+	    if (*clusters != orig_clusters) {
+		cairo_text_cluster_free (*clusters);
+		*clusters = orig_clusters;
+	    }
+	}
+    }
 
     return _cairo_scaled_font_set_error (scaled_font, status);
+
+ BAIL: 
+
+    if (num_glyphs)
+	*num_glyphs = 0;
+
+    if (num_clusters)
+	*num_clusters = 0;
+
+    return status;
 }
+slim_hidden_def (cairo_scaled_font_text_to_glyphs);
 
 
 
@@ -1452,8 +1781,6 @@ _cairo_scaled_font_show_glyphs (cairo_scaled_font_t    *scaled_font,
     }
 
     
-
-    status = CAIRO_STATUS_SUCCESS;
 
     _cairo_pattern_init_solid (&white_pattern, CAIRO_COLOR_WHITE, CAIRO_CONTENT_COLOR);
 
@@ -1696,7 +2023,7 @@ _trace_mask_to_path (cairo_image_surface_t *mask,
 {
     cairo_status_t status;
     cairo_image_surface_t *a1_mask;
-    unsigned char *row, *byte_ptr, byte;
+    uint8_t *row, *byte_ptr, byte;
     int rows, cols, bytes_per_row;
     int x, y, bit;
     double xoff, yoff;
@@ -1716,7 +2043,7 @@ _trace_mask_to_path (cairo_image_surface_t *mask,
 
     bytes_per_row = (a1_mask->width + 7) / 8;
     for (y = 0, row = a1_mask->data, rows = a1_mask->height; rows; row += a1_mask->stride, rows--, y++) {
-	for (x = 0, byte_ptr = row, cols = (a1_mask->width + 7) / 8; cols; byte_ptr++, cols--) {
+	for (x = 0, byte_ptr = row, cols = bytes_per_row; cols; byte_ptr++, cols--) {
 	    byte = CAIRO_BITSWAP8_IF_LITTLE_ENDIAN (*byte_ptr);
 	    for (bit = 7; bit >= 0 && x < a1_mask->width; bit--, x++) {
 		if (byte & (1 << bit)) {

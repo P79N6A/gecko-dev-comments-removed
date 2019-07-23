@@ -242,19 +242,18 @@ _cairo_cache_lookup (cairo_cache_t	  *cache,
 
 
 
-
-static cairo_int_status_t
+static cairo_bool_t
 _cairo_cache_remove_random (cairo_cache_t *cache)
 {
     cairo_cache_entry_t *entry;
 
     entry = _cairo_hash_table_random_entry (cache->hash_table, NULL);
     if (entry == NULL)
-	return CAIRO_INT_STATUS_CACHE_EMPTY;
+	return FALSE;
 
     _cairo_cache_remove (cache, entry);
 
-    return CAIRO_STATUS_SUCCESS;
+    return TRUE;
 }
 
 
@@ -269,20 +268,14 @@ _cairo_cache_remove_random (cairo_cache_t *cache)
 
 static void
 _cairo_cache_shrink_to_accommodate (cairo_cache_t *cache,
-				   unsigned long  additional)
+				    unsigned long  additional)
 {
-    cairo_int_status_t status;
-
     if (cache->freeze_count)
 	return;
 
     while (cache->size + additional > cache->max_size) {
-	status = _cairo_cache_remove_random (cache);
-	if (status) {
-	    if (status == CAIRO_INT_STATUS_CACHE_EMPTY)
-		return;
-	    ASSERT_NOT_REACHED;
-	}
+	if (! _cairo_cache_remove_random (cache))
+	    return;
     }
 }
 

@@ -71,10 +71,11 @@ const cairo_surface_t name = {					\
     0,					/* current_clip_serial */	\
     FALSE,				/* is_snapshot */	\
     FALSE,				/* has_font_options */	\
-    { CAIRO_ANTIALIAS_DEFAULT,					\
-      CAIRO_SUBPIXEL_ORDER_DEFAULT,				\
-      CAIRO_HINT_STYLE_DEFAULT,					\
-      CAIRO_HINT_METRICS_DEFAULT				\
+    { CAIRO_ANTIALIAS_DEFAULT,		/* antialias */		\
+      CAIRO_SUBPIXEL_ORDER_DEFAULT,	/* subpixel_order */	\
+      CAIRO_LCD_FILTER_DEFAULT,		/* lcd_filter */	\
+      CAIRO_HINT_STYLE_DEFAULT,		/* hint_style */	\
+      CAIRO_HINT_METRICS_DEFAULT	/* hint_metrics */	\
     }					/* font_options */	\
 }
 
@@ -648,7 +649,12 @@ cairo_surface_get_font_options (cairo_surface_t       *surface,
     if (cairo_font_options_status (options))
 	return;
 
-    if (!surface->has_font_options) {
+    if (surface->status) {
+	_cairo_font_options_init_default (options);
+	return;
+    }
+
+    if (! surface->has_font_options) {
 	surface->has_font_options = TRUE;
 
 	_cairo_font_options_init_default (&surface->font_options);
@@ -1734,6 +1740,9 @@ _cairo_surface_composite_trapezoids (cairo_operator_t		op,
 
 
 
+
+
+
 void
 cairo_surface_copy_page (cairo_surface_t *surface)
 {
@@ -1758,6 +1767,9 @@ cairo_surface_copy_page (cairo_surface_t *surface)
 			                 surface->backend->copy_page (surface));
 }
 slim_hidden_def (cairo_surface_copy_page);
+
+
+
 
 
 
@@ -2135,14 +2147,50 @@ _cairo_surface_get_extents (cairo_surface_t         *surface,
     return status;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cairo_bool_t
-_cairo_surface_has_show_text_glyphs (cairo_surface_t	    *surface)
+cairo_surface_has_show_text_glyphs (cairo_surface_t	    *surface)
 {
+    cairo_status_t status_ignored;
+
+    if (surface->status)
+	return FALSE;
+
+    if (surface->finished) {
+	status_ignored = _cairo_surface_set_error (surface,
+						   CAIRO_STATUS_SURFACE_FINISHED);
+	return FALSE;
+    }
+
     if (surface->backend->has_show_text_glyphs)
 	return surface->backend->has_show_text_glyphs (surface);
     else
 	return surface->backend->show_text_glyphs != NULL;
 }
+slim_hidden_def (cairo_surface_has_show_text_glyphs);
 
 
 
@@ -2558,15 +2606,8 @@ _cairo_surface_copy_pattern_for_destination (const cairo_pattern_t *pattern,
 	return status;
 
     if (_cairo_surface_has_device_transform (destination)) {
-	cairo_matrix_t device_to_surface = destination->device_transform;
-
-	status = cairo_matrix_invert (&device_to_surface);
-	
-
-
-	assert (status == CAIRO_STATUS_SUCCESS);
-
-	_cairo_pattern_transform (*pattern_out, &device_to_surface);
+	_cairo_pattern_transform (*pattern_out,
+		                  &destination->device_transform_inverse);
     }
 
     return CAIRO_STATUS_SUCCESS;
@@ -2639,6 +2680,8 @@ _cairo_surface_create_in_error (cairo_status_t status)
     case CAIRO_STATUS_USER_FONT_ERROR:
     case CAIRO_STATUS_NEGATIVE_COUNT:
     case CAIRO_STATUS_INVALID_CLUSTERS:
+    case CAIRO_STATUS_INVALID_SLANT:
+    case CAIRO_STATUS_INVALID_WEIGHT:
     default:
 	_cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
 	return (cairo_surface_t *) &_cairo_surface_nil;
