@@ -1983,9 +1983,13 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       
       dataTransfer->SetReadOnly();
 
-      if (status != nsEventStatus_eConsumeNoDefault)
-        DoDefaultDragStart(aPresContext, event, dataTransfer,
-                           targetContent, isSelection);
+      if (status != nsEventStatus_eConsumeNoDefault) {
+        PRBool dragStarted = DoDefaultDragStart(aPresContext, event, dataTransfer,
+                                                targetContent, isSelection);
+        if (dragStarted) {
+          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+        }
+      }
 
       
       
@@ -2106,7 +2110,7 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
   }
 }
 
-void
+PRBool
 nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
                                         nsDragEvent* aDragEvent,
                                         nsDOMDataTransfer* aDataTransfer,
@@ -2116,8 +2120,9 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   nsCOMPtr<nsIDragService> dragService =
     do_GetService("@mozilla.org/widget/dragservice;1");
   if (!dragService)
-    return;
+    return PR_FALSE;
 
+  
   
   
   
@@ -2127,7 +2132,7 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   nsCOMPtr<nsIDragSession> dragSession;
   dragService->GetCurrentSession(getter_AddRefs(dragSession));
   if (dragSession)
-    return; 
+    return PR_TRUE;
 
   
   
@@ -2135,7 +2140,7 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   if (aDataTransfer)
     aDataTransfer->GetMozItemCount(&count);
   if (!count)
-    return;
+    return PR_FALSE;
 
   
   
@@ -2148,7 +2153,7 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   if (!dragTarget) {
     dragTarget = do_QueryInterface(aDragTarget);
     if (!dragTarget)
-      return;
+      return PR_FALSE;
   }
 
   
@@ -2183,7 +2188,7 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   nsCOMPtr<nsISupportsArray> transArray;
   aDataTransfer->GetTransferables(getter_AddRefs(transArray));
   if (!transArray)
-    return;
+    return PR_FALSE;
 
   
   
@@ -2231,6 +2236,8 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
                                             imageX, imageY, domDragEvent,
                                             aDataTransfer);
   }
+
+  return PR_TRUE;
 }
 
 nsresult

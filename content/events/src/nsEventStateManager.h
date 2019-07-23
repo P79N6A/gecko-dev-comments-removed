@@ -329,11 +329,12 @@ protected:
 
 
 
-  void DoDefaultDragStart(nsPresContext* aPresContext,
-                          nsDragEvent* aDragEvent,
-                          nsDOMDataTransfer* aDataTransfer,
-                          nsIContent* aDragTarget,
-                          PRBool aIsSelection);
+
+  PRBool DoDefaultDragStart(nsPresContext* aPresContext,
+                            nsDragEvent* aDragEvent,
+                            nsDOMDataTransfer* aDataTransfer,
+                            nsIContent* aDragTarget,
+                            PRBool aIsSelection);
 
   PRBool IsTrackingDragGesture ( ) const { return mGestureDownContent != nsnull; }
   
