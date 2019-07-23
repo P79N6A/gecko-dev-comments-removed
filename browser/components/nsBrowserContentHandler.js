@@ -137,6 +137,40 @@ function needHomepageOverride(prefb) {
   return OVERRIDE_NONE;
 }
 
+
+
+function copyPrefOverride() {
+  try {
+    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
+                                .getService(Components.interfaces.nsIProperties);
+    const NS_APP_EXISTING_PREF_OVERRIDE = "ExistingPrefOverride";
+    var prefOverride = fileLocator.get(NS_APP_EXISTING_PREF_OVERRIDE,
+                                       Components.interfaces.nsIFile);
+    if (!prefOverride.exists())
+      return; 
+
+    const NS_APP_PREFS_OVERRIDE_DIR     = "PrefDOverride";
+    var prefOverridesDir = fileLocator.get(NS_APP_PREFS_OVERRIDE_DIR,
+                                           Components.interfaces.nsIFile);
+
+    
+    var existingPrefOverridesFile = prefOverridesDir.clone();
+    existingPrefOverridesFile.append(prefOverride.leafName);
+    if (existingPrefOverridesFile.exists())
+      existingPrefOverridesFile.remove(false);
+
+    prefOverride.copyTo(prefOverridesDir, null);
+
+    
+    
+    var prefSvcObs = Components.classes["@mozilla.org/preferences-service;1"]
+                               .getService(Components.interfaces.nsIObserver);
+    prefSvcObs.observe(null, "reload-default-prefs", null);
+  } catch (ex) {
+    Components.utils.reportError(ex);
+  }
+}
+
 function openWindow(parent, url, target, features, args) {
   var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                          .getService(nsIWindowWatcher);
@@ -444,9 +478,13 @@ var nsBrowserContentHandler = {
     try {
       switch (needHomepageOverride(prefb)) {
         case OVERRIDE_NEW_PROFILE:
+          
           overridePage = formatter.formatURLPref("startup.homepage_welcome_url");
           break;
         case OVERRIDE_NEW_MSTONE:
+          
+          copyPrefOverride();
+
           
           
           var ss = Components.classes["@mozilla.org/browser/sessionstartup;1"]

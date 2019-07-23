@@ -199,6 +199,9 @@ NS_IMETHODIMP nsPrefService::Observe(nsISupports *aSubject, const char *aTopic, 
       ResetUserPrefs();
       rv = ReadUserPrefs(nsnull);
     }
+  } else if (!nsCRT::strcmp(aTopic, "reload-default-prefs")) {
+    
+    pref_InitInitialObjects();
   }
   return rv;
 }

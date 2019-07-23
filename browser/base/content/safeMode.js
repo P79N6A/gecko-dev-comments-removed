@@ -5,7 +5,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -47,6 +47,18 @@ function clearAllPrefs() {
   var prefService = Components.classes["@mozilla.org/preferences-service;1"]
                               .getService(Components.interfaces.nsIPrefService);
   prefService.resetUserPrefs();
+
+  
+  try {
+    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
+                                .getService(Components.interfaces.nsIProperties);
+    const NS_APP_PREFS_OVERRIDE_DIR = "PrefDOverride";
+    var prefOverridesDir = fileLocator.get(NS_APP_PREFS_OVERRIDE_DIR,
+                                           Components.interfaces.nsIFile);
+    prefOverridesDir.remove(true);
+  } catch (ex) {
+    Components.utils.reportError(ex);
+  }
 }
 
 function restoreDefaultBookmarks() {
@@ -66,7 +78,7 @@ function deleteLocalstore() {
 }
 
 function disableAddons() {
-  // Disable addons
+  
   const nsIUpdateItem = Components.interfaces.nsIUpdateItem;
   var em = Components.classes["@mozilla.org/extensions/manager;1"]
                      .getService(Components.interfaces.nsIExtensionManager);
@@ -76,7 +88,7 @@ function disableAddons() {
   for (var i = 0; i < items.length; ++i)
     em.disableItem(items[i].id);
 
-  // Select the default theme
+  
   var prefB = Components.classes["@mozilla.org/preferences-service;1"]
                         .getService(Components.interfaces.nsIPrefBranch);
   prefB.clearUserPref("general.skins.selectedSkin");
