@@ -56,7 +56,6 @@ public:
 
 protected:
     GtkStyle *mStyle;
-    GtkWidget *mWidget;
 
     
     
@@ -80,10 +79,26 @@ protected:
 
     static void InitLookAndFeel();
     void InitWidget() {
-        mWidget = gtk_invisible_new();
-        g_object_ref_sink(GTK_OBJECT(mWidget));
-        gtk_widget_ensure_style(mWidget);
-        mStyle = gtk_widget_get_style(mWidget);
+        NS_ASSERTION(!mStyle, "already initialized");
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        GtkWidget *widget = gtk_invisible_new();
+        g_object_ref_sink(widget); 
+
+        gtk_widget_ensure_style(widget);
+        mStyle = gtk_style_copy(gtk_widget_get_style(widget));
+
+        gtk_widget_destroy(widget);
+        g_object_unref(widget);
     }
 };
 
