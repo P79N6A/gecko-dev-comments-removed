@@ -372,6 +372,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
 
   
   
+  PRInt32 lineNumberSave = mTokenizer->getLineNumber();
+  
   
   
   
@@ -442,6 +444,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   }
   
   mTreeBuilder->Flush();
+  mTokenizer->setLineNumber(lineNumberSave);
   return NS_OK;
 }
 
