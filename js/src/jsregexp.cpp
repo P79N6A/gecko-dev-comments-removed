@@ -2297,7 +2297,7 @@ class RegExpNativeCompiler {
         return pos;
     }
 
-#ifdef AVMPLUS_ARM
+#if defined(AVMPLUS_ARM) || defined(AVMPLUS_SPARC)
 
 
 
