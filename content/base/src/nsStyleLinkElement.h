@@ -101,6 +101,8 @@ protected:
                                  nsAString& aMedia,
                                  PRBool* aIsAlternate) = 0;
 
+  nsIStyleSheet* GetStyleSheet() { return mStyleSheet; }
+
 private:
   
 
@@ -116,8 +118,8 @@ private:
                               PRBool* aIsAlternate,
                               PRBool aForceUpdate);
 
-protected:
   nsCOMPtr<nsIStyleSheet> mStyleSheet;
+protected:
   PRPackedBool mDontLoadStyle;
   PRPackedBool mUpdatesEnabled;
   PRUint32 mLineNumber;
