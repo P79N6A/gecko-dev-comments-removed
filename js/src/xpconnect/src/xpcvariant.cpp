@@ -156,7 +156,7 @@ private:
     };
 
     
-    static Type StateTable[tTypeCount][tTypeCount-1];
+    static const Type StateTable[tTypeCount][tTypeCount-1];
 
 public:
     static JSBool GetTypeForArray(XPCCallContext& ccx, JSObject* array, 
@@ -169,7 +169,7 @@ public:
 
 
 
-XPCArrayHomogenizer::Type 
+const XPCArrayHomogenizer::Type 
 XPCArrayHomogenizer::StateTable[tTypeCount][tTypeCount-1] = {
 
 {tNull,tVar ,tVar ,tVar ,tStr ,tID  ,tVar ,tISup },
