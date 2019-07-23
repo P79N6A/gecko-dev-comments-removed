@@ -47,6 +47,10 @@
 #include "npfunctions.h"
 #include "nsAutoPtr.h"
 
+#if defined(OS_WIN)
+#include <windowsx.h>
+#endif
+
 using namespace mozilla::plugins;
 
 PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
@@ -452,12 +456,57 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     NPEvent* npevent = reinterpret_cast<NPEvent*>(event);
     NPRemoteEvent npremoteevent;
     npremoteevent.event = *npevent;
+    int16_t handled;
 
 #if defined(OS_WIN)
     RECT rect;
-    if (mWindowType == NPWindowTypeDrawable && 
-        npevent->event == WM_PAINT) {
-        SharedSurfaceBeforePaint(rect, npremoteevent);
+    if (mWindowType == NPWindowTypeDrawable) {
+        switch(npevent->event) {
+            case WM_PAINT:
+            {
+                RECT rect;
+                SharedSurfaceBeforePaint(rect, npremoteevent);
+                if (!CallNPP_HandleEvent(npremoteevent, &handled))
+                    return 0;
+                if (handled)
+                    SharedSurfaceAfterPaint(npevent);
+            }
+            break;
+            case WM_WINDOWPOSCHANGED:
+                SharedSurfaceSetOrigin(npremoteevent);
+                if (!CallNPP_HandleEvent(npremoteevent, &handled))
+                    return 0;
+            break;
+            case WM_MOUSEMOVE:
+            case WM_RBUTTONDOWN:
+            case WM_MBUTTONDOWN:
+            case WM_LBUTTONDOWN:
+            case WM_LBUTTONUP:
+            case WM_MBUTTONUP:
+            case WM_RBUTTONUP:
+            case WM_LBUTTONDBLCLK:
+            case WM_MBUTTONDBLCLK:
+            case WM_RBUTTONDBLCLK:
+            {
+                
+                
+                
+                
+                nsPoint pt(GET_X_LPARAM(npremoteevent.event.lParam), GET_Y_LPARAM(npremoteevent.event.lParam));
+                pt.MoveBy(-mPluginPosOrigin.x, -mPluginPosOrigin.y);
+                npremoteevent.event.lParam = MAKELPARAM(pt.x, pt.y);
+                if (!CallNPP_HandleEvent(npremoteevent, &handled))
+                    return 0;
+            }
+            default:
+                if (!CallNPP_HandleEvent(npremoteevent, &handled))
+                    return 0;
+            break;
+        }
+    }
+    else {
+        if (!CallNPP_HandleEvent(npremoteevent, &handled))
+            return 0;
     }
 #endif
 
@@ -476,16 +525,9 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         XSync(GDK_DISPLAY(), False);
 #  endif
     }
-#endif
 
-    int16_t handled;
-    if (!CallNPP_HandleEvent(npremoteevent, &handled)) {
-        return 0;               
-    }
-
-#if defined(OS_WIN)
-    if (handled && mWindowType == NPWindowTypeDrawable && npevent->event == WM_PAINT)
-        SharedSurfaceAfterPaint(npevent);
+    if (!CallNPP_HandleEvent(npremoteevent, &handled))
+        return 0; 
 #endif
 
     return handled;
@@ -661,6 +703,41 @@ PluginInstanceParent::AnswerNPN_PopPopupsEnabledState(bool* aSuccess)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+PluginInstanceParent::SharedSurfaceSetOrigin(NPRemoteEvent& npremoteevent)
+{
+    WINDOWPOS* winpos = (WINDOWPOS*)npremoteevent.event.lParam;
+
+    
+    mPluginPosOrigin.x = winpos->x;
+    mPluginPosOrigin.y = winpos->y;
+
+    
+    winpos->x  = 0;
+    winpos->y  = 0;
+}
+
 void
 PluginInstanceParent::SharedSurfaceRelease()
 {
@@ -692,7 +769,7 @@ PluginInstanceParent::SharedSurfaceSetWindow(const NPWindow* aWindow,
       aRemoteWindow.surfaceHandle = 0;
       return true;
     }
-    
+
     
     SharedSurfaceRelease();
     if (NS_FAILED(mSharedSurfaceDib.Create(reinterpret_cast<HDC>(aWindow->window),
@@ -701,13 +778,13 @@ PluginInstanceParent::SharedSurfaceSetWindow(const NPWindow* aWindow,
 
     
     mSharedSize = newPort;
-    
+
     base::SharedMemoryHandle handle;
     if (NS_FAILED(mSharedSurfaceDib.ShareToProcess(mParent->ChildProcessHandle(), &handle)))
       return false;
 
     aRemoteWindow.surfaceHandle = handle;
-    
+
     return true;
 }
 

@@ -1675,7 +1675,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       PRBool doupdatewindow = PR_FALSE;
       
       nsPoint origin;
-      
+
       gfxWindowsNativeDrawing nativeDraw(ctx, frameGfxRect);
 #ifdef MOZ_IPC
       if (nativeDraw.IsDoublePass()) {
@@ -1724,6 +1724,11 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
           
           
           
+          
+          
+          
+          
+          
 
           nsIntPoint origin = GetWindowOriginInPixels(PR_TRUE);
           nsIntRect winlessRect = nsIntRect(origin, nsIntSize(window->width, window->height));
@@ -1752,7 +1757,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
             inst->HandleEvent(&pluginEvent, &eventHandled);
           }
 
-          inst->SetWindow(window);        
+          inst->SetWindow(window);
         }
         mInstanceOwner->Paint(dirty, hdc);
         nativeDraw.EndNativeDrawing();
