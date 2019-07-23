@@ -947,10 +947,6 @@ static SECStatus DPCache_FetchFromTokens(CRLDPCache* cache, PRTime vfdate,
                                          void* wincx);
 
 
-static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
-                                CERTCrlEntry** returned);
-
-
 
 static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate* issuer,
                          PRBool readlocked, PRTime vfdate, void* wincx);
@@ -1713,7 +1709,7 @@ static SECStatus CachedCrl_GetEntry(CachedCrl* crl, SECItem* sn,
 }
 
 
-static SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
                                 CERTCrlEntry** returned)
 {
     if (!cache || !sn || !returned)

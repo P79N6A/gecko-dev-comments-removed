@@ -87,6 +87,7 @@ typedef SSLSignType     SSL3SignType;
 #define calg_fortezza	ssl_calg_fortezza /* deprecated, must preserve */
 #define calg_aes	ssl_calg_aes
 #define calg_camellia	ssl_calg_camellia
+#define calg_seed	ssl_calg_seed
 
 #define mac_null	ssl_mac_null
 #define mac_md5 	ssl_mac_md5
@@ -169,7 +170,7 @@ typedef enum { SSLAppOpRead = 0,
 #define SSL3_MASTER_SECRET_LENGTH 48
 
 
-#define SSL_NUM_WRAP_MECHS              15
+#define SSL_NUM_WRAP_MECHS              16
 
 
 #define SSL_MAX_CACHED_CERT_LEN		4060
@@ -310,9 +311,9 @@ typedef struct {
 } ssl3CipherSuiteCfg;
 
 #ifdef NSS_ENABLE_ECC
-#define ssl_V3_SUITES_IMPLEMENTED 49
+#define ssl_V3_SUITES_IMPLEMENTED 50
 #else
-#define ssl_V3_SUITES_IMPLEMENTED 29
+#define ssl_V3_SUITES_IMPLEMENTED 30
 #endif 
 
 typedef struct sslOptionsStr {
@@ -471,6 +472,7 @@ typedef enum {
     cipher_aes_256,
     cipher_camellia_128,
     cipher_camellia_256,
+    cipher_seed,
     cipher_missing              
     
 } SSL3BulkCipher;

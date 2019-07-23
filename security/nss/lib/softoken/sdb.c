@@ -61,6 +61,7 @@
 #include "secport.h"
 #include "prmon.h"
 #include "prenv.h"
+#include "prsystem.h" 
 
 #ifdef SQLITE_UNSAFE_THREADS
 #include "prlock.h"
@@ -246,6 +247,7 @@ sdb_getTempDirCallback(void *arg, int columnCount, char **cval, char **cname)
     int found = 0;
     char *file = NULL;
     char *end, *dir;
+    char dirsep;
 
     
     if (*(char **)arg) {
@@ -274,7 +276,8 @@ sdb_getTempDirCallback(void *arg, int columnCount, char **cval, char **cname)
     }
 
     
-    end = PORT_Strrchr(file, '/');
+    dirsep = PR_GetDirectorySeparator();
+    end = PORT_Strrchr(file, dirsep);
     if (!end) {
 	return SQLITE_OK;
     }
@@ -365,14 +368,13 @@ static char *sdb_BuildFileName(const char * directory,
 
 
 
-PRIntervalTime
+static PRUint32
 sdb_measureAccess(const char *directory)
 {
-    char *temp;
+    PRUint32 i;
     PRIntervalTime time;
     PRIntervalTime delta;
-    PRIntervalTime next;
-    int i;
+    PRIntervalTime duration = PR_MillisecondsToInterval(33);
 
     
     if (directory == NULL) {
@@ -382,19 +384,22 @@ sdb_measureAccess(const char *directory)
     
 
 
-
     time =  PR_IntervalNow();
-    for (i=0; i < 200; i++) { 
+    for (i=0; i < 10000u; i++) { 
+	char *temp;
+	PRIntervalTime next;
+
         temp  = sdb_BuildFileName(directory,"","._dOeSnotExist_", time+i, 0);
 	PR_Access(temp,PR_ACCESS_EXISTS);
         sqlite3_free(temp);
-    } 
-    next = PR_IntervalNow();
-    delta = next - time;
+	next = PR_IntervalNow();
+	delta = next - time;
+	if (delta >= duration)
+	    break;
+    }
 
     
-    if (delta == 0) delta = 1;
-    return delta;
+    return i ? i : 1u;
 }
 
 
@@ -1658,7 +1663,7 @@ static const char ALTER_CMD[] =
 
 CK_RV 
 sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
-	 int *newInit, int flags, PRIntervalTime accessTime, SDB **pSdb)
+	 int *newInit, int flags, PRUint32 accessOps, SDB **pSdb)
 {
     int i;
     char *initStr = NULL;
@@ -1671,8 +1676,6 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
     CK_RV error = CKR_OK;
     char *cacheTable = NULL;
     PRIntervalTime now = 0;
-    PRIntervalTime tempAccess = 0;
-    char *tempDir = NULL;
     char *env;
     PRBool enableCache = PR_FALSE;
 
@@ -1827,20 +1830,22 @@ sdb_init(char *dbname, char *table, sdbDataType type, int *inUpdate,
      } else if (env && PORT_Strcasecmp(env,"yes") == 0) {
 	enableCache = PR_TRUE;
      } else {
+	char *tempDir = NULL;
+	PRUint32 tempOps = 0;
 	
 
 
 
 
 	tempDir = sdb_getTempDir(sqlDB);
-	tempAccess = sdb_measureAccess(tempDir);
-	PORT_Free(tempDir);
-	tempDir = NULL;
+	if (tempDir) {
+	    tempOps = sdb_measureAccess(tempDir);
+	    PORT_Free(tempDir);
 
-	
+	    
 
-	tempAccess = tempAccess*4;
-	enableCache = (tempAccess < accessTime) ? PR_TRUE : PR_FALSE;
+	    enableCache = (PRBool)(tempOps > accessOps * 10);
+	}
     }
 
     if (enableCache) {
@@ -1943,7 +1948,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 				   "key", key_version, flags);
     CK_RV error = CKR_OK;
     int inUpdate;
-    PRIntervalTime accessTime;
+    PRUint32 accessOps;
 
     *certdb = NULL;
     *keydb = NULL;
@@ -1961,7 +1966,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 
     
 
-    accessTime = sdb_measureAccess(directory);
+    accessOps = sdb_measureAccess(directory);
 
     
 
@@ -1969,7 +1974,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     if (certdb) {
 	
 	error = sdb_init(cert, "nssPublic", SDB_CERT, &inUpdate,
-			 newInit, flags, accessTime, certdb);
+			 newInit, flags, accessOps, certdb);
 	if (error != CKR_OK) {
 	    goto loser;
 	}
@@ -1986,7 +1991,7 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
     if (keydb) {
 	
 	error = sdb_init(key, "nssPrivate", SDB_KEY, &inUpdate, 
-			newInit, flags, accessTime, keydb);
+			newInit, flags, accessOps, keydb);
 	if (error != CKR_OK) {
 	    goto loser;
 	} 
