@@ -1788,18 +1788,19 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   isEditor = isEditor == nsISelectionDisplay::DISPLAY_ALL;
 
   nsInputEvent* keyEvent = (nsInputEvent*)aEvent;
-  if (!isEditor && !keyEvent->isAlt) {
+  if (!keyEvent->isAlt) {
     
     for (nsIContent* content = mContent; content;
          content = content->GetParent()) {
-      if ( nsContentUtils::ContentIsDraggable(content) ) {
+      if (nsContentUtils::ContentIsDraggable(content) &&
+          !content->IsEditable()) {
         
         if ((mRect - GetPosition()).Contains(
                nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, this)))
           return NS_OK;
       }
     }
-  } 
+  }
 
   
   
