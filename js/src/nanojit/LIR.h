@@ -164,6 +164,17 @@ namespace nanojit
         Register reg:7;         
         uint32_t used:1;        
         LOpcode  code:8;
+
+		inline void init() {
+			reg = UnknownReg;
+			arIndex = 0;
+			used = 1;
+		}
+
+		inline void clear()
+		{
+			used = 0;
+		}
 	};
 
     
@@ -172,8 +183,6 @@ namespace nanojit
     
 	class LIns
 	{
-        friend class LirBufWriter;
-
         
         
 		struct u_type
@@ -254,9 +263,9 @@ namespace nanojit
         uint64_t       imm64()    const;
         double         imm64f()   const;
         Reservation*   resv()           { return &firstWord; }
-        void*	payload() const;
-        inline Page*	page()			{ return (Page*) alignTo(this,NJ_PAGE_SIZE); }
-        inline int32_t  size() const {
+        void*	       payload() const;
+        inline Page*   page()			{ return (Page*) alignTo(this,NJ_PAGE_SIZE); }
+        inline int32_t size() const {
             NanoAssert(isop(LIR_alloc));
             return i.imm32<<2;
         }
@@ -323,25 +332,70 @@ namespace nanojit
 		bool isBranch() const {
 			return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j);
 		}
-        void setimm32(int32_t x) { NanoAssert(isconst()); i.imm32 = x; }
-        
-        void initOpcodeAndClearResv(LOpcode);
-        Reservation* initResv();
-        void         clearResv();
 
-		
-        void setOprnd1(LIns* r) {
-            NanoAssert(isOp1() || isOp2() || isLoad() || isStore());
-            u.oprnd_1 = r;
+        void setIns0(LOpcode op) {
+            firstWord.code = op;
+		}
+        void setIns1(LOpcode op, LIns* oprnd1) {
+            firstWord.code = op;
+            u.oprnd_1 = oprnd1;
+            NanoAssert(isOp1());
         }
-        void setOprnd2(LIns* r) {
-            NanoAssert(isOp2() || isLoad() || isStore());
-            u.oprnd_2 = r;
+        void setIns2(LOpcode op, LIns* oprnd1, LIns* oprnd2) {
+            firstWord.code = op;
+            u.oprnd_1 = oprnd1;
+            u.oprnd_2 = oprnd2;
+            NanoAssert(isOp2() || isLoad() || isGuard() || isBranch());
         }
-        void setDisp(int32_t d) {
-            NanoAssert(isStore());
+        void setLoad(LOpcode op, LIns* base, LIns* d) {
+            setIns2(op, base, d);
+        }
+		void setGuard(LOpcode op, LIns* cond, LIns* data) {
+			setIns2(op, cond, data);
+		}
+		void setBranch(LOpcode op, LIns* cond, LIns* target) {
+			setIns2(op, cond, target);
+		}
+        void setStorei(LOpcode op, LIns* val, LIns* base, int32_t d) {
+            firstWord.code = op;
+            u.oprnd_1 = val;
+            u.oprnd_2 = base;
             sti.disp = d;
+            NanoAssert(isStore());
         }
+		void setImm(LOpcode op, int32_t imm32) {
+			firstWord.code = op;
+			i.imm32 = imm32;
+			NanoAssert(op == LIR_alloc || op == LIR_int);
+		}
+		void setAlloc(LOpcode op, int32_t size) {
+			setImm(op, size);
+		}
+		void setParam(LOpcode op, int32_t arg, int32_t kind)
+		{
+			firstWord.code = op;
+			NanoAssert(isU8(arg) && isU8(kind));
+			c.imm8a = arg;
+			c.imm8b = kind;
+			c.ci = NULL;
+			NanoAssert(op == LIR_param);
+		}
+		void setCall(LOpcode op, int32_t argc, const CallInfo* ci)
+		{
+			firstWord.code = op;
+			NanoAssert(isU8(argc));
+			c.imm8a = 0;
+			c.imm8b = argc;
+			c.ci = ci;
+			NanoAssert(op == LIR_call || op == LIR_fcall);
+		}
+		void setImmq(LOpcode op, int64_t imm64) {
+			firstWord.code = op;
+			i64.imm64_0 = int32_t(imm64);
+			i64.imm64_1 = int32_t(imm64>>32);
+			NanoAssert(op == LIR_quad);
+		}
+
 		void setTarget(LIns* t);
 		LIns* getTarget();
 
