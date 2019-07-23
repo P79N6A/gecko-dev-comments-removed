@@ -854,6 +854,9 @@ PrintWinCodebase(nsGlobalWindow *win)
 }
 #endif
 
+
+const PRUint32 MAYBE_GC_OPERATION_WEIGHT = 5000 * JS_OPERATION_WEIGHT_BASE;
+
 static void
 MaybeGC(JSContext *cx)
 {
@@ -924,7 +927,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     nsJSContext::CC();
 
     
-    if (!::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx))) {
+    if (! ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx))) {
 
       
       mem->IsLowMemory(&lowMemory);
@@ -985,7 +988,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   
   JSStackFrame* fp = ::JS_GetScriptedCaller(cx, NULL);
-  PRBool debugPossible = (fp != nsnull && cx->debugHooks &&
+  PRBool debugPossible = (fp != nsnull &&
                           cx->debugHooks->debuggerHandler != nsnull);
 #ifdef MOZ_JSDEBUGGER
   
@@ -1095,14 +1098,9 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     buttonFlags += nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_2;
 
   
-  ::JS_SetOperationCallback(cx, nsnull);
-
-  
   rv = prompt->ConfirmEx(title, msg, buttonFlags, stopButton, waitButton,
                          debugButton, neverShowDlg, &neverShowDlgChk,
                          &buttonPressed);
-
-  ::JS_SetOperationCallback(cx, DOMOperationCallback);
 
   if (NS_FAILED(rv) || (buttonPressed == 1)) {
     
@@ -1251,7 +1249,8 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
                                          JSOptionChangedCallback,
                                          this);
 
-    ::JS_SetOperationCallback(mContext, DOMOperationCallback);
+    ::JS_SetOperationCallback(mContext, DOMOperationCallback,
+                              MAYBE_GC_OPERATION_WEIGHT);
 
     static JSLocaleCallbacks localeCallbacks =
       {
@@ -1304,6 +1303,9 @@ nsJSContext::Unlink()
   ::JS_SetContextPrivate(mContext, nsnull);
 
   
+  ::JS_ClearOperationCallback(mContext);
+
+  
   nsContentUtils::UnregisterPrefCallback(js_options_dot_str,
                                          JSOptionChangedCallback,
                                          this);
@@ -1338,6 +1340,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSContext)
   NS_INTERFACE_MAP_ENTRY(nsIScriptContext)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptNotify)
+  NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptContext)
 NS_INTERFACE_MAP_END
 
@@ -3499,10 +3502,11 @@ nsJSContext::CCIfUserInactive()
   }
 }
 
-
-void
-GCTimerFired(nsITimer *aTimer, void *aClosure)
+NS_IMETHODIMP
+nsJSContext::Notify(nsITimer *timer)
 {
+  NS_ASSERTION(mContext, "No context in nsJSContext::Notify()!");
+
   NS_RELEASE(sGCTimer);
 
   if (sPendingLoadCount == 0 || sLoadInProgressGCTimer) {
@@ -3516,12 +3520,14 @@ GCTimerFired(nsITimer *aTimer, void *aClosure)
     
     sPendingLoadCount = 0;
 
-    nsJSContext::CCIfUserInactive();
+    CCIfUserInactive();
   } else {
-    nsJSContext::FireGCTimer(PR_TRUE);
+    FireGCTimer(PR_TRUE);
   }
 
   sReadyForGC = PR_TRUE;
+
+  return NS_OK;
 }
 
 
@@ -3550,10 +3556,15 @@ nsJSContext::LoadEnd()
   }
 }
 
-
 void
 nsJSContext::FireGCTimer(PRBool aLoadInProgress)
 {
+  
+  
+  
+  
+  ::JS_ClearNewbornRoots(mContext);
+
   if (sGCTimer) {
     
     return;
@@ -3574,11 +3585,11 @@ nsJSContext::FireGCTimer(PRBool aLoadInProgress)
 
   static PRBool first = PR_TRUE;
 
-  sGCTimer->InitWithFuncCallback(GCTimerFired, nsnull,
-                                 first ? NS_FIRST_GC_DELAY :
-                                 aLoadInProgress ? NS_LOAD_IN_PROCESS_GC_DELAY :
-                                                   NS_GC_DELAY,
-                                 nsITimer::TYPE_ONE_SHOT);
+  sGCTimer->InitWithCallback(this,
+                             first ? NS_FIRST_GC_DELAY :
+                             aLoadInProgress ? NS_LOAD_IN_PROCESS_GC_DELAY :
+                                               NS_GC_DELAY,
+                             nsITimer::TYPE_ONE_SHOT);
 
   sLoadInProgressGCTimer = aLoadInProgress;
 

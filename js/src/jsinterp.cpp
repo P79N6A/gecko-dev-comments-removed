@@ -54,7 +54,6 @@
 #include "jsatom.h"
 #include "jsbool.h"
 #include "jscntxt.h"
-#include "jsdate.h"
 #include "jsversion.h"
 #include "jsdbgapi.h"
 #include "jsfun.h"
@@ -856,18 +855,16 @@ ComputeThis(JSContext *cx, JSBool lazy, jsval *argv)
             return js_ComputeGlobalThis(cx, lazy, argv);
         }
 
-        OBJ_TO_OUTER_OBJECT(cx, thisp);
-        if (!thisp)
-            return NULL;
-        argv[-1] = OBJECT_TO_JSVAL(thisp);
-
         if (thisp->map->ops->thisObject) {
             
             thisp = thisp->map->ops->thisObject(cx, thisp);
             if (!thisp)
                 return NULL;
-            argv[-1] = OBJECT_TO_JSVAL(thisp);
-       }
+        }
+        OBJ_TO_OUTER_OBJECT(cx, thisp);
+        if (!thisp)
+            return NULL;
+        argv[-1] = OBJECT_TO_JSVAL(thisp);
     }
     return thisp;
 }
@@ -2687,7 +2684,7 @@ js_Interpret(JSContext *cx)
 
 #define CHECK_BRANCH()                                                        \
     JS_BEGIN_MACRO                                                            \
-        if (!JS_CHECK_OPERATION_LIMIT(cx))                                    \
+        if (!JS_CHECK_OPERATION_LIMIT(cx, JSOW_SCRIPT_JUMP))                  \
             goto error;                                                       \
     JS_END_MACRO
 
