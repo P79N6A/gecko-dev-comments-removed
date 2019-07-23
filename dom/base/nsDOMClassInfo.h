@@ -1333,6 +1333,31 @@ public:
 
 
 
+class nsDOMTokenListSH : public nsStringArraySH
+{
+protected:
+  nsDOMTokenListSH(nsDOMClassInfoData* aData) : nsStringArraySH(aData)
+  {
+  }
+
+  virtual ~nsDOMTokenListSH()
+  {
+  }
+
+  virtual nsresult GetStringAt(nsISupports *aNative, PRInt32 aIndex,
+                               nsAString& aResult);
+
+public:
+
+  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
+  {
+    return new nsDOMTokenListSH(aData);
+  }
+};
+
+
+
+
 class nsMediaListSH : public nsStringArraySH
 {
 protected:

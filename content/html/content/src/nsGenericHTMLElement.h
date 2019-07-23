@@ -205,10 +205,6 @@ public:
 
   
   void Compact() { mAttrsAndChildren.Compact(); }
-  const nsAttrValue* GetParsedAttr(nsIAtom* aAttr) const
-  {
-    return mAttrsAndChildren.GetAttr(aAttr);
-  }
 
   virtual void UpdateEditableState();
 

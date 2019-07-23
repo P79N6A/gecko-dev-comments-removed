@@ -83,6 +83,7 @@ class nsIDOMNSFeatureFactory;
 class nsIEventListenerManager;
 class nsIScrollableView;
 class nsContentList;
+class nsDOMTokenList;
 struct nsRect;
 
 typedef PRUptrdiff PtrBits;
@@ -110,7 +111,7 @@ public:
   
   virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
-  
+
   void DropReference()
   {
     mNode = nsnull;
@@ -454,7 +455,7 @@ public:
   NS_IMETHOD SetInlineStyleRule(nsICSSStyleRule* aStyleRule, PRBool aNotify);
   NS_IMETHOD_(PRBool)
     IsAttributeMapped(const nsIAtom* aAttribute) const;
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute, 
+  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
                                               PRInt32 aModType) const;
   
 
@@ -462,7 +463,7 @@ public:
   struct MappedAttributeEntry {
     nsIAtom** attribute;
   };
-  
+
   
 
 
@@ -579,7 +580,7 @@ public:
                                      const nsAString& aFeature,
                                      const nsAString& aVersion,
                                      nsISupports** aReturn);
-  
+
   static already_AddRefed<nsIDOMNSFeatureFactory>
     GetDOMFeatureFactory(const nsAString& aFeature, const nsAString& aVersion);
 
@@ -684,7 +685,7 @@ public:
                                      nsIContent* aTarget,
                                      PRBool aFullDispatch,
                                      nsEventStatus* aStatus);
-  
+
   
 
 
@@ -735,10 +736,15 @@ public:
       mName(aName), mValue(aValue) {}
     nsAttrInfo(const nsAttrInfo& aOther) :
       mName(aOther.mName), mValue(aOther.mValue) {}
-      
+
     const nsAttrName* mName;
     const nsAttrValue* mValue;
   };
+
+  const nsAttrValue* GetParsedAttr(nsIAtom* aAttr) const
+  {
+    return mAttrsAndChildren.GetAttr(aAttr);
+  }
 
   
 
@@ -941,7 +947,7 @@ public:
 
       nsIControllers* mControllers; 
     };
-    
+
     
 
 
@@ -951,6 +957,11 @@ public:
 
 
     nsRefPtr<nsContentList> mChildrenList;
+
+    
+
+
+    nsRefPtr<nsDOMTokenList> mClassList;
   };
 
 protected:
@@ -1096,7 +1107,7 @@ public:
   nsNSElementTearoff(nsGenericElement *aContent) : mContent(aContent)
   {
   }
-  
+
 private:
   nsContentList* GetChildrenList();
 
