@@ -59,6 +59,8 @@
 
   #ifndef __cplusplus
     typedef int bool;
+    #define true   1
+    #define false  0
   #endif
 #elif defined(bsdi) || defined(FREEBSD) || defined(OPENBSD)
   
@@ -75,6 +77,8 @@
 
   #if !defined(__cplusplus)
     typedef int bool;
+    #define true   1
+    #define false  0
   #endif
   #else
   
@@ -102,6 +106,8 @@
 
 
       #define bool int
+      #define true   1
+      #define false  0
     #endif
   #endif
 #endif
