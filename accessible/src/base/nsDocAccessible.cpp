@@ -1681,19 +1681,21 @@ nsDocAccessible::FlushPendingEvents()
     if (!mWeakShell)
       break;
 
-    nsCOMPtr<nsIAccessibleEvent> accessibleEvent(mEventsToFire[index]);
+    nsAccEvent *accEvent = mEventsToFire[index];
 
-    if (nsAccEvent::EventRule(accessibleEvent) == nsAccEvent::eDoNotEmit)
+    if (accEvent->GetEventRule() == nsAccEvent::eDoNotEmit)
       continue;
 
     nsCOMPtr<nsIAccessible> accessible;
-    accessibleEvent->GetAccessible(getter_AddRefs(accessible));
-    nsCOMPtr<nsIDOMNode> domNode;
-    accessibleEvent->GetDOMNode(getter_AddRefs(domNode));
-    PRUint32 eventType = nsAccEvent::EventType(accessibleEvent);
-    PRBool isFromUserInput = nsAccEvent::IsFromUserInput(accessibleEvent);
+    accEvent->GetAccessible(getter_AddRefs(accessible));
 
-    PRBool isAsync = nsAccEvent::IsAsyncEvent(accessibleEvent);
+    nsCOMPtr<nsIDOMNode> domNode;
+    accEvent->GetDOMNode(getter_AddRefs(domNode));
+
+    PRUint32 eventType = accEvent->GetEventType();
+    PRBool isFromUserInput = accEvent->IsFromUserInput();
+    PRBool isAsync = accEvent->IsAsync();
+
     if (domNode == gLastFocusedNode && isAsync &&
         (eventType == nsIAccessibleEvent::EVENT_SHOW ||
          eventType == nsIAccessibleEvent::EVENT_HIDE)) {
@@ -1812,24 +1814,24 @@ nsDocAccessible::FlushPendingEvents()
         
         
         
-        nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(accessibleEvent);
+        nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(accEvent);
         if (reorderEvent->IsUnconditionalEvent() ||
             reorderEvent->HasAccessibleInReasonSubtree()) {
-          nsAccEvent::PrepareForEvent(accessibleEvent);
-          FireAccessibleEvent(accessibleEvent);
+          nsAccEvent::PrepareForEvent(accEvent);
+          FireAccessibleEvent(accEvent);
         }
       }
       else {
         
         
-        nsAccEvent::PrepareForEvent(accessibleEvent);
-        FireAccessibleEvent(accessibleEvent);
+        nsAccEvent::PrepareForEvent(accEvent);
+        FireAccessibleEvent(accEvent);
         
         if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
           
           
           nsCOMPtr<nsIDOMNode> hidingNode;
-          accessibleEvent->GetDOMNode(getter_AddRefs(hidingNode));
+          accEvent->GetDOMNode(getter_AddRefs(hidingNode));
           if (hidingNode) {
             RefreshNodes(hidingNode); 
           }
