@@ -1903,20 +1903,6 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   
   
   
-  PRInt16 printRangeType = nsIPrintSettings::kRangeAllPages;
-  mPrt->mPrintSettings->GetPrintRange(&printRangeType);
-
-  if (printRangeType == nsIPrintSettings::kRangeSelection &&
-      IsThereARangeSelection(mPrt->mCurrentFocusWin)) {
-    adjSize.height = NS_UNCONSTRAINEDSIZE;
-  }
-
-  
-  
-  
-  
-  
-  
   
   PRBool canCreateScrollbars = PR_FALSE;
   nsIView* parentView;

@@ -76,7 +76,8 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsPrintSettingsGTK,
 nsPrintSettingsGTK::nsPrintSettingsGTK() :
   mPageSetup(NULL),
   mPrintSettings(NULL),
-  mGTKPrinter(NULL)
+  mGTKPrinter(NULL),
+  mPrintSelectionOnly(PR_FALSE)
 {
   
   
