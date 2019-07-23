@@ -67,6 +67,9 @@ class nsIDOMNode;
 class nsIAtom;
 class nsIView;
 
+#define NS_OK_NO_ARIA_VALUE \
+NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x21)
+
 
 #define DEAD_END_ACCESSIBLE static_cast<nsIAccessible*>((void*)1)
 
@@ -274,6 +277,17 @@ protected:
 
   
   PRBool CheckVisibilityInParentChain(nsIDocument* aDocument, nsIView* aView);
+
+  
+
+
+
+
+
+
+
+
+  nsresult GetAttrValue(PRUint32 aNameSpaceID, nsIAtom *aName, double *aValue);
 
   
   nsCOMPtr<nsIAccessible> mParent;
