@@ -210,6 +210,12 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, PRBool aEnableSelection
   PRBool setDictionary = PR_FALSE;
   if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
     rv = SetCurrentDictionary(dictName.get());
+
+    
+    if (NS_FAILED(rv)) {
+      rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US").get());
+    }
+
     if (NS_SUCCEEDED(rv))
       setDictionary = PR_TRUE;
   }
