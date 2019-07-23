@@ -47,6 +47,11 @@
 #include "nsIDOMElement.h"
 #include "nsCycleCollectionParticipant.h"
 
+#include "nsAutoPtr.h"
+#include "nsIFile.h"
+#include "nsILocalFile.h"
+#include "nsDOMFile.h"
+
 class nsITransferable;
 
 
@@ -184,6 +189,9 @@ protected:
 
   
   nsTArray<nsTArray<TransferItem> > mItems;
+
+  
+  nsRefPtr<nsDOMFileList> mFiles;
 
   
   nsCOMPtr<nsIDOMElement> mDragTarget;
