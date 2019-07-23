@@ -633,6 +633,7 @@ public:
 
   virtual NS_HIDDEN_(PRBool) CanSavePresentation(nsIRequest *aNewRequest);
   virtual NS_HIDDEN_(void) Destroy();
+  virtual NS_HIDDEN_(void) SaveState();
   virtual NS_HIDDEN_(already_AddRefed<nsILayoutHistoryState>) GetLayoutHistoryState() const;
 
   virtual NS_HIDDEN_(void) BlockOnload();
@@ -774,6 +775,8 @@ protected:
 
   
   PRPackedBool mIsGoingAway:1;
+  
+  PRPackedBool mSavedState:1;
   
   PRPackedBool mInDestructor:1;
   
