@@ -411,6 +411,17 @@ WrapFunction(JSContext *cx, JSObject *wrapperObj, JSObject *funobj, jsval *v,
 
 
 
+JSBool
+RewrapObject(JSContext *cx, JSObject *scope, JSObject *obj, WrapperType hint,
+             jsval *vp);
+
+JSBool
+CreateWrapperFromType(JSContext *cx, JSObject *scope, XPCWrappedNative *wn,
+                      WrapperType hint, jsval *vp);
+
+
+
+
 
 
 
