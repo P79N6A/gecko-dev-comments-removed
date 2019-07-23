@@ -223,7 +223,7 @@ var gUpdates = {
     
     
     var neverPrefName = PREF_UPDATE_NEVER_BRANCH +
-                       encodeURIComponent(gUpdates.update.version);
+                        encodeURIComponent(gUpdates.update.version);
     gPref.setBoolPref(neverPrefName, true);
     this.wiz.cancel();
   },
@@ -761,6 +761,13 @@ var gManualUpdatePage = {
     var manualUpdateLinkLabel = document.getElementById("manualUpdateLinkLabel");
     manualUpdateLinkLabel.value = manualURL;
     manualUpdateLinkLabel.setAttribute("url", manualURL);
+
+    
+    
+    
+    var neverPrefName = PREF_UPDATE_NEVER_BRANCH +
+                        encodeURIComponent(gUpdates.update.version);
+    gPref.setBoolPref(neverPrefName, true);
 
     gUpdates.setButtons(null, null, "okButton", true);
     gUpdates.wiz.getButton("finish").focus();
