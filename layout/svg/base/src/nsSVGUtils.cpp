@@ -124,6 +124,10 @@ protected:
     nsSVGPropertyBase* mContainer;
   };
   
+  
+
+
+
   nsIFrame* GetReferencedFrame(nsIAtom* aFrameType, PRBool* aOK) {
     if (mElement.get()) {
       nsIFrame *frame =
