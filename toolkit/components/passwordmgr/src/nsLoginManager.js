@@ -376,13 +376,7 @@ LoginManager.prototype = {
                     var [usernameField, passwordField, ignored] =
                         this._pwmgr._getFormFields(acForm, false);
                     if (usernameField == acInputField && passwordField) {
-                        let oldValue = passwordField.value;
-                        
-                        passwordField.value = "";
-                        let [didFillForm, foundLogins] =
-                            this._pwmgr._fillForm(acForm, true, true, null);
-                        if (!didFillForm)
-                            passwordField.value = oldValue;
+                        this._pwmgr._fillForm(acForm, true, true, true, null);
                     } else {
                         this._pwmgr.log("Oops, form changed before AC invoked");
                     }
@@ -1039,7 +1033,7 @@ LoginManager.prototype = {
                 previousActionOrigin = actionOrigin;
             }
             this.log("_fillDocument processing form[" + i + "]");
-            foundLogins = this._fillForm(form, autofillForm, false, foundLogins)[1];
+            foundLogins = this._fillForm(form, autofillForm, false, false, foundLogins)[1];
         } 
     },
 
@@ -1056,7 +1050,8 @@ LoginManager.prototype = {
 
 
 
-    _fillForm : function (form, autofillForm, ignoreAutocomplete, foundLogins) {
+    _fillForm : function (form, autofillForm, ignoreAutocomplete,
+                          clobberPassword, foundLogins) {
         
         
         
@@ -1127,7 +1122,7 @@ LoginManager.prototype = {
             this._attachToInput(usernameField);
 
         
-        if (passwordField.value) {
+        if (passwordField.value && !clobberPassword) {
             didntFillReason = "existingPassword";
             this._notifyFoundLogins(didntFillReason, usernameField,
                                     passwordField, foundLogins, null);
@@ -1276,7 +1271,7 @@ LoginManager.prototype = {
 
     fillForm : function (form) {
         this.log("fillForm processing form[id=" + form.id + "]");
-        return this._fillForm(form, true, true, null)[0];
+        return this._fillForm(form, true, true, false, null)[0];
     },
 
 
