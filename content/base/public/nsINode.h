@@ -146,7 +146,16 @@ enum {
                                = 0x00040000U,
 
   
-  NODE_SCRIPT_TYPE_OFFSET =               20,
+  
+  NODE_NEEDS_FRAME =             0x00080000U,
+
+  
+  
+  
+  NODE_DESCENDANTS_NEED_FRAMES = 0x00100000U,
+
+  
+  NODE_SCRIPT_TYPE_OFFSET =               21,
 
   NODE_SCRIPT_TYPE_SIZE =                  4,
 
@@ -242,9 +251,9 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xe71b48a8, 0xeead, 0x4320, \
- { 0xb4, 0xb0, 0x15, 0xcd, 0x7c, 0x53, 0x96, 0x8c } }
- 
+{ 0xbc347b50, 0xa9b8, 0x419e, \
+ { 0xb1, 0x21, 0x76, 0x8f, 0x90, 0x05, 0x8d, 0xbf } } 
+
 
 
 
@@ -765,7 +774,9 @@ public:
     NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS |
                                   NODE_IS_NATIVE_ANONYMOUS_ROOT |
                                   NODE_IS_IN_ANONYMOUS_SUBTREE |
-                                  NODE_ATTACH_BINDING_ON_POSTCREATE)) ||
+                                  NODE_ATTACH_BINDING_ON_POSTCREATE |
+                                  NODE_DESCENDANTS_NEED_FRAMES |
+                                  NODE_NEEDS_FRAME)) ||
                  IsNodeOfType(eCONTENT),
                  "Flag only permitted on nsIContent nodes");
     PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
