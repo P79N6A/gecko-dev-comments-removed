@@ -1610,6 +1610,8 @@ nsDownload::SetState(DownloadState aState)
         }
       }
 #ifdef XP_WIN
+      
+      
       PRBool addToRecentDocs = PR_TRUE;
       if (pref)
         pref->GetBoolPref(PREF_BDM_ADDTORECENTDOCS, &addToRecentDocs);
