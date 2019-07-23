@@ -63,7 +63,7 @@ DownloadProgressListener.prototype =
     switch (aDownload.state) {
       case Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED:
         
-        gDownloadsActiveLabel.hidden = false;
+        gDownloadsActiveTitle.hidden = false;
       case Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING:
         
         
@@ -81,7 +81,7 @@ DownloadProgressListener.prototype =
                                   aDownload.percentComplete,
                                   Math.round(aDownload.startTime / 1000));
         }
-        gDownloadsView.insertBefore(dl, gDownloadsActiveLabel.nextSibling);
+        gDownloadsView.insertBefore(dl, gDownloadsActiveTitle.nextSibling);
         break;
       case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
       case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
@@ -123,11 +123,11 @@ DownloadProgressListener.prototype =
                                    aDownload.source.spec,
                                    aDownload.state,
                                    aDownload.percentComplete);
-      download = gDownloadsView.insertBefore(itm, gDownloadsActiveLabel.nextSibling);
+      download = gDownloadsView.insertBefore(itm, gDownloadsActiveTitle.nextSibling);
     }
 
     
-    gDownloadsActiveLabel.hidden = false;
+    gDownloadsActiveTitle.hidden = false;
 
     
     if (aDownload.percentComplete == -1)
