@@ -90,6 +90,10 @@ function run_test() {
   var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].getService(Ci.nsIPlacesImportExportService);
 
   
+  Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
+  setBoolPref("browser.places.createdDefaultQueries", true);
+
+  
   var bookmarksFileOld = do_get_file("browser/components/places/tests/unit/bookmarks.preplaces.html");
   
   var bookmarksFileNew = dirSvc.get("ProfD", Ci.nsILocalFile);

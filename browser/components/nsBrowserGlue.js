@@ -20,6 +20,8 @@
 #
 # Contributor(s):
 #   Giorgio Maone <g.maone@informaction.com>
+#   Seth Spitzer <sspitzer@mozilla.com>
+#   Asaf Romano <mano@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -339,8 +341,12 @@ BrowserGlue.prototype = {
       importBookmarks = prefBranch.getBoolPref("browser.places.importBookmarksHTML");
     } catch(ex) {}
 
-    if (!importBookmarks)
+    if (!importBookmarks) {
+      
+      
+      this.ensurePlacesDefaultQueriesInitialized();
       return;
+    }
 
     var dirService = Cc["@mozilla.org/file/directory_service;1"].
                      getService(Ci.nsIProperties);
@@ -389,7 +395,7 @@ BrowserGlue.prototype = {
       getService(Ci.nsIPlacesImportExportService);
     importer.backupBookmarksFile();
   },
-  
+
   
   
   
@@ -397,6 +403,142 @@ BrowserGlue.prototype = {
   sanitize: function(aParentWindow) 
   {
     this.Sanitizer.sanitize(aParentWindow);
+  },
+
+  ensurePlacesDefaultQueriesInitialized: function() {
+    
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+    var createdDefaultQueries = false;
+    try {
+      createdDefaultQueries = prefBranch.getBoolPref("browser.places.createdDefaultQueries");
+    } catch(ex) { }
+
+    if (createdDefaultQueries)
+      return;
+
+    var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+                getService(Ci.nsINavBookmarksService);
+
+    
+    
+    
+    var callback = {
+      _placesBundle: Cc["@mozilla.org/intl/stringbundle;1"].
+                     getService(Ci.nsIStringBundleService).
+                     createBundle("chrome://browser/locale/places/places.properties"),
+
+      _uri: function(aSpec) {
+        return Cc["@mozilla.org/network/io-service;1"].
+               getService(Ci.nsIIOService).
+               newURI(aSpec, null, null);
+      },
+
+      runBatched: function() {
+        var placesFolderTitle =
+          this._placesBundle.GetStringFromName("placesFolderTitle");
+        var recentlyCreatedBookmarksTitle =
+          this._placesBundle.GetStringFromName("recentlyCreatedBookmarksTitle");
+        var recentlyVisitedBookmarksTitle =
+          this._placesBundle.GetStringFromName("recentlyVisitedBookmarksTitle");
+        var mostVisitedBookmarksTitle =
+          this._placesBundle.GetStringFromName("mostVisitedBookmarksTitle");
+        var recentlyUsedTagsTitle =
+          this._placesBundle.GetStringFromName("recentlyUsedTagsTitle");
+        var mostUsedTagsTitle =
+          this._placesBundle.GetStringFromName("mostUsedTagsTitle");
+        var mostVisitedSitesTitle =
+          this._placesBundle.GetStringFromName("mostVisitedSitesTitle");
+
+        var bookmarksMenuFolder = bmsvc.bookmarksMenuFolder;
+        var unfiledBookmarksFolder = bmsvc.unfiledBookmarksFolder;
+        var toolbarFolder = bmsvc.toolbarFolder;
+        var tagsFolder = bmsvc.tagsFolder;
+        var defaultIndex = bmsvc.DEFAULT_INDEX;
+
+        
+        var placesFolder = bmsvc.createFolder(toolbarFolder, placesFolderTitle,
+                                              0);
+
+        
+        var maxResults = 10;
+
+        
+        
+        var recentlyCreatedBookmarksItem = bmsvc.insertBookmark(placesFolder,
+          this._uri("place:folder=" + bookmarksMenuFolder + 
+              "&folder=" + unfiledBookmarksFolder +
+              "&folder=" + toolbarFolder +
+              "&queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+              "&sort=" +
+              Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
+              "&excludeItemIfParentHasAnnotation=livemark%2FfeedURI" +
+              "&maxResults=" + maxResults +
+              "&excludeQueries=1"),
+              defaultIndex, recentlyCreatedBookmarksTitle);
+
+        var recentlyVisitedBookmarksItem = bmsvc.insertBookmark(placesFolder,
+          this._uri("place:folder=" + bookmarksMenuFolder + 
+              "&folder=" + unfiledBookmarksFolder +
+              "&folder=" + toolbarFolder +
+              "&queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+              "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING +
+              "&excludeItemIfParentHasAnnotation=livemark%2FfeedURI" +
+              "&minVisits=1&maxResults=" + maxResults),
+              defaultIndex, recentlyVisitedBookmarksTitle);
+
+        var mostVisitedBookmarksItem = bmsvc.insertBookmark(placesFolder,
+          this._uri("place:folder=" + bookmarksMenuFolder + 
+              "&folder=" + unfiledBookmarksFolder +
+              "&folder=" + toolbarFolder +
+              "&queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+              "&sort=" +
+              Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
+              "&excludeItemIfParentHasAnnotation=livemark%2FfeedURI" +
+              "&minVisits=1&maxResults=" + maxResults),
+              defaultIndex, mostVisitedBookmarksTitle);
+
+        var recentlyUsedTagsItem = bmsvc.insertBookmark(placesFolder,
+          this._uri("place:folder=" + tagsFolder +
+              "&group=" + Ci.nsINavHistoryQueryOptions.GROUP_BY_FOLDER +
+              "&queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+              "&applyOptionsToContainers=1" +
+              "&sort=" +
+              Ci.nsINavHistoryQueryOptions.SORT_BY_DATEADDED_DESCENDING +
+              "&maxResults=" + maxResults),
+              defaultIndex, recentlyUsedTagsTitle);
+
+        var mostUsedTagsItem = bmsvc.insertBookmark(placesFolder,
+          this._uri("place:folder=" + tagsFolder +
+              "&group=" + Ci.nsINavHistoryQueryOptions.GROUP_BY_FOLDER +
+              "&queryType=" + Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS +
+              "&applyOptionsToContainers=1" +
+              "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_COUNT_DESCENDING +
+              "&maxResults=" + maxResults),
+              defaultIndex, mostUsedTagsTitle);
+
+        var mostVisitedSitesItem = bmsvc.insertBookmark(placesFolder,
+          this._uri("place:queryType=" +
+              Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY +
+              "&sort=" +
+              Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
+              "&maxResults=" + maxResults),
+              defaultIndex, mostVisitedSitesTitle);
+      }
+    };
+
+    try {
+      callback.runBatched();
+      
+      
+    }
+    catch(ex) {
+      Components.utils.reportError(ex);
+    }
+    finally {
+      prefBranch.setBoolPref("browser.places.createdDefaultQueries", true);
+      prefBranch.savePrefFile(null);
+    }
   },
 
   
@@ -422,6 +564,3 @@ BrowserGlue.prototype = {
 function NSGetModule(aCompMgr, aFileSpec) {
   return XPCOMUtils.generateModule([BrowserGlue]);
 }
-
-	
-
