@@ -1788,11 +1788,9 @@ nsCookieService::IsForeign(nsIURI *aHostURI,
   
   
   
-
-
-
-
-
+  if (IsIPAddress(firstHost)) {
+    return !IsInDomain(firstHost, currentHost, PR_FALSE);
+  }
 
   
   

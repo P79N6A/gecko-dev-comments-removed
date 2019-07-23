@@ -512,54 +512,54 @@ main(PRInt32 argc, char *argv[])
       allTestsPassed = PrintResult(rv, 9) && allTestsPassed;
 
 
+      
+      printf("*** Beginning foreign cookie tests...\n");
 
+      
+      
+      SetACookie(cookieService, "http://yahoo.com/", "http://yahoo.com/", "test=foreign; domain=.yahoo.com", nsnull);
+      GetACookie(cookieService, "http://yahoo.com/", "http://yahoo.com/", getter_Copies(cookie));
+      rv[0] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      SetACookie(cookieService, "http://weather.yahoo.com/", "http://yahoo.com/", "test=foreign; domain=.yahoo.com", nsnull);
+      GetACookie(cookieService, "http://notweather.yahoo.com/", "http://sport.yahoo.com/", getter_Copies(cookie));
+      rv[1] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      SetACookie(cookieService, "http://moose.yahoo.com/", "http://canada.yahoo.com/", "test=foreign; domain=.yahoo.com", nsnull);
+      GetACookie(cookieService, "http://yahoo.com/", "http://sport.yahoo.com/", getter_Copies(cookie));
+      rv[2] = CheckResult(cookie.get(), MUST_BE_NULL);
+      GetACookie(cookieService, "http://sport.yahoo.com/", "http://yahoo.com/", getter_Copies(cookie));
+      rv[3] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      SetACookie(cookieService, "http://jack.yahoo.com/", "http://jill.yahoo.com/", "test=foreign; domain=.yahoo.com; max-age=0", nsnull);
+      GetACookie(cookieService, "http://jane.yahoo.com/", "http://yahoo.com/", getter_Copies(cookie));
+      rv[4] = CheckResult(cookie.get(), MUST_BE_NULL);
 
+      SetACookie(cookieService, "http://moose.yahoo.com/", "http://foo.moose.yahoo.com/", "test=foreign; domain=.yahoo.com", nsnull);
+      GetACookie(cookieService, "http://yahoo.com/", "http://yahoo.com/", getter_Copies(cookie));
+      rv[5] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://foo.bar.yahoo.com/", "http://yahoo.com/", "test=foreign; domain=.yahoo.com", nsnull);
+      GetACookie(cookieService, "http://yahoo.com/", "http://yahoo.com/", getter_Copies(cookie));
+      rv[6] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      SetACookie(cookieService, "http://foo.bar.yahoo.com/", "http://yahoo.com/", "test=foreign; domain=.yahoo.com; max-age=0", nsnull);
+      GetACookie(cookieService, "http://yahoo.com/", "http://yahoo.com/", getter_Copies(cookie));
+      rv[7] = CheckResult(cookie.get(), MUST_BE_NULL);
 
+      
+      SetACookie(cookieService, "http://192.168.54.33/", "http://192.168.54.33/", "test=foreign; domain=192.168.54.33", nsnull);
+      GetACookie(cookieService, "http://192.168.54.33/", "http://192.168.54.33/", getter_Copies(cookie));
+      rv[8] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      GetACookie(cookieService, "http://192.168.54.33./", "http://.192.168.54.33../", getter_Copies(cookie));
+      rv[9] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      GetACookie(cookieService, "http://192.168.54.33/", nsnull, getter_Copies(cookie));
+      rv[10] = CheckResult(cookie.get(), MUST_EQUAL, "test=foreign");
+      GetACookie(cookieService, "http://192.168.54.33/", "http://148.168.54.33", getter_Copies(cookie));
+      rv[11] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://192.168.54.33/", "http://192.168.54.33/", "test=foreign; domain=192.168.54.33; max-age=0", nsnull);
+      GetACookie(cookieService, "http://192.168.54.33/", "http://192.168.54.33/", getter_Copies(cookie));
+      rv[12] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://192.168.54.33/", "http://148.168.54.33/", "test=foreign; domain=192.168.54.33", nsnull);
+      GetACookie(cookieService, "http://192.168.54.33/", "http://192.168.54.33/", getter_Copies(cookie));
+      rv[13] = CheckResult(cookie.get(), MUST_BE_NULL);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      allTestsPassed = PrintResult(rv, 14) && allTestsPassed;
 
 
       
@@ -599,35 +599,35 @@ main(PRInt32 argc, char *argv[])
       allTestsPassed = PrintResult(rv, 10) && allTestsPassed;
 
 
+      
+      printf("*** Beginning mailnews tests...\n");
 
+      
+      
+      
+      SetACookie(cookieService, "mailbox://mail.co.uk/", nsnull, "test=mailnews", nsnull);
+      GetACookie(cookieService, "mailbox://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[0] = CheckResult(cookie.get(), MUST_BE_NULL);
+      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[1] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://mail.co.uk/", nsnull, "test=mailnews", nsnull);
+      GetACookie(cookieService, "mailbox://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[2] = CheckResult(cookie.get(), MUST_BE_NULL);
+      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[3] = CheckResult(cookie.get(), MUST_EQUAL, "test=mailnews");
+      SetACookie(cookieService, "http://mail.co.uk/", nsnull, "test=mailnews; max-age=0", nsnull);
+      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[4] = CheckResult(cookie.get(), MUST_BE_NULL);
 
+      
+      SetACookie(cookieService, "mailbox://mail.co.uk/", "http://mail.co.uk/", "test=mailnews", nsnull);
+      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[5] = CheckResult(cookie.get(), MUST_BE_NULL);
+      SetACookie(cookieService, "http://mail.co.uk/", "mailbox://mail.co.uk/", "test=mailnews", nsnull);
+      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
+      rv[6] = CheckResult(cookie.get(), MUST_BE_NULL);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      allTestsPassed = PrintResult(rv, 7) && allTestsPassed;
 
 
       
