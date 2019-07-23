@@ -61,29 +61,6 @@
 #include "nsHtml5Parser.h"
 #include "nsHtml5AtomTable.h"
 
-
-
-
-
-
-
-
-class nsHtml5ParserContinueEvent : public nsRunnable
-{
-public:
-  nsRefPtr<nsHtml5Parser> mParser;
-  nsHtml5ParserContinueEvent(nsHtml5Parser* aParser)
-    : mParser(aParser)
-  {}
-  NS_IMETHODIMP Run()
-  {
-    mParser->HandleParserContinueEvent(this);
-    return NS_OK;
-  }
-};
-
-
-
 NS_INTERFACE_TABLE_HEAD(nsHtml5Parser)
   NS_INTERFACE_TABLE2(nsHtml5Parser, nsIParser, nsISupportsWeakReference)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsHtml5Parser)
@@ -203,6 +180,13 @@ nsHtml5Parser::ContinueInterruptedParsing()
   if (mExecutor->IsScriptExecuting()) {
     return NS_OK;
   }
+  if (mExecutor->IsFlushing()) {
+    
+    
+    
+    
+    return NS_OK;
+  }
   
   
   
@@ -210,7 +194,6 @@ nsHtml5Parser::ContinueInterruptedParsing()
   nsCOMPtr<nsIParser> kungFuDeathGrip(this);
   nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip(mStreamParser);
   nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
-  CancelParsingEvents(); 
   ParseUntilBlocked();
   return NS_OK;
 }
@@ -383,11 +366,6 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     mTreeBuilder->flushCharacters(); 
     mTreeBuilder->Flush(); 
     mExecutor->Flush(); 
-  } else if (!mStreamParser && buffer->hasMore() && aKey == mRootContextKey) {
-    
-    
-    
-    MaybePostContinueEvent();
   }
 
   mTokenizer->setLineNumber(lineNumberSave);
@@ -501,8 +479,8 @@ nsHtml5Parser::BuildModel(void)
 NS_IMETHODIMP
 nsHtml5Parser::CancelParsingEvents()
 {
-  mContinueEvent = nsnull;
-  return NS_OK;
+  NS_NOTREACHED("Don't call this!");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 void
@@ -516,7 +494,6 @@ nsHtml5Parser::Reset()
   mStreamParser = nsnull;
   mParserInsertedScriptsBeingEvaluated = 0;
   mRootContextKey = nsnull;
-  mContinueEvent = nsnull;  
   mAtomTable.Clear(); 
   
   mFirstBuffer->next = nsnull;
@@ -564,17 +541,6 @@ nsHtml5Parser::IsScriptCreated()
 
 
 
-
-void
-nsHtml5Parser::HandleParserContinueEvent(nsHtml5ParserContinueEvent* ev)
-{
-  
-  if (mContinueEvent != ev)
-    return;
-  mContinueEvent = nsnull;
-  NS_ASSERTION(!mExecutor->IsScriptExecuting(), "Interrupted in the middle of a script?");
-  ContinueInterruptedParsing();
-}
 
 void
 nsHtml5Parser::ParseUntilBlocked()
@@ -648,24 +614,6 @@ nsHtml5Parser::ParseUntilBlocked()
       }
     }
     continue;
-  }
-}
-
-void
-nsHtml5Parser::MaybePostContinueEvent()
-{
-  NS_PRECONDITION(!mExecutor->IsComplete(), 
-                  "Tried to post continue event when the parser is done.");
-  if (mContinueEvent) {
-    return; 
-  }
-  
-  
-  nsCOMPtr<nsIRunnable> event = new nsHtml5ParserContinueEvent(this);
-  if (NS_FAILED(NS_DispatchToCurrentThread(event))) {
-    NS_WARNING("failed to dispatch parser continuation event");
-  } else {
-    mContinueEvent = event;
   }
 }
 

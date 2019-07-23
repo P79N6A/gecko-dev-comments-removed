@@ -278,11 +278,6 @@ class nsHtml5Parser : public nsIParser,
     
 
     
-
-
-    void HandleParserContinueEvent(class nsHtml5ParserContinueEvent *);
-
-    
     
 
   public:
@@ -301,11 +296,6 @@ class nsHtml5Parser : public nsIParser,
 
     void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState);
 
-    
-
-
-    void MaybePostContinueEvent();
-    
     void DropStreamParser() {
       mStreamParser = nsnull;
     }
@@ -356,7 +346,6 @@ class nsHtml5Parser : public nsIParser,
 
     
     void*                         mRootContextKey;
-    nsIRunnable*                  mContinueEvent;  
 
     
     
