@@ -1354,6 +1354,10 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 
         ptrdiff_t sp_adj = nativeStackOffset(&cx->fp->argv[-2]);
         
+
+        sp_adj -= treeInfo->nativeStackBase;
+        sp_adj += ti->nativeStackBase;
+        
         ptrdiff_t rp_adj = callDepth * sizeof(FrameInfo);
         
 
