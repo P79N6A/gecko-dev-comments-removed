@@ -188,7 +188,7 @@ nsUICommandCollector::HandleEvent(nsIDOMEvent* event)
   nsresult rv = event->GetType(type);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  for (int i = 0; i < NS_ARRAY_LENGTH(kEvents); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kEvents); ++i) {
     if (NS_ConvertASCIItoUTF16(kEvents[i].event).Equals(type)) {
       return (this->*(kEvents[i].handler))(event);
     }
@@ -423,7 +423,7 @@ nsUICommandCollector::GetEventWindow(nsIDOMEvent *event,
 void
 nsUICommandCollector::AddEventListeners(nsIDOMEventTarget *window)
 {
-  for (int i = 0; i < NS_ARRAY_LENGTH(kEvents); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kEvents); ++i) {
     
     
     
@@ -442,7 +442,7 @@ nsUICommandCollector::AddEventListeners(nsIDOMEventTarget *window)
 void
 nsUICommandCollector::RemoveEventListeners(nsIDOMEventTarget *window)
 {
-  for (int i = 0; i < NS_ARRAY_LENGTH(kEvents); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kEvents); ++i) {
     
     
     nsresult rv;
