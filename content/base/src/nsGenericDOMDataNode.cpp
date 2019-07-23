@@ -954,6 +954,149 @@ nsGenericDOMDataNode::SplitText(PRUint32 aOffset, nsIDOMText** aReturn)
 
 
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsText3Tearoff)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsText3Tearoff)
+  NS_INTERFACE_MAP_ENTRY(nsIDOM3Text)
+NS_INTERFACE_MAP_END_AGGREGATED(mNode)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsText3Tearoff)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mNode)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsText3Tearoff)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mNode, nsIContent)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsText3Tearoff)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsText3Tearoff)
+
+NS_IMETHODIMP
+nsText3Tearoff::GetIsElementContentWhitespace(PRBool *aReturn)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsText3Tearoff::GetWholeText(nsAString& aWholeText)
+{
+  return mNode->GetWholeText(aWholeText);
+}
+
+NS_IMETHODIMP
+nsText3Tearoff::ReplaceWholeText(const nsAString& aContent,
+                                 nsIDOMText **aReturn)
+{
+  return mNode->ReplaceWholeText(PromiseFlatString(aContent), aReturn);
+}
+
+
+
+ PRUint32
+nsGenericDOMDataNode::FirstLogicallyAdjacentTextNode(nsIContent* aParent,
+                                                     PRUint32 aIndex)
+{
+  while (aIndex-- > 0) {
+    nsIContent* sibling = aParent->GetChildAt(aIndex);
+    if (!sibling->IsNodeOfType(nsINode::eTEXT))
+      return aIndex + 1;
+  }
+  return 0;
+}
+
+ PRUint32
+nsGenericDOMDataNode::LastLogicallyAdjacentTextNode(nsIContent* aParent,
+                                                    PRUint32 aIndex,
+                                                    PRUint32 aCount)
+{
+  while (++aIndex < aCount) {
+    nsIContent* sibling = aParent->GetChildAt(aIndex);
+    if (!sibling->IsNodeOfType(nsINode::eTEXT))
+      return aIndex - 1;
+  }
+  return aCount - 1;
+}
+
+nsresult
+nsGenericDOMDataNode::GetWholeText(nsAString& aWholeText)
+{
+  nsIContent* parent = GetParent();
+
+  
+  if (!parent)
+    return GetData(aWholeText);
+
+  PRUint32 index = parent->IndexOf(this);
+  PRUint32 first =
+    FirstLogicallyAdjacentTextNode(parent, index);
+  PRUint32 last =
+    LastLogicallyAdjacentTextNode(parent, index, parent->GetChildCount());
+
+  aWholeText.Truncate();
+
+  nsCOMPtr<nsIDOMText> node;
+  nsAutoString tmp;
+  do {
+    node = do_QueryInterface(parent->GetChildAt(first));
+    node->GetData(tmp);
+    aWholeText.Append(tmp);
+  } while (first++ < last);
+
+  return NS_OK;
+}
+
+nsresult
+nsGenericDOMDataNode::ReplaceWholeText(const nsAFlatString& aContent,
+                                       nsIDOMText **aReturn)
+{
+  
+  mozAutoSubtreeModified subtree(GetOwnerDoc(), nsnull);
+  mozAutoDocUpdate updateBatch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, PR_TRUE);
+
+  nsCOMPtr<nsIContent> parent = GetParent();
+
+  
+  if (!parent) {
+    if (aContent.IsEmpty()) {
+      *aReturn = nsnull;
+      return NS_OK;
+    }
+
+    SetText(aContent.get(), aContent.Length(), PR_TRUE);
+    return CallQueryInterface(this, aReturn);
+  }
+
+  
+  
+  
+
+  PRUint32 index = parent->IndexOf(this);
+  PRUint32 first =
+    FirstLogicallyAdjacentTextNode(parent, index);
+  PRUint32 last =
+    LastLogicallyAdjacentTextNode(parent, index, parent->GetChildCount());
+
+  do {
+    if (last == index && !aContent.IsEmpty())
+      continue;
+
+    parent->RemoveChildAt(last, PR_TRUE);
+  } while (last-- > first);
+
+  
+  if (aContent.IsEmpty()) {
+    *aReturn = nsnull;
+    return NS_OK;
+  }
+
+  SetText(aContent.get(), aContent.Length(), PR_TRUE);
+  return CallQueryInterface(this, aReturn);
+}
+
+
+
+
+
 const nsTextFragment *
 nsGenericDOMDataNode::GetText()
 {
