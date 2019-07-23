@@ -591,7 +591,7 @@ nsBox::SyncLayout(nsBoxLayoutState& aState)
     rect = GetOverflowRect();
   }
   else {
-    if (!DoesClipChildren()) {
+    if (!DoesClipChildren() && !IsCollapsed(aState)) {
       
       
       
