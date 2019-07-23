@@ -293,8 +293,7 @@ NS_IMETHODIMP
 nsInputStreamPump::AsyncRead(nsIStreamListener *listener, nsISupports *ctxt)
 {
     NS_ENSURE_TRUE(mState == STATE_IDLE, NS_ERROR_IN_PROGRESS);
-
-    nsresult rv;
+    NS_ENSURE_ARG_POINTER(listener);
 
     
     
@@ -304,7 +303,7 @@ nsInputStreamPump::AsyncRead(nsIStreamListener *listener, nsISupports *ctxt)
     
 
     PRBool nonBlocking;
-    rv = mStream->IsNonBlocking(&nonBlocking);
+    nsresult rv = mStream->IsNonBlocking(&nonBlocking);
     if (NS_FAILED(rv)) return rv;
 
     if (nonBlocking) {
