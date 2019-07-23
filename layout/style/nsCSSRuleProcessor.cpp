@@ -1837,6 +1837,14 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
     data.change = nsReStyleHint(data.change | eReStyle_Self);
   }
   
+#ifdef MOZ_SVG
+  
+  if (aData->mAttribute == nsGkAtoms::href &&
+      aData->mNameSpaceID == kNameSpaceID_SVG &&
+      aData->mContentTag == nsGkAtoms::a) {
+    data.change = nsReStyleHint(data.change | eReStyle_Self);
+  }
+#endif
   
   
 
