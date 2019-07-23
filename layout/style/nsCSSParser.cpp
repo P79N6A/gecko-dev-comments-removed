@@ -286,9 +286,10 @@ protected:
   PRBool ParseCharsetRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   PRBool ParseImportRule(RuleAppendFunc aAppendFunc, void* aProcessData);
   PRBool GatherURL(nsString& aURL);
-  
   PRBool GatherMedia(nsMediaList* aMedia,
                      PRUnichar aStopSymbol);
+  PRBool ParseMediaQuery(PRUnichar aStopSymbol, nsMediaQuery **aQuery,
+                         PRBool *aParsedSomething, PRBool *aHitStop);
   PRBool ParseMediaQueryExpression(nsMediaQuery* aQuery);
   PRBool ProcessImport(const nsString& aURLSpec,
                        nsMediaList* aMedia,
@@ -1464,131 +1465,152 @@ CSSParserImpl::GatherURL(nsString& aURL)
   return PR_FALSE;
 }
 
-
 PRBool
-CSSParserImpl::GatherMedia(nsMediaList* aMedia,
-                           PRUnichar aStopSymbol)
+CSSParserImpl::ParseMediaQuery(PRUnichar aStopSymbol,
+                               nsMediaQuery **aQuery,
+                               PRBool *aParsedSomething,
+                               PRBool *aHitStop)
 {
+  *aQuery = nsnull;
+  *aParsedSomething = PR_FALSE;
+  *aHitStop = PR_FALSE;
+
   
   
   
   if (!GetToken(PR_TRUE)) {
+    *aHitStop = PR_TRUE;
     
     if (aStopSymbol == PRUnichar(0))
       return PR_TRUE;
 
     
-    
-    
     REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
-    return aStopSymbol == PRUnichar(';');
+    return PR_TRUE;
   }
 
   if (eCSSToken_Symbol == mToken.mType &&
       mToken.mSymbol == aStopSymbol) {
+    *aHitStop = PR_TRUE;
     UngetToken();
     return PR_TRUE;
   }
   UngetToken();
-  aMedia->SetNonEmpty();
 
-  for (;;) {
+  *aParsedSomething = PR_TRUE;
+
+  nsAutoPtr<nsMediaQuery> query(new nsMediaQuery);
+  if (!query) {
+    mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+    return PR_FALSE;
+  }
+
+  if (ExpectSymbol('(', PR_TRUE)) {
     
+    UngetToken(); 
+    query->SetType(nsGkAtoms::all);
+    query->SetTypeOmitted();
     
-    nsMediaQuery *query;
-    {
-      nsAutoPtr<nsMediaQuery> queryHolder(new nsMediaQuery);
-      if (!queryHolder) {
-        mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+    if (!ParseMediaQueryExpression(query)) {
+      OUTPUT_ERROR();
+      query->SetHadUnknownExpression();
+    }
+  } else {
+    nsCOMPtr<nsIAtom> mediaType;
+    PRBool gotNotOrOnly = PR_FALSE;
+    for (;;) {
+      if (!GetToken(PR_TRUE)) {
+        REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
         return PR_FALSE;
       }
-      query = queryHolder;
+      if (eCSSToken_Ident != mToken.mType) {
+        REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotIdent);
+        UngetToken();
+        return PR_FALSE;
+      }
+      
+      ToLowerCase(mToken.mIdent);
+      mediaType = do_GetAtom(mToken.mIdent);
+      if (gotNotOrOnly ||
+          (mediaType != nsGkAtoms::_not && mediaType != nsGkAtoms::only))
+        break;
+      gotNotOrOnly = PR_TRUE;
+      if (mediaType == nsGkAtoms::_not)
+        query->SetNegated();
+      else
+        query->SetHasOnly();
+    }
+    query->SetType(mediaType);
+  }
+
+  for (;;) {
+    if (!GetToken(PR_TRUE)) {
+      *aHitStop = PR_TRUE;
+      
+      if (aStopSymbol == PRUnichar(0))
+        break;
 
       
+      REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
+      break;
+    }
+
+    if (eCSSToken_Symbol == mToken.mType &&
+        mToken.mSymbol == aStopSymbol) {
+      *aHitStop = PR_TRUE;
+      UngetToken();
+      break;
+    }
+    if (eCSSToken_Symbol == mToken.mType && mToken.mSymbol == ',') {
       
-      
-      nsresult rv = aMedia->AppendQuery(queryHolder);
+      break;
+    }
+    if (eCSSToken_Ident != mToken.mType ||
+        !mToken.mIdent.LowerCaseEqualsLiteral("and")) {
+      REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotComma);
+      UngetToken();
+      return PR_FALSE;
+    }
+    if (!ParseMediaQueryExpression(query)) {
+      OUTPUT_ERROR();
+      query->SetHadUnknownExpression();
+    }
+  }
+  *aQuery = query.forget();
+  return PR_TRUE;
+}
+
+
+
+PRBool
+CSSParserImpl::GatherMedia(nsMediaList* aMedia,
+                           PRUnichar aStopSymbol)
+{
+  for (;;) {
+    nsAutoPtr<nsMediaQuery> query;
+    PRBool parsedSomething, hitStop;
+    if (!ParseMediaQuery(aStopSymbol, getter_Transfers(query),
+                         &parsedSomething, &hitStop)) {
+      if (NS_FAILED(mScanner.GetLowLevelError())) {
+        return PR_FALSE;
+      }
+      SkipUntil(',');
+    }
+    if (parsedSomething) {
+      aMedia->SetNonEmpty();
+    }
+    if (query) {
+      nsresult rv = aMedia->AppendQuery(query);
       if (NS_FAILED(rv)) {
         mScanner.SetLowLevelError(rv);
         return PR_FALSE;
       }
-      NS_ASSERTION(!queryHolder, "ownership should have been transferred");
     }
-
-    if (ExpectSymbol('(', PR_TRUE)) {
-      
-      UngetToken(); 
-      query->SetType(nsGkAtoms::all);
-      query->SetTypeOmitted();
-      
-      if (!ParseMediaQueryExpression(query)) {
-        OUTPUT_ERROR();
-        query->SetHadUnknownExpression();
-      }
-    } else {
-      nsCOMPtr<nsIAtom> mediaType;
-      PRBool gotNotOrOnly = PR_FALSE;
-      for (;;) {
-        if (!GetToken(PR_TRUE)) {
-          REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
-          return PR_FALSE;
-        }
-        if (eCSSToken_Ident != mToken.mType) {
-          REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotIdent);
-          UngetToken();
-          return PR_FALSE;
-        }
-        
-        ToLowerCase(mToken.mIdent);
-        mediaType = do_GetAtom(mToken.mIdent);
-        if (gotNotOrOnly ||
-            (mediaType != nsGkAtoms::_not && mediaType != nsGkAtoms::only))
-          break;
-        gotNotOrOnly = PR_TRUE;
-        if (mediaType == nsGkAtoms::_not)
-          query->SetNegated();
-        else
-          query->SetHasOnly();
-      }
-      query->SetType(mediaType);
-    }
-
-    for (;;) {
-      if (!GetToken(PR_TRUE)) {
-        
-        if (aStopSymbol == PRUnichar(0))
-          return PR_TRUE;
-
-        
-        
-        
-        REPORT_UNEXPECTED_EOF(PEGatherMediaEOF);
-        return aStopSymbol == PRUnichar(';');
-      }
-
-      if (eCSSToken_Symbol == mToken.mType &&
-          mToken.mSymbol == aStopSymbol) {
-        UngetToken();
-        return PR_TRUE;
-      }
-      if (eCSSToken_Symbol == mToken.mType && mToken.mSymbol == ',') {
-        
-        break;
-      }
-      if (eCSSToken_Ident != mToken.mType ||
-          !mToken.mIdent.LowerCaseEqualsLiteral("and")) {
-        REPORT_UNEXPECTED_TOKEN(PEGatherMediaNotComma);
-        UngetToken();
-        return PR_FALSE;
-      }
-      if (!ParseMediaQueryExpression(query)) {
-        OUTPUT_ERROR();
-        query->SetHadUnknownExpression();
-      }
+    if (hitStop) {
+      break;
     }
   }
-  NS_NOTREACHED("unreachable code");
-  return PR_FALSE; 
+  return PR_TRUE;
 }
 
 PRBool
