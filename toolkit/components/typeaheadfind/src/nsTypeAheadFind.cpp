@@ -1002,8 +1002,17 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
 
       nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
       if (fm) {
-        fm->MoveCaretToFocus(window);
-        isFirstVisiblePreferred = PR_FALSE;
+        nsCOMPtr<nsIDOMElement> focusedElement;
+        nsCOMPtr<nsIDOMWindow> focusedWindow;
+        fm->GetFocusedElementForWindow(window, PR_FALSE, getter_AddRefs(focusedWindow),
+                                       getter_AddRefs(focusedElement));
+        
+        
+        if (focusedElement &&
+            !SameCOMIdentity(focusedElement, document->GetRootContent())) {
+          fm->MoveCaretToFocus(window);
+          isFirstVisiblePreferred = PR_FALSE;
+        }
       }
     }
   }
