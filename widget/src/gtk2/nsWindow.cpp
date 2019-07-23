@@ -1680,23 +1680,6 @@ nsWindow::SetCursor(imgIContainer* aCursor,
     return rv;
 }
 
-
-NS_IMETHODIMP
-nsWindow::Validate()
-{
-    
-    
-    if (!mGdkWindow)
-        return NS_OK;
-
-    GdkRegion *region = gdk_window_get_update_area(mGdkWindow);
-
-    if (region)
-        gdk_region_destroy(region);
-
-    return NS_OK;
-}
-
 NS_IMETHODIMP
 nsWindow::Invalidate(PRBool aIsSynchronous)
 {

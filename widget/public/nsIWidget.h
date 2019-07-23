@@ -669,12 +669,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Validate() = 0;
-
-    
-
-
-
 
 
 
