@@ -3332,7 +3332,11 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsStyleChangeList changeList;
   changeList.AppendChange(nsnull, aContent, nsChangeHint_ReconstructFrame);
 
+  
+  ++mChangeNestCount;
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
+  --mChangeNestCount;
+  
   mViewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 #ifdef ACCESSIBILITY
   InvalidateAccessibleSubtree(aContent);
@@ -6031,6 +6035,10 @@ PresShell::DidCauseReflow()
   if (--mChangeNestCount == 0) {
     
     
+
+    
+    
+    
     PostReflowEvent();
   }
 
@@ -6375,7 +6383,11 @@ PresShell::Observe(nsISupports* aSubject,
       nsStyleChangeList changeList;
       WalkFramesThroughPlaceholders(mPresContext, rootFrame,
                                     ReframeImageBoxes, &changeList);
+      
+      
+      ++mChangeNestCount;
       mFrameConstructor->ProcessRestyledFrames(changeList);
+      --mChangeNestCount;
 
       mViewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 #ifdef ACCESSIBILITY

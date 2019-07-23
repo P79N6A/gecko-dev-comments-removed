@@ -7009,7 +7009,12 @@ nsElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   }
   
   if (binding) {
-    binding->ExecuteAttachedHandler();
+    
+    PRBool safeToRunScript = PR_FALSE;
+    pctx->PresShell()->IsSafeToFlush(safeToRunScript);
+    if (safeToRunScript) {
+      binding->ExecuteAttachedHandler();
+    }
   }
 
   return NS_OK;
