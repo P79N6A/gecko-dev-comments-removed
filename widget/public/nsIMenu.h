@@ -53,9 +53,8 @@ class nsIMenuCommandDispatcher;
 
 
 #define NS_IMENU_IID \
-{ 0xFC5BCA9C, 0x4494, 0x4C0F, \
-  { 0xBE, 0xFD, 0xCB, 0x31, 0xBE, 0xBA, 0x15, 0x31 } }
-
+{ 0xa0aa02c5, 0x5549, 0x4228, \
+  { 0x85, 0x14, 0x10, 0x83, 0xc6, 0xe8, 0xaa, 0x5d } }
 
 
 
@@ -127,6 +126,20 @@ class nsIMenu : public nsISupports {
 
 
     NS_IMETHOD AddSeparator() = 0;
+
+   
+
+
+
+
+    NS_IMETHOD GetVisibleItemCount(PRUint32 &aCount) = 0;
+
+   
+
+
+
+
+    NS_IMETHOD GetVisibleItemAt(const PRUint32 aPos, nsISupports *& aMenuItem) = 0;
 
    
 
