@@ -363,6 +363,9 @@ public:
                                                     PRUint32 aAttrNum = 1,
                                                     nsIContent *aExcludeContent = nsnull,
                                                     nsIAtom *aTagType = nsAccessibilityAtoms::label);
+  
+  
+  static PRBool IsARIAPropForObjectAttr(nsIAtom *aAtom);
 };
 
 #endif
