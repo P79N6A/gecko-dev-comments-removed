@@ -166,6 +166,7 @@
 
 #include "nsWindowGfx.h"
 #include "gfxWindowsPlatform.h"
+#include "Layers.h"
 
 #if !defined(WINCE)
 #include "nsUXThemeConstants.h"
@@ -664,6 +665,12 @@ NS_METHOD nsWindow::Destroy()
 
   
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
+
+  
+
+
+
+  mLayerManager = NULL;
 
   
   
@@ -2898,6 +2905,30 @@ nsWindow::HasPendingInputEvent()
     return PR_FALSE;
   return GUI_INMOVESIZE == (guiInfo.flags & GUI_INMOVESIZE);
 #endif
+}
+
+
+
+
+
+
+
+
+
+mozilla::layers::LayerManager*
+nsWindow::GetLayerManager()
+{
+  nsWindow *topWindow = GetNSWindowPtr(GetTopLevelHWND(mWnd, PR_TRUE));
+
+  if (!topWindow) {
+    return nsBaseWidget::GetLayerManager();
+  }
+
+  if (topWindow->GetAcceleratedRendering() != mUseAcceleratedRendering) {
+    mLayerManager = NULL;
+    mUseAcceleratedRendering = topWindow->GetAcceleratedRendering();
+  }
+  return nsBaseWidget::GetLayerManager();
 }
 
 
