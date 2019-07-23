@@ -3420,7 +3420,10 @@ IsSpecialContent(nsIContent*     aContent,
       aTag == nsGkAtoms::mrow_   ||
       aTag == nsGkAtoms::merror_ ||
       aTag == nsGkAtoms::none   ||
-      aTag == nsGkAtoms::mprescripts_;
+      aTag == nsGkAtoms::mprescripts_ ||
+      (aTag == nsGkAtoms::mtable_ &&
+       aStyleContext->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_TABLE) ||
+      aTag == nsGkAtoms::math;
 #endif
   return PR_FALSE;
 }
@@ -6707,9 +6710,7 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
 
   
   
-  if (IsSpecialContent(aContent, aTag, aNameSpaceID, aStyleContext) ||
-      (aTag == nsGkAtoms::mtable_ && 
-       disp->mDisplay == NS_STYLE_DISPLAY_TABLE)) {
+  if (IsSpecialContent(aContent, aTag, aNameSpaceID, aStyleContext)) {
     
     if (!aHasPseudoParent && !aState.mPseudoFrames.IsEmpty()) {
       ProcessPseudoFrames(aState, aFrameItems); 
@@ -6768,6 +6769,7 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
     
     
     
+    
 
     nsStyleContext* parentContext = aParentFrame->GetStyleContext();
     nsStyleSet *styleSet = mPresShell->StyleSet();
@@ -6809,12 +6811,26 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
     
     
     
+    
+    nsPseudoFrames priorPseudoFrames; 
+    aState.mPseudoFrames.Reset(&priorPseudoFrames);
+
+    
+    
+    
     rv = ConstructTableFrame(aState, aContent, blockFrame, tableContext,
                              aNameSpaceID, PR_FALSE, tempItems, PR_FALSE,
                              outerTable, innerTable);
     
     
 
+    NS_ASSERTION(aState.mPseudoFrames.IsEmpty(),
+                 "How did we end up with pseudo-frames here?");
+
+    
+    
+    aState.mPseudoFrames = priorPseudoFrames;
+    
     
     blockFrame->SetInitialChildList(nsnull, outerTable);
 
