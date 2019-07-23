@@ -174,7 +174,12 @@ PRBool nsCSSDeclaration::AppendValueToString(nsCSSProperty aProperty, nsAString&
             ((aProperty == eCSSProperty_background_position ||
               aProperty == eCSSProperty__moz_transform_origin) &&
              pair->mXValue.GetUnit() != eCSSUnit_Inherit &&
-             pair->mXValue.GetUnit() != eCSSUnit_Initial)) {
+             pair->mXValue.GetUnit() != eCSSUnit_Initial) ||
+            (aProperty == eCSSProperty__moz_background_size &&
+             pair->mXValue.GetUnit() != eCSSUnit_Inherit &&
+             pair->mXValue.GetUnit() != eCSSUnit_Initial &&
+             pair->mXValue.GetUnit() != eCSSUnit_Enumerated)) {
+          
           
           
           
@@ -772,6 +777,8 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
         * data->ValueListStorageFor(eCSSProperty__moz_background_clip);
       const nsCSSValueList *origin =
         * data->ValueListStorageFor(eCSSProperty__moz_background_origin);
+      const nsCSSValuePairList *size =
+        * data->ValuePairListStorageFor(eCSSProperty__moz_background_size);
       for (;;) {
         AppendCSSValueToString(eCSSProperty_background_image,
                                image->mValue, aValue);
@@ -800,7 +807,7 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
     
           PR_STATIC_ASSERT(NS_STYLE_BG_CLIP_BORDER ==
                            NS_STYLE_BG_ORIGIN_BORDER);
-          PR_STATIC_ASSERT(NS_STYLE_BG_CLIP_PADDING == 
+          PR_STATIC_ASSERT(NS_STYLE_BG_CLIP_PADDING ==
                            NS_STYLE_BG_ORIGIN_PADDING);
           
           
@@ -824,16 +831,17 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
         position = position->mNext;
         clip = clip->mNext;
         origin = origin->mNext;
+        size = size->mNext;
 
         if (!image) {
-          if (repeat || attachment || position || clip || origin) {
+          if (repeat || attachment || position || clip || origin || size) {
             
             aValue.Truncate();
             return NS_OK;
           }
           break;
         }
-        if (!repeat || !attachment || !position || !clip || !origin) {
+        if (!repeat || !attachment || !position || !clip || !origin || !size) {
           
           aValue.Truncate();
           return NS_OK;

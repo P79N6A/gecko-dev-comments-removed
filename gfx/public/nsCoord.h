@@ -88,12 +88,29 @@ inline void VERIFY_COORD(nscoord aCoord) {
 #endif
 }
 
-inline nscoord NSCoordMultiply(nscoord aCoord, float aVal) {
+
+
+
+
+
+
+
+inline nscoord NSCoordSaturatingMultiply(nscoord aCoord, float aVal) {
   VERIFY_COORD(aCoord);
+  NS_ABORT_IF_FALSE(aVal >= 0.0f,
+                    "negative scaling factors must be handled manually");
 #ifdef NS_COORD_IS_FLOAT
-  return floorf(aCoord*aVal);
+  return floorf(aCoord * aVal);
 #else
-  return (PRInt32)(aCoord*aVal);
+  
+  NS_WARN_IF_FALSE(aCoord > 0
+                   ? floorf(aCoord * aVal) < nscoord_MAX
+                   : ceilf(aCoord * aVal) > nscoord_MIN,
+                   "nscoord multiplication capped");
+
+  if (aCoord > 0)
+    return PRInt32(PR_MIN(nscoord_MAX, aCoord * aVal));
+  return PRInt32(PR_MAX(nscoord_MIN, aCoord * aVal));
 #endif
 }
 

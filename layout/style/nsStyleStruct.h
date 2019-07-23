@@ -194,6 +194,40 @@ struct nsStyleBackground {
     }
   };
 
+  struct Size;
+  friend struct Size;
+  struct Size {
+    typedef union {
+      nscoord mCoord; 
+      float mFloat; 
+    } Dimension;
+    Dimension mWidth, mHeight;
+
+    enum DimensionType {
+      
+      
+      
+      eContain, eCover,
+
+      eAuto,
+      ePercentage,
+      eLength,
+      eDimensionType_COUNT
+    };
+    PRUint8 mWidthType, mHeightType;
+
+    
+    Size() {}
+
+    
+    void SetInitialValues();
+
+    PRBool operator==(const Size& aOther) const;
+    PRBool operator!=(const Size& aOther) const {
+      return !(*this == aOther);
+    }
+  };
+
   struct Layer;
   friend struct Layer;
   struct Layer {
@@ -203,6 +237,7 @@ struct nsStyleBackground {
     PRUint8 mRepeat;                    
     Position mPosition;                 
     nsCOMPtr<imgIRequest> mImage;       
+    Size mSize;                         
 
     
     Layer();
@@ -225,7 +260,8 @@ struct nsStyleBackground {
            mOriginCount,
            mRepeatCount,
            mPositionCount,
-           mImageCount;
+           mImageCount,
+           mSizeCount;
   
   
   

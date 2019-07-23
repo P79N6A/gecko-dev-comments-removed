@@ -44,6 +44,7 @@
 
 
 
+
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsIFrame.h"
@@ -1395,8 +1396,12 @@ IsSolidBorder(const nsStyleBorder& aBorder)
   return PR_TRUE;
 }
 
+
+
+
+
 static PRBool
-UseImageRequestForBackground(imgIRequest *aRequest)
+HaveCompleteBackgroundImage(imgIRequest *aRequest)
 {
   if (!aRequest)
     return PR_FALSE;
@@ -1496,37 +1501,37 @@ static nscolor
 DetermineBackgroundColorInternal(nsPresContext* aPresContext,
                                  const nsStyleBackground& aBackground,
                                  nsIFrame* aFrame,
-                                 PRBool* aDrawBackgroundImage,
-                                 PRBool* aDrawBackgroundColor,
+                                 PRBool& aDrawBackgroundImage,
+                                 PRBool& aDrawBackgroundColor,
                                  nsCOMPtr<imgIRequest>& aBottomImage)
 {
-  *aDrawBackgroundImage = PR_TRUE;
-  *aDrawBackgroundColor = PR_TRUE;
+  aDrawBackgroundImage = PR_TRUE;
+  aDrawBackgroundColor = PR_TRUE;
 
   if (aFrame->HonorPrintBackgroundSettings()) {
-    *aDrawBackgroundImage = aPresContext->GetBackgroundImageDraw();
-    *aDrawBackgroundColor = aPresContext->GetBackgroundColorDraw();
+    aDrawBackgroundImage = aPresContext->GetBackgroundImageDraw();
+    aDrawBackgroundColor = aPresContext->GetBackgroundColorDraw();
   }
 
   aBottomImage = aBackground.BottomLayer().mImage;
 
-  if (!aDrawBackgroundImage || !UseImageRequestForBackground(aBottomImage)) {
+  if (!aDrawBackgroundImage || !HaveCompleteBackgroundImage(aBottomImage)) {
     aBottomImage = nsnull;
   }
 
   nscolor bgColor;
-  if (*aDrawBackgroundColor) {
+  if (aDrawBackgroundColor) {
     bgColor = aBackground.mBackgroundColor;
     if (NS_GET_A(bgColor) == 0)
-      *aDrawBackgroundColor = PR_FALSE;
+      aDrawBackgroundColor = PR_FALSE;
   } else {
     
     
     
     
     bgColor = NS_RGB(255, 255, 255);
-    if (*aDrawBackgroundImage || !aBackground.IsTransparent())
-      *aDrawBackgroundColor = PR_TRUE;
+    if (aDrawBackgroundImage || !aBackground.IsTransparent())
+      aDrawBackgroundColor = PR_TRUE;
     else
       bgColor = NS_RGBA(0,0,0,0);
   }
@@ -1545,8 +1550,8 @@ nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
   return DetermineBackgroundColorInternal(aPresContext,
                                           aBackground,
                                           aFrame,
-                                          &drawBackgroundImage,
-                                          &drawBackgroundColor,
+                                          drawBackgroundImage,
+                                          drawBackgroundColor,
                                           bottomImage);
 }
 
@@ -1596,8 +1601,8 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   nscolor bgColor = DetermineBackgroundColorInternal(aPresContext,
                                                      aBackground,
                                                      aForFrame,
-                                                     &drawBackgroundImage,
-                                                     &drawBackgroundColor,
+                                                     drawBackgroundImage,
+                                                     drawBackgroundColor,
                                                      bottomImage);
 
   
@@ -1722,6 +1727,25 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   }
 }
 
+static inline float
+ScaleDimension(nsStyleBackground::Size::Dimension aDimension,
+               PRUint8 aType,
+               nscoord aLength, nscoord aAvailLength)
+{
+  switch (aType) {
+    case nsStyleBackground::Size::ePercentage:
+      return double(aDimension.mFloat) * (double(aAvailLength) / double(aLength));
+    case nsStyleBackground::Size::eLength:
+      return double(aDimension.mCoord) / double(aLength);
+    default:
+      NS_ABORT_IF_FALSE(PR_FALSE, "bad aDimension.mType");
+      return 1.0f;
+    case nsStyleBackground::Size::eAuto:
+      NS_ABORT_IF_FALSE(PR_FALSE, "aDimension.mType == eAuto isn't handled");
+      return 1.0f;
+  }
+}
+
 static void
 PaintBackgroundLayer(nsPresContext* aPresContext,
                      nsIRenderingContext& aRenderingContext,
@@ -1733,14 +1757,68 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
                      const nsStyleBackground::Layer& aLayer)
 {
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
   imgIRequest *req = aLayer.mImage;
-  if (!UseImageRequestForBackground(req)) {
-    
+  if (!HaveCompleteBackgroundImage(req))
     return;
-  }
 
   nsCOMPtr<imgIContainer> image;
   req->GetImage(getter_AddRefs(image));
+  req = nsnull;
 
   nsIntSize imageIntSize;
   image->GetWidth(&imageIntSize.width);
@@ -1750,27 +1828,33 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   imageSize.width = nsPresContext::CSSPixelsToAppUnits(imageIntSize.width);
   imageSize.height = nsPresContext::CSSPixelsToAppUnits(imageIntSize.height);
 
-  req = nsnull;
+  if (imageSize.width == 0 || imageSize.height == 0)
+    return;
 
   
-  nsRect bgOriginRect(0, 0, 0, 0);
+  nsRect bgPositioningArea(0, 0, 0, 0);
 
   nsIAtom* frameType = aForFrame->GetType();
   nsIFrame* geometryFrame = aForFrame;
   if (frameType == nsGkAtoms::inlineFrame ||
       frameType == nsGkAtoms::positionedInlineFrame) {
+    
+    
+    
+    
+    
     switch (aBackground.mBackgroundInlinePolicy) {
     case NS_STYLE_BG_INLINE_POLICY_EACH_BOX:
-      bgOriginRect = nsRect(nsPoint(0,0), aBorderArea.Size());
+      bgPositioningArea = nsRect(nsPoint(0,0), aBorderArea.Size());
       break;
     case NS_STYLE_BG_INLINE_POLICY_BOUNDING_BOX:
-      bgOriginRect = gInlineBGData->GetBoundingRect(aForFrame);
+      bgPositioningArea = gInlineBGData->GetBoundingRect(aForFrame);
       break;
     default:
       NS_ERROR("Unknown background-inline-policy value!  "
                "Please, teach me what to do.");
     case NS_STYLE_BG_INLINE_POLICY_CONTINUOUS:
-      bgOriginRect = gInlineBGData->GetContinuousRect(aForFrame);
+      bgPositioningArea = gInlineBGData->GetContinuousRect(aForFrame);
       break;
     }
   } else if (frameType == nsGkAtoms::canvasFrame) {
@@ -1780,10 +1864,10 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
     
     
     if (geometryFrame) {
-      bgOriginRect = geometryFrame->GetRect();
+      bgPositioningArea = geometryFrame->GetRect();
     }
   } else {
-    bgOriginRect = nsRect(nsPoint(0,0), aBorderArea.Size());
+    bgPositioningArea = nsRect(nsPoint(0,0), aBorderArea.Size());
   }
 
   
@@ -1791,11 +1875,11 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   if (aLayer.mOrigin != NS_STYLE_BG_ORIGIN_BORDER && geometryFrame) {
     nsMargin border = geometryFrame->GetUsedBorder();
     geometryFrame->ApplySkipSides(border);
-    bgOriginRect.Deflate(border);
+    bgPositioningArea.Deflate(border);
     if (aLayer.mOrigin != NS_STYLE_BG_ORIGIN_PADDING) {
       nsMargin padding = geometryFrame->GetUsedPadding();
       geometryFrame->ApplySkipSides(padding);
-      bgOriginRect.Deflate(padding);
+      bgPositioningArea.Deflate(padding);
       NS_ASSERTION(aLayer.mOrigin == NS_STYLE_BG_ORIGIN_CONTENT,
                    "unknown background-origin value");
     }
@@ -1805,7 +1889,7 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   
   
   
-  nsPoint imageTopLeft, anchor;
+  nsPoint imageTopLeft, anchor, offset;
   if (NS_STYLE_BG_ATTACHMENT_FIXED == aLayer.mAttachment) {
     
     
@@ -1827,7 +1911,8 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
       
     }
 
-    nsRect viewportArea(nsPoint(0, 0), topFrame->GetSize());
+    
+    bgPositioningArea.SetRect(nsPoint(0, 0), topFrame->GetSize());
 
     if (!pageContentFrame) {
       
@@ -1835,29 +1920,70 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
         aPresContext->PresShell()->GetRootScrollFrameAsScrollable();
       if (scrollableFrame) {
         nsMargin scrollbars = scrollableFrame->GetActualScrollbarSizes();
-        viewportArea.Deflate(scrollbars);
+        bgPositioningArea.Deflate(scrollbars);
       }
     }
-     
-    
-    ComputeBackgroundAnchorPoint(aLayer, viewportArea.Size(), imageSize,
-                                 &imageTopLeft, &anchor);
 
-    
-    
-    nsPoint offset = viewportArea.TopLeft() - aForFrame->GetOffsetTo(topFrame);
-    imageTopLeft += offset;
-    anchor += offset;
+    offset = bgPositioningArea.TopLeft() - aForFrame->GetOffsetTo(topFrame);
   } else {
-    ComputeBackgroundAnchorPoint(aLayer, bgOriginRect.Size(), imageSize,
-                                 &imageTopLeft, &anchor);
-    imageTopLeft += bgOriginRect.TopLeft();
-    anchor += bgOriginRect.TopLeft();
+    offset = bgPositioningArea.TopLeft();
   }
+     
+  
+  
+  
+  float scaleX, scaleY;
+  switch (aLayer.mSize.mWidthType) {
+    case nsStyleBackground::Size::eContain:
+    case nsStyleBackground::Size::eCover: {
+      float scaleFitX = double(bgPositioningArea.width) / imageSize.width;
+      float scaleFitY = double(bgPositioningArea.height) / imageSize.height;
+      if (aLayer.mSize.mWidthType == nsStyleBackground::Size::eCover) {
+        scaleX = scaleY = PR_MAX(scaleFitX, scaleFitY);
+      } else {
+        scaleX = scaleY = PR_MIN(scaleFitX, scaleFitY);
+      }
+      break;
+    }
+    default: {
+      if (aLayer.mSize.mWidthType == nsStyleBackground::Size::eAuto) {
+        if (aLayer.mSize.mHeightType == nsStyleBackground::Size::eAuto) {
+          scaleX = scaleY = 1.0f;
+        } else {
+          scaleX = scaleY =
+            ScaleDimension(aLayer.mSize.mHeight, aLayer.mSize.mHeightType,
+                           imageSize.height, bgPositioningArea.height);
+        }
+      } else {
+        if (aLayer.mSize.mHeightType == nsStyleBackground::Size::eAuto) {
+          scaleX = scaleY =
+            ScaleDimension(aLayer.mSize.mWidth, aLayer.mSize.mWidthType,
+                           imageSize.width, bgPositioningArea.width);
+        } else {
+          scaleX = ScaleDimension(aLayer.mSize.mWidth, aLayer.mSize.mWidthType,
+                                  imageSize.width, bgPositioningArea.width);
+          scaleY = ScaleDimension(aLayer.mSize.mHeight, aLayer.mSize.mHeightType,
+                                  imageSize.height, bgPositioningArea.height);
+        }
+      }
+      break;
+    }
+  }
+  imageSize.width = NSCoordSaturatingMultiply(imageSize.width, scaleX);
+  imageSize.height = NSCoordSaturatingMultiply(imageSize.height, scaleY);
+
+  
+  
+  ComputeBackgroundAnchorPoint(aLayer, bgPositioningArea.Size(), imageSize,
+                               &imageTopLeft, &anchor);
+  imageTopLeft += offset;
+  anchor += offset;
 
   nsRect destArea(imageTopLeft + aBorderArea.TopLeft(), imageSize);
   nsRect fillArea = destArea;
   PRIntn repeat = aLayer.mRepeat;
+  PR_STATIC_ASSERT(NS_STYLE_BG_REPEAT_XY ==
+                   (NS_STYLE_BG_REPEAT_X | NS_STYLE_BG_REPEAT_Y));
   if (repeat & NS_STYLE_BG_REPEAT_X) {
     fillArea.x = aBGClipRect.x;
     fillArea.width = aBGClipRect.width;

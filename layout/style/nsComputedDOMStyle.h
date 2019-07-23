@@ -175,6 +175,7 @@ private:
   nsresult GetBackgroundClip(nsIDOMCSSValue** aValue);
   nsresult GetBackgroundInlinePolicy(nsIDOMCSSValue** aValue);
   nsresult GetBackgroundOrigin(nsIDOMCSSValue** aValue);
+  nsresult GetMozBackgroundSize(nsIDOMCSSValue** aValue);
 
   
   nsresult GetPadding(nsIDOMCSSValue** aValue);

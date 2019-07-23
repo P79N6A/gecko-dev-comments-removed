@@ -43,6 +43,7 @@
 
 
 
+
 #include "nsICSSParser.h"
 #include "nsCSSProps.h"
 #include "nsCSSKeywords.h"
@@ -407,6 +408,7 @@ protected:
     nsCSSValuePair mPosition;
     nsCSSValue mClip;
     nsCSSValue mOrigin;
+    nsCSSValuePair mSize;
     
     
     PRBool mLastItem;
@@ -421,6 +423,8 @@ protected:
   PRBool ParseBackgroundList(nsCSSProperty aPropID); 
   PRBool ParseBackgroundPosition();
   PRBool ParseBoxPositionValues(nsCSSValuePair& aOut);
+  PRBool ParseBackgroundSize();
+  PRBool ParseBackgroundSizeValues(nsCSSValuePair& aOut);
   PRBool ParseBorderColor();
   PRBool ParseBorderColors(nsCSSValueList** aResult,
                            nsCSSProperty aProperty);
@@ -5061,6 +5065,8 @@ CSSParserImpl::ParseProperty(nsCSSProperty aPropID)
   case eCSSProperty__moz_background_origin:
   case eCSSProperty_background_repeat:
     return ParseBackgroundList(aPropID);
+  case eCSSProperty__moz_background_size:
+    return ParseBackgroundSize();
   case eCSSProperty_border:
     return ParseBorderSide(kBorderTopIDs, PR_TRUE);
   case eCSSProperty_border_color:
@@ -5341,6 +5347,7 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
   case eCSSProperty_border_start:
   case eCSSProperty_border_top:
   case eCSSProperty_border_width:
+  case eCSSProperty__moz_background_size:
   case eCSSProperty__moz_border_radius:
   case eCSSProperty__moz_border_radius_topLeft:
   case eCSSProperty__moz_border_radius_topRight:
@@ -5986,6 +5993,7 @@ CSSParserImpl::ParseBackground()
 
   BackgroundItem bgitem;
   nsCSSValuePairList *positionHead = nsnull, **positionTail = &positionHead;
+  nsCSSValuePairList *sizeHead = nsnull, **sizeTail = &sizeHead;
   static const BackgroundItemSimpleValueInfo simpleValues[] = {
     { &BackgroundItem::mImage,      eCSSProperty_background_image },
     { &BackgroundItem::mRepeat,     eCSSProperty_background_repeat },
@@ -6003,6 +6011,7 @@ CSSParserImpl::ParseBackground()
     if (!ParseBackgroundItem(bgitem, !positionHead)) {
       break;
     }
+
     nsCSSValuePairList *positionItem = new nsCSSValuePairList;
     if (!positionItem) {
       mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
@@ -6012,6 +6021,16 @@ CSSParserImpl::ParseBackground()
     positionItem->mYValue = bgitem.mPosition.mYValue;
     *positionTail = positionItem;
     positionTail = &positionItem->mNext;
+
+    nsCSSValuePairList *sizeItem = new nsCSSValuePairList;
+    if (!sizeItem) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      break;
+    }
+    sizeItem->mXValue = bgitem.mSize.mXValue;
+    sizeItem->mYValue = bgitem.mSize.mYValue;
+    *sizeTail = sizeItem;
+    sizeTail = &sizeItem->mNext;
 
     PRBool fail = PR_FALSE;
     for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(simpleValues); ++i) {
@@ -6037,6 +6056,7 @@ CSSParserImpl::ParseBackground()
     }
 
     mTempData.mColor.mBackPosition = positionHead;
+    mTempData.mColor.mBackSize = sizeHead;
     for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(simpleValues); ++i) {
       nsCSSValueList **source = static_cast<nsCSSValueList**>(
         mTempData.PropertyAt(simpleValues[i].propID));
@@ -6049,9 +6069,11 @@ CSSParserImpl::ParseBackground()
     mTempData.SetPropertyBit(eCSSProperty_background_position);
     mTempData.SetPropertyBit(eCSSProperty__moz_background_clip);
     mTempData.SetPropertyBit(eCSSProperty__moz_background_origin);
+    mTempData.SetPropertyBit(eCSSProperty__moz_background_size);
     return PR_TRUE;
   }
   delete positionHead;
+  delete sizeHead;
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(simpleValues); ++i) {
     delete simpleHeads[i];
   }
@@ -6073,6 +6095,8 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundItem& aItem,
   aItem.mPosition.mYValue.SetPercentValue(0.0f);
   aItem.mClip.SetIntValue(NS_STYLE_BG_CLIP_BORDER, eCSSUnit_Enumerated);
   aItem.mOrigin.SetIntValue(NS_STYLE_BG_ORIGIN_PADDING, eCSSUnit_Enumerated);
+  aItem.mSize.mXValue.SetAutoValue();
+  aItem.mSize.mYValue.SetAutoValue();
   aItem.mLastItem = PR_FALSE;
 
   PRBool haveColor = PR_FALSE,
@@ -6113,6 +6137,8 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundItem& aItem,
         aItem.mPosition.SetBothValuesTo(val);
         aItem.mClip = val;
         aItem.mOrigin = val;
+        aItem.mSize.mXValue = val;
+        aItem.mSize.mYValue = val;
         aItem.mLastItem = PR_TRUE;
         haveSomething = PR_TRUE;
         break;
@@ -6229,6 +6255,7 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundItem& aItem,
 
   return haveSomething;
 }
+
 
 
 PRBool
@@ -6395,6 +6422,90 @@ PRBool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut)
   
   xValue = BoxPositionMaskToCSSValue(mask, PR_TRUE);
   yValue = BoxPositionMaskToCSSValue(mask, PR_FALSE);
+  return PR_TRUE;
+}
+
+
+
+PRBool
+CSSParserImpl::ParseBackgroundSize()
+{
+  nsCSSValuePair valuePair;
+  nsCSSValuePairList *head = nsnull, **tail = &head;
+  if (ParseVariant(valuePair.mXValue, VARIANT_INHERIT, nsnull)) {
+    
+    head = new nsCSSValuePairList;
+    if (!head) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      return PR_FALSE;
+    }
+    head->mXValue = valuePair.mXValue;
+    head->mYValue.Reset();
+    mTempData.mColor.mBackSize = head;
+    mTempData.SetPropertyBit(eCSSProperty__moz_background_size);
+    return ExpectEndProperty();
+  }
+
+  for (;;) {
+    if (!ParseBackgroundSizeValues(valuePair)) {
+      break;
+    }
+    nsCSSValuePairList *item = new nsCSSValuePairList;
+    if (!item) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      break;
+    }
+    item->mXValue = valuePair.mXValue;
+    item->mYValue = valuePair.mYValue;
+    *tail = item;
+    tail = &item->mNext;
+    if (ExpectSymbol(',', PR_TRUE)) {
+      continue;
+    }
+    if (!ExpectEndProperty()) {
+      break;
+    }
+    mTempData.mColor.mBackSize = head;
+    mTempData.SetPropertyBit(eCSSProperty__moz_background_size);
+    return PR_TRUE;
+  }
+  delete head;
+  return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+
+PRBool CSSParserImpl::ParseBackgroundSizeValues(nsCSSValuePair &aOut)
+{
+  
+  nsCSSValue &xValue = aOut.mXValue,
+             &yValue = aOut.mYValue;
+  if (ParseNonNegativeVariant(xValue, VARIANT_LP | VARIANT_AUTO, nsnull)) {
+    
+    
+    if (ParseNonNegativeVariant(yValue, VARIANT_LP | VARIANT_AUTO, nsnull)) {
+      
+      return PR_TRUE;
+    }
+
+    
+    
+    yValue.SetAutoValue();
+    return PR_TRUE;
+  }
+
+  
+  if (!ParseEnum(xValue, nsCSSProps::kBackgroundSizeKTable))
+    return PR_FALSE;
+  yValue.Reset();
   return PR_TRUE;
 }
 
