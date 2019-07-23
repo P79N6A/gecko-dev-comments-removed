@@ -72,6 +72,7 @@
 #include "ssl.h"
 #include "cert.h"
 #include "ocsp.h"
+#include "nssb64.h"
 
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
@@ -1034,4 +1035,161 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
   }
 
   return rv;
+}
+
+struct OCSPDefaultResponders {
+    const char *issuerName_string;
+    CERTName *issuerName;
+    const char *issuerKeyID_base64;
+    SECItem *issuerKeyID;
+    const char *ocspUrl;
+};
+
+static struct OCSPDefaultResponders myDefaultOCSPResponders[] = {
+  
+  {
+    "CN=AddTrust External CA Root,OU=AddTrust External TTP Network,O=AddTrust AB,C=SE",
+    nsnull, "rb2YejS0Jvf6xCZU7wO94CTLVBo=", nsnull,
+    "http://ocsp.comodoca.com"
+  },
+  {
+    "CN=COMODO Certification Authority,O=COMODO CA Limited,L=Salford,ST=Greater Manchester,C=GB",
+    nsnull, "C1jli8ZMFTekQKkwqSG+RzZaVv8=", nsnull,
+    "http://ocsp.comodoca.com"
+  },
+  {
+    "CN=COMODO EV SGC CA,O=COMODO CA Limited,L=Salford,ST=Greater Manchester,C=GB",
+    nsnull, "f/ZMNigUrs0eN6/eWvJbw6CsK/4=", nsnull,
+    "http://ocsp.comodoca.com"
+  },
+  {
+    "CN=COMODO EV SSL CA,O=COMODO CA Limited,L=Salford,ST=Greater Manchester,C=GB",
+    nsnull, "aRZJ7LZ1ZFrpAyNgL1RipTRcPuI=", nsnull,
+    "http://ocsp.comodoca.com"
+  },
+  {
+    "CN=UTN - DATACorp SGC,OU=http://www.usertrust.com,O=The USERTRUST Network,L=Salt Lake City,ST=UT,C=US",
+    nsnull, "UzLRs89/+uDxoF2FTpLSnkUdtE8=", nsnull,
+    "http://ocsp.usertrust.com"
+  },
+  {
+    "CN=UTN-USERFirst-Hardware,OU=http://www.usertrust.com,O=The USERTRUST Network,L=Salt Lake City,ST=UT,C=US",
+    nsnull, "oXJfJhsomEOVXQc31YWWnUvSw0U=", nsnull,
+    "http://ocsp.usertrust.com"
+  },
+  
+  {
+    "CN=Network Solutions Certificate Authority,O=Network Solutions L.L.C.,C=US",
+    nsnull, "ITDJ+wDXTpjah6oq0KcusUAxp0w=", nsnull,
+    "http://ocsp.netsolssl.com"
+  },
+  {
+    "CN=Network Solutions EV SSL CA,O=Network Solutions L.L.C.,C=US",
+    nsnull, "tk6FnYQfGx3UUolOB5Yt+d7xj8w=", nsnull,
+    "http://ocsp.netsolssl.com"
+  }
+};
+
+static const unsigned int numResponders =
+    (sizeof myDefaultOCSPResponders) / (sizeof myDefaultOCSPResponders[0]);
+
+static CERT_StringFromCertFcn oldOCSPAIAInfoCallback = nsnull;
+
+
+
+
+
+
+
+char* PR_CALLBACK MyAlternateOCSPAIAInfoCallback(CERTCertificate *cert) {
+  if (cert && !cert->isRoot) {
+    unsigned int i;
+    for (i=0; i < numResponders; i++) {
+      if (!(myDefaultOCSPResponders[i].issuerName));
+      else if (!(myDefaultOCSPResponders[i].issuerKeyID));
+      else if (!(cert->authKeyID));
+      else if (CERT_CompareName(myDefaultOCSPResponders[i].issuerName,
+                                &(cert->issuer)) != SECEqual);
+      else if (SECITEM_CompareItem(myDefaultOCSPResponders[i].issuerKeyID,
+                                   &(cert->authKeyID->keyID)) != SECEqual);
+      else        
+        return PORT_Strdup(myDefaultOCSPResponders[i].ocspUrl);
+    }
+  }
+
+  
+  
+  if (oldOCSPAIAInfoCallback)
+    return (*oldOCSPAIAInfoCallback)(cert);
+
+  return nsnull;
+}
+
+void cleanUpMyDefaultOCSPResponders() {
+  unsigned int i;
+
+  for (i=0; i < numResponders; i++) {
+    if (myDefaultOCSPResponders[i].issuerName) {
+      CERT_DestroyName(myDefaultOCSPResponders[i].issuerName);
+      myDefaultOCSPResponders[i].issuerName = nsnull;
+    }
+    if (myDefaultOCSPResponders[i].issuerKeyID) {
+      SECITEM_FreeItem(myDefaultOCSPResponders[i].issuerKeyID, PR_TRUE);
+      myDefaultOCSPResponders[i].issuerKeyID = nsnull;
+    }
+  }
+}
+
+SECStatus RegisterMyOCSPAIAInfoCallback() {
+  
+  if (myDefaultOCSPResponders[0].issuerName)
+    return SECSuccess;                 
+
+  
+  SECStatus rv = SECFailure;
+  unsigned int i;
+  for (i=0; i < numResponders; i++) {
+    
+    myDefaultOCSPResponders[i].issuerName = CERT_AsciiToName(
+      const_cast<char*>(myDefaultOCSPResponders[i].issuerName_string));
+    if (!(myDefaultOCSPResponders[i].issuerName))
+      goto loser;
+    
+    myDefaultOCSPResponders[i].issuerKeyID = NSSBase64_DecodeBuffer(nsnull,
+          nsnull, myDefaultOCSPResponders[i].issuerKeyID_base64,
+          (PRUint32)PORT_Strlen(myDefaultOCSPResponders[i].issuerKeyID_base64));
+    if (!(myDefaultOCSPResponders[i].issuerKeyID))
+      goto loser;
+  }
+
+  
+  rv = CERT_RegisterAlternateOCSPAIAInfoCallBack(MyAlternateOCSPAIAInfoCallback,
+                                                 &oldOCSPAIAInfoCallback);
+  if (rv != SECSuccess)
+    goto loser;
+
+  return SECSuccess;
+
+loser:
+  cleanUpMyDefaultOCSPResponders();
+  return rv;
+}
+
+SECStatus UnregisterMyOCSPAIAInfoCallback() {
+  SECStatus rv;
+
+  
+  if (!(myDefaultOCSPResponders[0].issuerName))
+    return SECFailure;
+
+  
+  rv = CERT_RegisterAlternateOCSPAIAInfoCallBack(oldOCSPAIAInfoCallback,
+                                                 nsnull);
+  if (rv != SECSuccess)
+    return rv;
+
+  
+  oldOCSPAIAInfoCallback = nsnull;
+  cleanUpMyDefaultOCSPResponders();
+  return SECSuccess;
 }
