@@ -849,6 +849,11 @@ nsresult imgFrame::LockImageData()
 #endif
   }
 
+  
+  
+  if (mImageSurface)
+    mImageSurface->Flush();
+
   return NS_OK;
 }
 
@@ -864,7 +869,13 @@ nsresult imgFrame::UnlockImageData()
 
   mLocked = PR_FALSE;
 
+  
+  if (mImageSurface)
+    mImageSurface->MarkDirty();
+
 #ifdef XP_MACOSX
+  
+  
   if (mQuartzSurface)
     mQuartzSurface->Flush();
 #endif
