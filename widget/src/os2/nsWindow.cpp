@@ -79,6 +79,9 @@
 
 #include "imgIContainer.h"
 
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
+
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -2068,76 +2071,113 @@ void nsWindow::FreeNativeData(void * data, PRUint32 aDataType)
 
 
 
-BOOL nsWindow::NotifyForeignChildWindows(HWND aWnd)
-{
-  HENUM hEnum = WinBeginEnumWindows(aWnd);
-  HWND hwnd;
 
-  while ((hwnd = WinGetNextWindow(hEnum)) != NULLHANDLE) {
-    char className[19];
-    WinQueryClassName(hwnd, 19, className);
-    if (strcmp(className, WindowClass()) != 0) {
-      
-      
-      WinSendMsg(hwnd, WM_VRNDISABLED, MPVOID, MPVOID);
-    } else {
-      
-      NotifyForeignChildWindows(hwnd);
+
+
+
+
+
+
+
+nsresult
+nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
+{
+  
+  for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+    const Configuration& configuration = aConfigurations[i];
+    nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+    NS_ASSERTION(w->GetParent() == this,
+                 "Configured widget is not a child");
+
+    
+    const nsTArray<nsIntRect>& rects = configuration.mClipRegion;
+    nsIntRect r;
+    for (PRUint32 i = 0; i < rects.Length(); ++i)
+      r.UnionRect(r, rects[i]);
+
+    
+    
+    
+    w->Resize(configuration.mBounds.x, configuration.mBounds.y,
+              r.width + r.x, r.height + r.y, PR_TRUE);
+
+    
+    
+    
+    
+    HWND hwnd = WinQueryWindow( w->mWnd, QW_TOP);
+    ::WinSetWindowPos(hwnd, 0, 0, 0,
+                      configuration.mBounds.width, configuration.mBounds.height,
+                      SWP_MOVE | SWP_SIZE);
+
+    
+    
+    w->Show(!configuration.mClipRegion.IsEmpty());
+    w->StoreWindowClipRegion(configuration.mClipRegion);
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+
+void nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
+                      const nsTArray<Configuration>& aConfigurations)
+{
+  
+  nsTHashtable<nsPtrHashKey<nsWindow> > scrolledWidgets;
+  scrolledWidgets.Init();
+  for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+    const Configuration& configuration = aConfigurations[i];
+    nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+    NS_ASSERTION(w->GetParent() == this,
+                 "Configured widget is not a child");
+    if (configuration.mBounds.TopLeft() == w->mBounds.TopLeft() + aDelta)
+      scrolledWidgets.PutEntry(w);
+  }
+
+  nsIntRect affectedRect;
+  affectedRect.UnionRect(aSource, aSource + aDelta);
+  ULONG flags = SW_INVALIDATERGN;
+
+  
+  
+  
+  
+  for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
+       w = static_cast<nsWindow*>(w->GetNextSibling())) {
+    if (w->mBounds.Intersects(affectedRect)) {
+      flags |= SW_SCROLLCHILDREN;
+      if (!scrolledWidgets.GetEntry(w)) {
+        flags &= ~SW_SCROLLCHILDREN;
+        break;
+      }
     }
   }
-  return WinEndEnumWindows(hEnum);
-}
 
-
-
-
-
-
-void nsWindow::ScrollChildWindows(PRInt32 aX, PRInt32 aY)
-{
-  nsIWidget *child = GetFirstChild();
-  while (child) {
-    nsIntRect rect;
-    child->GetBounds(rect);
-    child->Resize(rect.x + aX, rect.y + aY, rect.width, rect.height, PR_FALSE);
-    child = child->GetNextSibling();
-  }
-}
-
-
-
-
-
-NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsIntRect *aClipRect)
-{
-  RECTL rcl;
-
-  if (nsnull != aClipRect)
-  {
-    rcl.xLeft = aClipRect->x;
-    rcl.yBottom = aClipRect->y + aClipRect->height;
-    rcl.xRight = rcl.xLeft + aClipRect->width;
-    rcl.yTop = rcl.yBottom + aClipRect->height;
-    NS2PM(rcl);
-    
-  }
+  RECTL clip;
+  clip.xLeft   = affectedRect.x;
+  clip.xRight  = affectedRect.x + affectedRect.width;
+  clip.yTop    = mBounds.height - affectedRect.y;
+  clip.yBottom = clip.yTop - affectedRect.height;
 
   
   
   
   HPS hps = 0;
   CheckDragStatus(ACTION_SCROLL, &hps);
+  ::WinScrollWindow(mWnd, aDelta.x, -aDelta.y, &clip, &clip, NULL, NULL, flags);
 
-  NotifyForeignChildWindows(mWnd);
-  WinScrollWindow(mWnd, aDx, -aDy, aClipRect ? &rcl : 0, 0, 0,
-                  0, SW_SCROLLCHILDREN | SW_INVALIDATERGN);
-  ScrollChildWindows(aDx, aDy);
+  
+  
+  ConfigureChildren(aConfigurations);
   Update();
 
   if (hps)
     ReleaseIfDragHPS(hps);
-
-  return NS_OK;
 }
 
 
