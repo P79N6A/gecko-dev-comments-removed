@@ -34,6 +34,13 @@ public:
 
     QVariant inputMethodQuery(Qt::InputMethodQuery aQuery) const;
 
+    
+
+
+    void showVKB();
+    void hideVKB();
+    bool isVKBOpen();
+
 protected:
     virtual void contextMenuEvent(QGraphicsSceneContextMenuEvent* aEvent);
     virtual void dragEnterEvent(QGraphicsSceneDragDropEvent* aEvent);
