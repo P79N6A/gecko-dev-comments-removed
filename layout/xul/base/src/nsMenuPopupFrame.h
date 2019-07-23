@@ -205,8 +205,7 @@ public:
   
   
   
-  
-  nsresult SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove = PR_FALSE);
+  nsresult SetPopupPosition(nsIFrame* aAnchorFrame);
 
   PRBool HasGeneratedChildren() { return mGeneratedChildren; }
   void SetGeneratedChildren() { mGeneratedChildren = PR_TRUE; }
@@ -295,6 +294,25 @@ public:
   
   void SetPreferredSize(nsSize aSize) { mPrefSize = aSize; }
 
+  
+  
+  
+  
+  
+  nsRect GetConstraintRect(nsPoint aAnchorPoint, nsRect& aRootScreenRect);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange);
+
 protected:
 
   
@@ -323,11 +341,13 @@ protected:
   
   
   
+  
   nscoord FlipOrResize(nscoord& aScreenPoint, nscoord aSize, 
                        nscoord aScreenBegin, nscoord aScreenEnd,
                        nscoord aAnchorBegin, nscoord aAnchorEnd,
                        nscoord aMarginBegin, nscoord aMarginEnd,
-                       nscoord aOffsetForContextMenu, PRBool aFlip);
+                       nscoord aOffsetForContextMenu, PRBool aFlip,
+                       PRPackedBool* aFlipSide);
 
   
   void MoveToAttributePosition();
@@ -373,6 +393,10 @@ protected:
   PRPackedBool mShouldAutoPosition; 
   PRPackedBool mConsumeRollupEvent; 
   PRPackedBool mInContentShell; 
+
+  
+  PRPackedBool mHFlip;
+  PRPackedBool mVFlip;
 
   static PRInt8 sDefaultLevelParent;
 }; 

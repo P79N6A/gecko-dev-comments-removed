@@ -120,7 +120,9 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mMenuCanOverlapOSBar(PR_FALSE),
   mShouldAutoPosition(PR_TRUE),
   mConsumeRollupEvent(nsIPopupBoxObject::ROLLUP_DEFAULT),
-  mInContentShell(PR_TRUE)
+  mInContentShell(PR_TRUE),
+  mHFlip(PR_FALSE),
+  mVFlip(PR_FALSE)
 {
   if (sDefaultLevelParent >= 0)
     return;
@@ -674,7 +676,8 @@ nsMenuPopupFrame::HidePopup(PRBool aDeselectMenu, nsPopupState aNewState)
 
   mIsOpenChanged = PR_FALSE;
   mCurrentMenu = nsnull; 
- 
+  mHFlip = mVFlip = PR_FALSE;
+
   nsIView* view = GetView();
   nsIViewManager* viewManager = view->GetViewManager();
   viewManager->SetViewVisibility(view, nsViewVisibility_kHide);
@@ -817,10 +820,10 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
                                nscoord aScreenBegin, nscoord aScreenEnd,
                                nscoord aAnchorBegin, nscoord aAnchorEnd,
                                nscoord aMarginBegin, nscoord aMarginEnd,
-                               nscoord aOffsetForContextMenu, PRBool aFlip)
+                               nscoord aOffsetForContextMenu, PRBool aFlip,
+                               PRPackedBool* aFlipSide)
 {
   
-
   nscoord popupSize = aSize;
   if (aScreenPoint < aScreenBegin) {
     
@@ -835,6 +838,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       else {
         
         
+        *aFlipSide = PR_TRUE;
         aScreenPoint = aAnchorEnd + aMarginEnd;
         
         
@@ -864,6 +868,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
       else {
         
         
+        *aFlipSide = PR_TRUE;
         aScreenPoint = aAnchorBegin - aSize - aMarginBegin - aOffsetForContextMenu;
         
         
@@ -884,9 +889,9 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
 }
 
 nsresult
-nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
+nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 {
-  if (!mShouldAutoPosition && !aIsMove && !mInContentShell)
+  if (!mShouldAutoPosition)
     return NS_OK;
 
   nsPresContext* presContext = PresContext();
@@ -1024,45 +1029,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
     vFlip = PR_TRUE;
   }
 
-  
-  
-  if (aIsMove && mPopupType == ePopupTypePanel && !mInContentShell)
-    hFlip = vFlip = PR_FALSE;
-
-  
-  
-  
-  
-  nsIntRect screenRectPixels;
-  nsCOMPtr<nsIScreen> screen;
-  nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
-  if (sm) {
-    
-    
-    
-    
-    nsPoint pnt = mInContentShell ? rootScreenRect.TopLeft() : anchorRect.TopLeft();
-    sm->ScreenForRect(presContext->AppUnitsToDevPixels(pnt.x),
-                      presContext->AppUnitsToDevPixels(pnt.y),
-                      1, 1, getter_AddRefs(screen));
-    if (screen) {
-      if (mMenuCanOverlapOSBar)
-        screen->GetRect(&screenRectPixels.x, &screenRectPixels.y,
-                        &screenRectPixels.width, &screenRectPixels.height);
-      else
-        screen->GetAvailRect(&screenRectPixels.x, &screenRectPixels.y,
-                             &screenRectPixels.width, &screenRectPixels.height);
-    }
-  }
-  nsRect screenRect = screenRectPixels.ToAppUnits(presContext->AppUnitsPerDevPixel());
-
-  
-  screenRect.SizeBy(-nsPresContext::CSSPixelsToAppUnits(3),
-                    -nsPresContext::CSSPixelsToAppUnits(3));
-
-  
-  if (mInContentShell)
-    screenRect.IntersectRect(screenRect, rootScreenRect);
+  nsRect screenRect = GetConstraintRect(anchorRect.TopLeft(), rootScreenRect);
 
   
   if (!anchorRect.IntersectRect(anchorRect, screenRect)) {
@@ -1091,10 +1058,11 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   
   mRect.width = FlipOrResize(screenPoint.x, mRect.width, screenRect.x,
                              screenRect.XMost(), anchorRect.x, anchorRect.XMost(),
-                             margin.left, margin.right, offsetForContextMenu, hFlip);
+                             margin.left, margin.right, offsetForContextMenu, hFlip, &mHFlip);
+
   mRect.height = FlipOrResize(screenPoint.y, mRect.height, screenRect.y,
                               screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
-                              margin.top, margin.bottom, offsetForContextMenu, vFlip);
+                              margin.top, margin.bottom, offsetForContextMenu, vFlip, &mVFlip);
 
   NS_ASSERTION(screenPoint.x >= screenRect.x && screenPoint.y >= screenRect.y &&
                screenPoint.x + mRect.width <= screenRect.XMost() &&
@@ -1123,6 +1091,79 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
 nsMenuPopupFrame::GetCurrentMenuItem()
 {
   return mCurrentMenu;
+}
+
+nsRect
+nsMenuPopupFrame::GetConstraintRect(nsPoint aAnchorPoint, nsRect& aRootScreenRect)
+{
+  nsIntRect screenRectPixels;
+  nsPresContext* presContext = PresContext();
+
+  
+  
+  
+  nsCOMPtr<nsIScreen> screen;
+  nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
+  if (sm) {
+    
+    
+    
+    
+    nsPoint pnt = mInContentShell ? aRootScreenRect.TopLeft() : aAnchorPoint;
+    sm->ScreenForRect(presContext->AppUnitsToDevPixels(pnt.x),
+                      presContext->AppUnitsToDevPixels(pnt.y),
+                      1, 1, getter_AddRefs(screen));
+    if (screen) {
+      
+      if (mMenuCanOverlapOSBar && !mInContentShell)
+        screen->GetRect(&screenRectPixels.x, &screenRectPixels.y,
+                        &screenRectPixels.width, &screenRectPixels.height);
+      else
+        screen->GetAvailRect(&screenRectPixels.x, &screenRectPixels.y,
+                             &screenRectPixels.width, &screenRectPixels.height);
+    }
+  }
+
+  
+  screenRectPixels.SizeBy(-3, -3);
+
+  nsRect screenRect = screenRectPixels.ToAppUnits(presContext->AppUnitsPerDevPixel());
+  if (mInContentShell) {
+    
+    screenRect.IntersectRect(screenRect, aRootScreenRect);
+  }
+
+  return screenRect;
+}
+
+void nsMenuPopupFrame::CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange)
+{
+  PRInt8 popupAlign(mPopupAlignment);
+  if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    popupAlign = -popupAlign;
+  }
+
+  if (aHorizontalSide == (mHFlip ? NS_SIDE_RIGHT : NS_SIDE_LEFT)) {
+    if (popupAlign == POPUPALIGNMENT_TOPLEFT || popupAlign == POPUPALIGNMENT_BOTTOMLEFT) {
+      aChange.x = 0;
+    }
+  }
+  else if (aHorizontalSide == (mHFlip ? NS_SIDE_LEFT : NS_SIDE_RIGHT)) {
+    if (popupAlign == POPUPALIGNMENT_TOPRIGHT || popupAlign == POPUPALIGNMENT_BOTTOMRIGHT) {
+      aChange.x = 0;
+    }
+  }
+
+  if (aVerticalSide == (mVFlip ? NS_SIDE_BOTTOM : NS_SIDE_TOP)) {
+    if (popupAlign == POPUPALIGNMENT_TOPLEFT || popupAlign == POPUPALIGNMENT_TOPRIGHT) {
+      aChange.y = 0;
+    }
+  }
+  else if (aVerticalSide == (mVFlip ? NS_SIDE_TOP : NS_SIDE_BOTTOM)) {
+    if (popupAlign == POPUPALIGNMENT_BOTTOMLEFT || popupAlign == POPUPALIGNMENT_BOTTOMRIGHT) {
+      aChange.y = 0;
+    }
+  }
 }
 
 PRBool nsMenuPopupFrame::ConsumeOutsideClicks()
@@ -1545,16 +1586,12 @@ void
 nsMenuPopupFrame::MoveTo(PRInt32 aLeft, PRInt32 aTop, PRBool aUpdateAttrs)
 {
   
-  if (mInContentShell)
-    return;
-
-  
   
   
   mScreenXPos = aLeft;
   mScreenYPos = aTop;
 
-  SetPopupPosition(nsnull, PR_TRUE);
+  SetPopupPosition(nsnull);
 
   nsCOMPtr<nsIContent> popup = mContent;
   if (aUpdateAttrs && (popup->HasAttr(kNameSpaceID_None, nsGkAtoms::left) ||

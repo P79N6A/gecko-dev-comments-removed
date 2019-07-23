@@ -37,6 +37,7 @@
 
 
 #include "nsCOMPtr.h"
+#include "nsIServiceManager.h"
 #include "nsResizerFrame.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
@@ -44,8 +45,11 @@
 #include "nsIDOMNodeList.h"
 #include "nsGkAtoms.h"
 #include "nsINameSpaceManager.h"
+#include "nsIDOMElementCSSInlineStyle.h"
+#include "nsIDOMCSSStyleDeclaration.h"
 
 #include "nsPresContext.h"
+#include "nsFrameManager.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeOwner.h"
@@ -54,6 +58,8 @@
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
+#include "nsMenuPopupFrame.h"
+#include "nsIScreenManager.h"
 
 
 
@@ -86,121 +92,276 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
   nsWeakFrame weakFrame(this);
   PRBool doDefault = PR_TRUE;
 
-  
-  Direction direction = GetDirection();
-
   switch (aEvent->message) {
-
-   case NS_MOUSE_BUTTON_DOWN: {
-       if (aEvent->eventStructType == NS_MOUSE_EVENT &&
-           static_cast<nsMouseEvent*>(aEvent)->button ==
-             nsMouseEvent::eLeftButton)
-       {
-
-         nsresult rv = NS_OK;
-
-         
-         rv = aEvent->widget->BeginResizeDrag(aEvent, 
-             direction.mHorizontal, direction.mVertical);
-
-         if (rv == NS_ERROR_NOT_IMPLEMENTED) {
-           
-           
-
-           
-           mTrackingMouseMove = PR_TRUE;
-
-           
-           nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
-
-           
-           mLastPoint = aEvent->refPoint;
-           aEvent->widget->GetScreenBounds(mWidgetRect);
-         }
-
-         *aEventStatus = nsEventStatus_eConsumeNoDefault;
-         doDefault = PR_FALSE;
-       }
-     }
-     break;
-
-
-   case NS_MOUSE_BUTTON_UP: {
-
-       if(mTrackingMouseMove && aEvent->eventStructType == NS_MOUSE_EVENT &&
-          static_cast<nsMouseEvent*>(aEvent)->button ==
-            nsMouseEvent::eLeftButton)
-       {
-         
-         mTrackingMouseMove = PR_FALSE;
-
-         
-         nsIPresShell::SetCapturingContent(nsnull, 0);
-
-         *aEventStatus = nsEventStatus_eConsumeNoDefault;
-         doDefault = PR_FALSE;
-       }
-     }
-     break;
-
-   case NS_MOUSE_MOVE: {
-       if(mTrackingMouseMove)
-       {
-         
-         nsPIDOMWindow *domWindow =
-           aPresContext->PresShell()->GetDocument()->GetWindow();
-         NS_ENSURE_TRUE(domWindow, NS_ERROR_FAILURE);
-
-         nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
-           do_QueryInterface(domWindow->GetDocShell());
-         NS_ENSURE_TRUE(docShellAsItem, NS_ERROR_FAILURE);
-
-         nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-         docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
-
-         nsCOMPtr<nsIBaseWindow> window(do_QueryInterface(treeOwner));
-
-         if (!window) {
-           return NS_OK;
-         }
-
-         PRInt32 x,y,cx,cy;
-         window->GetPositionAndSize(&x,&y,&cx,&cy);
-         nsIntPoint oldWindowTopLeft(x, y);
-
-         
-         
-         nsIntPoint mouseMove(aEvent->refPoint - mLastPoint);
-         
-         AdjustDimensions(&x, &cx, mouseMove.x, direction.mHorizontal);
-         AdjustDimensions(&y, &cy, mouseMove.y, direction.mVertical);
-
-         
-         mLastPoint = aEvent->refPoint + (oldWindowTopLeft - nsIntPoint(x, y));
-
-         window->SetPositionAndSize(x,y,cx,cy,PR_TRUE); 
-
-         *aEventStatus = nsEventStatus_eConsumeNoDefault;
-
-         doDefault = PR_FALSE;
-       }
-     }
-     break;
-
-
-
-    case NS_MOUSE_CLICK:
-      if (NS_IS_MOUSE_LEFT_CLICK(aEvent))
+    case NS_MOUSE_BUTTON_DOWN: {
+      if (aEvent->eventStructType == NS_MOUSE_EVENT &&
+        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
       {
-        MouseClicked(aPresContext, aEvent);
+        nsCOMPtr<nsIBaseWindow> window;
+        nsIPresShell* presShell = aPresContext->GetPresShell();
+        nsIContent* contentToResize =
+          GetContentToResize(presShell, getter_AddRefs(window));
+        if (contentToResize) {
+          nsIFrame* frameToResize = presShell->GetPrimaryFrameFor(contentToResize);
+          if (!frameToResize)
+            break;
+
+          mMouseDownRect = frameToResize->GetScreenRect();
+        }
+        else {
+          
+          Direction direction = GetDirection();
+          nsresult rv = aEvent->widget->BeginResizeDrag(aEvent,
+                        direction.mHorizontal, direction.mVertical);
+          if (rv == NS_ERROR_NOT_IMPLEMENTED && window) {
+            
+            
+            window->GetPositionAndSize(&mMouseDownRect.x, &mMouseDownRect.y,
+                                       &mMouseDownRect.width, &mMouseDownRect.height);
+          }
+          else {
+            
+            doDefault = PR_FALSE;
+            break;
+          }
+        }
+
+        
+        mTrackingMouseMove = PR_TRUE;
+
+        
+        mMouseDownPoint = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
+
+        nsIPresShell::SetCapturingContent(GetContent(), CAPTURE_IGNOREALLOWED);
+
+        doDefault = PR_FALSE;
       }
-      break;
+    }
+    break;
+
+  case NS_MOUSE_BUTTON_UP: {
+
+    if (mTrackingMouseMove && aEvent->eventStructType == NS_MOUSE_EVENT &&
+        static_cast<nsMouseEvent*>(aEvent)->button == nsMouseEvent::eLeftButton)
+    {
+      
+      mTrackingMouseMove = PR_FALSE;
+
+      nsIPresShell::SetCapturingContent(nsnull, 0);
+
+      doDefault = PR_FALSE;
+    }
   }
+  break;
+
+  case NS_MOUSE_MOVE: {
+    if (mTrackingMouseMove)
+    {
+      nsCOMPtr<nsIBaseWindow> window;
+      nsIPresShell* presShell = aPresContext->GetPresShell();
+      nsCOMPtr<nsIContent> contentToResize =
+        GetContentToResize(presShell, getter_AddRefs(window));
+
+      
+      nsMenuPopupFrame* menuPopupFrame = nsnull;
+      if (contentToResize) {
+        nsIFrame* frameToResize = presShell->GetPrimaryFrameFor(contentToResize);
+        if (frameToResize && frameToResize->GetType() == nsGkAtoms::menuPopupFrame) {
+          menuPopupFrame = static_cast<nsMenuPopupFrame *>(frameToResize);
+        }
+      }
+
+      
+      
+
+      
+      
+      nsIntPoint screenPoint(aEvent->refPoint + aEvent->widget->WidgetToScreenOffset());
+      nsIntPoint mouseMove(screenPoint - mMouseDownPoint);
+
+      
+      
+      Direction direction;
+      if (window || menuPopupFrame) {
+        direction = GetDirection();
+        if (menuPopupFrame) {
+          menuPopupFrame->CanAdjustEdges(
+            (direction.mHorizontal == -1) ? NS_SIDE_LEFT : NS_SIDE_RIGHT,
+            (direction.mVertical == -1) ? NS_SIDE_TOP : NS_SIDE_BOTTOM, mouseMove);
+        }
+      }
+      else if (contentToResize) {
+        direction.mHorizontal =
+          GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL ? -1 : 1;
+        direction.mVertical = 1;
+      }
+      else {
+        break; 
+      }
+
+      nsIntRect rect = mMouseDownRect;
+      AdjustDimensions(&rect.x, &rect.width, mouseMove.x, direction.mHorizontal);
+      AdjustDimensions(&rect.y, &rect.height, mouseMove.y, direction.mVertical);
+
+      
+      
+      if (window) {
+        nsCOMPtr<nsIScreen> screen;
+        nsCOMPtr<nsIScreenManager> sm(do_GetService("@mozilla.org/gfx/screenmanager;1"));
+        if (sm) {
+          nsIntRect frameRect = GetScreenRect();
+          sm->ScreenForRect(frameRect.x, frameRect.y, 1, 1, getter_AddRefs(screen));
+          if (screen) {
+            nsIntRect screenRect;
+            screen->GetRect(&screenRect.x, &screenRect.y,
+                            &screenRect.width, &screenRect.height);
+            rect.IntersectRect(rect, screenRect);
+          }
+        }
+      }
+      else if (menuPopupFrame) {
+        nsPoint framePoint = menuPopupFrame->GetScreenRectInAppUnits().TopLeft();
+        nsIFrame* rootFrame = aPresContext->PresShell()->FrameManager()->GetRootFrame();
+        nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
+
+        nsRect screenRect = menuPopupFrame->GetConstraintRect(framePoint, rootScreenRect);
+        
+        
+        
+        nsIntRect screenRectPixels = screenRect.ToInsidePixels(aPresContext->AppUnitsPerDevPixel());
+        rect.IntersectRect(rect, screenRectPixels);
+      }
+
+      if (contentToResize) {
+        nsIntRect cssRect =
+          rect.ToAppUnits(aPresContext->AppUnitsPerDevPixel())
+              .ToInsidePixels(nsPresContext::AppUnitsPerCSSPixel());
+
+        nsAutoString widthstr, heightstr;
+        widthstr.AppendInt(cssRect.width);
+        heightstr.AppendInt(cssRect.height);
+
+        
+        
+        if (contentToResize->IsXUL()) {
+          nsIntRect oldRect;
+          nsWeakFrame weakFrame(menuPopupFrame);
+          if (menuPopupFrame) {
+            nsCOMPtr<nsIWidget> widget;
+            menuPopupFrame->GetWidget(getter_AddRefs(widget));
+            if (widget)
+              widget->GetScreenBounds(oldRect);
+          }
+
+          contentToResize->SetAttr(kNameSpaceID_None, nsGkAtoms::width, widthstr, PR_TRUE);
+          contentToResize->SetAttr(kNameSpaceID_None, nsGkAtoms::height, heightstr, PR_TRUE);
+
+          if (weakFrame.IsAlive() &&
+              (oldRect.x != rect.x || oldRect.y != rect.y)) {
+            
+            
+            
+            menuPopupFrame->MoveTo(rect.x, rect.y, PR_TRUE);
+          }
+        }
+        else {
+          nsCOMPtr<nsIDOMElementCSSInlineStyle> inlineStyleContent =
+            do_QueryInterface(contentToResize);
+          if (inlineStyleContent) {
+            widthstr += NS_LITERAL_STRING("px");
+            heightstr += NS_LITERAL_STRING("px");
+
+            nsCOMPtr<nsIDOMCSSStyleDeclaration> decl;
+            inlineStyleContent->GetStyle(getter_AddRefs(decl));
+            decl->SetProperty(NS_LITERAL_STRING("width"), widthstr, EmptyString());
+            decl->SetProperty(NS_LITERAL_STRING("height"), heightstr, EmptyString());
+          }
+        }
+      }
+      else {
+        window->SetPositionAndSize(rect.x, rect.y, rect.width, rect.height, PR_TRUE); 
+      }
+
+      doDefault = PR_FALSE;
+    }
+  }
+  break;
+
+  case NS_MOUSE_CLICK:
+    if (NS_IS_MOUSE_LEFT_CLICK(aEvent))
+    {
+      MouseClicked(aPresContext, aEvent);
+    }
+    break;
+  }
+
+  if (!doDefault)
+    *aEventStatus = nsEventStatus_eConsumeNoDefault;
 
   if (doDefault && weakFrame.IsAlive())
     return nsTitleBarFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
   else
     return NS_OK;
+}
+
+nsIContent*
+nsResizerFrame::GetContentToResize(nsIPresShell* aPresShell, nsIBaseWindow** aWindow)
+{
+  *aWindow = nsnull;
+
+  nsAutoString elementid;
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::element, elementid);
+  if (elementid.IsEmpty()) {
+    
+    
+    nsIFrame* popup = GetParent();
+    while (popup) {
+      if (popup->GetType() == nsGkAtoms::menuPopupFrame) {
+        return popup->GetContent();
+      }
+      popup = popup->GetParent();
+    }
+
+    
+    PRBool isChromeShell = PR_FALSE;
+    nsCOMPtr<nsISupports> cont = aPresShell->GetPresContext()->GetContainer();
+    nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
+    if (dsti) {
+      PRInt32 type = -1;
+      isChromeShell = (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
+                       type == nsIDocShellTreeItem::typeChrome);
+    }
+
+    if (!isChromeShell)
+      return nsnull;
+
+    
+    nsPIDOMWindow *domWindow = aPresShell->GetDocument()->GetWindow();
+    if (domWindow) {
+      nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
+        do_QueryInterface(domWindow->GetDocShell());
+      if (docShellAsItem) {
+        nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+        docShellAsItem->GetTreeOwner(getter_AddRefs(treeOwner));
+        if (treeOwner) {
+          CallQueryInterface(treeOwner, aWindow);
+        }
+      }
+    }
+
+    return nsnull;
+  }
+
+  if (elementid.EqualsLiteral("_parent")) {
+    return mContent->GetParent();
+  }
+
+  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aPresShell->GetDocument());
+  nsCOMPtr<nsIDOMElement> element;
+  doc->GetElementById(elementid, getter_AddRefs(element));
+
+  nsCOMPtr<nsIContent> content = do_QueryInterface(element);
+  return content.get();
 }
 
 
@@ -216,6 +377,8 @@ nsResizerFrame::AdjustDimensions(PRInt32* aPos, PRInt32* aSize,
       *aPos+= aMovement;
     case 1: 
       *aSize+= aResizerDirection*aMovement;
+      if (*aSize < 1) 
+        *aSize = 1;
   }
 }
 
