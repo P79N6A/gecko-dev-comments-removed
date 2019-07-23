@@ -228,14 +228,16 @@ function viewSource(url)
           PageLoader.loadPage(arg, pageLoaderIface.DISPLAY_AS_SOURCE);
 
           
+          loadFromURL = false;
+
+          
           var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].createInstance(Ci.nsISHEntry);
           shEntry.setURI(makeURI(viewSrcUrl, null, null));
           shEntry.setTitle(viewSrcUrl);
           shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
-          getBrowser().webNavigation.sessionHistory.addEntry(shEntry, true);
-
-          
-          loadFromURL = false;
+          getBrowser().webNavigation.sessionHistory
+                      .QueryInterface(Ci.nsISHistoryInternal)
+                      .addEntry(shEntry, true);
         }
       } catch(ex) {
         
