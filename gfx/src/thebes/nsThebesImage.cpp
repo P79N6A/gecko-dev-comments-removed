@@ -543,7 +543,7 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
         pat->SetMatrix(patMat);
 
 #ifndef XP_MACOSX
-        if (scale > 1.0) {
+        if (scale < 1.0) {
             
             
             pat->SetFilter(0);
