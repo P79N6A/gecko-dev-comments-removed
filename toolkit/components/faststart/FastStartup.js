@@ -1,4 +1,4 @@
- 
+
 
 
 
@@ -45,37 +45,71 @@ const Timer = Components.Constructor("@mozilla.org/timer;1", "nsITimer", "initWi
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+const RESTART_ENV_VAR = "FASTSTART_INITIATED_RESTART";
+
+function setenv(key, value) {
+  let env = Cc["@mozilla.org/process/environment;1"].
+            getService(Components.interfaces.nsIEnvironment);
+  env.set(key, value);
+}
+
+function getenv(key) {
+  let env = Cc["@mozilla.org/process/environment;1"].
+            getService(Components.interfaces.nsIEnvironment);
+  return env.get(key);
+}
+
 function nsFastStartupObserver() {
   let _browserWindowCount = 0;
-  let _memCleanupTimer = 0;
+  let _memCleanupTimer;
+  let _restartTimer;
+  let _isShuttingDown;
 
   function stopMemoryCleanup() {
     if (_memCleanupTimer) {
       _memCleanupTimer.cancel();
       _memCleanupTimer = null;
     }
+
+    if (_restartTimer) {
+      _restartTimer.cancel();
+      _restartTimer = null;
+    }
   }
 
   function scheduleMemoryCleanup() {
+    if (_isShuttingDown)
+      return;
+
     stopMemoryCleanup();
 
+    function restart() {
+      setenv(RESTART_ENV_VAR, "1");
+      let appstartup = Cc["@mozilla.org/toolkit/app-startup;1"].
+                       getService(Ci.nsIAppStartup);
+      appstartup.quit(Ci.nsIAppStartup.eRestart | Ci.nsIAppStartup.eAttemptQuit);
+      
+      _restartTimer = null;
+    }
+
     function memoryCleanup() {
-
-
-
-
-
-
-
-
+      var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
 
       
-      _memCleanupTimer = null;
+      
+      os.notifyObservers(null, "memory-pressure", "heap-minimize");
+      os.notifyObservers(null, "memory-pressure", "heap-minimize");
+      os.notifyObservers(null, "memory-pressure", "heap-minimize");
+
+      _memCleanupTimer = null; 
     }
 
     
     
     _memCleanupTimer = new Timer(memoryCleanup, 30000, Ci.nsITimer.TYPE_ONE_SHOT);
+
+    
+    _restartTimer = new Timer(restart, 60000 * 15, Ci.nsITimer.TYPE_ONE_SHOT);
   }
 
   
@@ -96,6 +130,8 @@ function nsFastStartupObserver() {
       if (_browserWindowCount == 0)
         scheduleMemoryCleanup();
     } else if (topic == "quit-application-granted") {
+      stopMemoryCleanup();
+      _isShuttingDown = true;
       let appstartup = Cc["@mozilla.org/toolkit/app-startup;1"].
                        getService(Ci.nsIAppStartup);
       appstartup.exitLastWindowClosingSurvivalArea();
@@ -118,7 +154,7 @@ nsFastStartupCLH.prototype = {
   
   handle: function fs_handle(cmdLine) {
     
-    if (cmdLine.handleFlag("faststart-hidden", false))
+    if (cmdLine.handleFlag("faststart-hidden", false) || (getenv(RESTART_ENV_VAR) == "1"))
       cmdLine.preventDefault = true;
 
     try {
@@ -129,17 +165,19 @@ nsFastStartupCLH.prototype = {
 
       this.inited = true;
 
+      
+      setenv(RESTART_ENV_VAR, "0");
+
       let fsobs = new nsFastStartupObserver();
       let wwatch = Cc["@mozilla.org/embedcomp/window-watcher;1"].
                    getService(Ci.nsIWindowWatcher);
       wwatch.registerNotification(fsobs);
 
-      let appstartup = Cc["@mozilla.org/toolkit/app-startup;1"].
-                       getService(Ci.nsIAppStartup);
-
       let obsService = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
       obsService.addObserver(fsobs, "quit-application-granted", true);
 
+      let appstartup = Cc["@mozilla.org/toolkit/app-startup;1"].
+                       getService(Ci.nsIAppStartup);
       appstartup.enterLastWindowClosingSurvivalArea();
     } catch (e) {
       Cu.reportError(e);
