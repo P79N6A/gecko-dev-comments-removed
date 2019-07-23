@@ -306,6 +306,14 @@ PRUint32 nsCRT::HashCodeAsUTF8(const PRUnichar* start, PRUint32 length)
               code_length = 3;
 
               NS_WARNING("High surrogate not followed by low surrogate");
+
+              
+              
+              
+              
+              
+              
+              --s;
             }
 
           W1 = 0;
