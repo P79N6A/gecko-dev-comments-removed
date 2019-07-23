@@ -2465,14 +2465,12 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
     if (!obj)
         return NULL;
 
-    obj->dslots = NULL;
-
     
 
 
 
-
-    JS_PUSH_TEMP_ROOT_OBJECT(cx, obj, &tvr);
+    obj->map = NULL;
+    obj->dslots = NULL;
 
     
     STOBJ_SET_PROTO(obj, proto);
@@ -2482,6 +2480,13 @@ js_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent)
     
     for (i = JSSLOT_PRIVATE; i != JS_INITIAL_NSLOTS; ++i)
         obj->fslots[i] = JSVAL_VOID;
+
+    
+
+
+
+
+    JS_PUSH_TEMP_ROOT_OBJECT(cx, obj, &tvr);
 
     
 

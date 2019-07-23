@@ -142,6 +142,12 @@ struct JSGCThing {
 #define GC_FREELIST_NBYTES(i)   (((i) + 1) * sizeof(JSGCThing))
 #define GC_FREELIST_INDEX(n)    (((n) / sizeof(JSGCThing)) - 1)
 
+
+
+
+
+
+
 extern void *
 js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes);
 
