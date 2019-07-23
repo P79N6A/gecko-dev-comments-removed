@@ -61,20 +61,11 @@ typedef struct _cairo cairo_t;
 #define FONT_STYLE_ITALIC              1
 #define FONT_STYLE_OBLIQUE             2
 
-#define FONT_VARIANT_NORMAL            0
-#define FONT_VARIANT_SMALL_CAPS        1
-
-#define FONT_DECORATION_NONE           0x0
-#define FONT_DECORATION_UNDERLINE      0x1
-#define FONT_DECORATION_OVERLINE       0x2
-#define FONT_DECORATION_STRIKEOUT      0x4
-
 #define FONT_WEIGHT_NORMAL             400
 #define FONT_WEIGHT_BOLD               700
 
 struct THEBES_API gfxFontStyle {
-    gfxFontStyle(PRUint8 aStyle, PRUint8 aVariant,
-                 PRUint16 aWeight, PRUint8 aDecoration, gfxFloat aSize,
+    gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, gfxFloat aSize,
                  const nsACString& aLangGroup,
                  float aSizeAdjust, PRPackedBool aSystemFont,
                  PRPackedBool aFamilyNameQuirks);
@@ -89,9 +80,6 @@ struct THEBES_API gfxFontStyle {
     PRPackedBool systemFont : 1;
 
     
-    PRUint8 variant : 7;
-
-    
     
     PRPackedBool familyNameQuirks : 1;
     
@@ -101,10 +89,6 @@ struct THEBES_API gfxFontStyle {
     
     
     PRUint16 weight;
-
-    
-    
-    PRUint8 decorations;
 
     
     gfxFloat size;

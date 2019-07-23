@@ -140,11 +140,9 @@ nsSVGGlyphFrame::DidSetStyleContext()
     langGroup.Assign(lg);
   }
 
-  
-  mFontStyle = new gfxFontStyle(font.style, font.variant,
-                                font.weight, font.decorations,
-                                size, langGroup, font.sizeAdjust,
-                                font.systemFont, font.familyNameQuirks);
+  mFontStyle = new gfxFontStyle(font.style, font.weight, size, langGroup,
+                                font.sizeAdjust, font.systemFont,
+                                font.familyNameQuirks);
 
   if (mFontStyle) {
     mFontGroup =

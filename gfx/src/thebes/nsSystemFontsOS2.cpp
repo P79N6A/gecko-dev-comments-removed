@@ -189,9 +189,7 @@ nsresult nsSystemFontsOS2::GetSystemFontInfo(nsSystemFontID aID, nsString* aFont
 
     
     aFontStyle->style = FONT_STYLE_NORMAL;
-    aFontStyle->variant = FONT_VARIANT_NORMAL;
     aFontStyle->weight = FONT_WEIGHT_NORMAL;
-    aFontStyle->decorations = FONT_DECORATION_NONE;
     aFontStyle->size = gfxFloat(pointSize);
 
     aFontStyle->systemFont = PR_TRUE;

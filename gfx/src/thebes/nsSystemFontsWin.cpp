@@ -66,23 +66,9 @@ nsresult nsSystemFontsWin::CopyLogFontToNSFont(HDC* aHDC, const LOGFONT* ptrLogF
   }
   
 
-  aFontStyle->variant = FONT_VARIANT_NORMAL;
-
   
   aFontStyle->weight = (ptrLogFont->lfWeight == FW_BOLD ? 
             FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
-
-  
-  aFontStyle->decorations = FONT_DECORATION_NONE;
-  if (ptrLogFont->lfUnderline)
-  {
-    aFontStyle->decorations |= FONT_DECORATION_UNDERLINE;
-  }
-  if (ptrLogFont->lfStrikeOut)
-  {
-    aFontStyle->decorations |= FONT_DECORATION_STRIKEOUT;
-  }
-
 
   
   float mPixelScale = 1.0f;
