@@ -203,6 +203,12 @@ public:
     {
         NotifyObservers(chan, NS_HTTP_ON_EXAMINE_CACHED_RESPONSE_TOPIC);
     }
+
+    
+    
+    static nsresult GenerateHostPort(const nsCString& host, PRInt32 port,
+                                     nsCString& hostLine);
+
 private:
 
     
