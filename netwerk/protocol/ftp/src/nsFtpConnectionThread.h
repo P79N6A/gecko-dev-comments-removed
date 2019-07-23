@@ -277,11 +277,12 @@ private:
     nsCOMPtr<nsITransport>        mDataTransport;
     nsCOMPtr<nsIAsyncInputStream> mDataStream;
     nsCOMPtr<nsIRequest>    mUploadRequest;
-    PRPackedBool            mIPv6Checked;
+    PRPackedBool            mAddressChecked;
+    PRPackedBool            mServerIsIPv6;
     
     static PRUint32         mSessionStartTime;
 
-    nsAutoArrayPtr<char>    mIPv6ServerAddress; 
+    char                    mServerAddress[64];
 
     
     nsresult                mControlStatus;
