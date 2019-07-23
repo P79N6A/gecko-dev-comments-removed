@@ -1188,8 +1188,15 @@ nsCSSBorderRenderer::DrawBorders()
     
     
     
+    
+    
+    
+    
     PRIntn alreadyDrawnSides = 0;
-    if (mOneUnitBorder && (dashedSides & (SIDE_BIT_TOP | SIDE_BIT_LEFT)) == 0) {
+    if (mOneUnitBorder &&
+        mNoBorderRadius &&
+        (dashedSides & (SIDE_BIT_TOP | SIDE_BIT_LEFT)) == 0)
+    {
       if (tlBordersSame) {
         DrawBorderSides(SIDE_BIT_TOP | SIDE_BIT_LEFT);
         alreadyDrawnSides |= (SIDE_BIT_TOP | SIDE_BIT_LEFT);
