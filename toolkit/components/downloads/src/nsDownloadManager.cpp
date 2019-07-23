@@ -1864,7 +1864,9 @@ nsDownload::SetState(DownloadState aState)
 
   switch (mDownloadState) {
     case nsIDownloadManager::DOWNLOAD_DOWNLOADING:
-      mDownloadManager->SendEvent(this, "dl-start");
+      
+      if (oldState == nsIDownloadManager::DOWNLOAD_QUEUED)
+        mDownloadManager->SendEvent(this, "dl-start");
       break;
     case nsIDownloadManager::DOWNLOAD_FAILED:
       mDownloadManager->SendEvent(this, "dl-failed");
