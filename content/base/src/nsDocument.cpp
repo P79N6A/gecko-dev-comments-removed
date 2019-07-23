@@ -1567,13 +1567,12 @@ nsDocument::~nsDocument()
     mBoxObjectTable->EnumerateRead(ClearAllBoxObjects, nsnull);
     delete mBoxObjectTable;
   }
-
-  delete mContentWrapperHash;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocument)
 
 NS_INTERFACE_TABLE_HEAD(nsDocument)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_DOCUMENT_INTERFACE_TABLE_BEGIN(nsDocument)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsINode)
     NS_INTERFACE_TABLE_ENTRY(nsDocument, nsIDocument)
@@ -1753,9 +1752,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mCatalogSheets)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mVisitednessChangedURIs)
 
-  
-  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[preserved wrapper]");
-  cb.NoteXPCOMChild(tmp->GetReference(tmp));
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_PRESERVED_WRAPPER
 
   if (tmp->mSubDocuments && tmp->mSubDocuments->ops) {
     PL_DHashTableEnumerate(tmp->mSubDocuments, SubDocTraverser, &cb);
@@ -1786,11 +1783,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
-  
-  delete tmp->mContentWrapperHash;
-  tmp->mContentWrapperHash = nsnull;
-
   tmp->mParentDocument = nsnull;
+
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
 
   
   
@@ -6228,41 +6223,6 @@ nsDocument::FlushPendingNotifications(mozFlushType aType)
   }
 }
 
-void
-nsDocument::AddReference(void *aKey, nsISupports *aReference)
-{
-  if (mScriptGlobalObject) {
-    if (!mContentWrapperHash) {
-      mContentWrapperHash = new nsInterfaceHashtable<nsVoidPtrHashKey, nsISupports>;
-      if (mContentWrapperHash) {
-        mContentWrapperHash->Init(10);
-      }
-    }
-    
-    if (mContentWrapperHash)
-      mContentWrapperHash->Put(aKey, aReference);
-  }
-}
-
-nsISupports*
-nsDocument::GetReference(void *aKey)
-{
-  
-  
-    
-  if (mContentWrapperHash)
-    return mContentWrapperHash->GetWeak(aKey);
-  return nsnull;
-}
-
-void
-nsDocument::RemoveReference(void *aKey)
-{
-  if (mContentWrapperHash) {
-    mContentWrapperHash->Remove(aKey);
-  }
-}
-
 nsIScriptEventManager*
 nsDocument::GetScriptEventManager()
 {
@@ -6873,13 +6833,6 @@ nsDocument::Destroy()
   
   
   mExternalResourceMap.Shutdown();
-
-  
-  
-  
-  
-  delete mContentWrapperHash;
-  mContentWrapperHash = nsnull;
 }
 
 void
