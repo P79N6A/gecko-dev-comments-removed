@@ -257,8 +257,6 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   nsresult rv =  nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
   if (NS_FAILED(rv))
     return rv;
-    
-  nsPresContext *aPresContext = PresContext();
 
   
   
