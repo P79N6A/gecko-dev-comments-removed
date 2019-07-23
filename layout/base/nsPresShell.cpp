@@ -2365,6 +2365,9 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
     MOZ_TIMER_RESET(mFrameCreationWatch);
     MOZ_TIMER_START(mFrameCreationWatch);
 
+    WillCauseReflow();
+    mFrameConstructor->BeginUpdate();
+
     if (!rootFrame) {
       
       
@@ -2383,6 +2386,9 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
     
     
     NS_ENSURE_STATE(!mHaveShutDown);
+
+    mFrameConstructor->EndUpdate();
+    DidCauseReflow();
 
     
     mDocument->BindingManager()->ProcessAttachedQueue();
@@ -6035,15 +6041,20 @@ void
 PresShell::WillDoReflow()
 {
   
+  
   if (mCaret) {
     mCaret->InvalidateOutsideCaret();
     mCaret->UpdateCaretPosition();
   }
+
+  mFrameConstructor->BeginUpdate();
 }
 
 void
 PresShell::DidDoReflow()
 {
+  mFrameConstructor->EndUpdate();
+  
   HandlePostedReflowCallbacks();
   
   
