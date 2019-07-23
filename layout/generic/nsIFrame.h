@@ -690,6 +690,10 @@ public:
                                          nsStyleContext* aStyleContext) = 0;
 
   
+  
+  nsCSSShadowArray* GetEffectiveBoxShadows();
+
+  
 
 
   nsIFrame* GetParent() const { return mParent; }
