@@ -63,7 +63,7 @@ public:
 
 
 
- 
+
   nsresult LoadWithChannel(nsIChannel *aChannel, nsIStreamListener **aListener);
 
   
@@ -88,7 +88,7 @@ public:
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            PRBool aNotify);
-  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr, 
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
                              PRBool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -291,7 +291,7 @@ protected:
 
 
 
-  nsresult InitializeDecoderAsClone(nsMediaDecoder* aOriginal); 
+  nsresult InitializeDecoderAsClone(nsMediaDecoder* aOriginal);
 
   
 
@@ -335,7 +335,7 @@ protected:
 
 
   void QueueLoadFromSourceTask();
- 
+
   
 
 
@@ -421,13 +421,13 @@ protected:
     
     NOT_WAITING,
     
-    WAITING_FOR_SRC_OR_SOURCE, 
+    WAITING_FOR_SRC_OR_SOURCE,
     
     
     
-    WAITING_FOR_SOURCE 
+    WAITING_FOR_SOURCE
   };
-  
+
   
   
   LoadAlgorithmState mLoadWaitStatus;
@@ -481,7 +481,7 @@ protected:
 
   
   PRPackedBool mPausedForInactiveDocument;
-  
+
   
   
   PRPackedBool mWaitingFired;
