@@ -140,6 +140,10 @@ PlacesTreeView.prototype = {
 
 
   _buildVisibleList: function PTV__buildVisibleList() {
+    var selection = this.selection;
+    if (selection)
+      selection.selectEventsSuppressed = true;
+
     if (this._result) {
       
       for (var i = 0; i < this._visibleElements.length; i++) {
@@ -163,11 +167,12 @@ PlacesTreeView.prototype = {
         
         
         rootNode.containerOpen = true;
-        return;
       }
-
-      this.invalidateContainer(rootNode);
+      else
+        this.invalidateContainer(rootNode);
     }
+    if (selection)
+      selection.selectEventsSuppressed = false;
   },
 
   
