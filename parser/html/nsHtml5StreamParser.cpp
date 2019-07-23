@@ -866,7 +866,10 @@ nsHtml5StreamParser::ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer,
       
       mSpeculations.Clear(); 
                              
-      
+
+      mTreeBuilder->flushCharacters(); 
+      mTreeBuilder->ClearOps(); 
+
       mTreeBuilder->SetOpSink(mExecutor->GetStage());
       mExecutor->StartReadingFromStage();
       mSpeculating = PR_FALSE;
