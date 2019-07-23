@@ -171,6 +171,10 @@ template <class T, size_t N> inline T *ArrayEnd(T (&arr)[N]) { return arr + N; }
 
 class ReentrancyGuard
 {
+    
+    ReentrancyGuard(const ReentrancyGuard &);
+    void operator=(const ReentrancyGuard &);
+
 #ifdef DEBUG
     bool &entered;
 #endif
