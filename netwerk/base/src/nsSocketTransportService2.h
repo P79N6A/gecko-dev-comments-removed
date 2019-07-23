@@ -180,6 +180,15 @@ private:
 
     nsIThread  *mThread;
     PRFileDesc *mThreadEvent;
+    PRLock     *mThreadEventLock;
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
     PRBool      mAutodialEnabled;
                             
 
