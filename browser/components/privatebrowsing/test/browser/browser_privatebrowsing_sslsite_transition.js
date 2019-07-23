@@ -38,8 +38,6 @@
 
 
 
-
-
 function test() {
   
   let prefBranch = Cc["@mozilla.org/preferences-service;1"].
@@ -78,3 +76,5 @@ function test() {
   }, true);
   browser.contentWindow.location = kTestURL;
 
+  waitForExplicitFinish();
+}

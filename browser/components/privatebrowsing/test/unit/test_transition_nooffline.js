@@ -59,15 +59,11 @@ function run_test_on_service() {
 
   
   pb.privateBrowsingEnabled = true;
-  do_check_eq(observer.events.length, 2);
-  do_check_eq(observer.events[0], "offline");
-  do_check_eq(observer.events[1], "online");
+  do_check_eq(observer.events.length, 0);
 
   
   pb.privateBrowsingEnabled = false;
-  do_check_eq(observer.events.length, 4);
-  do_check_eq(observer.events[2], "offline");
-  do_check_eq(observer.events[3], "online");
+  do_check_eq(observer.events.length, 0);
 
   os.removeObserver(observer, "network:offline-status-changed", false);
   prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
