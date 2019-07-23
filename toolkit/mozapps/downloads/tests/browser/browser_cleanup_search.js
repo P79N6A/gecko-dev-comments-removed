@@ -39,6 +39,9 @@
 
 
 
+
+
+
 function test()
 {
   let dm = Cc["@mozilla.org/download-manager;1"].
@@ -48,23 +51,29 @@ function test()
   
   db.executeSimpleSQL("DELETE FROM moz_downloads");
 
+  
+  let file = Cc["@mozilla.org/file/directory_service;1"].
+             getService(Ci.nsIProperties).get("TmpD", Ci.nsIFile);
+  file.append("cleanUp");
+  let filePath = Cc["@mozilla.org/network/io-service;1"].
+                 getService(Ci.nsIIOService).newFileURI(file).spec;
+
   let stmt = db.createStatement(
-    "INSERT INTO moz_downloads (name, target, source, state, endTime, maxBytes) " +
-    "VALUES (?1, ?2, ?3, ?4, ?5, ?6)");
+    "INSERT INTO moz_downloads (name, target, source, state) " +
+    "VALUES (?1, ?2, ?3, ?4)");
 
   try {
     for each (let site in ["delete.me", "i.live"]) {
       stmt.bindStringParameter(0, "Super Pimped Download");
-      stmt.bindStringParameter(1, "file://dummy/file");
+      stmt.bindStringParameter(1, filePath);
       stmt.bindStringParameter(2, "http://" + site + "/file");
       stmt.bindInt32Parameter(3, dm.DOWNLOAD_FINISHED);
-      stmt.bindInt64Parameter(4, new Date(1985, 7, 2) * 1000);
-      stmt.bindInt64Parameter(5, 111222333444);
 
       
       stmt.execute();
     }
-  } finally {
+  }
+  finally {
     stmt.reset();
     stmt.finalize();
   }
@@ -75,60 +84,66 @@ function test()
   let win = wm.getMostRecentWindow("Download:Manager");
   if (win) win.close();
 
-  
-  let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-           getService(Ci.nsIWindowWatcher);
-  ww.registerNotification({
-    observe: function(aSubject, aTopic, aData) {
-      ww.unregisterNotification(this);
-      aSubject.QueryInterface(Ci.nsIDOMEventTarget).
-      addEventListener("DOMContentLoaded", doTest, false);
-    }
-  });
+  let obs = Cc["@mozilla.org/observer-service;1"].
+            getService(Ci.nsIObserverService);
+  const DLMGR_UI_DONE = "download-manager-ui-done";
 
   let testPhase = 0;
+  let testObs = {
+    observe: function(aSubject, aTopic, aData) {
+      if (aTopic != DLMGR_UI_DONE)
+        return;
 
-  
-  let doTest = function() setTimeout(function() {
-    win = wm.getMostRecentWindow("Download:Manager");
-    let $ = function(id) win.document.getElementById(id);
+      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+      let $ = function(aId) win.document.getElementById(aId);
+      let downloadView = $("downloadView");
+      let searchbox = $("searchbox");
+      let clearList = $("clearListButton");
 
-    let downloadView = $("downloadView");
-    let searchbox = $("searchbox");
+      
+      switch (testPhase++) {
+        case 0:
+          
+          is(clearList.disabled, false, "Clear list is enabled for default 2 item view");
 
-    
-    if (downloadView.selectedIndex)
-      return doTest();
+          
+          searchbox.value = "delete me";
+          searchbox.doCommand();
 
-    
-    switch (testPhase) {
-      case 0:
-        
-        searchbox.value = "delete me";
-        searchbox.doCommand();
+          break;
+        case 1:
+          
+          is(downloadView.itemCount, 1, "Search found the item to delete");
+          is(clearList.disabled, false, "Clear list is enabled for search matching 1 item");
 
-        
-        testPhase++;
-        return doTest();
-      case 1:
-        
-        ok(downloadView.itemCount == 1, "Search found the item to delete");
+          
+          clearList.doCommand();
 
-        
-        $("cmd_clearList").doCommand();
+          break;
+        case 2:
+          
+          is(downloadView.itemCount, 1, "Clear list rebuilt the list with one");
+          is(clearList.disabled, false, "Clear list still enabled for 1 item in default view");
 
-        
-        testPhase++;
-        return doTest();
-      case 2:
-        
-        ok(downloadView.itemCount == 1, "Clear list rebuilt the list with one");
+          
+          clearList.doCommand();
 
-        
-        return finish();
+          break;
+        case 3:
+          
+          is(downloadView.itemCount, 0, "Clear list killed everything");
+          is(clearList.disabled, true, "Clear list is disabled for no items");
+
+          
+          obs.removeObserver(testObs, DLMGR_UI_DONE);
+          finish();
+
+          break;
+      }
     }
-  }, 0);
- 
+  };
+  obs.addObserver(testObs, DLMGR_UI_DONE, false);
+
   
   Cc["@mozilla.org/download-manager-ui;1"].
   getService(Ci.nsIDownloadManagerUI).show();

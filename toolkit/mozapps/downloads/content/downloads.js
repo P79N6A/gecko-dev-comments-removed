@@ -135,6 +135,9 @@ function getDownload(aID)
 function downloadCompleted(aDownload)
 {
   
+  updateClearListButton();
+
+  
   
   
   try {
@@ -1081,6 +1084,9 @@ function removeFromView(aDownload)
 
   
   stripeifyList(gDownloadsView.selectedItem);
+
+  
+  updateClearListButton();
 }
 
 function getReferrerOrSource(aDownload)
@@ -1140,6 +1146,9 @@ function buildDownloadList(aForceBuild)
     
     stepListBuilder(1);
     gDownloadsView.selectedIndex = 0;
+
+    
+    updateClearListButton();
   }, 0);
 }
 
@@ -1156,9 +1165,9 @@ function stepListBuilder(aNumItems) {
     
     if (!gStmt.executeStep()) {
       
-      Cc["@mozilla.org/observer-service;1"].
-      getService(Ci.nsIObserverService).
-      notifyObservers(window, "download-manager-ui-done", null);
+      setTimeout(function() Cc["@mozilla.org/observer-service;1"].
+        getService(Ci.nsIObserverService).
+        notifyObservers(window, "download-manager-ui-done", null), 0);
 
       return;
     }
@@ -1250,6 +1259,9 @@ function prependList(aDownload)
     
     
     updateButtons(item);
+
+    
+    updateClearListButton();
   }
 }
 
@@ -1322,4 +1334,15 @@ function getLocalFileFromNativePathOrUrl(aPathOrUrl)
 
     return f;
   }
+}
+
+
+
+
+
+function updateClearListButton()
+{
+  let button = document.getElementById("clearListButton");
+  
+  button.disabled = !(gDownloadsView.itemCount && gDownloadManager.canCleanUp);
 }
