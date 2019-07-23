@@ -970,7 +970,7 @@ const nsHTMLElement gHTMLElements[] = {
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gSourceParents,&gSourceParents,
      &gPAutoClose, 0, 0,0,
-              kNone, kNone, kNone,
+              kSpecial, kNone, kNone,
            kNonContainer,kNoPropRange,
                 &gSourceParents,0,
   },
