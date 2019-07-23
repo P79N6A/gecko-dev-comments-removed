@@ -1014,10 +1014,13 @@ public:
 
 
 
+
+
+
 class nsDisplaySolidColor : public nsDisplayItem {
 public:
-  nsDisplaySolidColor(const nsRect& aBounds, nscolor aColor)
-    : nsDisplayItem(nsnull), mBounds(aBounds), mColor(aColor) {
+  nsDisplaySolidColor(nsIFrame* aFrame, const nsRect& aBounds, nscolor aColor)
+    : nsDisplayItem(aFrame), mBounds(aBounds), mColor(aColor) {
     MOZ_COUNT_CTOR(nsDisplaySolidColor);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1036,9 +1039,6 @@ public:
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
      const nsRect& aDirtyRect);
-
-  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                    nsRegion* aVisibleRegion);
 
   NS_DISPLAY_DECL_NAME("SolidColor")
 private:

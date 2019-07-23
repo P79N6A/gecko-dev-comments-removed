@@ -502,22 +502,6 @@ void nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
 
 
 
-PRBool
-nsDisplaySolidColor::OptimizeVisibility(nsDisplayListBuilder* aBuilder,
-                                        nsRegion* aVisibleRegion) {
-  
-  if (!aVisibleRegion->Intersects(mBounds))
-    return PR_FALSE;
-
-  if (IsOpaque(aBuilder)) {
-    aVisibleRegion->SimpleSubtract(mBounds);
-  }
-
-  return PR_TRUE;
-}
-
-
-
 
 
 static PRBool RoundedRectContainsRect(const nsRect& aRoundedRect,

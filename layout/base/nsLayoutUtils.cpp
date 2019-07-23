@@ -1078,6 +1078,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     
     
     rv = list.AppendNewToBottom(new (&builder) nsDisplaySolidColor(
+           aFrame,
            nsRect(builder.ToReferenceFrame(aFrame), aFrame->GetSize()),
            aBackground));
     NS_ENSURE_SUCCESS(rv, rv);
