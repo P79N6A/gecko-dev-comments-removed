@@ -94,13 +94,7 @@ nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver *aObserver,
                                        mozFlushType aFlushType)
 {
   ObserverArray& array = ArrayFor(aFlushType);
-  PRBool success = array.RemoveElement(aObserver);
-
-  if (ObserverCount() == 0) {
-    StopTimer();
-  }
-
-  return success;
+  return array.RemoveElement(aObserver);
 }
 
 void
@@ -189,7 +183,13 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
     return NS_OK;
   }
   nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
-  if (!presShell) {
+  if (!presShell || ObserverCount() == 0) {
+    
+    
+    
+    
+    
+    
     
     StopTimer();
     return NS_OK;
@@ -223,10 +223,6 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
       
       presShell->FlushPendingNotifications(Flush_Style);
     }
-  }
-
-  if (ObserverCount() == 0) {
-    StopTimer();
   }
 
   return NS_OK;
