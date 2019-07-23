@@ -139,8 +139,7 @@ PRUint32 nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin;
 
 static
 nsresult
-GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
-                         nsACString& aOrigin)
+GetOriginFromURI(nsIURI* aURI, nsACString& aOrigin)
 {
   if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin > 1) {
       
@@ -151,16 +150,8 @@ GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
   }
 
   nsAutoInPrincipalDomainOriginSetter autoSetter;
-  aOrigin.Truncate();
 
-  nsCOMPtr<nsIURI> uri;
-  aPrincipal->GetDomain(getter_AddRefs(uri));
-  if (!uri) {
-    aPrincipal->GetURI(getter_AddRefs(uri));
-  }
-  NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
-
-  uri = NS_GetInnermostURI(uri);
+  nsCOMPtr<nsIURI> uri = NS_GetInnermostURI(aURI);
   NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
 
   nsCAutoString hostPort;
@@ -180,6 +171,22 @@ GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
   }
 
   return NS_OK;
+}
+
+static
+nsresult
+GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
+                         nsACString& aOrigin)
+{
+
+  nsCOMPtr<nsIURI> uri;
+  aPrincipal->GetDomain(getter_AddRefs(uri));
+  if (!uri) {
+    aPrincipal->GetURI(getter_AddRefs(uri));
+  }
+  NS_ENSURE_TRUE(uri, NS_ERROR_UNEXPECTED);
+
+  return GetOriginFromURI(uri, aOrigin);
 }
 
 
@@ -831,35 +838,81 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
 
         NS_ConvertUTF8toUTF16 className(classInfoData.GetName());
         nsCAutoString subjectOrigin;
+        nsCAutoString subjectDomain;
         if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin) {
-            GetPrincipalDomainOrigin(subjectPrincipal, subjectOrigin);
+            nsCOMPtr<nsIURI> uri, domain;
+            subjectPrincipal->GetURI(getter_AddRefs(uri));
+            
+            
+            NS_ASSERTION(uri, "How did that happen?");
+            GetOriginFromURI(uri, subjectOrigin);
+            subjectPrincipal->GetDomain(getter_AddRefs(domain));
+            if (domain) {
+                GetOriginFromURI(domain, subjectDomain);
+            }
         } else {
             subjectOrigin.AssignLiteral("the security manager");
         }
         NS_ConvertUTF8toUTF16 subjectOriginUnicode(subjectOrigin);
+        NS_ConvertUTF8toUTF16 subjectDomainUnicode(subjectDomain);
 
         nsCAutoString objectOrigin;
+        nsCAutoString objectDomain;
         if (!nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin &&
             objectPrincipal) {
-            GetPrincipalDomainOrigin(objectPrincipal, objectOrigin);
+            nsCOMPtr<nsIURI> uri, domain;
+            objectPrincipal->GetURI(getter_AddRefs(uri));
+            if (uri) { 
+                GetOriginFromURI(uri, objectOrigin);
+            }
+            objectPrincipal->GetDomain(getter_AddRefs(domain));
+            if (domain) {
+                GetOriginFromURI(domain, objectDomain);
+            }
         }
         NS_ConvertUTF8toUTF16 objectOriginUnicode(objectOrigin);
-            
+        NS_ConvertUTF8toUTF16 objectDomainUnicode(objectDomain);
+
         nsXPIDLString errorMsg;
         const PRUnichar *formatStrings[] =
         {
             subjectOriginUnicode.get(),
             className.get(),
             JSValIDToString(cx, aProperty),
-            objectOriginUnicode.get()
+            objectOriginUnicode.get(),
+            subjectDomainUnicode.get(),
+            objectDomainUnicode.get()
         };
 
         PRUint32 length = NS_ARRAY_LENGTH(formatStrings);
 
+        
+        
+        
+        
+        
         if (nsAutoInPrincipalDomainOriginSetter::sInPrincipalDomainOrigin ||
             !objectPrincipal) {
             stringName.AppendLiteral("OnlySubject");
-            --length;
+            length -= 3;
+        } else {
+            
+            
+            length -= 2;
+            if (!subjectDomainUnicode.IsEmpty()) {
+                stringName.AppendLiteral("SubjectDomain");
+                length += 1;
+            }
+            if (!objectDomainUnicode.IsEmpty()) {
+                stringName.AppendLiteral("ObjectDomain");
+                length += 1;
+                if (length != NS_ARRAY_LENGTH(formatStrings)) {
+                    
+                    
+                    
+                    formatStrings[length-1] = formatStrings[length];
+                }
+            }
         }
         
         
