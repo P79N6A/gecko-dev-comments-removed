@@ -69,7 +69,6 @@
 #include "nsIDOMHTMLDocument.h"
 #include "nsLayoutUtils.h"
 #include "nsINameSpaceManager.h"
-#include "nsBlockFrame.h"
 
 #include "gfxContext.h"
 
@@ -107,7 +106,7 @@ enum ePathTypes{
 struct InlineBackgroundData
 {
   InlineBackgroundData()
-      : mFrame(nsnull), mBlockFrame(nsnull)
+      : mFrame(nsnull)
   {
   }
 
@@ -118,64 +117,18 @@ struct InlineBackgroundData
   void Reset()
   {
     mBoundingBox.SetRect(0,0,0,0);
-    mContinuationPoint = mLineContinuationPoint = mUnbrokenWidth = 0;
-    mFrame = mBlockFrame = nsnull;
+    mContinuationPoint = mUnbrokenWidth = 0;
+    mFrame = nsnull;    
   }
 
   nsRect GetContinuousRect(nsIFrame* aFrame)
   {
     SetFrame(aFrame);
 
-    nscoord x;
-    if (mBidiEnabled) {
-      x = mLineContinuationPoint;
-
-      
-      
-      
-      PRBool isRtlBlock = (mBlockFrame->GetStyleVisibility()->mDirection ==
-                           NS_STYLE_DIRECTION_RTL);      
-      nscoord curOffset = aFrame->GetOffsetTo(mBlockFrame).x;
-
-      nsIFrame* inlineFrame = aFrame->GetPrevContinuation();
-      
-      
-      while (inlineFrame && !inlineFrame->GetNextInFlow() &&
-             AreOnSameLine(aFrame, inlineFrame)) {
-        nscoord frameXOffset = inlineFrame->GetOffsetTo(mBlockFrame).x;
-        if((isRtlBlock && frameXOffset >= curOffset) ||
-           (!isRtlBlock && frameXOffset < curOffset)) {
-          x += inlineFrame->GetSize().width;
-        }
-        inlineFrame = inlineFrame->GetPrevContinuation();
-      }
-
-      inlineFrame = aFrame->GetNextContinuation();
-      while (inlineFrame && !inlineFrame->GetPrevInFlow() &&
-             AreOnSameLine(aFrame, inlineFrame)) {
-        nscoord frameXOffset = inlineFrame->GetOffsetTo(mBlockFrame).x;
-        if((isRtlBlock && frameXOffset >= curOffset) ||
-           (!isRtlBlock && frameXOffset < curOffset)) {
-          x += inlineFrame->GetSize().width;
-        }
-        inlineFrame = inlineFrame->GetNextContinuation();
-      }
-      if (isRtlBlock) {
-        
-        x += aFrame->GetSize().width;
-        
-        
-        
-        x = mUnbrokenWidth - x;
-      }
-    } else {
-      x = mContinuationPoint;
-    }
-
     
     
     
-    return nsRect(-x, 0, mUnbrokenWidth, mFrame->GetSize().height);
+    return nsRect(-mContinuationPoint, 0, mUnbrokenWidth, mFrame->GetSize().height);
   }
 
   nsRect GetBoundingRect(nsIFrame* aFrame)
@@ -200,10 +153,6 @@ protected:
   nscoord       mUnbrokenWidth;
   nsRect        mBoundingBox;
 
-  PRBool        mBidiEnabled;
-  nsBlockFrame* mBlockFrame;
-  nscoord       mLineContinuationPoint;
-  
   void SetFrame(nsIFrame* aFrame)
   {
     NS_PRECONDITION(aFrame, "Need a frame");
@@ -221,12 +170,6 @@ protected:
     
     mContinuationPoint += mFrame->GetSize().width;
 
-    
-    if (mBidiEnabled &&
-        (aFrame->GetPrevInFlow() || !AreOnSameLine(mFrame, aFrame))) {
-       mLineContinuationPoint = mContinuationPoint;
-    }
-    
     mFrame = aFrame;
   }
 
@@ -255,29 +198,6 @@ protected:
     }
 
     mFrame = aFrame;
-
-    mBidiEnabled = aFrame->PresContext()->BidiEnabled();
-    if (mBidiEnabled) {
-      
-      nsIFrame* frame = aFrame;
-      nsresult rv = NS_ERROR_FAILURE;
-      while (frame &&
-             frame->IsFrameOfType(nsIFrame::eLineParticipant) &&
-             NS_FAILED(rv)) {
-        frame = frame->GetParent();
-        rv = frame->QueryInterface(kBlockFrameCID, (void**)&mBlockFrame);
-      }
-      NS_ASSERTION(NS_SUCCEEDED(rv) && mBlockFrame, "Cannot find containing block.");
-
-      mLineContinuationPoint = mContinuationPoint;
-    }
-  }
-  
-  PRBool AreOnSameLine(nsIFrame* aFrame1, nsIFrame* aFrame2) {
-    
-    nsBlockInFlowLineIterator it1(mBlockFrame, aFrame1);
-    nsBlockInFlowLineIterator it2(mBlockFrame, aFrame2);
-    return it1.GetLine() == it2.GetLine();
   }
 };
 
