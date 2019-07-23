@@ -1174,19 +1174,6 @@ int main(int argc, char **argv)
 
   gSourcePath = argv[1];
 
-#ifdef XP_WIN
-  
-  
-  
-
-  HANDLE exefile = NULL;
-
-  if (argc > 5)
-    exefile = CreateFile(argv[4], DELETE | GENERIC_WRITE,
-                         0, 
-                         NULL, OPEN_EXISTING, 0, NULL);
-#endif
-
   LogInit();
 
   
@@ -1200,9 +1187,6 @@ int main(int argc, char **argv)
   LogFinish();
 
 #ifdef XP_WIN
-  if (exefile)
-    CloseHandle(exefile);
-
   if (gSucceeded && argc > 4)
     LaunchWinPostProcess(argv[4]);
 #endif
