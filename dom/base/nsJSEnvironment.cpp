@@ -4164,15 +4164,17 @@ protected:
 nsJSArgArray::nsJSArgArray(JSContext *aContext, PRUint32 argc, jsval *argv,
                            nsresult *prv) :
     mContext(aContext),
-    mArgv(argv),
+    mArgv(nsnull),
     mArgc(argc)
 {
   
   
-  mArgv = (jsval *) PR_CALLOC(argc * sizeof(jsval));
-  if (!mArgv) {
-    *prv = NS_ERROR_OUT_OF_MEMORY;
-    return;
+  if (argc) {
+    mArgv = (jsval *) PR_CALLOC(argc * sizeof(jsval));
+    if (!mArgv) {
+      *prv = NS_ERROR_OUT_OF_MEMORY;
+      return;
+    }
   }
 
   
