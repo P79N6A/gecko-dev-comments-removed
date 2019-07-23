@@ -138,6 +138,9 @@ nsAutoCompleteController::SetInput(nsIAutoCompleteInput *aInput)
   mInput->GetTextValue(newValue);
   
   
+  mTree = nsnull;
+  
+  
   mSearchString = newValue;
   mEnterAfterSearch = 0;
   mDefaultIndexCompleted = PR_FALSE;
