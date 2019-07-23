@@ -695,11 +695,15 @@ nsWaveStateMachine::Run()
           
           
           
+          
+          
           State nextState = mNextState;
           if (nextState == STATE_SEEKING) {
             nextState = STATE_PAUSED;
           } else if (nextState == STATE_ENDED) {
             nextState = mPaused ? STATE_PAUSED : STATE_PLAYING;
+          } else if (GetDuration() == seekTime) {
+            nextState = STATE_ENDED;
           }
           ChangeState(nextState);
         }
@@ -795,7 +799,8 @@ IsValidStateTransition(State aStartState, State aEndState)
       return PR_TRUE;
     break;
   case STATE_SEEKING:
-    if (aEndState == STATE_PLAYING || aEndState == STATE_PAUSED)
+    if (aEndState == STATE_PLAYING || aEndState == STATE_PAUSED ||
+        aEndState == STATE_ENDED)
       return PR_TRUE;
     break;
   case STATE_PAUSED:
