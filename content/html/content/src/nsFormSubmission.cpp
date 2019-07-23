@@ -57,6 +57,7 @@
 #include "nsStringStream.h"
 #include "nsIFormProcessor.h"
 #include "nsIURI.h"
+#include "nsIURL.h"
 #include "nsNetUtil.h"
 #include "nsLinebreakConverter.h"
 #include "nsICharsetConverterManager.h"
@@ -532,29 +533,35 @@ nsFSURLEncoded::GetEncodedSubmission(nsIURI* aURI,
       return NS_OK;
     }
 
-    nsCAutoString path;
-    rv = aURI->GetPath(path);
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    PRInt32 namedAnchorPos = path.FindChar('#');
-    nsCAutoString namedAnchor;
-    if (kNotFound != namedAnchorPos) {
-      path.Right(namedAnchor, (path.Length() - namedAnchorPos));
-      path.Truncate(namedAnchorPos);
+    nsCOMPtr<nsIURL> url = do_QueryInterface(aURI);
+    if (url) {
+      url->SetQuery(mQueryString);
     }
+    else {
+      nsCAutoString path;
+      rv = aURI->GetPath(path);
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+      PRInt32 namedAnchorPos = path.FindChar('#');
+      nsCAutoString namedAnchor;
+      if (kNotFound != namedAnchorPos) {
+        path.Right(namedAnchor, (path.Length() - namedAnchorPos));
+        path.Truncate(namedAnchorPos);
+      }
 
-    
-    
-    PRInt32 queryStart = path.FindChar('?');
-    if (kNotFound != queryStart) {
-      path.Truncate(queryStart);
+      
+      
+      PRInt32 queryStart = path.FindChar('?');
+      if (kNotFound != queryStart) {
+        path.Truncate(queryStart);
+      }
+
+      path.Append('?');
+      
+      path.Append(mQueryString + namedAnchor);
+
+      aURI->SetPath(path);
     }
-
-    path.Append('?');
-    
-    path.Append(mQueryString + namedAnchor);
-
-    aURI->SetPath(path);
   }
 
   return rv;
