@@ -1301,7 +1301,7 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
     return;
 
   nsCOMPtr<nsIAccessible> accessible;
-  nsresult rv = GetAccessibleInParentChain(node, getter_AddRefs(accessible));
+  nsresult rv = GetAccessibleInParentChain(node, PR_TRUE, getter_AddRefs(accessible));
   if (NS_FAILED(rv) || !accessible)
     return;
 
@@ -1567,7 +1567,7 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
       accessibleEvent->GetDOMNode(getter_AddRefs(domNode));
       if (domNode && domNode != mDOMNode) {
         if (!containerAccessible)
-          GetAccessibleInParentChain(domNode,
+          GetAccessibleInParentChain(domNode, PR_TRUE,
                                      getter_AddRefs(containerAccessible));
 
         nsCOMPtr<nsIAccessibleTextChangeEvent> textChangeEvent =
@@ -1757,15 +1757,39 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   if (!IsNodeRelevant(childNode)) {
     return NS_OK;  
   }
-  if (!mIsContentLoaded && mAccessNodeCache.Count() <= 1) {
+  if (!mIsContentLoaded) {
     
-    
-    
-    
-    
-    
-    
-    return InvalidateChildren();
+    if (mAccessNodeCache.Count() <= 1) {
+      
+      
+      
+      
+      
+      
+      
+      return InvalidateChildren();
+    }
+    if (aChangeEventType == nsIAccessibleEvent::EVENT_DOM_CREATE) {
+      nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+      NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
+      nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
+      NS_ENSURE_TRUE(esm, NS_ERROR_FAILURE);
+      if (!esm->IsHandlingUserInputExternal()) {
+        
+        
+        
+        nsCOMPtr<nsIAccessible> containerAccessible;
+        GetAccessibleInParentChain(childNode, PR_FALSE, getter_AddRefs(containerAccessible));
+        if (!containerAccessible) {
+          containerAccessible = this;
+        }
+        nsCOMPtr<nsPIAccessible> privateContainer = do_QueryInterface(containerAccessible);
+        return privateContainer->InvalidateChildren();
+      }     
+      
+      
+      
+    }
   }
 
   
@@ -1803,7 +1827,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 #endif
 
   nsCOMPtr<nsIAccessible> containerAccessible;
-  GetAccessibleInParentChain(childNode, getter_AddRefs(containerAccessible));
+  GetAccessibleInParentChain(childNode, PR_TRUE, getter_AddRefs(containerAccessible));
   if (!containerAccessible) {
     containerAccessible = this;
   }
@@ -1888,6 +1912,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
 NS_IMETHODIMP
 nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
+                                            PRBool aCanCreate,
                                             nsIAccessible **aAccessible)
 {
   
@@ -1911,8 +1936,16 @@ nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
     if (NS_SUCCEEDED(accService->GetRelevantContentNodeFor(currentNode, getter_AddRefs(relevantNode))) && relevantNode) {
       currentNode = relevantNode;
     }
-
-    accService->GetAccessibleInWeakShell(currentNode, mWeakShell, aAccessible);
+    if (aCanCreate) {
+      accService->GetAccessibleInWeakShell(currentNode, mWeakShell, aAccessible);
+    }
+    else { 
+      nsCOMPtr<nsIAccessNode> accessNode;
+      GetCachedAccessNode(currentNode, getter_AddRefs(accessNode)); 
+      if (accessNode) {
+        CallQueryInterface(accessNode, aAccessible); 
+      }
+    }
   } while (!*aAccessible);
 
   return NS_OK;
