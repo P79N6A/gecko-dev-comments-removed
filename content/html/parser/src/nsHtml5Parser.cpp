@@ -240,6 +240,13 @@ nsHtml5Parser::ContinueInterruptedParsing()
   
   
   
+  if (mScriptsExecuting) {
+    return NS_OK;
+  }
+  
+  
+  
+  
   
   
   nsCOMPtr<nsIParser> kungFuDeathGrip(this);
@@ -265,6 +272,7 @@ nsHtml5Parser::BlockParser()
 NS_IMETHODIMP_(void)
 nsHtml5Parser::UnblockParser()
 {
+  NS_PRECONDITION(mBlocked, "Trying to unblock a parser that was not blocked.");
   mBlocked = PR_FALSE;
 }
 
@@ -345,6 +353,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
         if (buffer->hasMore()) {
           mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
           if (mScriptElement) {
+            
             ExecuteScript();
           }
           if (mNeedsCharsetSwitch) {
@@ -394,6 +403,8 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
       delete buffer;
     }
   }
+  
+  mTreeBuilder->Flush();
   return NS_OK;
 }
 
@@ -621,7 +632,9 @@ nsHtml5Parser::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
 
   mStreamListenerState = eOnStop;
 
-  ParseUntilSuspend();
+  if (!mScriptsExecuting) {
+    ParseUntilSuspend();
+  }
 
   
   
@@ -685,7 +698,9 @@ nsHtml5Parser::OnDataAvailable(nsIRequest* aRequest,
   PRUint32 totalRead;
   nsresult rv = aInStream->ReadSegments(ParserWriteFunc, static_cast<void*> (this), aLength, &totalRead);
   NS_ASSERTION((totalRead == aLength), "ReadSegments read the wrong number of bytes.");
-  ParseUntilSuspend();
+  if (!mScriptsExecuting) {
+    ParseUntilSuspend();
+  }
   return rv;
 }
 
@@ -861,6 +876,7 @@ nsHtml5Parser::HandleParserContinueEvent(nsHtml5ParserContinueEvent* ev)
 
   mContinueEvent = nsnull;
 
+  NS_ASSERTION(!mScriptsExecuting, "Interrupted in the middle of a script?");
   ContinueInterruptedParsing();  
 }
 
