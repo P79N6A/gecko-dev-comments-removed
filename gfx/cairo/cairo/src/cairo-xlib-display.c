@@ -259,7 +259,14 @@ _cairo_xlib_display_get (Display *dpy,
 
 
 
-    XRenderQueryVersion (dpy, &render_major, &render_minor);
+    Status s = XRenderQueryVersion (dpy, &render_major, &render_minor);
+    if (s == 0) {
+        
+
+
+
+        render_major = render_minor = 0;
+    }
 
     codes = XAddExtension (dpy);
     if (unlikely (codes == NULL)) {
