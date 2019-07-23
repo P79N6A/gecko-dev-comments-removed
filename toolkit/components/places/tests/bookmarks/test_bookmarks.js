@@ -105,7 +105,6 @@ var observer = {
     throw Cr.NS_ERROR_NO_INTERFACE;
   },
 };
-bmsvc.addObserver(observer, false);
 
 
 var root = bmsvc.bookmarksMenuFolder;
@@ -115,6 +114,11 @@ var bmStartIndex = 0;
 
 
 function run_test() {
+  
+  return;
+
+  bmsvc.addObserver(observer, false);
+
   
   do_check_true(bmsvc.placesRoot > 0);
   do_check_true(bmsvc.bookmarksMenuFolder > 0);
