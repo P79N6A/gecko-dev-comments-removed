@@ -40,7 +40,6 @@
 
 
 #include "nsIWidget.h"
-#include "nsVoidArray.h"
 
 #define INCL_PM
 #define INCL_NLS

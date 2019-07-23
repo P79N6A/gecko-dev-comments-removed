@@ -75,8 +75,8 @@ nsScreenManagerWin :: nsScreenManagerWin ( )
 nsScreenManagerWin :: ~nsScreenManagerWin()
 {
   
-  for ( int i = 0; i < mScreenList.Count(); ++i ) {
-    ScreenListItem* item = reinterpret_cast<ScreenListItem*>(mScreenList[i]);
+  for ( int i = 0; i < mScreenList.Length(); ++i ) {
+    ScreenListItem* item = mScreenList[i];
     delete item;
   }
 }
@@ -101,8 +101,8 @@ nsScreenManagerWin :: CreateNewScreenObject ( void* inScreen )
   
   
   
-  for ( int i = 0; i < mScreenList.Count(); ++i ) {
-    ScreenListItem* curr = reinterpret_cast<ScreenListItem*>(mScreenList[i]);
+  for ( int i = 0; i < mScreenList.Length(); ++i ) {
+    ScreenListItem* curr = mScreenList[i];
     if ( inScreen == curr->mMon ) {
       NS_IF_ADDREF(retScreen = curr->mScreen.get());
       return retScreen;

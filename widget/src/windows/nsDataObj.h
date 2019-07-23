@@ -51,8 +51,7 @@
 #include "nsIURI.h"
 #include "nsIInputStream.h"
 #include "nsIChannel.h"
-#include "nsTArray.h"
-#include "nsVoidArray.h"
+#include "nsTPtrArray.h"
 
 
 
@@ -265,7 +264,7 @@ class nsDataObj : public IDataObject,
 
 		ULONG        m_cRef;              
 
-    nsVoidArray mDataFlavors;
+    nsTPtrArray<nsCString> mDataFlavors;
 
     nsITransferable  * mTransferable; 
                                       

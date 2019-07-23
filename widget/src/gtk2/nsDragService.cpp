@@ -52,7 +52,7 @@
 #include "nsIFileURL.h"
 #include "nsNetUtil.h"
 #include "prlog.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsPrimitiveHelpers.h"
 #include "prtime.h"
 #include "prthread.h"
@@ -977,7 +977,7 @@ nsDragService::GetSourceList(void)
 {
     if (!mSourceDataItems)
         return NULL;
-    nsVoidArray targetArray;
+    nsTArray<GtkTargetEntry*> targetArray;
     GtkTargetEntry *targets;
     GtkTargetList  *targetList = 0;
     PRUint32 targetCount = 0;
@@ -1126,15 +1126,14 @@ nsDragService::GetSourceList(void)
     } 
 
     
-    targetCount = targetArray.Count();
+    targetCount = targetArray.Length();
     if (targetCount) {
         
         targets =
           (GtkTargetEntry *)g_malloc(sizeof(GtkTargetEntry) * targetCount);
         PRUint32 targetIndex;
         for ( targetIndex = 0; targetIndex < targetCount; ++targetIndex) {
-            GtkTargetEntry *disEntry =
-              (GtkTargetEntry *)targetArray.ElementAt(targetIndex);
+            GtkTargetEntry *disEntry = targetArray.ElementAt(targetIndex);
             
             targets[targetIndex].target = disEntry->target;
             targets[targetIndex].flags = disEntry->flags;
@@ -1143,8 +1142,7 @@ nsDragService::GetSourceList(void)
         targetList = gtk_target_list_new(targets, targetCount);
         
         for (PRUint32 cleanIndex = 0; cleanIndex < targetCount; ++cleanIndex) {
-            GtkTargetEntry *thisTarget =
-              (GtkTargetEntry *)targetArray.ElementAt(cleanIndex);
+            GtkTargetEntry *thisTarget = targetArray.ElementAt(cleanIndex);
             g_free(thisTarget->target);
             g_free(thisTarget);
         }
