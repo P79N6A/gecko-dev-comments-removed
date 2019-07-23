@@ -39,7 +39,9 @@
 
 #include "cairo-os2-private.h"
 
+#if CAIRO_HAS_FC_FONT
 #include <fontconfig/fontconfig.h>
+#endif
 
 #include <float.h>
 #ifdef BUILD_CAIRO_DLL
@@ -101,7 +103,7 @@ cairo_os2_init (void)
 
     DisableFPUException ();
 
-#if CAIRO_HAS_FT_FONT
+#if CAIRO_HAS_FC_FONT
     
     FcInit ();
 #endif
@@ -130,16 +132,9 @@ cairo_os2_fini (void)
 
     DisableFPUException ();
 
-    
-    
-    _cairo_font_face_reset_static_data ();
-#if CAIRO_HAS_FT_FONT
-    _cairo_ft_font_reset_static_data ();
-#endif
+    cairo_debug_reset_static_data ();
 
-    CAIRO_MUTEX_FINALIZE ();
-
-#if CAIRO_HAS_FT_FONT
+#if CAIRO_HAS_FC_FONT
 # if HAVE_FCFINI
     
     FcFini ();
@@ -777,7 +772,7 @@ cairo_os2_surface_create (HPS hps_client_window,
         (height <= 0))
     {
         
-	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
+	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_INVALID_SIZE));
     }
 
     local_os2_surface = (cairo_os2_surface_t *) malloc (sizeof (cairo_os2_surface_t));
@@ -795,6 +790,7 @@ cairo_os2_surface_create (HPS hps_client_window,
                             FALSE);
     if (rc != NO_ERROR) {
         
+        free (local_os2_surface);
 	return _cairo_surface_create_in_error (_cairo_error (CAIRO_STATUS_NO_MEMORY));
     }
 
@@ -886,6 +882,7 @@ cairo_os2_surface_create (HPS hps_client_window,
 
 
 
+
 int
 cairo_os2_surface_set_size (cairo_surface_t *surface,
                             int              new_width,
@@ -909,7 +906,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
         (new_height <= 0))
     {
         
-        return _cairo_error (CAIRO_STATUS_NO_MEMORY);
+        return _cairo_error (CAIRO_STATUS_INVALID_SIZE);
     }
 
     
@@ -1322,6 +1319,8 @@ static const cairo_surface_backend_t cairo_os2_surface_backend = {
     _cairo_os2_surface_release_source_image,
     _cairo_os2_surface_acquire_dest_image,
     _cairo_os2_surface_release_dest_image,
+    NULL, 
+    NULL, 
     NULL, 
     NULL, 
     NULL, 

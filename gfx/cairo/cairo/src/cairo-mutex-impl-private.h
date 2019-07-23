@@ -54,7 +54,8 @@
 
 #define CAIRO_MUTEX_IMPL_NOOP	do {/*no-op*/} while (0)
 
-#define CAIRO_MUTEX_IMPL_NOOP1(expr)        do { if (expr) ; } while (0)
+#define CAIRO_MUTEX_IMPL_NOOP1(expr)        do { (void)(expr); } while (0)
+
 
 
 

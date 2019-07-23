@@ -45,6 +45,24 @@
 #include <X11/extensions/Xrender.h>
 #include <X11/extensions/renderproto.h>
 
+
+
+
+
+
+#ifndef FilterConvolution
+#define FilterConvolution		    "convolution"
+#endif
+
+
+#ifndef RepeatNone
+#define RepeatNone                          0
+#define RepeatNormal                        1
+#define RepeatPad                           2
+#define RepeatReflect                       3
+#endif
+
+
 #else 
 
 

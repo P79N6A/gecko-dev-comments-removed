@@ -38,6 +38,7 @@
 
 #include "cairo-skiplist-private.h"
 #include "cairo-freelist-private.h"
+#include "cairo-combsort-private.h"
 
 #define DEBUG_VALIDATE 0
 #define DEBUG_PRINT_STATE 0
@@ -86,7 +87,7 @@ struct _cairo_bo_edge {
     cairo_bo_point32_t top;
     cairo_bo_point32_t middle;
     cairo_bo_point32_t bottom;
-    cairo_bool_t reversed;
+    int dir;
     cairo_bo_edge_t *prev;
     cairo_bo_edge_t *next;
     cairo_bo_trap_t *deferred_trap;
@@ -128,8 +129,6 @@ typedef struct _cairo_bo_event_queue {
 
     cairo_bo_event_t *startstop_events;
     cairo_bo_event_t **sorted_startstop_event_ptrs;
-    unsigned next_startstop_event_index;
-    unsigned num_startstop_events;
 } cairo_bo_event_queue_t;
 
 
@@ -199,9 +198,19 @@ _slope_compare (cairo_bo_edge_t *a,
     
 
 
-    if ((adx ^ bdx) < 0) {
-	return adx < 0 ? -1 : +1;
-    } else {
+
+    
+    if (adx == 0)
+	return -bdx;
+    if (bdx == 0)
+	return adx;
+
+    
+    if ((adx ^ bdx) < 0)
+	return adx;
+
+    
+    {
 	int32_t ady = a->bottom.y - a->top.y;
 	int32_t bdy = b->bottom.y - b->top.y;
 	cairo_int64_t adx_bdy = _cairo_int32x32_64_mul (adx, bdy);
@@ -210,6 +219,8 @@ _slope_compare (cairo_bo_edge_t *a,
 	return _cairo_int64_cmp (adx_bdy, bdx_ady);
     }
 }
+
+
 
 
 
@@ -245,32 +256,95 @@ edges_compare_x_for_y_general (const cairo_bo_edge_t *a,
 
 
 
+    int32_t dx;
     int32_t adx, ady;
     int32_t bdx, bdy;
-    cairo_int128_t L, R;
+    enum {
+       HAVE_NONE    = 0x0,
+       HAVE_DX      = 0x1,
+       HAVE_ADX     = 0x2,
+       HAVE_DX_ADX  = HAVE_DX | HAVE_ADX,
+       HAVE_BDX     = 0x4,
+       HAVE_DX_BDX  = HAVE_DX | HAVE_BDX,
+       HAVE_ADX_BDX = HAVE_ADX | HAVE_BDX,
+       HAVE_ALL     = HAVE_DX | HAVE_ADX | HAVE_BDX
+    } have_dx_adx_bdx = HAVE_ALL;
 
-    adx = a->bottom.x - a->top.x;
     ady = a->bottom.y - a->top.y;
+    adx = a->bottom.x - a->top.x;
+    if (adx == 0)
+	have_dx_adx_bdx &= ~HAVE_ADX;
 
-    bdx = b->bottom.x - b->top.x;
     bdy = b->bottom.y - b->top.y;
+    bdx = b->bottom.x - b->top.x;
+    if (bdx == 0)
+	have_dx_adx_bdx &= ~HAVE_BDX;
 
-    L = _cairo_int64x32_128_mul (_cairo_int32x32_64_mul (ady, bdy),
-				 a->top.x - b->top.x);
+    dx = a->top.x - b->top.x;
+    if (dx == 0)
+	have_dx_adx_bdx &= ~HAVE_DX;
 
-    R = _cairo_int128_sub (_cairo_int64x32_128_mul (_cairo_int32x32_64_mul (bdx,
-									    ady),
-						    y - b->top.y),
-			   _cairo_int64x32_128_mul (_cairo_int32x32_64_mul (adx,
-									    bdy),
-						    y - a->top.y));
+#define L _cairo_int64x32_128_mul (_cairo_int32x32_64_mul (ady, bdy), dx)
+#define A _cairo_int64x32_128_mul (_cairo_int32x32_64_mul (adx, bdy), y - a->top.y)
+#define B _cairo_int64x32_128_mul (_cairo_int32x32_64_mul (bdx, ady), y - b->top.y)
+    switch (have_dx_adx_bdx) {
+    default:
+    case HAVE_NONE:
+	return 0;
+    case HAVE_DX:
+	
+	return dx; 
+    case HAVE_ADX:
+	
+	return adx; 
+    case HAVE_BDX:
+	
+	return -bdx; 
+    case HAVE_ADX_BDX:
+	
+	if ((adx ^ bdx) < 0) {
+	    return adx;
+	} else if (a->top.y == b->top.y) { 
+	    cairo_int64_t adx_bdy, bdx_ady;
 
-    
-    if (_cairo_int128_lt (L, R))
-	return -1;
-    if (_cairo_int128_gt (L, R))
-	return 1;
-    return 0;
+	    
+
+	    adx_bdy = _cairo_int32x32_64_mul (adx, bdy);
+	    bdx_ady = _cairo_int32x32_64_mul (bdx, ady);
+
+	    return _cairo_int64_cmp (adx_bdy, bdx_ady);
+	} else
+	    return _cairo_int128_cmp (A, B);
+    case HAVE_DX_ADX:
+	
+	if ((-adx ^ dx) < 0) {
+	    return dx;
+	} else {
+	    cairo_int64_t ady_dx, dy_adx;
+
+	    ady_dx = _cairo_int32x32_64_mul (ady, dx);
+	    dy_adx = _cairo_int32x32_64_mul (a->top.y - y, adx);
+
+	    return _cairo_int64_cmp (ady_dx, dy_adx);
+	}
+    case HAVE_DX_BDX:
+	
+	if ((bdx ^ dx) < 0) {
+	    return dx;
+	} else {
+	    cairo_int64_t bdy_dx, dy_bdx;
+
+	    bdy_dx = _cairo_int32x32_64_mul (bdy, dx);
+	    dy_bdx = _cairo_int32x32_64_mul (y - b->top.y, bdx);
+
+	    return _cairo_int64_cmp (bdy_dx, dy_bdx);
+	}
+    case HAVE_ALL:
+	return _cairo_int128_cmp (L, _cairo_int128_sub (B, A));
+    }
+#undef B
+#undef A
+#undef L
 }
 
 
@@ -304,10 +378,15 @@ edge_compare_for_y_against_x (const cairo_bo_edge_t *a,
     cairo_int64_t L, R;
 
     adx = a->bottom.x - a->top.x;
-    ady = a->bottom.y - a->top.y;
+    dx = x - a->top.x;
+
+    if (adx == 0)
+	return -dx;
+    if ((adx ^ dx) < 0)
+	return adx;
 
     dy = y - a->top.y;
-    dx = x - a->top.x;
+    ady = a->bottom.y - a->top.y;
 
     L = _cairo_int32x32_64_mul (dy, adx);
     R = _cairo_int32x32_64_mul (dx, ady);
@@ -352,7 +431,7 @@ edges_compare_x_for_y (const cairo_bo_edge_t *a,
     case HAVE_NEITHER:
 	return edges_compare_x_for_y_general (a, b, y);
     case HAVE_AX:
-	return - edge_compare_for_y_against_x (b, y, ax);
+	return -edge_compare_for_y_against_x (b, y, ax);
     case HAVE_BX:
 	return edge_compare_for_y_against_x (a, y, bx);
     case HAVE_BOTH:
@@ -550,21 +629,18 @@ cairo_bo_event_compare_abstract (void		*list,
 }
 
 static int
-cairo_bo_event_compare_pointers (void const *voida,
-				 void const *voidb)
+cairo_bo_event_compare_pointers (const cairo_bo_event_t *a,
+				 const cairo_bo_event_t *b)
 {
-    cairo_bo_event_t const * const *a = voida;
-    cairo_bo_event_t const * const *b = voidb;
-    if (*a != *b) {
-	int cmp = cairo_bo_event_compare (*a, *b);
-	if (cmp)
-	    return cmp;
-	if (*a < *b)
-	    return -1;
-	if (*a > *b)
-	    return +1;
-    }
-    return 0;
+    int cmp;
+
+    if (a == b)
+	return 0;
+    cmp = cairo_bo_event_compare (a, b);
+    if (cmp)
+	return cmp;
+
+    return a - b;
 }
 
 static inline cairo_int64_t
@@ -624,11 +700,60 @@ intersect_lines (cairo_bo_edge_t		*a,
     int32_t dx2 = b->top.x - b->bottom.x;
     int32_t dy2 = b->top.y - b->bottom.y;
 
-    cairo_int64_t den_det = det32_64 (dx1, dy1, dx2, dy2);
+    cairo_int64_t den_det;
+    cairo_int64_t R;
     cairo_quorem64_t qr;
 
+    den_det = det32_64 (dx1, dy1, dx2, dy2);
     if (_cairo_int64_is_zero (den_det))
 	return CAIRO_BO_STATUS_PARALLEL;
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    R = det32_64 (dx2, dy2, b->top.x - a->top.x, b->top.y - a->top.y);
+    if (_cairo_int64_is_zero (R))
+	return CAIRO_BO_STATUS_NO_INTERSECTION;
+    if (_cairo_int64_negative (den_det) ^ _cairo_int64_negative (R))
+	return CAIRO_BO_STATUS_NO_INTERSECTION;
+    if (_cairo_int64_negative (den_det)) {
+	if (_cairo_int64_ge (den_det, R))
+	    return CAIRO_BO_STATUS_NO_INTERSECTION;
+    } else {
+	if (_cairo_int64_le (den_det, R))
+	    return CAIRO_BO_STATUS_NO_INTERSECTION;
+    }
+
+    R = det32_64 (dy1, dx1, a->top.y - b->top.y, a->top.x - b->top.x);
+    if (_cairo_int64_is_zero (R))
+	return CAIRO_BO_STATUS_NO_INTERSECTION;
+    if (_cairo_int64_negative (den_det) ^ _cairo_int64_negative (R))
+	return CAIRO_BO_STATUS_NO_INTERSECTION;
+    if (_cairo_int64_negative (den_det)) {
+	if (_cairo_int64_ge (den_det, R))
+	    return CAIRO_BO_STATUS_NO_INTERSECTION;
+    } else {
+	if (_cairo_int64_le (den_det, R))
+	    return CAIRO_BO_STATUS_NO_INTERSECTION;
+    }
+
+    
 
     a_det = det32_64 (a->top.x, a->top.y,
 		      a->bottom.x, a->bottom.y);
@@ -815,18 +940,23 @@ _cairo_bo_event_dequeue (cairo_bo_event_queue_t *event_queue)
     cairo_bo_event_t *intersection = elt ? SKIP_ELT_TO_EVENT (elt) : NULL;
     cairo_bo_event_t *startstop;
 
-    if (event_queue->next_startstop_event_index == event_queue->num_startstop_events)
+    startstop = *event_queue->sorted_startstop_event_ptrs;
+    if (startstop == NULL)
 	return intersection;
-    startstop = event_queue->sorted_startstop_event_ptrs[
-	event_queue->next_startstop_event_index];
 
-    if (!intersection || cairo_bo_event_compare (startstop, intersection) <= 0)
+    if (intersection == NULL ||
+	cairo_bo_event_compare (startstop, intersection) <= 0)
     {
-	event_queue->next_startstop_event_index++;
+	event_queue->sorted_startstop_event_ptrs++;
 	return startstop;
     }
+
     return intersection;
 }
+
+CAIRO_COMBSORT_DECLARE (_cairo_bo_event_queue_sort,
+			cairo_bo_event_t *,
+			cairo_bo_event_compare_pointers)
 
 static cairo_status_t
 _cairo_bo_event_queue_init (cairo_bo_event_queue_t	*event_queue,
@@ -837,31 +967,24 @@ _cairo_bo_event_queue_init (cairo_bo_event_queue_t	*event_queue,
     cairo_bo_event_t *events, **sorted_event_ptrs;
     unsigned num_events = 2*num_edges;
 
-    memset (event_queue, 0, sizeof(*event_queue));
-
-    _cairo_skip_list_init (&event_queue->intersection_queue,
-		    cairo_bo_event_compare_abstract,
-		    sizeof (cairo_bo_event_t));
-    if (0 == num_edges)
-	return CAIRO_STATUS_SUCCESS;
-
     
 
 
 
-    events = _cairo_malloc_ab (num_events, sizeof (cairo_bo_event_t) + sizeof(cairo_bo_event_t*));
-    if (events == NULL)
+    events = _cairo_malloc_ab_plus_c (num_events,
+				      sizeof (cairo_bo_event_t) +
+				      sizeof (cairo_bo_event_t *),
+				      sizeof (cairo_bo_event_t *));
+    if (unlikely (events == NULL))
 	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
     sorted_event_ptrs = (cairo_bo_event_t **) (events + num_events);
     event_queue->startstop_events = events;
     event_queue->sorted_startstop_event_ptrs = sorted_event_ptrs;
-    event_queue->num_startstop_events = num_events;
-    event_queue->next_startstop_event_index = 0;
 
     for (i = 0; i < num_edges; i++) {
-	sorted_event_ptrs[2*i] = &events[2*i];
-	sorted_event_ptrs[2*i+1] = &events[2*i+1];
+	sorted_event_ptrs[i] = &events[2*i];
+	sorted_event_ptrs[i+num_edges] = &events[2*i+1];
 
 	
 	edges[i].middle = edges[i].top;
@@ -877,9 +1000,13 @@ _cairo_bo_event_queue_init (cairo_bo_event_queue_t	*event_queue,
 			      edges[i].bottom);
     }
 
-    qsort (sorted_event_ptrs, num_events,
-	   sizeof(cairo_bo_event_t *),
-	   cairo_bo_event_compare_pointers);
+    _cairo_bo_event_queue_sort (sorted_event_ptrs, num_events);
+    event_queue->sorted_startstop_event_ptrs[num_events] = NULL;
+
+    _cairo_skip_list_init (&event_queue->intersection_queue,
+			   cairo_bo_event_compare_abstract,
+			   sizeof (cairo_bo_event_t));
+
     return CAIRO_STATUS_SUCCESS;
 }
 
@@ -930,8 +1057,9 @@ static void
 _cairo_bo_sweep_line_init (cairo_bo_sweep_line_t *sweep_line)
 {
     _cairo_skip_list_init (&sweep_line->active_edges,
-		    _sweep_line_elt_compare,
-		    sizeof (sweep_line_elt_t));
+			   _sweep_line_elt_compare,
+			   sizeof (sweep_line_elt_t));
+
     sweep_line->head = NULL;
     sweep_line->tail = NULL;
     sweep_line->current_y = 0;
@@ -952,8 +1080,8 @@ _cairo_bo_sweep_line_insert (cairo_bo_sweep_line_t	*sweep_line,
     cairo_bo_edge_t **prev_of_next, **next_of_prev;
 
     sweep_line_elt = _cairo_skip_list_insert (&sweep_line->active_edges, &edge,
-				       1 );
-    if (sweep_line_elt == NULL)
+					      1 );
+    if (unlikely (sweep_line_elt == NULL))
 	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
     next_elt = sweep_line_elt->elt.next[0];
@@ -983,7 +1111,8 @@ _cairo_bo_sweep_line_delete (cairo_bo_sweep_line_t	*sweep_line,
 {
     cairo_bo_edge_t **left_next, **right_prev;
 
-    _cairo_skip_list_delete_given (&sweep_line->active_edges, &edge->sweep_line_elt->elt);
+    _cairo_skip_list_delete_given (&sweep_line->active_edges,
+				   &edge->sweep_line_elt->elt);
 
     left_next = &sweep_line->head;
     if (edge->prev)
@@ -1312,10 +1441,7 @@ _active_edges_to_traps (cairo_bo_edge_t		*head,
 
     for (edge = head; edge; edge = edge->next) {
 	if (fill_rule == CAIRO_FILL_RULE_WINDING) {
-	    if (edge->reversed)
-		in_out++;
-	    else
-		in_out--;
+	    in_out += edge->dir;
 	    if (in_out == 0) {
 		status = _cairo_bo_edge_end_trap (edge, top, bo_traps);
 		if (status)
@@ -1364,11 +1490,15 @@ _cairo_bentley_ottmann_tessellate_bo_edges (cairo_bo_edge_t	*edges,
     cairo_bo_edge_t *left, *right;
     cairo_bo_edge_t *edge1, *edge2;
 
+    if (num_edges == 0)
+	return CAIRO_STATUS_SUCCESS;
+
     status = _cairo_bo_event_queue_init (&event_queue, edges, num_edges);
     if (status)
 	return status;
 
     _cairo_bo_sweep_line_init (&sweep_line);
+
     _cairo_bo_traps_init (&bo_traps, traps, xmin, ymin, xmax, ymax);
 
 #if DEBUG_PRINT_STATE
@@ -1532,11 +1662,10 @@ _cairo_bentley_ottmann_tessellate_polygon (cairo_traps_t	 *traps,
 
     has_limits = _cairo_traps_get_limit (traps, &limit);
 
-    if (polygon->num_edges < ARRAY_LENGTH (stack_edges)) {
-	edges = stack_edges;
-    } else {
+    edges = stack_edges;
+    if (polygon->num_edges > ARRAY_LENGTH (stack_edges)) {
 	edges = _cairo_malloc_ab (polygon->num_edges, sizeof (cairo_bo_edge_t));
-	if (edges == NULL)
+	if (unlikely (edges == NULL))
 	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
@@ -1604,10 +1733,7 @@ _cairo_bentley_ottmann_tessellate_polygon (cairo_traps_t	 *traps,
 	edge->top.y = top.y;
 	edge->bottom.x = bot.x;
 	edge->bottom.y = bot.y;
-	
-
-
-	edge->reversed = (! polygon->edges[i].clockWise);
+	edge->dir = polygon->edges[i].dir;
 	edge->deferred_trap = NULL;
 	edge->prev = NULL;
 	edge->next = NULL;

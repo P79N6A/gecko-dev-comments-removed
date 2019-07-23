@@ -332,7 +332,8 @@ cairo_private cairo_int_status_t
 _cairo_scaled_font_subset_create_glyph_names (cairo_scaled_font_subset_t *subset);
 
 typedef struct _cairo_cff_subset {
-    char *base_font;
+    char *font_name;
+    char *ps_name;
     int *widths;
     long x_min, y_min, x_max, y_max;
     long ascent, descent;
@@ -404,7 +405,8 @@ cairo_private void
 _cairo_cff_fallback_fini (cairo_cff_subset_t *cff_subset);
 
 typedef struct _cairo_truetype_subset {
-    char *base_font;
+    char *font_name;
+    char *ps_name;
     double *widths;
     double x_min, y_min, x_max, y_max;
     double ascent, descent;
@@ -634,6 +636,32 @@ cairo_private cairo_int_status_t
 _cairo_truetype_index_to_ucs4 (cairo_scaled_font_t *scaled_font,
                                unsigned long        index,
                                uint32_t            *ucs4);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_private cairo_int_status_t
+_cairo_truetype_read_font_name (cairo_scaled_font_t   *scaled_font,
+				char		     **ps_name,
+				char		     **font_name);
 
 #endif 
 

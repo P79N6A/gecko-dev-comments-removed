@@ -36,6 +36,10 @@
 
 
 
+#include "cairoint.h"
+
+#include "cairo-beos.h"
+
 #include <new>
 
 #include <Bitmap.h>
@@ -46,9 +50,6 @@
 #include <Screen.h>
 #include <Window.h>
 #include <Locker.h>
-
-#include "cairoint.h"
-#include "cairo-beos.h"
 
 #define CAIRO_INT_STATUS_SUCCESS (cairo_int_status_t)(CAIRO_STATUS_SUCCESS)
 
@@ -258,7 +259,7 @@ premultiply_rgba (unsigned char* data,
 		  int            height,
 		  int            stride)
 {
-    unsigned char* retdata = reinterpret_cast<unsigned char*>(malloc(stride * height));
+    unsigned char* retdata = reinterpret_cast<unsigned char*>(_cairo_malloc_ab(height, stride));
     if (!retdata)
 	return NULL;
 
@@ -321,7 +322,7 @@ _cairo_beos_bitmap_to_surface (BBitmap* bitmap)
 					bitmap->BytesPerRow());
     } else {
 	premultiplied = reinterpret_cast<unsigned char*>(
-					malloc(bitmap->BytesPerRow() * height));
+					_cairo_malloc_ab(bitmap->BytesPerRow(), height));
 	if (premultiplied)
 	    memcpy(premultiplied, bits, bitmap->BytesPerRow() * height);
     }
@@ -896,6 +897,8 @@ static const struct _cairo_surface_backend cairo_beos_surface_backend = {
     NULL, 
     NULL, 
     NULL, 
+    NULL, 
+    NULL, 
     _cairo_beos_surface_set_clip_region,
     NULL, 
     _cairo_beos_surface_get_extents,
@@ -976,33 +979,3 @@ cairo_beos_surface_create_for_bitmap (BView*   view,
 {
     return _cairo_beos_surface_create_internal(view, bmp);
 }
-
-
-
-
-
-
-
-class BeLocks {
-    public:
-	BLocker cairo_toy_font_face_hash_table_mutex;
-	BLocker cairo_scaled_font_map_mutex;
-	BLocker cairo_ft_unscaled_font_map_mutex;
-};
-
-static BeLocks locks;
-
-void* cairo_toy_font_face_hash_table_mutex = &locks.cairo_toy_font_face_hash_table_mutex;
-void* cairo_scaled_font_map_mutex = &locks.cairo_scaled_font_map_mutex;
-void* cairo_ft_unscaled_font_map_mutex = &locks.cairo_ft_unscaled_font_map_mutex;
-
-void _cairo_beos_lock (void* locker) {
-    BLocker* bLocker = reinterpret_cast<BLocker*>(locker);
-    bLocker->Lock();
-}
-
-void _cairo_beos_unlock (void* locker) {
-    BLocker* bLocker = reinterpret_cast<BLocker*>(locker);
-    bLocker->Unlock();
-}
-

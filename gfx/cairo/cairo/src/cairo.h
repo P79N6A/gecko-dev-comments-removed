@@ -248,8 +248,16 @@ typedef struct _cairo_user_data_key {
 
 
 
+
+
+
+
+
+
+
 typedef enum _cairo_status {
     CAIRO_STATUS_SUCCESS = 0,
+
     CAIRO_STATUS_NO_MEMORY,
     CAIRO_STATUS_INVALID_RESTORE,
     CAIRO_STATUS_INVALID_POP_GROUP,
@@ -280,8 +288,10 @@ typedef enum _cairo_status {
     CAIRO_STATUS_NEGATIVE_COUNT,
     CAIRO_STATUS_INVALID_CLUSTERS,
     CAIRO_STATUS_INVALID_SLANT,
-    CAIRO_STATUS_INVALID_WEIGHT
-    
+    CAIRO_STATUS_INVALID_WEIGHT,
+    CAIRO_STATUS_INVALID_SIZE,
+
+    CAIRO_STATUS_LAST_STATUS
 } cairo_status_t;
 
 
@@ -1900,6 +1910,7 @@ cairo_surface_status (cairo_surface_t *surface);
 
 
 
+
 typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_IMAGE,
     CAIRO_SURFACE_TYPE_PDF,
@@ -1915,6 +1926,7 @@ typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_OS2,
     CAIRO_SURFACE_TYPE_WIN32_PRINTING,
     CAIRO_SURFACE_TYPE_QUARTZ_IMAGE,
+    CAIRO_SURFACE_TYPE_SCRIPT,
     CAIRO_SURFACE_TYPE_QPAINTER
 } cairo_surface_type_t;
 
@@ -1946,6 +1958,24 @@ cairo_surface_set_user_data (cairo_surface_t		 *surface,
 			     const cairo_user_data_key_t *key,
 			     void			 *user_data,
 			     cairo_destroy_func_t	 destroy);
+
+#define CAIRO_MIME_TYPE_JPEG "image/jpeg"
+#define CAIRO_MIME_TYPE_PNG "image/png"
+#define CAIRO_MIME_TYPE_JP2 "image/jp2"
+
+cairo_public void
+cairo_surface_get_mime_data (cairo_surface_t		*surface,
+                             const char			*mime_type,
+                             const unsigned char       **data,
+                             unsigned int		*length);
+
+cairo_public cairo_status_t
+cairo_surface_set_mime_data (cairo_surface_t		*surface,
+                             const char			*mime_type,
+                             const unsigned char	*data,
+                             unsigned int		 length,
+			     cairo_destroy_func_t	 destroy,
+			     void			*closure);
 
 cairo_public void
 cairo_surface_get_font_options (cairo_surface_t      *surface,

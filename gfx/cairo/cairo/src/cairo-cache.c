@@ -39,23 +39,29 @@
 #include "cairoint.h"
 
 static void
-_cairo_cache_remove (cairo_cache_t	 *cache,
-		     cairo_cache_entry_t *entry);
-
-static void
 _cairo_cache_shrink_to_accommodate (cairo_cache_t *cache,
-				   unsigned long  additional);
+				    unsigned long  additional);
+
+static cairo_bool_t
+_cairo_cache_entry_is_non_zero (const void *entry)
+{
+    return ((const cairo_cache_entry_t *) entry)->size;
+}
 
 static cairo_status_t
 _cairo_cache_init (cairo_cache_t		*cache,
 		   cairo_cache_keys_equal_func_t keys_equal,
+		   cairo_cache_predicate_func_t  predicate,
 		   cairo_destroy_func_t		 entry_destroy,
 		   unsigned long		 max_size)
 {
     cache->hash_table = _cairo_hash_table_create (keys_equal);
-    if (cache->hash_table == NULL)
+    if (unlikely (cache->hash_table == NULL))
 	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
+    if (predicate == NULL)
+	predicate = _cairo_cache_entry_is_non_zero;
+    cache->predicate = predicate;
     cache->entry_destroy = entry_destroy;
 
     cache->max_size = max_size;
@@ -67,24 +73,19 @@ _cairo_cache_init (cairo_cache_t		*cache,
 }
 
 static void
+_cairo_cache_pluck (void *entry, void *closure)
+{
+    _cairo_cache_remove (closure, entry);
+}
+
+static void
 _cairo_cache_fini (cairo_cache_t *cache)
 {
-    cairo_cache_entry_t *entry;
-
-    
-
-
-
-
-    while (1) {
-	entry = _cairo_hash_table_random_entry (cache->hash_table, NULL);
-	if (entry == NULL)
-	    break;
-	_cairo_cache_remove (cache, entry);
-    }
-
+    _cairo_hash_table_foreach (cache->hash_table,
+			       _cairo_cache_pluck,
+			       cache);
+    assert (cache->size == 0);
     _cairo_hash_table_destroy (cache->hash_table);
-    cache->size = 0;
 }
 
 
@@ -123,6 +124,7 @@ _cairo_cache_fini (cairo_cache_t *cache)
 
 cairo_cache_t *
 _cairo_cache_create (cairo_cache_keys_equal_func_t keys_equal,
+		     cairo_cache_predicate_func_t  predicate,
 		     cairo_destroy_func_t	   entry_destroy,
 		     unsigned long		   max_size)
 {
@@ -130,13 +132,17 @@ _cairo_cache_create (cairo_cache_keys_equal_func_t keys_equal,
     cairo_cache_t *cache;
 
     cache = malloc (sizeof (cairo_cache_t));
-    if (cache == NULL) {
+    if (unlikely (cache == NULL)) {
 	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
 	return NULL;
     }
 
-    status = _cairo_cache_init (cache, keys_equal, entry_destroy, max_size);
-    if (status) {
+    status = _cairo_cache_init (cache,
+				keys_equal,
+				predicate,
+				entry_destroy,
+				max_size);
+    if (unlikely (status)) {
 	free (cache);
 	return NULL;
     }
@@ -222,14 +228,12 @@ _cairo_cache_thaw (cairo_cache_t *cache)
 
 
 
-cairo_bool_t
+void *
 _cairo_cache_lookup (cairo_cache_t	  *cache,
-		     cairo_cache_entry_t  *key,
-		     cairo_cache_entry_t **entry_return)
+		     cairo_cache_entry_t  *key)
 {
     return _cairo_hash_table_lookup (cache->hash_table,
-				     (cairo_hash_entry_t *) key,
-				     (cairo_hash_entry_t **) entry_return);
+				     (cairo_hash_entry_t *) key);
 }
 
 
@@ -246,8 +250,9 @@ _cairo_cache_remove_random (cairo_cache_t *cache)
 {
     cairo_cache_entry_t *entry;
 
-    entry = _cairo_hash_table_random_entry (cache->hash_table, NULL);
-    if (entry == NULL)
+    entry = _cairo_hash_table_random_entry (cache->hash_table,
+					    cache->predicate);
+    if (unlikely (entry == NULL))
 	return FALSE;
 
     _cairo_cache_remove (cache, entry);
@@ -300,7 +305,7 @@ _cairo_cache_insert (cairo_cache_t	 *cache,
 
     status = _cairo_hash_table_insert (cache->hash_table,
 				       (cairo_hash_entry_t *) entry);
-    if (status)
+    if (unlikely (status))
 	return status;
 
     cache->size += entry->size;
@@ -315,12 +320,7 @@ _cairo_cache_insert (cairo_cache_t	 *cache,
 
 
 
-
-
-
-
-
-static void
+void
 _cairo_cache_remove (cairo_cache_t	 *cache,
 		     cairo_cache_entry_t *entry)
 {
@@ -343,7 +343,7 @@ _cairo_cache_remove (cairo_cache_t	 *cache,
 
 
 void
-_cairo_cache_foreach (cairo_cache_t	 	      *cache,
+_cairo_cache_foreach (cairo_cache_t		      *cache,
 		      cairo_cache_callback_func_t      cache_callback,
 		      void			      *closure)
 {
@@ -356,8 +356,20 @@ unsigned long
 _cairo_hash_string (const char *c)
 {
     
-    unsigned long hash = 5381;
+    unsigned long hash = _CAIRO_HASH_INIT_VALUE;
     while (c && *c)
 	hash = ((hash << 5) + hash) + *c++;
+    return hash;
+}
+
+unsigned long
+_cairo_hash_bytes (unsigned long hash,
+		   const void *ptr,
+		   unsigned int length)
+{
+    const uint8_t *bytes = ptr;
+    
+    while (length--)
+	hash = ((hash << 5) + hash) + *bytes++;
     return hash;
 }
