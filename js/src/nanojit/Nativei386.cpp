@@ -406,7 +406,6 @@ namespace nanojit
         else if (i->isop(LIR_param) && i->paramKind() == 0 &&
             (arg = i->paramArg()) >= (abi_regcount = max_abi_regs[_thisfrag->lirbuf->abi])) {
             
-            NanoAssert(0);
             if (!i->getArIndex()) {
                 i->markAsClear();
             }
@@ -840,7 +839,7 @@ namespace nanojit
             }
             break;
         case LIR_add:
-        case LIR_iaddp:
+        case LIR_addp:
             if (lhs->isop(LIR_alloc) && rhs->isconst()) {
                 
                 Register rr = prepResultReg(ins, allow);
@@ -1169,6 +1168,13 @@ namespace nanojit
                     
                     static const double k_ONE = 1.0;
                     LDSDm(rr, &k_ONE);
+                } else if (d && d == (int)d) {
+                    
+                    Register gr = registerAlloc(GpRegs);
+                    SSE_CVTSI2SD(rr, gr);
+                    SSE_XORPDr(rr,rr);  
+                    LDi(gr, (int)d);
+                    _allocator.addFree(gr);
                 } else {
                     findMemFor(ins);
                     const int d = disp(ins);

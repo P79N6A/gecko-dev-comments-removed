@@ -560,18 +560,6 @@ Assembler::genEpilogue()
 
 
 
-void
-Assembler::asm_arg(ArgSize sz, LInsp p, Register r)
-{
-    NanoAssert(0);
-}
-
-
-
-
-
-
-
 
 
 
