@@ -178,6 +178,20 @@ NS_IMETHODIMP nsCaretAccessible::NotifySelectionChanged(nsIDOMDocument *aDoc, ns
     mLastTextAccessible = nsnull;
     return NS_OK; 
   }
+
+  nsCOMPtr<nsIAccessibleDocument> docAccessible =
+    nsAccessNode::GetDocAccessibleFor(focusNode);
+  nsCOMPtr<nsIAccessible> accessibleForDoc =
+    do_QueryInterface(docAccessible);
+  if (!accessibleForDoc) {
+    return NS_OK;
+  }
+  PRUint32 docState;
+  accessibleForDoc->GetFinalState(&docState, nsnull);
+  if (docState & nsIAccessibleStates::STATE_BUSY) {
+    return NS_OK;  
+  }
+
   nsCOMPtr<nsIDOMNode> nodeWithCaret = focusNode;
 
   nsCOMPtr<nsIAccessibleText> textAcc;
