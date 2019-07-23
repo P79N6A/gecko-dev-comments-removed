@@ -124,7 +124,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         if (gid) {
             FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
             mMetrics->xHeight = face->glyph->metrics.height * yScale;
-            mMetrics->aveCharWidth = face->glyph->metrics.width * yScale;
+            mMetrics->aveCharWidth = face->glyph->metrics.width * xScale;
         } else {
             
             
