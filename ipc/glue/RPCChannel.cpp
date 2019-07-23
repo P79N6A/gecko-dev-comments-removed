@@ -215,6 +215,25 @@ RPCChannel::OnDelegate(const Message& msg)
 }
 
 void
+RPCChannel::OnMaybeDequeueOne()
+{
+    Message recvd;  
+    {
+        MutexAutoLock lock(mMutex);
+
+        if (mPending.empty())
+            return;
+
+        NS_ABORT_IF_FALSE(mPending.size() == 1, "should only have one msg");
+        NS_ABORT_IF_FALSE(mPending.front().is_sync(), "msg should be sync");
+
+        recvd = mPending.front();
+        mPending.pop();
+    }
+    return SyncChannel::OnDispatchMessage(recvd);
+}
+
+void
 RPCChannel::OnIncall(const Message& call)
 {
     
@@ -281,35 +300,68 @@ RPCChannel::OnMessageReceived(const Message& msg)
 {
     MutexAutoLock lock(mMutex);
 
+    
+    
+    
+    
+    if (AwaitingSyncReply()
+        && msg.is_sync()) {
+        
+        
+        mRecvd = msg;
+        mCvar.Notify();
+        return;
+    }
+
+    
+    
+
     if (0 == StackDepth()) {
         
         
+
         
-        
-        
-        
-        
-        if (!msg.is_rpc()) {
+        if (!msg.is_sync() && !msg.is_rpc()) {
             MutexAutoUnlock unlock(mMutex);
-            return SyncChannel::OnMessageReceived(msg);
+            return AsyncChannel::OnMessageReceived(msg);
         }
 
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        if (msg.is_sync()) {
+            mPending.push(msg);
+
+            mWorkerLoop->PostTask(
+                FROM_HERE,
+                NewRunnableMethod(this,
+                                  &RPCChannel::OnMaybeDequeueOne));
+            return;
+        }
 
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+        NS_ABORT_IF_FALSE(msg.is_rpc(), "should be RPC");
+
         mWorkerLoop->PostTask(FROM_HERE,
                               NewRunnableMethod(this,
                                                 &RPCChannel::OnIncall, msg));
@@ -330,16 +382,6 @@ RPCChannel::OnMessageReceived(const Message& msg)
         
         
         
-        
-        
-        if (AwaitingSyncReply()
-            && msg.is_sync()) {
-            
-            
-            mRecvd = msg;
-            mCvar.Notify();
-            return;
-        }
 
         
         

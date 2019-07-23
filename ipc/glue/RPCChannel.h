@@ -89,6 +89,12 @@ protected:
     
     void OnDelegate(const Message& msg);
 
+    
+    
+    
+    
+    void OnMaybeDequeueOne();
+
 private:
     void OnIncall(const Message& msg);
     void ProcessIncall(const Message& call, size_t stackDepth);
