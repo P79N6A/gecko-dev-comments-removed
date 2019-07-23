@@ -392,14 +392,10 @@ nsPlacesAutoComplete.prototype = {
     }
 
     
-    this._behavior = this._defaultBehavior;
-
-    
-    
-    if (!this._currentSearchString) {
-      this._setBehavior("history");
-      this._setBehavior("typed");
-    }
+    if (this._currentSearchString)
+      this._behavior = this._defaultBehavior;
+    else
+      this._behavior = this._emptySearchDefaultBehavior;
 
     
     
@@ -680,6 +676,10 @@ nsPlacesAutoComplete.prototype = {
     this._matchTitleToken = safeGetter("match.title", "#");
     this._matchURLToken = safeGetter("match.url", "@");
     this._defaultBehavior = safeGetter("default.behavior", 0);
+    
+    
+    this._emptySearchDefaultBehavior = this._defaultBehavior |
+                                       safeGetter("default.behavior.emptyRestriction", 33);
 
     
     if (this._matchBehavior != MATCH_ANYWHERE &&
