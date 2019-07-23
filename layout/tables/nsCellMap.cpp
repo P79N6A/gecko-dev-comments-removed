@@ -1852,8 +1852,8 @@ void nsCellMap::ExpandWithCells(nsTableCellMap&              aMap,
       
       
       PRInt32 insertionIndex = row.Length();
-      if (insertionIndex > aColIndex) {
-        insertionIndex = aColIndex;
+      if (insertionIndex > startColIndex) {
+        insertionIndex = startColIndex;
       }
       if (!row.InsertElementsAt(insertionIndex, endColIndex - insertionIndex + 1,
                                 (CellData*)nsnull) &&
@@ -1865,7 +1865,7 @@ void nsCellMap::ExpandWithCells(nsTableCellMap&              aMap,
         return;
       }
       
-      for (PRInt32 colX = aColIndex; colX <= endColIndex; colX++) {
+      for (PRInt32 colX = startColIndex; colX <= endColIndex; colX++) {
         CellData* data = origData;
         if ((rowX != aRowIndex) || (colX != startColIndex)) {
           data = AllocCellData(nsnull);
