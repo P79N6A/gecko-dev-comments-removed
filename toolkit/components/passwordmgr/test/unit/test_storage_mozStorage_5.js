@@ -12,6 +12,9 @@ function run_test() {
 try {
 
 
+return;
+
+
 
 var testnum = 0;
 var testdesc = "Initial connection to storage module"
