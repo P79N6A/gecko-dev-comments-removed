@@ -71,6 +71,8 @@ class gfxASurface;
 class nsIRenderingContext;
 struct gfxRect;
 struct gfxMatrix;
+struct gfxSize;
+struct gfxIntSize;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -108,6 +110,11 @@ struct gfxMatrix;
 #define GFX_ARGB32_OFFSET_G 1
 #define GFX_ARGB32_OFFSET_B 0
 #endif
+
+
+
+
+#define NS_SVG_OFFSCREEN_MAX_DIMENSION 16384
 
 
 
@@ -315,6 +322,17 @@ public:
   ToBoundingPixelRect(double xmin, double ymin, double xmax, double ymax);
   static nsRect
   ToBoundingPixelRect(const gfxRect& rect);
+
+  
+
+
+
+
+
+
+
+  static gfxIntSize
+  ConvertToSurfaceSize(const gfxSize& aSize, PRBool *aResultOverflows);
 
   
 
