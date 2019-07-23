@@ -258,7 +258,11 @@ static const char kRoleNames[][20] = {
   "calendar",            
   "combobox list",       
   "combobox option",     
-  "image map"            
+  "image map",           
+  "listbox option",      
+  "listbox rich option", 
+  "listbox"              
+  
 };
 
 
