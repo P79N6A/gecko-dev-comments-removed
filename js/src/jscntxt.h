@@ -172,21 +172,6 @@ struct JSTraceMonitor {
 
     
     CLS(TraceRecorder)      abortStack;
-
-    
-    JSArenaPool             tempPool;
-
-    
-
-
-
-
-    void*                   nativeData;
-
-    
-    void*                   nativeStack;
-    void*                   nativeFrames;
-
 };
 
 typedef struct InterpStruct InterpStruct;
