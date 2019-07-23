@@ -1916,6 +1916,7 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
         
         
         if (curDetail->mType != nsISelectionController::SELECTION_SPELLCHECK &&
+            curDetail->mType != nsISelectionController::SELECTION_FIND &&
             curDetail->mStart <= offsets.StartOffset() &&
             offsets.EndOffset() <= curDetail->mEnd)
         {
