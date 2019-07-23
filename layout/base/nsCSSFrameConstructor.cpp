@@ -605,18 +605,6 @@ SetInitialSingleChild(nsIFrame* aParent, nsIFrame* aFrame)
 
 
 
-static PRBool
-IsOutOfFlowList(nsIAtom* aListName)
-{
-  return
-    aListName == nsGkAtoms::floatList ||
-    aListName == nsGkAtoms::absoluteList ||
-    aListName == nsGkAtoms::overflowOutOfFlowList ||
-    aListName == nsGkAtoms::fixedList;
-}
-
-
-
 
 struct nsFrameItems : public nsFrameList
 {
