@@ -227,6 +227,16 @@ class nsStyleSet
   
   
   void SetQuirkStyleSheet(nsIStyleSheet* aQuirkStyleSheet);
+
+  
+  
+  
+  
+  
+  
+  PRBool HasCachedStyleData() const {
+    return (mRuleTree && mRuleTree->TreeHasCachedData()) || !mRoots.IsEmpty();
+  }
   
  private:
   
