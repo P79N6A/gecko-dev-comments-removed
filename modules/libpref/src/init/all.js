@@ -658,6 +658,10 @@ pref("network.IDN.whitelist.museum", true);
 pref("network.IDN.whitelist.org", true);
 
 
+
+
+
+
 pref("network.IDN.whitelist.xn--0zwm56d", true);
 pref("network.IDN.whitelist.xn--11b5bs3a9aj6g", true);
 pref("network.IDN.whitelist.xn--80akhbyknj4f", true);

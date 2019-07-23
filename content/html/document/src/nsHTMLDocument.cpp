@@ -1739,9 +1739,9 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
   
   
   nsCAutoString current, domain;
-  if (NS_FAILED(uri->GetHost(current)))
+  if (NS_FAILED(uri->GetAsciiHost(current)))
     current.Truncate();
-  if (NS_FAILED(newURI->GetHost(domain)))
+  if (NS_FAILED(newURI->GetAsciiHost(domain)))
     domain.Truncate();
 
   PRBool ok = current.Equals(domain);
@@ -1749,16 +1749,18 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
       StringEndsWith(current, domain) &&
       current.CharAt(current.Length() - domain.Length() - 1) == '.') {
     
+    
     nsCOMPtr<nsIEffectiveTLDService> tldService =
       do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
     if (!tldService)
       return NS_ERROR_NOT_AVAILABLE;
 
-    
-    
-    
-    nsCAutoString baseDomain;
-    ok = NS_SUCCEEDED(tldService->GetBaseDomain(newURI, 0, baseDomain));
+    nsCAutoString currentBaseDomain;
+    ok = NS_SUCCEEDED(tldService->GetBaseDomain(uri, 0, currentBaseDomain));
+    NS_ASSERTION(StringEndsWith(domain, currentBaseDomain) ==
+                 (domain.Length() >= currentBaseDomain.Length()),
+                 "uh-oh!  slight optimization wasn't valid somehow!");
+    ok = ok && domain.Length() >= currentBaseDomain.Length();
   }
   if (!ok) {
     
