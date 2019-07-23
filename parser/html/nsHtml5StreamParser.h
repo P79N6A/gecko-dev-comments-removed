@@ -381,7 +381,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsCOMPtr<nsHtml5Parser>       mOwner;
+    nsRefPtr<nsHtml5Parser>       mOwner;
 
     
 

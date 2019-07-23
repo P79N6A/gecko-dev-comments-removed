@@ -54,10 +54,9 @@
 #include "nsTArray.h"
 #include "nsIAtom.h"
 
-
 #define NS_IPARSER_IID \
-{ 0x506527cc, 0xd832, 0x420b, \
-  { 0xba, 0x3a, 0x80, 0xc0, 0x5a, 0xa1, 0x05, 0xf4 } }
+{ 0xa44dc586, 0xc521, 0x40a1, \
+{ 0xa0, 0xaf, 0xbe, 0x02, 0xa5, 0x51, 0xe0, 0xb7 } }
 
 
 
@@ -300,6 +299,31 @@ class nsIParser : public nsISupports {
 
 
     virtual PRBool CanInterrupt() = 0;
+
+    
+
+
+    virtual PRBool IsInsertionPointDefined() = 0;
+
+    
+
+
+    virtual void BeginEvaluatingParserInsertedScript() = 0;
+
+    
+
+
+    virtual void EndEvaluatingParserInsertedScript() = 0;
+
+    
+
+
+    virtual void MarkAsNotScriptCreated() = 0;
+
+    
+
+
+    virtual PRBool IsScriptCreated() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)

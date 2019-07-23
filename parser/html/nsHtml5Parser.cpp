@@ -85,7 +85,7 @@ public:
 
 
 NS_INTERFACE_TABLE_HEAD(nsHtml5Parser)
-  NS_INTERFACE_TABLE1(nsHtml5Parser, nsIParser)
+  NS_INTERFACE_TABLE2(nsHtml5Parser, nsIParser, nsISupportsWeakReference)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsHtml5Parser)
 NS_INTERFACE_MAP_END
 
@@ -190,14 +190,7 @@ nsHtml5Parser::GetDTD(nsIDTD** aDTD)
 NS_IMETHODIMP
 nsHtml5Parser::GetStreamListener(nsIStreamListener** aListener)
 {
-  if (!mStreamParser) {
-    mStreamParser = new nsHtml5StreamParser(mExecutor, this);
-    nsIDocument* doc = mExecutor->GetDocument();
-    if (doc) {
-      mStreamParser->SetSpeculativeLoaderWithDocument(doc);
-    }
-  }
-  NS_ADDREF(*aListener = mStreamParser);
+  NS_IF_ADDREF(*aListener = mStreamParser);
   return NS_OK;
 }
 
@@ -224,6 +217,7 @@ nsHtml5Parser::ContinueInterruptedParsing()
   nsCOMPtr<nsIParser> kungFuDeathGrip(this);
   nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip(mStreamParser);
   nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
+  CancelParsingEvents(); 
   ParseUntilScript();
   return NS_OK;
 }
@@ -264,13 +258,8 @@ nsHtml5Parser::Parse(nsIURI* aURL,
 
   NS_PRECONDITION(!mExecutor->HasStarted(), 
                   "Tried to start parse without initializing the parser properly.");
-  if (!mStreamParser) {
-    mStreamParser = new nsHtml5StreamParser(mExecutor, this);
-    nsIDocument* doc = mExecutor->GetDocument();
-    if (doc) {
-      mStreamParser->SetSpeculativeLoaderWithDocument(doc);
-    }
-  }
+  NS_PRECONDITION(mStreamParser, 
+                  "Can't call this variant of Parse() on script-created parser");
   mStreamParser->SetObserver(aObserver);
   mExecutor->SetStreamParser(mStreamParser);
   mExecutor->SetParser(this);
@@ -319,83 +308,92 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
       NS_ASSERTION(!mStreamParser,
                    "Had stream parser but got document.close().");
     mDocumentClosed = PR_TRUE;
+    
     MaybePostContinueEvent();
+    return NS_OK;
+  }
+
+  NS_PRECONDITION(IsInsertionPointDefined(), 
+                  "Document.write called when insertion point not defined.");
+
+  if (aSourceBuffer.IsEmpty()) {
     return NS_OK;
   }
 
   PRInt32 lineNumberSave = mTokenizer->getLineNumber();
 
-  if (!aSourceBuffer.IsEmpty()) {
-    nsRefPtr<nsHtml5UTF16Buffer> buffer = new nsHtml5UTF16Buffer(aSourceBuffer.Length());
-    memcpy(buffer->getBuffer(), aSourceBuffer.BeginReading(), aSourceBuffer.Length() * sizeof(PRUnichar));
-    buffer->setEnd(aSourceBuffer.Length());
-    if (!mBlocked) {
-      
-      while (buffer->hasMore()) {
-        buffer->adjust(mLastWasCR);
-        mLastWasCR = PR_FALSE;
-        if (buffer->hasMore()) {
-          mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
-          if (mTreeBuilder->HasScript()) {
-            mTreeBuilder->flushCharacters(); 
-            mTreeBuilder->Flush(); 
-            mExecutor->Flush(); 
-          }
-          if (mBlocked) {
-            
-            break;
-          }
-          
-        }
-      }
-    }
+  nsRefPtr<nsHtml5UTF16Buffer> buffer = new nsHtml5UTF16Buffer(aSourceBuffer.Length());
+  memcpy(buffer->getBuffer(), aSourceBuffer.BeginReading(), aSourceBuffer.Length() * sizeof(PRUnichar));
+  buffer->setEnd(aSourceBuffer.Length());
 
-    if (buffer->hasMore()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      nsHtml5UTF16Buffer* prevSearchBuf = nsnull;
-      nsHtml5UTF16Buffer* searchBuf = mFirstBuffer;
-      if (aKey) { 
-        while (searchBuf != mLastBuffer) {
-          if (searchBuf->key == aKey) {
-            
-            
-            
-            buffer->next = searchBuf;
-            if (prevSearchBuf) {
-              prevSearchBuf->next = buffer;
-            } else {
-              mFirstBuffer = buffer;
-            }
-            break;
-          }
-          prevSearchBuf = searchBuf;
-          searchBuf = searchBuf->next;
+  
+  
+  
+  
+  
+  
+  
+  
+  nsHtml5UTF16Buffer* prevSearchBuf = nsnull;
+  nsHtml5UTF16Buffer* searchBuf = mFirstBuffer;
+  if (aKey) { 
+    while (searchBuf != mLastBuffer) {
+      if (searchBuf->key == aKey) {
+        
+        
+        
+        buffer->next = searchBuf;
+        if (prevSearchBuf) {
+          prevSearchBuf->next = buffer;
+        } else {
+          mFirstBuffer = buffer;
         }
+        break;
       }
-      if (searchBuf == mLastBuffer || !aKey) {
-        
-        
-        nsHtml5UTF16Buffer* keyHolder = new nsHtml5UTF16Buffer(aKey);
-        keyHolder->next = mFirstBuffer;
-        buffer->next = keyHolder;
-        mFirstBuffer = buffer;
-      }
-      if (!mStreamParser) {
-        MaybePostContinueEvent();
-      }
-    } else { 
-      
-      mTreeBuilder->flushCharacters(); 
-      mTreeBuilder->Flush(); 
-      mExecutor->Flush(); 
+      prevSearchBuf = searchBuf;
+      searchBuf = searchBuf->next;
     }
+  }
+  if (searchBuf == mLastBuffer || !aKey) {
+    
+    
+    nsHtml5UTF16Buffer* keyHolder = new nsHtml5UTF16Buffer(aKey);
+    keyHolder->next = mFirstBuffer;
+    buffer->next = keyHolder;
+    mFirstBuffer = buffer;
+  }
+
+  if (!mBlocked) {
+    
+    while (buffer->hasMore()) {
+      buffer->adjust(mLastWasCR);
+      mLastWasCR = PR_FALSE;
+      if (buffer->hasMore()) {
+        mLastWasCR = mTokenizer->tokenizeBuffer(buffer);
+        if (mTreeBuilder->HasScript()) {
+          
+          mTreeBuilder->Flush(); 
+          mExecutor->Flush(); 
+        }
+        if (mBlocked) {
+          
+          break;
+        }
+        
+      }
+    }
+  }
+
+  if (!mBlocked) { 
+    
+    mTreeBuilder->flushCharacters(); 
+    mTreeBuilder->Flush(); 
+    mExecutor->Flush(); 
+  } else if (!mStreamParser && buffer->hasMore() && aKey == mRootContextKey) {
+    
+    
+    
+    MaybePostContinueEvent();
   }
 
   mTokenizer->setLineNumber(lineNumberSave);
@@ -525,6 +523,7 @@ nsHtml5Parser::Reset()
   UnblockParser();
   mDocumentClosed = PR_FALSE;
   mStreamParser = nsnull;
+  mParserInsertedScriptsBeingEvaluated = 0;
   mRootContextKey = nsnull;
   mContinueEvent = nsnull;  
   mAtomTable.Clear(); 
@@ -538,6 +537,38 @@ PRBool
 nsHtml5Parser::CanInterrupt()
 {
   return !mFragmentMode;
+}
+
+PRBool
+nsHtml5Parser::IsInsertionPointDefined()
+{
+  return !mExecutor->IsFlushing() &&
+    (!mStreamParser || mParserInsertedScriptsBeingEvaluated);
+}
+
+void
+nsHtml5Parser::BeginEvaluatingParserInsertedScript()
+{
+  ++mParserInsertedScriptsBeingEvaluated;
+}
+
+void
+nsHtml5Parser::EndEvaluatingParserInsertedScript()
+{
+  --mParserInsertedScriptsBeingEvaluated;
+}
+
+void
+nsHtml5Parser::MarkAsNotScriptCreated()
+{
+  NS_PRECONDITION(!mStreamParser, "Must not call this twice.");
+  mStreamParser = new nsHtml5StreamParser(mExecutor, this);
+}
+
+PRBool
+nsHtml5Parser::IsScriptCreated()
+{
+  return !mStreamParser;
 }
 
 

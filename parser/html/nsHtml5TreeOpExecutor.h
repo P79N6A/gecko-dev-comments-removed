@@ -111,6 +111,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     nsCOMPtr<nsIContent>          mScriptElement;
     
     nsHtml5TreeOpStage            mStage;
+
+    PRBool                        mFlushing;
     
     
 
@@ -315,7 +317,11 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       return mStarted;
     }
     
-    void ExecuteScript();
+    PRBool IsFlushing() {
+      return mFlushing;
+    }
+    
+    void RunScript();
     
     void MaybePreventExecution() {
       if (mScriptElement) {

@@ -347,6 +347,31 @@ class nsParser : public nsIParser,
     
 
 
+    virtual PRBool IsInsertionPointDefined();
+
+    
+
+
+    virtual void BeginEvaluatingParserInsertedScript();
+
+    
+
+
+    virtual void EndEvaluatingParserInsertedScript();
+
+    
+
+
+    virtual void MarkAsNotScriptCreated();
+
+    
+
+
+    virtual PRBool IsScriptCreated();
+
+    
+
+
 
 
     void SetCanInterrupt(PRBool aCanInterrupt);

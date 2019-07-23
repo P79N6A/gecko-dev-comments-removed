@@ -61,8 +61,11 @@
 #include "nsHtml5TreeOpExecutor.h"
 #include "nsHtml5StreamParser.h"
 #include "nsHtml5AtomTable.h"
+#include "nsWeakReference.h"
 
-class nsHtml5Parser : public nsIParser {
+class nsHtml5Parser : public nsIParser,
+                      public nsSupportsWeakReference
+{
   public:
     NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -250,7 +253,33 @@ class nsHtml5Parser : public nsIParser {
 
 
     virtual PRBool CanInterrupt();
+
     
+
+
+    virtual PRBool IsInsertionPointDefined();
+
+    
+
+
+    virtual void BeginEvaluatingParserInsertedScript();
+
+    
+
+
+    virtual void EndEvaluatingParserInsertedScript();
+
+    
+
+
+
+    virtual void MarkAsNotScriptCreated();
+
+    
+
+
+    virtual PRBool IsScriptCreated();
+
     
 
     
@@ -318,6 +347,11 @@ class nsHtml5Parser : public nsIParser {
 
     PRBool                        mBlocked;
     
+    
+
+
+    PRInt32                       mParserInsertedScriptsBeingEvaluated;
+
     
 
 
