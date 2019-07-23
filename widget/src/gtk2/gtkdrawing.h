@@ -404,6 +404,12 @@ GtkWidget* moz_gtk_get_scrollbar_widget(void);
 
 gint moz_gtk_get_tab_thickness(void);
 
+
+
+
+
+gboolean moz_gtk_images_in_menus(void);
+
 #ifdef __cplusplus
 }
 #endif 
