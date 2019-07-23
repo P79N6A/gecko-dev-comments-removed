@@ -36,7 +36,21 @@
 #
 # ***** END LICENSE BLOCK *****
 
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+
 var gRDF;    
+
+const CLASS_MIMEINFO        = "mimetype";
+const CLASS_PROTOCOLINFO    = "scheme";
+
+
+const NC_NS                 = "http://home.netscape.com/NC-rdf#";
+
+
+
+const NC_MIME_TYPES         = NC_NS + "MIME-types";
+const NC_PROTOCOL_SCHEMES   = NC_NS + "Protocol-Schemes";
 
 
 
@@ -616,17 +630,10 @@ HandlerOverride.prototype = {
     var helperAppResource = gRDF.GetUnicodeResource(APP_URI(this.mimeType));
     this._DS.Assert(handlerResource, helperAppProperty, helperAppResource, true);
     
-    var container = Components.classes["@mozilla.org/rdf/container;1"].createInstance();
-    if (container) {
-      container = container.QueryInterface(Components.interfaces.nsIRDFContainer);
-      if (container) {
-        var containerRes = gRDF.GetUnicodeResource("urn:mimetypes:root");
-        container.Init(this._DS, containerRes);
-        var element = gRDF.GetUnicodeResource(MIME_URI(this.mimeType));
-        if (container.IndexOf(element) == -1)
-          container.AppendElement(element);
-      }
-    }
+    var container = this.ensureAndGetTypeList("mimetype");
+    var element = gRDF.GetUnicodeResource(MIME_URI(this.mimeType));
+    if (container.IndexOf(element) == -1)
+      container.AppendElement(element);
   }, 
   
   
@@ -698,6 +705,43 @@ HandlerOverride.prototype = {
     var valueProperty = gRDF.GetUnicodeResource(NC_URI(aPropertyString));
     var mimeLiteral = gRDF.GetLiteral(aValueString);
     this._DS.Unassert(mimeSource, valueProperty, mimeLiteral, true);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  ensureAndGetTypeList: function (aClass) {
+    var source = gRDF.GetResource("urn:" + aClass + "s");
+    var property =
+      gRDF.GetResource(aClass == CLASS_MIMEINFO ? NC_MIME_TYPES
+                                                : NC_PROTOCOL_SCHEMES);
+    var target = gRDF.GetResource("urn:" + aClass + "s:root");
+
+    
+    if (!this._DS.HasAssertion(source, property, target, true))
+      this._DS.Assert(source, property, target, true);
+
+    
+    var containerUtils = Cc["@mozilla.org/rdf/container-utils;1"]
+                            .getService(Ci.nsIRDFContainerUtils);
+    if (!containerUtils.IsContainer(this._DS, target))
+      containerUtils.MakeSeq(this._DS, target);
+
+    
+    var typeList =
+          Cc["@mozilla.org/rdf/container;1"].createInstance(Ci.nsIRDFContainer);
+    typeList.Init(this._DS, target);
+
+    return typeList;
   }
 };
 
