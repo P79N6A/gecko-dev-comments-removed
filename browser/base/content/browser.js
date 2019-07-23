@@ -911,7 +911,7 @@ function delayedStartup()
 
   gBrowser.addEventListener("pageshow", function(evt) { setTimeout(pageShowEventHandlers, 0, evt); }, true);
 
-  window.addEventListener("keypress", ctrlNumberTabSelection, false);
+  window.addEventListener("keypress", onBrowserKeyPress, false);
 
   
   Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
@@ -1299,7 +1299,7 @@ SanitizeListener.prototype =
   }
 }
 
-function ctrlNumberTabSelection(event)
+function onBrowserKeyPress(event)
 {
   if (event.altKey && event.keyCode == KeyEvent.DOM_VK_RETURN) {
     
@@ -1311,38 +1311,10 @@ function ctrlNumberTabSelection(event)
       return;
     }
   }
+}
 
-#ifdef XP_MACOSX
-  
-  if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
-#else
-#ifdef XP_UNIX
-  
-  if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
-#else
-  
-  if (!event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
-#endif
-#endif
-    return;
-
-  
-  
-  var regExp = /\d/;
-  if (!regExp.test(String.fromCharCode(event.charCode)))
-    return;
-
-  
-  
-  
-  var digit1 = (event.charCode & 0xFFF0) | 1;
-  if (!regExp.test(String.fromCharCode(digit1)))
-    digit1 += 6;
-
-  var index = event.charCode - digit1;
-  if (index < 0)
-    return;
-
+function BrowserNumberTabSelection(event, index)
+{
   
   if (index == 8)
     index = gBrowser.tabContainer.childNodes.length - 1;
