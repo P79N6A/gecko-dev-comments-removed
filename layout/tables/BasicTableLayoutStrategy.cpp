@@ -159,7 +159,7 @@ GetWidthInfo(nsIRenderingContext *aRenderingContext,
     nsStyleCoord maxWidth(aStylePos->mMaxWidth);
     if (maxWidth.GetUnit() == eStyleUnit_Enumerated) {
         if (!aIsCell || maxWidth.GetIntValue() == NS_STYLE_WIDTH_FILL)
-            maxWidth.Reset();
+            maxWidth.SetNoneValue();
         else if (maxWidth.GetIntValue() == NS_STYLE_WIDTH_SHRINK_WRAP)
             
             
