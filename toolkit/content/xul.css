@@ -848,6 +848,12 @@ dropmarker {
 
 
 
+resizer {
+  -moz-binding: url("chrome://global/content/bindings/resizer.xml#resizer");
+}
+
+
+
 splitter {
   -moz-binding: url("chrome://global/content/bindings/splitter.xml#splitter");
 }

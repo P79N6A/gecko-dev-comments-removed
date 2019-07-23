@@ -223,12 +223,14 @@ nsResizerFrame::GetDirection()
     {&nsGkAtoms::topleft,    &nsGkAtoms::top,    &nsGkAtoms::topright,
      &nsGkAtoms::left,                           &nsGkAtoms::right,
      &nsGkAtoms::bottomleft, &nsGkAtoms::bottom, &nsGkAtoms::bottomright,
+                                                 &nsGkAtoms::bottomend,
      nsnull};
 
   static const Direction directions[] =
     {{-1, -1}, {0, -1}, {1, -1},
      {-1,  0},          {1,  0},
-     {-1,  1}, {0,  1}, {1,  1}
+     {-1,  1}, {0,  1}, {1,  1},
+                        {1,  1}
     };
 
   if (!GetContent())
@@ -239,8 +241,14 @@ nsResizerFrame::GetDirection()
                                                 strings, eCaseMatters);
   if(index < 0)
     return directions[0]; 
-  else
-    return directions[index];
+  else if (index >= 8 && GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    
+    
+    Direction direction = directions[index];
+    direction.mHorizontal *= -1;
+    return direction;
+  }
+  return directions[index];
 }
 
 void
