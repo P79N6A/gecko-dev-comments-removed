@@ -167,7 +167,7 @@ nsCrossSiteListenerProxy::OnStartRequest(nsIRequest* aRequest,
   
   if (http) {
     nsCAutoString ac;
-    rv = http->GetResponseHeader(NS_LITERAL_CSTRING("Content-Access-Control"), ac);
+    rv = http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control"), ac);
     
     if (NS_SUCCEEDED(rv)) {
       CheckHeader(ac);
