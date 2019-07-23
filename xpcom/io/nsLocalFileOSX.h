@@ -84,7 +84,7 @@ protected:
   nsresult SetBaseRef(CFURLRef aCFURLRef); 
   nsresult UpdateTargetRef();
 
-  nsresult GetFSRefInternal(FSRef& aFSSpec);
+  nsresult GetFSRefInternal(FSRef& aFSRef);
   nsresult GetPathInternal(nsACString& path); 
   nsresult EqualsInternal(nsISupports* inFile, PRBool *_retval);
 
