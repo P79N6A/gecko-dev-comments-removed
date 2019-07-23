@@ -2,7 +2,9 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 function run_test() {
+  var cs = Cc["@mozilla.org/cookieService;1"].getService(Ci.nsICookieService);
   var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
+  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
   var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
   var pb = null;
   try {
@@ -11,7 +13,7 @@ function run_test() {
 
   
   prefs.setIntPref("network.cookie.lifetimePolicy", 0);
-  cm.removeAll();
+  cs.removeAll();
 
   
   addCookies(0, 5000);
@@ -35,7 +37,7 @@ function run_test() {
     do_check_eq(getCookieCount(), count);
 
     
-    cm.removeAll();
+    cs.removeAll();
     do_check_eq(getCookieCount(), 0);
 
     
@@ -53,7 +55,7 @@ function run_test() {
   do_check_eq(getCookieCount(), count);
 
   
-  cm.removeAll();
+  cs.removeAll();
   do_check_eq(getCookieCount(), 0);
 }
 
