@@ -38,8 +38,12 @@
 
  
 ({
-    start: function(pc) {
-        print("Recording at @" + pc);
+    start: function(pc, sp) {
+	this.anchorPC = pc;
+	this.anchorSP = this.SP = sp;
+	this.code = [];
+	this.map = {};
+	print("Recording at @" + pc);
         return true;
     },
     stop: function(pc) {
@@ -47,18 +51,23 @@
     },
     
     track: function(from, to) {
-        print("Mapped value @" + from + " to @" + to);
-        return true;
+	this.map[to] = this.map[from];
+	return true;
+    },
+    
+    emit: function(x, to) {
+	this.map[to] = this.code.push(x);
+	return true;
     },
     
     setSP: function(sp) {
-        print("SP = @" + sp);
-        return true;
+	this.SP = sp;
+	return true;
     },
     
     constant: function(v, c) {
-        print("constant " + c + " -> @" + v); 
-        return true;
-    }   
+	this.emit({ op: "constant", value: c });
+	return true;
+    }	
 });
 
