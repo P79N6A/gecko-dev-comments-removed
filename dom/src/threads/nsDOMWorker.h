@@ -167,7 +167,9 @@ public:
   void Suspend();
   void Resume();
 
+  
   PRBool IsCanceled();
+
   PRBool IsClosing();
   PRBool IsSuspended();
 
@@ -292,6 +294,8 @@ private:
 
   PRBool QueueSuspendedRunnable(nsIRunnable* aRunnable);
 
+  
+  
   PRBool IsCanceledNoLock();
 
 private:
