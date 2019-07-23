@@ -984,8 +984,6 @@ nsCSSRendering::FindRootFrame(nsIFrame* aForFrame)
 
 
 
-
-
 const nsStyleBackground*
 nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
 {

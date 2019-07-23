@@ -171,6 +171,8 @@ nsDisplayListBuilder::EnterPresShell(nsIFrame* aReferenceFrame,
   state->mCaretFrame = nsnull;
   state->mFirstFrameMarkedForDisplay = mFramesMarkedForDisplay.Length();
 
+  state->mPresShell->UpdateCanvasBackground();
+
   if (!mBuildCaret)
     return;
 
@@ -192,8 +194,7 @@ nsDisplayListBuilder::EnterPresShell(nsIFrame* aReferenceFrame,
 
 void
 nsDisplayListBuilder::LeavePresShell(nsIFrame* aReferenceFrame,
-                                     const nsRect& aDirtyRect)
-{
+                                     const nsRect& aDirtyRect) {
   if (CurrentPresShellState()->mPresShell != aReferenceFrame->PresContext()->PresShell()) {
     
     
@@ -489,6 +490,30 @@ void nsDisplayList::Sort(nsDisplayListBuilder* aBuilder,
                          SortLEQ aCmp, void* aClosure) {
   ExplodeAnonymousChildLists(aBuilder);
   ::Sort(this, Count(), aCmp, aClosure);
+}
+
+void nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
+     nsIRenderingContext* aCtx, const nsRect& aDirtyRect) {
+  nsRect dirty;
+  dirty.IntersectRect(GetBounds(aBuilder), aDirtyRect);
+  aCtx->SetColor(mColor);
+  aCtx->FillRect(dirty);
+}
+
+
+
+PRBool
+nsDisplaySolidColor::OptimizeVisibility(nsDisplayListBuilder* aBuilder,
+                                        nsRegion* aVisibleRegion) {
+  
+  if (!aVisibleRegion->Intersects(mBounds))
+    return PR_FALSE;
+
+  if (IsOpaque(aBuilder)) {
+    aVisibleRegion->SimpleSubtract(mBounds);
+  }
+
+  return PR_TRUE;
 }
 
 PRBool

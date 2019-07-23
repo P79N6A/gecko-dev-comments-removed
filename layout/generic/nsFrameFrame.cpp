@@ -321,10 +321,41 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsIView* subdocView = mInnerView->GetFirstChild();
   if (!subdocView)
     return NS_OK;
-  nsIFrame* f = static_cast<nsIFrame*>(subdocView->GetClientData());
-  if (!f)
-    return NS_OK;
+
   
+  
+  
+  if (!mFrameLoader)
+    return NS_OK;
+  nsCOMPtr<nsIDocShell> docShell;
+  mFrameLoader->GetDocShell(getter_AddRefs(docShell));
+  if (!docShell)
+    return NS_OK;
+  nsCOMPtr<nsIPresShell> presShell;
+  docShell->GetPresShell(getter_AddRefs(presShell));
+  if (!presShell)
+    return NS_OK;
+
+  PRBool suppressed = PR_TRUE;
+  presShell->IsPaintingSuppressed(&suppressed);
+
+  nsIFrame* f = static_cast<nsIFrame*>(subdocView->GetClientData());
+
+  if (!f || suppressed) {
+    
+    
+
+    
+    nsRect shellBounds = subdocView->GetBounds() +
+                         mInnerView->GetPosition() +
+                         GetOffsetTo(aBuilder->ReferenceFrame());
+    rv = aLists.Content()->AppendNewToBottom(
+             new (aBuilder) nsDisplaySolidColor(
+                  shellBounds,
+                  presShell->GetCanvasBackground()));
+    return rv;
+  }
+
   nsRect dirty = aDirtyRect - f->GetOffsetTo(this);
 
   aBuilder->EnterPresShell(f, dirty);

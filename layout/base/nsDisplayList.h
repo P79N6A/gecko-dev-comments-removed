@@ -1010,6 +1010,45 @@ public:
 
 
 
+
+
+
+
+class nsDisplaySolidColor : public nsDisplayItem {
+public:
+  nsDisplaySolidColor(const nsRect& aBounds, nscolor aColor)
+    : nsDisplayItem(nsnull), mBounds(aBounds), mColor(aColor) {
+    MOZ_COUNT_CTOR(nsDisplaySolidColor);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplaySolidColor() {
+    MOZ_COUNT_DTOR(nsDisplaySolidColor);
+  }
+#endif
+
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) { return mBounds; }
+
+  virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder) {
+    return (NS_GET_A(mColor) == 255);
+  }
+
+  virtual PRBool IsUniform(nsDisplayListBuilder* aBuilder) { return PR_TRUE; }
+
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
+     const nsRect& aDirtyRect);
+
+  virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder,
+                                    nsRegion* aVisibleRegion);
+
+  NS_DISPLAY_DECL_NAME("SolidColor")
+private:
+  nsRect  mBounds;
+  nscolor mColor;
+};
+
+
+
+
 class nsDisplayBackground : public nsDisplayItem {
 public:
   nsDisplayBackground(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
