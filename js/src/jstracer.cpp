@@ -2402,6 +2402,94 @@ js_math_pow(JSContext *cx, uintN argc, jsval *vp);
 JSBool
 js_math_sqrt(JSContext *cx, uintN argc, jsval *vp);
 
+JSInlineFrame*
+TraceRecorder::synthesize_frame(JSFunction* fun, JSStackFrame* down, uintN argc, jsval *vp)
+{
+    JS_ASSERT(FUN_INTERPRETED(fun));
+    JSArena* a = cx->stackPool.current;
+    void* newmark = (void*)a->avail;
+    jsval *newsp;
+    uintN missing, nframeslots;
+    jsuword nbytes;
+    JSScript *script = fun->u.i.script;
+    JSInlineFrame* newifp;
+
+    nframeslots = JS_HOWMANY(sizeof(JSInlineFrame), sizeof(jsval));
+
+    
+    if (fun->nargs <= argc) {
+        missing = 0;
+    } else {
+        newsp = vp + 2 + fun->nargs;
+        JS_ASSERT(newsp > down->regs->sp);
+        if ((jsuword) newsp <= a->limit) {
+            if ((jsuword) newsp > a->avail)
+                a->avail = (jsuword) newsp;
+            do {
+                *--newsp = JSVAL_VOID;
+            } while (newsp != down->regs->sp);
+            missing = 0;
+        } else {
+            missing = fun->nargs - argc;
+            nbytes += (2 + fun->nargs) * sizeof(jsval);
+        }
+    }
+
+    
+    if (a->avail + nbytes <= a->limit) {
+        newsp = (jsval *) a->avail;
+        a->avail += nbytes;
+        JS_ASSERT(missing == 0);
+    } else {
+        JS_ARENA_ALLOCATE_CAST(newsp, jsval *, &cx->stackPool,
+                               nbytes);
+        if (!newsp) {
+            js_ReportOutOfScriptQuota(cx);
+            js_FreeRawStack(cx, newmark);
+            return NULL;
+        }
+
+        
+        if (missing) {
+            memcpy(newsp, vp, (2 + argc) * sizeof(jsval));
+            vp = newsp;
+            newsp = vp + 2 + argc;
+            do {
+                *newsp++ = JSVAL_VOID;
+            } while (--missing != 0);
+        }
+    }
+    
+    
+    newifp = (JSInlineFrame *) newsp;
+    newsp += nframeslots;
+    newifp->frame.callobj = NULL;
+    newifp->frame.argsobj = NULL;
+    newifp->frame.varobj = NULL;
+    newifp->frame.script = script;
+    newifp->frame.callee = NULL; 
+    newifp->frame.fun = fun;
+    newifp->frame.argc = argc;
+    newifp->frame.argv = vp + 2;
+    newifp->frame.rval = JSVAL_VOID;
+    newifp->frame.down = down;
+    newifp->frame.annotation = NULL;
+    newifp->frame.scopeChain = NULL; 
+    newifp->frame.sharpDepth = 0;
+    newifp->frame.sharpArray = NULL;
+    newifp->frame.flags = 0;
+    newifp->frame.dormantNext = NULL;
+    newifp->frame.xmlNamespace = NULL;
+    newifp->frame.blockChain = NULL;
+    newifp->mark = newmark;
+    newifp->frame.thisp = NULL; 
+    newifp->frame.regs = NULL; 
+    newifp->frame.slots = newsp;
+    newifp->callerRegs = *down->regs;
+
+    return newifp;
+}
+
 bool TraceRecorder::record_JSOP_CALL()
 {
     uintN argc = GET_ARGC(cx->fp->regs->pc);
