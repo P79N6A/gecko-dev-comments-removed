@@ -210,6 +210,16 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
   }
 
   
+  void *annotation = JS_GetFrameAnnotation(cx, fp);
+  PRBool isPrivileged = PR_FALSE;
+  nsresult rv = subjectPrincipal->IsCapabilityEnabled("UniversalXPConnect",
+                                                      annotation,
+                                                      &isPrivileged);
+  if (NS_SUCCEEDED(rv) && isPrivileged) {
+    return JS_TRUE;
+  }
+
+  
   
   XPCWrappedNative *wn = XPCNativeWrapper::SafeGetWrappedNative(obj);
   if (wn) {
@@ -217,13 +227,6 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
     PRBool subsumes;
     if (NS_FAILED(subjectPrincipal->Subsumes(objectPrincipal, &subsumes)) ||
         !subsumes) {
-      
-      PRBool isPrivileged = PR_FALSE;
-      nsresult rv =
-        ssm->IsCapabilityEnabled("UniversalXPConnect", &isPrivileged);
-      if (NS_SUCCEEDED(rv) && isPrivileged) {
-        return JS_TRUE;
-      }
 
       JSObject* flatObj;
       if (!JSVAL_IS_VOID(id) &&
@@ -285,15 +288,26 @@ XPCNativeWrapper::GetWrappedNative(JSContext *cx, JSObject *obj,
     return JS_TRUE;
   }
 
+  if (fp) {
+    void *annotation = JS_GetFrameAnnotation(cx, fp);
+
+    PRBool isPrivileged;
+    nsresult rv =
+      subjectPrincipal->IsCapabilityEnabled("UniversalXPConnect",
+                                            annotation,
+                                            &isPrivileged);
+    if (NS_SUCCEEDED(rv) && isPrivileged) {
+      return JS_TRUE;
+    }
+  }
+
   XPCWrappedNativeScope *scope = wn->GetScope();
   nsIPrincipal *objectPrincipal = scope->GetPrincipal();
 
   PRBool subsumes;
   nsresult rv = subjectPrincipal->Subsumes(objectPrincipal, &subsumes);
   if (NS_FAILED(rv) || !subsumes) {
-    PRBool isPrivileged;
-    rv = ssm->IsCapabilityEnabled("UniversalXPConnect", &isPrivileged);
-    return NS_SUCCEEDED(rv) && isPrivileged;
+    return JS_FALSE;
   }
 
   return JS_TRUE;
