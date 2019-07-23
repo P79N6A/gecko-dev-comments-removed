@@ -814,53 +814,6 @@ ServerIdentity.prototype =
 {
   
 
-
-
-  _initialize: function(port, addSecondaryDefault)
-  {
-    if (this._primaryPort !== -1)
-      this.add("http", "localhost", port);
-    else
-      this.setPrimary("http", "localhost", port);
-    this._defaultPort = port;
-
-    
-    if (addSecondaryDefault)
-      this.add("http", "127.0.0.1", port);
-  },
-
-  
-
-
-
-
-  _teardown: function()
-  {
-    
-    this.remove("http", "127.0.0.1", this._defaultPort);
-
-    
-    
-    if (this._primaryScheme == "http" &&
-        this._primaryHost == "localhost" &&
-        this._primaryPort == this._defaultPort)
-    {
-      
-      
-      var port = this._defaultPort;
-      this._defaultPort = -1;
-      this.remove("http", "localhost", port);
-
-      
-      this._primaryPort = -1;
-    }
-    else
-    {
-      
-      this.remove("http", "localhost", this._defaultPort);
-    }
-  },
-
   
   
   
@@ -897,7 +850,7 @@ ServerIdentity.prototype =
   add: function(scheme, host, port)
   {
     this._validate(scheme, host, port);
-    
+
     var entry = this._locations["x" + host];
     if (!entry)
       this._locations["x" + host] = entry = {};
@@ -943,7 +896,7 @@ ServerIdentity.prototype =
     return "x" + host in this._locations &&
            scheme === this._locations["x" + host][port];
   },
-  
+
   
   
   
@@ -957,7 +910,7 @@ ServerIdentity.prototype =
 
     return entry[port] || "";
   },
-  
+
   
   
   
@@ -970,6 +923,72 @@ ServerIdentity.prototype =
     this._primaryScheme = scheme;
     this._primaryHost = host;
     this._primaryPort = port;
+  },
+
+
+  
+
+  
+  
+  
+  QueryInterface: function(iid)
+  {
+    if (iid.equals(Ci.nsIHttpServerIdentity) || iid.equals(Ci.nsISupports))
+      return this;
+
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  },
+
+
+  
+
+  
+
+
+
+  _initialize: function(port, addSecondaryDefault)
+  {
+    if (this._primaryPort !== -1)
+      this.add("http", "localhost", port);
+    else
+      this.setPrimary("http", "localhost", port);
+    this._defaultPort = port;
+
+    
+    if (addSecondaryDefault)
+      this.add("http", "127.0.0.1", port);
+  },
+
+  
+
+
+
+
+  _teardown: function()
+  {
+    
+    this.remove("http", "127.0.0.1", this._defaultPort);
+
+    
+    
+    if (this._primaryScheme == "http" &&
+        this._primaryHost == "localhost" &&
+        this._primaryPort == this._defaultPort)
+    {
+      
+      
+      var port = this._defaultPort;
+      this._defaultPort = -1;
+      this.remove("http", "localhost", port);
+
+      
+      this._primaryPort = -1;
+    }
+    else
+    {
+      
+      this.remove("http", "localhost", this._defaultPort);
+    }
   },
 
   
@@ -3524,6 +3543,20 @@ Response.prototype =
   
 
   
+  
+  
+  QueryInterface: function(iid)
+  {
+    if (iid.equals(Ci.nsIHttpResponse) || iid.equals(Ci.nsISupports))
+      return this;
+
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  },
+
+
+  
+
+  
 
 
   get httpVersion()
@@ -4550,6 +4583,23 @@ Request.prototype =
     this._ensurePropertyBag();
     return this._bag.getProperty(name);
   },
+
+
+  
+
+  
+  
+  
+  QueryInterface: function(iid)
+  {
+    if (iid.equals(Ci.nsIHttpRequest) || iid.equals(Ci.nsISupports))
+      return this;
+
+    throw Cr.NS_ERROR_NO_INTERFACE;
+  },
+
+
+  
   
   
   _ensurePropertyBag: function()
