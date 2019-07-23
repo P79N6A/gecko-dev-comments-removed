@@ -639,33 +639,28 @@ function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup,
 
 
  
-function isValidFeed(aData, aPrincipal, aIsFeed)
+function isValidFeed(aLink, aPrincipal, aIsFeed)
 {
-  if (!aData || !aPrincipal)
+  if (!aLink || !aPrincipal)
     return false;
 
+  var type = aLink.type.toLowerCase().replace(/^\s+|\s*(?:;.*)?$/g, "");
   if (!aIsFeed) {
-    var type = aData.type && aData.type.toLowerCase();
-    type = type.replace(/^\s+|\s*(?:;.*)?$/g, "");
-
     aIsFeed = (type == "application/rss+xml" ||
                type == "application/atom+xml");
   }
 
   if (aIsFeed) {
     try {
-      urlSecurityCheck(aData.href, aPrincipal,
+      urlSecurityCheck(aLink.href, aPrincipal,
                        Components.interfaces.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL);
+      return type || "application/rss+xml";
     }
     catch(ex) {
-      aIsFeed = false;
     }
   }
 
-  if (type)
-    aData.type = type;
-
-  return aIsFeed;
+  return null;
 }
 
 
