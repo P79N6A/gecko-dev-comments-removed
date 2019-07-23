@@ -240,22 +240,24 @@ void nsLinkableAccessible::CacheActionContent()
        walkUpContent;
        walkUpContent = walkUpContent->GetParent()) {
     nsIAtom *tag = walkUpContent->Tag();
-    if ((tag == nsAccessibilityAtoms::a || tag == nsAccessibilityAtoms::area)) {
-      
-      
-      
+    if ((tag == nsAccessibilityAtoms::a || tag == nsAccessibilityAtoms::area) &&
+        walkUpContent->IsNodeOfType(nsINode::eHTML)) {
       nsCOMPtr<nsILink> link = do_QueryInterface(walkUpContent);
-      NS_ASSERTION(link, "No nsILink for area or a");
-      nsCOMPtr<nsIURI> uri;
-      link->GetHrefURI(getter_AddRefs(uri));
-      if (uri) {
-        mActionContent = walkUpContent;
-        mIsLink = PR_TRUE;
-        break;
+      if (link) {
+        
+        
+        
+        nsCOMPtr<nsIURI> uri;
+        link->GetHrefURI(getter_AddRefs(uri));
+        if (uri) {
+          mActionContent = walkUpContent;
+          mIsLink = PR_TRUE;
+          break;
+        }
       }
     }
     if (walkUpContent->HasAttr(kNameSpaceID_None,
-                            nsAccessibilityAtoms::onclick)) {
+                               nsAccessibilityAtoms::onclick)) {
       mActionContent = walkUpContent;
       mIsOnclick = PR_TRUE;
       break;
