@@ -58,7 +58,8 @@ class nsPresContext;
 
 
 #define NS_ISTYLE_RULE_PROCESSOR_IID     \
-{0x015575fe, 0x7b6c, 0x11d3, {0xba, 0x05, 0x00, 0x10, 0x83, 0x02, 0x3c, 0x2b}}
+{ 0xa4ec760e, 0x6bfb, 0x4b9f, \
+ { 0xbd, 0x08, 0x9d, 0x1c, 0x23, 0xb7, 0x00, 0xf6 } }
 
 
 
@@ -107,8 +108,8 @@ public:
 
 
 
-  NS_IMETHOD HasAttributeDependentStyle(AttributeRuleProcessorData* aData,
-                                        nsReStyleHint* aResult) = 0;
+  virtual nsReStyleHint
+    HasAttributeDependentStyle(AttributeRuleProcessorData* aData) = 0;
 
   
 
