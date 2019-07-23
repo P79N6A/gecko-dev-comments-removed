@@ -52,7 +52,10 @@ function run_test() {
   startAUS();
 
   
-  dump("Testing: nsIApplicationUpdateService:canUpdate\n");
-  do_check_true(gAUS.canUpdate);
+  dump("Testing: nsIApplicationUpdateService:canCheckForUpdates\n");
+  do_check_true(gAUS.canCheckForUpdates);
+  
+  dump("Testing: nsIApplicationUpdateService:canApplyUpdates\n");
+  do_check_true(gAUS.canApplyUpdates);
   cleanUp();
 }
