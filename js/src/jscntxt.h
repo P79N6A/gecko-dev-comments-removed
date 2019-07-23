@@ -126,6 +126,7 @@ struct JSThread {
     
     JSPropertyCache     propertyCache;
 
+    
     JSTraceMonitor      traceMonitor;
 };
 
@@ -410,7 +411,7 @@ struct JSRuntime {
 
 
 
-    uint32              loopTableIndexGen;
+    uint32              loopTableSlotGen;
     
     
 
