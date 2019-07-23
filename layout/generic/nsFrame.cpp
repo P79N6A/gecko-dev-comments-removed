@@ -4655,15 +4655,14 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       
       
       
-      PRBool sawBeforeType = PR_FALSE;
-
+      PeekWordState state;
       PRBool done = PR_FALSE;
       while (!done) {
         PRBool movingInFrameDirection =
           IsMovingInFrameDirection(current, aPos->mDirection, aPos->mVisual);
         
-        done = current->PeekOffsetWord(movingInFrameDirection, wordSelectEatSpace, aPos->mIsKeyboardSelect,
-                                       &offset, &sawBeforeType);
+        done = current->PeekOffsetWord(movingInFrameDirection, wordSelectEatSpace,
+                                       aPos->mIsKeyboardSelect, &offset, &state);
         
         if (!done) {
           nsIFrame* nextFrame;
@@ -4676,14 +4675,14 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
           
           
           if (NS_FAILED(result) ||
-              jumpedLine && !wordSelectEatSpace && sawBeforeType) {
+              jumpedLine && !wordSelectEatSpace && state.mSawBeforeType) {
             done = PR_TRUE;
           } else {
             current = nextFrame;
             offset = nextFrameOffset;
             
             if (wordSelectEatSpace && jumpedLine)
-              sawBeforeType = PR_TRUE;
+              state.SetSawBeforeType();
           }
         }
       }
@@ -4889,7 +4888,7 @@ nsFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
 
 PRBool
 nsFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
-                        PRInt32* aOffset, PRBool* aSawBeforeType)
+                        PRInt32* aOffset, PeekWordState* aState)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
   PRInt32 startOffset = *aOffset;
@@ -4898,14 +4897,39 @@ nsFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsK
   if (aForward == (startOffset == 0)) {
     
     
-    if (aWordSelectEatSpace && *aSawBeforeType)
-      return PR_TRUE;
+    if (!aState->mAtStart) {
+      if (aState->mLastCharWasPunctuation) {
+        
+        if (BreakWordBetweenPunctuation(aForward, aIsKeyboardSelect))
+          return PR_TRUE;
+      } else {
+        
+        if (aWordSelectEatSpace && aState->mSawBeforeType)
+          return PR_TRUE;
+      }
+    }
     
     *aOffset = 1 - startOffset;
+    aState->Update(PR_FALSE);
     if (!aWordSelectEatSpace)
-      *aSawBeforeType = PR_TRUE;
+      aState->SetSawBeforeType();
   }
   return PR_FALSE;
+}
+
+PRBool
+nsFrame::BreakWordBetweenPunctuation(PRBool aAfterPunct, PRBool aIsKeyboardSelect)
+{
+  if (!nsContentUtils::GetBoolPref("layout.word_select.stop_at_punctuation")) {
+    
+    return PR_FALSE;
+  }
+  if (!aIsKeyboardSelect) {
+    
+    return PR_TRUE;
+  }
+  
+  return aAfterPunct;
 }
 
 NS_IMETHODIMP

@@ -2115,9 +2115,26 @@ protected:
 
 
 
+  struct PeekWordState {
+    
+    
+    PRPackedBool mAtStart;
+    
+    
+    PRPackedBool mSawBeforeType;
+    
+    PRPackedBool mLastCharWasPunctuation;
 
+    PeekWordState() : mAtStart(PR_TRUE), mSawBeforeType(PR_FALSE),
+        mLastCharWasPunctuation(PR_FALSE) {}
+    void SetSawBeforeType() { mSawBeforeType = PR_TRUE; }
+    void Update(PRBool aAfterPunctuation) {
+      mLastCharWasPunctuation = aAfterPunctuation;
+      mAtStart = PR_FALSE;
+    }
+  };
   virtual PRBool PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsKeyboardSelect,
-                                PRInt32* aOffset, PRBool* aSawBeforeType) = 0;
+                                PRInt32* aOffset, PeekWordState* aState) = 0;
 
   
 
