@@ -2197,18 +2197,29 @@ nsWindow::OnMotionNotifyEvent(GtkWidget *aWidget, GdkEventMotion *aEvent)
     sIsDraggingOutOf = PR_FALSE;
 
     
-    
-    
     PRPackedBool synthEvent = PR_FALSE;
-#ifdef MOZ_X11
-    XEvent xevent;
-    
-    while (XCheckWindowEvent(GDK_WINDOW_XDISPLAY(aEvent->window),
-                             GDK_WINDOW_XWINDOW(aEvent->window),
-                             ButtonMotionMask, &xevent)) {
+    GdkEvent* gdkevent = NULL;
+
+    while (GdkEvent *peeked = gdk_display_peek_event (gdk_drawable_get_display (GDK_DRAWABLE(aEvent->window)))) {
+        PRPackedBool wrongType = PR_FALSE;
+
+        if (peeked->any.window != aEvent->window
+            || peeked->type != GDK_MOTION_NOTIFY)
+            wrongType = PR_TRUE;
+
+        gdk_event_free (peeked);
+
+        if (wrongType)
+            break;
+
         synthEvent = PR_TRUE;
+        if (gdkevent)
+            gdk_event_free (gdkevent);
+        gdkevent = gdk_event_get ();
+        aEvent = &gdkevent->motion;
     }
 
+#if MOZ_X11
     
     if (gPluginFocusWindow && gPluginFocusWindow != this) {
         nsRefPtr<nsWindow> kungFuDeathGrip = gPluginFocusWindow;
@@ -2218,55 +2229,29 @@ nsWindow::OnMotionNotifyEvent(GtkWidget *aWidget, GdkEventMotion *aEvent)
 
     nsMouseEvent event(PR_TRUE, NS_MOUSE_MOVE, this, nsMouseEvent::eReal);
 
-    if (synthEvent) {
-#ifdef MOZ_X11
-        event.refPoint.x = nscoord(xevent.xmotion.x);
-        event.refPoint.y = nscoord(xevent.xmotion.y);
-
-        event.isShift   = (xevent.xmotion.state & GDK_SHIFT_MASK)
-            ? PR_TRUE : PR_FALSE;
-        event.isControl = (xevent.xmotion.state & GDK_CONTROL_MASK)
-            ? PR_TRUE : PR_FALSE;
-        event.isAlt     = (xevent.xmotion.state & GDK_MOD1_MASK)
-            ? PR_TRUE : PR_FALSE;
-
-        event.time = xevent.xmotion.time;
-#else
+    
+    if (synthEvent || aEvent->window == mDrawingarea->inner_window) {
         event.refPoint.x = nscoord(aEvent->x);
         event.refPoint.y = nscoord(aEvent->y);
+    } else {
+        nsRect windowRect;
+        ScreenToWidget(nsRect(nscoord(aEvent->x_root), nscoord(aEvent->y_root), 1, 1), windowRect);
 
-        event.isShift   = (aEvent->state & GDK_SHIFT_MASK)
-            ? PR_TRUE : PR_FALSE;
-        event.isControl = (aEvent->state & GDK_CONTROL_MASK)
-            ? PR_TRUE : PR_FALSE;
-        event.isAlt     = (aEvent->state & GDK_MOD1_MASK)
-            ? PR_TRUE : PR_FALSE;
-
-        event.time = aEvent->time;
-#endif 
+        event.refPoint.x = windowRect.x;
+        event.refPoint.y = windowRect.y;
     }
-    else {
-        
-        if (aEvent->window == mDrawingarea->inner_window) {
-            event.refPoint.x = nscoord(aEvent->x);
-            event.refPoint.y = nscoord(aEvent->y);
-        } else {
-            nsRect windowRect;
-            ScreenToWidget(nsRect(nscoord(aEvent->x_root), nscoord(aEvent->y_root), 1, 1), windowRect);
 
-            event.refPoint.x = windowRect.x;
-            event.refPoint.y = windowRect.y;
-        }
+    event.isShift   = (aEvent->state & GDK_SHIFT_MASK)
+        ? PR_TRUE : PR_FALSE;
+    event.isControl = (aEvent->state & GDK_CONTROL_MASK)
+        ? PR_TRUE : PR_FALSE;
+    event.isAlt     = (aEvent->state & GDK_MOD1_MASK)
+        ? PR_TRUE : PR_FALSE;
 
-        event.isShift   = (aEvent->state & GDK_SHIFT_MASK)
-            ? PR_TRUE : PR_FALSE;
-        event.isControl = (aEvent->state & GDK_CONTROL_MASK)
-            ? PR_TRUE : PR_FALSE;
-        event.isAlt     = (aEvent->state & GDK_MOD1_MASK)
-            ? PR_TRUE : PR_FALSE;
+    event.time = aEvent->time;
 
-        event.time = aEvent->time;
-    }
+    if (synthEvent)
+        gdk_event_free (gdkevent);
 
     nsEventStatus status;
     DispatchEvent(&event, status);
