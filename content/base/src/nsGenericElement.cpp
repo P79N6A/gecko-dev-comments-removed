@@ -340,7 +340,8 @@ nsINode::GetTextEditorRootContent(nsIEditor** aEditor)
   if (aEditor)
     *aEditor = nsnull;
   for (nsINode* node = this; node; node = node->GetNodeParent()) {
-    if (!node->IsNodeOfType(eHTML))
+    if (!node->IsNodeOfType(eELEMENT) ||
+        !static_cast<nsIContent*>(node)->IsHTML())
       continue;
 
     nsCOMPtr<nsIEditor> editor;
@@ -1084,6 +1085,29 @@ nsNSElementTearoff::GetClassList(nsIDOMDOMTokenList** aResult)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsNSElementTearoff::SetCapture(PRBool aRetargetToElement)
+{
+  
+  
+  
+  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(nsIPresShell::GetCapturingContent());
+  if (node)
+    return NS_OK;
+
+  nsIPresShell::SetCapturingContent(mContent, aRetargetToElement ? CAPTURE_RETARGETTOELEMENT : 0);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSElementTearoff::ReleaseCapture()
+{
+  if (nsIPresShell::GetCapturingContent() == mContent) {
+    nsIPresShell::SetCapturingContent(nsnull, 0);
+  }
+  return NS_OK;
+}
+
 
 
 
@@ -1145,7 +1169,7 @@ nsNSElementTearoff::GetScrollInfo(nsIScrollableView **aScrollableView,
   *aScrollableView = nsnull;
 
   
-  if (mContent->IsNodeOfType(nsINode::eSVG)) {
+  if (mContent->IsSVG()) {
     if (aFrame)
       *aFrame = nsnull;
     return;
@@ -1297,7 +1321,7 @@ nsNSElementTearoff::GetScrollHeight(PRInt32* aScrollHeight)
   NS_ENSURE_ARG_POINTER(aScrollHeight);
   *aScrollHeight = 0;
 
-  if (mContent->IsNodeOfType(nsINode::eSVG))
+  if (mContent->IsSVG())
     return NS_OK;
 
   nsIScrollableView *scrollView;
@@ -1328,7 +1352,7 @@ nsNSElementTearoff::GetScrollWidth(PRInt32* aScrollWidth)
   NS_ENSURE_ARG_POINTER(aScrollWidth);
   *aScrollWidth = 0;
 
-  if (mContent->IsNodeOfType(nsINode::eSVG))
+  if (mContent->IsSVG())
     return NS_OK;
 
   nsIScrollableView *scrollView;
@@ -1359,7 +1383,7 @@ nsNSElementTearoff::GetClientAreaRect()
   nsIFrame *frame;
 
   
-  if (mContent->IsNodeOfType(nsINode::eSVG))
+  if (mContent->IsSVG())
     return nsRect(0, 0, 0, 0);
 
   GetScrollInfo(&scrollView, &frame);
@@ -1411,18 +1435,6 @@ nsNSElementTearoff::GetClientWidth(PRInt32* aLength)
   return NS_OK;
 }
 
-static nsIFrame*
-GetContainingBlockForClientRect(nsIFrame* aFrame)
-{
-  
-  while (aFrame->GetParent() &&
-         !aFrame->IsFrameOfType(nsIFrame::eSVGForeignObject)) {
-    aFrame = aFrame->GetParent();
-  }
-
-  return aFrame;
-}
-
 NS_IMETHODIMP
 nsNSElementTearoff::GetBoundingClientRect(nsIDOMClientRect** aResult)
 {
@@ -1439,33 +1451,11 @@ nsNSElementTearoff::GetBoundingClientRect(nsIDOMClientRect** aResult)
     return NS_OK;
   }
 
-  nsPresContext* presContext = frame->PresContext();
   nsRect r = nsLayoutUtils::GetAllInFlowRectsUnion(frame,
-          GetContainingBlockForClientRect(frame));
-  rect->SetLayoutRect(r, presContext);
+          nsLayoutUtils::GetContainingBlockForClientRect(frame));
+  rect->SetLayoutRect(r);
   return NS_OK;
 }
-
-struct RectListBuilder : public nsLayoutUtils::RectCallback {
-  nsPresContext*    mPresContext;
-  nsClientRectList* mRectList;
-  nsresult          mRV;
-
-  RectListBuilder(nsPresContext* aPresContext, nsClientRectList* aList) 
-    : mPresContext(aPresContext), mRectList(aList),
-      mRV(NS_OK) {}
-
-  virtual void AddRect(const nsRect& aRect) {
-    nsRefPtr<nsClientRect> rect = new nsClientRect();
-    if (!rect) {
-      mRV = NS_ERROR_OUT_OF_MEMORY;
-      return;
-    }
-    
-    rect->SetLayoutRect(aRect, mPresContext);
-    mRectList->Append(rect);
-  }
-};
 
 NS_IMETHODIMP
 nsNSElementTearoff::GetClientRects(nsIDOMClientRectList** aResult)
@@ -1483,9 +1473,9 @@ nsNSElementTearoff::GetClientRects(nsIDOMClientRectList** aResult)
     return NS_OK;
   }
 
-  RectListBuilder builder(frame->PresContext(), rectList);
+  nsLayoutUtils::RectListBuilder builder(rectList);
   nsLayoutUtils::GetAllInFlowRects(frame,
-          GetContainingBlockForClientRect(frame), &builder);
+          nsLayoutUtils::GetContainingBlockForClientRect(frame), &builder);
   if (NS_FAILED(builder.mRV))
     return builder.mRV;
   *aResult = rectList.forget().get();
@@ -2960,7 +2950,7 @@ nsICSSStyleRule*
 nsGenericElement::GetSMILOverrideStyleRule()
 {
   nsGenericElement::nsDOMSlots *slots = GetExistingDOMSlots();
-  return slots ? slots->mSMILOverrideStyleRule : nsnull;
+  return slots ? slots->mSMILOverrideStyleRule.get() : nsnull;
 }
 
 nsresult
@@ -3999,7 +3989,7 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
       }
     }
 
-    if (!newContent->IsNodeOfType(eXUL)) {
+    if (!newContent->IsXUL()) {
       nsContentUtils::ReparentContentWrapper(newContent, aParent,
                                              container->GetOwnerDoc(),
                                              container->GetOwnerDoc());
@@ -4058,7 +4048,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_LISTENERMANAGER
   NS_IMPL_CYCLE_COLLECTION_UNLINK_USERDATA
 
-  if (tmp->HasProperties() && tmp->IsNodeOfType(nsINode::eXUL)) {
+  if (tmp->HasProperties() && tmp->IsXUL()) {
     tmp->DeleteProperty(nsGkAtoms::contextmenulistener);
     tmp->DeleteProperty(nsGkAtoms::popuplistener);
   }
@@ -4091,7 +4081,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
         slots->mAttributeMap->DropReference();
         slots->mAttributeMap = nsnull;
       }
-      if (tmp->IsNodeOfType(nsINode::eXUL))
+      if (tmp->IsXUL())
         NS_IF_RELEASE(slots->mControllers);
       slots->mChildrenList = nsnull;
     }
@@ -4129,7 +4119,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGenericElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_LISTENERMANAGER
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_USERDATA
 
-  if (tmp->HasProperties() && tmp->IsNodeOfType(nsINode::eXUL)) {
+  if (tmp->HasProperties() && tmp->IsXUL()) {
     nsISupports* property =
       static_cast<nsISupports*>
                  (tmp->GetProperty(nsGkAtoms::contextmenulistener));
@@ -4176,7 +4166,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGenericElement)
       NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "slots mAttributeMap");
       cb.NoteXPCOMChild(slots->mAttributeMap.get());
 
-      if (tmp->IsNodeOfType(nsINode::eXUL))
+      if (tmp->IsXUL())
         cb.NoteXPCOMChild(slots->mControllers);
       cb.NoteXPCOMChild(
         static_cast<nsIDOMNodeList*>(slots->mChildrenList.get()));
@@ -4262,7 +4252,9 @@ nsGenericElement::AddScriptEventListener(nsIAtom* aEventName,
   GetEventListenerManagerForAttr(getter_AddRefs(manager),
                                  getter_AddRefs(target),
                                  &defer);
-  NS_ENSURE_STATE(manager);
+  if (!manager) {
+    return NS_OK;
+  }
 
   defer = defer && aDefer; 
   PRUint32 lang = GetScriptTypeID();
@@ -5066,7 +5058,8 @@ nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
           if (fm) {
             nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(this);
-            fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOUSE);
+            fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOUSE |
+                               nsIFocusManager::FLAG_NOSCROLL);
           }
 
           aVisitor.mPresContext->EventStateManager()->

@@ -249,6 +249,27 @@ public:
     return mNodeInfo;
   }
 
+  inline PRBool IsInNamespace(PRInt32 aNamespace) const {
+    return mNodeInfo->NamespaceID() == aNamespace;
+  }
+
+  inline PRBool IsHTML() const {
+    return IsInNamespace(kNameSpaceID_XHTML);
+  }
+
+  inline PRBool IsSVG() const {
+    
+    return IsNodeOfType(eSVG);
+  }
+
+  inline PRBool IsXUL() const {
+    return IsInNamespace(kNameSpaceID_XUL);
+  }
+
+  inline PRBool IsMathML() const {
+    return IsInNamespace(kNameSpaceID_MathML);
+  }
+
   
 
 

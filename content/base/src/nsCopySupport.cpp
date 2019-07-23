@@ -349,7 +349,7 @@ nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc
   {
     
 
-    if (!selContent->IsNodeOfType(nsINode::eHTML)) {
+    if (!selContent->IsHTML()) {
       continue;
     }
 

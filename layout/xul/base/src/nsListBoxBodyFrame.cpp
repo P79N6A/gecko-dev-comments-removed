@@ -1219,7 +1219,7 @@ nsListBoxBodyFrame::GetNextItemBox(nsIBox* aBox, PRInt32 aOffset,
       
       nsIContent *nextContent = parentContent->GetChildAt(i + aOffset + 1);
 
-      if (!nextContent->IsNodeOfType(nsINode::eXUL) ||
+      if (!nextContent->IsXUL() ||
           nextContent->Tag() != nsGkAtoms::listitem)
         return GetNextItemBox(aBox, ++aOffset, aCreated);
 

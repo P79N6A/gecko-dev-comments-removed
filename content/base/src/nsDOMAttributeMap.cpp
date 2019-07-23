@@ -354,7 +354,7 @@ nsDOMAttributeMap::SetNamedItemInternal(nsIDOMNode *aNode,
     iAttribute->SetMap(this);
 
     if (!aWithNS && ni->NamespaceID() == kNameSpaceID_None &&
-        mContent->IsNodeOfType(nsINode::eHTML)) {
+        mContent->IsHTML()) {
       
       
       nsCOMPtr<nsIDOMElement> ourElement(do_QueryInterface(mContent));

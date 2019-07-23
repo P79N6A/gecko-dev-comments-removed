@@ -246,8 +246,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0xfc22c6df, 0x3e8e, 0x47c3, \
-  { 0x96, 0xa6, 0xaf, 0x14, 0x3c, 0x05, 0x88, 0x68 } }
+{ 0xc6485d02, 0x7c8a, 0x42fd, \
+ { 0x97, 0x15, 0x0f, 0x67, 0xfd, 0x69, 0xd5, 0x3e } }
  
 
 
@@ -294,22 +294,16 @@ public:
     
     eCOMMENT             = 1 << 6,
     
-    eHTML                = 1 << 7,
+    eHTML_FORM_CONTROL   = 1 << 7,
     
-    eHTML_FORM_CONTROL   = 1 << 8,
+    eSVG                 = 1 << 8,
     
-    eXUL                 = 1 << 9,
-    
-    eSVG                 = 1 << 10,
-    
-    eDOCUMENT_FRAGMENT   = 1 << 11,
+    eDOCUMENT_FRAGMENT   = 1 << 9,
     
 
-    eDATA_NODE           = 1 << 12,
+    eDATA_NODE           = 1 << 10,
     
-    eMATHML              = 1 << 13,
-    
-    eMEDIA               = 1 << 14
+    eMEDIA               = 1 << 11
   };
 
   

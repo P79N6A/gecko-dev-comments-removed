@@ -517,7 +517,7 @@ nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
     return;
 
   nsIContent* rootContent = aPresContext->Document()->GetRootContent();
-  if (!rootContent || !rootContent->IsNodeOfType(nsINode::eXUL)) {
+  if (!rootContent || !rootContent->IsXUL()) {
     
     
     
