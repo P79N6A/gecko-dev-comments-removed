@@ -373,6 +373,9 @@ protected:
   nscoord     mAscent;
   gfxTextRun* mTextRun;
 
+  
+  
+  
   SelectionDetails* GetSelectionDetails();
   
   void AdjustSelectionPointsForBidi(SelectionDetails *sdptr,
