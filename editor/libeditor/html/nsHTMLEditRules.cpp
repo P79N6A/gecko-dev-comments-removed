@@ -3744,49 +3744,14 @@ nsHTMLEditRules::WillHTMLIndent(nsISelection *aSelection, PRBool *aCancel, PRBoo
     
     if (nsHTMLEditUtils::IsList(curParent))
     {
-      sibling = nsnull;
-
-      
-      
-      
-      mHTMLEditor->GetNextHTMLSibling(curNode, address_of(sibling));
-      if (sibling && nsHTMLEditUtils::IsList(sibling))
-      {
-        nsAutoString curListTag, siblingListTag;
-        nsEditor::GetTagString(curParent, curListTag);
-        nsEditor::GetTagString(sibling, siblingListTag);
-        if (curListTag == siblingListTag)
-        {
-          res = mHTMLEditor->MoveNode(curNode, sibling, 0);
-          if (NS_FAILED(res)) return res;
-          continue;
-        }
-      }
-
-      
-      
-      
-      mHTMLEditor->GetPriorHTMLSibling(curNode, address_of(sibling));
-      if (sibling && nsHTMLEditUtils::IsList(sibling))
-      {
-        nsAutoString curListTag, siblingListTag;
-        nsEditor::GetTagString(curParent, curListTag);
-        nsEditor::GetTagString(sibling, siblingListTag);
-        if (curListTag == siblingListTag)
-        {
-          res = mHTMLEditor->MoveNode(curNode, sibling, -1);
-          if (NS_FAILED(res)) return res;
-          continue;
-        }
-      }
-
-      sibling = nsnull;
-
       
       
       if (curList)
+      {
+        sibling = nsnull;
         mHTMLEditor->GetPriorHTMLSibling(curNode, address_of(sibling));
-
+      }
+      
       if (!curList || (sibling && sibling != curList) )
       {
         nsAutoString listTag;
