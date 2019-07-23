@@ -146,6 +146,11 @@ public:
 
 
 
+
+
+
+
+
   NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength, 
       PRUnichar * aDest, PRInt32 * aDestLength) = 0;
 

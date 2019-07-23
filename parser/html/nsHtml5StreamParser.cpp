@@ -54,21 +54,42 @@
 
 static NS_DEFINE_CID(kCharsetAliasCID, NS_CHARSETALIAS_CID);
 
-PRInt32 nsHtml5StreamParser::sTimerStartDelay = 200;
-PRInt32 nsHtml5StreamParser::sTimerContinueDelay = 150;
-PRInt32 nsHtml5StreamParser::sTimerInterval = 100;
+PRInt32 nsHtml5StreamParser::sTimerInitialDelay = 200;
+PRInt32 nsHtml5StreamParser::sTimerSubsequentDelay = 100;
 
 
 void
 nsHtml5StreamParser::InitializeStatics()
 {
-  nsContentUtils::AddIntPrefVarCache("html5.flushtimer.startdelay", 
-                                     &sTimerStartDelay);
-  nsContentUtils::AddIntPrefVarCache("html5.flushtimer.continuedelay", 
-                                     &sTimerContinueDelay);
-  nsContentUtils::AddIntPrefVarCache("html5.flushtimer.interval",
-                                     &sTimerInterval);
+  nsContentUtils::AddIntPrefVarCache("html5.flushtimer.initialdelay",
+                                     &sTimerInitialDelay);
+  nsContentUtils::AddIntPrefVarCache("html5.flushtimer.subsequentdelay",
+                                     &sTimerSubsequentDelay);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsHtml5StreamParser)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsHtml5StreamParser)
@@ -83,10 +104,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsHtml5StreamParser)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsHtml5StreamParser)
-  if (tmp->mFlushTimer) {
-    tmp->mFlushTimer->Cancel();
-    tmp->mFlushTimer = nsnull;
-  }
+  tmp->DropTimer();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mObserver)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mRequest)
   tmp->mOwner = nsnull;
@@ -169,10 +187,11 @@ nsHtml5StreamParser::nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
   , mFlushTimer(do_CreateInstance("@mozilla.org/timer;1"))
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  mFlushTimer->SetTarget(mThread);
   mAtomTable.Init(); 
-  #ifdef DEBUG
-    mAtomTable.SetPermittedLookupThread(mThread);
-  #endif
+#ifdef DEBUG
+  mAtomTable.SetPermittedLookupThread(mThread);
+#endif
   mTokenizer->setInterner(&mAtomTable);
   mTokenizer->setEncodingDeclarationHandler(this);
 
@@ -198,6 +217,8 @@ nsHtml5StreamParser::~nsHtml5StreamParser()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   mTokenizer->end();
+  NS_ASSERTION(!mFlushTimer, "Flush timer was not dropped before dtor!");
+#ifdef DEBUG
   mRequest = nsnull;
   mObserver = nsnull;
   mUnicodeDecoder = nsnull;
@@ -208,10 +229,7 @@ nsHtml5StreamParser::~nsHtml5StreamParser()
   mTreeBuilder = nsnull;
   mTokenizer = nsnull;
   mOwner = nsnull;
-  if (mFlushTimer) {
-    mFlushTimer->Cancel();
-    mFlushTimer = nsnull;
-  }
+#endif
 }
 
 nsresult
@@ -540,11 +558,6 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
 
   mExecutor->WillBuildModel(eDTDMode_unknown);
   
-  mFlushTimer->InitWithFuncCallback(nsHtml5StreamParser::TimerCallback, 
-                                    static_cast<void*> (this), 
-                                    sTimerStartDelay, 
-                                    nsITimer::TYPE_ONE_SHOT);
-
   nsresult rv = NS_OK;
 
   mReparseForbidden = PR_FALSE;
@@ -658,6 +671,18 @@ nsHtml5StreamParser::DoDataAvailable(PRUint8* aBuffer, PRUint32 aLength)
   }
 
   ParseAvailableData();
+
+  if (mFlushTimerArmed || mSpeculating) {
+    return;
+  }
+
+  mFlushTimer->InitWithFuncCallback(nsHtml5StreamParser::TimerCallback,
+                                    static_cast<void*> (this),
+                                    mFlushTimerEverFired ?
+                                        sTimerInitialDelay :
+                                        sTimerSubsequentDelay,
+                                    nsITimer::TYPE_ONE_SHOT);
+  mFlushTimerArmed = PR_TRUE;
 }
 
 class nsHtml5DataAvailable : public nsRunnable
@@ -748,14 +773,27 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
   }
   
   mTreeBuilder->NeedsCharsetSwitchTo(preferred);
-  mTreeBuilder->Flush();
+  FlushTreeOpsAndDisarmTimer();
   Interrupt();
+  
+  
+  
+}
+
+void
+nsHtml5StreamParser::FlushTreeOpsAndDisarmTimer()
+{
+  NS_ASSERTION(IsParserThread(), "Wrong thread!");
+  if (mFlushTimerArmed) {
+    
+    
+    mFlushTimer->Cancel();
+    mFlushTimerArmed = PR_FALSE;
+  }
+  mTreeBuilder->Flush();
   if (NS_FAILED(NS_DispatchToMainThread(mExecutorFlusher))) {
     NS_WARNING("failed to dispatch executor flush event");
   }
-  
-  
-  
 }
 
 void
@@ -794,10 +832,7 @@ nsHtml5StreamParser::ParseAvailableData()
             mAtEOF = PR_TRUE;
             mTokenizer->eof();
             mTreeBuilder->StreamEnded();
-            mTreeBuilder->Flush();
-            if (NS_FAILED(NS_DispatchToMainThread(mExecutorFlusher))) {
-              NS_WARNING("failed to dispatch executor flush event");
-            }
+            FlushTreeOpsAndDisarmTimer();
             return; 
           default:
             NS_NOTREACHED("It should be impossible to reach this.");
@@ -826,10 +861,7 @@ nsHtml5StreamParser::ParseAvailableData()
                                  mTreeBuilder->newSnapshot());
         mTreeBuilder->AddSnapshotToScript(speculation->GetSnapshot(), 
                                           speculation->GetStartLineNumber());
-        mTreeBuilder->Flush();
-        if (NS_FAILED(NS_DispatchToMainThread(mExecutorFlusher))) {
-          NS_WARNING("failed to dispatch executor flush event");
-        }
+        FlushTreeOpsAndDisarmTimer();
         mTreeBuilder->SetOpSink(speculation);
         mSpeculations.AppendElement(speculation); 
         mSpeculating = PR_TRUE;
@@ -853,6 +885,7 @@ public:
   NS_IMETHODIMP Run()
   {
     mozilla::MutexAutoLock autoLock(mStreamParser->mTokenizerMutex);
+    mStreamParser->Uninterrupt();
     mStreamParser->ParseAvailableData();
     return NS_OK;
   }
@@ -943,11 +976,7 @@ nsHtml5StreamParser::ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer,
       mTreeBuilder->SetOpSink(mExecutor->GetStage());
       mExecutor->StartReadingFromStage();
       mSpeculating = PR_FALSE;
-      mFlushTimer->Cancel();
-      mFlushTimer->InitWithFuncCallback(nsHtml5StreamParser::TimerCallback, 
-                                        static_cast<void*> (this), 
-                                        sTimerContinueDelay, 
-                                        nsITimer::TYPE_ONE_SHOT);
+
       
       mLastWasCR = aLastWasCR;
       mTokenizer->loadState(aTokenizer);
@@ -968,17 +997,11 @@ nsHtml5StreamParser::ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer,
         mTreeBuilder->SetOpSink(mExecutor->GetStage());
         mExecutor->StartReadingFromStage();
         mSpeculating = PR_FALSE;
-        mFlushTimer->Cancel();
-        mFlushTimer->InitWithFuncCallback(nsHtml5StreamParser::TimerCallback, 
-                                          static_cast<void*> (this), 
-                                          sTimerContinueDelay, 
-                                          nsITimer::TYPE_ONE_SHOT);
       }
     }
-    Uninterrupt();
     nsCOMPtr<nsIRunnable> event = new nsHtml5StreamParserContinuation(this);
     if (NS_FAILED(mThread->Dispatch(event, nsIThread::DISPATCH_NORMAL))) {
-      NS_WARNING("Failed to dispatch ParseAvailableData event");
+      NS_WARNING("Failed to dispatch nsHtml5StreamParserContinuation");
     }
     
     #ifdef DEBUG
@@ -991,11 +1014,57 @@ void
 nsHtml5StreamParser::ContinueAfterFailedCharsetSwitch()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  mozilla::MutexAutoLock tokenizerAutoLock(mTokenizerMutex);
-  Uninterrupt();
   nsCOMPtr<nsIRunnable> event = new nsHtml5StreamParserContinuation(this);
   if (NS_FAILED(mThread->Dispatch(event, nsIThread::DISPATCH_NORMAL))) {
     NS_WARNING("Failed to dispatch nsHtml5StreamParserContinuation");
+  }
+}
+
+class nsHtml5TimerKungFu : public nsRunnable
+{
+private:
+  nsHtml5RefPtr<nsHtml5StreamParser> mStreamParser;
+public:
+  nsHtml5TimerKungFu(nsHtml5StreamParser* aStreamParser)
+    : mStreamParser(aStreamParser)
+  {}
+  NS_IMETHODIMP Run()
+  {
+    if (mStreamParser->mFlushTimer) {
+      mStreamParser->mFlushTimer->Cancel();
+      mStreamParser->mFlushTimer = nsnull;
+    }
+    return NS_OK;
+  }
+};
+
+void
+nsHtml5StreamParser::DropTimer()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (mFlushTimer) {
+    nsCOMPtr<nsIRunnable> event = new nsHtml5TimerKungFu(this);
+    if (NS_FAILED(mThread->Dispatch(event, nsIThread::DISPATCH_NORMAL))) {
+      NS_WARNING("Failed to dispatch TimerKungFu event");
+    }
   }
 }
 
@@ -1004,16 +1073,24 @@ nsHtml5StreamParser::ContinueAfterFailedCharsetSwitch()
 void
 nsHtml5StreamParser::TimerCallback(nsITimer* aTimer, void* aClosure)
 {
-  (static_cast<nsHtml5StreamParser*> (aClosure))->PostTimerFlush();
+  (static_cast<nsHtml5StreamParser*> (aClosure))->TimerFlush();
 }
 
 void
 nsHtml5StreamParser::TimerFlush()
 {
   NS_ASSERTION(IsParserThread(), "Wrong thread!");
-  mTokenizerMutex.AssertCurrentThreadOwns();
+  mozilla::MutexAutoLock autoLock(mTokenizerMutex);
 
-  if (mSpeculating) {
+  NS_ASSERTION(!mSpeculating, "Flush timer fired while speculating.");
+
+  
+  
+  mFlushTimerArmed = PR_FALSE;
+
+  mFlushTimerEverFired = PR_TRUE;
+
+  if (IsTerminatedOrInterrupted()) {
     return;
   }
 
@@ -1031,52 +1108,3 @@ nsHtml5StreamParser::TimerFlush()
     }
   }
 }
-
-class nsHtml5StreamParserTimerFlusher : public nsRunnable
-{
-private:
-  nsHtml5RefPtr<nsHtml5StreamParser> mStreamParser;
-public:
-  nsHtml5StreamParserTimerFlusher(nsHtml5StreamParser* aStreamParser)
-    : mStreamParser(aStreamParser)
-  {}
-  NS_IMETHODIMP Run()
-  {
-    mozilla::MutexAutoLock autoLock(mStreamParser->mTokenizerMutex);
-    mStreamParser->TimerFlush();
-    return NS_OK;
-  }
-};
-
-void
-nsHtml5StreamParser::PostTimerFlush()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-
-  mFlushTimer->Cancel();
-
-  
-  
-  
-  
-  
-  if (mSpeculating) {
-    
-    return;
-  }
-
-  
-  mFlushTimer->InitWithFuncCallback(nsHtml5StreamParser::TimerCallback, 
-                                    static_cast<void*> (this), 
-                                    sTimerInterval, 
-                                    nsITimer::TYPE_ONE_SHOT);
-
-  
-  
-
-  nsCOMPtr<nsIRunnable> event = new nsHtml5StreamParserTimerFlusher(this);
-  if (NS_FAILED(mThread->Dispatch(event, nsIThread::DISPATCH_NORMAL))) {
-    NS_WARNING("Failed to dispatch nsHtml5StreamParserTimerFlusher");
-  }
-}
-

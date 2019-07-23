@@ -110,7 +110,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
   friend class nsHtml5RequestStopper;
   friend class nsHtml5DataAvailable;
   friend class nsHtml5StreamParserContinuation;
-  friend class nsHtml5StreamParserTimerFlusher;
+  friend class nsHtml5TimerKungFu;
 
   public:
     NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
@@ -177,7 +177,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-
     void ContinueAfterFailedCharsetSwitch();
 
     void Terminate() {
@@ -185,6 +184,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
       mTerminated = PR_TRUE;
     }
     
+    void DropTimer();
+
   private:
 
 #ifdef DEBUG
@@ -195,18 +196,30 @@ class nsHtml5StreamParser : public nsIStreamListener,
     }
 #endif
 
+    
+
+
+
+
+
     void Interrupt() {
       mozilla::MutexAutoLock autoLock(mTerminatedMutex);
       mInterrupted = PR_TRUE;
     }
 
     void Uninterrupt() {
-      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+      NS_ASSERTION(IsParserThread(), "Wrong thread!");
       mTokenizerMutex.AssertCurrentThreadOwns();
       
       
       mInterrupted = PR_FALSE;      
     }
+
+    
+
+
+
+    void FlushTreeOpsAndDisarmTimer();
 
     void ParseAvailableData();
     
@@ -310,12 +323,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
     static void TimerCallback(nsITimer* aTimer, void* aClosure);
-
-    
-
-
-
-    void PostTimerFlush();
 
     
 
@@ -469,21 +476,26 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
+    PRBool                        mFlushTimerArmed;
 
-    static PRInt32                sTimerStartDelay;
+    
+
+
+    PRBool                        mFlushTimerEverFired;
 
     
 
 
 
 
-    static PRInt32                sTimerContinueDelay;
+    static PRInt32                sTimerInitialDelay;
 
     
 
 
 
-    static PRInt32                sTimerInterval;
+
+    static PRInt32                sTimerSubsequentDelay;
 };
 
 #endif 
