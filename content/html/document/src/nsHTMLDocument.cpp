@@ -3943,6 +3943,16 @@ nsHTMLDocument::TurnEditingOff()
   return NS_OK;
 }
 
+static PRBool HasPresShell(nsPIDOMWindow *aWindow)
+{
+  nsIDocShell *docShell = aWindow->GetDocShell();
+  if (!docShell)
+    return PR_FALSE;
+  nsCOMPtr<nsIPresShell> presShell;
+  docShell->GetPresShell(getter_AddRefs(presShell));
+  return presShell != nsnull;
+}
+
 nsresult
 nsHTMLDocument::EditingStateChanged()
 {
@@ -3977,21 +3987,25 @@ nsHTMLDocument::EditingStateChanged()
   nsCOMPtr<nsIEditingSession> editSession = do_GetInterface(docshell, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool makeWindowEditable = (mEditingState == eOff);
-  if (makeWindowEditable) {
+  PRBool makeWindowEditable = (mEditingState == eOff) && HasPresShell(window);
+  if (!makeWindowEditable) {
     
     
-    
-    
-    EditingState oldState = mEditingState;
-    mEditingState = eSettingUp;
-
-    rv = editSession->MakeWindowEditable(window, "html", PR_FALSE, PR_FALSE,
-                                         PR_TRUE);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mEditingState = oldState;
+    return NS_OK;
   }
+
+  
+  
+  
+  
+  EditingState oldState = mEditingState;
+  mEditingState = eSettingUp;
+
+  rv = editSession->MakeWindowEditable(window, "html", PR_FALSE, PR_FALSE,
+                                       PR_TRUE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mEditingState = oldState;
 
   
   nsCOMPtr<nsIEditorDocShell> editorDocShell =
@@ -4058,22 +4072,20 @@ nsHTMLDocument::EditingStateChanged()
 
   mEditingState = newState;
 
-  if (makeWindowEditable) {
-    
-    
-    
-    PRBool unused;
-    rv = ExecCommand(NS_LITERAL_STRING("insertBrOnReturn"), PR_FALSE,
-                     NS_LITERAL_STRING("false"), &unused);
+  
+  
+  
+  PRBool unused;
+  rv = ExecCommand(NS_LITERAL_STRING("insertBrOnReturn"), PR_FALSE,
+                   NS_LITERAL_STRING("false"), &unused);
 
-    if (NS_FAILED(rv)) {
-      
-      
-      editSession->TearDownEditorOnWindow(window, PR_TRUE);
-      mEditingState = eOff;
+  if (NS_FAILED(rv)) {
+    
+    
+    editSession->TearDownEditorOnWindow(window, PR_TRUE);
+    mEditingState = eOff;
 
-      return rv;
-    }
+    return rv;
   }
 
   if (updateState) {
