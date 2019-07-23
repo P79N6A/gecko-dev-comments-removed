@@ -473,6 +473,8 @@ gfxPangoFont::GetMetrics()
         face = pango_fc_font_lock_face (PANGO_FC_FONT (font));
 
     if (face) {
+        mMetrics.maxAdvance = face->size->metrics.max_advance / 64.0; 
+
         float val;
 
         TT_OS2 *os2 = (TT_OS2 *) FT_Get_Sfnt_Table(face, ft_sfnt_os2);
