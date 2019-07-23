@@ -1549,14 +1549,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
           new gfxWindowsSurface(gfxIntSize(rc.right - rc.left, rc.bottom - rc.top));
 
         if (surface && printProc) {
-          
-          
-          
-          HWND parent = ::GetParent(hwnd);
-          ::SetParent(hwnd, NULL);
           printProc(hwnd, surface->GetDC(), 0);
-          ::SetParent(hwnd, parent);
-          
         
           ctx->Translate(frameGfxRect.pos);
           ctx->SetSource(surface);
