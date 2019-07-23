@@ -2293,6 +2293,12 @@ ResetJIT(JSContext* cx, TraceVisFlushReason r)
 #define ResetJIT(cx, r) ResetJITImpl(cx)
 #endif
 
+void
+js_FlushJITCache(JSContext *cx)
+{
+    ResetJIT(cx, FR_OOM);
+}
+
 static void
 TrashTree(JSContext* cx, TreeFragment* f);
 
@@ -12120,8 +12126,8 @@ TraceRecorder::upvar(JSScript* script, JSUpvarArray* uva, uintN index, jsval& v)
     jsval& vr = js_GetUpvar(cx, script->staticLevel, cookie);
     v = vr;
 
-    if (known(&vr))
-        return get(&vr);
+    if (LIns* ins = get(&vr))
+        return ins;
 
     
 
