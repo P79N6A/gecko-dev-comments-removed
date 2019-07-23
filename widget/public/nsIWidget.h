@@ -917,7 +917,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetLastInputEventTime(PRUint32& aTime) = 0;
+    NS_IMETHOD HasPendingEvent(PRBool& aHasPending) = 0;
 
     
 

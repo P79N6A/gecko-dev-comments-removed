@@ -274,35 +274,32 @@ nsContentSink::Init(nsIDocument* aDoc,
   mNotificationInterval =
     nsContentUtils::GetIntPref("content.notify.interval", 120000);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  mInteractiveDeflectCount =
+    nsContentUtils::GetIntPref("content.sink.interactive_deflect_count", 0);
+  mPerfDeflectCount =
+    nsContentUtils::GetIntPref("content.sink.perf_deflect_count", 200);
+  mPendingEventMode =
+    nsContentUtils::GetIntPref("content.sink.pending_event_mode", 1);
+  mEventProbeRate =
+    nsContentUtils::GetIntPref("content.sink.event_probe_rate", 1);
+  mInteractiveParseTime =
+    nsContentUtils::GetIntPref("content.sink.interactive_parse_time", 3000);
+  mPerfParseTime =
+    nsContentUtils::GetIntPref("content.sink.perf_parse_time", 360000);
+  mInteractiveTime =
+    nsContentUtils::GetIntPref("content.sink.interactive_time", 750000);
+  mInitialPerfTime =
+    nsContentUtils::GetIntPref("content.sink.initial_perf_time", 2000000);
+  mEnablePerfMode =
+    nsContentUtils::GetIntPref("content.sink.enable_perf_mode", 0);
 
-  
-  
-  
-
-  mMaxTokenProcessingTime =
-    nsContentUtils::GetIntPref("content.max.tokenizing.time",
-                               mNotificationInterval * 3);
-
-  
-  mDynamicIntervalSwitchThreshold =
-    nsContentUtils::GetIntPref("content.switch.threshold", 750000);
+  if (mEnablePerfMode != 0) {
+    mDynamicLowerValue = mEnablePerfMode == 1;
+    FavorPerformanceHint(!mDynamicLowerValue, 0);
+  }
 
   mCanInterruptParser =
     nsContentUtils::GetBoolPref("content.interrupt.parsing", PR_TRUE);
-
-  
-  
-  mMaxTokensDeflectedInLowFreqMode =
-    nsContentUtils::GetIntPref("content.max.deflected.tokens", 200);
 
   return NS_OK;
 
@@ -407,6 +404,8 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
                                nsIScriptElement *aElement,
                                PRBool aIsInline)
 {
+  mDeflectedCount = mPerfDeflectCount;
+
   if (mParser) {
     mParser->ScriptDidExecute();
   }
@@ -1519,111 +1518,51 @@ nsContentSink::WillResumeImpl()
 nsresult
 nsContentSink::DidProcessATokenImpl()
 {
-  if (!mCanInterruptParser) {
+  if (!mCanInterruptParser || !mParser->CanInterrupt()) {
     return NS_OK;
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
 
   
   nsIPresShell *shell = mDocument->GetPrimaryShell();
-
   if (!shell) {
     
     
     return NS_OK;
   }
 
-  nsIViewManager* vm = shell->GetViewManager();
-  NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
-  PRUint32 eventTime;
-  nsCOMPtr<nsIWidget> widget;
-  nsresult rv = vm->GetWidget(getter_AddRefs(widget));
-  if (!widget || NS_FAILED(widget->GetLastInputEventTime(eventTime))) {
-      
-      
-      rv = vm->GetLastUserEventTime(eventTime);
-  }
-
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
-
-  if (!mDynamicLowerValue && mLastSampledUserEventTime == eventTime) {
-    
-    
-    
-    
-    
-    if (mDeflectedCount < mMaxTokensDeflectedInLowFreqMode) {
-      mDeflectedCount++;
-      
-      
-      
-      
-
-      return NS_OK;
-    }
-
-    
-    
-    
-    mDeflectedCount = 0;
-  }
-  mLastSampledUserEventTime = eventTime;
-
-  PRUint32 currentTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+  
+  ++mDeflectedCount;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  PRUint32 delayBeforeLoweringThreshold =
-    static_cast<PRUint32>(((2 * mDynamicIntervalSwitchThreshold) +
-                              NS_DELAY_FOR_WINDOW_CREATION));
-
-  if ((currentTime - mBeginLoadTime) > delayBeforeLoweringThreshold) {
-    if ((currentTime - eventTime) <
-        static_cast<PRUint32>(mDynamicIntervalSwitchThreshold)) {
-
-      if (!mDynamicLowerValue) {
-        
-        
-        mDynamicLowerValue = PR_TRUE;
-        
-        
-        
-        FavorPerformanceHint(PR_FALSE, 0);
-      }
-
-    }
-    else if (mDynamicLowerValue) {
-      
-      
-      mDynamicLowerValue = PR_FALSE;
-      
-      FavorPerformanceHint(PR_TRUE, 0);
+  if (mPendingEventMode != 0 && !mHasPendingEvent &&
+      (mDeflectedCount % mEventProbeRate) == 0) {
+    nsIViewManager* vm = shell->GetViewManager();
+    NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
+    nsCOMPtr<nsIWidget> widget;
+    nsresult rv = vm->GetWidget(getter_AddRefs(widget));
+    PRBool hasPendingEvent;
+    if (widget && NS_SUCCEEDED(widget->HasPendingEvent(hasPendingEvent)) &&
+        hasPendingEvent) {
+      mHasPendingEvent = PR_TRUE;
     }
   }
 
-  if ((currentTime - mDelayTimerStart) >
-      static_cast<PRUint32>(GetMaxTokenProcessingTime())) {
+  if (mHasPendingEvent && mPendingEventMode == 2) {
+    return NS_ERROR_HTMLPARSER_INTERRUPTED;
+  }
+
+  
+  if (!mHasPendingEvent &&
+      mDeflectedCount < (mDynamicLowerValue ? mInteractiveDeflectCount :
+                                              mPerfDeflectCount)) {
+    return NS_OK;
+  }
+
+  mDeflectedCount = 0;
+
+  
+  if (PR_IntervalToMicroseconds(PR_IntervalNow()) > mCurrentParseEndTime) {
     return NS_ERROR_HTMLPARSER_INTERRUPTED;
   }
 
@@ -1739,9 +1678,38 @@ nsContentSink::DropParserAndPerfHint(void)
 nsresult
 nsContentSink::WillParseImpl(void)
 {
-  if (mCanInterruptParser) {
-    mDelayTimerStart = PR_IntervalToMicroseconds(PR_IntervalNow());
+  if (!mCanInterruptParser || !mParser->CanInterrupt()) {
+    return NS_OK;
   }
+
+  nsIPresShell *shell = mDocument->GetPrimaryShell();
+  if (!shell) {
+    return NS_OK;
+  }
+
+  PRUint32 currentTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+
+  if (mEnablePerfMode == 0) {
+    nsIViewManager* vm = shell->GetViewManager();
+    NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
+    PRUint32 lastEventTime;
+    vm->GetLastUserEventTime(lastEventTime);
+
+    PRBool newDynLower =
+      (currentTime - mBeginLoadTime) > mInitialPerfTime &&
+      (currentTime - lastEventTime) < mInteractiveTime;
+    
+    if (mDynamicLowerValue != newDynLower) {
+      FavorPerformanceHint(!newDynLower, 0);
+      mDynamicLowerValue = newDynLower;
+    }
+  }
+  
+  mDeflectedCount = 0;
+  mHasPendingEvent = PR_FALSE;
+
+  mCurrentParseEndTime = currentTime +
+    (mDynamicLowerValue ? mInteractiveParseTime : mPerfParseTime);
 
   return NS_OK;
 }
