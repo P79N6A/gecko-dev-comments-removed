@@ -40,6 +40,7 @@
 
 
 
+
 #include <ole2.h>
 #include <shlobj.h>
 
@@ -1367,7 +1368,8 @@ HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   PRBool found = PR_FALSE;
   while (NOERROR == m_enumFE->Next(1, &fe, &count)
          && dfInx < mDataFlavors.Length()) {
-    if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime)) {
+    if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime) ||
+        mDataFlavors[dfInx].EqualsLiteral(kFileMime)) {
       found = PR_TRUE;
       break;
     }
@@ -1377,6 +1379,75 @@ HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   if (!found)
     return E_FAIL;
 
+  if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime))
+    return DropImage(aFE, aSTG);
+  return DropFile(aFE, aSTG);
+}
+
+HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG)
+{
+  nsresult rv;
+  PRUint32 len = 0;
+  nsCOMPtr<nsISupports> genericDataWrapper;
+
+  mTransferable->GetTransferData(kFileMime, getter_AddRefs(genericDataWrapper),
+                                 &len);
+  nsCOMPtr<nsIFile> file ( do_QueryInterface(genericDataWrapper) );
+
+  if (!file)
+  {
+    nsCOMPtr<nsISupportsInterfacePointer> ptr(do_QueryInterface(genericDataWrapper));
+    if (ptr)
+      ptr->GetData(getter_AddRefs(file));
+  }
+
+  if (!file)
+    return E_FAIL;
+
+  aSTG.tymed = TYMED_HGLOBAL;
+  aSTG.pUnkForRelease = NULL;
+
+  nsAutoString path;
+  rv = file->GetPath(path);
+  if (NS_FAILED(rv))
+    return E_FAIL;
+
+  PRUint32 allocLen = path.Length() + 2;
+  HGLOBAL hGlobalMemory = NULL;
+  PRUnichar *dest, *dest2;
+
+  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) +
+                                             allocLen * sizeof(PRUnichar));
+  if (!hGlobalMemory)
+    return E_FAIL;
+
+  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
+
+  
+  pDropFile->pFiles = sizeof(DROPFILES); 
+  pDropFile->fNC    = 0;
+  pDropFile->pt.x   = 0;
+  pDropFile->pt.y   = 0;
+  pDropFile->fWide  = TRUE;
+
+  
+  dest = (PRUnichar*)(((char*)pDropFile) + pDropFile->pFiles);
+  memcpy(dest, path.get(), (allocLen - 1) * sizeof(PRUnichar));
+
+  
+  
+  
+  dest[allocLen - 1] = L'\0';
+
+  GlobalUnlock(hGlobalMemory);
+
+  aSTG.hGlobal = hGlobalMemory;
+
+  return S_OK;
+}
+
+HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
+{
   nsresult rv;
   PRUint32 len = 0;
   nsCOMPtr<nsISupports> genericDataWrapper;
