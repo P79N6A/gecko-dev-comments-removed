@@ -160,5 +160,7 @@ function loaded() {
 
 
 
-window.addEventListener("load", function () { setTimeout(loaded, 0); }, false);
+
+window.addEventListener("load",
+                        function () { setTimeout(loaded, 1000); }, false);
 })();
