@@ -2091,7 +2091,15 @@ nsCSSRuleProcessor::MediumFeaturesChanged(nsPresContext* aPresContext,
                                           PRBool* aRulesChanged)
 {
   RuleCascadeData *old = mRuleCascades;
-  RefreshRuleCascade(aPresContext);
+  
+  
+  
+  
+  
+  
+  if (old) {
+    RefreshRuleCascade(aPresContext);
+  }
   *aRulesChanged = (old != mRuleCascades);
   return NS_OK;
 }
