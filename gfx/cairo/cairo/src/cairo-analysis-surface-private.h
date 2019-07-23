@@ -32,6 +32,7 @@
 
 
 
+
 #ifndef CAIRO_ANALYSIS_SURFACE_H
 #define CAIRO_ANALYSIS_SURFACE_H
 
@@ -42,10 +43,10 @@ _cairo_analysis_surface_create (cairo_surface_t		*target,
 				int			 width,
 				int			 height);
 
-cairo_private cairo_region_t *
+cairo_private pixman_region16_t *
 _cairo_analysis_surface_get_supported (cairo_surface_t *surface);
 
-cairo_private cairo_region_t *
+cairo_private pixman_region16_t *
 _cairo_analysis_surface_get_unsupported (cairo_surface_t *unsupported);
 
 cairo_private cairo_bool_t

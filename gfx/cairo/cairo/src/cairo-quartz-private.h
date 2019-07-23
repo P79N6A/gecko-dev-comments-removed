@@ -51,16 +51,13 @@ typedef struct cairo_quartz_surface {
     CGContextRef cgContext;
     CGAffineTransform cgContextBaseCTM;
 
-    cairo_rectangle_int_t extents;
+    cairo_rectangle_int16_t extents;
 
     
 
 
+    CGAffineTransform imageTransform;
     CGImageRef sourceImage;
-    cairo_surface_t *sourceImageSurface;
-    CGAffineTransform sourceImageTransform;
-    CGRect sourceImageRect;
-
     CGShadingRef sourceShading;
     CGPatternRef sourcePattern;
 } cairo_quartz_surface_t;
