@@ -3009,6 +3009,17 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       aState.mPrevBottomMargin = incomingMargin;
       continue;
     }
+
+    if (blockHtmlRS.WillReflowAgainForClearance()) {
+      
+      
+      
+      
+      
+      NS_ASSERTION(originalPosition == frame->GetPosition(),
+                   "we need to call PositionChildViews");
+      return NS_OK;
+    }
     
     aState.mPrevChild = frame;
     
