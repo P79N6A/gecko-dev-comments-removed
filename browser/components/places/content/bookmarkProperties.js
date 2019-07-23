@@ -422,17 +422,6 @@ var BookmarkPropertiesPanel = {
 
     PlacesUIUtils.ptm.beginBatch();
     this._batching = true;
-
-    
-    
-    
-    
-    
-    PlacesUIUtils.ptm.doTransaction({ doTransaction: function() { },
-                                      undoTransaction: function() { },
-                                      redoTransaction: function() { },
-                                      isTransient: false,
-                                      merge: function() { return false; } });
   },
 
   _endBatch: function BPP__endBatch() {

@@ -235,6 +235,26 @@ placesTransactionsService.prototype = {
   },
 
   
+  beginBatch: function() {
+    this.mTransactionManager.beginBatch();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    this.doTransaction({ doTransaction: function() { },
+                         undoTransaction: function() { },
+                         redoTransaction: function() { },
+                         isTransient: false,
+                         merge: function() { return false; } });
+  },
+
+  endBatch: function() this.mTransactionManager.endBatch(),
+
   doTransaction: function placesTxn_doTransaction(txn) {
     this.mTransactionManager.doTransaction(txn);
     this._updateCommands();
@@ -251,8 +271,6 @@ placesTransactionsService.prototype = {
   },
 
   clear: function() this.mTransactionManager.clear(),
-  beginBatch: function() this.mTransactionManager.beginBatch(),
-  endBatch: function() this.mTransactionManager.endBatch(),
 
   get numberOfUndoItems() {
     return this.mTransactionManager.numberOfUndoItems;

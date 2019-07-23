@@ -218,17 +218,6 @@ var StarUI = {
     this.beginBatch();
 
     
-    
-    
-    
-    
-    PlacesUIUtils.ptm.doTransaction({ doTransaction: function() { },
-                                      undoTransaction: function() { },
-                                      redoTransaction: function() { },
-                                      isTransient: false,
-                                      merge: function() { return false; } });
-
-    
     this.panel.popupBoxObject
         .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
     this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
