@@ -214,7 +214,9 @@ public:
   void GetMonthName(PRInt32 aIndex, nsACString& aResult);
 
   
-  PRBool IsHistoryDisabled() { return mExpireDaysMax == 0 || InPrivateBrowsingMode(); }
+  PRBool IsHistoryDisabled() {
+    return mExpireDaysMax == 0 || !mHistoryEnabled || InPrivateBrowsingMode();
+  }
 
   
   static const PRInt32 kGetInfoIndex_PageID;
@@ -659,6 +661,10 @@ protected:
   PRInt32 mExpireDaysMin;
   PRInt32 mExpireDaysMax;
   PRInt32 mExpireSites;
+
+  
+  
+  PRBool mHistoryEnabled;
 
   
   PRInt32 mNumVisitsForFrecency;

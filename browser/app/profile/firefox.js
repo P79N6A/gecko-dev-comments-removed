@@ -785,6 +785,9 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 pref("accessibility.blockautorefresh", false);
 
 
+pref("places.history.enabled", true);
+
+
 
 
 
