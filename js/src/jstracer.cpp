@@ -12633,7 +12633,21 @@ TraceRecorder::record_JSOP_LAMBDA()
     JSFunction* fun;
     fun = cx->fp->script->getFunction(getFullIndex());
 
+    
+
+
+
+
+
+
     if (FUN_NULL_CLOSURE(fun) && OBJ_GET_PARENT(cx, FUN_OBJECT(fun)) == globalObj) {
+        JSOp op2 = JSOp(cx->fp->regs->pc[JSOP_LAMBDA_LENGTH]);
+
+        if (op2 == JSOP_SETMETHOD || op2 == JSOP_INITMETHOD) {
+            stack(0, INS_CONSTOBJ(FUN_OBJECT(fun)));
+            return JSRS_CONTINUE;
+        }
+
         LIns *proto_ins;
         CHECK_STATUS(getClassPrototype(JSProto_Function, proto_ins));
 
