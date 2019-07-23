@@ -72,7 +72,7 @@ class nsIPresShell;
 class nsMenuFrame;
 class nsMenuPopupFrame;
 class nsMenuBarFrame;
-class nsIMenuParent;
+class nsMenuParent;
 class nsIDOMKeyEvent;
 class nsIDocShellTreeItem;
 
@@ -492,7 +492,7 @@ public:
   
 
 
-  PRBool IsPopupOpenForMenuParent(nsIMenuParent* aMenuParent);
+  PRBool IsPopupOpenForMenuParent(nsMenuParent* aMenuParent);
 
   
 
@@ -551,7 +551,7 @@ public:
 
 
 
-  void CancelMenuTimer(nsIMenuParent* aMenuParent);
+  void CancelMenuTimer(nsMenuParent* aMenuParent);
 
   
 

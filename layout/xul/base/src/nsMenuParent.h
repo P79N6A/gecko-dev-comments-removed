@@ -36,8 +36,8 @@
 
 
 
-#ifndef nsIMenuParent_h___
-#define nsIMenuParent_h___
+#ifndef nsMenuParent_h___
+#define nsMenuParent_h___
 
 class nsMenuFrame;
 
@@ -49,7 +49,7 @@ class nsMenuFrame;
 
 
 
-class nsIMenuParent {
+class nsMenuParent {
 
 public:
   
