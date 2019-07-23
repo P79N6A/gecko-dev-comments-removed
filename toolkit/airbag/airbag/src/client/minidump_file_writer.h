@@ -29,20 +29,37 @@
 
 
 
+
+
 #ifndef CLIENT_MINIDUMP_FILE_WRITER_H__
 #define CLIENT_MINIDUMP_FILE_WRITER_H__
 
 #include <string>
 
-#include "google_airbag/common/minidump_format.h"
+#include "google_breakpad/common/minidump_format.h"
 
-namespace google_airbag {
+namespace google_breakpad {
+
+class UntypedMDRVA;
+template<typename MDType> class TypedMDRVA;
+
+
+
+
+
+
+
+
+
+
+
+
 
 class MinidumpFileWriter {
- public:
+public:
   
   
-  static const MDRVA kInvalidMDRVA = static_cast<MDRVA>(-1);
+  static const MDRVA kInvalidMDRVA;
 
   MinidumpFileWriter();
   ~MinidumpFileWriter();
@@ -50,7 +67,7 @@ class MinidumpFileWriter {
   
   
   
-  bool Open(const std::string &path);
+  bool Open(const char *path);
 
   
   
@@ -79,7 +96,7 @@ class MinidumpFileWriter {
   bool Copy(MDRVA position, const void *src, ssize_t size);
 
   
-  MDRVA position() const { return position_; }
+  inline MDRVA position() const { return position_; }
 
  private:
   friend class UntypedMDRVA;
@@ -97,6 +114,21 @@ class MinidumpFileWriter {
 
   
   size_t size_;
+
+  
+  
+  
+  
+  
+  bool CopyStringToMDString(const wchar_t *str, unsigned int length,
+                            TypedMDRVA<MDString> *mdstring);
+  bool CopyStringToMDString(const char *str, unsigned int length,
+                            TypedMDRVA<MDString> *mdstring);
+
+  
+  template <typename CharType>
+  bool WriteStringCore(const CharType *str, unsigned int length,
+                       MDLocationDescriptor *location);
 };
 
 
@@ -112,13 +144,13 @@ class UntypedMDRVA {
   bool Allocate(size_t size);
 
   
-  MDRVA position() const { return position_; }
+  inline MDRVA position() const { return position_; }
 
   
-  size_t size() const { return size_; }
+  inline size_t size() const { return size_; }
 
   
-  MDLocationDescriptor location() const {
+  inline MDLocationDescriptor location() const {
     MDLocationDescriptor location = { size_, position_ };
     return location;
   }
@@ -128,7 +160,7 @@ class UntypedMDRVA {
   bool Copy(MDRVA position, const void *src, size_t size);
 
   
-  bool Copy(const void *src, size_t size) {
+  inline bool Copy(const void *src, size_t size) {
     return Copy(position_, src, size);
   }
 
@@ -157,7 +189,7 @@ class TypedMDRVA : public UntypedMDRVA {
         data_(),
         allocation_state_(UNALLOCATED) {}
 
-  ~TypedMDRVA() {
+  inline ~TypedMDRVA() {
     
     if (allocation_state_ != ARRAY)
       Flush();

@@ -44,9 +44,9 @@
 namespace {
 
 
-using google_airbag::linked_ptr;
-using google_airbag::scoped_ptr;
-using google_airbag::RangeMap;
+using google_breakpad::linked_ptr;
+using google_breakpad::scoped_ptr;
+using google_breakpad::RangeMap;
 
 
 
@@ -244,6 +244,71 @@ static bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
 
 
 
+
+
+
+
+
+static bool RetrieveIndexTest(TestMap *range_map, int set) {
+  linked_ptr<CountedObject> object;
+  CountedObject *last_object = NULL;
+  AddressType last_base = 0;
+
+  int object_count = range_map->GetCount();
+  for (int object_index = 0; object_index < object_count; ++object_index) {
+    AddressType base;
+    if (!range_map->RetrieveRangeAtIndex(object_index, &object, &base, NULL)) {
+      fprintf(stderr, "FAILED: RetrieveRangeAtIndex set %d index %d, "
+              "expected success, observed failure\n",
+              set, object_index);
+      return false;
+    }
+
+    if (!object.get()) {
+      fprintf(stderr, "FAILED: RetrieveRangeAtIndex set %d index %d, "
+              "expected object, observed NULL\n",
+              set, object_index);
+      return false;
+    }
+
+    
+    
+    if (last_object) {
+      
+      if (object->id() == last_object->id()) {
+        fprintf(stderr, "FAILED: RetrieveRangeAtIndex set %d index %d, "
+                "expected different objects, observed same objects (%d)\n",
+                set, object_index, object->id());
+        return false;
+      }
+
+      
+      if (base <= last_base) {
+        fprintf(stderr, "FAILED: RetrieveRangeAtIndex set %d index %d, "
+                "expected different bases, observed same bases (%d)\n",
+                set, object_index, base);
+        return false;
+      }
+    }
+
+    last_object = object.get();
+    last_base = base;
+  }
+
+  
+  
+  if (range_map->RetrieveRangeAtIndex(object_count, &object, NULL, NULL)) {
+    fprintf(stderr, "FAILED: RetrieveRangeAtIndex set %d index %d (too large), "
+            "expected failure, observed success\n",
+            set, object_count);
+    return false;
+  }
+
+  return true;
+}
+
+
+
 static bool RunTests() {
   
   
@@ -374,6 +439,15 @@ static bool RunTests() {
     }
 
     
+    if (range_map->GetCount() != stored_count) {
+      fprintf(stderr, "FAILED: stored object count doesn't match GetCount, "
+              "expected %d, observed %d\n",
+              stored_count, range_map->GetCount());
+
+      return false;
+    }
+
+    
     for (unsigned int range_test_index = 0;
          range_test_index < range_test_count;
          ++range_test_index) {
@@ -381,6 +455,9 @@ static bool RunTests() {
       if (!RetrieveTest(range_map.get(), range_test))
         return false;
     }
+
+    if (!RetrieveIndexTest(range_map.get(), range_test_set_index))
+      return false;
 
     
     

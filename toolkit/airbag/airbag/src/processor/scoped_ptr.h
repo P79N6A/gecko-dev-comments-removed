@@ -53,7 +53,7 @@
 #include <assert.h>           
 #include <stdlib.h>           
 
-namespace google_airbag {
+namespace google_breakpad {
 
 template <typename T>
 class scoped_ptr {

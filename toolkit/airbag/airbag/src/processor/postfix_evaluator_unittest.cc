@@ -16,14 +16,29 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <cstdio>
 #include <map>
 #include <string>
 
 #include "processor/postfix_evaluator-inl.h"
 
-#include "google_airbag/common/airbag_types.h"
-#include "google_airbag/processor/memory_region.h"
+#include "google_breakpad/common/breakpad_types.h"
+#include "google_breakpad/processor/memory_region.h"
 
 
 namespace {
@@ -31,8 +46,8 @@ namespace {
 
 using std::map;
 using std::string;
-using google_airbag::MemoryRegion;
-using google_airbag::PostfixEvaluator;
+using google_breakpad::MemoryRegion;
+using google_breakpad::PostfixEvaluator;
 
 
 

@@ -43,7 +43,7 @@
 #define UNDNAME_NO_ECSU 0x8000  // Suppresses enum/class/struct/union.
 #endif  
 
-namespace google_airbag {
+namespace google_breakpad {
 
 PDBSourceLineWriter::PDBSourceLineWriter() : output_(NULL) {
 }
@@ -149,6 +149,11 @@ bool PDBSourceLineWriter::PrintFunction(IDiaSymbol *function) {
   if (FAILED(function->get_length(&length))) {
     fprintf(stderr, "failed to get function length\n");
     return false;
+  }
+
+  if (length == 0) {
+    
+    return true;
   }
 
   CComBSTR name;
@@ -287,6 +292,11 @@ bool PDBSourceLineWriter::PrintFrameData() {
   if (!frame_data_enum)
     return false;
 
+  DWORD last_type = -1;
+  DWORD last_rva = -1;
+  DWORD last_code_size = 0;
+  DWORD last_prolog_size = -1;
+
   CComPtr<IDiaFrameData> frame_data;
   while (SUCCEEDED(frame_data_enum->Next(1, &frame_data, &count)) &&
          count == 1) {
@@ -348,14 +358,27 @@ bool PDBSourceLineWriter::PrintFrameData() {
       }
     }
 
-    fprintf(output_, "STACK WIN %x %x %x %x %x %x %x %x %x %d ",
-            type, rva, code_size, prolog_size, epilog_size,
-            parameter_size, saved_register_size, local_size, max_stack_size,
-            program_string_result == S_OK);
-    if (program_string_result == S_OK) {
-      fprintf(output_, "%ws\n", program_string);
-    } else {
-      fprintf(output_, "%d\n", allocates_base_pointer);
+    
+    
+    
+    
+    
+    if (type != last_type || rva != last_rva || code_size != last_code_size ||
+        prolog_size != last_prolog_size) {
+      fprintf(output_, "STACK WIN %x %x %x %x %x %x %x %x %x %d ",
+              type, rva, code_size, prolog_size, epilog_size,
+              parameter_size, saved_register_size, local_size, max_stack_size,
+              program_string_result == S_OK);
+      if (program_string_result == S_OK) {
+        fprintf(output_, "%ws\n", program_string);
+      } else {
+        fprintf(output_, "%d\n", allocates_base_pointer);
+      }
+
+      last_type = type;
+      last_rva = rva;
+      last_code_size = code_size;
+      last_prolog_size = prolog_size;
     }
 
     frame_data.Release();
@@ -390,13 +413,17 @@ bool PDBSourceLineWriter::PrintCodePublicSymbol(IDiaSymbol *symbol) {
 }
 
 bool PDBSourceLineWriter::PrintPDBInfo() {
-  wstring guid, filename;
-  int age;
-  if (!GetModuleInfo(&guid, &age, &filename)) {
+  PDBModuleInfo info;
+  if (!GetModuleInfo(&info)) {
     return false;
   }
 
-  fprintf(output_, "MODULE %ws %x %ws\n", guid.c_str(), age, filename.c_str());
+  
+  
+  
+  fprintf(output_, "MODULE windows %ws %ws %ws\n",
+          info.cpu.c_str(), info.debug_identifier.c_str(),
+          info.debug_file.c_str());
 
   return true;
 }
@@ -652,46 +679,117 @@ void PDBSourceLineWriter::Close() {
   session_.Release();
 }
 
-
-wstring PDBSourceLineWriter::GetBaseName(const wstring &filename) {
-  wstring base_name(filename);
-  size_t slash_pos = base_name.find_last_of(L"/\\");
-  if (slash_pos != wstring::npos) {
-    base_name.erase(0, slash_pos + 1);
+bool PDBSourceLineWriter::GetModuleInfo(PDBModuleInfo *info) {
+  if (!info) {
+    return false;
   }
-  return base_name;
-}
 
-bool PDBSourceLineWriter::GetModuleInfo(wstring *guid, int *age,
-                                        wstring *filename) {
-  guid->clear();
-  *age = 0;
-  filename->clear();
+  info->debug_file.clear();
+  info->debug_identifier.clear();
+  info->cpu.clear();
 
   CComPtr<IDiaSymbol> global;
   if (FAILED(session_->get_globalScope(&global))) {
     return false;
   }
 
-  GUID guid_number;
-  if (FAILED(global->get_guid(&guid_number))) {
-    return false;
+  
+  
+  DWORD platform;
+  if (SUCCEEDED(global->get_platform(&platform)) && platform < 0x10) {
+    info->cpu = L"x86";
+  } else {
+    
+    info->cpu = L"unknown";
   }
-  *guid = GUIDString::GUIDToWString(&guid_number);
 
   
-  DWORD age_dword;
-  if (FAILED(global->get_age(&age_dword))) {
+  DWORD age;
+  if (FAILED(global->get_age(&age))) {
     return false;
   }
-  *age = age_dword;
 
-  CComBSTR filename_string;
-  if (FAILED(global->get_symbolsFileName(&filename_string))) {
+  bool uses_guid;
+  if (!UsesGUID(&uses_guid)) {
     return false;
   }
-  *filename = GetBaseName(wstring(filename_string));
 
+  if (uses_guid) {
+    GUID guid;
+    if (FAILED(global->get_guid(&guid))) {
+      return false;
+    }
+
+    
+    
+    wchar_t age_string[9];
+    swprintf(age_string, sizeof(age_string) / sizeof(age_string[0]),
+             L"%x", age);
+    GB_WSU_SAFE_SWPRINTF_TERMINATE(age_string,
+                                   sizeof(age_string) / sizeof(age_string[0]));
+
+    info->debug_identifier = GUIDString::GUIDToSymbolServerWString(&guid);
+    info->debug_identifier.append(age_string);
+  } else {
+    DWORD signature;
+    if (FAILED(global->get_signature(&signature))) {
+      return false;
+    }
+
+    
+    
+    wchar_t identifier_string[17];
+    swprintf(identifier_string,
+             sizeof(identifier_string) / sizeof(identifier_string[0]),
+             L"%08X%x", signature, age);
+    GB_WSU_SAFE_SWPRINTF_TERMINATE(identifier_string,
+                                   sizeof(identifier_string) /
+                                       sizeof(identifier_string[0]));
+    info->debug_identifier = identifier_string;
+  }
+
+  CComBSTR debug_file_string;
+  if (FAILED(global->get_symbolsFileName(&debug_file_string))) {
+    return false;
+  }
+  info->debug_file =
+      WindowsStringUtils::GetBaseName(wstring(debug_file_string));
+
+  return true;
+}
+
+bool PDBSourceLineWriter::UsesGUID(bool *uses_guid) {
+  if (!uses_guid)
+    return false;
+
+  CComPtr<IDiaSymbol> global;
+  if (FAILED(session_->get_globalScope(&global)))
+    return false;
+
+  GUID guid;
+  if (FAILED(global->get_guid(&guid)))
+    return false;
+
+  DWORD signature;
+  if (FAILED(global->get_signature(&signature)))
+    return false;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  GUID signature_guid = {signature};  
+  *uses_guid = !IsEqualGUID(guid, signature_guid);
   return true;
 }
 

@@ -79,7 +79,7 @@ NS_NAMED_LITERAL_STRING(crashReporterFilename, "crashreporter.exe");
 NS_NAMED_LITERAL_STRING(crashReporterFilename, "crashreporter");
 #endif
 
-static google_airbag::ExceptionHandler* gExceptionHandler = nsnull;
+static google_breakpad::ExceptionHandler* gExceptionHandler = nsnull;
 
 
 
@@ -96,18 +96,22 @@ static PRUnichar* crashReporterAPIDataFilenameEnd = nsnull;
 
 static nsCString crashReporterAPIData;
 
-static void MinidumpCallback(const wstring &minidump_id,
-                             void *context, bool succeeded)
+bool MinidumpCallback(const wchar_t *dump_path,
+                      const wchar_t *minidump_id,
+                      void *context,
+                      EXCEPTION_POINTERS *exinfo,
+                      MDRawAssertionInfo *assertion,
+                      bool succeeded)
 {
   
-  memcpy(crashReporterCmdLineEnd, minidump_id.c_str(),
+  memcpy(crashReporterCmdLineEnd, minidump_id,
          kGUIDLength * sizeof(PRUnichar));
   
   memcpy(crashReporterCmdLineEnd + kGUIDLength,
          dumpFileExtension, sizeof(dumpFileExtension));
 
   
-  memcpy(crashReporterAPIDataFilenameEnd, minidump_id.c_str(),
+  memcpy(crashReporterAPIDataFilenameEnd, minidump_id,
          kGUIDLength * sizeof(PRUnichar));
   
   memcpy(crashReporterAPIDataFilenameEnd + kGUIDLength,
@@ -144,6 +148,7 @@ static void MinidumpCallback(const wstring &minidump_id,
   
   TerminateProcess(GetCurrentProcess(), 1);
 #endif
+  return succeeded;
 }
 
 static nsresult BuildCommandLine(const nsAString &tempPath)
@@ -246,8 +251,9 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  gExceptionHandler = new google_airbag::ExceptionHandler(
+  gExceptionHandler = new google_breakpad::ExceptionHandler(
                                             PromiseFlatString(tempPath).get(),
+                                            nsnull,
                                             MinidumpCallback,
                                             nsnull,
                                             true);

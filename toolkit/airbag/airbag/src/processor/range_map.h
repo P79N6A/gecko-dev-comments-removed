@@ -44,7 +44,7 @@
 #include <map>
 
 
-namespace google_airbag {
+namespace google_breakpad {
 
 
 template<typename AddressType, typename EntryType>
@@ -74,6 +74,20 @@ class RangeMap {
   bool RetrieveNearestRange(const AddressType &address, EntryType *entry,
                             AddressType *entry_base, AddressType *entry_size)
                             const;
+
+  
+  
+  
+  
+  
+  
+  
+  bool RetrieveRangeAtIndex(int index, EntryType *entry,
+                            AddressType *entry_base, AddressType *entry_size)
+                            const;
+
+  
+  int GetCount() const;
 
   
   

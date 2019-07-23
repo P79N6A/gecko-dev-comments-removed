@@ -40,7 +40,7 @@
 #include "processor/range_map.h"
 
 
-namespace google_airbag {
+namespace google_breakpad {
 
 
 template<typename AddressType, typename EntryType>
@@ -138,6 +138,35 @@ bool RangeMap<AddressType, EntryType>::RetrieveNearestRange(
     *entry_size = iterator->first - iterator->second.base() + 1;
 
   return true;
+}
+
+
+template<typename AddressType, typename EntryType>
+bool RangeMap<AddressType, EntryType>::RetrieveRangeAtIndex(
+    int index, EntryType *entry,
+    AddressType *entry_base, AddressType *entry_size) const {
+  if (!entry || index >= GetCount())
+    return false;
+
+  
+  
+  MapConstIterator iterator = map_.begin();
+  for (int this_index = 0; this_index < index; ++this_index)
+    ++iterator;
+
+  *entry = iterator->second.entry();
+  if (entry_base)
+    *entry_base = iterator->first;
+  if (entry_size)
+    *entry_size = iterator->first - iterator->second.base() + 1;
+
+  return true;
+}
+
+
+template<typename AddressType, typename EntryType>
+int RangeMap<AddressType, EntryType>::GetCount() const {
+  return map_.size();
 }
 
 
