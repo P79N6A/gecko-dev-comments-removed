@@ -173,6 +173,19 @@ tree[seltype="text"] > treechildren::-moz-tree-cell-text(active, selected, curre
 
 
 
+tree[seltype="cell"] > treechildren::-moz-tree-line,
+tree[seltype="text"] > treechildren::-moz-tree-line,
+treechildren::-moz-tree-line {
+  border: 1px dotted ThreeDShadow;
+}
+
+tree[seltype="cell"] > treechildren::-moz-tree-line(active, selected, focus),
+treechildren::-moz-tree-line(selected, focus) {
+  border: 1px dotted HighlightText;
+}
+
+
+
 
 treechildren::-moz-tree-separator {
   border-top: 1px solid ThreeDShadow;
@@ -310,7 +323,6 @@ treechildren::-moz-tree-column(insertafter) {
 
 
 treechildren::-moz-tree-twisty {
-  -moz-appearance: treetwisty;
   padding-right: 4px;
   padding-top: 1px;
   width: 9px; 
@@ -318,7 +330,6 @@ treechildren::-moz-tree-twisty {
 }
 
 treechildren::-moz-tree-twisty(open) {
-  -moz-appearance: treetwistyopen;
   width: 9px; 
   list-style-image: url("chrome://global/skin/tree/twisty-open.png");
 }

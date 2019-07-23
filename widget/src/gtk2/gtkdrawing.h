@@ -160,8 +160,6 @@ typedef enum {
   
   MOZ_GTK_TREE_HEADER_SORTARROW,
   
-  MOZ_GTK_EXPANDER,
-  
   MOZ_GTK_MENUBAR,
   
   MOZ_GTK_MENUPOPUP,
@@ -292,14 +290,6 @@ moz_gtk_get_scrollbar_metrics(MozGtkScrollbarMetrics* metrics);
 
 
 gint moz_gtk_get_dropdown_arrow_size(gint* width, gint* height);
-
-
-
-
-
-
-
-gint moz_gtk_get_expander_size(gint* size);
 
 
 
