@@ -3232,10 +3232,10 @@ GetUpvarStackOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDe
 
 struct ClosureVarInfo
 {
-    jsid     id;
     uint32   slot;
+#ifdef DEBUG
     uint32   callDepth;
-    uint32   resolveFlags;
+#endif
 };
 
 
@@ -3286,13 +3286,15 @@ GetFromClosure(JSContext* cx, JSObject* call, const ClosureVarInfo* cv, double* 
     if (fp) {
         v = T::slots(fp)[slot];
     } else {
-        JS_ASSERT(cv->resolveFlags != JSRESOLVE_INFER);
-        JSAutoResolveFlags rf(cx, cv->resolveFlags);
-#ifdef DEBUG
-        JSBool rv =
-#endif
-            js_GetPropertyHelper(cx, call, cv->id, JSGET_METHOD_BARRIER, &v);
-        JS_ASSERT(rv);
+        
+
+
+
+
+
+
+        JS_ASSERT(slot < T::slot_count(call));
+        v = T::slots(call)[slot];
     }
     JSTraceType type = getCoercedType(v);
     ValueToNative(cx, v, type, result);
@@ -3302,10 +3304,27 @@ GetFromClosure(JSContext* cx, JSObject* call, const ClosureVarInfo* cv, double* 
 struct ArgClosureTraits
 {
     
+    
     static inline uint32 adj_slot(JSStackFrame* fp, uint32 slot) { return 2 + slot; }
 
     
+    
     static inline jsval* slots(JSStackFrame* fp) { return fp->argv; }
+
+    
+    static inline jsval* slots(JSObject* obj) {
+        
+        return obj->dslots + slot_offset(obj);
+    }
+    
+    static inline uint32 slot_offset(JSObject* obj) {
+        return JSSLOT_START(&js_CallClass) +
+            CALL_CLASS_FIXED_RESERVED_SLOTS - JS_INITIAL_NSLOTS;
+    }
+    
+    static inline uint16 slot_count(JSObject* obj) {
+        return js_GetCallObjectFunction(obj)->nargs;
+    }
 private:
     ArgClosureTraits();
 };
@@ -3319,10 +3338,24 @@ GetClosureArg(JSContext* cx, JSObject* callee, const ClosureVarInfo* cv, double*
 struct VarClosureTraits
 {
     
+    
+    
     static inline uint32 adj_slot(JSStackFrame* fp, uint32 slot) { return 3 + fp->argc + slot; }
 
     
     static inline jsval* slots(JSStackFrame* fp) { return fp->slots; }
+    static inline jsval* slots(JSObject* obj) {
+        
+        return obj->dslots + slot_offset(obj);
+    }
+    static inline uint32 slot_offset(JSObject* obj) {
+        return JSSLOT_START(&js_CallClass) +
+            CALL_CLASS_FIXED_RESERVED_SLOTS - JS_INITIAL_NSLOTS +
+            js_GetCallObjectFunction(obj)->nargs;
+    }
+    static inline uint16 slot_count(JSObject* obj) {
+        return js_GetCallObjectFunction(obj)->u.i.nvars;
+    }
 private:
     VarClosureTraits();
 };
@@ -7947,8 +7980,12 @@ TraceRecorder::scopeChainProp(JSObject* chainHead, jsval*& vp, LIns*& ins, NameR
         return ARECORD_CONTINUE;
     }
 
-    if (obj == obj2 && OBJ_GET_CLASS(cx, obj) == &js_CallClass)
-        return InjectStatus(callProp(obj, prop, ATOM_TO_JSID(atom), vp, ins, nr));
+    if (obj == obj2 && OBJ_GET_CLASS(cx, obj) == &js_CallClass) {
+        AbortableRecordingStatus status =
+            InjectStatus(callProp(obj, prop, ATOM_TO_JSID(atom), vp, ins, nr));
+        obj->dropProperty(cx, prop);
+        return status;
+    }
 
     obj2->dropProperty(cx, prop);
     RETURN_STOP_A("fp->scopeChain is not global or active call object");
@@ -7968,6 +8005,7 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
     if (setflags && (sprop->attrs & JSPROP_READONLY))
         RETURN_STOP("writing to a read-only property");
 
+    JS_ASSERT(sprop->flags & SPROP_HAS_SHORTID);
     uintN slot = sprop->shortid;
 
     vp = NULL;
@@ -7979,7 +8017,8 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
             vp = &cfp->argv[slot];
             upvar_slot = slot;
             nr.v = *vp;
-        } else if (sprop->getter == js_GetCallVar) {
+        } else if (sprop->getter == js_GetCallVar ||
+                   sprop->getter == js_GetCallVarChecked) {
             JS_ASSERT(slot < cfp->script->nslots);
             vp = &cfp->slots[slot];
             upvar_slot = cx->fp->fun->nargs + slot;
@@ -7987,7 +8026,6 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
         } else {
             RETURN_STOP("dynamic property of Call object");
         }
-        obj->dropProperty(cx, prop);
 
         if (frameIfInRange(obj)) {
             
@@ -8009,7 +8047,6 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
                                  : JSGET_METHOD_BARRIER,
                                  &nr.v);
         JS_ASSERT(rv);
-        obj->dropProperty(cx, prop);
     }
 
     LIns* obj_ins;
@@ -8017,34 +8054,62 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
     LIns* parent_ins = stobj_get_parent(get(&cx->fp->argv[-2]));
     CHECK_STATUS(traverseScopeChain(parent, parent_ins, obj, obj_ins));
 
-    ClosureVarInfo* cv = new (traceAlloc()) ClosureVarInfo();
-    cv->id = id;
-    cv->slot = slot;
-    cv->callDepth = callDepth;
-    cv->resolveFlags = cx->resolveFlags == JSRESOLVE_INFER
-                     ? js_InferFlags(cx, 0)
-                     : cx->resolveFlags;
+    LIns* call_ins;
+    if (!cfp) {
+        
+        
+        
+        
+        
+        int32 offset = slot;
+        if (sprop->getter == js_GetCallArg) {
+            JS_ASSERT(offset < ArgClosureTraits::slot_count(obj));
+            offset += ArgClosureTraits::slot_offset(obj);
+        } else if (sprop->getter == js_GetCallVar ||
+                   sprop->getter == js_GetCallVarChecked) {
+            JS_ASSERT(offset < VarClosureTraits::slot_count(obj));
+            offset += VarClosureTraits::slot_offset(obj);
+        } else {
+            RETURN_STOP("dynamic property of Call object");
+        }
 
-    LIns* outp = lir->insAlloc(sizeof(double));
-    LIns* args[] = {
-        outp,
-        INS_CONSTPTR(cv),
-        obj_ins,
-        cx_ins
-    };
-    const CallInfo* ci;
-    if (sprop->getter == js_GetCallArg)
-        ci = &GetClosureArg_ci;
-    else
-        ci = &GetClosureVar_ci;
+        LIns* base = lir->insLoad(LIR_ldp, obj_ins, offsetof(JSObject, dslots));
+        LIns* val_ins = lir->insLoad(LIR_ldp, base, offset * sizeof(jsval));
+        ins = unbox_jsval(obj->dslots[offset], val_ins, snapshot(BRANCH_EXIT));
+    }
+    else {
+        ClosureVarInfo* cv = new (traceAlloc()) ClosureVarInfo();
+        cv->slot = slot;
+#ifdef DEBUG
+        cv->callDepth = callDepth;
+#endif
 
-    LIns* call_ins = lir->insCall(ci, args);
-    JSTraceType type = getCoercedType(nr.v);
-    guard(true,
-          addName(lir->ins2(LIR_eq, call_ins, lir->insImm(type)),
-                  "guard(type-stable name access)"),
-          BRANCH_EXIT);
-    ins = stackLoad(outp, type);
+        LIns* outp = lir->insAlloc(sizeof(double));
+        LIns* args[] = {
+            outp,
+            INS_CONSTPTR(cv),
+            obj_ins,
+            cx_ins
+        };
+        const CallInfo* ci;
+        if (sprop->getter == js_GetCallArg) {
+            ci = &GetClosureArg_ci;
+        } else if (sprop->getter == js_GetCallVar ||
+                   sprop->getter == js_GetCallVarChecked) {
+            ci = &GetClosureVar_ci;
+        } else {
+            RETURN_STOP("dynamic property of Call object");
+        }
+
+        call_ins = lir->insCall(ci, args);
+
+        JSTraceType type = getCoercedType(nr.v);
+        guard(true,
+              addName(lir->ins2(LIR_eq, call_ins, lir->insImm(type)),
+                      "guard(type-stable name access)"),
+              BRANCH_EXIT);
+        ins = stackLoad(outp, type);
+    }
     nr.tracked = false;
     nr.obj = obj;
     nr.obj_ins = obj_ins;
@@ -12069,6 +12134,16 @@ TraceRecorder::guardCallee(jsval& callee)
                     stobj_get_private(callee_ins),
                     INS_CONSTPTR(callee_obj->getPrivate())),
           branchExit);
+
+    
+
+
+
+
+
+
+
+
     guard(true,
           lir->ins2(LIR_peq,
                     stobj_get_parent(callee_ins),
