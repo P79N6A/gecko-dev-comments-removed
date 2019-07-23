@@ -1223,6 +1223,11 @@ public:
         selectedFont = WhichFontSupportsChar(mGroup->GetFontList(), ch);
 
         
+        if ((ch >= 0xE000  && ch <= 0xF8FF) || 
+            (ch >= 0xF0000 && ch <= 0x10FFFD))
+            return selectedFont;
+
+        
         if (!selectedFont) {
             
             const SCRIPT_PROPERTIES *sp = ScriptProperties();
