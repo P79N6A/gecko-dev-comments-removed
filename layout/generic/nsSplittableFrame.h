@@ -101,9 +101,6 @@ public:
   
   
   static void RemoveFromFlow(nsIFrame* aFrame);
-  
-  
-  static void BreakFromPrevFlow(nsIFrame* aFrame);
 
 protected:
   nsSplittableFrame(nsStyleContext* aContext) : nsFrame(aContext) {}
