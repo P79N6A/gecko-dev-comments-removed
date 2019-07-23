@@ -148,7 +148,7 @@ private:
 
 union SecurityLevel
 {
-    PRInt32  level;
+    PRWord   level;
     char*    capability;
 };
 
