@@ -4532,6 +4532,9 @@ interrupt:
                         rval = obj->dslots[i];
                         if (rval != JSVAL_HOLE)
                             goto end_getelem;
+
+                        
+                        rval = FETCH_OPND(-1);
                     }
                 }
                 id = INT_JSVAL_TO_JSID(rval);
