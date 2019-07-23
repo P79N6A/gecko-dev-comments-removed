@@ -103,7 +103,7 @@ public:
 
 
 
-  NS_IMETHOD GetElementCount(PRUint32* aCount) const = 0;
+  NS_IMETHOD_(PRUint32) GetElementCount() const = 0;
 
   
 
@@ -138,15 +138,14 @@ public:
 
 
 
-  NS_IMETHOD ResolveName(const nsAString& aName,
-                         nsISupports **aResult) = 0;
+  NS_IMETHOD_(already_AddRefed<nsISupports>) ResolveName(const nsAString& aName) = 0;
 
   
 
 
 
 
-  NS_IMETHOD IndexOfControl(nsIFormControl* aControl, PRInt32* aIndex) = 0;
+  NS_IMETHOD_(PRInt32) IndexOfControl(nsIFormControl* aControl) = 0;
 
   
 

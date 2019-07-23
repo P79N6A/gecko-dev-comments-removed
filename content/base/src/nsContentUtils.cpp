@@ -1965,7 +1965,7 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
 
           
           nsCOMPtr<nsIForm> form(do_QueryInterface(formElement));
-          form->IndexOfControl(control, &index);
+          index = form->IndexOfControl(control);
 
           if (index > -1) {
             KeyAppendInt(index, aKey);
