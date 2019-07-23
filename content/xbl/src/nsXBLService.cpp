@@ -147,10 +147,12 @@ IsAncestorBinding(nsIDocument* aDocument,
 
       rv = compareURL->Equals(aChildBindingURI, &equal);
     } else {
+      
       rv = binding->PrototypeBinding()->BindingURI()->Equals(aChildBindingURI,
                                                              &equal);
-      NS_ENSURE_SUCCESS(rv, PR_TRUE); 
     }
+
+    NS_ENSURE_SUCCESS(rv, PR_TRUE); 
 
     if (equal) {
       ++bindingRecursion;
