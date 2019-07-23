@@ -41,6 +41,7 @@
 
 #include "nsAccessibilityAtoms.h"
 #include "nsIAccessible.h"
+#include "nsIAccessNode.h"
 #include "nsARIAMap.h"
 
 #include "nsIDOMNode.h"
@@ -166,9 +167,52 @@ public:
 
 
 
+
+
+
+
+
+
+
+  static nsresult ScrollSubstringTo(nsIFrame *aFrame,
+                                    nsIDOMNode *aStartNode, PRInt32 aStartIndex,
+                                    nsIDOMNode *aEndNode, PRInt32 aEndIndex,
+                                    PRInt16 aVPercent, PRInt16 aHPercent);
+
+  
+
+
+
+
+
+
+
+  static void ScrollFrameToPoint(nsIFrame *aScrollableFrame,
+                                 nsIFrame *aFrame, const nsIntPoint& aPoint);
+
+  
+
+
+
   static void ConvertScrollTypeToPercents(PRUint32 aScrollType,
                                           PRInt16 *aVPercent,
                                           PRInt16 *aHPercent);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static nsresult ConvertToScreenCoords(PRInt32 aX, PRInt32 aY,
+                                        PRUint32 aCoordinateType,
+                                        nsIAccessNode *aAccessNode,
+                                        nsIntPoint *aCoords);
 
   
 

@@ -123,6 +123,23 @@ public:
                                      nsIAccessible **aFinalAccessible = nsnull,
                                      PRBool aIsEndOffset = PR_FALSE);
 
+  
+
+
+
+
+
+
+
+
+
+  nsresult HypertextOffsetsToDOMRange(PRInt32 aStartHTOffset,
+                                      PRInt32 aEndHTOffset,
+                                      nsIDOMNode **aStartNode,
+                                      PRInt32 *aStartOffset,
+                                      nsIDOMNode **aEndNode,
+                                      PRInt32 *aEndOffset);
+
 protected:
   
 
@@ -203,6 +220,11 @@ protected:
                          nsISelection **aDomSel = nsnull,
                          nsCOMArray<nsIDOMRange>* aRanges = nsnull);
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
+
+  
+  nsresult GetDOMPointByFrameOffset(nsIFrame *aFrame, PRInt32 aOffset,
+                                    nsIAccessible *aAccessible,
+                                    nsIDOMNode **aNode, PRInt32 *aNodeOffset);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,
