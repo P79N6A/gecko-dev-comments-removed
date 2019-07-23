@@ -384,94 +384,57 @@ nsSliderFrame::DoLayout(nsBoxLayoutState& aState)
 #endif
 
   
-  nsRect clientRect(0,0,0,0);
+  nsRect clientRect;
   GetClientRect(clientRect);
 
   
   nsIBox* scrollbarBox = GetScrollbar();
   nsCOMPtr<nsIContent> scrollbar;
   scrollbar = GetContentOfBox(scrollbarBox);
-  PRBool isHorizontal = IsHorizontal();
 
   
   nsSize thumbSize = thumbBox->GetPrefSize(aState);
 
-  if (isHorizontal)
+  if (IsHorizontal())
     thumbSize.height = clientRect.height;
   else
     thumbSize.width = clientRect.width;
 
-  
-  PRInt32 curpospx = GetCurrentPosition(scrollbar);
-  PRInt32 minpospx = GetMinPosition(scrollbar);
-  PRInt32 maxpospx = GetMaxPosition(scrollbar);
+  PRInt32 curPos = GetCurrentPosition(scrollbar);
+  PRInt32 minPos = GetMinPosition(scrollbar);
+  PRInt32 maxPos = GetMaxPosition(scrollbar);
   PRInt32 pageIncrement = GetPageIncrement(scrollbar);
 
-  if (maxpospx < minpospx)
-    maxpospx = minpospx;
+  maxPos = PR_MAX(minPos, maxPos);
+  curPos = PR_MAX(minPos, PR_MIN(curPos, maxPos));
 
-  if (curpospx < minpospx)
-     curpospx = minpospx;
-  else if (curpospx > maxpospx)
-     curpospx = maxpospx;
+  nscoord& availableLength = IsHorizontal() ? clientRect.width : clientRect.height;
+  nscoord& thumbLength = IsHorizontal() ? thumbSize.width : thumbSize.height;
 
-  nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-
-  
-  nscoord maxpos = (maxpospx - minpospx) * onePixel;
-
-  
-  
-  nscoord& desiredcoord = isHorizontal ? clientRect.width : clientRect.height;
-  nscoord& thumbcoord = isHorizontal ? thumbSize.width : thumbSize.height;
-
-  nscoord ourmaxpos = desiredcoord;
-
-  mRatio = 1;
-
-  if ((pageIncrement + maxpospx - minpospx) > 0)
-  {
-    
-    if (thumbBox->GetFlex(aState) > 0)
-    {
-      mRatio = float(pageIncrement) / float(maxpospx - minpospx + pageIncrement);
-      nscoord thumbsize = NSToCoordRound(ourmaxpos * mRatio);
-
-      
-      if (thumbsize > thumbcoord)
-        thumbcoord = thumbsize;
-    }
+  if ((pageIncrement + maxPos - minPos) > 0 && thumbBox->GetFlex(aState) > 0) {
+    float ratio = float(pageIncrement) / float(maxPos - minPos + pageIncrement);
+    thumbLength = PR_MAX(thumbLength, NSToCoordRound(availableLength * ratio));
   }
 
-  ourmaxpos -= thumbcoord;
-  if (float(maxpos) != 0)
-    mRatio = float(ourmaxpos) / float(maxpos);
+  
+  mRatio = (minPos != maxPos) ? float(availableLength - thumbLength) / float(maxPos - minPos) : 1;
 
   
   
   
   PRBool reverse = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
                                          nsGkAtoms::reverse, eCaseMatters);
-  nscoord pos = reverse ? (maxpospx - curpospx) : (curpospx - minpospx);
+  nscoord pos = reverse ? (maxPos - curPos) : (curPos - minPos);
 
   
   nsRect thumbRect(clientRect.x, clientRect.y, thumbSize.width, thumbSize.height);
-  if (isHorizontal)
-    thumbRect.x += nscoord(float(pos * onePixel) * mRatio);
-  else
-    thumbRect.y += nscoord(float(pos * onePixel) * mRatio);
+  PRInt32& thumbPos = (IsHorizontal() ? thumbRect.x : thumbRect.y);
+  thumbPos += NSToCoordRound(pos * mRatio);
 
   nsRect oldThumbRect(thumbBox->GetRect());
   LayoutChildAt(aState, thumbBox, thumbRect);
 
   SyncLayout(aState);
-
-#ifdef DEBUG_SLIDER
-  PRInt32 c = GetCurrentPosition(scrollbar);
-  PRInt32 min = GetMinPosition(scrollbar);
-  PRInt32 max = GetMaxPosition(scrollbar);
-  printf("Current=%d, min=%d, max=%d\n", c, min, max);
-#endif
 
   
   if (oldThumbRect != thumbRect)
@@ -708,23 +671,19 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   nsCOMPtr<nsIContent> scrollbar;
   scrollbar = GetContentOfBox(scrollbarBox);
 
-  PRBool isHorizontal = IsHorizontal();
+  
+  PRInt32 curPos = GetCurrentPosition(scrollbar);
 
   
-  PRInt32 curpospx = GetCurrentPosition(scrollbar);
-
-  
-  if (mCurPos == curpospx)
+  if (mCurPos == curPos)
       return NS_OK;
 
   
-  PRInt32 minpospx = GetMinPosition(scrollbar);
-  PRInt32 maxpospx = GetMaxPosition(scrollbar);
+  PRInt32 minPos = GetMinPosition(scrollbar);
+  PRInt32 maxPos = GetMaxPosition(scrollbar);
 
-  if (curpospx < minpospx || maxpospx < minpospx)
-     curpospx = minpospx;
-  else if (curpospx > maxpospx)
-     curpospx = maxpospx;
+  maxPos = PR_MAX(minPos, maxPos);
+  curPos = PR_MAX(minPos, PR_MIN(curPos, maxPos));
 
   
   nsIFrame* thumbFrame = mFrames.FirstChild();
@@ -741,14 +700,12 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
 
   PRBool reverse = mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
                                          nsGkAtoms::reverse, eCaseMatters);
-  nscoord pos = reverse ? (maxpospx - curpospx) : (curpospx - minpospx);
+  nscoord pos = reverse ? (maxPos - curPos) : (curPos - minPos);
 
-  
-  nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-  if (isHorizontal)
-     newThumbRect.x = clientRect.x + nscoord(float(pos * onePixel) * mRatio);
+  if (IsHorizontal())
+     newThumbRect.x = clientRect.x + NSToCoordRound(pos * mRatio);
   else
-     newThumbRect.y = clientRect.y + nscoord(float(pos * onePixel) * mRatio);
+     newThumbRect.y = clientRect.y + NSToCoordRound(pos * mRatio);
 
   
   thumbFrame->SetRect(newThumbRect);
@@ -756,7 +713,7 @@ nsSliderFrame::CurrentPositionChanged(nsPresContext* aPresContext,
   
   InvalidateWithFlags(clientRect, aImmediateRedraw ? INVALIDATE_IMMEDIATE : 0);
 
-  mCurPos = curpospx;
+  mCurPos = curPos;
 
   
   nsIFrame* parent = GetParent();
@@ -787,25 +744,24 @@ static void UpdateAttribute(nsIContent* aScrollbar, nscoord aNewPos, PRBool aNot
 
 
 
-
 void
-nsSliderFrame::SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewPos,
+nsSliderFrame::SetCurrentThumbPosition(nsIContent* aScrollbar, nscoord aNewThumbPos,
                                        PRBool aIsSmooth, PRBool aImmediateRedraw, PRBool aMaySnap)
 {
   nsRect crect;
   GetClientRect(crect);
   nscoord offset = IsHorizontal() ? crect.x : crect.y;
-  float realpos = nsPresContext::AppUnitsToFloatCSSPixels(aNewPos - offset);
+  PRInt32 newPos = NSToIntRound((aNewThumbPos - offset) / mRatio);
   
   if (aMaySnap && mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::snap,
                                         nsGkAtoms::_true, eCaseMatters)) {
     
     
     PRInt32 increment = GetIncrement(aScrollbar);
-    realpos = NSToCoordRound(realpos / float(increment)) * increment;
+    newPos = NSToIntRound(newPos / float(increment)) * increment;
   }
   
-  SetCurrentPosition(aScrollbar, NSToIntRound(realpos / mRatio), aIsSmooth, aImmediateRedraw);
+  SetCurrentPosition(aScrollbar, newPos, aIsSmooth, aImmediateRedraw);
 }
 
 
