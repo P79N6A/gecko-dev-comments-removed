@@ -192,14 +192,7 @@ function run_test() {
 
   
   
-  var store = Cc["@mozilla.org/storage/service;1"].
-    getService(Ci.mozIStorageService);
-  
-  var file = Cc["@mozilla.org/file/directory_service;1"].
-    getService(Ci.nsIProperties).
-    get("ProfD", Ci.nsILocalFile);
-  file.append("places.sqlite");
-  var db = store.openDatabase(file);
+  var db = histsvc.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
   var q = "SELECT id FROM moz_bookmarks";
   try {
     var statement = db.createStatement(q);
