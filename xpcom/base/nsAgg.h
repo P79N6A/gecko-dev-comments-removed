@@ -118,7 +118,8 @@ public:                                                                     \
   {                                                                         \
     return p->InnerObject();                                                \
   }                                                                         \
-};                                                           
+};                                                                          \
+NS_CYCLE_COLLECTION_PARTICIPANT_INSTANCE
 
 
 #define NS_INIT_AGGREGATED(outer)                                           \

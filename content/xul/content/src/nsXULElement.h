@@ -124,9 +124,6 @@ public:
     
     void* mEventHandler;
 
-    
-    void Finalize(PRUint32 aLangID);
-
 #ifdef XUL_PROTOTYPE_ATTRIBUTE_METERING
     
 
@@ -230,7 +227,7 @@ public:
 
     virtual void ReleaseSubtree() { Release(); }
 
-    NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsXULPrototypeNode)
+    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(nsXULPrototypeNode)
 
 protected:
     nsXULPrototypeNode(Type aType)
@@ -249,6 +246,7 @@ public:
           mHasIdAttribute(PR_FALSE),
           mHasClassAttribute(PR_FALSE),
           mHasStyleAttribute(PR_FALSE),
+          mHoldsScriptObject(PR_FALSE),
           mScriptTypeID(nsIProgrammingLanguage::UNKNOWN)
     {
         NS_LOG_ADDREF(this, 1, ClassName(), ClassSize());
@@ -256,10 +254,7 @@ public:
 
     virtual ~nsXULPrototypeElement()
     {
-        PRUint32 i;
-        for (i = 0; i < mNumAttributes; i++)
-            mAttributes[i].Finalize(mScriptTypeID);
-        delete[] mAttributes;
+        Unlink();
         NS_ASSERTION(!mChildren && mNumChildren == 0,
                      "ReleaseSubtree not called");
     }
@@ -294,6 +289,8 @@ public:
 
     nsresult SetAttrAt(PRUint32 aPos, const nsAString& aValue, nsIURI* aDocumentURI);
 
+    void Unlink();
+
     PRUint32                 mNumChildren;
     nsXULPrototypeNode**     mChildren;           
 
@@ -305,6 +302,7 @@ public:
     PRPackedBool             mHasIdAttribute:1;
     PRPackedBool             mHasClassAttribute:1;
     PRPackedBool             mHasStyleAttribute:1;
+    PRPackedBool             mHoldsScriptObject:1;
 
     
     
@@ -361,13 +359,52 @@ public:
                      nsIDocument* aDocument,
                      nsIScriptGlobalObjectOwner* aGlobalOwner);
 
+    void Unlink()
+    {
+        if (mScriptObject.mObject) {
+            nsContentUtils::DropScriptObjects(mScriptObject.mLangID, this,
+                                              &NS_CYCLE_COLLECTION_NAME(nsXULPrototypeNode));
+            mScriptObject.mObject = nsnull;
+        }
+    }
+
+    void Set(nsScriptObjectHolder &aHolder)
+    {
+        NS_ASSERTION(mScriptObject.mLangID == aHolder.getScriptTypeID(),
+                     "Wrong language, this will leak the previous object.");
+
+        mScriptObject.mLangID = aHolder.getScriptTypeID();
+        Set((void*)aHolder);
+    }
+    void Set(void *aObject)
+    {
+        NS_ASSERTION(!mScriptObject.mObject, "Leaking script object.");
+
+        nsresult rv = nsContentUtils::HoldScriptObject(mScriptObject.mLangID,
+                                                       this,
+                                                       &NS_CYCLE_COLLECTION_NAME(nsXULPrototypeNode),
+                                                       aObject, PR_FALSE);
+        if (NS_SUCCEEDED(rv)) {
+            mScriptObject.mObject = aObject;
+        }
+    }
+
+    struct ScriptObjectHolder
+    {
+        ScriptObjectHolder(PRUint32 aLangID) : mLangID(aLangID),
+                                               mObject(nsnull)
+        {
+        }
+        PRUint32 mLangID;
+        void* mObject;
+    };
     nsCOMPtr<nsIURI>         mSrcURI;
     PRUint32                 mLineNo;
     PRPackedBool             mSrcLoading;
     PRPackedBool             mOutOfLine;
     nsXULDocument*           mSrcLoadWaiters;   
     PRUint32                 mLangVersion;
-    nsContentUtils::ScriptObjectHolder mScriptObject;
+    ScriptObjectHolder       mScriptObject;
 };
 
 class nsXULPrototypeText : public nsXULPrototypeNode
