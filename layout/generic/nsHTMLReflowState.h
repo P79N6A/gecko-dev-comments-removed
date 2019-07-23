@@ -315,9 +315,6 @@ public:
   nsIPercentHeightObserver* mPercentHeightObserver;
 
   
-  nsIFrame* mPercentHeightReflowInitiator;
-
-  
   
   
   
