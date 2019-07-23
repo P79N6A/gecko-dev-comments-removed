@@ -1229,7 +1229,11 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
     return;
   }
 
-  if (aNextFrame != NEXT_FRAME_AVAILABLE && !mDecoder->IsEnded()) {
+  nsMediaDecoder::Statistics stats = mDecoder->GetStatistics();
+
+  if (aNextFrame != NEXT_FRAME_AVAILABLE &&
+      !mDecoder->IsEnded() &&
+      stats.mDownloadPosition < stats.mTotalBytes) {
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA);
     if (!mWaitingFired && aNextFrame == NEXT_FRAME_UNAVAILABLE_BUFFERING) {
       DispatchAsyncSimpleEvent(NS_LITERAL_STRING("waiting"));
@@ -1239,7 +1243,6 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
   }
 
   
-  nsMediaDecoder::Statistics stats = mDecoder->GetStatistics();
   if (stats.mTotalBytes < 0 || stats.mTotalBytes == stats.mDownloadPosition) {
     
     
