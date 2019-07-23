@@ -1010,6 +1010,7 @@ PRBool nsCaret::MustDrawCaret(PRBool aIgnoreDrawnState)
 
 PRBool nsCaret::IsMenuPopupHidingCaret()
 {
+#ifdef MOZ_XUL
   
   nsXULPopupManager *popMgr = nsXULPopupManager::GetInstance();
   nsTArray<nsIFrame*> popups = popMgr->GetOpenPopups();
@@ -1049,6 +1050,7 @@ PRBool nsCaret::IsMenuPopupHidingCaret()
       return PR_TRUE;
     }
   }
+#endif
 
   
   return PR_FALSE;
