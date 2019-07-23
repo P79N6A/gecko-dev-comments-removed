@@ -3899,13 +3899,15 @@ EmitFunctionDefNop(JSContext *cx, JSCodeGenerator *cg, uintN index)
 static JSBool
 EmitLoopHeader(JSContext *cx, JSCodeGenerator *cg)
 {
-    if (cg->loopHeaders == JS_BITMASK(8)) {
-        ReportStatementTooLarge(cx, cg);
+    ptrdiff_t off;
+    jsbytecode *pc;
+
+    off = js_EmitN(cx, cg, JSOP_HEADER, 3);
+    if (off < 0)
         return JS_FALSE;
-    }
-    if (js_Emit2(cx, cg, JSOP_HEADER, cg->loopHeaders) < 0)
-        return JS_FALSE;
-    ++cg->loopHeaders;
+    pc = CG_CODE(cg, off);
+    uint32 slot = js_AllocateLoopTableSlot(cx);
+    SET_UINT24(pc, slot);
     return JS_TRUE;
 }
 

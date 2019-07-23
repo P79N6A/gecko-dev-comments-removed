@@ -159,6 +159,72 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
     return base + GET_UINT16(pc + pcoff);
 }
 
+uintN
+js_OpLength(jsbytecode *pc)
+{
+    const JSCodeSpec *cs;
+    ptrdiff_t len, off, jmplen;
+    jsbytecode *pc2;
+    uint32 type;
+
+    JS_ASSERT((JSOp) *pc < JSOP_LIMIT);
+    cs = &js_CodeSpec[*pc];
+    len = cs->length;
+    JS_ASSERT(len != 0);
+    if (len > 0)
+        return (uintN) len;
+
+    
+    JS_ASSERT(len == -1);
+    pc2 = pc;
+    type = JOF_TYPE(cs->format);
+    switch (type) {
+      case JOF_TABLESWITCH:
+      case JOF_TABLESWITCHX:
+      {
+        jsint i, low, high;
+
+        jmplen = (type == JOF_TABLESWITCH) ? JUMP_OFFSET_LEN
+                                           : JUMPX_OFFSET_LEN;
+        off = GetJumpOffset(pc, pc2);
+        pc2 += jmplen;
+        low = GET_JUMP_OFFSET(pc2);
+        pc2 += JUMP_OFFSET_LEN;
+        high = GET_JUMP_OFFSET(pc2);
+        pc2 += JUMP_OFFSET_LEN;
+        for (i = low; i <= high; i++)
+            pc2 += jmplen;
+        break;
+      }
+
+      case JOF_LOOKUPSWITCH:
+      case JOF_LOOKUPSWITCHX:
+      {
+        jsatomid npairs;
+
+        jmplen = (type == JOF_LOOKUPSWITCH) ? JUMP_OFFSET_LEN
+                                            : JUMPX_OFFSET_LEN;
+        off = GetJumpOffset(pc, pc2);
+        pc2 += jmplen;
+        npairs = GET_UINT16(pc2);
+        pc2 += UINT16_LEN;
+        while (npairs) {
+            pc2 += INDEX_LEN;
+            pc2 += jmplen;
+            npairs--;
+        }
+        break;
+      }
+
+      default:
+        JS_NOT_REACHED("unknown op length");
+        return 0;
+    }
+
+    len = 1 + pc2 - pc;
+    return (uintN) len;
+}
+
 #ifdef DEBUG
 
 JS_FRIEND_API(JSBool)
@@ -368,17 +434,12 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         break;
 
       case JOF_UINT24:
-        JS_ASSERT(op == JSOP_UINT24);
+        JS_ASSERT((op == JSOP_UINT24) || (op == JSOP_HEADER));
         i = (jsint)GET_UINT24(pc);
         goto print_int;
 
       case JOF_INT8:
         i = GET_INT8(pc);
-        goto print_int;
-
-      case JOF_UINT8:
-        JS_ASSERT(op == JSOP_HEADER);
-        i = GET_UINT8(pc);
         goto print_int;
 
       case JOF_INT32:
@@ -5040,8 +5101,6 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
     const JSCodeSpec *cs;
     ptrdiff_t oplen;
     jssrcnote *sn;
-    uint32 type;
-    jsbytecode *pc2;
     intN i;
 
 #define LOCAL_ASSERT(expr)      LOCAL_ASSERT_RV(expr, -1);
@@ -5087,6 +5146,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
                 JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
                 cs = &js_CodeSpec[op];
                 oplen = cs->length;
+                JS_ASSERT(oplen > 0);
                 jmplen = GetJumpOffset(pc, pc);
                 if (pc + jmplen < begin) {
                     oplen = (uintN) jmplen;
@@ -5100,51 +5160,6 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
                 --pcdepth;
                 LOCAL_ASSERT(pcdepth >= 0);
             }
-        }
-
-        type = JOF_TYPE(cs->format);
-        switch (type) {
-          case JOF_TABLESWITCH:
-          case JOF_TABLESWITCHX:
-          {
-            jsint jmplen, low, high;
-
-            jmplen = (type == JOF_TABLESWITCH) ? JUMP_OFFSET_LEN
-                                               : JUMPX_OFFSET_LEN;
-            pc2 = pc;
-            pc2 += jmplen;
-            low = GET_JUMP_OFFSET(pc2);
-            pc2 += JUMP_OFFSET_LEN;
-            high = GET_JUMP_OFFSET(pc2);
-            pc2 += JUMP_OFFSET_LEN;
-            for (i = low; i <= high; i++)
-                pc2 += jmplen;
-            oplen = 1 + pc2 - pc;
-            break;
-          }
-
-          case JOF_LOOKUPSWITCH:
-          case JOF_LOOKUPSWITCHX:
-          {
-            jsint jmplen;
-            jsatomid npairs;
-
-            jmplen = (type == JOF_LOOKUPSWITCH) ? JUMP_OFFSET_LEN
-                                                : JUMPX_OFFSET_LEN;
-            pc2 = pc;
-            pc2 += jmplen;
-            npairs = GET_UINT16(pc2);
-            pc2 += INDEX_LEN;
-            while (npairs) {
-                pc2 += INDEX_LEN;
-                pc2 += jmplen;
-                npairs--;
-            }
-            oplen = 1 + pc2 - pc;
-            break;
-          }
-
-          default:;
         }
 
         if (sn && SN_TYPE(sn) == SRC_HIDDEN)

@@ -2800,12 +2800,15 @@ JS_INTERPRET(JSContext *cx)
           END_EMPTY_CASES
 
           BEGIN_CASE(JSOP_HEADER)
-            i = GET_UINT24(regs.pc);
-            JS_ASSERT((i > 0) && (i <= (jsint)rt->loopTableIndexGen));
+          {
+            uint32 index = GET_UINT24(regs.pc);
+            JS_ASSERT(index < rt->loopTableIndexGen);
+
             JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
-            if (i >= (jsint)tm->loopTableSize) 
-                js_GrowLoopTableIfNeeded(cx, i);
-            vp = &rt->traceMonitor.loopTable[i];
+            if (index >= tm->loopTableSize && !js_GrowLoopTable(cx, index))
+                goto error;
+
+            vp = &JS_TRACE_MONITOR(cx).loopTable[index];
             rval = *vp;
             if (JSVAL_IS_INT(rval)) {
                 
@@ -2819,7 +2822,11 @@ JS_INTERPRET(JSContext *cx)
 
 
 
-                    *vp = OBJECT_TO_JSVAL(js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0));
+
+                    obj = js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0);
+                    if (!obj)
+                        goto error;
+                    *vp = OBJECT_TO_JSVAL(obj);
                 } else {
                     
 
@@ -2833,6 +2840,7 @@ JS_INTERPRET(JSContext *cx)
                 JS_ASSERT(JSVAL_IS_GCTHING(rval));
                 
             }
+          }
           END_CASE(JSOP_HEADER)
 
           
