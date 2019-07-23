@@ -5297,7 +5297,6 @@ nsNavHistory::CommitPendingChanges()
 
   
   
-  
   nsCOMPtr<nsIObserverService> os =
     do_GetService("@mozilla.org/observer-service;1");
   NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);

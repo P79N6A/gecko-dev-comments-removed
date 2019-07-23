@@ -106,8 +106,9 @@ tests.push({
 
     
     let profileBookmarksHTMLFile = check_bookmarks_html();
-    do_check_true(profileBookmarksHTMLFile.lastModifiedTime > lastMod);
-    do_check_neq(profileBookmarksHTMLFile.fileSize > fileSize);
+    
+    
+    do_check_neq(profileBookmarksHTMLFile.fileSize, fileSize);
 
     
     do_check_true(ps.getBoolPref(PREF_AUTO_EXPORT_HTML));
