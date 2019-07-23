@@ -801,6 +801,7 @@ nsHttpChannel::ProcessResponse()
         
         
         if (mResuming) {
+            LOG(("Server ignored our Range header, cancelling [this=%p]\n", this));
             Cancel(NS_ERROR_NOT_RESUMABLE);
             rv = CallOnStartRequest();
             break;
@@ -858,6 +859,8 @@ nsHttpChannel::ProcessResponse()
     case 412: 
     case 416: 
         if (mResuming) {
+            LOG(("Resuming and got %i status, aborting [this=%p]\n",
+                 httpStatus, this));
             Cancel(NS_ERROR_ENTITY_CHANGED);
             rv = CallOnStartRequest();
             break;
@@ -923,8 +926,11 @@ nsHttpChannel::ProcessNormal()
         }
         
         else if (!mEntityID.IsEmpty()) {
-            if (!mEntityID.Equals(id))
+            if (!mEntityID.Equals(id)) {
+                LOG(("Entity mismatch, expected '%s', got '%s', aborting [this=%p]",
+                     mEntityID.get(), id.get(), this));
                 Cancel(NS_ERROR_ENTITY_CHANGED);
+            }
         }
     }
 
@@ -4677,6 +4683,8 @@ NS_IMETHODIMP
 nsHttpChannel::ResumeAt(PRUint64 aStartPos,
                         const nsACString& aEntityID)
 {
+    LOG(("nsHttpChannel::ResumeAt [this=%p startPos=%llu id='%s']\n",
+         this, aStartPos, PromiseFlatCString(aEntityID).get()));
     mEntityID = aEntityID;
     mStartPos = aStartPos;
     mResuming = PR_TRUE;
