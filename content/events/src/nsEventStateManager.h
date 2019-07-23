@@ -296,7 +296,11 @@ protected:
                                   nsPresContext* aPresContext,
                                   nsIFrame* &targetOuterFrame,
                                   nsPresContext* &presCtxOuter);
-
+  void SendLineScrollEvent(nsIFrame* aTargetFrame,
+                           nsMouseScrollEvent* aEvent,
+                           nsPresContext* aPresContext,
+                           nsEventStatus* aStatus,
+                           PRInt32 aNumLines);
   void SendPixelScrollEvent(nsIFrame* aTargetFrame,
                             nsMouseScrollEvent* aEvent,
                             nsPresContext* aPresContext,

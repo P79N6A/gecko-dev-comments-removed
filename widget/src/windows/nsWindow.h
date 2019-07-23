@@ -71,6 +71,8 @@ struct nsFakeCharMessage;
 
 #include "gfxWindowsSurface.h"
 
+#include "nsWinGesture.h"
+
 
 #ifndef WINCE
 #define NS_ENABLE_TSF
@@ -297,6 +299,7 @@ protected:
 
   void                    DispatchPendingEvents();
   virtual PRBool          ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT *aRetValue);
+  virtual PRBool          ProcessGestureMessage(WPARAM wParam, LPARAM lParam);
 
   
 
@@ -311,7 +314,6 @@ protected:
                                               PRBool *aEventDispatched);
   LRESULT                 ProcessKeyDownMessage(const MSG &aMsg,
                                                 PRBool *aEventDispatched);
-
 
    
    
@@ -536,6 +538,9 @@ protected:
 
   
   nsNativeDragTarget * mNativeDragTarget;
+
+  
+  nsWinGesture mGesture;
 
   
   

@@ -1122,6 +1122,9 @@ pref("config.use_system_prefs", false);
 pref("config.use_system_prefs.accessibility", false);
 
 
+pref("gestures.enable_single_finger_input", true);
+
+
 
 
 
