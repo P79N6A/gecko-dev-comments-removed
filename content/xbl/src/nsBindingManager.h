@@ -224,6 +224,8 @@ protected:
                                      PRBool* aIsAnonymousContentList);
 
   nsIContent* GetNestedInsertionPoint(nsIContent* aParent, nsIContent* aChild);
+  nsIContent* GetNestedSingleInsertionPoint(nsIContent* aParent,
+                                            PRBool* aMultipleInsertionPoints);
 
   
   
