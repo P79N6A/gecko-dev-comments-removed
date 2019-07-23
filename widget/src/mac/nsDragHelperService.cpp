@@ -190,7 +190,7 @@ nsDragHelperService::Leave(DragReference inDragRef, nsIEventSink *inSink)
       
       
       
-      mDragService->EndDragSession();
+      mDragService->EndDragSession(PR_FALSE);
     }
   }
 

@@ -395,6 +395,22 @@ nsContentAreaDragDrop::DragExit(nsIDOMEvent* aMouseEvent)
 }
 
 
+NS_IMETHODIMP
+nsContentAreaDragDrop::Drag(nsIDOMEvent* aMouseEvent)
+{
+  
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsContentAreaDragDrop::DragEnd(nsIDOMEvent* aMouseEvent)
+{
+  
+  return NS_OK;
+}
+
+
 
 
 

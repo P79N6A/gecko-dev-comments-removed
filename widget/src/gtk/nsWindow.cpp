@@ -3430,7 +3430,7 @@ nsWindow::OnDragDropSignal        (GtkWidget        *aWidget,
 
   
   
-  dragService->EndDragSession();
+  dragService->EndDragSession(PR_TRUE);
 
   return TRUE;
 }
@@ -3501,7 +3501,7 @@ nsWindow::OnDragLeave(void)
         
         
         
-        dragService->EndDragSession();
+        dragService->EndDragSession(PR_FALSE);
       }
     }
   }

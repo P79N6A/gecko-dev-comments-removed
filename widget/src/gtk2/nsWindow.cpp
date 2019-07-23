@@ -2474,6 +2474,8 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
     
     dragSessionGTK->TargetStartDragMotion();
 
+    dragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
+
     nsMouseEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget,
                        nsMouseEvent::eReal);
 
@@ -2632,7 +2634,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
 
     
     
-    dragService->EndDragSession();
+    dragService->EndDragSession(PR_TRUE);
 
     return TRUE;
 }
@@ -2684,7 +2686,7 @@ nsWindow::OnDragLeave(void)
                 
                 
                 
-                dragService->EndDragSession();
+                dragService->EndDragSession(PR_FALSE);
             }
         }
     }

@@ -294,6 +294,8 @@ nsNativeDragTarget::DragOver(DWORD   grfKeyState,
 		return ResultFromScode(E_FAIL);
   }
 
+  mDragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
+
   
   ProcessDrag(nsnull, NS_DRAGDROP_OVER, grfKeyState, pt, pdwEffect);
   return S_OK;
@@ -325,7 +327,7 @@ nsNativeDragTarget::DragLeave()
       
       
       
-      mDragService->EndDragSession();
+      mDragService->EndDragSession(PR_FALSE);
     }
   }
 
@@ -360,6 +362,6 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   ProcessDrag(pData, NS_DRAGDROP_DROP, grfKeyState, aPT, pdwEffect);
 
   
-  serv->EndDragSession();
+  serv->EndDragSession(PR_TRUE);
   return S_OK;
 }

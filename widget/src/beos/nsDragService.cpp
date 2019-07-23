@@ -338,7 +338,7 @@ nsDragService::StartDragSession()
 
 
 NS_IMETHODIMP
-nsDragService::EndDragSession()
+nsDragService::EndDragSession(PRBool aDoneDrag)
 {
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::EndDragSession()"));
     
@@ -347,7 +347,7 @@ nsDragService::EndDragSession()
     
     
     
-    return nsBaseDragService::EndDragSession();
+    return nsBaseDragService::EndDragSession(aDoneDrag);
 }
 
 

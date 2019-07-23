@@ -194,6 +194,20 @@ protected:
 
   void NotifyMouseOut(nsGUIEvent* aEvent, nsIContent* aMovingInto);
   void GenerateDragDropEnterExit(nsPresContext* aPresContext, nsGUIEvent* aEvent);
+  
+
+
+
+
+
+
+
+  void FireDragEnterOrExit(nsPresContext* aPresContext,
+                           nsGUIEvent* aEvent,
+                           PRUint32 aMsg,
+                           nsIContent* aRelatedTarget,
+                           nsIContent* aTargetContent,
+                           nsWeakFrame& aTargetFrame);
   nsresult SetClickCount(nsPresContext* aPresContext, nsMouseEvent *aEvent, nsEventStatus* aStatus);
   nsresult CheckForAndDispatchClick(nsPresContext* aPresContext, nsMouseEvent *aEvent, nsEventStatus* aStatus);
   nsresult GetNextTabbableContent(nsIContent* aRootContent,

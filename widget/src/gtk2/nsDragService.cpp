@@ -240,12 +240,12 @@ nsDragService::StartDragSession()
 }
  
 NS_IMETHODIMP
-nsDragService::EndDragSession()
+nsDragService::EndDragSession(PRBool aDoneDrag)
 {
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::EndDragSession"));
     
     SetDragAction(DRAGDROP_ACTION_NONE);
-    return nsBaseDragService::EndDragSession();
+    return nsBaseDragService::EndDragSession(aDoneDrag);
 }
 
 
@@ -1038,7 +1038,7 @@ nsDragService::SourceEndDrag(void)
     mSourceDataItems = 0;
 
     
-    EndDragSession();
+    EndDragSession(PR_TRUE);
 }
 
 static void

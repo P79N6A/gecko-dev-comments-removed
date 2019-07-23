@@ -226,7 +226,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   }
 
   
-  EndDragSession();
+  EndDragSession(PR_TRUE);
 
   
   
@@ -482,9 +482,9 @@ nsDragService::IsCollectionObject(IDataObject* inDataObj)
 
 
 NS_IMETHODIMP
-nsDragService::EndDragSession()
+nsDragService::EndDragSession(PRBool aDoneDrag)
 {
-  nsBaseDragService::EndDragSession();
+  nsBaseDragService::EndDragSession(aDoneDrag);
   NS_IF_RELEASE(mDataObject);
 
   return NS_OK;

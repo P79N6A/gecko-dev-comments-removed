@@ -46,10 +46,14 @@
 
 
 
+
+
 #define NS_IDOMDRAGLISTENER_IID \
-{ /* 6b8b25d0-ded5-11d1-bd85-00805f8ae3f4 */ \
-0x6b8b25d0, 0xded5, 0x11d1, \
-{0xbd, 0x85, 0x00, 0x80, 0x5f, 0x8a, 0xe3, 0xf4} }
+{ /* 1A107271-1E26-419A-BCF1-0A4CF7A66B45 */ \
+0x1a107271, 0x1e26, 0x419a, \
+{0xbc, 0xf1, 0x0a, 0x4c, 0xf7, 0xa6, 0x6b, 0x45} }
+
+
 
 class nsIDOMDragListener : public nsIDOMEventListener {
 
@@ -62,9 +66,15 @@ public:
 
 
 
+
+
+
   NS_IMETHOD DragEnter(nsIDOMEvent* aMouseEvent) = 0;
 
   
+
+
+
 
 
 
@@ -76,9 +86,18 @@ public:
 
 
 
+
+
+
+
+
+
   NS_IMETHOD DragExit(nsIDOMEvent* aMouseEvent) = 0;
 
   
+
+
+
 
 
 
@@ -90,8 +109,34 @@ public:
 
 
 
+
+
+
   NS_IMETHOD DragGesture(nsIDOMEvent* aMouseEvent) = 0;
 
+  
+
+
+
+
+
+
+
+  NS_IMETHOD DragEnd(nsIDOMEvent* aMouseEvent) = 0;
+
+  
+
+
+
+
+
+
+  NS_IMETHOD Drag(nsIDOMEvent* aMouseEvent) = 0;
+
+  
+  NS_IMETHOD DragStart(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+  NS_IMETHOD DragLeave(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+  NS_IMETHOD Drop(nsIDOMEvent* aMouseEvent) { return NS_OK; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDOMDragListener, NS_IDOMDRAGLISTENER_IID)
