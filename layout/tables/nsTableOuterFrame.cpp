@@ -1325,67 +1325,6 @@ NS_METHOD nsTableOuterFrame::VerifyTree() const
 }
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-void nsTableOuterFrame::DeleteChildsNextInFlow(nsPresContext* aPresContext, 
-                                               nsIFrame*       aChild)
-{
-  if (!aChild) return;
-  NS_PRECONDITION(mFrames.ContainsFrame(aChild), "bad geometric parent");
-
-  nsIFrame* nextInFlow = aChild->GetNextInFlow();
-  if (!nextInFlow) {
-    NS_ASSERTION(PR_FALSE, "null next-in-flow");
-    return;
-  }
-
-  nsTableOuterFrame* parent = static_cast<nsTableOuterFrame*>
-                                         (nextInFlow->GetParent());
-  if (!parent) {
-    NS_ASSERTION(PR_FALSE, "null parent");
-    return;
-  }
-  
-  
-  nsIFrame* nextNextInFlow = nextInFlow->GetNextInFlow();
-  if (nextNextInFlow) {
-    parent->DeleteChildsNextInFlow(aPresContext, nextInFlow);
-  }
-
-  
-  nsSplittableFrame::BreakFromPrevFlow(nextInFlow);
-
-  
-  if (parent->mFrames.FirstChild() == nextInFlow) {
-    parent->mFrames.SetFrames(nextInFlow->GetNextSibling());
-  } else {
-    
-    
-    
-    
-    
-    NS_ASSERTION(aChild->GetNextSibling() == nextInFlow, "unexpected sibling");
-
-    aChild->SetNextSibling(nextInFlow->GetNextSibling());
-  }
-
-  
-  nextInFlow->Destroy();
-
-  NS_POSTCONDITION(!aChild->GetNextInFlow(), "non null next-in-flow");
-}
-
 nsIAtom*
 nsTableOuterFrame::GetType() const
 {

@@ -215,21 +215,6 @@ protected:
   NS_IMETHOD VerifyTree() const;
 #endif
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual void DeleteChildsNextInFlow(nsPresContext* aPresContext, nsIFrame* aChild);
-
   PRUint8 GetCaptionSide();
   
   PRUint8 GetCaptionVerticalAlign();
