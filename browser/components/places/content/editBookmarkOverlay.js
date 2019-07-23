@@ -196,7 +196,7 @@ var gEditItemOverlay = {
   _initFolderMenuList: function EIO__initFolderMenuList(aSelectedFolder) {
     
     var menupopup = this._folderMenuList.menupopup;
-    while (menupopup.childNodes.length > 4)
+    while (menupopup.childNodes.length > 6)
       menupopup.removeChild(menupopup.lastChild);
 
     const bms = PlacesUtils.bookmarks;
@@ -249,7 +249,7 @@ var gEditItemOverlay = {
     this._folderMenuList.selectedItem = defaultItem;
 
     
-    this._element("foldersSeparator").hidden = (menupopup.childNodes.length <= 4);
+    this._element("foldersSeparator").hidden = (menupopup.childNodes.length <= 6);
     this._folderMenuList.disabled = this._readOnly;
   },
 
@@ -448,10 +448,14 @@ var gEditItemOverlay = {
           tagsToAdd.push(tags[i]);
       }
 
-      if (tagsToAdd.length > 0)
-        PlacesUtils.tagging.tagURI(this._uri, tagsToAdd);
-      if (tagsToRemove.length > 0)
-        PlacesUtils.tagging.untagURI(this._uri, tagsToRemove);
+      if (tagsToAdd.length > 0) {
+        var tagTxn = PlacesUtils.ptm.tagURI(this._uri, tagsToAdd);
+        PlacesUtils.ptm.doTransaction(tagTxn);
+      }
+      if (tagsToRemove.length > 0) {
+        var untagTxn = PlacesUtils.ptm.untagURI(this._uri, tagsToRemove);
+        PlacesUtils.ptm.doTransaction(untagTxn);
+      }
     }
   },
 
@@ -573,6 +577,8 @@ var gEditItemOverlay = {
       expander.setAttribute("tooltiptext",
                             expander.getAttribute("tooltiptextdown"));
       this._folderTree.collapsed = true;
+      this._element("chooseFolderSeparator").hidden =
+        this._element("chooseFolderMenuItem").hidden = false;
     }
     else {
       expander.className = "expander-up"
@@ -586,6 +592,8 @@ var gEditItemOverlay = {
         this._folderTree.place = FOLDER_TREE_PLACE_URI;
       }
 
+      this._element("chooseFolderSeparator").hidden =
+        this._element("chooseFolderMenuItem").hidden = true;
       var currentFolder = this._getFolderIdFromMenuList();
       this._folderTree.selectItems([currentFolder]);
       this._folderTree.focus();
@@ -625,9 +633,20 @@ var gEditItemOverlay = {
   },
 
   onFolderMenuListCommand: function EIO_onFolderMenuListCommand(aEvent) {
-    var container = this._getFolderIdFromMenuList();
+    if (aEvent.target.id == "editBMPanel_chooseFolderMenuItem") {
+      
+      
+      var container = PlacesUtils.bookmarks.getFolderIdForItem(this._itemId);
+      var item = this._getFolderMenuItem(container);
+      this._folderMenuList.selectedItem = item;
+      
+      
+      setTimeout(function(self) self.toggleFolderTreeVisibility(), 100, this);
+      return;
+    }
 
     
+    var container = this._getFolderIdFromMenuList();
     if (PlacesUtils.bookmarks.getFolderIdForItem(this._itemId) != container) {
       var txn = PlacesUtils.ptm.moveItem(this._itemId, container, -1);
       PlacesUtils.ptm.doTransaction(txn);
