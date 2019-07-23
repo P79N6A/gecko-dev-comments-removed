@@ -43,6 +43,21 @@
 #include "nsAutoPtr.h"
 #include "nsAutoLock.h"
 
+#ifdef DEBUG
+#include "nsStackWalk.h"
+
+static void
+thread_stack_callback(void *aPC, void *)
+{
+  char buf[1024];
+  nsCodeAddressDetails details;
+
+  (void)NS_DescribeCodeAddress(aPC, &details);
+  (void)NS_FormatCodeAddressDetails(aPC, &details, buf, sizeof(buf));
+  (void)fprintf(stdout, buf);
+}
+#endif
+
 typedef nsTArray< nsRefPtr<nsThread> > nsThreadArray;
 
 
@@ -232,6 +247,11 @@ nsThreadManager::NewThread(PRUint32 creationFlags, nsIThread **result)
   
   
   
+#ifdef DEBUG
+  (void)fprintf(stdout, "### Creating thread with address %p\n", thr);
+  (void)NS_StackWalk(thread_stack_callback, 0, nsnull);
+  (void)fprintf(stdout, "\n\n");
+#endif
 
   *result = thr;
   return NS_OK;
