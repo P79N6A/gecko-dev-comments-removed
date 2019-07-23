@@ -382,12 +382,14 @@ static const PRUint16 gPairConservative[MAX_CLASSES] = {
 #define U_EQUAL     PRUnichar('=')
 #define U_PERCENT   PRUnichar('%')
 #define U_AMPERSAND PRUnichar('&')
+#define U_SEMICOLON PRUnichar(';')
 #define U_BACKSLASH PRUnichar('\\')
 
 #define NEED_CONTEXTUAL_ANALYSIS(c) (IS_HYPHEN(c) || \
                                      (c) == U_SLASH || \
                                      (c) == U_PERCENT || \
                                      (c) == U_AMPERSAND || \
+                                     (c) == U_SEMICOLON || \
                                      (c) == U_BACKSLASH)
 
 #define IS_ASCII_DIGIT(u) (0x0030 <= (u) && (u) <= 0x0039)
@@ -431,7 +433,8 @@ IS_HYPHEN(PRUnichar u)
   return (u == U_HYPHEN ||
           u == 0x058A || 
           u == 0x2010 || 
-          u == 0x2012);  
+          u == 0x2012 || 
+          u == 0x2013);  
 }
 
 static PRInt8
@@ -608,11 +611,9 @@ public:
     
 
     
-    for (PRUint32 i = index - 1; index - CONSERVATIVE_BREAK_RANGE < i; --i) {
-      if (IS_NONBREAKABLE_SPACE(GetCharAt(i)))
+    for (PRUint32 i = index; index - CONSERVATIVE_BREAK_RANGE < i; --i) {
+      if (IS_NONBREAKABLE_SPACE(GetCharAt(i - 1)))
         return PR_TRUE;
-      if (i == 0)
-        break;
     }
     
     for (PRUint32 i = index + 1; i < index + CONSERVATIVE_BREAK_RANGE; ++i) {
@@ -624,13 +625,9 @@ public:
 
   PRBool HasCharacterAlready(PRUnichar aCh) {
     
-    if (mIndex == 0)
-      return PR_FALSE;
-    for (PRUint32 i = mIndex - 1; 0 < i; --i) {
-      if (GetCharAt(i) == aCh)
+    for (PRUint32 i = mIndex; i > 0; --i) {
+      if (GetCharAt(i - 1) == aCh)
         return PR_TRUE;
-      if (i == 0)
-        break;
     }
     return PR_FALSE;
   }
@@ -639,14 +636,10 @@ public:
     NS_ASSERTION(IS_HYPHEN(GetCharAt(mIndex)),
                  "current character isn't hyphen");
     
-    if (mIndex == 0)
-      return PR_FALSE;
-    for (PRUint32 i = mIndex - 1; 0 < i; --i) {
-      PRUnichar ch = GetCharAt(i);
+    for (PRUint32 i = mIndex; i > 0; --i) {
+      PRUnichar ch = GetCharAt(i - 1);
       if (!IS_HYPHEN(ch))
         return ch;
-      if (i == 0)
-        break;
     }
     return U_NULL;
   }
@@ -725,7 +718,7 @@ ContextualAnalysis(PRUnichar prev, PRUnichar cur, PRUnichar next,
           aState.GetCharAt(aState.Index() + 3) == U_PERCENT)
         return CLASS_OPEN;
     }
-  } else if (cur == U_AMPERSAND) {
+  } else if (cur == U_AMPERSAND || cur == U_SEMICOLON) {
     
     if (!aState.UseConservativeBreaking(1) &&
         aState.HasCharacterAlready(U_EQUAL))
