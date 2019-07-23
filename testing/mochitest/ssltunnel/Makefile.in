@@ -43,10 +43,6 @@ VPATH		= @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-# This isn't XPCOM code, but it wants to use STL, so disable the STL
-# wrappers
-STL_FLAGS =
-
 PROGRAM = ssltunnel$(BIN_SUFFIX)
 
 CPPSRCS = ssltunnel.cpp
@@ -67,6 +63,13 @@ LIBS = \
 # WINCE needs libcmt. See Bug 487694.
 ifeq ($(OS_ARCH),WINCE)
 EXTRA_LIBS += libcmt.lib
+endif
+
+ifdef MOZ_PLATFORM_MAEMO
+libs:: ssltunnel
+	if [ -e "$(DEPTH)/../mobile/config/autoconf.mk" ]; then \
+         echo 'PKG_SKIP_STRIP=1' >> $(DEPTH)/../mobile/config/autoconf.mk; \
+	fi
 endif
 
 include $(topsrcdir)/config/rules.mk
