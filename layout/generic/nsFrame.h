@@ -579,7 +579,7 @@ protected:
   
   
   
-  NS_IMETHOD GetDataForTableSelection(nsFrameSelection *aFrameSelection,
+  NS_IMETHOD GetDataForTableSelection(const nsFrameSelection *aFrameSelection,
                                       nsIPresShell *aPresShell, nsMouseEvent *aMouseEvent, 
                                       nsIContent **aParentContent, PRInt32 *aContentOffset, 
                                       PRInt32 *aTarget);

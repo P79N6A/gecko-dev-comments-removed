@@ -50,8 +50,8 @@
 
 
 #define NS_FRAME_SELECTION_IID      \
-{ 0x6c2c1a4c, 0x47ec, 0x42be, \
-  { 0xa7, 0x90, 0x00, 0x41, 0x7b, 0xf4, 0xc2, 0x41 } }
+{ 0xd78edc5a, 0x28d0, 0x48f0, \
+  { 0x8a, 0xbb, 0x15, 0x97, 0xb1, 0x59, 0x15, 0x56 } }
 
 #ifdef IBMBIDI 
 #define BIDI_LEVEL_UNDEFINED 0x80
@@ -194,6 +194,12 @@ struct nsPrevNextBidiLevels
 class nsTypedSelection;
 class nsIScrollableView;
 
+
+
+
+
+
+
 class nsFrameSelection : public nsISupports {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_FRAME_SELECTION_IID)
@@ -221,7 +227,7 @@ public:
   
 
 
-  nsIScrollableView* GetScrollableView()
+  nsIScrollableView* GetScrollableView() const
   {
     return mScrollableViewProvider
       ? mScrollableViewProvider->GetScrollableView()
@@ -241,6 +247,7 @@ public:
 
 
 
+  
   nsresult HandleClick(nsIContent *aNewFocus,
                        PRUint32 aContentOffset,
                        PRUint32 aContentEndOffset,
@@ -253,6 +260,7 @@ public:
 
 
 
+  
   void HandleDrag(nsIFrame *aFrame, nsPoint aPoint);
 
   
@@ -267,6 +275,7 @@ public:
 
 
 
+  
   nsresult HandleTableSelection(nsIContent *aParentContent,
                                 PRInt32 aContentOffset,
                                 PRInt32 aTarget,
@@ -299,31 +308,32 @@ public:
   SelectionDetails* LookUpSelection(nsIContent *aContent,
                                     PRInt32 aContentOffset,
                                     PRInt32 aContentLength,
-                                    PRBool aSlowCheck);
+                                    PRBool aSlowCheck) const;
 
   
 
 
 
+  
   void SetMouseDownState(PRBool aState);
 
   
 
 
 
-  PRBool GetMouseDownState() { return mMouseDownState; }
+  PRBool GetMouseDownState() const { return mMouseDownState; }
 
   
 
 
-  PRBool GetTableCellSelection() { return mSelectingTableCellMode != 0; }
-  void ClearTableCellSelection(){ mSelectingTableCellMode = 0; }
+  PRBool GetTableCellSelection() const { return mSelectingTableCellMode != 0; }
+  void ClearTableCellSelection() { mSelectingTableCellMode = 0; }
 
   
 
 
 
-  nsISelection* GetSelection(SelectionType aType);
+  nsISelection* GetSelection(SelectionType aType) const;
 
   
 
@@ -336,13 +346,13 @@ public:
 
   nsresult ScrollSelectionIntoView(SelectionType aType,
                                    SelectionRegion aRegion,
-                                   PRBool aIsSynchronous);
+                                   PRBool aIsSynchronous) const;
 
   
 
 
 
-  nsresult RepaintSelection(SelectionType aType);
+  nsresult RepaintSelection(SelectionType aType) const;
 
   
 
@@ -353,7 +363,7 @@ public:
   nsIFrame* GetFrameForNodeOffset(nsIContent *aNode,
                                   PRInt32     aOffset,
                                   HINT        aHint,
-                                  PRInt32    *aReturnOffset);
+                                  PRInt32    *aReturnOffset) const;
 
   
 
@@ -367,12 +377,13 @@ public:
 
 
 
+  
   void CommonPageMove(PRBool aForward,
                       PRBool aExtend,
                       nsIScrollableView *aScrollableView);
 
   void SetHint(HINT aHintRight) { mHint = aHintRight; }
-  HINT GetHint() { return mHint; }
+  HINT GetHint() const { return mHint; }
   
 #ifdef IBMBIDI
   
@@ -383,7 +394,7 @@ public:
   
 
 
-  virtual PRUint8 GetCaretBidiLevel();
+  virtual PRUint8 GetCaretBidiLevel() const;
   
 
 
@@ -395,6 +406,7 @@ public:
 
 
 
+  
   nsresult CharacterMove(PRBool aForward, PRBool aExtend);
 
   
@@ -402,12 +414,14 @@ public:
 
 
 
+  
   nsresult WordMove(PRBool aForward, PRBool aExtend);
 
   
 
 
 
+  
   nsresult WordExtendForDelete(PRBool aForward);
   
   
@@ -415,6 +429,7 @@ public:
 
 
 
+  
   nsresult LineMove(PRBool aForward, PRBool aExtend);
 
   
@@ -422,17 +437,19 @@ public:
 
 
 
+  
   nsresult IntraLineMove(PRBool aForward, PRBool aExtend); 
 
   
 
 
+  
   nsresult SelectAll();
 
   
 
   void SetDisplaySelection(PRInt16 aState) { mDisplaySelection = aState; }
-  PRInt16 GetDisplaySelection() { return mDisplaySelection; }
+  PRInt16 GetDisplaySelection() const { return mDisplaySelection; }
 
   
 
@@ -455,9 +472,10 @@ public:
 
 
 
-  nsIContent* GetLimiter() { return mLimiter; }
+  nsIContent* GetLimiter() const { return mLimiter; }
 
-  nsIContent* GetAncestorLimiter() { return mAncestorLimiter; }
+  nsIContent* GetAncestorLimiter() const { return mAncestorLimiter; }
+  
   void SetAncestorLimiter(nsIContent *aLimiter);
 
   
@@ -469,7 +487,7 @@ public:
   
 
 
-  PRBool GetMouseDoubleDown() { return mMouseDoubleDownState; }
+  PRBool GetMouseDoubleDown() const { return mMouseDoubleDownState; }
 
   
 
@@ -489,7 +507,7 @@ public:
 
   virtual nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
                                                      PRUint32 aContentOffset,
-                                                     PRBool aJumpLines);
+                                                     PRBool aJumpLines) const;
 
   
 
@@ -503,7 +521,7 @@ public:
   nsresult GetFrameFromLevel(nsIFrame *aFrameIn,
                              nsDirection aDirection,
                              PRUint8 aBidiLevel,
-                             nsIFrame **aFrameOut);
+                             nsIFrame **aFrameOut) const;
 
   
 
@@ -521,10 +539,12 @@ public:
 
   void StartBatchChanges();
   void EndBatchChanges();
+  
   nsresult DeleteFromDocument();
 
-  nsIPresShell *GetShell() {return mShell;}
+  nsIPresShell *GetShell()const  { return mShell; }
 
+  void DisconnectFromPresShell() { mShell = nsnull; }
 private:
   nsresult TakeFocus(nsIContent *aNewFocus,
                      PRUint32 aContentOffset,
@@ -541,7 +561,7 @@ private:
   nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent *aNode,
                                              PRUint32 aContentOffset,
                                              HINT aHint,
-                                             PRBool aJumpLines);
+                                             PRBool aJumpLines) const;
 #ifdef VISUALSELECTION
   NS_IMETHOD VisualSelectFrames(nsIFrame* aCurrentFrame,
                                 nsPeekOffsetStruct aPos);
@@ -591,18 +611,20 @@ private:
   nsresult     GetRootForContentSubtree(nsIContent *aContent, nsIContent **aParent);
   nsresult     ConstrainFrameAndPointToAnchorSubtree(nsIFrame *aFrame, nsPoint& aPoint, nsIFrame **aRetFrame, nsPoint& aRetPoint);
 
-  PRUint32     GetBatching(){return mBatching;}
-  PRBool       GetNotifyFrames(){return mNotifyFrames;}
+  PRUint32     GetBatching() const {return mBatching; }
+  PRBool       GetNotifyFrames() const { return mNotifyFrames; }
   void         SetDirty(PRBool aDirty=PR_TRUE){if (mBatching) mChangesDuringBatching = aDirty;}
 
+  
+  
   nsresult     NotifySelectionListeners(SelectionType aType);     
 
   nsTypedSelection *mDomSelections[nsISelectionController::NUM_SELECTIONTYPES];
 
   
   
-  nsITableLayout* GetTableLayout(nsIContent *aTableContent);
-  nsITableCellLayout* GetCellLayout(nsIContent *aCellContent);
+  nsITableLayout* GetTableLayout(nsIContent *aTableContent) const;
+  nsITableCellLayout* GetCellLayout(nsIContent *aCellContent) const;
 
   nsresult SelectBlockOfCells(nsIContent *aStartNode, nsIContent *aEndNode);
   nsresult SelectRowOrColumn(nsIContent *aCellContent, PRUint32 aTarget);
@@ -610,10 +632,13 @@ private:
 
   nsresult GetFirstSelectedCellAndRange(nsIDOMNode **aCell, nsIDOMRange **aRange);
   nsresult GetNextSelectedCellAndRange(nsIDOMNode **aCell, nsIDOMRange **aRange);
-  nsresult GetFirstCellNodeInRange(nsIDOMRange *aRange, nsIDOMNode **aCellNode);
+  nsresult GetFirstCellNodeInRange(nsIDOMRange *aRange,
+                                   nsIDOMNode **aCellNode) const;
   
-  PRBool   IsInSameTable(nsIContent *aContent1, nsIContent *aContent2, nsIContent **aTableNode);
-  nsresult GetParentTable(nsIContent *aCellNode, nsIContent **aTableNode);
+  PRBool   IsInSameTable(nsIContent *aContent1, nsIContent *aContent2,
+                         nsIContent **aTableNode) const;
+  nsresult GetParentTable(nsIContent *aCellNode,
+                          nsIContent **aTableNode) const;
   nsresult SelectCellElement(nsIDOMElement* aCellElement);
   nsresult CreateAndAddRange(nsIDOMNode *aParentNode, PRInt32 aOffset);
   nsresult ClearNormalSelection();

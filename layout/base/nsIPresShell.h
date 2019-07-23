@@ -104,8 +104,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0x4BE324F2, 0xFB22, 0x47CD, \
-  { 0xA6, 0x53, 0x19, 0xC7, 0x0E, 0xE5, 0x5E, 0x3F } }
+{ 0xff2bdd39, 0x75ed, 0x4392, \
+  { 0x92, 0xb8, 0x8b, 0x65, 0x0c, 0x4d, 0xb5, 0x74 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -252,7 +252,13 @@ public:
 
 
 
-  nsFrameSelection* FrameSelection() { return mSelection; }
+  already_AddRefed<nsFrameSelection> FrameSelection();
+
+  
+
+
+
+  const nsFrameSelection* ConstFrameSelection() { return mSelection; }
 
   
   

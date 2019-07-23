@@ -106,8 +106,8 @@ typedef class nsIFrame nsIBox;
 
 
 #define NS_IFRAME_IID \
-{ 0x39681dd7, 0x5db6, 0x4e38, \
-  { 0xb8, 0x4c, 0x5d, 0x9a, 0x16, 0x3c, 0x98, 0x7a } }
+{ 0x95f75c0a, 0xde85, 0x437a, \
+  { 0xa1, 0x95, 0x03, 0x04, 0xdf, 0x3f, 0x62, 0xce } }
 
 
 
@@ -1728,7 +1728,13 @@ public:
   
 
 
-  nsFrameSelection* GetFrameSelection();
+  already_AddRefed<nsFrameSelection> GetFrameSelection();
+
+  
+
+
+
+  const nsFrameSelection* GetConstFrameSelection();
 
   
 
