@@ -547,17 +547,30 @@ qcms_bool set_rgb_colorants(qcms_profile *profile, qcms_CIE_xyY white_point, qcm
 	return true;
 }
 
-static uint16_t *invert_lut(uint16_t *table, int length)
+
+
+
+
+
+
+
+
+
+
+
+
+
+static uint16_t *invert_lut(uint16_t *table, int length, int out_length)
 {
 	int i;
 	
 
-	uint16_t *output = malloc(sizeof(uint16_t)*length);
+	uint16_t *output = malloc(sizeof(uint16_t)*out_length);
 	if (!output)
 		return NULL;
 
-	for (i = 0; i < length; i++) {
-		double x = ((double) i * 65535.) / (double) (length - 1);
+	for (i = 0; i < out_length; i++) {
+		double x = ((double) i * 65535.) / (double) (out_length - 1);
 		uint16_fract_t input = floor(x + .5);
 		output[i] = lut_inverse_interp16(input, table, length);
 	}
@@ -1345,10 +1358,17 @@ qcms_bool compute_precache(struct curveType *trc, uint8_t *output)
 	} else if (trc->count == 1) {
 		compute_precache_pow(output, 1./u8Fixed8Number_to_float(trc->data[0]));
 	} else {
-		uint16_t *inverted = invert_lut(trc->data, trc->count);
+		uint16_t *inverted;
+		int inverted_size = trc->count;
+		
+		
+		if (inverted_size < 256)
+			inverted_size = 256;
+
+		inverted = invert_lut(trc->data, trc->count, inverted_size);
 		if (!inverted)
 			return false;
-		compute_precache_lut(output, inverted, trc->count);
+		compute_precache_lut(output, inverted, inverted_size);
 		free(inverted);
 	}
 	return true;
@@ -1423,7 +1443,6 @@ static qcms_bool sse2_available(void)
        return false;
 }
 
-
 void build_output_lut(struct curveType *trc,
 		uint16_t **output_gamma_lut, size_t *output_gamma_lut_length)
 {
@@ -1435,8 +1454,12 @@ void build_output_lut(struct curveType *trc,
 		*output_gamma_lut = build_pow_table(gamma, 4096);
 		*output_gamma_lut_length = 4096;
 	} else {
-		*output_gamma_lut = invert_lut(trc->data, trc->count);
+		
 		*output_gamma_lut_length = trc->count;
+		if (*output_gamma_lut_length < 256)
+			*output_gamma_lut_length = 256;
+
+		*output_gamma_lut = invert_lut(trc->data, trc->count, *output_gamma_lut_length);
 	}
 
 }
