@@ -1700,7 +1700,7 @@ struct BindData {
 
 static JSBool
 BindLocalVariable(JSContext *cx, JSFunction *fun, JSAtom *atom,
-                  JSLocalKind localKind)
+                  JSLocalKind localKind, bool isArg)
 {
     JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
 
@@ -1710,7 +1710,10 @@ BindLocalVariable(JSContext *cx, JSFunction *fun, JSAtom *atom,
 
 
 
-    if (atom == cx->runtime->atomState.argumentsAtom)
+
+
+
+    if (atom == cx->runtime->atomState.argumentsAtom && !isArg)
         return JS_TRUE;
 
     return js_AddLocal(cx, fun, atom, localKind);
@@ -1751,7 +1754,7 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
     }
 
     uintN index = tc->fun->u.i.nvars;
-    if (!BindLocalVariable(cx, tc->fun, atom, JSLOCAL_VAR))
+    if (!BindLocalVariable(cx, tc->fun, atom, JSLOCAL_VAR, true))
         return JS_FALSE;
     pn->pn_op = JSOP_SETLOCAL;
     pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, index);
@@ -3494,7 +3497,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
         localKind = (data->op == JSOP_DEFCONST) ? JSLOCAL_CONST : JSLOCAL_VAR;
 
         uintN index = tc->fun->u.i.nvars;
-        if (!BindLocalVariable(cx, tc->fun, atom, localKind))
+        if (!BindLocalVariable(cx, tc->fun, atom, localKind, false))
             return JS_FALSE;
         pn->pn_op = JSOP_GETLOCAL;
         pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, index);
