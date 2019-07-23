@@ -339,6 +339,8 @@ nsPlacesDBFlush.prototype = {
       case kQuerySyncHistoryVisitsId:
         
         
+        
+        
         this._cachedStatements[aQueryType] = this._db.createStatement(
           "DELETE FROM moz_historyvisits_temp " +
           "WHERE visit_type <> :transition_type"

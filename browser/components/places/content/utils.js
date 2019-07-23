@@ -792,6 +792,17 @@ var PlacesUIUtils = {
 
 
 
+  markPageAsFollowedLink: function PU_markPageAsUserClicked(aURL) {
+    PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory)
+               .markPageAsFollowedLink(this.createFixedURI(aURL));
+  },
+
+  
+
+
+
+
+
 
 
   checkURLSecurity: function PU_checkURLSecurity(aURINode) {

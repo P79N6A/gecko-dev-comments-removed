@@ -118,6 +118,7 @@ using namespace mozilla::places;
 #define PREF_FRECENCY_FOURTH_BUCKET_WEIGHT      "frecency.fourthBucketWeight"
 #define PREF_FRECENCY_DEFAULT_BUCKET_WEIGHT     "frecency.defaultBucketWeight"
 #define PREF_FRECENCY_EMBED_VISIT_BONUS         "frecency.embedVisitBonus"
+#define PREF_FRECENCY_FRAMED_LINK_VISIT_BONUS   "frecency.framedLinkVisitBonus"
 #define PREF_FRECENCY_LINK_VISIT_BONUS          "frecency.linkVisitBonus"
 #define PREF_FRECENCY_TYPED_VISIT_BONUS         "frecency.typedVisitBonus"
 #define PREF_FRECENCY_BOOKMARK_VISIT_BONUS      "frecency.bookmarkVisitBonus"
@@ -470,6 +471,7 @@ nsNavHistory::Init()
 
   
   NS_ENSURE_TRUE(mRecentTyped.Init(128), NS_ERROR_OUT_OF_MEMORY);
+  NS_ENSURE_TRUE(mRecentLink.Init(128), NS_ERROR_OUT_OF_MEMORY);
   NS_ENSURE_TRUE(mRecentBookmark.Init(128), NS_ERROR_OUT_OF_MEMORY);
   NS_ENSURE_TRUE(mRecentRedirects.Init(128), NS_ERROR_OUT_OF_MEMORY);
 
@@ -1219,8 +1221,6 @@ nsNavHistory::InitStatements()
       "WHERE url = ?2"),
     getter_AddRefs(mDBSetPlaceTitle));
   NS_ENSURE_SUCCESS(rv, rv);
-
-
   
   
   
@@ -1614,8 +1614,9 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
           "(SELECT count(*) FROM moz_historyvisits "
            "WHERE place_id = moz_places.id "
             "AND visit_type NOT IN ") +
-              nsPrintfCString("(0,%d,%d) ",
+              nsPrintfCString("(0,%d,%d,%d) ",
                               nsINavHistoryService::TRANSITION_EMBED,
+                              nsINavHistoryService::TRANSITION_FRAMED_LINK,
                               nsINavHistoryService::TRANSITION_DOWNLOAD) +
           NS_LITERAL_CSTRING(")"));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2059,6 +2060,8 @@ nsNavHistory::LoadPrefs()
     &mFourthBucketCutoffInDays);
   mPrefBranch->GetIntPref(PREF_FRECENCY_EMBED_VISIT_BONUS,
     &mEmbedVisitBonus);
+  mPrefBranch->GetIntPref(PREF_FRECENCY_FRAMED_LINK_VISIT_BONUS,
+    &mFramedLinkVisitBonus);
   mPrefBranch->GetIntPref(PREF_FRECENCY_LINK_VISIT_BONUS,
     &mLinkVisitBonus);
   mPrefBranch->GetIntPref(PREF_FRECENCY_TYPED_VISIT_BONUS,
@@ -2572,7 +2575,6 @@ nsNavHistory::CalculateFullVisitCount(PRInt64 aPlaceId, PRInt32 *aVisitCount)
 
 
 
-
 NS_IMETHODIMP
 nsNavHistory::MarkPageAsFollowedBookmark(nsIURI* aURI)
 {
@@ -2729,8 +2731,10 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
     
     
     hidden = oldHiddenState;
-    if (hidden == 1 && (!aIsRedirect || aTransitionType == TRANSITION_TYPED) &&
-        aTransitionType != TRANSITION_EMBED)
+    if (hidden == 1 &&
+        (!aIsRedirect || aTransitionType == TRANSITION_TYPED) &&
+        aTransitionType != TRANSITION_EMBED &&
+        aTransitionType != TRANSITION_FRAMED_LINK)
       hidden = 0; 
 
     typed = (PRInt32)(oldTypedState == 1 || (aTransitionType == TRANSITION_TYPED));
@@ -2762,7 +2766,9 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
 
     
     
-    hidden = (PRInt32)(aTransitionType == TRANSITION_EMBED || aIsRedirect);
+    hidden = (PRInt32)(aTransitionType == TRANSITION_EMBED ||
+                       aTransitionType == TRANSITION_FRAMED_LINK ||
+                       aIsRedirect);
 
     typed = (PRInt32)(aTransitionType == TRANSITION_TYPED);
 
@@ -2803,6 +2809,7 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   PRUint32 added = 0;
   if (!hidden && aTransitionType != TRANSITION_EMBED &&
+                 aTransitionType != TRANSITION_FRAMED_LINK &&
                  aTransitionType != TRANSITION_DOWNLOAD) {
     NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                      nsINavHistoryObserver,
@@ -3556,13 +3563,13 @@ PlacesSQLQueryBuilder::SelectAsDay()
            "SELECT id FROM moz_historyvisits_temp "
           "WHERE visit_date >= %s "
             "AND visit_date < %s "
-            "AND visit_type NOT IN (0,%d) "
+            "AND visit_type NOT IN (0,%d,%d) "
             "{QUERY_OPTIONS_VISITS} "
           "UNION ALL "
           "SELECT id FROM moz_historyvisits "
           "WHERE visit_date >= %s "
             "AND visit_date < %s "
-             "AND visit_type NOT IN (0,%d) "
+             "AND visit_type NOT IN (0,%d,%d) "
              "{QUERY_OPTIONS_VISITS} "
            "LIMIT 1 "
         ") ",
@@ -3572,9 +3579,11 @@ PlacesSQLQueryBuilder::SelectAsDay()
       sqlFragmentSearchBeginTime.get(),
       sqlFragmentSearchEndTime.get(),
        nsINavHistoryService::TRANSITION_EMBED,
+       nsINavHistoryService::TRANSITION_FRAMED_LINK,
       sqlFragmentSearchBeginTime.get(),
       sqlFragmentSearchEndTime.get(),
-      nsINavHistoryService::TRANSITION_EMBED);
+      nsINavHistoryService::TRANSITION_EMBED,
+      nsINavHistoryService::TRANSITION_FRAMED_LINK);
 
     mQueryString.Append(dayRange);
 
@@ -3789,7 +3798,9 @@ PlacesSQLQueryBuilder::Where()
   if (!mIncludeHidden) {
     additionalVisitsConditions += NS_LITERAL_CSTRING(
       "AND visit_type NOT IN ") +
-      nsPrintfCString("(0,%d) ", nsINavHistoryService::TRANSITION_EMBED);
+      nsPrintfCString("(0,%d,%d) ",
+                      nsINavHistoryService::TRANSITION_EMBED,
+                      nsINavHistoryService::TRANSITION_FRAMED_LINK);
     additionalPlacesConditions += NS_LITERAL_CSTRING(
       "AND hidden <> 1 ");
   }
@@ -3993,13 +4004,15 @@ nsNavHistory::ConstructQueryString(
         "WHERE h.hidden <> 1 "
           "AND EXISTS (SELECT id FROM moz_historyvisits_temp WHERE place_id = h.id "
                        "AND visit_type NOT IN ") +
-                       nsPrintfCString("(0,%d) ",
-                                       nsINavHistoryService::TRANSITION_EMBED) +
+                       nsPrintfCString("(0,%d,%d) ",
+                                       nsINavHistoryService::TRANSITION_EMBED,
+                                       nsINavHistoryService::TRANSITION_FRAMED_LINK) +
                        NS_LITERAL_CSTRING("UNION ALL "
                        "SELECT id FROM moz_historyvisits WHERE place_id = h.id "
                        "AND visit_type NOT IN ") +
-                       nsPrintfCString("(0,%d) ",
-                                       nsINavHistoryService::TRANSITION_EMBED) +
+                       nsPrintfCString("(0,%d,%d) ",
+                                       nsINavHistoryService::TRANSITION_EMBED,
+                                       nsINavHistoryService::TRANSITION_FRAMED_LINK) +
                        NS_LITERAL_CSTRING("LIMIT 1) "
           "{QUERY_OPTIONS} "
       "UNION ALL "
@@ -4012,13 +4025,15 @@ nsNavHistory::ConstructQueryString(
           "AND h.id NOT IN (SELECT id FROM moz_places_temp) "
           "AND EXISTS (SELECT id FROM moz_historyvisits_temp WHERE place_id = h.id "
                        "AND visit_type NOT IN ") +
-                       nsPrintfCString("(0,%d) ",
-                                       nsINavHistoryService::TRANSITION_EMBED) +
+                       nsPrintfCString("(0,%d,%d) ",
+                                       nsINavHistoryService::TRANSITION_EMBED,
+                                       nsINavHistoryService::TRANSITION_FRAMED_LINK) +
                        NS_LITERAL_CSTRING("UNION ALL "
                        "SELECT id FROM moz_historyvisits WHERE place_id = h.id "
                        "AND visit_type NOT IN ") +
-                       nsPrintfCString("(0,%d) ",
-                                       nsINavHistoryService::TRANSITION_EMBED) +
+                       nsPrintfCString("(0,%d,%d) ",
+                                       nsINavHistoryService::TRANSITION_EMBED,
+                                       nsINavHistoryService::TRANSITION_FRAMED_LINK) +
                        NS_LITERAL_CSTRING("LIMIT 1) "
           "{QUERY_OPTIONS} "
         );
@@ -4955,8 +4970,6 @@ nsNavHistory::HidePage(nsIURI *aURI)
 
 
 
-
-
 NS_IMETHODIMP
 nsNavHistory::MarkPageAsTyped(nsIURI *aURI)
 {
@@ -4980,6 +4993,41 @@ nsNavHistory::MarkPageAsTyped(nsIURI *aURI)
     ExpireNonrecentEvents(&mRecentTyped);
 
   mRecentTyped.Put(uriString, GetNow());
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsNavHistory::MarkPageAsFollowedLink(nsIURI *aURI)
+{
+  NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+  NS_ENSURE_ARG(aURI);
+
+  
+  if (IsHistoryDisabled())
+    return NS_OK;
+
+  nsCAutoString uriString;
+  nsresult rv = aURI->GetSpec(uriString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRInt64 unusedEventTime;
+  if (mRecentLink.Get(uriString, &unusedEventTime))
+    mRecentLink.Remove(uriString);
+
+  if (mRecentLink.Count() > RECENT_EVENT_QUEUE_MAX_LENGTH)
+    ExpireNonrecentEvents(&mRecentLink);
+
+  mRecentLink.Put(uriString, GetNow());
   return NS_OK;
 }
 
@@ -5171,6 +5219,13 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  
+  
+  PRBool isEmbedVisit = !aToplevel &&
+                        !CheckIsRecentEvent(&mRecentLink, spec);
+
+  
   PRUint32 transitionType = 0;
   PRTime redirectTime = 0;
   nsCAutoString redirectSourceUrl;
@@ -5206,12 +5261,10 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
 
     
     
-    
-    
-    
-    if (!aToplevel) {
+    if (isEmbedVisit)
       transitionType = nsINavHistoryService::TRANSITION_EMBED;
-    }
+    else if (!aToplevel)
+      transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
 
     
     
@@ -5235,15 +5288,12 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
     
     
     
-    
-    
-    
-    
-    
-    if (aToplevel)
-      transitionType = nsINavHistoryService::TRANSITION_LINK;
-    else
+    if (isEmbedVisit)
       transitionType = nsINavHistoryService::TRANSITION_EMBED;
+    else if (!aToplevel)
+      transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
+    else
+      transitionType = nsINavHistoryService::TRANSITION_LINK;
 
     
     
@@ -5268,15 +5318,19 @@ nsNavHistory::AddVisitChain(nsIURI* aURI,
       transitionType = nsINavHistoryService::TRANSITION_TYPED;
     else if (CheckIsRecentEvent(&mRecentBookmark, spec))
       transitionType = nsINavHistoryService::TRANSITION_BOOKMARK;
-    else if (aToplevel)
-      transitionType = nsINavHistoryService::TRANSITION_LINK;
-    else
+    else if (isEmbedVisit)
       transitionType = nsINavHistoryService::TRANSITION_EMBED;
+    else if (!aToplevel)
+      transitionType = nsINavHistoryService::TRANSITION_FRAMED_LINK;
+    else
+      transitionType = nsINavHistoryService::TRANSITION_LINK;
 
     
     
     *aSessionID = GetNewSessionID();
   }
+
+  NS_WARN_IF_FALSE(transitionType > 0, "Visit must have a transition type");
 
   
   return AddVisit(aURI, aTime, fromVisitURI, transitionType,
@@ -5434,7 +5488,7 @@ NS_IMETHODIMP
 nsNavHistory::AddDocumentRedirect(nsIChannel *aOldChannel,
                                   nsIChannel *aNewChannel,
                                   PRInt32 aFlags,
-                                  PRBool aTopLevel)
+                                  PRBool aToplevel)
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG(aOldChannel);
@@ -7553,8 +7607,6 @@ nsNavHistory::UpdateFrecencyInternal(PRInt64 aPlaceId, PRInt32 aTyped,
   PRInt32 aHidden, PRInt32 aOldFrecency, PRBool aIsBookmarked)
 {
   PRInt32 visitCountForFrecency = 0;
-
-  
   
   
   nsresult rv = CalculateFullVisitCount(aPlaceId, &visitCountForFrecency);
@@ -7627,6 +7679,9 @@ nsNavHistory::CalculateFrecencyInternal(PRInt64 aPlaceId,
       switch (visitType) {
         case nsINavHistoryService::TRANSITION_EMBED:
           bonus = mEmbedVisitBonus;
+          break;
+        case nsINavHistoryService::TRANSITION_FRAMED_LINK:
+          bonus = mFramedLinkVisitBonus;
           break;
         case nsINavHistoryService::TRANSITION_LINK:
           bonus = mLinkVisitBonus;

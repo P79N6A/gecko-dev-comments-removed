@@ -48,8 +48,8 @@
 
 
 
-#define EXCLUDED_VISIT_TYPES "0, 4, 7"
 
+#define EXCLUDED_VISIT_TYPES "0, 4, 7, 8"
 
 
 
