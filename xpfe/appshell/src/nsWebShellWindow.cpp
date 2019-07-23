@@ -190,6 +190,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
 
   mWindow->SetClientData(this);
   mWindow->Create((nsIWidget *)parentWidget,          
+                  nsnull,                             
                   r,                                  
                   nsWebShellWindow::HandleEvent,      
                   nsnull,                             

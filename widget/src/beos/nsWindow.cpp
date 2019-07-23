@@ -442,19 +442,14 @@ NS_IMETHODIMP nsWindow::PreCreateWidget(nsWidgetInitData *aInitData)
 	return NS_OK;
 }
 
-
-
-
-
-
-nsresult nsWindow::StandardWindowCreate(nsIWidget *aParent,
-                                        const nsRect &aRect,
-                                        EVENT_CALLBACK aHandleEventFunction,
-                                        nsIDeviceContext *aContext,
-                                        nsIAppShell *aAppShell,
-                                        nsIToolkit *aToolkit,
-                                        nsWidgetInitData *aInitData,
-                                        nsNativeWidget aNativeParent)
+nsresult nsWindow::Create(nsIWidget *aParent,
+                          nsNativeWidget aNativeParent,
+                          const nsRect &aRect,
+                          EVENT_CALLBACK aHandleEventFunction,
+                          nsIDeviceContext *aContext,
+                          nsIAppShell *aAppShell,
+                          nsIToolkit *aToolkit,
+                          nsWidgetInitData *aInitData)
 {
 
 	
@@ -554,80 +549,6 @@ nsresult nsWindow::StandardWindowCreate(nsIWidget *aParent,
 	w->Run();
 	DispatchStandardEvent(NS_CREATE);
 	return NS_OK;
-}
-
-
-
-
-
-
-NS_METHOD nsWindow::Create(nsIWidget *aParent,
-                           const nsRect &aRect,
-                           EVENT_CALLBACK aHandleEventFunction,
-                           nsIDeviceContext *aContext,
-                           nsIAppShell *aAppShell,
-                           nsIToolkit *aToolkit,
-                           nsWidgetInitData *aInitData)
-{
-	
-	
-
-	nsToolkit* toolkit = (nsToolkit *)mToolkit;
-	if (toolkit && !toolkit->IsGuiThread())
-	{
-		nsCOMPtr<nsIWidget> widgetProxy;
-		nsresult rv = NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
-										NS_GET_IID(nsIWidget),
-										this, 
-										NS_PROXY_SYNC | NS_PROXY_ALWAYS, 
-										getter_AddRefs(widgetProxy));
-	
-		if (NS_FAILED(rv))
-			return rv;
-		return widgetProxy->Create(aParent, aRect, aHandleEventFunction, aContext,
-                           			aAppShell, aToolkit, aInitData);
-	}
-	return(StandardWindowCreate(aParent, aRect, aHandleEventFunction,
-	                            aContext, aAppShell, aToolkit, aInitData,
-	                            nsnull));
-}
-
-
-
-
-
-
-
-
-NS_METHOD nsWindow::Create(nsNativeWidget aParent,
-                           const nsRect &aRect,
-                           EVENT_CALLBACK aHandleEventFunction,
-                           nsIDeviceContext *aContext,
-                           nsIAppShell *aAppShell,
-                           nsIToolkit *aToolkit,
-                           nsWidgetInitData *aInitData)
-{
-	
-	
-
-	nsToolkit* toolkit = (nsToolkit *)mToolkit;
-	if (toolkit && !toolkit->IsGuiThread())
-	{
-		nsCOMPtr<nsIWidget> widgetProxy;
-		nsresult rv = NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
-										NS_GET_IID(nsIWidget),
-										this, 
-										NS_PROXY_SYNC | NS_PROXY_ALWAYS, 
-										getter_AddRefs(widgetProxy));
-	
-		if (NS_FAILED(rv))
-			return rv;
-		return widgetProxy->Create(aParent, aRect, aHandleEventFunction, aContext,
-                           			aAppShell, aToolkit, aInitData);
-	}
-	return(StandardWindowCreate(nsnull, aRect, aHandleEventFunction,
-	                            aContext, aAppShell, aToolkit, aInitData,
-	                            aParent));
 }
 
 gfxASurface*

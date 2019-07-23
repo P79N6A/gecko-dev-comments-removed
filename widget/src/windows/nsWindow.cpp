@@ -461,39 +461,6 @@ NS_IMPL_ISUPPORTS_INHERITED0(nsWindow, nsBaseWidget)
 
 
 
-NS_METHOD nsWindow::Create(nsIWidget *aParent,
-                           const nsIntRect &aRect,
-                           EVENT_CALLBACK aHandleEventFunction,
-                           nsIDeviceContext *aContext,
-                           nsIAppShell *aAppShell,
-                           nsIToolkit *aToolkit,
-                           nsWidgetInitData *aInitData)
-{
-  if (aInitData)
-    mUnicodeWidget = aInitData->mUnicode;
-  return(StandardWindowCreate(aParent, aRect, aHandleEventFunction,
-                              aContext, aAppShell, aToolkit, aInitData,
-                              nsnull));
-}
-
-
-
-NS_METHOD nsWindow::Create(nsNativeWidget aParent,
-                           const nsIntRect &aRect,
-                           EVENT_CALLBACK aHandleEventFunction,
-                           nsIDeviceContext *aContext,
-                           nsIAppShell *aAppShell,
-                           nsIToolkit *aToolkit,
-                           nsWidgetInitData *aInitData)
-{
-  if (aInitData)
-    mUnicodeWidget = aInitData->mUnicode;
-  return(StandardWindowCreate(nsnull, aRect, aHandleEventFunction,
-                              aContext, aAppShell, aToolkit, aInitData,
-                              aParent));
-}
-
-
 
 
 PRInt32 nsWindow::GetHeight(PRInt32 aProposedHeight)
@@ -512,15 +479,18 @@ PRInt32 nsWindow::GetHeight(PRInt32 aProposedHeight)
 
 
 nsresult
-nsWindow::StandardWindowCreate(nsIWidget *aParent,
-                               const nsIntRect &aRect,
-                               EVENT_CALLBACK aHandleEventFunction,
-                               nsIDeviceContext *aContext,
-                               nsIAppShell *aAppShell,
-                               nsIToolkit *aToolkit,
-                               nsWidgetInitData *aInitData,
-                               nsNativeWidget aNativeParent)
+nsWindow::Create(nsIWidget *aParent,
+                 nsNativeWidget aNativeParent,
+                 const nsIntRect &aRect,
+                 EVENT_CALLBACK aHandleEventFunction,
+                 nsIDeviceContext *aContext,
+                 nsIAppShell *aAppShell,
+                 nsIToolkit *aToolkit,
+                 nsWidgetInitData *aInitData)
 {
+  if (aInitData)
+    mUnicodeWidget = aInitData->mUnicode;
+
   nsIWidget *baseParent = aInitData &&
                          (aInitData->mWindowType == eWindowType_dialog ||
                           aInitData->mWindowType == eWindowType_toplevel ||

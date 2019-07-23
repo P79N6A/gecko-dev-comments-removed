@@ -215,42 +215,14 @@ class nsIWidget : public nsISupports {
 
 
 
-
     NS_IMETHOD Create(nsIWidget        *aParent,
-                        const nsIntRect  &aRect,
-                        EVENT_CALLBACK   aHandleEventFunction,
-                        nsIDeviceContext *aContext,
-                        nsIAppShell      *aAppShell = nsnull,
-                        nsIToolkit       *aToolkit = nsnull,
-                        nsWidgetInitData *aInitData = nsnull) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD Create(nsNativeWidget aParent,
-                        const nsIntRect  &aRect,
-                        EVENT_CALLBACK   aHandleEventFunction,
-                        nsIDeviceContext *aContext,
-                        nsIAppShell      *aAppShell = nsnull,
-                        nsIToolkit       *aToolkit = nsnull,
-                        nsWidgetInitData *aInitData = nsnull) = 0;
-
+                      nsNativeWidget   aNativeParent,
+                      const nsIntRect  &aRect,
+                      EVENT_CALLBACK   aHandleEventFunction,
+                      nsIDeviceContext *aContext,
+                      nsIAppShell      *aAppShell = nsnull,
+                      nsIToolkit       *aToolkit = nsnull,
+                      nsWidgetInitData *aInitData = nsnull) = 0;
 
     
 

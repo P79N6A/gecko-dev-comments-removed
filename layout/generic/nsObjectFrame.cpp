@@ -720,7 +720,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     
     
     EVENT_CALLBACK eventHandler = view->AttachWidgetEventHandler(mWidget);
-    mWidget->Create(parentWidget, nsIntRect(0,0,0,0),
+    mWidget->Create(parentWidget, nsnull, nsIntRect(0,0,0,0),
                     eventHandler, dx, nsnull, nsnull, &initData);
 
     mWidget->EnableDragDrop(PR_TRUE);
