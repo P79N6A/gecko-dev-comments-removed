@@ -1257,14 +1257,17 @@ nsComputedDOMStyle::GetFontWeight(nsIDOMCSSValue** aValue)
 
   const nsStyleFont* font = GetStyleFont();
 
-  
-  const nsCSSKeyword enum_weight =
-    nsCSSProps::ValueToKeywordEnum(font->mFont.weight,
-                                   nsCSSProps::kFontWeightKTable);
-  if (enum_weight != eCSSKeyword_UNKNOWN) {
-    val->SetIdent(enum_weight);
-  } else {
+  PRUint16 weight = font->mFont.weight;
+  if (weight % 100 == 0) {
     val->SetNumber(font->mFont.weight);
+  } else if (weight % 100 > 50) {
+    
+    
+    val->SetIdent(eCSSKeyword_lighter);
+  } else {
+    
+    
+    val->SetIdent(eCSSKeyword_bolder);
   }
 
   return CallQueryInterface(val, aValue);
