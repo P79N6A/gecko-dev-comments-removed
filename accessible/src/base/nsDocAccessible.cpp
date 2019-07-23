@@ -1797,12 +1797,11 @@ nsDocAccessible::FlushPendingEvents()
     }
   }
   mEventsToFire.Clear(); 
+  mInFlushPendingEvents = PR_FALSE;
   NS_RELEASE_THIS(); 
 
   
   nsAccEvent::ResetLastInputState();
-
-  mInFlushPendingEvents = PR_FALSE;
 }
 
 void nsDocAccessible::FlushEventsCallback(nsITimer *aTimer, void *aClosure)
