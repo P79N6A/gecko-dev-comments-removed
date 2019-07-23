@@ -10,6 +10,8 @@
 #define _GROWL_GROWLDEFINESINTERNAL_H
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef __OBJC__
 #define XSTR(x) (@x)
@@ -154,11 +156,17 @@ struct GrowlNetworkNotification {
 
 
 	struct GrowlNetworkNotificationFlags {
+#ifdef __BIG_ENDIAN__
 		unsigned reserved: 12;
 		signed   priority: 3;
 		unsigned sticky:   1;
+#else
+		unsigned sticky:   1;
+		signed   priority: 3;
+		unsigned reserved: 12;
+#endif
 	} ATTRIBUTE_PACKED flags; 
-	
+
 	
 
 
@@ -212,15 +220,39 @@ struct GrowlNetworkNotification {
 
 #define GROWL_APP_LOCATION				XSTR("AppLocation")
 
-#endif 
 
 
 
 
 
+#define GROWL_REMOTE_ADDRESS			XSTR("RemoteAddress")
 
 
-#ifdef __OBJC__
+
+
+
+#define GROWL_PREFPANE_BUNDLE_IDENTIFIER		XSTR("com.growl.prefpanel")
+
+
+
+
+#define GROWL_HELPERAPP_BUNDLE_IDENTIFIER	XSTR("com.Growl.GrowlHelperApp")
+
+
+
+
+
+#define GROWL_PREFPANE_NAME						XSTR("Growl.prefPane")
+#define PREFERENCE_PANES_SUBFOLDER_OF_LIBRARY	XSTR("PreferencePanes")
+#define PREFERENCE_PANE_EXTENSION				XSTR("prefPane")
+
+
+#define GROWL_PLUGIN_EXTENSION                  XSTR("growlPlugin")
+#define GROWL_PATHWAY_EXTENSION                 XSTR("growlPathway")
+#define GROWL_VIEW_EXTENSION					XSTR("growlView")
+#define GROWL_STYLE_EXTENSION					XSTR("growlStyle")
+
+
 
 
 
@@ -236,14 +268,16 @@ struct GrowlNetworkNotification {
 
 #define UPDATE_GROWL_PREFS() do { \
 	SYNCHRONIZE_GROWL_PREFS(); \
-	NSNumber *pid = [[NSNumber alloc] initWithInt:[[NSProcessInfo processInfo] processIdentifier]];\
-	NSDictionary *userInfo = [[NSDictionary alloc] initWithObjectsAndKeys:\
-		pid,     @"pid",\
-		nil];\
-	[pid release];\
-	[[NSDistributedNotificationCenter defaultCenter]\
-		postNotificationName:@"GrowlPreferencesChanged" object:@"GrowlUserDefaults" userInfo:userInfo];\
-	[userInfo release];\
+	CFStringRef _key = CFSTR("pid"); \
+	int pid = getpid(); \
+	CFNumberRef _value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &pid); \
+	CFDictionaryRef userInfo = CFDictionaryCreate(kCFAllocatorDefault, (const void **)&_key, (const void **)&_value, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks); \
+	CFRelease(_value); \
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDistributedCenter(), \
+										 CFSTR("GrowlPreferencesChanged"), \
+										 CFSTR("GrowlUserDefaults"), \
+										 userInfo, false); \
+	CFRelease(userInfo); \
 	} while(0)
 
 
@@ -317,13 +351,7 @@ struct GrowlNetworkNotification {
 
 
 #define WRITE_GROWL_PREF_BOOL(key, value, domain) do {\
-	CFBooleanRef boolValue; \
-	if (value) {\
-		boolValue = kCFBooleanTrue; \
-	} else {\
-		boolValue = kCFBooleanFalse; \
-	}\
-	WRITE_GROWL_PREF_VALUE(key, boolValue, domain); } while(0)
+	WRITE_GROWL_PREF_VALUE(key, value ? kCFBooleanTrue : kCFBooleanFalse, domain); } while(0)
 
 
 
@@ -382,5 +410,21 @@ struct GrowlNetworkNotification {
 	CFNumberRef floatValue = CFNumberCreate(NULL, kCFNumberFloatType, &value); \
 	WRITE_GROWL_PREF_VALUE(key, floatValue, domain); \
 	CFRelease(floatValue); } while(0)
+
+
+
+
+
+
+
+#define GROWL_CLOSE_ALL_NOTIFICATIONS XSTR("GrowlCloseAllNotifications")
+
+#pragma mark Small utilities
+
+
+
+
+
+#define FLOAT_EQ(x,y) (((y - FLT_EPSILON) < x) && (x < (y + FLT_EPSILON)))
 
 #endif 

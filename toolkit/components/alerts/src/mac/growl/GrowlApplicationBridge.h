@@ -17,22 +17,11 @@
 #define __GrowlApplicationBridge_h__
 
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #import "GrowlDefines.h"
 
 
 @protocol GrowlApplicationBridgeDelegate;
-
-
-
-
-
-#define GROWL_PREFPANE_BUNDLE_IDENTIFIER	@"com.growl.prefpanel"
-
-
-
-
-
-#define GROWL_PREFPANE_NAME					@"Growl.prefPane"
 
 
 #define GROWL_USER_CHOSE_NOT_TO_INSTALL_NOTIFICATION @"User chose not to install"
@@ -141,6 +130,40 @@
 				priority:(signed int)priority
 				isSticky:(BOOL)isSticky
 			clickContext:(id)clickContext;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
++ (void) notifyWithTitle:(NSString *)title
+			 description:(NSString *)description
+		notificationName:(NSString *)notifName
+				iconData:(NSData *)iconData
+				priority:(signed int)priority
+				isSticky:(BOOL)isSticky
+			clickContext:(id)clickContext
+			  identifier:(NSString *)identifier;
 
 
 
@@ -371,6 +394,21 @@
 
 + (NSDictionary *) registrationDictionaryByFillingInDictionary:(NSDictionary *)regDict restrictToKeys:(NSSet *)keys;
 
+
+
+
+
+
+
+
+
+
+
+
+
++ (NSDictionary *) notificationDictionaryByFillingInDictionary:(NSDictionary *)regDict;
+
++ (NSDictionary *) frameworkInfoDictionary;
 @end
 
 
@@ -426,6 +464,9 @@
 
 
 
+
+
+
 - (NSDictionary *) registrationDictionaryForGrowl;
 
 
@@ -455,8 +496,20 @@
 
 
 
-- (NSData *) applicationIconDataForGrowl;
 
+
+- (NSImage *) applicationIconForGrowl;
+
+
+
+
+
+
+
+
+
+
+- (NSData *) applicationIconDataForGrowl;
 
 
 

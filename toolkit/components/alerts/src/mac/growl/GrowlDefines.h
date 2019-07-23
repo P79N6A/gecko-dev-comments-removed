@@ -7,10 +7,10 @@
 
 #ifdef __OBJC__
 #define XSTR(x) (@x)
-#define STRING NSString *
+#define STRING_TYPE NSString *
 #else
 #define XSTR CFSTR
-#define STRING CFStringRef
+#define STRING_TYPE CFStringRef
 #endif
 
 
@@ -55,6 +55,14 @@
 
 
 
+#define GROWL_APP_ID					XSTR("ApplicationId")
+
+
+
+
+
+
+
 
 
 
@@ -79,9 +87,30 @@
 
 
 
+
+
+
+
+#define GROWL_NOTIFICATIONS_HUMAN_READABLE_NAMES		XSTR("HumanReadableNames")
+
+
+
+
+
+
+
+
+#define GROWL_NOTIFICATIONS_DESCRIPTIONS		XSTR("NotificationDescriptions")
+
+
+
+
+
+
 #define GROWL_TICKET_VERSION			XSTR("TicketVersion")
 
 #pragma mark UserInfo Keys for Notifications
+
 
 
 
@@ -185,6 +214,15 @@
 
 
 #define GROWL_APP_PID					XSTR("ApplicationPID")
+
+
+
+
+
+
+
+
+#define GROWL_NOTIFICATION_PROGRESS		XSTR("NotificationProgress")
 
 
 #pragma mark Notifications
@@ -303,5 +341,8 @@
 
 
 #define GROWL_REG_DICT_EXTENSION		XSTR("growlRegDict")
+
+
+#define GROWL_POSITION_PREFERENCE_KEY			@"GrowlSelectedPosition"
 
 #endif 
