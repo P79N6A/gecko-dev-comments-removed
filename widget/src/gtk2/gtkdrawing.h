@@ -440,6 +440,12 @@ gint moz_gtk_get_tab_thickness(void);
 
 gboolean moz_gtk_images_in_menus(void);
 
+
+
+
+
+gboolean moz_gtk_images_in_buttons(void);
+
 #ifdef __cplusplus
 }
 #endif 

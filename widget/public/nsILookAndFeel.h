@@ -317,7 +317,11 @@ public:
     
 
 
-    eMetric_ImagesInMenus
+    eMetric_ImagesInMenus,
+    
+
+
+    eMetric_ImagesInButtons
   } nsMetricID;
 
   enum {
