@@ -1300,11 +1300,46 @@ var PlacesUIUtils = {
     return this.leftPaneFolderId = leftPaneRoot;
   },
 
+  
+
+
   get allBookmarksFolderId() {
     
     this.leftPaneFolderId;
     delete this.allBookmarksFolderId;
     return this.allBookmarksFolderId = this.leftPaneQueries["AllBookmarks"];
+  },
+
+  
+
+
+
+
+
+
+  getLeftPaneQueryNameFromId: function PU_getLeftPaneQueryNameFromId(aItemId) {
+    var queryName = "";
+    
+    
+    if (this.__lookupGetter__("leftPaneFolderId")) {
+      try {
+        queryName = PlacesUtils.annotations.
+                                getItemAnnotation(itemId, ORGANIZER_QUERY_ANNO);
+      }
+      catch (ex) {
+        
+        queryName = "";
+      }
+    }
+    else {
+      
+      
+      for (let [name, id] in Iterator(this.leftPaneQueries)) {
+        if (aItemId == id)
+          queryName = name;
+      }
+    }
+    return queryName; 
   },
 
   
