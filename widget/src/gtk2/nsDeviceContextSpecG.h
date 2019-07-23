@@ -49,9 +49,6 @@
 #ifdef USE_POSTSCRIPT
 #include "nsIDeviceContextSpecPS.h"
 #endif 
-#ifdef USE_XPRINT
-#include "nsIDeviceContextSpecXPrint.h"
-#endif 
 #endif
 
 #include "nsCRT.h" 
@@ -64,7 +61,6 @@
 typedef enum
 {
   pmInvalid = 0,
-  pmXprint,
   pmPostScript
 } PrintMethod;
 
@@ -72,9 +68,6 @@ class nsDeviceContextSpecGTK : public nsIDeviceContextSpec
 #ifndef MOZ_CAIRO_GFX
 #ifdef USE_POSTSCRIPT
                               , public nsIDeviceContextSpecPS
-#endif 
-#ifdef USE_XPRINT
-                              , public nsIDeviceContextSpecXp
 #endif 
 #endif
 {

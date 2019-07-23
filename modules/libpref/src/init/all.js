@@ -2251,19 +2251,6 @@ pref("font.min-size.fixed.zh-HK", 10);
 
 
 
-pref("print.xprint.font.acceptfontpattern", ".*");
-
-
-
-
-
-pref("print.xprint.font.rejectfontpattern", 
-     "fname=-dt-.*;scalable=.*;outline_scaled=false;xdisplay=.*;xdpy=.*;ydpy=.*;xdevice=.*");
-
-
-pref("print.xprint.font.force_outline_scaled_fonts", true);
-
-
 
 pref("print.postscript.paper_size",    "letter");
 pref("print.postscript.orientation",   "portrait");
