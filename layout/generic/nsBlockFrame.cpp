@@ -1120,10 +1120,10 @@ nsBlockFrame::Reflow(nsPresContext*          aPresContext,
     aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, childBounds);
   }
 
-  FinishAndStoreOverflow(&aMetrics);
-
   
   CheckInvalidateSizeChange(aPresContext, aMetrics, aReflowState);
+
+  FinishAndStoreOverflow(&aMetrics);
 
   
   
