@@ -50,6 +50,7 @@
 #include "nsIDOMNode.h"
 #include "nsString.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsAccUtils.h"
 
 class nsIPresShell;
 
@@ -126,11 +127,13 @@ public:
     return eventType;
   }
   static EEventRule EventRule(nsIAccessibleEvent *aAccEvent) {
-    nsRefPtr<nsAccEvent> accEvent = GetAccEventPtr(aAccEvent);
+    nsRefPtr<nsAccEvent> accEvent =
+      nsAccUtils::QueryObject<nsAccEvent>(aAccEvent);
     return accEvent->mEventRule;
   }
   static PRBool IsAsyncEvent(nsIAccessibleEvent *aAccEvent) {
-    nsRefPtr<nsAccEvent> accEvent = GetAccEventPtr(aAccEvent);
+    nsRefPtr<nsAccEvent> accEvent =
+      nsAccUtils::QueryObject<nsAccEvent>(aAccEvent);
     return accEvent->mIsAsync;
   }
   static PRBool IsFromUserInput(nsIAccessibleEvent *aAccEvent) {
@@ -169,15 +172,9 @@ public:
 
 
 
-  static void ApplyEventRules(nsTArray<nsCOMPtr<nsIAccessibleEvent> > &aEventsToFire);
+  static void ApplyEventRules(nsTArray<nsRefPtr<nsAccEvent> > &aEventsToFire);
 
 private:
-  static already_AddRefed<nsAccEvent> GetAccEventPtr(nsIAccessibleEvent *aAccEvent) {
-    nsAccEvent* accEvent = nsnull;
-    aAccEvent->QueryInterface(NS_GET_IID(nsAccEvent), (void**)&accEvent);
-    return accEvent;
-  }
-
   
 
 
@@ -188,7 +185,7 @@ private:
 
 
 
-  static void ApplyToSiblings(nsTArray<nsCOMPtr<nsIAccessibleEvent> > &aEventsToFire,
+  static void ApplyToSiblings(nsTArray<nsRefPtr<nsAccEvent> > &aEventsToFire,
                               PRUint32 aStart, PRUint32 aEnd,
                               PRUint32 aEventType, nsIDOMNode* aDOMNode,
                               EEventRule aEventRule);
