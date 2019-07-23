@@ -172,7 +172,6 @@ protected:
   
   PRPackedBool mOwnedByXHR;
 
-  PRPackedBool mMultipart;
   PRPackedBool mCanceled;
 };
 
