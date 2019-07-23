@@ -57,7 +57,9 @@ public:
     
     
     
-    gfxXlibSurface(Display *dpy, Visual *visual, const gfxIntSize& size);
+    
+    
+    gfxXlibSurface(Display *dpy, Visual *visual, const gfxIntSize& size, int depth = 0);
 
     gfxXlibSurface(Display* dpy, Drawable drawable, XRenderPictFormat *format,
                    const gfxIntSize& size);
