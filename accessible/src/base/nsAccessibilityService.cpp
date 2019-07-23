@@ -555,7 +555,8 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame *aFrame,
   else if (tag == nsAccessibilityAtoms::optgroup) {
     *aAccessible = new nsHTMLSelectOptGroupAccessible(aNode, aWeakShell);
   }
-  else if (tag == nsAccessibilityAtoms::ul || tag == nsAccessibilityAtoms::ol) {
+  else if (tag == nsAccessibilityAtoms::ul || tag == nsAccessibilityAtoms::ol ||
+           tag == nsAccessibilityAtoms::dl) {
     *aAccessible = new nsHTMLListAccessible(aNode, aWeakShell);
   }
   else if (tag == nsAccessibilityAtoms::a) {
@@ -570,7 +571,10 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame *aFrame,
 
     *aAccessible = new nsHTMLLinkAccessible(aNode, aWeakShell);
   }
-  else if (tag == nsAccessibilityAtoms::li && aFrame->GetType() != nsAccessibilityAtoms::blockFrame) {
+  else if (tag == nsAccessibilityAtoms::dt ||
+           (tag == nsAccessibilityAtoms::li && 
+            aFrame->GetType() != nsAccessibilityAtoms::blockFrame)) {
+    
     
     
     *aAccessible = new nsHTMLLIAccessible(aNode, aWeakShell, EmptyString());
@@ -579,8 +583,6 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame *aFrame,
            tag == nsAccessibilityAtoms::acronym ||
            tag == nsAccessibilityAtoms::blockquote ||
            tag == nsAccessibilityAtoms::dd ||
-           tag == nsAccessibilityAtoms::dl ||
-           tag == nsAccessibilityAtoms::dt ||
            tag == nsAccessibilityAtoms::form ||
            tag == nsAccessibilityAtoms::h1 ||
            tag == nsAccessibilityAtoms::h2 ||
