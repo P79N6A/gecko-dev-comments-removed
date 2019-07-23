@@ -256,6 +256,9 @@ public:
 
 
 
+
+
+
   NS_HIDDEN_(nscolor) GetVisitedDependentColor(nsCSSProperty aProperty);
 
 #ifdef DEBUG

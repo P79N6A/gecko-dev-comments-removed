@@ -53,6 +53,7 @@
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsStaticNameTable.h"
+#include "prlog.h" 
 
 
 extern const char* const kCSSRawProperties[];
@@ -1629,7 +1630,12 @@ static const nsCSSProperty gBorderBottomSubpropTable[] = {
   eCSSProperty_UNKNOWN
 };
 
+PR_STATIC_ASSERT(NS_SIDE_TOP == 0);
+PR_STATIC_ASSERT(NS_SIDE_RIGHT == 1);
+PR_STATIC_ASSERT(NS_SIDE_BOTTOM == 2);
+PR_STATIC_ASSERT(NS_SIDE_LEFT == 3);
 static const nsCSSProperty gBorderColorSubpropTable[] = {
+  
   
   eCSSProperty_border_top_color,
   eCSSProperty_border_right_color_value,
