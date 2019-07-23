@@ -2465,6 +2465,12 @@ extern JS_PUBLIC_API(JSBool)
 JS_ThrowReportedError(JSContext *cx, const char *message,
                       JSErrorReport *reportp);
 
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_ThrowStopIteration(JSContext *cx);
+
 #ifdef JS_THREADSAFE
 
 
