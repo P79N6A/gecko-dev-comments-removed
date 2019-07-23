@@ -569,6 +569,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
     fm->GetMaxAscent(aMetrics.ascent);
     fm->GetHeight(aMetrics.height);
     
+    
     nscoord offset, size;
     fm->GetUnderline(offset, size);
     nscoord ascentAndUnderline =
