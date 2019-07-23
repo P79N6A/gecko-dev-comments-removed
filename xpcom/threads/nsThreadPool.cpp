@@ -279,6 +279,7 @@ nsThreadPool::Shutdown()
     mon.NotifyAll();
 
     threads.AppendObjects(mThreads);
+    mThreads.Clear();
 
     
     
@@ -286,7 +287,6 @@ nsThreadPool::Shutdown()
     mListener.swap(listener);
   }
 
-  
   
   
 
