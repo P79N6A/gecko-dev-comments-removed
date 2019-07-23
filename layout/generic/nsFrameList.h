@@ -40,27 +40,43 @@
 #ifndef nsFrameList_h___
 #define nsFrameList_h___
 
-#include "nsIFrame.h"
+#include "nscore.h"
+#include "nsTraceRefcnt.h"
+#include <stdio.h> 
+#include "nsDebug.h"
 
-
+class nsIFrame;
 
 
 
 
 class nsFrameList {
 public:
-  nsFrameList() {
-    mFirstChild = nsnull;
+  nsFrameList() :
+    mFirstChild(nsnull)
+  {
+    MOZ_COUNT_CTOR(nsFrameList);
   }
 
-  nsFrameList(nsIFrame* aHead) {
-    mFirstChild = aHead;
+  
+  nsFrameList(nsIFrame* aHead) :
+    mFirstChild(aHead)
+  {
+    MOZ_COUNT_CTOR(nsFrameList);
 #ifdef DEBUG
     CheckForLoops();
 #endif
   }
 
+  nsFrameList(const nsFrameList& aOther) :
+    mFirstChild(aOther.mFirstChild)
+  {
+    MOZ_COUNT_CTOR(nsFrameList);
+  }
+
   ~nsFrameList() {
+    MOZ_COUNT_DTOR(nsFrameList);
+    
   }
 
   void DestroyFrames();
@@ -75,56 +91,83 @@ public:
 #endif
   }
 
+  class Slice;
+
   
-  
+
+
+
   void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList);
 
-  void AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList) {
-    AppendFrames(aParent, aFrameList.mFirstChild);
+  
+
+
+
+
+  Slice AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList) {
+    NS_PRECONDITION(!aFrameList.IsEmpty(), "Unexpected empty list");
+    nsIFrame* firstNewFrame = aFrameList.FirstChild();
+    AppendFrames(aParent, firstNewFrame);
     aFrameList.mFirstChild = nsnull;
+    return Slice(*this, firstNewFrame, nsnull);
   }
 
   void AppendFrame(nsIFrame* aParent, nsIFrame* aFrame);
 
   
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
   PRBool RemoveFrame(nsIFrame* aFrame, nsIFrame* aPrevSiblingHint = nsnull);
 
   
-  
-  
-  
+
+
+
+
+
   PRBool RemoveFirstChild();
 
   
-  
-  
+
+
+
+
   PRBool DestroyFrame(nsIFrame* aFrame);
 
   
-  
-  
-  
+
+
+
+
+
   void InsertFrame(nsIFrame* aParent,
                    nsIFrame* aPrevSibling,
                    nsIFrame* aNewFrame);
 
   
-  
-  
+
+
+
+
   void InsertFrames(nsIFrame* aParent,
                     nsIFrame* aPrevSibling,
                     nsIFrame* aFrameList);
 
-  void InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
-                    nsFrameList& aFrameList) {
-    InsertFrames(aParent, aPrevSibling, aFrameList.FirstChild());
-    aFrameList.mFirstChild = nsnull;
-  }
+  
+
+
+
+
+
+
+
+  inline Slice InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
+                            nsFrameList& aFrameList);
 
   PRBool Split(nsIFrame* aAfterFrame, nsIFrame** aNextFrameResult);
 
@@ -174,11 +217,89 @@ public:
   nsIFrame* GetNextVisualFor(nsIFrame* aFrame) const;
 #endif 
 
-  void VerifyParent(nsIFrame* aParent) const;
-
-#ifdef NS_DEBUG
+#ifdef DEBUG
   void List(FILE* out) const;
 #endif
+
+  class Enumerator;
+
+  
+
+
+  class Slice {
+    friend class Enumerator;
+
+  public:
+    
+    
+    Slice(const nsFrameList& aList) :
+#ifdef DEBUG
+      mList(aList),
+#endif
+      mStart(aList.FirstChild()),
+      mEnd(nsnull)
+    {}
+
+    Slice(const nsFrameList& aList, nsIFrame* aStart, nsIFrame* aEnd) :
+#ifdef DEBUG
+      mList(aList),
+#endif
+      mStart(aStart),
+      mEnd(aEnd)
+    {}
+
+    Slice(const Slice& aOther) :
+#ifdef DEBUG
+      mList(aOther.mList),
+#endif
+      mStart(aOther.mStart),
+      mEnd(aOther.mEnd)
+    {}
+
+  private:
+#ifdef DEBUG
+    const nsFrameList& mList;
+#endif
+    nsIFrame* const mStart; 
+    const nsIFrame* const mEnd; 
+                                
+  };
+
+  class Enumerator {
+  public:
+    Enumerator(const Slice& aSlice) :
+#ifdef DEBUG
+      mSlice(aSlice),
+#endif
+      mFrame(aSlice.mStart),
+      mEnd(aSlice.mEnd)
+    {}
+
+    Enumerator(const Enumerator& aOther) :
+#ifdef DEBUG
+      mSlice(aOther.mSlice),
+#endif
+      mFrame(aOther.mFrame),
+      mEnd(aOther.mEnd)
+    {}
+
+    PRBool AtEnd() const { return mFrame == mEnd; }
+
+    
+
+
+    inline void Next();
+
+    nsIFrame* get() const { return mFrame; }
+
+  private:
+#ifdef DEBUG
+    const Slice& mSlice;
+#endif
+    nsIFrame* mFrame; 
+    const nsIFrame* const mEnd; 
+                                
+  };
 
 private:
 #ifdef DEBUG
