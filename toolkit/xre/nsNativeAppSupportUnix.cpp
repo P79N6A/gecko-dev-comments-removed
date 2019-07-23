@@ -155,31 +155,37 @@ gboolean save_yourself_cb(GnomeClient *client, gint phase,
                                        interact_cb, nsnull);
     return TRUE;
   }
-
   
-  NS_ASSERTION(gDirServiceProvider, "gDirServiceProvider is NULL! This shouldn't happen!");
-  nsCOMPtr<nsIFile> executablePath;
-  nsresult rv;
+  
+  char* argv1 = getenv("MOZILLA_APP_LAUNCHER");
 
-  PRBool dummy;
-  rv = gDirServiceProvider->GetFile(XRE_EXECUTABLE_FILE, &dummy, getter_AddRefs(executablePath));
-
-  if (NS_SUCCEEDED(rv)) {
-    nsCAutoString path;
-    char* argv[1];
-
+  if(!argv1) {
     
-    nsCAutoString leafName;
-    rv = executablePath->GetNativeLeafName(leafName);
-    if (NS_SUCCEEDED(rv) && StringEndsWith(leafName, NS_LITERAL_CSTRING("-bin"))) {
-      leafName.SetLength(leafName.Length() - strlen("-bin"));
-      executablePath->SetNativeLeafName(leafName);
+    NS_ASSERTION(gDirServiceProvider, "gDirServiceProvider is NULL! This shouldn't happen!");
+    nsCOMPtr<nsIFile> executablePath;
+    nsresult rv;
+
+    PRBool dummy;
+    rv = gDirServiceProvider->GetFile(XRE_EXECUTABLE_FILE, &dummy, getter_AddRefs(executablePath));
+
+    if (NS_SUCCEEDED(rv)) {
+      nsCAutoString path;
+
+      
+      nsCAutoString leafName;
+      rv = executablePath->GetNativeLeafName(leafName);
+      if (NS_SUCCEEDED(rv) && StringEndsWith(leafName, NS_LITERAL_CSTRING("-bin"))) {
+        leafName.SetLength(leafName.Length() - strlen("-bin"));
+        executablePath->SetNativeLeafName(leafName);
+      }
+  
+      executablePath->GetNativePath(path);
+      argv1 = (char*)(path.get());
     }
+  }
 
-    executablePath->GetNativePath(path);
-    argv[0] = (char*)(path.get());
-
-    gnome_client_set_restart_command(client, 1, argv);
+  if(argv1) {
+    gnome_client_set_restart_command(client, 1, &argv1);
   }
 
   return TRUE;
