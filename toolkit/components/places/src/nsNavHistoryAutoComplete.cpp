@@ -183,6 +183,9 @@ nsNavHistory::PerformAutoComplete()
   PRBool moreChunksToSearch = PR_FALSE;
   rv = AutoCompleteFullHistorySearch(&moreChunksToSearch);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  moreChunksToSearch &= !AutoCompleteHasEnoughResults();
  
   
   PRUint32 count;
@@ -381,54 +384,8 @@ nsNavHistory::AutoCompleteTagsSearch()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
-  NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
-
-  mozStorageStatementScoper scope(tagAutoCompleteQuery);
-
-  PRBool hasMore = PR_FALSE;
-
-  
-  while (NS_SUCCEEDED(tagAutoCompleteQuery->ExecuteStep(&hasMore)) && hasMore) {
-    nsAutoString entryURL;
-    rv = tagAutoCompleteQuery->GetString(kAutoCompleteIndex_URL, entryURL);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool dummy;
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!mCurrentResultURLs.Get(entryURL, &dummy)) {
-      nsAutoString entryTitle, entryFavicon;
-      rv = tagAutoCompleteQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = tagAutoCompleteQuery->GetString(kAutoCompleteIndex_FaviconURL, entryFavicon);
-      NS_ENSURE_SUCCESS(rv, rv);
-      PRInt64 itemId = 0;
-      rv = tagAutoCompleteQuery->GetInt64(kAutoCompleteIndex_ItemId, &itemId);
-      NS_ENSURE_SUCCESS(rv, rv);
-      PRInt64 parentId = 0;
-      if (itemId) {
-        rv = tagAutoCompleteQuery->GetInt64(kAutoCompleteIndex_ParentId, &parentId);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      
-      nsCAutoString faviconSpec;
-      faviconService->GetFaviconSpecForIconString(
-        NS_ConvertUTF16toUTF8(entryFavicon), faviconSpec);
-      rv = mCurrentResult->AppendMatch(entryURL, entryTitle, 
-        NS_ConvertUTF8toUTF16(faviconSpec), NS_LITERAL_STRING("tag"));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      mCurrentResultURLs.Put(entryURL, PR_TRUE);
-    }
-  }
+  rv = AutoCompleteProcessSearch(tagAutoCompleteQuery, QUERY_TAGS);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -453,18 +410,34 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
   rv = mDBAutoCompleteQuery->BindInt32Parameter(1, mCurrentChunkOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = AutoCompleteProcessSearch(mDBAutoCompleteQuery, QUERY_FULL, aHasMoreResults);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
+                                        const QueryType aType,
+                                        PRBool *aHasMoreResults)
+{
+  
+  if (AutoCompleteHasEnoughResults())
+    return NS_OK;
+
   nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
   NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
 
   PRBool hasMore = PR_FALSE;
-
   
-  while (NS_SUCCEEDED(mDBAutoCompleteQuery->ExecuteStep(&hasMore)) && hasMore) {
-    *aHasMoreResults = PR_TRUE;
+  while (NS_SUCCEEDED(aQuery->ExecuteStep(&hasMore)) && hasMore) {
     nsAutoString escapedEntryURL;
-    rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_URL, escapedEntryURL);
+    nsresult rv = aQuery->GetString(kAutoCompleteIndex_URL, escapedEntryURL);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    
+    
+    
     
     
     
@@ -476,81 +449,109 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
       NS_ConvertUTF8toUTF16 entryURL(cEntryURL);
 
       nsAutoString entryTitle, entryFavicon, entryBookmarkTitle;
-      rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
+      rv = aQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
       NS_ENSURE_SUCCESS(rv, rv);
-      rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_FaviconURL, entryFavicon);
+      rv = aQuery->GetString(kAutoCompleteIndex_FaviconURL, entryFavicon);
       NS_ENSURE_SUCCESS(rv, rv);
       PRInt64 itemId = 0;
-      rv = mDBAutoCompleteQuery->GetInt64(kAutoCompleteIndex_ItemId, &itemId);
+      rv = aQuery->GetInt64(kAutoCompleteIndex_ItemId, &itemId);
       NS_ENSURE_SUCCESS(rv, rv);
 
       PRInt64 parentId = 0;
       
-      
       if (itemId) {
-        rv = mDBAutoCompleteQuery->GetInt64(kAutoCompleteIndex_ParentId, &parentId);
+        rv = aQuery->GetInt64(kAutoCompleteIndex_ParentId, &parentId);
         NS_ENSURE_SUCCESS(rv, rv);
-        rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_BookmarkTitle, entryBookmarkTitle);
+        rv = aQuery->GetString(kAutoCompleteIndex_BookmarkTitle, entryBookmarkTitle);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
-      
-      
-      PRBool everMatchedBookmark = PR_FALSE;
-      
-      PRBool matchAll = PR_TRUE;
-      for (PRUint32 i = 0; i < mCurrentSearchTokens.Count() && matchAll; i++) {
-        const nsString *token = mCurrentSearchTokens.StringAt(i);
+      PRBool useBookmark = PR_FALSE;
+      nsString style;
+      switch (aType) {
+        case QUERY_TAGS: {
+          
+          useBookmark = !entryBookmarkTitle.IsEmpty();
 
-        
-        PRBool bookmarkMatch = itemId &&
-          CaseInsensitiveFindInReadable(*token, entryBookmarkTitle);
-        everMatchedBookmark |= bookmarkMatch;
+          
+          style = NS_LITERAL_STRING("tag");
 
-        
-        matchAll = bookmarkMatch ||
-          CaseInsensitiveFindInReadable(*token, entryTitle) ||
-          CaseInsensitiveFindInReadable(*token, entryURL);
+          break;
+        }
+        case QUERY_FULL: {
+          
+          if (aHasMoreResults)
+            *aHasMoreResults = PR_TRUE;
+
+          
+          PRBool matchAll = PR_TRUE;
+          for (PRInt32 i = 0; i < mCurrentSearchTokens.Count() && matchAll; i++) {
+            const nsString *token = mCurrentSearchTokens.StringAt(i);
+
+            
+            PRBool bookmarkMatch = itemId &&
+              CaseInsensitiveFindInReadable(*token, entryBookmarkTitle);
+            
+            
+            useBookmark |= bookmarkMatch;
+
+            
+            matchAll = bookmarkMatch ||
+              CaseInsensitiveFindInReadable(*token, entryTitle) ||
+              CaseInsensitiveFindInReadable(*token, entryURL);
+          }
+
+          
+          if (!matchAll)
+            continue;
+
+          
+          style = (itemId && !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
+            mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
+            NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
+
+          break;
+        }
+        default: {
+          
+          useBookmark = !entryBookmarkTitle.IsEmpty();
+
+          
+          style = (itemId && !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
+            mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
+            NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
+
+          break;
+        }
       }
 
       
-      if (!matchAll)
-        continue;
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      PRBool isBookmark = (itemId && 
-                           !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
-                           mLivemarkFeedURIs.Get(entryURL, &dummy);  
+      const nsAString &title = useBookmark ? entryBookmarkTitle : entryTitle;
 
       
       nsCAutoString faviconSpec;
       faviconService->GetFaviconSpecForIconString(
         NS_ConvertUTF16toUTF8(entryFavicon), faviconSpec);
+      NS_ConvertUTF8toUTF16 faviconURI(faviconSpec);
 
-      rv = mCurrentResult->AppendMatch(entryURL, 
-        everMatchedBookmark ? entryBookmarkTitle : entryTitle, 
-        NS_ConvertUTF8toUTF16(faviconSpec), 
-        isBookmark ? NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon"));
+      
+      rv = mCurrentResult->AppendMatch(entryURL, title, faviconURI, style);
       NS_ENSURE_SUCCESS(rv, rv);
+      mCurrentResultURLs.Put(escapedEntryURL, PR_TRUE);
 
-      mCurrentResultURLs.Put(entryURL, PR_TRUE);
-
-      if (mCurrentResultURLs.Count() >= mAutoCompleteMaxResults) {
-        *aHasMoreResults = PR_FALSE;
+      
+      if (AutoCompleteHasEnoughResults())
         break;
-      }
     }
   }
 
   return NS_OK;
+}
+
+inline PRBool
+nsNavHistory::AutoCompleteHasEnoughResults()
+{
+  return mCurrentResultURLs.Count() >= (PRUint32)mAutoCompleteMaxResults;
 }
 
 
