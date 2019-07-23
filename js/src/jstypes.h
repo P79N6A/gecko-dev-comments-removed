@@ -275,19 +275,6 @@
 
 
 
-#define JS_PTR_TO_INT32(x)  ((jsint)((char *)(x) - (char *)0))
-#define JS_PTR_TO_UINT32(x) ((jsuint)((char *)(x) - (char *)0))
-#define JS_INT32_TO_PTR(x)  ((void *)((char *)0 + (jsint)(x)))
-#define JS_UINT32_TO_PTR(x) ((void *)((char *)0 + (jsuint)(x)))
-
-
-
-
-
-
-
-
-
 #define JS_HOWMANY(x,y) (((x)+(y)-1)/(y))
 #define JS_ROUNDUP(x,y) (JS_HOWMANY(x,y)*(y))
 #define JS_MIN(x,y)     ((x)<(y)?(x):(y))
