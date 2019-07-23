@@ -52,6 +52,7 @@
 #include "prmon.h"
 
 class nsDOMWorkerThread;
+class nsIDocument;
 class nsIScriptError;
 class nsIScriptGlobalObject;
 
@@ -65,6 +66,8 @@ class nsDOMWorkerPool : public nsDOMWorkerBase,
   friend class nsDOMThreadService;
   friend class nsDOMWorkerFunctions;
   friend class nsDOMWorkerPoolWeakRef;
+  friend class nsDOMWorkerScriptLoader;
+  friend class nsDOMWorkerStreamObserver;
   friend class nsDOMWorkerThread;
   friend class nsReportErrorRunnable;
   friend JSBool DOMWorkerOperationCallback(JSContext* aCx);
@@ -74,7 +77,7 @@ public:
   NS_DECL_NSIDOMWORKERPOOL
   NS_DECL_NSICLASSINFO
 
-  nsDOMWorkerPool();
+  nsDOMWorkerPool(nsIDocument* aDocument);
 
   
   virtual nsDOMWorkerPool* Pool() {
@@ -106,8 +109,13 @@ private:
     return mMonitor;
   }
 
+  nsIDocument* GetParentDocument();
+
   
   nsISupports* mParentGlobal;
+
+  
+  nsIDocument* mParentDocument;
 
   
   
