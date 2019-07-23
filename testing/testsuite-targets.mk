@@ -45,16 +45,15 @@ else
 TEST_PATH_ARG :=
 endif
 
-SYMBOLS_PATH := --symbols-path=$(DIST)/crashreporter-symbols
 
 # Usage: |make [TEST_PATH=...] [EXTRA_TEST_ARGS=...] mochitest*|.
-mochitest:: mochitest-plain mochitest-chrome mochitest-a11y
+mochitest:: mochitest-plain mochitest-chrome mochitest-a11y mochitest-oop
 
 RUN_MOCHITEST = \
 	rm -f ./$@.log && \
 	$(PYTHON) _tests/testing/mochitest/runtests.py --autorun --close-when-done \
 	  --console-level=INFO --log-file=./$@.log --file-level=INFO \
-	  $(SYMBOLS_PATH) $(TEST_PATH_ARG) $(EXTRA_TEST_ARGS)
+	  $(TEST_PATH_ARG) $(EXTRA_TEST_ARGS)
 
 ifndef NO_FAIL_ON_TEST_ERRORS
 define CHECK_TEST_ERROR
@@ -81,24 +80,24 @@ mochitest-a11y:
 	$(RUN_MOCHITEST) --a11y
 	$(CHECK_TEST_ERROR)
 
+mochitest-oop:
+	$(RUN_MOCHITEST) --setpref=dom.ipc.plugins.enabled=true --test-path=modules/plugin/test
+	$(CHECK_TEST_ERROR)
 
 # Usage: |make [EXTRA_TEST_ARGS=...] *test|.
-RUN_REFTEST = rm -f ./$@.log && $(PYTHON) _tests/reftest/runreftest.py \
-  $(SYMBOLS_PATH) $(EXTRA_TEST_ARGS) $(1) | tee ./$@.log
+RUN_REFTEST = rm -f ./$@.log && $(PYTHON) _tests/reftest/runreftest.py $(EXTRA_TEST_ARGS) $(1) | tee ./$@.log
 
-reftest: TEST_PATH=layout/reftests/reftest.list
 reftest:
-	$(call RUN_REFTEST,$(topsrcdir)/$(TEST_PATH))
+	$(call RUN_REFTEST,$(topsrcdir)/layout/reftests/reftest.list)
 	$(CHECK_TEST_ERROR)
 
-crashtest: TEST_PATH=testing/crashtest/crashtests.list
 crashtest:
-	$(call RUN_REFTEST,$(topsrcdir)/$(TEST_PATH))
+	$(call RUN_REFTEST,$(topsrcdir)/testing/crashtest/crashtests.list)
 	$(CHECK_TEST_ERROR)
 
-jstestbrowser: TEST_PATH=js/src/tests/jstests.list
+jstestbrowser: EXTRA_TEST_ARGS += --extra-profile-file=$(topsrcdir)/js/src/tests/user.js
 jstestbrowser:
-	$(call RUN_REFTEST,$(topsrcdir)/$(TEST_PATH) --extra-profile-file=$(topsrcdir)/js/src/tests/user.js)
+	$(call RUN_REFTEST,$(topsrcdir)/js/src/tests/jstests.list)
 	$(CHECK_TEST_ERROR)
 
 # Execute all xpcshell tests in the directories listed in the manifest.
@@ -110,7 +109,7 @@ xpcshell-tests:
 	  $(topsrcdir)/testing/xpcshell/runxpcshelltests.py \
 	  --manifest=$(DEPTH)/_tests/xpcshell/all-test-dirs.list \
 	  --no-logfiles \
-          $(SYMBOLS_PATH) \
+	  --symbols-path=$(DIST)/crashreporter-symbols \
 	  $(TEST_PATH_ARG) $(EXTRA_TEST_ARGS) \
 	  $(DIST)/bin/xpcshell
 
@@ -128,7 +127,7 @@ endif
 
 package-tests:
 	$(NSINSTALL) -D $(DIST)/$(PKG_PATH)
-	@(cd $(PKG_STAGE) && tar $(TAR_CREATE_FLAGS) - *) | bzip2 -f > "$(DIST)/$(PKG_PATH)$(TEST_PACKAGE)"
+	@(cd $(PKG_STAGE) && tar $(TAR_CREATE_FLAGS) - *) | bzip2 -f > $(DIST)/$(PKG_PATH)$(TEST_PACKAGE)
 
 make-stage-dir:
 	rm -rf $(PKG_STAGE) && $(NSINSTALL) -D $(PKG_STAGE) && $(NSINSTALL) -D $(PKG_STAGE)/bin && $(NSINSTALL) -D $(PKG_STAGE)/bin/components && $(NSINSTALL) -D $(PKG_STAGE)/certs
@@ -146,7 +145,7 @@ stage-jstests: make-stage-dir
 	$(MAKE) -C $(DEPTH)/js/src/tests stage-package
 
 .PHONY: \
-  mochitest mochitest-plain mochitest-chrome mochitest-a11y \
+  mochitest mochitest-plain mochitest-chrome mochitest-a11y mochitest-oop \
   reftest crashtest \
   xpcshell-tests \
   jstestbrowser \
