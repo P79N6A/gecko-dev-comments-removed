@@ -101,8 +101,6 @@ nsXULTooltipListener::~nsXULTooltipListener()
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULTooltipListener)
-
 NS_INTERFACE_MAP_BEGIN(nsXULTooltipListener)
   NS_INTERFACE_MAP_ENTRY(nsIDOMMouseListener)
   NS_INTERFACE_MAP_ENTRY(nsIDOMMouseMotionListener)
@@ -110,23 +108,10 @@ NS_INTERFACE_MAP_BEGIN(nsXULTooltipListener)
   NS_INTERFACE_MAP_ENTRY(nsIDOMXULListener)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIDOMEventListener, nsIDOMMouseListener)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMMouseMotionListener)
-  NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsXULTooltipListener)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(nsXULTooltipListener)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(nsXULTooltipListener)
-
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXULTooltipListener)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mSourceNode)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTargetNode)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCurrentTooltip)
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULTooltipListener)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mSourceNode)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTargetNode)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCurrentTooltip)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_ADDREF(nsXULTooltipListener)
+NS_IMPL_RELEASE(nsXULTooltipListener)
 
 
 
@@ -153,7 +138,8 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
   
   
   
-  if (mTooltipTimer && !mCurrentTooltip) {
+  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+  if (mTooltipTimer && !currentTooltip) {
     mTooltipTimer->Cancel();
     mTooltipTimer = nsnull;
     return NS_OK;
@@ -166,14 +152,14 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
 
   
   
-  if (mCurrentTooltip) {
+  if (currentTooltip) {
     
     nsCOMPtr<nsIDOMEventTarget> eventTarget;
     aMouseEvent->GetTarget(getter_AddRefs(eventTarget));
     nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(eventTarget));
 
     
-    nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(mCurrentTooltip->GetDocument()));
+    nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(currentTooltip->GetDocument()));
     if (!xulDoc)     
       return NS_OK;  
     nsCOMPtr<nsIDOMNode> tooltipNode;
@@ -220,9 +206,11 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
 
   nsCOMPtr<nsIDOMEventTarget> eventTarget;
   aMouseEvent->GetCurrentTarget(getter_AddRefs(eventTarget));
-  mSourceNode = do_QueryInterface(eventTarget);
+  
+  nsCOMPtr<nsIContent> sourceContent = do_QueryInterface(eventTarget);
+  mSourceNode = do_GetWeakReference(sourceContent);
 #ifdef MOZ_XUL
-  mIsSourceTree = mSourceNode->Tag() == nsGkAtoms::treechildren;
+  mIsSourceTree = sourceContent->Tag() == nsGkAtoms::treechildren;
   if (mIsSourceTree)
     CheckTreeBodyMove(mouseEvent);
 #endif
@@ -235,12 +223,14 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
   
   
   
-  if (!mCurrentTooltip) {
+  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+  if (!currentTooltip) {
     mTooltipTimer = do_CreateInstance("@mozilla.org/timer;1");
     if (mTooltipTimer) {
       aMouseEvent->GetTarget(getter_AddRefs(eventTarget));
-      mTargetNode = do_QueryInterface(eventTarget);
-      if (mTargetNode) {
+      nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(eventTarget);
+      mTargetNode = do_GetWeakReference(targetNode);
+      if (targetNode) {
         nsresult rv = mTooltipTimer->InitWithFuncCallback(sTooltipCallback, this, 
                                                           kTooltipShowTime, nsITimer::TYPE_ONE_SHOT);
         if (NS_FAILED(rv)) {
@@ -335,12 +325,13 @@ nsXULTooltipListener::RemoveTooltipSupport(nsIContent* aNode)
 void
 nsXULTooltipListener::CheckTreeBodyMove(nsIDOMMouseEvent* aMouseEvent)
 {
-  if (!mSourceNode)
+  nsCOMPtr<nsIContent> sourceNode = do_QueryReferent(mSourceNode);
+  if (!sourceNode)
     return;
 
   
   nsCOMPtr<nsIBoxObject> bx;
-  nsCOMPtr<nsIDOMDocument> doc(do_QueryInterface(mSourceNode->GetDocument()));
+  nsCOMPtr<nsIDOMDocument> doc(do_QueryInterface(sourceNode->GetDocument()));
   if (doc) {
     nsCOMPtr<nsIDOMNSDocument> nsDoc(do_QueryInterface(doc));
     nsCOMPtr<nsIDOMElement> docElement;
@@ -377,7 +368,8 @@ nsXULTooltipListener::CheckTreeBodyMove(nsIDOMMouseEvent* aMouseEvent)
       obx->IsCellCropped(row, col, &mNeedTitletip);
     }
 
-    if (mCurrentTooltip && (row != mLastTreeRow || col != mLastTreeCol)) {
+    nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+    if (currentTooltip && (row != mLastTreeRow || col != mLastTreeCol)) {
       HideTooltip();
     } 
 
@@ -390,10 +382,12 @@ nsXULTooltipListener::CheckTreeBodyMove(nsIDOMMouseEvent* aMouseEvent)
 nsresult
 nsXULTooltipListener::ShowTooltip()
 {
+  nsCOMPtr<nsIContent> sourceNode = do_QueryReferent(mSourceNode);
+
   
   nsCOMPtr<nsIContent> tooltipNode;
-  GetTooltipFor(mSourceNode, getter_AddRefs(tooltipNode));
-  if (!tooltipNode || mSourceNode == tooltipNode)
+  GetTooltipFor(sourceNode, getter_AddRefs(tooltipNode));
+  if (!tooltipNode || sourceNode == tooltipNode)
     return NS_ERROR_FAILURE; 
 
   
@@ -401,7 +395,7 @@ nsXULTooltipListener::ShowTooltip()
   if (xulDoc) {
     
     
-    if (mSourceNode->GetDocument()) {
+    if (sourceNode->GetDocument()) {
 #ifdef MOZ_XUL
       if (!mIsSourceTree) {
         mLastTreeRow = -1;
@@ -409,28 +403,31 @@ nsXULTooltipListener::ShowTooltip()
       }
 #endif
 
-      xulDoc->SetTooltipNode(mTargetNode);
-      mCurrentTooltip = tooltipNode;
+      nsCOMPtr<nsIDOMNode> targetNode = do_QueryReferent(mTargetNode);
+      xulDoc->SetTooltipNode(targetNode);
+      mCurrentTooltip = do_GetWeakReference(tooltipNode);
       LaunchTooltip();
       mTargetNode = nsnull;
-      if (!mCurrentTooltip)
+
+      nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+      if (!currentTooltip)
         return NS_OK;
 
       
       
       
-      if (!mCurrentTooltip->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
-                                        nsGkAtoms::_true, eCaseMatters))
+      if (!currentTooltip->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
+                                       nsGkAtoms::_true, eCaseMatters))
         CreateAutoHideTimer();
 
       
       
-      nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(mCurrentTooltip));
+      nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(currentTooltip));
       evtTarget->AddEventListener(NS_LITERAL_STRING("popuphiding"), 
                                   (nsIDOMMouseListener*)this, PR_FALSE);
 
       
-      nsIDocument* doc = mSourceNode->GetDocument();
+      nsIDocument* doc = sourceNode->GetDocument();
       if (doc) {
         evtTarget = do_QueryInterface(doc);
         evtTarget->AddEventListener(NS_LITERAL_STRING("DOMMouseScroll"), 
@@ -488,7 +485,8 @@ SetTitletipLabel(nsITreeBoxObject* aTreeBox, nsIContent* aTooltip,
 void
 nsXULTooltipListener::LaunchTooltip()
 {
-  if (!mCurrentTooltip)
+  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+  if (!currentTooltip)
     return;
 
 #ifdef MOZ_XUL
@@ -496,25 +494,25 @@ nsXULTooltipListener::LaunchTooltip()
     nsCOMPtr<nsITreeBoxObject> obx;
     GetSourceTreeBoxObject(getter_AddRefs(obx));
 
-    SetTitletipLabel(obx, mCurrentTooltip, mLastTreeRow, mLastTreeCol);
-    if (!mCurrentTooltip) {
+    SetTitletipLabel(obx, currentTooltip, mLastTreeRow, mLastTreeCol);
+    if (!(currentTooltip = do_QueryReferent(mCurrentTooltip))) {
       
       return;
     }
-    mCurrentTooltip->SetAttr(nsnull, nsGkAtoms::titletip, NS_LITERAL_STRING("true"), PR_TRUE);
+    currentTooltip->SetAttr(nsnull, nsGkAtoms::titletip, NS_LITERAL_STRING("true"), PR_TRUE);
   } else {
-    mCurrentTooltip->UnsetAttr(nsnull, nsGkAtoms::titletip, PR_TRUE);
+    currentTooltip->UnsetAttr(nsnull, nsGkAtoms::titletip, PR_TRUE);
   }
-  if (!mCurrentTooltip) {
+  if (!(currentTooltip = do_QueryReferent(mCurrentTooltip))) {
     
     return;
   }
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm) {
-    pm->ShowPopupAtScreen(mCurrentTooltip, mMouseClientX, mMouseClientY, PR_FALSE, nsnull);
+    pm->ShowPopupAtScreen(currentTooltip, mMouseClientX, mMouseClientY, PR_FALSE, nsnull);
     
-    if (!pm->IsPopupOpen(mCurrentTooltip))
+    if (!pm->IsPopupOpen(currentTooltip))
       mCurrentTooltip = nsnull;
   }
 #endif
@@ -525,10 +523,11 @@ nsresult
 nsXULTooltipListener::HideTooltip()
 {
 #ifdef MOZ_XUL
-  if (mCurrentTooltip) {
+  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+  if (currentTooltip) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm)
-      pm->HidePopup(mCurrentTooltip, PR_FALSE, PR_FALSE, PR_FALSE);
+      pm->HidePopup(currentTooltip, PR_FALSE, PR_FALSE, PR_FALSE);
   }
 #endif
 
@@ -664,9 +663,10 @@ nsresult
 nsXULTooltipListener::DestroyTooltip()
 {
   nsCOMPtr<nsIDOMMouseListener> kungFuDeathGrip(this);
-  if (mCurrentTooltip) {
+  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+  if (currentTooltip) {
     
-    nsCOMPtr<nsIDocument> doc = mCurrentTooltip->GetDocument();
+    nsCOMPtr<nsIDocument> doc = currentTooltip->GetDocument();
     if (doc) {
       nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(doc));
       if (xulDoc)
@@ -681,7 +681,7 @@ nsXULTooltipListener::DestroyTooltip()
     }
 
     
-    nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(mCurrentTooltip));
+    nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(currentTooltip));
 
     
     
@@ -750,8 +750,9 @@ nsXULTooltipListener::GetSourceTreeBoxObject(nsITreeBoxObject** aBoxObject)
 {
   *aBoxObject = nsnull;
 
-  if (mIsSourceTree && mSourceNode) {
-    nsCOMPtr<nsIDOMXULElement> xulEl(do_QueryInterface(mSourceNode->GetParent()));
+  nsCOMPtr<nsIContent> sourceNode = do_QueryReferent(mSourceNode);
+  if (mIsSourceTree && sourceNode) {
+    nsCOMPtr<nsIDOMXULElement> xulEl(do_QueryInterface(sourceNode->GetParent()));
     if (xulEl) {
       nsCOMPtr<nsIBoxObject> bx;
       xulEl->GetBoxObject(getter_AddRefs(bx));
