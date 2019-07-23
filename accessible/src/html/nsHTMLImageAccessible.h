@@ -60,6 +60,7 @@ public:
 
   nsHTMLImageAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell);
 
+  
   NS_IMETHOD GetName(nsAString& _retval); 
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
   NS_IMETHOD GetRole(PRUint32 *_retval);
@@ -67,10 +68,19 @@ public:
 
   NS_IMETHOD GetImageBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
 
+  
+  NS_IMETHOD Shutdown();
+
 protected:
   virtual void CacheChildren();
-  already_AddRefed<nsIAccessible> CreateAreaAccessible(PRInt32 areaNum);
+  already_AddRefed<nsIAccessible> GetAreaAccessible(PRInt32 aAreaNum);
   nsCOMPtr<nsIDOMHTMLMapElement> mMapElement;
+
+  
+  
+  
+  nsAccessNodeHashtable *mAccessNodeCache;
 };
 
-#endif  
+#endif
+
