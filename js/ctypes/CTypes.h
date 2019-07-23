@@ -105,13 +105,33 @@ struct PropertySpec
 };
 
 
+
 struct FunctionInfo
 {
+  
+  
+  
   ffi_cif mCIF;
-  JSObject* mABI;
+
+  
+  
+  JSObject* mABI;                
+
+  
   JSObject* mReturnType;
-  nsTArray<JSObject*> mArgTypes;
+
+  
+  
+  nsTArray<JSObject*> mArgTypes; 
+
+  
+  
+  
   nsTArray<ffi_type*> mFFITypes;
+
+  
+  
+  bool mIsVariadic;
 };
 
 
