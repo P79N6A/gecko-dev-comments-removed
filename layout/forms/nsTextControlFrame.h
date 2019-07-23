@@ -275,17 +275,29 @@ protected:
 
 
   PRBool IsScrollable() const;
+
+  
+
+
+
+
+  nsresult UpdateValueDisplay(PRBool aNotify,
+                              PRBool aBeforeEditorInit = PR_FALSE,
+                              const nsAString *aValue = nsnull);
+
   
 
 
 
   void RemoveNewlines(nsString &aString);
+
   
 
 
 
 
   PRBool GetMaxLength(PRInt32* aMaxLength);
+
   
 
 
@@ -299,9 +311,6 @@ protected:
 
 
   void PreDestroy();
-  
-
-
 
   
   
@@ -309,10 +318,12 @@ protected:
 
 
   PRInt32 GetCols();
+
   
 
 
   PRInt32 GetWrapCols();
+
   
 
 

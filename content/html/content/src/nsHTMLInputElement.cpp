@@ -1128,9 +1128,8 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
       
       
       
-      formControlFrame->SetFormProperty(
+      return formControlFrame->SetFormProperty(
         aUserInput ? nsGkAtoms::userInput : nsGkAtoms::value, aValue);
-      return NS_OK;
     }
 
     SetValueChanged(PR_TRUE);
