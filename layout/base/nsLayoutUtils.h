@@ -309,9 +309,6 @@ public:
 
   static nsIScrollableFrame* GetScrollableFrameFor(nsIFrame *aScrolledFrame);
 
-  static nsPresContext::ScrollbarStyles
-    ScrollbarStylesOfView(nsIScrollableView *aScrollableView);
-
   
 
 
@@ -323,9 +320,21 @@ public:
 
 
 
-  enum Direction { eHorizontal, eVertical, eEither };
-  static nsIScrollableView* GetNearestScrollingView(nsIView* aView,
-                                                    Direction aDirection);
+
+  enum Direction { eHorizontal, eVertical };
+  static nsIScrollableFrame* GetNearestScrollableFrameForDirection(nsIFrame* aFrame,
+                                                                   Direction aDirection);
+
+  
+
+
+
+
+
+
+
+
+  static nsIScrollableFrame* GetNearestScrollableFrame(nsIFrame* aFrame);
 
   
 
