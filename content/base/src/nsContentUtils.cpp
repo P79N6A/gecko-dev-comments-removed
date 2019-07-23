@@ -717,6 +717,22 @@ nsContentUtils::Shutdown()
   }
 }
 
+static PRBool IsCallerTrustedForCapability(const char* aCapability)
+{
+  
+  
+  PRBool hasCap;
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  if (NS_FAILED(ssm->IsCapabilityEnabled(aCapability, &hasCap)))
+    return PR_FALSE;
+  if (hasCap)
+    return PR_TRUE;
+    
+  if (NS_FAILED(ssm->IsCapabilityEnabled("UniversalXPConnect", &hasCap)))
+    return PR_FALSE;
+  return hasCap;
+}
+
 
 
 
@@ -755,8 +771,15 @@ nsContentUtils::CheckSameOrigin(nsIDOMNode *aTrustedNode,
     return NS_OK;
   }
 
-  return sSecurityManager->CheckSameOriginPrincipal(trustedPrincipal,
-                                                    unTrustedPrincipal);
+  PRBool equal;
+  
+  
+  if (NS_FAILED(trustedPrincipal->Equals(unTrustedPrincipal, &equal)) ||
+      !equal) {
+    return NS_ERROR_DOM_PROP_ACCESS_DENIED;
+  }
+
+  return NS_OK;
 }
 
 
@@ -775,41 +798,29 @@ nsContentUtils::CanCallerAccess(nsIDOMNode *aNode)
     return PR_TRUE;
   }
 
-  nsCOMPtr<nsIPrincipal> systemPrincipal;
-  sSecurityManager->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
-
-  if (subjectPrincipal == systemPrincipal) {
-    
-
-    return PR_TRUE;
-  }
-
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
   NS_ENSURE_TRUE(node, PR_FALSE);
 
-  nsresult rv;
-  PRBool enabled = PR_FALSE;
   nsIPrincipal* nodePrincipal = node->NodePrincipal();
-  if (nodePrincipal == systemPrincipal) {
-    
-    
-    
 
-    rv = sSecurityManager->IsCapabilityEnabled("UniversalXPConnect", &enabled);
-    return NS_SUCCEEDED(rv) && enabled;
-  }
+  PRBool subsumes;
+  nsresult rv = subjectPrincipal->Subsumes(nodePrincipal, &subsumes);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = sSecurityManager->CheckSameOriginPrincipal(subjectPrincipal,
-                                                  nodePrincipal);
-  if (NS_SUCCEEDED(rv)) {
+  if (subsumes) {
     return PR_TRUE;
   }
 
   
   
+  
+  PRBool isSystem;
+  rv = sSecurityManager->IsSystemPrincipal(nodePrincipal, &isSystem);
+  isSystem = NS_FAILED(rv) || isSystem;
+  const char* capability =
+    NS_FAILED(rv) || isSystem ? "UniversalXPConnect" : "UniversalBrowserRead";
 
-  rv = sSecurityManager->IsCapabilityEnabled("UniversalBrowserRead", &enabled);
-  return NS_SUCCEEDED(rv) && enabled;
+  return IsCallerTrustedForCapability(capability);
 }
 
 
@@ -1113,22 +1124,6 @@ nsContentUtils::IsCallerChrome()
   }
 
   return is_caller_chrome;
-}
-
-static PRBool IsCallerTrustedForCapability(const char* aCapability)
-{
-  
-  
-  PRBool hasCap;
-  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  if (NS_FAILED(ssm->IsCapabilityEnabled(aCapability, &hasCap)))
-    return PR_FALSE;
-  if (hasCap)
-    return PR_TRUE;
-    
-  if (NS_FAILED(ssm->IsCapabilityEnabled("UniversalXPConnect", &hasCap)))
-    return PR_FALSE;
-  return hasCap;
 }
 
 PRBool
