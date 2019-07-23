@@ -3422,7 +3422,7 @@ GuessPangoLanguage(const nsACString& aLangGroup)
 
 
 extern "C" {
-void
+NS_VISIBILITY_DEFAULT void
 cairo_ft_font_options_substitute (const cairo_font_options_t *options,
                                   FcPattern                  *pattern);
 }
