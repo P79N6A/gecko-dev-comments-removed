@@ -222,7 +222,7 @@ function plRecordTime(time) {
 function plLoadHandlerCapturing(evt) {
   
   if (evt.type != 'load' ||
-      (!evt.originalTarget instanceof Ci.nsIDOMHTMLDocument ||
+      (!(evt.originalTarget instanceof Ci.nsIDOMHTMLDocument) ||
        evt.originalTarget.defaultView.frameElement))
       return;
 
@@ -242,7 +242,7 @@ function plLoadHandlerCapturing(evt) {
 function plLoadHandler(evt) {
   
   if (evt.type != 'load' ||
-      (!evt.originalTarget instanceof Ci.nsIDOMHTMLDocument ||
+      (!(evt.originalTarget instanceof Ci.nsIDOMHTMLDocument) ||
        evt.originalTarget.defaultView.frameElement))
       return;
 
