@@ -616,10 +616,26 @@ nsWaveStateMachine::Run()
         NS_ABORT_IF_FALSE(position >= 0 && position <= mWaveLength, "Invalid seek position");
 
         
+        
+        
+        
+        
+        
+        PRBool seekToZeroFirst = position == 0 &&
+                                 (mWavePCMOffset < SEEK_VS_READ_THRESHOLD);
+
+        
         position += mWavePCMOffset;
 
         monitor.Exit();
-        nsresult rv = mStream->Seek(nsISeekableStream::NS_SEEK_SET, position);
+        nsresult rv;
+        if (seekToZeroFirst) {
+          rv = mStream->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+          if (NS_FAILED(rv)) {
+            NS_WARNING("Seek to zero failed");
+          }
+        }
+        rv = mStream->Seek(nsISeekableStream::NS_SEEK_SET, position);
         if (NS_FAILED(rv)) {
           NS_WARNING("Seek failed");
         }

@@ -52,11 +52,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsChannelToPipeListener.h"
 
-
-
-
-#define SEEK_VS_READ_THRESHOLD (32*1024)
-
 class nsDefaultStreamStrategy : public nsStreamStrategy
 {
 public:

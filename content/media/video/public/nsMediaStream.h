@@ -44,6 +44,11 @@
 #include "nsIURI.h"
 #include "prlock.h"
 
+
+
+
+#define SEEK_VS_READ_THRESHOLD (32*1024)
+
 class nsMediaDecoder;
 
 

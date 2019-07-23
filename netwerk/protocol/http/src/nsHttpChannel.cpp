@@ -1494,6 +1494,18 @@ nsHttpChannel::ProcessFallback(PRBool *fallingBack)
     return NS_OK;
 }
 
+
+
+static PRBool
+IsSubRangeRequest(nsHttpRequestHead &aRequestHead)
+{
+    if (!aRequestHead.PeekHeader(nsHttp::Range))
+        return PR_FALSE;
+    nsCAutoString byteRange;
+    aRequestHead.GetHeader(nsHttp::Range, byteRange);
+    return !byteRange.EqualsLiteral("bytes=0-");
+}
+
 nsresult
 nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
 {
@@ -1522,13 +1534,16 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
         return NS_OK;
     }
 
-    if (mRequestHead.PeekHeader(nsHttp::Range) || mResuming) {
-        
-        
+    if (mResuming) {
         
         
         return NS_OK;
     }
+
+    
+    
+    if (IsSubRangeRequest(mRequestHead))
+        return NS_OK;
 
     if (RequestIsConditional()) {
         
@@ -1725,11 +1740,10 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
         return NS_OK;
     }
 
-    if (mRequestHead.PeekHeader(nsHttp::Range)) {
-        
-        
+    
+    
+    if (IsSubRangeRequest(mRequestHead))
         return NS_OK;
-    }
 
     if (RequestIsConditional()) {
         

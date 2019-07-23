@@ -104,6 +104,11 @@ nsresult nsChannelToPipeListener::OnStartRequest(nsIRequest* aRequest, nsISuppor
   mDecoder->UpdateBytesDownloaded(mOffset);
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(aRequest);
   if (hc) {
+    nsCAutoString ranges;
+    nsresult rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("Accept-Ranges"),
+                                        ranges);
+    PRBool acceptsRanges = ranges.EqualsLiteral("bytes"); 
+
     PRUint32 responseStatus = 0; 
     hc->GetResponseStatus(&responseStatus);
     if (mSeeking && responseStatus == HTTP_OK_CODE) {
@@ -111,7 +116,7 @@ nsresult nsChannelToPipeListener::OnStartRequest(nsIRequest* aRequest, nsISuppor
       
       
       
-      mDecoder->SetSeekable(PR_FALSE);
+      mDecoder->SetSeekable(acceptsRanges);
     }
     else if (!mSeeking && 
              (responseStatus == HTTP_OK_CODE ||
@@ -124,7 +129,9 @@ nsresult nsChannelToPipeListener::OnStartRequest(nsIRequest* aRequest, nsISuppor
 
       
       
-      mDecoder->SetSeekable(responseStatus == HTTP_PARTIAL_RESPONSE_CODE);
+      
+      mDecoder->SetSeekable(responseStatus == HTTP_PARTIAL_RESPONSE_CODE ||
+                            acceptsRanges);
     }
   }
 
@@ -132,7 +139,6 @@ nsresult nsChannelToPipeListener::OnStartRequest(nsIRequest* aRequest, nsISuppor
   if (cc) {
     PRBool fromCache = PR_FALSE;
     nsresult rv = cc->IsFromCache(&fromCache);
-
     if (NS_SUCCEEDED(rv) && !fromCache) {
       cc->SetCacheAsFile(PR_TRUE);
     }
