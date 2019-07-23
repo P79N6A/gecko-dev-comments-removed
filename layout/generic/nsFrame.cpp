@@ -518,19 +518,65 @@ nsFrame::GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const
   return NS_OK;
 }
 
+static PRBool
+EqualImages(imgIRequest *aOldImage, imgIRequest *aNewImage)
+{
+  if (aOldImage == aNewImage)
+    return PR_TRUE;
+
+  if (!aOldImage || !aNewImage)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIURI> oldURI, newURI;
+  aOldImage->GetURI(getter_AddRefs(oldURI));
+  aNewImage->GetURI(getter_AddRefs(newURI));
+  PRBool equal;
+  return NS_SUCCEEDED(oldURI->Equals(newURI, &equal)) && equal;
+}
+
 
  void
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  if (aOldStyleContext) {
+    
+    
+    
+    
+    
+    
+    
+    
+    imgIRequest *oldBackgroundImage =
+      aOldStyleContext->GetStyleBackground()->mBackgroundImage;
+    if (oldBackgroundImage &&
+        !EqualImages(oldBackgroundImage,
+                     GetStyleBackground()->mBackgroundImage)) {
+      
+      PresContext()->SetImageLoaders(this,
+        nsPresContext::BACKGROUND_IMAGE, nsnull);
+    }
+  }
+
+  imgIRequest *oldBorderImage = aOldStyleContext
+    ? aOldStyleContext->GetStyleBorder()->GetBorderImage()
+    : nsnull;
   
   
   
   
   
   
-  imgIRequest *borderImage = GetStyleBorder()->GetBorderImage();
-  if (borderImage) {
-    PresContext()->LoadBorderImage(borderImage, this);
+  
+  
+  
+  
+  
+  
+  
+  if (!EqualImages(oldBorderImage, GetStyleBorder()->GetBorderImage())) {
+    
+    PresContext()->SetupBorderImageLoaders(this, GetStyleBorder());
   }
 }
 
