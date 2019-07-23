@@ -898,6 +898,14 @@ NSS_Shutdown(void)
 	shutdownRV = SECFailure;
     }
     pk11sdr_Shutdown();
+    
+
+
+
+
+
+
+    nss_DestroyErrorStack();
     nssArena_Shutdown();
     if (status == PR_FAILURE) {
 	if (NSS_GetError() == NSS_ERROR_BUSY) {

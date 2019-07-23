@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: devslot.c,v $ $Revision: 1.23 $ $Date: 2007/11/16 05:29:25 $";
+static const char CVS_ID[] = "@(#) $RCSfile: devslot.c,v $ $Revision: 1.24 $ $Date: 2008/08/09 01:25:58 $";
 #endif 
 
 #ifndef NSSCKEPV_H
@@ -49,6 +49,8 @@ static const char CVS_ID[] = "@(#) $RCSfile: devslot.c,v $ $Revision: 1.23 $ $Da
 #ifndef CKHELPER_H
 #include "ckhelper.h"
 #endif 
+
+#include "pk11pub.h"
 
 
 #define NSSSLOT_TOKEN_DELAY_TIME 1
@@ -165,11 +167,11 @@ nssSlot_IsTokenPresent (
     void *epv;
     
     if (nssSlot_IsPermanent(slot)) {
-	return PR_TRUE;
+	return !PK11_IsDisabled(slot->pk11slot);
     }
     
     if (within_token_delay_period(slot)) {
-	return (PRBool)((slot->ckFlags & CKF_TOKEN_PRESENT) != 0);
+	return ((slot->ckFlags & CKF_TOKEN_PRESENT) != 0);
     }
 
     
@@ -192,14 +194,16 @@ nssSlot_IsTokenPresent (
 	    return PR_FALSE;
 	}
 	session = nssToken_GetDefaultSession(slot->token);
-	nssSession_EnterMonitor(session);
-	
-	if (session->handle != CK_INVALID_SESSION) {
+	if (session) {
+	    nssSession_EnterMonitor(session);
 	    
-	    CKAPI(epv)->C_CloseSession(session->handle);
-	    session->handle = CK_INVALID_SESSION;
+	    if (session->handle != CK_INVALID_SESSION) {
+		
+		CKAPI(epv)->C_CloseSession(session->handle);
+		session->handle = CK_INVALID_SESSION;
+	    }
+	    nssSession_ExitMonitor(session);
 	}
-	nssSession_ExitMonitor(session);
 	if (slot->token->base.name[0] != 0) {
 	    
 	    slot->token->base.name[0] = 0; 
@@ -214,36 +218,36 @@ nssSlot_IsTokenPresent (
 
 
     session = nssToken_GetDefaultSession(slot->token);
-    nssSession_EnterMonitor(session);
-    if (session->handle != CK_INVALID_SESSION) {
-	CK_SESSION_INFO sessionInfo;
-	ckrv = CKAPI(epv)->C_GetSessionInfo(session->handle, &sessionInfo);
-	if (ckrv != CKR_OK) {
-	    
-	    CKAPI(epv)->C_CloseSession(session->handle);
-	    session->handle = CK_INVALID_SESSION;
+    if (session) {
+	nssSession_EnterMonitor(session);
+	if (session->handle != CK_INVALID_SESSION) {
+	    CK_SESSION_INFO sessionInfo;
+	    ckrv = CKAPI(epv)->C_GetSessionInfo(session->handle, &sessionInfo);
+	    if (ckrv != CKR_OK) {
+		
+		CKAPI(epv)->C_CloseSession(session->handle);
+		session->handle = CK_INVALID_SESSION;
+	    }
 	}
-    }
-    nssSession_ExitMonitor(session);
+	nssSession_ExitMonitor(session);
+	
+	if (session->handle != CK_INVALID_SESSION)
+	    return PR_TRUE;
+    } 
     
-    if (session->handle != CK_INVALID_SESSION) {
-	return PR_TRUE;
-    } else {
-	
 
 
 
-	nssToken_NotifyCertsNotVisible(slot->token);
-	nssToken_Remove(slot->token);
-	
-	nssrv = nssSlot_Refresh(slot);
-	if (nssrv != PR_SUCCESS) {
-	    slot->token->base.name[0] = 0; 
-	    slot->ckFlags &= ~CKF_TOKEN_PRESENT;
-	    return PR_FALSE;
-	}
-	return PR_TRUE;
+    nssToken_NotifyCertsNotVisible(slot->token);
+    nssToken_Remove(slot->token);
+    
+    nssrv = nssSlot_Refresh(slot);
+    if (nssrv != PR_SUCCESS) {
+        slot->token->base.name[0] = 0; 
+        slot->ckFlags &= ~CKF_TOKEN_PRESENT;
+        return PR_FALSE;
     }
+    return PR_TRUE;
 }
 
 NSS_IMPLEMENT void *

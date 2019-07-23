@@ -640,6 +640,9 @@ lg_FindPublicKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 	return LG_CLONE_ATTR(attribute,type,lg_StaticTrueAttr);
     case CKA_SUBJECT:
 	   return LG_CLONE_ATTR(attribute,type,lg_StaticNullAttr);
+    case CKA_START_DATE:
+    case CKA_END_DATE:
+	   return LG_CLONE_ATTR(attribute,type,lg_StaticNullAttr);
     case CKA_LABEL:
         label = lg_FindKeyNicknameByPublicKey(obj->sdb, &obj->dbKey);
 	if (label == NULL) {
@@ -704,9 +707,13 @@ lg_FindSecretKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
     case CKA_WRAP:
     case CKA_UNWRAP:
     case CKA_MODIFIABLE:
+    case CKA_LOCAL:
 	return LG_CLONE_ATTR(attribute,type,lg_StaticTrueAttr);
     case CKA_NEVER_EXTRACTABLE:
 	return LG_CLONE_ATTR(attribute,type,lg_StaticFalseAttr);
+    case CKA_START_DATE:
+    case CKA_END_DATE:
+	   return LG_CLONE_ATTR(attribute,type,lg_StaticNullAttr);
     case CKA_LABEL:
         label = lg_FindKeyNicknameByPublicKey(obj->sdb, &obj->dbKey);
 	if (label == NULL) {
@@ -1009,10 +1016,14 @@ lg_FindPrivateKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
     case CKA_ALWAYS_SENSITIVE:
     case CKA_EXTRACTABLE:
     case CKA_MODIFIABLE:
+    case CKA_LOCAL:
 	return LG_CLONE_ATTR(attribute,type,lg_StaticTrueAttr);
     case CKA_NEVER_EXTRACTABLE:
 	return LG_CLONE_ATTR(attribute,type,lg_StaticFalseAttr);
     case CKA_SUBJECT:
+	   return LG_CLONE_ATTR(attribute,type,lg_StaticNullAttr);
+    case CKA_START_DATE:
+    case CKA_END_DATE:
 	   return LG_CLONE_ATTR(attribute,type,lg_StaticNullAttr);
     case CKA_LABEL:
         label = lg_FindKeyNicknameByPublicKey(obj->sdb, &obj->dbKey);
@@ -1552,7 +1563,9 @@ lg_SetPrivateKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 
     
 
-    if ((type == CKA_ID) || (type == CKA_SUBJECT)) {
+    if ((type == CKA_ID) || (type == CKA_SUBJECT) ||
+	(type == CKA_LOCAL) || (type == CKA_NEVER_EXTRACTABLE) ||
+	(type == CKA_ALWAYS_SENSITIVE)) {
 	return CKR_OK;
     }
 
@@ -1584,6 +1597,20 @@ lg_SetPrivateKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
 					nickname, obj->sdb);
 	crv = (rv == SECSuccess) ? CKR_OK :  CKR_DEVICE_ERROR;
 	break;
+    case CKA_UNWRAP:
+    case CKA_SIGN:
+    case CKA_DERIVE:
+    case CKA_SIGN_RECOVER:
+    case CKA_DECRYPT:
+	
+
+
+
+
+	if (*(char *)value == 0) {
+	    crv = CKR_OK;
+	}
+	break;
     case CKA_VALUE:
     case CKA_PRIVATE_EXPONENT:
     case CKA_PRIME_1:
@@ -1593,7 +1620,7 @@ lg_SetPrivateKeyAttribute(LGObjectCache *obj, CK_ATTRIBUTE_TYPE type,
     case CKA_COEFFICIENT:
 	
 
-	*writePrivate = 1;
+	*writePrivate = PR_TRUE;
 	crv = CKR_OK;
 	break;
     default:
@@ -1689,6 +1716,11 @@ lg_SetSingleAttribute(LGObjectCache *obj, const CK_ATTRIBUTE *attr,
 {
     CK_ATTRIBUTE attribLocal;
     CK_RV crv;
+
+    if ((attr->type == CKA_NETSCAPE_DB) && (obj->objclass == CKO_PRIVATE_KEY)) {
+	*writePrivate = PR_TRUE;
+	return CKR_OK;
+    }
 
     
     attribLocal.type = attr->type;

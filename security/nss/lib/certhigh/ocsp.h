@@ -103,6 +103,12 @@ CERT_SetOCSPFailureMode(SEC_OcspFailureMode ocspFailureMode);
 
 
 extern SECStatus
+CERT_SetOCSPTimeout(PRUint32 seconds);
+
+
+
+
+extern SECStatus
 CERT_ClearOCSPCache(void);
 
 
@@ -240,7 +246,7 @@ CERT_DisableOCSPDefaultResponder(CERTCertDBHandle *handle);
 
 
 extern CERTOCSPRequest *
-CERT_CreateOCSPRequest(CERTCertList *certList, int64 time, 
+CERT_CreateOCSPRequest(CERTCertList *certList, PRTime time, 
 		       PRBool addServiceLocator,
 		       CERTCertificate *signerCert);
 
@@ -283,7 +289,7 @@ CERT_AddOCSPAcceptableResponses(CERTOCSPRequest *request,
 
 
 extern SECItem *
-CERT_EncodeOCSPRequest(PRArenaPool *arena, CERTOCSPRequest *request, 
+CERT_EncodeOCSPRequest(PLArenaPool *arena, CERTOCSPRequest *request, 
 		       void *pwArg);
 
 
@@ -387,8 +393,8 @@ CERT_DestroyOCSPResponse(CERTOCSPResponse *response);
 
 
 extern SECItem *
-CERT_GetEncodedOCSPResponse(PRArenaPool *arena, CERTCertList *certList,
-			    char *location, int64 time,
+CERT_GetEncodedOCSPResponse(PLArenaPool *arena, CERTCertList *certList,
+			    char *location, PRTime time,
 			    PRBool addServiceLocator,
 			    CERTCertificate *signerCert, void *pwArg,
 			    CERTOCSPRequest **pRequest);
@@ -525,7 +531,7 @@ CERT_ParseURL(const char *url, char **pHostname, PRUint16 *pPort, char **pPath);
     
 extern SECStatus 
 CERT_CheckOCSPStatus(CERTCertDBHandle *handle, CERTCertificate *cert,
-		     int64 time, void *pwArg);
+		     PRTime time, void *pwArg);
 
 
 
@@ -550,7 +556,7 @@ CERT_GetOCSPStatusForCertID(CERTCertDBHandle *handle,
 			    CERTOCSPResponse *response,
 			    CERTOCSPCertID   *certID,
 			    CERTCertificate  *signerCert,
-                            int64             time);
+                            PRTime            time);
 
 
 
@@ -588,7 +594,7 @@ CERT_GetOCSPResponseStatus(CERTOCSPResponse *response);
 
 
 extern CERTOCSPCertID*
-CERT_CreateOCSPCertID(CERTCertificate *cert, int64 time);
+CERT_CreateOCSPCertID(CERTCertificate *cert, PRTime time);
 
 
 

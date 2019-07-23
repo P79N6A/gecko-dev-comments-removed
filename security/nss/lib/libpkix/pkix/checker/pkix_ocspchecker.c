@@ -213,7 +213,6 @@ pkix_OcspChecker_Check(
                         (cert,
                         cid,
                         validity,
-                        PKIX_FALSE,     
                         NULL,           
                         &uriFound,
                         &request,
@@ -288,7 +287,7 @@ pkix_OcspChecker_Check(
                 PKIX_OCSPRESPONSEGETSTATUSFORCERTFAILED);
 
 cleanup:
-        if (!passed && cid && cid->certID && !cid->certIDWasConsumed) {
+        if (!passed && cid && cid->certID) {
                 
 
 

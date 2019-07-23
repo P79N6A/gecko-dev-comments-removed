@@ -297,35 +297,6 @@ PKIX_PL_Free(
 
 
 
-PKIX_Error *
-PKIX_PL_Memcpy(
-        void *source,
-        PKIX_UInt32 length,
-        void **pDest,
-        void *plContext);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

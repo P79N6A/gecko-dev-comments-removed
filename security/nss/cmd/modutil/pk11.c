@@ -683,8 +683,6 @@ ChangePW(char *tokenName, char *pwFile, char *newpwFile)
 	return NO_SUCH_TOKEN_ERR;
     }
 
-    PK11_SetPasswordFunc(SECU_GetModulePassword);
-
     
     if(! PK11_NeedUserInit(slot)) {
 	if(pwFile) {

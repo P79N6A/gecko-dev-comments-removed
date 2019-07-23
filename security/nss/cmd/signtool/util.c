@@ -637,42 +637,6 @@ static int	is_dir (char *filename)
 
 
 
-
-
-SECItem *
-password_hardcode(void *arg, void *handle)
-{
-    SECItem * pw = NULL;
-    if (password) {
-	pw = SECITEM_AllocItem(NULL, NULL, PL_strlen(password));
-	pw->data = (unsigned char *)PL_strdup(password);
-	password = NULL;
-    }
-    return pw;
-}
-
-char	*
-pk11_password_hardcode(PK11SlotInfo *slot, PRBool retry, void *arg)
-{
-    char	*pw;
-    if (retry) {
-	return NULL; 
-    }
-    pw = password ? PORT_Strdup (password) : NULL;
-    
-    
-    return pw;
-}
-
-
-
-
-
-
-
-
-
-
 const char	*
 secErrorString(long code)
 {
@@ -831,15 +795,7 @@ JarListModules(void)
 
     SECMODModuleList * mlp;
 
-    modules = SECMOD_GetDefaultModuleList();
-
-    if (modules == NULL) {
-	PR_fprintf(errorFD, "%s: Can't get module list\n", PROGRAM_NAME);
-	errorCount++;
-	exit (ERRX);
-    }
-
-    if ((moduleLock = SECMOD_NewListLock()) == NULL) {
+    if ((moduleLock = SECMOD_GetDefaultModuleListLock()) == NULL) {
 	
 	PR_fprintf(errorFD, "%s: unable to acquire lock on module list\n",
 	     		PROGRAM_NAME);
@@ -848,6 +804,15 @@ JarListModules(void)
     }
 
     SECMOD_GetReadLock (moduleLock);
+
+    modules = SECMOD_GetDefaultModuleList();
+
+    if (modules == NULL) {
+	SECMOD_ReleaseReadLock (moduleLock);
+	PR_fprintf(errorFD, "%s: Can't get module list\n", PROGRAM_NAME);
+	errorCount++;
+	exit (ERRX);
+    }
 
     PR_fprintf(outputFD, "\nListing of PKCS11 modules\n");
     PR_fprintf(outputFD, "-----------------------------------------------\n");
@@ -977,12 +942,7 @@ InitCrypto(char *cert_dir, PRBool readOnly)
 	
 	prior++;
 
-	if (password) {
-	    PK11_SetPasswordFunc(pk11_password_hardcode);
-	} else {
-	    PK11_SetPasswordFunc(SECU_GetModulePassword);
-	}
-	
+        PK11_SetPasswordFunc(SECU_GetModulePassword);
 
 	
 	if (PK11_IsFIPS()) {
@@ -993,7 +953,7 @@ InitCrypto(char *cert_dir, PRBool readOnly)
 		return - 1;
 	    }
 	    if (PK11_Authenticate(slotinfo, PR_FALSE ,
-	         			  NULL ) != SECSuccess) {
+	         			  &pwdata) != SECSuccess) {
 		fprintf(stderr, "%s: Unable to authenticate to %s.\n",
 				    PROGRAM_NAME, PK11_GetSlotName(slotinfo));
 		PK11_FreeSlot(slotinfo);
@@ -1019,7 +979,7 @@ InitCrypto(char *cert_dir, PRBool readOnly)
 	
 	if (PK11_IsFIPS()) {
 	    if (PK11_Authenticate(slotinfo, PR_FALSE ,
-	         			  NULL ) != SECSuccess) {
+	         			  &pwdata) != SECSuccess) {
 		fprintf(stderr, "%s: Unable to authenticate to %s.\n",
 				PROGRAM_NAME, PK11_GetSlotName(slotinfo));
 		PK11_FreeSlot(slotinfo);

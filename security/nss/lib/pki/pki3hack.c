@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.94 $ $Date: 2008/03/15 02:15:36 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.96 $ $Date: 2008/08/09 01:26:05 $";
 #endif 
 
 
@@ -104,9 +104,12 @@ STAN_InitTokenForSlotInfo(NSSTrustDomain *td, PK11SlotInfo *slot)
     }
     token = nssToken_CreateFromPK11SlotInfo(td, slot);
     PK11Slot_SetNSSToken(slot, token);
-    NSSRWLock_LockWrite(td->tokensLock);
-    nssList_Add(td->tokenList, token);
-    NSSRWLock_UnlockWrite(td->tokensLock);
+    
+    if (token) {
+	NSSRWLock_LockWrite(td->tokensLock);
+	nssList_Add(td->tokenList, token);
+	NSSRWLock_UnlockWrite(td->tokensLock);
+    }
     return PR_SUCCESS;
 }
 
@@ -319,19 +322,18 @@ nss3certificate_matchIdentifier(nssDecodedCert *dc, void *id)
     nssCertIDMatch match = nssCertIDMatch_Unknown;
 
     
-    if (authKeyID->keyID.len > 0) {
-	if (CERT_FindSubjectKeyIDExtension(c, &skid) == SECSuccess) {
-	    PRBool skiEqual;
-	    skiEqual = SECITEM_ItemsAreEqual(&authKeyID->keyID, &skid);
-	    PORT_Free(skid.data);
-	    if (skiEqual) {
-		
-		match = nssCertIDMatch_Yes;
-	    } else {
-		
-		return nssCertIDMatch_No;
-	    }
-	} 
+    if (authKeyID->keyID.len > 0 &&
+	CERT_FindSubjectKeyIDExtension(c, &skid) == SECSuccess) {
+	PRBool skiEqual;
+	skiEqual = SECITEM_ItemsAreEqual(&authKeyID->keyID, &skid);
+	PORT_Free(skid.data);
+	if (skiEqual) {
+	    
+	    match = nssCertIDMatch_Yes;
+	} else {
+	    
+	    return nssCertIDMatch_No;
+	}
     }
 
     
@@ -342,27 +344,15 @@ nss3certificate_matchIdentifier(nssDecodedCert *dc, void *id)
 	caName = (SECItem *)CERT_GetGeneralNameByType(
 	                                        authKeyID->authCertIssuer,
 						certDirectoryName, PR_TRUE);
-	if (caName == NULL) {
-	    
-	    return nssCertIDMatch_Unknown;
-	}
-	if (SECITEM_ItemsAreEqual(&c->derIssuer, caName) &&
+	if (caName != NULL &&
+	    SECITEM_ItemsAreEqual(&c->derIssuer, caName) &&
 	    SECITEM_ItemsAreEqual(&c->serialNumber, caSN)) 
 	{
-	    
 	    match = nssCertIDMatch_Yes;
 	} else {
-	    
-	    return nssCertIDMatch_No;
+	    match = nssCertIDMatch_Unknown;
 	}
     }
-
-    
-
-
-
-
-
     return match;
 }
 

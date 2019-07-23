@@ -123,7 +123,7 @@ struct CERTRDNStr {
 
 
 struct CERTNameStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTRDN **rdns;
 };
 
@@ -131,7 +131,7 @@ struct CERTNameStr {
 
 
 struct CERTValidityStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem notBefore;
     SECItem notAfter;
 };
@@ -158,7 +158,7 @@ struct CERTSignedDataStr {
 
 
 struct CERTSubjectPublicKeyInfoStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECAlgorithmID algorithm;
     SECItem subjectPublicKey;
 };
@@ -206,7 +206,7 @@ struct CERTSubjectNodeStr {
 };
 
 struct CERTSubjectListStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     int ncerts;
     char *emailAddr;
     CERTSubjectNode *head;
@@ -224,7 +224,7 @@ struct CERTCertificateStr {
 
 
 
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 
     
     char *subjectName;
@@ -327,7 +327,7 @@ struct CERTCertificateStr {
 #define SEC_CERT_CLASS_EMAIL	4
 
 struct CERTDERCertsStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     int numcerts;
     SECItem *rawCerts;
 };
@@ -346,7 +346,7 @@ struct CERTAttributeStr {
 
 
 struct CERTCertificateRequestStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem version;
     CERTName subject;
     CERTSubjectPublicKeyInfo subjectPublicKeyInfo;
@@ -361,7 +361,7 @@ struct CERTCertificateRequestStr {
 struct CERTCertificateListStr {
     SECItem *certs;
     int len;					
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 };
 
 struct CERTCertListNodeStr {
@@ -372,7 +372,7 @@ struct CERTCertListNodeStr {
 
 struct CERTCertListStr {
     PRCList list;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 };
 
 #define CERT_LIST_HEAD(l) ((CERTCertListNode *)PR_LIST_HEAD(&l->list))
@@ -387,7 +387,7 @@ struct CERTCrlEntryStr {
 };
 
 struct CERTCrlStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem version;
     SECAlgorithmID signatureAlg;
     SECItem derName;
@@ -408,7 +408,7 @@ struct CERTCrlKeyStr {
 };
 
 struct CERTSignedCrlStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTCrl crl;
     void *reserved1;
     PRBool reserved2;
@@ -426,7 +426,7 @@ struct CERTSignedCrlStr {
 
 
 struct CERTCrlHeadNodeStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTCertDBHandle *dbhandle;
     CERTCrlNode *first;
     CERTCrlNode *last;
@@ -444,7 +444,7 @@ struct CERTCrlNodeStr {
 
 
 struct CERTDistNamesStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     int nnames;
     SECItem  *names;
     void *head; 
@@ -551,7 +551,7 @@ typedef enum CERTCompareValidityStatusEnum
 #define SEC_CERT_NICKNAMES_CA		4
 
 struct CERTCertNicknamesStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     void *head;
     int numnicknames;
     char **nicknames;
@@ -677,7 +677,7 @@ struct CERTGeneralNameStr {
 };
 
 struct CERTGeneralNameListStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTGeneralName *name;
     int refCount;
     int len;
@@ -705,7 +705,7 @@ struct CERTNameConstraintsStr {
 struct CERTPrivKeyUsagePeriodStr {
     SECItem notBefore;
     SECItem notAfter;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 };
 
 
@@ -769,7 +769,7 @@ struct CERTVerifyLogNodeStr {
 
 
 struct CERTVerifyLogStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     unsigned int count;
     struct CERTVerifyLogNodeStr *head;
     struct CERTVerifyLogNodeStr *tail;
@@ -784,7 +784,7 @@ struct CERTOKDomainNameStr {
 
 typedef SECStatus (PR_CALLBACK *CERTStatusChecker) (CERTCertDBHandle *handle,
 						    CERTCertificate *cert,
-						    int64 time,
+						    PRTime time,
 						    void *pwArg);
 
 typedef SECStatus (PR_CALLBACK *CERTStatusDestroy) (CERTStatusConfig *handle);
@@ -833,7 +833,7 @@ typedef struct {
 } CERTPolicyInfo;
 
 typedef struct {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTPolicyInfo **policyInfos;
 } CERTCertificatePolicies;
 
@@ -843,14 +843,14 @@ typedef struct {
 } CERTNoticeReference;
 
 typedef struct {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTNoticeReference noticeReference;
     SECItem derNoticeReference;
     SECItem displayText;
 } CERTUserNotice;
 
 typedef struct {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem **oids;
 } CERTOidSequence;
 
@@ -863,7 +863,7 @@ typedef struct {
 } CERTPolicyMap;
 
 typedef struct {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CERTPolicyMap **policyMaps;
 } CERTCertificatePolicyMappings;
 
@@ -941,6 +941,9 @@ typedef enum {
 
    cert_pi_trustAnchors    = 11,
 
+
+
+   cert_pi_useAIACertFetch = 12, 
 
 
    cert_pi_max                  
@@ -1226,6 +1229,16 @@ typedef struct {
     CERTValParamOutType type;
     CERTValParamOutValue value;
 } CERTValOutParam;
+
+
+
+
+typedef enum CertStrictnessLevels {
+    CERT_N2A_READABLE   =  0, 
+    CERT_N2A_STRICT     = 10, 
+    CERT_N2A_INVERTIBLE = 20  
+
+} CertStrictnessLevel;
 
 
 

@@ -44,21 +44,22 @@
 #include "secitem.h"
 #include "secerr.h"
 
-struct NameToKind {
+typedef struct NameToKindStr {
     const char * name;
     unsigned int maxLen; 
     SECOidTag    kind;
     int		 valueType;
-};
+} NameToKind;
 
 
 #define SEC_ASN1_DS SEC_ASN1_HIGH_TAG_NUMBER
 
 
-static const struct NameToKind name2kinds[] = {
+static const NameToKind name2kinds[] = {
 
 
-    
+
+
     { "CN",             64, SEC_OID_AVA_COMMON_NAME,    SEC_ASN1_DS},
     { "ST",            128, SEC_OID_AVA_STATE_OR_PROVINCE,
 							SEC_ASN1_DS},
@@ -69,7 +70,8 @@ static const struct NameToKind name2kinds[] = {
     { "dnQualifier", 32767, SEC_OID_AVA_DN_QUALIFIER, SEC_ASN1_PRINTABLE_STRING},
     { "C",               2, SEC_OID_AVA_COUNTRY_NAME, SEC_ASN1_PRINTABLE_STRING},
     { "serialNumber",   64, SEC_OID_AVA_SERIAL_NUMBER,SEC_ASN1_PRINTABLE_STRING},
-    
+
+
     { "L",             128, SEC_OID_AVA_LOCALITY,       SEC_ASN1_DS},
     { "title",          64, SEC_OID_AVA_TITLE,          SEC_ASN1_DS},
     { "SN",             64, SEC_OID_AVA_SURNAME,        SEC_ASN1_DS},
@@ -78,24 +80,34 @@ static const struct NameToKind name2kinds[] = {
     { "generationQualifier",
                         64, SEC_OID_AVA_GENERATION_QUALIFIER,
                                                         SEC_ASN1_DS},
-    
+
     { "DC",            128, SEC_OID_AVA_DC,             SEC_ASN1_IA5_STRING},
-    
+    { "MAIL",          256, SEC_OID_RFC1274_MAIL,       SEC_ASN1_IA5_STRING},
+    { "UID",           256, SEC_OID_RFC1274_UID,        SEC_ASN1_DS},
+
+
+
+
+
+
+
+
+
+
+
     { "postalAddress", 128, SEC_OID_AVA_POSTAL_ADDRESS, SEC_ASN1_DS},
     { "postalCode",     40, SEC_OID_AVA_POSTAL_CODE,    SEC_ASN1_DS},
     { "postOfficeBox",  40, SEC_OID_AVA_POST_OFFICE_BOX,SEC_ASN1_DS},
     { "houseIdentifier",64, SEC_OID_AVA_HOUSE_IDENTIFIER,SEC_ASN1_DS},
-    
-    { "MAIL",          256, SEC_OID_RFC1274_MAIL,       SEC_ASN1_IA5_STRING},
-    { "UID",           256, SEC_OID_RFC1274_UID,        SEC_ASN1_DS},
-    
+
+
 
     { "E",             128, SEC_OID_PKCS9_EMAIL_ADDRESS,SEC_ASN1_DS},
-
 
 #if 0 
     { "pseudonym",      64, SEC_OID_AVA_PSEUDONYM,      SEC_ASN1_DS},
 #endif
+
     { 0,           256, SEC_OID_UNKNOWN                      , 0},
 };
 
@@ -131,7 +143,7 @@ static const struct NameToKind name2kinds[] = {
 int
 cert_AVAOidTagToMaxLen(SECOidTag tag)
 {
-    const struct NameToKind *n2k = name2kinds;
+    const NameToKind *n2k = name2kinds;
 
     while (n2k->kind != tag && n2k->kind != SEC_OID_UNKNOWN) {
 	++n2k;
@@ -355,7 +367,7 @@ CERT_ParseRFC1485AVA(PRArenaPool *arena, char **pbp, char *endptr,
 		    PRBool singleAVA) 
 {
     CERTAVA *a;
-    const struct NameToKind *n2k;
+    const NameToKind *n2k;
     char *bp;
     int       vt = -1;
     int       valLen;
@@ -555,14 +567,13 @@ AppendStr(stringBuf *bufp, char *str)
     return SECSuccess;
 }
 
-SECStatus
-CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
+static int
+cert_RFC1485_GetRequiredLen(const char *src, int srclen, PRBool *pNeedsQuoting)
 {
     int i, reqLen=0;
-    char *d = dst;
     PRBool needsQuoting = PR_FALSE;
     char lastC = 0;
-    
+
     
     for (i = 0; i < srclen; i++) {
 	char c = src[i];
@@ -583,17 +594,29 @@ CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
 	(OPTIONAL_SPACE(src[srclen-1]) || OPTIONAL_SPACE(src[0]))) {
 	needsQuoting = PR_TRUE;
     }
-    
-    if (needsQuoting) reqLen += 2;
+
+    if (needsQuoting) 
+    	reqLen += 2;
+    if (pNeedsQuoting)
+    	*pNeedsQuoting = needsQuoting;
+
+    return reqLen;
+}
+
+SECStatus
+CERT_RFC1485_EscapeAndQuote(char *dst, int dstlen, char *src, int srclen)
+{
+    int i, reqLen=0;
+    char *d = dst;
+    PRBool needsQuoting = PR_FALSE;
 
     
-    reqLen++;
-    
+    reqLen = cert_RFC1485_GetRequiredLen(src, srclen, &needsQuoting) + 1;
     if (reqLen > dstlen) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
 	return SECFailure;
     }
-    
+
     d = dst;
     if (needsQuoting) *d++ = C_DOUBLE_QUOTE;
     for (i = 0; i < srclen; i++) {
@@ -722,98 +745,199 @@ get_hex_string(SECItem *data)
     return rv;
 }
 
-static SECStatus
-AppendAVA(stringBuf *bufp, CERTAVA *ava)
-{
-    const struct NameToKind *n2k = name2kinds;
-    const char *tagName;
-    unsigned len, maxLen;
-    int tag;
-    SECStatus rv;
-    SECItem *avaValue = NULL;
-    char *unknownTag = NULL;
-    PRBool hexValue = PR_FALSE;
-    char tmpBuf[384];
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static SECStatus
+AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
+{
+    const NameToKind *pn2k   = name2kinds;
+    SECItem     *avaValue    = NULL;
+    char        *unknownTag  = NULL;
+    char        *encodedAVA  = NULL;
+    PRBool       useHex      = PR_FALSE;  
+    SECOidTag    endKind;
+    SECStatus    rv;
+    unsigned int len;
+    int          nameLen, valueLen;
+    NameToKind   n2k         = { NULL, 32767, SEC_OID_UNKNOWN, SEC_ASN1_DS };
+    char         tmpBuf[384];
+
+#define tagName  n2k.name    /* non-NULL means use NAME= form */
+#define maxBytes n2k.maxLen
+#define tag      n2k.kind
+#define vt       n2k.valueType
+
+    
+
+
+
+    endKind = (strict == CERT_N2A_READABLE) ? SEC_OID_UNKNOWN
+                                            : SEC_OID_AVA_POSTAL_ADDRESS;
     tag = CERT_GetAVATag(ava);
-    while (n2k->kind != tag && n2k->kind != SEC_OID_UNKNOWN) {
-        ++n2k;
+    while (pn2k->kind != tag && pn2k->kind != endKind) {
+        ++pn2k;
     }
-    if (n2k->kind != SEC_OID_UNKNOWN) {
-        tagName = n2k->name;
-    } else {
+
+    if (pn2k->kind != endKind ) {
+        n2k = *pn2k;
+    } else if (strict != CERT_N2A_READABLE) {
+        useHex = PR_TRUE;
+    }
+    
+    if (strict == CERT_N2A_INVERTIBLE && vt == SEC_ASN1_DS) {
+	tagName = NULL;      
+	useHex = PR_TRUE;    
+    }
+    if (!useHex) {
+	avaValue = CERT_DecodeAVAValue(&ava->value);
+	if (!avaValue) {
+	    useHex = PR_TRUE;
+	    if (strict != CERT_N2A_READABLE) {
+		tagName = NULL;  
+	    }
+	}
+    }
+    if (!tagName) {
 	
 	tagName = unknownTag = CERT_GetOidString(&ava->type);
-	if (!tagName)
+	if (!tagName) {
+	    if (avaValue)
+		SECITEM_FreeItem(avaValue, PR_TRUE);
 	    return SECFailure;
+	}
     }
-    maxLen = n2k->maxLen;
-
-#ifdef NSS_STRICT_RFC_2253_VALUES_ONLY
-    if (!unknownTag)
-#endif
-    avaValue = CERT_DecodeAVAValue(&ava->value);
-    if(!avaValue) {
-	
+    if (useHex) {
 	avaValue = get_hex_string(&ava->value);
-	if(!avaValue) {
-	    if (unknownTag) PR_smprintf_free(unknownTag);
+	if (!avaValue) {
+	    if (unknownTag) 
+	    	PR_smprintf_free(unknownTag);
 	    return SECFailure;
 	}
-	hexValue = PR_TRUE;
     }
 
-    
-    if (avaValue->len > maxLen + 3) {  
+    if (strict == CERT_N2A_READABLE) {
+    	if (maxBytes > sizeof(tmpBuf) - 4)
+	    maxBytes = sizeof(tmpBuf) - 4;
 	
+	if (avaValue->len > maxBytes + 3) {
+	    
 
 
 
 
-	while (((avaValue->data[maxLen] & 0xc0) == 0x80) && maxLen > 0) {
-	   maxLen--;
+	    len = maxBytes;
+	    while (((avaValue->data[len] & 0xc0) == 0x80) && len > 0) {
+	       len--;
+	    }
+	    
+	    avaValue->data[len++] = '.'; 
+	    avaValue->data[len++] = '.';
+	    avaValue->data[len++] = '.';
+	    avaValue->data[len]   = 0;
+	    avaValue->len = len;
 	}
-	
-	avaValue->data[maxLen++] = '.'; 
-	avaValue->data[maxLen++] = '.';
-	avaValue->data[maxLen++] = '.';
-	avaValue->data[maxLen]   = 0;
-	avaValue->len = maxLen;
     }
 
-    len = PORT_Strlen(tagName);
-    if (len+1 > sizeof(tmpBuf)) {
-	if (unknownTag) PR_smprintf_free(unknownTag);
-	SECITEM_FreeItem(avaValue, PR_TRUE);
+    nameLen  = strlen(tagName);
+    valueLen = (useHex ? avaValue->len : 
+            cert_RFC1485_GetRequiredLen(avaValue->data, avaValue->len, NULL));
+    len = nameLen + valueLen + 2; 
+
+    if (len <= sizeof(tmpBuf)) {
+    	encodedAVA = tmpBuf;
+    } else if (strict == CERT_N2A_READABLE) {
 	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
+    } else {
+	encodedAVA = PORT_Alloc(len);
+    }
+    if (!encodedAVA) {
+	SECITEM_FreeItem(avaValue, PR_TRUE);
+	if (unknownTag) 
+	    PR_smprintf_free(unknownTag);
 	return SECFailure;
     }
-    PORT_Memcpy(tmpBuf, tagName, len);
-    if (unknownTag) PR_smprintf_free(unknownTag);
-    tmpBuf[len++] = '=';
+    memcpy(encodedAVA, tagName, nameLen);
+    if (unknownTag) 
+    	PR_smprintf_free(unknownTag);
+    encodedAVA[nameLen++] = '=';
     
     
-    if (hexValue) {
-        
-	if (avaValue->len + len + 1 > sizeof tmpBuf) {
-	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-	    rv = SECFailure;
-    	} else {
-	    PORT_Strncpy(tmpBuf+len, (char *)avaValue->data, avaValue->len + 1);
-	    rv = SECSuccess;
-	}
+    if (useHex) {
+	memcpy(encodedAVA + nameLen, (char *)avaValue->data, avaValue->len);
+	encodedAVA[nameLen + avaValue->len] = '\0';
+	rv = SECSuccess;
     } else 
-	rv = CERT_RFC1485_EscapeAndQuote(tmpBuf+len, sizeof(tmpBuf)-len, 
-		    		     (char *)avaValue->data, avaValue->len);
+	rv = CERT_RFC1485_EscapeAndQuote(encodedAVA + nameLen, len - nameLen, 
+		    		        (char *)avaValue->data, avaValue->len);
     SECITEM_FreeItem(avaValue, PR_TRUE);
-    if (rv) return SECFailure;
-    
-    rv = AppendStr(bufp, tmpBuf);
+    if (rv == SECSuccess)
+	rv = AppendStr(bufp, encodedAVA);
+    if (encodedAVA != tmpBuf)
+    	PORT_Free(encodedAVA);
     return rv;
 }
 
+#undef tagName
+#undef maxBytes
+#undef tag
+#undef vt
+
 char *
-CERT_NameToAscii(CERTName *name)
+CERT_NameToAsciiInvertible(CERTName *name, CertStrictnessLevel strict)
 {
     CERTRDN** rdns;
     CERTRDN** lastRdn;
@@ -854,7 +978,7 @@ CERT_NameToAscii(CERTName *name)
 	    }
 	    
 	    
-	    rv = AppendAVA(&strBuf, ava);
+	    rv = AppendAVA(&strBuf, ava, strict);
 	    if (rv) goto loser;
 	    newRDN = PR_FALSE;
 	}
@@ -865,6 +989,12 @@ loser:
 	PORT_Free(strBuf.buffer);
     }
     return NULL;
+}
+
+char *
+CERT_NameToAscii(CERTName *name)
+{
+    return CERT_NameToAsciiInvertible(name, CERT_N2A_READABLE);
 }
 
 

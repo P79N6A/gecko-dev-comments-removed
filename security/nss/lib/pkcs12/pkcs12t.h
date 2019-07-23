@@ -84,7 +84,7 @@ typedef SECItem *(* SEC_PKCS12PasswordFunc)(SECItem *args);
 
 struct SEC_PKCS12BaggageStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SEC_PKCS12BaggageItem **bags;
 
     int luggage_size;		
@@ -95,7 +95,7 @@ struct SEC_PKCS12BaggageStr
 
 struct SEC_PKCS12PVKAdditionalDataStr
 {
-    PRArenaPool	*poolp;
+    PLArenaPool	*poolp;
     SECOidData	*pvkAdditionalTypeTag;	
     SECItem     pvkAdditionalType;
     SECItem     pvkAdditionalContent;
@@ -106,7 +106,7 @@ struct SEC_PKCS12PVKAdditionalDataStr
 
 struct SEC_PKCS12PVKSupportingDataStr
 {
-    PRArenaPool		*poolp;
+    PLArenaPool		*poolp;
     SGNDigestInfo 	**assocCerts;
     SECItem		regenerable;
     SECItem         	nickname;
@@ -123,7 +123,7 @@ struct SEC_PKCS12PVKSupportingDataStr
 
 struct SEC_PKCS12ESPVKItemStr
 {
-    PRArenaPool *poolp;		
+    PLArenaPool *poolp;		
     SECOidData	*espvkTag;	
     SECItem	espvkOID;
     SEC_PKCS12PVKSupportingData espvkData;
@@ -144,7 +144,7 @@ struct SEC_PKCS12ESPVKItemStr
 
 struct SEC_PKCS12SafeBagStr
 {
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     SECOidData	*safeBagTypeTag;	
     SECItem     safeBagType;
     union
@@ -165,7 +165,7 @@ struct SEC_PKCS12SafeBagStr
 
 struct SEC_PKCS12SafeContentsStr
 {
-    PRArenaPool     	*poolp;
+    PLArenaPool     	*poolp;
     SEC_PKCS12SafeBag	**contents;
 
     
@@ -180,7 +180,7 @@ struct SEC_PKCS12SafeContentsStr
 
 struct SEC_PKCS12PrivateKeyStr
 {
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     SEC_PKCS12PVKSupportingData pvkData;
     SECKEYPrivateKeyInfo	pkcs8data;   
 
@@ -196,7 +196,7 @@ struct SEC_PKCS12PrivateKeyStr
 
 struct SEC_PKCS12PrivateKeyBagStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SEC_PKCS12PrivateKey 	**privateKeys;
 
     int bag_size;	
@@ -207,7 +207,7 @@ struct SEC_PKCS12PrivateKeyBagStr
 
 struct SEC_PKCS12CertAndCRLStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SECOidData	    *BagTypeTag;    
     SECItem         BagID;
     union
@@ -227,7 +227,7 @@ struct SEC_PKCS12CertAndCRLStr
 
 struct SEC_PKCS12X509CertCRLStr
 {
-    PRArenaPool     		*poolp;
+    PLArenaPool     		*poolp;
     SEC_PKCS7ContentInfo	certOrCRL;
     SGNDigestInfo		thumbprint;
 
@@ -240,7 +240,7 @@ struct SEC_PKCS12X509CertCRLStr
 
 struct SEC_PKCS12SDSICertStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SECItem         value;
     SGNDigestInfo   thumbprint;
 };
@@ -248,7 +248,7 @@ struct SEC_PKCS12SDSICertStr
 
 struct SEC_PKCS12CertAndCRLBagStr
 {
-    PRArenaPool     		*poolp;
+    PLArenaPool     		*poolp;
     SEC_PKCS12CertAndCRL	**certAndCRLs;
 
     int bag_size;	
@@ -259,7 +259,7 @@ struct SEC_PKCS12CertAndCRLBagStr
 
 struct SEC_PKCS12SecretAdditionalStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SECOidData	    *secretTypeTag;         
     SECItem         secretAdditionalType;
     SECItem         secretAdditionalContent;
@@ -270,7 +270,7 @@ struct SEC_PKCS12SecretAdditionalStr
 
 struct SEC_PKCS12SecretStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SECItem	secretName;
     SECItem	value;
     SEC_PKCS12SecretAdditional	secretAdditional;
@@ -280,7 +280,7 @@ struct SEC_PKCS12SecretStr
 
 struct SEC_PKCS12SecretItemStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SEC_PKCS12Secret	secret;
     SEC_PKCS12SafeBag	subFolder;
 };    
@@ -289,7 +289,7 @@ struct SEC_PKCS12SecretItemStr
 
 struct SEC_PKCS12SecretBagStr
 {
-    PRArenaPool     	*poolp;
+    PLArenaPool     	*poolp;
     SEC_PKCS12SecretItem	**secrets;
 
     int bag_size;	
@@ -304,7 +304,7 @@ struct SEC_PKCS12MacDataStr
 
 struct SEC_PKCS12PFXItemStr
 {
-    PRArenaPool		*poolp;
+    PLArenaPool		*poolp;
     SEC_PKCS12MacData	macData;
     SEC_PKCS7ContentInfo	authSafe; 
 
@@ -318,7 +318,7 @@ struct SEC_PKCS12PFXItemStr
 };
 
 struct SEC_PKCS12BaggageItemStr {
-    PRArenaPool	    *poolp;
+    PLArenaPool	    *poolp;
     SEC_PKCS12ESPVKItem	**espvks;
     SEC_PKCS12SafeBag	**unencSecrets;
 
@@ -329,7 +329,7 @@ struct SEC_PKCS12BaggageItemStr {
 
 struct SEC_PKCS12Baggage_OLDStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SEC_PKCS12ESPVKItem **espvks;
 
     int luggage_size;		
@@ -338,7 +338,7 @@ struct SEC_PKCS12Baggage_OLDStr
 
 struct SEC_PKCS12AuthenticatedSafeStr
 {
-    PRArenaPool     *poolp;
+    PLArenaPool     *poolp;
     SECItem         version;
     SECOidData	    *transportTypeTag;	
     SECItem         transportMode;

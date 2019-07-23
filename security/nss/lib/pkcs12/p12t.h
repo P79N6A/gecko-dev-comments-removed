@@ -111,7 +111,7 @@ struct sec_PKCS12SafeBagStr {
 
     
     SECOidData *bagTypeTag;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     unsigned int nAttribs;
 
     
@@ -130,7 +130,7 @@ struct sec_PKCS12SafeContentsStr {
     SECItem **encodedSafeBags;
     
     
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     unsigned int bagCount;
 };
 

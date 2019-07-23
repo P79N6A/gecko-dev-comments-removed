@@ -303,7 +303,6 @@ pkix_VerifyNode_AddToTree(
         void *plContext)
 {
         PKIX_List *listOfChildren = NULL;
-        PKIX_UInt32 numChildren = 0;
         PKIX_UInt32 parentDepth = 0;
 
         PKIX_ENTER(VERIFYNODE, "pkix_VerifyNode_AddToTree");
@@ -1139,4 +1138,79 @@ pkix_VerifyNode_SetError(
 
 cleanup:
         PKIX_RETURN(VERIFYNODE);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+pkix_VerifyNode_FindError(
+        PKIX_VerifyNode *node,
+        PKIX_Error **error,
+        void *plContext)
+{
+    PKIX_VerifyNode *childNode = NULL;
+
+    PKIX_ENTER(VERIFYNODE, "PKIX_VerifyNode_FindError");
+
+    
+    PKIX_DECREF(*error);
+
+    if (!node)
+        goto cleanup;
+    
+    
+    if (node->children) {
+        PKIX_UInt32 length = 0;
+        PKIX_UInt32 index = 0;
+
+        PKIX_CHECK(
+            PKIX_List_GetLength(node->children, &length,
+                                plContext),
+            PKIX_LISTGETLENGTHFAILED);
+        for (index = 0;index < length;index++) {
+            PKIX_CHECK(
+                PKIX_List_GetItem(node->children, index,
+                                  (PKIX_PL_Object**)&childNode, plContext),
+                PKIX_LISTGETITEMFAILED);
+            if (!childNode)
+                continue;
+            PKIX_CHECK(
+                pkix_VerifyNode_FindError(childNode, error,
+                                          plContext),
+                PKIX_VERIFYNODEFINDERRORFAILED);
+            PKIX_DECREF(childNode);
+            if (*error) {
+                goto cleanup;
+            }
+        }
+    }
+    
+    if (node->error) {
+        PKIX_INCREF(node->error);
+        *error = node->error;
+    }
+
+cleanup:
+    PKIX_DECREF(childNode);
+    
+    PKIX_RETURN(VERIFYNODE);
 }

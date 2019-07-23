@@ -153,7 +153,7 @@ loader_LoadLibrary(const char *nameToLoad)
 
 
     fullPath = PR_GetLibraryFilePathname(NameOfThisSharedLib,
-                                         &loader_LoadLibrary);
+                                         (PRFuncPtr)&loader_LoadLibrary);
 
     if (fullPath) {
         lib = loader_LoadLibInReferenceDir(fullPath, nameToLoad);

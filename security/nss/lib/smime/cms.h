@@ -68,7 +68,7 @@ SEC_BEGIN_PROTOS
 
 
 extern NSSCMSDecoderContext *
-NSS_CMSDecoder_Start(PRArenaPool *poolp,
+NSS_CMSDecoder_Start(PLArenaPool *poolp,
 		      NSSCMSContentCallback cb, void *cb_arg,
 		      PK11PasswordFunc pwfn, void *pwfn_arg,
 		      NSSCMSGetDecryptKeyCallback decrypt_key_cb, void *decrypt_key_cb_arg);
@@ -570,7 +570,7 @@ NSS_CMSSignedData_SetDigestValue(NSSCMSSignedData *sigd,
 				SECItem *digestdata);
 
 extern SECStatus
-NSS_CMSSignedData_AddDigest(PRArenaPool *poolp,
+NSS_CMSSignedData_AddDigest(PLArenaPool *poolp,
 				NSSCMSSignedData *sigd,
 				SECOidTag digestalgtag,
 				SECItem *digest);
@@ -899,7 +899,7 @@ NSS_CMSRecipientInfo_GetEncryptedKey(NSSCMSRecipientInfo *ri, int subIndex);
 
 
 
-SECStatus NSS_CMSRecipientInfo_Encode(PRArenaPool* poolp,
+SECStatus NSS_CMSRecipientInfo_Encode(PLArenaPool* poolp,
                                       const NSSCMSRecipientInfo *src,
                                       SECItem* returned);
 

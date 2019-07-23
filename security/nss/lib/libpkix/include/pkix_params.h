@@ -757,6 +757,64 @@ PKIX_ProcessingParams_SetTrustAnchors(
 
 
 PKIX_Error *
+PKIX_ProcessingParams_GetUseAIAForCertFetching(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pUseAIA,  
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_ProcessingParams_SetUseAIAForCertFetching(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean useAIA,  
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
 PKIX_ProcessingParams_GetHintCerts(
         PKIX_ProcessingParams *params,
         PKIX_List **pHintCerts,

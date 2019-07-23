@@ -354,6 +354,7 @@ EC_NewKeyFromSeed(ECParams *ecParams, ECPrivateKey **privKey,
     return rv;
 }
 
+#ifdef NSS_ENABLE_ECC
 
 
 
@@ -409,6 +410,7 @@ cleanup:
     }
     return privKeyBytes;
 }
+#endif 
 
 
 

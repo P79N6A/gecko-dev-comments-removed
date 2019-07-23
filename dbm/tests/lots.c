@@ -208,7 +208,7 @@ SeqDatabase()
 	
     if(!(status = (*database->seq)(database, &key, &data, R_FIRST)))
 	  {
-        while(!(status = (database->seq) (database, &key, &data, R_NEXT)));
+        while(!(status = (database->seq) (database, &key, &data, R_NEXT)))
 			; 
 	  }
 

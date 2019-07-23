@@ -136,6 +136,10 @@ unpadBlock(SECItem *data, int blockSize, SECItem *result)
 
   PORT_Memcpy(result->data, data->data, result->len);
 
+  if (padLength < 2) {
+    return SECWouldBlock;
+  }
+
 loser:
   return rv;
 }
@@ -310,8 +314,8 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
   CK_MECHANISM_TYPE type;
   SDRResult sdrResult;
   SECItem *params = 0;
+  SECItem possibleResult = { 0, NULL, 0 };
   PLArenaPool *arena = 0;
-
 
   arena = PORT_NewArena(SEC_ASN1_DEFAULT_ARENA_SIZE);
   if (!arena) { rv = SECFailure; goto loser; }
@@ -341,6 +345,17 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
 	rv = pk11Decrypt(slot, arena, type, key, params, 
 			&sdrResult.data, result);
   }
+
+  
+
+
+
+
+
+  if (rv == SECWouldBlock) {
+	possibleResult = *result;
+  }
+
   
 
 
@@ -355,6 +370,18 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
 			     &sdrResult.data, result);
 	    if (rv == SECSuccess) {
 		break;
+	    } 
+	    
+	    if (rv == SECWouldBlock) {
+		if (possibleResult.data) {
+		    
+
+
+
+		    SECITEM_ZfreeItem(result, PR_FALSE);
+		} else {
+		    possibleResult = *result;
+		}
 	    }
 	}
 
@@ -365,14 +392,19 @@ PK11SDR_Decrypt(SECItem *data, SECItem *result, void *cx)
 	}
   }
 
-
+  
+  if ((rv != SECSuccess) && (possibleResult.data)) {
+	*result = possibleResult;
+	possibleResult.data = NULL;
+	rv = SECSuccess;
+  }
 
 loser:
-  
   if (arena) PORT_FreeArena(arena, PR_TRUE);
   if (key) PK11_FreeSymKey(key);
   if (params) SECITEM_ZfreeItem(params, PR_TRUE);
   if (slot) PK11_FreeSlot(slot);
+  if (possibleResult.data) SECITEM_ZfreeItem(&possibleResult, PR_FALSE);
 
   return rv;
 }

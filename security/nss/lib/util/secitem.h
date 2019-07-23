@@ -66,7 +66,7 @@ SEC_BEGIN_PROTOS
 
 
 
-extern SECItem *SECITEM_AllocItem(PRArenaPool *arena, SECItem *item,
+extern SECItem *SECITEM_AllocItem(PLArenaPool *arena, SECItem *item,
 				  unsigned int len);
 
 
@@ -77,7 +77,7 @@ extern SECItem *SECITEM_AllocItem(PRArenaPool *arena, SECItem *item,
 
 
 
-extern SECStatus SECITEM_ReallocItem(PRArenaPool *arena, SECItem *item,
+extern SECStatus SECITEM_ReallocItem(PLArenaPool *arena, SECItem *item,
 				     unsigned int oldlen, unsigned int newlen);
 
 
@@ -93,7 +93,7 @@ extern PRBool SECITEM_ItemsAreEqual(const SECItem *a, const SECItem *b);
 
 
 
-extern SECStatus SECITEM_CopyItem(PRArenaPool *arena, SECItem *to, 
+extern SECStatus SECITEM_CopyItem(PLArenaPool *arena, SECItem *to, 
                                   const SECItem *from);
 
 
@@ -106,7 +106,7 @@ extern SECItem *SECITEM_DupItem(const SECItem *from);
 
 
 
-extern SECItem *SECITEM_ArenaDupItem(PRArenaPool *arena, const SECItem *from);
+extern SECItem *SECITEM_ArenaDupItem(PLArenaPool *arena, const SECItem *from);
 
 
 

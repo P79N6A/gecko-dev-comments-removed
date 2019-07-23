@@ -138,4 +138,25 @@ SECStatus
 cert_RememberOCSPProcessingFailure(CERTOCSPCertID *certID,
                                    PRBool         *certIDWasConsumed);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *
+ocsp_GetResponderLocation(CERTCertDBHandle *handle,
+                          CERTCertificate *cert,
+                          PRBool *isDefault);
+
+
 #endif 

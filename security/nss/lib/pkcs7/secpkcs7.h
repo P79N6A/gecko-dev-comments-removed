@@ -489,7 +489,7 @@ extern SECStatus SEC_PKCS7Encode (SEC_PKCS7ContentInfo *cinfo,
 
 
 
-extern SECItem *SEC_PKCS7EncodeItem (PRArenaPool *pool,
+extern SECItem *SEC_PKCS7EncodeItem (PLArenaPool *pool,
 				     SECItem *dest,
 				     SEC_PKCS7ContentInfo *cinfo,
 				     PK11SymKey *bulkkey,
@@ -580,7 +580,7 @@ SEC_PKCS7GetEncryptionAlgorithm(SEC_PKCS7ContentInfo *cinfo);
 
 
 extern SECStatus 
-SEC_PKCS7EncryptContents(PRArenaPool *poolp,
+SEC_PKCS7EncryptContents(PLArenaPool *poolp,
 			 SEC_PKCS7ContentInfo *cinfo, 
 			 SECItem *key,
 			 void *wincx); 
@@ -600,7 +600,7 @@ SEC_PKCS7EncryptContents(PRArenaPool *poolp,
 
 
 extern SECStatus 
-SEC_PKCS7DecryptContents(PRArenaPool *poolp,
+SEC_PKCS7DecryptContents(PLArenaPool *poolp,
 			 SEC_PKCS7ContentInfo *cinfo, 
 			 SECItem *key,
 			 void *wincx); 

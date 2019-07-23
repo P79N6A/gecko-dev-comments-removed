@@ -78,7 +78,7 @@ extern SECOidData *SECOID_FindOIDByMechanism(unsigned long mechanism);
 
 
 
-extern SECStatus SECOID_SetAlgorithmID(PRArenaPool *arena, SECAlgorithmID *aid,
+extern SECStatus SECOID_SetAlgorithmID(PLArenaPool *arena, SECAlgorithmID *aid,
 				   SECOidTag tag, SECItem *params);
 
 
@@ -87,7 +87,7 @@ extern SECStatus SECOID_SetAlgorithmID(PRArenaPool *arena, SECAlgorithmID *aid,
 
 
 
-extern SECStatus SECOID_CopyAlgorithmID(PRArenaPool *arena, SECAlgorithmID *dest,
+extern SECStatus SECOID_CopyAlgorithmID(PLArenaPool *arena, SECAlgorithmID *dest,
 				    SECAlgorithmID *src);
 
 

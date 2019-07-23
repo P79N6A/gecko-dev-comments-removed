@@ -162,7 +162,7 @@ extern SECStatus SGN_Digest(SECKEYPrivateKey *privKey,
 
 
 
-extern SECStatus SEC_DerSignData(PRArenaPool *arena, SECItem *result,
+extern SECStatus SEC_DerSignData(PLArenaPool *arena, SECItem *result,
 				unsigned char *buf, int len,
 				SECKEYPrivateKey *pk, SECOidTag algid);
 

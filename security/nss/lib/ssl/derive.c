@@ -56,20 +56,21 @@
 
 #ifdef NOT_A_MACRO
 static void
-buildSSLKey(unsigned char * keyBlock, unsigned int keyLen, SECItem * result)
+buildSSLKey(unsigned char * keyBlock, unsigned int keyLen, SECItem * result,
+            const char * label)
 {
     result->type = siBuffer;
     result->data = keyBlock;
     result->len  = keyLen;
-    PRINT_BUF(100, (NULL, "key value", keyBlock, keyLen));
+    PRINT_BUF(100, (NULL, label, keyBlock, keyLen));
 }
 #else
-#define buildSSLKey(keyBlock, keyLen, result) \
+#define buildSSLKey(keyBlock, keyLen, result, label) \
 { \
     (result)->type = siBuffer; \
     (result)->data = keyBlock; \
     (result)->len  = keyLen; \
-    PRINT_BUF(100, (NULL, "key value", keyBlock, keyLen)); \
+    PRINT_BUF(100, (NULL, label, keyBlock, keyLen)); \
 }
 #endif
 
@@ -195,7 +196,7 @@ ssl3_KeyAndMacDeriveBypass(
 
 
 
-	int made = 0;
+	unsigned int made = 0;
 	for (i = 0; made < block_needed && i < NUM_MIXERS; ++i) {
 	    unsigned int    outLen;
 	    unsigned char   sha_out[SHA1_LENGTH];
@@ -230,46 +231,56 @@ ssl3_KeyAndMacDeriveBypass(
 
 
 
-    buildSSLKey(&key_block[i],macSize, &pwSpec->client.write_mac_key_item);
+    buildSSLKey(&key_block[i],macSize, &pwSpec->client.write_mac_key_item, \
+                "Client Write MAC Secret");
     i += macSize;
 
     
 
 
-    buildSSLKey(&key_block[i],macSize, &pwSpec->server.write_mac_key_item);
+    buildSSLKey(&key_block[i],macSize, &pwSpec->server.write_mac_key_item, \
+                "Server Write MAC Secret");
     i += macSize;
 
     if (!keySize) {
 	
-	buildSSLKey(NULL, 0, &pwSpec->client.write_key_item);
-	buildSSLKey(NULL, 0, &pwSpec->server.write_key_item);
-	buildSSLKey(NULL, 0, &pwSpec->client.write_iv_item);
-	buildSSLKey(NULL, 0, &pwSpec->server.write_iv_item);
+	buildSSLKey(NULL, 0, &pwSpec->client.write_key_item, \
+	            "Client Write Key (MAC only)");
+	buildSSLKey(NULL, 0, &pwSpec->server.write_key_item, \
+	            "Server Write Key (MAC only)");
+	buildSSLKey(NULL, 0, &pwSpec->client.write_iv_item, \
+	            "Client Write IV (MAC only)");
+	buildSSLKey(NULL, 0, &pwSpec->server.write_iv_item, \
+	            "Server Write IV (MAC only)");
     } else if (!isExport) {
 	
 
 
 
-	buildSSLKey(&key_block[i], keySize, &pwSpec->client.write_key_item);
+	buildSSLKey(&key_block[i], keySize, &pwSpec->client.write_key_item, \
+	            "Domestic Client Write Key");
 	i += keySize;
 
 	
 
 
-	buildSSLKey(&key_block[i], keySize, &pwSpec->server.write_key_item);
+	buildSSLKey(&key_block[i], keySize, &pwSpec->server.write_key_item, \
+	            "Domestic Server Write Key");
 	i += keySize;
 
 	if (IVSize > 0) {
 	    
 
 
-	    buildSSLKey(&key_block[i], IVSize, &pwSpec->client.write_iv_item);
+	    buildSSLKey(&key_block[i], IVSize, &pwSpec->client.write_iv_item, \
+	                "Domestic Client Write IV");
 	    i += IVSize;
 
 	    
 
 
-	    buildSSLKey(&key_block[i], IVSize, &pwSpec->server.write_iv_item);
+	    buildSSLKey(&key_block[i], IVSize, &pwSpec->server.write_iv_item, \
+	                "Domestic Server Write IV");
 	    i += IVSize;
 	}
 	PORT_Assert(i <= block_bytes);
@@ -290,7 +301,8 @@ ssl3_KeyAndMacDeriveBypass(
 	MD5_Update(md5Ctx, crsr.data, crsr.len);
 	MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	i += effKeySize;
-	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key_item);
+	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key_item, \
+	            "SSL3 Export Client Write Key");
 	key_block2 += keySize;
 
 	
@@ -303,7 +315,8 @@ ssl3_KeyAndMacDeriveBypass(
 	MD5_Update(md5Ctx, srcr.data, srcr.len);
 	MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
 	i += effKeySize;
-	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key_item);
+	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key_item, \
+	            "SSL3 Export Server Write Key");
 	key_block2 += keySize;
 	PORT_Assert(i <= block_bytes);
 
@@ -315,7 +328,8 @@ ssl3_KeyAndMacDeriveBypass(
 	    MD5_Begin(md5Ctx);
 	    MD5_Update(md5Ctx, crsr.data, crsr.len);
 	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
-	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_iv_item);
+	    buildSSLKey(key_block2, IVSize, &pwSpec->client.write_iv_item, \
+	                "SSL3 Export Client Write IV");
 	    key_block2 += IVSize;
 
 	    
@@ -325,7 +339,8 @@ ssl3_KeyAndMacDeriveBypass(
 	    MD5_Begin(md5Ctx);
 	    MD5_Update(md5Ctx, srcr.data, srcr.len);
 	    MD5_End(md5Ctx, key_block2, &outLen, MD5_LENGTH);
-	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_iv_item);
+	    buildSSLKey(key_block2, IVSize, &pwSpec->server.write_iv_item, \
+	                "SSL3 Export Server Write IV");
 	    key_block2 += IVSize;
 	}
 
@@ -354,7 +369,8 @@ ssl3_KeyAndMacDeriveBypass(
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key_item);
+	buildSSLKey(key_block2, keySize, &pwSpec->client.write_key_item, \
+	            "TLS Export Client Write Key");
 	key_block2 += keySize;
 
 	
@@ -372,7 +388,8 @@ ssl3_KeyAndMacDeriveBypass(
 	if (status != SECSuccess) {
 	    goto key_and_mac_derive_fail;
 	}
-	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key_item);
+	buildSSLKey(key_block2, keySize, &pwSpec->server.write_key_item, \
+	            "TLS Export Server Write Key");
 	key_block2 += keySize;
 
 	
@@ -389,8 +406,12 @@ ssl3_KeyAndMacDeriveBypass(
 	    if (status != SECSuccess) {
 		goto key_and_mac_derive_fail;
 	    }
-	    buildSSLKey(key_block2,          IVSize, &pwSpec->client.write_iv_item);
-	    buildSSLKey(key_block2 + IVSize, IVSize, &pwSpec->server.write_iv_item);
+	    buildSSLKey(key_block2,          IVSize, \
+	                &pwSpec->client.write_iv_item, \
+			"TLS Export Client Write IV");
+	    buildSSLKey(key_block2 + IVSize, IVSize, \
+	                &pwSpec->server.write_iv_item, \
+			"TLS Export Server Write IV");
 	    key_block2 += 2 * IVSize;
 	}
 	PORT_Assert(key_block2 - key_block <= sizeof pwSpec->key_block);
@@ -467,7 +488,7 @@ ssl3_MasterKeyDeriveBypass(
 	}
     } else {
 	int i;
-	int made = 0;
+	unsigned int made = 0;
 	for (i = 0; i < 3; i++) {
 	    unsigned int    outLen;
 	    unsigned char   sha_out[SHA1_LENGTH];
@@ -578,7 +599,6 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     CK_MECHANISM_TYPE mechanism_array[2];
     SECItem           enc_pms = {siBuffer, NULL, 0};
     PRBool	      isTLS = PR_FALSE;
-    PRBool	      isDH = PR_FALSE;
     SSLCipherSuiteInfo csdef;
     PRBool	      testrsa = PR_FALSE;
     PRBool	      testrsa_export = PR_FALSE;
