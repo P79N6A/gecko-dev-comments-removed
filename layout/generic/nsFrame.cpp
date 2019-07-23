@@ -581,6 +581,14 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     PresContext()->SetupBorderImageLoaders(this, GetStyleBorder());
   }
+
+  
+  
+  
+  
+  if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+    PresContext()->SetBidiEnabled();
+  }
 }
 
  nsMargin

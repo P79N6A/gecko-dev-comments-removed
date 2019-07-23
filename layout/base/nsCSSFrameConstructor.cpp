@@ -5434,16 +5434,6 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
 
   
   
-  
-  
-  
-  {
-    if (styleContext->GetStyleVisibility()->mDirection ==
-        NS_STYLE_DIRECTION_RTL)
-      aState.mPresContext->SetBidiEnabled();
-  }
-  
-  
   {
     styleContext->GetStyleBackground();
   }
