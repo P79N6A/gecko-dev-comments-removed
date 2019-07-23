@@ -416,6 +416,9 @@ var PlacesCommandHook = {
     }
 
     
+    handleURLBarRevert();
+
+    
     
     if (aBrowser.contentWindow == window.content) {
       var starIcon = aBrowser.ownerDocument.getElementById("star-button");
