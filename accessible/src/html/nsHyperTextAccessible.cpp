@@ -1135,6 +1135,8 @@ nsHyperTextAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribute
   
   
   
+  
+  
   nsIFrame *frame = GetFrame();
   if (frame && frame->GetType() == nsAccessibilityAtoms::blockFrame) {
     nsAutoString oldValueUnused;
