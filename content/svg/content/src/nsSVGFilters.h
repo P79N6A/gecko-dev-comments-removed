@@ -82,6 +82,10 @@ public:
     
     gfxRect                   mFilterPrimitiveSubregion;
     ColorModel                mColorModel;
+    
+    PRPackedBool              mConstantColorChannels;
+    
+    Image() : mConstantColorChannels(PR_FALSE) {}
   };
 
 protected:
