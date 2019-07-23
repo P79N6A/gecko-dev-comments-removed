@@ -274,7 +274,6 @@ JS_BEGIN_EXTERN_C
 
 
 
-
 typedef enum JSParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -291,7 +290,8 @@ struct JSDefinition;
 struct JSParseNode {
     uint32              pn_type:16,     
                         pn_op:8,        
-                        pn_arity:6,     
+                        pn_arity:5,     
+                        pn_parens:1,    
                         pn_used:1,      
                         pn_defn:1;      
 
