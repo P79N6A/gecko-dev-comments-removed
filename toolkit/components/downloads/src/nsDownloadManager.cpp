@@ -78,6 +78,9 @@
 #include "nsIExternalHelperAppService.h"
 #include "nsIMIMEService.h"
 
+#include "nsIDownloadHistory.h"
+#include "nsDocShellCID.h"
+
 #ifdef XP_WIN
 #include <shlobj.h>
 #include "nsDownloadScanner.h"
@@ -1904,30 +1907,16 @@ nsDownload::OnProgressChange64(nsIWebProgress *aWebProgress,
     
     nsresult rv;
     nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
-    if (channel) {
-      
-      nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(channel));
-      if (props) {
-        
-        
-        
-        rv = props->GetPropertyAsInterface(NS_LITERAL_STRING("docshell.internalReferrer"),
-                                           NS_GET_IID(nsIURI),
-                                           getter_AddRefs(mReferrer));
-        if (NS_FAILED(rv))
-          mReferrer = nsnull;
-      }
+    if (channel)
+      (void)NS_GetReferrerFromChannel(channel, getter_AddRefs(mReferrer));
 
-      
-      
-      if (!mReferrer) {
-        nsCOMPtr<nsIHttpChannel> chan = do_QueryInterface(aRequest);
-        if (chan) {
-          rv = chan->GetReferrer(getter_AddRefs(mReferrer));
-          if (NS_FAILED(rv))
-            mReferrer = nsnull;
-        }
-      }
+    
+    
+    if (!mMIMEInfo) {
+      nsCOMPtr<nsIDownloadHistory> dh =
+        do_GetService(NS_DOWNLOADHISTORY_CONTRACTID);
+      if (dh)
+        (void)dh->AddDownload(mSource, mReferrer, mStartTime);
     }
 
     
