@@ -758,16 +758,27 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
     const nsDependentString filepath(static_cast<PRUnichar*>(*outData));
     nsCOMPtr<nsILocalFile> file;
     nsresult rv = NS_NewLocalFile(filepath, PR_TRUE, getter_AddRefs(file));
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
+      nsMemory::Free(*outData);
       return dataFound;
+    }
 
     if ( IsInternetShortcut(filepath) ) {
+      nsMemory::Free(*outData);
       nsCAutoString url;
       ResolveShortcut( file, url );
       if ( !url.IsEmpty() ) {
         
-        nsMemory::Free(*outData);
-        *outData = UTF8ToNewUnicode(url);
+        nsDependentString urlString(UTF8ToNewUnicode(url));
+        
+        
+        nsAutoString title;
+        file->GetLeafName(title);
+        
+        title.SetLength(title.Length() - 4);
+        if (title.IsEmpty())
+          title = urlString;
+        *outData = ToNewUnicode(urlString + NS_LITERAL_STRING("\n") + title);
         *outDataLen = nsCRT::strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
 
         dataFound = PR_TRUE;
