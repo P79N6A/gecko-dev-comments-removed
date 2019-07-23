@@ -47,11 +47,27 @@
 #include "nsIDocShell.h"
 #include "nsStringFwd.h"
 #include "nsIFrameLoader.h"
+#include "nsSize.h"
 #include "nsIURI.h"
+#include "nsAutoPtr.h"
 
 class nsIContent;
 class nsIURI;
 class nsIFrameFrame;
+class nsIView;
+
+#ifdef MOZ_IPC
+namespace mozilla {
+  namespace dom {
+    class TabParent;
+    class PIFrameEmbeddingParent;
+  }
+}
+
+#ifdef MOZ_WIDGET_GTK2
+typedef struct _GtkWidget GtkWidget;
+#endif
+#endif
 
 class nsFrameLoader : public nsIFrameLoader
 {
@@ -63,6 +79,13 @@ protected:
     mDestroyCalled(PR_FALSE),
     mNeedsAsyncDestroy(PR_FALSE),
     mInSwap(PR_FALSE)
+#ifdef MOZ_IPC
+    , mRemoteFrame(false)
+    , mChildProcess(nsnull)
+#ifdef MOZ_WIDGET_GTK2
+    , mRemoteSocket(nsnull)
+#endif
+#endif
   {}
 
 public:
@@ -81,6 +104,8 @@ public:
   void Finalize();
   nsIDocShell* GetExistingDocShell() { return mDocShell; }
 
+  nsresult CreateStaticClone(nsIFrameLoader* aDest);
+
   
 
 
@@ -96,17 +121,48 @@ public:
 
   void Hide();
 
+  nsresult CloneForStatic(nsIFrameLoader* aOriginal);
+
   
   
   
   nsresult SwapWithOtherLoader(nsFrameLoader* aOther,
                                nsRefPtr<nsFrameLoader>& aFirstToSwap,
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
+
+#ifdef MOZ_IPC
+  mozilla::dom::PIFrameEmbeddingParent* GetChildProcess();
+#endif
+
 private:
 
-  NS_HIDDEN_(nsresult) EnsureDocShell();
-  NS_HIDDEN_(void) GetURL(nsString& aURL);
+#ifdef MOZ_IPC
+  bool ShouldUseRemoteProcess();
+#endif
+
+  
+
+
+
+  nsresult MaybeCreateDocShell();
+  void GetURL(nsString& aURL);
+
+  
+  NS_HIDDEN_(nsIntSize) GetSubDocumentSize(const nsIFrame *aIFrame);
+
+  
+  
+  NS_HIDDEN_(nsresult) UpdateBaseWindowPositionAndSize(nsIFrame *aIFrame);
   nsresult CheckURILoad(nsIURI* aURI);
+
+#ifdef MOZ_IPC
+  
+  bool TryNewProcess();
+
+  
+  
+  bool ShowRemoteFrame(nsIFrameFrame* frame, nsIView* view);
+#endif
 
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
@@ -116,6 +172,16 @@ private:
   PRPackedBool mDestroyCalled : 1;
   PRPackedBool mNeedsAsyncDestroy : 1;
   PRPackedBool mInSwap : 1;
+
+#ifdef MOZ_IPC
+  bool mRemoteFrame;
+  
+  mozilla::dom::TabParent* mChildProcess;
+
+#ifdef MOZ_WIDGET_GTK2
+  GtkWidget* mRemoteSocket;
+#endif
+#endif
 };
 
 #endif

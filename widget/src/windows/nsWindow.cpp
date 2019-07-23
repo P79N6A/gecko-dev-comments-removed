@@ -3427,9 +3427,22 @@ PRBool nsWindow::DispatchFocusToTopLevelWindow(PRUint32 aEventType)
   sJustGotDeactivate = PR_FALSE;
 
   
-  
-  
-  HWND toplevelWnd = GetTopLevelHWND(mWnd);
+  HWND curWnd = mWnd;
+  HWND toplevelWnd = NULL;
+  while (curWnd) {
+    toplevelWnd = curWnd;
+
+    nsWindow *win = GetNSWindowPtr(curWnd);
+    if (win) {
+      nsWindowType wintype;
+      win->GetWindowType(wintype);
+      if (wintype == eWindowType_toplevel || wintype == eWindowType_dialog)
+        break;
+    }
+
+    curWnd = ::GetParent(curWnd); 
+  }
+
   if (toplevelWnd) {
     nsWindow *win = GetNSWindowPtr(toplevelWnd);
     if (win)
