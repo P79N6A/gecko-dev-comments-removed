@@ -484,6 +484,7 @@ int InstallConduit(HINSTANCE hInstance, TCHAR *installDir, TCHAR *appName)
     {
       if(!GetModuleFileName(NULL, szConduitPath, _MAX_PATH))
           return IDS_ERR_CONDUIT_NOT_FOUND;
+
       
       int index = strlen(szConduitPath)-1;
       while((szConduitPath[index] != DIRECTORY_SEPARATOR) && index)
@@ -493,6 +494,19 @@ int InstallConduit(HINSTANCE hInstance, TCHAR *installDir, TCHAR *appName)
     else
       strncpy(szConduitPath, installDir, sizeof(szConduitPath) - 1);
 
+    
+    if((strlen(szConduitPath) + strlen(DIRECTORY_SEPARATOR_STR) + strlen(CONDUIT_FILENAME)) > _MAX_PATH)
+        return IDS_ERR_LOADING_CONDMGR;
+    
+    
+    
+    if (!strstr(szConduitPath, ".DLL") && !strstr(szConduitPath, CONDUIT_FILENAME))
+    {
+      if (szConduitPath[strlen(szConduitPath) - 1] != DIRECTORY_SEPARATOR)
+        strcat(szConduitPath, DIRECTORY_SEPARATOR_STR);
+      strcat(szConduitPath, CONDUIT_FILENAME);
+    }
+
     TCHAR shortConduitPath[_MAX_PATH];
 
     
@@ -500,16 +514,6 @@ int InstallConduit(HINSTANCE hInstance, TCHAR *installDir, TCHAR *appName)
       
       strncpy(shortConduitPath, szConduitPath, _MAX_PATH);
 
-    
-    if((strlen(shortConduitPath) + strlen(DIRECTORY_SEPARATOR_STR) + strlen(CONDUIT_FILENAME)) > _MAX_PATH)
-        return IDS_ERR_LOADING_CONDMGR;
-    
-    if (!strstr(shortConduitPath, CONDUIT_FILENAME)) 
-    {
-      if (shortConduitPath[strlen(shortConduitPath) - 1] != DIRECTORY_SEPARATOR)
-        strcat(shortConduitPath, DIRECTORY_SEPARATOR_STR);
-      strcat(shortConduitPath, CONDUIT_FILENAME);
-    }
     
     struct _finddata_t dll_file;
     long hFile;
