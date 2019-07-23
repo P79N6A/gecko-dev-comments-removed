@@ -94,7 +94,7 @@ static PRInt32 gRefCnt = 0;
 
 
 
-NS_IMPL_ISUPPORTS3(nsDownloadManager, nsIDownloadManager, nsIXPInstallManagerUI, nsIObserver)
+NS_IMPL_ISUPPORTS2(nsDownloadManager, nsIDownloadManager, nsIObserver)
 
 nsDownloadManager::~nsDownloadManager()
 {
@@ -527,29 +527,6 @@ nsDownloadManager::GetDownloadFromDB(PRUint32 aID, nsDownload **retVal)
   return NS_OK;
 }
 
-nsresult
-nsDownloadManager::AddToCurrentDownloads(nsDownload *aDl)
-{
-  
-  
-  if (aDl->mDownloadType == nsIXPInstallManagerUI::DOWNLOAD_TYPE_INSTALL) {
-    if (!mXPIProgress) {
-      mXPIProgress = new nsXPIProgressListener(this);
-      if (!mXPIProgress)
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    nsIXPIProgressDialog *dialog = mXPIProgress.get();
-    nsXPIProgressListener *listener = NS_STATIC_CAST(nsXPIProgressListener*,
-                                                     dialog);
-    listener->AddDownload(aDl);
-  }
-
-  mCurrentDownloads.AppendObject(aDl);
-
-  return NS_OK;
-}
-
 
 
 
@@ -768,18 +745,16 @@ nsDownloadManager::CleanUp()
 {
   DownloadState states[] = { nsIDownloadManager::DOWNLOAD_FINISHED,
                              nsIDownloadManager::DOWNLOAD_FAILED,
-                             nsIDownloadManager::DOWNLOAD_CANCELED,
-                             nsIXPInstallManagerUI::INSTALL_FINISHED };
+                             nsIDownloadManager::DOWNLOAD_CANCELED };
 
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
     "DELETE FROM moz_downloads "
     "WHERE state = ?1 "
     "OR state = ?2 "
-    "OR state = ?3 "
-    "OR state = ?4"), getter_AddRefs(stmt));
+    "OR state = ?3"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
-  for (PRUint32 i = 0; i < 4; ++i) {
+  for (PRUint32 i = 0; i < 3; ++i) {
     rv = stmt->BindInt32Parameter(i, states[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -794,8 +769,7 @@ nsDownloadManager::GetCanCleanUp(PRBool *aResult)
 
   DownloadState states[] = { nsIDownloadManager::DOWNLOAD_FINISHED,
                              nsIDownloadManager::DOWNLOAD_FAILED,
-                             nsIDownloadManager::DOWNLOAD_CANCELED,
-                             nsIXPInstallManagerUI::INSTALL_FINISHED };
+                             nsIDownloadManager::DOWNLOAD_CANCELED };
 
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
@@ -803,10 +777,9 @@ nsDownloadManager::GetCanCleanUp(PRBool *aResult)
     "FROM moz_downloads "
     "WHERE state = ?1 "
     "OR state = ?2 "
-    "OR state = ?3 "
-    "OR state = ?4"), getter_AddRefs(stmt));
+    "OR state = ?3"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
-  for (PRUint32 i = 0; i < 4; ++i) {
+  for (PRUint32 i = 0; i < 3; ++i) {
     rv = stmt->BindInt32Parameter(i, states[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1055,14 +1028,8 @@ nsDownloadManager::Observe(nsISupports *aSubject,
   } else if (strcmp(aTopic, "quit-application") == 0) {
     gStoppingDownloads = PR_TRUE;
     
-    if (currDownloadCount) {
+    if (currDownloadCount)
       CancelAllDownloads();
-
-      
-      
-      mObserverService->NotifyObservers(mXPIProgress, "xpinstall-progress",
-                                        NS_LITERAL_STRING("cancel").get());
-    }
 
     
     
@@ -1095,19 +1062,6 @@ nsDownloadManager::Observe(nsISupports *aSubject,
                            NS_LITERAL_STRING("offlineCancelDownloadsAlertMsgMultiple").get(),
                            NS_LITERAL_STRING("offlineCancelDownloadsAlertMsg").get(),
                            NS_LITERAL_STRING("dontGoOfflineButton").get());
-    PRBool data;
-    cancelDownloads->GetData(&data);
-    if (!data) {
-      gStoppingDownloads = PR_TRUE;
-
-      
-      
-      mObserverService->NotifyObservers(mXPIProgress, "xpinstall-progress",
-                                        NS_LITERAL_STRING("cancel").get());
-    
-      CancelAllDownloads();
-      gStoppingDownloads = PR_FALSE;
-    }
   } else if (strcmp(aTopic, "alertclickcallback") == 0) {
     
     nsCOMPtr<nsIWindowMediator> wm = do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
@@ -1169,154 +1123,6 @@ nsDownloadManager::ConfirmCancelDownloads(PRInt32 aCount,
 
     aCancelDownloads->SetData(button == 1);
   }
-}
-
-
-
-NS_IMETHODIMP
-nsDownloadManager::GetXpiProgress(nsIXPIProgressDialog** aProgress)
-{
-  *aProgress = mXPIProgress;
-  NS_IF_ADDREF(*aProgress);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDownloadManager::GetHasActiveXPIOperations(PRBool* aHasOps)
-{
-  nsIXPIProgressDialog* dialog = mXPIProgress.get();
-  nsXPIProgressListener* listener = NS_STATIC_CAST(nsXPIProgressListener*, dialog);
-  *aHasOps = !mXPIProgress ? PR_FALSE : listener->HasActiveXPIOperations();
-  return NS_OK;
-}
-
-
-
-
-NS_IMPL_ISUPPORTS1(nsXPIProgressListener, nsIXPIProgressDialog)
-
-nsXPIProgressListener::nsXPIProgressListener(nsDownloadManager* aDownloadManager)
-{
-  NS_NewISupportsArray(getter_AddRefs(mDownloads));
-
-  mDownloadManager = aDownloadManager;
-}
-
-nsXPIProgressListener::~nsXPIProgressListener()
-{
-  
-  mDownloads->Clear();
-}
-
-void
-nsXPIProgressListener::AddDownload(nsIDownload* aDownload)
-{
-  PRUint32 cnt;
-  mDownloads->Count(&cnt);
-  PRBool foundMatch = PR_FALSE;
-
-  nsCOMPtr<nsIURI> uri1, uri2;
-  for (PRUint32 i = 0; i < cnt; ++i) {
-    nsCOMPtr<nsIDownload> download(do_QueryElementAt(mDownloads, i));
-    download->GetSource(getter_AddRefs(uri1));
-    aDownload->GetSource(getter_AddRefs(uri2));
-
-    uri1->Equals(uri2, &foundMatch);
-    if (foundMatch)
-      break;
-  }
-  if (!foundMatch)
-    mDownloads->AppendElement(aDownload);
-}
-
-void 
-nsXPIProgressListener::RemoveDownloadAtIndex(PRUint32 aIndex)
-{
-  mDownloads->RemoveElementAt(aIndex);
-}
-
-PRBool
-nsXPIProgressListener::HasActiveXPIOperations()
-{
-  PRUint32 count;
-  mDownloads->Count(&count);
-  return count != 0;
-}
-
-
-
-NS_IMETHODIMP
-nsXPIProgressListener::OnStateChange(PRUint32 aIndex, PRInt16 aState, PRInt32 aValue)
-{
-  nsCOMPtr<nsIWebProgressListener> wpl(do_QueryElementAt(mDownloads, aIndex));
-  nsIWebProgressListener* temp = wpl.get();
-  nsDownload* dl = NS_STATIC_CAST(nsDownload*, temp);
-  
-  
-  if (!dl) 
-    return NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsIObserverService> os;
-  
-  DownloadState newState = aState;
-  switch (aState) {
-  case nsIXPIProgressDialog::DOWNLOAD_START:
-    wpl->OnStateChange(nsnull, nsnull, nsIWebProgressListener::STATE_START, 0);
-
-    newState = nsIXPInstallManagerUI::INSTALL_DOWNLOADING;
-    
-    os = do_GetService("@mozilla.org/observer-service;1");
-    if (os)
-      os->NotifyObservers(dl, "dl-start", nsnull);
-    break;
-  case nsIXPIProgressDialog::DOWNLOAD_DONE:
-    break;
-  case nsIXPIProgressDialog::INSTALL_START:
-    newState = nsIXPInstallManagerUI::INSTALL_INSTALLING;
-    break;
-  case nsIXPIProgressDialog::INSTALL_DONE:
-    wpl->OnStateChange(nsnull, nsnull, nsIWebProgressListener::STATE_STOP, 0);
-    
-    newState = nsIXPInstallManagerUI::INSTALL_FINISHED;
-    
-    
-    RemoveDownloadAtIndex(aIndex);
-    break;
-  case nsIXPIProgressDialog::DIALOG_CLOSE:
-    
-    os = do_GetService("@mozilla.org/observer-service;1");
-    if (os)
-      os->NotifyObservers(nsnull, "xpinstall-dialog-close", nsnull);
-
-    if (!gStoppingDownloads) {
-      nsCOMPtr<nsIStringBundleService> sbs(do_GetService("@mozilla.org/intl/stringbundle;1"));
-      nsCOMPtr<nsIStringBundle> brandBundle, xpinstallBundle;
-      sbs->CreateBundle("chrome://branding/locale/brand.properties", getter_AddRefs(brandBundle));
-      sbs->CreateBundle("chrome://mozapps/locale/xpinstall/xpinstallConfirm.properties", getter_AddRefs(xpinstallBundle));
-
-      nsXPIDLString brandShortName, message, title;
-      brandBundle->GetStringFromName(NS_LITERAL_STRING("brandShortName").get(), getter_Copies(brandShortName));
-      const PRUnichar* strings[1] = { brandShortName.get() };
-      xpinstallBundle->FormatStringFromName(NS_LITERAL_STRING("installComplete").get(), strings, 1, getter_Copies(message));
-      xpinstallBundle->GetStringFromName(NS_LITERAL_STRING("installCompleteTitle").get(), getter_Copies(title));
-
-      nsCOMPtr<nsIPromptService> ps(do_GetService(NS_PROMPTSERVICE_CONTRACTID));
-      ps->Alert(nsnull, title, message);
-    }
-
-    break;
-  }
-
-  return dl->SetState(newState);
-}
-
-NS_IMETHODIMP
-nsXPIProgressListener::OnProgress(PRUint32 aIndex, PRUint64 aValue, PRUint64 aMaxValue)
-{
-  nsCOMPtr<nsIWebProgressListener2> wpl(do_QueryElementAt(mDownloads, aIndex));
-  if (wpl) 
-    return wpl->OnProgressChange64(nsnull, nsnull, 0, 0, aValue, aMaxValue);
-  return NS_OK;
 }
 
 
