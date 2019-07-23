@@ -201,6 +201,9 @@ nsPlacesDBFlush.prototype = {
 
     
     this._db.executeAsync(statements, statements.length, this);
+
+    
+    statements.forEach(function(stmt) stmt.finalize());
   },
 
   
