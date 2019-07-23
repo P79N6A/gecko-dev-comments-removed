@@ -59,6 +59,7 @@
 #include "nsDiskCacheDeviceSQL.h"
 #include "nsMimeTypes.h"
 #include "nsNetStrings.h"
+#include "nsDNSPrefetch.h"
 
 #include "nsNetCID.h"
 
@@ -619,10 +620,13 @@ static void nsNetShutdown(nsIModule *neckoModule)
 #ifdef XP_MACOSX
     net_ShutdownURLHelperOSX();
 #endif
-
+    
     
     delete gNetStrings;
     gNetStrings = nsnull;
+    
+    
+    nsDNSPrefetch::Shutdown();
 }
 
 static const nsModuleComponentInfo gNetModuleInfo[] = {
