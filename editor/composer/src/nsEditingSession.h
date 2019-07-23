@@ -129,6 +129,8 @@ protected:
   
   PRPackedBool    mCanCreateEditor; 
 
+  PRPackedBool    mInteractive;
+
   
   
   PRPackedBool    mScriptsEnabled;

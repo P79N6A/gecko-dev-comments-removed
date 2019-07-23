@@ -35,6 +35,10 @@
 
 
 
+*|* {
+  -moz-user-modify: read-write;
+}
+
 
 
 
