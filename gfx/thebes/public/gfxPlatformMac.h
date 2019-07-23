@@ -45,9 +45,12 @@
 #define MAC_OS_X_VERSION_10_4_HEX 0x00001040
 #define MAC_OS_X_VERSION_10_5_HEX 0x00001050
 
+class gfxTextRun;
+
 class THEBES_API gfxPlatformMac : public gfxPlatform {
 public:
     gfxPlatformMac();
+    virtual ~gfxPlatformMac();
 
     static gfxPlatformMac *GetPlatform() {
         return (gfxPlatformMac*) gfxPlatform::GetPlatform();
@@ -93,7 +96,13 @@ public:
 
     
     PRUint32 GetAntiAliasingThreshold() { return mFontAntiAliasingThreshold; }
+
     
+    static void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
+
+    
+    static eFontPrefLang GetFontPrefLangFor(PRUint8 aUnicodeRange);
+
 private:
     void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
@@ -106,6 +115,12 @@ private:
     nsTArray<PRUint32> mCJKPrefLangs;
     PRInt32 mOSXVersion;
     PRUint32 mFontAntiAliasingThreshold;
+
+#ifndef __LP64__
+    
+    
+    PRBool mUseCoreText;
+#endif
 };
 
 #endif 
