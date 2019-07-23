@@ -880,14 +880,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           availableWidth = 0;
         }
-        
-        if (!NS_SUBTREE_DIRTY(aFrame)) {
-          
-          placedFloat = InitFloat(placeholder, availableWidth, aReflowStatus);
-        }
-        else {
-          placedFloat = AddFloat(placeholder, availableWidth, aReflowStatus);
-        }
+        placedFloat = AddFloat(placeholder, availableWidth, aReflowStatus);
         NS_ASSERTION(!(outOfFlowFrame->GetType() == nsGkAtoms::letterFrame &&
                        GetFirstLetterStyleOK()),
                     "FirstLetterStyle set on line with floating first letter");

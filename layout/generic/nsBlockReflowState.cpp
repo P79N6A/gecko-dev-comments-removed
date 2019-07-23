@@ -521,22 +521,6 @@ nsBlockReflowState::RecoverStateFrom(nsLineList::iterator aLine,
   }
 }
 
-PRBool
-nsBlockReflowState::InitFloat(nsLineLayout&       aLineLayout,
-                              nsPlaceholderFrame* aPlaceholder,
-                              nscoord             aAvailableWidth,
-                              nsReflowStatus&     aReflowStatus)
-{
-  
-  nsIFrame* floatFrame = aPlaceholder->GetOutOfFlowFrame();
-  floatFrame->SetParent(mBlock);
-
-  
-  
-  return AddFloat(aLineLayout, aPlaceholder, PR_TRUE,
-                  aAvailableWidth, aReflowStatus);
-}
-
 
 
 
@@ -550,11 +534,13 @@ nsBlockReflowState::InitFloat(nsLineLayout&       aLineLayout,
 PRBool
 nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
                              nsPlaceholderFrame* aPlaceholder,
-                             PRBool              aInitialReflow,
                              nscoord             aAvailableWidth,
                              nsReflowStatus&     aReflowStatus)
 {
   NS_PRECONDITION(mBlock->end_lines() != mCurrentLine, "null ptr");
+
+  
+  aPlaceholder->GetOutOfFlowFrame()->SetParent(mBlock);
 
   aReflowStatus = NS_FRAME_COMPLETE;
   

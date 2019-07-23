@@ -208,17 +208,10 @@ public:
   
   
   
-  PRBool InitFloat(nsPlaceholderFrame* aFrame, 
-                   nscoord aAvailableWidth,
-                   nsReflowStatus& aReflowStatus) {
-    return mBlockRS->InitFloat(*this, aFrame, aAvailableWidth, aReflowStatus);
-  }
-
   PRBool AddFloat(nsPlaceholderFrame* aFrame,
                   nscoord aAvailableWidth,
                   nsReflowStatus& aReflowStatus) {
-    return mBlockRS->AddFloat(*this, aFrame, PR_FALSE,
-                              aAvailableWidth, aReflowStatus);
+    return mBlockRS->AddFloat(*this, aFrame, aAvailableWidth, aReflowStatus);
   }
 
   void SetTrimmableWidth(nscoord aTrimmableWidth) {

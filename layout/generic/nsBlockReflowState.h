@@ -106,13 +106,8 @@ public:
 
 
 
-  PRBool InitFloat(nsLineLayout&       aLineLayout,
-                   nsPlaceholderFrame* aPlaceholderFrame,
-                   nscoord             aAvailableWidth,
-                   nsReflowStatus&     aReflowStatus);
   PRBool AddFloat(nsLineLayout&       aLineLayout,
                   nsPlaceholderFrame* aPlaceholderFrame,
-                  PRBool              aInitialReflow,
                   nscoord             aAvailableWidth,
                   nsReflowStatus&     aReflowStatus);
   PRBool CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
