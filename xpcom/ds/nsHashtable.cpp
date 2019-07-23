@@ -389,15 +389,10 @@ nsHashtable::nsHashtable(nsIObjectInputStream* aStream,
 
                         rv = aReadEntryFunc(aStream, &key, &data);
                         if (NS_SUCCEEDED(rv)) {
-                            if (!Put(key, data)) {
-                                rv = NS_ERROR_OUT_OF_MEMORY;
-                                aFreeEntryFunc(aStream, key, data);
-                            } else {
-                                
-                                aFreeEntryFunc(aStream, key, nsnull);
-                            }
-                            if (NS_FAILED(rv))
-                                break;
+                            Put(key, data);
+
+                            
+                            aFreeEntryFunc(aStream, key, nsnull);
                         }
                     }
                 }
