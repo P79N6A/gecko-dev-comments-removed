@@ -73,7 +73,7 @@ public:
 
 
 
-  nsISupports* GetWrapper() const
+  nsISupports* GetWrapper()
   {
     return reinterpret_cast<nsISupports*>(mWrapperPtrBits & ~kWrapperBitMask);
   }
