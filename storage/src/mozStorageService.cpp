@@ -168,6 +168,7 @@ mozStorageService::Init()
 
     
     (void)CallGetService(nsIXPConnect::GetCID(), &sXPConnect);
+    return NS_OK;
 }
 
 
