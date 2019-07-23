@@ -188,22 +188,7 @@ nsFrameLoader::LoadURI(nsIURI* aURI)
   
   
   
-  
-  
-  
-  nsCOMPtr<nsISupports> container = doc->GetContainer();
-  nsCOMPtr<nsIDocShellTreeItem> parentItem = do_QueryInterface(container);
-  nsCOMPtr<nsIDocShellTreeItem> ourItem = do_QueryInterface(mDocShell);
-  NS_ASSERTION(ourItem, "Must have item");
-  if (parentItem) {
-    PRInt32 parentType;
-    rv = parentItem->GetItemType(&parentType);
-    PRInt32 ourType;
-    nsresult rv2 = ourItem->GetItemType(&ourType);
-    if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(rv2) && ourType == parentType) {
-      loadInfo->SetOwner(principal);
-    }
-  }
+  loadInfo->SetOwner(principal);
 
   nsCOMPtr<nsIURI> referrer;
   rv = principal->GetURI(getter_AddRefs(referrer));

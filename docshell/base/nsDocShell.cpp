@@ -832,17 +832,31 @@ nsDocShell::LoadURI(nsIURI * aURI,
         
         
         
+        
+        
+        
+        
+        nsCOMPtr<nsIScriptSecurityManager> secMan =
+            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (owner && mItemType != typeChrome) {
+            nsCOMPtr<nsIPrincipal> ownerPrincipal = do_QueryInterface(owner);
+            PRBool isSystem;
+            rv = secMan->IsSystemPrincipal(ownerPrincipal, &isSystem);
+            NS_ENSURE_SUCCESS(rv, rv);
+            
+            if (isSystem) {
+                owner = nsnull;
+                inheritOwner = PR_TRUE;
+            }
+        }
         if (!owner && !inheritOwner) {
             
-            nsCOMPtr<nsIScriptSecurityManager> secMan;
-
-            secMan = do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-            if (NS_SUCCEEDED(rv)) {
-                rv = secMan->SubjectPrincipalIsSystem(&inheritOwner);
-                if (NS_FAILED(rv)) {
-                    
-                    inheritOwner = PR_FALSE;
-                }
+            rv = secMan->SubjectPrincipalIsSystem(&inheritOwner);
+            if (NS_FAILED(rv)) {
+                
+                inheritOwner = PR_FALSE;
             }
         }
 
