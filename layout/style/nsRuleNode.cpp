@@ -48,6 +48,7 @@
 
 
 
+
 #include "nsRuleNode.h"
 #include "nscore.h"
 #include "nsIServiceManager.h"
@@ -3468,6 +3469,47 @@ static nsStyleTransformMatrix ReadTransforms(const nsCSSValueList* aList,
   return result;
 }
 
+
+inline static PRUint32 GetValueListLength(nsCSSValueList* aValueList)
+{
+  PRUint32 len = 0;
+  nsCSSValueList* val = aValueList;
+  while (val) {
+    len++;
+    val = val->mNext;
+  }
+  return len;
+}
+
+
+struct TransitionPropInfo {
+  
+  nsCSSValueList* nsRuleDataDisplay::* rdList;
+  
+  PRUint32 nsStyleDisplay::* sdCount;
+};
+
+
+
+static const TransitionPropInfo transitionPropInfo[4] = {
+  { &nsRuleDataDisplay::mTransitionDelay,
+    &nsStyleDisplay::mTransitionDelayCount },
+  { &nsRuleDataDisplay::mTransitionDuration,
+    &nsStyleDisplay::mTransitionDurationCount },
+  { &nsRuleDataDisplay::mTransitionProperty,
+    &nsStyleDisplay::mTransitionPropertyCount },
+  { &nsRuleDataDisplay::mTransitionTimingFunction,
+    &nsStyleDisplay::mTransitionTimingFunctionCount },
+};
+
+
+
+struct TransitionPropData {
+  nsCSSValueList *list;
+  PRBool inherited;
+  PRUint32 num;
+};
+
 const void*
 nsRuleNode::ComputeDisplayData(void* aStartStruct,
                                const nsRuleDataStruct& aData, 
@@ -3478,6 +3520,248 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 {
   COMPUTE_START_RESET(Display, (), display, parentDisplay,
                       Display, displayData)
+
+  
+  
+  TransitionPropData transitionPropData[4];
+  TransitionPropData& delay = transitionPropData[0];
+  TransitionPropData& duration = transitionPropData[1];
+  TransitionPropData& property = transitionPropData[2];
+  TransitionPropData& timingFunction = transitionPropData[3];
+
+#define FOR_ALL_TRANSITION_PROPS(var_) \
+                                      for (PRUint32 var_ = 0; var_ < 4; ++var_)
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  PRUint32 numTransitions = 0;
+  FOR_ALL_TRANSITION_PROPS(p) {
+    const TransitionPropInfo& i = transitionPropInfo[p];
+    TransitionPropData& d = transitionPropData[p];
+
+    d.list = displayData.*(i.rdList);
+
+    
+    
+    d.inherited = d.list && d.list->mValue.GetUnit() == eCSSUnit_Inherit;
+    d.num = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+    
+    if (d.list) {
+      if (d.inherited) {
+        d.num = parentDisplay->*(i.sdCount);
+        canStoreInRuleTree = PR_FALSE;
+      } else {
+        d.num = GetValueListLength(d.list);
+      }
+    } else {
+      d.num = display->*(i.sdCount);
+    }
+    if (d.num > numTransitions)
+      numTransitions = d.num;
+  }
+
+  if (!display->mTransitions.SetLength(numTransitions)) {
+    NS_WARNING("failed to allocate transitions array");
+    display->mTransitions.SetLength(1);
+    NS_ABORT_IF_FALSE(display->mTransitions.Length() == 1,
+                      "could not allocate using auto array buffer");
+    numTransitions = 1;
+    FOR_ALL_TRANSITION_PROPS(p) {
+      TransitionPropData& d = transitionPropData[p];
+
+      d.num = 1;
+    }
+  }
+
+  FOR_ALL_TRANSITION_PROPS(p) {
+    const TransitionPropInfo& i = transitionPropInfo[p];
+    TransitionPropData& d = transitionPropData[p];
+
+    display->*(i.sdCount) = d.num;
+  }
+
+  
+  for (PRUint32 i = 0; i < numTransitions; ++i) {
+    nsTransition *transition = &display->mTransitions[i];
+
+    if (i >= delay.num) {
+      transition->SetDelay(display->mTransitions[i % delay.num].GetDelay());
+    } else if (delay.inherited) {
+      
+      
+      
+      NS_ABORT_IF_FALSE(i < parentDisplay->mTransitionDelayCount,
+                        "delay.num computed incorrectly");
+      NS_ABORT_IF_FALSE(!canStoreInRuleTree,
+                        "should have made canStoreInRuleTree false above");
+      transition->SetDelay(parentDisplay->mTransitions[i].GetDelay());
+    } else if (delay.list) {
+      switch (delay.list->mValue.GetUnit()) {
+        case eCSSUnit_Seconds:
+          transition->SetDelay(PR_MSEC_PER_SEC *
+                               delay.list->mValue.GetFloatValue());
+          break;
+        case eCSSUnit_Milliseconds:
+          transition->SetDelay(delay.list->mValue.GetFloatValue());
+          break;
+        case eCSSUnit_Initial:
+          transition->SetDelay(0.0);
+          break;
+        default:
+          NS_NOTREACHED("Invalid delay unit");
+      }
+    }
+
+    if (i >= duration.num) {
+      transition->SetDuration(
+        display->mTransitions[i % duration.num].GetDuration());
+    } else if (duration.inherited) {
+      NS_ABORT_IF_FALSE(i < parentDisplay->mTransitionDurationCount,
+                        "duration.num computed incorrectly");
+      NS_ABORT_IF_FALSE(!canStoreInRuleTree,
+                        "should have made canStoreInRuleTree false above");
+      transition->SetDuration(parentDisplay->mTransitions[i].GetDuration());
+    } else if (duration.list) {
+      switch (duration.list->mValue.GetUnit()) {
+        case eCSSUnit_Seconds:
+          transition->SetDuration(PR_MSEC_PER_SEC *
+                                  duration.list->mValue.GetFloatValue());
+          break;
+        case eCSSUnit_Milliseconds:
+          transition->SetDuration(duration.list->mValue.GetFloatValue());
+          break;
+        case eCSSUnit_Initial:
+          transition->SetDuration(0.0);
+          break;
+        default:
+          NS_NOTREACHED("Invalid duration unit");
+      }
+    }
+
+    if (i >= property.num) {
+      transition->CopyPropertyFrom(display->mTransitions[i % property.num]);
+    } else if (property.inherited) {
+      NS_ABORT_IF_FALSE(i < parentDisplay->mTransitionPropertyCount,
+                        "property.num computed incorrectly");
+      NS_ABORT_IF_FALSE(!canStoreInRuleTree,
+                        "should have made canStoreInRuleTree false above");
+      transition->CopyPropertyFrom(parentDisplay->mTransitions[i]);
+    } else if (property.list) {
+      switch (property.list->mValue.GetUnit()) {
+        case eCSSUnit_Ident:
+          {
+            nsDependentString
+              propertyStr(property.list->mValue.GetStringBufferValue());
+            nsCSSProperty prop = nsCSSProps::LookupProperty(propertyStr);
+            if (prop == eCSSProperty_UNKNOWN) {
+              transition->SetUnknownProperty(propertyStr);
+            } else {
+              transition->SetProperty(prop);
+            }
+          }
+          break;
+        case eCSSUnit_None:
+          transition->SetProperty(eCSSPropertyExtra_no_properties);
+          break;
+        case eCSSUnit_All:
+        case eCSSUnit_Initial:
+          transition->SetProperty(eCSSPropertyExtra_all_properties);
+          break;
+        default:
+          NS_NOTREACHED("Invalid transition property unit");
+      }
+    }
+
+    if (i >= timingFunction.num) {
+      transition->SetTimingFunction(
+        display->mTransitions[i % timingFunction.num].GetTimingFunction());
+    } else if (timingFunction.inherited) {
+      NS_ABORT_IF_FALSE(i < parentDisplay->mTransitionTimingFunctionCount,
+                        "timingFunction.num computed incorrectly");
+      NS_ABORT_IF_FALSE(!canStoreInRuleTree,
+                        "should have made canStoreInRuleTree false above");
+      transition->SetTimingFunction(
+        parentDisplay->mTransitions[i].GetTimingFunction());
+    } else if (timingFunction.list) {
+      switch (timingFunction.list->mValue.GetUnit()) {
+        case eCSSUnit_Enumerated:
+          transition->SetTimingFunction(
+            nsTimingFunction(timingFunction.list->mValue.GetIntValue()));
+          break;
+        case eCSSUnit_Cubic_Bezier:
+          {
+            nsCSSValue::Array* array =
+              timingFunction.list->mValue.GetArrayValue();
+            NS_ASSERTION(array && array->Count() == 4,
+                         "Need 4 control points");
+            transition->SetTimingFunction(
+              nsTimingFunction(array->Item(0).GetFloatValue(),
+                               array->Item(1).GetFloatValue(),
+                               array->Item(2).GetFloatValue(),
+                               array->Item(3).GetFloatValue()));
+          }
+          break;
+        case eCSSUnit_Initial:
+          transition->SetTimingFunction(
+            nsTimingFunction(NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE));
+          break;
+        default:
+          NS_NOTREACHED("Invalid transition property unit");
+      }
+    }
+
+    FOR_ALL_TRANSITION_PROPS(p) {
+      const TransitionPropInfo& info = transitionPropInfo[p];
+      TransitionPropData& d = transitionPropData[p];
+
+      
+      
+      if (d.list) { 
+        d.list = d.list->mNext ? d.list->mNext : displayData.*(info.rdList);
+      }
+    }
+  }
 
   
   SetFactor(displayData.mOpacity, display->mOpacity, canStoreInRuleTree,

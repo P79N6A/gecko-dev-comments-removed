@@ -41,6 +41,7 @@
 
 
 
+
 #ifndef nsCSSProps_h___
 #define nsCSSProps_h___
 
@@ -236,6 +237,7 @@ public:
   static const PRInt32 kTextAlignKTable[];
   static const PRInt32 kTextDecorationKTable[];
   static const PRInt32 kTextTransformKTable[];
+  static const PRInt32 kTransitionTimingFunctionKTable[];
   static const PRInt32 kUnicodeBidiKTable[];
   static const PRInt32 kUserFocusKTable[];
   static const PRInt32 kUserInputKTable[];

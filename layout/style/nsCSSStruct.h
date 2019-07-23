@@ -375,6 +375,10 @@ struct nsCSSDisplay : public nsCSSStruct  {
   nsCSSValue mOpacity;
   nsCSSValueList *mTransform; 
   nsCSSValuePair mTransformOrigin;
+  nsCSSValueList* mTransitionProperty;
+  nsCSSValueList* mTransitionDuration;
+  nsCSSValueList* mTransitionTimingFunction;
+  nsCSSValueList* mTransitionDelay;
 
   
   nsCSSValue mBreakBefore;

@@ -36,6 +36,7 @@
 
 
 
+
  
 #ifndef nsCSSProperty_h___
 #define nsCSSProperty_h___
@@ -63,6 +64,14 @@ enum nsCSSProperty {
   #undef CSS_PROP_SHORTHAND
 
   eCSSProperty_COUNT,
+
+  
+  
+
+  
+  
+  eCSSPropertyExtra_no_properties,
+  eCSSPropertyExtra_all_properties,
 
   
   eCSSPropertyExtra_x_none_value

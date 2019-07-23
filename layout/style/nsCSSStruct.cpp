@@ -271,6 +271,10 @@ nsCSSValueListRect::sides[4] = {
 
 
 nsCSSDisplay::nsCSSDisplay(void) : mTransform(nsnull)
+  , mTransitionProperty(nsnull)
+  , mTransitionDuration(nsnull)
+  , mTransitionTimingFunction(nsnull)
+  , mTransitionDelay(nsnull)
 {
   MOZ_COUNT_CTOR(nsCSSDisplay);
 }

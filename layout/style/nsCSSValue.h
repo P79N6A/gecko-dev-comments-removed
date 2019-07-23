@@ -94,21 +94,23 @@ enum nsCSSUnit {
   eCSSUnit_None         = 4,      
   eCSSUnit_Normal       = 5,      
   eCSSUnit_System_Font  = 6,      
-  eCSSUnit_Dummy        = 7,      
+  eCSSUnit_All          = 7,      
+  eCSSUnit_Dummy        = 8,      
                                   
-  eCSSUnit_DummyInherit = 8,      
+  eCSSUnit_DummyInherit = 9,      
                                   
-  eCSSUnit_RectIsAuto   = 9,      
-  eCSSUnit_String       = 10,     
-  eCSSUnit_Ident        = 11,     
-  eCSSUnit_Families     = 12,     
-  eCSSUnit_Attr         = 13,     
-  eCSSUnit_Local_Font   = 14,     
-  eCSSUnit_Font_Format  = 15,     
+  eCSSUnit_RectIsAuto   = 10,     
+  eCSSUnit_String       = 11,     
+  eCSSUnit_Ident        = 12,     
+  eCSSUnit_Families     = 13,     
+  eCSSUnit_Attr         = 14,     
+  eCSSUnit_Local_Font   = 15,     
+  eCSSUnit_Font_Format  = 16,     
   eCSSUnit_Array        = 20,     
   eCSSUnit_Counter      = 21,     
   eCSSUnit_Counters     = 22,     
-  eCSSUnit_Function     = 23,     
+  eCSSUnit_Cubic_Bezier = 23,     
+  eCSSUnit_Function     = 24,     
                                   
 
   eCSSUnit_URL          = 30,     
@@ -323,6 +325,7 @@ public:
   NS_HIDDEN_(void)  SetInheritValue();
   NS_HIDDEN_(void)  SetInitialValue();
   NS_HIDDEN_(void)  SetNoneValue();
+  NS_HIDDEN_(void)  SetAllValue();
   NS_HIDDEN_(void)  SetNormalValue();
   NS_HIDDEN_(void)  SetSystemFontValue();
   NS_HIDDEN_(void)  SetDummyValue();

@@ -87,6 +87,7 @@
 
 
 
+
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_)
 #define DEFINED_CSS_PROP_SHORTHAND
@@ -2030,6 +2031,47 @@ CSS_PROP_POSITION(
     mOffset.mTop,
     eCSSType_Value,
     nsnull)
+CSS_PROP_SHORTHAND(
+    -moz-transition,
+    transition,
+    MozTransition,
+    0)
+CSS_PROP_DISPLAY(
+    -moz-transition-delay,
+    transition_delay,
+    MozTransitionDelay,
+    CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    Display,
+    mTransitionDelay,
+    eCSSType_ValueList,
+    nsnull)
+CSS_PROP_DISPLAY(
+    -moz-transition-duration,
+    transition_duration,
+    MozTransitionDuration,
+    CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    Display,
+    mTransitionDuration,
+    eCSSType_ValueList,
+    nsnull)
+CSS_PROP_DISPLAY(
+    -moz-transition-property,
+    transition_property,
+    MozTransitionProperty,
+    CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    Display,
+    mTransitionProperty,
+    eCSSType_ValueList ,
+    nsnull)
+CSS_PROP_DISPLAY(
+    -moz-transition-timing-function,
+    transition_timing_function,
+    MozTransitionTimingFunction,
+    CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    Display,
+    mTransitionTimingFunction,
+    eCSSType_ValueList,
+    kTransitionTimingFunctionKTable)
 CSS_PROP_TEXTRESET(
     unicode-bidi,
     unicode_bidi,
