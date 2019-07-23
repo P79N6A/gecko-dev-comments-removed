@@ -272,3 +272,23 @@ STDMETHODIMP nsDocAccessibleWrap::put_alternateViewMediaTypes(  BSTR __RPC_FAR *
   return E_NOTIMPL;
 }
 
+STDMETHODIMP nsDocAccessibleWrap::get_accValue(
+       VARIANT varChild,
+       BSTR __RPC_FAR *pszValue)
+{
+  
+  *pszValue = NULL;
+  
+  HRESULT hr = nsAccessibleWrap::get_accValue(varChild, pszValue);
+  if (FAILED(hr) || *pszValue || varChild.lVal != CHILDID_SELF)
+    return hr;
+  
+  PRUint32 role = Role(this);
+  if (role != nsIAccessibleRole::ROLE_DOCUMENT &&
+      role != nsIAccessibleRole::ROLE_APPLICATION &&
+      role != nsIAccessibleRole::ROLE_DIALOG &&
+      role != nsIAccessibleRole::ROLE_ALERT)
+    return hr;
+
+  return get_URL(pszValue);
+}

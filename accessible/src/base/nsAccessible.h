@@ -130,13 +130,6 @@ public:
 
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
-  
-
-
-
-
-  PRUint32 GetARIAState();
-
 #ifdef DEBUG_A11Y
   static PRBool IsTextInterfaceSupportCorrect(nsIAccessible *aAccessible);
 #endif

@@ -87,6 +87,11 @@ public:
          VARIANT varChild,
          IDispatch __RPC_FAR *__RPC_FAR *ppdispChild);
 
+    
+    virtual  HRESULT STDMETHODCALLTYPE get_accValue( 
+         VARIANT varChild,
+         BSTR __RPC_FAR *pszValue);
+
     NS_IMETHOD FireAnchorJumpEvent();
 };
 

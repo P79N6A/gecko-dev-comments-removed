@@ -152,14 +152,14 @@ NS_IMETHODIMP nsDocAccessible::GetName(nsAString& aName)
 {
   nsresult rv = NS_OK;
   aName.Truncate();
-  if (mRoleMapEntry) {
-    rv = nsAccessible::GetName(aName);
+  if (mParent) {
+    rv = mParent->GetName(aName); 
   }
   if (aName.IsEmpty()) {
-    rv = GetTitle(aName);
+    rv = nsAccessible::GetName(aName); 
   }
-  if (aName.IsEmpty() && mParent) {
-    rv = mParent->GetName(aName);
+  if (aName.IsEmpty()) {
+    rv = GetTitle(aName);   
   }
 
   return rv;
@@ -202,17 +202,38 @@ NS_IMETHODIMP nsDocAccessible::GetRole(PRUint32 *aRole)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDocAccessible::GetValue(nsAString& aValue)
+NS_IMETHODIMP nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
 {
-  return GetURL(aValue);
+  NS_ENSURE_STATE(mDocument);
+
+  mRoleMapEntry = aRoleMapEntry;
+
+  
+  nsIDocument *parentDoc = mDocument->GetParentDocument();
+  NS_ENSURE_TRUE(parentDoc, NS_ERROR_FAILURE);
+  nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
+  nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
+  if (ownerNode) {
+    nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(ownerNode);
+    if (roleMapEntry)
+      mRoleMapEntry = roleMapEntry; 
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
 nsDocAccessible::GetDescription(nsAString& aDescription)
 {
-  nsAutoString description;
-  GetTextFromRelationID(nsAccessibilityAtoms::aria_describedby, description);
-  aDescription = description;
+  if (mParent)
+    mParent->GetDescription(aDescription);
+
+  if (aDescription.IsEmpty()) {
+    nsAutoString description;
+    GetTextFromRelationID(nsAccessibilityAtoms::aria_describedby, description);
+    aDescription = description;
+  }
+
   return NS_OK;
 }
 
@@ -262,6 +283,31 @@ nsDocAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
     *aExtraState |= nsIAccessibleStates::EXT_STATE_EDITABLE;
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocAccessible::GetARIAState(PRUint32 *aState)
+{
+  
+  NS_ENSURE_ARG_POINTER(aState);
+  nsresult rv = nsAccessible::GetARIAState(aState);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsPIAccessible> privateParentAccessible = do_QueryInterface(mParent);
+  if (privateParentAccessible)  
+    return privateParentAccessible->GetARIAState(aState);
+
+  return rv;
+}
+
+NS_IMETHODIMP
+nsDocAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
+{
+  nsAccessible::GetAttributes(aAttributes);
+  if (mParent) {
+    mParent->GetAttributes(aAttributes); 
+  }
   return NS_OK;
 }
 
@@ -502,18 +548,10 @@ NS_IMETHODIMP nsDocAccessible::Init()
 
   AddEventListeners();
 
-  nsresult rv = nsHyperTextAccessibleWrap::Init();
+  nsCOMPtr<nsIAccessible> parentAccessible;  
+  GetParent(getter_AddRefs(parentAccessible));
 
-  if (mRoleMapEntry && mRoleMapEntry->role != nsIAccessibleRole::ROLE_DIALOG &&
-      mRoleMapEntry->role != nsIAccessibleRole::ROLE_APPLICATION &&
-      mRoleMapEntry->role != nsIAccessibleRole::ROLE_ALERT &&
-      mRoleMapEntry->role != nsIAccessibleRole::ROLE_DOCUMENT) {
-    
-    
-    mRoleMapEntry = nsnull; 
-  }
-
-  return rv;
+  return nsHyperTextAccessibleWrap::Init();
 }
 
 NS_IMETHODIMP nsDocAccessible::Shutdown()

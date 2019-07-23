@@ -155,3 +155,15 @@ void nsOuterDocAccessible::CacheChildren()
   privateInnerAccessible->SetNextSibling(nsnull);
 }
 
+nsresult
+nsOuterDocAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes)
+{
+  nsAutoString tag;
+  aAttributes->GetStringProperty(NS_LITERAL_CSTRING("tag"), tag);
+  if (!tag.IsEmpty()) {
+    
+    
+    return NS_OK;
+  }
+  return nsAccessible::GetAttributesInternal(aAttributes);
+}

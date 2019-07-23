@@ -366,6 +366,16 @@ public:
   
   
   static PRBool IsARIAPropForObjectAttr(nsIAtom *aAtom);
+
+
+  
+
+
+
+
+
+  static void GetLiveContainerAttributes(nsIPersistentProperties *aAttributes,
+                                         nsIContent *aStartContent, nsIContent *aTopContent);
 };
 
 #endif
