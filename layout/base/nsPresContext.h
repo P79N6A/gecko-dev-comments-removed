@@ -467,7 +467,7 @@ public:
     ClearStyleDataAndReflow();
   }
 
-  float GetFullZoom() {return mDeviceContext->GetPixelScale();}
+  float GetFullZoom() { return mFullZoom; }
   void SetFullZoom(float aZoom);
 
   nscoord GetAutoQualityMinFontSize() {
@@ -759,6 +759,7 @@ protected:
   nsWeakPtr             mContainer;
 
   float                 mTextZoom;      
+  float                 mFullZoom;      
   PRInt32               mAutoQualityMinFontSizePixelsPref;
 
 #ifdef IBMBIDI
