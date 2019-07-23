@@ -140,10 +140,6 @@ public:
 
   
   
-  PRBool ShouldCheckAllowOrigin();
-
-  
-  
   PRBool IsPotentiallyPlaying() const;
 
   
