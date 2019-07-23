@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsNSSComponent.h" 
 #include "nsNSSCallbacks.h"
 #include "nsNSSCertificate.h"
@@ -903,6 +904,9 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
       infoObject->SetSSLStatus(status);
     }
 
+    nsSSLIOLayerHelpers::mHostsWithCertErrors->LookupCertErrorBits(
+      infoObject, status);
+
     CERTCertificate *serverCert = SSL_PeerCertificate(fd);
     if (serverCert) {
       nsRefPtr<nsNSSCertificate> nssc = new nsNSSCertificate(serverCert);
@@ -1028,6 +1032,19 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
       status = new nsSSLStatus();
       infoObject->SetSSLStatus(status);
     }
+
+    if (rv == SECSuccess) {
+      
+      
+      nsSSLIOLayerHelpers::mHostsWithCertErrors->RememberCertHasError(
+        infoObject, nsnull, rv);
+    }
+    else {
+      
+      nsSSLIOLayerHelpers::mHostsWithCertErrors->LookupCertErrorBits(
+        infoObject, status);
+    }
+
     if (status && !status->mServerCert) {
       status->mServerCert = nsc;
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
