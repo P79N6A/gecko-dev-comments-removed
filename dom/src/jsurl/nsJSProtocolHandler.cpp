@@ -851,6 +851,25 @@ nsJSChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
 {
     
     
+    PRBool bogusLoadBackground = PR_FALSE;
+    if (mIsActive && !(mActualLoadFlags & LOAD_BACKGROUND) &&
+        (aLoadFlags & LOAD_BACKGROUND)) {
+        
+        
+        
+        PRBool loadGroupIsBackground = PR_FALSE;
+        nsCOMPtr<nsILoadGroup> loadGroup;
+        mStreamChannel->GetLoadGroup(getter_AddRefs(loadGroup));
+        if (loadGroup) {
+            nsLoadFlags loadGroupFlags;
+            loadGroup->GetLoadFlags(&loadGroupFlags);
+            loadGroupIsBackground = ((loadGroupFlags & LOAD_BACKGROUND) != 0);
+        }
+        bogusLoadBackground = !loadGroupIsBackground;
+    }
+    
+    
+    
     
     
     
@@ -859,6 +878,12 @@ nsJSChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
     
     
     mLoadFlags = aLoadFlags & ~LOAD_DOCUMENT_URI;
+
+    if (bogusLoadBackground) {
+        aLoadFlags = aLoadFlags & ~LOAD_BACKGROUND;
+    }
+
+    mActualLoadFlags = aLoadFlags;
 
     
     
