@@ -631,7 +631,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
 
   
   nsIRenderingContext::AutoPushTranslation
-    translation(aContext, drawingRect.x, drawingRect.y);
+    autoTranslation(aContext, drawingRect.x, drawingRect.y);
 
   NS_ASSERTION(!IsWidgetTypeDisabled(mDisabledWidgetTypes, aWidgetType),
                "Trying to render an unsafe widget!");
@@ -683,7 +683,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
     if (gLastXError) {
 #ifdef DEBUG
       printf("GTK theme failed for widget type %d, error was %d, state was "
-             "[active=%d,focused=%d,inHover=%d,disabled=%Id]\n",
+             "[active=%d,focused=%d,inHover=%d,disabled=%d]\n",
              aWidgetType, gLastXError, state.active, state.focused,
              state.inHover, state.disabled);
 #endif
