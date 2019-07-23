@@ -257,6 +257,8 @@
 #if !defined(nsOggDecoder_h_)
 #define nsOggDecoder_h_
 
+#include "nsMediaDecoder.h"
+
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsIThread.h"
@@ -271,7 +273,6 @@
 #include "gfxContext.h"
 #include "gfxRect.h"
 #include "oggplay/oggplay.h"
-#include "nsMediaDecoder.h"
 
 class nsAudioStream;
 class nsOggDecodeStateMachine;

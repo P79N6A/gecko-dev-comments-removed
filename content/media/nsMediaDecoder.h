@@ -47,15 +47,9 @@
 #include "gfxRect.h"
 #include "nsITimer.h"
 
-#ifdef PR_LOGGING
-extern PRLogModuleInfo* gVideoDecoderLog;
-#define LOG(type, msg) PR_LOG(gVideoDecoderLog, type, msg)
-#else
-#define LOG(type, msg)
-#endif
-
 class nsHTMLMediaElement;
 class nsMediaStream;
+class nsIStreamListener;
 
 
 
@@ -71,9 +65,6 @@ public:
 
   
   virtual nsMediaDecoder* Clone() = 0;
-
-  
-  static nsresult InitLogger();
 
   
   
