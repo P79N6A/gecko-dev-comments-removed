@@ -459,7 +459,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   SetPainting(PR_TRUE);
 
   nsCOMPtr<nsIRenderingContext> localcx;
-  nsIDrawingSurface*    ds = nsnull;
 
   if (nsnull == aContext)
     {
@@ -491,7 +490,7 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   AddCoveringWidgetsToOpaqueRegion(opaqueRegion, mContext, aView);
   damageRegion.Sub(damageRegion, opaqueRegion);
 
-  RenderViews(aView, *localcx, damageRegion, ds);
+  RenderViews(aView, *localcx, damageRegion);
 
   ctx->Restore();
 
@@ -591,13 +590,8 @@ void nsViewManager::AddCoveringWidgetsToOpaqueRegion(nsRegion &aRgn, nsIDeviceCo
   }
 }
 
-
-
-
-
-
 void nsViewManager::RenderViews(nsView *aView, nsIRenderingContext& aRC,
-                                const nsRegion& aRegion, nsIDrawingSurface* aRCSurface)
+                                const nsRegion& aRegion)
 {
   if (mObserver) {
     nsView* displayRoot = GetDisplayRootFor(aView);
