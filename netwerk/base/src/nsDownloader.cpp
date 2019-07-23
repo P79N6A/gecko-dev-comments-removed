@@ -75,7 +75,10 @@ nsDownloader::~nsDownloader()
         
         
         
-        mSink = 0;
+        if (mSink) {
+            mSink->Close();
+            mSink = nsnull;
+        }
 
         nsresult rv = mLocation->Remove(PR_FALSE);
         if (NS_FAILED(rv))
@@ -151,6 +154,10 @@ nsDownloader::OnStopRequest(nsIRequest  *request,
                 caching->GetCacheToken(getter_AddRefs(mCacheToken));
             }
         }
+    }
+    else if (mSink) {
+        mSink->Close();
+        mSink = nsnull;
     }
 
     mObserver->OnDownloadComplete(this, request, ctxt, status, mLocation);
