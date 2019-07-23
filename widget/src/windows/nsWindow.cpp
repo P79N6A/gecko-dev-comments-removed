@@ -79,6 +79,7 @@
 #include <windows.h>
 #include <process.h>
 #include "nsUnicharUtils.h"
+#include "prlog.h"
 
 #ifdef WINCE
 #include "aygshell.h"
@@ -150,6 +151,10 @@
 
 #include "prprf.h"
 #include "prmem.h"
+
+#ifdef PR_LOGGING
+PRLogModuleInfo* sWindowsLog = nsnull;
+#endif
 
 static const char kMozHeapDumpMessageString[] = "MOZ_HeapDump";
 
@@ -647,6 +652,11 @@ void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
 nsWindow::nsWindow() : nsBaseWidget()
 {
+#ifdef PR_LOGGING
+  if (!sWindowsLog)
+    sWindowsLog = PR_NewLogModule("nsWindowsWidgets");
+#endif
+
   mWnd                = 0;
   mPaintDC            = 0;
   mPrevWndProc        = NULL;
@@ -3119,15 +3129,29 @@ StringCaseInsensitiveEquals(const PRUint16* aChars1, const PRUint32 aNumChars1,
 
 
 
-BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
+
+
+
+
+struct nsFakeCharMessage {
+  UINT mCharCode;
+  UINT mScanCode;
+};
+
+
+
+
+
+BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, LPARAM aKeyData,
+                         nsFakeCharMessage* aFakeCharMessage)
 {
-#ifdef VK_BROWSER_BACK
+  #ifdef VK_BROWSER_BACK
   
   if (aVirtualKeyCode == VK_BROWSER_BACK) 
   {
     DispatchCommandEvent(APPCOMMAND_BROWSER_BACKWARD);
     return TRUE;
-  } 
+  }
   else if (aVirtualKeyCode == VK_BROWSER_FORWARD) 
   {
     DispatchCommandEvent(APPCOMMAND_BROWSER_FORWARD);
@@ -3161,8 +3185,8 @@ BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
 
   PRUint32 extraFlags = (noDefault ? NS_EVENT_FLAG_NO_DEFAULT : 0);
   MSG msg;
-  BOOL gotMsg = ::PeekMessageW(&msg, mWnd, WM_KEYFIRST, WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD);
-  PRBool anyCharMessagesRemoved = PR_FALSE;
+  BOOL gotMsg = aFakeCharMessage ||
+    ::PeekMessageW(&msg, mWnd, WM_KEYFIRST, WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD);
   
   
   if (DOMKeyCode == NS_VK_RETURN || DOMKeyCode == NS_VK_BACK ||
@@ -3173,14 +3197,21 @@ BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
     
     
     
+    PRBool anyCharMessagesRemoved = PR_FALSE;
 
-
-    while (gotMsg && (msg.message == WM_CHAR || msg.message == WM_SYSCHAR))
-    {
-      ::GetMessageW(&msg, mWnd, WM_KEYFIRST, WM_KEYLAST);
+    if (aFakeCharMessage) {
       anyCharMessagesRemoved = PR_TRUE;
-
-      gotMsg = ::PeekMessageW (&msg, mWnd, WM_KEYFIRST, WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD);
+    } else {
+      while (gotMsg && (msg.message == WM_CHAR || msg.message == WM_SYSCHAR))
+      {
+        PR_LOG(sWindowsLog, PR_LOG_ALWAYS,
+               ("%s charCode=%d scanCode=%d\n", msg.message == WM_SYSCHAR ? "WM_SYSCHAR" : "WM_CHAR",
+                msg.wParam, HIWORD(msg.lParam) & 0xFF));
+        ::GetMessageW(&msg, mWnd, WM_KEYFIRST, WM_KEYLAST);
+        anyCharMessagesRemoved = PR_TRUE;
+  
+        gotMsg = ::PeekMessageW (&msg, mWnd, WM_KEYFIRST, WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD);
+      }
     }
 
     if (!anyCharMessagesRemoved && DOMKeyCode == NS_VK_BACK) {
@@ -3210,24 +3241,29 @@ BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
         
         
 
+        NS_ASSERTION(!aFakeCharMessage, "We shouldn't be touching the real msg queue");
         ::GetMessageW(&msg, mWnd, WM_CHAR, WM_CHAR);
       }
     }
   }
   else if (gotMsg &&
-           (msg.message == WM_CHAR || msg.message == WM_SYSCHAR || msg.message == WM_DEADCHAR)) {
+           (aFakeCharMessage ||
+            msg.message == WM_CHAR || msg.message == WM_SYSCHAR || msg.message == WM_DEADCHAR)) {
+    if (aFakeCharMessage)
+      return OnChar(aFakeCharMessage->mCharCode, aFakeCharMessage->mScanCode, extraFlags);
+
     
     ::GetMessageW(&msg, mWnd, msg.message, msg.message);
 
     if (msg.message == WM_DEADCHAR)
       return PR_FALSE;
 
-#ifdef KE_DEBUG
-    printf("%s\tchar=%c\twp=%4x\tlp=%8x\n",
-           (msg.message == WM_SYSCHAR) ? "WM_SYSCHAR" : "WM_CHAR",
-           msg.wParam, msg.wParam, msg.lParam);
-#endif
-    BOOL result = OnChar(msg.wParam, msg.lParam, extraFlags);
+    PR_LOG(sWindowsLog, PR_LOG_ALWAYS,
+           ("%s charCode=%d scanCode=%d\n",
+            msg.message == WM_SYSCHAR ? "WM_SYSCHAR" : "WM_CHAR",
+            msg.wParam, HIWORD(msg.lParam) & 0xFF));
+
+    BOOL result = OnChar(msg.wParam, HIWORD(msg.lParam) & 0xFF, extraFlags);
     
     
     if (!result && msg.message == WM_SYSCHAR)
@@ -3402,9 +3438,11 @@ BOOL nsWindow::OnKeyDown(UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
 
 
 
-BOOL nsWindow::OnKeyUp( UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
+BOOL nsWindow::OnKeyUp( UINT aVirtualKeyCode, LPARAM aKeyData)
 {
-#ifdef VK_BROWSER_BACK
+  PR_LOG(sWindowsLog, PR_LOG_ALWAYS, ("nsWindow::OnKeyUp VK=%d\n", aVirtualKeyCode));
+
+  #ifdef VK_BROWSER_BACK
   if (aVirtualKeyCode == VK_BROWSER_BACK || aVirtualKeyCode == VK_BROWSER_FORWARD) 
     return TRUE;
 #endif
@@ -3419,14 +3457,8 @@ BOOL nsWindow::OnKeyUp( UINT aVirtualKeyCode, UINT aScanCode, LPARAM aKeyData)
 
 
 
-BOOL nsWindow::OnChar(UINT charCode, LPARAM keyData, PRUint32 aFlags)
+BOOL nsWindow::OnChar(UINT charCode, UINT aScanCode, PRUint32 aFlags)
 {
-  
-  
-  mIsShiftDown   = IS_VK_DOWN(NS_VK_SHIFT);
-  mIsControlDown = IS_VK_DOWN(NS_VK_CONTROL);
-  mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
-
   
   if (mIsAltDown && !mIsControlDown && IS_VK_DOWN(NS_VK_SPACE)) {
     return FALSE;
@@ -3471,10 +3503,10 @@ BOOL nsWindow::OnChar(UINT charCode, LPARAM keyData, PRUint32 aFlags)
   
   
   if (uniChar && (mIsControlDown || mIsAltDown)) {
-    UINT virtualKeyCode = ::MapVirtualKey(HIWORD(keyData) & 0xFF, MAPVK_VSC_TO_VK);
+    UINT virtualKeyCode = ::MapVirtualKeyEx(aScanCode, MAPVK_VSC_TO_VK, gKeyboardLayout);
     UINT unshiftedCharCode =
       virtualKeyCode >= '0' && virtualKeyCode <= '9' ? virtualKeyCode :
-      mIsShiftDown ? ::MapVirtualKey(virtualKeyCode, MAPVK_VK_TO_CHAR) : 0;
+      mIsShiftDown ? ::MapVirtualKeyEx(virtualKeyCode, MAPVK_VK_TO_CHAR, gKeyboardLayout) : 0;
     
     if ((INT)unshiftedCharCode > 0)
       uniChar = unshiftedCharCode;
@@ -3494,6 +3526,96 @@ BOOL nsWindow::OnChar(UINT charCode, LPARAM keyData, PRUint32 aFlags)
   return result;
 }
 
+static const PRUint32 sModifierKeyMap[][3] = {
+  { nsIWidget::CAPS_LOCK, VK_CAPITAL, 0 },
+  { nsIWidget::NUM_LOCK, VK_NUMLOCK, 0 },
+  { nsIWidget::SHIFT_L, VK_SHIFT, VK_LSHIFT },
+  { nsIWidget::SHIFT_R, VK_SHIFT, VK_RSHIFT },
+  { nsIWidget::CTRL_L, VK_CONTROL, VK_LCONTROL },
+  { nsIWidget::CTRL_R, VK_CONTROL, VK_RCONTROL },
+  { nsIWidget::ALT_L, VK_MENU, VK_LMENU },
+  { nsIWidget::ALT_R, VK_MENU, VK_RMENU }
+};
+
+struct KeyPair {
+  PRUint8 mGeneral;
+  PRUint8 mSpecific;
+  KeyPair(PRUint32 aGeneral, PRUint32 aSpecific)
+    : mGeneral(PRUint8(aGeneral)), mSpecific(PRUint8(aSpecific)) {}
+};
+
+static void
+SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, PRUint32 aModifiers)
+{
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(sModifierKeyMap); ++i) {
+    const PRUint32* map = sModifierKeyMap[i];
+    if (aModifiers & map[0]) {
+      aArray->AppendElement(KeyPair(map[1], map[2]));
+    }
+  }
+}
+
+void
+nsWindow::SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
+                                   PRInt32 aNativeKeyCode,
+                                   PRUint32 aModifierFlags,
+                                   const nsAString& aCharacters,
+                                   const nsAString& aUnmodifiedCharacters)
+{
+  
+  BYTE originalKbdState[256];
+  ::GetKeyboardState(originalKbdState);
+  BYTE kbdState[256];
+  memset(kbdState, 0, sizeof(kbdState));
+  
+  
+  ::SetKeyboardState(kbdState);
+  HKL oldLayout = gKeyboardLayout;
+  gKeyboardLayout = (HKL)aNativeKeyboardLayout;
+  gKbdLayout.LoadLayout(gKeyboardLayout);
+
+  nsAutoTArray<KeyPair,10> keySequence;
+  SetupKeyModifiersSequence(&keySequence, aModifierFlags);
+  NS_ASSERTION(aNativeKeyCode >= 0 && aNativeKeyCode < 256,
+               "Native VK key code out of range");
+  keySequence.AppendElement(KeyPair(aNativeKeyCode, 0));
+
+  
+  for (PRUint32 i = 0; i < keySequence.Length(); ++i) {
+    PRUint8 key = keySequence[i].mGeneral;
+    PRUint8 keySpecific = keySequence[i].mSpecific;
+    kbdState[key] = 0x81; 
+    if (keySpecific) {
+      kbdState[keySpecific] = 0x81;
+    }
+    ::SetKeyboardState(kbdState);
+    SetupModKeyState();
+    if (i == keySequence.Length() - 1 && aCharacters.Length() > 0) {
+      UINT scanCode = ::MapVirtualKeyEx(aNativeKeyCode, MAPVK_VK_TO_VSC, gKeyboardLayout);
+      nsFakeCharMessage msg = { aCharacters.CharAt(0), scanCode };
+      OnKeyDown(key, 0, &msg);
+    } else {
+      OnKeyDown(key, 0, nsnull);
+    }
+  }
+  for (PRUint32 i = keySequence.Length(); i > 0; --i) {
+    PRUint8 key = keySequence[i - 1].mGeneral;
+    PRUint8 keySpecific = keySequence[i - 1].mSpecific;
+    kbdState[key] = 0; 
+    if (keySpecific) {
+      kbdState[keySpecific] = 0;
+    }
+    ::SetKeyboardState(kbdState);
+    SetupModKeyState();
+    OnKeyUp(key, 0);
+  }  
+
+  
+  ::SetKeyboardState(originalKbdState);
+  gKeyboardLayout = oldLayout;
+  gKbdLayout.LoadLayout(gKeyboardLayout);
+  SetupModKeyState();
+}
 
 void nsWindow::ConstrainZLevel(HWND *aAfter)
 {
@@ -4003,6 +4125,13 @@ void nsWindow::PostSleepWakeNotification(const char* aNotification)
 }
 #endif
 
+void nsWindow::SetupModKeyState()
+{
+  mIsShiftDown   = IS_VK_DOWN(NS_VK_SHIFT);
+  mIsControlDown = IS_VK_DOWN(NS_VK_CONTROL);
+  mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
+}
+
 PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT *aRetValue)
 {
   static UINT vkKeyCached = 0;              
@@ -4237,22 +4366,24 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
     case WM_SYSCHAR:
     case WM_CHAR:
     {
-#ifdef KE_DEBUG
-      printf("%s\tchar=%c\twp=%4x\tlp=%8x\n", (msg == WM_SYSCHAR) ? "WM_SYSCHAR" : "WM_CHAR", wParam, wParam, lParam);
-#endif
-      result = OnChar(wParam, lParam);
+      PR_LOG(sWindowsLog, PR_LOG_ALWAYS,
+              ("%s charCode=%d scanCode=%d\n", msg == WM_SYSCHAR ? "WM_SYSCHAR" : "WM_CHAR",
+               wParam, HIWORD(lParam) & 0xFF));
+
+      
+      
+      SetupModKeyState();
+
+      result = OnChar(wParam, HIWORD(lParam) & 0xFF);
     }
     break;
 
     case WM_SYSKEYUP:
     case WM_KEYUP:
+      PR_LOG(sWindowsLog, PR_LOG_ALWAYS,
+              ("%s VK=%d\n", msg == WM_SYSKEYDOWN ? "WM_SYSKEYUP" : "WM_KEYUP", wParam));
 
-#ifdef KE_DEBUG
-      printf("%s\t\twp=%x\tlp=%x\n", (WM_KEYUP==msg) ? "WM_KEYUP" : "WM_SYSKEYUP", wParam, lParam);
-#endif
-      mIsShiftDown   = IS_VK_DOWN(NS_VK_SHIFT);
-      mIsControlDown = IS_VK_DOWN(NS_VK_CONTROL);
-      mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
+      SetupModKeyState();
 
       
       
@@ -4276,7 +4407,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         
         
         
-        result = OnKeyUp(wParam, (HIWORD(lParam)), lParam);
+        result = OnKeyUp(wParam, lParam);
       }
       else {
         result = PR_FALSE;
@@ -4288,13 +4419,10 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
     
     case WM_SYSKEYDOWN:
     case WM_KEYDOWN:
-#ifdef KE_DEBUG
-      printf("%s\t\twp=%4x\tlp=%8x\n", (WM_KEYDOWN==msg) ? "WM_KEYDOWN" : "WM_SYSKEYDOWN", wParam, lParam);
-#endif
+      PR_LOG(sWindowsLog, PR_LOG_ALWAYS,
+              ("%s VK=%d\n", msg == WM_SYSKEYDOWN ? "WM_SYSKEYDOWN" : "WM_KEYDOWN", wParam));
 
-      mIsShiftDown   = IS_VK_DOWN(NS_VK_SHIFT);
-      mIsControlDown = IS_VK_DOWN(NS_VK_CONTROL);
-      mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
+      SetupModKeyState();
 
       
       
@@ -4318,7 +4446,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         result = PR_FALSE;
       }
       else if (!sIMEIsComposing) {
-        result = OnKeyDown(wParam, (HIWORD(lParam)), lParam);
+        result = OnKeyDown(wParam, lParam, nsnull);
       }
       else
         result = PR_FALSE;
@@ -6570,8 +6698,7 @@ BOOL nsWindow::OnInputLangChange(HKL aHKL, LRESULT *oRetValue)
   if (gKeyboardLayout != aHKL)
   {
     gKeyboardLayout = aHKL;
-
-    gKbdLayout.LoadLayout();
+    gKbdLayout.LoadLayout(gKeyboardLayout);
   }
 
   ResetInputState();

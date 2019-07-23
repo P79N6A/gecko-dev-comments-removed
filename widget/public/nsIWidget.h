@@ -97,8 +97,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x9151e8c9, 0xa1cc, 0x44e9, \
-  { 0xa7, 0x0d, 0xaf, 0xb3, 0x95, 0x6d, 0x4e, 0x13 } }
+{ 0xe197eeba, 0xa82b, 0x46d9, \
+  { 0x8a, 0xa9, 0x52, 0xe1, 0x13, 0x3f, 0xc5, 0x93 } }
 
 
 
@@ -1061,6 +1061,47 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical) = 0;
+
+    enum Modifiers {
+        CAPS_LOCK = 0x01, 
+        NUM_LOCK = 0x02, 
+        SHIFT_L = 0x0100,
+        SHIFT_R = 0x0200,
+        CTRL_L = 0x0400,
+        CTRL_R = 0x0800,
+        ALT_L = 0x1000, 
+        ALT_R = 0x2000,
+        COMMAND = 0x4000,
+        HELP = 0x8000,
+        FUNCTION = 0x10000,
+        NUMERIC_KEY_PAD = 0x01000000 
+    };
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual void SynthesizeNativeKeyEvent(PRInt32 aNativeKeyboardLayout,
+                                          PRInt32 aNativeKeyCode,
+                                          PRUint32 aModifierFlags,
+                                          const nsAString& aCharacters,
+                                          const nsAString& aUnmodifiedCharacters) = 0;
 
 protected:
     
