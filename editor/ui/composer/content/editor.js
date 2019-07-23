@@ -834,14 +834,6 @@ function CheckAndSaveDocument(command, allowDontSave)
 
 
 
-function EditorNewPlaintext()
-{
-  window.openDialog( "chrome://editor/content/TextEditorAppShell.xul",
-                     "_blank",
-                     "chrome,dialog=no,all",
-                     "about:blank");
-}
-
 
 
 function EditorCanClose()
