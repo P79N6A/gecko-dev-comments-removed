@@ -333,5 +333,14 @@ function run_test() {
     catch(ex) { }
   }
 
+  
+  var itemId = bmsvc.insertBookmark(bmsvc.bookmarksRoot, testURI, -1, "");
+  try {
+    annosvc.setItemAnnotation(itemId, "foo", "bar", 0, annosvc.EXPIRE_WITH_HISTORY);
+    do_throw("setting an item annotation with EXPIRE_HISTORY should throw");
+  }
+  catch(ex) {
+  }
+
   annosvc.removeObserver(annoObserver);
 }
