@@ -54,14 +54,20 @@ class gfxMixedFontFamily;
 
 struct gfxFontFaceSrc {
     PRPackedBool           mIsLocal;       
-    nsString               mLocalName;     
-    nsCOMPtr<nsIURI>       mURI;           
-    nsCOMPtr<nsIURI>       mReferrer;      
+
+    
+    PRPackedBool           mUseOriginPrincipal;
 
     
     
     
     PRUint32               mFormatFlags;
+
+    nsString               mLocalName;     
+    nsCOMPtr<nsIURI>       mURI;           
+    nsCOMPtr<nsIURI>       mReferrer;      
+    nsCOMPtr<nsISupports>  mOriginPrincipal; 
+    
 };
 
 
@@ -139,9 +145,8 @@ class THEBES_API gfxUserFontSet {
 
 public:
     class LoaderContext;
-    typedef nsresult (*LoaderCallback) (gfxFontEntry *aFontToLoad, 
-                                        nsIURI *aSrcURL,
-                                        nsIURI *aReferrerURI,
+    typedef nsresult (*LoaderCallback) (gfxFontEntry *aFontToLoad,
+                                        const gfxFontFaceSrc *aFontFaceSrc,
                                         LoaderContext *aContextData);
 
     class LoaderContext {

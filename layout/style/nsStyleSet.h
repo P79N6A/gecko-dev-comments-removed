@@ -118,7 +118,7 @@ class nsStyleSet
   
   
   PRBool AppendFontFaceRules(nsPresContext* aPresContext,
-                             nsTArray< nsRefPtr<nsCSSFontFaceRule> >& aArray);
+                             nsTArray<nsFontFaceRuleContainer>& aArray);
 
   
   

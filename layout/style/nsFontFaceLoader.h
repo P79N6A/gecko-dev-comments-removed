@@ -67,8 +67,7 @@ public:
 
   
   static nsresult CreateHandler(gfxFontEntry *aFontToLoad, 
-                                nsIURI *aFontURI,
-                                nsIURI *aReferrerURI,
+                                const gfxFontFaceSrc *aFontFaceSrc,
                                 gfxUserFontSet::LoaderContext *aContext);
                               
 private:

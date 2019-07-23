@@ -67,7 +67,8 @@ class nsCSSFontFaceRule;
 
 class nsCSSRuleProcessor: public nsIStyleRuleProcessor {
 public:
-  nsCSSRuleProcessor(const nsCOMArray<nsICSSStyleSheet>& aSheets);
+  nsCSSRuleProcessor(const nsCOMArray<nsICSSStyleSheet>& aSheets, 
+                     PRUint8 aSheetType);
   virtual ~nsCSSRuleProcessor();
 
   NS_DECL_ISUPPORTS
@@ -103,7 +104,7 @@ public:
   
   
   PRBool AppendFontFaceRules(nsPresContext* aPresContext,
-                             nsTArray< nsRefPtr<nsCSSFontFaceRule> >& aArray);
+                             nsTArray<nsFontFaceRuleContainer>& aArray);
 
 #ifdef DEBUG
   void AssertQuirksChangeOK() {
@@ -126,6 +127,9 @@ private:
 
   
   nsPresContext *mLastPresContext;
+  
+  
+  PRUint8 mSheetType;  
 };
 
 #endif 

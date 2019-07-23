@@ -278,6 +278,13 @@ protected:
   nsCSSFontFaceStyleDecl mDecl;
 };
 
+
+
+struct nsFontFaceRuleContainer {
+  nsRefPtr<nsCSSFontFaceRule> mRule;
+  PRUint8 mSheetType;
+};
+
 inline nsCSSFontFaceRule*
 nsCSSFontFaceStyleDecl::ContainingRule()
 {
