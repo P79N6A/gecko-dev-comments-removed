@@ -1043,9 +1043,14 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
         config.mColMaxHeight = knownFeasibleHeight;
       }
       if (!skip) {
+        
+        
+        
+        
         AddStateBits(NS_FRAME_IS_DIRTY);
         ReflowChildren(aDesiredSize, aReflowState, aStatus, config,
-                       PR_FALSE, &carriedOutBottomMargin, colData);
+                       availableContentHeight == NS_UNCONSTRAINEDSIZE,
+                       &carriedOutBottomMargin, colData);
       }
     }
   }
