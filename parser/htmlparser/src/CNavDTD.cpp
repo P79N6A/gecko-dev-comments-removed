@@ -1223,77 +1223,76 @@ CNavDTD::HandleKeyGen(nsIParserNode* aNode)
 {
   nsresult result = NS_OK;
 
-  if (aNode) {
-    nsCOMPtr<nsIFormProcessor> theFormProcessor =
-             do_GetService(kFormProcessorCID, &result);
-
-    if (NS_SUCCEEDED(result)) {
-      PRInt32      theAttrCount = aNode->GetAttributeCount();
-      nsStringArray  theContent;
-      nsAutoString theAttribute;
-      nsAutoString theFormType;
-      CToken*      theToken = nsnull;
-
-      theFormType.AssignLiteral("select");
-
-      result = theFormProcessor->ProvideContent(theFormType, theContent,
-                                                theAttribute);
-      if (NS_SUCCEEDED(result)) {
-        nsString* theTextValue = nsnull;
-        PRInt32   theIndex = nsnull;
-
-        if (mTokenizer && mTokenAllocator) {
-          
-          
-          
-          theToken = mTokenAllocator->CreateTokenOfType(eToken_end,
-                                                        eHTMLTag_select);
-          NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
-          mTokenizer->PushTokenFront(theToken);
-
-          for (theIndex = theContent.Count()-1; theIndex > -1; --theIndex) {
-            theTextValue = theContent[theIndex];
-            theToken = mTokenAllocator->CreateTokenOfType(eToken_text,
-                                                          eHTMLTag_text,
-                                                          *theTextValue);
-            NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
-            mTokenizer->PushTokenFront(theToken);
-
-            theToken = mTokenAllocator->CreateTokenOfType(eToken_start,
-                                                          eHTMLTag_option);
-            NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
-            mTokenizer->PushTokenFront(theToken);
-          }
-
-          
-          
-          
-          theToken = mTokenAllocator->CreateTokenOfType(eToken_attribute,
-                                                        eHTMLTag_unknown,
-                                                        theAttribute);
-          NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
-
-          ((CAttributeToken*)theToken)->SetKey(NS_LITERAL_STRING("_moz-type"));
-          mTokenizer->PushTokenFront(theToken);
-
-          
-          
-          
-          for (theIndex = theAttrCount; theIndex > 0; --theIndex) {
-            mTokenizer->PushTokenFront(((nsCParserNode*)aNode)->PopAttributeToken());
-          }
-
-          theToken = mTokenAllocator->CreateTokenOfType(eToken_start,
-                                                        eHTMLTag_select);
-          NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
-
-          
-          theToken->SetAttributeCount(theAttrCount + 1);
-          mTokenizer->PushTokenFront(theToken);
-        }
-      }
-    }
+  nsCOMPtr<nsIFormProcessor> theFormProcessor =
+           do_GetService(kFormProcessorCID, &result);
+  if (NS_FAILED(result)) {
+    return result;
   }
+
+  PRInt32      theAttrCount = aNode->GetAttributeCount();
+  nsStringArray  theContent;
+  nsAutoString theAttribute;
+  nsAutoString theFormType;
+  CToken*      theToken = nsnull;
+
+  theFormType.AssignLiteral("select");
+
+  result = theFormProcessor->ProvideContent(theFormType, theContent,
+                                            theAttribute);
+  if (NS_FAILED(result)) {
+    return result;
+  }
+  nsString* theTextValue = nsnull;
+  PRInt32   theIndex = nsnull;
+
+  
+  
+  
+  theToken = mTokenAllocator->CreateTokenOfType(eToken_end,
+                                                eHTMLTag_select);
+  NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
+  mTokenizer->PushTokenFront(theToken);
+
+  for (theIndex = theContent.Count()-1; theIndex > -1; --theIndex) {
+    theTextValue = theContent[theIndex];
+    theToken = mTokenAllocator->CreateTokenOfType(eToken_text,
+                                                  eHTMLTag_text,
+                                                  *theTextValue);
+    NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
+    mTokenizer->PushTokenFront(theToken);
+
+    theToken = mTokenAllocator->CreateTokenOfType(eToken_start,
+                                                  eHTMLTag_option);
+    NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
+    mTokenizer->PushTokenFront(theToken);
+  }
+
+  
+  
+  
+  theToken = mTokenAllocator->CreateTokenOfType(eToken_attribute,
+                                                eHTMLTag_unknown,
+                                                theAttribute);
+  NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
+
+  ((CAttributeToken*)theToken)->SetKey(NS_LITERAL_STRING("_moz-type"));
+  mTokenizer->PushTokenFront(theToken);
+
+  
+  
+  
+  for (theIndex = theAttrCount; theIndex > 0; --theIndex) {
+    mTokenizer->PushTokenFront(((nsCParserNode*)aNode)->PopAttributeToken());
+  }
+
+  theToken = mTokenAllocator->CreateTokenOfType(eToken_start,
+                                                eHTMLTag_select);
+  NS_ENSURE_TRUE(theToken, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  theToken->SetAttributeCount(theAttrCount + 1);
+  mTokenizer->PushTokenFront(theToken);
+
   return result;
 }
 
