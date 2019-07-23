@@ -73,8 +73,8 @@ typedef enum {
 
 
 #define NS_IIMAGE_IID \
-{ 0x96d9d7ce, 0xe575, 0x4265, \
-  { 0x85, 0x07, 0x35, 0x55, 0x51, 0x12, 0xa4, 0x30 } }
+{ 0xfd31e1f2, 0xbd46, 0x47f1, \
+  { 0xb8, 0xb6, 0xb9, 0x4c, 0xe9, 0x54, 0xf9, 0xce } }
 
 
 class nsIImage : public nsISupports
@@ -191,12 +191,8 @@ public:
 
 
 
-
-
-
   NS_IMETHOD Draw(nsIRenderingContext &aContext,
                   const gfxRect &aSourceRect,
-                  const gfxRect &aSubimageRect,
                   const gfxRect &aDestRect) = 0;
 
   

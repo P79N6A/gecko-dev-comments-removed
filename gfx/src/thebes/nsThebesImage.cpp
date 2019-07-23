@@ -412,7 +412,6 @@ nsThebesImage::UnlockImagePixels(PRBool aMaskPixels)
 NS_IMETHODIMP
 nsThebesImage::Draw(nsIRenderingContext &aContext,
                     const gfxRect &aSourceRect,
-                    const gfxRect &aSubimageRect,
                     const gfxRect &aDestRect)
 {
     if (NS_UNLIKELY(aDestRect.IsEmpty())) {
@@ -453,24 +452,21 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
     gfxFloat yscale = aDestRect.size.height / aSourceRect.size.height;
 
     gfxRect srcRect(aSourceRect);
-    gfxRect subimageRect(aSubimageRect);
     gfxRect destRect(aDestRect);
 
     if (!GetIsImageComplete()) {
-        gfxRect decoded = gfxRect(mDecoded.x, mDecoded.y,
-                                  mDecoded.width, mDecoded.height);
-        srcRect = srcRect.Intersect(decoded);
-        subimageRect = subimageRect.Intersect(decoded);
+      srcRect = srcRect.Intersect(gfxRect(mDecoded.x, mDecoded.y,
+                                          mDecoded.width, mDecoded.height));
 
-        
-        if (NS_UNLIKELY(srcRect.size.width == 0 || srcRect.size.height == 0))
-            return NS_OK;
+      
+      if (NS_UNLIKELY(srcRect.size.width == 0 || srcRect.size.height == 0))
+          return NS_OK;
 
-        destRect.pos.x += (srcRect.pos.x - aSourceRect.pos.x)*xscale;
-        destRect.pos.y += (srcRect.pos.y - aSourceRect.pos.y)*yscale;
+      destRect.pos.x += (srcRect.pos.x - aSourceRect.pos.x)*xscale;
+      destRect.pos.y += (srcRect.pos.y - aSourceRect.pos.y)*yscale;
 
-        destRect.size.width  = srcRect.size.width * xscale;
-        destRect.size.height = srcRect.size.height * yscale;
+      destRect.size.width  = srcRect.size.width * xscale;
+      destRect.size.height = srcRect.size.height * yscale;
     }
 
     
@@ -481,39 +477,7 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
     if (!AllowedImageSize(destRect.size.width + 1, destRect.size.height + 1))
         return NS_ERROR_FAILURE;
 
-    
-    
-    
-    subimageRect.RoundOut();
-
     nsRefPtr<gfxPattern> pat;
-    PRBool ctxHasNonTranslation = ctx->CurrentMatrix().HasNonTranslation();
-    if ((xscale == 1.0 && yscale == 1.0 && !ctxHasNonTranslation) ||
-        subimageRect == gfxRect(0, 0, mWidth, mHeight))
-    {
-        
-        
-        
-        
-        pat = new gfxPattern(ThebesSurface());
-    } else {
-        
-        
-        gfxIntSize size(PRInt32(subimageRect.Width()),
-                        PRInt32(subimageRect.Height()));
-        nsRefPtr<gfxASurface> temp =
-            gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, mFormat);
-        if (!temp || temp->CairoStatus() != 0)
-            return NS_ERROR_FAILURE;
-
-        gfxContext tempctx(temp);
-        tempctx.SetSource(ThebesSurface(), -subimageRect.pos);
-        tempctx.SetOperator(gfxContext::OPERATOR_SOURCE);
-        tempctx.Paint();
-
-        pat = new gfxPattern(temp);
-        srcRect.MoveBy(-subimageRect.pos);
-    }
 
     
 
@@ -536,12 +500,13 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
 
         gfxContext tempctx(temp);
 
+        gfxPattern srcpat(ThebesSurface());
         gfxMatrix mat;
         mat.Translate(srcRect.pos);
         mat.Scale(1.0 / xscale, 1.0 / yscale);
-        pat->SetMatrix(mat);
+        srcpat.SetMatrix(mat);
 
-        tempctx.SetPattern(pat);
+        tempctx.SetPattern(&srcpat);
         tempctx.SetOperator(gfxContext::OPERATOR_SOURCE);
         tempctx.NewPath();
         tempctx.Rectangle(gfxRect(0.0, 0.0, dim.width, dim.height));
@@ -556,6 +521,10 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
 
         xscale = 1.0;
         yscale = 1.0;
+    }
+
+    if (!pat) {
+        pat = new gfxPattern(ThebesSurface());
     }
 
     gfxMatrix mat;
@@ -578,14 +547,14 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
     
     
     
-    if (xscale > 1.0 || yscale > 1.0 || ctxHasNonTranslation)
+    if (xscale > 1.0 || yscale > 1.0)
         pat->SetFilter(0);
 #endif
 
 #if defined(XP_WIN) || defined(XP_OS2)
     
     
-    if (xscale != 1.0 || yscale != 1.0 || ctxHasNonTranslation)
+    if (xscale != 1.0 || yscale != 1.0)
         pat->SetExtend(gfxPattern::EXTEND_PAD);
 #endif
 
