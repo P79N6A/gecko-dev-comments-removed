@@ -65,9 +65,11 @@ protected:
   nsCOMPtr<nsISupports>             mContext;  
   nsCOMPtr<nsIRequest>              mRequest;
 
-  PRUint8  *mData;
-  PRUint32  mAllocated;
-  PRUint32  mLength;
+  PRUint8  *mData;      
+  PRUint32  mAllocated; 
+                        
+  PRUint32  mLength;    
+                        
 };
 
 #endif 
