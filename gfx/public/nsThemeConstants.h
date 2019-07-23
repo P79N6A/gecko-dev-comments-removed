@@ -42,6 +42,9 @@
 #define NS_THEME_TOOLBAR_GRIPPER                           17
 
 
+#define NS_THEME_SPLITTER                                  19
+
+
 #define NS_THEME_STATUSBAR                                 21
 
 
