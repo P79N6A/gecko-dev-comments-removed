@@ -1156,12 +1156,6 @@ public:
 
 
 
-  static void HidePopupsInDocument(nsIDocument* aDocument);
-
-  
-
-
-
 
 
 

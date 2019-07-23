@@ -1179,8 +1179,9 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
 #ifdef MOZ_XUL
   
   
-  if (mDocument)
-    nsContentUtils::HidePopupsInDocument(mDocument);
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  if (pm && mDocument)
+    pm->HidePopupsInDocument(mDocument);
 #endif
 
   return NS_OK;
