@@ -91,7 +91,9 @@ public:
 private:
   nsRect mCaretRect;
   PRBool mVisible;
-  nsCOMPtr<nsIDOMNode> mCurrentDOMNode;
+  PRInt32 mLastCaretOffset;
+  nsCOMPtr<nsIDOMNode> mLastNodeWithCaret;
+  nsCOMPtr<nsIDOMNode> mSelectionControllerNode;
   
   
   nsRootAccessible *mRootAccessible;
