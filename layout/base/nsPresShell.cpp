@@ -1854,7 +1854,7 @@ PresShell::Destroy()
     
     
     
-    mPresContext->PropertyTable()->DeleteAllProperties();
+    mPresContext->PropertyTable()->DeleteAll();
   }
 
 
@@ -2754,7 +2754,7 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
     FrameManager()->NotifyDestroyingFrame(aFrame);
 
     
-    mPresContext->PropertyTable()->DeleteAllPropertiesFor(aFrame);
+    mPresContext->PropertyTable()->DeleteAllFor(aFrame);
 
     if (aFrame == mCurrentEventFrame) {
       mCurrentEventContent = aFrame->GetContent();
