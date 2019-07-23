@@ -878,10 +878,11 @@ nsContentSink::GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey)
 nsresult
 nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                                  nsIURI *aManifestURI,
-                                 PRBool aIsTopDocument,
                                  PRBool aFetchedWithHTTPGetOrEquiv,
                                  CacheSelectionAction *aAction)
 {
+  nsresult rv;
+
   *aAction = CACHE_SELECTION_NONE;
 
   nsCOMPtr<nsIApplicationCacheContainer> applicationCacheDocument =
@@ -889,14 +890,9 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
   NS_ASSERTION(applicationCacheDocument,
                "mDocument must implement nsIApplicationCacheContainer.");
 
-  nsresult rv;
-
-  
-  nsCOMPtr<nsIApplicationCache> applicationCache = aLoadApplicationCache;
-
-  if (applicationCache) {
+  if (aLoadApplicationCache) {
     nsCAutoString groupID;
-    rv = applicationCache->GetGroupID(groupID);
+    rv = aLoadApplicationCache->GetGroupID(groupID);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIURI> groupURI;
@@ -911,31 +907,34 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
       
       
       
-      
 
       nsCAutoString cachekey;
       rv = GetChannelCacheKey(mDocument->GetChannel(), cachekey);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = applicationCache->MarkEntry(cachekey,
-                                       nsIApplicationCache::ITEM_FOREIGN);
+      rv = aLoadApplicationCache->MarkEntry(cachekey,
+                                            nsIApplicationCache::ITEM_FOREIGN);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      if (aIsTopDocument) {
-        *aAction = CACHE_SELECTION_RELOAD;
-      }
-
-      return NS_OK;
+      *aAction = CACHE_SELECTION_RELOAD;
     }
+    else {
+      
+      
+      
+#ifdef NS_DEBUG
+      nsCAutoString docURISpec, clientID;
+      mDocumentURI->GetAsciiSpec(docURISpec);
+      aLoadApplicationCache->GetClientID(clientID);
+      SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_CALLS,
+          ("Selection: assigning app cache %s to document %s", clientID.get(), docURISpec.get()));
+#endif
 
-    if (aIsTopDocument) {
-      
-      
-      
-      
-      rv = applicationCacheDocument->SetApplicationCache(applicationCache);
+      rv = applicationCacheDocument->SetApplicationCache(aLoadApplicationCache);
       NS_ENSURE_SUCCESS(rv, rv);
 
+      
+      
       *aAction = CACHE_SELECTION_UPDATE;
     }
   }
@@ -948,50 +947,11 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
       
       
       
-
-      return NS_OK;
-    }
-
-    
-    
-    nsCAutoString manifestURISpec;
-    rv = aManifestURI->GetAsciiSpec(manifestURISpec);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIApplicationCacheService> appCacheService =
-      do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
-    if (!appCacheService) {
-      
-      return NS_OK;
-    }
-
-    rv = appCacheService->GetActiveCache(manifestURISpec,
-                                         getter_AddRefs(applicationCache));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (applicationCache) {
-      rv = applicationCacheDocument->SetApplicationCache(applicationCache);
-      NS_ENSURE_SUCCESS(rv, rv);
+      *aAction = CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST;
     }
     else {
       
-      
-      
-    }
-
-    
-    *aAction = CACHE_SELECTION_UPDATE;
-  }
-
-  if (applicationCache) {
-    
-    
-    nsCAutoString cachekey;
-    rv = GetChannelCacheKey(mDocument->GetChannel(), cachekey);
-    if (NS_SUCCEEDED(rv)) {
-      rv = applicationCache->MarkEntry(cachekey,
-                                       nsIApplicationCache::ITEM_IMPLICIT);
-      NS_ENSURE_SUCCESS(rv, rv);
+      *aAction = CACHE_SELECTION_UPDATE;
     }
   }
 
@@ -1000,39 +960,44 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
 
 nsresult
 nsContentSink::SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplicationCache,
-                                           PRBool aIsTopDocument,
                                            nsIURI **aManifestURI,
                                            CacheSelectionAction *aAction)
 {
   *aManifestURI = nsnull;
   *aAction = CACHE_SELECTION_NONE;
 
-  if (!aIsTopDocument || !aLoadApplicationCache) {
-    return NS_OK;
-  }
-
   nsresult rv;
 
-  
-  
-  nsCOMPtr<nsIApplicationCacheContainer> applicationCacheDocument =
-    do_QueryInterface(mDocument);
-  NS_ASSERTION(applicationCacheDocument,
-               "mDocument must implement nsIApplicationCacheContainer.");
+  if (aLoadApplicationCache) {
+    
+    
+    nsCOMPtr<nsIApplicationCacheContainer> applicationCacheDocument =
+      do_QueryInterface(mDocument);
+    NS_ASSERTION(applicationCacheDocument,
+                 "mDocument must implement nsIApplicationCacheContainer.");
 
-  rv = applicationCacheDocument->SetApplicationCache(aLoadApplicationCache);
-  NS_ENSURE_SUCCESS(rv, rv);
+#ifdef NS_DEBUG
+    nsCAutoString docURISpec, clientID;
+    mDocumentURI->GetAsciiSpec(docURISpec);
+    aLoadApplicationCache->GetClientID(clientID);
+    SINK_TRACE(gContentSinkLogModuleInfo, SINK_TRACE_CALLS,
+        ("Selection, no manifest: assigning app cache %s to document %s", clientID.get(), docURISpec.get()));
+#endif
 
-  
-  
-  nsCAutoString groupID;
-  rv = aLoadApplicationCache->GetGroupID(groupID);
-  NS_ENSURE_SUCCESS(rv, rv);
+    rv = applicationCacheDocument->SetApplicationCache(aLoadApplicationCache);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = NS_NewURI(aManifestURI, groupID);
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    nsCAutoString groupID;
+    rv = aLoadApplicationCache->GetGroupID(groupID);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  *aAction = CACHE_SELECTION_UPDATE;
+    rv = NS_NewURI(aManifestURI, groupID);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    *aAction = CACHE_SELECTION_UPDATE;
+  }
 
   return NS_OK;
 }
@@ -1070,26 +1035,11 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
     return;
   }
 
-  
-  
-  nsCOMPtr<nsIDOMWindow> window = mDocument->GetWindow();
-  if (!window)
-    return;
-  nsCOMPtr<nsIDOMWindow> parent;
-  window->GetParent(getter_AddRefs(parent));
-  PRBool isTop = (parent == window);
-
   CacheSelectionAction action = CACHE_SELECTION_NONE;
   nsCOMPtr<nsIURI> manifestURI;
 
   if (manifestSpec.IsEmpty()) {
-    rv = SelectDocAppCacheNoManifest(applicationCache,
-                                     isTop,
-                                     getter_AddRefs(manifestURI),
-                                     &action);
-    if (NS_FAILED(rv)) {
-      return;
-    }
+    action = CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST;
   }
   else {
     nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(manifestURI),
@@ -1102,25 +1052,35 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
     
     rv = mDocument->NodePrincipal()->CheckMayLoad(manifestURI, PR_TRUE);
     if (NS_FAILED(rv)) {
-      return;
+      action = CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST;
     }
+    else {
+      
+      if (!nsContentUtils::OfflineAppAllowed(mDocument->NodePrincipal())) {
+        return;
+      }
 
-    
-    if (!nsContentUtils::OfflineAppAllowed(mDocument->NodePrincipal())) {
-      return;
+      PRBool fetchedWithHTTPGetOrEquiv = PR_FALSE;
+      nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mDocument->GetChannel()));
+      if (httpChannel) {
+        nsCAutoString method;
+        rv = httpChannel->GetRequestMethod(method);
+        if (NS_SUCCEEDED(rv))
+          fetchedWithHTTPGetOrEquiv = method.Equals("GET");
+      }
+
+      rv = SelectDocAppCache(applicationCache, manifestURI,
+                             fetchedWithHTTPGetOrEquiv, &action);
+      if (NS_FAILED(rv)) {
+        return;
+      }
     }
+  }
 
-    PRBool fetchedWithHTTPGetOrEquiv = PR_FALSE;
-    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mDocument->GetChannel()));
-    if (httpChannel) {
-      nsCAutoString method;
-      rv = httpChannel->GetRequestMethod(method);
-      if (NS_SUCCEEDED(rv))
-        fetchedWithHTTPGetOrEquiv = method.Equals("GET");
-    }
-
-    rv = SelectDocAppCache(applicationCache, manifestURI, isTop,
-                           fetchedWithHTTPGetOrEquiv, &action);
+  if (action == CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST) {
+    rv = SelectDocAppCacheNoManifest(applicationCache,
+                                     getter_AddRefs(manifestURI),
+                                     &action);
     if (NS_FAILED(rv)) {
       return;
     }
@@ -1129,7 +1089,7 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
   switch (action)
   {
   case CACHE_SELECTION_NONE:
-    return;
+    break;
   case CACHE_SELECTION_UPDATE: {
     nsCOMPtr<nsIOfflineCacheUpdateService> updateService =
       do_GetService(NS_OFFLINECACHEUPDATESERVICE_CONTRACTID);
@@ -1143,13 +1103,16 @@ nsContentSink::ProcessOfflineManifest(nsIContent *aElement)
   case CACHE_SELECTION_RELOAD: {
     
     
-    NS_ASSERTION(isTop, "Should only reload toplevel documents!");
     nsCOMPtr<nsIWebNavigation> webNav = do_QueryInterface(mDocShell);
 
     webNav->Stop(nsIWebNavigation::STOP_ALL);
     webNav->Reload(nsIWebNavigation::LOAD_FLAGS_NONE);
     break;
   }
+  default:
+    NS_ASSERTION(PR_FALSE,
+          "Cache selection algorithm didn't decide on proper action");
+    break;
   }
 }
 

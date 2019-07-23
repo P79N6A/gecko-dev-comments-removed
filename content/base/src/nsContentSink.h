@@ -167,7 +167,10 @@ protected:
     
     
     
-    CACHE_SELECTION_RELOAD = 2
+    CACHE_SELECTION_RELOAD = 2,
+
+    
+    CACHE_SELECTION_RESELECT_WITHOUT_MANIFEST = 3
   };
 
   nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
@@ -211,11 +214,8 @@ protected:
   
   
   
-  
-  
   nsresult SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                              nsIURI *aManifestURI,
-                             PRBool aIsTopDocument,
                              PRBool aFetchedWithHTTPGetOrEquiv,
                              CacheSelectionAction *aAction);
 
@@ -234,10 +234,7 @@ protected:
   
   
   
-  
-  
   nsresult SelectDocAppCacheNoManifest(nsIApplicationCache *aLoadApplicationCache,
-                                       PRBool aIsTopDocument,
                                        nsIURI **aManifestURI,
                                        CacheSelectionAction *aAction);
 

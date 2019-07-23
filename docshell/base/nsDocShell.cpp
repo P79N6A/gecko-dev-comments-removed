@@ -469,16 +469,9 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
         *aSink = nsnull;
 
         
-        
-
-        nsCOMPtr<nsIDocShellTreeItem> rootItem;
-        GetSameTypeRootTreeItem(getter_AddRefs(rootItem));
-        nsCOMPtr<nsIDocShell> rootDocShell = do_QueryInterface(rootItem);
-        if (!rootDocShell)
-            return NS_ERROR_NO_INTERFACE;
 
         nsCOMPtr<nsIContentViewer> contentViewer;
-        rootDocShell->GetContentViewer(getter_AddRefs(contentViewer));
+        GetContentViewer(getter_AddRefs(contentViewer));
         if (!contentViewer)
             return NS_ERROR_NO_INTERFACE;
 
@@ -488,6 +481,11 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
         if (!domDoc)
             return NS_ERROR_NO_INTERFACE;
 
+#if defined(PR_LOGGING) && defined(DEBUG)
+        PR_LOG(gDocShellLog, PR_LOG_DEBUG,
+               ("nsDocShell[%p]: returning app cache container %p",
+                this, domDoc.get()));
+#endif
         return domDoc->QueryInterface(aIID, aSink);
     }
     else if (aIID.Equals(NS_GET_IID(nsIPrompt)) &&
@@ -7338,15 +7336,6 @@ nsDocShell::GetInheritedPrincipal(PRBool aConsiderCurrentDocument)
 PRBool
 nsDocShell::ShouldCheckAppCache(nsIURI *aURI)
 {
-    
-    
-    
-    nsCOMPtr<nsIDocShellTreeItem> root;
-    GetSameTypeRootTreeItem(getter_AddRefs(root));
-    if (root != this) {
-        return PR_FALSE;
-    }
-
     nsCOMPtr<nsIOfflineCacheUpdateService> offlineService =
         do_GetService(NS_OFFLINECACHEUPDATESERVICE_CONTRACTID);
     if (!offlineService) {
@@ -7421,15 +7410,11 @@ nsDocShell::DoURILoad(nsIURI * aURI,
         do_QueryInterface(channel);
     if (appCacheChannel) {
         
+        appCacheChannel->SetInheritApplicationCache(PR_FALSE);
+
         
-        nsCOMPtr<nsIDocShellTreeItem> root;
-        GetSameTypeRootTreeItem(getter_AddRefs(root));
-        if (root == this) {
-            appCacheChannel->SetInheritApplicationCache(PR_FALSE);
-            
-            
-            appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(aURI));
-        }
+        
+        appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(aURI));
     }
 
     

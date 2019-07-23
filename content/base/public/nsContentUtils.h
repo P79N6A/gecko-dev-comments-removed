@@ -1248,7 +1248,7 @@ public:
 
 
 
-  static void GetOfflineAppManifest(nsIDOMWindow *aWindow, nsIURI **aURI);
+  static void GetOfflineAppManifest(nsIDocument *aDocument, nsIURI **aURI);
 
   
 
