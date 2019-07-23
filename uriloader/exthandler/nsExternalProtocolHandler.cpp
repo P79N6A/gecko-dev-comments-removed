@@ -53,9 +53,6 @@
 #include "nsIPrefService.h"
 #include "nsIPrompt.h"
 #include "nsNetUtil.h"
-#include "nsIChannelEventSink.h"
-#include "nsThreadUtils.h"
-#include "nsEscape.h"
 #include "nsExternalHelperAppService.h"
 
 
@@ -69,8 +66,6 @@
 
 class nsExtProtocolChannel : public nsIChannel
 {
-    friend class nsProtocolRedirect;
-
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICHANNEL
@@ -89,13 +84,10 @@ private:
     nsCOMPtr<nsIURI> mOriginalURI;
     nsresult mStatus;
     nsLoadFlags mLoadFlags;
-    PRBool mIsPending;
     PRBool mWasOpened;
     
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsILoadGroup> mLoadGroup;
-    nsCOMPtr<nsIStreamListener> mListener;
-    nsCOMPtr<nsISupports> mContext;
 };
 
 NS_IMPL_THREADSAFE_ADDREF(nsExtProtocolChannel)
@@ -108,7 +100,6 @@ NS_INTERFACE_MAP_BEGIN(nsExtProtocolChannel)
 NS_INTERFACE_MAP_END_THREADSAFE
 
 nsExtProtocolChannel::nsExtProtocolChannel() : mStatus(NS_OK), 
-                                               mIsPending(PR_FALSE),
                                                mWasOpened(PR_FALSE)
 {
 }
@@ -188,233 +179,40 @@ nsresult nsExtProtocolChannel::OpenURL()
     NS_ASSERTION(haveHandler, "Why do we have a channel for this url if we don't support the protocol?");
 #endif
 
-    rv = extProtService->LoadURI(mUrl, mCallbacks);
+    nsCOMPtr<nsIInterfaceRequestor> aggCallbacks;
+    rv = NS_NewNotificationCallbacksAggregation(mCallbacks, mLoadGroup,
+                                                getter_AddRefs(aggCallbacks));
+    if (NS_FAILED(rv)) {
+      goto finish;
+    }
+                                                
+    rv = extProtService->LoadURI(mUrl, aggCallbacks);
+    if (NS_SUCCEEDED(rv)) {
+        
+        
+        
+        rv = NS_ERROR_NO_CONTENT;
+    }
   }
 
-  
+finish:
   mCallbacks = 0;
-
   return rv;
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::Open(nsIInputStream **_retval)
 {
-  OpenURL();
-  return NS_ERROR_NO_CONTENT; 
+  return OpenURL();
 }
-
-class nsProtocolRedirect : public nsRunnable {
-  public:
-    nsProtocolRedirect(nsIURI *aURI, nsIHandlerInfo *aHandlerInfo,
-                       nsIStreamListener *aListener, nsISupports *aContext,
-                       nsExtProtocolChannel *aOriginalChannel)
-      : mURI(aURI), mHandlerInfo(aHandlerInfo), mListener(aListener), 
-        mContext(aContext), mOriginalChannel(aOriginalChannel) {}
-
-    NS_IMETHOD Run() 
-    {
-      
-      nsCOMPtr<nsIHandlerApp> handlerApp;
-      nsresult rv = 
-        mHandlerInfo->GetPreferredApplicationHandler(getter_AddRefs(handlerApp));
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK;
-      }
-
-      nsCOMPtr<nsIWebHandlerApp> webHandlerApp = do_QueryInterface(handlerApp,
-                                                                   &rv);
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK; 
-      }
-
-      nsCAutoString uriTemplate;
-      rv = webHandlerApp->GetUriTemplate(uriTemplate);
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK; 
-      }
-            
-      
-      nsCAutoString uriSpecToHandle;
-      rv = mURI->GetSpec(uriSpecToHandle);
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK; 
-      }
-
-      
-      
-      
-      
-
-      
-      
-      
-      
-      
-      nsCAutoString escapedUriSpecToHandle;
-      NS_EscapeURL(uriSpecToHandle, esc_Minimal | esc_Forced | esc_Colon,
-                   escapedUriSpecToHandle);
-
-      
-      
-      
-      
-      uriTemplate.ReplaceSubstring(NS_LITERAL_CSTRING("%s"),
-                                   escapedUriSpecToHandle);
-
-      
-      
-      nsCOMPtr<nsIURI> uriToSend;
-      rv = NS_NewURI(getter_AddRefs(uriToSend), uriTemplate);
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK; 
-      }
-
-      
-      nsCOMPtr<nsIChannel> newChannel;
-      rv = NS_NewChannel(getter_AddRefs(newChannel), uriToSend, nsnull,
-                         mOriginalChannel->mLoadGroup,
-                         mOriginalChannel->mCallbacks,
-                         mOriginalChannel->mLoadFlags 
-                         | nsIChannel::LOAD_REPLACE);
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK; 
-      }
-
-      nsCOMPtr<nsIChannelEventSink> eventSink;
-      NS_QueryNotificationCallbacks(mOriginalChannel->mCallbacks,
-                                    mOriginalChannel->mLoadGroup, eventSink);
-
-      if (eventSink) {
-        
-        rv = eventSink->OnChannelRedirect(mOriginalChannel, newChannel, 
-                                          nsIChannelEventSink::REDIRECT_TEMPORARY |
-                                          nsIChannelEventSink::REDIRECT_INTERNAL);
-        if (NS_FAILED(rv)) {
-          mOriginalChannel->Finish(rv);
-          return NS_OK;
-        }
-      }
-
-      rv = newChannel->AsyncOpen(mListener, mContext);
-      if (NS_FAILED(rv)) {
-        mOriginalChannel->Finish(rv);
-        return NS_OK; 
-      }
-      
-      mOriginalChannel->Finish(NS_BINDING_REDIRECTED);
-      return NS_OK;
-    }
-
-  private:
-    nsCOMPtr<nsIURI> mURI;
-    nsCOMPtr<nsIHandlerInfo> mHandlerInfo;
-    nsCOMPtr<nsIStreamListener> mListener;
-    nsCOMPtr<nsISupports> mContext;
-    nsCOMPtr<nsExtProtocolChannel> mOriginalChannel;
-};
 
 NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
 {
   NS_ENSURE_ARG_POINTER(listener);
-  NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
 
   mWasOpened = PR_TRUE;
-  mListener = listener;
-  mContext = ctxt;
 
-  if (!gExtProtSvc) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCAutoString urlScheme;  
-  nsresult rv = mUrl->GetScheme(urlScheme);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  nsCOMPtr<nsIHandlerInfo> handlerInfo;
-  rv = gExtProtSvc->GetProtocolHandlerInfo(urlScheme, 
-                                           getter_AddRefs(handlerInfo));
-  
-  if (NS_SUCCEEDED(rv)) {
-    PRInt32 preferredAction;                                           
-    rv = handlerInfo->GetPreferredAction(&preferredAction);
-
-    if (preferredAction == nsIHandlerInfo::useHelperApp) {
-
-      nsCOMPtr<nsIHandlerApp> handler;
-      rv = handlerInfo->GetPreferredApplicationHandler(getter_AddRefs(handler));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      nsCOMPtr<nsILocalHandlerApp> localHandler =
-        do_QueryInterface(handler, &rv);
-      if (NS_SUCCEEDED(rv)) {
-        OpenURL();
-        return NS_ERROR_NO_CONTENT; 
-      }
-
-      
-      
-      
-      
-      nsCOMPtr<nsIRunnable> event = new nsProtocolRedirect(mUrl, handlerInfo,
-                                                           listener, ctxt,
-                                                           this);
-
-      
-      
-      rv = NS_DispatchToCurrentThread(event);
-      if (NS_SUCCEEDED(rv)) {
-        mIsPending = PR_TRUE;
-
-        
-        
-        if (mLoadGroup)
-          (void)mLoadGroup->AddRequest(this, nsnull);
-
-        return rv;
-      }
-    }
-  }
-  
-  
-  OpenURL();
-  return NS_ERROR_NO_CONTENT; 
-}
-
-
-
-
-
-
-
-
-
-
-void nsExtProtocolChannel::Finish(nsresult aStatus)
-{
-  mStatus = aStatus;
-
-  if (aStatus != NS_BINDING_REDIRECTED && mListener) {
-    (void)mListener->OnStartRequest(this, mContext);
-    (void)mListener->OnStopRequest(this, mContext, aStatus);
-  }
-  
-  mIsPending = PR_FALSE;
-  
-  if (mLoadGroup) {
-    (void)mLoadGroup->RemoveRequest(this, nsnull, aStatus);
-  }
-  return;
+  return OpenURL();
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::GetLoadFlags(nsLoadFlags *aLoadFlags)
@@ -485,7 +283,7 @@ NS_IMETHODIMP nsExtProtocolChannel::GetName(nsACString &result)
 
 NS_IMETHODIMP nsExtProtocolChannel::IsPending(PRBool *result)
 {
-  *result = mIsPending;
+  *result = PR_FALSE;
   return NS_OK; 
 }
 

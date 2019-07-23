@@ -89,7 +89,8 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     NS_IMETHOD GetPossibleApplicationHandlers(nsIMutableArray * *aPossibleAppHandlers);
     NS_IMETHOD GetDefaultDescription(nsAString & aDefaultDescription);
     NS_IMETHOD LaunchWithFile(nsIFile *aFile);
-    NS_IMETHOD LaunchWithURI(nsIURI *aURI);
+    NS_IMETHOD LaunchWithURI(nsIURI *aURI,
+                             nsIInterfaceRequestor *aWindowContext);
     NS_IMETHOD GetPreferredAction(nsHandlerInfoAction *aPreferredAction);
     NS_IMETHOD SetPreferredAction(nsHandlerInfoAction aPreferredAction);
     NS_IMETHOD GetAlwaysAskBeforeHandling(PRBool *aAlwaysAskBeforeHandling);
@@ -159,8 +160,18 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
 
-    static NS_HIDDEN_(nsresult) LaunchWithWebHandler(nsIWebHandlerApp *aApp, 
-                                                     nsIURI *aURI);
+
+
+
+
+
+
+
+
+
+    static NS_HIDDEN_(nsresult) 
+        LaunchWithWebHandler(nsIWebHandlerApp *aApp, nsIURI *aURI,
+                             nsIInterfaceRequestor *aWindowContext);
 
     
 

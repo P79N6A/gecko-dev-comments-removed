@@ -35,6 +35,7 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
@@ -99,7 +100,8 @@ nsContentDispatchChooser.prototype =
     }
     params.appendElement(aHandler, false);
     params.appendElement(aURI, false);
-
+    params.appendElement(aWindowContext, false);
+    
     var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
              getService(Ci.nsIWindowWatcher);
     ww.openWindow(window,

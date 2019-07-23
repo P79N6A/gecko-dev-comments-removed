@@ -57,6 +57,9 @@
 
 
 
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -69,7 +72,8 @@ var dialog = {
   _URI: null,
   _itemChoose: null,
   _okButton: null,
-
+  _windowCtxt: null,
+  
   
   
 
@@ -80,6 +84,9 @@ var dialog = {
   {
     this._handlerInfo = window.arguments[6].QueryInterface(Ci.nsIHandlerInfo);
     this._URI         = window.arguments[7].QueryInterface(Ci.nsIURI);
+    this._windowCtxt  = window.arguments[8];
+    if (this._windowCtxt)
+      this._windowCtxt.QueryInterface(Ci.nsIInterfaceRequestor);
     this._itemChoose  = document.getElementById("item-choose");
     this._okButton    = document.documentElement.getButton("accept");
 
@@ -202,7 +209,7 @@ var dialog = {
              getService(Ci.nsIHandlerService);
     hs.store(this._handlerInfo);
 
-    this._handlerInfo.launchWithURI(this._URI);
+    this._handlerInfo.launchWithURI(this._URI, this._windowCtxt);
 
     return true;
   },
