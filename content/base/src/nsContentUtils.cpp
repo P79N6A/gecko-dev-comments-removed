@@ -2158,6 +2158,9 @@ nsContentUtils::LoadImage(nsIURI* aURI, nsIDocument* aLoadingDocument,
   nsIURI *documentURI = aLoadingDocument->GetDocumentURI();
 
   
+  NS_TryToSetImmutable(aURI);
+
+  
   
 
   

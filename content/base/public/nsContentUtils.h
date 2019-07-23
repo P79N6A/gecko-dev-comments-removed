@@ -566,6 +566,8 @@ public:
 
 
 
+
+
   static nsresult LoadImage(nsIURI* aURI,
                             nsIDocument* aLoadingDocument,
                             nsIPrincipal* aLoadingPrincipal,
