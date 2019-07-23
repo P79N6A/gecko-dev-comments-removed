@@ -144,8 +144,18 @@ QuitXPCOM()
 void
 DeleteSubprocess(MessageLoop* uiLoop)
 {
+  
   delete gSubprocess;
   uiLoop->PostTask(FROM_HERE, NewRunnableFunction(QuitXPCOM));
+}
+
+void
+DeferredParentShutdown()
+{
+  
+  XRE_GetIOMessageLoop()->PostTask(
+      FROM_HERE,
+      NewRunnableFunction(DeleteSubprocess, MessageLoop::current()));
 }
 
 }
@@ -196,9 +206,9 @@ void
 QuitParent()
 {
   
-  XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
-      NewRunnableFunction(DeleteSubprocess, MessageLoop::current()));
+  
+    MessageLoop::current()->PostTask(
+        FROM_HERE, NewRunnableFunction(DeferredParentShutdown));
 }
 
 } 
