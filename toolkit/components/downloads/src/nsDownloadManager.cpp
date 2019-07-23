@@ -55,6 +55,7 @@
 #include "nsIResumableChannel.h"
 #include "nsIWebBrowserPersist.h"
 #include "nsIWindowMediator.h"
+#include "nsILocalFileWin.h"
 
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsArrayEnumerator.h"
@@ -2253,6 +2254,23 @@ nsDownload::SetState(DownloadState aState)
           }
         }
       }
+
+      
+      
+      
+      nsCOMPtr<nsIFile> tempDir, fileDir;
+      rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(tempDir));
+      NS_ENSURE_SUCCESS(rv, rv);
+      (void)file->GetParent(getter_AddRefs(fileDir));
+
+      PRBool isTemp = PR_FALSE;
+      if (fileDir)
+        (void)fileDir->Equals(tempDir, &isTemp);
+
+      nsCOMPtr<nsILocalFileWin> localFileWin(do_QueryInterface(file));
+      if (!isTemp && localFileWin)
+        (void)localFileWin->SetFileAttributesWin(nsILocalFileWin::WFA_SEARCH_INDEXED);
+
 #endif
       
       if (mDownloadManager->GetRetentionBehavior() == 0)
