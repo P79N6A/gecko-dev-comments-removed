@@ -481,19 +481,9 @@ NS_IMETHODIMP nsSound::Init()
 NS_IMETHODIMP nsSound::PlaySystemSound(const nsAString &aSoundAlias)
 {
   
-  if (!sMMPMInstalled) {
+  
+  if (aSoundAlias.EqualsLiteral("_moz_mailbeep") || (!sMMPMInstalled)) {
     Beep();
-    return NS_OK;
-  }
-
-  if (NS_IsMozAliasSound(aSoundAlias)) {
-    
-    if (aSoundAlias.Equals(NS_SYSSOUND_MAIL_BEEP))
-      Beep();
-    
-    
-    
-    
     return NS_OK;
   }
   nsCAutoString nativeSoundAlias;
