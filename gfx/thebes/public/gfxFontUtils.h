@@ -143,7 +143,13 @@ public:
         return size;
     }
 
-
+    
+    void reset() {
+        PRUint32 i;
+        for (i = 0; i < mBlocks.Length(); i++)
+            mBlocks[i] = nsnull;    
+    }
+    
     nsTArray< nsAutoPtr<Block> > mBlocks;
 };
 

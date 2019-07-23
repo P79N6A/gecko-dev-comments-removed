@@ -215,6 +215,9 @@ private:
     
     nsDataHashtable<nsUint32HashKey, nsTArray<nsRefPtr<MacOSFamilyEntry> > > mPrefFonts;
 
+    
+    gfxSparseBitSet mCodepointsWithNoFonts;
+
 };
 
 #endif 
