@@ -237,14 +237,6 @@ public:
 
 
 
-  NS_IMETHOD  CreateRenderingContext(nsIDrawingSurface* aSurface, nsIRenderingContext *&aContext) = 0;
-
-  
-
-
-
-
-
   NS_IMETHOD  CreateRenderingContext(nsIWidget *aWidget, nsIRenderingContext *&aContext) = 0;
 
   

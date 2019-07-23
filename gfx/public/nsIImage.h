@@ -204,12 +204,6 @@ public:
                   const gfxRect &aSourceRect,
                   const gfxRect &aDestRect) = 0;
 
-  NS_IMETHOD DrawTile(nsIRenderingContext &aContext,
-                      nsIDrawingSurface* aSurface,
-                      PRInt32 aSXOffset, PRInt32 aSYOffset,
-                      PRInt32 aPadX, PRInt32 aPadY,
-                      const nsRect &aTileRect) = 0;
-
   
 
 

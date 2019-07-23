@@ -48,7 +48,6 @@
 #include "nsRect.h"
 #include "nsPoint.h"
 #include "nsSize.h"
-#include "nsIDrawingSurface.h"
 #include <stdio.h>
 
 class nsIWidget;
@@ -65,10 +64,8 @@ struct nsTextDimensions;
 struct nsBoundingMetrics;
 #endif
 
-#ifdef MOZ_CAIRO_GFX
 class gfxASurface;
 class gfxContext;
-#endif
 
 
 class imgIContainer;
@@ -128,15 +125,6 @@ public:
 
 
 
-  NS_IMETHOD Init(nsIDeviceContext* aContext, nsIDrawingSurface* aSurface) = 0;
-
-#ifdef MOZ_CAIRO_GFX
-  
-
-
-
-
-
   NS_IMETHOD Init(nsIDeviceContext* aContext, gfxASurface* aThebesSurface) = 0;
 
   
@@ -146,12 +134,6 @@ public:
 
 
   NS_IMETHOD Init(nsIDeviceContext* aContext, gfxContext* aThebesContext) = 0;
-#endif
-
-  
-
-
-  NS_IMETHOD Reset(void) = 0;
 
   
 
@@ -160,41 +142,6 @@ public:
 
 
   NS_IMETHOD GetDeviceContext(nsIDeviceContext *& aDeviceContext) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD LockDrawingSurface(PRInt32 aX, PRInt32 aY, PRUint32 aWidth, PRUint32 aHeight,
-                                void **aBits, PRInt32 *aStride, PRInt32 *aWidthBytes,
-                                PRUint32 aFlags) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD UnlockDrawingSurface(void) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD SelectOffScreenDrawingSurface(nsIDrawingSurface* aSurface) = 0;
-
-  
-
-
-
-  NS_IMETHOD GetDrawingSurface(nsIDrawingSurface* *aSurface) = 0;
 
   
 
@@ -223,26 +170,9 @@ public:
 
 
 
-  NS_IMETHOD IsVisibleRect(const nsRect& aRect, PRBool &aIsVisible) = 0;
-
-  
-
-
-
-
 
 
   NS_IMETHOD SetClipRect(const nsRect& aRect, nsClipCombine aCombine) = 0;
-
-  
-
-
-
-
-
-
-
-  NS_IMETHOD GetClipRect(nsRect &aRect, PRBool &aHasLocalClip) = 0;
 
   
 
@@ -256,49 +186,9 @@ public:
 
 
 
-  NS_IMETHOD GetLineStyle(nsLineStyle &aLineStyle) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD GetPenMode(nsPenMode &aPenMode) =0;
-
-  
-
-
-
-
-  NS_IMETHOD SetPenMode(nsPenMode aPenMode) =0;
-
-
-  
-
-
-
-
 
 
   NS_IMETHOD SetClipRegion(const nsIRegion& aRegion, nsClipCombine aCombine) = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD CopyClipRegion(nsIRegion &aRegion) = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD GetClipRegion(nsIRegion **aRegion) = 0;
 
   
 
@@ -387,32 +277,7 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD CreateDrawingSurface(const nsRect& aBounds, PRUint32 aSurfFlags, nsIDrawingSurface* &aSurface) = 0;
-
-  
-
-
-
-  NS_IMETHOD DestroyDrawingSurface(nsIDrawingSurface* aDS) = 0;
-
-  
-
-
-
-
-
-
   NS_IMETHOD DrawLine(nscoord aX0, nscoord aY0, nscoord aX1, nscoord aY1) = 0;
-
-  
-
-
-
-
-  NS_IMETHOD DrawPolyline(const nsPoint aPoints[], PRInt32 aNumPoints) = 0;
 
   
 
@@ -464,24 +329,6 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD FlushRect(const nsRect& aRect) = 0;
-  NS_IMETHOD FlushRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight) = 0;
-  
-  
-
-
-
-
-  NS_IMETHOD DrawPolygon(const nsPoint aPoints[], PRInt32 aNumPoints) = 0;
-
-  
-
-
-
-
   NS_IMETHOD FillPolygon(const nsPoint aPoints[], PRInt32 aNumPoints) = 0;
 
   
@@ -513,48 +360,6 @@ public:
 
 
   NS_IMETHOD FillEllipse(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD DrawArc(const nsRect& aRect,
-                     float aStartAngle, float aEndAngle) = 0;
-
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD DrawArc(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
-                     float aStartAngle, float aEndAngle) = 0;
-
-  
-
-
-
-
-
-  NS_IMETHOD FillArc(const nsRect& aRect,
-                     float aStartAngle, float aEndAngle) = 0;
-
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD FillArc(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight,
-                     float aStartAngle, float aEndAngle) = 0;
 
   
 
@@ -730,17 +535,6 @@ public:
                         PRInt32 aFontID = -1,
                         const nscoord* aSpacing = nsnull) = 0;
 
-  
-
-
-
-
-
-
-
-  NS_IMETHOD CopyOffScreenBits(nsIDrawingSurface* aSrcSurf, PRInt32 aSrcX, PRInt32 aSrcY,
-                               const nsRect &aDestBounds, PRUint32 aCopyFlags) = 0;
-
   enum GraphicDataType {
     NATIVE_CAIRO_CONTEXT = 1,
     NATIVE_GDK_DRAWABLE = 2,
@@ -794,18 +588,7 @@ public:
 
 
 
-  virtual void SetTextRunRTL(PRBool aIsRTL) {}
-
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD DrawImage(imgIContainer *aImage, const nsRect & aSrcRect, const nsRect & aDestRect) = 0;
+  virtual void SetTextRunRTL(PRBool aIsRTL) = 0;
 
   
 
@@ -915,13 +698,6 @@ public:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRenderingContext, NS_IRENDERING_CONTEXT_IID)
-
-
-
-#define NS_DRAWSTRING_NORMAL            0x0
-#define NS_DRAWSTRING_UNDERLINE         0x1
-#define NS_DRAWSTRING_OVERLINE          0x2
-#define NS_DRAWSTRING_LINE_THROUGH      0x4
 
 
 

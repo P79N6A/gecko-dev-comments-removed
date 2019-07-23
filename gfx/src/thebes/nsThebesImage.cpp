@@ -585,17 +585,6 @@ nsThebesImage::ThebesDrawTile(gfxContext *thebesContext,
 
 
 NS_IMETHODIMP
-nsThebesImage::DrawTile(nsIRenderingContext &aContext,
-                        nsIDrawingSurface *aSurface,
-                        PRInt32 aSXOffset, PRInt32 aSYOffset,
-                        PRInt32 aPadX, PRInt32 aPadY,
-                        const nsRect &aTileRect)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP
 nsThebesImage::DrawToImage(nsIImage* aDstImage, PRInt32 aDX, PRInt32 aDY, PRInt32 aDWidth, PRInt32 aDHeight)
 {
     nsThebesImage *dstThebesImage = NS_STATIC_CAST(nsThebesImage*, aDstImage);
