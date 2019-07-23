@@ -1081,7 +1081,6 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-
         if (sprop == SCOPE_LAST_PROP(scope)) {
             do {
                 SCOPE_REMOVE_LAST_PROP(scope);
@@ -1130,15 +1129,22 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
             JS_ASSERT(scope->table);
             CHECK_ANCESTOR_LINE(scope, JS_TRUE);
 
-            splen = scope->entryCount;
-            if (splen == 0) {
-                JS_ASSERT(scope->lastProp == NULL);
-            } else {
+            JSBool conflicts = JS_FALSE;
+            for (sprop = SCOPE_LAST_PROP(scope); sprop; sprop = sprop->parent) {
+                if (sprop->id == id) {
+                    conflicts = JS_TRUE;
+                    break;
+                }
+            }
+
+            if (conflicts) {
                 
 
 
 
 
+                splen = scope->entryCount;
+                JS_ASSERT(splen != 0);
                 spvec = (JSScopeProperty **)
                         JS_malloc(cx, SCOPE_TABLE_NBYTES(splen));
                 if (!spvec)
@@ -1153,36 +1159,11 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-
                     if (!SCOPE_GET_PROPERTY(scope, sprop->id))
                         continue;
 
                     JS_ASSERT(sprop != overwriting);
-                    if (i == 0) {
-                        
-
-
-
-
-
-
-                        JSScopeProperty *tmp = sprop;
-                        do {
-                            if (SCOPE_GET_PROPERTY(scope, tmp->id))
-                                i++;
-                        } while ((tmp = tmp->parent) != NULL);
-                        spp2 = (JSScopeProperty **)
-                             JS_realloc(cx, spvec, SCOPE_TABLE_NBYTES(splen+i));
-                        if (!spp2) {
-                            JS_free(cx, spvec);
-                            goto fail_overwrite;
-                        }
-
-                        spvec = spp2;
-                        memmove(spvec + i, spvec, SCOPE_TABLE_NBYTES(splen));
-                        splen += i;
-                    }
-
+                    JS_ASSERT(i != 0);
                     spvec[--i] = sprop;
                 } while ((sprop = sprop->parent) != NULL);
                 JS_ASSERT(i == 0);
@@ -1214,13 +1195,11 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-
                 scope->lastProp = sprop;
                 CHECK_ANCESTOR_LINE(scope, JS_FALSE);
                 JS_RUNTIME_METER(cx->runtime, middleDeleteFixups);
+                SCOPE_CLR_MIDDLE_DELETE(scope);
             }
-
-            SCOPE_CLR_MIDDLE_DELETE(scope);
         }
 
         
@@ -1489,6 +1468,8 @@ js_RemoveScopeProperty(JSContext *cx, JSScope *scope, jsid id)
                 break;
             sprop = SCOPE_LAST_PROP(scope);
         } while (sprop && !SCOPE_HAS_PROPERTY(scope, sprop));
+        if (!SCOPE_LAST_PROP(scope))
+            SCOPE_CLR_MIDDLE_DELETE(scope);
     } else if (!SCOPE_HAD_MIDDLE_DELETE(scope)) {
         SCOPE_SET_MIDDLE_DELETE(scope);
     }
