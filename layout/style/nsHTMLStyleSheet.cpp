@@ -189,11 +189,12 @@ ProcessTableRulesAttribute(void*       aStyleStruct,
       nscolor borderColor;
       PRBool foreground;
       borderData->GetBorderColor(aSide, borderColor, foreground);
-      if (NS_GET_A(borderColor) == 0 || foreground) {
+      if (foreground || NS_GET_A(borderColor) == 0) {
         
         nscolor tableBorderColor;
         tableBorderData->GetBorderColor(aSide, tableBorderColor, foreground);
-        borderColor = (NS_GET_A(borderColor) == 0 || foreground) ? NS_RGB(0,0,0) : tableBorderColor;
+        borderColor = (foreground || NS_GET_A(tableBorderColor) == 0)
+                        ? NS_RGB(0,0,0) : tableBorderColor;
         borderData->SetBorderColor(aSide, borderColor);
       }
       
