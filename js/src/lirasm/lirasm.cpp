@@ -1445,7 +1445,7 @@ FragmentAssembler::assembleRandomFragment(int nIns)
         case LALLOC: {
             
             
-            size_t szB;
+            size_t szB = 0;
             switch (rnd(3)) {
             case 0: szB = 4;                break;
             case 1: szB = 8;                break;
