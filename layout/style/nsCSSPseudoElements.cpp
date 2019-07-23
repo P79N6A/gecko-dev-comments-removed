@@ -44,14 +44,26 @@
 #include "nsMemory.h"
 
 
-#define CSS_PSEUDO_ELEMENT(_name, _value) \
-  nsICSSPseudoElement* nsCSSPseudoElements::_name;
+#define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
+  nsICSSPseudoElement* nsCSSPseudoElements::name_;
 #include "nsCSSPseudoElementList.h"
 #undef CSS_PSEUDO_ELEMENT
 
 static const nsStaticAtom CSSPseudoElements_info[] = {
-#define CSS_PSEUDO_ELEMENT(name_, value_) \
+#define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
     { value_, (nsIAtom**)&nsCSSPseudoElements::name_ },
+#include "nsCSSPseudoElementList.h"
+#undef CSS_PSEUDO_ELEMENT
+};
+
+
+
+
+
+
+static const PRUint32 CSSPseudoElements_flags[] = {
+#define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
+  flags_,
 #include "nsCSSPseudoElementList.h"
 #undef CSS_PSEUDO_ELEMENT
 };
@@ -68,14 +80,16 @@ PRBool nsCSSPseudoElements::IsPseudoElement(nsIAtom *aAtom)
                                    NS_ARRAY_LENGTH(CSSPseudoElements_info));
 }
 
-PRBool nsCSSPseudoElements::IsCSS2PseudoElement(nsIAtom *aAtom)
+ PRUint32
+nsCSSPseudoElements::FlagsForPseudoElement(nsIAtom *aAtom)
 {
-#define CSS2_PSEUDO_ELEMENT(name_, value_) \
-   nsCSSPseudoElements::name_ == aAtom ||
-#define CSS_PSEUDO_ELEMENT(name_, value_)
-  return
-#include "nsCSSPseudoElementList.h"
-    PR_FALSE;
-#undef CSS_PSEUDO_ELEMENT
-#undef CSS2_PSEUDO_ELEMENT
+  PRUint32 i;
+  for (i = 0; i < NS_ARRAY_LENGTH(CSSPseudoElements_info); ++i) {
+    if (*CSSPseudoElements_info[i].mAtom == aAtom) {
+      break;
+    }
+  }
+  NS_ASSERTION(i < NS_ARRAY_LENGTH(CSSPseudoElements_info),
+               "argument must be a pseudo-element");
+  return CSSPseudoElements_flags[i];
 }
