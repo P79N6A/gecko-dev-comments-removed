@@ -5906,7 +5906,8 @@ nsNavHistory::UpdateFrecency(PRInt64 aPlaceId, PRBool aIsBookmarked)
   
   
   
-  if (newFrecency == oldFrecency)
+  
+  if (newFrecency == oldFrecency || oldFrecency && newFrecency == -1)
     return NS_OK;
 
   mozStorageStatementScoper updateScoper(mDBUpdateFrecencyAndHidden);

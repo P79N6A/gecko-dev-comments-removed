@@ -168,6 +168,8 @@ bucketPrefs.every(function(bucket) {
 results.sort(function(a,b) a[1] - b[1]);
 results.reverse();
 
+prefs.setIntPref("browser.urlbar.maxRichResults", results.length);
+
 
 
 function AutoCompleteInput(aSearches) {

@@ -668,9 +668,9 @@ pref("places.frecency.defaultBucketWeight", 10);
 
 
 pref("places.frecency.embedVisitBonus", 0);
-pref("places.frecency.linkVisitBonus", 120);
-pref("places.frecency.typedVisitBonus", 200);
-pref("places.frecency.bookmarkVisitBonus", 140);
+pref("places.frecency.linkVisitBonus", 100);
+pref("places.frecency.typedVisitBonus", 500);
+pref("places.frecency.bookmarkVisitBonus", 150);
 pref("places.frecency.downloadVisitBonus", 0);
 pref("places.frecency.permRedirectVisitBonus", 0);
 pref("places.frecency.tempRedirectVisitBonus", 0);
