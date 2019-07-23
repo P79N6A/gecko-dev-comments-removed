@@ -659,7 +659,7 @@ var PlacesUtils = {
       
       var createTxn =
         new PlacesCreateItemTransaction(data.uri, container, index);
-      var title = type == TYPE_X_MOZ_URL ? data.title : data.uri;
+      var title = type == this.TYPE_X_MOZ_URL ? data.title : data.uri;
       createTxn.childTransactions.push(
           new PlacesEditItemTitleTransaction(-1, title));
       return createTxn;
