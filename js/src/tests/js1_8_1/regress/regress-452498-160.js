@@ -65,7 +65,7 @@ function test()
   reportCompare(expect, actual, summary + ': 2');
 
 
-  ({ set z(){},  set y x()--x });
+  ({ set z(){},  set y()--x, set w()--w });
   reportCompare(expect, actual, summary + ': 3');
 
   exitFunc ('test');
