@@ -583,6 +583,8 @@ protected:
 
 
 
+
+
   void FirePopupShowingEvent(nsIContent* aPopup,
                              nsIContent* aMenu,
                              nsPresContext* aPresContext,
@@ -590,6 +592,8 @@ protected:
                              PRBool aSelectFirstItem);
 
   
+
+
 
 
 

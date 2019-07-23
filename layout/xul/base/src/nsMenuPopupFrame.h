@@ -66,6 +66,40 @@ enum nsPopupType {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+enum nsPopupState {
+  
+  ePopupClosed,
+  
+  
+  ePopupShowing,
+  
+  ePopupOpen,
+  
+  ePopupOpenAndVisible,
+  
+  ePopupHiding,
+  
+  
+  
+  
+  
+  
+  ePopupInvisible
+};
+
+
+
 #define POPUPALIGNMENT_NONE 0
 #define POPUPALIGNMENT_TOPLEFT 1
 #define POPUPALIGNMENT_TOPRIGHT -1
@@ -99,8 +133,8 @@ public:
 
   
   
-  PRBool IsOpenPending() { return mIsOpenPending; }
-  void ClearOpenPending() { mIsOpenPending = PR_FALSE; }
+  nsPopupState PopupState() { return mPopupState; }
+  void SetPopupState(nsPopupState aPopupState) { mPopupState = aPopupState; }
 
   NS_IMETHOD SetActive(PRBool aActiveFlag) { return NS_OK; } 
   virtual PRBool IsActive() { return PR_FALSE; }
@@ -197,8 +231,12 @@ public:
 
   PRInt32 PopupType() const { return mPopupType; }
   PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
-  PRBool IsOpen() { return mIsOpen; }
+  PRBool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
   PRBool HasOpenChanged() { return mIsOpenChanged; }
+
+  
+  
+  PRBool IsInContentShell() { return mInContentShell; }
 
   
   
@@ -217,7 +255,8 @@ public:
   
   PRBool ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem);
   
-  void HidePopup(PRBool aDeselectMenu);
+  
+  void HidePopup(PRBool aDeselectMenu, nsPopupState aNewState);
 
   
   
@@ -293,10 +332,9 @@ protected:
   PRInt32 mScreenYPos;
 
   nsPopupType mPopupType; 
+  nsPopupState mPopupState; 
 
-  PRPackedBool mIsOpen;  
   PRPackedBool mIsOpenChanged; 
-  PRPackedBool mIsOpenPending; 
   PRPackedBool mIsContextMenu; 
   PRPackedBool mGeneratedChildren; 
 
