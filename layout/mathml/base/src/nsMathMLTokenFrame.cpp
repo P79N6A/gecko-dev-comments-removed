@@ -192,7 +192,7 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
 
 
 
-nsresult
+ nsresult
 nsMathMLTokenFrame::Place(nsIRenderingContext& aRenderingContext,
                           PRBool               aPlaceOrigin,
                           nsHTMLReflowMetrics& aDesiredSize)

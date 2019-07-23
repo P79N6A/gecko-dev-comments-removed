@@ -83,11 +83,6 @@ public:
           nsHTMLReflowMetrics& aDesiredStretchSize);
 
   NS_IMETHOD
-  Place(nsIRenderingContext& aRenderingContext,
-        PRBool               aPlaceOrigin,
-        nsHTMLReflowMetrics& aDesiredSize);
-
-  NS_IMETHOD
   UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                     PRInt32         aLastIndex,
                                     PRUint32        aFlagsValues,
@@ -198,6 +193,41 @@ public:
   
   
 
+protected:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult
+  Place(nsIRenderingContext& aRenderingContext,
+        PRBool               aPlaceOrigin,
+        nsHTMLReflowMetrics& aDesiredSize);
+
   
   
   virtual nsresult
@@ -205,15 +235,16 @@ public:
 
   
   
-  virtual void
+  void
   GetPreferredStretchSize(nsIRenderingContext& aRenderingContext,
                           PRUint32             aOptions,
                           nsStretchDirection   aStretchDirection,
                           nsBoundingMetrics&   aPreferredStretchSize);
 
+public:
   
   
-  virtual nsresult
+  nsresult
   ReflowError(nsIRenderingContext& aRenderingContext,
               nsHTMLReflowMetrics& aDesiredSize);
 
@@ -227,6 +258,7 @@ public:
               const nsHTMLReflowState& aReflowState,
               nsReflowStatus&          aStatus);
 
+protected:
   
   
   
@@ -273,6 +305,7 @@ public:
                                PRUint32        aFlagsValues,
                                PRUint32        aFlagsToUpdate);
 
+public:
   static void
   PropagatePresentationDataFromChildAt(nsIFrame*       aParentFrame,
                                        PRInt32         aFirstChildIndex,

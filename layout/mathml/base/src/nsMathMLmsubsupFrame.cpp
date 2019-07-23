@@ -86,7 +86,7 @@ nsMathMLmsubsupFrame::TransmitAutomaticData()
   return NS_OK;
 }
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLmsubsupFrame::Place(nsIRenderingContext& aRenderingContext,
                             PRBool               aPlaceOrigin,
                             nsHTMLReflowMetrics& aDesiredSize)

@@ -1262,7 +1262,7 @@ private:
   }
 };
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLContainerFrame::Place(nsIRenderingContext& aRenderingContext,
                               PRBool               aPlaceOrigin,
                               nsHTMLReflowMetrics& aDesiredSize)

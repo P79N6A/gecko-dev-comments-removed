@@ -240,7 +240,7 @@ nsMathMLmunderFrame::TransmitAutomaticData()
 
 
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLmunderFrame::Place(nsIRenderingContext& aRenderingContext,
                            PRBool               aPlaceOrigin,
                            nsHTMLReflowMetrics& aDesiredSize)

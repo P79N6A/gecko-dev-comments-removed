@@ -276,7 +276,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
 
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLmunderoverFrame::Place(nsIRenderingContext& aRenderingContext,
                                PRBool               aPlaceOrigin,
                                nsHTMLReflowMetrics& aDesiredSize)

@@ -298,7 +298,7 @@ nsMathMLmactionFrame::Reflow(nsPresContext*          aPresContext,
 }
 
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLmactionFrame::Place(nsIRenderingContext& aRenderingContext,
                             PRBool               aPlaceOrigin,
                             nsHTMLReflowMetrics& aDesiredSize)

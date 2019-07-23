@@ -243,7 +243,7 @@ nsMathMLmoverFrame::TransmitAutomaticData()
 
 
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLmoverFrame::Place(nsIRenderingContext& aRenderingContext,
                           PRBool               aPlaceOrigin,
                           nsHTMLReflowMetrics& aDesiredSize)

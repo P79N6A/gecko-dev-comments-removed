@@ -127,42 +127,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD
-  Place(nsIRenderingContext& aRenderingContext,
-        PRBool               aPlaceOrigin,
-        nsHTMLReflowMetrics& aDesiredSize) = 0;
-
- 
-
-
-
   NS_IMETHOD
   GetEmbellishData(nsEmbellishData& aEmbellishData) = 0;
 

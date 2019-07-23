@@ -140,7 +140,7 @@ nsMathMLmmultiscriptsFrame::ProcessAttributes()
   }
 }
 
-NS_IMETHODIMP
+ nsresult
 nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
                                   PRBool               aPlaceOrigin,
                                   nsHTMLReflowMetrics& aDesiredSize)
