@@ -2224,7 +2224,10 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
     while (count-- > 0) {
       const nsAttrName* name = root->GetAttrNameAt(count);
-      root->UnsetAttr(name->NamespaceID(), name->LocalName(), PR_FALSE);
+      
+      
+      nsCOMPtr<nsIAtom> localName = name->LocalName();
+      root->UnsetAttr(name->NamespaceID(), localName, PR_FALSE);
     }
 
     

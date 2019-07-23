@@ -898,7 +898,9 @@ nsXULContentBuilder::CopyAttributesToElement(nsIContent* aTemplateNode,
     for (PRUint32 attr = 0; attr < numAttribs; attr++) {
         const nsAttrName* name = aTemplateNode->GetAttrNameAt(attr);
         PRInt32 attribNameSpaceID = name->NamespaceID();
-        nsIAtom* attribName = name->LocalName();
+        
+        
+        nsCOMPtr<nsIAtom> attribName = name->LocalName();
 
         
         if (attribName != nsGkAtoms::id && attribName != nsGkAtoms::uri) {
