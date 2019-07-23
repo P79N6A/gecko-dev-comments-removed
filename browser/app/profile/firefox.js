@@ -904,15 +904,19 @@ pref("toolbar.customization.usesheet", true);
 pref("toolbar.customization.usesheet", false);
 #endif
 
-#ifdef MOZ_IPC
+
+
 #ifdef XP_MACOSX
+
+
+
+
 pref("dom.ipc.plugins.enabled", false);
 
 pref("dom.ipc.plugins.enabled.flash player.plugin", true);
 pref("dom.ipc.plugins.enabled.javaplugin2_npapi.plugin", true);
-#else
+#elifdef MOZ_IPC
 pref("dom.ipc.plugins.enabled", true);
-#endif
 #else
 pref("dom.ipc.plugins.enabled", false);
 #endif
