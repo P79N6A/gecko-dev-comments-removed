@@ -10510,10 +10510,10 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
       nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
 
       
-      nsIFrame* continuingAreaFrame;
+      nsIFrame* continuingBlockFrame;
       nsIFrame* blockFrame = aFrame->GetFirstChild(nsnull);
       rv = CreateContinuingFrame(aPresContext, blockFrame, newFrame,
-                                 &continuingAreaFrame);
+                                 &continuingBlockFrame);
       if (NS_FAILED(rv)) {
         newFrame->Destroy();
         *aContinuingFrame = nsnull;
@@ -10521,7 +10521,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
       }
 
       
-      newFrame->SetInitialChildList(nsnull, continuingAreaFrame);
+      newFrame->SetInitialChildList(nsnull, continuingBlockFrame);
     }
   
   } else if (nsGkAtoms::lineFrame == frameType) {
@@ -10582,17 +10582,17 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
       
       
-      nsIFrame* continuingAreaFrame;
+      nsIFrame* continuingBlockFrame;
       nsIFrame* blockFrame = GetFieldSetBlockFrame(aFrame);
       rv = CreateContinuingFrame(aPresContext, blockFrame, newFrame,
-                                 &continuingAreaFrame);
+                                 &continuingBlockFrame);
       if (NS_FAILED(rv)) {
         newFrame->Destroy();
         *aContinuingFrame = nsnull;
         return rv;
       }
       
-      newFrame->SetInitialChildList(nsnull, continuingAreaFrame);
+      newFrame->SetInitialChildList(nsnull, continuingBlockFrame);
     }
   } else {
     NS_NOTREACHED("unexpected frame type");
