@@ -241,7 +241,7 @@ nsPlatformCharset::InitGetCharset(nsACString &oString)
       nsCAutoString propertyFile;
       
       propertyFile.AssignLiteral("unixcharset.");
-      propertyFile.Append(OSARCH);
+      propertyFile.AppendLiteral(NS_STRINGIFY(OSARCH));
       propertyFile.AppendLiteral(".properties");
       nsGREResProperties *info = new nsGREResProperties(propertyFile);
       NS_ASSERTION(info, "cannot create nsGREResProperties");
