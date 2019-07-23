@@ -151,6 +151,8 @@ enum nsLayoutPhase {
 #define NS_AUTHOR_SPECIFIED_BORDER          (1 << 1)
 #define NS_AUTHOR_SPECIFIED_PADDING         (1 << 2)
 
+class nsRootPresContext;
+
 
 
 
@@ -197,7 +199,7 @@ public:
 
   
   
-  nsPresContext* RootPresContext();
+  nsRootPresContext* RootPresContext();
 
   nsIDocument* Document() const
   {
@@ -1035,7 +1037,7 @@ protected:
 
 protected:
 
-  ~nsPresContext() NS_HIDDEN;
+  virtual ~nsPresContext() NS_HIDDEN;
 
   
   enum {
@@ -1059,6 +1061,11 @@ public:
   }
 #endif
 
+};
+
+class nsRootPresContext : public nsPresContext {
+public:
+  nsRootPresContext(nsIDocument* aDocument, nsPresContextType aType) NS_HIDDEN;
 };
 
 #ifdef DEBUG

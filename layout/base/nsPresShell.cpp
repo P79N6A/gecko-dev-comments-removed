@@ -7908,7 +7908,7 @@ PresShell::VerifyIncrementalReflow()
 
   
   nsCOMPtr<nsPresContext> cx =
-       new nsPresContext(mDocument, mPresContext->IsPaginated() ?
+       new nsRootPresContext(mDocument, mPresContext->IsPaginated() ?
                                         nsPresContext::eContext_PrintPreview :
                                         nsPresContext::eContext_Galley);
   NS_ENSURE_TRUE(cx, PR_FALSE);
