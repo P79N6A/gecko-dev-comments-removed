@@ -1298,13 +1298,24 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
     }
     rt->gcLocksHash = NULL;     
 
-    rt->gcMaxBytes = maxbytes;
+    
+
+
+
+    rt->gcMaxBytes = rt->gcMaxMallocBytes = maxbytes;
     rt->gcEmptyArenaPoolLifespan = 30000;
 
     
 
 
-    rt->gcLastRSS = js_GetRSS();
+
+    rt->setGCTriggerFactor((uint32) -1);
+
+    
+
+
+
+    rt->setGCLastBytes(8192);
 
     METER(memset(&rt->gcStats, 0, sizeof rt->gcStats));
     return JS_TRUE;
@@ -1713,6 +1724,42 @@ static struct GCHist {
 unsigned gchpos = 0;
 #endif
 
+void
+JSRuntime::setGCTriggerFactor(uint32 factor)
+{
+    JS_ASSERT(factor >= 100);
+
+    gcTriggerFactor = factor;
+    setGCLastBytes(gcLastBytes);
+}
+
+void
+JSRuntime::setGCLastBytes(size_t lastBytes)
+{
+    gcLastBytes = lastBytes;
+    uint64 triggerBytes = uint64(lastBytes) * uint64(gcTriggerFactor / 100);
+    if (triggerBytes != size_t(triggerBytes))
+        triggerBytes = size_t(-1);
+    gcTriggerBytes = size_t(triggerBytes);
+}
+
+static JS_INLINE bool
+IsGCThresholdReached(JSRuntime *rt)
+{
+#ifdef JS_GC_ZEAL
+    if (rt->gcZeal >= 1)
+        return true;
+#endif
+
+    
+
+
+
+
+    return rt->gcMallocBytes >= rt->gcMaxMallocBytes ||
+           rt->gcBytes >= rt->gcTriggerBytes;
+}
+
 template <class T> static JS_INLINE T*
 NewGCThing(JSContext *cx, uintN flags)
 {
@@ -1729,6 +1776,7 @@ NewGCThing(JSContext *cx, uintN flags)
 #endif
 #ifdef JS_THREADSAFE
     JSBool gcLocked;
+    uintN localMallocBytes;
     JSGCThing **lastptr;
     JSGCThing *tmpthing;
     uint8 *tmpflagp;
@@ -1751,7 +1799,8 @@ NewGCThing(JSContext *cx, uintN flags)
 
     JSGCThing *&freeList = cx->thread->gcFreeLists[flindex];
     thing = freeList;
-    if (thing) {
+    localMallocBytes = JS_THREAD_DATA(cx)->gcMallocBytes;
+    if (thing && rt->gcMaxMallocBytes - rt->gcMallocBytes > localMallocBytes) {
         flagp = thing->flagp;
         freeList = thing->next;
         METER(astats->localalloc++);
@@ -1761,6 +1810,14 @@ NewGCThing(JSContext *cx, uintN flags)
     JS_LOCK_GC(rt);
     gcLocked = JS_TRUE;
 
+    
+    if (localMallocBytes != 0) {
+        JS_THREAD_DATA(cx)->gcMallocBytes = 0;
+        if (rt->gcMaxMallocBytes - rt->gcMallocBytes < localMallocBytes)
+            rt->gcMallocBytes = rt->gcMaxMallocBytes;
+        else
+            rt->gcMallocBytes += localMallocBytes;
+    }
 #endif
     JS_ASSERT(!rt->gcRunning);
     if (rt->gcRunning) {
@@ -1775,7 +1832,7 @@ NewGCThing(JSContext *cx, uintN flags)
 #endif
 
     arenaList = &rt->gcArenaList[flindex];
-    doGC = rt->gcIsNeeded;
+    doGC = IsGCThresholdReached(rt);
     for (;;) {
         if (doGC
 #ifdef JS_TRACER
@@ -1807,7 +1864,10 @@ NewGCThing(JSContext *cx, uintN flags)
 
 
 
-            if (freeList)
+
+
+
+            if (freeList || rt->gcMallocBytes >= rt->gcMaxMallocBytes)
                 break;
 
             tmpthing = arenaList->freeList;
@@ -1877,7 +1937,7 @@ testReservedObjects:
 
 
 
-        if (freeList)
+        if (freeList || rt->gcMallocBytes >= rt->gcMaxMallocBytes)
             break;
         lastptr = &freeList;
         maxFreeThings = thingsLimit - arenaList->lastCount;
@@ -2004,7 +2064,7 @@ RefillDoubleFreeList(JSContext *cx)
         return NULL;
     }
 
-    if (rt->gcIsNeeded)
+    if (IsGCThresholdReached(rt))
         goto do_gc;
 
     
@@ -2190,6 +2250,45 @@ js_ReserveObjects(JSContext *cx, size_t nobjects)
     return JS_TRUE;
 }
 #endif
+
+JSBool
+js_AddAsGCBytes(JSContext *cx, size_t sz)
+{
+    JSRuntime *rt;
+
+    rt = cx->runtime;
+    if (rt->gcBytes >= rt->gcMaxBytes ||
+        sz > (size_t) (rt->gcMaxBytes - rt->gcBytes) ||
+        IsGCThresholdReached(rt)) {
+        if (JS_ON_TRACE(cx)) {
+            
+
+
+
+            if (!js_CanLeaveTrace(cx)) {
+                JS_UNLOCK_GC(rt);
+                return JS_FALSE;
+            }
+            js_LeaveTrace(cx);
+        }
+        js_GC(cx, GC_LAST_DITCH);
+        if (rt->gcBytes >= rt->gcMaxBytes ||
+            sz > (size_t) (rt->gcMaxBytes - rt->gcBytes)) {
+            JS_UNLOCK_GC(rt);
+            JS_ReportOutOfMemory(cx);
+            return JS_FALSE;
+        }
+    }
+    rt->gcBytes += (uint32) sz;
+    return JS_TRUE;
+}
+
+void
+js_RemoveAsGCBytes(JSRuntime *rt, size_t sz)
+{
+    JS_ASSERT((size_t) rt->gcBytes >= sz);
+    rt->gcBytes -= (uint32) sz;
+}
 
 
 
@@ -3397,6 +3496,9 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     
     rt->gcIsNeeded = JS_FALSE;
 
+    
+    rt->gcMallocBytes = 0;
+
 #ifdef JS_DUMP_SCOPE_METERS
   { extern void js_DumpScopeMeters(JSRuntime *rt);
     js_DumpScopeMeters(rt);
@@ -3457,14 +3559,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     rt->gcMarkingTracer = NULL;
 
 #ifdef JS_THREADSAFE
-    
-
-
-
-
-
-    rt->gcFreed = 0;
-    cx->createDeallocatorTask(&rt->gcFreed);
+    cx->createDeallocatorTask();
 #endif
 
     
@@ -3645,16 +3740,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     DestroyGCArenas(rt, emptyArenas);
 
-    
-    rt->gcLastRSS = js_GetRSS();
-
 #ifdef JS_THREADSAFE
-    
-
-
-
-
-
     cx->submitDeallocatorTask();
 #endif
 
@@ -3712,6 +3798,7 @@ out:
         goto restart;
     }
 
+    rt->setGCLastBytes(rt->gcBytes);
   done_running:
     rt->gcLevel = 0;
     rt->gcRunning = rt->gcRegenShapes = false;
@@ -3763,134 +3850,3 @@ out:
         }
     }
 }
-
-void
-js_MaybeGC(JSContext *cx)
-{
-    JSRuntime *rt;
-
-    rt = cx->runtime;
-
-#ifdef JS_GC_ZEAL
-    if (rt->gcZeal > 0) {
-        JS_GC(cx);
-        return;
-    }
-#endif
-
-    size_t lastRSS = rt->gcLastRSS;
-    size_t freed = rt->gcFreed;
-    if (lastRSS > freed)
-        lastRSS -= freed;
-    size_t rss = js_GetRSS();
-    
-    if (rss > lastRSS + 32*1024*1024 && rss > lastRSS + lastRSS/4)
-        JS_GC(cx);
-}
-
-#ifdef JS_THREADSAFE
-void
-JSFreePointerListTask::add(void *ptr)
-{
-#ifdef DEBUG
-    memset(ptr, 0xcd, js_malloc_size(ptr));
-#endif
-    *(void**)ptr = head;
-    head = ptr;
-}
-
-void
-JSFreePointerListTask::run()
-{
-    size_t bytes = 0;
-    void *ptr = head;
-    while (ptr) {
-        void* next = *(void **)ptr;
-        bytes += js_malloc_size(ptr);
-        js_free(ptr);
-        ptr = next;
-    }
-    JS_ATOMIC_ADD(bytesp, bytes);
-}
-#endif
-
-#ifdef __APPLE__
-#include <mach/mach.h>
-#include <mach/task_info.h>
-size_t
-js_GetRSS()
-{
-    task_t task;
-    task_basic_info ti;
-    mach_msg_type_number_t count;
-
-    task_for_pid(mach_task_self (), getpid(), &task);
-    count = TASK_BASIC_INFO_COUNT;
-    task_info(task, TASK_BASIC_INFO, (task_info_t)&ti, &count);
-    return ti.resident_size;
-}
-#endif
-
-#ifdef WINCE
-#include "windows.h"
-
-size_t
-js_GetRSS()
-{
-    MEMORYSTATUS ms;
-    GlobalMemoryStatus(&ms);
-    return ms.dwTotalVirtual - ms.dwAvailVirtual;
-}
-#else
-#ifdef WIN32
-#include "windows.h"
-#include "psapi.h"
-size_t
-js_GetRSS()
-{
-    PROCESS_MEMORY_COUNTERS pmc;
-    GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
-    return pmc.WorkingSetSize;
-}
-#endif
-#endif
-
-#ifdef __linux__
-#include <unistd.h>
-#include <fcntl.h>
-static const char*
-skipFields(const char* p, unsigned n)
-{
-    while (*++p) {
-        if ((*p == ' ') && (--n == 0))
-            return p+1;
-    }
-    return NULL;
-}
-
-static int statfd = 0;
-
-size_t
-js_GetRSS()
-{
-    char buf[128];
-    if (!statfd) {
-        snprintf(buf, 100, "/proc/%d/stat", getpid());
-        statfd = open(buf, O_RDONLY);
-    }
-    if (statfd < 0)
-        return 0;
-    lseek(statfd, 0, SEEK_SET);
-    int n = read(statfd, buf, sizeof(buf)-1);
-    if (n < 0)
-        return 0;
-    buf[n] = 0;
-    const char* p = strrchr(buf, ')');
-    if (!p)
-        return 0;
-    p = skipFields(p + 2, 20);
-    if (!p)
-        return 0;
-    return atol(p);
-}
-#endif
