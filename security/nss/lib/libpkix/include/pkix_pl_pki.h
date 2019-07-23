@@ -1415,6 +1415,34 @@ PKIX_PL_Cert_VerifyKeyUsage(
 
 
 
+PKIX_Error *
+PKIX_PL_Cert_VerifyCertAndKeyType(
+        PKIX_PL_Cert *cert,
+        PKIX_Boolean isChainCert,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1719,6 +1747,36 @@ PKIX_PL_Cert_GetSubjectInfoAccess(
         PKIX_PL_Cert *cert,
         PKIX_List **pSiaList, 
         void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_Cert_GetCrlDp(PKIX_PL_Cert *cert,
+                      PKIX_List **pDpList,
+                      void *plContext);
 
 
 
@@ -2092,6 +2150,58 @@ PKIX_PL_CRL_VerifySignature(
         PKIX_PL_CRL *crl,
         PKIX_PL_PublicKey *pubKey,
         void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_CRL_ReleaseDerCrl(PKIX_PL_CRL *crl,
+                         SECItem **derCrl,
+                         void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_CRL_AdoptDerCrl(PKIX_PL_CRL *crl,
+                        SECItem *derCrl,
+                        void *plContext);
 
 
 

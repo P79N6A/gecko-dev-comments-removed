@@ -342,209 +342,145 @@ cleanup:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static PKIX_Error *
-pkix_pl_Pk11CertStore_CrlQuery(
-        PKIX_ComCRLSelParams *params,
-        PKIX_List **pSelected,
-        void *plContext)
-{
-        PKIX_UInt32 nameIx = 0;
-        PKIX_UInt32 numNames = 0;
-        PKIX_List *issuerNames = NULL;
-        PKIX_PL_X500Name *issuer = NULL;
-        PRArenaPool *arena = NULL;
-        SECItem *nameItem = NULL;
-        SECStatus rv = SECFailure;
-        PKIX_List *crlList = NULL;
-        PKIX_PL_CRL *crl = NULL;
-        CRLDPCache* dpcache = NULL;
-        CERTSignedCrl** crls = NULL;
-        PRBool writeLocked = PR_FALSE;
-        PRUint16 status = 0;
-        void *wincx = NULL;
-
-        PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CrlQuery");
-        PKIX_NULLCHECK_TWO(params, pSelected);
-
-        PKIX_CHECK(pkix_pl_NssContext_GetWincx
-                ((PKIX_PL_NssContext *)plContext, &wincx),
-                PKIX_NSSCONTEXTGETWINCXFAILED);
-
-        
-
-
-
-        PKIX_CHECK(PKIX_ComCRLSelParams_GetIssuerNames
-                (params, &issuerNames, plContext),
-                PKIX_COMCRLSELPARAMSGETISSUERNAMESFAILED);
-
-        
-
-
-
-
-
-
-        if (issuerNames) {
-
-            PKIX_CHECK(PKIX_List_Create(&crlList, plContext),
-                        PKIX_LISTCREATEFAILED);
-
-            PKIX_CHECK(PKIX_List_GetLength
-                        (issuerNames, &numNames, plContext),
-                        PKIX_LISTGETLENGTHFAILED);
-            arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-            if (arena) {
-
-                for (nameIx = 0; nameIx < numNames; nameIx++) {
-                    PKIX_CHECK(PKIX_List_GetItem
-                        (issuerNames,
-                        nameIx,
-                        (PKIX_PL_Object **)&issuer,
-                        plContext),
-                        PKIX_LISTGETITEMFAILED);
-                    PKIX_CHECK(pkix_pl_X500Name_GetDERName
-                        (issuer, arena, &nameItem, plContext),
-                        PKIX_X500NAMEGETSECNAMEFAILED);
-                    if (nameItem) {
-                        
-
-
-
-
-                        rv = AcquireDPCache(NULL, nameItem, NULL, 0,
-                                            wincx, &dpcache, &writeLocked);
-                        if (rv == SECFailure) {
-                            PKIX_ERROR(PKIX_FETCHINGCACHEDCRLFAILED);
-                        }
-
-                        PKIX_PL_NSSCALLRV
-                            (CERTSTORE, rv, DPCache_GetAllCRLs,
-                            (dpcache, arena, &crls, &status));
-
-                        if ((status & (~CRL_CACHE_INVALID_CRLS)) != 0) {
-                            PKIX_ERROR(PKIX_FETCHINGCACHEDCRLFAILED);
-                        }
-
-                        while (crls != NULL && *crls != NULL) {
-
-                            PKIX_CHECK_ONLY_FATAL
-                                (pkix_pl_CRL_CreateWithSignedCRL
-                                (*crls, &crl, plContext),
-                                PKIX_CRLCREATEWITHSIGNEDCRLFAILED);
-
-                            if (PKIX_ERROR_RECEIVED) {
-                                PKIX_DECREF(crl);
-                                crls++;
-                                continue; 
-                            }
-
-                            PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
-                                (crlList, (PKIX_PL_Object *)crl, plContext),
-                                PKIX_LISTAPPENDITEMFAILED);
-
-                            PKIX_DECREF(crl);
-                            crls++;
-                        }
-
-                        
-                        pkixTempErrorReceived = PKIX_FALSE;
-                        
-                    }
-                    PKIX_DECREF(issuer);
-                }
-
-            }
-        } else {
-                PKIX_ERROR(PKIX_INSUFFICIENTCRITERIAFORCRLQUERY);
-        }
-
-        *pSelected = crlList;
-        crlList = NULL;
-
-cleanup:
-
-        PKIX_DECREF(crlList);
-
-        ReleaseDPCache(dpcache, writeLocked);
-
-        if (arena) {
-            PORT_FreeArena(arena, PR_FALSE);
-        }
-
-        PKIX_DECREF(issuerNames);
-        PKIX_DECREF(issuer);
-        PKIX_DECREF(crl);
-
-        PKIX_RETURN(CERTSTORE);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static PKIX_Error *
 pkix_pl_Pk11CertStore_ImportCrl(
         PKIX_CertStore *store,
+        PKIX_PL_X500Name *issuerName,
         PKIX_List *crlList,
         void *plContext)
 {
-    int crlIndex = 0;
-    PKIX_PL_CRL *crl = NULL;
     CERTCertDBHandle *certHandle = CERT_GetDefaultCertDB();
-    PKIX_UInt32 listLength;
+    PKIX_PL_CRL *crl = NULL;
+    SECItem *derCrl = NULL;
 
     PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_ImportCrl");
-    PKIX_NULLCHECK_ONE(store);
+    PKIX_NULLCHECK_TWO(store, plContext);
     
     if (!crlList) {
         goto cleanup;
     }
-    PKIX_CHECK(
-        PKIX_List_GetLength(crlList, &listLength, plContext),
-        PKIX_LISTGETLENGTHFAILED);
-    for (;crlIndex < listLength;crlIndex++) {
+    while (crlList->length > 0) {
         PKIX_CHECK(
-            PKIX_List_GetItem(crlList, crlIndex, (PKIX_PL_Object**)&crl,
+            PKIX_List_GetItem(crlList, 0, (PKIX_PL_Object**)&crl,
                               plContext),
             PKIX_LISTGETITEMFAILED);
-        if (!crl->nssSignedCrl || !crl->nssSignedCrl->derCrl) {
-            PKIX_ERROR(PKIX_NULLARGUMENT);
+
+        
+
+
+        PKIX_CHECK(
+            PKIX_List_DeleteItem(crlList, 0, plContext),
+            PKIX_LISTDELETEITEMFAILED);
+
+        
+        pkixErrorResult =
+            PKIX_PL_CRL_ReleaseDerCrl(crl, &derCrl, plContext);
+        PORT_Assert(!pkixErrorResult && derCrl);
+        if (pkixErrorResult || !derCrl) {
+            
+
+            PKIX_DECREF(pkixErrorResult);
+            PKIX_DECREF(crl);
+            continue;
         }
-        CERT_CacheCRL(certHandle, crl->nssSignedCrl->derCrl);
+        cert_CacheCRLByGeneralName(certHandle, derCrl, 
+                                        crl->derGenName);
+        
+
+        derCrl = NULL;
         PKIX_DECREF(crl);
     }
 
 cleanup:
     PKIX_DECREF(crl);
+
+    PKIX_RETURN(CERTSTORE);
+}
+
+static PKIX_Error *
+NameCacheHasFetchedCrlInfo(PKIX_PL_Cert *pkixCert,
+                           PRTime time,
+                           PKIX_Boolean *pHasFetchedCrlInCache,
+                           void *plContext)
+{
+    
+
+    NamedCRLCache* nameCrlCache = NULL;
+    PKIX_Boolean hasFetchedCrlInCache = PKIX_TRUE;
+    PKIX_List *dpList = NULL;
+    pkix_pl_CrlDp *dp = NULL;
+    CERTCertificate *cert;
+    PKIX_UInt32 dpIndex = 0;
+    SECStatus rv = SECSuccess;
+    PRTime reloadDelay = 0, badCrlInvalDelay = 0;
+
+    PKIX_ENTER(CERTSTORE, "ChechCacheHasFetchedCrl");
+
+    cert = pkixCert->nssCert;
+    reloadDelay = 
+        ((PKIX_PL_NssContext*)plContext)->crlReloadDelay *
+                                                PR_USEC_PER_SEC;
+    badCrlInvalDelay =
+        ((PKIX_PL_NssContext*)plContext)->badDerCrlReloadDelay *
+                                                PR_USEC_PER_SEC;
+    if (!time) {
+        time = PR_Now();
+    }
+    
+
+    PKIX_CHECK(
+        PKIX_PL_Cert_GetCrlDp(pkixCert, &dpList, plContext),
+        PKIX_CERTGETCRLDPFAILED);
+    if (dpList && dpList->length) {
+        hasFetchedCrlInCache = PKIX_FALSE;
+        rv = cert_AcquireNamedCRLCache(&nameCrlCache);
+        if (rv != SECSuccess) {
+            PKIX_DECREF(dpList);
+        }
+    } else {
+        
+
+        PKIX_DECREF(dpList);
+    }
+    for (;!hasFetchedCrlInCache &&
+             dpList && dpIndex < dpList->length;dpIndex++) {
+        SECItem **derDpNames = NULL;
+        pkixErrorResult =
+            PKIX_List_GetItem(dpList, dpIndex, (PKIX_PL_Object **)&dp,
+                              plContext);
+        if (pkixErrorResult) {
+            PKIX_DECREF(pkixErrorResult);
+            continue;
+        }
+        if (dp->nssdp->distPointType == generalName) {
+            
+            derDpNames = dp->nssdp->derFullName;
+        }
+        while (derDpNames && *derDpNames != NULL) {
+            NamedCRLCacheEntry* cacheEntry = NULL;
+            const SECItem *derDpName = *derDpNames++;
+            rv = cert_FindCRLByGeneralName(nameCrlCache, derDpName,
+                                           &cacheEntry);
+            if (rv == SECSuccess && cacheEntry) {
+                if ((cacheEntry->inCRLCache &&
+                    (cacheEntry->successfulInsertionTime + reloadDelay > time ||
+                     (cacheEntry->dupe &&
+                      cacheEntry->lastAttemptTime + reloadDelay > time))) ||
+                    (cacheEntry->badDER &&
+                     cacheEntry->lastAttemptTime + badCrlInvalDelay > time)) {
+                    hasFetchedCrlInCache = PKIX_TRUE;
+                    break;
+                }
+            }
+        }
+        PKIX_DECREF(dp);
+    }
+cleanup:
+    *pHasFetchedCrlInCache = hasFetchedCrlInCache;
+    if (nameCrlCache) {
+        cert_ReleaseNamedCRLCache(nameCrlCache);
+    }
+    PKIX_DECREF(dpList);
 
     PKIX_RETURN(CERTSTORE);
 }
@@ -573,101 +509,70 @@ pkix_pl_Pk11CertStore_CheckRevByCrl(
         PKIX_PL_Cert *pkixCert,
         PKIX_PL_Cert *pkixIssuer,
         PKIX_PL_Date *date,
-        PKIX_Boolean delayCrlSigCheck,
+        PKIX_Boolean  crlDownloadDone,
         PKIX_UInt32  *pReasonCode,
         PKIX_RevocationStatus *pStatus,
         void *plContext)
 {
-    CERTCRLEntryReasonCode revReason = crlEntryReasonUnspecified;
-    PKIX_RevocationStatus status = PKIX_RevStatus_NoInfo;
-    PRTime time = 0;
-    void *wincx = NULL;
-    PRBool lockedwrite = PR_FALSE;
+    PKIX_RevocationStatus pkixRevStatus = PKIX_RevStatus_NoInfo;
+    CERTRevocationStatus revStatus = certRevocationStatusUnknown;
+    PKIX_Boolean hasFetchedCrlInCache = PKIX_TRUE;
+    CERTCertificate *cert = NULL, *issuer = NULL;
     SECStatus rv = SECSuccess;
-    CRLDPCache* dpcache = NULL;
-    CERTCertificate *cert, *issuer;
-    CERTCrlEntry* entry = NULL;
+    void *wincx = NULL;
+    PRTime time = 0;
 
     PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CheckRevByCrl");
-    PKIX_NULLCHECK_FOUR(store, pkixCert, pkixIssuer, date);
+    PKIX_NULLCHECK_FOUR(store, pkixCert, pkixIssuer, plContext);
 
-    PKIX_CHECK(
-        pkix_pl_Date_GetPRTime(date, &time, plContext),
-        PKIX_DATEGETPRTIMEFAILED);
-
+    cert = pkixCert->nssCert;
+    issuer = pkixIssuer->nssCert;
+    if (date) {
+        PKIX_CHECK(
+            pkix_pl_Date_GetPRTime(date, &time, plContext),
+            PKIX_DATEGETPRTIMEFAILED);
+    }
     PKIX_CHECK(
         pkix_pl_NssContext_GetWincx((PKIX_PL_NssContext*)plContext,
                                     &wincx),
         PKIX_NSSCONTEXTGETWINCXFAILED);
-
-    cert = pkixCert->nssCert;
-    issuer = pkixIssuer->nssCert;
-
-    if (SECSuccess != CERT_CheckCertValidTimes(issuer, time, PR_FALSE))
-    {
-        
+    
 
 
-        PORT_SetError(SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE);
-        PKIX_ERROR(PKIX_CRLISSUECERTEXPIRED);
-    }
 
-    rv = AcquireDPCache(issuer, &issuer->derSubject, NULL,
-                        
+    rv = cert_CheckCertRevocationStatus(cert, issuer, NULL,
+                                        
 
-                        delayCrlSigCheck ? 0: time,
-                        wincx, &dpcache, &lockedwrite);
+                                        time, wincx, &revStatus, pReasonCode);
     if (rv == SECFailure) {
-        PKIX_ERROR(PKIX_CERTCHECKCRLFAILED);
-    }
-    if ((delayCrlSigCheck && dpcache->invalid) ||
-        
-        !dpcache->ncrls) {
+        pkixRevStatus = PKIX_RevStatus_Revoked;
         goto cleanup;
     }
-    
-    rv = DPCache_Lookup(dpcache, &cert->serialNumber, &entry);
-    if (rv == SECFailure) {
-        PKIX_ERROR(PKIX_CERTCHECKCRLFAILED);
-    }
-    if (entry) {
-        
-        if (entry->revocationDate.data && entry->revocationDate.len) {
-            PRTime revocationDate = 0;
-            
-            if (SECSuccess == DER_DecodeTimeChoice(&revocationDate,
-                                                   &entry->revocationDate)) {
-                
-
-
-                if (time >= revocationDate) {
-                    rv = SECFailure;
-                }
-            } else {
-                
-
-                rv = SECFailure;
-            }
-        } else {
-            
-            rv = SECFailure;
-        }
-        if (SECFailure == rv) {
-            
-            CERT_FindCRLEntryReasonExten(entry, &revReason);
-            status = PKIX_RevStatus_Revoked;
-            PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
-        }
+    if (crlDownloadDone) {
+        if (revStatus == certRevocationStatusRevoked) {
+            pkixRevStatus = PKIX_RevStatus_Revoked;
+        } else if (revStatus == certRevocationStatusValid) {
+            pkixRevStatus = PKIX_RevStatus_Success;
+        } 
     } else {
-        status = PKIX_RevStatus_Success;
+        pkixErrorResult =
+            NameCacheHasFetchedCrlInfo(pkixCert, time, &hasFetchedCrlInCache,
+                                       plContext);
+        if (pkixErrorResult) {
+            goto cleanup;
+        }
+        if (revStatus == certRevocationStatusRevoked &&
+            (hasFetchedCrlInCache ||
+             *pReasonCode != crlEntryReasoncertificatedHold)) {
+            pkixRevStatus = PKIX_RevStatus_Revoked;
+        } else if (revStatus == certRevocationStatusValid &&
+                   hasFetchedCrlInCache) {
+            pkixRevStatus = PKIX_RevStatus_Success;
+        }
     }
-
 cleanup:
-    *pStatus = status;
-    *pReasonCode = revReason;
-    if (dpcache) {
-        ReleaseDPCache(dpcache, lockedwrite);
-    }
+    *pStatus = pkixRevStatus;
+
     PKIX_RETURN(CERTSTORE);    
 }
 
@@ -794,11 +699,272 @@ fatal:
         PKIX_RETURN(CERTSTORE);
 }
 
+static PKIX_Error *
+RemovePartitionedDpsFromList(PKIX_List *dpList, PKIX_PL_Date *date,
+                             void *plContext)
+{
+    NamedCRLCache* nameCrlCache = NULL;
+    pkix_pl_CrlDp *dp = NULL;
+    int dpIndex = 0;
+    PRTime time;
+    PRTime reloadDelay = 0, badCrlInvalDelay = 0;
+    SECStatus rv;
+
+    PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_ListRemovePrtDp");
+
+    if (!dpList || !dpList->length) {
+        PKIX_RETURN(CERTSTORE);
+    }
+    reloadDelay = 
+        ((PKIX_PL_NssContext*)plContext)->crlReloadDelay *
+                                                PR_USEC_PER_SEC;
+    badCrlInvalDelay =
+        ((PKIX_PL_NssContext*)plContext)->badDerCrlReloadDelay *
+                                                PR_USEC_PER_SEC;
+    PKIX_CHECK(pkix_pl_Date_GetPRTime(date, &time, plContext),
+               PKIX_DATEGETPRTIMEFAILED);
+    rv = cert_AcquireNamedCRLCache(&nameCrlCache);
+    if (rv == SECFailure) {
+        
+        PKIX_RETURN(CERTSTORE);
+    }
+    while (dpIndex < dpList->length) {
+        SECItem **derDpNames = NULL;
+        PKIX_Boolean removeDp = PKIX_FALSE;
+        
+        PKIX_CHECK(
+            PKIX_List_GetItem(dpList, dpIndex, (PKIX_PL_Object **)&dp,
+                              plContext),
+            PKIX_LISTGETITEMFAILED);
+        if (!dp->isPartitionedByReasonCode) {
+            
+
+            if (dp->nssdp->distPointType == generalName) {
+                
+                derDpNames = dp->nssdp->derFullName;
+            } else {
+                removeDp = PKIX_TRUE;
+            }
+            while (derDpNames && *derDpNames != NULL) {
+                NamedCRLCacheEntry* cacheEntry = NULL;
+                const SECItem *derDpName = *derDpNames++;
+                
+                rv = cert_FindCRLByGeneralName(nameCrlCache, derDpName,
+                                               &cacheEntry);
+                if (rv && cacheEntry) {
+                    if (cacheEntry->unsupported ||
+                        (cacheEntry->inCRLCache &&
+                         (cacheEntry->successfulInsertionTime + reloadDelay > time ||
+                          (cacheEntry->dupe &&
+                           cacheEntry->lastAttemptTime + reloadDelay > time))) ||
+                          (cacheEntry->badDER &&
+                           cacheEntry->lastAttemptTime + badCrlInvalDelay > time)) {
+                        removeDp = PKIX_TRUE;
+                    }
+                }
+            }
+        } else {
+            
+
+
+            removeDp = PKIX_TRUE;
+        }
+        if (removeDp) {
+            PKIX_CHECK_ONLY_FATAL(
+                pkix_List_Remove(dpList,(PKIX_PL_Object*)dp,
+                                 plContext),
+                PKIX_LISTGETITEMFAILED); 
+        } else {
+            dpIndex += 1;
+        }
+        PKIX_DECREF(dp);
+    }
+
+cleanup:
+    if (nameCrlCache) {
+        cert_ReleaseNamedCRLCache(nameCrlCache);
+    }
+    PKIX_DECREF(dp);
+    
+    PKIX_RETURN(CERTSTORE);
+}
 
 
 
 
-PKIX_Error *
+static PKIX_Error *
+DownloadCrl(pkix_pl_CrlDp *dp, PKIX_PL_CRL **crl,
+            const SEC_HttpClientFcnV1 *hcv1, void *plContext)
+{
+    char *location = NULL;
+    char *hostname = NULL;
+    char *path = NULL;
+    PRUint16 port;
+    SEC_HTTP_SERVER_SESSION pServerSession = NULL;
+    SEC_HTTP_REQUEST_SESSION pRequestSession = NULL;
+    PRUint16 myHttpResponseCode;
+    const char *myHttpResponseData = NULL;
+    PRUint32 myHttpResponseDataLen;
+    SECItem *uri = NULL;
+    SECItem *derCrlCopy = NULL;
+    CERTSignedCrl *nssCrl = NULL;
+    CERTGeneralName *genName = NULL;
+    PKIX_Int32 savedError = -1;
+    SECItem **derGenNames = NULL;
+    SECItem  *derGenName = NULL;
+
+    PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_DownloadCrl");
+
+    
+
+    if (dp->distPointType != generalName ||
+        !dp->nssdp->derFullName) {
+        PKIX_ERROR(PKIX_UNSUPPORTEDCRLDPTYPE);
+    }
+    genName = dp->name.fullName;
+    derGenNames = dp->nssdp->derFullName;
+    do {
+        derGenName = *derGenNames;
+        do {
+            if (!derGenName ||
+                !genName->name.other.data) {
+                
+                savedError = PKIX_UNSUPPORTEDCRLDPTYPE;
+                break;
+            }
+            uri = &genName->name.other;
+            location = (char*)PR_Malloc(1 + uri->len);
+            if (!location) {
+                savedError = PKIX_ALLOCERROR;
+                break;
+            }
+            PORT_Memcpy(location, uri->data, uri->len);
+            location[uri->len] = 0;
+            if (CERT_ParseURL(location, &hostname,
+                              &port, &path) != SECSuccess) {
+                PORT_SetError(SEC_ERROR_BAD_INFO_ACCESS_LOCATION);
+                savedError = PKIX_URLPARSINGFAILED;
+                break;
+            }
+    
+            PORT_Assert(hostname != NULL);
+            PORT_Assert(path != NULL);
+
+            if ((*hcv1->createSessionFcn)(hostname, port, 
+                                          &pServerSession) != SECSuccess) {
+                PORT_SetError(SEC_ERROR_BAD_INFO_ACCESS_LOCATION);
+                savedError = PKIX_URLPARSINGFAILED;
+                break;
+            }
+
+            if ((*hcv1->createFcn)(pServerSession, "http", path, "GET",
+                
+
+
+
+                          PR_SecondsToInterval(
+                              ((PKIX_PL_NssContext*)plContext)->timeoutSeconds),
+                                   &pRequestSession) != SECSuccess) {
+                savedError = PKIX_HTTPSERVERERROR;
+                break;
+            }
+
+            myHttpResponseDataLen =
+                ((PKIX_PL_NssContext*)plContext)->maxResponseLength;
+
+            
+
+
+
+
+            
+            if ((*hcv1->trySendAndReceiveFcn)(
+                    pRequestSession, 
+                    NULL,
+                    &myHttpResponseCode,
+                    NULL,
+                    NULL,
+                    &myHttpResponseData,
+                    &myHttpResponseDataLen) != SECSuccess) {
+                savedError = PKIX_HTTPSERVERERROR;
+                break;
+            }
+
+            if (myHttpResponseCode != 200) {
+                savedError = PKIX_HTTPSERVERERROR;
+                break;
+            }
+        } while(0);
+        if (!myHttpResponseData) {
+            
+            genName = CERT_GetNextGeneralName(genName);
+            derGenNames++;
+        }
+        
+
+    } while (!myHttpResponseData && *derGenNames &&
+             genName != dp->name.fullName);
+    
+    PORT_Assert(derGenName);
+
+    if (!myHttpResponseData) {
+        
+        SECItem derCrl = {siBuffer, (void*)"BadCrl", 6 };
+        
+        derCrlCopy = SECITEM_DupItem(&derCrl);
+        if (!derCrlCopy) {
+            PKIX_ERROR(PKIX_ALLOCERROR);
+        }
+        derGenName = *dp->nssdp->derFullName;
+    } else {
+        SECItem derCrl = { siBuffer,
+                           (void*)myHttpResponseData,
+                           myHttpResponseDataLen };
+        derCrlCopy = SECITEM_DupItem(&derCrl);
+        if (!derCrlCopy) {
+            PKIX_ERROR(PKIX_ALLOCERROR);
+        }
+        
+        nssCrl =
+            CERT_DecodeDERCrlWithFlags(NULL, derCrlCopy, SEC_CRL_TYPE,
+                                       CRL_DECODE_DONT_COPY_DER |
+                                       CRL_DECODE_SKIP_ENTRIES);
+    }
+    
+    PKIX_CHECK(
+        pkix_pl_CRL_CreateWithSignedCRL(nssCrl, derCrlCopy,
+                                        derGenName,
+                                        crl, plContext),
+        PKIX_CRLCREATEWITHSIGNEDCRLFAILED);
+    
+    derCrlCopy = NULL;
+    nssCrl = NULL;
+
+cleanup:
+    if (derCrlCopy)
+        PORT_Free(derCrlCopy);
+    if (nssCrl)
+        SEC_DestroyCrl(nssCrl);
+    if (pRequestSession != NULL) 
+        (*hcv1->freeFcn)(pRequestSession);
+    if (pServerSession != NULL)
+        (*hcv1->freeSessionFcn)(pServerSession);
+    if (path != NULL)
+        PORT_Free(path);
+    if (hostname != NULL)
+        PORT_Free(hostname);
+    if (location) {
+        PORT_Free(location);
+    }
+
+    PKIX_RETURN(CERTSTORE);
+}
+
+
+
+
+
+static PKIX_Error *
 pkix_pl_Pk11CertStore_GetCRL(
         PKIX_CertStore *store,
         PKIX_CRLSelector *selector,
@@ -806,82 +972,71 @@ pkix_pl_Pk11CertStore_GetCRL(
         PKIX_List **pCrlList,
         void *plContext)
 {
-        PKIX_UInt32 i = 0;
-        PKIX_UInt32 numFound = 0;
-        PKIX_Boolean match = PKIX_FALSE;
-        PKIX_PL_CRL *candidate = NULL;
-        PKIX_List *selected = NULL;
-        PKIX_List *filtered = NULL;
-        PKIX_CRLSelector_MatchCallback callback = NULL;
-        PKIX_ComCRLSelParams *params = NULL;
+    PKIX_UInt32 dpIndex = 0;
+    PKIX_PL_CRL *crl = NULL;
+    PKIX_List *crlList = NULL;
+    PKIX_List *dpList = NULL;
+    pkix_pl_CrlDp *dp = NULL;
+    PKIX_PL_Date *date = NULL;
+    const SEC_HttpClientFcn *registeredHttpClient = NULL;
 
-        PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_GetCRL");
-        PKIX_NULLCHECK_FOUR(store, selector, pNBIOContext, pCrlList);
+    PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_GetCRL");
+    PKIX_NULLCHECK_THREE(store, pNBIOContext, pCrlList);
+    PKIX_NULLCHECK_TWO(selector, selector->params);
 
-        *pNBIOContext = NULL;   
-
-        PKIX_CHECK(PKIX_CRLSelector_GetMatchCallback
-                (selector, &callback, plContext),
-                PKIX_CRLSELECTORGETMATCHCALLBACKFAILED);
-
-        PKIX_CHECK(PKIX_CRLSelector_GetCommonCRLSelectorParams
-                (selector, &params, plContext),
-                PKIX_CRLSELECTORGETCOMCERTSELPARAMSFAILED);
-
-        PKIX_CHECK(pkix_pl_Pk11CertStore_CrlQuery
-                (params, &selected, plContext),
-                PKIX_PK11CERTSTORECRLQUERYFAILED);
-
-        if (selected) {
-                PKIX_CHECK(PKIX_List_GetLength(selected, &numFound, plContext),
-                        PKIX_LISTGETLENGTHFAILED);
+    registeredHttpClient = SEC_GetRegisteredHttpClient();
+    if (!registeredHttpClient || registeredHttpClient->version != 1) {
+        goto cleanup;
+    }
+    dpList = selector->params->crldpList;
+    date = selector->params->date;
+    PKIX_CHECK(
+        RemovePartitionedDpsFromList(dpList, date,
+                                     plContext),
+        PKIX_FAILTOREMOVEDPFROMLIST);
+    for (;dpIndex < dpList->length;dpIndex++) {
+        PKIX_DECREF(dp);
+        pkixErrorResult =
+            PKIX_List_GetItem(dpList, dpIndex,
+                              (PKIX_PL_Object **)&dp,
+                              plContext);
+        if (pkixErrorResult) {
+            PKIX_DECREF(pkixErrorResult);
+            continue;
         }
+        pkixErrorResult =
+            DownloadCrl(dp, &crl,
+                        &registeredHttpClient->fcnTable.ftable1,
+                        plContext);
+        if (pkixErrorResult || !crl) {
+            
 
-        PKIX_CHECK(PKIX_List_Create(&filtered, plContext),
-                PKIX_LISTCREATEFAILED);
-
-        for (i = 0; i < numFound; i++) {
-                PKIX_CHECK_ONLY_FATAL(PKIX_List_GetItem
-                        (selected,
-                        i,
-                        (PKIX_PL_Object **)&candidate,
-                        plContext),
-                        PKIX_LISTGETITEMFAILED);
-
-                if (PKIX_ERROR_RECEIVED) {
-                        continue; 
-                }
-
-                PKIX_CHECK_ONLY_FATAL(callback
-                        (selector, candidate, &match, plContext),
-                        PKIX_CRLSELECTORFAILED);
-
-                if (!(PKIX_ERROR_RECEIVED) && match) {
-                        PKIX_CHECK_ONLY_FATAL(PKIX_List_AppendItem
-                                (filtered,
-                                (PKIX_PL_Object *)candidate,
-                                plContext),
-                                PKIX_LISTAPPENDITEMFAILED);
-                }
-
-                PKIX_DECREF(candidate);
+            PKIX_DECREF(pkixErrorResult);
+            continue;
         }
-
-        
-        pkixTempErrorReceived = PKIX_FALSE;
-
-        *pCrlList = filtered;
-        filtered = NULL;
+        if (!crlList) {
+            PKIX_CHECK(PKIX_List_Create(&crlList, plContext),
+                       PKIX_LISTCREATEFAILED);
+        }
+        pkixErrorResult =
+            PKIX_List_AppendItem(crlList, (PKIX_PL_Object *)crl,
+                                 plContext);
+        if (pkixErrorResult) {
+            PKIX_DECREF(pkixErrorResult);
+        }
+        PKIX_DECREF(crl);
+    }
+    *pCrlList = crlList;
+    crlList = NULL;
 
 cleanup:
+    PKIX_DECREF(dp);
+    PKIX_DECREF(crl);
+    PKIX_DECREF(crlList);
 
-        PKIX_DECREF(filtered);
-        PKIX_DECREF(candidate);
-        PKIX_DECREF(selected);
-        PKIX_DECREF(params);
-
-        PKIX_RETURN(CERTSTORE);
+    PKIX_RETURN(CERTSTORE);
 }
+
 
 
 

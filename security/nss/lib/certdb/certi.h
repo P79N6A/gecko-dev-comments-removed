@@ -58,6 +58,8 @@ typedef struct CRLDPCacheStr CRLDPCache;
 typedef struct CRLIssuerCacheStr CRLIssuerCache;
 typedef struct CRLCacheStr CRLCache;
 typedef struct CachedCrlStr CachedCrl;
+typedef struct NamedCRLCacheStr NamedCRLCache;
+typedef struct NamedCRLCacheEntryStr NamedCRLCacheEntry;
 
 struct OpaqueCRLFieldsStr {
     PRBool partial;
@@ -102,6 +104,17 @@ typedef enum {
     CRL_OriginToken = 0,    
     CRL_OriginExplicit = 1  
 } CRLOrigin;
+
+typedef enum {
+    dpcacheNoEntry = 0,             
+    dpcacheFoundEntry = 1,          
+    dpcacheCallerError = 2,         
+    dpcacheInvalidCacheError = 3,   
+                                    
+    dpcacheEmpty = 4,               
+    dpcacheLookupError = 5          
+} dpcacheStatus;
+
 
 struct CachedCrlStr {
     CERTSignedCrl* crl;
@@ -257,13 +270,13 @@ extern CERTAVA * CERT_CreateAVAFromSECItem(PRArenaPool *arena, SECOidTag kind,
 
 
 
-SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
-                         SECItem* dp, int64 t, void* wincx,
+SECStatus AcquireDPCache(CERTCertificate* issuer, const SECItem* subject,
+                         const SECItem* dp, int64 t, void* wincx,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
 
-SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
-                         CERTCrlEntry** returned);
+dpcacheStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+                             CERTCrlEntry** returned);
 
 
 void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);
@@ -314,6 +327,69 @@ extern PRUint32 cert_ComputeCertType(CERTCertificate *cert);
 void cert_AddToVerifyLog(CERTVerifyLog *log,CERTCertificate *cert,
                          unsigned long errorCode, unsigned int depth,
                          void *arg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
+                                     const SECItem* canonicalizedName);
+
+struct NamedCRLCacheStr {
+    PRLock* lock;
+    PLHashTable* entries;
+};
+
+
+
+struct NamedCRLCacheEntryStr {
+    SECItem* canonicalizedName;
+    SECItem* crl;                   
+
+    PRBool inCRLCache;
+    PRTime successfulInsertionTime; 
+    PRTime lastAttemptTime;         
+
+    PRBool badDER;      
+    PRBool dupe;        
+    PRBool unsupported; 
+};
+
+typedef enum {
+    certRevocationStatusRevoked = 0,
+    certRevocationStatusValid = 1,
+    certRevocationStatusUnknown = 2,
+} CERTRevocationStatus;
+
+
+
+SECStatus
+cert_CheckCertRevocationStatus(CERTCertificate* cert, CERTCertificate* issuer,
+                               const SECItem* dp, PRTime t, void *wincx,
+                               CERTRevocationStatus *revStatus,
+                               CERTCRLEntryReasonCode *revReason);
+
+
+SECStatus cert_AcquireNamedCRLCache(NamedCRLCache** returned);
+
+
+
+
+SECStatus cert_FindCRLByGeneralName(NamedCRLCache* ncc,
+                                    const SECItem* canonicalizedName,
+                                    NamedCRLCacheEntry** retEntry);
+
+SECStatus cert_ReleaseNamedCRLCache(NamedCRLCache* ncc);
 
 #endif 
 

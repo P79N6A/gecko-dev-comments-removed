@@ -252,15 +252,16 @@ pk11_isID0(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID)
 
 
 
-static CERTCertificate
-*pk11_fastCert(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID, 
-			CK_ATTRIBUTE *privateLabel, char **nickptr)
+static CERTCertificate *
+pk11_fastCert(PK11SlotInfo *slot, CK_OBJECT_HANDLE certID, 
+	      CK_ATTRIBUTE *privateLabel, char **nickptr)
 {
     NSSCertificate *c;
     nssCryptokiObject *co = NULL;
     nssPKIObject *pkio;
     NSSToken *token;
     NSSTrustDomain *td = STAN_GetDefaultTrustDomain();
+    PRStatus status;
 
     
     token = PK11Slot_GetNSSToken(slot);
@@ -287,19 +288,30 @@ static CERTCertificate
 	return NULL;
     }
 
-    nssTrustDomain_AddCertsToCache(td, &c, 1);
-
     
+
+
+
     if ((nickptr) && (co->label)) {
 	CK_ATTRIBUTE label, id;
+
 	label.type = CKA_LABEL;
 	label.pValue = co->label;
 	label.ulValueLen = PORT_Strlen(co->label);
+
 	id.type = CKA_ID;
 	id.pValue = c->id.data;
 	id.ulValueLen = c->id.size;
+
 	*nickptr = pk11_buildNickname(slot, &label, privateLabel, &id);
     }
+
+    
+
+
+
+
+    status = nssTrustDomain_AddCertsToCache(td, &c, 1);
     return STAN_GetCERTCertificateOrRelease(c);
 }
 
@@ -318,11 +330,12 @@ PK11_MakeCertFromHandle(PK11SlotInfo *slot,CK_OBJECT_HANDLE certID,
     PRBool swapNickname = PR_FALSE;
 
     cert = pk11_fastCert(slot,certID,privateLabel, &nickname);
-    if (cert == NULL) goto loser;
+    if (cert == NULL) 
+    	goto loser;
 	
     if (nickname) {
 	if (cert->nickname != NULL) {
-		cert->dbnickname = cert->nickname;
+	    cert->dbnickname = cert->nickname;
 	} 
 	cert->nickname = PORT_ArenaStrdup(cert->arena,nickname);
 	PORT_Free(nickname);
@@ -341,11 +354,10 @@ PK11_MakeCertFromHandle(PK11SlotInfo *slot,CK_OBJECT_HANDLE certID,
     }
 
     trust = (CERTCertTrust*)PORT_ArenaAlloc(cert->arena, sizeof(CERTCertTrust));
-    if (trust == NULL) goto loser;
+    if (trust == NULL) 
+    	goto loser;
     PORT_Memset(trust,0, sizeof(CERTCertTrust));
     cert->trust = trust;
-
-    
 
     if(! pk11_HandleTrustObject(slot, cert, trust) ) {
 	unsigned int type;
@@ -386,12 +398,13 @@ PK11_MakeCertFromHandle(PK11SlotInfo *slot,CK_OBJECT_HANDLE certID,
 	trust->emailFlags |= CERTDB_USER;
 	
     }
-
     return cert;
 
 loser:
-    if (nickname) PORT_Free(nickname);
-    if (cert) CERT_DestroyCertificate(cert);
+    if (nickname) 
+    	PORT_Free(nickname);
+    if (cert) 
+    	CERT_DestroyCertificate(cert);
     return NULL;
 }
 

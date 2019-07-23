@@ -362,86 +362,94 @@ pkix_TargetCertChecker_Check(
                         PKIX_ERROR(PKIX_SUBJALTNAMECHECKFAILED);
 
                 }
-
         }
 
         if (state->certsRemaining == 0) {
 
-                if (state->certSelector != NULL) {
-
-                        PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
-                            (state->certSelector,
+            if (state->certSelector != NULL) {
+                PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
+                           (state->certSelector,
                             &certSelectorMatch,
                             plContext),
-                            PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
+                           PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
 
-                        PKIX_CHECK(certSelectorMatch
-                            (state->certSelector,
+                PKIX_CHECK(certSelectorMatch
+                           (state->certSelector,
                             cert,
                             plContext),
-                            PKIX_CERTSELECTORMATCHFAILED);
+                           PKIX_CERTSELECTORMATCHFAILED);
+            } else {
+                
+
+                PKIX_CHECK(PKIX_PL_Cert_VerifyCertAndKeyType(cert,
+                                         PKIX_FALSE  ,
+                                         plContext),
+                           PKIX_CERTVERIFYCERTTYPEFAILED);
+            }
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+            PKIX_CHECK(PKIX_PL_Cert_GetExtendedKeyUsage
+                       (cert, &certExtKeyUsageList, plContext),
+                       PKIX_CERTGETEXTENDEDKEYUSAGEFAILED);
+            
+            
+            if (state->extKeyUsageList != NULL &&
+                certExtKeyUsageList != NULL) {
+                
+                PKIX_CHECK(PKIX_List_GetLength
+                           (state->extKeyUsageList, &numItems, plContext),
+                           PKIX_LISTGETLENGTHFAILED);
+                
+                for (i = 0; i < numItems; i++) {
+                    
+                    PKIX_CHECK(PKIX_List_GetItem
+                               (state->extKeyUsageList,
+                                i,
+                                (PKIX_PL_Object **) &name,
+                                plContext),
+                               PKIX_LISTGETITEMFAILED);
+                    
+                    PKIX_CHECK(pkix_List_Contains
+                               (certExtKeyUsageList,
+                                (PKIX_PL_Object *) name,
+                                &checkPassed,
+                                plContext),
+                               PKIX_LISTCONTAINSFAILED);
+                    
+                    PKIX_DECREF(name);
+                    
+                    if (checkPassed != PKIX_TRUE) {
+                        PKIX_ERROR
+                            (PKIX_EXTENDEDKEYUSAGECHECKINGFAILED);
                         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        PKIX_CHECK(PKIX_PL_Cert_GetExtendedKeyUsage
-                            (cert, &certExtKeyUsageList, plContext),
-                            PKIX_CERTGETEXTENDEDKEYUSAGEFAILED);
-
-
-                        if (state->extKeyUsageList != NULL &&
-                            certExtKeyUsageList != NULL) {
-
-                            PKIX_CHECK(PKIX_List_GetLength
-                                (state->extKeyUsageList, &numItems, plContext),
-                                PKIX_LISTGETLENGTHFAILED);
-
-                            for (i = 0; i < numItems; i++) {
-
-                                PKIX_CHECK(PKIX_List_GetItem
-                                        (state->extKeyUsageList,
-                                        i,
-                                        (PKIX_PL_Object **) &name,
-                                        plContext),
-                                        PKIX_LISTGETITEMFAILED);
-
-                                PKIX_CHECK(pkix_List_Contains
-                                        (certExtKeyUsageList,
-                                        (PKIX_PL_Object *) name,
-                                        &checkPassed,
-                                        plContext),
-                                        PKIX_LISTCONTAINSFAILED);
-
-                                PKIX_DECREF(name);
-
-                                if (checkPassed != PKIX_TRUE) {
-                                    PKIX_ERROR
-                                        (PKIX_EXTENDEDKEYUSAGECHECKINGFAILED);
-
-                                }
-                            }
-
-                        }
-
+                    }
                 }
+            }
+        } else {
+            
+            PKIX_CHECK(PKIX_PL_Cert_VerifyCertAndKeyType(cert, PKIX_TRUE,
+                                                         plContext),
+                       PKIX_CERTVERIFYCERTTYPEFAILED);
         }
 
         
@@ -469,6 +477,7 @@ pkix_TargetCertChecker_Check(
 
 cleanup:
 
+        PKIX_DECREF(name);
         PKIX_DECREF(nameConstraints);
         PKIX_DECREF(certSubjAltNames);
         PKIX_DECREF(certExtKeyUsageList);

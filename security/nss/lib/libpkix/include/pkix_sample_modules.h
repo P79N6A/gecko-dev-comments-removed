@@ -399,6 +399,51 @@ PKIX_PL_NssContext_SetTimeout(PKIX_UInt32 timeout, PKIX_PL_NssContext *nssContex
 PKIX_Error *
 PKIX_PL_NssContext_SetMaxResponseLen(PKIX_UInt32 len, PKIX_PL_NssContext *nssContext);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_NssContext_SetCrlReloadDelay(PKIX_UInt32 delaySeconds,
+                                       PKIX_PL_NssContext *nssContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_NssContext_SetBadDerCrlReloadDelay(PKIX_UInt32 delaySeconds,
+                                           PKIX_PL_NssContext *nssContext);
 #ifdef __cplusplus
 }
 #endif

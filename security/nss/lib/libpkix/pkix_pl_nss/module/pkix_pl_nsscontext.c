@@ -47,6 +47,8 @@
 #define PKIX_DEFAULT_MAX_RESPONSE_LENGTH               64 * 1024
 #define PKIX_DEFAULT_COMM_TIMEOUT_SECONDS              60
 
+#define PKIX_DEFAULT_CRL_RELOAD_DELAY_SECONDS        6 * 24 * 60 * 60
+#define PKIX_DEFAULT_BAD_CRL_RELOAD_DELAY_SECONDS    60 * 60
 
 
 
@@ -82,7 +84,9 @@ PKIX_PL_NssContext_Create(
         context->wincx = wincx;
         context->timeoutSeconds = PKIX_DEFAULT_COMM_TIMEOUT_SECONDS;
         context->maxResponseLength = PKIX_DEFAULT_MAX_RESPONSE_LENGTH;
-
+        context->crlReloadDelay = PKIX_DEFAULT_CRL_RELOAD_DELAY_SECONDS;
+        context->badDerCrlReloadDelay =
+                             PKIX_DEFAULT_BAD_CRL_RELOAD_DELAY_SECONDS;
         *pNssContext = context;
 
 cleanup:
@@ -272,7 +276,7 @@ PKIX_PL_NssContext_SetTimeout(PKIX_UInt32 timeout,
 {
         void *plContext = NULL;
 
-        PKIX_ENTER(CONTEXT, "pkix_pl_NssContext_SetTimeout");
+        PKIX_ENTER(CONTEXT, "PKIX_PL_NssContext_SetTimeout");
         PKIX_NULLCHECK_ONE(nssContext);
 
         nssContext->timeoutSeconds = timeout;
@@ -293,10 +297,54 @@ PKIX_PL_NssContext_SetMaxResponseLen(PKIX_UInt32 len,
 {
         void *plContext = NULL;
 
-        PKIX_ENTER(CONTEXT, "pkix_pl_NssContext_SetMaxResponseLen");
+        PKIX_ENTER(CONTEXT, "PKIX_PL_NssContext_SetMaxResponseLen");
         PKIX_NULLCHECK_ONE(nssContext);
 
         nssContext->maxResponseLength = len;
+
+        PKIX_RETURN(CONTEXT);
+}
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_NssContext_SetCrlReloadDelay(PKIX_UInt32 delay,
+                                     PKIX_PL_NssContext *nssContext)
+{
+        void *plContext = NULL;
+
+        PKIX_ENTER(CONTEXT, "PKIX_PL_NssContext_SetCrlReloadDelay");
+        PKIX_NULLCHECK_ONE(nssContext);
+
+        nssContext->crlReloadDelay = delay;
+
+        PKIX_RETURN(CONTEXT);
+}
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_PL_NssContext_SetBadDerCrlReloadDelay(PKIX_UInt32 delay,
+                                             PKIX_PL_NssContext *nssContext)
+{
+        void *plContext = NULL;
+
+        PKIX_ENTER(CONTEXT, "PKIX_PL_NssContext_SetBadDerCrlReloadDelay");
+        PKIX_NULLCHECK_ONE(nssContext);
+
+        nssContext->badDerCrlReloadDelay = delay;
 
         PKIX_RETURN(CONTEXT);
 }

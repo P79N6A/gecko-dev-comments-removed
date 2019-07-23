@@ -1038,7 +1038,7 @@ pkix_Build_ValidationCheckers(
         PKIX_ForwardBuilderState *state,
         PKIX_List *certChain,
         PKIX_TrustAnchor *anchor,
-        PKIX_Boolean addEkuChecker,
+        PKIX_Boolean chainRevalidationStage,
         void *plContext)
 {
         PKIX_List *checkers = NULL;
@@ -1051,8 +1051,8 @@ pkix_Build_ValidationCheckers(
         PKIX_CertChainChecker *sigChecker = NULL;
         PKIX_CertChainChecker *policyChecker = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
-        PKIX_CertChainChecker *ekuChecker = NULL;
-        PKIX_List *userCheckersList = NULL;
+        PKIX_CertChainChecker *checker = NULL;
+        PKIX_CertSelector *certSelector = NULL;
         PKIX_List *userCheckerExtOIDs = NULL;
         PKIX_PL_OID *oid = NULL;
         PKIX_Boolean supportForwardChecking = PKIX_FALSE;
@@ -1085,16 +1085,26 @@ pkix_Build_ValidationCheckers(
 
 
 
-
-        if (addEkuChecker) {
-            PKIX_CHECK(
-                PKIX_EkuChecker_Create(procParams, &ekuChecker,
-                                       plContext),
-                PKIX_EKUCHECKERINITIALIZEFAILED);
-            
+        if (chainRevalidationStage) {
+            PKIX_CHECK(pkix_ExpirationChecker_Initialize
+                       (state->buildConstants.testDate, &checker, plContext),
+                       PKIX_EXPIRATIONCHECKERINITIALIZEFAILED);
             PKIX_CHECK(PKIX_List_AppendItem
-                       (checkers, (PKIX_PL_Object *)ekuChecker, plContext),
+                       (checkers, (PKIX_PL_Object *)checker, plContext),
                        PKIX_LISTAPPENDITEMFAILED);
+            PKIX_DECREF(checker);
+            
+            PKIX_CHECK(PKIX_ProcessingParams_GetTargetCertConstraints
+                       (procParams, &certSelector, plContext),
+                    PKIX_PROCESSINGPARAMSGETTARGETCERTCONSTRAINTSFAILED);
+
+            PKIX_CHECK(pkix_TargetCertChecker_Initialize
+                       (certSelector, numChainCerts, &checker, plContext),
+                       PKIX_EXPIRATIONCHECKERINITIALIZEFAILED);
+            PKIX_CHECK(PKIX_List_AppendItem
+                       (checkers, (PKIX_PL_Object *)checker, plContext),
+                       PKIX_LISTAPPENDITEMFAILED);
+            PKIX_DECREF(checker);
         }
 
         PKIX_CHECK(PKIX_ProcessingParams_GetInitialPolicies
@@ -1231,10 +1241,13 @@ pkix_Build_ValidationCheckers(
                     plContext),
                    PKIX_LISTAPPENDITEMFAILED);
 
+        PKIX_DECREF(state->reversedCertChain);
         PKIX_INCREF(reversedCertChain);
         state->reversedCertChain = reversedCertChain;
+        PKIX_DECREF(state->checkedCritExtOIDs);
         PKIX_INCREF(buildCheckedCritExtOIDsList);
         state->checkedCritExtOIDs = buildCheckedCritExtOIDsList;
+        PKIX_DECREF(state->checkerChain);
         state->checkerChain = checkers;
         checkers = NULL;
         state->certCheckedIndex = 0;
@@ -1247,16 +1260,16 @@ cleanup:
         PKIX_DECREF(oid);
         PKIX_DECREF(reversedCertChain);
         PKIX_DECREF(buildCheckedCritExtOIDsList);
+        PKIX_DECREF(checker);
         PKIX_DECREF(checkers);
         PKIX_DECREF(initialPolicies);
         PKIX_DECREF(trustedCert);
         PKIX_DECREF(trustedPubKey);
+        PKIX_DECREF(certSelector);
         PKIX_DECREF(sigChecker);
         PKIX_DECREF(policyChecker);
         PKIX_DECREF(userChecker);
-        PKIX_DECREF(userCheckersList);
         PKIX_DECREF(userCheckerExtOIDs);
-        PKIX_DECREF(ekuChecker);
 
         PKIX_RETURN(BUILD);
 }
@@ -2524,9 +2537,6 @@ pkix_BuildForwardDepthFirstSearch(
                             
                             goto cleanup;
                     } else {
-                            PKIX_DECREF(state->reversedCertChain);
-                            PKIX_DECREF(state->checkedCritExtOIDs);
-                            PKIX_DECREF(state->checkerChain);
                             
                             if (verifyError) {
                                 pkixTempErrorReceived = PKIX_TRUE;
@@ -3041,11 +3051,8 @@ pkix_Build_CheckInCache(
                    (matchingAnchor, &trustedCert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
         
-        if (!state->buildConstants.anchors) {
-            PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
-                       (trustedCert, PKIX_FALSE, &trusted, plContext),
-                       PKIX_CERTISCERTTRUSTEDFAILED);
-        } else {
+        if (state->buildConstants.anchors &&
+            state->buildConstants.anchors->length) {
             
             PKIX_CHECK(
                 pkix_List_Contains(state->buildConstants.anchors,
@@ -3053,6 +3060,10 @@ pkix_Build_CheckInCache(
                                    &trusted,
                                    plContext),
                 PKIX_LISTCONTAINSFAILED);
+        } else {
+            PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
+                       (trustedCert, PKIX_FALSE, &trusted, plContext),
+                       PKIX_CERTISCERTTRUSTEDFAILED);
         }
 
         if (!trusted) {
@@ -3067,10 +3078,6 @@ pkix_Build_CheckInCache(
                    (buildResult, &certList, plContext),
                    PKIX_BUILDRESULTGETCERTCHAINFAILED);
         
-        
-
-        state->revCheckDelayed = PKIX_TRUE;
-        
         PKIX_CHECK(pkix_Build_ValidationCheckers
                    (state,
                     certList,
@@ -3078,8 +3085,6 @@ pkix_Build_CheckInCache(
                     PKIX_TRUE,  
                     plContext),
                    PKIX_BUILDVALIDATIONCHECKERSFAILED);
-        
-        state->revCheckDelayed = PKIX_FALSE;
 
         PKIX_CHECK_ONLY_FATAL(
             pkix_Build_ValidateEntireChain(state, matchingAnchor,
@@ -3092,10 +3097,6 @@ pkix_Build_CheckInCache(
             *pNBIOContext = nbioContext;
             goto cleanup;
         }
-        PKIX_DECREF(state->reversedCertChain);
-        PKIX_DECREF(state->checkedCritExtOIDs);
-        PKIX_DECREF(state->checkerChain);
-        
         if (!PKIX_ERROR_RECEIVED) {
             
             *pBuildResult = buildResult;
@@ -3248,6 +3249,11 @@ pkix_Build_InitiateBuildChain(
                     (targetParams, &targetCert, plContext),
                     PKIX_COMCERTSELPARAMSGETCERTIFICATEFAILED);
     
+            PKIX_CHECK(
+                PKIX_ComCertSelParams_SetLeafCertFlag(targetParams,
+                                                      PKIX_TRUE, plContext),
+                PKIX_COMCERTSELPARAMSSETLEAFCERTFLAGFAILED);
+
             PKIX_CHECK(PKIX_ProcessingParams_GetHintCerts
                         (procParams, &hintCerts, plContext),
                         PKIX_PROCESSINGPARAMSGETHINTCERTSFAILED);
@@ -3338,12 +3344,7 @@ pkix_Build_InitiateBuildChain(
                                                               plContext),
                     PKIX_COMCERTSELPARAMSSETCERTIFICATEVALIDFAILED);
                 
-                PKIX_CHECK(
-                    PKIX_ComCertSelParams_SetLeafCertFlag(targetParams,
-                                                PKIX_TRUE, plContext),
-                    PKIX_COMCERTSELPARAMSSETLEAFCERTFLAGFAILED);
-
-                    PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
+                PKIX_CHECK(PKIX_CertSelector_GetMatchCallback
                            (targetConstraints, &selectorCallback, plContext),
                            PKIX_CERTSELECTORGETMATCHCALLBACKFAILED);
                 

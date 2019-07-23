@@ -171,9 +171,12 @@ typedef PKIX_Error *
 
 
 
+
+
 PKIX_Error *
 PKIX_CRLSelector_Create(
         PKIX_PL_Cert *issuer,
+        PKIX_List *crlDpList,
         PKIX_PL_Date *date,
         PKIX_CRLSelector **pSelector,
         void *plContext);
@@ -753,6 +756,34 @@ PKIX_ComCRLSelParams_SetMinCRLNumber(
         PKIX_ComCRLSelParams *params,
         PKIX_PL_BigInt *number,
         void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error*
+PKIX_ComCRLSelParams_SetCrlDp(
+         PKIX_ComCRLSelParams *params,
+         PKIX_List *crldpList,
+         void *plContext);
 
 #ifdef __cplusplus
 }

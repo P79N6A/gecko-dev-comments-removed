@@ -86,6 +86,10 @@ struct PKIX_PL_CertStruct {
         PKIX_List *authorityInfoAccess; 
         PKIX_List *subjectInfoAccess; 
         PKIX_Boolean isUserTrustAnchor;
+        PKIX_List *crldpList; 
+
+
+ 
 };
 
 

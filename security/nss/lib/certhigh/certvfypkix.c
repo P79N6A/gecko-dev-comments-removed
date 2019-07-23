@@ -130,6 +130,7 @@ CERT_GetUsePKIXForValidation()
     return usePKIXValidationEngine;
 }
 
+#ifdef NOTDEF
 
 
 
@@ -337,8 +338,7 @@ cleanup:
     PKIX_RETURN(CERTVFYPKIX);
 }
 
-
-
+#endif
 
 
 
@@ -366,21 +366,17 @@ cleanup:
 
 
 static PKIX_Error*
-cert_ProcessingParamsSetKuAndEku(
+cert_ProcessingParamsSetKeyAndCertUsage(
     PKIX_ProcessingParams *procParams,
-    CERTCertificate       *cert,
-    PRBool                 isCA,
     SECCertUsage           requiredCertUsage,
     PRUint32               requiredKeyUsages,
     void                  *plContext)
 {
-    PKIX_List             *extKeyUsage = NULL;
     PKIX_CertSelector     *certSelector = NULL;
     PKIX_ComCertSelParams *certSelParams = NULL;
     PKIX_PL_NssContext    *nssContext = (PKIX_PL_NssContext*)plContext;
-    PKIX_UInt32            keyUsage = 0;
  
-    PKIX_ENTER(CERTVFYPKIX, "cert_ProcessingParamsSetKuAndEku");
+    PKIX_ENTER(CERTVFYPKIX, "cert_ProcessingParamsSetKeyAndCertUsage");
     PKIX_NULLCHECK_TWO(procParams, nssContext);
     
     PKIX_CHECK(
@@ -388,37 +384,24 @@ cert_ProcessingParamsSetKuAndEku(
 	    ((SECCertificateUsage)1) << requiredCertUsage, nssContext),
 	    PKIX_NSSCONTEXTSETCERTUSAGEFAILED);
 
-    PKIX_CHECK(
-        cert_NssCertificateUsageToPkixKUAndEKU(cert, requiredCertUsage,
-                                               requiredKeyUsages, isCA, 
-                                               &extKeyUsage, &keyUsage,
-                                               plContext),
-        PKIX_CANNOTCONVERTCERTUSAGETOPKIXKEYANDEKUSAGES);
-
-    PKIX_CHECK(
-        PKIX_ProcessingParams_GetTargetCertConstraints(procParams,
-                                                       &certSelector, plContext),
-        PKIX_PROCESSINGPARAMSGETTARGETCERTCONSTRAINTSFAILED);
-
-    PKIX_CHECK(
-        PKIX_CertSelector_GetCommonCertSelectorParams(certSelector,
-                                                      &certSelParams, plContext),
-        PKIX_CERTSELECTORGETCOMMONCERTSELECTORPARAMSFAILED);
-    
-
-    PKIX_CHECK(
-        PKIX_ComCertSelParams_SetKeyUsage(certSelParams, keyUsage,
-                                          plContext),
-        PKIX_COMCERTSELPARAMSSETKEYUSAGEFAILED);
-
-    PKIX_CHECK(
-        PKIX_ComCertSelParams_SetExtendedKeyUsage(certSelParams,
-                                                  extKeyUsage,
-                                                  plContext),
-        PKIX_COMCERTSELPARAMSSETEXTKEYUSAGEFAILED);
-
+    if (requiredKeyUsages) {
+        PKIX_CHECK(
+            PKIX_ProcessingParams_GetTargetCertConstraints(procParams,
+                                                           &certSelector, plContext),
+            PKIX_PROCESSINGPARAMSGETTARGETCERTCONSTRAINTSFAILED);
+        
+        PKIX_CHECK(
+            PKIX_CertSelector_GetCommonCertSelectorParams(certSelector,
+                                                          &certSelParams, plContext),
+            PKIX_CERTSELECTORGETCOMMONCERTSELECTORPARAMSFAILED);
+        
+        
+        PKIX_CHECK(
+            PKIX_ComCertSelParams_SetKeyUsage(certSelParams, requiredKeyUsages,
+                                              plContext),
+            PKIX_COMCERTSELPARAMSSETKEYUSAGEFAILED);
+    }
 cleanup:
-    PKIX_DECREF(extKeyUsage);
     PKIX_DECREF(certSelector);
     PKIX_DECREF(certSelParams);
 
@@ -1274,8 +1257,8 @@ do {
     }
 
     error =
-        cert_ProcessingParamsSetKuAndEku(procParams, cert, PR_TRUE,
-                                         requiredUsage, 0, plContext);
+        cert_ProcessingParamsSetKeyAndCertUsage(procParams, requiredUsage, 0,
+                                                plContext);
     if (error) {
         goto cleanup;
     }
