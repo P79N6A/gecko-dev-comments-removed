@@ -4723,23 +4723,23 @@ nsTextFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool 
   
   do {
     PRBool isPunctuation = cIter.IsPunctuation();
-    if (aWordSelectEatSpace == cIter.IsWhitespace() && !aState->mSawBeforeType) {
+    PRBool isWhitespace = cIter.IsWhitespace();
+    if (aWordSelectEatSpace == isWhitespace && !aState->mSawBeforeType) {
       aState->SetSawBeforeType();
-      aState->Update(isPunctuation);
+      aState->Update(isPunctuation, isWhitespace);
       continue;
     }
     
     if (!aState->mAtStart) {
       PRBool canBreak = isPunctuation != aState->mLastCharWasPunctuation
-        ? BreakWordBetweenPunctuation(aForward ? aState->mLastCharWasPunctuation : isPunctuation,
-                                      aIsKeyboardSelect)
+        ? BreakWordBetweenPunctuation(aState, isPunctuation, isWhitespace, aIsKeyboardSelect)
         : cIter.HaveWordBreakBefore() && aState->mSawBeforeType;
       if (canBreak) {
         *aOffset = cIter.GetBeforeOffset() - mContentOffset;
         return PR_TRUE;
       }
     }
-    aState->Update(isPunctuation);
+    aState->Update(isPunctuation, isWhitespace);
   } while (cIter.NextCluster());
 
   *aOffset = cIter.GetAfterOffset() - mContentOffset;
@@ -5481,8 +5481,16 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth);
   }
   PRBool breakAfter = PR_FALSE;
-  if ((charsFit == length && transformedOffset + transformedLength == mTextRun->GetLength() &&
-       (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK))) {
+  if (charsFit == length && transformedOffset + transformedLength == mTextRun->GetLength() &&
+      (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK) &&
+      
+      
+      
+      (transformedLength > 0 || lineLayout.LineIsBreakable())) {
+    
+    
+    
+
     
     
     
