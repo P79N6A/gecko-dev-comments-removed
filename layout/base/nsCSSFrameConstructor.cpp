@@ -13269,6 +13269,10 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
 
   
   
+  nsCOMPtr<nsIPresShell> kungFuDeathGrip(mPresShell);
+
+  
+  
   nsresult rv = mPresShell->StyleSet()->BeginReconstruct();
   if (NS_FAILED(rv))
     return;
