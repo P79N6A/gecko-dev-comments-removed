@@ -162,10 +162,9 @@ PRBool XPCDispTypeInfo::FuncDescArray::BuildFuncDesc(XPCCallContext& ccx, JSObje
                                      XPCDispJSPropertyInfo & propInfo)
 {
     
-    FUNCDESC* funcDesc = new FUNCDESC;
+    FUNCDESC* funcDesc = mArray.AppendElement();
     if(!funcDesc)
         return PR_FALSE;
-    mArray.AppendElement(funcDesc);
     
     funcDesc->memid = propInfo.GetMemID();
     funcDesc->lprgscode = 0; 
@@ -210,12 +209,10 @@ XPCDispTypeInfo::FuncDescArray::FuncDescArray(XPCCallContext& ccx, JSObject* obj
 
 XPCDispTypeInfo::FuncDescArray::~FuncDescArray()
 {
-    PRUint32 size = mArray.Count();
+    PRUint32 size = mArray.Length();
     for(PRUint32 index = 0; index < size; ++index)
     {
-        FUNCDESC* funcDesc = reinterpret_cast<FUNCDESC*>(mArray.ElementAt(index));
-        delete [] funcDesc->lprgelemdescParam;
-        delete funcDesc;
+        delete [] mArray[index].lprgelemdescParam;
     }
 }
 
@@ -435,12 +432,12 @@ void STDMETHODCALLTYPE XPCDispTypeInfo::ReleaseVarDesc(
 XPCDispIDArray::XPCDispIDArray(XPCCallContext& ccx, JSIdArray* array) : 
     mMarked(JS_FALSE), mIDArray(array->length)
 {
+    mIDArray.SetLength(array->length);
+    
     
     for(jsint index = 0; index < array->length; ++index)
     {
-        mIDArray.ReplaceElementAt(reinterpret_cast<void*>
-                                                  (array->vector[index]), 
-                                  index);
+        mIDArray[index] = array->vector[index];
     }   
 }
 
@@ -460,9 +457,7 @@ void XPCDispIDArray::TraceJS(JSTracer* trc)
     
     for(PRInt32 index = 0; index < count; ++index)
     {
-        if(JS_IdToValue(trc->context,
-                        reinterpret_cast<jsid>(mIDArray.ElementAt(index)),
-                        &val))
+        if(JS_IdToValue(trc->context, mIDArray.ElementAt(index), &val))
         {
             JS_CALL_VALUE_TRACER(trc, val, "disp_id_array_element");
         }
