@@ -106,6 +106,9 @@ class nsUICommandCollector : public nsIObserver,
   nsresult HandleTabMoveEvent(nsIDOMEvent* event);
 
   
+  nsresult HandlePopupShowingEvent(nsIDOMEvent* event);
+
+  
   
   nsresult LogBookmarkInfo(const nsString& id,
                            nsIMetricsEventItem* parentItem);
