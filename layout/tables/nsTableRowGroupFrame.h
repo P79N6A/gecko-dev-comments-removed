@@ -140,7 +140,7 @@ public:
 
 
 
-  NS_IMETHOD Reflow(nsPresContext*          aPresContext,
+  NS_IMETHOD Reflow(nsPresContext*           aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus&          aStatus);
@@ -184,7 +184,7 @@ public:
 
 
 
-  nsresult  InitRepeatedFrame(nsPresContext*       aPresContext,
+  nsresult  InitRepeatedFrame(nsPresContext*        aPresContext,
                               nsTableRowGroupFrame* aHeaderFooterFrame);
 
   
@@ -218,7 +218,7 @@ public:
 
 
   nscoord CollapseRowGroupIfNecessary(nscoord aYTotalOffset,
-                                      nscoord        aWidth);
+                                      nscoord aWidth);
 
 
 public:
@@ -364,21 +364,21 @@ public:
 protected:
   nsTableRowGroupFrame(nsStyleContext* aContext);
 
-  void InitChildReflowState(nsPresContext&    aPresContext, 
+  void InitChildReflowState(nsPresContext&     aPresContext, 
                             PRBool             aBorderCollapse,
                             nsHTMLReflowState& aReflowState);
   
   
   virtual PRIntn GetSkipSides() const;
 
-  void PlaceChild(nsPresContext*        aPresContext,
+  void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,
                   nsIFrame*              aKidFrame,
                   nsHTMLReflowMetrics&   aDesiredSize,
                   const nsRect&          aOriginalKidRect,
                   const nsRect&          aOriginalKidOverflowRect);
 
-  void CalculateRowHeights(nsPresContext*          aPresContext, 
+  void CalculateRowHeights(nsPresContext*           aPresContext, 
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState);
 
@@ -395,19 +395,19 @@ protected:
 
 
 
-  NS_METHOD ReflowChildren(nsPresContext*        aPresContext,
+  NS_METHOD ReflowChildren(nsPresContext*         aPresContext,
                            nsHTMLReflowMetrics&   aDesiredSize,
                            nsRowGroupReflowState& aReflowState,
                            nsReflowStatus&        aStatus,
                            PRBool*                aPageBreakBeforeEnd = nsnull);
 
-  nsresult SplitRowGroup(nsPresContext*          aPresContext,
+  nsresult SplitRowGroup(nsPresContext*           aPresContext,
                          nsHTMLReflowMetrics&     aDesiredSize,
                          const nsHTMLReflowState& aReflowState,
                          nsTableFrame*            aTableFrame,
                          nsReflowStatus&          aStatus);
 
-  void SplitSpanningCells(nsPresContext&          aPresContext,
+  void SplitSpanningCells(nsPresContext&           aPresContext,
                           const nsHTMLReflowState& aReflowState,
                           nsTableFrame&            aTableFrame,
                           nsTableRowFrame&         aFirstRow, 
@@ -419,15 +419,15 @@ protected:
                           nscoord&                 aDesiredHeight);
 
   void CreateContinuingRowFrame(nsPresContext& aPresContext,
-                                nsIFrame&       aRowFrame,
-                                nsIFrame**      aContRowFrame);
+                                nsIFrame&      aRowFrame,
+                                nsIFrame**     aContRowFrame);
 
   PRBool IsSimpleRowFrame(nsTableFrame* aTableFrame, 
                           nsIFrame*     aFrame);
 
   void GetNextRowSibling(nsIFrame** aRowFrame);
 
-  void UndoContinuedRow(nsPresContext*  aPresContext,
+  void UndoContinuedRow(nsPresContext*   aPresContext,
                         nsTableRowFrame* aRow);
                         
 private:

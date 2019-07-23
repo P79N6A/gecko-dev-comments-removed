@@ -153,7 +153,7 @@ void  nsTableRowGroupFrame::AdjustRowIndices(PRInt32 aRowIndex,
   }
 }
 nsresult
-nsTableRowGroupFrame::InitRepeatedFrame(nsPresContext*       aPresContext,
+nsTableRowGroupFrame::InitRepeatedFrame(nsPresContext*        aPresContext,
                                         nsTableRowGroupFrame* aHeaderFooterFrame)
 {
   nsTableRowFrame* copyRowFrame = GetFirstRow();
@@ -290,7 +290,7 @@ nsTableRowGroupFrame::GetSkipSides() const
 
 
 void 
-nsTableRowGroupFrame::PlaceChild(nsPresContext*        aPresContext,
+nsTableRowGroupFrame::PlaceChild(nsPresContext*         aPresContext,
                                  nsRowGroupReflowState& aReflowState,
                                  nsIFrame*              aKidFrame,
                                  nsHTMLReflowMetrics&   aDesiredSize,
@@ -317,7 +317,7 @@ nsTableRowGroupFrame::PlaceChild(nsPresContext*        aPresContext,
 }
 
 void
-nsTableRowGroupFrame::InitChildReflowState(nsPresContext&    aPresContext, 
+nsTableRowGroupFrame::InitChildReflowState(nsPresContext&     aPresContext, 
                                            PRBool             aBorderCollapse,
                                            nsHTMLReflowState& aReflowState)                                    
 {
@@ -348,7 +348,7 @@ CacheRowHeightsForPrinting(nsPresContext*  aPresContext,
 }
 
 NS_METHOD 
-nsTableRowGroupFrame::ReflowChildren(nsPresContext*        aPresContext,
+nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
                                      nsHTMLReflowMetrics&   aDesiredSize,
                                      nsRowGroupReflowState& aReflowState,
                                      nsReflowStatus&        aStatus,
@@ -557,7 +557,7 @@ nsTableRowGroupFrame::DidResizeRows(nsHTMLReflowMetrics& aDesiredSize)
 
 
 void 
-nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*          aPresContext, 
+nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext, 
                                           nsHTMLReflowMetrics&     aDesiredSize,
                                           const nsHTMLReflowState& aReflowState)
 {
@@ -921,8 +921,8 @@ nsTableRowGroupFrame::SlideChild(nsRowGroupReflowState& aReflowState,
 
 void 
 nsTableRowGroupFrame::CreateContinuingRowFrame(nsPresContext& aPresContext,
-                                               nsIFrame&       aRowFrame,
-                                               nsIFrame**      aContRowFrame)
+                                               nsIFrame&      aRowFrame,
+                                               nsIFrame**     aContRowFrame)
 {
   
   if (!aContRowFrame) {NS_ASSERTION(PR_FALSE, "bad call"); return;}
@@ -948,7 +948,7 @@ nsTableRowGroupFrame::CreateContinuingRowFrame(nsPresContext& aPresContext,
 
 
 void
-nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&          aPresContext,
+nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
                                          const nsHTMLReflowState& aReflowState,
                                          nsTableFrame&            aTable,
                                          nsTableRowFrame&         aFirstRow, 
@@ -1023,7 +1023,7 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&          aPresContext,
 
 
 void
-nsTableRowGroupFrame::UndoContinuedRow(nsPresContext*  aPresContext,
+nsTableRowGroupFrame::UndoContinuedRow(nsPresContext*   aPresContext,
                                        nsTableRowFrame* aRow)
 {
   if (!aRow) return; 
@@ -1057,7 +1057,7 @@ GetRowBefore(nsTableRowFrame& aStartRow,
 }
 
 nsresult
-nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
+nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
                                     nsHTMLReflowMetrics&     aDesiredSize,
                                     const nsHTMLReflowState& aReflowState,
                                     nsTableFrame*            aTableFrame,
@@ -1290,7 +1290,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*          aPresContext,
 
 
 NS_METHOD
-nsTableRowGroupFrame::Reflow(nsPresContext*          aPresContext,
+nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
                              nsHTMLReflowMetrics&     aDesiredSize,
                              const nsHTMLReflowState& aReflowState,
                              nsReflowStatus&          aStatus)
