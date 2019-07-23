@@ -125,12 +125,44 @@ function test() {
       isnot(event.originalTarget, gBrowser.contentDocument,
             "Shift+MiddleClick loaded results in background tab");
 
-      testRightClick();
+      testDropText();
+     });
+   }
+ 
+  
+  function stopPopup(event) { event.preventDefault(); }
+
+  function testDropText() {
+    init();
+    searchBar.addEventListener("popupshowing", stopPopup, true);
+    
+    
+    EventUtils.synthesizeDrop(searchBar.searchButton, [[ {type: "text/plain", data: "Some Text" } ]], "copy", window);
+    doOnloadOnce(function(event) {
+      is(searchBar.value, "Some Text", "drop text/plain on searchbar");
+      testDropInternalText();
     });
   }
 
+  function testDropInternalText() {
+    init();
+    EventUtils.synthesizeDrop(searchBar.searchButton, [[ {type: "text/x-moz-text-internal", data: "More Text" } ]], "copy", window);
+    doOnloadOnce(function(event) {
+      is(searchBar.value, "More Text", "drop text/x-moz-text-internal on searchbar");
+      testDropLink();
+    });
+  }
+
+  function testDropLink() {
+    init();
+    EventUtils.synthesizeDrop(searchBar.searchButton, [[ {type: "text/uri-list", data: "http://www.mozilla.org" } ]], "copy", window);
+    is(searchBar.value, "More Text", "drop text/uri-list on searchbar");
+    SimpleTest.executeSoon(testRightClick);
+  }
+  
   function testRightClick() {
     init();
+    searchBar.removeEventListener("popupshowing", stopPopup, true);
     content.location.href = "about:blank";
     simulateClick({ button: 2 }, searchButton);
     setTimeout(function() {
