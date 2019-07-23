@@ -101,6 +101,7 @@
 #define PREF_AUTOCOMPLETE_ONLY_TYPED            "urlbar.matchOnlyTyped"
 #define PREF_AUTOCOMPLETE_ENABLED               "urlbar.autocomplete.enabled"
 #define PREF_DB_CACHE_PERCENTAGE                "history_cache_percentage"
+#define PREF_BROWSER_IMPORT_BOOKMARKS           "browser.places.importBookmarksHTML"
 
 
 
@@ -384,7 +385,7 @@ nsNavHistory::Init()
 
 
 
-#define PLACES_SCHEMA_VERSION 3
+#define PLACES_SCHEMA_VERSION 4
 
 nsresult
 nsNavHistory::InitDB(PRBool *aDoImport)
@@ -493,6 +494,12 @@ nsNavHistory::InitDB(PRBool *aDoImport)
       }
 
       
+      if (DBSchemaVersion < 4) {
+        rv = ForceMigrateBookmarksDB(mDBConn);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
 
     } else {
       
@@ -501,9 +508,9 @@ nsNavHistory::InitDB(PRBool *aDoImport)
       
 
       
-      
-      
 
+      
+      
       if (DBSchemaVersion > 2) {
         
         rv = ForceMigrateBookmarksDB(mDBConn);
@@ -813,6 +820,12 @@ nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn)
   
   rv = nsNavBookmarks::InitTables(aDBConn);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
+  if (prefs) {
+    prefs->SetBoolPref(PREF_BROWSER_HISTORY_EXPIRE_DAYS, PR_TRUE);
+  }
   return rv;
 }
 

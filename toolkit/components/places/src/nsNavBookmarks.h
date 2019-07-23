@@ -102,13 +102,6 @@ public:
                                  PRInt32 aIndex, PRInt64* aNewFolder);
 
   
-  mozIStorageStatement* DBGetFolderInfo() { return mDBGetFolderInfo; }
-  
-  static const PRInt32 kGetFolderInfoIndex_FolderID;
-  static const PRInt32 kGetFolderInfoIndex_Title;
-  static const PRInt32 kGetFolderInfoIndex_Type;
-
-  
   nsresult OnQuit();
 
 private:
@@ -165,8 +158,6 @@ private:
 
   nsresult IsBookmarkedInDatabase(PRInt64 aBookmarkID, PRBool* aIsBookmarked);
 
-  nsCOMPtr<mozIStorageStatement> mDBGetFolderInfo;    
-
   nsCOMPtr<mozIStorageStatement> mDBGetChildren;       
   static const PRInt32 kGetChildrenIndex_Position;
   static const PRInt32 kGetChildrenIndex_Type;
@@ -184,16 +175,18 @@ private:
 
   nsCOMPtr<mozIStorageStatement> mDBFolderCount;
 
-  nsCOMPtr<mozIStorageStatement> mDBIndexOfFolder;
+  nsCOMPtr<mozIStorageStatement> mDBGetItemIndex;
   nsCOMPtr<mozIStorageStatement> mDBGetChildAt;
 
-  nsCOMPtr<mozIStorageStatement> mDBGetBookmarkProperties; 
-  static const PRInt32 kGetBookmarkPropertiesIndex_ID;
-  static const PRInt32 kGetBookmarkPropertiesIndex_URI;
-  static const PRInt32 kGetBookmarkPropertiesIndex_Title;
-  static const PRInt32 kGetBookmarkPropertiesIndex_Position;
-  static const PRInt32 kGetBookmarkPropertiesIndex_PlaceID;
-  static const PRInt32 kGetBookmarkPropertiesIndex_Parent;
+  nsCOMPtr<mozIStorageStatement> mDBGetItemProperties; 
+  static const PRInt32 kGetItemPropertiesIndex_ID;
+  static const PRInt32 kGetItemPropertiesIndex_URI; 
+  static const PRInt32 kGetItemPropertiesIndex_Title;
+  static const PRInt32 kGetItemPropertiesIndex_Position;
+  static const PRInt32 kGetItemPropertiesIndex_PlaceID;
+  static const PRInt32 kGetItemPropertiesIndex_Parent;
+  static const PRInt32 kGetItemPropertiesIndex_Type;
+  static const PRInt32 kGetItemPropertiesIndex_FolderType;
 
   nsCOMPtr<mozIStorageStatement> mDBGetRedirectDestinations;
 
