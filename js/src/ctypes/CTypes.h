@@ -300,6 +300,9 @@ struct ClosureInfo
   JSObject* thisObj;     
   JSObject* jsfnObj;     
   ffi_closure* closure;  
+#ifdef DEBUG
+  jsword cxThread;       
+#endif
 };
 
 JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
