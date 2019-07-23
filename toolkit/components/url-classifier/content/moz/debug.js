@@ -98,7 +98,6 @@
 
 
 
-
 if (typeof G_GDEBUG == "undefined") {
   throw new Error("G_GDEBUG constant must be set before loading debug.js");
 }
@@ -207,7 +206,7 @@ function G_GetDebugZone(who) {
 
     if (who && who.debugZone) {
       zone = who.debugZone;
-    } else if (isString(who)) {
+    } else if (typeof who == "string") {
       zone = who;
     }
 
@@ -769,7 +768,7 @@ G_Loggifier.prototype.loggify = function(obj) {
           args[i] = arguments[i];
           argsString += (i == 0 ? "" : ", ");
           
-          if (isFunction(args[i])) {
+          if (typeof args[i] == "function") {
             argsString += "[function]";
           } else {
             argsString += args[i];

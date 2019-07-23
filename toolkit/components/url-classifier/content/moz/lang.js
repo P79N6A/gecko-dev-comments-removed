@@ -41,13 +41,6 @@
 
 
 
-function alert(msg, opt_title) {
-  opt_title |= "message";
-
-  Cc["@mozilla.org/embedcomp/prompt-service;1"]
-    .getService(Ci.nsIPromptService)
-    .alert(null, opt_title, msg.toString());
-}
 
 
 
@@ -55,18 +48,78 @@ function alert(msg, opt_title) {
 
 
 
-function jsInstanceOf(obj, iid) {
-  try {
-    obj.QueryInterface(iid);
-    return true;
-  } catch (e) {
-    if (e == Components.results.NS_ERROR_NO_INTERFACE) {
-      return false;
-    } else {
-      throw e;
-    }
+
+
+
+
+String.prototype.subs = function() {
+  var ret = this;
+
+  
+  
+  for (var i = 0; i < arguments.length; i++) {
+    ret = ret.replace(/\%s/, String(arguments[i]));
   }
+
+  return ret;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function bind(fn, self, opt_args) {
+  var boundargs = (typeof fn.boundArgs_ != "undefined") ? fn.boundArgs_ : [];
+  boundargs = boundargs.concat(Array.prototype.slice.call(arguments, 2));
+
+  if (typeof fn.boundSelf_ != "undefined") {
+    self = fn.boundSelf_;
+  }
+
+  if (typeof fn.boundFn_ != "undefined") {
+    fn = fn.boundFn_;
+  }
+
+  var newfn = function() {
+    
+    var args = boundargs.concat(Array.prototype.slice.call(arguments));
+    return fn.apply(self, args);
+  }
+
+  newfn.boundArgs_ = boundargs;
+  newfn.boundSelf_ = self;
+  newfn.boundFn_ = fn;
+
+  return newfn;
+}
+
+
+
+
+
+
+
+
+Function.prototype.bind = function(self, opt_args) {
+  return bind.apply(
+    null, [this, self].concat(Array.prototype.slice.call(arguments, 1)));
+}
+
 
 
 
@@ -98,4 +151,36 @@ function BindToObject(func, obj, opt_A, opt_B, opt_C, opt_D, opt_E, opt_F) {
   
   var args = Array.prototype.splice.call(arguments, 1, arguments.length);
   return Function.prototype.bind.apply(func, args);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Function.prototype.inherits = function(parentCtor) {
+  var tempCtor = function(){};
+  tempCtor.prototype = parentCtor.prototype;
+  this.superClass_ = parentCtor.prototype;
+  this.prototype = new tempCtor();
 }

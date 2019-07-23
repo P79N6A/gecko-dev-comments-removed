@@ -39,7 +39,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 
-#include ../content/js/lang.js
+#include ../content/moz/lang.js
 #include ../content/enchash-decrypter.js
 #include ../content/multi-querier.js
 #include ../content/trtable.js

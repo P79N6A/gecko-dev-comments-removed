@@ -162,7 +162,7 @@ G_File.__defineGetter__("LINE_END_CHAR", function() {
 
 
 function G_FileReader(file) {
-  this.file_ = isString(file) ? G_File.fromFileURI(file) : file;
+  this.file_ = typeof file == "string" ? G_File.fromFileURI(file) : file;
 }
 
 
