@@ -340,7 +340,8 @@ FeedWriter.prototype = {
         else
           LOG("no base?");
         docFragment = summary.createDocumentFragment(body);
-        body.appendChild(docFragment);
+        if (docFragment)
+          body.appendChild(docFragment);
 
         
         
