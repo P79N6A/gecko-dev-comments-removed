@@ -1959,7 +1959,7 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
             
             
             frameTraversal->Next();
-            nsIFrame* newCaretFrame = static_cast<nsIFrame*>(frameTraversal->CurrentItem());
+            newCaretFrame = static_cast<nsIFrame*>(frameTraversal->CurrentItem());
             if (nsnull == newCaretFrame)
               break;
             newCaretContent = newCaretFrame->GetContent();            
