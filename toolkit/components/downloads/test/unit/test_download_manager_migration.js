@@ -39,21 +39,6 @@
 
 
 
-function cleanup()
-{
-  
-  var rdfFile = dirSvc.get("DLoads", Ci.nsIFile);
-  if (rdfFile.exists()) rdfFile.remove(true);
-  
-  
-  var dbFile = dirSvc.get("ProfD", Ci.nsIFile);
-  dbFile.append("downloads.sqlite");
-  if (dbFile.exists())
-    try { dbFile.remove(true); } catch(e) {  }
-}
-
-cleanup();
-
 importDownloadsFile("downloads.rdf");
 
 const nsIDownloadManager = Ci.nsIDownloadManager;
