@@ -747,6 +747,11 @@ private:
       PRBool operator!=(const Iterator& aOther) const {
         return !(*this == aOther);
       }
+      Iterator& operator=(const Iterator& aOther) {
+        NS_ASSERTION(mEnd == aOther.mEnd, "Iterators for different lists?");
+        mCurrent = aOther.mCurrent;
+        return *this;
+      }
 
       operator FrameConstructionItem& () {
         return item();
@@ -761,6 +766,17 @@ private:
         NS_ASSERTION(!IsDone(), "Should have checked IsDone()!");
         mCurrent = PR_NEXT_LINK(mCurrent);
       }
+      void SetToEnd() { mCurrent = mEnd; }
+
+      
+      
+      
+      inline PRBool SkipItemsWantingParentType(ParentType aParentType);
+
+      
+      
+      
+      inline PRBool SkipWhitespace();
 
       
       
@@ -786,7 +802,10 @@ private:
 
       
       
-      void DeleteItem();
+      
+      
+      
+      void DeleteItemsTo(const Iterator& aEnd);
 
     private:
       PRCList* mCurrent;
@@ -840,9 +859,11 @@ private:
     ParentType DesiredParentType() {
       return FCDATA_DESIRED_PARENT_TYPE(mFCData->mBits);
     }
-    PRBool IsWhitespace() const {
-      return mIsText && mContent->TextIsOnlyWhitespace();
-    }
+
+    
+    
+    
+    PRBool IsWhitespace() const;
 
     
     const FrameConstructionData* mFCData;
@@ -1350,11 +1371,14 @@ private:
   
   
   
+  
+  
   PRBool WipeContainingBlock(nsFrameConstructorState& aState,
                              nsIFrame*                aContainingBlock,
                              nsIFrame*                aFrame,
-                             const FrameConstructionItemList& aItems,
+                             FrameConstructionItemList& aItems,
                              PRBool                   aIsAppend,
+                             PRBool                   aIsInsertAtStart,
                              nsIFrame*                aPrevSibling);
 
   nsresult ReframeContainingBlock(nsIFrame* aFrame);
