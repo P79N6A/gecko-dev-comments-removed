@@ -143,25 +143,25 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
 
   
   
-  PRBool mJumpLines;
-
-  
-  
-  PRBool mScrollViewStop;
-
-  
-  
-  PRBool mIsKeyboardSelect;
-
-  
-  
-  PRBool mVisual;
-
-  
-  
   
   
   EWordMovementType mWordMovementType;
+
+  
+  
+  PRPackedBool mJumpLines;
+
+  
+  
+  PRPackedBool mScrollViewStop;
+
+  
+  
+  PRPackedBool mIsKeyboardSelect;
+
+  
+  
+  PRPackedBool mVisual;
 
   
 
@@ -169,11 +169,11 @@ struct NS_STACK_CLASS nsPeekOffsetStruct
   nsCOMPtr<nsIContent> mResultContent;
 
   
-  PRInt32 mContentOffset;
-
-  
   
   nsIFrame *mResultFrame;
+
+  
+  PRInt32 mContentOffset;
 
   
   
