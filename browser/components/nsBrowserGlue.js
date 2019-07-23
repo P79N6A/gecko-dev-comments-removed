@@ -503,12 +503,49 @@ BrowserGlue.prototype = {
       this._dirty = false;
 
       var currentSet = this._rdf.GetResource("currentset");
+      var collapsed = this._rdf.GetResource("collapsed");
+      var target;
+      var moveHome;
+      var homePattern = /(?:^|,)home-button(?:$|,)/;
+
+      
+      var personalBar = this._rdf.GetResource("chrome://browser/content/browser.xul#PersonalToolbar");
+      var personalBarCollapsed = this._getPersist(personalBar, collapsed) == "true";
 
       
       var navBar = this._rdf.GetResource("chrome://browser/content/browser.xul#nav-bar");
-      var target = this._getPersist(navBar, currentSet);
-      if (target && !/(?:^|,)unified-back-forward-button(?:$|,)/.test(target))
-        this._setPersist(navBar, currentSet, "unified-back-forward-button," + target);
+      target = this._getPersist(navBar, currentSet);
+      if (target) {
+        let originalTarget = target;
+
+        
+        if (!personalBarCollapsed)
+          target = target.replace(homePattern, ",");
+        moveHome = (target != originalTarget);
+
+        
+        if (!/(?:^|,)unified-back-forward-button(?:$|,)/.test(target))
+          target = "unified-back-forward-button," + target;
+
+        if (target != originalTarget)
+          this._setPersist(navBar, currentSet, target);
+      } else {
+        
+        
+        moveHome = true;
+      }
+
+      if (moveHome) {
+        
+        
+        target = this._getPersist(personalBar, currentSet);
+        if (target && !homePattern.test(target))
+          this._setPersist(personalBar, currentSet, "home-button," + target);
+
+        
+        if (personalBarCollapsed)
+          this._setPersist(personalBar, collapsed, "false");
+      }
 
       
       if (this._dirty)
