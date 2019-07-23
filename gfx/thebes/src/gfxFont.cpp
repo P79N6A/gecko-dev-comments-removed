@@ -577,7 +577,18 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
 
     aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -1.0);
 
+    if (aMetrics->maxAscent < 1.0) {
+        
+        aMetrics->underlineSize = 0;
+        aMetrics->underlineOffset = 0;
+        aMetrics->strikeoutSize = 0;
+        aMetrics->strikeoutOffset = 0;
+        return;
+    }
+
     
+
+
 
 
 
@@ -599,8 +610,28 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
     
     
     else if (aMetrics->underlineSize - aMetrics->underlineOffset > aMetrics->maxDescent) {
+        if (aMetrics->underlineSize > aMetrics->maxDescent)
+            aMetrics->underlineSize = PR_MAX(aMetrics->maxDescent, 1.0);
+        
         aMetrics->underlineOffset = aMetrics->underlineSize - aMetrics->maxDescent;
-        aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -1.0);
+    }
+
+    
+    
+    
+    gfxFloat halfOfStrikeoutSize = NS_floor(aMetrics->strikeoutSize / 2.0 + 0.5);
+    if (halfOfStrikeoutSize + aMetrics->strikeoutOffset > aMetrics->maxAscent) {
+        if (aMetrics->strikeoutSize > aMetrics->maxAscent) {
+            aMetrics->strikeoutSize = PR_MAX(aMetrics->maxAscent, 1.0);
+            halfOfStrikeoutSize = NS_floor(aMetrics->strikeoutSize / 2.0 + 0.5);
+        }
+        gfxFloat ascent = NS_floor(aMetrics->maxAscent + 0.5);
+        aMetrics->strikeoutOffset = PR_MAX(halfOfStrikeoutSize, ascent / 2.0);
+    }
+
+    
+    if (aMetrics->underlineSize > aMetrics->maxAscent) {
+        aMetrics->underlineSize = aMetrics->maxAscent;
     }
 }
 
@@ -718,7 +749,7 @@ gfxGlyphExtents::SetTightGlyphExtents(PRUint32 aGlyphID, const gfxRect& aExtents
 }
 
 gfxFontGroup::gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle)
-    : mFamilies(aFamilies), mStyle(*aStyle), mUnderlineOffset(0)
+    : mFamilies(aFamilies), mStyle(*aStyle), mUnderlineOffset(UNDERLINE_OFFSET_NOT_SET)
 {
 
 }
