@@ -78,7 +78,10 @@ public:
     
     
     
-    TEXT_HAS_TRAILING_BREAK  = 0x4000000
+    TEXT_HAS_TRAILING_BREAK  = 0x4000000,
+
+    
+    TEXT_UNUSED_FLAG         = 0x8000000
   };
 
   
