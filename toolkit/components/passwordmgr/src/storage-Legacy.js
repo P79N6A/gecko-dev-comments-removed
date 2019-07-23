@@ -622,17 +622,15 @@ LoginManagerStorage_legacy.prototype = {
     _decrypt : function (cipherText) {
         var plainText = null;
 
-        if (cipherText.charAt(0) == '~') {
-            
-            
-            
-            
-
-            throw "!!!!! base64 encoded passwords not supported !!!!!";
-        }
-
         try {
-            plainText = this._decoderRing.decryptString(cipherText);
+            if (cipherText.charAt(0) == '~') {
+                
+                
+                
+                plainText = atob(cipherText.substring(1));
+            } else {
+                plainText = this._decoderRing.decryptString(cipherText);
+            }
         } catch (e) {
             this.log("Failed to decrypt string: " + cipherText);
         }
