@@ -242,24 +242,45 @@ namespace nanojit
 		int32_t fstack = call->count_args() - iargs;
 
         int32_t extra = 0;
+
+#if defined NJ_NO_FASTCALL
+        int32_t istack = iargs;
+#else
 		int32_t istack = iargs-2;  
 		if (istack <= 0)
 		{
 			istack = 0;
 		}
+#endif
 
 		const int32_t size = 4*istack + 8*fstack; 
         if (size) {
 		    
 		    
 		    extra = alignUp(size, NJ_ALIGN_STACK) - (size); 
+#ifndef NJ_NO_FASTCALL
 		    if (extra > 0)
 			{
 				ADDi(SP, extra);
 			}
+#endif
         }
 
+#ifdef NJ_NO_FASTCALL
+        
+        ADDi(SP, 4*iargs + 8*fstack + extra);
+#endif
+
 		CALL(call);
+
+#ifdef NJ_NO_FASTCALL
+        if (iargs >= 1) {
+            PUSHr(ECX);
+            if (iargs >= 2) {
+                PUSHr(EDX);
+            }
+        }
+#endif
 
 		
 		NanoAssert(_allocator.isFree(FST0));
