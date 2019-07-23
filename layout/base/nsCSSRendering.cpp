@@ -1519,8 +1519,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   }
 
   
-  imgIRequest *req = aPresContext->LoadImage(aColor.mBackgroundImage,
-                                             aForFrame);
+  
+  
+  aPresContext->SetupBackgroundImageLoaders(aForFrame, &aColor);
+
+  imgIRequest *req = aColor.mBackgroundImage;
 
   PRUint32 status = imgIRequest::STATUS_ERROR;
   if (req)
@@ -1726,8 +1729,15 @@ DrawBorderImage(nsPresContext*       aPresContext,
     return;
 
   
-  imgIRequest *req =
-    aPresContext->LoadBorderImage(aBorderStyle.GetBorderImage(), aForFrame);
+  
+  
+  
+  
+  
+  aPresContext->SetupBorderImageLoaders(aForFrame, &aBorderStyle);
+
+  imgIRequest *req = aBorderStyle.GetBorderImage();
+
 #ifdef DEBUG
   {
     PRUint32 status = imgIRequest::STATUS_ERROR;
