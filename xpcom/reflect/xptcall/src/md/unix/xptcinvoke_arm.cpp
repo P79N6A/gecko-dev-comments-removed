@@ -75,7 +75,12 @@ copy_double_word(PRUint32 *start, PRUint32 *current, PRUint32 *end, PRUint64 *dw
     return current + 1;
 }
 
-static void
+
+
+#ifndef DEBUG
+static
+#endif
+void
 invoke_copy_to_stack(PRUint32* stk, PRUint32 *end,
                      PRUint32 paramCount, nsXPTCVariant* s)
 {
@@ -159,6 +164,15 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
  
   register vtable_func *vtable, func;
   register int base_size = (paramCount > 1) ? paramCount : 2;
+
+
+
+
+
+
+
+
+
   PRUint32 *stack_space = (PRUint32 *) __builtin_alloca(base_size * 8);
 
   invoke_copy_to_stack(stack_space, &stack_space[base_size * 2],
