@@ -560,7 +560,7 @@ static GCFinalizeOp gc_finalizers[GCX_NTYPES] = {
     (GCFinalizeOp) js_FinalizeString,           
     (GCFinalizeOp) js_FinalizeDouble,           
     (GCFinalizeOp) js_FinalizeString,           
-    NULL,                                       
+    (GCFinalizeOp) js_FinalizeFunction,         
     (GCFinalizeOp) js_FinalizeXMLNamespace,     
     (GCFinalizeOp) js_FinalizeXMLQName,         
     (GCFinalizeOp) js_FinalizeXML,              
@@ -582,7 +582,7 @@ static const char *gc_typenames[GCX_NTYPES] = {
     "newborn string",
     "newborn double",
     "newborn mutable string",
-    "newborn private",
+    "newborn function",
     "newborn Namespace",
     "newborn QName",
     "newborn XML",
@@ -1943,7 +1943,9 @@ gc_lock_traversal(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 num,
 void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
 {
-    uintN depth, nslots;
+    uintN depth, nslots, minargs;
+    jsval *vp;
+
     if (fp->callobj)
         JS_CALL_OBJECT_TRACER(trc, fp->callobj, "call");
     if (fp->argsobj)
@@ -1971,41 +1973,36 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
               (fp->fun && JSFUN_THISP_FLAGS(fp->fun->flags)));
     JS_CALL_VALUE_TRACER(trc, (jsval)fp->thisp, "this");
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    if (fp->callee)
+        JS_CALL_OBJECT_TRACER(trc, fp->callee, "callee");
 
     if (fp->argv) {
+        
         nslots = fp->argc;
         if (fp->fun) {
-            if (fp->fun->nargs > nslots)
-                nslots = fp->fun->nargs;
+            minargs = FUN_MINARGS(fp->fun);
+            if (minargs > nslots)
+                nslots = minargs;
             if (!FUN_INTERPRETED(fp->fun))
                 nslots += fp->fun->u.n.extra;
         }
-        TRACE_JSVALS(trc, nslots, fp->argv, "arg");
+        nslots += 2;
+        vp = fp->argv - 2;
+        if (fp->down && fp->down->spbase) {
+            
+
+
+
+
+
+            if (JS_UPTRDIFF(vp, fp->down->spbase) <
+                JS_UPTRDIFF(fp->down->sp, fp->down->spbase)) {
+                JS_ASSERT((size_t)nslots >= (size_t)(fp->down->sp - vp));
+                nslots -= (uintN)(fp->down->sp - vp);
+                vp = fp->down->sp;
+            }
+        }
+        TRACE_JSVALS(trc, nslots, vp, "arg");
     }
     JS_CALL_VALUE_TRACER(trc, fp->rval, "rval");
     if (fp->vars)
