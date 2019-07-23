@@ -161,28 +161,27 @@ class nsCSSScanner {
 
 #endif
 #ifdef CSS_REPORT_PARSE_ERRORS
-  NS_HIDDEN_(void) AddToError(const nsSubstring& aErrorText);
-  NS_HIDDEN_(void) OutputError();
-  NS_HIDDEN_(void) ClearError();
+  void AddToError(const nsSubstring& aErrorText);
+  void OutputError();
+  void ClearError();
 
   
-  NS_HIDDEN_(void) ReportUnexpected(const char* aMessage);
-  NS_HIDDEN_(void) ReportUnexpectedParams(const char* aMessage,
-                                          const PRUnichar **aParams,
-                                          PRUint32 aParamsLength);
+  void ReportUnexpected(const char* aMessage);
+  void ReportUnexpectedParams(const char* aMessage,
+                              const PRUnichar **aParams,
+                              PRUint32 aParamsLength);
   
-  NS_HIDDEN_(void) ReportUnexpectedEOF(const char* aLookingFor);
+  void ReportUnexpectedEOF(const char* aLookingFor);
   
-  NS_HIDDEN_(void) ReportUnexpectedEOF(PRUnichar aLookingFor);
+  void ReportUnexpectedEOF(PRUnichar aLookingFor);
   
   
-  NS_HIDDEN_(void) ReportUnexpectedToken(nsCSSToken& tok,
-                                         const char *aMessage);
+  void ReportUnexpectedToken(nsCSSToken& tok, const char *aMessage);
   
-  NS_HIDDEN_(void) ReportUnexpectedTokenParams(nsCSSToken& tok,
-                                               const char* aMessage,
-                                               const PRUnichar **aParams,
-                                               PRUint32 aParamsLength);
+  void ReportUnexpectedTokenParams(nsCSSToken& tok,
+                                   const char* aMessage,
+                                   const PRUnichar **aParams,
+                                   PRUint32 aParamsLength);
 #endif
 
   PRUint32 GetLineNumber() { return mLineNumber; }

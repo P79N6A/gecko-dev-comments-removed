@@ -75,11 +75,11 @@ class nsStyleContext
 public:
   nsStyleContext(nsStyleContext* aParent, nsIAtom* aPseudoTag,
                  nsCSSPseudoElements::Type aPseudoType,
-                 nsRuleNode* aRuleNode, nsPresContext* aPresContext) NS_HIDDEN;
-  ~nsStyleContext() NS_HIDDEN;
+                 nsRuleNode* aRuleNode, nsPresContext* aPresContext);
+  ~nsStyleContext();
 
-  NS_HIDDEN_(void*) operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
-  NS_HIDDEN_(void) Destroy();
+  void* operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
+  void Destroy();
 
   nsrefcnt AddRef() {
     if (mRefCnt == PR_UINT32_MAX) {
@@ -122,7 +122,7 @@ public:
   
   
   
-  NS_HIDDEN_(already_AddRefed<nsStyleContext>)
+  already_AddRefed<nsStyleContext>
   FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules,
                      nsRuleNode* aRulesIfVisited,
                      PRBool aRelevantLinkVisited);
@@ -197,7 +197,7 @@ public:
   }
 
   
-  NS_HIDDEN_(void) SetStyle(nsStyleStructID aSID, void* aStruct);
+  void SetStyle(nsStyleStructID aSID, void* aStruct);
 
   
   #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_, ctor_args_)          \
@@ -220,7 +220,7 @@ public:
 
 
 
-  NS_HIDDEN_(void) Mark();
+  void Mark();
 
   
 
@@ -238,7 +238,7 @@ public:
 
 
 
-  NS_HIDDEN_(const void*) NS_FASTCALL GetStyleData(nsStyleStructID aSID);
+  const void* NS_FASTCALL GetStyleData(nsStyleStructID aSID);
 
   
 
@@ -268,9 +268,9 @@ public:
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
 
-  NS_HIDDEN_(void*) GetUniqueStyleData(const nsStyleStructID& aSID);
+  void* GetUniqueStyleData(const nsStyleStructID& aSID);
 
-  NS_HIDDEN_(nsChangeHint) CalcStyleDifference(nsStyleContext* aOther);
+  nsChangeHint CalcStyleDifference(nsStyleContext* aOther);
 
   
 
@@ -283,7 +283,7 @@ public:
 
 
 
-  NS_HIDDEN_(nscolor) GetVisitedDependentColor(nsCSSProperty aProperty);
+  nscolor GetVisitedDependentColor(nsCSSProperty aProperty);
 
   
 
@@ -296,14 +296,14 @@ public:
                                       PRBool aLinkIsVisited);
 
 #ifdef DEBUG
-  NS_HIDDEN_(void) List(FILE* out, PRInt32 aIndent);
+  void List(FILE* out, PRInt32 aIndent);
 #endif
 
 protected:
-  NS_HIDDEN_(void) AddChild(nsStyleContext* aChild);
-  NS_HIDDEN_(void) RemoveChild(nsStyleContext* aChild);
+  void AddChild(nsStyleContext* aChild);
+  void RemoveChild(nsStyleContext* aChild);
 
-  NS_HIDDEN_(void) ApplyStyleFixups(nsPresContext* aPresContext);
+  void ApplyStyleFixups(nsPresContext* aPresContext);
 
   
   
@@ -378,7 +378,7 @@ protected:
   PRUint32                mRefCnt;
 };
 
-NS_HIDDEN_(already_AddRefed<nsStyleContext>)
+already_AddRefed<nsStyleContext>
 NS_NewStyleContext(nsStyleContext* aParentContext,
                    nsIAtom* aPseudoTag,
                    nsCSSPseudoElements::Type aPseudoType,

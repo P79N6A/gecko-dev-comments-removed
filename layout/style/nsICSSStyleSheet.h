@@ -93,10 +93,10 @@ public:
 
 
 
-  virtual NS_HIDDEN_(void) SetPrincipal(nsIPrincipal* aPrincipal) = 0;
+  virtual void SetPrincipal(nsIPrincipal* aPrincipal) = 0;
 
   
-  virtual NS_HIDDEN_(nsIPrincipal*) Principal() const = 0;
+  virtual nsIPrincipal* Principal() const = 0;
   
   NS_IMETHOD  SetTitle(const nsAString& aTitle) = 0;
   NS_IMETHOD  SetMedia(nsMediaList* aMedia) = 0;
@@ -106,7 +106,7 @@ public:
   NS_IMETHOD  GetOwnerRule(nsICSSImportRule** aOwnerRule) = 0;
   
   
-  virtual NS_HIDDEN_(nsXMLNameSpaceMap*) GetNameSpaceMap() const = 0;
+  virtual nsXMLNameSpaceMap* GetNameSpaceMap() const = 0;
 
   NS_IMETHOD  Clone(nsICSSStyleSheet* aCloneParent,
                     nsICSSImportRule* aCloneOwnerRule,

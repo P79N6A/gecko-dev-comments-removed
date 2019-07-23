@@ -65,9 +65,9 @@ namespace css {
 
 class NS_STACK_CLASS nsCSSParser {
 public:
-  NS_HIDDEN nsCSSParser(mozilla::css::Loader* aLoader = nsnull,
-                        nsICSSStyleSheet* aSheet = nsnull);
-  NS_HIDDEN ~nsCSSParser();
+  nsCSSParser(mozilla::css::Loader* aLoader = nsnull,
+              nsICSSStyleSheet* aSheet = nsnull);
+  ~nsCSSParser();
 
   static void Shutdown();
 
@@ -79,24 +79,24 @@ private:
 public:
   
   
-  NS_HIDDEN operator bool() const
+  operator bool() const
   { return !!mImpl; }
 
   
   
   
-  NS_HIDDEN_(nsresult) SetStyleSheet(nsICSSStyleSheet* aSheet);
+  nsresult SetStyleSheet(nsICSSStyleSheet* aSheet);
 
   
-  NS_HIDDEN_(nsresult) SetQuirkMode(PRBool aQuirkMode);
+  nsresult SetQuirkMode(PRBool aQuirkMode);
 
 #ifdef  MOZ_SVG
   
-  NS_HIDDEN_(nsresult) SetSVGMode(PRBool aSVGMode);
+  nsresult SetSVGMode(PRBool aSVGMode);
 #endif
 
   
-  NS_HIDDEN_(nsresult) SetChildLoader(mozilla::css::Loader* aChildLoader);
+  nsresult SetChildLoader(mozilla::css::Loader* aChildLoader);
 
   
 
@@ -114,59 +114,45 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) Parse(nsIUnicharInputStream* aInput,
-                             nsIURI*                aSheetURL,
-                             nsIURI*                aBaseURI,
-                             nsIPrincipal*          aSheetPrincipal,
-                             PRUint32               aLineNumber,
-                             PRBool                 aAllowUnsafeRules);
+  nsresult Parse(nsIUnicharInputStream* aInput,
+                 nsIURI*                aSheetURL,
+                 nsIURI*                aBaseURI,
+                 nsIPrincipal*          aSheetPrincipal,
+                 PRUint32               aLineNumber,
+                 PRBool                 aAllowUnsafeRules);
 
   
   
   
-  NS_HIDDEN_(nsresult) ParseStyleAttribute(const nsAString&  aAttributeValue,
-                                           nsIURI*           aDocURL,
-                                           nsIURI*           aBaseURL,
-                                           nsIPrincipal*     aNodePrincipal,
-                                           nsICSSStyleRule** aResult);
+  nsresult ParseStyleAttribute(const nsAString&  aAttributeValue,
+                               nsIURI*           aDocURL,
+                               nsIURI*           aBaseURL,
+                               nsIPrincipal*     aNodePrincipal,
+                               nsICSSStyleRule** aResult);
 
-  NS_HIDDEN_(nsresult) ParseAndAppendDeclaration(const nsAString& aBuffer,
-                                                 nsIURI* aSheetURL,
-                                                 nsIURI* aBaseURL,
-                                                 nsIPrincipal* aSheetPrincipal,
-                                                 nsCSSDeclaration* aDeclaration,
-                                                 PRBool  aParseOnlyOneDecl,
-                                                 PRBool* aChanged,
-                                                 PRBool  aClearOldDecl);
+  nsresult ParseAndAppendDeclaration(const nsAString&  aBuffer,
+                                     nsIURI*           aSheetURL,
+                                     nsIURI*           aBaseURL,
+                                     nsIPrincipal*     aSheetPrincipal,
+                                     nsCSSDeclaration* aDeclaration,
+                                     PRBool            aParseOnlyOneDecl,
+                                     PRBool*           aChanged,
+                                     PRBool            aClearOldDecl);
 
-  NS_HIDDEN_(nsresult) ParseRule(const nsAString&        aRule,
-                                 nsIURI*                 aSheetURL,
-                                 nsIURI*                 aBaseURL,
-                                 nsIPrincipal*           aSheetPrincipal,
-                                 nsCOMArray<nsICSSRule>& aResult);
+  nsresult ParseRule(const nsAString&        aRule,
+                     nsIURI*                 aSheetURL,
+                     nsIURI*                 aBaseURL,
+                     nsIPrincipal*           aSheetPrincipal,
+                     nsCOMArray<nsICSSRule>& aResult);
 
-  NS_HIDDEN_(nsresult) ParseProperty(const nsCSSProperty aPropID,
-                                     const nsAString&    aPropValue,
-                                     nsIURI*             aSheetURL,
-                                     nsIURI*             aBaseURL,
-                                     nsIPrincipal*       aSheetPrincipal,
-                                     nsCSSDeclaration*   aDeclaration,
-                                     PRBool*             aChanged,
-                                     PRBool              aIsImportant);
-
-  
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) ParseMediaList(const nsSubstring& aBuffer,
-                                      nsIURI*            aURL,
-                                      PRUint32           aLineNumber,
-                                      nsMediaList*       aMediaList,
-                                      PRBool             aHTMLMode);
+  nsresult ParseProperty(const nsCSSProperty aPropID,
+                         const nsAString&    aPropValue,
+                         nsIURI*             aSheetURL,
+                         nsIURI*             aBaseURL,
+                         nsIPrincipal*       aSheetPrincipal,
+                         nsCSSDeclaration*   aDeclaration,
+                         PRBool*             aChanged,
+                         PRBool              aIsImportant);
 
   
 
@@ -176,20 +162,34 @@ public:
 
 
 
-
-  NS_HIDDEN_(nsresult) ParseColorString(const nsSubstring& aBuffer,
-                                        nsIURI*            aURL,
-                                        PRUint32           aLineNumber,
-                                        nscolor*           aColor);
+  nsresult ParseMediaList(const nsSubstring& aBuffer,
+                          nsIURI*            aURL,
+                          PRUint32           aLineNumber,
+                          nsMediaList*       aMediaList,
+                          PRBool             aHTMLMode);
 
   
 
 
 
-  NS_HIDDEN_(nsresult) ParseSelectorString(const nsSubstring&  aSelectorString,
-                                           nsIURI*             aURL,
-                                           PRUint32            aLineNumber,
-                                           nsCSSSelectorList** aSelectorList);
+
+
+
+
+
+  nsresult ParseColorString(const nsSubstring& aBuffer,
+                            nsIURI*            aURL,
+                            PRUint32           aLineNumber,
+                            nscolor*           aColor);
+
+  
+
+
+
+  nsresult ParseSelectorString(const nsSubstring&  aSelectorString,
+                               nsIURI*             aURL,
+                               PRUint32            aLineNumber,
+                               nsCSSSelectorList** aSelectorList);
 
 protected:
   

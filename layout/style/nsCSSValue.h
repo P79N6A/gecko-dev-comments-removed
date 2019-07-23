@@ -181,18 +181,18 @@ public:
     NS_ASSERTION(aUnit <= eCSSUnit_RectIsAuto, "not a valueless unit");
   }
 
-  nsCSSValue(PRInt32 aValue, nsCSSUnit aUnit) NS_HIDDEN;
-  nsCSSValue(float aValue, nsCSSUnit aUnit) NS_HIDDEN;
-  nsCSSValue(const nsString& aValue, nsCSSUnit aUnit) NS_HIDDEN;
-  nsCSSValue(Array* aArray, nsCSSUnit aUnit) NS_HIDDEN;
-  explicit nsCSSValue(URL* aValue) NS_HIDDEN;
-  explicit nsCSSValue(Image* aValue) NS_HIDDEN;
-  explicit nsCSSValue(nsCSSValueGradient* aValue) NS_HIDDEN;
-  nsCSSValue(const nsCSSValue& aCopy) NS_HIDDEN;
+  nsCSSValue(PRInt32 aValue, nsCSSUnit aUnit);
+  nsCSSValue(float aValue, nsCSSUnit aUnit);
+  nsCSSValue(const nsString& aValue, nsCSSUnit aUnit);
+  nsCSSValue(Array* aArray, nsCSSUnit aUnit);
+  explicit nsCSSValue(URL* aValue);
+  explicit nsCSSValue(Image* aValue);
+  explicit nsCSSValue(nsCSSValueGradient* aValue);
+  nsCSSValue(const nsCSSValue& aCopy);
   ~nsCSSValue() { Reset(); }
 
-  NS_HIDDEN_(nsCSSValue&)  operator=(const nsCSSValue& aCopy);
-  NS_HIDDEN_(PRBool)      operator==(const nsCSSValue& aOther) const;
+  nsCSSValue&  operator=(const nsCSSValue& aCopy);
+  PRBool      operator==(const nsCSSValue& aOther) const;
 
   PRBool operator!=(const nsCSSValue& aOther) const
   {
@@ -310,44 +310,43 @@ public:
   
   
   
-  NS_HIDDEN_(imgIRequest*) GetImageValue() const;
+  imgIRequest* GetImageValue() const;
 
-  NS_HIDDEN_(nscoord)   GetLengthTwips() const;
+  nscoord GetLengthTwips() const;
 
-  NS_HIDDEN_(void)  Reset()  
+  void Reset()  
   {
     if (mUnit != eCSSUnit_Null)
       DoReset();
   }
 private:
-  NS_HIDDEN_(void)  DoReset();
+  void DoReset();
 
 public:
-  NS_HIDDEN_(void)  SetIntValue(PRInt32 aValue, nsCSSUnit aUnit);
-  NS_HIDDEN_(void)  SetPercentValue(float aValue);
-  NS_HIDDEN_(void)  SetFloatValue(float aValue, nsCSSUnit aUnit);
-  NS_HIDDEN_(void)  SetStringValue(const nsString& aValue, nsCSSUnit aUnit);
-  NS_HIDDEN_(void)  SetColorValue(nscolor aValue);
-  NS_HIDDEN_(void)  SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
-  NS_HIDDEN_(void)  SetURLValue(nsCSSValue::URL* aURI);
-  NS_HIDDEN_(void)  SetImageValue(nsCSSValue::Image* aImage);
-  NS_HIDDEN_(void)  SetGradientValue(nsCSSValueGradient* aGradient);
-  NS_HIDDEN_(void)  SetAutoValue();
-  NS_HIDDEN_(void)  SetInheritValue();
-  NS_HIDDEN_(void)  SetInitialValue();
-  NS_HIDDEN_(void)  SetNoneValue();
-  NS_HIDDEN_(void)  SetAllValue();
-  NS_HIDDEN_(void)  SetNormalValue();
-  NS_HIDDEN_(void)  SetSystemFontValue();
-  NS_HIDDEN_(void)  SetDummyValue();
-  NS_HIDDEN_(void)  SetDummyInheritValue();
-  NS_HIDDEN_(void)  StartImageLoad(nsIDocument* aDocument)
-                                   const;  
+  void SetIntValue(PRInt32 aValue, nsCSSUnit aUnit);
+  void SetPercentValue(float aValue);
+  void SetFloatValue(float aValue, nsCSSUnit aUnit);
+  void SetStringValue(const nsString& aValue, nsCSSUnit aUnit);
+  void SetColorValue(nscolor aValue);
+  void SetArrayValue(nsCSSValue::Array* aArray, nsCSSUnit aUnit);
+  void SetURLValue(nsCSSValue::URL* aURI);
+  void SetImageValue(nsCSSValue::Image* aImage);
+  void SetGradientValue(nsCSSValueGradient* aGradient);
+  void SetAutoValue();
+  void SetInheritValue();
+  void SetInitialValue();
+  void SetNoneValue();
+  void SetAllValue();
+  void SetNormalValue();
+  void SetSystemFontValue();
+  void SetDummyValue();
+  void SetDummyInheritValue();
+  void StartImageLoad(nsIDocument* aDocument) const;  
 
   
-  NS_HIDDEN_(Array*) InitFunction(nsCSSKeyword aFunctionId, PRUint32 aNumArgs);
+  Array* InitFunction(nsCSSKeyword aFunctionId, PRUint32 aNumArgs);
   
-  NS_HIDDEN_(PRBool) EqualsFunction(nsCSSKeyword aFunctionId) const;
+  PRBool EqualsFunction(nsCSSKeyword aFunctionId) const;
 
   
   
@@ -361,17 +360,17 @@ public:
     
     
     URL(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
-        nsIPrincipal* aOriginPrincipal) NS_HIDDEN;
+        nsIPrincipal* aOriginPrincipal);
 
-    ~URL() NS_HIDDEN;
+    ~URL();
 
-    NS_HIDDEN_(PRBool) operator==(const URL& aOther) const;
+    PRBool operator==(const URL& aOther) const;
 
     
     
     
     
-    NS_HIDDEN_(PRBool) URIEquals(const URL& aOther) const;
+    PRBool URIEquals(const URL& aOther) const;
 
     nsCOMPtr<nsIURI> mURI; 
     nsStringBuffer* mString; 
@@ -394,8 +393,8 @@ public:
     
     
     Image(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
-          nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument) NS_HIDDEN;
-    ~Image() NS_HIDDEN;
+          nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument);
+    ~Image();
 
     
 
@@ -429,10 +428,10 @@ protected:
 
 struct nsCSSValueGradientStop {
 public:
-  nsCSSValueGradientStop() NS_HIDDEN;
+  nsCSSValueGradientStop();
   
-  nsCSSValueGradientStop(const nsCSSValueGradientStop& aOther) NS_HIDDEN;
-  ~nsCSSValueGradientStop() NS_HIDDEN;
+  nsCSSValueGradientStop(const nsCSSValueGradientStop& aOther);
+  ~nsCSSValueGradientStop();
 
   nsCSSValue mLocation;
   nsCSSValue mColor;
@@ -450,8 +449,7 @@ public:
 };
 
 struct nsCSSValueGradient {
-  nsCSSValueGradient(PRBool aIsRadial,
-                     PRBool aIsRepeating) NS_HIDDEN;
+  nsCSSValueGradient(PRBool aIsRadial, PRBool aIsRepeating);
 
   
   PRPackedBool mIsRadial;
