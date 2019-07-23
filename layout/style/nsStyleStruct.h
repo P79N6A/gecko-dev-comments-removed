@@ -42,6 +42,7 @@
 
 
 
+
 #ifndef nsStyleStruct_h___
 #define nsStyleStruct_h___
 
@@ -189,6 +190,7 @@ struct nsStyleBackground {
             (NS_STYLE_BG_COLOR_TRANSPARENT | NS_STYLE_BG_IMAGE_NONE);
   }
 
+  
   
   
   
@@ -399,13 +401,7 @@ class nsCSSShadowArray {
 struct nsStyleBorder {
   nsStyleBorder(nsPresContext* aContext);
   nsStyleBorder(const nsStyleBorder& aBorder);
-  ~nsStyleBorder(void) {
-    if (mBorderColors) {
-      for (PRInt32 i = 0; i < 4; i++)
-        delete mBorderColors[i];
-      delete []mBorderColors;
-    }
-  }
+  ~nsStyleBorder();
 
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW;
   void Destroy(nsPresContext* aContext);
@@ -414,12 +410,18 @@ struct nsStyleBorder {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+  PRBool ImageBorderDiffers() const;
  
   nsStyleSides  mBorderRadius;    
+  nsStyleSides  mBorderImageSplit; 
   PRUint8       mFloatEdge;       
+  PRUint8       mBorderImageHFill; 
+  PRUint8       mBorderImageVFill; 
   nsBorderColors** mBorderColors; 
   nsRefPtr<nsCSSShadowArray> mBoxShadow; 
-
+  PRBool        mHaveBorderImageWidth; 
+  nsMargin      mBorderImageWidth; 
+  
   void EnsureBorderColors() {
     if (!mBorderColors) {
       mBorderColors = new nsBorderColors*[4];
@@ -438,34 +440,39 @@ struct nsStyleBorder {
 
   
   
-  static PRBool IsVisibleStyle(PRUint8 aStyle) {
-    return aStyle != NS_STYLE_BORDER_STYLE_NONE &&
-           aStyle != NS_STYLE_BORDER_STYLE_HIDDEN;
-  }
+  
+  
+  
+  
+  inline PRBool HasVisibleStyle(PRUint8 aSide);
 
   
-  void SetBorderWidth(PRUint8 aSide, nscoord aBorderWidth)
-  {
-    mBorder.side(aSide) = aBorderWidth;
-    if (IsVisibleStyle(GetBorderStyle(aSide))) {
-      mActualBorder.side(aSide) =
-        NS_ROUND_BORDER_TO_PIXELS(aBorderWidth, mTwipsPerPixel);
-    }
-  }
-
   
-  const nsMargin& GetBorder() const
-  {
-    return mActualBorder;
-  }
+  inline void SetBorderWidth(PRUint8 aSide, nscoord aBorderWidth);
+  inline void SetBorderImageWidthOverride(PRUint8 aSide, nscoord aBorderWidth);
 
   
   
   
   
-  nscoord GetBorderWidth(PRUint8 aSide) const
+  
+  const nsMargin& GetActualBorder() const;
+  
+  
+  
+  
+  const nsMargin& GetComputedBorder() const
   {
-    return mActualBorder.side(aSide);
+    return mComputedBorder;
+  }
+
+  
+  
+  
+  
+  nscoord GetActualBorderWidth(PRUint8 aSide) const
+  {
+    return GetActualBorder().side(aSide);
   }
 
   PRUint8 GetBorderStyle(PRUint8 aSide) const
@@ -474,18 +481,11 @@ struct nsStyleBorder {
     return (mBorderStyle[aSide] & BORDER_STYLE_MASK); 
   }
 
-  void SetBorderStyle(PRUint8 aSide, PRUint8 aStyle)
-  {
-    NS_ASSERTION(aSide <= NS_SIDE_LEFT, "bad side"); 
-    mBorderStyle[aSide] &= ~BORDER_STYLE_MASK; 
-    mBorderStyle[aSide] |= (aStyle & BORDER_STYLE_MASK);
-    if (IsVisibleStyle(aStyle)) {
-      mActualBorder.side(aSide) =
-        NS_ROUND_BORDER_TO_PIXELS(mBorder.side(aSide), mTwipsPerPixel);
-    } else {
-      mActualBorder.side(aSide) = 0;
-    }
-  }
+  
+  inline void RebuildActualBorderSide(PRUint8 aSide);
+  inline void SetBorderStyle(PRUint8 aSide, PRUint8 aStyle);
+  inline void RebuildActualBorder();
+  inline PRBool IsBorderImageLoaded() const;
 
   void GetBorderColor(PRUint8 aSide, nscolor& aColor,
                       PRBool& aTransparent, PRBool& aForeground) const
@@ -506,6 +506,10 @@ struct nsStyleBorder {
     mBorderColor[aSide] = aColor; 
     mBorderStyle[aSide] &= ~BORDER_COLOR_SPECIAL;
   }
+
+  
+  inline void SetBorderImage(imgIRequest* aImage);
+  inline imgIRequest* GetBorderImage() const;
 
   void GetCompositeColors(PRInt32 aIndex, nsBorderColors** aColors) const
   {
@@ -548,8 +552,14 @@ protected:
   
   
   
-  nsMargin      mActualBorder;
+  
+  
+  
+  
+  nsMargin      mComputedBorder;
 
+  
+  
   
   
   
@@ -564,6 +574,8 @@ protected:
   PRUint8       mBorderStyle[4];  
   nscolor       mBorderColor[4];  
                                   
+
+  nsCOMPtr<imgIRequest> mBorderImage; 
 
   nscoord       mTwipsPerPixel;
 };
