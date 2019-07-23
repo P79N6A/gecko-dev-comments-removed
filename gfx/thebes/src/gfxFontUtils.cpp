@@ -1824,12 +1824,12 @@ gfxFontUtils::MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
         PRUint32 nameoff = names[i].offset;  
 
         
-        if (PRUint64(nameOffset) + PRUint64(nameStringsBase) + PRUint64(nameoff) 
-            + PRUint64(namelen) > dataLength) {
+        if (PRUint64(nameOffset) + PRUint64(nameStringsBase) +
+            PRUint64(nameoff) + PRUint64(namelen) > dataLength) {
             return NS_ERROR_FAILURE;
         }
-    
-        strOffset = nameOffset + nameStringsBase + nameoff + namelen;
+
+        strOffset = nameOffset + nameStringsBase + nameoff;
 
         
         strLen = namelen & (~1);  
@@ -1837,9 +1837,9 @@ gfxFontUtils::MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
         eotEnd += 2;
 
         
-        CopySwapUTF16(reinterpret_cast<const PRUint16*>(aFontData + strOffset), 
-                      reinterpret_cast<PRUint16*>(eotEnd), 
-                      (strLen >> 1));  
+        CopySwapUTF16(reinterpret_cast<const PRUint16*>(aFontData + strOffset),
+                      reinterpret_cast<PRUint16*>(eotEnd),
+                      (strLen >> 1));
         eotEnd += strLen;
 
         
