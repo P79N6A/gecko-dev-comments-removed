@@ -7837,16 +7837,21 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
                        "Unexpected doc element parent frame");
 
           
+          
+          
+          PRBool wasDestroyingFrameTree = mIsDestroyingFrameTree;
+          WillDestroyFrameTree();
+          
           rv = state.mFrameManager->RemoveFrame(mDocElementContainingBlock,
                                                 nsnull, docElementFrame);
+          mIsDestroyingFrameTree = wasDestroyingFrameTree;
           if (NS_FAILED(rv)) {
             return rv;
           }
-
         }
 
         
-        nsIFrame*                 newChild;
+        nsIFrame* newChild;
         rv = ConstructDocElementFrame(state, rootContent,
                                       mDocElementContainingBlock, &newChild);
 
@@ -11273,8 +11278,8 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
     PRUint32 event;
     if (frame) {
       nsIFrame *newFrame = mPresShell->GetPrimaryFrameFor(aContent);
-      event = newFrame ? nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE :
-                         nsIAccessibleEvent::EVENT_ASYNCH_HIDE;
+      event = newFrame ? PRUint32(nsIAccessibleEvent::EVENT_ASYNCH_SIGNIFICANT_CHANGE) :
+                         PRUint32(nsIAccessibleEvent::EVENT_ASYNCH_HIDE);
     }
     else {
       event = nsIAccessibleEvent::EVENT_ASYNCH_SHOW;
