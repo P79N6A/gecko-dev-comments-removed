@@ -174,7 +174,8 @@ nsJARInputThunk::EnsureJarStream()
     }
 
     
-    mJarStream->Available((PRUint32 *) &mContentLength);
+    rv = mJarStream->Available((PRUint32 *) &mContentLength);
+    if (NS_FAILED(rv)) return rv;
 
     return NS_OK;
 }

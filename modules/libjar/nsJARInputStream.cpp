@@ -59,32 +59,28 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(nsJARInputStream, nsIInputStream)
 
 
 nsresult
-nsJARInputStream::InitFile(nsZipHandle *aFd, nsZipItem *item)
+nsJARInputStream::InitFile(nsJAR *aJar, nsZipItem *item)
 {
-    nsresult rv;
-    NS_ABORT_IF_FALSE(aFd, "Argument may not be null");
+    nsresult rv = NS_OK;
+    NS_ABORT_IF_FALSE(aJar, "Argument may not be null");
     NS_ABORT_IF_FALSE(item, "Argument may not be null");
 
     
-    mClosed = PR_TRUE;
-    
-    mInSize = item->size;
-
+    mMode = MODE_CLOSED;
     
     switch (item->compression) {
        case STORED: 
+           mMode = MODE_COPY;
            break;
 
        case DEFLATED:
-           mInflate = (InflateStruct *) PR_Malloc(sizeof(InflateStruct));
-           NS_ENSURE_TRUE(mInflate, NS_ERROR_OUT_OF_MEMORY);
+           rv = gZlibInit(&mZs);
+           NS_ENSURE_SUCCESS(rv, rv);
     
-           rv = gZlibInit(&(mInflate->mZs));
-           NS_ENSURE_SUCCESS(rv, NS_ERROR_OUT_OF_MEMORY);
-    
-           mInflate->mOutSize = item->realsize;
-           mInflate->mInCrc = item->crc32;
-           mInflate->mOutCrc = crc32(0L, Z_NULL, 0);
+           mMode = MODE_INFLATE;
+           mOutSize = item->realsize;
+           mInCrc = item->crc32;
+           mOutCrc = crc32(0L, Z_NULL, 0);
            break;
 
        default:
@@ -92,11 +88,11 @@ nsJARInputStream::InitFile(nsZipHandle *aFd, nsZipItem *item)
     }
    
     
-    mFd.Open(aFd, item->dataOffset, item->size);
-        
-    
-    mClosed = PR_FALSE;
-    mCurPos = 0;
+    mFd = aJar->mZip.GetFD();
+    mZs.next_in = aJar->mZip.GetData(item);
+    mZs.avail_in = item->size;
+    mOutSize = item->realsize;
+    mZs.total_out = 0;
     return NS_OK;
 }
 
@@ -109,8 +105,7 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
     NS_ABORT_IF_FALSE(aDir, "Argument may not be null");
 
     
-    mClosed = PR_TRUE;
-    mDirectory = PR_TRUE;
+    mMode = MODE_CLOSED;
     
     
     mJar = aJar;
@@ -173,8 +168,8 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
     mBuffer.AppendLiteral("\n200: filename content-length last-modified file-type\n");
 
     
-    mClosed = PR_FALSE;
-    mCurPos = 0;
+    mMode = MODE_DIRECTORY;
+    mZs.total_out = 0;
     mArrPos = 0;
     return NS_OK;
 }
@@ -182,15 +177,27 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
 NS_IMETHODIMP 
 nsJARInputStream::Available(PRUint32 *_retval)
 {
-    if (mClosed)
+    
+    
+    *_retval = 0;
+
+    switch (mMode) {
+      case MODE_NOTINITED:
+        break;
+
+      case MODE_CLOSED:
         return NS_BASE_STREAM_CLOSED;
 
-    if (mDirectory)
+      case MODE_DIRECTORY:
         *_retval = mBuffer.Length();
-    else if (mInflate) 
-        *_retval = mInflate->mOutSize - mInflate->mZs.total_out;
-    else 
-        *_retval = mInSize - mCurPos;
+        break;
+
+      case MODE_INFLATE:
+      case MODE_COPY:
+        *_retval = mOutSize - mZs.total_out;
+        break;
+    }
+
     return NS_OK;
 }
 
@@ -203,38 +210,43 @@ nsJARInputStream::Read(char* aBuffer, PRUint32 aCount, PRUint32 *aBytesRead)
     *aBytesRead = 0;
 
     nsresult rv = NS_OK;
-    if (mClosed)
-        return rv;
+    switch (mMode) {
+      case MODE_NOTINITED:
+        return NS_OK;
 
-    if (mDirectory) {
-        rv = ReadDirectory(aBuffer, aCount, aBytesRead);
-    } else {
-        if (mInflate) {
-            rv = ContinueInflate(aBuffer, aCount, aBytesRead);
-        } else {
-            PRInt32 bytesRead = 0;
-            aCount = PR_MIN(aCount, mInSize - mCurPos);
-            if (aCount) {
-                bytesRead = mFd.Read(aBuffer, aCount);
-                if (bytesRead < 0)
-                    return NS_ERROR_FILE_CORRUPTED;
-                mCurPos += bytesRead;
-                if ((PRUint32)bytesRead != aCount) {
-                    
-                    Close();
-                    return NS_ERROR_FILE_CORRUPTED;
-                }
-            }
-            *aBytesRead = bytesRead;
+      case MODE_CLOSED:
+        return NS_BASE_STREAM_CLOSED;
+
+      case MODE_DIRECTORY:
+        return ReadDirectory(aBuffer, aCount, aBytesRead);
+
+      case MODE_INFLATE:
+        if (mFd) {
+          rv = ContinueInflate(aBuffer, aCount, aBytesRead);
         }
         
         
         
-        
-        
-        if (mCurPos >= mInSize) {
-            mFd.Close();
+        if (mZs.avail_in == 0) {
+            mFd = nsnull;
         }
+        break;
+
+      case MODE_COPY:
+        if (mFd) {
+          PRUint32 count = PR_MIN(aCount, mOutSize - mZs.total_out);
+          if (count) {
+              memcpy(aBuffer, mZs.next_in + mZs.total_out, count);
+              mZs.total_out += count;
+          }
+          *aBytesRead = count;
+        }
+        
+        
+        if (mZs.total_out >= mOutSize) {
+            mFd = nsnull;
+        }
+        break;
     }
     return rv;
 }
@@ -257,9 +269,8 @@ nsJARInputStream::IsNonBlocking(PRBool *aNonBlocking)
 NS_IMETHODIMP
 nsJARInputStream::Close()
 {
-    PR_FREEIF(mInflate);
-    mClosed = PR_TRUE;
-    mFd.Close();
+    mMode = MODE_CLOSED;
+    mFd = nsnull;
     return NS_OK;
 }
 
@@ -268,56 +279,33 @@ nsJARInputStream::ContinueInflate(char* aBuffer, PRUint32 aCount,
                                   PRUint32* aBytesRead)
 {
     
-    NS_ASSERTION(mInflate,"inflate data structure missing");
     NS_ASSERTION(aBuffer,"aBuffer parameter must not be null");
     NS_ASSERTION(aBytesRead,"aBytesRead parameter must not be null");
 
     
-    const PRUint32 oldTotalOut = mInflate->mZs.total_out;
+    const PRUint32 oldTotalOut = mZs.total_out;
     
     
-    mInflate->mZs.avail_out = (mInflate->mOutSize-oldTotalOut > aCount) ? aCount : mInflate->mOutSize-oldTotalOut;
-    mInflate->mZs.next_out = (unsigned char*)aBuffer;
+    mZs.avail_out = PR_MIN(aCount, (mOutSize-oldTotalOut));
+    mZs.next_out = (unsigned char*)aBuffer;
 
-    int zerr = Z_OK;
     
-    while (mInflate->mZs.avail_out > 0 && zerr == Z_OK) {
-
-        if (mInflate->mZs.avail_in == 0 && mCurPos < mInSize) {
-            
-            PRUint32 bytesToRead = PR_MIN(mInSize - mCurPos, ZIP_BUFLEN);
-
-            PRInt32 bytesRead = mFd.Read(mInflate->mReadBuf, bytesToRead);
-            if (bytesRead < 0) {
-                zerr = Z_ERRNO;
-                break;
-            }
-            mCurPos += bytesRead;
-
-            
-            mInflate->mZs.next_in = mInflate->mReadBuf;
-            mInflate->mZs.avail_in = bytesRead;
-        }
-
-        
-        zerr = inflate(&(mInflate->mZs), Z_SYNC_FLUSH);
-    }
-
+    int zerr = inflate(&mZs, Z_SYNC_FLUSH);
     if ((zerr != Z_OK) && (zerr != Z_STREAM_END))
         return NS_ERROR_FILE_CORRUPTED;
 
-    *aBytesRead = (mInflate->mZs.total_out - oldTotalOut);
+    *aBytesRead = (mZs.total_out - oldTotalOut);
 
     
-    mInflate->mOutCrc = crc32(mInflate->mOutCrc, (unsigned char*)aBuffer, *aBytesRead);
+    mOutCrc = crc32(mOutCrc, (unsigned char*)aBuffer, *aBytesRead);
 
     
     
-    if (zerr == Z_STREAM_END || mInflate->mZs.total_out == mInflate->mOutSize) {
-        inflateEnd(&(mInflate->mZs));
+    if (zerr == Z_STREAM_END || mZs.total_out == mOutSize) {
+        inflateEnd(&mZs);
 
         
-        if (mInflate->mOutCrc != mInflate->mInCrc) {
+        if (mOutCrc != mInCrc) {
             
             
             NS_NOTREACHED(0);
