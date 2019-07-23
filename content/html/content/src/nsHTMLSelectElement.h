@@ -334,6 +334,9 @@ protected:
 
 
 
+
+
+
   void OnOptionSelected(nsISelectControlFrame* aSelectFrame,
                         nsPresContext* aPresContext,
                         PRInt32 aIndex,
