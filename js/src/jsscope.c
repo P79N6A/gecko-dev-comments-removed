@@ -388,7 +388,7 @@ ChangeScope(JSContext *cx, JSScope *scope, int change)
 
 
 
-#define SPROP_FLAGS_NOT_MATCHED (SPROP_MARK | SPROP_IS_DUPLICATE)
+#define SPROP_FLAGS_NOT_MATCHED (SPROP_MARK | SPROP_ALLOW_DUPLICATE)
 
 JS_STATIC_DLL_CALLBACK(JSDHashNumber)
 js_HashScopeProperty(JSDHashTable *table, const void *key)
@@ -955,7 +955,7 @@ CheckAncestorLine(JSScope *scope, JSBool sparse)
     for (sprop = ancestorLine; sprop; sprop = sprop->parent) {
         if (SCOPE_HAD_MIDDLE_DELETE(scope) &&
             !SCOPE_HAS_PROPERTY(scope, sprop)) {
-            JS_ASSERT(sparse || (sprop->flags & SPROP_IS_DUPLICATE));
+            JS_ASSERT(sparse || (sprop->flags & SPROP_ALLOW_DUPLICATE));
             continue;
         }
         ancestorCount++;
@@ -1070,8 +1070,8 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
 
 
 
-        if (flags & SPROP_IS_DUPLICATE) {
-            sprop->flags |= SPROP_IS_DUPLICATE;
+        if (flags & SPROP_ALLOW_DUPLICATE) {
+            sprop->flags |= SPROP_ALLOW_DUPLICATE;
         } else {
             
 
@@ -1274,7 +1274,7 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
         child.setter = setter;
         child.slot = slot;
         child.attrs = attrs;
-        child.flags = flags;
+        child.flags = flags & ~SPROP_ALLOW_DUPLICATE;
         child.shortid = shortid;
         sprop = GetPropertyTreeChild(cx, scope->lastProp, &child);
         if (!sprop)

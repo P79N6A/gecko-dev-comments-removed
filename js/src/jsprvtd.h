@@ -90,6 +90,11 @@
      (jsid)((jsval)(id) ^ (JSVAL_BOOLEAN ^ JSVAL_STRING)))
 
 
+
+
+#define JS_BITS_PER_UINT32 (sizeof(uint32) * JS_BITS_PER_BYTE)
+
+
 typedef uint8  jsbytecode;
 typedef uint8  jssrcnote;
 typedef uint32 jsatomid;
