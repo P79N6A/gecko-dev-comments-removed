@@ -74,6 +74,12 @@
   -moz-appearance: none;
 }
 
+
+
+.viewButtonIcon {
+  display: none;
+}
+
 deck {
   padding: 10px 10px 10px 10px;
 }
