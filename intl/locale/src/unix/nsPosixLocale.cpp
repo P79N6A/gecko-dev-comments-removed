@@ -116,6 +116,12 @@ nsPosixLocale::GetXPLocale(const char* posixLocale, nsAString& locale)
       return NS_OK;
     }
 
+    
+    
+    if (nsDependentCString(lang_code).LowerCaseEqualsLiteral("no")) {
+      lang_code[1] = 'b';
+    }
+
     if (*country_code) {
       PR_snprintf(posix_locale,sizeof(posix_locale),"%s-%s",lang_code,country_code);
     } 
