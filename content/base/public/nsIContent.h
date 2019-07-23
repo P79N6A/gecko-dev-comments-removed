@@ -210,11 +210,12 @@ public:
 
 
 
+
   PRBool IsInAnonymousSubtree() const
   {
-    NS_ASSERTION(!IsInNativeAnonymousSubtree() || GetBindingParent(),
-                 "must have binding parent when in native anonymous subtree");
-    return GetBindingParent() != nsnull;
+    NS_ASSERTION(!IsInNativeAnonymousSubtree() || GetBindingParent() || !GetParent(),
+                 "must have binding parent when in native anonymous subtree with a parent node");
+    return IsInNativeAnonymousSubtree() || GetBindingParent() != nsnull;
   }
 
   
