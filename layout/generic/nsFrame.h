@@ -385,11 +385,7 @@ public:
 
 
 
-
-
-  void CheckInvalidateSizeChange(nsPresContext*          aPresContext,
-                                 nsHTMLReflowMetrics&     aDesiredSize,
-                                 const nsHTMLReflowState& aReflowState);
+  void CheckInvalidateSizeChange(nsHTMLReflowMetrics&     aNewDesiredSize);
 
   
   

@@ -1194,7 +1194,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
-  CheckInvalidateSizeChange(aPresContext, aMetrics, aReflowState);
+  CheckInvalidateSizeChange(aMetrics);
 
   FinishAndStoreOverflow(&aMetrics);
 

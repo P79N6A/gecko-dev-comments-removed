@@ -1996,7 +1996,7 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
     
     Invalidate(aDesiredSize.mOverflowArea);
   } else {
-    CheckInvalidateSizeChange(aPresContext, aDesiredSize, aReflowState);
+    CheckInvalidateSizeChange(aDesiredSize);
   }
 
   FinishAndStoreOverflow(&aDesiredSize);
@@ -6851,11 +6851,19 @@ nsTableFrame::InvalidateFrame(nsIFrame* aFrame,
     
     
     
+    
     aFrame->Invalidate(overflowRect);
     parent->Invalidate(aOrigOverflowRect + aOrigRect.TopLeft());
   } else {
+    nsHTMLReflowMetrics desiredSize;
+    nsRect rect = aFrame->GetRect();
+    desiredSize.width = rect.width;
+    desiredSize.height = rect.height;
+    desiredSize.mOverflowArea = overflowRect;
+    aFrame->CheckInvalidateSizeChange(aOrigRect, aOrigOverflowRect,
+                                      desiredSize);
     aFrame->InvalidateRectDifference(aOrigOverflowRect, overflowRect);
-    parent->InvalidateRectDifference(aOrigRect, aFrame->GetRect());
+    parent->InvalidateRectDifference(aOrigRect, rect);
   }    
 }
 

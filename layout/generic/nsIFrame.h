@@ -2136,6 +2136,17 @@ NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::embeddingLevel))
 
   nsPeekOffsetStruct GetExtremeCaretPosition(PRBool aStart);
 
+  
+
+
+
+
+
+
+  void CheckInvalidateSizeChange(const nsRect& aOldRect,
+                                 const nsRect& aOldOverflowRect,
+                                 nsHTMLReflowMetrics& aNewDesiredSize);
+
 protected:
   
   nsRect           mRect;
