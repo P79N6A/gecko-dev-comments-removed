@@ -9193,6 +9193,25 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     }
   }
 
+  if (!prevSibling) {
+    
+    
+    nsIFrame* firstChild = parentFrame->GetFirstChild(nsnull);
+
+    if (firstChild &&
+        nsLayoutUtils::IsGeneratedContentFor(aContainer, firstChild,
+                                             nsCSSPseudoElements::before)) {
+      
+      prevSibling = firstChild->GetLastContinuation();
+      parentFrame = prevSibling->GetParent();
+      
+      
+      
+      
+      isAppend = PR_FALSE;
+    }
+  }
+
   
   
   
@@ -9258,31 +9277,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   nsIFrame* const newFrame = frameItems.childList;
   if (NS_SUCCEEDED(rv) && newFrame) {
     NS_ASSERTION(!captionItems.childList, "leaking caption frames");
-    if (!prevSibling) {
-      
-      
-      nsIFrame* firstChild = parentFrame->GetFirstChild(nsnull);
-
-      if (firstChild &&
-          nsLayoutUtils::IsGeneratedContentFor(aContainer, firstChild,
-                                               nsCSSPseudoElements::before)) {
-        
-        prevSibling = firstChild->GetLastContinuation();
-        nsIFrame* newParent = prevSibling->GetParent();
-        if (newParent != parentFrame) {
-          nsHTMLContainerFrame::ReparentFrameViewList(state.mPresContext,
-                                                      newFrame, parentFrame,
-                                                      newParent);
-          parentFrame = newParent;
-        }
-        
-        
-        
-        
-        isAppend = PR_FALSE;
-      }
-    }
-
     
     if (isAppend) {
       AppendFrames(state, aContainer, parentFrame, frameItems,
