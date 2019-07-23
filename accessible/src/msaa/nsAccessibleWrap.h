@@ -313,6 +313,8 @@ class nsAccessibleWrap : public nsAccessible,
   static IDispatch *NativeAccessible(nsIAccessible *aXPAccessible);
 
 protected:
+  virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent);
+
   
   
   

@@ -247,6 +247,16 @@ protected:
   nsresult GetAttrValue(nsIAtom *aAriaProperty, double *aValue);
 
   
+
+
+
+
+
+
+
+  virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent) = 0;
+
+  
   nsCOMPtr<nsIAccessible> mParent;
   nsIAccessible *mFirstChild, *mNextSibling;
   nsRoleMapEntry *mRoleMapEntry; 

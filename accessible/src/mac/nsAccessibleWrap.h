@@ -96,7 +96,9 @@ class nsAccessibleWrap : public nsAccessible
     virtual already_AddRefed<nsIAccessible> GetUnignoredParent();
     
   protected:
-    
+
+    virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent);
+
     PRBool AncestorIsFlat() {
       
       

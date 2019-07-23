@@ -636,7 +636,7 @@ nsXULTreeAccessible::TreeViewInvalidated(PRInt32 aStartRow, PRInt32 aEndRow,
 {
   NS_ENSURE_TRUE(mTree && mTreeView, NS_ERROR_FAILURE);
 
-  PRInt32 endRow = aEndRow, endCol = aEndCol;
+  PRInt32 endRow = aEndRow;
 
   nsresult rv;
   if (endRow == -1) {
@@ -652,6 +652,8 @@ nsXULTreeAccessible::TreeViewInvalidated(PRInt32 aStartRow, PRInt32 aEndRow,
   NS_ENSURE_STATE(treeColumns);
 
 #ifdef MOZ_ACCESSIBILITY_ATK
+  PRInt32 endCol = aEndCol;
+
   if (endCol == -1) {
     PRInt32 colCount = 0;
     rv = treeColumns->GetCount(&colCount);
@@ -705,6 +707,37 @@ nsXULTreeAccessible::TreeViewInvalidated(PRInt32 aStartRow, PRInt32 aEndRow,
   return NS_OK;
 }
 
+
+NS_IMETHODIMP
+nsXULTreeAccessible::TreeViewChanged()
+{
+  if (!mTree)
+    return NS_ERROR_FAILURE;
+
+  
+  
+  
+  nsCOMPtr<nsIAccessibleEvent> eventDestroy =
+    new nsAccEvent(nsIAccessibleEvent::EVENT_DOM_DESTROY,
+                   this, PR_FALSE);
+  NS_ENSURE_TRUE(eventDestroy, NS_ERROR_OUT_OF_MEMORY);
+
+  nsresult rv = FirePlatformEvent(eventDestroy);
+
+  ClearCache(*mAccessNodeCache);
+
+  mTree->GetView(getter_AddRefs(mTreeView));
+
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIAccessibleEvent> eventCreate =
+    new nsAccEvent(nsIAccessibleEvent::EVENT_DOM_CREATE,
+                   this, PR_FALSE);
+  NS_ENSURE_TRUE(eventCreate, NS_ERROR_OUT_OF_MEMORY);
+
+  return FirePlatformEvent(eventCreate);
+}
+
 nsresult nsXULTreeAccessible::GetColumnCount(nsITreeBoxObject* aBoxObject, PRInt32* aCount)
 {
   NS_ENSURE_TRUE(aBoxObject, NS_ERROR_FAILURE);
@@ -713,6 +746,7 @@ nsresult nsXULTreeAccessible::GetColumnCount(nsITreeBoxObject* aBoxObject, PRInt
   NS_ENSURE_TRUE(treeColumns, NS_ERROR_FAILURE);
   return treeColumns->GetCount(aCount);
 }
+
 
 
 
