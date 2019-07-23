@@ -1049,7 +1049,7 @@ nsAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
     *aState |= nsIAccessibleStates::STATE_FLOATING;
 
   
-  if (content->IsXUL())
+  if (content->IsNodeOfType(nsINode::eXUL))
     if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::popup))
       *aState |= nsIAccessibleStates::STATE_HASPOPUP;
 
@@ -3228,7 +3228,7 @@ nsAccessible::GetActionRule(PRUint32 aStates)
     return eJumpAction;
 
   
-  if (content->IsXUL())
+  if (content->IsNodeOfType(nsINode::eXUL))
     if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::popup))
       return eClickAction;
 
