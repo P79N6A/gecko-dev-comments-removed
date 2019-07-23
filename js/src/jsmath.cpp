@@ -40,7 +40,6 @@
 
 
 
-#include "jsstddef.h"
 #include "jslibmath.h"
 #include <stdlib.h>
 #include "jstypes.h"

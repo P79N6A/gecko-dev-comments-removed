@@ -40,7 +40,6 @@
 
 
 
-#include "jsstddef.h"
 #ifdef SOLARIS
 #define _REENTRANT 1
 #endif

@@ -36,7 +36,6 @@
 
 
 
-#include "jsstddef.h"
 #include "jsversion.h"
 
 #if JS_HAS_XDR

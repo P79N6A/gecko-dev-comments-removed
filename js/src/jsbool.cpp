@@ -40,7 +40,6 @@
 
 
 
-#include "jsstddef.h"
 #include "jstypes.h"
 #include "jsutil.h" 
 #include "jsapi.h"

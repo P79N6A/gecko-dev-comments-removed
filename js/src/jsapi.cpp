@@ -41,7 +41,6 @@
 
 
 
-#include "jsstddef.h"
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -5154,9 +5153,9 @@ JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
     
     tmp = *script;
     if (part == JSEXEC_PROLOG) {
-        tmp.length = PTRDIFF(tmp.main, tmp.code, jsbytecode);
+        tmp.length = tmp.main - tmp.code;
     } else {
-        tmp.length -= PTRDIFF(tmp.main, tmp.code, jsbytecode);
+        tmp.length -= tmp.main - tmp.code;
         tmp.code = tmp.main;
     }
 

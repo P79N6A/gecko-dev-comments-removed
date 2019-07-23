@@ -39,7 +39,6 @@
 
 
 
-#include "jsstddef.h"
 #include <math.h>
 
 #include "jsapi.h"
