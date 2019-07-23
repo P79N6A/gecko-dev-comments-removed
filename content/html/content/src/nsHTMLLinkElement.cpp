@@ -270,13 +270,7 @@ nsHTMLLinkElement::CreateAndDispatchEvent(nsIDocument* aDoc,
   if (event) {
     
     
-    
-    
-    
-    if (nsContentUtils::IsSafeToRunScript())
-      event->PostDOMEvent();
-    else
-      event->RunDOMEventWhenSafe();
+    event->PostDOMEvent();
   }
 }
 
