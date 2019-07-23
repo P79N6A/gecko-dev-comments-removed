@@ -58,6 +58,7 @@
 
 
 
+
 #include "nsNavHistory.h"
 #include "nsNetUtil.h"
 #include "nsEscape.h"
@@ -150,6 +151,18 @@ nsNavHistory::CreateAutoCompleteQueries()
   NS_ENSURE_SUCCESS(rv, rv);
 
   sql = NS_LITERAL_CSTRING(
+    "SELECT h.url, h.title, f.url, ") + bookTag + NS_LITERAL_CSTRING(
+      "ROUND(MAX(((i.input = ?2) + (SUBSTR(i.input, 1, LENGTH(?2)) = ?2)) * "
+                "i.use_count), 1) rank "
+    "FROM moz_inputhistory i "
+    "JOIN moz_places h ON h.id = i.place_id "
+    "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
+    "GROUP BY i.place_id HAVING rank > 0 "
+    "ORDER BY rank DESC, h.frecency DESC");
+  rv = mDBConn->CreateStatement(sql, getter_AddRefs(mDBAdaptiveQuery));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  sql = NS_LITERAL_CSTRING(
     
     "INSERT OR REPLACE INTO moz_inputhistory "
     
@@ -203,6 +216,9 @@ nsNavHistory::PerformAutoComplete()
   nsresult rv;
   
   if (!mCurrentChunkOffset) {
+    
+    rv = AutoCompleteAdaptiveSearch();
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   PRBool moreChunksToSearch = PR_FALSE;
@@ -360,6 +376,23 @@ nsNavHistory::AddSearchToken(nsAutoString &aToken)
   aToken.Trim("\r\n\t\b");
   if (!aToken.IsEmpty())
     mCurrentSearchTokens.AppendString(aToken);
+}
+
+nsresult
+nsNavHistory::AutoCompleteAdaptiveSearch()
+{
+  mozStorageStatementScoper scope(mDBAdaptiveQuery);
+
+  nsresult rv = mDBAdaptiveQuery->BindInt32Parameter(0, GetTagsFolder());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBAdaptiveQuery->BindStringParameter(1, mCurrentSearchString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = AutoCompleteProcessSearch(mDBAdaptiveQuery, QUERY_ADAPTIVE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
 }
 
 
