@@ -137,7 +137,6 @@ protected:
                                     nsIDownload *aDownload);
 
   nsDownload *FindDownload(PRUint32 aID);
-  nsresult PauseResumeDownload(PRUint32 aID, PRBool aPause);
   nsresult CancelAllDownloads();
 
   
@@ -199,7 +198,27 @@ public:
 protected:
   void SetStartTime(PRInt64 aStartTime);
 
-  nsresult PauseResume(PRBool aPause);
+  
+
+
+
+  nsresult Pause();
+
+  
+
+
+
+  nsresult Cancel();
+
+  
+
+
+  nsresult Resume();
+
+  
+
+
+  nsresult RealResume();
 
   
 
