@@ -64,6 +64,7 @@ const char* XPCJSRuntime::mStrings[] = {
     , "COMObject"           
     , "supports"            
 #endif
+    , "__proto__"           
 };
 
 

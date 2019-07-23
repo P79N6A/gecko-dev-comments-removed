@@ -576,6 +576,13 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
     return XPC_XOW_RewrapIfNeeded(cx, obj, vp);
   }
 
+  JSObject *proto = nsnull; 
+  JSBool checkProto =
+    (isSet && id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_PROTO));
+  if (checkProto) {
+    proto = JS_GetPrototype(cx, wrappedObj);
+  }
+
   
   
   jsid asId;
@@ -589,6 +596,27 @@ XPC_XOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
               : OBJ_GET_PROPERTY(cx, wrappedObj, asId, vp);
   if (!ok) {
     return JS_FALSE;
+  }
+
+  if (checkProto && JS_GetPrototype(cx, wrappedObj) != proto) {
+    
+    
+    
+
+    JSObject *oldProto = proto;
+    proto = wrappedObj;
+    while ((proto = JS_GetPrototype(cx, proto)) != nsnull) {
+      JSObject *unwrapped = GetWrappedObject(cx, proto);
+      if (unwrapped) {
+        proto = unwrapped;
+      }
+
+      if (proto == wrappedObj) {
+        JS_SetPrototype(cx, wrappedObj, oldProto);
+        JS_ReportError(cx, "cyclic __proto__ value");
+        return JS_FALSE;
+      }
+    }
   }
 
   
