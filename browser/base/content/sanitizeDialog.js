@@ -149,7 +149,11 @@ var gSanitizePromptDialog = {
 
 
 
-  prepareWarning: function () {
+
+
+
+
+  prepareWarning: function (aDontShowItemList) {
     
     
     
@@ -157,7 +161,8 @@ var gSanitizePromptDialog = {
     var warningStringID;
     if (this.hasCustomizedItemSelection()) {
       warningStringID = "sanitizeSelectedWarning";
-      this.showItemList();
+      if (!aDontShowItemList)
+        this.showItemList();
     }
     else {
       warningStringID = "sanitizeEverythingWarning2";
@@ -192,7 +197,7 @@ var gSanitizePromptDialog = {
     catch (e) { }
 
     
-    this.prepareWarning();
+    this.prepareWarning(true);
 
     return undefined;
   },
