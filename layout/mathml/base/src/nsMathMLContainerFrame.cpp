@@ -308,6 +308,14 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsIRenderingContext& aRenderingC
           
           
           bm.descent += bmChild.ascent + bmChild.descent;
+          
+          
+          
+          
+          if (bmChild.width == 0) {
+            bmChild.rightBearing -= bmChild.leftBearing;
+            bmChild.leftBearing = 0;
+          }
           if (bm.leftBearing > bmChild.leftBearing)
             bm.leftBearing = bmChild.leftBearing;
           if (bm.rightBearing < bmChild.rightBearing)
