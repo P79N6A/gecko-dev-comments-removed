@@ -579,9 +579,35 @@ struct JSScopeProperty {
     friend void js::SweepScopeProperties(JSContext *cx);
 
     jsid            id;                 
+
   private:
-    JSPropertyOp    rawGetter;          
-    JSPropertyOp    rawSetter;          
+    union {
+        JSPropertyOp rawGetter;         
+        JSScopeProperty *next;          
+    };
+
+    union {
+        JSPropertyOp rawSetter;         
+
+        JSScopeProperty **prevp;        
+
+    };
+
+    void insertFree(JSScopeProperty *&list) {
+        id = JSVAL_NULL;
+        next = list;
+        prevp = &list;
+        if (list)
+            list->prevp = &next;
+        list = this;
+    }
+
+    void removeFree() {
+        JS_ASSERT(JSVAL_IS_NULL(id));
+        *prevp = next;
+        if (next)
+            next->prevp = prevp;
+    }
 
   public:
     uint32          slot;               
@@ -998,4 +1024,4 @@ JS_END_EXTERN_C
 #pragma warning(pop)
 #endif
 
-#endif 
+#endif
