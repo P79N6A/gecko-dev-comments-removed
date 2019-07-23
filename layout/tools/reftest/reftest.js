@@ -58,6 +58,7 @@ var gFailureTimeout;
 const EXPECTED_PASS = 0;
 const EXPECTED_FAIL = 1;
 const EXPECTED_RANDOM = 2;
+const EXPECTED_DEATH = 3;  
 
 function OnRefTestLoad()
 {
@@ -123,16 +124,16 @@ function ReadManifest(aURL)
         var items = str.split(/\s+/); 
 
         var expected_status = EXPECTED_PASS;
-        while (items[0].match(/^(fails|random)/)) {
+        while (items[0].match(/^(fails|random|skip)/)) {
             var item = items.shift();
             var stat;
             var cond;
-            var m = item.match(/^(fails|random)-if(\(.*\))$/);
+            var m = item.match(/^(fails|random|skip)-if(\(.*\))$/);
             if (m) {
                 stat = m[1];
                 
                 cond = Components.utils.evalInSandbox(m[2], sandbox);
-            } else if (item.match(/^(fails|random)$/)) {
+            } else if (item.match(/^(fails|random|skip)$/)) {
                 stat = item;
                 cond = true;
             } else {
@@ -144,6 +145,8 @@ function ReadManifest(aURL)
                     expected_status = EXPECTED_FAIL;
                 } else if (stat == "random") {
                     expected_status = EXPECTED_RANDOM;
+                } else if (stat == "skip") {
+                    expected_status = EXPECTED_DEATH;
                 }
             }
         }
@@ -167,6 +170,12 @@ function ReadManifest(aURL)
 
 function StartCurrentTest()
 {
+    
+    while (gURLs.length > 0 && gURLs[0].expected == EXPECTED_DEATH) {
+        dump("REFTEST KNOWN FAIL (SKIP): " + gURLs[0].url1.spec + "\n");
+        gURLs.shift();
+    }
+
     if (gURLs.length == 0)
         DoneTests();
     else
