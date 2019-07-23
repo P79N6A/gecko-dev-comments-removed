@@ -579,32 +579,36 @@ Assembler::asm_restore(LInsp i, Reservation *resv, Register r)
 {
     if (i->isop(LIR_alloc)) {
         asm_add_imm(r, FP, disp(resv));
-    }
+    } else if (IsFpReg(r)) {
+        NanoAssert(AvmCore::config.vfp);
+
+        
+        
+        
+        int d = findMemFor(i);
+        if (isS8(d >> 2)) {
+            FLDD(r, FP, d);
+        } else {
+            FLDD(r, IP, 0);
+            ADDi(IP, FP, d);
+        }
 #if 0
     
-
-
-
-
-
-    else if (i->isconst() && (isS8(i->imm32()) || isU8(i->imm32()))) {
+    
+    
+    
+    
+    
+    } else if (i->isconst()) {
+        
+        
         if (!resv->arIndex)
             reserveFree(i);
         asm_ld_imm(r, i->imm32());
-    }
 #endif
-    else {
+    } else {
         int d = findMemFor(i);
-        if (IsFpReg(r)) {
-            if (isS8(d >> 2)) {
-                FLDD(r, FP, d);
-            } else {
-                FLDD(r, IP, 0);
-                ADDi(IP, FP, d);
-            }
-        } else {
-            LDR(r, FP, d);
-        }
+        LDR(r, FP, d);
     }
 
     verbose_only(
