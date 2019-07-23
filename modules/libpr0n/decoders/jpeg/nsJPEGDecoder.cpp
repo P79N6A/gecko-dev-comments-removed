@@ -310,7 +310,7 @@ NS_IMETHODIMP nsJPEGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count, PR
           BYTES_SH(1);
 
         
-        if (mInfo.jpeg_color_space == JCS_CMYK)
+        if (mInfo.out_color_space == JCS_CMYK)
           type |= FLAVOR_SH(mInfo.saw_Adobe_marker ? 1 : 0);
 
         if (gfxPlatform::GetCMSOutputProfile())
@@ -569,7 +569,8 @@ nsJPEGDecoder::OutputScanlines()
 
       
       JSAMPROW sampleRow = (JSAMPROW)imageRow;
-      if (!mTransform || mInfo.out_color_space != JCS_GRAYSCALE) {
+      if (!mTransform || (mInfo.out_color_space != JCS_GRAYSCALE &&
+                          mInfo.out_color_space != JCS_CMYK)) {
         
         sampleRow += mInfo.output_width;
       }
@@ -587,6 +588,13 @@ nsJPEGDecoder::OutputScanlines()
           sampleRow += mInfo.output_width;
         }
         cmsDoTransform(mTransform, source, sampleRow, mInfo.output_width);
+        
+        if (mInfo.out_color_space == JCS_CMYK) {
+          memmove(sampleRow + mInfo.output_width,
+                  sampleRow,
+                  3 * mInfo.output_width);
+          sampleRow += mInfo.output_width;
+        }
       } else if (gfxPlatform::IsCMSEnabled()) {
         
         cmsHTRANSFORM transform = gfxPlatform::GetCMSRGBTransform();
