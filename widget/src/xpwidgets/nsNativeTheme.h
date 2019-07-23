@@ -137,6 +137,8 @@ class nsNativeTheme
 
   
   
+  
+  
   static nsMargin                  sButtonBorderSize;
   static nsMargin                  sButtonDisabledBorderSize;
   static PRUint8                   sButtonActiveBorderStyle;
@@ -145,12 +147,14 @@ class nsNativeTheme
   static nsILookAndFeel::nsColorID sButtonDisabledBorderColorID;
   static nsILookAndFeel::nsColorID sButtonBGColorID;
   static nsILookAndFeel::nsColorID sButtonDisabledBGColorID;
+  
   static nsMargin                  sTextfieldBorderSize;
   static PRUint8                   sTextfieldBorderStyle;
   static nsILookAndFeel::nsColorID sTextfieldBorderColorID;
   static PRBool                    sTextfieldBGTransparent;
   static nsILookAndFeel::nsColorID sTextfieldBGColorID;
   static nsILookAndFeel::nsColorID sTextfieldDisabledBGColorID;
+  
   static nsMargin                  sListboxBorderSize;
   static PRUint8                   sListboxBorderStyle;
   static nsILookAndFeel::nsColorID sListboxBorderColorID;
