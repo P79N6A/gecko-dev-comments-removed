@@ -52,6 +52,7 @@ const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
 const POST_DATA_ANNO = "URIProperties/POSTData";
 const LMANNO_FEEDURI = "livemark/feedURI";
+const LMANNO_SITEURI = "livemark/siteURI";
 
 #ifdef XP_MACOSX
 
@@ -408,7 +409,7 @@ var PlacesUtils = {
 
   nodeIsLivemarkContainer: function PU_nodeIsLivemarkContainer(aNode) {
     return this.nodeIsFolder(aNode) &&
-           this.annotations.itemHasAnnotation(aNode.itemId, LMANNO_FEEDURI);
+           this.livemarks.isLivemark(aNode.itemId);
   },
 
  

@@ -59,7 +59,7 @@ var PlacesOrganizer = {
     
     setTimeout(function() { self._init(); }, 0);
   },
-  
+
   _init: function PO__init() {
     this._places = document.getElementById("placesList");
     this._content = document.getElementById("placeContent");
@@ -106,6 +106,7 @@ var PlacesOrganizer = {
       this._backHistory.unshift(this.location);
 
     this._content.place = this._location = aLocation;
+    this.onContentTreeSelect();
 
     
     if (this._backHistory.length == 0)
@@ -155,7 +156,7 @@ var PlacesOrganizer = {
 
     var contentTitle = document.getElementById("contentTitle");
     contentTitle.setAttribute("value", text);
-    
+
     
     var searchModifiers = document.getElementById("searchModifiers");
     searchModifiers.hidden = type == this.HEADER_TYPE_SHOWING;
@@ -185,20 +186,19 @@ var PlacesOrganizer = {
 
 
   loadPlaceURI: function PO_loadPlaceURI() {
-
     
     this._forwardHistory.splice(0);
 
     var placeURI = document.getElementById("placeURI");
 
     var queriesRef = { }, optionsRef = { };
-    PlacesUtils.history.queryStringToQueries(placeURI.value, 
+    PlacesUtils.history.queryStringToQueries(placeURI.value,
                                              queriesRef, { }, optionsRef);
-    
+
     
     var autoFilterResults = document.getElementById("autoFilterResults");
     if (autoFilterResults.checked) {
-      var options = 
+      var options =
         OptionsFilter.filter(queriesRef.value, optionsRef.value, null);
     }
     else
@@ -208,7 +208,7 @@ var PlacesOrganizer = {
       PlacesUtils.history.queriesToQueryString(queriesRef.value,
                                                queriesRef.value.length,
                                                options);
-    
+
     placeURI.value = this.location;
 
     this.setHeaderText(this.HEADER_TYPE_SHOWING, "Debug results for: " + placeURI.value);
@@ -227,7 +227,7 @@ var PlacesOrganizer = {
     var options = queryNode.queryOptions;
     var loadedURI = document.getElementById("loadedURI");
     loadedURI.value =
-      PlacesUtils.history.queriesToQueryString(queries, queries.length, 
+      PlacesUtils.history.queriesToQueryString(queries, queries.length,
                                                options);
   },
 
@@ -254,7 +254,7 @@ var PlacesOrganizer = {
 
     
     this.location = PlacesUtils.history.queriesToQueryString(queries, queries.length, options);
-   
+
     
     PlacesQueryBuilder.hide();
     if (resetSearchBox) {
@@ -313,7 +313,7 @@ var PlacesOrganizer = {
   getCurrentOptions: function PO_getCurrentOptions() {
     return asQuery(this._content.getResult().root).queryOptions;
   },
-  
+
   
 
 
@@ -379,9 +379,9 @@ var PlacesOrganizer = {
 
     
     var dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                     getService(Ci.nsIProperties);
+                 getService(Ci.nsIProperties);
     var bookmarksBackupDir = dirSvc.get("ProfD", Ci.nsIFile);
-    bookmarksBackupDir.append("bookmarkbackups"); 
+    bookmarksBackupDir.append("bookmarkbackups");
     if (!bookmarksBackupDir.exists())
       return; 
 
@@ -424,22 +424,22 @@ var PlacesOrganizer = {
 
   onRestoreMenuItemClick: function PO_onRestoreMenuItemClick(aMenuItem) {
     var dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-                     getService(Ci.nsIProperties);
+                 getService(Ci.nsIProperties);
     var bookmarksFile = dirSvc.get("ProfD", Ci.nsIFile);
-    bookmarksFile.append("bookmarkbackups"); 
+    bookmarksFile.append("bookmarkbackups");
     bookmarksFile.append(aMenuItem.getAttribute("value"));
     if (!bookmarksFile.exists())
       return;
 
     var prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-      getService(Ci.nsIPromptService);
+                  getService(Ci.nsIPromptService);
     if (!prompts.confirm(null,
                          PlacesUtils.getString("bookmarksRestoreAlertTitle"),
                          PlacesUtils.getString("bookmarksRestoreAlert")))
       return;
 
     var ieSvc = Cc["@mozilla.org/browser/places/import-export-service;1"].
-      getService(Ci.nsIPlacesImportExportService);
+                getService(Ci.nsIPlacesImportExportService);
     ieSvc.importHTMLFromFile(bookmarksFile, true);
   },
 
@@ -451,9 +451,9 @@ var PlacesOrganizer = {
     fp.init(window, PlacesUtils.getString("bookmarksBackupTitle"),
             Ci.nsIFilePicker.modeSave);
     fp.appendFilters(Ci.nsIFilePicker.filterHTML);
-  
+
     var dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-      getService(Ci.nsIProperties);
+                 getService(Ci.nsIProperties);
     var backupsDir = dirSvc.get("Desk", Ci.nsILocalFile);
     fp.displayDirectory = backupsDir;
 
@@ -462,10 +462,10 @@ var PlacesOrganizer = {
     var date = (new Date).toLocaleFormat("%Y-%m-%d");
     fp.defaultString = PlacesUtils.getFormattedString("bookmarksBackupFilename",
                                                       [date]);
-  
+
     if (fp.show() != Ci.nsIFilePicker.returnCancel) {
       var ieSvc = Cc["@mozilla.org/browser/places/import-export-service;1"].
-        getService(Ci.nsIPlacesImportExportService);
+                  getService(Ci.nsIPlacesImportExportService);
       ieSvc.exportHTMLToFile(fp.file);
     }
   },
@@ -476,50 +476,181 @@ var PlacesOrganizer = {
 
   restoreFromFile: function PO_restoreFromFile() {
     var prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-      getService(Ci.nsIPromptService);
+                  getService(Ci.nsIPromptService);
     if (!prompts.confirm(null, PlacesUtils.getString("bookmarksRestoreAlertTitle"),
                          PlacesUtils.getString("bookmarksRestoreAlert")))
       return;
-  
+
     var fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     fp.init(window, PlacesUtils.getString("bookmarksRestoreTitle"),
             Ci.nsIFilePicker.modeOpen);
     fp.appendFilters(Ci.nsIFilePicker.filterHTML);
-  
+
     var dirSvc = Cc["@mozilla.org/file/directory_service;1"].
-      getService(Ci.nsIProperties);
+                 getService(Ci.nsIProperties);
     var backupsDir = dirSvc.get("Desk", Ci.nsILocalFile);
     fp.displayDirectory = backupsDir;
-  
+
     if (fp.show() != Ci.nsIFilePicker.returnCancel) {
       var ieSvc = Cc["@mozilla.org/browser/places/import-export-service;1"].
-                     getService(Ci.nsIPlacesImportExportService);
+                  getService(Ci.nsIPlacesImportExportService);
       ieSvc.importHTMLFromFile(fp.file, true);
     }
   },
 
+  _paneDisabled: false,
+  _setDetailsFieldsDisabledState:
+  function PO__setDetailsFieldsDisabledState(aDisabled) {
+    if (aDisabled) {
+      document.getElementById("paneElementsBroadcaster")
+              .setAttribute("disabled", "true");
+    }
+    else {
+      document.getElementById("paneElementsBroadcaster")
+              .removeAttribute("disabled");
+    }
+  },
+
+  _detectAndSetDetailsPaneMinimalState:
+  function PO__detectAndSetDetailsPaneMinimalState(aNode) {
+    
+
+
+
+
+
+
+
+    var infoScrollbox = document.getElementById("infoScrollbox");
+    var scrollboxExpander = document.getElementById("infoScrollboxExpander");
+    if ((PlacesUtils.nodeIsFolder(aNode) &&
+         !PlacesUtils.nodeIsLivemarkContainer(aNode)) ||
+        PlacesUtils.nodeIsLivemarkItem(aNode)) {
+      if (infoScrollbox.getAttribute("minimal") == "true")
+        infoScrollbox.setAttribute("wasminimal", "true");
+      infoScrollbox.removeAttribute("minimal");
+      scrollboxExpander.hidden = true;
+    }
+    else {
+      if (infoScrollbox.getAttribute("wasminimal") == "true")
+        infoScrollbox.setAttribute("minimal", "true");
+      infoScrollbox.removeAttribute("wasminimal");
+      scrollboxExpander.hidden = false;
+    }
+  },
+
+  updateThumbnailProportions: function PO_updateThumbnailProportions() {
+    var previewBox = document.getElementById("previewBox");
+    var canvas = document.getElementById("itemThumbnail");
+    var height = previewBox.boxObject.height;
+    var width = height * (screen.width / screen.height);
+    canvas.width = width;
+    canvas.height = height;
+  },
+
   onContentTreeSelect: function PO_onContentTreeSelect() {
+    
+    
+    if (gEditItemOverlay.itemId != -1) {
+      var focusedElement = document.commandDispatcher.focusedElement;
+      if (focusedElement instanceof HTMLInputElement &&
+          /^editBMPanel.*/.test(focusedElement.parentNode.parentNode.id))
+        focusedElement.blur();
+    }
+
     var contentTree = document.getElementById("placeContent");
-    var deck = document.getElementById("infoDeck");
-    this.updateStatusBarForView(contentTree);
-    if (contentTree.hasSingleSelection) {
-      var selectedNode = contentTree.selectedNode;
-      if (selectedNode.itemId != -1 &&
-          !PlacesUtils.nodeIsSeparator(selectedNode)) {
-        gEditItemOverlay.initPanel(selectedNode.itemId,
-                                   { hiddenRows: ["folderPicker"] });
-        deck.selectedIndex = 1;
-        return;
+    var detailsDeck = document.getElementById("detailsDeck");
+    if (contentTree.hasSelection) {
+      detailsDeck.selectedIndex = 1;
+      if (contentTree.hasSingleSelection) {
+        var selectedNode = contentTree.selectedNode;
+        if (selectedNode.itemId != -1 &&
+            !PlacesUtils.nodeIsSeparator(selectedNode)) {
+          if (this._paneDisabled) {
+            this._setDetailsFieldsDisabledState(false);
+            this._paneDisabled = false;
+          }
+
+          gEditItemOverlay.initPanel(selectedNode.itemId,
+                                     { hiddenRows: ["folderPicker"] });
+
+          this._detectAndSetDetailsPaneMinimalState(selectedNode);
+          this.updateThumbnailProportions();
+          this._updateThumbnail();
+          return;
+        }
       }
     }
-    gEditItemOverlay.uninitPanel();
-    deck.selectedIndex = 0;
+    else {
+      detailsDeck.selectedIndex = 0;
+      var selectItemDesc = document.getElementById("selectItemDescription");
+      var itemsCountLabel = document.getElementById("itemsCountText");
+      var rowCount = this._content.treeBoxObject.view.rowCount;
+      if (rowCount == 0) {
+        selectItemDesc.hidden = true;
+        itemsCountLabel.value = PlacesUtils.getString("detailsPane.noItems");
+      }
+      else {
+        selectItemDesc.hidden = false;
+        if (rowCount == 1)
+          itemsCountLabel.value = PlacesUtils.getString("detailsPane.oneItem");
+        else {
+          itemsCountLabel.value =
+            PlacesUtils.getFormattedString("detailsPane.multipleItems",
+                                           [rowCount]);
+        }
+      }
+
+      this.updateThumbnailProportions();
+      this._updateThumbnail();
+    }
+
+    
+    if (!this._paneDisabled) {
+      gEditItemOverlay.uninitPanel();
+      this._setDetailsFieldsDisabledState(true);
+      this._paneDisabled = true;
+    }
+  },
+
+  _updateThumbnail: function PO__updateThumbnail() {
+    var bo = document.getElementById("previewBox").boxObject;
+    var width  = bo.width;
+    var height = bo.height;
+
+    var canvas = document.getElementById("itemThumbnail");
+    var ctx = canvas.getContext('2d');
+    var notAvailableText = canvas.getAttribute("notavailabletext");
+    ctx.save();
+    ctx.fillStyle = "-moz-Dialog";
+    ctx.fillRect(0, 0, width, height);
+    ctx.translate(width/2, height/2);
+
+    ctx.fillStyle = "GrayText";
+    ctx.mozTextStyle = "12pt sans serif";
+    var len = ctx.mozMeasureText(notAvailableText);
+    ctx.translate(-len/2,0);
+    ctx.mozDrawText(notAvailableText);
+    ctx.restore();
+  },
+
+  toggleAdditionalInfoFields: function PO_toggleAdditionalInfoFields() {
+    var infoScrollbox = document.getElementById("infoScrollbox");
+    var scrollboxExpander = document.getElementById("infoScrollboxExpander");
+    if (infoScrollbox.getAttribute("minimal") == "true") {
+      infoScrollbox.removeAttribute("minimal");
+      scrollboxExpander.label = scrollboxExpander.getAttribute("lesslabel");
+    }
+    else {
+      infoScrollbox.setAttribute("minimal", "true");
+      scrollboxExpander.label = scrollboxExpander.getAttribute("morelabel");
+    }
   },
 
   
 
 
-  saveSearch: function PP_saveSearch() {
+  saveSearch: function PO_saveSearch() {
     
     
     var queries = [];
@@ -553,7 +684,7 @@ var PlacesOrganizer = {
     var defaultText = PlacesUtils.getString("saveSearch.defaultText");
 
     var prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-                    getService(Ci.nsIPromptService);
+                  getService(Ci.nsIPromptService);
     var check = {value: false};
     var input = {value: defaultText};
     var save = prompts.prompt(null, title, inputLabel, input, null, check);
@@ -563,7 +694,10 @@ var PlacesOrganizer = {
      return;
 
     
-    var txn = PlacesUtils.ptm.createItem(placeURI, PlacesUtils.bookmarks.bookmarksRoot, PlacesUtils.bookmarks.DEFAULT_INDEX, input.value);
+    var txn = PlacesUtils.ptm.createItem(placeURI,
+                                         PlacesUtils.bookmarksRootId,
+                                         PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                         input.value);
     PlacesUtils.ptm.commitTransaction(txn);
   }
 };
@@ -618,7 +752,7 @@ var PlacesSearchBox = {
       PO.setHeaderText(PO.HEADER_TYPE_SEARCH, filterString);
       break;
     }
-    
+
     this.searchFilter.setAttribute("filtered", "true");
   },
 
@@ -645,7 +779,7 @@ var PlacesSearchBox = {
 
   updateCollectionTitle: function PSB_updateCollectionTitle(title) {
     if (title) {
-      this.searchFilter.grayText = 
+      this.searchFilter.grayText =
         PlacesUtils.getFormattedString("searchCurrentDefault", [title]);
     }
     else
@@ -693,7 +827,7 @@ var PlacesSearchBox = {
     searchFilter.grayText = PlacesUtils.getString("searchByDefault");
     searchFilter.reset();
   },
-  
+
   
 
 
@@ -765,7 +899,7 @@ var PlacesQueryBuilder = {
       "visited": this._locationSearch,
       "location": null
     };
-    
+
     this._queryBuilders = {
       "keyword": this.setKeywordQuery,
       "visited": this.setVisitedQuery,
@@ -787,7 +921,7 @@ var PlacesQueryBuilder = {
     var titleDeck = document.getElementById("titleDeck");
     titleDeck.setAttribute("selectedIndex", 0);
   },
-  
+
   
 
 
@@ -874,7 +1008,7 @@ var PlacesQueryBuilder = {
       
       const asType = PlacesOrganizer.HEADER_TYPE_ADVANCED_SEARCH;
       PlacesOrganizer.setHeaderText(asType, "");
-      
+
       
       
       
@@ -888,7 +1022,7 @@ var PlacesQueryBuilder = {
       
       this.addRow();
       return;
-    }      
+    }
 
     this.showSearch(this._numRows, searchType);
     this._updateUIForRowChange();
@@ -971,11 +1105,11 @@ var PlacesQueryBuilder = {
     var calendar = document.getElementById("advancedSearch" + row + "Calendar");
     var begin = calendar.beginrange;
     var end = calendar.endrange;
-    
+
     
     if (begin == null || end == null)
       return true;
-      
+
     
     var textbox = document.getElementById("advancedSearch" + row + "TimePicker");
     var beginDate = begin.getDate();
@@ -1007,10 +1141,10 @@ var PlacesQueryBuilder = {
                                                 endDate);
       textbox.value = beginStr + " - " + endStr;
     }
-    
+
     
     this.doSearch();
-    
+
     return true;
   },
 
@@ -1058,7 +1192,7 @@ var PlacesQueryBuilder = {
         element.hidden = true;
       }
     }
-    
+
     this.doSearch();
   },
 
@@ -1073,17 +1207,15 @@ var PlacesQueryBuilder = {
     }
     else {
       query.uriIsPrefix = (type == "startswith");
-      var ios = Cc["@mozilla.org/network/io-service;1"].
-                  getService(Ci.nsIIOService);
       var spec = document.getElementById(prefix + "Textbox").value;
       try {
-        query.uri = ios.newURI(spec, null, null);
+        query.uri = IO.newURI(spec);
       }
       catch (e) {
         
         
         try {
-          query.uri = ios.newURI("http://" + spec, null, null);
+          query.uri = IO.newURI("http://" + spec);
         }
         catch (e) {
           
@@ -1155,23 +1287,23 @@ var PlacesQueryBuilder = {
           query = this.queries[0];
         else
           query = PlacesUtils.history.getNewQuery();
-        
+
         var querySubject = querySubjectElement.value;
         this._queryBuilders[querySubject](query, prefix);
-        
+
         if (queryType == "or")
           this.queries.push(query);
-          
+
         ++updated;
       }
     }
-    
+
     
     this.options = PlacesOrganizer.getCurrentOptions();
     this.options.resultType = options.RESULT_TYPE_URI;
 
     
-    PlacesOrganizer._content.load(queries, 
+    PlacesOrganizer._content.load(queries,
                                   OptionsFilter.filter(queries, options, null));
     PlacesOrganizer.updateLoadedURI();
   }
@@ -1202,20 +1334,20 @@ var ViewMenu = {
 
 
   _clean: function VM__clean(popup, startID, endID) {
-    if (endID) 
+    if (endID)
       NS_ASSERT(startID, "meaningless to have valid endID and null startID");
     if (startID) {
       var startElement = document.getElementById(startID);
-      NS_ASSERT(startElement.parentNode == 
+      NS_ASSERT(startElement.parentNode ==
                 popup, "startElement is not in popup");
-      NS_ASSERT(startElement, 
+      NS_ASSERT(startElement,
                 "startID does not correspond to an existing element");
       var endElement = null;
       if (endID) {
         endElement = document.getElementById(endID);
-        NS_ASSERT(endElement.parentNode == popup, 
+        NS_ASSERT(endElement.parentNode == popup,
                   "endElement is not in popup");
-        NS_ASSERT(endElement, 
+        NS_ASSERT(endElement,
                   "endID does not correspond to an existing element");
       }
       while (startElement.nextSibling != endElement)
@@ -1224,7 +1356,7 @@ var ViewMenu = {
     }
     else {
       while(popup.hasChildNodes())
-        popup.removeChild(popup.firstChild);  
+        popup.removeChild(popup.firstChild);
     }
     return null;
   },
@@ -1251,7 +1383,7 @@ var ViewMenu = {
 
 
   fillWithColumns: function VM_fillWithColumns(event, startID, endID, type, propertyPrefix) {
-    var popup = event.target;  
+    var popup = event.target;
     var pivot = this._clean(popup, startID, endID);
 
     
@@ -1296,11 +1428,11 @@ var ViewMenu = {
       if (pivot)
         popup.insertBefore(menuitem, pivot);
       else
-        popup.appendChild(menuitem);      
+        popup.appendChild(menuitem);
     }
     event.stopPropagation();
   },
-  
+
   
 
 
@@ -1329,7 +1461,7 @@ var ViewMenu = {
       viewUnsorted.removeAttribute("checked");
     }
   },
-  
+
   
 
 
@@ -1339,13 +1471,13 @@ var ViewMenu = {
     const PREFIX = "menucol_";
     var columnID = element.id.substr(PREFIX.length, element.id.length);
     var column = document.getElementById(columnID);
-    NS_ASSERT(column, 
+    NS_ASSERT(column,
               "menu item for column that doesn't exist?! id = " + element.id);
 
     var splitter = column.nextSibling;
     if (splitter && splitter.localName != "splitter")
       splitter = null;
-    
+
     if (element.getAttribute("checked") == "true") {
       column.removeAttribute("hidden");
       if (splitter)
@@ -1355,7 +1487,7 @@ var ViewMenu = {
       column.setAttribute("hidden", "true");
       if (splitter)
         splitter.setAttribute("hidden", "true");
-    }    
+    }
   },
 
   
@@ -1416,7 +1548,7 @@ var ViewMenu = {
       case "date":
         sortingMode = aDirection == "descending" ?
           NHQO.SORT_BY_DATE_DESCENDING : NHQO.SORT_BY_DATE_ASCENDING;
-        break;      
+        break;
       case "visitCount":
         sortingMode = aDirection == "descending" ?
           NHQO.SORT_BY_VISITCOUNT_DESCENDING : NHQO.SORT_BY_VISITCOUNT_ASCENDING;
@@ -1471,7 +1603,7 @@ var ViewMenu = {
 
 
 
-function GroupingConfig(substr, onLabel, onAccesskey, offLabel, offAccesskey, 
+function GroupingConfig(substr, onLabel, onAccesskey, offLabel, offAccesskey,
                         onOncommand, offOncommand, disabled) {
   this.substr = substr;
   this.onLabel = onLabel;
@@ -1494,14 +1626,14 @@ var Groupers = {
 
 
   init: function G_init() {
-    this.defaultGrouper = 
+    this.defaultGrouper =
       new GroupingConfig(null, PlacesUtils.getString("defaultGroupOnLabel"),
                          PlacesUtils.getString("defaultGroupOnAccesskey"),
                          PlacesUtils.getString("defaultGroupOffLabel"),
                          PlacesUtils.getString("defaultGroupOffAccesskey"),
                          "Groupers.groupBySite()",
                          "Groupers.groupByPage()", false);
-    var subscriptionConfig = 
+    var subscriptionConfig =
       new GroupingConfig("livemark/", PlacesUtils.getString("livemarkGroupOnLabel"),
                          PlacesUtils.getString("livemarkGroupOnAccesskey"),
                          PlacesUtils.getString("livemarkGroupOffLabel"),
@@ -1560,7 +1692,7 @@ var Groupers = {
     separator.removeAttribute("hidden");
     groupOff.removeAttribute("hidden");
     groupOn.removeAttribute("hidden");
-    
+
     
     
     var config = this._getConfig(queries, handler);
@@ -1592,7 +1724,7 @@ var Groupers = {
   _updateBroadcasters: function G__updateGroupingBroadcasters(on) {
     var groupingOn = document.getElementById("placesBC_grouping:on");
     var groupingOff = document.getElementById("placesBC_grouping:off");
-    if (on) {    
+    if (on) {
       groupingOn.setAttribute("checked", "true");
       groupingOff.removeAttribute("checked");
     }
@@ -1668,4 +1800,3 @@ var Groupers = {
     OptionsFilter.update(content.getResult());
   }
 };
-
