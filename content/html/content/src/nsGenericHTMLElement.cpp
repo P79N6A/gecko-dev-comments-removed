@@ -1177,16 +1177,6 @@ nsGenericHTMLElement::GetBaseURI() const
     return uri;
   }
 
-  
-  
-  if (IsInHTMLDocument()) {
-    
-    nsIURI *uri = GetOwnerDoc()->GetBaseURI();
-    NS_IF_ADDREF(uri);
-
-    return uri;
-  }
-
   return nsGenericHTMLElementBase::GetBaseURI();
 }
 
