@@ -612,7 +612,7 @@ nsSOCKSIOLayerConnect(PRFileDesc *fd, const PRNetAddr *addr, PRIntervalTime )
 
     
     PRNetAddr proxyAddr;
-    nsCOMPtr<nsIDNSRecord> rec; 
+    nsCOMPtr<nsIDNSRecord> rec;
     nsresult rv;
     {
         nsCOMPtr<nsIDNSService> dns;
@@ -659,7 +659,6 @@ nsSOCKSIOLayerConnect(PRFileDesc *fd, const PRNetAddr *addr, PRIntervalTime )
     sockopt.option = PR_SockOpt_Nonblocking;
     sockopt.value.non_blocking = nonblocking;
 
-
     
     
     
@@ -692,14 +691,10 @@ nsSOCKSIOLayerConnect(PRFileDesc *fd, const PRNetAddr *addr, PRIntervalTime )
     
 
     
-    PRNetAddr extAddr;	
+    PRNetAddr extAddr;
     PR_InitializeNetAddr(PR_IpAddrNull, 0, &extAddr);
 
- 
-
     NS_ASSERTION((socksVersion == 4) || (socksVersion == 5), "SOCKS Version must be selected");
-
-    nsresult rv;
 
     
     if (socksVersion == 5) {
@@ -707,7 +702,7 @@ nsSOCKSIOLayerConnect(PRFileDesc *fd, const PRNetAddr *addr, PRIntervalTime )
 
         if (NS_FAILED(rv)) {
             PR_SetSocketOption(fd, &sockopt);
-            return PR_FAILURE;	
+            return PR_FAILURE;
         }
 
     }
@@ -718,7 +713,7 @@ nsSOCKSIOLayerConnect(PRFileDesc *fd, const PRNetAddr *addr, PRIntervalTime )
 
         if (NS_FAILED(rv)) {
             PR_SetSocketOption(fd, &sockopt);
-            return PR_FAILURE;	
+            return PR_FAILURE;
         }
 
     }
