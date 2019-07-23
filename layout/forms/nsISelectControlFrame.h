@@ -46,7 +46,7 @@ class nsIDOMHTMLOptionElement;
 
 
 
-class nsISelectControlFrame
+class nsISelectControlFrame : public nsQueryFrame
 {
 public:
   NS_DECLARE_FRAME_ACCESSOR(nsISelectControlFrame)
@@ -55,13 +55,13 @@ public:
 
 
 
-  NS_IMETHOD AddOption(nsPresContext* aPresContext, PRInt32 index) = 0;
+  NS_IMETHOD AddOption(PRInt32 index) = 0;
 
   
 
 
 
-  NS_IMETHOD RemoveOption(nsPresContext* aPresContext, PRInt32 index) = 0; 
+  NS_IMETHOD RemoveOption(PRInt32 index) = 0; 
 
   
 
@@ -77,11 +77,10 @@ public:
   
 
 
-  NS_IMETHOD OnOptionSelected(nsPresContext* aPresContext,
-                              PRInt32 aIndex,
-                              PRBool aSelected) = 0;
+  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, PRBool aSelected) = 0;
 
   
+
 
 
   NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex) = 0;

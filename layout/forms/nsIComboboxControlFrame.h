@@ -84,6 +84,8 @@ public:
   
 
 
+
+
   NS_IMETHOD RedisplaySelectedText() = 0;
 
   

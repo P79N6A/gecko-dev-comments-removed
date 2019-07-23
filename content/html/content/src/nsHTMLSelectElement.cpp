@@ -241,20 +241,23 @@ nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
     
     
     
-    nsISelectControlFrame* selectFrame = GetSelectFrame();
-
-    nsPresContext *presContext = nsnull;
-    if (selectFrame) {
-      presContext = GetPresContext();
-    }
+    nsISelectControlFrame* selectFrame = nsnull;
+    nsWeakFrame weakSelectFrame;
+    PRBool didGetFrame = PR_FALSE;
 
     
     nsCOMPtr<nsIDOMNode> optionNode;
     nsCOMPtr<nsIDOMHTMLOptionElement> option;
     for (PRInt32 i=aListIndex;i<insertIndex;i++) {
       
+      if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
+        selectFrame = GetSelectFrame();
+        weakSelectFrame = do_QueryFrame(selectFrame);
+        didGetFrame = PR_TRUE;
+      }
+
       if (selectFrame) {
-        selectFrame->AddOption(presContext, i);
+        selectFrame->AddOption(i);
       }
 
       Item(i, getter_AddRefs(optionNode));
@@ -273,8 +276,7 @@ nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
           
           
           
-          OnOptionSelected(selectFrame, presContext, i, PR_TRUE, PR_FALSE,
-                           PR_FALSE);
+          OnOptionSelected(selectFrame, i, PR_TRUE, PR_FALSE, PR_FALSE);
         }
       }
     }
@@ -299,9 +301,9 @@ nsHTMLSelectElement::RemoveOptionsFromList(nsIContent* aOptions,
     
     nsISelectControlFrame* selectFrame = GetSelectFrame();
     if (selectFrame) {
-      nsPresContext *presContext = GetPresContext();
+      nsAutoScriptBlocker scriptBlocker;
       for (int i = aListIndex; i < aListIndex + numRemoved; ++i) {
-        selectFrame->RemoveOption(presContext, i);
+        selectFrame->RemoveOption(i);
       }
     }
 
@@ -805,7 +807,6 @@ nsHTMLSelectElement::IsOptionSelectedByIndex(PRInt32 aIndex)
 
 void
 nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
-                                      nsPresContext* aPresContext,
                                       PRInt32 aIndex,
                                       PRBool aSelected,
                                       PRBool aChangeOptionState,
@@ -830,7 +831,7 @@ nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
 
   
   if (aSelectFrame) {
-    aSelectFrame->OnOptionSelected(aPresContext, aIndex, aSelected);
+    aSelectFrame->OnOptionSelected(aIndex, aSelected);
   }
 }
 
@@ -921,9 +922,8 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
   PRBool optionsDeselected = PR_FALSE;
 
   nsISelectControlFrame *selectFrame = nsnull;
-  PRBool did_get_frame = PR_FALSE;
-
-  nsPresContext *presContext = GetPresContext();
+  PRBool didGetFrame = PR_FALSE;
+  nsWeakFrame weakSelectFrame;
 
   if (aIsSelected) {
     
@@ -981,11 +981,10 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
             
             
             selectFrame = GetSelectFrame();
+            weakSelectFrame = do_QueryFrame(selectFrame);
+            didGetFrame = PR_TRUE;
 
-            did_get_frame = PR_TRUE;
-
-            OnOptionSelected(selectFrame, presContext, optIndex, PR_TRUE,
-                             PR_TRUE, aNotify);
+            OnOptionSelected(selectFrame, optIndex, PR_TRUE, PR_TRUE, aNotify);
             optionsSelected = PR_TRUE;
           }
         }
@@ -1008,17 +1007,18 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
             PRBool isSelected = PR_FALSE;
             option->GetSelected(&isSelected);
             if (isSelected) {
-              if (!did_get_frame) {
+              if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
                 
                 
                 
                 selectFrame = GetSelectFrame();
+                weakSelectFrame = do_QueryFrame(selectFrame);
 
-                did_get_frame = PR_TRUE;
+                didGetFrame = PR_TRUE;
               }
 
-              OnOptionSelected(selectFrame, presContext, optIndex, PR_FALSE,
-                               PR_TRUE, aNotify);
+              OnOptionSelected(selectFrame, optIndex, PR_FALSE, PR_TRUE,
+                               aNotify);
               optionsDeselected = PR_TRUE;
 
               
@@ -1050,17 +1050,17 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
         PRBool isSelected = PR_FALSE;
         option->GetSelected(&isSelected);
         if (isSelected) {
-          if (!did_get_frame) {
+          if (!didGetFrame || (selectFrame && !weakSelectFrame.IsAlive())) {
             
             
             
             selectFrame = GetSelectFrame();
+            weakSelectFrame = do_QueryFrame(selectFrame);
 
-            did_get_frame = PR_TRUE;
+            didGetFrame = PR_TRUE;
           }
 
-          OnOptionSelected(selectFrame, presContext, optIndex, PR_FALSE,
-                           PR_TRUE, aNotify);
+          OnOptionSelected(selectFrame, optIndex, PR_FALSE, PR_TRUE, aNotify);
           optionsDeselected = PR_TRUE;
         }
       }
