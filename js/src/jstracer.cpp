@@ -3998,10 +3998,30 @@ TraceRecorder::record_JSOP_DEFVAR()
     return false;
 }
 
+
+
+
+
+#define GET_FULL_INDEX(PCOFF)                                                 \
+    (atoms - script->atomMap.vector + GET_INDEX(regs.pc + PCOFF))
+
+#define LOAD_FUNCTION(PCOFF)                                                  \
+    JS_GET_SCRIPT_FUNCTION(script, GET_FULL_INDEX(PCOFF), fun)
+
 bool
 TraceRecorder::record_JSOP_ANONFUNOBJ()
 {
-    return false;
+    JSFunction* fun;
+    JSFrameRegs& regs = *cx->fp->regs;
+    JSScript* script = cx->fp->script;
+    LOAD_FUNCTION(0); 
+    
+    JSObject* obj = FUN_OBJECT(fun);
+    if (OBJ_GET_PARENT(cx, obj) != cx->fp->scopeChain)
+        ABORT_TRACE("can't trace with activation object on scopeChain");
+
+    stack(0, lir->insImmPtr(obj));
+    return true;
 }
 
 bool
@@ -4058,23 +4078,13 @@ TraceRecorder::record_JSOP_ARGCNT()
     return false;
 }
 
-
-
-
-
-#define GET_FULL_INDEX(PCOFF)                                                 \
-    (atoms - script->atomMap.vector + GET_INDEX(regs.pc + PCOFF))
-
-#define LOAD_FUNCTION(PCOFF)                                                  \
-    JS_GET_SCRIPT_FUNCTION(script, GET_FULL_INDEX(PCOFF), fun)
-
 bool
 TraceRecorder::record_JSOP_DEFLOCALFUN()
 {
     JSFunction* fun;
     JSFrameRegs& regs = *cx->fp->regs;
     JSScript* script = cx->fp->script;
-    LOAD_FUNCTION(SLOTNO_LEN);
+    LOAD_FUNCTION(SLOTNO_LEN); 
 
     JSObject* obj = FUN_OBJECT(fun);
     if (OBJ_GET_PARENT(cx, obj) != cx->fp->scopeChain)
