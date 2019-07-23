@@ -559,6 +559,15 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
     
     fm->GetMaxAscent(aMetrics.ascent);
     fm->GetHeight(aMetrics.height);
+    
+    
+    nscoord offset, size;
+    fm->GetUnderline(offset, size);
+    nscoord ascentAndUnderline =
+      aPresContext->RoundAppUnitsToNearestDevPixels(aMetrics.ascent - offset) +
+      aPresContext->RoundAppUnitsToNearestDevPixels(size);
+    if (ascentAndUnderline > aMetrics.height)
+      aMetrics.height = ascentAndUnderline;
   } else {
     NS_WARNING("Cannot get font metrics - defaulting sizes to 0");
     aMetrics.ascent = aMetrics.height = 0;

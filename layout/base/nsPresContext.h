@@ -518,6 +518,9 @@ public:
   float AppUnitsToPoints(nscoord aAppUnits) const
   { return (float)aAppUnits / mDeviceContext->AppUnitsPerInch() * 72.0f; }
 
+  nscoord RoundAppUnitsToNearestDevPixels(nscoord aAppUnits) const
+  { return DevPixelsToAppUnits(AppUnitsToDevPixels(aAppUnits)); }
+
   
 
 
