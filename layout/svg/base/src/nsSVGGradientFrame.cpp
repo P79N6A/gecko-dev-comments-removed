@@ -38,7 +38,6 @@
 
 
 #include "nsIDOMSVGAnimatedNumber.h"
-#include "nsIDOMSVGAnimatedString.h"
 #include "nsIDOMSVGAnimTransformList.h"
 #include "nsSVGTransformList.h"
 #include "nsSVGMatrix.h"

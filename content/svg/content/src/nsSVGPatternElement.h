@@ -47,6 +47,7 @@
 #include "nsSVGLength2.h"
 #include "nsStubMutationObserver.h"
 #include "nsSVGEnum.h"
+#include "nsSVGString.h"
 
 
 
@@ -102,6 +103,7 @@ protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
   virtual EnumAttributesInfo GetEnumInfo();
+  virtual StringAttributesInfo GetStringInfo();
 
   
   enum { X, Y, WIDTH, HEIGHT };
@@ -115,7 +117,9 @@ protected:
   nsCOMPtr<nsIDOMSVGAnimatedTransformList> mPatternTransform;
 
   
-  nsCOMPtr<nsIDOMSVGAnimatedString> mHref;
+  enum { HREF };
+  nsSVGString mStringAttributes[1];
+  static StringInfo sStringInfo[1];
 
   
   nsCOMPtr<nsIDOMSVGAnimatedRect> mViewBox;

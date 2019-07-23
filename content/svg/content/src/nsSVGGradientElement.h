@@ -45,6 +45,7 @@
 #include "nsSVGStylableElement.h"
 #include "nsSVGLength2.h"
 #include "nsSVGEnum.h"
+#include "nsSVGString.h"
 
 
 
@@ -74,19 +75,20 @@ public:
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
 
 protected:
-
-  
-  nsCOMPtr<nsIDOMSVGAnimatedTransformList> mGradientTransform;
+  virtual EnumAttributesInfo GetEnumInfo();
+  virtual StringAttributesInfo GetStringInfo();
 
   enum { GRADIENTUNITS, SPREADMETHOD };
   nsSVGEnum mEnumAttributes[2];
   static nsSVGEnumMapping sSpreadMethodMap[];
   static EnumInfo sEnumInfo[2];
 
-  virtual EnumAttributesInfo GetEnumInfo();
+  enum { HREF };
+  nsSVGString mStringAttributes[1];
+  static StringInfo sStringInfo[1];
 
   
-  nsCOMPtr<nsIDOMSVGAnimatedString> mHref;
+  nsCOMPtr<nsIDOMSVGAnimatedTransformList> mGradientTransform;
 };
 
 

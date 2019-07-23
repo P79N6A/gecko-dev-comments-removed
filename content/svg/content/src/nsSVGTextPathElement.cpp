@@ -42,7 +42,6 @@
 #include "nsISVGTextContentMetrics.h"
 #include "nsIFrame.h"
 #include "nsSVGTextPathElement.h"
-#include "nsSVGAnimatedString.h"
 #include "nsDOMError.h"
 
 nsSVGElement::LengthInfo nsSVGTextPathElement::sLengthInfo[1] =
@@ -74,6 +73,11 @@ nsSVGElement::EnumInfo nsSVGTextPathElement::sEnumInfo[2] =
   }
 };
 
+nsSVGElement::StringInfo nsSVGTextPathElement::sStringInfo[1] =
+{
+  { &nsGkAtoms::href, kNameSpaceID_XLink }
+};
+
 NS_IMPL_NS_NEW_SVG_ELEMENT(TextPath)
 
 
@@ -100,28 +104,6 @@ nsSVGTextPathElement::nsSVGTextPathElement(nsINodeInfo *aNodeInfo)
 {
 }
 
-nsresult
-nsSVGTextPathElement::Init()
-{
-  nsresult rv = nsSVGTextPathElementBase::Init();
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  
-
-  
-
-  
-  
-  {
-    rv = NS_NewSVGAnimatedString(getter_AddRefs(mHref));
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::href, mHref, kNameSpaceID_XLink);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
-  
-  return rv;
-}
-
 
 
 
@@ -133,9 +115,7 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGTextPathElement)
 
 NS_IMETHODIMP nsSVGTextPathElement::GetHref(nsIDOMSVGAnimatedString * *aHref)
 {
-  *aHref = mHref;
-  NS_IF_ADDREF(*aHref);
-  return NS_OK;
+  return mStringAttributes[HREF].ToDOMAnimatedString(aHref, this);
 }
 
 
@@ -321,6 +301,12 @@ nsSVGTextPathElement::GetEnumInfo()
                             NS_ARRAY_LENGTH(sEnumInfo));
 }
 
+nsSVGElement::StringAttributesInfo
+nsSVGTextPathElement::GetStringInfo()
+{
+  return StringAttributesInfo(mStringAttributes, sStringInfo,
+                              NS_ARRAY_LENGTH(sStringInfo));
+}
 
 
 

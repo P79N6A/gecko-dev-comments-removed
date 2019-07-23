@@ -41,9 +41,9 @@
 #include "nsIDOMSVGURIReference.h"
 #include "nsIDOMSVGUseElement.h"
 #include "nsStubMutationObserver.h"
-#include "nsISVGValue.h"
 #include "nsSVGGraphicElement.h"
 #include "nsSVGLength2.h"
+#include "nsSVGString.h"
 #include "nsTArray.h"
 
 class nsIContent;
@@ -68,7 +68,6 @@ protected:
                                       nsINodeInfo *aNodeInfo);
   nsSVGUseElement(nsINodeInfo *aNodeInfo);
   virtual ~nsSVGUseElement();
-  virtual nsresult Init();
   
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_SVG_USE_ELEMENT_IMPL_CID)
@@ -93,15 +92,12 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGUseElementBase::)
 
   
-  NS_IMETHOD DidModifySVGObservable (nsISVGValue* observable,
-                                     nsISVGValue::modificationType aModType);
-
-  
   nsIContent* CreateAnonymousContent();
   void DestroyAnonymousContent();
 
   
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
+  virtual void DidChangeString(PRUint8 aAttrEnum, PRBool aDoSetAttr);
 
   
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -110,6 +106,7 @@ public:
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
+  virtual StringAttributesInfo GetStringInfo();
 
   void SyncWidthHeight(PRUint8 aAttrEnum);
   nsIContent *LookupHref();
@@ -120,7 +117,9 @@ protected:
   nsSVGLength2 mLengthAttributes[4];
   static LengthInfo sLengthInfo[4];
 
-  nsCOMPtr<nsIDOMSVGAnimatedString> mHref;
+  enum { HREF };
+  nsSVGString mStringAttributes[1];
+  static StringInfo sStringInfo[1];
 
   nsCOMPtr<nsIContent> mOriginal; 
   nsCOMPtr<nsIContent> mClone;    
