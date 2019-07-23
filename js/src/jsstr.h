@@ -684,14 +684,16 @@ js_CompareStrings(JSString *str1, JSString *str2);
 
 
 
-static const jsuint sBMHCharSetSize = 256; 
-static const jsuint sBMHPatLenMax   = 255; 
+
+#define BMH_CHARSET_SIZE 256    /* ISO-Latin-1 */
+#define BMH_PATLEN_MAX   255    /* skip table element is uint8 */
 
 #define BMH_BAD_PATTERN  (-2)   /* return value if pat is not ISO-Latin-1 */
 
 extern jsint
-js_BoyerMooreHorspool(const jschar *text, jsuint textlen,
-                      const jschar *pat, jsuint patlen);
+js_BoyerMooreHorspool(const jschar *text, jsint textlen,
+                      const jschar *pat, jsint patlen,
+                      jsint start);
 
 extern size_t
 js_strlen(const jschar *s);

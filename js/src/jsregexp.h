@@ -195,10 +195,6 @@ js_ClearRegExpLastIndex(JSObject *obj)
     obj->fslots[JSSLOT_REGEXP_LAST_INDEX] = JSVAL_ZERO;
 }
 
-
-extern bool
-js_ContainsRegExpMetaChars(const jschar *chars, size_t length);
-
 JS_END_EXTERN_C
 
 #endif 
