@@ -170,9 +170,12 @@ void
 nsDisplayListBuilder::SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
                                                 const nsRegion& aRegion)
 {
-  aVisibleRegion->Sub(*aVisibleRegion, aRegion);
-  if (!GetAccurateVisibleRegions()) {
-    aVisibleRegion->SimplifyOutward(15);
+  nsRegion tmp;
+  tmp.Sub(*aVisibleRegion, aRegion);
+  
+  
+  if (GetAccurateVisibleRegions() || tmp.GetNumRects() <= 15) {
+    *aVisibleRegion = tmp;
   }
 }
 
