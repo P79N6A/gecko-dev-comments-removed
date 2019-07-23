@@ -497,10 +497,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
     ctx->Translate(gfxPoint(-gfxFloat(viewRect.x) / p2a,
                             -gfxFloat(viewRect.y) / p2a));
 
-    nsRegion opaqueRegion;
-    AddCoveringWidgetsToOpaqueRegion(opaqueRegion, mContext, aView);
-    damageRegion.Sub(damageRegion, opaqueRegion);
-
     RenderViews(aView, *localcx, damageRegion);
 
     ctx->Restore();
@@ -522,59 +518,6 @@ void nsViewManager::Refresh(nsView *aView, nsIRenderingContext *aContext,
   MOZ_TIMER_PRINT(mWatch);
 #endif
 
-}
-
-void nsViewManager::AddCoveringWidgetsToOpaqueRegion(nsRegion &aRgn, nsIDeviceContext* aContext,
-                                                     nsView* aRootView) {
-  NS_PRECONDITION(aRootView, "Must have root view");
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  aRgn.SetEmpty();
-
-  nsPoint offsetToWidget;
-  nsIWidget* widget = aRootView->GetNearestWidget(&offsetToWidget);
-  if (!widget) {
-    return;
-  }
-  
-  if (widget->GetTransparencyMode() == eTransparencyTransparent) {
-    return;
-  }
-
-  for (nsIWidget* childWidget = widget->GetFirstChild();
-       childWidget;
-       childWidget = childWidget->GetNextSibling()) {
-    PRBool widgetVisible;
-    childWidget->IsVisible(widgetVisible);
-    if (widgetVisible) {
-      nsTArray<nsIntRect> clipRects;
-      childWidget->GetWindowClipRegion(&clipRects);
-
-      nsView* view = nsView::GetViewFor(childWidget);
-      if (view && view->GetVisibility() == nsViewVisibility_kShow
-          && !view->GetFloating()) {
-        nsIntRect bounds;
-        childWidget->GetBounds(bounds);
-        for (PRUint32 i = 0; i < clipRects.Length(); ++i) {
-          nsIntRect r = clipRects[i] + bounds.TopLeft();
-          nsRect rr = r.ToAppUnits(mContext->AppUnitsPerDevPixel()) -
-            offsetToWidget;
-          aRgn.Or(aRgn, rr);
-        }
-      }
-    }
-  }
 }
 
 
