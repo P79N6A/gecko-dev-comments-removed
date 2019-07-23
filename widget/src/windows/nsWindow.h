@@ -481,26 +481,6 @@ protected:
   static HCURSOR        gHCursor;
   static imgIContainer* gCursorImgContainer;
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static HBITMAP DataToBitmap(PRUint8* aImageData,
-                              PRUint32 aWidth,
-                              PRUint32 aHeight,
-                              PRUint32 aDepth);
-
 #ifdef ACCESSIBILITY
   static BOOL gIsAccessibilityOn;
   static HINSTANCE gmAccLib;
