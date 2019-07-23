@@ -66,12 +66,12 @@ public:
 protected:
   nsCOMPtr<nsISpellChecker> mSpellChecker;
 
-  nsStringArray  mSuggestedWordList;
+  nsTArray<nsString>  mSuggestedWordList;
   PRInt32        mSuggestedWordIndex;
 
   
   
-  nsStringArray  mDictionaryList;
+  nsTArray<nsString>  mDictionaryList;
   PRInt32        mDictionaryIndex;
 
   nsresult       DeleteSuggestedWordList();
