@@ -728,6 +728,8 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegio
   
   nsRect damageRect = aView->GetDimensions();
   if (damageRect.IsEmpty()) {
+    
+    --RootViewManager()->mScrollCnt;
     return;
   }
   nsPoint offset = ComputeViewOffset(aView);
@@ -736,6 +738,8 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegio
   
   
   if (aView->GetFloating()) {
+    
+    --RootViewManager()->mScrollCnt;
     return;
   }
 
