@@ -497,6 +497,9 @@ pref("advanced.mailftp",                    false);
 pref("image.animation_mode",                "normal");
 
 
+pref("security.fileuri.origin_policy", 0);
+
+
 
 
 

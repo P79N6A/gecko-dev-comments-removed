@@ -65,6 +65,7 @@
 #include "nsIProperties.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
+#include "nsIFileURL.h"
 #include "nsIZipReader.h"
 #include "nsIJAR.h"
 #include "nsIPluginInstance.h"
@@ -268,7 +269,6 @@ nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
 
     
     nsCOMPtr<nsIURI> sourceBaseURI = NS_GetInnermostURI(aSourceURI);
-    
     nsCOMPtr<nsIURI> targetBaseURI = NS_GetInnermostURI(aTargetURI);
 
     if (!sourceBaseURI || !targetBaseURI)
@@ -276,20 +276,20 @@ nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
 
     
     nsCAutoString targetScheme;
-    nsresult rv = targetBaseURI->GetScheme(targetScheme);
-    nsCAutoString sourceScheme;
-    if (NS_SUCCEEDED(rv))
-        rv = sourceBaseURI->GetScheme(sourceScheme);
-    if (NS_FAILED(rv) || !targetScheme.Equals(sourceScheme)) {
-        return PR_FALSE;
-    }
-    
-    if (targetScheme.EqualsLiteral("file"))
+    PRBool sameScheme = PR_FALSE;
+    if (NS_FAILED( targetBaseURI->GetScheme(targetScheme) ) ||
+        NS_FAILED( sourceBaseURI->SchemeIs(targetScheme.get(), &sameScheme) ) ||
+        !sameScheme)
     {
         
-        return  PR_TRUE;
+        return PR_FALSE;
     }
 
+    
+    if (targetScheme.EqualsLiteral("file"))
+        return SecurityCompareFileURIs( sourceBaseURI, targetBaseURI );
+
+    
     if (targetScheme.EqualsLiteral("imap") ||
         targetScheme.EqualsLiteral("mailbox") ||
         targetScheme.EqualsLiteral("news"))
@@ -297,28 +297,26 @@ nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
         
         
         nsCAutoString targetSpec;
-        if (NS_FAILED(targetBaseURI->GetSpec(targetSpec)))
-            return PR_FALSE;
         nsCAutoString sourceSpec;
-        if (NS_FAILED(sourceBaseURI->GetSpec(sourceSpec)))
-            return PR_FALSE;
-        return targetSpec.Equals(sourceSpec);
+        return ( NS_SUCCEEDED( targetBaseURI->GetSpec(targetSpec) ) &&
+                 NS_SUCCEEDED( sourceBaseURI->GetSpec(sourceSpec) ) &&
+                 targetSpec.Equals(sourceSpec) );
     }
 
     
     nsCAutoString targetHost;
-    rv = targetBaseURI->GetHost(targetHost);
     nsCAutoString sourceHost;
-    if (NS_SUCCEEDED(rv))
-        rv = sourceBaseURI->GetHost(sourceHost);
-    if (NS_FAILED(rv) ||
-        !targetHost.Equals(sourceHost, nsCaseInsensitiveCStringComparator())) {
+    if (NS_FAILED( targetBaseURI->GetHost(targetHost) ) ||
+        NS_FAILED( sourceBaseURI->GetHost(sourceHost) ) ||
+        !targetHost.Equals(sourceHost, nsCaseInsensitiveCStringComparator()))
+    {
+        
         return PR_FALSE;
     }
-    
+
     
     PRInt32 targetPort;
-    rv = targetBaseURI->GetPort(&targetPort);
+    nsresult rv = targetBaseURI->GetPort(&targetPort);
     PRInt32 sourcePort;
     if (NS_SUCCEEDED(rv))
         rv = sourceBaseURI->GetPort(&sourcePort);
@@ -331,18 +329,15 @@ nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
     {
         NS_ENSURE_STATE(sIOService);
 
-        NS_ASSERTION(targetScheme.Equals(sourceScheme),
-                     "Schemes should be equal here");
-                    
         PRInt32 defaultPort;
         nsCOMPtr<nsIProtocolHandler> protocolHandler;
-        rv = sIOService->GetProtocolHandler(sourceScheme.get(),
+        rv = sIOService->GetProtocolHandler(targetScheme.get(),
                                             getter_AddRefs(protocolHandler));
         if (NS_FAILED(rv))
         {
             return PR_FALSE;
         }
-                    
+
         rv = protocolHandler->GetDefaultPort(&defaultPort);
         if (NS_FAILED(rv) || defaultPort == -1)
             return PR_FALSE; 
@@ -355,6 +350,83 @@ nsScriptSecurityManager::SecurityCompareURIs(nsIURI* aSourceURI,
     }
 
     return result;
+}
+
+
+PRBool
+nsScriptSecurityManager::SecurityCompareFileURIs(nsIURI* aSourceURI,
+                                                 nsIURI* aTargetURI)
+{
+    
+    if (mFileURIOriginPolicy == FILEURI_SOP_TRADITIONAL)
+        return PR_TRUE;
+
+
+    
+    
+    PRBool filesAreEqual = PR_FALSE;
+    if (NS_FAILED( aSourceURI->Equals(aTargetURI, &filesAreEqual) ))
+        return PR_FALSE;
+    if (filesAreEqual || mFileURIOriginPolicy == FILEURI_SOP_SELF)
+        return filesAreEqual;
+
+
+    
+    PRBool targetIsDir = PR_TRUE;
+    nsCOMPtr<nsIFile> targetFile;
+    nsCOMPtr<nsIFileURL> targetFileURL( do_QueryInterface(aTargetURI) );
+
+    if (!targetFileURL ||
+        NS_FAILED( targetFileURL->GetFile(getter_AddRefs(targetFile)) ) ||
+        NS_FAILED( targetFile->IsDirectory(&targetIsDir) ) ||
+        targetIsDir)
+    {
+        return PR_FALSE;
+    }
+
+
+    
+    if (mFileURIOriginPolicy == FILEURI_SOP_ANYFILE)
+        return PR_TRUE;
+
+
+    
+    nsCOMPtr<nsIFile> sourceFile;
+    nsCOMPtr<nsIFile> sourceParent;
+    nsCOMPtr<nsIFileURL> sourceFileURL( do_QueryInterface(aSourceURI) );
+
+    if (!sourceFileURL ||
+        NS_FAILED( sourceFileURL->GetFile(getter_AddRefs(sourceFile)) ) ||
+        NS_FAILED( sourceFile->GetParent(getter_AddRefs(sourceParent)) ) ||
+        !sourceParent)
+    {
+        
+        return PR_FALSE;
+    }
+
+    
+    if (mFileURIOriginPolicy == FILEURI_SOP_SAMEDIR)
+    {
+        
+        PRBool sameParent = PR_FALSE;
+        nsCOMPtr<nsIFile> targetParent;
+        if (NS_FAILED( targetFile->GetParent(getter_AddRefs(targetParent)) ) ||
+            NS_FAILED( sourceParent->Equals(targetParent, &sameParent) ))
+            return PR_FALSE;
+        return sameParent;
+    }
+
+    if (mFileURIOriginPolicy == FILEURI_SOP_SUBDIR)
+    {
+        
+        PRBool isChild = PR_FALSE;
+        if (NS_FAILED( sourceParent->Contains(targetFile, PR_TRUE, &isChild) ))
+            return PR_FALSE;
+        return isChild;
+    }
+
+    NS_NOTREACHED("invalid file uri policy setting");
+    return PR_FALSE;
 }
 
 NS_IMETHODIMP
@@ -3071,16 +3143,19 @@ nsScriptSecurityManager::Observe(nsISupports* aObject, const char* aTopic,
     const char *message = messageStr.get();
 
     static const char jsPrefix[] = "javascript.";
-    if((PL_strncmp(message, jsPrefix, sizeof(jsPrefix)-1) == 0)
-#ifdef XPC_IDISPATCH_SUPPORT
-        || (PL_strcmp(message, sXPCDefaultGrantAllName) == 0)
-#endif
-        )
-        JSEnabledPrefChanged(mSecurityPref);
-    if(PL_strncmp(message, sPolicyPrefix, sizeof(sPolicyPrefix)-1) == 0)
-        mPolicyPrefsChanged = PR_TRUE; 
-    else if((PL_strncmp(message, sPrincipalPrefix, sizeof(sPrincipalPrefix)-1) == 0) &&
-            !mIsWritingPrefs)
+    static const char securityPrefix[] = "security.";
+    if ((PL_strncmp(message, jsPrefix, sizeof(jsPrefix)-1) == 0) ||
+        (PL_strncmp(message, securityPrefix, sizeof(securityPrefix)-1) == 0) )
+    {
+        ScriptSecurityPrefChanged();
+    }
+    else if (PL_strncmp(message, sPolicyPrefix, sizeof(sPolicyPrefix)-1) == 0)
+    {
+        
+        mPolicyPrefsChanged = PR_TRUE;
+    }
+    else if ((PL_strncmp(message, sPrincipalPrefix, sizeof(sPrincipalPrefix)-1) == 0) &&
+             !mIsWritingPrefs)
     {
         static const char id[] = "id";
         char* lastDot = PL_strrchr(message, '.');
@@ -3105,10 +3180,11 @@ nsScriptSecurityManager::nsScriptSecurityManager(void)
       mIsJavaScriptEnabled(PR_FALSE),
       mIsMailJavaScriptEnabled(PR_FALSE),
       mIsWritingPrefs(PR_FALSE),
-      mPolicyPrefsChanged(PR_TRUE)
+      mPolicyPrefsChanged(PR_TRUE),
 #ifdef XPC_IDISPATCH_SUPPORT
-      ,mXPCDefaultGrantAll(PR_FALSE)
+      mXPCDefaultGrantAll(PR_FALSE),
 #endif
+      mFileURIOriginPolicy(FILEURI_SOP_SELF)
 {
     NS_ASSERTION(sizeof(long) == sizeof(void*), "long and void* have different lengths on this platform. This may cause a security failure.");
     mPrincipals.Init(31);
@@ -3697,13 +3773,15 @@ const char nsScriptSecurityManager::sJSEnabledPrefName[] =
     "javascript.enabled";
 const char nsScriptSecurityManager::sJSMailEnabledPrefName[] =
     "javascript.allow.mailnews";
+const char nsScriptSecurityManager::sFileOriginPolicyPrefName[] =
+    "security.fileuri.origin_policy";
 #ifdef XPC_IDISPATCH_SUPPORT
 const char nsScriptSecurityManager::sXPCDefaultGrantAllName[] =
     "security.classID.allowByDefault";
 #endif
 
 inline void
-nsScriptSecurityManager::JSEnabledPrefChanged(nsISecurityPref* aSecurityPref)
+nsScriptSecurityManager::ScriptSecurityPrefChanged()
 {
     PRBool temp;
     nsresult rv = mSecurityPref->SecurityGetBoolPref(sJSEnabledPrefName, &temp);
@@ -3712,7 +3790,11 @@ nsScriptSecurityManager::JSEnabledPrefChanged(nsISecurityPref* aSecurityPref)
 
     rv = mSecurityPref->SecurityGetBoolPref(sJSMailEnabledPrefName, &temp);
     
-    mIsMailJavaScriptEnabled = NS_FAILED(rv) || temp;
+    mIsMailJavaScriptEnabled = NS_SUCCEEDED(rv) && temp;
+
+    PRInt32 policy;
+    rv = mSecurityPref->SecurityGetIntPref(sFileOriginPolicyPrefName, &policy);
+    mFileURIOriginPolicy = NS_SUCCEEDED(rv) ? policy : FILEURI_SOP_SELF;
 
 #ifdef XPC_IDISPATCH_SUPPORT
     rv = mSecurityPref->SecurityGetBoolPref(sXPCDefaultGrantAllName, &temp);
@@ -3735,10 +3817,11 @@ nsScriptSecurityManager::InitPrefs()
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    JSEnabledPrefChanged(mSecurityPref);
+    ScriptSecurityPrefChanged();
     
     prefBranchInternal->AddObserver(sJSEnabledPrefName, this, PR_FALSE);
     prefBranchInternal->AddObserver(sJSMailEnabledPrefName, this, PR_FALSE);
+    prefBranchInternal->AddObserver(sFileOriginPolicyPrefName, this, PR_FALSE);
 #ifdef XPC_IDISPATCH_SUPPORT
     prefBranchInternal->AddObserver(sXPCDefaultGrantAllName, this, PR_FALSE);
 #endif
