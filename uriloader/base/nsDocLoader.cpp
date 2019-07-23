@@ -153,6 +153,7 @@ nsDocLoader::nsDocLoader()
     mListenerInfoList(8),
     mIsLoadingDocument(PR_FALSE),
     mIsRestoringDocument(PR_FALSE),
+    mDontFlushLayout(PR_FALSE),
     mIsFlushingLayout(PR_FALSE)
 {
 #if defined(PR_LOGGING)
@@ -326,6 +327,10 @@ nsDocLoader::Stop(void)
 
   if (mLoadGroup)
     rv = mLoadGroup->Cancel(NS_BINDING_ABORTED);
+
+  
+  
+  mIsFlushingLayout = PR_FALSE;
 
   
   
@@ -748,13 +753,13 @@ void nsDocLoader::DocLoaderIsEmpty(PRBool aFlushLayout)
 
     
     
-    if (aFlushLayout) {
+    if (aFlushLayout && !mDontFlushLayout) {
       nsCOMPtr<nsIDOMDocument> domDoc = do_GetInterface(GetAsSupports(this));
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
       if (doc) {
-        mIsFlushingLayout = PR_TRUE;
+        mDontFlushLayout = mIsFlushingLayout = PR_TRUE;
         doc->FlushPendingNotifications(Flush_Layout);
-        mIsFlushingLayout = PR_FALSE;
+        mDontFlushLayout = mIsFlushingLayout = PR_FALSE;
       }
     }
 

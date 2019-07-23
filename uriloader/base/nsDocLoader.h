@@ -247,6 +247,12 @@ protected:
 
     
 
+    PRPackedBool mDontFlushLayout;
+
+    
+
+
+
     PRPackedBool mIsFlushingLayout;
 
 private:
