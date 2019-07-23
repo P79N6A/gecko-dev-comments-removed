@@ -2980,9 +2980,9 @@ class RegExpNativeCompiler {
 
 
 
-        lir->ins1(LIR_live, state);
-        lir->ins1(LIR_live, cpend);
-        lir->ins1(LIR_live, start);
+        lir->ins1(LIR_plive, state);
+        lir->ins1(LIR_plive, cpend);
+        lir->ins1(LIR_plive, start);
 
         
         targetCurrentPoint(kidFails);
@@ -3112,8 +3112,8 @@ class RegExpNativeCompiler {
         if (loopLabel) {
             lir->insBranch(LIR_j, NULL, loopLabel);
             LirBuffer* lirbuf = fragment->lirbuf;
-            lir->ins1(LIR_live, lirbuf->state);
-            lir->ins1(LIR_live, lirbuf->param1);
+            lir->ins1(LIR_plive, lirbuf->state);
+            lir->ins1(LIR_plive, lirbuf->param1);
         }
 
         Allocator &alloc = *JS_TRACE_MONITOR(cx).dataAlloc;
