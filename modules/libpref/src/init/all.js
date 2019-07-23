@@ -615,6 +615,11 @@ pref("network.http.pipelining.maxrequests" , 4);
 
 
 
+
+pref("network.jar.open-unsafe-types", false);
+
+
+
 pref("network.enableIDN", true);
 
 
