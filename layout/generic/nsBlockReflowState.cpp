@@ -1005,11 +1005,6 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
       NS_ASSERTION(placed || !aForceFit,
                    "If we're in force-fit mode, we should have placed the float");
 
-      
-      
-      NS_WARN_IF_FALSE(NS_FRAME_IS_TRUNCATED(reflowStatus) && aForceFit,
-                       "This situation currently leads to data not printing");
-
       if (!placed || (NS_FRAME_IS_TRUNCATED(reflowStatus) && !aForceFit)) {
         
         return PR_FALSE;
@@ -1020,6 +1015,11 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
         if (NS_FAILED(rv)) 
           return PR_FALSE;
       } else {
+        
+        
+        NS_WARN_IF_FALSE(!NS_FRAME_IS_TRUNCATED(reflowStatus),
+                         "This situation currently leads to data not printing");
+
         
         nsIFrame* nextPlaceholder = fc->mPlaceholder->GetNextInFlow();
         if (nextPlaceholder) {
