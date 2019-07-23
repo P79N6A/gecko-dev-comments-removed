@@ -38,6 +38,7 @@
 
 
 
+
 #ifdef nsWindowsRestart_cpp
 #error "nsWindowsRestart.cpp is not a header file, and must only be included once."
 #else
@@ -67,16 +68,37 @@ BOOL (WINAPI *pIsUserAnAdmin)(VOID);
 
 
 
-static int QuotedStrLen(const PRUnichar *s)
-{
-  int i = 2; 
-  while (*s) {
-    if (*s == '"') {
-      ++i;
-    }
 
-    ++i, ++s;
+
+static int ArgStrLen(const PRUnichar *s)
+{
+  int backslashes = 0;
+  int i = wcslen(s);
+  BOOL hasDoubleQuote = wcschr(s, L'"') != NULL;
+  
+  BOOL addDoubleQuotes = wcspbrk(s, L" \t") != NULL;
+
+  if (addDoubleQuotes) {
+    i += 2; 
   }
+
+  if (hasDoubleQuote) {
+    while (*s) {
+      if (*s == '\\') {
+        ++backslashes;
+      } else {
+        if (*s == '"') {
+          
+          i += backslashes + 1;
+        }
+
+        backslashes = 0;
+      }
+
+      ++s;
+    }
+  }
+
   return i;
 }
 
@@ -87,23 +109,49 @@ static int QuotedStrLen(const PRUnichar *s)
 
 
 
-static PRUnichar* QuoteString(PRUnichar *d, const PRUnichar *s)
+
+
+static PRUnichar* ArgToString(PRUnichar *d, const PRUnichar *s)
 {
-  *d = '"';
-  ++d;
+  int backslashes = 0;
+  BOOL hasDoubleQuote = wcschr(s, L'"') != NULL;
+  
+  BOOL addDoubleQuotes = wcspbrk(s, L" \t") != NULL;
 
-  while (*s) {
-    *d = *s;
-    if (*s == '"') {
-      ++d;
-      *d = '"';
-    }
-
-    ++d; ++s;
+  if (addDoubleQuotes) {
+    *d = '"'; 
+    ++d;
   }
 
-  *d = '"';
-  ++d;
+  if (hasDoubleQuote) {
+    int i;
+    while (*s) {
+      if (*s == '\\') {
+        ++backslashes;
+      } else {
+        if (*s == '"') {
+          
+          for (i = 0; i <= backslashes; ++i) {
+            *d = '\\';
+            ++d;
+          }
+        }
+
+        backslashes = 0;
+      }
+
+      *d = *s;
+      ++d; ++s;
+    }
+  } else {
+    wcscpy(d, s);
+    d += wcslen(s);
+  }
+
+  if (addDoubleQuotes) {
+    *d = '"'; 
+    ++d;
+  }
 
   return d;
 }
@@ -118,10 +166,15 @@ static PRUnichar*
 MakeCommandLine(int argc, PRUnichar **argv)
 {
   int i;
-  int len = 1; 
+  int len = 0;
 
+  
   for (i = 0; i < argc; ++i)
-    len += QuotedStrLen(argv[i]) + 1;
+    len += ArgStrLen(argv[i]) + 1;
+
+  
+  if (len == 0)
+    len = 1;
 
   PRUnichar *s = (PRUnichar*) malloc(len * sizeof(PRUnichar));
   if (!s)
@@ -129,9 +182,11 @@ MakeCommandLine(int argc, PRUnichar **argv)
 
   PRUnichar *c = s;
   for (i = 0; i < argc; ++i) {
-    c = QuoteString(c, argv[i]);
-    *c = ' ';
-    ++c;
+    c = ArgToString(c, argv[i]);
+    if (i + 1 != argc) {
+      *c = ' ';
+      ++c;
+    }
   }
 
   *c = '\0';
