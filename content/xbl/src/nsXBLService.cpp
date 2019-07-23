@@ -450,8 +450,15 @@ nsXBLStreamListener::Load(nsIDOMEvent* aEvent)
       xblDocBindingManager->GetXBLDocumentInfo(documentURI);
     xblDocBindingManager->RemoveXBLDocumentInfo(info); 
     if (!info) {
-      
-      NS_WARNING("An XBL file is malformed.  Did you forget the XBL namespace on the bindings tag?");
+      if (IsChromeOrResourceURI(documentURI)) {
+        NS_WARNING("An XBL file is malformed. Did you forget the XBL namespace on the bindings tag?");
+      }
+      nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
+                                      "MalformedXBL",
+                                      nsnull, 0, documentURI,
+                                      EmptyString(), 0, 0,
+                                      nsIScriptError::warningFlag,
+                                      "XBL");
       return NS_ERROR_FAILURE;
     }
 
