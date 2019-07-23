@@ -83,6 +83,30 @@ public:
 
 
 
+
+@interface GeckoServicesNSMenuItem : NSMenuItem
+{
+}
+- (id) target;
+- (SEL) action;
+- (void) _doNothing:(id)sender;
+@end
+
+
+
+
+@interface GeckoServicesNSMenu : NSMenu
+{
+}
+- (void)addItem:(NSMenuItem *)newItem;
+- (NSMenuItem *)addItemWithTitle:(NSString *)aString action:(SEL)aSelector keyEquivalent:(NSString *)keyEquiv;
+- (void)insertItem:(NSMenuItem *)newItem atIndex:(NSInteger)index;
+- (NSMenuItem *)insertItemWithTitle:(NSString *)aString action:(SEL)aSelector  keyEquivalent:(NSString *)keyEquiv atIndex:(NSInteger)index;
+- (void) _overrideClassOfMenuItem:(NSMenuItem *)menuItem;
+@end
+
+
+
 class nsMenuBarX : public nsMenuObjectX,
                    public nsIMutationObserver
 {
