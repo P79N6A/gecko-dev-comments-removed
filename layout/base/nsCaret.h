@@ -112,11 +112,22 @@ class nsCaret : public nsISelectionListener
 
 
 
+
     virtual nsresult    GetCaretCoordinates(EViewCoordinates aRelativeToType,
                                       nsISelection *inDOMSel,
                                       nsRect* outCoordinates,
                                       PRBool* outIsCollapsed,
                                       nsIView **outView);
+
+    
+
+
+
+
+
+
+    virtual nsIFrame* GetGeometry(nsISelection* aSelection,
+                                  nsRect* aRect);
 
     
 

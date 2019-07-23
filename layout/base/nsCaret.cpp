@@ -369,6 +369,48 @@ nsresult nsCaret::GetCaretCoordinates(EViewCoordinates aRelativeToType,
   return NS_OK;
 }
 
+nsIFrame* nsCaret::GetGeometry(nsISelection* aSelection, nsRect* aRect)
+{
+  nsCOMPtr<nsIDOMNode> focusNode;
+  nsresult rv = aSelection->GetFocusNode(getter_AddRefs(focusNode));
+  if (NS_FAILED(rv) || !focusNode)
+    return nsnull;
+
+  PRInt32 focusOffset;
+  rv = aSelection->GetFocusOffset(&focusOffset);
+  if (NS_FAILED(rv))
+    return nsnull;
+    
+  nsCOMPtr<nsIContent> contentNode = do_QueryInterface(focusNode);
+  if (!contentNode)
+    return nsnull;
+
+  
+  nsIFrame* theFrame = nsnull;
+  PRInt32   theFrameOffset = 0;
+
+  nsCOMPtr<nsFrameSelection> frameSelection = GetFrameSelection();
+  if (!frameSelection)
+    return nsnull;
+  PRUint8 bidiLevel = frameSelection->GetCaretBidiLevel();
+  rv = GetCaretFrameForNodeOffset(contentNode, focusOffset,
+                                  frameSelection->GetHint(), bidiLevel,
+                                  &theFrame, &theFrameOffset);
+  if (NS_FAILED(rv) || !theFrame)
+    return nsnull;
+  
+  nsPoint framePos(0, 0);
+  rv = theFrame->GetPointFromOffset(theFrameOffset, &framePos);
+  if (NS_FAILED(rv))
+    return nsnull;
+
+  
+  nscoord height = theFrame->GetSize().height;
+  nscoord width = ComputeMetrics(theFrame, theFrameOffset, height).mCaretWidth;
+  *aRect = nsRect(framePos.x, 0, width, height);
+  return theFrame;
+}
+
 void nsCaret::DrawCaretAfterBriefDelay()
 {
   
