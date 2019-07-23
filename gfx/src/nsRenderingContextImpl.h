@@ -317,9 +317,8 @@ public:
 protected:
   nsPenMode   mPenMode;
 private:
-  static nsIDrawingSurface*  gBackbuffer;         
-    
-  static nsSize            gLargestRequestedSize;
+  
+  static nsSize gLargestRequestedSize;
 
 };
 
