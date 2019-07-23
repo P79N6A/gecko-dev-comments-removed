@@ -1600,12 +1600,9 @@ nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent,
                                                  nsIWeakReference *aWeakShell)
 {
   
-  
   return nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_atomic) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_busy) ||
-         aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_channel) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_controls) ||
-         aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_datatype) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_describedby) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsAccessibilityAtoms::aria_dropeffect) ||
          aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_flowto) ||

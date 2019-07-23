@@ -91,10 +91,6 @@ public:
 
   
   
-  virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-
-  
-  
   NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
 
 protected:
