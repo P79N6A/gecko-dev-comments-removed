@@ -68,6 +68,7 @@
 #include "nsLWBrkCIID.h"
 #include "nsIScriptElement.h"
 #include "nsAttrName.h"
+#include "nsHtml5Module.h"
 
 static const char kMozStr[] = "moz";
 
@@ -100,6 +101,7 @@ nsHTMLContentSerializer::AppendDocumentStart(nsIDOMDocument *aDocument,
   return NS_OK;
 }
 
+#include "nsIHTMLDocument.h"
 void 
 nsHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
                                              nsIDOMElement *aOriginalElement,
@@ -108,19 +110,40 @@ nsHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
                                              nsIAtom* aTagName,
                                              nsAString& aStr)
 {
+  PRInt32 count = aContent->GetAttrCount();
+  if (!count)
+    return;
+
   nsresult rv;
-  PRUint32 index, count;
   nsAutoString nameStr, valueStr;
-
-  count = aContent->GetAttrCount();
-
   NS_NAMED_LITERAL_STRING(_mozStr, "_moz");
 
   
   
+  nsIDocument* doc = aContent->GetOwnerDocument();
+  PRBool caseSensitive = doc && doc->IsCaseSensitive();
+  PRBool loopForward = PR_FALSE;
+  if (!caseSensitive) {
+    nsCOMPtr<nsIHTMLDocument> htmlDoc(do_QueryInterface(doc));
+    if (htmlDoc) {
+      loopForward = nsHtml5Module::Enabled;
+    }
+  }
+  PRInt32 index, limit, step;
+  if (loopForward) {
+    index = 0;
+    limit = count;
+    step = 1;
+  }
+  else {
+    
+    
+    index = count - 1;
+    limit = -1;
+    step = -1;
+  }
   
-  for (index = count; index > 0; ) {
-    --index;
+  for (; index != limit; index += step) {
     const nsAttrName* name = aContent->GetAttrNameAt(index);
     PRInt32 namespaceID = name->NamespaceID();
     nsIAtom* attrName = name->LocalName();

@@ -146,6 +146,8 @@ class nsContentSink : public nsICSSLoaderObserver,
 
   virtual void UpdateChildCounts() = 0;
 
+  PRBool IsTimeToNotify();
+
 protected:
   nsContentSink();
   virtual ~nsContentSink();
@@ -241,12 +243,14 @@ protected:
                                        nsIURI **aManifestURI,
                                        CacheSelectionAction *aAction);
 
+public:
   
   
   
   
   void ProcessOfflineManifest(nsIContent *aElement);
 
+protected:
   
   
   void ScrollToRef();
@@ -255,10 +259,9 @@ protected:
   
   
   
+public:
   void StartLayout(PRBool aIgnorePendingSheets);
-
-  PRBool IsTimeToNotify();
-
+protected:
   void
   FavorPerformanceHint(PRBool perfOverStarvation, PRUint32 starvationDelay);
 
