@@ -5714,6 +5714,13 @@ js_Interpret(JSContext *cx)
           END_CASE(JSOP_DEFVAR)
 
           BEGIN_CASE(JSOP_DEFFUN)
+          {
+            JSPropertyOp getter, setter;
+            bool doSet;
+            JSObject *pobj;
+            JSProperty *prop;
+            uint32 old;
+
             
 
 
@@ -5752,7 +5759,7 @@ js_Interpret(JSContext *cx)
 
 
 
-            MUST_FLOW_THROUGH("restore");
+            MUST_FLOW_THROUGH("restore_scope");
             fp->scopeChain = obj;
             rval = OBJECT_TO_JSVAL(obj);
 
@@ -5769,10 +5776,17 @@ js_Interpret(JSContext *cx)
 
 
 
+            setter = getter = JS_PropertyStub;
             flags = JSFUN_GSFLAG2ATTR(fun->flags);
             if (flags) {
+                
+                JS_ASSERT(flags == JSPROP_GETTER || flags == JSPROP_SETTER);
                 attrs |= flags | JSPROP_SHARED;
                 rval = JSVAL_VOID;
+                if (flags == JSPROP_GETTER)
+                    getter = JS_EXTENSION (JSPropertyOp) obj;
+                else
+                    setter = JS_EXTENSION (JSPropertyOp) obj;
             }
 
             
@@ -5791,33 +5805,54 @@ js_Interpret(JSContext *cx)
 
 
             id = ATOM_TO_JSID(fun->atom);
-            ok = js_CheckRedeclaration(cx, parent, id, attrs, NULL, NULL);
-            if (ok) {
-                if (attrs == JSPROP_ENUMERATE) {
-                    JS_ASSERT(fp->flags & JSFRAME_EVAL);
-                    ok = OBJ_SET_PROPERTY(cx, parent, id, &rval);
-                } else {
-                    JS_ASSERT(attrs & JSPROP_PERMANENT);
-
-                    ok = OBJ_DEFINE_PROPERTY(cx, parent, id, rval,
-                                             (flags & JSPROP_GETTER)
-                                             ? JS_EXTENSION (JSPropertyOp) obj
-                                             : JS_PropertyStub,
-                                             (flags & JSPROP_SETTER)
-                                             ? JS_EXTENSION (JSPropertyOp) obj
-                                             : JS_PropertyStub,
-                                             attrs,
-                                             NULL);
-                }
-            }
+            prop = NULL;
+            ok = js_CheckRedeclaration(cx, parent, id, attrs, &pobj, &prop);
+            if (!ok)
+                goto restore_scope;
 
             
-            MUST_FLOW_LABEL(restore)
+
+
+
+
+
+
+
+
+
+
+            doSet = (attrs == JSPROP_ENUMERATE);
+            JS_ASSERT_IF(doSet, fp->flags & JSFRAME_EVAL);
+            if (prop) {
+                if (parent == pobj &&
+                    OBJ_GET_CLASS(cx, parent) == &js_CallClass &&
+                    (old = ((JSScopeProperty *) prop)->attrs,
+                     !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
+                     (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs)) {
+                    
+
+
+
+
+                    JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE|JSPROP_PERMANENT)));
+                    JS_ASSERT(!(old & JSPROP_READONLY));
+                    doSet = JS_TRUE;
+                }
+                OBJ_DROP_PROPERTY(cx, pobj, prop);
+            }
+            ok = doSet
+                 ? OBJ_SET_PROPERTY(cx, parent, id, &rval)
+                 : OBJ_DEFINE_PROPERTY(cx, parent, id, rval, getter, setter,
+                                       attrs, NULL);
+
+          restore_scope:
+            
             fp->scopeChain = obj2;
             if (!ok) {
                 cx->weakRoots.newborn[GCX_OBJECT] = NULL;
                 goto error;
             }
+          }
           END_CASE(JSOP_DEFFUN)
 
           BEGIN_CASE(JSOP_DEFLOCALFUN)

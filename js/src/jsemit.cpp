@@ -1830,18 +1830,16 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
     if (pn->pn_op == JSOP_QNAMEPART)
         return JS_TRUE;
 
-    
-
-
-
-
-
     tc = &cg->treeContext;
     atom = pn->pn_atom;
     stmt = js_LexicalLookup(tc, atom, &slot);
     if (stmt) {
-        if (stmt->type == STMT_WITH)
+        
+        if (stmt->type == STMT_WITH) {
+            JS_ASSERT_IF(tc->flags & TCF_IN_FUNCTION,
+                         tc->flags & TCF_FUN_HEAVYWEIGHT);
             return JS_TRUE;
+        }
 
         JS_ASSERT(stmt->flags & SIF_SCOPE);
         JS_ASSERT(slot >= 0);
@@ -1866,14 +1864,6 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
         return JS_TRUE;
     }
-
-    
-
-
-
-
-    if (tc->flags & TCF_FUN_CLOSURE_VS_VAR)
-        return JS_TRUE;
 
     if (!(tc->flags & TCF_IN_FUNCTION)) {
         JSStackFrame *caller;
@@ -1989,51 +1979,50 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         return JS_TRUE;
     }
 
-    if (tc->flags & TCF_IN_FUNCTION) {
-        
+    
 
 
 
 
-        localKind = js_LookupLocal(cx, tc->u.fun, atom, &index);
-        if (localKind != JSLOCAL_NONE) {
-            op = PN_OP(pn);
-            if (localKind == JSLOCAL_ARG) {
-                switch (op) {
-                  case JSOP_NAME:     op = JSOP_GETARG; break;
-                  case JSOP_SETNAME:  op = JSOP_SETARG; break;
-                  case JSOP_INCNAME:  op = JSOP_INCARG; break;
-                  case JSOP_NAMEINC:  op = JSOP_ARGINC; break;
-                  case JSOP_DECNAME:  op = JSOP_DECARG; break;
-                  case JSOP_NAMEDEC:  op = JSOP_ARGDEC; break;
-                  case JSOP_FORNAME:  op = JSOP_FORARG; break;
-                  case JSOP_DELNAME:  op = JSOP_FALSE; break;
-                  default: JS_NOT_REACHED("arg");
-                }
-                pn->pn_const = JS_FALSE;
-            } else {
-                JS_ASSERT(localKind == JSLOCAL_VAR ||
-                          localKind == JSLOCAL_CONST);
-                switch (op) {
-                  case JSOP_NAME:     op = JSOP_GETLOCAL; break;
-                  case JSOP_SETNAME:  op = JSOP_SETLOCAL; break;
-                  case JSOP_SETCONST: op = JSOP_SETLOCAL; break;
-                  case JSOP_INCNAME:  op = JSOP_INCLOCAL; break;
-                  case JSOP_NAMEINC:  op = JSOP_LOCALINC; break;
-                  case JSOP_DECNAME:  op = JSOP_DECLOCAL; break;
-                  case JSOP_NAMEDEC:  op = JSOP_LOCALDEC; break;
-                  case JSOP_FORNAME:  op = JSOP_FORLOCAL; break;
-                  case JSOP_DELNAME:  op = JSOP_FALSE; break;
-                  default: JS_NOT_REACHED("local");
-                }
-                pn->pn_const = (localKind == JSLOCAL_CONST);
+    JS_ASSERT(tc->flags & TCF_IN_FUNCTION);
+    localKind = js_LookupLocal(cx, tc->u.fun, atom, &index);
+    if (localKind != JSLOCAL_NONE) {
+        op = PN_OP(pn);
+        if (localKind == JSLOCAL_ARG) {
+            switch (op) {
+              case JSOP_NAME:     op = JSOP_GETARG; break;
+              case JSOP_SETNAME:  op = JSOP_SETARG; break;
+              case JSOP_INCNAME:  op = JSOP_INCARG; break;
+              case JSOP_NAMEINC:  op = JSOP_ARGINC; break;
+              case JSOP_DECNAME:  op = JSOP_DECARG; break;
+              case JSOP_NAMEDEC:  op = JSOP_ARGDEC; break;
+              case JSOP_FORNAME:  op = JSOP_FORARG; break;
+              case JSOP_DELNAME:  op = JSOP_FALSE; break;
+              default: JS_NOT_REACHED("arg");
             }
-            pn->pn_op = op;
-            pn->pn_slot = index;
-            return JS_TRUE;
+            pn->pn_const = JS_FALSE;
+        } else {
+            JS_ASSERT(localKind == JSLOCAL_VAR ||
+                      localKind == JSLOCAL_CONST);
+            switch (op) {
+              case JSOP_NAME:     op = JSOP_GETLOCAL; break;
+              case JSOP_SETNAME:  op = JSOP_SETLOCAL; break;
+              case JSOP_SETCONST: op = JSOP_SETLOCAL; break;
+              case JSOP_INCNAME:  op = JSOP_INCLOCAL; break;
+              case JSOP_NAMEINC:  op = JSOP_LOCALINC; break;
+              case JSOP_DECNAME:  op = JSOP_DECLOCAL; break;
+              case JSOP_NAMEDEC:  op = JSOP_LOCALDEC; break;
+              case JSOP_FORNAME:  op = JSOP_FORLOCAL; break;
+              case JSOP_DELNAME:  op = JSOP_FALSE; break;
+              default: JS_NOT_REACHED("local");
+            }
+            pn->pn_const = (localKind == JSLOCAL_CONST);
         }
-        tc->flags |= TCF_FUN_USES_NONLOCALS;
+        pn->pn_op = op;
+        pn->pn_slot = index;
+        return JS_TRUE;
     }
+    tc->flags |= TCF_FUN_USES_NONLOCALS;
 
   arguments_check:
     
