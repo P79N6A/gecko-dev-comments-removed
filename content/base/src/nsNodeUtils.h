@@ -258,6 +258,14 @@ public:
 
   static void UnlinkUserData(nsINode *aNode);
 
+  
+
+
+
+
+
+  static void DestroySubtree(nsIContent* aRoot);
+
 private:
   friend PLDHashOperator PR_CALLBACK
     AdoptFunc(nsAttrHashKey::KeyType aKey, nsIDOMNode *aData, void* aUserArg);

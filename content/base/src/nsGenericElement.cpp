@@ -3271,8 +3271,11 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
   
   {
     nsDOMSlots *slots = tmp->GetExistingDOMSlots();
-    if (slots)
+    if (slots) {
       slots->mAttributeMap = nsnull;
+      if (tmp->IsNodeOfType(nsINode::eXUL))
+        NS_IF_RELEASE(slots->mControllers);
+    }
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
