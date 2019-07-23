@@ -13,6 +13,10 @@
   visibility: hidden;
 }
 
+.autocomplete-tree {
+  -moz-user-focus: ignore;
+}
+
 
 
 
