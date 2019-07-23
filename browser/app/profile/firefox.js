@@ -632,12 +632,6 @@ pref("browser.sessionstore.max_tab_back_history", 10);
 pref("accessibility.blockautorefresh", false);
 
 
-pref("browser.places.importBookmarksHTML", true);
-
-
-pref("browser.places.createdSmartBookmarks", false);
-
-
 
 
 pref("browser.places.migratePostDataAnnotations", true);

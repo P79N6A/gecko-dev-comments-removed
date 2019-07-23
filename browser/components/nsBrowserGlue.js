@@ -343,12 +343,23 @@ BrowserGlue.prototype = {
       importBookmarks = prefBranch.getBoolPref("browser.places.importBookmarksHTML");
     } catch(ex) {}
 
+    
+
+
+
+
+
+
+
     if (!importBookmarks) {
       
       
       this.ensurePlacesDefaultQueriesInitialized();
       return;
     }
+
+    
+    prefBranch.setBoolPref("browser.places.createdSmartBookmarks", false);
 
     var dirService = Cc["@mozilla.org/file/directory_service;1"].
                      getService(Ci.nsIProperties);
