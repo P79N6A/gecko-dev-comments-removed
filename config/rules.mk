@@ -992,7 +992,7 @@ else
 ifeq (WINNT_,$(HOST_OS_ARCH)_$(GNU_CC))
 	$(HOST_LD) -NOLOGO -OUT:$@ -PDB:$(PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
-ifneq (,$(HOST_CPPSRCS)$(USE_HOST_CXX))
+ifdef HOST_CPPSRCS
 	$(HOST_CXX) $(HOST_OUTOPTION)$@ $(HOST_CXXFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
 	$(HOST_CC) $(HOST_OUTOPTION)$@ $(HOST_CFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
@@ -2131,6 +2131,14 @@ endif
 ################################################################################
 # Special gmake rules.
 ################################################################################
+
+
+#
+# Disallow parallel builds with MSVC < 8
+#
+ifneq (,$(filter 1200 1300 1310,$(_MSC_VER)))
+.NOTPARALLEL:
+endif
 
 #
 # Re-define the list of default suffixes, so gmake won't have to churn through
