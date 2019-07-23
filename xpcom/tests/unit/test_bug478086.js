@@ -13,6 +13,7 @@ function run_test() {
   if (isWindows) {
     root.initWithPath("\\\\.");
   } else {
+    return; 
     root.initWithPath("/");
   }
   var drives = root.directoryEntries;
