@@ -398,6 +398,13 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
     return JS_TRUE;
   }
 
+  jsval flags;
+
+  JS_GetReservedSlot(cx, obj, sFlagsSlot, &flags);
+  if (HAS_FLAGS(flags, FLAG_SOW) && !SystemOnlyWrapper::CheckFilename(cx, id, fp)) {
+    return JS_FALSE;
+  }
+
   
   
   XPCWrappedNative *wn = XPCNativeWrapper::SafeGetWrappedNative(obj);
@@ -428,12 +435,10 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
     }
   }
 
+#ifdef DEBUG
   
   
-  
-  jsval flags;
 
-  ::JS_GetReservedSlot(cx, obj, 0, &flags);
   if (HAS_FLAGS(flags, FLAG_EXPLICIT)) {
     
     return JS_TRUE;
@@ -454,7 +459,12 @@ EnsureLegalActivity(JSContext *cx, JSObject *obj,
 
   
   
-  return ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
+  NS_ERROR("Implicit native wrapper in content code");
+#else
+  return JS_TRUE;
+#endif
+
+  
 }
 
 static JSBool

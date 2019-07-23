@@ -146,9 +146,15 @@ namespace SystemOnlyWrapper {
 JSBool
 WrapObject(JSContext *cx, JSObject *parent, jsval v, jsval *vp);
 
+JSBool
+MakeSOW(JSContext *cx, JSObject *obj);
+
 
 JSBool
 AllowedToAct(JSContext *cx, jsval idval);
+
+JSBool
+CheckFilename(JSContext *cx, jsval idval, JSStackFrame *fp);
 
 }
 
@@ -170,6 +176,9 @@ namespace XPCWrapper {
 
 
 extern const PRUint32 FLAG_RESOLVING;
+
+
+extern const PRUint32 FLAG_SOW;
 
 
 

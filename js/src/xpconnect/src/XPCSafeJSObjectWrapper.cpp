@@ -113,7 +113,8 @@ using namespace XPCWrapper;
 static nsresult
 FindPrincipals(JSContext *cx, JSObject *obj, nsIPrincipal **objectPrincipal,
                nsIPrincipal **subjectPrincipal,
-               nsIScriptSecurityManager **secMgr)
+               nsIScriptSecurityManager **secMgr,
+               JSStackFrame **fp = nsnull)
 {
   XPCCallContext ccx(JS_CALLER, cx);
 
@@ -124,7 +125,11 @@ FindPrincipals(JSContext *cx, JSObject *obj, nsIPrincipal **objectPrincipal,
   nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
 
   if (subjectPrincipal) {
-    NS_IF_ADDREF(*subjectPrincipal = ssm->GetCxSubjectPrincipal(cx));
+    JSStackFrame *fp2;
+    NS_IF_ADDREF(*subjectPrincipal = ssm->GetCxSubjectPrincipalAndFrame(cx, &fp2));
+    if (fp) {
+      *fp = fp2;
+    }
   }
 
   ssm->GetObjectPrincipal(cx, obj, objectPrincipal);
@@ -137,20 +142,21 @@ FindPrincipals(JSContext *cx, JSObject *obj, nsIPrincipal **objectPrincipal,
 }
 
 static PRBool
-CanCallerAccess(JSContext *cx, JSObject *unsafeObj)
+CanCallerAccess(JSContext *cx, JSObject *wrapperObj, JSObject *unsafeObj)
 {
   
   nsCOMPtr<nsIPrincipal> subjPrincipal, objPrincipal;
   nsCOMPtr<nsIScriptSecurityManager> ssm;
+  JSStackFrame *fp;
   nsresult rv = FindPrincipals(cx, unsafeObj, getter_AddRefs(objPrincipal),
                                getter_AddRefs(subjPrincipal),
-                               getter_AddRefs(ssm));
+                               getter_AddRefs(ssm), &fp);
   if (NS_FAILED(rv)) {
     return ThrowException(rv, cx);
   }
 
   
-  if (!subjPrincipal) {
+  if (!subjPrincipal || !fp) {
     return PR_TRUE;
   }
 
@@ -166,6 +172,15 @@ CanCallerAccess(JSContext *cx, JSObject *unsafeObj)
 
     if (!enabled) {
       return ThrowException(NS_ERROR_XPC_SECURITY_MANAGER_VETO, cx);
+    }
+  }
+
+  if (wrapperObj) {
+    jsval flags;
+    JS_GetReservedSlot(cx, wrapperObj, sFlagsSlot, &flags);
+    if (HAS_FLAGS(flags, FLAG_SOW) &&
+        !SystemOnlyWrapper::CheckFilename(cx, JSVAL_VOID, fp)) {
+      return JS_FALSE;
     }
   }
 
@@ -450,7 +465,7 @@ XPC_SJOW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return JS_FALSE;
   }
@@ -467,7 +482,7 @@ XPC_SJOW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return JS_FALSE;
   }
@@ -540,7 +555,7 @@ XPC_SJOW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return JS_FALSE;
   }
@@ -602,7 +617,7 @@ XPC_SJOW_Enumerate(JSContext *cx, JSObject *obj)
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return JS_FALSE;
   }
@@ -630,7 +645,7 @@ XPC_SJOW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return JS_FALSE;
   }
@@ -721,7 +736,7 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
     
     
-    if (!CanCallerAccess(cx, callThisObj)) {
+    if (!CanCallerAccess(cx, nsnull, callThisObj)) {
       
       return JS_FALSE;
     }
@@ -754,7 +769,8 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
   
   
-  if (!CanCallerAccess(cx, unsafeObj) || !CanCallerAccess(cx, funToCall)) {
+  if (!CanCallerAccess(cx, safeObj, unsafeObj) ||
+      !CanCallerAccess(cx, nsnull, funToCall)) {
     
     return JS_FALSE;
   }
@@ -817,7 +833,7 @@ XPC_SJOW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   }
 
   
-  if (!CanCallerAccess(cx, objToWrap)) {
+  if (!CanCallerAccess(cx, nsnull, objToWrap)) {
     
     return JS_FALSE;
   }
@@ -858,7 +874,7 @@ XPC_SJOW_Create(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   JSObject *unsafeObj = GetUnsafeObject(cx, callee);
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, callee, unsafeObj)) {
     
     return JS_FALSE;
   }
@@ -923,7 +939,7 @@ XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return nsnull;
   }
@@ -936,7 +952,7 @@ XPC_SJOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
 
     
     
-    if (!CanCallerAccess(cx, unsafeObj)) {
+    if (!CanCallerAccess(cx, nsnull, unsafeObj)) {
       
       return nsnull;
     }
@@ -997,7 +1013,7 @@ XPC_SJOW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   }
 
   
-  if (!CanCallerAccess(cx, unsafeObj)) {
+  if (!CanCallerAccess(cx, obj, unsafeObj)) {
     
     return JS_FALSE;
   }
