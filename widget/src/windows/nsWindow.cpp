@@ -642,6 +642,9 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
       extendedStyle = WS_EX_TOOLWINDOW;
     else
       parent = NULL;
+  } else if (mWindowType == eWindowType_invisible) {
+    
+    style &= ~WS_CHILDWINDOW;
   } else if (nsnull != aInitData) {
     
     if (aInitData->clipChildren) {
