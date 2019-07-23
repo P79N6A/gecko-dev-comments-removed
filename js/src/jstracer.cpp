@@ -321,11 +321,12 @@ public:
 
 
     int getStoreType(jsval& v) {
+        LIns* i = recorder.get(&v);
         int t = isNumber(v)
-            ? (recorder.get(&v)->isQuad() ? JSVAL_DOUBLE : JSVAL_INT)
+            ? (isPromote(i) ? JSVAL_INT : JSVAL_DOUBLE)
             : JSVAL_TAG(v);
 #ifdef DEBUG
-         printf("%c", "OID?S?B"[t]);
+         printf("%c", "OID?S?B*"[t]);
 #endif
          return t;
     }
@@ -337,7 +338,7 @@ public:
     {
 #ifdef DEBUG
         printf("side exit type map: ");
-#endif
+#endif 
         JSStackFrame* global = recorder.getGlobalFrame();
         for (unsigned n = 0; n < global->script->ngvars; ++n)
             *m++ = (global->vars[n] != JSVAL_NULL)
