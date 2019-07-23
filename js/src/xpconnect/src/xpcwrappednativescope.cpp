@@ -151,12 +151,6 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
 
         mNext = gScopes;
         gScopes = this;
-
-        
-        mContext = mRuntime->GetContextMap()->Find(ccx.GetJSContext());
-        NS_ASSERTION(mContext, "Context map is not synchronized");
-
-        mContext->AddScope(this);
     }
 
     if(aGlobal)
@@ -260,9 +254,6 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
         NS_ASSERTION(0 == mWrappedNativeProtoMap->Count(), "scope has non-empty map");
         delete mWrappedNativeProtoMap;
     }
-
-    if(mContext)
-        mContext->RemoveScope(this);
 
     
     
