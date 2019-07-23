@@ -36,7 +36,6 @@
 
 
 
-
 #ifndef GFX_PLATFORM_BEOS_H
 #define GFX_PLATFORM_BEOS_H
 
@@ -67,6 +66,8 @@ public:
     nsresult ResolveFontName(const nsAString& aFontName,
                              FontResolverCallback aCallback,
                              void *aClosure, PRBool& aAborted);
+
+    nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
 };

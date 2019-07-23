@@ -172,6 +172,12 @@ public:
     
 
 
+
+    virtual nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName) = 0;
+
+    
+
+
     virtual gfxFontGroup *CreateFontGroup(const nsAString& aFamilies,
                                           const gfxFontStyle *aStyle) = 0;
 
