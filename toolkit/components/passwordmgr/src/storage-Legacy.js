@@ -154,7 +154,7 @@ LoginManagerStorage_legacy.prototype = {
         }
 
         
-        this._readFile()
+        this._readFile();
 
         
         if (importFile) {
@@ -811,13 +811,27 @@ LoginManagerStorage_legacy.prototype = {
             login.password = password;
 
             
+            
             if (login.wrappedJSObject.encryptedUsername &&
-                login.wrappedJSObject.encryptedUsername.charAt(0) == '~')
-                login.wrappedJSObject.encryptedUsername = null;
+                login.wrappedJSObject.encryptedUsername.charAt(0) == '~') {
+                  [username, userCanceled] = this._encrypt(login.username);
+
+                  if (userCanceled)
+                    break;
+
+                  login.wrappedJSObject.encryptedUsername = username;
+            }
 
             if (login.wrappedJSObject.encryptedPassword &&
-                login.wrappedJSObject.encryptedPassword.charAt(0) == '~')
-                login.wrappedJSObject.encryptedPassword = null;
+                login.wrappedJSObject.encryptedPassword.charAt(0) == '~') {
+
+                  [password, userCanceled] = this._encrypt(login.password);
+
+                  if (userCanceled)
+                    break;
+
+                  login.wrappedJSObject.encryptedPassword = password;
+            }
 
             result.push(login);
         }

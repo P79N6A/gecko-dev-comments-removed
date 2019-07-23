@@ -97,7 +97,7 @@ LoginTest.checkStorageData(storage, ["http://www.disabled.com"], []);
 
 
 testnum++;
-testdesc = "Initialize with signons-06.txt (1 disabled, 0 logins, extra '.')";
+testdesc = "Initialize with signons-04.txt (1 disabled, 0 logins, extra '.')";
 
 
 
