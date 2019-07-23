@@ -877,8 +877,6 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   }
 #endif
 
-  
-  
   nsSize oldSize = GetSize();
 
   
@@ -1133,14 +1131,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  
-  
-  
-  
-  
-  
-  if (mAbsoluteContainer.HasAbsoluteFrames() &&
-      !aReflowState.WillReflowAgainForClearance()) {
+  if (mAbsoluteContainer.HasAbsoluteFrames()) {
     nsRect childBounds;
     nsSize containingBlockSize
       = CalculateContainingBlockSizeForAbsolutes(aReflowState,
@@ -1880,7 +1871,8 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       rv = ReflowLine(aState, line, &keepGoing);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      if (aState.mReflowState.WillReflowAgainForClearance()) {
+      if (aState.mReflowState.mDiscoveredClearance &&
+          *aState.mReflowState.mDiscoveredClearance) {
         line->MarkDirty();
         willReflowAgain = PR_TRUE;
         

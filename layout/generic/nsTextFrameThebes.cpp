@@ -5481,16 +5481,8 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth);
   }
   PRBool breakAfter = PR_FALSE;
-  if (charsFit == length && transformedOffset + transformedLength == mTextRun->GetLength() &&
-      (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK) &&
-      
-      
-      
-      (transformedLength > 0 || lineLayout.LineIsBreakable())) {
-    
-    
-    
-
+  if ((charsFit == length && transformedOffset + transformedLength == mTextRun->GetLength() &&
+       (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK))) {
     
     
     
