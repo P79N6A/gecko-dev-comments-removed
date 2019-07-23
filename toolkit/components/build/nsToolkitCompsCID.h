@@ -38,6 +38,13 @@
 #define NS_ALERTSERVICE_CONTRACTID \
   "@mozilla.org/alerts-service;1"
 
+
+
+
+
+#define NS_SYSTEMALERTSERVICE_CONTRACTID \
+  "@mozilla.org/system-alerts-service;1"
+
 #define NS_AUTOCOMPLETECONTROLLER_CONTRACTID \
   "@mozilla.org/autocomplete/controller;1"
 
@@ -114,6 +121,10 @@
 
 #define NS_ALERTSSERVICE_CID \
 { 0xa0ccaaf8, 0x9da, 0x44d8, { 0xb2, 0x50, 0x9a, 0xc3, 0xe9, 0x3c, 0x81, 0x17 } }
+
+
+#define NS_SYSTEMALERTSSERVICE_CID \
+{ 0x84e11f80, 0xca55, 0x11dd, { 0xad, 0x8b, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
 
 
 #define NS_AUTOCOMPLETECONTROLLER_CID \
