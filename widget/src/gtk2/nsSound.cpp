@@ -61,7 +61,6 @@
 static int esdref = -1;
 static PRLibrary *elib = nsnull;
 static PRLibrary *libcanberra = nsnull;
-static PRLibrary* libasound = nsnull;
 
 
 
@@ -101,26 +100,6 @@ static ca_context_destroy_fn ca_context_destroy;
 static ca_context_play_fn ca_context_play;
 static ca_context_change_props_fn ca_context_change_props;
 
-
-
-typedef void (*snd_lib_error_handler_t) (const char* file,
-                                         int         line,
-                                         const char* function,
-                                         int         err,
-                                         const char* format,
-                                         ...);
-typedef int (*snd_lib_error_set_handler_fn) (snd_lib_error_handler_t handler);
-
-static void
-quiet_error_handler(const char* file,
-                    int         line,
-                    const char* function,
-                    int         err,
-                    const char* format,
-                    ...)
-{
-}
-
 NS_IMPL_ISUPPORTS2(nsSound, nsISound, nsIStreamLoaderObserver)
 
 
@@ -131,8 +110,7 @@ nsSound::nsSound()
 
 nsSound::~nsSound()
 {
-    
-    if (esdref != -1) {
+    if (esdref > 0) {
         EsdCloseType EsdClose = (EsdCloseType) PR_FindFunctionSymbol(elib, "esd_close");
         if (EsdClose)
             (*EsdClose)(esdref);
@@ -151,33 +129,20 @@ nsSound::Init()
     mInited = PR_TRUE;
 
     if (!elib) {
-        
-
-        EsdOpenSoundType EsdOpenSound;
-
         elib = PR_LoadLibrary("libesd.so.0");
         if (elib) {
-            EsdOpenSound = (EsdOpenSoundType) PR_FindFunctionSymbol(elib, "esd_open_sound");
+            
+            EsdOpenSoundType EsdOpenSound = (EsdOpenSoundType) PR_FindFunctionSymbol(elib, "esd_open_sound");
             if (!EsdOpenSound) {
                 PR_UnloadLibrary(elib);
                 elib = nsnull;
             } else {
                 esdref = (*EsdOpenSound)("localhost");
-                if (!esdref) {
+                if (esdref < 0) {
                     PR_UnloadLibrary(elib);
                     elib = nsnull;
                 }
             }
-        }
-    }
-
-    if (!libasound) {
-        PRFuncPtr func = PR_FindFunctionSymbolAndLibrary("snd_lib_error_set_handler",
-                                                         &libasound);
-        if (libasound) {
-            snd_lib_error_set_handler_fn snd_lib_error_set_handler =
-                 (snd_lib_error_set_handler_fn) func;
-            snd_lib_error_set_handler(quiet_error_handler);
         }
     }
 
@@ -210,10 +175,6 @@ nsSound::Shutdown()
     if (libcanberra) {
         PR_UnloadLibrary(libcanberra);
         libcanberra = nsnull;
-    }
-    if (libasound) {
-        PR_UnloadLibrary(libasound);
-        libasound = nsnull;
     }
 }
 
@@ -380,7 +341,7 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
             buf[j + 1] = audio[j];
         }
 
-	audio = buf;
+        audio = buf;
     }
 #endif
 
