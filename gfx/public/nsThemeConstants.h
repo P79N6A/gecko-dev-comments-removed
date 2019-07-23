@@ -157,6 +157,9 @@
 #define NS_THEME_TEXTFIELD_MULTILINE                       97
 
 
+#define NS_THEME_SEARCHFIELD                               98
+
+
 #define NS_THEME_DROPDOWN                                  101
 
 
