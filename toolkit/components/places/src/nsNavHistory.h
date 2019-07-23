@@ -351,6 +351,7 @@ protected:
   
   nsCOMPtr<mozIStorageService> mDBService;
   nsCOMPtr<mozIStorageConnection> mDBConn;
+  nsCOMPtr<nsIFile> mDBFile;
 
   nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfo;   
   nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfoFull; 
@@ -374,6 +375,8 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBUrlToUrlResult; 
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
 
+  nsresult InitDBFile(PRBool aForceInit);
+  nsresult BackupDBFile();
   nsresult InitDB(PRBool *aDoImport);
   nsresult InitStatements();
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
