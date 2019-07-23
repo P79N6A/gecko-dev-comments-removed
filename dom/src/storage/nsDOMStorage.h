@@ -191,7 +191,7 @@ protected:
   nsCOMPtr<nsIURI> mURI;
 
   
-  nsAutoString mDomain;
+  nsString mDomain;
 
   
   nsTHashtable<nsSessionStorageEntry> mItems;

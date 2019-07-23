@@ -99,7 +99,7 @@ private:
 
   
   
-  nsCAutoString mFileName;
+  nsCString mFileName;
   PRUint32 mLineNo;
   PRUint32 mVersion;
   nsCOMPtr<nsIArray> mArgv;
