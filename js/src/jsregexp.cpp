@@ -2291,6 +2291,7 @@ class RegExpNativeCompiler {
     LirBufWriter*    lirBufWriter;  
 
     LIns*            state;
+    LIns*            start;
     LIns*            cpend;
 
     bool outOfMemory() {
@@ -2952,8 +2953,21 @@ class RegExpNativeCompiler {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
         lir->ins1(LIR_live, state);
         lir->ins1(LIR_live, cpend);
+        lir->ins1(LIR_live, start);
 
         
         targetCurrentPoint(kidFails);
@@ -3121,7 +3135,6 @@ class RegExpNativeCompiler {
     JSBool compile()
     {
         GuardRecord* guard = NULL;
-        LIns* pos;
         const jschar* re_chars;
         size_t re_length;
         JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
@@ -3186,16 +3199,16 @@ class RegExpNativeCompiler {
             fragment->loopLabel = loopLabel;
         })
 
-        pos = addName(lirbuf,
+        start = addName(lirbuf,
                       lir->insLoad(LIR_ldp, state,
                                    offsetof(REGlobalData, skipped)),
-                      "pos");
+                      "start");
 
         if (cs->flags & JSREG_STICKY) {
-            if (!compileSticky(cs->result, pos))
+            if (!compileSticky(cs->result, start))
                 goto fail;
         } else {
-            if (!compileAnchoring(cs->result, pos))
+            if (!compileAnchoring(cs->result, start))
                 goto fail;
         }
 
