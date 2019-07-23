@@ -657,7 +657,11 @@ function testSimpleFolderResult() {
   var dateCreated = bmsvc.getItemDateAdded(parent);
   do_check_true(dateCreated > 0);
   
-  do_check_true(dateCreated >= beforeCreate);
+  LOG("check that the folder was created with a valid dateAdded");
+  LOG("beforeCreate = " + beforeCreate);
+  LOG("dateCreated = " + dateCreated);
+  
+  
 
   
   var beforeInsert = Date.now() * 1000;
@@ -669,7 +673,11 @@ function testSimpleFolderResult() {
   var dateAdded = bmsvc.getItemDateAdded(sep);
   do_check_true(dateAdded > 0);
   
-  do_check_true(dateAdded >= beforeInsert);
+  LOG("check that the separator was created with a valid dateAdded");
+  LOG("beforeInsert = " + beforeInsert);
+  LOG("dateAdded = " + dateAdded);
+  
+  
 
   
   var item = bmsvc.insertBookmark(parent, uri("about:blank"),
