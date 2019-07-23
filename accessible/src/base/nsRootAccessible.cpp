@@ -253,6 +253,7 @@ const char* const docEvents[] = {
 #endif
   
   "focus",
+  "blur",
   
   "select",
   
@@ -808,6 +809,11 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
       }
     }
     FireAccessibleFocusEvent(accessible, focusedItem, aEvent);
+  }
+  else if (eventType.EqualsLiteral("blur")) {
+    gLastFocusedNode = nsnull;
+    gLastFocusedFrameType = nsnull;
+    gLastFocusedAccessiblesState = 0;
   }
   else if (eventType.EqualsLiteral("AlertActive")) { 
     nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, accessible);

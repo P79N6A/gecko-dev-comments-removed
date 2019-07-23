@@ -591,6 +591,7 @@ function sequence()
 
 
 
+
 function synthClick(aNodeOrID, aChecker, aEventType)
 {
   this.__proto__ = new synthAction(aNodeOrID, aChecker, aEventType);
@@ -936,14 +937,16 @@ function sequenceItem(aProcessor, aEventType, aTarget, aItemID)
 function synthAction(aNodeOrID, aChecker, aEventType)
 {
   this.DOMNode = getNode(aNodeOrID);
-  aChecker.target = this.DOMNode;
+  if (aChecker)
+    aChecker.target = this.DOMNode;
 
   if (aEventType)
     this.eventSeq = [ new invokerChecker(aEventType, this.DOMNode) ];
 
   this.check = function synthAction_check(aEvent)
   {
-    aChecker.check(aEvent);
+    if (aChecker)
+      aChecker.check(aEvent);
   }
 
   this.getID = function synthAction_getID() { return aNodeOrID + " action"; }
