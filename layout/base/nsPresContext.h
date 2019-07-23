@@ -220,6 +220,7 @@ public:
 
 
   PRUint16     ImageAnimationMode() const { return mImageAnimationMode; }
+  void RestoreImageAnimationMode() { SetImageAnimationMode(mImageAnimationModePref); }
   virtual NS_HIDDEN_(void) SetImageAnimationModeExternal(PRUint16 aMode);
   NS_HIDDEN_(void) SetImageAnimationModeInternal(PRUint16 aMode);
 #ifdef _IMPL_NS_LAYOUT
