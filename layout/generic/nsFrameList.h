@@ -106,12 +106,6 @@ public:
 
 
 
-  void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList);
-
-  
-
-
-
 
   Slice AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList) {
     return InsertFrames(aParent, LastChild(), aFrameList);
@@ -183,15 +177,6 @@ public:
     InsertFrames(aParent, aPrevSibling, temp);
   }
 
-
-  
-
-
-
-
-  void InsertFrames(nsIFrame* aParent,
-                    nsIFrame* aPrevSibling,
-                    nsIFrame* aFrameList);
 
   
 
