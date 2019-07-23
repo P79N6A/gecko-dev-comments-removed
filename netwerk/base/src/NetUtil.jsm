@@ -44,7 +44,7 @@
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 
-var NetUtil = {
+const NetUtil = {
     
 
 
