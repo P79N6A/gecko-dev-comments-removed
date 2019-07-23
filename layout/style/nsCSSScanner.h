@@ -104,13 +104,13 @@ enum nsCSSTokenType {
 };
 
 struct nsCSSToken {
-  nsCSSTokenType  mType;
-  PRPackedBool    mIntegerValid; 
-  PRPackedBool    mHasSign; 
   nsAutoString    mIdent NS_OKONHEAP;
   float           mNumber;
   PRInt32         mInteger;
+  nsCSSTokenType  mType;
   PRUnichar       mSymbol;
+  PRPackedBool    mIntegerValid; 
+  PRPackedBool    mHasSign; 
 
   nsCSSToken();
 

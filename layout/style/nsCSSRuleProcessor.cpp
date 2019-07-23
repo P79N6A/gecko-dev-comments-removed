@@ -2328,10 +2328,10 @@ struct CascadeEnumData {
   nsPresContext* mPresContext;
   nsTArray<nsFontFaceRuleContainer>& mFontFaceRules;
   nsMediaQueryResultCacheKey& mCacheKey;
+  PLArenaPool& mArena;
   
   
   PLDHashTable mRulesByWeight; 
-  PLArenaPool& mArena;
   PRUint8 mSheetType;
 };
 

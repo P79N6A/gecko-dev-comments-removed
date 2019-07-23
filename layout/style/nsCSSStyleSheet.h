@@ -85,13 +85,13 @@ public:
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMArray<nsICSSRule> mOrderedRules;
   nsAutoPtr<nsXMLNameSpaceMap> mNameSpaceMap;
-  PRBool                 mComplete;
   
   
   
   
   
   nsRefPtr<nsCSSStyleSheet> mFirstChild;
+  PRBool                 mComplete;
 
 #ifdef DEBUG
   PRBool                 mPrincipalSet;

@@ -848,6 +848,11 @@ public:
   nsAbsoluteItems           mAbsoluteItems;
   nsAbsoluteItems           mFloatedItems;
 
+  nsCOMPtr<nsILayoutHistoryState> mFrameState;
+  
+  
+  nsFrameState              mAdditionalStateBits;
+
   
   
   
@@ -859,11 +864,6 @@ public:
   
   
   PRPackedBool              mHavePendingPopupgroup;
-
-  nsCOMPtr<nsILayoutHistoryState> mFrameState;
-  
-  
-  nsFrameState              mAdditionalStateBits; 
 
   
   
@@ -977,12 +977,12 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
     mAbsoluteItems(aAbsoluteContainingBlock),
     mFloatedItems(aFloatContainingBlock),
     
+    mFrameState(aHistoryState),
+    mAdditionalStateBits(0),
     mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
                       aAbsoluteContainingBlock->GetStyleDisplay()->
                         HasTransform()),
-    mHavePendingPopupgroup(PR_FALSE),
-    mFrameState(aHistoryState),
-    mAdditionalStateBits(0)
+    mHavePendingPopupgroup(PR_FALSE)
 {
 #ifdef MOZ_XUL
   nsIRootBox* rootBox = nsIRootBox::GetRootBox(aPresShell);
@@ -1007,11 +1007,11 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
     mAbsoluteItems(aAbsoluteContainingBlock),
     mFloatedItems(aFloatContainingBlock),
     
+    mAdditionalStateBits(0),
     mFixedPosIsAbsPos(aAbsoluteContainingBlock &&
                       aAbsoluteContainingBlock->GetStyleDisplay()->
                         HasTransform()),
-    mHavePendingPopupgroup(PR_FALSE),
-    mAdditionalStateBits(0)
+    mHavePendingPopupgroup(PR_FALSE)
 {
 #ifdef MOZ_XUL
   nsIRootBox* rootBox = nsIRootBox::GetRootBox(aPresShell);

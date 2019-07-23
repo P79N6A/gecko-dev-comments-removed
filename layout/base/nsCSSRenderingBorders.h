@@ -107,8 +107,7 @@ struct nsCSSBorderRenderer {
                       PRIntn aSkipSides,
                       nscolor aBackgroundColor);
 
-  
-  PRInt32 mAUPP;
+  gfxCornerSizes mBorderCornerDimensions;
 
   
   gfxContext* mContext;
@@ -127,14 +126,15 @@ struct nsCSSBorderRenderer {
   nsBorderColors* const* mCompositeColors;
 
   
+  PRInt32 mAUPP;
+
+  
   PRIntn mSkipSides;
   nscolor mBackgroundColor;
 
   
   PRPackedBool mOneUnitBorder;
   PRPackedBool mNoBorderRadius;
-
-  gfxCornerSizes mBorderCornerDimensions;
 
   
   

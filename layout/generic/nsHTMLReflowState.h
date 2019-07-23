@@ -224,6 +224,16 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   const nsHTMLReflowState* parentReflowState;
 
   
+  nsFloatManager* mFloatManager;
+
+  
+  nsLineLayout*    mLineLayout;
+
+  
+  
+  const nsHTMLReflowState *mCBReflowState;
+
+  
   
   
   
@@ -245,9 +255,6 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   nsCSSFrameType   mFrameType;
 
   
-  nsFloatManager* mFloatManager;
-
-  
   
   
   
@@ -256,13 +263,6 @@ struct nsHTMLReflowState : public nsCSSOffsetState {
   
   
   nscoord mBlockDelta;
-
-  
-  nsLineLayout*    mLineLayout;
-
-  
-  
-  const nsHTMLReflowState *mCBReflowState;
 
 private:
   
