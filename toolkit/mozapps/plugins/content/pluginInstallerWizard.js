@@ -337,30 +337,23 @@ nsPluginInstallerWizard.prototype.startPluginInstallation = function (){
   this.canAdvance(false);
   this.canRewind(false);
 
-  
-  
-  
-
-  var pluginURLArray = new Array();
-  var pluginHashArray = new Array();
-  var pluginPidArray = new Array();
+  var installerPlugins = [];
+  var xpiPlugins = [];
 
   for (pluginInfoItem in this.mPluginInfoArray){
     var pluginItem = this.mPluginInfoArray[pluginInfoItem];
 
-    
-    
-    if (pluginItem.toBeInstalled && pluginItem.XPILocation && pluginItem.licenseAccepted) {
-      pluginURLArray.push(pluginItem.XPILocation);
-      pluginHashArray.push(pluginItem.XPIHash);
-      pluginPidArray.push(pluginItem.pid);
+    if (pluginItem.toBeInstalled && pluginItem.licenseAccepted) {
+      if (pluginItem.InstallerLocation)
+        installerPlugins.push(pluginItem);
+      else if (pluginItem.XPILocation)
+        xpiPlugins.push(pluginItem);
     }
   }
 
-  if (pluginURLArray.length > 0)
-    PluginInstallService.startPluginInstallation(pluginURLArray,
-                                                 pluginHashArray,
-                                                 pluginPidArray);
+  if (installerPlugins.length > 0 || xpiPlugins.length > 0)
+    PluginInstallService.startPluginInstallation(installerPlugins,
+                                                 xpiPlugins);
   else
     this.advancePage(null, true, false, false);
 }
@@ -622,6 +615,8 @@ function PluginInfo(aResult) {
   this.pid = aResult.pid;
   this.version = aResult.version;
   this.IconUrl = aResult.IconUrl;
+  this.InstallerLocation = aResult.InstallerLocation;
+  this.InstallerHash = aResult.InstallerHash;
   this.XPILocation = aResult.XPILocation;
   this.XPIHash = aResult.XPIHash;
   this.InstallerShowsUI = aResult.InstallerShowsUI;
