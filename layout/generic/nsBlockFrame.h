@@ -299,6 +299,8 @@ public:
 
 
 
+
+
   struct ReplacedElementWidthToClear {
     nscoord marginLeft, borderBoxWidth, marginRight;
     nscoord MarginBoxWidth() const

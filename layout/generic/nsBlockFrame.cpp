@@ -1770,20 +1770,17 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       line->MarkDirty();
     }
 
-    ReplacedElementWidthToClear replacedWidthStruct;
-    ReplacedElementWidthToClear *replacedWidth = nsnull;
+    nsIFrame *replacedBlock = nsnull;
     if (line->IsBlock() &&
         !nsBlockFrame::BlockCanIntersectFloats(line->mFirstChild)) {
-      replacedWidthStruct =
-        nsBlockFrame::WidthToClearPastFloats(aState, line->mFirstChild);
-      replacedWidth = &replacedWidthStruct;
+      replacedBlock = line->mFirstChild;
     }
 
     
     
     if (!line->IsDirty() &&
         (line->GetBreakTypeBefore() != NS_STYLE_CLEAR_NONE ||
-         replacedWidth)) {
+         replacedBlock)) {
       nscoord curY = aState.mY;
       
       
@@ -1792,7 +1789,7 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       }
 
       nscoord newY =
-        aState.ClearFloats(curY, line->GetBreakTypeBefore(), replacedWidth);
+        aState.ClearFloats(curY, line->GetBreakTypeBefore(), replacedBlock);
       
       if (line->HasClearance()) {
         
@@ -2796,12 +2793,10 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   PRBool treatWithClearance = aLine->HasClearance();
 
   PRBool mightClearFloats = breakType != NS_STYLE_CLEAR_NONE;
-  ReplacedElementWidthToClear replacedWidthStruct;
-  ReplacedElementWidthToClear *replacedWidth = nsnull;
+  nsIFrame *replacedBlock = nsnull;
   if (!nsBlockFrame::BlockCanIntersectFloats(frame)) {
     mightClearFloats = PR_TRUE;
-    replacedWidthStruct = nsBlockFrame::WidthToClearPastFloats(aState, frame);
-    replacedWidth = &replacedWidthStruct;
+    replacedBlock = frame;
   }
 
   
@@ -2811,7 +2806,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   if (!treatWithClearance && !applyTopMargin && mightClearFloats &&
       aState.mReflowState.mDiscoveredClearance) {
     nscoord curY = aState.mY + aState.mPrevBottomMargin.get();
-    nscoord clearY = aState.ClearFloats(curY, breakType, replacedWidth);
+    nscoord clearY = aState.ClearFloats(curY, breakType, replacedBlock);
     if (clearY != curY) {
       
       
@@ -2890,7 +2885,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
         
         
         nscoord curY = aState.mY + aState.mPrevBottomMargin.get();
-        nscoord clearY = aState.ClearFloats(curY, breakType, replacedWidth);
+        nscoord clearY = aState.ClearFloats(curY, breakType, replacedBlock);
         if (clearY != curY) {
           
           
@@ -2918,7 +2913,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       if (treatWithClearance) {
         nscoord currentY = aState.mY;
         
-        aState.mY = aState.ClearFloats(aState.mY, breakType, replacedWidth);
+        aState.mY = aState.ClearFloats(aState.mY, breakType, replacedBlock);
         
         
         
@@ -2949,7 +2944,8 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     PRBool isImpacted = aState.IsImpactedByFloat() ? PR_TRUE : PR_FALSE;
     aLine->SetLineIsImpactedByFloat(isImpacted);
     nsRect availSpace;
-    aState.ComputeBlockAvailSpace(frame, display, replacedWidth, availSpace);
+    aState.ComputeBlockAvailSpace(frame, display, replacedBlock != nsnull,
+                                  availSpace);
     
     
     
@@ -6777,7 +6773,6 @@ nsBlockFrame::ReplacedElementWidthToClear
 nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
                                      nsIFrame* aFrame)
 {
-  aState.GetAvailableSpace();
   nscoord leftOffset, rightOffset;
   nsCSSOffsetState offsetState(aFrame, aState.mReflowState.rendContext,
                                aState.mContentArea.width);

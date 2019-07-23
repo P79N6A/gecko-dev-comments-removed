@@ -110,7 +110,7 @@ public:
   
   
   nscoord ClearFloats(nscoord aY, PRUint8 aBreakType,
-    nsBlockFrame::ReplacedElementWidthToClear *aReplacedWidth = nsnull);
+                      nsIFrame *aReplacedBlock = nsnull);
 
   PRBool IsAdjacentWithTop() const {
     return mY ==
@@ -141,17 +141,18 @@ public:
   void ReconstructMarginAbove(nsLineList::iterator aLine);
 
   
+  
+  
   void ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
                                             nscoord& aLeftResult,
                                             nscoord& aRightResult,
-                                        nsBlockFrame::ReplacedElementWidthToClear
-                                                       *aReplacedWidth = nsnull);
+                                       nsBlockFrame::ReplacedElementWidthToClear
+                                                      *aReplacedWidth = nsnull);
 
   
   void ComputeBlockAvailSpace(nsIFrame* aFrame,
                               const nsStyleDisplay* aDisplay,
-                              nsBlockFrame::ReplacedElementWidthToClear
-                                                               *aReplacedWidth,
+                              PRBool aBlockAvoidsFloats,
                               nsRect& aResult);
 
 protected:
