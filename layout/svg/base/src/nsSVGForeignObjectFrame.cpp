@@ -512,20 +512,22 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
   if (!kid)
     return;
 
-  
-  
-  
-  
-  PRBool reflowing;
-  PresContext()->PresShell()->IsReflowLocked(&reflowing);
-  if (reflowing) {
-    NS_ASSERTION(aType == nsIPresShell::eResize, "Failed to invalidate stored intrinsic widths!");
-    
-    if (!(kid->GetStateBits() & NS_FRAME_IS_DIRTY)) {
-      DoReflow();
-    }
-    return;
-  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   PresContext()->PresShell()->FrameNeedsReflow(kid, aType, NS_FRAME_IS_DIRTY);
 }
