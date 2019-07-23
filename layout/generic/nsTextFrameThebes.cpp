@@ -2363,6 +2363,33 @@ static void TabWidthDestructor(void* aObject, nsIAtom* aProp, void* aValue,
   delete static_cast<nsTArray<gfxFloat>*>(aValue);
 }
 
+static gfxFloat
+ComputeTabWidthAppUnits(nsIFrame* aLineContainer, gfxTextRun* aTextRun)
+{
+  
+  
+  gfxFloat spaceWidthAppUnits =
+    NS_roundf(GetFirstFontMetrics(
+                GetFontGroupForFrame(aLineContainer)).spaceWidth *
+              aTextRun->GetAppUnitsPerDevUnit());
+  return 8*spaceWidthAppUnits;
+}
+
+
+static gfxFloat
+AdvanceToNextTab(gfxFloat aX, nsIFrame* aLineContainer,
+                 gfxTextRun* aTextRun, gfxFloat* aCachedTabWidth)
+{
+  if (*aCachedTabWidth < 0) {
+    *aCachedTabWidth = ComputeTabWidthAppUnits(aLineContainer, aTextRun);
+  }
+
+  
+  
+  
+  return NS_ceil((aX + 1)/(*aCachedTabWidth))*(*aCachedTabWidth);
+}
+
 gfxFloat*
 PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
 {
@@ -2378,10 +2405,6 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
       if (!mLineContainer) {
         
         
-        
-        
-        
-        NS_WARNING("Preformatted tabs encountered in intrinsic width situation");
         return nsnull;
       }
 
@@ -2407,13 +2430,7 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
     if (!mTabWidths->AppendElements(aStart + aLength - tabsEnd))
       return nsnull;
     
-    
-    
-    gfxFloat spaceWidthAppUnits =
-      NS_roundf(GetFirstFontMetrics(
-                  GetFontGroupForFrame(mLineContainer)).spaceWidth *
-                mTextRun->GetAppUnitsPerDevUnit());
-    gfxFloat tabWidth = 8*spaceWidthAppUnits;
+    gfxFloat tabWidth = -1;
     for (PRUint32 i = tabsEnd; i < aStart + aLength; ++i) {
       Spacing spacing;
       GetSpacingInternal(i, 1, &spacing, PR_TRUE);
@@ -2431,11 +2448,8 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
             mTextRun->GetAdvanceWidth(i, clusterEnd - i, nsnull);
         }
       } else {
-        
-        
-        
-        double nextTab =
-          NS_ceil((mOffsetFromBlockOriginForTabs + 1)/tabWidth)*tabWidth;
+        double nextTab = AdvanceToNextTab(mOffsetFromBlockOriginForTabs,
+                mLineContainer, mTextRun, &tabWidth);
         (*mTabWidths)[i - startOffset] = nextTab - mOffsetFromBlockOriginForTabs;
         mOffsetFromBlockOriginForTabs = nextTab;
       }
@@ -5241,6 +5255,8 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
 
   PRBool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   PRBool preformatNewlines = textStyle->NewlineIsSignificant();
+  PRBool preformatTabs = textStyle->WhiteSpaceIsSignificant();
+  gfxFloat tabWidth = -1;
   PRUint32 start =
     FindStartAfterSkippingWhitespace(&provider, aData, textStyle, &iter, flowEndInTextRun);
   if (start >= flowEndInTextRun)
@@ -5249,12 +5265,15 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   for (PRUint32 i = start, wordStart = start; i <= flowEndInTextRun; ++i) {
     PRBool preformattedNewline = PR_FALSE;
+    PRBool preformattedTab = PR_FALSE;
     if (i < flowEndInTextRun) {
       
       
       
       preformattedNewline = preformatNewlines && mTextRun->GetChar(i) == '\n';
-      if (!mTextRun->CanBreakLineBefore(i) && !preformattedNewline) {
+      preformattedTab = preformatTabs && mTextRun->GetChar(i) == '\t';
+      if (!mTextRun->CanBreakLineBefore(i) && !preformattedNewline &&
+          !preformattedTab) {
         
         continue;
       }
@@ -5282,7 +5301,16 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
       }
     }
 
-    if (i < flowEndInTextRun ||
+    if (preformattedTab) {
+      PropertyProvider::Spacing spacing;
+      provider.GetSpacing(i, 1, &spacing);
+      aData->currentLine += nscoord(spacing.mBefore);
+      gfxFloat afterTab =
+        AdvanceToNextTab(aData->currentLine, FindLineContainer(this),
+                         mTextRun, &tabWidth);
+      aData->currentLine = nscoord(afterTab + spacing.mAfter);
+      wordStart = i + 1;
+    } else if (i < flowEndInTextRun ||
         (i == mTextRun->GetLength() &&
          (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK))) {
       if (preformattedNewline) {
@@ -5346,6 +5374,8 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
 
   PRBool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   PRBool preformatNewlines = textStyle->NewlineIsSignificant();
+  PRBool preformatTabs = textStyle->WhiteSpaceIsSignificant();
+  gfxFloat tabWidth = -1;
   PRUint32 start =
     FindStartAfterSkippingWhitespace(&provider, aData, textStyle, &iter, flowEndInTextRun);
   if (start >= flowEndInTextRun)
@@ -5354,16 +5384,18 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
   
   
   
-  for (PRUint32 i = preformatNewlines ? start : flowEndInTextRun, lineStart = start;
-       i <= flowEndInTextRun; ++i) {
+  PRUint32 loopStart = (preformatNewlines || preformatTabs) ? start : flowEndInTextRun;
+  for (PRUint32 i = loopStart, lineStart = start; i <= flowEndInTextRun; ++i) {
     PRBool preformattedNewline = PR_FALSE;
+    PRBool preformattedTab = PR_FALSE;
     if (i < flowEndInTextRun) {
       
       
       
       NS_ASSERTION(preformatNewlines, "We can't be here unless newlines are hard breaks");
-      preformattedNewline = mTextRun->GetChar(i) == '\n';
-      if (!preformattedNewline) {
+      preformattedNewline = preformatNewlines && mTextRun->GetChar(i) == '\n';
+      preformattedTab = preformatTabs && mTextRun->GetChar(i) == '\t';
+      if (!preformattedNewline && !preformattedTab) {
         
         continue;
       }
@@ -5390,7 +5422,16 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
       }
     }
 
-    if (preformattedNewline) {
+    if (preformattedTab) {
+      PropertyProvider::Spacing spacing;
+      provider.GetSpacing(i, 1, &spacing);
+      aData->currentLine += nscoord(spacing.mBefore);
+      gfxFloat afterTab =
+        AdvanceToNextTab(aData->currentLine, FindLineContainer(this),
+                         mTextRun, &tabWidth);
+      aData->currentLine = nscoord(afterTab + spacing.mAfter);
+      lineStart = i + 1;
+    } else if (preformattedNewline) {
       aData->ForceBreak(aRenderingContext);
       lineStart = i;
     }
