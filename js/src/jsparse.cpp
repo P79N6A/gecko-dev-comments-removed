@@ -815,16 +815,21 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
     JSCodeGenerator cg(&jsc, &codePool, &notePool, jsc.tokenStream.lineno);
 
     MUST_FLOW_THROUGH("out");
+
+    
+    script = NULL;
+
     cg.flags |= (uint16) tcflags;
     cg.scopeChain = scopeChain;
     if (!SetStaticLevel(&cg, TCF_GET_STATIC_LEVEL(tcflags)))
-        return NULL;
+        goto out;
 
     
 
 
 
-    JSObjectBox *funbox = NULL;
+    JSObjectBox *funbox;
+    funbox = NULL;
 
     if (tcflags & TCF_COMPILE_N_GO) {
         if (source) {
@@ -834,7 +839,7 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
 
             JSAtom *atom = js_AtomizeString(cx, source, 0);
             if (!atom || !cg.atomList.add(&jsc, atom))
-                return NULL;
+                goto out;
         }
 
         if (callerFrame && callerFrame->fun) {
@@ -845,7 +850,7 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
 
             funbox = jsc.newObjectBox(FUN_OBJECT(callerFrame->fun));
             if (!funbox)
-                return NULL;
+                goto out;
             funbox->emitLink = cg.objectList.lastbox;
             cg.objectList.lastbox = funbox;
             cg.objectList.length++;
@@ -858,14 +863,13 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
 
     uint32 bodyid;
     if (!GenerateBlockId(&cg, bodyid))
-        return NULL;
+        goto out;
     cg.bodyid = bodyid;
 
-    
-    script = NULL;
 #if JS_HAS_XML_SUPPORT
     pn = NULL;
-    bool onlyXML = true;
+    bool onlyXML;
+    onlyXML = true;
 #endif
 
     for (;;) {
