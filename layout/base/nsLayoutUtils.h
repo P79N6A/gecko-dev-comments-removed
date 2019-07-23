@@ -62,6 +62,7 @@ class nsIFontMetrics;
 #include "nsIPresShell.h"
 
 class nsBlockFrame;
+class nsTextFragment;
 
 
 
@@ -963,16 +964,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-  static nsresult InitTextRunContainerForPrinting(nsIContent* aContainerContent,
-                                                  nsIFrame* aFrame,
-                                                  nsFrameState aBits);
+  static nsTextFragment* GetTextFragmentForPrinting(const nsIFrame* aFrame);
 };
 
 class nsAutoDisableGetUsedXAssertions
