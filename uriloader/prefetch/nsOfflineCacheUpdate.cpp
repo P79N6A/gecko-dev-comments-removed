@@ -67,7 +67,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsStreamUtils.h"
 #include "nsThreadUtils.h"
-#include "nsProxyRelease.h"
 #include "prlog.h"
 
 static nsOfflineCacheUpdateService *gOfflineCacheUpdateService = nsnull;
@@ -1828,13 +1827,6 @@ nsresult
 nsOfflineCacheUpdate::Finish()
 {
     LOG(("nsOfflineCacheUpdate::Finish [%p]", this));
-
-    
-    
-    
-    
-    NS_ADDREF_THIS();
-    NS_ProxyRelease(NS_GetCurrentThread(), this, PR_TRUE);
 
     mState = STATE_FINISHED;
 
