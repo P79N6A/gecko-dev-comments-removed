@@ -47,7 +47,6 @@ const PREF_BMPROCESSED = "distribution.516444.bookmarksProcessed";
 const PREF_DISTRIBUTION_ID = "distribution.id";
 
 const TOPIC_FINAL_UI_STARTUP = "final-ui-startup";
-const TOPIC_PLACES_INIT_COMPLETE = "places-init-complete";
 const TOPIC_CUSTOMIZATION_COMPLETE = "distribution-customization-complete";
 
 let os = Cc["@mozilla.org/observer-service;1"].
@@ -95,10 +94,9 @@ function run_test() {
   
   Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIBrowserGlue);
 
-  
-  
   os.notifyObservers(null, TOPIC_FINAL_UI_STARTUP, null);
-  os.notifyObservers(null, TOPIC_PLACES_INIT_COMPLETE, null);
+  
+  
 
   do_test_pending();
   
