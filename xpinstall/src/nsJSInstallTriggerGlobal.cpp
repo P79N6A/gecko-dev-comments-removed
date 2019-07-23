@@ -375,13 +375,6 @@ InstallTriggerGlobalInstall(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
 
 
     
-    if ( argc >= 2 && JS_TypeOfValue(cx,argv[1]) == JSTYPE_FUNCTION )
-    {
-        trigger->SaveCallback( cx, argv[1] );
-    }
-
-
-    
     if (!abortLoad && trigger->Size() > 0)
     {
         nsCOMPtr<nsIURI> checkuri;
@@ -407,6 +400,12 @@ InstallTriggerGlobalInstall(JSContext *cx, JSObject *obj, uintN argc, jsval *arg
                 }
                 else
                 {
+                    
+                    if ( argc >= 2 && JS_TypeOfValue(cx,argv[1]) == JSTYPE_FUNCTION )
+                    {
+                        trigger->SaveCallback( cx, argv[1] );
+                    }
+
                     PRBool result;
                     nativeThis->StartInstall(installInfo, &result);
                     *rval = BOOLEAN_TO_JSVAL(result);
