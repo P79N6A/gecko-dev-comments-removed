@@ -254,6 +254,28 @@ nsMenuPopupFrame::SetInitialChildList(nsIAtom* aListName,
   return nsBoxFrame::SetInitialChildList(aListName, aChildList);
 }
 
+PRBool
+nsMenuPopupFrame::IsLeaf() const
+{
+  if (mGeneratedChildren)
+    return PR_FALSE;
+
+  if (mPopupType != ePopupTypeMenu) {
+    
+    
+    return !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::type);
+  }
+
+  
+  
+  
+  
+  
+  nsIContent* parentContent = mContent->GetParent();
+  return (parentContent &&
+          !parentContent->HasAttr(kNameSpaceID_None, nsGkAtoms::sizetopopup));
+}
+
 void
 nsMenuPopupFrame::AdjustView()
 {
