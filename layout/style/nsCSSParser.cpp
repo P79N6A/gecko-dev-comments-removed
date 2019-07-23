@@ -791,6 +791,19 @@ CSSParserImpl::Parse(nsIUnicharInputStream* aInput,
   return NS_OK;
 }
 
+
+
+
+
+static PRBool
+NonMozillaVendorIdentifier(const nsAString& ident)
+{
+  return (ident.First() == PRUnichar('-') &&
+          !StringBeginsWith(ident, NS_LITERAL_STRING("-moz-"))) ||
+         ident.First() == PRUnichar('_');
+
+}
+
 NS_IMETHODIMP
 CSSParserImpl::ParseStyleAttribute(const nsAString& aAttributeValue,
                                    nsIURI*                  aDocURL,
@@ -1294,8 +1307,11 @@ PRBool CSSParserImpl::ParseAtRule(nsresult& aErrorCode, RuleAppendFunc aAppendFu
       return PR_TRUE;
     }
   }
-  REPORT_UNEXPECTED_TOKEN(PEUnknownAtRule);
-  OUTPUT_ERROR();
+
+  if (!NonMozillaVendorIdentifier(mToken.mIdent)) {
+    REPORT_UNEXPECTED_TOKEN(PEUnknownAtRule);
+    OUTPUT_ERROR();
+  }
 
   
   return SkipAtRule(aErrorCode);
@@ -3301,12 +3317,15 @@ CSSParserImpl::ParseDeclaration(nsresult& aErrorCode,
   
   nsCSSProperty propID = nsCSSProps::LookupProperty(propertyName);
   if (eCSSProperty_UNKNOWN == propID) { 
-    const PRUnichar *params[] = {
-      propertyName.get()
-    };
-    REPORT_UNEXPECTED_P(PEUnknownProperty, params);
-    REPORT_UNEXPECTED(PEDeclDropped);
-    OUTPUT_ERROR();
+    if (!NonMozillaVendorIdentifier(propertyName)) {
+      const PRUnichar *params[] = {
+        propertyName.get()
+      };
+      REPORT_UNEXPECTED_P(PEUnknownProperty, params);
+      REPORT_UNEXPECTED(PEDeclDropped);
+      OUTPUT_ERROR();
+    }
+
     return PR_FALSE;
   }
   if (! ParseProperty(aErrorCode, propID)) {
