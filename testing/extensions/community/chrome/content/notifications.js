@@ -1,5 +1,42 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 document.addEventListener('load', function() {
-	window.setTimeout();
+	window.setInterval(qaNotifications.updateNotificationStore(), 3600000);
 }, false)
 
 var qaNotifications = {
