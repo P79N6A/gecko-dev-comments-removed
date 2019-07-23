@@ -1837,7 +1837,7 @@ TraceRecorder::determineSlotType(jsval* vp) const
 
 
 
-#define IMACRO_PC_ADJ_BITS   10
+#define IMACRO_PC_ADJ_BITS   8
 #define SCRIPT_PC_ADJ_BITS   (32 - IMACRO_PC_ADJ_BITS)
 
 
@@ -1874,7 +1874,6 @@ static jsbytecode* imacro_code[JSOP_LIMIT];
 
 JS_STATIC_ASSERT(sizeof(binary_imacros) < IMACRO_PC_ADJ_LIMIT);
 JS_STATIC_ASSERT(sizeof(add_imacros) < IMACRO_PC_ADJ_LIMIT);
-JS_STATIC_ASSERT(sizeof(apply_imacros) < IMACRO_PC_ADJ_LIMIT);
 
 JS_REQUIRES_STACK LIns*
 TraceRecorder::snapshot(ExitType exitType)
@@ -5090,15 +5089,13 @@ TraceRecorder::test_property_cache_direct_slot(JSObject* obj, LIns* obj_ins, uin
     if (PCVAL_IS_SPROP(pcval)) {
         JSScopeProperty* sprop = PCVAL_TO_SPROP(pcval);
 
-        uint32 setflags = (js_CodeSpec[*cx->fp->regs->pc].format & (JOF_SET | JOF_INCDEC | JOF_FOR));
+        uint32 setflags = (js_CodeSpec[*cx->fp->regs->pc].format & (JOF_SET | JOF_INCDEC));
         if (setflags && !SPROP_HAS_STUB_SETTER(sprop))
             ABORT_TRACE("non-stub setter");
         if (setflags != JOF_SET && !SPROP_HAS_STUB_GETTER(sprop))
             ABORT_TRACE("non-stub getter");
         if (!SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(obj)))
             ABORT_TRACE("no valid slot");
-        if (setflags && (sprop->attrs & JSPROP_READONLY))
-            ABORT_TRACE("writing to a readonly property");
         slot = sprop->slot;
     } else {
         if (!PCVAL_IS_SLOT(pcval))
@@ -5581,19 +5578,6 @@ TraceRecorder::record_JSOP_SWAP()
     LIns* r_ins = get(&r);
     set(&r, l_ins);
     set(&l, r_ins);
-    return true;
-}
-
-JS_REQUIRES_STACK bool
-TraceRecorder::record_JSOP_PICK()
-{
-    jsval* sp = cx->fp->regs->sp;
-    jsuint n = cx->fp->regs->pc[1];
-    JS_ASSERT(sp - (n+1) >= StackBase(cx->fp));
-    LIns* top = tracker.get(sp - (n+1));
-    for (jsint i = 0; i < n; ++i)
-        tracker.set(sp - (n+1) + i, tracker.get(sp - n + i));
-    tracker.set(&sp[-1], top);
     return true;
 }
 
@@ -6262,9 +6246,6 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
     JSObject* obj = JSVAL_TO_OBJECT(l);
     LIns* obj_ins = get(&l);
 
-    if (sprop->attrs & JSPROP_READONLY)
-        ABORT_TRACE("SetPropHit on readonly prop");
-
     if (obj == globalObj) {
         JS_ASSERT(SPROP_HAS_VALID_SLOT(sprop, OBJ_SCOPE(obj)));
         uint32 slot = sprop->slot;
@@ -6598,30 +6579,6 @@ TraceRecorder::record_JSOP_CALL()
     return functionCall(false, GET_ARGC(cx->fp->regs->pc));
 }
 
-static jsbytecode* apply_imacro_table[] = {
-    apply_imacros.apply0,
-    apply_imacros.apply1,
-    apply_imacros.apply2,
-    apply_imacros.apply3,
-    apply_imacros.apply4,
-    apply_imacros.apply5,
-    apply_imacros.apply6,
-    apply_imacros.apply7,
-    apply_imacros.apply8
-};
-
-static jsbytecode* call_imacro_table[] = {
-    apply_imacros.call0,
-    apply_imacros.call1,
-    apply_imacros.call2,
-    apply_imacros.call3,
-    apply_imacros.call4,
-    apply_imacros.call5,
-    apply_imacros.call6,
-    apply_imacros.call7,
-    apply_imacros.call8
-};
-
 JS_REQUIRES_STACK bool
 TraceRecorder::record_JSOP_APPLY()
 {
@@ -6633,8 +6590,7 @@ TraceRecorder::record_JSOP_APPLY()
     jsuint length = 0;
     JSObject* aobj = NULL;
     LIns* aobj_ins = NULL;
-    
-    JS_ASSERT(!fp->imacpc);
+    LIns* dslots_ins = NULL;
     
     if (!VALUE_IS_FUNCTION(cx, vp[0]))
         return record_JSOP_CALL();
@@ -6652,28 +6608,18 @@ TraceRecorder::record_JSOP_APPLY()
 
 
 
-    if (argc > 0 && JSVAL_IS_PRIMITIVE(vp[2]))
-        return record_JSOP_CALL();
-    
-    
-
-
-    if (!guardCallee(vp[1]))
-        return false;
-
     if (apply && argc >= 2) {
-        if (argc != 2)
-            ABORT_TRACE("apply with excess arguments");
         if (JSVAL_IS_PRIMITIVE(vp[3]))
             ABORT_TRACE("arguments parameter of apply is primitive");
         aobj = JSVAL_TO_OBJECT(vp[3]);
         aobj_ins = get(&vp[3]);
-
+        
         
 
 
 
 
+        guard(false, lir->ins_eq0(aobj_ins), MISMATCH_EXIT);
         if (!guardDenseArray(aobj, aobj_ins))
             ABORT_TRACE("arguments parameter of apply is not a dense array");
         
@@ -6681,25 +6627,115 @@ TraceRecorder::record_JSOP_APPLY()
 
 
         length = jsuint(aobj->fslots[JSSLOT_ARRAY_LENGTH]);
-        if (length >= JS_ARRAY_LENGTH(apply_imacro_table))
-            ABORT_TRACE("too many arguments to apply");
+        guard(true, lir->ins2i(LIR_eq,
+                               stobj_get_fslot(aobj_ins, JSSLOT_ARRAY_LENGTH),
+                               length), 
+                               BRANCH_EXIT);
+ 
+        
+
+
+        dslots_ins = lir->insLoad(LIR_ldp, aobj_ins, offsetof(JSObject, dslots));
+        guard(false,
+              lir->ins_eq0(dslots_ins),
+              MISMATCH_EXIT);
+        guard(true,
+              lir->ins2(LIR_ult,
+                        lir->insImm(length),
+                        lir->insLoad(LIR_ldp, dslots_ins, 0 - (int)sizeof(jsval))),
+              MISMATCH_EXIT);
         
         
 
 
-        guard(true, 
-              lir->ins2i(LIR_eq,
-                         stobj_get_fslot(aobj_ins, JSSLOT_ARRAY_LENGTH),
-                         length), 
-              BRANCH_EXIT);
-        
-        return call_imacro(apply_imacro_table[length]);
+
+
+        length = (uintN)JS_MIN(length, ARRAY_INIT_LIMIT - 1);
+        jsval* newsp = vp + 2 + length;
+        JS_ASSERT(newsp >= vp + 2);
+        JSArena *a = cx->stackPool.current;
+        if (jsuword(newsp) > a->limit)
+            ABORT_TRACE("apply or call across stack-chunks");
+    }
+
+    
+    if (!VALUE_IS_FUNCTION(cx, vp[1]))
+        ABORT_TRACE("apply on a non-function");
+
+    
+
+
+
+    if (!guardCallee(vp[1]))
+        return false;
+
+    LIns* callee_ins = get(&vp[1]);
+    LIns* this_ins = NULL;
+    if (argc > 0) {
+        this_ins = get(&vp[2]);
+        if (JSVAL_IS_PRIMITIVE(vp[2]))
+            ABORT_TRACE("apply with primitive this");
+    } else {
+        this_ins = lir->insImm(0);
     }
     
-    if (argc >= JS_ARRAY_LENGTH(call_imacro_table))
-        ABORT_TRACE("too many arguments to call");
+    LIns** argv;
+    if (argc >= 2) {
+        if (!apply) {
+            --argc;
+            JS_ASSERT(argc >= 0);
+            argv = (LIns**) alloca(sizeof(LIns*) * argc);
+            for (jsuint n = 0; n < argc; ++n)
+                argv[n] = get(&vp[3 + n]); 
+        } else {
+            
+
+
+
+
+            argc = length;
+            JS_ASSERT(argc >= 0);
+            argv = (LIns**) alloca(sizeof(LIns*) * argc);
+            for (unsigned n = 0; n < argc; ++n) {
+                
+                LIns* v_ins = lir->insLoadi(dslots_ins, n * sizeof(jsval));
+                
+
+
+
+                jsval* dp = &aobj->dslots[n];
+                if (*dp == JSVAL_HOLE)
+                    ABORT_TRACE("can't see through hole in dense array");
+                if (!unbox_jsval(*dp, v_ins))
+                    return false;
+                if (JSVAL_TAG(*dp) == JSVAL_BOOLEAN) {
+                    
+                    
+                    guard(false, lir->ins2(LIR_eq, v_ins, INS_CONST(JSVAL_TO_BOOLEAN(JSVAL_HOLE))),
+                          MISMATCH_EXIT);
+                }
+                argv[n] = v_ins;
+            }
+        }
+    } else {
+        argc = 0;
+    }
     
-    return call_imacro(call_imacro_table[argc]);
+
+
+
+    tracker.set(&vp[0], callee_ins);
+    tracker.set(&vp[1], this_ins);
+    for (unsigned n = 0; n < argc; ++n)
+        tracker.set(&vp[2 + n], argv[n]);
+
+    return true;
+}
+
+JS_REQUIRES_STACK bool
+TraceRecorder::record_ApplyComplete(uintN argc)
+{
+    return functionCall(false, argc);
 }
 
 JS_REQUIRES_STACK bool
@@ -6802,7 +6838,7 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
     }
 
     
-    uint32 setflags = (cs.format & (JOF_SET | JOF_INCDEC | JOF_FOR));
+    uint32 setflags = (cs.format & (JOF_SET | JOF_INCDEC));
     LIns* dslots_ins = NULL;
     if (obj2 != obj) {
         if (setflags)
@@ -6825,8 +6861,6 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 
         if (setflags && !SPROP_HAS_STUB_SETTER(sprop))
             ABORT_TRACE("non-stub setter");
-        if (setflags && (sprop->attrs & JSPROP_READONLY))
-            ABORT_TRACE("writing to a readonly property");
         if (setflags != JOF_SET && !SPROP_HAS_STUB_GETTER(sprop)) {
             
             if (setflags == 0 &&
@@ -8524,11 +8558,11 @@ InitIMacroCode()
 
     imacro_code[JSOP_ITER] = (jsbytecode*)&iter_imacros - 1;
     imacro_code[JSOP_NEXTITER] = nextiter_imacro - 1;
-    imacro_code[JSOP_APPLY] = (jsbytecode*)&apply_imacros - 1;
 }
 
 #define UNUSED(n) JS_REQUIRES_STACK bool TraceRecorder::record_JSOP_UNUSED##n() { return false; }
 
+UNUSED(201)
 UNUSED(202)
 UNUSED(203)
 UNUSED(204)
