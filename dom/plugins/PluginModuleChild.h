@@ -162,6 +162,15 @@ public:
 
 private:
     bool InitGraphics();
+#if defined(MOZ_WIDGET_GTK2)
+    static gboolean DetectNestedEventLoop(gpointer data);
+    static gboolean ProcessBrowserEvents(gpointer data);
+
+    NS_OVERRIDE
+    virtual void EnteredCxxStack();
+    NS_OVERRIDE
+    virtual void ExitedCxxStack();
+#endif
 
     std::string mPluginFilename;
     PRLibrary* mLibrary;
@@ -174,9 +183,43 @@ private:
     NP_PLUGININIT mInitializeFunc;
     NP_GETENTRYPOINTS mGetEntryPointsFunc;
 #endif
+
     NP_PLUGINSHUTDOWN mShutdownFunc;
     NPPluginFuncs mFunctions;
     NPSavedData mSavedData;
+
+#if defined(MOZ_WIDGET_GTK2)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    guint mNestedLoopTimerId;
+#endif
 
     struct NPObjectData : public nsPtrHashKey<NPObject>
     {
