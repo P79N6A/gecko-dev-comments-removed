@@ -378,6 +378,7 @@ void HandleConnection(void* data)
       {ci->client_sock, PR_POLL_READ, 0},
       {other_sock, PR_POLL_READ, 0}
     };
+    PRBool socketErrorState[2] = {PR_FALSE, PR_FALSE};
 
     while (!((client_error||client_done) && buffers[0].empty() && buffers[1].empty()))
     {
@@ -405,6 +406,7 @@ void HandleConnection(void* data)
         if (out_flags & (PR_POLL_EXCEPT | PR_POLL_ERR | PR_POLL_HUP))
         {
           client_error = true;
+          socketErrorState[s] = PR_TRUE;
           
           
           
@@ -425,10 +427,22 @@ void HandleConnection(void* data)
           else if (bytesRead < 0)
           {
             if (PR_GetError() != PR_WOULD_BLOCK_ERROR)
+            {
+              
+              
               client_error = true;
+              socketErrorState[s] = PR_TRUE;
+              
+              buffers[s2].bufferhead = buffers[s2].buffertail = buffers[s2].buffer;
+            }
           }
           else
           {
+            
+            
+            if (socketErrorState[s2])
+              continue;
+
             buffers[s].buffertail += bytesRead;
 
             
@@ -485,6 +499,7 @@ void HandleConnection(void* data)
           {
             if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
               client_error = true;
+              socketErrorState[s] = PR_TRUE;
               
               
               buffers[s2].bufferhead = buffers[s2].buffertail = buffers[s2].buffer;
