@@ -253,6 +253,10 @@ struct nsStyleImage {
   
 
 
+  nsresult RequestDecode();
+  
+
+
 
   PRBool IsOpaque() const;
   
@@ -785,6 +789,7 @@ struct nsStyleBorder {
 
   
   inline PRBool IsBorderImageLoaded() const;
+  inline nsresult RequestDecode();
 
   void GetBorderColor(PRUint8 aSide, nscolor& aColor,
                       PRBool& aForeground) const

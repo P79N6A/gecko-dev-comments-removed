@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsJPEGDecoder.h"
 
 #include "imgIContainerObserver.h"
@@ -99,7 +100,8 @@ nsJPEGDecoder::nsJPEGDecoder()
 {
   mState = JPEG_HEADER;
   mReading = PR_TRUE;
-  mError = NS_OK;
+  mNotifiedDone = PR_FALSE;
+  mError = PR_FALSE;
   mImageData = nsnull;
 
   mBytesToSkip = 0;
@@ -138,10 +140,21 @@ nsJPEGDecoder::~nsJPEGDecoder()
 
 
 
-NS_IMETHODIMP nsJPEGDecoder::Init(imgILoad *aLoad)
+
+
+NS_IMETHODIMP nsJPEGDecoder::Init(imgIContainer *aImage, 
+                                  imgIDecoderObserver *aObserver,
+                                  PRUint32 aFlags)
 {
-  mImageLoad = aLoad;
-  mObserver = do_QueryInterface(aLoad);
+
+  
+  mImage = aImage;
+  mObserver = aObserver;
+  mFlags = aFlags;
+
+  
+  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+    mObserver->OnStartDecode(nsnull);
 
   
   mInfo.err = jpeg_std_error(&mErr.pub);
@@ -173,40 +186,12 @@ NS_IMETHODIMP nsJPEGDecoder::Init(imgILoad *aLoad)
   for (PRUint32 m = 0; m < 16; m++)
     jpeg_save_markers(&mInfo, JPEG_APP0 + m, 0xFFFF);
 
-
-
-  
-
-
-
-
-
-
-
-
-  mImageLoad->GetImage(getter_AddRefs(mImage));
-
-  if (!mImage) {
-    mImage = do_CreateInstance("@mozilla.org/image/container;2");
-    if (!mImage)
-      return NS_ERROR_OUT_OF_MEMORY;
-      
-    mImageLoad->SetImage(mImage);
-    nsresult result = mImage->SetDiscardable("image/jpeg");
-    if (NS_FAILED(result)) {
-      mState = JPEG_ERROR;
-      PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
-             (" (could not set image container to discardable)"));
-      return result;
-    }
-  }
-
   return NS_OK;
 }
 
 
 
-NS_IMETHODIMP nsJPEGDecoder::Close()
+NS_IMETHODIMP nsJPEGDecoder::Close(PRUint32 aFlags)
 {
   PR_LOG(gJPEGlog, PR_LOG_DEBUG,
          ("[this=%p] nsJPEGDecoder::Close\n", this));
@@ -216,12 +201,19 @@ NS_IMETHODIMP nsJPEGDecoder::Close()
 
   jpeg_destroy_decompress(&mInfo);
 
-  if (mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) {
-    NS_WARNING("Never finished decoding the JPEG.");
-    
-    return NS_ERROR_FAILURE;
-  }
+  
 
+  if (mError)
+    return NS_OK;
+
+  
+
+  if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
+      !(mFlags && imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !mNotifiedDone)
+    NotifyDone( PR_FALSE);
+
+  
   return NS_OK;
 }
 
@@ -230,9 +222,8 @@ NS_IMETHODIMP nsJPEGDecoder::Flush()
 {
   LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Flush");
 
-  PRUint32 ret;
   if (mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER && mState != JPEG_ERROR)
-    return this->ProcessData(nsnull, 0, &ret);
+    return this->ProcessData(nsnull, 0);
 
   return NS_OK;
 }
@@ -245,57 +236,42 @@ static NS_METHOD ReadDataOut(nsIInputStream* in,
                              PRUint32 *writeCount)
 {
   nsJPEGDecoder *decoder = static_cast<nsJPEGDecoder*>(closure);
-  nsresult rv = decoder->ProcessData(fromRawSegment, count, writeCount);
-  if (NS_FAILED(rv)) {
-    
-    decoder->mError = rv;
-    *writeCount = 0;
-  }
-
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP nsJPEGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count, PRUint32 *writeCount)
-{
-  NS_ENSURE_ARG_POINTER(inStr);
-  NS_ENSURE_ARG_POINTER(writeCount);
 
   
-  nsresult rv = inStr->ReadSegments(ReadDataOut, this, count, writeCount);
-  if (NS_FAILED(mError)) {
-    
-    rv = NS_ERROR_FAILURE;
-  }
+  *writeCount = count;
 
+  
+  nsresult rv = decoder->ProcessData(fromRawSegment, count);
+
+  
+  if (NS_FAILED(rv))
+    decoder->mError = rv;
   return rv;
 }
 
 
-nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *writeCount)
+
+NS_IMETHODIMP nsJPEGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count)
+{
+  NS_ENSURE_ARG_POINTER(inStr);
+
+  
+  nsresult rv = NS_OK;
+  PRUint32 ignored;
+  if (!mError)
+    rv = inStr->ReadSegments(ReadDataOut, this, count, &ignored);
+  if (mError || NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+  return NS_OK;
+}
+
+
+nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
 {
   LOG_SCOPE_WITH_PARAM(gJPEGlog, "nsJPEGDecoder::ProcessData", "count", count);
 
   mSegment = (const JOCTET *)data;
   mSegmentLen = count;
-  *writeCount = count;
-
-  if (data && count) {
-    nsresult result = mImage->AddRestoreData((char *) data, count);
-
-    if (NS_FAILED(result)) {
-      mState = JPEG_ERROR;
-      PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
-             ("} (could not add restore data)"));
-      return result;
-    }
-
-    PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
-           ("        added %u bytes to restore data",
-            count));
-  }
-  
 
   
   nsresult error_code;
@@ -332,6 +308,16 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
       return NS_OK; 
     }
 
+    
+    mImage->SetSize(mInfo.image_width, mInfo.image_height);
+    if (mObserver)
+      mObserver->OnStartContainer(nsnull, mImage);
+
+    
+    if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+      return NS_OK;
+
+    
     JOCTET  *profile;
     PRUint32 profileLength;
     eCMSMode cmsMode = gfxPlatform::GetCMSMode();
@@ -453,25 +439,6 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
     
     jpeg_calc_output_dimensions(&mInfo);
 
-    mObserver->OnStartDecode(nsnull);
-
-    
-
-
-
-    PRInt32 width, height;
-    mImage->GetWidth(&width);
-    mImage->GetHeight(&height);
-    if (width == 0 && height == 0) {
-      mImage->Init(mInfo.image_width, mInfo.image_height, mObserver);
-    } else if ((width != (PRInt32)mInfo.image_width) || (height != (PRInt32)mInfo.image_height)) {
-      mState = JPEG_ERROR;
-      return NS_ERROR_UNEXPECTED;
-    }
-
-    mImage->Init(mInfo.image_width, mInfo.image_height, mObserver);
-
-    mObserver->OnStartContainer(nsnull, mImage);
 
     
     
@@ -489,7 +456,8 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
            ("        JPEGDecoderAccounting: nsJPEGDecoder::ProcessData -- created image frame with %ux%u pixels",
             mInfo.image_width, mInfo.image_height));
 
-    mObserver->OnStartFrame(nsnull, 0);
+    if (mObserver)
+      mObserver->OnStartFrame(nsnull, 0);
     mState = JPEG_START_DECOMPRESS;
   }
 
@@ -621,8 +589,6 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
 
   case JPEG_DONE:
   {
-    nsresult result;
-
     LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::ProcessData -- entering JPEG_DONE case");
 
     
@@ -634,14 +600,6 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
     }
 
     mState = JPEG_SINK_NON_JPEG_TRAILER;
-
-    result = mImage->RestoreDataDone();
-    if (NS_FAILED (result)) {
-      mState = JPEG_ERROR;
-      PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
-             ("} (could not mark image container with RestoreDataDone)"));
-      return result;
-    }
 
     
     break;
@@ -664,6 +622,26 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count, PRUint32 *
   return NS_OK;
 }
 
+void
+nsJPEGDecoder::NotifyDone(PRBool aSuccess)
+{
+  
+  NS_ABORT_IF_FALSE(!mNotifiedDone, "calling NotifyDone twice!");
+
+  
+  if (mObserver)
+    mObserver->OnStopFrame(nsnull, 0);
+  if (aSuccess)
+    mImage->DecodingComplete();
+  if (mObserver) {
+    mObserver->OnStopContainer(nsnull, mImage);
+    mObserver->OnStopDecode(nsnull, aSuccess ? NS_OK : NS_ERROR_FAILURE,
+                            nsnull);
+  }
+
+  
+  mNotifiedDone = PR_TRUE;
+}
 
 nsresult
 nsJPEGDecoder::OutputScanlines(PRBool* suspend)
@@ -759,7 +737,8 @@ nsJPEGDecoder::OutputScanlines(PRBool* suspend)
   if (top != mInfo.output_scanline) {
       nsIntRect r(0, top, mInfo.output_width, mInfo.output_scanline-top);
       rv = mImage->FrameUpdated(0, r);
-      mObserver->OnDataAvailable(nsnull, PR_TRUE, &r);
+      if (mObserver)
+        mObserver->OnDataAvailable(nsnull, PR_TRUE, &r);
   }
 
   return rv;
@@ -976,17 +955,12 @@ term_source (j_decompress_ptr jd)
 {
   nsJPEGDecoder *decoder = (nsJPEGDecoder *)(jd->client_data);
 
-  if (decoder->mObserver) {
-    decoder->mObserver->OnStopFrame(nsnull, 0);
-    decoder->mObserver->OnStopContainer(nsnull, decoder->mImage);
-    decoder->mObserver->OnStopDecode(nsnull, NS_OK, nsnull);
-  }
+  
+  NS_ABORT_IF_FALSE(!decoder->mError,
+                    "Calling term_source on a JPEG with mError=true!");
 
-  PRBool multipart = PR_FALSE;
-  if (decoder->mImageLoad) 
-      decoder->mImageLoad->GetIsMultiPartChannel(&multipart);
-  if (!multipart)
-    decoder->mImage->DecodingComplete();
+  
+  decoder->NotifyDone( PR_TRUE);
 }
 
 

@@ -5393,7 +5393,9 @@ nsSVGFEImageElement::Filter(nsSVGFilterInstance *instance,
 
   nsRefPtr<gfxASurface> currentFrame;
   if (imageContainer)
-    imageContainer->GetCurrentFrame(getter_AddRefs(currentFrame));
+    imageContainer->GetFrame(imgIContainer::FRAME_CURRENT,
+                             imgIContainer::FLAG_NONE,
+                             getter_AddRefs(currentFrame));
 
   
   
@@ -5482,6 +5484,12 @@ nsSVGFEImageElement::OnStartContainer(imgIRequest *aRequest,
 {
   nsresult rv =
     nsImageLoadingContent::OnStartContainer(aRequest, aContainer);
+
+  
+  NS_ABORT_IF_FALSE(aContainer, "who sent the notification then?");
+  aContainer->RequestDecode();
+
+  
   Invalidate();
   return rv;
 }

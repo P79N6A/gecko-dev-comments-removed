@@ -62,6 +62,7 @@ class nsIFontMetrics;
 #include "nsIPresShell.h"
 #include "nsIPrincipal.h"
 #include "gfxPattern.h"
+#include "imgIContainer.h"
 
 class nsBlockFrame;
 class nsTextFragment;
@@ -476,8 +477,13 @@ public:
   static nsRect RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor);
 
 
-  enum { PAINT_IN_TRANSFORM = 0x01 };
+  enum {
+    PAINT_IN_TRANSFORM = 0x01,
+    PAINT_SYNC_DECODE_IMAGES = 0x02
+  };
+
   
+
 
 
 
@@ -881,15 +887,18 @@ public:
 
 
 
+
   static nsresult DrawImage(nsIRenderingContext* aRenderingContext,
                             imgIContainer*       aImage,
                             gfxPattern::GraphicsFilter aGraphicsFilter,
                             const nsRect&        aDest,
                             const nsRect&        aFill,
                             const nsPoint&       aAnchor,
-                            const nsRect&        aDirty);
+                            const nsRect&        aDirty,
+                            PRUint32             aImageFlags);
 
   
+
 
 
 
@@ -907,9 +916,11 @@ public:
                                           imgIContainer*       aImage,
                                           const nsPoint&       aDest,
                                           const nsRect&        aDirty,
+                                          PRUint32             aImageFlags,
                                           const nsRect*        aSourceArea = nsnull);
 
   
+
 
 
 
@@ -928,6 +939,7 @@ public:
                                   gfxPattern::GraphicsFilter aGraphicsFilter,
                                   const nsRect&        aDest,
                                   const nsRect&        aDirty,
+                                  PRUint32             aImageFlags,
                                   const nsRect*        aSourceArea = nsnull);
 
   
@@ -1069,7 +1081,10 @@ public:
     
     SFE_WANT_NEW_SURFACE   = 1 << 0,
     
-    SFE_WANT_IMAGE_SURFACE = 1 << 1
+    SFE_WANT_IMAGE_SURFACE = 1 << 1,
+    
+
+    SFE_WANT_FIRST_FRAME = 1 << 2
   };
 
   struct SurfaceFromElementResult {

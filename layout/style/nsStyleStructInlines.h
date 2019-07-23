@@ -51,6 +51,15 @@ inline void
 nsStyleBorder::SetBorderImage(imgIRequest* aImage)
 {
   mBorderImage = aImage;
+
+  
+
+
+
+  if (mBorderImage) {
+    mBorderImage->RequestDecode();
+    mBorderImage->LockImage();
+  }
 }
 
 inline imgIRequest*
@@ -64,7 +73,7 @@ inline PRBool nsStyleBorder::IsBorderImageLoaded() const
   PRUint32 status;
   return mBorderImage &&
          NS_SUCCEEDED(mBorderImage->GetImageStatus(&status)) &&
-         (status & imgIRequest::STATUS_FRAME_COMPLETE);
+         (status & imgIRequest::STATUS_LOAD_COMPLETE);
 }
 
 #endif 

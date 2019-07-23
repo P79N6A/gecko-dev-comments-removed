@@ -1329,8 +1329,11 @@ nsCanvasRenderingContext2D::CreatePattern(nsIDOMHTMLElement *image,
         return NS_ERROR_DOM_SYNTAX_ERR;
     }
 
+    
+    
     nsLayoutUtils::SurfaceFromElementResult res =
-        nsLayoutUtils::SurfaceFromElement(image, nsLayoutUtils::SFE_WANT_NEW_SURFACE);
+        nsLayoutUtils::SurfaceFromElement(image, nsLayoutUtils::SFE_WANT_FIRST_FRAME |
+                                                 nsLayoutUtils::SFE_WANT_NEW_SURFACE);
     if (!res.mSurface)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -2965,8 +2968,11 @@ nsCanvasRenderingContext2D::DrawImage()
     nsRefPtr<gfxPattern> pattern;
     nsRefPtr<gfxPath> path;
 
+    
+    
+    PRUint32 sfeFlags = nsLayoutUtils::SFE_WANT_FIRST_FRAME;
     nsLayoutUtils::SurfaceFromElementResult res =
-        nsLayoutUtils::SurfaceFromElement(imgElt);
+        nsLayoutUtils::SurfaceFromElement(imgElt, sfeFlags);
     if (!res.mSurface)
         return NS_ERROR_NOT_AVAILABLE;
 
@@ -2974,7 +2980,8 @@ nsCanvasRenderingContext2D::DrawImage()
     
     
     if (res.mSurface == mSurface) {
-        res = nsLayoutUtils::SurfaceFromElement(imgElt, nsLayoutUtils::SFE_WANT_NEW_SURFACE);
+        sfeFlags |= nsLayoutUtils::SFE_WANT_NEW_SURFACE;
+        res = nsLayoutUtils::SurfaceFromElement(imgElt, sfeFlags);
         if (!res.mSurface)
             return NS_ERROR_NOT_AVAILABLE;
     }

@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef _nsICODecoder_h
 #define _nsICODecoder_h
 
@@ -93,8 +94,9 @@ private:
   PRUint32 CalcAlphaRowSize();
 
 private:
-  nsCOMPtr<imgIDecoderObserver> mObserver;
   nsCOMPtr<imgIContainer> mImage;
+  nsCOMPtr<imgIDecoderObserver> mObserver;
+  PRUint32 mFlags;
   
   PRUint32 mPos;
   PRUint16 mNumIcons;
@@ -119,6 +121,7 @@ private:
   PRPackedBool mHaveAlphaData;
   PRPackedBool mIsCursor;
   PRPackedBool mDecodingAndMask;
+  PRPackedBool mError;
 };
 
 

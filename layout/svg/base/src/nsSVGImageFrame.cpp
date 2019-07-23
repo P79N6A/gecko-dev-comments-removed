@@ -237,9 +237,15 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
       currentRequest->GetImage(getter_AddRefs(mImageContainer));
   }
 
+  
+  
+  
+  
   nsRefPtr<gfxASurface> currentFrame;
   if (mImageContainer)
-    mImageContainer->GetCurrentFrame(getter_AddRefs(currentFrame));
+    mImageContainer->GetFrame(imgIContainer::FRAME_CURRENT,
+                              imgIContainer::FLAG_SYNC_DECODE,
+                              getter_AddRefs(currentFrame));
 
   
   

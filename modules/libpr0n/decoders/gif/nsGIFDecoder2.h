@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef _nsGIFDecoder2_h
 #define _nsGIFDecoder2_h
 
@@ -67,14 +68,20 @@ public:
   nsGIFDecoder2();
   ~nsGIFDecoder2();
   
-  nsresult ProcessData(unsigned char *data, PRUint32 count, PRUint32 *_retval);
+  nsresult ProcessData(unsigned char *data, PRUint32 count);
+  static NS_METHOD ReadDataOut(nsIInputStream* in,
+                               void* closure,
+                               const char* fromRawSegment,
+                               PRUint32 toOffset,
+                               PRUint32 count,
+                               PRUint32 *writeCount);
 
 private:
   
 
 
   void      BeginGIF();
-  void      EndGIF();
+  void      EndGIF(PRBool aSuccess);
   nsresult  BeginImageFrame(gfx_depth aDepth);
   void      EndImageFrame();
   nsresult  FlushImageData();
@@ -87,7 +94,8 @@ private:
   inline int ClearCode() const { return 1 << mGIFStruct.datasize; }
 
   nsCOMPtr<imgIContainer> mImageContainer;
-  nsCOMPtr<imgIDecoderObserver> mObserver; 
+  nsCOMPtr<imgIDecoderObserver> mObserver;
+  PRUint32 mFlags;
   PRInt32 mCurrentRow;
   PRInt32 mLastFlushedRow;
 
@@ -105,6 +113,7 @@ private:
   PRUint8 mColorMask;        
   PRPackedBool mGIFOpen;
   PRPackedBool mSawTransparency;
+  PRPackedBool mError;
 
   gif_struct mGIFStruct;
 };

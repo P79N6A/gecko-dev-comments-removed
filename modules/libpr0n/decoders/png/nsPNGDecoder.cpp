@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsPNGDecoder.h"
 
 #include "nsMemory.h"
@@ -71,13 +72,29 @@ static PRLogModuleInfo *gPNGLog = PR_NewLogModule("PNGDecoder");
 static PRLogModuleInfo *gPNGDecoderAccountingLog = PR_NewLogModule("PNGDecoderAccounting");
 #endif
 
+
+#define MOZ_PNG_MAX_DIMENSION 1000000L
+
+
+#define WIDTH_OFFSET 16
+#define HEIGHT_OFFSET (WIDTH_OFFSET + 4)
+#define BYTES_NEEDED_FOR_DIMENSIONS (HEIGHT_OFFSET + 4)
+
+
+
+static const PRUint8 pngSignatureBytes[] =
+               { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+
 NS_IMPL_ISUPPORTS1(nsPNGDecoder, imgIDecoder)
 
 nsPNGDecoder::nsPNGDecoder() :
   mPNG(nsnull), mInfo(nsnull),
   mCMSLine(nsnull), interlacebuf(nsnull),
   mInProfile(nsnull), mTransform(nsnull),
-  mChannels(0), mError(PR_FALSE), mFrameIsHidden(PR_FALSE)
+  mHeaderBuf(nsnull), mHeaderBytesRead(0),
+  mChannels(0), mError(PR_FALSE), mFrameIsHidden(PR_FALSE),
+  mNotifiedDone(PR_FALSE)
 {
 }
 
@@ -94,6 +111,8 @@ nsPNGDecoder::~nsPNGDecoder()
     if (mTransform)
       qcms_transform_release(mTransform);
   }
+  if (mHeaderBuf)
+    nsMemory::Free(mHeaderBuf);
 }
 
 
@@ -191,7 +210,8 @@ void nsPNGDecoder::EndImageFrame()
     }
     PRUint32 curFrame;
     mImage->GetCurrentFrameIndex(&curFrame);
-    mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1, &mFrameRect);
+    if (mObserver)
+      mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1, &mFrameRect);
   }
 
   mImage->EndFrameDecode(numFrames - 1);
@@ -203,7 +223,11 @@ void nsPNGDecoder::EndImageFrame()
 
 
 
-NS_IMETHODIMP nsPNGDecoder::Init(imgILoad *aLoad)
+
+
+NS_IMETHODIMP nsPNGDecoder::Init(imgIContainer *aImage,
+                                 imgIDecoderObserver *aObserver,
+                                 PRUint32 aFlags)
 {
 #if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
   static png_byte color_chunks[]=
@@ -224,8 +248,21 @@ NS_IMETHODIMP nsPNGDecoder::Init(imgILoad *aLoad)
         122,  84,  88, 116, '\0'};  
 #endif
 
-  mImageLoad = aLoad;
-  mObserver = do_QueryInterface(aLoad);  
+  mImage = aImage;
+  mObserver = aObserver;
+  mFlags = aFlags;
+
+  
+  if (!(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && mObserver)
+    mObserver->OnStartDecode(nsnull);
+
+  
+  if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+    mHeaderBuf = (PRUint8 *)nsMemory::Alloc(BYTES_NEEDED_FOR_DIMENSIONS);
+    if (!mHeaderBuf)
+      return NS_ERROR_OUT_OF_MEMORY;
+    return NS_OK;
+  }
 
   
 
@@ -258,48 +295,23 @@ NS_IMETHODIMP nsPNGDecoder::Init(imgILoad *aLoad)
                               info_callback, row_callback, end_callback);
 
 
-  
-
-
-  mImageLoad->GetImage(getter_AddRefs(mImage));
-  if (!mImage) {
-    mImage = do_CreateInstance("@mozilla.org/image/container;2");
-    if (!mImage)
-      return NS_ERROR_OUT_OF_MEMORY;
-      
-    mImageLoad->SetImage(mImage);
-    if (NS_FAILED(mImage->SetDiscardable("image/png"))) {
-      PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-             ("PNGDecoderAccounting: info_callback(): failed to set image container %p as discardable",
-              mImage.get()));
-      return NS_ERROR_FAILURE;
-    }
-  }
-
   return NS_OK;
 }
 
 
-NS_IMETHODIMP nsPNGDecoder::Close()
+NS_IMETHODIMP nsPNGDecoder::Close(PRUint32 aFlags)
 {
   if (mPNG)
     png_destroy_read_struct(&mPNG, mInfo ? &mInfo : NULL, NULL);
 
-  if (mImage) { 
-    nsresult result = mImage->RestoreDataDone();
-    if (NS_FAILED(result)) {
-        PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-            ("PNGDecoderAccounting: nsPNGDecoder::Close(): failure in RestoreDataDone() for image container %p",
-                mImage.get()));
+  
+  
+  if (!(aFlags & CLOSE_FLAG_DONTNOTIFY) &&
+      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !mNotifiedDone)
+    NotifyDone( PR_FALSE);
 
-        mError = PR_TRUE;
-        return result;
-    }
-
-    PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-            ("PNGDecoderAccounting: nsPNGDecoder::Close(): image container %p is now with RestoreDataDone",
-            mImage.get()));
-  }
+  mImage = nsnull;
   return NS_OK;
 }
 
@@ -310,6 +322,99 @@ NS_IMETHODIMP nsPNGDecoder::Flush()
 }
 
 
+NS_METHOD
+nsPNGDecoder::ProcessData(unsigned char* aBuffer, PRUint32 aCount)
+{
+  
+  nsresult rv;
+  PRUint32 width = 0;
+  PRUint32 height = 0;
+
+  
+  if (mError)
+    goto error;
+
+  
+  if (mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+
+    
+    if (mHeaderBytesRead == BYTES_NEEDED_FOR_DIMENSIONS)
+      return NS_OK;
+
+    
+    PRUint32 bytesToRead = PR_MIN(aCount, BYTES_NEEDED_FOR_DIMENSIONS - mHeaderBytesRead);
+    memcpy(mHeaderBuf + mHeaderBytesRead, aBuffer, bytesToRead);
+    mHeaderBytesRead += bytesToRead;
+
+    
+    if (mHeaderBytesRead == BYTES_NEEDED_FOR_DIMENSIONS) {
+
+      
+      if (memcmp(mHeaderBuf, pngSignatureBytes, sizeof(pngSignatureBytes)))
+        goto error;
+
+      
+      width = png_get_uint_32(mHeaderBuf + WIDTH_OFFSET);
+      height = png_get_uint_32(mHeaderBuf + HEIGHT_OFFSET);
+
+      
+      if ((width > MOZ_PNG_MAX_DIMENSION) || (height > MOZ_PNG_MAX_DIMENSION))
+        goto error;
+
+      
+      rv = mImage->SetSize(width, height);
+      if (NS_FAILED(rv))
+        goto error;
+
+      
+      if (mObserver)
+        mObserver->OnStartContainer(nsnull, mImage);
+    }
+  }
+
+  
+  else {
+
+    
+    if (setjmp(mPNG->jmpbuf)) {
+      png_destroy_read_struct(&mPNG, &mInfo, NULL);
+      goto error;
+    }
+
+    
+    png_process_data(mPNG, mInfo, aBuffer, aCount);
+
+  }
+
+  return NS_OK;
+
+  
+  error:
+  mError = PR_TRUE;
+  return NS_ERROR_FAILURE;
+}
+
+void
+nsPNGDecoder::NotifyDone(PRBool aSuccess)
+{
+  
+  NS_ABORT_IF_FALSE(!mNotifiedDone, "Calling NotifyDone twice!");
+
+  
+  if (!mFrameIsHidden)
+    EndImageFrame();
+  if (aSuccess)
+    mImage->DecodingComplete();
+  if (mObserver) {
+    mObserver->OnStopContainer(nsnull, mImage);
+    mObserver->OnStopDecode(nsnull, aSuccess ? NS_OK : NS_ERROR_FAILURE,
+                            nsnull);
+  }
+
+  
+  mNotifiedDone = PR_TRUE;
+}
+
 static NS_METHOD ReadDataOut(nsIInputStream* in,
                              void* closure,
                              const char* fromRawSegment,
@@ -317,60 +422,32 @@ static NS_METHOD ReadDataOut(nsIInputStream* in,
                              PRUint32 count,
                              PRUint32 *writeCount)
 {
+  
+  NS_ENSURE_ARG_POINTER(closure);
   nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(closure);
 
-  if (decoder->mError) {
-    *writeCount = 0;
-    return NS_ERROR_FAILURE;
-  }
-
   
-  
-  nsresult result = decoder->mImage->AddRestoreData(const_cast<char *>(fromRawSegment), count);
-  if (NS_FAILED (result)) {
-    PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-           ("PNGDecoderAccounting: ReadDataOut(): failed to add restore data to image container %p",
-            decoder->mImage.get()));
-
-    decoder->mError = PR_TRUE;
-    *writeCount = 0;
-    return result;
-  }
-
-  
-  if (setjmp(decoder->mPNG->jmpbuf)) {
-    png_destroy_read_struct(&decoder->mPNG, &decoder->mInfo, NULL);
-
-    decoder->mError = PR_TRUE;
-    *writeCount = 0;
-    return NS_ERROR_FAILURE;
-  }
-  png_process_data(decoder->mPNG, decoder->mInfo,
-                   reinterpret_cast<unsigned char *>(const_cast<char *>(fromRawSegment)), count);
-
-  PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
-         ("PNGDecoderAccounting: ReadDataOut(): Added restore data to image container %p",
-          decoder->mImage.get()));
-
   *writeCount = count;
-  return NS_OK;
+
+  
+  char *unConst = const_cast<char *>(fromRawSegment);
+  unsigned char *buffer = reinterpret_cast<unsigned char *>(unConst);
+  return decoder->ProcessData(buffer, count);
 }
 
 
 
-NS_IMETHODIMP nsPNGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count, PRUint32 *_retval)
+NS_IMETHODIMP nsPNGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count)
 {
   NS_ASSERTION(inStr, "Got a null input stream!");
 
-  nsresult rv;
-
+  
+  nsresult rv = NS_OK;
+  PRUint32 ignored;
   if (!mError)
-    rv = inStr->ReadSegments(ReadDataOut, this, count, _retval);
-
-  if (mError) {
-    *_retval = 0;
+    rv = inStr->ReadSegments(ReadDataOut, this, count, &ignored);
+  if (mError || NS_FAILED(rv))
     rv = NS_ERROR_FAILURE;
-  }
 
   return rv;
 }
@@ -505,16 +582,23 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
   int num_trans = 0;
 
   nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
+  nsresult rv;
 
   
   png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
                &interlace_type, &compression_type, &filter_type);
   
   
-#define MOZ_PNG_MAX_DIMENSION 1000000L
   if (width > MOZ_PNG_MAX_DIMENSION || height > MOZ_PNG_MAX_DIMENSION)
     longjmp(decoder->mPNG->jmpbuf, 1);
-#undef MOZ_PNG_MAX_DIMENSION
+
+  
+  rv = decoder->mImage->SetSize(width, height);
+  if (NS_FAILED(rv)) {
+    longjmp(decoder->mPNG->jmpbuf, 5); 
+  }
+  if (decoder->mObserver)
+    decoder->mObserver->OnStartContainer(nsnull, decoder->mImage);
 
   if (color_type == PNG_COLOR_TYPE_PALETTE)
     png_set_expand(png_ptr);
@@ -616,25 +700,6 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
     }
   }
 
-  if (decoder->mObserver)
-    decoder->mObserver->OnStartDecode(nsnull);
-
-  
-
-
-  PRInt32 containerWidth, containerHeight;
-  decoder->mImage->GetWidth(&containerWidth);
-  decoder->mImage->GetHeight(&containerHeight);
-  if (containerWidth == 0 && containerHeight == 0) {
-    
-    decoder->mImage->Init(width, height, decoder->mObserver);
-  } else if (containerWidth != PRInt32(width) || containerHeight != PRInt32(height)) {
-    longjmp(decoder->mPNG->jmpbuf, 5); 
-  }
-
-  if (decoder->mObserver)
-    decoder->mObserver->OnStartContainer(nsnull, decoder->mImage);
-
   if (channels == 1 || channels == 3)
     decoder->format = gfxASurface::ImageFormatRGB24;
   else if (channels == 2 || channels == 4)
@@ -654,8 +719,9 @@ info_callback(png_structp png_ptr, png_infop info_ptr)
     PRUint32 bpp[] = { 0, 3, 4, 3, 4 };
     decoder->mCMSLine =
       (PRUint8 *)nsMemory::Alloc(bpp[channels] * width);
-    if (!decoder->mCMSLine)
+    if (!decoder->mCMSLine) {
       longjmp(decoder->mPNG->jmpbuf, 5); 
+    }
   }
 
   if (interlace_type == PNG_INTERLACE_ADAM7) {
@@ -800,7 +866,8 @@ row_callback(png_structp png_ptr, png_bytep new_row,
       }
       PRUint32 curFrame;
       decoder->mImage->GetCurrentFrameIndex(&curFrame);
-      decoder->mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1, &r);
+      if (decoder->mObserver)
+        decoder->mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1, &r);
     }
   }
 }
@@ -844,21 +911,17 @@ end_callback(png_structp png_ptr, png_infop info_ptr)
 
 
   nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
+
+  
+  NS_ABORT_IF_FALSE(!decoder->mError, "Finishing up PNG but hit error!");
   
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_acTL)) {
     PRInt32 num_plays = png_get_num_plays(png_ptr, info_ptr);
     decoder->mImage->SetLoopCount(num_plays - 1);
   }
-  
-  if (!decoder->mFrameIsHidden)
-    decoder->EndImageFrame();
-  
-  decoder->mImage->DecodingComplete();
 
-  if (decoder->mObserver) {
-    decoder->mObserver->OnStopContainer(nsnull, decoder->mImage);
-    decoder->mObserver->OnStopDecode(nsnull, NS_OK, nsnull);
-  }
+  
+  decoder->NotifyDone( PR_TRUE);
 }
 
 

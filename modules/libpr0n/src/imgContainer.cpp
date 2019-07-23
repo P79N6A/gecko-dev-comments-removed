@@ -41,10 +41,10 @@
 
 
 
+
 #include "nsComponentManagerUtils.h"
 #include "imgIContainerObserver.h"
 #include "ImageErrors.h"
-#include "imgILoad.h"
 #include "imgIDecoder.h"
 #include "imgIDecoderObserver.h"
 #include "imgContainer.h"
@@ -55,6 +55,8 @@
 #include "prmem.h"
 #include "prlog.h"
 #include "prenv.h"
+#include "nsTime.h"
+#include "ImageLogging.h"
 
 #include "gfxContext.h"
 
@@ -65,25 +67,102 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 #define gCompressedImageAccountingLog
 #endif
 
-static int num_containers_with_discardable_data;
-static PRInt64 num_compressed_image_bytes;
 
 
-NS_IMPL_ISUPPORTS3(imgContainer, imgIContainer, nsITimerCallback, nsIProperties)
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define LOG_CONTAINER_ERROR                      \
+  PR_BEGIN_MACRO                                 \
+  PR_LOG (gImgLog, PR_LOG_ERROR,                 \
+          ("ImgContainer: [this=%p] Error "      \
+           "detected at line %u for image of "   \
+           "type %s\n", this, __LINE__,          \
+           mSourceDataMimeType.get()));          \
+  PR_END_MACRO
+
+#define CONTAINER_ENSURE_SUCCESS(status)      \
+  PR_BEGIN_MACRO                              \
+  nsresult _status = status; /* eval once */  \
+  if (_status) {                              \
+    LOG_CONTAINER_ERROR;                      \
+    DoError();                                \
+    return _status;                           \
+  }                                           \
+ PR_END_MACRO
+
+#define CONTAINER_ENSURE_TRUE(arg, rv)  \
+  PR_BEGIN_MACRO                        \
+  if (!(arg)) {                         \
+    LOG_CONTAINER_ERROR;                \
+    DoError();                          \
+    return rv;                          \
+  }                                     \
+  PR_END_MACRO
+
+
+
+static int num_containers;
+static int num_discardable_containers;
+static PRInt64 total_source_bytes;
+static PRInt64 discardable_source_bytes;
+
+
+static PRBool
+DiscardingEnabled()
+{
+  static PRBool inited;
+  static PRBool enabled;
+
+  if (!inited) {
+    inited = PR_TRUE;
+
+    enabled = (PR_GetEnv("MOZ_DISABLE_IMAGE_DISCARD") == nsnull);
+  }
+
+  return enabled;
+}
+
+NS_IMPL_ISUPPORTS4(imgContainer, imgIContainer, nsITimerCallback, nsIProperties,
+                   nsISupportsWeakReference)
 
 
 imgContainer::imgContainer() :
   mSize(0,0),
-  mNumFrames(0),
+  mHasSize(PR_FALSE),
   mAnim(nsnull),
   mAnimationMode(kNormalAnimMode),
   mLoopCount(-1),
   mObserver(nsnull),
+  mDecodeOnDraw(PR_FALSE),
+  mMultipart(PR_FALSE),
+  mInitialized(PR_FALSE),
   mDiscardable(PR_FALSE),
-  mDiscarded(PR_FALSE),
-  mRestoreDataDone(PR_FALSE),
-  mDiscardTimer(nsnull)
+  mLockCount(0),
+  mDiscardTimer(nsnull),
+  mHasSourceData(PR_FALSE),
+  mDecoded(PR_FALSE),
+  mDecoder(nsnull),
+  mWorker(nsnull),
+  mBytesDecoded(0),
+  mDecoderInput(nsnull),
+  mDecoderFlags(imgIDecoder::DECODER_FLAG_NONE),
+  mWorkerPending(PR_FALSE),
+  mInDecoder(PR_FALSE),
+  mError(PR_FALSE)
 {
+  
+  num_containers++;
 }
 
 
@@ -95,58 +174,148 @@ imgContainer::~imgContainer()
   for (unsigned int i = 0; i < mFrames.Length(); ++i)
     delete mFrames[i];
 
-  if (!mRestoreData.IsEmpty()) {
-    num_containers_with_discardable_data--;
-    num_compressed_image_bytes -= mRestoreData.Length();
+  
+  if (mDiscardable) {
+    num_discardable_containers--;
+    discardable_source_bytes -= mSourceData.Length();
 
     PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
             ("CompressedImageAccounting: destroying imgContainer %p.  "
-             "Compressed containers: %d, Compressed data bytes: %lld",
+             "Total Containers: %d, Discardable containers: %d, "
+             "Total source bytes: %lld, Source bytes for discardable containers %lld",
              this,
-             num_containers_with_discardable_data,
-             num_compressed_image_bytes));
+             num_containers,
+             num_discardable_containers,
+             total_source_bytes,
+             discardable_source_bytes));
   }
 
   if (mDiscardTimer) {
-    mDiscardTimer->Cancel ();
+    mDiscardTimer->Cancel();
     mDiscardTimer = nsnull;
   }
+
+  
+  if (mDecoder) {
+    nsresult rv = ShutdownDecoder(eShutdownIntent_Interrupted);
+    if (NS_FAILED(rv))
+      NS_WARNING("Failed to shut down decoder in destructor!");
+  }
+
+  
+  num_containers--;
+  total_source_bytes -= mSourceData.Length();
 }
 
 
 
 
-NS_IMETHODIMP imgContainer::Init(PRInt32 aWidth, PRInt32 aHeight,
-                                 imgIContainerObserver *aObserver)
+NS_IMETHODIMP imgContainer::Init(imgIDecoderObserver *aObserver,
+                                 const char* aMimeType,
+                                 PRUint32 aFlags)
 {
-  if (aWidth <= 0 || aHeight <= 0) {
-    NS_WARNING("error - negative image size\n");
+  
+  if (mInitialized)
+    return NS_ERROR_ILLEGAL_VALUE;
+
+  
+  if (mError)
     return NS_ERROR_FAILURE;
+
+  NS_ENSURE_ARG_POINTER(aMimeType);
+
+  
+  
+  NS_ABORT_IF_FALSE(!(aFlags & INIT_FLAG_MULTIPART) ||
+                    (!(aFlags & INIT_FLAG_DISCARDABLE) &&
+                     !(aFlags & INIT_FLAG_DECODE_ON_DRAW)),
+                    "Can't be discardable or decode-on-draw for multipart");
+
+  
+  mObserver = do_GetWeakReference(aObserver);
+  mSourceDataMimeType.Assign(aMimeType);
+  mDiscardable = aFlags & INIT_FLAG_DISCARDABLE;
+  mDecodeOnDraw = aFlags & INIT_FLAG_DECODE_ON_DRAW;;
+  mMultipart = aFlags & INIT_FLAG_MULTIPART;
+
+  
+  if (mDiscardable) {
+    num_discardable_containers++;
+    discardable_source_bytes += mSourceData.Length();
   }
 
-  mSize.SizeTo(aWidth, aHeight);
   
   
-  mDiscarded = PR_FALSE;
+  
+  if (mSourceDataMimeType.Length() == 0) {
+    mInitialized = PR_TRUE;
+    return NS_OK;
+  }
 
-  mObserver = do_GetWeakReference(aObserver);
   
+  
+  
+  
+  PRUint32 dFlags = imgIDecoder::DECODER_FLAG_NONE;
+  if (mDecodeOnDraw)
+    dFlags |= imgIDecoder::DECODER_FLAG_HEADERONLY;
+
+  
+  nsresult rv = InitDecoder(dFlags);
+  CONTAINER_ENSURE_SUCCESS(rv);
+
+  
+  mInitialized = PR_TRUE;
+
   return NS_OK;
 }
 
 
 
-NS_IMETHODIMP imgContainer::ExtractCurrentFrame(const nsIntRect &aRegion, imgIContainer **_retval)
+
+
+NS_IMETHODIMP imgContainer::ExtractFrame(PRUint32 aWhichFrame,
+                                         const nsIntRect &aRegion,
+                                         PRUint32 aFlags,
+                                         imgIContainer **_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
 
+  nsresult rv;
+
+  if (aWhichFrame > FRAME_MAX_VALUE)
+    return NS_ERROR_INVALID_ARG;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
   nsRefPtr<imgContainer> img(new imgContainer());
   NS_ENSURE_TRUE(img, NS_ERROR_OUT_OF_MEMORY);
 
-  img->Init(aRegion.width, aRegion.height, nsnull);
+  
+  
+  
+  img->Init(nsnull, "", INIT_FLAG_NONE);
+  img->SetSize(aRegion.width, aRegion.height);
+  img->mDecoded = PR_TRUE; 
 
-  imgFrame *frame = GetCurrentImgFrame();
-  NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
+  
+  if (aFlags & FLAG_SYNC_DECODE) {
+    rv = SyncDecode();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  
+  
+  PRUint32 frameIndex = (aWhichFrame == FRAME_FIRST) ?
+                        0 : GetCurrentImgFrameIndex();
+  imgFrame *frame = GetImgFrame(frameIndex);
+  if (!frame) {
+    *_retval = nsnull;
+    return NS_ERROR_FAILURE;
+  }
 
   
   
@@ -157,12 +326,11 @@ NS_IMETHODIMP imgContainer::ExtractCurrentFrame(const nsIntRect &aRegion, imgICo
     return NS_ERROR_NOT_AVAILABLE;
 
   nsAutoPtr<imgFrame> subframe;
-  nsresult rv = frame->Extract(framerect, getter_Transfers(subframe));
+  rv = frame->Extract(framerect, getter_Transfers(subframe));
   if (NS_FAILED(rv))
     return rv;
 
   img->mFrames.AppendElement(subframe.forget());
-  img->mNumFrames++;
 
   *_retval = img.forget().get();
 
@@ -175,6 +343,9 @@ NS_IMETHODIMP imgContainer::GetWidth(PRInt32 *aWidth)
 {
   NS_ENSURE_ARG_POINTER(aWidth);
 
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   *aWidth = mSize.width;
   return NS_OK;
 }
@@ -185,14 +356,17 @@ NS_IMETHODIMP imgContainer::GetHeight(PRInt32 *aHeight)
 {
   NS_ENSURE_ARG_POINTER(aHeight);
 
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   *aHeight = mSize.height;
   return NS_OK;
 }
 
 imgFrame *imgContainer::GetImgFrame(PRUint32 framenum)
 {
-  nsresult rv = RestoreDiscardedData();
-  NS_ENSURE_SUCCESS(rv, nsnull);
+  nsresult rv = WantDecodedFrames();
+  CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nsnull);
 
   if (!mAnim) {
     NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
@@ -203,7 +377,7 @@ imgFrame *imgContainer::GetImgFrame(PRUint32 framenum)
   return mFrames.SafeElementAt(framenum, nsnull);
 }
 
-PRInt32 imgContainer::GetCurrentImgFrameIndex() const
+PRUint32 imgContainer::GetCurrentImgFrameIndex() const
 {
   if (mAnim)
     return mAnim->currentAnimationFrameIndex;
@@ -222,15 +396,25 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
 {
   NS_ENSURE_ARG_POINTER(aIsOpaque);
 
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
   imgFrame *curframe = GetCurrentImgFrame();
-  NS_ENSURE_TRUE(curframe, NS_ERROR_FAILURE);
-
-  *aIsOpaque = !curframe->GetNeedsBackground();
 
   
+  if (!curframe)
+    *aIsOpaque = PR_FALSE;
+
   
-  nsIntRect framerect = curframe->GetRect();
-  *aIsOpaque = *aIsOpaque && (framerect != nsIntRect(0, 0, mSize.width, mSize.height));
+  else {
+    *aIsOpaque = !curframe->GetNeedsBackground();
+
+    
+    
+    nsIntRect framerect = curframe->GetRect();
+    *aIsOpaque = *aIsOpaque && (framerect != nsIntRect(0, 0, mSize.width, mSize.height));
+  }
 
   return NS_OK;
 }
@@ -239,10 +423,25 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
 
 NS_IMETHODIMP imgContainer::GetCurrentFrameRect(nsIntRect &aRect)
 {
-  imgFrame *curframe = GetCurrentImgFrame();
-  NS_ENSURE_TRUE(curframe, NS_ERROR_FAILURE);
+  if (mError)
+    return NS_ERROR_FAILURE;
 
-  aRect = curframe->GetRect();
+  
+  imgFrame *curframe = GetCurrentImgFrame();
+
+  
+  if (curframe)
+    aRect = curframe->GetRect();
+
+  
+  
+  
+  
+  
+  else {
+    aRect.MoveTo(0, 0);
+    aRect.SizeTo(0, 0);
+  }
 
   return NS_OK;
 }
@@ -251,6 +450,9 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameRect(nsIntRect &aRect)
 
 NS_IMETHODIMP imgContainer::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aCurrentFrameIdx);
   
   *aCurrentFrameIdx = GetCurrentImgFrameIndex();
@@ -262,9 +464,12 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
 
 NS_IMETHODIMP imgContainer::GetNumFrames(PRUint32 *aNumFrames)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aNumFrames);
 
-  *aNumFrames = mNumFrames;
+  *aNumFrames = mFrames.Length();
   
   return NS_OK;
 }
@@ -273,9 +478,12 @@ NS_IMETHODIMP imgContainer::GetNumFrames(PRUint32 *aNumFrames)
 
 NS_IMETHODIMP imgContainer::GetAnimated(PRBool *aAnimated)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aAnimated);
 
-  *aAnimated = (mNumFrames > 1);
+  *aAnimated = (mAnim != nsnull);
   
   return NS_OK;
 }
@@ -283,12 +491,37 @@ NS_IMETHODIMP imgContainer::GetAnimated(PRBool *aAnimated)
 
 
 
-NS_IMETHODIMP imgContainer::CopyCurrentFrame(gfxImageSurface **_retval)
+
+NS_IMETHODIMP imgContainer::CopyFrame(PRUint32 aWhichFrame,
+                                      PRUint32 aFlags,
+                                      gfxImageSurface **_retval)
 {
+  if (aWhichFrame > FRAME_MAX_VALUE)
+    return NS_ERROR_INVALID_ARG;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  nsresult rv;
+
+  
+  if (aFlags & FLAG_SYNC_DECODE) {
+    rv = SyncDecode();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
   NS_ENSURE_ARG_POINTER(_retval);
 
-  imgFrame *frame = GetImgFrame(GetCurrentImgFrameIndex());
-  NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
+  
+  
+  
+  PRUint32 frameIndex = (aWhichFrame == FRAME_FIRST) ?
+                        0 : GetCurrentImgFrameIndex();
+  imgFrame *frame = GetImgFrame(frameIndex);
+  if (!frame) {
+    *_retval = nsnull;
+    return NS_ERROR_FAILURE;
+  }
 
   nsRefPtr<gfxPattern> pattern;
   frame->GetPattern(getter_AddRefs(pattern));
@@ -311,13 +544,37 @@ NS_IMETHODIMP imgContainer::CopyCurrentFrame(gfxImageSurface **_retval)
 
 
 
-NS_IMETHODIMP imgContainer::GetCurrentFrame(gfxASurface **_retval)
+
+NS_IMETHODIMP imgContainer::GetFrame(PRUint32 aWhichFrame,
+                                     PRUint32 aFlags,
+                                     gfxASurface **_retval)
 {
-  imgFrame *frame = GetImgFrame(GetCurrentImgFrameIndex());
-  NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
+  if (aWhichFrame > FRAME_MAX_VALUE)
+    return NS_ERROR_INVALID_ARG;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  nsresult rv = NS_OK;
+
+  
+  if (aFlags & FLAG_SYNC_DECODE) {
+    rv = SyncDecode();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  
+  
+  PRUint32 frameIndex = (aWhichFrame == FRAME_FIRST) ?
+                          0 : GetCurrentImgFrameIndex();
+  imgFrame *frame = GetImgFrame(frameIndex);
+  if (!frame) {
+    *_retval = nsnull;
+    return NS_ERROR_FAILURE;
+  }
 
   nsRefPtr<gfxASurface> framesurf;
-  nsresult rv = NS_OK;
 
   
   
@@ -331,7 +588,7 @@ NS_IMETHODIMP imgContainer::GetCurrentFrame(gfxASurface **_retval)
   
   if (!framesurf) {
     nsRefPtr<gfxImageSurface> imgsurf;
-    rv = CopyCurrentFrame(getter_AddRefs(imgsurf));
+    rv = CopyFrame(aWhichFrame, aFlags, getter_AddRefs(imgsurf));
     framesurf = imgsurf;
   }
 
@@ -342,41 +599,27 @@ NS_IMETHODIMP imgContainer::GetCurrentFrame(gfxASurface **_retval)
 
 
 
-NS_IMETHODIMP imgContainer::GetFrameImageDataLength(PRUint32 framenum, PRUint32 *_retval)
+NS_IMETHODIMP imgContainer::GetDataSize(PRUint32 *_retval)
 {
-  NS_ENSURE_ARG_POINTER(_retval);
-
-  if (framenum >= PRUint32(mNumFrames))
-    return NS_ERROR_INVALID_ARG;
-
-  imgFrame *frame = GetImgFrame(framenum);
-  NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
-
-  *_retval = frame->GetImageDataLength();
-
-  return NS_OK;
-}
-
-
-
-
-
-NS_IMETHODIMP imgContainer::GetFrameColormap(PRUint32 framenum, PRUint32 **aPaletteData,
-                                             PRUint32 *aPaletteLength)
-{
-  NS_ENSURE_ARG_POINTER(aPaletteData);
-  NS_ENSURE_ARG_POINTER(aPaletteLength);
-
-  if (framenum >= PRUint32(mNumFrames))
-    return NS_ERROR_INVALID_ARG;
-
-  imgFrame *frame = GetImgFrame(framenum);
-  NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
-
-  if (!frame->GetIsPaletted())
+  if (mError)
     return NS_ERROR_FAILURE;
 
-  frame->GetPaletteData(aPaletteData, aPaletteLength);
+  NS_ENSURE_ARG_POINTER(_retval);
+
+  
+  *_retval = 0;
+
+  
+  *_retval += mSourceData.Length();
+  NS_ABORT_IF_FALSE(StoringSourceData() || (*_retval == 0),
+                    "Non-zero source data size when we aren't storing it?");
+
+  
+  for (PRUint32 i = 0; i < mFrames.Length(); ++i) {
+    imgFrame *frame = mFrames.SafeElementAt(i, nsnull);
+    NS_ABORT_IF_FALSE(frame, "Null frame in frame array!");
+    *_retval += frame->GetImageDataLength();
+  }
 
   return NS_OK;
 }
@@ -385,7 +628,8 @@ nsresult imgContainer::InternalAddFrameHelper(PRUint32 framenum, imgFrame *aFram
                                               PRUint8 **imageData, PRUint32 *imageLength,
                                               PRUint32 **paletteData, PRUint32 *paletteLength)
 {
-  if (framenum > PRUint32(mNumFrames))
+  NS_ABORT_IF_FALSE(framenum <= mFrames.Length(), "Invalid frame index!");
+  if (framenum > mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   nsAutoPtr<imgFrame> frame(aFrame);
@@ -396,7 +640,6 @@ nsresult imgContainer::InternalAddFrameHelper(PRUint32 framenum, imgFrame *aFram
   frame->GetImageData(imageData, imageLength);
 
   mFrames.InsertElementAt(framenum, frame.forget());
-  mNumFrames++;
 
   return NS_OK;
 }
@@ -411,7 +654,8 @@ nsresult imgContainer::InternalAddFrame(PRUint32 framenum,
                                         PRUint32 **paletteData,
                                         PRUint32 *paletteLength)
 {
-  if (framenum > PRUint32(mNumFrames))
+  NS_ABORT_IF_FALSE(framenum <= mFrames.Length(), "Invalid frame index!");
+  if (framenum > mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   nsAutoPtr<imgFrame> frame(new imgFrame());
@@ -465,10 +709,13 @@ NS_IMETHODIMP imgContainer::AppendFrame(PRInt32 aX, PRInt32 aY, PRInt32 aWidth,
                                         PRUint8 **imageData,
                                         PRUint32 *imageLength)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(imageData);
   NS_ENSURE_ARG_POINTER(imageLength);
 
-  return InternalAddFrame(mNumFrames, aX, aY, aWidth, aHeight, aFormat, 
+  return InternalAddFrame(mFrames.Length(), aX, aY, aWidth, aHeight, aFormat, 
                            0, imageData, imageLength,
                            nsnull, 
                            nsnull);
@@ -484,15 +731,55 @@ NS_IMETHODIMP imgContainer::AppendPalettedFrame(PRInt32 aX, PRInt32 aY,
                                                 PRUint32 **paletteData,
                                                 PRUint32 *paletteLength)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(imageData);
   NS_ENSURE_ARG_POINTER(imageLength);
   NS_ENSURE_ARG_POINTER(paletteData);
   NS_ENSURE_ARG_POINTER(paletteLength);
 
-  return InternalAddFrame(mNumFrames, aX, aY, aWidth, aHeight, aFormat, 
+  return InternalAddFrame(mFrames.Length(), aX, aY, aWidth, aHeight, aFormat, 
                           aPaletteDepth, imageData, imageLength,
                           paletteData, paletteLength);
 }
+
+
+NS_IMETHODIMP imgContainer::SetSize(PRInt32 aWidth, PRInt32 aHeight)
+{
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  
+  if ((aWidth < 0) || (aHeight < 0))
+    return NS_ERROR_INVALID_ARG;
+
+  
+  if (mHasSize &&
+      ((aWidth != mSize.width) || (aHeight != mSize.height))) {
+
+    
+    if (!mMultipart)
+      NS_WARNING("Image changed size on redecode! This should not happen!");
+    else
+      NS_WARNING("Multipart channel sent an image of a different size");
+
+    DoError();
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  mSize.SizeTo(aWidth, aHeight);
+  mHasSize = PR_TRUE;
+
+  return NS_OK;
+}
+
+
+
+
+
 
 
 NS_IMETHODIMP imgContainer::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRInt32 aY,
@@ -500,13 +787,17 @@ NS_IMETHODIMP imgContainer::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRI
                                              gfxASurface::gfxImageFormat aFormat,
                                              PRUint8 **imageData, PRUint32 *imageLength)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(imageData);
   NS_ENSURE_ARG_POINTER(imageLength);
-  if (aFrameNum > PRUint32(mNumFrames))
+  NS_ABORT_IF_FALSE(aFrameNum <= mFrames.Length(), "Invalid frame index!");
+  if (aFrameNum > mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   
-  if (aFrameNum == PRUint32(mNumFrames))
+  if (aFrameNum == mFrames.Length())
     return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat, 
                              0, imageData, imageLength,
                              nsnull, 
@@ -541,10 +832,12 @@ NS_IMETHODIMP imgContainer::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRI
 
 NS_IMETHODIMP imgContainer::FrameUpdated(PRUint32 aFrameNum, nsIntRect &aUpdatedRect)
 {
-  if (aFrameNum >= PRUint32(mNumFrames))
+  NS_ABORT_IF_FALSE(aFrameNum < mFrames.Length(), "Invalid frame index!");
+  if (aFrameNum >= mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   imgFrame *frame = GetImgFrame(aFrameNum);
+  NS_ABORT_IF_FALSE(frame, "Calling FrameUpdated on frame that doesn't exist!");
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
   frame->ImageUpdated(aUpdatedRect);
@@ -556,10 +849,16 @@ NS_IMETHODIMP imgContainer::FrameUpdated(PRUint32 aFrameNum, nsIntRect &aUpdated
 
 NS_IMETHODIMP imgContainer::SetFrameDisposalMethod(PRUint32 aFrameNum, PRInt32 aDisposalMethod)
 {
-  if (aFrameNum >= PRUint32(mNumFrames))
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ABORT_IF_FALSE(aFrameNum < mFrames.Length(), "Invalid frame index!");
+  if (aFrameNum >= mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   imgFrame *frame = GetImgFrame(aFrameNum);
+  NS_ABORT_IF_FALSE(frame,
+                    "Calling SetFrameDisposalMethod on frame that doesn't exist!");
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
   frame->SetFrameDisposalMethod(aDisposalMethod);
@@ -571,10 +870,15 @@ NS_IMETHODIMP imgContainer::SetFrameDisposalMethod(PRUint32 aFrameNum, PRInt32 a
 
 NS_IMETHODIMP imgContainer::SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout)
 {
-  if (aFrameNum >= PRUint32(mNumFrames))
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ABORT_IF_FALSE(aFrameNum < mFrames.Length(), "Invalid frame index!");
+  if (aFrameNum >= mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   imgFrame *frame = GetImgFrame(aFrameNum);
+  NS_ABORT_IF_FALSE(frame, "Calling SetFrameTimeout on frame that doesn't exist!");
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
   frame->SetTimeout(aTimeout);
@@ -586,10 +890,15 @@ NS_IMETHODIMP imgContainer::SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout
 
 NS_IMETHODIMP imgContainer::SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBlendMethod)
 {
-  if (aFrameNum >= PRUint32(mNumFrames))
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ABORT_IF_FALSE(aFrameNum < mFrames.Length(), "Invalid frame index!");
+  if (aFrameNum >= mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   imgFrame *frame = GetImgFrame(aFrameNum);
+  NS_ABORT_IF_FALSE(frame, "Calling SetFrameBlendMethod on frame that doesn't exist!");
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
   frame->SetBlendMethod(aBlendMethod);
@@ -602,10 +911,15 @@ NS_IMETHODIMP imgContainer::SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBle
 
 NS_IMETHODIMP imgContainer::SetFrameHasNoAlpha(PRUint32 aFrameNum)
 {
-  if (aFrameNum >= PRUint32(mNumFrames))
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  NS_ABORT_IF_FALSE(aFrameNum < mFrames.Length(), "Invalid frame index!");
+  if (aFrameNum >= mFrames.Length())
     return NS_ERROR_INVALID_ARG;
 
   imgFrame *frame = GetImgFrame(aFrameNum);
+  NS_ABORT_IF_FALSE(frame, "Calling SetFrameHasNoAlpha on frame that doesn't exist!");
   NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
 
   frame->SetHasNoAlpha();
@@ -617,6 +931,9 @@ NS_IMETHODIMP imgContainer::SetFrameHasNoAlpha(PRUint32 aFrameNum)
 
 NS_IMETHODIMP imgContainer::EndFrameDecode(PRUint32 aFrameNum)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   
   
   if (mAnim)
@@ -629,13 +946,35 @@ NS_IMETHODIMP imgContainer::EndFrameDecode(PRUint32 aFrameNum)
 
 NS_IMETHODIMP imgContainer::DecodingComplete(void)
 {
-  if (mAnim)
-    mAnim->doneDecoding = PR_TRUE;
+  if (mError)
+    return NS_ERROR_FAILURE;
 
   
   
-  if (mNumFrames == 1)
-    return mFrames[0]->Optimize();
+  
+  mDecoded = PR_TRUE;
+  if (mAnim)
+    mAnim->doneDecoding = PR_TRUE;
+
+  nsresult rv;
+
+  
+  if (CanDiscard()) {
+    NS_ABORT_IF_FALSE(!mDiscardTimer,
+                      "We shouldn't have been discardable before this");
+    rv = ResetDiscardTimer();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  
+  
+  
+  
+  if ((mFrames.Length() == 1) && !mMultipart) {
+    rv = mFrames[0]->Optimize();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
@@ -644,6 +983,9 @@ NS_IMETHODIMP imgContainer::DecodingComplete(void)
 
 NS_IMETHODIMP imgContainer::GetAnimationMode(PRUint16 *aAnimationMode)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aAnimationMode);
   
   *aAnimationMode = mAnimationMode;
@@ -654,6 +996,9 @@ NS_IMETHODIMP imgContainer::GetAnimationMode(PRUint16 *aAnimationMode)
 
 NS_IMETHODIMP imgContainer::SetAnimationMode(PRUint16 aAnimationMode)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ASSERTION(aAnimationMode == imgIContainer::kNormalAnimMode ||
                aAnimationMode == imgIContainer::kDontAnimMode ||
                aAnimationMode == imgIContainer::kLoopOnceAnimMode,
@@ -665,11 +1010,11 @@ NS_IMETHODIMP imgContainer::SetAnimationMode(PRUint16 aAnimationMode)
       break;
     case kNormalAnimMode:
       if (mLoopCount != 0 || 
-          (mAnim && (mAnim->currentAnimationFrameIndex + 1 < mNumFrames)))
+          (mAnim && (mAnim->currentAnimationFrameIndex + 1 < mFrames.Length())))
         StartAnimation();
       break;
     case kLoopOnceAnimMode:
-      if (mAnim && (mAnim->currentAnimationFrameIndex + 1 < mNumFrames))
+      if (mAnim && (mAnim->currentAnimationFrameIndex + 1 < mFrames.Length()))
         StartAnimation();
       break;
   }
@@ -681,11 +1026,14 @@ NS_IMETHODIMP imgContainer::SetAnimationMode(PRUint16 aAnimationMode)
 
 NS_IMETHODIMP imgContainer::StartAnimation()
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   if (mAnimationMode == kDontAnimMode || 
       (mAnim && (mAnim->timer || mAnim->animating)))
     return NS_OK;
   
-  if (mNumFrames > 1) {
+  if (mFrames.Length() > 1) {
     if (!ensureAnimExists())
       return NS_ERROR_OUT_OF_MEMORY;
     
@@ -715,6 +1063,9 @@ NS_IMETHODIMP imgContainer::StartAnimation()
 
 NS_IMETHODIMP imgContainer::StopAnimation()
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   if (mAnim) {
     mAnim->animating = PR_FALSE;
 
@@ -732,6 +1083,9 @@ NS_IMETHODIMP imgContainer::StopAnimation()
 
 NS_IMETHODIMP imgContainer::ResetAnimation()
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   if (mAnimationMode == kDontAnimMode || 
       !mAnim || mAnim->currentAnimationFrameIndex == 0)
     return NS_OK;
@@ -745,13 +1099,14 @@ NS_IMETHODIMP imgContainer::ResetAnimation()
 
   mAnim->lastCompositedFrameIndex = -1;
   mAnim->currentAnimationFrameIndex = 0;
+
+  
+  
+
   
   nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
-  if (observer) {
-    nsresult rv = RestoreDiscardedData();
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (oldAnimating && observer)
     observer->FrameChanged(this, &(mAnim->firstFrameRefreshArea));
-  }
 
   if (oldAnimating)
     return StartAnimation();
@@ -762,6 +1117,9 @@ NS_IMETHODIMP imgContainer::ResetAnimation()
 
 NS_IMETHODIMP imgContainer::GetLoopCount(PRInt32 *aLoopCount)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aLoopCount);
   
   *aLoopCount = mLoopCount;
@@ -773,6 +1131,9 @@ NS_IMETHODIMP imgContainer::GetLoopCount(PRInt32 *aLoopCount)
 
 NS_IMETHODIMP imgContainer::SetLoopCount(PRInt32 aLoopCount)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   
   
   
@@ -782,80 +1143,64 @@ NS_IMETHODIMP imgContainer::SetLoopCount(PRInt32 aLoopCount)
   return NS_OK;
 }
 
-static PRBool
-DiscardingEnabled(void)
+
+
+NS_IMETHODIMP imgContainer::AddSourceData(const char *aBuffer, PRUint32 aCount)
 {
-  static PRBool inited;
-  static PRBool enabled;
-
-  if (!inited) {
-    inited = PR_TRUE;
-
-    enabled = (PR_GetEnv("MOZ_DISABLE_IMAGE_DISCARD") == nsnull);
-  }
-
-  return enabled;
-}
-
-
-
-NS_IMETHODIMP imgContainer::SetDiscardable(const char* aMimeType)
-{
-  NS_ENSURE_ARG_POINTER(aMimeType);
-
-  if (!DiscardingEnabled())
-    return NS_OK;
-
-  if (mDiscardable) {
-    NS_WARNING ("imgContainer::SetDiscardable(): cannot change an imgContainer which is already discardable");
+  if (mError)
     return NS_ERROR_FAILURE;
-  }
 
-  mDiscardableMimeType.Assign(aMimeType);
-  mDiscardable = PR_TRUE;
-
-  num_containers_with_discardable_data++;
-  PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-          ("CompressedImageAccounting: Making imgContainer %p (%s) discardable.  "
-           "Compressed containers: %d, Compressed data bytes: %lld",
-           this,
-           aMimeType,
-           num_containers_with_discardable_data,
-           num_compressed_image_bytes));
-
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP imgContainer::AddRestoreData(const char *aBuffer, PRUint32 aCount)
-{
   NS_ENSURE_ARG_POINTER(aBuffer);
+  nsresult rv = NS_OK;
 
-  if (!mDiscardable)
-    return NS_OK;
+  
+  NS_ABORT_IF_FALSE(mInitialized, "Calling AddSourceData() on uninitialized "
+                                  "imgContainer!");
 
-  if (mRestoreDataDone) {
-    
+  
+  NS_ABORT_IF_FALSE(!mHasSourceData, "Calling AddSourceData() after calling "
+                                     "sourceDataComplete()!");
 
+  
+  NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
 
-
-
-    return NS_OK;
+  
+  if (!StoringSourceData()) {
+    rv = WriteToDecoder(aBuffer, aCount);
+    CONTAINER_ENSURE_SUCCESS(rv);
   }
 
-  if (!mRestoreData.AppendElements(aBuffer, aCount))
-    return NS_ERROR_OUT_OF_MEMORY;
+  
+  else {
 
-  num_compressed_image_bytes += aCount;
+    
+    char *newElem = mSourceData.AppendElements(aBuffer, aCount);
+    if (!newElem)
+      return NS_ERROR_OUT_OF_MEMORY;
 
+    
+    
+    if (mDecoder && !mWorkerPending) {
+      NS_ABORT_IF_FALSE(mWorker, "We should have a worker here!");
+      rv = mWorker->Run();
+      CONTAINER_ENSURE_SUCCESS(rv);
+    }
+  }
+
+  
+  total_source_bytes += aCount;
+  if (mDiscardable)
+    discardable_source_bytes += aCount;
   PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-          ("CompressedImageAccounting: Added compressed data to imgContainer %p (%s).  "
-           "Compressed containers: %d, Compressed data bytes: %lld",
+          ("CompressedImageAccounting: Added compressed data to imgContainer %p (%s). "
+           "Total Containers: %d, Discardable containers: %d, "
+           "Total source bytes: %lld, Source bytes for discardable containers %lld",
            this,
-           mDiscardableMimeType.get(),
-           num_containers_with_discardable_data,
-           num_compressed_image_bytes));
+           mSourceDataMimeType.get(),
+           num_containers,
+           num_discardable_containers,
+           total_source_bytes,
+           discardable_source_bytes));
 
   return NS_OK;
 }
@@ -881,45 +1226,114 @@ get_header_str (char *buf, char *data, PRSize data_len)
 
 
 
-NS_IMETHODIMP imgContainer::RestoreDataDone (void)
+NS_IMETHODIMP imgContainer::SourceDataComplete()
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   
-  if (!mDiscardable)
+  if (mHasSourceData)
     return NS_OK;
+  mHasSourceData = PR_TRUE;
 
-  if (mRestoreDataDone)
-    return NS_OK;
+  
+  NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
 
-  mRestoreData.Compact();
-
-  mRestoreDataDone = PR_TRUE;
-
-  if (PR_LOG_TEST(gCompressedImageAccountingLog, PR_LOG_DEBUG)) {
-    char buf[9];
-    get_header_str(buf, mRestoreData.Elements(), mRestoreData.Length());
-    PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-            ("CompressedImageAccounting: imgContainer::RestoreDataDone() - data is done for container %p (%s), %d real frames (cached as %d frames) - header %p is 0x%s (length %d)",
-             this,
-             mDiscardableMimeType.get(),
-             mFrames.Length (),
-             mNumFrames,
-             mRestoreData.Elements(),
-             buf,
-             mRestoreData.Length()));
+  
+  
+  
+  if (!StoringSourceData()) {
+    nsresult rv = ShutdownDecoder(eShutdownIntent_Done);
+    CONTAINER_ENSURE_SUCCESS(rv);
   }
 
-  return ResetDiscardTimer();
+  
+  
+  
+  
+  
+  
+  
+  if (mDecoder && !mWorkerPending) {
+    NS_ABORT_IF_FALSE(mWorker, "We should have a worker here!");
+    nsresult rv = mWorker->Run();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  mSourceData.Compact();
+
+  
+  if (PR_LOG_TEST(gCompressedImageAccountingLog, PR_LOG_DEBUG)) {
+    char buf[9];
+    get_header_str(buf, mSourceData.Elements(), mSourceData.Length());
+    PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
+            ("CompressedImageAccounting: imgContainer::SourceDataComplete() - data "
+             "is done for container %p (%s) - header %p is 0x%s (length %d)",
+             this,
+             mSourceDataMimeType.get(),
+             mSourceData.Elements(),
+             buf,
+             mSourceData.Length()));
+  }
+
+  
+  if (CanDiscard()) {
+    nsresult rv = ResetDiscardTimer();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP imgContainer::NewSourceData()
+{
+  nsresult rv;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  NS_ABORT_IF_FALSE(mHasSourceData,
+                    "Calling NewSourceData before SourceDataComplete!");
+  if (!mHasSourceData)
+    return NS_ERROR_ILLEGAL_VALUE;
+
+  
+  
+  
+  NS_ABORT_IF_FALSE(mMultipart, "NewSourceData not supported for multipart");
+  if (!mMultipart)
+    return NS_ERROR_ILLEGAL_VALUE;
+
+  
+  NS_ABORT_IF_FALSE(!StoringSourceData(),
+                    "Shouldn't be storing source data for multipart");
+
+  
+  
+  NS_ABORT_IF_FALSE(!mDecoder, "Shouldn't have a decoder in NewSourceData");
+
+  
+  NS_ABORT_IF_FALSE(mDecoded, "Should be decoded in NewSourceData");
+
+  
+  mDecoded = PR_FALSE;
+  mHasSourceData = PR_FALSE;
+
+  
+  
+  rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
+  CONTAINER_ENSURE_SUCCESS(rv);
+
+  return NS_OK;
 }
 
 
 
 NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
 {
-  
-  
-  nsresult rv = RestoreDiscardedData();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   
   NS_ENSURE_TRUE(mAnim, NS_ERROR_UNEXPECTED);
@@ -936,12 +1350,12 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
     return NS_OK;
   }
 
-  if (mNumFrames == 0)
+  if (mFrames.Length() == 0)
     return NS_OK;
   
   imgFrame *nextFrame = nsnull;
   PRInt32 previousFrameIndex = mAnim->currentAnimationFrameIndex;
-  PRInt32 nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
+  PRUint32 nextFrameIndex = mAnim->currentAnimationFrameIndex + 1;
   PRInt32 timeout = 0;
 
   
@@ -950,7 +1364,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
   
   if (mAnim->doneDecoding || 
       (nextFrameIndex < mAnim->currentDecodingFrameIndex)) {
-    if (mNumFrames == nextFrameIndex) {
+    if (mFrames.Length() == nextFrameIndex) {
       
 
       
@@ -1521,116 +1935,397 @@ get_discard_timer_ms (void)
 void
 imgContainer::sDiscardTimerCallback(nsITimer *aTimer, void *aClosure)
 {
+  
   imgContainer *self = (imgContainer *) aClosure;
-
-  NS_ASSERTION(aTimer == self->mDiscardTimer,
-               "imgContainer::DiscardTimerCallback() got a callback for an unknown timer");
-
+  NS_ABORT_IF_FALSE(aTimer == self->mDiscardTimer, 
+                    "imgContainer::DiscardTimerCallback() got a callback "
+                    "for an unknown timer");
   self->mDiscardTimer = nsnull;
 
+  
+  NS_ABORT_IF_FALSE(self->CanDiscard(), "Hit discard callback but can't discard!");
+
+  
+  NS_ABORT_IF_FALSE(!self->mDecoder, "Discard callback fired with open decoder!");
+
+  
+  
+  NS_ABORT_IF_FALSE(!self->mAnim, "Discard callback fired for animated image!");
+
+  
   int old_frame_count = self->mFrames.Length();
 
   
-  if (self->mAnim) {
-    return;
-  }
-
   for (int i = 0; i < old_frame_count; ++i)
     delete self->mFrames[i];
   self->mFrames.Clear();
 
-  self->mDiscarded = PR_TRUE;
+  
+  self->mDecoded = PR_FALSE;
 
+  
+  nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(self->mObserver));
+  if (observer)
+    observer->OnDiscard(nsnull);
+
+  
   PR_LOG(gCompressedImageAccountingLog, PR_LOG_DEBUG,
-         ("CompressedImageAccounting: discarded uncompressed image data from imgContainer %p (%s) - %d frames (cached count: %d); "
-          "Compressed containers: %d, Compressed data bytes: %lld",
+         ("CompressedImageAccounting: discarded uncompressed image "
+          "data from imgContainer %p (%s) - %d frames (cached count: %d); "
+          "Total Containers: %d, Discardable containers: %d, "
+          "Total source bytes: %lld, Source bytes for discardable containers %lld",
           self,
-          self->mDiscardableMimeType.get(),
+          self->mSourceDataMimeType.get(),
           old_frame_count,
-          self->mNumFrames,
-          num_containers_with_discardable_data,
-          num_compressed_image_bytes));
+          self->mFrames.Length(),
+          num_containers,
+          num_discardable_containers,
+          total_source_bytes,
+          discardable_source_bytes));
 }
 
 nsresult
-imgContainer::ResetDiscardTimer (void)
+imgContainer::ResetDiscardTimer()
 {
-  if (!mRestoreDataDone)
-    return NS_OK;
+  
+  NS_ABORT_IF_FALSE(CanDiscard(), "Calling ResetDiscardTimer but can't discard!");
 
+  
+  NS_ABORT_IF_FALSE(!mAnim, "Trying to reset discard timer on animated image!");
+
+  
   if (mDiscardTimer) {
-    
     nsresult rv = mDiscardTimer->Cancel();
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+    CONTAINER_ENSURE_SUCCESS(rv);
     mDiscardTimer = nsnull;
   }
 
   
-  if (mAnim && mAnim->animating)
-    return NS_OK;
+  mDiscardTimer = do_CreateInstance("@mozilla.org/timer;1");
+  CONTAINER_ENSURE_TRUE(mDiscardTimer, NS_ERROR_OUT_OF_MEMORY);
 
-  if (!mDiscardTimer) {
-    mDiscardTimer = do_CreateInstance("@mozilla.org/timer;1");
-    NS_ENSURE_TRUE(mDiscardTimer, NS_ERROR_OUT_OF_MEMORY);
-  }
-
+  
   return mDiscardTimer->InitWithFuncCallback(sDiscardTimerCallback,
                                              (void *) this,
                                              get_discard_timer_ms (),
                                              nsITimer::TYPE_ONE_SHOT);
 }
 
+
+PRBool
+imgContainer::CanDiscard() {
+  return (DiscardingEnabled() && 
+          mDiscardable &&        
+          (mLockCount == 0) &&   
+          mHasSourceData &&      
+          mDecoded);             
+}
+
+
+
+PRBool
+imgContainer::StoringSourceData() {
+  return (mDecodeOnDraw || mDiscardable);
+}
+
+
+
+
 nsresult
-imgContainer::RestoreDiscardedData(void)
+imgContainer::InitDecoder (PRUint32 dFlags)
 {
   
+  NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
   
-  if (!mRestoreDataDone) 
-    return NS_OK;
-
   
-  nsresult rv = ResetDiscardTimer();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!mDiscarded)
-    return NS_OK;
-
-  int num_expected_frames = mNumFrames;
+  NS_ABORT_IF_FALSE(!mDecoded, "Calling InitDecoder() but already decoded!");
 
   
-  mDiscarded = PR_FALSE;
+  NS_ABORT_IF_FALSE(!mDiscardTimer, "Discard Timer active in InitDecoder()!");
 
-  rv = ReloadImages();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  NS_ASSERTION (mNumFrames == PRInt32(mFrames.Length()),
-                "number of restored image frames doesn't match");
-  NS_ASSERTION (num_expected_frames == mNumFrames,
-                "number of restored image frames doesn't match the original number of frames!");
   
-  PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-          ("CompressedImageAccounting: imgContainer::RestoreDiscardedData() restored discarded data "
-           "for imgContainer %p (%s) - %d image frames.  "
-           "Compressed containers: %d, Compressed data bytes: %lld",
-           this,
-           mDiscardableMimeType.get(),
-           mNumFrames,
-           num_containers_with_discardable_data,
-           num_compressed_image_bytes));
+  nsCAutoString decoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/decoder;3?type=") +
+                                              mSourceDataMimeType);
+  mDecoder = do_CreateInstance(decoderCID.get());
+  CONTAINER_ENSURE_TRUE(mDecoder, NS_IMAGELIB_ERROR_NO_DECODER);
+
+  
+  mDecoderFlags = dFlags;
+
+  
+  nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
+  nsresult result = mDecoder->Init(this, observer, dFlags);
+  CONTAINER_ENSURE_SUCCESS(result);
+
+  
+  
+  
+  
+  
+  mDecoderInput = do_CreateInstance("@mozilla.org/io/string-input-stream;1");
+  CONTAINER_ENSURE_TRUE(mDecoderInput, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  mWorker = new imgDecodeWorker(this);
+  CONTAINER_ENSURE_TRUE(mWorker, NS_ERROR_OUT_OF_MEMORY);
 
   return NS_OK;
 }
 
 
+
+
+
+
+
+
+
+nsresult
+imgContainer::ShutdownDecoder(eShutdownIntent aIntent)
+{
+  
+  NS_ABORT_IF_FALSE((aIntent >= 0) || (aIntent < eShutdownIntent_AllCount),
+                    "Invalid shutdown intent");
+
+  
+  NS_ABORT_IF_FALSE(mDecoder, "Calling ShutdownDecoder() with no active decoder!");
+
+  nsresult rv;
+
+  
+  if ((aIntent == eShutdownIntent_Done) &&
+      !(mDecoderFlags && imgIDecoder::DECODER_FLAG_HEADERONLY)) {
+    mInDecoder = PR_TRUE;
+    rv = mDecoder->Flush();
+    mInDecoder = PR_FALSE;
+
+    
+    
+    if (NS_FAILED(rv)) {
+      DoError();
+      return rv;
+    }
+  }
+
+  
+  mInDecoder = PR_TRUE;
+  PRUint32 closeFlags = (aIntent == eShutdownIntent_Error)
+                          ? (PRUint32) imgIDecoder::CLOSE_FLAG_DONTNOTIFY
+                          : 0;
+  rv = mDecoder->Close(closeFlags);
+  mInDecoder = PR_FALSE;
+
+  
+  
+  mDecoder = nsnull;
+  if (NS_FAILED(rv)) {
+    DoError();
+    return rv;
+  }
+
+  
+  mDecoderInput = nsnull;
+
+  
+  mWorker = nsnull;
+
+  
+  
+  PRBool failed = PR_FALSE;
+  if ((mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && !mHasSize)
+    failed = PR_TRUE;
+  if (!(mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) && !mDecoded)
+    failed = PR_TRUE;
+  if ((aIntent == eShutdownIntent_Done) && failed) {
+    DoError();
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  mDecoderFlags = imgIDecoder::DECODER_FLAG_NONE;
+
+  
+  mBytesDecoded = 0;
+
+  return NS_OK;
+}
+
+
+
+nsresult
+imgContainer::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
+{
+  
+  NS_ABORT_IF_FALSE(mDecoder, "Trying to write to null decoder!");
+
+  
+  nsresult rv = mDecoderInput->ShareData(aBuffer, aCount);
+  CONTAINER_ENSURE_SUCCESS(rv);
+
+  
+  mInDecoder = PR_TRUE;
+  rv = mDecoder->WriteFrom(mDecoderInput, aCount);
+  mInDecoder = PR_FALSE;
+  CONTAINER_ENSURE_SUCCESS(rv);
+
+  
+  
+  mBytesDecoded += aCount;
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+nsresult
+imgContainer::WantDecodedFrames()
+{
+  nsresult rv;
+
+  
+  if (CanDiscard()) {
+    NS_ABORT_IF_FALSE(mDiscardTimer, "Decoded and discardable but timer not set!");
+    rv = ResetDiscardTimer();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  return RequestDecode();
+}
+
+
+
+NS_IMETHODIMP
+imgContainer::RequestDecode()
+{
+  nsresult rv;
+
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  if (!StoringSourceData())
+    return NS_OK;
+
+  
+  if (mDecoded)
+    return NS_OK;
+
+  
+  if (mInDecoder) {
+    nsRefPtr<imgDecodeRequestor> requestor = new imgDecodeRequestor(this);
+    if (!requestor)
+      return NS_ERROR_OUT_OF_MEMORY;
+    return NS_DispatchToCurrentThread(requestor);
+  }
+
+
+  
+  if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
+    rv = ShutdownDecoder(eShutdownIntent_Interrupted);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  if (!mDecoder) {
+    NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
+    rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  if (mWorkerPending)
+    return NS_OK;
+
+  
+  if (mBytesDecoded == mSourceData.Length())
+    return NS_OK;
+
+  
+  
+  
+  return mWorker->Dispatch();
+}
+
+
+nsresult
+imgContainer::SyncDecode()
+{
+  nsresult rv;
+
+  
+  if (mDecoded)
+    return NS_OK;
+
+  
+  if (!StoringSourceData())
+    return NS_OK;
+
+  
+  
+  
+  
+  
+  NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
+  if (mInDecoder)
+    return NS_ERROR_FAILURE;
+
+  
+  if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
+    rv = ShutdownDecoder(eShutdownIntent_Interrupted);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  if (!mDecoder) {
+    NS_ABORT_IF_FALSE(mFrames.IsEmpty(), "Trying to decode to non-empty frame-array");
+    rv = InitDecoder(imgIDecoder::DECODER_FLAG_NONE);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  rv = WriteToDecoder(mSourceData.Elements() + mBytesDecoded,
+                      mSourceData.Length() - mBytesDecoded);
+  CONTAINER_ENSURE_SUCCESS(rv);
+
+  
+  if (IsDecodeFinished()) {
+    rv = ShutdownDecoder(eShutdownIntent_Done);
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  
+  return NS_OK;
+}
+
+
+
+
  
 NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, 
                                  gfxMatrix &aUserSpaceToImageSpace, gfxRect &aFill,
-                                 nsIntRect &aSubimage)
+                                 nsIntRect &aSubimage, PRUint32 aFlags)
 {
+  if (mError)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aContext);
 
+  
+  if (aFlags & FLAG_SYNC_DECODE) {
+    nsresult rv = SyncDecode();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   imgFrame *frame = GetCurrentImgFrame();
-  NS_ENSURE_TRUE(frame, NS_ERROR_FAILURE);
+  if (!frame) {
+    NS_ABORT_IF_FALSE(!mDecoded, "Decoded but frame not available?");
+    return NS_OK; 
+  }
 
   nsIntRect framerect = frame->GetRect();
   nsIntMargin padding(framerect.x, framerect.y, 
@@ -1642,197 +2337,263 @@ NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext, gfxPattern::GraphicsFilte
   return NS_OK;
 }
 
-class ContainerLoader : public imgILoad,
-                        public imgIDecoderObserver,
-                        public nsSupportsWeakReference
-{
-public:
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_IMGILOAD
-  NS_DECL_IMGIDECODEROBSERVER
-  NS_DECL_IMGICONTAINEROBSERVER
-
-  ContainerLoader(void);
-
-private:
-
-  nsCOMPtr<imgIContainer> mContainer;
-};
-
-NS_IMPL_ISUPPORTS4 (ContainerLoader, imgILoad, imgIDecoderObserver, imgIContainerObserver, nsISupportsWeakReference)
-
-ContainerLoader::ContainerLoader (void)
-{
-}
 
 
 NS_IMETHODIMP
-ContainerLoader::GetImage(imgIContainer **aImage)
+imgContainer::LockImage()
 {
-  *aImage = mContainer;
-  NS_IF_ADDREF (*aImage);
-  return NS_OK;
-}
+  if (mError)
+    return NS_ERROR_FAILURE;
 
-
-NS_IMETHODIMP
-ContainerLoader::SetImage(imgIContainer *aImage)
-{
-  mContainer = aImage;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::GetIsMultiPartChannel(PRBool *aIsMultiPartChannel)
-{
-  *aIsMultiPartChannel = PR_FALSE; 
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStartRequest(imgIRequest *aRequest)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStartDecode(imgIRequest *aRequest)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStartContainer(imgIRequest *aRequest, imgIContainer *aContainer)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStartFrame(imgIRequest *aRequest, PRUint32 aFrame)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnDataAvailable(imgIRequest *aRequest, PRBool aCurrentFrame, const nsIntRect * aRect)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStopFrame(imgIRequest *aRequest, PRUint32 aFrame)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStopContainer(imgIRequest *aRequest, imgIContainer *aContainer)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStopDecode(imgIRequest *aRequest, nsresult status, const PRUnichar *statusArg)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::OnStopRequest(imgIRequest *aRequest, PRBool aIsLastPart)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-ContainerLoader::FrameChanged(imgIContainer *aContainer, nsIntRect * aDirtyRect)
-{
-  return NS_OK;
-}
-
-nsresult
-imgContainer::ReloadImages(void)
-{
-  NS_ASSERTION(!mRestoreData.IsEmpty(),
-               "imgContainer::ReloadImages(): mRestoreData should not be empty");
-  NS_ASSERTION(mRestoreDataDone,
-               "imgContainer::ReloadImages(): mRestoreDataDone shoudl be true!");
-
-  mNumFrames = 0;
-  NS_ASSERTION(mFrames.Length() == 0,
-               "imgContainer::ReloadImages(): mFrames should be empty");
-
-  nsCAutoString decoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/decoder;2?type=") + mDiscardableMimeType);
-
-  nsCOMPtr<imgIDecoder> decoder = do_CreateInstance(decoderCID.get());
-  if (!decoder) {
-    PR_LOG(gCompressedImageAccountingLog, PR_LOG_WARNING,
-           ("CompressedImageAccounting: imgContainer::ReloadImages() could not create decoder for %s",
-            mDiscardableMimeType.get()));
-    return NS_IMAGELIB_ERROR_NO_DECODER;
-  }
-
-  nsCOMPtr<imgILoad> loader = new ContainerLoader();
-  if (!loader) {
-    PR_LOG(gCompressedImageAccountingLog, PR_LOG_WARNING,
-           ("CompressedImageAccounting: imgContainer::ReloadImages() could not allocate ContainerLoader "
-            "when reloading the images for container %p",
-            this));
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  loader->SetImage(this);
-
-  nsresult result = decoder->Init(loader);
-  if (NS_FAILED(result)) {
-    PR_LOG(gCompressedImageAccountingLog, PR_LOG_WARNING,
-           ("CompressedImageAccounting: imgContainer::ReloadImages() image container %p "
-            "failed to initialize the decoder (%s)",
-            this,
-            mDiscardableMimeType.get()));
-    return result;
-  }
-
-  nsCOMPtr<nsIInputStream> stream;
-  result = NS_NewByteInputStream(getter_AddRefs(stream), mRestoreData.Elements(), mRestoreData.Length(), NS_ASSIGNMENT_DEPEND);
-  NS_ENSURE_SUCCESS(result, result);
-
-  if (PR_LOG_TEST(gCompressedImageAccountingLog, PR_LOG_DEBUG)) {
-    char buf[9];
-    get_header_str(buf, mRestoreData.Elements(), mRestoreData.Length());
-    PR_LOG(gCompressedImageAccountingLog, PR_LOG_WARNING,
-           ("CompressedImageAccounting: imgContainer::ReloadImages() starting to restore images for container %p (%s) - "
-            "header %p is 0x%s (length %d)",
-            this,
-            mDiscardableMimeType.get(),
-            mRestoreData.Elements(),
-            buf,
-            mRestoreData.Length()));
+  
+  if (mDiscardTimer) {
+    mDiscardTimer->Cancel();
+    mDiscardTimer = nsnull; 
+                            
   }
 
   
-  PRUint32 written;
-  (void)decoder->WriteFrom(stream, mRestoreData.Length(), &written);
+  mLockCount++;
 
-  result = decoder->Flush();
-  NS_ENSURE_SUCCESS(result, result);
+  return NS_OK;
+}
 
-  result = decoder->Close();
-  NS_ENSURE_SUCCESS(result, result);
 
-  NS_ASSERTION(PRInt32(mFrames.Length()) == mNumFrames,
-               "imgContainer::ReloadImages(): the restored mFrames.Length() doesn't match mNumFrames!");
 
-  return result;
+NS_IMETHODIMP
+imgContainer::UnlockImage()
+{
+  if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  NS_ABORT_IF_FALSE(mLockCount > 0,
+                    "Calling UnlockImage with mLockCount == 0!");
+  if (mLockCount == 0)
+    return NS_ERROR_ABORT;
+
+  
+  NS_ABORT_IF_FALSE(!mDiscardTimer, "Locked, but discard timer set!");
+
+  
+  mLockCount--;
+
+  
+  if (CanDiscard()) {
+    nsresult rv = ResetDiscardTimer();
+    CONTAINER_ENSURE_SUCCESS(rv);
+  }
+
+  return NS_OK;
+}
+
+
+nsresult
+imgContainer::DecodeSomeData (PRUint32 aMaxBytes)
+{
+  
+  NS_ABORT_IF_FALSE(mDecoder, "trying to decode without decoder!");
+
+  
+  if (mBytesDecoded == mSourceData.Length())
+    return NS_OK;
+
+
+  
+  PRUint32 bytesToDecode = PR_MIN(aMaxBytes,
+                                  mSourceData.Length() - mBytesDecoded);
+  nsresult rv = WriteToDecoder(mSourceData.Elements() + mBytesDecoded,
+                               bytesToDecode);
+
+  return rv;
+}
+
+
+
+PRBool imgContainer::IsDecodeFinished()
+{
+  
+  PRBool decodeFinished = PR_FALSE;
+
+  
+  
+  NS_ABORT_IF_FALSE(StoringSourceData(),
+                    "just shut down on SourceDataComplete!");
+
+  
+  if (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) {
+    if (mHasSize)
+      decodeFinished = PR_TRUE;
+  }
+  else {
+    if (mDecoded)
+      decodeFinished = PR_TRUE;
+  }
+
+  
+  
+  
+  
+  
+  if (mHasSourceData && (mBytesDecoded == mSourceData.Length()))
+    decodeFinished = PR_TRUE;
+
+  return decodeFinished;
+}
+
+
+
+void imgContainer::DoError()
+{
+  
+  if (mError)
+    return;
+
+  
+  if (mDecoder) {
+
+    
+    nsCOMPtr<imgIDecoderObserver> observer = do_QueryReferent(mObserver);
+    if (observer) {
+      observer->OnStopContainer(nsnull, this);
+      observer->OnStopDecode(nsnull, NS_ERROR_FAILURE, nsnull);
+    }
+
+    
+    
+    (void) ShutdownDecoder(eShutdownIntent_Error);
+  }
+
+  
+  mError = PR_TRUE;
+
+  
+  LOG_CONTAINER_ERROR;
+}
+
+
+#define DECODE_BYTES_AT_A_TIME 4096
+#define MAX_USEC_BEFORE_YIELD (1000 * 5)
+
+
+
+NS_IMETHODIMP imgDecodeWorker::Run()
+{
+  nsresult rv;
+
+  
+  nsCOMPtr<nsIRunnable> kungFuDeathGrip(this);
+
+  
+  nsCOMPtr<imgIContainer> iContainer(do_QueryReferent(mContainer));
+  if (!iContainer)
+    return NS_OK;
+  imgContainer* container = static_cast<imgContainer*>(iContainer.get());
+
+  NS_ABORT_IF_FALSE(container->mInitialized,
+                    "Worker active for uninitialized container!");
+
+  
+  container->mWorkerPending = PR_FALSE;
+
+  
+  
+  
+  if (container->mError)
+    return NS_OK;
+
+  
+  
+  if (!container->mDecoder)
+    return NS_OK;
+
+  
+  
+  
+  PRUint32 maxBytes =
+    (container->mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)
+    ? container->mSourceData.Length() : DECODE_BYTES_AT_A_TIME;
+
+  
+  PRBool haveMoreData = PR_TRUE;
+  nsTime deadline(PR_Now() + MAX_USEC_BEFORE_YIELD);
+
+  
+  
+  
+  
+  while (haveMoreData && !container->IsDecodeFinished() &&
+         (nsTime(PR_Now()) < deadline)) {
+
+    
+    rv = container->DecodeSomeData(maxBytes);
+    if (NS_FAILED(rv)) {
+      container->DoError();
+      return rv;
+    }
+
+    
+    haveMoreData =
+      container->mSourceData.Length() > container->mBytesDecoded;
+  }
+
+  
+  if (container->IsDecodeFinished()) {
+    rv = container->ShutdownDecoder(imgContainer::eShutdownIntent_Done);
+    if (NS_FAILED(rv)) {
+      container->DoError();
+      return rv;
+    }
+  }
+
+  
+  
+  
+  if (!container->IsDecodeFinished() && haveMoreData)
+    return this->Dispatch();
+
+  
+  return NS_OK;
+}
+
+
+NS_METHOD imgDecodeWorker::Dispatch()
+{
+  
+  nsCOMPtr<imgIContainer> iContainer(do_QueryReferent(mContainer));
+  if (!iContainer)
+    return NS_OK;
+  imgContainer* container = static_cast<imgContainer*>(iContainer.get());
+
+  
+  NS_ABORT_IF_FALSE(!container->mWorkerPending,
+                    "Trying to queue up worker with one already pending!");
+
+  
+  container->mWorkerPending = PR_TRUE;
+
+  
+  return NS_DispatchToCurrentThread(this);
+}
+
+
+
+
+NS_METHOD
+imgContainer::WriteToContainer(nsIInputStream* in, void* closure,
+                               const char* fromRawSegment, PRUint32 toOffset,
+                               PRUint32 count, PRUint32 *writeCount)
+{
+  
+  imgIContainer *container = static_cast<imgIContainer*>(closure);
+
+  
+  
+  
+  (void) container->AddSourceData(fromRawSegment, count);
+
+  
+  *writeCount = count;
+
+  return NS_OK;
 }

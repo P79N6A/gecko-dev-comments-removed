@@ -293,6 +293,20 @@ public:
   
 
 
+  PRBool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
+
+  
+
+
+
+
+  void SetSyncDecodeImages(PRBool aSyncDecodeImages) {
+    mSyncDecodeImages = aSyncDecodeImages;
+  }
+
+  
+
+
 
 
 
@@ -396,6 +410,7 @@ private:
   
   
   PRPackedBool                   mInTransform;
+  PRPackedBool                   mSyncDecodeImages;
 };
 
 class nsDisplayItem;

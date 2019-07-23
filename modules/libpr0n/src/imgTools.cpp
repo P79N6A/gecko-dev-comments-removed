@@ -41,7 +41,6 @@
 #include "nsString.h"
 #include "ImageErrors.h"
 #include "imgIContainer.h"
-#include "imgILoad.h"
 #include "imgIDecoder.h"
 #include "imgIEncoder.h"
 #include "imgIDecoderObserver.h"
@@ -53,131 +52,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsStreamUtils.h"
 #include "nsNetUtil.h"
-
-
-
-
-
-class HelperLoader : public imgILoad,
-                     public imgIDecoderObserver,
-                     public nsSupportsWeakReference
-{
-  public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_IMGILOAD
-    NS_DECL_IMGIDECODEROBSERVER
-    NS_DECL_IMGICONTAINEROBSERVER
-    HelperLoader(void);
-
-  private:
-    nsCOMPtr<imgIContainer> mContainer;
-};
-
-NS_IMPL_ISUPPORTS4 (HelperLoader, imgILoad, imgIDecoderObserver, imgIContainerObserver, nsISupportsWeakReference)
-
-HelperLoader::HelperLoader (void)
-{
-}
-
-
-NS_IMETHODIMP
-HelperLoader::GetImage(imgIContainer **aImage)
-{
-  *aImage = mContainer;
-  NS_IF_ADDREF (*aImage);
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::SetImage(imgIContainer *aImage)
-{
-  mContainer = aImage;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::GetIsMultiPartChannel(PRBool *aIsMultiPartChannel)
-{
-  *aIsMultiPartChannel = PR_FALSE;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStartRequest(imgIRequest *aRequest)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStartDecode(imgIRequest *aRequest)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStartContainer(imgIRequest *aRequest, imgIContainer
-*aContainer)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStartFrame(imgIRequest *aRequest, PRUint32 aFrame)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnDataAvailable(imgIRequest *aRequest, PRBool aCurrentFrame, const nsIntRect * aRect)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStopFrame(imgIRequest *aRequest, PRUint32 aFrame)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStopContainer(imgIRequest *aRequest, imgIContainer
-*aContainer)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStopDecode(imgIRequest *aRequest, nsresult status, const
-PRUnichar *statusArg)
-{
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP
-HelperLoader::OnStopRequest(imgIRequest *aRequest, PRBool aIsLastPart)
-{
-  return NS_OK;
-}
-  
-
-NS_IMETHODIMP
-HelperLoader::FrameChanged(imgIContainer *aContainer, nsIntRect * aDirtyRect)
-{
-  return NS_OK;
-}
-
-
+#include "imgContainer.h"
 
 
 
@@ -202,24 +77,19 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
 {
   nsresult rv;
 
+  NS_ENSURE_ARG_POINTER(aInStr);
   
-  nsCAutoString decoderCID(
-    NS_LITERAL_CSTRING("@mozilla.org/image/decoder;2?type=") + aMimeType);
-
-  nsCOMPtr<imgIDecoder> decoder = do_CreateInstance(decoderCID.get());
-  if (!decoder)
-    return NS_IMAGELIB_ERROR_NO_DECODER;
-
-  
-  nsCOMPtr<imgILoad> loader = new HelperLoader();
-  if (!loader)
-    return NS_ERROR_OUT_OF_MEMORY;
+  if (!*aContainer) {
+    NS_NEWXPCOM(*aContainer, imgContainer);
+    if (!*aContainer)
+      return NS_ERROR_OUT_OF_MEMORY;
+    NS_ADDREF(*aContainer);
+  }
 
   
-  if (*aContainer)
-    loader->SetImage(*aContainer);
-
-  rv = decoder->Init(loader);
+  
+  nsCString mimeType(aMimeType);
+  rv = (*aContainer)->Init(nsnull, mimeType.get(), imgIContainer::INIT_FLAG_NONE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIInputStream> inStream = aInStr;
@@ -230,24 +100,25 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
       inStream = bufStream;
   }
 
+  
   PRUint32 length;
   rv = inStream->Available(&length);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUint32 written;
-  rv = decoder->WriteFrom(inStream, length, &written);
+  
+  
+  PRUint32 bytesRead;
+  rv = inStream->ReadSegments(imgContainer::WriteToContainer,
+                              static_cast<void*>(*aContainer),
+                              length, &bytesRead);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (written != length)
-    NS_WARNING("decoder didn't eat all of its vegetables");
-  rv = decoder->Flush();
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = decoder->Close();
+
+
+  
+  rv = (*aContainer)->SourceDataComplete();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!*aContainer)
-    loader->GetImage(aContainer);
-
   return NS_OK;
 }
 
@@ -290,7 +161,8 @@ NS_IMETHODIMP imgTools::EncodeScaledImage(imgIContainer *aContainer,
 
   
   nsRefPtr<gfxImageSurface> frame;
-  rv = aContainer->CopyCurrentFrame(getter_AddRefs(frame));
+  rv = aContainer->CopyFrame(imgIContainer::FRAME_CURRENT, PR_TRUE,
+                             getter_AddRefs(frame));
   NS_ENSURE_SUCCESS(rv, rv);
   if (!frame)
     return NS_ERROR_NOT_AVAILABLE;

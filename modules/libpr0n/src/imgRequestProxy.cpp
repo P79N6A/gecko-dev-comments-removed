@@ -64,7 +64,9 @@ imgRequestProxy::imgRequestProxy() :
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mCanceled(PR_FALSE),
   mIsInLoadGroup(PR_FALSE),
-  mListenerIsStrongRef(PR_FALSE)
+  mListenerIsStrongRef(PR_FALSE),
+  mShouldRequestDecode(PR_FALSE),
+  mLockHeld(PR_FALSE)
 {
   
 
@@ -74,6 +76,10 @@ imgRequestProxy::~imgRequestProxy()
 {
   
   NS_PRECONDITION(!mListener, "Someone forgot to properly cancel this request!");
+
+  
+  if (mLockHeld && mOwner)
+    UnlockImage();
 
   
   
@@ -130,12 +136,30 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
     return NS_OK;
 
   
+  PRBool wasDecoded = PR_FALSE;
+  if (mOwner->GetImageStatus() & imgIRequest::STATUS_FRAME_COMPLETE)
+    wasDecoded = PR_TRUE;
+
+  
+  PRBool wasLocked = mLockHeld;
+  if (mLockHeld)
+    UnlockImage();
+
+  
   
   mOwner->RemoveProxy(this, NS_IMAGELIB_CHANGING_OWNER, PR_FALSE);
 
   mOwner = aNewOwner;
 
   mOwner->AddProxy(this);
+
+  
+  if (wasDecoded)
+    RequestDecode();
+
+  
+  if (wasLocked)
+    LockImage();
 
   return NS_OK;
 }
@@ -238,6 +262,74 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
   mOwner->RemoveProxy(this, aStatus, PR_FALSE);
 
   NullOutListener();
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+imgRequestProxy::RequestDecode()
+{
+  if (!mOwner)
+    return NS_ERROR_FAILURE;
+
+  
+  nsCOMPtr<imgIContainer> container;
+  nsresult rv = mOwner->GetImage(getter_AddRefs(container));
+  if (NS_FAILED(rv))
+    return rv;
+
+  
+  if (container)
+    return container->RequestDecode();
+
+  
+  mShouldRequestDecode = PR_TRUE;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+imgRequestProxy::LockImage()
+{
+  if (!mOwner)
+    return NS_ERROR_FAILURE;
+
+  
+  NS_ABORT_IF_FALSE(!mLockHeld, "Only call lockImage once per imgIRequest!");
+  mLockHeld = PR_TRUE;
+
+  
+  
+  nsCOMPtr<imgIContainer> container;
+  nsresult rv = mOwner->GetImage(getter_AddRefs(container));
+  if (NS_FAILED(rv))
+    return rv;
+  if (container)
+    return container->LockImage();
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+imgRequestProxy::UnlockImage()
+{
+  if (!mOwner)
+    return NS_ERROR_FAILURE;
+
+  
+  NS_ABORT_IF_FALSE(mLockHeld, "calling unlock but not locked!");
+  mLockHeld = PR_FALSE;
+
+  
+  
+  nsCOMPtr<imgIContainer> container;
+  nsresult rv = mOwner->GetImage(getter_AddRefs(container));
+  if (NS_FAILED(rv))
+    return rv;
+  if (container)
+    return container->UnlockImage();
 
   return NS_OK;
 }
@@ -458,6 +550,16 @@ void imgRequestProxy::OnStartContainer(imgIContainer *image)
     nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
     mListener->OnStartContainer(this, image);
   }
+
+  
+  if (mShouldRequestDecode) {
+    image->RequestDecode();
+    mShouldRequestDecode = PR_FALSE;
+  }
+
+  
+  if (mLockHeld)
+    image->LockImage();
 }
 
 void imgRequestProxy::OnStartFrame(PRUint32 frame)
@@ -514,6 +616,18 @@ void imgRequestProxy::OnStopDecode(nsresult status, const PRUnichar *statusArg)
     mListener->OnStopDecode(this, status, statusArg);
   }
 }
+
+void imgRequestProxy::OnDiscard()
+{
+  LOG_FUNC(gImgLog, "imgRequestProxy::OnDiscard");
+
+  if (mListener && !mCanceled) {
+    
+    nsCOMPtr<imgIDecoderObserver> kungFuDeathGrip(mListener);
+    mListener->OnDiscard(this);
+  }
+}
+
 
 
 

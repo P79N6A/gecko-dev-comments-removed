@@ -37,10 +37,12 @@
 
 
 
+
 #include "imgRequest.h"
 
 #include "imgLoader.h"
 #include "imgRequestProxy.h"
+#include "imgContainer.h"
 
 #include "imgILoader.h"
 #include "ImageErrors.h"
@@ -68,11 +70,14 @@
 #include "nsXPIDLString.h"
 #include "plstr.h" 
 
+static PRBool gDecodeOnDraw = PR_TRUE;
+static PRBool gDiscardable = PR_TRUE;
+
 #if defined(PR_LOGGING)
 PRLogModuleInfo *gImgLog = PR_NewLogModule("imgRequest");
 #endif
 
-NS_IMPL_ISUPPORTS8(imgRequest, imgILoad,
+NS_IMPL_ISUPPORTS7(imgRequest,
                    imgIDecoderObserver, imgIContainerObserver,
                    nsIStreamListener, nsIRequestObserver,
                    nsISupportsWeakReference,
@@ -82,7 +87,7 @@ NS_IMPL_ISUPPORTS8(imgRequest, imgILoad,
 imgRequest::imgRequest() : 
   mImageStatus(imgIRequest::STATUS_NONE), mState(0), mCacheId(0), 
   mValidator(nsnull), mImageSniffers("image-sniffing-services"), 
-  mIsMultiPartChannel(PR_FALSE), mLoading(PR_FALSE), mProcessing(PR_FALSE),
+  mIsMultiPartChannel(PR_FALSE), mLoading(PR_FALSE),
   mHadLastPart(PR_FALSE), mGotData(PR_FALSE), mIsInCache(PR_FALSE)
 {
   
@@ -186,14 +191,14 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBoo
 
   if (aNotify) {
     
-    if (!(mState & onStopDecode)) {
+    if (!(mState & stateRequestStopped)) {
       proxy->OnStopDecode(aStatus, nsnull);
     }
 
   }
 
   
-  if (!(mState & onStopRequest)) {
+  if (!(mState & stateRequestStopped)) {
     proxy->OnStopRequest(nsnull, nsnull, NS_BINDING_ABORTED, PR_TRUE);
   }
 
@@ -250,16 +255,16 @@ nsresult imgRequest::NotifyProxyListener(imgRequestProxy *proxy)
   nsCOMPtr<imgIRequest> kungFuDeathGrip(proxy);
 
   
-  if (mState & onStartRequest)
+  if (mState & stateRequestStarted)
     proxy->OnStartRequest(nsnull, nsnull);
 
   
-  if (mState & onStartDecode)
-    proxy->OnStartDecode();
+  if (mState & stateHasSize)
+    proxy->OnStartContainer(mImage);
 
   
-  if (mState & onStartContainer)
-    proxy->OnStartContainer(mImage);
+  if (mState & stateDecodeStarted)
+    proxy->OnStartDecode();
 
   
   PRUint32 nframes = 0;
@@ -271,29 +276,16 @@ nsresult imgRequest::NotifyProxyListener(imgRequestProxy *proxy)
     mImage->GetCurrentFrameIndex(&frame);
     proxy->OnStartFrame(frame);
 
-    if (!(mState & onStopContainer)) {
-      
-      nsIntRect r;
-      mImage->GetCurrentFrameRect(r); 
-      proxy->OnDataAvailable(frame, &r);
-    } else {
-      
-      nsIntRect r;
-      mImage->GetCurrentFrameRect(r); 
-      proxy->OnDataAvailable(frame, &r);
+    
+    
+    
+    nsIntRect r;
+    mImage->GetCurrentFrameRect(r);
+    proxy->OnDataAvailable(frame, &r);
 
-      
+    if (mState & stateRequestStopped)
       proxy->OnStopFrame(frame);
-    }
   }
-
-  
-  if (mState & onStopContainer)
-    proxy->OnStopContainer(mImage);
-
-  
-  if (mState & onStopDecode)
-    proxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), nsnull);
 
   if (mImage && !HaveProxyWithObserver(proxy) && proxy->HasObserver()) {
     LOG_MSG(gImgLog, "imgRequest::NotifyProxyListener", "resetting animation");
@@ -301,7 +293,9 @@ nsresult imgRequest::NotifyProxyListener(imgRequestProxy *proxy)
     mImage->ResetAnimation();
   }
 
-  if (mState & onStopRequest) {
+  if (mState & stateRequestStopped) {
+    proxy->OnStopContainer(mImage);
+    proxy->OnStopDecode(GetResultFromImageStatus(mImageStatus), nsnull);
     proxy->OnStopRequest(nsnull, nsnull,
                          GetResultFromImageStatus(mImageStatus),
                          mHadLastPart);
@@ -337,9 +331,7 @@ void imgRequest::Cancel(nsresult aStatus)
   if (!(mImageStatus & imgIRequest::STATUS_LOAD_PARTIAL))
     mImageStatus |= imgIRequest::STATUS_ERROR;
 
-  if (aStatus != NS_IMAGELIB_ERROR_NO_DECODER) {
-    RemoveFromCache();
-  }
+  RemoveFromCache();
 
   if (mRequest && mLoading)
     mRequest->Cancel(aStatus);
@@ -473,32 +465,30 @@ void imgRequest::SetIsInCache(PRBool incache)
   mIsInCache = incache;
 }
 
-
-
-NS_IMETHODIMP imgRequest::SetImage(imgIContainer *aImage)
+void imgRequest::UpdateCacheEntrySize()
 {
-  LOG_FUNC(gImgLog, "imgRequest::SetImage");
+  if (mCacheEntry) {
+    PRUint32 imageSize = 0;
+    if (mImage)
+      mImage->GetDataSize(&imageSize);
+    mCacheEntry->SetDataSize(imageSize);
 
-  mImage = aImage;
+#ifdef DEBUG_joe
+    nsCAutoString url;
+    mURI->GetSpec(url);
+    printf("CACHEPUT: %d %s %d\n", time(NULL), url.get(), imageSize);
+#endif
+  }
 
-  return NS_OK;
 }
 
-NS_IMETHODIMP imgRequest::GetImage(imgIContainer **aImage)
+nsresult
+imgRequest::GetImage(imgIContainer **aImage)
 {
   LOG_FUNC(gImgLog, "imgRequest::GetImage");
 
   *aImage = mImage;
   NS_IF_ADDREF(*aImage);
-  return NS_OK;
-}
-
-NS_IMETHODIMP imgRequest::GetIsMultiPartChannel(PRBool *aIsMultiPartChannel)
-{
-  LOG_FUNC(gImgLog, "imgRequest::GetIsMultiPartChannel");
-
-  *aIsMultiPartChannel = mIsMultiPartChannel;
-
   return NS_OK;
 }
 
@@ -525,7 +515,7 @@ NS_IMETHODIMP imgRequest::OnStartDecode(imgIRequest *request)
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStartDecode");
 
-  mState |= onStartDecode;
+  mState |= stateDecodeStarted;
 
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
@@ -557,13 +547,18 @@ NS_IMETHODIMP imgRequest::OnStartContainer(imgIRequest *request, imgIContainer *
   NS_ASSERTION(image, "imgRequest::OnStartContainer called with a null image!");
   if (!image) return NS_ERROR_UNEXPECTED;
 
-  mState |= onStartContainer;
+  
+  PRBool alreadySent = (mState & stateHasSize) != 0;
+
+  mState |= stateHasSize;
 
   mImageStatus |= imgIRequest::STATUS_SIZE_AVAILABLE;
 
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
-  while (iter.HasMore()) {
-    iter.GetNext()->OnStartContainer(image);
+  if (!alreadySent) {
+    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+    while (iter.HasMore()) {
+      iter.GetNext()->OnStartContainer(image);
+    }
   }
 
   return NS_OK;
@@ -606,23 +601,6 @@ NS_IMETHODIMP imgRequest::OnStopFrame(imgIRequest *request,
 
   mImageStatus |= imgIRequest::STATUS_FRAME_COMPLETE;
 
-  if (mCacheEntry) {
-    PRUint32 cacheSize = mCacheEntry->GetDataSize();
-
-    PRUint32 imageSize = 0;
-    if (mImage)
-      mImage->GetFrameImageDataLength(frame, &imageSize);
-
-    mCacheEntry->SetDataSize(cacheSize + imageSize);
-
-#ifdef DEBUG_joe
-    nsCAutoString url;
-    mURI->GetSpec(url);
-
-    printf("CACHEPUT: %d %s %d\n", time(NULL), url.get(), cacheSize + imageSize);
-#endif
-  }
-
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
     iter.GetNext()->OnStopFrame(frame);
@@ -636,8 +614,6 @@ NS_IMETHODIMP imgRequest::OnStopContainer(imgIRequest *request,
                                           imgIContainer *image)
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStopContainer");
-
-  mState |= onStopContainer;
 
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
@@ -654,18 +630,21 @@ NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStopDecode");
 
-  NS_ASSERTION(!(mState & onStopDecode), "OnStopDecode called multiple times.");
+  
+  
+  UpdateCacheEntrySize();
 
-  mState |= onStopDecode;
-
-  if (NS_FAILED(aStatus) && !(mImageStatus & imgIRequest::STATUS_LOAD_PARTIAL)) {
-    mImageStatus |= imgIRequest::STATUS_ERROR;
-  }
-
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
-  while (iter.HasMore()) {
-    iter.GetNext()->OnStopDecode(GetResultFromImageStatus(mImageStatus), aStatusArg);
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   return NS_OK;
 }
@@ -678,6 +657,29 @@ NS_IMETHODIMP imgRequest::OnStopRequest(imgIRequest *aRequest,
 }
 
 
+NS_IMETHODIMP imgRequest::OnDiscard(imgIRequest *aRequest)
+{
+  
+  PRUint32 stateBitsToClear = stateDecodeStarted;
+  mState &= ~stateBitsToClear;
+
+  
+  PRUint32 statusBitsToClear = imgIRequest::STATUS_FRAME_COMPLETE;
+  mImageStatus &= ~statusBitsToClear;
+
+  
+  UpdateCacheEntrySize();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    iter.GetNext()->OnDiscard();
+  }
+
+  return NS_OK;
+
+}
+
+
 
 
 NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt)
@@ -686,11 +688,29 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
   LOG_SCOPE(gImgLog, "imgRequest::OnStartRequest");
 
-  NS_ASSERTION(!mDecoder, "imgRequest::OnStartRequest -- we already have a decoder");
-
+  
   nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
   if (mpchan)
       mIsMultiPartChannel = PR_TRUE;
+
+  
+  NS_ABORT_IF_FALSE(mIsMultiPartChannel || !mImage,
+                    "Already have an image for non-multipart request");
+
+  
+  if (mIsMultiPartChannel && mImage) {
+
+    
+    mImage->NewSourceData();
+
+    
+    mImageStatus &= ~imgIRequest::STATUS_LOAD_PARTIAL;
+    mImageStatus &= ~imgIRequest::STATUS_LOAD_COMPLETE;
+    mImageStatus &= ~imgIRequest::STATUS_FRAME_COMPLETE;
+    mState &= ~stateRequestStarted;
+    mState &= ~stateDecodeStarted;
+    mState &= ~stateRequestStopped;
+  }
 
   
 
@@ -708,9 +728,7 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
   }
 
   
-
-  mImageStatus = imgIRequest::STATUS_NONE;
-  mState = onStartRequest;
+  mState |= stateRequestStarted;
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
@@ -802,13 +820,10 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
 {
   LOG_FUNC(gImgLog, "imgRequest::OnStopRequest");
 
-  mState |= onStopRequest;
+  mState |= stateRequestStopped;
 
   
   mLoading = PR_FALSE;
-
-  
-  mProcessing = PR_FALSE;
 
   mHadLastPart = PR_TRUE;
   nsCOMPtr<nsIMultiPartChannel> mpchan(do_QueryInterface(aRequest));
@@ -835,28 +850,45 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   }
 
   
-  if (NS_FAILED(status) || !mImage) {
-    this->Cancel(status); 
-  } else {
+  
+  
+  if (mImage) {
+
+    
+    nsresult rv = mImage->SourceDataComplete();
+
+    
+    
+    
+    
+    if (NS_FAILED(rv) && NS_SUCCEEDED(status))
+      status = rv;
+  }
+
+  
+  
+  
+  if (NS_SUCCEEDED(status)) {
+
+    
     mImageStatus |= imgIRequest::STATUS_LOAD_COMPLETE;
-  }
 
-  if (mDecoder) {
-    mDecoder->Flush();
-    mDecoder->Close();
-    mDecoder = nsnull; 
+    
+    
+    UpdateCacheEntrySize();
   }
-
-  
-  
-  if (!(mState & onStopDecode)) {
-    this->OnStopDecode(nsnull, status, nsnull);
-  }
+  else
+    this->Cancel(status); 
 
   
-  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
-  while (iter.HasMore()) {
-    iter.GetNext()->OnStopRequest(aRequest, ctxt, status, mHadLastPart);
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator sdIter(mObservers);
+  while (sdIter.HasMore()) {
+    sdIter.GetNext()->OnStopDecode(GetResultFromImageStatus(mImageStatus), nsnull);
+  }
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator srIter(mObservers);
+  while (srIter.HasMore()) {
+    srIter.GetNext()->OnStopRequest(aRequest, ctxt, status, mHadLastPart);
   }
 
   return NS_OK;
@@ -869,7 +901,6 @@ static NS_METHOD sniff_mimetype_callback(nsIInputStream* in, void* closure, cons
 
 
 
-
 NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt, nsIInputStream *inStr, PRUint32 sourceOffset, PRUint32 count)
 {
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequest::OnDataAvailable", "count", count);
@@ -877,12 +908,10 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
   NS_ASSERTION(aRequest, "imgRequest::OnDataAvailable -- no request!");
 
   mGotData = PR_TRUE;
+  nsresult rv;
 
-  if (!mProcessing) {
+  if (!mImage) {
     LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable |First time through... finding mimetype|");
-
-    
-    mProcessing = PR_TRUE;
 
     
 
@@ -899,7 +928,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
       nsCOMPtr<nsIChannel> chan(do_QueryInterface(aRequest));
 
-      nsresult rv = NS_ERROR_FAILURE;
+      rv = NS_ERROR_FAILURE;
       if (chan) {
         rv = chan->GetContentType(mContentType);
       }
@@ -945,51 +974,79 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
 
     LOG_MSG_WITH_PARAM(gImgLog, "imgRequest::OnDataAvailable", "content type", mContentType.get());
 
-    nsCAutoString conid(NS_LITERAL_CSTRING("@mozilla.org/image/decoder;2?type=") + mContentType);
+    
+    
+    
 
-    mDecoder = do_CreateInstance(conid.get());
+    
+    PRBool isDiscardable = gDiscardable;
+    PRBool doDecodeOnDraw = gDecodeOnDraw;
 
-    if (!mDecoder) {
-      PR_LOG(gImgLog, PR_LOG_WARNING,
-             ("[this=%p] imgRequest::OnDataAvailable -- Decoder not available\n", this));
+    
+    
+    PRBool isChrome = PR_FALSE;
+    rv = mURI->SchemeIs("chrome", &isChrome);
+    if (NS_SUCCEEDED(rv) && isChrome)
+      isDiscardable = doDecodeOnDraw = PR_FALSE;
+
+    
+    
+    PRBool isResource = PR_FALSE;
+    rv = mURI->SchemeIs("resource", &isResource);
+    if (NS_SUCCEEDED(rv) && isResource)
+      isDiscardable = doDecodeOnDraw = PR_FALSE;
+
+    
+    
+    if (mIsMultiPartChannel)
+      isDiscardable = doDecodeOnDraw = PR_FALSE;
+
+    
+    PRUint32 containerFlags = imgIContainer::INIT_FLAG_NONE;
+    if (isDiscardable)
+      containerFlags |= imgIContainer::INIT_FLAG_DISCARDABLE;
+    if (doDecodeOnDraw)
+      containerFlags |= imgIContainer::INIT_FLAG_DECODE_ON_DRAW;
+    if (mIsMultiPartChannel)
+      containerFlags |= imgIContainer::INIT_FLAG_MULTIPART;
+
+    
+    
+    
+    mImage = do_CreateInstance("@mozilla.org/image/container;3");
+    if (!mImage) {
+      this->Cancel(NS_ERROR_OUT_OF_MEMORY);
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    rv = mImage->Init(this, mContentType.get(), containerFlags);
+    if (NS_FAILED(rv)) { 
 
       
-      this->Cancel(NS_IMAGELIB_ERROR_NO_DECODER);
+      
+      
+      
+      
+      
+      mImage = nsnull;
 
-      return NS_IMAGELIB_ERROR_NO_DECODER;
-    }
-
-    nsresult rv = mDecoder->Init(static_cast<imgILoad*>(this));
-    if (NS_FAILED(rv)) {
-      PR_LOG(gImgLog, PR_LOG_WARNING,
-             ("[this=%p] imgRequest::OnDataAvailable -- mDecoder->Init failed\n", this));
-
-      this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
-
+      this->Cancel(rv);
       return NS_BINDING_ABORTED;
     }
   }
 
-  if (!mDecoder) {
-    PR_LOG(gImgLog, PR_LOG_WARNING,
-           ("[this=%p] imgRequest::OnDataAvailable -- no decoder\n", this));
-
-    this->Cancel(NS_IMAGELIB_ERROR_NO_DECODER);
-
-    return NS_BINDING_ABORTED;
-  }
-
-  PRUint32 wrote;
-  nsresult rv = mDecoder->WriteFrom(inStr, count, &wrote);
-
+  
+  PRUint32 bytesRead;
+  rv = inStr->ReadSegments(imgContainer::WriteToContainer,
+                           static_cast<void*>(mImage),
+                           count, &bytesRead);
   if (NS_FAILED(rv)) {
     PR_LOG(gImgLog, PR_LOG_WARNING,
-           ("[this=%p] imgRequest::OnDataAvailable -- mDecoder->WriteFrom failed\n", this));
-
+           ("[this=%p] imgRequest::OnDataAvailable -- "
+            "copy to container failed\n", this));
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
-
     return NS_BINDING_ABORTED;
   }
+  NS_ABORT_IF_FALSE(bytesRead == count, "WriteToContainer should consume everything!");
 
   return NS_OK;
 }
@@ -1035,6 +1092,7 @@ imgRequest::SniffMimeType(const char *buf, PRUint32 len)
     }
   }
 }
+
 
 
 

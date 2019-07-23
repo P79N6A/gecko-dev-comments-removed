@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef _nsBMPDecoder_h
 #define _nsBMPDecoder_h
 
@@ -169,6 +170,7 @@ private:
     nsCOMPtr<imgIDecoderObserver> mObserver;
 
     nsCOMPtr<imgIContainer> mImage;
+    PRUint32 mFlags;
 
     PRUint32 mPos;
 
@@ -192,6 +194,7 @@ private:
 
     ERLEState mState;   
     PRUint32 mStateData;
+    PRBool mError;      
 
     
 

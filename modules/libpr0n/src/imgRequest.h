@@ -37,10 +37,9 @@
 
 
 
+
 #ifndef imgRequest_h__
 #define imgRequest_h__
-
-#include "imgILoad.h"
 
 #include "imgIContainer.h"
 #include "imgIDecoder.h"
@@ -67,16 +66,13 @@ class imgRequestProxy;
 class imgCacheEntry;
 
 enum {
-  onStartRequest   = PR_BIT(0),
-  onStartDecode    = PR_BIT(1),
-  onStartContainer = PR_BIT(2),
-  onStopContainer  = PR_BIT(3),
-  onStopDecode     = PR_BIT(4),
-  onStopRequest    = PR_BIT(5)
+  stateRequestStarted    = PR_BIT(0),
+  stateHasSize           = PR_BIT(1),
+  stateDecodeStarted     = PR_BIT(2),
+  stateRequestStopped    = PR_BIT(4)
 };
 
-class imgRequest : public imgILoad,
-                   public imgIDecoderObserver,
+class imgRequest : public imgIDecoderObserver,
                    public nsIStreamListener,
                    public nsSupportsWeakReference,
                    public nsIChannelEventSink,
@@ -114,6 +110,8 @@ public:
   
   
   void CancelAndAbort(nsresult aStatus);
+
+  nsresult GetImage(imgIContainer **aImage);
 
 private:
   friend class imgCacheEntry;
@@ -169,8 +167,10 @@ private:
   
   void SetIsInCache(PRBool cacheable);
 
+  
+  void UpdateCacheEntrySize();
+
 public:
-  NS_DECL_IMGILOAD
   NS_DECL_IMGIDECODEROBSERVER
   NS_DECL_IMGICONTAINEROBSERVER
   NS_DECL_NSISTREAMLISTENER
@@ -186,7 +186,6 @@ private:
   nsCOMPtr<nsIURI> mKeyURI;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMPtr<imgIContainer> mImage;
-  nsCOMPtr<imgIDecoder> mDecoder;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;
@@ -210,7 +209,6 @@ private:
 
   PRPackedBool mIsMultiPartChannel : 1;
   PRPackedBool mLoading : 1;
-  PRPackedBool mProcessing : 1;
   PRPackedBool mHadLastPart : 1;
   PRPackedBool mGotData : 1;
   PRPackedBool mIsInCache : 1;
