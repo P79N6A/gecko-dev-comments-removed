@@ -439,6 +439,13 @@ js_DumpGCStats(JSRuntime *rt, FILE *fp);
 
 #endif 
 
+
+
+
+
+extern void
+js_MarkTraps(JSTracer *trc);
+
 JS_END_EXTERN_C
 
 #endif
