@@ -214,9 +214,9 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 
 
-class AsyncExecute : public nsIRunnable
-                   , public mozIStoragePendingStatement
-                   , public iEventStatus
+class AsyncExecuteStatements : public nsIRunnable
+                             , public mozIStoragePendingStatement
+                             , public iEventStatus
 {
 public:
   NS_DECL_ISUPPORTS
@@ -224,9 +224,9 @@ public:
   
 
 
-  AsyncExecute(nsTArray<sqlite3_stmt *> &aStatements,
-               mozIStorageConnection *aConnection,
-               mozIStorageStatementCallback *aCallback) :
+  AsyncExecuteStatements(nsTArray<sqlite3_stmt *> &aStatements,
+                         mozIStorageConnection *aConnection,
+                         mozIStorageStatementCallback *aCallback) :
       mConnection(aConnection)
     , mTransactionManager(nsnull)
     , mCallback(aCallback)
@@ -235,7 +235,7 @@ public:
     , mIntervalStart(PR_IntervalNow())
     , mState(PENDING)
     , mCancelRequested(PR_FALSE)
-    , mLock(nsAutoLock::NewLock("AsyncExecute::mLock"))
+    , mLock(nsAutoLock::NewLock("AsyncExecuteStatements::mLock"))
   {
     (void)mStatements.SwapElements(aStatements);
     NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
@@ -335,9 +335,7 @@ public:
   }
 
 private:
-  AsyncExecute() : mMaxIntervalWait(0) { }
-
-  ~AsyncExecute()
+  ~AsyncExecuteStatements()
   {
     nsAutoLock::DestroyLock(mLock);
   }
@@ -625,7 +623,7 @@ private:
   PRLock *mLock;
 };
 NS_IMPL_THREADSAFE_ISUPPORTS2(
-  AsyncExecute,
+  AsyncExecuteStatements,
   nsIRunnable,
   mozIStoragePendingStatement
 )
@@ -637,7 +635,8 @@ NS_executeAsync(nsTArray<sqlite3_stmt *> &aStatements,
                 mozIStoragePendingStatement **_stmt)
 {
   
-  nsRefPtr<AsyncExecute> event(new AsyncExecute(aStatements, aConnection, aCallback));
+  nsRefPtr<AsyncExecuteStatements> event =
+    new AsyncExecuteStatements(aStatements, aConnection, aCallback);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   nsresult rv = event->initialize();
