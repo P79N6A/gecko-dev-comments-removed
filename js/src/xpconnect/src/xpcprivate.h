@@ -481,14 +481,16 @@ public:
     nsresult GetInfoForName(const char * name, nsIInterfaceInfo** info);
 
     
-    nsresult BeginCycleCollection();
     NS_IMETHOD Root(void *p);
     NS_IMETHOD Unlink(void *p);
     NS_IMETHOD Unroot(void *p);
     NS_IMETHOD Traverse(void *p,
                         nsCycleCollectionTraversalCallback &cb);
-    nsresult FinishCycleCollection();
-    nsCycleCollectionParticipant *ToParticipant(void *p) {return this;}
+    
+    
+    virtual nsresult BeginCycleCollection();
+    virtual nsresult FinishCycleCollection();
+    virtual nsCycleCollectionParticipant *ToParticipant(void *p);
 
     JSObjectRefcounts* GetJSObjectRefcounts() {return mObjRefcounts;}
 #ifndef XPCONNECT_STANDALONE

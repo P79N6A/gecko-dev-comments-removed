@@ -602,6 +602,17 @@ nsXPConnect::FinishCycleCollection()
     return NS_OK;
 }
 
+nsCycleCollectionParticipant *
+nsXPConnect::ToParticipant(void *p)
+{
+    
+    
+    NS_ASSERTION(mObjRefcounts->Get(p) > 0,
+                 "JS object but unknown to the JS GC?");
+
+    return this;
+}
+
 NS_IMETHODIMP
 nsXPConnect::Root(void *p)
 {
