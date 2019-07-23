@@ -2323,7 +2323,9 @@ protected:
   nsIContent*      mContent;
   nsStyleContext*  mStyleContext;
   nsIFrame*        mParent;
+private:
   nsIFrame*        mNextSibling;  
+protected:
   nsFrameState     mState;
 
   
