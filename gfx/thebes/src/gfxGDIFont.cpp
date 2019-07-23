@@ -70,47 +70,15 @@ gfxGDIFont::gfxGDIFont(GDIFontEntry *aFontEntry,
                        PRBool aNeedsBold,
                        AntialiasOption anAAOption)
     : gfxFont(aFontEntry, aFontStyle, anAAOption),
-      mNeedsBold(aNeedsBold),
+      mAdjustedSize(0.0),
       mFont(NULL),
       mFontFace(nsnull),
       mScaledFont(nsnull),
-      mAdjustedSize(0.0)
+      mMetrics(nsnull),
+      mSpaceGlyph(0),
+      mNeedsBold(aNeedsBold)
 {
-    
-    
-    InitMetrics();
-    if (!mIsValid) {
-        return;
-    }
-
-    mFontFace = cairo_win32_font_face_create_for_logfontw_hfont(&mLogFont,
-                                                                mFont);
-
-    cairo_matrix_t sizeMatrix, ctm;
-    cairo_matrix_init_identity(&ctm);
-    cairo_matrix_init_scale(&sizeMatrix, mAdjustedSize, mAdjustedSize);
-
-    cairo_font_options_t *fontOptions = cairo_font_options_create();
-    if (anAAOption != kAntialiasDefault) {
-        cairo_font_options_set_antialias(fontOptions,
-                                         GetCairoAntialiasOption(anAAOption));
-    }
-    mScaledFont = cairo_scaled_font_create(mFontFace, &sizeMatrix,
-                                           &ctm, fontOptions);
-    cairo_font_options_destroy(fontOptions);
-
-    cairo_status_t cairoerr = cairo_scaled_font_status(mScaledFont);
-    if (cairoerr != CAIRO_STATUS_SUCCESS) {
-        mIsValid = PR_FALSE;
-#ifdef DEBUG
-        char warnBuf[1024];
-        sprintf(warnBuf, "Failed to create scaled font: %s status: %d",
-                NS_ConvertUTF16toUTF8(mFontEntry->Name()).get(), cairoerr);
-        NS_WARNING(warnBuf);
-#endif
-    }
-
-    if (aFontEntry->mForceGDI) {
+    if (static_cast<GDIFontEntry*>(GetFontEntry())->mForceGDI) {
         mShaper = new gfxGDIShaper(this);
     } else {
         mShaper = new gfxUniscribeShaper(this);
@@ -128,6 +96,7 @@ gfxGDIFont::~gfxGDIFont()
     if (mFont) {
         ::DeleteObject(mFont);
     }
+    delete mMetrics;
 }
 
 gfxFont*
@@ -144,6 +113,13 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
                         PRUint32 aRunStart,
                         PRUint32 aRunLength)
 {
+    if (!mMetrics) {
+        Initialize();
+    }
+    if (!mIsValid) {
+        NS_WARNING("invalid font! expect incorrect text rendering");
+        return;
+    }
     PRBool ok = mShaper->InitTextRun(aContext, aTextRun, aString,
                                      aRunStart, aRunLength);
     if (!ok) {
@@ -163,18 +139,27 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
 const gfxFont::Metrics&
 gfxGDIFont::GetMetrics()
 {
-    return mMetrics;
+    if (!mMetrics) {
+        Initialize();
+    }
+    return *mMetrics;
 }
 
 PRUint32
 gfxGDIFont::GetSpaceGlyph()
 {
+    if (!mMetrics) {
+        Initialize();
+    }
     return mSpaceGlyph;
 }
 
 PRBool
 gfxGDIFont::SetupCairoFont(gfxContext *aContext)
 {
+    if (!mMetrics) {
+        Initialize();
+    }
     if (cairo_scaled_font_status(mScaledFont) != CAIRO_STATUS_SUCCESS) {
         
         
@@ -185,30 +170,40 @@ gfxGDIFont::SetupCairoFont(gfxContext *aContext)
 }
 
 void
-gfxGDIFont::InitMetrics()
+gfxGDIFont::Initialize()
 {
+    NS_ASSERTION(!mMetrics, "re-creating metrics? this will leak");
+
+    LOGFONTW logFont;
+
     if (mAdjustedSize == 0.0) {
         mAdjustedSize = mStyle.size;
         if (mStyle.sizeAdjust != 0.0 && mAdjustedSize > 0.0) {
             
-            FillLogFont(mAdjustedSize);
-            mFont = ::CreateFontIndirectW(&mLogFont);
+            FillLogFont(logFont, mAdjustedSize);
+            mFont = ::CreateFontIndirectW(&logFont);
 
             
-            InitMetrics();
+            Initialize();
+
+            
+            
+            gfxFloat aspect = mMetrics->xHeight / mMetrics->emHeight;
+            mAdjustedSize = mStyle.GetAdjustedSize(aspect);
+
+            
             ::DeleteObject(mFont);
             mFont = nsnull;
-
-            
-            gfxFloat aspect = mMetrics.xHeight / mMetrics.emHeight;
-            mAdjustedSize = mStyle.GetAdjustedSize(aspect);
+            delete mMetrics;
+            mMetrics = nsnull;
         }
     }
 
-    if (!mFont) {
-        FillLogFont(mAdjustedSize);
-        mFont = ::CreateFontIndirectW(&mLogFont);
-    }
+    FillLogFont(logFont, mAdjustedSize);
+    mFont = ::CreateFontIndirectW(&logFont);
+
+    mMetrics = new gfxFont::Metrics;
+    ::memset(mMetrics, 0, sizeof(*mMetrics));
 
     AutoDC dc;
     SetGraphicsMode(dc.GetDC(), GM_ADVANCED);
@@ -219,27 +214,27 @@ gfxGDIFont::InitMetrics()
     TEXTMETRIC& metrics = oMetrics.otmTextMetrics;
 
     if (0 < GetOutlineTextMetrics(dc.GetDC(), sizeof(oMetrics), &oMetrics)) {
-        mMetrics.superscriptOffset = (double)oMetrics.otmptSuperscriptOffset.y;
+        mMetrics->superscriptOffset = (double)oMetrics.otmptSuperscriptOffset.y;
         
-        mMetrics.subscriptOffset = fabs((double)oMetrics.otmptSubscriptOffset.y);
-        mMetrics.strikeoutSize = (double)oMetrics.otmsStrikeoutSize;
-        mMetrics.strikeoutOffset = (double)oMetrics.otmsStrikeoutPosition;
-        mMetrics.underlineSize = (double)oMetrics.otmsUnderscoreSize;
-        mMetrics.underlineOffset = (double)oMetrics.otmsUnderscorePosition;
+        mMetrics->subscriptOffset = fabs((double)oMetrics.otmptSubscriptOffset.y);
+        mMetrics->strikeoutSize = (double)oMetrics.otmsStrikeoutSize;
+        mMetrics->strikeoutOffset = (double)oMetrics.otmsStrikeoutPosition;
+        mMetrics->underlineSize = (double)oMetrics.otmsUnderscoreSize;
+        mMetrics->underlineOffset = (double)oMetrics.otmsUnderscorePosition;
 
         const MAT2 kIdentityMatrix = { {0, 1}, {0, 0}, {0, 0}, {0, 1} };
         GLYPHMETRICS gm;
         DWORD len = GetGlyphOutlineW(dc.GetDC(), PRUnichar('x'), GGO_METRICS, &gm, 0, nsnull, &kIdentityMatrix);
         if (len == GDI_ERROR || gm.gmptGlyphOrigin.y <= 0) {
             
-            mMetrics.xHeight = ROUND((double)metrics.tmAscent * 0.56);
+            mMetrics->xHeight = ROUND((double)metrics.tmAscent * 0.56);
         } else {
-            mMetrics.xHeight = gm.gmptGlyphOrigin.y;
+            mMetrics->xHeight = gm.gmptGlyphOrigin.y;
         }
-        mMetrics.emHeight = metrics.tmHeight - metrics.tmInternalLeading;
+        mMetrics->emHeight = metrics.tmHeight - metrics.tmInternalLeading;
         gfxFloat typEmHeight = (double)oMetrics.otmAscent - (double)oMetrics.otmDescent;
-        mMetrics.emAscent = ROUND(mMetrics.emHeight * (double)oMetrics.otmAscent / typEmHeight);
-        mMetrics.emDescent = mMetrics.emHeight - mMetrics.emAscent;
+        mMetrics->emAscent = ROUND(mMetrics->emHeight * (double)oMetrics.otmAscent / typEmHeight);
+        mMetrics->emDescent = mMetrics->emHeight - mMetrics->emAscent;
     } else {
         
         
@@ -250,48 +245,49 @@ gfxGDIFont::InitMetrics()
         if (!result) {
             NS_WARNING("Missing or corrupt font data, fasten your seatbelt");
             mIsValid = PR_FALSE;
-            memset(&mMetrics, 0, sizeof(mMetrics));
+            memset(mMetrics, 0, sizeof(*mMetrics));
             return;
         }
 
-        mMetrics.xHeight = ROUND((float)metrics.tmAscent * 0.56f); 
-        mMetrics.superscriptOffset = mMetrics.xHeight;
-        mMetrics.subscriptOffset = mMetrics.xHeight;
-        mMetrics.strikeoutSize = 1;
-        mMetrics.strikeoutOffset = ROUND(mMetrics.xHeight / 2.0f); 
-        mMetrics.underlineSize = 1;
-        mMetrics.underlineOffset = -ROUND((float)metrics.tmDescent * 0.30f); 
-        mMetrics.emHeight = metrics.tmHeight - metrics.tmInternalLeading;
-        mMetrics.emAscent = metrics.tmAscent - metrics.tmInternalLeading;
-        mMetrics.emDescent = metrics.tmDescent;
+        mMetrics->xHeight = ROUND((float)metrics.tmAscent * 0.56f); 
+        mMetrics->superscriptOffset = mMetrics->xHeight;
+        mMetrics->subscriptOffset = mMetrics->xHeight;
+        mMetrics->strikeoutSize = 1;
+        mMetrics->strikeoutOffset = ROUND(mMetrics->xHeight * 0.5f); 
+        mMetrics->underlineSize = 1;
+        mMetrics->underlineOffset = -ROUND((float)metrics.tmDescent * 0.30f); 
+        mMetrics->emHeight = metrics.tmHeight - metrics.tmInternalLeading;
+        mMetrics->emAscent = metrics.tmAscent - metrics.tmInternalLeading;
+        mMetrics->emDescent = metrics.tmDescent;
     }
 
-    mMetrics.internalLeading = metrics.tmInternalLeading;
-    mMetrics.externalLeading = metrics.tmExternalLeading;
-    mMetrics.maxHeight = metrics.tmHeight;
-    mMetrics.maxAscent = metrics.tmAscent;
-    mMetrics.maxDescent = metrics.tmDescent;
-    mMetrics.maxAdvance = metrics.tmMaxCharWidth;
-    mMetrics.aveCharWidth = PR_MAX(1, metrics.tmAveCharWidth);
+    mMetrics->internalLeading = metrics.tmInternalLeading;
+    mMetrics->externalLeading = metrics.tmExternalLeading;
+    mMetrics->maxHeight = metrics.tmHeight;
+    mMetrics->maxAscent = metrics.tmAscent;
+    mMetrics->maxDescent = metrics.tmDescent;
+    mMetrics->maxAdvance = metrics.tmMaxCharWidth;
+    mMetrics->aveCharWidth = PR_MAX(1, metrics.tmAveCharWidth);
     
     
     if (!(metrics.tmPitchAndFamily & TMPF_FIXED_PITCH)) {
-      mMetrics.maxAdvance = mMetrics.aveCharWidth;
+        mMetrics->maxAdvance = mMetrics->aveCharWidth;
     }
 
     
     SIZE size;
     GetTextExtentPoint32W(dc.GetDC(), L" ", 1, &size);
-    mMetrics.spaceWidth = ROUND(size.cx);
+    mMetrics->spaceWidth = ROUND(size.cx);
 
     
     
     
     
-    if (GetTextExtentPoint32W(dc.GetDC(), L"0", 1, &size))
-        mMetrics.zeroOrAveCharWidth = ROUND(size.cx);
-    else
-        mMetrics.zeroOrAveCharWidth = mMetrics.aveCharWidth;
+    if (GetTextExtentPoint32W(dc.GetDC(), L"0", 1, &size)) {
+        mMetrics->zeroOrAveCharWidth = ROUND(size.cx);
+    } else {
+        mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
+    }
 
     mSpaceGlyph = 0;
     if (metrics.tmPitchAndFamily & TMPF_TRUETYPE) {
@@ -303,7 +299,34 @@ gfxGDIFont::InitMetrics()
         }
     }
 
-    SanitizeMetrics(&mMetrics, GetFontEntry()->mIsBadUnderlineFont);
+    SanitizeMetrics(mMetrics, GetFontEntry()->mIsBadUnderlineFont);
+
+    mFontFace = cairo_win32_font_face_create_for_logfontw_hfont(&logFont,
+                                                                mFont);
+
+    cairo_matrix_t sizeMatrix, ctm;
+    cairo_matrix_init_identity(&ctm);
+    cairo_matrix_init_scale(&sizeMatrix, mAdjustedSize, mAdjustedSize);
+
+    cairo_font_options_t *fontOptions = cairo_font_options_create();
+    if (mAntialiasOption != kAntialiasDefault) {
+        cairo_font_options_set_antialias(fontOptions,
+            GetCairoAntialiasOption(mAntialiasOption));
+    }
+    mScaledFont = cairo_scaled_font_create(mFontFace, &sizeMatrix,
+                                           &ctm, fontOptions);
+    cairo_font_options_destroy(fontOptions);
+
+    cairo_status_t cairoerr = cairo_scaled_font_status(mScaledFont);
+    if (cairoerr != CAIRO_STATUS_SUCCESS) {
+#ifdef DEBUG
+        char warnBuf[1024];
+        sprintf(warnBuf, "Failed to create scaled font: %s status: %d",
+                NS_ConvertUTF16toUTF8(mFontEntry->Name()).get(), cairoerr);
+        NS_WARNING(warnBuf);
+#endif
+    }
+
     mIsValid = PR_TRUE;
 
 #if 0
@@ -320,7 +343,7 @@ gfxGDIFont::InitMetrics()
 }
 
 void
-gfxGDIFont::FillLogFont(gfxFloat aSize)
+gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize)
 {
     GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
 
@@ -337,6 +360,6 @@ gfxGDIFont::FillLogFont(gfxFloat aSize)
         }
     }
 
-    fe->FillLogFont(&mLogFont, italic, weight, aSize);
+    fe->FillLogFont(&aLogFont, italic, weight, aSize);
 }
 
