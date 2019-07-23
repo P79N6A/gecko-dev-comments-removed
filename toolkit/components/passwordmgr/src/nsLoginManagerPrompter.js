@@ -432,6 +432,7 @@ LoginManagerPrompter.prototype = {
             
             var foundLogins = this._pwmgr.findLogins({},
                                         hostname, null, httpRealm);
+            this.log("found " + foundLogins.length + " matching logins.");
 
             
             if (foundLogins.length > 0) {
