@@ -109,8 +109,6 @@ typedef struct _tagOFN {
 extern "C" BOOL APIENTRY DaxOpenSave(BOOL, LONG *, LPOPENFILENAME, PFNWP);
 #endif
 
-#define SUPPORT_NON_XPFE
-
 class nsDragService;
 class nsIAppShell;
 
