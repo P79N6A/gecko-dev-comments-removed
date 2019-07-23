@@ -67,20 +67,16 @@ function test() {
            getService(Ci.nsIObserverService);
   function waitForFileExistence(aMessage, aDoNext) {
     const TOPIC = "sessionstore-state-write-complete";
-    let observer = {
-      observe: function(aSubject, aTopic, aData)
-      {
-        
-        os.removeObserver(this, TOPIC);
+    os.addObserver(function (aSubject, aTopic, aData) {
+      
+      os.removeObserver(arguments.callee, TOPIC);
 
-        
-        ok(getSessionstoreFile().exists(), aMessage);
+      
+      ok(getSessionstoreFile().exists(), aMessage);
 
-        
-        aDoNext();
-      }
-    };
-    os.addObserver(observer, TOPIC, false);
+      
+      aDoNext();
+    }, TOPIC, false);
   }
 
   function actualTest() {

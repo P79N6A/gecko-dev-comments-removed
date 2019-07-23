@@ -47,47 +47,45 @@ const TEST_URI = "http://www.mozilla.org/";
 var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
          getService(Ci.nsIWindowWatcher);
 
-var windowObserver = {
-  observe: function(aSubject, aTopic, aData) {
-    if (aTopic === "domwindowopened") {
-      ww.unregisterNotification(this);
-      var organizer = aSubject.QueryInterface(Ci.nsIDOMWindow);
-      organizer.addEventListener("load", function onLoad(event) {
-        organizer.removeEventListener("load", onLoad, false);
-        executeSoon(function () {
-          
-          ok(PlacesUIUtils.leftPaneFolderId > 0,
-             "Left pane folder correctly created");
-          var leftPaneItems =
-            PlacesUtils.annotations
-                       .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
-          is(leftPaneItems.length, 1,
-             "We correctly have only 1 left pane folder");
-          var leftPaneRoot = leftPaneItems[0];
-          is(leftPaneRoot, PlacesUIUtils.leftPaneFolderId,
-             "leftPaneFolderId getter has correct value");
-          
-          var version =
-            PlacesUtils.annotations.getItemAnnotation(leftPaneRoot,
-                                                      ORGANIZER_FOLDER_ANNO);
-          is(version, ORGANIZER_LEFTPANE_VERSION,
-             "Left pane version has been correctly upgraded");
+function windowObserver(aSubject, aTopic, aData) {
+  if (aTopic != "domwindowopened")
+    return;
+  ww.unregisterNotification(windowObserver);
+  var organizer = aSubject.QueryInterface(Ci.nsIDOMWindow);
+  organizer.addEventListener("load", function onLoad(event) {
+    organizer.removeEventListener("load", onLoad, false);
+    executeSoon(function () {
+      
+      ok(PlacesUIUtils.leftPaneFolderId > 0,
+         "Left pane folder correctly created");
+      var leftPaneItems =
+        PlacesUtils.annotations
+                   .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO);
+      is(leftPaneItems.length, 1,
+         "We correctly have only 1 left pane folder");
+      var leftPaneRoot = leftPaneItems[0];
+      is(leftPaneRoot, PlacesUIUtils.leftPaneFolderId,
+         "leftPaneFolderId getter has correct value");
+      
+      var version =
+        PlacesUtils.annotations.getItemAnnotation(leftPaneRoot,
+                                                  ORGANIZER_FOLDER_ANNO);
+      is(version, ORGANIZER_LEFTPANE_VERSION,
+         "Left pane version has been correctly upgraded");
 
-          
-          organizer.PlacesOrganizer.selectLeftPaneQuery('History');
-          is(organizer.PlacesOrganizer._places.selectedNode.itemId,
-             PlacesUIUtils.leftPaneQueries["History"],
-             "Library left pane is populated and working");
+      
+      organizer.PlacesOrganizer.selectLeftPaneQuery('History');
+      is(organizer.PlacesOrganizer._places.selectedNode.itemId,
+         PlacesUIUtils.leftPaneQueries["History"],
+         "Library left pane is populated and working");
 
-          
-          organizer.close();
-          
-          finish();
-        });
-      }, false);
-    }
-  }
-};
+      
+      organizer.close();
+      
+      finish();
+    });
+  }, false);
+}
 
 function test() {
   waitForExplicitFinish();

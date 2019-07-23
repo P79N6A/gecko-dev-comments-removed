@@ -145,15 +145,14 @@ function test()
   let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
            getService(Ci.nsIWindowWatcher);
   let win = ww.getWindowByName("Sanatize", null);
-  if (win && (win instanceof Ci.nsIDOMWindowInternal)) win.close();
+  if (win && (win instanceof Ci.nsIDOMWindowInternal))
+    win.close();
 
   
-  ww.registerNotification({
-    observe: function(aSubject, aTopic, aData) {
-      ww.unregisterNotification(this);
-      aSubject.QueryInterface(Ci.nsIDOMEventTarget).
-      addEventListener("DOMContentLoaded", doTest, false);
-    }
+  ww.registerNotification(function (aSubject, aTopic, aData) {
+    ww.unregisterNotification(arguments.callee);
+    aSubject.QueryInterface(Ci.nsIDOMEventTarget)
+            .addEventListener("DOMContentLoaded", doTest, false);
   });
 
   

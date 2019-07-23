@@ -162,20 +162,17 @@ function test() {
   
 
 
-  let observer = {
-    hitCount: 0,
+  let hitCount = 0;
+  function observer(aCancel, aTopic, aData) {
+    
+    observing[aTopic]++;
 
-    observe: function(aCancel, aTopic, aData) {
+    
+    if (++hitCount == 1) {
       
-      observing[aTopic]++;
-
-      
-      if (++this.hitCount == 1) {
-        
-        aCancel.QueryInterface(Ci.nsISupportsPRBool).data = true;
-      }
+      aCancel.QueryInterface(Ci.nsISupportsPRBool).data = true;
     }
-  };
+  }
   let observerService = Cc["@mozilla.org/observer-service;1"].
                         getService(Ci.nsIObserverService);
 
@@ -197,9 +194,8 @@ function test() {
 
   function setupTestsuite(testFn) {
     
-    for (let o in observing) {
+    for (let o in observing)
       observerService.addObserver(observer, o, false);
-    }
 
     
     oldWinType = document.documentElement.getAttribute("windowtype");
@@ -211,18 +207,17 @@ function test() {
 
   function cleanupTestsuite(callback) {
     
-    for (let o in observing) {
+    for (let o in observing)
       observerService.removeObserver(observer, o, false);
-    }
+
     
-    for each (let pref in [
+    [
       "browser.startup.page",
       "browser.privatebrowsing.keep_current_session"
-    ]) {
-      if (gPrefService.prefHasUserValue(pref)) {
+    ].forEach(function (pref) {
+      if (gPrefService.prefHasUserValue(pref))
         gPrefService.clearUserPref(pref);
-      }
-    }
+    });
     gPrefService.setBoolPref("browser.tabs.warnOnClose", oldWarnTabsOnClose);
 
     

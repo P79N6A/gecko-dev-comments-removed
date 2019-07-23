@@ -61,18 +61,12 @@ function test()
 
   
   
-  var obs = {
-    observe: function(aSubject, aTopic, aData) {
-      
-      ww.unregisterNotification(this);
+  ww.registerNotification(function (aSubject, aTopic, aData) {
+    ww.unregisterNotification(arguments.callee);
 
-      var win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
-      win.addEventListener("DOMContentLoaded", finishUp, false);
-    }
-  };
-
-  
-  ww.registerNotification(obs);
+    var win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
+    win.addEventListener("DOMContentLoaded", finishUp, false);
+  });
 
   
   function finishUp() {

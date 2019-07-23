@@ -536,69 +536,67 @@ WindowHelper.prototype = {
   open: function () {
     let wh = this;
 
-    let windowObserver = {
-      observe: function(aSubject, aTopic, aData) {
-        if (aTopic !== "domwindowopened")
+    function windowObserver(aSubject, aTopic, aData) {
+      if (aTopic != "domwindowopened")
+        return;
+
+      winWatch.unregisterNotification(windowObserver);
+
+      var loaded = false;
+      let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
+
+      win.addEventListener("load", function onload(event) {
+        win.removeEventListener("load", onload, false);
+
+        if (win.name !== "SanitizeDialog")
           return;
 
-        winWatch.unregisterNotification(this);
+        wh.win = win;
+        loaded = true;
 
-        var loaded = false;
-        let win = aSubject.QueryInterface(Ci.nsIDOMWindow);
-
-        win.addEventListener("load", function onload(event) {
-          win.removeEventListener("load", onload, false);
-
-          if (win.name !== "SanitizeDialog")
-            return;
-
-          wh.win = win;
-          loaded = true;
-
-          executeSoon(function () {
-            
-            
-            try {
-              wh.onload();
-            }
-            catch (exc) {
-              win.close();
-              ok(false, "Unexpected exception: " + exc + "\n" + exc.stack);
-              finish();
-            }
-          });
-        }, false);
-
-        win.addEventListener("unload", function onunload(event) {
-          if (win.name !== "SanitizeDialog") {
-            win.removeEventListener("unload", onunload, false);
-            return;
-          }
-
+        executeSoon(function () {
           
-          if (!loaded)
-            return;
+          
+          try {
+            wh.onload();
+          }
+          catch (exc) {
+            win.close();
+            ok(false, "Unexpected exception: " + exc + "\n" + exc.stack);
+            finish();
+          }
+        });
+      }, false);
 
+      win.addEventListener("unload", function onunload(event) {
+        if (win.name !== "SanitizeDialog") {
           win.removeEventListener("unload", onunload, false);
-          wh.win = win;
+          return;
+        }
 
-          executeSoon(function () {
-            
-            
-            try {
-              if (wh.onunload)
-                wh.onunload();
-              doNextTest();
-            }
-            catch (exc) {
-              win.close();
-              ok(false, "Unexpected exception: " + exc + "\n" + exc.stack);
-              finish();
-            }
-          });
-        }, false);
-      }
-    };
+        
+        if (!loaded)
+          return;
+
+        win.removeEventListener("unload", onunload, false);
+        wh.win = win;
+
+        executeSoon(function () {
+          
+          
+          try {
+            if (wh.onunload)
+              wh.onunload();
+            doNextTest();
+          }
+          catch (exc) {
+            win.close();
+            ok(false, "Unexpected exception: " + exc + "\n" + exc.stack);
+            finish();
+          }
+        });
+      }, false);
+    }
     winWatch.registerNotification(windowObserver);
     winWatch.openWindow(null,
                         "chrome://browser/content/sanitize.xul",
