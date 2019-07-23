@@ -935,8 +935,7 @@ nsHttpTransaction::HandleContent(char *buf,
         
         
         
-        if (mConnection->IsPersistent() ||
-            mResponseHead->Version() >= NS_HTTP_VERSION_1_1) {
+        if (mConnection->IsPersistent()) {
             nsInt64 remaining = mContentLength - mContentRead;
             nsInt64 count64 = count;
             *contentRead = PR_MIN(count64, remaining);
