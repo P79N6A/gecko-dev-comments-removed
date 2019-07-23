@@ -63,6 +63,9 @@
 #include "nsITransport.h"
 #include "nsISocketTransport.h"
 
+#include "nsIDOMDocument.h"
+#include "nsIDocument.h"
+
 static NS_DEFINE_CID(kThisImplCID, NS_THIS_DOCLOADER_IMPL_CID);
 
 #if defined(PR_LOGGING)
@@ -131,18 +134,17 @@ struct nsListenerInfo {
 
 
 nsDocLoader::nsDocLoader()
-  : mListenerInfoList(8)
+  : mParent(nsnull),
+    mListenerInfoList(8),
+    mIsLoadingDocument(PR_FALSE),
+    mIsRestoringDocument(PR_FALSE),
+    mIsFlushingLayout(PR_FALSE)
 {
 #if defined(PR_LOGGING)
   if (nsnull == gDocLoaderLog) {
       gDocLoaderLog = PR_NewLogModule("DocLoader");
   }
 #endif 
-
-  mParent    = nsnull;
-
-  mIsLoadingDocument = PR_FALSE;
-  mIsRestoringDocument = PR_FALSE;
 
   static PLDHashTableOps hash_table_ops =
   {
@@ -327,7 +329,7 @@ nsDocLoader::Stop(void)
   
 
   NS_ASSERTION(!IsBusy(), "Shouldn't be busy here");
-  DocLoaderIsEmpty();
+  DocLoaderIsEmpty(PR_FALSE);
   
   return rv;
 }       
@@ -346,8 +348,9 @@ nsDocLoader::IsBusy()
   
   
   
+  
 
-  if (mChildrenInOnload.Count()) {
+  if (mChildrenInOnload.Count() || mIsFlushingLayout) {
     return PR_TRUE;
   }
 
@@ -572,7 +575,6 @@ nsDocLoader::OnStopRequest(nsIRequest *aRequest,
   
   
   if (mIsLoadingDocument) {
-    PRUint32 count;
     PRBool bFireTransferring = PR_FALSE;
 
     
@@ -667,17 +669,13 @@ nsDocLoader::OnStopRequest(nsIRequest *aRequest,
     
     
     
+    
+    
+    
+    
     doStopURLLoad(aRequest, aStatus);
     
-    rv = mLoadGroup->GetActiveCount(&count);
-    if (NS_FAILED(rv)) return rv;
-
-    
-    
-    
-    if (0 == count) {
-      DocLoaderIsEmpty();
-    }
+    DocLoaderIsEmpty(PR_TRUE);
   }
   else {
     doStopURLLoad(aRequest, aStatus); 
@@ -716,7 +714,7 @@ NS_IMETHODIMP nsDocLoader::GetDocumentChannel(nsIChannel ** aChannel)
 }
 
 
-void nsDocLoader::DocLoaderIsEmpty()
+void nsDocLoader::DocLoaderIsEmpty(PRBool aFlushLayout)
 {
   if (mIsLoadingDocument) {
     
@@ -725,6 +723,27 @@ void nsDocLoader::DocLoaderIsEmpty()
 
     nsCOMPtr<nsIDocumentLoader> kungFuDeathGrip(this);
 
+    
+    if (IsBusy()) {
+      return;
+    }
+
+    NS_ASSERTION(!mIsFlushingLayout, "Someone screwed up");
+
+    
+    
+    if (aFlushLayout) {
+      nsCOMPtr<nsIDOMDocument> domDoc = do_GetInterface(GetAsSupports(this));
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+      if (doc) {
+        mIsFlushingLayout = PR_TRUE;
+        doc->FlushPendingNotifications(Flush_Layout);
+        mIsFlushingLayout = PR_FALSE;
+      }
+    }
+
+    
+    
     if (!IsBusy()) {
       PR_LOG(gDocLoaderLog, PR_LOG_DEBUG, 
              ("DocLoader:%p: Is now idle...\n", this));

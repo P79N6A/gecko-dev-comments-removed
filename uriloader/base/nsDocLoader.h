@@ -202,7 +202,7 @@ protected:
     
     void ChildDoneWithOnload(nsIDocumentLoader* aChild) {
         mChildrenInOnload.RemoveObject(aChild);
-        DocLoaderIsEmpty();
+        DocLoaderIsEmpty(PR_TRUE);
     }        
 
 protected:
@@ -217,12 +217,6 @@ protected:
     nsDocLoader*               mParent;                
 
     nsVoidArray                mListenerInfoList;
-    
-
-
-
-
-    PRBool mIsLoadingDocument;
 
     nsCOMPtr<nsILoadGroup>        mLoadGroup;
     
@@ -241,7 +235,18 @@ protected:
     PLDHashTable mRequestInfoHash;
 
     
-    PRBool mIsRestoringDocument;
+
+
+
+
+    PRPackedBool mIsLoadingDocument;
+
+    
+    PRPackedBool mIsRestoringDocument;
+
+    
+
+    PRPackedBool mIsFlushingLayout;
 
 private:
     
@@ -253,7 +258,9 @@ private:
     
     
     
-    void DocLoaderIsEmpty();
+    
+    
+    void DocLoaderIsEmpty(PRBool aFlushLayout);
 
     nsListenerInfo *GetListenerInfo(nsIWebProgressListener* aListener);
 
