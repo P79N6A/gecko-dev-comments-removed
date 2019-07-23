@@ -55,6 +55,7 @@
 #include "nsIArray.h"
 #include "nsContentUtils.h"
 #include "nsArrayUtils.h"
+#include "nsPIDOMWindow.h"
 
 #include "nsXULTemplateBuilder.h"
 #include "nsXULTemplateQueryProcessorXML.h"
@@ -109,9 +110,11 @@ nsXULTemplateResultSetXML::GetNext(nsISupports **aResult)
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULTemplateQueryProcessorXML)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsXULTemplateQueryProcessorXML)
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTemplateBuilder)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mRequest)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULTemplateQueryProcessorXML)
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTemplateBuilder)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mRequest)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsXULTemplateQueryProcessorXML,
                                           nsIXULTemplateQueryProcessor)
@@ -122,6 +125,14 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULTemplateQueryProcessorXML)
     NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIXULTemplateQueryProcessor)
 NS_INTERFACE_MAP_END
+
+
+
+
+
+
+
+
 
 NS_IMETHODIMP
 nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
@@ -141,6 +152,22 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
     if (length == 0)
         return NS_OK;
 
+    
+    
+
+    nsCOMPtr<nsIDOMNode> node = do_QueryElementAt(aDataSources, 0);
+    if (node) {
+        return CallQueryInterface(node, aResult);
+    }
+
+    nsCOMPtr<nsIURI> uri = do_QueryElementAt(aDataSources, 0);
+    if (!uri)
+        return NS_ERROR_UNEXPECTED;
+
+    nsCAutoString uriStr;
+    rv = uri->GetSpec(uriStr);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     nsCOMPtr<nsIContent> root = do_QueryInterface(aRootNode);
     if (!root)
         return NS_ERROR_UNEXPECTED;
@@ -149,52 +176,43 @@ nsXULTemplateQueryProcessorXML::GetDatasource(nsIArray* aDataSources,
     if (!doc)
         return NS_ERROR_UNEXPECTED;
 
-    nsIURI *docurl = doc->GetDocumentURI();
     nsIPrincipal *docPrincipal = doc->NodePrincipal();
-
-    
-    
-
-    nsCOMPtr<nsIDOMNode> node = do_QueryElementAt(aDataSources, 0);
-
-    if (node) {
-        return CallQueryInterface(node, aResult);
-    }
-
-    nsCOMPtr<nsIURI> uri = do_QueryElementAt(aDataSources,0);
-    if (!uri)
-        return NS_ERROR_UNEXPECTED;
+    nsCOMPtr<nsIURI> uri2;
+    docPrincipal->GetURI(getter_AddRefs(uri2));
 
     PRBool hasHadScriptObject = PR_TRUE;
     nsIScriptGlobalObject* scriptObject =
       doc->GetScriptHandlingObject(hasHadScriptObject);
     NS_ENSURE_STATE(scriptObject || !hasHadScriptObject);
-    nsAutoString emptyStr;
-    nsCOMPtr<nsIDOMDocument> domDocument;
-    rv = nsContentUtils::CreateDocument(emptyStr, emptyStr, nsnull,
-                                        docurl, doc->GetBaseURI(),
-                                        docPrincipal,
-                                        scriptObject,
-                                        getter_AddRefs(domDocument));
+
+    nsIScriptContext *context = scriptObject->GetContext();
+    NS_ENSURE_TRUE(context, NS_OK);
+
+    nsCOMPtr<nsIXMLHttpRequest> req =
+        do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsPIDOMWindow> owner = do_QueryInterface(scriptObject);
+    req->Init(docPrincipal, context, owner);
+
+    rv = req->OpenRequest(NS_LITERAL_CSTRING("GET"), uriStr, PR_TRUE,
+                          EmptyString(), EmptyString());
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(req));
+    rv = target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = target->AddEventListener(NS_LITERAL_STRING("error"), this, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = req->Send(nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mTemplateBuilder = aBuilder;
-    nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(domDocument);
-    target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
+    mRequest = req;
 
-    nsCOMPtr<nsIDOMXMLDocument> xmldoc = do_QueryInterface(domDocument);
-
-    PRBool ok;
-    nsCAutoString uristrC;
-    uri->GetSpec(uristrC);
-
-    xmldoc->Load(NS_ConvertUTF8toUTF16(uristrC), &ok);
-
-    if (ok) {
-        *aShouldDelayBuilding = PR_TRUE;
-        return CallQueryInterface(domDocument, aResult);
-    }
-
+    *aShouldDelayBuilding = PR_TRUE;
     return NS_OK;
 }
 
@@ -455,20 +473,19 @@ nsXULTemplateQueryProcessorXML::HandleEvent(nsIDOMEvent* aEvent)
     aEvent->GetType(eventType);
 
     if (eventType.EqualsLiteral("load") && mTemplateBuilder) {
-        
-        nsCOMPtr<nsIDOMEventTarget> target;
-        aEvent->GetTarget(getter_AddRefs(target));
-        if (target) {
-            target->RemoveEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
-        }
-
-        
-        nsresult rv = mTemplateBuilder->Rebuild();
+        NS_ASSERTION(mRequest, "request was not set");
+        nsCOMPtr<nsIDOMDocument> doc;
+        if (NS_SUCCEEDED(mRequest->GetResponseXML(getter_AddRefs(doc))))
+            mTemplateBuilder->SetDatasource(doc);
 
         
         mTemplateBuilder = nsnull;
-
-        return rv;
+        mRequest = nsnull;
     }
+    else if (eventType.EqualsLiteral("error")) {
+        mTemplateBuilder = nsnull;
+        mRequest = nsnull;
+    }
+
     return NS_OK;
 }
