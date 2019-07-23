@@ -394,7 +394,6 @@ nsPKCS12Blob::ExportToFile(nsILocalFile *file,
 #endif
   for (i=0; i<numCerts; i++) {
 
-
     nsNSSCertificate *cert = (nsNSSCertificate *)certs[i];
     
     CERTCertificate *nssCert = NULL;
