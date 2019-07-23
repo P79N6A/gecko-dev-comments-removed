@@ -509,7 +509,7 @@ nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
 NS_IMETHODIMP
-nsTableCellFrame::SetSelected(nsPresContext* aPresContext,
+nsTableCellFrame::SetSelected(nsPresContext*  aPresContext,
                               nsIDOMRange*    aRange,
                               PRBool          aSelected,
                               nsSpread        aSpread,
