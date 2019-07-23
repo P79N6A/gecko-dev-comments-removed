@@ -143,11 +143,6 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD        ContinueParsing();
-
-    
-
-
 
     NS_IMETHOD        ContinueInterruptedParsing();
 
