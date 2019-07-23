@@ -91,8 +91,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollTo(PRInt32 x, PRInt32 y)
     return NS_ERROR_FAILURE;
 
   return scrollableView->ScrollTo(nsPresContext::CSSPixelsToAppUnits(x),
-                                  nsPresContext::CSSPixelsToAppUnits(y),
-                                  NS_SCROLL_PROPERTY_ALWAYS_BLIT);
+                                  nsPresContext::CSSPixelsToAppUnits(y), 0);
 }
 
 
@@ -228,10 +227,9 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
        
        
        return scrollableView->ScrollTo((isLTR) ? rect.x :
-                                       rect.x + rect.width - frameWidth, 
-                                       cp.y, NS_SCROLL_PROPERTY_ALWAYS_BLIT);
+                                       rect.x + rect.width - frameWidth, cp.y, 0);
    else
-       return scrollableView->ScrollTo(cp.x, rect.y, NS_SCROLL_PROPERTY_ALWAYS_BLIT);
+       return scrollableView->ScrollTo(cp.x, rect.y, 0);
 }
 
 
@@ -243,7 +241,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(PRInt32 line)
   
   nscoord height = 0;
   scrollableView->GetLineHeight(&height);
-  scrollableView->ScrollTo(0,height*line, NS_SCROLL_PROPERTY_ALWAYS_BLIT);
+  scrollableView->ScrollTo(0, height * line, 0);
 
   return NS_OK;
 }
@@ -303,7 +301,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollToElement(nsIDOMElement *child)
         newy = rect.y - crect.y;
     }
     
-    return scrollableView->ScrollTo(newx, newy, NS_SCROLL_PROPERTY_ALWAYS_BLIT);
+    return scrollableView->ScrollTo(newx, newy, 0);
 }
 
 
@@ -414,7 +412,7 @@ NS_IMETHODIMP nsScrollBoxObject::EnsureElementIsVisible(nsIDOMElement *child)
     }
     
     
-    return scrollableView->ScrollTo(newx, newy, NS_SCROLL_PROPERTY_ALWAYS_BLIT);
+    return scrollableView->ScrollTo(newx, newy, 0);
 }
 
 
