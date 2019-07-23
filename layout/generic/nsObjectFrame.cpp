@@ -1515,7 +1515,8 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
         printProc = reinterpret_cast<PrintWindowPtr>
           (::GetProcAddress(module, "PrintWindow"));
       }
-      if (printProc) {
+      
+      if (printProc && !mInstanceOwner->MatchPluginName("Java(TM) Platform")) {
         HWND hwnd = reinterpret_cast<HWND>(window->window);
         RECT rc;
         GetWindowRect(hwnd, &rc);
