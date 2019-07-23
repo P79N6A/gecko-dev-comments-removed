@@ -67,6 +67,7 @@ class nsIDOMHTMLSelectElement;
 class nsPresContext;
 class nsStyleChangeList;
 class nsIFrame;
+struct nsGenConInitializer;
 
 struct nsFindFrameHint
 {
@@ -329,21 +330,34 @@ private:
                                   nsCOMArray<nsIContent>& aGeneratedContent,
                                   nsIContent** aNewContent,
                                   nsIFrame** aNewFrame);
-  
-  nsresult CreateGeneratedFrameFor(nsIFrame*             aParentFrame,
-                                   nsIContent*           aContent,
-                                   nsStyleContext*       aStyleContext,
-                                   const nsStyleContent* aStyleContent,
-                                   PRUint32              aContentIndex,
-                                   nsCOMArray<nsIContent>& aGeneratedContent,
-                                   nsIFrame**            aFrame);
 
-  PRBool CreateGeneratedContentFrame(nsFrameConstructorState& aState,
-                                     nsIFrame*                aFrame,
-                                     nsIContent*              aContent,
-                                     nsStyleContext*          aStyleContext,
-                                     nsIAtom*                 aPseudoElement,
-                                     nsIFrame**               aResult);
+  
+
+
+
+  already_AddRefed<nsIContent> CreateGenConTextNode(const nsString& aString,  
+                                                    nsCOMPtr<nsIDOMCharacterData>* aText,
+                                                    nsGenConInitializer* aInitializer);
+
+  
+
+
+
+
+
+
+
+
+  already_AddRefed<nsIContent> CreateGeneratedContent(nsIContent*     aParentContent,
+                                                      nsStyleContext* aStyleContext,
+                                                      PRUint32        aContentIndex);
+
+  void CreateGeneratedContentFrame(nsFrameConstructorState& aState,
+                                   nsIFrame*                aFrame,
+                                   nsIContent*              aContent,
+                                   nsStyleContext*          aStyleContext,
+                                   nsIAtom*                 aPseudoElement,
+                                   nsFrameItems&            aFrameItems);
 
   
   

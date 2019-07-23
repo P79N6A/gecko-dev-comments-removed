@@ -42,6 +42,33 @@
 #include "nsBulletFrame.h" 
 #include "nsContentUtils.h"
 
+PRBool
+nsCounterUseNode::InitTextFrame(nsGenConList* aList,
+        nsIFrame* aPseudoFrame, nsIFrame* aTextFrame)
+{
+  nsCounterNode::InitTextFrame(aList, aPseudoFrame, aTextFrame);
+
+  nsCounterList *counterList = static_cast<nsCounterList*>(aList);
+  counterList->Insert(this);
+  PRBool dirty = counterList->IsDirty();
+  if (!dirty) {
+    if (counterList->IsLast(this)) {
+      Calc(counterList);
+      nsAutoString contentString;
+      GetText(contentString);
+      aTextFrame->GetContent()->SetText(contentString, PR_FALSE);
+    } else {
+      
+      
+      
+      counterList->SetDirty();
+      return PR_TRUE;
+    }
+  }
+  
+  return PR_FALSE;
+}
+
 
 
 void nsCounterUseNode::Calc(nsCounterList *aList)
@@ -115,13 +142,7 @@ nsCounterList::SetScope(nsCounterNode *aNode)
     
     
     
-    
-    
-    
-    nsIContent *nodeContent = aNode->mPseudoFrame->GetContent();
-    if (!aNode->mPseudoFrame->GetStyleContext()->GetPseudoType()) {
-        nodeContent = nodeContent->GetParent();
-    }
+    nsIContent *nodeContent = aNode->mPseudoFrame->GetContent()->GetParent();
 
     for (nsCounterNode *prev = Prev(aNode), *start;
          prev; prev = start->mScopePrev) {
@@ -134,10 +155,7 @@ nsCounterList::SetScope(nsCounterNode *aNode)
                   ? prev : prev->mScopeStart;
 
         
-        nsIContent *startContent = start->mPseudoFrame->GetContent();
-        if (!start->mPseudoFrame->GetStyleContext()->GetPseudoType()) {
-            startContent = startContent->GetParent();
-        }
+        nsIContent *startContent = start->mPseudoFrame->GetContent()->GetParent();
         NS_ASSERTION(nodeContent || !startContent,
                      "null check on startContent should be sufficient to "
                      "null check nodeContent as well, since if nodeContent "

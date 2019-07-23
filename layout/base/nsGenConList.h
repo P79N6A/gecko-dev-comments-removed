@@ -46,12 +46,14 @@
 #include "nsIDOMCharacterData.h"
 #include "nsCSSPseudoElements.h"
 
+class nsGenConList;
+
 struct nsGenConNode : public PRCList {
   
   
   
   
-  nsIFrame* const mPseudoFrame;
+  nsIFrame* mPseudoFrame;
 
   
   
@@ -62,28 +64,52 @@ struct nsGenConNode : public PRCList {
   
   nsCOMPtr<nsIDOMCharacterData> mText;
 
-  nsGenConNode(nsIFrame* aPseudoFrame, PRInt32 aContentIndex)
-    : mPseudoFrame(aPseudoFrame)
+  nsGenConNode(PRInt32 aContentIndex)
+    : mPseudoFrame(nsnull)
     , mContentIndex(aContentIndex)
   {
-    NS_ASSERTION(aContentIndex <
-                   PRInt32(aPseudoFrame->GetStyleContent()->ContentCount()),
-                 "index out of range");
-    
-    
+  }
 
-    NS_ASSERTION(aContentIndex < 0 ||
-                 aPseudoFrame->GetStyleContext()->GetPseudoType() ==
-                   nsCSSPseudoElements::before ||
-                 aPseudoFrame->GetStyleContext()->GetPseudoType() ==
-                   nsCSSPseudoElements::after,
-                 "not :before/:after generated content and not counter change");
-    NS_ASSERTION(aContentIndex < 0 ||
-                 aPseudoFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT,
-                 "not generated content and not counter change");
+  
+
+
+
+
+
+
+
+
+
+
+
+  virtual PRBool InitTextFrame(nsGenConList* aList, nsIFrame* aPseudoFrame,
+                               nsIFrame* aTextFrame)
+  {
+    mPseudoFrame = aPseudoFrame;
+    CheckFrameAssertions();
+    return PR_FALSE;
   }
 
   virtual ~nsGenConNode() {} 
+
+protected:
+  void CheckFrameAssertions() {
+    NS_ASSERTION(mContentIndex <
+                   PRInt32(mPseudoFrame->GetStyleContent()->ContentCount()),
+                 "index out of range");
+      
+      
+
+    NS_ASSERTION(mContentIndex < 0 ||
+                 mPseudoFrame->GetStyleContext()->GetPseudoType() ==
+                   nsCSSPseudoElements::before ||
+                 mPseudoFrame->GetStyleContext()->GetPseudoType() ==
+                   nsCSSPseudoElements::after,
+                 "not :before/:after generated content and not counter change");
+    NS_ASSERTION(mContentIndex < 0 ||
+                 mPseudoFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT,
+                 "not generated content and not counter change");
+  }
 };
 
 class nsGenConList {

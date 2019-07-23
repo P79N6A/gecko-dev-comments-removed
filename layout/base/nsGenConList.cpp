@@ -96,13 +96,25 @@ nsGenConList::DestroyNodesFor(nsIFrame* aFrame)
 }
 
 
-inline PRInt32 PseudoCompareType(nsIFrame *aFrame)
+
+
+
+
+
+
+
+inline PRInt32 PseudoCompareType(nsIFrame* aFrame, nsIContent** aContent)
 {
   nsIAtom *pseudo = aFrame->GetStyleContext()->GetPseudoType();
-  if (pseudo == nsCSSPseudoElements::before)
+  if (pseudo == nsCSSPseudoElements::before) {
+    *aContent = aFrame->GetContent()->GetParent();
     return -1;
-  if (pseudo == nsCSSPseudoElements::after)
+  }
+  if (pseudo == nsCSSPseudoElements::after) {
+    *aContent = aFrame->GetContent()->GetParent();
     return 1;
+  }
+  *aContent = aFrame->GetContent();
   return 0;
 }
 
@@ -115,10 +127,10 @@ nsGenConList::NodeAfter(const nsGenConNode* aNode1, const nsGenConNode* aNode2)
     NS_ASSERTION(aNode2->mContentIndex != aNode1->mContentIndex, "identical");
     return aNode1->mContentIndex > aNode2->mContentIndex;
   }
-  PRInt32 pseudoType1 = PseudoCompareType(frame1);
-  PRInt32 pseudoType2 = PseudoCompareType(frame2);
-  nsIContent *content1 = frame1->GetContent();
-  nsIContent *content2 = frame2->GetContent();
+  nsIContent *content1;
+  nsIContent *content2;
+  PRInt32 pseudoType1 = PseudoCompareType(frame1, &content1);
+  PRInt32 pseudoType2 = PseudoCompareType(frame2, &content2);
   if (pseudoType1 == 0 || pseudoType2 == 0) {
     if (content1 == content2) {
       NS_ASSERTION(pseudoType1 != pseudoType2, "identical");

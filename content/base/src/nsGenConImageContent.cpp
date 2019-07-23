@@ -102,7 +102,7 @@ nsGenConImageContent::IntrinsicState() const
   PRInt32 state = nsXMLElement::IntrinsicState();
 
   PRInt32 imageState = nsImageLoadingContent::ImageState();
-  if (imageState & NS_EVENT_STATE_BROKEN) {
+  if (imageState & (NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_USERDISABLED)) {
     
     
     imageState |= NS_EVENT_STATE_SUPPRESSED;

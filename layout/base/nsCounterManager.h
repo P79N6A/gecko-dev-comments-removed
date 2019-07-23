@@ -92,8 +92,8 @@ struct nsCounterNode : public nsGenConNode {
     
     
     
-    nsCounterNode(nsIFrame* aPseudoFrame, PRInt32 aContentIndex, Type aType)
-        : nsGenConNode(aPseudoFrame, aContentIndex)
+    nsCounterNode(PRInt32 aContentIndex, Type aType)
+        : nsGenConNode(aContentIndex)
         , mType(aType)
         , mValueAfter(0)
         , mScopeStart(nsnull)
@@ -115,14 +115,17 @@ struct nsCounterUseNode : public nsCounterNode {
     PRBool mAllCounters;
 
     
-    nsCounterUseNode(nsCSSValue::Array* aCounterStyle, nsIFrame* aPseudoFrame,
+    nsCounterUseNode(nsCSSValue::Array* aCounterStyle,
                      PRUint32 aContentIndex, PRBool aAllCounters)
-        : nsCounterNode(aPseudoFrame, aContentIndex, USE)
+        : nsCounterNode(aContentIndex, USE)
         , mCounterStyle(aCounterStyle)
         , mAllCounters(aAllCounters)
     {
         NS_ASSERTION(aContentIndex >= 0, "out of range");
     }
+    
+    virtual PRBool InitTextFrame(nsGenConList* aList,
+            nsIFrame* aPseudoFrame, nsIFrame* aTextFrame);
 
     
     
@@ -144,8 +147,7 @@ struct nsCounterChangeNode : public nsCounterNode {
                         nsCounterNode::Type aChangeType,
                         PRInt32 aChangeValue,
                         PRInt32 aPropIndex)
-        : nsCounterNode(aPseudoFrame,
-                        
+        : nsCounterNode(
                         
                         
                         aPropIndex + (aChangeType == RESET
@@ -157,6 +159,8 @@ struct nsCounterChangeNode : public nsCounterNode {
         NS_ASSERTION(aPropIndex >= 0, "out of range");
         NS_ASSERTION(aChangeType == INCREMENT || aChangeType == RESET,
                      "bad type");
+        mPseudoFrame = aPseudoFrame;
+        CheckFrameAssertions();
     }
 
     
