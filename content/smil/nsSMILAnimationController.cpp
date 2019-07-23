@@ -64,7 +64,8 @@ const PRUint32 nsSMILAnimationController::kTimerInterval = 22;
 
 
 nsSMILAnimationController::nsSMILAnimationController()
-  : mDocument(nsnull)
+  : mResampleNeeded(PR_FALSE),
+    mDocument(nsnull)
 {
   mAnimationElementTable.Init();
   mChildContainerTable.Init();
@@ -75,11 +76,6 @@ nsSMILAnimationController::~nsSMILAnimationController()
   if (mTimer) {
     mTimer->Cancel();
     mTimer = nsnull;
-  }
-
-  if (mForceSampleEvent) {
-    mForceSampleEvent->Expire();
-    mForceSampleEvent = nsnull;
   }
 
   NS_ASSERTION(mAnimationElementTable.Count() == 0,
@@ -138,7 +134,7 @@ nsSMILAnimationController::Resume(PRUint32 aType)
 
   nsSMILTimeContainer::Resume(aType);
 
-  if (wasPaused && !mPauseState) {
+  if (wasPaused && !mPauseState && mChildContainerTable.Count()) {
     StartTimer();
   }
 }
@@ -170,36 +166,10 @@ nsSMILAnimationController::UnregisterAnimationElement(
 
 
 
-nsresult
-nsSMILAnimationController::OnForceSample()
-{
-  
-  NS_ENSURE_TRUE(mForceSampleEvent, NS_ERROR_FAILURE);
-
-  nsresult rv = NS_OK;
-  if (!mPauseState) {
-    
-    rv = StopTimer();
-    if (NS_SUCCEEDED(rv)) {
-      
-      
-      rv = StartTimer();
-    }
-  }
-  mForceSampleEvent = nsnull;
-  return rv;
-}
-
 void
-nsSMILAnimationController::FireForceSampleEvent()
+nsSMILAnimationController::Resample()
 {
-  if (!mForceSampleEvent) {
-    mForceSampleEvent = new ForceSampleEvent(*this);
-    if (NS_FAILED(NS_DispatchToCurrentThread(mForceSampleEvent))) {
-      NS_WARNING("Failed to dispatch force sample event");
-      mForceSampleEvent = nsnull;
-    }
-  }
+  DoSample(PR_FALSE);
 }
 
 
@@ -241,7 +211,6 @@ nsSMILAnimationController::CompositorTableEntryTraverse(
   aCompositor->Traverse(cb);
   return PL_DHASH_NEXT;
 }
-
 
 void
 nsSMILAnimationController::Unlink()
@@ -296,14 +265,24 @@ nsSMILAnimationController::StopTimer()
 void
 nsSMILAnimationController::DoSample()
 {
+  DoSample(PR_TRUE); 
+}
+
+void
+nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
+{
+  
+  mResampleNeeded = PR_FALSE;
+
   
   
   
   
   TimeContainerHashtable activeContainers;
   activeContainers.Init(mChildContainerTable.Count());
-  mChildContainerTable.EnumerateEntries(SampleTimeContainers,
-                                        &activeContainers);
+  SampleTimeContainerParams tcParams = { &activeContainers,
+                                         aSkipUnchangedContainers };
+  mChildContainerTable.EnumerateEntries(SampleTimeContainer, &tcParams);
 
   
   
@@ -332,9 +311,10 @@ nsSMILAnimationController::DoSample()
     return;
   currentCompositorTable->Init(0);
 
-  SampleAnimationParams params = { &activeContainers, currentCompositorTable };
+  SampleAnimationParams saParams = { &activeContainers,
+                                     currentCompositorTable };
   nsresult rv = mAnimationElementTable.EnumerateEntries(SampleAnimation,
-                                                        &params);
+                                                        &saParams);
   if (NS_FAILED(rv)) {
     NS_WARNING("SampleAnimationParams failed");
   }
@@ -356,23 +336,25 @@ nsSMILAnimationController::DoSample()
 
   
   mLastCompositorTable = currentCompositorTable.forget();
+
+  NS_ASSERTION(!mResampleNeeded, "Resample dirty flag set during sample!");
 }
 
  PR_CALLBACK PLDHashOperator
-nsSMILAnimationController::SampleTimeContainers(TimeContainerPtrKey* aKey,
-                                                void* aData)
+nsSMILAnimationController::SampleTimeContainer(TimeContainerPtrKey* aKey,
+                                               void* aData)
 { 
   NS_ENSURE_TRUE(aKey, PL_DHASH_NEXT);
   NS_ENSURE_TRUE(aKey->GetKey(), PL_DHASH_NEXT);
   NS_ENSURE_TRUE(aData, PL_DHASH_NEXT);
 
-  TimeContainerHashtable* activeContainers
-    = static_cast<TimeContainerHashtable*>(aData);
+  SampleTimeContainerParams* params = 
+    static_cast<SampleTimeContainerParams*>(aData);
 
   nsSMILTimeContainer* container = aKey->GetKey();
-  if (container->NeedsSample()) {
+  if (container->NeedsSample() || !params->mSkipUnchangedContainers) {
     container->Sample();
-    activeContainers->PutEntry(container);
+    params->mActiveContainers->PutEntry(container);
   }
 
   return PL_DHASH_NEXT;

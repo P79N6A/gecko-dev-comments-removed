@@ -45,7 +45,6 @@
 #include "nsITimer.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
-#include "nsThreadUtils.h" 
 #include "nsSMILTimeContainer.h"
 #include "nsSMILCompositorTable.h"
 
@@ -81,16 +80,25 @@ public:
   void UnregisterAnimationElement(nsISMILAnimationElement* aAnimationElement);
 
   
-  nsresult OnForceSample();
-  void     FireForceSampleEvent();
+  
+  
+  void Resample();
+  void SetResampleNeeded() { mResampleNeeded = PR_TRUE; }
+  void FlushResampleRequests()
+  {
+    if (!mResampleNeeded)
+      return;
+
+    DoSample(PR_FALSE); 
+  }
 
   
-  void     OnPageShow();
-  void     OnPageHide();
+  void OnPageShow();
+  void OnPageHide();
 
   
-  void     Traverse(nsCycleCollectionTraversalCallback* aCallback);
-  void     Unlink();
+  void Traverse(nsCycleCollectionTraversalCallback* aCallback);
+  void Unlink();
 
 protected:
   
@@ -99,22 +107,10 @@ protected:
   typedef nsPtrHashKey<nsISMILAnimationElement> AnimationElementPtrKey;
   typedef nsTHashtable<AnimationElementPtrKey> AnimationElementHashtable;
 
-  
-  class ForceSampleEvent : public nsRunnable {
-  public:
-    ForceSampleEvent(nsSMILAnimationController &aAnimationController)
-      : mAnimationController(&aAnimationController) { }
-
-    NS_IMETHOD Run() {
-      if (!mAnimationController)
-        return NS_OK;
-
-      return mAnimationController->OnForceSample();
-    }
-    void Expire() { mAnimationController = nsnull; }
-
-  private:
-    nsSMILAnimationController* mAnimationController;
+  struct SampleTimeContainerParams
+  {
+    TimeContainerHashtable* mActiveContainers;
+    PRBool                  mSkipUnchangedContainers;
   };
 
   struct SampleAnimationParams
@@ -139,7 +135,8 @@ protected:
 
   
   virtual void DoSample();
-  PR_STATIC_CALLBACK(PLDHashOperator) SampleTimeContainers(
+  void DoSample(PRBool aSkipUnchangedContainers);
+  PR_STATIC_CALLBACK(PLDHashOperator) SampleTimeContainer(
       TimeContainerPtrKey* aKey, void* aData);
   PR_STATIC_CALLBACK(PLDHashOperator) SampleAnimation(
       AnimationElementPtrKey* aKey, void* aData);
@@ -161,7 +158,7 @@ protected:
   nsCOMPtr<nsITimer>         mTimer;
   AnimationElementHashtable  mAnimationElementTable;
   TimeContainerHashtable     mChildContainerTable;
-  nsRefPtr<ForceSampleEvent> mForceSampleEvent;
+  PRPackedBool               mResampleNeeded;
   
   
   

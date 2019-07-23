@@ -555,7 +555,20 @@ nsSVGSVGElement::SetCurrentTime(float seconds)
     
     nsSMILTime lMilliseconds = PRInt64(NS_round(fMilliseconds));
     mTimedDocumentRoot->SetCurrentTime(lMilliseconds);
-    RequestSample();
+    
+    
+    
+    
+    
+    
+    
+    nsIDocument* doc = GetCurrentDoc();
+    if (doc) {
+      nsSMILAnimationController* smilController = doc->GetAnimationController();
+      if (smilController) {
+        smilController->Resample();
+      }
+    }
   } 
     
   return NS_OK;
@@ -1156,18 +1169,6 @@ nsSVGSVGElement::GetTimedDocumentRoot()
   }
 
   return result;
-}
-
-void
-nsSVGSVGElement::RequestSample()
-{
-  nsIDocument* doc = GetCurrentDoc();
-  if (doc) {
-    nsSMILAnimationController* smilController = doc->GetAnimationController();
-    if (smilController) {
-      smilController->FireForceSampleEvent();
-    }
-  }
 }
 #endif 
 
