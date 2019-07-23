@@ -114,15 +114,22 @@ NS_NewTableCellInnerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
 }
 
 
+
+inline nsIFrame*
+NS_NewDocumentElementFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
+  return NS_NewAreaFrame(aPresShell, aContext, NS_BLOCK_SPACE_MGR|NS_BLOCK_MARGIN_ROOT);
+}
+
+
 inline nsIFrame*
 NS_NewAbsoluteItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
-  return NS_NewBlockFrame(aPresShell, aContext, NS_BLOCK_SPACE_MGR|NS_BLOCK_MARGIN_ROOT);
+  return NS_NewAreaFrame(aPresShell, aContext, NS_BLOCK_SPACE_MGR|NS_BLOCK_MARGIN_ROOT);
 }
 
 
 inline nsIFrame*
 NS_NewFloatingItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) {
-  return NS_NewBlockFrame(aPresShell, aContext,
+  return NS_NewAreaFrame(aPresShell, aContext,
     NS_BLOCK_SPACE_MGR|NS_BLOCK_MARGIN_ROOT);
 }
 
@@ -130,7 +137,7 @@ NS_NewFloatingItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContex
 
 inline nsIFrame*
 NS_NewRelativeItemWrapperFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags) {
-  return NS_NewBlockFrame(aPresShell, aContext, aFlags);
+  return NS_NewAreaFrame(aPresShell, aContext, aFlags);
 }
 
 nsIFrame*

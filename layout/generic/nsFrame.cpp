@@ -5559,19 +5559,12 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
     parent = parent->GetParent();
   } while (parent);
 
-  if (aProspectiveParent->GetStyleContext()->GetPseudoType() ==
-      nsCSSAnonBoxes::viewportScroll) {
-    
-    
-    return aProspectiveParent;
-  }
-
   
   
-  
-  NS_ASSERTION(aProspectiveParent->GetType() == nsGkAtoms::canvasFrame,
+  NS_ASSERTION(aProspectiveParent->GetStyleContext()->GetPseudoType() ==
+                 nsCSSAnonBoxes::viewportScroll,
                "Should have found a parent before this");
-  return nsnull;
+  return aProspectiveParent;
 }
 
 nsresult
