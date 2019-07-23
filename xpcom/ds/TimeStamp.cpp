@@ -36,7 +36,7 @@
 
 
 
-#include "nsTimeStamp.h"
+#include "mozilla/TimeStamp.h"
 #include "prlock.h"
 
 namespace mozilla {

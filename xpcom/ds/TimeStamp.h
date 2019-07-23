@@ -36,8 +36,8 @@
 
 
 
-#ifndef nsTimeStamp_h_
-#define nsTimeStamp_h_
+#ifndef mozilla_TimeStamp_h
+#define mozilla_TimeStamp_h
 
 #include "prinrval.h"
 #include "nsDebug.h"

@@ -35,7 +35,7 @@
 
 
 
-#include "nsTimeStamp.h"
+#include "mozilla/TimeStamp.h"
 
 #include "TestHarness.h"
 
