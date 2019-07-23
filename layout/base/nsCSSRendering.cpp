@@ -4836,7 +4836,7 @@ nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
   
   mImageSurface = new gfxImageSurface(gfxIntSize(mRect.Width(), mRect.Height()),
                                       gfxASurface::ImageFormatA8);
-  if (!mImageSurface)
+  if (!mImageSurface || mImageSurface->CairoStatus())
     return nsnull;
 
   
