@@ -183,11 +183,11 @@ class TableBackgroundPainter
       nsIFrame*                 mFrame;
       
       nsRect                    mRect;
-      const nsStyleBackground*  mBackground;
+      PRBool                    mVisible;
       const nsStyleBorder*      mBorder;
 
       
-      PRBool IsVisible() const { return mBackground != nsnull; }
+      PRBool IsVisible() const { return mVisible; }
 
       
       TableBackgroundData();

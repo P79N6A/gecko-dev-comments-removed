@@ -5584,14 +5584,14 @@ void PresShell::UpdateCanvasBackground()
   
   nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
   if (rootFrame) {
-    const nsStyleBackground* bgStyle =
+    nsStyleContext* bgStyle =
       nsCSSRendering::FindRootFrameBackground(rootFrame);
     
     
     
     
     mCanvasBackgroundColor =
-      nsCSSRendering::DetermineBackgroundColor(GetPresContext(), *bgStyle,
+      nsCSSRendering::DetermineBackgroundColor(GetPresContext(), bgStyle,
                                                rootFrame);
   }
 

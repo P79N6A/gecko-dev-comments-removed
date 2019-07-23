@@ -159,14 +159,14 @@ struct nsCSSRendering {
 
   static PRBool FindBackground(nsPresContext* aPresContext,
                                nsIFrame* aForFrame,
-                               const nsStyleBackground** aBackground);
+                               nsStyleContext** aBackgroundSC);
 
   
 
 
 
 
-  static const nsStyleBackground* FindRootFrameBackground(nsIFrame* aForFrame);
+  static nsStyleContext* FindRootFrameBackground(nsIFrame* aForFrame);
 
   
 
@@ -179,7 +179,7 @@ struct nsCSSRendering {
 
 
 
-  static const nsStyleBackground*
+  static nsStyleContext*
   FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame)
   {
     NS_ABORT_IF_FALSE(IsCanvasFrame(aForFrame), "not a canvas frame");
@@ -189,7 +189,7 @@ struct nsCSSRendering {
     
     
     
-    return aForFrame->GetStyleBackground();
+    return aForFrame->GetStyleContext();
   }
 
   
@@ -210,7 +210,7 @@ struct nsCSSRendering {
 
   static nscolor
   DetermineBackgroundColor(nsPresContext* aPresContext,
-                           const nsStyleBackground& aBackground,
+                           nsStyleContext* aStyleContext,
                            nsIFrame* aFrame);
 
   
@@ -248,7 +248,7 @@ struct nsCSSRendering {
                                     nsIFrame* aForFrame,
                                     const nsRect& aDirtyRect,
                                     const nsRect& aBorderArea,
-                                    const nsStyleBackground& aBackground,
+                                    nsStyleContext *aStyleContext,
                                     const nsStyleBorder& aBorder,
                                     PRUint32 aFlags,
                                     nsRect* aBGClipRect = nsnull);
