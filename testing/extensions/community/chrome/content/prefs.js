@@ -139,7 +139,7 @@ var CC_loginManager = Components.classes["@mozilla.org/login-manager;1"];
        
        
        var p;
-       while (p = this.getPasswordObj()) {
+       while (p == this.getPasswordObj()) {
          m.removeUser(p.host, p.user);
        }
        m.addUser(this.passwordName(), username, password);
