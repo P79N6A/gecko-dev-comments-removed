@@ -949,6 +949,15 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
 
   if (rectVisibility != nsRectVisibility_kZeroAreaRect) {
     
+    
+    
+    
+    
+    
+    if (rectVisibility != nsRectVisibility_kVisible) {
+      *aIsOffscreen = PR_TRUE;
+    }
+    
     if (!mDOMNode) {
       return PR_FALSE;
     }
@@ -962,20 +971,8 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
     return CheckVisibilityInParentChain(doc, containingView);
   }
 
-  PRBool hasArea  = rectVisibility != nsRectVisibility_kZeroAreaRect;
-  if (hasArea) {
-    *aIsOffscreen = PR_TRUE;
-  }
-  else {
-    
-    
-    nsCOMPtr<nsIAccessible> parentAccessible;
-    GetParent(getter_AddRefs(parentAccessible));
-    if (State(parentAccessible) & nsIAccessibleStates::STATE_OFFSCREEN) {
-      *aIsOffscreen = PR_TRUE;
-    }
-  }
-  return hasArea;
+  *aIsOffscreen = PR_TRUE; 
+  return PR_FALSE;
 }
 
 NS_IMETHODIMP
