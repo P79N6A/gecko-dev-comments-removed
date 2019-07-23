@@ -353,7 +353,7 @@ function getShellService()
 
 function isBidiEnabled() {
   
-  if (getBoolPref("browser.bidi.ui", false))
+  if (getBoolPref("bidi.browser.ui", false))
     return true;
 
   
