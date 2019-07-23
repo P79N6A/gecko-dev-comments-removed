@@ -42,9 +42,7 @@
 
 #ifdef UNDER_CE
 #include <cmnintrin.h>
-static inline bool blx_lr_broken() {
-    return false;
-}
+extern "C" bool blx_lr_broken();
 #endif
 
 #if defined(AVMPLUS_LINUX)
@@ -844,24 +842,20 @@ Assembler::asm_call(LInsp ins)
 
             NanoAssert(ins->opcode() == LIR_fcall);
 
-            
-            
-            
-            freeRsrcOf(ins, rr != UnknownReg);
-
             if (rr == UnknownReg) {
                 int d = disp(callRes);
                 NanoAssert(d != 0);
+                freeRsrcOf(ins, false);
 
                 
                 
                 STR(R0, FP, d+0);
                 STR(R1, FP, d+4);
             } else {
-                Register    rr = callRes->reg;
                 NanoAssert(IsFpReg(rr));
 
                 
+                prepResultReg(ins, rmask(rr));
                 FMDRR(rr, R0, R1);
             }
         }
@@ -1176,7 +1170,6 @@ Assembler::asm_load64(LInsp ins)
         
         
         
-        NanoAssert(resv->reg == UnknownReg);
         NanoAssert(d != 0);
 
         
