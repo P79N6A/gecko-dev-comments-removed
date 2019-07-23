@@ -2511,6 +2511,25 @@ struct SetNonRootGreyWalker : public GraphWalker
     void VisitNode(PtrInfo *pi) { pi->mColor = grey; }
 };
 
+static void
+PrintPathToExpectedGarbage(PtrInfo *pi)
+{
+    printf("  An object expected to be garbage could be "
+           "reached from it by the path:\n");
+    for (PtrInfo *path = pi, *prev = nsnull; prev != path;
+         prev = path,
+         path = path->mShortestPathToExpectedGarbage) {
+        if (prev) {
+            nsCString *edgeName = prev
+                ->mShortestPathToExpectedGarbageEdgeName;
+            printf("        via %s\n",
+                   edgeName->IsEmpty() ? "<unknown edge>"
+                                       : edgeName->get());
+        }
+        printf("    %s %p\n", path->mName, path->mPointer);
+    }
+}
+
 void
 nsCycleCollector::ExplainLiveExpectedGarbage()
 {
@@ -2566,10 +2585,8 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
             }
         }
 
-        
-        
-        
-        if (describeExtraRefcounts && CreateReversedEdges()) {
+        if ((describeExtraRefcounts || findCycleRoots) &&
+            CreateReversedEdges()) {
             
             
             
@@ -2628,20 +2645,7 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
                                pi->mRefCount, pi->mInternalRefs);
                     }
 
-                    printf("  An object expected to be garbage could be "
-                           "reached from it by the path:\n");
-                    for (PtrInfo *path = pi, *prev = nsnull; prev != path;
-                         prev = path,
-                         path = path->mShortestPathToExpectedGarbage) {
-                        if (prev) {
-                            nsCString *edgeName = prev
-                                ->mShortestPathToExpectedGarbageEdgeName;
-                            printf("        via %s\n",
-                                   edgeName->IsEmpty() ? "<unknown edge>"
-                                                       : edgeName->get());
-                        }
-                        printf("    %s %p\n", path->mName, path->mPointer);
-                    }
+                    PrintPathToExpectedGarbage(pi);
 
                     if (pi->mRefCount == PR_UINT32_MAX) {
                         printf("  The known references to it were from:\n");
@@ -2663,111 +2667,113 @@ nsCycleCollector::ExplainLiveExpectedGarbage()
                 }
             }
 
-            DestroyReversedEdges();
-        }
-
-        if (findCycleRoots) {
-            
-            
-
-            
-            
-            nsDeque DFSPostOrder;
-
-            {
+            if (findCycleRoots) {
                 
-                const PRUint32 INDEX_UNREACHED = 0;
-                const PRUint32 INDEX_TRAVERSING = 1;
-                const PRUint32 INDEX_NUMBERED = 2;
+                
 
-                NodePool::Enumerator etor_clear(mGraph.mNodes);
-                while (!etor_clear.IsDone()) {
-                    PtrInfo *pi = etor_clear.GetNext();
-                    pi->mSCCIndex = INDEX_UNREACHED;
+                
+                
+                nsDeque DFSPostOrder;
+
+                {
+                    
+                    const PRUint32 INDEX_UNREACHED = 0;
+                    const PRUint32 INDEX_TRAVERSING = 1;
+                    const PRUint32 INDEX_NUMBERED = 2;
+
+                    NodePool::Enumerator etor_clear(mGraph.mNodes);
+                    while (!etor_clear.IsDone()) {
+                        PtrInfo *pi = etor_clear.GetNext();
+                        pi->mSCCIndex = INDEX_UNREACHED;
+                    }
+
+                    nsDeque stack;
+
+                    NodePool::Enumerator etor_roots(mGraph.mNodes);
+                    for (PRUint32 i = 0; i < mGraph.mRootCount; ++i) {
+                        PtrInfo *root_pi = etor_roots.GetNext();
+                        stack.Push(root_pi);
+                    }
+
+                    while (stack.GetSize() > 0) {
+                        PtrInfo *pi = (PtrInfo*)stack.Peek();
+                        if (pi->mSCCIndex == INDEX_UNREACHED) {
+                            pi->mSCCIndex = INDEX_TRAVERSING;
+                            for (EdgePool::Iterator child = pi->mFirstChild,
+                                                child_end = pi->mLastChild;
+                                 child != child_end; ++child) {
+                                stack.Push(*child);
+                            }
+                        } else {
+                            stack.Pop();
+                            
+                            
+                            
+                            
+                            
+                            if (pi->mSCCIndex == INDEX_TRAVERSING) {
+                                pi->mSCCIndex = INDEX_NUMBERED;
+                                DFSPostOrder.Push(pi);
+                            }
+                        }
+                    }
                 }
 
-                nsDeque stack;
+                
+                {
+                    NodePool::Enumerator etor_clear(mGraph.mNodes);
+                    while (!etor_clear.IsDone()) {
+                        PtrInfo *pi = etor_clear.GetNext();
+                        pi->mSCCIndex = 0;
+                    }
 
-                NodePool::Enumerator etor_roots(mGraph.mNodes);
-                for (PRUint32 i = 0; i < mGraph.mRootCount; ++i) {
-                    PtrInfo *root_pi = etor_roots.GetNext();
-                    stack.Push(root_pi);
+                    PRUint32 currentSCC = 1;
+
+                    while (DFSPostOrder.GetSize() > 0) {
+                        SetSCCWalker(currentSCC).Walk((PtrInfo*)DFSPostOrder.PopFront());
+                        ++currentSCC;
+                    }
                 }
 
-                while (stack.GetSize() > 0) {
-                    PtrInfo *pi = (PtrInfo*)stack.Peek();
-                    if (pi->mSCCIndex == INDEX_UNREACHED) {
-                        pi->mSCCIndex = INDEX_TRAVERSING;
+                
+                
+                {
+                    NodePool::Enumerator queue(mGraph.mNodes);
+                    while (!queue.IsDone()) {
+                        PtrInfo *pi = queue.GetNext();
+                        if (pi->mColor != white)
+                            continue;
                         for (EdgePool::Iterator child = pi->mFirstChild,
                                             child_end = pi->mLastChild;
                              child != child_end; ++child) {
-                            stack.Push(*child);
-                        }
-                    } else {
-                        stack.Pop();
-                        
-                        
-                        
-                        
-                        
-                        if (pi->mSCCIndex == INDEX_TRAVERSING) {
-                            pi->mSCCIndex = INDEX_NUMBERED;
-                            DFSPostOrder.Push(pi);
+                            if ((*child)->mSCCIndex != pi->mSCCIndex) {
+                                SetNonRootGreyWalker().Walk(*child);
+                            }
                         }
                     }
                 }
-            }
 
-            
-            {
-                NodePool::Enumerator etor_clear(mGraph.mNodes);
-                while (!etor_clear.IsDone()) {
-                    PtrInfo *pi = etor_clear.GetNext();
-                    pi->mSCCIndex = 0;
-                }
-
-                PRUint32 currentSCC = 1;
-
-                while (DFSPostOrder.GetSize() > 0) {
-                    SetSCCWalker(currentSCC).Walk((PtrInfo*)DFSPostOrder.PopFront());
-                    ++currentSCC;
-                }
-            }
-
-            
-            
-            {
-                NodePool::Enumerator queue(mGraph.mNodes);
-                while (!queue.IsDone()) {
-                    PtrInfo *pi = queue.GetNext();
-                    if (pi->mColor != white)
-                        continue;
-                    for (EdgePool::Iterator child = pi->mFirstChild,
-                                        child_end = pi->mLastChild;
-                         child != child_end; ++child) {
-                        if ((*child)->mSCCIndex != pi->mSCCIndex) {
-                            SetNonRootGreyWalker().Walk(*child);
+                {
+                    NodePool::Enumerator queue(mGraph.mNodes);
+                    while (!queue.IsDone()) {
+                        PtrInfo *pi = queue.GetNext();
+                        if (pi->mColor == white) {
+                            printf("nsCycleCollector: %s %p in component %d\n"
+                                   "  was not collected due to missing call to "
+                                   "suspect, failure to unlink,\n"
+                                   "  or deficiency in traverse that causes "
+                                   "cycles referenced only from other\n"
+                                   "  cycles to require multiple rounds of cycle "
+                                   "collection\n",
+                                   pi->mName, pi->mPointer, pi->mSCCIndex);
+                            if (pi->mShortestPathToExpectedGarbage)
+                                PrintPathToExpectedGarbage(pi);
                         }
                     }
                 }
             }
 
-            {
-                NodePool::Enumerator queue(mGraph.mNodes);
-                while (!queue.IsDone()) {
-                    PtrInfo *pi = queue.GetNext();
-                    if (pi->mColor == white) {
-                        printf("nsCycleCollector: %s %p in component %d\n"
-                               "  was not collected due to missing call to "
-                               "suspect, failure to unlink,\n"
-                               "  or deficiency in traverse that causes "
-                               "cycles referenced only from other\n"
-                               "  cycles to require multiple rounds of cycle "
-                               "collection\n",
-                               pi->mName, pi->mPointer, pi->mSCCIndex);
-                    }
-                }
-            }
+            DestroyReversedEdges();
         }
     }
 
