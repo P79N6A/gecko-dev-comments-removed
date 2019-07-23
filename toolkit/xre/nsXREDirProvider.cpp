@@ -252,7 +252,7 @@ nsXREDirProvider::GetFile(const char* aProperty, PRBool* aPersistent,
     rv = GetUserAppDataDirectory((nsILocalFile**)(nsIFile**) getter_AddRefs(file));
   }
   else if (!strcmp(aProperty, XRE_UPDATE_ROOT_DIR)) {
-#ifdef XP_WIN
+#if defined(XP_WIN) && !defined(WINCE)
     rv = GetUpdateRootDir(getter_AddRefs(file));
 #else
     
