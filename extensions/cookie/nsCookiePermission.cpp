@@ -87,11 +87,6 @@ static const char kCookiesAskPermission[] = "network.cookie.warnAboutCookies";
 
 static const char kPermissionType[] = "cookie";
 
-
-
-#define USEC_PER_SEC   (nsInt64(1000000))
-#define NOW_IN_SECONDS (nsInt64(PR_Now()) / USEC_PER_SEC)
-
 #ifdef MOZ_MAIL_NEWS
 
 static PRBool
@@ -166,7 +161,7 @@ void
 nsCookiePermission::PrefChanged(nsIPrefBranch *aPrefBranch,
                                 const char    *aPref)
 {
-  PRBool val;
+  PRInt32 val;
 
 #define PREF_CHANGED(_P) (!aPref || !strcmp(aPref, _P))
 
@@ -312,8 +307,8 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     }
     
     
-    nsInt64 currentTime = NOW_IN_SECONDS;
-    nsInt64 delta = nsInt64(*aExpiry) - currentTime;
+    PRInt64 currentTime = PR_Now() / PR_USEC_PER_SEC;
+    PRInt64 delta = *aExpiry - currentTime;
     
     
     if (mCookiesLifetimePolicy == ASK_BEFORE_ACCEPT) {
@@ -377,7 +372,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
       
       
       
-      if (!foundCookie && !*aIsSession && delta <= nsInt64(0)) {
+      if (!foundCookie && !*aIsSession && delta <= 0) {
         
         
         *aResult = PR_TRUE;
@@ -411,7 +406,7 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
     } else {
       
       
-      if (!*aIsSession && delta > nsInt64(0)) {
+      if (!*aIsSession && delta > 0) {
         if (mCookiesLifetimePolicy == ACCEPT_SESSION) {
           
           *aIsSession = PR_TRUE;

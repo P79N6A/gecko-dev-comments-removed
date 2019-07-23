@@ -78,15 +78,18 @@ StrBlockCopy(const nsACString &aSource1,
 
 
 
-static PRUint32 gLastCreationTime;
+
+
+
+static PRInt64 gLastCreationID;
 
 nsCookie *
 nsCookie::Create(const nsACString &aName,
                  const nsACString &aValue,
                  const nsACString &aHost,
                  const nsACString &aPath,
-                 nsInt64          aExpiry,
-                 nsInt64          aLastAccessed,
+                 PRInt64          aExpiry,
+                 PRInt64          aCreationID,
                  PRBool           aIsSession,
                  PRBool           aIsSecure,
                  PRBool           aIsHttpOnly,
@@ -110,8 +113,15 @@ nsCookie::Create(const nsACString &aName,
                name, value, host, path, end);
 
   
+  
+  if (aCreationID > gLastCreationID)
+    gLastCreationID = aCreationID;
+  else
+    aCreationID = ++gLastCreationID;
+
+  
   return new (place) nsCookie(name, value, host, path, end,
-                              aExpiry, aLastAccessed, ++gLastCreationTime,
+                              aExpiry, aCreationID,
                               aIsSession, aIsSecure, aIsHttpOnly,
                               aStatus, aPolicy);
 }
@@ -143,7 +153,7 @@ nsCookie::GetExpires(PRUint64 *aExpires)
   if (IsSession()) {
     *aExpires = 0;
   } else {
-    *aExpires = Expiry() > nsInt64(0) ? PRInt64(Expiry()) : 1;
+    *aExpires = Expiry() > 0 ? Expiry() : 1;
   }
   return NS_OK;
 }
