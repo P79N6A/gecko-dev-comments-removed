@@ -66,12 +66,11 @@
 
 
 
-template <typename T>
 class Tracker {
     struct Page {
         struct Page*    next;
         jsuword         base;
-        T               map[1];
+        nanojit::LIns*  map[1];
     };
     struct Page* pagelist;
 
@@ -82,8 +81,8 @@ public:
     Tracker();
     ~Tracker();
 
-    T               get(const void* v) const;
-    void            set(const void* v, T ins);
+    nanojit::LIns*  get(const void* v) const;
+    void            set(const void* v, nanojit::LIns* ins);
     void            clear();
 };
 
@@ -109,7 +108,7 @@ extern struct nanojit::CallInfo builtins[];
 class TraceRecorder {
     JSContext*              cx;
     JSStackFrame*           global;
-    Tracker<nanojit::LIns*> tracker;
+    Tracker                 tracker;
     char*                   entryTypeMap;
     struct JSStackFrame*    entryFrame;
     struct JSFrameRegs      entryRegs;
