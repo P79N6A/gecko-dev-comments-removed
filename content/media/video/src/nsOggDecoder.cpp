@@ -91,6 +91,12 @@ using mozilla::TimeStamp;
 
 #define BUFFERING_SECONDS_LOW_WATER_MARK 1
 
+
+
+
+
+#define MIN_BOUNDED_SEEK_SIZE (64 * 1024)
+
 class nsOggStepDecodeEvent;
 
 
@@ -420,6 +426,10 @@ protected:
   
   
   void QueueDecodedFrames();
+
+  
+  
+  nsresult Seek(float aTime, nsChannelReader* aReader);
 
 private:
   
@@ -1176,6 +1186,87 @@ void nsOggDecodeStateMachine::Seek(float aTime)
   mState = DECODER_STATE_SEEKING;
 }
 
+class ByteRange {
+public:
+  ByteRange() : mStart(-1), mEnd(-1) {}
+  ByteRange(PRInt64 aStart, PRInt64 aEnd) : mStart(aStart), mEnd(aEnd) {}
+  PRInt64 mStart, mEnd;
+};
+
+static void GetBufferedBytes(nsMediaStream* aStream, nsTArray<ByteRange>& aRanges)
+{
+  PRInt64 startOffset = 0;
+  while (PR_TRUE) {
+    PRInt64 endOffset = aStream->GetCachedDataEnd(startOffset);
+    if (endOffset == startOffset) {
+      
+      endOffset = aStream->GetNextCachedData(startOffset);
+      if (endOffset == -1) {
+        
+        
+        break;
+      }
+    } else {
+      
+      PRInt64 cachedLength = endOffset - startOffset;
+      
+      
+      
+      if (cachedLength > MIN_BOUNDED_SEEK_SIZE) {
+        aRanges.AppendElement(ByteRange(startOffset, endOffset));
+      }
+    }
+    startOffset = endOffset;
+  }
+}
+
+nsresult nsOggDecodeStateMachine::Seek(float aTime, nsChannelReader* aReader)
+{
+  LOG(PR_LOG_DEBUG, ("About to seek OggPlay to %fms", aTime));
+
+  
+  PRInt32 numTracks = 0;
+  PRInt32 tracks[2];
+  if (mVideoTrack != -1) {
+    tracks[numTracks] = mVideoTrack;
+    numTracks++;
+  }
+  if (mAudioTrack != -1) {
+    tracks[numTracks] = mAudioTrack;
+    numTracks++;
+  }
+  
+  nsMediaStream* stream = aReader->Stream(); 
+  nsAutoTArray<ByteRange, 16> ranges;
+  stream->Pin();
+  GetBufferedBytes(stream, ranges);
+  PRInt64 rv = -1;
+  for (PRUint32 i = 0; rv < 0 && i < ranges.Length(); i++) {
+    rv = oggplay_seek_to_keyframe(mPlayer,
+                                  tracks,
+                                  numTracks,
+                                  ogg_int64_t(aTime * 1000),
+                                  ranges[i].mStart,
+                                  ranges[i].mEnd);
+  }
+  stream->Unpin();
+
+  if (rv < 0) {
+    
+    
+    rv = oggplay_seek_to_keyframe(mPlayer,
+                                  tracks,
+                                  numTracks,
+                                  ogg_int64_t(aTime * 1000),
+                                  0,
+                                  stream->GetLength());
+  }
+
+  LOG(PR_LOG_DEBUG, ("Finished seeking OggPlay"));
+
+  return (rv < 0) ? NS_ERROR_FAILURE : NS_OK;
+}
+
 nsresult nsOggDecodeStateMachine::Run()
 {
   nsChannelReader* reader = mDecoder->GetReader();
@@ -1380,9 +1471,7 @@ nsresult nsOggDecodeStateMachine::Run()
           NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, SeekingStarted);
         NS_DispatchToMainThread(startEvent, NS_DISPATCH_SYNC);
         
-        LOG(PR_LOG_DEBUG, ("Entering oggplay_seek(%f)", seekTime));
-        oggplay_seek(mPlayer, ogg_int64_t(seekTime * 1000));
-        LOG(PR_LOG_DEBUG, ("Leaving oggplay_seek"));
+        Seek(seekTime, reader);
 
         
         
@@ -1399,17 +1488,25 @@ nsresult nsOggDecodeStateMachine::Run()
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
+        FrameData* frame = nsnull;
         OggPlayErrorCode r;
+        float seekTarget = seekTime - mCallbackPeriod / 2.0;
         do {
-          mon.Exit();
-          r = DecodeFrame();
-          mon.Enter();
-        } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
+          do {
+            mon.Exit();
+            r = DecodeFrame();
+            mon.Enter();
+          } while (mState != DECODER_STATE_SHUTDOWN && r == E_OGGPLAY_TIMEOUT);
+          if (mState == DECODER_STATE_SHUTDOWN)
+            break;
+
+          mLastFrameTime = 0;
+          frame = NextFrame();
+        } while (frame && frame->mDecodedFrameTime < seekTarget);
+
         if (mState == DECODER_STATE_SHUTDOWN)
           continue;
 
-        mLastFrameTime = 0;
-        FrameData* frame = NextFrame();
         NS_ASSERTION(frame != nsnull, "No frame after seek!");
         if (frame) {
           mDecodedFrames.Push(frame);
