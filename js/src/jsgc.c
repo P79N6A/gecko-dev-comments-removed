@@ -267,7 +267,9 @@ static uint8 GCTypeToTraceKindMap[GCX_NTYPES] = {
 
 
 
-JS_STATIC_ASSERT(GC_FREELIST_INDEX(sizeof(JSFunction)) !=
+JS_STATIC_ASSERT(GC_FREELIST_INDEX(sizeof(JSString)) !=
+                 GC_FREELIST_INDEX(sizeof(JSObject)));
+JS_STATIC_ASSERT(GC_FREELIST_INDEX(sizeof(jsdouble)) !=
                  GC_FREELIST_INDEX(sizeof(JSObject)));
 
 
@@ -1460,10 +1462,6 @@ JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind)
 
         break;
 
-      case JSTRACE_ATOM:
-         js_TraceAtom(trc, (JSAtom *)thing);
-         break;
-
 #if JS_HAS_XML_SUPPORT
       case JSTRACE_NAMESPACE:
         js_TraceXMLNamespace(trc, (JSXMLNamespace *)thing);
@@ -1716,7 +1714,6 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind)
 {
     JSContext *cx;
     JSRuntime *rt;
-    JSAtom *atom;
     uint8 *flagp;
 
     JS_ASSERT(thing);
@@ -1732,36 +1729,6 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind)
     rt = cx->runtime;
     JS_ASSERT(rt->gcMarkingTracer == trc);
     JS_ASSERT(rt->gcLevel > 0);
-
-    if (kind == JSTRACE_ATOM) {
-        atom = (JSAtom *)thing;
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if (!(atom->flags & ATOM_MARK)) {
-            atom->flags |= ATOM_MARK;
-
-            
-
-
-
-            js_TraceAtom(trc, (JSAtom *)thing);
-        }
-        goto out;
-    }
 
     flagp = js_GetGCThingFlags(thing);
     JS_ASSERT(*flagp != GCF_FINAL);
@@ -2029,8 +1996,7 @@ TraceWeakRoots(JSTracer *trc, JSWeakRoots *wr)
                            gc_typenames[i]);
         }
     }
-    if (wr->lastAtom)
-        JS_CALL_TRACER(trc, wr->lastAtom, JSTRACE_ATOM, "lastAtom");
+    JS_CALL_VALUE_TRACER(trc, wr->lastAtom, "lastAtom");
     JS_SET_TRACING_NAME(trc, "lastInternalResult");
     js_CallValueTracerIfGCThing(trc, wr->lastInternalResult);
 }
@@ -2127,7 +2093,7 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
     JS_DHashTableEnumerate(&rt->gcRootsHash, gc_root_traversal, trc);
     if (rt->gcLocksHash)
         JS_DHashTableEnumerate(rt->gcLocksHash, gc_lock_traversal, trc);
-    js_TraceLockedAtoms(trc, allAtoms);
+    js_TraceAtomState(trc, allAtoms);
     js_TraceWatchPoints(trc);
     js_TraceNativeIteratorStates(trc);
 
@@ -2404,6 +2370,16 @@ restart:
 
 
 
+    js_SweepAtomState(cx);
+
+    
+
+
+
+
+
+
+
     for (i = 0; i < GC_NUM_FREELISTS; i++) {
         arenaList = &rt->gcArenaList[i == 0
                                      ? GC_FREELIST_INDEX(sizeof(JSObject))
@@ -2453,9 +2429,7 @@ restart:
 
 
 
-
     js_SweepScopeProperties(cx);
-    js_SweepAtomState(cx);
 
     
 

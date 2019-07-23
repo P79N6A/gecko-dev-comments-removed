@@ -51,7 +51,6 @@
 #include <ctype.h>
 #include "jspubtd.h"
 #include "jsprvtd.h"
-#include "jshash.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -384,13 +383,19 @@ js_ValueToString(JSContext *cx, jsval v);
 extern JS_FRIEND_API(JSString *)
 js_ValueToSource(JSContext *cx, jsval v);
 
-#ifdef HT_ENUMERATE_NEXT        
 
 
 
-extern JSHashNumber
+
+extern uint32
 js_HashString(JSString *str);
-#endif
+
+
+
+
+
+extern JSBool
+js_EqualStrings(JSString *str1, JSString *str2);
 
 
 
@@ -398,12 +403,6 @@ js_HashString(JSString *str);
 
 extern intN
 js_CompareStrings(JSString *str1, JSString *str2);
-
-
-
-
-extern JSBool
-js_EqualStrings(JSString *str1, JSString *str2);
 
 
 
