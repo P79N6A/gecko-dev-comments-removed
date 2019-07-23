@@ -53,6 +53,13 @@
 #include "prinit.h"
 #include "prlog.h"
 
+#ifdef MOZ_CRASHREPORTER
+#include "nsICrashReporter.h"
+#include "nsCOMPtr.h"
+#include "nsServiceManagerUtils.h"
+#include "nsPrintfCString.h"
+#endif
+
 
 
 
@@ -158,26 +165,19 @@ GetDesiredRegionSize()
 
 #endif 
 
-static PRUword ARENA_POISON;
-static PRCallOnceType ARENA_POISON_guard;
-
 PR_STATIC_ASSERT(sizeof(PRUword) == 4 || sizeof(PRUword) == 8);
 PR_STATIC_ASSERT(sizeof(PRUword) == sizeof(void *));
 
-static PRStatus
-ARENA_POISON_init()
+static PRUword
+ReservePoisonArea(PRUword rgnsize)
 {
-  PRUword rgnsize = GetDesiredRegionSize();
-
   if (sizeof(PRUword) == 8) {
     
     
     
-    ARENA_POISON =
+    return
       (((PRUword(0x7FFFFFFFu) << 31) << 1 | PRUword(0xF0DEAFFFu))
-       & ~(rgnsize-1))
-      + rgnsize/2 - 1;
-    return PR_SUCCESS;
+       & ~(rgnsize-1));
 
   } else {
     
@@ -185,38 +185,62 @@ ARENA_POISON_init()
     void *result = ReserveRegion(candidate, rgnsize);
     if (result == (void *)candidate) {
       
-      ARENA_POISON = candidate + rgnsize/2 - 1;
-      return PR_SUCCESS;
+      return candidate;
     }
 
     
     
     if (ProbeRegion(candidate, rgnsize)) {
       
-      ARENA_POISON = candidate + rgnsize/2 - 1;
       if (result != RESERVE_FAILED)
         ReleaseRegion(result, rgnsize);
-      return PR_SUCCESS;
+      return candidate;
     }
 
     
     
     if (result != RESERVE_FAILED) {
-      ARENA_POISON = PRUword(result) + rgnsize/2 - 1;
-      return PR_SUCCESS;
+      return PRUword(result);
     }
 
     
     
     result = ReserveRegion(0, rgnsize);
     if (result != RESERVE_FAILED) {
-      ARENA_POISON = PRUword(result) + rgnsize/2 - 1;
-      return PR_SUCCESS;
+      return PRUword(result);
     }
 
     NS_RUNTIMEABORT("no usable poison region identified");
-    return PR_FAILURE;
+    return 0;
   }
+}
+
+static PRUword ARENA_POISON;
+static PRCallOnceType ARENA_POISON_guard;
+
+static PRStatus
+ARENA_POISON_init()
+{
+  PRUword rgnsize = GetDesiredRegionSize();
+  PRUword rgnbase = ReservePoisonArea(rgnsize);
+
+  if (rgnsize == 0) 
+    return PR_FAILURE;
+
+  ARENA_POISON = rgnbase + rgnsize/2 - 1;
+
+#ifdef MOZ_CRASHREPORTER
+  nsCOMPtr<nsICrashReporter> cr =
+    do_GetService("@mozilla.org/toolkit/crash-reporter;1");
+  PRBool enabled;
+  if (cr && NS_SUCCEEDED(cr->GetEnabled(&enabled)) && enabled) {
+    cr->AnnotateCrashReport(NS_LITERAL_CSTRING("FramePoisonBase"),
+                            nsPrintfCString(17, "%.16llx", PRUint64(rgnbase)));
+    cr->AnnotateCrashReport(NS_LITERAL_CSTRING("FramePoisonSize"),
+                            nsPrintfCString("%lu", PRUint32(rgnsize)));
+  }
+#endif
+  return PR_SUCCESS;
 }
 
 
