@@ -551,7 +551,9 @@ NS_IMETHODIMP nsDocAccessible::Shutdown()
 
   
   
-  gGlobalDocAccessibleCache.Remove(static_cast<void*>(kungFuDeathGripDoc));
+  
+  if (!gIsShuttingDownApp)
+    gGlobalDocAccessibleCache.Remove(static_cast<void*>(kungFuDeathGripDoc));
 
   return NS_OK;
 }
