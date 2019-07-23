@@ -210,6 +210,8 @@ public:
   }
 
   ~nsSpeculativeScriptThread() {
+    NS_ASSERTION(NS_IsMainThread() || !mDocument,
+                 "Destroying the document on the wrong thread");
   }
 
   NS_DECL_ISUPPORTS
@@ -511,8 +513,15 @@ nsSpeculativeScriptThread::StopParsing(PRBool aFromDocWrite)
   }
 
   
-  
-  if (!mTerminated && mNumURIs) {
+  if (mTerminated) {
+    
+    
+    
+    mDocument = nsnull;
+    mTokenizer = nsnull;
+    mScanner = nsnull;
+  } else if (mNumURIs) {
+    
     nsPreloadURIs::PreloadURIs(mURIs, this);
     mNumURIs = 0;
     mURIs.Clear();
@@ -2173,10 +2182,10 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
     MOZ_TIMER_DEBUGLOG(("Start: Parse Time: nsParser::ResumeParse(), this=%p\n", this));
     MOZ_TIMER_START(mParseTime);
 
-    if (mSpeculativeScriptThread) {
-      mSpeculativeScriptThread->StopParsing(PR_FALSE);
-    }
+    NS_ASSERTION(!mSpeculativeScriptThread || !mSpeculativeScriptThread->Parsing(),
+                 "Bad races happening, expect to crash!");
 
+    CParserContext *originalContext = mParserContext;
     result = WillBuildModel(mParserContext->mScanner->GetFilename());
     if (NS_FAILED(result)) {
       mFlags &= ~NS_PARSER_FLAG_CAN_TOKENIZE;
@@ -2226,7 +2235,14 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
           }
 
           BlockParser();
-          SpeculativelyParse();
+
+          
+          
+          
+          
+          if (mParserContext == originalContext) {
+            SpeculativelyParse();
+          }
           return NS_OK;
         }
         if (NS_ERROR_HTMLPARSER_STOPPARSING == result) {
