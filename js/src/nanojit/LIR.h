@@ -153,9 +153,6 @@ namespace nanojit
     };
 
     
-    extern const int8_t operandCount[];
-
-    
     extern const uint8_t repKinds[];
 
     
