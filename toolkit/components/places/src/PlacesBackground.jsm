@@ -49,6 +49,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 
 const kQuitApplication = "quit-application";
+const kPlacesBackgroundShutdown = "places-background-shutdown";
 
 
 
@@ -84,6 +85,12 @@ nsPlacesBackground.prototype = {
   observe: function PlacesBackground_observe(aSubject, aTopic, aData)
   {
     if (aTopic == kQuitApplication) {
+      
+      let os = Cc["@mozilla.org/observer-service;1"].
+               getService(Ci.nsIObserverService);
+      os.notifyObservers(null, kPlacesBackgroundShutdown, null);
+
+      
       this._thread.shutdown();
       this._thread = null;
     }
