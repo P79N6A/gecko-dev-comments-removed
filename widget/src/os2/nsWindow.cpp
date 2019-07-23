@@ -48,12 +48,6 @@
 #include "nsFont.h"
 #include "nsGUIEvent.h"
 #include "nsIRenderingContext.h"
-#ifdef MOZ_CAIRO_GFX
-#include "gfxOS2Surface.h"
-#include "gfxContext.h"
-#else
-#include "nsIRenderingContextOS2.h"
-#endif
 #include "nsIDeviceContext.h"
 #include "nsIScreenManager.h"
 #include "nsRect.h"
@@ -238,10 +232,7 @@ nsWindow::nsWindow() : nsBaseWidget()
     mCssCursorHPtr      = 0;
 
     mIsTopWidgetWindow = PR_FALSE;
-
-#ifdef MOZ_CAIRO_GFX
     mThebesSurface = nsnull;
-#endif
 
     if (!gGlobalsInitialized) {
       gGlobalsInitialized = PR_TRUE;
@@ -1093,7 +1084,6 @@ NS_METHOD nsWindow::Create(nsNativeWidget aParent,
    return NS_OK;
 }
 
-#ifdef MOZ_CAIRO_GFX
 
 
 
@@ -1106,7 +1096,6 @@ gfxASurface* nsWindow::GetThebesSurface()
   }
   return mThebesSurface;
 }
-#endif
 
 
 
@@ -1137,10 +1126,8 @@ NS_METHOD nsWindow::Destroy()
       CaptureRollupEvents(nsnull, PR_FALSE, PR_TRUE);
     }
 
-#ifdef MOZ_CAIRO_GFX
     
     mThebesSurface = nsnull;
-#endif
 
     if (mWnd) {
       HWND hwndBeingDestroyed = mFrameWnd ? mFrameWnd : mWnd;
@@ -3179,7 +3166,7 @@ PRBool nsWindow::OnPaint()
                              (PRInt32)mWnd);
 #endif 
 
-#ifdef MOZ_CAIRO_GFX 
+        
         
         
         
@@ -3214,30 +3201,6 @@ PRBool nsWindow::OnPaint()
           thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
           thebesContext->Paint();
         }
-#else   
-        static NS_DEFINE_CID(kRenderingContextCID, NS_RENDERING_CONTEXT_CID);
-
-        if (NS_SUCCEEDED(CallCreateInstance(kRenderingContextCID, &event.renderingContext))) {
-          nsIRenderingContextOS2 *winrc;
-
-          if (NS_OK == event.renderingContext->QueryInterface(NS_GET_IID(nsIRenderingContextOS2), (void **)&winrc)) {
-            nsIDrawingSurface* surf;
-
-            
-
-            if (NS_OK == winrc->CreateDrawingSurface(hPS, surf, event.widget)) {
-              event.renderingContext->Init(mContext, surf);
-              rc = DispatchWindowEvent(&event, eventStatus);
-              event.renderingContext->DestroyDrawingSurface(surf);
-            }
-
-            NS_RELEASE(winrc);
-          } 
-        } 
-
-        NS_RELEASE(event.renderingContext);
-        NS_RELEASE(event.widget);
-#endif  
       } 
     } 
 
