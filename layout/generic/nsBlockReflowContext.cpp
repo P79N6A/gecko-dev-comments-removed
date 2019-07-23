@@ -400,7 +400,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     
     
     
-    if (NS_FRAME_IS_COMPLETE(aFrameReflowStatus)) {
+    if (NS_FRAME_IS_FULLY_COMPLETE(aFrameReflowStatus)) {
       nsIFrame* kidNextInFlow = mFrame->GetNextInFlow();
       if (nsnull != kidNextInFlow) {
         

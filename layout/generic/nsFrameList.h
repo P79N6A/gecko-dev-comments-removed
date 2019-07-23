@@ -65,6 +65,9 @@ public:
 
   void DestroyFrames();
 
+  
+  void Destroy();
+
   void SetFrames(nsIFrame* aFrameList) {
     mFirstChild = aFrameList;
 #ifdef DEBUG

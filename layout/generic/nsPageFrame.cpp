@@ -90,34 +90,9 @@ NS_IMETHODIMP nsPageFrame::Reflow(nsPresContext*          aPresContext,
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   aStatus = NS_FRAME_COMPLETE;  
 
-  
-  
-  nsIFrame*           firstFrame  = mFrames.FirstChild();
-  nsPageContentFrame* contentPage = static_cast<nsPageContentFrame*>(firstFrame);
-  NS_ASSERTION(contentPage, "There should always be a content page");
-  NS_ASSERTION(nsGkAtoms::pageContentFrame == firstFrame->GetType(),
-               "This frame isn't a pageContentFrame");
-
-  if (contentPage && GetPrevInFlow() && !contentPage->GetFirstChild(nsnull)) {
-
-    nsPageFrame*        prevPage        = static_cast<nsPageFrame*>(GetPrevInFlow());
-    nsPageContentFrame* prevContentPage = static_cast<nsPageContentFrame*>(prevPage->mFrames.FirstChild());
-    nsIFrame*           prevLastChild   = prevContentPage->mFrames.LastChild();
-
-    
-    nsIFrame*     newFrame;
-
-    nsresult rv = aPresContext->PresShell()->FrameConstructor()->
-      CreateContinuingFrame(aPresContext, prevLastChild,
-                            contentPage, &newFrame);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    
-    
-    
-    contentPage->mFrames.InsertFrame(contentPage, nsnull, newFrame);
-  }
+  NS_ASSERTION(mFrames.FirstChild() &&
+               nsGkAtoms::pageContentFrame == mFrames.FirstChild()->GetType(),
+               "pageFrame must have a pageContentFrame child");
 
   
   
@@ -163,7 +138,7 @@ NS_IMETHODIMP nsPageFrame::Reflow(nsPresContext*          aPresContext,
     
     FinishReflowChild(frame, aPresContext, &kidReflowState, aDesiredSize, xc, yc, 0);
 
-    NS_ASSERTION(!NS_FRAME_IS_COMPLETE(aStatus) ||
+    NS_ASSERTION(!NS_FRAME_IS_FULLY_COMPLETE(aStatus) ||
                  !frame->GetNextInFlow(), "bad child flow list");
   }
   PR_PL(("PageFrame::Reflow %p ", this));

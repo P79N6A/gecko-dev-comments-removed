@@ -4646,7 +4646,12 @@ nsCSSFrameConstructor::ConstructPageFrame(nsIPresShell*   aPresShell,
 
   
   
-  aPageContentFrame->Init(nsnull, aPageFrame, nsnull);
+  nsIFrame* prevPageContentFrame = nsnull;
+  if (aPrevPageFrame) {
+    prevPageContentFrame = aPrevPageFrame->GetFirstChild(nsnull);
+    NS_ASSERTION(prevPageContentFrame, "missing page content frame");
+  }
+  aPageContentFrame->Init(nsnull, aPageFrame, prevPageContentFrame);
   mFixedContainingBlock = aPageContentFrame;
 
   aPageFrame->SetInitialChildList(nsnull, aPageContentFrame);

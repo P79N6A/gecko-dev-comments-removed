@@ -179,6 +179,13 @@ enum {
 
   
   
+  
+  
+  
+  NS_FRAME_IS_OVERFLOW_CONTAINER =              0x00000080,
+
+  
+  
   NS_FRAME_OUT_OF_FLOW =                        0x00000100,
 
   
@@ -305,17 +312,56 @@ enum nsSpread {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef PRUint32 nsReflowStatus;
 
-#define NS_FRAME_COMPLETE          0            // Note: not a bit!
-#define NS_FRAME_NOT_COMPLETE      0x1
-#define NS_FRAME_REFLOW_NEXTINFLOW 0x2
+#define NS_FRAME_COMPLETE             0       // Note: not a bit!
+#define NS_FRAME_NOT_COMPLETE         0x1
+#define NS_FRAME_REFLOW_NEXTINFLOW    0x2
+#define NS_FRAME_OVERFLOW_INCOMPLETE  0x4
 
 #define NS_FRAME_IS_COMPLETE(status) \
   (0 == ((status) & NS_FRAME_NOT_COMPLETE))
 
 #define NS_FRAME_IS_NOT_COMPLETE(status) \
   (0 != ((status) & NS_FRAME_NOT_COMPLETE))
+
+#define NS_FRAME_OVERFLOW_IS_INCOMPLETE(status) \
+  (0 != ((status) & NS_FRAME_OVERFLOW_INCOMPLETE))
+
+#define NS_FRAME_IS_FULLY_COMPLETE(status) \
+  (NS_FRAME_IS_COMPLETE(status) && !NS_FRAME_OVERFLOW_IS_INCOMPLETE(status))
+
+
+
+#define NS_FRAME_SET_INCOMPLETE(status) \
+  status = status & ~NS_FRAME_OVERFLOW_INCOMPLETE | NS_FRAME_NOT_COMPLETE
+
+#define NS_FRAME_SET_OVERFLOW_INCOMPLETE(status) \
+  status = status & ~NS_FRAME_NOT_COMPLETE | NS_FRAME_OVERFLOW_INCOMPLETE
+
+
+#define NS_FRAME_MERGE_INCOMPLETE(status1, status2)        \
+  ( (NS_FRAME_REFLOW_NEXTINFLOW & (status1 | status2))     \
+  | ( (NS_FRAME_NOT_COMPLETE & (status1 | status2))        \
+    ? NS_FRAME_NOT_COMPLETE                                \
+    : NS_FRAME_OVERFLOW_INCOMPLETE & (status1 | status2)   \
+    )                                                      \
+  )
 
 
 
@@ -1463,6 +1509,7 @@ public:
     
     eLineParticipant =                  1 << 6,
     eXULBox =                           1 << 7,
+    eCanContainOverflowContainers =     1 << 8,
 
 
     

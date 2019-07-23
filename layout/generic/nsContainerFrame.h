@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsContainerFrame_h___
 #define nsContainerFrame_h___
 
@@ -46,10 +47,21 @@
 
 
 
+
+
+#define NS_CONTAINER_LIST_COUNT_SANS_OC 1
+  
+#define NS_CONTAINER_LIST_COUNT_INCL_OC 3
+  
+
+
+
 #define NS_FRAME_NO_MOVE_VIEW         0x0001
 #define NS_FRAME_NO_MOVE_FRAME        (0x0002 | NS_FRAME_NO_MOVE_VIEW)
 #define NS_FRAME_NO_SIZE_VIEW         0x0004
 #define NS_FRAME_NO_VISIBILITY        0x0008
+
+class nsOverflowContinuationTracker;
 
 
 
@@ -150,14 +162,15 @@ public:
 
 
 
-  nsresult ReflowChild(nsIFrame*                aKidFrame,
-                       nsPresContext*           aPresContext,
-                       nsHTMLReflowMetrics&     aDesiredSize,
-                       const nsHTMLReflowState& aReflowState,
-                       nscoord                  aX,
-                       nscoord                  aY,
-                       PRUint32                 aFlags,
-                       nsReflowStatus&          aStatus);
+  nsresult ReflowChild(nsIFrame*                      aKidFrame,
+                       nsPresContext*                 aPresContext,
+                       nsHTMLReflowMetrics&           aDesiredSize,
+                       const nsHTMLReflowState&       aReflowState,
+                       nscoord                        aX,
+                       nscoord                        aY,
+                       PRUint32                       aFlags,
+                       nsReflowStatus&                aStatus,
+                       nsOverflowContinuationTracker* aTracker = nsnull);
 
   
 
@@ -186,7 +199,98 @@ public:
 
   
   static void PositionChildViews(nsIFrame* aFrame);
+
   
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  friend class nsOverflowContinuationTracker;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult ReflowOverflowContainerChildren(nsPresContext*           aPresContext,
+                                           const nsHTMLReflowState& aReflowState,
+                                           nsRect&                  aOverflowRect,
+                                           PRUint32                 aFlags,
+                                           nsReflowStatus&          aStatus);
+
+  
+
+
+
+
+
+
+
+
+
+
+  virtual nsresult StealFrame(nsPresContext* aPresContext,
+                              nsIFrame*      aChild,
+                              PRBool         aForceNormal = PR_FALSE);
+
+  
+
+
+  void DisplayOverflowContainers(nsDisplayListBuilder*   aBuilder,
+                                 const nsRect&           aDirtyRect,
+                                 const nsDisplayListSet& aLists);
+
   
 
 
@@ -218,12 +322,19 @@ protected:
                                                const nsDisplayListSet& aLists,
                                                PRUint32                aFlags = 0);
 
+
+  
+  
+
+
+
+
+
   
 
 
   nsIFrame* GetOverflowFrames(nsPresContext*  aPresContext,
                               PRBool          aRemoveProperty) const;
-
   
 
 
@@ -259,7 +370,162 @@ protected:
                     nsIFrame*       aFromChild,
                     nsIFrame*       aPrevSibling);
 
+  
+  
+
+
+
+
+  
+
+
+
+  nsFrameList* GetPropTableFrames(nsPresContext*  aPresContext,
+                                  nsIAtom*        aPropID) const;
+
+  
+
+
+
+  nsFrameList* RemovePropTableFrames(nsPresContext*  aPresContext,
+                                     nsIAtom*        aPropID) const;
+
+  
+
+
+
+
+
+
+  PRBool RemovePropTableFrame(nsPresContext*  aPresContext,
+                              nsIFrame*       aFrame,
+                              nsIAtom*        aPropID) const;
+
+  
+
+
+
+  nsresult SetPropTableFrames(nsPresContext*  aPresContext,
+                              nsFrameList*    aFrameList,
+                              nsIAtom*        aPropID) const;
+  
+
   nsFrameList mFrames;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsOverflowContinuationTracker {
+public:
+  
+
+
+
+
+
+
+
+  nsOverflowContinuationTracker(nsPresContext*    aPresContext,
+                                nsContainerFrame* aFrame,
+                                PRBool            aSkipOverflowContainerChildren = PR_TRUE);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult Insert(nsIFrame*       aOverflowCont,
+                  nsReflowStatus& aReflowStatus);
+  
+
+
+
+
+
+
+  void Finish(nsIFrame* aChild);
+
+  
+
+
+
+
+
+
+
+
+  void Skip(nsIFrame* aChild, nsReflowStatus& aReflowStatus)
+  {
+    NS_PRECONDITION(aChild, "null ptr");
+    if (aChild == mSentry) {
+      StepForward();
+      aReflowStatus = NS_FRAME_MERGE_INCOMPLETE(aReflowStatus,
+                                                NS_FRAME_OVERFLOW_INCOMPLETE);
+    }
+  }
+
+private:
+
+  void SetUpListWalker();
+  void StepForward();
+
+  
+
+
+
+  nsFrameList* mOverflowContList;
+  
+
+
+
+  nsIFrame* mPrevOverflowCont;
+  
+
+
+  nsIFrame* mSentry;
+  
+
+
+
+
+  nsContainerFrame* mParent;
+  
+
+  PRBool mSkipOverflowContainerChildren;
 };
 
 #endif 

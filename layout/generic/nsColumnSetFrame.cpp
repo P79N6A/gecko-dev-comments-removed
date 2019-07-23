@@ -75,7 +75,14 @@ public:
   virtual nsIFrame* GetContentInsertionFrame() {
     return GetFirstChild(nsnull)->GetContentInsertionFrame();
   }
-  
+
+  virtual nsresult StealFrame(nsPresContext* aPresContext,
+                              nsIFrame*      aChild,
+                              PRBool         aForceNormal)
+  { 
+    return nsContainerFrame::StealFrame(aPresContext, aChild, PR_TRUE);
+  }
+
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
@@ -440,9 +447,9 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     PRBool skipIncremental = !(GetStateBits() & NS_FRAME_IS_DIRTY)
-      && !(child->GetStateBits() & NS_FRAME_IS_DIRTY)
+      && !NS_SUBTREE_DIRTY(child)
       && child->GetNextSibling()
-      && !(child->GetNextSibling()->GetStateBits() & NS_FRAME_IS_DIRTY);
+      && !NS_SUBTREE_DIRTY(child->GetNextSibling());
     
     
     
@@ -457,8 +464,11 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       MoveChildTo(this, child, childOrigin);
       
       
-      if (child->GetNextSibling()) {
-        aStatus = NS_FRAME_NOT_COMPLETE;
+      nsIFrame* kidNext = child->GetNextSibling();
+      if (kidNext) {
+        aStatus = (kidNext->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)
+                  ? NS_FRAME_OVERFLOW_INCOMPLETE
+                  : NS_FRAME_NOT_COMPLETE;
       } else {
         aStatus = mLastFrameStatus;
       }
@@ -536,7 +546,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     nsIFrame* kidNextInFlow = child->GetNextInFlow();
 
-    if (NS_FRAME_IS_COMPLETE(aStatus) && !NS_FRAME_IS_TRUNCATED(aStatus)) {
+    if (NS_FRAME_IS_FULLY_COMPLETE(aStatus) && !NS_FRAME_IS_TRUNCATED(aStatus)) {
       NS_ASSERTION(!kidNextInFlow, "next in flow should have been deleted");
       break;
     } else {
@@ -556,6 +566,21 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
           NS_NOTREACHED("Couldn't create continuation");
           break;
         }
+      }
+
+      
+      
+      if (NS_FRAME_OVERFLOW_IS_INCOMPLETE(aStatus)) {
+        if (!(kidNextInFlow->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+          aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
+          reflowNext = PR_TRUE;
+          kidNextInFlow->AddStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
+        }
+      }
+      else if (kidNextInFlow->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+        aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
+        reflowNext = PR_TRUE;
+        kidNextInFlow->RemoveStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER);
       }
         
       if (columnCount >= aConfig.mBalanceColCount) {

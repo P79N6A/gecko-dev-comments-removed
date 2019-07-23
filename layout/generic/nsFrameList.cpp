@@ -52,6 +52,13 @@
 #endif 
 
 void
+nsFrameList::Destroy()
+{
+  DestroyFrames();
+  delete this;
+}
+
+void
 nsFrameList::DestroyFrames()
 {
   nsIFrame* next;
