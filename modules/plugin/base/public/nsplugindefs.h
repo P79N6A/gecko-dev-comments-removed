@@ -340,22 +340,6 @@ struct nsPluginEvent {
 
 
 
-
-
-enum nsPluginEventType {
-#ifdef XP_MACOSX
-    nsPluginEventType_GetFocusEvent = (osEvt + 16),
-    nsPluginEventType_LoseFocusEvent,
-    nsPluginEventType_AdjustCursorEvent,
-    nsPluginEventType_MenuCommandEvent,
-    nsPluginEventType_ClippingChangedEvent,
-    nsPluginEventType_ScrollingBeginsEvent = 1000,
-    nsPluginEventType_ScrollingEndsEvent
-#endif
-};
-
-
-
 enum nsPluginReason {
     nsPluginReason_Base = 0,
     nsPluginReason_Done = 0,
