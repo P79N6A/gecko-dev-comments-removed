@@ -1033,7 +1033,7 @@ public:
 
 
   static PRBool HasNonZeroCornerOnSide(const nsStyleCorners& aCorners,
-                                       PRUint8 aSide);
+                                       mozilla::css::Side aSide);
 
   
 

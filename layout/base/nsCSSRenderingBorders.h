@@ -59,10 +59,10 @@
 #define SIDE_BIT_LEFT (1 << NS_SIDE_LEFT)
 #define SIDE_BITS_ALL (SIDE_BIT_TOP|SIDE_BIT_RIGHT|SIDE_BIT_BOTTOM|SIDE_BIT_LEFT)
 
-#define C_TL (gfxCorner::TOP_LEFT)
-#define C_TR (gfxCorner::TOP_RIGHT)
-#define C_BR (gfxCorner::BOTTOM_RIGHT)
-#define C_BL (gfxCorner::BOTTOM_LEFT)
+#define C_TL NS_CORNER_TOP_LEFT
+#define C_TR NS_CORNER_TOP_RIGHT
+#define C_BR NS_CORNER_BOTTOM_RIGHT
+#define C_BL NS_CORNER_BOTTOM_LEFT
 
 
 
@@ -141,29 +141,29 @@ struct nsCSSBorderRenderer {
   PRBool AreBorderSideFinalStylesSame(PRUint8 aSides);
 
   
-  PRBool IsSolidCornerStyle(PRUint8 aStyle, gfxCorner::Corner aCorner);
+  PRBool IsSolidCornerStyle(PRUint8 aStyle, mozilla::css::Corner aCorner);
 
   
-  BorderColorStyle BorderColorStyleForSolidCorner(PRUint8 aStyle, gfxCorner::Corner aCorner);
-
-  
-  
-  
-
-  
-  void DoCornerSubPath(PRUint8 aCorner);
-  
-  void DoSideClipWithoutCornersSubPath(PRUint8 aSide);
+  BorderColorStyle BorderColorStyleForSolidCorner(PRUint8 aStyle, mozilla::css::Corner aCorner);
 
   
   
   
+
+  
+  void DoCornerSubPath(mozilla::css::Corner aCorner);
+  
+  void DoSideClipWithoutCornersSubPath(mozilla::css::Side aSide);
+
   
   
   
   
   
-  void DoSideClipSubPath(PRUint8 aSide);
+  
+  
+  
+  void DoSideClipSubPath(mozilla::css::Side aSide);
 
   
   
@@ -196,7 +196,7 @@ struct nsCSSBorderRenderer {
   void DrawBorderSidesCompositeColors(PRIntn aSides, const nsBorderColors *compositeColors);
 
   
-  void DrawDashedSide (PRUint8 aSide);
+  void DrawDashedSide (mozilla::css::Side aSide);
 
   
   void DrawBorders ();
