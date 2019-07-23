@@ -685,13 +685,7 @@ nsTreeBodyFrame::InvalidateRow(PRInt32 aIndex)
     return NS_OK;
 
   nsRect rowRect(mInnerBox.x, mInnerBox.y+mRowHeight*aIndex, mInnerBox.width, mRowHeight);
-#ifdef XP_MACOSX
-  
-  
-  nsLeafBoxFrame::Invalidate(rowRect, mSlots && mSlots->mDragSession ? PR_TRUE : PR_FALSE);
-#else
   nsLeafBoxFrame::Invalidate(rowRect, PR_FALSE);
-#endif
 
   return NS_OK;
 }
@@ -3907,19 +3901,6 @@ NS_IMETHODIMP nsTreeBodyFrame::ScrollToRow(PRInt32 aRow)
 nsresult nsTreeBodyFrame::ScrollToRowInternal(const ScrollParts& aParts, PRInt32 aRow)
 {
   ScrollInternal(aParts, aRow);
-
-#ifdef XP_MACOSX
-  
-  
-  
-  if (mSlots && mSlots->mDragSession && aParts.mVScrollbar) {
-    nsIFrame* frame;
-    CallQueryInterface(aParts.mVScrollbar, &frame);
-    nsIWidget* scrollWidget = frame->GetWindow();
-    if (scrollWidget)
-      scrollWidget->Invalidate(PR_TRUE);
-  }
-#endif
 
   return NS_OK;
 }
