@@ -51,6 +51,9 @@ var gUpdateWizard = {
   
   items: [],
   
+  
+  inactiveItemIDs: [],
+  
   itemsToUpdate: [],
   shouldSuggestAutoChecking: false,
   shouldAutoCheck: false,
@@ -63,6 +66,7 @@ var gUpdateWizard = {
                         .getService(nsIExtensionManager);
     
     this.items = em.getItemList(nsIUpdateItem.TYPE_ANY, { });
+    this.inactiveItemIDs = window.arguments[0];
     var pref =
         Components.classes["@mozilla.org/preferences-service;1"].
         getService(Components.interfaces.nsIPrefBranch);
@@ -203,6 +207,10 @@ var gVersionInfoPage = {
     gUpdateWizard.items = em.getIncompatibleItemList(null, null, null,
                                                      nsIUpdateItem.TYPE_ANY,
                                                      true, { });
+    gUpdateWizard.items = gUpdateWizard.items.filter(function(item) {
+      return gUpdateWizard.inactiveItemIDs.indexOf(item.id) < 0;
+    });
+
     if (gUpdateWizard.items.length > 0) {
       
       document.documentElement.currentPage =
