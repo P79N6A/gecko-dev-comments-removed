@@ -117,7 +117,7 @@ JSScope::trace(JSTracer *trc)
     JSContext *cx = trc->context;
     JSScopeProperty *sprop = lastProp;
     uint8 regenFlag = cx->runtime->gcRegenShapesScopeFlag;
-    if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes && hasRegenFlag(regenFlag)) {
+    if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes && !hasRegenFlag(regenFlag)) {
         
 
 
@@ -140,7 +140,7 @@ JSScope::trace(JSTracer *trc)
 
         
         for (JSScope *empty = emptyScope;
-             empty && empty->hasRegenFlag(regenFlag);
+             empty && !empty->hasRegenFlag(regenFlag);
              empty = empty->emptyScope) {
             empty->shape = js_RegenerateShapeForGC(cx);
             empty->flags ^= JSScope::SHAPE_REGEN;

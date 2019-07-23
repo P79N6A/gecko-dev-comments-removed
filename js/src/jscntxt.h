@@ -487,7 +487,7 @@ struct JSRuntime {
 
 
 
-    uint8              gcRegenShapesScopeFlag;
+    uint8               gcRegenShapesScopeFlag;
 
 #ifdef JS_GC_ZEAL
     jsrefcount          gcZeal;
