@@ -5792,8 +5792,12 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   JSAutoRequest ar(my_cx);
 
+  JSObject *realObj;
+  wrapper->GetJSObject(&realObj);
+
   
-  JSBool ok = !ObjectIsNativeWrapper(cx, obj) ?
+  
+  JSBool ok = obj == realObj ?
               ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
               JS_TRUE;
 
