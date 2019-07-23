@@ -92,9 +92,9 @@ int	posix_memalign(void **memptr, size_t alignment, size_t size);
 
 #if !defined(MOZ_MEMORY_LINUX)
 void	*memalign(size_t alignment, size_t size);
+size_t	malloc_usable_size(const void *ptr);
 #endif 
 
-size_t	malloc_usable_size(const void *ptr);
 void	jemalloc_stats(jemalloc_stats_t *stats);
 
 #ifdef __cplusplus
