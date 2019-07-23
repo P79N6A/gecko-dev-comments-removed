@@ -1129,15 +1129,30 @@ js_AddScopeProperty(JSContext *cx, JSScope *scope, jsid id,
             JS_ASSERT(scope->table);
             CHECK_ANCESTOR_LINE(scope, JS_TRUE);
 
-            JSBool conflicts = JS_FALSE;
+            
+
+
+
+
+
+
+
+
+
+
+
+            bool conflicts = false;
+            uint32 count = 0;
+            uint32 threshold = JS_BIT(JS_CeilingLog2(scope->entryCount));
             for (sprop = SCOPE_LAST_PROP(scope); sprop; sprop = sprop->parent) {
+                ++count;
                 if (sprop->id == id) {
-                    conflicts = JS_TRUE;
+                    conflicts = true;
                     break;
                 }
             }
 
-            if (conflicts) {
+            if (conflicts || count > threshold) {
                 
 
 
