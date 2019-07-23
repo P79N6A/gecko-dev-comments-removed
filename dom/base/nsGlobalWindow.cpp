@@ -7656,7 +7656,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   mTimeoutInsertionPoint = &dummy_timeout;
 
   for (timeout = FirstTimeout();
-       timeout != &dummy_timeout && !IsFrozen() && !mTimeoutsSuspendDepth;
+       timeout != &dummy_timeout && !IsFrozen();
        timeout = nextTimeout) {
     nextTimeout = timeout->Next();
 
@@ -7664,6 +7664,13 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       
       
 
+      continue;
+    }
+
+    if (mTimeoutsSuspendDepth) {
+      
+      
+      timeout->mFiringDepth = 0;
       continue;
     }
 
