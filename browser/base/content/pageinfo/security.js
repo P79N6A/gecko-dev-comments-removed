@@ -138,10 +138,16 @@ var security = {
     var win = wm.getMostRecentWindow("Browser:Cookies");
     var eTLDService = Components.classes["@mozilla.org/network/effective-tld-service;1"].
                       getService(Components.interfaces.nsIEffectiveTLDService);
-    var eTLD = "";
 
-    if (this._getSecurityInfo().hostName)
-      eTLD = eTLDService.getBaseDomainFromHost(this._getSecurityInfo().hostName);
+    var eTLD;
+    var uri = gDocument.documentURIObject;
+    try {
+      eTLD = eTLDService.getBaseDomain(uri);
+    }
+    catch (e) {
+      
+      eTLD = uri.asciiHost;
+    }
 
     if (win) {
       win.gCookiesWindow.setFilter(eTLD);
@@ -233,10 +239,11 @@ function securityOnLoad() {
   var yesStr = pageInfoBundle.getString("yes");
   var noStr = pageInfoBundle.getString("no");
 
+  var uri = gDocument.documentURIObject;
   setText("security-privacy-cookies-value",
-          hostHasCookies(info.hostName) ? yesStr : noStr);
+          hostHasCookies(uri) ? yesStr : noStr);
   setText("security-privacy-passwords-value",
-          realmHasPasswords(info.fullLocation) ? yesStr : noStr);
+          realmHasPasswords(uri) ? yesStr : noStr);
   
   var visitCount = previousVisitCount(info.hostName);
   if(visitCount > 1) {
@@ -315,28 +322,21 @@ function viewCertHelper(parent, cert)
 
 
 
-function hostHasCookies(hostName) {
-  if (!hostName)
-    return false;
-  
+function hostHasCookies(uri) {
   var cookieManager = Components.classes["@mozilla.org/cookiemanager;1"]
                                 .getService(Components.interfaces.nsICookieManager2);
 
-  return cookieManager.countCookiesFromHost(hostName) > 0;
+  return cookieManager.countCookiesFromHost(uri.asciiHost) > 0;
 }
 
 
 
 
 
-function realmHasPasswords(location) {
-  if (!location) 
-    return false;
-  
-  var realm = makeURI(location).prePath;
+function realmHasPasswords(uri) {
   var passwordManager = Components.classes["@mozilla.org/login-manager;1"]
                                   .getService(Components.interfaces.nsILoginManager);
-  return passwordManager.countLogins(realm, "", "");
+  return passwordManager.countLogins(uri.prePath, "", "") > 0;
 }
 
 
