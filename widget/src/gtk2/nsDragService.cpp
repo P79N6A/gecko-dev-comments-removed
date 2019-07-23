@@ -466,22 +466,29 @@ nsDragService::GetData(nsITransferable * aTransferable,
                     GetTargetDragData(gdkFlavor);
                     if (mTargetDragData) {
                         const char* text = static_cast<char*>(mTargetDragData);
-                        NS_ConvertUTF8toUTF16 fileUrl = NS_ConvertUTF8toUTF16(text);
-                        if (StringBeginsWith(fileUrl, NS_LITERAL_STRING("file://")))
-                            fileUrl.Cut(0, strlen("file://"));
+                        PRUnichar* convertedText = nsnull;
+                        PRInt32 convertedTextLen = 0;
 
-                        
-                        fileUrl.StripChars("\r\n");
+                        GetTextUriListItem(text, mTargetDragDataLen, aItemIndex,
+                                           &convertedText, &convertedTextLen);
 
-                        nsCOMPtr<nsILocalFile> file;
-                        nsresult rv = NS_NewLocalFile(fileUrl, PR_TRUE, getter_AddRefs(file));
-                        if (NS_SUCCEEDED(rv)) {
-                            
-                            
-                            
-                            aTransferable->SetTransferData(flavorStr, file,
-                                                           fileUrl.Length() * sizeof(PRUnichar));
-                            return NS_OK;
+                        if (convertedText) {
+                            nsDependentString fileUrl = nsDependentString(convertedText);
+                            if (StringBeginsWith(fileUrl, NS_LITERAL_STRING("file://")))
+                                fileUrl.Cut(0, strlen("file://"));
+
+                            nsCOMPtr<nsILocalFile> file;
+                            nsresult rv = NS_NewLocalFile(fileUrl, PR_TRUE, getter_AddRefs(file));
+                            if (NS_SUCCEEDED(rv)) {
+                                
+                                
+                                
+                                aTransferable->SetTransferData(flavorStr, file,
+                                                               fileUrl.Length() * sizeof(PRUnichar));
+                                g_free(convertedText);
+                                return NS_OK;
+                            }
+                            g_free(convertedText);
                         }
                         continue;
                     }
