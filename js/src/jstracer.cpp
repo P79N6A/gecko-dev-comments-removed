@@ -39,6 +39,7 @@
 
 
 
+#include "jsstdint.h"
 #include "jsbit.h"              
 #include "jsprf.h"
 #include <math.h>               
