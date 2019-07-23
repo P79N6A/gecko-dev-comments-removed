@@ -76,7 +76,6 @@ var gSanitizePromptDialog = {
     
     this._inited = true;
 
-    this.checkPrefs();
     var s = new Sanitizer();
     s.prefDomain = "privacy.cpd.";
     for (let i = 0; i < this.sanitizePreferences.childNodes.length; ++i) {
@@ -163,25 +162,6 @@ var gSanitizePromptDialog = {
     var warningDesc = document.getElementById("sanitizeEverythingWarning");
     warningDesc.textContent =
       this.bundleBrowser.getString("sanitizeEverythingNoVisitsWarning");
-  },
-
-  checkPrefs : function ()
-  {
-    var prefService = Cc["@mozilla.org/preferences-service;1"].
-                      getService(Ci.nsIPrefService);
-    var cpdBranch = prefService.getBranch("privacy.cpd.");
-
-    
-    
-    if (cpdBranch.prefHasUserValue("history"))
-      return;
-
-    var itemBranch = prefService.getBranch("privacy.item.");
-    var itemCount = { value: 0 };
-    var itemArray = itemBranch.getChildList("", itemCount);
-    itemArray.forEach(function (name) {
-      cpdBranch.setBoolPref(name, itemBranch.getBoolPref(name));
-    });
   },
 
   
@@ -278,7 +258,6 @@ var gSanitizePromptDialog = {
     
     this._inited = true;
 
-    this.checkPrefs();
     var s = new Sanitizer();
     s.prefDomain = "privacy.cpd.";
     for (let i = 0; i < this.sanitizePreferences.childNodes.length; ++i) {

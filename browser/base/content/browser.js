@@ -1564,6 +1564,44 @@ function initializeSanitizer()
     
     gPrefService.QueryInterface(Ci.nsIPrefService).savePrefFile(null);
   }
+
+  
+
+
+
+
+
+  (function() {
+    var prefService = Cc["@mozilla.org/preferences-service;1"].
+                      getService(Ci.nsIPrefService);
+    if (!prefService.getBoolPref("privacy.sanitize.migrateFx3Prefs")) {
+      var itemBranch = prefService.getBranch("privacy.item.");
+      var itemCount = { value: 0 };
+      var itemArray = itemBranch.getChildList("", itemCount);
+
+      
+      var doMigrate = itemArray.some(function (name) itemBranch.prefHasUserValue(name));
+      
+      if (!doMigrate)
+        doMigrate = prefService.getBoolPref("privacy.sanitize.sanitizeOnShutdown");
+
+      if (doMigrate) {
+        var cpdBranch = prefService.getBranch("privacy.cpd.");
+        var clearOnShutdownBranch = prefService.getBranch("privacy.clearOnShutdown.");
+        itemArray.forEach(function (name) {
+          try {
+            cpdBranch.setBoolPref(name, itemBranch.getBoolPref(name));
+            clearOnShutdownBranch.setBoolPref(name, itemBranch.getBoolPref(name));
+          }
+          catch(e) {
+            Components.utils.reportError("Exception thrown during privacy pref migration: " + e);
+          }
+        });
+      }
+
+      prefService.setBoolPref("privacy.sanitize.migrateFx3Prefs", true);
+    }
+  })();
 }
 
 function gotoHistoryIndex(aEvent)
