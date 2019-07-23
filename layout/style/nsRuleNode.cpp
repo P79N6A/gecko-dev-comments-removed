@@ -1210,6 +1210,10 @@ nsRuleNode::GetBackgroundData(nsStyleContext* aContext)
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Background), mPresContext, aContext);
   ruleData.mColorData = &colorData;
 
+  
+  
+  
+
   return WalkRuleTree(eStyleStruct_Background, aContext, &ruleData, &colorData);
 }
 
@@ -1231,7 +1235,9 @@ nsRuleNode::GetBorderData(nsStyleContext* aContext)
   ruleData.mMarginData = &marginData;
 
   const void* res = WalkRuleTree(eStyleStruct_Border, aContext, &ruleData, &marginData);
-  marginData.mBoxShadow = nsnull; 
+  
+  
+  marginData.mBoxShadow = nsnull;
   return res;
 }
 
@@ -1241,6 +1247,10 @@ nsRuleNode::GetPaddingData(nsStyleContext* aContext)
   nsRuleDataMargin marginData; 
   nsRuleData ruleData(NS_STYLE_INHERIT_BIT(Padding), mPresContext, aContext);
   ruleData.mMarginData = &marginData;
+
+  
+  
+  
 
   return WalkRuleTree(eStyleStruct_Padding, aContext, &ruleData, &marginData);
 }
@@ -5339,6 +5349,11 @@ nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
       ruleData.mLevel = ruleNode->GetLevel();
       ruleData.mIsImportantRule = ruleNode->IsImportantRule();
       rule->MapRuleInfoInto(&ruleData);
+      
+      
+      
+      marginData.mBoxShadow = nsnull;
+
       if (ruleData.mLevel == nsStyleSet::eAgentSheet ||
           ruleData.mLevel == nsStyleSet::eUserSheet) {
         
