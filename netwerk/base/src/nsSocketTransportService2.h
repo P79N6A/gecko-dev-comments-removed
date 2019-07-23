@@ -180,8 +180,6 @@ private:
 
     nsIThread  *mThread;
     PRFileDesc *mThreadEvent;
-    PRLock     *mThreadEventLock;
-                            
                             
                             
                             
