@@ -306,7 +306,7 @@ nsresult nsBidi::SetPara(const PRUnichar *aText, PRInt32 aLength,
 
   
   if(aText==NULL ||
-     (NSBIDI_MAX_EXPLICIT_LEVEL<aParaLevel) && !IS_DEFAULT_LEVEL(aParaLevel) ||
+     ((NSBIDI_MAX_EXPLICIT_LEVEL<aParaLevel) && !IS_DEFAULT_LEVEL(aParaLevel)) ||
      aLength<-1
     ) {
     return NS_ERROR_INVALID_ARG;
@@ -788,7 +788,7 @@ nsresult nsBidi::CheckExplicitLevels(nsBidiDirection *aDirection)
 nsBidiDirection nsBidi::DirectionFromFlags(Flags aFlags)
 {
   
-  if(!(aFlags&MASK_RTL || aFlags&DIRPROP_FLAG(AN) && aFlags&MASK_POSSIBLE_N)) {
+  if(!(aFlags&MASK_RTL || (aFlags&DIRPROP_FLAG(AN) && aFlags&MASK_POSSIBLE_N))) {
     return NSBIDI_LTR;
   } else if(!(aFlags&MASK_LTR)) {
     return NSBIDI_RTL;
@@ -935,7 +935,7 @@ void nsBidi::ResolveImplicitLevels(PRInt32 aStart, PRInt32 aLimit,
           historyOfEN|=EN_AFTER_W4;
         } else if(prevDirProp==AN &&                    
               (nextDirProp==AN ||                   
-               nextDirProp==EN && lastStrong==AL)   
+               (nextDirProp==EN && lastStrong==AL))   
              ) {
           
           dirProp=AN;
@@ -956,7 +956,7 @@ void nsBidi::ResolveImplicitLevels(PRInt32 aStart, PRInt32 aLimit,
         }
 
         if( historyOfEN&PREV_EN_AFTER_W4 ||     
-            nextDirProp==EN && lastStrong!=AL   
+            (nextDirProp==EN && lastStrong!=AL)   
           ) {
           
           if(lastStrong!=L) {
@@ -1477,7 +1477,7 @@ nsresult nsBidi::CountRuns(PRInt32* aRunCount)
 nsresult nsBidi::GetVisualRun(PRInt32 aRunIndex, PRInt32 *aLogicalStart, PRInt32 *aLength, nsBidiDirection *aDirection)
 {
   if( aRunIndex<0 ||
-      mRunCount==-1 && !GetRuns() ||
+      (mRunCount==-1 && !GetRuns()) ||
       aRunIndex>=mRunCount
     ) {
     *aDirection = NSBIDI_LTR;
