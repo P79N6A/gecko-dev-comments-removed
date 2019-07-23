@@ -451,12 +451,23 @@ private:
                       
                       
 
+  
+  
+  
+  PRUint32 mRefCnt;
+
 public:
   
   
   NS_HIDDEN_(void*) operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW;
   NS_HIDDEN_(void) Destroy() { DestroyInternal(nsnull); }
   static NS_HIDDEN_(nsILanguageAtomService*) gLangService;
+
+  
+  inline NS_HIDDEN_(void) AddRef();
+
+  
+  inline NS_HIDDEN_(void) Release();
 
 protected:
   NS_HIDDEN_(void) DestroyInternal(nsRuleNode ***aDestroyQueueTail);

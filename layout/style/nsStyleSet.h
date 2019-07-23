@@ -248,6 +248,17 @@ class nsStyleSet
   PRBool HasCachedStyleData() const {
     return (mRuleTree && mRuleTree->TreeHasCachedData()) || !mRoots.IsEmpty();
   }
+
+  
+  
+  void RuleNodeUnused() {
+    ++mUnusedRuleNodeCount;
+  }
+
+  
+  void RuleNodeInUse() {
+    --mUnusedRuleNodeCount;
+  }
   
  private:
   
@@ -322,7 +333,7 @@ class nsStyleSet
   nsRuleWalker* mRuleWalker; 
                              
 
-  PRInt32 mDestroyedCount; 
+  PRUint32 mUnusedRuleNodeCount; 
   nsTArray<nsStyleContext*> mRoots; 
 
   
@@ -343,4 +354,19 @@ class nsStyleSet
 
 };
 
+inline
+NS_HIDDEN_(void) nsRuleNode::AddRef()
+{
+  if (mRefCnt++ == 0 && !IsRoot()) {
+    mPresContext->StyleSet()->RuleNodeInUse();
+  }
+}
+
+inline
+NS_HIDDEN_(void) nsRuleNode::Release()
+{
+  if (--mRefCnt == 0 && !IsRoot()) {
+    mPresContext->StyleSet()->RuleNodeUnused();
+  }
+}
 #endif
