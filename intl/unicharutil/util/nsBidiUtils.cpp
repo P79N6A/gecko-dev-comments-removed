@@ -228,6 +228,16 @@ static PRUint16 gArabicLigatureMap[] =
 0x8EE0  
 };
 
+#define ARABIC_TO_HINDI_DIGIT_INCREMENT (START_HINDI_DIGITS - START_ARABIC_DIGITS)
+#define NUM_TO_ARABIC(c) \
+  ((((c)>=START_HINDI_DIGITS) && ((c)<=END_HINDI_DIGITS)) ? \
+   ((c) - (PRUint16)ARABIC_TO_HINDI_DIGIT_INCREMENT) : \
+   (c))
+#define NUM_TO_HINDI(c) \
+  ((((c)>=START_ARABIC_DIGITS) && ((c)<=END_ARABIC_DIGITS)) ? \
+   ((c) + (PRUint16)ARABIC_TO_HINDI_DIGIT_INCREMENT): \
+   (c))
+
 nsresult ArabicShaping(const PRUnichar* aString, PRUint32 aLen,
                        PRUnichar* aBuf, PRUint32 *aBufLen)
 {
@@ -459,4 +469,40 @@ nsresult Conv_06_FE_WithReverse(const nsString& aSrc,
   }
   return NS_OK;
 }
+
+nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32 aNumFlag)
+{
+  PRUint32 i;
+  
+  
+  
+  
+
+  switch (aNumFlag) {
+    case IBMBIDI_NUMERAL_HINDI:
+      for (i=0;i<aSize;i++)
+        aBuffer[i] = NUM_TO_HINDI(aBuffer[i]);
+      break;
+    case IBMBIDI_NUMERAL_ARABIC:
+      for (i=0;i<aSize;i++)
+        aBuffer[i] = NUM_TO_ARABIC(aBuffer[i]);
+      break;
+    default : 
+      for (i=1;i<aSize;i++) {
+        if (IS_ARABIC_CHAR(aBuffer[i-1])) 
+          aBuffer[i] = NUM_TO_HINDI(aBuffer[i]);
+        else 
+          aBuffer[i] = NUM_TO_ARABIC(aBuffer[i]);
+      }
+      break;
+  }
+  return NS_OK;
+}
+
+nsresult HandleNumbers(const nsString& aSrc, nsString& aDst)
+{
+  aDst = aSrc;
+  return HandleNumbers((PRUnichar *)aDst.get(),aDst.Length(), IBMBIDI_NUMERAL_REGULAR);
+}
+
 #endif 

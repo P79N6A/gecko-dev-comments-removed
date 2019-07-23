@@ -67,6 +67,24 @@
 
   nsresult Conv_06_FE_WithReverse(const nsString& aSrc, nsString& aDst, PRUint32 aDir);
 
+  
+
+
+
+
+
+
+
+
+  nsresult HandleNumbers(PRUnichar* aBuffer, PRUint32 aSize, PRUint32  aNumFlag);
+
+  
+
+
+
+
+  nsresult HandleNumbers(const nsString& aSrc, nsString& aDst);
+
 
 
 
