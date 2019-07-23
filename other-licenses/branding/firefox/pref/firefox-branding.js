@@ -5,6 +5,9 @@ pref("startup.homepage_welcome_url","http://%LOCALE%.www.mozilla.com/%LOCALE%/%A
 pref("app.update.interval", 86400);
 
 
+pref("app.update.download.backgroundInterval", 600);
+
+
 pref("app.update.url.manual", "http://%LOCALE%.www.mozilla.com/%LOCALE%/%APP%/");
 
 
