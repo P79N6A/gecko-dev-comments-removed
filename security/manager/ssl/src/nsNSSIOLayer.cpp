@@ -348,6 +348,22 @@ nsNSSSocketInfo::SetNotificationCallbacks(nsIInterfaceRequestor* aCallbacks)
       nsCOMPtr<nsIThread> mainThread(do_GetMainThread());
       NS_ProxyRelease(mainThread, secureUI, PR_FALSE);
       mExternalErrorReporting = PR_TRUE;
+
+      
+      
+      
+      
+      nsCOMPtr<nsISSLStatusProvider> statprov = do_QueryInterface(secureUI);
+      if (statprov) {
+        nsCOMPtr<nsISupports> isup_stat;
+        statprov->GetSSLStatus(getter_AddRefs(isup_stat));
+        if (isup_stat) {
+          nsCOMPtr<nsISSLStatus> sslstat = do_QueryInterface(isup_stat);
+          if (sslstat) {
+            sslstat->GetServerCert(getter_AddRefs(mPreviousCert));
+          }
+        }
+      }
     }
   }
 
@@ -578,7 +594,17 @@ nsresult nsNSSSocketInfo::SetFileDescPtr(PRFileDesc* aFilePtr)
   return NS_OK;
 }
 
-nsresult nsNSSSocketInfo::GetCert(nsNSSCertificate** _result)
+nsresult nsNSSSocketInfo::GetPreviousCert(nsIX509Cert** _result)
+{
+  NS_ENSURE_ARG_POINTER(_result);
+
+  *_result = mPreviousCert;
+  NS_IF_ADDREF(*_result);
+
+  return NS_OK;
+}
+
+nsresult nsNSSSocketInfo::GetCert(nsIX509Cert** _result)
 {
   NS_ENSURE_ARG_POINTER(_result);
 
@@ -588,7 +614,7 @@ nsresult nsNSSSocketInfo::GetCert(nsNSSCertificate** _result)
   return NS_OK;
 }
 
-nsresult nsNSSSocketInfo::SetCert(nsNSSCertificate *aCert)
+nsresult nsNSSSocketInfo::SetCert(nsIX509Cert *aCert)
 {
   mCert = aCert;
 
