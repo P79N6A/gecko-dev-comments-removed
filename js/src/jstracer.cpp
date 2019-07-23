@@ -85,6 +85,9 @@
 
 #define MAX_CALL_STACK_ENTRIES 64
 
+
+#define MAX_BRANCHES 16
+
 #ifdef DEBUG
 #define ABORT_TRACE(msg)   do { debug_only_v(fprintf(stdout, "abort: %d: %s\n", __LINE__, msg);)  return false; } while (0)
 #else
@@ -1666,6 +1669,7 @@ TraceRecorder::compile(Fragmento* fragmento)
         fragment->blacklist();
         return;
     }
+    ++treeInfo->branchCount;
     ::compile(fragmento->assm(), fragment);
     if (anchor) {
         fragment->addLink(anchor);
@@ -2079,6 +2083,11 @@ js_AttemptToExtendTree(JSContext* cx, GuardRecord* anchor, GuardRecord* exitedFr
 {
     Fragment* f = anchor->from->root;
     JS_ASSERT(f->vmprivate);
+    TreeInfo* ti = (TreeInfo*)f->vmprivate;
+
+    
+    if (ti->branchCount >= MAX_BRANCHES)
+        return false;
     
     debug_only_v(printf("trying to attach another branch to the tree\n");)
 
