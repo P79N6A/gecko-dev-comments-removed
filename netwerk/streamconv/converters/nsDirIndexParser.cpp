@@ -190,6 +190,10 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
       ++pos;
     
     ++num;
+    
+    
+    if (num > (2 * NS_ARRAY_LENGTH(gFieldTable)))
+      return NS_ERROR_UNEXPECTED;
 
     if (! *pos)
       break;
@@ -200,6 +204,9 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
   } while (*pos);
 
   mFormat = new int[num+1];
+  
+  if (mFormat == nsnull)
+    return NS_ERROR_OUT_OF_MEMORY;
   mFormat[num] = -1;
   
   int formatNum=0;
