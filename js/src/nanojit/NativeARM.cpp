@@ -49,14 +49,17 @@
 
 #if defined(AVMPLUS_LINUX)
 #include <asm/unistd.h>
+extern "C" void __clear_cache(char *BEG, char *END);
 #endif
+
+#ifdef FEATURE_NANOJIT
 
 namespace nanojit
 {
-#ifdef FEATURE_NANOJIT
 
 #ifdef NJ_VERBOSE
-const char* regNames[] = {"r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","r10","r11","IP","SP","LR","PC"};
+const char* regNames[] = {"r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","r10","FP","IP","SP","LR","PC",
+                          "d0","d1","d2","d3","d4","d5","d6","d7","s14"};
 #endif
 
 const Register Assembler::argRegs[] = { R0, R1, R2, R3 };
@@ -122,6 +125,7 @@ Assembler::nFragExit(LInsp guard)
         
         BL_far(_epilogue);
 
+        
         lr->jmp = _nIns;
     }
 
@@ -155,8 +159,16 @@ void
 Assembler::asm_call(LInsp ins)
 {
     const CallInfo* call = callInfoFor(ins->fid());
+    Reservation *callRes = getresv(ins);
+
     uint32_t atypes = call->_argtypes;
     uint32_t roffset = 0;
+
+    
+#ifdef NJ_ARM_VFP
+    ArgSize rsize = (ArgSize)(atypes & 3);
+#endif
+    atypes >>= 2;
 
     
     
@@ -164,9 +176,9 @@ Assembler::asm_call(LInsp ins)
     
     bool arg0IsInt32FollowedByFloat = false;
     while ((atypes & 3) != ARGSIZE_NONE) {
-        if (((atypes >> 4) & 3) == ARGSIZE_LO &&
-            ((atypes >> 2) & 3) == ARGSIZE_F &&
-            ((atypes >> 6) & 3) == ARGSIZE_NONE)
+        if (((atypes >> 2) & 3) == ARGSIZE_LO &&
+            ((atypes >> 0) & 3) == ARGSIZE_F &&
+            ((atypes >> 4) & 3) == ARGSIZE_NONE)
         {
             arg0IsInt32FollowedByFloat = true;
             break;
@@ -174,17 +186,68 @@ Assembler::asm_call(LInsp ins)
         atypes >>= 2;
     }
 
+#ifdef NJ_ARM_VFP
+    if (rsize == ARGSIZE_F) {
+        NanoAssert(ins->opcode() == LIR_fcall);
+        NanoAssert(callRes);
+
+        
+
+        Register rr = callRes->reg;
+        int d = disp(callRes);
+        freeRsrcOf(ins, rr != UnknownReg);
+
+        if (rr != UnknownReg) {
+            NanoAssert(IsFpReg(rr));
+            FMDRR(rr,R0,R1);
+        } else {
+            NanoAssert(d);
+            
+            STMIA(Scratch, 1<<R0 | 1<<R1);
+            arm_ADDi(Scratch, FP, d);
+        }
+    }
+#endif
+
     CALL(call);
 
     ArgSize sizes[10];
     uint32_t argc = call->get_sizes(sizes);
-    for(uint32_t i=0; i < argc; i++) {
+    for(uint32_t i = 0; i < argc; i++) {
         uint32_t j = argc - i - 1;
         ArgSize sz = sizes[j];
-        NanoAssert(sz == ARGSIZE_LO || sz == ARGSIZE_Q);
+        LInsp arg = ins->arg(j);
         
-        Register r = (i+roffset) < 4 ? argRegs[i+roffset] : UnknownReg;
-        asm_arg(sz, ins->arg(j), r);
+
+        Register r = (i + roffset) < 4 ? argRegs[i+roffset] : UnknownReg;
+#ifdef NJ_ARM_VFP
+        if (sz == ARGSIZE_F) {
+            if (r == R0 || r == R2) {
+                roffset++;
+            } else if (r == R1) {
+                r = R2;
+                roffset++;
+            } else {
+                r = UnknownReg;
+            }
+
+            
+            Register sr = findRegFor(arg, FpRegs);
+
+            if (r != UnknownReg) {
+                
+                
+                FMRRD(r, nextreg(r), sr);
+            } else {
+                asm_pusharg(arg);
+            }
+        } else {
+            asm_arg(sz, arg, r);
+        }
+#else
+        NanoAssert(sz == ARGSIZE_LO || sz == ARGSIZE_Q);
+        asm_arg(sz, arg, r);
+#endif
 
         if (i == 0 && arg0IsInt32FollowedByFloat)
             roffset = 1;
@@ -238,7 +301,7 @@ Assembler::nRegisterResetAll(RegAlloc& a)
     
     a.clear();
     a.used = 0;
-    a.free = rmask(R0) | rmask(R1) | rmask(R2) | rmask(R3) | rmask(R4) | rmask(R5);
+    a.free = rmask(R0) | rmask(R1) | rmask(R2) | rmask(R3) | rmask(R4) | rmask(R5) | FpRegs;
     debug_only(a.managed = a.free);
 }
 
@@ -251,16 +314,15 @@ Assembler::nPatchBranch(NIns* branch, NIns* target)
     
     
 
-    
-    int32_t offset = int(target) - int(branch+2);
+    int32_t offset = PC_OFFSET_FROM(target, branch);
 
     
 
     
     
-    if (-(1<<24) <= offset & offset < (1<<24)) {
+    if (isS24(offset)) {
         
-        *branch = (NIns)( COND_AL | (0xA<<24) | ((offset >>2) & 0xFFFFFF) );
+        *branch = (NIns)( COND_AL | (0xA<<24) | ((offset>>2) & 0xFFFFFF) );
     } else {
         
         *branch++ = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | ( 0x004 ) );
@@ -295,11 +357,11 @@ Assembler::asm_qjoin(LIns *ins)
     LIns* hi = ins->oprnd2();
                             
     Register r = findRegFor(hi, GpRegs);
-    ST(FP, d+4, r);
+    STR(r, FP, d+4);
 
     
     r = findRegFor(lo, GpRegs);
-    ST(FP, d, r);
+    STR(r, FP, d);
     freeRsrcOf(ins, false); 
 }
 
@@ -311,7 +373,7 @@ Assembler::asm_store32(LIns *value, int dr, LIns *base)
     findRegFor2(GpRegs, value, rA, base, rB);
     Register ra = rA->reg;
     Register rb = rB->reg;
-    ST(rb, dr, ra);
+    STR(ra, rb, dr);
 }
 
 void
@@ -319,7 +381,17 @@ Assembler::asm_restore(LInsp i, Reservation *resv, Register r)
 {
     (void)resv;
     int d = findMemFor(i);
-    LD(r, d, FP);
+
+    if (IsFpReg(r)) {
+        if (isS8(d >> 2)) {
+            FLDD(r, FP, d);
+        } else {
+            FLDD(r, Scratch, 0);
+            arm_ADDi(Scratch, FP, d);
+        }
+    } else {
+        LDR(r, FP, d);
+    }
 
     verbose_only(
         if (_verbose)
@@ -332,12 +404,21 @@ Assembler::asm_spill(LInsp i, Reservation *resv, bool pop)
 {
     (void)i;
     (void)pop;
-
+    
     if (resv->arIndex) {
         int d = disp(resv);
         
         Register rr = resv->reg;
-        ST(FP, d, rr);
+        if (IsFpReg(rr)) {
+            if (isS8(d >> 2)) {
+                FSTD(rr, FP, d);
+            } else {
+                FSTD(rr, Scratch, 0);
+                arm_ADDi(Scratch, FP, d);
+            }
+        } else {
+            STR(rr, FP, d);
+        }
 
         verbose_only(if (_verbose){
                 outputf("        spill %s",_thisfrag->lirbuf->names->formatRef(i));
@@ -349,38 +430,164 @@ Assembler::asm_spill(LInsp i, Reservation *resv, bool pop)
 void
 Assembler::asm_load64(LInsp ins)
 {
-    LIns* base = ins->oprnd1();
-    int db = ins->oprnd2()->constval();
-    Reservation *resv = getresv(ins);
-    int dr = disp(resv);
-    NanoAssert(resv->reg == UnknownReg && dr != 0);
+    
 
-    Register rb = findRegFor(base, GpRegs);
-    resv->reg = UnknownReg;
-    asm_mmq(FP, dr, rb, db);
+    LIns* base = ins->oprnd1();
+    int offset = ins->oprnd2()->constval();
+
+    Reservation *resv = getresv(ins);
+    Register rr = resv->reg;
+    int d = disp(resv);
+
     freeRsrcOf(ins, false);
+
+#ifdef NJ_ARM_VFP
+    Register rb = findRegFor(base, GpRegs);
+
+    NanoAssert(rb != UnknownReg);
+    NanoAssert(rr == UnknownReg || IsFpReg(rr));
+
+    if (rr != UnknownReg) {
+        if (!isS8(offset >> 2) || (offset&3) != 0) {
+            underrunProtect(LD32_size + 8);
+            FLDD(rr,Scratch,0);
+            ADD(Scratch, rb);
+            LD32_nochk(Scratch, offset);
+        } else {
+            FLDD(rr,rb,offset);
+        }
+    } else {
+        asm_mmq(FP, d, rb, offset);
+    }
+
+    
+#else
+    NanoAssert(resv->reg == UnknownReg && d != 0);
+    Register rb = findRegFor(base, GpRegs);
+    asm_mmq(FP, d, rb, offset);
+#endif
+
+    
 }
 
 void
 Assembler::asm_store64(LInsp value, int dr, LInsp base)
 {
+    
+
+#ifdef NJ_ARM_VFP
+    Reservation *valResv = getresv(value);
+
+    Register rb = findRegFor(base, GpRegs);
+    Register rv = findRegFor(value, FpRegs);
+
+    NanoAssert(rb != UnknownReg);
+    NanoAssert(rv != UnknownReg);
+
+    Register baseReg = rb;
+    intptr_t baseOffset = dr;
+
+    if (!isS8(dr)) {
+        baseReg = Scratch;
+        baseOffset = 0;
+    }
+
+    FSTD(rv, baseReg, baseOffset);
+
+    if (!isS8(dr)) {
+        underrunProtect(4 + LD32_size);
+        ADD(Scratch, rb);
+        LD32_nochk(Scratch, dr);
+    }
+
+    
+    
+    if (value->isconstq()) {
+        const int32_t* p = (const int32_t*) (value-2);
+
+        underrunProtect(12 + LD32_size);
+
+        asm_quad_nochk(rv, p);
+    }
+#else
     int da = findMemFor(value);
     Register rb = findRegFor(base, GpRegs);
     asm_mmq(rb, dr, FP, da);
+#endif
+    
+}
+
+
+
+void
+Assembler::asm_quad_nochk(Register rr, const int32_t* p)
+{
+    *(++_nSlot) = p[0];
+    *(++_nSlot) = p[1];
+
+    intptr_t constAddr = (intptr_t) (_nSlot-1);
+    intptr_t realOffset = PC_OFFSET_FROM(constAddr, _nIns-1);
+    intptr_t offset = realOffset;
+    Register baseReg = PC;
+
+    
+    
+
+    
+    if (!isS8(realOffset >> 2)) {
+        offset = 0;
+        baseReg = Scratch;
+    }
+
+    FLDD(rr, baseReg, offset);
+
+    if (!isS8(realOffset >> 2))
+        LD32_nochk(Scratch, constAddr);
 }
 
 void
 Assembler::asm_quad(LInsp ins)
 {
-    Reservation *rR = getresv(ins);
-    int d = disp(rR);
+    
+
+    Reservation *res = getresv(ins);
+    int d = disp(res);
+    Register rr = res->reg;
+
+    NanoAssert(d || rr != UnknownReg);
+
+    const int32_t* p = (const int32_t*) (ins-2);
+
+#ifdef NJ_ARM_VFP
     freeRsrcOf(ins, false);
 
+    
+    underrunProtect(16 + LD32_size);
+
+    
+    
+    
+    
+    
+    if (rr == UnknownReg)
+        rr = D7;
+
+    if (d)
+        FSTD(rr, FP, d);
+
+    asm_quad_nochk(rr, p);
+#else
+    freeRsrcOf(ins, false);
     if (d) {
-        const int32_t* p = (const int32_t*) (ins-2);
-        STi(FP,d+4,p[1]);
-        STi(FP,d,p[0]);
+        underrunProtect(LD32_size * 2 + 8);
+        STR(Scratch, FP, d+4);
+        LD32_nochk(Scratch, p[1]);
+        STR(Scratch, FP, d);
+        LD32_nochk(Scratch, p[0]);
     }
+#endif
+
+    
 }
 
 bool
@@ -393,9 +600,17 @@ Assembler::asm_qlo(LInsp ins, LInsp q)
 void
 Assembler::asm_nongp_copy(Register r, Register s)
 {
-    
-    (void)r; (void)s;
-    NanoAssert(false);
+    if ((rmask(r) & FpRegs) && (rmask(s) & FpRegs)) {
+        
+        FCPYD(r, s);
+    } else if ((rmask(r) & GpRegs) && (rmask(s) & FpRegs)) {
+        
+        
+        NanoAssert(0);
+        
+    } else {
+        NanoAssert(0);
+    }
 }
 
 Register
@@ -416,31 +631,41 @@ Assembler::asm_mmq(Register rd, int dd, Register rs, int ds)
     
     Register t = registerAlloc(GpRegs & ~(rmask(rd)|rmask(rs)));
     _allocator.addFree(t);
-    ST(rd, dd+4, t);
-    LD(t, ds+4, rs);
-    ST(rd, dd, t);
-    LD(t, ds, rs);
+    
+    STR(t, rd, dd+4);
+    LDR(t, rs, ds+4);
+    STR(t, rd, dd);
+    LDR(t, rs, ds);
 }
 
 void
-Assembler::asm_pusharg(LInsp p)
+Assembler::asm_pusharg(LInsp arg)
 {
-    
-    Reservation* rA = getresv(p);
-    if (rA == 0)
-    {
-        Register ra = findRegFor(p, GpRegs);
-        ST(SP,0,ra);
-    }
-    else if (rA->reg == UnknownReg)
-    {
-        ST(SP,0,Scratch);
-        LD(Scratch,disp(rA),FP);
-    }
+    Reservation* argRes = getresv(arg);
+    bool quad = arg->isQuad();
+    intptr_t stack_growth = quad ? 8 : 4;
+
+    Register ra;
+
+    if (argRes)
+        ra = argRes->reg;
     else
-    {
-        ST(SP,0,rA->reg);
+        ra = findRegFor(arg, quad ? FpRegs : GpRegs);
+
+    if (ra == UnknownReg) {
+        STR(Scratch, SP, 0);
+        LDR(Scratch, FP, disp(argRes));
+    } else {
+        if (!quad) {
+            Register ra = findRegFor(arg, GpRegs);
+            STR(ra, SP, 0);
+        } else {
+            Register ra = findRegFor(arg, FpRegs);
+            FSTD(ra, SP, 0);
+        }
     }
+
+    SUBi(SP, stack_growth);
 }
 
 void
@@ -470,22 +695,6 @@ Assembler::nativePageSetup()
     }
 }
 
-void
-Assembler::flushCache(NIns* n1, NIns* n2) {
-#if defined(UNDER_CE)
-    
-    FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
-#elif defined(AVMPLUS_LINUX)
-    
-    
-    register unsigned long _beg __asm("a1") = (unsigned long)(n1);
-    register unsigned long _end __asm("a2") = (unsigned long)(n2);
-    register unsigned long _flg __asm("a3") = 0;
-    register unsigned long _swi __asm("r7") = 0xF0002;
-    __asm __volatile ("swi 0    @ sys_cacheflush" : "=r" (_beg) : "0" (_beg), "r" (_end), "r" (_flg), "r" (_swi));
-#endif
-}
-
 NIns*
 Assembler::asm_adjustBranch(NIns* at, NIns* target)
 {
@@ -497,9 +706,16 @@ Assembler::asm_adjustBranch(NIns* at, NIns* target)
 
     NIns* was = (NIns*) at[3];
 
+    
+
     at[3] = (NIns)target;
 
-    flushCache(at, at+4);
+#if defined(UNDER_CE)
+    
+    FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
+#elif defined(AVMPLUS_LINUX)
+    __clear_cache((char*)at, (char*)(at+4));
+#endif
 
 #ifdef AVMPLUS_PORTING_API
     NanoJIT_PortAPI_FlushInstructionCache(at, at+4);
@@ -551,6 +767,9 @@ Assembler::BL_far(NIns* addr)
     underrunProtect(16);
 
     
+    
+
+    
     *(--_nIns) = (NIns)((addr));
     
     *(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
@@ -558,17 +777,29 @@ Assembler::BL_far(NIns* addr)
     *(--_nIns) = (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) );
     
     *(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (4));
+
+    
+
     asm_output1("bl %p (32-bit)", addr);
 }
 
 void
 Assembler::BL(NIns* addr)
 {
-    intptr_t offs = PC_OFFSET_FROM(addr,(intptr_t)_nIns-4);
-    if (JMP_S24_OFFSET_OK(offs)) {
+    intptr_t offs = PC_OFFSET_FROM(addr,_nIns-1);
+
+    
+
+    if (isS24(offs)) {
+        
         
         underrunProtect(4);
-        *(--_nIns) = (NIns)( COND_AL | (0xB<<24) | (((offs)>>2) & 0xFFFFFF) ); \
+        offs = PC_OFFSET_FROM(addr,_nIns-1);
+    }
+
+    if (isS24(offs)) {
+        
+        *(--_nIns) = (NIns)( COND_AL | (0xB<<24) | (((offs)>>2) & 0xFFFFFF) );
         asm_output1("bl %p", addr);
     } else {
         BL_far(addr);
@@ -579,6 +810,7 @@ void
 Assembler::CALL(const CallInfo *ci)
 {
     intptr_t addr = ci->_address;
+
     BL((NIns*)addr);
     asm_output1("   (call %s)", ci->_name);
 }
@@ -587,20 +819,225 @@ void
 Assembler::LD32_nochk(Register r, int32_t imm)
 {
     
-    underrunProtect(8);
+    
 
     *(++_nSlot) = (int)imm;
 
     
 
-    int offset = PC_OFFSET_FROM(_nSlot,(intptr_t)(_nIns)-4);
+    int offset = PC_OFFSET_FROM(_nSlot,_nIns-1);
 
-    NanoAssert(JMP_S24_OFFSET_OK(offset) && (offset < 0));
+    NanoAssert(isS12(offset) && (offset < 0));
 
-    *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | ((r)<<12) | ((-offset) & 0xFFFFFF) );
-    asm_output2("ld %s,%d",gpn(r),imm);
+    asm_output2("  (%d(PC) = 0x%x)", offset, imm);
+
+    LDR_nochk(r,PC,offset);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
+{
+    int32 offs = PC_OFFSET_FROM(_t,_nIns-1);
+    
+    if (isS24(offs)) {
+        if (_chk) underrunProtect(4);
+        offs = PC_OFFSET_FROM(_t,_nIns-1);
+    }
+
+    if (isS24(offs)) {
+        *(--_nIns) = (NIns)( ((_c)<<28) | (0xA<<24) | (((offs)>>2) & 0xFFFFFF) );
+    } else if (_c == AL) {
+        if(_chk) underrunProtect(8);
+        *(--_nIns) = (NIns)(_t);
+        *(--_nIns) = (NIns)( COND_AL | (0x51<<20) | (PC<<16) | (PC<<12) | 0x4 );
+    } else if (samepage(_nIns,_nSlot)) {
+        if(_chk) underrunProtect(8);
+        *(++_nSlot) = (NIns)(_t);
+        offs = PC_OFFSET_FROM(_nSlot,_nIns-1);
+        NanoAssert(offs < 0);
+        *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | ((-offs) & 0xFFFFFF) );
+    } else {
+        if(_chk) underrunProtect(12);
+        *(--_nIns) = (NIns)(_t);
+        *(--_nIns) = (NIns)( COND_AL | (0xA<<24) | ((-4)>>2) & 0xFFFFFF );
+        *(--_nIns) = (NIns)( ((_c)<<28) | (0x51<<20) | (PC<<16) | (PC<<12) | 0x0 );
+    }
+
+    asm_output2("%s %p", _c == AL ? "jmp" : "b(cnd)", (void*)(_t));
+}
+
+
+
+
+
+#ifdef NJ_ARM_VFP
+
+void
+Assembler::asm_i2f(LInsp ins)
+{
+    Register rr = prepResultReg(ins, FpRegs);
+    Register srcr = findRegFor(ins->oprnd1(), GpRegs);
+
+    
+    NanoAssert(srcr != UnknownReg);
+
+    FSITOD(rr, FpSingleScratch);
+    FMSR(FpSingleScratch, srcr);
+}
+
+void
+Assembler::asm_u2f(LInsp ins)
+{
+    Register rr = prepResultReg(ins, FpRegs);
+    Register sr = findRegFor(ins->oprnd1(), GpRegs);
+
+    
+    NanoAssert(sr != UnknownReg);
+
+    FUITOD(rr, FpSingleScratch);
+    FMSR(FpSingleScratch, sr);
+}
+
+void
+Assembler::asm_fneg(LInsp ins)
+{
+    LInsp lhs = ins->oprnd1();
+    Register rr = prepResultReg(ins, FpRegs);
+
+    Reservation* rA = getresv(lhs);
+    Register sr;
+
+    if (!rA || rA->reg == UnknownReg)
+        sr = findRegFor(lhs, FpRegs);
+    else
+        sr = rA->reg;
+
+    FNEGD(rr, sr);
+}
+
+void
+Assembler::asm_fop(LInsp ins)
+{
+    LInsp lhs = ins->oprnd1();
+    LInsp rhs = ins->oprnd2();
+    LOpcode op = ins->opcode();
+
+    NanoAssert(op >= LIR_fadd && op <= LIR_fdiv);
+
+    
+
+    Register rr = prepResultReg(ins, FpRegs);
+
+    Register ra = findRegFor(lhs, FpRegs);
+    Register rb = (rhs == lhs) ? ra : findRegFor(rhs, FpRegs);
+
+    
+
+    if (op == LIR_fadd)
+        FADDD(rr,ra,rb);
+    else if (op == LIR_fsub)
+        FSUBD(rr,ra,rb);
+    else if (op == LIR_fmul)
+        FMULD(rr,ra,rb);
+    else 
+        FDIVD(rr,ra,rb);
+}
+
+void
+Assembler::asm_fcmp(LInsp ins)
+{
+    LInsp lhs = ins->oprnd1();
+    LInsp rhs = ins->oprnd2();
+    LOpcode op = ins->opcode();
+
+    NanoAssert(op >= LIR_feq && op <= LIR_fge);
+
+    Register ra = findRegFor(lhs, FpRegs);
+    Register rb = findRegFor(rhs, FpRegs);
+
+    
+    
+    
+    if (op == LIR_fge) {
+        Register temp = ra;
+        ra = rb;
+        rb = temp;
+        op = LIR_flt;
+    } else if (op == LIR_fle) {
+        Register temp = ra;
+        ra = rb;
+        rb = temp;
+        op = LIR_fgt;
+    }
+
+    
+    
+    
+    
+    uint8_t mask = 0x0;
+    
+    
+    
+    if (op == LIR_feq)
+        
+        mask = 0x6;
+    else if (op == LIR_flt)
+        
+        mask = 0x8;
+    else if (op == LIR_fgt)
+        
+        mask = 0x2;
+    else
+        NanoAssert(0);
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    CMPi(Scratch, mask);
+    
+    SHRi(Scratch, 28);
+    MRS(Scratch);
+
+    
+    FMSTAT();
+    FCMPD(ra, rb);
+}
+
+Register
+Assembler::asm_prep_fcall(Reservation* rR, LInsp ins)
+{
+    
+    return UnknownReg;
 }
 
 #endif 
 
 }
+#endif 

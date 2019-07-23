@@ -68,7 +68,9 @@ namespace nanojit
 			debug_only( uint32_t	count; )
 			debug_only( RegisterMask managed; )    
 
-			LIns*	active[NJ_MAX_REGISTERS];  
+			
+			
+			LIns*	active[32];  
 			RegisterMask	free;
 			RegisterMask	used;
 

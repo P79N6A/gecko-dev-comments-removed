@@ -44,6 +44,7 @@
 
 #if defined(AVMPLUS_LINUX) && defined(AVMPLUS_ARM)
 #include <asm/unistd.h>
+extern "C" void __clear_cache(char *BEG, char *END);
 #endif
 
 namespace nanojit
@@ -178,6 +179,8 @@ namespace nanojit
 		
 		
 		LIns* vic = findVictim(regs,allow,prefer);
+		NanoAssert(vic != NULL);
+
 	    Reservation* resv = getresv(vic);
 
 		
@@ -446,24 +449,36 @@ namespace nanojit
 		Reservation* resv = getresv(i);
 		Register r;
 
+		
+		
+		
         if (resv && (r=resv->reg) != UnknownReg && (rmask(r) & allow)) {
 			return r;
         }
 
+		
 		RegisterMask prefer = hint(i, allow);
+
+		
 		if (!resv) 	
 			resv = reserveAlloc(i);
 
+		
         if ((r=resv->reg) == UnknownReg)
 		{
+			
+			
             if (resv->cost == 2 && (allow&SavedRegs))
                 prefer = allow&SavedRegs;
+			
 			r = resv->reg = registerAlloc(prefer);
 			_allocator.addActive(r, i);
 			return r;
 		}
 		else 
 		{
+			
+			
 			
 			resv->reg = UnknownReg;
 			_allocator.retire(r);
@@ -795,12 +810,15 @@ namespace nanojit
 # if defined(UNDER_CE)
 		FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
 # elif defined(AVMPLUS_LINUX)
-		
 		for (int i = 0; i < 2; i++) {
 			Page *p = (i == 0) ? _nativePages : _nativeExitPages;
 
+			Page *first = p;
 			while (p) {
-				flushCache((NIns*)p, (NIns*)((intptr_t)(p) + NJ_PAGE_SIZE));
+				if (!p->next || p->next != p+1) {
+					__clear_cache((char*)first, (char*)(p+1));
+					first = p->next;
+				}
 				p = p->next;
 			}
 		}
@@ -852,7 +870,7 @@ namespace nanojit
 			switch(op)
 			{
 				default:
-					NanoAssertMsgf(false, ("unsupported LIR instruction: %d (~0x40: %d)\n",op, op&~LIR64));
+					NanoAssertMsgf(false, "unsupported LIR instruction: %d (~0x40: %d)\n", op, op&~LIR64);
 					break;
 					
 				case LIR_short:
@@ -1208,13 +1226,20 @@ namespace nanojit
 					LIns* cond = ins->oprnd1();
 					LOpcode condop = cond->opcode();
 					NanoAssert(cond->isCond());
-#ifndef NJ_SOFTFLOAT
+#if !defined(NJ_SOFTFLOAT)
                     if (condop >= LIR_feq && condop <= LIR_fge)
 					{
+#if defined(NJ_ARM_VFP)
+						if (op == LIR_xf)
+							JNE(exit);
+						else
+							JE(exit);
+#else
 						if (op == LIR_xf)
 							JP(exit);
 						else
 							JNP(exit);
+#endif
 						asm_fcmp(cond);
                         break;
 					}
@@ -1313,9 +1338,13 @@ namespace nanojit
 				{
 					
 					Register r = prepResultReg(ins, AllowableFlagRegs);
+#ifdef NJ_ARM_VFP
+					SETE(r);
+#else
 					
 					MOVZX8(r,r);
 					SETNP(r);
+#endif
 					asm_fcmp(ins);
 					break;
 				}
@@ -1437,8 +1466,13 @@ namespace nanojit
 
 	uint32_t Assembler::arFree(uint32_t idx)
 	{
+		
+		if (idx == 0)
+			return 0;
+
 		if (idx > 0 && _activation.entry[idx] == _activation.entry[idx+stack_direction(1)])
 			_activation.entry[idx+stack_direction(1)] = 0;  
+
 		_activation.entry[idx] = 0;
 		return 0;
 	}
