@@ -292,7 +292,8 @@ nsContextMenu.prototype = {
     }
 
     
-    this.showItem("context-blockimage", this.onImage && hostLabel);
+    this.showItem("context-blockimage", this.onImage && hostLabel &&
+      !gPrivateBrowsingUI.privateBrowsingEnabled);
   },
 
   initSpellingItems: function() {
