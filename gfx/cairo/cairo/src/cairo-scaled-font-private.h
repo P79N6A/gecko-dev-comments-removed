@@ -92,9 +92,9 @@ struct _cairo_scaled_font {
     cairo_matrix_t ctm;	          
     cairo_font_options_t options;
 
-    unsigned int placeholder : 1; 
-    unsigned int holdover : 1;
-    unsigned int finished : 1;
+    cairo_bool_t placeholder; 
+
+    cairo_bool_t finished;
 
     
     cairo_matrix_t scale;	     

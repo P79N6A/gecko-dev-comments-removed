@@ -354,6 +354,14 @@ _cairo_array_size (cairo_array_t *array)
 
 
 
+typedef struct {
+    const cairo_user_data_key_t *key;
+    void *user_data;
+    cairo_destroy_func_t destroy;
+} cairo_user_data_slot_t;
+
+
+
 
 
 

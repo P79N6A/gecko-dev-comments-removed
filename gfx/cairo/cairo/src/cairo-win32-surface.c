@@ -2102,7 +2102,7 @@ _cairo_win32_surface_span_renderer_finish (void *abstract_renderer)
 	cairo_pattern_t *mask_pattern = cairo_pattern_create_for_surface (&renderer->mask->base);
 	
 	if (dst->image) {
-	    GdiFlush(); 
+	    GdiFlush();
 
 	    status = dst->image->backend->composite (renderer->op,
 		    renderer->pattern, mask_pattern, dst->image,
