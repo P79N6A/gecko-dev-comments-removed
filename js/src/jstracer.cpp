@@ -311,9 +311,13 @@ public:
 
 
 #ifdef DEBUG
+#define DEF_VPNAME          char* vpname; unsigned vpnum
 #define SET_VPNAME(name)    do { vpname = name; vpnum = 0; } while(0)
 #define INC_VPNUM()         do { ++vpnum; } while(0)
 #else
+#define DEF_VPNAME          do {} while (0)
+#define vpname ""
+#define vpnum 0
 #define SET_VPNAME(name)    ((void)0)
 #define INC_VPNUM()         ((void)0)
 #endif
@@ -324,7 +328,7 @@ public:
 
 #define FORALL_SLOTS_IN_PENDING_FRAMES(entryFrame, currentFrame, code)        \
     JS_BEGIN_MACRO                                                            \
-        char* vpname = ""; unsigned vpnum = 0;                                \
+        DEF_VPNAME;                                                           \
         /* find the global frame */                                           \
         JSStackFrame* global = entryFrame;                                    \
         while (global->down)                                                  \
@@ -348,7 +352,7 @@ public:
         for (;; fp = fp->down) { ++frames; if (fp == entryFrame) break; };    \
         /* stack them up since we want forward order (this should be fast */  \
         /* now, since the previous loop prefetched everything for us and  */  \
-        /* the list tends to be short anyway (1-3 frames).                */  \
+        /* the list tends to be short anyway [1-3 frames]).               */  \
         JSStackFrame* fstack[frames];                                         \
         JSStackFrame** fspstop = &fstack[frames];                             \
         JSStackFrame** fsp = fspstop-1;                                       \
