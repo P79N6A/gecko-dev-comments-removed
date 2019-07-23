@@ -47,6 +47,8 @@
 
 #include "nsIServiceManager.h"
 #include "nsIPlatformCharset.h"
+#include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 
 
 
@@ -55,11 +57,29 @@
 gfxOS2Font::gfxOS2Font(const nsAString &aName, const gfxFontStyle *aFontStyle)
     : gfxFont(aName, aFontStyle),
       mFontFace(nsnull), mScaledFont(nsnull),
-      mMetrics(nsnull), mAdjustedSize(0)
+      mMetrics(nsnull), mAdjustedSize(0),
+      mHinting(FC_HINT_MEDIUM), mAntialias(FcTrue)
 {
-#ifdef DEBUG_thebes_2
+#if 1 
     printf("gfxOS2Font[%#x]::gfxOS2Font(\"%s\", aFontStyle)\n",
            (unsigned)this, NS_LossyConvertUTF16toASCII(aName).get());
+#endif
+    
+    nsCOMPtr<nsIPrefBranch> prefbranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (prefbranch) {
+        int value;
+        nsresult rv = prefbranch->GetIntPref("gfx.os2.font.hinting", &value);
+        if (NS_SUCCEEDED(rv) && value >= FC_HINT_NONE && value <= FC_HINT_FULL)
+            mHinting = value;
+
+        PRBool enabled;
+        rv = prefbranch->GetBoolPref("gfx.os2.font.antialiasing", &enabled);
+        if (NS_SUCCEEDED(rv))
+            mAntialias = enabled;
+    }
+#if 1 
+    printf("  font display options: hinting=%d, antialiasing=%s\n",
+           mHinting, mAntialias ? "on" : "off");
 #endif
 }
 
@@ -318,13 +338,20 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
                (char *)str2, w2, i2, s2);
 #endif
         FcPatternDestroy(fcPattern);
+
         if (mName == NS_LITERAL_STRING("Workplace Sans") && fcW >= FC_WEIGHT_DEMIBOLD) {
             
             
             FcPatternAddBool(fcMatch, FC_EMBOLDEN, FcTrue);
+        } else {
+            
+            FcPatternAddBool(fcMatch, FC_ANTIALIAS, mAntialias);
         }
+        FcPatternAddInteger(fcMatch, FC_HINT_STYLE, mHinting);
+
         
         mFontFace = cairo_ft_font_face_create_for_pattern(fcMatch);
+
         FcPatternDestroy(fcMatch);
     }
 
