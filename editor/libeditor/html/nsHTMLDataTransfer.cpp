@@ -501,7 +501,6 @@ nsHTMLEditor::InsertHTMLWithContext(const nsAString & aInputString,
     }
 
     
-    PRBool bDidInsert = PR_FALSE;
     nsCOMPtr<nsIDOMNode> parentBlock, lastInsertNode, insertedContextParent;
     PRInt32 listCount = nodeList.Count();
     PRInt32 j;
@@ -512,6 +511,7 @@ nsHTMLEditor::InsertHTMLWithContext(const nsAString & aInputString,
       
     for (j=0; j<listCount; j++)
     {
+      PRBool bDidInsert = PR_FALSE;
       nsCOMPtr<nsIDOMNode> curNode = nodeList[j];
 
       NS_ENSURE_TRUE(curNode, NS_ERROR_FAILURE);
@@ -617,14 +617,13 @@ nsHTMLEditor::InsertHTMLWithContext(const nsAString & aInputString,
       if (!bDidInsert || NS_FAILED(res))
       {
         
-        
         res = InsertNodeAtPoint(curNode, address_of(parentNode), &offsetOfNewNode, PR_TRUE);
         if (NS_SUCCEEDED(res)) 
         {
           bDidInsert = PR_TRUE;
           lastInsertNode = curNode;
         }
-          
+
         
         
         nsCOMPtr<nsIDOMNode> parent;
@@ -644,7 +643,7 @@ nsHTMLEditor::InsertHTMLWithContext(const nsAString & aInputString,
           curNode = parent;
         }
       }
-      if (bDidInsert)
+      if (lastInsertNode)
       {
         res = GetNodeLocation(lastInsertNode, address_of(parentNode), &offsetOfNewNode);
         NS_ENSURE_SUCCESS(res, res);
