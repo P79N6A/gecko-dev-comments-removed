@@ -80,10 +80,10 @@ public:
         DRAW_SUPPORTS_CLIP_LIST = 0x08,
         
         
-        DRAW_SUPPORTS_NONDEFAULT_VISUAL = 0x08,
+        DRAW_SUPPORTS_NONDEFAULT_VISUAL = 0x10,
         
         
-        DRAW_SUPPORTS_ALTERNATE_DISPLAY = 0x10
+        DRAW_SUPPORTS_ALTERNATE_DISPLAY = 0x20
     };
 
     struct DrawOutput {
