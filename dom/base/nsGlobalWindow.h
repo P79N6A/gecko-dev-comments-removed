@@ -122,6 +122,7 @@ class nsGlobalWindowObserver;
 class nsGlobalWindow;
 class nsDummyJavaPluginOwner;
 class PostMessageEvent;
+class nsRunnable;
 
 class nsDOMOfflineResourceList;
 class nsGeolocation;
@@ -238,6 +239,7 @@ public:
   nsPIDOMWindow* GetPrivateParent();
   
   void ReallyCloseWindow();
+  void ReallyClearScope(nsRunnable *aRunnable);
 
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

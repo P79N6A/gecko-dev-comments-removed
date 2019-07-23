@@ -1312,7 +1312,9 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   return 0;
 }
 
-nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
+nsJSContext::nsJSContext(JSRuntime *aRuntime)
+  : mGCOnDestruction(PR_TRUE),
+    mExecuteDepth(0)
 {
 
   ++sContextCount;
@@ -1522,6 +1524,8 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
     JSAutoRequest ar(mContext);
     nsJSVersionSetter setVersion(mContext, aVersion);
 
+    ++mExecuteDepth;
+
     ok = ::JS_EvaluateUCScriptForPrincipals(mContext,
                                             (JSObject *)aScopeObject,
                                             jsprin,
@@ -1530,6 +1534,8 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
                                             aURL,
                                             aLineNo,
                                             &val);
+
+    --mExecuteDepth;
 
     if (!ok) {
       
@@ -1688,6 +1694,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
 
   nsJSContext::TerminationFuncHolder holder(this);
 
+  ++mExecuteDepth;
+
   
   
   
@@ -1730,6 +1738,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
       aRetValue->Truncate();
     }
   }
+
+  --mExecuteDepth;
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -1849,6 +1859,7 @@ nsJSContext::ExecuteScript(void *aScriptObject,
 
   nsJSContext::TerminationFuncHolder holder(this);
   JSAutoRequest ar(mContext);
+  ++mExecuteDepth;
   ok = ::JS_ExecuteScript(mContext,
                           (JSObject *)aScopeObject,
                           (JSScript*)::JS_GetPrivate(mContext,
@@ -1867,6 +1878,8 @@ nsJSContext::ExecuteScript(void *aScriptObject,
       aRetValue->Truncate();
     }
   }
+
+  --mExecuteDepth;
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -2111,8 +2124,10 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
     jsval funval = OBJECT_TO_JSVAL(static_cast<JSObject *>(aHandler));
     JSAutoRequest ar(mContext);
+    ++mExecuteDepth;
     PRBool ok = ::JS_CallFunctionValue(mContext, target,
                                        funval, argc, argv, &rval);
+    --mExecuteDepth;
 
     if (!ok) {
       
@@ -3496,6 +3511,12 @@ void
 nsJSContext::SetProcessingScriptTag(PRBool aFlag)
 {
   mProcessingScriptTag = aFlag;
+}
+
+PRBool
+nsJSContext::GetExecutingScript()
+{
+  return JS_IsRunning(mContext) || mExecuteDepth > 0;
 }
 
 void

@@ -58,8 +58,8 @@ typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
 
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x87482b5e, 0xe019, 0x4df5, \
-  { 0x9b, 0xc2, 0xb2, 0xa5, 0x1b, 0x1f, 0x2d, 0x28 } }
+{ 0xA4FE2B52, 0x62B5, 0x40C3, \
+  { 0xBF, 0x9C, 0x5E, 0x0A, 0x27, 0xB1, 0x0F, 0x90 } }
 
 
 
@@ -401,6 +401,11 @@ public:
 
   virtual PRBool GetProcessingScriptTag() = 0;
   virtual void SetProcessingScriptTag(PRBool aResult) = 0;
+
+  
+
+
+  virtual PRBool GetExecutingScript() = 0;
 
   
 
