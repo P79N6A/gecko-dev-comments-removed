@@ -87,8 +87,6 @@ typedef PRUint32 nscolor;
 
 
 NS_GFX_(PRBool) NS_HexToRGB(const nsString& aBuf, nscolor* aResult);
-NS_GFX_(PRBool) NS_ASCIIHexToRGB(const nsCString& aBuf,
-                                            nscolor* aResult);
 
 
 
@@ -103,20 +101,10 @@ NS_GFX_(PRBool) NS_LooseHexToRGB(const nsString& aBuf, nscolor* aResult);
 
 
 NS_GFX_(void) NS_RGBToHex(nscolor aColor, nsAString& aResult);
-NS_GFX_(void) NS_RGBToASCIIHex(nscolor aColor,
-                                          nsCString& aResult);
 
 
 
 NS_GFX_(PRBool) NS_ColorNameToRGB(const nsAString& aBuf, nscolor* aResult);
-
-
-
-NS_GFX_(nscolor) NS_BrightenColor(nscolor inColor);
-
-
-
-NS_GFX_(nscolor) NS_DarkenColor(nscolor inColor);
 
 
 
