@@ -339,7 +339,7 @@ nsCacheEntryDescriptor::SetStoragePolicy(nsCacheStoragePolicy policy)
     if (!storageEnabled)    return NS_ERROR_FAILURE;
 
     
-    if (!(mAccessGranted & ACCESS_WRITE))
+    if (!(mAccessGranted & nsICache::ACCESS_WRITE))
         return NS_ERROR_NOT_AVAILABLE;
     
     
