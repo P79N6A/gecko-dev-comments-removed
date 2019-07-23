@@ -55,10 +55,8 @@ public:
 
 
 
-
-
   virtual void Paint(nsSVGRenderState *aContext, nsIFrame *aTarget,
-                     const nsIntRect *aDirtyRect, nsIDOMSVGMatrix *aTransform) = 0;
+                     const nsIntRect *aDirtyRect) = 0;
 };
 
 #endif

@@ -197,16 +197,10 @@ public:
     : mBuilder(aBuilder), mInnerList(aInnerList), mOffset(aOffset) {}
 
   virtual void Paint(nsSVGRenderState *aContext, nsIFrame *aTarget,
-                     const nsIntRect* aDirtyRect, nsIDOMSVGMatrix *aTransform)
+                     const nsIntRect* aDirtyRect)
   {
     nsIRenderingContext* ctx = aContext->GetRenderingContext(aTarget);
     gfxContext* gfxCtx = aContext->GetGfxContext();
-
-    if (aTransform) {
-      
-      gfxMatrix m = nsSVGUtils::ConvertSVGMatrixToThebes(aTransform);
-      gfxCtx->Multiply(m);
-    }
 
     
     
