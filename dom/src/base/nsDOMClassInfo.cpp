@@ -6175,8 +6175,69 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 #endif
   }
 
-  return nsEventReceiverSH::NewResolve(wrapper, cx, obj, id, flags, objp,
-                                       _retval);
+  JSObject *oldobj = *objp;
+  rv = nsEventReceiverSH::NewResolve(wrapper, cx, obj, id, flags, objp,
+                                     _retval);
+
+  if (NS_FAILED(rv) || *objp != oldobj) {
+    
+    return rv;
+  }
+
+  
+  
+  
+  
+  if ((flags & (JSRESOLVE_ASSIGNING)) && win->IsInnerWindow()) {
+    JSObject *realObj;
+    wrapper->GetJSObject(&realObj);
+
+    if (obj == realObj) {
+      JSObject *proto = STOBJ_GET_PROTO(obj);
+      if (proto) {
+        jsid interned_id;
+        JSProperty *prop = nsnull;
+
+        if (!::JS_ValueToId(cx, id, &interned_id) ||
+            !OBJ_LOOKUP_PROPERTY(cx, proto, interned_id, objp, &prop)) {
+          *_retval = JS_FALSE;
+
+          return NS_OK;
+        }
+
+        if (prop) {
+          
+          
+          
+          OBJ_DROP_PROPERTY(cx, proto, prop);
+
+          return NS_OK;
+        }
+      }
+
+      
+      
+      
+      
+      
+      
+      
+
+      JSString *str = JSVAL_TO_STRING(id);
+      if (!::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
+                                 ::JS_GetStringLength(str), JSVAL_VOID,
+                                 JS_PropertyStub, JS_PropertyStub,
+                                 JSPROP_ENUMERATE)) {
+        *_retval = JS_FALSE;
+
+        return NS_OK;
+      }
+
+      *objp = obj;
+    }
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
