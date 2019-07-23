@@ -73,6 +73,7 @@
 #include "nsPluginArray.h"
 #include "nsIPluginHost.h"
 #include "nsPIPluginHost.h"
+#include "nsIPluginInstancePeer2.h"
 #include "nsGeolocation.h"
 #include "nsContentCID.h"
 #include "nsLayoutStatics.h"
@@ -432,6 +433,15 @@ nsDummyJavaPluginOwner::Destroy()
   if (mInstance) {
     mInstance->Stop();
     mInstance->Destroy();
+
+    nsCOMPtr<nsIPluginInstancePeer> peer;
+    mInstance->GetPeer(getter_AddRefs(peer));
+
+    nsCOMPtr<nsIPluginInstancePeer2> peer2(do_QueryInterface(peer));
+
+    
+    if (peer2)
+      peer2->InvalidateOwner();
 
     mInstance = nsnull;
   }
@@ -5793,6 +5803,14 @@ nsGlobalWindow::InitJavaProperties()
   }
 
   host->InstantiateDummyJavaPlugin(mDummyJavaPluginOwner);
+
+  
+  
+  
+  
+  if (!mDummyJavaPluginOwner) {
+    return;
+  }
 
   nsCOMPtr<nsIPluginInstance> dummyPlugin;
   mDummyJavaPluginOwner->GetInstance(*getter_AddRefs(dummyPlugin));
