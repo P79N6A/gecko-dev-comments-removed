@@ -39,10 +39,6 @@
 
 
 
-
-#define INCL_DOS
-#include <os2.h>
-
 #include "nsMIMEInfoOS2.h"
 #include "nsExternalHelperAppService.h"
 #include "nsCExternalHandlerService.h"
@@ -156,7 +152,9 @@ NS_IMETHODIMP nsMIMEInfoOS2::LaunchWithURI(nsIURI* aURI)
 
 nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI * aURL)
 {
-  LOG(("-- nsOSHelperAppService::LoadUriInternal\n"));
+
+#warning nsMIMEInfoOS2::LoadUriInternal is dysfunctional!
+
   nsCOMPtr<nsIPref> thePrefsService(do_GetService(NS_PREF_CONTRACTID));
   if (!thePrefsService) {
     return NS_ERROR_FAILURE;
@@ -188,9 +186,10 @@ nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI * aURL)
     char szAppFromINI[CCHMAXPATH];
     char szParamsFromINI[MAXINIPARAMLENGTH];
     
-    rv = GetApplicationAndParametersFromINI(uProtocol,
-                                            szAppFromINI, sizeof(szAppFromINI),
-                                            szParamsFromINI, sizeof(szParamsFromINI));
+
+
+
+
     if (NS_SUCCEEDED(rv)) {
       applicationName = szAppFromINI;
       parameters = szParamsFromINI;
