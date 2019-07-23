@@ -305,7 +305,7 @@ nsGenericHTMLElement::SetAttribute(const nsAString& aName,
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIAtom> nameAtom;
-    if (mNodeInfo->NamespaceEquals(kNameSpaceID_None)) {
+    if (IsInHTMLDocument()) {
       nsAutoString lower;
       ToLowerCase(aName, lower);
       nameAtom = do_GetAtom(lower);
@@ -327,23 +327,8 @@ nsGenericHTMLElement::GetNodeName(nsAString& aNodeName)
 {
   mNodeInfo->GetQualifiedName(aNodeName);
 
-  if (mNodeInfo->NamespaceEquals(kNameSpaceID_None))
+  if (IsInHTMLDocument())
     ToUpperCase(aNodeName);
-
-  return NS_OK;
-}
-
-nsresult
-nsGenericHTMLElement::GetLocalName(nsAString& aLocalName)
-{
-  mNodeInfo->GetLocalName(aLocalName);
-
-  if (mNodeInfo->NamespaceEquals(kNameSpaceID_None)) {
-    
-    
-
-    ToUpperCase(aLocalName);
-  }
 
   return NS_OK;
 }
@@ -355,28 +340,10 @@ nsGenericHTMLElement::GetElementsByTagName(const nsAString& aTagname,
   nsAutoString tagName(aTagname);
 
   
-  
-  if (mNodeInfo && mNodeInfo->NamespaceEquals(kNameSpaceID_None))
+  if (IsInHTMLDocument())
     ToLowerCase(tagName);
 
   return nsGenericHTMLElementBase::GetElementsByTagName(tagName, aReturn);
-}
-
-nsresult
-nsGenericHTMLElement::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                                             const nsAString& aLocalName,
-                                             nsIDOMNodeList** aReturn)
-{
-  nsAutoString localName(aLocalName);
-
-  
-  
-  if (mNodeInfo && mNodeInfo->NamespaceEquals(kNameSpaceID_None))
-    ToLowerCase(localName);
-
-  return nsGenericHTMLElementBase::GetElementsByTagNameNS(aNamespaceURI,
-                                                          localName,
-                                                          aReturn);
 }
 
 
@@ -671,8 +638,7 @@ nsGenericHTMLElement::GetInnerHTML(nsAString& aInnerHTML)
   nsresult rv = NS_OK;
 
   nsAutoString contentType;
-  if (!doc->IsCaseSensitive()) {
-    
+  if (IsInHTMLDocument()) {
     contentType.AssignLiteral("text/html");
   } else {
     doc->GetContentType(contentType);
@@ -1200,8 +1166,6 @@ nsGenericHTMLElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
 already_AddRefed<nsIURI>
 nsGenericHTMLElement::GetBaseURI() const
 {
-  nsIDocument* doc = GetOwnerDoc();
-
   void* prop;
   if (HasFlag(NODE_HAS_PROPERTIES) && (prop = GetProperty(nsGkAtoms::htmlBaseHref))) {
     nsIURI* uri = static_cast<nsIURI*>(prop);
@@ -1212,15 +1176,12 @@ nsGenericHTMLElement::GetBaseURI() const
 
   
   
-  if (mNodeInfo->NamespaceEquals(kNameSpaceID_None)) {
-    if (doc) {
-      nsIURI *uri = doc->GetBaseURI();
-      NS_IF_ADDREF(uri);
+  if (IsInHTMLDocument()) {
+    
+    nsIURI *uri = GetOwnerDoc()->GetBaseURI();
+    NS_IF_ADDREF(uri);
 
-      return uri;
-    }
-
-    return nsnull;
+    return uri;
   }
 
   return nsGenericHTMLElementBase::GetBaseURI();
@@ -3461,7 +3422,7 @@ nsGenericHTMLElement::GetHashFromHrefURI(nsAString& aHash)
 const nsAttrName*
 nsGenericHTMLElement::InternalGetExistingAttrNameFromQName(const nsAString& aStr) const
 {
-  if (mNodeInfo->NamespaceEquals(kNameSpaceID_None)) {
+  if (IsInHTMLDocument()) {
     nsAutoString lower;
     ToLowerCase(aStr, lower);
     return mAttrsAndChildren.GetExistingAttrNameFromQName(

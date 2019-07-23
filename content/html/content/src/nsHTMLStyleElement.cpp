@@ -321,7 +321,7 @@ nsHTMLStyleElement::GetStyleSheetURL(PRBool* aIsInline,
   if (*aIsInline) {
     return;
   }
-  if (mNodeInfo->NamespaceEquals(kNameSpaceID_XHTML)) {
+  if (!IsInHTMLDocument()) {
     
     
     *aIsInline = PR_TRUE;

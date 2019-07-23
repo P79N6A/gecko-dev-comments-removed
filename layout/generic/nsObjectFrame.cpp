@@ -2967,21 +2967,10 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   nsCOMPtr<nsIPluginInstanceOwner> kungFuDeathGrip(this);
   
-  if (ni->NamespaceEquals(kNameSpaceID_XHTML)) {
-    
-    
+  NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
 
-    NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
-
-    mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
-                                         getter_AddRefs(allParams));
-  } else {
-    
-    
-
-    mydomElement->GetElementsByTagName(NS_LITERAL_STRING("param"),
+  mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
                                        getter_AddRefs(allParams));
-  }    
 
   if (allParams) {
     PRUint32 numAllParams; 
@@ -3072,7 +3061,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   
   PRInt16 start, end, increment;
   if (mContent->IsNodeOfType(nsINode::eHTML) &&
-      mContent->NodeInfo()->NamespaceEquals(kNameSpaceID_None)) {
+      mContent->IsInHTMLDocument()) {
     
     start = numRealAttrs - 1;
     end = -1;

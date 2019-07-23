@@ -42,10 +42,10 @@
 #include "nsCaseTreatment.h"
 #include "nsChangeHint.h"
 #include "nsINode.h"
+#include "nsIDocument.h" 
 
 
 class nsIAtom;
-class nsIDocument;
 class nsPresContext;
 class nsIDOMEvent;
 class nsIContent;
@@ -200,6 +200,17 @@ public:
     NS_ASSERTION(!IsInNativeAnonymousSubtree() || GetBindingParent() || !GetParent(),
                  "must have binding parent when in native anonymous subtree with a parent node");
     return IsInNativeAnonymousSubtree() || GetBindingParent() != nsnull;
+  }
+
+  
+
+
+
+  inline PRBool IsInHTMLDocument() const
+  {
+    nsIDocument* doc = GetOwnerDoc();
+    return doc && 
+           !doc->IsCaseSensitive();
   }
 
   

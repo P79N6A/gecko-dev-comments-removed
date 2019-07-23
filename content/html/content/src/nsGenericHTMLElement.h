@@ -103,7 +103,6 @@ public:
 
   
   NS_METHOD GetNodeName(nsAString& aNodeName);
-  NS_METHOD GetLocalName(nsAString& aLocalName);
 
   
   NS_METHOD SetAttribute(const nsAString& aName,
@@ -111,9 +110,6 @@ public:
   NS_METHOD GetTagName(nsAString& aTagName);
   NS_METHOD GetElementsByTagName(const nsAString& aTagname,
                                  nsIDOMNodeList** aReturn);
-  NS_METHOD GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                                   const nsAString& aLocalName,
-                                   nsIDOMNodeList** aReturn);
 
   
   

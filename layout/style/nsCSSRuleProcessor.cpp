@@ -898,15 +898,10 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mHasAttributes = aContent->GetAttrCount() > 0;
 
     
-    if (aContent->IsNodeOfType(nsINode::eHTML)) {
-      mIsHTMLContent = PR_TRUE;
-      
-      
-      mNameSpaceID = kNameSpaceID_XHTML;
-    } else {
-      
-      mNameSpaceID = aContent->GetNameSpaceID();
-    }
+    mNameSpaceID = aContent->GetNameSpaceID();
+
+    
+    mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
 
     
     
@@ -995,14 +990,6 @@ const nsString* RuleProcessorData::GetLang()
   return mLanguage;
 }
 
-static inline PRInt32
-CSSNameSpaceID(nsIContent *aContent)
-{
-  return aContent->IsNodeOfType(nsINode::eHTML)
-           ? kNameSpaceID_XHTML
-           : aContent->GetNameSpaceID();
-}
-
 PRInt32
 RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
                                PRBool aCheckEdgeOnly)
@@ -1061,7 +1048,7 @@ RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
     if (child->IsNodeOfType(nsINode::eELEMENT) &&
         (!aIsOfType ||
          (child->Tag() == mContentTag &&
-          CSSNameSpaceID(child) == mNameSpaceID))) {
+          child->GetNameSpaceID() == mNameSpaceID))) {
       if (aCheckEdgeOnly) {
         
         
@@ -1570,8 +1557,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       stateToCheck = NS_EVENT_STATE_INDETERMINATE;
     }
     else if (nsCSSPseudoClasses::mozIsHTML == pseudoClass->mAtom) {
-      result = data.mIsHTMLContent &&
-        data.mContent->GetNameSpaceID() == kNameSpaceID_None;
+      result = data.mIsHTMLContent && data.mContent->IsInHTMLDocument();
     }
 #ifdef MOZ_MATHML
     else if (nsCSSPseudoClasses::mozMathIncrementScriptLevel == pseudoClass->mAtom) {
