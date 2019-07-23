@@ -119,6 +119,11 @@ struct THEBES_API gfxRect {
     
     
     
+    
+    
+    
+    
+    
     void Round();
 
     

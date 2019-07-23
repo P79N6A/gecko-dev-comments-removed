@@ -141,9 +141,14 @@ struct THEBES_API gfxPoint {
     gfxPoint operator/(const gfxFloat v) const {
         return gfxPoint(x / v, y / v);
     }
+    
+    
+    
+    
+    
     gfxPoint& Round() {
-        x = NS_round(x);
-        y = NS_round(y);
+        x = NS_floor(x + 0.5);
+        y = NS_floor(y + 0.5);
         return *this;
     }
 };
