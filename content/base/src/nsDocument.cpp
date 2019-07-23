@@ -153,6 +153,7 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 #include "nsIDOMXPathEvaluator.h"
 #include "nsDOMCID.h"
 
+#include "jsapi.h"
 #include "nsIJSContextStack.h"
 #include "nsIXPConnect.h"
 #include "nsCycleCollector.h"
@@ -3533,6 +3534,34 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     
     mLayoutHistoryState = nsnull;
     mScopeObject = do_GetWeakReference(aScriptGlobalObject);
+
+    
+    
+    nsIXPConnectWrappedNative *wrapper =
+      static_cast<nsIXPConnectWrappedNative*>(GetWrapper());
+    if (wrapper) {
+      JSObject *obj = nsnull;
+      wrapper->GetJSObject(&obj);
+      if (obj) {
+        JSObject *newScope = aScriptGlobalObject->GetGlobalJSObject();
+        nsIScriptContext *scx = aScriptGlobalObject->GetContext();
+        JSContext *cx = scx ? (JSContext *)scx->GetNativeContext() : nsnull;
+        if (!cx) {
+          nsContentUtils::ThreadJSContextStack()->Peek(&cx);
+          if (!cx) {
+            nsContentUtils::ThreadJSContextStack()->GetSafeJSContext(&cx);
+            NS_ASSERTION(cx, "Uhoh, no context, this is bad!");
+          }
+        }
+        if (cx) {
+          nsCOMPtr<nsIXPConnectJSObjectHolder> newWrapper;
+          nsContentUtils::XPConnect()->
+            ReparentWrappedNativeIfFound(cx, JS_GetGlobalForObject(cx, obj),
+                                         newScope, wrapper->Native(),
+                                         getter_AddRefs(newWrapper));
+        }
+      }
+    }
 
     if (mAllowDNSPrefetch) {
       nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocumentContainer);
