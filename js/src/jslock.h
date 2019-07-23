@@ -39,43 +39,32 @@
 #ifndef jslock_h__
 #define jslock_h__
 
+#ifdef JS_THREADSAFE
+
 #include "jstypes.h"
+#include "pratom.h"
+#include "prlock.h"
+#include "prcvar.h"
+#include "prthread.h"
+
 #include "jsprvtd.h"    
 #include "jspubtd.h"    
 
-#ifdef JS_THREADSAFE
-# include "pratom.h"
-# include "prlock.h"
-# include "prcvar.h"
-# include "prthread.h"
-#endif
-
 JS_BEGIN_EXTERN_C
-
-#ifdef JS_THREADSAFE
-
-#if (defined(_WIN32) && defined(_M_IX86)) ||                                  \
-    (defined(__GNUC__) && defined(__i386__)) ||                               \
-    (defined(__GNUC__) && defined(__x86_64__)) ||                             \
-    (defined(SOLARIS) && defined(sparc) && defined(ULTRA_SPARC)) ||           \
-    defined(AIX) ||                                                           \
-    defined(USE_ARM_KUSER)
-# define JS_HAS_NATIVE_COMPARE_AND_SWAP 1
-#else
-# define JS_HAS_NATIVE_COMPARE_AND_SWAP 0
-#endif
-
-#if defined(JS_USE_ONLY_NSPR_LOCKS) || !JS_HAS_NATIVE_COMPARE_AND_SWAP
-# define NSPR_LOCK 1
-#else
-# undef NSPR_LOCK
-#endif
 
 #define Thin_GetWait(W) ((jsword)(W) & 0x1)
 #define Thin_SetWait(W) ((jsword)(W) | 0x1)
 #define Thin_RemoveWait(W) ((jsword)(W) & ~0x1)
 
 typedef struct JSFatLock JSFatLock;
+
+struct JSFatLock {
+    int         susp;
+    PRLock      *slock;
+    PRCondVar   *svar;
+    JSFatLock   *next;
+    JSFatLock   **prevp;
+};
 
 typedef struct JSThinLock {
     jsword      owner;
@@ -86,6 +75,11 @@ typedef struct JSThinLock {
 #define CURRENT_THREAD_IS_ME(me) (((JSThread *)me)->id == js_CurrentThreadId())
 
 typedef PRLock JSLock;
+
+typedef struct JSFatLockTable {
+    JSFatLock   *free;
+    JSFatLock   *taken;
+} JSFatLockTable;
 
 typedef struct JSTitle JSTitle;
 
@@ -100,7 +94,7 @@ struct JSTitle {
     const char      *file[4];           
     unsigned int    line[4];            
 #endif
-};
+};    
 
 
 
@@ -119,12 +113,15 @@ struct JSTitle {
 #define JS_ATOMIC_INCREMENT(p)      PR_AtomicIncrement((PRInt32 *)(p))
 #define JS_ATOMIC_DECREMENT(p)      PR_AtomicDecrement((PRInt32 *)(p))
 #define JS_ATOMIC_ADD(p,v)          PR_AtomicAdd((PRInt32 *)(p), (PRInt32)(v))
+#define JS_ATOMIC_SET(p,v)          PR_AtomicSet((PRInt32 *)(p), (PRInt32)(v))
 
 #define js_CurrentThreadId()        (jsword)PR_GetCurrentThread()
 #define JS_NEW_LOCK()               PR_NewLock()
 #define JS_DESTROY_LOCK(l)          PR_DestroyLock(l)
 #define JS_ACQUIRE_LOCK(l)          PR_Lock(l)
 #define JS_RELEASE_LOCK(l)          PR_Unlock(l)
+#define JS_LOCK0(P,M)               js_Lock(P,M)
+#define JS_UNLOCK0(P,M)             js_Unlock(P,M)
 
 #define JS_NEW_CONDVAR(l)           PR_NewCondVar(l)
 #define JS_DESTROY_CONDVAR(cv)      PR_DestroyCondVar(cv)
@@ -142,9 +139,6 @@ struct JSTitle {
     js_SetScopeInfo(scope_, file_, line_)
 
 #endif
-
-#define JS_LOCK(cx, tl)             js_Lock(cx, tl)
-#define JS_UNLOCK(cx, tl)           js_Unlock(cx, tl)
 
 #define JS_LOCK_RUNTIME(rt)         js_LockRuntime(rt)
 #define JS_UNLOCK_RUNTIME(rt)       js_UnlockRuntime(rt)
@@ -177,9 +171,6 @@ struct JSTitle {
 #define JS_TRANSFER_SCOPE_LOCK(cx, scope, newscope)                            \
     js_TransferTitle(cx, &scope->title, &newscope->title)
 
-
-extern void js_Lock(JSContext *cx, JSThinLock *tl);
-extern void js_Unlock(JSContext *cx, JSThinLock *tl);
 extern void js_LockRuntime(JSRuntime *rt);
 extern void js_UnlockRuntime(JSRuntime *rt);
 extern void js_LockObj(JSContext *cx, JSObject *obj);
@@ -232,19 +223,50 @@ extern void js_SetScopeInfo(JSScope *scope, const char *file, int line);
         JS_LOCK_RUNTIME_VOID(_rt, e);                                         \
     JS_END_MACRO
 
+#if defined(JS_USE_ONLY_NSPR_LOCKS) ||                                        \
+    !( (defined(_WIN32) && defined(_M_IX86)) ||                               \
+       (defined(__GNUC__) && defined(__i386__)) ||                            \
+       (defined(SOLARIS) && defined(sparc) && defined(ULTRA_SPARC)) ||        \
+       defined(AIX) )
+
+#define NSPR_LOCK 1
+
+#undef JS_LOCK0
+#undef JS_UNLOCK0
+#define JS_LOCK0(P,M)   (JS_ACQUIRE_LOCK(((JSLock*)(P)->fat)), (P)->owner = (M))
+#define JS_UNLOCK0(P,M) ((P)->owner = 0, JS_RELEASE_LOCK(((JSLock*)(P)->fat)))
+
 #else  
+
+#undef NSPR_LOCK
+
+extern void js_Lock(JSThinLock *tl, jsword me);
+extern void js_Unlock(JSThinLock *tl, jsword me);
+
+#endif 
+
+#else  
+
+JS_BEGIN_EXTERN_C
+
+static inline int32 js_NotThreadsafeAtomicAdd(int32* p, int32 v) {
+    int32 r = *p;
+    *p = v;
+    return r;
+}
 
 #define JS_ATOMIC_INCREMENT(p)      (++*(p))
 #define JS_ATOMIC_DECREMENT(p)      (--*(p))
 #define JS_ATOMIC_ADD(p,v)          (*(p) += (v))
+#define JS_ATOMIC_SET(p,v)          (js_NotThreadsafeAtomicAdd((int32*)p, (int32)v))
 
 #define JS_CurrentThreadId() 0
 #define JS_NEW_LOCK()               NULL
 #define JS_DESTROY_LOCK(l)          ((void)0)
 #define JS_ACQUIRE_LOCK(l)          ((void)0)
 #define JS_RELEASE_LOCK(l)          ((void)0)
-#define JS_LOCK(cx, tl)             ((void)0)
-#define JS_UNLOCK(cx, tl)           ((void)0)
+#define JS_LOCK0(P,M)               ((void)0)
+#define JS_UNLOCK0(P,M)             ((void)0)
 
 #define JS_NEW_CONDVAR(l)           NULL
 #define JS_DESTROY_CONDVAR(cv)      ((void)0)
@@ -284,26 +306,14 @@ extern void js_SetScopeInfo(JSScope *scope, const char *file, int line);
                                                     JS_NO_TIMEOUT)
 #define JS_NOTIFY_REQUEST_DONE(rt)  JS_NOTIFY_CONDVAR((rt)->requestDone)
 
+#define JS_LOCK(P,CX)               JS_LOCK0(P, CX_THINLOCK_ID(CX))
+#define JS_UNLOCK(P,CX)             JS_UNLOCK0(P, CX_THINLOCK_ID(CX))
+ 
 #ifndef SET_OBJ_INFO
 #define SET_OBJ_INFO(obj,f,l)       ((void)0)
 #endif
 #ifndef SET_TITLE_INFO
 #define SET_TITLE_INFO(title,f,l)   ((void)0)
-#endif
-
-#ifdef JS_THREADSAFE
-
-extern JSBool
-js_CompareAndSwap(jsword *w, jsword ov, jsword nv);
-
-#else
-
-static inline JSBool
-js_CompareAndSwap(jsword *w, jsword ov, jsword nv)
-{
-    return (*w == ov) ? *w = nv, JS_TRUE : JS_FALSE;
-}
-
 #endif
 
 JS_END_EXTERN_C
