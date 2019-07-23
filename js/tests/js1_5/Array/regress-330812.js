@@ -51,6 +51,15 @@ expectExitCode(3);
 printStatus('This test passes if the browser does not hang or crash');
 printStatus('This test expects exit code 0 or 3 to indicate out of memory');
 
-var result = Array(1 << 29).sort();
+try
+{
+  var result = Array(1 << 29).sort();
+}
+catch(ex)
+{
+  
+  expect = 'InternalError: allocation size overflow';
+  actual = ex + '';
+}
 
 reportCompare(expect, actual, summary);
