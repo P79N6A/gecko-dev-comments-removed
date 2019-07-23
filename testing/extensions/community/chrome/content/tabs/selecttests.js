@@ -38,6 +38,7 @@
 
 var updateFunction;
 var handleCancel;
+var handleOK;
 var sTestrunsWrapper; 
 					  
 
@@ -48,6 +49,7 @@ function handleLoad() {
 	if (window.arguments.length > 0) {
 		updateFunction = window.arguments[0];   
 		handleCancel = window.arguments[1];     
+		handleOK = window.arguments[2];         
 	} 
 	litmus.getTestruns(populateTestRuns);
 }
@@ -116,6 +118,7 @@ function populateSubgroups(testgroup) {
 }
 
 function OK() {
+	handleOK();
 	return true;
 }
 
