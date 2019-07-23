@@ -2279,8 +2279,11 @@ var urlbarObserver = {
       var flavourSet = new FlavourSet();
 
       
-      flavourSet.appendFlavour("text/unicode");
+      
+      
+      
       flavourSet.appendFlavour("text/x-moz-url");
+      flavourSet.appendFlavour("text/unicode");
       flavourSet.appendFlavour("application/x-moz-file", "nsIFile");
       return flavourSet;
     }
