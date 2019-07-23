@@ -419,31 +419,6 @@ js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->a
 
 
 
-
-
-
-
-
-
-
-
-
-
-const uint32 JSSLOT_ARGS_LENGTH = JSSLOT_PRIVATE + 1;
-const uint32 JSSLOT_ARGS_CALLEE = JSSLOT_PRIVATE + 2;
-const uint32 JSSLOT_ARGS_START  = JSSLOT_PRIVATE + 3;
-
-JS_STATIC_ASSERT(JSSLOT_ARGS_START == JS_INITIAL_NSLOTS);
-
-
-const uint32 ARGS_FIXED_RESERVED_SLOTS = JSSLOT_ARGS_START - JSSLOT_ARGS_LENGTH;
-
-
-
-
-
-
-
 const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(24) - 1;
 
 
@@ -466,25 +441,6 @@ inline void
 SetArgsSlot(JSObject *argsobj, uint32 arg, jsval v)
 {
     argsobj->dslots[arg] = v;
-}
-
-inline bool
-IsOverriddenArgsLength(JSObject *obj)
-{
-    JS_ASSERT(obj->isArguments());
-
-    jsval v = obj->fslots[JSSLOT_ARGS_LENGTH];
-    return (JSVAL_TO_INT(v) & 1) != 0;
-}
-
-inline uint32
-GetArgsLength(JSObject *obj)
-{
-    JS_ASSERT(obj->isArguments());
-
-    uint32 argc = uint32(JSVAL_TO_INT(obj->fslots[JSSLOT_ARGS_LENGTH])) >> 1;
-    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
-    return argc;
 }
 
 } 

@@ -406,14 +406,48 @@ struct JSObject {
 
   public:
     inline uint32 getArrayLength() const;
-    inline uint32 getArrayCount() const;
-
     inline void setArrayLength(uint32 length);
-    inline void setArrayCount(uint32 count);
+
+    inline uint32 getArrayCount() const;
     inline void voidDenseArrayCount();
+    inline void setArrayCount(uint32 count);
     inline void incArrayCountBy(uint32 posDelta);
     inline void decArrayCountBy(uint32 negDelta);
+
     inline void voidArrayUnused();
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+  private:
+    static const uint32 JSSLOT_ARGS_LENGTH = JSSLOT_PRIVATE + 1;
+    static const uint32 JSSLOT_ARGS_CALLEE = JSSLOT_PRIVATE + 2;
+
+  public:
+    
+    static const uint32 ARGS_FIXED_RESERVED_SLOTS = 2;
+
+    inline uint32 getArgsLength() const;
+    inline void setArgsLength(uint32 argc);
+    inline void setArgsLengthOverridden();
+    inline bool isArgsLengthOverridden();
+
+    inline jsval getArgsCallee() const;
+    inline void setArgsCallee(jsval callee);
 
     
 
