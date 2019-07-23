@@ -733,7 +733,9 @@ nsHTMLReflowState::GetNearestContainingBlock(nsIFrame* aFrame, nscoord& aCBLeftE
 
 
 struct nsHypotheticalBox {
+  
   nscoord       mLeft, mRight;
+  
   nscoord       mTop;
   PRPackedBool  mLeftIsExact, mRightIsExact;
 
@@ -1065,7 +1067,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   
   nsMargin border = cbrs->mComputedBorderPadding - cbrs->mComputedPadding;
   aHypotheticalBox.mLeft -= border.left;
-  aHypotheticalBox.mRight -= border.right;
+  aHypotheticalBox.mRight -= border.left;
   aHypotheticalBox.mTop -= border.top;
 }
 
