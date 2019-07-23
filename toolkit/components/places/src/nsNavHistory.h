@@ -496,16 +496,7 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-  nsresult InitDB(PRInt16 *aMadeChanges);
+  nsresult InitDB();
   nsresult InitTempTables();
   nsresult InitViews();
   nsresult InitFunctions();
@@ -515,7 +506,6 @@ protected:
   nsresult MigrateV6Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV7Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV8Up(mozIStorageConnection *aDBConn);
-  nsresult EnsureCurrentSchema(mozIStorageConnection* aDBConn, PRBool *aMadeChanges);
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
 
