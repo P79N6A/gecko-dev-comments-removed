@@ -2110,8 +2110,16 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
     
     
     case NPPVpluginWindowBool: {
+#ifdef XP_MACOSX
+      
+      
+      
+      
+      return NPERR_NO_ERROR;
+#else
       NPBool bWindowless = (result == nsnull);
       return inst->SetWindowless(bWindowless);
+#endif
     }
 
     case NPPVpluginTransparentBool: {
