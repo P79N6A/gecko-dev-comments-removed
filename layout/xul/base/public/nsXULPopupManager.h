@@ -338,6 +338,10 @@ public:
 
   
   
+  nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent, nsIAtom* aFrameType);
+
+  
+  
   
   
   
@@ -576,10 +580,6 @@ public:
 protected:
   nsXULPopupManager();
   ~nsXULPopupManager();
-
-  
-  
-  nsIFrame* GetFrameOfTypeForContent(nsIContent* aContent, nsIAtom* aFrameType);
 
   
   nsMenuFrame* GetMenuFrameForContent(nsIContent* aContent);

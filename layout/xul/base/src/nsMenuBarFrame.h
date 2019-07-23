@@ -92,6 +92,9 @@ public:
 
 
 
+  void
+  SetStayActive(PRBool aStayActive) { mStayActive = aStayActive; }
+
   
   
   nsMenuFrame* ToggleMenuActiveState();
@@ -125,7 +128,11 @@ public:
 protected:
   nsMenuBarListener* mMenuBarListener; 
 
-  PRBool mIsActive; 
+  
+  
+  PRPackedBool mStayActive;
+
+  PRPackedBool mIsActive; 
   
   
   nsMenuFrame* mCurrentMenu;
