@@ -808,6 +808,12 @@ BrowserGlue.prototype = {
   },
 
   ensurePlacesDefaultQueriesInitialized: function() {
+    
+    
+    
+    
+    
+    
     const SMART_BOOKMARKS_VERSION = 2;
     const SMART_BOOKMARKS_ANNO = "Places/SmartBookmark";
     const SMART_BOOKMARKS_PREF = "browser.places.smartBookmarksVersion";
@@ -820,7 +826,7 @@ BrowserGlue.prototype = {
     var smartBookmarksCurrentVersion = 0;
     try {
       smartBookmarksCurrentVersion = this._prefs.getIntPref(SMART_BOOKMARKS_PREF);
-    } catch(ex) {}
+    } catch(ex) {  }
 
     
     if (smartBookmarksCurrentVersion == -1 ||
@@ -858,7 +864,8 @@ BrowserGlue.prototype = {
                                     Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING +
                                     "&maxResults=" + MAX_RESULTS),
                      parent: bmsvc.toolbarFolder,
-                     position: bookmarksToolbarIndex++};
+                     position: bookmarksToolbarIndex++,
+                     newInVersion: 1 };
         smartBookmarks.push(smart);
 
         
@@ -876,7 +883,8 @@ BrowserGlue.prototype = {
                                 "&maxResults=" + MAX_RESULTS +
                                 "&excludeQueries=1"),
                  parent: bmsvc.bookmarksMenuFolder,
-                 position: bookmarksMenuIndex++};
+                 position: bookmarksMenuIndex++,
+                 newInVersion: 1 };
         smartBookmarks.push(smart);
 
         
@@ -890,15 +898,19 @@ BrowserGlue.prototype = {
                     Ci.nsINavHistoryQueryOptions.SORT_BY_LASTMODIFIED_DESCENDING +
                     "&maxResults=" + MAX_RESULTS),
                  parent: bmsvc.bookmarksMenuFolder,
-                 position: bookmarksMenuIndex++};
+                 position: bookmarksMenuIndex++,
+                 newInVersion: 1 };
         smartBookmarks.push(smart);
 
         var smartBookmarkItemIds = annosvc.getItemsWithAnnotation(SMART_BOOKMARKS_ANNO, {});
+        
+        
         
         for each(var itemId in smartBookmarkItemIds) {
           var queryId = annosvc.getItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
           for (var i = 0; i < smartBookmarks.length; i++){
             if (smartBookmarks[i].queryId == queryId) {
+              smartBookmarks[i].found = true;
               smartBookmarks[i].itemId = itemId;
               smartBookmarks[i].parent = bmsvc.getFolderIdForItem(itemId);
               smartBookmarks[i].position = bmsvc.getItemIndex(itemId);
@@ -916,6 +928,14 @@ BrowserGlue.prototype = {
 
         
         for each(var smartBookmark in smartBookmarks) {
+          
+          
+          
+          if (smartBookmarksCurrentVersion > 0 &&
+              smartBookmark.newInVersion <= smartBookmarksCurrentVersion &&
+              !smartBookmark.found)
+            continue;
+
           smartBookmark.itemId = bmsvc.insertBookmark(smartBookmark.parent,
                                                       smartBookmark.uri,
                                                       smartBookmark.position,
@@ -927,7 +947,8 @@ BrowserGlue.prototype = {
         
         
         
-        if (smartBookmarkItemIds.length == 0)
+        if (smartBookmarksCurrentVersion == 0 &&
+            smartBookmarkItemIds.length == 0)
           bmsvc.insertSeparator(bmsvc.bookmarksMenuFolder, bookmarksMenuIndex);
       }
     };
