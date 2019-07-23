@@ -113,6 +113,21 @@ private:
   PRBool mIsInserted;
 };
 
+class nsAccCaretMoveEvent: public nsAccEvent,
+                           public nsIAccessibleCaretMoveEvent
+{
+public:
+  nsAccCaretMoveEvent(nsIAccessible *aAccessible, PRInt32 aCaretOffset);
+  nsAccCaretMoveEvent(nsIDOMNode *aNode);
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_FORWARD_NSIACCESSIBLEEVENT(nsAccEvent::)
+  NS_DECL_NSIACCESSIBLECARETMOVEEVENT
+
+private:
+  PRInt32 mCaretOffset;
+};
+
 
 
 
