@@ -544,7 +544,7 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
     placed = FlowAndPlaceFloat(fc, &isLeftFloat, aReflowStatus, forceFit);
     NS_ASSERTION(placed || !forceFit,
                  "If we asked for force-fit, it should have been placed");
-    if (placed) {
+    if (forceFit || (placed && !NS_FRAME_IS_TRUNCATED(aReflowStatus))) {
       
       GetAvailableSpace(mY, forceFit);
       aLineLayout.UpdateBand(mAvailSpaceRect.x + BorderPadding().left, mY,
@@ -555,8 +555,22 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
       
       
       mCurrentLineFloats.Append(fc);
+      
+      
+      aReflowStatus &= ~NS_FRAME_TRUNCATED;
     }
     else {
+      if (IsAdjacentWithTop()) {
+        
+        
+        NS_ASSERTION(aLineLayout.LineIsBreakable(),
+                     "We can't get here unless forceFit is false");
+        aReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
+      } else {
+        
+        
+        aReflowStatus |= NS_FRAME_TRUNCATED;
+      }
       delete fc;
     }
 
@@ -564,6 +578,9 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
     mSpaceManager->Translate(dx, dy);
   }
   else {
+    
+    
+    placed = PR_TRUE;
     
     
     mBelowCurrentLineFloats.Append(fc);
@@ -576,16 +593,9 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
       
       
       
-      if (aPlaceholder->GetSplittableType() == NS_FRAME_NOT_SPLITTABLE) {
-        placed = PR_FALSE;
-      }
-      else {
-        placed = PR_TRUE;
+      if (aPlaceholder->GetSplittableType() != NS_FRAME_NOT_SPLITTABLE) {
         aReflowStatus = NS_FRAME_NOT_COMPLETE;
       }
-    }
-    else {
-      placed = PR_TRUE;
     }
   }
   return placed;
@@ -991,7 +1001,12 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
       NS_ASSERTION(placed || !aForceFit,
                    "If we're in force-fit mode, we should have placed the float");
 
-      if (!placed || NS_FRAME_IS_TRUNCATED(reflowStatus)) {
+      
+      
+      NS_WARN_IF_FALSE(NS_FRAME_IS_TRUNCATED(reflowStatus) && aForceFit,
+                       "This situation currently leads to data not printing");
+
+      if (!placed || (NS_FRAME_IS_TRUNCATED(reflowStatus) && !aForceFit)) {
         
         return PR_FALSE;
       }
