@@ -42,6 +42,7 @@
 
 
 
+
 #include "nsStyleStruct.h"
 #include "nsStyleConsts.h"
 #include "nsThemeConstants.h"
@@ -1545,7 +1546,23 @@ nsChangeHint nsStyleTextReset::MaxDifference()
 
 
 
-nsStyleText::nsStyleText(void) 
+
+nsrefcnt
+nsTextShadowArray::Release()
+{
+  mRefCnt--;
+  if (mRefCnt == 0) {
+    delete this;
+    return 0;
+  }
+  return mRefCnt;
+}
+
+
+
+
+
+nsStyleText::nsStyleText(void)
 { 
   mTextAlign = NS_STYLE_TEXT_ALIGN_DEFAULT;
   mTextTransform = NS_STYLE_TEXT_TRANSFORM_NONE;
@@ -1555,26 +1572,47 @@ nsStyleText::nsStyleText(void)
   mLineHeight.SetNormalValue();
   mTextIndent.SetCoordValue(0);
   mWordSpacing.SetNormalValue();
+
+  mShadowArray = nsnull;
 }
 
-nsStyleText::nsStyleText(const nsStyleText& aSource) 
-{ 
-  memcpy((nsStyleText*)this, &aSource, sizeof(nsStyleText));
-}
+nsStyleText::nsStyleText(const nsStyleText& aSource)
+  : mTextAlign(aSource.mTextAlign),
+    mTextTransform(aSource.mTextTransform),
+    mWhiteSpace(aSource.mWhiteSpace),
+    mLetterSpacing(aSource.mLetterSpacing),
+    mLineHeight(aSource.mLineHeight),
+    mTextIndent(aSource.mTextIndent),
+    mWordSpacing(aSource.mWordSpacing),
+    mShadowArray(aSource.mShadowArray)
+{ }
 
 nsStyleText::~nsStyleText(void) { }
 
 nsChangeHint nsStyleText::CalcDifference(const nsStyleText& aOther) const
 {
-  if ((mTextAlign == aOther.mTextAlign) &&
-      (mTextTransform == aOther.mTextTransform) &&
-      (mWhiteSpace == aOther.mWhiteSpace) &&
-      (mLetterSpacing == aOther.mLetterSpacing) &&
-      (mLineHeight == aOther.mLineHeight) &&
-      (mTextIndent == aOther.mTextIndent) &&
-      (mWordSpacing == aOther.mWordSpacing))
+  if ((mTextAlign != aOther.mTextAlign) ||
+      (mTextTransform != aOther.mTextTransform) ||
+      (mWhiteSpace != aOther.mWhiteSpace) ||
+      (mLetterSpacing != aOther.mLetterSpacing) ||
+      (mLineHeight != aOther.mLineHeight) ||
+      (mTextIndent != aOther.mTextIndent) ||
+      (mWordSpacing != aOther.mWordSpacing))
+    return NS_STYLE_HINT_REFLOW;
+
+  if ((!mShadowArray && !aOther.mShadowArray) ||
+      mShadowArray == aOther.mShadowArray)
     return NS_STYLE_HINT_NONE;
-  return NS_STYLE_HINT_REFLOW;
+
+  if (!mShadowArray || !aOther.mShadowArray ||
+      (mShadowArray->Length() != aOther.mShadowArray->Length()))
+    return NS_STYLE_HINT_REFLOW;
+
+  for (PRUint32 i = 0; i < mShadowArray->Length(); ++i) {
+    if (*mShadowArray->ShadowAt(i) != *aOther.mShadowArray->ShadowAt(i))
+      return NS_STYLE_HINT_REFLOW;
+  }
+  return NS_STYLE_HINT_NONE;
 }
 
 #ifdef DEBUG

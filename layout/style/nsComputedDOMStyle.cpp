@@ -42,6 +42,7 @@
 
 
 
+
 #include "nsComputedDOMStyle.h"
 
 #include "nsDOMError.h"
@@ -1208,9 +1209,8 @@ nsComputedDOMStyle::GetBorderSpacing(nsIDOMCSSValue** aValue)
   }
 
   const nsStyleTableBorder *border = GetStyleTableBorder();
-  
-  xSpacing->SetAppUnits(border->mBorderSpacingX.GetCoordValue());
-  ySpacing->SetAppUnits(border->mBorderSpacingY.GetCoordValue());
+  SetValueToCoord(xSpacing, border->mBorderSpacingX);
+  SetValueToCoord(ySpacing, border->mBorderSpacingY);
 
   return CallQueryInterface(valueList, aValue);
 }
@@ -1789,6 +1789,65 @@ nsComputedDOMStyle::GetTextIndent(nsIDOMCSSValue** aValue)
                   &nsComputedDOMStyle::GetCBContentWidth);
 
   return CallQueryInterface(val, aValue);
+}
+
+nsresult
+nsComputedDOMStyle::GetTextShadow(nsIDOMCSSValue** aValue)
+{
+  const nsStyleText* text = GetStyleText();
+
+  if (!text->mShadowArray) {
+    nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
+    val->SetIdent(nsGkAtoms::none);
+    return CallQueryInterface(val, aValue);
+  }
+
+  static const nsStyleCoord nsTextShadowItem::*shadowValues[] = {
+    &nsTextShadowItem::mXOffset,
+    &nsTextShadowItem::mYOffset,
+    &nsTextShadowItem::mRadius
+  };
+
+  nsDOMCSSValueList *valueList = GetROCSSValueList(PR_TRUE);
+  NS_ENSURE_TRUE(valueList, NS_ERROR_OUT_OF_MEMORY);
+
+  for (nsTextShadowItem *item = text->mShadowArray->ShadowAt(0),
+                    *item_end = item + text->mShadowArray->Length();
+       item < item_end; ++item) {
+    nsDOMCSSValueList *itemList = GetROCSSValueList(PR_FALSE);
+    if (!itemList || !valueList->AppendCSSValue(itemList)) {
+      delete itemList;
+      delete valueList;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    
+    nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
+    if (!val || !itemList->AppendCSSValue(val)) {
+      delete val;
+      delete valueList;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    nscolor shadowColor;
+    if (item->mHasColor) {
+      shadowColor = item->mColor;
+    } else {
+      shadowColor = GetStyleColor()->mColor;
+    }
+    SetToRGBAColor(val, shadowColor);
+
+    
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(shadowValues); ++i) {
+      val = GetROCSSPrimitiveValue();
+      if (!val || !itemList->AppendCSSValue(val)) {
+        delete val;
+        delete valueList;
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      SetValueToCoord(val, item->*(shadowValues[i]));
+    }
+  }
+  return CallQueryInterface(valueList, aValue);
 }
 
 nsresult
@@ -3770,7 +3829,7 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(text_align,                    TextAlign),
     COMPUTED_STYLE_MAP_ENTRY(text_decoration,               TextDecoration),
     COMPUTED_STYLE_MAP_ENTRY(text_indent,                   TextIndent),
-    
+    COMPUTED_STYLE_MAP_ENTRY(text_shadow,                   TextShadow),
     COMPUTED_STYLE_MAP_ENTRY(text_transform,                TextTransform),
     COMPUTED_STYLE_MAP_ENTRY(top,                           Top),
     COMPUTED_STYLE_MAP_ENTRY(unicode_bidi,                  UnicodeBidi),
