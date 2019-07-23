@@ -189,21 +189,6 @@ nsMenuPopupFrame::IsNoAutoHide()
                                  nsGkAtoms::_true, eIgnoreCase));
 }
 
-PRBool
-nsMenuPopupFrame::IsTopMost()
-{
-  
-  if (mPopupType != ePopupTypePanel)
-    return PR_TRUE;
-  
-  
-  if (mInContentShell || IsNoAutoHide())
-    return PR_FALSE;
-  
-  return mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::topmost,
-                               nsGkAtoms::_true, eIgnoreCase);
-}
-
 void
 nsMenuPopupFrame::EnsureWidget()
 {
@@ -237,7 +222,7 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   
   
   nsCOMPtr<nsIWidget> parentWidget;
-  if (!IsTopMost()) {
+  if (IsNoAutoHide()) {
     nsCOMPtr<nsISupports> cont = PresContext()->GetContainer();
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
     if (!dsti)
