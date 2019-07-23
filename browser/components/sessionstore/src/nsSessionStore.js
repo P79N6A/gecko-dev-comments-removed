@@ -229,9 +229,6 @@ SessionStoreService.prototype = {
           this._initialState.session.state == STATE_RUNNING_STR;
         
         
-        WINDOW_ATTRIBUTES.forEach(function(aAttr) {
-          delete this._initialState.windows[0][aAttr];
-        }, this);
         delete this._initialState.windows[0].hidden;
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
