@@ -531,26 +531,14 @@ CallWithoutStatics(JSContext *cx, JSObject *obj, jsval fval, uintN argc,
   JSTempValueRooter tvr;
   js_SaveRegExpStatics(cx, &statics, &tvr);
   JS_ClearRegExpStatics(cx);
+  JSStackFrame *fp = JS_SaveFrameChain(cx);
+  uint32 options =
+    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_DONT_REPORT_UNCAUGHT);
   JSBool ok = ::JS_CallFunctionValue(cx, obj, fval, argc, argv, rval);
+  JS_SetOptions(cx, options);
+  JS_RestoreFrameChain(cx, fp);
   js_RestoreRegExpStatics(cx, &statics, &tvr);
   return ok;
-}
-
-
-
-
-
-static JSBool
-XPC_SJOW_CallWrapper(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
-                     jsval *rval)
-{
-  
-  
-  if (argc < 1) {
-    return ThrowException(NS_ERROR_INVALID_ARG, cx);
-  }
-
-  return CallWithoutStatics(cx, obj, argv[0], argc - 1, argv + 1, rval);
 }
 
 static JSBool
@@ -813,67 +801,25 @@ XPC_SJOW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
     return JS_FALSE;
   }
 
-  JSFunction *callWrapper;
-  jsval cwval;
-
-  
-  
-  if (!::JS_GetReservedSlot(cx, JSVAL_TO_OBJECT(scriptedFunVal), 0, &cwval)) {
-    return JS_FALSE;
-  }
-
-  if (JSVAL_IS_PRIMITIVE(cwval)) {
-    
-    callWrapper =
-      ::JS_NewFunction(cx, XPC_SJOW_CallWrapper, 0, 0, callThisObj,
-                       "XPC_SJOW_CallWrapper");
-    if (!callWrapper) {
-      return JS_FALSE;
-    }
-
-    
-    
-    
-    
-    
-    JSObject *callWrapperObj = ::JS_GetFunctionObject(callWrapper);
-    if (!::JS_SetReservedSlot(cx, JSVAL_TO_OBJECT(scriptedFunVal), 0,
-                              OBJECT_TO_JSVAL(callWrapperObj))) {
-      return JS_FALSE;
-    }
-  } else {
-    
-    callWrapper = ::JS_ValueToFunction(cx, cwval);
-
-    if (!callWrapper) {
-      return ThrowException(NS_ERROR_UNEXPECTED, cx);
-    }
-  }
-
   
   jsval argsBuf[8];
   jsval *args = argsBuf;
 
-  tmp = ::JS_GetFunctionObject(callWrapper);
-  if (!tmp)
-    return JS_FALSE;
-
   if (argc > 7) {
-    args = (jsval *)nsMemory::Alloc((argc + 2) * sizeof(jsval *));
+    args = (jsval *)nsMemory::Alloc((argc + 1) * sizeof(jsval *));
     if (!args) {
       return ThrowException(NS_ERROR_OUT_OF_MEMORY, cx);
     }
   }
 
-  args[0] = OBJECT_TO_JSVAL(tmp);
-  args[1] = OBJECT_TO_JSVAL(funToCall);
+  args[0] = OBJECT_TO_JSVAL(funToCall);
 
   for (uintN i = 0; i < argc; ++i) {
-    args[i + 2] = UnwrapJSValue(argv[i]);
+    args[i + 1] = UnwrapJSValue(argv[i]);
   }
 
   jsval val;
-  JSBool ok = CallWithoutStatics(cx, callThisObj, scriptedFunVal, argc + 2,
+  JSBool ok = CallWithoutStatics(cx, callThisObj, scriptedFunVal, argc + 1,
                                  args, &val);
 
   if (args != argsBuf) {
