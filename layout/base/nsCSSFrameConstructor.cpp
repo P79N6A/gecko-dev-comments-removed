@@ -9142,32 +9142,6 @@ nsCSSFrameConstructor::ReinsertContent(nsIContent* aContainer,
   return res;
 }
 
-static void
-DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
-                       nsVoidArray&    aDestroyQueue,
-                       nsIFrame*       aRemovedFrame,
-                       nsIFrame*       aFrame);
-
-static void
-DoDeletingOverflowContainers(nsFrameManager* aFrameManager,
-                             nsVoidArray&    aDestroyQueue,
-                             nsIFrame*       aRemovedFrame,
-                             nsIFrame*       aFrame)
-{
-  
-  
-  
-  
-  
-  const PRBool orphanSubtree = aRemovedFrame == aFrame;
-  for (nsIFrame* next = aFrame->GetNextContinuation();
-       next && (next->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER);
-       next = next->GetNextContinuation()) {
-    DoDeletingFrameSubtree(aFrameManager, aDestroyQueue,
-                           orphanSubtree ? next : aRemovedFrame,
-                           next);
-  }
-}
 
 
 
@@ -9191,18 +9165,12 @@ DoDeletingOverflowContainers(nsFrameManager* aFrameManager,
 
 
 
-
-static void
+static nsresult
 DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
                        nsVoidArray&    aDestroyQueue,
                        nsIFrame*       aRemovedFrame,
                        nsIFrame*       aFrame)
 {
-#undef RECURSE
-#define RECURSE(top, child)                                                  \
-  DoDeletingFrameSubtree(aFrameManager, aDestroyQueue, (top), (child));      \
-  DoDeletingOverflowContainers(aFrameManager, aDestroyQueue, (top), (child));
-
   
   nsIContent* content = aFrame->GetContent();
   if (content) {
@@ -9217,10 +9185,10 @@ DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
     
     nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
     for (; childFrame; childFrame = childFrame->GetNextSibling()) {
-      NS_ASSERTION(!(childFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW),
-                   "out-of-flow on wrong child list");
       if (NS_LIKELY(nsGkAtoms::placeholderFrame != childFrame->GetType())) {
-        RECURSE(aRemovedFrame, childFrame);
+        DoDeletingFrameSubtree(aFrameManager, aDestroyQueue,
+                               aRemovedFrame, childFrame);
+
       } else {
         nsIFrame* outOfFlowFrame =
           nsPlaceholderFrame::GetRealFrameForPlaceholder(childFrame);
@@ -9240,25 +9208,26 @@ DoDeletingFrameSubtree(nsFrameManager* aFrameManager,
                        "out-of-flow is already in the destroy queue");
           aDestroyQueue.AppendElement(outOfFlowFrame);
           
-          RECURSE(outOfFlowFrame, outOfFlowFrame);
+          DoDeletingFrameSubtree(aFrameManager, aDestroyQueue,
+                                 outOfFlowFrame, outOfFlowFrame);
         }
         else {
           
           
-          RECURSE(aRemovedFrame, outOfFlowFrame);
+          DoDeletingFrameSubtree(aFrameManager, aDestroyQueue,
+                                 aRemovedFrame, outOfFlowFrame);
         }
       }
     }
 
     
     
-    
     do {
       childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-    } while (IsOutOfFlowList(childListName) ||
-             childListName == nsGkAtoms::overflowContainersList ||
-             childListName == nsGkAtoms::excessOverflowContainersList);
+    } while (IsOutOfFlowList(childListName));
   } while (childListName);
+
+  return NS_OK;
 }
 
 
@@ -9287,10 +9256,6 @@ DeletingFrameSubtree(nsFrameManager* aFrameManager,
   do {
     DoDeletingFrameSubtree(aFrameManager, destroyQueue, aFrame, aFrame);
 
-    
-    
-    
-    
     
     
     
@@ -11902,9 +11867,6 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
         
         
         nsIContent* letterContent = aTextContent->GetParent();
-        NS_ASSERTION(!letterContent->IsRootOfNativeAnonymousSubtree(),
-                     "Reframes of this letter frame will mess with the root "
-                     "of a native anonymous content subtree!");
         letterFrame->Init(letterContent, aParentFrame, nsnull);
 
         InitAndRestoreFrame(aState, aTextContent, letterFrame, nsnull,
