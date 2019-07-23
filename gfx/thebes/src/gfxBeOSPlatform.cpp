@@ -55,7 +55,7 @@ gfxBeOSPlatform::~gfxBeOSPlatform()
     gfxFontconfigUtils::Shutdown();
     sFontconfigUtils = nsnull;
 
-    gfxPangoFont::Shutdown();
+    gfxPangoFontGroup::Shutdown();
 
 #if 0
     
