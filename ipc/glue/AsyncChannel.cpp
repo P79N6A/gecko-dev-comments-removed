@@ -251,7 +251,9 @@ AsyncChannel::OnChannelError()
         MessageLoop::current()->Quit();
 #else
         
-        NS_DebugBreak(NS_DEBUG_ABORT, nsnull, nsnull, nsnull, 0);
+        
+        
+        _exit(0);
 #endif
     }
 }
