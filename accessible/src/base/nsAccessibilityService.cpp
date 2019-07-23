@@ -253,9 +253,14 @@ nsAccessibilityService::ProcessDocLoadEvent(nsIWebProgress *aWebProgress,
 }
 
 
-nsresult
+void
 nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent *aTarget)
 {
+  nsIDocument *document = aTarget->GetCurrentDoc();
+  nsCOMPtr<nsIDOMNode> documentNode(do_QueryInterface(document));
+  if (!documentNode)
+    return;
+
   nsCOMPtr<nsIDOMNode> targetNode(do_QueryInterface(aTarget));
 
   nsCOMPtr<nsIAccessible> targetAcc;
@@ -263,23 +268,30 @@ nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent *aTarget)
 
   
   
+  nsRefPtr<nsDocAccessible> accessibleDoc =
+    nsAccessNode::GetDocAccessibleFor(documentNode);
+  if (!accessibleDoc)
+    return;
+
+  
+  
   if (!targetAcc) {
-    nsIDocument *document = aTarget->GetCurrentDoc();
-    nsCOMPtr<nsIDOMNode> documentNode(do_QueryInterface(document));
-    if (documentNode) {
-      nsCOMPtr<nsIAccessibleDocument> accessibleDoc =
-        nsAccessNode::GetDocAccessibleFor(documentNode);
-      if (accessibleDoc)
         accessibleDoc->GetAccessibleInParentChain(targetNode, PR_TRUE,
                                                   getter_AddRefs(targetAcc));
-    }
+        nsCOMPtr<nsIAccessNode> accNode = do_QueryInterface(targetAcc);
+        accNode->GetDOMNode(getter_AddRefs(targetNode));
   }
 
-  if (targetAcc)
-    nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
-                            targetAcc);
+  NS_ASSERTION(targetNode,
+      "No accessible in parent chain!? Expect at least a document accessible.");
+  if (!targetNode)
+    return;
 
-  return NS_OK;
+  
+  
+  accessibleDoc->FireDelayedAccessibleEvent(
+                     nsIAccessibleEvent::EVENT_SCROLLING_START,
+                     targetNode);
 }
 
 

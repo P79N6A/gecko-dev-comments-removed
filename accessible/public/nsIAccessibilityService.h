@@ -151,7 +151,7 @@ public:
 
 
 
-  virtual nsresult NotifyOfAnchorJumpTo(nsIContent *aTarget) = 0;
+  virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget) = 0;
 
   
 
