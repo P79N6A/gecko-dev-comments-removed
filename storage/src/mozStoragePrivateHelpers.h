@@ -38,8 +38,10 @@
 
 
 
-#ifndef _MOZSTORAGE_H_
-#define _MOZSTORAGE_H_
+#ifndef _MOZSTORAGEPRIVATEHELPERS_H_
+#define _MOZSTORAGEPRIVATEHELPERS_H_
+
+#include "mozStorage.h"
 
 
 
@@ -66,6 +68,7 @@ ConvertResultCode(int srv)
         case SQLITE_CANTOPEN:
             return NS_ERROR_FILE_ACCESS_DENIED;
         case SQLITE_BUSY:
+            return NS_ERROR_STORAGE_BUSY;
         case SQLITE_LOCKED:
             return NS_ERROR_FILE_IS_LOCKED;
         case SQLITE_READONLY:
