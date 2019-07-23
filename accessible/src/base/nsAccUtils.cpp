@@ -408,14 +408,30 @@ nsAccUtils::GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
                                   nsIAccessible **aTreeItemParentResult)
 {
   *aTreeItemParentResult = nsnull;
+
+  nsCOMPtr<nsIAccessible> parentAccessible;
+  aStartTreeItem->GetParent(getter_AddRefs(parentAccessible));
+  if (!parentAccessible)
+    return;
+
+  PRUint32 startTreeItemRole = nsAccUtils::Role(aStartTreeItem);
+
+  
+  if (startTreeItemRole == nsIAccessibleRole::ROLE_ROW) {
+    PRUint32 role = nsAccUtils::Role(parentAccessible);
+    if (role != nsIAccessibleRole::ROLE_TREE_TABLE)
+      return;
+  }
+
+  
+  
+  
   nsAutoString levelStr;
-  PRInt32 level = 0;
   if (nsAccUtils::HasDefinedARIAToken(aStartContent, nsAccessibilityAtoms::aria_level) &&
       aStartContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_level, levelStr)) {
-    
-    
+
     PRInt32 success;
-    level = levelStr.ToInteger(&success);
+    PRInt32 level = levelStr.ToInteger(&success);
     if (level > 1 && NS_SUCCEEDED(success)) {
       nsCOMPtr<nsIAccessible> currentAccessible = aStartTreeItem, prevAccessible;
       while (PR_TRUE) {
@@ -426,8 +442,9 @@ nsAccUtils::GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
           break; 
         }
         PRUint32 role = nsAccUtils::Role(currentAccessible);
-        if (role != nsIAccessibleRole::ROLE_OUTLINEITEM)
+        if (role != startTreeItemRole)
           continue;
+
         nsCOMPtr<nsIDOMNode> treeItemNode;
         accessNode->GetDOMNode(getter_AddRefs(treeItemNode));
         nsCOMPtr<nsIContent> treeItemContent = do_QueryInterface(treeItemNode);
@@ -447,17 +464,23 @@ nsAccUtils::GetARIATreeItemParent(nsIAccessible *aStartTreeItem,
 
   
   
+
+  if (startTreeItemRole == nsIAccessibleRole::ROLE_ROW) {
+    NS_ADDREF(*aTreeItemParentResult = parentAccessible);
+    return; 
+  }
+
   
   
-  nsCOMPtr<nsIAccessible> parentAccessible;
-  aStartTreeItem->GetParent(getter_AddRefs(parentAccessible));
-  if (!parentAccessible)
-    return;
+  
+  
+
   PRUint32 role = nsAccUtils::Role(parentAccessible);
   if (role != nsIAccessibleRole::ROLE_GROUPING) {
     NS_ADDREF(*aTreeItemParentResult = parentAccessible);
     return; 
   }
+
   nsCOMPtr<nsIAccessible> prevAccessible;
   parentAccessible->GetPreviousSibling(getter_AddRefs(prevAccessible));
   if (!prevAccessible)
