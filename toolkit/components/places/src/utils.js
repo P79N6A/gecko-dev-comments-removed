@@ -1678,5 +1678,13 @@ var PlacesUtils = {
     var backupFile = bookmarksBackupDir.clone();
     backupFile.append(filename);
     return backupFile;
+  },
+
+  
+
+
+
+  startPlacesDBUtils: function PU_startPlacesDBUtils() {
+    Components.utils.import("resource://gre/modules/PlacesDBUtils.jsm");
   }
 };
