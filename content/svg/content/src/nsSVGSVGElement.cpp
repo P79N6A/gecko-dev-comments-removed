@@ -1321,15 +1321,26 @@ nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
                             nsIContent* aBindingParent,
                             PRBool aCompileEventHandlers)
 {
-  PRBool outermost = WillBeOutermostSVG(aParent, aBindingParent);
+  nsSMILAnimationController* smilController = nsnull;
 
-  if (!mTimedDocumentRoot && outermost) {
-    
-    mTimedDocumentRoot = new nsSMILTimeContainer();
-    NS_ENSURE_TRUE(mTimedDocumentRoot, NS_ERROR_OUT_OF_MEMORY);
-  } else if (!outermost) {
-    mTimedDocumentRoot = nsnull;
-    mStartAnimationOnBindToTree = PR_TRUE;
+  if (aDocument) {
+    smilController = aDocument->GetAnimationController();
+    if (smilController) {
+      
+      if (WillBeOutermostSVG(aParent, aBindingParent)) {
+        
+        if (!mTimedDocumentRoot) {
+          mTimedDocumentRoot = new nsSMILTimeContainer();
+          NS_ENSURE_TRUE(mTimedDocumentRoot, NS_ERROR_OUT_OF_MEMORY);
+        }
+      } else {
+        
+        
+        
+        mTimedDocumentRoot = nsnull;
+        mStartAnimationOnBindToTree = PR_TRUE;
+      }
+    }
   }
 
   nsresult rv = nsSVGSVGElementBase::BindToTree(aDocument, aParent,
@@ -1337,14 +1348,8 @@ nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
                                                 aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  if (mTimedDocumentRoot) {
-    if (aDocument) {
-      nsSMILAnimationController* smilController = 
-        aDocument->GetAnimationController();
-      if (smilController) {
-        rv = mTimedDocumentRoot->SetParent(smilController);
-      }
-    }
+  if (mTimedDocumentRoot && smilController) {
+    rv = mTimedDocumentRoot->SetParent(smilController);
     if (mStartAnimationOnBindToTree) {
       mTimedDocumentRoot->Begin();
     }
@@ -1362,7 +1367,6 @@ nsSVGSVGElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
   nsSVGSVGElementBase::UnbindFromTree(aDeep, aNullParent);
 }
-
 #endif 
 
 
