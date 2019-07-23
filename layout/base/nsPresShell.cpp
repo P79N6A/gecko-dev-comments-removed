@@ -4633,9 +4633,9 @@ PresShell::UnsuppressAndInvalidate()
     
     nsRect rect(nsPoint(0, 0), rootFrame->GetSize());
     rootFrame->Invalidate(rect);
-  }
 
-  mPresContext->RootPresContext()->UpdatePluginGeometry(rootFrame);
+    mPresContext->RootPresContext()->UpdatePluginGeometry(rootFrame);
+  }
 
   
   nsPIDOMWindow *win = mDocument->GetWindow();
