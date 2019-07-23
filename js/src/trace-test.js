@@ -1876,23 +1876,6 @@ function testBug465145() {
 	for (var z = 0; z < 2; ++z) { x = y };
 }
 
-function testTrueShiftTrue() {
-    var a = new Array(5);
-    for (var i=0;i<5;++i) a[i] = "" + (true << true);
-    return a.join(",");
-}
-testTrueShiftTrue.expected = "2,2,2,2,2";
-test(testTrueShiftTrue);
-
-
-function testBug465261() {
-    for (let z = 0; z < 2; ++z) { for each (let x in [0, true, (void 0), 0, (void
-    0)]) { if(x){} } };
-    return true;
-}
-testBug465261.expected = true;
-test(testBug465261);
-
 
 
 
@@ -2454,6 +2437,27 @@ function testStringToInt32() {
 }
 testStringToInt32.expected = "33333";
 test(testStringToInt32);
+
+function testIn() {
+    var array = [3];
+    var obj = { "-1": 5, "1.7": 3, "foo": 5, "1": 7 };
+    var a = [];
+    for (let j = 0; j < 5; ++j) {
+        a.push("0" in array);
+        a.push(-1 in obj);
+        a.push(1.7 in obj);
+        a.push("foo" in obj);
+        a.push(1 in obj);
+        a.push("1" in array);  
+        a.push(-2 in obj);
+        a.push(2.7 in obj);
+        a.push("bar" in obj);
+        a.push(2 in obj);    
+    }
+    return a.join(",");
+}
+testIn.expected = "true,true,true,true,true,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false,true,true,true,true,true,false,false,false,false,false";
+test(testIn);
 
 
 function testGlobalProtoAccess() {
