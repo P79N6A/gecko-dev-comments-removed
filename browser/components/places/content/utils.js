@@ -1152,149 +1152,140 @@ var PlacesUIUtils = {
   get leftPaneFolderId() {
     var leftPaneRoot = -1;
     var allBookmarksId;
-
-    
-    var bs = PlacesUtils.bookmarks;
-    var as = PlacesUtils.annotations;
-
-    
-    
-    var items = as.getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
+    var items = PlacesUtils.annotations
+                           .getItemsWithAnnotation(ORGANIZER_FOLDER_ANNO, {});
     if (items.length > 1) {
       
       
-      items.forEach(bs.removeItem);
+      items.forEach(function(aItem) {
+        PlacesUtils.bookmarks.removeItem(aItem);
+      });
     }
     else if (items.length == 1 && items[0] != -1) {
       leftPaneRoot = items[0];
       
-      var version = as.getItemAnnotation(leftPaneRoot, ORGANIZER_FOLDER_ANNO);
+      var version = PlacesUtils.annotations
+                               .getItemAnnotation(leftPaneRoot, ORGANIZER_FOLDER_ANNO);
       if (version != ORGANIZER_LEFTPANE_VERSION) {
         
-        bs.removeItem(leftPaneRoot);
+        PlacesUtils.bookmarks.removeItem(leftPaneRoot);
         leftPaneRoot = -1;
       }
     }
 
-    var queriesTitles = {
-      "PlacesRoot": "",
-      "History": this.getString("OrganizerQueryHistory"),
-      
-      "Tags": bs.getItemTitle(PlacesUtils.tagsFolderId),
-      "AllBookmarks": this.getString("OrganizerQueryAllBookmarks"),
-      "Downloads": this.getString("OrganizerQueryDownloads"),
-      "BookmarksToolbar": null,
-      "BookmarksMenu": null,
-      "UnfiledBookmarks": null
-    };
-
     if (leftPaneRoot != -1) {
-      
-      
       
       delete this.leftPaneQueries;
       this.leftPaneQueries = {};
-      var items = as.getItemsWithAnnotation(ORGANIZER_QUERY_ANNO, {});
-      
-      for (var i = 0; i < items.length; i++) {
-        var queryName = as.getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);
+      var items = PlacesUtils.annotations
+                             .getItemsWithAnnotation(ORGANIZER_QUERY_ANNO, {});
+      for (var i=0; i < items.length; i++) {
+        var queryName = PlacesUtils.annotations
+                                   .getItemAnnotation(items[i], ORGANIZER_QUERY_ANNO);
         this.leftPaneQueries[queryName] = items[i];
-        
-        
-        if (bs.getItemTitle(items[i]) != queriesTitles[queryName])
-          bs.setItemTitle(items[i], queriesTitles[queryName]);
       }
       delete this.leftPaneFolderId;
       return this.leftPaneFolderId = leftPaneRoot;
     }
 
     var self = this;
+    const EXPIRE_NEVER = PlacesUtils.annotations.EXPIRE_NEVER;
     var callback = {
-      
-      create_query: function CB_create_query(aQueryName, aParentId, aQueryUrl) {
-        let itemId = bs.insertBookmark(aParentId,
-                                       PlacesUtils._uri(aQueryUrl),
-                                       bs.DEFAULT_INDEX,
-                                       queriesTitles[aQueryName]);
-        
-        as.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO, aQueryName,
-                             0, as.EXPIRE_NEVER);
-        
-        as.setItemAnnotation(itemId, EXCLUDE_FROM_BACKUP_ANNO, 1,
-                             0, as.EXPIRE_NEVER);
-        
-        self.leftPaneQueries[aQueryName] = itemId;
-        return itemId;
-      },
-
-      
-      create_folder: function CB_create_folder(aFolderName, aParentId, aIsRoot) {
-              
-        let folderId = bs.createFolder(aParentId,
-                                       queriesTitles[aFolderName],
-                                       bs.DEFAULT_INDEX);
-        
-        as.setItemAnnotation(folderId, EXCLUDE_FROM_BACKUP_ANNO, 1,
-                             0, as.EXPIRE_NEVER);
-        
-        bs.setFolderReadonly(folderId, true);
-
-        if (aIsRoot) {
-          
-          as.setItemAnnotation(folderId, ORGANIZER_FOLDER_ANNO,
-                               ORGANIZER_LEFTPANE_VERSION,
-                               0, as.EXPIRE_NEVER);
-        }
-        else {
-          
-          as.setItemAnnotation(folderId, ORGANIZER_QUERY_ANNO, aFolderName,
-                           0, as.EXPIRE_NEVER);
-          self.leftPaneQueries[aFolderName] = folderId;
-        }
-        return folderId;
-      },
-
-      runBatched: function CB_runBatched(aUserData) {
+      runBatched: function(aUserData) {
         delete self.leftPaneQueries;
         self.leftPaneQueries = { };
 
         
-        leftPaneRoot = this.create_folder("PlacesRoot", bs.placesRoot, true);
+        leftPaneRoot = PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId, "", -1);
+        
+        PlacesUtils.bookmarks.setFolderReadonly(leftPaneRoot, true);
 
         
-        this.create_query("History", leftPaneRoot,
-                          "place:type=" +
-                          Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY +
-                          "&sort=" +
-                          Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING);
+        let uri = PlacesUtils._uri("place:type=" +
+                                   Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY +
+                                   "&sort=4");
+        let title = self.getString("OrganizerQueryHistory");
+        let itemId = PlacesUtils.bookmarks.insertBookmark(leftPaneRoot, uri, -1, title);
+        PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                                  "History", 0, EXPIRE_NEVER);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  EXCLUDE_FROM_BACKUP_ANNO,
+                                                  1, 0, EXPIRE_NEVER);
+        self.leftPaneQueries["History"] = itemId;
 
         
 
         
-        this.create_query("Tags", leftPaneRoot,
-                          "place:type=" +
+        uri = PlacesUtils._uri("place:type=" +
                           Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_QUERY +
                           "&sort=" +
                           Ci.nsINavHistoryQueryOptions.SORT_BY_TITLE_ASCENDING);
+        title = PlacesUtils.bookmarks.getItemTitle(PlacesUtils.tagsFolderId);
+        itemId = PlacesUtils.bookmarks.insertBookmark(leftPaneRoot, uri, -1, title);
+        PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                                  "Tags", 0, EXPIRE_NEVER);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  EXCLUDE_FROM_BACKUP_ANNO,
+                                                  1, 0, EXPIRE_NEVER);
+        self.leftPaneQueries["Tags"] = itemId;
 
         
-        allBookmarksId = this.create_folder("AllBookmarks", leftPaneRoot, false);
+        title = self.getString("OrganizerQueryAllBookmarks");
+        itemId = PlacesUtils.bookmarks.createFolder(leftPaneRoot, title, -1);
+        allBookmarksId = itemId;
+        PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                                  "AllBookmarks", 0, EXPIRE_NEVER);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  EXCLUDE_FROM_BACKUP_ANNO,
+                                                  1, 0, EXPIRE_NEVER);
+        self.leftPaneQueries["AllBookmarks"] = itemId;
 
         
-        this.create_query("BookmarksToolbar", allBookmarksId,
-                          "place:folder=TOOLBAR");
+        PlacesUtils.bookmarks.setFolderReadonly(allBookmarksId, true);
 
         
-        this.create_query("BookmarksMenu", allBookmarksId,
-                          "place:folder=BOOKMARKS_MENU");
+        uri = PlacesUtils._uri("place:folder=TOOLBAR");
+        itemId = PlacesUtils.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
+        PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                                  "BookmarksToolbar", 0, EXPIRE_NEVER);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  EXCLUDE_FROM_BACKUP_ANNO,
+                                                  1, 0, EXPIRE_NEVER);
+        self.leftPaneQueries["BookmarksToolbar"] = itemId;
 
         
-        this.create_query("UnfiledBookmarks", allBookmarksId,
-                          "place:folder=UNFILED_BOOKMARKS");
+        uri = PlacesUtils._uri("place:folder=BOOKMARKS_MENU");
+        itemId = PlacesUtils.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
+        PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                                  "BookmarksMenu", 0, EXPIRE_NEVER);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  EXCLUDE_FROM_BACKUP_ANNO,
+                                                  1, 0, EXPIRE_NEVER);
+        self.leftPaneQueries["BookmarksMenu"] = itemId;
+
+        
+        uri = PlacesUtils._uri("place:folder=UNFILED_BOOKMARKS");
+        itemId = PlacesUtils.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
+        PlacesUtils.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
+                                                  "UnfiledBookmarks", 0,
+                                                  EXPIRE_NEVER);
+        PlacesUtils.annotations.setItemAnnotation(itemId,
+                                                  EXCLUDE_FROM_BACKUP_ANNO,
+                                                  1, 0, EXPIRE_NEVER);
+        self.leftPaneQueries["UnfiledBookmarks"] = itemId;
+
+        
+        PlacesUtils.bookmarks.setFolderReadonly(leftPaneRoot, true);
       }
     };
-    bs.runInBatchMode(callback, null);
-
+    PlacesUtils.bookmarks.runInBatchMode(callback, null);
+    PlacesUtils.annotations.setItemAnnotation(leftPaneRoot,
+                                              ORGANIZER_FOLDER_ANNO,
+                                              ORGANIZER_LEFTPANE_VERSION,
+                                              0, EXPIRE_NEVER);
+    PlacesUtils.annotations.setItemAnnotation(leftPaneRoot,
+                                              EXCLUDE_FROM_BACKUP_ANNO,
+                                              1, 0, EXPIRE_NEVER);
     delete this.leftPaneFolderId;
     return this.leftPaneFolderId = leftPaneRoot;
   },
