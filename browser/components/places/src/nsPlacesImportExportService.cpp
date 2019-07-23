@@ -951,9 +951,21 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
   
   if (!icon.IsEmpty() || !iconUri.IsEmpty()) {
     nsCOMPtr<nsIURI> iconUriObject;
-    NS_NewURI(getter_AddRefs(iconUriObject), iconUri);
-    if (!icon.IsEmpty() || iconUriObject) {
+    rv = NS_NewURI(getter_AddRefs(iconUriObject), iconUri);
+    if (!icon.IsEmpty() || NS_SUCCEEDED(rv)) {
       rv = SetFaviconForURI(frame.mPreviousLink, iconUriObject, icon);
+      if (NS_FAILED(rv)) {
+        nsCAutoString warnMsg;
+        warnMsg.Append("Bookmarks Import: unable to set favicon '");
+        warnMsg.Append(NS_ConvertUTF16toUTF8(iconUri));
+        warnMsg.Append("' for page '");
+        nsCAutoString spec;
+        rv = frame.mPreviousLink->GetSpec(spec);
+        if (NS_SUCCEEDED(rv))
+          warnMsg.Append(spec);
+        warnMsg.Append("'");
+        NS_WARNING(warnMsg.get());
+      }
     }
   }
 
@@ -1313,7 +1325,19 @@ BookmarkContentSink::SetFaviconForURI(nsIURI* aPageURI, nsIURI* aIconURI,
     PR_snprintf(buf, sizeof(buf), "%lld", PR_Now());
     faviconSpec.Append(buf);
     rv = NS_NewURI(getter_AddRefs(faviconURI), faviconSpec);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+      nsCAutoString warnMsg;
+      warnMsg.Append("Bookmarks Import: Unable to make up new favicon '");
+      warnMsg.Append(faviconSpec);
+      warnMsg.Append("' for page '");
+      nsCAutoString spec;
+      rv = aPageURI->GetSpec(spec);
+      if (NS_SUCCEEDED(rv))
+        warnMsg.Append(spec);
+      warnMsg.Append("'");
+      NS_WARNING(warnMsg.get());
+      return NS_OK;
+    }
     serialNumber++;
   }
 
@@ -1471,9 +1495,18 @@ WriteFaviconAttribute(const nsACString& aURI, nsIOutputStream* aOutput)
   nsresult rv;
   PRUint32 dummy;
 
+  
+  
   nsCOMPtr<nsIURI> uri;
   rv = NS_NewURI(getter_AddRefs(uri), aURI);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    nsCAutoString warnMsg;
+    warnMsg.Append("Bookmarks Export: Found invalid favicon '");
+    warnMsg.Append(aURI);
+    warnMsg.Append("'");
+    NS_WARNING(warnMsg.get());
+    return NS_OK;
+  }
 
   
   nsCOMPtr<nsIFaviconService> faviconService = do_GetService(NS_FAVICONSERVICE_CONTRACTID, &rv);
@@ -1740,6 +1773,23 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   nsresult rv;
 
   
+  
+  
+  nsCAutoString uri;
+  rv = aItem->GetUri(uri);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIURI> pageURI;
+  rv = NS_NewURI(getter_AddRefs(pageURI), uri, nsnull);
+  if (NS_FAILED(rv)) {
+    nsCAutoString warnMsg;
+    warnMsg.Append("Bookmarks Export: Found invalid item uri '");
+    warnMsg.Append(uri);
+    warnMsg.Append("'");
+    NS_WARNING(warnMsg.get());
+    return NS_OK;
+  }
+
+  
   if (!aIndent.IsEmpty()) {
     rv = aOutput->Write(PromiseFlatCString(aIndent).get(), aIndent.Length(), &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1752,9 +1802,6 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   
   
   rv = aOutput->Write(kHrefAttribute, sizeof(kHrefAttribute)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString uri;
-  rv = aItem->GetUri(uri);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = WriteEscapedUrl(uri, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1805,10 +1852,6 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-  nsCOMPtr<nsIURI> pageURI;
-  rv = NS_NewURI(getter_AddRefs(pageURI), uri, nsnull);
-  NS_ENSURE_SUCCESS(rv, rv);
   
   PRBool hasPostData;
   rv = mAnnotationService->ItemHasAnnotation(itemId, POST_DATA_ANNO,
