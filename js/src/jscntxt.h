@@ -1016,6 +1016,10 @@ struct JSContext {
 
     InterpState         *interpState;
     VMSideExit          *bailExit;
+
+    
+    uintN               nativeVpLen;
+    jsval               *nativeVp;
 #endif
 };
 
