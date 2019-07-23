@@ -929,25 +929,21 @@ SwitchNativeGlobalFrame(JSContext* cx,
     }
 
     while (from_gslots < from_gslots_stop) {
-        uint16 from_slot = *from_gslots++;
-
         
         if (*from_mp == JSVAL_DOUBLE) {
             *double_write_buffer++ = uint16(*from_np++);
         } else {
-            if (!NativeToValue(cx, STOBJ_GET_SLOT(globalObj, from_slot), *from_mp, from_np++))
+            if (!NativeToValue(cx, STOBJ_GET_SLOT(globalObj, *from_gslots), *from_mp, from_np++))
                 return false;
         }
-        ++from_mp;
+        ++from_gslots, ++from_mp;
     }
 
     while (to_gslots < to_gslots_stop) {
-        uint16 to_slot = *to_gslots++;
-
         
-        if (!ValueToNative(STOBJ_GET_SLOT(globalObj, to_slot),
-                *to_mp++, to_np++))
+        if (!ValueToNative(STOBJ_GET_SLOT(globalObj, *to_gslots), *to_mp++, to_np++))
             return false;
+        ++to_gslots, ++to_mp;
     }
 
     
