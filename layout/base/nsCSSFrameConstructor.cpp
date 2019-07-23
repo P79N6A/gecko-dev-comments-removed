@@ -1302,62 +1302,6 @@ PRBool IsBorderCollapse(nsIFrame* aFrame)
 
 
 
-static void
-AdjustFloatParentPtrs(nsIFrame*                aFrame,
-                      nsFrameConstructorState& aState,
-                      nsFrameConstructorState& aOuterState)
-{
-  NS_PRECONDITION(aFrame, "must have frame to work with");
-
-  nsIFrame *outOfFlowFrame = nsPlaceholderFrame::GetRealFrameFor(aFrame);
-  if (outOfFlowFrame != aFrame) {
-    if (outOfFlowFrame->GetStyleDisplay()->IsFloating()) {
-      
-      
-      
-      
-      nsIFrame *parent = aState.mFloatedItems.containingBlock;
-      NS_ASSERTION(parent, "Should have float containing block here!");
-      NS_ASSERTION(outOfFlowFrame->GetParent() == aOuterState.mFloatedItems.containingBlock,
-                   "expected the float to be a child of the outer CB");
-
-      aOuterState.mFloatedItems.RemoveFrame(outOfFlowFrame);
-      aState.mFloatedItems.AddChild(outOfFlowFrame);
-
-      outOfFlowFrame->SetParent(parent);
-      if (outOfFlowFrame->GetStateBits() &
-          (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW)) {
-        
-        
-        parent->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
-      }
-    }
-
-    
-    
-    return;
-  }
-
-  if (aFrame->IsFloatContainingBlock()) {
-    
-    
-    return;
-  }
-
-  
-  
-  nsIFrame *childFrame = aFrame->GetFirstChild(nsnull);
-  while (childFrame) {
-    
-
-    AdjustFloatParentPtrs(childFrame, aState, aOuterState);
-    childFrame = childFrame->GetNextSibling();
-  }
-}
-
-
-
-
 
 
 
@@ -1366,41 +1310,41 @@ AdjustFloatParentPtrs(nsIFrame*                aFrame,
 
 
 static void
-MoveChildrenTo(nsFrameManager*          aFrameManager,
-               nsIFrame*                aNewParent,
-               nsIFrame*                aFrameList,
-               nsIFrame*                aFrameListEnd,
-               nsFrameConstructorState* aState,
-               nsFrameConstructorState* aOuterState)
+MoveChildrenTo(nsPresContext* aPresContext,
+               nsIFrame* aOldParent,
+               nsIFrame* aNewParent,
+               nsFrameList& aFrameList)
 {
+  NS_PRECONDITION(aOldParent->GetParent() == aNewParent->GetParent(),
+                  "Unexpected old and new parents");
+  NS_PRECONDITION(aNewParent->GetChildList(nsnull).IsEmpty(),
+                  "New parent should have no kids");
+  NS_PRECONDITION(aNewParent->GetStateBits() & NS_FRAME_FIRST_REFLOW,
+                  "New parent shouldn't have been reflowed yet");
+
+  if (aNewParent->HasView() || aOldParent->HasView()) {
+    
+    nsHTMLContainerFrame::ReparentFrameViewList(aPresContext, aFrameList,
+                                                aOldParent, aNewParent);
+  }
+
   PRBool setHasChildWithView = PR_FALSE;
 
-  while (aFrameList && aFrameList != aFrameListEnd) {
+  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
     if (!setHasChildWithView
-        && (aFrameList->GetStateBits() & (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW))) {
+        && (e.get()->GetStateBits() &
+            (NS_FRAME_HAS_VIEW | NS_FRAME_HAS_CHILD_WITH_VIEW))) {
       setHasChildWithView = PR_TRUE;
     }
 
-    aFrameList->SetParent(aNewParent);
-
-    
-    
-    
-    if (aState) {
-      NS_ASSERTION(aOuterState, "need an outer state too");
-      AdjustFloatParentPtrs(aFrameList, *aState, *aOuterState);
-    }
-
-    aFrameList = aFrameList->GetNextSibling();
+    e.get()->SetParent(aNewParent);
   }
 
   if (setHasChildWithView) {
-    do {
-      aNewParent->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
-      aNewParent = aNewParent->GetParent();
-    } while (aNewParent &&
-             !(aNewParent->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW));
+    aNewParent->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
   }
+
+  aNewParent->SetInitialChildList(nsnull, aFrameList);
 }
 
 
@@ -10860,21 +10804,7 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
       FindFirstNonBlock(aChildItems);
     nsFrameList blockKids = aChildItems.ExtractHead(firstNonBlock);
 
-    if (blockFrame->HasView() || aInitialInline->HasView()) {
-      
-      nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext,
-                                                  blockKids, aInitialInline,
-                                                  blockFrame);
-    }
-
-    
-    
-    nsIFrame* firstBlock = blockKids.FirstChild();
-    blockFrame->SetInitialChildList(nsnull, blockKids);
-
-    
-    MoveChildrenTo(aState.mFrameManager, blockFrame, firstBlock, nsnull,
-                   nsnull, nsnull);
+    MoveChildrenTo(aState.mPresContext, aInitialInline, blockFrame, blockKids);
 
     SetFrameIsSpecial(lastNewInline, blockFrame);
     aSiblings.AddChild(blockFrame);
@@ -10900,20 +10830,8 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
       FindFirstBlock(firstBlock);
       nsFrameList inlineKids = aChildItems.ExtractHead(firstBlock);
 
-      nsIFrame* newFirstChild = inlineKids.FirstChild();
-      if (inlineFrame->HasView() || aInitialInline->HasView()) {
-        
-        nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext,
-                                                    inlineKids, aInitialInline,
-                                                    inlineFrame);
-      }
-
-      
-      
-      inlineFrame->SetInitialChildList(nsnull, inlineKids);
-
-      MoveChildrenTo(aState.mFrameManager, inlineFrame, newFirstChild,
-                     nsnull, nsnull, nsnull);
+      MoveChildrenTo(aState.mPresContext, aInitialInline, inlineFrame,
+                     inlineKids);
     }
 
     SetFrameIsSpecial(blockFrame, inlineFrame);
