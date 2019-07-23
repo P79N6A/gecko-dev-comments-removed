@@ -55,7 +55,7 @@ var PlacesCommandHook = {
     
     
     element.hidden = false;
-    element.addEventListener("popuphiding", this, false);
+    element.addEventListener("popuphidden", this, false);
     element.addEventListener("keypress", this, true);
     return this.panel = element;
   },
@@ -87,7 +87,7 @@ var PlacesCommandHook = {
   
   handleEvent: function PCH_handleEvent(aEvent) {
     switch (aEvent.type) {
-      case "popuphiding":
+      case "popuphidden":
         if (aEvent.originalTarget == this.panel) {
           gEditItemOverlay.uninitPanel(true);
           this._restoreCommandsState();
