@@ -460,7 +460,6 @@ XRemoteClient::FindBestWindow(const char *aProgram, const char *aUsername,
   Window bestWindow = 0;
   Window root2, parent, *kids;
   unsigned int nkids;
-  int i;
 
   
   
@@ -478,7 +477,7 @@ XRemoteClient::FindBestWindow(const char *aProgram, const char *aUsername,
   
   
 
-  for (i=nkids-1; i >= 0; i--) {
+  for (unsigned int i = 0; i < nkids; i++) {
     Atom type;
     int format;
     unsigned long nitems, bytesafter;
@@ -594,6 +593,7 @@ XRemoteClient::FindBestWindow(const char *aProgram, const char *aUsername,
     
     
     bestWindow = w;
+    break;
   }
 
   if (kids)
@@ -699,8 +699,6 @@ XRemoteClient::DoSendCommandLine(Window aWindow, PRInt32 argc, char **argv,
                                  const char* aDesktopStartupID,
                                  char **aResponse, PRBool *aDestroyed)
 {
-  int i;
-
   *aDestroyed = PR_FALSE;
 
   char cwdbuf[MAX_PATH];
@@ -716,7 +714,7 @@ XRemoteClient::DoSendCommandLine(Window aWindow, PRInt32 argc, char **argv,
   static char desktopStartupPrefix[] = " DESKTOP_STARTUP_ID=";
 
   PRInt32 argvlen = strlen(cwdbuf);
-  for (i = 0; i < argc; ++i) {
+  for (int i = 0; i < argc; ++i) {
     PRInt32 len = strlen(argv[i]);
     if (i == 0 && aDesktopStartupID) {
       len += sizeof(desktopStartupPrefix) - 1 + strlen(aDesktopStartupID);
