@@ -710,6 +710,18 @@ toolbar[iconsize="small"] #unified-back-forward-button > #back-forward-dropmarke
 
 	
 
+#new-tab-button {
+  -moz-image-region: rect(0px, 360px, 23px, 324px);
+}
+#new-tab-button[disabled="true"] {
+  -moz-image-region: rect(23px, 360px, 46px, 324px);
+}
+#new-tab-button:hover:active {
+  -moz-image-region: rect(46px, 360px, 69px, 324px);
+}
+
+	
+
 #new-window-button {
   -moz-image-region: rect(0px, 396px, 23px, 360px);
 }
