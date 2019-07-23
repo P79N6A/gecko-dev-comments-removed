@@ -1111,9 +1111,8 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     
     
     
-    return NS_CombineHint(hint,
-                          NS_SubtractHint(nsChangeHint_ReflowFrame,
-                                          nsChangeHint_ClearDescendantIntrinsics));
+    
+    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
   }
 
   if ((mWidth == aOther.mWidth) &&
