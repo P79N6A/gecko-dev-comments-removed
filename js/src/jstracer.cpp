@@ -7253,6 +7253,16 @@ static bool arm_has_neon = false;
 static bool arm_has_iwmmxt = false;
 static bool arm_tests_initialized = false;
 
+#ifdef ANDROID
+
+typedef struct {
+    uint32_t a_type;
+    union {
+       uint32_t a_val;
+    } a_un;
+} Elf32_auxv_t;
+#endif
+
 static void
 arm_read_auxv()
 {
