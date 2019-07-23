@@ -39,3 +39,10 @@
 .tabs-newtab-button > .toolbarbutton-text {
   display: none;
 }
+
+%ifdef MOZ_WIDGET_GTK2
+
+.alltabs-item > .menu-iconic-left {
+  visibility: inherit;
+}
+%endif
