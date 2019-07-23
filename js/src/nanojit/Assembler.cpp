@@ -41,6 +41,10 @@
 
 #ifdef FEATURE_NANOJIT
 
+#ifdef VTUNE
+#include "../core/CodegenLIR.h"
+#endif
+
 namespace nanojit
 {
 #ifdef NJ_VERBOSE
@@ -107,6 +111,9 @@ namespace nanojit
         , _err(None)
     #if PEDANTIC
         , pedanticTop(NULL)
+    #endif
+    #ifdef VTUNE
+        , cgen(NULL)
     #endif
         , config(core->config)
     {
@@ -196,6 +203,14 @@ namespace nanojit
         verbose_only( nBytes += (end - start) * sizeof(NIns); )
         NanoAssert(uintptr_t(end) - uintptr_t(start) >= (size_t)LARGEST_UNDERRUN_PROT);
         eip = end;
+
+        #ifdef VTUNE
+        if (_nIns && _nExitIns) {
+            
+            cgen->jitCodePosUpdate((uintptr_t)list->code);
+            cgen->jitPushInfo(); 
+        }
+        #endif
     }
 
     void Assembler::reset()
@@ -1354,7 +1369,29 @@ namespace nanojit
                     evictScratchRegs();
 
                     asm_call(ins);
+                    break;
                 }
+
+                #ifdef VTUNE
+                case LIR_file:
+                {
+                    
+                    
+                    uintptr_t currentFile = ins->oprnd1()->imm32();
+                    cgen->jitFilenameUpdate(currentFile);
+                    break;
+                }
+                case LIR_line:
+                {
+                    
+                    
+                    
+                    uint32_t currentLine = (uint32_t) ins->oprnd1()->imm32();
+                    cgen->jitLineNumUpdate(currentLine);
+                    cgen->jitAddRecord((uintptr_t)_nIns, 0, currentLine, true);
+                    break;
+                }
+                #endif 
             }
 
 #ifdef NJ_VERBOSE
@@ -1400,6 +1437,10 @@ namespace nanojit
 
             if (error())
                 return;
+
+        #ifdef VTUNE
+            cgen->jitCodePosUpdate((uintptr_t)_nIns);
+        #endif
 
             
             debug_only( pageValidate(); )
