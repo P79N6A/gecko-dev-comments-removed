@@ -1361,6 +1361,8 @@ nsStyleAnimation::ExtractComputedValue(nsCSSProperty aProperty,
             static_cast<const nsStyleOutline*>(styleStruct);
           nscolor color;
         #ifdef GFX_HAS_INVERT
+          
+          
           styleOutline->GetOutlineColor(color);
         #else
           if (!styleOutline->GetOutlineColor(color))

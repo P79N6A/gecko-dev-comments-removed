@@ -716,17 +716,16 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
                              nsIFrame* aForFrame,
                              const nsRect& aDirtyRect,
                              const nsRect& aBorderArea,
-                             const nsStyleBorder& aStyleBorder,
-                             const nsStyleOutline& aOutlineStyle,
                              nsStyleContext* aStyleContext)
 {
   nscoord             twipsRadii[8];
 
   
   const nsStyleColor* ourColor = aStyleContext->GetStyleColor();
+  const nsStyleOutline* ourOutline = aStyleContext->GetStyleOutline();
 
   nscoord width;
-  aOutlineStyle.GetOutlineWidth(width);
+  ourOutline->GetOutlineWidth(width);
 
   if (width == 0) {
     
@@ -739,7 +738,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
     bgContext->GetVisitedDependentColor(eCSSProperty_background_color);
 
   
-  GetBorderRadiusTwips(aOutlineStyle.mOutlineRadius, aBorderArea.width,
+  GetBorderRadiusTwips(ourOutline->mOutlineRadius, aBorderArea.width,
                        twipsRadii);
 
   
@@ -774,7 +773,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   }
 
   innerRect += aBorderArea.TopLeft();
-  nscoord offset = aOutlineStyle.mOutlineOffset;
+  nscoord offset = ourOutline->mOutlineOffset;
   innerRect.Inflate(offset, offset);
   
   
@@ -799,17 +798,16 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   ComputePixelRadii(twipsRadii, outerRect, 0, twipsPerPixel,
                     &outlineRadii);
 
-  PRUint8 outlineStyle = aOutlineStyle.GetOutlineStyle();
+  PRUint8 outlineStyle = ourOutline->GetOutlineStyle();
   PRUint8 outlineStyles[4] = { outlineStyle,
                                outlineStyle,
                                outlineStyle,
                                outlineStyle };
 
-  nscolor outlineColor;
   
   
-  if (!aOutlineStyle.GetOutlineColor(outlineColor))
-    outlineColor = ourColor->mColor;
+  nscolor outlineColor =
+    aStyleContext->GetVisitedDependentColor(eCSSProperty_outline_color);
   nscolor outlineColors[4] = { outlineColor,
                                outlineColor,
                                outlineColor,
