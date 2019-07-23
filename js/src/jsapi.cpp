@@ -5141,9 +5141,16 @@ JS_PUBLIC_API(JSBool)
 JS_IsRunning(JSContext *cx)
 {
     
+
+
+
+
     VOUCH_DOES_NOT_REQUIRE_STACK();
 
-    return JS_ON_TRACE(cx) || cx->fp != NULL;
+#ifdef JS_TRACER
+    JS_ASSERT_IF(JS_TRACE_MONITOR(cx).tracecx == cx, cx->fp);
+#endif
+    return cx->fp != NULL;
 }
 
 JS_PUBLIC_API(JSBool)
