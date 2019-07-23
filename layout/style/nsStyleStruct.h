@@ -58,6 +58,7 @@
 #include "nsIPresShell.h"
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
+#include "nsTArray.h"
 #include "nsIAtom.h"
 #include "nsIURI.h"
 #include "nsCSSValue.h"
@@ -164,30 +165,122 @@ struct nsStyleBackground {
   static nsChangeHint MaxDifference();
 #endif
 
-  PRUint8 mBackgroundFlags;        
-  PRUint8 mBackgroundAttachment;   
-  PRUint8 mBackgroundClip;         
-  PRUint8 mBackgroundInlinePolicy; 
-  PRUint8 mBackgroundOrigin;       
-  PRUint8 mBackgroundRepeat;       
+  struct Position;
+  friend struct Position;
+  struct Position {
+    typedef union {
+      nscoord mCoord; 
+      float   mFloat; 
+    } PositionCoord;
+    PositionCoord mXPosition, mYPosition;
+    PRPackedBool mXIsPercent, mYIsPercent;
+
+    
+    Position() {}
+
+    
+    void SetInitialValues();
+
+    PRBool operator==(const Position& aOther) const {
+      return mXIsPercent == aOther.mXIsPercent &&
+             (mXIsPercent ? (mXPosition.mFloat == aOther.mXPosition.mFloat)
+                          : (mXPosition.mCoord == aOther.mXPosition.mCoord)) &&
+             mYIsPercent == aOther.mYIsPercent &&
+             (mYIsPercent ? (mYPosition.mFloat == aOther.mYPosition.mFloat)
+                          : (mYPosition.mCoord == aOther.mYPosition.mCoord));
+    }
+    PRBool operator!=(const Position& aOther) const {
+      return !(*this == aOther);
+    }
+  };
+
+  
+
+
+
+
+
+
+  struct Image;
+  friend struct Image;
+  struct Image {
+    nsCOMPtr<imgIRequest> mRequest;
+    PRBool mSpecified; 
+
+    
+
+    
+    Image();
+    ~Image();
+    void SetInitialValues();
+
+    
+    
+    PRBool operator==(const Image& aOther) const;
+    PRBool operator!=(const Image& aOther) const {
+      return !(*this == aOther);
+    }
+  };
+
+  struct Layer;
+  friend struct Layer;
+  struct Layer {
+    PRUint8 mAttachment;                
+    PRUint8 mClip;                      
+    PRUint8 mOrigin;                    
+    PRUint8 mRepeat;                    
+    Position mPosition;                 
+    Image mImage;                       
+
+    
+    Layer();
+    ~Layer();
+
+    void SetInitialValues();
+
+    
+    
+    PRBool operator==(const Layer& aOther) const;
+    PRBool operator!=(const Layer& aOther) const {
+      return !(*this == aOther);
+    }
+  };
 
   
   
-  union {
-    nscoord mCoord;
-    float   mFloat;
-  } mBackgroundXPosition,         
-    mBackgroundYPosition;         
+  PRUint32 mAttachmentCount,
+           mClipCount,
+           mOriginCount,
+           mRepeatCount,
+           mPositionCount,
+           mImageCount;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsAutoTArray<Layer, 1> mLayers;
+
+  const Layer& BottomLayer() const { return mLayers[mImageCount - 1]; }
+
+  #define NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(var_, stylebg_) \
+    for (PRUint32 var_ = (stylebg_)->mImageCount; var_-- != 0; )
 
   nscolor mBackgroundColor;       
-  nsCOMPtr<imgIRequest> mBackgroundImage; 
+  nscolor mFallbackBackgroundColor; 
 
   
-  PRBool IsTransparent() const
-  {
-    return (NS_GET_A(mBackgroundColor) == 0 &&
-            (mBackgroundFlags & NS_STYLE_BG_IMAGE_NONE));
-  }
+  
+  
+  PRUint8 mBackgroundInlinePolicy; 
+
+  
+  PRBool IsTransparent() const;
 
   
   
