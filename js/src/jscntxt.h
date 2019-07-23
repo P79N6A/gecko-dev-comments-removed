@@ -140,6 +140,12 @@ struct JSTraceMonitor {
     JSPackedBool            onTrace;
 
     
+
+
+
+    JSPackedBool            prohibitRecording;
+
+    
     JSPackedBool            useReservedObjects;
 
     CLS(nanojit::LirBuffer) lirbuf;
@@ -150,15 +156,7 @@ struct JSTraceMonitor {
 
     struct GlobalState globalStates[MONITOR_N_GLOBAL_STATES];
     struct VMFragment* vmfragments[FRAGMENT_TABLE_SIZE];
-
-
-    
-
-
-
-
-    uintN                   prohibitFlush;
-    JSBool                  needFlush;
+    JSBool needFlush;
 
     
 
