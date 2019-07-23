@@ -2299,6 +2299,17 @@ nsresult
 nsGlobalWindow::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {
   NS_PRECONDITION(IsInnerWindow(), "PostHandleEvent is used on outer window!?");
+
+  
+  switch (aVisitor.mEvent->message) {
+    case NS_RESIZE_EVENT:
+    case NS_PAGE_UNLOAD:
+    case NS_LOAD:
+      break;
+    default:
+      return NS_OK;
+  }
+
   
 
 
