@@ -4898,7 +4898,27 @@ var contentAreaDNDObserver = {
       if (aEvent.getPreventDefault())
         return;
 
-      var url = transferUtils.retrieveURLFromData(aXferData.data, aXferData.flavour.contentType);
+      var dragType = aXferData.flavour.contentType;
+      var dragData = aXferData.data;
+      if (dragType == "application/x-moz-tabbrowser-tab") {
+        
+        
+        if (dragData instanceof XULElement && dragData.localName == "tab" &&
+            dragData.ownerDocument.defaultView == window) {
+          
+          
+          if (aEvent.screenY > gBrowser.mPanelContainer.boxObject.screenY +
+                               dragData.boxObject.height) {
+            gBrowser.replaceTabWithWindow(dragData);
+            aEvent.dataTransfer.dropEffect = "move";
+            return;
+          }
+        }
+        aEvent.dataTransfer.dropEffect = "none";
+        return;
+      }
+
+      var url = transferUtils.retrieveURLFromData(dragData, dragType);
 
       
       
@@ -4928,8 +4948,9 @@ var contentAreaDNDObserver = {
   getSupportedFlavours: function ()
     {
       var flavourSet = new FlavourSet();
+      flavourSet.appendFlavour("application/x-moz-tabbrowser-tab");
       flavourSet.appendFlavour("text/x-moz-url");
-      flavourSet.appendFlavour("text/unicode");
+      flavourSet.appendFlavour("text/plain");
       flavourSet.appendFlavour("application/x-moz-file", "nsIFile");
       return flavourSet;
     }
