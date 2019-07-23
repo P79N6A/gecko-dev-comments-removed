@@ -677,10 +677,6 @@ nsNavHistory::InitDB(PRBool *aDoImport)
     rv = mDBConn->ExecuteSimpleSQL(
         NS_LITERAL_CSTRING("CREATE INDEX moz_places_urlindex ON moz_places (url)"));
     NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_titleindex ON moz_places (title)"));
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -1069,7 +1065,7 @@ nsNavHistory::CleanUpOnQuit()
         NS_LITERAL_CSTRING("CREATE INDEX moz_places_hostindex ON moz_places (rev_host)"));
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mDBConn->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE INDEX moz_places_visitcount ON moz_places (rev_host)"));
+        NS_LITERAL_CSTRING("CREATE INDEX moz_places_visitcount ON moz_places (visit_count)"));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -1085,6 +1081,15 @@ nsNavHistory::CleanUpOnQuit()
     NS_ENSURE_SUCCESS(rv, rv);
     transaction.Commit();
   }
+
+  
+  mozStorageTransaction idxTransaction(mDBConn, PR_FALSE);
+  rv = mDBConn->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_titleindex"));
+  rv = mDBConn->ExecuteSimpleSQL(
+    NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_annos_item_idindex"));
+  idxTransaction.Commit();
+
   return NS_OK;
 }
 
@@ -4958,8 +4963,6 @@ nsNavHistory::CreateLookupIndexes()
   rv = mDBConn->ExecuteSimpleSQL(
       NS_LITERAL_CSTRING("CREATE INDEX moz_places_visitcount ON moz_places (visit_count)"));
   
-  rv = mDBConn->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("CREATE INDEX moz_places_titleindex ON moz_places (title)"));
 
   
   rv = mDBConn->ExecuteSimpleSQL(
