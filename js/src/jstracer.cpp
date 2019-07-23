@@ -620,6 +620,19 @@ TypeMap::matches(TypeMap& other)
     return !memcmp(data(), other.data(), length());
 }
 
+
+
+static void
+mergeTypeMaps(uint8** partial, unsigned* plength, uint8* complete, unsigned clength, uint8* mem)
+{
+    unsigned l = *plength;
+    JS_ASSERT(l < clength);
+    memcpy(mem, *partial, l * sizeof(uint8));
+    memcpy(mem + l, complete + l, (clength - l) * sizeof(uint8));
+    *partial = mem;
+    *plength = clength;
+}
+
 TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
         Fragment* _fragment, unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap)
 {
@@ -660,6 +673,23 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
     eos_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, eos)), "eos");
     eor_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, eor)), "eor");
 
+    
+
+
+
+
+
+
+
+
+
+    unsigned length;
+    if (ngslots < (length = treeInfo->globalTypeMap.length())) 
+        mergeTypeMaps(&globalTypeMap, &ngslots, 
+                      treeInfo->globalTypeMap.data(), length,
+                      (uint8*)alloca(sizeof(uint8) * length));
+    JS_ASSERT(ngslots == treeInfo->globalTypeMap.length());
+    
     
     import(treeInfo, lirbuf->sp, ngslots, callDepth, globalTypeMap, stackTypeMap); 
 }
