@@ -19,6 +19,7 @@
 # 
 # Contributor(s):
 #   Ben Goodger <ben@mozilla.org>
+#   Giorgio Maone <g.maone@informaction.com>
 # 
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -36,6 +37,7 @@
 
 function Sanitizer() {}
 Sanitizer.prototype = {
+  
   clearItem: function (aItemName)
   {
     if (this.items[aItemName].canClear)
@@ -53,26 +55,90 @@ Sanitizer.prototype = {
     return aPreferenceName.substr(this._prefDomain.length);
   },
   
+  
+
+
+
+
+
   sanitize: function ()
   {
     var psvc = Components.classes["@mozilla.org/preferences-service;1"]
                          .getService(Components.interfaces.nsIPrefService);
     var branch = psvc.getBranch(this._prefDomain);
+    var errors = null;
     for (var itemName in this.items) {
       var item = this.items[itemName];
-      if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) 
-        item.clear();
+      if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) {
+        
+        
+        
+        
+        
+        try {
+          item.clear();
+        } catch(er) {
+          if (!errors) 
+            errors = {};
+          errors[itemName] = er;
+          dump("Error sanitizing " + itemName + ": " + er + "\n");
+        }
+      }
     }
+    return errors;
   },
   
   items: {
     cache: {
       clear: function ()
       {
-        var cacheService = Components.classes["@mozilla.org/network/cache-service;1"]
-                                     .getService(Components.interfaces.nsICacheService);
-        cacheService.evictEntries(Components.interfaces.nsICache.STORE_ON_DISK);
-        cacheService.evictEntries(Components.interfaces.nsICache.STORE_IN_MEMORY);
+        const cc = Components.classes;
+        const ci = Components.interfaces;
+        var cacheService = cc["@mozilla.org/network/cache-service;1"]
+                             .getService(ci.nsICacheService);
+
+        
+        
+        
+        
+        
+        var cacheDir;
+        
+        
+        
+        try {
+          cacheDir = cc["@mozilla.org/preferences-service;1"]
+                       .getService(ci.nsIBranch)
+                       .getComplexValue("browser.cache.disk.parent_directory",
+                                        ci.nsILocalFile);
+        } catch(er) {
+          const dirServ = cc["@mozilla.org/file/directory_service;1"]
+                            .getService(ci.nsIProperties);
+          try {
+            cacheDir = dirServ.get("cachePDir",ci.nsILocalFile);
+          } catch(er) {
+            cacheDir = dirServ.get("ProfLD",ci.nsILocalFile);
+          }
+        }
+        
+        if (cacheDir) {
+          
+          
+          cacheDir.append("Cache.Trash");
+          try {
+            cacheDir.remove(true);
+          } catch(er) {}
+          cacheDir = cacheDir.parent;
+          cacheDir.append("Cache");
+          try {
+           cacheDir.remove(true);
+          } catch(er) {}
+        }
+        
+        
+        cacheService.evictEntries(ci.nsICache.STORE_ON_DISK);
+        cacheService.evictEntries(ci.nsICache.STORE_IN_MEMORY);
+        
       },
       
       get canClear()
@@ -88,8 +154,9 @@ Sanitizer.prototype = {
                                   .getService(Components.interfaces.nsICookieManager);
         var e = cookieMgr.enumerator;
         var cookies = [];
+        var cookie;
         while (e.hasMoreElements()) {
-          var cookie = e.getNext().QueryInterface(Components.interfaces.nsICookie);
+          cookie = e.getNext().QueryInterface(Components.interfaces.nsICookie);
           cookies.push(cookie);
         }
 
@@ -113,7 +180,8 @@ Sanitizer.prototype = {
         globalHistory.removeAllPages();
         
         try {
-          var os = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+          var os = Components.classes["@mozilla.org/observer-service;1"]
+                             .getService(Components.interfaces.nsIObserverService);
           os.notifyObservers(null, "browser:purge-session-history", "");
         }
         catch (e) { }
@@ -204,4 +272,75 @@ Sanitizer.prototype = {
     }
   }
 };
+
+
+
+
+Sanitizer.prefDomain          = "privacy.sanitize.";
+Sanitizer.prefPrompt          = "promptOnSanitize";
+Sanitizer.prefShutdown        = "sanitizeOnShutdown";
+Sanitizer.prefDidShutdown     = "didShutdownSanitize";
+
+Sanitizer._prefs = null;
+Sanitizer.__defineGetter__("prefs", function() 
+{
+  return Sanitizer._prefs ? Sanitizer._prefs
+    : Sanitizer._prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                         .getService(Components.interfaces.nsIPrefService)
+                         .getBranch(Sanitizer.prefDomain);
+});
+
+
+Sanitizer.showUI = function(aParentWindow) 
+{
+  var ww = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
+                     .getService(Components.interfaces.nsIWindowWatcher);
+  ww.openWindow(aParentWindow,
+                "chrome:
+                "Sanitize",
+                "chrome,titlebar,centerscreen,modal",
+                null);
+};
+
+
+
+
+
+
+
+
+
+Sanitizer.sanitize = function(aParentWindow) 
+{
+  if (Sanitizer.prefs.getBoolPref(Sanitizer.prefPrompt)) {
+    Sanitizer.showUI(aParentWindow);
+    return null;
+  }
+  return new Sanitizer().sanitize();
+};
+
+Sanitizer.onStartup = function() 
+{
+  
+  Sanitizer._checkAndSanitize();
+};
+
+Sanitizer.onShutdown = function() 
+{
+  
+  Sanitizer._checkAndSanitize();
+};
+
+
+Sanitizer._checkAndSanitize = function() 
+{
+  const prefs = Sanitizer.prefs;
+  if (prefs.getBoolPref(Sanitizer.prefShutdown) && 
+      !prefs.prefHasUserValue(Sanitizer.prefDidShutdown)) {
+    
+    Sanitizer.sanitize(null) || 
+      prefs.setBoolPref(Sanitizer.prefDidShutdown, true);
+  }
+};
+
 
