@@ -36,6 +36,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -467,6 +468,17 @@ MicrosummaryService.prototype = {
 
 
 
+  getGenerator: function MSS_getGenerator(generatorURI) {
+    return this._localGenerators[generatorURI.spec] ||
+      new MicrosummaryGenerator(generatorURI);
+  },
+
+  
+
+
+
+
+
 
 
   addGenerator: function MSS_addGenerator(generatorURI) {
@@ -574,6 +586,8 @@ MicrosummaryService.prototype = {
     else
       outputStream.close();
   },
+
+
 
   
 
@@ -918,10 +932,25 @@ MicrosummaryService.prototype = {
 
     var pageURI = this._getPageForBookmark(bookmarkID);
     var generatorURI = this._uri(this._getField(bookmarkID, FIELD_MICSUM_GEN_URI));
-    
-    var generator = this._localGenerators[generatorURI.spec] ||
-                    new MicrosummaryGenerator(generatorURI);
+    var generator = this.getGenerator(generatorURI);
 
+    return new Microsummary(pageURI, generator);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  createMicrosummary: function MSS_createMicrosummary(pageURI, generatorURI) {
+    var generator = this.getGenerator(generatorURI);
     return new Microsummary(pageURI, generator);
   },
 
