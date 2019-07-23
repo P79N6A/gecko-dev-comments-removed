@@ -1111,7 +1111,7 @@ namespace nanojit
 					
 					LIns* cond = ins->oprnd1();
 					LOpcode condop = cond->opcode();
-					NanoAssert(cond->isCmp());
+					NanoAssert(cond->isCond());
 #ifndef NJ_SOFTFLOAT
 					bool fp = cond->oprnd1()->isQuad();
 
