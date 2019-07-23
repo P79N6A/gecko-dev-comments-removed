@@ -51,14 +51,15 @@ let visits = [];
 
 function check_results_callback(aSequence) {
   
-  do_check_eq(aSequence.length, 3);
+  do_check_eq(aSequence.length, 4);
   let includeHidden = aSequence[0];
   let redirectsMode = aSequence[1];
   let maxResults = aSequence[2];
-
+  let sortingMode = aSequence[3];
   print("\nTESTING: includeHidden(" + includeHidden + ")," +
                   " redirectsMode(" + redirectsMode + ")," +
-                  " maxResults("    + maxResults    + ").");
+                  " maxResults("    + maxResults    + ")," +
+                  " sortingMode("   + sortingMode   + ").");
 
   
   let expectedData = visits.filter(function(aVisit, aIndex, aArray) {
@@ -87,6 +88,19 @@ function check_results_callback(aSequence) {
   });
 
   
+  if (sortingMode > 0) {
+    function comparator(a, b) {
+      if (sortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING)
+        return b.lastVisit - a.lastVisit;
+      else if (sortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING)
+        return b.visitCount - a.visitCount;
+      else
+        return 0;
+    }
+    expectedData.sort(comparator);
+  }
+
+  
   if (maxResults) {
     expectedData = expectedData.filter(function(aVisit, aIndex) {
                                         return aIndex < maxResults;
@@ -98,6 +112,7 @@ function check_results_callback(aSequence) {
   let options = histsvc.getNewQueryOptions();
   options.includeHidden = includeHidden;
   options.redirectsMode = redirectsMode;
+  options.sortingMode = sortingMode;
   if (maxResults)
     options.maxResults = maxResults;
 
@@ -201,6 +216,7 @@ function add_visits_to_database() {
 
   
   let timeInMicroseconds = Date.now() * 1000;
+  let visitCount = 1;
 
   
   let t = [
@@ -208,7 +224,11 @@ function add_visits_to_database() {
     Ci.nsINavHistoryService.TRANSITION_TYPED,
     Ci.nsINavHistoryService.TRANSITION_BOOKMARK,
     Ci.nsINavHistoryService.TRANSITION_EMBED,
-    Ci.nsINavHistoryService.TRANSITION_DOWNLOAD,
+    
+    
+    
+    
+    
   ];
 
   
@@ -217,7 +237,8 @@ function add_visits_to_database() {
       transType: transition,
       uri: "http://" + transition + ".example.com/",
       title: transition + "-example",
-      lastVisit: timeInMicroseconds,
+      lastVisit: timeInMicroseconds--,
+      visitCount: transition == Ci.nsINavHistoryService.TRANSITION_EMBED ? 0 : visitCount++,
       isInQuery: true }));
 
   
@@ -226,9 +247,10 @@ function add_visits_to_database() {
       transType: Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY,
       uri: "http://" + transition + ".redirect.temp.example.com/",
       title: transition + "-redirect-temp-example",
-      lastVisit: timeInMicroseconds,
+      lastVisit: timeInMicroseconds--,
       isRedirect: true,
       referrer: "http://" + transition + ".example.com/",
+      visitCount: visitCount++,
       isInQuery: true }));
 
   
@@ -237,9 +259,10 @@ function add_visits_to_database() {
       transType: Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT,
       uri: "http://" + transition + ".redirect.perm.example.com/",
       title: transition + "-redirect-perm-example",
-      lastVisit: timeInMicroseconds,
+      lastVisit: timeInMicroseconds--,
       isRedirect: true,
       referrer: "http://" + transition + ".redirect.temp.example.com/",
+      visitCount: visitCount++,
       isInQuery: true }));
 
   
@@ -257,9 +280,14 @@ function run_test() {
   redirectsMode_options =  [Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_ALL,
                             Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_SOURCE,
                             Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET];
-  maxResults_options = [5, 10, null];
+  maxResults_options = [5, 10, 20, null];
   
-  cartProd([includeHidden_options, redirectsMode_options, maxResults_options],
+  
+  sorting_options = [Ci.nsINavHistoryQueryOptions.SORT_BY_NONE,
+                     Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING,
+                     Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING];
+  
+  cartProd([includeHidden_options, redirectsMode_options, maxResults_options, sorting_options],
            check_results_callback);
 
   
