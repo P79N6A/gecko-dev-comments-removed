@@ -6029,7 +6029,9 @@ js_TypeOf(JSContext *cx, JSObject *obj)
     
 
 
-    JS_ASSERT(js_GetWrappedObject(cx, obj) == obj);
+
+
+    obj = js_GetWrappedObject(cx, obj);
 
     
 
