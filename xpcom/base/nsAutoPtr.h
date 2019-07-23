@@ -1032,6 +1032,16 @@ class nsRefPtr
           mRawPtr = temp;
         }
 
+      already_AddRefed<T>
+      forget()
+          
+          
+        {
+          T* temp = 0;
+          swap(temp);
+          return temp;
+        }
+
       T*
       get() const
           
