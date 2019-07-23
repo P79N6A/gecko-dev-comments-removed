@@ -1565,6 +1565,9 @@ nsGenericHTMLElement::MapCommonAttributesInto(const nsMappedAttributes* aAttribu
 void
 nsGenericHTMLFormElement::UpdateEditableFormControlState()
 {
+  
+  
+
   ContentEditableTristate value = GetContentEditableValue();
   if (value != eInherit) {
     SetEditableFlag(!!value);

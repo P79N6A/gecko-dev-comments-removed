@@ -6163,6 +6163,25 @@ nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
 
 
 
+
+
+
+
+
+
+
+
+
+static inline PRBool
+IsActuallyEditable(nsIContent* aContainer, nsIContent* aChild)
+{
+  return (aChild->IsEditable() &&
+          (aContainer->IsEditable() ||
+           aChild->HasFlag(NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR)));
+}
+
+
+
 PRBool
 nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
                                             nsIContent* aContainer,
@@ -6176,7 +6195,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
 
   if (aOperation == CONTENTINSERT) {
     if (aIndex < 0 || aContainer->GetChildAt(aIndex) != aChild ||
-        aChild->IsEditable() || aChild->IsXUL()) {
+        aChild->IsXUL() || IsActuallyEditable(aContainer, aChild)) {
       return PR_FALSE;
     }
   } else { 
@@ -6185,7 +6204,7 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     PRUint32 containerCount = aContainer->GetChildCount();
     for (PRUint32 i = aIndex; i < containerCount; i++) {
       nsIContent* child = aContainer->GetChildAt(i);
-      if (child->IsXUL() || child->IsEditable()) {
+      if (child->IsXUL() || IsActuallyEditable(aContainer, child)) {
         return PR_FALSE;
       }
     }
