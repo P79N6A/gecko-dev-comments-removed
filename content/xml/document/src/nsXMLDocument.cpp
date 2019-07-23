@@ -133,6 +133,9 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
   doc->SetPrincipal(aPrincipal);
   doc->SetBaseURI(aBaseURI);
 
+  
+  doc->SetDocumentCharacterSet(NS_LITERAL_CSTRING("UTF-8"));
+  
   if (aDoctype) {
     nsCOMPtr<nsIDOMNode> tmpNode;
     rv = doc->AppendChild(aDoctype, getter_AddRefs(tmpNode));
