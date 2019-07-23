@@ -211,13 +211,12 @@ protected:
   nsCOMPtr<nsIFrameLoader> mFrameLoader;
   nsIView* mInnerView;
   PRPackedBool mDidCreateDoc;
-  PRPackedBool mOwnsFrameLoader;
   PRPackedBool mIsInline;
   PRPackedBool mPostedReflowCallback;
 };
 
 nsSubDocumentFrame::nsSubDocumentFrame(nsStyleContext* aContext)
-  : nsLeafFrame(aContext), mDidCreateDoc(PR_FALSE), mOwnsFrameLoader(PR_FALSE),
+  : nsLeafFrame(aContext), mDidCreateDoc(PR_FALSE),
     mIsInline(PR_FALSE), mPostedReflowCallback(PR_FALSE)
 {
 }
@@ -635,13 +634,8 @@ nsSubDocumentFrame::AttributeChanged(PRInt32 aNameSpaceID,
     return NS_OK;
   }
   
-  if (aAttribute == nsGkAtoms::src) {
-    if (mOwnsFrameLoader && mFrameLoader) {
-      mFrameLoader->LoadFrame();
-    }
-  }
   
-  else if (aAttribute == nsGkAtoms::noresize) {
+  if (aAttribute == nsGkAtoms::noresize) {
     
     
     if (mContent->GetParent()->Tag() == nsGkAtoms::frameset) {
@@ -774,13 +768,6 @@ nsSubDocumentFrame::Destroy()
     }
   }
 
-  if (mFrameLoader && mOwnsFrameLoader) {
-    
-    
-
-    mFrameLoader->Destroy();
-  }
-
   nsLeafFrame::Destroy();
 }
 
@@ -820,21 +807,7 @@ nsSubDocumentFrame::GetDocShell(nsIDocShell **aDocShell)
       loaderOwner->GetFrameLoader(getter_AddRefs(mFrameLoader));
     }
 
-    if (!mFrameLoader) {
-      
-      mFrameLoader = new nsFrameLoader(content);
-      if (!mFrameLoader)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-      
-      mOwnsFrameLoader = PR_TRUE;
-
-      
-      
-      
-      
-      mFrameLoader->LoadFrame();
-    }
+    NS_ENSURE_STATE(mFrameLoader);
   }
 
   return mFrameLoader->GetDocShell(aDocShell);
