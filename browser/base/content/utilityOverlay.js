@@ -525,9 +525,12 @@ function getBrowserFromContentWindow(aContentWindow)
 
 
 
+
+
+
  
 function openNewTabWith(aURL, aDocument, aPostData, aEvent,
-                        aAllowThirdPartyFixup)
+                        aAllowThirdPartyFixup, aReferrer)
 {
   if (aDocument)
     urlSecurityCheck(aURL, aDocument.nodePrincipal);
@@ -555,13 +558,14 @@ function openNewTabWith(aURL, aDocument, aPostData, aEvent,
     originCharset = window.content.document.characterSet;
 
   
-  var referrerURI = aDocument ? aDocument.documentURIObject : null;
+  var referrerURI = aDocument ? aDocument.documentURIObject : aReferrer;
   var browser = top.document.getElementById("content");
   browser.loadOneTab(aURL, referrerURI, originCharset, aPostData,
                      loadInBackground, aAllowThirdPartyFixup || false);
 }
 
-function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup)
+function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup,
+                           aReferrer)
 {
   if (aDocument)
     urlSecurityCheck(aURL, aDocument.nodePrincipal);
@@ -575,7 +579,7 @@ function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup)
   if (wintype == "navigator:browser")
     charsetArg = "charset=" + window.content.document.characterSet;
 
-  var referrerURI = aDocument ? aDocument.documentURIObject : null;
+  var referrerURI = aDocument ? aDocument.documentURIObject : aReferrer;
   window.openDialog(getBrowserURL(), "_blank", "chrome,all,dialog=no",
                     aURL, charsetArg, referrerURI, aPostData,
                     aAllowThirdPartyFixup);

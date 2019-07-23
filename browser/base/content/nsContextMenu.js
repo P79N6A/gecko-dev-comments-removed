@@ -627,8 +627,10 @@ nsContextMenu.prototype = {
 
   
   openFrameInTab: function() {
-    openNewTabWith(this.target.ownerDocument.location.href,
-                   null, null, null, false);
+    var doc = this.target.ownerDocument;
+    var frameURL = doc.documentURIObject.spec;
+
+    openNewTabWith(frameURL, null, null, null, false, makeURI(doc.referrer));
   },
 
   
@@ -638,19 +640,20 @@ nsContextMenu.prototype = {
 
   
   openFrame: function() {
-    openNewWindowWith(this.target.ownerDocument.location.href,
-                      null, null, false);
+    var doc = this.target.ownerDocument;
+    var frameURL = doc.documentURIObject.spec;
+
+    openNewWindowWith(frameURL, null, null, false, makeURI(doc.referrer));
   },
 
   
   showOnlyThisFrame: function() {
-    var frameURL = this.target.ownerDocument.location.href;
+    var doc = this.target.ownerDocument;
+    var frameURL = doc.documentURIObject.spec;
 
-    try {
-      urlSecurityCheck(frameURL, this.browser.contentPrincipal,
-                       Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
-      this.browser.loadURI(frameURL);
-    } catch(e) {}
+    urlSecurityCheck(frameURL, this.browser.contentPrincipal,
+                     Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
+    this.browser.loadURI(frameURL, makeURI(doc.referrer));
   },
 
   
