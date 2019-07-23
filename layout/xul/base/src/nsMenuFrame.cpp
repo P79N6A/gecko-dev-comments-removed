@@ -101,6 +101,57 @@ nsString *nsMenuFrame::gAltText = nsnull;
 nsString *nsMenuFrame::gModifierSeparator = nsnull;
 
 
+class nsMenuActivateEvent : public nsRunnable
+{
+public:
+  nsMenuActivateEvent(nsIContent *aMenu,
+                      nsPresContext* aPresContext,
+                      PRBool aIsActivate)
+    : mMenu(aMenu), mPresContext(aPresContext), mIsActivate(aIsActivate)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    nsAutoString domEventToFire;
+
+    if (mIsActivate) {
+      
+      mMenu->SetAttr(kNameSpaceID_None, nsGkAtoms::menuactive,
+                     NS_LITERAL_STRING("true"), PR_TRUE);
+      
+      
+      domEventToFire.AssignLiteral("DOMMenuItemActive");
+    }
+    else {
+      
+      mMenu->UnsetAttr(kNameSpaceID_None, nsGkAtoms::menuactive, PR_TRUE);
+      domEventToFire.AssignLiteral("DOMMenuItemInactive");
+    }
+
+    nsCOMPtr<nsIDOMEvent> event;
+    if (NS_SUCCEEDED(nsEventDispatcher::CreateEvent(mPresContext, nsnull,
+                                                    NS_LITERAL_STRING("Events"),
+                                                    getter_AddRefs(event)))) {
+      event->InitEvent(domEventToFire, PR_TRUE, PR_TRUE);
+
+      nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
+      privateEvent->SetTrusted(PR_TRUE);
+
+      nsEventDispatcher::DispatchDOMEvent(mMenu, nsnull, event,
+                                          mPresContext, nsnull);
+    }
+
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIContent> mMenu;
+  nsCOMPtr<nsPresContext> mPresContext;
+  PRBool mIsActivate;
+};
+
+
 
 
 
@@ -523,61 +574,22 @@ nsMenuFrame::PopupClosed(PRBool aDeselectMenu)
 
   
   if (mMenuParent && mMenuParent->MenuClosed()) {
-    if (aDeselectMenu)
+    if (aDeselectMenu) {
       SelectMenu(PR_FALSE);
+    } else {
+      
+      
+      
+      nsMenuFrame *current = mMenuParent->GetCurrentMenuItem();
+      if (current) {
+        nsCOMPtr<nsIRunnable> event =
+          new nsMenuActivateEvent(current->GetContent(),
+                                  PresContext(), PR_TRUE);
+        NS_DispatchToCurrentThread(event);
+      }
+    }
   }
 }
-
-
-class nsMenuActivateEvent : public nsRunnable
-{
-public:
-  nsMenuActivateEvent(nsIContent *aMenu,
-                      nsPresContext* aPresContext,
-                      PRBool aIsActivate)
-    : mMenu(aMenu), mPresContext(aPresContext), mIsActivate(aIsActivate)
-  {
-  }
-
-  NS_IMETHOD Run()
-  {
-    nsAutoString domEventToFire;
-
-    if (mIsActivate) {
-      
-      mMenu->SetAttr(kNameSpaceID_None, nsGkAtoms::menuactive,
-                     NS_LITERAL_STRING("true"), PR_TRUE);
-      
-      
-      domEventToFire.AssignLiteral("DOMMenuItemActive");
-    }
-    else {
-      
-      mMenu->UnsetAttr(kNameSpaceID_None, nsGkAtoms::menuactive, PR_TRUE);
-      domEventToFire.AssignLiteral("DOMMenuItemInactive");
-    }
-
-    nsCOMPtr<nsIDOMEvent> event;
-    if (NS_SUCCEEDED(nsEventDispatcher::CreateEvent(mPresContext, nsnull,
-                                                    NS_LITERAL_STRING("Events"),
-                                                    getter_AddRefs(event)))) {
-      event->InitEvent(domEventToFire, PR_TRUE, PR_TRUE);
-
-      nsCOMPtr<nsIPrivateDOMEvent> privateEvent(do_QueryInterface(event));
-      privateEvent->SetTrusted(PR_TRUE);
-
-      nsEventDispatcher::DispatchDOMEvent(mMenu, nsnull, event,
-                                          mPresContext, nsnull);
-    }
-
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<nsIContent> mMenu;
-  nsCOMPtr<nsPresContext> mPresContext;
-  PRBool mIsActivate;
-};
 
 NS_IMETHODIMP
 nsMenuFrame::SelectMenu(PRBool aActivateFlag)
