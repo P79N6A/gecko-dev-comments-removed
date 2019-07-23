@@ -77,6 +77,7 @@ NS_IsSpace(PRUnichar u)
 {
   return u == 0x0020 ||                  
          u == 0x0009 ||                  
+         u == 0x000A ||                  
          u == 0x000D ||                  
          (0x2000 <= u && u <= 0x2006) || 
                                          
