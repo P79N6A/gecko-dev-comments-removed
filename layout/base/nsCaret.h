@@ -44,11 +44,11 @@
 
 #include "nsCoord.h"
 #include "nsISelectionListener.h"
-#include "nsIRenderingContext.h"
 #include "nsITimer.h"
 #include "nsWeakPtr.h"
 #include "nsFrameSelection.h"
 
+class nsIRenderingContext;
 class nsDisplayListBuilder;
 class nsIView;
 
@@ -167,17 +167,6 @@ class nsCaret : public nsISelectionListener
     
 
 
-    nsIContent*   GetCaretContent()
-    {
-      if (mDrawn)
-        return mLastContent;
-
-      return nsnull;
-    }
-
-    
-
-
 
 
     void      InvalidateOutsideCaret();
@@ -287,8 +276,7 @@ protected:
     nsWeakPtr             mPresShell;
     nsWeakPtr             mDomSelectionWeak;
 
-    nsCOMPtr<nsITimer>              mBlinkTimer;
-    nsCOMPtr<nsIRenderingContext>   mRendContext;
+    nsCOMPtr<nsITimer>    mBlinkTimer;
 
     
     
