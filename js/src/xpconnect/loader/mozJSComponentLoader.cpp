@@ -986,6 +986,8 @@ mozJSComponentLoader::StartFastLoad(nsIFastLoadService *flSvc)
                                                   kFastLoadWriteDelay,
                                                   nsITimer::TYPE_ONE_SHOT);
     } else {
+        
+        
         rv = mFastLoadTimer->SetDelay(kFastLoadWriteDelay);
     }
 

@@ -292,6 +292,14 @@ NS_IMETHODIMP nsTimerImpl::Cancel()
 
 NS_IMETHODIMP nsTimerImpl::SetDelay(PRUint32 aDelay)
 {
+  if (mCallbackType == CALLBACK_TYPE_UNKNOWN && mType == TYPE_ONE_SHOT) {
+    
+    
+    NS_ERROR("nsITimer->SetDelay() called when the "
+             "one-shot timer is not set up.");
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
   
   
   if (mTimeout != 0 && mType == TYPE_REPEATING_PRECISE)
