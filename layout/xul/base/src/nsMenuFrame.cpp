@@ -583,6 +583,40 @@ NS_IMETHODIMP
 nsMenuFrame::SelectMenu(PRBool aActivateFlag)
 {
   if (mContent) {
+    
+    
+    
+    
+    
+    if (aActivateFlag) {
+      nsIFrame* parent = GetParent();
+      while (parent) {
+        if (parent->GetType() == nsGkAtoms::menuPopupFrame) {
+          
+          parent = parent->GetParent();
+          if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
+            
+            nsIFrame* popupParent = parent->GetParent();
+            while (popupParent) {
+              if (popupParent->GetType() == nsGkAtoms::menuPopupFrame) {
+                nsMenuPopupFrame* popup = static_cast<nsMenuPopupFrame *>(popupParent);
+                popup->SetCurrentMenuItem(static_cast<nsMenuFrame *>(parent));
+                break;
+              }
+              popupParent = popupParent->GetParent();
+            }
+          }
+          break;
+        }
+        parent = parent->GetParent();
+      }
+    }
+
+    
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm)
+      pm->CancelMenuTimer(mMenuParent);
+
     nsCOMPtr<nsIRunnable> event =
       new nsMenuActivateEvent(mContent, PresContext(), aActivateFlag);
     NS_DispatchToCurrentThread(event);

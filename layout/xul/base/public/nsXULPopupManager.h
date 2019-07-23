@@ -504,6 +504,16 @@ public:
 
 
 
+
+
+
+
+  void CancelMenuTimer(nsIMenuParent* aMenuParent);
+
+  
+
+
+
   PRBool HandleShortcutNavigation(nsIDOMKeyEvent* aKeyEvent);
 
   
