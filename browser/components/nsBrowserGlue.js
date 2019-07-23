@@ -22,7 +22,6 @@
 #   Giorgio Maone <g.maone@informaction.com>
 #   Seth Spitzer <sspitzer@mozilla.com>
 #   Asaf Romano <mano@mozilla.com>
-#   Marco Bonardo <mak77@bonardo.net>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -128,9 +127,6 @@ BrowserGlue.prototype = {
         subject.QueryInterface(Ci.nsISupportsPRBool);
         subject.data = true;
         break;
-      case "places-init-complete":
-        this._initPlaces();
-        break;
       case "idle":
         if (this.idleService.idleTime > BOOKMARKS_ARCHIVE_IDLE_TIME * 1000) {
           
@@ -155,7 +151,6 @@ BrowserGlue.prototype = {
     osvr.addObserver(this, "quit-application-requested", false);
     osvr.addObserver(this, "quit-application-granted", false);
     osvr.addObserver(this, "session-save", false);
-    osvr.addObserver(this, "places-init-complete", false);
   },
 
   
@@ -173,7 +168,6 @@ BrowserGlue.prototype = {
     osvr.removeObserver(this, "quit-application-requested");
     osvr.removeObserver(this, "quit-application-granted");
     osvr.removeObserver(this, "session-save");
-    osvr.removeObserver(this, "places-init-complete");
   },
 
   _onAppDefaults: function()
@@ -197,6 +191,9 @@ BrowserGlue.prototype = {
       ww.openWindow(null, "chrome://browser/content/safeMode.xul", 
                     "_blank", "chrome,centerscreen,modal,resizable=no", null);
     }
+
+    
+    this._initPlaces();
 
     
     
@@ -473,57 +470,30 @@ BrowserGlue.prototype = {
 
 
 
-
-
   _initPlaces: function bg__initPlaces() {
+    
     
     
     
     var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                   getService(Ci.nsINavHistoryService);
-    var databaseStatus = histsvc.databaseStatus;
 
-    
-    
-    var importBookmarks = databaseStatus != histsvc.DATABASE_STATUS_OK;
-
-    
-    var importBookmarksHTML = false;
-    try {
-      importBookmarksHTML =
-        this._prefs.getBoolPref("browser.places.importBookmarksHTML");
-      if (importBookmarksHTML)
-        importBookmarks = true;
-    } catch(ex) {}
-
-    
-    
+    var importBookmarks = false;
     var restoreDefaultBookmarks = false;
     try {
-      restoreDefaultBookmarks =
-        this._prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
-      if (restoreDefaultBookmarks) {
-        
-        this._archiveBookmarks();
-        importBookmarks = true;
-      }
+      restoreDefaultBookmarks = this._prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
     } catch(ex) {}
 
-    
-    
-    if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
+    if (restoreDefaultBookmarks) {
       
-      Cu.import("resource://gre/modules/utils.js");
-      var bookmarksFile = PlacesUtils.getMostRecentBackup();
-      if (bookmarksFile && bookmarksFile.leafName.match("\.json$")) {
-        
-        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksFile);
-        importBookmarks = false;
-      }
-      else {
-        
-        importBookmarks = true;
-      }
+      this._archiveBookmarks();
+      
+      importBookmarks = true;
+    }
+    else {
+      try {
+        importBookmarks = this._prefs.getBoolPref("browser.places.importBookmarksHTML");
+      } catch(ex) {}
     }
 
     if (!importBookmarks) {
@@ -533,40 +503,44 @@ BrowserGlue.prototype = {
     }
     else {
       
-      
-      this._prefs.setIntPref("browser.places.leftPaneFolderId", -1);
+      Cu.import("resource://gre/modules/utils.js");
+      var bookmarksFile = PlacesUtils.getMostRecentBackup();
 
-      
-      this._prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
-
-      
-      var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                       getService(Ci.nsIProperties);
-      var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
-
-      
-      if (restoreDefaultBookmarks || !bookmarksFile.exists()) {
+      if (!restoreDefaultBookmarks &&
+          bookmarksFile && bookmarksFile.leafName.match("\.json$")) {
         
-        bookmarksFile = dirService.get("profDef", Ci.nsILocalFile);
-        bookmarksFile.append("bookmarks.html");
+        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksFile);
       }
-
-      
-      try {
-        var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
-                       getService(Ci.nsIPlacesImportExportService);
-        importer.importHTMLFromFile(bookmarksFile, true );
-      } catch (err) {
+      else {
         
-        Cu.reportError(err);
-      }
 
-      
-      if (importBookmarksHTML)
+        
+        this._prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
+
+        var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                         getService(Ci.nsIProperties);
+
+        var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
+        if (restoreDefaultBookmarks || !bookmarksFile.exists()) {
+          
+          bookmarksFile = dirService.get("profDef", Ci.nsILocalFile);
+          bookmarksFile.append("bookmarks.html");
+        }
+
+        
+        try {
+          var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
+                         getService(Ci.nsIPlacesImportExportService);
+          importer.importHTMLFromFile(bookmarksFile, true );
+        } catch (err) {
+          
+          Cu.reportError(err);
+        }
         this._prefs.setBoolPref("browser.places.importBookmarksHTML", false);
-      if (restoreDefaultBookmarks)
-        this._prefs.setBoolPref("browser.bookmarks.restore_default_bookmarks",
-                                false);
+        if (restoreDefaultBookmarks)
+          this._prefs.setBoolPref("browser.bookmarks.restore_default_bookmarks",
+                                 false);
+      }
     }
 
     
@@ -947,11 +921,6 @@ GeolocationPrompt.prototype = {
         label: browserBundle.GetStringFromName("geolocation.exactLocation"),
         accessKey: browserBundle.GetStringFromName("geolocation.exactLocationKey"),
         callback: function() request.allow() ,
-        },
-        {
-        label: browserBundle.GetStringFromName("geolocation.neighborhoodLocation"),
-        accessKey: browserBundle.GetStringFromName("geolocation.neighborhoodLocationKey"),
-        callback: function() request.allowButFuzz() ,
         },
         {
         label: browserBundle.GetStringFromName("geolocation.nothingLocation"),

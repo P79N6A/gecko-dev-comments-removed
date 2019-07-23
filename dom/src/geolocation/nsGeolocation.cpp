@@ -139,7 +139,6 @@ nsGeolocationRequest::nsGeolocationRequest(nsGeolocation* aLocator,
                                            nsIDOMGeoPositionOptions* aOptions)
   : mAllowed(PR_FALSE),
     mCleared(PR_FALSE),
-    mFuzzLocation(PR_FALSE),
     mHasSentData(PR_FALSE),
     mCallback(aCallback),
     mErrorCallback(aErrorCallback),
@@ -257,13 +256,6 @@ nsGeolocationRequest::Allow()
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsGeolocationRequest::AllowButFuzz()
-{
-  mFuzzLocation = PR_TRUE;
-  return Allow();
-}
-
 void
 nsGeolocationRequest::MarkCleared()
 {
@@ -281,50 +273,7 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
   if (!stack || NS_FAILED(stack->Push(nsnull)))
     return; 
   
-  
-  if (mFuzzLocation)
-  {
-    
-    
-
-    double lat, lon, alt, herror, verror, heading, speed;
-    DOMTimeStamp time;
-    aPosition->GetLatitude(&lat);
-    aPosition->GetLongitude(&lon);
-    aPosition->GetAltitude(&alt);
-    aPosition->GetAccuracy(&herror);
-    aPosition->GetAltitudeAccuracy(&verror);
-    aPosition->GetHeading(&heading);
-    aPosition->GetSpeed(&speed);
-    aPosition->GetTimestamp(&time); 
-
-    
-    
-    
-    
-
-    lat = 0;
-    lon = 0;
-    herror = 0;
-    heading = 0; 
-    speed = 0;
-    alt = 0;
-    verror = 0;
-
-    nsRefPtr<nsGeoPosition> somewhere = new nsGeoPosition(lat,
-                                                          lon,
-                                                          alt,
-                                                          herror,
-                                                          verror,
-                                                          heading,
-                                                          speed,
-                                                          time);
-    mCallback->HandleEvent(somewhere);
-  }
-  else
-  {
-    mCallback->HandleEvent(aPosition);
-  }
+  mCallback->HandleEvent(aPosition);
 
   
   JSContext* cx;
@@ -339,74 +288,6 @@ nsGeolocationRequest::Shutdown()
   mCleared = PR_TRUE;
   mCallback = nsnull;
   mErrorCallback = nsnull;
-}
-
-
-
-
-NS_INTERFACE_MAP_BEGIN(nsGeoPosition)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMGeoPosition)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMGeoPosition)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(GeoPosition)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_THREADSAFE_ADDREF(nsGeoPosition)
-NS_IMPL_THREADSAFE_RELEASE(nsGeoPosition)
-
-NS_IMETHODIMP
-nsGeoPosition::GetLatitude(double *aLatitude)
-{
-  *aLatitude = mLat;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetLongitude(double *aLongitude)
-{
-  *aLongitude = mLong;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetAltitude(double *aAltitude)
-{
-  *aAltitude = mAlt;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetAccuracy(double *aAccuracy)
-{
-  *aAccuracy = mHError;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetAltitudeAccuracy(double *aAltitudeAccuracy)
-{
-  *aAltitudeAccuracy = mVError;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetHeading(double *aHeading)
-{
-  *aHeading = mHeading;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetSpeed(double *aSpeed)
-{
-  *aSpeed = mSpeed;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsGeoPosition::GetTimestamp(DOMTimeStamp* aTimestamp)
-{
-  *aTimestamp = mTimestamp;
-  return NS_OK;
 }
 
 
