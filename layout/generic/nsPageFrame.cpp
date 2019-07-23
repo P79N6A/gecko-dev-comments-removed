@@ -549,6 +549,19 @@ nsPageFrame::PaintPageContent(nsIRenderingContext& aRenderingContext,
   
   
   nsRect clipRect(nsPoint(0, 0), pageContentFrame->GetSize());
+  
+  
+  nscoord expectedPageContentHeight = 
+    NSToCoordCeil((GetSize().height - mPD->mReflowMargin.TopBottom()) / scale);
+  if (clipRect.height > expectedPageContentHeight) {
+    
+    
+    NS_ASSERTION(mPageNum > 0, "page num should be positive");
+    clipRect.y =  expectedPageContentHeight * (mPageNum - 1);
+    clipRect.height = expectedPageContentHeight;
+    NS_ASSERTION(clipRect.y < pageContentFrame->GetSize().height,
+                 "Should be clipping to region inside the page content bounds");
+  }
   aRenderingContext.SetClipRect(clipRect, nsClipCombine_kIntersect);
 
   const nsStyleBorder* border = GetStyleBorder();
