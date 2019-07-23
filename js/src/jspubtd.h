@@ -594,8 +594,12 @@ typedef JSBool
 
 typedef enum JSContextOp {
     JSCONTEXT_NEW,
-    JSCONTEXT_DESTROY
+    JSCONTEXT_DESTROY,
+    JSCONTEXT_REQUEST_START
 } JSContextOp;
+
+
+
 
 
 
