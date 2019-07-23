@@ -299,8 +299,13 @@ public:
 
 
 
-  static nscoord WidthToClearPastFloats(nsBlockReflowState& aState,
-                                        nsIFrame* aFrame);
+  struct ReplacedElementWidthToClear {
+    nscoord marginLeft, borderBoxWidth, marginRight;
+    nscoord MarginBoxWidth() const
+      { return marginLeft + borderBoxWidth + marginRight; }
+  };
+  static ReplacedElementWidthToClear
+    WidthToClearPastFloats(nsBlockReflowState& aState, nsIFrame* aFrame);
 
   
 

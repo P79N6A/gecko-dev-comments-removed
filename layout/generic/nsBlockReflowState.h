@@ -46,9 +46,7 @@
 #include "nsBlockBandData.h"
 #include "nsLineBox.h"
 #include "nsFrameList.h"
-#include "nsContainerFrame.h"
-
-class nsBlockFrame;
+#include "nsBlockFrame.h"
 
   
 #define BRS_UNCONSTRAINEDHEIGHT   0x00000001
@@ -111,7 +109,8 @@ public:
   
   
   
-  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType, nscoord aReplacedWidth = 0);
+  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType,
+    nsBlockFrame::ReplacedElementWidthToClear *aReplacedWidth = nsnull);
 
   PRBool IsAdjacentWithTop() const {
     return mY ==
@@ -141,8 +140,18 @@ public:
   
   void ReconstructMarginAbove(nsLineList::iterator aLine);
 
+  
+  void ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
+                                            nscoord& aLeftResult,
+                                            nscoord& aRightResult,
+                                        nsBlockFrame::ReplacedElementWidthToClear
+                                                       *aReplacedWidth = nsnull);
+
+  
   void ComputeBlockAvailSpace(nsIFrame* aFrame,
                               const nsStyleDisplay* aDisplay,
+                              nsBlockFrame::ReplacedElementWidthToClear
+                                                               *aReplacedWidth,
                               nsRect& aResult);
 
 protected:

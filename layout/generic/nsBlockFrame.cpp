@@ -1770,18 +1770,20 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       line->MarkDirty();
     }
 
-    nscoord replacedWidth = 0;
+    ReplacedElementWidthToClear replacedWidthStruct;
+    ReplacedElementWidthToClear *replacedWidth = nsnull;
     if (line->IsBlock() &&
         !nsBlockFrame::BlockCanIntersectFloats(line->mFirstChild)) {
-      replacedWidth =
+      replacedWidthStruct =
         nsBlockFrame::WidthToClearPastFloats(aState, line->mFirstChild);
+      replacedWidth = &replacedWidthStruct;
     }
 
     
     
     if (!line->IsDirty() &&
         (line->GetBreakTypeBefore() != NS_STYLE_CLEAR_NONE ||
-         replacedWidth != 0)) {
+         replacedWidth)) {
       nscoord curY = aState.mY;
       
       
@@ -2794,10 +2796,12 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
   PRBool treatWithClearance = aLine->HasClearance();
 
   PRBool mightClearFloats = breakType != NS_STYLE_CLEAR_NONE;
-  nscoord replacedWidth = 0;
+  ReplacedElementWidthToClear replacedWidthStruct;
+  ReplacedElementWidthToClear *replacedWidth = nsnull;
   if (!nsBlockFrame::BlockCanIntersectFloats(frame)) {
     mightClearFloats = PR_TRUE;
-    replacedWidth = nsBlockFrame::WidthToClearPastFloats(aState, frame);
+    replacedWidthStruct = nsBlockFrame::WidthToClearPastFloats(aState, frame);
+    replacedWidth = &replacedWidthStruct;
   }
 
   
@@ -2945,7 +2949,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     PRBool isImpacted = aState.IsImpactedByFloat() ? PR_TRUE : PR_FALSE;
     aLine->SetLineIsImpactedByFloat(isImpacted);
     nsRect availSpace;
-    aState.ComputeBlockAvailSpace(frame, display, availSpace);
+    aState.ComputeBlockAvailSpace(frame, display, replacedWidth, availSpace);
     
     
     
@@ -6767,57 +6771,109 @@ nsBlockFrame::BlockCanIntersectFloats(nsIFrame* aFrame)
          !(aFrame->GetStateBits() & NS_BLOCK_SPACE_MGR);
 }
 
-static nscoord
-OneWidthToClearPastFloats(nsPresContext* aPresContext,
-                          const nsHTMLReflowState& aParentReflowState,
-                          nscoord aCBWidth,
-                          nsIFrame* aFrame)
-{
-  
-  
-  if (aFrame->GetStylePosition()->mWidth.GetUnit() == eStyleUnit_Percent) {
-    
-    
-    
-    nsSize availSpace(aCBWidth, NS_UNCONSTRAINEDSIZE);
-    nsHTMLReflowState reflowState(aPresContext, aParentReflowState,
-                                  aFrame, availSpace);
-    return reflowState.ComputedWidth();
-  }
-
-  return nsLayoutUtils::IntrinsicForContainer(aParentReflowState.rendContext,
-                                              aFrame,
-                                              nsLayoutUtils::MIN_WIDTH);
-}
 
 
-nscoord
+
+
+
+nsBlockFrame::ReplacedElementWidthToClear
 nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
                                      nsIFrame* aFrame)
 {
-  nscoord result;
+  aState.GetAvailableSpace();
+  nscoord leftOffset, rightOffset;
+  nsCSSOffsetState offsetState(aFrame, aState.mReflowState.rendContext,
+                               aState.mContentArea.width);
+
+  ReplacedElementWidthToClear result;
   
   
   if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-    nsSize availSpace(aState.mContentArea.width, NS_UNCONSTRAINEDSIZE);
-    nsHTMLReflowState outerRS(aState.mPresContext, aState.mReflowState,
-                              aFrame, availSpace);
     nsIFrame *innerTable = aFrame->GetFirstChild(nsnull);
     nsIFrame *caption = aFrame->GetFirstChild(nsGkAtoms::captionList);
-    result = OneWidthToClearPastFloats(aState.mPresContext, outerRS,
-                                       aState.mContentArea.width, innerTable);
-    if (caption) {
-      nscoord captionWidth = OneWidthToClearPastFloats(aState.mPresContext,
-                               outerRS, aState.mContentArea.width, caption);
-      PRUint8 captionSide = caption->GetStyleTableBorder()->mCaptionSide;
-      if (captionSide == NS_SIDE_TOP || captionSide == NS_SIDE_BOTTOM)
-        result = PR_MAX(result, captionWidth);
-      else
-        result += captionWidth;
+
+    nsMargin tableMargin, captionMargin;
+    {
+      nsCSSOffsetState tableOS(innerTable, aState.mReflowState.rendContext,
+                               aState.mContentArea.width);
+      tableMargin = tableOS.mComputedMargin;
     }
+
+    if (caption) {
+      nsCSSOffsetState captionOS(caption, aState.mReflowState.rendContext,
+                                 aState.mContentArea.width);
+      captionMargin = captionOS.mComputedMargin;
+    }
+
+    PRUint8 captionSide;
+    if (!caption ||
+        ((captionSide = caption->GetStyleTableBorder()->mCaptionSide)
+           == NS_STYLE_CAPTION_SIDE_TOP ||
+         captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM)) {
+      result.marginLeft = tableMargin.left;
+      result.marginRight = tableMargin.right;
+    } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP_OUTSIDE ||
+               captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE) {
+      
+      
+      
+      result.marginLeft  = PR_MIN(tableMargin.left,  captionMargin.left);
+      result.marginRight = PR_MIN(tableMargin.right, captionMargin.right);
+    } else {
+      NS_ASSERTION(captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
+                   captionSide == NS_STYLE_CAPTION_SIDE_RIGHT,
+                   "unexpected caption-side");
+      if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT) {
+        result.marginLeft = captionMargin.left;
+        result.marginRight = tableMargin.right;
+      } else {
+        result.marginLeft = tableMargin.left;
+        result.marginRight = captionMargin.right;
+      }
+    }
+
+    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, leftOffset, rightOffset,
+                                                &result);
+
+    nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset
+                           + result.marginLeft + result.marginRight;
+    
+    
+    result.borderBoxWidth =
+      aFrame->ComputeSize(aState.mReflowState.rendContext,
+                          nsSize(aState.mContentArea.width,
+                                 NS_UNCONSTRAINEDSIZE),
+                          availWidth,
+                          nsSize(offsetState.mComputedMargin.LeftRight(),
+                                 offsetState.mComputedMargin.TopBottom()),
+                          nsSize(offsetState.mComputedBorderPadding.LeftRight() -
+                                   offsetState.mComputedPadding.LeftRight(),
+                                 offsetState.mComputedBorderPadding.TopBottom() -
+                                   offsetState.mComputedPadding.TopBottom()),
+                          nsSize(offsetState.mComputedPadding.LeftRight(),
+                                 offsetState.mComputedPadding.TopBottom()),
+                          PR_TRUE).width +
+      offsetState.mComputedBorderPadding.LeftRight() -
+      (result.marginLeft + result.marginRight);
   } else {
-    result = OneWidthToClearPastFloats(aState.mPresContext,
-               aState.mReflowState, aState.mContentArea.width, aFrame);
+    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, leftOffset, rightOffset);
+    nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset;
+
+    
+    
+    
+    
+    
+    
+    nsSize availSpace(availWidth, NS_UNCONSTRAINEDSIZE);
+    nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
+                                  aFrame, availSpace);
+    result.borderBoxWidth = reflowState.ComputedWidth() +
+                            reflowState.mComputedBorderPadding.LeftRight();
+    
+    
+    result.marginLeft  = offsetState.mComputedMargin.left;
+    result.marginRight = offsetState.mComputedMargin.right;
   }
   return result;
 }

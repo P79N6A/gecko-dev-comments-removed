@@ -198,12 +198,65 @@ nsBlockReflowState::FreeLineBox(nsLineBox* aLine)
   }
 }
 
+void
+nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
+                                                         nscoord& aLeftResult,
+                                                         nscoord& aRightResult,
+                                                         nsBlockFrame::
+                                                      ReplacedElementWidthToClear
+                                                                 *aReplacedWidth)
+{
+  
+  
+  
+  
+  NS_ASSERTION(mAvailSpaceRect.x >= 0, "bad avail space rect x");
+  NS_ASSERTION(mAvailSpaceRect.width == 0 ||
+               mAvailSpaceRect.XMost() <= mContentArea.width,
+               "bad avail space rect width");
+
+  nscoord leftOffset, rightOffset;
+  if (mAvailSpaceRect.width == mContentArea.width) {
+    
+    leftOffset = 0;
+    rightOffset = 0;
+  } else {
+    
+    
+    
+    
+    
+    nsCSSOffsetState os(aFrame, mReflowState.rendContext, mContentArea.width);
+    NS_ASSERTION(!aReplacedWidth ||
+                 aFrame->GetType() == nsGkAtoms::tableOuterFrame ||
+                 (aReplacedWidth->marginLeft  == os.mComputedMargin.left &&
+                  aReplacedWidth->marginRight == os.mComputedMargin.right),
+                 "unexpected aReplacedWidth");
+
+    nscoord leftFloatXOffset = mAvailSpaceRect.x;
+    leftOffset = PR_MAX(leftFloatXOffset, os.mComputedMargin.left) -
+                 (aReplacedWidth ? aReplacedWidth->marginLeft
+                                 : os.mComputedMargin.left);
+    leftOffset = PR_MAX(leftOffset, 0); 
+    nscoord rightFloatXOffset = mContentArea.width - mAvailSpaceRect.XMost();
+    rightOffset = PR_MAX(rightFloatXOffset, os.mComputedMargin.right) -
+                  (aReplacedWidth ? aReplacedWidth->marginRight
+                                  : os.mComputedMargin.right);
+    rightOffset = PR_MAX(rightOffset, 0); 
+  }
+  aLeftResult = leftOffset;
+  aRightResult = rightOffset;
+}
+
 
 
 
 void
 nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
                                            const nsStyleDisplay* aDisplay,
+                                           nsBlockFrame::
+                                             ReplacedElementWidthToClear
+                                                               *aReplacedWidth,
                                            nsRect& aResult)
 {
 #ifdef REALLY_NOISY_REFLOW
@@ -232,7 +285,9 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
   
   
   
-  if (nsBlockFrame::BlockCanIntersectFloats(aFrame)) {
+  NS_ASSERTION(nsBlockFrame::BlockCanIntersectFloats(aFrame) == !aReplacedWidth,
+               "unexpected replaced width");
+  if (!aReplacedWidth) {
     if (mBand.GetFloatCount()) {
       
       
@@ -300,11 +355,11 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
     }
   }
   else {
-    
-    
-    
-    aResult.x = mAvailSpaceRect.x + borderPadding.left;
-    aResult.width = mAvailSpaceRect.width;
+    nscoord leftOffset, rightOffset;
+    ComputeReplacedBlockOffsetsForFloats(aFrame, leftOffset, rightOffset,
+                                         aReplacedWidth);
+    aResult.x = borderPadding.left + leftOffset;
+    aResult.width = mContentArea.width - leftOffset - rightOffset;
   }
 
 #ifdef REALLY_NOISY_REFLOW
@@ -1050,7 +1105,7 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
 
 nscoord
 nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
-                                nscoord aReplacedWidth)
+                     nsBlockFrame::ReplacedElementWidthToClear *aReplacedWidth)
 {
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
@@ -1073,10 +1128,16 @@ nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
     newY = bp.top + mSpaceManager->ClearFloats(newY - bp.top, aBreakType);
   }
 
-  if (aReplacedWidth > 0) {
+  if (aReplacedWidth) {
     for (;;) {
       GetAvailableSpace(newY, PR_FALSE);
-      if (mAvailSpaceRect.width >= aReplacedWidth || mBand.GetFloatCount() == 0) {
+      if (mBand.GetFloatCount() == 0 ||
+          PR_MAX(mAvailSpaceRect.x, aReplacedWidth->marginLeft) +
+            aReplacedWidth->borderBoxWidth +
+            PR_MAX(mContentArea.width -
+                     PR_MIN(mContentArea.width, mAvailSpaceRect.XMost()),
+                   aReplacedWidth->marginRight) <=
+          mContentArea.width) {
         break;
       }
       
