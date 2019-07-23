@@ -490,7 +490,7 @@ nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
 
   if (aNewURI.IsEmpty() &&
       doc->GetDocumentURI() &&
-      NS_SUCCEEDED(doc->GetDocumentURI()->Equals(imageURI,&equal)) && 
+      NS_SUCCEEDED(doc->GetDocumentURI()->Equals(imageURI, &equal)) && 
       equal)  {
 
     
