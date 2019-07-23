@@ -42,36 +42,8 @@
 #include <gtk/gtk.h>
 #include <X11/Xatom.h>
 
-static GdkFilterReturn
-root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
-                         gpointer aClosure)
-{
-  XEvent *xevent = static_cast<XEvent*>(aGdkXEvent);
-  nsScreenGtk *ourScreen = static_cast<nsScreenGtk*>(aClosure);
-
-  
-  switch (xevent->type) {
-    case ConfigureNotify:
-      ourScreen->ReInit();
-      break;
-    case PropertyNotify:
-      {
-        XPropertyEvent *propertyEvent = &xevent->xproperty;
-        if (propertyEvent->atom == ourScreen->NetWorkareaAtom()) {
-          ourScreen->ReInit();
-        }
-      }
-      break;
-    default:
-      break;
-  }
-
-  return GDK_FILTER_CONTINUE;
-}
-
 nsScreenGtk :: nsScreenGtk (  )
-  : mRootWindow(nsnull),
-    mScreenNum(0),
+  : mScreenNum(0),
     mRect(0, 0, 0, 0),
     mAvailRect(0, 0, 0, 0)
 {
@@ -80,11 +52,6 @@ nsScreenGtk :: nsScreenGtk (  )
 
 nsScreenGtk :: ~nsScreenGtk()
 {
-  if (mRootWindow) {
-    gdk_window_remove_filter(mRootWindow, root_window_event_filter, this);
-    g_object_unref(mRootWindow);
-    mRootWindow = nsnull;
-  }
 }
 
 
@@ -138,7 +105,7 @@ nsScreenGtk :: GetColorDepth(PRInt32 *aColorDepth)
 
 
 void
-nsScreenGtk :: Init (PRBool aReInit)
+nsScreenGtk :: Init (GdkWindow *aRootWindow)
 {
   
   
@@ -154,25 +121,6 @@ nsScreenGtk :: Init (PRBool aReInit)
   
   
 
-  if (!aReInit) {
-#if GTK_CHECK_VERSION(2,2,0)
-    mRootWindow = gdk_get_default_root_window();
-#else
-    mRootWindow = GDK_ROOT_PARENT();
-#endif 
-    g_object_ref(mRootWindow);
-
-    
-    
-    gdk_window_set_events(mRootWindow,
-                          GdkEventMask(gdk_window_get_events(mRootWindow) |
-                                       GDK_STRUCTURE_MASK |
-                                       GDK_PROPERTY_CHANGE_MASK));
-    gdk_window_add_filter(mRootWindow, root_window_event_filter, this);
-    mNetWorkareaAtom =
-      XInternAtom(GDK_WINDOW_XDISPLAY(mRootWindow), "_NET_WORKAREA", False);
-  }
-
   long *workareas;
   GdkAtom type_returned;
   int format_returned;
@@ -187,7 +135,7 @@ nsScreenGtk :: Init (PRBool aReInit)
   gdk_error_trap_push();
 
   
-  if (!gdk_property_get(mRootWindow,
+  if (!gdk_property_get(aRootWindow,
                         gdk_atom_intern ("_NET_WORKAREA", FALSE),
                         cardinal_atom,
                         0, G_MAXLONG - 3, FALSE,

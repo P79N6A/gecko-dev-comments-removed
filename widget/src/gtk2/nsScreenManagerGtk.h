@@ -44,6 +44,8 @@
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
 #include "prlink.h"
+#include "gdk/gdk.h"
+#include <X11/Xlib.h>
 
 
 
@@ -56,14 +58,22 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISCREENMANAGER
 
+  Atom NetWorkareaAtom() { return mNetWorkareaAtom; }
+  
+  
+  nsresult Init();
+
 private:
 
-  nsresult EnsureInit(void);
+  nsresult EnsureInit();
 
   
   nsCOMArray<nsIScreen> mCachedScreenArray;
 
   PRLibrary *mXineramalib;
+
+  GdkWindow *mRootWindow;
+  Atom mNetWorkareaAtom;
 };
 
 #endif  
