@@ -358,7 +358,7 @@ nsComboboxControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
   
   
   
-  nsIViewManager* vm = PresContext()->GetPresShell()->GetViewManager();
+  nsIViewManager* vm = PresContext()->GetViewManager();
   if (vm) {
     vm->UpdateAllViews(NS_VMREFRESH_NO_SYNC);
   }
@@ -1285,8 +1285,7 @@ nsComboboxControlFrame::GetAdditionalChildListName(PRInt32 aIndex) const
   
 
 NS_IMETHODIMP 
-nsComboboxControlFrame::Rollup(PRUint32 aCount,
-                               nsIContent** aLastRolledUp)
+nsComboboxControlFrame::Rollup(nsIContent** aLastRolledUp)
 {
   if (aLastRolledUp)
     *aLastRolledUp = nsnull;

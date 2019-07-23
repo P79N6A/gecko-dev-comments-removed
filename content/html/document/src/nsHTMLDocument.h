@@ -47,7 +47,6 @@
 #include "nsIDOMHTMLCollection.h"
 #include "nsIScriptElement.h"
 #include "jsapi.h"
-#include "nsTArray.h"
 
 #include "pldhash.h"
 #include "nsIHttpChannel.h"
@@ -183,6 +182,13 @@ public:
   {
     return !mIsRegularHTML;
   }
+
+#ifdef DEBUG
+  virtual nsresult CreateElem(nsIAtom *aName, nsIAtom *aPrefix,
+                              PRInt32 aNamespaceID,
+                              PRBool aDocumentDefaultType,
+                              nsIContent** aResult);
+#endif
 
   nsresult ChangeContentEditableCount(nsIContent *aElement, PRInt32 aChange);
 
@@ -336,7 +342,7 @@ protected:
   
   PRUint32 mWriteLevel;
 
-  nsAutoTArray<nsIScriptElement*, 1> mPendingScripts;
+  nsSmallVoidArray mPendingScripts;
 
   
   PRUint32 mLoadFlags;

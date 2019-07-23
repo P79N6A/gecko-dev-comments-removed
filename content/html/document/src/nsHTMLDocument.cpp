@@ -2356,13 +2356,7 @@ nsHTMLDocument::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
                                        const nsAString& aLocalName,
                                        nsIDOMNodeList** aReturn)
 {
-  nsAutoString tmp(aLocalName);
-
-  if (!IsXHTML()) {
-    ToLowerCase(tmp); 
-  }
-
-  return nsDocument::GetElementsByTagNameNS(aNamespaceURI, tmp, aReturn);
+  return nsDocument::GetElementsByTagNameNS(aNamespaceURI, aLocalName, aReturn);
 }
 
 NS_IMETHODIMP
