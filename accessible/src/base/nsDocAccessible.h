@@ -117,9 +117,8 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 
 
 
-
     nsresult FireDelayedToolkitEvent(PRUint32 aEvent, nsIDOMNode *aDOMNode,
-                                     void *aData, EDupeEventRule aAllowDupes = eRemoveDupes,
+                                     EDupeEventRule aAllowDupes = eRemoveDupes,
                                      PRBool aIsAsynch = PR_FALSE);
 
     
