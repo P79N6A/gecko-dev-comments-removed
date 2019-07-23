@@ -5,15 +5,7 @@
 
 #include "prtypes.h"
 
-#if !defined(BIG_ENDIAN) && !defined(LITTLE_ENDIAN)
-#ifdef IS_LITTLE_ENDIAN
-#define LITTLE_ENDIAN
-#endif
 
-#ifdef IS_BIG_ENDIAN
-#define BIG_ENDIAN
-#endif
-#endif
 
 #if defined (__SVR4) && defined (__sun)
 
@@ -40,14 +32,24 @@ typedef PRUptrdiff uintptr_t;
 
 #else 
 
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define IS_LITTLE_ENDIAN
+#elif BYTE_ORDER == BIG_ENDIAN
+#define IS_BIG_ENDIAN
+#endif
+
 
 
 #ifdef _MSC_VER
-#define LITTLE_ENDIAN
+#define IS_LITTLE_ENDIAN
 #endif
 
 #ifdef __OS2__
-#define LITTLE_ENDIAN
+#define IS_LITTLE_ENDIAN
+#endif
+
+#if !defined(IS_LITTLE_ENDIAN) && !defined(IS_BIG_ENDIAN)
+#error Unknown endianess
 #endif
 
 #if defined (_SVR4) || defined (SVR4) || defined (__OpenBSD__) || defined (_sgi) || defined (__sun) || defined (sun) || defined (__digital__)

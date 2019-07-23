@@ -29,17 +29,13 @@
 typedef uint32_t __be32;
 typedef uint16_t __be16;
 
-#if !defined(BIG_ENDIAN) && !defined(LITTLE_ENDIAN)
-#error Unknown endianess
-#endif
-
 #if 0
 not used yet
 
 
 static __be32 cpu_to_be32(int32_t v)
 {
-#ifdef LITTLE_ENDIAN
+#ifdef IS_LITTLE_ENDIAN
 	return ((v & 0xff) << 24) | ((v & 0xff00) << 8) | ((v & 0xff0000) >> 8) | ((v & 0xff000000) >> 24);
 	
 	return v;
@@ -49,7 +45,7 @@ static __be32 cpu_to_be32(int32_t v)
 
 static uint32_t be32_to_cpu(__be32 v)
 {
-#ifdef LITTLE_ENDIAN
+#ifdef IS_LITTLE_ENDIAN
 	return ((v & 0xff) << 24) | ((v & 0xff00) << 8) | ((v & 0xff0000) >> 8) | ((v & 0xff000000) >> 24);
 	
 #else
@@ -59,7 +55,7 @@ static uint32_t be32_to_cpu(__be32 v)
 
 static uint32_t be16_to_cpu(__be16 v)
 {
-#ifdef LITTLE_ENDIAN
+#ifdef IS_LITTLE_ENDIAN
 	return ((v & 0xff) << 8) | ((v & 0xff00) >> 8);
 #else
 	return v;
