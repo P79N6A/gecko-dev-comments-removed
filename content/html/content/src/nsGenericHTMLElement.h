@@ -58,6 +58,7 @@ class nsIURI;
 class nsIFormControlFrame;
 class nsIForm;
 class nsPresState;
+class nsIScrollableView;
 class nsILayoutHistoryState;
 class nsIEditor;
 struct nsRect;
@@ -144,6 +145,16 @@ public:
   nsresult GetOffsetParent(nsIDOMElement** aOffsetParent);
   virtual nsresult GetInnerHTML(nsAString& aInnerHTML);
   virtual nsresult SetInnerHTML(const nsAString& aInnerHTML);
+  nsresult GetScrollTop(PRInt32* aScrollTop);
+  nsresult SetScrollTop(PRInt32 aScrollTop);
+  nsresult GetScrollLeft(PRInt32* aScrollLeft);
+  nsresult SetScrollLeft(PRInt32 aScrollLeft);
+  nsresult GetScrollHeight(PRInt32* aScrollHeight);
+  nsresult GetScrollWidth(PRInt32* aScrollWidth);
+  nsresult GetClientTop(PRInt32* aLength);
+  nsresult GetClientLeft(PRInt32* aLength);
+  nsresult GetClientHeight(PRInt32* aClientHeight);
+  nsresult GetClientWidth(PRInt32* aClientWidth);
   nsresult ScrollIntoView(PRBool aTop);
   
   
@@ -156,6 +167,32 @@ public:
   NS_IMETHOD SetSpellcheck(PRBool aSpellcheck);
   nsresult GetContentEditable(nsAString &aContentEditable);
   nsresult SetContentEditable(const nsAString &aContentEditable);
+
+  
+
+
+
+
+
+
+  void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
+  
+
+
+
+
+
+
+  void GetScrollInfo(nsIScrollableView **aScrollableView,
+                     nsIFrame **aFrame = nsnull);
+
+  
+
+
+
+
+
+  nsRect GetClientAreaRect();
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -741,15 +778,6 @@ protected:
 
 
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor();
-
-  
-
-
-
-
-
-
-  virtual void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
 
   
 
