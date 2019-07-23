@@ -877,8 +877,9 @@ const PRInt32 nsCSSProps::kIMEModeKTable[] = {
   eCSSKeyword_UNKNOWN,-1
 };
 
-
-const PRInt32 nsCSSProps::kKeyEquivalentKTable[] = {
+const PRInt32 nsCSSProps::kLineHeightKTable[] = {
+  
+  eCSSKeyword__moz_block_height, NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT,
   eCSSKeyword_UNKNOWN,-1
 };
 

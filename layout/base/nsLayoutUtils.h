@@ -771,6 +771,15 @@ public:
 
 
 
+  static nscoord GetCenteredFontBaseline(nsIFontMetrics* aFontMetrics,
+                                         nscoord         aLineHeight);
+
+  
+
+
+
+
+
 
 
   static PRBool GetFirstLineBaseline(const nsIFrame* aFrame, nscoord* aResult);

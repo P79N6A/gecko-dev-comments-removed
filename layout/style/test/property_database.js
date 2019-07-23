@@ -1163,9 +1163,10 @@ var gCSSProperties = {
 
 
 
-		prerequisites: { "font-size": "19px", "font-size-adjust": "none", "font-family": "serif", "font-weight": "normal", "font-style": "normal" },
+
+		prerequisites: { "font-size": "19px", "font-size-adjust": "none", "font-family": "serif", "font-weight": "normal", "font-style": "normal", "height": "18px", "display": "block"},
 		initial_values: [ "normal" ],
-		other_values: [ "1.0", "1", "1em", "47px" ],
+		other_values: [ "1.0", "1", "1em", "47px", "-moz-block-height" ],
 		invalid_values: []
 	},
 	"list-style": {

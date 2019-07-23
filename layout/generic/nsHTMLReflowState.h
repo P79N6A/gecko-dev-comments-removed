@@ -400,16 +400,19 @@ public:
   
 
 
+  nscoord CalcLineHeight() const;
 
-  static nscoord CalcLineHeight(nsIFrame* aFrame)
-  {
-    return CalcLineHeight(aFrame->GetStyleContext());
-  }
-  
   
 
 
-  static nscoord CalcLineHeight(nsStyleContext* aStyleContext);
+
+
+
+
+
+
+  static nscoord CalcLineHeight(nsStyleContext* aStyleContext,
+                                nscoord aBlockHeight);
 
 
   void ComputeContainingBlockRectangle(nsPresContext*          aPresContext,

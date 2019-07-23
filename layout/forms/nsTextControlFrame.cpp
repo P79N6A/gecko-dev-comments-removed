@@ -1307,7 +1307,8 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
   NS_ENSURE_SUCCESS(rv, rv);
   aRenderingContext->SetFont(fontMet);
 
-  lineHeight = nsHTMLReflowState::CalcLineHeight(this);
+  lineHeight =
+    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT);
   fontMet->GetAveCharWidth(charWidth);
   fontMet->GetMaxAdvance(charMaxAdvance);
 
@@ -1838,13 +1839,25 @@ nscoord
 nsTextControlFrame::GetBoxAscent(nsBoxLayoutState& aState)
 {
   
-  nscoord ascent = nsStackFrame::GetBoxAscent(aState);
-    
   
-  nsMargin borderPadding;
-  GetBorderAndPadding(borderPadding);
-  ascent += borderPadding.top;
+
   
+  nsRect clientRect;
+  GetClientRect(clientRect);
+  nscoord lineHeight =
+    IsSingleLineTextControl() ? clientRect.height :
+    nsHTMLReflowState::CalcLineHeight(GetStyleContext(), NS_AUTOHEIGHT);
+
+  nsCOMPtr<nsIFontMetrics> fontMet;
+  nsresult rv =
+    nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet));
+  NS_ENSURE_SUCCESS(rv, 0);
+
+  nscoord ascent = nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight);
+
+  
+  ascent += clientRect.y;
+
   return ascent;
 }
 
