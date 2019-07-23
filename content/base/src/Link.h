@@ -57,13 +57,6 @@ public:
   virtual nsLinkState GetLinkState() const;
   virtual void SetLinkState(nsLinkState aState);
 
-  
-
-
-
-
-  PRInt32 LinkState() const;
-
 protected:
   
 
