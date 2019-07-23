@@ -1253,16 +1253,12 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
     import(treeInfo, lirbuf->sp, stackSlots, ngslots, callDepth, typeMap);
 
     if (fragment == fragment->root) {
-        LIns* counter = lir->insLoadi(cx_ins,
-                                      offsetof(JSContext, operationCount));
-        if (js_HasOperationLimit(cx)) {
-            
+        
 
-            counter = lir->ins2i(LIR_sub, counter, JSOW_SCRIPT_JUMP);
-            lir->insStorei(counter, cx_ins,
-                           offsetof(JSContext, operationCount));
-        }
-        guard(false, lir->ins2i(LIR_le, counter, 0), snapshot(TIMEOUT_EXIT));
+
+
+        LIns* x = lir->insLoadi(cx_ins, offsetof(JSContext, operationCallbackFlag));
+        guard(true, lir->ins_eq0(x), snapshot(TIMEOUT_EXIT));
     }
 
     
@@ -4225,6 +4221,10 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount)
     if (!js_CheckGlobalObjectShape(cx, tm, globalObj, &globalShape, &globalSlots))
         js_FlushJITCache(cx);
 
+    
+    if (cx->operationCallbackFlag)
+        return false;
+    
     jsbytecode* pc = cx->fp->regs->pc;
 
     if (oracle.getHits(pc) >= 0 &&

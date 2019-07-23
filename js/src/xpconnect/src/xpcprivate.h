@@ -761,7 +761,11 @@ private:
     XPCJSRuntime(); 
     XPCJSRuntime(nsXPConnect* aXPConnect);
 
-private:
+    
+    void RescheduleWatchdog(XPCContext* ccx);
+
+    static void WatchdogMain(void *arg);
+
     static const char* mStrings[IDX_TOTAL_COUNT];
     jsid mStrIDs[IDX_TOTAL_COUNT];
     jsval mStrJSVals[IDX_TOTAL_COUNT];
@@ -788,6 +792,8 @@ private:
     XPCRootSetElem *mObjectHolderRoots;
     JSDHashTable mJSHolders;
     uintN mUnrootedGlobalCount;
+    PRCondVar *mWatchdogWakeup;
+    PRThread *mWatchdogThread;
 };
 
 

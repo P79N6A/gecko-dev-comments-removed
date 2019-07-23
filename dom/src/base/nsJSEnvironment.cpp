@@ -854,9 +854,6 @@ PrintWinCodebase(nsGlobalWindow *win)
 }
 #endif
 
-
-const PRUint32 MAYBE_GC_OPERATION_WEIGHT = 5000 * JS_OPERATION_WEIGHT_BASE;
-
 static void
 MaybeGC(JSContext *cx)
 {
@@ -927,7 +924,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     nsJSContext::CC();
 
     
-    if (! ::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx))) {
+    if (!::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx))) {
 
       
       mem->IsLowMemory(&lowMemory);
@@ -988,7 +985,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   
   JSStackFrame* fp = ::JS_GetScriptedCaller(cx, NULL);
-  PRBool debugPossible = (fp != nsnull &&
+  PRBool debugPossible = (fp != nsnull && cx->debugHooks &&
                           cx->debugHooks->debuggerHandler != nsnull);
 #ifdef MOZ_JSDEBUGGER
   
@@ -1098,9 +1095,14 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     buttonFlags += nsIPrompt::BUTTON_TITLE_IS_STRING * nsIPrompt::BUTTON_POS_2;
 
   
+  ::JS_SetOperationCallback(cx, nsnull);
+
+  
   rv = prompt->ConfirmEx(title, msg, buttonFlags, stopButton, waitButton,
                          debugButton, neverShowDlg, &neverShowDlgChk,
                          &buttonPressed);
+
+  ::JS_SetOperationCallback(cx, DOMOperationCallback);
 
   if (NS_FAILED(rv) || (buttonPressed == 1)) {
     
@@ -1249,8 +1251,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
                                          JSOptionChangedCallback,
                                          this);
 
-    ::JS_SetOperationCallback(mContext, DOMOperationCallback,
-                              MAYBE_GC_OPERATION_WEIGHT);
+    ::JS_SetOperationCallback(mContext, DOMOperationCallback);
 
     static JSLocaleCallbacks localeCallbacks =
       {
@@ -1301,9 +1302,6 @@ nsJSContext::Unlink()
 
   
   ::JS_SetContextPrivate(mContext, nsnull);
-
-  
-  ::JS_ClearOperationCallback(mContext);
 
   
   nsContentUtils::UnregisterPrefCallback(js_options_dot_str,

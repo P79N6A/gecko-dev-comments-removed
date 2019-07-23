@@ -80,9 +80,6 @@
 static PRUintn threadTPIndex;
 static JSBool  tpIndexInited = JS_FALSE;
 
-static void
-InitOperationLimit(JSContext *cx);
-
 JS_BEGIN_EXTERN_C
 JSBool
 js_InitThreadPrivateIndex(void (*ptr)(void *))
@@ -281,7 +278,6 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
         return NULL;
 
     cx->runtime = rt;
-    js_InitOperationLimit(cx);
     cx->debugHooks = &rt->globalDebugHooks;
 #if JS_STACK_GROWTH_DIRECTION > 0
     cx->stackLimit = (jsuword) -1;
@@ -621,6 +617,21 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp)
     if (unlocked)
         JS_UNLOCK_GC(rt);
     return cx;
+}
+
+JS_FRIEND_API(JSContext *)
+js_NextActiveContext(JSRuntime *rt, JSContext *cx)
+{
+    JSContext *iter = cx;
+#ifdef JS_THREADSAFE
+    while ((cx = js_ContextIterator(rt, JS_FALSE, &iter)) != NULL) {
+        if (cx->requestDepth)
+            break;
+    }
+    return cx;
+#else
+    return js_ContextIterator(rt, JS_FALSE, &iter);
+#endif           
 }
 
 static JSDHashNumber
@@ -1446,31 +1457,37 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
 }
 
 JSBool
-js_ResetOperationCount(JSContext *cx)
+js_InvokeOperationCallback(JSContext *cx)
 {
-    JSScript *script;
-    JSStackFrame *fp;
+    JS_ASSERT(cx->operationCallbackFlag);
+    
+    
 
-    JS_ASSERT(cx->operationCount <= 0);
-    JS_ASSERT(cx->operationLimit > 0);
 
-    cx->operationCount = (int32) cx->operationLimit;
+
+
+    cx->operationCallbackFlag = 0;
+
+    
+
+
+
+
+
+
+#ifdef JS_THREADSAFE    
+    JS_YieldRequest(cx);
+#endif
+
     JSOperationCallback cb = cx->operationCallback;
-    if (cb) {
-        if (!cx->branchCallbackWasSet)
-            return cb(cx);
 
-        
+    
 
 
 
 
-        fp = js_GetTopStackFrame(cx);
-        script = fp ? fp->script : NULL;
-        if (script || JS_HAS_OPTION(cx, JSOPTION_NATIVE_BRANCH_CALLBACK))
-            return ((JSBranchCallback) cb)(cx, script);
-    }
-    return JS_TRUE;
+
+    return !cb || cb(cx);
 }
 
 #ifndef JS_TRACER

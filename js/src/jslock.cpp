@@ -462,6 +462,38 @@ js_FinishSharingTitle(JSContext *cx, JSTitle *title)
 
 
 
+void
+js_NudgeOtherContexts(JSContext *cx)
+{
+    JSRuntime *rt = cx->runtime;
+    JSContext *acx = NULL;
+
+    while ((acx = js_NextActiveContext(rt, acx)) != NULL) {
+        if (cx != acx)
+            JS_TriggerOperationCallback(acx);
+    }
+}
+
+
+
+
+
+void
+js_NudgeThread(JSContext *cx, JSThread *thread)
+{
+    JSRuntime *rt = cx->runtime;
+    JSContext *acx = NULL;
+    
+    while ((acx = js_NextActiveContext(rt, acx)) != NULL) {
+        if (cx != acx && cx->thread == thread)
+            JS_TriggerOperationCallback(acx);
+    }
+}
+
+
+
+
+
 
 
 
@@ -560,6 +592,8 @@ ClaimTitle(JSTitle *title, JSContext *cx)
                     JS_NOTIFY_REQUEST_DONE(rt);
             }
         }
+
+        js_NudgeThread(cx, ownercx->thread);
 
         
 
