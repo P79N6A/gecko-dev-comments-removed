@@ -1031,10 +1031,11 @@ JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
 
 
 
+
 extern JS_PUBLIC_API(JSBool)
-JS_DumpHeap(JSContext *cx, void* startThing, uint32 startKind,
-            void *thingToFind, size_t maxDepth, void *thingToIgnore,
-            JSPrintfFormater format, void *closure);
+JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, uint32 startKind,
+            void *thingToFind, size_t maxDepth, void *thingToIgnore);
+
 #endif
 
 

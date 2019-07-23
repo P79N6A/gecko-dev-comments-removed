@@ -715,18 +715,6 @@ typedef JSBool
 typedef JSPrincipals *
 (* JS_DLL_CALLBACK JSObjectPrincipalsFinder)(JSContext *cx, JSObject *obj);
 
-
-
-
-
-
-typedef int
-(* JS_DLL_CALLBACK JSPrintfFormater)(void *closure, const char *format, ...)
-#if defined __GNUC__
-    __attribute__ ((format (printf, 2, 3)))
-#endif
-;
-
 JS_END_EXTERN_C
 
 #endif 
