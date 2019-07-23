@@ -41,6 +41,7 @@
 
 
 
+
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
 
@@ -49,6 +50,9 @@ toolbox {
   -moz-appearance: toolbox;
   border: none;
   background-color: ThreeDFace;
+}
+
+toolbox:not(:-moz-lwtheme) {
   color: ButtonText;
 }
 
@@ -65,7 +69,6 @@ toolbar {
 }
 
 toolbar[type="menubar"], menubar {
-  background-color: Menu;
   -moz-appearance: toolbar;
   min-width: 1px; 
   border-top: none !important;
@@ -73,9 +76,22 @@ toolbar[type="menubar"], menubar {
   -moz-border-bottom-colors: ThreeDShadow;
 }
 
+toolbar[type="menubar"], menubar:not(:-moz-lwtheme) {
+  background-color: Menu;
+}
+
 toolbar:first-child, menubar:first-child {
   min-width: 1px; 
   border-top: none !important;
+}
+
+
+ 
+toolbox:-moz-lwtheme,
+toolbar:-moz-lwtheme {
+  -moz-appearance: none;
+  background: none;
+  border-style: none;
 }
 
 
