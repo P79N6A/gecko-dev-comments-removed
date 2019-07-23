@@ -3554,3 +3554,83 @@ js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector)
     *vector = obj->dslots;
     return obj;
 }
+
+JS_FRIEND_API(JSBool)
+js_IsDensePrimitiveArray(JSObject *obj)
+{
+    if (!obj || !obj->isDenseArray())
+        return JS_FALSE;
+
+    jsuint length = obj->getArrayLength();
+    for (jsuint i = 0; i < length; i++) {
+        if (!JSVAL_IS_PRIMITIVE(obj->dslots[i]))
+            return JS_FALSE;
+    }
+
+    return JS_TRUE;
+}
+
+JS_FRIEND_API(JSBool)
+js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone)
+{
+    JS_ASSERT(obj);
+    if (!obj->isDenseArray()) {
+        
+
+
+
+        *clone = NULL;
+        return JS_TRUE;
+    }
+
+    jsuint length = obj->getArrayLength();
+
+    
+
+
+
+
+
+
+    jsuint jsvalCount = JS_MIN(js_DenseArrayCapacity(obj), length);
+
+    js::AutoValueVector vector(cx);
+    if (!vector.reserve(jsvalCount))
+        return JS_FALSE;
+
+    jsuint holeCount = 0;
+
+    for (jsuint i = 0; i < jsvalCount; i++) {
+        jsval &val = obj->dslots[i];
+
+        if (JSVAL_IS_STRING(val)) {
+            
+            if (!js_MakeStringImmutable(cx, JSVAL_TO_STRING(val)))
+                return JS_FALSE;
+        } else if (val == JSVAL_HOLE) {
+            holeCount++;
+        } else if (!JSVAL_IS_PRIMITIVE(val)) {
+            
+
+
+
+            *clone = NULL;
+            return JS_TRUE;
+        }
+
+        vector.push(val);
+    }
+
+    jsval *buffer;
+    *clone = js_NewArrayObjectWithCapacity(cx, jsvalCount, &buffer);
+    if (!*clone)
+        return JS_FALSE;
+
+    AutoObjectRooter cloneRoot(cx, *clone);
+
+    memcpy(buffer, vector.buffer(), jsvalCount * sizeof (jsval));
+    (*clone)->setArrayLength(length);
+    (*clone)->setArrayCount(length - holeCount);
+
+    return JS_TRUE;
+}

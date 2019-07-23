@@ -231,6 +231,26 @@ js_Array(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
 JS_FRIEND_API(JSObject *)
 js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector);
 
+
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone);
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+js_IsDensePrimitiveArray(JSObject *obj);
+
 JS_END_EXTERN_C
 
 #endif 

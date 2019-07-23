@@ -5425,7 +5425,7 @@ nsContentUtils::StripNullChars(const nsAString& aInStr, nsAString& aOutStr)
 
 namespace {
 
-const size_t kCloneStackFrameStackSize = 20;
+const unsigned int kCloneStackFrameStackSize = 20;
 
 class CloneStackFrame
 {
@@ -5652,6 +5652,16 @@ CloneSimpleValues(JSContext* cx,
   }
 
   
+  JSObject* newArray;
+  if (!js_CloneDensePrimitiveArray(cx, obj, &newArray)) {
+    return NS_ERROR_FAILURE;
+  }
+  if (newArray) {
+    return SetPropertyOnValueOrObject(cx, OBJECT_TO_JSVAL(newArray), rval, robj,
+                                      rid);
+  }
+
+  
   if (JS_ObjectIsFunction(cx, obj)) {
     return SetPropertyOnValueOrObject(cx, JSVAL_NULL, rval, robj, rid);
   }
@@ -5852,6 +5862,13 @@ nsContentUtils::ReparentClonedObjectToScope(JSContext* cx,
           !JS_SetPrototype(cx, data.obj, proto) ||
           !JS_SetParent(cx, data.obj, scope)) {
         return NS_ERROR_FAILURE;
+      }
+
+      
+      
+      if (js_IsDensePrimitiveArray(data.obj)) {
+        objectData.RemoveElementAt(objectData.Length() - 1);
+        continue;
       }
 
       
