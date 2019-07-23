@@ -1361,10 +1361,9 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     if (aState.GetFlag(BRS_SPACE_MGR)) {
       
       
-      nscoord ymost;
-      if (aReflowState.mSpaceManager->YMost(ymost) &&
-          autoHeight < ymost)
-        autoHeight = ymost;
+      nscoord floatHeight =
+        aState.ClearFloats(autoHeight, NS_STYLE_CLEAR_LEFT_AND_RIGHT);
+      autoHeight = PR_MAX(autoHeight, floatHeight);
     }
 
     
