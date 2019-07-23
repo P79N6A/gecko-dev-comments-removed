@@ -39,13 +39,14 @@
 #define mozilla_plugins_BrowserStreamChild_h 1
 
 #include "mozilla/plugins/PBrowserStreamChild.h"
+#include "mozilla/plugins/AStream.h"
 
 namespace mozilla {
 namespace plugins {
 
 class PluginInstanceChild;
 
-class BrowserStreamChild : public PBrowserStreamChild
+class BrowserStreamChild : public PBrowserStreamChild, public AStream
 {
 public:
   BrowserStreamChild(PluginInstanceChild* instance,
@@ -58,6 +59,8 @@ public:
                      NPError* rv,
                      uint16_t* stype);
   virtual ~BrowserStreamChild() { }
+
+  NS_OVERRIDE virtual bool IsBrowserStream() { return true; }
 
   virtual bool AnswerNPP_WriteReady(const int32_t& newlength,
                                         int32_t *size);
@@ -72,6 +75,8 @@ public:
     if (i != mInstance)
       NS_RUNTIMEABORT("Incorrect stream instance");
   }
+
+  void NPP_DestroyStream(NPError reason);
 
 private:
   PluginInstanceChild* mInstance;
