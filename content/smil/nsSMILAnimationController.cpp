@@ -63,6 +63,20 @@
 const PRUint32 nsSMILAnimationController::kTimerInterval = 22;
 
 
+static nsRefreshDriver*
+GetRefreshDriverForDoc(nsIDocument* aDoc)
+{
+  nsIPresShell* shell = aDoc->GetPrimaryShell();
+  if (!shell) {
+    return nsnull;
+  }
+
+  nsPresContext* context = shell->GetPresContext();
+  return context ? context->RefreshDriver() : nsnull;
+}
+
+
+
 
 
 nsSMILAnimationController::nsSMILAnimationController()
@@ -75,10 +89,8 @@ nsSMILAnimationController::nsSMILAnimationController()
 
 nsSMILAnimationController::~nsSMILAnimationController()
 {
-  if (mTimer) {
-    mTimer->Cancel();
-    mTimer = nsnull;
-  }
+  StopSampling(GetRefreshDriverForDoc(mDocument));
+  mTimer = nsnull;
 
   NS_ASSERTION(mAnimationElementTable.Count() == 0,
                "Animation controller shouldn't be tracking any animation"
@@ -125,7 +137,7 @@ nsSMILAnimationController::Pause(PRUint32 aType)
   nsSMILTimeContainer::Pause(aType);
 
   if (mPauseState) {
-    StopTimer();
+    StopSampling(GetRefreshDriverForDoc(mDocument));
   }
 }
 
@@ -137,7 +149,8 @@ nsSMILAnimationController::Resume(PRUint32 aType)
   nsSMILTimeContainer::Resume(aType);
 
   if (wasPaused && !mPauseState && mChildContainerTable.Count()) {
-    StartTimer();
+    Sample(); 
+    StartSampling(GetRefreshDriverForDoc(mDocument));
   }
 }
 
@@ -146,6 +159,22 @@ nsSMILAnimationController::GetParentTime() const
 {
   
   return PR_Now() / PR_USEC_PER_MSEC;
+}
+
+
+
+NS_IMPL_ADDREF(nsSMILAnimationController)
+NS_IMPL_RELEASE(nsSMILAnimationController)
+
+
+
+void
+nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
+{
+  
+  
+  
+  Sample();
 }
 
 
@@ -226,13 +255,10 @@ nsSMILAnimationController::Notify(nsITimer* timer, void* aClosure)
 }
 
 nsresult
-nsSMILAnimationController::StartTimer()
+nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
 {
   NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
   NS_ASSERTION(mPauseState == 0, "Starting timer but controller is paused");
-
-  
-  Sample();
 
   
   
@@ -245,7 +271,7 @@ nsSMILAnimationController::StartTimer()
 }
 
 nsresult
-nsSMILAnimationController::StopTimer()
+nsSMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver)
 {
   NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
 
@@ -668,7 +694,8 @@ nsSMILAnimationController::AddChild(nsSMILTimeContainer& aChild)
   NS_ENSURE_TRUE(key,NS_ERROR_OUT_OF_MEMORY);
 
   if (!mPauseState && mChildContainerTable.Count() == 1) {
-    StartTimer();
+    Sample(); 
+    StartSampling(GetRefreshDriverForDoc(mDocument));
   }
 
   return NS_OK;
@@ -680,6 +707,6 @@ nsSMILAnimationController::RemoveChild(nsSMILTimeContainer& aChild)
   mChildContainerTable.RemoveEntry(&aChild);
 
   if (!mPauseState && mChildContainerTable.Count() == 0) {
-    StopTimer();
+    StopSampling(GetRefreshDriverForDoc(mDocument));
   }
 }
