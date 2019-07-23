@@ -238,7 +238,11 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
       
       if (tag == nsGkAtoms::a) {
         if (mLinkRule || mVisitedRule || mActiveRule) {
-          PRUint32 state = aData->ContentState();
+          PRUint32 state = aData->GetContentStateForVisitedHandling(
+                                    ruleWalker->VisitedHandling(),
+                                    
+                                    
+                                    aData->IsLink());
           if (mLinkRule && (state & NS_EVENT_STATE_UNVISITED)) {
             ruleWalker->Forward(mLinkRule);
             ruleWalker->SetHaveRelevantLink();

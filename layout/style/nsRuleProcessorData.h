@@ -49,12 +49,12 @@
 #include "nsChangeHint.h"
 #include "nsIContent.h"
 #include "nsCSSPseudoElements.h"
+#include "nsRuleWalker.h"
 
 class nsIStyleSheet;
 class nsPresContext;
 class nsIAtom;
 class nsICSSPseudoComparator;
-class nsRuleWalker;
 class nsAttrValue;
 
 
@@ -111,6 +111,10 @@ public:
   PRUint32 DocumentState();
   PRBool IsLink();
 
+  PRUint32 GetContentStateForVisitedHandling(
+             nsRuleWalker::VisitedHandlingType aVisitedHandling,
+             PRBool aIsRelevantLink);
+
   
   
   
@@ -153,6 +157,8 @@ private:
 
   
   PRInt32 mContentState;  
+                          
+                          
                           
   PRPackedBool mGotContentState;
 };

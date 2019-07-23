@@ -1115,6 +1115,8 @@ RuleProcessorData::ContentState()
 
     
     
+    
+    
     if ((!gSupportVisitedPseudo ||
         gPrivateBrowsingObserver->InPrivateBrowsing()) &&
         (mContentState & NS_EVENT_STATE_VISITED)) {
@@ -1136,6 +1138,35 @@ RuleProcessorData::IsLink()
 {
   PRUint32 state = ContentState();
   return (state & (NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED)) != 0;
+}
+
+PRUint32
+RuleProcessorData::GetContentStateForVisitedHandling(
+                     nsRuleWalker::VisitedHandlingType aVisitedHandling,
+                     PRBool aIsRelevantLink)
+{
+  PRUint32 contentState = ContentState();
+  if (contentState & (NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED)) {
+    NS_ABORT_IF_FALSE(IsLink(), "IsLink() should match state");
+    contentState &=
+      ~PRUint32(NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED);
+    if (aIsRelevantLink) {
+      switch (aVisitedHandling) {
+        case nsRuleWalker::eRelevantLinkUnvisited:
+          contentState |= NS_EVENT_STATE_UNVISITED;
+          break;
+        case nsRuleWalker::eRelevantLinkVisited:
+          contentState |= NS_EVENT_STATE_VISITED;
+          break;
+        case nsRuleWalker::eLinksVisitedOrUnvisited:
+          contentState |= NS_EVENT_STATE_UNVISITED | NS_EVENT_STATE_VISITED;
+          break;
+      }
+    } else {
+      contentState |= NS_EVENT_STATE_UNVISITED;
+    }
+  }
+  return contentState;
 }
 
 PRInt32
@@ -2012,7 +2043,10 @@ static PRBool SelectorMatches(RuleProcessorData &data,
           if (aDependence)
             *aDependence = PR_TRUE;
         } else {
-          if (!(data.ContentState() & statesToCheck)) {
+          PRUint32 contentState = data.GetContentStateForVisitedHandling(
+                                    aTreeMatchContext.mVisitedHandling,
+                                    aNodeMatchContext.mIsRelevantLink);
+          if (!(contentState & statesToCheck)) {
             return PR_FALSE;
           }
         }
