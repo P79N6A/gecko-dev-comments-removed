@@ -202,6 +202,15 @@ public:
 
 
 
+  virtual already_AddRefed<nsIHandlerInfo> GetProtocolInfoFromOS(const nsACString &aScheme) = 0;
+
+  
+
+
+
+
+
+
 
 
 

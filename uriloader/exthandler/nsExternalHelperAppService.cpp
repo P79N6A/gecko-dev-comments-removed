@@ -1476,18 +1476,26 @@ nsExternalHelperAppService::GetProtocolHandlerInfo(const nsACString &aScheme,
   
   
   
-  nsMIMEInfoImpl *mimeInfo = new nsMIMEInfoImpl;
-  if (!mimeInfo) {
-    return NS_ERROR_OUT_OF_MEMORY;    
+  *aHandlerInfo = GetProtocolInfoFromOS(aScheme).get();
+  if (!aHandlerInfo) {
+    
+    return NS_ERROR_FAILURE;
   }
-  NS_ADDREF(*aHandlerInfo = mimeInfo);
-     
+
   nsresult rv = FillProtoInfoForSchemeFromDS(aScheme, *aHandlerInfo);     
-  if (NS_FAILED(rv)) {
+  if (NS_ERROR_NOT_AVAILABLE == rv) {
+    
+    
+    
+    
+    
+    (*aHandlerInfo)->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
+    (*aHandlerInfo)->SetAlwaysAskBeforeHandling(PR_TRUE);
+  } else if (NS_FAILED(rv)) {
     NS_RELEASE(*aHandlerInfo);
     return rv;
   }
-  
+
   return NS_OK;
 }
  
