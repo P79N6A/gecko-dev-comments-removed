@@ -302,11 +302,6 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD_(nsDTDMode) GetParseMode(void);
-
-    
-
-
     NS_IMETHODIMP CancelParsingEvents();
 
     
@@ -362,7 +357,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD WillBuildModel();
+    NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode);
 
     
 

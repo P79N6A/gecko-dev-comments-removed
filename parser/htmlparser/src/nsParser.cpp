@@ -1040,21 +1040,6 @@ nsParser::GetContentSink()
 
 
 
-NS_IMETHODIMP_(nsDTDMode)
-nsParser::GetParseMode()
-{
-  if (mParserContext) {
-    return mParserContext->mDTDMode;
-  }
-  NS_NOTREACHED("no parser context");
-  return eDTDMode_unknown;
-}
-
-
-
-
-
-
 
 
 
@@ -1510,6 +1495,57 @@ nsParser::CancelParsingEvents()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define PREFER_LATTER_ERROR_CODE(EXPR1, EXPR2, RV) {                          \
+  nsresult RV##__temp = EXPR1;                                                \
+  RV = EXPR2;                                                                 \
+  if (NS_FAILED(RV)) {                                                        \
+    RV = RV##__temp;                                                          \
+  }                                                                           \
+}
+
+
+
+
+
+
+
+
 nsresult
 nsParser::WillBuildModel(nsString& aFilename)
 {
@@ -1540,7 +1576,16 @@ nsParser::WillBuildModel(nsString& aFilename)
   nsresult rv = mParserContext->GetTokenizer(mDTD, mSink, tokenizer);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return mDTD->WillBuildModel(*mParserContext, tokenizer, mSink);
+  rv = mDTD->WillBuildModel(*mParserContext, tokenizer, mSink);
+  nsresult sinkResult = mSink->WillBuildModel(mDTD->GetMode());
+  
+  
+  
+  
+  
+  
+  
+  return NS_FAILED(sinkResult) ? sinkResult : rv;
 }
 
 
@@ -1560,7 +1605,16 @@ nsParser::DidBuildModel(nsresult anErrorCode)
       PRBool terminated = mInternalState == NS_ERROR_HTMLPARSER_STOPPARSING;
       if (mDTD && mSink &&
           mSink->ReadyToCallDidBuildModel(terminated)) {
-        result = mDTD->DidBuildModel(anErrorCode,PR_TRUE,this,mSink);
+        nsresult dtdResult =  mDTD->DidBuildModel(anErrorCode),
+                sinkResult = mSink->DidBuildModel();
+        
+        
+        
+        
+        
+        
+        
+        result = NS_FAILED(sinkResult) ? sinkResult : dtdResult;
       }
 
       
@@ -2253,7 +2307,7 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
     }
 
     if (mDTD) {
-      mDTD->WillResumeParse(mSink);
+      mSink->WillResume();
       PRBool theIterationIsOk = PR_TRUE;
 
       while (result == NS_OK && theIterationIsOk) {
@@ -2290,10 +2344,7 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
         
         
         if (NS_ERROR_HTMLPARSER_BLOCK == result) {
-          if (mDTD) {
-            mDTD->WillInterruptParse(mSink);
-          }
-
+          mSink->WillInterrupt();
           if (mFlags & NS_PARSER_FLAG_PARSER_ENABLED) {
             
             BlockParser();
@@ -2357,9 +2408,7 @@ nsParser::ResumeParse(PRBool allowIteration, PRBool aIsFinalChunk,
         if (theTokenizerResult == kEOF ||
             result == NS_ERROR_HTMLPARSER_INTERRUPTED) {
           result = (result == NS_ERROR_HTMLPARSER_INTERRUPTED) ? NS_OK : result;
-          if (mDTD) {
-            mDTD->WillInterruptParse(mSink);
-          }
+          mSink->WillInterrupt();
         }
       }
     } else {
@@ -2390,7 +2439,13 @@ nsParser::BuildModel()
   if (NS_SUCCEEDED(result)) {
     if (mDTD) {
       MOZ_TIMER_START(mDTDTime);
-      result = mDTD->BuildModel(this, theTokenizer, nsnull, mSink);
+      
+      PRBool inDocWrite = !!mParserContext->mPrevContext;
+      result = mDTD->BuildModel(theTokenizer,
+                                
+                                CanInterrupt() && !inDocWrite,
+                                !inDocWrite, 
+                                &mCharset);
       MOZ_TIMER_STOP(mDTDTime);
     }
   } else {

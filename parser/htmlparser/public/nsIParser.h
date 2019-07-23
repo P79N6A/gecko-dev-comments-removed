@@ -274,15 +274,6 @@ class nsIParser : public nsISupports {
 
     NS_IMETHOD BuildModel(void) = 0;
 
-
-    
-
-
-
-
-
-    NS_IMETHOD_(nsDTDMode) GetParseMode(void) = 0;
-
     
 
 
