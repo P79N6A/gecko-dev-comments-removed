@@ -132,24 +132,21 @@ struct nsStyleFont {
 };
 
 struct nsStyleGradientStop {
+  nsStyleCoord mLocation; 
   nscolor mColor;
-  float mPosition; 
 };
 
 class nsStyleGradient {
 public:
   nsStyleGradient();
+  PRUint8 mShape;  
+  PRUint8 mSize;   
+                   
+  PRPackedBool mRepeating;
 
-  PRPackedBool mIsRadial;
-
-  nsStyleCoord mStartX; 
-  nsStyleCoord mStartY; 
-
-  nsStyleCoord mEndX; 
-  nsStyleCoord mEndY; 
-
-  nscoord mStartRadius;
-  nscoord mEndRadius;
+  nsStyleCoord mBgPosX; 
+  nsStyleCoord mBgPosY; 
+  nsStyleCoord mAngle;  
 
   
   nsTArray<nsStyleGradientStop> mStops;

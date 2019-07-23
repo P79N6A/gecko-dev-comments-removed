@@ -45,71 +45,35 @@
 #include "nsPresContext.h"
 #include "nsRuleNode.h"
 #include "nsCSSKeywords.h"
-#include <math.h>
-
-
-const float kPi      = 3.1415926535897932384626433832795f;
-const float kTwoPi   = 6.283185307179586476925286766559f;
-const float kEpsilon = 0.0001f;
+#include "nsMathUtils.h"
 
 
 
 
 
-static float SafeTangent(float aTheta)
+
+
+
+
+
+
+static double SafeTangent(double aTheta)
 {
+  const double kEpsilon = 0.0001;
+
   
 
 
 
-  float sinTheta = sin(aTheta);
-  float cosTheta = cos(aTheta);
-  
-  
+  double sinTheta = sin(aTheta);
+  double cosTheta = cos(aTheta);
+
   if (cosTheta >= 0 && cosTheta < kEpsilon)
     cosTheta = kEpsilon;
   else if (cosTheta < 0 && cosTheta >= -kEpsilon)
     cosTheta = -kEpsilon;
-  
+
   return sinTheta / cosTheta;
-}
-
-
-
-
-
-static inline float ConstrainFloatValue(float aValue)
-{
-  
-  aValue = fmod(aValue, kTwoPi);
-  return aValue >= kPi ? aValue - kTwoPi : aValue;
-}
-
-
-
-
-
-static float CSSToRadians(const nsCSSValue &aValue)
-{
-  NS_PRECONDITION(aValue.IsAngularUnit(),
-                  "Expected an angle, but didn't find one!");
-  
-  switch (aValue.GetUnit()) {
-  case eCSSUnit_Degree:
-    
-    return
-      ConstrainFloatValue(aValue.GetFloatValue() * kPi / 180.0f);
-  case eCSSUnit_Grad:
-    
-    return
-      ConstrainFloatValue(aValue.GetFloatValue() * kPi / 200.0f);
-  case eCSSUnit_Radian:
-    
-    return ConstrainFloatValue(aValue.GetFloatValue());
-  default:
-    NS_NOTREACHED("Unexpected angular unit!");
-    return 0.0f;
-  }
 }
 
 
@@ -410,7 +374,7 @@ static void ProcessScale(float aMain[4], const nsCSSValue::Array* aData)
 
 
 
-static void ProcessSkewHelper(float aXAngle, float aYAngle, float aMain[4])
+static void ProcessSkewHelper(double aXAngle, double aYAngle, float aMain[4])
 {
   
 
@@ -427,23 +391,24 @@ static void ProcessSkewHelper(float aXAngle, float aYAngle, float aMain[4])
 static void ProcessSkewX(float aMain[4], const nsCSSValue::Array* aData)
 {
   NS_ASSERTION(aData->Count() == 2, "Bad array!");
-  ProcessSkewHelper(CSSToRadians(aData->Item(1)), 0.0f, aMain);
+  ProcessSkewHelper(aData->Item(1).GetAngleValueInRadians(), 0.0, aMain);
 }
 
 
 static void ProcessSkewY(float aMain[4], const nsCSSValue::Array* aData)
 {
   NS_ASSERTION(aData->Count() == 2, "Bad array!");
-  ProcessSkewHelper(0.0f, CSSToRadians(aData->Item(1)), aMain);
+  ProcessSkewHelper(0.0, aData->Item(1).GetAngleValueInRadians(), aMain);
 }
 
 
 static void ProcessSkew(float aMain[4], const nsCSSValue::Array* aData)
 {
   NS_ASSERTION(aData->Count() == 2 || aData->Count() == 3, "Bad array!");
-  
-  float xSkew = CSSToRadians(aData->Item(1));
-  float ySkew = (aData->Count() == 2 ? 0.0f : CSSToRadians(aData->Item(2)));
+
+  double xSkew = aData->Item(1).GetAngleValueInRadians();
+  double ySkew = (aData->Count() == 2
+                  ? 0.0 : aData->Item(2).GetAngleValueInRadians());
 
   ProcessSkewHelper(xSkew, ySkew, aMain);
 }
@@ -459,7 +424,7 @@ static void ProcessRotate(float aMain[4], const nsCSSValue::Array* aData)
 
 
 
-  float theta = CSSToRadians(aData->Item(1));
+  double theta = aData->Item(1).GetAngleValueInRadians();
   float cosTheta = cos(theta);
   float sinTheta = sin(theta);
 

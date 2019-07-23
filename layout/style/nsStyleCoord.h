@@ -53,6 +53,9 @@ enum nsStyleUnit {
   eStyleUnit_None         = 3,      
   eStyleUnit_Percent      = 10,     
   eStyleUnit_Factor       = 11,     
+  eStyleUnit_Degree       = 12,     
+  eStyleUnit_Grad         = 13,     
+  eStyleUnit_Radian       = 14,     
   eStyleUnit_Coord        = 20,     
   eStyleUnit_Integer      = 30,     
   eStyleUnit_Enumerated   = 32      
@@ -94,6 +97,8 @@ public:
   PRInt32     GetIntValue(void) const;
   float       GetPercentValue(void) const;
   float       GetFactorValue(void) const;
+  float       GetAngleValue(void) const;
+  double      GetAngleValueInRadians(void) const;
   void        GetUnionValue(nsStyleUnion& aValue) const;
 
   void  Reset(void);  
@@ -101,6 +106,7 @@ public:
   void  SetIntValue(PRInt32 aValue, nsStyleUnit aUnit);
   void  SetPercentValue(float aValue);
   void  SetFactorValue(float aValue);
+  void  SetAngleValue(float aValue, nsStyleUnit aUnit);
   void  SetNormalValue(void);
   void  SetAutoValue(void);
   void  SetNoneValue(void);
@@ -248,6 +254,16 @@ inline float nsStyleCoord::GetFactorValue(void) const
 {
   NS_ASSERTION(mUnit == eStyleUnit_Factor, "not a factor value");
   if (mUnit == eStyleUnit_Factor) {
+    return mValue.mFloat;
+  }
+  return 0.0f;
+}
+
+inline float nsStyleCoord::GetAngleValue(void) const
+{
+  NS_ASSERTION(mUnit >= eStyleUnit_Degree &&
+               mUnit <= eStyleUnit_Radian, "not an angle value");
+  if (mUnit >= eStyleUnit_Degree && mUnit <= eStyleUnit_Radian) {
     return mValue.mFloat;
   }
   return 0.0f;
