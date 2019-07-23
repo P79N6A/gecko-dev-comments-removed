@@ -102,11 +102,12 @@
 #include "nsToolkitCompsCID.h"
 #include "nsIHTMLContentSink.h"
 #include "nsIParser.h"
+#include "prprf.h"
 
 static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 
 #define KEY_TOOLBARFOLDER_LOWER "personal_toolbar_folder"
-#define KEY_BOOKMARKSSMENU_LOWER "bookmarks_menu"
+#define KEY_BOOKMARKSMENU_LOWER "bookmarks_menu"
 #define KEY_PLACESROOT_LOWER "places_root"
 #define KEY_HREF_LOWER "href"
 #define KEY_FEEDURL_LOWER "feedurl"
@@ -116,7 +117,6 @@ static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 #define KEY_ICON_URI_LOWER "icon_uri"
 #define KEY_SHORTCUTURL_LOWER "shortcuturl"
 #define KEY_POST_DATA_LOWER "post_data"
-#define KEY_ITEM_ID_LOWER "item_id"
 #define KEY_NAME_LOWER "name"
 #define KEY_MICSUM_GEN_URI_LOWER "micsum_gen_uri"
 #define KEY_GENERATED_TITLE_LOWER "generated_title"
@@ -128,7 +128,7 @@ static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 #define POST_DATA_ANNO NS_LITERAL_CSTRING("URIProperties/POSTData")
 #define GENERATED_TITLE_ANNO NS_LITERAL_CSTRING("bookmarks/generatedTitle")
 
-#define BOOKMARKSS_MENU_ICON_URI "chrome://browser/skin/places/bookmarksMenu.png"
+#define BOOKMARKS_MENU_ICON_URI "chrome://browser/skin/places/bookmarksMenu.png"
 
 
 
@@ -180,9 +180,6 @@ public:
   ContainerType mLastContainerType;
 
   
-  PRInt64 mLastContainerId;
-
-  
   
   
   nsString mPreviousText;
@@ -212,11 +209,10 @@ public:
   
   nsCOMPtr<nsIURI> mPreviousFeed;
 
-  void ConsumeHeading(nsAString* aHeading, ContainerType* aContainerType, PRInt64* aContainerId)
+  void ConsumeHeading(nsAString* aHeading, ContainerType* aContainerType)
   {
     *aHeading = mPreviousText;
     *aContainerType = mLastContainerType;
-    *aContainerId = mLastContainerId;
     mPreviousText.Truncate();
   }
 
@@ -375,6 +371,9 @@ protected:
   
   PRBool mAllowRootChanges;
 
+  
+  
+  
   
   
   PRBool mIsImportDefaults;
@@ -700,7 +699,6 @@ BookmarkContentSink::HandleHeadBegin(const nsIParserNode& node)
   
   frame.mPreviousLink = nsnull;
   frame.mLastContainerType = BookmarkImportFrame::Container_Normal;
-  frame.mLastContainerId = 0;
 
   
   
@@ -727,17 +725,17 @@ BookmarkContentSink::HandleHeadBegin(const nsIParserNode& node)
   if (!mFolderSpecified) {
     for (PRInt32 i = 0; i < attrCount; i ++) {
       if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_TOOLBARFOLDER_LOWER)) {
-        frame.mLastContainerType = BookmarkImportFrame::Container_Toolbar;
+        if (mIsImportDefaults)
+          frame.mLastContainerType = BookmarkImportFrame::Container_Toolbar;
         break;
-      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_BOOKMARKSSMENU_LOWER)) {
-        frame.mLastContainerType = BookmarkImportFrame::Container_Menu;
+      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_BOOKMARKSMENU_LOWER)) {
+        if (mIsImportDefaults)
+          frame.mLastContainerType = BookmarkImportFrame::Container_Menu;
         break;
       } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_PLACESROOT_LOWER)) {
-        frame.mLastContainerType = BookmarkImportFrame::Container_Places;
+        if (mIsImportDefaults)
+          frame.mLastContainerType = BookmarkImportFrame::Container_Places;
         break;
-      } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_ITEM_ID_LOWER)) {
-        frame.mLastContainerId =
-          ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(node.GetValueAt(i)));
       } else if (node.GetKeyAt(i).LowerCaseEqualsLiteral(KEY_DATE_ADDED_LOWER)) {
         frame.mPreviousDateAdded =
           ConvertImportedDateToInternalDate(NS_ConvertUTF16toUTF8(node.GetValueAt(i)));
@@ -820,8 +818,6 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
       postData = node.GetValueAt(i);
     } else if (key.LowerCaseEqualsLiteral(KEY_WEB_PANEL_LOWER)) {
       webPanel = node.GetValueAt(i);
-    } else if (key.LowerCaseEqualsLiteral(KEY_ITEM_ID_LOWER)) {
-      itemId = node.GetValueAt(i);
     } else if (key.LowerCaseEqualsLiteral(KEY_MICSUM_GEN_URI_LOWER)) {
       micsumGenURI = node.GetValueAt(i);
     } else if (key.LowerCaseEqualsLiteral(KEY_GENERATED_TITLE_LOWER)) {
@@ -1073,66 +1069,33 @@ BookmarkContentSink::HandleSeparator(const nsIParserNode& aNode)
   BookmarkImportFrame& frame = CurFrame();
 
   
-  PRInt64 id = 0;
-  nsAutoString itemIdAttr;
+
+#ifdef DEBUG_IMPORT
+  PrintNesting();
+  printf("--------\n");
+#endif
+
+  PRInt64 itemId;
+  mBookmarksService->InsertSeparator(frame.mContainerID,
+                                     mBookmarksService->DEFAULT_INDEX,
+                                     &itemId);
+  
+  nsAutoString name;
   PRInt32 attrCount = aNode.GetAttributeCount();
   for (PRInt32 i = 0; i < attrCount; i ++) {
     const nsAString& key = aNode.GetKeyAt(i);
-    if (key.LowerCaseEqualsLiteral(KEY_ITEM_ID_LOWER)) {
-      itemIdAttr = aNode.GetValueAt(i);
-    }
+    if (key.LowerCaseEqualsLiteral(KEY_NAME_LOWER))
+      name = aNode.GetValueAt(i);
   }
+  name.Trim(kWhitespace);
 
-  itemIdAttr.Trim(kWhitespace);
-  id = ConvertImportedIdToInternalId(NS_ConvertUTF16toUTF8(itemIdAttr));
+  if (!name.IsEmpty())
+    mBookmarksService->SetItemTitle(itemId, name);
 
   
-  if (id > 0) {
-    PRInt64 parent;
-    nsresult rv = mBookmarksService->GetFolderIdForItem(id, &parent);
-    if (NS_FAILED(rv) || parent != frame.mContainerID) {
-      id = 0;
-    }
-  }
-
-  if (id > 0) {
-    PRUint16 type;
-    nsresult rv = mBookmarksService->GetItemType(id, &type);
-    if (NS_FAILED(rv) || type != mBookmarksService->TYPE_SEPARATOR) {
-      id = 0;
-    }
-  }
-
-  if (id == 0) {
-    
-
-#ifdef DEBUG_IMPORT
-    PrintNesting();
-    printf("--------\n");
-#endif
-
-    PRInt64 itemId;
-    mBookmarksService->InsertSeparator(frame.mContainerID,
-                                       mBookmarksService->DEFAULT_INDEX,
-                                       &itemId);
-    
-    nsAutoString name;
-    PRInt32 attrCount = aNode.GetAttributeCount();
-    for (PRInt32 i = 0; i < attrCount; i ++) {
-      const nsAString& key = aNode.GetKeyAt(i);
-      if (key.LowerCaseEqualsLiteral(KEY_NAME_LOWER))
-        name = aNode.GetValueAt(i);
-    }
-    name.Trim(kWhitespace);
-
-    if (!name.IsEmpty())
-      mBookmarksService->SetItemTitle(itemId, name);
-
-    
-    
-    
-    
-  }
+  
+  
+  
 }
 
 
@@ -1149,73 +1112,58 @@ BookmarkContentSink::NewFrame()
   PRInt64 ourID = 0;
   nsString containerName;
   BookmarkImportFrame::ContainerType containerType;
-  CurFrame().ConsumeHeading(&containerName, &containerType, &ourID);
+  CurFrame().ConsumeHeading(&containerName, &containerType);
 
   PRBool updateFolder = PR_FALSE;
-
-  if (ourID > 0) {
-    
-    PRInt64 ourParentId;
-    rv = mBookmarksService->GetFolderIdForItem(ourID, &ourParentId);
-    if (NS_FAILED(rv) || ourParentId != CurFrame().mContainerID) {
-      ourID = 0;
-    }
+  
+  switch (containerType) {
+    case BookmarkImportFrame::Container_Normal:
+      
+      rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
+                                           containerName,
+                                           mBookmarksService->DEFAULT_INDEX, 
+                                           &ourID);
+      NS_ENSURE_SUCCESS(rv, rv);
+      break;
+    case BookmarkImportFrame::Container_Places:
+      
+      
+      rv = mBookmarksService->GetPlacesRoot(&ourID);
+      NS_ENSURE_SUCCESS(rv, rv);
+      break;
+    case BookmarkImportFrame::Container_Menu:
+      
+      rv = mBookmarksService->GetBookmarksRoot(&ourID);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (mAllowRootChanges) {
+        updateFolder = PR_TRUE;
+        rv = SetFaviconForFolder(ourID, NS_LITERAL_CSTRING(BOOKMARKS_MENU_ICON_URI));
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      break;
+    case BookmarkImportFrame::Container_Toolbar:
+      
+      PRInt64 toolbarFolder;
+      rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (!toolbarFolder) {
+        
+        rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
+                                             containerName,
+                                             mBookmarksService->DEFAULT_INDEX, &ourID);
+        NS_ENSURE_SUCCESS(rv, rv);
+        
+        rv = mBookmarksService->SetToolbarFolder(ourID);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+      else {
+        ourID = toolbarFolder;
+      }
+      break;
+    default:
+      NS_NOTREACHED("Unknown container type");
   }
 
-  if (ourID == 0) {
-    switch (containerType) {
-      case BookmarkImportFrame::Container_Normal:
-        
-        rv = mBookmarksService->GetChildFolder(CurFrame().mContainerID,
-                                               containerName, &ourID);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (ourID == 0) {
-          
-          rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
-                                              containerName,
-                                              mBookmarksService->DEFAULT_INDEX, &ourID);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-        break;
-      case BookmarkImportFrame::Container_Places:
-        
-        
-        rv = mBookmarksService->GetPlacesRoot(&ourID);
-        NS_ENSURE_SUCCESS(rv, rv);
-        break;
-      case BookmarkImportFrame::Container_Menu:
-        
-        rv = mBookmarksService->GetBookmarksRoot(&ourID);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (mAllowRootChanges) {
-          updateFolder = PR_TRUE;
-          rv = SetFaviconForFolder(ourID, NS_LITERAL_CSTRING(BOOKMARKSS_MENU_ICON_URI));
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-        break;
-      case BookmarkImportFrame::Container_Toolbar:
-        
-        PRInt64 toolbarFolder;
-        rv = mBookmarksService->GetToolbarFolder(&toolbarFolder);
-        NS_ENSURE_SUCCESS(rv, rv);
-        if (!toolbarFolder) {
-          
-          rv = mBookmarksService->CreateFolder(CurFrame().mContainerID,
-                                              containerName,
-                                              mBookmarksService->DEFAULT_INDEX, &ourID);
-          NS_ENSURE_SUCCESS(rv, rv);
-          
-          rv = mBookmarksService->SetToolbarFolder(ourID);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
-        else {
-          ourID = toolbarFolder;
-        }
-        break;
-      default:
-        NS_NOTREACHED("Unknown container type");
-    }
-  }
 #ifdef DEBUG_IMPORT
   PrintNesting();
   printf("Folder %lld \'%s\'", ourID, NS_ConvertUTF16toUTF8(containerName).get());
@@ -1315,10 +1263,12 @@ BookmarkContentSink::SetFaviconForURI(nsIURI* aPageURI, nsIURI* aIconURI,
     faviconSpec.AssignLiteral("http://www.mozilla.org/2005/made-up-favicon/");
     faviconSpec.AppendInt(serialNumber);
     faviconSpec.AppendLiteral("-");
-    faviconSpec.AppendInt(PR_Now()); 
+    char buf[32];
+    PR_snprintf(buf, sizeof(buf), "%lld", PR_Now());
+    faviconSpec.Append(buf);
     rv = NS_NewURI(getter_AddRefs(faviconURI), faviconSpec);
     NS_ENSURE_SUCCESS(rv, rv);
-    serialNumber ++;
+    serialNumber++;
   }
 
   nsCOMPtr<nsIURI> dataURI;
@@ -1477,7 +1427,7 @@ static const char kDescriptionIntro[] = "<DD>";
 static const char kDescriptionClose[] = NS_LINEBREAK;
 
 static const char kPlacesRootAttribute[] = " PLACES_ROOT=\"true\"";
-static const char kBookmarksRootAttribute[] = " BOOKMARKSS_MENU=\"true\"";
+static const char kBookmarksRootAttribute[] = " BOOKMARKS_MENU=\"true\"";
 static const char kToolbarFolderAttribute[] = " PERSONAL_TOOLBAR_FOLDER=\"true\"";
 static const char kIconAttribute[] = " ICON=\"";
 static const char kIconURIAttribute[] = " ICON_URI=\"";
@@ -1628,11 +1578,15 @@ WriteDateAttribute(const char aAttributeStart[], PRInt32 aLength, PRTime aAttrib
   PRUint32 dummy;
   nsresult rv = aOutput->Write(aAttributeStart, aLength, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
+
   
-  nsCAutoString dateInSeconds;
-  aAttributeValue/= 1000000; 
-  dateInSeconds.AppendInt(aAttributeValue);  
-  rv = aOutput->Write(dateInSeconds.get(), dateInSeconds.Length(), &dummy);
+  aAttributeValue /= 1000000; 
+
+  
+  char dateInSeconds[32];
+  PR_snprintf(dateInSeconds, sizeof(dateInSeconds), "%lld", aAttributeValue);
+  rv = aOutput->Write(dateInSeconds, strlen(dateInSeconds), &dummy);
+
   NS_ENSURE_SUCCESS(rv, rv);
   return aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
 }
@@ -1728,17 +1682,7 @@ nsPlacesImportExportService::WriteContainerHeader(nsINavHistoryResultNode* aFold
     rv = aOutput->Write(kToolbarFolderAttribute, sizeof(kToolbarFolderAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  
-  
-  rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString itemIdAttr;
-  itemIdAttr.AppendInt(folderId); 
-  rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+ 
   
   nsCOMPtr<nsIURI> folderURI;
   rv = mBookmarksService->GetFolderURI(folderId, getter_AddRefs(folderURI));
@@ -1895,16 +1839,6 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
   
   PRInt64 itemId;
   rv = aItem->GetItemId(&itemId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString itemIdAttr;
-  itemIdAttr.AppendInt(itemId); 
-  rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2070,16 +2004,6 @@ nsPlacesImportExportService::WriteLivemark(nsINavHistoryResultNode* aFolder, con
     rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  
-  rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCAutoString itemIdAttr;
-  itemIdAttr.AppendInt(folderId); 
-  rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = aOutput->Write(kCloseAngle, sizeof(kCloseAngle)-1, &dummy);
