@@ -162,11 +162,14 @@ public:
   virtual ~nsBoxFrame();
   
   nsBoxFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRBool aIsRoot = nsnull, nsIBoxLayout* aLayoutManager = nsnull);
- 
+
+  
+  
   static nsresult CreateViewForFrame(nsPresContext* aPresContext,
                                      nsIFrame* aChild,
                                      nsStyleContext* aStyleContext,
-                                     PRBool aForce);
+                                     PRBool aForce,
+                                     PRBool aIsPopup = PR_FALSE);
 
   
   

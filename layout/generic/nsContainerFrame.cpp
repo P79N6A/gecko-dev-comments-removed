@@ -497,7 +497,7 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
       
       
       viewIsVisible = PR_FALSE;
-    } else {
+    } else if (aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
       
       nsIWidget* widget = aView->GetWidget();
       if (widget) {
@@ -506,6 +506,11 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
         if (windowType == eWindowType_popup) {
           widget->IsVisible(viewIsVisible);
         }
+      }
+      else {
+        
+        
+        viewIsVisible = PR_FALSE;
       }
     }
 
@@ -716,7 +721,12 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
       childFrame = childFrame->GetNextSibling();
     }
 
-    childListName = aFrame->GetAdditionalChildListName(childListIndex++);
+    
+    
+    
+    do {
+      childListName = aFrame->GetAdditionalChildListName(childListIndex++);
+    } while (childListName == nsGkAtoms::popupList);
   } while (childListName);
 }
 

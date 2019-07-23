@@ -46,7 +46,8 @@
 
 
 menupopup,
-popup {
+popup,
+panel {
   -moz-appearance: menupopup;
 }
 

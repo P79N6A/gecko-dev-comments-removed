@@ -119,7 +119,6 @@
 #include "nsContentErrors.h"
 
 #include "nsIDOMWindowInternal.h"
-#include "nsIMenuFrame.h"
 
 #include "nsBox.h"
 
@@ -1706,11 +1705,8 @@ GetChildListNameFor(nsIFrame*       aChildFrame)
       
 #ifdef DEBUG
       nsIFrame* parent = aChildFrame->GetParent();
-      if (parent) {
-        nsIPopupSetFrame* popupSet;
-        CallQueryInterface(parent, &popupSet);
-        NS_ASSERTION(popupSet, "Unexpected parent");
-      }
+      NS_ASSERTION(parent && parent->GetType() == nsGkAtoms::popupSetFrame,
+                   "Unexpected parent");
 #endif 
 
       
@@ -5956,9 +5952,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
         
         
         
-        nsIMenuFrame* menuFrame;
-        CallQueryInterface(aParentFrame, &menuFrame);
-        if (!menuFrame) {
+        if (aParentFrame->GetType() != nsGkAtoms::menuFrame) {
           if (!aState.mPopupItems.containingBlock) {
             
             
@@ -5968,9 +5962,9 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
           }
 
 #ifdef NS_DEBUG
-          nsIPopupSetFrame* popupSet;
-          CallQueryInterface(aState.mPopupItems.containingBlock, &popupSet);
-          NS_ASSERTION(popupSet, "Popup containing block isn't a nsIPopupSetFrame");
+          NS_ASSERTION(aState.mPopupItems.containingBlock->GetType() ==
+                       nsGkAtoms::popupSetFrame,
+                       "Popup containing block isn't a nsIPopupSetFrame");
 #endif
           isPopup = PR_TRUE;
         }
@@ -6143,6 +6137,16 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
   }
 
   return rv;
+}
+
+nsresult
+nsCSSFrameConstructor::AddLazyChildren(nsIContent* aContent,
+                                       nsLazyFrameConstructionCallback* aCallback,
+                                       void* aArg)
+{
+  nsCOMPtr<nsIRunnable> event =
+    new LazyGenerateChildrenEvent(aContent, mPresShell, aCallback, aArg);
+  return NS_DispatchToCurrentThread(event);
 }
 
 already_AddRefed<nsStyleContext>
@@ -10133,29 +10137,6 @@ nsCSSFrameConstructor::AttributeChanged(nsIContent* aContent,
                                                                   aAttribute,
                                                                   aModType);
 
-  
-  
-  
-  if (aNameSpaceID == kNameSpaceID_None &&
-      ((aAttribute == nsGkAtoms::menugenerated &&
-        aModType != nsIDOMMutationEvent::REMOVAL) ||
-       aAttribute == nsGkAtoms::menuactive)) {
-    PRInt32 namespaceID;
-    nsIAtom* tag =
-      mDocument->BindingManager()->ResolveTag(aContent, &namespaceID);
-
-    if (namespaceID == kNameSpaceID_XUL &&
-        (tag == nsGkAtoms::menupopup || tag == nsGkAtoms::popup ||
-         tag == nsGkAtoms::tooltip || tag == nsGkAtoms::menu)) {
-      nsIViewManager* viewManager = mPresShell->GetViewManager();
-      viewManager->BeginUpdateViewBatch();
-      ProcessOneRestyle(aContent, rshint, hint);
-      viewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
-
-      return result;
-    }
-  }
-
   PostRestyleEvent(aContent, rshint, hint);
 
   return result;
@@ -13025,3 +13006,42 @@ NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run() {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsCSSFrameConstructor::LazyGenerateChildrenEvent::Run()
+{
+  mPresShell->GetDocument()->FlushPendingNotifications(Flush_Layout);
+
+  
+  nsIFrame* frame = mPresShell->GetPrimaryFrameFor(mContent);
+  if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
+    
+    
+    
+    nsMenuPopupFrame* menuPopupFrame = NS_STATIC_CAST(nsMenuPopupFrame *, frame);
+    if (menuPopupFrame->HasGeneratedChildren())
+      return NS_OK;
+
+    
+    menuPopupFrame->SetGeneratedChildren();
+
+    nsFrameItems childItems;
+    nsFrameConstructorState state(mPresShell, nsnull, nsnull, nsnull);
+    nsCSSFrameConstructor* fc = mPresShell->FrameConstructor();
+    nsresult rv = fc->ProcessChildren(state, mContent, frame, PR_FALSE,
+                                      childItems, PR_FALSE);
+    if (NS_FAILED(rv))
+      return rv;
+
+    fc->CreateAnonymousFrames(mContent->Tag(), state, mContent, frame,
+                              PR_FALSE, childItems);
+    frame->SetInitialChildList(nsnull, childItems.childList);
+
+    if (mCallback)
+      mCallback(mContent, frame, mArg);
+
+    
+    mPresShell->GetDocument()->BindingManager()->ProcessAttachedQueue();
+  }
+
+  return NS_OK;
+}

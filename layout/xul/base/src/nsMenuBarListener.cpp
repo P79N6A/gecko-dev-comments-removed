@@ -40,6 +40,7 @@
 
 #include "nsMenuBarListener.h"
 #include "nsMenuBarFrame.h"
+#include "nsMenuPopupFrame.h"
 #include "nsIDOMKeyListener.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMEventListener.h"
@@ -131,6 +132,18 @@ void nsMenuBarListener::InitAccessKey()
     nsContentUtils::GetBoolPref("ui.key.menuAccessKeyFocuses");
 }
 
+void
+nsMenuBarListener::ToggleMenuActiveState()
+{
+  nsMenuFrame* closemenu = mMenuBarFrame->ToggleMenuActiveState();
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  if (pm && closemenu) {
+    nsMenuPopupFrame* popupFrame = closemenu->GetPopup();
+    if (popupFrame)
+      pm->HidePopup(popupFrame->GetContent(), PR_FALSE, PR_FALSE, PR_TRUE);
+  }
+}
+
 
 nsresult
 nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
@@ -161,7 +174,7 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
     {
       
       
-      mMenuBarFrame->ToggleMenuActiveState();
+      ToggleMenuActiveState();
     }
     mAccessKeyDown = PR_FALSE; 
 
@@ -169,7 +182,7 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
     if (active) {
       aKeyEvent->StopPropagation();
       aKeyEvent->PreventDefault();
-      return NS_ERROR_BASE; 
+      return NS_OK; 
     }
   }
   
@@ -180,8 +193,6 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
 nsresult
 nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
 {
-  mMenuBarFrame->ClearRecentlyRolledUp();
-
   
   nsCOMPtr<nsIDOMNSUIEvent> uiEvent ( do_QueryInterface(aKeyEvent) );
   if ( uiEvent ) {
@@ -229,14 +240,13 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         
         
         
-        PRBool active = PR_FALSE;
-        mMenuBarFrame->ShortcutNavigation(keyEvent, active);
-
-        if (active) {
+        nsMenuFrame* result = mMenuBarFrame->FindMenuWithShortcut(keyEvent);
+        if (result) {
+          mMenuBarFrame->SetActive(PR_TRUE);
+          result->OpenMenu(PR_TRUE);
           aKeyEvent->StopPropagation();
           aKeyEvent->PreventDefault();
-
-          retVal = NS_ERROR_BASE;       
+          retVal = NS_OK;       
         }
       }    
 #if !defined(XP_MAC) && !defined(XP_MACOSX)
@@ -245,16 +255,17 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         if ((GetModifiers(keyEvent) & ~MODIFIER_CONTROL) == 0) {
           
           
-          mMenuBarFrame->ToggleMenuActiveState();
+          ToggleMenuActiveState();
 
           aKeyEvent->StopPropagation();
           aKeyEvent->PreventDefault();
-          return NS_ERROR_BASE; 
+          return NS_OK; 
         }
       }
 #endif   
     } 
   }
+
   return retVal;
 }
 
@@ -349,10 +360,8 @@ nsMenuBarListener::Focus(nsIDOMEvent* aEvent)
 nsresult
 nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
 {
-  if (!mMenuBarFrame->IsOpen() && mMenuBarFrame->IsActive()) {
-    mMenuBarFrame->ToggleMenuActiveState();
-    PRBool handled;
-    mMenuBarFrame->Escape(handled);
+  if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive()) {
+    ToggleMenuActiveState();
     mAccessKeyDown = PR_FALSE;
   }
   return NS_OK; 
@@ -362,12 +371,8 @@ nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
 nsresult 
 nsMenuBarListener::MouseDown(nsIDOMEvent* aMouseEvent)
 {
-  if (!mMenuBarFrame->IsOpen() && mMenuBarFrame->IsActive()) {
-    mMenuBarFrame->ToggleMenuActiveState();
-    PRBool handled;
-    mMenuBarFrame->Escape(handled);
-  }
-
+  if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive())
+    ToggleMenuActiveState();
   mAccessKeyDown = PR_FALSE;
 
   return NS_OK; 
@@ -377,8 +382,6 @@ nsMenuBarListener::MouseDown(nsIDOMEvent* aMouseEvent)
 nsresult 
 nsMenuBarListener::MouseUp(nsIDOMEvent* aMouseEvent)
 {
-  mMenuBarFrame->ClearRecentlyRolledUp();
-
   return NS_OK; 
 }
 
