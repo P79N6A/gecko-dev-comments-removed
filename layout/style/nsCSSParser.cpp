@@ -381,13 +381,17 @@ protected:
                                                          nsIAtom*       aPseudo,
                                                          nsCSSPseudoClasses::Type aType);
 
+  nsSelectorParsingStatus ParsePseudoClassWithSelectorListArg(nsCSSSelector& aSelector,
+                                                              nsIAtom*       aPseudo,
+                                                              nsCSSPseudoClasses::Type aType);
+
   nsSelectorParsingStatus ParseNegatedSimpleSelector(PRInt32&       aDataMask,
                                                      nsCSSSelector& aSelector);
 
   
   
   PRBool ParseSelectorList(nsCSSSelectorList*& aListHead,
-                           PRBool aTerminateAtBrace);
+                           PRUnichar aStopChar);
   PRBool ParseSelectorGroup(nsCSSSelectorList*& aListHead);
   PRBool ParseSelector(nsCSSSelectorList* aList, PRUnichar aPrevCombinator);
 
@@ -1287,7 +1291,7 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
   
   mFoundUnresolvablePrefix = PR_FALSE;
 
-  PRBool success = ParseSelectorList(*aSelectorList, PR_FALSE);
+  PRBool success = ParseSelectorList(*aSelectorList, PRUnichar(0));
   PRBool prefixErr = mFoundUnresolvablePrefix;
 
   OUTPUT_ERROR();
@@ -2422,7 +2426,7 @@ CSSParserImpl::ParseRuleSet(RuleAppendFunc aAppendFunc, void* aData,
   
   nsCSSSelectorList* slist = nsnull;
   PRUint32 linenum = mScanner.GetLineNumber();
-  if (! ParseSelectorList(slist, PR_TRUE)) {
+  if (! ParseSelectorList(slist, PRUnichar('{'))) {
     REPORT_UNEXPECTED(PEBadSelectorRSIgnored);
     OUTPUT_ERROR();
     SkipRuleSet(aInsideBraces);
@@ -2463,7 +2467,7 @@ CSSParserImpl::ParseRuleSet(RuleAppendFunc aAppendFunc, void* aData,
 
 PRBool
 CSSParserImpl::ParseSelectorList(nsCSSSelectorList*& aListHead,
-                                 PRBool aTerminateAtBrace)
+                                 PRUnichar aStopChar)
 {
   nsCSSSelectorList* list = nsnull;
   if (! ParseSelectorGroup(list)) {
@@ -2479,7 +2483,7 @@ CSSParserImpl::ParseSelectorList(nsCSSSelectorList*& aListHead,
   nsCSSToken* tk = &mToken;
   for (;;) {
     if (! GetToken(PR_TRUE)) {
-      if (!aTerminateAtBrace) {
+      if (aStopChar == PRUnichar(0)) {
         return PR_TRUE;
       }
 
@@ -2498,7 +2502,7 @@ CSSParserImpl::ParseSelectorList(nsCSSSelectorList*& aListHead,
         list->mNext = newList;
         list = newList;
         continue;
-      } else if ('{' == tk->mSymbol && aTerminateAtBrace) {
+      } else if (aStopChar == tk->mSymbol && aStopChar != PRUnichar(0)) {
         UngetToken();
         return PR_TRUE;
       }
@@ -2556,7 +2560,7 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
         combinator = mToken.mSymbol;
       } else {
         UngetToken(); 
-        if (symbol == ',' || symbol == '{') {
+        if (symbol == ',' || symbol == '{' || symbol == ')') {
           break; 
         }
       }
@@ -3056,7 +3060,8 @@ CSSParserImpl::ParsePseudoSelector(PRInt32&       aDataMask,
 #endif
        nsCSSPseudoClasses::notPseudo == pseudo ||
        nsCSSPseudoClasses::HasStringArg(pseudo) ||
-       nsCSSPseudoClasses::HasNthPairArg(pseudo))) {
+       nsCSSPseudoClasses::HasNthPairArg(pseudo) ||
+       nsCSSPseudoClasses::HasSelectorListArg(pseudo))) {
     
     REPORT_UNEXPECTED_TOKEN(PEPseudoSelNonFunc);
     UngetToken();
@@ -3093,11 +3098,15 @@ CSSParserImpl::ParsePseudoSelector(PRInt32&       aDataMask,
         parsingStatus =
           ParsePseudoClassWithIdentArg(aSelector, pseudo, pseudoClassType);
       }
-      else {
-        NS_ABORT_IF_FALSE(nsCSSPseudoClasses::HasNthPairArg(pseudo),
-                          "unexpected pseudo with function token");
+      else if (nsCSSPseudoClasses::HasNthPairArg(pseudo)) {
         parsingStatus =
           ParsePseudoClassWithNthPairArg(aSelector, pseudo, pseudoClassType);
+      }
+      else {
+        NS_ABORT_IF_FALSE(nsCSSPseudoClasses::HasSelectorListArg(pseudo),
+                          "unexpected pseudo with function token");
+        parsingStatus = ParsePseudoClassWithSelectorListArg(aSelector, pseudo,
+                                                            pseudoClassType);
       }
       if (eSelectorParsingStatus_Continue != parsingStatus) {
         if (eSelectorParsingStatus_Error == parsingStatus) {
@@ -3409,6 +3418,42 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
     return eSelectorParsingStatus_Error; 
   }
   aSelector.AddPseudoClass(aPseudo, aType, numbers);
+  return eSelectorParsingStatus_Continue;
+}
+
+
+
+
+
+
+CSSParserImpl::nsSelectorParsingStatus
+CSSParserImpl::ParsePseudoClassWithSelectorListArg(nsCSSSelector& aSelector,
+                                                   nsIAtom*       aPseudo,
+                                                   nsCSSPseudoClasses::Type aType)
+{
+  nsAutoPtr<nsCSSSelectorList> slist;
+  if (! ParseSelectorList(*getter_Transfers(slist), PRUnichar(')'))) {
+    return eSelectorParsingStatus_Error; 
+  }
+
+  
+  
+  for (nsCSSSelectorList *l = slist; l; l = l->mNext) {
+    nsCSSSelector *s = l->mSelectors;
+    if (s->mNext || s->IsPseudoElement()) {
+      return eSelectorParsingStatus_Error; 
+    }
+  }
+
+  
+  aSelector.AddPseudoClass(aPseudo, aType, slist.forget());
+
+  
+  if (!ExpectSymbol(')', PR_TRUE)) {
+    REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoClose);
+    return eSelectorParsingStatus_Error; 
+  }
+
   return eSelectorParsingStatus_Continue;
 }
 

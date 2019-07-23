@@ -58,6 +58,7 @@
 class nsIAtom;
 class nsCSSDeclaration;
 class nsICSSStyleSheet;
+struct nsCSSSelectorList;
 
 struct nsAtomList {
 public:
@@ -85,6 +86,8 @@ public:
                     const PRUnichar *aString);
   nsPseudoClassList(nsIAtom* aAtom, nsCSSPseudoClasses::Type aType,
                     const PRInt32 *aIntPair);
+  nsPseudoClassList(nsIAtom* aAtom, nsCSSPseudoClasses::Type aType,
+                    nsCSSSelectorList *aSelectorList );
   ~nsPseudoClassList(void);
 
   
@@ -99,9 +102,12 @@ public:
     
     
     
+    
+    
     void*           mMemory; 
     PRUnichar*      mString;
     PRInt32*        mNumbers;
+    nsCSSSelectorList* mSelectors;
   } u;
   nsCSSPseudoClasses::Type mType;
   nsPseudoClassList* mNext;
@@ -168,6 +174,9 @@ public:
                       const PRUnichar* aString);
   void AddPseudoClass(nsIAtom* aPseudoClass, nsCSSPseudoClasses::Type aType,
                       const PRInt32* aIntPair);
+  
+  void AddPseudoClass(nsIAtom* aPseudoClass, nsCSSPseudoClasses::Type aType,
+                      nsCSSSelectorList* aSelectorList);
   void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr);
   void AddAttribute(PRInt32 aNameSpace, const nsString& aAttr, PRUint8 aFunc, 
                     const nsString& aValue, PRBool aCaseSensitive);
