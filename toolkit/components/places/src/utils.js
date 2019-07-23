@@ -920,83 +920,112 @@ var PlacesUtils = {
   },
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getContainerNodeWithOptions:
+  function PU_getContainerNodeWithOptions(aNode, aExcludeItems, aExpandQueries) {
+    if (!this.nodeIsContainer(aNode))
+      throw Cr.NS_ERROR_INVALID_ARG;
+
+    
+    var excludeItems = asQuery(aNode).queryOptions.excludeItems ||
+                       asQuery(aNode.parentResult.root).queryOptions.excludeItems;
+    
+    var expandQueries = asQuery(aNode).queryOptions.expandQueries &&
+                        asQuery(aNode.parentResult.root).queryOptions.expandQueries;
+
+    
+    if (excludeItems == aExcludeItems && expandQueries == aExpandQueries)
+      return aNode;
+
+    
+    var queries = {}, options = {};
+    this.history.queryStringToQueries(aNode.uri, queries, {}, options);
+    options.value.excludeItems = aExcludeItems;
+    options.value.expandQueries = aExpandQueries;
+    return this.history.executeQueries(queries.value,
+                                       queries.value.length,
+                                       options.value).root;
+  },
+
   
+
+
+
+
+
+
   hasChildURIs: function PU_hasChildURIs(aNode) {
     if (!this.nodeIsContainer(aNode))
       return false;
 
-    
-    if (this.nodeIsFolder(aNode) && asQuery(aNode).queryOptions.excludeItems) {
-      var itemId = PlacesUtils.getConcreteItemId(aNode);
-      var contents = this.getFolderContents(itemId, false, false).root;
-      for (var i = 0; i < contents.childCount; ++i) {
-        var child = contents.getChild(i);
-        if (this.nodeIsURI(child))
-          return true;
-      }
-      return false;
+    var root = this.getContainerNodeWithOptions(aNode, false, true);
+    var oldViewer = root.parentResult.viewer;
+    var wasOpen = root.containerOpen;
+    if (!wasOpen) {
+      root.parentResult.viewer = null;
+      root.containerOpen = true;
     }
 
-    var wasOpen = aNode.containerOpen;
-    if (!wasOpen)
-      aNode.containerOpen = true;
     var found = false;
-    for (var i = 0; i < aNode.childCount && !found; i++) {
-      var child = aNode.getChild(i);
+    for (var i = 0; i < root.childCount && !found; i++) {
+      var child = root.getChild(i);
       if (this.nodeIsURI(child))
         found = true;
     }
-    if (!wasOpen)
-      aNode.containerOpen = false;
+
+    if (!wasOpen) {
+      root.containerOpen = false;
+      root.parentResult.viewer = oldViewer;
+    }
     return found;
   },
 
+  
+
+
+
+
+
+
+
   getURLsForContainerNode: function PU_getURLsForContainerNode(aNode) {
-    let urls = [];
-    if (this.nodeIsFolder(aNode) && asQuery(aNode).queryOptions.excludeItems) {
-      
-      var itemId = this.getConcreteItemId(aNode);
-      let contents = this.getFolderContents(itemId, false, false).root;
-      for (let i = 0; i < contents.childCount; ++i) {
-        let child = contents.getChild(i);
-        if (this.nodeIsURI(child))
-          urls.push({uri: child.uri, isBookmark: this.nodeIsBookmark(child)});
-      }
-    }
-    else {
-      let result, oldViewer, wasOpen;
-      try {
-        let wasOpen = aNode.containerOpen;
-        result = aNode.parentResult;
-        oldViewer = result.viewer;
-        if (!wasOpen) {
-          result.viewer = null;
-          aNode.containerOpen = true;
-        }
-        for (let i = 0; i < aNode.childCount; ++i) {
-          
-          let child = aNode.getChild(i);
-          if (this.nodeIsURI(child)) {
-            
-            
-            
-            if ((wasOpen && oldViewer && child.viewIndex != -1) ||
-                (oldViewer && !oldViewer.collapseDuplicates) ||
-                urls.indexOf(child.uri) == -1) {
-              urls.push({ uri: child.uri,
-                          isBookmark: this.nodeIsBookmark(child) });
-            }
-          }
-        }
-        if (!wasOpen)
-          aNode.containerOpen = false;
-      }
-      finally {
-        if (!wasOpen)
-          result.viewer = oldViewer;
-      }
+    var urls = [];
+    if (!this.nodeIsContainer(aNode))
+      return urls;
+
+    var root = this.getContainerNodeWithOptions(aNode, false, true);
+    var oldViewer = root.parentResult.viewer;
+    var wasOpen = root.containerOpen;
+    if (!wasOpen) {
+      root.parentResult.viewer = null;
+      root.containerOpen = true;
     }
 
+   for (var i = 0; i < root.childCount; ++i) {
+      var child = root.getChild(i);
+      if (this.nodeIsURI(child))
+        urls.push({uri: child.uri, isBookmark: this.nodeIsBookmark(child)});
+    }
+
+    if (!wasOpen) {
+      root.containerOpen = false;
+      root.parentResult.viewer = oldViewer;
+    }
     return urls;
   },
 
