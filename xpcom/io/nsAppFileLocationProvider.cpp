@@ -514,7 +514,7 @@ NS_IMPL_ISUPPORTS1(nsAppDirectoryEnumerator, nsISimpleEnumerator)
 
 
 
-#if defined(XP_WIN) || defined(XP_OS2)
+#if defined(XP_WIN) || defined(XP_OS2) 
 #define PATH_SEPARATOR ';'
 #else 
 #define PATH_SEPARATOR ':'
