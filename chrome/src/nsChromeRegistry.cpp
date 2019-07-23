@@ -765,6 +765,37 @@ nsChromeRegistry::GetSelectedLocale(const nsACString& aPackage, nsACString& aLoc
 }
 
 NS_IMETHODIMP
+nsChromeRegistry::IsLocaleRTL(const nsACString& package, PRBool *aResult)
+{
+  *aResult = PR_FALSE;
+
+  nsCAutoString locale;
+  GetSelectedLocale(package, locale);
+  if (locale.Length() < 2)
+    return NS_OK;
+
+  
+  
+  
+  nsCAutoString prefString = NS_LITERAL_CSTRING("intl.uidirection.") + locale;
+  nsCOMPtr<nsIPrefBranch> prefBranch (do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!prefBranch)
+    return NS_OK;
+  
+  nsXPIDLCString dir;
+  prefBranch->GetCharPref(prefString.get(), getter_Copies(dir));
+  if (dir.IsEmpty()) {
+    PRInt32 hyphen = prefString.FindChar('-');
+    if (hyphen >= 1) {
+      nsCAutoString shortPref(Substring(prefString, 0, hyphen));
+      prefBranch->GetCharPref(shortPref.get(), getter_Copies(dir));
+    }
+  }
+  *aResult = dir.EqualsLiteral("rtl");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsChromeRegistry::GetLocalesForPackage(const nsACString& aPackage,
                                        nsIUTF8StringEnumerator* *aResult)
 {
