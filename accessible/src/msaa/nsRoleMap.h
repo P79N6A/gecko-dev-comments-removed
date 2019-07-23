@@ -441,6 +441,9 @@ static const WindowsRoleMapItem gWindowsRoleMap[] = {
   { ROLE_SYSTEM_CELL, ROLE_SYSTEM_CELL },
 
   
+  { USE_ROLE_STRING, IA2_ROLE_EMBEDDED_OBJECT },
+
+  
   { ROLE_WINDOWS_LAST_ENTRY, ROLE_WINDOWS_LAST_ENTRY }
 };
 
