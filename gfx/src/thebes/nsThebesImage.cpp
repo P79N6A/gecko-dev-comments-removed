@@ -98,8 +98,10 @@ nsThebesImage::Init(PRInt32 aWidth, PRInt32 aHeight, PRInt32 aDepth, nsMaskRequi
     mFormat = format;
 
 #ifdef XP_WIN
-    mWinSurface = new gfxWindowsSurface(gfxIntSize(mWidth, mHeight), format);
-    mImageSurface = mWinSurface->GetImageSurface();
+    if (!ShouldUseImageSurfaces()) {
+        mWinSurface = new gfxWindowsSurface(gfxIntSize(mWidth, mHeight), format);
+        mImageSurface = mWinSurface->GetImageSurface();
+    }
 
     if (!mImageSurface) {
         mWinSurface = nsnull;
@@ -217,6 +219,11 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
         
         
     }
+
+    
+    
+    if (ShouldUseImageSurfaces())
+        return NS_OK;
 
 #ifdef XP_WIN
     
@@ -541,4 +548,27 @@ nsThebesImage::DrawToImage(nsIImage* aDstImage, PRInt32 aDX, PRInt32 aDY, PRInt3
     dst->Paint();
 
     return NS_OK;
+}
+
+PRBool
+nsThebesImage::ShouldUseImageSurfaces()
+{
+#ifdef XP_WIN
+    static const DWORD kGDIObjectsHighWaterMark = 7000;
+
+    
+    
+    
+    DWORD count = GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
+    if (count == 0 ||
+        count > kGDIObjectsHighWaterMark)
+    {
+        
+        
+        
+        return PR_TRUE;
+    }
+#endif
+
+    return PR_FALSE;
 }
