@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsGUIEvent_h__
 #define nsGUIEvent_h__
 
@@ -1434,6 +1435,14 @@ enum nsDragDropEventStatus {
 
 
 
+#define NS_IS_IME_RELATED_EVENT(evnt) \
+  (NS_IS_IME_EVENT(evnt) || \
+   NS_IS_QUERY_CONTENT_EVENT(evnt) || \
+   NS_IS_SELECTION_EVENT(evnt))
+
+
+
+
 
 
 
@@ -1586,7 +1595,7 @@ inline PRBool NS_TargetUnfocusedEventToLastFocusedContent(nsEvent* aEvent)
   
   
 
-  return NS_IS_IME_EVENT(aEvent);
+  return NS_IS_IME_RELATED_EVENT(aEvent);
 #elif defined(XP_WIN)
   
   
@@ -1594,27 +1603,41 @@ inline PRBool NS_TargetUnfocusedEventToLastFocusedContent(nsEvent* aEvent)
   
   
 
-  return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_EVENT(aEvent) ||
+  return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_RELATED_EVENT(aEvent) ||
          NS_IS_PLUGIN_EVENT(aEvent) || NS_IS_CONTENT_COMMAND_EVENT(aEvent);
 #else
   return PR_FALSE;
 #endif
 }
 
+
+
+
+
+
 inline PRBool NS_IsEventUsingCoordinates(nsEvent* aEvent)
 {
-  return !NS_IS_KEY_EVENT(aEvent) && !NS_IS_IME_EVENT(aEvent) &&
+  return !NS_IS_KEY_EVENT(aEvent) && !NS_IS_IME_RELATED_EVENT(aEvent) &&
          !NS_IS_CONTEXT_MENU_KEY(aEvent) && !NS_IS_ACTIVATION_EVENT(aEvent) &&
-         !NS_IS_QUERY_CONTENT_EVENT(aEvent) && !NS_IS_PLUGIN_EVENT(aEvent) &&
-         !NS_IS_SELECTION_EVENT(aEvent) &&
-         !NS_IS_CONTENT_COMMAND_EVENT(aEvent) &&
+         !NS_IS_PLUGIN_EVENT(aEvent) && !NS_IS_CONTENT_COMMAND_EVENT(aEvent) &&
          aEvent->eventStructType != NS_ACCESSIBLE_EVENT;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 inline PRBool NS_IsEventTargetedAtFocusedWindow(nsEvent* aEvent)
 {
   return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_EVENT(aEvent) ||
-         NS_IS_QUERY_CONTENT_EVENT(aEvent) || NS_IS_SELECTION_EVENT(aEvent) ||
          NS_IS_CONTEXT_MENU_KEY(aEvent) || NS_IS_CONTENT_COMMAND_EVENT(aEvent);
 }
 
