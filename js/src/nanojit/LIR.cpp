@@ -50,7 +50,11 @@ namespace nanojit
 		0, 2, 2, 2, 2, 2, 2, 2, 0, 0,
 		0, 2, 2, 2, 2, 2, 2, 2, 2, 2,
 		2, 2, 0, 0, 2, 2, 1, 2, 2, 2,
+#if defined NANOJIT_64BIT
+		0, 2, 2, 2, 1, 2, 2, 2, 1, 1,
+#else
 		1, 2, 2, 2, 1, 2, 2, 2, 1, 1,
+#endif
 		1, 1, 2, 1, 1, 2, 2, 2, 2, 2,
 		2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
 		2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
@@ -1357,6 +1361,7 @@ namespace nanojit
         }
 		void add(LInsp i, LInsp use) {
             if (!i->isconst() && !i->isconstq() && !live.containsKey(i)) {
+                NanoAssert(i->opcode() < sizeof(lirNames) / sizeof(lirNames[0]));
                 live.put(i,use);
             }
 		}
@@ -1411,6 +1416,7 @@ namespace nanojit
 			if (live.contains(i))
 			{
 				live.retire(i,gc);
+                NanoAssert(i->opcode() < sizeof(operandCount) / sizeof(operandCount[0]));
 				if (i->isStore()) {
 					live.add(i->oprnd2(),i); 
 					live.add(i->oprnd1(),i); 
@@ -1525,6 +1531,7 @@ namespace nanojit
 			if (ref->isCall()) {
 				copyName(ref, _functions[ref->fid()]._name, funccounts.add(ref->fid()));
 			} else {
+                NanoAssert(ref->opcode() < sizeof(lirNames) / sizeof(lirNames[0]));
 				copyName(ref, lirNames[ref->opcode()], lircounts.add(ref->opcode()));
 			}
 			StringNullTerminatedUTF8 cname(gc, names.get(ref)->name);
