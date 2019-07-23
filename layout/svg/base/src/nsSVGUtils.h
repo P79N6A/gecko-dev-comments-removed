@@ -91,8 +91,11 @@ struct nsStyleFont;
 
 #define NS_STATE_SVG_DIRTY            0x02000000
 
+
 #define NS_STATE_SVG_FILL_PSERVER     0x04000000
+
 #define NS_STATE_SVG_STROKE_PSERVER   0x08000000
+
 #define NS_STATE_SVG_PSERVER_MASK     0x0c000000
 
 

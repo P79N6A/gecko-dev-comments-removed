@@ -267,9 +267,11 @@ nsSVGGeometryFrame::HasStroke()
   if (GetStrokeWidth() <= 0)
     return PR_FALSE;
 
+  
+  
+  
   if (GetStyleSVG()->mStroke.mType == eStyleSVGPaintType_Color ||
-      (GetStyleSVG()->mStroke.mType == eStyleSVGPaintType_Server &&
-       (GetStateBits() & NS_STATE_SVG_STROKE_PSERVER)))
+      GetStyleSVG()->mStroke.mType == eStyleSVGPaintType_Server)
     return PR_TRUE;
 
   return PR_FALSE;
@@ -286,6 +288,9 @@ nsSVGGeometryFrame::HasFill()
     }
   }
 
+  
+  
+  
   if (GetStyleSVG()->mFill.mType == eStyleSVGPaintType_Color ||
       GetStyleSVG()->mFill.mType == eStyleSVGPaintType_Server)
     return PR_TRUE;
