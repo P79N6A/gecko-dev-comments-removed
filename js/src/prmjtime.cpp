@@ -605,6 +605,14 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     a.tm_mon = prtm->tm_mon;
     a.tm_wday = prtm->tm_wday;
 
+    {
+        struct tm td;
+        time_t bogus = 0;
+        localtime_r(&bogus, &td);
+        a.tm_gmtoff = td.tm_gmtoff;
+        a.tm_zone = td.tm_zone;
+    }
+
     
 
 
