@@ -71,7 +71,7 @@ class gfxASurface;
 #define NSRGB_2_COLOREF(color) \
             RGB(NS_GET_R(color),NS_GET_G(color),NS_GET_B(color))
 
-struct nsPluginPort;
+union nsPluginPort;
 
 #undef DARWIN
 #import <Cocoa/Cocoa.h>
@@ -322,9 +322,11 @@ protected:
     
   PRPackedBool          mAcceptFocusOnClick;
   PRPackedBool          mLiveResizeInProgress;
+  PRPackedBool          mIsPluginView; 
   PRPackedBool          mPluginDrawing;
+  PRPackedBool          mPluginIsCG; 
   
-  nsPluginPort*         mPluginPort;
+  nsPluginPort          mPluginPort;
   RgnHandle             mVisRgn;
 };
 

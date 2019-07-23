@@ -37,6 +37,7 @@
 
 
 
+
 #include "prtypes.h"
 #include "prmem.h"
 #include "ns4xPlugin.h"
@@ -1975,6 +1976,35 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     return NPERR_NO_ERROR;
   }
 
+#ifdef XP_MACOSX
+  case NPNVpluginDrawingModel: {
+    if (npp) {
+      ns4xPluginInstance *inst = (ns4xPluginInstance*)npp->ndata;
+      if (inst) {
+        *(NPDrawingModel*)result = inst->GetDrawingModel();
+        return NPERR_NO_ERROR;
+      }
+    }
+    else {
+      return NPERR_GENERIC_ERROR;
+    }
+  }
+
+#ifndef NP_NO_QUICKDRAW
+  case NPNVsupportsQuickDrawBool: {
+    *(NPBool*)result = PR_TRUE;
+    
+    return NPERR_NO_ERROR;
+  }
+#endif
+
+  case NPNVsupportsCoreGraphicsBool: {
+    *(NPBool*)result = PR_TRUE;
+    
+    return NPERR_NO_ERROR;
+  }
+#endif
+
   default : return NPERR_GENERIC_ERROR;
   }
 }
@@ -2048,6 +2078,19 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
       NPBool bCached = (result != nsnull);
       return inst->SetCached(bCached);
     }
+      
+#ifdef XP_MACOSX
+    case NPNVpluginDrawingModel: {
+      if (inst) {
+        int dModelValue = (int)result;
+        inst->SetDrawingModel((NPDrawingModel)dModelValue);
+        return NPERR_NO_ERROR;
+      }
+      else {
+        return NPERR_GENERIC_ERROR;
+      }
+    }
+#endif
 
     default:
       return NPERR_NO_ERROR;

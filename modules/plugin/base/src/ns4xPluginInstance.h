@@ -122,6 +122,11 @@ public:
 
     NPError SetTransparent(PRBool aTransparent);
 
+#ifdef XP_MACOSX
+    void SetDrawingModel(NPDrawingModel aModel);
+    NPDrawingModel GetDrawingModel();
+#endif
+
     nsresult NewNotifyStream(nsIPluginStreamListener** listener, 
                              void* notifyData, 
                              PRBool aCallNotify,
@@ -186,6 +191,10 @@ protected:
 
 
     NPP_t fNPP;
+
+#ifdef XP_MACOSX
+    NPDrawingModel mDrawingModel;
+#endif
 
     
     

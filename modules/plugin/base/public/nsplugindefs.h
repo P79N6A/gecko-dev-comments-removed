@@ -202,6 +202,9 @@ enum nsPluginInstanceVariable {
     nsPluginInstanceVariable_ScriptableInstance      = 10,
     nsPluginInstanceVariable_ScriptableIID           = 11,
     nsPluginInstanceVariable_NeedsXEmbed             = 14
+#ifdef XP_MACOSX
+    , nsPluginInstanceVariable_DrawingModel          = 20
+#endif
 };
 
 
@@ -230,13 +233,33 @@ enum nsPluginWindowType {
 
 #ifdef XP_MACOSX
 
-struct nsPluginPort {
+typedef WindowRef       nsPluginPlatformWindowRef;
+
+#ifndef NP_NO_QUICKDRAW
+struct nsPluginPortQD {
     CGrafPtr     port;   
     PRInt32     portx;  
     PRInt32     porty;
 };
-typedef RgnHandle       nsPluginRegion;
-typedef WindowRef       nsPluginPlatformWindowRef;
+
+typedef RgnHandle       nsPluginRegionQD;
+#endif
+
+struct nsPluginPortCG {
+    CGContextRef context;
+    WindowRef window;
+};
+
+typedef CGPathRef       nsPluginRegionCG;
+
+typedef union nsPluginPort {
+#ifndef NP_NO_QUICKDRAW
+  nsPluginPortQD qdPort;
+#endif
+  nsPluginPortCG cgPort;
+} nsPluginPort;
+
+typedef void* nsPluginRegion;
 
 #elif defined(XP_WIN) || defined(XP_OS2)
 
