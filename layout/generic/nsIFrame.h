@@ -528,11 +528,6 @@ public:
   
 
 
-  virtual void RemovedAsPrimaryFrame() {}
-
-  
-
-
 
 
 

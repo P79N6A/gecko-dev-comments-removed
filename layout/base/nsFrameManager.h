@@ -121,7 +121,6 @@ public:
   
   
   
-  
   NS_HIDDEN_(void)      RemoveAsPrimaryFrame(nsIContent* aContent,
                                              nsIFrame* aPrimaryFrame);
   NS_HIDDEN_(void)      ClearPrimaryFrameMap();
