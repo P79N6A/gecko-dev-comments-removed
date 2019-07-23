@@ -181,6 +181,20 @@ SessionStartup.prototype = {
     if (wType != "navigator:browser")
       return;
     
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     var defaultArgs = Cc["@mozilla.org/browser/clh;1"].
                       getService(Ci.nsIBrowserHandler).defaultArgs;
     if (aWindow.arguments && aWindow.arguments[0] &&

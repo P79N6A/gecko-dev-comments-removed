@@ -106,6 +106,17 @@ function resolveURIInternal(aCmdLine, aArgument) {
   return uri;
 }
 
+const OVERRIDE_NONE        = 0;
+const OVERRIDE_NEW_PROFILE = 1;
+const OVERRIDE_NEW_MSTONE  = 2;
+
+
+
+
+
+
+
+
 function needHomepageOverride(prefb) {
   var savedmstone = null;
   try {
@@ -113,19 +124,17 @@ function needHomepageOverride(prefb) {
   } catch (e) {}
 
   if (savedmstone == "ignore")
-    return 0;
+    return OVERRIDE_NONE;
 
   var mstone = Components.classes["@mozilla.org/network/protocol;1?name=http"]
                          .getService(nsIHttpProtocolHandler).misc;
 
   if (mstone != savedmstone) {
     prefb.setCharPref("browser.startup.homepage_override.mstone", mstone);
-    
-    return (savedmstone ? 2 : 1);
+    return (savedmstone ? OVERRIDE_NEW_MSTONE : OVERRIDE_NEW_PROFILE);
   }
 
-  
-  return 0;
+  return OVERRIDE_NONE;
 }
 
 function openWindow(parent, url, target, features, args) {
@@ -430,43 +439,47 @@ var nsBrowserContentHandler = {
     var formatter = Components.classes["@mozilla.org/toolkit/URLFormatterService;1"]
                               .getService(Components.interfaces.nsIURLFormatter);
 
-    var pagesToLoad = "";
-    var overrideState = needHomepageOverride(prefb);
+    var overridePage = "";
+    var haveUpdateSession = false;
     try {
-      if (overrideState == 1) {
-        pagesToLoad = formatter.formatURLPref("startup.homepage_welcome_url");
-      }
-      else if (overrideState == 2) {
-        pagesToLoad = formatter.formatURLPref("startup.homepage_override_url");
-      }
+      switch (needHomepageOverride(prefb)) {
+        case OVERRIDE_NEW_PROFILE:
+          overridePage = formatter.formatURLPref("startup.homepage_welcome_url");
+          break;
+        case OVERRIDE_NEW_MSTONE:
+          
+          
+          var ss = Components.classes["@mozilla.org/browser/sessionstartup;1"]
+                             .getService(Components.interfaces.nsISessionStartup);
+          haveUpdateSession = ss.doRestore();
+          overridePage = formatter.formatURLPref("startup.homepage_override_url");
+          break;
     }
-    catch (e) {
-    }
+    } catch (ex) {}
 
-    if (pagesToLoad == "about:blank")
-      pagesToLoad = "";
+    
+    if (overridePage == "about:blank")
+      overridePage = "";
 
     var startpage = "";
     try {
       var choice = prefb.getIntPref("browser.startup.page");
       if (choice == 1)
-        startpage = this.startPage;
+        startPage = this.startPage;
 
       if (choice == 2)
-        startpage = Components.classes["@mozilla.org/browser/global-history;2"]
+        startPage = Components.classes["@mozilla.org/browser/global-history;2"]
                               .getService(nsIBrowserHistory).lastPageVisited;
-    }
-    catch (e) {
-    }
+    } catch (e) { }
 
-    if (startpage == "about:blank")
-      startpage = "";
+    if (startPage == "about:blank")
+      startPage = "";
 
-    if (pagesToLoad && startpage)
-      pagesToLoad += "|";
-    pagesToLoad += startpage;
+    
+    if (overridePage && startPage && !haveUpdateSession)
+      return overridePage + "|" + startPage;
 
-    return (pagesToLoad ?  pagesToLoad : "about:blank");
+    return overridePage || startPage || "about:blank";
   },
 
   get startPage() {
