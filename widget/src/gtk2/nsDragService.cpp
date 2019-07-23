@@ -72,6 +72,15 @@
 
 #define DRAG_IMAGE_ALPHA_LEVEL 0.5
 
+
+
+
+
+enum {
+  MOZ_GTK_DRAG_RESULT_SUCCESS,
+  MOZ_GTK_DRAG_RESULT_NO_TARGET
+};
+
 static PRLogModuleInfo *sDragLm = NULL;
 
 static const char gMimeListType[] = "application/x-moz-internal-item-list";
@@ -82,6 +91,12 @@ static void
 invisibleSourceDragEnd(GtkWidget        *aWidget,
                        GdkDragContext   *aContext,
                        gpointer          aData);
+
+static gboolean
+invisibleSourceDragFailed(GtkWidget        *aWidget,
+                          GdkDragContext   *aContext,
+                          gint              aResult,
+                          gpointer          aData);
 
 static void
 invisibleSourceDragDataGet(GtkWidget        *aWidget,
@@ -110,10 +125,19 @@ nsDragService::nsDragService()
                      G_CALLBACK(invisibleSourceDragDataGet), this);
     g_signal_connect(GTK_OBJECT(mHiddenWidget), "drag_end",
                      G_CALLBACK(invisibleSourceDragEnd), this);
+    
+    guint dragFailedID = g_signal_lookup("drag-failed",
+                                         G_TYPE_FROM_INSTANCE(mHiddenWidget));
+    if (dragFailedID) {
+        g_signal_connect_closure_by_id(mHiddenWidget, dragFailedID, 0,
+                                       g_cclosure_new(G_CALLBACK(invisibleSourceDragFailed),
+                                                      this, NULL),
+                                       FALSE);
+    }
 
     
     if (!sDragLm)
-    sDragLm = PR_NewLogModule("nsDragService");
+        sDragLm = PR_NewLogModule("nsDragService");
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::nsDragService"));
     mTargetWidget = 0;
     mTargetDragContext = 0;
@@ -1155,7 +1179,8 @@ nsDragService::GetSourceList(void)
 }
 
 void
-nsDragService::SourceEndDrag(GdkDragContext *aContext)
+nsDragService::SourceEndDragSession(GdkDragContext *aContext,
+                                    gint            aResult)
 {
     
     mSourceDataItems = nsnull;
@@ -1163,29 +1188,50 @@ nsDragService::SourceEndDrag(GdkDragContext *aContext)
     if (!mDoingDrag)
         return; 
 
+    gint x, y;
+    GdkDisplay* display = gdk_display_get_default();
+    if (display) {
+      gdk_display_get_pointer(display, NULL, &x, &y, NULL);
+      SetDragEndPoint(nsIntPoint(x, y));
+    }
+
     
     
     
 
-    
-    GdkDragAction action =
-        aContext->dest_window ? aContext->action : (GdkDragAction)0;
-
-    
-    
-    
     PRUint32 dropEffect;
-    if (!action)
+
+    if (aResult == MOZ_GTK_DRAG_RESULT_SUCCESS) {
+
+        
+        
+        
+        GdkDragAction action =
+            aContext->dest_window ? aContext->action : (GdkDragAction)0;
+
+        
+        
+        
+        if (!action)
+            dropEffect = DRAGDROP_ACTION_NONE;
+        else if (action & GDK_ACTION_COPY)
+            dropEffect = DRAGDROP_ACTION_COPY;
+        else if (action & GDK_ACTION_LINK)
+            dropEffect = DRAGDROP_ACTION_LINK;
+        else if (action & GDK_ACTION_MOVE)
+            dropEffect = DRAGDROP_ACTION_MOVE;
+        else
+            dropEffect = DRAGDROP_ACTION_COPY;
+
+    } else {
+
         dropEffect = DRAGDROP_ACTION_NONE;
-    else if (action & GDK_ACTION_COPY)
-        dropEffect = DRAGDROP_ACTION_COPY;
-    else if (action & GDK_ACTION_LINK)
-        dropEffect = DRAGDROP_ACTION_LINK;
-    else if (action & GDK_ACTION_MOVE)
-        dropEffect = DRAGDROP_ACTION_MOVE;
-    else
-        dropEffect = DRAGDROP_ACTION_COPY;
-    
+
+        if (aResult != MOZ_GTK_DRAG_RESULT_NO_TARGET) {
+            mUserCancelled = PR_TRUE;
+        }
+    }
+
     nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer =
         do_QueryInterface(mDataTransfer);
 
@@ -1387,6 +1433,26 @@ invisibleSourceDragDataGet(GtkWidget        *aWidget,
 }
 
 
+gboolean
+invisibleSourceDragFailed(GtkWidget        *aWidget,
+                          GdkDragContext   *aContext,
+                          gint              aResult,
+                          gpointer          aData)
+{
+    PR_LOG(sDragLm, PR_LOG_DEBUG, ("invisibleSourceDragFailed %i", aResult));
+    nsDragService *dragService = (nsDragService *)aData;
+    
+    
+    
+    dragService->SourceEndDragSession(aContext, aResult);
+
+    
+    
+    
+    return FALSE;
+}
+
+
 void
 invisibleSourceDragEnd(GtkWidget        *aWidget,
                        GdkDragContext   *aContext,
@@ -1395,14 +1461,7 @@ invisibleSourceDragEnd(GtkWidget        *aWidget,
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("invisibleSourceDragEnd"));
     nsDragService *dragService = (nsDragService *)aData;
 
-    gint x, y;
-    GdkDisplay* display = gdk_display_get_default();
-    if (display) {
-      gdk_display_get_pointer(display, NULL, &x, &y, NULL);
-      dragService->SetDragEndPoint(nsIntPoint(x, y));
-    }
-
     
-    dragService->SourceEndDrag(aContext);
+    dragService->SourceEndDragSession(aContext, MOZ_GTK_DRAG_RESULT_SUCCESS);
 }
 

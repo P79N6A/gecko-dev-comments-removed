@@ -99,16 +99,17 @@ public:
     NS_IMETHOD TargetSetTimeCallback (nsIDragSessionGTKTimeCB aCallback);
 
     
+
     
     
-    void           SourceEndDrag(GdkDragContext *aContext);
+    
+    void           SourceEndDragSession(GdkDragContext *aContext,
+                                        gint            aResult);
     void           SourceDataGet(GtkWidget        *widget,
                                  GdkDragContext   *context,
                                  GtkSelectionData *selection_data,
                                  guint             info,
                                  guint32           aTime);
-
-    
 
 private:
 
