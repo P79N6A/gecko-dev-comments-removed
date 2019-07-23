@@ -1494,13 +1494,6 @@ ns4xPluginInstance::GetJSObject(JSContext *cx)
 void
 ns4xPluginInstance::DefineJavaProperties()
 {
-  
-  
-  
-  
-  
-
-#ifdef OJI
   NPObject *plugin_obj = nsnull;
 
   
@@ -1548,7 +1541,6 @@ ns4xPluginInstance::DefineJavaProperties()
   _releaseobject(window_obj);
   _releaseobject(plugin_obj);
   _releaseobject(java_obj);
-#endif
 }
 
 nsresult

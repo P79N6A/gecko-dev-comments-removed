@@ -119,9 +119,7 @@ class nsIDocShellLoadInfo;
 class WindowStateHolder;
 class nsGlobalWindowObserver;
 class nsGlobalWindow;
-#ifdef OJI
 class nsDummyJavaPluginOwner;
-#endif
 class PostMessageEvent;
 
 class nsDOMOfflineResourceList;
@@ -721,9 +719,9 @@ protected:
   PRUint32                      mTimeoutFiringDepth;
   nsCOMPtr<nsIDOMStorage>       mSessionStorage;
 
-#ifdef OJI
+  
+  
   nsRefPtr<nsDummyJavaPluginOwner> mDummyJavaPluginOwner;
-#endif
 
   
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;

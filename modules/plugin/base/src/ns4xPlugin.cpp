@@ -181,10 +181,10 @@ PR_BEGIN_EXTERN_C
   static void* NP_CALLBACK
   _memalloc (uint32 size);
 
-  static void*  NP_CALLBACK
+  
+  static void* NP_CALLBACK 
   _getJavaEnv(void);
-
-  static void*  NP_CALLBACK
+  static void* NP_CALLBACK 
   _getJavaPeer(NPP npp);
 
 PR_END_EXTERN_C
@@ -306,9 +306,9 @@ ns4xPlugin::CheckClassInitialized(void)
   CALLBACKS.reloadplugins =
     NewNPN_ReloadPluginsProc(FP2TV(_reloadplugins));
 
+  
   CALLBACKS.getJavaEnv =
     NewNPN_GetJavaEnvProc(FP2TV(_getJavaEnv));
-
   CALLBACKS.getJavaPeer =
     NewNPN_GetJavaPeerProc(FP2TV(_getJavaPeer));
 
@@ -2512,7 +2512,8 @@ _requestread(NPStream *pstream, NPByteRange *rangeList)
 }
 
 
-void*  NP_CALLBACK
+
+void* NP_CALLBACK 
 _getJavaEnv(void)
 {
   NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_GetJavaEnv\n"));
@@ -2554,7 +2555,8 @@ _memalloc (uint32 size)
 }
 
 
-void*  NP_CALLBACK
+
+void* NP_CALLBACK 
 _getJavaPeer(NPP npp)
 {
   NPN_PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("NPN_GetJavaPeer: npp=%p\n", (void*)npp));

@@ -59,9 +59,6 @@
 
 #include "npruntime.h"
 
-#include "jri.h"
-
-
 
 
 
@@ -294,14 +291,20 @@ typedef void (* NP_LOADDS NPN_ReloadPluginsUPP)(NPBool reloadPages);
 		(*(FUNC))((ARG1))	
 
 
-typedef JRIEnv* (* NP_LOADDS NPN_GetJavaEnvUPP)(void);
+
+
+
+typedef void* (* NP_LOADDS NPN_GetJavaEnvUPP)(void);
 #define NewNPN_GetJavaEnvProc(FUNC)		\
 		((NPN_GetJavaEnvUPP) (FUNC))
 #define CallNPN_GetJavaEnvProc(FUNC)		\
 		(*(FUNC))()	
 
 
-typedef jref (* NP_LOADDS NPN_GetJavaPeerUPP)(NPP instance);
+
+
+
+typedef void* (* NP_LOADDS NPN_GetJavaPeerUPP)(NPP instance);
 #define NewNPN_GetJavaPeerProc(FUNC)		\
 		((NPN_GetJavaPeerUPP) (FUNC))
 #define CallNPN_GetJavaPeerProc(FUNC, ARG1)		\
@@ -518,7 +521,10 @@ typedef struct _NPPluginFuncs {
     NPP_PrintUPP print;
     NPP_HandleEventUPP event;
     NPP_URLNotifyUPP urlnotify;
-    JRIGlobalRef javaClass;
+    
+    
+    
+    void* javaClass;
     NPP_GetValueUPP getvalue;
     NPP_SetValueUPP setvalue;
 } NPPluginFuncs;

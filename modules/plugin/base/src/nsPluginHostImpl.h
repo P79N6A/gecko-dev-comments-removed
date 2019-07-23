@@ -420,10 +420,6 @@ private:
   
   PRBool IsDuplicatePlugin(nsPluginTag * aPluginTag);
 
-  
-  
-  PRBool IsUnwantedJavaPlugin(nsPluginTag * aPluginTag);
-
   nsresult EnsurePrivateDirServiceProvider();
 
   nsresult GetPrompt(nsIPluginInstanceOwner *aOwner, nsIPrompt **aPrompt);

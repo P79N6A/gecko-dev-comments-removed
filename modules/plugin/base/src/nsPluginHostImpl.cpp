@@ -4893,16 +4893,6 @@ static PRBool isUnwantedPlugin(nsPluginTag * tag)
   return PR_TRUE;
 }
 
-
-PRBool nsPluginHostImpl::IsUnwantedJavaPlugin(nsPluginTag * tag)
-{
-#ifndef OJI
-  return tag->mIsJavaPlugin;
-#else
-  return PR_FALSE;
-#endif 
-}
-
 PRBool nsPluginHostImpl::IsJavaMIMEType(const char* aType)
 {
   return aType &&
@@ -5135,8 +5125,7 @@ nsresult nsPluginHostImpl::ScanPluginsDirectory(nsIFile * pluginsDir,
         
         
         if((checkForUnwantedPlugins && isUnwantedPlugin(pluginTag)) ||
-           IsDuplicatePlugin(pluginTag) ||
-           IsUnwantedJavaPlugin(pluginTag)) {
+           IsDuplicatePlugin(pluginTag)) {
           if (!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED)) {
             
             *aPluginsChanged = PR_TRUE;
@@ -5215,8 +5204,7 @@ nsresult nsPluginHostImpl::ScanPluginsDirectory(nsIFile * pluginsDir,
       NS_ASSERTION(!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED),
                    "Brand-new tags should not be unwanted");
       if((checkForUnwantedPlugins && isUnwantedPlugin(pluginTag)) ||
-         IsDuplicatePlugin(pluginTag) ||
-         IsUnwantedJavaPlugin(pluginTag)) {
+         IsDuplicatePlugin(pluginTag)) {
         pluginTag->Mark(NS_PLUGIN_FLAG_UNWANTED);
         pluginTag->mNext = mCachedPlugins;
         mCachedPlugins = pluginTag;
@@ -5228,8 +5216,7 @@ nsresult nsPluginHostImpl::ScanPluginsDirectory(nsIFile * pluginsDir,
     PRBool bAddIt = PR_TRUE;
 
     
-    if((checkForUnwantedPlugins && isUnwantedPlugin(pluginTag)) ||
-       IsUnwantedJavaPlugin(pluginTag))
+    if(checkForUnwantedPlugins && isUnwantedPlugin(pluginTag))
       bAddIt = PR_FALSE;
 
     
@@ -6991,8 +6978,6 @@ nsPluginHostImpl::ScanForRealInComponentsFolder(nsIComponentManager * aCompManag
   if (info.fMimeTypeArray) {
     nsRefPtr<nsPluginTag> pluginTag = new nsPluginTag(&info);
     if (pluginTag) {
-      NS_ASSERTION(!IsUnwantedJavaPlugin(pluginTag),
-                   "RealPlayer plugin is unwanted Java plugin?");
       pluginTag->SetHost(this);
       pluginTag->mNext = mPlugins;
       mPlugins = pluginTag;
