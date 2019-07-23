@@ -2269,9 +2269,61 @@ ServerHandler.prototype =
     if (!file.exists())
       throw HTTP_404;
 
+    var start, end;
+    if (metadata._httpVersion.atLeast(nsHttpVersion.HTTP_1_1) &&
+        metadata.hasHeader("Range"))
+    {
+      var rangeMatch = metadata.getHeader("Range").match(/^bytes=(\d+)?-(\d+)?$/);
+      if (!rangeMatch)
+        throw HTTP_400;
+
+      if (rangeMatch[1] !== undefined)
+        start = parseInt(rangeMatch[1], 10);
+
+      if (rangeMatch[2] !== undefined)
+        end = parseInt(rangeMatch[2], 10);
+
+      if (start === undefined && end === undefined)
+        throw HTTP_400;
+
+      
+      
+      if (start === undefined)
+      {
+        start = Math.max(0, file.fileSize - end);
+        end   = file.fileSize - 1;
+      }
+
+      
+      if (end === undefined || end >= file.fileSize)
+        end = file.fileSize - 1;
+
+      if (start !== undefined && start >= file.fileSize)
+        throw HTTP_416;
+
+      if (end < start)
+      {
+        response.setStatusLine(metadata.httpVersion, 200, "OK");
+        start = 0;
+        end = file.fileSize - 1;
+      }
+      else
+      {
+        response.setStatusLine(metadata.httpVersion, 206, "Partial Content");
+        var contentRange = "bytes " + start + "-" + end + "/" + file.fileSize;
+        response.setHeader("Content-Range", contentRange);
+      }
+    }
+    else
+    {
+      start = 0;
+      end = file.fileSize - 1;
+    }
+
     
-    dumpn("*** handling '" + path + "' as mapping to " + file.path);
-    this._writeFileResponse(metadata, file, response);
+    dumpn("*** handling '" + path + "' as mapping to " + file.path + " from " +
+          start + " to " + end + " inclusive");
+    this._writeFileResponse(metadata, file, response, start, end - start + 1);
   },
 
   
@@ -2285,7 +2337,11 @@ ServerHandler.prototype =
 
 
 
-  _writeFileResponse: function(metadata, file, response)
+
+
+
+
+  _writeFileResponse: function(metadata, file, response, offset, count)
   {
     const PR_RDONLY = 0x01;
 
@@ -2322,7 +2378,20 @@ ServerHandler.prototype =
   
       var fis = new FileInputStream(file, PR_RDONLY, 0444,
                                     Ci.nsIFileInputStream.CLOSE_ON_EOF);
-      response.bodyOutputStream.writeFrom(fis, file.fileSize);
+      offset = offset || 0;
+      count  = count || file.fileSize;
+
+      NS_ASSERT(offset == 0 || offset < file.fileSize, "bad offset");
+      NS_ASSERT(count >= 0, "bad count");
+
+      if (offset != 0)
+      {
+        
+        
+        var sis = new ScriptableInputStream(fis);
+        sis.read(offset);
+      }
+      response.bodyOutputStream.writeFrom(fis, count);
       fis.close();
       
       maybeAddHeaders(file, metadata, response);
@@ -2790,6 +2859,25 @@ ServerHandler.prototype =
                           htmlEscape(metadata.path) +
                        "</span> was not found.\
                       </p>\
+                    </body>\
+                  </html>";
+      response.bodyOutputStream.write(body, body.length);
+    },
+    416: function(metadata, response)
+    {
+      response.setStatusLine(metadata.httpVersion,
+                            416,
+                            "Requested Range Not Satisfiable");
+      response.setHeader("Content-Type", "text/html", false);
+
+      var body = "<html>\
+                   <head>\
+                    <title>416 Requested Range Not Satisfiable</title></head>\
+                    <body>\
+                     <h1>416 Requested Range Not Satisfiable</h1>\
+                     <p>The byte range was not valid for the\
+                        requested resource.\
+                     </p>\
                     </body>\
                   </html>";
       response.bodyOutputStream.write(body, body.length);
