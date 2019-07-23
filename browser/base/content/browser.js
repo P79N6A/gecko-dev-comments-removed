@@ -1478,11 +1478,16 @@ function nonBrowserWindowDelayedStartup()
   
   
   initializeSanitizer();
+
+  
+  gPrivateBrowsingUI.init();
 }
 
 function nonBrowserWindowShutdown()
 {
   BrowserOffline.uninit();
+
+  gPrivateBrowsingUI.uninit();
 }
 #endif
 
