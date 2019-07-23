@@ -1101,8 +1101,17 @@ gfxWindowsFont::FillLogFont(gfxFloat aSize)
     if (fe->mIsUserFont) {
         if (fe->IsItalic())
             isItalic = PR_FALSE; 
-        if (fe->IsBold())
+        if (fe->IsBold()) {
             weight = 400; 
+        } else {
+            
+            PRInt8 baseWeight, weightDistance;
+            GetStyle()->ComputeWeightAndOffset(&baseWeight, &weightDistance);
+            if ((weightDistance == 0 && baseWeight >= 6) 
+                || (weightDistance > 0)) {
+                weight = 700; 
+            }
+        }
     }
 
     FontEntry::FillLogFont(&mLogFont, fe->Name(),  fe->mFontType, isItalic, 
@@ -1207,12 +1216,27 @@ gfxWindowsFont::SetupCairoFont(gfxContext *aContext)
 
 
 already_AddRefed<gfxWindowsFont>
-gfxWindowsFont::GetOrMakeFont(FontEntry *aFontEntry, const gfxFontStyle *aStyle)
+gfxWindowsFont::GetOrMakeFont(FontEntry *aFontEntry, const gfxFontStyle *aStyle,
+                              PRBool aNeedsBold)
 {
     
     
     gfxFontStyle style(*aStyle);
-    style.weight = aFontEntry->mWeight;
+
+    if (aFontEntry->mIsUserFont && !aFontEntry->IsBold()) {
+        
+        PRInt8 baseWeight, weightDistance;
+        aStyle->ComputeWeightAndOffset(&baseWeight, &weightDistance);
+
+        if ((weightDistance == 0 && baseWeight >= 6) || (weightDistance > 0 && aNeedsBold)) {
+            style.weight = 700;  
+        } else {
+            style.weight = aFontEntry->mWeight;
+        }
+    } else {
+        style.weight = aFontEntry->mWeight;
+    }
+
     
     if (style.sizeAdjust == 0.0)
         style.size = ROUND(style.size);
@@ -1246,7 +1270,8 @@ AddFontNameToArray(const nsAString& aName,
 
 
 void
-gfxWindowsFontGroup::GroupFamilyListToArrayList(nsTArray<nsRefPtr<FontEntry> > *list)
+gfxWindowsFontGroup::GroupFamilyListToArrayList(nsTArray<nsRefPtr<FontEntry> > *list,
+                                                nsTArray<PRPackedBool> *aNeedsBold)
 {
     nsAutoTArray<nsString, 15> fonts;
     ForEachFont(AddFontNameToArray, &fonts);
@@ -1257,7 +1282,7 @@ gfxWindowsFontGroup::GroupFamilyListToArrayList(nsTArray<nsRefPtr<FontEntry> > *
         
         
         gfxFontEntry *gfe;
-        PRBool needsBold;
+        PRBool needsBold = PR_FALSE;
         if (mUserFontSet && (gfe = mUserFontSet->FindFontEntry(fonts[i], mStyle, needsBold))) {
             
             fe = static_cast<FontEntry*> (gfe);
@@ -1271,6 +1296,7 @@ gfxWindowsFontGroup::GroupFamilyListToArrayList(nsTArray<nsRefPtr<FontEntry> > *
         
         if (fe) {
             list->AppendElement(fe);
+            aNeedsBold->AppendElement(static_cast<PRPackedBool>(needsBold));
         }
     }
 }
@@ -1314,7 +1340,7 @@ gfxWindowsFontGroup::GetFontAt(PRInt32 i)
 
     if (!mFonts[i]) {
         nsRefPtr<gfxWindowsFont> font =
-            gfxWindowsFont::GetOrMakeFont(mFontEntries[i], &mStyle);
+            gfxWindowsFont::GetOrMakeFont(mFontEntries[i], &mStyle, mFontNeedsBold[i]);
         mFonts[i] = font;
     }
 
@@ -1335,6 +1361,7 @@ gfxWindowsFontGroup::UpdateFontList()
         
         mFonts.Clear();
         mFontEntries.Clear();
+        mFontNeedsBold.Clear();
         InitFontList();
         mCurrGeneration = GetGeneration();
     }
@@ -1344,7 +1371,7 @@ gfxWindowsFontGroup::UpdateFontList()
 void 
 gfxWindowsFontGroup::InitFontList()
 {
-    GroupFamilyListToArrayList(&mFontEntries);
+    GroupFamilyListToArrayList(&mFontEntries, &mFontNeedsBold);
 
     mFonts.AppendElements(mFontEntries.Length());
 
@@ -1352,10 +1379,11 @@ gfxWindowsFontGroup::InitFontList()
     
     while (mFontEntries.Length() > 0) {
         nsRefPtr<gfxWindowsFont> font =
-            gfxWindowsFont::GetOrMakeFont(mFontEntries[0], &mStyle);
+            gfxWindowsFont::GetOrMakeFont(mFontEntries[0], &mStyle, mFontNeedsBold[0]);
         if (!font->IsValid()) {
             mFontEntries.RemoveElementAt(0);
             mFonts.RemoveElementAt(0);
+            mFontNeedsBold.RemoveElementAt(0);
             continue;
         }
         mFonts[0] = font;
@@ -1394,6 +1422,7 @@ gfxWindowsFontGroup::InitFontList()
         
         
         mFonts.AppendElements(mFontEntries.Length());
+        mFontNeedsBold.AppendElements(mFontEntries.Length());
     }
 
     
@@ -2400,7 +2429,7 @@ gfxWindowsFontGroup::WhichFontSupportsChar(const nsTArray<nsRefPtr<FontEntry> >&
             continue;
         if (fe->HasCharacter(ch)) {
             nsRefPtr<gfxWindowsFont> font =
-                gfxWindowsFont::GetOrMakeFont(fe, &mStyle);
+                gfxWindowsFont::GetOrMakeFont(fe, &mStyle, mFontNeedsBold[i]);
             
             if (!font->IsValid())
                 continue;
