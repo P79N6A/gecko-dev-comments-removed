@@ -1072,20 +1072,24 @@ int ParseFTPList(const char *line, struct list_state *state,
 
             
             p = tokens[tokmarker];
-            for (pos = 0; lstyle && pos < toklen[tokmarker]; pos++)
+            unsigned int i;
+            for (i = 0; i < toklen[tokmarker]; i++)
             {
               if (!isdigit(*p++))
+              {
                 lstyle = 0;
+                break;
+              }
             }
             if (lstyle)
             {
               month_num = 0;
               p = tokens[tokmarker+1];
-              for (pos = 0;pos < (12*3); pos+=3)
+              for (i = 0; i < (12*3); i+=3)
               {
-                if (p[0] == month_names[pos+0] && 
-                    p[1] == month_names[pos+1] && 
-                    p[2] == month_names[pos+2])
+                if (p[0] == month_names[i+0] && 
+                    p[1] == month_names[i+1] && 
+                    p[2] == month_names[i+2])
                   break;
                 month_num++;
               }
