@@ -2317,6 +2317,92 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
 }
 
+static void
+ProcessSetSlotRequest(JSContext *cx, JSSetSlotRequest *ssr)
+{
+    JSObject *obj, *pobj;
+    uint32 slot;
+
+    obj = ssr->obj;
+    pobj = ssr->pobj;
+    slot = ssr->slot;
+
+    while (pobj) {
+        JSClass *clasp = STOBJ_GET_CLASS(pobj);
+        if (clasp->flags & JSCLASS_IS_EXTENDED) {
+            JSExtendedClass *xclasp = (JSExtendedClass *) clasp;
+            if (xclasp->wrappedObject) {
+                
+                JSObject *wrapped = xclasp->wrappedObject(cx, pobj);
+                if (wrapped)
+                    pobj = wrapped;
+            }
+        }
+
+        if (pobj == obj) {
+            ssr->errnum = JSMSG_CYCLIC_VALUE;
+            return;
+        }
+        pobj = JSVAL_TO_OBJECT(STOBJ_GET_SLOT(pobj, slot));
+    }
+
+    pobj = ssr->pobj;
+
+    if (slot == JSSLOT_PROTO && OBJ_IS_NATIVE(obj)) {
+        JSScope *scope, *newscope;
+        JSObject *oldproto;
+
+        
+        scope = OBJ_SCOPE(obj);
+        oldproto = STOBJ_GET_PROTO(obj);
+        if (oldproto && OBJ_SCOPE(oldproto) == scope) {
+            
+            if (!pobj ||
+                !OBJ_IS_NATIVE(pobj) ||
+                OBJ_GET_CLASS(cx, pobj) != STOBJ_GET_CLASS(oldproto)) {
+                
+
+
+
+
+
+
+
+
+
+
+
+
+                if (!js_GetMutableScope(cx, obj)) {
+                    ssr->errnum = JSMSG_OUT_OF_MEMORY;
+                    return;
+                }
+            } else if (OBJ_SCOPE(pobj) != scope) {
+                newscope = (JSScope *) js_HoldObjectMap(cx, pobj->map);
+                obj->map = &newscope->map;
+                js_DropObjectMap(cx, &scope->map, obj);
+                JS_TRANSFER_SCOPE_LOCK(cx, scope, newscope);
+            }
+        }
+
+#if 0
+        
+
+
+
+
+        while (oldproto && OBJ_IS_NATIVE(oldproto)) {
+            scope = OBJ_SCOPE(oldproto);
+            SCOPE_GENERATE_PCTYPE(cx, scope);
+            oldproto = STOBJ_GET_PROTO(scope->object);
+        }
+#endif
+    }
+
+    
+    STOBJ_SET_SLOT(obj, slot, OBJECT_TO_JSVAL(pobj));
+}
+
 
 
 
@@ -2350,8 +2436,11 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     JS_ASSERT(!JS_IS_RUNTIME_LOCKED(rt));
 #endif
 
-    if (gckind == GC_LAST_DITCH) {
+    if (gckind & GC_KEEP_ATOMS) {
         
+
+
+
         keepAtoms = JS_TRUE;
     } else {
         
@@ -2379,17 +2468,17 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     if (callback) {
         JSBool ok;
 
-        if (gckind == GC_LAST_DITCH)
+        if (gckind & GC_LOCK_HELD)
             JS_UNLOCK_GC(rt);
         ok = callback(cx, JSGC_BEGIN);
-        if (gckind == GC_LAST_DITCH)
+        if (gckind & GC_LOCK_HELD)
             JS_LOCK_GC(rt);
         if (!ok && gckind != GC_LAST_CONTEXT)
             return;
     }
 
     
-    if (gckind != GC_LAST_DITCH)
+    if (!(gckind & GC_LOCK_HELD))
         JS_LOCK_GC(rt);
 
     METER(rt->gcStats.poke++);
@@ -2403,7 +2492,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         JS_ASSERT(rt->gcLevel > 0);
         rt->gcLevel++;
         METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
-        if (gckind != GC_LAST_DITCH)
+        if (!(gckind & GC_LOCK_HELD))
             JS_UNLOCK_GC(rt);
         return;
     }
@@ -2459,7 +2548,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             JS_AWAIT_GC_DONE(rt);
         if (requestDebit)
             rt->requestCount += requestDebit;
-        if (gckind != GC_LAST_DITCH)
+        if (!(gckind & GC_LOCK_HELD))
             JS_UNLOCK_GC(rt);
         return;
     }
@@ -2491,10 +2580,45 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
     rt->gcRunning = JS_TRUE;
+
+    if (gckind == GC_SET_SLOT_REQUEST) {
+        JSSetSlotRequest *ssr;
+
+        while ((ssr = rt->setSlotRequests) != NULL) {
+            rt->setSlotRequests = ssr->next;
+            JS_UNLOCK_GC(rt);
+            ssr->next = NULL;
+            ProcessSetSlotRequest(cx, ssr);
+            JS_LOCK_GC(rt);
+        }
+
+        
+
+
+
+
+
+
+        if (rt->gcLevel == 1 && !rt->gcPoke)
+            goto done_running;
+        rt->gcLevel = 1;
+        rt->gcPoke = JS_FALSE;
+    }
+
     JS_UNLOCK_GC(rt);
 
     
     rt->gcMallocBytes = 0;
+
+#if 0
+    
+
+
+
+
+    js_DisablePropertyCache(cx);
+    js_FlushPropertyCache(cx);
+#endif
 
 #ifdef JS_DUMP_SCOPE_METERS
   { extern void js_DumpScopeMeters(JSRuntime *rt);
@@ -2521,16 +2645,24 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             continue;
         memset(acx->thread->gcFreeLists, 0, sizeof acx->thread->gcFreeLists);
         GSN_CACHE_CLEAR(&acx->thread->gsnCache);
+#if 0
+        js_FlushPropertyCache(acx);
+#endif
     }
 #else
     
     GSN_CACHE_CLEAR(&rt->gsnCache);
 #endif
 
-restart:
+  restart:
     rt->gcNumber++;
     JS_ASSERT(!rt->gcUntracedArenaStackTop);
     JS_ASSERT(rt->gcTraceLaterCount == 0);
+
+#if 0
+    
+    rt->pcTypeGen = 0;
+#endif
 
     
 
@@ -2762,8 +2894,15 @@ restart:
         JS_UNLOCK_GC(rt);
         goto restart;
     }
-    rt->gcLevel = 0;
+
+#if 0
+    if (!(rt->pcTypeGen & PCTYPE_OVERFLOW_BIT))
+        js_EnablePropertyCache(cx);
+#endif
+
     rt->gcLastBytes = rt->gcBytes;
+  done_running:
+    rt->gcLevel = 0;
     rt->gcRunning = JS_FALSE;
 
 #ifdef JS_THREADSAFE
@@ -2776,7 +2915,7 @@ restart:
     
 
 
-    if (gckind != GC_LAST_DITCH)
+    if (!(gckind & GC_LOCK_HELD))
         JS_UNLOCK_GC(rt);
 #endif
 
@@ -2790,7 +2929,7 @@ restart:
         JSWeakRoots savedWeakRoots;
         JSTempValueRooter tvr;
 
-        if (gckind == GC_LAST_DITCH) {
+        if (gckind & GC_KEEP_ATOMS) {
             
 
 
@@ -2804,7 +2943,7 @@ restart:
 
         (void) callback(cx, JSGC_END);
 
-        if (gckind == GC_LAST_DITCH) {
+        if (gckind & GC_KEEP_ATOMS) {
             JS_LOCK_GC(rt);
             JS_UNKEEP_ATOMS(rt);
             JS_POP_TEMP_ROOT(cx, &tvr);

@@ -274,84 +274,38 @@ out:
 JSBool
 js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj)
 {
+    JSSetSlotRequest ssr;
     JSRuntime *rt;
-    JSObject *obj2, *oldproto;
-    JSClass *clasp;
-    JSScope *scope, *newscope;
 
     
+    if (!pobj) {
+        JS_LOCK_OBJ(cx, obj);
+        if (slot == JSSLOT_PROTO && !js_GetMutableScope(cx, obj)) {
+            JS_UNLOCK_OBJ(cx, obj);
+            return JS_FALSE;
+        }
+        LOCKED_OBJ_SET_SLOT(obj, slot, JSVAL_NULL);
+        JS_UNLOCK_OBJ(cx, obj);
+        return JS_TRUE;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    ssr.obj = obj;
+    ssr.pobj = pobj;
+    ssr.slot = (uint16) slot;
+    ssr.errnum = (uint16) JSMSG_NOT_AN_ERROR;
 
     rt = cx->runtime;
-#ifdef JS_THREADSAFE
+    JS_LOCK_GC(rt);
+    ssr.next = rt->setSlotRequests;
+    rt->setSlotRequests = &ssr;
+    js_GC(cx, GC_SET_SLOT_REQUEST);
+    JS_UNLOCK_GC(rt);
 
-    JS_ACQUIRE_LOCK(rt->setSlotLock);
-    while (rt->setSlotBusy) {
-        jsrefcount saveDepth;
-
-        
-        JS_RELEASE_LOCK(rt->setSlotLock);
-        saveDepth = JS_SuspendRequest(cx);
-        JS_ACQUIRE_LOCK(rt->setSlotLock);
-        if (rt->setSlotBusy)
-            JS_WAIT_CONDVAR(rt->setSlotDone, JS_NO_TIMEOUT);
-        JS_RELEASE_LOCK(rt->setSlotLock);
-        JS_ResumeRequest(cx, saveDepth);
-        JS_ACQUIRE_LOCK(rt->setSlotLock);
-    }
-    rt->setSlotBusy = JS_TRUE;
-    JS_RELEASE_LOCK(rt->setSlotLock);
-
-#define SET_SLOT_DONE(rt)                                                     \
-    JS_BEGIN_MACRO                                                            \
-        JS_ACQUIRE_LOCK((rt)->setSlotLock);                                   \
-        (rt)->setSlotBusy = JS_FALSE;                                         \
-        JS_NOTIFY_ALL_CONDVAR((rt)->setSlotDone);                             \
-        JS_RELEASE_LOCK((rt)->setSlotLock);                                   \
-    JS_END_MACRO
-
-#else
-
-#define SET_SLOT_DONE(rt)
-
-#endif
-
-    obj2 = pobj;
-    while (obj2) {
-        clasp = OBJ_GET_CLASS(cx, obj2);
-        if (clasp->flags & JSCLASS_IS_EXTENDED) {
-            JSExtendedClass *xclasp = (JSExtendedClass *) clasp;
-            if (xclasp->wrappedObject) {
-                
-                JSObject *wrapped = xclasp->wrappedObject(cx, obj2);
-                if (wrapped)
-                    obj2 = wrapped;
-            }
-        }
-
-        if (obj2 == obj) {
-            SET_SLOT_DONE(rt);
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_CYCLIC_VALUE,
+    if (ssr.errnum != JSMSG_NOT_AN_ERROR) {
+        if (ssr.errnum == JSMSG_OUT_OF_MEMORY) {
+            JS_ReportOutOfMemory(cx);
+        } else {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, ssr.errnum,
 #if JS_HAS_OBJ_PROTO_PROP
                                  object_props[slot].name
 #else
@@ -359,75 +313,10 @@ js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj)
                                                         : js_parent_str
 #endif
                                  );
-            return JS_FALSE;
         }
-        obj2 = JSVAL_TO_OBJECT(OBJ_GET_SLOT(cx, obj2, slot));
+        return JS_FALSE;
     }
-
-    if (slot == JSSLOT_PROTO && OBJ_IS_NATIVE(obj)) {
-        
-        JS_LOCK_OBJ(cx, obj);
-        scope = OBJ_SCOPE(obj);
-        oldproto = LOCKED_OBJ_GET_PROTO(obj);
-        if (oldproto && OBJ_SCOPE(oldproto) == scope) {
-            
-            if (!pobj ||
-                !OBJ_IS_NATIVE(pobj) ||
-                OBJ_GET_CLASS(cx, pobj) != LOCKED_OBJ_GET_CLASS(oldproto)) {
-                
-
-
-
-
-
-
-
-
-
-
-
-
-                scope = js_GetMutableScope(cx, obj);
-                if (!scope) {
-                    JS_UNLOCK_OBJ(cx, obj);
-                    SET_SLOT_DONE(rt);
-                    return JS_FALSE;
-                }
-            } else if (OBJ_SCOPE(pobj) != scope) {
-#ifdef JS_THREADSAFE
-                
-
-
-
-
-                if (scope->ownercx) {
-                    JS_ASSERT(scope->ownercx == cx);
-                    rt->setSlotScope = scope;
-                }
-#endif
-
-                
-                JS_LOCK_OBJ(cx, pobj);
-                newscope = (JSScope *) js_HoldObjectMap(cx, pobj->map);
-                obj->map = &newscope->map;
-                js_DropObjectMap(cx, &scope->map, obj);
-                JS_TRANSFER_SCOPE_LOCK(cx, scope, newscope);
-                scope = newscope;
-#ifdef JS_THREADSAFE
-                rt->setSlotScope = NULL;
-#endif
-            }
-        }
-        LOCKED_OBJ_SET_PROTO(obj, pobj);
-        JS_UNLOCK_SCOPE(cx, scope);
-    } else {
-        OBJ_SET_SLOT(cx, obj, slot, OBJECT_TO_JSVAL(pobj));
-    }
-
-    SET_SLOT_DONE(rt);
     return JS_TRUE;
-
-#undef SET_SLOT_DONE
 }
 
 JS_STATIC_DLL_CALLBACK(JSHashNumber)
