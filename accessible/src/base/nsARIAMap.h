@@ -71,6 +71,19 @@ enum EValueRule
 };
 
 
+enum EActionRule
+{
+  eNoAction,
+  eActivateAction,
+  eClickAction,
+  eCheckUncheckAction,
+  eJumpAction,
+  eOpenCloseAction,
+  eSelectAction,
+  eSwitchAction
+};
+
+
 #define kBoolState 0
 
 
@@ -99,7 +112,10 @@ struct nsRoleMapEntry
   
   
   EValueRule valueRule;
+
   
+  EActionRule actionRule;
+
   
   PRUint32 state;   
   

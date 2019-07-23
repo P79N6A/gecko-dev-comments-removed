@@ -265,6 +265,14 @@ protected:
 
 
 
+  PRUint32 GetActionRule(PRUint32 aStates);
+
+  
+
+
+
+
+
 
 
   virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent) = 0;
