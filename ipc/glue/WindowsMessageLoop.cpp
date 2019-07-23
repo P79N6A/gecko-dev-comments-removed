@@ -201,6 +201,12 @@ ProcessOrDeferMessage(HWND hwnd,
       break;
     }
 
+    case WM_MOUSEACTIVATE: {
+      res = MA_NOACTIVATE;
+      deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
+      break;
+    }
+
     
     
     
