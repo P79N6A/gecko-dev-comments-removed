@@ -111,9 +111,6 @@ struct JSThread {
     uint32              gcMallocBytes;
 
     
-    JSGCThing           *gcFreeLists[GC_NUM_FREELISTS];
-
-    
 
 
 
@@ -188,6 +185,7 @@ struct JSRuntime {
     JSGCChunkInfo       *gcChunkList;
     JSGCArenaList       gcArenaList[GC_NUM_FREELISTS];
     JSGCDoubleArenaList gcDoubleArenaList;
+    JSGCFreeListSet     *gcFreeListsPool;
     JSDHashTable        gcRootsHash;
     JSDHashTable        *gcLocksHash;
     jsrefcount          gcKeepAtoms;
@@ -787,6 +785,10 @@ struct JSContext {
 
     
     JSTempValueRooter   *tempValueRooters;
+
+#ifdef JS_THREADSAFE
+    JSGCFreeListSet     *gcLocalFreeLists;
+#endif
 
     
     JSGCDoubleCell      *doubleFreeList;
