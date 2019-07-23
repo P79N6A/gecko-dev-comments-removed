@@ -1780,6 +1780,8 @@ CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel)
 nsresult
 nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
 {
+  nsresult rv;
+
   
   
   if ((mState & XML_HTTP_REQUEST_XSITEENABLED) ||
@@ -1789,6 +1791,35 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
 
   
   mState |= XML_HTTP_REQUEST_USE_XSITE_AC;
+
+  
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+  NS_ENSURE_TRUE(httpChannel, NS_ERROR_DOM_BAD_URI);
+    
+  nsCAutoString method;
+  httpChannel->GetRequestMethod(method);
+  if (!mACUnsafeHeaders.IsEmpty() ||
+      HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR)) ||
+      (mUpload && mUpload->HasListeners())) {
+    mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
+  }
+  else if (method.LowerCaseEqualsLiteral("post")) {
+    nsCAutoString contentTypeHeader;
+    httpChannel->GetRequestHeader(NS_LITERAL_CSTRING("Content-Type"),
+                                  contentTypeHeader);
+
+    nsCAutoString contentType, charset;
+    NS_ParseContentType(contentTypeHeader, contentType, charset);
+
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (!contentType.LowerCaseEqualsLiteral("text/plain")) {
+      mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
+    }
+  }
+  else if (!method.LowerCaseEqualsLiteral("get") &&
+           !method.LowerCaseEqualsLiteral("head")) {
+    mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
+  }
 
   return NS_OK;
 }
@@ -1920,6 +1951,9 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
     
     mState |= XML_HTTP_REQUEST_XSITEENABLED;
   }
+
+  mState &= ~(XML_HTTP_REQUEST_USE_XSITE_AC |
+              XML_HTTP_REQUEST_NEED_AC_PREFLIGHT);
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
   if (httpChannel) {
@@ -2658,68 +2692,38 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
 
   PRBool withCredentials = !!(mState & XML_HTTP_REQUEST_AC_WITH_CREDENTIALS);
 
-  if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
+  
+  if (mState & XML_HTTP_REQUEST_NEED_AC_PREFLIGHT) {
     
-    NS_ENSURE_TRUE(httpChannel, NS_ERROR_DOM_BAD_URI);
     
-    nsCAutoString method;
-    httpChannel->GetRequestMethod(method);
-    if (!mACUnsafeHeaders.IsEmpty() ||
-        HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR)) ||
-        (mUpload && mUpload->HasListeners())) {
-      mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
-    }
-    else if (method.LowerCaseEqualsLiteral("post")) {
-      nsCAutoString contentTypeHeader;
-      httpChannel->GetRequestHeader(NS_LITERAL_CSTRING("Content-Type"),
-                                    contentTypeHeader);
+    nsCOMPtr<nsIURI> uri;
+    rv = mChannel->GetURI(getter_AddRefs(uri));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-      nsCAutoString contentType, charset;
-      NS_ParseContentType(contentTypeHeader, contentType, charset);
+    nsAccessControlLRUCache::CacheEntry* entry =
+      sAccessControlCache ?
+      sAccessControlCache->GetEntry(uri, mPrincipal, withCredentials, PR_FALSE) :
+      nsnull;
 
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (!contentType.LowerCaseEqualsLiteral("text/plain")) {
-        mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
-      }
-    }
-    else if (!method.LowerCaseEqualsLiteral("get") &&
-             !method.LowerCaseEqualsLiteral("head")) {
-      mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
-    }
-
-    
-    if (mState & XML_HTTP_REQUEST_NEED_AC_PREFLIGHT) {
+    if (!entry || !entry->CheckRequest(method, mACUnsafeHeaders)) {
       
       
-      nsCOMPtr<nsIURI> uri;
-      rv = mChannel->GetURI(getter_AddRefs(uri));
+      nsCOMPtr<nsILoadGroup> loadGroup;
+      GetLoadGroup(getter_AddRefs(loadGroup));
+
+      nsLoadFlags loadFlags;
+      rv = mChannel->GetLoadFlags(&loadFlags);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      nsAccessControlLRUCache::CacheEntry* entry =
-        sAccessControlCache ?
-        sAccessControlCache->GetEntry(uri, mPrincipal, withCredentials, PR_FALSE) :
-        nsnull;
+      rv = NS_NewChannel(getter_AddRefs(mACGetChannel), uri, nsnull,
+                         loadGroup, nsnull, loadFlags);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-      if (!entry || !entry->CheckRequest(method, mACUnsafeHeaders)) {
-        
-        
-        nsCOMPtr<nsILoadGroup> loadGroup;
-        GetLoadGroup(getter_AddRefs(loadGroup));
+      nsCOMPtr<nsIHttpChannel> acHttp = do_QueryInterface(mACGetChannel);
+      NS_ASSERTION(acHttp, "Failed to QI to nsIHttpChannel!");
 
-        nsLoadFlags loadFlags;
-        rv = mChannel->GetLoadFlags(&loadFlags);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = NS_NewChannel(getter_AddRefs(mACGetChannel), uri, nsnull,
-                           loadGroup, nsnull, loadFlags);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIHttpChannel> acHttp = do_QueryInterface(mACGetChannel);
-        NS_ASSERTION(acHttp, "Failed to QI to nsIHttpChannel!");
-
-        rv = acHttp->SetRequestMethod(NS_LITERAL_CSTRING("OPTIONS"));
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+      rv = acHttp->SetRequestMethod(NS_LITERAL_CSTRING("OPTIONS"));
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 

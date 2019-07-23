@@ -35,6 +35,9 @@
 
 
 
+#ifndef nsCrossSiteListenerProxy_h__
+#define nsCrossSiteListenerProxy_h__
+
 #include "nsIStreamListener.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsCOMPtr.h"
@@ -89,3 +92,5 @@ private:
   nsCString mPreflightMethod;
   nsTArray<nsCString> mPreflightHeaders;
 };
+
+#endif
