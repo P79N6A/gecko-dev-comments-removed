@@ -419,6 +419,7 @@ protected:
   nsIWidget* mParentWidget;          
 
   
+  
   float mTextZoom;      
   float mPageZoom;
 
