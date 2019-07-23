@@ -4726,16 +4726,15 @@ nsTableFrame::BCRecalcNeeded(nsStyleContext* aOldStyleContext,
   if ((change & NS_STYLE_HINT_REFLOW) == NS_STYLE_HINT_REFLOW)
     return PR_TRUE; 
   if ((change & NS_STYLE_HINT_VISUAL) == NS_STYLE_HINT_VISUAL) {
-    NS_FOR_CSS_SIDES(side) {
-      if (newStyleData->GetBorderStyle(side) !=
-          oldStyleData->GetBorderStyle(side)) {
-        
-        
-        nsCOMPtr<nsIRunnable> evt = new nsDelayedCalcBCBorders(this);
-        NS_DispatchToCurrentThread(evt);
-        return PR_TRUE;
-      }
-    }
+    
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIRunnable> evt = new nsDelayedCalcBCBorders(this);
+    NS_DispatchToCurrentThread(evt);
+    return PR_TRUE;
   }
   return PR_FALSE;
 }
