@@ -527,8 +527,6 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
         import(lirbuf->sp, offset, vp, *m, vpname, vpnum, fp);
         m++; offset += sizeof(double);
     );
-
-    recompileFlag = false;
     backEdgeCount = 0;
 }
 
@@ -1069,7 +1067,7 @@ TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 
 
 bool
-TraceRecorder::checkType(jsval& v, uint8& t)
+TraceRecorder::checkType(jsval& v, uint8& t, bool& recompile)
 {
     if (t == JSVAL_INT) { 
         if (!isNumber(v))
@@ -1088,7 +1086,7 @@ TraceRecorder::checkType(jsval& v, uint8& t)
             if (fragment->root == fragment) 
 
                 t = JSVAL_DOUBLE; 
-            recompileFlag = true;
+            recompile = true;
             return true; 
         }
         
@@ -1111,6 +1109,9 @@ TraceRecorder::checkType(jsval& v, uint8& t)
     return JSVAL_TAG(v) == t;
 }
 
+static void
+js_TrashTree(JSContext* cx, Fragment* f);
+
 
 
 bool
@@ -1120,23 +1121,21 @@ TraceRecorder::verifyTypeStability()
     uint16* gslots = treeInfo->globalSlots.data();
     uint8* m = treeInfo->globalTypeMap.data();
     JS_ASSERT(treeInfo->globalTypeMap.length() == ngslots);
+    bool recompile = false;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
-        if (!checkType(*vp, *m))
+        if (!checkType(*vp, *m, recompile))
             return false;
         ++m
     );
     m = treeInfo->stackTypeMap.data();
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if (!checkType(*vp, *m))
+        if (!checkType(*vp, *m, recompile))
             return false;
         ++m
     );
-    
-    if (recompileFlag && fragment->root != fragment) {
-        fragment->blacklist();
-        return false;
-    }
-    return !recompileFlag;
+    if (recompile && fragment->root != fragment)
+        js_TrashTree(cx, fragment);
+    return !recompile;
 }
 
 
@@ -1420,7 +1419,7 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
 #endif
         return false; 
     }
-#endif
+#endif  
     if (r->isLoopHeader(cx)) { 
         AUDIT(traceCompleted);
         r->closeLoop(JS_TRACE_MONITOR(cx).fragmento);
@@ -1471,7 +1470,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     if (!BuildNativeGlobalFrame(cx, ngslots, gslots, ti->globalTypeMap.data(), global) ||
         !BuildNativeStackFrame(cx, 0, ti->stackTypeMap.data(), stack)) {
         AUDIT(typeMapMismatchAtEntry);
-        debug_only(printf("type-map mismatch, skipping trace.\n");)
+        debug_only(printf("type-map mismatch, trashing trace.\n");)
         return NULL;
     }
     double* entry_sp = &stack[ti->nativeStackBase/sizeof(double) - 1];
@@ -1534,8 +1533,11 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
     
-    if (tm->recorder)
-        return js_ContinueRecording(cx, tm->recorder, oldpc, inlineCallCount);
+    if (tm->recorder) {
+        if (js_ContinueRecording(cx, tm->recorder, oldpc, inlineCallCount))
+            return true;
+        
+    }
 
     
     jsbytecode* pc = cx->fp->regs->pc;
