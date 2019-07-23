@@ -862,5 +862,76 @@ SetFaviconDataStep::HandleCompletion(PRUint16 aReason)
 
 
 
+
+NS_IMPL_ISUPPORTS_INHERITED0(
+  AssociateIconWithPageStep
+, AsyncFaviconStep
+)
+ASYNC_STATEMENT_HANDLEERROR_IMPL(AssociateIconWithPageStep)
+ASYNC_STATEMENT_EMPTY_HANDLERESULT_IMPL(AssociateIconWithPageStep)
+
+
+void
+AssociateIconWithPageStep::Run() {
+  NS_ASSERTION(mStepper, "Step is not associated to a stepper");
+
+  FAVICONSTEP_FAIL_IF_FALSE(mStepper->mIconURI);
+  FAVICONSTEP_FAIL_IF_FALSE(mStepper->mPageURI);
+
+  
+  
+  
+  
+  
+  
+  
+  if (!mStepper->mPageId) {
+    nsNavHistory* history = nsNavHistory::GetHistoryService();
+    FAVICONSTEP_FAIL_IF_FALSE(history);
+    nsresult rv = history->GetUrlIdFor(mStepper->mPageURI,
+                                       &mStepper->mPageId,
+                                       PR_TRUE); 
+    FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  }
+
+  nsFaviconService* fs = nsFaviconService::GetFaviconService();
+  FAVICONSTEP_FAIL_IF_FALSE(fs);
+  mozIStorageStatement* stmt =
+    fs->GetStatementById(mozilla::places::DB_ASSOCIATE_ICONURI_TO_PAGEURI);
+  
+  FAVICONSTEP_CANCEL_IF_TRUE(!stmt, PR_FALSE);
+  mozStorageStatementScoper scoper(stmt);
+
+  nsresult rv = BindStatementURI(stmt, 0, mStepper->mIconURI);
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  rv = BindStatementURI(stmt, 1, mStepper->mPageURI);
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = stmt->ExecuteAsync(this, getter_AddRefs(ps));
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+
+  
+  scoper.Abandon();
+}
+
+
+NS_IMETHODIMP
+AssociateIconWithPageStep::HandleCompletion(PRUint16 aReason)
+{
+  FAVICONSTEP_FAIL_IF_FALSE_RV(aReason == mozIStorageStatementCallback::REASON_FINISHED, NS_OK);
+
+  mStepper->mIconStatus |= ICON_STATUS_ASSOCIATED;
+
+  
+  nsresult rv = mStepper->Step();
+  FAVICONSTEP_FAIL_IF_FALSE_RV(NS_SUCCEEDED(rv), rv);
+
+  return NS_OK;
+}
+
+
+
+
 } 
 } 

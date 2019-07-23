@@ -363,6 +363,21 @@ public:
   void Run();
 };
 
+
+
+
+
+class AssociateIconWithPageStep : public AsyncFaviconStep
+                                , public mozilla::places::AsyncStatementCallback
+{
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_MOZISTORAGESTATEMENTCALLBACK
+
+  AssociateIconWithPageStep() {};
+  void Run();
+};
+
 } 
 } 
 
