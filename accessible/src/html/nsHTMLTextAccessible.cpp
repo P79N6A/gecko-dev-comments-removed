@@ -48,6 +48,10 @@
 #include "nsISelectionController.h"
 #include "nsComponentManagerUtils.h"
 
+
+
+
+
 nsHTMLTextAccessible::nsHTMLTextAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell):
 nsTextAccessibleWrap(aDomNode, aShell)
 { 
@@ -112,6 +116,10 @@ nsHTMLTextAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes
   return NS_OK;
 }
 
+
+
+
+
 nsHTMLHRAccessible::nsHTMLHRAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell):
 nsLeafAccessible(aDomNode, aShell)
 { 
@@ -164,11 +172,14 @@ nsHTMLBRAccessible::GetNameInternal(nsAString& aName)
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLLabelAccessible, nsLinkableAccessible)
 
-nsHTMLLabelAccessible::nsHTMLLabelAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell):
-nsTextAccessible(aDomNode, aShell)
-{ 
+
+NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLLabelAccessible, nsHyperTextAccessible)
+
+nsHTMLLabelAccessible::
+  nsHTMLLabelAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell) :
+  nsHyperTextAccessibleWrap(aDomNode, aShell)
+{
 }
 
 nsresult
@@ -184,37 +195,9 @@ nsHTMLLabelAccessible::GetRoleInternal(PRUint32 *aRole)
   return NS_OK;
 }
 
-nsresult
-nsHTMLLabelAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
-{
-  nsresult rv = nsTextAccessible::GetStateInternal(aState, aExtraState);
-  NS_ENSURE_A11Y_SUCCESS(rv, rv);
-
-  *aState &= (nsIAccessibleStates::STATE_LINKED |
-              nsIAccessibleStates::STATE_TRAVERSED); 
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsHTMLLabelAccessible::GetFirstChild(nsIAccessible **aFirstChild) 
-{  
-  
-  return nsAccessible::GetFirstChild(aFirstChild);
-}
-
-  
-NS_IMETHODIMP nsHTMLLabelAccessible::GetLastChild(nsIAccessible **aLastChild)
-{  
-  
-  return nsAccessible::GetLastChild(aLastChild);
-}
 
 
-NS_IMETHODIMP nsHTMLLabelAccessible::GetChildCount(PRInt32 *aAccChildCount) 
-{
-  
-  return nsAccessible::GetChildCount(aAccChildCount);
-}
+
 
 nsHTMLLIAccessible::nsHTMLLIAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell, 
                                        const nsAString& aBulletText):
@@ -292,6 +275,8 @@ void nsHTMLLIAccessible::CacheChildren()
 
 
 
+
+
 nsHTMLListBulletAccessible::
   nsHTMLListBulletAccessible(nsIDOMNode* aDomNode, nsIWeakReference* aShell,
                              const nsAString& aBulletText) :
@@ -361,6 +346,7 @@ nsHTMLListBulletAccessible::AppendTextTo(nsAString& aText, PRUint32 aStartOffset
   aText += nsDependentSubstring(mBulletText, aStartOffset, aLength);
   return NS_OK;
 }
+
 
 
 
