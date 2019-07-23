@@ -297,6 +297,109 @@ NS_GetContentList(nsINode* aRootNode, nsIAtom* aMatchAtom,
 }
 
 
+static PLDHashTable gFuncStringContentListHashTable;
+
+struct FuncStringContentListHashEntry : public PLDHashEntryHdr
+{
+  nsCacheableFuncStringContentList* mContentList;
+};
+
+static PLDHashNumber
+FuncStringContentListHashtableHashKey(PLDHashTable *table, const void *key)
+{
+  const nsFuncStringCacheKey* funcStringKey =
+    static_cast<const nsFuncStringCacheKey *>(key);
+  return funcStringKey->GetHash();
+}
+
+static PRBool
+FuncStringContentListHashtableMatchEntry(PLDHashTable *table,
+                               const PLDHashEntryHdr *entry,
+                               const void *key)
+{
+  const FuncStringContentListHashEntry *e =
+    static_cast<const FuncStringContentListHashEntry *>(entry);
+  const nsFuncStringCacheKey* ourKey =
+    static_cast<const nsFuncStringCacheKey *>(key);
+
+  return e->mContentList->Equals(ourKey);
+}
+
+already_AddRefed<nsContentList>
+NS_GetFuncStringContentList(nsINode* aRootNode,
+                            nsContentListMatchFunc aFunc,
+                            nsContentListDestroyFunc aDestroyFunc,
+                            void* aData,
+                            const nsAString& aString)
+{
+  NS_ASSERTION(aRootNode, "content list has to have a root");
+
+  nsCacheableFuncStringContentList* list = nsnull;
+
+  static PLDHashTableOps hash_table_ops =
+  {
+    PL_DHashAllocTable,
+    PL_DHashFreeTable,
+    FuncStringContentListHashtableHashKey,
+    FuncStringContentListHashtableMatchEntry,
+    PL_DHashMoveEntryStub,
+    PL_DHashClearEntryStub,
+    PL_DHashFinalizeStub
+  };
+
+  
+  if (!gFuncStringContentListHashTable.ops) {
+    PRBool success = PL_DHashTableInit(&gFuncStringContentListHashTable,
+                                       &hash_table_ops, nsnull,
+                                       sizeof(FuncStringContentListHashEntry),
+                                       16);
+
+    if (!success) {
+      gFuncStringContentListHashTable.ops = nsnull;
+    }
+  }
+
+  FuncStringContentListHashEntry *entry = nsnull;
+  
+  if (gFuncStringContentListHashTable.ops) {
+    nsFuncStringCacheKey hashKey(aRootNode, aFunc, aString);
+
+    
+    
+    entry = static_cast<FuncStringContentListHashEntry *>
+                       (PL_DHashTableOperate(&gFuncStringContentListHashTable,
+                                             &hashKey,
+                                             PL_DHASH_ADD));
+    if (entry)
+      list = entry->mContentList;
+  }
+
+  if (!list) {
+    
+    
+    list = new nsCacheableFuncStringContentList(aRootNode, aFunc, aDestroyFunc, aData, aString);
+    if (entry) {
+      if (list)
+        entry->mContentList = list;
+      else
+        PL_DHashTableRawRemove(&gContentListHashTable, entry);
+    }
+
+    NS_ENSURE_TRUE(list, nsnull);
+  } else {
+    
+    if (aDestroyFunc) {
+      (*aDestroyFunc)(aData);
+    }
+  }
+
+  NS_ADDREF(list);
+
+  
+
+  return list;
+}
+
 
 
 nsContentList::nsContentList(nsINode* aRootNode,
@@ -450,7 +553,7 @@ nsContentList::NodeWillBeDestroyed(const nsINode* aNode)
 {
   
 
-  RemoveFromHashtable();
+  RemoveFromCaches();
   mRootNode = nsnull;
 
   
@@ -911,6 +1014,29 @@ nsContentList::BringSelfUpToDate(PRBool aDoFlush)
   ASSERT_IN_SYNC;
   NS_ASSERTION(!mRootNode || mState == LIST_UP_TO_DATE,
                "PopulateSelf dod not bring content list up to date!");
+}
+
+nsCacheableFuncStringContentList::~nsCacheableFuncStringContentList()
+{
+  RemoveFromFuncStringHashtable();
+}
+
+void
+nsCacheableFuncStringContentList::RemoveFromFuncStringHashtable()
+{
+  if (!gFuncStringContentListHashTable.ops) {
+    return;
+  }
+
+  nsFuncStringCacheKey key(mRootNode, mFunc, mString);
+  PL_DHashTableOperate(&gFuncStringContentListHashTable,
+                       &key,
+                       PL_DHASH_REMOVE);
+
+  if (gFuncStringContentListHashTable.entryCount == 0) {
+    PL_DHashTableFinish(&gFuncStringContentListHashTable);
+    gFuncStringContentListHashTable.ops = nsnull;
+  }
 }
 
 #ifdef DEBUG_CONTENT_LIST

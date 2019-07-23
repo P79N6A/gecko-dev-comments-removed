@@ -55,6 +55,7 @@
 #include "nsINameSpaceManager.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
+#include "nsCRT.h"
 
 
 
@@ -400,6 +401,15 @@ protected:
 
 
 
+
+  virtual void RemoveFromCaches() {
+    RemoveFromHashtable();
+  }
+
+  
+
+
+
   nsContentListMatchFunc mFunc;
   
 
@@ -434,8 +444,69 @@ protected:
 #endif
 };
 
+
+
+
+class nsCacheableFuncStringContentList;
+
+class NS_STACK_CLASS nsFuncStringCacheKey {
+public:
+  nsFuncStringCacheKey(nsINode* aRootNode,
+                       nsContentListMatchFunc aFunc,
+                       const nsAString& aString) :
+    mRootNode(aRootNode),
+    mFunc(aFunc),
+    mString(aString)
+    {}
+
+  PRUint32 GetHash(void) const
+  {
+    return NS_PTR_TO_INT32(mRootNode) ^ (NS_PTR_TO_INT32(mFunc) << 12) ^
+      nsCRT::HashCode(PromiseFlatString(mString).get());
+  }
+
+private:
+  friend class nsCacheableFuncStringContentList;
+
+  nsINode* const mRootNode;
+  const nsContentListMatchFunc mFunc;
+  const nsAString& mString;
+};
+
+class nsCacheableFuncStringContentList : public nsContentList {
+public:
+  nsCacheableFuncStringContentList(nsINode* aRootNode,
+                                   nsContentListMatchFunc aFunc,
+                                   nsContentListDestroyFunc aDestroyFunc,
+                                   void* aData,
+                                   const nsAString& aString) :
+    nsContentList(aRootNode, aFunc, aDestroyFunc, aData),
+    mString(aString)
+  {}
+
+  virtual ~nsCacheableFuncStringContentList();
+
+  PRBool Equals(const nsFuncStringCacheKey* aKey) {
+    return mRootNode == aKey->mRootNode && mFunc == aKey->mFunc &&
+      mString == aKey->mString;
+  }
+protected:
+  virtual void RemoveFromCaches() {
+    RemoveFromFuncStringHashtable();
+  }
+  void RemoveFromFuncStringHashtable();
+
+  nsString mString;
+};
+
 already_AddRefed<nsContentList>
 NS_GetContentList(nsINode* aRootNode, nsIAtom* aMatchAtom,
                   PRInt32 aMatchNameSpaceId);
 
+already_AddRefed<nsContentList>
+NS_GetFuncStringContentList(nsINode* aRootNode,
+                            nsContentListMatchFunc aFunc,
+                            nsContentListDestroyFunc aDestroyFunc,
+                            void* aData,
+                            const nsAString& aString);
 #endif 
