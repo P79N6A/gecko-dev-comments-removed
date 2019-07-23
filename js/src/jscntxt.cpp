@@ -109,6 +109,9 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
     tm->reservedDoublePoolPtr = tm->reservedDoublePool;
     tm->needFlush = JS_TRUE;
 
+    if (tm->recorder)
+        tm->recorder->deepAbort();
+
     
 
 
