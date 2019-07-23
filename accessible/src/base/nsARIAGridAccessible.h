@@ -59,10 +59,74 @@ public:
   NS_DECL_NSIACCESSIBLETABLE
 
 protected:
+  
+
+
   PRBool IsValidRow(PRInt32 aRow);
+
+  
+
+
   PRBool IsValidColumn(PRInt32 aColumn);
+
+  
+
+
   PRBool IsValidRowNColumn(PRInt32 aRow, PRInt32 aColumn);
+
+  
+
+
+  already_AddRefed<nsIAccessible> GetRowAt(PRInt32 aRow);
+
+  
+
+
+  already_AddRefed<nsIAccessible> GetCellInRowAt(nsIAccessible *aRow,
+                                                 PRInt32 aColumn);
+
+  
+
+
+
+
+
+  already_AddRefed<nsIAccessible> GetNextRow(nsIAccessible *aRow = nsnull);
+
+  
+
+
+
+
+
+
+  already_AddRefed<nsIAccessible> GetNextCellInRow(nsIAccessible *aRow,
+                                                   nsIAccessible *aCell = nsnull);
+
+  
+
+
+
+  PRBool IsARIASelected(nsIAccessible *aAccessible);
+
+  
+
+
+
+
+
+
+
+  nsresult SetARIASelected(nsIAccessible *aAccessible, PRBool aIsSelected,
+                           PRBool aNotify = PR_TRUE);
+
+  
+
+
+  nsresult GetSelectedColumnsArray(PRUint32 *aColumnsCount,
+                                   PRInt32 **aColumns = nsnull);
 };
+
 
 
 
