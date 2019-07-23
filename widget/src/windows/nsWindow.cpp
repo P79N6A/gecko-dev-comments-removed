@@ -6378,6 +6378,7 @@ HWND nsWindow::GetTopLevelHWND(HWND aWnd, PRBool aStopOnDialogOrPopup)
 {
   HWND curWnd = aWnd;
   HWND topWnd = NULL;
+  HWND upWnd = NULL;
 
   while (curWnd) {
     topWnd = curWnd;
@@ -6391,7 +6392,20 @@ HWND nsWindow::GetTopLevelHWND(HWND aWnd, PRBool aStopOnDialogOrPopup)
         break;
     }
 
-    curWnd = ::GetParent(curWnd); 
+    upWnd = ::GetParent(curWnd); 
+
+#ifdef WINCE
+    
+    
+    
+    if (upWnd && ::GetWindow(curWnd, GW_OWNER) == upWnd) {
+      DWORD_PTR style = ::GetWindowLongPtrW(curWnd, GWL_STYLE);
+      if ((style & WS_DLGFRAME) != 0)
+        break;
+    }
+#endif
+
+    curWnd = upWnd;
   }
 
   return topWnd;
