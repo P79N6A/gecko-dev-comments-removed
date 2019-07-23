@@ -1,0 +1,133 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var bug = 330569;
+var summary = 'RegExp - throw InternalError on too complex regular expressions';
+var actual = '';
+var expect = '';
+
+
+
+test();
+
+
+function test()
+{
+  enterFunc ('test');
+  printBugNumber (bug);
+  printStatus (summary);
+  
+  var s;
+  expect = 'InternalError: regular expression too complex';
+  var jsOptions = new JavaScriptOptions();
+
+  
+  s = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">' +
+    '<html>\n' +
+    '<head>\n' + 
+    '<meta http-equiv="content-type" content="text/html; charset=windows-1250">\n' +
+    '<meta name="generator" content="PSPad editor, www.pspad.com">\n' + 
+    '<title></title>\n'+ 
+    '</head>\n' +
+    '<body>\n' + 
+    '<!-- hello -->\n' +
+    '<script language="JavaScript">\n' +
+    'var s = document. body. innerHTML;\n' + 
+    'var d = s. replace (/<!--(.*|\n)*-->/, "");\n' + 
+    'alert (d);\n' +
+    '</script>\n' +
+    '</body>\n' +
+    '</html>\n';
+
+  jsOptions.setOption('relimit', true);
+  try
+  {
+    /<!--(.*|\n)*-->/.exec(s);
+  }
+  catch(ex)
+  {
+    actual = ex + '';
+  }
+  jsOptions.reset();
+  reportCompare(expect, actual, summary + ': /<!--(.*|\\n)*-->/.exec(s)');
+
+
+  function testre( re, n ) {
+    for ( var i= 0; i <= n; ++i ) {
+      re.test( Array( i+1 ).join() );
+    }
+  }
+
+  jsOptions.setOption('relimit', true);
+  try
+  {
+    testre( /(?:,*)*x/, 22 );
+  }
+  catch(ex)
+  {
+    actual = ex + '';
+  }
+  jsOptions.reset();
+  reportCompare(expect, actual, summary + ': testre( /(?:,*)*x/, 22 )');
+
+  jsOptions.setOption('relimit', true);
+  try
+  {
+    testre( /(?:,|,)*x/, 22 );
+  }
+  catch(ex)
+  {
+    actual = ex + '';
+  }
+  jsOptions.reset();
+  reportCompare(expect, actual, summary + ': testre( /(?:,|,)*x/, 22 )');
+
+  jsOptions.setOption('relimit', true);
+  try
+  {
+    testre( /(?:,|,|,|,|,)*x/, 10 );
+  }
+  catch(ex)
+  {
+    actual = ex + '';
+  }
+  jsOptions.reset();
+  reportCompare(expect, actual, summary + ': testre( /(?:,|,|,|,|,)*x/, 10 )');
+
+  exitFunc ('test');
+}
