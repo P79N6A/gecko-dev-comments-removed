@@ -1377,15 +1377,15 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     import(ti, inner_sp, exit->numGlobalSlots, exit->calldepth, 
            exit->typeMap, exit->typeMap + exit->numGlobalSlots);
     
-    if (callDepth > 0) {
-        lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
-        lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
-    }
-    
     lir->insStorei(lir->insImmPtr(lr), lirbuf->state, offsetof(InterpState, nestedExit));
     
 
     guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
+    
+    if (callDepth > 0) {
+        lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
+        lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
+    }
 }
 
 int
@@ -1749,7 +1749,6 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     ti->mismatchCount = 0;
 
     double* entry_sp = &stack[ti->nativeStackBase/sizeof(double)];
-    
     FrameInfo* callstack = (FrameInfo*) alloca(MAX_CALL_STACK_ENTRIES * sizeof(FrameInfo));
     
     InterpState state;
@@ -1779,11 +1778,15 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
 
     
 
+    ti = (TreeInfo*)lr->from->root->vmprivate;
+    
+    
 
 
-    JS_ASSERT((lr->exit->exitType == NESTED_EXIT) ||
-              ((((FrameInfo*)state.rp) - callstack) == lr->exit->calldepth));
-    for (int32 i = 0; i < (((FrameInfo*)state.rp) - callstack); ++i)
+
+    int calldepth = (((FrameInfo*)state.rp) - callstack) + lr->exit->calldepth;
+
+    for (int32 i = 0; i < calldepth; ++i)
         js_SynthesizeFrame(cx, callstack[i]);
 
     
@@ -1791,8 +1794,7 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
 
     SideExit* e = lr->exit;
     JSStackFrame* fp = cx->fp;
-    JS_ASSERT((e->sp_adj / sizeof(double)) + 
-              ((TreeInfo*)lr->from->root->vmprivate)->entryNativeStackSlots >=
+    JS_ASSERT((e->sp_adj / sizeof(double)) + ti->entryNativeStackSlots >=
               nativeStackSlots(cx, lr->calldepth, fp));
     fp->regs->sp += (e->sp_adj / sizeof(double)) + ti->entryNativeStackSlots -
                     nativeStackSlots(cx, lr->calldepth, fp);
@@ -1821,7 +1823,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     if (!lr) 
         return NULL;
 
-    inlineCallCount += lr->exit->calldepth;
+    
+    inlineCallCount += calldepth;
 
     return lr;
 }
