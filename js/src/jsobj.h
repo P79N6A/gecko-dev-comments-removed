@@ -141,11 +141,6 @@ struct JSObjectMap {
         }                                                                     \
     JS_END_MACRO
 
-
-
-
-
-
 #define OBJ_TO_OUTER_OBJECT(cx,obj)                                           \
     JS_BEGIN_MACRO                                                            \
         JSClass *clasp_ = OBJ_GET_CLASS(cx, obj);                             \
@@ -584,9 +579,6 @@ extern void
 js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot);
 
 extern bool
-js_AllocSlots(JSContext *cx, JSObject *obj, size_t nslots);
-
-extern bool
 js_GrowSlots(JSContext *cx, JSObject *obj, size_t nslots);
 
 extern void
@@ -598,6 +590,17 @@ js_FreeSlots(JSContext *cx, JSObject *obj)
     if (obj->dslots)
         js_ShrinkSlots(cx, obj, 0);
 }
+
+
+
+
+
+
+
+
+
+bool
+js_EnsureReservedSlots(JSContext *cx, JSObject *obj, size_t nreserved);
 
 extern jsid
 js_CheckForStringIndex(jsid id);
