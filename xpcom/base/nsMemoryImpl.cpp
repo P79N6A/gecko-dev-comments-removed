@@ -129,8 +129,6 @@ nsMemoryImpl::IsLowMemory(PRBool *result)
     *result = (stat.ullAvailPageFile < kRequiredMemory) &&
         ((float)stat.ullAvailPageFile / stat.ullTotalPageFile) < 0.1;
 #elif defined(NS_OSSO)
-    
-    
     static int osso_highmark_fd = -1;
     if (osso_highmark_fd == -1) {
         osso_highmark_fd = open (kHighMark, O_RDONLY);
