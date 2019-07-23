@@ -1094,6 +1094,11 @@ var gApplicationsPane = {
       menuPopup.appendChild(menuItem);
       if (handlerInfo.preferredAction == Ci.nsIHandlerInfo.handleInternally)
         menu.selectedItem = menuItem;
+
+      
+      
+      menuItem = document.createElementNS(kXULNS, "menuseparator");
+      menuPopup.appendChild(menuItem);
     }
 
     
