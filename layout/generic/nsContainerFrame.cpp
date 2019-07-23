@@ -661,9 +661,9 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
     GetCoord(styleMargin->mMargin.Get(startSide, tmp), 0);
 
   const nsLineList_iterator* savedLine = aData->line;
-  nsContainerFrame* next;
 
-  for (nsContainerFrame *nif = this; nif; nif = next) {
+  for (nsContainerFrame *nif = this; nif;
+       nif = (nsContainerFrame*) nif->GetNextInFlow()) {
     for (nsIFrame *kid = nif->mFrames.FirstChild(); kid;
          kid = kid->GetNextSibling()) {
       if (aType == nsLayoutUtils::MIN_WIDTH)
@@ -674,12 +674,9 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
                                 static_cast<InlinePrefWidthData*>(aData));
     }
     
-    next = (nsContainerFrame*) nif->GetNextInFlow();
-    if (next) {
-      
-      
-      aData->line = nsnull;
-    }
+    
+    
+    aData->line = nsnull;
   }
   
   aData->line = savedLine;
