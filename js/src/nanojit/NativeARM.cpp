@@ -1031,12 +1031,6 @@ Assembler::asm_ldr_chk(Register d, Register b, int32_t off, bool chk)
         return;
     }
 
-    
-    
-    
-    
-    NanoAssert(b != PC);
-
     if (isU12(off)) {
         
         if (chk) underrunProtect(4);
@@ -1048,8 +1042,15 @@ Assembler::asm_ldr_chk(Register d, Register b, int32_t off, bool chk)
     } else {
         
         
-        if (chk) underrunProtect(4+LD32_size);
+
+        
+        
+
+        NanoAssert(b != PC);
         NanoAssert(b != IP);
+
+        if (chk) underrunProtect(4+LD32_size);
+
         *(--_nIns) = (NIns)( COND_AL | (0x79<<20) | (b<<16) | (d<<12) | IP );
         LD32_nochk(IP, off);
     }
