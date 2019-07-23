@@ -2165,20 +2165,14 @@ nsLocalFile::IsExecutable(PRBool *_retval)
         return NS_OK;
 
     
-    
-    char ext[5];
-    strncpy(ext, (char*) _mbsrchr((const unsigned char*)leaf, '.'), 4);
-    ext[4] = '\0'; 
+    char* ext = (char*) _mbsrchr((const unsigned char*)leaf, '.');
+    if (!ext)
+        return NS_OK;
 
-    
-    
-    
-    
-    strupr(ext);
-    if (strcmp(ext, ".EXE") == 0 ||
-        strcmp(ext, ".CMD") == 0 ||
-        strcmp(ext, ".COM") == 0 ||
-        strcmp(ext, ".BAT") == 0)
+    if (stricmp(ext, ".exe") == 0 ||
+        stricmp(ext, ".cmd") == 0 ||
+        stricmp(ext, ".com") == 0 ||
+        stricmp(ext, ".bat") == 0)
         *_retval = PR_TRUE;
 
     return NS_OK;
