@@ -302,6 +302,7 @@ struct JSParseNode {
         struct {                        
             JSParseNode *kid;
             jsint       num;            
+            JSBool      hidden;         
         } unary;
         struct {                        
             JSAtom      *atom;          
@@ -317,7 +318,6 @@ struct JSParseNode {
     } pn_u;
     JSParseNode         *pn_next;       
     JSTokenStream       *pn_ts;         
-    JSAtom              *pn_source;     
 };
 
 #define pn_funAtom      pn_u.func.funAtom
@@ -336,6 +336,7 @@ struct JSParseNode {
 #define pn_val          pn_u.binary.val
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
+#define pn_hidden       pn_u.unary.hidden
 #define pn_atom         pn_u.name.atom
 #define pn_expr         pn_u.name.expr
 #define pn_slot         pn_u.name.slot
