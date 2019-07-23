@@ -1157,17 +1157,16 @@ nsXMLHttpRequest::ConvertBodyToText(nsAString& aOutBuffer)
     }
   }
 
+  
   if (dataCharset.EqualsLiteral("ASCII")) {
     CopyASCIItoUTF16(mResponseBody, mResponseBodyUnicode);
     aOutBuffer = mResponseBodyUnicode;
     return NS_OK;
   }
 
-  if (dataCharset.EqualsLiteral("UTF-8")) {
-    CopyUTF8toUTF16(mResponseBody, mResponseBodyUnicode);
-    aOutBuffer = mResponseBodyUnicode;
-    return NS_OK;
-  }
+  
+  
+  
 
   nsCOMPtr<nsICharsetConverterManager> ccm =
     do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
