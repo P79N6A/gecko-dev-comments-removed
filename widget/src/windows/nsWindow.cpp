@@ -5747,6 +5747,11 @@ void nsWindow::OnDestroy()
   mOnDestroyCalled = PR_TRUE;
 
   SubclassWindow(FALSE);
+
+  
+  
+  EnableDragDrop(PR_FALSE);
+
   mWnd = NULL;
 
   
