@@ -210,7 +210,7 @@ def addStubMember(memberId, member, traceable):
         
         
         
-        prefixArgCount = 3 if haveCallee else 2
+        prefixArgCount = 2 + int(haveCallee);
         mayTrace = (len(member.params) <= MAX_TRACEABLE_NATIVE_ARGS - prefixArgCount)
 
         for param in member.params:
