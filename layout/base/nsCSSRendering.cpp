@@ -1351,9 +1351,22 @@ IsSolidBorderEdge(const nsStyleBorder& aBorder, PRUint32 aSide)
   if (aBorder.GetBorderStyle(aSide) != NS_STYLE_BORDER_STYLE_SOLID)
     return PR_FALSE;
 
+  
+  
+  
+  
+  if (aBorder.GetBorderImage())
+    return PR_FALSE;
+
   nscolor color;
   PRBool isForeground;
   aBorder.GetBorderColor(aSide, color, isForeground);
+
+  
+  
+  if (isForeground)
+    return PR_FALSE;
+
   return NS_GET_A(color) == 255;
 }
 
