@@ -1756,62 +1756,65 @@ PRBool
 nsCookieService::IsForeign(nsIURI *aHostURI,
                            nsIURI *aFirstURI)
 {
-  
-  if (!aFirstURI) {
-    return PR_FALSE;
-  }
+  return PR_FALSE;
 
-  
-  
-  
-  PRBool isChrome = PR_FALSE;
-  nsresult rv = aFirstURI->SchemeIs("chrome", &isChrome);
-  if (NS_SUCCEEDED(rv) && isChrome) {
-    return PR_FALSE;
-  }
 
-  
-  nsCAutoString currentHost, firstHost;
-  if (NS_FAILED(aHostURI->GetAsciiHost(currentHost)) ||
-      NS_FAILED(aFirstURI->GetAsciiHost(firstHost))) {
-    return PR_TRUE;
-  }
-  
-  currentHost.Trim(".");
-  firstHost.Trim(".");
-  ToLowerCase(currentHost);
-  ToLowerCase(firstHost);
 
-  
-  
 
-  
-  
-  
-  if (IsIPAddress(firstHost)) {
-    return !IsInDomain(firstHost, currentHost, PR_FALSE);
-  }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRUint32 dotsInFirstHost = firstHost.CountChar('.');
-  if (dotsInFirstHost == currentHost.CountChar('.') &&
-      dotsInFirstHost >= 2) {
-    
-    PRInt32 dot1 = firstHost.FindChar('.');
-    return !IsInDomain(Substring(firstHost, dot1, firstHost.Length() - dot1), currentHost);
-  }
 
-  
-  
-  return !IsInDomain(NS_LITERAL_CSTRING(".") + firstHost, currentHost);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 PRUint32
