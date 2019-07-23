@@ -206,8 +206,6 @@ typedef enum JSLocalKind {
     JSLOCAL_CONST
 } JSLocalKind;
 
-#define JS_GET_LOCAL_NAME_COUNT(fun)    ((fun)->nargs + (fun)->u.i.nvars)
-
 extern JSBool
 js_AddLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, JSLocalKind kind);
 
@@ -233,19 +231,9 @@ js_LookupLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, uintN *indexp);
 
 
 
-
-
-extern jsuword *
-js_GetLocalNameArray(JSContext *cx, JSFunction *fun);
-
-extern void
-js_PutLocalNameArray(JSContext *cx, JSFunction *fun, jsuword *names);
-
-#define JS_LOCAL_NAME_TO_ATOM(nameWord)                                       \
-    ((JSAtom *) ((nameWord) & ~(jsuword) 1))
-
-#define JS_LOCAL_NAME_IS_CONST(nameWord)                                      \
-    ((((nameWord) & (jsuword) 1)) != 0)
+extern JSAtom **
+js_GetLocalNames(JSContext *cx, JSFunction *fun, JSArenaPool *pool,
+                 uint32 **bitmap);
 
 extern void
 js_FreezeLocalNames(JSContext *cx, JSFunction *fun);
