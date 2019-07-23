@@ -208,40 +208,6 @@ _utf8_get_char_extended (const unsigned char *p,
 
 
 
-int
-_cairo_utf8_get_char_validated (const char *p,
-				uint32_t   *unicode)
-{
-    int i, mask = 0, len;
-    uint32_t result;
-    unsigned char c = (unsigned char) *p;
-
-    UTF8_COMPUTE (c, mask, len);
-    if (len == -1) {
-	if (unicode)
-	    *unicode = (uint32_t)-1;
-	return 1;
-    }
-    UTF8_GET (result, p, i, mask, len);
-
-    if (unicode)
-	*unicode = result;
-    return len;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -313,8 +279,7 @@ _cairo_ucs4_to_utf8 (uint32_t  unicode,
     char *p;
 
     if (unicode < 0x80) {
-	if (utf8)
-	    *utf8 = unicode;
+	*utf8 = unicode;
 	return 1;
     } else if (unicode < 0x800) {
 	bytes = 2;
@@ -325,9 +290,6 @@ _cairo_ucs4_to_utf8 (uint32_t  unicode,
     } else {
 	return 0;
     }
-
-    if (!utf8)
-	return bytes;
 
     p = utf8 + bytes;
     while (p > utf8) {

@@ -731,9 +731,6 @@ pixman_compute_composite_region32 (pixman_region32_t *	pRegion,
 
 #if defined(__GNUC__) && __GNUC__ >= 4
 #define PIXMAN_EXPORT __attribute__ ((visibility("default")))
-
-#elif defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550)
-#define PIXMAN_EXPORT __global
 #else
 #define PIXMAN_EXPORT
 #endif

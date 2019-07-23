@@ -237,7 +237,7 @@ _cairo_output_stream_write (cairo_output_stream_t *stream,
 
 void
 _cairo_output_stream_write_hex_string (cairo_output_stream_t *stream,
-				       const unsigned char *data,
+				       const char *data,
 				       size_t length)
 {
     const char hex_chars[] = "0123456789abcdef";
@@ -423,6 +423,7 @@ _cairo_output_stream_vprintf (cairo_output_stream_t *stream,
 
 	
 	_cairo_output_stream_write (stream, buffer, p - buffer);
+	p = buffer;
 
 	
 

@@ -39,8 +39,6 @@
 
 #include "cairoint.h"
 
-#if CAIRO_HAS_FONT_SUBSET
-
 typedef struct _cairo_scaled_font_subsets_glyph {
     unsigned int font_id;
     unsigned int subset_id;
@@ -123,12 +121,6 @@ _cairo_scaled_font_subsets_create_composite (void);
 
 cairo_private void
 _cairo_scaled_font_subsets_destroy (cairo_scaled_font_subsets_t *font_subsets);
-
-
-
-
-
-
 
 
 
@@ -373,7 +365,7 @@ typedef struct _cairo_truetype_subset {
     double *widths;
     double x_min, y_min, x_max, y_max;
     double ascent, descent;
-    unsigned char *data;
+    char *data;
     unsigned long data_length;
     unsigned long *string_offsets;
     unsigned long num_string_offsets;
@@ -424,9 +416,6 @@ typedef struct _cairo_type1_subset {
 } cairo_type1_subset_t;
 
 
-#if CAIRO_HAS_FT_FONT
-
-
 
 
 
@@ -458,9 +447,6 @@ _cairo_type1_subset_init (cairo_type1_subset_t		*type_subset,
 
 cairo_private void
 _cairo_type1_subset_fini (cairo_type1_subset_t *subset);
-
-#endif 
-
 
 
 
@@ -599,7 +585,5 @@ cairo_private cairo_int_status_t
 _cairo_truetype_index_to_ucs4 (cairo_scaled_font_t *scaled_font,
                                unsigned long        index,
                                uint32_t            *ucs4);
-
-#endif 
 
 #endif 
