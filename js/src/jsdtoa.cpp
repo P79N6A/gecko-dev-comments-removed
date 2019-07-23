@@ -389,7 +389,7 @@ JS_dtobasestr(int base, double dinput)
         LOCK_DTOA();
         
         pInt = p;
-        dval(di) = fd_floor(dval(d));
+        dval(di) = floor(dval(d));
         if (dval(di) <= 4294967295.0) {
             uint32 n = (uint32)dval(di);
             if (n)
