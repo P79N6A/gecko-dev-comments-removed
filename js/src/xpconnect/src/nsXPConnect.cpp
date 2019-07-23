@@ -228,19 +228,6 @@ nsXPConnect::ReleaseXPConnectSingleton()
         }
 #endif
 
-        
-        
-#if defined(DEBUG_cltbld) && defined(XP_MACOSX)
-        {
-            XPCCallContext ccx(NATIVE_CALLER);
-            if(ccx.IsValid())
-            {
-                printf("Dump of entire JS heap at shutdown:\n");
-                JS_DumpHeap(ccx, stdout, nsnull, 0, nsnull, size_t(-1), nsnull);
-            }
-        }
-#endif
-
 #ifdef DEBUG
         
         
