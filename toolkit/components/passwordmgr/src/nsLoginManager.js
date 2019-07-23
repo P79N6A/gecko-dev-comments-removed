@@ -1003,6 +1003,14 @@ LoginManager.prototype = {
             return [false, foundLogins];
 
         
+        if (passwordField.disabled || passwordField.readOnly ||
+            usernameField && (usernameField.disabled ||
+                              usernameField.readOnly)) {
+            this.log("not filling form, login fields disabled");
+            return [false, foundLogins];
+        }
+
+        
         
         if (!usernameField && passwordField.value)
             return [false, foundLogins];
