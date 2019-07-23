@@ -227,9 +227,21 @@ const LoginTest = {
     return storage;
   },
 
+  openDB : function (filename) {
+    
+    var dbfile = PROFDIR.clone();
+    dbfile.append(filename);
+
+    var ss = Cc["@mozilla.org/storage/service;1"].
+             getService(Ci.mozIStorageService);
+    var dbConnection = ss.openDatabase(dbfile);
+
+    return dbConnection;
+  },
+
   deleteFile : function (pathname, filename) {
     var file = Cc["@mozilla.org/file/local;1"].
-    createInstance(Ci.nsILocalFile);
+               createInstance(Ci.nsILocalFile);
     file.initWithPath(pathname);
     file.append(filename);
     
@@ -239,8 +251,21 @@ const LoginTest = {
       if (file.exists())
         file.remove(false);
     } catch (e) {}
-  }
+  },
 
+  
+  copyFile : function (filename) {
+    var file = DATADIR.clone();
+    file.append(filename);
+
+    var profileFile = PROFDIR.clone();
+    profileFile.append(filename);
+
+    if (profileFile.exists())
+        profileFile.remove(false);
+
+    file.copyTo(PROFDIR, filename);
+  }
 };
 
 
@@ -257,21 +282,14 @@ if (!profileDir) {
 }
 
 
+
 var PROFDIR = profileDir;
+var DATADIR = do_get_file("toolkit/components/passwordmgr/test/unit/data/" +
+                         "signons-00.txt").parent;
+
 var OUTDIR = PROFDIR.path;
-var INDIR = do_get_file("toolkit/components/passwordmgr/test/unit/data/" +
-                        "signons-00.txt").parent.path;
+var INDIR = DATADIR.path;
 
 
 
-
-var keydb = do_get_file("toolkit/components/passwordmgr/test/unit/key3.db");
-try {
-    var oldfile = profileDir.clone();
-    oldfile.append("key3.db");
-    if (oldfile.exists())
-        oldfile.remove(false);
-} catch(e) { }
-
-keydb.copyTo(profileDir, "key3.db");
-
+LoginTest.copyFile("key3.db");

@@ -41,7 +41,7 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const DB_VERSION = 1; 
+const DB_VERSION = 2; 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -101,6 +101,13 @@ LoginManagerStorage_mozStorage.prototype = {
         return this.__storageService;
     },
 
+    __uuidService: null,
+    get _uuidService() {
+        if (!this.__uuidService)
+            this.__uuidService = Cc["@mozilla.org/uuid-generator;1"].
+                                 getService(Ci.nsIUUIDGenerator);
+        return this.__uuidService;
+    },
 
     
     _dbSchema: {
@@ -112,7 +119,8 @@ LoginManagerStorage_mozStorage.prototype = {
                                 "usernameField      TEXT NOT NULL,"       +
                                 "passwordField      TEXT NOT NULL,"       +
                                 "encryptedUsername  TEXT NOT NULL,"       +
-                                "encryptedPassword  TEXT NOT NULL",
+                                "encryptedPassword  TEXT NOT NULL,"       +
+                                "guid               TEXT",
 
             moz_disabledHosts:  "id                 INTEGER PRIMARY KEY," +
                                 "hostname           TEXT UNIQUE ON CONFLICT REPLACE",
@@ -129,7 +137,11 @@ LoginManagerStorage_mozStorage.prototype = {
           moz_logins_hostname_httpRealm_index: {
               table: "moz_logins",
               columns: ["hostname", "httpRealm"]
-            }
+          },
+          moz_logins_guid_index: {
+              table: "moz_logins",
+              columns: ["guid"]
+          }
         }
     },
     _dbConnection : null,  
@@ -221,7 +233,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
             this._initialized = true;
         } catch (e) {
-            this.log("Initialization failed");
+            this.log("Initialization failed: " + e);
             
             if (isFirstRun && e == "Import failed")
                 this._dbCleanup(false);
@@ -259,12 +271,16 @@ LoginManagerStorage_mozStorage.prototype = {
                 throw "User canceled master password entry, login not added.";
         }
 
+        let guid = this._uuidService.generateUUID().toString();
+
         let query =
             "INSERT INTO moz_logins " +
             "(hostname, httpRealm, formSubmitURL, usernameField, " +
-             "passwordField, encryptedUsername, encryptedPassword) " +
+             "passwordField, encryptedUsername, encryptedPassword, " +
+             "guid) " +
             "VALUES (:hostname, :httpRealm, :formSubmitURL, :usernameField, " +
-                    ":passwordField, :encryptedUsername, :encryptedPassword)";
+                    ":passwordField, :encryptedUsername, :encryptedPassword, " +
+                    ":guid)";
 
         let params = {
             hostname:          login.hostname,
@@ -273,7 +289,8 @@ LoginManagerStorage_mozStorage.prototype = {
             usernameField:     login.usernameField,
             passwordField:     login.passwordField,
             encryptedUsername: encUsername,
-            encryptedPassword: encPassword
+            encryptedPassword: encPassword,
+            guid:              guid
         };
 
         let stmt;
@@ -351,6 +368,7 @@ LoginManagerStorage_mozStorage.prototype = {
             encryptedUsername: encUsername,
             encryptedPassword: encPassword,
             id:                idToModify
+            
         };
 
         let stmt;
@@ -950,8 +968,6 @@ LoginManagerStorage_mozStorage.prototype = {
 
     
     
-    
-    
 
     
 
@@ -961,21 +977,22 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     _dbCreateStatement : function (query, params) {
+        let wrappedStmt = this._dbStmts[query];
         
-        if (!this._dbStmts[query]) {
+        if (!wrappedStmt) {
             this.log("Creating new statement for query: " + query);
             let stmt = this._dbConnection.createStatement(query);
 
-            let wrappedStmt = Cc["@mozilla.org/storage/statement-wrapper;1"].
-                              createInstance(Ci.mozIStorageStatementWrapper);
+            wrappedStmt = Cc["@mozilla.org/storage/statement-wrapper;1"].
+                          createInstance(Ci.mozIStorageStatementWrapper);
             wrappedStmt.initialize(stmt);
             this._dbStmts[query] = wrappedStmt;
         }
         
         if (params)
             for (let i in params)
-                this._dbStmts[query].params[i] = params[i];
-        return this._dbStmts[query];
+                wrappedStmt.params[i] = params[i];
+        return wrappedStmt;
     },
 
 
@@ -992,32 +1009,19 @@ LoginManagerStorage_mozStorage.prototype = {
         try {
             this._dbConnection = this._storageService.openDatabase(this._signonsFile);
             
-            if (this._dbConnection.schemaVersion == 0) {
+            
+            let version = this._dbConnection.schemaVersion;
+            if (version == 0) {
                 this._dbCreate();
                 isFirstRun = true;
-            } else {
-                
-                let version = this._dbConnection.schemaVersion;
-
-                
-                
-                if (version != DB_VERSION) {
-                    try {
-                        this._dbMigrate(version, DB_VERSION);
-                    }
-                    catch (e) {
-                        this.log("Migration Failed");
-                        throw(e);
-                    }
-                }
+            } else if (version != DB_VERSION) {
+                this._dbMigrate(version);
             }
-        } catch (e) {
+        } catch (e if e.result == Components.results.NS_ERROR_FILE_CORRUPTED) {
             
             
-            if (e.result == Components.results.NS_ERROR_FILE_CORRUPTED)
-                this._dbCleanup(true);
+            this._dbCleanup(true);
             throw e;
-            
         }
         return isFirstRun;
     },
@@ -1054,24 +1058,153 @@ LoginManagerStorage_mozStorage.prototype = {
     },
 
 
-    _dbMigrate : function (oldVersion, newVersion) {
-        this.log("Attempting to migrate from v" + oldVersion + "to v" + newVersion);
-        if (this["_dbMigrate" + oldVersion + "To" + newVersion]) {
-            this._dbConnection.beginTransaction();
+    _dbMigrate : function (oldVersion) {
+        this.log("Attempting to migrate from version " + oldVersion);
+
+        if (oldVersion > DB_VERSION) {
+            this.log("Downgrading to version " + DB_VERSION);
+            
+            
+            
+            
+            
+
+            if (!this._dbAreExpectedColumnsPresent())
+                throw Components.Exception("DB is missing expected columns",
+                                           Components.results.NS_ERROR_FILE_CORRUPTED);
+
+            
+            
+            
+            this._dbConnection.schemaVersion = DB_VERSION;
+            return;
+        }
+
+        
+
+        this._dbConnection.beginTransaction();
+
+        try {
+            for (let v = oldVersion + 1; v <= DB_VERSION; v++) {
+                this.log("Upgrading to version " + v + "...");
+                let migrateFunction = "_dbMigrateToVersion" + v;
+                this[migrateFunction]();
+            }
+        } catch (e) {
+            this.log("Migration failed: "  + e);
+            this._dbConnection.rollbackTransaction();
+            throw e;
+        }
+
+        this._dbConnection.schemaVersion = DB_VERSION;
+        this._dbConnection.commitTransaction();
+        this.log("DB migration completed.");
+    },
+
+
+    
+
+
+
+
+    _dbMigrateToVersion2 : function () {
+        
+        let exists = true;
+        try { 
+            let stmt = this._dbConnection.createStatement(
+                           "SELECT guid FROM moz_logins");
+            
+            stmt.finalize();
+        } catch (e) {
+            exists = false;
+        }
+
+        
+        if (!exists) {
+            this._dbConnection.executeSimpleSQL(
+                "ALTER TABLE moz_logins ADD COLUMN guid TEXT");
+
+            this._dbConnection.executeSimpleSQL(
+                "CREATE INDEX IF NOT EXISTS " +
+                    "moz_logins_guid_index ON moz_logins (guid)");
+        }
+
+        
+        let ids = [];
+        let query = "SELECT id FROM moz_logins WHERE guid isnull";
+        let stmt;
+        try {
+            stmt = this._dbCreateStatement(query);
+            while (stmt.step())
+                ids.push(stmt.row.id);
+        } catch (e) {
+            this.log("Failed getting IDs: " + e);
+            throw e;
+        } finally {
+            stmt.reset();
+        }
+
+        
+        query = "UPDATE moz_logins SET guid = :guid WHERE id = :id";
+        for each (let id in ids) {
+            let params = {
+                id:   id,
+                guid: this._uuidService.generateUUID().toString()
+            };
+
             try {
-                this["_dbMigrate" + oldVersion + "To" + newVersion]();
-                this._dbConnection.schemaVersion = newVersion;
-                this._dbConnection.commitTransaction();
-            }
-            catch (e) {
-                this._dbConnection.rollbackTransaction();
+                stmt = this._dbCreateStatement(query, params);
+                stmt.execute();
+            } catch (e) {
+                this.log("Failed setting GUID: " + e);
                 throw e;
+            } finally {
+                stmt.reset();
             }
         }
-        else {
-            throw("no migrator function from version " + oldVersion +
-                  " to version " + newVersion);
+    },
+
+
+    
+
+
+
+
+
+    _dbAreExpectedColumnsPresent : function () {
+        let query = "SELECT " +
+                       "id, " +
+                       "hostname, " +
+                       "httpRealm, " +
+                       "formSubmitURL, " +
+                       "usernameField, " +
+                       "passwordField, " +
+                       "encryptedUsername, " +
+                       "encryptedPassword, " +
+                       "guid " +
+                    "FROM moz_logins";
+        try { 
+            let stmt = this._dbConnection.createStatement(query);
+            
+            stmt.finalize();
+        } catch (e) {
+            return false;
         }
+
+        query = "SELECT " +
+                   "id, " +
+                   "hostname " +
+                "FROM moz_disabledHosts";
+        try { 
+            let stmt = this._dbConnection.createStatement(query);
+            
+            stmt.finalize();
+        } catch (e) {
+            return false;
+        }
+
+        this.log("verified that expected columns are present in DB.");
+        return true;
     },
 
 
