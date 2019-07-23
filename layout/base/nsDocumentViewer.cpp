@@ -358,7 +358,14 @@ private:
 
 
 
-  nsresult MakeWindow(const nsSize& aSize);
+
+
+  nsresult MakeWindow(const nsSize& aSize, nsIView* aContainerView);
+
+  
+
+
+  nsIView* FindContainerView();
 
   
 
@@ -826,6 +833,8 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
   nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NULL_POINTER);
 
+  nsIView* containerView = FindContainerView();
+
   PRBool makeCX = PR_FALSE;
   if (aDoCreation) {
     
@@ -864,7 +873,8 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
       
 
       rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(aBounds.width),
-                             mPresContext->DevPixelsToAppUnits(aBounds.height)));
+                             mPresContext->DevPixelsToAppUnits(aBounds.height)),
+                      containerView);
       NS_ENSURE_SUCCESS(rv, rv);
       Hide();
 
@@ -1663,9 +1673,11 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
 
     DestroyPresShell();
 
+    nsIView* containerView = FindContainerView();
+
     
     
-    MakeWindow(currentSize);
+    MakeWindow(currentSize, containerView);
   }
 
   
@@ -1896,6 +1908,8 @@ DocumentViewerImpl::Show(void)
     nsresult rv = CreateDeviceContext(mParentWidget);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    nsIView* containerView = FindContainerView();
+
     
     NS_ASSERTION(!mPresContext, "Shouldn't have a prescontext if we have no shell!");
     mPresContext = new nsPresContext(mDocument, nsPresContext::eContext_Galley);
@@ -1916,7 +1930,8 @@ DocumentViewerImpl::Show(void)
     }
 
     rv = MakeWindow(nsSize(mPresContext->DevPixelsToAppUnits(tbounds.width),
-                           mPresContext->DevPixelsToAppUnits(tbounds.height)));
+                           mPresContext->DevPixelsToAppUnits(tbounds.height)),
+                           containerView);
     if (NS_FAILED(rv))
       return rv;
 
@@ -2214,7 +2229,7 @@ DocumentViewerImpl::ClearHistoryEntry()
 
 
 nsresult
-DocumentViewerImpl::MakeWindow(const nsSize& aSize)
+DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
 {
   nsresult rv;
 
@@ -2229,44 +2244,9 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
     return rv;
 
   
-  
-  nsIView* containerView =
-    mParentWidget ? nsIView::GetViewFor(mParentWidget) : nsnull;
-
-  if (containerView) {
-    
-    
-    nsIViewManager* containerVM = containerView->GetViewManager();
-    nsIView* pView = containerView;
-    do {
-      pView = pView->GetParent();
-    } while (pView && pView->GetViewManager() == containerVM);
-
-    if (!pView) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      nsCOMPtr<nsIDocShellTreeItem> container(do_QueryReferent(mContainer));
-      nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
-      if (container) {
-        container->GetSameTypeParent(getter_AddRefs(sameTypeParent));
-      }
-      if (!sameTypeParent && mParentWidget->GetTransparencyMode() != eTransparencyTransparent) {
-        containerView = nsnull;
-      }
-    }
-  }
-
-  
   nsRect tbounds(nsPoint(0, 0), aSize);
   
-  nsIView* view = mViewManager->CreateView(tbounds, containerView);
+  nsIView* view = mViewManager->CreateView(tbounds, aContainerView);
   if (!view)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -2286,7 +2266,7 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
     initDataPtr = nsnull;
   }
   rv = view->CreateWidget(kWidgetCID, initDataPtr,
-                          (containerView != nsnull || !mParentWidget) ?
+                          (aContainerView != nsnull || !mParentWidget) ?
                             nsnull : mParentWidget->GetNativeData(NS_NATIVE_WIDGET),
                           PR_TRUE, PR_FALSE);
   if (NS_FAILED(rv))
@@ -2303,6 +2283,48 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize)
   
 
   return rv;
+}
+
+nsIView*
+DocumentViewerImpl::FindContainerView()
+{
+  
+  
+  if (!mParentWidget)
+    return nsnull;
+  nsIView* containerView = nsIView::GetViewFor(mParentWidget);
+  if (!containerView)
+    return nsnull;
+  if (mParentWidget->GetTransparencyMode() == eTransparencyTransparent)
+    return containerView;
+
+  
+  
+  nsIViewManager* containerVM = containerView->GetViewManager();
+  nsIView* pView = containerView;
+  do {
+    pView = pView->GetParent();
+  } while (pView && pView->GetViewManager() == containerVM);
+  if (pView)
+    return containerView;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDocShellTreeItem> container(do_QueryReferent(mContainer));
+  if (container) {
+    nsCOMPtr<nsIDocShellTreeItem> sameTypeParent;
+    container->GetSameTypeParent(getter_AddRefs(sameTypeParent));
+    if (sameTypeParent)
+      return containerView;
+  }
+  return nsnull;
 }
 
 nsresult
