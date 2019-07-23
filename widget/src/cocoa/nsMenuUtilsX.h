@@ -62,7 +62,7 @@ namespace nsMenuUtilsX
   nsMenuBarX*   GetHiddenWindowMenuBar(); 
   NSMenuItem*   GetStandardEditMenuItem(); 
   PRBool        NodeIsHiddenOrCollapsed(nsIContent* inContent);
-  nsresult      CountVisibleBefore(nsMenuObjectX* aMenuObject, nsMenuObjectX* aChild, PRUint32* outVisibleBefore);
+  int           CalculateNativeInsertionPoint(nsMenuObjectX* aParent, nsMenuObjectX* aChild);
 }
 
 #endif 
