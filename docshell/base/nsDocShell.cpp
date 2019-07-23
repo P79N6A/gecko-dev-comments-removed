@@ -4764,7 +4764,6 @@ nsDocShell::Embed(nsIContentViewer * aContentViewer,
 
     
     switch (mLoadType) {
-    case LOAD_RELOAD_CHARSET_CHANGE: 
     case LOAD_NORMAL_REPLACE:
     case LOAD_STOP_CONTENT_AND_REPLACE:
     case LOAD_RELOAD_BYPASS_CACHE:
