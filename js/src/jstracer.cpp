@@ -6539,6 +6539,12 @@ TraceRecorder::guardCallee(jsval& callee)
     LIns* exit = snapshot(BRANCH_EXIT);
     JSObject* callee_obj = JSVAL_TO_OBJECT(callee);
     LIns* callee_ins = get(&callee);
+
+    
+
+
+
+
     guard(true,
           lir->ins2(LIR_eq, 
                     lir->ins2(LIR_piand, 
@@ -6691,6 +6697,10 @@ TraceRecorder::record_JSOP_APPLY()
         if (jsuword(newsp) > a->limit)
             ABORT_TRACE("apply or call across stack-chunks");
     }
+
+    
+    if (!VALUE_IS_FUNCTION(cx, vp[1]))
+        ABORT_TRACE("apply on a non-function");
 
     
 
