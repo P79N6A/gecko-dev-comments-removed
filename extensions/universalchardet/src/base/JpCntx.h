@@ -46,7 +46,7 @@
 #define MAX_REL_THRESHOLD     1000
 
 
-extern char jp2CharContext[83][83];
+extern const char jp2CharContext[83][83];
 
 class JapaneseContextAnalysis
 {

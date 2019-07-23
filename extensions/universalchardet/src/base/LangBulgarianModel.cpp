@@ -48,7 +48,7 @@
 
 
 
-unsigned char Latin5_BulgarianCharToOrderMap[] =
+static const unsigned char Latin5_BulgarianCharToOrderMap[] =
 {
 255,255,255,255,255,255,255,255,255,255,254,255,255,254,255,255,  
 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,  
@@ -68,7 +68,7 @@ unsigned char Latin5_BulgarianCharToOrderMap[] =
  62,242,243,244, 58,245, 98,246,247,248,249,250,251, 91,252,253,  
 };
 
-unsigned char win1251BulgarianCharToOrderMap[] =
+static const unsigned char win1251BulgarianCharToOrderMap[] =
 {
 255,255,255,255,255,255,255,255,255,255,254,255,255,254,255,255,  
 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,  
@@ -94,7 +94,7 @@ unsigned char win1251BulgarianCharToOrderMap[] =
 
 
 
-char BulgarianLangModel[] = 
+static const char BulgarianLangModel[] = 
 {
 0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,3,3,3,3,3,3,3,3,2,3,3,3,3,3,
 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,3,3,3,2,2,3,2,2,1,2,2,
@@ -226,7 +226,7 @@ char BulgarianLangModel[] =
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
 };
 
-SequenceModel Latin5BulgarianModel = 
+const SequenceModel Latin5BulgarianModel = 
 {
   Latin5_BulgarianCharToOrderMap,
   BulgarianLangModel,
@@ -235,7 +235,7 @@ SequenceModel Latin5BulgarianModel =
   "ISO-8859-5"
 };
 
-SequenceModel Win1251BulgarianModel = 
+const SequenceModel Win1251BulgarianModel = 
 {
   win1251BulgarianCharToOrderMap,
   BulgarianLangModel,

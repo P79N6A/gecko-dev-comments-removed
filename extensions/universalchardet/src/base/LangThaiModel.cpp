@@ -49,7 +49,7 @@
 
 
 
-unsigned char TIS620CharToOrderMap[] =
+static const unsigned char TIS620CharToOrderMap[] =
 {
 255,255,255,255,255,255,255,255,255,255,254,255,255,254,255,255,  
 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,  
@@ -78,7 +78,7 @@ unsigned char TIS620CharToOrderMap[] =
 
 
 
-char ThaiLangModel[] = 
+static const char ThaiLangModel[] = 
 {
 0,1,3,3,3,3,0,0,3,3,0,3,3,0,3,3,3,3,3,3,3,3,0,0,3,3,3,0,3,3,3,3,
 0,3,3,0,0,0,1,3,0,3,3,2,3,3,0,1,2,3,3,3,3,0,2,0,2,0,0,3,2,1,2,2,
@@ -211,7 +211,7 @@ char ThaiLangModel[] =
 };
 
 
-SequenceModel TIS620ThaiModel = 
+const SequenceModel TIS620ThaiModel = 
 {
   TIS620CharToOrderMap,
   ThaiLangModel,

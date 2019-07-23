@@ -50,7 +50,7 @@
 
 
 
-unsigned char win1255_CharToOrderMap[] =
+static const unsigned char win1255_CharToOrderMap[] =
 {
 255,255,255,255,255,255,255,255,255,255,254,255,255,254,255,255,  
 255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,  
@@ -76,7 +76,7 @@ unsigned char win1255_CharToOrderMap[] =
 
 
 
-char HebrewLangModel[] = 
+static const char HebrewLangModel[] = 
 {
 0,3,3,3,3,3,3,3,3,3,3,2,3,3,3,3,3,3,3,3,3,3,3,2,3,2,1,2,0,1,0,0,
 3,0,3,1,0,0,1,3,2,0,1,1,2,0,2,2,2,1,1,1,1,2,1,1,1,2,0,0,2,2,0,1,
@@ -208,7 +208,7 @@ char HebrewLangModel[] =
 0,0,0,0,0,0,0,0,0,0,1,2,1,0,0,0,0,0,1,1,1,1,1,0,1,0,0,0,1,1,0,0,
 };
 
-SequenceModel Win1255Model = 
+const SequenceModel Win1255Model = 
 {
   win1255_CharToOrderMap,
   HebrewLangModel,
