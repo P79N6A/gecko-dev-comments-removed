@@ -824,9 +824,12 @@ nsComboboxControlFrame::HandleRedisplayTextEvent()
   
   
   
+  nsWeakFrame weakThis(this);
   PresContext()->Document()->
     FlushPendingNotifications(Flush_ContentAndNotify);
-  
+  if (!weakThis.IsAlive())
+    return;
+
   
   
   
@@ -890,6 +893,7 @@ nsComboboxControlFrame::AddOption(PRInt32 aIndex)
 NS_IMETHODIMP
 nsComboboxControlFrame::RemoveOption(PRInt32 aIndex)
 {
+  nsWeakFrame weakThis(this);
   if (mListControlFrame->GetNumberOfOptions() > 0) {
     if (aIndex < mDisplayedIndex) {
       --mDisplayedIndex;
@@ -902,6 +906,9 @@ nsComboboxControlFrame::RemoveOption(PRInt32 aIndex)
     
     RedisplayText(-1);
   }
+
+  if (!weakThis.IsAlive())
+    return NS_OK;
 
   nsListControlFrame* lcf = static_cast<nsListControlFrame*>(mDropdownFrame);
   return lcf->RemoveOption(aIndex);
