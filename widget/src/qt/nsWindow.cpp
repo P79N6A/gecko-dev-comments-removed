@@ -576,8 +576,11 @@ nsWindow::SetFocus(PRBool aRaise)
     if (!realFocusItem || realFocusItem->hasFocus())
         return NS_OK;
 
-    if (aRaise)
+    if (aRaise) {
+        
+        GetViewWidget()->raise();
         realFocusItem->setFocus(Qt::ActiveWindowFocusReason);
+    }
     else
         realFocusItem->setFocus(Qt::OtherFocusReason);
 
@@ -1926,6 +1929,12 @@ nsWindow::createQWidget(MozQWidget *parent, nsWidgetInitData *aInitData)
     MozQWidget * widget = new MozQWidget(this, parent);
     if (!widget)
         return nsnull;
+
+    
+    if (eWindowType_child == mWindowType || eWindowType_plugin == mWindowType) {
+        widget->setFlag(QGraphicsItem::ItemIsFocusable);
+        widget->setFocusPolicy(Qt::WheelFocus);
+    }
 
     
     MozQGraphicsView* newView = 0;
