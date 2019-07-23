@@ -52,7 +52,7 @@ const Cr = Components.results;
 const CC = Components.Constructor;
 
 
-var DEBUG = true; 
+var DEBUG = false; 
 
 
 
@@ -2457,8 +2457,6 @@ RequestMetadata.prototype =
     
     
     
-    
-    
 
     
     
@@ -2550,23 +2548,11 @@ RequestMetadata.prototype =
 
     var fullPath = request[1];
 
+    
     if (fullPath.charAt(0) != "/")
     {
-      
-      
-      try
-      {
-        var uri = Cc["@mozilla.org/network/io-service;1"]
-                    .getService(Ci.nsIIOService)
-                    .newURI(fullPath, null, null);
-        fullPath = uri.path;
-      }
-      catch (e) {  }
-      if (fullPath.charAt(0) != "/")
-      {
-        this.errorCode = 400;
-        return;
-      }
+      this.errorCode = 400;
+      return;
     }
 
     var splitter = fullPath.indexOf("?");
