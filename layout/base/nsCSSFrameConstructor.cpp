@@ -9923,21 +9923,11 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
           viewMgr->SynthesizeMouseMove(PR_FALSE);
       }
     }
-
-#ifdef DEBUG
-    
-    if (content) {
-      nsIFrame* frame = mPresShell->GetPrimaryFrameFor(content);
-      if (frame) {
-        mPresShell->FrameManager()->DebugVerifyStyleTree(frame);
-      }
-    } else {
-      NS_WARNING("Unable to test style tree integrity -- no content node");
-    }
-#endif
   }
 
   EndUpdate();
+  
+  
   
   
   index = count;
@@ -9948,6 +9938,18 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       propTable->DeleteProperty(changeData->mFrame,
                                 nsGkAtoms::changeListProperty);
     }
+
+#ifdef DEBUG
+    
+    if (changeData->mContent) {
+      nsIFrame* frame = mPresShell->GetPrimaryFrameFor(changeData->mContent);
+      if (frame) {
+        mPresShell->FrameManager()->DebugVerifyStyleTree(frame);
+      }
+    } else {
+      NS_WARNING("Unable to test style tree integrity -- no content node");
+    }
+#endif
   }
 
   aChangeList.Clear();
