@@ -77,6 +77,11 @@ using mozilla::gfx::SharedDIB;
 #include <windows.h>
 #include <windowsx.h>
 
+
+
+
+const int kFlashWMUSERMessageThrottleDelayMs = 5;
+
 #define NS_OOPP_DOUBLEPASS_MSGID TEXT("MozDoublePassMsg")
 
 #ifndef WM_MOUSEHWHEEL
@@ -101,6 +106,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mNestedEventState(false)
     , mCachedWinlessPluginHWND(0)
     , mWinlessPopupSurrogateHWND(0)
+    , mWinlessThrottleOldWndProc(0)
 #endif 
     , mAsyncCallMutex("PluginInstanceChild::mAsyncCallMutex")
 #if defined(OS_MACOSX)  
@@ -161,6 +167,7 @@ PluginInstanceChild::InitQuirksModes(const nsCString& aMimeType)
     }
     else if (FindInReadable(flash, aMimeType)) {
         mQuirks |= QUIRK_WINLESS_TRACKPOPUP_HOOK;
+        mQuirks |= QUIRK_FLASH_THROTTLE_WMUSER_EVENTS; 
     }
 #endif
 }
@@ -840,8 +847,11 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
       break;
 
       case NPWindowTypeDrawable:
+          mWindow.type = aWindow.type;
           if (mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK)
               CreateWinlessPopupSurrogate();
+          if (mQuirks & QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)
+              SetupFlashMsgThrottle();
           return SharedSurfaceSetWindow(aWindow);
       break;
 
@@ -1063,6 +1073,12 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
             ReplyMessage(0);
             break;
         }
+    }
+
+    if (message == WM_USER+1 &&
+        (self->mQuirks & PluginInstanceChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)) {
+        self->FlashThrottleMessage(hWnd, message, wParam, lParam, true);
+        return 0;
     }
 
     LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
@@ -1541,6 +1557,157 @@ PluginInstanceChild::SharedSurfacePaint(NPEvent& evcopy)
         break;
     }
     return false;
+}
+
+
+
+
+
+
+
+
+
+LRESULT CALLBACK
+PluginInstanceChild::WinlessHiddenFlashWndProc(HWND hWnd,
+                                               UINT message,
+                                               WPARAM wParam,
+                                               LPARAM lParam)
+{
+    PluginInstanceChild* self = reinterpret_cast<PluginInstanceChild*>(
+        GetProp(hWnd, kPluginInstanceChildProperty));
+    if (!self) {
+        NS_NOTREACHED("Badness!");
+        return 0;
+    }
+
+    NS_ASSERTION(self->mWinlessThrottleOldWndProc,
+                 "Missing subclass procedure!!");
+
+    
+    if (message == WM_USER+1) {
+        self->FlashThrottleMessage(hWnd, message, wParam, lParam, false);
+        return 0;
+     }
+
+    
+    if (message == WM_NCDESTROY) {
+        WNDPROC tmpProc = self->mWinlessThrottleOldWndProc;
+        self->mWinlessThrottleOldWndProc = nsnull;
+        SetWindowLongPtr(hWnd, GWLP_WNDPROC,
+                         reinterpret_cast<LONG>(tmpProc));
+        LRESULT res = CallWindowProc(tmpProc, hWnd, message, wParam, lParam);
+        RemoveProp(hWnd, kPluginInstanceChildProperty);
+        return res;
+    }
+
+    return CallWindowProc(self->mWinlessThrottleOldWndProc,
+                          hWnd, message, wParam, lParam);
+}
+
+
+
+
+BOOL CALLBACK
+PluginInstanceChild::EnumThreadWindowsCallback(HWND hWnd,
+                                               LPARAM aParam)
+{
+    PluginInstanceChild* self = reinterpret_cast<PluginInstanceChild*>(aParam);
+    if (!self) {
+        NS_NOTREACHED("Enum befuddled!");
+        return FALSE;
+    }
+
+    PRUnichar className[64];
+    if (!GetClassNameW(hWnd, className, sizeof(className)/sizeof(PRUnichar)))
+      return TRUE;
+    
+    if (!wcscmp(className, L"SWFlash_PlaceholderX")) {
+        WNDPROC oldWndProc =
+            reinterpret_cast<WNDPROC>(GetWindowLongPtr(hWnd, GWLP_WNDPROC));
+        
+        if (oldWndProc != WinlessHiddenFlashWndProc) {
+            if (self->mWinlessThrottleOldWndProc) {
+                NS_WARNING("mWinlessThrottleWndProc already set???");
+                return FALSE;
+            }
+            
+            self->mWinlessThrottleOldWndProc =
+                reinterpret_cast<WNDPROC>(SetWindowLongPtr(hWnd, GWLP_WNDPROC,
+                reinterpret_cast<LONG>(WinlessHiddenFlashWndProc)));
+            SetProp(hWnd, kPluginInstanceChildProperty, self);
+            NS_ASSERTION(self->mWinlessThrottleOldWndProc,
+                         "SetWindowLongPtr failed?!");
+        }
+        
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+
+void
+PluginInstanceChild::SetupFlashMsgThrottle()
+{
+    if (mWindow.type == NPWindowTypeDrawable) {
+        
+        
+        if (mWinlessThrottleOldWndProc)
+            return;
+        EnumThreadWindows(GetCurrentThreadId(), EnumThreadWindowsCallback,
+                          reinterpret_cast<LPARAM>(this));
+    }
+    else {
+        
+        return;
+    }
+}
+
+WNDPROC
+PluginInstanceChild::FlashThrottleAsyncMsg::GetProc()
+{ 
+    if (mInstance) {
+        return mWindowed ? mInstance->mPluginWndProc :
+                           mInstance->mWinlessThrottleOldWndProc;
+    }
+    return nsnull;
+}
+ 
+void
+PluginInstanceChild::FlashThrottleAsyncMsg::Run()
+{
+    RemoveFromAsyncList();
+
+    
+    
+    
+    if (!GetProc())
+        return;
+  
+    
+    CallWindowProc(GetProc(), GetWnd(), GetMsg(), GetWParam(), GetLParam());
+}
+
+void
+PluginInstanceChild::FlashThrottleMessage(HWND aWnd,
+                                          UINT aMsg,
+                                          WPARAM aWParam,
+                                          LPARAM aLParam,
+                                          bool isWindowed)
+{
+    
+    
+    FlashThrottleAsyncMsg* task = new FlashThrottleAsyncMsg(this,
+        aWnd, aMsg, aWParam, aLParam, isWindowed);
+    if (!task)
+        return; 
+
+    {
+        MutexAutoLock lock(mAsyncCallMutex);
+        mPendingAsyncCalls.AppendElement(task);
+    }
+    MessageLoop::current()->PostDelayedTask(FROM_HERE,
+        task, kFlashWMUSERMessageThrottleDelayMs);
 }
 
 #endif 
