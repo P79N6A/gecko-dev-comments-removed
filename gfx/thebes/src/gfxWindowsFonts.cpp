@@ -335,15 +335,7 @@ gfxWindowsFont::FillLogFont(gfxFloat aSize)
     
     
     mLogFont.lfItalic         = (GetStyle()->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) ? TRUE : FALSE;
-    
-    
-    if (mFontEntry->mTrueType) {
-        mLogFont.lfWeight     = mFontEntry->mWeight;
-    } else {
-        PRInt8 baseWeight, weightDistance;
-        GetStyle()->ComputeWeightAndOffset(&baseWeight, &weightDistance);
-        mLogFont.lfWeight     = (baseWeight * 100) + (weightDistance * 100);
-    }
+    mLogFont.lfWeight         = mFontEntry->mWeight;
 
     int len = PR_MIN(mName.Length(), LF_FACESIZE - 1);
     memcpy(mLogFont.lfFaceName, nsPromiseFlatString(mName).get(), len * 2);
