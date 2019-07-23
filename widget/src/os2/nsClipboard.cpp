@@ -456,48 +456,41 @@ nsClipboard::Observe(nsISupports *aSubject, const char *aTopic,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(nsISupportsArray *aFlavorList, PRInt32 aWhichClipboard,
+NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
+                                                  PRUint32 aLength,
+                                                  PRInt32 aWhichClipboard,
                                                   PRBool *_retval)
 {
   *_retval = PR_FALSE;
-  if (aWhichClipboard != kGlobalClipboard)
+  if (aWhichClipboard != kGlobalClipboard || !aFlavorList)
     return NS_OK;
 
-  PRUint32 cnt;
-  aFlavorList->Count(&cnt);
-  for (PRUint32 i = 0; i < cnt; ++i) {
-    nsCOMPtr<nsISupports> genericFlavor;
-    aFlavorList->GetElementAt(i, getter_AddRefs(genericFlavor));
-    nsCOMPtr<nsISupportsCString> currentFlavor(do_QueryInterface(genericFlavor));
-    if (currentFlavor) {
-      nsXPIDLCString flavorStr;
-      currentFlavor->ToString(getter_Copies(flavorStr));
-      ULONG fmtInfo = 0;
-      ULONG format = GetFormatID(flavorStr);
+  for (PRUint32 i = 0; i < aLength; ++i) {
+    ULONG fmtInfo = 0;
+    ULONG format = GetFormatID(aFlavorList[i]);
 
-      if (WinQueryClipbrdFmtInfo(0, format, &fmtInfo)) {
+    if (WinQueryClipbrdFmtInfo(0, format, &fmtInfo)) {
+      *_retval = PR_TRUE;
+      break;
+    }
+
+    
+    if (!strcmp(aFlavorList[i], kUnicodeMime)) {
+      if (WinQueryClipbrdFmtInfo(0, CF_TEXT, &fmtInfo)) {
         *_retval = PR_TRUE;
         break;
       }
-
-      
-      if (!strcmp( flavorStr, kUnicodeMime )) {
-        if (WinQueryClipbrdFmtInfo( 0, CF_TEXT, &fmtInfo )) {
-          *_retval = PR_TRUE;
-          break;
-        }
-      }
+    }
 
 
-      
-      if (strstr (flavorStr, "image/")) {
-        if (WinQueryClipbrdFmtInfo (0, CF_BITMAP, &fmtInfo)) {
+    
+    if (strstr(aFlavorList[i], "image/")) {
+      if (WinQueryClipbrdFmtInfo (0, CF_BITMAP, &fmtInfo)) {
 #ifdef DEBUG
-          printf( "nsClipboard:: Image present on clipboard; need to add BMP conversion!\n" );
+        printf("nsClipboard:: Image present on clipboard; need to add BMP conversion!\n");
 #endif
 
 
-        }
       }
     }
   }

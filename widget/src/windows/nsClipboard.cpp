@@ -64,7 +64,6 @@
 #include "nsIComponentManager.h"
 #include "nsWidgetsCID.h"
 #include "nsCRT.h"
-
 #include "nsNetUtil.h"
 
 #include "nsIImage.h"
@@ -880,42 +879,34 @@ nsClipboard::GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32 a
 
 
 
-NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(nsISupportsArray *aFlavorList, PRInt32 aWhichClipboard,
-                                                  PRBool           *_retval)
+NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
+                                                  PRUint32 aLength,
+                                                  PRInt32 aWhichClipboard,
+                                                  PRBool *_retval)
 {
   *_retval = PR_FALSE;
-  if ( aWhichClipboard != kGlobalClipboard )
+  if (aWhichClipboard != kGlobalClipboard || !aFlavorList)
     return NS_OK;
 
-  PRUint32 cnt;
-  aFlavorList->Count(&cnt);
-  for ( PRUint32 i = 0;i < cnt; ++i ) {
-    nsCOMPtr<nsISupports> genericFlavor;
-    aFlavorList->GetElementAt (i, getter_AddRefs(genericFlavor));
-    nsCOMPtr<nsISupportsCString> currentFlavor (do_QueryInterface(genericFlavor));
-    if (currentFlavor) {
-      nsXPIDLCString flavorStr;
-      currentFlavor->ToString(getter_Copies(flavorStr));
-
+  for (PRUint32 i = 0;i < aLength; ++i) {
 #ifdef NS_DEBUG
-      if ( strcmp(flavorStr, kTextMime) == 0 )
-        NS_WARNING ( "DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode INSTEAD" );
+    if (strcmp(aFlavorList[i], kTextMime) == 0)
+      NS_WARNING ( "DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode INSTEAD" );
 #endif
 
-      UINT format = GetFormat(flavorStr);
-      if (IsClipboardFormatAvailable(format)) {
-        *_retval = PR_TRUE;
-        break;
-      }
-      else {
+    UINT format = GetFormat(aFlavorList[i]);
+    if (IsClipboardFormatAvailable(format)) {
+      *_retval = PR_TRUE;
+      break;
+    }
+    else {
+      
+      
+      if (strcmp(aFlavorList[i], kUnicodeMime) == 0) {
         
         
-        if ( strcmp(flavorStr, kUnicodeMime) == 0 ) {
-          
-          
-          if (IsClipboardFormatAvailable(GetFormat(kTextMime)) )
-            *_retval = PR_TRUE;
-        }
+        if (IsClipboardFormatAvailable(GetFormat(kTextMime)))
+          *_retval = PR_TRUE;
       }
     }
   }

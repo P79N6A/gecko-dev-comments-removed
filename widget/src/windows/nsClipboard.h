@@ -60,7 +60,8 @@ public:
   virtual ~nsClipboard();
 
   
-  NS_IMETHOD HasDataMatchingFlavors(nsISupportsArray *aFlavorList, PRInt32 aWhichClipboard, PRBool *_retval); 
+  NS_IMETHOD HasDataMatchingFlavors(const char** aFlavorList, PRUint32 aLength,
+                                    PRInt32 aWhichClipboard, PRBool *_retval); 
 
   
   static nsresult CreateNativeDataObject(nsITransferable * aTransferable, 
