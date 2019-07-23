@@ -677,21 +677,6 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
     }
     
     FireCurrentFocusEvent();
-    return NS_OK;
-  }
-
-  if (aTargetNode == mDOMNode && mDOMNode != gLastFocusedNode && eventType.EqualsLiteral("focus")) {
-    
-    
-    
-    if (!mFireFocusTimer) {
-      mFireFocusTimer = do_CreateInstance("@mozilla.org/timer;1");
-    }
-    if (mFireFocusTimer) {
-      mFireFocusTimer->InitWithFuncCallback(FireFocusCallback, this,
-                                            0, nsITimer::TYPE_ONE_SHOT);
-    }
-    return NS_OK;
   }
 
   nsCOMPtr<nsIAccessible> accessible;
@@ -823,6 +808,19 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   else
 #endif
   if (eventType.EqualsLiteral("focus")) {
+    if (aTargetNode == mDOMNode && mDOMNode != gLastFocusedNode) {
+      
+      
+      
+      if (!mFireFocusTimer) {
+        mFireFocusTimer = do_CreateInstance("@mozilla.org/timer;1");
+      }
+      if (mFireFocusTimer) {
+        mFireFocusTimer->InitWithFuncCallback(FireFocusCallback, this,
+                                              0, nsITimer::TYPE_ONE_SHOT);
+      }
+    }
+
     
     
     

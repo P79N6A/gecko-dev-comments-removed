@@ -4629,6 +4629,13 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         result = DispatchFocus(NS_ACTIVATE, PR_TRUE);
       }
 
+#ifdef ACCESSIBILITY
+      if (nsWindow::gIsAccessibilityOn) {
+        
+        nsCOMPtr<nsIAccessible> rootAccessible = GetRootAccessible();
+      }
+#endif
+
 #ifdef WINCE
       
       
