@@ -99,8 +99,13 @@ function RedGreenCheck(fndecl, trace) {
   
   
   this.hasRed = false;
+  let self = this;         
   for (let bb in cfg_bb_iterator(cfg)) {
     for (let isn in bb_isn_iterator(bb)) {
+      
+      
+      
+      isn.redInfo = undefined;
       walk_tree(isn, function(t, stack) {
         switch (TREE_CODE(t)) {
           case FIELD_DECL:
@@ -109,7 +114,7 @@ function RedGreenCheck(fndecl, trace) {
               
               isn.redInfo = ["cannot access JS_REQUIRES_STACK variable " + varName,
                              location_of(stack[stack.length - 1])];
-              this.hasRed = true;
+              self.hasRed = true;
             }
             break;
           case CALL_EXPR:
@@ -120,7 +125,7 @@ function RedGreenCheck(fndecl, trace) {
                 let calleeName = dehydra_convert(callee).name;
                 isn.redInfo = ["cannot call JS_REQUIRES_STACK function " + calleeName,
                               location_of(t)];
-                this.hasRed = true;
+                self.hasRed = true;
               } else if (isTurnRed(callee)) {
                 isn.turnRed = true;
               }
@@ -156,7 +161,7 @@ RedGreenCheck.prototype.flowState = function(isn, state) {
   let redInfo = isn.redInfo;
   if (green && redInfo) {
     error(redInfo[0], redInfo[1]);
-    delete isn.redInfo;  
+    isn.redInfo = undefined;  
   }
 
   
