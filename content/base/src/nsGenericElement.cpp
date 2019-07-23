@@ -3209,15 +3209,10 @@ nsGenericElement::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
     return rv;
   }
 
-  
-  
-  
-  
-  
-  
-  
+  NS_ASSERTION(aKid->GetNodeParent() == container,
+               "Did we run script inappropriately?");
 
-  if (aNotify && aKid->GetNodeParent() == container) {
+  if (aNotify) {
     
     
     if (aParent && isAppend) {
@@ -3730,7 +3725,7 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
 
   
   
-  mozAutoDocConditionalContentUpdateBatch(aDocument,
+  mozAutoDocConditionalContentUpdateBatch batch(aDocument,
     aReplace || nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE);
 
   
@@ -3768,6 +3763,12 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
   if (nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
     PRUint32 count = newContent->GetChildCount();
 
+    if (!count) {
+      returnVal.swap(*aReturn);
+
+      return NS_OK;
+    }
+
     
     
     nsCOMArray<nsIContent> fragChildren;
@@ -3795,23 +3796,10 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
 
     
     
-    for (i = 0; i < count; ++i) {
-      
-      nsIContent* childContent = fragChildren[i];
-
-      
-      
-      if (mutated) {
+    if (mutated) {
+      for (i = 0; i < count; ++i) {
         
-        
-        
-        insPos = refContent ? container->IndexOf(refContent) :
-                              container->GetChildCount();
-        if (insPos < 0) {
-          
-          
-          return NS_ERROR_DOM_NOT_FOUND_ERR;
-        }
+        nsIContent* childContent = fragChildren[i];
 
         nsCOMPtr<nsIDOMNode> tmpNode = do_QueryInterface(childContent);
         PRUint16 tmpType = 0;
@@ -3824,18 +3812,64 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
         }
       }
 
-      nsMutationGuard guard;
+      insPos = refContent ? container->IndexOf(refContent) :
+                            container->GetChildCount();
+      if (insPos < 0) {
+        
+        
+        return NS_ERROR_DOM_NOT_FOUND_ERR;
+      }
+    }
+
+    PRBool appending = aParent && (insPos == container->GetChildCount());
+    PRBool firstInsPos = insPos;
+
+    
+    
+    for (i = 0; i < count; ++i, ++insPos) {
+      nsIContent* childContent = fragChildren[i];
 
       
       
-      res = container->InsertChildAt(childContent, insPos, PR_TRUE);
-      NS_ENSURE_SUCCESS(res, res);
+      res = container->InsertChildAt(childContent, insPos, PR_FALSE);
+      if (NS_FAILED(res)) {
+        
+        if (appending && i != 0) {
+          nsNodeUtils::ContentAppended(aParent, firstInsPos);
+        }
+        return res;
+      }
 
-      
-      
-      mutated = mutated || guard.Mutated(1);
-      
-      ++insPos;
+      if (!appending) {
+        nsNodeUtils::ContentInserted(container, childContent, insPos);
+      }
+    }
+
+    
+    if (appending) {
+      nsNodeUtils::ContentAppended(aParent, firstInsPos);
+    }
+
+    
+    nsIDocument* doc = container->GetOwnerDoc();
+    nsPIDOMWindow* window = nsnull;
+    if (doc && (window = doc->GetInnerWindow()) &&
+        window->HasMutationListeners(NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
+
+      for (i = 0; i < count; ++i, ++insPos) {
+        nsIContent* childContent = fragChildren[i];
+
+        if (nsContentUtils::HasMutationListeners(childContent,
+              NS_EVENT_BITS_MUTATION_NODEINSERTED, container)) {
+          mozAutoRemovableBlockerRemover blockerRemover;
+
+          nsMutationEvent mutation(PR_TRUE, NS_MUTATION_NODEINSERTED);
+          mutation.mRelatedNode = do_QueryInterface(container);
+
+          mozAutoSubtreeModified subtree(container->GetOwnerDoc(), container);
+          nsEventDispatcher::Dispatch(childContent, nsnull, &mutation);
+        }
+      }
     }
   }
   else {
