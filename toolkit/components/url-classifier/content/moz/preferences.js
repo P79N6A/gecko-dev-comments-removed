@@ -165,66 +165,6 @@ G_Preferences.prototype.getPref = function(key, opt_default) {
 
 
 
-
-
-
-G_Preferences.prototype.setBoolPref = function(which, value) {
-  return this.setPref(which, value);
-}
-
-
-
-
-
-
-
-
-
-G_Preferences.prototype.getBoolPref = function(which) {
-  return this.prefs_.getBoolPref(which);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-G_Preferences.prototype.getBoolPrefOrDefault = function(which, def) {
-  return this.getPref(which, def);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-G_Preferences.prototype.getBoolPrefOrDefaultAndSet = function(which, def) {
-  try {
-    return this.prefs_.getBoolPref(which);
-  } catch(e) {
-    this.prefs_.setBoolPref(which, !!def);  
-    return def;
-  }
-}
-
-
-
-
-
-
 G_Preferences.prototype.clearPref = function(which) {
   try {
     
@@ -327,36 +267,20 @@ function TEST_G_Preferences() {
 
     
     p.addObserver(testPref, observe);
-    p.setBoolPref(testPref, true);
-    G_Assert(z, p.getBoolPref(testPref), "get or set broken");
+    p.setPref(testPref, true);
+    G_Assert(z, p.getPref(testPref), "get or set broken");
     G_Assert(z, observeCount == 1, "observer adding not working");
 
     p.removeObserver(testPref, observe);
 
-    p.setBoolPref(testPref, false);
+    p.setPref(testPref, false);
     G_Assert(z, observeCount == 1, "observer removal not working");
-    G_Assert(z, !p.getBoolPref(testPref), "get broken");
-    try {
-      p.getBoolPref(noSuchPref);
-      G_Assert(z, false, "getting non-existent pref didn't throw");
-    } catch (e) {
-    }
-    
-    
-    G_Assert(z, 
-             p.getBoolPrefOrDefault(noSuchPref, true), "default borken (t)");
-    G_Assert(z, !p.getBoolPrefOrDefault(noSuchPref, false), "default borken");
-    
-    
-    G_Assert(z, p.getBoolPrefOrDefaultAndSet(noSuchPref, true), 
-             "default and set broken (didnt default");
-    G_Assert(z, 
-             p.getBoolPref(noSuchPref), "default and set broken (didnt set)");
+    G_Assert(z, !p.getPref(testPref), "get broken");
     
     
     
     p.clearPref(noSuchPref);
-    G_Assert(z, !p.getBoolPrefOrDefault(noSuchPref, false), "clear broken");
+    G_Assert(z, !p.getPref(noSuchPref, false), "clear broken");
     
     p.clearPref(testPref);
     
