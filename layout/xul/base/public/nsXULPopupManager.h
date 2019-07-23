@@ -562,6 +562,9 @@ protected:
   nsMenuPopupFrame* GetPopupFrameForContent(nsIContent* aContent);
 
   
+  nsMenuChainItem* GetTopVisibleMenu();
+
+  
   void ShowPopupCallback(nsIContent* aPopup,
                          nsMenuPopupFrame* aPopupFrame,
                          PRBool aIsContextMenu,
