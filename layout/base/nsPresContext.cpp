@@ -1722,8 +1722,17 @@ nsPresContext::GetUserFontSet()
     
     
     
-    NS_ASSERTION(!mGetUserFontSetCalled,
-                 "FlushUserFontSet should have been called first");
+    
+    
+#ifdef DEBUG
+    {
+      PRBool inReflow;
+      NS_ASSERTION(!mGetUserFontSetCalled ||
+                   (NS_SUCCEEDED(mShell->IsReflowLocked(&inReflow)) &&
+                    !inReflow),
+                   "FlushUserFontSet should have been called first");
+    }
+#endif
     FlushUserFontSet();
   }
 
