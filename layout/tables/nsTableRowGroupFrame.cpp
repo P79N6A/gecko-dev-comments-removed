@@ -678,8 +678,7 @@ nsTableRowGroupFrame::CalculateRowHeights(nsPresContext*           aPresContext,
             
             nsSize cellFrameSize = cellFrame->GetSize();
             nsSize cellDesSize = cellFrame->GetDesiredSize();
-            rowFrame->CalculateCellActualSize(cellFrame, cellDesSize.width, 
-                                              cellDesSize.height, cellDesSize.width);
+            rowFrame->CalculateCellActualHeight(cellFrame, cellDesSize.height);
             cellFrameSize.height = cellDesSize.height;
             if (cellFrame->HasVerticalAlignBaseline()) {
               

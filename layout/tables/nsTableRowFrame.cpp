@@ -553,7 +553,7 @@ nsTableRowFrame::CalcHeight(const nsHTMLReflowState& aReflowState)
       nscoord availWidth = cellFrame->GetPriorAvailWidth();
       nsSize desSize = cellFrame->GetDesiredSize();
       if ((NS_UNCONSTRAINEDSIZE == aReflowState.availableHeight) && !GetPrevInFlow()) {
-        CalculateCellActualSize(kidFrame, desSize.width, desSize.height, availWidth);
+        CalculateCellActualHeight(cellFrame, desSize.height);
       }
       
       nscoord ascent;
@@ -645,12 +645,9 @@ nsTableRowFrame::GetSkipSides() const
 
 
 
-
 nsresult
-nsTableRowFrame::CalculateCellActualSize(nsIFrame* aCellFrame,
-                                         nscoord&  aDesiredWidth,
-                                         nscoord&  aDesiredHeight,
-                                         nscoord   aAvailWidth)
+nsTableRowFrame::CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
+                                           nscoord&          aDesiredHeight)
 {
   nscoord specifiedHeight = 0;
   
@@ -661,7 +658,7 @@ nsTableRowFrame::CalculateCellActualSize(nsIFrame* aCellFrame,
   if (!tableFrame)
     return NS_ERROR_NULL_POINTER;
   
-  PRInt32 rowSpan = tableFrame->GetEffectiveRowSpan((nsTableCellFrame&)*aCellFrame);
+  PRInt32 rowSpan = tableFrame->GetEffectiveRowSpan(*aCellFrame);
   
   switch (position->mHeight.GetUnit()) {
     case eStyleUnit_Coord:
@@ -683,10 +680,6 @@ nsTableRowFrame::CalculateCellActualSize(nsIFrame* aCellFrame,
   
   if (specifiedHeight > aDesiredHeight)
     aDesiredHeight = specifiedHeight;
- 
-  if ((0 == aDesiredWidth) && (NS_UNCONSTRAINEDSIZE != aAvailWidth)) { 
-    aDesiredWidth = aAvailWidth;
-  } 
 
   return NS_OK;
 }
@@ -950,9 +943,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
         if (!GetPrevInFlow()) {
           
           
-          
-          CalculateCellActualSize(kidFrame, desiredSize.width, 
-                                  desiredSize.height, availCellWidth);
+          CalculateCellActualHeight(cellFrame, desiredSize.height);
         }
         
         nscoord ascent;
