@@ -226,18 +226,31 @@ WrapFunction(JSContext* cx, JSObject* funobj, jsval *rval)
     *rval = OBJECT_TO_JSVAL(funobj);
     return JS_TRUE;
   }
+
+  
+  
+  
+  JSStackFrame *iterator = nsnull;
+  if (!::JS_FrameIterator(cx, &iterator)) {
+    ::JS_ReportError(cx, "XPCNativeWrappers must be used from script");
+    return JS_FALSE;
+  }
+  
+  
   
   
   
   
   JSFunction *funWrapper =
-    ::JS_NewFunction(cx, XPC_NW_FunctionWrapper, 0, 0, funobj,
+    ::JS_NewFunction(cx, XPC_NW_FunctionWrapper, 0, 0, nsnull,
                      "XPCNativeWrapper function wrapper");
   if (!funWrapper) {
     return JS_FALSE;
   }
 
-  *rval = OBJECT_TO_JSVAL(::JS_GetFunctionObject(funWrapper));
+  JSObject* funWrapperObj = ::JS_GetFunctionObject(funWrapper);
+  ::JS_SetParent(cx, funWrapperObj, funobj);
+  *rval = OBJECT_TO_JSVAL(funWrapperObj);
   return JS_TRUE;
 }
 
