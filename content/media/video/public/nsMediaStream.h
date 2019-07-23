@@ -230,6 +230,9 @@ public:
   virtual PRInt64 GetLength() = 0;
   
   
+  virtual PRInt64 GetNextCachedData(PRInt64 aOffset) = 0;
+  
+  
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset) = 0;
   
   
@@ -335,6 +338,7 @@ public:
   virtual void    Unpin();
   virtual double  GetDownloadRate(PRPackedBool* aIsReliable);
   virtual PRInt64 GetLength();
+  virtual PRInt64 GetNextCachedData(PRInt64 aOffset);
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset);
   virtual PRBool  IsDataCachedToEndOfStream(PRInt64 aOffset);
   virtual PRBool  IsSuspendedByCache();

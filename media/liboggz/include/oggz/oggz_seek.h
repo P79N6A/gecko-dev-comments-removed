@@ -475,4 +475,23 @@ int oggz_set_data_start (OGGZ * oggz, oggz_off_t offset);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+ogg_int64_t
+oggz_bounded_seek_set (OGGZ * oggz,
+                       ogg_int64_t unit_target,
+                       ogg_int64_t offset_begin,
+                       ogg_int64_t offset_end);
+
 #endif 

@@ -298,6 +298,17 @@ public:
   PRInt64 GetCachedDataEnd(PRInt64 aOffset);
   
   
+  PRInt64 GetNextCachedData(PRInt64 aOffset);
+
+  
+  
+  
+  
+  nsresult ReadFromCache(char* aBuffer,
+                         PRInt64 aOffset,
+                         PRInt64 aCount);
+
+  
   
   
   
@@ -371,6 +382,11 @@ private:
   
   
   PRInt64 GetCachedDataEndInternal(PRInt64 aOffset);
+  
+  
+  
+  
+  PRInt64 GetNextCachedDataInternal(PRInt64 aOffset);
   
   
   
