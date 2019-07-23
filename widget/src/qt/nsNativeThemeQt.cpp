@@ -107,7 +107,7 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
                                       const nsRect& aRect,
                                       const nsRect& aClipRect)
 {
-    qDebug("%s : %d", __PRETTY_FUNCTION__, IsDisabled(aFrame));
+
 
     gfxContext* context = aContext->ThebesContext();
     nsRefPtr<gfxASurface> surface = context->CurrentSurface();
@@ -167,7 +167,7 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     switch (aWidgetType) {
     case NS_THEME_RADIO:
     case NS_THEME_RADIO_SMALL: {
-        qDebug("NS_THEME_RADIO");
+
 
         ce = QStyle::CE_RadioButton;
 
@@ -180,7 +180,7 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     }
     case NS_THEME_CHECKBOX:
     case NS_THEME_CHECKBOX_SMALL: {
-        qDebug("NS_THEME_CHECKBOX");
+
 
         ce = QStyle::CE_CheckBox;
 
@@ -192,27 +192,27 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
         break;
     }
     case NS_THEME_SCROLLBAR: {
-        qDebug("NS_THEME_SCROLLBAR");
+
         qPainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     }
     case NS_THEME_SCROLLBAR_TRACK_HORIZONTAL: {
-        qDebug("NS_THEME_SCROLLBAR_TRACK_HORIZONTAL");
+
         qPainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     }
     case NS_THEME_SCROLLBAR_TRACK_VERTICAL: {
-        qDebug("NS_THEME_SCROLLBAR_TRACK_VERTICAL");
+
         qPainter->fillRect(r, qApp->palette().brush(QPalette::Active, QPalette::Background));
         break;
     }
     case NS_THEME_SCROLLBAR_BUTTON_LEFT: {
-        qDebug("NS_THEME_SCROLLBAR_BUTTON_LEFT");
+
         eventFlags |= QStyle::State_Horizontal;
     }
     
     case NS_THEME_SCROLLBAR_BUTTON_UP: {
-        qDebug("NS_THEME_SCROLLBAR_BUTTON_UP");
+
         
         ce = QStyle::CE_ScrollBarSubLine;
         
@@ -224,12 +224,12 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
         break;
     }
     case NS_THEME_SCROLLBAR_BUTTON_RIGHT: {
-        qDebug("NS_THEME_SCROLLBAR_BUTTON_RIGHT");
+
         eventFlags |= QStyle::State_Horizontal;
     }
     
     case NS_THEME_SCROLLBAR_BUTTON_DOWN: {
-        qDebug("NS_THEME_SCROLLBAR_BUTTON_DOWN");
+
         
         ce = QStyle::CE_ScrollBarAddLine;
         
@@ -243,12 +243,12 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
     
     
     case NS_THEME_SCROLLBAR_THUMB_HORIZONTAL: {
-        qDebug("NS_THEME_SCROLLBAR_THUMB_HORIZONTAL");
+
         eventFlags |= QStyle::State_Horizontal;
     }
     
     case NS_THEME_SCROLLBAR_THUMB_VERTICAL: {
-        qDebug("NS_THEME_SCROLLBAR_THUMB_VERTICAL");
+
         
         ce = QStyle::CE_ScrollBarSlider;
         
@@ -260,12 +260,12 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
         break;
     }
     case NS_THEME_BUTTON_BEVEL:
-        qDebug("NS_THEME_BUTTON_BEVEL");
+
 
 
         break;
     case NS_THEME_BUTTON: {
-        qDebug("NS_THEME_BUTTON %d", IsDefaultButton(aFrame));
+
 
         ce = QStyle::CE_PushButton;
 
@@ -279,23 +279,23 @@ nsNativeThemeQt::DrawWidgetBackground(nsIRenderingContext* aContext,
         break;
     }
     case NS_THEME_DROPDOWN:
-        qDebug("NS_THEME_DROPDOWN");
+
 
         break;
     case NS_THEME_DROPDOWN_BUTTON:
-        qDebug("NS_THEME_DROPDOWN_BUTTON");
+
 
 
 
         break;
     case NS_THEME_DROPDOWN_TEXT:
     case NS_THEME_DROPDOWN_TEXTFIELD:
-        qDebug("NS_THEME_DROPDOWN_TEXT");
+
         break;
     case NS_THEME_TEXTFIELD:
     case NS_THEME_TEXTFIELD_MULTILINE:
     case NS_THEME_LISTBOX: {
-        qDebug("NS_THEME_TEXTFIELD");
+
         
         pe = QStyle::PE_PanelLineEdit;
 
@@ -515,6 +515,7 @@ nsNativeThemeQt::ThemeSupportsWidget(nsPresContext* aPresContext,
 
         return PR_TRUE;
     default:
+
         break;
     }
 
