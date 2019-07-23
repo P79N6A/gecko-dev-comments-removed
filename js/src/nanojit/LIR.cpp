@@ -882,6 +882,13 @@ namespace nanojit
             
             return oprnd1->imm32() ? oprnd2 : oprnd3;
         }
+        if (oprnd1->isop(LIR_eq) &&
+            ((oprnd1->oprnd2() == oprnd2 && oprnd1->oprnd1() == oprnd3) ||
+             (oprnd1->oprnd1() == oprnd2 && oprnd1->oprnd2() == oprnd3))) {
+            
+            
+            return oprnd3;
+        }
 
         return out->ins3(v, oprnd1, oprnd2, oprnd3);
     }
