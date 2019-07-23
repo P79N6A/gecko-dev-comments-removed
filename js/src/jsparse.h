@@ -360,6 +360,8 @@ struct JSParseNode {
                                            statements */
 #define PNX_SHORTHAND  0x200            /* shorthand syntax used, at present
                                            object destructuring ({x,y}) only */
+#define PNX_DESTRARGS  0x400            /* the first child is node defining
+                                           destructuring arguments */
 
 
 
