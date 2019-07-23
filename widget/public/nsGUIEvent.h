@@ -105,6 +105,7 @@ class nsHashKey;
 #define NS_SIMPLE_GESTURE_EVENT           37
 #define NS_SELECTION_EVENT                38
 #define NS_CONTENT_COMMAND_EVENT          39
+#define NS_GESTURENOTIFY_EVENT            40
 
 
 
@@ -428,6 +429,9 @@ class nsHashKey;
 #define NS_CONTENT_COMMAND_DELETE       (NS_CONTENT_COMMAND_EVENT_START+3)
 #define NS_CONTENT_COMMAND_UNDO         (NS_CONTENT_COMMAND_EVENT_START+4)
 #define NS_CONTENT_COMMAND_REDO         (NS_CONTENT_COMMAND_EVENT_START+5)
+
+
+#define NS_GESTURENOTIFY_EVENT_START 3900
 
 
 
@@ -1072,6 +1076,38 @@ public:
   PRInt32               scrollFlags;
   PRInt32               delta;
   PRInt32               scrollOverflow;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+class nsGestureNotifyEvent : public nsGUIEvent
+{
+public:
+  enum ePanDirection {
+    ePanNone,
+    ePanVertical,
+    ePanHorizontal,
+    ePanBoth
+  };
+  
+  ePanDirection panDirection;
+  PRPackedBool  displayPanFeedback;
+  
+  nsGestureNotifyEvent(PRBool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget):
+    nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_GESTURENOTIFY_EVENT),
+    panDirection(ePanNone),
+    displayPanFeedback(PR_FALSE)
+  {
+  }
 };
 
 class nsQueryContentEvent : public nsGUIEvent

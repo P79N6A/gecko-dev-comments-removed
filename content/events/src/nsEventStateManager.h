@@ -41,6 +41,7 @@
 
 #include "nsIEventStateManager.h"
 #include "nsEvent.h"
+#include "nsGUIEvent.h"
 #include "nsIContent.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
@@ -277,6 +278,16 @@ protected:
   nsresult ChangeTextSize(PRInt32 change);
   nsresult ChangeFullZoom(PRInt32 change);
   
+
+  
+
+
+
+
+
+
+
+  void DecideGestureEvent(nsGestureNotifyEvent* aEvent, nsIFrame* targetFrame);
 
   
   void BeginTrackingDragGesture ( nsPresContext* aPresContext, nsMouseEvent* inDownEvent,
