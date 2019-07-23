@@ -123,6 +123,9 @@ private:
   
   
   PRBool mInUpdate;
+
+  
+  nsTArray<nsCString> mGethashWhitelist;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)

@@ -624,6 +624,14 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
+pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
+
+
+
+
+pref("urlclassifier.confirm-age", 2700);
+
+
 pref("browser.safebrowsing.malware.reportURL", "http://www.stopbadware.org/reports/container?source=@APP_UA_NAME@&version=@APP_VERSION@&reportname=");
 
 #endif

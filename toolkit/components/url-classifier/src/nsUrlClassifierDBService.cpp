@@ -48,6 +48,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsAutoLock.h"
 #include "nsCRT.h"
+#include "nsDataHashtable.h"
 #include "nsICryptoHash.h"
 #include "nsICryptoHMAC.h"
 #include "nsIDirectoryService.h"
@@ -145,6 +146,11 @@ static const PRLogModuleInfo *gUrlClassifierDbServiceLog = nsnull;
 #define GETHASH_NOISE_PREF      "urlclassifier.gethashnoise"
 #define GETHASH_NOISE_DEFAULT   4
 
+#define GETHASH_TABLES_PREF     "urlclassifier.gethashtables"
+
+#define CONFIRM_AGE_PREF        "urlclassifier.confirm-age"
+#define CONFIRM_AGE_DEFAULT_SEC (45 * 60)
+
 class nsUrlClassifierDBServiceWorker;
 
 
@@ -156,6 +162,26 @@ static nsIThread* gDbBackgroundThread = nsnull;
 
 
 static PRBool gShuttingDownThread = PR_FALSE;
+
+static PRInt32 gFreshnessGuarantee = CONFIRM_AGE_DEFAULT_SEC;
+
+static void
+SplitTables(const nsACString& str, nsTArray<nsCString>& tables)
+{
+  tables.Clear();
+
+  nsACString::const_iterator begin, iter, end;
+  str.BeginReading(begin);
+  str.EndReading(end);
+  while (begin != end) {
+    iter = begin;
+    FindCharInReadable(',', iter, end);
+    tables.AppendElement(Substring(begin, iter));
+    begin = iter;
+    if (begin != end)
+      begin++;
+  }
+}
 
 
 
@@ -199,6 +225,10 @@ struct nsUrlClassifierHash
     NS_ASSERTION(str.Length() >= sHashSize,
                  "string must be at least sHashSize characters long");
     memcpy(buf, str.BeginReading(), sHashSize);
+  }
+
+  void Clear() {
+    memset(buf, 0, sizeof(buf));
   }
 
   const PRBool operator==(const self_type& hash) const {
@@ -335,7 +365,9 @@ nsUrlClassifierEntry::Clear()
 class nsUrlClassifierLookupResult
 {
 public:
-  nsUrlClassifierLookupResult() : mConfirmed(PR_FALSE), mNoise(PR_FALSE) {}
+  nsUrlClassifierLookupResult() : mConfirmed(PR_FALSE), mNoise(PR_FALSE) {
+    mLookupFragment.Clear();
+  }
   ~nsUrlClassifierLookupResult() {}
 
   PRBool operator==(const nsUrlClassifierLookupResult &result) const {
@@ -1120,6 +1152,9 @@ private:
   nsCOMPtr<mozIStorageStatement> mInsertTableIdStatement;
 
   
+  nsDataHashtable<nsCStringHashKey, PRInt64> mTableFreshness;
+
+  
   
   nsCString mPendingStreamUpdate;
 
@@ -1140,6 +1175,9 @@ private:
   PRUint32 mChunkNum;
   PRUint32 mHashSize;
   PRUint32 mChunkLen;
+
+  
+  nsTArray<nsCString> mUpdateTables;
 
   nsCString mUpdateTable;
   PRUint32 mUpdateTableId;
@@ -1246,6 +1284,8 @@ nsUrlClassifierDBServiceWorker::Init(PRInt32 gethashNoise)
     return NS_ERROR_OUT_OF_MEMORY;
 
   ResetUpdate();
+
+  mTableFreshness.Init();
 
   return NS_OK;
 }
@@ -1392,6 +1432,8 @@ nsUrlClassifierDBServiceWorker::CheckKey(const nsACString& spec,
     if (!mMainStore.ReadStatement(mMainStore.LookupStatement(), entry))
       return NS_ERROR_FAILURE;
 
+    PRInt64 now = (PR_Now() / PR_USEC_PER_SEC);
+
     for (PRUint32 i = 0; i < fragments.Length(); i++) {
       if (entry.Match(fragments[i])) {
         
@@ -1404,12 +1446,27 @@ nsUrlClassifierDBServiceWorker::CheckKey(const nsACString& spec,
 
         result->mLookupFragment = fragments[i];
         result->mEntry = entry;
-        
-        
-        result->mConfirmed = entry.mHaveComplete;
 
         
         GetTableName(entry.mTableId, result->mTableName);
+
+        PRBool fresh;
+        PRInt64 tableUpdateTime;
+        if (mTableFreshness.Get(result->mTableName, &tableUpdateTime)) {
+          LOG(("tableUpdateTime: %lld, now: %lld, freshnessGuarantee: %d\n",
+               tableUpdateTime, now, gFreshnessGuarantee));
+          fresh = ((now - tableUpdateTime) <= gFreshnessGuarantee);
+        } else {
+          LOG(("No expiration time for this table.\n"));
+          fresh = PR_FALSE;
+        }
+
+        
+        
+        result->mConfirmed = entry.mHaveComplete && fresh;
+
+        LOG(("Found a result.  complete=%d, fresh=%d",
+             entry.mHaveComplete, fresh));
         break;
       }
     }
@@ -2619,6 +2676,7 @@ nsUrlClassifierDBServiceWorker::ResetUpdate()
   mUpdateObserver = nsnull;
   mUpdateClientKey.Truncate();
   mResetRequested = PR_FALSE;
+  mUpdateTables.Clear();
 }
 
 NS_IMETHODIMP
@@ -2630,6 +2688,7 @@ nsUrlClassifierDBServiceWorker::SetHashCompleter(const nsACString &tableName,
 
 NS_IMETHODIMP
 nsUrlClassifierDBServiceWorker::BeginUpdate(nsIUrlClassifierUpdateObserver *observer,
+                                            const nsACString &tables,
                                             const nsACString &clientKey)
 {
   if (gShuttingDownThread)
@@ -2672,6 +2731,8 @@ nsUrlClassifierDBServiceWorker::BeginUpdate(nsIUrlClassifierUpdateObserver *obse
   
   
   mPrimaryStream = PR_TRUE;
+
+  SplitTables(tables, mUpdateTables);
 
   return NS_OK;
 }
@@ -2871,6 +2932,21 @@ nsUrlClassifierDBServiceWorker::FinishUpdate()
     mUpdateObserver->UpdateError(mUpdateStatus);
   }
 
+  if (!mResetRequested) {
+    if (NS_SUCCEEDED(mUpdateStatus)) {
+      PRInt64 now = (PR_Now() / PR_USEC_PER_SEC);
+      for (PRUint32 i = 0; i < mUpdateTables.Length(); i++) {
+        LOG(("Successfully updated %s", mUpdateTables[i].get()));
+        mTableFreshness.Put(mUpdateTables[i], now);
+      }
+    } else {
+      for (PRUint32 i = 0; i < mUpdateTables.Length(); i++) {
+        LOG(("Failed updating %s", mUpdateTables[i].get()));
+        mTableFreshness.Remove(mUpdateTables[i]);
+      }
+    }
+  }
+
   
   PRBool resetRequested = mResetRequested;
 
@@ -2892,6 +2968,8 @@ nsUrlClassifierDBServiceWorker::ResetDatabase()
   LOG(("nsUrlClassifierDBServiceWorker::ResetDatabase [%p]", this));
   ClearCachedChunkLists();
 
+  mTableFreshness.Clear();
+
   nsresult rv = CloseDb();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2911,6 +2989,11 @@ nsUrlClassifierDBServiceWorker::CancelUpdate()
     ClearCachedChunkLists();
     mConnection->RollbackTransaction();
     mUpdateObserver->UpdateError(mUpdateStatus);
+
+    for (PRUint32 i = 0; i < mUpdateTables.Length(); i++) {
+      LOG(("Failed updating %s", mUpdateTables[i].get()));
+      mTableFreshness.Remove(mUpdateTables[i]);
+    }
 
     ResetStream();
     ResetUpdate();
@@ -3213,23 +3296,35 @@ nsUrlClassifierLookupCallback::LookupComplete(nsTArray<nsUrlClassifierLookupResu
   mResults->Sort();
 
   
-  
   for (PRUint32 i = 0; i < results->Length(); i++) {
     nsUrlClassifierLookupResult& result = results->ElementAt(i);
+
+    
     if (!result.mConfirmed) {
       nsCOMPtr<nsIUrlClassifierHashCompleter> completer;
       if (mDBService->GetCompleter(result.mTableName,
                                    getter_AddRefs(completer))) {
         nsCAutoString partialHash;
-        partialHash.Assign(reinterpret_cast<char*>(result.mEntry.mPartialHash.buf),
-                           PARTIAL_LENGTH);
+        PRUint8 *buf =
+          result.mEntry.mHavePartial ? result.mEntry.mPartialHash.buf
+                                     : result.mEntry.mCompleteHash.buf;
+        partialHash.Assign(reinterpret_cast<char*>(buf), PARTIAL_LENGTH);
 
         nsresult rv = completer->Complete(partialHash, this);
         if (NS_SUCCEEDED(rv)) {
           mPendingCompletions++;
         }
       } else {
-        NS_WARNING("Partial match in a table without a valid completer, ignoring partial match.");
+        
+        
+        
+        
+        if (result.mEntry.mHaveComplete
+            && (result.mLookupFragment == result.mEntry.mCompleteHash)) {
+          result.mConfirmed = PR_TRUE;
+        } else {
+          NS_WARNING("Partial match in a table without a valid completer, ignoring partial match.");
+        }
       }
     }
   }
@@ -3271,49 +3366,50 @@ nsUrlClassifierLookupCallback::Completion(const nsACString& completeHash,
                                           PRUint32 chunkId,
                                           PRBool verified)
 {
-  LOG(("nsUrlClassifierLookupCallback::Completion [%p, %d]", this, verified));
+  LOG(("nsUrlClassifierLookupCallback::Completion [%p, %s, %d, %d]",
+       this, PromiseFlatCString(tableName).get(), chunkId, verified));
   nsUrlClassifierCompleteHash hash;
   hash.Assign(completeHash);
 
   for (PRUint32 i = 0; i < mResults->Length(); i++) {
     nsUrlClassifierLookupResult& result = mResults->ElementAt(i);
 
-    if (!result.mEntry.mHaveComplete &&
+    
+    if (verified &&
+        !result.mEntry.mHaveComplete &&
         hash.StartsWith(result.mEntry.mPartialHash) &&
         result.mTableName == tableName &&
         result.mEntry.mChunkId == chunkId) {
       
       result.mEntry.SetHash(hash);
 
-      
-      if (result.mLookupFragment == hash)
-        result.mConfirmed = PR_TRUE;
-
-      
-      
-      if (verified) {
-        if (!mCacheResults) {
-          mCacheResults = new nsTArray<nsUrlClassifierLookupResult>();
-          if (!mCacheResults)
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
-
-        mCacheResults->AppendElement(result);
+      if (!mCacheResults) {
+        mCacheResults = new nsTArray<nsUrlClassifierLookupResult>();
+        if (!mCacheResults)
+          return NS_ERROR_OUT_OF_MEMORY;
       }
-    } else if (result.mLookupFragment == hash) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      result.mConfirmed = PR_TRUE;
-      result.mTableName = tableName;
 
-      NS_WARNING("Accepting a gethash with an invalid table name or chunk id");
+      mCacheResults->AppendElement(result);
+    }
+
+    
+    if (result.mLookupFragment == hash) {
+      result.mConfirmed = PR_TRUE;
+
+      if (result.mTableName != tableName ||
+          result.mEntry.mChunkId != chunkId) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        result.mTableName = tableName;
+        NS_WARNING("Accepting a gethash with an invalid table name or chunk id");
+      }
     }
   }
 
@@ -3496,6 +3592,20 @@ nsUrlClassifierDBService::Init()
     if (NS_FAILED(prefs->GetIntPref(GETHASH_NOISE_PREF, &gethashNoise))) {
       gethashNoise = GETHASH_NOISE_DEFAULT;
     }
+
+    nsXPIDLCString tmpstr;
+    if (NS_SUCCEEDED(prefs->GetCharPref(GETHASH_TABLES_PREF, getter_Copies(tmpstr)))) {
+      SplitTables(tmpstr, mGethashWhitelist);
+    }
+
+    prefs->AddObserver(GETHASH_TABLES_PREF, this, PR_FALSE);
+
+    PRInt32 tmpint;
+    rv = prefs->GetIntPref(CONFIRM_AGE_PREF, &tmpint);
+    PR_AtomicSet(&gFreshnessGuarantee, NS_SUCCEEDED(rv) ? tmpint : CONFIRM_AGE_DEFAULT_SEC);
+
+    prefs->AddObserver(CONFIRM_AGE_PREF, this, PR_FALSE);
+
   }
 
   
@@ -3656,6 +3766,7 @@ nsUrlClassifierDBService::SetHashCompleter(const nsACString &tableName,
 
 NS_IMETHODIMP
 nsUrlClassifierDBService::BeginUpdate(nsIUrlClassifierUpdateObserver *observer,
+                                      const nsACString &updateTables,
                                       const nsACString &clientKey)
 {
   NS_ENSURE_TRUE(gDbBackgroundThread, NS_ERROR_NOT_INITIALIZED);
@@ -3676,7 +3787,7 @@ nsUrlClassifierDBService::BeginUpdate(nsIUrlClassifierUpdateObserver *observer,
                             getter_AddRefs(proxyObserver));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return mWorkerProxy->BeginUpdate(proxyObserver, clientKey);
+  return mWorkerProxy->BeginUpdate(proxyObserver, updateTables, clientKey);
 }
 
 NS_IMETHODIMP
@@ -3749,6 +3860,10 @@ nsUrlClassifierDBService::GetCompleter(const nsACString &tableName,
     return PR_TRUE;
   }
 
+  if (!mGethashWhitelist.Contains(tableName)) {
+    return PR_FALSE;
+  }
+
   return NS_SUCCEEDED(CallGetService(NS_URLCLASSIFIERHASHCOMPLETER_CONTRACTID,
                                      completer));
 }
@@ -3769,6 +3884,16 @@ nsUrlClassifierDBService::Observe(nsISupports *aSubject, const char *aTopic,
       PRBool tmpbool;
       rv = prefs->GetBoolPref(CHECK_PHISHING_PREF, &tmpbool);
       mCheckPhishing = NS_SUCCEEDED(rv) ? tmpbool : CHECK_PHISHING_DEFAULT;
+    } else if (NS_LITERAL_STRING(GETHASH_TABLES_PREF).Equals(aData)) {
+      mGethashWhitelist.Clear();
+      nsXPIDLCString val;
+      if (NS_SUCCEEDED(prefs->GetCharPref(GETHASH_TABLES_PREF, getter_Copies(val)))) {
+        SplitTables(val, mGethashWhitelist);
+      }
+    } else if (NS_LITERAL_STRING(CONFIRM_AGE_PREF).Equals(aData)) {
+      PRInt32 tmpint;
+      rv = prefs->GetIntPref(CONFIRM_AGE_PREF, &tmpint);
+      PR_AtomicSet(&gFreshnessGuarantee, NS_SUCCEEDED(rv) ? tmpint : CONFIRM_AGE_DEFAULT_SEC);
     }
   } else if (!strcmp(aTopic, "profile-before-change") ||
              !strcmp(aTopic, "xpcom-shutdown-threads")) {
@@ -3795,6 +3920,8 @@ nsUrlClassifierDBService::Shutdown()
   if (prefs) {
     prefs->RemoveObserver(CHECK_MALWARE_PREF, this);
     prefs->RemoveObserver(CHECK_PHISHING_PREF, this);
+    prefs->RemoveObserver(GETHASH_TABLES_PREF, this);
+    prefs->RemoveObserver(CONFIRM_AGE_PREF, this);
   }
 
   nsresult rv;

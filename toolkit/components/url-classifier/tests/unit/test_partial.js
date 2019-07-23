@@ -551,24 +551,180 @@ function testUncachedResults()
     });
 }
 
+function testErrorList()
+{
+  var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
+  var update = buildPhishingUpdate(
+        [
+          { "chunkNum" : 1,
+            "urls" : addUrls
+          }],
+    32);
+
+  var completer = installCompleter('test-phish-simple', [[1, addUrls]], []);
+
+  var assertions = {
+    "tableData" : "test-phish-simple;a:1",
+    "urlsExist" : addUrls,
+    
+    
+    "completerQueried" : [completer, addUrls]
+  };
+
+  
+  doStreamUpdate(update, function() {
+      
+      
+      doErrorUpdate("test-phish-simple,test-malware-simple", function() {
+          
+          checkAssertions(assertions, runNextTest);
+        }, updateError);
+    }, updateError);
+}
+
+
+function testStaleList()
+{
+  var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
+  var update = buildPhishingUpdate(
+        [
+          { "chunkNum" : 1,
+            "urls" : addUrls
+          }],
+    32);
+
+  var completer = installCompleter('test-phish-simple', [[1, addUrls]], []);
+
+  var assertions = {
+    "tableData" : "test-phish-simple;a:1",
+    "urlsExist" : addUrls,
+    
+    
+    "completerQueried" : [completer, addUrls]
+  };
+
+  
+  prefBranch.setIntPref("urlclassifier.confirm-age", 1);
+
+  
+  doStreamUpdate(update, function() {
+      
+      
+      new Timer(3000, function() {
+          
+          checkAssertions(assertions, function() {
+              prefBranch.setIntPref("urlclassifier.confirm-age", 2700);
+              runNextTest();
+            });
+        }, updateError);
+    }, updateError);
+}
+
+
+
+function testStaleListEmpty()
+{
+  var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
+  var update = buildPhishingUpdate(
+        [
+          { "chunkNum" : 1,
+            "urls" : addUrls
+          }],
+        32);
+
+  var completer = installCompleter('test-phish-simple', [], []);
+
+  var assertions = {
+    "tableData" : "test-phish-simple;a:1",
+    
+    "urlsDontExist" : addUrls,
+    
+    
+    "completerQueried" : [completer, addUrls]
+  };
+
+  
+  prefBranch.setIntPref("urlclassifier.confirm-age", 1);
+
+  
+  doStreamUpdate(update, function() {
+      
+      
+      new Timer(3000, function() {
+          
+          checkAssertions(assertions, function() {
+              prefBranch.setIntPref("urlclassifier.confirm-age", 2700);
+              runNextTest();
+            });
+        }, updateError);
+    }, updateError);
+}
+
+
+
+
+function testErrorListIndependent()
+{
+  var phishUrls = [ "phish.com/a" ];
+  var malwareUrls = [ "attack.com/a" ];
+  var update = buildPhishingUpdate(
+        [
+          { "chunkNum" : 1,
+            "urls" : phishUrls
+          }],
+    32);
+
+  update += buildMalwareUpdate(
+        [
+          { "chunkNum" : 2,
+            "urls" : malwareUrls
+          }],
+    32);
+
+  var completer = installCompleter('test-phish-simple', [[1, phishUrls]], []);
+
+  var assertions = {
+    "tableData" : "test-malware-simple;a:2\ntest-phish-simple;a:1",
+    "urlsExist" : phishUrls,
+    "malwareUrlsExist" : malwareUrls,
+    
+    
+    "completerQueried" : [completer, phishUrls]
+  };
+
+  
+  doStreamUpdate(update, function() {
+      
+      
+      
+      doErrorUpdate("test-phish-simple", function() {
+          
+          checkAssertions(assertions, runNextTest);
+        }, updateError);
+    }, updateError);
+}
 
 function run_test()
 {
   runTests([
-    testPartialAdds,
-    testPartialAddsWithConflicts,
-    testFalsePositives,
-    testEmptyCompleter,
-    testCompleterFailure,
-    testMixedSizesSameDomain,
-    testMixedSizesDifferentDomains,
-    testInvalidHashSize,
-    testWrongTable,
-    testWrongChunk,
-    testCachedResults,
-    testCachedResultsWithSub,
-    testCachedResultsWithExpire,
-    testUncachedResults,
+      testPartialAdds,
+      testPartialAddsWithConflicts,
+      testFalsePositives,
+      testEmptyCompleter,
+      testCompleterFailure,
+      testMixedSizesSameDomain,
+      testMixedSizesDifferentDomains,
+      testInvalidHashSize,
+      testWrongTable,
+      testWrongChunk,
+      testCachedResults,
+      testCachedResultsWithSub,
+      testCachedResultsWithExpire,
+      testUncachedResults,
+      testStaleList,
+      testStaleListEmpty,
+      testErrorList,
+      testErrorListIndependent,
   ]);
 }
 
