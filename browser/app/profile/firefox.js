@@ -277,9 +277,6 @@ pref("browser.search.defaultenginename",      "chrome://browser-region/locale/re
 pref("browser.search.log", false);
 
 
-pref("browser.search.cache.enabled", true);
-
-
 pref("browser.search.order.1",                "chrome://browser-region/locale/region.properties");
 pref("browser.search.order.2",                "chrome://browser-region/locale/region.properties");
 
