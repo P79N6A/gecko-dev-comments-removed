@@ -93,6 +93,8 @@
     OTV_OPTIONAL_TABLE( Coverage );
     OTV_OPTIONAL_TABLE( DeviceTableOffset );
 
+    FT_UNUSED( isItalic );  
+
 
     OTV_NAME_ENTER( isItalic ? "MathItalicsCorrectionInfo"
                              : "MathTopAccentAttachment" );

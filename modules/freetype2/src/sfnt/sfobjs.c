@@ -26,6 +26,7 @@
 #include FT_TRUETYPE_IDS_H
 #include FT_TRUETYPE_TAGS_H
 #include FT_SERVICE_POSTSCRIPT_CMAPS_H
+#include FT_SFNT_NAMES_H
 #include "sferrors.h"
 
 #ifdef TT_CONFIG_OPTION_BDF
@@ -126,11 +127,17 @@
   
   
   
-  static FT_String*
-  tt_face_get_name( TT_Face    face,
-                    FT_UShort  nameid )
+  
+  
+  
+  
+  static FT_Error
+  tt_face_get_name( TT_Face      face,
+                    FT_UShort    nameid,
+                    FT_String**  name )
   {
     FT_Memory         memory = face->root.memory;
+    FT_Error          error  = SFNT_Err_Ok;
     FT_String*        result = NULL;
     FT_UShort         n;
     TT_NameEntryRec*  rec;
@@ -144,6 +151,8 @@
 
     TT_NameEntry_ConvertFunc  convert;
 
+
+    FT_ASSERT( name );
 
     rec = face->name_table.names;
     for ( n = 0; n < face->num_names; n++, rec++ )
@@ -256,10 +265,7 @@
     {
       if ( rec->string == NULL )
       {
-        FT_Error   error  = SFNT_Err_Ok;
         FT_Stream  stream = face->name_table.stream;
-
-        FT_UNUSED( error );
 
 
         if ( FT_QNEW_ARRAY ( rec->string, rec->stringLength ) ||
@@ -277,7 +283,8 @@
     }
 
   Exit:
-    return result;
+    *name = result;
+    return error;
   }
 
 
@@ -363,11 +370,12 @@
     if ( FT_READ_ULONG( tag ) )
       return error;
 
-    if ( tag != 0x00010000UL                      &&
-         tag != TTAG_ttcf                         &&
-         tag != FT_MAKE_TAG( 'O', 'T', 'T', 'O' ) &&
-         tag != TTAG_true                         &&
-         tag != 0x00020000UL                      )
+    if ( tag != 0x00010000UL &&
+         tag != TTAG_ttcf    &&
+         tag != TTAG_OTTO    &&
+         tag != TTAG_true    &&
+         tag != TTAG_typ1    &&
+         tag != 0x00020000UL )
       return SFNT_Err_Unknown_File_Format;
 
     face->ttc_header.tag = TTAG_ttcf;
@@ -401,7 +409,7 @@
       face->ttc_header.version = 1 << 16;
       face->ttc_header.count   = 1;
 
-      if ( FT_NEW( face->ttc_header.offsets) )
+      if ( FT_NEW( face->ttc_header.offsets ) )
         return error;
 
       face->ttc_header.offsets[0] = offset;
@@ -451,7 +459,7 @@
       face_index = 0;
 
     if ( face_index >= face->ttc_header.count )
-        return SFNT_Err_Bad_Argument;
+      return SFNT_Err_Invalid_Argument;
 
     if ( FT_STREAM_SEEK( face->ttc_header.offsets[face_index] ) )
       return error;
@@ -461,7 +469,8 @@
     if ( error )
       return error;
 
-    face->root.num_faces = face->ttc_header.count;
+    face->root.num_faces  = face->ttc_header.count;
+    face->root.face_index = face_index;
 
     return error;
   }
@@ -498,6 +507,13 @@
     FT_TRACE3(( "\n" ));                                      \
   } while ( 0 )
 
+#define GET_NAME( id, field )                                 \
+  do {                                                        \
+    error = tt_face_get_name( face, TT_NAME_ID_##id, field ); \
+    if ( error )                                              \
+      goto Exit;                                              \
+  } while ( 0 )
+
 
   FT_LOCAL_DEF( FT_Error )
   sfnt_load_face( FT_Stream      stream,
@@ -506,16 +522,33 @@
                   FT_Int         num_params,
                   FT_Parameter*  params )
   {
-    FT_Error      error, psnames_error;
+    FT_Error      error;
+#ifdef TT_CONFIG_OPTION_POSTSCRIPT_NAMES
+    FT_Error      psnames_error;
+#endif
     FT_Bool       has_outline;
     FT_Bool       is_apple_sbit;
+    FT_Bool       ignore_preferred_family = FALSE;
+    FT_Bool       ignore_preferred_subfamily = FALSE;
 
     SFNT_Service  sfnt = (SFNT_Service)face->sfnt;
 
     FT_UNUSED( face_index );
-    FT_UNUSED( num_params );
-    FT_UNUSED( params );
 
+    
+    
+    {
+      FT_Int  i;
+
+
+      for ( i = 0; i < num_params; i++ )
+      {
+        if ( params[i].tag == FT_PARAM_TAG_IGNORE_PREFERRED_FAMILY )
+          ignore_preferred_family = TRUE;
+        else if ( params[i].tag == FT_PARAM_TAG_IGNORE_PREFERRED_SUBFAMILY )
+          ignore_preferred_subfamily = TRUE;
+      }
+    }
 
     
 
@@ -581,7 +614,10 @@
     
     LOAD_( name );
     LOAD_( post );
+
+#ifdef TT_CONFIG_OPTION_POSTSCRIPT_NAMES
     psnames_error = error;
+#endif
 
     
     
@@ -660,7 +696,6 @@
 
         face->os2.version = 0xFFFFU;
       }
-
     }
 
     
@@ -672,7 +707,9 @@
       if ( error )
       {
         
-        if ( error == SFNT_Err_Table_Missing && has_outline )
+        
+        
+        if ( error == SFNT_Err_Table_Missing )
           error = SFNT_Err_Ok;
         else
           goto Exit;
@@ -692,64 +729,47 @@
     LOAD_( gasp );
     LOAD_( kern );
 
-    error = SFNT_Err_Ok;
-
     face->root.num_glyphs = face->max_profile.numGlyphs;
 
-#if 0
     
     
     
     
     
 
+    face->root.family_name = NULL;
+    face->root.style_name  = NULL;
     if ( face->os2.version != 0xFFFFU && face->os2.fsSelection & 256 )
-#endif
     {
-      face->root.family_name =
-        tt_face_get_name( face, TT_NAME_ID_PREFERRED_FAMILY );
+      if ( !ignore_preferred_family )
+        GET_NAME( PREFERRED_FAMILY, &face->root.family_name );
       if ( !face->root.family_name )
-        face->root.family_name =
-          tt_face_get_name( face, TT_NAME_ID_FONT_FAMILY );
+        GET_NAME( FONT_FAMILY, &face->root.family_name );
 
-      face->root.style_name =
-        tt_face_get_name( face, TT_NAME_ID_PREFERRED_SUBFAMILY );
+      if ( !ignore_preferred_subfamily )
+        GET_NAME( PREFERRED_SUBFAMILY, &face->root.style_name );
       if ( !face->root.style_name )
-        face->root.style_name =
-          tt_face_get_name( face, TT_NAME_ID_FONT_SUBFAMILY );
+        GET_NAME( FONT_SUBFAMILY, &face->root.style_name );
     }
-#if 0
     else
     {
-      
-      
-      
-
-      face->root.family_name =
-        tt_face_get_name( face, TT_NAME_ID_WWS_FAMILY );
+      GET_NAME( WWS_FAMILY, &face->root.family_name );
+      if ( !face->root.family_name && !ignore_preferred_family )
+        GET_NAME( PREFERRED_FAMILY, &face->root.family_name );
       if ( !face->root.family_name )
-        face->root.family_name =
-          tt_face_get_name( face, TT_NAME_ID_PREFERRED_FAMILY );
-      if ( !face->root.family_name )
-        face->root.family_name =
-          tt_face_get_name( face, TT_NAME_ID_FONT_FAMILY );
+        GET_NAME( FONT_FAMILY, &face->root.family_name );
 
-      face->root.style_name =
-        tt_face_get_name( face, TT_NAME_ID_WWS_SUBFAMILY );
+      GET_NAME( WWS_SUBFAMILY, &face->root.style_name );
+      if ( !face->root.style_name && !ignore_preferred_subfamily )
+        GET_NAME( PREFERRED_SUBFAMILY, &face->root.style_name );
       if ( !face->root.style_name )
-        face->root.style_name =
-          tt_face_get_name( face, TT_NAME_ID_PREFERRED_SUBFAMILY );
-      if ( !face->root.style_name )
-        face->root.style_name =
-          tt_face_get_name( face, TT_NAME_ID_FONT_SUBFAMILY );
+        GET_NAME( FONT_SUBFAMILY, &face->root.style_name );
     }
-#endif
-
 
     
     {
-      FT_Face   root  = &face->root;
-      FT_Int32  flags = root->face_flags;
+      FT_Face  root  = &face->root;
+      FT_Long  flags = root->face_flags;
 
 
       
@@ -804,7 +824,6 @@
         
         
         
-        
 
         if ( face->os2.fsSelection & 512 )       
           flags |= FT_STYLE_FLAG_ITALIC;
@@ -817,6 +836,7 @@
       else
       {
         
+
         if ( face->header.Mac_Style & 1 )
           flags |= FT_STYLE_FLAG_BOLD;
 
@@ -861,12 +881,78 @@
         }
       }
 
+#ifdef TT_CONFIG_OPTION_EMBEDDED_BITMAPS
+
+      
+
+
+
+
+      {
+        FT_UInt  i, count;
+
+
+#ifndef FT_CONFIG_OPTION_OLD_INTERNALS
+        count = face->sbit_num_strikes;
+#else
+        count = (FT_UInt)face->num_sbit_strikes;
+#endif
+
+        if ( count > 0 )
+        {
+          FT_Memory        memory   = face->root.stream->memory;
+          FT_UShort        em_size  = face->header.Units_Per_EM;
+          FT_Short         avgwidth = face->os2.xAvgCharWidth;
+          FT_Size_Metrics  metrics;
+
+
+          if ( em_size == 0 || face->os2.version == 0xFFFFU )
+          {
+            avgwidth = 0;
+            em_size = 1;
+          }
+
+          if ( FT_NEW_ARRAY( root->available_sizes, count ) )
+            goto Exit;
+
+          for ( i = 0; i < count; i++ )
+          {
+            FT_Bitmap_Size*  bsize = root->available_sizes + i;
+
+
+            error = sfnt->load_strike_metrics( face, i, &metrics );
+            if ( error )
+              goto Exit;
+
+            bsize->height = (FT_Short)( metrics.height >> 6 );
+            bsize->width = (FT_Short)(
+                ( avgwidth * metrics.x_ppem + em_size / 2 ) / em_size );
+
+            bsize->x_ppem = metrics.x_ppem << 6;
+            bsize->y_ppem = metrics.y_ppem << 6;
+
+            
+            bsize->size   = metrics.y_ppem << 6;
+          }
+
+          root->face_flags     |= FT_FACE_FLAG_FIXED_SIZES;
+          root->num_fixed_sizes = (FT_Int)count;
+        }
+      }
+
+#endif 
+
+      
+      
+      if ( !FT_HAS_FIXED_SIZES( root ) && !FT_IS_SCALABLE( root ) )
+        root->face_flags |= FT_FACE_FLAG_SCALABLE;
+
 
       
       
       
       
-      if ( has_outline == TRUE )
+      if ( FT_IS_SCALABLE( root ) )
       {
         
         
@@ -919,10 +1005,9 @@
         
         if ( face->horizontal.Line_Gap == 0 )
           root->height = (FT_Short)( ( root->height * 115 + 50 ) / 100 );
-#endif
+#endif 
 
 #if 0
-
         
         
         if ( face->os2.version != 0xFFFFU && root->ascender )
@@ -937,79 +1022,20 @@
           if ( height > root->height )
             root->height = height;
         }
-
 #endif 
 
-        root->max_advance_width   = face->horizontal.advance_Width_Max;
+        root->max_advance_width  = face->horizontal.advance_Width_Max;
+        root->max_advance_height = (FT_Short)( face->vertical_info
+                                     ? face->vertical.advance_Height_Max
+                                     : root->height );
 
-        root->max_advance_height  = (FT_Short)( face->vertical_info
-                                      ? face->vertical.advance_Height_Max
-                                      : root->height );
-
-        root->underline_position  = face->postscript.underlinePosition;
+        
+        
+        
+        root->underline_position  = face->postscript.underlinePosition -
+                                    face->postscript.underlineThickness / 2;
         root->underline_thickness = face->postscript.underlineThickness;
       }
-
-#ifdef TT_CONFIG_OPTION_EMBEDDED_BITMAPS
-
-      
-
-
-
-
-      {
-        FT_UInt  i, count;
-
-
-#if !defined FT_CONFIG_OPTION_OLD_INTERNALS
-        count = face->sbit_num_strikes;
-#else
-        count = (FT_UInt)face->num_sbit_strikes;
-#endif
-
-        if ( count > 0 )
-        {
-          FT_Memory        memory   = face->root.stream->memory;
-          FT_UShort        em_size  = face->header.Units_Per_EM;
-          FT_Short         avgwidth = face->os2.xAvgCharWidth;
-          FT_Size_Metrics  metrics;
-
-
-          if ( em_size == 0 || face->os2.version == 0xFFFFU )
-          {
-            avgwidth = 0;
-            em_size = 1;
-          }
-
-          if ( FT_NEW_ARRAY( root->available_sizes, count ) )
-            goto Exit;
-
-          for ( i = 0; i < count; i++ )
-          {
-            FT_Bitmap_Size*  bsize = root->available_sizes + i;
-
-
-            error = sfnt->load_strike_metrics( face, i, &metrics );
-            if ( error )
-              goto Exit;
-
-            bsize->height = (FT_Short)( metrics.height >> 6 );
-            bsize->width = (FT_Short)(
-                ( avgwidth * metrics.x_ppem + em_size / 2 ) / em_size );
-
-            bsize->x_ppem = metrics.x_ppem << 6;
-            bsize->y_ppem = metrics.y_ppem << 6;
-
-            
-            bsize->size   = metrics.y_ppem << 6;
-          }
-
-          root->face_flags     |= FT_FACE_FLAG_FIXED_SIZES;
-          root->num_fixed_sizes = (FT_Int)count;
-        }
-      }
-
-#endif 
 
     }
 
@@ -1022,14 +1048,21 @@
 
 #undef LOAD_
 #undef LOADM_
+#undef GET_NAME
 
 
   FT_LOCAL_DEF( void )
   sfnt_done_face( TT_Face  face )
   {
-    FT_Memory     memory = face->root.memory;
-    SFNT_Service  sfnt   = (SFNT_Service)face->sfnt;
+    FT_Memory     memory;
+    SFNT_Service  sfnt;
 
+
+    if ( !face )
+      return;
+
+    memory = face->root.memory;
+    sfnt   = (SFNT_Service)face->sfnt;
 
     if ( sfnt )
     {
@@ -1068,7 +1101,7 @@
     }
 
     
-#if !defined FT_CONFIG_OPTION_OLD_INTERNALS
+#ifndef FT_CONFIG_OPTION_OLD_INTERNALS
     {
       FT_Stream  stream = FT_FACE_STREAM( face );
 

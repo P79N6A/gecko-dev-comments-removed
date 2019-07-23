@@ -265,7 +265,7 @@ read_header_file( FILE*  file, int  verbose )
           if ( p > name )
           {
             if ( verbose )
-              fprintf( stderr, ">>> %.*s\n", p-name, name );
+              fprintf( stderr, ">>> %.*s\n", (int)(p - name), name );
 
             names_add( name, p );
           }

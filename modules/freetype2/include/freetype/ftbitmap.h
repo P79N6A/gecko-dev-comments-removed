@@ -16,7 +16,6 @@
 
 
 
-
 #ifndef __FTBITMAP_H__
 #define __FTBITMAP_H__
 
@@ -168,6 +167,28 @@ FT_BEGIN_HEADER
                      const FT_Bitmap  *source,
                      FT_Bitmap        *target,
                      FT_Int            alignment );
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  FT_EXPORT( FT_Error )
+  FT_GlyphSlot_Own_Bitmap( FT_GlyphSlot  slot );
 
 
   

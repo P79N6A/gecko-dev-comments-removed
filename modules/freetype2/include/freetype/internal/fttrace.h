@@ -31,16 +31,19 @@ FT_TRACE_DEF( init )
 FT_TRACE_DEF( objs )      
 FT_TRACE_DEF( outline )   
 FT_TRACE_DEF( glyph )     
+FT_TRACE_DEF( gloader )   
 
 FT_TRACE_DEF( raster )    
 FT_TRACE_DEF( smooth )    
 FT_TRACE_DEF( mm )        
 FT_TRACE_DEF( raccess )   
+FT_TRACE_DEF( synth )     
 
   
 FT_TRACE_DEF( cache )     
 
   
+FT_TRACE_DEF( sfdriver )  
 FT_TRACE_DEF( sfobjs )    
 FT_TRACE_DEF( ttcmap )    
 FT_TRACE_DEF( ttkern )    
@@ -48,6 +51,7 @@ FT_TRACE_DEF( ttload )
 FT_TRACE_DEF( ttmtx )     
 FT_TRACE_DEF( ttpost )    
 FT_TRACE_DEF( ttsbit )    
+FT_TRACE_DEF( ttbdf )     
 
   
 FT_TRACE_DEF( ttdriver )  
@@ -58,6 +62,7 @@ FT_TRACE_DEF( ttpload )
 FT_TRACE_DEF( ttgxvar )   
 
   
+FT_TRACE_DEF( t1afm )
 FT_TRACE_DEF( t1driver )
 FT_TRACE_DEF( t1gload )
 FT_TRACE_DEF( t1hint )

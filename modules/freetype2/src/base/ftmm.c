@@ -52,7 +52,7 @@
                               *aservice,
                               MULTI_MASTERS );
 
-      if ( aservice )
+      if ( *aservice )
         error = FT_Err_Ok;
     }
 

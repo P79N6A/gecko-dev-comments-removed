@@ -49,6 +49,10 @@
 
 #ifdef _STANDALONE_
 
+#define FT_CONFIG_STANDARD_LIBRARY_H  <stdlib.h>
+
+#include <string.h>           
+
 #include "ftmisc.h"
 #include "ftimage.h"
 
@@ -57,6 +61,8 @@
 #include <ft2build.h>
 #include "ftraster.h"
 #include FT_INTERNAL_CALC_H   
+
+#include "rastpic.h"
 
 #endif 
 
@@ -129,22 +135,24 @@
   
   
   
+  
+  
+
+
+  
+  
+  
+  
+  
+  
+  
+
+  
 
 
   
   
-  
-  
-  
-  
-  
 
-  
-#define xxxDEBUG_RASTER
-
-
-
-#undef FT_RASTER_OPTION_ANTI_ALIASING
 
   
   
@@ -181,13 +189,13 @@
   
   
 #ifndef FT_ERROR
-#define FT_ERROR( x )  do ; while ( 0 )     /* nothing */
+#define FT_ERROR( x )  do { } while ( 0 )     /* nothing */
 #endif
 
 #ifndef FT_TRACE
-#define FT_TRACE( x )   do ; while ( 0 )    /* nothing */
-#define FT_TRACE1( x )  do ; while ( 0 )    /* nothing */
-#define FT_TRACE6( x )  do ; while ( 0 )    /* nothing */
+#define FT_TRACE( x )   do { } while ( 0 )    /* nothing */
+#define FT_TRACE1( x )  do { } while ( 0 )    /* nothing */
+#define FT_TRACE6( x )  do { } while ( 0 )    /* nothing */
 #endif
 
 #define Raster_Err_None          0
@@ -197,7 +205,20 @@
 #define Raster_Err_Invalid      -4
 #define Raster_Err_Unsupported  -5
 
-#define ft_memset   memset
+#define ft_memset  memset
+
+#define FT_DEFINE_RASTER_FUNCS( class_, glyph_format_, raster_new_, \
+                                raster_reset_, raster_set_mode_,    \
+                                raster_render_, raster_done_ )      \
+          const FT_Raster_Funcs class_ =                            \
+          {                                                         \
+            glyph_format_,                                          \
+            raster_new_,                                            \
+            raster_reset_,                                          \
+            raster_set_mode_,                                       \
+            raster_render_,                                         \
+            raster_done_                                            \
+         };
 
 #else 
 
@@ -304,13 +325,10 @@
   } TPoint;
 
 
-  typedef enum  TFlow_
-  {
-    Flow_None = 0,
-    Flow_Up   = 1,
-    Flow_Down = -1
-
-  } TFlow;
+  
+#define Flow_Up           0x8
+#define Overshoot_Top     0x10
+#define Overshoot_Bottom  0x20
 
 
   
@@ -332,7 +350,10 @@
     FT_F26Dot6  X;           
     PProfile    link;        
     PLong       offset;      
-    int         flow;        
+    unsigned    flags;       
+                             
+                             
+                             
     long        height;      
     long        start;       
 
@@ -370,7 +391,7 @@
 #define RAS_VARS
 #define RAS_VAR
 
-#define FT_UNUSED_RASTER  do ; while ( 0 )
+#define FT_UNUSED_RASTER  do { } while ( 0 )
 
 
 #else 
@@ -388,7 +409,7 @@
 #endif 
 
 
-  typedef struct TWorker_   TWorker, *PWorker;
+  typedef struct TWorker_  TWorker, *PWorker;
 
 
   
@@ -415,65 +436,68 @@
 #define FRAC( x )     ( (x) & ( ras.precision - 1 ) )
 #define SCALED( x )   ( ( (x) << ras.scale_shift ) - ras.precision_half )
 
-  
+#define IS_BOTTOM_OVERSHOOT( x )  ( CEILING( x ) - x >= ras.precision_half )
+#define IS_TOP_OVERSHOOT( x )     ( x - FLOOR( x ) >= ras.precision_half )
+
   
   
   
 
   struct  TWorker_
   {
-    Int       precision_bits;       
-    Int       precision;
-    Int       precision_half;
-    Long      precision_mask;
-    Int       precision_shift;
-    Int       precision_step;
-    Int       precision_jitter;
+    Int         precision_bits;     
+    Int         precision;
+    Int         precision_half;
+    Long        precision_mask;
+    Int         precision_shift;
+    Int         precision_step;
+    Int         precision_jitter;
 
-    Int       scale_shift;          
+    Int         scale_shift;        
                                     
 
-    PLong     buff;                 
-    PLong     sizeBuff;             
-    PLong     maxBuff;              
-    PLong     top;                  
+    PLong       buff;               
+    PLong       sizeBuff;           
+    PLong       maxBuff;            
+    PLong       top;                
 
-    FT_Error  error;
+    FT_Error    error;
 
-    Int       numTurns;             
+    Int         numTurns;           
 
-    TPoint*   arc;                  
+    TPoint*     arc;                
 
-    UShort    bWidth;               
-    PByte     bTarget;              
-    PByte     gTarget;              
+    UShort      bWidth;             
+    PByte       bTarget;            
+    PByte       gTarget;            
 
-    Long      lastX, lastY, minY, maxY;
+    Long        lastX, lastY;
+    Long        minY, maxY;
 
-    UShort    num_Profs;            
+    UShort      num_Profs;          
 
-    Bool      fresh;                
+    Bool        fresh;              
                                     
-    Bool      joint;                
+    Bool        joint;              
                                     
                                     
-    PProfile  cProfile;             
-    PProfile  fProfile;             
-    PProfile  gProfile;             
+    PProfile    cProfile;           
+    PProfile    fProfile;           
+    PProfile    gProfile;           
                                     
 
-    TStates   state;                
+    TStates     state;              
 
     FT_Bitmap   target;             
     FT_Outline  outline;
 
-    Long      traceOfs;             
-    Long      traceG;               
+    Long        traceOfs;           
+    Long        traceG;             
 
-    Short     traceIncr;            
+    Short       traceIncr;          
 
-    Short     gray_min_x;           
-    Short     gray_max_x;           
+    Short       gray_min_x;         
+    Short       gray_max_x;         
 
     
 
@@ -482,31 +506,31 @@
     Function_Sweep_Span*  Proc_Sweep_Drop;
     Function_Sweep_Step*  Proc_Sweep_Step;
 
-    Byte      dropOutControl;       
+    Byte        dropOutControl;     
 
-    Bool      second_pass;          
+    Bool        second_pass;        
                                     
                                     
                                     
                                     
                                     
 
-    TPoint    arcs[3 * MaxBezier + 1]; 
+    TPoint      arcs[3 * MaxBezier + 1]; 
 
-    TBand     band_stack[16];       
-    Int       band_top;             
+    TBand       band_stack[16];     
+    Int         band_top;           
 
 #ifdef FT_RASTER_OPTION_ANTI_ALIASING
 
-    Byte*     grays;
+    Byte*       grays;
 
-    Byte      gray_lines[RASTER_GRAY_LINES];
+    Byte        gray_lines[RASTER_GRAY_LINES];
                                 
                                 
                                 
                                 
 
-    Short     gray_width;       
+    Short       gray_width;     
                                 
                                 
 
@@ -518,23 +542,23 @@
   };
 
 
-  typedef struct TRaster_
+  typedef struct  TRaster_
   {
-    char*     buffer;
-    long      buffer_size;
-    void*     memory;
-    PWorker   worker;
-    Byte      grays[5];
-    Short     gray_width;
+    char*    buffer;
+    long     buffer_size;
+    void*    memory;
+    PWorker  worker;
+    Byte     grays[5];
+    Short    gray_width;
 
   } TRaster, *PRaster;
 
 #ifdef FT_STATIC_RASTER
 
-  static TWorker   cur_ras;
+  static TWorker  cur_ras;
 #define ras  cur_ras
 
-#else
+#else 
 
 #define ras  (*worker)
 
@@ -543,24 +567,63 @@
 
 #ifdef FT_RASTER_OPTION_ANTI_ALIASING
 
-static const char  count_table[256] =
-{
-  0 , 1 , 1 , 2 , 1 , 2 , 2 , 3 , 1 , 2 , 2 , 3 , 2 , 3 , 3 , 4,
-  1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5,
-  1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5,
-  2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6,
-  1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5,
-  2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6,
-  2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6,
-  3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7,
-  1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5,
-  2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6,
-  2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6,
-  3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7,
-  2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 6,
-  3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7,
-  3 , 4 , 4 , 5 , 4 , 5 , 5 , 6 , 4 , 5 , 5 , 6 , 5 , 6 , 6 , 7,
-  4 , 5 , 5 , 6 , 5 , 6 , 6 , 7 , 5 , 6 , 6 , 7 , 6 , 7 , 7 , 8 };
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  static const short  count_table[256] =
+  {
+    0x0000, 0x0001, 0x0001, 0x0002, 0x0010, 0x0011, 0x0011, 0x0012,
+    0x0010, 0x0011, 0x0011, 0x0012, 0x0020, 0x0021, 0x0021, 0x0022,
+    0x0100, 0x0101, 0x0101, 0x0102, 0x0110, 0x0111, 0x0111, 0x0112,
+    0x0110, 0x0111, 0x0111, 0x0112, 0x0120, 0x0121, 0x0121, 0x0122,
+    0x0100, 0x0101, 0x0101, 0x0102, 0x0110, 0x0111, 0x0111, 0x0112,
+    0x0110, 0x0111, 0x0111, 0x0112, 0x0120, 0x0121, 0x0121, 0x0122,
+    0x0200, 0x0201, 0x0201, 0x0202, 0x0210, 0x0211, 0x0211, 0x0212,
+    0x0210, 0x0211, 0x0211, 0x0212, 0x0220, 0x0221, 0x0221, 0x0222,
+    0x1000, 0x1001, 0x1001, 0x1002, 0x1010, 0x1011, 0x1011, 0x1012,
+    0x1010, 0x1011, 0x1011, 0x1012, 0x1020, 0x1021, 0x1021, 0x1022,
+    0x1100, 0x1101, 0x1101, 0x1102, 0x1110, 0x1111, 0x1111, 0x1112,
+    0x1110, 0x1111, 0x1111, 0x1112, 0x1120, 0x1121, 0x1121, 0x1122,
+    0x1100, 0x1101, 0x1101, 0x1102, 0x1110, 0x1111, 0x1111, 0x1112,
+    0x1110, 0x1111, 0x1111, 0x1112, 0x1120, 0x1121, 0x1121, 0x1122,
+    0x1200, 0x1201, 0x1201, 0x1202, 0x1210, 0x1211, 0x1211, 0x1212,
+    0x1210, 0x1211, 0x1211, 0x1212, 0x1220, 0x1221, 0x1221, 0x1222,
+    0x1000, 0x1001, 0x1001, 0x1002, 0x1010, 0x1011, 0x1011, 0x1012,
+    0x1010, 0x1011, 0x1011, 0x1012, 0x1020, 0x1021, 0x1021, 0x1022,
+    0x1100, 0x1101, 0x1101, 0x1102, 0x1110, 0x1111, 0x1111, 0x1112,
+    0x1110, 0x1111, 0x1111, 0x1112, 0x1120, 0x1121, 0x1121, 0x1122,
+    0x1100, 0x1101, 0x1101, 0x1102, 0x1110, 0x1111, 0x1111, 0x1112,
+    0x1110, 0x1111, 0x1111, 0x1112, 0x1120, 0x1121, 0x1121, 0x1122,
+    0x1200, 0x1201, 0x1201, 0x1202, 0x1210, 0x1211, 0x1211, 0x1212,
+    0x1210, 0x1211, 0x1211, 0x1212, 0x1220, 0x1221, 0x1221, 0x1222,
+    0x2000, 0x2001, 0x2001, 0x2002, 0x2010, 0x2011, 0x2011, 0x2012,
+    0x2010, 0x2011, 0x2011, 0x2012, 0x2020, 0x2021, 0x2021, 0x2022,
+    0x2100, 0x2101, 0x2101, 0x2102, 0x2110, 0x2111, 0x2111, 0x2112,
+    0x2110, 0x2111, 0x2111, 0x2112, 0x2120, 0x2121, 0x2121, 0x2122,
+    0x2100, 0x2101, 0x2101, 0x2102, 0x2110, 0x2111, 0x2111, 0x2112,
+    0x2110, 0x2111, 0x2111, 0x2112, 0x2120, 0x2121, 0x2121, 0x2122,
+    0x2200, 0x2201, 0x2201, 0x2202, 0x2210, 0x2211, 0x2211, 0x2212,
+    0x2210, 0x2211, 0x2211, 0x2212, 0x2220, 0x2221, 0x2221, 0x2222
+  };
 
 #endif 
 
@@ -592,9 +655,9 @@ static const char  count_table[256] =
   {
     if ( High )
     {
-      ras.precision_bits   = 10;
-      ras.precision_step   = 128;
-      ras.precision_jitter = 24;
+      ras.precision_bits   = 12;
+      ras.precision_step   = 256;
+      ras.precision_jitter = 50;
     }
     else
     {
@@ -627,8 +690,12 @@ static const char  count_table[256] =
   
   
   
+  
+  
+  
   static Bool
-  New_Profile( RAS_ARGS TStates  aState )
+  New_Profile( RAS_ARGS TStates  aState,
+                        Bool     overshoot )
   {
     if ( !ras.fProfile )
     {
@@ -643,29 +710,35 @@ static const char  count_table[256] =
       return FAILURE;
     }
 
-    switch ( aState )
-    {
-    case Ascending_State:
-      ras.cProfile->flow = Flow_Up;
-      FT_TRACE6(( "New ascending profile = %lx\n", (long)ras.cProfile ));
-      break;
-
-    case Descending_State:
-      ras.cProfile->flow = Flow_Down;
-      FT_TRACE6(( "New descending profile = %lx\n", (long)ras.cProfile ));
-      break;
-
-    default:
-      FT_ERROR(( "New_Profile: invalid profile direction!\n" ));
-      ras.error = Raster_Err_Invalid;
-      return FAILURE;
-    }
-
+    ras.cProfile->flags  = 0;
     ras.cProfile->start  = 0;
     ras.cProfile->height = 0;
     ras.cProfile->offset = ras.top;
     ras.cProfile->link   = (PProfile)0;
     ras.cProfile->next   = (PProfile)0;
+    ras.cProfile->flags  = ras.dropOutControl;
+
+    switch ( aState )
+    {
+    case Ascending_State:
+      ras.cProfile->flags |= Flow_Up;
+      if ( overshoot )
+        ras.cProfile->flags |= Overshoot_Bottom;
+
+      FT_TRACE6(( "New ascending profile = %lx\n", (long)ras.cProfile ));
+      break;
+
+    case Descending_State:
+      if ( overshoot )
+        ras.cProfile->flags |= Overshoot_Top;
+      FT_TRACE6(( "New descending profile = %lx\n", (long)ras.cProfile ));
+      break;
+
+    default:
+      FT_ERROR(( "New_Profile: invalid profile direction\n" ));
+      ras.error = Raster_Err_Invalid;
+      return FAILURE;
+    }
 
     if ( !ras.gProfile )
       ras.gProfile = ras.cProfile;
@@ -689,8 +762,12 @@ static const char  count_table[256] =
   
   
   
+  
+  
+  
+  
   static Bool
-  End_Profile( RAS_ARG )
+  End_Profile( RAS_ARGS Bool  overshoot )
   {
     Long      h;
     PProfile  oldProfile;
@@ -700,7 +777,7 @@ static const char  count_table[256] =
 
     if ( h < 0 )
     {
-      FT_ERROR(( "End_Profile: negative height encountered!\n" ));
+      FT_ERROR(( "End_Profile: negative height encountered\n" ));
       ras.error = Raster_Err_Neg_Height;
       return FAILURE;
     }
@@ -710,15 +787,24 @@ static const char  count_table[256] =
       FT_TRACE6(( "Ending profile %lx, start = %ld, height = %ld\n",
                   (long)ras.cProfile, ras.cProfile->start, h ));
 
-      oldProfile           = ras.cProfile;
       ras.cProfile->height = h;
-      ras.cProfile         = (PProfile)ras.top;
+      if ( overshoot )
+      {
+        if ( ras.cProfile->flags & Flow_Up )
+          ras.cProfile->flags |= Overshoot_Top;
+        else
+          ras.cProfile->flags |= Overshoot_Bottom;
+      }
 
-      ras.top             += AlignProfileSize;
+      oldProfile   = ras.cProfile;
+      ras.cProfile = (PProfile)ras.top;
+
+      ras.top += AlignProfileSize;
 
       ras.cProfile->height = 0;
       ras.cProfile->offset = ras.top;
-      oldProfile->next     = ras.cProfile;
+
+      oldProfile->next = ras.cProfile;
       ras.num_Profs++;
     }
 
@@ -810,10 +896,10 @@ static const char  count_table[256] =
 
 
     n = ras.num_Profs;
+    p = ras.fProfile;
 
-    if ( n > 1 )
+    if ( n > 1 && p )
     {
-      p = ras.fProfile;
       while ( n > 0 )
       {
         if ( n > 1 )
@@ -821,23 +907,21 @@ static const char  count_table[256] =
         else
           p->link = NULL;
 
-        switch ( p->flow )
+        if ( p->flags & Flow_Up )
         {
-        case Flow_Down:
+          bottom = (Int)p->start;
+          top    = (Int)( p->start + p->height - 1 );
+        }
+        else
+        {
           bottom     = (Int)( p->start - p->height + 1 );
           top        = (Int)p->start;
           p->start   = bottom;
           p->offset += p->height - 1;
-          break;
-
-        case Flow_Up:
-        default:
-          bottom = (Int)p->start;
-          top    = (Int)( p->start + p->height - 1 );
         }
 
-        if ( Insert_Y_Turn( RAS_VARS bottom )   ||
-             Insert_Y_Turn( RAS_VARS top + 1 )  )
+        if ( Insert_Y_Turn( RAS_VARS bottom )  ||
+             Insert_Y_Turn( RAS_VARS top + 1 ) )
           return FAILURE;
 
         p = p->link;
@@ -1229,7 +1313,7 @@ static const char  count_table[256] =
         }
         else
         {
-          *top++ = arc[degree].x + FMulDiv( arc[0].x-arc[degree].x,
+          *top++ = arc[degree].x + FMulDiv( arc[0].x - arc[degree].x,
                                             e - y1, y2 - y1 );
           arc -= degree;
           e   += ras.precision;
@@ -1334,13 +1418,15 @@ static const char  count_table[256] =
     case Unknown_State:
       if ( y > ras.lastY )
       {
-        if ( New_Profile( RAS_VARS Ascending_State ) )
+        if ( New_Profile( RAS_VARS Ascending_State,
+                                   IS_BOTTOM_OVERSHOOT( ras.lastY ) ) )
           return FAILURE;
       }
       else
       {
         if ( y < ras.lastY )
-          if ( New_Profile( RAS_VARS Descending_State ) )
+          if ( New_Profile( RAS_VARS Descending_State,
+                                     IS_TOP_OVERSHOOT( ras.lastY ) ) )
             return FAILURE;
       }
       break;
@@ -1348,8 +1434,9 @@ static const char  count_table[256] =
     case Ascending_State:
       if ( y < ras.lastY )
       {
-        if ( End_Profile( RAS_VAR )                   ||
-             New_Profile( RAS_VARS Descending_State ) )
+        if ( End_Profile( RAS_VARS IS_TOP_OVERSHOOT( ras.lastY ) ) ||
+             New_Profile( RAS_VARS Descending_State,
+                                   IS_TOP_OVERSHOOT( ras.lastY ) ) )
           return FAILURE;
       }
       break;
@@ -1357,8 +1444,9 @@ static const char  count_table[256] =
     case Descending_State:
       if ( y > ras.lastY )
       {
-        if ( End_Profile( RAS_VAR )                  ||
-             New_Profile( RAS_VARS Ascending_State ) )
+        if ( End_Profile( RAS_VARS IS_BOTTOM_OVERSHOOT( ras.lastY ) ) ||
+             New_Profile( RAS_VARS Ascending_State,
+                                   IS_BOTTOM_OVERSHOOT( ras.lastY ) ) )
           return FAILURE;
       }
       break;
@@ -1373,13 +1461,13 @@ static const char  count_table[256] =
     {
     case Ascending_State:
       if ( Line_Up( RAS_VARS ras.lastX, ras.lastY,
-                    x, y, ras.minY, ras.maxY ) )
+                             x, y, ras.minY, ras.maxY ) )
         return FAILURE;
       break;
 
     case Descending_State:
       if ( Line_Down( RAS_VARS ras.lastX, ras.lastY,
-                      x, y, ras.minY, ras.maxY ) )
+                               x, y, ras.minY, ras.maxY ) )
         return FAILURE;
       break;
 
@@ -1430,8 +1518,10 @@ static const char  count_table[256] =
     ras.arc      = ras.arcs;
     ras.arc[2].x = ras.lastX;
     ras.arc[2].y = ras.lastY;
-    ras.arc[1].x = cx; ras.arc[1].y = cy;
-    ras.arc[0].x = x;  ras.arc[0].y = y;
+    ras.arc[1].x = cx;
+    ras.arc[1].y = cy;
+    ras.arc[0].x = x;
+    ras.arc[0].y = y;
 
     do
     {
@@ -1471,13 +1561,17 @@ static const char  count_table[256] =
         state_bez = y1 < y3 ? Ascending_State : Descending_State;
         if ( ras.state != state_bez )
         {
+          Bool  o = state_bez == Ascending_State ? IS_BOTTOM_OVERSHOOT( y1 )
+                                                 : IS_TOP_OVERSHOOT( y1 );
+
+
           
-          if ( ras.state != Unknown_State   &&
-               End_Profile( RAS_VAR ) )
+          if ( ras.state != Unknown_State &&
+               End_Profile( RAS_VARS o )  )
             goto Fail;
 
           
-          if ( New_Profile( RAS_VARS state_bez ) )
+          if ( New_Profile( RAS_VARS state_bez, o ) )
             goto Fail;
         }
 
@@ -1546,9 +1640,12 @@ static const char  count_table[256] =
     ras.arc      = ras.arcs;
     ras.arc[3].x = ras.lastX;
     ras.arc[3].y = ras.lastY;
-    ras.arc[2].x = cx1; ras.arc[2].y = cy1;
-    ras.arc[1].x = cx2; ras.arc[1].y = cy2;
-    ras.arc[0].x = x;   ras.arc[0].y = y;
+    ras.arc[2].x = cx1;
+    ras.arc[2].y = cy1;
+    ras.arc[1].x = cx2;
+    ras.arc[1].y = cy2;
+    ras.arc[0].x = x;
+    ras.arc[0].y = y;
 
     do
     {
@@ -1600,11 +1697,16 @@ static const char  count_table[256] =
         
         if ( ras.state != state_bez )
         {
-          if ( ras.state != Unknown_State   &&
-               End_Profile( RAS_VAR ) )
+          Bool  o = state_bez == Ascending_State ? IS_BOTTOM_OVERSHOOT( y1 )
+                                                 : IS_TOP_OVERSHOOT( y1 );
+
+
+          
+          if ( ras.state != Unknown_State &&
+               End_Profile( RAS_VARS o )  )
             goto Fail;
 
-          if ( New_Profile( RAS_VARS state_bez ) )
+          if ( New_Profile( RAS_VARS state_bez, o ) )
             goto Fail;
         }
 
@@ -1697,8 +1799,13 @@ static const char  count_table[256] =
     v_control = v_start;
 
     point = points + first;
-    tags  = ras.outline.tags  + first;
-    tag   = FT_CURVE_TAG( tags[0] );
+    tags  = ras.outline.tags + first;
+
+    
+    if ( tags[0] & FT_CURVE_TAG_HAS_SCANMODE )
+      ras.dropOutControl = (Byte)tags[0] >> 5;
+
+    tag = FT_CURVE_TAG( tags[0] );
 
     
     if ( tag == FT_CURVE_TAG_CUBIC )
@@ -1904,12 +2011,15 @@ static const char  count_table[256] =
 
     for ( i = 0; i < ras.outline.n_contours; i++ )
     {
+      Bool  o;
+
+
       ras.state    = Unknown_State;
       ras.gProfile = NULL;
 
       if ( Decompose_Curve( RAS_VARS (unsigned short)start,
-                            ras.outline.contours[i],
-                            flipped ) )
+                                     ras.outline.contours[i],
+                                     flipped ) )
         return FAILURE;
 
       start = ras.outline.contours[i] + 1;
@@ -1918,13 +2028,19 @@ static const char  count_table[256] =
       if ( FRAC( ras.lastY ) == 0 &&
            ras.lastY >= ras.minY  &&
            ras.lastY <= ras.maxY  )
-        if ( ras.gProfile && ras.gProfile->flow == ras.cProfile->flow )
+        if ( ras.gProfile                        &&
+             ( ras.gProfile->flags & Flow_Up ) ==
+               ( ras.cProfile->flags & Flow_Up ) )
           ras.top--;
         
         
 
       lastProfile = ras.cProfile;
-      if ( End_Profile( RAS_VAR ) )
+      if ( ras.cProfile->flags & Flow_Up )
+        o = IS_TOP_OVERSHOOT( ras.lastY );
+      else
+        o = IS_BOTTOM_OVERSHOOT( ras.lastY );
+      if ( End_Profile( RAS_VARS o ) )
         return FAILURE;
 
       
@@ -2044,7 +2160,7 @@ static const char  count_table[256] =
     while ( current )
     {
       current->X       = *current->offset;
-      current->offset += current->flow;
+      current->offset += current->flags & Flow_Up ? 1 : -1;
       current->height--;
       current = current->link;
     }
@@ -2219,16 +2335,19 @@ static const char  count_table[256] =
 
     if ( e1 > e2 )
     {
+      Int  dropOutControl = left->flags & 7;
+
+
       if ( e1 == e2 + ras.precision )
       {
-        switch ( ras.dropOutControl )
+        switch ( dropOutControl )
         {
         case 0: 
           pxl = e2;
           break;
 
         case 4: 
-          pxl = FLOOR( ( x1 + x2 + 1 ) / 2 + ras.precision_half );
+          pxl = FLOOR( ( x1 + x2 - 1 ) / 2 + ras.precision_half );
           break;
 
         case 1: 
@@ -2254,27 +2373,30 @@ static const char  count_table[256] =
           
           
           
-
           
           
           
-#if 0
-          if ( x2 - x1 < ras.precision_half )
-#endif
-          {
-            
-            if ( left->next == right && left->height <= 0 )
-              return;
+          
+          
 
-            
-            if ( right->next == left && left->start == y )
-              return;
-          }
+          
+          if ( left->next == right                &&
+               left->height <= 0                  &&
+               !( left->flags & Overshoot_Top   &&
+                  x2 - x1 >= ras.precision_half ) )
+            return;
 
-          if ( ras.dropOutControl == 1 )
+          
+          if ( right->next == left                 &&
+               left->start == y                    &&
+               !( left->flags & Overshoot_Bottom &&
+                  x2 - x1 >= ras.precision_half  ) )
+            return;
+
+          if ( dropOutControl == 1 )
             pxl = e2;
           else
-            pxl = FLOOR( ( x1 + x2 + 1 ) / 2 + ras.precision_half );
+            pxl = FLOOR( ( x1 + x2 - 1 ) / 2 + ras.precision_half );
           break;
 
         default: 
@@ -2414,16 +2536,19 @@ static const char  count_table[256] =
 
     if ( e1 > e2 )
     {
+      Int  dropOutControl = left->flags & 7;
+
+
       if ( e1 == e2 + ras.precision )
       {
-        switch ( ras.dropOutControl )
+        switch ( dropOutControl )
         {
         case 0: 
           pxl = e2;
           break;
 
         case 4: 
-          pxl = FLOOR( ( x1 + x2 + 1 ) / 2 + ras.precision_half );
+          pxl = FLOOR( ( x1 + x2 - 1 ) / 2 + ras.precision_half );
           break;
 
         case 1: 
@@ -2431,17 +2556,23 @@ static const char  count_table[256] =
           
 
           
-          if ( left->next == right && left->height <= 0 )
+          if ( left->next == right                &&
+               left->height <= 0                  &&
+               !( left->flags & Overshoot_Top   &&
+                  x2 - x1 >= ras.precision_half ) )
             return;
 
           
-          if ( right->next == left && left->start == y )
+          if ( right->next == left                 &&
+               left->start == y                    &&
+               !( left->flags & Overshoot_Bottom &&
+                  x2 - x1 >= ras.precision_half  ) )
             return;
 
-          if ( ras.dropOutControl == 1 )
+          if ( dropOutControl == 1 )
             pxl = e2;
           else
-            pxl = FLOOR( ( x1 + x2 + 1 ) / 2 + ras.precision_half );
+            pxl = FLOOR( ( x1 + x2 - 1 ) / 2 + ras.precision_half );
           break;
 
         default: 
@@ -2542,10 +2673,10 @@ static const char  count_table[256] =
   static void
   Vertical_Gray_Sweep_Step( RAS_ARG )
   {
-    Int    c1, c2;
-    PByte  pix, bit, bit2;
-    char*  count = (char*)count_table;
-    Byte*  grays;
+    Int     c1, c2;
+    PByte   pix, bit, bit2;
+    short*  count = (short*)count_table;
+    Byte*   grays;
 
 
     ras.traceOfs += ras.gray_width;
@@ -2557,10 +2688,10 @@ static const char  count_table[256] =
 
       if ( ras.gray_max_x >= 0 )
       {
-        Long   last_pixel = ras.target.width - 1;
-        Int    last_cell  = last_pixel >> 2;
-        Int    last_bit   = last_pixel & 3;
-        Bool   over       = 0;
+        Long  last_pixel = ras.target.width - 1;
+        Int   last_cell  = last_pixel >> 2;
+        Int   last_bit   = last_pixel & 3;
+        Bool  over       = 0;
 
 
         if ( ras.gray_max_x >= last_cell && last_bit != 3 )
@@ -2572,8 +2703,8 @@ static const char  count_table[256] =
         if ( ras.gray_min_x < 0 )
           ras.gray_min_x = 0;
 
-        bit   = ras.bTarget + ras.gray_min_x;
-        bit2  = bit + ras.gray_width;
+        bit  = ras.bTarget + ras.gray_min_x;
+        bit2 = bit + ras.gray_width;
 
         c1 = ras.gray_max_x - ras.gray_min_x;
 
@@ -2664,16 +2795,19 @@ static const char  count_table[256] =
 
     if ( e1 > e2 )
     {
+      Int  dropOutControl = left->flags & 7;
+
+
       if ( e1 == e2 + ras.precision )
       {
-        switch ( ras.dropOutControl )
+        switch ( dropOutControl )
         {
         case 0: 
           e1 = e2;
           break;
 
         case 4: 
-          e1 = FLOOR( ( x1 + x2 + 1 ) / 2 + ras.precision_half );
+          e1 = FLOOR( ( x1 + x2 - 1 ) / 2 + ras.precision_half );
           break;
 
         case 1: 
@@ -2688,10 +2822,10 @@ static const char  count_table[256] =
           if ( right->next == left && left->start == y )
             return;
 
-          if ( ras.dropOutControl == 1 )
+          if ( dropOutControl == 1 )
             e1 = e2;
           else
-            e1 = FLOOR( ( x1 + x2 + 1 ) / 2 + ras.precision_half );
+            e1 = FLOOR( ( x1 + x2 - 1 ) / 2 + ras.precision_half );
 
           break;
 
@@ -2805,7 +2939,7 @@ static const char  count_table[256] =
     y        = min_Y;
     y_height = 0;
 
-    if ( ras.numTurns > 0 &&
+    if ( ras.numTurns > 0                     &&
          ras.sizeBuff[-ras.numTurns] == min_Y )
       ras.numTurns--;
 
@@ -2823,16 +2957,10 @@ static const char  count_table[256] =
         {
           DelOld( &waiting, P );
 
-          switch ( P->flow )
-          {
-          case Flow_Up:
+          if ( P->flags & Flow_Up )
             InsNew( &draw_left,  P );
-            break;
-
-          case Flow_Down:
+          else
             InsNew( &draw_right, P );
-            break;
-          }
         }
 
         P = Q;
@@ -2867,14 +2995,18 @@ static const char  count_table[256] =
             x2 = xs;
           }
 
-          if ( x2 - x1 <= ras.precision )
-          {
-            e1 = FLOOR( x1 );
-            e2 = CEILING( x2 );
+          e1 = FLOOR( x1 );
+          e2 = CEILING( x2 );
 
+          if ( x2 - x1 <= ras.precision &&
+               e1 != x1 && e2 != x2     )
+          {
             if ( e1 > e2 || e2 == e1 + ras.precision )
             {
-              if ( ras.dropOutControl != 2 )
+              Int  dropOutControl = P_Left->flags & 7;
+
+
+              if ( dropOutControl != 2 )
               {
                 
 
@@ -3068,7 +3200,7 @@ static const char  count_table[256] =
 
 
     Set_High_Precision( RAS_VARS ras.outline.flags &
-                        FT_OUTLINE_HIGH_PRECISION );
+                                 FT_OUTLINE_HIGH_PRECISION );
     ras.scale_shift = ras.precision_shift;
 
     if ( ras.outline.flags & FT_OUTLINE_IGNORE_DROPOUTS )
@@ -3125,7 +3257,6 @@ static const char  count_table[256] =
 
 #ifdef FT_RASTER_OPTION_ANTI_ALIASING
 
-
   
   
   
@@ -3145,7 +3276,7 @@ static const char  count_table[256] =
 
 
     Set_High_Precision( RAS_VARS ras.outline.flags &
-                        FT_OUTLINE_HIGH_PRECISION );
+                                 FT_OUTLINE_HIGH_PRECISION );
     ras.scale_shift = ras.precision_shift + 1;
 
     if ( ras.outline.flags & FT_OUTLINE_IGNORE_DROPOUTS )
@@ -3233,7 +3364,6 @@ static const char  count_table[256] =
       raster->grays[n] = n * 255 / 4;
 
     raster->gray_width = RASTER_GRAY_LINES / 2;
-
 #else
     FT_UNUSED( raster );
 #endif
@@ -3248,7 +3378,7 @@ static const char  count_table[256] =
 
 
   static int
-  ft_black_new( void*      memory,
+  ft_black_new( void*       memory,
                 FT_Raster  *araster )
   {
      static TRaster  the_raster;
@@ -3306,9 +3436,9 @@ static const char  count_table[256] =
 
 
   static void
-  ft_black_reset( PRaster   raster,
-                  char*     pool_base,
-                  long      pool_size )
+  ft_black_reset( PRaster  raster,
+                  char*    pool_base,
+                  long     pool_size )
   {
     if ( raster )
     {
@@ -3333,9 +3463,9 @@ static const char  count_table[256] =
 
 
   static void
-  ft_black_set_mode( PRaster            raster,
-                     unsigned long      mode,
-                     const char*        palette )
+  ft_black_set_mode( PRaster        raster,
+                     unsigned long  mode,
+                     const char*    palette )
   {
 #ifdef FT_RASTER_OPTION_ANTI_ALIASING
 
@@ -3410,23 +3540,24 @@ static const char  count_table[256] =
 #ifdef FT_RASTER_OPTION_ANTI_ALIASING
     worker->grays      = raster->grays;
     worker->gray_width = raster->gray_width;
+
+    FT_MEM_ZERO( worker->gray_lines, worker->gray_width * 2 );
 #endif
 
-    return ( ( params->flags & FT_RASTER_FLAG_AA )
-               ? Render_Gray_Glyph( RAS_VAR )
-               : Render_Glyph( RAS_VAR ) );
+    return ( params->flags & FT_RASTER_FLAG_AA )
+           ? Render_Gray_Glyph( RAS_VAR )
+           : Render_Glyph( RAS_VAR );
   }
 
 
-  const FT_Raster_Funcs  ft_standard_raster =
-  {
+  FT_DEFINE_RASTER_FUNCS( ft_standard_raster,
     FT_GLYPH_FORMAT_OUTLINE,
     (FT_Raster_New_Func)     ft_black_new,
     (FT_Raster_Reset_Func)   ft_black_reset,
     (FT_Raster_Set_Mode_Func)ft_black_set_mode,
     (FT_Raster_Render_Func)  ft_black_render,
     (FT_Raster_Done_Func)    ft_black_done
-  };
+  )
 
 
 

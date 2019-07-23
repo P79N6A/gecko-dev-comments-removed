@@ -27,8 +27,7 @@
 #include FT_INTERNAL_STREAM_H
 #include FT_INTERNAL_DEBUG_H
 #include FT_LZW_H
-#include <string.h>
-#include <stdio.h>
+#include FT_CONFIG_STANDARD_LIBRARY_H
 
 
 #include FT_MODULE_ERRORS_H
@@ -42,6 +41,10 @@
 
 
 #ifdef FT_CONFIG_OPTION_USE_LZW
+
+#ifdef FT_CONFIG_OPTION_PIC
+#error "lzw code does not support PIC yet"
+#endif 
 
 #include "ftzopen.h"
 
@@ -119,13 +122,9 @@
     zip->pos    = 0;
 
     
-    {
-      stream = source;
-
-      error = ft_lzw_check_header( source );
-      if ( error )
-        goto Exit;
-    }
+    error = ft_lzw_check_header( source );
+    if ( error )
+      goto Exit;
 
     
     ft_lzwstate_init( lzw, source );

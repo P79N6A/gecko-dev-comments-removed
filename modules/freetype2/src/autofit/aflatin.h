@@ -27,8 +27,7 @@ FT_BEGIN_HEADER
 
   
 
-  FT_CALLBACK_TABLE const AF_ScriptClassRec
-  af_latin_script_class;
+  AF_DECLARE_SCRIPT_CLASS(af_latin_script_class)
 
 
 
@@ -137,6 +136,10 @@ FT_BEGIN_HEADER
   af_latin_metrics_init_widths( AF_LatinMetrics  metrics,
                                 FT_Face          face,
                                 FT_ULong         charcode );
+
+  FT_LOCAL( void )
+  af_latin_metrics_check_digits( AF_LatinMetrics  metrics,
+                                 FT_Face          face );
 
 
   

@@ -41,9 +41,14 @@
   FT_LOCAL_DEF( void )
   pfr_face_done( FT_Face  pfrface )     
   {
-    PFR_Face   face   = (PFR_Face)pfrface;
-    FT_Memory  memory = pfrface->driver->root.memory;
+    PFR_Face   face = (PFR_Face)pfrface;
+    FT_Memory  memory;
 
+
+    if ( !face )
+      return;
+
+    memory = pfrface->driver->root.memory;
 
     
     pfrface->family_name = NULL;

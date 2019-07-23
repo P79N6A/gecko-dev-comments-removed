@@ -197,6 +197,7 @@ FT_BEGIN_HEADER
   {
     T1_FIELD_LOCATION_CID_INFO,
     T1_FIELD_LOCATION_FONT_DICT,
+    T1_FIELD_LOCATION_FONT_EXTRA,
     T1_FIELD_LOCATION_FONT_INFO,
     T1_FIELD_LOCATION_PRIVATE,
     T1_FIELD_LOCATION_BBOX,
@@ -227,6 +228,10 @@ FT_BEGIN_HEADER
     FT_UInt             array_max;    
                                       
     FT_UInt             count_offset; 
+                                      
+                                      
+                                      
+                                      
                                       
     FT_UInt             dict;         
   } T1_FieldRec;
@@ -355,7 +360,7 @@ FT_BEGIN_HEADER
     FT_Error
     (*to_bytes)( PS_Parser  parser,
                  FT_Byte*   bytes,
-                 FT_Long    max_bytes,
+                 FT_Offset  max_bytes,
                  FT_Long*   pnum_bytes,
                  FT_Bool    delimiters );
 
@@ -551,8 +556,6 @@ FT_BEGIN_HEADER
   
   
   
-  
-  
   typedef struct  T1_BuilderRec_
   {
     FT_Memory       memory;
@@ -561,8 +564,6 @@ FT_BEGIN_HEADER
     FT_GlyphLoader  loader;
     FT_Outline*     base;
     FT_Outline*     current;
-
-    FT_Vector       last;
 
     FT_Pos          pos_x;
     FT_Pos          pos_y;
@@ -574,7 +575,6 @@ FT_BEGIN_HEADER
     T1_ParseState   parse_state;
     FT_Bool         load_points;
     FT_Bool         no_recurse;
-    FT_Bool         shift;
 
     FT_Bool         metrics_only;
 
@@ -689,8 +689,10 @@ FT_BEGIN_HEADER
     T1_Decoder_Callback  parse_callback;
     T1_Decoder_FuncsRec  funcs;
 
-    FT_Int*              buildchar;
+    FT_Long*             buildchar;
     FT_UInt              len_buildchar;
+
+    FT_Bool              seac;
 
   } T1_DecoderRec;
 
@@ -753,7 +755,7 @@ FT_BEGIN_HEADER
 
     FT_Int
     (*get_index)( const char*  name,
-                  FT_UInt      len,
+                  FT_Offset    len,
                   void*        user_data );
 
     void*         user_data;

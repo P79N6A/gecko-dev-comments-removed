@@ -141,10 +141,13 @@
   
   
 
+  
+
   FT_LOCAL_DEF( void )
   otv_GDEF_validate( FT_Bytes      table,
                      FT_Bytes      gsub,
                      FT_Bytes      gpos,
+                     FT_UInt       glyph_count,
                      FT_Validator  ftvalid )
   {
     OTV_ValidatorRec  validrec;
@@ -182,6 +185,8 @@
       table_size = 12;              
     else
       table_size = 10;              
+
+    valid->glyph_count = glyph_count;
 
     OTV_OPTIONAL_OFFSET( GlyphClassDef );
     OTV_SIZE_CHECK( GlyphClassDef );

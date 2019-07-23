@@ -4,6 +4,7 @@
 
 
 
+
 from sources import *
 from utils import *
 import string, re
@@ -539,9 +540,10 @@ class  DocBlock:
         while start < end and not string.strip( source[end] ):
             end = end - 1
 
-        source = source[start:end + 1]
-
-        self.code = source
+        if start == end and not string.strip( source[start] ):
+            self.code = []
+        else:
+            self.code = source[start:end + 1]
 
     def  location( self ):
         return self.source.location()

@@ -92,7 +92,7 @@ FT_BEGIN_HEADER
 
 #else 
 
-#define FT_TRACE( level, varformat )  do ; while ( 0 )      /* nothing */
+#define FT_TRACE( level, varformat )  do { } while ( 0 )      /* nothing */
 
 #endif 
 
@@ -178,7 +178,7 @@ FT_BEGIN_HEADER
 
 #else  
 
-#define FT_ERROR( varformat )  do ; while ( 0 )      /* nothing */
+#define FT_ERROR( varformat )  do { } while ( 0 )      /* nothing */
 
 #endif 
 
@@ -201,7 +201,7 @@ FT_BEGIN_HEADER
 
 #else 
 
-#define FT_ASSERT( condition )  do ; while ( 0 )
+#define FT_ASSERT( condition )  do { } while ( 0 )
 
 #endif 
 

@@ -26,6 +26,9 @@
 #include "ftccback.h"
 #include "ftcerror.h"
 
+#undef  FT_COMPONENT
+#define FT_COMPONENT  trace_cache
+
 
   
   
@@ -129,13 +132,13 @@
       FT_Int        temp;
       FT_GlyphSlot  slot   = face->glyph;
       FT_Bitmap*    bitmap = &slot->bitmap;
-      FT_Int        xadvance, yadvance;
+      FT_Pos        xadvance, yadvance; 
 
 
       if ( slot->format != FT_GLYPH_FORMAT_BITMAP )
       {
-        FT_ERROR(( "%s: glyph loaded didn't return a bitmap!\n",
-                   "ftc_snode_load" ));
+        FT_TRACE0(( "ftc_snode_load:"
+                    " glyph loaded didn't return a bitmap\n" ));
         goto BadGlyph;
       }
 
@@ -263,7 +266,7 @@
   }
 
 
-  FT_LOCAL_DEF( FT_ULong )
+  FT_LOCAL_DEF( FT_Offset )
   ftc_snode_weight( FTC_Node   ftcsnode,
                     FTC_Cache  cache )
   {
@@ -271,7 +274,7 @@
     FT_UInt    count = snode->count;
     FTC_SBit   sbit  = snode->sbits;
     FT_Int     pitch;
-    FT_ULong   size;
+    FT_Offset  size;
 
     FT_UNUSED( cache );
 
@@ -300,7 +303,7 @@
 
 #if 0
 
-  FT_LOCAL_DEF( FT_ULong )
+  FT_LOCAL_DEF( FT_Offset )
   FTC_SNode_Weight( FTC_SNode  snode )
   {
     return ftc_snode_weight( FTC_NODE( snode ), NULL );

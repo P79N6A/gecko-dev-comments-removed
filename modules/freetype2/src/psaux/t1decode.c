@@ -16,7 +16,9 @@
 
 
 
+
 #include <ft2build.h>
+#include FT_INTERNAL_CALC_H
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_POSTSCRIPT_HINTS_H
 #include FT_OUTLINE_H
@@ -144,7 +146,8 @@
       FT_String*  name = (FT_String*)decoder->glyph_names[n];
 
 
-      if ( name && name[0] == glyph_name[0]  &&
+      if ( name                               &&
+           name[0] == glyph_name[0]           &&
            ft_strcmp( name, glyph_name ) == 0 )
         return n;
     }
@@ -193,26 +196,52 @@
 #endif
     FT_Vector    left_bearing, advance;
 
+#ifdef FT_CONFIG_OPTION_INCREMENTAL
+    T1_Face      face  = (T1_Face)decoder->builder.face;
+#endif     
+
+
+    if ( decoder->seac )
+    {
+      FT_ERROR(( "t1operator_seac: invalid nested seac\n" ));
+      return PSaux_Err_Syntax_Error;
+    }
 
     
     adx += decoder->builder.left_bearing.x;
 
     
     
+#ifdef FT_CONFIG_OPTION_INCREMENTAL
+    if ( decoder->glyph_names == 0                   &&
+         !face->root.internal->incremental_interface )
+#else
     if ( decoder->glyph_names == 0 )
+#endif 
     {
-      FT_ERROR(( "t1operator_seac:" ));
-      FT_ERROR(( " glyph names table not available in this font!\n" ));
+      FT_ERROR(( "t1operator_seac:"
+                 " glyph names table not available in this font\n" ));
       return PSaux_Err_Syntax_Error;
     }
 
-    bchar_index = t1_lookup_glyph_by_stdcharcode( decoder, bchar );
-    achar_index = t1_lookup_glyph_by_stdcharcode( decoder, achar );
+#ifdef FT_CONFIG_OPTION_INCREMENTAL
+    if ( face->root.internal->incremental_interface )
+    {
+      
+      bchar_index = bchar;
+      achar_index = achar;
+    }
+    else
+#endif
+    {
+      bchar_index = t1_lookup_glyph_by_stdcharcode( decoder, bchar );
+      achar_index = t1_lookup_glyph_by_stdcharcode( decoder, achar );
+    }
 
     if ( bchar_index < 0 || achar_index < 0 )
     {
-      FT_ERROR(( "t1operator_seac:" ));
-      FT_ERROR(( " invalid seac character code arguments\n" ));
+      FT_ERROR(( "t1operator_seac:"
+                 " invalid seac character code arguments\n" ));
       return PSaux_Err_Syntax_Error;
     }
 
@@ -243,8 +272,8 @@
       
       subg->index = achar_index;
       subg->flags = FT_SUBGLYPH_FLAG_ARGS_ARE_XY_VALUES;
-      subg->arg1  = (FT_Int)( adx - asb );
-      subg->arg2  = (FT_Int)ady;
+      subg->arg1  = (FT_Int)FIXED_TO_INT( adx - asb );
+      subg->arg2  = (FT_Int)FIXED_TO_INT( ady );
 
       
       glyph->num_subglyphs = 2;
@@ -260,7 +289,10 @@
 
     FT_GlyphLoader_Prepare( decoder->builder.loader );  
 
+    
+    decoder->seac = TRUE;
     error = t1_decoder_parse_glyph( decoder, bchar_index );
+    decoder->seac = FALSE;
     if ( error )
       goto Exit;
 
@@ -278,7 +310,11 @@
 
     
     
+
+    
+    decoder->seac = TRUE;
     error = t1_decoder_parse_glyph( decoder, achar_index );
+    decoder->seac = FALSE;
     if ( error )
       goto Exit;
 
@@ -327,8 +363,14 @@
     FT_Pos           x, y, orig_x, orig_y;
     FT_Int           known_othersubr_result_cnt   = 0;
     FT_Int           unknown_othersubr_result_cnt = 0;
+    FT_Bool          large_int;
+    FT_Fixed         seed;
 
     T1_Hints_Funcs   hinter;
+
+#ifdef FT_DEBUG_LEVEL_TRACE
+    FT_Bool          bol = TRUE;
+#endif
 
 
     
@@ -338,6 +380,16 @@
 #define add_point1     t1_builder_add_point1
 #define add_contour    t1_builder_add_contour
 #define close_contour  t1_builder_close_contour
+
+
+    
+    seed = (FT_Fixed)( ( (FT_PtrDist)(char*)&seed              ^
+                         (FT_PtrDist)(char*)&decoder           ^
+                         (FT_PtrDist)(char*)&charstring_base ) &
+                         FT_ULONG_MAX ) ;
+    seed = ( seed ^ ( seed >> 10 ) ^ ( seed >> 20 ) ) & 0xFFFFL;
+    if ( seed == 0 )
+      seed = 0x7384;
 
     
     decoder->top  = decoder->stack;
@@ -351,15 +403,15 @@
     
     
     FT_ASSERT( ( decoder->len_buildchar == 0 ) ==
-               ( decoder->buildchar == NULL ) );
+               ( decoder->buildchar == NULL )  );
 
     if ( decoder->len_buildchar > 0 )
-      memset( &decoder->buildchar[0],
-              0,
-              sizeof( decoder->buildchar[0] ) *
-                decoder->len_buildchar );
+      ft_memset( &decoder->buildchar[0],
+                 0,
+                 sizeof( decoder->buildchar[0] ) * decoder->len_buildchar );
 
-    FT_TRACE4(( "\nStart charstring\n" ));
+    FT_TRACE4(( "\n"
+                "Start charstring\n" ));
 
     zone->base           = charstring_base;
     limit = zone->limit  = charstring_base + charstring_len;
@@ -374,18 +426,26 @@
     if ( hinter )
       hinter->open( hinter->hints );
 
+    large_int = FALSE;
+
     
     while ( ip < limit )
     {
       FT_Long*     top   = decoder->top;
       T1_Operator  op    = op_none;
-      FT_Long      value = 0;
+      FT_Int32     value = 0;
 
 
       FT_ASSERT( known_othersubr_result_cnt == 0   ||
                  unknown_othersubr_result_cnt == 0 );
 
-      FT_TRACE5(( " (%d)", decoder->top - decoder->stack ));
+#ifdef FT_DEBUG_LEVEL_TRACE
+      if ( bol )
+      {
+        FT_TRACE5(( " (%d)", decoder->top - decoder->stack ));
+        bol = FALSE;
+      }
+#endif
 
       
       
@@ -456,8 +516,8 @@
       case 12:
         if ( ip > limit )
         {
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "invalid escape (12+EOF)\n" ));
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " invalid escape (12+EOF)\n" ));
           goto Syntax_Error;
         }
 
@@ -492,8 +552,8 @@
           break;
 
         default:
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "invalid escape (12+%d)\n",
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " invalid escape (12+%d)\n",
                      ip[-1] ));
           goto Syntax_Error;
         }
@@ -502,42 +562,69 @@
       case 255:    
         if ( ip + 4 > limit )
         {
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "unexpected EOF in integer\n" ));
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " unexpected EOF in integer\n" ));
           goto Syntax_Error;
         }
 
-        value = (FT_Int32)( ((FT_Long)ip[0] << 24) |
-                            ((FT_Long)ip[1] << 16) |
-                            ((FT_Long)ip[2] << 8 ) |
-                                      ip[3] );
+        value = (FT_Int32)( ( (FT_Long)ip[0] << 24 ) |
+                            ( (FT_Long)ip[1] << 16 ) |
+                            ( (FT_Long)ip[2] << 8  ) |
+                                       ip[3]         );
         ip += 4;
+
+        
+        
+        
+        
+        
+        
+        
+        if ( value > 32000 || value < -32000 )
+        {
+          if ( large_int )
+          {
+            FT_ERROR(( "t1_decoder_parse_charstrings:"
+                       " no `div' after large integer\n" ));
+          }
+          else
+            large_int = TRUE;
+        }
+        else
+        {
+          if ( !large_int )
+            value <<= 16;
+        }
+
         break;
 
       default:
         if ( ip[-1] >= 32 )
         {
           if ( ip[-1] < 247 )
-            value = (FT_Long)ip[-1] - 139;
+            value = (FT_Int32)ip[-1] - 139;
           else
           {
             if ( ++ip > limit )
             {
-              FT_ERROR(( "t1_decoder_parse_charstrings: " ));
-              FT_ERROR(( "unexpected EOF in integer\n" ));
+              FT_ERROR(( "t1_decoder_parse_charstrings:"
+                         " unexpected EOF in integer\n" ));
               goto Syntax_Error;
             }
 
             if ( ip[-2] < 251 )
-              value =  ( ( (FT_Long)ip[-2] - 247 ) << 8 ) + ip[-1] + 108;
+              value =  ( ( (FT_Int32)ip[-2] - 247 ) << 8 ) + ip[-1] + 108;
             else
-              value = -( ( ( (FT_Long)ip[-2] - 251 ) << 8 ) + ip[-1] + 108 );
+              value = -( ( ( (FT_Int32)ip[-2] - 251 ) << 8 ) + ip[-1] + 108 );
           }
+
+          if ( !large_int )
+            value <<= 16;
         }
         else
         {
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "invalid byte (%d)\n", ip[-1] ));
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " invalid byte (%d)\n", ip[-1] ));
           goto Syntax_Error;
         }
       }
@@ -559,6 +646,14 @@
         }
       }
 
+      if ( large_int && !( op == op_none || op == op_div ) )
+      {
+        FT_ERROR(( "t1_decoder_parse_charstrings:"
+                   " no `div' after large integer\n" ));
+
+        large_int = FALSE;
+      }
+
       
       
       
@@ -568,11 +663,16 @@
       {
         if ( top - decoder->stack >= T1_MAX_CHARSTRINGS_OPERANDS )
         {
-          FT_ERROR(( "t1_decoder_parse_charstrings: stack overflow!\n" ));
+          FT_ERROR(( "t1_decoder_parse_charstrings: stack overflow\n" ));
           goto Syntax_Error;
         }
 
-        FT_TRACE4(( " %ld", value ));
+#ifdef FT_DEBUG_LEVEL_TRACE
+        if ( large_int )
+          FT_TRACE4(( " %ld", value ));
+        else
+          FT_TRACE4(( " %ld", (FT_Int32)( value >> 16 ) ));
+#endif
 
         *top++       = value;
         decoder->top = top;
@@ -583,15 +683,18 @@
         FT_Int  arg_cnt;
 
 
-        FT_TRACE4(( " callothersubr" ));
+#ifdef FT_DEBUG_LEVEL_TRACE
+        FT_TRACE4(( " callothersubr\n" ));
+        bol = TRUE;
+#endif
 
         if ( top - decoder->stack < 2 )
           goto Stack_Underflow;
 
         top -= 2;
 
-        subr_no = (FT_Int)top[1];
-        arg_cnt = (FT_Int)top[0];
+        subr_no = (FT_Int)( top[1] >> 16 );
+        arg_cnt = (FT_Int)( top[0] >> 16 );
 
         
         
@@ -668,8 +771,8 @@
           if ( decoder->flex_state       == 0 ||
                decoder->num_flex_vectors != 7 )
           {
-            FT_ERROR(( "t1_decoder_parse_charstrings: "
-                       "unexpected flex end\n" ));
+            FT_ERROR(( "t1_decoder_parse_charstrings:"
+                       " unexpected flex end\n" ));
             goto Syntax_Error;
           }
 
@@ -685,7 +788,6 @@
 
           if ( hinter )
             hinter->reset( hinter->hints, builder->current->n_points );
-
           break;
 
         case 12:
@@ -708,16 +810,16 @@
 
             if ( !blend )
             {
-              FT_ERROR(( "t1_decoder_parse_charstrings: " ));
-              FT_ERROR(( "unexpected multiple masters operator!\n" ));
+              FT_ERROR(( "t1_decoder_parse_charstrings:"
+                         " unexpected multiple masters operator\n" ));
               goto Syntax_Error;
             }
 
             num_points = (FT_UInt)subr_no - 13 + ( subr_no == 18 );
             if ( arg_cnt != (FT_Int)( num_points * blend->num_designs ) )
             {
-              FT_ERROR(( "t1_decoder_parse_charstrings: " ));
-              FT_ERROR(( "incorrect number of mm arguments\n" ));
+              FT_ERROR(( "t1_decoder_parse_charstrings:"
+                         " incorrect number of multiple masters arguments\n" ));
               goto Syntax_Error;
             }
 
@@ -753,12 +855,6 @@
             break;
           }
 
-#ifdef CAN_HANDLE_NON_INTEGRAL_T1_OPERANDS
-
-          
-          
-          
-
         case 19:
           
           
@@ -771,16 +867,16 @@
             if ( arg_cnt != 1 || blend == NULL )
               goto Unexpected_OtherSubr;
 
-            idx = top[0];
+            idx = (FT_Int)( top[0] >> 16 );
 
-            if ( idx < 0                                                 ||
-                 idx + blend->num_designs > decoder->face->len_buildchar )
+            if ( idx < 0                                           ||
+                 idx + blend->num_designs > decoder->len_buildchar )
               goto Unexpected_OtherSubr;
 
-            memcpy( &decoder->buildchar[idx],
-                    blend->weight_vector,
-                    blend->num_designs *
-                      sizeof( blend->weight_vector[ 0 ] ) );
+            ft_memcpy( &decoder->buildchar[idx],
+                       blend->weight_vector,
+                       blend->num_designs *
+                         sizeof( blend->weight_vector[0] ) );
           }
           break;
 
@@ -812,7 +908,7 @@
           if ( arg_cnt != 2 )
             goto Unexpected_OtherSubr;
 
-          top[0] *= top[1]; 
+          top[0] = FT_MulFix( top[0], top[1] );
 
           known_othersubr_result_cnt = 1;
           break;
@@ -823,12 +919,10 @@
           if ( arg_cnt != 2 || top[1] == 0 )
             goto Unexpected_OtherSubr;
 
-          top[0] /= top[1]; 
+          top[0] = FT_DivFix( top[0], top[1] );
 
           known_othersubr_result_cnt = 1;
           break;
-
-#endif
 
         case 24:
           
@@ -837,10 +931,11 @@
             FT_Int    idx;
             PS_Blend  blend = decoder->blend;
 
+
             if ( arg_cnt != 2 || blend == NULL )
               goto Unexpected_OtherSubr;
 
-            idx = top[1];
+            idx = (FT_Int)( top[1] >> 16 );
 
             if ( idx < 0 || (FT_UInt) idx >= decoder->len_buildchar )
               goto Unexpected_OtherSubr;
@@ -857,10 +952,11 @@
             FT_Int    idx;
             PS_Blend  blend = decoder->blend;
 
+
             if ( arg_cnt != 1 || blend == NULL )
               goto Unexpected_OtherSubr;
 
-            idx = top[0];
+            idx = (FT_Int)( top[0] >> 16 );
 
             if ( idx < 0 || (FT_UInt) idx >= decoder->len_buildchar )
               goto Unexpected_OtherSubr;
@@ -876,7 +972,7 @@
           
           
           
-          XXX who has left his mark on the (PostScript) stack ?;
+          XXX which routine has left its mark on the (PostScript) stack?;
           break;
 #endif
 
@@ -893,28 +989,40 @@
           known_othersubr_result_cnt = 1;
           break;
 
-#ifdef CAN_HANDLE_NON_INTEGRAL_T1_OPERANDS
         case 28:
           
           
           if ( arg_cnt != 0 )
             goto Unexpected_OtherSubr;
 
-          top[0] = FT_rand();
+          {
+            FT_Fixed  Rand;
+
+
+            Rand = seed;
+            if ( Rand >= 0x8000L )
+              Rand++;
+
+            top[0] = Rand;
+
+            seed = FT_MulFix( seed, 0x10000L - seed );
+            if ( seed == 0 )
+              seed += 0x2873;
+          }
+
           known_othersubr_result_cnt = 1;
           break;
-#endif
 
         default:
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "unknown othersubr [%d %d], wish me luck!\n",
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " unknown othersubr [%d %d], wish me luck\n",
                      arg_cnt, subr_no ));
           unknown_othersubr_result_cnt = arg_cnt;
           break;
 
         Unexpected_OtherSubr:
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "invalid othersubr [%d %d]!\n", arg_cnt, subr_no ));
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " invalid othersubr [%d %d]\n", arg_cnt, subr_no ));
           goto Syntax_Error;
         }
 
@@ -951,9 +1059,9 @@
 
         default:
           if ( top - decoder->stack != num_args )
-            FT_TRACE0(( "t1_decoder_parse_charstrings: "
-                        "too much operands on the stack "
-                        "(seen %d, expected %d)\n",
+            FT_TRACE0(( "t1_decoder_parse_charstrings:"
+                        " too much operands on the stack"
+                        " (seen %d, expected %d)\n",
                         top - decoder->stack, num_args ));
             break;
         }
@@ -965,27 +1073,25 @@
         switch ( op )
         {
         case op_endchar:
-          FT_TRACE4(( " endchar" ));
+          FT_TRACE4(( " endchar\n" ));
 
           close_contour( builder );
 
           
           if ( hinter )
           {
-            if (hinter->close( hinter->hints, builder->current->n_points ))
+            if ( hinter->close( hinter->hints, builder->current->n_points ) )
               goto Syntax_Error;
 
             
             hinter->apply( hinter->hints,
                            builder->current,
-                           (PSH_Globals) builder->hints_globals,
+                           (PSH_Globals)builder->hints_globals,
                            decoder->hint_mode );
           }
 
           
           FT_GlyphLoader_Add( builder->loader );
-
-          FT_TRACE4(( "\n" ));
 
           
 
@@ -1020,8 +1126,8 @@
           builder->advance.x       = top[1];
           builder->advance.y       = 0;
 
-          orig_x = builder->last.x = x = builder->pos_x + top[0];
-          orig_y = builder->last.y = y = builder->pos_y;
+          orig_x = x = builder->pos_x + top[0];
+          orig_y = y = builder->pos_y;
 
           FT_UNUSED( orig_y );
 
@@ -1034,9 +1140,12 @@
           break;
 
         case op_seac:
-          
-          return t1operator_seac( decoder, top[0], top[1], top[2],
-                                           (FT_Int)top[3], (FT_Int)top[4] );
+          return t1operator_seac( decoder,
+                                  top[0],
+                                  top[1],
+                                  top[2],
+                                  (FT_Int)( top[3] >> 16 ),
+                                  (FT_Int)( top[4] >> 16 ) );
 
         case op_sbw:
           FT_TRACE4(( " sbw" ));
@@ -1048,8 +1157,8 @@
           builder->advance.x       = top[2];
           builder->advance.y       = top[3];
 
-          builder->last.x = x = builder->pos_x + top[0];
-          builder->last.y = y = builder->pos_y + top[1];
+          x = builder->pos_x + top[0];
+          y = builder->pos_y + top[1];
 
           
           
@@ -1135,7 +1244,7 @@
           break;
 
         case op_rrcurveto:
-          FT_TRACE4(( " rcurveto" ));
+          FT_TRACE4(( " rrcurveto" ));
 
           if ( start_point( builder, x, y ) ||
                check_points( builder, 3 )   )
@@ -1194,16 +1303,13 @@
         case op_div:
           FT_TRACE4(( " div" ));
 
-          if ( top[1] )
-          {
-            *top = top[0] / top[1];
-            ++top;
-          }
-          else
-          {
-            FT_ERROR(( "t1_decoder_parse_charstrings: division by 0\n" ));
-            goto Syntax_Error;
-          }
+          
+          
+          
+          *top = FT_DivFix( top[0], top[1] );
+          ++top;
+
+          large_int = FALSE;
           break;
 
         case op_callsubr:
@@ -1213,18 +1319,18 @@
 
             FT_TRACE4(( " callsubr" ));
 
-            idx = (FT_Int)top[0];
+            idx = (FT_Int)( top[0] >> 16 );
             if ( idx < 0 || idx >= (FT_Int)decoder->num_subrs )
             {
-              FT_ERROR(( "t1_decoder_parse_charstrings: "
-                         "invalid subrs index\n" ));
+              FT_ERROR(( "t1_decoder_parse_charstrings:"
+                         " invalid subrs index\n" ));
               goto Syntax_Error;
             }
 
             if ( zone - decoder->zones >= T1_MAX_SUBRS_CALLS )
             {
-              FT_ERROR(( "t1_decoder_parse_charstrings: "
-                         "too many nested subrs\n" ));
+              FT_ERROR(( "t1_decoder_parse_charstrings:"
+                         " too many nested subrs\n" ));
               goto Syntax_Error;
             }
 
@@ -1251,8 +1357,8 @@
 
             if ( !zone->base )
             {
-              FT_ERROR(( "t1_decoder_parse_charstrings: "
-                         "invoking empty subrs!\n" ));
+              FT_ERROR(( "t1_decoder_parse_charstrings:"
+                         " invoking empty subrs\n" ));
               goto Syntax_Error;
             }
 
@@ -1274,8 +1380,8 @@
 
           if ( unknown_othersubr_result_cnt == 0 )
           {
-            FT_ERROR(( "t1_decoder_parse_charstrings: "
-                       "no more operands for othersubr!\n" ));
+            FT_ERROR(( "t1_decoder_parse_charstrings:"
+                       " no more operands for othersubr\n" ));
             goto Syntax_Error;
           }
 
@@ -1288,7 +1394,8 @@
 
           if ( zone <= decoder->zones )
           {
-            FT_ERROR(( "t1_decoder_parse_charstrings: unexpected return\n" ));
+            FT_ERROR(( "t1_decoder_parse_charstrings:"
+                       " unexpected return\n" ));
             goto Syntax_Error;
           }
 
@@ -1312,7 +1419,6 @@
             
             hinter->stem( hinter->hints, 1, top );
           }
-
           break;
 
         case op_hstem3:
@@ -1321,7 +1427,6 @@
           
           if ( hinter )
             hinter->stem3( hinter->hints, 1, top );
-
           break;
 
         case op_vstem:
@@ -1333,7 +1438,6 @@
             top[0] += orig_x;
             hinter->stem( hinter->hints, 0, top );
           }
-
           break;
 
         case op_vstem3:
@@ -1361,14 +1465,22 @@
           
 
           
+          
+
+          
+          
+          
+          
+#if 0
+
           if ( decoder->flex_state != 1 )
           {
-            FT_ERROR(( "t1_decoder_parse_charstrings: " ));
-            FT_ERROR(( "unexpected `setcurrentpoint'\n" ));
-
+            FT_ERROR(( "t1_decoder_parse_charstrings:"
+                       " unexpected `setcurrentpoint'\n" ));
             goto Syntax_Error;
           }
           else
+#endif
             decoder->flex_state = 0;
           break;
 
@@ -1378,8 +1490,8 @@
           break;
 
         default:
-          FT_ERROR(( "t1_decoder_parse_charstrings: "
-                     "unhandled opcode %d\n", op ));
+          FT_ERROR(( "t1_decoder_parse_charstrings:"
+                     " unhandled opcode %d\n", op ));
           goto Syntax_Error;
         }
 
@@ -1389,6 +1501,11 @@
         
 
         decoder->top = top;
+
+#ifdef FT_DEBUG_LEVEL_TRACE
+        FT_TRACE4(( "\n" ));
+        bol = TRUE;
+#endif
 
       } 
 
@@ -1438,8 +1555,8 @@
       FT_FACE_FIND_GLOBAL_SERVICE( face, psnames, POSTSCRIPT_CMAPS );
       if ( !psnames )
       {
-        FT_ERROR(( "t1_decoder_init: " ));
-        FT_ERROR(( "the `psnames' module is not available\n" ));
+        FT_ERROR(( "t1_decoder_init:"
+                   " the `psnames' module is not available\n" ));
         return PSaux_Err_Unimplemented_Feature;
       }
 

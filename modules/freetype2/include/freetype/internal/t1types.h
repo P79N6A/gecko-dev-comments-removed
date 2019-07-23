@@ -64,6 +64,8 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
   typedef struct  T1_EncodingRecRec_
   {
     FT_Int       num_chars;
@@ -87,9 +89,22 @@ FT_BEGIN_HEADER
   } T1_EncodingType;
 
 
+  
+
+
+
+
+  typedef struct  PS_FontExtraRec_
+  {
+    FT_UShort  fs_type;
+
+  } PS_FontExtraRec;
+
+
   typedef struct  T1_FontRec_
   {
     PS_FontInfoRec   font_info;         
+    PS_FontExtraRec  font_extra;        
     PS_PrivateRec    private_dict;      
     FT_String*       font_name;         
 
@@ -217,7 +232,7 @@ FT_BEGIN_HEADER
     
     
     FT_UInt          len_buildchar;
-    FT_Int*          buildchar;
+    FT_Long*         buildchar;
 
     
     const void*     pshinter;
@@ -231,7 +246,10 @@ FT_BEGIN_HEADER
     void*            psnames;
     void*            psaux;
     CID_FaceInfoRec  cid;
+    PS_FontExtraRec  font_extra;
+#if 0
     void*            afm_data;
+#endif
     CID_Subrs        subrs;
 
     

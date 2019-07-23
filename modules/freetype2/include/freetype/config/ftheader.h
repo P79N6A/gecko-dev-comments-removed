@@ -731,6 +731,18 @@
 
   
 
+
+
+
+
+
+
+
+#define FT_ADVANCES_H  <freetype/ftadvanc.h>
+
+
+  
+
 #define FT_ERROR_DEFINITIONS_H  <freetype/fterrdef.h>
 
 

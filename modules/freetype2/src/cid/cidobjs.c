@@ -193,61 +193,61 @@
   FT_LOCAL_DEF( void )
   cid_face_done( FT_Face  cidface )         
   {
-    CID_Face   face = (CID_Face)cidface;
-    FT_Memory  memory;
+    CID_Face      face = (CID_Face)cidface;
+    FT_Memory     memory;
+    CID_FaceInfo  cid;
+    PS_FontInfo   info;
 
 
-    if ( face )
+    if ( !face )
+      return;
+
+    cid    = &face->cid;
+    info   = &cid->font_info;
+    memory = cidface->memory;
+
+    
+    if ( face->subrs )
     {
-      CID_FaceInfo  cid  = &face->cid;
-      PS_FontInfo   info = &cid->font_info;
+      FT_Int  n;
 
 
-      memory = cidface->memory;
-
-      
-      if ( face->subrs )
+      for ( n = 0; n < cid->num_dicts; n++ )
       {
-        FT_Int  n;
+        CID_Subrs  subr = face->subrs + n;
 
 
-        for ( n = 0; n < cid->num_dicts; n++ )
+        if ( subr->code )
         {
-          CID_Subrs  subr = face->subrs + n;
-
-
-          if ( subr->code )
-          {
-            FT_FREE( subr->code[0] );
-            FT_FREE( subr->code );
-          }
+          FT_FREE( subr->code[0] );
+          FT_FREE( subr->code );
         }
-
-        FT_FREE( face->subrs );
       }
 
-      
-      FT_FREE( info->version );
-      FT_FREE( info->notice );
-      FT_FREE( info->full_name );
-      FT_FREE( info->family_name );
-      FT_FREE( info->weight );
-
-      
-      FT_FREE( cid->font_dicts );
-      cid->num_dicts = 0;
-
-      
-      FT_FREE( cid->cid_font_name );
-      FT_FREE( cid->registry );
-      FT_FREE( cid->ordering );
-
-      cidface->family_name = 0;
-      cidface->style_name  = 0;
-
-      FT_FREE( face->binary_data );
-      FT_FREE( face->cid_stream );
+      FT_FREE( face->subrs );
     }
+
+    
+    FT_FREE( info->version );
+    FT_FREE( info->notice );
+    FT_FREE( info->full_name );
+    FT_FREE( info->family_name );
+    FT_FREE( info->weight );
+
+    
+    FT_FREE( cid->font_dicts );
+    cid->num_dicts = 0;
+
+    
+    FT_FREE( cid->cid_font_name );
+    FT_FREE( cid->registry );
+    FT_FREE( cid->ordering );
+
+    cidface->family_name = 0;
+    cidface->style_name  = 0;
+
+    FT_FREE( face->binary_data );
+    FT_FREE( face->cid_stream );
   }
 
 
@@ -323,6 +323,7 @@
     if ( face_index < 0 )
       goto Exit;
 
+    
     
     if ( face_index != 0 )
     {
@@ -412,10 +413,11 @@
       cidface->num_fixed_sizes = 0;
       cidface->available_sizes = 0;
 
-      cidface->bbox.xMin =   cid->font_bbox.xMin             >> 16;
-      cidface->bbox.yMin =   cid->font_bbox.yMin             >> 16;
-      cidface->bbox.xMax = ( cid->font_bbox.xMax + 0xFFFFU ) >> 16;
-      cidface->bbox.yMax = ( cid->font_bbox.yMax + 0xFFFFU ) >> 16;
+      cidface->bbox.xMin =   cid->font_bbox.xMin            >> 16;
+      cidface->bbox.yMin =   cid->font_bbox.yMin            >> 16;
+      
+      cidface->bbox.xMax = ( cid->font_bbox.xMax + 0xFFFF ) >> 16;
+      cidface->bbox.yMax = ( cid->font_bbox.yMax + 0xFFFF ) >> 16;
 
       if ( !cidface->units_per_EM )
         cidface->units_per_EM = 1000;

@@ -49,7 +49,7 @@ void zmemzero(dest, len)
 }
 #endif
 
-#ifdef __TURBOC__
+#if defined( MSDOS ) && defined( __TURBOC__ ) && !defined( MY_ZCALLOC )
 #if (defined( __BORLANDC__) || !defined(SMALL_MEDIUM)) && !defined(__32BIT__)
 
 
@@ -129,7 +129,7 @@ void  zcfree (voidpf opaque, voidpf ptr)
 #endif 
 
 
-#if defined(M_I86) && !defined(__32BIT__)
+#if defined(M_I86) && !defined(__32BIT__) && !defined( MY_ZCALLOC )
 
 
 #  define MY_ZCALLOC

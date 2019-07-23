@@ -29,7 +29,6 @@
 #include FT_INTERNAL_STREAM_H
 #include FT_TRUETYPE_TAGS_H
 #include "ttpost.h"
-#include "ttload.h"
 
 #include "sferrors.h"
 
@@ -62,11 +61,11 @@
    
    
 
-#define MAC_NAME( x )  tt_post_default_names[x]
+#define MAC_NAME( x )  ( (FT_String*)tt_post_default_names[x] )
 
   
 
-  static const FT_String*  tt_post_default_names[258] =
+  static const FT_String* const  tt_post_default_names[258] =
   {
     
     ".notdef", ".null", "CR", "space", "exclam",
@@ -431,14 +430,15 @@
   
   
   
+  
   FT_LOCAL_DEF( FT_Error )
   tt_face_get_ps_name( TT_Face      face,
                        FT_UInt      idx,
                        FT_String**  PSname )
   {
-    FT_Error         error;
-    TT_Post_Names    names;
-    FT_Fixed         format;
+    FT_Error       error;
+    TT_Post_Names  names;
+    FT_Fixed       format;
 
 #ifdef FT_CONFIG_OPTION_POSTSCRIPT_NAMES
     FT_Service_PsCMaps  psnames;

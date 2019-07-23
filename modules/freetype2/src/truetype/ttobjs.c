@@ -18,9 +18,7 @@
 
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
-#include FT_INTERNAL_CALC_H
 #include FT_INTERNAL_STREAM_H
-#include FT_TRUETYPE_IDS_H
 #include FT_TRUETYPE_TAGS_H
 #include FT_INTERNAL_SFNT_H
 
@@ -146,6 +144,40 @@
 
   
   
+
+  static FT_Bool
+  tt_check_trickyness( FT_String*  name )
+  {
+#define TRICK_NAMES_MAX_CHARACTERS  16
+#define TRICK_NAMES_COUNT 7
+    static const char trick_names[TRICK_NAMES_COUNT][TRICK_NAMES_MAX_CHARACTERS+1] =
+    {
+      "DFKaiSho-SB",     
+      "DFKaiShu",
+      "DFKai-SB",        
+      "HuaTianSongTi?",  
+      "MingLiU",         
+      "PMingLiU",        
+      "MingLi43",        
+    };
+    int  nn;
+
+
+    if ( !name )
+      return FALSE;
+
+    
+    
+    for ( nn = 0; nn < TRICK_NAMES_COUNT; nn++ )
+      if ( ft_strstr( name, trick_names[nn] ) )
+        return TRUE;
+
+    return FALSE;
+  }
+
+
+  
+  
   
   
   
@@ -180,7 +212,7 @@
     TT_Face       face = (TT_Face)ttface;
 
 
-    library = face->root.driver->root.library;
+    library = ttface->driver->root.library;
     sfnt    = (SFNT_Service)FT_Get_Module_Interface( library, "sfnt" );
     if ( !sfnt )
       goto Bad_Format;
@@ -206,7 +238,7 @@
     }
 
 #ifdef TT_USE_BYTECODE_INTERPRETER
-    face->root.face_flags |= FT_FACE_FLAG_HINTER;
+    ttface->face_flags |= FT_FACE_FLAG_HINTER;
 #endif
 
     
@@ -218,16 +250,19 @@
     if ( error )
       goto Exit;
 
+    if ( tt_check_trickyness( ttface->family_name ) )
+      ttface->face_flags |= FT_FACE_FLAG_TRICKY;
+
     error = tt_face_load_hdmx( face, stream );
     if ( error )
       goto Exit;
 
-    if ( face->root.face_flags & FT_FACE_FLAG_SCALABLE )
+    if ( FT_IS_SCALABLE( ttface ) )
     {
 
 #ifdef FT_CONFIG_OPTION_INCREMENTAL
 
-      if ( !face->root.internal->incremental_interface )
+      if ( !ttface->internal->incremental_interface )
         error = tt_face_load_loca( face, stream );
       if ( !error )
         error = tt_face_load_cvt( face, stream );
@@ -267,38 +302,8 @@
         if ( params[i].tag == FT_PARAM_TAG_UNPATENTED_HINTING )
           unpatented_hinting = TRUE;
 
-      
-      
       if ( !unpatented_hinting )
-      {
-        static const char* const  trick_names[] =
-        {
-          "DFKaiSho-SB",     
-          "DFKai-SB",        
-          "HuaTianSongTi?",  
-          "MingLiU",         
-          "PMingLiU",        
-          "MingLi43",        
-          NULL
-        };
-        int  nn;
-
-
-        
-        
-        for ( nn = 0; trick_names[nn] != NULL; nn++ )
-        {
-          if ( ttface->family_name                               &&
-               ft_strstr( ttface->family_name, trick_names[nn] ) )
-          {
-            unpatented_hinting = 1;
-            break;
-          }
-        }
-      }
-
-      ttface->internal->ignore_unpatented_hinter =
-        FT_BOOL( !unpatented_hinting );
+        ttface->internal->ignore_unpatented_hinter = TRUE;
     }
 
 #endif 
@@ -330,12 +335,18 @@
   FT_LOCAL_DEF( void )
   tt_face_done( FT_Face  ttface )           
   {
-    TT_Face       face   = (TT_Face)ttface;
-    FT_Memory     memory = face->root.memory;
-    FT_Stream     stream = face->root.stream;
+    TT_Face       face = (TT_Face)ttface;
+    FT_Memory     memory;
+    FT_Stream     stream;
+    SFNT_Service  sfnt;
 
-    SFNT_Service  sfnt   = (SFNT_Service)face->sfnt;
 
+    if ( !face )
+      return;
+
+    memory = ttface->memory;
+    stream = ttface->stream;
+    sfnt   = (SFNT_Service)face->sfnt;
 
     
     if ( face->extra.finalizer )
@@ -600,18 +611,15 @@
 
     
     {
-      FT_Size_Metrics*  metrics  = &size->metrics;
-      TT_Size_Metrics*  metrics2 = &size->ttmetrics;
+      TT_Size_Metrics*  metrics = &size->ttmetrics;
 
-      metrics->x_ppem = 0;
-      metrics->y_ppem = 0;
 
-      metrics2->rotated   = FALSE;
-      metrics2->stretched = FALSE;
+      metrics->rotated   = FALSE;
+      metrics->stretched = FALSE;
 
       
       for ( i = 0; i < 4; i++ )
-        metrics2->compensations[i] = 0;
+        metrics->compensations[i] = 0;
     }
 
     
@@ -674,7 +682,7 @@
     if ( !size->cvt_ready )
     {
       FT_UInt  i;
-      TT_Face  face = (TT_Face) size->root.face;
+      TT_Face  face = (TT_Face)size->root.face;
 
 
       

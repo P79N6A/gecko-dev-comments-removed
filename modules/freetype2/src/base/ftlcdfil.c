@@ -266,7 +266,7 @@
 #endif 
 
 
-  FT_EXPORT( FT_Error )
+  FT_EXPORT_DEF( FT_Error )
   FT_Library_SetLcdFilter( FT_Library     library,
                            FT_LcdFilter   filter )
   {
@@ -296,13 +296,13 @@
 
 #elif defined( FT_FORCE_LIGHT_LCD_FILTER )
 
-      memcpy( library->lcd_weights, light_filter, 5 );
+      ft_memcpy( library->lcd_weights, light_filter, 5 );
       library->lcd_filter_func = _ft_lcd_filter_fir;
       library->lcd_extra       = 2;
 
 #else
 
-      memcpy( library->lcd_weights, default_filter, 5 );
+      ft_memcpy( library->lcd_weights, default_filter, 5 );
       library->lcd_filter_func = _ft_lcd_filter_fir;
       library->lcd_extra       = 2;
 
@@ -311,7 +311,7 @@
       break;
 
     case FT_LCD_FILTER_LIGHT:
-      memcpy( library->lcd_weights, light_filter, 5 );
+      ft_memcpy( library->lcd_weights, light_filter, 5 );
       library->lcd_filter_func = _ft_lcd_filter_fir;
       library->lcd_extra       = 2;
       break;
@@ -335,7 +335,7 @@
 
 #else 
 
-  FT_EXPORT( FT_Error )
+  FT_EXPORT_DEF( FT_Error )
   FT_Library_SetLcdFilter( FT_Library    library,
                            FT_LcdFilter  filter )
   {

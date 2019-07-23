@@ -33,8 +33,7 @@
 
 
 
-#include <stdio.h>
-#include <stdlib.h>
+#include FT_CONFIG_STANDARD_LIBRARY_H
 
   FT_BASE_DEF( const char* )  _ft_debug_file   = 0;
   FT_BASE_DEF( long )         _ft_debug_lineno = 0;
@@ -422,7 +421,7 @@
           "FreeType: %ld bytes of memory leaked in %ld blocks\n",
           leaks, leak_count );
 
-      printf( "FreeType: No memory leaks detected!\n" );
+      printf( "FreeType: no memory leaks detected\n" );
     }
   }
 
@@ -990,7 +989,7 @@
 #else  
 
   
-  const FT_Byte  _debug_mem_dummy = 0;
+  typedef int  _debug_mem_dummy;
 
 #endif 
 

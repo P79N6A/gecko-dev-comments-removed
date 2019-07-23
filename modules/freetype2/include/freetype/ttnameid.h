@@ -835,14 +835,16 @@ FT_BEGIN_HEADER
   
 #define TT_NAME_ID_CID_FINDFONT_NAME    20
 
+  
+#define TT_NAME_ID_WWS_FAMILY           21
+#define TT_NAME_ID_WWS_SUBFAMILY        22
+
 
   
   
   
   
   
-  
-
   
 
   
@@ -854,26 +856,43 @@ FT_BEGIN_HEADER
   
 #define TT_UCR_LATIN_EXTENDED_B                (1L <<  3) /* U+0180-U+024F */
   
+  
+  
 #define TT_UCR_IPA_EXTENSIONS                  (1L <<  4) /* U+0250-U+02AF */
+                                                          
+                                                          
+  
   
 #define TT_UCR_SPACING_MODIFIER                (1L <<  5) /* U+02B0-U+02FF */
+                                                          
+  
   
 #define TT_UCR_COMBINING_DIACRITICS            (1L <<  6) /* U+0300-U+036F */
+                                                          
   
 #define TT_UCR_GREEK                           (1L <<  7) /* U+0370-U+03FF */
+  
+#define TT_UCR_COPTIC                          (1L <<  8) /* U+2C80-U+2CFF */
+  
   
   
   
 #define TT_UCR_CYRILLIC                        (1L <<  9) /* U+0400-U+04FF */
+                                                          
+                                                          
                                                           
   
 #define TT_UCR_ARMENIAN                        (1L << 10) /* U+0530-U+058F */
   
 #define TT_UCR_HEBREW                          (1L << 11) /* U+0590-U+05FF */
   
+#define TT_UCR_VAI                             (1L << 12) /* U+A500-U+A63F */
+  
   
 #define TT_UCR_ARABIC                          (1L << 13) /* U+0600-U+06FF */
+                                                          
   
+#define TT_UCR_NKO                             (1L << 14) /* U+07C0-U+07FF */
   
 #define TT_UCR_DEVANAGARI                      (1L << 15) /* U+0900-U+097F */
   
@@ -897,19 +916,25 @@ FT_BEGIN_HEADER
   
 #define TT_UCR_LAO                             (1L << 25) /* U+0E80-U+0EFF */
   
-#define TT_UCR_GEORGIAN                        (1L << 26) /* U+10A0-U+10FF */
   
+#define TT_UCR_GEORGIAN                        (1L << 26) /* U+10A0-U+10FF */
+                                                          
+  
+#define TT_UCR_BALINESE                        (1L << 27) /* U+1B00-U+1B7F */
   
 #define TT_UCR_HANGUL_JAMO                     (1L << 28) /* U+1100-U+11FF */
   
+  
+  
 #define TT_UCR_LATIN_EXTENDED_ADDITIONAL       (1L << 29) /* U+1E00-U+1EFF */
+                                                          
+                                                          
   
 #define TT_UCR_GREEK_EXTENDED                  (1L << 30) /* U+1F00-U+1FFF */
-
   
-
   
 #define TT_UCR_GENERAL_PUNCTUATION             (1L << 31) /* U+2000-U+206F */
+                                                          
   
 #define TT_UCR_SUPERSCRIPTS_SUBSCRIPTS         (1L <<  0) /* U+2070-U+209F */
   
@@ -923,7 +948,9 @@ FT_BEGIN_HEADER
   
   
   
+  
 #define TT_UCR_ARROWS                          (1L <<  5) /* U+2190-U+21FF */
+                                                          
                                                           
                                                           
   
@@ -952,9 +979,6 @@ FT_BEGIN_HEADER
 #define TT_UCR_MISCELLANEOUS_SYMBOLS           (1L << 14) /* U+2600-U+26FF */
   
 #define TT_UCR_DINGBATS                        (1L << 15) /* U+2700-U+27BF */
-
-  
-
   
 #define TT_UCR_CJK_SYMBOLS                     (1L << 16) /* U+3000-U+303F */
   
@@ -970,35 +994,31 @@ FT_BEGIN_HEADER
   
 #define TT_UCR_HANGUL_COMPATIBILITY_JAMO       (1L << 20) /* U+3130-U+318F */
   
-#define TT_UCR_CJK_MISC                        (1L << 21) /* U+3190-U+319F */
-#define TT_UCR_KANBUN  TT_UCR_CJK_MISC
-  
+#define TT_UCR_CJK_MISC                        (1L << 21) /* U+A840-U+A87F */
+#define TT_UCR_KANBUN  TT_UCR_CJK_MISC /* deprecated */
+#define TT_UCR_PHAGSPA
+
 #define TT_UCR_ENCLOSED_CJK_LETTERS_MONTHS     (1L << 22) /* U+3200-U+32FF */
   
 #define TT_UCR_CJK_COMPATIBILITY               (1L << 23) /* U+3300-U+33FF */
-
-  
-
   
 #define TT_UCR_HANGUL                          (1L << 24) /* U+AC00-U+D7A3 */
-
   
-
+  
+  
+  
+  
+  
+  
   
   
   
 #define TT_UCR_SURROGATES                      (1L << 25) /* U+D800-U+DB7F */
                                                           
                                                           
+#define TT_UCR_NON_PLANE_0  TT_UCR_SURROGATES
   
-  
-  
-
-  
-
-  
-
-  
+#define TT_UCR_PHOENICIAN                      (1L << 26) /*U+10900-U+1091F*/
   
   
   
@@ -1013,17 +1033,13 @@ FT_BEGIN_HEADER
                                                           
                                                           
                                                           
-
-  
-
   
 #define TT_UCR_PRIVATE_USE                     (1L << 28) /* U+E000-U+F8FF */
-
-  
-
   
   
-#define TT_UCR_CJK_COMPATIBILITY_IDEOGRAPHS    (1L << 29) /* U+F900-U+FAFF */
+  
+#define TT_UCR_CJK_COMPATIBILITY_IDEOGRAPHS    (1L << 29) /* U+31C0-U+31EF */
+                                                          
                                                           
   
 #define TT_UCR_ALPHABETIC_PRESENTATION_FORMS   (1L << 30) /* U+FB00-U+FB4F */
@@ -1032,7 +1048,9 @@ FT_BEGIN_HEADER
   
 #define TT_UCR_COMBINING_HALF_MARKS            (1L <<  0) /* U+FE20-U+FE2F */
   
-#define TT_UCR_CJK_COMPATIBILITY_FORMS         (1L <<  1) /* U+FE30-U+FE4F */
+  
+#define TT_UCR_CJK_COMPATIBILITY_FORMS         (1L <<  1) /* U+FE10-U+FE1F */
+                                                          
   
 #define TT_UCR_SMALL_FORM_VARIANTS             (1L <<  2) /* U+FE50-U+FE6F */
   
@@ -1052,7 +1070,11 @@ FT_BEGIN_HEADER
   
 #define TT_UCR_MYANMAR                         (1L << 10) /* U+1000-U+109F */
   
+  
+  
 #define TT_UCR_ETHIOPIC                        (1L << 11) /* U+1200-U+137F */
+                                                          
+                                                          
   
 #define TT_UCR_CHEROKEE                        (1L << 12) /* U+13A0-U+13FF */
   
@@ -1062,7 +1084,9 @@ FT_BEGIN_HEADER
   
 #define TT_UCR_RUNIC                           (1L << 15) /* U+16A0-U+16FF */
   
+  
 #define TT_UCR_KHMER                           (1L << 16) /* U+1780-U+17FF */
+                                                          
   
 #define TT_UCR_MONGOLIAN                       (1L << 17) /* U+1800-U+18AF */
   
@@ -1087,7 +1111,9 @@ FT_BEGIN_HEADER
 #define TT_UCR_DESERET                         (1L << 23) /*U+10400-U+1044F*/
   
   
+  
 #define TT_UCR_MUSICAL_SYMBOLS                 (1L << 24) /*U+1D000-U+1D0FF*/
+                                                          
                                                           
   
 #define TT_UCR_MATH_ALPHANUMERIC_SYMBOLS       (1L << 25) /*U+1D400-U+1D7FF*/
@@ -1096,9 +1122,84 @@ FT_BEGIN_HEADER
 #define TT_UCR_PRIVATE_USE_SUPPLEMENTARY       (1L << 26) /*U+F0000-U+FFFFD*/
                                                         
   
+  
 #define TT_UCR_VARIATION_SELECTORS             (1L << 27) /* U+FE00-U+FE0F */
+                                                          
   
 #define TT_UCR_TAGS                            (1L << 28) /*U+E0000-U+E007F*/
+  
+#define TT_UCR_LIMBU                           (1L << 29) /* U+1900-U+194F */
+  
+#define TT_UCR_TAI_LE                          (1L << 30) /* U+1950-U+197F */
+  
+#define TT_UCR_NEW_TAI_LUE                     (1L << 31) /* U+1980-U+19DF */
+  
+#define TT_UCR_BUGINESE                        (1L <<  0) /* U+1A00-U+1A1F */
+  
+#define TT_UCR_GLAGOLITIC                      (1L <<  1) /* U+2C00-U+2C5F */
+  
+#define TT_UCR_TIFINAGH                        (1L <<  2) /* U+2D30-U+2D7F */
+  
+#define TT_UCR_YIJING                          (1L <<  3) /* U+4DC0-U+4DFF */
+  
+#define TT_UCR_SYLOTI_NAGRI                    (1L <<  4) /* U+A800-U+A82F */
+  
+  
+  
+#define TT_UCR_LINEAR_B                        (1L <<  5) /*U+10000-U+1007F*/
+                                                          
+                                                          
+  
+#define TT_UCR_ANCIENT_GREEK_NUMBERS           (1L <<  6) /*U+10140-U+1018F*/
+  
+#define TT_UCR_UGARITIC                        (1L <<  7) /*U+10380-U+1039F*/
+  
+#define TT_UCR_OLD_PERSIAN                     (1L <<  8) /*U+103A0-U+103DF*/
+  
+#define TT_UCR_SHAVIAN                         (1L <<  9) /*U+10450-U+1047F*/
+  
+#define TT_UCR_OSMANYA                         (1L << 10) /*U+10480-U+104AF*/
+  
+#define TT_UCR_CYPRIOT_SYLLABARY               (1L << 11) /*U+10800-U+1083F*/
+  
+#define TT_UCR_KHAROSHTHI                      (1L << 12) /*U+10A00-U+10A5F*/
+  
+#define TT_UCR_TAI_XUAN_JING                   (1L << 13) /*U+1D300-U+1D35F*/
+  
+  
+#define TT_UCR_CUNEIFORM                       (1L << 14) /*U+12000-U+123FF*/
+                                                          
+  
+#define TT_UCR_COUNTING_ROD_NUMERALS           (1L << 15) /*U+1D360-U+1D37F*/
+  
+#define TT_UCR_SUNDANESE                       (1L << 16) /* U+1B80-U+1BBF */
+  
+#define TT_UCR_LEPCHA                          (1L << 17) /* U+1C00-U+1C4F */
+  
+#define TT_UCR_OL_CHIKI                        (1L << 18) /* U+1C50-U+1C7F */
+  
+#define TT_UCR_SAURASHTRA                      (1L << 19) /* U+A880-U+A8DF */
+  
+#define TT_UCR_KAYAH_LI                        (1L << 20) /* U+A900-U+A92F */
+  
+#define TT_UCR_REJANG                          (1L << 21) /* U+A930-U+A95F */
+  
+#define TT_UCR_CHAM                            (1L << 22) /* U+AA00-U+AA5F */
+  
+#define TT_UCR_ANCIENT_SYMBOLS                 (1L << 23) /*U+10190-U+101CF*/
+  
+#define TT_UCR_PHAISTOS_DISC                   (1L << 24) /*U+101D0-U+101FF*/
+  
+  
+  
+#define TT_UCR_OLD_ANATOLIAN                   (1L << 25) /*U+102A0-U+102DF*/
+                                                          
+                                                          
+  
+  
+#define TT_UCR_GAME_TILES                      (1L << 26) /*U+1F030-U+1F09F*/
+                                                          
+  
 
 
   

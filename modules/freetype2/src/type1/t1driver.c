@@ -84,6 +84,7 @@
     return 0;
   }
 
+
   static const FT_Service_GlyphDictRec  t1_service_glyph_dict =
   {
     (FT_GlyphDict_GetNameFunc)  t1_get_glyph_name,
@@ -91,7 +92,7 @@
   };
 
 
- 
+  
 
 
 
@@ -102,13 +103,14 @@
     return (const char*) face->type1.font_name;
   }
 
+
   static const FT_Service_PsFontNameRec  t1_service_ps_name =
   {
     (FT_PsName_GetFunc)t1_get_ps_name
   };
 
 
- 
+  
 
 
 
@@ -125,7 +127,7 @@
 #endif
 
 
- 
+  
 
 
 
@@ -135,7 +137,18 @@
                        PS_FontInfoRec*  afont_info )
   {
     *afont_info = ((T1_Face)face)->type1.font_info;
-    return 0;
+
+    return T1_Err_Ok;
+  }
+
+
+  static FT_Error
+  t1_ps_get_font_extra( FT_Face           face,
+                        PS_FontExtraRec*  afont_extra )
+  {
+    *afont_extra = ((T1_Face)face)->type1.font_extra;
+
+    return T1_Err_Ok;
   }
 
 
@@ -143,6 +156,7 @@
   t1_ps_has_glyph_names( FT_Face  face )
   {
     FT_UNUSED( face );
+
     return 1;
   }
 
@@ -152,16 +166,19 @@
                           PS_PrivateRec*  afont_private )
   {
     *afont_private = ((T1_Face)face)->type1.private_dict;
-    return 0;
+
+    return T1_Err_Ok;
   }
 
 
   static const FT_Service_PsInfoRec  t1_service_ps_info =
   {
     (PS_GetFontInfoFunc)   t1_ps_get_font_info,
+    (PS_GetFontExtraFunc)  t1_ps_get_font_extra,
     (PS_HasGlyphNamesFunc) t1_ps_has_glyph_names,
     (PS_GetFontPrivateFunc)t1_ps_get_font_private,
   };
+
 
 #ifndef T1_CONFIG_OPTION_NO_AFM
   static const FT_Service_KerningRec  t1_service_kerning =
@@ -170,7 +187,8 @@
   };
 #endif
 
- 
+
+  
 
 
 
@@ -304,7 +322,7 @@
     (FT_Face_GetKerningFunc)  Get_Kerning,
     (FT_Face_AttachFunc)      T1_Read_Metrics,
 #endif
-    (FT_Face_GetAdvancesFunc) 0,
+    (FT_Face_GetAdvancesFunc) T1_Get_Advances,
     (FT_Size_RequestFunc)     T1_Size_Request,
     (FT_Size_SelectFunc)      0
   };

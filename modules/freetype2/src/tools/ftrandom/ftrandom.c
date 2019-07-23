@@ -151,8 +151,8 @@
     int  load_flags = FT_LOAD_DEFAULT;
 
 
-    if ( check_outlines                               &&
-         ( face->face_flags & FT_FACE_FLAG_SCALABLE ) )
+    if ( check_outlines         &&
+         FT_IS_SCALABLE( face ) )
       load_flags = FT_LOAD_NO_BITMAP;
 
     if ( nohints )
@@ -162,8 +162,8 @@
 
     for ( gid = 0; gid < face->num_glyphs; ++gid )
     {
-      if ( check_outlines                               &&
-           ( face->face_flags & FT_FACE_FLAG_SCALABLE ) )
+      if ( check_outlines         &&
+           FT_IS_SCALABLE( face ) )
       {
         if ( !FT_Load_Glyph( face, gid, load_flags ) )
           FT_Outline_Decompose( &face->glyph->outline, &outlinefuncs, NULL );

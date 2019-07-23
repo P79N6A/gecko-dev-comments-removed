@@ -16,6 +16,7 @@
 
 
 
+
 #ifndef __FTOPTION_H__
 #define __FTOPTION_H__
 
@@ -112,7 +113,7 @@ FT_BEGIN_HEADER
   
   
   
-#undef  FT_CONFIG_OPTION_FORCE_INT64
+#undef FT_CONFIG_OPTION_FORCE_INT64
 
 
   
@@ -121,12 +122,33 @@ FT_BEGIN_HEADER
   
   
   
+
+
+
   
   
   
   
   
   
+  
+  
+  
+#define FT_CONFIG_OPTION_INLINE_MULFIX
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define FT_CONFIG_OPTION_USE_LZW
 
 
@@ -294,18 +316,19 @@ FT_BEGIN_HEADER
   
   
   
+  
+#define FT_CONFIG_OPTION_INCREMENTAL
 
 
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
 #define FT_RENDER_POOL_SIZE  16384L
 
 
@@ -375,6 +398,20 @@ FT_BEGIN_HEADER
 #undef FT_CONFIG_OPTION_USE_MODULE_ERRORS
 
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
 
   
   
@@ -436,6 +473,7 @@ FT_BEGIN_HEADER
 #define TT_CONFIG_CMAP_FORMAT_8
 #define TT_CONFIG_CMAP_FORMAT_10
 #define TT_CONFIG_CMAP_FORMAT_12
+#define TT_CONFIG_CMAP_FORMAT_13
 #define TT_CONFIG_CMAP_FORMAT_14
 
 
@@ -658,6 +696,7 @@ FT_BEGIN_HEADER
 
 #ifdef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
 #define  TT_USE_BYTECODE_INTERPRETER
+#undef   TT_CONFIG_OPTION_UNPATENTED_HINTING
 #elif defined TT_CONFIG_OPTION_UNPATENTED_HINTING
 #define  TT_USE_BYTECODE_INTERPRETER
 #endif

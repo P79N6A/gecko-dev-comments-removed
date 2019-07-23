@@ -111,7 +111,7 @@
 
     while ( min < max )
     {
-      FT_UInt32  code;
+      FT_ULong  code;
 
 
       mid  = ( min + max ) >> 1;
@@ -140,7 +140,7 @@
     PCF_CMap      cmap      = (PCF_CMap)pcfcmap;
     PCF_Encoding  encodings = cmap->encodings;
     FT_UInt       min, max, mid;
-    FT_UInt32     charcode  = *acharcode + 1;
+    FT_ULong      charcode  = *acharcode + 1;
     FT_UInt       result    = 0;
 
 
@@ -149,7 +149,7 @@
 
     while ( min < max )
     {
-      FT_UInt32  code;
+      FT_ULong  code;
 
 
       mid  = ( min + max ) >> 1;
@@ -175,7 +175,14 @@
     }
 
   Exit:
-    *acharcode = charcode;
+    if ( charcode > 0xFFFFFFFFUL )
+    {
+      FT_TRACE1(( "pcf_cmap_char_next: charcode 0x%x > 32bit API" ));
+      *acharcode = 0;
+      
+    }
+    else
+      *acharcode = (FT_UInt32)charcode;
     return result;
   }
 
@@ -196,9 +203,14 @@
   FT_CALLBACK_DEF( void )
   PCF_Face_Done( FT_Face  pcfface )         
   {
-    PCF_Face   face   = (PCF_Face)pcfface;
-    FT_Memory  memory = FT_FACE_MEMORY( face );
+    PCF_Face   face = (PCF_Face)pcfface;
+    FT_Memory  memory;
 
+
+    if ( !face )
+      return;
+
+    memory = FT_FACE_MEMORY( face );
 
     FT_FREE( face->encodings );
     FT_FREE( face->metrics );
@@ -261,19 +273,27 @@
     error = pcf_load_font( stream, face );
     if ( error )
     {
-      FT_Error  error2;
-
-
       PCF_Face_Done( pcfface );
 
-      
-      error2 = FT_Stream_OpenGzip( &face->gzip_stream, stream );
-      if ( FT_ERROR_BASE( error2 ) == FT_Err_Unimplemented_Feature )
-        goto Fail;
+#if defined( FT_CONFIG_OPTION_USE_ZLIB ) || \
+    defined( FT_CONFIG_OPTION_USE_LZW )
 
-      error = error2;
-      if ( error )
+#ifdef FT_CONFIG_OPTION_USE_ZLIB
+      {
+        FT_Error  error2;
+
+
+        
+        error2 = FT_Stream_OpenGzip( &face->gzip_stream, stream );
+        if ( FT_ERROR_BASE( error2 ) == FT_Err_Unimplemented_Feature )
+          goto Fail;
+
+        error = error2;
+      }
+#endif 
+
 #ifdef FT_CONFIG_OPTION_USE_LZW
+      if ( error )
       {
         FT_Error  error3;
 
@@ -284,32 +304,26 @@
           goto Fail;
 
         error = error3;
-        if ( error )
-          goto Fail;
-
-        face->gzip_source = stream;
-        pcfface->stream   = &face->gzip_stream;
-
-        stream = pcfface->stream;
-
-        error = pcf_load_font( stream, face );
-        if ( error )
-          goto Fail;
       }
-#else
+#endif 
+
+      if ( error )
         goto Fail;
+
+      face->gzip_source = stream;
+      pcfface->stream   = &face->gzip_stream;
+
+      stream = pcfface->stream;
+
+      error = pcf_load_font( stream, face );
+      if ( error )
+        goto Fail;
+
+#else 
+
+      goto Fail;
+
 #endif
-      else
-      {
-        face->gzip_source = stream;
-        pcfface->stream   = &face->gzip_stream;
-
-        stream = pcfface->stream;
-
-        error = pcf_load_font( stream, face );
-        if ( error )
-          goto Fail;
-      }
     }
 
     
@@ -408,7 +422,7 @@
     switch ( req->type )
     {
     case FT_SIZE_REQUEST_TYPE_NOMINAL:
-      if ( height == ( bsize->y_ppem + 32 ) >> 6 )
+      if ( height == ( ( bsize->y_ppem + 32 ) >> 6 ) )
         error = PCF_Err_Ok;
       break;
 
@@ -437,11 +451,11 @@
                   FT_Int32      load_flags )
   {
     PCF_Face    face   = (PCF_Face)FT_SIZE_FACE( size );
-    FT_Stream   stream = face->root.stream;
+    FT_Stream   stream;
     FT_Error    error  = PCF_Err_Ok;
     FT_Bitmap*  bitmap = &slot->bitmap;
     PCF_Metric  metric;
-    int         bytes;
+    FT_Offset   bytes;
 
     FT_UNUSED( load_flags );
 
@@ -453,6 +467,8 @@
       error = PCF_Err_Invalid_Argument;
       goto Exit;
     }
+
+    stream = face->root.stream;
 
     if ( glyph_index > 0 )
       glyph_index--;
@@ -569,12 +585,17 @@
       }
       else
       {
+        if ( prop->value.l > 0x7FFFFFFFL || prop->value.l < ( -1 - 0x7FFFFFFFL ) )
+        {
+          FT_TRACE1(( "pcf_get_bdf_property: " ));
+          FT_TRACE1(( "too large integer 0x%x is truncated\n" ));
+        }
         
 
 
 
         aproperty->type      = BDF_PROPERTY_TYPE_INTEGER;
-        aproperty->u.integer = prop->value.integer;
+        aproperty->u.integer = (FT_Int32)prop->value.l;
       }
       return 0;
     }

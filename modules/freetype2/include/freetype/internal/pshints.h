@@ -174,10 +174,11 @@ FT_BEGIN_HEADER
 
 
 
+
   typedef void
-  (*T1_Hints_SetStemFunc)( T1_Hints  hints,
-                           FT_UInt   dimension,
-                           FT_Long*  coords );
+  (*T1_Hints_SetStemFunc)( T1_Hints   hints,
+                           FT_UInt    dimension,
+                           FT_Fixed*  coords );
 
 
   
@@ -209,9 +210,9 @@ FT_BEGIN_HEADER
 
 
   typedef void
-  (*T1_Hints_SetStem3Func)( T1_Hints  hints,
-                            FT_UInt   dimension,
-                            FT_Long*  coords );
+  (*T1_Hints_SetStem3Func)( T1_Hints   hints,
+                            FT_UInt    dimension,
+                            FT_Fixed*  coords );
 
 
   
@@ -678,6 +679,30 @@ FT_BEGIN_HEADER
 
   typedef PSHinter_Interface*  PSHinter_Service;
 
+#ifndef FT_CONFIG_OPTION_PIC
+
+#define FT_DEFINE_PSHINTER_INTERFACE(class_, get_globals_funcs_,             \
+                                     get_t1_funcs_, get_t2_funcs_)           \
+  static const PSHinter_Interface class_ =                                   \
+  {                                                                          \
+    get_globals_funcs_, get_t1_funcs_, get_t2_funcs_                         \
+  };
+
+#else  
+
+#define FT_DEFINE_PSHINTER_INTERFACE(class_, get_globals_funcs_,             \
+                                     get_t1_funcs_, get_t2_funcs_)           \
+  void                                                                       \
+  FT_Init_Class_##class_( FT_Library library,                                \
+                          PSHinter_Interface*  clazz)                        \
+  {                                                                          \
+    FT_UNUSED(library);                                                      \
+    clazz->get_globals_funcs = get_globals_funcs_;                           \
+    clazz->get_t1_funcs = get_t1_funcs_;                                     \
+    clazz->get_t2_funcs = get_t2_funcs_;                                     \
+  } 
+
+#endif  
 
 FT_END_HEADER
 

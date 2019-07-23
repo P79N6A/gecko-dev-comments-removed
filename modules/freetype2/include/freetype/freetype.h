@@ -16,6 +16,7 @@
 
 
 
+
 #ifndef FT_FREETYPE_H
 #error "`ft2build.h' hasn't been included yet!"
 #error "Please always use macros to include FreeType header files."
@@ -23,14 +24,6 @@
 #error "  #include <ft2build.h>"
 #error "  #include FT_FREETYPE_H"
 #endif
-
-
-  
-  
-  
-  
-  
-  
 
 
 #ifndef __FREETYPE_H__
@@ -192,8 +185,21 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 
+  
+  
+  
+  
   
   
   
@@ -506,6 +512,7 @@ FT_BEGIN_HEADER
 #endif 
 
 
+  
   
   
   
@@ -1037,6 +1044,27 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 #define FT_FACE_FLAG_SCALABLE          ( 1L <<  0 )
 #define FT_FACE_FLAG_FIXED_SIZES       ( 1L <<  1 )
 #define FT_FACE_FLAG_FIXED_WIDTH       ( 1L <<  2 )
@@ -1050,8 +1078,7 @@ FT_BEGIN_HEADER
 #define FT_FACE_FLAG_EXTERNAL_STREAM   ( 1L << 10 )
 #define FT_FACE_FLAG_HINTER            ( 1L << 11 )
 #define FT_FACE_FLAG_CID_KEYED         ( 1L << 12 )
-
-  
+#define FT_FACE_FLAG_TRICKY            ( 1L << 13 )
 
 
   
@@ -1162,8 +1189,6 @@ FT_BEGIN_HEADER
 #define FT_HAS_FIXED_SIZES( face ) \
           ( face->face_flags & FT_FACE_FLAG_FIXED_SIZES )
 
-  
-
 
   
 
@@ -1222,6 +1247,20 @@ FT_BEGIN_HEADER
 
 #define FT_IS_CID_KEYED( face ) \
           ( face->face_flags & FT_FACE_FLAG_CID_KEYED )
+
+
+  
+
+
+
+
+
+
+
+
+
+#define FT_IS_TRICKY( face ) \
+          ( face->face_flags & FT_FACE_FLAG_TRICKY )
 
 
   
@@ -1557,6 +1596,11 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
   typedef struct  FT_GlyphSlotRec_
   {
     FT_Library        library;
@@ -1603,6 +1647,11 @@ FT_BEGIN_HEADER
   
 
 
+  
+  
+  
+  
+  
   
   
   
@@ -1689,6 +1738,7 @@ FT_BEGIN_HEADER
 #define ft_open_params    FT_OPEN_PARAMS     /* deprecated */
 
 
+  
   
   
   
@@ -2174,7 +2224,8 @@ FT_BEGIN_HEADER
   
   
   
-
+  
+  
   FT_EXPORT( FT_Error )
   FT_Set_Char_Size( FT_Face     face,
                     FT_F26Dot6  char_width,
@@ -2412,6 +2463,10 @@ FT_BEGIN_HEADER
 
 
 
+
+
+
+
 #define FT_LOAD_DEFAULT                      0x0
 #define FT_LOAD_NO_SCALE                     0x1
 #define FT_LOAD_NO_HINTING                   0x2
@@ -2426,11 +2481,14 @@ FT_BEGIN_HEADER
 #define FT_LOAD_IGNORE_TRANSFORM             0x800
 #define FT_LOAD_MONOCHROME                   0x1000
 #define FT_LOAD_LINEAR_DESIGN                0x2000
-#define FT_LOAD_SBITS_ONLY                   0x4000   /* temporary hack! */
 #define FT_LOAD_NO_AUTOHINT                  0x8000U
 
   
 
+  
+#define FT_LOAD_ADVANCE_ONLY                 0x100
+#define FT_LOAD_SBITS_ONLY                   0x4000
+
 
   
 
@@ -2496,17 +2554,16 @@ FT_BEGIN_HEADER
 
 
 
-#define FT_LOAD_TARGET_( x )      ( (FT_Int32)( (x) & 15 ) << 16 )
+#define FT_LOAD_TARGET_( x )   ( (FT_Int32)( (x) & 15 ) << 16 )
 
-#define FT_LOAD_TARGET_NORMAL     FT_LOAD_TARGET_( FT_RENDER_MODE_NORMAL )
-#define FT_LOAD_TARGET_LIGHT      FT_LOAD_TARGET_( FT_RENDER_MODE_LIGHT  )
-#define FT_LOAD_TARGET_MONO       FT_LOAD_TARGET_( FT_RENDER_MODE_MONO   )
-#define FT_LOAD_TARGET_LCD        FT_LOAD_TARGET_( FT_RENDER_MODE_LCD    )
-#define FT_LOAD_TARGET_LCD_V      FT_LOAD_TARGET_( FT_RENDER_MODE_LCD_V  )
+#define FT_LOAD_TARGET_NORMAL  FT_LOAD_TARGET_( FT_RENDER_MODE_NORMAL )
+#define FT_LOAD_TARGET_LIGHT   FT_LOAD_TARGET_( FT_RENDER_MODE_LIGHT  )
+#define FT_LOAD_TARGET_MONO    FT_LOAD_TARGET_( FT_RENDER_MODE_MONO   )
+#define FT_LOAD_TARGET_LCD     FT_LOAD_TARGET_( FT_RENDER_MODE_LCD    )
+#define FT_LOAD_TARGET_LCD_V   FT_LOAD_TARGET_( FT_RENDER_MODE_LCD_V  )
 
 
   
-
 
 
 
@@ -2553,6 +2610,11 @@ FT_BEGIN_HEADER
                     FT_Vector*  delta );
 
 
+  
+  
+  
+  
+  
   
   
   
@@ -3146,6 +3208,7 @@ FT_BEGIN_HEADER
 
 
 
+
   FT_EXPORT( FT_Error )
   FT_Get_SubGlyph_Info( FT_GlyphSlot  glyph,
                         FT_UInt       sub_index,
@@ -3154,6 +3217,88 @@ FT_BEGIN_HEADER
                         FT_Int       *p_arg1,
                         FT_Int       *p_arg2,
                         FT_Matrix    *p_transform );
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+#define FT_FSTYPE_INSTALLABLE_EMBEDDING         0x0000
+#define FT_FSTYPE_RESTRICTED_LICENSE_EMBEDDING  0x0002
+#define FT_FSTYPE_PREVIEW_AND_PRINT_EMBEDDING   0x0004
+#define FT_FSTYPE_EDITABLE_EMBEDDING            0x0008
+#define FT_FSTYPE_NO_SUBSETTING                 0x0100
+#define FT_FSTYPE_BITMAP_EMBEDDING_ONLY         0x0200
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  FT_EXPORT( FT_UShort )
+  FT_Get_FSType_Flags( FT_Face  face );
 
 
   
@@ -3432,6 +3577,12 @@ FT_BEGIN_HEADER
 
 
   
+
+  
+  
+
+#if 0
+  
   
   
   
@@ -3463,6 +3614,17 @@ FT_BEGIN_HEADER
   FT_EXPORT( FT_Long )
   FT_MulFix( FT_Long  a,
              FT_Long  b );
+
+  
+#endif
+
+#ifdef FT_MULFIX_INLINED
+#define FT_MulFix( a, b )  FT_MULFIX_INLINED( a, b )
+#else
+  FT_EXPORT( FT_Long )
+  FT_MulFix( FT_Long  a,
+             FT_Long  b );
+#endif
 
 
   
@@ -3609,9 +3771,10 @@ FT_BEGIN_HEADER
 
 
 
+
 #define FREETYPE_MAJOR  2
 #define FREETYPE_MINOR  3
-#define FREETYPE_PATCH  7
+#define FREETYPE_PATCH  12
 
 
   

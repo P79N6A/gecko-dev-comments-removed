@@ -49,7 +49,7 @@
 #define FT_COMPONENT  trace_t42
 
 
- 
+  
 
 
 
@@ -94,7 +94,7 @@
   };
 
 
- 
+  
 
 
 
@@ -113,7 +113,7 @@
   };
 
 
- 
+  
 
 
 
@@ -124,6 +124,17 @@
                         PS_FontInfoRec*  afont_info )
   {
     *afont_info = ((T42_Face)face)->type1.font_info;
+
+    return T42_Err_Ok;
+  }
+
+
+  static FT_Error
+  t42_ps_get_font_extra( FT_Face           face,
+                         PS_FontExtraRec*  afont_extra )
+  {
+    *afont_extra = ((T42_Face)face)->type1.font_extra;
+
     return T42_Err_Ok;
   }
 
@@ -132,6 +143,7 @@
   t42_ps_has_glyph_names( FT_Face  face )
   {
     FT_UNUSED( face );
+
     return 1;
   }
 
@@ -141,6 +153,7 @@
                            PS_PrivateRec*  afont_private )
   {
     *afont_private = ((T42_Face)face)->type1.private_dict;
+
     return T42_Err_Ok;
   }
 
@@ -148,12 +161,13 @@
   static const FT_Service_PsInfoRec  t42_service_ps_info =
   {
     (PS_GetFontInfoFunc)   t42_ps_get_font_info,
+    (PS_GetFontExtraFunc)   t42_ps_get_font_extra,
     (PS_HasGlyphNamesFunc) t42_ps_has_glyph_names,
     (PS_GetFontPrivateFunc)t42_ps_get_font_private
   };
 
 
- 
+  
 
 
 

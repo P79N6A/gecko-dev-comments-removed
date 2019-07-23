@@ -16,6 +16,7 @@
 
 
 
+
   
   
   
@@ -45,7 +46,6 @@ FT_BEGIN_HEADER
   
 
 
-  
   
   
   
@@ -99,6 +99,20 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   typedef struct  FT_BBox_
   {
     FT_Pos  xMin, yMin;
@@ -107,6 +121,7 @@ FT_BEGIN_HEADER
   } FT_BBox;
 
 
+  
   
   
   
@@ -277,6 +292,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   typedef struct  FT_Bitmap_
   {
     int             rows;
@@ -335,6 +353,21 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   typedef struct  FT_Outline_
   {
     short       n_contours;      
@@ -348,7 +381,21 @@ FT_BEGIN_HEADER
 
   } FT_Outline;
 
+  
+  
+#define FT_OUTLINE_CONTOURS_MAX  SHRT_MAX
+#define FT_OUTLINE_POINTS_MAX    SHRT_MAX
 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -454,15 +501,17 @@ FT_BEGIN_HEADER
 
 #define FT_CURVE_TAG( flag )  ( flag & 3 )
 
-#define FT_CURVE_TAG_ON           1
-#define FT_CURVE_TAG_CONIC        0
-#define FT_CURVE_TAG_CUBIC        2
+#define FT_CURVE_TAG_ON            1
+#define FT_CURVE_TAG_CONIC         0
+#define FT_CURVE_TAG_CUBIC         2
 
-#define FT_CURVE_TAG_TOUCH_X      8  /* reserved for the TrueType hinter */
-#define FT_CURVE_TAG_TOUCH_Y     16  /* reserved for the TrueType hinter */
+#define FT_CURVE_TAG_HAS_SCANMODE  4
 
-#define FT_CURVE_TAG_TOUCH_BOTH  ( FT_CURVE_TAG_TOUCH_X | \
-                                   FT_CURVE_TAG_TOUCH_Y )
+#define FT_CURVE_TAG_TOUCH_X       8  /* reserved for the TrueType hinter */
+#define FT_CURVE_TAG_TOUCH_Y      16  /* reserved for the TrueType hinter */
+
+#define FT_CURVE_TAG_TOUCH_BOTH    ( FT_CURVE_TAG_TOUCH_X | \
+                                     FT_CURVE_TAG_TOUCH_Y )
 
 #define FT_Curve_Tag_On       FT_CURVE_TAG_ON
 #define FT_Curve_Tag_Conic    FT_CURVE_TAG_CONIC
@@ -590,7 +639,6 @@ FT_BEGIN_HEADER
 #define FT_Outline_CubicTo_Func  FT_Outline_CubicToFunc
 
 
-  
   
   
   
@@ -1047,7 +1095,7 @@ FT_BEGIN_HEADER
     const void*             source;
     int                     flags;
     FT_SpanFunc             gray_spans;
-    FT_SpanFunc             black_spans;
+    FT_SpanFunc             black_spans;  
     FT_Raster_BitTest_Func  bit_test;     
     FT_Raster_BitSet_Func   bit_set;      
     void*                   user;

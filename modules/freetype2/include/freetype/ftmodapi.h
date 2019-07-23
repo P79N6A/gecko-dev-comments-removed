@@ -268,6 +268,10 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_New_Library( FT_Memory    memory,
                   FT_Library  *alibrary );

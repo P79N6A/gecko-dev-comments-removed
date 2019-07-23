@@ -45,7 +45,7 @@ FT_BEGIN_HEADER
                                FT_ULong          strike_index,
                                FT_Size_Metrics*  metrics );
 
-#if defined FT_CONFIG_OPTION_OLD_INTERNALS
+#ifdef FT_CONFIG_OPTION_OLD_INTERNALS
   FT_LOCAL( FT_Error )
   tt_find_sbit_image( TT_Face          face,
                       FT_UInt          glyph_index,

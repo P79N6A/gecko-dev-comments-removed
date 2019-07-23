@@ -19,7 +19,6 @@
 #include "afloader.h"
 #include "afhints.h"
 #include "afglobal.h"
-#include "aflatin.h"
 #include "aferrors.h"
 
 
@@ -184,9 +183,9 @@
 
         if ( axis->num_edges > 1 && AF_HINTS_DO_ADVANCE( hints ) )
         {
-          old_rsb     = loader->pp2.x - edge2->opos;
-          old_lsb     = edge1->opos;
-          new_lsb     = edge1->pos;
+          old_rsb = loader->pp2.x - edge2->opos;
+          old_lsb = edge1->opos;
+          new_lsb = edge1->pos;
 
           
           
@@ -217,8 +216,9 @@
         }
         else
         {
-          FT_Pos   pp1x = loader->pp1.x;
-          FT_Pos   pp2x = loader->pp2.x;
+          FT_Pos  pp1x = loader->pp1.x;
+          FT_Pos  pp2x = loader->pp2.x;
+
 
           loader->pp1.x = FT_PIX_ROUND( pp1x );
           loader->pp2.x = FT_PIX_ROUND( pp2x );
@@ -229,8 +229,9 @@
       }
       else
       {
-        FT_Pos   pp1x = loader->pp1.x;
-        FT_Pos   pp2x = loader->pp2.x;
+        FT_Pos  pp1x = loader->pp1.x;
+        FT_Pos  pp2x = loader->pp2.x;
+
 
         loader->pp1.x = FT_PIX_ROUND( pp1x + hints->xmin_delta );
         loader->pp2.x = FT_PIX_ROUND( pp2x + hints->xmax_delta );
@@ -414,6 +415,7 @@
 
       
       
+      
 #if 0
       if ( !FT_IS_FIXED_WIDTH( slot->face ) )
         slot->metrics.horiAdvance = loader->pp2.x - loader->pp1.x;
@@ -421,13 +423,9 @@
         slot->metrics.horiAdvance = FT_MulFix( slot->metrics.horiAdvance,
                                                x_scale );
 #else
-      if ( !FT_IS_FIXED_WIDTH( slot->face ) )
-      {
-        
-        if ( slot->metrics.horiAdvance )
-          slot->metrics.horiAdvance = loader->pp2.x - loader->pp1.x;
-      }
-      else
+      if ( FT_IS_FIXED_WIDTH( slot->face )                              ||
+           ( af_face_globals_is_digit( loader->globals, glyph_index ) &&
+             metrics->digits_have_same_width                          ) )
       {
         slot->metrics.horiAdvance = FT_MulFix( slot->metrics.horiAdvance,
                                                metrics->scaler.x_scale );
@@ -436,6 +434,12 @@
         
         slot->lsb_delta = 0;
         slot->rsb_delta = 0;
+      }
+      else
+      {
+        
+        if ( slot->metrics.horiAdvance )
+          slot->metrics.horiAdvance = loader->pp2.x - loader->pp1.x;
       }
 #endif
 

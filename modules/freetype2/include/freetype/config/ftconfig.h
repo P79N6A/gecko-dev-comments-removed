@@ -35,13 +35,13 @@
   
   
 
-
 #ifndef __FTCONFIG_H__
 #define __FTCONFIG_H__
 
 #include <ft2build.h>
 #include FT_CONFIG_OPTIONS_H
 #include FT_CONFIG_STANDARD_LIBRARY_H
+
 
 FT_BEGIN_HEADER
 
@@ -134,6 +134,14 @@ FT_BEGIN_HEADER
 #else
 #define FT_MACINTOSH 1
 #endif
+
+#elif defined( __SC__ ) || defined( __MRC__ )
+  
+#include "ConditionalMacros.h"
+#if TARGET_OS_MAC
+#define FT_MACINTOSH 1
+#endif
+
 #endif
 
 
@@ -212,6 +220,7 @@ FT_BEGIN_HEADER
 #error "no 32bit type found -- please check your configuration files"
 #endif
 
+
   
 #if FT_SIZEOF_INT >= (32 / FT_CHAR_BIT)
 
@@ -267,11 +276,6 @@ FT_BEGIN_HEADER
 #endif 
 
 
-#define FT_BEGIN_STMNT  do {
-#define FT_END_STMNT    } while ( 0 )
-#define FT_DUMMY_STMNT  FT_BEGIN_STMNT FT_END_STMNT
-
-
   
   
   
@@ -290,6 +294,115 @@ FT_BEGIN_HEADER
 #endif 
 
 #endif 
+
+
+#define FT_BEGIN_STMNT  do {
+#define FT_END_STMNT    } while ( 0 )
+#define FT_DUMMY_STMNT  FT_BEGIN_STMNT FT_END_STMNT
+
+
+#ifndef  FT_CONFIG_OPTION_NO_ASSEMBLER
+  
+  
+
+#if defined( __CC_ARM ) || defined( __ARMCC__ )  
+#define FT_MULFIX_ASSEMBLER  FT_MulFix_arm
+
+  
+
+  static __inline FT_Int32
+  FT_MulFix_arm( FT_Int32  a,
+                 FT_Int32  b )
+  {
+    register FT_Int32  t, t2;
+
+
+    __asm
+    {
+      smull t2, t,  b,  a           
+      mov   a,  t,  asr #31         
+      add   a,  a,  #0x8000         
+      adds  t2, t2, a               
+      adc   t,  t,  #0              
+      mov   a,  t2, lsr #16         
+      orr   a,  a,  t,  lsl #16     
+    }
+    return a;
+  }
+
+#endif 
+
+
+#ifdef __GNUC__
+
+#if defined( __arm__ ) && !defined( __thumb__ )    && \
+    !( defined( __CC_ARM ) || defined( __ARMCC__ ) )
+#define FT_MULFIX_ASSEMBLER  FT_MulFix_arm
+
+  
+
+  static __inline__ FT_Int32
+  FT_MulFix_arm( FT_Int32  a,
+                 FT_Int32  b )
+  {
+    register FT_Int32  t, t2;
+
+
+    asm __volatile__ (
+      "smull  %1, %2, %4, %3\n\t"   
+      "mov    %0, %2, asr #31\n\t"  
+      "add    %0, %0, #0x8000\n\t"  
+      "adds   %1, %1, %0\n\t"       
+      "adc    %2, %2, #0\n\t"       
+      "mov    %0, %1, lsr #16\n\t"  
+      "orr    %0, %2, lsl #16\n\t"  
+      : "=r"(a), "=&r"(t2), "=&r"(t)
+      : "r"(a), "r"(b) );
+    return a;
+  }
+
+#endif 
+
+#if defined( i386 )
+#define FT_MULFIX_ASSEMBLER  FT_MulFix_i386
+
+  
+
+  static __inline__ FT_Int32
+  FT_MulFix_i386( FT_Int32  a,
+                  FT_Int32  b )
+  {
+    register FT_Int32  result;
+
+
+    __asm__ __volatile__ (
+      "imul  %%edx\n"
+      "movl  %%edx, %%ecx\n"
+      "sarl  $31, %%ecx\n"
+      "addl  $0x8000, %%ecx\n"
+      "addl  %%ecx, %%eax\n"
+      "adcl  $0, %%edx\n"
+      "shrl  $16, %%eax\n"
+      "shll  $16, %%edx\n"
+      "addl  %%edx, %%eax\n"
+      : "=a"(result), "=d"(b)
+      : "a"(a), "d"(b)
+      : "%ecx", "cc" );
+    return result;
+  }
+
+#endif 
+
+#endif 
+
+#endif 
+
+
+#ifdef FT_CONFIG_OPTION_INLINE_MULFIX
+#ifdef FT_MULFIX_ASSEMBLER
+#define FT_MULFIX_INLINED  FT_MULFIX_ASSEMBLER
+#endif
+#endif
 
 
 #ifdef FT_MAKE_OPTION_SINGLE_OBJECT

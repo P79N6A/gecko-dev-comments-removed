@@ -35,7 +35,9 @@ FT_BEGIN_HEADER
     T1_FontRec      type1;
     const void*     psnames;
     const void*     psaux;
+#if 0
     const void*     afm_data;
+#endif
     FT_Byte*        ttf_data;
     FT_ULong        ttf_size;
     FT_Face         ttf_face;

@@ -18,7 +18,6 @@
 
 #include "pfrcmap.h"
 #include "pfrobjs.h"
-#include FT_INTERNAL_DEBUG_H
 
 #include "pfrerror.h"
 
@@ -89,7 +88,7 @@
   }
 
 
-  FT_CALLBACK_DEF( FT_UInt )
+  FT_CALLBACK_DEF( FT_UInt32 )
   pfr_cmap_char_next( PFR_CMap    cmap,
                       FT_UInt32  *pchar_code )
   {

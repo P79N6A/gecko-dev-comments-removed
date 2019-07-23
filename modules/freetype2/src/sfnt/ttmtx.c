@@ -60,7 +60,7 @@
   
   
   
-#if !defined FT_CONFIG_OPTION_OLD_INTERNALS
+#ifndef FT_CONFIG_OPTION_OLD_INTERNALS
 
   FT_LOCAL_DEF( FT_Error )
   tt_face_load_hmtx( TT_Face    face,
@@ -161,7 +161,9 @@
 
     if ( num_shorts < 0 )
     {
-      FT_ERROR(( "%cmtx has more metrics than glyphs.\n" ));
+      FT_TRACE0(( "tt_face_load_hmtx:"
+                  " %cmtx has more metrics than glyphs.\n",
+                  vertical ? "v" : "h" ));
 
       
 #if 0
@@ -341,7 +343,7 @@
   
   
   
-#if !defined FT_CONFIG_OPTION_OLD_INTERNALS
+#ifndef FT_CONFIG_OPTION_OLD_INTERNALS
 
   FT_LOCAL_DEF( FT_Error )
   tt_face_get_metrics( TT_Face     face,

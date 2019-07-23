@@ -34,6 +34,13 @@
   
 
 
+  
+  
+  
+  
+  
+
+
 #ifndef __FTSYNTH_H__
 #define __FTSYNTH_H__
 
@@ -51,19 +58,19 @@
 FT_BEGIN_HEADER
 
   
-  FT_EXPORT( FT_Error )
-  FT_GlyphSlot_Own_Bitmap( FT_GlyphSlot  slot );
-
+  
+  
+  
   
   
   FT_EXPORT( void )
   FT_GlyphSlot_Embolden( FT_GlyphSlot  slot );
 
-
+  
   FT_EXPORT( void )
   FT_GlyphSlot_Oblique( FT_GlyphSlot  slot );
 
- 
+  
 
 FT_END_HEADER
 

@@ -17,6 +17,7 @@
 
 
 #include <ft2build.h>
+#include FT_INTERNAL_CALC_H
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
 #include FT_TRUETYPE_IDS_H
@@ -191,72 +192,75 @@
   FT_LOCAL_DEF( void )
   T1_Face_Done( T1_Face  face )
   {
-    if ( face )
-    {
-      FT_Memory  memory = face->root.memory;
-      T1_Font    type1  = &face->type1;
+    FT_Memory  memory;
+    T1_Font    type1;
 
+
+    if ( !face )
+      return;
+
+    memory = face->root.memory;
+    type1  = &face->type1;
 
 #ifndef T1_CONFIG_OPTION_NO_MM_SUPPORT
-      
-      FT_ASSERT( ( face->len_buildchar == 0 ) == ( face->buildchar == NULL ) );
+    
+    FT_ASSERT( ( face->len_buildchar == 0 ) == ( face->buildchar == NULL ) );
 
-      if ( face->buildchar )
-      {
-        FT_FREE( face->buildchar );
+    if ( face->buildchar )
+    {
+      FT_FREE( face->buildchar );
 
-        face->buildchar     = NULL;
-        face->len_buildchar = 0;
-      }
+      face->buildchar     = NULL;
+      face->len_buildchar = 0;
+    }
 
-      T1_Done_Blend( face );
-      face->blend = 0;
+    T1_Done_Blend( face );
+    face->blend = 0;
 #endif
 
-      
-      {
-        PS_FontInfo  info = &type1->font_info;
+    
+    {
+      PS_FontInfo  info = &type1->font_info;
 
 
-        FT_FREE( info->version );
-        FT_FREE( info->notice );
-        FT_FREE( info->full_name );
-        FT_FREE( info->family_name );
-        FT_FREE( info->weight );
-      }
+      FT_FREE( info->version );
+      FT_FREE( info->notice );
+      FT_FREE( info->full_name );
+      FT_FREE( info->family_name );
+      FT_FREE( info->weight );
+    }
 
-      
-      FT_FREE( type1->charstrings_len );
-      FT_FREE( type1->charstrings );
-      FT_FREE( type1->glyph_names );
+    
+    FT_FREE( type1->charstrings_len );
+    FT_FREE( type1->charstrings );
+    FT_FREE( type1->glyph_names );
 
-      FT_FREE( type1->subrs );
-      FT_FREE( type1->subrs_len );
+    FT_FREE( type1->subrs );
+    FT_FREE( type1->subrs_len );
 
-      FT_FREE( type1->subrs_block );
-      FT_FREE( type1->charstrings_block );
-      FT_FREE( type1->glyph_names_block );
+    FT_FREE( type1->subrs_block );
+    FT_FREE( type1->charstrings_block );
+    FT_FREE( type1->glyph_names_block );
 
-      FT_FREE( type1->encoding.char_index );
-      FT_FREE( type1->encoding.char_name );
-      FT_FREE( type1->font_name );
+    FT_FREE( type1->encoding.char_index );
+    FT_FREE( type1->encoding.char_name );
+    FT_FREE( type1->font_name );
 
 #ifndef T1_CONFIG_OPTION_NO_AFM
-      
-      if ( face->afm_data )
-        T1_Done_Metrics( memory, (AFM_FontInfo)face->afm_data );
+    
+    if ( face->afm_data )
+      T1_Done_Metrics( memory, (AFM_FontInfo)face->afm_data );
 #endif
 
-      
+    
 #if 0
-      FT_FREE( face->unicode_map_rec.maps );
-      face->unicode_map_rec.num_maps = 0;
-      face->unicode_map              = NULL;
+    FT_FREE( face->unicode_map_rec.maps );
+    face->unicode_map_rec.num_maps = 0;
+    face->unicode_map              = NULL;
 #endif
 
-      face->root.family_name = NULL;
-      face->root.style_name  = NULL;
-    }
+    face->root.family_name = NULL;
+    face->root.style_name  = NULL;
   }
 
 
@@ -323,7 +327,7 @@
       goto Exit;
 
     
-    if ( face_index != 0 )
+    if ( face_index > 0 )
     {
       FT_ERROR(( "T1_Face_Init: invalid face index\n" ));
       error = T1_Err_Invalid_Argument;
@@ -340,7 +344,7 @@
 
 
       root->num_glyphs = type1->num_glyphs;
-      root->face_index = face_index;
+      root->face_index = 0;
 
       root->face_flags = FT_FACE_FLAG_SCALABLE    |
                          FT_FACE_FLAG_HORIZONTAL  |
@@ -437,10 +441,11 @@
       root->num_fixed_sizes = 0;
       root->available_sizes = 0;
 
-      root->bbox.xMin =   type1->font_bbox.xMin             >> 16;
-      root->bbox.yMin =   type1->font_bbox.yMin             >> 16;
-      root->bbox.xMax = ( type1->font_bbox.xMax + 0xFFFFU ) >> 16;
-      root->bbox.yMax = ( type1->font_bbox.yMax + 0xFFFFU ) >> 16;
+      root->bbox.xMin =   type1->font_bbox.xMin            >> 16;
+      root->bbox.yMin =   type1->font_bbox.yMin            >> 16;
+      
+      root->bbox.xMax = ( type1->font_bbox.xMax + 0xFFFF ) >> 16;
+      root->bbox.yMax = ( type1->font_bbox.yMax + 0xFFFF ) >> 16;
 
       
       if ( !root->units_per_EM )
@@ -464,7 +469,7 @@
 
         
         if ( !error )
-          root->max_advance_width = (FT_Short)max_advance;
+          root->max_advance_width = (FT_Short)FIXED_TO_INT( max_advance );
         else
           error = T1_Err_Ok;   
       }

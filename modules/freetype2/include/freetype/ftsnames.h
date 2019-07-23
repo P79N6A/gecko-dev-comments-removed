@@ -153,11 +153,41 @@ FT_BEGIN_HEADER
   
   
   
+  
   FT_EXPORT( FT_Error )
   FT_Get_Sfnt_Name( FT_Face       face,
                     FT_UInt       idx,
                     FT_SfntName  *aname );
 
+
+  
+
+
+
+
+
+
+
+
+
+
+
+#define FT_PARAM_TAG_IGNORE_PREFERRED_FAMILY  FT_MAKE_TAG( 'i', 'g', 'p', 'f' )
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+#define FT_PARAM_TAG_IGNORE_PREFERRED_SUBFAMILY  FT_MAKE_TAG( 'i', 'g', 'p', 's' )
 
   
 

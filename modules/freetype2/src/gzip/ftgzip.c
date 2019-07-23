@@ -25,7 +25,7 @@
 #include FT_INTERNAL_STREAM_H
 #include FT_INTERNAL_DEBUG_H
 #include FT_GZIP_H
-#include <string.h>
+#include FT_CONFIG_STANDARD_LIBRARY_H
 
 
 #include FT_MODULE_ERRORS_H
@@ -39,6 +39,10 @@
 
 
 #ifdef FT_CONFIG_OPTION_USE_ZLIB
+
+#ifdef FT_CONFIG_OPTION_PIC
+#error "gzip code does not support PIC yet"
+#endif 
 
 #ifdef FT_CONFIG_OPTION_SYSTEM_ZLIB
 
@@ -54,7 +58,9 @@
  
 
 #define NO_DUMMY_DECL
+#ifndef USE_ZLIB_ZCALLOC
 #define MY_ZCALLOC
+#endif
 
 #include "zlib.h"
 
@@ -117,7 +123,7 @@
   }
 
 
-#ifndef FT_CONFIG_OPTION_SYSTEM_ZLIB
+#if !defined( FT_CONFIG_OPTION_SYSTEM_ZLIB ) && !defined( USE_ZLIB_ZCALLOC )
 
   local voidpf
   zcalloc ( voidpf    opaque,
@@ -569,7 +575,7 @@
       if ( error )
         result = 0;
 
-      FT_Stream_Seek( stream, old_pos );
+      (void)FT_Stream_Seek( stream, old_pos );
     }
 
     return result;

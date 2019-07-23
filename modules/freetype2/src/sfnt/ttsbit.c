@@ -24,7 +24,7 @@
 
 
 
-#if !defined FT_CONFIG_OPTION_OLD_INTERNALS
+#ifndef FT_CONFIG_OPTION_OLD_INTERNALS
 
 #include "ttsbit0.c"
 
@@ -83,7 +83,8 @@
              FT_Int      line_bits,
              FT_Bool     byte_padded,
              FT_Int      x_offset,
-             FT_Int      y_offset )
+             FT_Int      y_offset,
+             FT_Int      source_height )
   {
     FT_Byte*   line_buff;
     FT_Int     line_incr;
@@ -116,7 +117,7 @@
     acc    = 0;  
     loaded = 0;  
 
-    for ( height = target->rows; height > 0; height-- )
+    for ( height = source_height; height > 0; height-- )
     {
       FT_Byte*  cur   = line_buff;        
       FT_Int    count = line_bits;        
@@ -493,7 +494,7 @@
     if ( version     != 0x00020000L ||
          num_strikes >= 0x10000L    )
     {
-      FT_ERROR(( "tt_face_load_sbit_strikes: invalid table version!\n" ));
+      FT_ERROR(( "tt_face_load_sbit_strikes: invalid table version\n" ));
       error = SFNT_Err_Invalid_File_Format;
 
       goto Exit;
@@ -772,7 +773,7 @@
       Found:
         
         *arange  = range;
-        return 0;
+        return SFNT_Err_Ok;
       }
     }
 
@@ -1230,7 +1231,7 @@
       
       
       blit_sbit( map, (FT_Byte*)stream->cursor, line_bits, pad_bytes,
-                 x_offset * pix_bits, y_offset );
+                 x_offset * pix_bits, y_offset, metrics->height );
 
       FT_FRAME_EXIT();
     }
@@ -1324,7 +1325,11 @@
                                range->image_format, metrics, stream );
 
     case 8:  
-      FT_Stream_Skip( stream, 1L );
+      if ( FT_STREAM_SKIP( 1L ) )
+      {
+        error = SFNT_Err_Invalid_Stream_Skip;
+        goto Exit;
+      }
       
 
     case 9:

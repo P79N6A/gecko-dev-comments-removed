@@ -42,6 +42,13 @@
   T1_FIELD_NUM   ( "UnderlineThickness", underline_thickness,
                    T1_FIELD_DICT_FONTDICT )
 
+#undef  FT_STRUCTURE
+#define FT_STRUCTURE  PS_FontExtraRec
+#undef  T1CODE
+#define T1CODE        T1_FIELD_LOCATION_FONT_EXTRA
+
+  T1_FIELD_NUM   ( "FSType", fs_type,
+                   T1_FIELD_DICT_FONTDICT )
 
 #undef  FT_STRUCTURE
 #define FT_STRUCTURE  PS_PrivateRec
@@ -87,7 +94,9 @@
 
   T1_FIELD_FIXED     ( "ExpansionFactor",  expansion_factor,
                        T1_FIELD_DICT_PRIVATE )
-
+  T1_FIELD_BOOL      ( "ForceBold",        force_bold,
+                       T1_FIELD_DICT_PRIVATE )
+                         
 
 #undef  FT_STRUCTURE
 #define FT_STRUCTURE  T1_FontRec

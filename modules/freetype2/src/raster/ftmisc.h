@@ -27,7 +27,8 @@
 #ifndef __FTMISC_H__
 #define __FTMISC_H__
 
-#include <string.h> 
+
+#include FT_CONFIG_STANDARD_LIBRARY_H
 
 #define FT_BEGIN_HEADER
 #define FT_END_HEADER
@@ -50,6 +51,31 @@
             ( (FT_ULong)_x3 <<  8 ) |     \
               (FT_ULong)_x4         )
 
+
+  
+
+  typedef struct FT_MemoryRec_*  FT_Memory;
+
+  typedef void* (*FT_Alloc_Func)( FT_Memory  memory,
+                                  long       size );
+
+  typedef void (*FT_Free_Func)( FT_Memory  memory,
+                                void*      block );
+
+  typedef void* (*FT_Realloc_Func)( FT_Memory  memory,
+                                    long       cur_size,
+                                    long       new_size,
+                                    void*      block );
+
+  typedef struct FT_MemoryRec_
+  {
+    void*            user;
+
+    FT_Alloc_Func    alloc;
+    FT_Free_Func     free;
+    FT_Realloc_Func  realloc;
+
+  } FT_MemoryRec;
 
   
 

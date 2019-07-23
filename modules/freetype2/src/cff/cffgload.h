@@ -28,12 +28,11 @@
 FT_BEGIN_HEADER
 
 
-#define CFF_MAX_OPERANDS     48
-#define CFF_MAX_SUBRS_CALLS  32
+#define CFF_MAX_OPERANDS        48
+#define CFF_MAX_SUBRS_CALLS     32
+#define CFF_MAX_TRANS_ELEMENTS  32
 
 
-  
-  
   
   
   
@@ -88,8 +87,6 @@ FT_BEGIN_HEADER
     FT_Outline*     base;
     FT_Outline*     current;
 
-    FT_Vector       last;
-
     FT_Pos          pos_x;
     FT_Pos          pos_y;
 
@@ -139,9 +136,9 @@ FT_BEGIN_HEADER
     FT_Pos             nominal_width;
 
     FT_Bool            read_width;
+    FT_Bool            width_only;
     FT_Int             num_hints;
-    FT_Fixed*          buildchar;
-    FT_Int             len_buildchar;
+    FT_Fixed           buildchar[CFF_MAX_TRANS_ELEMENTS];
 
     FT_UInt            num_locals;
     FT_UInt            num_globals;
@@ -156,6 +153,8 @@ FT_BEGIN_HEADER
     FT_UInt            num_glyphs;    
 
     FT_Render_Mode     hint_mode;
+
+    FT_Bool            seac;
 
   } CFF_Decoder;
 

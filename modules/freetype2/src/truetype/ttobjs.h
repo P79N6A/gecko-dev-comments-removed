@@ -99,6 +99,10 @@ FT_BEGIN_HEADER
     FT_Short       delta_shift;
 
     FT_Byte        instruct_control;
+    
+    
+    
+    
     FT_Bool        scan_control;
     FT_Int         scan_type;
 
@@ -188,38 +192,6 @@ FT_BEGIN_HEADER
     FT_F26Dot6  ox, oy;     
 
   } TT_Transform;
-
-
-  
-  
-  
-  
-  typedef struct  TT_SubglyphRec_
-  {
-    FT_Long          index;        
-    FT_Bool          is_scaled;    
-    FT_Bool          is_hinted;    
-    FT_Bool          preserve_pps; 
-
-    FT_Long          file_offset;
-
-    FT_BBox          bbox;
-    FT_Pos           left_bearing;
-    FT_Pos           advance;
-
-    TT_GlyphZoneRec  zone;
-
-    FT_Long          arg1;         
-    FT_Long          arg2;         
-
-    FT_UShort        element_flag; 
-
-    TT_Transform     transform;    
-
-    FT_Vector        pp1, pp2;     
-    FT_Vector        pp3, pp4;     
-
-  } TT_SubGlyphRec, *TT_SubGlyph_Stack;
 
 
   

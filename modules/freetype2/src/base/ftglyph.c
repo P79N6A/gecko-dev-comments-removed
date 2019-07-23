@@ -34,6 +34,7 @@
 #include FT_BITMAP_H
 #include FT_INTERNAL_OBJECTS_H
 
+#include "basepic.h"
 
   
   
@@ -129,9 +130,7 @@
   }
 
 
-  FT_CALLBACK_TABLE_DEF
-  const FT_Glyph_Class  ft_bitmap_glyph_class =
-  {
+  FT_DEFINE_GLYPH(ft_bitmap_glyph_class,
     sizeof ( FT_BitmapGlyphRec ),
     FT_GLYPH_FORMAT_BITMAP,
 
@@ -141,7 +140,7 @@
     0,                          
     ft_bitmap_glyph_bbox,
     0                           
-  };
+  )
 
 
   
@@ -255,9 +254,7 @@
   }
 
 
-  FT_CALLBACK_TABLE_DEF
-  const FT_Glyph_Class  ft_outline_glyph_class =
-  {
+  FT_DEFINE_GLYPH( ft_outline_glyph_class, 
     sizeof ( FT_OutlineGlyphRec ),
     FT_GLYPH_FORMAT_OUTLINE,
 
@@ -267,7 +264,7 @@
     ft_outline_glyph_transform,
     ft_outline_glyph_bbox,
     ft_outline_glyph_prepare
-  };
+  )
 
 
   
@@ -373,11 +370,11 @@
 
     
     if ( slot->format == FT_GLYPH_FORMAT_BITMAP )
-      clazz = &ft_bitmap_glyph_class;
+      clazz = FT_BITMAP_GLYPH_CLASS_GET;
 
     
     else if ( slot->format == FT_GLYPH_FORMAT_OUTLINE )
-      clazz = &ft_outline_glyph_class;
+      clazz = FT_OUTLINE_GLYPH_CLASS_GET;
 
     else
     {
@@ -518,6 +515,10 @@
 
     const FT_Glyph_Class*     clazz;
 
+#ifdef FT_CONFIG_OPTION_PIC
+    FT_Library                library = FT_GLYPH( glyph )->library;
+#endif
+
 
     
     if ( !the_glyph )
@@ -533,7 +534,7 @@
     clazz = glyph->clazz;
 
     
-    if ( clazz == &ft_bitmap_glyph_class )
+    if ( clazz == FT_BITMAP_GLYPH_CLASS_GET )
       goto Exit;
 
     if ( !clazz || !clazz->glyph_prepare )
@@ -546,7 +547,7 @@
     dummy.format   = clazz->glyph_format;
 
     
-    error = ft_new_glyph( glyph->library, &ft_bitmap_glyph_class,
+    error = ft_new_glyph( glyph->library, FT_BITMAP_GLYPH_CLASS_GET,
                           (FT_Glyph*)(void*)&bitmap );
     if ( error )
       goto Exit;

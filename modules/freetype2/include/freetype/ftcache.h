@@ -618,6 +618,7 @@ FT_BEGIN_HEADER
 
 
 
+
   FT_EXPORT( FT_UInt )
   FTC_CMapCache_Lookup( FTC_CMapCache  cache,
                         FTC_FaceID     face_id,
@@ -787,6 +788,9 @@ FT_BEGIN_HEADER
                          FTC_Node       *anode );
 
 
+  
+  
+  
   
   
   

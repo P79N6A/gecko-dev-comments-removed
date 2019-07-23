@@ -71,13 +71,13 @@ FT_BEGIN_HEADER
   FT_LOCAL( FT_Int )
   afm_parser_read_vals( AFM_Parser  parser,
                         AFM_Value   vals,
-                        FT_Int      n );
+                        FT_UInt     n );
 
   
   FT_LOCAL( char* )
   afm_parser_next_key( AFM_Parser  parser,
                        FT_Bool     line,
-                       FT_UInt*    len );
+                       FT_Offset*  len );
 
 FT_END_HEADER
 

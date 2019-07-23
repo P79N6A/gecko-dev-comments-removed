@@ -50,12 +50,16 @@
   
   static FT_Int
   t1_get_index( const char*  name,
-                FT_UInt      len,
+                FT_Offset    len,
                 void*        user_data )
   {
     T1_Font  type1 = (T1_Font)user_data;
     FT_Int   n;
 
+
+    
+    if ( len > 0xFFFFU )
+      return 0;
 
     for ( n = 0; n < type1->num_glyphs; n++ )
     {
@@ -88,7 +92,12 @@
     FT_ULong  index2 = KERN_INDEX( pair2->index1, pair2->index2 );
 
 
-    return (int)( index1 - index2 );
+    if ( index1 > index2 )
+      return 1;
+    else if ( index1 < index2 )
+      return -1;
+    else
+      return 0;
   }
 
 
@@ -276,13 +285,15 @@
     {
       t1_font->font_bbox = fi->FontBBox;
 
-      t1_face->bbox.xMin =   fi->FontBBox.xMin             >> 16;
-      t1_face->bbox.yMin =   fi->FontBBox.yMin             >> 16;
-      t1_face->bbox.xMax = ( fi->FontBBox.xMax + 0xFFFFU ) >> 16;
-      t1_face->bbox.yMax = ( fi->FontBBox.yMax + 0xFFFFU ) >> 16;
+      t1_face->bbox.xMin =   fi->FontBBox.xMin            >> 16;
+      t1_face->bbox.yMin =   fi->FontBBox.yMin            >> 16;
+      
+      t1_face->bbox.xMax = ( fi->FontBBox.xMax + 0xFFFF ) >> 16;
+      t1_face->bbox.yMax = ( fi->FontBBox.yMax + 0xFFFF ) >> 16;
 
-      t1_face->ascender  = (FT_Short)( ( fi->Ascender  + 0x8000U ) >> 16 );
-      t1_face->descender = (FT_Short)( ( fi->Descender + 0x8000U ) >> 16 );
+      
+      t1_face->ascender  = (FT_Short)( ( fi->Ascender  + 0x8000 ) >> 16 );
+      t1_face->descender = (FT_Short)( ( fi->Descender + 0x8000 ) >> 16 );
 
       if ( fi->NumKernPair )
       {

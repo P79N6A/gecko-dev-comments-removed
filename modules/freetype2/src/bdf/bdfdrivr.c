@@ -53,7 +53,7 @@
   typedef struct  BDF_CMapRec_
   {
     FT_CMapRec        cmap;
-    FT_UInt           num_encodings;
+    FT_ULong          num_encodings; 
     BDF_encoding_el*  encodings;
 
   } BDF_CMapRec, *BDF_CMap;
@@ -92,8 +92,8 @@
   {
     BDF_CMap          cmap      = (BDF_CMap)bdfcmap;
     BDF_encoding_el*  encodings = cmap->encodings;
-    FT_UInt           min, max, mid;
-    FT_UInt           result    = 0;
+    FT_ULong          min, max, mid; 
+    FT_UShort         result    = 0; 
 
 
     min = 0;
@@ -101,7 +101,7 @@
 
     while ( min < max )
     {
-      FT_UInt32  code;
+      FT_ULong  code;
 
 
       mid  = ( min + max ) >> 1;
@@ -131,9 +131,9 @@
   {
     BDF_CMap          cmap      = (BDF_CMap)bdfcmap;
     BDF_encoding_el*  encodings = cmap->encodings;
-    FT_UInt           min, max, mid;
-    FT_UInt32         charcode = *acharcode + 1;
-    FT_UInt           result   = 0;
+    FT_ULong          min, max, mid; 
+    FT_UShort         result   = 0;  
+    FT_ULong          charcode = *acharcode + 1;
 
 
     min = 0;
@@ -141,7 +141,7 @@
 
     while ( min < max )
     {
-      FT_UInt32  code;
+      FT_ULong  code; 
 
 
       mid  = ( min + max ) >> 1;
@@ -169,7 +169,14 @@
     }
 
   Exit:
-    *acharcode = charcode;
+    if ( charcode > 0xFFFFFFFFUL )
+    {
+      FT_TRACE1(( "bdf_cmap_char_next: charcode 0x%x > 32bit API" ));
+      *acharcode = 0;
+      
+    }
+    else
+      *acharcode = (FT_UInt32)charcode;
     return result;
   }
 
@@ -196,9 +203,8 @@
     bdf_font_t*      font   = bdf->bdffont;
     bdf_property_t*  prop;
 
-    int    nn, len;
-    char*  strings[4] = { NULL, NULL, NULL, NULL };
-    int    lengths[4];
+    char*   strings[4] = { NULL, NULL, NULL, NULL };
+    size_t  nn, len, lengths[4];
 
 
     face->style_flags = 0;
@@ -284,7 +290,7 @@
         
         if ( nn == 0 || nn == 3 )
         {
-          int  mm;
+          size_t  mm;
 
 
           for ( mm = 0; mm < len; mm++ )
@@ -304,9 +310,14 @@
   FT_CALLBACK_DEF( void )
   BDF_Face_Done( FT_Face  bdfface )         
   {
-    BDF_Face   face   = (BDF_Face)bdfface;
-    FT_Memory  memory = FT_FACE_MEMORY( face );
+    BDF_Face   face = (BDF_Face)bdfface;
+    FT_Memory  memory;
 
+
+    if ( !face )
+      return;
+
+    memory = FT_FACE_MEMORY( face );
 
     bdf_free_font( face->bdffont );
 
@@ -421,7 +432,7 @@
 
         prop = bdf_get_font_property( font, "AVERAGE_WIDTH" );
         if ( prop )
-          bsize->width = (FT_Short)( ( prop->value.int32 + 5 ) / 10 );
+          bsize->width = (FT_Short)( ( prop->value.l + 5 ) / 10 );
         else
           bsize->width = (FT_Short)( bsize->height * 2/3 );
 
@@ -429,21 +440,21 @@
         if ( prop )
           
           bsize->size =
-            (FT_Pos)( ( prop->value.int32 * 64 * 7200 + 36135L ) / 72270L );
+            (FT_Pos)( ( prop->value.l * 64 * 7200 + 36135L ) / 72270L );
         else
           bsize->size = bsize->width << 6;
 
         prop = bdf_get_font_property( font, "PIXEL_SIZE" );
         if ( prop )
-          bsize->y_ppem = (FT_Short)prop->value.int32 << 6;
+          bsize->y_ppem = (FT_Short)prop->value.l << 6;
 
         prop = bdf_get_font_property( font, "RESOLUTION_X" );
         if ( prop )
-          resolution_x = (FT_Short)prop->value.int32;
+          resolution_x = (FT_Short)prop->value.l;
 
         prop = bdf_get_font_property( font, "RESOLUTION_Y" );
         if ( prop )
-          resolution_y = (FT_Short)prop->value.int32;
+          resolution_y = (FT_Short)prop->value.l;
 
         if ( bsize->y_ppem == 0 )
         {
@@ -474,7 +485,12 @@
           (face->en_table[n]).glyph = (FT_Short)n;
 
           if ( cur[n].encoding == font->default_char )
-            face->default_glyph = n;
+          {
+            if ( n < FT_UINT_MAX )
+              face->default_glyph = (FT_UInt)n;
+            else
+              FT_TRACE1(( "idx %d is too large for this system\n", n ));
+          }
         }
       }
 
@@ -610,7 +626,7 @@
     switch ( req->type )
     {
     case FT_SIZE_REQUEST_TYPE_NOMINAL:
-      if ( height == ( bsize->y_ppem + 32 ) >> 6 )
+      if ( height == ( ( bsize->y_ppem + 32 ) >> 6 ) )
         error = BDF_Err_Ok;
       break;
 
@@ -666,7 +682,10 @@
 
     bitmap->rows  = glyph.bbx.height;
     bitmap->width = glyph.bbx.width;
-    bitmap->pitch = glyph.bpr;
+    if ( glyph.bpr > INT_MAX )
+      FT_TRACE1(( "BDF_Glyph_Load: too large pitch %d is truncated\n",
+                   glyph.bpr ));
+    bitmap->pitch = (int)glyph.bpr; 
 
     
     
@@ -738,13 +757,23 @@
         break;
 
       case BDF_INTEGER:
+        if ( prop->value.l > 0x7FFFFFFFL || prop->value.l < ( -1 - 0x7FFFFFFFL ) )
+        {
+          FT_TRACE1(( "bdf_get_bdf_property: " ));
+          FT_TRACE1(( "too large integer 0x%x is truncated\n" ));
+        }
         aproperty->type      = BDF_PROPERTY_TYPE_INTEGER;
-        aproperty->u.integer = prop->value.int32;
+        aproperty->u.integer = (FT_Int32)prop->value.l;
         break;
 
       case BDF_CARDINAL:
+        if ( prop->value.ul > 0xFFFFFFFFUL )
+        {
+          FT_TRACE1(( "bdf_get_bdf_property: " ));
+          FT_TRACE1(( "too large cardinal 0x%x is truncated\n" ));
+        }
         aproperty->type       = BDF_PROPERTY_TYPE_CARDINAL;
-        aproperty->u.cardinal = prop->value.card32;
+        aproperty->u.cardinal = (FT_UInt32)prop->value.ul;
         break;
 
       default:
