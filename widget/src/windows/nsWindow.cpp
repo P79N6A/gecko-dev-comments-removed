@@ -2289,8 +2289,8 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
 
   DWORD ourThreadID = GetWindowThreadProcessId(mWnd, NULL);
 
-  for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
-    const nsIntRect& destRect = aDestRects[i];
+  for (BlitRectIter iter(aDelta, aDestRects); !iter.IsDone(); ++iter) {
+    const nsIntRect& destRect = iter.Rect();
     nsIntRect affectedRect;
     affectedRect.UnionRect(destRect, destRect - aDelta);
     UINT flags = SW_SCROLLCHILDREN;

@@ -684,9 +684,6 @@ class nsIWidget : public nsISupports {
 
 
 
-
-
-
     virtual void Scroll(const nsIntPoint& aDelta,
                         const nsTArray<nsIntRect>& aDestRects,
                         const nsTArray<Configuration>& aReconfigureChildren) = 0;

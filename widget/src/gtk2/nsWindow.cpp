@@ -114,6 +114,9 @@ static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsAutoPtr.h"
 
+extern "C" {
+#include "pixman.h"
+}
 #include "gfxPlatformGtk.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
@@ -374,6 +377,25 @@ FuncToGpointer(T aFunction)
          
          (reinterpret_cast<void (*)()>(aFunction)));
 }
+
+
+
+template <>
+class nsSimpleRef<pixman_region32> : public pixman_region32 {
+protected:
+    typedef pixman_region32 RawRef;
+
+    nsSimpleRef() { data = nsnull; }
+    nsSimpleRef(const RawRef &aRawRef) : pixman_region32(aRawRef) { }
+
+    static void Release(pixman_region32& region) {
+        pixman_region32_fini(&region);
+    }
+    
+    PRBool HaveResource() const { return data != nsnull; }
+
+    pixman_region32& get() { return *this; }
+};
 
 nsWindow::nsWindow()
 {
@@ -1685,7 +1707,130 @@ nsWindow::Update()
     LOGDRAW(("Update [%p] %p\n", this, mGdkWindow));
 
     gdk_window_process_updates(mGdkWindow, FALSE);
+    
+    gdk_display_flush(gdk_drawable_get_display(GDK_DRAWABLE(mGdkWindow)));
     return NS_OK;
+}
+
+static pixman_box32
+ToPixmanBox(const nsIntRect& aRect)
+{
+    pixman_box32_t result;
+    result.x1 = aRect.x;
+    result.y1 = aRect.y;
+    result.x2 = aRect.XMost();
+    result.y2 = aRect.YMost();
+    return result;
+}
+
+static nsIntRect
+ToIntRect(const pixman_box32& aBox)
+{
+    nsIntRect result;
+    result.x = aBox.x1;
+    result.y = aBox.y1;
+    result.width = aBox.x2 - aBox.x1;
+    result.height = aBox.y2 - aBox.y1;
+    return result;
+}
+
+static void
+InitRegion(pixman_region32* aRegion,
+           const nsTArray<nsIntRect>& aRects)
+{
+    nsAutoTArray<pixman_box32,10> rects;
+    rects.SetCapacity(aRects.Length());
+    for (PRUint32 i = 0; i < aRects.Length (); ++i) {
+        rects.AppendElement(ToPixmanBox(aRects[i]));
+    }
+
+    pixman_region32_init_rects(aRegion,
+                               rects.Elements(), rects.Length());
+}
+
+static void
+GetIntRects(pixman_region32& aRegion, nsTArray<nsIntRect>* aRects)
+{
+    int nRects;
+    pixman_box32* boxes = pixman_region32_rectangles(&aRegion, &nRects);
+    aRects->SetCapacity(aRects->Length() + nRects);
+    for (int i = 0; i < nRects; ++i) {
+        aRects->AppendElement(ToIntRect(boxes[i]));
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ScrollItemIter : public ScrollRectIterBase {
+public:
+    
+    ScrollItemIter(const nsIntPoint& aDelta,
+                   const nsTArray<nsIntRect>& aBlitRects,
+                   const nsTArray<const nsIWidget::Configuration*>aChildConfs,
+                   const nsTArray<nsIntRect>& aChildSubRects);
+
+    PRBool IsBlit() const { return !Configuration(); };
+
+private:
+    struct ScrollItem : public ScrollRect {
+        ScrollItem(const nsIntRect& aIntRect) : ScrollRect(aIntRect) {}
+
+        const nsIWidget::Configuration *mChildConf;
+    };
+
+public:
+    const nsIWidget::Configuration* Configuration() const
+    {
+        return static_cast<const ScrollItem&>(Rect()).mChildConf;
+    }
+
+private:
+    
+    ScrollItemIter(const ScrollItemIter&);
+    void operator=(const ScrollItemIter&);
+
+    nsTArray<ScrollItem> mRects;
+};
+
+ScrollItemIter::ScrollItemIter(const nsIntPoint& aDelta,
+                               const nsTArray<nsIntRect>& aBlitRects,
+                               const nsTArray<const nsIWidget::Configuration*>aChildConfs,
+                               const nsTArray<nsIntRect>& aChildSubRects)
+  : mRects(aBlitRects.Length() + aChildConfs.Length())
+{
+    for (PRUint32 i = 0; i < aBlitRects.Length(); ++i) {
+        if (ScrollItem* item = mRects.AppendElement(aBlitRects[i])) {
+            item->mChildConf = nsnull;
+        }
+    }
+
+    PRUint32 numChildren =
+        NS_MIN(aChildConfs.Length(), aChildSubRects.Length());
+    for (PRUint32 i = 0; i < numChildren; ++i) {
+        if (ScrollItem* item = mRects.AppendElement(aChildSubRects[i])) {
+            item->mChildConf = aChildConfs[i];
+        }
+    }
+
+    
+    ScrollRect *next = nsnull;
+    for (PRUint32 i = mRects.Length(); i--; ) {
+        mRects[i].mNext = next;
+        next = &mRects[i];
+    }
+
+    BaseInit(aDelta, next);
 }
 
 void
@@ -1698,25 +1843,66 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
         return;
     }
 
-    nsAutoTArray<nsWindow*,1> windowsToShow;
     
     
     
+    gdk_display_flush(gdk_drawable_get_display(GDK_DRAWABLE(mGdkWindow)));
+
     
     
+    nsTArray<const Configuration*> movingChildren;
+    nsTArray<nsIntRect> movingChildSubRects;
+
     for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
-        const Configuration& configuration = aConfigurations[i];
-        nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+        const Configuration* conf = &aConfigurations[i];
+        nsWindow* w = static_cast<nsWindow*>(conf->mChild);
         NS_ASSERTION(w->GetParent() == this,
                      "Configured widget is not a child");
-        if (w->mIsShown &&
-            (configuration.mClipRegion.IsEmpty() ||
-             configuration.mBounds != w->mBounds)) {
-            w->NativeShow(PR_FALSE);
-            windowsToShow.AppendElement(w);
-        }
+
+        if (!w->mIsShown)
+            continue;
+
+        
+        
+        
+        w->SetWindowClipRegion(conf->mClipRegion, PR_TRUE);
+
+        if (conf->mBounds.TopLeft() == w->mBounds.TopLeft())
+            continue; 
+
+        nsAutoTArray<nsIntRect,1> rects; 
+        w->GetWindowClipRegion(&rects);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (rects.Length() != 1)
+            continue; 
+
+        movingChildren.AppendElement(conf);
+
+        
+        nsIntRect subRect = rects[0] + conf->mBounds.TopLeft();
+        movingChildSubRects.AppendElement(subRect);
     }
 
+    nsAutoRef<pixman_region32> blitRegion;
+    InitRegion(&blitRegion, aDestRects);
+
     
     
     
@@ -1726,59 +1912,89 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     
     
     
-    
-    
-    
-    
-    GdkRegion* updateArea = gdk_window_get_update_area(mGdkWindow);
-    if (!updateArea) {
-        updateArea = gdk_region_new(); 
+    {
+        nsAutoRef<pixman_region32> childRegion;
+        InitRegion(&childRegion, movingChildSubRects);
+
+        pixman_region32_subtract(&blitRegion, &blitRegion, &childRegion);
     }
 
-    
-    
-    
-    
-    for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
-        const nsIntRect& r = aDestRects[i];
-        GdkRectangle gdkSource =
-            { r.x - aDelta.x, r.y - aDelta.y, r.width, r.height };
-        GdkRegion* rectRegion = gdk_region_rectangle(&gdkSource);
-        gdk_window_move_region(GDK_WINDOW(mGdkWindow), rectRegion,
-                               aDelta.x, aDelta.y);
+    nsTArray<nsIntRect> blitRects;
+    GetIntRects(blitRegion, &blitRects);
 
-        
-        GdkRegion* updateChanges = gdk_region_copy(rectRegion);
-        gdk_region_intersect(updateChanges, updateArea);
-        gdk_region_offset(updateChanges, aDelta.x, aDelta.y);
+    GdkRegion* updateArea = gdk_region_new(); 
 
-        
-        gdk_region_offset(rectRegion, aDelta.x, aDelta.y);
-        
-        gdk_region_subtract(updateArea, rectRegion);
-        gdk_region_destroy(rectRegion);
+    for (ScrollItemIter iter(aDelta, blitRects,
+                             movingChildren, movingChildSubRects);
+         !iter.IsDone(); ++iter) {
+        if (iter.IsBlit()) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            GdkRegion* recentUpdates = gdk_window_get_update_area(mGdkWindow);
+            if (recentUpdates) {
+                gdk_region_union(updateArea, recentUpdates);
+                gdk_region_destroy(recentUpdates);
+            } 
 
-        
-        
-        
-        
-        GdkRegion* newUpdates = gdk_window_get_update_area(mGdkWindow);
-        if (newUpdates) {
-            gdk_region_union(updateChanges, newUpdates);
-            gdk_region_destroy(newUpdates);
+            
+            
+            
+            
+            nsIntRect source = iter.Rect() - aDelta;
+            GdkRectangle gdkSource =
+                { source.x, source.y, source.width, source.height };
+            GdkRegion* rectRegion = gdk_region_rectangle(&gdkSource);
+            gdk_window_move_region(mGdkWindow, rectRegion,
+                                   aDelta.x, aDelta.y);
+
+            
+            
+            
+            
+            
+            
+            
+
+            
+            GdkRegion* updateChanges = gdk_region_copy(rectRegion);
+            gdk_region_intersect(updateChanges, updateArea);
+            gdk_region_offset(updateChanges, aDelta.x, aDelta.y);
+
+            
+            gdk_region_offset(rectRegion, aDelta.x, aDelta.y);
+            
+            gdk_region_subtract(updateArea, rectRegion);
+            gdk_region_union(updateArea, updateChanges);
+
+            gdk_region_destroy(updateChanges);
+            gdk_region_destroy(rectRegion);
+        } else {
+            const Configuration *conf = iter.Configuration();
+            nsWindow* w = static_cast<nsWindow*>(conf->mChild);
+            const nsIntRect& newBounds = conf->mBounds;
+            
+            
+            w->Move(newBounds.x, newBounds.y);
         }
-        gdk_region_union(updateArea, updateChanges);
-        gdk_region_destroy(updateChanges);
     }
 
     gdk_window_invalidate_region(mGdkWindow, updateArea, FALSE);
     gdk_region_destroy(updateArea);
 
     ConfigureChildren(aConfigurations);
-
-    for (PRUint32 i = 0; i < windowsToShow.Length(); ++i) {
-        windowsToShow[i]->NativeShow(PR_TRUE);
-    }
 }
 
 void*
@@ -4470,8 +4686,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
         nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
         NS_ASSERTION(w->GetParent() == this,
                      "Configured widget is not a child");
-        nsresult rv = w->SetWindowClipRegion(configuration.mClipRegion);
-        NS_ENSURE_SUCCESS(rv, rv);
+        w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
         if (w->mBounds.Size() != configuration.mBounds.Size()) {
             w->Resize(configuration.mBounds.x, configuration.mBounds.y,
                       configuration.mBounds.width, configuration.mBounds.height,
@@ -4479,24 +4694,48 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
         } else if (w->mBounds.TopLeft() != configuration.mBounds.TopLeft()) {
             w->Move(configuration.mBounds.x, configuration.mBounds.y);
         } 
+        w->SetWindowClipRegion(configuration.mClipRegion, PR_FALSE);
     }
     return NS_OK;
 }
 
-nsresult
-nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects)
+void
+nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
+                              PRBool aIntersectWithExisting)
 {
-    if (!StoreWindowClipRegion(aRects))
-        return NS_OK;
+    const nsTArray<nsIntRect>* newRects = &aRects;
+
+    nsAutoTArray<nsIntRect,1> intersectRects;
+    if (aIntersectWithExisting) {
+        nsAutoTArray<nsIntRect,1> existingRects;
+        GetWindowClipRegion(&existingRects);
+
+        nsAutoRef<pixman_region32> existingRegion;
+        InitRegion(&existingRegion, existingRects);
+        nsAutoRef<pixman_region32> newRegion;
+        InitRegion(&newRegion, aRects);
+        nsAutoRef<pixman_region32> intersectRegion;
+        pixman_region32_intersect(&intersectRegion,
+                                  &newRegion, &existingRegion);
+
+        if (pixman_region32_equal(&intersectRegion, &existingRegion))
+            return;
+
+        if (!pixman_region32_equal(&intersectRegion, &newRegion)) {
+            GetIntRects(intersectRegion, &intersectRects);
+            newRects = &intersectRects;
+        }
+    }
+
+    if (!StoreWindowClipRegion(*newRects))
+        return;
 
     if (!mGdkWindow)
-        return NS_OK;
+        return;
 
-    GdkRegion *region = gdk_region_new();
-    if (!region)
-        return NS_ERROR_OUT_OF_MEMORY;
-    for (PRUint32 i = 0; i < aRects.Length(); ++i) {
-        const nsIntRect& r = aRects[i];
+    GdkRegion *region = gdk_region_new(); 
+    for (PRUint32 i = 0; i < newRects->Length(); ++i) {
+        const nsIntRect& r = newRects->ElementAt(i);
         GdkRectangle rect = { r.x, r.y, r.width, r.height };
         gdk_region_union_with_rect(region, &rect);
     }
@@ -4504,7 +4743,7 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects)
     gdk_window_shape_combine_region(mGdkWindow, region, 0, 0);
     gdk_region_destroy(region);
 
-    return NS_OK;
+    return;
 }
 
 void

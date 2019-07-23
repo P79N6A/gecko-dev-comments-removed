@@ -934,6 +934,117 @@ nsBaseWidget::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 a
   return NS_ERROR_NOT_IMPLEMENTED;
 }
  
+
+
+
+
+
+
+
+
+
+void
+ScrollRectIterBase::BaseInit(const nsIntPoint& aDelta, ScrollRect* aHead)
+{
+  mHead = aHead;
+  
+  
+  Flip(aDelta);
+
+  
+  
+  
+  
+  
+  
+  ScrollRect* unmovedHead; 
+  {
+    nsTArray<ScrollRect*> array;
+    for (ScrollRect* r = mHead; r; r = r->mNext) {
+      array.AppendElement(r);
+    }
+    array.Sort(InitialSortComparator());
+
+    ScrollRect *next = nsnull;
+    for (PRUint32 i = array.Length(); i--; ) {
+      array[i]->mNext = next;
+      next = array[i];
+    }
+    unmovedHead = next;
+    
+    mHead = nsnull;
+  }
+
+  
+  mTailLink = &mHead;
+  while (unmovedHead) {
+    
+    
+    Move(&unmovedHead);
+  }
+
+  
+  Flip(aDelta);
+}
+
+void ScrollRectIterBase::Move(ScrollRect** aUnmovedLink)
+{
+  ScrollRect* rect = *aUnmovedLink;
+  
+  *aUnmovedLink = rect->mNext;
+  rect->mNext = nsnull;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  for (ScrollRect** nextLink = aUnmovedLink;
+       ScrollRect* otherRect = *nextLink; ) {
+    NS_ASSERTION(otherRect->y >= rect->y, "Scroll rectangles out of order");
+    if (otherRect->y >= rect->YMost()) 
+      break;
+
+    
+    
+    
+    
+    
+    if (otherRect->XMost() <= rect->x) {
+      Move(nextLink);
+      
+    } else {
+      
+      nextLink = &otherRect->mNext;
+    }
+  }
+
+  
+  *mTailLink = rect;
+  mTailLink = &rect->mNext;
+}
+
+BlitRectIter::BlitRectIter(const nsIntPoint& aDelta,
+                           const nsTArray<nsIntRect>& aRects)
+    : mRects(aRects.Length())
+{
+    for (PRUint32 i = 0; i < aRects.Length(); ++i) {
+        mRects.AppendElement(aRects[i]);
+    }
+
+    
+    ScrollRect *next = nsnull;
+    for (PRUint32 i = mRects.Length(); i--; ) {
+        mRects[i].mNext = next;
+        next = &mRects[i];
+    }
+
+    BaseInit(aDelta, next);
+}
+
 #ifdef DEBUG
 
 

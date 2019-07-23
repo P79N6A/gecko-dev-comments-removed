@@ -191,7 +191,7 @@ protected:
   nsIntRect*        mOriginalBounds;
   
   nsAutoArrayPtr<nsIntRect> mClipRects;
-  PRInt32           mClipRectCount;
+  PRUint32          mClipRectCount;
   PRInt32           mZIndex;
   nsSizeMode        mSizeMode;
 
@@ -247,6 +247,91 @@ class nsAutoRollup
 
   nsAutoRollup();
   ~nsAutoRollup();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ScrollRectIterBase {
+public:
+  PRBool IsDone() { return mHead == nsnull; }
+  void operator++() { mHead = mHead->mNext; }
+  const nsIntRect& Rect() const { return *mHead; }
+
+protected:
+  ScrollRectIterBase() {}
+
+  struct ScrollRect : public nsIntRect {
+    ScrollRect(const nsIntRect& aIntRect) : nsIntRect(aIntRect) {}
+
+    
+    
+    
+    void Flip(const nsIntPoint& aDelta)
+    {
+      if (aDelta.x > 0) x = -XMost();
+      if (aDelta.y > 0) y = -YMost();
+    }
+
+    ScrollRect* mNext;
+  };
+
+  void BaseInit(const nsIntPoint& aDelta, ScrollRect* aHead);
+
+private:
+  void Flip(const nsIntPoint& aDelta)
+  {
+    for (ScrollRect* r = mHead; r; r = r->mNext) {
+      r->Flip(aDelta);
+    }
+  }
+
+  
+
+
+
+
+
+  class InitialSortComparator {
+  public:
+    PRBool Equals(const ScrollRect* a, const ScrollRect* b) const
+    {
+      return a->y == b->y && a->x == b->x;
+    }
+    PRBool LessThan(const ScrollRect* a, const ScrollRect* b) const
+    {
+      return a->y < b->y || (a->y == b->y && a->x > b->x);
+    }
+  };
+
+  void Move(ScrollRect** aUnmovedLink);
+
+  
+  ScrollRect* mHead;
+  
+  ScrollRect** mTailLink;
+};
+
+class BlitRectIter : public ScrollRectIterBase {
+public:
+  BlitRectIter(const nsIntPoint& aDelta, const nsTArray<nsIntRect>& aRects);
+private:
+  
+  BlitRectIter(const BlitRectIter&);
+  void operator=(const BlitRectIter&);
+
+  nsTArray<ScrollRect> mRects;
 };
 
 #endif 

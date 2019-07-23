@@ -577,91 +577,6 @@ ConvertBlitRegionToPixelRects(const nsRegion& aBlitRegion,
   aRepaintRegion->Or(*aRepaintRegion, repaint);
 }
 
-
-
-
-class RightEdgeComparator {
-public:
-  
-  PRBool Equals(const nsIntRect& aA, const nsIntRect& aB) const
-  {
-    return aA.XMost() == aB.XMost();
-  }
-  
-  PRBool LessThan(const nsIntRect& aA, const nsIntRect& aB) const
-  {
-    return aA.XMost() < aB.XMost();
-  }
-};
-
-
-
-
-static nsIntRect
-FlipRect(const nsIntRect& aRect, nsIntPoint aPixDelta)
-{
-  nsIntRect r = aRect;
-  if (aPixDelta.x < 0) {
-    r.x = -r.XMost();
-  }
-  if (aPixDelta.y < 0) {
-    r.y = -r.YMost();
-  }
-  return r;
-}
-
-
-
-
-
-static void
-SortBlitRectsForCopy(nsIntPoint aPixDelta, nsTArray<nsIntRect>* aRects)
-{
-  nsTArray<nsIntRect> rects;
-
-  for (PRUint32 i = 0; i < aRects->Length(); ++i) {
-    nsIntRect* r = &aRects->ElementAt(i);
-    nsIntRect rect =
-      FlipRect(nsIntRect(r->x, r->y, r->width, r->height), aPixDelta);
-    rects.AppendElement(rect);
-  }
-  rects.Sort(RightEdgeComparator());
-
-  aRects->Clear();
-  
-  
-  
-  while (!rects.IsEmpty()) {
-    PRInt32 i = rects.Length() - 1;
-    PRBool overlappedBelow;
-    do {
-      overlappedBelow = PR_FALSE;
-      const nsIntRect& rectI = rects[i];
-      
-      
-      for (PRInt32 j = i - 1; j >= 0; --j) {
-        if (rects[j].XMost() <= rectI.x) {
-          
-          break;
-        }
-        
-        if (rects[j].y >= rectI.y) {
-          
-          
-          i = j;
-          overlappedBelow = PR_TRUE;
-          break;
-        }
-      }
-    } while (overlappedBelow); 
-
-    
-    
-    aRects->AppendElement(FlipRect(rects[i], aPixDelta));
-    rects.RemoveElementAt(i);
-  }
-}
-
 void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
                               nsIntPoint aPixDelta, PRInt32 aP2A,
                               const nsTArray<nsIWidget::Configuration>& aConfigurations)
@@ -708,7 +623,6 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
       nsRegion blitRectsRegion;
       ConvertBlitRegionToPixelRects(blitRegion, aP2A, &blitRects, &repaintRegion,
                                     &blitRectsRegion);
-      SortBlitRectsForCopy(aPixDelta, &blitRects);
 
       nearestWidget->Scroll(aPixDelta, blitRects, aConfigurations);
       AdjustChildWidgets(aScrolledView, nearestWidgetOffset, aP2A, PR_TRUE);
