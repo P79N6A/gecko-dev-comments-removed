@@ -4180,7 +4180,7 @@ nsBrowserStatusHandler.prototype =
       
       
     }
-    getIdentityHandler().checkIdentity(this._state, locationObj);
+    gIdentityHandler.checkIdentity(this._state, locationObj);
   },
 
   
@@ -6254,24 +6254,7 @@ BookmarkAllTabsHandler.prototype = {
 
 
 
-function IdentityHandler() {
-  this._stringBundle = document.getElementById("bundle_browser");
-  this._staticStrings = {};
-  this._staticStrings[this.IDENTITY_MODE_DOMAIN_VERIFIED] = {
-    encryption_label: this._stringBundle.getString("identity.encrypted")  
-  };
-  this._staticStrings[this.IDENTITY_MODE_IDENTIFIED] = {
-    encryption_label: this._stringBundle.getString("identity.encrypted")
-  };
-  this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
-    encryption_label: this._stringBundle.getString("identity.unencrypted")  
-  };
-
-  this._cacheElements();
-}
-
-IdentityHandler.prototype = {
-
+var gIdentityHandler = {
   
   IDENTITY_MODE_IDENTIFIED       : "verifiedIdentity", 
   IDENTITY_MODE_DOMAIN_VERIFIED  : "verifiedDomain",   
@@ -6282,17 +6265,75 @@ IdentityHandler.prototype = {
   _lastLocation : null,
 
   
+  get _stringBundle () {
+    delete this._stringBundle;
+    return this._stringBundle = document.getElementById("bundle_browser");
+  },
+  get _staticStrings () {
+    delete this._staticStrings;
+    this._staticStrings = {};
+    this._staticStrings[this.IDENTITY_MODE_DOMAIN_VERIFIED] = {
+      encryption_label: this._stringBundle.getString("identity.encrypted")
+    };
+    this._staticStrings[this.IDENTITY_MODE_IDENTIFIED] = {
+      encryption_label: this._stringBundle.getString("identity.encrypted")
+    };
+    this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
+      encryption_label: this._stringBundle.getString("identity.unencrypted")
+    };
+    return this._staticStrings;
+  },
+  get _identityPopup () {
+    delete this._identityPopup;
+    return this._identityPopup = document.getElementById("identity-popup");
+  },
+  get _identityBox () {
+    delete this._identityBox;
+    return this._identityBox = document.getElementById("identity-box");
+  },
+  get _identityPopupContentBox () {
+    delete this._identityPopupContentBox;
+    return this._identityPopupContentBox =
+      document.getElementById("identity-popup-content-box");
+  },
+  get _identityPopupContentHost () {
+    delete this._identityPopupContentHost;
+    return this._identityPopupContentHost =
+      document.getElementById("identity-popup-content-host");
+  },
+  get _identityPopupContentOwner () {
+    delete this._identityPopupContentOwner;
+    return this._identityPopupContentOwner =
+      document.getElementById("identity-popup-content-owner");
+  },
+  get _identityPopupContentSupp () {
+    delete this._identityPopupContentSupp;
+    return this._identityPopupContentSupp =
+      document.getElementById("identity-popup-content-supplemental");
+  },
+  get _identityPopupContentVerif () {
+    delete this._identityPopupContentVerif;
+    return this._identityPopupContentVerif =
+      document.getElementById("identity-popup-content-verifier");
+  },
+  get _identityPopupEncLabel () {
+    delete this._identityPopupEncLabel;
+    return this._identityPopupEncLabel =
+      document.getElementById("identity-popup-encryption-label");
+  },
+  get _identityIconLabel () {
+    delete this._identityIconLabel;
+    return this._identityIconLabel = document.getElementById("identity-icon-label");
+  },
+
+  
+
 
 
   _cacheElements : function() {
-    this._identityPopup = document.getElementById("identity-popup");
+    delete this._identityBox;
+    delete this._identityIconLabel;
     this._identityBox = document.getElementById("identity-box");
-    this._identityPopupContentBox = document.getElementById("identity-popup-content-box");
-    this._identityPopupContentHost = document.getElementById("identity-popup-content-host");
-    this._identityPopupContentOwner = document.getElementById("identity-popup-content-owner");
-    this._identityPopupContentSupp = document.getElementById("identity-popup-content-supplemental");
-    this._identityPopupContentVerif = document.getElementById("identity-popup-content-verifier");
-    this._identityPopupEncLabel = document.getElementById("identity-popup-encryption-label");
     this._identityIconLabel = document.getElementById("identity-icon-label");
   },
 
@@ -6566,18 +6607,6 @@ IdentityHandler.prototype = {
     this._identityPopup.openPopup(this._identityBox, position);
   }
 };
-
-var gIdentityHandler; 
-
-
-
-
-
-function getIdentityHandler() {
-  if (!gIdentityHandler)
-    gIdentityHandler = new IdentityHandler();
-  return gIdentityHandler;    
-}
 
 let DownloadMonitorPanel = {
   
