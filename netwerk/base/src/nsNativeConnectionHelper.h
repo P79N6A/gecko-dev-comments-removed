@@ -50,7 +50,7 @@ public:
 
 
 
-    static PRBool OnConnectionFailed(const char* hostName);
+    static PRBool OnConnectionFailed(const PRUnichar* hostName);
 
     
 
