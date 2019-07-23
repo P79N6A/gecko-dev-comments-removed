@@ -1115,50 +1115,16 @@ nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
 {
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  nsIFrame* current = nsnull;
-  nsIFrame* next = aFrame->GetFirstChild(nsnull);
-
   nsIFrame* result = nsnull;
-
-  
-  while (next) {
-    nsIFrame* temp = next->GetNextSibling();
-    next->SetNextSibling(current);
-    current = next;
-    next = temp;    
-  }
-
-  
-  while (current) {
+  for (nsIFrame* current = aFrame->GetChildList(nsnull).LastChild();
+       current;
+       current = current->GetPrevSibling()) {
     nsISVGChildFrame* SVGFrame = do_QueryFrame(current);
     if (SVGFrame) {
        result = SVGFrame->GetFrameForPoint(aPoint);
        if (result)
          break;
     }
-    
-    nsIFrame* temp = current->GetNextSibling();
-    current->SetNextSibling(next);
-    next = current;
-    current = temp;
-  }
-
-  
-  while (current) {
-    nsIFrame* temp = current->GetNextSibling();
-    current->SetNextSibling(next);
-    next = current;
-    current = temp;
   }
 
   if (result && !HitTestClip(aFrame, aPoint))
