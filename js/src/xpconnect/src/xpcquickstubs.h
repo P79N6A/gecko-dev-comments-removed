@@ -257,17 +257,41 @@ protected:
 class xpc_qsDOMString : public xpc_qsBasicString<nsAString, nsDependentString>
 {
 public:
-    xpc_qsDOMString(JSContext *cx, jsval v, jsval *pval);
+    
+
+
+
+
+
+
+
+
+
+
+
+    enum StringificationBehavior {
+        eStringify,
+        eEmpty,
+        eNull,
+        eDefaultNullBehavior = eNull,
+        eDefaultUndefinedBehavior = eStringify
+    };
+
+    xpc_qsDOMString(JSContext *cx, jsval v, jsval *pval,
+                    StringificationBehavior nullBehavior,
+                    StringificationBehavior undefinedBehavior);
 };
 
 
 
 
 
-class xpc_qsAString : public xpc_qsBasicString<nsAString, nsDependentString>
+class xpc_qsAString : public xpc_qsDOMString
 {
 public:
-    xpc_qsAString(JSContext *cx, jsval v, jsval *pval);
+    xpc_qsAString(JSContext *cx, jsval v, jsval *pval)
+        : xpc_qsDOMString(cx, v, pval, eNull, eNull)
+    {}
 };
 
 

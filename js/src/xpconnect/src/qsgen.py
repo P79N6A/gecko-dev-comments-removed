@@ -399,7 +399,9 @@ argumentUnboxingTemplates = {
         "        return JS_FALSE;\n",
 
     '[domstring]':
-        "    xpc_qsDOMString ${name}(cx, ${argVal}, ${argPtr});\n"
+        "    xpc_qsDOMString ${name}(cx, ${argVal}, ${argPtr},\n"
+        "                            xpc_qsDOMString::e${nullBehavior},\n"
+        "                            xpc_qsDOMString::e${undefinedBehavior});\n"
         "    if (!${name}.IsValid())\n"
         "        return JS_FALSE;\n",
 
@@ -424,7 +426,8 @@ argumentUnboxingTemplates = {
 
 
 
-def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared):
+def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
+                          nullBehavior, undefinedBehavior):
     
     
     
@@ -450,7 +453,9 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared):
     params = {
         'name': name,
         'argVal': argVal,
-        'argPtr': argPtr
+        'argPtr': argPtr,
+        'nullBehavior': nullBehavior or 'DefaultNullBehavior',
+        'undefinedBehavior': undefinedBehavior or 'DefaultUndefinedBehavior'
         }
 
     typeName = getBuiltinOrNativeTypeName(type)
@@ -791,11 +796,15 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
                 f, i, 'arg%d' % i, param.realtype,
                 haveCcx=haveCcx,
                 optional=param.optional,
-                rvdeclared=rvdeclared)
+                rvdeclared=rvdeclared,
+                nullBehavior=param.null,
+                undefinedBehavior=param.undefined)
     elif isSetter:
         rvdeclared = writeArgumentUnboxing(f, None, 'arg0', member.realtype,
                                            haveCcx=False, optional=False,
-                                           rvdeclared=rvdeclared)
+                                           rvdeclared=rvdeclared,
+                                           nullBehavior=member.null,
+                                           undefinedBehavior=member.undefined)
 
     canFail = customMethodCall is None or customMethodCall.get('canFail', False)
     if canFail and not rvdeclared:
