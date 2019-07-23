@@ -41,6 +41,9 @@
 
 
 
+
+
+
 #ifndef __nsContentPolicyUtils_h__
 #define __nsContentPolicyUtils_h__
 
@@ -50,6 +53,8 @@
 #include "nsIContentPolicy.h"
 #include "nsIServiceManager.h"
 #include "nsIContent.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsIPrincipal.h"
 
 
 #include "nsIDocument.h"
@@ -168,16 +173,52 @@ NS_CP_ContentTypeName(PRUint32 contentType)
 
 
 
+#define CHECK_PRINCIPAL                                                       \
+  nsCOMPtr<nsIURI> requestOrigin;                                             \
+  PR_BEGIN_MACRO                                                              \
+  if (originPrincipal) {                                                      \
+      nsCOMPtr<nsIScriptSecurityManager> secMan = aSecMan;                    \
+      if (!secMan) {                                                          \
+          secMan = do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);        \
+      }                                                                       \
+      if (secMan) {                                                           \
+          PRBool isSystem;                                                    \
+          nsresult rv = secMan->IsSystemPrincipal(originPrincipal,            \
+                                                  &isSystem);                 \
+          NS_ENSURE_SUCCESS(rv, rv);                                          \
+          if (isSystem) {                                                     \
+              *decision = nsIContentPolicy::ACCEPT;                           \
+              return NS_OK;                                                   \
+          }                                                                   \
+      }                                                                       \
+      nsresult rv = originPrincipal->GetURI(getter_AddRefs(requestOrigin));   \
+      NS_ENSURE_SUCCESS(rv, rv);                                              \
+  } else {                                                                    \
+    requestOrigin = originURI;                                                \
+  }                                                                           \
+  PR_END_MACRO
+
+
+
+
+
+
+
+
+
 inline nsresult
 NS_CheckContentLoadPolicy(PRUint32          contentType,
                           nsIURI           *contentLocation,
-                          nsIURI           *requestOrigin,
+                          nsIURI           *originURI,
+                          nsIPrincipal     *originPrincipal,
                           nsISupports      *context,
                           const nsACString &mimeType,
                           nsISupports      *extra,
                           PRInt16          *decision,
-                          nsIContentPolicy *policyService = nsnull)
+                          nsIContentPolicy *policyService = nsnull,
+                          nsIScriptSecurityManager* aSecMan = nsnull)
 {
+    CHECK_PRINCIPAL;
     if (policyService) {
         CHECK_CONTENT_POLICY_WITH_SERVICE(ShouldLoad, policyService);
     }
@@ -188,16 +229,23 @@ NS_CheckContentLoadPolicy(PRUint32          contentType,
 
 
 
+
+
+
+
 inline nsresult
 NS_CheckContentProcessPolicy(PRUint32          contentType,
                              nsIURI           *contentLocation,
-                             nsIURI           *requestOrigin,
+                             nsIURI           *originURI,
+                             nsIPrincipal     *originPrincipal,
                              nsISupports      *context,
                              const nsACString &mimeType,
                              nsISupports      *extra,
                              PRInt16          *decision,
-                             nsIContentPolicy *policyService = nsnull)
+                             nsIContentPolicy *policyService = nsnull,
+                             nsIScriptSecurityManager* aSecMan = nsnull)
 {
+    CHECK_PRINCIPAL;
     if (policyService) {
         CHECK_CONTENT_POLICY_WITH_SERVICE(ShouldProcess, policyService);
     }

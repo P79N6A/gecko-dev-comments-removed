@@ -342,13 +342,11 @@ public:
                            nsICSSStyleSheet** aSheet);
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
-                       nsIURI* aOriginURI,
                        nsIPrincipal* aOriginPrincipal,
                        nsICSSLoaderObserver* aObserver,
                        nsICSSStyleSheet** aSheet);
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
-                       nsIURI* aOriginURI,
                        nsIPrincipal* aOriginPrincipal,
                        nsICSSLoaderObserver* aObserver);
 
@@ -381,8 +379,7 @@ public:
 private:
   
   
-  nsresult CheckLoadAllowed(nsIURI* aSourceURI,
-                            nsIPrincipal* aSourcePrincipal,
+  nsresult CheckLoadAllowed(nsIPrincipal* aSourcePrincipal,
                             nsIURI* aTargetURI,
                             nsISupports* aContext);
 
@@ -418,7 +415,6 @@ private:
 
   nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
                                         PRBool aAllowUnsafeRules,
-                                        nsIURI* aOriginURI,
                                         nsIPrincipal* aOriginPrincipal,
                                         nsICSSStyleSheet** aSheet,
                                         nsICSSLoaderObserver* aObserver);

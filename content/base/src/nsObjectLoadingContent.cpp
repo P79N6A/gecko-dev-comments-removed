@@ -891,12 +891,14 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
     rv =
       NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_OBJECT,
                                 aURI,
-                                doc->GetDocumentURI(),
+                                nsnull,
+                                doc->NodePrincipal(),
                                 static_cast<nsIImageLoadingContent*>(this),
                                 aTypeHint,
                                 nsnull, 
                                 &shouldLoad,
-                                nsContentUtils::GetContentPolicy());
+                                nsContentUtils::GetContentPolicy(),
+                                nsContentUtils::GetSecurityManager());
     if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
       
       

@@ -60,8 +60,8 @@ class nsIPrincipal;
 
 
 #define NS_ICSS_LOADER_IID     \
-{ 0xeed4ac28, 0x0add, 0x43a7, \
- { 0x84, 0xbf, 0xfb, 0x53, 0x10, 0x9a, 0xe4, 0x0c } }
+{ 0x0c6d7e76, 0xdddc, 0x4727, \
+ { 0xb5, 0x57, 0x7e, 0xf5, 0x31, 0x12, 0x7e, 0x11 } }
 
 typedef void (*nsCSSLoaderCallbackFunc)(nsICSSStyleSheet* aSheet, void *aData, PRBool aDidNotify);
 
@@ -211,11 +211,7 @@ public:
 
 
 
-
-
-
   NS_IMETHOD LoadSheet(nsIURI* aURL,
-                       nsIURI* aOriginURI,
                        nsIPrincipal* aOriginPrincipal,
                        nsICSSLoaderObserver* aObserver,
                        nsICSSStyleSheet** aSheet) = 0;
@@ -225,7 +221,6 @@ public:
 
 
   NS_IMETHOD LoadSheet(nsIURI* aURL,
-                       nsIURI* aOriginURI,
                        nsIPrincipal* aOriginPrincipal,
                        nsICSSLoaderObserver* aObserver) = 0;
 

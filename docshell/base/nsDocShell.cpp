@@ -6380,9 +6380,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     if (!context) {
         context =  mScriptGlobal;
     }
+    
     rv = NS_CheckContentLoadPolicy(contentType,
                                    aURI,
                                    aReferrer,
+                                   nsnull,
                                    context,
                                    EmptyCString(), 
                                    nsnull,         
