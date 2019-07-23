@@ -75,7 +75,6 @@ class nsMenuPopupFrame;
 class nsMenuBarFrame;
 class nsIMenuParent;
 class nsIDOMKeyEvent;
-class nsIDocShellTreeItem;
 
 enum nsPopupType {
   ePopupTypePanel,
@@ -477,7 +476,7 @@ public:
 
 
 
-  void HidePopupsInDocShell(nsIDocShellTreeItem* aDocShellToHide);
+  void HidePopupsInDocument(nsIDocument* aDocument);
 
   
 
@@ -712,11 +711,6 @@ protected:
 
 
   void UpdateKeyboardListeners();
-
-  
-
-
-  PRBool IsChildOfDocShell(nsIDocument* aDoc, nsIDocShellTreeItem* aExpected);
 
   
   nsCOMPtr<nsIDOMEventTarget> mKeyListener;
