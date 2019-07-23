@@ -1348,7 +1348,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     
     aMetrics.mCarriedOutBottomMargin.Zero();
   }
-  else {
+  else if (NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
     nscoord autoHeight = aState.mY + nonCarriedOutVerticalMargin;
 
     
@@ -1382,6 +1382,9 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     }
     autoHeight += borderPadding.top + borderPadding.bottom;
     aMetrics.height = autoHeight;
+  }
+  else {
+    aMetrics.height = aReflowState.availableHeight;
   }
 
   if (IS_TRUE_OVERFLOW_CONTAINER(this) &&
