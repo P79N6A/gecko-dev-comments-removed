@@ -11765,65 +11765,62 @@ TraceRecorder::record_JSOP_GETELEM()
                 
                 
                 idx_ins = makeNumberInt32(idx_ins);
-                if (int_idx >= 0 && int_idx < afp->argc) {
-                    guard(true,
-                          addName(lir->ins2(LIR_ge, idx_ins, INS_CONST(0)),
-                                  "guard(upvar index >= 0)"),
-                          BRANCH_EXIT);
-                    guard(true,
-                          addName(lir->ins2(LIR_lt, idx_ins, INS_CONST(afp->argc)),
-                                  "guard(upvar index in range)"),
-                          BRANCH_EXIT);
+                if (int_idx < 0 || int_idx >= afp->argc)
+                    RETURN_STOP_A("cannot trace arguments with out of range index");
 
-                    TraceType type = getCoercedType(*vp);
+                guard(true,
+                      addName(lir->ins2(LIR_ge, idx_ins, INS_CONST(0)),
+                              "guard(upvar index >= 0)"),
+                      MISMATCH_EXIT);
+                guard(true,
+                      addName(lir->ins2(LIR_lt, idx_ins, INS_CONST(afp->argc)),
+                              "guard(upvar index in range)"),
+                      MISMATCH_EXIT);
 
+                TraceType type = getCoercedType(*vp);
+
+                
+                LIns* typemap_ins;
+                if (depth == 0) {
                     
-                    LIns* typemap_ins;
-                    if (depth == 0) {
-                        
-                        
-                        
-                        unsigned stackSlots = NativeStackSlots(cx, 0 );
-                        TraceType* typemap = new (traceAlloc()) TraceType[stackSlots];
-                        DetermineTypesVisitor detVisitor(*this, typemap);
-                        VisitStackSlots(detVisitor, cx, 0);
-                        typemap_ins = INS_CONSTPTR(typemap + 2 );
-                    } else {
-                        
-                        
-                        
-                        
-                        
-                        LIns* fip_ins = lir->insLoad(LIR_ldp, lirbuf->rp, (callDepth-depth)*sizeof(FrameInfo*));
-                        typemap_ins = lir->ins2(LIR_piadd, fip_ins, INS_CONSTWORD(sizeof(FrameInfo) + 2 * sizeof(TraceType)));
-                    }
+                    
+                    
+                    unsigned stackSlots = NativeStackSlots(cx, 0 );
+                    TraceType* typemap = new (traceAlloc()) TraceType[stackSlots];
+                    DetermineTypesVisitor detVisitor(*this, typemap);
+                    VisitStackSlots(detVisitor, cx, 0);
+                    typemap_ins = INS_CONSTPTR(typemap + 2 );
+                } else {
+                    
+                    
+                    
+                    
+                    
+                    LIns* fip_ins = lir->insLoad(LIR_ldp, lirbuf->rp, (callDepth-depth)*sizeof(FrameInfo*));
+                    typemap_ins = lir->ins2(LIR_piadd, fip_ins, INS_CONSTWORD(sizeof(FrameInfo) + 2 * sizeof(TraceType)));
+                }
 
-                    LIns* typep_ins = lir->ins2(LIR_piadd, typemap_ins,
+                LIns* typep_ins = lir->ins2(LIR_piadd, typemap_ins,
+                                            lir->ins_u2p(lir->ins2(LIR_mul,
+                                                                   idx_ins,
+                                                                   INS_CONST(sizeof(TraceType)))));
+                LIns* type_ins = lir->insLoad(LIR_ldcb, typep_ins, 0);
+                guard(true,
+                      addName(lir->ins2(LIR_eq, type_ins, lir->insImm(type)),
+                              "guard(type-stable upvar)"),
+                      BRANCH_EXIT);
+
+                
+                guard(true, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)),
+                      snapshot(BRANCH_EXIT));
+                size_t stackOffset = nativespOffset(&afp->argv[0]);
+                LIns* args_addr_ins = lir->ins2(LIR_piadd, lirbuf->sp, INS_CONSTWORD(stackOffset));
+                LIns* argi_addr_ins = lir->ins2(LIR_piadd,
+                                                args_addr_ins,
                                                 lir->ins_u2p(lir->ins2(LIR_mul,
                                                                        idx_ins,
-                                                                       INS_CONST(sizeof(TraceType)))));
-                    LIns* type_ins = lir->insLoad(LIR_ldcb, typep_ins, 0);
-                    guard(true,
-                          addName(lir->ins2(LIR_eq, type_ins, lir->insImm(type)),
-                                  "guard(type-stable upvar)"),
-                          BRANCH_EXIT);
-
-                    
-                    guard(true, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)),
-                          snapshot(BRANCH_EXIT));
-                    size_t stackOffset = nativespOffset(&afp->argv[0]);
-                    LIns* args_addr_ins = lir->ins2(LIR_piadd, lirbuf->sp, INS_CONSTWORD(stackOffset));
-                    LIns* argi_addr_ins = lir->ins2(LIR_piadd,
-                                                    args_addr_ins,
-                                                    lir->ins_u2p(lir->ins2(LIR_mul,
-                                                                           idx_ins,
-                                                                           INS_CONST(sizeof(double)))));
-                    v_ins = stackLoad(argi_addr_ins, type);
-                } else {
-                    guard(false, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)),
-                          snapshot(BRANCH_EXIT));
-                    v_ins = INS_VOID();
-                }
+                                                                       INS_CONST(sizeof(double)))));
+                v_ins = stackLoad(argi_addr_ins, type);
             }
             JS_ASSERT(v_ins);
             set(&lval, v_ins);
