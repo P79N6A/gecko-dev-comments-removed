@@ -102,49 +102,23 @@ Tracker::get(const void* v) const
     JS_ASSERT(p != 0); 
     LIns* i = p->map[(((long)v) & 0xfff) >> 2];
     JS_ASSERT(i != 0);
+#ifdef DEBUG    
+    
+#endif    
     return i;
 }
 
 void
 Tracker::set(const void* v, LIns* ins)
 {
+#ifdef DEBUG    
+    
+#endif    
     struct Tracker::Page* p = findPage(v);
     if (!p)
         p = addPage(v);
     p->map[(((long)v) & 0xfff) >> 2] = ins;
 }
-
-template <int N>
-class BitStream
-{
-    uint32_t* ptr;
-    unsigned n;
-public:
-    BitStream(uint32_t* p, int words) 
-    {
-        ptr = p;
-        n = 0;
-    }
-    
-    void write(int data) 
-    {
-        if (n + N > sizeof(uint32_t)) {
-            n = 0;
-            ++ptr;
-        }
-        *ptr |= ((data & 7) << n);
-        n += N;
-    }
-    
-    unsigned read(int data)
-    {
-        if (n + N > sizeof(uint32_t)) {
-            n = 0;
-            ++ptr;
-        }
-        return (*ptr >> n) & 7;
-    }
-};
 
 using namespace avmplus;
 using namespace nanojit;
@@ -240,12 +214,4 @@ js_EndRecording(JSContext* cx, JSFrameRegs& regs)
         compile(tm->fragmento->assm(), tm->fragment);
     }
     tm->status = IDLE;
-
-
-
-
-
-
-
-
 }
