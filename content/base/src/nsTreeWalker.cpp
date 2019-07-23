@@ -146,7 +146,6 @@ NS_IMETHODIMP nsTreeWalker::SetCurrentNode(nsIDOMNode * aCurrentNode)
 {
     NS_ENSURE_TRUE(aCurrentNode, NS_ERROR_DOM_NOT_SUPPORTED_ERR);
 
-    
     nsresult rv = nsContentUtils::CheckSameOrigin(mRoot, aCurrentNode);
     NS_ENSURE_SUCCESS(rv, rv);
 
