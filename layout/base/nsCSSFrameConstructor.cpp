@@ -3447,21 +3447,14 @@ nsCSSFrameConstructor::AdjustParentFrame(nsFrameConstructorState&     aState,
   
   
   nsIAtom* parentType = aParentFrame->GetType();
-  if (parentType == nsGkAtoms::tableOuterFrame) {
+  NS_ASSERTION(parentType != nsGkAtoms::tableOuterFrame,
+               "Shouldn't be happening");
+  if (parentType == nsGkAtoms::tableColGroupFrame) {
     childIsSpecialContent = IsSpecialContent(aChildContent, aTag, aNameSpaceID,
                                              aChildStyle);
     if (childIsSpecialContent ||
-       (aChildStyle->GetStyleDisplay()->mDisplay !=
-       NS_STYLE_DISPLAY_TABLE_CAPTION)) {
-      aParentFrame = aParentFrame->GetContentInsertionFrame();
-    }
-  }
-  else if (parentType == nsGkAtoms::tableColGroupFrame) {
-    childIsSpecialContent = IsSpecialContent(aChildContent, aTag, aNameSpaceID,
-                                             aChildStyle);
-    if (childIsSpecialContent ||
-       (aChildStyle->GetStyleDisplay()->mDisplay !=
-        NS_STYLE_DISPLAY_TABLE_COLUMN)) {
+        (aChildStyle->GetStyleDisplay()->mDisplay !=
+         NS_STYLE_DISPLAY_TABLE_COLUMN)) {
       aSuppressFrame = PR_TRUE;
       return NS_OK;
     }
@@ -6539,14 +6532,7 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     {
       
       
-      nsIFrame* parentFrame = aParentFrame;
-      nsIFrame* outerFrame = aParentFrame->GetParent();
-      if (outerFrame) {
-        if ((nsGkAtoms::tableOuterFrame == outerFrame->GetType()) &&
-            (nsGkAtoms::tableFrame == parentFrame->GetType())) {
-          parentFrame = outerFrame;
-        }
-      }
+      nsIFrame* parentFrame = AdjustCaptionParentFrame(aParentFrame);
       rv = ConstructTableCaptionFrame(aState, aContent, parentFrame,
                                       aStyleContext, aNameSpaceID, aFrameItems,
                                       newFrame, aHasPseudoParent);
@@ -8257,24 +8243,19 @@ ShouldIgnoreSelectChild(nsIContent* aContainer)
 }
 
 
-
 static nsIFrame*
 GetAdjustedParentFrame(nsIFrame*       aParentFrame,
                        nsIAtom*        aParentFrameType,
                        nsIContent*     aParentContent,
                        PRInt32         aChildIndex)
 {
+  NS_PRECONDITION(nsGkAtoms::tableOuterFrame != aParentFrameType,
+                  "Shouldn't be happening!");
+  
   nsIContent *childContent = aParentContent->GetChildAt(aChildIndex);
   nsIFrame* newParent = nsnull;
 
-  if (nsGkAtoms::tableOuterFrame == aParentFrameType) {
-    nsCOMPtr<nsIDOMHTMLTableCaptionElement> captionContent(do_QueryInterface(childContent));
-    
-    
-    if (!captionContent) 
-      newParent = aParentFrame->GetFirstChild(nsnull);
-  }
-  else if (nsGkAtoms::fieldSetFrame == aParentFrameType) {
+  if (nsGkAtoms::fieldSetFrame == aParentFrameType) {
     
     
     nsCOMPtr<nsIDOMHTMLLegendElement> legendContent(do_QueryInterface(childContent));
@@ -8558,14 +8539,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
         }
         newFrame = tempItems.childList;
       }
-    }
-    else if (nsGkAtoms::tableColGroupFrame == frameType) {
-      nsRefPtr<nsStyleContext> childStyleContext;
-      childStyleContext = ResolveStyleContext(parentFrame, childContent);
-      if (childStyleContext->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_TABLE_COLUMN)
-        continue; 
-      ConstructFrame(state, childContent, parentFrame, frameItems);
-      newFrame = frameItems.lastChild;
     }
     else {
       
@@ -8966,11 +8939,11 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   if (prevSibling) {
     if (!handleSpecialFrame)
-      parentFrame = prevSibling->GetParent();
+      parentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
   }
   else if (nextSibling) {
     if (!handleSpecialFrame)
-      parentFrame = nextSibling->GetParent();
+      parentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
   }
   else {
     
@@ -9110,12 +9083,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       }
     }
   }
-  else if (NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP == parentDisplay->mDisplay) {
-      nsRefPtr<nsStyleContext> childStyleContext;
-      childStyleContext = ResolveStyleContext(parentFrame, aChild);
-      if (childStyleContext->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_TABLE_COLUMN)
-        return NS_OK; 
-  }
 
   
   
@@ -9142,8 +9109,8 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   
   
   
-  if (frameItems.childList &&
-      frameItems.childList->GetParent() != parentFrame) {
+  if (prevSibling && frameItems.childList &&
+      frameItems.childList->GetParent() != prevSibling->GetParent()) {
     prevSibling = nsnull;
     isAppend = PR_TRUE;
     parentFrame =
@@ -9218,7 +9185,8 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       if (GetCaptionAdjustedParent(parentFrame, newCaptionFrame, &outerTableFrame)) {
         
         
-        if (parentFrame != outerTableFrame) {
+        
+        if (prevSibling && prevSibling->GetParent() != outerTableFrame) {
           prevSibling = nsnull;
         }
         
