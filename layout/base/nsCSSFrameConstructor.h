@@ -964,7 +964,7 @@ private:
       
       
       
-      inline PRBool SkipWhitespace();
+      inline PRBool SkipWhitespace(nsFrameConstructorState& aState);
 
       
       
@@ -1064,7 +1064,7 @@ private:
     
     
     
-    PRBool IsWhitespace() const;
+    PRBool IsWhitespace(nsFrameConstructorState& aState) const;
 
     PRBool IsLineBoundary() const {
       return mIsBlock || (mFCData->mBits & FCDATA_IS_LINE_BREAK);
@@ -1133,8 +1133,9 @@ private:
 
 
 
-  nsresult CreateNeededTablePseudos(FrameConstructionItemList& aItems,
-                                    nsIFrame* aParentFrame);
+  inline nsresult CreateNeededTablePseudos(nsFrameConstructorState& aState,
+                                           FrameConstructionItemList& aItems,
+                                           nsIFrame* aParentFrame);
 
   
 
