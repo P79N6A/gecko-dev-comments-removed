@@ -48,6 +48,7 @@
 
 
 
+#include "jsapi.h"
 #include "jshash.h" 
 #include "jspubtd.h"
 #include "jsprvtd.h"
@@ -210,8 +211,6 @@ const uint32 JSSLOT_PARENT  = 1;
 
 
 const uint32 JSSLOT_PRIVATE = 2;
-
-const uint32 JSSLOT_PRIMITIVE_THIS = JSSLOT_PRIVATE;
 
 const uintptr_t JSSLOT_CLASS_MASK_BITS = 3;
 
@@ -395,6 +394,17 @@ struct JSObject {
 
 
   private:
+    static const uint32 JSSLOT_PRIMITIVE_THIS = JSSLOT_PRIVATE;
+
+  public:
+    inline jsval getPrimitiveThis() const;
+    inline void setPrimitiveThis(jsval pthis);
+
+    
+
+
+
+  private:
     static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
     static const uint32 JSSLOT_ARRAY_COUNT  = JSSLOT_PRIVATE + 1;
     static const uint32 JSSLOT_ARRAY_UNUSED = JSSLOT_PRIVATE + 2;
@@ -448,6 +458,40 @@ struct JSObject {
 
     inline jsval getArgsCallee() const;
     inline void setArgsCallee(jsval callee);
+
+    
+
+
+
+  private:
+    
+    static const uint32 JSSLOT_DATE_UTC_TIME   = JSSLOT_PRIVATE;
+    static const uint32 JSSLOT_DATE_LOCAL_TIME = JSSLOT_PRIVATE + 1;
+
+  public:
+    static const uint32 DATE_FIXED_RESERVED_SLOTS = 2;
+
+    inline jsval getDateLocalTime() const;
+    inline jsval *addressOfDateLocalTime();
+    inline void setDateLocalTime(jsval pthis);
+
+    inline jsval getDateUTCTime() const;
+    inline jsval *addressOfDateUTCTime();
+    inline void setDateUTCTime(jsval pthis);
+
+    
+
+
+
+  private:
+    static const uint32 JSSLOT_REGEXP_LAST_INDEX = JSSLOT_PRIVATE + 1;
+
+  public:
+    static const uint32 REGEXP_FIXED_RESERVED_SLOTS = 1;
+
+    inline jsval getRegExpLastIndex() const;
+    inline jsval *addressOfRegExpLastIndex();
+    inline void zeroRegExpLastIndex();
 
     
 
@@ -553,6 +597,11 @@ struct JSObject {
     inline bool isArray() const;
     inline bool isDenseArray() const;
     inline bool isSlowArray() const;
+    inline bool isNumber() const;
+    inline bool isBoolean() const;
+    inline bool isString() const;
+    inline bool isPrimitive() const;
+    inline bool isDate() const;
     inline bool isFunction() const;
     inline bool isRegExp() const;
     inline bool isXML() const;
