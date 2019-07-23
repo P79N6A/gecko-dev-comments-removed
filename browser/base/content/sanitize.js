@@ -22,6 +22,7 @@
 # Contributor(s):
 #   Ben Goodger <ben@mozilla.org>
 #   Giorgio Maone <g.maone@informaction.com>
+#   Johnathan Nightingale <johnath@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -51,10 +52,11 @@ Sanitizer.prototype = {
     return this.items[aItemName].canClear;
   },
   
-  _prefDomain: "privacy.item.",
+  prefDomain: "privacy.item.",
+  
   getNameFromPreference: function (aPreferenceName)
   {
-    return aPreferenceName.substr(this._prefDomain.length);
+    return aPreferenceName.substr(this.prefDomain.length);
   },
   
   
@@ -67,10 +69,18 @@ Sanitizer.prototype = {
   {
     var psvc = Components.classes["@mozilla.org/preferences-service;1"]
                          .getService(Components.interfaces.nsIPrefService);
-    var branch = psvc.getBranch(this._prefDomain);
+    var branch = psvc.getBranch(this.prefDomain);
     var errors = null;
+
+    
+    if (this.ignoreTimespan)
+      var range = null;  
+    else
+      range = Sanitizer.getClearRange();
+      
     for (var itemName in this.items) {
       var item = this.items[itemName];
+      item.range = range;
       if ("clear" in item && item.canClear && branch.getBoolPref(itemName)) {
         
         
@@ -90,16 +100,22 @@ Sanitizer.prototype = {
     return errors;
   },
   
+  
+  
+  ignoreTimespan : true,
+  
   items: {
     cache: {
       clear: function ()
       {
-        const cc = Components.classes;
-        const ci = Components.interfaces;
-        var cacheService = cc["@mozilla.org/network/cache-service;1"]
-                             .getService(ci.nsICacheService);
+        const Cc = Components.classes;
+        const Ci = Components.interfaces;
+        var cacheService = Cc["@mozilla.org/network/cache-service;1"].
+                          getService(Ci.nsICacheService);
         try {
-          cacheService.evictEntries(ci.nsICache.STORE_ANYWHERE);
+          
+          
+          cacheService.evictEntries(Ci.nsICache.STORE_ANYWHERE);
         } catch(er) {}
       },
       
@@ -112,9 +128,25 @@ Sanitizer.prototype = {
     cookies: {
       clear: function ()
       {
+        const Ci = Components.interfaces;
         var cookieMgr = Components.classes["@mozilla.org/cookiemanager;1"]
-                                  .getService(Components.interfaces.nsICookieManager);
-        cookieMgr.removeAll();
+                                  .getService(Ci.nsICookieManager);
+        if (this.range) {
+          
+          var cookiesEnum = cookieMgr.enumerator;
+          while (cookiesEnum.hasMoreElements()) {
+            var cookie = cookiesEnum.getNext().QueryInterface(Ci.nsICookie2);
+            
+            if (cookie.creationTime > this.range[0])
+              
+              cookieMgr.remove(cookie.host, cookie.name, cookie.path, false);
+          }
+        }
+        else {
+          
+          cookieMgr.removeAll();
+        }
+
       },
       
       get canClear()
@@ -131,6 +163,8 @@ Sanitizer.prototype = {
         var cacheService = Cc["@mozilla.org/network/cache-service;1"].
                            getService(Ci.nsICacheService);
         try {
+          
+          
           cacheService.evictEntries(Ci.nsICache.STORE_OFFLINE);
         } catch(er) {}
 
@@ -150,7 +184,10 @@ Sanitizer.prototype = {
       {
         var globalHistory = Components.classes["@mozilla.org/browser/global-history;2"]
                                       .getService(Components.interfaces.nsIBrowserHistory);
-        globalHistory.removeAllPages();
+        if (this.range)
+          globalHistory.removePagesByTimeframe(this.range[0], this.range[1]);
+        else
+          globalHistory.removeAllPages();
         
         try {
           var os = Components.classes["@mozilla.org/observer-service;1"]
@@ -223,7 +260,35 @@ Sanitizer.prototype = {
       {
         var dlMgr = Components.classes["@mozilla.org/download-manager;1"]
                               .getService(Components.interfaces.nsIDownloadManager);
-        dlMgr.cleanUp();
+
+        var dlIDsToRemove = [];
+        if (this.range) {
+          
+          dlMgr.removeDownloadsByTimeframe(this.range[0], this.range[1]);
+          
+          
+          var dlsEnum = dlMgr.activeDownloads;
+          while(dlsEnum.hasMoreElements()) {
+            var dl = dlsEnum.next();
+            if(dl.startTime >= this.range[0])
+              dlIDsToRemove.push(dl.id);
+          }
+        }
+        else {
+          
+          dlMgr.cleanUp();
+          
+          
+          var dlsEnum = dlMgr.activeDownloads;
+          while(dlsEnum.hasMoreElements()) {
+            dlIDsToRemove.push(dlsEnum.next().id);
+          }
+        }
+        
+        
+        dlIDsToRemove.forEach(function(id) {
+          dlMgr.removeDownload(id);
+        });
       },
 
       get canClear()
@@ -239,6 +304,7 @@ Sanitizer.prototype = {
       {
         var pwmgr = Components.classes["@mozilla.org/login-manager;1"]
                               .getService(Components.interfaces.nsILoginManager);
+        
         pwmgr.removeAllLogins();
       },
       
@@ -280,6 +346,47 @@ Sanitizer.prefDomain          = "privacy.sanitize.";
 Sanitizer.prefPrompt          = "promptOnSanitize";
 Sanitizer.prefShutdown        = "sanitizeOnShutdown";
 Sanitizer.prefDidShutdown     = "didShutdownSanitize";
+
+
+
+Sanitizer.TIMESPAN_EVERYTHING = 0;
+Sanitizer.TIMESPAN_HOUR       = 1;
+Sanitizer.TIMESPAN_2HOURS     = 2;
+Sanitizer.TIMESPAN_4HOURS     = 3;
+Sanitizer.TIMESPAN_TODAY      = 4;
+
+
+
+
+Sanitizer.getClearRange = function() {
+  var ts = Sanitizer.prefs.getIntPref("timeSpan");
+  if (ts === Sanitizer.TIMESPAN_EVERYTHING)
+    return null;
+  
+  
+  var endDate = Date.now() * 1000;
+  switch (ts) {
+    case Sanitizer.TIMESPAN_HOUR :
+      var startDate = endDate - 3600000000; 
+      break;
+    case Sanitizer.TIMESPAN_2HOURS :
+      startDate = endDate - 7200000000; 
+      break;
+    case Sanitizer.TIMESPAN_4HOURS :
+      startDate = endDate - 14400000000; 
+      break;
+    case Sanitizer.TIMESPAN_TODAY :
+      var d = new Date();  
+      d.setHours(0);      
+      d.setMinutes(0);
+      d.setSeconds(0);
+      startDate = d.valueOf() * 1000; 
+      break;
+    default:
+      throw "Invalid time span for clear private data: " + ts;
+  }
+  return [startDate, endDate];
+};
 
 Sanitizer._prefs = null;
 Sanitizer.__defineGetter__("prefs", function() 
