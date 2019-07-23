@@ -767,27 +767,27 @@ PRBool nsRASAutodial::LoadRASapi32DLL()
         {
             
             mpRasEnumConnections = (tRASENUMCONNECTIONS)
-             ::GetProcAddress(mhRASapi32, "RasEnumConnectionsA");
+             ::GetProcAddress(mhRASapi32, "RasEnumConnectionsW");
 
             
             mpRasEnumEntries = (tRASENUMENTRIES)
-             ::GetProcAddress(mhRASapi32, "RasEnumEntriesA");
+             ::GetProcAddress(mhRASapi32, "RasEnumEntriesW");
 
             
             mpRasSetAutodialAddress = (tRASSETAUTODIALADDRESS)
-                ::GetProcAddress(mhRASapi32, "RasSetAutodialAddressA");
+                ::GetProcAddress(mhRASapi32, "RasSetAutodialAddressW");
 
             
             mpRasGetAutodialAddress = (tRASGETAUTODIALADDRESS)
-             ::GetProcAddress(mhRASapi32, "RasGetAutodialAddressA");
+             ::GetProcAddress(mhRASapi32, "RasGetAutodialAddressW");
 
             
             mpRasGetAutodialEnable = (tRASGETAUTODIALENABLE)
-             ::GetProcAddress(mhRASapi32, "RasGetAutodialEnableA");
+             ::GetProcAddress(mhRASapi32, "RasGetAutodialEnableW");
 
             
             mpRasGetAutodialParam = (tRASGETAUTODIALPARAM)
-             ::GetProcAddress(mhRASapi32, "RasGetAutodialParamA");
+             ::GetProcAddress(mhRASapi32, "RasGetAutodialParamW");
         }
 
     }
