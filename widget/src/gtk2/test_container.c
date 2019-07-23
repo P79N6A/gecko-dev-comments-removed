@@ -1,13 +1,8 @@
 
 
 
-#include <gtk/gtkmain.h>
-#include <gtk/gtkwindow.h>
-#include <gtk/gtkvscrollbar.h>
-#include <gtk/gtkbutton.h>
-#include <gtk/gtkcontainer.h>
-#include <gtk/gtksignal.h>
-#include <gdk/gdkwindow.h>
+#include <gdk/gdk.h>
+#include <gtk/gtk.h>
 
 #include "mozcontainer.h"
 #include "mozdrawingarea.h"
