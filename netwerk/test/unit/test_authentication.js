@@ -424,7 +424,7 @@ function authHandler(metadata, response) {
 
 function authNtlmSimple(metadata, response) {
   response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
-  response.setHeader("WWW-Authenticate", "NTLM" );
+  response.setHeader("WWW-Authenticate", "NTLM" , false);
 
   var body = "NOTE: This just sends an NTLM challenge, it never\n" +
              "accepts the authentication. It also closes\n" +
