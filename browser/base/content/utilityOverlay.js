@@ -92,35 +92,6 @@ function getBoolPref ( prefname, def )
 }
 
 
-
-function focusElement(aElement)
-{
-  var msg;
-
-  
-  
-  if (aElement instanceof Window) {
-    var browser = getBrowserFromContentWindow(aElement);
-    if (!browser)
-      throw "aElement is not a content window";
-    browser.focus();
-    msg = "focusElement(content) is deprecated. Use gBrowser.selectedBrowser.focus() instead.";
-  }
-  else {
-    aElement.focus();
-    msg = "focusElement(element) is deprecated. Use element.focus() instead.";
-  }
-
-  var scriptError = Components.classes["@mozilla.org/scripterror;1"]
-                              .createInstance(Components.interfaces.nsIScriptError);
-  scriptError.init(msg, document.location.href, null, null, 
-                   null, scriptError.warningFlag, "chrome javascript");
-  Components.classes["@mozilla.org/consoleservice;1"]
-            .getService(Components.interfaces.nsIConsoleService)
-            .logMessage(scriptError);
-}
-
-
 function openUILink( url, e, ignoreButton, ignoreAlt, allowKeywordFixup, postData, referrerUrl )
 {
   var where = whereToOpenLink(e, ignoreButton, ignoreAlt);
@@ -558,16 +529,6 @@ function makeURLAbsolute(aBase, aUrl)
 {
   
   return makeURI(aUrl, null, makeURI(aBase)).spec;
-}
-
-function getBrowserFromContentWindow(aContentWindow)
-{
-  var browsers = gBrowser.browsers;
-  for (var i = 0; i < browsers.length; i++) {
-    if (browsers[i].contentWindow == aContentWindow)
-      return browsers[i];
-  }
-  return null;
 }
 
 
