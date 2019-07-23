@@ -288,6 +288,12 @@ class nsIParser : public nsISupports {
     NS_IMETHOD CancelParsingEvents() = 0;
 
     virtual void Reset() = 0;
+
+    
+
+
+
+    virtual PRBool CanInterrupt() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)
