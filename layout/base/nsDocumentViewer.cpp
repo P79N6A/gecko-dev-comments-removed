@@ -998,7 +998,7 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
     nsCOMPtr<nsIPresShell> shell = mPresShell;
     shell->FlushPendingNotifications(Flush_Layout);
   }
-
+  
   nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
 
@@ -1036,6 +1036,8 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
                                   &status);
 #ifdef MOZ_TIMELINE
       
+      
+
       
 
       nsIURI *uri = mDocument ? mDocument->GetDocumentURI() : nsnull;
@@ -1094,10 +1096,6 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
     mCachedPrintWebProgressListner = nsnull;
   }
 #endif
-
-  if (!mStopped) {
-    window->DispatchSyncPopState();
-  }
 
   return rv;
 }

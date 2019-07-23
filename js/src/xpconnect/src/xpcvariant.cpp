@@ -390,14 +390,6 @@ JSBool XPCVariant::InitializeData(XPCCallContext& ccx)
            NS_SUCCEEDED(nsVariant::SetFromInterface(&mData, iid, wrapper));
 }
 
-NS_IMETHODIMP
-XPCVariant::GetAsJSVal(jsval* result)
-{
-  NS_PRECONDITION(result, "null result arg.");
-  *result = GetJSVal();
-  return NS_OK;
-}
-
 
 JSBool 
 XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx, 
@@ -407,42 +399,43 @@ XPCVariant::VariantDataToJS(XPCLazyCallContext& lccx,
 {
     
     PRUint16 type;
-    if (NS_FAILED(variant->GetDataType(&type)))
+    if(NS_FAILED(variant->GetDataType(&type)))
         return JS_FALSE;
 
-    jsval realVal;
-    nsresult rv = variant->GetAsJSVal(&realVal);
-
-    if(NS_SUCCEEDED(rv) &&
-      (JSVAL_IS_PRIMITIVE(realVal) ||
-       type == nsIDataType::VTYPE_ARRAY ||
-       type == nsIDataType::VTYPE_EMPTY_ARRAY ||
-       type == nsIDataType::VTYPE_ID))
-    {
-        
-        
-        *pJSVal = realVal;
-        return JS_TRUE;
-    }
-
     nsCOMPtr<XPCVariant> xpcvariant = do_QueryInterface(variant);
-    if(xpcvariant && xpcvariant->mReturnRawObject)
+    if(xpcvariant)
     {
-        NS_ASSERTION(type == nsIDataType::VTYPE_INTERFACE ||
-                     type == nsIDataType::VTYPE_INTERFACE_IS,
-                     "Weird variant");
-        *pJSVal = realVal;
-        return JS_TRUE;
+        jsval realVal = xpcvariant->GetJSVal();
+        if(JSVAL_IS_PRIMITIVE(realVal) || 
+           type == nsIDataType::VTYPE_ARRAY ||
+           type == nsIDataType::VTYPE_EMPTY_ARRAY ||
+           type == nsIDataType::VTYPE_ID)
+        {
+            
+            
+            
+            *pJSVal = realVal;
+            return JS_TRUE;
+        }
+
+        if(xpcvariant->mReturnRawObject)
+        {
+            NS_ASSERTION(type == nsIDataType::VTYPE_INTERFACE ||
+                         type == nsIDataType::VTYPE_INTERFACE_IS,
+                         "Weird variant");
+            *pJSVal = realVal;
+            return JS_TRUE;
+        }
 
         
         
-
+        
         
     }
 
     
     
-
+    
     
 
     nsXPTCVariant xpctvar;

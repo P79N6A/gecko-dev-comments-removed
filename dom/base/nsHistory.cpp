@@ -57,13 +57,6 @@
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsContentUtils.h"
-#include "nsIDOMNSDocument.h"
-#include "nsISHistoryInternal.h"
-
-static const char* sAllowPushStatePrefStr  =
-  "browser.history.allowPushState";
-static const char* sAllowReplaceStatePrefStr =
-  "browser.history.allowReplaceState";
 
 
 
@@ -265,7 +258,7 @@ nsHistory::Go(PRInt32 aDelta)
 
   PRInt32 curIndex=-1;
   PRInt32 len = 0;
-  nsresult rv = session_history->GetIndex(&curIndex);
+  nsresult rv = session_history->GetIndex(&curIndex);  
   rv = session_history->GetCount(&len);
 
   PRInt32 index = curIndex + aDelta;
@@ -277,47 +270,6 @@ nsHistory::Go(PRInt32 aDelta)
   
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
-                     const nsAString& aURL)
-{
-  
-  if (!nsContentUtils::GetBoolPref(sAllowPushStatePrefStr, PR_FALSE))
-    return NS_OK;
-
-  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
-
-  
-  
-  nsCOMPtr<nsIDocShell> docShell = mDocShell;
-
-  
-  
-  nsresult rv = mDocShell->AddState(aData, aTitle, aURL, PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHistory::ReplaceState(nsIVariant *aData, const nsAString& aTitle,
-                        const nsAString& aURL)
-{
-  
-  if (!nsContentUtils::GetBoolPref(sAllowReplaceStatePrefStr, PR_FALSE))
-    return NS_OK;
-
-  NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
-
-  
-  
-  nsCOMPtr<nsIDocShell> docShell = mDocShell;
-
-  
-  
-  return mDocShell->AddState(aData, aTitle, aURL, PR_TRUE);
 }
 
 NS_IMETHODIMP

@@ -1887,13 +1887,6 @@ NS_IMETHODIMP nsVariant::GetAsISupports(nsISupports **_retval)
 }
 
 
-NS_IMETHODIMP nsVariant::GetAsJSVal(jsval *_retval)
-{
-    
-    return NS_ERROR_CANNOT_CONVERT_DATA;
-}
-
-
 NS_IMETHODIMP nsVariant::GetAsInterface(nsIID * *iid, void * *iface)
 {
     return nsVariant::ConvertToInterface(mData, iid, iface);
