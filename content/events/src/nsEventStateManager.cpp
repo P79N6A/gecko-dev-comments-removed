@@ -1133,7 +1133,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     KillClickHoldTimer();
     break;
 #endif
-  case NS_DRAGDROP_DROP:
   case NS_DRAGDROP_OVER:
     
     
@@ -3629,7 +3628,6 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
     }
     break;
 
-  case NS_DRAGDROP_DROP:
   case NS_DRAGDROP_EXIT:
     {
       
