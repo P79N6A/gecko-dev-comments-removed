@@ -158,6 +158,10 @@ public:
 
   
   
+  PRUint32 GetHoverGeneration() const { return mHoverGeneration; }
+
+  
+  
   
   
   
@@ -1195,6 +1199,7 @@ private:
   PRPackedBool        mRebuildAllStyleData : 1;
   
   PRPackedBool        mHasRootAbsPosContainingBlock : 1;
+  PRUint32            mHoverGeneration;
   nsChangeHint        mRebuildAllExtraHint;
 
   nsRevocableEventPtr<RestyleEvent> mRestyleEvent;
