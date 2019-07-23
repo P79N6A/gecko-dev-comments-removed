@@ -1630,12 +1630,24 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 
   nsCOMPtr<nsIAccessNode> accessNode;
   GetCachedAccessNode(aStartNode, getter_AddRefs(accessNode));
-  nsCOMPtr<nsIDOMNode> nextNode, iterNode;
 
   
   
   nsCOMPtr<nsIAccessible> accessible(do_QueryInterface(accessNode));
   if (accessible) {
+    
+    PRUint32 role = Role(accessible);
+    if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      nsCOMPtr<nsIDOMNode> domNode;
+      accessNode->GetDOMNode(getter_AddRefs(domNode));
+      nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(domNode));
+      if (!popup) {
+        
+        
+        nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
+                                 accessible);
+      }
+    }
     nsCOMPtr<nsPIAccessible> privateAccessible = do_QueryInterface(accessible);
     NS_ASSERTION(privateAccessible, "No nsPIAccessible for nsIAccessible");
 
@@ -1651,62 +1663,54 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 
       PRUint32 childCount;
       children->GetLength(&childCount);
+      nsCOMPtr<nsIDOMNode> possibleAnonNode;
       for (PRUint32 index = 0; index < childCount; index++) {
         nsCOMPtr<nsIAccessNode> childAccessNode;
         children->QueryElementAt(index, NS_GET_IID(nsIAccessNode),
                                  getter_AddRefs(childAccessNode));
-        childAccessNode->GetDOMNode(getter_AddRefs(iterNode));
-        nsCOMPtr<nsIContent> iterContent = do_QueryInterface(iterNode);
+        childAccessNode->GetDOMNode(getter_AddRefs(possibleAnonNode));
+        nsCOMPtr<nsIContent> iterContent = do_QueryInterface(possibleAnonNode);
         if (iterContent && (iterContent->IsNativeAnonymous() ||
                             iterContent->GetBindingParent())) {
           
           
           
-          RefreshNodes(iterNode);
+          RefreshNodes(possibleAnonNode);
         }
       }
-    }
-
-    
-    
-    aStartNode->GetFirstChild(getter_AddRefs(nextNode));
-    while (nextNode) {
-      nextNode.swap(iterNode);
-      RefreshNodes(iterNode);
-      iterNode->GetNextSibling(getter_AddRefs(nextNode));
-    }
-
-    if (accessNode == this) {
-      
-      
-      
-      
-      InvalidateChildren();
-      return;
-    }
-    if (accessNode) {
-      
-      PRUint32 role = Role(accessible);
-      if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
-        nsCOMPtr<nsIDOMNode> domNode;
-        accessNode->GetDOMNode(getter_AddRefs(domNode));
-        nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(domNode));
-        if (!popup) {
-          
-          
-          nsAccUtils::FireAccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                                   accessible);
-        }
-      }
-      
-      void *uniqueID;
-      accessNode->GetUniqueID(&uniqueID);
-      nsCOMPtr<nsPIAccessNode> privateAccessNode(do_QueryInterface(accessNode));
-      privateAccessNode->Shutdown();
-      
-      mAccessNodeCache.Remove(uniqueID);
     }
   }
+
+  
+  
+  nsCOMPtr<nsIDOMNode> nextNode, iterNode;
+  aStartNode->GetFirstChild(getter_AddRefs(nextNode));
+  while (nextNode) {
+    nextNode.swap(iterNode);
+    RefreshNodes(iterNode);
+    iterNode->GetNextSibling(getter_AddRefs(nextNode));
+  }
+
+  if (!accessNode)
+    return;
+
+  if (accessNode == this) {
+    
+    
+    
+    
+    InvalidateChildren();
+    return;
+  }
+
+  
+  void *uniqueID;
+  accessNode->GetUniqueID(&uniqueID);
+  nsCOMPtr<nsPIAccessNode> privateAccessNode(do_QueryInterface(accessNode));
+  privateAccessNode->Shutdown();
+
+  
+  mAccessNodeCache.Remove(uniqueID);
 }
 
 NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
