@@ -101,18 +101,18 @@ class NS_STACK_CLASS nsSetSelectionAfterTableEdit
 };
 
 
-class NS_STACK_CLASS nsSelectionBatcher
+class NS_STACK_CLASS nsSelectionBatcherForTable
 {
 private:
   nsCOMPtr<nsISelectionPrivate> mSelection;
 public:
-  nsSelectionBatcher(nsISelection *aSelection)
+  nsSelectionBatcherForTable(nsISelection *aSelection)
   {
     nsCOMPtr<nsISelection> sel(aSelection);
     mSelection = do_QueryInterface(sel);
     if (mSelection)  mSelection->StartBatchChanges();
   }
-  virtual ~nsSelectionBatcher() 
+  virtual ~nsSelectionBatcherForTable() 
   { 
     if (mSelection) mSelection->EndBatchChanges();
   }
@@ -1556,7 +1556,7 @@ nsHTMLEditor::SelectBlockOfCells(nsIDOMElement *aStartCell, nsIDOMElement *aEndC
 
   
   
-  nsSelectionBatcher selectionBatcher(selection);
+  nsSelectionBatcherForTable selectionBatcher(selection);
 
   
   
@@ -1639,7 +1639,7 @@ nsHTMLEditor::SelectAllTableCells()
 
   
   
-  nsSelectionBatcher selectionBatcher(selection);
+  nsSelectionBatcherForTable selectionBatcher(selection);
 
   
   
@@ -1709,7 +1709,7 @@ nsHTMLEditor::SelectTableRow()
 
   
   
-  nsSelectionBatcher selectionBatcher(selection);
+  nsSelectionBatcherForTable selectionBatcher(selection);
 
   
   
@@ -1772,7 +1772,7 @@ nsHTMLEditor::SelectTableColumn()
 
   
   
-  nsSelectionBatcher selectionBatcher(selection);
+  nsSelectionBatcherForTable selectionBatcher(selection);
 
   
   
