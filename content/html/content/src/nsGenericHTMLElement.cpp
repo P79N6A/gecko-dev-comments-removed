@@ -1231,11 +1231,17 @@ nsGenericHTMLElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 already_AddRefed<nsIDOMHTMLFormElement>
 nsGenericHTMLElement::FindForm(nsIForm* aCurrentForm)
 {
+  
+  
+  nsIContent* bindingParent = GetBindingParent();
+
   nsIContent* content = this;
-  while (content) {
+  while (content != bindingParent && content) {
     
     if (content->Tag() == nsGkAtoms::form &&
         content->IsNodeOfType(nsINode::eHTML)) {
+      NS_ASSERTION(nsContentUtils::IsInSameAnonymousTree(this, content),
+                   "Walked too far?");
       nsIDOMHTMLFormElement* form;
       CallQueryInterface(content, &form);
 
@@ -1266,18 +1272,6 @@ nsGenericHTMLElement::FindForm(nsIForm* aCurrentForm)
           return form;
         }
       } while (iter);
-    }
-    
-    if (content) {
-      PRInt32 i = content->IndexOf(prevContent);
-
-      if (i < 0) {
-        
-        
-        
-
-        return nsnull;
-      }
     }
   }
 
