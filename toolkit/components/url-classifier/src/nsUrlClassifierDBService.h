@@ -96,6 +96,10 @@ private:
   
   
   PRBool mCheckMalware;
+
+  
+  
+  PRBool mCheckPhishing;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)
