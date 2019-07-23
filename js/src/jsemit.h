@@ -589,8 +589,12 @@ typedef enum JSSrcNoteType {
 
     SRC_GENEXP      = 1,        
     SRC_IF_ELSE     = 2,        
-    SRC_WHILE       = 3,        
-    SRC_FOR         = 4,        
+    SRC_FOR_IN      = 2,        
+
+    SRC_FOR         = 3,        
+    SRC_WHILE       = 4,        
+
+
     SRC_CONTINUE    = 5,        
 
 
