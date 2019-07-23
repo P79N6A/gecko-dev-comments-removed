@@ -542,7 +542,7 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
       
       
       viewIsVisible = PR_FALSE;
-    } else if (aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
+    } else if (aFrame->GetType() == nsGkAtoms::menuPopupFrame || aFrame->GetType() == nsGkAtoms::listControlFrame) {
       
       nsIWidget* widget = aView->GetWidget();
       if (widget) {
