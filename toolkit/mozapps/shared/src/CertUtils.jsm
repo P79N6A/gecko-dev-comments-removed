@@ -38,6 +38,7 @@
 
 
 #endif
+EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert" ];
 
 
 
