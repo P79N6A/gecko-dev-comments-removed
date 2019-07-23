@@ -46,6 +46,13 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/distribution.js");
 
 
+
+const BOOKMARKS_ARCHIVE_IDLE_TIME = 60 * 60;
+
+
+const BOOKMARKS_ARCHIVE_INTERVAL = 86400 * 1000;
+
+
 const BrowserGlueServiceFactory = {
   _instance: null,
   createInstance: function (outer, iid) 
@@ -103,15 +110,22 @@ BrowserGlue.prototype = {
         if (this._saveSession) {
           this._setPrefToSaveSession();
         }
+        this._shutdownPlaces();
         break;
       case "session-save":
         this._setPrefToSaveSession();
         subject.QueryInterface(Ci.nsISupportsPRBool);
         subject.data = true;
         break;
+      case "idle":
+        if (this.idleService.idleTime > BOOKMARKS_ARCHIVE_IDLE_TIME * 1000) {
+          
+          this._archiveBookmarks();
+        }
+        break;
     }
-  }
-, 
+  }, 
+
   
   _init: function() 
   {
@@ -324,6 +338,14 @@ BrowserGlue.prototype = {
     return Sanitizer;
   },
 
+  _idleService: null,
+  get idleService() {
+    if (!this._idleService)
+      this._idleService = Cc["@mozilla.org/widget/idleservice;1"].
+                          getService(Ci.nsIIdleService);
+    return this._idleService;
+  },
+
   
 
 
@@ -336,10 +358,11 @@ BrowserGlue.prototype = {
     var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                   getService(Ci.nsINavHistoryService);
 
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+
     var importBookmarks = false;
     try {
-      var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                       getService(Ci.nsIPrefBranch);
       importBookmarks = prefBranch.getBoolPref("browser.places.importBookmarksHTML");
     } catch(ex) {}
 
@@ -347,55 +370,95 @@ BrowserGlue.prototype = {
       
       
       this.ensurePlacesDefaultQueriesInitialized();
-      return;
     }
-
-    var dirService = Cc["@mozilla.org/file/directory_service;1"].
-                     getService(Ci.nsIProperties);
-
-    var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
-
-    if (bookmarksFile.exists()) {
+    else {
       
-      try {
-        var importer = 
-          Cc["@mozilla.org/browser/places/import-export-service;1"].
-          getService(Ci.nsIPlacesImportExportService);
-        importer.importHTMLFromFile(bookmarksFile, true);
-      } catch(ex) {
-      } finally {
-        prefBranch.setBoolPref("browser.places.importBookmarksHTML", false);
+      Cu.import("resource://gre/modules/utils.js");
+      var bookmarksFile = PlacesUtils.getMostRecentBackup();
+
+      if (bookmarksFile && bookmarksFile.leafName.match("\.json$")) {
+        
+        PlacesUtils.restoreBookmarksFromJSONFile(bookmarksFile);
       }
+      else {
+        
+        
+        
 
-      
-      if (prefBranch.getBoolPref("browser.bookmarks.overwrite")) {
+        var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                         getService(Ci.nsIProperties);
+        var bookmarksFile = dirService.get("BMarks", Ci.nsILocalFile);
+
         
+        const POSTPLACES_BOOKMARKS_FILE = "bookmarks.postplaces.html";
+        var bookmarksPostPlacesFile = bookmarksFile.clone();
+        bookmarksPostPlacesFile.leafName = POSTPLACES_BOOKMARKS_FILE;
+        if (bookmarksPostPlacesFile.exists())
+          bookmarksFile = bookmarksPostPlacesFile;
+
         
-        var profDir = dirService.get("ProfD", Ci.nsILocalFile);
-        var bookmarksBackup = profDir.clone();
-        bookmarksBackup.append("bookmarks.preplaces.html");
-        if (!bookmarksBackup.exists()) {
-          
-          try {
-            bookmarksFile.copyTo(profDir, "bookmarks.preplaces.html");
-          } catch(ex) {
-            dump("nsBrowserGlue::_initPlaces(): copy of bookmarks.html to bookmarks.preplaces.html failed: " + ex + "\n");
-          }
+        try {
+          var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
+                         getService(Ci.nsIPlacesImportExportService);
+          importer.importHTMLFromFile(bookmarksFile, true );
+        } finally {
+          prefBranch.setBoolPref("browser.places.importBookmarksHTML", false);
         }
       }
     }
+
+    
+    
+    this.idleService.addIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
   },
 
   
 
 
 
+
+
+
+
   _shutdownPlaces: function bg__shutdownPlaces() {
     
-    var importer =
+    this._archiveBookmarks();
+
+    
+    
+    var autoExportHTML = false;
+    try {
+      autoExportHTML = prefs.getIntPref("browser.bookmarks.autoExportHTML");
+    } catch(ex) {}
+
+    if (autoExportHTML) {
       Cc["@mozilla.org/browser/places/import-export-service;1"].
-      getService(Ci.nsIPlacesImportExportService);
-    importer.backupBookmarksFile();
+        getService(Ci.nsIPlacesImportExportService).
+        backupBookmarksFile();
+    }
+  },
+
+  
+
+
+  _archiveBookmarks: function nsBrowserGlue__archiveBookmarks() {
+    Cu.import("resource://gre/modules/utils.js");
+
+    var lastBackup = PlacesUtils.getMostRecentBackup();
+
+    
+    
+    if (!lastBackup ||
+        Date.now() - lastBackup.lastModifiedTime > BOOKMARKS_ARCHIVE_INTERVAL) {
+      var maxBackups = 5;
+      var prefs = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefBranch);
+      try {
+        maxBackups = prefs.getIntPref("browser.bookmarks.max_backups");
+      } catch(ex) {}
+
+      PlacesUtils.archiveBookmarksFile(maxBackups, false );
+    }
   },
 
   _migrateUI: function bg__migrateUI() {
