@@ -1226,7 +1226,7 @@ public:
 
 
     static PRBool IsInvalidChar(PRUnichar ch) {
-        return ch == '\t' || ch == '\r' || ch == '\n' ||
+        return ch == '\t' || ch == '\r' || ch == '\n' || ch == '\f' ||
            ch == 0x200B || ch == 0x2028 || ch == 0x2029;
     }
 
