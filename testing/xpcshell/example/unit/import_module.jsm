@@ -1,0 +1,5 @@
+
+
+const EXPORTED_SYMBOLS = [ "MODULE_IMPORTED" ];
+
+const MODULE_IMPORTED = true;
