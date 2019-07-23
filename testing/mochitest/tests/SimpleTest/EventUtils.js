@@ -434,10 +434,15 @@ function synthesizeKeyExpectEvent(key, aEvent, aExpectedTarget, aExpectedEvent,
 
 
 
-function synthesizeDragStart(element, expectedDragData, aWindow)
+
+
+function synthesizeDragStart(element, expectedDragData, aWindow, x, y)
 {
   if (!aWindow)
     aWindow = window;
+  x = x || 2;
+  y = y || 2;
+  const step = 9;
 
   var result = "trapDrag was not called";
   var trapDrag = function(event) {
@@ -445,7 +450,7 @@ function synthesizeDragStart(element, expectedDragData, aWindow)
       var dataTransfer = event.dataTransfer;
       result = null;
       if (!dataTransfer)
-        throw  "no dataTransfer";
+        throw "no dataTransfer";
       if (expectedDragData == null ||
           dataTransfer.mozItemCount != expectedDragData.length)
         throw dataTransfer;
@@ -472,13 +477,17 @@ function synthesizeDragStart(element, expectedDragData, aWindow)
     event.stopPropagation();
   }
   aWindow.addEventListener("dragstart", trapDrag, false);
-  synthesizeMouse(element, 2, 2, { type: "mousedown" }, aWindow);
-  synthesizeMouse(element, 11, 11, { type: "mousemove" }, aWindow);
-  synthesizeMouse(element, 20, 20, { type: "mousemove" }, aWindow);
+  synthesizeMouse(element, x, y, { type: "mousedown" }, aWindow);
+  x += step; y += step;
+  synthesizeMouse(element, x, y, { type: "mousemove" }, aWindow);
+  x += step; y += step;
+  synthesizeMouse(element, x, y, { type: "mousemove" }, aWindow);
   aWindow.removeEventListener("dragstart", trapDrag, false);
-  synthesizeMouse(element, 20, 20, { type: "mouseup" }, aWindow);
+  synthesizeMouse(element, x, y, { type: "mouseup" }, aWindow);
   return result;
 }
+
+
 
 
 
