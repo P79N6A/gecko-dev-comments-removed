@@ -1179,7 +1179,7 @@ nsOperaProfileMigrator::CopySmartKeywords(nsINavBookmarksService* aBMS,
 
       
       if (name.CharAt(index + 1) == '&') {
-        nameStr.Cut(index, 1);
+        name.Cut(index, 1);
         index += 2;
         continue;
       }
