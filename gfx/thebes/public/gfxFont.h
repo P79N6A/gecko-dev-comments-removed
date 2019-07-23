@@ -415,6 +415,9 @@ public:
 
         gfxFloat aveCharWidth;
         gfxFloat spaceWidth;
+        gfxFloat zeroOrAveCharWidth;  
+                                      
+                                      
     };
     virtual const gfxFont::Metrics& GetMetrics() = 0;
 

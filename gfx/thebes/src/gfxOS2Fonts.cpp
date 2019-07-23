@@ -156,6 +156,16 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         }
 
         
+        gid = FT_Get_Char_Index(face, '0');
+        if (gid) {
+            FT_Load_Glyph(face, gid, FT_LOAD_NO_SCALE);
+            mMetrics->zeroOrAveCharWidth = face->glyph->metrics.width * xScale;
+        } else {
+             
+             mMetrics->zeroOrAveCharWidth = mMetrics->aveCharWidth;
+        }
+
+        
         if (mAdjustedSize == 0 && GetStyle()->sizeAdjust != 0) {
             gfxFloat aspect = mMetrics->xHeight / GetStyle()->size;
             mAdjustedSize = GetStyle()->GetAdjustedSize(aspect);
