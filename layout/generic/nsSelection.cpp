@@ -4369,7 +4369,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext,
 
 
 
-NS_IMETHODIMP
+nsresult
 nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIRange *aRange, PRBool aFlags)
 {
   if (!mFrameSelection)
