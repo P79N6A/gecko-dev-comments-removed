@@ -2321,25 +2321,36 @@ nsEditor::GetRootElement(nsIDOMElement **aRootElement)
     return NS_OK;
   }
 
-  *aRootElement = 0;
+  *aRootElement = nsnull;
 
   NS_PRECONDITION(mDocWeak, "bad state, null mDocWeak");
-  nsCOMPtr<nsIDOMHTMLDocument> doc = do_QueryReferent(mDocWeak);
-  if (!doc) return NS_ERROR_NOT_INITIALIZED;
+  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryReferent(mDocWeak);
+  if (!htmlDoc) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   
   
 
   nsCOMPtr<nsIDOMHTMLElement> bodyElement; 
-  nsresult result = doc->GetBody(getter_AddRefs(bodyElement));
-  if (NS_FAILED(result))
-    return result;
+  nsresult rv = htmlDoc->GetBody(getter_AddRefs(bodyElement));
+  if (NS_SUCCEEDED(rv) && bodyElement)
+  {
+    mRootElement = bodyElement;
+  }
+  else
+  {
+    
+    
+    nsCOMPtr<nsIDOMDocument> doc = do_QueryReferent(mDocWeak);
+    NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
 
-  if (!bodyElement)
-    return NS_ERROR_NULL_POINTER;
+    rv = doc->GetDocumentElement(getter_AddRefs(mRootElement));
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_TRUE(mRootElement, NS_ERROR_NULL_POINTER);
+  }
 
-  mRootElement = bodyElement;
-  *aRootElement = bodyElement;
+  *aRootElement = mRootElement;
   NS_ADDREF(*aRootElement);
 
   return NS_OK;
