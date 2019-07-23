@@ -401,6 +401,7 @@ struct JSRuntime {
     uint32              gcTriggerFactor;
     size_t              gcTriggerBytes;
     volatile JSBool     gcIsNeeded;
+    volatile JSBool     gcFlushCodeCaches;
 
     
 
