@@ -561,7 +561,7 @@ nsHTMLTokenizer::ConsumeTag(PRUnichar aChar,
 
           
           
-          PRBool isXML = mFlags & NS_IPARSER_FLAG_XML;
+          PRBool isXML = !!(mFlags & NS_IPARSER_FLAG_XML);
           if (nsCRT::IsAsciiAlpha(theNextChar) ||
               kGreaterThan == theNextChar      ||
               (isXML && !nsCRT::IsAscii(theNextChar))) {
@@ -597,7 +597,7 @@ nsHTMLTokenizer::ConsumeTag(PRUnichar aChar,
 
       default:
         
-        PRBool isXML = mFlags & NS_IPARSER_FLAG_XML;
+        PRBool isXML = !!(mFlags & NS_IPARSER_FLAG_XML);
         if (nsCRT::IsAsciiAlpha(aChar) ||
             (isXML && !nsCRT::IsAscii(aChar))) {
           
