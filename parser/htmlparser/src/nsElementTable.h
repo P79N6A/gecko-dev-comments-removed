@@ -206,11 +206,9 @@ struct nsHTMLElement {
   PRBool          IsMemberOf(PRInt32 aType) const;
   PRBool          ContainsSet(PRInt32 aType) const;
   PRBool          CanContainType(PRInt32 aType) const;
-  
-  eHTMLTags       GetTag(void) const {return mTagID;}
+
   PRBool          CanContain(eHTMLTags aChild,nsDTDMode aMode) const;
   PRBool          CanExclude(eHTMLTags aChild) const;
-  PRBool          CanOmitStartTag(eHTMLTags aChild) const;
   PRBool          CanOmitEndTag(void) const;
   PRBool          CanContainSelf(void) const;
   PRBool          CanAutoCloseTag(nsDTDContext& aContext,PRInt32 aIndex,eHTMLTags aTag) const;
@@ -219,8 +217,6 @@ struct nsHTMLElement {
   PRBool          IsExcludableParent(eHTMLTags aParent) const;
   PRBool          SectionContains(eHTMLTags aTag,PRBool allowDepthSearch) const;
   PRBool          ShouldVerifyHierarchy() const;
-
-  PRBool          CanBeContained(eHTMLTags aParentTag,nsDTDContext &aContext) const; 
 
   static  PRBool  CanContain(eHTMLTags aParent,eHTMLTags aChild,nsDTDMode aMode);
   static  PRBool  IsContainer(eHTMLTags aTag) ;
@@ -250,8 +246,6 @@ struct nsHTMLElement {
   PRUint32        mPropagateRange;    
   const TagList*  mSpecialParents;    
   const TagList*  mSpecialKids;       
-  eHTMLTags       mSkipTarget;        
-  ContainFunc     mCanBeContained;
 }; 
 
 extern const nsHTMLElement gHTMLElements[];

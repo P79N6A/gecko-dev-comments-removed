@@ -196,8 +196,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kNone, kNone,
            kNonContainer, 10,
-           0,&gUnknownKids,eHTMLTag_unknown,
-                        0
+                0,&gUnknownKids,
   },
   {
                                  eHTMLTag_a,
@@ -206,8 +205,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kInlineEntity, kNone,  
            kVerifyHierarchy, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_abbr,
@@ -216,8 +214,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_acronym,
@@ -226,8 +223,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_address,
@@ -236,8 +232,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, kInlineEntity, kNone,
            0,kDefaultPropRange,
-           0,&gAddressKids,eHTMLTag_unknown,
-                        0
+                0,&gAddressKids,
   },
   {
                                  eHTMLTag_applet,
@@ -246,8 +241,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kInlineEntity|kFlowEntity), kNone,
            kRequiresBody,kDefaultPropRange,
-           0,&gContainsParam,eHTMLTag_unknown,
-                        0
+                0,&gContainsParam,
   },
   {
                                  eHTMLTag_area,
@@ -256,8 +250,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kInlineEntity, kSelf,
            kNonContainer,kDefaultPropRange,
-           &gAreaParent,0,eHTMLTag_unknown,
-                        0
+                &gAreaParent,0,
   },
 #if defined(MOZ_MEDIA)
   {
@@ -267,8 +260,7 @@ const nsHTMLElement gHTMLElements[] = {
      0, 0, 0,0,
               kSpecial, (kFlowEntity|kSelf), kNone,
            0,kDefaultPropRange,
-           0,&gAudioKids,eHTMLTag_unknown,
-                        0
+                0,&gAudioKids,
   },
 #endif
   {
@@ -278,8 +270,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kInlineEntity|kSelf), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_base,
@@ -288,8 +279,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kHeadContent, kNone, kNone,
            kNonContainer, kNoPropRange,
-           &gInHead,0,eHTMLTag_unknown,
-                        0
+                &gInHead,0,
   },
   {
                                  eHTMLTag_basefont,
@@ -298,8 +288,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kInlineEntity, kNone,
            kNonContainer, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_bdo,
@@ -308,8 +297,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_bgsound,
@@ -318,8 +306,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               (kFlowEntity|kHeadMisc), kNone, kNone,
            kNonContainer,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_big,
@@ -328,8 +315,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kInlineEntity|kSelf), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_blink,
@@ -338,8 +324,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kFlowEntity|kSelf), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_blockquote,
@@ -348,8 +333,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,  
               kBlock, (kSelf|kFlowEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_body,
@@ -358,8 +342,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gBodyAutoClose,0,0,0,
               kHTMLContent,(kFlowEntity|kSelf), kNone,
            kOmitEndTag, kBodyPropRange,
-           0,&gBodyKids,eHTMLTag_unknown,
-                        0
+                0,&gBodyKids,
   },
   {
                                  eHTMLTag_br,
@@ -368,8 +351,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kNone, kNone,
            kRequiresBody|kNonContainer, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_button,
@@ -378,8 +360,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFormControl, kFlowEntity, kFormControl,
            kRequiresBody,kDefaultPropRange,
-           0,&gButtonKids,eHTMLTag_unknown,
-                        0
+                0,&gButtonKids,
   },
   {
                                  eHTMLTag_canvas,
@@ -388,8 +369,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kFlowEntity|kSelf), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_caption,
@@ -398,8 +378,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gCaptionAutoClose,0,0,0,
               kNone, kFlowEntity, kSelf,
            (kNoPropagate|kNoStyleLeaksOut),kDefaultPropRange,
-           &gInTable,0,eHTMLTag_unknown,
-                        0
+                &gInTable,0,
   },
   {
                                  eHTMLTag_center,
@@ -408,8 +387,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, (kSelf|kFlowEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_cite,
@@ -418,8 +396,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_code,
@@ -428,8 +405,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_col,
@@ -438,8 +414,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kNone, kNone,
            kNoPropagate|kNonContainer,kDefaultPropRange,
-           &gColParents,0,eHTMLTag_unknown,
-                        0
+                &gColParents,0,
   },
   {
                                  eHTMLTag_colgroup,
@@ -448,8 +423,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kNone, kNone,
            kNoPropagate,kDefaultPropRange,
-           &gInTable,&gColgroupKids,eHTMLTag_unknown,
-                        0
+                &gInTable,&gColgroupKids,
   },
   {
                                  eHTMLTag_dd,
@@ -458,8 +432,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gDTCloseTags,0,&gDLKids,0,
               kInlineEntity, kFlowEntity, kNone,
            kNoPropagate|kMustCloseSelf|kVerifyHierarchy|kRequiresBody,kDefaultPropRange,
-           &gInDL,0,eHTMLTag_unknown,
-                        0
+                &gInDL,0,
   },
   {
                                  eHTMLTag_del,
@@ -468,8 +441,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, (kSelf|kFlowEntity), kNone,
            0, kDefaultPropRange,
-           &gInBody,0,eHTMLTag_unknown,
-                        0
+                &gInBody,0,
   },
   {
                                  eHTMLTag_dfn,
@@ -478,8 +450,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_dir,
@@ -488,8 +459,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gOLAutoClose, &gULCloseTags, 0,0,
               kList, (kFlowEntity|kSelf), kNone,
            0,kDefaultPropRange,
-           0,&gULKids,eHTMLTag_unknown,
-                        0
+                0,&gULKids,
   },
   {
                                  eHTMLTag_div,
@@ -498,8 +468,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gDivAutoClose,0,0,0,
               kBlock, (kSelf|kFlowEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_dl,
@@ -508,8 +477,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,&gDTKids,           
               kBlock, kSelf|kFlowEntity, kNone,
            0, kNoPropRange,
-           0,&gDLKids,eHTMLTag_unknown,
-                        0
+                0,&gDLKids,
   },
   {
                                  eHTMLTag_dt,
@@ -518,8 +486,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gDTCloseTags,0,&gDLKids,0,
               kInlineEntity, (kFlowEntity-kHeading), kNone,  
            (kNoPropagate|kMustCloseSelf|kVerifyHierarchy|kRequiresBody),kDefaultPropRange,
-           &gInDL,0,eHTMLTag_unknown,
-                        0
+                &gInDL,0,
   },
   {
                                  eHTMLTag_em,
@@ -528,8 +495,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_embed,
@@ -538,8 +504,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kNone, kNone,
            kNonContainer|kRequiresBody,kDefaultPropRange,
-           0,&gContainsParam,eHTMLTag_unknown,
-                        0
+                0,&gContainsParam,
   },
   {
                                  eHTMLTag_fieldset,
@@ -548,8 +513,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, (kSelf|kFlowEntity), kNone,
            kNoPropagate,kDefaultPropRange,
-           0,&gFieldsetKids,eHTMLTag_unknown,
-                        0
+                0,&gFieldsetKids,
   },
   {
                                  eHTMLTag_font,
@@ -558,8 +522,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,&gFontKids,eHTMLTag_unknown,
-                        0
+                0,&gFontKids,
   },
   {
                                  eHTMLTag_form,
@@ -568,8 +531,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, kFlowEntity, kNone,
            kNoStyleLeaksIn, kNoPropRange,
-           0,&gFormKids,eHTMLTag_unknown,
-                        0
+                0,&gFormKids,
   },
   {
                                  eHTMLTag_frame, 
@@ -578,8 +540,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kNone, kNone,
            kNoPropagate|kNoStyleLeaksIn|kNonContainer, kNoPropRange,
-           &gInFrameset,0,eHTMLTag_unknown,
-                        0
+                &gInFrameset,0,
   },
   {
                                  eHTMLTag_frameset,
@@ -588,8 +549,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kHTMLContent, kSelf, kAllTags,
            kNoPropagate|kNoStyleLeaksIn, kNoPropRange,
-           &gInHTML,&gFramesetKids,eHTMLTag_unknown,
-                        0
+                &gInHTML,&gFramesetKids,
   },
 
   {
@@ -599,8 +559,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHeadingTags,  &gHeadingTags, &gHeadingTags,0,
               kHeading, kFlowEntity, kNone,
            kVerifyHierarchy,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_h2,
@@ -609,8 +568,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHeadingTags,  &gHeadingTags, &gHeadingTags,0,
               kHeading, kFlowEntity, kNone,
            kVerifyHierarchy,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_h3,
@@ -619,8 +577,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHeadingTags,  &gHeadingTags, &gHeadingTags,0,
               kHeading, kFlowEntity, kNone,
            kVerifyHierarchy,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_h4,
@@ -629,8 +586,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHeadingTags,  &gHeadingTags, &gHeadingTags,0,
               kHeading, kFlowEntity, kNone,
            kVerifyHierarchy,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_h5,
@@ -639,8 +595,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHeadingTags,  &gHeadingTags, &gHeadingTags,0,
               kHeading, kFlowEntity, kNone,
            kVerifyHierarchy,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_h6,
@@ -649,8 +604,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHeadingTags,  &gHeadingTags, &gHeadingTags,0,
               kHeading, kFlowEntity, kNone,
            kVerifyHierarchy,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_head,
@@ -659,8 +613,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kHTMLContent, (kHeadContent|kHeadMisc), kNone,
            kNoStyleLeaksIn, kDefaultPropRange,
-           &gInHTML,0,eHTMLTag_unknown,
-                        0
+                &gInHTML,0,
   },
   {
                                  eHTMLTag_hr,
@@ -669,8 +622,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gHRAutoClose,0,0,0,
               kBlock, kNone, kNone,
            kNonContainer|kRequiresBody,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_html,
@@ -679,8 +631,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kHTMLContent, kNone,
            kSaveMisplaced|kOmitEndTag|kNoStyleLeaksIn, kDefaultPropRange,
-           0,&gHtmlKids,eHTMLTag_unknown,
-                        0
+                0,&gHtmlKids,
   },
   {
                                  eHTMLTag_i,
@@ -689,8 +640,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_iframe,
@@ -699,8 +649,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kFlowEntity), kNone,
            kNoStyleLeaksIn, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_image,
@@ -709,8 +658,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kNone, kNone,
            kNonContainer,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_img,
@@ -719,8 +667,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kNone, kNone,
            kNonContainer|kRequiresBody,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_input,
@@ -729,8 +676,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gInputAutoClose,0,0,0,
               kFormControl, kNone, kNone,
            kNonContainer|kRequiresBody,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_ins,
@@ -739,8 +685,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, (kSelf|kFlowEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_isindex,
@@ -749,8 +694,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, kFlowEntity, kNone,
            kNonContainer|kRequiresBody,kDefaultPropRange,
-           &gInBody,0,eHTMLTag_unknown,
-                        0
+                &gInBody,0,
   },
   {
                                  eHTMLTag_kbd,
@@ -759,8 +703,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_keygen,
@@ -769,8 +712,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kNone, kNone,
            kNonContainer,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_label,
@@ -779,8 +721,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFormControl, kInlineEntity, kSelf,
            0,kDefaultPropRange,
-           0,&gLabelKids,eHTMLTag_unknown,
-                        0
+                0,&gLabelKids,
   },
   {
                                  eHTMLTag_legend,
@@ -789,8 +730,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kInlineEntity, kNone,
            kRequiresBody,kDefaultPropRange,
-           &gInFieldset,0,eHTMLTag_unknown,
-                        0
+                &gInFieldset,0,
   },
   {
                                  eHTMLTag_li,
@@ -799,8 +739,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gLIAutoClose,0,0,0,
               kBlockEntity, kFlowEntity, kSelf, 
            kNoPropagate|kVerifyHierarchy|kRequiresBody, kDefaultPropRange,
-           0,&gLIKids,eHTMLTag_unknown,
-                        &CanBeContainedLI
+                0,&gLIKids,
   },
   {
                                  eHTMLTag_link,
@@ -809,8 +748,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kAllTags - kHeadContent, kNone, kNone,
            kNonContainer|kPreferHead|kLegalOpen,kDefaultPropRange,
-           &gInHead,0,eHTMLTag_unknown,
-                        0
+                &gInHead,0,
   },
   {
                                  eHTMLTag_listing,
@@ -819,8 +757,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPreformatted, (kSelf|kFlowEntity), kNone,  
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_map,
@@ -829,8 +766,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, kInlineEntity|kBlockEntity, kNone,
            0, kDefaultPropRange,
-           0,&gMapKids,eHTMLTag_unknown,
-                        0
+                0,&gMapKids,
   },
   {
                                  eHTMLTag_marquee,
@@ -839,8 +775,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kFlowEntity), kNone,
            kRequiresBody, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_menu,
@@ -849,8 +784,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kList, (kSelf|kFlowEntity), kNone,
            0,kDefaultPropRange,
-           0,&gULKids,eHTMLTag_unknown,
-                        0
+                0,&gULKids,
   },
   {
                                  eHTMLTag_meta,
@@ -859,8 +793,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kHeadContent, kNone, kNone,
            kNoStyleLeaksIn|kNonContainer, kDefaultPropRange,
-           &gInHead,0,eHTMLTag_unknown,
-                        0
+                &gInHead,0,
   },
   {
                                  eHTMLTag_multicol,
@@ -869,8 +802,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, kFlowEntity, kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_nobr,
@@ -879,8 +811,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kExtensions, kFlowEntity, kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_noembed, 
@@ -889,8 +820,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kFlowEntity, kNone,
            0, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_noframes,
@@ -899,8 +829,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kFlowEntity, kNone,
            0, kNoPropRange,
-           &gNoframeRoot,0,eHTMLTag_unknown,
-                        0
+                &gNoframeRoot,0,
   },
   {
                                  eHTMLTag_noscript,
@@ -909,8 +838,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity|kHeadMisc, kFlowEntity|kSelf, kNone,
            0, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_object,
@@ -919,8 +847,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kFlowEntity|kSelf), kNone,
            kNoStyleLeaksOut|kPreferBody,kDefaultPropRange,
-           0,&gContainsParam,eHTMLTag_unknown,
-                        0
+                0,&gContainsParam,
   },
   {
                                  eHTMLTag_ol,
@@ -929,8 +856,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gOLAutoClose, &gULCloseTags, 0,0,
               kList, (kFlowEntity|kSelf), kNone,
            0,kDefaultPropRange,   
-           0,&gULKids,eHTMLTag_unknown,
-                        0
+                0,&gULKids,
   },
   {
                                  eHTMLTag_optgroup,
@@ -939,8 +865,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kNone, kNone,
            0,kDefaultPropRange,
-           &gOptgroupParents,&gContainsOpts,eHTMLTag_unknown,
-                        0
+                &gOptgroupParents,&gContainsOpts,
   },
   {
                                  eHTMLTag_option,
@@ -949,8 +874,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kNone, kPCDATA, kFlowEntity|kHeadMisc,
            kNoStyleLeaksIn|kNoPropagate, kDefaultPropRange,
-           &gOptgroupParents,&gContainedInOpt,eHTMLTag_unknown,
-                        0
+                &gOptgroupParents,&gContainedInOpt,
   },
   {
                                  eHTMLTag_p,
@@ -959,8 +883,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock, kInlineEntity, kNone,      
            kHandleStrayTag,kDefaultPropRange, 
-           0,&gInP,eHTMLTag_unknown,
-                        0
+                0,&gInP,
   },
   {
                                  eHTMLTag_param,
@@ -969,8 +892,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gPAutoClose,0,0,0,
               kNone, kNone, kNone,
            kNonContainer, kNoPropRange,
-           &gParamParents,0,eHTMLTag_unknown,
-                        0
+                &gParamParents,0,
   },
   {
                                  eHTMLTag_plaintext,
@@ -979,8 +901,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kExtensions, kCDATA, kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_pre,
@@ -989,8 +910,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kBlock|kPreformatted, (kSelf|kFlowEntity), kNone,  
            kRequiresBody, kDefaultPropRange,
-           0,&gPreKids,eHTMLTag_unknown,
-                        0
+                0,&gPreKids,
   },
   {
                                  eHTMLTag_q,
@@ -999,8 +919,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_s,
@@ -1009,8 +928,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_samp,
@@ -1019,8 +937,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_script,
@@ -1029,8 +946,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               (kSpecial|kHeadContent), kCDATA, kNone,   
            kNoStyleLeaksIn|kLegalOpen, kNoPropRange,
-           0,&gContainsText,eHTMLTag_unknown,
-                        0
+                0,&gContainsText,
   },
   {
                                  eHTMLTag_select,
@@ -1039,8 +955,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gInputAutoClose,0,0,0,
               kFormControl, kNone, kFlowEntity|kDLChild|kHeadMisc, 
            kNoPropagate|kNoStyleLeaksIn|kRequiresBody, kDefaultPropRange,
-           &gInForm,&gContainsOpts,eHTMLTag_unknown,
-                        0
+                &gInForm,&gContainsOpts,
   },
   {
                                  eHTMLTag_small,
@@ -1049,8 +964,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
 #if defined(MOZ_MEDIA)
   {
@@ -1060,8 +974,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gPAutoClose, 0, 0,0,
               kNone, kNone, kNone,
            kNonContainer,kNoPropRange,
-           &gSourceParents,0,eHTMLTag_unknown,
-                        0
+                &gSourceParents,0,
   },
 #endif
   {
@@ -1072,8 +985,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kExtensions, kNone, kNone,
            kNonContainer,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
     
@@ -1086,8 +998,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kInlineEntity|kSelf|kFlowEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
     
@@ -1097,8 +1008,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
     
@@ -1108,8 +1018,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,  
            0, kDefaultPropRange,
-           0,&gContainsText,eHTMLTag_unknown,
-                        0
+                0,&gContainsText,
   },
   {
     
@@ -1119,8 +1028,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kAllTags - kHeadContent, kCDATA, kNone,
            kNoStyleLeaksIn|kPreferHead|kLegalOpen, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_sub,
@@ -1129,8 +1037,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
     
@@ -1140,8 +1047,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kSpecial, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_table,
@@ -1150,8 +1056,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,&gTableCloseTags,0,0,
               kBlock, kNone, (kSelf|kInlineEntity),
            (kBadContentWatch|kNoStyleLeaksIn|kRequiresBody), 2,
-           0,&gTableKids,eHTMLTag_unknown,
-                        0
+                0,&gTableKids,
   },
   {
                                  eHTMLTag_tbody,
@@ -1160,8 +1065,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gTBodyAutoClose,0,0,0,
               kNone, kNone, (kSelf|kInlineEntity),
            (kNoPropagate|kBadContentWatch|kNoStyleLeaksIn|kNoStyleLeaksOut), kDefaultPropRange,
-           &gInTable,&gTBodyKids,eHTMLTag_unknown,
-                        0
+                &gInTable,&gTBodyKids,
   },
   {
                                  eHTMLTag_td,
@@ -1170,8 +1074,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gTDCloseTags,&gTDCloseTags,0,&gExcludableParents,
               kNone, kFlowEntity, kSelf,
            kNoStyleLeaksIn|kNoStyleLeaksOut, kDefaultPropRange,
-           &gTDRootTags,&gBodyKids,eHTMLTag_unknown,
-                        0
+                &gTDRootTags,&gBodyKids,
   },
   {
                                  eHTMLTag_textarea,
@@ -1180,8 +1083,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gInputAutoClose,0,0,0,
               kFormControl, kPCDATA, kNone,
            kRequiresBody|kNoStyleLeaksIn,kDefaultPropRange,
-           &gInForm,&gContainsText,eHTMLTag_unknown,
-                        0
+                &gInForm,&gContainsText,
   },
   {
                                  eHTMLTag_tfoot,
@@ -1190,8 +1092,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gTBodyAutoClose,0,0,0,
               kNone, kNone, kSelf,
            (kNoPropagate|kBadContentWatch|kNoStyleLeaksIn|kNoStyleLeaksOut), kNoPropRange,
-           &gInTable,&gTableElemKids,eHTMLTag_unknown,
-                        0
+                &gInTable,&gTableElemKids,
   },
   {
                                  eHTMLTag_th, 
@@ -1200,8 +1101,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gTDCloseTags,&gTDCloseTags,0,0,
               kNone, kFlowEntity, kSelf,
            (kNoStyleLeaksIn|kNoStyleLeaksOut), kDefaultPropRange,
-           &gTDRootTags,&gBodyKids,eHTMLTag_unknown,
-                        0
+                &gTDRootTags,&gBodyKids,
   },
   {
                                  eHTMLTag_thead,
@@ -1210,8 +1110,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gTBodyAutoClose,0,0,0,
               kNone, kNone, kSelf,
            (kNoPropagate|kBadContentWatch|kNoStyleLeaksIn|kNoStyleLeaksOut), kNoPropRange,
-           &gInTable,&gTableElemKids,eHTMLTag_unknown,
-                        0
+                &gInTable,&gTableElemKids,
   },
   {
                                  eHTMLTag_title,
@@ -1220,8 +1119,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kHeadContent,kPCDATA, kNone,
            kNoStyleLeaksIn, kNoPropRange,
-           &gInHead,&gContainsText,eHTMLTag_unknown,
-                        0
+                &gInHead,&gContainsText,
   },
   {
                                  eHTMLTag_tr,
@@ -1230,8 +1128,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gTRCloseTags,0,0,0,
               kNone, kNone, kInlineEntity,
            (kBadContentWatch|kNoStyleLeaksIn|kNoStyleLeaksOut), kNoPropRange,
-           &gTRParents,&gTRKids,eHTMLTag_unknown,
-                        0
+                &gTRParents,&gTRKids,
   },
   {
                                  eHTMLTag_tt,
@@ -1240,8 +1137,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_u,
@@ -1250,8 +1146,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFontStyle, (kSelf|kInlineEntity), kNone,
            0, kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_ul,
@@ -1260,8 +1155,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gULAutoClose,&gULCloseTags,0,0,
               kList, (kFlowEntity|kSelf), kNone,
            0,kDefaultPropRange,
-           0,&gULKids,eHTMLTag_unknown,
-                        0
+                0,&gULKids,
   },
   {
                                  eHTMLTag_var,
@@ -1270,8 +1164,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kPhrase, (kSelf|kInlineEntity), kNone,
            0,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
 #if defined(MOZ_MEDIA)
   {
@@ -1281,8 +1174,7 @@ const nsHTMLElement gHTMLElements[] = {
      0, 0, 0,0,
               kSpecial, (kFlowEntity|kSelf), kNone,
            0,kDefaultPropRange,
-           0,&gVideoKids,eHTMLTag_unknown,
-                        0
+                0,&gVideoKids,
   },
 #endif
   {
@@ -1292,8 +1184,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kExtensions, kNone, kNone,
            kNonContainer|kRequiresBody,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_xmp,
@@ -1302,8 +1193,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kInlineEntity|kPreformatted, kCDATA, kNone,
            kNone,kDefaultPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_text,
@@ -1312,8 +1202,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kNone, kNone,
            kNonContainer|kRequiresBody,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
           
@@ -1326,8 +1215,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity|kHeadMisc, kNone, kNone,
            kNonContainer|kLegalOpen,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
           
@@ -1340,8 +1228,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity|kHeadMisc, kNone, kNone,
            kNonContainer|kLegalOpen, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
           
@@ -1354,8 +1241,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity|kHeadMisc, kNone, kNone,
            kOmitEndTag|kLegalOpen,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_entity,
@@ -1364,8 +1250,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kNone, kNone,
            0, kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_doctypeDecl,
@@ -1374,8 +1259,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kNone, kNone,
            kOmitEndTag,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_markupDecl,
@@ -1384,8 +1268,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kNone, kNone,
            kOmitEndTag,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
                                  eHTMLTag_instruction,
@@ -1394,8 +1277,7 @@ const nsHTMLElement gHTMLElements[] = {
      0,0,0,0,
               kFlowEntity, kNone, kNone,
            kOmitEndTag,kNoPropRange,
-           0,0,eHTMLTag_unknown,
-                        0
+                0,0,
   },
   {
           
@@ -1408,8 +1290,7 @@ const nsHTMLElement gHTMLElements[] = {
      &gBodyAutoClose,0,0,0,
               (kFlowEntity|kHeadMisc), (kInlineEntity|kSelf), kNone,  
            kPreferBody, kBodyPropRange,
-           &gInNoframes,&gBodyKids,eHTMLTag_unknown,
-                        0
+                &gInNoframes,&gBodyKids,
   }
 };
 
@@ -1463,80 +1344,6 @@ PRBool CanBeContainedLI(eHTMLTags aChildTag,nsDTDContext &aContext) {
   else {
     result=PR_TRUE;
   }
-  return result;
-}
-
-
-
-
-
-
-
-
-
- 
-PRBool nsHTMLElement::CanBeContained(eHTMLTags aChildTag,nsDTDContext &aContext) const {
-  PRBool result=PR_TRUE;
-  if(!mCanBeContained) {
-
-    
-
-
-
-
-
-
-    
-    
-
-    
-
-    PRInt32 theCount=aContext.GetCount();
-    result=PR_TRUE;
-
-    if(0<theCount){
-      const TagList* theRootTags=gHTMLElements[aChildTag].GetRootTags();
-      const TagList* theSpecialParents=gHTMLElements[aChildTag].GetSpecialParents();
-      if(theRootTags) {
-        PRInt32 theRootIndex=LastOf(aContext,*theRootTags);
-        PRInt32 theSPIndex=(theSpecialParents) ? LastOf(aContext,*theSpecialParents) : kNotFound;  
-        PRInt32 theChildIndex=GetIndexOfChildOrSynonym(aContext,aChildTag);
-        PRInt32 theTargetIndex=(theRootIndex>theSPIndex) ? theRootIndex : theSPIndex;
-
-        if((theTargetIndex==theCount-1) ||
-          ((theTargetIndex==theChildIndex) && gHTMLElements[aChildTag].CanContainSelf())) {
-          result=PR_TRUE;
-        }
-        else {
-        
-          result=PR_FALSE;
-
-          static eHTMLTags gTableElements[]={eHTMLTag_td,eHTMLTag_th};
-
-          PRInt32 theIndex=theCount-1;
-          while(theChildIndex<theIndex) {
-            eHTMLTags theParentTag=aContext.TagAt(theIndex--);
-            if (gHTMLElements[theParentTag].IsMemberOf(kBlockEntity)  || 
-                gHTMLElements[theParentTag].IsMemberOf(kHeading)      || 
-                gHTMLElements[theParentTag].IsMemberOf(kPreformatted) || 
-                gHTMLElements[theParentTag].IsMemberOf(kFormControl) || 
-                gHTMLElements[theParentTag].IsMemberOf(kList)) {
-              if(!HasOptionalEndTag(theParentTag)) {
-                result=PR_TRUE;
-                break;
-              }
-            }
-            else if(FindTagInSet(theParentTag,gTableElements,sizeof(gTableElements)/sizeof(eHTMLTag_unknown))){
-              result=PR_TRUE;  
-              break;
-            }
-          }
-        }
-      }
-    }
-
-  }
-  else result=(*mCanBeContained)(aChildTag,aContext);
   return result;
 }
 
@@ -1850,17 +1657,6 @@ PRBool nsHTMLElement::CanOmitEndTag(void) const{
   PRBool result=!IsContainer(mTagID);
   if(!result)
     result=TestBits(mSpecialProperties,kOmitEndTag);
-  return result;
-}
-
-
-
-
-
-
-
-PRBool nsHTMLElement::CanOmitStartTag(eHTMLTags aChild) const{
-  PRBool result=PR_FALSE;
   return result;
 }
 
