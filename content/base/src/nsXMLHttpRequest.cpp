@@ -2101,8 +2101,12 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
   }
 
   
-  if (mState & XML_HTTP_REQUEST_UNINITIALIZED)
+  
+  if (mState & XML_HTTP_REQUEST_UNINITIALIZED) {
+    if (mXMLParserStreamListener)
+      (void) mXMLParserStreamListener->OnStopRequest(request, ctxt, status);
     return NS_OK;
+  }
 
   nsCOMPtr<nsIParser> parser;
 
