@@ -37,6 +37,8 @@ var rejects             = [];
 var deletedSignons      = [];
 var deletedRejects      = [];
 
+var showingPasswords = false;
+
 function Startup() {
   
   passwordmanager = Components.classes["@mozilla.org/passwordmanager;1"].getService(Components.interfaces.nsIPasswordManager);
@@ -58,14 +60,14 @@ function Startup() {
   tabBox.selectedTab = document.getElementById("signonsTab");
 
   
+  document.getElementById("togglePasswords").label = kSignonBundle.getString(showingPasswords ? "hidePasswords" : "showPasswords");
+  document.documentElement.getButton("accept").label = kSignonBundle.getString("close");
+
+  
   if (!LoadSignons()) {
     return; 
   }
   LoadRejects();
-
-
-  
-  document.documentElement.getButton("accept").label = kSignonBundle.getString("close");
 }
 
 function Shutdown() {
@@ -94,6 +96,7 @@ var signonReloadDisplay = {
         gSelectUserInUse = true;
         document.getElementById("removeSignon").disabled = true;
         document.getElementById("removeAllSignons").disabled = true;
+        document.getElementById("togglePasswords").disabled = true;
       } else if (state == "resume") {
         gSelectUserInUse = false;
         var selections = GetTreeSelections(signonsTree);
@@ -102,6 +105,7 @@ var signonReloadDisplay = {
         }
         if (signons.length > 0) {
           document.getElementById("removeAllSignons").disabled = false;
+          document.getElementById("togglePasswords").disabled = false;
         }
       } else if (state == "inUse") {
         gSelectUserInUse = true;
@@ -114,22 +118,24 @@ var signonReloadDisplay = {
 
 var signonsTreeView = {
   rowCount : 0,
-  setTree : function(tree){},
+  setTree : function(tree) {},
   getImageSrc : function(row,column) {},
   getProgressMode : function(row,column) {},
   getCellValue : function(row,column) {},
-  getCellText : function(row,column){
+  getCellText : function(row,column) {
     var rv="";
     if (column.id=="siteCol") {
       rv = signons[row].host;
     } else if (column.id=="userCol") {
       rv = signons[row].user;
+    } else if (column.id=="passwordCol") {
+      rv = signons[row].password;
     }
     return rv;
   },
-  isSeparator : function(index) {return false;},
-  isSorted: function() { return false; },
-  isContainer : function(index) {return false;},
+  isSeparator : function(index) { return false; },
+  isSorted : function() { return false; },
+  isContainer : function(index) { return false; },
   cycleHeader : function(column) {},
   getRowProperties : function(row,prop) {},
   getColumnProperties : function(column,prop) {},
@@ -137,11 +143,12 @@ var signonsTreeView = {
  };
 var signonsTree;
 
-function Signon(number, host, user, rawuser) {
+function Signon(number, host, user, rawuser, password) {
   this.number = number;
   this.host = host;
   this.user = user;
   this.rawuser = rawuser;
+  this.password = password;
 }
 
 function LoadSignons() {
@@ -161,27 +168,24 @@ function LoadSignons() {
     nextPassword = nextPassword.QueryInterface(Components.interfaces.nsIPassword);
     var host = nextPassword.host;
     var user = nextPassword.user;
+    var password = nextPassword.password;
     var rawuser = user;
 
     
     if (user == "") {
-      var unused = { };
       var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
-      var username;
       try {
-        username = ioService.newURI(host, null, null).username;
+        user = ioService.newURI(host, null, null).username;
+        if (user == "") {
+          user = "<>";
+        }
       } catch(e) {
-        username = "";
-      }
-      if (username != "") {
-        user = username;
-      } else {
         user = "<>";
       }
     }
 
-    signons[count] = new Signon(count++, host, user, rawuser);
+    signons[count] = new Signon(count++, host, user, rawuser, password);
   }
   signonsTreeView.rowCount = signons.length;
 
@@ -191,10 +195,13 @@ function LoadSignons() {
 
   
   var element = document.getElementById("removeAllSignons");
+  var toggle = document.getElementById("togglePasswords");
   if (signons.length == 0 || gSelectUserInUse) {
     element.setAttribute("disabled","true");
+    toggle.setAttribute("disabled","true");
   } else {
     element.removeAttribute("disabled");
+    toggle.removeAttribute("disabled");
   }
  
   return true;
@@ -219,6 +226,50 @@ function DeleteAllSignons() {
                         signons, deletedSignons,
                         "removeSignon", "removeAllSignons");
   FinalizeSignonDeletions();
+}
+
+function TogglePasswordVisible() {
+  if (!showingPasswords && !ConfirmShowPasswords())
+    return;
+
+  showingPasswords = !showingPasswords;
+  document.getElementById("togglePasswords").label = kSignonBundle.getString(showingPasswords ? "hidePasswords" : "showPasswords");
+  document.getElementById("passwordCol").hidden = !showingPasswords;
+}
+
+function AskUserShowPasswords() {
+  var prompter = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].getService(Components.interfaces.nsIPromptService);
+  var dummy = { value: false };
+
+  
+  return prompter.confirmEx(window,
+          null,
+          kSignonBundle.getString("noMasterPasswordPrompt"),
+          prompter.BUTTON_TITLE_YES * prompter.BUTTON_POS_0 + prompter.BUTTON_TITLE_NO * prompter.BUTTON_POS_1,
+          null, null, null, null, dummy) == 0;    
+}
+
+function ConfirmShowPasswords() {
+  
+  var tokendb = Components.classes["@mozilla.org/security/pk11tokendb;1"]
+                    .createInstance(Components.interfaces.nsIPK11TokenDB);
+  var token = tokendb.getInternalKeyToken();
+
+  
+  if (token.checkPassword(""))
+    return AskUserShowPasswords();
+
+  
+  try {
+    
+    token.login(true);  
+                        
+  } catch (e) {
+    
+    
+  }
+
+  return token.isLoggedIn();
 }
 
 function FinalizeSignonDeletions() {
