@@ -2553,14 +2553,6 @@ restart:
     
     js_SweepWatchPoints(cx);
 
-#ifdef DUMP_CALL_TABLE
-    
-
-
-
-    js_DumpCallTable(cx);
-#endif
-
     
 
 

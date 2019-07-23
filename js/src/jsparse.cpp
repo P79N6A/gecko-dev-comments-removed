@@ -567,6 +567,7 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
     JSStackFrame *fp, frame;
     JSArenaPool codePool, notePool;
     JSCodeGenerator cg;
+    JSTokenType tt;
     JSParseNode *pn;
     JSScript *script;
 #ifdef METER_PARSENODES
@@ -599,17 +600,42 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
 
     
     cg.treeContext.flags |= tcflags;
-    pn = Statements(cx, &pc.tokenStream, &cg.treeContext);
-    if (!pn) {
-        script = NULL;
-        goto out;
+
+    
+
+
+    for (;;) {
+        pc.tokenStream.flags |= TSF_OPERAND;
+        tt = js_PeekToken(cx, &pc.tokenStream);
+        pc.tokenStream.flags &= ~TSF_OPERAND;
+        if (tt <= TOK_EOF) {
+            if (tt == TOK_EOF)
+                break;
+            JS_ASSERT(tt == TOK_ERROR);
+            script = NULL;
+            goto out;
+        }
+
+        pn = Statement(cx, &pc.tokenStream, &cg.treeContext);
+        if (!pn) {
+            script = NULL;
+            goto out;
+        }
+
+        
+
+
+
+        JS_ASSERT(!cg.treeContext.blockNode);
+
+        if (!js_FoldConstants(cx, pn, &cg.treeContext) ||
+            !js_EmitTree(cx, &cg, pn)) {
+            script = NULL;
+            goto out;
+        }
+        RecycleTree(pn, &cg.treeContext);
     }
-    if (!js_MatchToken(cx, &pc.tokenStream, TOK_EOF)) {
-        js_ReportCompileErrorNumber(cx, &pc.tokenStream, NULL, JSREPORT_ERROR,
-                                    JSMSG_SYNTAX_ERROR);
-        script = NULL;
-        goto out;
-    }
+
 #ifdef METER_PARSENODES
     printf("Parser growth: %d (%u nodes, %u max, %u unrecycled)\n",
            (char *)sbrk(0) - (char *)before,
@@ -623,13 +649,6 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
 
 
 
-
-
-
-
-
-
-    JS_ASSERT(cg.treeContext.flags & TCF_COMPILING);
     if (js_Emit1(cx, &cg, JSOP_STOP) < 0) {
         script = NULL;
         goto out;
@@ -916,8 +935,7 @@ js_CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
             pn = NULL;
         } else {
             if (!js_FoldConstants(cx, pn, &funcg.treeContext) ||
-                !js_EmitFunctionBytecode(cx, &funcg, pn) ||
-                !js_NewScriptFromCG(cx, &funcg)) {
+                !js_EmitFunctionScript(cx, &funcg, pn)) {
                 pn = NULL;
             }
         }
@@ -1039,19 +1057,25 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
 
 static JSFunction *
 NewCompilerFunction(JSContext *cx, JSTreeContext *tc, JSAtom *atom,
-                    JSBool lambda)
+                    uintN lambda)
 {
     JSObject *parent;
+    JSFunction *fun;
 
+    JS_ASSERT((lambda & ~JSFUN_LAMBDA) == 0);
     parent = (tc->flags & TCF_IN_FUNCTION) ? tc->fun->object : cx->fp->varobj;
-    return js_NewFunction(cx, NULL, NULL, 0,
-                          JSFUN_INTERPRETED | (lambda ? JSFUN_LAMBDA : 0),
-                          parent, atom);
+    fun = js_NewFunction(cx, NULL, NULL, 0, JSFUN_INTERPRETED | lambda,
+                         parent, atom);
+    if (fun && !(tc->flags & TCF_COMPILE_N_GO)) {
+        STOBJ_SET_PARENT(fun->object, NULL);
+        STOBJ_SET_PROTO(fun->object, NULL);
+    }
+    return fun;
 }
 
 static JSParseNode *
 FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
-            JSBool lambda)
+            uintN lambda)
 {
     JSOp op, prevop;
     JSParseNode *pn, *body, *result;
@@ -1080,7 +1104,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
     if (tt == TOK_NAME) {
         funAtom = CURRENT_TOKEN(ts).t_atom;
     } else {
-        if (!lambda && (cx->options & JSOPTION_ANONFUNFIX)) {
+        if (lambda == 0 && (cx->options & JSOPTION_ANONFUNFIX)) {
             js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
                                         JSMSG_SYNTAX_ERROR);
             return NULL;
@@ -1093,7 +1117,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-    if (!lambda && funAtom) {
+    if (lambda == 0 && funAtom) {
         ATOM_LIST_SEARCH(ale, &tc->decls, funAtom);
         if (ale) {
             prevop = ALE_JSOP(ale);
@@ -1271,7 +1295,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 #if JS_HAS_EXPR_CLOSURES
     if (tt == TOK_LC)
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
-    else if (!lambda)
+    else if (lambda == 0)
         js_MatchToken(cx, ts, TOK_SEMI);
 #else
     MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
@@ -1337,12 +1361,12 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
         JS_ASSERT(!(funtc.flags & TCF_FUN_USES_NONLOCALS));
-        if (!lambda && funAtom && !AT_TOP_LEVEL(tc))
+        if (lambda == 0 && funAtom && !AT_TOP_LEVEL(tc))
             tc->flags |= TCF_FUN_HEAVYWEIGHT;
     }
 
     result = pn;
-    if (lambda) {
+    if (lambda != 0) {
         
 
 
@@ -1385,13 +1409,13 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 static JSParseNode *
 FunctionStmt(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 {
-    return FunctionDef(cx, ts, tc, JS_FALSE);
+    return FunctionDef(cx, ts, tc, 0);
 }
 
 static JSParseNode *
 FunctionExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 {
-    return FunctionDef(cx, ts, tc, JS_TRUE);
+    return FunctionDef(cx, ts, tc, JSFUN_LAMBDA);
 }
 
 
@@ -1414,50 +1438,24 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
     tc->blockNode = pn;
     PN_INIT_LIST(pn);
 
-    ts->flags |= TSF_OPERAND;
-    while ((tt = js_PeekToken(cx, ts)) > TOK_EOF && tt != TOK_RC) {
+    for (;;) {
+        ts->flags |= TSF_OPERAND;
+        tt = js_PeekToken(cx, ts);
         ts->flags &= ~TSF_OPERAND;
+        if (tt <= TOK_EOF || tt == TOK_RC)
+            break;
         pn2 = Statement(cx, ts, tc);
         if (!pn2) {
             if (ts->flags & TSF_EOF)
                 ts->flags |= TSF_UNEXPECTED_EOF;
             return NULL;
         }
-        ts->flags |= TSF_OPERAND;
 
         
         if (pn2->pn_type == TOK_FUNCTION && !AT_TOP_LEVEL(tc))
             tc->flags |= TCF_HAS_FUNCTION_STMT;
 
-        
-        if (!tc->topStmt && (tc->flags & TCF_COMPILING)) {
-            if (JS_HAS_STRICT_OPTION(cx) && (tc->flags & TCF_RETURN_EXPR)) {
-                
-
-
-
-                tt = js_PeekToken(cx, ts);
-                if ((tt == TOK_EOF || tt == TOK_RC) &&
-                    !CheckFinalReturn(cx, tc, pn2)) {
-                    tt = TOK_ERROR;
-                    break;
-                }
-
-                
-
-
-
-                tc->flags &= ~TCF_RETURN_EXPR;
-            }
-            if (!js_FoldConstants(cx, pn2, tc) ||
-                !js_EmitTree(cx, (JSCodeGenerator *)tc, pn2)) {
-                tt = TOK_ERROR;
-                break;
-            }
-            RecycleTree(pn2, tc);
-        } else {
-            PN_APPEND(pn, pn2);
-        }
+        PN_APPEND(pn, pn2);
     }
 
     
@@ -4259,7 +4257,7 @@ GeneratorExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-    fun = NewCompilerFunction(cx, tc, NULL, JS_TRUE);
+    fun = NewCompilerFunction(cx, tc, NULL, JSFUN_LAMBDA);
     if (!fun)
         return NULL;
 
@@ -5720,6 +5718,10 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                                  CURRENT_TOKEN(ts).t_reflags);
         if (!obj)
             return NULL;
+        if (!(tc->flags & TCF_COMPILE_N_GO)) {
+            STOBJ_SET_PARENT(obj, NULL);
+            STOBJ_SET_PROTO(obj, NULL);
+        }
 
         pn->pn_pob = js_NewParsedObjectBox(cx, tc->parseContext, obj);
         if (!pn->pn_pob)
@@ -5886,7 +5888,6 @@ FoldBinaryNumeric(JSContext *cx, JSOp op, JSParseNode *pn1, JSParseNode *pn2,
 {
     jsdouble d, d2;
     int32 i, j;
-    uint32 u;
 
     JS_ASSERT(pn1->pn_type == TOK_NUMBER && pn2->pn_type == TOK_NUMBER);
     d = pn1->pn_dval;
@@ -5894,21 +5895,16 @@ FoldBinaryNumeric(JSContext *cx, JSOp op, JSParseNode *pn1, JSParseNode *pn2,
     switch (op) {
       case JSOP_LSH:
       case JSOP_RSH:
-        if (!js_DoubleToECMAInt32(cx, d, &i))
-            return JS_FALSE;
-        if (!js_DoubleToECMAInt32(cx, d2, &j))
-            return JS_FALSE;
+        i = js_DoubleToECMAInt32(d);
+        j = js_DoubleToECMAInt32(d2);
         j &= 31;
         d = (op == JSOP_LSH) ? i << j : i >> j;
         break;
 
       case JSOP_URSH:
-        if (!js_DoubleToECMAUint32(cx, d, &u))
-            return JS_FALSE;
-        if (!js_DoubleToECMAInt32(cx, d2, &j))
-            return JS_FALSE;
+        j = js_DoubleToECMAInt32(d2);
         j &= 31;
-        d = u >> j;
+        d = js_DoubleToECMAUint32(d) >> j;
         break;
 
       case JSOP_ADD:
@@ -6509,15 +6505,12 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
             pn1 = pn1->pn_kid;
         if (pn1->pn_type == TOK_NUMBER) {
             jsdouble d;
-            int32 i;
 
             
             d = pn1->pn_dval;
             switch (pn->pn_op) {
               case JSOP_BITNOT:
-                if (!js_DoubleToECMAInt32(cx, d, &i))
-                    return JS_FALSE;
-                d = ~i;
+                d = ~js_DoubleToECMAInt32(d);
                 break;
 
               case JSOP_NEG:
