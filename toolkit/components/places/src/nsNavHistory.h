@@ -362,11 +362,6 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfoFull; 
   nsCOMPtr<mozIStorageStatement> mDBGetIdPageInfo;     
   nsCOMPtr<mozIStorageStatement> mDBGetIdPageInfoFull; 
-  nsCOMPtr<mozIStorageStatement> mDBFullAutoComplete; 
-  static const PRInt32 kAutoCompleteIndex_URL;
-  static const PRInt32 kAutoCompleteIndex_Title;
-  static const PRInt32 kAutoCompleteIndex_VisitCount;
-  static const PRInt32 kAutoCompleteIndex_Typed;
 
   nsCOMPtr<mozIStorageStatement> mDBRecentVisitOfURL; 
   nsCOMPtr<mozIStorageStatement> mDBInsertVisit; 
@@ -560,49 +555,31 @@ protected:
   
   
   
-  struct AutoCompletePrefix
-  {
-    AutoCompletePrefix(const nsAString& aPrefix, PRBool aSecondLevel) :
-      prefix(aPrefix), secondLevel(aSecondLevel) {}
-
-    
-    nsString prefix;
-
-    
-    
-    
-    
-    
-    PRBool secondLevel;
-  };
-  nsTArray<AutoCompletePrefix> mAutoCompletePrefixes;
-
-  nsCOMPtr<mozIStorageStatement> mDBAutoCompleteQuery;
+  static const PRInt32 kAutoCompleteIndex_URL;
+  static const PRInt32 kAutoCompleteIndex_Title;
+  static const PRInt32 kAutoCompleteIndex_FaviconURL;
+  static const PRInt32 kAutoCompleteIndex_ItemId;
+  nsCOMPtr<mozIStorageStatement> mDBAutoCompleteQuery; 
   nsresult InitAutoComplete();
   nsresult CreateAutoCompleteQuery();
-  PRInt32 mAutoCompleteMaxCount;
-  PRInt32 mExpireDays;
   PRBool mAutoCompleteOnlyTyped;
+  nsCOMPtr<nsITimer> mAutoCompleteTimer;
 
-  
-  
-  struct AutoCompleteExclude {
-    
-    PRInt32 schemePrefix;
-    PRInt32 hostnamePrefix;
+  nsString mCurrentSearchString;
+  nsCOMPtr<nsIAutoCompleteObserver> mCurrentListener;
+  nsCOMPtr<nsIAutoCompleteSimpleResult> mCurrentResult;
+  nsDataHashtable<nsStringHashKey, PRBool> mCurrentResultURLs;
+  PRTime mCurrentChunkEndTime;
+  PRTime mCurrentOldestVisit;
 
-    
-    PRInt32 postPrefixOffset;
-  };
+  nsresult AutoCompleteTypedSearch();
+  nsresult AutoCompleteFullHistorySearch();
 
-  nsresult AutoCompleteTypedSearch(nsIAutoCompleteSimpleResult* result);
-  nsresult AutoCompleteFullHistorySearch(const nsAString& aSearchString,
-                                         nsIAutoCompleteSimpleResult* result);
-  nsresult AutoCompleteQueryOnePrefix(const nsString& aSearchString,
-                                      const nsTArray<PRInt32>& aExcludePrefixes,
-                                      PRInt32 aPriorityDelta,
-                                      nsTArray<AutoCompleteIntermediateResult>* aResult);
-  PRInt32 AutoCompleteGetPrefixLength(const nsString& aSpec);
+  nsresult PerformAutoComplete();
+  nsresult StartAutoCompleteTimer(PRUint32 aMilliseconds);
+  static void AutoCompleteTimerCallback(nsITimer* aTimer, void* aClosure);
+
+  PRInt32 mExpireDays;
 
   
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,

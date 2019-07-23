@@ -49,53 +49,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNavHistory.h"
 #include "nsNetUtil.h"
 
@@ -107,133 +60,14 @@
 #include "mozStorageCID.h"
 #include "mozStorageHelper.h"
 #include "nsFaviconService.h"
+#include "nsUnicharUtils.h"
 
 #define NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID \
   "@mozilla.org/autocomplete/simple-result;1"
 
 
-#define AUTOCOMPLETE_NONPAGE_VISIT_COUNT_BOOST 5
-
-
-#define AUTOCOMPLETE_TYPED_BOOST 5
-
-
-#define AUTOCOMPLETE_BOOKMARKED_BOOST 5
-
-
-
-
-
-
-
-#define AUTOCOMPLETE_MATCHES_PREFIX_PENALTY (-50)
-
-
-
-#define AUTOCOMPLETE_MATCHES_SCHEME_PENALTY (-20)
-
-
-
-
-
-
-#define AUTOCOMPLETE_MAX_PER_PREFIX 50
-
-
 
 #define AUTOCOMPLETE_MAX_PER_TYPED 100
-
-PRInt32 ComputeAutoCompletePriority(const nsAString& aUrl, PRInt32 aVisitCount,
-                                    PRBool aWasTyped, PRBool aIsBookmarked);
-nsresult NormalizeAutocompleteInput(const nsAString& aInput,
-                                    nsString& aOutput);
-
-
-
-
-
-
-
-
-
-
-
-
-struct AutoCompleteIntermediateResult
-{
-  AutoCompleteIntermediateResult(const nsString& aUrl, const nsString& aTitle,
-                                 const nsString& aImage,
-                                 PRInt32 aVisitCount, PRInt32 aPriority) :
-    url(aUrl), title(aTitle), image(aImage), 
-    visitCount(aVisitCount), priority(aPriority) {}
-  nsString url;
-  nsString title;
-  nsString image;
-  PRInt32 visitCount;
-  PRInt32 priority;
-};
-
-
-
-
-class AutoCompleteResultComparator
-{
-public:
-  AutoCompleteResultComparator(nsNavHistory* history) : mHistory(history) {}
-
-  PRBool Equals(const AutoCompleteIntermediateResult& a,
-                const AutoCompleteIntermediateResult& b) const {
-    
-    
-    return PR_FALSE;
-  }
-  PRBool LessThan(const AutoCompleteIntermediateResult& match1,
-                  const AutoCompleteIntermediateResult& match2) const {
-    
-    
-
-    
-    if (match1.priority != match2.priority)
-    {
-      return match1.priority > match2.priority;
-    }
-    else
-    {
-      
-      PRBool isPath1 = PR_FALSE, isPath2 = PR_FALSE;
-      if (!match1.url.IsEmpty())
-        isPath1 = (match1.url.Last() == PRUnichar('/'));
-      if (!match2.url.IsEmpty())
-        isPath2 = (match2.url.Last() == PRUnichar('/'));
-
-      if (isPath1 && !isPath2) return PR_FALSE; 
-      if (!isPath1 && isPath2) return PR_TRUE;  
-
-      
-      PRInt32 prefix1 = mHistory->AutoCompleteGetPrefixLength(match1.url);
-      PRInt32 prefix2 = mHistory->AutoCompleteGetPrefixLength(match2.url);
-
-      
-      
-      
-      PRInt32 ret = 0;
-      mHistory->mCollation->CompareString(
-          nsICollation::kCollationCaseInSensitive,
-          Substring(match1.url, prefix1), Substring(match2.url, prefix2),
-          &ret);
-      if (ret != 0)
-        return ret > 0;
-
-      
-      return prefix1 > prefix2;
-    }
-    return PR_FALSE;
-  }
-protected:
-  nsNavHistory* mHistory;
-};
-
-
 
 
 nsresult
@@ -242,22 +76,8 @@ nsNavHistory::InitAutoComplete()
   nsresult rv = CreateAutoCompleteQuery();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  AutoCompletePrefix* ok;
-
-  
-  
-  ok = mAutoCompletePrefixes.AppendElement(AutoCompletePrefix(NS_LITERAL_STRING("http://"), PR_FALSE));
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
-  ok = mAutoCompletePrefixes.AppendElement(AutoCompletePrefix(NS_LITERAL_STRING("http://www."), PR_TRUE));
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
-  ok = mAutoCompletePrefixes.AppendElement(AutoCompletePrefix(NS_LITERAL_STRING("ftp://"), PR_FALSE));
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
-  ok = mAutoCompletePrefixes.AppendElement(AutoCompletePrefix(NS_LITERAL_STRING("ftp://ftp."), PR_TRUE));
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
-  ok = mAutoCompletePrefixes.AppendElement(AutoCompletePrefix(NS_LITERAL_STRING("https://"), PR_FALSE));
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
-  ok = mAutoCompletePrefixes.AppendElement(AutoCompletePrefix(NS_LITERAL_STRING("https://www."), PR_TRUE));
-  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
+  if (!mCurrentResultURLs.Init(128))
+    return NS_ERROR_OUT_OF_MEMORY;
 
   return NS_OK;
 }
@@ -271,34 +91,120 @@ nsNavHistory::InitAutoComplete()
 nsresult
 nsNavHistory::CreateAutoCompleteQuery()
 {
-  nsCString sql;
-  if (mAutoCompleteOnlyTyped) {
-    sql = NS_LITERAL_CSTRING(
-        "SELECT p.url, p.title, p.visit_count, p.typed, "
-          "(SELECT b.fk FROM moz_bookmarks b WHERE b.fk = p.id), f.url "
-        "FROM moz_places p "
-        "LEFT OUTER JOIN moz_favicons f ON p.favicon_id = f.id "
-        "WHERE p.url >= ?1 AND p.url < ?2 "
-        "AND p.typed = 1 "
-        "ORDER BY p.visit_count DESC "
-        "LIMIT ");
-  } else {
-    sql = NS_LITERAL_CSTRING(
-        "SELECT p.url, p.title, p.visit_count, p.typed, "
-          "(SELECT b.fk FROM moz_bookmarks b WHERE b.fk = p.id), f.url "
-        "FROM moz_places p "
-        "LEFT OUTER JOIN moz_favicons f ON p.favicon_id = f.id "
-        "WHERE p.url >= ?1 AND p.url < ?2 "
-        "AND (p.hidden <> 1 OR p.typed = 1) "
-        "ORDER BY p.visit_count DESC "
-        "LIMIT ");
-  }
-  sql.AppendInt(AUTOCOMPLETE_MAX_PER_PREFIX);
-  nsresult rv = mDBConn->CreateStatement(sql,
-      getter_AddRefs(mDBAutoCompleteQuery));
-  return rv;
+  nsCString sql = NS_LITERAL_CSTRING(
+    "SELECT h.url, h.title, f.url, b.id "
+    "FROM moz_places h "
+    "JOIN moz_historyvisits v ON h.id = v.place_id "
+    "LEFT OUTER JOIN moz_bookmarks b ON b.fk = h.id "
+    "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+    "WHERE v.visit_date >= ?1 AND v.visit_date <= ?2 AND h.hidden <> 1 AND "
+    " v.visit_type <> 0 AND v.visit_type <> 4 AND ");
+
+  if (mAutoCompleteOnlyTyped)
+    sql += NS_LITERAL_CSTRING("h.typed = 1 AND ");
+
+  sql += NS_LITERAL_CSTRING(
+    "(h.title LIKE ?3 ESCAPE '/' OR h.url LIKE ?3 ESCAPE '/') "
+    "GROUP BY h.id ORDER BY h.visit_count DESC, MAX(v.visit_date) DESC ");
+
+  return mDBConn->CreateStatement(sql, getter_AddRefs(mDBAutoCompleteQuery));
 }
 
+
+
+nsresult
+nsNavHistory::StartAutoCompleteTimer(PRUint32 aMilliseconds)
+{
+  nsresult rv;
+
+  if (!mAutoCompleteTimer) {
+    mAutoCompleteTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  
+  rv = mAutoCompleteTimer->InitWithFuncCallback(AutoCompleteTimerCallback, this,
+                                                aMilliseconds,
+                                                nsITimer::TYPE_ONE_SHOT);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return NS_OK;
+}
+
+static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
+
+
+
+
+
+
+
+
+#define AUTOCOMPLETE_SEARCH_CHUNK (USECS_PER_DAY * 4)
+
+
+
+
+
+#define AUTOCOMPLETE_SEARCH_TIMEOUT 100
+
+
+
+void 
+nsNavHistory::AutoCompleteTimerCallback(nsITimer* aTimer, void* aClosure)
+{
+  nsNavHistory* history = static_cast<nsNavHistory*>(aClosure);
+  (void)history->PerformAutoComplete();
+}
+
+nsresult 
+nsNavHistory::PerformAutoComplete()
+{
+  
+  if (!mCurrentListener)
+    return NS_OK;
+
+  mCurrentResult->SetSearchString(mCurrentSearchString);
+  PRBool moreChunksToSearch = PR_FALSE;
+
+  nsresult rv;
+  
+  if (mCurrentSearchString.IsEmpty())
+    rv = AutoCompleteTypedSearch();
+  else {
+    rv = AutoCompleteFullHistorySearch();
+    moreChunksToSearch = (mCurrentChunkEndTime >= mCurrentOldestVisit);
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+ 
+  
+  PRUint32 count;
+  mCurrentResult->GetMatchCount(&count); 
+
+  if (count > 0) {
+    mCurrentResult->SetSearchResult(moreChunksToSearch ?
+      nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING :
+      nsIAutoCompleteResult::RESULT_SUCCESS);
+    mCurrentResult->SetDefaultIndex(0);
+  } else {
+    mCurrentResult->SetSearchResult(moreChunksToSearch ?
+      nsIAutoCompleteResult::RESULT_NOMATCH_ONGOING :
+      nsIAutoCompleteResult::RESULT_NOMATCH);
+    mCurrentResult->SetDefaultIndex(-1);
+  }
+
+  rv = mCurrentResult->SetListener(this);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mCurrentListener->OnSearchResult(this, mCurrentResult);
+ 
+  
+  
+  if (moreChunksToSearch) {
+    mCurrentChunkEndTime -= AUTOCOMPLETE_SEARCH_CHUNK;
+    rv = StartAutoCompleteTimer(AUTOCOMPLETE_SEARCH_TIMEOUT);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  return rv;
+}
 
 
 
@@ -309,56 +215,100 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
                           nsIAutoCompleteResult *aPreviousResult,
                           nsIAutoCompleteObserver *aListener)
 {
+  NS_ENSURE_ARG_POINTER(aListener);
+  mCurrentSearchString = aSearchString;
+  
+  mCurrentSearchString.Trim(" \r\n\t\b");
+  mCurrentListener = aListener;
   nsresult rv;
 
-  NS_ENSURE_ARG_POINTER(aListener);
+  
+  
+  
+  
+  PRBool searchPrevious = PR_FALSE;
+  if (aPreviousResult) {
+    PRUint32 matchCount = 0;
+    aPreviousResult->GetMatchCount(&matchCount);
+    nsAutoString prevSearchString;
+    aPreviousResult->GetSearchString(prevSearchString);
 
-  nsCOMPtr<nsIAutoCompleteSimpleResult> result =
-      do_CreateInstance(NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  result->SetSearchString(aSearchString);
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (aSearchString.IsEmpty()) {
-    rv = AutoCompleteTypedSearch(result);
-  } else {
-    rv = AutoCompleteFullHistorySearch(aSearchString, result);
+    
+    searchPrevious = Substring(mCurrentSearchString, 0,
+                       prevSearchString.Length()).Equals(prevSearchString);
   }
-  NS_ENSURE_SUCCESS(rv, rv);
+  else {
+    
+    mCurrentChunkEndTime = PR_Now();
 
+    
+    nsCOMPtr<mozIStorageStatement> dbSelectStatement;
+    rv = mDBConn->CreateStatement(
+      NS_LITERAL_CSTRING("SELECT MIN(visit_date) id FROM moz_historyvisits WHERE visit_type <> 4 AND visit_type <> 0"),
+      getter_AddRefs(dbSelectStatement));
+    NS_ENSURE_SUCCESS(rv, rv);
+    PRBool hasMinVisit;
+    rv = dbSelectStatement->ExecuteStep(&hasMinVisit);
+    NS_ENSURE_SUCCESS(rv, rv);
   
-  PRUint32 count;
-  result->GetMatchCount(&count);
-  if (count > 0) {
-    result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);
-    result->SetDefaultIndex(0);
-  } else {
-    result->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
-    result->SetDefaultIndex(-1);
+    if (hasMinVisit) {
+      rv = dbSelectStatement->GetInt64(0, &mCurrentOldestVisit);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    else {
+      
+      mCurrentOldestVisit = PR_Now() - USECS_PER_DAY;
+    }
   }
 
-  rv = result->SetListener(this);
+  mCurrentResult = do_CreateInstance(NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  aListener->OnSearchResult(this, result);
+  mCurrentResultURLs.Clear();
+
+  
+  if (searchPrevious) {
+    PRUint32 matchCount;
+    aPreviousResult->GetMatchCount(&matchCount);
+    for (PRInt32 i = 0; i < matchCount; i++) {
+      nsAutoString url, title;
+      aPreviousResult->GetValueAt(i, url);
+      aPreviousResult->GetCommentAt(i, title);
+
+      PRBool isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, url);
+      if (!isMatch)
+        isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, title);
+
+      if (isMatch) {
+        nsAutoString image, style;
+        aPreviousResult->GetImageAt(i, image);
+        aPreviousResult->GetStyleAt(i, style);
+ 
+        mCurrentResultURLs.Put(url, PR_TRUE);
+
+        rv = mCurrentResult->AppendMatch(url, title, image, style);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
+  }
+
+  
+  rv = StartAutoCompleteTimer(0);
+  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
-
 
 
 
 NS_IMETHODIMP
 nsNavHistory::StopSearch()
 {
+  if (mAutoCompleteTimer)
+    mAutoCompleteTimer->Cancel();
+
+  mCurrentSearchString.Truncate();
+  mCurrentListener = nsnull;
+
   return NS_OK;
 }
 
@@ -371,52 +321,44 @@ nsNavHistory::StopSearch()
 
 
 
-nsresult nsNavHistory::AutoCompleteTypedSearch(
-                                            nsIAutoCompleteSimpleResult* result)
+nsresult nsNavHistory::AutoCompleteTypedSearch()
 {
-  
   nsCOMPtr<mozIStorageStatement> dbSelectStatement;
+
   nsCString sql = NS_LITERAL_CSTRING(
-      "SELECT h.url, title, f.url "
-      "FROM moz_historyvisits v JOIN moz_places h ON v.place_id = h.id "
-      "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id " 
-      "WHERE h.typed = 1 ORDER BY visit_date DESC LIMIT ");
-  sql.AppendInt(AUTOCOMPLETE_MAX_PER_TYPED * 3);
-  nsresult rv = mDBConn->CreateStatement(sql, getter_AddRefs(dbSelectStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
+    "SELECT h.url, h.title, f.url, b.id "
+    "FROM moz_places h "
+    "LEFT OUTER JOIN moz_bookmarks b ON b.fk = h.id "
+    "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id "
+    "JOIN moz_historyvisits v ON h.id = v.place_id WHERE (h.id IN "
+    "(SELECT DISTINCT h.id from moz_historyvisits v, moz_places h WHERE "
+    "v.place_id = h.id AND h.typed = 1 AND v.visit_type <> 0 AND v.visit_type <> 4 "
+    "ORDER BY v.visit_date DESC LIMIT ");
+  sql.AppendInt(AUTOCOMPLETE_MAX_PER_TYPED);
+  sql += NS_LITERAL_CSTRING(")) GROUP BY h.id ORDER BY MAX(v.visit_date) DESC");  
   
-  nsDataHashtable<nsStringHashKey, PRInt32> urls;
-  if (! urls.Init(500))
-    return NS_ERROR_OUT_OF_MEMORY;
-
   nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
   NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
 
-  PRInt32 dummy;
-  PRInt32 count = 0;
+  nsresult rv = mDBConn->CreateStatement(sql, getter_AddRefs(dbSelectStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+ 
   PRBool hasMore = PR_FALSE;
-  while (count < AUTOCOMPLETE_MAX_PER_TYPED &&
-         NS_SUCCEEDED(dbSelectStatement->ExecuteStep(&hasMore)) && hasMore) {
-    nsAutoString entryURL, entryTitle, entryImage;
-    dbSelectStatement->GetString(0, entryURL);
-    dbSelectStatement->GetString(1, entryTitle);
-    dbSelectStatement->GetString(2, entryImage);
+  while (NS_SUCCEEDED(dbSelectStatement->ExecuteStep(&hasMore)) && hasMore) {
+    nsAutoString entryURL, entryTitle, entryFavicon;
+    dbSelectStatement->GetString(kAutoCompleteIndex_URL, entryURL);
+    dbSelectStatement->GetString(kAutoCompleteIndex_Title, entryTitle);
+    dbSelectStatement->GetString(kAutoCompleteIndex_FaviconURL, entryFavicon);
+    PRInt64 itemId = 0;
+    dbSelectStatement->GetInt64(kAutoCompleteIndex_ItemId, &itemId);
 
-    if (! urls.Get(entryURL, &dummy)) {
-      
-      nsCAutoString faviconSpec;
-      faviconService->GetFaviconSpecForIconString(
-        NS_ConvertUTF16toUTF8(entryImage), faviconSpec);
-      rv = result->AppendMatch(entryURL, entryTitle, 
-        NS_ConvertUTF8toUTF16(faviconSpec), NS_LITERAL_STRING("favicon"));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      urls.Put(entryURL, 1);
-      count ++;
-    }
-  }
-
+    nsCAutoString imageSpec;
+    faviconService->GetFaviconSpecForIconString(
+      NS_ConvertUTF16toUTF8(entryFavicon), imageSpec);
+    rv = mCurrentResult->AppendMatch(entryURL, entryTitle, 
+      NS_ConvertUTF8toUTF16(imageSpec), itemId ? NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon"));
+    NS_ENSURE_SUCCESS(rv, rv);
+  } 
   return NS_OK;
 }
 
@@ -429,111 +371,54 @@ nsresult nsNavHistory::AutoCompleteTypedSearch(
 
 
 nsresult
-nsNavHistory::AutoCompleteFullHistorySearch(const nsAString& aSearchString,
-                                            nsIAutoCompleteSimpleResult* aResult)
+nsNavHistory::AutoCompleteFullHistorySearch()
 {
-  nsString searchString;
-  nsresult rv = NormalizeAutocompleteInput(aSearchString, searchString);
-  if (NS_FAILED(rv))
-    return NS_OK; 
+  mozStorageStatementScoper scope(mDBAutoCompleteQuery);
 
-  nsTArray<AutoCompleteIntermediateResult> matches;
+  nsresult rv = mDBAutoCompleteQuery->BindInt64Parameter(0, mCurrentChunkEndTime - AUTOCOMPLETE_SEARCH_CHUNK);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  PRUint32 i;
-  const nsTArray<PRInt32> emptyArray;
-  nsTArray<PRInt32> firstLevelMatches;
-  nsTArray<PRInt32> secondLevelMatches;
-  for (i = 0; i < mAutoCompletePrefixes.Length(); i ++) {
-    if (StringBeginsWith(mAutoCompletePrefixes[i].prefix, searchString)) {
-      if (mAutoCompletePrefixes[i].secondLevel)
-        secondLevelMatches.AppendElement(i);
-      else
-        firstLevelMatches.AppendElement(i);
-    }
+  rv = mDBAutoCompleteQuery->BindInt64Parameter(1, mCurrentChunkEndTime);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    nsString cur = mAutoCompletePrefixes[i].prefix + searchString;
-
-    
-    nsTArray<PRInt32> curPrefixMatches;
-    for (PRUint32 prefix = 0; prefix < mAutoCompletePrefixes.Length(); prefix ++) {
-      if (StringBeginsWith(mAutoCompletePrefixes[prefix].prefix, cur))
-        curPrefixMatches.AppendElement(prefix);
-    }
-
-    
-    AutoCompleteQueryOnePrefix(cur, curPrefixMatches, 0, &matches);
-
-    
-    for (PRUint32 match = 0; match < curPrefixMatches.Length(); match ++) {
-      AutoCompleteQueryOnePrefix(mAutoCompletePrefixes[curPrefixMatches[match]].prefix,
-                                 emptyArray, AUTOCOMPLETE_MATCHES_PREFIX_PENALTY,
-                                 &matches);
-    }
-  }
+  nsString escapedSearchString;
+  rv = mDBAutoCompleteQuery->EscapeStringForLIKE(mCurrentSearchString, PRUnichar('/'), escapedSearchString);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (firstLevelMatches.Length() > 0) {
-    
-    
-    
-    AutoCompleteQueryOnePrefix(searchString,
-                               firstLevelMatches, 0, &matches);
-  } else if (secondLevelMatches.Length() > 0) {
-    
-    
-    
-    
-    AutoCompleteQueryOnePrefix(searchString,
-                               secondLevelMatches, 0, &matches);
-
-    
-    
-    
-    for (PRUint32 match = 0; match < secondLevelMatches.Length(); match ++) {
-      AutoCompleteQueryOnePrefix(mAutoCompletePrefixes[secondLevelMatches[match]].prefix,
-                                 emptyArray, AUTOCOMPLETE_MATCHES_SCHEME_PENALTY,
-                                 &matches);
-    }
-  } else {
-    
-    
-    AutoCompleteQueryOnePrefix(searchString, emptyArray,
-                               AUTOCOMPLETE_MATCHES_SCHEME_PENALTY, &matches);
-  }
+  rv = mDBAutoCompleteQuery->BindStringParameter(2, NS_LITERAL_STRING("%") + escapedSearchString + NS_LITERAL_STRING("%"));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsFaviconService* faviconService = nsFaviconService::GetFaviconService();
   NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
 
+  PRBool hasMore = PR_FALSE;
+
   
-  if (matches.Length() > 0) {
+  while (NS_SUCCEEDED(mDBAutoCompleteQuery->ExecuteStep(&hasMore)) && hasMore) {
+    nsAutoString entryURL, entryTitle, entryFavicon;
+    mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_URL, entryURL);
+    mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
+    mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_FaviconURL, entryFavicon);
+    PRInt64 itemId = 0;
+    mDBAutoCompleteQuery->GetInt64(kAutoCompleteIndex_ItemId, &itemId);
+
+    PRBool dummy;
     
-    AutoCompleteResultComparator comparator(this);
-    matches.Sort(comparator);
-
-    nsCAutoString faviconSpec;
-    faviconService->GetFaviconSpecForIconString(
-      NS_ConvertUTF16toUTF8(matches[0].image), faviconSpec);
-    rv = aResult->AppendMatch(matches[0].url, matches[0].title, 
-                              NS_ConvertUTF8toUTF16(faviconSpec), 
-                              NS_LITERAL_STRING("favicon"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    for (i = 1; i < matches.Length(); i ++) {
+    
+    if (!mCurrentResultURLs.Get(entryURL, &dummy)) {
       
-      
-      if (!matches[i].url.Equals(matches[i-1].url)) {
-        faviconService->GetFaviconSpecForIconString(
-          NS_ConvertUTF16toUTF8(matches[i].image), faviconSpec);
-        rv = aResult->AppendMatch(matches[i].url, matches[i].title, 
-                                  NS_ConvertUTF8toUTF16(faviconSpec),  
-                                  NS_LITERAL_STRING("favicon"));
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+      nsCAutoString faviconSpec;
+      faviconService->GetFaviconSpecForIconString(
+        NS_ConvertUTF16toUTF8(entryFavicon), faviconSpec);
+      rv = mCurrentResult->AppendMatch(entryURL, entryTitle, 
+        NS_ConvertUTF8toUTF16(faviconSpec), itemId ? NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      mCurrentResultURLs.Put(entryURL, PR_TRUE);
     }
   }
+
   return NS_OK;
 }
 
@@ -553,180 +438,6 @@ nsNavHistory::OnValueRemoved(nsIAutoCompleteSimpleResult* aResult,
 
   rv = RemovePage(uri);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::AutoCompleteQueryOnePrefix(const nsString& aSearchString,
-    const nsTArray<PRInt32>& aExcludePrefixes,
-    PRInt32 aPriorityDelta,
-    nsTArray<AutoCompleteIntermediateResult>* aResult)
-{
-  
-  
-  
-  nsCAutoString beginQuery = NS_ConvertUTF16toUTF8(aSearchString);
-  if (beginQuery.IsEmpty())
-    return NS_OK;
-  nsCAutoString endQuery = beginQuery;
-  unsigned char maxChar[6] = { 0xfd, 0xbf, 0xbf, 0xbf, 0xbf, 0xbf };
-  endQuery.Append(reinterpret_cast<const char*>(maxChar), 6);
-
-  nsTArray<nsCString> ranges;
-  if (aExcludePrefixes.Length() > 0) {
-    
-    ranges.AppendElement(beginQuery);
-    for (PRUint32 i = 0; i < aExcludePrefixes.Length(); i ++) {
-      nsCAutoString thisPrefix = NS_ConvertUTF16toUTF8(
-          mAutoCompletePrefixes[aExcludePrefixes[i]].prefix);
-      ranges.AppendElement(thisPrefix);
-      thisPrefix.Append(reinterpret_cast<const char*>(maxChar), 6);
-      ranges.AppendElement(thisPrefix);
-    }
-    ranges.AppendElement(endQuery);
-    ranges.Sort();
-  } else {
-    
-    ranges.AppendElement(beginQuery);
-    ranges.AppendElement(endQuery);
-  }
-
-  NS_ASSERTION(ranges.Length() % 2 == 0, "Ranges should be pairs!");
-
-  
-  
-  
-  nsresult rv;
-  for (PRUint32 range = 0; range < ranges.Length() - 1; range += 2) {
-    mozStorageStatementScoper scoper(mDBAutoCompleteQuery);
-
-    rv = mDBAutoCompleteQuery->BindUTF8StringParameter(0, ranges[range]);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBAutoCompleteQuery->BindUTF8StringParameter(1, ranges[range + 1]);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasMore;
-    nsAutoString url, title, image;
-    while (NS_SUCCEEDED(mDBAutoCompleteQuery->ExecuteStep(&hasMore)) && hasMore) {
-      mDBAutoCompleteQuery->GetString(0, url);
-      mDBAutoCompleteQuery->GetString(1, title);
-      PRInt32 visitCount = mDBAutoCompleteQuery->AsInt32(2);
-      PRInt32 priority = ComputeAutoCompletePriority(url, visitCount,
-          mDBAutoCompleteQuery->AsInt32(3) > 0,
-          mDBAutoCompleteQuery->AsInt32(4) > 0) + aPriorityDelta;
-      mDBAutoCompleteQuery->GetString(5, image);
-      aResult->AppendElement(AutoCompleteIntermediateResult(
-          url, title, image, visitCount, priority));
-    }
-  }
-  return NS_OK;
-}
-
-
-
-
-PRInt32
-nsNavHistory::AutoCompleteGetPrefixLength(const nsString& aSpec)
-{
-  for (PRUint32 i = 0; i < mAutoCompletePrefixes.Length(); ++i) {
-    if (StringBeginsWith(aSpec, mAutoCompletePrefixes[i].prefix))
-      return mAutoCompletePrefixes[i].prefix.Length();
-  }
-  return 0; 
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-PRInt32
-ComputeAutoCompletePriority(const nsAString& aUrl, PRInt32 aVisitCount,
-                            PRBool aWasTyped, PRBool aIsBookmarked)
-{
-  PRInt32 aPriority = aVisitCount;
-
-  if (!aUrl.IsEmpty()) {
-    
-    if (aUrl.Last() == PRUnichar('/'))
-      aPriority += AUTOCOMPLETE_NONPAGE_VISIT_COUNT_BOOST;
-  }
-
-  if (aWasTyped)
-    aPriority += AUTOCOMPLETE_TYPED_BOOST;
-  if (aIsBookmarked)
-    aPriority += AUTOCOMPLETE_BOOKMARKED_BOOST;
-
-  return aPriority;
-}
-
-
-
-
-nsresult NormalizeAutocompleteInput(const nsAString& aInput,
-                                    nsString& aOutput)
-{
-  nsresult rv;
-
-  if (aInput.IsEmpty()) {
-    aOutput.Truncate();
-    return NS_OK;
-  }
-  nsCAutoString input = NS_ConvertUTF16toUTF8(aInput);
-
-  nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), input);
-  PRBool isSchemeAdded = PR_FALSE;
-  if (NS_FAILED(rv)) {
-    
-    isSchemeAdded = PR_TRUE;
-    input = NS_LITERAL_CSTRING("http://") + input;
-
-    rv = NS_NewURI(getter_AddRefs(uri), input);
-    if (NS_FAILED(rv))
-      return rv; 
-  }
-
-  nsCAutoString spec;
-  rv = uri->GetSpec(spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (spec.IsEmpty())
-    return NS_OK; 
-
-  aOutput = NS_ConvertUTF8toUTF16(spec);
-
-  
-  if (isSchemeAdded) {
-    NS_ASSERTION(aOutput.Length() > 7, "String impossibly short");
-    aOutput = Substring(aOutput, 7);
-  }
-
-  
-  
-  
-  
-  
-  if (input[input.Length() - 1] != '/' && aOutput[aOutput.Length() - 1] == '/')
-    aOutput.Truncate(aOutput.Length() - 1);
 
   return NS_OK;
 }
