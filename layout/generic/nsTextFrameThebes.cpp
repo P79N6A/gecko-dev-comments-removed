@@ -784,10 +784,32 @@ TextContainsLineBreakerWhiteSpace(const void* aText, PRUint32 aLength,
 }
 
 struct FrameTextTraversal {
-  nsIFrame*    mFrameToDescendInto;
-  PRPackedBool mDescendIntoFrameSiblings;
+  
+  
+  nsIFrame*    mFrameToScan;
+  
+  nsIFrame*    mOverflowFrameToScan;
+  
+  PRPackedBool mScanSiblings;
+
+  
+  
   PRPackedBool mLineBreakerCanCrossFrameBoundary;
   PRPackedBool mTextRunCanCrossFrameBoundary;
+
+  nsIFrame* NextFrameToScan() {
+    nsIFrame* f;
+    if (mFrameToScan) {
+      f = mFrameToScan;
+      mFrameToScan = mScanSiblings ? f->GetNextSibling() : nsnull;
+    } else if (mOverflowFrameToScan) {
+      f = mOverflowFrameToScan;
+      mOverflowFrameToScan = mScanSiblings ? f->GetNextSibling() : nsnull;
+    } else {
+      f = nsnull;
+    }
+    return f;
+  }
 };
 
 static FrameTextTraversal
@@ -802,28 +824,33 @@ CanTextCrossFrameBoundary(nsIFrame* aFrame, nsIAtom* aType)
     
     
     result.mLineBreakerCanCrossFrameBoundary = PR_TRUE;
+    result.mOverflowFrameToScan = nsnull;
     if (continuesTextRun) {
       
       
       
       
       
-      result.mFrameToDescendInto =
+      result.mFrameToScan =
         (static_cast<nsPlaceholderFrame*>(aFrame))->GetOutOfFlowFrame();
-      result.mDescendIntoFrameSiblings = PR_FALSE;
+      result.mScanSiblings = PR_FALSE;
       result.mTextRunCanCrossFrameBoundary = PR_FALSE;
     } else {
-      result.mFrameToDescendInto = nsnull;
+      result.mFrameToScan = nsnull;
       result.mTextRunCanCrossFrameBoundary = PR_TRUE;
     }
   } else {
     if (continuesTextRun) {
-      result.mFrameToDescendInto = aFrame->GetFirstChild(nsnull);
-      result.mDescendIntoFrameSiblings = PR_TRUE;
+      result.mFrameToScan = aFrame->GetFirstChild(nsnull);
+      result.mOverflowFrameToScan = aFrame->GetFirstChild(nsGkAtoms::overflowList);
+      NS_WARN_IF_FALSE(!result.mOverflowFrameToScan,
+                       "Scanning overflow inline frames is something we should avoid");
+      result.mScanSiblings = PR_TRUE;
       result.mTextRunCanCrossFrameBoundary = PR_TRUE;
       result.mLineBreakerCanCrossFrameBoundary = PR_TRUE;
     } else {
-      result.mFrameToDescendInto = nsnull;
+      result.mFrameToScan = nsnull;
+      result.mOverflowFrameToScan = nsnull;
       result.mTextRunCanCrossFrameBoundary = PR_FALSE;
       result.mLineBreakerCanCrossFrameBoundary = PR_FALSE;
     }
@@ -879,13 +906,11 @@ BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
   }
   
-  for (nsIFrame* f = traversal.mFrameToDescendInto; f;
-       f = f->GetNextSibling()) {
+  for (nsIFrame* f = traversal.NextFrameToScan(); f;
+       f = traversal.NextFrameToScan()) {
     FindBoundaryResult result = FindBoundaries(f, aState);
     if (result != FB_CONTINUE)
       return result;
-    if (!traversal.mDescendIntoFrameSiblings)
-      break;
   }
 
   if (!traversal.mTextRunCanCrossFrameBoundary) {
@@ -1294,11 +1319,9 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
     FlushFrames(PR_FALSE, PR_FALSE);
   }
 
-  for (nsIFrame* f = traversal.mFrameToDescendInto; f;
-       f = f->GetNextSibling()) {
+  for (nsIFrame* f = traversal.NextFrameToScan(); f;
+       f = traversal.NextFrameToScan()) {
     ScanFrame(f);
-    if (!traversal.mDescendIntoFrameSiblings)
-      break;
   }
 
   if (!traversal.mLineBreakerCanCrossFrameBoundary) {
