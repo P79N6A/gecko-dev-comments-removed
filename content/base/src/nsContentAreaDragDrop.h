@@ -58,7 +58,6 @@ class nsIDocument;
 class nsIURI;
 class nsIFile;
 class nsISimpleEnumerator;
-class nsDOMDataTransfer;
 
 
 #define NS_CONTENTAREADRAGDROP_CID             \
@@ -77,11 +76,13 @@ class nsDOMDataTransfer;
 
 
 class nsContentAreaDragDrop : public nsIDOMDragListener,
-                              public nsIDragDropHandler
+                              public nsIDragDropHandler,
+                              public nsIFlavorDataProvider
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDRAGDROPHANDLER
+  NS_DECL_NSIFLAVORDATAPROVIDER
   
   nsContentAreaDragDrop();
   virtual ~nsContentAreaDragDrop();
@@ -96,33 +97,6 @@ public:
   NS_IMETHOD DragEnd(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD HandleEvent(nsIDOMEvent *event);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult GetDragData(nsIDOMWindow* aWindow,
-                              nsIContent* aTarget,
-                              nsIContent* aSelectionTargetNode,
-                              PRBool aIsAltKeyPressed,
-                              nsDOMDataTransfer* aDataTransfer,
-                              PRBool* aCanDrag,
-                              PRBool* aDragSelection,
-                              nsIContent** aDragNode);
-
 private:
 
   
@@ -135,9 +109,14 @@ private:
   static void GetEventDocument(nsIDOMEvent* inEvent,
                                nsIDOMDocument** outDocument);
 
-  static void ExtractURLFromData(const nsACString & inFlavor,
-                                 nsISupports* inDataWrapper, PRUint32 inDataLen,
-                                 nsAString & outURL);
+  static nsresult SaveURIToFile(nsAString& inSourceURIString,
+                                nsIFile* inDestFile);
+
+  void ExtractURLFromData(const nsACString & inFlavor,
+                          nsISupports* inDataWrapper, PRUint32 inDataLen,
+                          nsAString & outURL);
+  nsresult GetHookEnumeratorFromEvent(nsIDOMEvent* inEvent,
+                                      nsISimpleEnumerator** outEnumerator);
 
   PRPackedBool mListenerInstalled;
 
@@ -149,20 +128,6 @@ private:
 
 };
 
-
-
-
-class nsContentAreaDragDropDataProvider : public nsIFlavorDataProvider
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIFLAVORDATAPROVIDER
-
-  virtual ~nsContentAreaDragDropDataProvider() {}
-
-  nsresult SaveURIToFile(nsAString& inSourceURIString,
-                         nsIFile* inDestFile);
-};
 
 
 #endif 

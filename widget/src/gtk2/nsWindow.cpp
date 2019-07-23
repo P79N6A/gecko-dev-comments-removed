@@ -2920,7 +2920,8 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
 
     dragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
 
-    nsDragEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget);
+    nsMouseEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget,
+                       nsMouseEvent::eReal);
 
     InitDragEvent(event);
 
@@ -3028,7 +3029,8 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     
     
 
-    nsDragEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget);
+    nsMouseEvent event(PR_TRUE, NS_DRAGDROP_OVER, innerMostWidget,
+                       nsMouseEvent::eReal);
 
     InitDragEvent(event);
 
@@ -3099,7 +3101,7 @@ nsWindow::OnDragLeave(void)
 {
     LOG(("nsWindow::OnDragLeave(%p)\n", this));
 
-    nsDragEvent event(PR_TRUE, NS_DRAGDROP_EXIT, this);
+    nsMouseEvent event(PR_TRUE, NS_DRAGDROP_EXIT, this, nsMouseEvent::eReal);
 
     nsEventStatus status;
     DispatchEvent(&event, status);
@@ -3139,7 +3141,7 @@ nsWindow::OnDragEnter(nscoord aX, nscoord aY)
         dragService->StartDragSession();
     }
 
-    nsDragEvent event(PR_TRUE, NS_DRAGDROP_ENTER, this);
+    nsMouseEvent event(PR_TRUE, NS_DRAGDROP_ENTER, this, nsMouseEvent::eReal);
 
     event.refPoint.x = aX;
     event.refPoint.y = aY;
@@ -5126,7 +5128,7 @@ theme_changed_cb (GtkSettings *settings, GParamSpec *pspec, nsWindow *data)
 
 
 void
-nsWindow::InitDragEvent(nsDragEvent &aEvent)
+nsWindow::InitDragEvent(nsMouseEvent &aEvent)
 {
     
     gint x, y;
@@ -5143,7 +5145,7 @@ nsWindow::InitDragEvent(nsDragEvent &aEvent)
 
 
 void
-nsWindow::UpdateDragStatus(nsDragEvent   &aEvent,
+nsWindow::UpdateDragStatus(nsMouseEvent   &aEvent,
                            GdkDragContext *aDragContext,
                            nsIDragService *aDragService)
 {
