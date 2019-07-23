@@ -49,8 +49,6 @@
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
 
-class nsPresContext;
-
 
 
 
@@ -58,28 +56,18 @@ class nsPresContext;
 
 class nsARefreshObserver {
 public:
-  
-  
-  
-  
-  
-  
-  NS_IMETHOD_(nsrefcnt) AddRef(void) = 0;
-  NS_IMETHOD_(nsrefcnt) Release(void) = 0;
-
   virtual void WillRefresh(mozilla::TimeStamp aTime) = 0;
 };
 
-class nsRefreshDriver : public nsITimerCallback {
+
+
+
+
+
+class nsRefreshDriver : private nsITimerCallback {
 public:
-  nsRefreshDriver(nsPresContext *aPresContext);
+  nsRefreshDriver();
   ~nsRefreshDriver();
-
-  
-  NS_DECL_ISUPPORTS
-
-  
-  NS_DECL_NSITIMERCALLBACK
 
   
 
@@ -103,25 +91,17 @@ public:
 
 
 
-
-
-
   PRBool AddRefreshObserver(nsARefreshObserver *aObserver,
                             mozFlushType aFlushType);
   PRBool RemoveRefreshObserver(nsARefreshObserver *aObserver,
                                mozFlushType aFlushType);
+private:
+  
+  NS_DECL_ISUPPORTS_INHERITED
 
   
+  NS_IMETHOD Notify(nsITimer *aTimer);
 
-
-
-
-  void Disconnect() {
-    StopTimer();
-    mPresContext = nsnull;
-  }
-
-private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
 
   void EnsureTimerStarted();
@@ -132,9 +112,6 @@ private:
 
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
-
-  nsPresContext *mPresContext; 
-                               
 
   
   ObserverArray mObservers[3];

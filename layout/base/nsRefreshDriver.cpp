@@ -44,7 +44,6 @@
 #include "nsPresContext.h"
 #include "nsComponentManagerUtils.h"
 #include "prlog.h"
-#include "nsAutoPtr.h"
 
 
 
@@ -57,8 +56,7 @@
 
 using mozilla::TimeStamp;
 
-nsRefreshDriver::nsRefreshDriver(nsPresContext *aPresContext)
-  : mPresContext(aPresContext)
+nsRefreshDriver::nsRefreshDriver()
 {
 }
 
@@ -172,7 +170,11 @@ nsRefreshDriver::ArrayFor(mozFlushType aFlushType)
 
 
 
-NS_IMPL_ISUPPORTS1(nsRefreshDriver, nsITimerCallback)
+NS_IMPL_ADDREF_USING_AGGREGATOR(nsRefreshDriver,
+                                nsPresContext::FromRefreshDriver(this))
+NS_IMPL_RELEASE_USING_AGGREGATOR(nsRefreshDriver,
+                                 nsPresContext::FromRefreshDriver(this))
+NS_IMPL_QUERY_INTERFACE1(nsRefreshDriver, nsITimerCallback)
 
 
 
@@ -183,34 +185,18 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 {
   UpdateMostRecentRefresh();
 
-  if (!mPresContext) {
-    
-    NS_ABORT_IF_FALSE(!mTimer, "timer should have been stopped");
-    return NS_OK;
-  }
-  nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
+  nsPresContext *presContext = nsPresContext::FromRefreshDriver(this);
+  nsCOMPtr<nsIPresShell> presShell = presContext->GetPresShell();
   if (!presShell) {
     
     StopTimer();
     return NS_OK;
   }
 
-  
-
-
-
-
-
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     ObserverArray::EndLimitedIterator etor(mObservers[i]);
     while (etor.HasMore()) {
-      nsRefPtr<nsARefreshObserver> obs = etor.GetNext();
-      obs->WillRefresh(mMostRecentRefresh);
-      
-      if (!mPresContext || !mPresContext->GetPresShell()) {
-        StopTimer();
-        return NS_OK;
-      }
+      etor.GetNext()->WillRefresh(mMostRecentRefresh);
     }
     if (i == 0) {
       
