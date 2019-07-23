@@ -43,8 +43,7 @@
 
 #include <X11/Xatom.h> 
 #include <stdlib.h>
-#include <gtk/gtkinvisible.h> 
-                              
+#include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 
