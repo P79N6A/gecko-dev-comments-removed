@@ -642,6 +642,8 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
     NS_IMETHOD SetWindowShadowStyle(PRInt32 aStyle) = 0;
 
     
