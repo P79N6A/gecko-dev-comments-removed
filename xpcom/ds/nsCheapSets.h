@@ -82,7 +82,7 @@ public:
   }
 
 private:
-  typedef unsigned long PtrBits;
+  typedef PRUword PtrBits;
 
   
   nsStringHashSet* GetHash()
@@ -155,7 +155,7 @@ public:
   }
 
 private:
-  typedef unsigned long PtrBits;
+  typedef PRUword PtrBits;
 
   
   nsInt32HashSet* GetHash()
