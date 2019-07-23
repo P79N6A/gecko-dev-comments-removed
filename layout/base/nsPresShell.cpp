@@ -5245,13 +5245,17 @@ PresShell::ComputeRepaintRegionForCopy(nsIView*      aRootView,
       aDelta, aUpdateRect, aBlitRegion, aRepaintRegion);
 }
 
-NS_IMETHODIMP
-PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
-                          nscolor aBackgroundColor,
-                          gfxContext* aThebesContext)
-{
-  NS_ENSURE_TRUE(!(aFlags & RENDER_IS_UNTRUSTED), NS_ERROR_NOT_IMPLEMENTED);
 
+
+
+
+
+
+
+static inline PRBool
+PrepareContext(const nsRect& aRect, nscolor aBackgroundColor,
+               gfxContext* aThebesContext, nsRegion *aFillRegion = nsnull)
+{
   gfxRect r(0, 0,
             nsPresContext::AppUnitsToFloatCSSPixels(aRect.width),
             nsPresContext::AppUnitsToFloatCSSPixels(aRect.height));
@@ -5282,18 +5286,31 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
   }
 
   
-  if (NS_GET_A(aBackgroundColor) > 0) {
+  if (NS_GET_A(aBackgroundColor) > 0 &&
+      !(aFillRegion && aFillRegion->IsEmpty())) {
     aThebesContext->SetColor(gfxRGBA(aBackgroundColor));
     aThebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
     aThebesContext->Paint();
   }
 
-  
-  
-  
-  
   aThebesContext->SetOperator(gfxContext::OPERATOR_OVER);
+  return needsGroup;
+}
 
+NS_IMETHODIMP
+PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
+                          nscolor aBackgroundColor,
+                          gfxContext* aThebesContext)
+{
+  NS_ENSURE_TRUE(!(aFlags & RENDER_IS_UNTRUSTED), NS_ERROR_NOT_IMPLEMENTED);
+
+  
+  
+  
+  
+
+  PRBool needsGroup = PR_TRUE;
+  PRBool didPrepareContext = PR_FALSE;
   nsIFrame* rootFrame = FrameManager()->GetRootFrame();
   if (rootFrame) {
     nsDisplayListBuilder builder(rootFrame, PR_FALSE,
@@ -5336,6 +5353,12 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
     builder.LeavePresShell(rootFrame, rect);
 
     if (NS_SUCCEEDED(rv)) {
+      nsRegion region(rect);
+      list.ComputeVisibility(&builder, &region, nsnull);
+
+      didPrepareContext = PR_TRUE;
+      needsGroup = PrepareContext(aRect, aBackgroundColor, aThebesContext, &region);
+
       
       aThebesContext->Save();
       aThebesContext->Translate(gfxPoint(-nsPresContext::AppUnitsToFloatCSSPixels(rect.x),
@@ -5349,8 +5372,6 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
       devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
       rc->Init(devCtx, aThebesContext);
 
-      nsRegion region(rect);
-      list.ComputeVisibility(&builder, &region, nsnull);
       list.Paint(&builder, rc);
       
       list.DeleteAll();
@@ -5358,6 +5379,9 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
       aThebesContext->Restore();
     }
   }
+
+  if (!didPrepareContext)
+    needsGroup = PrepareContext(aRect, aBackgroundColor, aThebesContext, nsnull);
 
   
   if (needsGroup) {
