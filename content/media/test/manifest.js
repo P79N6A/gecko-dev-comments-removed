@@ -41,6 +41,7 @@ var gPlayTests = [
 
 
 var gErrorTests = [
+  { name: "bug495129.ogv", type:"video/ogg", duration:2.52 },
   { name: "bug498855-1.ogv", type:"video/ogg", duration:0.2 },
   { name: "bug498855-2.ogv", type:"video/ogg", duration:0.2 },
   { name: "bug498855-3.ogv", type:"video/ogg", duration:0.2 },
