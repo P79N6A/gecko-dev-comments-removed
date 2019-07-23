@@ -711,9 +711,6 @@ PRBool imgLoader::PutIntoCache(nsIURI *key, imgCacheEntry *entry)
   if (!cache.Put(spec, entry))
     return PR_FALSE;
 
-  nsRefPtr<imgRequest> request(getter_AddRefs(entry->GetRequest()));
-  request->SetIsInCache(PR_TRUE);
-
   return PR_TRUE;
 }
 
@@ -1042,9 +1039,6 @@ PRBool imgLoader::RemoveFromCache(nsIURI *aKey)
 
     entry->SetEvicted(PR_TRUE);
 
-    nsRefPtr<imgRequest> request(getter_AddRefs(entry->GetRequest()));
-    request->SetIsInCache(PR_FALSE);
-
     return PR_TRUE;
   }
   else
@@ -1076,7 +1070,6 @@ PRBool imgLoader::RemoveFromCache(imgCacheEntry *entry)
       }
 
       entry->SetEvicted(PR_TRUE);
-      request->SetIsInCache(PR_FALSE);
 
       return PR_TRUE;
     }
@@ -1276,7 +1269,8 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     }
 
     
-    PutIntoCache(aURI, entry);
+    if (!PutIntoCache(aURI, entry))
+      request->SetCacheable(PR_FALSE);
 
   
   } else {
@@ -1412,7 +1406,8 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
     NS_RELEASE(pl);
 
     
-    PutIntoCache(uri, entry);
+    if (!PutIntoCache(uri, entry))
+      request->SetCacheable(PR_FALSE);
   }
 
   
@@ -1691,7 +1686,8 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   
   
-  sImgLoader.PutIntoCache(uri, entry);
+  if (!sImgLoader.PutIntoCache(uri, entry))
+    request->SetCacheable(PR_FALSE);
 
   PRUint32 count = mProxies.Count();
   for (PRInt32 i = count-1; i>=0; i--) {
