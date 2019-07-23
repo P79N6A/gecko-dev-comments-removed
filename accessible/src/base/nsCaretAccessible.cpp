@@ -344,7 +344,7 @@ nsCaretAccessible::GetCaretRect(nsIWidget **aOutWidget)
   rect += offsetFromWidget;
   caretRect = nsRect::ToOutsidePixels(rect, presContext->AppUnitsPerDevPixel());
 
-  caretRect.MoveBy((*aOutWidget)->WidgetToScreenOffset());
+  (*aOutWidget)->WidgetToScreen(caretRect, caretRect);
 
   
   

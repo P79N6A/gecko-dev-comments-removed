@@ -99,8 +99,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x0dda48db, 0x4f61, 0x44a7, \
-  { 0x9f, 0x92, 0x04, 0x1c, 0xd9, 0x2b, 0x8a, 0x9c } }
+{ 0x075a7792, 0x6ba9, 0x454e, \
+  { 0xb4, 0x31, 0x25, 0xa4, 0x3f, 0xdb, 0xd3, 0xf6 } }
 
 
 
@@ -906,7 +906,17 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsIntPoint WidgetToScreenOffset() = 0;
+
+    NS_IMETHOD WidgetToScreen(const nsIntRect& aOldRect, nsIntRect& aNewRect) = 0;
+
+    
+
+
+
+
+
+
+    NS_IMETHOD ScreenToWidget(const nsIntRect& aOldRect, nsIntRect& aNewRect) = 0;
 
     
 

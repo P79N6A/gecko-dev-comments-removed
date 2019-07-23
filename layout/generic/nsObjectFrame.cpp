@@ -3829,9 +3829,10 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
         const nsMouseEvent& mouseEvent =
           static_cast<const nsMouseEvent&>(anEvent);
         
-        nsIntPoint rootPoint(-1,-1);
+        nsIntRect windowRect(anEvent.refPoint, nsIntSize(1, 1));
+        nsIntRect rootPoint(-1,-1,1,1);
         if (widget)
-          rootPoint = anEvent.refPoint + widget->WidgetToScreenOffset();
+          widget->WidgetToScreen(windowRect, rootPoint);
 #ifdef MOZ_WIDGET_GTK2
         Window root = GDK_ROOT_WINDOW();
 #else
@@ -4736,7 +4737,14 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     
     
     
-    nsIntPoint geckoScreenCoords = mWidget->WidgetToScreenOffset();
+    nsIntRect geckoBounds;
+    mWidget->GetBounds(geckoBounds);
+    
+    
+    geckoBounds.x = 0;
+    geckoBounds.y = 0;
+    nsIntRect geckoScreenCoords;
+    mWidget->WidgetToScreen(geckoBounds, geckoScreenCoords);
 
     Rect windowRect;
     WindowRef window = (WindowRef)pluginPort->cgPort.window;
