@@ -35,35 +35,30 @@
 
 
 
-
-
 #ifndef __EmbedWindow_h
 #define __EmbedWindow_h
 
-#ifdef MOZILLA_INTERNAL_API
+#include <nsString.h>
+#include <nsIWebBrowserChrome.h>
+#include <nsIWebBrowserChromeFocus.h>
+#include <nsIEmbeddingSiteWindow.h>
+#include <nsITooltipListener.h>
+#include <nsISupports.h>
+#include <nsIWebBrowser.h>
+#include <nsIBaseWindow.h>
+#include <nsIInterfaceRequestor.h>
+#include <nsCOMPtr.h>
 #include "nsString.h"
-#else
-#include "nsStringAPI.h"
-#endif
-#include "nsIWebBrowserChrome.h"
-#include "nsIWebBrowserChromeFocus.h"
-#include "nsIEmbeddingSiteWindow.h"
-
-#include "nsISupports.h"
-#include "nsIWebBrowser.h"
-#include "nsIBaseWindow.h"
-#include "nsIInterfaceRequestor.h"
-#include "nsCOMPtr.h"
 
 #include <gtk/gtk.h>
 
 class EmbedPrivate;
 
 class EmbedWindow : public nsIWebBrowserChrome,
-        public nsIWebBrowserChromeFocus,
+		    public nsIWebBrowserChromeFocus,
                     public nsIEmbeddingSiteWindow,
-
-        public nsIInterfaceRequestor
+                    public nsITooltipListener,
+		    public nsIInterfaceRequestor
 {
 
  public:
@@ -83,7 +78,7 @@ class EmbedWindow : public nsIWebBrowserChrome,
 
   NS_DECL_NSIEMBEDDINGSITEWINDOW
 
-
+  NS_DECL_NSITOOLTIPLISTENER
 
   NS_DECL_NSIINTERFACEREQUESTOR
 
@@ -102,6 +97,6 @@ private:
   PRBool                   mIsModal;
 
 };
-
+  
 
 #endif 

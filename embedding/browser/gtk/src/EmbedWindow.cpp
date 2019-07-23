@@ -38,15 +38,12 @@
 
 
 
-#include "nsCWebBrowser.h"
-#include "nsIComponentManager.h"
-#include "nsIDocShellTreeItem.h"
+#include <nsCWebBrowser.h>
+#include <nsIComponentManager.h>
+#include <nsIDocShellTreeItem.h>
 #include "nsIWidget.h"
-#ifdef MOZILLA_INTERNAL_API
 #include "nsReadableUtils.h"
-#else
-#include "nsComponentManagerUtils.h"
-#endif
+
 #include "EmbedWindow.h"
 #include "EmbedPrivate.h"
 #include "EmbedPrompter.h"
@@ -77,7 +74,7 @@ EmbedWindow::Init(EmbedPrivate *aOwner)
     return NS_ERROR_FAILURE;
 
   mWebBrowser->SetContainerWindow(static_cast<nsIWebBrowserChrome *>(this));
-
+  
   nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(mWebBrowser);
   item->SetItemType(nsIDocShellTreeItem::typeContentWrapper);
 
@@ -94,10 +91,10 @@ EmbedWindow::CreateWindow(void)
   
   mBaseWindow = do_QueryInterface(mWebBrowser);
   rv = mBaseWindow->InitWindow(GTK_WIDGET(mOwner->mOwningWidget),
-             nsnull,
-             0, 0,
-             ownerAsWidget->allocation.width,
-             ownerAsWidget->allocation.height);
+			       nsnull,
+			       0, 0, 
+			       ownerAsWidget->allocation.width,
+			       ownerAsWidget->allocation.height);
   if (NS_FAILED(rv))
     return rv;
 
@@ -112,7 +109,7 @@ void
 EmbedWindow::ReleaseChildren(void)
 {
   ExitModalEventLoop(PR_FALSE);
-
+    
   mBaseWindow->Destroy();
   mBaseWindow = 0;
   mWebBrowser = 0;
@@ -128,7 +125,7 @@ NS_INTERFACE_MAP_BEGIN(EmbedWindow)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChromeFocus)
   NS_INTERFACE_MAP_ENTRY(nsIEmbeddingSiteWindow)
-
+  NS_INTERFACE_MAP_ENTRY(nsITooltipListener)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
 NS_INTERFACE_MAP_END
 
@@ -138,21 +135,21 @@ NS_IMETHODIMP
 EmbedWindow::SetStatus(PRUint32 aStatusType, const PRUnichar *aStatus)
 {
   switch (aStatusType) {
-    case STATUS_SCRIPT:
+  case STATUS_SCRIPT: 
     {
-      mJSStatus = aStatus; 
+      mJSStatus = aStatus;
       gtk_signal_emit(GTK_OBJECT(mOwner->mOwningWidget),
-          moz_embed_signals[JS_STATUS]);
+		      moz_embed_signals[JS_STATUS]);
     }
     break;
-    case STATUS_SCRIPT_DEFAULT:
+  case STATUS_SCRIPT_DEFAULT:
     
     break;
-    case STATUS_LINK:
+  case STATUS_LINK:
     {
       mLinkMessage = aStatus;
       gtk_signal_emit(GTK_OBJECT(mOwner->mOwningWidget),
-          moz_embed_signals[LINK_MESSAGE]);
+		      moz_embed_signals[LINK_MESSAGE]);
     }
     break;
   }
@@ -195,7 +192,7 @@ EmbedWindow::DestroyBrowserWindow(void)
   mOwner->mIsDestroyed = PR_TRUE;
 
   gtk_signal_emit(GTK_OBJECT(mOwner->mOwningWidget),
-      moz_embed_signals[DESTROY_BROWSER]);
+		  moz_embed_signals[DESTROY_BROWSER]);
   return NS_OK;
 }
 
@@ -203,7 +200,7 @@ NS_IMETHODIMP
 EmbedWindow::SizeBrowserTo(PRInt32 aCX, PRInt32 aCY)
 {
   gtk_signal_emit(GTK_OBJECT(mOwner->mOwningWidget),
-      moz_embed_signals[SIZE_TO], aCX, aCY);
+		  moz_embed_signals[SIZE_TO], aCX, aCY);
   return NS_OK;
 }
 
@@ -243,13 +240,23 @@ EmbedWindow::ExitModalEventLoop(nsresult aStatus)
 NS_IMETHODIMP
 EmbedWindow::FocusNextElement()
 {
+#ifdef MOZ_WIDGET_GTK
+  GtkWidget* parent = GTK_WIDGET(mOwner->mOwningWidget)->parent;
+
+  if (GTK_IS_CONTAINER(parent))
+    gtk_container_focus(GTK_CONTAINER(parent),
+                        GTK_DIR_TAB_FORWARD);
+#endif
+
+#ifdef MOZ_WIDGET_GTK2
   GtkWidget *toplevel;
   toplevel = gtk_widget_get_toplevel(GTK_WIDGET(mOwner->mOwningWidget));
   if (!GTK_WIDGET_TOPLEVEL(toplevel))
     return NS_OK;
 
   g_signal_emit_by_name(G_OBJECT(toplevel), "move_focus",
-      GTK_DIR_TAB_FORWARD);
+			GTK_DIR_TAB_FORWARD);
+#endif
 
   return NS_OK;
 }
@@ -257,13 +264,23 @@ EmbedWindow::FocusNextElement()
 NS_IMETHODIMP
 EmbedWindow::FocusPrevElement()
 {
+#ifdef MOZ_WIDGET_GTK
+  GtkWidget* parent = GTK_WIDGET(mOwner->mOwningWidget)->parent;
+
+  if (GTK_IS_CONTAINER(parent))
+    gtk_container_focus(GTK_CONTAINER(parent),
+                        GTK_DIR_TAB_BACKWARD);
+#endif
+
+#ifdef MOZ_WIDGET_GTK2
   GtkWidget *toplevel;
   toplevel = gtk_widget_get_toplevel(GTK_WIDGET(mOwner->mOwningWidget));
   if (!GTK_WIDGET_TOPLEVEL(toplevel))
     return NS_OK;
 
   g_signal_emit_by_name(G_OBJECT(toplevel), "move_focus",
-      GTK_DIR_TAB_BACKWARD);
+			GTK_DIR_TAB_BACKWARD);
+#endif
 
   return NS_OK;
 }
@@ -272,18 +289,18 @@ EmbedWindow::FocusPrevElement()
 
 NS_IMETHODIMP
 EmbedWindow::SetDimensions(PRUint32 aFlags, PRInt32 aX, PRInt32 aY,
-         PRInt32 aCX, PRInt32 aCY)
+			   PRInt32 aCX, PRInt32 aCY)
 {
   if (aFlags & nsIEmbeddingSiteWindow::DIM_FLAGS_POSITION &&
       (aFlags & (nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_INNER |
-     nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER))) {
+		 nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER))) {
     return mBaseWindow->SetPositionAndSize(aX, aY, aCX, aCY, PR_TRUE);
   }
   else if (aFlags & nsIEmbeddingSiteWindow::DIM_FLAGS_POSITION) {
     return mBaseWindow->SetPosition(aX, aY);
   }
   else if (aFlags & (nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_INNER |
-         nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER)) {
+		     nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER)) {
     return mBaseWindow->SetSize(aCX, aCY, PR_TRUE);
   }
   return NS_ERROR_INVALID_ARG;
@@ -291,18 +308,18 @@ EmbedWindow::SetDimensions(PRUint32 aFlags, PRInt32 aX, PRInt32 aY,
 
 NS_IMETHODIMP
 EmbedWindow::GetDimensions(PRUint32 aFlags, PRInt32 *aX,
-         PRInt32 *aY, PRInt32 *aCX, PRInt32 *aCY)
+			   PRInt32 *aY, PRInt32 *aCX, PRInt32 *aCY)
 {
   if (aFlags & nsIEmbeddingSiteWindow::DIM_FLAGS_POSITION &&
       (aFlags & (nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_INNER |
-     nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER))) {
+		 nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER))) {
     return mBaseWindow->GetPositionAndSize(aX, aY, aCX, aCY);
   }
   else if (aFlags & nsIEmbeddingSiteWindow::DIM_FLAGS_POSITION) {
     return mBaseWindow->GetPosition(aX, aY);
   }
   else if (aFlags & (nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_INNER |
-         nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER)) {
+		     nsIEmbeddingSiteWindow::DIM_FLAGS_SIZE_OUTER)) {
     return mBaseWindow->GetSize(aCX, aCY);
   }
   return NS_ERROR_INVALID_ARG;
@@ -327,14 +344,14 @@ EmbedWindow::SetTitle(const PRUnichar *aTitle)
 {
   mTitle = aTitle;
   gtk_signal_emit(GTK_OBJECT(mOwner->mOwningWidget),
-      moz_embed_signals[TITLE]);
+		  moz_embed_signals[TITLE]);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 EmbedWindow::GetSiteWindow(void **aSiteWindow)
 {
-  GtkWidget *ownerAsWidget(GTK_WIDGET(mOwner->mOwningWidget));
+  GtkWidget *ownerAsWidget (GTK_WIDGET(mOwner->mOwningWidget));
   *aSiteWindow = static_cast<void *>(ownerAsWidget);
   return NS_OK;
 }
@@ -342,10 +359,14 @@ EmbedWindow::GetSiteWindow(void **aSiteWindow)
 NS_IMETHODIMP
 EmbedWindow::GetVisibility(PRBool *aVisibility)
 {
+  
+  
+  
+  
   *aVisibility = mVisibility ||
-                 !mOwner->mIsChrome &&
-                 mOwner->mOwningWidget &&
-                 GTK_WIDGET_MAPPED(mOwner->mOwningWidget);
+                 (!mOwner->mIsChrome &&
+                  mOwner->mOwningWidget &&
+                  GTK_WIDGET_MAPPED(mOwner->mOwningWidget));
   return NS_OK;
 }
 
@@ -362,14 +383,13 @@ EmbedWindow::SetVisibility(PRBool aVisibility)
     return NS_OK;
 
   gtk_signal_emit(GTK_OBJECT(mOwner->mOwningWidget),
-      moz_embed_signals[VISIBILITY],
-      aVisibility);
+		  moz_embed_signals[VISIBILITY],
+		  aVisibility);
   return NS_OK;
 }
 
 
 
-#if 0
 static gint
 tooltips_paint_window(GtkWidget *window)
 {
@@ -382,24 +402,29 @@ tooltips_paint_window(GtkWidget *window)
 
   return FALSE;
 }
-
+                                     
 NS_IMETHODIMP
 EmbedWindow::OnShowTooltip(PRInt32 aXCoords, PRInt32 aYCoords,
-         const PRUnichar *aTipText)
+			   const PRUnichar *aTipText)
 {
-  nsAutoString tipText(aTipText);
+  nsAutoString tipText ( aTipText );
 
+#ifdef MOZ_WIDGET_GTK
+  const char* tipString = ToNewCString(tipText);
+#endif
+
+#ifdef MOZ_WIDGET_GTK2
   const char* tipString = ToNewUTF8String(tipText);
+#endif
 
   if (sTipWindow)
     gtk_widget_destroy(sTipWindow);
-
+  
   
   nsCOMPtr<nsIWidget> mainWidget;
   mBaseWindow->GetMainWidget(getter_AddRefs(mainWidget));
   GdkWindow *window;
-  window = static_cast<GdkWindow *>
-                      (mainWidget->GetNativeData(NS_NATIVE_WINDOW));
+  window = static_cast<GdkWindow *>(mainWidget->GetNativeData(NS_NATIVE_WINDOW));
   gint root_x, root_y;
   gdk_window_get_origin(window, &root_x, &root_y);
 
@@ -407,13 +432,13 @@ EmbedWindow::OnShowTooltip(PRInt32 aXCoords, PRInt32 aYCoords,
   
   
   root_y += 10;
-
+  
   sTipWindow = gtk_window_new(GTK_WINDOW_POPUP);
   gtk_widget_set_app_paintable(sTipWindow, TRUE);
   gtk_window_set_policy(GTK_WINDOW(sTipWindow), FALSE, FALSE, TRUE);
   
   gtk_widget_set_name(sTipWindow, "gtk-tooltips");
-
+  
   
   GtkWidget *toplevel_window;
   toplevel_window = gtk_widget_get_toplevel(GTK_WIDGET(mOwner->mOwningWidget));
@@ -422,8 +447,8 @@ EmbedWindow::OnShowTooltip(PRInt32 aXCoords, PRInt32 aYCoords,
     return NS_ERROR_FAILURE;
   }
   gtk_window_set_transient_for(GTK_WINDOW(sTipWindow),
-             GTK_WINDOW(toplevel_window));
-
+			       GTK_WINDOW(toplevel_window));
+  
   
   gtk_widget_realize(sTipWindow);
 
@@ -438,12 +463,16 @@ EmbedWindow::OnShowTooltip(PRInt32 aXCoords, PRInt32 aYCoords,
   gtk_container_set_border_width(GTK_CONTAINER(sTipWindow), 4);
   
   gtk_widget_set_uposition(sTipWindow, aXCoords + root_x,
-         aYCoords + root_y);
+			   aYCoords + root_y);
 
   
   gtk_widget_show_all(sTipWindow);
 
-  nsMemory::Free((void*)tipString);
+#ifdef MOZ_WIDGET_GTK
+  gtk_widget_popup(sTipWindow, aXCoords + root_x, aYCoords + root_y);
+#endif 
+  
+  nsMemory::Free( (void*)tipString );
 
   return NS_OK;
 }
@@ -456,7 +485,6 @@ EmbedWindow::OnHideTooltip(void)
   sTipWindow = NULL;
   return NS_OK;
 }
-#endif
 
 
 
@@ -464,7 +492,7 @@ NS_IMETHODIMP
 EmbedWindow::GetInterface(const nsIID &aIID, void** aInstancePtr)
 {
   nsresult rv;
-
+  
   rv = QueryInterface(aIID, aInstancePtr);
 
   

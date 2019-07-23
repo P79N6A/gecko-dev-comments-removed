@@ -35,13 +35,11 @@
 
 
 
-
-
 #ifndef __EmbedContentListener_h
 #define __EmbedContentListener_h
 
-#include "nsIURIContentListener.h"
-#include "nsWeakReference.h"
+#include <nsIURIContentListener.h>
+#include <nsWeakReference.h>
 
 class EmbedPrivate;
 
@@ -53,7 +51,7 @@ class EmbedContentListener : public nsIURIContentListener,
   EmbedContentListener();
   virtual ~EmbedContentListener();
 
-  nsresult Init(EmbedPrivate *aOwner);
+  nsresult Init (EmbedPrivate *aOwner);
 
   NS_DECL_ISUPPORTS
 
@@ -62,7 +60,7 @@ class EmbedContentListener : public nsIURIContentListener,
  private:
 
   EmbedPrivate *mOwner;
-
+  
 };
 
 #endif 

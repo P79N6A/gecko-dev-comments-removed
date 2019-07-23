@@ -35,14 +35,11 @@
 
 
 
-
-
 #ifndef gtkmozembed_internal_h
 #define gtkmozembed_internal_h
 
-#include "nsIWebBrowser.h"
-#include "nsXPCOM.h"
-#include <stdlib.h>
+#include <nsIWebBrowser.h>
+#include <nsXPCOM.h>
 
 struct nsModuleComponentInfo;
 
@@ -53,7 +50,6 @@ extern "C" {
 GTKMOZEMBED_API(void,
   gtk_moz_embed_get_nsIWebBrowser, (GtkMozEmbed *embed,
                                     nsIWebBrowser **retval))
-
 GTKMOZEMBED_API(PRUnichar*,
   gtk_moz_embed_get_title_unichar, (GtkMozEmbed *embed))
 
@@ -73,4 +69,6 @@ GTKMOZEMBED_API(void,
 #ifdef __cplusplus
 }
 #endif 
+
 #endif
+
