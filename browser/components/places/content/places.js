@@ -948,9 +948,13 @@ var PlacesSearchBox = {
     return this.searchFilter.getAttribute("collection");
   },
   set filterCollection(collectionName) {
+    if (collectionName == this.filterCollection)
+      return collectionName;
+
     this.searchFilter.setAttribute("collection", collectionName);
     if (this.searchFilter.value)
-      return; 
+      return collectionName; 
+
     var newGrayText = null;
     if (collectionName == "collection")
       newGrayText = PlacesOrganizer._places.selectedNode.title;
