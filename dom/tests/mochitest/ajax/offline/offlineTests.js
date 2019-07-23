@@ -114,11 +114,17 @@ clear: function()
                      .QueryInterface(Ci.nsIOfflineCacheSession);
 
   
-  cacheSession.setOwnedKeys(window.location.host,
+  var locationURI = Cc["@mozilla.org/network/standard-url;1"]
+                     .createInstance(Ci.nsIURI);
+  locationURI.spec = window.location.href;
+  var asciiHost = locationURI.asciiHost;
+
+  
+  cacheSession.setOwnedKeys(asciiHost,
                             this.getManifestUrl() + "#manifest", 0, []);
 
   
-  cacheSession.setOwnedKeys(window.location.host,
+  cacheSession.setOwnedKeys(asciiHost,
                             this.getManifestUrl() + "#dynamic", 0, []);
 
   cacheSession.evictUnownedEntries();
