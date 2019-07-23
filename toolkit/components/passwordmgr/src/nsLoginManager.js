@@ -515,6 +515,21 @@ LoginManager.prototype = {
 
 
 
+
+
+    searchLogins : function(count, matchData) {
+       this.log("Searching for logins");
+
+        return this._storage.searchLogins(count, matchData);
+    },
+
+
+    
+
+
+
+
+
     countLogins : function (hostname, formSubmitURL, httpRealm) {
         this.log("Counting logins matching host: " + hostname +
             ", formSubmitURL: " + formSubmitURL + ", httpRealm: " + httpRealm);

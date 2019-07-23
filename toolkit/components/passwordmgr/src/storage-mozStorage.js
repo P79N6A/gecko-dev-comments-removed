@@ -135,6 +135,7 @@ LoginManagerStorage_mozStorage.prototype = {
                                 "guid               TEXT,"                +
                                 "encType            INTEGER",
             
+            
             moz_disabledHosts:  "id                 INTEGER PRIMARY KEY," +
                                 "hostname           TEXT UNIQUE ON CONFLICT REPLACE",
         },
@@ -484,7 +485,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
     getAllLogins : function (count) {
         let userCanceled;
-        let [logins, ids] = this._queryLogins("", "", "");
+        let [logins, ids] = this._searchLogins({});
 
         
         [logins, userCanceled] = this._decryptLogins(logins);
@@ -508,6 +509,120 @@ LoginManagerStorage_mozStorage.prototype = {
 
     getAllEncryptedLogins : function (count) {
         throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+    },
+
+
+    
+
+
+
+
+
+
+
+    searchLogins : function(count, matchData) {
+        let realMatchData = {};
+        
+        let propEnum = matchData.enumerator;
+        while (propEnum.hasMoreElements()) {
+            let prop = propEnum.getNext().QueryInterface(Ci.nsIProperty);
+            realMatchData[prop.name] = prop.value;
+        }
+
+        let [logins, ids] = this._searchLogins(realMatchData);
+
+        let userCanceled;
+        
+        [logins, userCanceled] = this._decryptLogins(logins);
+
+        if (userCanceled)
+        throw "User canceled Master Password entry";
+
+        count.value = logins.length; 
+        return logins;
+    },
+
+
+    
+
+
+
+
+
+
+
+
+
+    _searchLogins : function (matchData) {
+        let conditions = [], params = {};
+
+        for (field in matchData) {
+            let value = matchData[field];
+            switch (field) {
+                
+                case "formSubmitURL":
+                    if (value != null) {
+                        conditions.push("formSubmitURL = :formSubmitURL OR formSubmitURL = ''");
+                        params["formSubmitURL"] = value;
+                        break;
+                    }
+                
+                case "hostname":
+                case "httpRealm":
+                case "id":
+                case "usernameField":
+                case "passwordField":
+                case "encryptedUsername":
+                case "encryptedPassword":
+                case "guid":
+                case "encType":
+                    if (value == null) {
+                        conditions.push(field + " isnull");
+                    } else {
+                        conditions.push(field + " = :" + field);
+                        params[field] = value;
+                    }
+                    break;
+                
+                default:
+                    throw "Unexpected field: " + field;
+            }
+        }
+
+        
+        let query = "SELECT * FROM moz_logins";
+        if (conditions.length) {
+            conditions = conditions.map(function(c) "(" + c + ")");
+            query += " WHERE " + conditions.join(" AND ");
+        }
+
+        let stmt;
+        let logins = [], ids = [];
+        try {
+            stmt = this._dbCreateStatement(query, params);
+            
+            while (stmt.step()) {
+                
+                let login = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                            createInstance(Ci.nsILoginInfo);
+                login.init(stmt.row.hostname, stmt.row.formSubmitURL,
+                           stmt.row.httpRealm, stmt.row.encryptedUsername,
+                           stmt.row.encryptedPassword, stmt.row.usernameField,
+                           stmt.row.passwordField);
+                
+                login.QueryInterface(Ci.nsILoginMetaInfo);
+                login.guid = stmt.row.guid;
+                logins.push(login);
+                ids.push(stmt.row.id);
+            }
+        } catch (e) {
+            this.log("_searchLogins failed: " + e.name + " : " + e.message);
+        } finally {
+            stmt.reset();
+        }
+
+        this.log("_searchLogins: returning " + logins.length + " logins");
+        return [logins, ids];
     },
 
 
@@ -600,8 +715,16 @@ LoginManagerStorage_mozStorage.prototype = {
 
     findLogins : function (count, hostname, formSubmitURL, httpRealm) {
         let userCanceled;
-        let [logins, ids] =
-            this._queryLogins(hostname, formSubmitURL, httpRealm);
+        let loginData = {
+            hostname: hostname,
+            formSubmitURL: formSubmitURL,
+            httpRealm: httpRealm
+        };
+        let matchData = { };
+        for each (field in ["hostname", "formSubmitURL", "httpRealm"])
+          if (loginData[field] != '')
+              matchData[field] = loginData[field];
+        let [logins, ids] = this._searchLogins(matchData);
 
         
         [logins, userCanceled] = this._decryptLogins(logins);
@@ -679,8 +802,12 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     _getIdForLogin : function (login) {
-        let [logins, ids] =
-            this._queryLogins(login.hostname, login.formSubmitURL, login.httpRealm);
+        let matchData = { };
+        for each (field in ["hostname", "formSubmitURL", "httpRealm"])
+            if (login[field] != '')
+                matchData[field] = login[field];
+        let [logins, ids] = this._searchLogins(matchData);
+
         let id = null;
         let foundLogin = null;
 
@@ -705,58 +832,6 @@ LoginManagerStorage_mozStorage.prototype = {
         }
 
         return [id, foundLogin];
-    },
-
-
-    
-
-
-
-
-
-
-    _queryLogins : function (hostname, formSubmitURL, httpRealm, encType) {
-        let logins = [], ids = [];
-
-        let query = "SELECT * FROM moz_logins";
-        let [conditions, params] =
-            this._buildConditionsAndParams(hostname, formSubmitURL, httpRealm);
-
-        if (typeof encType != "undefined") {
-          conditions.push("encType = :encType");
-          params.encType = encType;
-        }
-
-        if (conditions.length) {
-            conditions = conditions.map(function(c) "(" + c + ")");
-            query += " WHERE " + conditions.join(" AND ");
-        }
-
-        let stmt;
-        try {
-            stmt = this._dbCreateStatement(query, params);
-            
-            while (stmt.step()) {
-                
-                let login = Cc["@mozilla.org/login-manager/loginInfo;1"].
-                            createInstance(Ci.nsILoginInfo);
-                login.init(stmt.row.hostname, stmt.row.formSubmitURL,
-                           stmt.row.httpRealm, stmt.row.encryptedUsername,
-                           stmt.row.encryptedPassword, stmt.row.usernameField,
-                           stmt.row.passwordField);
-                
-                login.QueryInterface(Ci.nsILoginMetaInfo);
-                login.guid = stmt.row.guid;
-                logins.push(login);
-                ids.push(stmt.row.id);
-            }
-        } catch (e) {
-            this.log("_queryLogins failed: " + e.name + " : " + e.message);
-        } finally {
-            stmt.reset();
-        }
-
-        return [logins, ids];
     },
 
 
@@ -1067,8 +1142,7 @@ LoginManagerStorage_mozStorage.prototype = {
         
 
         try {
-            let [logins, ids] =
-               this._queryLogins("", "", "", 0);
+            let [logins, ids] = this._searchLogins({ encType: 0 });
 
             if (!logins.length)
                 return;

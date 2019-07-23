@@ -378,6 +378,18 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
+
+
+    searchLogins : function (count, matchData) {
+        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+    },
+
+
+    
+
+
+
+
     removeAllLogins : function () {
         
         this._removeOldSignonsFiles();
