@@ -3006,19 +3006,11 @@ nsComponentManagerImpl::AutoRegisterComponent(nsILocalFile*  aComponentFile,
     }
 
     PRInt64 modTime = 0;
-    PRInt64 cachedModTime;
-
-    
-    
-    if (mAutoRegEntries.Get(lfhash, &cachedModTime)) {
-#ifdef DEBUG
-        if (NS_SUCCEEDED(aComponentFile->GetLastModifiedTime(&modTime))
-            && cachedModTime == modTime) {
+    if (NS_SUCCEEDED(aComponentFile->GetLastModifiedTime(&modTime))) {
+        PRInt64 cachedModTime;
+        if (mAutoRegEntries.Get(lfhash, &cachedModTime) &&
+            cachedModTime == modTime)
             return NS_OK;
-        }
-#else
-        return NS_OK;
-#endif
     }
 
     const char *registryType = nsnull;
