@@ -814,6 +814,18 @@ FindLineContainer(nsIFrame* aFrame)
 }
 
 static PRBool
+IsLineBreakingWhiteSpace(PRUnichar aChar)
+{
+  
+  
+  
+  
+  
+  
+  return nsLineBreaker::IsSpace(aChar) || aChar == 0x0A;
+}
+
+static PRBool
 TextContainsLineBreakerWhiteSpace(const void* aText, PRUint32 aLength,
                                   PRBool aIsDoubleByte)
 {
@@ -821,14 +833,14 @@ TextContainsLineBreakerWhiteSpace(const void* aText, PRUint32 aLength,
   if (aIsDoubleByte) {
     const PRUnichar* chars = static_cast<const PRUnichar*>(aText);
     for (i = 0; i < aLength; ++i) {
-      if (nsLineBreaker::IsSpace(chars[i]))
+      if (IsLineBreakingWhiteSpace(chars[i]))
         return PR_TRUE;
     }
     return PR_FALSE;
   } else {
     const PRUint8* chars = static_cast<const PRUint8*>(aText);
     for (i = 0; i < aLength; ++i) {
-      if (nsLineBreaker::IsSpace(chars[i]))
+      if (IsLineBreakingWhiteSpace(chars[i]))
         return PR_TRUE;
     }
     return PR_FALSE;
