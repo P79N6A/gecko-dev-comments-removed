@@ -103,6 +103,7 @@
 
 
 
+
 #include "nsWindow.h"
 
 #include <windows.h>
@@ -151,6 +152,7 @@
 #include "nsWidgetsCID.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
+#include "nsString.h"
 
 #if defined(WINCE)
 #include "nsWindowCE.h"
@@ -454,7 +456,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mIsInMouseCapture     = PR_FALSE;
   mIsPluginWindow       = PR_FALSE;
   mIsTopWidgetWindow    = PR_FALSE;
-  mInWheelProcessing    = PR_FALSE;
+  mInScrollProcessing   = PR_FALSE;
   mUnicodeWidget        = PR_TRUE;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
@@ -702,6 +704,18 @@ nsWindow::StandardWindowCreate(nsIWidget *aParent,
 
   if (!mWnd)
     return NS_ERROR_FAILURE;
+
+  
+  
+  
+  PRUnichar buffer[kMaxClassNameLength];
+  ::GetClassNameW(parent, (LPWSTR)buffer, kMaxClassNameLength);
+  nsDependentString parentClass(buffer);
+  if (parentClass.Equals(kClassNameContent) ||
+      parentClass.Equals(kClassNameDialog))
+    ::CreateWindowW(L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR", 
+                    WS_CHILD | WS_VISIBLE, 0,0,0,0, mWnd, NULL,
+                    nsToolkit::mDllInstance, NULL);
 
   
 
@@ -4008,7 +4022,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         nsWindow* scrollbar = GetNSWindowPtr((HWND)lParam);
 
         if (scrollbar) {
-          result = scrollbar->OnScroll(LOWORD(wParam), (short)HIWORD(wParam));
+          result = scrollbar->OnScroll(msg, wParam, lParam);
         }
       }
       break;
@@ -5021,83 +5035,8 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
 
   
   
-
-  POINT point;
-  point.x = GET_X_LPARAM(lParam);
-  point.y = GET_Y_LPARAM(lParam);
-  HWND destWnd = ::WindowFromPoint(point);
-
-  
-  
-  
-  
-
-  if (!destWnd) {
-    
-    return PR_FALSE; 
-  }
-
-  
-  DWORD processId = 0;
-  GetWindowThreadProcessId(destWnd, &processId);
-  if (processId != GetCurrentProcessId())
-  {
-    
-    return PR_FALSE; 
-  }
-
-  nsWindow* destWindow = GetNSWindowPtr(destWnd);
-  if (!destWindow || destWindow->mIsPluginWindow) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    HWND parentWnd = ::GetParent(destWnd);
-    while (parentWnd) {
-      nsWindow* parentWindow = GetNSWindowPtr(parentWnd);
-      if (parentWindow) {
-        
-        
-        
-        
-        
-        if (mInWheelProcessing) {
-          destWnd = parentWnd;
-          destWindow = parentWindow;
-        } else {
-          
-          
-          
-          
-          mInWheelProcessing = PR_TRUE;
-          if (0 == ::SendMessageW(destWnd, msg, wParam, lParam)) {
-            result = PR_TRUE; 
-          }
-          destWnd = nsnull;
-          mInWheelProcessing = PR_FALSE;
-        }
-        return PR_FALSE; 
-      }
-      parentWnd = ::GetParent(parentWnd);
-    } 
-  }
-  if (destWnd == nsnull)
-    return PR_FALSE;
-  if (destWnd != mWnd) {
-    if (destWindow) {
-      result = destWindow->ProcessMessage(msg, wParam, lParam, aRetValue);
-      return PR_TRUE; 
-    }
-  #ifdef DEBUG
-    else
-      printf("WARNING: couldn't get child window for MW event\n");
-  #endif
-  }
+  if (!HandleScrollingPlugins(msg, wParam, lParam, result))
+    return result; 
 
   
   
@@ -5891,8 +5830,135 @@ void nsWindow::OnSettingsChange(WPARAM wParam, LPARAM lParam)
 }
 
 
-PRBool nsWindow::OnScroll(UINT scrollCode, int cPos)
+
+
+PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
+                                        LPARAM aLParam, PRBool& aHandled)
 {
+  
+  
+  aHandled = PR_FALSE; 
+  POINT point;
+  DWORD dwPoints = GetMessagePos();
+  point.x = GET_X_LPARAM(dwPoints);
+  point.y = GET_Y_LPARAM(dwPoints);
+  HWND destWnd = ::WindowFromPoint(point);
+  
+  
+  
+  
+
+  if (!destWnd) {
+    
+    return PR_FALSE; 
+  }
+  
+  DWORD processId = 0;
+  GetWindowThreadProcessId(destWnd, &processId);
+  if (processId != GetCurrentProcessId())
+  {
+    
+    return PR_FALSE; 
+  }
+  nsWindow* destWindow = GetNSWindowPtr(destWnd);
+  if (!destWindow || destWindow->mIsPluginWindow) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    HWND parentWnd = ::GetParent(destWnd);
+    while (parentWnd) {
+      nsWindow* parentWindow = GetNSWindowPtr(parentWnd);
+      if (parentWindow) {
+        
+        
+        
+        
+        
+        if (mInScrollProcessing) {
+          destWnd = parentWnd;
+          destWindow = parentWindow;
+        } else {
+          
+          
+          
+          
+          mInScrollProcessing = PR_TRUE;
+          if (0 == ::SendMessageW(destWnd, aMsg, aWParam, aLParam))
+            aHandled = PR_TRUE;
+          destWnd = nsnull;
+          mInScrollProcessing = PR_FALSE;
+        }
+        return PR_FALSE; 
+      }
+      parentWnd = ::GetParent(parentWnd);
+    } 
+  }
+  if (destWnd == nsnull)
+    return PR_FALSE;
+  if (destWnd != mWnd) {
+    if (destWindow) {
+      LRESULT aRetValue;
+      destWindow->ProcessMessage(aMsg, aWParam, aLParam, &aRetValue);
+      aHandled = PR_TRUE;
+      return PR_FALSE; 
+    }
+  #ifdef DEBUG
+    else
+      printf("WARNING: couldn't get child window for SCROLL event\n");
+  #endif
+  }
+  return PR_TRUE;  
+}
+
+PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
+{
+  if (aLParam)
+  {
+    
+    
+
+    PRBool result;
+    if (!HandleScrollingPlugins(aMsg, aWParam, aLParam, result))
+      return result;  
+
+    nsMouseScrollEvent scrollevent(PR_TRUE, NS_MOUSE_SCROLL, this);
+    scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
+                              ? nsMouseScrollEvent::kIsVertical
+                              : nsMouseScrollEvent::kIsHorizontal;
+    switch (LOWORD(aWParam))
+    {
+      case SB_PAGEDOWN:
+        scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+      case SB_LINEDOWN:
+        scrollevent.delta = 1;
+        break;
+      case SB_PAGEUP:
+        scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+      case SB_LINEUP:
+        scrollevent.delta = -1;
+        break;
+      default:
+        return PR_FALSE;
+    }
+    scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
+    scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+    scrollevent.isMeta    = PR_FALSE;
+    scrollevent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
+    InitEvent(scrollevent);
+    if (nsnull != mEventCallback)
+    {
+      DispatchWindowEvent(&scrollevent);
+    }
+    return PR_TRUE;
+  }
+  
+  
   return PR_FALSE;
 }
 
