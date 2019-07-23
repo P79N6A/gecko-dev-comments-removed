@@ -3689,7 +3689,8 @@ nsTextFrame::UnionTextDecorationOverflow(nsPresContext* aPresContext,
   
   
   float ratio;
-  if (!HasSelectionOverflowingDecorations(aPresContext, &ratio))
+  if (!(GetStateBits() & NS_FRAME_SELECTED_CONTENT) ||
+      !HasSelectionOverflowingDecorations(aPresContext, &ratio))
     return;
 
   nsLineLayout::CombineTextDecorations(aPresContext,
