@@ -167,8 +167,7 @@ public:
                         nsIDOMNode **aResult)
   {
     return CloneAndAdopt(aNode, PR_TRUE, aDeep, aNewNodeInfoManager, nsnull,
-                         nsnull, nsnull, aNodesWithProperties, nsnull,
-                         aResult);
+                         nsnull, nsnull, aNodesWithProperties, aResult);
   }
 
   
@@ -199,7 +198,7 @@ public:
     nsCOMPtr<nsIDOMNode> dummy;
     return CloneAndAdopt(aNode, PR_FALSE, PR_TRUE, aNewNodeInfoManager, aCx,
                          aOldScope, aNewScope, aNodesWithProperties,
-                         nsnull, getter_AddRefs(dummy));
+                         getter_AddRefs(dummy));
   }
 
   
@@ -315,6 +314,27 @@ private:
 
 
 
+  static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
+                                nsNodeInfoManager *aNewNodeInfoManager,
+                                JSContext *aCx, JSObject *aOldScope,
+                                JSObject *aNewScope,
+                                nsCOMArray<nsINode> &aNodesWithProperties,
+                                nsIDOMNode **aResult)
+  {
+    nsCOMPtr<nsINode> clone;
+    nsresult rv = CloneAndAdopt(aNode, aClone, aDeep, aNewNodeInfoManager,
+                                aCx, aOldScope, aNewScope, aNodesWithProperties,
+                                nsnull, getter_AddRefs(clone));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return clone ? CallQueryInterface(clone, aResult) : NS_OK;
+  }
+
+  
+
+
+
+
 
 
   static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
@@ -322,7 +342,7 @@ private:
                                 JSContext *aCx, JSObject *aOldScope,
                                 JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
-                                nsINode *aParent, nsIDOMNode **aResult);
+                                nsINode *aParent, nsINode **aResult);
 };
 
 #endif 
