@@ -99,9 +99,6 @@ typedef JSIntn intn;
 typedef JSInt64 int64;
 
 
-#ifdef HPUX
-#include <model.h>
-#else
 #if !defined(_WIN32) && !defined(XP_OS2)
 typedef JSInt32 int32;
 #else
@@ -109,7 +106,6 @@ typedef long int32;
 #endif
 typedef JSInt16 int16;
 typedef JSInt8 int8;
-#endif 
 #endif 
 
 #endif  

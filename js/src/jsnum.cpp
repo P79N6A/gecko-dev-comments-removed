@@ -1185,16 +1185,6 @@ js_strtod(JSContext *cx, const jschar *s, const jschar *send,
             d = *cx->runtime->jsPositiveInfinity;
         else if (d == -HUGE_VAL)
             d = *cx->runtime->jsNegativeInfinity;
-#ifdef HPUX
-        if (d == 0.0 && negative) {
-            
-
-
-
-            JSDOUBLE_HI32(d) = JSDOUBLE_HI32_SIGNBIT;
-            JSDOUBLE_LO32(d) = 0;
-        }
-#endif
     }
 
     i = estr - cstr;
