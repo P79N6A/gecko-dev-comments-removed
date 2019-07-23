@@ -173,22 +173,6 @@ var JSONModule = {
     const maybeHarmful = /[^,:{}\[\]0-9.\-+Eaeflnr-u \n\r\t]/;
     const jsonStrings = /"(\\.|[^"\\\n\r])*"/g;
     
-    const openEndedString = /"(\\.|[^"\\\n\r])*$/;
-    const maxStringLength = 1 << 16;
-    
-    
-    
-    while (aString.length > maxStringLength) {
-      let slice = aString.substr(0, maxStringLength).replace(jsonStrings, "");
-      aString = aString.substr(maxStringLength);
-      if (openEndedString.test(slice)) {
-        slice = slice.replace(openEndedString, "");
-        aString = '"' + aString;
-      }
-      if (maybeHarmful.test(slice))
-        return false;
-    }
-    
     return !maybeHarmful.test(aString.replace(jsonStrings, ""));
   }
 };
