@@ -830,6 +830,16 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+                            nsGkAtoms::handheldFriendly, eIgnoreCase)) {
+    nsAutoString result;
+    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, result);
+    if (!result.IsEmpty()) {
+      ToLowerCase(result);
+      mDocument->SetHeaderData(nsGkAtoms::handheldFriendly, result);
+    }
+  }
+
   
 
   if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
