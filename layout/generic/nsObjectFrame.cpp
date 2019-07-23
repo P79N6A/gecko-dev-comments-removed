@@ -2194,7 +2194,7 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
     
     
     
-    GetView()->DetachWidgetEventHandler(mWidget);
+    mInnerView->DetachWidgetEventHandler(mWidget);
     mWidget = nsnull;
   }
 #endif
