@@ -179,7 +179,7 @@ public:
 
   
   PRBool IsPending() const {
-    return (mPump != nsnull);
+    return mPump || mWaitingOnAsyncRedirect;
   }
 
   
@@ -285,6 +285,7 @@ private:
   PRPackedBool                        mQueriedProgressSink;
   PRPackedBool                        mSynthProgressEvents;
   PRPackedBool                        mWasOpened;
+  PRPackedBool                        mWaitingOnAsyncRedirect;
 };
 
 #endif 
