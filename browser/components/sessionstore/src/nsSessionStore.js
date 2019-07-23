@@ -152,6 +152,9 @@ SessionStoreService.prototype = {
   _dirtyWindows: {},
 
   
+  _statesToRestore: {},
+
+  
   _recentCrashes: 0,
 
 
@@ -220,10 +223,14 @@ SessionStoreService.prototype = {
           this._recentCrashes = (this._initialState.session &&
                                  this._initialState.session.recentCrashes || 0) + 1;
           
-          if (this._needsRestorePage(this._initialState, this._recentCrashes))
+          if (this._needsRestorePage(this._initialState, this._recentCrashes)) {
             
-            this._initialState =
-              { windows: [{ tabs: [{ entries: [{ url: "about:sessionrestore" }] }] }] };
+            let pageData = {
+              url: "about:sessionrestore",
+              formdata: { "#sessionData": iniString }
+            };
+            this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
+          }
         }
         
         
@@ -439,10 +446,6 @@ SessionStoreService.prototype = {
       this._lastSaveTime = Date.now();
       
       
-      
-      this.saveStateDelayed(aWindow, 10000);
-
-      
       if (this._initialState) {
         
         this._initialState._firstTabs = true;
@@ -456,6 +459,14 @@ SessionStoreService.prototype = {
                               getService(Ci.nsIObserverService);
         observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
       }
+      
+      
+      this.saveState(true);
+    }
+    
+    else if (!this._isWindowLoaded(aWindow)) {
+      let followUp = this._statesToRestore[aWindow.__SS_restoreID].windows.length == 1;
+      this.restoreWindow(aWindow, this._statesToRestore[aWindow.__SS_restoreID], true, followUp);
     }
     
     var tabbrowser = aWindow.getBrowser();
@@ -480,6 +491,16 @@ SessionStoreService.prototype = {
 
   onClose: function sss_onClose(aWindow) {
     
+    let isFullyLoaded = this._isWindowLoaded(aWindow);
+    if (!isFullyLoaded) {
+      if (!aWindow.__SSi)
+        aWindow.__SSi = "window" + Date.now();
+      this._window[aWindow.__SSi] = this._statesToRestore[aWindow.__SS_restoreID];
+      delete this._statesToRestore[aWindow.__SS_restoreID];
+      delete aWindow.__SS_restoreID;
+    }
+    
+    
     if (!aWindow.__SSi || !this._windows[aWindow.__SSi]) {
       return;
     }
@@ -495,13 +516,11 @@ SessionStoreService.prototype = {
     tabbrowser.removeEventListener("TabClose", this, true);
     tabbrowser.removeEventListener("TabSelect", this, true);
     
+    let winData = this._windows[aWindow.__SSi];
     if (this._loadState == STATE_RUNNING) { 
       
       this._collectWindowData(aWindow);
       
-      
-      var winData = this._windows[aWindow.__SSi];
-      winData.title = aWindow.content.document.title;
       
       
       if (!this._lastClosedWindows || !winData.isPopup)
@@ -509,7 +528,10 @@ SessionStoreService.prototype = {
       else
         this._lastClosedWindows.push(winData);
       
-      this._updateCookies(this._lastClosedWindows);
+      if (isFullyLoaded) {
+        winData.title = aWindow.content.document.title;
+        this._updateCookies(this._lastClosedWindows);
+      }
       
       
       delete this._windows[aWindow.__SSi];
@@ -523,7 +545,7 @@ SessionStoreService.prototype = {
     }
     
     
-    aWindow.__SS_dyingCache = this._windows[aWindow.__SSi] || winData;
+    aWindow.__SS_dyingCache = winData;
     
     
     
@@ -701,9 +723,16 @@ SessionStoreService.prototype = {
   },
 
   setBrowserState: function sss_setBrowserState(aState) {
+    try {
+      var state = this._safeEval("(" + aState + ")");
+    }
+    catch (ex) {  }
+    if (!state || !state.windows)
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    
     var window = this._getMostRecentBrowserWindow();
     if (!window) {
-      this._openWindowWithState("(" + aState + ")");
+      this._openWindowWithState(state);
       return;
     }
 
@@ -715,7 +744,7 @@ SessionStoreService.prototype = {
     });
 
     
-    this.restoreWindow(window, "(" + aState + ")", true);
+    this.restoreWindow(window, state, true);
   },
 
   getWindowState: function sss_getWindowState(aWindow) {
@@ -1414,6 +1443,8 @@ SessionStoreService.prototype = {
     if (this._loadState == STATE_RUNNING) {
       
       this._forEachBrowserWindow(function(aWindow) {
+        if (!this._isWindowLoaded(aWindow)) 
+          return;
         if (aUpdateAll || this._dirtyWindows[aWindow.__SSi] || aWindow == activeWindow) {
           this._collectWindowData(aWindow);
         }
@@ -1437,6 +1468,15 @@ SessionStoreService.prototype = {
     this._updateCookies(total);
     
     
+    for (ix in this._statesToRestore) {
+      for each (let winData in this._statesToRestore[ix].windows) {
+        total.push(winData);
+        if (!winData.isPopup)
+          nonPopupCount++;
+      }
+    }
+    
+    
     if (nonPopupCount == 0 && this._lastClosedWindows) {
       
       
@@ -1457,6 +1497,9 @@ SessionStoreService.prototype = {
 
 
   _getWindowState: function sss_getWindowState(aWindow) {
+    if (!this._isWindowLoaded(aWindow))
+      return this._statesToRestore[aWindow.__SS_restoreID];
+    
     if (this._loadState == STATE_RUNNING) {
       this._collectWindowData(aWindow);
     }
@@ -1468,6 +1511,9 @@ SessionStoreService.prototype = {
   },
 
   _collectWindowData: function sss_collectWindowData(aWindow) {
+    if (!this._isWindowLoaded(aWindow))
+      return;
+    
     
     this._saveWindowHistory(aWindow);
     this._updateTextAndScrollData(aWindow);
@@ -1648,6 +1694,12 @@ SessionStoreService.prototype = {
         tabbrowser.selectedTab = aTabs[0]._tab;
     }
 
+    if (!this._isWindowLoaded(aWindow)) {
+      
+      delete this._statesToRestore[aWindow.__SS_restoreID];
+      delete aWindow.__SS_restoreID;
+    }
+    
     
     var idMap = { used: {} };
     this.restoreHistory(aWindow, aTabs, idMap);
@@ -2204,13 +2256,10 @@ SessionStoreService.prototype = {
                  openWindow(null, this._prefBranch.getCharPref("chromeURL"), "_blank",
                             "chrome,dialog=no,all", argString);
     
-    window.__SS_state = aState;
-    var _this = this;
-    window.addEventListener("load", function(aEvent) {
-      aEvent.currentTarget.removeEventListener("load", arguments.callee, true);
-      _this.restoreWindow(aEvent.currentTarget, aEvent.currentTarget.__SS_state, true, true);
-      delete aEvent.currentTarget.__SS_state;
-    }, true);
+    do {
+      var ID = "window" + Math.random();
+    } while (ID in this._statesToRestore);
+    this._statesToRestore[(window.__SS_restoreID = ID)] = aState;
     
     return window;
   },
@@ -2399,6 +2448,16 @@ SessionStoreService.prototype = {
         observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
       }
     }
+  },
+
+  
+
+
+
+
+
+  _isWindowLoaded: function sss_isWindowLoaded(aWindow) {
+    return !aWindow.__SS_restoreID;
   },
 
 
