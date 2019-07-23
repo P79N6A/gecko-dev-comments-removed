@@ -220,13 +220,19 @@ SimpleTest.executeSoon = function(aFunc) {
 
 
 
-SimpleTest.finish = function () {
+SimpleTest.talkToRunner = function () {
     if (parentRunner) {
-        
-        parentRunner.testFinished(SimpleTest._tests);
-    } else {
-        SimpleTest.showReport();
+        parentRunner.testFinished(document);
     }
+};
+
+
+
+
+
+SimpleTest.finish = function () {
+    SimpleTest.showReport();
+    SimpleTest.talkToRunner();
 };
 
 
