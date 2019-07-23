@@ -1188,22 +1188,24 @@ void nsWindow::NS2PM( RECTL &rcl)
 
 NS_METHOD nsWindow::Show(PRBool bState)
 {
-   
-   if( mWnd)
-   {
-      HWND hwnd = GetMainWindow();
-      if( bState == PR_TRUE)
-      {
-        
-        
-      if (CheckDragStatus(ACTION_SHOW, 0))
-          WinShowWindow( hwnd, TRUE);
+  
+  if (mWnd) {
+    if (bState) {
+      
+      
+      if (CheckDragStatus(ACTION_SHOW, 0)) {
+        PRBool bVisible;
+        IsVisible(bVisible);
+        if (!bVisible)
+          PlaceBehind(eZPlacementTop, NULL, PR_FALSE);
+        WinShowWindow(mWnd, PR_TRUE);
       }
-      else
-         WinShowWindow( hwnd, FALSE);
-   }
+    } else {
+      WinShowWindow(mWnd, PR_FALSE);
+    }
+  }
 
-   return NS_OK;
+  return NS_OK;
 }
 
 
@@ -1226,12 +1228,29 @@ NS_METHOD nsWindow::IsVisible(PRBool & bState)
 NS_METHOD nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
                                 nsIWidget *aWidget, PRBool aActivate)
 {
-  HWND behind = aWidget ? (HWND)aWidget->GetNativeData(NS_NATIVE_WINDOW) : HWND_TOP;
+  HWND behind = HWND_TOP;
+  if (aPlacement == eZPlacementBottom)
+    behind = HWND_BOTTOM;
+  else if (aPlacement == eZPlacementBelow && aWidget)
+    behind = (HWND)aWidget->GetNativeData(NS_NATIVE_WINDOW);
   UINT flags = SWP_ZORDER;
   if (aActivate)
     flags |= SWP_ACTIVATE;
 
   WinSetWindowPos(mWnd, behind, 0, 0, 0, 0, flags);
+  return NS_OK;
+}
+
+
+
+
+
+
+NS_METHOD nsWindow::SetZIndex(PRInt32 aZIndex)
+{
+  
+  
+  
   return NS_OK;
 }
 
