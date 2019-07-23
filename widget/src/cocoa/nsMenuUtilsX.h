@@ -41,6 +41,7 @@
 
 #include "nscore.h"
 #include "nsGUIEvent.h"
+#include "nsMenuBaseX.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -58,6 +59,7 @@ namespace nsMenuUtilsX
   nsMenuBarX*   GetHiddenWindowMenuBar(); 
   NSMenuItem*   GetStandardEditMenuItem(); 
   PRBool        NodeIsHiddenOrCollapsed(nsIContent* inContent);
+  nsresult      CountVisibleBefore(nsMenuObjectX* aMenuObject, nsMenuObjectX* aChild, PRUint32* outVisibleBefore);
 }
 
 #endif 
