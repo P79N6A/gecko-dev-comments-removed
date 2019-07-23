@@ -74,6 +74,10 @@ public:
 
   nsresult OSProtocolHandlerExists(const char * aScheme,
                                    PRBool * aHandlerExists);
+
+protected:
+  
+  void UpdateCreatorInfo(nsIMIMEInfo * aMIMEInfo);
 };
 
 #endif 
