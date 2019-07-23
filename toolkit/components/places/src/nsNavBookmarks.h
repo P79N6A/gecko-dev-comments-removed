@@ -236,10 +236,8 @@ private:
 
   
   PRInt32 mBatchLevel;
-
   
-  
-  PRBool mBatchHasTransaction;
+  mozStorageTransaction* mBatchDBTransaction;
 
   nsresult GetParentAndIndexOfFolder(PRInt64 aFolder,
                                      PRInt64* aParent,

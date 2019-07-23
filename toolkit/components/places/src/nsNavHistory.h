@@ -315,10 +315,8 @@ public:
 
   
   PRInt32 mBatchLevel;
-
   
-  
-  PRBool mBatchHasTransaction;
+  mozStorageTransaction* mBatchDBTransaction;
 
   
   nsresult QueryStringToQueryArray(const nsACString& aQueryString,
