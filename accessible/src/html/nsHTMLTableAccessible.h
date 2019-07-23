@@ -57,7 +57,7 @@ class nsITableLayout;
 
 
 
-#define SHOW_LAYOUT_HEURISTIC
+
 
 class nsHTMLTableAccessible : public nsAccessibleWrap,
                               public nsIAccessibleTable
