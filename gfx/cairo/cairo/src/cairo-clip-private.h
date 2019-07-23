@@ -38,7 +38,7 @@
 
 #include "cairo-path-fixed-private.h"
 
-extern const cairo_private cairo_rectangle_list_t _cairo_rectangles_nil;
+extern cairo_private const cairo_rectangle_list_t _cairo_rectangles_nil;
 
 struct _cairo_clip_path {
     unsigned int	ref_count;
@@ -72,8 +72,7 @@ struct _cairo_clip {
     
 
 
-    pixman_region16_t region;
-    cairo_bool_t has_region;
+    pixman_region16_t *region;
     
 
 
@@ -84,15 +83,18 @@ struct _cairo_clip {
 cairo_private void
 _cairo_clip_init (cairo_clip_t *clip, cairo_surface_t *target);
 
-cairo_private cairo_status_t
+cairo_private void
+_cairo_clip_fini (cairo_clip_t *clip);
+
+cairo_private void
 _cairo_clip_init_copy (cairo_clip_t *clip, cairo_clip_t *other);
 
-cairo_private cairo_status_t
+cairo_private void
 _cairo_clip_init_deep_copy (cairo_clip_t    *clip,
                             cairo_clip_t    *other,
                             cairo_surface_t *target);
 
-cairo_private void
+cairo_private cairo_status_t
 _cairo_clip_reset (cairo_clip_t *clip);
 
 cairo_private cairo_status_t

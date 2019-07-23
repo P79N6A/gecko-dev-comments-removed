@@ -35,6 +35,7 @@
 
 
 #define _GNU_SOURCE
+#include <stdlib.h>
 
 #include "cairoint.h"
 
@@ -495,7 +496,7 @@ _cairo_matrix_compute_determinant (const cairo_matrix_t *matrix,
 }
 
 
-void
+cairo_status_t
 _cairo_matrix_compute_scale_factors (const cairo_matrix_t *matrix,
 				     double *sx, double *sy, int x_major)
 {
@@ -535,6 +536,8 @@ _cairo_matrix_compute_scale_factors (const cairo_matrix_t *matrix,
 	    *sy = major;
 	}
     }
+
+    return CAIRO_STATUS_SUCCESS;
 }
 
 cairo_bool_t

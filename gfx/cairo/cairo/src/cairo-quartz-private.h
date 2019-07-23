@@ -56,11 +56,8 @@ typedef struct cairo_quartz_surface {
     
 
 
+    CGAffineTransform imageTransform;
     CGImageRef sourceImage;
-    cairo_surface_t *sourceImageSurface;
-    CGAffineTransform sourceImageTransform;
-    CGRect sourceImageRect;
-
     CGShadingRef sourceShading;
     CGPatternRef sourcePattern;
 } cairo_quartz_surface_t;

@@ -33,7 +33,34 @@
 
 
 
-#include "cairoint.h"
+#include <cairoint.h>
+
+
+
+
+
+
+
+
+
+
+
+pixman_region16_t *
+_cairo_region_create_from_rectangle (cairo_rectangle_int16_t *rect)
+{
+    
+
+
+    pixman_region16_t *region = pixman_region_create ();
+    if (pixman_region_union_rect (region, region,
+				  rect->x, rect->y,
+				  rect->width, rect->height) != PIXMAN_REGION_STATUS_SUCCESS) {
+	pixman_region_destroy (region);
+	return NULL;
+    }
+
+    return region;
+}
 
 
 
