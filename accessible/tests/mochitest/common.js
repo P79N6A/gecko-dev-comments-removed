@@ -273,6 +273,35 @@ function getRootAccessible(aAccOrElmOrID)
 
 
 
+function getApplicationAccessible()
+{
+  var acc = getAccessible(document), parent = null;
+  while (acc) {
+
+    try {
+      parent = acc.parent;
+    } catch (e) {
+      ok(false, "Can't get a parent for " + prettyName(acc));
+      return null;
+    }
+
+    if (!parent) {
+      if (acc.role == ROLE_APP_ROOT)
+        return acc;
+
+      ok(false, "No application accessible!");
+      return null;
+    }
+
+    acc = parent;
+  }
+
+  return null;
+}
+
+
+
+
 
 function ensureAccessibleTree(aAccOrElmOrID)
 {
@@ -357,6 +386,12 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree)
         is(parent, acc, "Wrong parent of " + prettyName(child));
 
         
+        var indexInParent = -1;
+        try { indexInParent = child.indexInParent; } catch(e) {}
+        is(indexInParent, i,
+           "Wrong index in parent of " + prettyName(child));
+
+        
         var expectedNextSibling = (i < childCount - 1) ?
           children.queryElementAt(i + 1, nsIAccessible) : null;
         var nextSibling = null;
@@ -377,6 +412,84 @@ function testAccessibleTree(aAccOrElmOrID, aAccTree)
       }
     }
   }
+}
+
+
+
+
+
+
+
+function testDefunctAccessible(aAcc, aNodeOrId)
+{
+  if (aNodeOrId)
+    ok(!isAccessible(aNodeOrId),
+       "Accessible for " + aNodeOrId + " wasn't properly shut down!");
+
+  var msg = " doesn't fail for shut down accessible " + prettyName(aNodeOrId) + "!";
+
+  
+  var success = false;
+  try {
+    aAcc.firstChild;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE)
+  }
+  ok(success, "firstChild" + msg);
+
+  
+  success = false;
+  try {
+    aAcc.lastChild;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE)
+  }
+  ok(success, "lastChild" + msg);
+
+  
+  success = false;
+  try {
+    aAcc.childCount;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE)
+  }
+  ok(success, "childCount" + msg);
+
+  
+  success = false;
+  try {
+    aAcc.children;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE)
+  }
+  ok(success, "children" + msg);
+
+  
+  success = false;
+  try {
+    aAcc.nextSibling;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE);
+  }
+  ok(success, "nextSibling" + msg);
+
+  
+  success = false;
+  try {
+    aAcc.previousSibling;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE);
+  }
+  ok(success, "previousSibling" + msg);
+
+  
+  success = false;
+  try {
+    aAcc.parent;
+  } catch (e) {
+    success = (e.result == Components.results.NS_ERROR_FAILURE);
+  }
+  ok(success, "parent" + msg);
 }
 
 

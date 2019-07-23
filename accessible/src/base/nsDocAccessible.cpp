@@ -76,9 +76,9 @@
 
 
 
-
 PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
 nsIAtom *nsDocAccessible::gLastFocusedFrameType = nsnull;
+
 
 
 
@@ -129,12 +129,10 @@ nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell)
   }
 }
 
-
-
-
 nsDocAccessible::~nsDocAccessible()
 {
 }
+
 
 
 
@@ -182,6 +180,10 @@ NS_INTERFACE_MAP_END_INHERITING(nsHyperTextAccessible)
 NS_IMPL_ADDREF_INHERITED(nsDocAccessible, nsHyperTextAccessible)
 NS_IMPL_RELEASE_INHERITED(nsDocAccessible, nsHyperTextAccessible)
 
+
+
+
+
 NS_IMETHODIMP
 nsDocAccessible::GetName(nsAString& aName)
 {
@@ -203,6 +205,7 @@ nsDocAccessible::GetName(nsAString& aName)
 
   return rv;
 }
+
 
 nsresult
 nsDocAccessible::GetRoleInternal(PRUint32 *aRole)
@@ -241,6 +244,7 @@ nsDocAccessible::GetRoleInternal(PRUint32 *aRole)
 
   return NS_OK;
 }
+
 
 void
 nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
@@ -281,6 +285,7 @@ nsDocAccessible::GetDescription(nsAString& aDescription)
 
   return NS_OK;
 }
+
 
 nsresult
 nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
@@ -331,6 +336,7 @@ nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 
   return NS_OK;
 }
+
 
 nsresult
 nsDocAccessible::GetARIAState(PRUint32 *aState, PRUint32 *aExtraState)
@@ -395,6 +401,8 @@ NS_IMETHODIMP nsDocAccessible::TakeFocus()
   }
   return NS_ERROR_FAILURE;
 }
+
+
 
 
 
@@ -499,6 +507,7 @@ NS_IMETHODIMP nsDocAccessible::GetDocument(nsIDOMDocument **aDOMDoc)
   return NS_ERROR_FAILURE;
 }
 
+
 NS_IMETHODIMP nsDocAccessible::GetAssociatedEditor(nsIEditor **aEditor)
 {
   NS_ENSURE_ARG_POINTER(aEditor);
@@ -557,6 +566,7 @@ NS_IMETHODIMP nsDocAccessible::GetCachedAccessNode(void *aUniqueID, nsIAccessNod
   return NS_OK;
 }
 
+
 void
 nsDocAccessible::CacheAccessNode(void *aUniqueID, nsIAccessNode *aAccessNode)
 {
@@ -574,6 +584,7 @@ nsDocAccessible::CacheAccessNode(void *aUniqueID, nsIAccessNode *aAccessNode)
   PutCacheEntry(mAccessNodeCache, aUniqueID, aAccessNode);
 }
 
+
 void
 nsDocAccessible::RemoveAccessNodeFromCache(nsIAccessNode *aAccessNode)
 {
@@ -585,31 +596,8 @@ nsDocAccessible::RemoveAccessNodeFromCache(nsIAccessNode *aAccessNode)
   mAccessNodeCache.Remove(uniqueID);
 }
 
-NS_IMETHODIMP nsDocAccessible::GetParent(nsIAccessible **aParent)
-{
-  
-  *aParent = nsnull;
-  NS_ENSURE_TRUE(mDocument, NS_ERROR_FAILURE);
-  if (!mParent) {
-    nsIDocument *parentDoc = mDocument->GetParentDocument();
-    NS_ENSURE_TRUE(parentDoc, NS_ERROR_FAILURE);
-    nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
-    nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
-    if (ownerNode) {
-      nsCOMPtr<nsIAccessibilityService> accService =
-        do_GetService("@mozilla.org/accessibilityService;1");
-      if (accService) {
-        
-        
-        
-        
-        
-        accService->GetAccessibleFor(ownerNode, getter_AddRefs(mParent));
-      }
-    }
-  }
-  return mParent ? nsAccessible::GetParent(aParent) : NS_ERROR_FAILURE;
-}
+
+
 
 nsresult
 nsDocAccessible::Init()
@@ -618,8 +606,7 @@ nsDocAccessible::Init()
 
   AddEventListeners();
 
-  nsCOMPtr<nsIAccessible> parentAccessible;  
-  GetParent(getter_AddRefs(parentAccessible));
+  GetParent(); 
 
   nsresult rv = nsHyperTextAccessibleWrap::Init();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -680,6 +667,7 @@ nsDocAccessible::Shutdown()
   return NS_OK;
 }
 
+
 void nsDocAccessible::ShutdownChildDocuments(nsIDocShellTreeItem *aStart)
 {
   nsCOMPtr<nsIDocShellTreeNode> treeNode(do_QueryInterface(aStart));
@@ -724,6 +712,7 @@ nsDocAccessible::IsDefunct()
 
   return !mDocument;
 }
+
 
 void nsDocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
 {
@@ -814,6 +803,7 @@ nsresult nsDocAccessible::AddEventListeners()
   return NS_OK;
 }
 
+
 nsresult nsDocAccessible::RemoveEventListeners()
 {
   
@@ -860,6 +850,7 @@ nsresult nsDocAccessible::RemoveEventListeners()
   return NS_OK;
 }
 
+
 void
 nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
 {
@@ -889,8 +880,7 @@ nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
   if (isFinished) {
     
     AddScrollListener();
-    nsCOMPtr<nsIAccessible> parent(nsAccessible::GetParent());
-    nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(parent));
+    nsRefPtr<nsAccessible> acc(nsAccUtils::QueryAccessible(GetParent()));
     if (acc) {
       
       acc->InvalidateChildren();
@@ -954,6 +944,7 @@ void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
   }
 }
 
+
 void nsDocAccessible::AddScrollListener()
 {
   nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
@@ -970,6 +961,7 @@ void nsDocAccessible::AddScrollListener()
     scrollableView->AddScrollPositionListener(this);
 }
 
+
 void nsDocAccessible::RemoveScrollListener()
 {
   nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
@@ -985,6 +977,9 @@ void nsDocAccessible::RemoveScrollListener()
   if (scrollableView)
     scrollableView->RemoveScrollPositionListener(this);
 }
+
+
+
 
 NS_IMETHODIMP nsDocAccessible::ScrollPositionWillChange(nsIScrollableView *aView, nscoord aX, nscoord aY)
 {
@@ -1012,6 +1007,9 @@ NS_IMETHODIMP nsDocAccessible::ScrollPositionDidChange(nsIScrollableView *aScrol
   return NS_OK;
 }
 
+
+
+
 NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic,
                                        const PRUnichar *aData)
 {
@@ -1026,7 +1024,7 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
   return NS_OK;
 }
 
-  
+
 
 
 NS_IMPL_NSIDOCUMENTOBSERVER_CORE_STUB(nsDocAccessible)
@@ -1213,6 +1211,7 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   }
 }
 
+
 void
 nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
 {
@@ -1362,6 +1361,7 @@ void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
   }
 }
 
+
 void nsDocAccessible::ContentStatesChanged(nsIDocument* aDocument,
                                            nsIContent* aContent1,
                                            nsIContent* aContent2,
@@ -1416,6 +1416,45 @@ void
 nsDocAccessible::ParentChainChanged(nsIContent *aContent)
 {
 }
+
+
+
+
+
+nsIAccessible*
+nsDocAccessible::GetParent()
+{
+  if (IsDefunct())
+    return nsnull;
+
+  if (mParent)
+    return mParent;
+
+  nsIDocument* parentDoc = mDocument->GetParentDocument();
+  if (!parentDoc)
+    return nsnull;
+
+  nsIContent* ownerContent = parentDoc->FindContentForSubDocument(mDocument);
+  nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
+  if (ownerNode) {
+    nsCOMPtr<nsIAccessibilityService> accService = GetAccService();
+    if (accService) {
+      
+      
+      
+      
+      
+      accService->GetAccessibleFor(ownerNode, getter_AddRefs(mParent));
+    }
+  }
+
+  NS_ASSERTION(mParent, "No parent for not root document accessible!");
+  return mParent;
+}
+
+
+
+
 
 void
 nsDocAccessible::FireValueChangeForTextFields(nsIAccessible *aPossibleTextFieldAccessible)
@@ -1571,7 +1610,8 @@ nsDocAccessible::CreateTextChangeEventForNode(nsIAccessible *aContainerAccessibl
 
   return event;
 }
-  
+
+
 nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(PRUint32 aEventType,
                                             nsIDOMNode *aDOMNode,
@@ -1584,6 +1624,7 @@ nsDocAccessible::FireDelayedAccessibleEvent(PRUint32 aEventType,
 
   return FireDelayedAccessibleEvent(event);
 }
+
 
 nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent)
@@ -1953,6 +1994,7 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
   mAccessNodeCache.Remove(uniqueID);
 }
 
+
 void
 nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
                                         PRUint32 aChangeType)
@@ -2179,6 +2221,7 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
   FireDelayedAccessibleEvent(reorderEvent);
 }
+
 
 NS_IMETHODIMP
 nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,

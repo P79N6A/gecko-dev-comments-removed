@@ -76,7 +76,7 @@ public:
 protected:
 
   
-  void CacheChildren();
+  virtual void CacheChildren();
 
   
   PRBool ContainsMenu();
