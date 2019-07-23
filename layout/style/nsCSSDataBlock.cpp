@@ -216,6 +216,7 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                             aRuleData->mFontData->mFamilyFromHTML = PR_FALSE;
                         }
                         else if (iProp == eCSSProperty_color ||
+                                 iProp == eCSSProperty_background_color ||
                                  iProp == eCSSProperty_border_top_color ||
                                  iProp == eCSSProperty_border_right_color_value ||
                                  iProp == eCSSProperty_border_right_color_ltr_source ||
@@ -227,8 +228,31 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                                  iProp == eCSSProperty__moz_column_rule_color ||
                                  iProp == eCSSProperty_outline_color) {
                             if (ShouldIgnoreColors(aRuleData)) {
-                                
-                                *target = nsCSSValue();
+                                if (iProp == eCSSProperty_background_color) {
+                                    
+                                    
+                                    
+                                    
+                                    
+                                    
+                                    nsCSSUnit u = target->GetUnit();
+                                    nsDependentString buf;
+                            
+                                    if ((u == eCSSUnit_Color &&
+                                         NS_GET_A(target->GetColorValue())
+                                         > 0) ||
+                                        (u == eCSSUnit_Ident &&
+                                         !nsGkAtoms::transparent->
+                                         Equals(target->GetStringValue(buf))) ||
+                                        (u == eCSSUnit_EnumColor)) {
+                                        target->SetColorValue(aRuleData->
+                                            mPresContext->
+                                            DefaultBackgroundColor());
+                                    }
+                                } else {
+                                    
+                                    *target = nsCSSValue();
+                                }
                             }
                         }
                     }
@@ -261,37 +285,6 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                     if (target->mXValue.GetUnit() == eCSSUnit_Null) {
                         target->mXValue = val->mXValue;
                         target->mYValue = val->mYValue;
-                        if (iProp == eCSSProperty_background_color &&
-                            ShouldIgnoreColors(aRuleData)) {
-                            
-                            
-                            
-                            
-                            
-                            
-                            nsCSSValue &colorVal = target->mXValue;
-                            nsCSSUnit u = colorVal.GetUnit();
-                            nsDependentString buf;
-                            
-                            if ((u == eCSSUnit_Color &&
-                                 NS_GET_A(colorVal.GetColorValue())
-                                 > 0) ||
-                                (u == eCSSUnit_Ident &&
-                                 !nsGkAtoms::transparent->
-                                 Equals(colorVal.GetStringValue(buf))) ||
-                                (u == eCSSUnit_EnumColor)) {
-                                colorVal.SetColorValue(aRuleData->
-                                    mPresContext->
-                                    DefaultBackgroundColor());
-                            }
-                            
-                            
-                            
-                            
-                            
-                            
-                            target->mYValue = target->mXValue;
-                        }
                     }
                     cursor += CDBValuePairStorage_advance;
                 } break;

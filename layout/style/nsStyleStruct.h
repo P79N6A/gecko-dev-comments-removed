@@ -194,34 +194,6 @@ struct nsStyleBackground {
     }
   };
 
-  
-
-
-
-
-
-
-  struct Image;
-  friend struct Image;
-  struct Image {
-    nsCOMPtr<imgIRequest> mRequest;
-    PRBool mSpecified; 
-
-    
-
-    
-    Image();
-    ~Image();
-    void SetInitialValues();
-
-    
-    
-    PRBool operator==(const Image& aOther) const;
-    PRBool operator!=(const Image& aOther) const {
-      return !(*this == aOther);
-    }
-  };
-
   struct Layer;
   friend struct Layer;
   struct Layer {
@@ -230,7 +202,7 @@ struct nsStyleBackground {
     PRUint8 mOrigin;                    
     PRUint8 mRepeat;                    
     Position mPosition;                 
-    Image mImage;                       
+    nsCOMPtr<imgIRequest> mImage;       
 
     
     Layer();
@@ -272,7 +244,6 @@ struct nsStyleBackground {
     for (PRUint32 var_ = (stylebg_)->mImageCount; var_-- != 0; )
 
   nscolor mBackgroundColor;       
-  nscolor mFallbackBackgroundColor; 
 
   
   

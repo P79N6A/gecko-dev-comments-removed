@@ -1536,16 +1536,9 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
     drawBackgroundColor = aPresContext->GetBackgroundColorDraw();
   }
 
-  nsStyleBackground::Image bottomImage(aColor.BottomLayer().mImage);
-  PRBool useFallbackColor = PR_FALSE;
-  if (bottomImage.mSpecified) {
-    if (!drawBackgroundImage ||
-        !UseImageRequestForBackground(bottomImage.mRequest)) {
-      bottomImage.mRequest = nsnull;
-    }
-    useFallbackColor = bottomImage.mRequest == nsnull;
-  } else {
-    NS_ASSERTION(bottomImage.mRequest == nsnull, "malformed image struct");
+  imgIRequest *bottomImage = aColor.BottomLayer().mImage;
+  if (!drawBackgroundImage || !UseImageRequestForBackground(bottomImage)) {
+    bottomImage = nsnull;
   }
 
   
@@ -1554,8 +1547,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   nscolor bgColor;
   if (drawBackgroundColor) {
-    bgColor = useFallbackColor ? aColor.mFallbackBackgroundColor
-                               : aColor.mBackgroundColor;
+    bgColor = aColor.mBackgroundColor;
     if (NS_GET_A(bgColor) == 0)
       drawBackgroundColor = PR_FALSE;
   } else {
@@ -1643,11 +1635,11 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   aPresContext->SetupBackgroundImageLoaders(aForFrame, &aColor);
 
-  if (bottomImage.mRequest &&
+  if (bottomImage &&
       aColor.BottomLayer().mRepeat == NS_STYLE_BG_REPEAT_XY &&
       drawBackgroundColor) {
     nsCOMPtr<imgIContainer> image;
-    bottomImage.mRequest->GetImage(getter_AddRefs(image));
+    bottomImage->GetImage(getter_AddRefs(image));
     
     
     nsCOMPtr<gfxIImageFrame> gfxImgFrame;
@@ -1717,7 +1709,7 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
                      PRBool aUsePrintSettings)
 {
   
-  imgIRequest *req = aLayer.mImage.mRequest;
+  imgIRequest *req = aLayer.mImage;
   if (!UseImageRequestForBackground(req)) {
     
     return;
