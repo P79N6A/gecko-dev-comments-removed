@@ -529,7 +529,7 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
     NPEvent* npevent = reinterpret_cast<NPEvent*>(event);
     NPRemoteEvent npremoteevent;
     npremoteevent.event = *npevent;
-    int16_t handled;
+    int16_t handled = 0;
 
 #if defined(OS_WIN)
     if (mWindowType == NPWindowTypeDrawable) {
@@ -542,6 +542,26 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
                 SharedSurfaceAfterPaint(npevent);
             }
             break;
+
+            case WM_KILLFOCUS:
+            {
+              
+              
+              
+              
+              
+              
+              PRUnichar szClass[26];
+              HWND hwnd = GetForegroundWindow();
+              if (hwnd && hwnd != mPluginHWND &&
+                  GetClassNameW(hwnd, szClass,
+                                sizeof(szClass)/sizeof(PRUnichar)) &&
+                  !wcscmp(szClass, L"ShockwaveFlashFullScreen")) {
+                  return 0;
+              }
+              
+            }
+
             default:
                 if (!CallNPP_HandleEvent(npremoteevent, &handled))
                     return 0;
