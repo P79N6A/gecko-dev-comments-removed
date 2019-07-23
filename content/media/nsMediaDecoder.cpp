@@ -274,7 +274,8 @@ void nsMediaDecoder::Paint(gfxContext* aContext,
   nsRefPtr<gfxASurface> target = aContext->CurrentSurface();
   gfxASurface::gfxSurfaceType type = target->GetType();
   if (type == gfxASurface::SurfaceTypeXlib ||
-      type == gfxASurface::SurfaceTypeXcb) {
+      type == gfxASurface::SurfaceTypeXcb ||
+      type == gfxASurface::SurfaceTypeQuartz) {
     extend = gfxPattern::EXTEND_NONE;
   }
 
