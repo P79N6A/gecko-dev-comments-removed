@@ -464,13 +464,7 @@ placesMoveItemTransactions.prototype = {
   },
 
   undoTransaction: function PMIT_undoTransaction() {
-    
-    
-    if (this._newContainer == this._oldContainer &&
-        this._oldIndex > this._newIndex)
-      PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex + 1);
-    else
-      PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex);
+    PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex);
   }
 };
 

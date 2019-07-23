@@ -1607,7 +1607,7 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
 
   
   PRInt32 newIndex;
-  if (aIndex == nsINavBookmarksService::DEFAULT_INDEX) {
+  if (aIndex == -1) {
     newIndex = FolderCount(aNewParent);
     
     
@@ -1651,7 +1651,7 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
     rv = AdjustIndices(oldParent, oldIndex + 1, PR_INT32_MAX, -1);
     NS_ENSURE_SUCCESS(rv, rv);
     
-    rv = AdjustIndices(aNewParent, newIndex, PR_INT32_MAX, 1);
+    rv = AdjustIndices(aNewParent, newIndex + 1, PR_INT32_MAX, 1);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
