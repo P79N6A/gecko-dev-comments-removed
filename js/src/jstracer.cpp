@@ -2792,11 +2792,13 @@ bool TraceRecorder::record_JSOP_ARGCNT()
 
 
 
+
 #define GET_FULL_INDEX(PCOFF)                                                 \
     (atoms - script->atomMap.vector + GET_INDEX(regs.pc + PCOFF))
 
 #define LOAD_FUNCTION(PCOFF)                                                  \
     JS_GET_SCRIPT_FUNCTION(script, GET_FULL_INDEX(PCOFF), fun)
+
 bool TraceRecorder::record_JSOP_DEFLOCALFUN()
 {
     JSFunction* fun;
@@ -2811,6 +2813,7 @@ bool TraceRecorder::record_JSOP_DEFLOCALFUN()
     var(GET_VARNO(regs.pc), lir->insImmPtr(obj));
     return true;
 }
+
 bool TraceRecorder::record_JSOP_GOTOX()
 {
     return false;
