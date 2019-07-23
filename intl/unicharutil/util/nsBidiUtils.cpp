@@ -182,7 +182,11 @@ typedef enum {
 
 
 static const PRInt8 gJoiningClass[] = {
-          eNJ, eRJ, eRJ, eRJ, eRJ, eDJ, eRJ, 
+eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, 
+eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, 
+eTr, eTr, eTr, eTr, eTr, eTr, eNJ, eNJ, 
+eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, 
+eNJ, eNJ, eRJ, eRJ, eRJ, eRJ, eDJ, eRJ, 
 eDJ, eRJ, eDJ, eDJ, eDJ, eDJ, eDJ, eRJ, 
 eRJ, eRJ, eRJ, eDJ, eDJ, eDJ, eDJ, eDJ, 
 eDJ, eDJ, eDJ, eNJ, eNJ, eNJ, eNJ, eNJ, 
@@ -213,8 +217,8 @@ eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ
 };
 
 #define GetJoiningClass(c)                   \
-  (((0x0621 <= (c)) && ((c) <= 0x06FF)) ?    \
-       (gJoiningClass[(c) - 0x0621]) :       \
+  ((IS_ARABIC_CHAR(c)) ?                     \
+      (gJoiningClass[(c) - 0x0600]) :        \
       ((0x200D == (c)) ? eJC : eTr))
 
 static const PRUint16 gArabicLigatureMap[] = 
