@@ -192,6 +192,18 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
                                  PRBool aIsInserting,
                                  PRBool aIsAsynch);
 
+    
+
+
+
+
+
+
+
+
+    nsresult FireShowHideEvents(nsIDOMNode *aDOMNode, PRUint32 aEventType,
+                                PRBool aDelay, PRBool aForceIsFromUserInput);
+
     nsAccessNodeHashtable mAccessNodeCache;
     void *mWnd;
     nsCOMPtr<nsIDocument> mDocument;

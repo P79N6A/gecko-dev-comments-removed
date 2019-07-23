@@ -1565,6 +1565,8 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
       
       nsCOMPtr<nsIDOMNode> domNode;
       accessibleEvent->GetDOMNode(getter_AddRefs(domNode));
+      PRBool isFromUserInput;
+      accessibleEvent->GetIsFromUserInput(&isFromUserInput);
       if (domNode && domNode != mDOMNode) {
         if (!containerAccessible)
           GetAccessibleInParentChain(domNode, PR_TRUE,
@@ -1573,8 +1575,6 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
         nsCOMPtr<nsIAccessibleTextChangeEvent> textChangeEvent =
           CreateTextChangeEventForNode(containerAccessible, domNode, accessible, PR_TRUE, PR_TRUE);
         if (textChangeEvent) {
-          PRBool isFromUserInput;
-          accessibleEvent->GetIsFromUserInput(&isFromUserInput);
           nsCOMPtr<nsIDOMNode> hyperTextNode;
           textChangeEvent->GetDOMNode(getter_AddRefs(hyperTextNode));
           nsAccEvent::PrepareForEvent(hyperTextNode, isFromUserInput);
@@ -1584,6 +1584,10 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
           FireAccessibleEvent(textChangeEvent);
         }
       }
+
+      
+      FireShowHideEvents(domNode, eventType, PR_FALSE, isFromUserInput); 
+      continue;
     }
 
     if (accessible) {
@@ -1754,9 +1758,7 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
   NS_ENSURE_TRUE(mDOMNode, NS_ERROR_FAILURE);
   nsCOMPtr<nsIDOMNode> childNode = aChild ? do_QueryInterface(aChild) : mDOMNode;
-  if (!IsNodeRelevant(childNode)) {
-    return NS_OK;  
-  }
+
   if (!mIsContentLoaded) {
     
     if (mAccessNodeCache.Count() <= 1) {
@@ -1799,7 +1801,8 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   if (!childAccessible && !isHiding) {
     
     
-    GetAccService()->GetAccessibleFor(childNode, getter_AddRefs(childAccessible));
+    GetAccService()->GetAttachedAccessibleFor(childNode,
+                                              getter_AddRefs(childAccessible));
   }
 
 #ifdef DEBUG_A11Y
@@ -1834,15 +1837,32 @@ NS_IMETHODIMP nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
 
   if (!isShowing) {
     
-    
-    if (childAccessible) {
-      PRUint32 removalEventType = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE :
-                                  nsIAccessibleEvent::EVENT_DOM_DESTROY;
-      nsCOMPtr<nsIAccessibleEvent> removalEvent =
-        new nsAccEvent(removalEventType, childAccessible, nsnull, PR_TRUE);
-      NS_ENSURE_TRUE(removalEvent, NS_ERROR_OUT_OF_MEMORY);
-      FireDelayedAccessibleEvent(removalEvent, eCoalesceFromSameSubtree, isAsynch);
+    nsCOMPtr<nsIContent> content(do_QueryInterface(childNode));
+    if (isHiding) {
+      nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+      if (content) {
+        nsIFrame *frame = presShell->GetPrimaryFrameFor(content);
+        if (frame) {
+          nsIFrame *frameParent = frame->GetParent();
+          if (!frameParent || !frameParent->GetStyleVisibility()->IsVisible()) {
+            
+            
+            
+            
+            
+            return NS_OK;
+          }
+        }
+      }
     }
+
+    PRUint32 removalEventType = isAsynch ? nsIAccessibleEvent::EVENT_ASYNCH_HIDE :
+                                           nsIAccessibleEvent::EVENT_DOM_DESTROY;
+
+    
+    
+    nsresult rv = FireShowHideEvents(childNode, removalEventType, PR_TRUE, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
     if (childNode != mDOMNode) { 
       
       
@@ -1947,6 +1967,57 @@ nsDocAccessible::GetAccessibleInParentChain(nsIDOMNode *aNode,
       }
     }
   } while (!*aAccessible);
+
+  return NS_OK;
+}
+
+nsresult
+nsDocAccessible::FireShowHideEvents(nsIDOMNode *aDOMNode, PRUint32 aEventType,
+                                    PRBool aDelay, PRBool aForceIsFromUserInput)
+{
+  NS_ENSURE_ARG(aDOMNode);
+
+  nsCOMPtr<nsIAccessible> accessible;
+  if (aEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
+      aEventType == nsIAccessibleEvent::EVENT_DOM_DESTROY) {
+    
+    nsCOMPtr<nsIAccessNode> accessNode;
+    GetCachedAccessNode(aDOMNode, getter_AddRefs(accessNode));
+    accessible = do_QueryInterface(accessNode);
+  } else {
+    
+    GetAccService()->GetAttachedAccessibleFor(aDOMNode,
+                                              getter_AddRefs(accessible));
+  }
+
+  if (accessible) {
+    
+    
+    PRBool isAsynch = aEventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE ||
+                      aEventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW;
+
+    nsCOMPtr<nsIAccessibleEvent> event =
+      new nsAccEvent(aEventType, accessible, nsnull, isAsynch);
+    NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
+    if (aForceIsFromUserInput) {
+      nsAccEvent::PrepareForEvent(aDOMNode, aForceIsFromUserInput);
+    }
+    if (aDelay) {
+      return FireDelayedAccessibleEvent(event, eCoalesceFromSameSubtree, isAsynch);
+    }
+    return FireAccessibleEvent(event);
+  }
+
+  
+  
+  nsCOMPtr<nsIContent> content(do_QueryInterface(aDOMNode));
+  PRUint32 count = content->GetChildCount();
+  for (PRUint32 index = 0; index < count; index++) {
+    nsCOMPtr<nsIDOMNode> childNode = do_QueryInterface(content->GetChildAt(index));
+    nsresult rv = FireShowHideEvents(childNode, aEventType,
+                                     aDelay, aForceIsFromUserInput);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
