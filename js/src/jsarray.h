@@ -215,6 +215,20 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, JSProperty *prop,
 JSBool
 js_Array(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
 
+
+
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(JSObject *)
+js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, jsval **vector);
+
 JS_END_EXTERN_C
 
 #endif 
