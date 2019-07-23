@@ -593,7 +593,7 @@ ACCESS(fbFetchTransformed)(bits_image_t * pict, int x, int y, int width,
 
     
     adjust (&v, &unit, -(pixman_fixed_1 / 2));
-    
+
     if (pict->common.filter == PIXMAN_FILTER_NEAREST || pict->common.filter == PIXMAN_FILTER_FAST)
     {
 	
@@ -602,7 +602,6 @@ ACCESS(fbFetchTransformed)(bits_image_t * pict, int x, int y, int width,
         if (pict->common.repeat == PIXMAN_REPEAT_NORMAL)
         {
             fbFetchTransformed_Nearest_Normal(pict, width, buffer, mask, maskBits, affine, v, unit);
-
         }
         else if (pict->common.repeat == PIXMAN_REPEAT_PAD)
         {

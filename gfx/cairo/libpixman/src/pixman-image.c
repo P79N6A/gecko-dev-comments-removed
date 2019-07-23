@@ -818,6 +818,10 @@ pixman_image_is_opaque(pixman_image_t *image)
 
         if (image->common.transform)
             return FALSE;
+
+	
+	if (image->type == LINEAR || image->type == CONICAL || image->type == RADIAL)
+	    return FALSE;
     }
 
      return TRUE;
