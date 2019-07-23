@@ -92,7 +92,7 @@ static void oc_sb_create_plane_mapping(oc_sb_map _sb_maps[],
       if(jmax>4)jmax=4;
       else if(jmax<=0)break;
       
-      memset(_sb_maps[sbi][0],0xFF,sizeof(_sb_maps[sbi]));
+      memset(_sb_maps[sbi],0xFF,sizeof(_sb_maps[sbi]));
       
       xfrag=yfrag+x;
       for(i=0;i<imax;i++){
