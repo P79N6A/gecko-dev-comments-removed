@@ -66,9 +66,6 @@ try {
 
 
 function run_test() {
-  
-  return;
-
   var uri1 = uri("http://foo.bar/");
 
   
@@ -113,6 +110,9 @@ function run_test() {
 
   
   bmsvc.setItemTitle(bookmark2id, "new title 2");
+  
+  var bookmark1LastMod = bmsvc.getItemLastModified(bookmark1id);
+  bmsvc.setItemLastModified(bookmark2id, bookmark1LastMod + 1);
 
   
   options = histsvc.getNewQueryOptions();
