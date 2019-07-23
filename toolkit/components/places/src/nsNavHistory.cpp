@@ -1558,7 +1558,7 @@ nsNavHistory::EvaluateQueryForNode(const nsCOMArray<nsNavHistoryQuery>& aQueries
       nsCOMArray<nsNavHistoryQuery> queries;
       queries.AppendObject(query);
       nsCOMArray<nsNavHistoryResultNode> filteredSet;
-      nsresult rv = FilterResultSet(nsnull, inputSet, &filteredSet, queries, aOptions);
+      nsresult rv = FilterResultSet(nsnull, inputSet, &filteredSet, queries);
       if (NS_FAILED(rv))
         continue;
       if (! filteredSet.Count())
@@ -2144,32 +2144,6 @@ PRBool IsHistoryMenuQuery(const nsCOMArray<nsNavHistoryQuery>& aQueries, nsNavHi
   return PR_TRUE;
 }
 
-static
-PRBool NeedToFilterResultSet(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
-                             nsNavHistoryQueryOptions *aOptions)
-{
-  
-  
-  PRUint32 groupCount;
-  const PRUint16 *groupings = aOptions->GroupingMode(&groupCount);
-
-  if (groupCount != 0 || aOptions->ExcludeQueries())
-    return PR_TRUE;
-
-  PRInt32 i;
-  for (i = 0; i < aQueries.Count(); i ++) {
-    if (aQueries[i]->Folders().Length() != 0) {
-      return PR_TRUE;
-    } else {
-      PRBool hasSearchTerms;
-      nsresult rv = aQueries[i]->GetHasSearchTerms(&hasSearchTerms);
-      if (NS_FAILED(rv) || hasSearchTerms)
-        return PR_TRUE;
-    }
-  }
-  return PR_FALSE;
-}
-
 nsresult
 nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                                    nsNavHistoryQueryOptions *aOptions, 
@@ -2180,11 +2154,6 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
       sortingMode > nsINavHistoryQueryOptions::SORT_BY_ANNOTATION_DESCENDING) {
     return NS_ERROR_INVALID_ARG;
   }
-
-  
-  
-  
-  PRBool canLimitInSQL = !NeedToFilterResultSet(aQueries, aOptions);
 
   
   
@@ -2200,11 +2169,8 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
       "(h.id IN (SELECT DISTINCT h.id FROM moz_historyvisits, "
       " moz_places h WHERE place_id = "
       " h.id AND hidden <> 1 AND visit_type <> 4 AND visit_type <> 0 "
-      " ORDER BY visit_date DESC");
-    if (canLimitInSQL) {
-      queryString += NS_LITERAL_CSTRING(" LIMIT ");
-      queryString.AppendInt(aOptions->MaxResults());
-    }
+      " ORDER BY visit_date DESC LIMIT ");
+    queryString.AppendInt(aOptions->MaxResults());
     queryString += NS_LITERAL_CSTRING(")) GROUP BY h.id ORDER BY 6 DESC"); 
     return NS_OK;
   }
@@ -2272,7 +2238,8 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
       "LEFT OUTER JOIN moz_historyvisits v ON b.fk = v.place_id "
       "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id ");
       groupBy = NS_LITERAL_CSTRING(" GROUP BY b.id");
-    } else {
+    }
+    else {
       
       return NS_ERROR_NOT_IMPLEMENTED;
     }
@@ -2368,7 +2335,7 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
   }
 
   
-  if (canLimitInSQL && aOptions->MaxResults() > 0) {
+  if (aOptions->MaxResults() > 0) {
     queryString += NS_LITERAL_CSTRING(" LIMIT ");
     queryString.AppendInt(aOptions->MaxResults());
     queryString.AppendLiteral(" ");
@@ -2425,28 +2392,53 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
 
   
   
-  if (NeedToFilterResultSet(aQueries, aOptions)) {
+  PRBool resultAsList = PR_TRUE;
+  PRUint32 groupCount;
+  const PRUint16 *groupings = aOptions->GroupingMode(&groupCount);
+
+  if (groupCount != 0 || aOptions->ExcludeQueries()) {
+    resultAsList = PR_FALSE;
+  }
+
+  PRInt32 i;
+  for (i = 0; i < aQueries.Count(); i ++) {
+    PRInt32 clauseParameters = 0;
+    rv = BindQueryClauseParameters(statement, numParameters,
+                                   aQueries[i], aOptions, &clauseParameters);
+    NS_ENSURE_SUCCESS(rv, rv);
+    numParameters += clauseParameters;
+    if (resultAsList) {
+      if (aQueries[i]->Folders().Length() != 0) {
+        resultAsList = PR_FALSE;
+      } else {
+        PRBool hasSearchTerms;
+        rv = aQueries[i]->GetHasSearchTerms(&hasSearchTerms);
+        if (hasSearchTerms)
+          resultAsList = PR_FALSE;
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
+  }
+
+  if (resultAsList) {
+    rv = ResultsAsList(statement, aOptions, aResults);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
     
     nsCOMArray<nsNavHistoryResultNode> toplevel;
     rv = ResultsAsList(statement, aOptions, &toplevel);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRUint32 groupCount;
-    const PRUint16 *groupings = aOptions->GroupingMode(&groupCount);
-
     if (groupCount == 0) {
-      FilterResultSet(aResultNode, toplevel, aResults, aQueries, aOptions);
+      FilterResultSet(aResultNode, toplevel, aResults, aQueries);
     } else {
       nsCOMArray<nsNavHistoryResultNode> filteredResults;
-      FilterResultSet(aResultNode, toplevel, &filteredResults, aQueries, aOptions);
+      FilterResultSet(aResultNode, toplevel, &filteredResults, aQueries);
       rv = RecursiveGroup(aResultNode, filteredResults, groupings, groupCount,
                           aResults);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-  } else {
-    rv = ResultsAsList(statement, aOptions, aResults);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } 
+  }
 
   return NS_OK;
 }
@@ -4140,17 +4132,11 @@ nsNavHistory::URIHasTag(nsIURI* aURI, const nsAString& aTag)
 
 
 
-
-
-
-
-
 nsresult
 nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
                               const nsCOMArray<nsNavHistoryResultNode>& aSet,
                               nsCOMArray<nsNavHistoryResultNode>* aFiltered,
-                              const nsCOMArray<nsNavHistoryQuery>& aQueries,
-                              nsNavHistoryQueryOptions *aOptions)
+                              const nsCOMArray<nsNavHistoryQuery>& aQueries)
 {
   nsresult rv;
 
@@ -4274,9 +4260,6 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
     }
     if (appendNode)
       aFiltered->AppendObject(aSet[nodeIndex]);
-      
-    if (aOptions->MaxResults() > 0 && aFiltered->Count() >= aOptions->MaxResults())
-      break;
   }
 
   
