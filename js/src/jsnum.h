@@ -368,8 +368,23 @@ js_ValueToUint16(JSContext *cx, jsval *vp);
 
 
 
-extern jsdouble
-js_DoubleToInteger(jsdouble d);
+static inline jsdouble
+js_DoubleToInteger(jsdouble d)
+{
+    if (d == 0)
+        return d;
+
+    if (!JSDOUBLE_IS_FINITE(d)) {
+        if (JSDOUBLE_IS_NaN(d))
+            return 0;
+        return d;
+    }
+
+    JSBool neg = (d < 0);
+    d = floor(neg ? -d : d);
+
+    return neg ? -d : d;
+}
 
 
 
