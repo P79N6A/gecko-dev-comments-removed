@@ -348,12 +348,14 @@ vbox[typeName="status"][type="header-recommended"] {
 }
 
 
-.viewSelector {
+#topBar {
   border-bottom: 2px groove ThreeDFace;
-  margin: 0px;
-  -moz-padding-start: 10px;
   background-color: -moz-Field;
   color: -moz-FieldText;
+}
+
+#viewGroup {
+  -moz-padding-start: 10px;
 }
 
 #viewGroup radio {
