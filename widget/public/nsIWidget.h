@@ -798,6 +798,8 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
     virtual nsIToolkit* GetToolkit() = 0;    
 
     

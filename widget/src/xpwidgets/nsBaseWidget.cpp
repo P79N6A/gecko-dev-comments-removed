@@ -144,7 +144,8 @@ void nsBaseWidget::BaseCreate(nsIWidget *aParent,
     }
     else {
       if (nsnull != aParent) {
-        mToolkit = (nsIToolkit*)(aParent->GetToolkit()); 
+        mToolkit = aParent->GetToolkit();
+        NS_IF_ADDREF(mToolkit);
       }
       
       
@@ -641,7 +642,6 @@ nsIRenderingContext* nsBaseWidget::GetRenderingContext()
 
 nsIToolkit* nsBaseWidget::GetToolkit()
 {
-  NS_IF_ADDREF(mToolkit);
   return mToolkit;
 }
 
