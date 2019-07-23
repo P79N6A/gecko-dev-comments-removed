@@ -863,9 +863,6 @@ Assembler::asm_call(LInsp ins)
     
     if (_config.arm_vfp && ins->isUsed()) {
         
-        ArgType rsize = (ArgType)(ci->_typesig & ARGTYPE_MASK);
-
-        
         
         if (ci->returnType() == ARGTYPE_F) {
             Register rr = ins->deprecated_getReg();
