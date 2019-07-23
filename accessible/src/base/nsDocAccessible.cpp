@@ -85,7 +85,8 @@ nsIAtom *nsDocAccessible::gLastFocusedFrameType = nsnull;
 
 nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
   nsHyperTextAccessibleWrap(aDOMNode, aShell), mWnd(nsnull),
-  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE), mIsLoadCompleteFired(PR_FALSE)
+  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE),
+  mIsLoadCompleteFired(PR_FALSE), mInFlushPendingEvents(PR_FALSE)
 {
   
   if (!mDOMNode)
@@ -589,7 +590,10 @@ NS_IMETHODIMP nsDocAccessible::Shutdown()
       mEventsToFire.Clear();
       
       
-      NS_RELEASE_THIS();
+      
+      
+      if (!mInFlushPendingEvents)
+        NS_RELEASE_THIS();
     }
   }
 
@@ -1505,6 +1509,7 @@ nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent)
 
 NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
 {
+  mInFlushPendingEvents = PR_TRUE;
   PRUint32 length = mEventsToFire.Count();
   NS_ASSERTION(length, "How did we get here without events to fire?");
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
@@ -1625,7 +1630,8 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
 #endif
           nsCOMPtr<nsIAccessibleCaretMoveEvent> caretMoveEvent =
             new nsAccCaretMoveEvent(accessible, caretOffset);
-          NS_ENSURE_TRUE(caretMoveEvent, NS_ERROR_OUT_OF_MEMORY);
+          if (!caretMoveEvent)
+            break; 
 
           FireAccessibleEvent(caretMoveEvent);
 
@@ -1661,6 +1667,7 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
   
   nsAccEvent::ResetLastInputState();
 
+  mInFlushPendingEvents = PR_FALSE;
   return NS_OK;
 }
 
