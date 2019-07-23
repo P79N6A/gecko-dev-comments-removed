@@ -126,8 +126,10 @@ nsPluginInstance::~nsPluginInstance()
   
   
   
-  mScriptablePeer->SetInstance(NULL);
-  NS_IF_RELEASE(mScriptablePeer);
+  if (mScriptablePeer) {
+    mScriptablePeer->SetInstance(NULL);
+    NS_RELEASE(mScriptablePeer);
+  }
 }
 
 static void
