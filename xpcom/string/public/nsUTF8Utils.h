@@ -576,9 +576,9 @@ class ConvertUTF16toUTF8
                     
                     
                     
-                    *out++ = 0xEF;
-                    *out++ = 0xBF;
-                    *out++ = 0xBD;
+                    *out++ = '\xEF';
+                    *out++ = '\xBF';
+                    *out++ = '\xBD';
 
                     NS_WARNING("String ending in half a surrogate pair!");
 
@@ -603,9 +603,9 @@ class ConvertUTF16toUTF8
                     
                     
                     
-                    *out++ = 0xEF;
-                    *out++ = 0xBF;
-                    *out++ = 0xBD;
+                    *out++ = '\xEF';
+                    *out++ = '\xBF';
+                    *out++ = '\xBD';
 
                     
                     
@@ -623,9 +623,9 @@ class ConvertUTF16toUTF8
               {
                 
                 
-                *out++ = 0xEF;
-                *out++ = 0xBF;
-                *out++ = 0xBD;
+                *out++ = '\xEF';
+                *out++ = '\xBF';
+                *out++ = '\xBD';
 
                 
                 NS_WARNING("got a low Surrogate but no high surrogate");
