@@ -241,6 +241,16 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
         return NS_ERROR_NULL_POINTER;
 
     nsCAutoString temp;
+    mPlugin->GetNativeLeafName(temp);
+    
+
+
+
+    if (!strcmp(temp.get(), "VerifiedDownloadPlugin.plugin")) {
+        NS_WARNING("Preventing load of VerifiedDownloadPlugin.plugin (see bug 436575)");
+        return NS_ERROR_FAILURE;
+    }
+
     mPlugin->GetNativePath(temp);
     path = temp.get();
 
