@@ -706,6 +706,15 @@ _cairo_qpainter_surface_intersect_clip_path (void *abstract_surface,
 
     
     
+    
+    
+
+    Qt::ClipOperation clipMode = Qt::IntersectClip;
+    
+    if (!qs->p->hasClipping()) {
+      qs->p->setClipping(true);
+      clipMode = Qt::ReplaceClip;
+    }
 
     
     
@@ -736,7 +745,7 @@ _cairo_qpainter_surface_intersect_clip_path (void *abstract_surface,
 
         clip_bounds = r;
 
-        qs->p->setClipRect (r, Qt::IntersectClip);
+	qs->p->setClipRect (r, clipMode);
     } else {
         
         
@@ -778,7 +787,7 @@ _cairo_qpainter_surface_intersect_clip_path (void *abstract_surface,
             }
             _cairo_region_fini (region);
 
-            qs->p->setClipRegion (qr, Qt::IntersectClip);
+            qs->p->setClipRegion (qr, clipMode);
         } else {
             
             
@@ -790,7 +799,7 @@ _cairo_qpainter_surface_intersect_clip_path (void *abstract_surface,
             clip_bounds = qpath.boundingRect().toAlignedRect();
 
             
-            qs->p->setClipPath (qpath, Qt::IntersectClip);
+            qs->p->setClipPath (qpath, clipMode);
         }
     }
 
