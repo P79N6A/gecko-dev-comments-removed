@@ -518,15 +518,11 @@ public:
         SET_VPNAME("stack");                                                  \
         vp = StackBase(fp); vpstop = fp->regs->sp;                            \
         while (vp < vpstop) { code; ++vp; INC_VPNUM(); }                      \
-        if (fsp < fspstop - 1) {                                              \
-            JSStackFrame* fp2 = fsp[1];                                       \
-            int missing = fp2->fun->nargs - fp2->argc;                        \
-            if (missing > 0) {                                                \
-                SET_VPNAME("missing");                                        \
-                vp = fp->regs->sp;                                            \
-                vpstop = vp + missing;                                        \
-                while (vp < vpstop) { code; ++vp; INC_VPNUM(); }              \
-            }                                                                 \
+        if (depth != 0) {                                                     \
+            SET_VPNAME("missing");                                            \
+            vp = fp->down->regs->sp;                                          \
+            vpstop = vp + (fp->fun->nargs - fp->argc);                        \
+            while (vp < vpstop) { code; ++vp; INC_VPNUM(); }                  \
         }                                                                     \
     JS_END_MACRO
 
@@ -549,7 +545,7 @@ public:
         for (;; fp = fp->down) { *fsp-- = fp; if (fp == entryFrame) break; }  \
         unsigned depth;                                                       \
         for (depth = 0, fsp = fstack; fsp < fspstop; ++fsp, ++depth) {        \
-            fp = *fsp;                                                        \
+            fp = (*fsp);                                                      \
             FORALL_FRAME_SLOTS(fp, depth, code);                              \
         }                                                                     \
     JS_END_MACRO
@@ -641,7 +637,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
     eos_ins = addName(lir->insLoadi(lirbuf->state, offsetof(InterpState, eos)), "eos");
 
     
-    import(ngslots, globalTypeMap, stackTypeMap); 
+    import(ngslots, callDepth, globalTypeMap, stackTypeMap); 
 }
 
 TraceRecorder::~TraceRecorder()
@@ -742,14 +738,10 @@ done:
         if (size_t(p - spbase) < size_t(fp->regs->sp - spbase))
             RETURN(offset + size_t(p - spbase) * sizeof(double));
         offset += size_t(fp->regs->sp - spbase) * sizeof(double);
-        if (fsp < fspstop - 1) {
-            JSStackFrame* fp2 = fsp[1];
-            int missing = fp2->fun->nargs - fp2->argc;
-            if (missing > 0) {
-                if (size_t(p - fp->regs->sp) < size_t(missing))
-                    RETURN(offset + size_t(p - fp->regs->sp) * sizeof(double));
-                offset += size_t(missing) * sizeof(double);
-            }
+        if (fsp != fstack) {
+            if (size_t(p - fp->down->regs->sp) < size_t(fp->fun->nargs - fp->argc))
+                RETURN(offset + size_t(p - fp->down->regs->sp) * sizeof(double));
+            offset += size_t(fp->fun->nargs - fp->argc) * sizeof(double);
         }
     }
 
@@ -1026,7 +1018,8 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
 }
 
 void
-TraceRecorder::import(unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap)
+TraceRecorder::import(unsigned ngslots, unsigned callDepth, 
+                      uint8* globalTypeMap, uint8* stackTypeMap)
 {
     
     uint16* gslots = treeInfo->globalSlots.data();
@@ -1328,6 +1321,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 void
 TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 {
+    TreeInfo* ti = (TreeInfo*)inner->vmprivate;
     
 
 
@@ -1336,6 +1330,12 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
         
 
         unsigned sp_adj = nativeStackSlots(callDepth - 1, cx->fp->down) * sizeof(double);
+        
+
+        LIns* sp_top = lir->ins2i(LIR_add, lirbuf->sp, sp_adj + 
+                ti->maxNativeStackSlots * sizeof(double));
+        guard(true, lir->ins2(LIR_lt, sp_top, eos_ins), OOM_EXIT);
+        
         lir->insStorei(lir->ins2i(LIR_add, lirbuf->sp, sp_adj), 
                 lirbuf->state, offsetof(InterpState, sp));
     }
@@ -1343,17 +1343,17 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     LIns* args[] = { lir->insImmPtr(inner), lirbuf->state }; 
     LIns* ret = lir->insCall(F_CallTree, args);
     
-    ((TreeInfo*)inner->vmprivate)->dependentTrees.addUnique(fragment);
+    ti->dependentTrees.addUnique(fragment);
     
     SideExit* exit = lr->exit;
-    import(exit->numGlobalSlots, exit->typeMap, exit->typeMap + exit->numGlobalSlots);
-    
-
-    guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
-    
+    import(exit->numGlobalSlots, exit->calldepth, 
+           exit->typeMap, exit->typeMap + exit->numGlobalSlots);
     
     if (callDepth > 0)
         lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
+    
+
+    guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
 }
 
 int
@@ -2296,6 +2296,7 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     if (!prop) {
         
         
+        JS_ASSERT(aobj == obj);
         obj2 = obj;
         pcval = PCVAL_NULL;
         return true;
@@ -2622,19 +2623,10 @@ TraceRecorder::record_EnterFrame()
         ABORT_TRACE("exceeded maximum call depth");
     JSStackFrame* fp = cx->fp;
     LIns* void_ins = lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_VOID));
-
-    jsval* vp = &fp->argv[fp->argc];
-    jsval* vpstop = vp + (fp->fun->nargs - fp->argc);
-    while (vp < vpstop) {
-        if (vp >= fp->down->regs->sp)
-            nativeFrameTracker.set(vp, (LIns*)0);
-        set(vp++, void_ins, true);
-    }
-
-    vp = &fp->slots[0];
-    vpstop = vp + fp->script->nfixed;
-    while (vp < vpstop)
-        set(vp++, void_ins, true);
+    for (uintN n = fp->argc; n < fp->fun->nargs; ++n)
+        set(&fp->argv[n], void_ins, true);
+    for (uintN n = 0; n < fp->script->nfixed; ++n)
+        set(&fp->slots[n], void_ins, true);
     return true;
 }
 
