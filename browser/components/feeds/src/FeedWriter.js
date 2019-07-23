@@ -1023,6 +1023,7 @@ FeedWriter.prototype = {
     
     menuItem = this._document.createElementNS(XUL_NS, "menuitem");
     menuItem.id = "chooseApplicationMenuItem";
+    menuItem.className = "menuitem-iconic";
     menuItem.setAttribute("label", this._getString("chooseApplicationMenuItem"));
 
     this._contentSandbox.chooseAppMenuItem = menuItem;
