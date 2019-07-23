@@ -911,7 +911,19 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
-  SetContentEmpty(0 == kidSize.height);
+  nsIFrame* prevInFlow = GetPrevInFlow();
+  PRBool isEmpty;
+  if (prevInFlow) {
+    isEmpty = static_cast<nsTableCellFrame*>(prevInFlow)->GetContentEmpty();
+  } else {
+    
+    
+    
+    
+    
+    isEmpty = kidSize.height == 0;
+  }
+  SetContentEmpty(isEmpty);
 
   
   FinishReflowChild(firstKid, aPresContext, &kidReflowState, kidSize,

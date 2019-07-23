@@ -798,7 +798,8 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
   PRInt32 prevColIndex  = firstPrevColIndex;
   nscoord x = 0; 
 
-  nscoord paginatedHeight = 0;
+  
+  nscoord cellMaxHeight = 0;
 
   
   for (nsIFrame* kidFrame = iter.First(); kidFrame; kidFrame = iter.Next()) {
@@ -946,10 +947,10 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
         UpdateHeight(desiredSize.height, ascent, descent, &aTableFrame, cellFrame);
       }
       else {
-        paginatedHeight = PR_MAX(paginatedHeight, desiredSize.height);
+        cellMaxHeight = PR_MAX(cellMaxHeight, desiredSize.height);
         PRInt32 rowSpan = aTableFrame.GetEffectiveRowSpan((nsTableCellFrame&)*kidFrame);
         if (1 == rowSpan) {
-          SetContentHeight(paginatedHeight);
+          SetContentHeight(cellMaxHeight);
         }
       }
 
@@ -1010,12 +1011,14 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
     }
   }
   else { 
-    aDesiredSize.height = paginatedHeight;
-    if (aDesiredSize.height <= aReflowState.availableHeight) {
-      nscoord height = CalcHeightFromUnpaginatedHeight(aPresContext, *this);
-      aDesiredSize.height = PR_MAX(aDesiredSize.height, height);
-      aDesiredSize.height = PR_MIN(aDesiredSize.height, aReflowState.availableHeight);
+    
+    
+    nscoord styleHeight = CalcHeightFromUnpaginatedHeight(aPresContext, *this);
+    if (styleHeight > aReflowState.availableHeight) {
+      styleHeight = aReflowState.availableHeight;
+      NS_FRAME_SET_INCOMPLETE(aStatus);
     }
+    aDesiredSize.height = PR_MAX(cellMaxHeight, styleHeight);
   }
   nsRect rowRect(0, 0, aDesiredSize.width, aDesiredSize.height);
   aDesiredSize.mOverflowArea.UnionRect(aDesiredSize.mOverflowArea, rowRect);
