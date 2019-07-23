@@ -1616,6 +1616,7 @@ nsNavHistory::MigrateV8Up(mozIStorageConnection *aDBConn)
       "DROP TRIGGER IF EXISTS moz_historyvisits_afterdelete_v1_trigger"));
   NS_ENSURE_SUCCESS(rv, rv);
 
+
   
   rv = mDBConn->ExecuteSimpleSQL(
     NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_places_titleindex"));
@@ -1623,6 +1624,33 @@ nsNavHistory::MigrateV8Up(mozIStorageConnection *aDBConn)
   rv = mDBConn->ExecuteSimpleSQL(
     NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_annos_item_idindex"));
   NS_ENSURE_SUCCESS(rv, rv);
+
+
+  
+  PRBool oldIndexExists = PR_FALSE;
+  rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_annos_attributesindex"), &oldIndexExists);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (oldIndexExists) {
+    
+    rv = mDBConn->ExecuteSimpleSQL(
+        NS_LITERAL_CSTRING("DROP INDEX moz_annos_attributesindex"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mDBConn->ExecuteSimpleSQL(
+      NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_annos_placeattributeindex ON moz_annos (place_id, anno_attribute_id)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mDBConn->ExecuteSimpleSQL(
+        NS_LITERAL_CSTRING("DROP INDEX IF EXISTS moz_items_annos_attributesindex"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mDBConn->ExecuteSimpleSQL(
+      NS_LITERAL_CSTRING("CREATE UNIQUE INDEX moz_items_annos_itemattributeindex ON moz_items_annos (item_id, anno_attribute_id)"));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return transaction.Commit();
 }
@@ -1711,46 +1739,6 @@ nsNavHistory::EnsureCurrentSchema(mozIStorageConnection* aDBConn, PRBool* aDidMi
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return NS_OK;
-}
-
-nsresult
-nsNavHistory::CleanUpOnQuit()
-{
-  
-  PRBool oldIndexExists = PR_FALSE;
-  nsresult rv = mDBConn->IndexExists(NS_LITERAL_CSTRING("moz_annos_attributesindex"),
-                            &oldIndexExists);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (oldIndexExists) {
-    
-    mozStorageTransaction annoIndexTransaction(mDBConn, PR_FALSE);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX moz_annos_attributesindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "CREATE UNIQUE INDEX moz_annos_placeattributeindex "
-          "ON moz_annos (place_id, anno_attribute_id)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_items_annos_attributesindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "CREATE UNIQUE INDEX moz_items_annos_itemattributeindex "
-        "ON moz_items_annos (item_id, anno_attribute_id)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = annoIndexTransaction.Commit();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
   return NS_OK;
 }
 
@@ -5276,11 +5264,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 
     
     mExpire.OnQuit();
-
-    
-    
-    
-    (void)CleanUpOnQuit();
 
     
     nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
