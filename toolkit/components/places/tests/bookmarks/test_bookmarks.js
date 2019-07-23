@@ -571,7 +571,6 @@ function run_test() {
     options.excludeQueries = 1;
     options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
     var query = histsvc.getNewQuery();
-    query.onlyBookmarked = true;
     query.searchTerms = "ZZZXXXYYY";
     var result = histsvc.executeQuery(query, options);
     var rootNode = result.root;
@@ -594,7 +593,6 @@ function run_test() {
     options.excludeQueries = 1;
     options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
     var query = histsvc.getNewQuery();
-    query.onlyBookmarked = true;
     query.searchTerms = "ZZZXXXYYY";
     var result = histsvc.executeQuery(query, options);
     var rootNode = result.root;
