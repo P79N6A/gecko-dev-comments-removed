@@ -794,7 +794,7 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
     if (aLastRS != &aReflowState) {
       
       
-      NS_ASSERTION(aLastRS->frame->GetStyleDisplay()->IsBlockLevel(),
+      NS_ASSERTION(aLastRS->frame->GetStyleDisplay()->IsBlockOutside(),
                    "Wrapping frame should be block-level");
       
       
@@ -2283,7 +2283,7 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
   NS_ABORT_IF_FALSE(fromLine->GetChildCount(), "empty line");
   NS_ABORT_IF_FALSE(aLine->GetChildCount(), "empty line");
 
-  NS_ASSERTION(fromLine->IsBlock() == fromLine->mFirstChild->GetStyleDisplay()->IsBlockLevel(),
+  NS_ASSERTION(fromLine->IsBlock() == fromLine->mFirstChild->GetStyleDisplay()->IsBlockOutside(),
                "Disagreement about whether it's a block or not");
 
   if (fromLine->IsBlock()) {
@@ -4732,7 +4732,7 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
   
   nsIFrame* newFrame = aFrameList;
   while (newFrame) {
-    PRBool isBlock = nsLineLayout::TreatFrameAsBlock(newFrame);
+    PRBool isBlock = newFrame->GetStyleDisplay()->IsBlockOutside();
 
     
     

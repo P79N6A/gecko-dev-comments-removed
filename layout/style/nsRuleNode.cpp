@@ -2922,8 +2922,7 @@ nsRuleNode::ComputeDisplayData(nsStyleStruct* aStartStruct,
         displayValue != NS_STYLE_DISPLAY_INLINE &&
         displayValue != NS_STYLE_DISPLAY_INLINE_BLOCK) {
       inherited = PR_TRUE;
-      
-      if (parentDisplay->IsBlockLevel() ||
+      if (parentDisplay->IsBlockOutside() ||
           parentDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK ||
           parentDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL ||
           parentDisplay->mDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION) {
