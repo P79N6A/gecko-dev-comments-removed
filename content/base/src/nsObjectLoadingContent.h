@@ -341,6 +341,15 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
+
+
+    static void
+      UpdateFallbackState(nsIContent* aContent, AutoFallback& fallback,
+                          const nsCString& aTypeHint);
+
+    
+
+
     nsCOMPtr<nsIStreamListener> mFinalListener;
 
     

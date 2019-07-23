@@ -876,6 +876,24 @@ IsAboutBlank(nsIURI* aURI)
   return str.EqualsLiteral("about:blank");  
 }
 
+void
+nsObjectLoadingContent::UpdateFallbackState(nsIContent* aContent,
+                                            AutoFallback& fallback,
+                                            const nsCString& aTypeHint)
+{
+  PluginSupportState pluginState = GetPluginDisabledState(aTypeHint);
+  if (pluginState == ePluginUnsupported) {
+    
+    
+    FirePluginError(aContent, PR_FALSE);
+    fallback.TypeUnsupported();
+  }
+  else if (pluginState == ePluginBlocklisted) {
+    
+    FirePluginError(aContent, PR_TRUE);
+  }
+}
+
 nsresult
 nsObjectLoadingContent::LoadObject(nsIURI* aURI,
                                    PRBool aNotify,
@@ -1053,17 +1071,7 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
         NS_NOTREACHED("Should not have a loading type here!");
       case eType_Null:
         
-        PluginSupportState pluginState = GetPluginSupportState(thisContent,
-                                                               aTypeHint);
-        if (pluginState == ePluginUnsupported ||
-            pluginState == ePluginBlocklisted) {
-          FirePluginError(thisContent, pluginState == ePluginBlocklisted);
-        }
-        if (pluginState != ePluginDisabled &&
-            pluginState != ePluginBlocklisted) {
-          fallback.TypeUnsupported();
-        }
-
+        UpdateFallbackState(thisContent, fallback, aTypeHint);
         break;
     };
     return NS_OK;
@@ -1127,19 +1135,34 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
     
     LOG(("OBJLC [%p]: no URI\n", this));
     rv = NS_ERROR_NOT_AVAILABLE;
+
+    
+    
+    if (!aTypeHint.IsEmpty()) {
+      UpdateFallbackState(thisContent, fallback, aTypeHint);
+    }
+
     return NS_OK;
   }
 
+  
   if (!CanHandleURI(aURI)) {
     LOG(("OBJLC [%p]: can't handle URI\n", this));
     if (aTypeHint.IsEmpty()) {
       rv = NS_ERROR_NOT_AVAILABLE;
       return NS_OK;
     }
-    
-    mType = eType_Plugin;
 
-    rv = TryInstantiate(aTypeHint, aURI);
+    if (IsSupportedPlugin(aTypeHint)) {
+      mType = eType_Plugin;
+
+      rv = TryInstantiate(aTypeHint, aURI);
+    } else {
+      rv = NS_ERROR_NOT_AVAILABLE;
+      
+      UpdateFallbackState(thisContent, fallback, aTypeHint);
+    }
+
     return NS_OK;
   }
 
