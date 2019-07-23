@@ -426,6 +426,8 @@ var PlacesUIUtils = {
 
 
 
+
+
   showAddBookmarkUI: function PU_showAddBookmarkUI(aURI,
                                                    aTitle,
                                                    aDescription,
@@ -433,7 +435,8 @@ var PlacesUIUtils = {
                                                    aShowPicker,
                                                    aLoadInSidebar,
                                                    aKeyword,
-                                                   aPostData) {
+                                                   aPostData,
+                                                   aCharSet) {
     var info = {
       action: "add",
       type: "bookmark"
@@ -462,6 +465,8 @@ var PlacesUIUtils = {
       info.keyword = aKeyword;
       if (typeof(aPostData) == "string")
         info.postData = aPostData;
+      if (typeof(aCharSet) == "string")
+        info.charSet = aCharSet;
     }
 
     return this._showBookmarkDialog(info);
@@ -481,7 +486,8 @@ var PlacesUIUtils = {
   showMinimalAddBookmarkUI:
   function PU_showMinimalAddBookmarkUI(aURI, aTitle, aDescription,
                                        aDefaultInsertionPoint, aShowPicker,
-                                       aLoadInSidebar, aKeyword, aPostData) {
+                                       aLoadInSidebar, aKeyword, aPostData,
+                                       aCharSet) {
     var info = {
       action: "add",
       type: "bookmark",
@@ -510,6 +516,8 @@ var PlacesUIUtils = {
       info.keyword = aKeyword;
       if (typeof(aPostData) == "string")
         info.postData = aPostData;
+      if (typeof(aCharSet) == "string")
+        info.charSet = aCharSet;
     }
     else
       info.hiddenRows.push("keyword");

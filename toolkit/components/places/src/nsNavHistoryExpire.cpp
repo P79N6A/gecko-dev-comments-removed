@@ -635,12 +635,13 @@ nsNavHistoryExpire::EraseHistory(mozIStorageConnection* aConnection,
     NS_LITERAL_CSTRING("DELETE FROM moz_places WHERE id IN( "
       "SELECT h.id "
       "FROM moz_places h "
-      "LEFT OUTER JOIN moz_historyvisits v ON v.place_id = h.id "
-      "LEFT OUTER JOIN moz_annos a ON a.place_id = h.id "
-      "WHERE h.id IN(") + deletedPlaceIds +
-      NS_LITERAL_CSTRING(") AND v.place_id IS NULL AND (a.expiration <> ") +
-      nsPrintfCString("%d", nsIAnnotationService::EXPIRE_NEVER) +
-      NS_LITERAL_CSTRING(" OR a.expiration IS NULL))"));
+      "WHERE h.id IN(") +
+        deletedPlaceIds +
+        NS_LITERAL_CSTRING(") AND NOT EXISTS "
+          "(SELECT id FROM moz_historyvisits WHERE place_id = h.id LIMIT 1) "
+          "AND NOT EXISTS "
+          "(SELECT id FROM moz_bookmarks WHERE fk = h.id LIMIT 1) "
+          "AND SUBSTR(h.url,0,6) <> 'place:')"));
 }
 
 
@@ -786,6 +787,15 @@ nsNavHistoryExpire::ExpireAnnotations(mozIStorageConnection* aConnection)
   rv = expireItemsStatement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  rv = aConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_annos WHERE expiration = ") +
+        nsPrintfCString("%d", nsIAnnotationService::EXPIRE_WITH_HISTORY) +
+        NS_LITERAL_CSTRING(" AND NOT EXISTS "
+          "(SELECT id FROM moz_historyvisits "
+          "WHERE place_id = moz_annos.place_id LIMIT 1)"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -831,15 +841,12 @@ nsresult
 nsNavHistoryExpire::ExpireHistoryParanoid(mozIStorageConnection* aConnection,
                                           PRInt32 aMaxRecords)
 {
-  nsCAutoString query = NS_LITERAL_CSTRING(
+  nsCAutoString query(
     "DELETE FROM moz_places WHERE id IN ("
       "SELECT h.id FROM moz_places h "
         "LEFT OUTER JOIN moz_historyvisits v ON h.id = v.place_id "
         "LEFT OUTER JOIN moz_bookmarks b ON h.id = b.fk "
-        "LEFT OUTER JOIN moz_annos a ON h.id = a.place_id "
-      "WHERE v.id IS NULL AND b.id IS NULL AND (a.expiration != ") +
-      nsPrintfCString("%d", nsIAnnotationService::EXPIRE_NEVER) +
-      NS_LITERAL_CSTRING(" OR a.id IS NULL) AND SUBSTR(h.url,0,6) <> 'place:'");
+      "WHERE v.id IS NULL AND b.id IS NULL AND SUBSTR(h.url,0,6) <> 'place:'");
   if (aMaxRecords != -1) {
     query.AppendLiteral(" LIMIT ");
     query.AppendInt(aMaxRecords);
@@ -900,45 +907,43 @@ nsNavHistoryExpire::ExpireAnnotationsParanoid(mozIStorageConnection* aConnection
   
   
   
+  
+  
+  
   nsCAutoString charsetAnno("URIProperties/characterSet");
+  
+  
+  
+  
+  nsCOMPtr<mozIStorageStatement> migrateCharsetStatement;
+  rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
+        "INSERT OR REPLACE INTO moz_annos "
+        "SELECT null, b.fk, t.anno_attribute_id, t.mime_type, t.content, "
+          "t.flags, t.expiration, t.type, t.dateAdded, t.lastModified "
+        "FROM moz_items_annos t "
+          "JOIN moz_anno_attributes n ON t.anno_attribute_id = n.id "
+          "JOIN moz_bookmarks b ON b.id = t.item_id "
+        "WHERE n.name = ?1 "
+        "GROUP BY b.fk, t.anno_attribute_id"),
+      getter_AddRefs(migrateCharsetStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = migrateCharsetStatement->BindUTF8StringParameter(0, charsetAnno);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = migrateCharsetStatement->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  
-  nsCOMPtr<mozIStorageStatement> migrateStatement;
+  nsCOMPtr<mozIStorageStatement> deleteCharsetStatement;
   rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-        "INSERT INTO moz_items_annos "
-        "SELECT null, b.id, a.anno_attribute_id, a.mime_type, a.content, "
-        " a.flags, a.expiration, a.type, a.dateAdded, a.lastModified "
-        "FROM moz_annos a "
-        "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
-        "JOIN moz_bookmarks b ON b.fk = a.place_id "
-        "WHERE b.id IS NOT NULL AND n.name = ?1 AND a.expiration = ") +
-        nsPrintfCString("%d", nsIAnnotationService::EXPIRE_NEVER),
-      getter_AddRefs(migrateStatement));
+    "DELETE FROM moz_items_annos WHERE id IN "
+      "(SELECT t.id FROM moz_items_annos t "
+        "JOIN moz_anno_attributes n ON t.anno_attribute_id = n.id "
+        "WHERE n.name = ?1)"),
+    getter_AddRefs(deleteCharsetStatement));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = migrateStatement->BindUTF8StringParameter(0, charsetAnno);
+  rv = deleteCharsetStatement->BindUTF8StringParameter(0, charsetAnno);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = migrateStatement->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  nsCOMPtr<mozIStorageStatement> cleanupStatement;
-  rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-        "DELETE FROM moz_annos WHERE id IN "
-        "(SELECT a.id FROM moz_annos a "
-        "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
-        "JOIN moz_bookmarks b ON b.fk = a.place_id "
-        "WHERE b.id IS NOT NULL AND n.name = ?1 AND a.expiration = ") +
-        nsPrintfCString("%d", nsIAnnotationService::EXPIRE_NEVER) +
-        NS_LITERAL_CSTRING(")"),
-      getter_AddRefs(cleanupStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = cleanupStatement->BindUTF8StringParameter(0, charsetAnno);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = cleanupStatement->Execute();
+  rv = deleteCharsetStatement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
   

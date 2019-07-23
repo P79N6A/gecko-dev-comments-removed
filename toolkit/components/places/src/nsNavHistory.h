@@ -86,6 +86,8 @@
 #include "nsNavHistoryResult.h"
 #include "nsNavHistoryQuery.h"
 
+#include "nsICharsetResolver.h"
+
 
 
 
@@ -122,7 +124,8 @@ class nsNavHistory : public nsSupportsWeakReference,
                      public nsIObserver,
                      public nsIBrowserHistory,
                      public nsIGlobalHistory3,
-                     public nsIDownloadHistory
+                     public nsIDownloadHistory,
+                     public nsICharsetResolver
 #ifdef MOZ_XUL
                      , public nsIAutoCompleteSearch,
                      public nsIAutoCompleteSimpleResultListener
@@ -410,6 +413,9 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
   nsCOMPtr<mozIStorageStatement> mDBUrlToUrlResult; 
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
+
+  
+  NS_DECL_NSICHARSETRESOLVER
 
   
 

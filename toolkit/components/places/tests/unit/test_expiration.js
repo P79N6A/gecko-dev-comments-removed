@@ -39,31 +39,39 @@
 
 
 
+
 try {
-  var bhist = Cc["@mozilla.org/browser/global-history;2"].getService(Ci.nsIBrowserHistory);
+  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                getService(Ci.nsINavHistoryService);
+  var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
+  var ghist = Cc["@mozilla.org/browser/global-history;2"].
+              getService(Ci.nsIGlobalHistory2);
 } catch(ex) {
-  do_throw("Could not get history service\n");
-} 
+  do_throw("Could not get history services\n");
+}
 
 
 try {
-  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
-} catch(ex) {
-  do_throw("Could not get history service\n");
-} 
-
-
-try {
-  var annosvc= Cc["@mozilla.org/browser/annotation-service;1"].getService(Ci.nsIAnnotationService);
+  var annosvc = Cc["@mozilla.org/browser/annotation-service;1"].
+                getService(Ci.nsIAnnotationService);
 } catch(ex) {
   do_throw("Could not get annotation service\n");
-} 
+}
 
 
 try {
-  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].getService(Ci.nsINavBookmarksService);
+  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+              getService(Ci.nsINavBookmarksService);
 } catch(ex) {
   do_throw("Could not get nav-bookmarks-service\n");
+}
+
+
+try {
+  var prefs = Cc["@mozilla.org/preferences-service;1"].
+              getService(Ci.nsIPrefBranch);
+} catch(ex) {
+  do_throw("Could not get prefs service\n");
 }
 
 
@@ -98,13 +106,15 @@ var observer = {
 histsvc.addObserver(observer, false);
 
 
-var dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
+var dirService = Cc["@mozilla.org/file/directory_service;1"].
+                 getService(Ci.nsIProperties);
 var dbFile = dirService.get("ProfD", Ci.nsIFile);
 dbFile.append("places.sqlite");
 
-var dbService = Cc["@mozilla.org/storage/service;1"].getService(Ci.mozIStorageService);
+var dbService = Cc["@mozilla.org/storage/service;1"].
+                getService(Ci.mozIStorageService);
 var dbConnection = dbService.openDatabase(dbFile);
-  
+
 
 var testURI = uri("http://mozilla.com");
 var testAnnoName = "tests/expiration/history";
@@ -121,13 +131,21 @@ function run_test() {
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
   annosvc.setPageAnnotation(testURI, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+
   bhist.removePagesFromHost("mozilla.com", false);
+
   do_check_eq(bmsvc.getBookmarkURI(bookmark).spec, testURI.spec);
+  
   try {
     annosvc.getPageAnnotation(testAnnoName + "Hist");
-    do_throw("nsIBrowserHistory.removePagesFromHost() didn't remove an EXPIRE_WITH_HISTORY annotation");
+    do_throw("removePagesFromHost() didn't remove an EXPIRE_WITH_HISTORY annotation");
   } catch(ex) {}
+  
   do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName + "Never"), testAnnoVal);
+  
+  do_check_eq(histsvc.getPageTitle(testURI), "mozilla.com");
+
+  
   annosvc.removePageAnnotation(testURI, testAnnoName + "Never");
 
   
@@ -138,53 +156,83 @@ function run_test() {
   var removeAllTestURINever = uri("http://removeallpagesnever.com");
   histsvc.addVisit(removeAllTestURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   var bmURI = uri("http://bookmarked");
-  bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, bmURI, bmsvc.DEFAULT_INDEX, "foo");
-  
+  var bookmark2 = bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, bmURI, bmsvc.DEFAULT_INDEX, "foo");
   var placeURI = uri("place:folder=23");
   bhist.addPageWithDetails(placeURI, "place uri", Date.now() * 1000);
   annosvc.setPageAnnotation(removeAllTestURI, testAnnoName + "Hist", testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
   annosvc.setPageAnnotation(removeAllTestURINever, testAnnoName + "Never", testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+
   bhist.removeAllPages();
+
+  
   try {
     annosvc.getPageAnnotation(removeAllTestURI, testAnnoName + "Hist");
     do_throw("nsIBrowserHistory.removeAllPages() didn't remove an EXPIRE_WITH_HISTORY annotation");
   } catch(ex) {}
-  
-  do_check_eq(histsvc.getPageTitle(removeAllTestURI), null);
   try {
-    do_check_eq(annosvc.getPageAnnotation(removeAllTestURINever, testAnnoName + "Never"), testAnnoVal);
-    annosvc.removePageAnnotation(removeAllTestURINever, testAnnoName + "Never");
-  } catch(ex) {
-    do_throw("nsIBrowserHistory.removeAllPages deleted EXPIRE_NEVER annos!");
-  }
-  
-  do_check_neq(histsvc.getPageTitle(removeAllTestURINever), null);
+    annosvc.getPageAnnotation(removeAllTestURINever, testAnnoName + "Never");
+    do_throw("nsIBrowserHistory.removePagesFromHost() didn't remove an EXPIRE_NEVER annotation");
+  } catch(ex) {}
   
   do_check_neq(histsvc.getPageTitle(placeURI), null);
   
   do_check_neq(histsvc.getPageTitle(bmURI), null);
 
   
+  bmsvc.removeItem(bookmark2);
+
+  
+
+
+
 
 
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
   annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
-  histsvc.removeAllPages();
+  
+  var expireNeverURI = uri("http://expiremenever.com");
+  histsvc.addVisit(expireNeverURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
+  annosvc.setPageAnnotation(expireNeverURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
+
+  histsvc.removeAllPages();  
+
   
   do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName), testAnnoVal);
   do_check_eq(annosvc.getItemAnnotation(bookmark, testAnnoName), testAnnoVal);
+  
+    try {
+    annosvc.getPageAnnotation(expireNeverURI, testAnnoName);
+    do_throw("nsIBrowserHistory.removeAllPages() didn't remove an EXPIRE_NEVER annotation");
+  } catch(ex) {}
+
+  
   annosvc.removeItemAnnotation(bookmark, testAnnoName);
+  annosvc.removePageAnnotation(testURI, testAnnoName);
 
   
 
 
+
+
+
+
+  
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
   annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  
+  try {
+    annosvc.setItemAnnotation(bookmark, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+    do_throw("I was able to set an EXPIRE_WITH_HISTORY anno on a bookmark");
+  } catch(ex) {}
+
   histsvc.removeAllPages();
+
+  
   try {
     annosvc.getPageAnnotation(testURI, testAnnoName);
-    do_throw("page still had expire_with_history anno");
+    do_throw("page still had expire_with_history page anno");
   } catch(ex) {}
 
   
@@ -442,6 +490,11 @@ function run_test() {
     do_throw("bookmark lost a days anno that was modified 8 days ago");
   } catch(ex) {}
 
+  
+  bmsvc.removeItem(bookmark);
+  annosvc.removePageAnnotations(testURI);
+  annosvc.removePageAnnotations(triggerURI);
+
   startIncrementalExpirationTests();
 }
 
@@ -451,9 +504,6 @@ function run_test() {
 function startIncrementalExpirationTests() {
   startExpireNeither();
 }
-
-var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
-var ghist = Cc["@mozilla.org/browser/global-history;2"].getService(Ci.nsIGlobalHistory2);
 
 
 
@@ -484,7 +534,7 @@ function startExpireNeither() {
 
   
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_sites", 2);
@@ -541,7 +591,7 @@ function startExpireDaysOnly() {
 
   
   histsvc.addVisit(testURI, (Date.now() - (86400 * 2 * 1000)) * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   histsvc.addVisit(uri("http://unexpirable.com"), (Date.now() - (86400 * 1000)) * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
@@ -604,7 +654,7 @@ function startExpireBoth() {
   var age = (Date.now() - (86400 * 2 * 1000)) * 1000;
   dump("AGE: " + age + "\n");
   histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_sites", 1);
@@ -615,7 +665,7 @@ function startExpireBoth() {
 
   
   histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   do_timeout(3600, "checkExpireBoth();"); 
@@ -661,7 +711,7 @@ function startExpireNeitherOver() {
 
   
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_sites", 1);
@@ -672,7 +722,7 @@ function startExpireNeitherOver() {
 
   
   histsvc.addVisit(triggerURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(triggerURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   do_timeout(3600, "checkExpireNeitherOver();"); 
@@ -716,7 +766,7 @@ function startExpireHistoryDisabled() {
 
   
   histsvc.addVisit(testURI, Date.now() * 1000, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_days", 0);
@@ -764,7 +814,7 @@ function startExpireBadPrefs() {
   
   var age = (Date.now() - (86400 * 10 * 1000)) * 1000;
   histsvc.addVisit(testURI, age, null, histsvc.TRANSITION_TYPED, false, 0);
-  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_WITH_HISTORY);
+  annosvc.setPageAnnotation(testURI, testAnnoName, testAnnoVal, 0, annosvc.EXPIRE_NEVER);
 
   
   prefs.setIntPref("browser.history_expire_days_min", 20);
