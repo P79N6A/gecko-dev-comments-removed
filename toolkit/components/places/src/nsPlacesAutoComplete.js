@@ -322,6 +322,10 @@ function nsPlacesAutoComplete()
       "LEFT JOIN moz_places_temp h_t ON h_t.id = i.place_id " +
       "LEFT JOIN moz_favicons f ON f.id = IFNULL(h_t.favicon_id, h.favicon_id) "+
       "WHERE IFNULL(h_t.url, h.url) NOTNULL " +
+      "AND AUTOCOMPLETE_MATCH(:searchString, 0 /* url */, " +
+                             "IFNULL(bookmark, 1 /* title */), tags, " +
+                             "6 /* visit_count */, 7 /* typed */, parent, " +
+                             ":matchBehavior, :searchBehavior) " +
       "ORDER BY rank DESC, IFNULL(h_t.frecency, h.frecency) DESC"
     );
   });
@@ -484,8 +488,11 @@ nsPlacesAutoComplete.prototype = {
     if (this._matchBehavior == MATCH_BOUNDARY_ANYWHERE &&
         this._result.matchCount < this._maxRichResults && !this._secondPass) {
       this._secondPass = true;
-      let query = this._getBoundSearchQuery(MATCH_ANYWHERE, this._searchTokens);
-      this._executeQueries([query]);
+      let queries = [
+        this._getBoundAdaptiveQuery(MATCH_ANYWHERE),
+        this._getBoundSearchQuery(MATCH_ANYWHERE, this._searchTokens),
+      ];
+      this._executeQueries(queries);
       return;
     }
 
@@ -827,13 +834,19 @@ nsPlacesAutoComplete.prototype = {
 
 
 
-  _getBoundAdaptiveQuery: function PAC_getBoundAdaptiveQuery()
+  _getBoundAdaptiveQuery: function PAC_getBoundAdaptiveQuery(aMatchBehavior)
   {
+    
+    if (arguments.length == 0)
+      aMatchBehavior = this._matchBehavior;
+
     let query = this._adaptiveQuery;
     let (params = query.params) {
       params.parent = this._bs.tagsFolder;
       params.search_string = this._currentSearchString;
       params.query_type = kQueryTypeFiltered;
+      params.matchBehavior = aMatchBehavior;
+      params.searchBehavior = this._behavior;
     }
 
     return query;
@@ -897,6 +910,7 @@ nsPlacesAutoComplete.prototype = {
     
     
     if (!style) {
+      
       
       
       if (showTags)
