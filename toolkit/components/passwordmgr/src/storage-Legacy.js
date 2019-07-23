@@ -784,6 +784,9 @@ LoginManagerStorage_legacy.prototype = {
         
         
         if (username && !isFormLogin) {
+            if (isMailNews.test(aLogin.hostname))
+                username = decodeURIComponent(username);
+
             var [encUsername, userCanceled] = this._encrypt(username);
             if (!userCanceled)
                 aLogin.wrappedJSObject.encryptedUsername = encUsername;
