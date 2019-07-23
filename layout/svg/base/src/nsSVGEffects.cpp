@@ -198,19 +198,15 @@ nsSVGFilterProperty::DoUpdate()
   if (!mFrame)
     return;
 
-  if (mFrame->IsFrameOfType(nsIFrame::eSVG)) {
-    nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(mFrame);
-    if (outerSVGFrame) {
-      mFramePresShell->FrameConstructor()->PostRestyleEvent(
-        mFrame->GetContent(), nsReStyleHint(0),
-        nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects));
-    }
-  } else {
-    InvalidateAllContinuations(mFrame);
-    
-    mFramePresShell->FrameNeedsReflow(
-         mFrame, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+  
+  nsChangeHint changeHint =
+    nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
+
+  if (!mFrame->IsFrameOfType(nsIFrame::eSVG)) {
+    NS_UpdateHint(changeHint, nsChangeHint_ReflowFrame);
   }
+  mFramePresShell->FrameConstructor()->PostRestyleEvent(
+    mFrame->GetContent(), nsReStyleHint(0), changeHint);
 }
 
 void
