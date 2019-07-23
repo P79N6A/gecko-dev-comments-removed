@@ -146,7 +146,7 @@ _cairo_quartz_is_cgcontext_bitmap_context (CGContextRef cgc) {
     }
 
     
-    return CGBitmapContextGetBitsPerPixel(surface->cgContext) != 0;
+    return CGBitmapContextGetBitsPerPixel(cgc) != 0;
 }
 
 

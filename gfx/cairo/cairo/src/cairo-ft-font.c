@@ -66,6 +66,10 @@
 
 
 
+#define MAX_FONT_SIZE 1000
+
+
+
 
 
 
@@ -682,9 +686,11 @@ _cairo_ft_unscaled_font_set_scale (cairo_ft_unscaled_font_t *unscaled,
     FT_Set_Transform(unscaled->face, &mat, NULL);
 
     if ((unscaled->face->face_flags & FT_FACE_FLAG_SCALABLE) != 0) {
+	double x_scale = MIN(sf.x_scale, MAX_FONT_SIZE);
+	double y_scale = MIN(sf.y_scale, MAX_FONT_SIZE);
 	error = FT_Set_Char_Size (unscaled->face,
-				  sf.x_scale * 64.0 + .5,
-				  sf.y_scale * 64.0 + .5,
+				  x_scale * 64.0 + .5,
+				  y_scale * 64.0 + .5,
 				  0, 0);
 	if (error)
 	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);
