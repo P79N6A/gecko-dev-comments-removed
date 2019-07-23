@@ -61,11 +61,12 @@ class imgCacheEntry
 {
 public:
   imgCacheEntry(imgRequest *request, PRBool mustValidateIfExpired = PR_FALSE);
+  ~imgCacheEntry();
 
   nsrefcnt AddRef()
   {
     NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");
-    NS_ASSERT_OWNINGTHREAD(imgCacheEntry);
+    NS_ABORT_IF_FALSE(_mOwningThread.GetThread() == PR_GetCurrentThread(), "imgCacheEntry addref isn't thread-safe!");
     ++mRefCnt;
     NS_LOG_ADDREF(this, mRefCnt, "imgCacheEntry", sizeof(*this));
     return mRefCnt;
@@ -74,7 +75,7 @@ public:
   nsrefcnt Release()
   {
     NS_PRECONDITION(0 != mRefCnt, "dup release");
-    NS_ASSERT_OWNINGTHREAD(imgCacheEntry);
+    NS_ABORT_IF_FALSE(_mOwningThread.GetThread() == PR_GetCurrentThread(), "imgCacheEntry release isn't thread-safe!");
     --mRefCnt;
     NS_LOG_RELEASE(this, mRefCnt, "imgCacheEntry");
     if (mRefCnt == 0) {
@@ -143,6 +144,11 @@ public:
     return &mExpirationState;
   }
 
+  PRBool HasNoProxies() const
+  {
+    return mHasNoProxies;
+  }
+
 private: 
   friend class imgLoader;
   friend class imgCacheQueue;
@@ -152,18 +158,24 @@ private:
   {
     mEvicted = evict;
   }
+  void SetHasNoProxies(PRBool hasNoProxies);
+
+  
+  imgCacheEntry(const imgCacheEntry &);
 
 private: 
   nsAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 
   nsRefPtr<imgRequest> mRequest;
+  nsCOMPtr<nsIURI> mKeyURI;
   PRUint32 mDataSize;
   PRInt32 mTouchedTime;
   PRInt32 mExpiryTime;
   nsExpirationState mExpirationState;
-  PRBool mMustValidateIfExpired;
-  PRBool mEvicted;
+  PRPackedBool mMustValidateIfExpired : 1;
+  PRPackedBool mEvicted : 1;
+  PRPackedBool mHasNoProxies : 1;
 };
 
 #include <vector>
@@ -249,6 +261,20 @@ public:
   }
 
   static void VerifyCacheSizes();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static PRBool SetHasNoProxies(nsIURI *key, imgCacheEntry *entry);
+  static PRBool SetHasProxies(nsIURI *key);
 
 private: 
 
