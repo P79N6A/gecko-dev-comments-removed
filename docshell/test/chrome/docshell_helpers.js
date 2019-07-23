@@ -16,14 +16,15 @@ const NAV_FORWARD = 2;
 const NAV_URI = 3;
 const NAV_RELOAD = 4;
 
-var gExpectedEvents;         
-                             
-var gFinalEvent;             
-var gUrisNotInBFCache = [];  
-                             
-var gNavType = NAV_NONE;     
-                             
-
+var gExpectedEvents;          
+                              
+var gFinalEvent;              
+var gUrisNotInBFCache = [];   
+                              
+var gNavType = NAV_NONE;      
+                              
+var gOrigMaxTotalViewers =    
+  undefined;                  
 
 
 
@@ -92,7 +93,9 @@ function doPageNavigation(params) {
     eventsToListenFor.length == 0 ? undefined : params.expectedEvents; 
   let preventBFCache = (typeof[params.preventBFCache] == "undefined") ? 
     false : params.preventBFCache;
-    
+  let waitOnly = (typeof(params.waitForEventsOnly) == "boolean" 
+    && params.waitForEventsOnly);
+  
   
   if (back && forward)
     throw "Can't specify both back and forward";
@@ -102,12 +105,18 @@ function doPageNavigation(params) {
     throw "Can't specify both forward and a uri";
   if (reload && (forward || back || uri))
     throw "Can't specify reload and another navigation type";
-  if (!back && !forward && !uri && !reload)
+  if (!back && !forward && !uri && !reload && !waitOnly)
     throw "Must specify back or foward or reload or uri";
   if (params.onNavComplete && eventsToListenFor.length == 0)
     throw "Can't use onNavComplete when eventsToListenFor == []";
   if (params.preventBFCache && eventsToListenFor.length == 0)
     throw "Can't use preventBFCache when eventsToListenFor == []";
+  if (params.preventBFCache && waitOnly)
+    throw "Can't prevent bfcaching when only waiting for events";
+  if (waitOnly && typeof(params.onNavComplete) == "undefined")
+    throw "Must specify onNavComplete when specifying waitForEventsOnly";
+  if (waitOnly && (back || forward || reload || uri))
+    throw "Can't specify a navigation type when using waitForEventsOnly";
   for each (let anEventType in eventsToListenFor) {
     let eventFound = false;
     if ( (anEventType == "pageshow") && (!gExpectedEvents) )
@@ -149,6 +158,9 @@ function doPageNavigation(params) {
   else if (reload) {
     gNavType = NAV_RELOAD;
     TestWindow.getBrowser().reload();
+  }
+  else if (waitOnly) {
+    gNavType = NAV_NONE;
   }
   else {
     throw "No valid navigation type passed to doPageNavigation!";
@@ -209,6 +221,16 @@ function doPageNavigation_complete(eventsToListenFor, onNavComplete,
   
   
   onNavComplete.call();
+}
+
+
+
+
+
+
+function waitForPageEvents(params) {
+  params.waitForEventsOnly = true;
+  doPageNavigation(params);
 }
 
 
@@ -287,6 +309,16 @@ function finish() {
   
   var history = TestWindow.getBrowser().webNavigation.sessionHistory;
   history.PurgeHistory(history.count);
+  
+  
+  
+  if (typeof(gOrigMaxTotalViewers) != "undefined") {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefBranch);
+    prefs.setIntPref("browser.sessionhistory.max_total_viewers",
+      gOrigMaxTotalViewers);
+  }
 
   
   window.close();
@@ -353,6 +385,15 @@ function enableBFCache(enable) {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   var prefs = Components.classes["@mozilla.org/preferences-service;1"]
               .getService(Components.interfaces.nsIPrefBranch);
+  
+  
+  
+  
+  if (typeof(gOrigMaxTotalViewers) == "undefined") {
+    gOrigMaxTotalViewers =
+      prefs.getIntPref("browser.sessionhistory.max_total_viewers");
+  }
+  
   if (typeof(enable) == "boolean") {
     if (enable)
       prefs.setIntPref("browser.sessionhistory.max_total_viewers", -1);
