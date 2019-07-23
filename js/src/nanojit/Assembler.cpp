@@ -907,7 +907,7 @@ namespace nanojit
                     break;
 
                 case LIR_regfence:
-                    evictRegs(~_allocator.free);
+                    evictAllActiveRegs();
                     break;
 
                 case LIR_flive:
@@ -1168,7 +1168,7 @@ namespace nanojit
                         handleLoopCarriedExprs(pending_lives);
                         if (!label) {
                             
-                            evictRegs(~_allocator.free);
+                            evictAllActiveRegs();
                             _labels.add(to, 0, _allocator);
                         }
                         else {
@@ -1594,10 +1594,19 @@ namespace nanojit
         }
 
         
-        evictRegs(~SavedRegs);
+        evictSomeActiveRegs(~SavedRegs);
     }
 
-    void Assembler::evictRegs(RegisterMask regs)
+    void Assembler::evictAllActiveRegs()
+    {
+        
+        
+        for (Register r = FirstReg; r <= LastReg; r = nextreg(r)) {
+            evictIfActive(r);
+        }
+    }
+
+    void Assembler::evictSomeActiveRegs(RegisterMask regs)
     {
         
         
