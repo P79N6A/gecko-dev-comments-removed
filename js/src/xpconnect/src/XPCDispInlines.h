@@ -461,12 +461,6 @@ JSBool XPCDispIDArray::IsMarked() const
     return mMarked;
 }
 
-    
-inline
-void XPCDispIDArray::MarkBeforeJSFinalize(JSContext*) 
-{
-}
-
 
 
 

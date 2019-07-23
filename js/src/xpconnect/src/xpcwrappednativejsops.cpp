@@ -651,7 +651,7 @@ XPC_WN_NoHelper_Finalize(JSContext *cx, JSObject *obj)
 }
 
 static void
-MarkScopeJSObjects(JSContext *cx, XPCWrappedNativeScope* scope, void *arg)
+TraceScopeJSObjects(JSTracer *trc, XPCWrappedNativeScope* scope)
 {
     NS_ASSERTION(scope, "bad scope");
 
@@ -659,23 +659,25 @@ MarkScopeJSObjects(JSContext *cx, XPCWrappedNativeScope* scope, void *arg)
 
     obj = scope->GetGlobalJSObject();
     NS_ASSERTION(scope, "bad scope JSObject");
-    JS_MarkGCThing(cx, obj, "XPCWrappedNativeScope::mGlobalJSObject", arg);
+    JS_CALL_OBJECT_TRACER(trc, obj, "XPCWrappedNativeScope::mGlobalJSObject");
 
     obj = scope->GetPrototypeJSObject();
     if(obj)
     {
-        JS_MarkGCThing(cx, obj, "XPCWrappedNativeScope::mPrototypeJSObject", arg);
+        JS_CALL_OBJECT_TRACER(trc, obj,
+                              "XPCWrappedNativeScope::mPrototypeJSObject");
     }
 
     obj = scope->GetPrototypeJSFunction();
     if(obj)
     {
-        JS_MarkGCThing(cx, obj, "XPCWrappedNativeScope::mPrototypeJSFunction", arg);
+        JS_CALL_OBJECT_TRACER(trc, obj,
+                              "XPCWrappedNativeScope::mPrototypeJSFunction");
     }
 }
 
 void
-xpc_MarkForValidWrapper(JSContext *cx, XPCWrappedNative* wrapper, void *arg)
+xpc_TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper)
 {
     
     
@@ -685,31 +687,32 @@ xpc_MarkForValidWrapper(JSContext *cx, XPCWrappedNative* wrapper, void *arg)
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    wrapper->MarkBeforeJSFinalize(cx);
+    wrapper->TraceJS(trc);
      
-    MarkScopeJSObjects(cx, wrapper->GetScope(), arg);
+    TraceScopeJSObjects(trc, wrapper->GetScope());
 }
 
-JS_STATIC_DLL_CALLBACK(uint32)
-XPC_WN_Shared_Mark(JSContext *cx, JSObject *obj, void *arg)
+JS_STATIC_DLL_CALLBACK(void)
+XPC_WN_Shared_Trace(JSTracer *trc, JSObject *obj)
 {
     XPCWrappedNative* wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+        XPCWrappedNative::GetWrappedNativeOfJSObject(trc->context, obj);
 
     if(wrapper && wrapper->IsValid())
-        xpc_MarkForValidWrapper(cx, wrapper, arg);
-    return 1;
+        xpc_TraceForValidWrapper(trc, wrapper);
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
@@ -880,6 +883,7 @@ JSExtendedClass XPC_WN_NoHelper_JSClass = {
         "XPCWrappedNative_NoHelper",    
         JSCLASS_HAS_PRIVATE |
         JSCLASS_PRIVATE_IS_NSISUPPORTS |
+        JSCLASS_MARK_IS_TRACE |
         JSCLASS_IS_EXTENDED, 
 
         
@@ -900,7 +904,7 @@ JSExtendedClass XPC_WN_NoHelper_JSClass = {
         nsnull,                         
         nsnull,                         
         nsnull,                         
-        XPC_WN_Shared_Mark,             
+        JS_CLASS_TRACE(XPC_WN_Shared_Trace), 
         nsnull                          
     },
     XPC_WN_Equality,
@@ -1034,18 +1038,16 @@ XPC_WN_Helper_Finalize(JSContext *cx, JSObject *obj)
     wrapper->FlatJSObjectFinalized(cx, obj);
 }
 
-JS_STATIC_DLL_CALLBACK(uint32)
-XPC_WN_Helper_Mark(JSContext *cx, JSObject *obj, void *arg)
+JS_STATIC_DLL_CALLBACK(void)
+XPC_WN_Helper_Trace(JSTracer *trc, JSObject *obj)
 {
-    PRUint32 ignored = 0;
     XPCWrappedNative* wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
+        XPCWrappedNative::GetWrappedNativeOfJSObject(trc->context, obj);
     if(wrapper && wrapper->IsValid())
     {
-        wrapper->GetScriptableCallback()->Mark(wrapper, cx, obj, arg, &ignored);
-        xpc_MarkForValidWrapper(cx, wrapper, arg);
+        wrapper->GetScriptableCallback()->Trace(wrapper, trc, obj);
+        xpc_TraceForValidWrapper(trc, wrapper);
     }
-    return (uint32) ignored;
 }
 
 JS_STATIC_DLL_CALLBACK(JSBool)
@@ -1344,6 +1346,7 @@ XPCNativeScriptableShared::PopulateJSClass(JSBool isGlobal)
     mJSClass.base.flags = JSCLASS_HAS_PRIVATE |
                           JSCLASS_PRIVATE_IS_NSISUPPORTS |
                           JSCLASS_NEW_RESOLVE |
+                          JSCLASS_MARK_IS_TRACE |
                           JSCLASS_IS_EXTENDED;
 
     if(isGlobal)
@@ -1432,10 +1435,10 @@ XPCNativeScriptableShared::PopulateJSClass(JSBool isGlobal)
     if(mFlags.WantHasInstance())
         mJSClass.base.hasInstance = XPC_WN_Helper_HasInstance;
 
-    if(mFlags.WantMark())
-        mJSClass.base.mark = XPC_WN_Helper_Mark;
+    if(mFlags.WantTrace())
+        mJSClass.base.mark = JS_CLASS_TRACE(XPC_WN_Helper_Trace);
     else
-        mJSClass.base.mark = XPC_WN_Shared_Mark;
+        mJSClass.base.mark = JS_CLASS_TRACE(XPC_WN_Shared_Trace);
 
     mJSClass.equality = XPC_WN_Equality;
     mJSClass.outerObject = XPC_WN_OuterObject;
@@ -1554,14 +1557,14 @@ XPC_WN_Shared_Proto_Finalize(JSContext *cx, JSObject *obj)
         p->JSProtoObjectFinalized(cx, obj);
 }
 
-JS_STATIC_DLL_CALLBACK(uint32)
-XPC_WN_Shared_Proto_Mark(JSContext *cx, JSObject *obj, void *arg)
+JS_STATIC_DLL_CALLBACK(void)
+XPC_WN_Shared_Proto_Trace(JSTracer *trc, JSObject *obj)
 {
     
-    XPCWrappedNativeProto* p = (XPCWrappedNativeProto*) JS_GetPrivate(cx, obj);
+    XPCWrappedNativeProto* p =
+        (XPCWrappedNativeProto*) JS_GetPrivate(trc->context, obj);
     if(p)
-        MarkScopeJSObjects(cx, p->GetScope(), arg);
-    return 1;
+        TraceScopeJSObjects(trc, p->GetScope());
 }
 
 
@@ -1597,7 +1600,7 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSObject *obj, jsval idval)
 
 JSClass XPC_WN_ModsAllowed_Proto_JSClass = {
     "XPC_WN_ModsAllowed_Proto_JSClass", 
-    JSCLASS_HAS_PRIVATE,                
+    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
 
     
     JS_PropertyStub,                
@@ -1616,7 +1619,7 @@ JSClass XPC_WN_ModsAllowed_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    XPC_WN_Shared_Proto_Mark,       
+    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
     nsnull                          
 };
 
@@ -1678,7 +1681,7 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, JSObject *obj, jsval idval)
 
 JSClass XPC_WN_NoMods_Proto_JSClass = {
     "XPC_WN_NoMods_Proto_JSClass",      
-    JSCLASS_HAS_PRIVATE,                
+    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
 
     
     XPC_WN_OnlyIWrite_Proto_PropertyStub,  
@@ -1697,7 +1700,7 @@ JSClass XPC_WN_NoMods_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    XPC_WN_Shared_Proto_Mark,       
+    JS_CLASS_TRACE(XPC_WN_Shared_Proto_Trace), 
     nsnull                          
 };
 
@@ -1761,7 +1764,7 @@ XPC_WN_TearOff_Finalize(JSContext *cx, JSObject *obj)
 
 JSClass XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",            
-    JSCLASS_HAS_PRIVATE,                
+    JSCLASS_HAS_PRIVATE | JSCLASS_MARK_IS_TRACE, 
 
     
     XPC_WN_OnlyIWrite_PropertyStub,     

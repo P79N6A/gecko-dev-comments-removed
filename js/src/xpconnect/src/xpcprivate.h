@@ -628,6 +628,8 @@ public:
         return mStrings[index];
     }
 
+    static void TraceJS(JSTracer *trc, XPCJSRuntime* self);
+
     static JSBool JS_DLL_CALLBACK GCCallback(JSContext *cx, JSGCStatus status);
 
     void DebugDump(PRInt16 depth);
@@ -1038,7 +1040,7 @@ xpc_InitWrappedNativeJSOps();
 
 
 extern void
-xpc_MarkForValidWrapper(JSContext *cx, XPCWrappedNative* wrapper, void *arg);
+xpc_TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper);
 
 
 
@@ -1088,6 +1090,9 @@ public:
 
     static void
     SystemIsBeingShutDown(XPCCallContext& ccx);
+
+    static void
+    TraceJS(JSTracer* trc, XPCJSRuntime* rt);
 
     static void
     FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt);
@@ -1294,8 +1299,8 @@ public:
                     {return 0 != (mMemberCount & XPC_NATIVE_IFACE_MARK_FLAG);}
 
     
-    inline void MarkBeforeJSFinalize(JSContext*) {}
-    inline void AutoMark(JSContext*) {}
+    inline void TraceJS(JSTracer* trc) {}
+    inline void AutoTrace(JSTracer* trc) {}
 
     static void DestroyInstance(JSContext* cx, XPCJSRuntime* rt,
                                 XPCNativeInterface* inst);
@@ -1423,8 +1428,8 @@ public:
     inline void Mark();
 
     
-    inline void MarkBeforeJSFinalize(JSContext*) {}
-    inline void AutoMark(JSContext*) {}
+    inline void TraceJS(JSTracer* trc) {}
+    inline void AutoTrace(JSTracer* trc) {}
 
 private:
     void MarkSelfOnly() {mInterfaceCount |= XPC_NATIVE_SET_MARK_FLAG;}
@@ -1512,7 +1517,7 @@ public:
     JSBool WantCall()                     GET_IT(WANT_CALL)
     JSBool WantConstruct()                GET_IT(WANT_CONSTRUCT)
     JSBool WantHasInstance()              GET_IT(WANT_HASINSTANCE)
-    JSBool WantMark()                     GET_IT(WANT_MARK)
+    JSBool WantTrace()                    GET_IT(WANT_TRACE)
     JSBool WantEquality()                 GET_IT(WANT_EQUALITY)
     JSBool WantOuterObject()              GET_IT(WANT_OUTER_OBJECT)
     JSBool WantInnerObject()              GET_IT(WANT_INNER_OBJECT)
@@ -1726,13 +1731,20 @@ public:
     
     
     
-    void MarkBeforeJSFinalize(JSContext* cx)
-        {if(mJSProtoObject)
-            JS_MarkGCThing(cx, mJSProtoObject, 
-                           "XPCWrappedNativeProto::mJSProtoObject", nsnull);
-         if(mScriptableInfo) mScriptableInfo->Mark();}
     
-    inline void AutoMark(JSContext*) {}
+    void TraceJS(JSTracer* trc)
+    {
+        if(mJSProtoObject)
+        {
+            JS_CALL_OBJECT_TRACER(trc, mJSProtoObject,
+                                  "XPCWrappedNativeProto::mJSProtoObject");
+        }
+        if(mScriptableInfo && JS_IsGCMarkingTracer(trc))
+            mScriptableInfo->Mark();
+    }
+
+    
+    inline void AutoTrace(JSTracer* trc) {}
 
     
     void Mark() const
@@ -1801,8 +1813,8 @@ public:
     ~XPCWrappedNativeTearOff();
 
     
-    inline void MarkBeforeJSFinalize(JSContext*) {}
-    inline void AutoMark(JSContext*) {}
+    inline void TraceJS(JSTracer* trc) {}
+    inline void AutoTrace(JSTracer* trc) {}
 
     void Mark()       {mJSObject = (JSObject*)(((jsword)mJSObject) | 1);}
     void Unmark()     {mJSObject = (JSObject*)(((jsword)mJSObject) & ~1);}
@@ -2026,18 +2038,19 @@ public:
     }
 
     
-    inline void MarkBeforeJSFinalize(JSContext* cx)
+    inline void TraceJS(JSTracer* trc)
     {
-        if(mScriptableInfo) mScriptableInfo->Mark();
-        if(HasProto()) mMaybeProto->MarkBeforeJSFinalize(cx);
+        if(mScriptableInfo && JS_IsGCMarkingTracer(trc))
+            mScriptableInfo->Mark();
+        if(HasProto()) mMaybeProto->TraceJS(trc);
         if(mNativeWrapper)
         {
-            JS_MarkGCThing(cx, mNativeWrapper, 
-                           "XPCWrappedNative::mNativeWrapper", nsnull);
+            JS_CALL_OBJECT_TRACER(trc, mNativeWrapper,
+                                  "XPCWrappedNative::mNativeWrapper");
         }
     }
 
-    inline void AutoMark(JSContext* cx)
+    inline void AutoTrace(JSTracer* trc)
     {
         
         
@@ -2046,8 +2059,8 @@ public:
         
         if(mFlatJSObject && mFlatJSObject != (JSObject*)JSVAL_ONE)
         {
-            ::JS_MarkGCThing(cx, mFlatJSObject,
-                             "XPCWrappedNative::mFlatJSObject", nsnull);
+            JS_CALL_OBJECT_TRACER(trc, mFlatJSObject,
+                                  "XPCWrappedNative::mFlatJSObject");
         }
     }
 
@@ -2900,7 +2913,7 @@ public:
 
     AutoMarkingPtr**  GetAutoRootsAdr() {return &mAutoRoots;}
 
-    void MarkAutoRootsBeforeJSFinalize(JSContext* cx);
+    void TraceJS(JSTracer* trc);
     void MarkAutoRootsAfterJSFinalize();
 
     jsuword GetStackLimit() const { return mStackLimit; }
@@ -3375,11 +3388,11 @@ public:
     XPCMarkableJSVal(jsval *pval) : mVal(0), mValPtr(pval) {}
     ~XPCMarkableJSVal() {}
     void Mark() {}
-    void MarkBeforeJSFinalize(JSContext* cx)
-        {if(JSVAL_IS_GCTHING(*mValPtr))
-            JS_MarkGCThing(cx, JSVAL_TO_GCTHING(*mValPtr), 
-                           "XPCMarkableJSVal", nsnull);}
-    void AutoMark(JSContext*) {}
+    void TraceJS(JSTracer* trc)
+    {
+        JS_CALL_VALUE_TRACER(trc, *mValPtr, "XPCMarkableJSVal");
+    }
+    void AutoTrace(JSTracer* trc) {}
 private:
     XPCMarkableJSVal(); 
     jsval  mVal;
@@ -3419,7 +3432,7 @@ public:
 
     AutoMarkingPtr* GetNext() {return mNext;}
     
-    virtual void MarkBeforeJSFinalize(JSContext* cx) = 0;
+    virtual void TraceJS(JSTracer* trc) = 0;
     virtual void MarkAfterJSFinalize() = 0;
 
 protected:
@@ -3437,12 +3450,12 @@ public:                                                                      \
         : AutoMarkingPtr(ccx), mPtr(ptr) {}                                  \
     virtual ~ class_ () {}                                                   \
                                                                              \
-    virtual void MarkBeforeJSFinalize(JSContext* cx)                         \
+    virtual void TraceJS(JSTracer* trc)                                      \
         {if(mPtr) {                                                          \
-           mPtr->MarkBeforeJSFinalize(cx);                                   \
-           mPtr->AutoMark(cx);                                               \
+           mPtr->TraceJS(trc);                                               \
+           mPtr->AutoTrace(trc);                                             \
          }                                                                   \
-         if(mNext) mNext->MarkBeforeJSFinalize(cx);}                         \
+         if(mNext) mNext->TraceJS(trc);}                                     \
                                                                              \
     virtual void MarkAfterJSFinalize()                                       \
         {if(mPtr) mPtr->Mark();                                              \
@@ -3483,18 +3496,18 @@ public:                                                                      \
     }                                                                        \
     virtual ~ class_ () {}                                                   \
                                                                              \
-    virtual void MarkBeforeJSFinalize(JSContext* cx)                         \
+    virtual void TraceJS(JSTracer* trc)                                      \
     {                                                                        \
         for(PRUint32 i = 0; i < mCount; ++i)                                 \
         {                                                                    \
             type_* cur = mPtr[i];                                            \
             if(cur)                                                          \
             {                                                                \
-                cur->MarkBeforeJSFinalize(cx);                               \
-                cur->AutoMark(cx);                                           \
+                cur->TraceJS(trc);                                           \
+                cur->AutoTrace(trc);                                         \
             }                                                                \
         }                                                                    \
-        if(mNext) mNext->MarkBeforeJSFinalize(cx);                           \
+        if(mNext) mNext->TraceJS(trc);                                       \
     }                                                                        \
                                                                              \
     virtual void MarkAfterJSFinalize()                                       \
