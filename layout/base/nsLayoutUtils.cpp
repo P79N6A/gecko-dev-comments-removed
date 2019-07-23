@@ -2662,12 +2662,36 @@ nsLayoutUtils::GetClosestLayer(nsIFrame* aFrame)
   return aFrame->PresContext()->PresShell()->FrameManager()->GetRootFrame();
 }
 
+
+
+
+
+
+
+
+
 static gfxPoint
 MapToFloatImagePixels(const nsIntSize& aSize,
                       const nsRect& aDest, const nsPoint& aPt)
 {
   return gfxPoint((gfxFloat(aPt.x - aDest.x)*aSize.width)/aDest.width,
                   (gfxFloat(aPt.y - aDest.y)*aSize.height)/aDest.height);
+}
+
+
+
+
+
+
+
+
+
+static gfxPoint
+MapToFloatUserPixels(const nsIntSize& aSize,
+                     const gfxRect& aDest, const gfxPoint& aPt)
+{
+  return gfxPoint(aPt.x*aDest.size.width/aSize.width + aDest.pos.x,
+                  aPt.y*aDest.size.height/aSize.height + aDest.pos.y);
 }
 
  nsresult
@@ -2733,15 +2757,22 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
   
   gfxPoint anchorPoint(aAnchor.x/appUnitsPerDevPixel,
                        aAnchor.y/appUnitsPerDevPixel);
+  gfxPoint imageSpaceAnchorPoint =
+    MapToFloatImagePixels(imageSize, aDest, aAnchor);
   gfxMatrix currentMatrix = ctx->CurrentMatrix();
+
   gfxRect finalFillRect = fill;
   if (didSnap) {
     NS_ASSERTION(!currentMatrix.HasNonAxisAlignedTransform(),
                  "How did we snap, then?");
-    anchorPoint.x = fill.pos.x + 
-        (anchorPoint.x - devPixelFill.pos.x)*fill.size.width/devPixelFill.size.width;
-    anchorPoint.y = fill.pos.y +
-        (anchorPoint.y - devPixelFill.pos.y)*fill.size.height/devPixelFill.size.height;
+    imageSpaceAnchorPoint.Round();
+    anchorPoint = imageSpaceAnchorPoint;
+    gfxRect devPixelDest(aDest.x/appUnitsPerDevPixel,
+                         aDest.y/appUnitsPerDevPixel,
+                         aDest.width/appUnitsPerDevPixel,
+                         aDest.height/appUnitsPerDevPixel);
+    anchorPoint = MapToFloatUserPixels(imageSize, devPixelDest, anchorPoint);
+    anchorPoint = currentMatrix.Transform(anchorPoint);
     anchorPoint.Round();
 
     
@@ -2759,9 +2790,6 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
   
   
 
-  gfxPoint imageSpaceAnchorPoint =
-    MapToFloatImagePixels(imageSize, aDest, aAnchor);
-  imageSpaceAnchorPoint.Round();
   gfxFloat scaleX = imageSize.width*appUnitsPerDevPixel/aDest.width;
   gfxFloat scaleY = imageSize.height*appUnitsPerDevPixel/aDest.height;
   if (didSnap) {
