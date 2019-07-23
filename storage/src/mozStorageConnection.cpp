@@ -873,20 +873,6 @@ mozStorageConnection::BackupDB(const nsAString &aFileName,
 
 
 
-
-nsresult
-mozStorageConnection::Preload()
-{
-
-
-
-
-    return NS_OK; 
-}
-
-
-
-
 void
 mozStorageConnection::HandleSqliteError(const char *aSqlStatement)
 {

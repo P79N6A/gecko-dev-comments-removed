@@ -544,10 +544,6 @@ nsFormHistory::StartCache()
   rv = mDummyConnection->ExecuteSimpleSQL(cacheSizePragma);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = mDummyConnection->Preload();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   return NS_OK;
 }
 

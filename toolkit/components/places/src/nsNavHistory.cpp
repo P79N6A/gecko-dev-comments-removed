@@ -750,15 +750,6 @@ nsNavHistory::InitDB(PRBool *aDoImport)
   
 
   
-  
-  
-  if (cachePages > 0) {
-    rv = mDBConn->Preload();
-    if (NS_FAILED(rv))
-      NS_WARNING("Preload of database failed");
-  }
-
-  
 
   rv = InitStatements();
   NS_ENSURE_SUCCESS(rv, rv);
