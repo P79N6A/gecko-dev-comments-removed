@@ -5281,6 +5281,20 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
         break;
 
       case TOK_WITH:
+        
+
+
+
+
+
+
+
+        if (tc->flags & TCF_STRICT_MODE_CODE) {
+            js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
+                                        JSMSG_STRICT_CODE_WITH);
+            return NULL;
+        }
+
         pn = NewParseNode(PN_BINARY, tc);
         if (!pn)
             return NULL;
