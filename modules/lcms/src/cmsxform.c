@@ -1540,6 +1540,10 @@ _LPcmsTRANSFORM PickTransformRoutine(_LPcmsTRANSFORM p,
                        !(p -> dwOriginalFlags & cmsFLAGS_BLACKPOINTCOMPENSATION)) {
 
                           
+                          p -> dwOriginalFlags |= cmsFLAGS_NOTPRECALC;
+
+
+                          
                           
                           if (p -> InputProfile == p -> OutputProfile) {
                                  p -> xform = NullXFORM;
@@ -1567,8 +1571,6 @@ _LPcmsTRANSFORM PickTransformRoutine(_LPcmsTRANSFORM p,
 #else
                           p -> xform = (p -> dwOriginalFlags & cmsFLAGS_FLOATSHAPER) ? MatrixShaperXFORMFloat : MatrixShaperXFORM;
 #endif
-
-                          p -> dwOriginalFlags |= cmsFLAGS_NOTPRECALC;
 
                           if (!cmsBuildSmeltMatShaper(p))
                           {
