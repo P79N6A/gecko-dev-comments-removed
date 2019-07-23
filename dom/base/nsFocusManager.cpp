@@ -1334,7 +1334,8 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
   
   
   nsIMEStateManager::OnTextStateBlur(nsnull, nsnull);
-  nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull);
+  if (mActiveWindow)
+    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull);
 
   
   
