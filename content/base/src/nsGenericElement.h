@@ -81,7 +81,7 @@ class nsINodeInfo;
 class nsIControllers;
 class nsIDOMNSFeatureFactory;
 class nsIEventListenerManager;
-class nsIScrollableView;
+class nsIScrollableFrame;
 class nsContentList;
 class nsDOMTokenList;
 struct nsRect;
@@ -1112,16 +1112,13 @@ private:
   nsRect GetClientAreaRect();
 
 private:
-
   
 
 
 
 
 
-
-  void GetScrollInfo(nsIScrollableView **aScrollableView,
-                     nsIFrame **aFrame = nsnull);
+  nsIScrollableFrame* GetScrollFrame(nsIFrame** aStyledFrame = nsnull);
 };
 
 #define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE                               \
