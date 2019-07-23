@@ -508,11 +508,6 @@ private:
   
   
   PlayState mNextState;	
-
-  
-  
-  
-  PRPackedBool mIsStopping;
 };
 
 #endif
