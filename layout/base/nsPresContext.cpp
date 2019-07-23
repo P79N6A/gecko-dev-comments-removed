@@ -91,8 +91,6 @@
 #include "nsStyleStructInlines.h"
 #include "nsIAppShell.h"
 #include "prenv.h"
-#include "nsIPrivateDOMEvent.h"
-#include "nsIDOMEventTarget.h"
 
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
@@ -1934,31 +1932,26 @@ nsPresContext::UserFontSetUpdated()
 void
 nsPresContext::FireDOMPaintEvent()
 {
-  nsPIDOMWindow* ourWindow = mDocument->GetWindow();
+  nsCOMPtr<nsPIDOMWindow> ourWindow = mDocument->GetWindow();
   if (!ourWindow)
     return;
 
-  nsCOMPtr<nsIDOMEventTarget> dispatchTarget = do_QueryInterface(ourWindow);
-  nsCOMPtr<nsIDOMEventTarget> eventTarget = dispatchTarget;
+  nsISupports* eventTarget = ourWindow;
   if (mSameDocDirtyRegion.IsEmpty() && !IsChrome()) {
     
     
     
     
-    dispatchTarget = do_QueryInterface(ourWindow->GetChromeEventHandler());
-    if (!dispatchTarget) {
+    eventTarget = ourWindow->GetChromeEventHandler();
+    if (!eventTarget) {
       return;
     }
   }
   
   
-  nsCOMPtr<nsIDOMEvent> event;
-  NS_NewDOMNotifyPaintEvent(getter_AddRefs(event), this, nsnull,
-                            NS_AFTERPAINT,
-                            &mSameDocDirtyRegion, &mCrossDocDirtyRegion);
-  nsCOMPtr<nsIPrivateDOMEvent> pEvent = do_QueryInterface(event);
-  if (!pEvent) return;
 
+  nsNotifyPaintEvent event(PR_TRUE, NS_AFTERPAINT, mSameDocDirtyRegion,
+                           mCrossDocDirtyRegion);
   
   
   
@@ -1967,9 +1960,8 @@ nsPresContext::FireDOMPaintEvent()
   
   
   
-  pEvent->SetTarget(eventTarget);
-  pEvent->SetTrusted(PR_TRUE);
-  nsEventDispatcher::DispatchDOMEvent(dispatchTarget, nsnull, event, this, nsnull);
+  event.target = do_QueryInterface(ourWindow);
+  nsEventDispatcher::Dispatch(eventTarget, this, &event);
 }
 
 static PRBool MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
