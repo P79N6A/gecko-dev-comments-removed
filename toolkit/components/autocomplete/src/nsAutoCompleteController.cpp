@@ -978,6 +978,9 @@ nsAutoCompleteController::StartSearch()
   mSearchesOngoing = count;
   mFirstSearchResult = PR_TRUE;
 
+  
+  mInput->OnSearchBegin();
+  
   PRUint32 searchesFailed = 0;
   for (PRUint32 i = 0; i < count; ++i) {
     nsCOMPtr<nsIAutoCompleteSearch> search;
