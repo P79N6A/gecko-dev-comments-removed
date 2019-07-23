@@ -339,10 +339,13 @@ LoginManager.prototype = {
                     
                     var [usernameField, passwordField, ignored] =
                         this._pwmgr._getFormFields(acForm, false);
-                    if (usernameField == acInputField)
+                    if (usernameField == acInputField && passwordField) {
+                        
+                        passwordField.value = "";
                         this._pwmgr._fillForm(acForm, true, true, null);
-                    else
+                    } else {
                         this._pwmgr.log("Oops, form changed before AC invoked");
+                    }
                     return;
 
                 default:
@@ -1018,11 +1021,6 @@ LoginManager.prototype = {
         }
 
         
-        
-        if (!usernameField && passwordField.value)
-            return [false, foundLogins];
-
-        
         if (foundLogins == null) {
             var formOrigin = 
                 this._getPasswordOrigin(form.ownerDocument.documentURI);
@@ -1066,6 +1064,10 @@ LoginManager.prototype = {
         
         if (usernameField)
             this._attachToInput(usernameField);
+
+        
+        if (passwordField.value)
+            return [false, foundLogins];
 
         
         
