@@ -59,6 +59,7 @@
 
 #define HTTP_OK_CODE 200
 #define HTTP_PARTIAL_RESPONSE_CODE 206
+#define HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE 416
 
 using mozilla::TimeStamp;
 
@@ -148,12 +149,14 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
 
   nsHTMLMediaElement* element = mDecoder->GetMediaElement();
   NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
+  nsresult status;
+  nsresult rv = aRequest->GetStatus(&status);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   if (element->ShouldCheckAllowOrigin()) {
     
     
-    nsresult status;
-    nsresult rv = aRequest->GetStatus(&status);
-    if (NS_FAILED(rv) || status == NS_ERROR_DOM_BAD_URI) {
+    if (status == NS_ERROR_DOM_BAD_URI) {
       mDecoder->NetworkError();
       return NS_ERROR_DOM_BAD_URI;
     }
@@ -162,6 +165,31 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
   nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(aRequest);
   PRBool seekable = PR_FALSE;
   if (hc) {
+    PRUint32 responseStatus = 0; 
+    hc->GetResponseStatus(&responseStatus);
+    PRBool succeeded = PR_FALSE;
+    hc->GetRequestSucceeded(&succeeded);
+
+    if (!succeeded && NS_SUCCEEDED(status)) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (responseStatus != HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE) {
+        mDecoder->NetworkError();
+      }
+
+      
+      
+      CloseChannel();
+      return NS_OK;
+    }
+
     nsCAutoString ranges;
     hc->GetResponseHeader(NS_LITERAL_CSTRING("Accept-Ranges"),
                           ranges);
@@ -176,7 +204,7 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
       
       nsCAutoString durationText;
       PRInt32 ec = 0;
-      nsresult rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
+      rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-Content-Duration"), durationText);
       if (NS_FAILED(rv)) {
         rv = hc->GetResponseHeader(NS_LITERAL_CSTRING("X-AMZ-Meta-Content-Duration"), durationText);
       }
@@ -189,8 +217,6 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
       }
     }
  
-    PRUint32 responseStatus = 0; 
-    hc->GetResponseStatus(&responseStatus);
     if (mOffset > 0 && responseStatus == HTTP_OK_CODE) {
       
       
@@ -223,7 +249,7 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
   nsCOMPtr<nsICachingChannel> cc = do_QueryInterface(aRequest);
   if (cc) {
     PRBool fromCache = PR_FALSE;
-    nsresult rv = cc->IsFromCache(&fromCache);
+    rv = cc->IsFromCache(&fromCache);
     if (NS_SUCCEEDED(rv) && !fromCache) {
       cc->SetCacheAsFile(PR_TRUE);
     }
