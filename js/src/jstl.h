@@ -228,26 +228,6 @@ PointerRangeSize(T *begin, T *end)
 
 
 
-
-
-
-
-
-class ContextAllocPolicy
-{
-    JSContext *mCx;
-
-  public:
-    ContextAllocPolicy(JSContext *cx) : mCx(cx) {}
-    JSContext *context() const { return mCx; }
-
-    void *malloc(size_t bytes) { return mCx->malloc(bytes); }
-    void free(void *p) { mCx->free(p); }
-    void *realloc(void *p, size_t bytes) { return mCx->realloc(p, bytes); }
-    void reportAllocOverflow() const { js_ReportAllocationOverflow(mCx); }
-};
-
-
 class SystemAllocPolicy
 {
   public:
