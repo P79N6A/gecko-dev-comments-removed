@@ -1506,36 +1506,39 @@ nsTextControlFrame::EnsureEditorInitialized()
   
   
   
-  
-  
-  
-
-  
-  
-  
-
-  rv = mEditor->SetFlags(editorFlags |
-                         nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-
-  rv = mEditor->EnableUndo(PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  SetValue(defaultValue);
-
-  rv = mEditor->EnableUndo(PR_TRUE);
-  NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
-
-  
-  rv = mEditor->SetFlags(editorFlags);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!defaultValue.IsEmpty()) {
+    
+    
+    
+
+    rv = mEditor->SetFlags(editorFlags |
+                           nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
+
+    if (NS_FAILED(rv))
+      return rv;
+
+    
+    
+    
+    
+
+    rv = mEditor->EnableUndo(PR_FALSE);
+
+    if (NS_FAILED(rv))
+      return rv;
+
+    SetValue(defaultValue);
+
+    rv = mEditor->EnableUndo(PR_TRUE);
+    NS_ASSERTION(NS_SUCCEEDED(rv),"Transaction Manager must have failed");
+
+    
+    rv = mEditor->SetFlags(editorFlags);
+
+    if (NS_FAILED(rv))
+      return rv;
+
     
     
     nsWeakFrame weakFrame(this);
