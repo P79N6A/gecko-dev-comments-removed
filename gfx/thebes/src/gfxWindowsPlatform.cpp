@@ -67,13 +67,27 @@
 
 
 
+int PR_CALLBACK
+gfxWindowsPlatform::PrefChangedCallback(const char *aPrefName, void *closure)
+{
+    gfxWindowsPlatform *plat = static_cast<gfxWindowsPlatform *>(closure);
+    plat->mPrefFonts.Clear();
+    return 0;
+}
 
 gfxWindowsPlatform::gfxWindowsPlatform()
 {
     mFonts.Init(200);
     mFontAliases.Init(20);
     mFontSubstitutes.Init(50);
+    mPrefFonts.Init(10);
+
     UpdateFontList();
+
+    nsCOMPtr<nsIPref> pref = do_GetService(NS_PREF_CONTRACTID);
+    pref->RegisterCallback("font.", PrefChangedCallback, this);
+    pref->RegisterCallback("font.name-list.", PrefChangedCallback, this);
+    
 }
 
 gfxWindowsPlatform::~gfxWindowsPlatform()
@@ -485,6 +499,7 @@ gfxWindowsPlatform::UpdateFontList()
     mFontAliases.Clear();
     mNonExistingFonts.Clear();
     mFontSubstitutes.Clear();
+    mPrefFonts.Clear();
 
     LOGFONTW logFont;
     logFont.lfCharSet = DEFAULT_CHARSET;
@@ -764,4 +779,18 @@ gfxWindowsPlatform::GetPlatformCMSOutputProfile()
                 NS_ConvertUTF16toUTF8(str).get());
 #endif
     return profile;
+}
+
+PRBool
+gfxWindowsPlatform::GetPrefFontEntries(const char *aLangGroup, nsTArray<nsRefPtr<FontEntry> > *array)
+{
+    nsCAutoString keyName(aLangGroup);
+    return mPrefFonts.Get(keyName, array);
+}
+
+void
+gfxWindowsPlatform::SetPrefFontEntries(const char *aLangGroup, nsTArray<nsRefPtr<FontEntry> >& array)
+{
+    nsCAutoString keyName(aLangGroup);
+    mPrefFonts.Put(keyName, array);
 }

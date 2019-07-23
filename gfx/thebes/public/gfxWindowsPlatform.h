@@ -84,6 +84,9 @@ public:
     
     FontEntry *FindFontEntry(const nsAString& aName);
 
+    PRBool GetPrefFontEntries(const char *aLangGroup, nsTArray<nsRefPtr<FontEntry> > *array);
+    void SetPrefFontEntries(const char *aLangGroup, nsTArray<nsRefPtr<FontEntry> >& array);
+
 private:
     void Init();
 
@@ -109,10 +112,14 @@ private:
 
     virtual cmsHPROFILE GetPlatformCMSOutputProfile();
 
+    static int PR_CALLBACK PrefChangedCallback(const char*, void*);
+
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFonts;
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFontAliases;
     nsDataHashtable<nsStringHashKey, nsRefPtr<FontEntry> > mFontSubstitutes;
     nsStringArray mNonExistingFonts;
+
+    nsDataHashtable<nsCStringHashKey, nsTArray<nsRefPtr<FontEntry> > > mPrefFonts;
 };
 
 #endif 
