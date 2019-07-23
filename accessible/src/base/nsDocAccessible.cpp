@@ -1055,6 +1055,17 @@ NS_IMPL_NSIDOCUMENTOBSERVER_LOAD_STUB(nsDocAccessible)
 NS_IMPL_NSIDOCUMENTOBSERVER_STYLE_STUB(nsDocAccessible)
 
 void
+nsDocAccessible::AttributeWillChange(nsIDocument *aDocument,
+                                     nsIContent* aContent, PRInt32 aNameSpaceID,
+                                     nsIAtom* aAttribute, PRInt32 aModType)
+{
+  
+  
+  
+  
+}
+
+void
 nsDocAccessible::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
                                   PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                   PRInt32 aModType, PRUint32 aStateMask)

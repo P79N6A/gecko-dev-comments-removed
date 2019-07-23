@@ -81,6 +81,19 @@ public:
 
 
 
+  static void AttributeWillChange(nsIContent* aContent,
+                                  PRInt32 aNameSpaceID,
+                                  nsIAtom* aAttribute,
+                                  PRInt32 aModType);
+
+  
+
+
+
+
+
+
+
 
   static void AttributeChanged(nsIContent* aContent,
                                PRInt32 aNameSpaceID,
