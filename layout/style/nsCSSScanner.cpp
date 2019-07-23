@@ -1069,6 +1069,8 @@ nsCSSScanner::ParseAtKeyword(PRInt32 aChar, nsCSSToken& aToken)
   return GatherIdent(0, aToken.mIdent);
 }
 
+#define CHAR_TO_DIGIT(_c) ((_c) - '0')
+
 PRBool
 nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
 {
@@ -1105,7 +1107,7 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
     divisor = 10;
   } else if (!aToken.mHasSign) {
     
-    intPart += (c - '0');
+    intPart += CHAR_TO_DIGIT(c);
   }
 
   
@@ -1113,15 +1115,17 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
   for (;;) {
     c = Read();
     if (c < 0) break;
-    if (!gotDot  && !gotE && (c == '.') &&
-        IsDigit(Peek())) {
-      gotDot = PR_TRUE;
-      divisor = 10;
-#ifdef MOZ_SVG
-    } else if (!gotE && (c == 'e' || c == 'E')) {
-      if (!IsSVGMode()) {
+
+    
+    
+    if (NS_UNLIKELY(gotE)) {
+      if (!IsDigit(c)) {
         break;
       }
+      exponent = 10*exponent + CHAR_TO_DIGIT(c);
+    }
+#ifdef MOZ_SVG
+    else if (NS_UNLIKELY(IsSVGMode() && (c == 'e' || c == 'E'))) {
       PRInt32 nextChar = Peek();
       PRInt32 expSignChar = 0;
       if (nextChar == '-' || nextChar == '+') {
@@ -1139,18 +1143,23 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
         }
         break;
       }
-#endif
-    } else if (!IsDigit(c)) {
-      break;
     }
-    
-    else if (gotE) {
-      exponent = 10*exponent + (c - '0');
-    } else if (gotDot) {
-      fracPart += (c - '0') / divisor;
+#endif
+    else if (gotDot) {
+      
+      if (!IsDigit(c)) {
+        break;
+      }
+      fracPart += CHAR_TO_DIGIT(c) / divisor;
       divisor *= 10;
+    } else if (c == '.' && IsDigit(Peek())) {
+      gotDot = PR_TRUE;
+      divisor = 10;
+    } else if (IsDigit(c)) {
+      intPart = 10*intPart + CHAR_TO_DIGIT(c);
     } else {
-      intPart = 10*intPart + (c - '0');
+      
+      break;
     }
   }
 
