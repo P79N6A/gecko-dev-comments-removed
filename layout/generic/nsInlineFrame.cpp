@@ -409,6 +409,9 @@ nsInlineFrame::PullOverflowsFromPrevInFlow()
     nsAutoPtr<nsFrameList> prevOverflowFrames(prevInFlow->StealOverflowFrames());
     if (prevOverflowFrames) {
       
+      nsHTMLContainerFrame::ReparentFrameViewList(PresContext(),
+                                                  *prevOverflowFrames,
+                                                  prevInFlow, this);
       mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
     }
   }
