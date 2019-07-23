@@ -4858,6 +4858,30 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #ifdef GL_VERSION_2_0
   if (glewExperimental || GLEW_VERSION_2_0) GLEW_VERSION_2_0 = !_glewInit_GL_VERSION_2_0(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif 
+
+
+#ifdef GL_ARB_multitexture
+  GLEW_ARB_multitexture = glewGetExtension("GL_ARB_multitexture");
+  if (glewExperimental || GLEW_ARB_multitexture) GLEW_ARB_multitexture = !_glewInit_GL_ARB_multitexture(GLEW_CONTEXT_ARG_VAR_INIT);
+#endif 
+#ifdef GL_ARB_point_parameters
+  GLEW_ARB_point_parameters = glewGetExtension("GL_ARB_point_parameters");
+  if (glewExperimental || GLEW_ARB_point_parameters) GLEW_ARB_point_parameters = !_glewInit_GL_ARB_point_parameters(GLEW_CONTEXT_ARG_VAR_INIT);
+#endif 
+#ifdef GL_ARB_texture_rectangle
+  GLEW_ARB_texture_rectangle = glewGetExtension("GL_ARB_texture_rectangle");
+#endif 
+#ifdef GL_EXT_texture_filter_anisotropic
+  GLEW_EXT_texture_filter_anisotropic = glewGetExtension("GL_EXT_texture_filter_anisotropic");
+#endif 
+
+
+#if 0
+
+#ifdef GL_EXT_point_parameters
+  GLEW_EXT_point_parameters = glewGetExtension("GL_EXT_point_parameters");
+  if (glewExperimental || GLEW_EXT_point_parameters) GLEW_EXT_point_parameters = !_glewInit_GL_EXT_point_parameters(GLEW_CONTEXT_ARG_VAR_INIT);
+#endif 
 #ifdef GL_3DFX_multisample
   GLEW_3DFX_multisample = glewGetExtension("GL_3DFX_multisample");
 #endif 
@@ -4941,20 +4965,12 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
   GLEW_ARB_multisample = glewGetExtension("GL_ARB_multisample");
   if (glewExperimental || GLEW_ARB_multisample) GLEW_ARB_multisample = !_glewInit_GL_ARB_multisample(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif 
-#ifdef GL_ARB_multitexture
-  GLEW_ARB_multitexture = glewGetExtension("GL_ARB_multitexture");
-  if (glewExperimental || GLEW_ARB_multitexture) GLEW_ARB_multitexture = !_glewInit_GL_ARB_multitexture(GLEW_CONTEXT_ARG_VAR_INIT);
-#endif 
 #ifdef GL_ARB_occlusion_query
   GLEW_ARB_occlusion_query = glewGetExtension("GL_ARB_occlusion_query");
   if (glewExperimental || GLEW_ARB_occlusion_query) GLEW_ARB_occlusion_query = !_glewInit_GL_ARB_occlusion_query(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif 
 #ifdef GL_ARB_pixel_buffer_object
   GLEW_ARB_pixel_buffer_object = glewGetExtension("GL_ARB_pixel_buffer_object");
-#endif 
-#ifdef GL_ARB_point_parameters
-  GLEW_ARB_point_parameters = glewGetExtension("GL_ARB_point_parameters");
-  if (glewExperimental || GLEW_ARB_point_parameters) GLEW_ARB_point_parameters = !_glewInit_GL_ARB_point_parameters(GLEW_CONTEXT_ARG_VAR_INIT);
 #endif 
 #ifdef GL_ARB_point_sprite
   GLEW_ARB_point_sprite = glewGetExtension("GL_ARB_point_sprite");
@@ -5002,9 +5018,6 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #endif 
 #ifdef GL_ARB_texture_non_power_of_two
   GLEW_ARB_texture_non_power_of_two = glewGetExtension("GL_ARB_texture_non_power_of_two");
-#endif 
-#ifdef GL_ARB_texture_rectangle
-  GLEW_ARB_texture_rectangle = glewGetExtension("GL_ARB_texture_rectangle");
 #endif 
 #ifdef GL_ARB_transpose_matrix
   GLEW_ARB_transpose_matrix = glewGetExtension("GL_ARB_transpose_matrix");
@@ -5242,10 +5255,6 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #ifdef GL_EXT_pixel_transform_color_table
   GLEW_EXT_pixel_transform_color_table = glewGetExtension("GL_EXT_pixel_transform_color_table");
 #endif 
-#ifdef GL_EXT_point_parameters
-  GLEW_EXT_point_parameters = glewGetExtension("GL_EXT_point_parameters");
-  if (glewExperimental || GLEW_EXT_point_parameters) GLEW_EXT_point_parameters = !_glewInit_GL_EXT_point_parameters(GLEW_CONTEXT_ARG_VAR_INIT);
-#endif 
 #ifdef GL_EXT_polygon_offset
   GLEW_EXT_polygon_offset = glewGetExtension("GL_EXT_polygon_offset");
   if (glewExperimental || GLEW_EXT_polygon_offset) GLEW_EXT_polygon_offset = !_glewInit_GL_EXT_polygon_offset(GLEW_CONTEXT_ARG_VAR_INIT);
@@ -5314,9 +5323,6 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #endif 
 #ifdef GL_EXT_texture_env_dot3
   GLEW_EXT_texture_env_dot3 = glewGetExtension("GL_EXT_texture_env_dot3");
-#endif 
-#ifdef GL_EXT_texture_filter_anisotropic
-  GLEW_EXT_texture_filter_anisotropic = glewGetExtension("GL_EXT_texture_filter_anisotropic");
 #endif 
 #ifdef GL_EXT_texture_lod_bias
   GLEW_EXT_texture_lod_bias = glewGetExtension("GL_EXT_texture_lod_bias");
@@ -5758,6 +5764,8 @@ GLenum glewContextInit (GLEW_CONTEXT_ARG_DEF_LIST)
 #ifdef GL_WIN_swap_hint
   GLEW_WIN_swap_hint = glewGetExtension("GL_WIN_swap_hint");
   if (glewExperimental || GLEW_WIN_swap_hint) GLEW_WIN_swap_hint = !_glewInit_GL_WIN_swap_hint(GLEW_CONTEXT_ARG_VAR_INIT);
+#endif 
+
 #endif 
 
   return GLEW_OK;
