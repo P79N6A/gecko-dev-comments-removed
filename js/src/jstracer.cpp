@@ -2174,6 +2174,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
     tempTypeMap(cx)
 {
     JS_ASSERT(globalObj == cx->fp->scopeChain->getGlobal());
+    JS_ASSERT(globalObj->scope()->hasOwnShape());
     JS_ASSERT(cx->fp->regs->pc == (jsbytecode*)fragment->ip);
 
     fragment->lirbuf = lirbuf;
@@ -5298,6 +5299,20 @@ CheckGlobalObjectShape(JSContext* cx, TraceMonitor* tm, JSObject* globalObj,
         if (tm->recorder)
             AbortRecording(cx, "too many slots in global object");
         return false;
+    }
+
+    
+
+
+
+
+    if (!globalObj->scope()->hasOwnShape()) {
+        JSScope *scope = js_GetMutableScope(cx, globalObj);
+        if (!scope || !scope->globalObjectOwnShapeChange(cx)) {
+            debug_only_print0(LC_TMTracer,
+                              "Can't record: failed to give globalObj a unique shape.\n");
+            return false;
+        }
     }
 
     uint32 globalShape = globalObj->shape();
@@ -9571,15 +9586,6 @@ TraceRecorder::guardPrototypeHasNoIndexedProperties(JSObject* obj, LIns* obj_ins
     return RECORD_CONTINUE;
 }
 
-RecordingStatus
-TraceRecorder::guardNotGlobalObject(JSObject* obj, LIns* obj_ins)
-{
-    if (obj == globalObj)
-        RETURN_STOP("reference aliases global object");
-    guard(false, lir->ins2(LIR_peq, obj_ins, INS_CONSTOBJ(globalObj)), MISMATCH_EXIT);
-    return RECORD_CONTINUE;
-}
-
 
 
 
@@ -12259,7 +12265,8 @@ TraceRecorder::upvar(JSScript* script, JSUpvarArray* uva, uintN index, jsval& v)
 
 
 
-LIns* TraceRecorder::stackLoad(LIns* base, AccSet accSet, uint8 type)
+LIns*
+TraceRecorder::stackLoad(LIns* base, AccSet accSet, uint8 type)
 {
     LOpcode loadOp;
     switch (type) {
@@ -12799,12 +12806,6 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32 *slotp, LIns** v_insp, 
         RETURN_STOP_A("non-dense-array, non-native JSObjectOps::getProperty");
 
     JS_ASSERT((slotp && v_insp && !outp) || (!slotp && !v_insp && outp));
-
-    
-
-
-
-    CHECK_STATUS_A(guardNotGlobalObject(obj, obj_ins));
 
     
 
