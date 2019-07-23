@@ -41,11 +41,46 @@
 #include "nsIFormatConverter.h"
 #include "nsITransferable.h"
 #include "nsCOMPtr.h"
+#include "nsString.h"
 #include "nsTArray.h"
 
 class nsString;
 class nsDataObj;
-class DataStruct;
+
+
+
+
+
+
+struct DataStruct
+{
+  DataStruct ( const char* aFlavor )
+    : mDataLen(0), mFlavor(aFlavor), mCacheFileName(nsnull) { }
+  ~DataStruct();
+  
+  const nsCString& GetFlavor() const { return mFlavor; }
+  void SetData( nsISupports* inData, PRUint32 inDataLen );
+  void GetData( nsISupports** outData, PRUint32 *outDataLen );
+  nsIFile * GetFileSpec(const char * aFileName);
+  PRBool IsDataAvailable() const { return (mData && mDataLen > 0) || (!mData && mCacheFileName); }
+  
+protected:
+
+  enum {
+    
+    
+    kLargeDatasetSize = 1000000        
+  };
+  
+  nsresult WriteCache(nsISupports* aData, PRUint32 aDataLen );
+  nsresult ReadCache(nsISupports** aData, PRUint32* aDataLen );
+  
+  nsCOMPtr<nsISupports> mData;   
+  PRUint32 mDataLen;
+  const nsCString mFlavor;
+  char *   mCacheFileName;
+
+};
 
 
 
@@ -67,7 +102,7 @@ protected:
     
   nsresult GetTransferDataFlavors(nsISupportsArray** aDataFlavorList);
  
-  nsTArray<DataStruct*> * mDataArray;
+  nsTArray<DataStruct> mDataArray;
   nsCOMPtr<nsIFormatConverter> mFormatConv;
 
 };

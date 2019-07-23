@@ -395,9 +395,7 @@ nsDataObj::~nsDataObj()
 {
   NS_IF_RELEASE(mTransferable);
 
-  for (PRUint32 i = 0; i < mDataFlavors.Length(); ++i) {
-    delete mDataFlavors.ElementAt(i);
-  }
+  mDataFlavors.Clear();
 
   m_enumFE->Release();
 
@@ -497,52 +495,51 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC pFE, LPSTGMEDIUM pSTM)
   ULONG count;
   FORMATETC fe;
   m_enumFE->Reset();
-  while (NOERROR == m_enumFE->Next(1, &fe, &count)) {
-    nsCString * df = mDataFlavors.SafeElementAt(dfInx);
-    if ( df ) {
-      if (FormatsMatch(fe, *pFE)) {
-        pSTM->pUnkForRelease = NULL;        
-        CLIPFORMAT format = pFE->cfFormat;
-        switch(format) {
+  while (NOERROR == m_enumFE->Next(1, &fe, &count)
+         && dfInx < mDataFlavors.Length())) {
+    nsCString& df = mDataFlavors.ElementAt(dfInx);
+    if (FormatsMatch(fe, *pFE)) {
+      pSTM->pUnkForRelease = NULL;        
+      CLIPFORMAT format = pFE->cfFormat;
+      switch(format) {
 
-        
-        case CF_TEXT:
-        case CF_UNICODETEXT:
-        return GetText(*df, *pFE, *pSTM);
+      
+      case CF_TEXT:
+      case CF_UNICODETEXT:
+      return GetText(df, *pFE, *pSTM);
 
-        
-        
-        case CF_HDROP:
-          return GetFile(*pFE, *pSTM);
+      
+      
+      case CF_HDROP:
+        return GetFile(*pFE, *pSTM);
 
-        
-        case CF_DIB:
-          return GetDib(*df, *pFE, *pSTM);
-                                              
-        
-        
-        
-        
-        
-            
-        default:
-          if ( format == fileDescriptorFlavorA )
-            return GetFileDescriptor ( *pFE, *pSTM, PR_FALSE );
-          if ( format == fileDescriptorFlavorW )
-            return GetFileDescriptor ( *pFE, *pSTM, PR_TRUE);
-          if ( format == uniformResourceLocatorA )
-            return GetUniformResourceLocator( *pFE, *pSTM, PR_FALSE);
-          if ( format == uniformResourceLocatorW )
-            return GetUniformResourceLocator( *pFE, *pSTM, PR_TRUE);
-          if ( format == fileFlavor )
-            return GetFileContents ( *pFE, *pSTM );
-          if ( format == PreferredDropEffect )
-            return GetPreferredDropEffect( *pFE, *pSTM );
-          PRNTDEBUG2("***** nsDataObj::GetData - Unknown format %u\n", format);
-          return GetText(*df, *pFE, *pSTM);
-        } 
+      
+      case CF_DIB:
+        return GetDib(df, *pFE, *pSTM);
+
+      
+      
+      
+      
+      
+
+      default:
+        if ( format == fileDescriptorFlavorA )
+          return GetFileDescriptor ( *pFE, *pSTM, PR_FALSE );
+        if ( format == fileDescriptorFlavorW )
+          return GetFileDescriptor ( *pFE, *pSTM, PR_TRUE);
+        if ( format == uniformResourceLocatorA )
+          return GetUniformResourceLocator( *pFE, *pSTM, PR_FALSE);
+        if ( format == uniformResourceLocatorW )
+          return GetUniformResourceLocator( *pFE, *pSTM, PR_TRUE);
+        if ( format == fileFlavor )
+          return GetFileContents ( *pFE, *pSTM );
+        if ( format == PreferredDropEffect )
+          return GetPreferredDropEffect( *pFE, *pSTM );
+        PRNTDEBUG2("***** nsDataObj::GetData - Unknown format %u\n", format);
+        return GetText(df, *pFE, *pSTM);
       } 
-    }
+    } 
     dfInx++;
   } 
 
@@ -1372,10 +1369,10 @@ HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   FORMATETC fe;
   m_enumFE->Reset();
   PRBool found = PR_FALSE;
-  while (NOERROR == m_enumFE->Next(1, &fe, &count)) {
-    nsCString * df = mDataFlavors.SafeElementAt(dfInx);
+  while (NOERROR == m_enumFE->Next(1, &fe, &count)
+         && dfInx < mDataFlavors.Length()) {
     dfInx++;
-    if (df && df->EqualsLiteral(kNativeImageMime)) {
+    if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime)) {
       found = PR_TRUE;
       break;
     }
@@ -1587,7 +1584,7 @@ void nsDataObj::AddDataFlavor(const char* aDataFlavor, LPFORMATETC aFE)
   
   
   
-  mDataFlavors.AppendElement(new nsCString(aDataFlavor));
+  mDataFlavors.AppendElement(aDataFlavor);
   m_enumFE->AddFE(aFE);
 }
 

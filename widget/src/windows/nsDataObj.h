@@ -264,7 +264,7 @@ class nsDataObj : public IDataObject,
 
 		ULONG        m_cRef;              
 
-    nsTPtrArray<nsCString> mDataFlavors;
+    nsTArray<nsCString> mDataFlavors;
 
     nsITransferable  * mTransferable; 
                                       
