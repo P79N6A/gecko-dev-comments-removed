@@ -332,7 +332,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
   if (pLibrary) {
     
     NP_GETMIMEDESCRIPTION pfnGetMimeDesc = 
-    (NP_GETMIMEDESCRIPTION)PR_FindSymbol(pLibrary, NP_GETMIMEDESCRIPTION_NAME); 
+    (NP_GETMIMEDESCRIPTION)PR_FindFunctionSymbol(pLibrary, NP_GETMIMEDESCRIPTION_NAME); 
     if (pfnGetMimeDesc) {
       nsresult rv = ParsePluginMimeDescription(pfnGetMimeDesc(), info);
       if (NS_SUCCEEDED(rv)) {    
@@ -343,7 +343,7 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     
     
     BP_GETSUPPORTEDMIMETYPES pfnMime = 
-      (BP_GETSUPPORTEDMIMETYPES)PR_FindSymbol(pLibrary, "BP_GetSupportedMIMETypes");
+      (BP_GETSUPPORTEDMIMETYPES)PR_FindFunctionSymbol(pLibrary, "BP_GetSupportedMIMETypes");
     if (pfnMime && noErr == pfnMime(&mi, 0) && mi.typeStrings) {        
       info.fVariantCount = (**(short**)mi.typeStrings) / 2;
       ::HLock(mi.typeStrings);
