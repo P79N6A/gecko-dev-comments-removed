@@ -64,6 +64,7 @@ class nsClientRectList;
 #include "nsIPrincipal.h"
 #include "gfxPattern.h"
 #include "imgIContainer.h"
+#include "nsCSSPseudoElements.h"
 
 class nsBlockFrame;
 class nsTextFragment;
@@ -333,16 +334,15 @@ public:
 
   static PRBool HasPseudoStyle(nsIContent* aContent,
                                nsStyleContext* aStyleContext,
-                               nsIAtom* aPseudoElement,
+                               nsCSSPseudoElements::Type aPseudoElement,
                                nsPresContext* aPresContext)
   {
     NS_PRECONDITION(aPresContext, "Must have a prescontext");
-    NS_PRECONDITION(aPseudoElement, "Must have a pseudo name");
 
     nsRefPtr<nsStyleContext> pseudoContext;
     if (aContent) {
       pseudoContext = aPresContext->StyleSet()->
-        ProbePseudoStyleFor(aContent, aPseudoElement, aStyleContext);
+        ProbePseudoElementStyle(aContent, aPseudoElement, aStyleContext);
     }
     return pseudoContext != nsnull;
   }

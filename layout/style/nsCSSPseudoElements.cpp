@@ -122,6 +122,14 @@ nsCSSPseudoElements::GetPseudoType(nsIAtom *aAtom)
   return ePseudo_NotPseudoElement;
 }
 
+ nsIAtom*
+nsCSSPseudoElements::GetPseudoAtom(Type aType)
+{
+  NS_ASSERTION(aType < nsCSSPseudoElements::ePseudo_PseudoElementCount,
+               "Unexpected type");
+  return *CSSPseudoElements_info[aType].mAtom;
+}
+
  PRUint32
 nsCSSPseudoElements::FlagsForPseudoElement(nsIAtom *aAtom)
 {

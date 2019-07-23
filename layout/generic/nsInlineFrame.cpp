@@ -1057,8 +1057,7 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
         
         nsRefPtr<nsStyleContext> newSC;
         newSC = aPresContext->StyleSet()->
-          ResolvePseudoStyleFor(nsnull,
-                                nsCSSAnonBoxes::mozLineFrame, parentContext);
+          ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozLineFrame, parentContext);
         if (newSC) {
           
           SetStyleContext(newSC);
