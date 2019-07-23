@@ -479,8 +479,12 @@ void HandleConnection(void* data)
 
           if (bytesWrite < 0)
           {
-            if (PR_GetError() != PR_WOULD_BLOCK_ERROR)
+            if (PR_GetError() != PR_WOULD_BLOCK_ERROR) {
               client_error = true;
+              
+              
+              buffers[s2].bufferhead = buffers[s2].buffertail = buffers[s2].buffer;
+            }
           }
           else
           {
