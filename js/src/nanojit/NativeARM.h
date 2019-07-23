@@ -362,9 +362,11 @@ enum {
         NanoAssert((imm)>=0 && (imm)<32);\
         *(--_nIns) = (NIns) ((cond)<<28 |(ARM_##op)<<21 | (S)<<20 | (rl)<<16 | (rd)<<12 | (imm)<<7 | (sh)<<4 | (rr));\
         if (ARM_##op == ARM_mov || ARM_##op == ARM_mvn) {               \
+            NanoAssert(rl==0);                                          \
             asm_output("%s%s%s %s, %s, %s #%d", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rr), shiftNames[sh], (imm));\
         } else if (ARM_##op >= ARM_tst && ARM_##op <= ARM_cmn) {         \
             NanoAssert(S==1);\
+            NanoAssert(rd==0);\
             asm_output("%s%s  %s, %s, %s #%d", #op, condNames[cond], gpn(rl), gpn(rr), shiftNames[sh], (imm));\
         } else {                                                        \
             asm_output("%s%s%s %s, %s, %s, %s #%d", #op, condNames[cond], (S)?"s":"", gpn(rd), gpn(rl), gpn(rr), shiftNames[sh], (imm));\

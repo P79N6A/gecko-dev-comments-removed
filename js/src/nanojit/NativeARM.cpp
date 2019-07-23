@@ -2446,6 +2446,7 @@ Assembler::asm_arith(LInsp ins)
     }
     NanoAssert(isKnownReg(rb));
 
+    const Register SBZ = (Register)0;
     switch (op)
     {
         case LIR_iaddp: ADDs(rr, ra, rb, 0);    break;
@@ -2472,7 +2473,7 @@ Assembler::asm_arith(LInsp ins)
                 
                 
                 
-                ALUr_shi(AL, cmp, 1, IP, IP, rr, ASR_imm, 31);
+                ALUr_shi(AL, cmp, 1, SBZ, IP, rr, ASR_imm, 31);
                 SMULL(rr, IP, rb, ra);
             } else {
                 
@@ -2484,7 +2485,7 @@ Assembler::asm_arith(LInsp ins)
                     
                     
                     
-                    ALUr_shi(AL, cmp, 1, IP, IP, rr, ASR_imm, 31);
+                    ALUr_shi(AL, cmp, 1, SBZ, IP, rr, ASR_imm, 31);
                     SMULL(rr, IP, ra, rb);
                 } else {
                     
@@ -2511,8 +2512,8 @@ Assembler::asm_arith(LInsp ins)
 
                     NanoAssert(rr != IP);
 
-                    ALUr_shi(AL, cmp, 1, IP, rr, rr, ASR_imm, 31);
-                    ALUr_shi(AL, mov, 1, IP, IP, IP, LSR_imm, 16);
+                    ALUr_shi(AL, cmp, 1, SBZ, rr, rr, ASR_imm, 31);
+                    ALUr_shi(AL, mov, 1, IP, SBZ, IP, LSR_imm, 16);
                     MUL(rr, IP, IP);
                     ALUi(MI, rsb, 0, IP, IP, 0);
                     ALUr(AL, mov, 1, IP, ra, ra);
