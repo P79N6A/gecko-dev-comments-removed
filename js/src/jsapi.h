@@ -79,7 +79,7 @@ JS_BEGIN_EXTERN_C
 
 
 #define JSVAL_IS_GCTHING(v)     (!((v) & JSVAL_INT) && !JSVAL_IS_BOOLEAN(v))
-#define JSVAL_TO_GCTHING(v)     ((JSGCThing *)JSVAL_CLRTAG(v))
+#define JSVAL_TO_GCTHING(v)     ((void *)JSVAL_CLRTAG(v))
 #define JSVAL_TO_OBJECT(v)      ((JSObject *)JSVAL_TO_GCTHING(v))
 #define JSVAL_TO_DOUBLE(v)      ((jsdouble *)JSVAL_TO_GCTHING(v))
 #define JSVAL_TO_STRING(v)      ((JSString *)JSVAL_TO_GCTHING(v))
