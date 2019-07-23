@@ -245,11 +245,8 @@ nsColumnSetFrame::PaintColumnRule(nsIRenderingContext* aCtx,
   if (!ruleWidth)
     return;
 
-  nscolor ruleColor;
-  if (colStyle->mColumnRuleColorIsForeground)
-    ruleColor = GetStyleColor()->mColor;
-  else
-    ruleColor = colStyle->mColumnRuleColor;
+  nscolor ruleColor =
+    GetVisitedDependentColor(eCSSProperty__moz_column_rule_color);
 
   
   
