@@ -5299,38 +5299,74 @@ nsRuleNode::HasAuthorSpecifiedRules(nsStyleContext* aStyleContext,
     nValues += NS_ARRAY_LENGTH(paddingValues);
   }
 
-  
-  
-  for (nsRuleNode* ruleNode = aStyleContext->GetRuleNode(); ruleNode;
-       ruleNode = ruleNode->GetParent()) {
-    nsIStyleRule *rule = ruleNode->GetRule();
-    if (rule) {
-      ruleData.mLevel = ruleNode->GetLevel();
-      ruleData.mIsImportantRule = ruleNode->IsImportantRule();
-      rule->MapRuleInfoInto(&ruleData);
-      
-      
-      
-      marginData.mBoxShadow = nsnull;
+  nsStyleContext* styleContext = aStyleContext;
 
-      if (ruleData.mLevel == nsStyleSet::eAgentSheet ||
-          ruleData.mLevel == nsStyleSet::eUserSheet) {
+  
+  
+  
+  
+  
+  
+  PRBool haveExplicitUAInherit;
+  do {
+    haveExplicitUAInherit = PR_FALSE;
+    for (nsRuleNode* ruleNode = styleContext->GetRuleNode(); ruleNode;
+         ruleNode = ruleNode->GetParent()) {
+      nsIStyleRule *rule = ruleNode->GetRule();
+      if (rule) {
+        ruleData.mLevel = ruleNode->GetLevel();
+        ruleData.mIsImportantRule = ruleNode->IsImportantRule();
+        rule->MapRuleInfoInto(&ruleData);
         
         
         
-        for (PRUint32 i = 0; i < nValues; ++i)
-          if (values[i]->GetUnit() != eCSSUnit_Null)
-            values[i]->SetDummyValue();
-      } else {
-        
-        
-        for (PRUint32 i = 0; i < nValues; ++i)
-          if (values[i]->GetUnit() != eCSSUnit_Null &&
-              values[i]->GetUnit() != eCSSUnit_Dummy) 
-            return PR_TRUE;
+        marginData.mBoxShadow = nsnull;
+
+        if (ruleData.mLevel == nsStyleSet::eAgentSheet ||
+            ruleData.mLevel == nsStyleSet::eUserSheet) {
+          
+          
+          
+          for (PRUint32 i = 0; i < nValues; ++i) {
+            nsCSSUnit unit = values[i]->GetUnit();
+            if (unit != eCSSUnit_Null &&
+                unit != eCSSUnit_Dummy &&
+                unit != eCSSUnit_DummyInherit) {
+              if (unit == eCSSUnit_Inherit) {
+                haveExplicitUAInherit = PR_TRUE;
+                values[i]->SetDummyInheritValue();
+              } else {
+                values[i]->SetDummyValue();
+              }
+            }
+          }
+        } else {
+          
+          
+          for (PRUint32 i = 0; i < nValues; ++i)
+            if (values[i]->GetUnit() != eCSSUnit_Null &&
+                values[i]->GetUnit() != eCSSUnit_Dummy && 
+                values[i]->GetUnit() != eCSSUnit_DummyInherit)
+              return PR_TRUE;
+        }
       }
     }
-  }
+
+    if (haveExplicitUAInherit) {
+      
+      
+      
+      
+      
+      for (PRUint32 i = 0; i < nValues; ++i)
+        if (values[i]->GetUnit() == eCSSUnit_Null)
+          values[i]->SetDummyValue();
+      for (PRUint32 i = 0; i < nValues; ++i)
+        if (values[i]->GetUnit() == eCSSUnit_DummyInherit)
+          values[i]->Reset();
+      styleContext = styleContext->GetParent();
+    }
+  } while (haveExplicitUAInherit && styleContext);
 
   return PR_FALSE;
 }
