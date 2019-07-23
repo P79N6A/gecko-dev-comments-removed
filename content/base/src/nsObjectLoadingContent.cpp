@@ -284,7 +284,6 @@ IsSupportedPlugin(const nsCString& aMIMEType)
     return PR_FALSE;
   }
   nsresult rv = host->IsPluginEnabledForType(aMIMEType.get());
-  
   return NS_SUCCEEDED(rv);
 }
 
