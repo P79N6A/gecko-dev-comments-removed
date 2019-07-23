@@ -88,6 +88,8 @@ public:
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            PRBool aNotify);
+  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr, 
+                             PRBool aNotify);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
@@ -97,7 +99,12 @@ public:
 
   virtual PRBool IsDoneAddingChildren();
   virtual nsresult DoneAddingChildren(PRBool aHaveNotified);
-  virtual void DestroyContent();
+
+  
+
+
+
+  void NotifyOwnerDocumentActivityChanged();
 
   
   
@@ -181,6 +188,9 @@ public:
   void ChangeReadyState(nsMediaReadyState aState);
 
   
+  PRBool CanActivateAutoplay();
+
+  
   
   
   void NotifyAutoplayDataReady();
@@ -203,11 +213,6 @@ public:
   
   
   void UpdateMediaSize(nsIntSize size);
-
-  
-  
-  void Freeze();
-  void Thaw();
 
   
   
@@ -280,7 +285,7 @@ protected:
 
 
 
-  PRBool CreateDecoder(const nsACString& aMIMEType);
+  already_AddRefed<nsMediaDecoder> CreateDecoder(const nsACString& aMIMEType);
 
   
 
@@ -298,7 +303,7 @@ protected:
   
 
 
-  nsresult FinishDecoderSetup();
+  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder);
 
   
 
@@ -370,6 +375,18 @@ protected:
   nsresult OnChannelRedirect(nsIChannel *aChannel,
                              nsIChannel *aNewChannel,
                              PRUint32 aFlags);
+
+  
+
+
+  void AddRemoveSelfReference();
+
+  
+
+
+
+
+  void DoRelease() { Release(); }
 
   nsRefPtr<nsMediaDecoder> mDecoder;
 
@@ -463,9 +480,7 @@ protected:
   PRPackedBool mPlayingBeforeSeek;
 
   
-  
-  
-  PRPackedBool mPausedBeforeFreeze;
+  PRPackedBool mPausedForInactiveDocument;
   
   
   
@@ -499,4 +514,9 @@ protected:
   
   
   PRPackedBool mHasPlayedOrSeeked;
+
+  
+  
+  
+  PRPackedBool mHasSelfReference;
 };

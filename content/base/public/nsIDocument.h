@@ -693,10 +693,8 @@ public:
   
 
 
-  void SetContainer(nsISupports *aContainer)
-  {
-    mDocumentContainer = do_GetWeakReference(aContainer);
-  }
+
+  virtual void SetContainer(nsISupports *aContainer);
 
   
 
