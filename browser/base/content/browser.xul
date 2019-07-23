@@ -65,12 +65,12 @@
         xmlns:svg="http://www.w3.org/2000/svg"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
         onload="BrowserStartup()" onunload="BrowserShutdown()" onclose="return WindowIsClosing();"
-        title="&mainWindow.title; 3.1 Beta 2"
-        title_normal="&mainWindow.title; 3.1 Beta 2"
-        title_privatebrowsing="&mainWindowPrivateBrowsing.titlemodifier; 3.1 Beta 2"
-        titlemodifier="&mainWindow.titlemodifier; 3.1 Beta 2"
-        titlemodifier_normal="&mainWindow.titlemodifier; 3.1 Beta 2"
-        titlemodifier_privatebrowsing="&mainWindowPrivateBrowsing.titlemodifier; 3.1 Beta 2"
+        title="&mainWindow.title;"
+        title_normal="&mainWindow.title;"
+        title_privatebrowsing="&mainWindowPrivateBrowsing.titlemodifier;"
+        titlemodifier="&mainWindow.titlemodifier;"
+        titlemodifier_normal="&mainWindow.titlemodifier;"
+        titlemodifier_privatebrowsing="&mainWindowPrivateBrowsing.titlemodifier;"
         titlemenuseparator="&mainWindow.titlemodifiermenuseparator;"
         windowtype="navigator:browser"
         screenX="4" screenY="4"
@@ -233,7 +233,7 @@
     <tooltip id="urlTooltip">
       <label crop="center" flex="1" class="tooltip-label"/>
     </tooltip>
-#ifdef USE_TAB_PREVIEWS
+
     <panel id="ctrlTab-panel" class="KUI-panel" hidden="true" norestorefocus="true" ignorekeys="true">
       <hbox pack="center">
         <textbox id="ctrlTab-search"
@@ -259,7 +259,6 @@
       </hbox>
       <hbox id="ctrlTab-pages"/>
     </panel>
-#endif
   </popupset>
 
   <!-- bookmarks toolbar tooltip -->
