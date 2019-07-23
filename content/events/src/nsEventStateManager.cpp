@@ -1930,7 +1930,7 @@ nsEventStateManager::DoScrollTextsize(nsIFrame *aTargetFrame,
       !content->IsNodeOfType(nsINode::eXUL))
     {
       
-      ChangeTextSize((adjustment > 0) ? 1 : -1);
+      ChangeTextSize((adjustment > 0) ? -1 : 1);
     }
 }
 
