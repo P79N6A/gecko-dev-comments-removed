@@ -808,6 +808,9 @@ _geturlnotify(NPP aNPP,
     PLUGIN_LOG_DEBUG_FUNCTION;
     ENSURE_PLUGIN_THREAD(NPERR_INVALID_PARAM);
 
+    if (!aNPP) 
+        return NPERR_INVALID_INSTANCE_ERROR;
+
     nsCString url = NullableString(aRelativeURL);
     StreamNotifyChild* sn = new StreamNotifyChild(url);
 
