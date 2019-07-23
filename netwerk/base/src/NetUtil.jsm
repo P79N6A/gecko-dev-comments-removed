@@ -53,6 +53,8 @@ const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
 
+const PR_UINT32_MAX = 0xffffffff;
+
 
 
 
@@ -123,6 +125,49 @@ const NetUtil = {
         
         copier.asyncCopy(observer, null);
         return copier;
+    },
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    asyncFetch: function NetUtil_asyncOpen(aChannel, aCallback)
+    {
+        if (!aChannel || !aCallback) {
+            let exception = new Components.Exception(
+                "Must have a channel and a callback",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+            throw exception;
+        }
+
+        
+        
+        let pipe = Cc["@mozilla.org/pipe;1"].
+                   createInstance(Ci.nsIPipe);
+        pipe.init(false, false, 0, PR_UINT32_MAX, null);
+
+        
+        let listener = Cc["@mozilla.org/network/simple-stream-listener;1"].
+                       createInstance(Ci.nsISimpleStreamListener);
+        listener.init(pipe.outputStream, {
+            onStartRequest: function(aRequest, aContext) {},
+            onStopRequest: function(aRequest, aContext, aStatusCode) {
+                aCallback(pipe.inputStream, aStatusCode);
+            }
+        });
+
+        aChannel.asyncOpen(listener, null);
     },
 
     

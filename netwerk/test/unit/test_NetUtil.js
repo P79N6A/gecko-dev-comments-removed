@@ -41,10 +41,9 @@
 
 
 
+do_load_httpd_js();
+
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
 
 
 
@@ -179,6 +178,66 @@ function test_ioService()
   run_next_test();
 }
 
+function test_asyncFetch_no_channel()
+{
+  try {
+    NetUtil.asyncFetch(null, function() { });
+    do_throw("should throw!");
+  }
+  catch (e) {
+    do_check_eq(e.result, Cr.NS_ERROR_INVALID_ARG);
+  }
+
+  run_next_test();
+}
+
+function test_asyncFetch_no_callback()
+{
+  try {
+    NetUtil.asyncFetch({ });
+    do_throw("should throw!");
+  }
+  catch (e) {
+    do_check_eq(e.result, Cr.NS_ERROR_INVALID_ARG);
+  }
+
+  run_next_test();
+}
+
+function test_asyncFetch()
+{
+  const TEST_DATA = "this is a test string";
+
+  
+  let server = new nsHttpServer();
+  server.registerPathHandler("/test", function(aRequest, aResponse) {
+    aResponse.setStatusLine(aRequest.httpVersion, 200, "OK");
+    aResponse.setHeader("Content-Type", "text/plain", false);
+    aResponse.write(TEST_DATA);
+  });
+  server.start(4444);
+
+  
+  let channel = NetUtil.ioService.
+                newChannel("http://localhost:4444/test", null, null);
+
+  
+  NetUtil.asyncFetch(channel, function(aInputStream, aResult) {
+    
+    do_check_true(Components.isSuccessCode(aResult));
+
+    
+    do_check_eq(aInputStream.available(), TEST_DATA.length);
+    let is = Cc["@mozilla.org/scriptableinputstream;1"].
+             createInstance(Ci.nsIScriptableInputStream);
+    is.init(aInputStream);
+    let result = is.read(TEST_DATA.length);
+    do_check_eq(TEST_DATA, result);
+
+    server.stop(run_next_test);
+  });
+}
+
 
 
 
@@ -188,6 +247,9 @@ let tests = [
   test_newURI_no_spec_throws,
   test_newURI,
   test_ioService,
+  test_asyncFetch_no_channel,
+  test_asyncFetch_no_callback,
+  test_asyncFetch,
 ];
 let index = 0;
 
