@@ -35,9 +35,6 @@
 
 
 
-#if !defined(nsAudioStream_h_)
-#define nsAudioStream_h_
-
 #include "nscore.h"
 #include "prlog.h"
 
@@ -67,12 +64,7 @@ class nsAudioStream
   
   
   
-  void Write(const float* aBuf, PRUint32 aCount);
-
-  
-  
-  
-  void Write(const short* aBuf, PRUint32 aCount);
+  void Write(float* aBuf, PRUint32 count);
 
   
   
@@ -86,29 +78,10 @@ class nsAudioStream
   
   void SetVolume(float aVolume);
 
-  
-  void Drain();
-
-  
-  void Pause();
-
-  
-  void Resume();
-
-  
-  
-  double GetTime();
-
  private:
   double mVolume;
   void* mAudioHandle;
   int mRate;
   int mChannels;
-
-  
-  PRInt64 mSavedPauseBytes;
-  PRInt64 mPauseBytes;
-
-  PRPackedBool mPaused;
+  PRPackedBool mMute;
 };
-#endif
