@@ -546,11 +546,13 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                   JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
                   JSProperty **propp);
 
+#ifdef __cplusplus 
 extern JSBool
 js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                         JSPropertyOp getter, JSPropertyOp setter, uintN attrs,
                         uintN flags, intN shortid, JSProperty **propp,
                         JSPropCacheEntry** entryp = NULL);
+#endif
 
 
 
