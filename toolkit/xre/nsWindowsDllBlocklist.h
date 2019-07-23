@@ -92,6 +92,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   {"googledesktopnetwork3.dll", UNVERSIONED},
 
   
+  {"rdolib.dll", MAKE_VERSION(6,0,88,4)},
+
+  
   {"fgjk4wvb.dll", MAKE_VERSION(8,8,8,8)},
   
   
