@@ -597,24 +597,8 @@ void nsViewManager::RenderViews(nsView *aView, nsIRenderingContext& aRC,
     nsRegion damageRegion(aRegion);
     damageRegion.MoveBy(offsetToRoot);
 
-    gfxContext* ctx = aRC.ThebesContext();
-    nsCOMPtr<nsIDeviceContext> dc;
-    aRC.GetDeviceContext(*getter_AddRefs(dc));
-    double appPerDev = dc->AppUnitsPerDevPixel();
-    gfxRect r(-offsetToRoot.x/appPerDev, -offsetToRoot.y/appPerDev, 1.0, 1.0);
-
     aRC.PushState();
-    
-    
-    
-    
-    
-    
-    if (ctx->UserToDevicePixelSnapped(r)) {
-      ctx->Translate(ctx->DeviceToUser(r).pos);
-    } else {
-      aRC.Translate(-offsetToRoot.x, -offsetToRoot.y);
-    }
+    aRC.Translate(-offsetToRoot.x, -offsetToRoot.y);
     mObserver->Paint(displayRoot, &aRC, damageRegion);
     aRC.PopState();
   }
