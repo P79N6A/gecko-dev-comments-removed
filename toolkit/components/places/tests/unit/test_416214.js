@@ -101,13 +101,16 @@ function ensure_results(aSearch, aExpected)
       print("Looking for an expected result of " + value + ", " + comment + "...");
       let j;
       for (j = 0; j < aExpected.length; j++) {
-        let [uri, title] = aExpected[j];
+        let [uri, title, tags] = aExpected[j];
 
         
         if (uri == undefined) continue;
 
         
-        [uri, title] = [iosvc.newURI(kURIs[uri], null, null).spec, kTitles[title]];
+        uri = iosvc.newURI(kURIs[uri], null, null).spec;
+        title = kTitles[title];
+        if (tags)
+          title += " \u2013 " + tags.map(function(aTag) kTitles[aTag]);
 
         
         if (uri == value && title == comment) {
