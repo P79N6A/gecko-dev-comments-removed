@@ -118,9 +118,6 @@ PrivateBrowsingService.prototype = {
   _alreadyChangingMode: false,
 
   
-  _autoStart: false,
-
-  
   _autoStarted: false,
 
   
@@ -131,12 +128,14 @@ PrivateBrowsingService.prototype = {
   contractID: "@mozilla.org/privatebrowsing;1",
   classID: Components.ID("{c31f4883-839b-45f6-82ad-a6a9bc5ad599}"),
   _xpcom_categories: [
+    { category: "command-line-handler", entry: "m-privatebrowsing" },
     { category: "app-startup", service: true }
   ],
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIPrivateBrowsingService, 
                                          Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference]),
+                                         Ci.nsISupportsWeakReference,
+                                         Ci.nsICommandLineHandler]),
 
   _unload: function PBS__destroy() {
     
@@ -147,7 +146,7 @@ PrivateBrowsingService.prototype = {
 
   _onBeforePrivateBrowsingModeChange: function PBS__onBeforePrivateBrowsingModeChange() {
     
-    if (!this._autoStart) {
+    if (!this._autoStarted) {
       let ss = Cc["@mozilla.org/browser/sessionstore;1"].
                getService(Ci.nsISessionStore);
       let blankState = JSON.stringify({
@@ -224,7 +223,7 @@ PrivateBrowsingService.prototype = {
   _onAfterPrivateBrowsingModeChange: function PBS__onAfterPrivateBrowsingModeChange() {
     
     
-    if (!this._autoStart && this._saveSession) {
+    if (!this._autoStarted && this._saveSession) {
       let ss = Cc["@mozilla.org/browser/sessionstore;1"].
                getService(Ci.nsISessionStore);
       
@@ -317,11 +316,10 @@ PrivateBrowsingService.prototype = {
         
         
         
-        this._autoStart = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
-        if (this._autoStart) {
-          this._autoStarted = true;
-          this.privateBrowsingEnabled = true;
-          this._autoStart = false;
+        if (!this._autoStarted) {
+          this._autoStarted = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
+          if (this._autoStarted)
+            this.privateBrowsingEnabled = true;
         }
         this._obs.removeObserver(this, "profile-after-change");
         break;
@@ -348,6 +346,19 @@ PrivateBrowsingService.prototype = {
         }
         break;
     }
+  },
+
+  
+
+  handle: function PBS_handle(aCmdLine) {
+    if (aCmdLine.handleFlag("private", false)) {
+      this.privateBrowsingEnabled = true;
+      this._autoStarted = true;
+    }
+  },
+
+  get helpInfo PBS_get_helpInfo() {
+    return "  -private            Enable private browsing mode.\n";
   },
 
   
@@ -384,8 +395,7 @@ PrivateBrowsingService.prototype = {
             return;
         }
 
-        this._autoStarted = val ?
-          this._prefs.getBoolPref("browser.privatebrowsing.autostart") : false;
+        this._autoStarted = this._prefs.getBoolPref("browser.privatebrowsing.autostart");
         this._inPrivateBrowsing = val != false;
 
         let data = val ? "enter" : "exit";
@@ -417,7 +427,7 @@ PrivateBrowsingService.prototype = {
 
 
   get autoStarted PBS_get_autoStarted() {
-    return this._autoStarted;
+    return this._inPrivateBrowsing && this._autoStarted;
   },
 
   removeDataFromDomain: function PBS_removeDataFromDomain(aDomain)
