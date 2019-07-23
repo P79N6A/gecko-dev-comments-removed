@@ -73,12 +73,10 @@ struct JSFunction {
             uint16      extra;    
             uint16      spare;    
             JSNative    native;   
-            union {
-                JSClass             *clasp;    
+            JSClass     *clasp;   
 
-                JSTraceableNative   *trcinfo;  
+            JSTraceableNative *trcinfo;  
 
-            } u;
         } n;
         struct {
             uint16      nvars;    
@@ -111,11 +109,10 @@ struct JSFunction {
                               ? 0                                             \
                               : (fun)->nargs)
 #define FUN_CLASP(fun)       (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
-                              JS_ASSERT(!((fun)->flags & JSFUN_TRACEABLE)),   \
-                              fun->u.n.u.clasp)
+                              fun->u.n.clasp)
 #define FUN_TRCINFO(fun)     (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
                               JS_ASSERT((fun)->flags & JSFUN_TRACEABLE),      \
-                              fun->u.n.u.trcinfo)
+                              fun->u.n.trcinfo)
 
 
 

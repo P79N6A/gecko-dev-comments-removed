@@ -831,8 +831,7 @@ js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv)
             thisp = parent;
     }
 
-    
-    thisp = OBJ_THIS_OBJECT(cx, thisp);
+    OBJ_TO_OUTER_OBJECT(cx, thisp);
     if (!thisp)
         return NULL;
     argv[-1] = OBJECT_TO_JSVAL(thisp);
@@ -856,11 +855,18 @@ ComputeThis(JSContext *cx, JSBool lazy, jsval *argv)
             return js_ComputeGlobalThis(cx, lazy, argv);
         }
 
-        
-        thisp = OBJ_THIS_OBJECT(cx, thisp);
+        OBJ_TO_OUTER_OBJECT(cx, thisp);
         if (!thisp)
             return NULL;
         argv[-1] = OBJECT_TO_JSVAL(thisp);
+
+        if (thisp->map->ops->thisObject) {
+            
+            thisp = thisp->map->ops->thisObject(cx, thisp);
+            if (!thisp)
+                return NULL;
+            argv[-1] = OBJECT_TO_JSVAL(thisp);
+       }
     }
     return thisp;
 }
@@ -1545,7 +1551,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     cx->fp = &frame;
     if (!down) {
-        frame.thisp = OBJ_THIS_OBJECT(cx, frame.thisp);
+        OBJ_TO_OUTER_OBJECT(cx, frame.thisp);
         if (!frame.thisp) {
             ok = JS_FALSE;
             goto out2;
@@ -1788,11 +1794,8 @@ js_InvokeConstructor(JSContext *cx, uintN argc, JSBool clampReturn, jsval *vp)
 
         if (OBJ_GET_CLASS(cx, obj2) == &js_FunctionClass) {
             fun2 = GET_FUNCTION_PRIVATE(cx, obj2);
-            if (!FUN_INTERPRETED(fun2) &&
-                !(fun2->flags & JSFUN_TRACEABLE) &&
-                fun2->u.n.u.clasp) {
-                clasp = fun2->u.n.u.clasp;
-            }
+            if (!FUN_INTERPRETED(fun2) && fun2->u.n.clasp)
+                clasp = fun2->u.n.clasp;
         }
     }
     obj = js_NewObject(cx, clasp, proto, parent, 0);
