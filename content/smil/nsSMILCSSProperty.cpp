@@ -146,12 +146,26 @@ nsSMILCSSProperty::GetBaseValue() const
 nsresult
 nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
                                    const nsISMILAnimationElement* aSrcElement,
-                                   nsSMILValue& aValue) const
+                                   nsSMILValue& aValue,
+                                   PRBool& aCanCache) const
 {
   NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
 
   nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue);
-  return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
+  if (aValue.IsNull()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  aCanCache = PR_FALSE;
+  return NS_OK;
 }
 
 nsresult

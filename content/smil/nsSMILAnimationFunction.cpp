@@ -104,6 +104,7 @@ nsSMILAnimationFunction::nsSMILAnimationFunction()
     mRepeatIteration(0),
     mLastValue(PR_FALSE),
     mHasChanged(PR_TRUE),
+    mValueNeedsReparsingEverySample(PR_FALSE),
     mBeginTime(LL_MININT),
     mAnimationElement(nsnull),
     mErrorFlags(0)
@@ -358,7 +359,7 @@ nsSMILAnimationFunction::WillReplace() const
 PRBool
 nsSMILAnimationFunction::HasChanged() const
 {
-  return mHasChanged;
+  return mHasChanged || mValueNeedsReparsingEverySample;
 }
 
 PRBool
@@ -690,17 +691,27 @@ nsSMILAnimationFunction::GetAttr(nsIAtom* aAttName, nsAString& aResult) const
 
 
 
+
+
+
+
 PRBool
 nsSMILAnimationFunction::ParseAttr(nsIAtom* aAttName,
                                    const nsISMILAttr& aSMILAttr,
-                                   nsSMILValue& aResult) const
+                                   nsSMILValue& aResult,
+                                   PRBool& aCanCacheSoFar) const
 {
   nsAutoString attValue;
   if (GetAttr(aAttName, attValue)) {
-    nsresult rv =
-      aSMILAttr.ValueFromString(attValue, mAnimationElement, aResult);
+    PRBool canCache;
+    nsresult rv = aSMILAttr.ValueFromString(attValue, mAnimationElement,
+                                            aResult, canCache);
     if (NS_FAILED(rv))
       return PR_FALSE;
+
+    if (!canCache) {
+      aCanCacheSoFar = PR_FALSE;
+    }
   }
   return PR_TRUE;
 }
@@ -726,25 +737,34 @@ nsSMILAnimationFunction::GetValues(const nsISMILAttr& aSMILAttr,
   if (!mAnimationElement)
     return NS_ERROR_FAILURE;
 
+  mValueNeedsReparsingEverySample = PR_FALSE;
   nsSMILValueArray result;
 
   
   if (HasAttr(nsGkAtoms::values)) {
     nsAutoString attValue;
     GetAttr(nsGkAtoms::values, attValue);
+    PRBool canCache;
     nsresult rv = nsSMILParserUtils::ParseValues(attValue, mAnimationElement,
-                                                 aSMILAttr, result);
+                                                 aSMILAttr, result, canCache);
     if (NS_FAILED(rv))
       return rv;
 
+    if (!canCache) {
+      mValueNeedsReparsingEverySample = PR_TRUE;
+    }
   
   } else {
-
+    PRBool canCacheSoFar = PR_TRUE;
     PRBool parseOk = PR_TRUE;
     nsSMILValue to, from, by;
-    parseOk &= ParseAttr(nsGkAtoms::to,   aSMILAttr, to);
-    parseOk &= ParseAttr(nsGkAtoms::from, aSMILAttr, from);
-    parseOk &= ParseAttr(nsGkAtoms::by,   aSMILAttr, by);
+    parseOk &= ParseAttr(nsGkAtoms::to,   aSMILAttr, to,   canCacheSoFar);
+    parseOk &= ParseAttr(nsGkAtoms::from, aSMILAttr, from, canCacheSoFar);
+    parseOk &= ParseAttr(nsGkAtoms::by,   aSMILAttr, by,   canCacheSoFar);
+    
+    if (!canCacheSoFar) {
+      mValueNeedsReparsingEverySample = PR_TRUE;
+    }
 
     if (!parseOk)
       return NS_ERROR_FAILURE;
