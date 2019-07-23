@@ -269,6 +269,8 @@ SessionStoreService.prototype = {
         
         
         delete this._initialState.windows[0].hidden;
+        
+        delete this._initialState.windows[0].isPopup;
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
     }
