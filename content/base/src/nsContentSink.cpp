@@ -878,7 +878,7 @@ nsContentSink::RefreshIfEnabled(nsIViewManager* vm)
     PRBool enabled;
     contentViewer->GetEnableRendering(&enabled);
     if (enabled) {
-      vm->EnableRefresh(NS_VMREFRESH_IMMEDIATE);
+      vm->EnableRefresh(NS_VMREFRESH_NO_SYNC);
     }
   }
 
@@ -901,6 +901,14 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
   }
 
   mDeferredLayoutStart = PR_FALSE;
+
+  
+  
+  
+  
+  
+  
+  FlushTags();
 
   mLayoutStarted = PR_TRUE;
   mLastNotificationTime = PR_Now();
