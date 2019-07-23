@@ -1989,27 +1989,6 @@ nsScriptSecurityManager::GetCodebasePrincipal(nsIURI *aURI,
         
         nsCOMPtr<nsIPrincipal> fromTable;
         mPrincipals.Get(principal, getter_AddRefs(fromTable));
-        if (!fromTable)
-        {
-            
-
-            
-            
-            
-            
-            
-            nsXPIDLCString originUrl;
-            rv = principal->GetOrigin(getter_Copies(originUrl));
-            if (NS_FAILED(rv)) return rv;
-            nsCOMPtr<nsIURI> newURI;
-            rv = NS_NewURI(getter_AddRefs(newURI), originUrl, nsnull, sIOService);
-            if (NS_FAILED(rv)) return rv;
-            nsCOMPtr<nsIPrincipal> principal2;
-            rv = CreateCodebasePrincipal(newURI, getter_AddRefs(principal2));
-            if (NS_FAILED(rv)) return rv;
-            mPrincipals.Get(principal2, getter_AddRefs(fromTable));
-        }
-
         if (fromTable) {
             
             
