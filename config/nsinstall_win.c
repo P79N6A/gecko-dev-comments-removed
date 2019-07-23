@@ -6,14 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
 #include <direct.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,148 +23,152 @@
 
 
 typedef BOOL (*sh_FileFcn)(
-        char *pathName,
+        wchar_t *pathName,
         WIN32_FIND_DATA *fileData,
         void *arg);
 
-static int shellCp (char **pArgv); 
-static int shellNsinstall (char **pArgv);
-static int shellMkdir (char **pArgv); 
-static BOOL sh_EnumerateFiles(const char *pattern, const char *where,
+static int shellCp (wchar_t **pArgv); 
+static int shellNsinstall (wchar_t **pArgv);
+static int shellMkdir (wchar_t **pArgv); 
+static BOOL sh_EnumerateFiles(const wchar_t *pattern, const wchar_t *where,
         sh_FileFcn fileFcn, void *arg, int *nFiles);
 static const char *sh_GetLastErrorMessage(void);
-static BOOL sh_DoCopy(char *srcFileName, DWORD srcFileAttributes,
-        char *dstFileName, DWORD dstFileAttributes,
+static BOOL sh_DoCopy(wchar_t *srcFileName, DWORD srcFileAttributes,
+        wchar_t *dstFileName, DWORD dstFileAttributes,
         int force, int recursive);
 
+#define LONGPATH_PREFIX L"\\\\?\\"
+#define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
+#define STR_LEN(a) (ARRAY_LEN(a) - 1)
 
-void changeForwardSlashesTpBackSlashes ( char *arg )
+
+void changeForwardSlashesTpBackSlashes ( wchar_t *arg )
 {
-	if ( arg == NULL )
-		return;
+    if ( arg == NULL )
+        return;
 
-	while ( *arg ) {
-		if ( *arg == '/' )
-			*arg = '\\';
-		arg++;			
-	}
+    while ( *arg ) {
+        if ( *arg == '/' )
+            *arg = '\\';
+        arg++;			
+    }
 }
 
-int main(int argc, char *argv[ ])
+int wmain(int argc, wchar_t *argv[ ])
 {
-	return shellNsinstall ( argv + 1 );
-}
-
-static int
-shellNsinstall (char **pArgv)
-{
-	int retVal = 0;		
-	int dirOnly = 0;	
-	char **pSrc;
-	char **pDst;
-
-	
-
-
-
-
-
-	while ( *pArgv && **pArgv == '-' ) {
-		char c = (*pArgv)[1];  
-
-		if ( c == 'D' ) {
-			dirOnly = 1;
-		} else if ( c == 'm' ) {
-			pArgv++;  
-		}
-		pArgv++;
-	}
-
-	if ( !dirOnly ) {
-		
-		if ( *pArgv ) {
-			pSrc = pArgv++;
-		} else {
-			fprintf( stderr, "nsinstall: not enough arguments\n");
-			return 3;
-		}
-	}
-
-	
-	if ( *pArgv ) {
-		pDst = pArgv++;
-		if ( dirOnly && *pArgv ) {
-			fprintf( stderr, "nsinstall: too many arguments with -D\n");
-			return 3;
-		}
-	} else {
-		fprintf( stderr, "nsinstall: not enough arguments\n");
-		return 3;
-	}
-	while ( *pArgv ) 
-		pDst = pArgv++;
-
-  	retVal = shellMkdir ( pDst );
-	if ( retVal )
-		return retVal;
-	if ( !dirOnly )
-		retVal = shellCp ( pSrc );
-	return retVal;
+        return shellNsinstall ( argv + 1 );
 }
 
 static int
-shellMkdir (char **pArgv) 
+shellNsinstall (wchar_t **pArgv)
 {
-	int retVal = 0;			
-	char *arg;
-	char *pArg;
-	char path[_MAX_PATH];
-	char tmpPath[_MAX_PATH];
-	char *pTmpPath = tmpPath;
+    int retVal = 0;		
+    int dirOnly = 0;	
+    wchar_t **pSrc;
+    wchar_t **pDst;
 
-	
-	while ( *pArgv && **pArgv == '-' ) {
-		if ( (*pArgv)[1] == 'm' ) {
-			pArgv++;  
-		}
-		pArgv++;
-	}
+    
 
-	while ( *pArgv ) {
-		arg = *pArgv;
-		changeForwardSlashesTpBackSlashes ( arg );
-		pArg = arg;
-		pTmpPath = tmpPath;
-		while ( 1 ) {
-			
-			while ( *pArg ) {
-				*pTmpPath++ = *pArg++;
-				if ( *pArg == '\\' )
-					break;
-			}
-			*pTmpPath = '\0';
 
-			
-			_getcwd ( path, sizeof (path) );
-			if ( _chdir ( tmpPath ) != -1 ) {
-				_chdir ( path );
-			} else {
-				if ( _mkdir ( tmpPath ) == -1 ) {
 
-					printf ( "%s: ", tmpPath );
-					perror ( "Could not create the directory" );
-					retVal = 3;
-					break;
-				}
-			}
-			if ( *pArg == '\0' )	
-				break;
-			
-		}
 
-		pArgv++;
-	}
-	return retVal;
+
+    while ( *pArgv && **pArgv == '-' ) {
+        wchar_t c = (*pArgv)[1];  
+
+        if ( c == 'D' ) {
+            dirOnly = 1;
+        } else if ( c == 'm' ) {
+            pArgv++;  
+        }
+        pArgv++;
+    }
+
+    if ( !dirOnly ) {
+        
+        if ( *pArgv ) {
+            pSrc = pArgv++;
+        } else {
+            fprintf( stderr, "nsinstall: not enough arguments\n");
+            return 3;
+        }
+    }
+
+    
+    if ( *pArgv ) {
+        pDst = pArgv++;
+        if ( dirOnly && *pArgv ) {
+            fprintf( stderr, "nsinstall: too many arguments with -D\n");
+            return 3;
+        }
+    } else {
+        fprintf( stderr, "nsinstall: not enough arguments\n");
+        return 3;
+    }
+    while ( *pArgv ) 
+        pDst = pArgv++;
+
+    retVal = shellMkdir ( pDst );
+    if ( retVal )
+        return retVal;
+    if ( !dirOnly )
+        retVal = shellCp ( pSrc );
+    return retVal;
+}
+
+static int
+shellMkdir (wchar_t **pArgv) 
+{
+    int retVal = 0;			
+    wchar_t *arg;
+    wchar_t *pArg;
+    wchar_t path[_MAX_PATH];
+    wchar_t tmpPath[_MAX_PATH];
+    wchar_t *pTmpPath = tmpPath;
+
+    
+    while ( *pArgv && **pArgv == '-' ) {
+        if ( (*pArgv)[1] == 'm' ) {
+            pArgv++;  
+        }
+        pArgv++;
+    }
+
+    while ( *pArgv ) {
+        arg = *pArgv;
+        changeForwardSlashesTpBackSlashes ( arg );
+        pArg = arg;
+        pTmpPath = tmpPath;
+        while ( 1 ) {
+            
+            while ( *pArg ) {
+                *pTmpPath++ = *pArg++;
+                if ( *pArg == '\\' )
+                    break;
+            }
+            *pTmpPath = '\0';
+
+            
+            _wgetcwd ( path, _MAX_PATH );
+            if ( _wchdir ( tmpPath ) != -1 ) {
+                _wchdir ( path );
+            } else {
+                if ( _wmkdir ( tmpPath ) == -1 ) {
+
+                    printf ( "%ls: ", tmpPath );
+                    perror ( "Could not create the directory" );
+                    retVal = 3;
+                    break;
+                }
+            }
+            if ( *pArg == '\0' )	
+                break;
+            
+        }
+
+        pArgv++;
+    }
+    return retVal;
 }
 
 static const char *
@@ -180,7 +176,7 @@ sh_GetLastErrorMessage()
 {
     static char buf[128];
 
-    FormatMessage(
+    FormatMessageA(
             FORMAT_MESSAGE_FROM_SYSTEM,
             NULL,
             GetLastError(),
@@ -200,7 +196,7 @@ sh_GetLastErrorMessage()
 
 
 struct sh_FileData {
-    char pathName[_MAX_PATH];
+    wchar_t pathName[_MAX_PATH];
     DWORD dwFileAttributes;
 };
 
@@ -218,19 +214,19 @@ struct sh_FileData {
 
 
 static BOOL
-sh_RecordFileData(char *pathName, WIN32_FIND_DATA *findData, void *arg)
+sh_RecordFileData(wchar_t *pathName, WIN32_FIND_DATA *findData, void *arg)
 {
     struct sh_FileData *fData = (struct sh_FileData *) arg;
 
-    strcpy(fData->pathName, pathName);
+    wcscpy(fData->pathName, pathName);
     fData->dwFileAttributes = findData->dwFileAttributes;
     return TRUE;
 }
 
 static BOOL
-sh_DoCopy(char *srcFileName,
+sh_DoCopy(wchar_t *srcFileName,
           DWORD srcFileAttributes,
-          char *dstFileName,
+          wchar_t *dstFileName,
           DWORD dstFileAttributes,
           int force,
           int recursive
@@ -244,12 +240,28 @@ sh_DoCopy(char *srcFileName,
     }
 
     if (srcFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-        fprintf(stderr, "nsinstall: %s is a directory\n",
+        fprintf(stderr, "nsinstall: %ls is a directory\n",
                 srcFileName);
         return FALSE;
     } else {
-        if (!CopyFile(srcFileName, dstFileName, FALSE)) {
-            fprintf(stderr, "nsinstall: cannot copy %s to %s: %s\n",
+        DWORD r;
+        wchar_t longSrc[1004] = LONGPATH_PREFIX;
+        wchar_t longDst[1004] = LONGPATH_PREFIX;
+        r = GetFullPathName(srcFileName, 1000, longSrc + STR_LEN(LONGPATH_PREFIX), NULL);
+        if (!r) {
+            fprintf(stderr, "nsinstall: couldn't get full path of %ls: %s\n",
+                    srcFileName, sh_GetLastErrorMessage());
+            return FALSE;
+        }
+        r = GetFullPathName(dstFileName, 1000, longDst + ARRAY_LEN(LONGPATH_PREFIX) - 1, NULL);
+        if (!r) {
+            fprintf(stderr, "nsinstall: couldn't get full path of %ls: %s\n",
+                    dstFileName, sh_GetLastErrorMessage());
+            return FALSE;
+        }
+
+        if (!CopyFile(longSrc, longDst, FALSE)) {
+            fprintf(stderr, "nsinstall: cannot copy %ls to %ls: %s\n",
                     srcFileName, dstFileName, sh_GetLastErrorMessage());
             return FALSE;
         }
@@ -271,9 +283,9 @@ struct sh_CpCmdArg {
     int recursive;            
 
 
-    char *dstFileName;        
+    wchar_t *dstFileName;        
 
-    char *dstFileNameMarker;  
+    wchar_t *dstFileNameMarker;  
 
 
 };
@@ -291,23 +303,23 @@ struct sh_CpCmdArg {
 
 
 static BOOL
-sh_CpFileCmd(char *pathName, WIN32_FIND_DATA *findData, void *cpArg)
+sh_CpFileCmd(wchar_t *pathName, WIN32_FIND_DATA *findData, void *cpArg)
 {
     BOOL retVal = TRUE;
     struct sh_CpCmdArg *arg = (struct sh_CpCmdArg *) cpArg;
 
-    strcpy(arg->dstFileNameMarker, findData->cFileName);
+    wcscpy(arg->dstFileNameMarker, findData->cFileName);
     return sh_DoCopy(pathName, findData->dwFileAttributes,
             arg->dstFileName, GetFileAttributes(arg->dstFileName),
             arg->force, arg->recursive);
 }
 
 static int
-shellCp (char **pArgv) 
+shellCp (wchar_t **pArgv) 
 {
     int retVal = 0;
-    char **pSrc;
-    char **pDst;
+    wchar_t **pSrc;
+    wchar_t **pDst;
     struct sh_CpCmdArg arg;
     struct sh_FileData dstData;
     int dstIsDir = 0;
@@ -319,7 +331,7 @@ shellCp (char **pArgv)
     arg.dstFileNameMarker = 0;
 
     while (*pArgv && **pArgv == '-') {
-        char *p = *pArgv;
+        wchar_t *p = *pArgv;
 
         while (*(++p)) {
             if (*p == 'f') {
@@ -365,7 +377,7 @@ shellCp (char **pArgv)
             dstIsDir = 1;
         }
     } else if (n > 1) {
-        fprintf(stderr, "nsinstall: %s: ambiguous destination file "
+        fprintf(stderr, "nsinstall: %ls: ambiguous destination file "
                 "or directory\n", *pDst);
         return 3;
     } else {
@@ -375,11 +387,11 @@ shellCp (char **pArgv)
 
 
 
-        char *p;
+        wchar_t *p;
 
         for (p = *pDst; *p; p++) {
             if (*p == '*' || *p == '?') {
-                fprintf(stderr, "nsinstall: %s: No such file or directory\n",
+                fprintf(stderr, "nsinstall: %ls: No such file or directory\n",
                         *pDst);
                 return 3;
             }
@@ -393,7 +405,7 @@ shellCp (char **pArgv)
         if (p > *pDst && p[-1] == '\\' && p != *pDst + 1 && p[-2] != ':') {
             p[-1] = '\0';
         }
-        strcpy(dstData.pathName, *pDst);
+        wcscpy(dstData.pathName, *pDst);
         dstData.dwFileAttributes = 0xFFFFFFFF;
     }
 
@@ -409,7 +421,7 @@ shellCp (char **pArgv)
     }
 
     if (dstIsDir) {
-        arg.dstFileNameMarker = arg.dstFileName + strlen(arg.dstFileName);
+        arg.dstFileNameMarker = arg.dstFileName + wcslen(arg.dstFileName);
 
         
 
@@ -422,7 +434,7 @@ shellCp (char **pArgv)
             *(arg.dstFileNameMarker++) = '\\';
         }
     }
-	
+    
     if (!dstIsDir) {
         struct sh_FileData srcData;
 
@@ -430,7 +442,7 @@ shellCp (char **pArgv)
         changeForwardSlashesTpBackSlashes(*pSrc);
         sh_EnumerateFiles(*pSrc, *pSrc, sh_RecordFileData, &srcData, &n);
         if (n == 0) {
-            fprintf(stderr, "nsinstall: %s: No such file or directory\n",
+            fprintf(stderr, "nsinstall: %ls: No such file or directory\n",
                     *pSrc);
             retVal = 3;
         } else if (n > 1) {
@@ -457,7 +469,7 @@ shellCp (char **pArgv)
             retVal = 3;
         } else {
             if (n == 0) {
-                fprintf(stderr, "nsinstall: %s: No such file or directory\n",
+                fprintf(stderr, "nsinstall: %ls: No such file or directory\n",
                         *pSrc);
                 retVal = 3;
             }
@@ -488,8 +500,8 @@ shellCp (char **pArgv)
 
 
 static BOOL sh_EnumerateFiles(
-        const char *pattern,
-        const char *where,
+        const wchar_t *pattern,
+        const wchar_t *where,
         sh_FileFcn fileFcn,
         void *arg,
         int *nFiles
@@ -497,11 +509,11 @@ static BOOL sh_EnumerateFiles(
 {
     WIN32_FIND_DATA fileData;
     HANDLE hSearch;
-    const char *src;
-    char *dst;
-    char fileName[_MAX_PATH];
-    char *fileNameMarker = fileName;
-    char *oldFileNameMarker;
+    const wchar_t *src;
+    wchar_t *dst;
+    wchar_t fileName[_MAX_PATH];
+    wchar_t *fileNameMarker = fileName;
+    wchar_t *oldFileNameMarker;
     BOOL hasWildcard = FALSE;
     BOOL retVal = TRUE;
     BOOL patternEndsInDotStar = FALSE;
@@ -519,10 +531,10 @@ static BOOL sh_EnumerateFiles(
 
 
 
-    len = strlen(pattern);
+    len = wcslen(pattern);
     if (len >= 2) {
         
-        const char *p = &pattern[len - 1];
+        const wchar_t *p = &pattern[len - 1];
 
         
         while (p >= pattern && *p == '*') {
@@ -602,8 +614,8 @@ static BOOL sh_EnumerateFiles(
 
 
 
-        assert(!strcmp(fileName, pattern));
-        assert(strlen(fileName) >= 1);
+        assert(!wcscmp(fileName, pattern));
+        assert(wcslen(fileName) >= 1);
         if (dst[-1] == '\\' && (dst == fileName + 1 || dst[-2] == ':')) {
             fileData.cFileName[0] = '\0';
         } else {
@@ -616,7 +628,7 @@ static BOOL sh_EnumerateFiles(
                 dst[-1] = '\0';
                 fileNameMarker = oldFileNameMarker;
             } 
-            strcpy(fileData.cFileName, fileNameMarker);
+            wcscpy(fileData.cFileName, fileNameMarker);
         }
         fileData.dwFileAttributes = GetFileAttributes(fileName);
         if (fileData.dwFileAttributes == 0xFFFFFFFF) {
@@ -632,8 +644,8 @@ static BOOL sh_EnumerateFiles(
     }
 
     do {
-        if (!strcmp(fileData.cFileName, ".")
-                || !strcmp(fileData.cFileName, "..")) {
+        if (!wcscmp(fileData.cFileName, L".")
+                || !wcscmp(fileData.cFileName, L"..")) {
             
 
 
@@ -643,7 +655,7 @@ static BOOL sh_EnumerateFiles(
 
         if (patternEndsInDotStar) {
             int nDots = 0;
-            char *p = fileData.cFileName;
+            wchar_t *p = fileData.cFileName;
             while (*p) {
                 if (*p == '.') {
                     nDots++;
@@ -669,7 +681,7 @@ static BOOL sh_EnumerateFiles(
             }
         }
 
-        strcpy(fileNameMarker, fileData.cFileName);
+        wcscpy(fileNameMarker, fileData.cFileName);
         if (*src && *(src + 1)) {
             
 
@@ -678,13 +690,13 @@ static BOOL sh_EnumerateFiles(
             int n;
 
             assert(*src == '\\');
-            where = fileName + strlen(fileName);
-            strcat(fileName, src);
+            where = fileName + wcslen(fileName);
+            wcscat(fileName, src);
             sh_EnumerateFiles(fileName, where, fileFcn, arg, &n);
             *nFiles += n;
         } else {
-            assert(strchr(fileName, '*') == NULL);
-            assert(strchr(fileName, '?') == NULL);
+            assert(wcschr(fileName, '*') == NULL);
+            assert(wcschr(fileName, '?') == NULL);
             (*nFiles)++;
             if ((*fileFcn)(fileName, &fileData, arg) == FALSE) {
                 retVal = FALSE;
