@@ -255,40 +255,6 @@ function checkPrimariesThrow(id)
 
 
 
-
-
-
-
-
-function writeDetails(request, response)
-{
-  response.write("Method:  " + request.method + "\r\n");
-  response.write("Path:    " + request.path + "\r\n");
-  response.write("Query:   " + request.queryString + "\r\n");
-  response.write("Version: " + request.httpVersion + "\r\n");
-  response.write("Scheme:  " + request.scheme + "\r\n");
-  response.write("Host:    " + request.host + "\r\n");
-  response.write("Port:    " + request.port);
-}
-
-
-
-
-
-
-
-
-
-function skipHeaders(iter)
-{
-  var line = iter.next();
-  while (line !== "")
-    line = iter.next();
-}
-
-
-
-
 function check400(data)
 {
   var iter = LineIterator(data);

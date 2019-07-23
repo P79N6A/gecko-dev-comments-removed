@@ -1118,7 +1118,7 @@ RequestReader.prototype =
 
     
     if (!readSuccess)
-      return true;
+      return false;
 
     
     try

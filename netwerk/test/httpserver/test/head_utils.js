@@ -167,6 +167,40 @@ function expectLines(iter, expectedLines)
 
 
 
+function writeDetails(request, response)
+{
+  response.write("Method:  " + request.method + "\r\n");
+  response.write("Path:    " + request.path + "\r\n");
+  response.write("Query:   " + request.queryString + "\r\n");
+  response.write("Version: " + request.httpVersion + "\r\n");
+  response.write("Scheme:  " + request.scheme + "\r\n");
+  response.write("Host:    " + request.host + "\r\n");
+  response.write("Port:    " + request.port);
+}
+
+
+
+
+
+
+
+
+
+function skipHeaders(iter)
+{
+  var line = iter.next();
+  while (line !== "")
+    line = iter.next();
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -304,12 +338,18 @@ function runHttpTests(testArray, done)
 
 
 
+
+
 function RawTest(host, port, data, responseCheck)
 {
   if (0 > port || 65535 < port || port % 1 !== 0)
     throw "bad port";
-  if (!/^[\x00-\xff]*$/.test(data))
-    throw "bad data contains non-byte-valued character";
+  if (!(data instanceof Array))
+    data = [data];
+  if (data.length <= 0)
+    throw "bad data length";
+  if (!data.every(function(v) { return /^[\x00-\xff]*$/.test(data); }))
+    throw "bad data contained non-byte-valued character";
 
   this.host = host;
   this.port = port;
@@ -372,7 +412,7 @@ function runRawTests(testArray, done)
 
   function waitToWriteOutput(stream)
   {
-    stream.asyncWait(writer, 0, testArray[testIndex].data.length - dataIndex,
+    stream.asyncWait(writer, 0, testArray[testIndex].data[dataIndex].length,
                      currentThread);
   }
 
@@ -380,6 +420,9 @@ function runRawTests(testArray, done)
   var testIndex = -1;
 
   
+
+
+
   var dataIndex = 0;
 
   
@@ -428,13 +471,16 @@ function runRawTests(testArray, done)
     {
       onOutputStreamReady: function(stream)
       {
-        var data = testArray[testIndex].data.substring(dataIndex);
+        var data = testArray[testIndex].data[dataIndex];
 
         var written = 0;
         try
         {
           written = stream.write(data, data.length);
-          dataIndex += written;
+          if (written == data.length)
+            dataIndex++;
+          else
+            testArray[testIndex].data = data.substring(written);
         }
         catch (e) {  }
 
