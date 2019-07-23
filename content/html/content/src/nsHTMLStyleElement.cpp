@@ -241,9 +241,7 @@ nsHTMLStyleElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsContentUtils::AddScriptRunner(
-    new nsRunnableMethod<nsHTMLStyleElement>(this,
-                                             &nsHTMLStyleElement::UpdateStyleSheetInternal));
+  UpdateStyleSheetInternal(nsnull);
 
   return rv;  
 }
@@ -321,7 +319,8 @@ nsHTMLStyleElement::GetStyleSheetURL(PRBool* aIsInline,
   if (*aIsInline) {
     return;
   }
-  if (!IsInHTMLDocument()) {
+  if (GetOwnerDoc() && 
+      !(GetOwnerDoc()->IsCaseSensitive())) {
     
     
     *aIsInline = PR_TRUE;

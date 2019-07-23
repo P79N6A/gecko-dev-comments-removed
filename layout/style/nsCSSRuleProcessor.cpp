@@ -898,10 +898,12 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mHasAttributes = aContent->GetAttrCount() > 0;
 
     
-    mNameSpaceID = aContent->GetNameSpaceID();
-
+    if (aContent->IsNodeOfType(nsINode::eHTML)) {
+      mIsHTMLContent = PR_TRUE;
+    }
     
-    mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
+    
+    mNameSpaceID = aContent->GetNameSpaceID();
 
     
     
@@ -990,6 +992,14 @@ const nsString* RuleProcessorData::GetLang()
   return mLanguage;
 }
 
+static inline PRInt32
+CSSNameSpaceID(nsIContent *aContent)
+{
+  return aContent->IsNodeOfType(nsINode::eHTML)
+           ? kNameSpaceID_XHTML
+           : aContent->GetNameSpaceID();
+}
+
 PRInt32
 RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
                                PRBool aCheckEdgeOnly)
@@ -1048,7 +1058,7 @@ RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
     if (child->IsNodeOfType(nsINode::eELEMENT) &&
         (!aIsOfType ||
          (child->Tag() == mContentTag &&
-          child->GetNameSpaceID() == mNameSpaceID))) {
+          CSSNameSpaceID(child) == mNameSpaceID))) {
       if (aCheckEdgeOnly) {
         
         
@@ -1557,7 +1567,9 @@ static PRBool SelectorMatches(RuleProcessorData &data,
       stateToCheck = NS_EVENT_STATE_INDETERMINATE;
     }
     else if (nsCSSPseudoClasses::mozIsHTML == pseudoClass->mAtom) {
-      result = data.mIsHTMLContent && data.mContent->IsInHTMLDocument();
+      result = data.mIsHTMLContent &&
+        data.mContent->GetOwnerDoc() && 
+        !(data.mContent->GetOwnerDoc()->IsCaseSensitive());
     }
 #ifdef MOZ_MATHML
     else if (nsCSSPseudoClasses::mozMathIncrementScriptLevel == pseudoClass->mAtom) {
@@ -2314,10 +2326,10 @@ struct CascadeEnumData {
   nsPresContext* mPresContext;
   nsTArray<nsFontFaceRuleContainer>& mFontFaceRules;
   nsMediaQueryResultCacheKey& mCacheKey;
-  PLArenaPool& mArena;
   
   
   PLDHashTable mRulesByWeight; 
+  PLArenaPool& mArena;
   PRUint8 mSheetType;
 };
 

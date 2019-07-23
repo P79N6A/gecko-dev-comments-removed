@@ -64,7 +64,9 @@
 #include "nsIParser.h"
 
 
+#include "nsIPluginManager.h"
 #include "nsIPluginHost.h"
+static NS_DEFINE_CID(kPluginManagerCID, NS_PLUGINMANAGER_CID);
 static NS_DEFINE_CID(kPluginDocumentCID, NS_PLUGINDOCUMENT_CID);
 
 
@@ -273,7 +275,10 @@ nsContentDLF::CreateInstance(const char* aCommand,
   }
 
 #ifdef MOZ_MEDIA
-  if (nsHTMLMediaElement::ShouldHandleMediaType(aContentType)) {
+  const char** supportedCodecs;
+  const char** maybeSupportedCodecs;
+  if (nsHTMLMediaElement::CanHandleMediaType(aContentType,
+          &supportedCodecs, &maybeSupportedCodecs)) {
     return CreateDocument(aCommand, 
                           aChannel, aLoadGroup,
                           aContainer, kVideoDocumentCID,
@@ -289,7 +294,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
                           aDocListener, aDocViewer);
   }
 
-  nsCOMPtr<nsIPluginHost> ph (do_GetService(MOZ_PLUGIN_HOST_CONTRACTID));
+  nsCOMPtr<nsIPluginHost> ph (do_GetService(kPluginManagerCID));
   if(ph && NS_SUCCEEDED(ph->IsPluginEnabledForType(aContentType))) {
     return CreateDocument(aCommand,
                           aChannel, aLoadGroup,
@@ -613,3 +618,4 @@ PRBool nsContentDLF::IsImageContentType(const char* aContentType) {
   loader->SupportImageWithMimeType(aContentType, &isDecoderAvailable);
   return isDecoderAvailable;
 }
+
