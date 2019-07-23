@@ -38,6 +38,10 @@
 #ifndef nsCycleCollector_h__
 #define nsCycleCollector_h__
 
+
+
+
+
 class nsISupports;
 class nsCycleCollectionParticipant;
 
@@ -49,6 +53,9 @@ struct nsCycleCollectionLanguageRuntime
     virtual nsresult BeginCycleCollection() = 0;
     virtual nsresult FinishCycleCollection() = 0;
     virtual nsCycleCollectionParticipant *ToParticipant(void *p) = 0;
+#ifdef DEBUG_CC
+    virtual void PrintAllReferencesTo(void *p) = 0;
+#endif
 };
 
 

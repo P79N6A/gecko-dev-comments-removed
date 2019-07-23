@@ -40,6 +40,18 @@
 
 #include "nsISupports.h"
 
+
+
+
+
+#ifdef DEBUG_CC
+#define IF_DEBUG_CC_PARAM(_p) , _p
+#define IF_DEBUG_CC_ONLY_PARAM(_p) _p
+#else
+#define IF_DEBUG_CC_PARAM(_p)
+#define IF_DEBUG_CC_ONLY_PARAM(_p)
+#endif
+
 #define NS_CYCLECOLLECTIONPARTICIPANT_IID                                      \
 {                                                                              \
     0x9674489b,                                                                \
