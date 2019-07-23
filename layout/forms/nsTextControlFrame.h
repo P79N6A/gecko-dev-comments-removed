@@ -213,7 +213,11 @@ public:
 
   
   static NS_HIDDEN_(void) ShutDown();
+
   
+  nsresult MaybeBeginSecureKeyboardInput();
+  void MaybeEndSecureKeyboardInput();
+
 protected:
   
 
@@ -296,6 +300,7 @@ private:
   
   
   PRPackedBool mFireChangeEventState;
+  PRPackedBool mInSecureKeyboardInputMode;
 
   nsCOMPtr<nsISelectionController> mSelCon;
   nsCOMPtr<nsFrameSelection> mFrameSel;

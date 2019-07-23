@@ -98,8 +98,8 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0xf60fa720, 0xa9bc, 0x4fd3, \
-  { 0xb8, 0x63, 0x81, 0x24, 0x96, 0xfa, 0x85, 0xe6 } }
+{ 0x15800FBD, 0x650A, 0x4F67, \
+  { 0x81, 0xFB, 0x18, 0x6E, 0x73, 0xF4, 0x5B, 0xE1 } }
 
 
 
@@ -1011,6 +1011,24 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD GetLastInputEventTime(PRUint32& aTime) = 0;
+
+    
+
+
+
+
+
+
+    NS_IMETHOD BeginSecureKeyboardInput() = 0;
+
+    
+
+
+
+
+
+
+    NS_IMETHOD EndSecureKeyboardInput() = 0;
 
     
 

@@ -203,6 +203,9 @@ public:
     
     NS_IMETHOD ResetInputState();
 
+    NS_IMETHOD BeginSecureKeyboardInput();
+    NS_IMETHOD EndSecureKeyboardInput();
+
 protected:
   
   nsIWidget*           mParent;         
