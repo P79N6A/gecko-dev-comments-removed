@@ -1,0 +1,131 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+
+tabs {
+  position: relative;
+  z-index: 0;
+}
+
+
+
+tabpanels {
+  -moz-appearance: tabpanels;
+  border: 2px solid;
+  -moz-border-right-colors: ThreeDDarkShadow ThreeDShadow;
+  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDShadow;
+  -moz-border-left-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-top-colors: ThreeDHighlight ThreeDLightShadow;
+  padding: 8px;
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+}
+
+
+
+tab {
+  position: relative;
+  -moz-appearance: tab;
+  margin-top: 2px;
+  border: 2px solid;
+  border-bottom: none;
+  -moz-border-top-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-right-colors: ThreeDDarkShadow ThreeDShadow;
+  -moz-border-left-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-radius-topleft: 2px;
+  -moz-border-radius-topright: 2px;
+  padding: 3px 4px;
+  background-color: -moz-Dialog;
+  color: -moz-DialogText;
+}
+
+tab[selected="true"] {
+  z-index: 1;
+  margin-top: 0;
+  margin-bottom: -2px;
+  -moz-border-radius-bottomleft: 3px;
+  -moz-border-radius-bottomright: 3px;
+  padding-top: 4px;
+  padding-bottom: 6px;
+  -moz-user-focus: normal;
+}
+
+tab + tab {
+  -moz-margin-start: -2px;
+}
+
+.tab-text {
+  margin: 0 !important;
+}
+
+tab:focus > .tab-middle {
+  
+  outline: 1px dotted;
+}
+
+
+
+
+
+
+.tab-bottom {
+  margin-top: 0;
+  margin-bottom: 2px;
+  border-top: none;
+  border-bottom: 2px solid;
+  -moz-border-bottom-colors: ThreeDDarkShadow ThreeDShadow;
+  -moz-border-radius-topleft: 0;
+  -moz-border-radius-topright: 0;
+  -moz-border-radius-bottomright: 2px;
+  -moz-border-radius-bottomleft: 2px;
+}
+
+.tab-bottom[selected="true"] {
+  margin-bottom: 0;
+  margin-top: -2px;
+  padding-top: 6px;
+  padding-bottom: 4px;
+}
