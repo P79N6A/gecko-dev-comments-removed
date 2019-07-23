@@ -5010,8 +5010,8 @@ nsGlobalWindow::GetFrames(nsIDOMWindow** aFrames)
   return NS_OK;
 }
 
-static nsGlobalWindow*
-CallerInnerWindow()
+nsGlobalWindow*
+nsGlobalWindow::CallerInnerWindow()
 {
   nsAXPCNativeCallContext *ncc;
   nsresult rv = nsContentUtils::XPConnect()->GetCurrentNativeCallContext(&ncc);
@@ -5041,6 +5041,8 @@ CallerInnerWindow()
   
   
   nsCOMPtr<nsPIDOMWindow> win = do_QueryWrappedNative(wrapper);
+  if (!win)
+    return GetCurrentInnerWindowInternal();
   return static_cast<nsGlobalWindow*>(win.get());
 }
 
