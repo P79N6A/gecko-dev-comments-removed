@@ -135,7 +135,6 @@
 
 
 
-#define PREF_BDA_DONTCLEAN "browser.download.antivirus.dontclean"
 #define PREF_BDM_SKIPWINPOLICYCHECKS "browser.download.manager.skipWinSecurityPolicyChecks"
 
 
@@ -457,14 +456,6 @@ nsDownloadScanner::Scan::Start()
   nsresult rv = NS_OK;
 
   
-  mIsReadOnlyRequest = PR_FALSE;
-
-  nsCOMPtr<nsIPrefBranch> pref =
-    do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (pref)
-    rv = pref->GetBoolPref(PREF_BDA_DONTCLEAN, &mIsReadOnlyRequest);
-
-  
   nsCOMPtr<nsILocalFile> file;
   rv = mDownload->GetTargetFile(getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -636,7 +627,7 @@ nsDownloadScanner::Scan::DoScanOAV()
   info.cbsize = sizeof(MSOAVINFO);
   info.fPath = TRUE;
   info.fInstalled = FALSE;
-  info.fReadOnlyRequest = mIsReadOnlyRequest;
+  info.fReadOnlyRequest = FALSE;
   info.fHttpDownload = mIsHttpDownload;
   info.hwnd = NULL;
 

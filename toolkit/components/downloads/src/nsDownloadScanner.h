@@ -103,7 +103,6 @@ private:
     
     PRBool mIsHttpDownload;
     PRBool mSkipSource;
-    PRBool mIsReadOnlyRequest;
 
     
 
