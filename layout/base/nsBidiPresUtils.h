@@ -118,6 +118,52 @@ public:
 
 
 
+  class BidiProcessor {
+  public:
+    virtual ~BidiProcessor() { }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual void SetText(const PRUnichar*   aText,
+                         PRInt32            aLength,
+                         nsBidiDirection    aDirection) = 0;
+
+    
+
+
+
+
+
+    virtual nscoord GetWidth() = 0;
+
+    
+
+
+
+
+
+
+
+
+    virtual void DrawText(nscoord   aXOffset,
+                          nscoord   aWidth) = 0;
+  };
+
+  
+
+
+
+
 
 
 
@@ -194,8 +240,8 @@ public:
                       nsBidiPositionResolve* aPosResolve = nsnull,
                       PRInt32                aPosResolveCount = 0)
   {
-    return ProcessText(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
-                       MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nsnull);
+    return ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
+                                          MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nsnull);
   }
   
   nscoord MeasureTextWidth(const PRUnichar*     aText,
@@ -205,8 +251,8 @@ public:
                            nsIRenderingContext& aRenderingContext)
   {
     nscoord length;
-    nsresult rv = ProcessText(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
-                              MODE_MEASURE, 0, 0, nsnull, 0, &length);
+    nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
+                                                 MODE_MEASURE, 0, 0, nsnull, 0, &length);
     return NS_SUCCEEDED(rv) ? length : 0;
   }
 
@@ -255,19 +301,50 @@ public:
 
   static nsBidiLevel GetFrameBaseLevel(nsIFrame* aFrame);
 
-private:
   enum Mode { MODE_DRAW, MODE_MEASURE };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsresult ProcessText(const PRUnichar*       aText,
                        PRInt32                aLength,
                        nsBidiDirection        aBaseDirection,
                        nsPresContext*         aPresContext,
-                       nsIRenderingContext&   aRenderingContext,
+                       BidiProcessor&         aprocessor,
                        Mode                   aMode,
-                       nscoord                aX, 
-                       nscoord                aY, 
-                       nsBidiPositionResolve* aPosResolve,  
+                       nsBidiPositionResolve* aPosResolve,
                        PRInt32                aPosResolveCount,
-                       nscoord*               aWidth );
+                       nscoord*               aWidth);
+
+private:
+  nsresult ProcessTextForRenderingContext(const PRUnichar*       aText,
+                                          PRInt32                aLength,
+                                          nsBidiDirection        aBaseDirection,
+                                          nsPresContext*         aPresContext,
+                                          nsIRenderingContext&   aRenderingContext,
+                                          Mode                   aMode,
+                                          nscoord                aX, 
+                                          nscoord                aY, 
+                                          nsBidiPositionResolve* aPosResolve,  
+                                          PRInt32                aPosResolveCount,
+                                          nscoord*               aWidth );
 
   
 
