@@ -101,9 +101,6 @@ const CAPABILITIES = [
 ];
 
 
-var EVAL_SANDBOX = new Cu.Sandbox("about:blank");
-
-
 Cu.import("resource://gre/modules/JSON.jsm");
 
 function debug(aMsg) {
@@ -1913,7 +1910,7 @@ SessionStoreService.prototype = {
 
 
   _safeEval: function sss_safeEval(aStr) {
-    return Cu.evalInSandbox(aStr, EVAL_SANDBOX);
+    return Cu.evalInSandbox(aStr, new Cu.Sandbox("about:blank"));
   },
 
   
