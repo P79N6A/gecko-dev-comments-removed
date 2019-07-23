@@ -40,7 +40,6 @@
 Runs the reftest test harness.
 """
 
-import logging
 import sys, shutil, os, os.path
 SCRIPT_DIRECTORY = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
 sys.path.append(SCRIPT_DIRECTORY)
@@ -92,6 +91,14 @@ def main():
                     action = "store", type = "string", dest = "symbolsPath",
                     default = automation.SYMBOLS_PATH,
                     help = "absolute path to directory containing breakpad symbols")
+  parser.add_option("--leak-threshold",
+                    action = "store", type = "int", dest = "leakThreshold",
+                    default = 0,
+                    help = "fail if the number of bytes leaked through "
+                           "refcounted objects (or bytes in classes with "
+                           "MOZ_COUNT_CTOR and MOZ_COUNT_DTOR) is greater "
+                           "than the given number")
+
   options, args = parser.parse_args()
 
   if len(args) != 1:
@@ -130,37 +137,30 @@ Are you executing $objdir/_tests/reftest/runreftest.py?""" \
       browserEnv["GNOME_DISABLE_CRASH_DIALOG"] = "1"
 
     
-    log = logging.getLogger()
-
-    
     leakLogFile = os.path.join(profileDir, "runreftest_leaks.log")
-    browserEnv["XPCOM_MEM_LEAK_LOG"] = leakLogFile
-
-    def processLeakLog():
-      "Process the leak log."
-      
-      if os.path.exists(leakLogFile):
-        leaks = open(leakLogFile, "r")
-        
-        log.info(leaks.read().rstrip())
-        leaks.close()
+    browserEnv["XPCOM_MEM_BLOAT_LOG"] = leakLogFile
 
     
     
-    log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
+    automation.log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
     status = automation.runApp(None, browserEnv, options.app, profileDir,
                                extraArgs = ["-silent"],
                                symbolsPath=options.symbolsPath)
     
-    log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
+    automation.log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
 
     
-    log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
+    
+    if os.path.exists(leakLogFile):
+      os.remove(leakLogFile)
+
+    
+    automation.log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
     reftestlist = getFullPath(args[0])
     status = automation.runApp(None, browserEnv, options.app, profileDir,
                                extraArgs = ["-reftest", reftestlist])
-    processLeakLog()
-    log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
+    automation.processLeakLog(leakLogFile, options.leakThreshold)
+    automation.log.info("\nREFTEST INFO | runreftest.py | Running tests: end.")
   finally:
     if profileDir is not None:
       shutil.rmtree(profileDir)
