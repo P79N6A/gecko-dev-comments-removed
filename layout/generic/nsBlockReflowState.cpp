@@ -636,8 +636,7 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
     
     
     mBelowCurrentLineFloats.Append(fc);
-    if (mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE ||
-        aPlaceholder->GetNextInFlow()) {
+    if (aPlaceholder->GetNextInFlow()) {
       
       
       
