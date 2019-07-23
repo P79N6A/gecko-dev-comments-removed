@@ -443,19 +443,21 @@ LivemarkService.prototype = {
     }
     var livemark = this._livemarks[livemarkIndex];
 
+    
+    this._livemarks.splice(livemarkIndex, 1);
+
+    
+    
     var stillInUse = false;
     stillInUse = this._livemarks.some(
                  function(mark) { return mark.feedURI.equals(livemark.feedURI) }
                  );
     if (!stillInUse) {
-      
-      
       this._ans.removePageAnnotation(livemark.feedURI, LMANNO_EXPIRATION);
     }
 
     if (livemark.loadGroup)
       livemark.loadGroup.cancel(NS_BINDING_ABORTED);
-    this._livemarks.splice(livemarkIndex, 1);
   },
 
   createInstance: function LS_createInstance(outer, iid) {
