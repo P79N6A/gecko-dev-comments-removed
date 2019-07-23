@@ -542,7 +542,10 @@ nsXMLDocument::EndLoad()
   mChannelIsPending = PR_FALSE;
   mLoopingForSyncLoad = PR_FALSE;
 
-  if (mLoadedAsData || mLoadedAsInteractiveData) {
+  mSynchronousDOMContentLoaded = (mLoadedAsData || mLoadedAsInteractiveData);
+  nsDocument::EndLoad();
+  if (mSynchronousDOMContentLoaded) {
+    mSynchronousDOMContentLoaded = PR_FALSE;
     
     
     
@@ -550,7 +553,6 @@ nsXMLDocument::EndLoad()
     nsEventDispatcher::Dispatch(static_cast<nsIDocument*>(this), nsnull,
                                 &event);
   }    
-  nsDocument::EndLoad();  
 }
 
 
