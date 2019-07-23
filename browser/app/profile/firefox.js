@@ -679,15 +679,7 @@ pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.goog
 
 pref("browser.EULA.version", 3);
 pref("browser.rights.version", 3);
-
-
-#ifdef XP_MACOSX
-pref("browser.rights.3.shown", true);
-#elifdef XP_WIN
-pref("browser.rights.3.shown", true);
-#else
 pref("browser.rights.3.shown", false);
-#endif
 
 #ifdef DEBUG
 

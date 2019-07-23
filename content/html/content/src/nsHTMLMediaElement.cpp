@@ -97,10 +97,6 @@ public:
 NS_IMPL_URI_ATTR(nsHTMLMediaElement, Src, src)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Controls, controls)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Autoplay, autoplay)
-NS_IMPL_FLOAT_ATTR(nsHTMLMediaElement, Start, start)
-NS_IMPL_FLOAT_ATTR(nsHTMLMediaElement, End, end)
-NS_IMPL_FLOAT_ATTR(nsHTMLMediaElement, LoopStart, loopstart)
-NS_IMPL_FLOAT_ATTR(nsHTMLMediaElement, LoopEnd, loopend)
 
 
 NS_IMETHODIMP nsHTMLMediaElement::GetError(nsIDOMHTMLMediaError * *aError)
@@ -117,7 +113,6 @@ NS_IMETHODIMP nsHTMLMediaElement::GetEnded(PRBool *aEnded)
 
   return NS_OK;
 }
-
 
 
 NS_IMETHODIMP nsHTMLMediaElement::GetCurrentSrc(nsAString & aCurrentSrc)
@@ -138,77 +133,11 @@ NS_IMETHODIMP nsHTMLMediaElement::GetCurrentSrc(nsAString & aCurrentSrc)
 }
 
 
-NS_IMETHODIMP nsHTMLMediaElement::GetDefaultPlaybackRate(float *aDefaultPlaybackRate)
-{
-  *aDefaultPlaybackRate = mDefaultPlaybackRate;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsHTMLMediaElement::SetDefaultPlaybackRate(float aDefaultPlaybackRate)
-{
-  if (aDefaultPlaybackRate == 0.0) {
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
-
-  mDefaultPlaybackRate = aDefaultPlaybackRate;
-  DispatchAsyncSimpleEvent(NS_LITERAL_STRING("ratechange"));
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetPlaybackRate(float *aPlaybackRate)
-{
-  *aPlaybackRate = mPlaybackRate;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsHTMLMediaElement::SetPlaybackRate(float aPlaybackRate)
-{
-  if (aPlaybackRate == 0.0) {
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
-
-  mPlaybackRate = aPlaybackRate;
-
-  if (mDecoder) {
-    mDecoder->PlaybackRateChanged();
-  }
-
-  DispatchAsyncSimpleEvent(NS_LITERAL_STRING("ratechange"));
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP nsHTMLMediaElement::GetNetworkState(PRUint16 *aNetworkState)
 {
   *aNetworkState = mNetworkState;
 
   return NS_OK;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetBufferingRate(float *aBufferingRate)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetBufferingThrottled(PRBool *aBufferingRate)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetBuffered(nsIDOMHTMLTimeRanges * *aBuffered)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetBufferedBytes(nsIDOMHTMLByteRanges * *aBufferedBytes)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
@@ -246,9 +175,7 @@ nsresult nsHTMLMediaElement::LoadWithChannel(nsIChannel *aChannel,
   mLoadedFirstFrame = PR_FALSE;
   mAutoplaying = PR_TRUE;
 
-  float rate = 1.0;
-  GetDefaultPlaybackRate(&rate);
-  SetPlaybackRate(rate);
+  
 
   if (mNetworkState != nsIDOMHTMLMediaElement::EMPTY) {
     mNetworkState = nsIDOMHTMLMediaElement::EMPTY;
@@ -333,18 +260,6 @@ NS_IMETHODIMP nsHTMLMediaElement::GetPaused(PRBool *aPaused)
 }
 
 
-NS_IMETHODIMP nsHTMLMediaElement::GetPlayed(nsIDOMHTMLTimeRanges * *aPlayed)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetSeekable(nsIDOMHTMLTimeRanges * *aSeekable)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
 NS_IMETHODIMP nsHTMLMediaElement::Pause()
 {
   if (!mDecoder) 
@@ -368,40 +283,6 @@ NS_IMETHODIMP nsHTMLMediaElement::Pause()
   }
 
   return NS_OK;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetPlayCount(PRUint32 *aPlayCount)
-{
-  return GetIntAttr(nsGkAtoms::playcount, 1, reinterpret_cast<PRInt32*>(aPlayCount));
-}
-
-NS_IMETHODIMP nsHTMLMediaElement::SetPlayCount(PRUint32 aPlayCount)
-{
-  return SetIntAttr(nsGkAtoms::playcount, static_cast<PRInt32>(aPlayCount));
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetCurrentLoop(PRUint32 *aCurrentLoop)
-{
-  return GetIntAttr(nsGkAtoms::currentloop, 0, reinterpret_cast<PRInt32*>(aCurrentLoop));
-}
-
-NS_IMETHODIMP nsHTMLMediaElement::SetCurrentLoop(PRUint32 aCurrentLoop)
-{
-  return SetIntAttr(nsGkAtoms::currentloop, static_cast<PRInt32>(aCurrentLoop));
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::AddCueRange(const nsAString & className, float start, float end, PRBool pauseOnExit, nsIDOMHTMLVoidCallback *enterCallback, nsIDOMHTMLVoidCallback *exitCallback)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::RemoveCueRanges(const nsAString & className)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
@@ -465,8 +346,6 @@ nsHTMLMediaElement::nsHTMLMediaElement(nsINodeInfo *aNodeInfo, PRBool aFromParse
     mReadyState(nsIDOMHTMLMediaElement::DATA_UNAVAILABLE),
     mMutedVolume(0.0),
     mMediaSize(-1,-1),
-    mDefaultPlaybackRate(1.0),
-    mPlaybackRate(1.0),
     mBegun(PR_FALSE),
     mEnded(PR_FALSE),
     mLoadedFirstFrame(PR_FALSE),
@@ -506,9 +385,7 @@ nsHTMLMediaElement::Play(void)
 
   
   
-  float rate = 1.0;
-  GetDefaultPlaybackRate(&rate);
-  SetPlaybackRate(rate);
+  
   rv = mDecoder->Play();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -755,10 +632,8 @@ void nsHTMLMediaElement::MetadataLoaded()
   mNetworkState = nsIDOMHTMLMediaElement::LOADED_METADATA;
   DispatchAsyncSimpleEvent(NS_LITERAL_STRING("durationchange"));
   DispatchAsyncSimpleEvent(NS_LITERAL_STRING("loadedmetadata"));
-  float start = 0.0;
-  nsresult rv = GetStart(&start);
-  if (NS_SUCCEEDED(rv) && start > 0.0 && mDecoder)
-    mDecoder->Seek(start);
+  
+  mDecoder->Seek(0.0);
 }
 
 void nsHTMLMediaElement::FirstFrameLoaded()

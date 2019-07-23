@@ -135,6 +135,13 @@ function needHomepageOverride(prefb) {
                          .getService(nsIHttpProtocolHandler).misc;
 
   if (mstone != savedmstone) {
+    
+    
+    
+    
+    if (savedmstone)
+      prefb.setBoolPref("browser.rights.3.shown", true);
+    
     prefb.setCharPref("browser.startup.homepage_override.mstone", mstone);
     return (savedmstone ? OVERRIDE_NEW_MSTONE : OVERRIDE_NEW_PROFILE);
   }
