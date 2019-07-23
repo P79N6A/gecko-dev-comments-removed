@@ -159,6 +159,14 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       else {
         aMetrics.ascent = aMetrics.height = 0;
       }
+
+      
+      
+      
+      
+      
+      
+      aMetrics.width = 1;
     }
 
     
