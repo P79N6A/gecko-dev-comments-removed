@@ -74,7 +74,14 @@ var _fromByTestLists =
     new AnimTestcaseFromBy("url(#gradA)", "url(#gradB) red", { noEffect: 1 }),
     new AnimTestcaseFromBy("url(#gradA)", "none", { noEffect: 1 }),
     new AnimTestcaseFromBy("red", "url(#gradA)", { noEffect: 1 }),
-  ]
+  ],
+  URIsAndNone: [
+    
+    
+    new AnimTestcaseFromBy("url(#idA)", "url(#idB)"),
+    new AnimTestcaseFromBy("none", "url(#idB)"),
+    new AnimTestcaseFromBy("url(#idB)", "inherit"),
+  ],
 };
 
 
@@ -82,6 +89,8 @@ var gFromByBundles =
 [
   new TestcaseBundle(gPropList.fill, [].concat(_fromByTestLists.color,
                                                _fromByTestLists.paint)),
+  
+  new TestcaseBundle(gPropList.filter,         _fromByTestLists.URIsAndNone),
   new TestcaseBundle(gPropList.font_size,      _fromByTestLists.lengthPx),
   new TestcaseBundle(gPropList.font_size_adjust, [
     
