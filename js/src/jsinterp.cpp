@@ -122,7 +122,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
     scope = OBJ_SCOPE(pobj);
-    if (!scope->has(sprop)) {
+    if (!scope->hasProperty(sprop)) {
         PCMETER(cache->oddfills++);
         return JS_NO_PROP_CACHE_FILL;
     }
@@ -251,7 +251,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
             
             vword = SPROP_TO_PCVAL(sprop);
             if (adding &&
-                sprop == scope->lastProp &&
+                sprop == scope->lastProperty() &&
                 scope->shape == sprop->shape) {
                 
 

@@ -820,7 +820,7 @@ struct JSRuntime {
     JSBasicStats        loopStats;
 #endif
 
-#if defined DEBUG || defined JS_DUMP_PROPTREE_STATS
+#ifdef DEBUG
     
     jsrefcount          inlineCalls;
     jsrefcount          nativeCalls;
@@ -842,7 +842,6 @@ struct JSRuntime {
     jsrefcount          duplicatePropTreeNodes;
     jsrefcount          totalPropTreeNodes;
     jsrefcount          propTreeKidsChunks;
-    jsrefcount          middleDeleteFixups;
 
     
     jsrefcount          liveStrings;
