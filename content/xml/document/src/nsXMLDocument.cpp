@@ -378,6 +378,9 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
   
   nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
 
+  
+  
+  
   if (codebase) {
     rv = secMan->CheckSameOriginURI(codebase, uri, PR_FALSE);
 
