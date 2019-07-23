@@ -2769,6 +2769,69 @@ gfxASurface *nsWindow::GetThebesSurface()
 
 
 
+ 
+NS_IMETHODIMP
+nsWindow::OnDefaultButtonLoaded(const nsIntRect &aButtonRect)
+{
+#ifdef WINCE
+  return NS_ERROR_NOT_IMPLEMENTED;
+#else
+  if (aButtonRect.IsEmpty())
+    return NS_OK;
+
+  
+  HWND activeWnd = ::GetActiveWindow();
+  if (activeWnd != ::GetForegroundWindow() ||
+      GetTopLevelHWND(mWnd, PR_TRUE) != GetTopLevelHWND(activeWnd, PR_TRUE)) {
+    return NS_OK;
+  }
+
+  PRBool isAlwaysSnapCursor = PR_FALSE;
+  nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (prefs) {
+    nsCOMPtr<nsIPrefBranch> prefBranch;
+    prefs->GetBranch(nsnull, getter_AddRefs(prefBranch));
+    if (prefBranch) {
+      prefBranch->GetBoolPref("ui.cursor_snapping.always_enabled",
+                              &isAlwaysSnapCursor);
+    }
+  }
+
+  if (!isAlwaysSnapCursor) {
+    BOOL snapDefaultButton;
+    if (!::SystemParametersInfo(SPI_GETSNAPTODEFBUTTON, 0,
+                                &snapDefaultButton, 0) || !snapDefaultButton)
+      return NS_OK;
+  }
+
+  nsIntRect widgetRect;
+  nsresult rv = GetScreenBounds(widgetRect);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsIntRect buttonRect(aButtonRect + widgetRect.TopLeft());
+
+  nsIntPoint centerOfButton(buttonRect.x + buttonRect.width / 2,
+                            buttonRect.y + buttonRect.height / 2);
+  
+  
+  if (!widgetRect.Contains(centerOfButton)) {
+    return NS_OK;
+  }
+
+  if (!::SetCursorPos(centerOfButton.x, centerOfButton.y)) {
+    NS_ERROR("SetCursorPos failed");
+    return NS_ERROR_FAILURE;
+  }
+  return NS_OK;
+#endif
+}
+
+
+
+
+
+
+
+
 
 
 

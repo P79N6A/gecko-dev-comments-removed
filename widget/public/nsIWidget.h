@@ -102,8 +102,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-{ 0x3d277f04, 0x93f4, 0x4384, \
- { 0x9f, 0xdc, 0xe1, 0xe2, 0xd1, 0xfc, 0x4e, 0x33 } }
+{ 0xa395289d, 0xb344, 0x42c3, \
+  { 0xae, 0x7e, 0x34, 0xd6, 0x42, 0x82, 0xb6, 0xe0 } }
 
 
 
@@ -1063,6 +1063,12 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD OnIMESelectionChange(void) = 0;
+
+    
+
+
+ 
+    NS_IMETHOD OnDefaultButtonLoaded(const nsIntRect &aButtonRect) = 0;
 
 protected:
     
