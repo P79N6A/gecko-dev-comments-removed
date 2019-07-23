@@ -244,10 +244,7 @@ NS_IMETHODIMP nsScrollPortView::ScrollTo(nscoord aDestinationX, nscoord aDestina
                                          PRUint32 aUpdateFlags)
 {
   
-  if (aDestinationX == mDestinationX && aDestinationY == mDestinationY)
-    return NS_OK;
-
-  if (aDestinationX == mOffsetX && aDestinationY == mOffsetY) {
+  if (aDestinationX == mDestinationX && aDestinationY == mDestinationY) {
     
     delete mAsyncScroll;
     mAsyncScroll = nsnull;
