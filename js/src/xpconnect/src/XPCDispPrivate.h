@@ -1279,69 +1279,6 @@ private:
 
 
 
-class XPCDispParamPropJSClass
-{
-public:
-    
-
-
-
-
-
-
-
-
-
-
-
-    static JSBool NewInstance(XPCCallContext& ccx, XPCWrappedNative* wrapper,
-                               PRUint32 dispID,
-                               XPCDispParams* dispParams,
-                               jsval* paramPropObj);
-    
-
-
-    ~XPCDispParamPropJSClass();
-    
-
-
-
-    XPCWrappedNative*       GetWrapper() const { return mWrapper; }
-    
-
-
-
-
-
-    JSBool                  Invoke(XPCCallContext& ccx, 
-                                   XPCDispObject::CallMode mode, 
-                                   jsval* retval);
-    
-
-
-
-    XPCDispParams*    GetParams() const { return mDispParams; }
-private:
-    
-
-
-
-
-
-
-    XPCDispParamPropJSClass(XPCWrappedNative* wrapper, nsISupports* dispObj, 
-                            PRUint32 dispID, XPCDispParams* dispParams);
-
-    XPCWrappedNative*           mWrapper;
-    PRUint32                    mDispID;
-    XPCDispParams*              mDispParams;
-    IDispatch*                  mDispObj;
-};
-
-
-
-
-
 class nsDispatchSupport : public nsIDispatchSupport
 {
 public:
