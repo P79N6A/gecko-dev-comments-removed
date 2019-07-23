@@ -568,65 +568,30 @@ nsZipItem* nsZipArchive::CreateZipItem(PRUint16 namelen)
 
 nsresult nsZipArchive::BuildFileList()
 {
-  PRUint8   *buf;
   
-  
-  
+  PRUint8* buf;
+  PRUint8* endp = mFd->mFileData + mFd->mLen;
 
-  
-  PRInt32  pos = (PRInt32) mFd->mLen;
-
-  PRInt32 central = -1;
-  while (central == -1)
+  for (buf = endp - ZIPEND_SIZE; xtolong(buf) != ENDSIG; buf--)
   {
-    
-    PRInt32  bufsize = pos > BR_BUF_SIZE ? BR_BUF_SIZE : pos;
-    pos -= bufsize;
-
-    buf = mFd->mFileData + pos;
-
-    
-    PRUint8 *endp = buf + bufsize;
-    for (endp -= ZIPEND_SIZE; endp >= buf; endp--)
-    {
-      if (xtolong(endp) == ENDSIG)
-      { 
-        
-        central = xtolong(((ZipEnd *) endp)->offset_central_dir);
-        break;
-      }
-    }
-
-    if (central != -1)
-      break;
-
-    if (pos <= 0)
+    if (buf == mFd->mFileData) {
       
       
       return ZIP_ERR_CORRUPT;
-
-    
-    pos += ZIPEND_SIZE;
-
-  } 
-
+    }
+  }
+  PRUint32 central = xtolong(((ZipEnd *)buf)->offset_central_dir);
 
   
-  
-  
-  PRInt32 byteCount = mFd->mLen - central;
   buf = mFd->mFileData + central;
-  pos = 0;
   PRUint32 sig = xtolong(buf);
   while (sig == CENTRALSIG) {
     
-    if (byteCount - pos < ZIPCENTRAL_SIZE)
+    if (endp - buf < ZIPCENTRAL_SIZE)
       return ZIP_ERR_CORRUPT;
 
     
-    
-    
-    ZipCentral* central = (ZipCentral*)(buf+pos);
+    ZipCentral* central = (ZipCentral*)buf;
 
     PRUint16 namelen = xtoint(central->filename_len);
     PRUint16 extralen = xtoint(central->extrafield_len);
@@ -650,48 +615,33 @@ nsresult nsZipArchive::BuildFileList()
     item->date          = xtoint(central->date);
     item->isSynthetic   = PR_FALSE;
     item->hasDataOffset = PR_FALSE;
-
-    PRUint16 compression = xtoint(central->method);
-    item->compression   = (compression < UNSUPPORTED) ? (PRUint8)compression
-                                                      : UNSUPPORTED;
-
-    item->mode = ExtractMode(central->external_attributes);
+    item->compression   = PR_MIN(xtoint(central->method), UNSUPPORTED);
+    item->mode          = ExtractMode(central->external_attributes);
 #if defined(XP_UNIX) || defined(XP_BEOS)
     
     item->isSymlink = IsSymlink(central->external_attributes);
 #endif
 
-    pos += ZIPCENTRAL_SIZE;
+    buf += ZIPCENTRAL_SIZE;
+
     
-    
-    
-    memcpy(item->name, buf+pos, namelen);
+    memcpy(item->name, buf, namelen);
     item->name[namelen] = 0;
     
     item->isDirectory = ('/' == item->name[namelen - 1]);
 
-    
-    
-    
-    
-    
-    
-    
     
     PRUint32 hash = HashName(item->name);
     item->next = mFiles[hash];
     mFiles[hash] = item;
 
     
-    
-    
-    pos += namelen + extralen + commentlen;
-    sig = xtolong(buf+pos);
+    buf += namelen + extralen + commentlen;
+    sig = xtolong(buf);
   } 
 
   if (sig != ENDSIG)
     return ZIP_ERR_CORRUPT;
-
   return ZIP_OK;
 }
 
