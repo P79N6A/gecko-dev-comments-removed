@@ -1185,31 +1185,33 @@ int NS_main(int argc, NS_tchar **argv)
   
   
 
-  if (argc < 3) {
-    fprintf(stderr, "Usage: updater <dir-path> <parent-pid> [working-dir callback args...]\n");
+  if (argc < 2) {
+    fprintf(stderr, "Usage: updater <dir-path> [parent-pid [working-dir callback args...]]\n");
     return 1;
   }
 
-  int pid = NS_tatoi(argv[2]);
-  if (pid) {
+  if (argc > 2 ) {
+    int pid = NS_tatoi(argv[2]);
+    if (pid) {
 #ifdef XP_WIN
-    HANDLE parent = OpenProcess(SYNCHRONIZE, FALSE, (DWORD) pid);
-    
-    
-    
-    if (parent) {
-      DWORD result = WaitForSingleObject(parent, 5000);
-      CloseHandle(parent);
-      if (result != WAIT_OBJECT_0)
-        return 1;
+      HANDLE parent = OpenProcess(SYNCHRONIZE, FALSE, (DWORD) pid);
       
       
-      Sleep(50);
-    }
+      
+      if (parent) {
+        DWORD result = WaitForSingleObject(parent, 5000);
+        CloseHandle(parent);
+        if (result != WAIT_OBJECT_0)
+          return 1;
+        
+        
+        Sleep(50);
+      }
 #else
-    int status;
-    waitpid(pid, &status, 0);
+      int status;
+      waitpid(pid, &status, 0);
 #endif
+    }
   }
 
 #ifdef XP_WIN
