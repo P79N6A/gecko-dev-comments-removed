@@ -67,7 +67,9 @@
 #include <pango/pango.h>
 #include <pango/pangofc-fontmap.h>
 
+#ifdef MOZ_WIDGET_GTK2
 #include <gdk/gdkscreen.h>
+#endif
 
 #include <math.h>
 
@@ -1703,6 +1705,10 @@ gfx_pango_font_map_get_resolution(PangoFcFontMap *fcfontmap,
     return gfxPlatformGtk::DPI();
 }
 
+#ifdef MOZ_WIDGET_GTK2
+static void ApplyGdkScreenFontOptions(FcPattern *aPattern);
+#endif
+
 
 static void
 PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
@@ -1718,10 +1724,13 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
     
     
     
-    const cairo_font_options_t *options =
-        gdk_screen_get_font_options(gdk_screen_get_default());
-
-    cairo_ft_font_options_substitute(options, aPattern);
+    
+    
+    
+    
+#ifdef MOZ_WIDGET_GTK2
+    ApplyGdkScreenFontOptions(aPattern);
+#endif
 
     
     
@@ -3396,3 +3405,36 @@ GuessPangoLanguage(const nsACString& aLangGroup)
 
     return pango_language_from_string(lang.get());
 }
+
+#ifdef MOZ_WIDGET_GTK2
+
+
+
+
+
+
+
+#if MOZ_TREE_CAIRO
+
+
+#undef cairo_ft_font_options_substitute
+
+
+
+extern "C" {
+void
+cairo_ft_font_options_substitute (const cairo_font_options_t *options,
+                                  FcPattern                  *pattern);
+}
+#endif
+
+static void
+ApplyGdkScreenFontOptions(FcPattern *aPattern)
+{
+    const cairo_font_options_t *options =
+        gdk_screen_get_font_options(gdk_screen_get_default());
+
+    cairo_ft_font_options_substitute(options, aPattern);
+}
+
+#endif 
