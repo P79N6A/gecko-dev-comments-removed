@@ -348,8 +348,6 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (f) {
     dirty = aDirtyRect - f->GetOffsetTo(this);
     aBuilder->EnterPresShell(f, dirty);
-
-    rv = f->BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
   }
 
   
@@ -357,22 +355,20 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                        mInnerView->GetPosition() +
                        GetOffsetTo(aBuilder->ReferenceFrame());
 
-  if (NS_SUCCEEDED(rv) && (!f || suppressed) &&
-      !aBuilder->IsForEventDelivery()) {
+  if (!aBuilder->IsForEventDelivery()) {
     
-    
-    rv = childItems.AppendNewToBottom(
-             new (aBuilder) nsDisplaySolidColor(
-                  f ? f : this,
-                  shellBounds,
-                  presShell->GetCanvasBackground()));
+    rv = presShell->AddCanvasBackgroundColorItem(
+           *aBuilder, childItems, f ? f : this, &shellBounds);
+  }
+
+  if (f && NS_SUCCEEDED(rv)) {
+    rv = f->BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
   }
 
   if (NS_SUCCEEDED(rv)) {
     
     rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(this, this, &childItems,
-              shellBounds));
+        new (aBuilder) nsDisplayClip(this, this, &childItems, shellBounds));
   }
   
   childItems.DeleteAll();

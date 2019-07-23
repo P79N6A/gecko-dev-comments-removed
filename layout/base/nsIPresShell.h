@@ -98,14 +98,15 @@ class gfxASurface;
 class gfxContext;
 class nsPIDOMEventTarget;
 class nsIDOMEvent;
+class nsDisplayList;
+class nsDisplayListBuilder;
 
 typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
-
 #define NS_IPRESSHELL_IID \
-  { 0x189d234b, 0x3823, 0x4e8f, \
-    { 0xbb, 0xd2, 0x63, 0xc0, 0x28, 0x2b, 0x9f, 0xac } }
+{ 0x5039364e, 0x6e3e, 0x4aae, \
+  { 0xb8, 0xac, 0xf1, 0xee, 0xf1, 0xcb, 0x85, 0x45 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -813,13 +814,27 @@ public:
 
 
 
+
   void SetCanvasBackground(nscolor aColor) { mCanvasBackgroundColor = aColor; }
   nscolor GetCanvasBackground() { return mCanvasBackgroundColor; }
 
   
 
 
+
   virtual void UpdateCanvasBackground() = 0;
+
+  
+
+
+
+
+
+  virtual nsresult AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
+                                                nsDisplayList& aList,
+                                                nsIFrame* aFrame,
+                                                nsRect* aBounds = nsnull,
+                                                nscolor aBackstopColor = NS_RGBA(0,0,0,0)) = 0;
 
   void ObserveNativeAnonMutationsForPrint(PRBool aObserve)
   {

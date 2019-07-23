@@ -478,7 +478,7 @@ public:
 
 
   static nsresult PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
-                             const nsRegion& aDirtyRegion, nscolor aBackground);
+                             const nsRegion& aDirtyRegion, nscolor aBackstop);
 
   
 

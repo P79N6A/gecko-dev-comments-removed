@@ -1047,7 +1047,7 @@ GetNextPage(nsIFrame* aPageContentFrame)
 
 nsresult
 nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
-                          const nsRegion& aDirtyRegion, nscolor aBackground)
+                          const nsRegion& aDirtyRegion, nscolor aBackstop)
 {
   nsAutoDisableGetUsedXAssertions disableAssert;
 
@@ -1055,11 +1055,12 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   nsDisplayList list;
   nsRect dirtyRect = aDirtyRegion.GetBounds();
 
+  nsresult rv;
+
   builder.EnterPresShell(aFrame, dirtyRect);
 
-  nsresult rv =
-    aFrame->BuildDisplayListForStackingContext(&builder, dirtyRect, &list);
-    
+  rv = aFrame->BuildDisplayListForStackingContext(&builder, dirtyRect, &list);
+
   if (NS_SUCCEEDED(rv) && aFrame->GetType() == nsGkAtoms::pageContentFrame) {
     
     
@@ -1078,21 +1079,19 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     }
   }
 
+  
+  
+  
+  
+  
+  if (NS_SUCCEEDED(rv) && aFrame->GetType() != nsGkAtoms::pageFrame) {
+    
+    rv = aFrame->PresContext()->PresShell()->AddCanvasBackgroundColorItem(
+           builder, list, aFrame, nsnull, aBackstop);
+  }
+
   builder.LeavePresShell(aFrame, dirtyRect);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (NS_GET_A(aBackground) > 0) {
-    
-    
-    
-    
-    
-    rv = list.AppendNewToBottom(new (&builder) nsDisplaySolidColor(
-           aFrame,
-           nsRect(builder.ToReferenceFrame(aFrame), aFrame->GetSize()),
-           aBackground));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
 #ifdef DEBUG
   if (gDumpPaintList) {

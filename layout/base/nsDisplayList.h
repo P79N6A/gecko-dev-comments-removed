@@ -126,11 +126,6 @@ public:
 
 
 
-
-
-
-
-
   nsDisplayListBuilder(nsIFrame* aReferenceFrame, PRBool aIsForEvents,
                        PRBool aBuildCaret);
   ~nsDisplayListBuilder();
@@ -160,6 +155,9 @@ public:
   PRBool IsAtRootOfPseudoStackingContext() { return mIsAtRootOfPseudoStackingContext; }
 
   
+
+
+
 
 
 
@@ -512,9 +510,6 @@ protected:
     mAbove = nsnull;
   }
   
-  static PRBool ComputeVisibilityFromBounds(nsIFrame* aFrame,
-      const nsRect& aRect, nsRegion& aCovered, PRBool aIsOpaque);
-
   nsIFrame* mFrame;
 };
 
@@ -1008,6 +1003,7 @@ public:
   virtual PRBool OptimizeVisibility(nsDisplayListBuilder* aBuilder, nsRegion* aVisibleRegion);
   NS_DISPLAY_DECL_NAME("Border")
 };
+
 
 
 

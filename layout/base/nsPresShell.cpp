@@ -1023,6 +1023,12 @@ public:
 
   virtual void UpdateCanvasBackground();
 
+  virtual nsresult AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
+                                                nsDisplayList& aList,
+                                                nsIFrame* aFrame,
+                                                nsRect* aBounds,
+                                                nscolor aBackstopColor);
+
 protected:
   virtual ~PresShell();
 
@@ -1391,6 +1397,14 @@ private:
   void EnumeratePlugins(nsIDOMDocument *aDocument,
                         const nsString &aPluginTag,
                         nsPluginEnumCallback aCallback);
+
+private:
+  
+
+
+
+
+  nscolor ComputeBackstopColor(nsIView* aView);
 };
 
 class nsAutoCauseReflowNotifier
@@ -5278,7 +5292,14 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
     builder.SetBackgroundOnly(PR_FALSE);
     builder.EnterPresShell(rootFrame, rect);
 
-    nsresult rv = rootFrame->BuildDisplayListForStackingContext(&builder, rect, &list);   
+    
+    nsresult rv =
+      rootFrame->PresContext()->PresShell()->AddCanvasBackgroundColorItem(
+        builder, list, rootFrame);
+
+    if (NS_SUCCEEDED(rv)) {
+      rv = rootFrame->BuildDisplayListForStackingContext(&builder, rect, &list);
+    }
 
     builder.LeavePresShell(rootFrame, rect);
 
@@ -5679,6 +5700,21 @@ PresShell::RenderSelection(nsISelection* aSelection,
                              aScreenRect);
 }
 
+nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
+                                                 nsDisplayList&        aList,
+                                                 nsIFrame*             aFrame,
+                                                 nsRect*               aBounds,
+                                                 nscolor               aBackstopColor)
+{
+  nscolor bgcolor = NS_ComposeColors(aBackstopColor, mCanvasBackgroundColor);
+  nsRect bounds = aBounds == nsnull ?
+    nsRect(aBuilder.ToReferenceFrame(aFrame), aFrame->GetSize()) : *aBounds;
+  return aList.AppendNewToBottom(new (&aBuilder) nsDisplaySolidColor(
+           aFrame,
+           bounds,
+           bgcolor));
+}
+
 void PresShell::UpdateCanvasBackground()
 {
   
@@ -5688,8 +5724,35 @@ void PresShell::UpdateCanvasBackground()
   if (rootFrame) {
     const nsStyleBackground* bgStyle =
       nsCSSRendering::FindRootFrameBackground(rootFrame);
-    mCanvasBackgroundColor = bgStyle->mBackgroundColor;
+    
+    
+    
+    
+    mCanvasBackgroundColor =
+      nsCSSRendering::DetermineBackgroundColor(GetPresContext(), *bgStyle,
+                                               rootFrame);
   }
+
+  
+  
+  
+  if (!FrameConstructor()->GetRootElementFrame()) {
+    mCanvasBackgroundColor = mPresContext->DefaultBackgroundColor();
+  }
+}
+
+nscolor PresShell::ComputeBackstopColor(nsIView* aView)
+{
+  nsIWidget* widget = aView->GetNearestWidget(nsnull);
+  if (widget && widget->GetTransparencyMode() != eTransparencyOpaque) {
+    
+    
+    return NS_RGBA(0,0,0,0);
+  }
+  
+  
+  
+  return GetPresContext()->DefaultBackgroundColor();
 }
 
 NS_IMETHODIMP
@@ -5702,30 +5765,13 @@ PresShell::Paint(nsIView*             aView,
   NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
   NS_ASSERTION(aView, "null view");
 
-  UpdateCanvasBackground();
-
-  
-  nscolor bgcolor;
-  nsIWidget* widget = aView->GetNearestWidget(nsnull);
-  if (widget && widget->GetTransparencyMode() != eTransparencyOpaque) {
-    
-    
-    bgcolor = NS_RGBA(0,0,0,0);
-  } else {
-    
-    
-    
-    
-    
-    
-    bgcolor = NS_ComposeColors(mPresContext->DefaultBackgroundColor(),
-                               mCanvasBackgroundColor);
-  }
+  nscolor bgcolor = ComputeBackstopColor(aView);
 
   nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
   if (frame) {
     nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion, bgcolor);
   } else {
+    bgcolor = NS_ComposeColors(bgcolor, mCanvasBackgroundColor);
     aRenderingContext->SetColor(bgcolor);
     aRenderingContext->FillRect(aDirtyRegion.GetBounds());
   }
@@ -5735,7 +5781,7 @@ PresShell::Paint(nsIView*             aView,
 NS_IMETHODIMP
 PresShell::PaintDefaultBackground(nsIView*             aView,
                                   nsIRenderingContext* aRenderingContext,
-                                  const nsRect&       aDirtyRect)
+                                  const nsRect&        aDirtyRect)
 {
   AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Paint);
 
@@ -5744,10 +5790,8 @@ PresShell::PaintDefaultBackground(nsIView*             aView,
 
   
   
-  
-  
-  
-  nscolor bgcolor = NS_ComposeColors(mPresContext->DefaultBackgroundColor(),
+
+  nscolor bgcolor = NS_ComposeColors(ComputeBackstopColor(aView),
                                      mCanvasBackgroundColor);
 
   aRenderingContext->SetColor(bgcolor);

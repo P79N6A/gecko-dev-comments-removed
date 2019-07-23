@@ -170,6 +170,14 @@ struct nsCSSRendering {
   
 
 
+  static nscolor
+  DetermineBackgroundColor(nsPresContext* aPresContext,
+                           const nsStyleBackground& aBackground,
+                           nsIFrame* aFrame);
+
+  
+
+
 
 
 
@@ -199,7 +207,7 @@ struct nsCSSRendering {
                                     nsIFrame* aForFrame,
                                     const nsRect& aDirtyRect,
                                     const nsRect& aBorderArea,
-                                    const nsStyleBackground& aColor,
+                                    const nsStyleBackground& aBackground,
                                     const nsStyleBorder& aBorder,
                                     PRUint32 aFlags,
                                     nsRect* aBGClipRect = nsnull);
