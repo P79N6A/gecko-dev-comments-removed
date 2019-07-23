@@ -112,7 +112,7 @@ var XPCOMUtils = {
 
 
   generateQI: function(interfaces) {
-    return makeQI([i.name for each(i in interfaces)]);
+    return makeQI([i.name for each (i in interfaces) if (i)]);
   },
 
   
