@@ -119,7 +119,7 @@ Assembler::nFragExit(LInsp guard)
 
         
         
-        BL_far(_epilogue);
+        JMP_far(_epilogue);
 
         
         lr->jmp = _nIns;
@@ -709,24 +709,24 @@ Assembler::asm_adjustBranch(NIns* at, NIns* target)
     
     
     
-    NanoAssert(at[1] == (NIns)( COND_AL | OP_IMM | (1<<23) | (PC<<16) | (LR<<12) | (4) ));
-    NanoAssert(at[2] == (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) ));
+    NanoAssert(at[0] == (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (0) ));
+    NanoAssert(at[1] == (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) ));
 
-    NIns* was = (NIns*) at[3];
+    NIns* was = (NIns*) at[2];
 
     
 
-    at[3] = (NIns)target;
+    at[2] = (NIns)target;
 
 #if defined(UNDER_CE)
     
     FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
 #elif defined(AVMPLUS_LINUX)
-    __clear_cache((char*)at, (char*)(at+4));
+    __clear_cache((char*)at, (char*)(at+3));
 #endif
 
 #ifdef AVMPLUS_PORTING_API
-    NanoJIT_PortAPI_FlushInstructionCache(at, at+4);
+    NanoJIT_PortAPI_FlushInstructionCache(at, at+3);
 #endif
 
     return was;
@@ -765,6 +765,27 @@ Assembler::underrunProtect(int bytes)
         
         _nSlot = pageDataStart(_nIns);
     }
+}
+
+void
+Assembler::JMP_far(NIns* addr)
+{
+    
+    underrunProtect(12);
+
+    
+    
+
+    
+    *(--_nIns) = (NIns)((addr));
+    
+    *(--_nIns) = (NIns)( COND_AL | (0x9<<21) | (0xFFF<<8) | (1<<4) | (IP) );
+    
+    *(--_nIns) = (NIns)( COND_AL | (0x59<<20) | (PC<<16) | (IP<<12) | (0));
+
+    
+
+    asm_output1("b %p (32-bit)", addr);
 }
 
 void
