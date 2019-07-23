@@ -2669,6 +2669,7 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
                     pnlet = PushLexicalScope(cx, ts, tc, &blockInfo);
                     if (!pnlet)
                         return NULL;
+                    blockInfo.flags |= SIF_FOR_BLOCK;
                     pn1 = Variables(cx, ts, tc);
                 }
 #endif
@@ -3198,8 +3199,11 @@ Statement(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
 
 
 
+
+
         stmt = tc->topStmt;
-        if (stmt && !STMT_MAYBE_SCOPE(stmt)) {
+        if (stmt &&
+            (!STMT_MAYBE_SCOPE(stmt) || (stmt->flags & SIF_FOR_BLOCK))) {
             js_ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR,
                                         JSMSG_LET_DECL_NOT_IN_BLOCK);
             return NULL;
