@@ -124,6 +124,9 @@ PrivateBrowsingService.prototype = {
   _autoStarted: false,
 
   
+  _viewSrcURLs: [],
+
+  
   classDescription: "PrivateBrowsing Service",
   contractID: "@mozilla.org/privatebrowsing;1",
   classID: Components.ID("{c31f4883-839b-45f6-82ad-a6a9bc5ad599}"),
@@ -177,6 +180,22 @@ PrivateBrowsingService.prototype = {
 
       this._closePageInfoWindows();
 
+      
+      let viewSrcWindowsEnum = Cc["@mozilla.org/appshell/window-mediator;1"].
+                               getService(Ci.nsIWindowMediator).
+                               getEnumerator("navigator:view-source");
+      while (viewSrcWindowsEnum.hasMoreElements()) {
+        let win = viewSrcWindowsEnum.getNext();
+        if (this._inPrivateBrowsing) {
+          let plainURL = win.getBrowser().currentURI.spec;
+          if (plainURL.indexOf("view-source:") == 0) {
+            plainURL = plainURL.substr(12);
+            this._viewSrcURLs.push(plainURL);
+          }
+        }
+        win.close();
+      }
+
       if (!this._quitting && this._saveSession) {
         let browserWindow = this._getBrowserWindow();
 
@@ -215,6 +234,28 @@ PrivateBrowsingService.prototype = {
         this._savedBrowserState = null;
 
         this._closePageInfoWindows();
+
+        
+        let windowWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+                            getService(Ci.nsIWindowWatcher);
+        this._viewSrcURLs.forEach(function(uri) {
+          let args = Cc["@mozilla.org/supports-array;1"].
+                     createInstance(Ci.nsISupportsArray);
+          let str = Cc["@mozilla.org/supports-string;1"].
+                    createInstance(Ci.nsISupportsString);
+          str.data = uri;
+          args.AppendElement(str);
+          args.AppendElement(null); 
+          args.AppendElement(null); 
+          args.AppendElement(null); 
+          let forcedCharset = Cc["@mozilla.org/supports-PRBool;1"].
+                              createInstance(Ci.nsISupportsPRBool);
+          forcedCharset.data = false;
+          args.AppendElement(forcedCharset);
+          windowWatcher.openWindow(null, "chrome://global/content/viewSource.xul",
+            "_blank", "all,dialog=no", args);
+        });
+        this._viewSrcURLs = [];
       }
       else {
         
