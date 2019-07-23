@@ -192,6 +192,13 @@ class ExceptionHandler {
 
   
   
+  static bool WriteMinidumpForChild(HANDLE child,
+                                    const wstring &dump_path,
+                                    MinidumpCallback callback,
+                                    void *callback_context);
+
+  
+  
   
   
   DWORD get_requesting_thread_id() const { return requesting_thread_id_; }
@@ -273,9 +280,25 @@ class ExceptionHandler {
   
   
   
+  
   bool WriteMinidumpWithException(DWORD requesting_thread_id,
                                   EXCEPTION_POINTERS* exinfo,
                                   MDRawAssertionInfo* assertion);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  bool WriteMinidumpWithExceptionForProcess(DWORD requesting_thread_id,
+                                            EXCEPTION_POINTERS* exinfo,
+                                            MDRawAssertionInfo* assertion,
+                                            HANDLE process,
+                                            DWORD processId,
+                                            bool write_requester_stream);
 
   
   
