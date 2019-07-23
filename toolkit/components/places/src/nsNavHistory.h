@@ -236,6 +236,8 @@ public:
   mozIStorageStatement *DBGetTags() { return mDBGetTags; }
   PRInt64 GetTagsFolder();
 
+  mozIStorageStatement *DBGetIsVisited() { return mDBIsPageVisited; }
+
   
   
   static const PRInt32 kGetInfoIndex_VisitDate;

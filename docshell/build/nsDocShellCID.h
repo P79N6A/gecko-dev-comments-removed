@@ -90,6 +90,10 @@
 
 
 
+#define NS_IHISTORY_CONTRACTID "@mozilla.org/browser/history;1"
+
+
+
 
 
 
