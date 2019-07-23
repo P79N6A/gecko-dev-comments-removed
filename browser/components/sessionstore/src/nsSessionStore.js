@@ -200,6 +200,10 @@ SessionStoreService.prototype = {
     
     
     this._prefBranch.addObserver("sessionstore.max_tabs_undo", this, true);
+    
+    
+    this._sessionhistory_max_entries =
+      this._prefBranch.getIntPref("sessionhistory.max_entries");
 
     
     var dirService = Cc["@mozilla.org/file/directory_service;1"].
@@ -1007,8 +1011,11 @@ SessionStoreService.prototype = {
     }
     catch (ex) { } 
     
+    
+    
     if (history && browser.parentNode.__SS_data &&
-        browser.parentNode.__SS_data.entries[history.index] && !aFullData) {
+        browser.parentNode.__SS_data.entries[history.index] &&
+        history.index < this._sessionhistory_max_entries - 1 && !aFullData) {
       tabData = browser.parentNode.__SS_data;
       tabData.index = history.index + 1;
     }
