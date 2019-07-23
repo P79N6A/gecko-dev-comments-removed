@@ -538,10 +538,12 @@ nsWindow::Create(nsIWidget *aParent,
              aAppShell, aToolkit, aInitData);
 
   HWND parent;
-  if (nsnull != aParent) { 
-    parent = ((aParent) ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nsnull);
+  if (aParent) { 
+    parent = aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : NULL;
+    mParent = aParent;
   } else { 
     parent = (HWND)aNativeParent;
+    mParent = aNativeParent ? GetNSWindowPtr((HWND)aNativeParent) : nsnull;
   }
 
   if (nsnull != aInitData) {
@@ -1000,6 +1002,8 @@ BOOL nsWindow::SetNSWindowPtr(HWND aWnd, nsWindow * ptr)
 
 NS_IMETHODIMP nsWindow::SetParent(nsIWidget *aNewParent)
 {
+  mParent = aNewParent;
+
   if (aNewParent) {
     nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
@@ -6191,6 +6195,7 @@ void nsWindow::OnDestroy()
   
   
   
+  mParent = nsnull;
 
   
   EnableDragDrop(PR_FALSE);
