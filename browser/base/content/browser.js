@@ -1152,15 +1152,13 @@ function delayedStartup()
   
   
   
-  
-
-
-
-
-
-
-
-
+  try {
+    ContentPrefSink.init();
+    TextZoom.init();
+  }
+  catch(ex) {
+    Components.utils.reportError(ex);
+  }
 
   
   if (document.documentElement.getAttribute("windowtype") == "navigator:browser") {
@@ -1186,15 +1184,13 @@ function delayedStartup()
 
 function BrowserShutdown()
 {
-  
-
-
-
-
-
-
-
-
+  try {
+    TextZoom.destroy();
+    ContentPrefSink.destroy();
+  }
+  catch(ex) {
+    Components.utils.reportError(ex);
+  }
 
   var os = Components.classes["@mozilla.org/observer-service;1"]
     .getService(Components.interfaces.nsIObserverService);
@@ -1295,7 +1291,7 @@ function nonBrowserWindowStartup()
 
   
   
-  if (window.location.href == "chrome:
+  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
   {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
     for (var id in hiddenWindowDisabledItems)
@@ -1748,7 +1744,7 @@ function updateGoMenu(aEvent, goMenu)
   if (count == 0)
     return;
 
-  const NC_NS     = "http:
+  const NC_NS     = "http://home.netscape.com/NC-rdf#";
 
   if (!gRDF)
      gRDF = Components.classes["@mozilla.org/rdf/rdf-service;1"]
@@ -5637,10 +5633,8 @@ var FeedHandler = {
 #include browser-places.js
 #endif
 
-
-
-
-
+#include browser-contentPrefSink.js
+#include browser-textZoom.js
 
 
 
