@@ -57,7 +57,7 @@ oggplay_process_leftover_packet(OggPlay *me);
 
 
 OggPlayDecode *
-oggplay_initialise_decoder(OggPlay *me, int content_type, int serialno);
+oggplay_initialise_decoder(OggPlay *me, int content_type, long serialno);
 
 int
 oggplay_callback_info_prepare(OggPlay *me, OggPlayCallbackInfo ***info);

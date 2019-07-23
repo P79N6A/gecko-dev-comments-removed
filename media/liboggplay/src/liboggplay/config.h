@@ -17,7 +17,7 @@
 #define HAVE_FISHSOUND
 
 
-#define HAVE_GLUT
+
 
 
 
@@ -29,7 +29,7 @@
 
 
 
-#define HAVE_LIBSNDFILE1
+
 
 
 #define HAVE_MEMORY_H 1
@@ -90,7 +90,7 @@
 #define STDC_HEADERS 1
 
 
-#define VERSION "0.0.1"
+#define VERSION "0.2.0"
 
 
 

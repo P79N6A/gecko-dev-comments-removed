@@ -56,7 +56,7 @@
 #define STDC_HEADERS 1
 
 
-#define VERSION "0.0.1.svn"
+#define VERSION "0.2.0"
 
 
 #define HAVE_WINSOCK2 1
@@ -75,3 +75,4 @@
 
 
 
+#define ATTRIBUTE_ALIGNED_MAX 16
