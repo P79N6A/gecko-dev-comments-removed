@@ -95,9 +95,22 @@ struct nsCSSRendering {
                           nsIFrame* aForFrame,
                           const nsRect& aDirtyRect,
                           const nsRect& aBorderArea,
-                          const nsStyleBorder& aBorderStyle,
                           nsStyleContext* aStyleContext,
                           PRIntn aSkipSides = 0);
+
+  
+
+
+
+  static void PaintBorderWithStyleBorder(nsPresContext* aPresContext,
+                                         nsIRenderingContext& aRenderingContext,
+                                         nsIFrame* aForFrame,
+                                         const nsRect& aDirtyRect,
+                                         const nsRect& aBorderArea,
+                                         const nsStyleBorder& aBorderStyle,
+                                         nsStyleContext* aStyleContext,
+                                         PRIntn aSkipSides = 0);
+
 
   
 

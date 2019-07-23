@@ -1009,8 +1009,9 @@ nsImageFrame::DisplayAltFeedback(nsIRenderingContext& aRenderingContext,
 
   
   nsRecessedBorder recessedBorder(borderEdgeWidth, PresContext());
-  nsCSSRendering::PaintBorder(PresContext(), aRenderingContext, this, inner,
-                              inner, recessedBorder, mStyleContext);
+  nsCSSRendering::PaintBorderWithStyleBorder(PresContext(), aRenderingContext,
+                                             this, inner, inner,
+                                             recessedBorder, mStyleContext);
 
   
   
