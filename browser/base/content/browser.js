@@ -6206,17 +6206,19 @@ var gMissingPluginInstaller = {
     
     overlay.removeAttribute("role");
 
+    let statusDiv = doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
 #ifdef MOZ_CRASHREPORTER
+    let status;
+
     
-    let helpClass, showClass;
     if (submittedReport) { 
-      showClass = "msg msgSubmitted";
+      status = "submitted";
     }
     else if (!submitReports && !doPrompt) {
-      showClass = "msg msgNotSubmitted";
+      status = "noSubmit";
     }
     else { 
-      showClass = "msg msgPleaseSubmit";
+      status = "please";
       
       let pleaseLink = doc.getAnonymousElementByAttribute(
                             plugin, "class", "pleaseSubmitLink");
@@ -6227,11 +6229,10 @@ var gMissingPluginInstaller = {
     
     
     if (!pluginDumpID) {
-        showClass = "msg msgNoCrashReport";
+        status = "noReport";
     }
 
-    let textToShow = doc.getAnonymousElementByAttribute(plugin, "class", showClass);
-    textToShow.style.display = "block";
+    statusDiv.setAttribute("status", status);
 
     let bottomLinks = doc.getAnonymousElementByAttribute(plugin, "class", "msg msgBottomLinks");
     bottomLinks.style.display = "block";
@@ -6252,7 +6253,7 @@ var gMissingPluginInstaller = {
           
           if (propertyBag.get("minidumpID") != pluginDumpID)
             return;
-          self.updateSubmissionStatus(plugin, propertyBag, data);
+          statusDiv.setAttribute("status", data);
         },
 
         handleEvent : function(event) {
@@ -6353,32 +6354,6 @@ var gMissingPluginInstaller = {
       description.appendChild(link);
     }
 
-  },
-
-  updateSubmissionStatus : function (plugin, propBag, status) {
-    let doc = plugin.ownerDocument;
-
-    
-    let pleaseText     = doc.getAnonymousElementByAttribute(plugin, "class", "msg msgPleaseSubmit");
-    let submittingText = doc.getAnonymousElementByAttribute(plugin, "class", "msg msgSubmitting");
-    pleaseText.style.display = "";
-    submittingText.style.display = "";
-
-    let msgClass;
-    switch (status) {
-      case "submitting":
-        msgClass = "msg msgSubmitting";
-        break;
-      case "success":
-        msgClass = "msg msgSubmitted";
-        break;
-      case "failed":
-        msgClass = "msg msgSubmitFailed";
-        break;
-    }
-
-    let textToShow = doc.getAnonymousElementByAttribute(plugin, "class", msgClass);
-    textToShow.style.display = "block";
   },
 
   refreshBrowser: function (aEvent) {
