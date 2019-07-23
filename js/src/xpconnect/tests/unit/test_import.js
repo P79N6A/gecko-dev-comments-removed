@@ -105,6 +105,13 @@ function run_test() {
   
 
   
+  
+  
+  
+  var interfaces = foo.getInterfaces({});
+  do_check_eq(interfaces, Components.interfaces.nsIClassInfo.number);
+
+  
   const cid = "{6b933fe6-6eba-4622-ac86-e4f654f1b474}";
   do_check_true(cid in Components.classesByID);
   foo = Components.classesByID[cid]
