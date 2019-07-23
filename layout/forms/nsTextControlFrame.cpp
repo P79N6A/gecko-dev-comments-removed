@@ -670,8 +670,6 @@ NS_IMETHODIMP
 nsTextInputSelectionImpl::ScrollSelectionIntoView(PRInt16 aType, PRInt16 aRegion, PRBool aIsSynchronous)
 {
   if (mFrameSelection) {
-    
-    
     nsresult rv = mFrameSelection->ScrollSelectionIntoView(aType, aRegion, aIsSynchronous);
 
     nsIScrollableView* scrollableView = mFrameSelection->GetScrollableView();
@@ -861,8 +859,6 @@ nsTextInputSelectionImpl::PageMove(PRBool aForward, PRBool aExtend)
     if (scrollableView)
       mFrameSelection->CommonPageMove(aForward, aExtend, scrollableView);
   }
-  
-  
   return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
 }
 

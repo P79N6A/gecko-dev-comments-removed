@@ -1439,9 +1439,6 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
   }
       
   
-
-  
-  
   if (NS_SUCCEEDED(rv))
     ScrollSelectionIntoView(PR_FALSE);
 
@@ -1670,8 +1667,6 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
     if (!nsEditorHookUtils::DoInsertionHook(domdoc, aDropEvent, trans))
       return NS_OK;
 
-    
-    
     rv = InsertFromTransferable(trans, srcdomdoc, contextStr, infoStr,
                                 newSelectionParent,
                                 newSelectionOffset, deleteSelection);
@@ -1892,8 +1887,6 @@ NS_IMETHODIMP nsHTMLEditor::Paste(PRInt32 aSelectionType)
       if (!nsEditorHookUtils::DoInsertionHook(domdoc, nsnull, trans))
         return NS_OK;
 
-      
-      
       rv = InsertFromTransferable(trans, nsnull, contextStr, infoStr,
                                   nsnull, 0, PR_TRUE);
     }
@@ -1925,8 +1918,6 @@ NS_IMETHODIMP nsHTMLEditor::PasteNoFormatting(PRInt32 aSelectionType)
     if (NS_SUCCEEDED(clipboard->GetData(trans, aSelectionType)) && IsModifiable())
     {
       const nsAFlatString& empty = EmptyString();
-      
-      
       rv = InsertFromTransferable(trans, nsnull, empty, empty, nsnull, 0,
                                   PR_TRUE);
     }

@@ -2558,10 +2558,8 @@ nsFrameSelection::ScrollSelectionIntoView(SelectionType   aType,
   if (!mDomSelections[index])
     return NS_ERROR_NULL_POINTER;
 
-  
-  
   return mDomSelections[index]->ScrollIntoView(aRegion, aIsSynchronous,
-                                               PR_TRUE);
+                                               PR_FALSE);
 }
 
 nsresult

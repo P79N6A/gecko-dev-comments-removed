@@ -1480,10 +1480,8 @@ nsresult nsHyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEn
   }
   
   if (selCon) {
-    
-    
     selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
-      nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE);
+       nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE);
   }
 
   return NS_OK;

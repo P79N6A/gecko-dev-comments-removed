@@ -112,9 +112,6 @@ mozSpellChecker::NextMisspelledWord(nsAString &aWord, nsStringArray *aSuggestion
           if(isMisspelled){
             aWord = currWord;
             mTsDoc->SetSelection(begin, end-begin);
-            
-            
-            
             mTsDoc->ScrollSelectionIntoView();
             return NS_OK;
           }

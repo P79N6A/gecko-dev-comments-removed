@@ -672,8 +672,6 @@ nsTextEditorDragListener::DragDrop(nsIDOMEvent* aMouseEvent)
 
   aMouseEvent->StopPropagation();
   aMouseEvent->PreventDefault();
-  
-  
   return mEditor->InsertFromDrop(aMouseEvent);
 }
 

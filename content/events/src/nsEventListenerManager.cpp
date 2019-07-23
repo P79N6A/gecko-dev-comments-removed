@@ -1118,8 +1118,6 @@ nsEventListenerManager::HandleEvent(nsPresContext* aPresContext,
   }
   PRUint16 currentGroup = aFlags & NS_EVENT_FLAG_SYSTEM_EVENT;
 
-  
-  
   if (aEvent->message == NS_CONTEXTMENU &&
       NS_FAILED(FixContextMenuEvent(aPresContext, aCurrentTarget, aEvent,
                                     aDOMEvent))) {
@@ -1382,8 +1380,6 @@ nsEventListenerManager::FixContextMenuEvent(nsPresContext* aPresContext,
   
   if (contextMenuKey) {
     nsPoint caretPoint;
-    
-    
     if (PrepareToUseCaretPosition(((nsGUIEvent*)aEvent)->widget,
                                   shell, caretPoint)) {
       
@@ -1511,8 +1507,6 @@ nsEventListenerManager::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
   else
     selCon = do_QueryInterface(aShell);
   if (selCon) {
-    
-    
     rv = selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
         nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
     NS_ENSURE_SUCCESS(rv, PR_FALSE);

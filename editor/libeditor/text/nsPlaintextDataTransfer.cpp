@@ -136,9 +136,6 @@ NS_IMETHODIMP nsPlaintextEditor::InsertTextFromTransferable(nsITransferable *aTr
   NS_Free(bestFlavor);
       
   
-
-  
-  
   if (NS_SUCCEEDED(rv))
     ScrollSelectionIntoView(PR_FALSE);
 
@@ -304,8 +301,6 @@ NS_IMETHODIMP nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
     if (!nsEditorHookUtils::DoInsertionHook(destdomdoc, aDropEvent, trans))
       return NS_OK;
 
-    
-    
     rv = InsertTextFromTransferable(trans, newSelectionParent, newSelectionOffset, deleteSelection);
   }
 
@@ -455,8 +450,6 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(PRInt32 aSelectionType)
       if (!nsEditorHookUtils::DoInsertionHook(domdoc, nsnull, trans))
         return NS_OK;
 
-      
-      
       rv = InsertTextFromTransferable(trans, nsnull, nsnull, PR_TRUE);
     }
   }
