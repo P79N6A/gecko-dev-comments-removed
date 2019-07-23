@@ -4348,7 +4348,7 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
             return JSMRS_STOP;
     } else {
         
-        
+
         tr->pendingTraceableNative = NULL;
 
         jsbytecode* pc = cx->fp->regs->pc;
@@ -4372,6 +4372,7 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
             js_DeleteRecorder(cx);
             return JSMRS_STOP; 
         }
+
 #ifdef NANOJIT_IA32
         
         if (*pc == JSOP_TABLESWITCH || *pc == JSOP_TABLESWITCHX) {
@@ -4388,7 +4389,7 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
 
     
 
-    
+
 
     bool flag;
     switch (op) {
@@ -4402,12 +4403,8 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
                             : cx->fp->regs->pc - cx->fp->script->code,        \
                             !cx->fp->imacpc, stdout);)                        \
         flag = tr->record_##x();                                              \
-        if (x == JSOP_ITER || x == JSOP_NEXTITER || x == JSOP_APPLY ||        \
-            x == JSOP_GETELEM || x == JSOP_SETELEM || x== JSOP_INITELEM ||    \
-            x == JSOP_CALL || JSOP_IS_BINARY(x) || JSOP_IS_UNARY(x) ||        \
-            JSOP_IS_EQUALITY(x)) {                                            \
+        if (JSOP_IS_IMACOP(x))                                                \
             goto imacro;                                                      \
-        }                                                                     \
         break;
 # include "jsopcode.tbl"
 # undef OPDEF
@@ -5036,9 +5033,11 @@ TraceRecorder::tableswitch()
 
     jsbytecode* pc = cx->fp->regs->pc;
     
-    if (anchor && (anchor->exitType == CASE_EXIT ||
-                   anchor->exitType == DEFAULT_EXIT) && fragment->ip == pc)
+    if (anchor &&
+        (anchor->exitType == CASE_EXIT || anchor->exitType == DEFAULT_EXIT) &&
+        fragment->ip == pc) {
         return NULL;
+    }
 
     
     jsint low, high;
