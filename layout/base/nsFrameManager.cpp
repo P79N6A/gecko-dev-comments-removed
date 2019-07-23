@@ -995,8 +995,48 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
     
     
 
-    newContext = mStyleSet->ReParentStyleContext(presContext, oldContext,
-                                                 newParentContext);
+#ifdef DEBUG
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      nsIFrame *nextContinuation = aFrame->GetNextContinuation();
+      if (nextContinuation) {
+        nsStyleContext *nextContinuationContext =
+          nextContinuation->GetStyleContext();
+        NS_ASSERTION(oldContext == nextContinuationContext ||
+                     oldContext->GetPseudoType() !=
+                       nextContinuationContext->GetPseudoType() ||
+                     oldContext->GetParent() !=
+                       nextContinuationContext->GetParent(),
+                     "continuations should have the same style context");
+      }
+    }
+#endif
+
+    nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+    nsStyleContext *prevContinuationContext;
+    PRBool copyFromContinuation =
+      prevContinuation &&
+      (prevContinuationContext = prevContinuation->GetStyleContext())
+        ->GetPseudoType() == oldContext->GetPseudoType() &&
+       prevContinuationContext->GetParent() == newParentContext;
+    if (copyFromContinuation) {
+      
+      
+      
+      
+      newContext = prevContinuationContext;
+    } else {
+      newContext = mStyleSet->ReParentStyleContext(presContext, oldContext,
+                                                   newParentContext);
+    }
+
     if (newContext) {
       if (newContext != oldContext) {
         
@@ -1005,8 +1045,10 @@ nsFrameManager::ReParentStyleContext(nsIFrame* aFrame)
         
         
 #if 0
-        TryStartingTransition(presContext, aFrame->GetContent(),
-                              oldContext, &newContext);
+        if (!copyFromContinuation) {
+          TryStartingTransition(presContext, aFrame->GetContent(),
+                                oldContext, &newContext);
+        }
 #endif
 
         
@@ -1236,10 +1278,48 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       resolvedChild = providerFrame;
     }
-    
+
+#ifdef DEBUG
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      nsIFrame *nextContinuation = aFrame->GetNextContinuation();
+      if (nextContinuation) {
+        nsStyleContext *nextContinuationContext =
+          nextContinuation->GetStyleContext();
+        NS_ASSERTION(oldContext == nextContinuationContext ||
+                     oldContext->GetPseudoType() !=
+                       nextContinuationContext->GetPseudoType() ||
+                     oldContext->GetParent() !=
+                       nextContinuationContext->GetParent(),
+                     "continuations should have the same style context");
+      }
+    }
+#endif
+
     
     nsRefPtr<nsStyleContext> newContext;
-    if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
+    nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+    nsStyleContext *prevContinuationContext;
+    PRBool copyFromContinuation =
+      prevContinuation &&
+      (prevContinuationContext = prevContinuation->GetStyleContext())
+        ->GetPseudoType() == oldContext->GetPseudoType() &&
+       prevContinuationContext->GetParent() == parentContext;
+    if (copyFromContinuation) {
+      
+      
+      
+      
+      newContext = prevContinuationContext;
+    }
+    else if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
       NS_ASSERTION(localContent,
                    "non pseudo-element frame without content node");
       newContext = styleSet->ResolveStyleForNonElement(parentContext);
@@ -1298,8 +1378,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       }
 
       if (newContext != oldContext) {
-        TryStartingTransition(aPresContext, aFrame->GetContent(),
-                              oldContext, &newContext);
+        if (!copyFromContinuation) {
+          TryStartingTransition(aPresContext, aFrame->GetContent(),
+                                oldContext, &newContext);
+        }
 
         aMinChange = CaptureChange(oldContext, newContext, aFrame,
                                    content, aChangeList, aMinChange,

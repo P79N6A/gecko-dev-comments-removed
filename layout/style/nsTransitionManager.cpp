@@ -386,12 +386,6 @@ nsTransitionManager::StyleContextChanged(nsIContent *aElement,
   
   
   
-  
-
-  
-  
-  
-  
   PRBool startedAny = PR_FALSE;
   nsCSSPropertySet whichStarted;
   ElementTransitions *et = nsnull;
