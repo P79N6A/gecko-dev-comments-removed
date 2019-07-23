@@ -1292,7 +1292,7 @@ private:
   
   
   nsIFrame* FindNextSibling(ChildIterator aIter,
-                            const ChildIterator& aIter);
+                            const ChildIterator& aLast);
 
   
   
