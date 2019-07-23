@@ -463,10 +463,6 @@ nsNavHistory::Init()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  mDateFormatter = do_CreateInstance(NS_DATETIMEFORMAT_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
   InitializeIdleTimer();
 
   
