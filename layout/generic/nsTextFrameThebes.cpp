@@ -570,7 +570,8 @@ public:
     mContext(aContext),
     mLineContainer(aLineContainer),
     mBidiEnabled(aPresContext->BidiEnabled()),    
-    mTrimNextRunLeadingWhitespace(PR_FALSE), mSkipIncompleteTextRuns(PR_FALSE) {
+    mTrimNextRunLeadingWhitespace(PR_FALSE),
+    mSkipIncompleteTextRuns(PR_FALSE) {
     ResetRunInfo();
   }
 
@@ -718,7 +719,7 @@ private:
 static nsIFrame*
 FindLineContainer(nsIFrame* aFrame)
 {
-  while (aFrame && aFrame->IsFrameOfType(nsIFrame::eLineParticipant)) {
+  while (aFrame && aFrame->CanContinueTextRun()) {
     aFrame = aFrame->GetParent();
   }
   return aFrame;
@@ -746,20 +747,59 @@ TextContainsLineBreakerWhiteSpace(const void* aText, PRUint32 aLength,
   }
 }
 
-static PRBool
-CanTextRunCrossFrameBoundary(nsIFrame* aFrame)
+struct FrameTextTraversal {
+  nsIFrame*    mFrameToDescendInto;
+  PRPackedBool mDescendIntoFrameSiblings;
+  PRPackedBool mLineBreakerCanCrossFrameBoundary;
+  PRPackedBool mTextRunCanCrossFrameBoundary;
+};
+
+static FrameTextTraversal
+CanTextCrossFrameBoundary(nsIFrame* aFrame, nsIAtom* aType)
 {
-  
-  
-  
-  return aFrame->CanContinueTextRun() ||
-    aFrame->GetType() == nsGkAtoms::placeholderFrame;
+  NS_ASSERTION(aType == aFrame->GetType(), "Wrong type");
+
+  FrameTextTraversal result;
+
+  PRBool continuesTextRun = aFrame->CanContinueTextRun();
+  if (aType == nsGkAtoms::placeholderFrame) {
+    
+    
+    result.mLineBreakerCanCrossFrameBoundary = PR_TRUE;
+    if (continuesTextRun) {
+      
+      
+      
+      
+      
+      result.mFrameToDescendInto =
+        (static_cast<nsPlaceholderFrame*>(aFrame))->GetOutOfFlowFrame();
+      result.mDescendIntoFrameSiblings = PR_FALSE;
+      result.mTextRunCanCrossFrameBoundary = PR_FALSE;
+    } else {
+      result.mFrameToDescendInto = nsnull;
+      result.mTextRunCanCrossFrameBoundary = PR_TRUE;
+    }
+  } else {
+    if (continuesTextRun) {
+      result.mFrameToDescendInto = aFrame->GetFirstChild(nsnull);
+      result.mDescendIntoFrameSiblings = PR_TRUE;
+      result.mTextRunCanCrossFrameBoundary = PR_TRUE;
+      result.mLineBreakerCanCrossFrameBoundary = PR_TRUE;
+    } else {
+      result.mFrameToDescendInto = nsnull;
+      result.mTextRunCanCrossFrameBoundary = PR_FALSE;
+      result.mLineBreakerCanCrossFrameBoundary = PR_FALSE;
+    }
+  }    
+  return result;
 }
 
 BuildTextRunsScanner::FindBoundaryResult
 BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState)
 {
-  nsTextFrame* textFrame = aFrame->GetType() == nsGkAtoms::textFrame
+  nsIAtom* frameType = aFrame->GetType();
+  nsTextFrame* textFrame = frameType == nsGkAtoms::textFrame
     ? static_cast<nsTextFrame*>(aFrame) : nsnull;
   if (textFrame) {
     if (aState->mLastTextFrame &&
@@ -795,28 +835,24 @@ BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState
     return FB_CONTINUE; 
   }
 
-  PRBool continueTextRun = CanTextRunCrossFrameBoundary(aFrame);
-  PRBool descendInto = PR_TRUE;
-  if (!continueTextRun) {
-    
-    
-    descendInto = !aFrame->IsFloatContainingBlock();
+  FrameTextTraversal traversal =
+    CanTextCrossFrameBoundary(aFrame, frameType);
+  if (!traversal.mTextRunCanCrossFrameBoundary) {
     aState->mSeenTextRunBoundaryOnThisLine = PR_TRUE;
     if (aState->mSeenSpaceForLineBreakingOnThisLine)
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
   }
   
-  if (descendInto) {
-    nsIFrame* child = aFrame->GetFirstChild(nsnull);
-    while (child) {
-      FindBoundaryResult result = FindBoundaries(child, aState);
-      if (result != FB_CONTINUE)
-        return result;
-      child = child->GetNextSibling();
-    }
+  for (nsIFrame* f = traversal.mFrameToDescendInto; f;
+       f = f->GetNextSibling()) {
+    FindBoundaryResult result = FindBoundaries(f, aState);
+    if (result != FB_CONTINUE)
+      return result;
+    if (!traversal.mDescendIntoFrameSiblings)
+      break;
   }
 
-  if (!continueTextRun) {
+  if (!traversal.mTextRunCanCrossFrameBoundary) {
     aState->mSeenTextRunBoundaryOnThisLine = PR_TRUE;
     if (aState->mSeenSpaceForLineBreakingOnThisLine)
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
@@ -842,10 +878,10 @@ static void
 BuildTextRuns(gfxContext* aContext, nsTextFrame* aForFrame,
               nsIFrame* aLineContainer, const nsLineList::iterator* aForFrameLine)
 {
-  NS_ASSERTION(aForFrame || aForFrameLine,
-               "One of aForFrame or aForFrameLine must be set!");
+  NS_ASSERTION(aForFrame || (aForFrameLine && aLineContainer),
+               "One of aForFrame or aForFrameLine+aLineContainer must be set!");
   
-  if (!aLineContainer) {
+  if (!aLineContainer || !aForFrameLine) {
     aLineContainer = FindLineContainer(aForFrame);
   } else {
     NS_ASSERTION(!aForFrame || aLineContainer == FindLineContainer(aForFrame), "Wrong line container hint");
@@ -1207,34 +1243,35 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
     return;
   }
 
-  PRBool continueTextRun = CanTextRunCrossFrameBoundary(aFrame);
-  PRBool descendInto = PR_TRUE;
+  FrameTextTraversal traversal =
+    CanTextCrossFrameBoundary(aFrame, frameType);
   PRBool isBR = frameType == nsGkAtoms::brFrame;
-  if (!continueTextRun) {
+  if (!traversal.mLineBreakerCanCrossFrameBoundary) {
     
     
     FlushFrames(PR_TRUE, isBR);
     mCommonAncestorWithLastFrame = aFrame;
     mTrimNextRunLeadingWhitespace = PR_FALSE;
-    
-    
-    descendInto = !aFrame->IsFloatContainingBlock();
     mStartOfLine = PR_FALSE;
+  } else if (!traversal.mTextRunCanCrossFrameBoundary) {
+    FlushFrames(PR_FALSE, PR_FALSE);
   }
 
-  if (descendInto) {
-    nsIFrame* f;
-    for (f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling()) {
-      ScanFrame(f);
-    }
+  for (nsIFrame* f = traversal.mFrameToDescendInto; f;
+       f = f->GetNextSibling()) {
+    ScanFrame(f);
+    if (!traversal.mDescendIntoFrameSiblings)
+      break;
   }
 
-  if (!continueTextRun) {
+  if (!traversal.mLineBreakerCanCrossFrameBoundary) {
     
     
     FlushFrames(PR_TRUE, isBR);
     mCommonAncestorWithLastFrame = aFrame;
     mTrimNextRunLeadingWhitespace = PR_FALSE;
+  } else if (!traversal.mTextRunCanCrossFrameBoundary) {
+    FlushFrames(PR_FALSE, PR_FALSE);
   }
 
   LiftCommonAncestorWithLastFrameToParent(aFrame->GetParent());
@@ -3192,7 +3229,7 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
   aPrevInFlow->SetNextInFlow(this);
   nsTextFrame* prev = static_cast<nsTextFrame*>(aPrevInFlow);
   mContentOffset = prev->GetContentOffset() + prev->GetContentLengthHint();
-  NS_ASSERTION(mContentOffset < aContent->GetText()->GetLength(),
+  NS_ASSERTION(mContentOffset < PRInt32(aContent->GetText()->GetLength()),
                "Creating ContinuingTextFrame, but there is no more content");
   if (prev->GetStyleContext() != GetStyleContext()) {
     
@@ -5503,15 +5540,11 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     AddStateBits(TEXT_START_OF_LINE);
   }
 
-  
-  
-  PRBool layoutDependentTextRun =
-    lineLayout.GetFirstLetterStyleOK() || lineLayout.GetInFirstLine();
-  if (layoutDependentTextRun) {
-    SetLength(maxContentLength);
-  }
-
+  PRUint32 flowEndInTextRun;
+  nsIFrame* lineContainer = lineLayout.GetLineContainerFrame();
+  gfxContext* ctx = aReflowState.rendContext->ThebesContext();
   const nsTextFragment* frag = mContent->GetText();
+
   
   
   
@@ -5534,9 +5567,36 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  PRUint32 flowEndInTextRun;
-  nsIFrame* lineContainer = lineLayout.GetLineContainerFrame();
-  gfxContext* ctx = aReflowState.rendContext->ThebesContext();
+  PRBool completedFirstLetter = PR_FALSE;
+  
+  
+  if (lineLayout.GetFirstLetterStyleOK() || lineLayout.GetInFirstLine()) {
+    SetLength(maxContentLength);
+
+    if (lineLayout.GetFirstLetterStyleOK()) {
+      
+      
+      
+      ClearTextRun();
+      
+      gfxSkipCharsIterator iter =
+        EnsureTextRun(ctx, lineContainer, lineLayout.GetLine(), &flowEndInTextRun);
+
+      if (mTextRun) {
+        completedFirstLetter = FindFirstLetterRange(frag, mTextRun, offset, iter, &length);
+        if (length) {
+          AddStateBits(TEXT_FIRST_LETTER);
+        }
+        
+        
+        
+        SetLength(offset + length - GetContentOffset());
+        
+        ClearTextRun();
+      }
+    } 
+  }
+
   gfxSkipCharsIterator iter =
     EnsureTextRun(ctx, lineContainer, lineLayout.GetLine(), &flowEndInTextRun);
 
@@ -5552,7 +5612,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     iter = EnsureTextRun(ctx, lineContainer,
                          lineLayout.GetLine(), &flowEndInTextRun);
   }
-  
+
   if (!mTextRun) {
     ClearMetrics(aMetrics);
     aStatus = NS_FRAME_COMPLETE;
@@ -5562,15 +5622,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   NS_ASSERTION(gfxSkipCharsIterator(iter).ConvertOriginalToSkipped(offset + length)
                     <= mTextRun->GetLength(),
                "Text run does not map enough text for our reflow");
-
-  
-  PRBool completedFirstLetter = PR_FALSE;
-  if (lineLayout.GetFirstLetterStyleOK()) {
-    completedFirstLetter = FindFirstLetterRange(frag, mTextRun, offset, iter, &length);
-    if (length) {
-      AddStateBits(TEXT_FIRST_LETTER);
-    }
-  }
 
   
   
