@@ -61,6 +61,7 @@
 
 #include "nsClipboard.h"
 #include "nsClipboardHelper.h"
+#include "nsIdleServiceQt.h"
 #include "nsDragService.h"
 
 
@@ -96,6 +97,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDragService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsIdleServiceQt)
+
 
 
 
@@ -160,7 +163,11 @@ static const nsModuleComponentInfo components[] =
     { "Qt Bidi Keyboard",
       NS_BIDIKEYBOARD_CID,
       "@mozilla.org/widget/bidikeyboard;1",
-      nsBidiKeyboardConstructor }
+      nsBidiKeyboardConstructor },
+    { "Qt Idle Service",
+       NS_IDLE_SERVICE_CID,
+       "@mozilla.org/widget/idleservice;1",
+       nsIdleServiceQtConstructor }
 
 
 
