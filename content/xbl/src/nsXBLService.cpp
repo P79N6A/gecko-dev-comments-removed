@@ -424,9 +424,6 @@ nsXBLStreamListener::Load(nsIDOMEvent* aEvent)
   }
   else {
     
-    doc->ClearScriptHandlingObject();
-
-    
     
     
     
@@ -1288,9 +1285,6 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
 
   rv = nsSyncLoadService::PushSyncStreamToListener(in, listener, channel);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  doc->ClearScriptHandlingObject();
 
   doc.swap(*aResult);
 
