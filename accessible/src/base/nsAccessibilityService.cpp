@@ -1328,15 +1328,6 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   }
 #endif
 
-  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
-  if (content && content->Tag() == nsAccessibilityAtoms::map) {
-    
-    
-    
-    *aIsHidden = PR_TRUE;
-    return NS_OK;
-  }
-
   
   
   nsCOMPtr<nsIAccessNode> accessNode;
@@ -1350,6 +1341,8 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     NS_IF_ADDREF(*aAccessible = newAcc);
     return NS_OK;
   }
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
 
   
   
@@ -1461,6 +1454,27 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     return InitAccessible(newAcc, aAccessible, nsnull);
   }
 
+  PRBool isHTML = content->IsNodeOfType(nsINode::eHTML);
+  if (isHTML && content->Tag() == nsAccessibilityAtoms::map) {
+    
+    
+    
+    
+    
+    
+    
+    
+    nsAutoString name;
+    content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::name, name);
+    if (!name.IsEmpty()) {
+      *aIsHidden = PR_TRUE;
+      return NS_OK;
+    }
+    
+    nsresult rv = CreateHyperTextAccessible(frame, getter_AddRefs(newAcc));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(aNode);
   if (roleMapEntry && !nsCRT::strcmp(roleMapEntry->roleString, "presentation") &&
       !content->IsFocusable()) { 
@@ -1474,8 +1488,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   
   nsresult rv = GetAccessibleByType(aNode, getter_AddRefs(newAcc));
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  PRBool isHTML = content->IsNodeOfType(nsINode::eHTML);
+
   if (!newAcc && !isHTML) {
     if (content->GetNameSpaceID() == kNameSpaceID_SVG &&
              content->Tag() == nsAccessibilityAtoms::svg) {
