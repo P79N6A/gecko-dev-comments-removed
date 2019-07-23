@@ -386,7 +386,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
                         mComputedHeight + mComputedBorderPadding.TopBottom();
   }
 
-  const PRBool dependsOnCBHeight =
+  PRBool dependsOnCBHeight =
     mStylePosition->mHeight.GetUnit() == eStyleUnit_Percent ||
     mStylePosition->mMinHeight.GetUnit() == eStyleUnit_Percent ||
     mStylePosition->mMaxHeight.GetUnit() == eStyleUnit_Percent ||
@@ -395,6 +395,17 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     frame->IsBoxFrame() ||
     (mStylePosition->mHeight.GetUnit() == eStyleUnit_Auto &&
      frame->GetIntrinsicSize().height.GetUnit() == eStyleUnit_Percent);
+
+  if (mStyleText->mLineHeight.GetUnit() == eStyleUnit_Enumerated) {
+    NS_ASSERTION(mStyleText->mLineHeight.GetIntValue() ==
+                 NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT,
+                 "bad line-height value");
+
+    
+    frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+    
+    dependsOnCBHeight |= !frame->IsContainingBlock();
+  }
 
   
   
