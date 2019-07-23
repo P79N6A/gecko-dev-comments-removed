@@ -126,6 +126,12 @@ __defineGetter__("gPrefService", function() {
                              getService(Ci.nsIPrefBranch2);
 });
 
+let gInitialPages = [
+  "about:blank",
+  "about:privatebrowsing",
+  "about:sessionrestore"
+];
+
 
 
 
@@ -2079,8 +2085,8 @@ function URLBarSetURI(aURI, aValid) {
 
     
     
-    if (uri.spec == "about:blank")
-      value = content.opener ? "about:blank" : "";
+    if (gInitialPages.indexOf(uri.spec) != -1)
+      value = content.opener ? uri.spec : "";
     else
       value = losslessDecodeURI(uri);
 
