@@ -35,8 +35,6 @@
 
 
 
-#include "prlog.h"
-
 #include "xptcprivate.h"
 
 extern "C" PRUint32 *
