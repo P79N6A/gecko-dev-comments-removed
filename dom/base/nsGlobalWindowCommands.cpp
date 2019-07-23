@@ -243,11 +243,8 @@ nsSelectMoveScrollCommand::DoSelectCommand(const char *aCommandName, nsIDOMWindo
 
   
   
-  
-  if (caretOn) {
-    
-    if (nsContentUtils::GetBoolPref("accessibility.browsewithcaret"))
-      return DoCommandBrowseWithCaretOn(aCommandName, aWindow, selCont);
+  if (caretOn || nsContentUtils::GetBoolPref("accessibility.browsewithcaret")) {
+    return DoCommandBrowseWithCaretOn(aCommandName, aWindow, selCont);
   }
 
   return DoCommandBrowseWithCaretOff(aCommandName, selCont);
