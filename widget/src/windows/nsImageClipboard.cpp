@@ -36,8 +36,11 @@
 
 
 
+
+
  
  
+#include "nsITransferable.h"
 #include "nsImageClipboard.h"
 #include "nsGfxCIID.h"
 #include "nsMemory.h"
@@ -205,9 +208,10 @@ nsImageFromClipboard :: ~nsImageFromClipboard ( )
 
 
 nsresult 
-nsImageFromClipboard ::GetEncodedImageStream (unsigned char * aClipboardData, nsIInputStream** aInputStream )
+nsImageFromClipboard ::GetEncodedImageStream (unsigned char * aClipboardData, const char * aMIMEFormat, nsIInputStream** aInputStream )
 {
   NS_ENSURE_ARG_POINTER (aInputStream);
+  NS_ENSURE_ARG_POINTER (aMIMEFormat);
   nsresult rv;
   *aInputStream = nsnull;
 
@@ -227,7 +231,14 @@ nsImageFromClipboard ::GetEncodedImageStream (unsigned char * aClipboardData, ns
     rv = ConvertColorBitMap((unsigned char *) (pGlobal + header->bmiHeader.biSize), header, rgbData);
     
     if (NS_SUCCEEDED(rv)) {
-      nsCOMPtr<imgIEncoder> encoder = do_CreateInstance("@mozilla.org/image/encoder;2?type=image/jpeg", &rv);
+      nsCAutoString encoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type="));
+
+      
+      if (strcmp(aMIMEFormat, kJPEGImageMime) == 0)
+        encoderCID.Append("image/jpeg");
+      else
+        encoderCID.Append(aMIMEFormat);
+      nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get(), &rv);
       if (NS_SUCCEEDED(rv)){
         rv = encoder->InitFromData(rgbData, 0, width, height, 3 * width , 
                                    imgIEncoder::INPUT_FORMAT_RGB, EmptyString());

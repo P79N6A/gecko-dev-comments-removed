@@ -37,6 +37,8 @@
 
 
 
+
+
 #ifndef WINCE
 
 
@@ -111,7 +113,7 @@ public:
   ~nsImageFromClipboard ( ) ;
   
     
-  nsresult GetEncodedImageStream (unsigned char * aClipboardData, nsIInputStream** outImage);
+  nsresult GetEncodedImageStream (unsigned char * aClipboardData, const char * aMIMEFormat, nsIInputStream** outImage);
 
 private:
 
