@@ -61,6 +61,45 @@
 #endif
 
 
+
+
+
+
+
+
+
+
+
+#ifdef MMGC_API
+
+    
+    
+    inline void mmgc_delete(GCObject* o)
+    {
+        GC* g = GC::GetGC(o);
+        if (g->Collecting())
+            g->Free(o);
+        else
+            delete o;
+    }
+
+    inline void mmgc_delete(GCFinalizedObject* o)
+    {
+        GC* g = GC::GetGC(o);
+        if (g->Collecting())
+            g->Free(o);
+        else
+            delete o;
+    }
+
+    #define NJ_NEW(gc, cls)            new (gc) cls
+    #define NJ_DELETE(obj)            do { mmgc_delete(obj); } while (0)
+#else
+    #define NJ_NEW(gc, cls)            new (gc) cls
+    #define NJ_DELETE(obj)            do { delete obj; } while (0)
+#endif
+
+
 #ifdef MOZ_VALGRIND
 #  define JS_VALGRIND
 #endif
@@ -80,6 +119,7 @@ namespace nanojit
     class Fragment;
     typedef avmplus::AvmCore AvmCore;
     typedef avmplus::OSDep OSDep;
+    typedef avmplus::GCSortedMap<const void*,Fragment*,avmplus::LIST_GCObjects> FragmentMap;
 
     const uint32_t MAXARGS = 8;
 

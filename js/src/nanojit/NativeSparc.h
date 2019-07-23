@@ -67,7 +67,11 @@
 
 namespace nanojit
 {
+#ifdef MMGC_SPARC
+    const int NJ_LOG2_PAGE_SIZE = 12; 
+#else
     const int NJ_LOG2_PAGE_SIZE = 13; 
+#endif
     const int NJ_MAX_REGISTERS = 30; 
 
     const int LARGEST_UNDERRUN_PROT = 32;  

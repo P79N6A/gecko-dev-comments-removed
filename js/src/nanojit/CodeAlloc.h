@@ -43,6 +43,9 @@
 namespace nanojit
 {
     
+    using namespace MMgc;
+
+    
     inline bool containsPtr(const NIns* start, const NIns* end, const NIns* ptr) {
         return ptr >= start && ptr < end;
     }
