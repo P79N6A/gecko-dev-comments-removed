@@ -2607,7 +2607,7 @@ nsDocument::ElementFromPointHelper(PRInt32 aX, PRInt32 aY,
   NS_ENSURE_ARG_POINTER(aReturn);
   *aReturn = nsnull;
   
-  if (aX < 0 || aY < 0)
+  if (!aIgnoreRootScrollFrame && (aX < 0 || aY < 0))
     return NS_OK;
 
   nscoord x = nsPresContext::CSSPixelsToAppUnits(aX);
