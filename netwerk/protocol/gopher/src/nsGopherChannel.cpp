@@ -159,6 +159,14 @@ nsGopherContentStream::OnOutputStreamReady(nsIAsyncOutputStream *stream)
     
     
     
+    if (!mSocketOutput) {
+        NS_ASSERTION(NS_FAILED(Status()), "How did that happen?");
+        return NS_OK;
+    }
+    
+    
+    
+    
 
     nsresult rv = OnSocketWritable();
     if (NS_FAILED(rv))
