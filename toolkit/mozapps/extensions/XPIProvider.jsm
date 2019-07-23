@@ -2176,7 +2176,7 @@ var XPIProvider = {
 
     
     if (aAddon.type == "theme" && !isDisabled)
-      AddonManagerPrivate.notifyAddonChanged(aAddon.id, aAddon.type, true);
+      AddonManagerPrivate.notifyAddonChanged(aAddon.id, aAddon.type, needsRestart);
   },
 
   
