@@ -158,8 +158,7 @@ function getContentAreaFrameCount()
     saveFrameItem.removeAttribute("hidden");
 }
 
-function UpdateBackForwardCommands(aWebNavigation)
-{
+function UpdateBackForwardCommands(aWebNavigation) {
   var backBroadcaster = document.getElementById("Browser:Back");
   var forwardBroadcaster = document.getElementById("Browser:Forward");
 
@@ -1360,9 +1359,8 @@ function gotoHistoryIndex(aEvent)
   }
 }
 
-function BrowserForward(aEvent, aIgnoreAlt)
-{
-  var where = whereToOpenLink(aEvent, false, aIgnoreAlt);
+function BrowserForward(aEvent) {
+  var where = whereToOpenLink(aEvent, false, true);
 
   if (where == "current") {
     try {
@@ -1380,9 +1378,8 @@ function BrowserForward(aEvent, aIgnoreAlt)
   }
 }
 
-function BrowserBack(aEvent, aIgnoreAlt)
-{
-  var where = whereToOpenLink(aEvent, false, aIgnoreAlt);
+function BrowserBack(aEvent) {
+  var where = whereToOpenLink(aEvent, false, true);
 
   if (where == "current") {
     try {
@@ -1470,22 +1467,17 @@ function BrowserHome()
   loadOneOrMoreURIs(homePage);
 }
 
-function BrowserGoHome(aEvent)
-{
+function BrowserGoHome(aEvent) {
   if (aEvent && "button" in aEvent &&
       aEvent.button == 2) 
     return;
 
   var homePage = gHomeButton.getHomePage();
-  var where = whereToOpenLink(aEvent);
+  var where = whereToOpenLink(aEvent, false, true);
   var urls;
 
   
   switch (where) {
-  case "save":
-    urls = homePage.split("|");
-    saveURL(urls[0], null, null, true);  
-    break;
   case "current":
     loadOneOrMoreURIs(homePage);
     break;
@@ -3235,8 +3227,7 @@ function BrowserCustomizeToolbar()
 #endif
 }
 
-function BrowserToolboxCustomizeDone(aToolboxChanged)
-{
+function BrowserToolboxCustomizeDone(aToolboxChanged) {
 #ifdef TOOLBAR_CUSTOMIZATION_SHEET
   document.getElementById("customizeToolbarSheetIFrame").hidden = true;
   document.getElementById("customizeToolbarSheetPopup").hidePopup();
@@ -3293,6 +3284,17 @@ function BrowserToolboxCustomizeDone(aToolboxChanged)
   if (reloadButton) {
     reloadButton.disabled =
       document.getElementById("Browser:Reload").getAttribute("disabled") == "true";
+  }
+  
+  var backButton = document.getElementById("back-button");
+  if (backButton) {
+    backButton.disabled =
+      document.getElementById("Browser:Back").getAttribute("disabled") == "true";
+  }
+  var forwardButton = document.getElementById("forward-button");
+  if (forwardButton) {
+    forwardButton.disabled =
+      document.getElementById("Browser:Forward").getAttribute("disabled") == "true";
   }
 
 #ifdef XP_MACOSX
