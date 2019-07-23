@@ -514,6 +514,16 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
             do {
             } while (mLogicalFrames[++newIndex]->GetType() == nsGkAtoms::directionalFrame);
             RemoveBidiContinuation(frame, frameIndex, newIndex, lineOffset);
+          } else if (runLength == fragmentLength) {
+            
+
+
+
+            nsIFrame* next = frame->GetNextInFlow();
+            if (next) {
+              frame->SetNextContinuation(next);
+              next->SetPrevContinuation(frame);
+            }
           }
           frame->AdjustOffsetsForBidi(contentOffset, contentOffset + fragmentLength);
           if (lineNeedsUpdate) {
