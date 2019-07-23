@@ -32,7 +32,9 @@
 
 #include <Windows.h>
 #include <DbgHelp.h>
+#include "client/windows/common/ipc_protocol.h"
 #include "google_breakpad/common/minidump_format.h"
+#include "processor/scoped_ptr.h"
 
 namespace google_breakpad {
 
@@ -49,7 +51,8 @@ class ClientInfo {
              MINIDUMP_TYPE dump_type,
              DWORD* thread_id,
              EXCEPTION_POINTERS** ex_info,
-             MDRawAssertionInfo* assert_info);
+             MDRawAssertionInfo* assert_info,
+             const CustomClientInfo& custom_client_info);
 
   ~ClientInfo();
 
@@ -86,7 +89,17 @@ class ClientInfo {
   bool GetClientExceptionInfo(EXCEPTION_POINTERS** ex_info) const;
   bool GetClientThreadId(DWORD* thread_id) const;
 
+  
+  bool PopulateCustomInfo();
+
+  
+  CustomClientInfo GetCustomInfo() const;
+
  private:
+  
+  
+  void SetProcessUptime();
+
   
   CrashGenerationServer* crash_server_;
 
@@ -114,6 +127,14 @@ class ClientInfo {
   MDRawAssertionInfo* assert_info_;
 
   
+  CustomClientInfo custom_client_info_;
+
+  
+  
+  
+  scoped_array<CustomInfoEntry> custom_info_entries_;
+
+  
   
   
   
@@ -134,6 +155,10 @@ class ClientInfo {
 
   
   HANDLE process_exit_wait_handle_;
+
+  
+  
+  FILETIME start_time_;
 
   
   ClientInfo(const ClientInfo& client_info);

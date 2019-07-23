@@ -58,7 +58,7 @@ class ExceptionHandler {
   
   
   typedef bool (*FilterCallback)(void *context);
-  
+
   
   
   
@@ -85,7 +85,7 @@ class ExceptionHandler {
   
   
   
-  ExceptionHandler(const string &dump_path, 
+  ExceptionHandler(const string &dump_path,
                    FilterCallback filter, MinidumpCallback callback,
                    void *callback_context, bool install_handler);
 
@@ -104,7 +104,7 @@ class ExceptionHandler {
     dump_path_c_ = dump_path_.c_str();
     UpdateNextID();  
   }
-  
+
   
   
   bool WriteMinidump();
@@ -120,11 +120,11 @@ class ExceptionHandler {
 
   
   bool UninstallHandler(bool in_exception);
-      
+
   
   
   bool Setup(bool install_handler);
-    
+
   
   
   bool Teardown();
@@ -153,16 +153,16 @@ class ExceptionHandler {
   
   bool SuspendThreads();
   bool ResumeThreads();
-  
+
   
   string dump_path_;
-  
+
   
   string next_minidump_id_;
-  
+
   
   string next_minidump_path_;
-  
+
   
   const char *dump_path_c_;
   const char *next_minidump_id_c_;
@@ -191,18 +191,18 @@ class ExceptionHandler {
 
   
   bool installed_exception_handler_;
-  
+
   
   
   bool is_in_teardown_;
-  
+
   
   bool last_minidump_write_result_;
-  
+
   
   
   pthread_mutex_t minidump_write_mutex_;
-  
+
   
   bool use_minidump_write_mutex_;
 };

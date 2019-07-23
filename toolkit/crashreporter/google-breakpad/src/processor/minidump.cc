@@ -36,6 +36,7 @@
 
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 #ifdef _WIN32
@@ -2279,11 +2280,16 @@ bool MinidumpModuleList::Read(u_int32_t expected_size) {
          ++module_index) {
       MinidumpModule* module = &(*modules)[module_index];
 
-      if (!module->ReadAuxiliaryData()) {
-        BPLOG(INFO) << "MinidumpModuleList could not read module auxiliary "
-                       "data for module " <<
-                       module_index << "/" << module_count;
-        continue;
+      
+      
+      
+      
+      
+      if (!module->ReadAuxiliaryData() && !module->valid()) {
+        BPLOG(ERROR) << "MinidumpModuleList could not read required module "
+                        "auxiliary data for module " <<
+                        module_index << "/" << module_count;
+        return false;
       }
 
       

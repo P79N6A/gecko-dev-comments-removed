@@ -126,6 +126,7 @@ class ExceptionHandler {
   void set_dump_path(const string &dump_path) {
     dump_path_ = dump_path;
     dump_path_c_ = dump_path_.c_str();
+    UpdateNextID();
   }
 
   
@@ -160,6 +161,10 @@ class ExceptionHandler {
   bool InternalWriteMinidump(int signo, uintptr_t sighandler_ebp,
                              struct sigcontext **sig_ctx);
 
+  
+  
+  void UpdateNextID();
+
  private:
   FilterCallback filter_;
   MinidumpCallback callback_;
@@ -168,9 +173,20 @@ class ExceptionHandler {
   
   
   string dump_path_;
+
+  
+  string next_minidump_id_;
+
+  
+  
+  string next_minidump_path_;
+
+  
   
   
   const char *dump_path_c_;
+  const char *next_minidump_id_c_;
+  const char *next_minidump_path_c_;
 
   
   

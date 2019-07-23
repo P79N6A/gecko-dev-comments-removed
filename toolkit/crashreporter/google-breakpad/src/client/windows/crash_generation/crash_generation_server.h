@@ -42,13 +42,19 @@ namespace google_breakpad {
 
 
 
+
+
+
+
+
 class CrashGenerationServer {
  public:
   typedef void (*OnClientConnectedCallback)(void* context,
                                             const ClientInfo* client_info);
 
   typedef void (*OnClientDumpRequestCallback)(void* context,
-                                              const ClientInfo* client_info);
+                                              const ClientInfo* client_info,
+                                              const std::wstring* file_path);
 
   typedef void (*OnClientExitedCallback)(void* context,
                                          const ClientInfo* client_info);
@@ -68,7 +74,12 @@ class CrashGenerationServer {
   
   
   
-  CrashGenerationServer(const wchar_t* pipe_name,
+  
+  
+  
+  
+  CrashGenerationServer(const std::wstring& pipe_name,
+                        SECURITY_ATTRIBUTES* pipe_sec_attrs,
                         OnClientConnectedCallback connect_callback,
                         void* connect_context,
                         OnClientDumpRequestCallback dump_callback,
@@ -179,7 +190,7 @@ class CrashGenerationServer {
   bool AddClient(ClientInfo* client_info);
 
   
-  bool GenerateDump(const ClientInfo& client);
+  bool GenerateDump(const ClientInfo& client, std::wstring* dump_path);
 
   
   CRITICAL_SECTION clients_sync_;
@@ -189,6 +200,9 @@ class CrashGenerationServer {
 
   
   std::wstring pipe_name_;
+
+  
+  SECURITY_ATTRIBUTES* pipe_sec_attrs_;
 
   
   HANDLE pipe_;

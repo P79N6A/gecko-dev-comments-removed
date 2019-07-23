@@ -68,7 +68,10 @@
 #include <string>
 #include <vector>
 
+#include "client/windows/common/ipc_protocol.h"
+#include "client/windows/crash_generation/crash_generation_client.h"
 #include "google_breakpad/common/minidump_format.h"
+#include "processor/scoped_ptr.h"
 
 namespace google_breakpad {
 
@@ -88,8 +91,8 @@ class ExceptionHandler {
   
   
   
-  typedef bool (*FilterCallback)(void *context, EXCEPTION_POINTERS *exinfo,
-                                 MDRawAssertionInfo *assertion);
+  typedef bool (*FilterCallback)(void* context, EXCEPTION_POINTERS* exinfo,
+                                 MDRawAssertionInfo* assertion);
 
   
   
@@ -110,11 +113,16 @@ class ExceptionHandler {
   
   
   
-  typedef bool (*MinidumpCallback)(const wchar_t *dump_path,
-                                   const wchar_t *minidump_id,
-                                   void *context,
-                                   EXCEPTION_POINTERS *exinfo,
-                                   MDRawAssertionInfo *assertion,
+  
+  
+  
+  
+  
+  typedef bool (*MinidumpCallback)(const wchar_t* dump_path,
+                                   const wchar_t* minidump_id,
+                                   void* context,
+                                   EXCEPTION_POINTERS* exinfo,
+                                   MDRawAssertionInfo* assertion,
                                    bool succeeded);
 
   
@@ -139,11 +147,26 @@ class ExceptionHandler {
   
   
   
-  ExceptionHandler(const wstring &dump_path,
+  ExceptionHandler(const wstring& dump_path,
                    FilterCallback filter,
                    MinidumpCallback callback,
-                   void *callback_context,
+                   void* callback_context,
                    int handler_types);
+
+  
+  
+  
+  
+  
+  ExceptionHandler(const wstring& dump_path,
+                   FilterCallback filter,
+                   MinidumpCallback callback,
+                   void* callback_context,
+                   int handler_types,
+                   MINIDUMP_TYPE dump_type,
+                   const wchar_t* pipe_name,
+                   const CustomClientInfo* custom_info);
+
   ~ExceptionHandler();
 
   
@@ -160,12 +183,12 @@ class ExceptionHandler {
 
   
   
-  bool WriteMinidumpForException(EXCEPTION_POINTERS *exinfo);
+  bool WriteMinidumpForException(EXCEPTION_POINTERS* exinfo);
 
   
   
   static bool WriteMinidump(const wstring &dump_path,
-                            MinidumpCallback callback, void *callback_context);
+                            MinidumpCallback callback, void* callback_context);
 
   
   
@@ -179,8 +202,21 @@ class ExceptionHandler {
     handle_debug_exceptions_ = handle_debug_exceptions;
   }
 
+  
+  bool IsOutOfProcess() const { return crash_generation_client_.get() != NULL; }
+
  private:
   friend class AutoExceptionHandler;
+
+  
+  void Initialize(const wstring& dump_path,
+                  FilterCallback filter,
+                  MinidumpCallback callback,
+                  void* callback_context,
+                  int handler_types,
+                  MINIDUMP_TYPE dump_type,
+                  const wchar_t* pipe_name,
+                  const CustomClientInfo* custom_info);
 
   
   
@@ -194,14 +230,14 @@ class ExceptionHandler {
       CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
   
-  typedef RPC_STATUS (RPC_ENTRY *UuidCreate_type)(UUID *Uuid);
+  typedef RPC_STATUS (RPC_ENTRY *UuidCreate_type)(UUID* Uuid);
 
   
-  static DWORD WINAPI ExceptionHandlerThreadMain(void *lpParameter);
+  static DWORD WINAPI ExceptionHandlerThreadMain(void* lpParameter);
 
   
   
-  static LONG WINAPI HandleException(EXCEPTION_POINTERS *exinfo);
+  static LONG WINAPI HandleException(EXCEPTION_POINTERS* exinfo);
 
 #if _MSC_VER >= 1400  
   
@@ -209,9 +245,9 @@ class ExceptionHandler {
   
   
   
-  static void HandleInvalidParameter(const wchar_t *expression,
-                                     const wchar_t *function,
-                                     const wchar_t *file,
+  static void HandleInvalidParameter(const wchar_t* expression,
+                                     const wchar_t* function,
+                                     const wchar_t* file,
                                      unsigned int line,
                                      uintptr_t reserved);
 #endif  
@@ -229,8 +265,8 @@ class ExceptionHandler {
   
   
   
-  bool WriteMinidumpOnHandlerThread(EXCEPTION_POINTERS *exinfo,
-                                    MDRawAssertionInfo *assertion);
+  bool WriteMinidumpOnHandlerThread(EXCEPTION_POINTERS* exinfo,
+                                    MDRawAssertionInfo* assertion);
 
   
   
@@ -238,8 +274,8 @@ class ExceptionHandler {
   
   
   bool WriteMinidumpWithException(DWORD requesting_thread_id,
-                                  EXCEPTION_POINTERS *exinfo,
-                                  MDRawAssertionInfo *assertion);
+                                  EXCEPTION_POINTERS* exinfo,
+                                  MDRawAssertionInfo* assertion);
 
   
   
@@ -247,7 +283,9 @@ class ExceptionHandler {
 
   FilterCallback filter_;
   MinidumpCallback callback_;
-  void *callback_context_;
+  void* callback_context_;
+
+  scoped_ptr<CrashGenerationClient> crash_generation_client_;
 
   
   
@@ -266,12 +304,13 @@ class ExceptionHandler {
   
   
   
-  const wchar_t *dump_path_c_;
-  const wchar_t *next_minidump_id_c_;
-  const wchar_t *next_minidump_path_c_;
+  const wchar_t* dump_path_c_;
+  const wchar_t* next_minidump_id_c_;
+  const wchar_t* next_minidump_path_c_;
 
   HMODULE dbghelp_module_;
   MiniDumpWriteDump_type minidump_write_dump_;
+  MINIDUMP_TYPE dump_type_;
 
   HMODULE rpcrt4_module_;
   UuidCreate_type uuid_create_;
@@ -322,11 +361,11 @@ class ExceptionHandler {
 
   
   
-  EXCEPTION_POINTERS *exception_info_;
+  EXCEPTION_POINTERS* exception_info_;
 
   
   
-  MDRawAssertionInfo *assertion_;
+  MDRawAssertionInfo* assertion_;
 
   
   
@@ -342,7 +381,7 @@ class ExceptionHandler {
   
   
   
-  static vector<ExceptionHandler *> *handler_stack_;
+  static vector<ExceptionHandler*>* handler_stack_;
 
   
   

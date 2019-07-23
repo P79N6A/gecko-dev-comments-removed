@@ -31,8 +31,13 @@
 
 
 
-
 #import <Foundation/Foundation.h>
+#include <mach-o/loader.h>
+#include "common/mac/dwarf/dwarf2reader.h"
+
+
+
+typedef hash_map<string, dwarf2reader::SectionMap *> ArchSectionMap;
 
 @interface DumpSymbols : NSObject {
  @protected
@@ -43,8 +48,9 @@
   NSMutableDictionary *sources_;      
   NSMutableArray *cppAddresses_;      
   NSMutableDictionary *headers_;      
-  NSMutableDictionary *sectionNumbers_; 
+  NSMutableDictionary *sectionData_; 
   uint32_t   lastStartAddress_;
+  ArchSectionMap *sectionsForArch_;
 }
 
 - (id)initWithContentsOfFile:(NSString *)machoFile;
@@ -59,5 +65,16 @@
 
 
 - (BOOL)writeSymbolFile:(NSString *)symbolFilePath;
+
+@end
+
+@interface MachSection : NSObject {
+ @protected
+  struct section *sect_;
+  uint32_t sectionNumber_;
+}
+- (id)initWithMachSection:(struct section *)sect andNumber:(uint32_t)sectionNumber;
+- (struct section*)sectionPointer;
+- (uint32_t)sectionNumber;
 
 @end

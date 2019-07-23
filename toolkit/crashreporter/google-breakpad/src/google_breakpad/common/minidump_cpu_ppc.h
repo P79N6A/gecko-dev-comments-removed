@@ -104,6 +104,11 @@ typedef struct {
 
 #define MD_CONTEXT_PPC_GPR_COUNT 32
 
+
+
+
+#pragma pack(push, 4)
+
 typedef struct {
   
 
@@ -130,6 +135,8 @@ typedef struct {
   MDFloatingSaveAreaPPC float_save;
   MDVectorSaveAreaPPC   vector_save;
 } MDRawContextPPC;  
+
+#pragma pack(pop)
 
 
 
