@@ -3,7 +3,7 @@
 
 
 
-if (jitstats) {
+if (HAVE_TM) {
   assertEq(jitstats.archIsIA32 ||
 	   jitstats.archIs64BIT ||
 	   jitstats.archIsARM ||
