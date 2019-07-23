@@ -1308,6 +1308,11 @@ SinkContext::AddText(const nsAString& aText)
       if (NS_FAILED(rv)) {
         return rv;
       }
+
+      
+      
+      
+      continue;
     }
 
     mTextLength +=
