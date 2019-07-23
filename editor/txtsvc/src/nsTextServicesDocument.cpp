@@ -2627,8 +2627,8 @@ nsTextServicesDocument::JoinNodes(nsIDOMNode  *aLeftNode,
   if (!leftHasEntry)
   {
     
-    NS_ASSERTION(0, "JoinNode called with node not listed in offset table.");
-    return NS_ERROR_FAILURE;
+    
+    return NS_OK;
   }
 
   result = NodeHasOffsetEntry(&mOffsetTable, aRightNode, &rightHasEntry, &rightIndex);
@@ -2638,7 +2638,9 @@ nsTextServicesDocument::JoinNodes(nsIDOMNode  *aLeftNode,
 
   if (!rightHasEntry)
   {
-    return NS_ERROR_FAILURE;
+    
+    
+    return NS_OK;
   }
 
   NS_ASSERTION(leftIndex < rightIndex, "Indexes out of order.");
