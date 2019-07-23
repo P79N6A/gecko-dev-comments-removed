@@ -168,11 +168,6 @@ public:
   
 
 
-  void FlushPendingEvents();
-
-  
-
-
 
 
   virtual void FireDocLoadEvents(PRUint32 aEventType);
@@ -224,6 +219,16 @@ protected:
 
 
     void ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute);
+
+  
+
+
+  void FlushPendingEvents();
+
+  
+
+
+  nsresult PreparePendingEventsFlush();
 
     
 
@@ -278,12 +283,15 @@ protected:
     PRUint16 mScrollPositionChangedTicks; 
     PRPackedBool mIsContentLoaded;
     PRPackedBool mIsLoadCompleteFired;
-    nsCOMArray<nsIAccessibleEvent> mEventsToFire;
 
 protected:
     PRBool mIsAnchor;
     PRBool mIsAnchorJumped;
-    PRBool mInFlushPendingEvents;
+
+  PRBool mInFlushPendingEvents;
+  PRBool mFireEventTimerStarted;
+  nsTArray<nsCOMPtr<nsIAccessibleEvent> > mEventsToFire;
+
     static PRUint32 gLastFocusedAccessiblesState;
     static nsIAtom *gLastFocusedFrameType;
 };

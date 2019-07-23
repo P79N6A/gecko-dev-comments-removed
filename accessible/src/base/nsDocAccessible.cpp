@@ -86,7 +86,8 @@ nsIAtom *nsDocAccessible::gLastFocusedFrameType = nsnull;
 nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
   nsHyperTextAccessibleWrap(aDOMNode, aShell), mWnd(nsnull),
   mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE),
-  mIsLoadCompleteFired(PR_FALSE), mInFlushPendingEvents(PR_FALSE)
+  mIsLoadCompleteFired(PR_FALSE), mInFlushPendingEvents(PR_FALSE),
+  mFireEventTimerStarted(PR_FALSE)
 {
   
   mAccessNodeCache.Init(kDefaultCacheSize);
@@ -153,12 +154,17 @@ ElementTraverser(const void *aKey, nsIAccessNode *aAccessNode,
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocAccessible)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mEventsToFire)
-  tmp->mAccessNodeCache.EnumerateRead(ElementTraverser, &cb); 
+  PRUint32 i, length = tmp->mEventsToFire.Length();
+  for (i = 0; i < length; ++i) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mEventsToFire[i]");
+    cb.NoteXPCOMChild(tmp->mEventsToFire[i].get());
+  }
+
+  tmp->mAccessNodeCache.EnumerateRead(ElementTraverser, &cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mEventsToFire)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSTARRAY(mEventsToFire)
   tmp->ClearCache(tmp->mAccessNodeCache);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -655,14 +661,14 @@ nsDocAccessible::Shutdown()
     
     mFireEventTimer->Cancel();
     mFireEventTimer = nsnull;
-    if (mEventsToFire.Count() > 0 ) {
-      mEventsToFire.Clear();
+    mEventsToFire.Clear();
+
+    if (mFireEventTimerStarted && !mInFlushPendingEvents) {
       
       
       
       
-      if (!mInFlushPendingEvents)
-        NS_RELEASE_THIS();
+      NS_RELEASE_THIS();
     }
   }
 
@@ -1609,35 +1615,54 @@ nsDocAccessible::FireDelayedAccessibleEvent(PRUint32 aEventType,
 nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(nsIAccessibleEvent *aEvent)
 {
-  NS_ENSURE_TRUE(aEvent, NS_ERROR_FAILURE);
+  NS_ENSURE_ARG(aEvent);
 
-  if (!mFireEventTimer) {
-    
-    mFireEventTimer = do_CreateInstance("@mozilla.org/timer;1");
-    NS_ENSURE_TRUE(mFireEventTimer, NS_ERROR_OUT_OF_MEMORY);
-  }
-
-  mEventsToFire.AppendObject(aEvent);
+  mEventsToFire.AppendElement(aEvent);
 
   
   nsAccEvent::ApplyEventRules(mEventsToFire);
 
-  if (mEventsToFire.Count() == 1) {
-    
-    
-    NS_ADDREF_THIS(); 
-    mFireEventTimer->InitWithFuncCallback(FlushEventsCallback,
-                                          this, 0, nsITimer::TYPE_ONE_SHOT);
+  
+  return PreparePendingEventsFlush();
+}
+
+nsresult
+nsDocAccessible::PreparePendingEventsFlush()
+{
+  nsresult rv = NS_OK;
+
+  
+  if (!mFireEventTimer) {
+    mFireEventTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  return NS_OK;
+  
+  
+  
+  if (mEventsToFire.Length() > 0 && !mFireEventTimerStarted) {
+
+    rv = mFireEventTimer->InitWithFuncCallback(FlushEventsCallback,
+                                               this, 0,
+                                               nsITimer::TYPE_ONE_SHOT);
+
+    if (NS_SUCCEEDED(rv)) {
+      
+      NS_ADDREF_THIS();
+
+      mFireEventTimerStarted = PR_TRUE;
+    }
+  }
+
+  return rv;
 }
 
 void
 nsDocAccessible::FlushPendingEvents()
 {
   mInFlushPendingEvents = PR_TRUE;
-  PRUint32 length = mEventsToFire.Count();
+
+  PRUint32 length = mEventsToFire.Length();
   NS_ASSERTION(length, "How did we get here without events to fire?");
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   if (!presShell)
@@ -1650,10 +1675,17 @@ nsDocAccessible::FlushPendingEvents()
     
     presShell->FlushPendingNotifications(Flush_Layout);
   }
+
+  
   
   for (PRUint32 index = 0; index < length; index ++) {
-    nsCOMPtr<nsIAccessibleEvent> accessibleEvent(
-      do_QueryInterface(mEventsToFire[index]));
+  
+    
+    
+    if (!mWeakShell)
+      break;
+
+    nsCOMPtr<nsIAccessibleEvent> accessibleEvent(mEventsToFire[index]);
 
     if (nsAccEvent::EventRule(accessibleEvent) == nsAccEvent::eDoNotEmit)
       continue;
@@ -1807,12 +1839,24 @@ nsDocAccessible::FlushPendingEvents()
       }
     }
   }
-  mEventsToFire.Clear(); 
-  mInFlushPendingEvents = PR_FALSE;
-  NS_RELEASE_THIS(); 
+
+  
+  mFireEventTimerStarted = PR_FALSE;
+
+  
+  
+  
+  
+  if (mWeakShell) {
+    mEventsToFire.RemoveElementsAt(0, length);
+    PreparePendingEventsFlush();
+  }
 
   
   nsAccEvent::ResetLastInputState();
+
+  mInFlushPendingEvents = PR_FALSE;
+  NS_RELEASE_THIS(); 
 }
 
 void nsDocAccessible::FlushEventsCallback(nsITimer *aTimer, void *aClosure)
