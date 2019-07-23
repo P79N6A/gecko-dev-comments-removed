@@ -2367,43 +2367,22 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSContext *aCx, JSObject *aObj
                 (nsIXPConnectWrappedNative *)JS_GetPrivate(aCx, aObj);
 
             if (xpcWrapper) {
-                nsISupports *native = xpcWrapper->Native();
-                char ch = jsClass->name[0];
-
-                
-                
-                
-                
-
-                
-                
-                
-                
-                
-                
-                
-                
-                if (ch != 'W' && ch != 'M' && ch != 'C'
 #ifdef DEBUG
-                    && aAllowShortCircuit
+                if (aAllowShortCircuit) {
 #endif
-                    ) {
-                    nsCOMPtr<nsINode> node = do_QueryInterface(native);
+                    result = xpcWrapper->GetObjectPrincipal();
 
-                    if (node) {
-                        result = node->NodePrincipal();
-
-                        
-                        
-
+                    if (result) {
                         break;
                     }
+#ifdef DEBUG
                 }
+#endif
 
                 
                 
                 nsCOMPtr<nsIScriptObjectPrincipal> objPrin =
-                    do_QueryInterface(native);
+                    do_QueryWrappedNative(xpcWrapper);
                 if (objPrin) {
                     result = objPrin->GetPrincipal();
 
