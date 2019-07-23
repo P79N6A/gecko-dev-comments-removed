@@ -1112,9 +1112,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   
   if (aNameSpaceID == kNameSpaceID_None) {
     
-    const char* attributeName;
-    aAttribute->GetUTF8String(&attributeName);
-    if (!PL_strncmp("aria-", attributeName, 5)) {
+    if (StringBeginsWith(nsDependentAtomString(aAttribute),
+                         NS_LITERAL_STRING("aria-"))) {
       ARIAAttributeChanged(aContent, aAttribute);
     }
   }

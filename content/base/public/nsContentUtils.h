@@ -1458,6 +1458,13 @@ public:
   
 
 
+
+  static PRBool EqualsIgnoreASCIICase(const nsAString& aStr1,
+                                      const nsAString& aStr2);
+
+  
+
+
   static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
 
   

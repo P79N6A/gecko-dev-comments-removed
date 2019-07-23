@@ -1897,10 +1897,7 @@ static inline void KeyAppendAtom(nsIAtom* aAtom, nsACString& aKey)
 {
   NS_PRECONDITION(aAtom, "KeyAppendAtom: aAtom can not be null!\n");
 
-  const char* atomString = nsnull;
-  aAtom->GetUTF8String(&atomString);
-
-  KeyAppendString(nsDependentCString(atomString), aKey);
+  KeyAppendString(nsAtomCString(aAtom), aKey);
 }
 
 static inline PRBool IsAutocompleteOff(nsIDOMElement* aElement)
@@ -3210,8 +3207,7 @@ nsAutoGCRoot::RemoveJSGCRoot(void* aPtr)
 PRBool
 nsContentUtils::IsEventAttributeName(nsIAtom* aName, PRInt32 aType)
 {
-  const char* name;
-  aName->GetUTF8String(&name);
+  const PRUnichar* name = aName->GetUTF16String();
   if (name[0] != 'o' || name[1] != 'n')
     return PR_FALSE;
 
@@ -4928,6 +4924,43 @@ nsContentUtils::ASCIIToUpper(nsAString& aStr)
     }
     ++iter;
   }
+}
+
+PRBool
+nsContentUtils::EqualsIgnoreASCIICase(const nsAString& aStr1,
+                                      const nsAString& aStr2)
+{
+  PRUint32 len = aStr1.Length();
+  if (len != aStr2.Length()) {
+    return PR_FALSE;
+  }
+
+  const PRUnichar* str1 = aStr1.BeginReading();
+  const PRUnichar* str2 = aStr2.BeginReading();
+  const PRUnichar* end = str1 + len;
+
+  while (str1 < end) {
+    PRUnichar c1 = *str1++;
+    PRUnichar c2 = *str2++;
+
+    
+    if ((c1 ^ c2) & 0xffdf) {
+      return PR_FALSE;
+    }
+
+    
+    
+    if (c1 != c2) {
+      
+      
+      PRUnichar c1Upper = c1 & 0xffdf;
+      if (!('A' <= c1Upper && c1Upper <= 'Z')) {
+        return PR_FALSE;
+      }
+    }
+  }
+
+  return PR_TRUE;
 }
 
 

@@ -237,14 +237,12 @@ public:
                            PRUint32* resultingStrLen = nsnull);
 
   
-  
-  
-  
-  
-  static PRUint32 HashCodeAsUTF8(const PRUnichar* start, PRUint32 length);
+  static PRUint32 HashCode(const PRUnichar* str, PRUint32 strLen);
 
   
-  static PRUint32 BufferHashCode(const PRUnichar* str, PRUint32 strLen);
+  
+  
+  static PRUint32 HashCodeAsUTF16(const char* start, PRUint32 length);
 
   
   static PRInt64 atoll(const char *str);

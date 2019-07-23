@@ -1408,20 +1408,17 @@ nsXULDocument::Persist(nsIContent* aElement, PRInt32 aNameSpaceID,
 
     
     
-    const char* attrstr;
-    rv = aAttribute->GetUTF8String(&attrstr);
-    if (NS_FAILED(rv)) return rv;
-
     
     
     
-    if (!attrstr || strlen(attrstr) > kMaxAttrNameLength) {
+    nsAtomCString attrstr(aAttribute);
+    if (attrstr.Length() > kMaxAttrNameLength) {
         NS_WARNING("Can't persist, Attribute name too long");
         return NS_ERROR_ILLEGAL_VALUE;
     }
 
     nsCOMPtr<nsIRDFResource> attr;
-    rv = gRDFService->GetResource(nsDependentCString(attrstr),
+    rv = gRDFService->GetResource(attrstr,
                                   getter_AddRefs(attr));
     if (NS_FAILED(rv)) return rv;
 

@@ -257,16 +257,13 @@ nsNodeInfo::QualifiedNameEqualsInternal(const nsACString& aQualifiedName) const
 
   nsACString::const_iterator colon(start);
 
-  const char* prefix;
-  mInner.mPrefix->GetUTF8String(&prefix);
+  nsAtomCString prefix(mInner.mPrefix);
 
-  PRUint32 len = strlen(prefix);
-
-  if (len >= aQualifiedName.Length()) {
+  if (prefix.Length() >= aQualifiedName.Length()) {
     return PR_FALSE;
   }
 
-  colon.advance(len);
+  colon.advance(prefix.Length());
 
   
   
@@ -275,7 +272,7 @@ nsNodeInfo::QualifiedNameEqualsInternal(const nsACString& aQualifiedName) const
   }
 
   
-  if (!mInner.mPrefix->EqualsUTF8(Substring(start, colon)))
+  if (!prefix.Equals(Substring(start, colon)))
     return PR_FALSE;
 
   ++colon; 
