@@ -123,7 +123,8 @@ JS_dtobasestr(int base, double d);
 
 
 
-extern void js_FinishDtoa(void);
+JS_FRIEND_API(JSBool) js_InitDtoa(void);
+JS_FRIEND_API(void) js_FinishDtoa(void);
 
 JS_END_EXTERN_C
 
