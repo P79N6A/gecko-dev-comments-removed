@@ -60,7 +60,7 @@ public:
 
 
 
-  static PRBool HasListener(nsIContent *aContent, const nsAString& aEventType);
+  static PRBool HasClickListener(nsIContent *aContent);
 
   
 

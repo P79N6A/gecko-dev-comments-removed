@@ -3214,8 +3214,7 @@ nsAccessible::GetActionRule(PRUint32 aStates)
       return eClickAction;
 
   
-  PRBool isOnclick = nsCoreUtils::HasListener(content,
-                                              NS_LITERAL_STRING("click"));
+  PRBool isOnclick = nsCoreUtils::HasClickListener(content);
 
   if (isOnclick)
     return eClickAction;
