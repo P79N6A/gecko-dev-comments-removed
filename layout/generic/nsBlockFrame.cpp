@@ -3375,6 +3375,8 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
                               impactedByFloats,
                               PR_FALSE );
 
+  aState.SetFlag(BRS_LINE_LAYOUT_EMPTY, PR_FALSE);
+
   
   
   if ((0 == aLineLayout.GetLineNumber()) &&
@@ -3461,6 +3463,8 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
       }
     }
   }
+
+  aState.SetFlag(BRS_LINE_LAYOUT_EMPTY, aLineLayout.LineIsEmpty());
 
   
   PRBool needsBackup = aLineLayout.NeedsBackup() &&
