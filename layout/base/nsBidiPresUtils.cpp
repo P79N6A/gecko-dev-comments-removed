@@ -158,6 +158,27 @@ SplitInlineAncestors(nsIFrame*     aFrame)
   return NS_OK;
 }
 
+
+
+static nsresult
+JoinInlineAncestors(nsIFrame* aFrame)
+{
+  nsIFrame* frame = aFrame;
+  while (frame && IsBidiSplittable(frame)) {
+    nsIFrame* next = frame->GetNextContinuation();
+    if (next) {
+      NS_ASSERTION (!frame->GetNextInFlow() || frame->GetNextInFlow() == next, 
+                    "next-in-flow is not next continuation!");
+      frame->SetNextInFlow(next);
+
+      NS_ASSERTION (!next->GetPrevInFlow() || next->GetPrevInFlow() == frame,
+                    "prev-in-flow is not prev continuation!");
+      next->SetPrevInFlow(frame);
+    }
+    frame = frame->GetParent();
+  }
+}
+
 static nsresult
 CreateBidiContinuation(nsIFrame*       aFrame,
                        nsIFrame**      aNewFrame)
@@ -465,19 +486,27 @@ nsBidiPresUtils::Resolve(nsBlockFrame*   aBlockFrame,
     runLength -= fragmentLength;
     fragmentLength -= temp;
 
-    
-    if (frame && fragmentLength <= 0 && runLength <= 0) {
-      
-      nsIFrame* child = frame;
-      nsIFrame* parent = frame->GetParent();
-      while (parent &&
-             IsBidiSplittable(parent) &&
-             !child->GetNextSibling()) {
-        child = parent;
-        parent = child->GetParent();
+    if (frame && fragmentLength <= 0) {
+      if (runLength <= 0) {
+        
+        nsIFrame* child = frame;
+        nsIFrame* parent = frame->GetParent();
+        
+        while (parent &&
+               IsBidiSplittable(parent) &&
+               !child->GetNextSibling()) {
+          child = parent;
+          parent = child->GetParent();
+        }
+        if (parent && IsBidiSplittable(parent))
+          SplitInlineAncestors(child);
       }
-      if (parent && IsBidiSplittable(parent))
-        SplitInlineAncestors(child);
+      else {
+        
+        
+        nsIFrame* parent = frame->GetParent();
+        JoinInlineAncestors(parent);
+      }
     }
   } 
   return mSuccess;
