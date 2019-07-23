@@ -53,6 +53,7 @@ var gEditItemOverlay = {
   _hiddenRows: [],
   _observersAdded: false,
   _staticFoldersListBuilt: false,
+  _initialized: false;
 
   get itemId() {
     return this._itemId;
@@ -123,6 +124,11 @@ var gEditItemOverlay = {
 
 
   initPanel: function EIO_initPanel(aFor, aInfo) {
+    
+    
+    if (this._initialized)
+      this.uninitPanel(false);
+
     var aItemIdList;
     if (aFor.length) {
       aItemIdList = aFor;
@@ -218,6 +224,7 @@ var gEditItemOverlay = {
 
       
       this._rebuildTagsSelectorList();
+      this._initialized = true;
     }
 
     
@@ -541,6 +548,7 @@ var gEditItemOverlay = {
     this._allTags = [];
     this._itemIds = [];
     this._multiEdit = false;
+    this._initialized = false;
   },
 
   onTagsFieldBlur: function EIO_onTagsFieldBlur() {

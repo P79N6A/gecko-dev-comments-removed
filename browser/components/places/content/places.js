@@ -665,7 +665,10 @@ var PlacesOrganizer = {
           detailsDeck.selectedIndex == 1 && !gEditItemOverlay.multiEdit)
         return;
     }
- 
+
+    
+    gEditItemOverlay.uninitPanel(false);
+
     if (aSelectedNode && !PlacesUtils.nodeIsSeparator(aSelectedNode)) {
       detailsDeck.selectedIndex = 1;
       
