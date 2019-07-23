@@ -693,7 +693,12 @@ nsThebesImage::Draw(gfxContext*        aContext,
 PRBool
 nsThebesImage::ShouldUseImageSurfaces()
 {
-#ifdef XP_WIN
+#if defined(WINCE)
+    
+    
+    return PR_TRUE;
+
+#elif defined(XP_WIN)
     static const DWORD kGDIObjectsHighWaterMark = 7000;
 
     
