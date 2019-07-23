@@ -549,7 +549,7 @@ js_CompileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
 
 
 
-        JSParsedObjectBox *pob = js_NewParsedObjectBox(cx, &pc, FUN_OBJECT(callerFrame->fun));
+        JSParsedObjectBox *pob = js_NewParsedObjectBox(cx, &pc, callerFrame->callee);
         pob->emitLink = cg.objectList.lastPob;
         cg.objectList.lastPob = pob;
         cg.objectList.length++;
@@ -1446,12 +1446,10 @@ Statements(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc)
         ts->flags |= TSF_OPERAND;
         tt = js_PeekToken(cx, ts);
         ts->flags &= ~TSF_OPERAND;
-        if (tt <= TOK_EOF || tt == TOK_RC) {
-            if (tt == TOK_ERROR)
-                return NULL;
+        if (tt == TOK_RC)
             break;
-        }
         pn2 = Statement(cx, ts, tc);
+        JS_ASSERT_IF(tt == TOK_ERROR, !pn2);
         if (!pn2) {
             if (ts->flags & TSF_EOF)
                 ts->flags |= TSF_UNEXPECTED_EOF;
