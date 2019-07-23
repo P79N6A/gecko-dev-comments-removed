@@ -1515,6 +1515,10 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
         mode = SW_RESTORE;
     }
     ::ShowWindow(mWnd, mode);
+    
+    
+    if (mode == SW_RESTORE || mode == SW_MAXIMIZE)
+      DispatchFocusToTopLevelWindow(NS_ACTIVATE);
   }
   return rv;
 }
