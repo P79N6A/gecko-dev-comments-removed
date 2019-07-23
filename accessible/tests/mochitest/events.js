@@ -98,6 +98,7 @@ function unregisterA11yEventListener(aEventType, aEventHandler)
 
 
 
+
 const INVOKER_ACTION_FAILED = 1;
 
 
@@ -105,15 +106,6 @@ const INVOKER_ACTION_FAILED = 1;
 
 
 const DO_NOT_FINISH_TEST = 1;
-
-
-
-
-function invokerChecker(aEventType, aTarget)
-{
-  this.type = aEventType;
-  this.target = aTarget;
-}
 
 
 
@@ -543,6 +535,9 @@ function eventQueue(aEventType)
 
 
 
+
+
+
 function sequence()
 {
   
@@ -583,6 +578,168 @@ function sequence()
 
   this.items = new Array();
   this.idx = -1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function synthClick(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthAction(aNodeOrID, aChecker);
+
+  this.invoke = function synthClick_invoke()
+  {
+    
+    this.DOMNode.scrollIntoView(true);
+
+    synthesizeMouse(this.DOMNode, 1, 1, {});
+  }
+
+  this.getID = function synthFocus_getID()
+  {
+    return prettyName(aNodeOrID) + " click"; 
+  }
+}
+
+
+
+
+function synthKey(aNodeOrID, aKey, aArgs, aChecker)
+{
+  this.__proto__ = new synthAction(aNodeOrID, aChecker);
+
+  this.invoke = function synthKey_invoke()
+  {
+    synthesizeKey(this.mKey, this.mArgs);
+  }
+
+  this.getID = function synthFocus_getID()
+  {
+    return prettyName(aNodeOrID) + " '" + this.mKey + "' key"; 
+  }
+
+  this.mKey = aKey;
+  this.mArgs = aArgs ? aArgs : {};
+}
+
+
+
+
+function synthTab(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_TAB", { shiftKey: false },
+                                aChecker);
+
+  this.getID = function synthTabTest_getID() 
+  { 
+    return prettyName(aNodeOrID) + " tab";
+  }
+}
+
+
+
+
+function synthShiftTab(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_TAB", { shiftKey: true },
+                                aChecker);
+
+  this.getID = function synthTabTest_getID() 
+  { 
+    return prettyName(aNodeOrID) + " shift tab";
+  }
+}
+
+
+
+
+function synthDownKey(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_DOWN", null, aChecker);
+
+  this.getID = function synthDownKey_getID()
+  {
+    return prettyName(aNodeOrID) + " key down";
+  }
+}
+
+
+
+
+function synthRightKey(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthKey(aNodeOrID, "VK_RIGHT", null, aChecker);
+
+  this.getID = function synthRightKey_getID()
+  {
+    return prettyName(aNodeOrID) + " key right";
+  }
+}
+
+
+
+
+function synthFocus(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthAction(aNodeOrID, aChecker);
+
+  this.invoke = function synthFocus_invoke()
+  {
+    this.DOMNode.focus();
+  }
+
+  this.getID = function synthFocus_getID() 
+  { 
+    return prettyName(aNodeOrID) + " focus";
+  }
+}
+
+
+
+
+function synthSelectAll(aNodeOrID, aChecker)
+{
+  this.__proto__ = new synthAction(aNodeOrID, aChecker);
+
+  this.invoke = function synthSelectAll_invoke()
+  {
+    if (this.DOMNode instanceof Components.interfaces.nsIDOMHTMLInputElement)
+      this.DOMNode.select();
+    else
+      window.getSelection().selectAllChildren(this.DOMNode);
+  }
+
+  this.getID = function synthSelectAll_getID()
+  {
+    return aNodeOrID + " selectall";
+  }
+}
+
+
+
+
+
+
+
+
+function invokerChecker(aEventType, aTarget)
+{
+  this.type = aEventType;
+  this.target = aTarget;
 }
 
 
@@ -740,4 +897,23 @@ function sequenceItem(aProcessor, aEventType, aTarget, aItemID)
   };
   
   this.queue.push(invoker);
+}
+
+
+
+
+
+
+
+function synthAction(aNodeOrID, aChecker)
+{
+  this.DOMNode = getNode(aNodeOrID);
+  aChecker.target = this.DOMNode;
+
+  this.check = function synthAction_check(aEvent)
+  {
+    aChecker.check(aEvent);
+  }
+
+  this.getID = function synthAction_getID() { return aNodeOrID + " action"; }
 }
