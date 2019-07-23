@@ -1309,19 +1309,6 @@ TypeMap::matches(TypeMap& other) const
 }
 
 
-
-static void
-mergeTypeMaps(uint8** partial, unsigned* plength, uint8* complete, unsigned clength, uint8* mem)
-{
-    unsigned l = *plength;
-    JS_ASSERT(l < clength);
-    memcpy(mem, *partial, l * sizeof(uint8));
-    memcpy(mem + l, complete + l, (clength - l) * sizeof(uint8));
-    *partial = mem;
-    *plength = clength;
-}
-
-
 static JS_REQUIRES_STACK void
 specializeTreesToMissingGlobals(JSContext* cx, TreeInfo* root)
 {
@@ -2094,25 +2081,12 @@ TraceRecorder::import(TreeInfo* treeInfo, LIns* sp, unsigned stackSlots, unsigne
 
 
 
-
-
-
-
-
-
-
-    uint8* globalTypeMap = typeMap + stackSlots;
-    unsigned length = treeInfo->nGlobalTypes();
-
-    
-
-
-
-    if (ngslots < length) {
-        mergeTypeMaps(&globalTypeMap, &ngslots,
-                      treeInfo->globalTypeMap(), length,
-                      (uint8*)alloca(sizeof(uint8) * length));
+    TypeMap fullTypeMap(typeMap, stackSlots + ngslots);
+    if (ngslots < treeInfo->globalSlots->length()) {
+        fullTypeMap.captureMissingGlobalTypes(cx, *treeInfo->globalSlots, stackSlots);
+        ngslots = treeInfo->globalSlots->length();
     }
+    uint8* globalTypeMap = fullTypeMap.data() + stackSlots;
     JS_ASSERT(ngslots == treeInfo->nGlobalTypes());
 
     
