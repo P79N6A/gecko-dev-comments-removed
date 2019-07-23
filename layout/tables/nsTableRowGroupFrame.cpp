@@ -1357,7 +1357,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
-  if (!GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     CheckInvalidateSizeChange(aPresContext, aDesiredSize, aReflowState);
   }
   

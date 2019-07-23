@@ -275,12 +275,6 @@ protected:
                            const nsMargin&      aInnerMargin,
                            const nsMargin&      aCaptionMargin);
 
-  void InvalidateDamage(PRUint8         aCaptionSide,
-                        const nsSize&   aOuterSize,
-                        PRBool          aInnerChanged,
-                        PRBool          aCaptionChanged,
-                        nsRect*         aOldOverflowArea);
-  
   
   
   void GetMargin(nsPresContext*           aPresContext,

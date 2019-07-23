@@ -935,6 +935,12 @@ NS_METHOD nsTableCellFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   
+  
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    CheckInvalidateSizeChange(aPresContext, aDesiredSize, aReflowState);
+  }
+
+  
   SetDesiredSize(aDesiredSize);
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
