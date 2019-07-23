@@ -57,7 +57,18 @@
 #define AvmAssertMsg(x, y) 
 #define AvmDebugLog(x) printf x
 
-#include <stdint.h>
+#ifdef _MSC_VER
+
+
+
+
+typedef JSWord intptr_t;
+#endif
+typedef JSUint8 uint8_t;
+typedef JSUint16 uint16_t;
+typedef JSUint32 uint32_t;
+typedef JSUint64 uint64_t;
+
 
 #if defined(__i386__)
 
