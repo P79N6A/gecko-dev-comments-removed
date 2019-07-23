@@ -137,12 +137,6 @@ public:
 
   NS_IMETHOD  GetHeight(nscoord &aHeight) = 0;
 
-
-#if defined(XP_WIN) || defined(XP_OS2) || defined(MOZ_CAIRO_GFX)
-#define FONT_LEADING_APIS_V2 1
-#endif 
-
-#ifdef FONT_LEADING_APIS_V2
   
 
 
@@ -155,18 +149,6 @@ public:
 
 
   NS_IMETHOD  GetExternalLeading(nscoord &aLeading) = 0;
-#else
-  
-
-
-
-  NS_IMETHOD  GetLeading(nscoord &aLeading) = 0;
-
-  
-
-
-  NS_IMETHOD  GetNormalLineHeight(nscoord &aHeight) = 0;
-#endif 
 
   
 

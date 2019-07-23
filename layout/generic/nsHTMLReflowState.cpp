@@ -78,9 +78,7 @@ enum eNormalLineHeightControl {
   eCompensateLeading        
 };
 
-#ifdef FONT_LEADING_APIS_V2
 static eNormalLineHeightControl sNormalLineHeightControl = eUninitialized;
-#endif
 
 
 
@@ -1574,7 +1572,6 @@ static PRBool BlinkIsAllowed(void)
   return sBlinkIsAllowed;
 }
 
-#ifdef FONT_LEADING_APIS_V2
 static eNormalLineHeightControl GetNormalLineHeightCalcControl(void)
 {
   if (sNormalLineHeightControl == eUninitialized) {
@@ -1586,7 +1583,6 @@ static eNormalLineHeightControl GetNormalLineHeightCalcControl(void)
   }
   return sNormalLineHeightControl;
 }
-#endif
 
 
 
@@ -1987,7 +1983,6 @@ GetNormalLineHeight(nsIFontMetrics* aFontMetrics)
 
   nscoord normalLineHeight;
 
-#ifdef FONT_LEADING_APIS_V2
   nscoord externalLeading, internalLeading, emHeight;
   aFontMetrics->GetExternalLeading(externalLeading);
   aFontMetrics->GetInternalLeading(internalLeading);
@@ -2006,9 +2001,6 @@ GetNormalLineHeight(nsIFontMetrics* aFontMetrics)
     
     normalLineHeight = emHeight + internalLeading;
   }
-#else
-  aFontMetrics->GetNormalLineHeight(normalLineHeight);
-#endif 
   return normalLineHeight;
 }
 
