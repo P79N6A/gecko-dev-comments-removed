@@ -432,20 +432,8 @@ __try {
                               groupLevel);
   }
 
-  if (!description.IsEmpty()) {
-    *pszDescription = ::SysAllocStringLen(description.get(),
-                                          description.Length());
-    return *pszDescription ? S_OK : E_OUTOFMEMORY;
-  }
-
-  xpAccessible->GetDescription(description);
-  if (!description.IsEmpty()) {
-    
-    
-    
-    
-    description = NS_LITERAL_STRING("Description: ") + description;
-  }
+  if (description.IsEmpty())
+    xpAccessible->GetDescription(description);
 
   *pszDescription = ::SysAllocStringLen(description.get(),
                                         description.Length());
