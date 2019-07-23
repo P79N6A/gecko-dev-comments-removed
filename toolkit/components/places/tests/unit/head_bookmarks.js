@@ -223,6 +223,73 @@ function check_no_bookmarks() {
 
 
 
+
+function DBConn()
+{
+  let db = Cc["@mozilla.org/browser/nav-history-service;1"].
+           getService(Ci.nsPIPlacesDatabase).
+           DBConnection;
+  if (db.connectionReady)
+    return db;
+
+  
+  let file = dirSvc.get('ProfD', Ci.nsIFile);
+  file.append("places.sqlite");
+  let storageService = Cc["@mozilla.org/storage/service;1"].
+                       getService(Ci.mozIStorageService);
+  try {
+    var dbConn = storageService.openDatabase(file);
+  } catch (ex) {
+    return null;
+  }
+  return dbConn;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setPageTitle(aURI, aTitle) {
+  let dbConn = DBConn();
+  
+  let stmt = dbConn.createStatement(
+    "SELECT id FROM moz_places_view WHERE url = :url");
+  stmt.params.url = aURI.spec;
+  try {
+    if (!stmt.executeStep()) {
+      do_throw("Unable to find page " + aURIString);
+      return;
+    }
+  }
+  finally {
+    stmt.finalize();
+  }
+
+  
+  stmt = dbConn.createStatement(
+    "UPDATE moz_places_view SET title = :title WHERE url = :url");
+  stmt.params.title = aTitle;
+  stmt.params.url = aURI.spec;
+  try {
+    stmt.execute();
+  }
+  finally {
+    stmt.finalize();
+  }
+}
+
+
+
+
 function flush_main_thread_events()
 {
   let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);

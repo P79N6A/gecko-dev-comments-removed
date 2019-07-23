@@ -116,7 +116,7 @@ function run_test() {
   
   do_check_eq(annosvc.getPageAnnotation(testURI, testAnnoName + "Never"), testAnnoVal);
   
-  do_check_eq(histsvc.getPageTitle(testURI), "mozilla.com");
+  do_check_eq(histsvc.getPageTitle(testURI), null);
 
   
   annosvc.removePageAnnotation(testURI, testAnnoName + "Never");
@@ -149,7 +149,12 @@ function run_test() {
   
   do_check_neq(histsvc.getPageTitle(placeURI), null);
   
-  do_check_neq(histsvc.getPageTitle(bmURI), null);
+  try {
+    histsvc.getPageTitle(bmURI);
+  }
+  catch(ex) {
+    do_throw("Place record for bookmarked uri was wrongly removed");
+  }
 
   
   bmsvc.removeItem(bookmark2);
