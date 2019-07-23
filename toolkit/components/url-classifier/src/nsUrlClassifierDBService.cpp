@@ -490,6 +490,9 @@ private:
                               nsTArray<nsUrlClassifierHash>& fragments);
 
   
+  PRBool IsCanonicalizedIP(const nsACString& host);
+
+  
   
   
   
@@ -812,39 +815,47 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
   }
 
   const nsCSubstring& host = Substring(begin, iter++);
-  nsCStringArray hostComponents;
-  hostComponents.ParseString(PromiseFlatCString(host).get(), ".");
 
-  if (hostComponents.Count() < 2) {
-    
-    c->HandleEvent(EmptyCString());
-    return NS_OK;
-  }
-
-  
-  PRInt32 last = hostComponents.Count() - 1;
-  nsCAutoString lookupHost;
-  lookupHost.Assign(*hostComponents[last - 1]);
-  lookupHost.Append(".");
-  lookupHost.Append(*hostComponents[last]);
-  lookupHost.Append("/");
-  nsUrlClassifierHash hash;
-  hash.FromPlaintext(lookupHost, mCryptoHash);
-
-  
-  
   nsTArray<PRUint32> resultTables;
-  CheckKey(spec, hash, resultTables);
+  nsUrlClassifierHash hash;
 
-  
-  if (hostComponents.Count() > 2) {
-    nsCAutoString lookupHost2;
-    lookupHost2.Assign(*hostComponents[last - 2]);
-    lookupHost2.Append(".");
-    lookupHost2.Append(lookupHost);
-    hash.FromPlaintext(lookupHost2, mCryptoHash);
-
+  if (IsCanonicalizedIP(host)) {
+    
+    hash.FromPlaintext(host, mCryptoHash);
     CheckKey(spec, hash, resultTables);
+  } else {
+    nsCStringArray hostComponents;
+    hostComponents.ParseString(PromiseFlatCString(host).get(), ".");
+
+    if (hostComponents.Count() < 2) {
+      
+      c->HandleEvent(EmptyCString());
+      return NS_OK;
+    }
+
+    
+    PRInt32 last = hostComponents.Count() - 1;
+    nsCAutoString lookupHost;
+    lookupHost.Assign(*hostComponents[last - 1]);
+    lookupHost.Append(".");
+    lookupHost.Append(*hostComponents[last]);
+    lookupHost.Append("/");
+    hash.FromPlaintext(lookupHost, mCryptoHash);
+
+    
+    
+    CheckKey(spec, hash, resultTables);
+
+    
+    if (hostComponents.Count() > 2) {
+      nsCAutoString lookupHost2;
+      lookupHost2.Assign(*hostComponents[last - 2]);
+      lookupHost2.Append(".");
+      lookupHost2.Append(lookupHost);
+      hash.FromPlaintext(lookupHost2, mCryptoHash);
+
+      CheckKey(spec, hash, resultTables);
+    }
   }
 
   nsCAutoString result;
@@ -1151,6 +1162,21 @@ nsUrlClassifierDBServiceWorker::WriteEntry(nsUrlClassifierEntry& entry)
   return NS_OK;
 }
 
+PRBool
+nsUrlClassifierDBServiceWorker::IsCanonicalizedIP(const nsACString& host)
+{
+  
+  
+  PRUint32 i1, i2, i3, i4;
+  char c;
+  if (PR_sscanf(PromiseFlatCString(host).get(), "%u.%u.%u.%u%c",
+                &i1, &i2, &i3, &i4, &c) == 4) {
+    return (i1 <= 0xFF && i1 <= 0xFF && i1 <= 0xFF && i1 <= 0xFF);
+  }
+
+  return PR_FALSE;
+}
+
 nsresult
 nsUrlClassifierDBServiceWorker::GetKey(const nsACString& spec,
                                        nsUrlClassifierHash& hash)
@@ -1164,7 +1190,12 @@ nsUrlClassifierDBServiceWorker::GetKey(const nsACString& spec,
     return NS_OK;
   }
 
-  const nsCSubstring& host = Substring(begin, iter++);
+  const nsCSubstring& host = Substring(begin, iter);
+
+  if (IsCanonicalizedIP(host)) {
+    return hash.FromPlaintext(host, mCryptoHash);
+  }
+
   nsCStringArray hostComponents;
   hostComponents.ParseString(PromiseFlatCString(host).get(), ".");
 
