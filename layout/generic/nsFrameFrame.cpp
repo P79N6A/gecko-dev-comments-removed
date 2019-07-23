@@ -181,8 +181,6 @@ public:
 
   
   NS_IMETHOD GetDocShell(nsIDocShell **aDocShell);
-  NS_IMETHOD BeginSwapDocShells(nsIFrame* aOther);
-  virtual void EndSwapDocShells(nsIFrame* aOther);
 
   NS_IMETHOD  VerifyTree() const;
 
@@ -200,10 +198,6 @@ protected:
   virtual nscoord GetIntrinsicHeight();
 
   virtual PRIntn GetSkipSides() const;
-
-  
-  void HideViewer();
-  void ShowViewer();
 
   
 
@@ -309,27 +303,18 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     view->CreateWidget(kCChildCID);
   }
 
-  ShowViewer();
-  return NS_OK;
-}
-
-void
-nsSubDocumentFrame::ShowViewer()
-{
-  if (!PresContext()->IsDynamic()) {
+  if (!aPresContext->IsDynamic()) {
     
     
-    nsresult rv = CreateViewAndWidget(eContentTypeContent);
-    if (NS_FAILED(rv)) {
-      return;
-    }
+    rv = CreateViewAndWidget(eContentTypeContent);
+    NS_ENSURE_SUCCESS(rv,rv);
   } else {
-    nsresult rv = ShowDocShell();
-    if (NS_FAILED(rv)) {
-      return;
-    }
+    rv = ShowDocShell();
+    NS_ENSURE_SUCCESS(rv,rv);
     mDidCreateDoc = PR_TRUE;
   }
+
+  return NS_OK;
 }
 
 PRIntn
@@ -760,14 +745,6 @@ nsSubDocumentFrame::Destroy()
     mPostedReflowCallback = PR_FALSE;
   }
   
-  HideViewer();
-
-  nsLeafFrame::Destroy();
-}
-
-void
-nsSubDocumentFrame::HideViewer()
-{
   if (mFrameLoader && mDidCreateDoc) {
     
     
@@ -801,6 +778,8 @@ nsSubDocumentFrame::HideViewer()
       baseWin->SetParentWidget(nsnull);
     }
   }
+
+  nsLeafFrame::Destroy();
 }
 
 nsSize nsSubDocumentFrame::GetMargin()
@@ -843,46 +822,6 @@ nsSubDocumentFrame::GetDocShell(nsIDocShell **aDocShell)
   }
 
   return mFrameLoader->GetDocShell(aDocShell);
-}
-
-NS_IMETHODIMP
-nsSubDocumentFrame::BeginSwapDocShells(nsIFrame* aOther)
-{
-  if (!aOther || aOther->GetType() != nsGkAtoms::subDocumentFrame) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  nsSubDocumentFrame* other = static_cast<nsSubDocumentFrame*>(aOther);
-  if (!mFrameLoader || !mDidCreateDoc || !other->mFrameLoader ||
-      !other->mDidCreateDoc) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  HideViewer();
-  other->HideViewer();
-
-  mFrameLoader.swap(other->mFrameLoader);
-  return NS_OK;
-}
-
-void
-nsSubDocumentFrame::EndSwapDocShells(nsIFrame* aOther)
-{
-  nsSubDocumentFrame* other = static_cast<nsSubDocumentFrame*>(aOther);
-  ShowViewer();
-  other->ShowViewer();
-
-  
-  
-  PresContext()->PresShell()->
-    FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
-  other->PresContext()->PresShell()->
-    FrameNeedsReflow(other, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
-
-  
-  
-  InvalidateOverflowRect();
-  other->InvalidateOverflowRect();
 }
 
 inline PRInt32 ConvertOverflow(PRUint8 aOverflow)
@@ -996,11 +935,6 @@ nsSubDocumentFrame::ShowDocShell()
 nsresult
 nsSubDocumentFrame::CreateViewAndWidget(nsContentType aContentType)
 {
-  if (mInnerView) {
-    
-    return NS_OK;
-  }
-  
   
   nsIView* outerView = GetView();
   NS_ASSERTION(outerView, "Must have an outer view already");

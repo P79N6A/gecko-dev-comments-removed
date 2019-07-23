@@ -42,7 +42,6 @@
 
 
 
-
 #include "nsIDOMHTMLIFrameElement.h"
 #include "nsIDOMHTMLFrameElement.h"
 #include "nsIDOMWindow.h"
@@ -66,12 +65,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsFrameLoader.h"
 #include "nsIDOMEventTarget.h"
-#include "nsIFrame.h"
-#include "nsIFrameFrame.h"
-#include "nsDOMError.h"
-#include "nsPresShellIterator.h"
-#include "nsGUIEvent.h"
-#include "nsEventDispatcher.h"
 
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -288,367 +281,6 @@ nsFrameLoader::Finalize()
   mDocShell = nsnull;
 }
 
-static void
-FirePageHideEvent(nsIDocShellTreeItem* aItem,
-                  nsIDOMEventTarget* aChromeEventHandler)
-{
-  nsPageTransitionEvent event(PR_TRUE, NS_PAGE_HIDE, PR_TRUE);
-  nsCOMPtr<nsIDOMDocument> doc = do_GetInterface(aItem);
-  event.target = do_QueryInterface(doc);
-  nsEventDispatcher::Dispatch(aChromeEventHandler, nsnull, &event);
-  
-  PRInt32 childCount = 0;
-  aItem->GetChildCount(&childCount);
-  nsAutoTArray<nsCOMPtr<nsIDocShellTreeItem>, 8> kids;
-  kids.AppendElements(childCount);
-  for (PRInt32 i = 0; i < childCount; ++i) {
-    aItem->GetChildAt(i, getter_AddRefs(kids[i]));
-  }
-
-  for (PRUint32 i = 0; i < kids.Length(); ++i) {
-    if (kids[i]) {
-      FirePageHideEvent(kids[i], aChromeEventHandler);
-    }
-  }
-}
-
-static void
-FirePageShowEvent(nsIDocShellTreeItem* aItem,
-                  nsIDOMEventTarget* aChromeEventHandler)
-{
-  PRInt32 childCount = 0;
-  aItem->GetChildCount(&childCount);
-  nsAutoTArray<nsCOMPtr<nsIDocShellTreeItem>, 8> kids;
-  kids.AppendElements(childCount);
-  for (PRInt32 i = 0; i < childCount; ++i) {
-    aItem->GetChildAt(i, getter_AddRefs(kids[i]));
-  }
-
-  for (PRUint32 i = 0; i < kids.Length(); ++i) {
-    if (kids[i]) {
-      FirePageShowEvent(kids[i], aChromeEventHandler);
-    }
-  }
-
-  nsPageTransitionEvent event(PR_TRUE, NS_PAGE_SHOW, PR_TRUE);
-  nsCOMPtr<nsIDOMDocument> doc = do_GetInterface(aItem);
-  event.target = do_QueryInterface(doc);
-  nsEventDispatcher::Dispatch(aChromeEventHandler, nsnull, &event);
-}
-
-static void
-SetTreeOwnerAndChromeEventHandlerOnDocshellTree(nsIDocShellTreeItem* aItem,
-                                                nsIDocShellTreeOwner* aOwner,
-                                                nsIDOMEventTarget* aHandler)
-{
-  NS_PRECONDITION(aItem, "Must have item");
-#ifdef DEBUG
-  PRInt32 itemType;
-  aItem->GetItemType(&itemType);
-  NS_ASSERTION(itemType == nsIDocShellTreeItem::typeContent,
-               "How did something else get in here?");
-#endif
-
-  aItem->SetTreeOwner(aOwner);
-  nsCOMPtr<nsIDocShell> shell(do_QueryInterface(aItem));
-  shell->SetChromeEventHandler(aHandler);
-
-  PRInt32 childCount = 0;
-  aItem->GetChildCount(&childCount);
-  for (PRInt32 i = 0; i < childCount; ++i) {
-    nsCOMPtr<nsIDocShellTreeItem> item;
-    aItem->GetChildAt(i, getter_AddRefs(item));
-    SetTreeOwnerAndChromeEventHandlerOnDocshellTree(item, aOwner, aHandler);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-static PRBool
-AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem, nsIContent* aOwningContent,
-                       nsIDocShellTreeOwner* aOwner, PRInt32 aParentType,
-                       nsIDocShellTreeNode* aParentNode)
-{
-  NS_PRECONDITION(aItem, "Must have docshell treeitem");
-  NS_PRECONDITION(aOwningContent, "Must have owning content");
-  
-  nsAutoString value;
-  PRBool isContent = PR_FALSE;
-
-  if (aOwningContent->IsNodeOfType(nsINode::eXUL)) {
-      aOwningContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
-  }
-
-  
-  
-  
-
-  isContent = value.LowerCaseEqualsLiteral("content") ||
-    StringBeginsWith(value, NS_LITERAL_STRING("content-"),
-                     nsCaseInsensitiveStringComparator());
-
-  if (isContent) {
-    
-
-    aItem->SetItemType(nsIDocShellTreeItem::typeContent);
-  } else {
-    
-    
-    
-
-    aItem->SetItemType(aParentType);
-  }
-
-  
-  if (aParentNode) {
-    aParentNode->AddChild(aItem);
-  }
-
-  PRBool retval = PR_FALSE;
-  if (aParentType == nsIDocShellTreeItem::typeChrome && isContent) {
-    retval = PR_TRUE;
-
-    PRBool is_primary = value.LowerCaseEqualsLiteral("content-primary");
-
-    if (aOwner) {
-      PRBool is_targetable = is_primary ||
-        value.LowerCaseEqualsLiteral("content-targetable");
-      aOwner->ContentShellAdded(aItem, is_primary, is_targetable, value);
-    }
-  }
-
-  return retval;
-}
-
-nsresult
-nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
-                                   nsRefPtr<nsFrameLoader>& aFirstToSwap,
-                                   nsRefPtr<nsFrameLoader>& aSecondToSwap)
-{
-  NS_PRECONDITION((aFirstToSwap == this && aSecondToSwap == aOther) ||
-                  (aFirstToSwap == aOther && aSecondToSwap == this),
-                  "Swapping some sort of random loaders?");
-
-  nsIContent* ourContent = mOwnerContent;
-  nsIContent* otherContent = aOther->mOwnerContent;
-
-  if (!ourContent || !otherContent) {
-    
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  
-  PRBool equal;
-  nsresult rv =
-    ourContent->NodePrincipal()->Equals(otherContent->NodePrincipal(), &equal);
-  if (NS_FAILED(rv) || !equal) {
-    
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  nsCOMPtr<nsIDocShell> ourDochell = GetExistingDocShell();
-  nsCOMPtr<nsIDocShell> otherDocshell = aOther->GetExistingDocShell();
-  if (!ourDochell || !otherDocshell) {
-    
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  
-  
-  nsCOMPtr<nsIDocShellTreeItem> ourTreeItem = do_QueryInterface(ourDochell);
-  nsCOMPtr<nsIDocShellTreeItem> otherTreeItem =
-    do_QueryInterface(otherDocshell);
-  nsCOMPtr<nsIDocShellTreeItem> ourRootTreeItem, otherRootTreeItem;
-  ourTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(ourRootTreeItem));
-  otherTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(otherRootTreeItem));
-  if (ourRootTreeItem != ourTreeItem || otherRootTreeItem != otherTreeItem) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  
-  
-  
-  
-  PRInt32 ourType = nsIDocShellTreeItem::typeChrome;
-  PRInt32 otherType = nsIDocShellTreeItem::typeChrome;
-  ourTreeItem->GetItemType(&ourType);
-  otherTreeItem->GetItemType(&otherType);
-  if (ourType != nsIDocShellTreeItem::typeContent ||
-      otherType != nsIDocShellTreeItem::typeContent) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-  
-  
-  
-  nsCOMPtr<nsIDocShellTreeOwner> ourOwner, otherOwner;
-  ourTreeItem->GetTreeOwner(getter_AddRefs(ourOwner));
-  otherTreeItem->GetTreeOwner(getter_AddRefs(otherOwner));
-  
-
-  nsCOMPtr<nsIDocShellTreeItem> ourParentItem, otherParentItem;
-  ourTreeItem->GetParent(getter_AddRefs(ourParentItem));
-  otherTreeItem->GetParent(getter_AddRefs(otherParentItem));
-  if (!ourParentItem || !otherParentItem) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  nsCOMPtr<nsPIDOMWindow> ourWindow = do_GetInterface(ourDochell);
-  nsCOMPtr<nsPIDOMWindow> otherWindow = do_GetInterface(otherDocshell);
-
-  nsCOMPtr<nsIDOMElement> ourFrameElement =
-    ourWindow->GetFrameElementInternal();
-  nsCOMPtr<nsIDOMElement> otherFrameElement =
-    otherWindow->GetFrameElementInternal();
-
-  nsCOMPtr<nsIDOMEventTarget> ourChromeEventHandler =
-    do_QueryInterface(ourWindow->GetChromeEventHandler());
-  nsCOMPtr<nsIDOMEventTarget> otherChromeEventHandler =
-    do_QueryInterface(otherWindow->GetChromeEventHandler());
-
-  NS_ASSERTION(SameCOMIdentity(ourFrameElement, ourContent) &&
-               SameCOMIdentity(otherFrameElement, otherContent) &&
-               SameCOMIdentity(ourChromeEventHandler, ourContent) &&
-               SameCOMIdentity(otherChromeEventHandler, otherContent),
-               "How did that happen, exactly?");
-
-  nsCOMPtr<nsIDocument> ourChildDocument =
-    do_QueryInterface(ourWindow->GetExtantDocument());
-  nsCOMPtr<nsIDocument> otherChildDocument =
-    do_QueryInterface(otherWindow->GetExtantDocument());
-  if (!ourChildDocument || !otherChildDocument) {
-    
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  nsCOMPtr<nsIDocument> ourParentDocument =
-    ourChildDocument->GetParentDocument();
-  nsCOMPtr<nsIDocument> otherParentDocument =
-    otherChildDocument->GetParentDocument();
-
-  
-  nsIDocument* ourDoc = ourContent->GetCurrentDoc();
-  nsIDocument* otherDoc = otherContent->GetCurrentDoc();
-  if (!ourDoc || !otherDoc) {
-    
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  NS_ASSERTION(ourDoc == ourParentDocument, "Unexpected parent document");
-  NS_ASSERTION(otherDoc == otherParentDocument, "Unexpected parent document");
-
-  nsPresShellIterator iter1(ourDoc);
-  nsPresShellIterator iter2(otherDoc);
-  if (iter1.HasMoreThanOneShell() || iter2.HasMoreThanOneShell()) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  nsIPresShell* ourShell = ourDoc->GetPrimaryShell();
-  nsIPresShell* otherShell = otherDoc->GetPrimaryShell();
-  if (!ourShell || !otherShell) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  if (mInSwap || aOther->mInSwap) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-  mInSwap = aOther->mInSwap = PR_TRUE;
-
-  
-  
-  FirePageHideEvent(ourTreeItem, ourChromeEventHandler);
-  FirePageHideEvent(otherTreeItem, otherChromeEventHandler);
-  
-  nsIFrame* ourFrame = ourShell->GetPrimaryFrameFor(ourContent);
-  nsIFrame* otherFrame = otherShell->GetPrimaryFrameFor(otherContent);
-  if (!ourFrame || !otherFrame) {
-    mInSwap = aOther->mInSwap = PR_FALSE;
-    FirePageShowEvent(ourTreeItem, ourChromeEventHandler);
-    FirePageShowEvent(otherTreeItem, otherChromeEventHandler);
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  nsIFrameFrame* ourFrameFrame = nsnull;
-  CallQueryInterface(ourFrame, &ourFrameFrame);
-  if (!ourFrameFrame) {
-    mInSwap = aOther->mInSwap = PR_FALSE;
-    FirePageShowEvent(ourTreeItem, ourChromeEventHandler);
-    FirePageShowEvent(otherTreeItem, otherChromeEventHandler);
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-
-  
-  rv = ourFrameFrame->BeginSwapDocShells(otherFrame);
-  if (NS_FAILED(rv)) {
-    mInSwap = aOther->mInSwap = PR_FALSE;
-    FirePageShowEvent(ourTreeItem, ourChromeEventHandler);
-    FirePageShowEvent(otherTreeItem, otherChromeEventHandler);
-    return rv;
-  }
-
-  
-  
-  ourParentItem->RemoveChild(ourTreeItem);
-  otherParentItem->RemoveChild(otherTreeItem);
-  if (ourType == nsIDocShellTreeItem::typeContent) {
-    ourOwner->ContentShellRemoved(ourTreeItem);
-    otherOwner->ContentShellRemoved(otherTreeItem);
-  }
-  
-  ourParentItem->AddChild(otherTreeItem);
-  otherParentItem->AddChild(ourTreeItem);
-
-  
-  SetTreeOwnerAndChromeEventHandlerOnDocshellTree(ourTreeItem, otherOwner,
-                                                  otherChromeEventHandler);
-  SetTreeOwnerAndChromeEventHandlerOnDocshellTree(otherTreeItem, ourOwner,
-                                                  ourChromeEventHandler);
-
-  AddTreeItemToTreeOwner(ourTreeItem, otherContent, otherOwner,
-                         nsIDocShellTreeItem::typeChrome, nsnull);
-  AddTreeItemToTreeOwner(otherTreeItem, ourContent, ourOwner,
-                         nsIDocShellTreeItem::typeChrome, nsnull);
-
-  
-  
-  
-  
-  ourParentDocument->SetSubDocumentFor(ourContent, nsnull);
-  otherParentDocument->SetSubDocumentFor(otherContent, nsnull);
-  ourParentDocument->SetSubDocumentFor(ourContent, otherChildDocument);
-  otherParentDocument->SetSubDocumentFor(otherContent, ourChildDocument);
-
-  ourWindow->SetFrameElementInternal(otherFrameElement);
-  otherWindow->SetFrameElementInternal(ourFrameElement);
-
-  mOwnerContent = otherContent;
-  aOther->mOwnerContent = ourContent;
-
-  aFirstToSwap.swap(aSecondToSwap);
-
-  
-  if (ourFrame == ourShell->GetPrimaryFrameFor(ourContent) &&
-      otherFrame == otherShell->GetPrimaryFrameFor(otherContent)) {
-    ourFrameFrame->EndSwapDocShells(otherFrame);
-  }
-
-  ourParentDocument->FlushPendingNotifications(Flush_Layout);
-  otherParentDocument->FlushPendingNotifications(Flush_Layout);
-  
-  FirePageShowEvent(ourTreeItem, otherChromeEventHandler);
-  FirePageShowEvent(otherTreeItem, ourChromeEventHandler);
-
-  mInSwap = aOther->mInSwap = PR_FALSE;
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsFrameLoader::Destroy()
 {
@@ -770,13 +402,52 @@ nsFrameLoader::EnsureDocShell()
     PRInt32 parentType;
     parentAsItem->GetItemType(&parentType);
 
+    nsAutoString value;
+    PRBool isContent = PR_FALSE;
+
+    if (mOwnerContent->IsNodeOfType(nsINode::eXUL)) {
+      mOwnerContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, value);
+    }
+
     
     
-    nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner;
-    parentAsItem->GetTreeOwner(getter_AddRefs(parentTreeOwner));
-    mIsTopLevelContent =
-      AddTreeItemToTreeOwner(docShellAsItem, mOwnerContent, parentTreeOwner,
-                             parentType, parentAsNode);
+    
+
+    isContent = value.LowerCaseEqualsLiteral("content") ||
+      StringBeginsWith(value, NS_LITERAL_STRING("content-"),
+                       nsCaseInsensitiveStringComparator());
+
+    if (isContent) {
+      
+
+      docShellAsItem->SetItemType(nsIDocShellTreeItem::typeContent);
+    } else {
+      
+      
+      
+
+      docShellAsItem->SetItemType(parentType);
+    }
+
+    parentAsNode->AddChild(docShellAsItem);
+
+    if (parentType == nsIDocShellTreeItem::typeChrome && isContent) {
+      mIsTopLevelContent = PR_TRUE;
+      
+      
+      
+      nsCOMPtr<nsIDocShellTreeOwner> parentTreeOwner;
+      parentAsItem->GetTreeOwner(getter_AddRefs(parentTreeOwner));
+
+      PRBool is_primary = value.LowerCaseEqualsLiteral("content-primary");
+
+      if (parentTreeOwner) {
+        PRBool is_targetable = is_primary ||
+          value.LowerCaseEqualsLiteral("content-targetable");
+        parentTreeOwner->ContentShellAdded(docShellAsItem, is_primary,
+                                            is_targetable, value);
+      }
+    }
 
     
     
