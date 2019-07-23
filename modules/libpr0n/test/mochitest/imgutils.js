@@ -4,6 +4,15 @@
 
 
 
+function clearImageCache()
+{
+  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+  var imageCache = Components.classes["@mozilla.org/image/cache;1"]
+                             .getService(Components.interfaces.imgICache);
+  imageCache.clearCache(false); 
+}
+
+
 function isFrameDecoded(id)
 {
   return (getImageStatus(id) &
