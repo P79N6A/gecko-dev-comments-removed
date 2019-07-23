@@ -63,7 +63,7 @@
 #include "nsClipboardHelper.h"
 #include "nsIdleServiceQt.h"
 #include "nsDragService.h"
-
+#include "nsSound.h"
 
 
 
@@ -98,7 +98,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDragService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsIdleServiceQt)
-
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsSound)
 
 
 
@@ -161,12 +161,11 @@ static const nsModuleComponentInfo components[] =
     { "Qt Idle Service",
        NS_IDLE_SERVICE_CID,
        "@mozilla.org/widget/idleservice;1",
-       nsIdleServiceQtConstructor }
-
-
-
-
-
+       nsIdleServiceQtConstructor },
+    { "Qt Sound",
+      NS_SOUND_CID,
+      "@mozilla.org/sound;1",
+      nsSoundConstructor }
 
 
 
@@ -184,7 +183,7 @@ PR_STATIC_CALLBACK(void)
 nsWidgetQtModuleDtor(nsIModule *aSelf)
 {
 
-
+    nsSound::Shutdown();
 
     nsAppShellShutdown(aSelf);
 }
