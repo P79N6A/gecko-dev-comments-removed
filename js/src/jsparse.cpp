@@ -754,7 +754,9 @@ SetStaticLevel(JSTreeContext *tc, uintN staticLevel)
 
 
 
-    if (staticLevel >= JS_BITMASK(16)) {
+
+
+    if (staticLevel >= FREE_STATIC_LEVEL) {
         JS_ReportErrorNumber(tc->compiler->context, js_GetErrorMessage, NULL,
                              JSMSG_TOO_DEEP, js_function_str);
         return false;
@@ -2198,7 +2200,7 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSTreeContext *tc,
 
             if (atom == funAtom && lambda != 0) {
                 dn->pn_op = JSOP_CALLEE;
-                dn->pn_cookie = MAKE_UPVAR_COOKIE(funtc->staticLevel, 0);
+                dn->pn_cookie = MAKE_UPVAR_COOKIE(funtc->staticLevel, CALLEE_UPVAR_SLOT);
                 dn->pn_dflags |= PND_BOUND;
 
                 
@@ -7875,7 +7877,6 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
         } else if (!afterDot && !(ts->flags & TSF_DESTRUCTURING)) {
             JSAtomListElement *ale = NULL;
             JSTreeContext *tcx = tc;
-            bool hit_named_lambda = false;
             JSDefinition *dn;
 
             do {
@@ -7898,10 +7899,9 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                 }
 
                 
-                if ((tc->flags & TCF_IN_FUNCTION) &&
-                    (tc->fun->flags & JSFUN_LAMBDA) &&
-                    tc->fun->atom == pn->pn_atom) {
-                    hit_named_lambda = true;
+                if ((tcx->flags & TCF_IN_FUNCTION) &&
+                    (tcx->fun->flags & JSFUN_LAMBDA) &&
+                    tcx->fun->atom == pn->pn_atom) {
                     break;
                 }
             } while ((tcx = tcx->parent) != NULL);
@@ -7957,7 +7957,10 @@ PrimaryExpr(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-            if (tcx != tc && !hit_named_lambda) {
+
+
+
+            if (tcx != tc) {
                 ale = tc->upvars.add(tc->compiler, pn->pn_atom);
                 if (!ale)
                     return NULL;

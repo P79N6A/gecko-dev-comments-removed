@@ -610,6 +610,13 @@ js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, jsval *vp, jsval *vp2);
 
 
 
+extern jsval
+js_GetUpvar(JSContext *cx, uintN level, uintN cookie);
+
+
+
+
+
 extern JS_REQUIRES_STACK void
 js_TraceOpcode(JSContext *cx);
 
