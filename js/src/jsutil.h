@@ -266,17 +266,21 @@ public:
 
     ~JSGuardObjectNotificationReceiver() {
         
-        
-        
-        
+
+
+
+
+
         JS_ASSERT(mStatementDone);
     }
 
     void Init(const JSGuardObjectNotifier &aNotifier) {
-       
-       
-       const_cast<JSGuardObjectNotifier&>(aNotifier).
-           SetStatementDone(&mStatementDone);
+        
+
+
+
+        const_cast<JSGuardObjectNotifier&>(aNotifier).
+            SetStatementDone(&mStatementDone);
     }
 };
 
