@@ -43,10 +43,11 @@
 #include "nsTArray.h"
 
 class nsIWidget;
+class nsIContent;
 
 #define NS_IMENUROLLUP_IID \
-  {0x2b65d177, 0xc3e4, 0x4564, \
-    { 0x8d, 0xed, 0x86, 0xd2, 0xfa, 0x2f, 0x65, 0x9a }}
+  {0x61c9d01f, 0x8a4c, 0x4bb0, \
+    { 0xa9, 0x90, 0xeb, 0xf6, 0x65, 0x4c, 0xda, 0x61 }}
 
 class nsIMenuRollup : public nsISupports {
  public: 
@@ -54,9 +55,17 @@ class nsIMenuRollup : public nsISupports {
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IMENUROLLUP_IID)
 
   
-  virtual void GetSubmenuWidgetChain(nsTArray<nsIWidget*> *_retval) = 0;
+
+
+
+
+
+
+  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) = 0;
 
   
+
+ 
   virtual void AdjustPopupsOnWindowChange(void) = 0;
 
 };

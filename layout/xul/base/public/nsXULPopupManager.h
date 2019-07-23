@@ -313,7 +313,7 @@ public:
   NS_DECL_NSIROLLUPLISTENER
   NS_DECL_NSITIMERCALLBACK
 
-  virtual void GetSubmenuWidgetChain(nsTArray<nsIWidget*> *_retval);
+  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain);
   virtual void AdjustPopupsOnWindowChange(void);
 
   static nsXULPopupManager* sInstance;
@@ -452,10 +452,13 @@ public:
 
 
 
+
+
   void HidePopup(nsIContent* aPopup,
                  PRBool aHideChain,
                  PRBool aDeselectMenu,
-                 PRBool aAsynchronous);
+                 PRBool aAsynchronous,
+                 nsIContent* aLastPopup = nsnull);
 
   
 
