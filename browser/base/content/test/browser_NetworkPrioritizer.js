@@ -104,31 +104,31 @@ function test() {
       window_B.addEventListener("load", function(aEvent) {
         window_B.removeEventListener("load", arguments.callee, false);
         window_B.gBrowser.addEventListener("load", function(aEvent) {
+          
+          
+          if (window_B.gBrowser.currentURI.spec == "about:blank")
+            return;
           window_B.gBrowser.removeEventListener("load", arguments.callee, true);
 
-          
-          
           waitForFocus(function() {
+            isWindowState(window_A, [10, 0]);
+            isWindowState(window_B, [-10]);
+
             waitForFocus(function() {
-              isWindowState(window_A, [10, 0]);
-              isWindowState(window_B, [-10]);
+              isWindowState(window_A, [0, -10]);
+              isWindowState(window_B, [0]);
 
               waitForFocus(function() {
-                isWindowState(window_A, [0, -10]);
-                isWindowState(window_B, [0]);
+                isWindowState(window_A, [10, 0]);
+                isWindowState(window_B, [-10]);
 
-                waitForFocus(function() {
-                  isWindowState(window_A, [10, 0]);
-                  isWindowState(window_B, [-10]);
-
-                  
-                  window_B.close();
-                  window_A.gBrowser.removeTab(tab_A3);
-                  executeSoon(runNextTest);
-                }, window_B);
-              }, window_A);
-            }, window_B);
-          }, window_A);
+                
+                window_B.close();
+                window_A.gBrowser.removeTab(tab_A3);
+                executeSoon(runNextTest);
+              }, window_B);
+            }, window_A);
+          }, window_B);
 
         }, true);
       }, false);
