@@ -2700,48 +2700,9 @@ NS_IMETHODIMP nsAccessible::GetNativeInterface(void **aOutAccessible)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-void nsAccessible::DoCommandCallback(nsITimer *aTimer, void *aClosure)
+nsresult
+nsAccessible::DoCommand(nsIContent *aContent, PRUint32 aActionIndex)
 {
-  NS_ASSERTION(gDoCommandTimer,
-               "How did we get here if there was no gDoCommandTimer?");
-  NS_RELEASE(gDoCommandTimer);
-
-  nsCOMPtr<nsIContent> content =
-    reinterpret_cast<nsIContent*>(aClosure);
-
-  nsIDocument *doc = content->GetDocument();
-  if (!doc)
-    return;
-
-  nsCOMPtr<nsIPresShell> presShell = doc->GetPrimaryShell();
-
-  
-  presShell->ScrollContentIntoView(content, NS_PRESSHELL_SCROLL_ANYWHERE,
-                                   NS_PRESSHELL_SCROLL_ANYWHERE);
-
-  
-  PRBool res = nsCoreUtils::DispatchMouseEvent(NS_MOUSE_BUTTON_DOWN, presShell,
-                                               content);
-  if (!res)
-    return;
-
-  nsCoreUtils::DispatchMouseEvent(NS_MOUSE_BUTTON_UP, presShell, content);
-}
-
-
-
-
-
-
-
-
-
-nsresult nsAccessible::DoCommand(nsIContent *aContent)
-{
-  nsCOMPtr<nsIContent> content = aContent;
-  if (!content) {
-    content = do_QueryInterface(mDOMNode);
-  }
   if (gDoCommandTimer) {
     
     NS_WARNING("Doubling up on do command timers doesn't work. This wasn't expected.");
@@ -2749,14 +2710,55 @@ nsresult nsAccessible::DoCommand(nsIContent *aContent)
   }
 
   nsCOMPtr<nsITimer> timer = do_CreateInstance("@mozilla.org/timer;1");
-  if (!timer) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  } 
+  NS_ENSURE_TRUE(timer, NS_ERROR_OUT_OF_MEMORY);
+
+  nsCOMPtr<nsIContent> content = aContent;
+  if (!content)
+    content = do_QueryInterface(mDOMNode);
+
+  
+  nsCommandClosure *closure =
+    new nsCommandClosure(this, content, aActionIndex);
+  NS_ENSURE_TRUE(closure, NS_ERROR_OUT_OF_MEMORY);
 
   NS_ADDREF(gDoCommandTimer = timer);
   return gDoCommandTimer->InitWithFuncCallback(DoCommandCallback,
-                                               (void*)content, 0,
-                                               nsITimer::TYPE_ONE_SHOT);
+                                               static_cast<void*>(closure),
+                                               0, nsITimer::TYPE_ONE_SHOT);
+}
+
+void
+nsAccessible::DoCommandCallback(nsITimer *aTimer, void *aClosure)
+{
+  NS_ASSERTION(gDoCommandTimer,
+               "How did we get here if there was no gDoCommandTimer?");
+  NS_RELEASE(gDoCommandTimer);
+
+  nsCommandClosure *closure = static_cast<nsCommandClosure*>(aClosure);
+  closure->accessible->DispatchClickEvent(closure->content,
+                                          closure->actionIndex);
+  delete closure;
+}
+
+void
+nsAccessible::DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex)
+{
+  if (IsDefunct())
+    return;
+
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+
+  
+  presShell->ScrollContentIntoView(aContent, NS_PRESSHELL_SCROLL_ANYWHERE,
+                                   NS_PRESSHELL_SCROLL_ANYWHERE);
+
+  
+  PRBool res = nsCoreUtils::DispatchMouseEvent(NS_MOUSE_BUTTON_DOWN, presShell,
+                                               aContent);
+  if (!res)
+    return;
+
+  nsCoreUtils::DispatchMouseEvent(NS_MOUSE_BUTTON_UP, presShell, aContent);
 }
 
 already_AddRefed<nsIAccessible>

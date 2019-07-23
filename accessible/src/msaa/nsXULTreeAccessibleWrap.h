@@ -36,36 +36,32 @@
 
 
 
+
 #ifndef __nsXULTreeAccessibleWrap_h__
 #define __nsXULTreeAccessibleWrap_h__
 
-#include "nsXULTreeAccessible.h"
+#include "nsXULTreeGridAccessible.h"
+
+#include "CAccessibleTable.h"
 
 typedef class nsXULTreeColumnsAccessible   nsXULTreeColumnsAccessibleWrap;
 
-class nsXULTreeAccessibleWrap : public nsXULTreeAccessible
+
+
+
+
+class nsXULTreeGridAccessibleWrap : public nsXULTreeGridAccessible,
+                                    public CAccessibleTable
 {
 public:
-  nsXULTreeAccessibleWrap(nsIDOMNode *aDOMNode, nsIWeakReference *aShell);
-  virtual ~nsXULTreeAccessibleWrap() {}
+  nsXULTreeGridAccessibleWrap(nsIDOMNode *aDOMNode, nsIWeakReference *aShell);
+  virtual ~nsXULTreeGridAccessibleWrap() {}
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
-};
-
-class nsXULTreeitemAccessibleWrap : public nsXULTreeitemAccessible
-{
-public:
-  nsXULTreeitemAccessibleWrap(nsIAccessible *aParent, nsIDOMNode *aDOMNode, nsIWeakReference *aShell, 
-    PRInt32 aRow, nsITreeColumn* aColumn);
-  virtual ~nsXULTreeitemAccessibleWrap() {}
+  DECL_IUNKNOWN_INHERITED
 
   
-  NS_IMETHOD GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
-  NS_IMETHOD GetName(nsAString &aName);
-
-  
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  NS_DECL_ISUPPORTS_INHERITED
 };
 
 #endif

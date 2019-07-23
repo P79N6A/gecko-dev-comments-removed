@@ -74,6 +74,18 @@ class nsIDocShellTreeItem;
 typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsIAccessNode>
         nsAccessNodeHashtable;
 
+
+
+
+
+
+#define NS_INTERFACE_MAP_STATIC_AMBIGUOUS(_class) \
+  if (aIID.Equals(NS_GET_IID(_class))) { \
+  NS_ADDREF(this); \
+  *aInstancePtr = this; \
+  return NS_OK; \
+  } else
+
 #define NS_OK_DEFUNCT_OBJECT \
 NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x22)
 

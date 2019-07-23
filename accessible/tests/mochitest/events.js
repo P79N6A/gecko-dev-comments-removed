@@ -6,6 +6,7 @@ const EVENT_DOCUMENT_LOAD_COMPLETE =
 const EVENT_DOM_DESTROY = nsIAccessibleEvent.EVENT_DOM_DESTROY;
 const EVENT_FOCUS = nsIAccessibleEvent.EVENT_FOCUS;
 const EVENT_NAME_CHANGE = nsIAccessibleEvent.EVENT_NAME_CHANGE;
+const EVENT_STATE_CHANGE = nsIAccessibleEvent.EVENT_STATE_CHANGE;
 const EVENT_REORDER = nsIAccessibleEvent.EVENT_REORDER;
 
 
@@ -96,6 +97,7 @@ function invokerChecker(aEventType, aTarget)
   this.type = aEventType;
   this.target = aTarget;
 }
+
 
 
 
@@ -281,26 +283,10 @@ function eventQueue(aEventType)
       
       var idx = this.mEventSeqIdx + 1;
 
-      if (gA11yEventDumpID) { 
+      var matched = this.compareEvents(idx, aEvent);
+      this.dumpEventToDOM(aEvent, idx, matched);
 
-        if (aEvent instanceof nsIDOMEvent) {
-          var info = "Event type: " + aEvent.type;
-          info += ". Target: " + prettyName(aEvent.originalTarget);
-          dumpInfoToDOM(info);
-        }
-
-        var currType = this.getEventType(idx);
-        var currTarget = this.getEventTarget(idx);
-
-        var info = "Event queue processing. Expected event type: ";
-        info += (typeof currType == "string") ?
-          currType : eventTypeToString(currType);
-        info += ". Target: " + prettyName(currTarget);
-
-        dumpInfoToDOM(info);
-      }
-
-      if (this.compareEvents(idx, aEvent)) {
+      if (matched) {
         this.checkEvent(idx, aEvent);
         invoker.wasCaught[idx] = true;
 
@@ -341,7 +327,7 @@ function eventQueue(aEventType)
       for (var idx = 0; idx < this.mEventSeq.length; idx++) {
         var eventType = this.getEventType(idx);
         if (typeof eventType == "string") 
-          document.addEventListener(eventType, this, true);
+          document.addEventListener(eventType, this, this.getEventPhase(idx));
         else 
           addA11yEventListener(eventType, this);
       }
@@ -354,7 +340,7 @@ function eventQueue(aEventType)
       for (var idx = 0; idx < this.mEventSeq.length; idx++) {
         var eventType = this.getEventType(idx);
         if (typeof eventType == "string") 
-          document.removeEventListener(eventType, this, true);
+          document.removeEventListener(eventType, this, this.getEventPhase(idx));
         else 
           removeA11yEventListener(eventType, this);
       }
@@ -371,6 +357,15 @@ function eventQueue(aEventType)
   this.getEventTarget = function eventQueue_getEventTarget(aIdx)
   {
     return this.mEventSeq[aIdx].target;
+  }
+
+  this.getEventPhase = function eventQueue_getEventPhase(aIdx)
+  {
+     var eventItem = this.mEventSeq[aIdx];
+    if ("phase" in eventItem)
+      return eventItem.phase;
+
+    return true;
   }
 
   this.compareEvents = function eventQueue_compareEvents(aIdx, aEvent)
@@ -417,6 +412,32 @@ function eventQueue(aEventType)
 
     var invoker = this.getInvoker();
     return invoker.getID();
+  }
+
+  this.dumpEventToDOM = function eventQueue_dumpEventToDOM(aOrigEvent,
+                                                           aExpectedEventIdx,
+                                                           aMatch)
+  {
+    if (!gA11yEventDumpID) 
+      return;
+
+    
+    
+    if (aOrigEvent instanceof nsIDOMEvent) {
+      var info = "Event type: " + aOrigEvent.type;
+      info += ". Target: " + prettyName(aOrigEvent.originalTarget);
+      dumpInfoToDOM(info);
+    }
+
+    var currType = this.getEventType(aExpectedEventIdx);
+    var currTarget = this.getEventTarget(aExpectedEventIdx);
+
+    var info = "EQ: " + (aMatch ? "matched" : "expected") + " event, type: ";
+    info += (typeof currType == "string") ?
+      currType : eventTypeToString(currType);
+    info += ". Target: " + prettyName(currTarget);
+
+    dumpInfoToDOM(info);
   }
 
   this.mDefEventType = aEventType;

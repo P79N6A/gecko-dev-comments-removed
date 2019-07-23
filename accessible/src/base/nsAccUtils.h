@@ -58,7 +58,6 @@ class nsHTMLTableAccessible;
 class nsDocAccessible;
 #ifdef MOZ_XUL
 class nsXULTreeAccessible;
-class nsXULTreeitemAccessible;
 #endif
 
 class nsAccUtils
@@ -292,6 +291,28 @@ public:
   
 
 
+  template<class DestinationType, class SourceType> static inline
+    already_AddRefed<DestinationType> QueryObject(SourceType *aObject)
+  {
+    DestinationType* object = nsnull;
+    if (aObject)
+      CallQueryInterface(aObject, &object);
+
+    return object;
+  }
+  template<class DestinationType, class SourceType> static inline
+    already_AddRefed<DestinationType> QueryObject(nsCOMPtr<SourceType>& aObject)
+  {
+    DestinationType* object = nsnull;
+    if (aObject)
+      CallQueryInterface(aObject, &object);
+
+    return object;
+  }
+
+  
+
+
   static already_AddRefed<nsAccessNode>
     QueryAccessNode(nsIAccessible *aAccessible)
   {
@@ -364,12 +385,6 @@ public:
 
   static already_AddRefed<nsXULTreeAccessible>
     QueryAccessibleTree(nsIAccessible *aAccessible);
-
-  
-
-
-  static already_AddRefed<nsXULTreeitemAccessible>
-    QueryAccessibleTreeitem(nsIAccessNode *aAccessNode);
 #endif
 
 #ifdef DEBUG_A11Y

@@ -45,6 +45,7 @@
 #include "nsIContent.h"
 #include "nsIBoxObject.h"
 #include "nsITreeBoxObject.h"
+#include "nsITreeColumns.h"
 
 #include "nsIFrame.h"
 #include "nsIDocShellTreeItem.h"
@@ -68,9 +69,38 @@ public:
 
 
 
+
+
+  static void DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
+                                 PRInt32 aRowIndex, nsITreeColumn *aColumn,
+                                 const nsCString& aPseudoElt = EmptyCString());
+
+  
+
+
+
+
+
+
   static PRBool DispatchMouseEvent(PRUint32 aEventType,
                                    nsIPresShell *aPresShell,
                                    nsIContent *aContent);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static void DispatchMouseEvent(PRUint32 aEventType, PRInt32 aX, PRInt32 aY,
+                                 nsIContent *aContent, nsIFrame *aFrame,
+                                 nsIPresShell *aPresShell,
+                                 nsIWidget *aRootWidget);
 
   
 
@@ -361,6 +391,52 @@ public:
 
   static already_AddRefed<nsIBoxObject>
     GetTreeBodyBoxObject(nsITreeBoxObject *aTreeBoxObj);
+
+  
+
+
+  static void
+    GetTreeBoxObject(nsIDOMNode* aDOMNode, nsITreeBoxObject** aBoxObject);
+
+  
+
+
+  static already_AddRefed<nsITreeColumn>
+    GetFirstSensibleColumn(nsITreeBoxObject *aTree);
+
+  
+
+
+  static already_AddRefed<nsITreeColumn>
+    GetLastSensibleColumn(nsITreeBoxObject *aTree);
+
+  
+
+
+  static PRUint32 GetSensibleColumnsCount(nsITreeBoxObject *aTree);
+
+  
+
+
+  static already_AddRefed<nsITreeColumn>
+    GetSensibleColumnAt(nsITreeBoxObject *aTree, PRUint32 aIndex);
+
+  
+
+
+  static already_AddRefed<nsITreeColumn>
+    GetNextSensibleColumn(nsITreeColumn *aColumn);
+
+  
+
+
+  static already_AddRefed<nsITreeColumn>
+    GetPreviousSensibleColumn(nsITreeColumn *aColumn);
+
+  
+
+
+  static PRBool IsColumnHidden(nsITreeColumn *aColumn);
 
   
 

@@ -339,8 +339,51 @@ protected:
   virtual nsresult GetLinkOffset(PRInt32* aStartOffset, PRInt32* aEndOffset);
 
   
+  
+
+  
+
+
+  struct nsCommandClosure
+  {
+    nsCommandClosure(nsAccessible *aAccessible, nsIContent *aContent,
+                     PRUint32 aActionIndex) :
+      accessible(aAccessible), content(aContent), actionIndex(aActionIndex) {}
+
+    nsRefPtr<nsAccessible> accessible;
+    nsCOMPtr<nsIContent> content;
+    PRUint32 actionIndex;
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsresult DoCommand(nsIContent *aContent = nsnull, PRUint32 aActionIndex = 0);
+
+  
+
+
+
+
+
   static void DoCommandCallback(nsITimer *aTimer, void *aClosure);
-  nsresult DoCommand(nsIContent *aContent = nsnull);
+
+  
+
+
+  virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
+
+  
+  
 
   
   PRBool CheckVisibilityInParentChain(nsIDocument* aDocument, nsIView* aView);

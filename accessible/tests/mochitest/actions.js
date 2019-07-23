@@ -35,6 +35,17 @@ const ALL_EVENTS = CLICK_EVENTS | COMMAND_EVENT;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 function testActions(aArray)
 {
   gActionsQueue = new eventQueue();
@@ -43,13 +54,15 @@ function testActions(aArray)
 
     var actionObj = aArray[idx];
     var accOrElmOrID = actionObj.ID;
+    var actionIndex = actionObj.actionIndex;
     var actionName = actionObj.actionName;
     var events = actionObj.events;
+    var accOrElmOrIDOfTarget = actionObj.targetID ?
+      actionObj.targetID : accOrElmOrID;
 
     var eventSeq = new Array();
     if (events) {
-      var elm = getNode(accOrElmOrID);
-      
+      var elm = getNode(accOrElmOrIDOfTarget);
       if (events & MOUSEDOWN_EVENT)
         eventSeq.push(new checkerOfActionInvoker("mousedown", elm));
 
@@ -66,7 +79,8 @@ function testActions(aArray)
     if (actionObj.eventSeq)
       eventSeq = eventSeq.concat(actionObj.eventSeq);
 
-    var invoker = new actionInvoker(accOrElmOrID, actionName, eventSeq);
+    var invoker = new actionInvoker(accOrElmOrID, actionIndex, actionName,
+                                    eventSeq);
     gActionsQueue.push(invoker);
   }
 
@@ -78,7 +92,7 @@ function testActions(aArray)
 
 var gActionsQueue = null;
 
-function actionInvoker(aAccOrElmOrId, aActionName, aEventSeq)
+function actionInvoker(aAccOrElmOrId, aActionIndex, aActionName, aEventSeq)
 {
   this.invoke = function actionInvoker_invoke()
   {
@@ -93,14 +107,14 @@ function actionInvoker(aAccOrElmOrId, aActionName, aEventSeq)
     if (!isThereActions)
       return INVOKER_ACTION_FAILED;
 
-    is(acc.getActionName(0), aActionName,
+    is(acc.getActionName(aActionIndex), aActionName,
        "Wrong action name of the accessible for " + prettyName(aAccOrElmOrId));
 
     try {
-      acc.doAction(0);
+      acc.doAction(aActionIndex);
     }
     catch (e){
-      ok(false, "doAction(0) failed with: " + e.name);
+      ok(false, "doAction(" + aActionIndex + ") failed with: " + e.name);
       return INVOKER_ACTION_FAILED;
     }
   }
@@ -114,6 +128,8 @@ function checkerOfActionInvoker(aType, aTarget, aActionObj)
 
   this.target = aTarget;
 
+  this.phase = false;
+
   this.getID = function getID()
   {
     return aType + " event handling";
@@ -121,7 +137,7 @@ function checkerOfActionInvoker(aType, aTarget, aActionObj)
 
   this.check = function check(aEvent)
   {
-    if (aActionObj && "check" in aActionObj)
-      aActionObj.check(aEvent);
+    if (aActionObj && "checkOnClickEvent" in aActionObj)
+      aActionObj.checkOnClickEvent(aEvent);
   }
 }
