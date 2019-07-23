@@ -3375,13 +3375,12 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
         text->mTextDecoration &= ~NS_STYLE_TEXT_DECORATION_UNDERLINE;
       }
     }
+  } else if (eCSSUnit_Inherit == textData.mDecoration.GetUnit()) {
+    canStoreInRuleTree = PR_FALSE;
+    text->mTextDecoration = parentText->mTextDecoration;
+  } else if (eCSSUnit_Initial == textData.mDecoration.GetUnit()) {
+    text->mTextDecoration = NS_STYLE_TEXT_DECORATION_NONE;
   }
-  else
-    SetDiscrete(textData.mDecoration, text->mTextDecoration,
-                canStoreInRuleTree, SETDSC_NONE,
-                parentText->mTextDecoration,
-                NS_STYLE_TEXT_DECORATION_NONE, 0,
-                NS_STYLE_TEXT_DECORATION_NONE, 0, 0);
 
   
   SetDiscrete(textData.mUnicodeBidi, text->mUnicodeBidi, canStoreInRuleTree,
@@ -3871,9 +3870,8 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
   
   SetDiscrete(displayData.mDisplay, display->mDisplay, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_NONE, parentDisplay->mDisplay,
-              NS_STYLE_DISPLAY_INLINE, 0,
-              NS_STYLE_DISPLAY_NONE, 0, 0);
+              SETDSC_ENUMERATED, parentDisplay->mDisplay,
+              NS_STYLE_DISPLAY_INLINE, 0, 0, 0, 0);
 
   
   SetDiscrete(displayData.mAppearance, display->mAppearance, canStoreInRuleTree,
@@ -4207,9 +4205,8 @@ nsRuleNode::ComputeVisibilityData(void* aStartStruct,
   
   SetDiscrete(displayData.mPointerEvents, visibility->mPointerEvents,
               canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_NONE, parentVisibility->mPointerEvents,
-              NS_STYLE_POINTER_EVENTS_AUTO, 0,
-              NS_STYLE_POINTER_EVENTS_NONE, 0, 0);
+              SETDSC_ENUMERATED, parentVisibility->mPointerEvents,
+              NS_STYLE_POINTER_EVENTS_AUTO, 0, 0, 0, 0);
 
   
   
@@ -5767,20 +5764,16 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
               NS_STYLE_FILL_RULE_NONZERO, 0, 0, 0, 0);
 
   
-  SetDiscrete(SVGData.mColorInterpolation, svg->mColorInterpolation,
-              canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentSVG->mColorInterpolation,
-              NS_STYLE_COLOR_INTERPOLATION_SRGB,
-              NS_STYLE_COLOR_INTERPOLATION_AUTO, 0, 0, 0);
+  SetDiscrete(SVGData.mColorInterpolation,
+              svg->mColorInterpolation, canStoreInRuleTree,
+              SETDSC_ENUMERATED, parentSVG->mColorInterpolation,
+              NS_STYLE_COLOR_INTERPOLATION_SRGB, 0, 0, 0, 0);
 
   
   SetDiscrete(SVGData.mColorInterpolationFilters,
               svg->mColorInterpolationFilters, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentSVG->mColorInterpolationFilters,
-              NS_STYLE_COLOR_INTERPOLATION_LINEARRGB,
-              NS_STYLE_COLOR_INTERPOLATION_AUTO, 0, 0, 0);
+              SETDSC_ENUMERATED, parentSVG->mColorInterpolationFilters,
+              NS_STYLE_COLOR_INTERPOLATION_LINEARRGB, 0, 0, 0, 0);
 
   
   SetSVGPaint(SVGData.mFill, parentSVG->mFill, mPresContext, aContext,
@@ -5797,10 +5790,8 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
 
   
   SetDiscrete(SVGData.mImageRendering, svg->mImageRendering, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentSVG->mImageRendering,
-              NS_STYLE_IMAGE_RENDERING_AUTO,
-              NS_STYLE_IMAGE_RENDERING_AUTO, 0, 0, 0);
+              SETDSC_ENUMERATED, parentSVG->mImageRendering,
+              NS_STYLE_IMAGE_RENDERING_AUTO, 0, 0, 0, 0);
 
   
   if (eCSSUnit_URL == SVGData.mMarkerEnd.GetUnit()) {
@@ -5837,10 +5828,8 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
 
   
   SetDiscrete(SVGData.mShapeRendering, svg->mShapeRendering, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentSVG->mShapeRendering,
-              NS_STYLE_SHAPE_RENDERING_AUTO,
-              NS_STYLE_SHAPE_RENDERING_AUTO, 0, 0, 0);
+              SETDSC_ENUMERATED, parentSVG->mShapeRendering,
+              NS_STYLE_SHAPE_RENDERING_AUTO, 0, 0, 0, 0);
 
   
   SetSVGPaint(SVGData.mStroke, parentSVG->mStroke, mPresContext, aContext,
@@ -5941,10 +5930,8 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
 
   
   SetDiscrete(SVGData.mTextRendering, svg->mTextRendering, canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
-              parentSVG->mTextRendering,
-              NS_STYLE_TEXT_RENDERING_AUTO,
-              NS_STYLE_TEXT_RENDERING_AUTO, 0, 0, 0);
+              SETDSC_ENUMERATED, parentSVG->mTextRendering,
+              NS_STYLE_TEXT_RENDERING_AUTO, 0, 0, 0, 0);
 
   COMPUTE_END_INHERITED(SVG, svg)
 }
@@ -6005,11 +5992,9 @@ nsRuleNode::ComputeSVGResetData(void* aStartStruct,
 
   
   SetDiscrete(SVGData.mDominantBaseline, svgReset->mDominantBaseline,
-              canStoreInRuleTree,
-              SETDSC_ENUMERATED | SETDSC_AUTO,
+              canStoreInRuleTree, SETDSC_ENUMERATED,
               parentSVGReset->mDominantBaseline,
-              NS_STYLE_DOMINANT_BASELINE_AUTO,
-              NS_STYLE_DOMINANT_BASELINE_AUTO, 0, 0, 0);
+              NS_STYLE_DOMINANT_BASELINE_AUTO, 0, 0, 0, 0);
 
   
   if (eCSSUnit_URL == SVGData.mFilter.GetUnit()) {

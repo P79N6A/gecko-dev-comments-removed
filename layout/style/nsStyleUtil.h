@@ -40,6 +40,7 @@
 #include "nsCoord.h"
 #include "nsPresContext.h"
 #include "nsILinkHandler.h" 
+#include "nsCSSProperty.h"
 
 struct nsStyleBackground;
 
@@ -81,6 +82,13 @@ public:
   
   static void AppendEscapedCSSString(const nsString& aString,
                                      nsAString& aResult);
+
+  
+  static void AppendBitmaskCSSValue(nsCSSProperty aProperty,
+                                    PRInt32 aMaskedValue,
+                                    PRInt32 aFirstMask,
+                                    PRInt32 aLastMask,
+                                    nsAString& aResult);
 
   
 

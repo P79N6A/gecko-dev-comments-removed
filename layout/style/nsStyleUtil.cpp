@@ -50,6 +50,7 @@
 #include "nsReadableUtils.h"
 #include "nsContentUtils.h"
 #include "nsTextFormatter.h"
+#include "nsCSSProps.h"
 
 
 
@@ -554,6 +555,26 @@ void nsStyleUtil::AppendEscapedCSSString(const nsString& aString,
   }
 
   aReturn.Append(PRUnichar('"'));
+}
+
+ void
+nsStyleUtil::AppendBitmaskCSSValue(nsCSSProperty aProperty,
+                                   PRInt32 aMaskedValue,
+                                   PRInt32 aFirstMask,
+                                   PRInt32 aLastMask,
+                                   nsAString& aResult)
+{
+  for (PRInt32 mask = aFirstMask; mask <= aLastMask; mask <<= 1) {
+    if (mask & aMaskedValue) {
+      AppendASCIItoUTF16(nsCSSProps::LookupPropertyValue(aProperty, mask),
+                         aResult);
+      aMaskedValue &= ~mask;
+      if (aMaskedValue) { 
+        aResult.Append(PRUnichar(' '));
+      }
+    }
+  }
+  NS_ABORT_IF_FALSE(aMaskedValue == 0, "unexpected bit remaining in bitfield");
 }
 
  float
