@@ -37,6 +37,7 @@
 
 
 #include "oggplay_private.h"
+#include "oggplay/oggplay_callback_info.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -91,8 +92,6 @@ oggplay_data_add_to_list_end(OggPlayDecode *decode, OggPlayDataHeader *data) {
   }
 
 }
-
-#define M(x) ((x) >> 32)
 
 
 
@@ -350,7 +349,6 @@ oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode,
 
   record->header.samples_in_record = 1;
   data = &(record->data);
-  oggplay_data_initialise_header((OggPlayDecode *)decode, &(record->header));
 
   data->y = (unsigned char *)(record + 1);
   data->u = data->y + (decode->y_stride * decode->y_height);
@@ -381,31 +379,161 @@ oggplay_data_handle_theora_frame (OggPlayTheoraDecode *decode,
     q2 += buffer->uv_stride;
   }
 
-  oggplay_data_add_to_list((OggPlayDecode *)decode, &(record->header));
+  
+  if (decode->convert_to_rgb) {
+    OggPlayYUVChannels      yuv;
+    OggPlayRGBChannels      rgb;
+    OggPlayOverlayRecord  * orecord;
+    OggPlayOverlayData    * odata;
+
+    yuv.ptry = data->y;
+    yuv.ptru = data->u;
+    yuv.ptrv = data->v;
+    yuv.y_width = decode->y_width;
+    yuv.y_height = decode->y_height;
+    yuv.uv_width = decode->uv_width;
+    yuv.uv_height = decode->uv_height;
+
+    size = sizeof(OggPlayOverlayRecord) + decode->y_width * decode->y_height * 4;
+    orecord = (OggPlayOverlayRecord*) oggplay_malloc (size);
+    if (orecord) {
+      oggplay_data_initialise_header((OggPlayDecode *)decode, &(orecord->header));
+      orecord->header.samples_in_record = 1;
+      odata = &(orecord->data);
+
+      rgb.ptro = (unsigned char*)(orecord+1);
+      rgb.rgb_width = yuv.y_width;
+      rgb.rgb_height = yuv.y_height;
+
+      oggplay_yuv2rgba(&yuv, &rgb);
+
+
+
+      odata->rgb = rgb.ptro;
+      odata->rgba = NULL;
+      odata->width = rgb.rgb_width;
+      odata->height = rgb.rgb_height;
+      odata->stride = rgb.rgb_width*4;
+
+      oggplay_free(record);
+    
+      oggplay_data_add_to_list((OggPlayDecode *)decode, &(orecord->header));
+    }
+  }
+  else {
+    oggplay_data_initialise_header((OggPlayDecode *)decode, &(record->header));
+    oggplay_data_add_to_list((OggPlayDecode *)decode, &(record->header));
+  }
 }
 
 #ifdef HAVE_KATE
 void
 oggplay_data_handle_kate_data(OggPlayKateDecode *decode, const kate_event *ev) {
 
-  
-
   OggPlayTextRecord * record = NULL;
 
-  record = (OggPlayTextRecord*)oggplay_calloc (sizeof(OggPlayTextRecord) + ev->len0, 1);
-  
-  if (record = NULL)
-    return;
+#ifdef HAVE_TIGER
+  tiger_renderer_add_event(decode->tr, ev->ki, ev);
 
-  oggplay_data_initialise_header(&decode->decoder, &(record->header));
+  if (decode->use_tiger) {
+    
 
-  
-  record->header.samples_in_record = (ev->end_time-ev->start_time)*1000;
-  record->data = (char *)(record + 1);
+  }
+  else
+#endif
+  {
+    record = (OggPlayTextRecord*)oggplay_calloc (sizeof(OggPlayTextRecord) + ev->len0, 1);
+    if (!record)
+      return;
 
-  memcpy(record->data, ev->text, ev->len0);
+    oggplay_data_initialise_header(&decode->decoder, &(record->header));
 
-  oggplay_data_add_to_list(&decode->decoder, &(record->header));
+    
+    record->header.samples_in_record = (ev->end_time-ev->start_time)*1000;
+    record->data = (char *)(record + 1);
+
+    memcpy(record->data, ev->text, ev->len0);
+
+    oggplay_data_add_to_list(&decode->decoder, &(record->header));
+  }
+}
+#endif
+
+#ifdef HAVE_TIGER
+void
+oggplay_data_update_tiger(OggPlayKateDecode *decode, int active, ogg_int64_t presentation_time, OggPlayCallbackInfo *info) {
+
+  OggPlayOverlayRecord  * record = NULL;
+  OggPlayOverlayData    * data = NULL;
+  size_t                size = sizeof (OggPlayOverlayRecord);
+  int                   track = active && decode->use_tiger;
+  kate_float            t = OGGPLAY_TIME_FP_TO_INT(presentation_time) / 1000.0f;
+
+  if (!decode->init) return;
+
+  if (track) {
+    if (info) {
+      if (info->required_records>0) {
+        OggPlayDataHeader *header = info->records[0];
+        data = (OggPlayOverlayData*)(header+1);
+        if (decode->tr && data->rgb) {
+          tiger_renderer_set_buffer(decode->tr, data->rgb, data->width, data->height, data->stride, 1);
+        }
+        else {
+          
+          
+          return;
+        }
+      }
+      else {
+        
+        
+        return;
+      }
+    }
+    else {
+      
+      int width = decode->k.ki->original_canvas_width;
+      int height = decode->k.ki->original_canvas_height;
+      if (width <= 0 || height <= 0) {
+        
+        width = 640;
+        height = 480;
+      }
+      size = sizeof (OggPlayOverlayRecord) + width*height*4;
+      record = (OggPlayOverlayRecord*)oggplay_calloc (1, size);
+      if (!record)
+        return;
+
+      record->header.samples_in_record = 1;
+      data= &(record->data);
+      oggplay_data_initialise_header((OggPlayDecode *)decode, &(record->header));
+
+      data->rgba = (unsigned char*)(record+1);
+      data->rgb = NULL;
+      data->width = width;
+      data->height = height;
+      data->stride = width*4;
+
+      if (decode->tr && data->rgba) {
+        tiger_renderer_set_buffer(decode->tr, data->rgba, data->width, data->height, data->stride, 1);
+      }
+
+      oggplay_data_add_to_list(&decode->decoder, &(record->header));
+      record->header.presentation_time=presentation_time;
+    }
+  }
+
+  if (decode->tr) {
+    tiger_renderer_update(decode->tr, t, track);
+  }
+
+  if (track) {
+    
+    if (decode->tr) {
+      tiger_renderer_render(decode->tr);
+    }
+  }
 }
 #endif
 

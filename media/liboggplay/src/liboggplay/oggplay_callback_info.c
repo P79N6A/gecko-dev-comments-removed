@@ -38,8 +38,6 @@
 #include "oggplay_private.h"
 #include <stdlib.h>
 
-#define M(x)  ((x) >> 32) 
-
 extern void _print_list(char *name, OggPlayDataHeader *p);
 
 int
@@ -71,6 +69,24 @@ oggplay_callback_info_prepare(OggPlay *me, OggPlayCallbackInfo ***info) {
     OggPlayDataHeader   * q = NULL;
     
     (*info)[i] = track_info;
+
+#ifdef HAVE_TIGER
+    
+
+
+
+
+
+
+
+    if (track->content_type == OGGZ_CONTENT_KATE) {
+      OggPlayKateDecode *decode = (OggPlayKateDecode *)track;
+      OggPlayCallbackInfo * video_info = NULL;
+      if (decode->overlay_dest >= 0)
+        video_info = me->callback_info + decode->overlay_dest;
+      oggplay_data_update_tiger(decode, track->active, me->target, video_info);
+    }
+#endif
 
     
 
@@ -418,7 +434,7 @@ oggplay_callback_info_get_presentation_time(OggPlayDataHeader *header) {
   }
 
   
-  return (((header->presentation_time >> 16) * 1000) >> 16) & 0xFFFFFFFF;
+  return OGGPLAY_TIME_FP_TO_INT(header->presentation_time);
 }
 
 OggPlayVideoData *
@@ -429,6 +445,17 @@ oggplay_callback_info_get_video_data(OggPlayDataHeader *header) {
   }
 
   return &((OggPlayVideoRecord *)header)->data;
+
+}
+
+OggPlayOverlayData *
+oggplay_callback_info_get_overlay_data(OggPlayDataHeader *header) {
+
+  if (header == NULL) {
+    return NULL;
+  }
+
+  return &((OggPlayOverlayRecord *)header)->data;
 
 }
 

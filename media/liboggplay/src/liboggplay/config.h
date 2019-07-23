@@ -2,13 +2,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
 #define HAVE_DLFCN_H 1
 
 
-#define HAVE_FISHSOUND 
+#define HAVE_FISHSOUND
 
 
-#define HAVE_GLUT 
+#define HAVE_GLUT
 
 
 
@@ -20,13 +29,13 @@
 
 
 
-
+#define HAVE_LIBSNDFILE1
 
 
 #define HAVE_MEMORY_H 1
 
 
-#define HAVE_OGGZ 
+#define HAVE_OGGZ
 
 
 #define HAVE_STDINT_H 1
@@ -47,7 +56,14 @@
 #define HAVE_SYS_TYPES_H 1
 
 
+
+
+
 #define HAVE_UNISTD_H 1
+
+
+
+#define LT_OBJDIR ".libs/"
 
 
 
@@ -78,16 +94,16 @@
 
 
 
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
 
-
-
-
+# endif
+#endif
 
 
 
 #undef HAVE_GLUT
-
-#include "prcpucfg.h"
-#ifdef IS_BIG_ENDIAN
-#define WORDS_BIGENDIAN
-#endif

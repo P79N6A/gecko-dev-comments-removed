@@ -56,6 +56,9 @@
 #ifdef HAVE_KATE
 #include <kate/kate.h>
 #endif
+#ifdef HAVE_TIGER
+#include <tiger/tiger.h>
+#endif
 
 #ifdef WIN32
 
@@ -86,6 +89,11 @@ typedef struct {
   OggPlayDataHeader   header;
   OggPlayVideoData    data;
 } OggPlayVideoRecord;
+
+typedef struct {
+  OggPlayDataHeader   header;
+  OggPlayOverlayData  data;
+} OggPlayOverlayRecord;
 
 typedef struct {
   OggPlayDataHeader   header;
@@ -171,6 +179,7 @@ typedef struct {
   int             uv_height;
   int             uv_stride;
   int             cached_keyframe;
+  int             convert_to_rgb;
 } OggPlayTheoraDecode;
 
 typedef struct {
@@ -195,6 +204,12 @@ typedef struct {
 #ifdef HAVE_KATE
   int             granuleshift;
   kate_state      k;
+  int             init;
+#ifdef HAVE_TIGER
+  int use_tiger;
+  int overlay_dest;
+  tiger_renderer *tr;
+#endif
 #endif
 } OggPlayKateDecode;
 
@@ -219,11 +234,11 @@ struct _OggPlay {
   ogg_int64_t               target;
   int                       active_tracks;
   volatile OggPlayBuffer  * buffer;
-  ogg_int64_t               presentation_time;
+  ogg_int64_t               presentation_time;  
   OggPlaySeekTrash        * trash;
   int                       shutdown;
   int                       pt_update_valid;
-  ogg_int64_t               duration;	 
+  ogg_int64_t               duration;	          
 };
 
 void
@@ -243,6 +258,21 @@ typedef struct {
   void (*shutdown)(void *user_data);
   int size;
 } OggPlayCallbackFunctions;
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define OGGPLAY_TIME_INT_TO_FP(x) ((x) << 32)
+#define OGGPLAY_TIME_FP_TO_INT(x) (((((x) >> 16) * 1000) >> 16) & 0xFFFFFFFF)
 
 
 

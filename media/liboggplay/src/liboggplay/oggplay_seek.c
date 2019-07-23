@@ -139,6 +139,20 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
   
 
 
+
+#ifdef HAVE_TIGER
+  for (i = 0; i < me->num_tracks; i++) {
+    OggPlayDecode *track = me->decode_data[i];
+    if (track && track->content_type == OGGZ_CONTENT_KATE) {
+      OggPlayKateDecode *decode = (OggPlayKateDecode *)(me->decode_data[i]);
+      if (decode->use_tiger) tiger_renderer_seek(decode->tr, milliseconds/1000.0);
+    }
+  }
+#endif
+
+  
+
+
   me->presentation_time = milliseconds;
   me->target = me->callback_period - 1;
   me->pt_update_valid = 1;
