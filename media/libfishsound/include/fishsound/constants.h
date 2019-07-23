@@ -107,9 +107,6 @@ typedef enum _FishSoundError {
   FISH_SOUND_ERR_INVALID                = -3,
 
   
-  FISH_SOUND_ERR_OUT_OF_MEMORY          = -4,
-
-  
   FISH_SOUND_ERR_DISABLED               = -10,
 
   

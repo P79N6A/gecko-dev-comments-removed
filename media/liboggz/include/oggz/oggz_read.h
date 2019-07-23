@@ -160,10 +160,7 @@ int oggz_set_read_page (OGGZ * oggz, long serialno,
 
 
 
-
 long oggz_read (OGGZ * oggz, long n);
-
-
 
 
 

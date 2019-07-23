@@ -2,9 +2,6 @@
 
 
 
-
-
-
 #define FS_DECODE 1
 
 
@@ -20,28 +17,19 @@
 #define HAVE_FLAC 0
 
 
-
-
-
-
-
-
 #define HAVE_INTTYPES_H 1
 
 
-#define HAVE_LIBSNDFILE1
+
 
 
 #define HAVE_MEMORY_H 1
 
 
-#define HAVE_OGGZ
+
 
 
 #define HAVE_SPEEX 0
-
-
-
 
 
 
@@ -74,10 +62,6 @@
 #define HAVE_VORBISENC 0
 
 
-
-#define LT_OBJDIR ".libs/"
-
-
 #define PACKAGE "libfishsound"
 
 
@@ -99,19 +83,11 @@
 #define STDC_HEADERS 1
 
 
-#define VERSION "0.9.0"
+#define VERSION "0.9.1"
 
 
 
-#if defined AC_APPLE_UNIVERSAL_BUILD
-# if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
-# endif
-#else
-# ifndef WORDS_BIGENDIAN
 
-# endif
-#endif
 
 
 

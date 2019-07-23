@@ -36,10 +36,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
 #include <ctype.h>
 
 #include "private.h"
@@ -142,27 +138,34 @@ process_header(unsigned char * buf, long bytes, int enh_enabled,
 
   if (header->mode >= SPEEX_NB_MODES || header->mode < 0) {
     
+
+
+
+
     return NULL;
   }
 
   modeID = header->mode;
   if (forceMode!=-1)
     modeID = forceMode;
-
-#if HAVE_SPEEX_LIB_GET_MODE
-  mode = (SpeexMode *) speex_lib_get_mode (modeID);
-#else
   
   mode = (SpeexMode *)speex_mode_list[modeID];
-#endif
 
   if (header->speex_version_id > 1) {
     
+
+
+
+
+
     return NULL;
   }
 
   if (mode->bitstream_version < header->mode_bitstream_version) {
     
+
+
+
 
     return NULL;
   }
@@ -170,12 +173,18 @@ process_header(unsigned char * buf, long bytes, int enh_enabled,
   if (mode->bitstream_version > header->mode_bitstream_version) {
     
 
+
+
+
     return NULL;
   }
 
   st = speex_decoder_init(mode);
   if (!st) {
     
+
+
+
     return NULL;
   }
 
@@ -284,7 +293,6 @@ fs_speex_decode (FishSound * fsound, unsigned char * buf, long bytes)
 
     if (fss->st == NULL) {
       
-      return FISH_SOUND_ERR_GENERIC;
     }
 
 #ifdef DEBUG
@@ -294,50 +302,20 @@ fs_speex_decode (FishSound * fsound, unsigned char * buf, long bytes)
     fsound->info.samplerate = rate;
     fsound->info.channels = channels;
 
-    
-
-
-    if (channels < 1 || channels > 2)
-      return FISH_SOUND_ERR_GENERIC;
-
-#if HAVE_UINTPTR_T
-    
-
-
-
-    if (fss->frame_size > UINTPTR_MAX / (sizeof(float) * channels))
-      return FISH_SOUND_ERR_GENERIC;
-#endif
-
     fss->ipcm = fs_malloc (sizeof (float) * fss->frame_size * channels);
-    if (fss->ipcm == NULL) {
-      return FISH_SOUND_ERR_OUT_OF_MEMORY;
-    }
 
     if (channels == 1) {
       fss->pcm[0] = fss->ipcm;
     } else if (channels == 2) {
       fss->pcm[0] = fs_malloc (sizeof (float) * fss->frame_size);
-      if (fss->pcm[0] == NULL) {
-        fs_free (fss->ipcm);
-        return FISH_SOUND_ERR_OUT_OF_MEMORY;
-      }
       fss->pcm[1] = fs_malloc (sizeof (float) * fss->frame_size);
-      if (fss->pcm[1] == NULL) {
-        fs_free (fss->pcm[0]);
-        fs_free (fss->ipcm);
-        return FISH_SOUND_ERR_OUT_OF_MEMORY;
-      }
     }
 
     if (fss->nframes == 0) fss->nframes = 1;
 
   } else if (fss->packetno == 1) {
     
-    if (fish_sound_comments_decode (fsound, buf, bytes) == FISH_SOUND_ERR_OUT_OF_MEMORY) {
-      fss->packetno++;
-      return FISH_SOUND_ERR_OUT_OF_MEMORY;
-    }
+    fish_sound_comments_decode (fsound, buf, bytes);
   } else if (fss->packetno <= 1+fss->extra_headers) {
     
   } else {
@@ -385,21 +363,15 @@ static FishSound *
 fs_speex_enc_headers (FishSound * fsound)
 {
   FishSoundSpeexInfo * fss = (FishSoundSpeexInfo *)fsound->codec_data;
-  int modeID;
   SpeexMode * mode = NULL;
   SpeexHeader header;
-  unsigned char * header_buf = NULL, * comments_buf = NULL;
-  int header_bytes, comments_bytes;
+  unsigned char * buf;
+  int bytes;
   size_t buflen;
 
-  modeID = 1;
-
-#if HAVE_SPEEX_LIB_GET_MODE
-  mode = (SpeexMode *) speex_lib_get_mode (modeID);
-#else
   
-  mode = (SpeexMode *)speex_mode_list[modeID];
-#endif
+  
+  mode = (SpeexMode *)&speex_wb_mode;
 
   speex_init_header (&header, fsound->info.samplerate, 1, mode);
   header.frames_per_packet = fss->nframes; 
@@ -409,26 +381,24 @@ fs_speex_enc_headers (FishSound * fsound)
   fss->st = speex_encoder_init (mode);
 
   if (fsound->callback.encoded) {
+    FishSoundEncoded encoded = (FishSoundEncoded)fsound->callback.encoded;
     char vendor_string[128];
 
     
-    header_buf = (unsigned char *) speex_header_to_packet (&header, &header_bytes);
-    if (header_buf == NULL) {
-      return NULL;
-    }
+    buf = (unsigned char *) speex_header_to_packet (&header, &bytes);
+    encoded (fsound, buf, (long)bytes, fsound->user_data);
+    fss->packetno++;
+    fs_free (buf);
 
     
     snprintf (vendor_string, 128, VENDOR_FORMAT, header.speex_version);
-    if (fish_sound_comment_set_vendor (fsound, vendor_string) == FISH_SOUND_ERR_OUT_OF_MEMORY) {
-      fs_free (header_buf);
-      return NULL;
-    }
-    comments_bytes = fish_sound_comments_encode (fsound, NULL, 0);
-    comments_buf = fs_malloc (comments_bytes);
-    if (comments_buf == NULL) {
-      fs_free (header_buf);
-      return NULL;
-    }
+    fish_sound_comment_set_vendor (fsound, vendor_string);
+    bytes = fish_sound_comments_encode (fsound, NULL, 0);
+    buf = fs_malloc (bytes);
+    bytes = fish_sound_comments_encode (fsound, buf, bytes);
+    encoded (fsound, buf, (long)bytes, fsound->user_data);
+    fss->packetno++;
+    fs_free (buf);
   }
 
   speex_encoder_ctl (fss->st, SPEEX_SET_SAMPLING_RATE,
@@ -444,28 +414,7 @@ fs_speex_enc_headers (FishSound * fsound)
 
   buflen = fss->frame_size * fsound->info.channels * sizeof (float);
   fss->ipcm = fs_malloc (buflen);
-  if (fss->ipcm == NULL) {
-    if (comments_buf) fs_free (comments_buf);
-    if (header_buf) fs_free (header_buf);
-    return NULL;
-  }
   memset (fss->ipcm, 0, buflen);
-
-  
-  if (fsound->callback.encoded) {
-    FishSoundEncoded encoded = (FishSoundEncoded)fsound->callback.encoded;
-
-    
-    encoded (fsound, header_buf, (long)header_bytes, fsound->user_data);
-    fss->packetno++;
-    fs_free (header_buf);
-
-    
-    comments_bytes = fish_sound_comments_encode (fsound, comments_buf, comments_bytes);
-    encoded (fsound, comments_buf, (long)comments_bytes, fsound->user_data);
-    fss->packetno++;
-    fs_free (comments_buf);
-  }
 
   return fsound;
 }
@@ -644,13 +593,10 @@ fs_speex_update (FishSound * fsound, int interleave)
 {
   FishSoundSpeexInfo * fss = (FishSoundSpeexInfo *)fsound->codec_data;
   size_t pcm_size = sizeof (float);
-  float *ipcm_new, *pcm0, *pcm1;
 
-  ipcm_new = (float *)fs_realloc (fss->ipcm,
-		  pcm_size * fss->frame_size * fsound->info.channels);
-  if (ipcm_new == NULL) return FISH_SOUND_ERR_OUT_OF_MEMORY;
-
-  fss->ipcm = ipcm_new;
+  fss->ipcm = (float *)
+    fs_realloc (fss->ipcm,
+		pcm_size * fss->frame_size * fsound->info.channels);
 
   if (interleave) {
     
@@ -665,28 +611,8 @@ fs_speex_update (FishSound * fsound, int interleave)
     if (fsound->info.channels == 1) {
       fss->pcm[0] = (float *) fss->ipcm;
     } else if (fsound->info.channels == 2) {
-#if HAVE_UINTPTR_T
-      
-
-
-
-      if (fss->frame_size > UINTPTR_MAX / pcm_size)
-        return FISH_SOUND_ERR_GENERIC;
-#endif
-
-      pcm0 = fs_realloc (fss->pcm[0], pcm_size * fss->frame_size);
-      if (pcm0 == NULL) {
-        return FISH_SOUND_ERR_OUT_OF_MEMORY;
-      }
-
-      pcm1 = fs_realloc (fss->pcm[1], pcm_size * fss->frame_size);
-      if (pcm1 == NULL) {
-        fs_free (pcm0);
-        return FISH_SOUND_ERR_OUT_OF_MEMORY;
-      }
-
-      fss->pcm[0] = pcm0;
-      fss->pcm[1] = pcm1;
+      fss->pcm[0] = fs_realloc (fss->pcm[0], pcm_size * fss->frame_size);
+      fss->pcm[1] = fs_realloc (fss->pcm[1], pcm_size * fss->frame_size);
     }
   }
 
@@ -768,7 +694,6 @@ fish_sound_speex_codec (void)
   FishSoundCodec * codec;
 
   codec = (FishSoundCodec *) fs_malloc (sizeof (FishSoundCodec));
-  if (codec == NULL) return NULL;
 
   codec->format.format = FISH_SOUND_SPEEX;
   codec->format.name = "Speex (Xiph.Org)";
