@@ -46,10 +46,9 @@
 class nsIRenderingContext;
 class nsGUIEvent;
 
-
 #define NS_IVIEWOBSERVER_IID  \
-{ 0x8d7ae493, 0x1eb1, 0x4d38, \
-  { 0x89, 0xda, 0x9e, 0xee, 0xaa, 0x29, 0xfd, 0x79 } }
+  { 0xc85d474d, 0x316e, 0x491c, \
+    { 0x8b, 0xc5, 0x24, 0xba, 0xb7, 0xbb, 0x68, 0x9e } }
 
 class nsIViewObserver : public nsISupports
 {
@@ -141,7 +140,15 @@ public:
 
 
 
-  NS_IMETHOD_(void) InvalidateFrameForView(nsIView *aView) = 0;
+  NS_IMETHOD_(void) InvalidateFrameForScrolledView(nsIView *aView) = 0;
+
+  
+
+
+
+
+  NS_IMETHOD_(void) NotifyInvalidateForScrolledView(const nsRegion& aBlitRegion,
+                                                    const nsRegion& aInvalidateRegion) = 0;
 
   
 

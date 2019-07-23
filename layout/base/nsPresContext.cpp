@@ -1956,30 +1956,36 @@ nsPresContext::FireDOMPaintEvent()
 
   nsCOMPtr<nsIDOMEventTarget> dispatchTarget = do_QueryInterface(ourWindow);
   nsCOMPtr<nsIDOMEventTarget> eventTarget = dispatchTarget;
-  if (mSameDocDirtyRegion.IsEmpty() && !IsChrome()) {
-    
-    
-    
-    
-    dispatchTarget = do_QueryInterface(ourWindow->GetChromeEventHandler());
-    if (!dispatchTarget) {
-      return;
+  if (!IsChrome()) {
+    PRBool isCrossDocOnly = PR_TRUE;
+    for (PRUint32 i = 0; i < mInvalidateRequests.mRequests.Length(); ++i) {
+      if (!(mInvalidateRequests.mRequests[i].mFlags & nsIFrame::INVALIDATE_CROSS_DOC)) {
+        isCrossDocOnly = PR_FALSE;
+      }
+    }
+    if (isCrossDocOnly) {
+      
+      
+      
+      
+      dispatchTarget = do_QueryInterface(ourWindow->GetChromeEventHandler());
+      if (!dispatchTarget) {
+        return;
+      }
     }
   }
   
   
   nsCOMPtr<nsIDOMEvent> event;
+  
+  
+  
   NS_NewDOMNotifyPaintEvent(getter_AddRefs(event), this, nsnull,
                             NS_AFTERPAINT,
-                            &mSameDocDirtyRegion, &mCrossDocDirtyRegion);
+                            &mInvalidateRequests);
   nsCOMPtr<nsIPrivateDOMEvent> pEvent = do_QueryInterface(event);
   if (!pEvent) return;
 
-  
-  
-  
-  mSameDocDirtyRegion.SetEmpty();
-  mCrossDocDirtyRegion.SetEmpty();
   
   
   
@@ -1988,7 +1994,8 @@ nsPresContext::FireDOMPaintEvent()
   nsEventDispatcher::DispatchDOMEvent(dispatchTarget, nsnull, event, this, nsnull);
 }
 
-static PRBool MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
+static PRBool
+MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
 {
   if (!aInnerWindow)
     return PR_FALSE;
@@ -2015,16 +2022,21 @@ static PRBool MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
   return PR_FALSE;
 }
 
+PRBool
+nsPresContext::MayHavePaintEventListener()
+{
+  return ::MayHavePaintEventListener(mDocument->GetInnerWindow());
+}
+
 void
-nsPresContext::NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc)
+nsPresContext::NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags)
 {
   
   
   
   
   
-  if (aRect.IsEmpty() ||
-      !MayHavePaintEventListener(mDocument->GetInnerWindow()))
+  if (aRect.IsEmpty() || !MayHavePaintEventListener())
     return;
 
   if (!IsDOMPaintEventPending()) {
@@ -2035,9 +2047,13 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc)
     NS_DispatchToCurrentThread(ev);
   }
 
-  nsRegion* r = aIsCrossDoc ? &mCrossDocDirtyRegion : &mSameDocDirtyRegion;
-  r->Or(*r, aRect);
-  r->SimplifyOutward(10);
+  nsInvalidateRequestList::Request* request =
+    mInvalidateRequests.mRequests.AppendElement();
+  if (!request)
+    return;
+
+  request->mRect = aRect;
+  request->mFlags = aFlags;
 }
 
 PRBool

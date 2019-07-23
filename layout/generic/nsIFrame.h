@@ -1770,10 +1770,14 @@ public:
 
 
 
+
   enum {
-  	INVALIDATE_IMMEDIATE = 0x1,
-  	INVALIDATE_CROSS_DOC = 0x2,
-  	INVALIDATE_NOTIFY_ONLY = 0x4
+  	INVALIDATE_IMMEDIATE = 0x01,
+  	INVALIDATE_CROSS_DOC = 0x02,
+  	INVALIDATE_REASON_SCROLL_BLIT = 0x04,
+  	INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
+    INVALIDATE_REASON_MASK = INVALIDATE_REASON_SCROLL_BLIT |
+                             INVALIDATE_REASON_SCROLL_REPAINT
   };
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,

@@ -340,7 +340,10 @@ public:
 
 
 
-  void UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegion);
+
+
+  void UpdateViewAfterScroll(nsView *aView, const nsRegion& aBlitRegion,
+                             const nsRegion& aUpdateRegion);
 
   
 

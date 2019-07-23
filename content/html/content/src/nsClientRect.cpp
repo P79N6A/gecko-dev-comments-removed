@@ -129,13 +129,13 @@ RoundFloat(double aValue)
 }
 
 void
-nsClientRect::SetLayoutRect(const nsRect& aLayoutRect, nsPresContext* aPresContext)
+nsClientRect::SetLayoutRect(const nsRect& aLayoutRect)
 {
   double scale = 65536.0;
   
   
   double scaleInv = 1/scale;
-  double t2pScaled = scale/aPresContext->AppUnitsPerCSSPixel();
+  double t2pScaled = scale/nsPresContext::AppUnitsPerCSSPixel();
   double x = RoundFloat(aLayoutRect.x*t2pScaled)*scaleInv;
   double y = RoundFloat(aLayoutRect.y*t2pScaled)*scaleInv;
   SetRect(x, y, RoundFloat(aLayoutRect.XMost()*t2pScaled)*scaleInv - x,

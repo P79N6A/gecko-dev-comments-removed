@@ -547,10 +547,12 @@ NS_IMETHODIMP nsScrollPortView::CanScroll(PRBool aHorizontal,
 
 
 
+
 static nsRegion
 ConvertToInnerPixelRegion(const nsRegion& aBlitRegion,
                           nscoord aAppUnitsPerPixel,
-                          nsRegion* aRepaintRegion)
+                          nsRegion* aRepaintRegion,
+                          nsRegion* aAppunitsBlitRegion)
 {
   
   
@@ -580,6 +582,7 @@ ConvertToInnerPixelRegion(const nsRegion& aBlitRegion,
   result.Sub(nsRect(boundingBoxPixels.x, boundingBoxPixels.y,
                     boundingBoxPixels.width, boundingBoxPixels.height),
              outsidePixels);
+  aAppunitsBlitRegion->Sub(boundingBox, outsideAppUnits);
   return result;
 }
 
@@ -678,9 +681,10 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
     
 
 
-    if (aScrolledView->NeedsInvalidateFrameOnScroll())
-      GetViewManager()->GetViewObserver()->InvalidateFrameForView(aScrolledView);
-    
+    if (aScrolledView->NeedsInvalidateFrameOnScroll()) {
+      mViewManager->GetViewObserver()->InvalidateFrameForScrolledView(aScrolledView);
+    }
+
     nsPoint nearestWidgetOffset;
     nsIWidget *nearestWidget = GetNearestWidget(&nearestWidgetOffset);
     if (!nearestWidget ||
@@ -696,7 +700,7 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
                          GetPosition() - topLeft, aP2A, PR_FALSE);
       
       
-      mViewManager->UpdateView(this, NS_VMREFRESH_DEFERRED);
+      mViewManager->GetViewObserver()->InvalidateFrameForScrolledView(aScrolledView);
     } else {
       nsRegion blitRegion;
       nsRegion repaintRegion;
@@ -710,15 +714,18 @@ void nsScrollPortView::Scroll(nsView *aScrolledView, nsPoint aTwipsDelta,
       mViewManager->WillBitBlit(this, aTwipsDelta);
 
       
-      nsRegion innerPixRegion =
-        ConvertToInnerPixelRegion(blitRegion, aP2A, &repaintRegion);
+      nsRegion innerBlitRegion;
+      nsRegion innerBlitPixRegion =
+        ConvertToInnerPixelRegion(blitRegion, aP2A, &repaintRegion,
+                                  &innerBlitRegion);
       nsTArray<nsIntRect> blitRects;
-      SortBlitRectsForCopy(innerPixRegion, aPixDelta, &blitRects);
+      SortBlitRectsForCopy(innerBlitPixRegion, aPixDelta, &blitRects);
 
       nearestWidget->Scroll(aPixDelta, blitRects, aConfigurations);
       AdjustChildWidgets(aScrolledView, nearestWidgetOffset, aP2A, PR_TRUE);
       repaintRegion.MoveBy(-nearestWidgetOffset);
-      mViewManager->UpdateViewAfterScroll(this, repaintRegion);
+      innerBlitRegion.MoveBy(-nearestWidgetOffset);
+      mViewManager->UpdateViewAfterScroll(this, innerBlitRegion, repaintRegion);
     }
   }
 }

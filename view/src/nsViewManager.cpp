@@ -642,19 +642,32 @@ nsViewManager::WillBitBlit(nsView* aView, nsPoint aScrollAmount)
 
 
 void
-nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegion)
+nsViewManager::UpdateViewAfterScroll(nsView *aView,
+                                     const nsRegion& aBlitRegion,
+                                     const nsRegion& aUpdateRegion)
 {
   NS_ASSERTION(RootViewManager()->mScrollCnt > 0,
                "Someone forgot to call WillBitBlit()");
+  
+  
 
-  if (!aUpdateRegion.IsEmpty()) {
-    nsView* displayRoot = GetDisplayRootFor(aView);
-    nsPoint offset = aView->GetOffsetTo(displayRoot);
-    nsRegion update(aUpdateRegion);
-    update.MoveBy(offset);
-    UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
-                     update, nsnull);
+  nsView* displayRoot = GetDisplayRootFor(aView);
+  nsPoint offset = aView->GetOffsetTo(displayRoot);
+  nsRegion update(aUpdateRegion);
+  update.MoveBy(offset);
+
+  UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
+                   update, nsnull);
+  
+
+  
+  if (displayRoot == RootViewManager()->mRootView) {
+    nsPoint rootOffset = aView->GetOffsetTo(mRootView);
+    nsRegion blit(aBlitRegion);
+    blit.MoveBy(rootOffset);
+    update.MoveBy(rootOffset - offset);
     
+    GetViewObserver()->NotifyInvalidateForScrolledView(blit, update);
   }
 
   Composite();

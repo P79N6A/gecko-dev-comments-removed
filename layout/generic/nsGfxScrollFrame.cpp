@@ -246,8 +246,7 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
         
         
         
-        PresContext()->NotifyInvalidation(damage,
-            (aFlags & INVALIDATE_CROSS_DOC) != 0);
+        PresContext()->NotifyInvalidation(damage, aFlags);
       }
       return;
     } else if (aForChild == mInner.mHScrollbarBox) {
@@ -1774,10 +1773,6 @@ nsGfxScrollFrameInner::ScrollPositionDidChange(nsIScrollableView* aScrollable, n
   mViewInitiatedScroll = PR_FALSE;
 
   PostScrollEvent();
-
-  
-  mOuter->InvalidateWithFlags(nsRect(nsPoint(0, 0), mOuter->GetSize()),
-                              nsIFrame::INVALIDATE_NOTIFY_ONLY);
 
   return NS_OK;
 }
