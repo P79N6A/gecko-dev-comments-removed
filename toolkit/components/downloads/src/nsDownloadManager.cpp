@@ -1391,7 +1391,10 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
       mPercentComplete = 100;
 
       
-      PRBool showTaskbarAlert = PR_FALSE;
+      mDownloadManager->RemoveDownloadFromCurrent(this);
+
+      
+      PRBool showTaskbarAlert = PR_TRUE;
       if (pref)
         pref->GetBoolPref(PREF_BDM_SHOWALERTONCOMPLETE, &showTaskbarAlert);
 
@@ -1429,9 +1432,6 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
           }
         }
       }
-
-      
-      mDownloadManager->RemoveDownloadFromCurrent(this);
 
       if (mDownloadState != nsIXPInstallManagerUI::INSTALL_INSTALLING)
         SetState(nsIDownloadManager::DOWNLOAD_FINISHED);
