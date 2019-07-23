@@ -8715,6 +8715,13 @@ nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame(nsIFrame* aFrame
     return PR_FALSE;
   }
 
+  
+  
+  if (aFrame != parent->GetFirstChild(nsnull) &&
+      aFrame->GetLastContinuation()->GetNextSibling()) {
+    return PR_FALSE;
+  }
+
 #ifdef DEBUG
   if (gNoisyContentUpdates) {
     printf("nsCSSFrameConstructor::MaybeRecreateContainerForIBSplitterFrame: "
