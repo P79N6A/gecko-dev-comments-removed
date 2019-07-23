@@ -4960,18 +4960,18 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
 nsTextFrame::AddInlineMinWidth(nsIRenderingContext *aRenderingContext,
                                nsIFrame::InlineMinWidthData *aData)
 {
-  AddInlineMinWidthForFlow(aRenderingContext, aData);
-  if (mTextRun && !(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW)) {
+  nsTextFrame* f;
+  gfxTextRun* lastTextRun = nsnull;
+  
+  
+  for (f = this; f; f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation())) {
     
     
-    nsTextFrame* f = this;
-    for (;;) {
-      f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation());
-      if (!f)
-        break;
-      if (f->GetStateBits() & TEXT_IS_RUN_OWNER) {
-        f->AddInlineMinWidthForFlow(aRenderingContext, aData);
-      }
+    
+    if (f == this || f->mTextRun != lastTextRun) {
+      
+      f->AddInlineMinWidthForFlow(aRenderingContext, aData);
+      lastTextRun = f->mTextRun;
     }
   }
 }
@@ -5049,18 +5049,18 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
 nsTextFrame::AddInlinePrefWidth(nsIRenderingContext *aRenderingContext,
                                 nsIFrame::InlinePrefWidthData *aData)
 {
-  AddInlinePrefWidthForFlow(aRenderingContext, aData);
-  if (mTextRun && !(mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW)) {
+  nsTextFrame* f;
+  gfxTextRun* lastTextRun = nsnull;
+  
+  
+  for (f = this; f; f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation())) {
     
     
-    nsTextFrame* f = this;
-    for (;;) {
-      f = NS_STATIC_CAST(nsTextFrame*, f->GetNextContinuation());
-      if (!f)
-        break;
-      if (f->GetStateBits() & TEXT_IS_RUN_OWNER) {
-        f->AddInlinePrefWidthForFlow(aRenderingContext, aData);
-      }
+    
+    if (f == this || f->mTextRun != lastTextRun) {
+      
+      f->AddInlinePrefWidthForFlow(aRenderingContext, aData);
+      lastTextRun = f->mTextRun;
     }
   }
 }
