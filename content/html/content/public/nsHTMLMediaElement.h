@@ -213,6 +213,12 @@ protected:
 
   nsresult NewURIFromString(const nsAutoString& aURISpec, nsIURI** aURI);
 
+  
+
+
+
+  void NoSupportedMediaError();
+
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   nsCOMPtr<nsIChannel> mChannel;
