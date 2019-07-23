@@ -340,6 +340,8 @@ public:
 #endif
         if (fp != recorder.getEntryFrame())
             buildExitMap(fp->down, *fp->down->regs, m);
+        for (unsigned n = 0; n < fp->script->ngvars; ++n)
+            *m++ = getStoreType(STOBJ_GET_SLOT(fp->varobj, n));
         for (unsigned n = 0; n < fp->argc; ++n)
             *m++ = getStoreType(fp->argv[n]);
         for (unsigned n = 0; n < fp->nvars; ++n)
@@ -408,6 +410,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento, Fragment* _fra
         fragmentInfo->maxNativeFrameSlots = entryNativeFrameSlots;
         
         uint8* m = fragmentInfo->typeMap;
+        for (unsigned n = 0; n < entryFrame->script->ngvars; ++n)
+            *m++ = getCoercedType(STOBJ_GET_SLOT(entryFrame->varobj, n));
         for (unsigned n = 0; n < entryFrame->argc; ++n)
             *m++ = getCoercedType(entryFrame->argv[n]);
         for (unsigned n = 0; n < entryFrame->nvars; ++n)
@@ -432,6 +436,8 @@ TraceRecorder::TraceRecorder(JSContext* cx, Fragmento* fragmento, Fragment* _fra
     JSStackFrame* fp = cx->fp;
     unsigned n;
     uint8* m = fragmentInfo->typeMap;
+    for (n = 0; n < fp->script->ngvars; ++n)
+        import(&STOBJ_GET_SLOT(fp->varobj, n), *m, "gvar", n);
     for (n = 0; n < fp->argc; ++n)
         import(&fp->argv[n], *m, "arg", n);
     for (n = 0; n < fp->nvars; ++n)
@@ -492,7 +498,20 @@ TraceRecorder::findFrame(void* p) const
 bool
 TraceRecorder::onFrame(void* p) const
 {
-    return findFrame(p) != NULL;
+    return findFrame(p) != NULL || isGlobal(p);
+}
+
+
+bool
+TraceRecorder::isGlobal(void* p) const
+{
+    JSObject* varobj = cx->fp->varobj;
+    
+    if ((p >= varobj->fslots) && (p < varobj->fslots + JS_INITIAL_NSLOTS))
+        return true;
+    if (cx->fp->script->ngvars < JS_INITIAL_NSLOTS)
+        return false;
+    return (p >= varobj->dslots && (p < varobj->dslots + STOBJ_NSLOTS(varobj) - JS_INITIAL_NSLOTS));
 }
 
 
@@ -500,7 +519,7 @@ TraceRecorder::onFrame(void* p) const
 unsigned
 TraceRecorder::nativeFrameSlots(JSStackFrame* fp, JSFrameRegs& regs) const
 {
-    unsigned slots = 0;
+    unsigned slots = fp->script->ngvars;
     for (;;) {
         slots += fp->argc + fp->nvars + (regs.sp - fp->spbase);
         if (fp == entryFrame)
@@ -516,21 +535,32 @@ size_t
 TraceRecorder::nativeFrameOffset(void* p) const
 {
     jsval* vp = (jsval*) p;
+    if (isGlobal(p)) {
+        JSObject* varobj = cx->fp->varobj;
+        if (vp >= varobj->fslots && vp < varobj->fslots + JS_INITIAL_NSLOTS)
+            return size_t(vp - varobj->fslots) * sizeof(double);
+        if (cx->fp->script->ngvars > JS_INITIAL_NSLOTS && 
+                vp >= varobj->dslots && vp < varobj->dslots + 
+                STOBJ_NSLOTS(varobj) - JS_INITIAL_NSLOTS)
+            return size_t(vp - varobj->dslots + JS_INITIAL_NSLOTS) * sizeof(double);
+    }
+    
+
+
+    size_t offset = cx->fp->script->ngvars;
     JSStackFrame* fp = findFrame(p);
     JS_ASSERT(fp != NULL); 
-    size_t offset = size_t(vp - fp->argv);
-    if (offset >= fp->argc) {
-        
-        offset = size_t(vp - fp->vars);
-        if (offset >= fp->nvars) {
-            JS_ASSERT(size_t(vp - fp->spbase) < fp->script->depth);
-            offset = fp->nvars + size_t(vp - fp->spbase);
-        }
-        offset += fp->argc;
-    }
-    if (fp != entryFrame)
-        offset += nativeFrameSlots(fp->down, *fp->regs);
-    return offset * sizeof(double);
+    for (JSStackFrame* fp2 = fp; fp2 != entryFrame; fp2 = fp2->down)
+        offset += (fp2->argc + fp2->nvars + size_t(fp2->regs->sp - fp2->spbase));
+    if ((vp >= fp->argv) && (vp < fp->argv + fp->argc))
+        return (offset + size_t(vp - fp->argv)) * sizeof(double);
+    offset += fp->argc;
+    
+    if ((vp >= fp->vars) && (vp < fp->vars + fp->nvars))
+        return (offset + size_t(vp - fp->vars)) * sizeof(double);
+    offset += fp->nvars;
+    JS_ASSERT((vp >= fp->spbase) && (vp < fp->spbase + fp->script->depth));
+    return (offset + size_t(vp - fp->spbase)) * sizeof(double);
 }
 
 
@@ -589,19 +619,19 @@ unbox_jsval(jsval v, uint8 t, double* slot)
 
 
 static bool
-box_jsval(JSContext* cx, jsval* vp, uint8 t, double* slot)
+box_jsval(JSContext* cx, jsval& v, uint8 t, double* slot)
 {
     jsint i;
     jsdouble d;
     switch (t) {
       case JSVAL_BOOLEAN:
-        *vp = BOOLEAN_TO_JSVAL(*(bool*)slot);
+        v = BOOLEAN_TO_JSVAL(*(bool*)slot);
         break;
       case JSVAL_INT:
         i = *(jsint*)slot;
       store_int:
         if (INT_FITS_IN_JSVAL(i)) {
-            *vp = INT_TO_JSVAL(i);
+            v = INT_TO_JSVAL(i);
             break;
         }
         d = (jsdouble)i;
@@ -614,13 +644,13 @@ box_jsval(JSContext* cx, jsval* vp, uint8 t, double* slot)
         
 
         JS_ASSERT(cx->doubleFreeList != NULL);
-        return js_NewDoubleInRootedValue(cx, d, vp);
+        return js_NewDoubleInRootedValue(cx, d, &v);
       case JSVAL_STRING:
-        *vp = STRING_TO_JSVAL(*(JSString**)slot);
+        v = STRING_TO_JSVAL(*(JSString**)slot);
         break;
       default:
         JS_ASSERT(t == JSVAL_OBJECT);
-        *vp = OBJECT_TO_JSVAL(*(JSObject**)slot);
+        v = OBJECT_TO_JSVAL(*(JSObject**)slot);
         break;
     }
     return true;
@@ -631,6 +661,12 @@ box_jsval(JSContext* cx, jsval* vp, uint8 t, double* slot)
 static bool
 unbox(JSStackFrame* fp, JSFrameRegs& regs, uint8* m, double* native)
 {
+    JSObject* varobj = fp->varobj;
+    unsigned ngvars = fp->script->ngvars;
+    unsigned n;
+    for (n = 0; n < ngvars; ++n)
+        if (!unbox_jsval(STOBJ_GET_SLOT(varobj, n), *m++, native++))
+            return false;
     jsval* vp;
     for (vp = fp->argv; vp < fp->argv + fp->argc; ++vp)
         if (!unbox_jsval(*vp, *m++, native++))
@@ -649,15 +685,21 @@ unbox(JSStackFrame* fp, JSFrameRegs& regs, uint8* m, double* native)
 static bool
 box(JSContext* cx, JSStackFrame* fp, JSFrameRegs& regs, uint8* m, double* native)
 {
+    JSObject* varobj = fp->varobj;
+    unsigned ngvars = fp->script->ngvars;
+    unsigned n;
+    for (n = 0; n < ngvars; ++n)
+        if (!box_jsval(cx, STOBJ_GET_SLOT(varobj, n), *m++, native++))
+            return false;
     jsval* vp;
     for (vp = fp->argv; vp < fp->argv + fp->argc; ++vp)
-        if (!box_jsval(cx, vp, *m++, native++))
+        if (!box_jsval(cx, *vp, *m++, native++))
             return false;
     for (vp = fp->vars; vp < fp->vars + fp->nvars; ++vp)
-        if (!box_jsval(cx, vp, *m++, native++))
+        if (!box_jsval(cx, *vp, *m++, native++))
             return false;
     for (vp = fp->spbase; vp < regs.sp; ++vp)
-        if (!box_jsval(cx, vp, *m++, native++))
+        if (!box_jsval(cx, *vp, *m++, native++))
             return false;
     return true;
 }
@@ -672,7 +714,7 @@ TraceRecorder::import(jsval* p, uint8& t, char *prefix, int index)
 
 
 
-    size_t offset = -fragmentInfo->nativeStackBase + nativeFrameOffset(p) + 8;
+    ssize_t offset = -fragmentInfo->nativeStackBase + nativeFrameOffset(p) + 8;
     if (TYPEMAP_GET_TYPE(t) == JSVAL_INT) { 
         JS_ASSERT(isInt32(*p));
         
@@ -834,6 +876,15 @@ TraceRecorder::verifyTypeStability(JSStackFrame* fp, JSFrameRegs& regs, uint8* m
 {
     if (fp != entryFrame)
         verifyTypeStability(fp->down, *fp->down->regs, m);
+    else {
+        
+        JSObject* varobj = fp->varobj;
+        unsigned ngvars = fp->script->ngvars;
+        unsigned n;
+        for (n = 0; n < ngvars; ++n)
+            if (!checkType(STOBJ_GET_SLOT(varobj, n), *m++))
+                return false;
+    }
     for (unsigned n = 0; n < fp->argc; ++n, ++m)
         if (!checkType(fp->argv[n], *m))
             return false;
@@ -980,16 +1031,23 @@ js_InitJIT(JSContext* cx)
 }
 
 jsval&
+TraceRecorder::gvarval(unsigned n) const
+{
+    JS_ASSERT((n >= 0) && (n < cx->fp->script->ngvars));
+    return STOBJ_GET_SLOT(cx->fp->varobj, n);
+}
+
+jsval&
 TraceRecorder::argval(unsigned n) const
 {
-    JS_ASSERT((n >= 0) && (n <= cx->fp->argc));
+    JS_ASSERT((n >= 0) && (n < cx->fp->argc));
     return cx->fp->argv[n];
 }
 
 jsval&
 TraceRecorder::varval(unsigned n) const
 {
-    JS_ASSERT((n >= 0) && (n <= cx->fp->nvars));
+    JS_ASSERT((n >= 0) && (n < cx->fp->nvars));
     return cx->fp->vars[n];
 }
 
@@ -999,6 +1057,18 @@ TraceRecorder::stackval(int n) const
     JS_ASSERT((cx->fp->regs->sp + n < cx->fp->spbase + cx->fp->script->depth) &&
             (cx->fp->regs->sp + n >= cx->fp->spbase));
     return cx->fp->regs->sp[n];
+}
+
+LIns*
+TraceRecorder::gvar(unsigned n)
+{
+    return get(&gvarval(n));
+}
+
+void 
+TraceRecorder::gvar(unsigned n, LIns* i)
+{
+    set(&gvarval(n), i);
 }
 
 LIns*
