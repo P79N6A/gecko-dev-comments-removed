@@ -549,7 +549,10 @@ nsresult nsPluginNativeWindowWin::SubclassAndAssociateWindow()
   
   
   
-  style &= ~WS_CLIPCHILDREN;
+  if (::GetPropW(hWnd, L"PluginInstanceParentProperty"))
+    style &= ~WS_CLIPCHILDREN;
+  else
+    style |= WS_CLIPCHILDREN;
 #else
   style |= WS_CLIPCHILDREN;
 #endif
