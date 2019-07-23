@@ -161,10 +161,18 @@ SessionStartup.prototype = {
     switch (aTopic) {
     case "app-startup": 
       observerService.addObserver(this, "final-ui-startup", true);
+      observerService.addObserver(this, "quit-application", true);
       break;
     case "final-ui-startup": 
       observerService.removeObserver(this, "final-ui-startup");
+      observerService.removeObserver(this, "quit-application");
       this.init();
+      break;
+    case "quit-application":
+      
+      
+      observerService.removeObserver(this, "final-ui-startup");
+      observerService.removeObserver(this, "quit-application");
       break;
     case "domwindowopened":
       var window = aSubject;
