@@ -32,9 +32,6 @@
 
 
 
-
-
-
   
 
 #ifndef JNI_MD_H
@@ -44,13 +41,10 @@
 
 #define JNICALL			JRI_CALLBACK
 
-
 #ifdef XP_WIN
 #define JNIEXPORT __declspec(dllexport)
 #else
 #define JNIEXPORT 
 #endif
-
-
 
 #endif 

@@ -900,7 +900,7 @@ NewControl(const char *pluginType,
 
 
 
-NPError NP_LOADDS NPP_New(NPMIMEType pluginType,
+NPError NPP_New(NPMIMEType pluginType,
                 NPP instance,
                 uint16_t mode,
                 int16_t argc,
@@ -964,7 +964,7 @@ NPError NP_LOADDS NPP_New(NPMIMEType pluginType,
 
 
 
-NPError NP_LOADDS
+NPError
 NPP_Destroy(NPP instance, NPSavedData** save)
 {
     ATLTRACE(_T("NPP_Destroy()\n"));
@@ -1035,7 +1035,7 @@ NPP_Destroy(NPP instance, NPSavedData** save)
 
 
 
-NPError NP_LOADDS
+NPError
 NPP_SetWindow(NPP instance, NPWindow* window)
 {
     ATLTRACE(_T("NPP_SetWindow()\n"));
@@ -1102,7 +1102,7 @@ NPP_SetWindow(NPP instance, NPWindow* window)
 
 
 
-NPError NP_LOADDS
+NPError
 NPP_NewStream(NPP instance,
               NPMIMEType type,
               NPStream *stream, 
@@ -1128,7 +1128,7 @@ NPP_NewStream(NPP instance,
 
 
 
-void NP_LOADDS
+void
 NPP_StreamAsFile(NPP instance, NPStream *stream, const char* fname)
 {
     ATLTRACE(_T("NPP_StreamAsFile()\n"));
@@ -1161,7 +1161,7 @@ int32_t STREAMBUFSIZE = 0X0FFFFFFF;
 
 
 
-int32_t NP_LOADDS
+int32_t
 NPP_WriteReady(NPP instance, NPStream *stream)
 {
     return STREAMBUFSIZE;  
@@ -1172,7 +1172,7 @@ NPP_WriteReady(NPP instance, NPStream *stream)
 
 
 
-int32_t NP_LOADDS
+int32_t
 NPP_Write(NPP instance, NPStream *stream, int32_t offset, int32_t len, void *buffer)
 {   
     return len;
@@ -1186,7 +1186,7 @@ NPP_Write(NPP instance, NPStream *stream, int32_t offset, int32_t len, void *buf
 
 
 
-NPError NP_LOADDS
+NPError
 NPP_DestroyStream(NPP instance, NPStream *stream, NPError reason)
 {
     
@@ -1200,7 +1200,7 @@ NPP_DestroyStream(NPP instance, NPStream *stream, NPError reason)
 
 
 
-void NP_LOADDS
+void
 NPP_Print(NPP instance, NPPrint* printInfo)
 {
     if(printInfo == NULL)   
@@ -1245,7 +1245,7 @@ NPP_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData)
     }
 }
 
-NPError	NP_LOADDS
+NPError
 NPP_GetValue(NPP instance, NPPVariable variable, void *value)
 {
     NPError rv = NPERR_GENERIC_ERROR;
@@ -1255,7 +1255,7 @@ NPP_GetValue(NPP instance, NPPVariable variable, void *value)
     return rv;
 }
 
-NPError	NP_LOADDS
+NPError
 NPP_SetValue(NPP instance, NPNVariable variable, void *value)
 {
     return NPERR_GENERIC_ERROR;

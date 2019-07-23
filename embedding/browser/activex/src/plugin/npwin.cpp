@@ -38,7 +38,6 @@ static NPPluginFuncs* g_pluginFuncs;
 
 
 
-
 NPError WINAPI NP_EXPORT
 NP_GetEntryPoints(NPPluginFuncs* pFuncs)
 {
@@ -116,7 +115,6 @@ NP_Shutdown()
     g_pNavigatorFuncs = NULL;
     return NPERR_NO_ERROR;
 }
-
 
 
 
