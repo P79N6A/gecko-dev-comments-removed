@@ -2635,11 +2635,6 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 {
   *aResult = nsnull;
 
-  if (!mIsRegularHTML) {
-    
-    return NS_OK;
-  }
-
   nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
 
   
