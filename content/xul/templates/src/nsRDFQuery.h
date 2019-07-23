@@ -87,9 +87,9 @@ public:
 
 
 
-    TestNode* GetRoot() { return mRoot; };
+    TestNode* GetRoot() { return mRoot; }
 
-    void SetRoot(TestNode* aRoot) { mRoot = aRoot; };
+    void SetRoot(TestNode* aRoot) { mRoot = aRoot; }
 
     void GetQueryNode(nsIDOMNode** aQueryNode)
     {

@@ -220,7 +220,7 @@ public:
   nsSVGReadonlyRect(float x, float y, float width, float height)
     : nsSVGRect(x, y, width, height)
   {
-  };
+  }
 
   
   NS_IMETHODIMP SetX(float) { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }

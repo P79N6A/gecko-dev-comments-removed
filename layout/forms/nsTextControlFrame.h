@@ -200,7 +200,7 @@ public:
   void SetFireChangeEventState(PRBool aNewState)
   {
     mFireChangeEventState = aNewState;
-  };
+  }
 
   PRBool GetFireChangeEventState() const
   {

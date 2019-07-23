@@ -73,7 +73,7 @@ public:
   NS_DECL_NSISTREAMLISTENER
 
 private:
-  ~TableUpdateListener() {};
+  ~TableUpdateListener() {}
 
   
   nsCOMPtr<nsIUrlClassifierCallback> mTableCallback;

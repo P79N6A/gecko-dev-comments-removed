@@ -68,10 +68,10 @@ public:
 
   virtual const char* GetCharSetName();
   virtual nsProbingState HandleData(const char* aBuf, PRUint32 aLen);
-  virtual nsProbingState GetState(void) {return mState;};
+  virtual nsProbingState GetState(void) {return mState;}
   virtual void      Reset(void);
   virtual float     GetConfidence(void);
-  virtual void      SetOpion() {};
+  virtual void      SetOpion() {}
   
   
   
@@ -79,7 +79,7 @@ public:
   
   
   
-  PRBool KeepEnglishLetters() {return mModel->keepEnglishLetter;}; 
+  PRBool KeepEnglishLetters() {return mModel->keepEnglishLetter;} 
 
 #ifdef DEBUG_chardet
   virtual void  DumpStatus();

@@ -120,6 +120,6 @@ private:
 
 
 
-    void* operator new(size_t sz) CPP_THROW_NEW { return nsnull; };
+    void* operator new(size_t sz) CPP_THROW_NEW { return nsnull; }
 };
 

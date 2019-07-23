@@ -61,9 +61,9 @@
 class nsBinaryOutputStream : public nsIObjectOutputStream
 {
 public:
-    nsBinaryOutputStream() {};
+    nsBinaryOutputStream() {}
     
-    virtual ~nsBinaryOutputStream() {};
+    virtual ~nsBinaryOutputStream() {}
 
 protected:
     
@@ -101,9 +101,9 @@ protected:
 class nsBinaryInputStream : public nsIObjectInputStream
 {
 public:
-    nsBinaryInputStream() {};
+    nsBinaryInputStream() {}
     
-    virtual ~nsBinaryInputStream() {};
+    virtual ~nsBinaryInputStream() {}
 
 protected:
     

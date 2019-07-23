@@ -78,7 +78,7 @@ protected:
                        modificationType aModType);
   PRInt32 GetModifyNestCount() { return mModifyNestCount; }
 private:
-  virtual void OnDidModify(){}; 
+  virtual void OnDidModify(){} 
   
   nsSmallVoidArray mObservers;
   PRInt32 mModifyNestCount;

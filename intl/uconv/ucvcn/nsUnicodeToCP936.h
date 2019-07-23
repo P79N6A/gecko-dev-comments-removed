@@ -56,7 +56,7 @@ public:
   
 
 
-  nsUnicodeToCP936() {};
+  nsUnicodeToCP936() {}
 
 
 };

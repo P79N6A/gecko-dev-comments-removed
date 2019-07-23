@@ -700,7 +700,7 @@ protected:
   virtual PRInt32 GetDefaultNamespaceID() const
   {
     return kNameSpaceID_None;
-  };
+  }
 
   
   void DispatchEventToWindow(nsEvent *aEvent);

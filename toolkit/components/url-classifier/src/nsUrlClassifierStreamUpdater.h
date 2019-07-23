@@ -66,7 +66,7 @@ public:
 
 private:
   
-  ~nsUrlClassifierStreamUpdater() {};
+  ~nsUrlClassifierStreamUpdater() {}
 
   
   nsUrlClassifierStreamUpdater(nsUrlClassifierStreamUpdater&);

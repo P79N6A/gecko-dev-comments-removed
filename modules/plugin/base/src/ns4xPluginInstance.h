@@ -145,7 +145,7 @@ public:
     PRBool IsStarted(void);
 
     
-    nsresult SetCached(PRBool aCache) { mCached = aCache; return NS_OK; };
+    nsresult SetCached(PRBool aCache) { mCached = aCache; return NS_OK; }
 
     
     nsIPluginInstancePeer *Peer()

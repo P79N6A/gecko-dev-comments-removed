@@ -56,7 +56,7 @@ public:
   
 
 
-  nsCP936ToUnicode(){};
+  nsCP936ToUnicode(){}
 
 };
 

@@ -183,7 +183,7 @@ public:
   nsSVGReadonlyPoint(float x, float y)
     : nsSVGPoint(x, y)
   {
-  };
+  }
 
   
   NS_IMETHODIMP SetX(float) { return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR; }

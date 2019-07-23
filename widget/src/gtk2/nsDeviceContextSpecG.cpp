@@ -115,7 +115,7 @@ protected:
 class nsPrinterFeatures {
 public:
   nsPrinterFeatures( const char *printername );
-  ~nsPrinterFeatures() {};
+  ~nsPrinterFeatures() {}
 
   
   void SetCanChangePaperSize( PRBool aCanSetPaperSize );

@@ -89,7 +89,7 @@ public:
     
     
 
-    nsCNullSecurityContext() { };
+    nsCNullSecurityContext() { }
 };
 
 #endif 

@@ -76,7 +76,7 @@ class nsMyObserver : public nsICharsetDetectionObserver
 
    
    NS_IMETHOD Notify(const char* aCharset, nsDetectionConfident aConf);
-   void SetNotifyByReload(PRBool aByReload) { mNotifyByReload = aByReload; };
+   void SetNotifyByReload(PRBool aByReload) { mNotifyByReload = aByReload; }
  private:
      nsCOMPtr<nsIWebShellServices> mWebShellSvc;
      PRBool mNotifyByReload;
@@ -119,8 +119,8 @@ class nsDetectionAdaptor :
 
    
    
-   NS_IMETHOD WillAddToken(CToken & token) { return NS_OK; };
-   NS_IMETHOD ProcessTokens( void ) {return NS_OK;};
+   NS_IMETHOD WillAddToken(CToken & token) { return NS_OK; }
+   NS_IMETHOD ProcessTokens( void ) {return NS_OK;}
 
   private:
      nsCOMPtr<nsICharsetDetector> mDetector;

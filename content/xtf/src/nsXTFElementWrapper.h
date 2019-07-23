@@ -133,7 +133,7 @@ protected:
   virtual nsIXTFElement* GetXTFElement() const
   {
     return mXTFElement;
-  };
+  }
   
   
   PRBool QueryInterfaceInner(REFNSIID aIID, void** result);

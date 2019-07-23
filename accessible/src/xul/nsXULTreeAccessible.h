@@ -60,7 +60,7 @@ public:
   NS_DECL_NSIACCESSIBLETREECACHE
 
   nsXULTreeAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
-  virtual ~nsXULTreeAccessible() {};
+  virtual ~nsXULTreeAccessible() {}
 
   
   NS_IMETHOD Shutdown();

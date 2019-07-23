@@ -77,7 +77,7 @@ protected:
                                 char * aDest, PRInt32 * aDestLength)
   {
     return NS_OK;
-  };  
+  }  
 
   PRUint16 mHZState;
 protected:

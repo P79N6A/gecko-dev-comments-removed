@@ -46,7 +46,7 @@ class nsUTF16ToUnicodeBase : public nsBasicDecoderSupport
 {
 protected:
   
-  nsUTF16ToUnicodeBase() { Reset();};
+  nsUTF16ToUnicodeBase() { Reset();}
 
 public: 
   

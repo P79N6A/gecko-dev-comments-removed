@@ -45,10 +45,10 @@
 class CharDistributionAnalysis
 {
 public:
-  CharDistributionAnalysis() {Reset();};
+  CharDistributionAnalysis() {Reset();}
 
   
-  void HandleData(const char* aBuf, PRUint32 aLen) {};
+  void HandleData(const char* aBuf, PRUint32 aLen) {}
   
   
   void HandleOneChar(const char* aStr, PRUint32 aCharLen)
@@ -68,7 +68,7 @@ public:
           mFreqChars++;
       }
     }
-  };
+  }
 
   
   float GetConfidence();
@@ -79,21 +79,21 @@ public:
     mDone = PR_FALSE;
     mTotalChars = 0;
     mFreqChars = 0;
-  };
+  }
 
   
   
-  void      SetOpion(){};
+  void      SetOpion(){}
 
   
   
-  PRBool GotEnoughData() {return mTotalChars > ENOUGH_DATA_THRESHOLD;};
+  PRBool GotEnoughData() {return mTotalChars > ENOUGH_DATA_THRESHOLD;}
 
 protected:
   
   
   
-  virtual PRInt32 GetOrder(const char* str) {return -1;};
+  virtual PRInt32 GetOrder(const char* str) {return -1;}
   
   
   PRBool   mDone;
@@ -131,7 +131,7 @@ protected:
       return 94*((unsigned char)str[0]-(unsigned char)0xc4) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
       return -1;
-  };
+  }
 };
 
 
@@ -149,7 +149,7 @@ protected:
       return 94*((unsigned char)str[0]-(unsigned char)0xb0) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
       return -1;
-  };
+  }
 };
 
 class GB2312DistributionAnalysis : public CharDistributionAnalysis
@@ -166,7 +166,7 @@ protected:
       return 94*((unsigned char)str[0]-(unsigned char)0xb0) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
       return -1;
-  };
+  }
 };
 
 
@@ -187,7 +187,7 @@ protected:
         return 157*((unsigned char)str[0]-(unsigned char)0xa4) + (unsigned char)str[1] - (unsigned char)0x40;
     else
       return -1;
-  };
+  }
 };
 
 class SJISDistributionAnalysis : public CharDistributionAnalysis
@@ -212,7 +212,7 @@ protected:
     if ((unsigned char)str[1] > (unsigned char)0x7f)
       order--;
     return order;
-  };
+  }
 };
 
 class EUCJPDistributionAnalysis : public CharDistributionAnalysis
@@ -229,7 +229,7 @@ protected:
       return 94*((unsigned char)str[0]-(unsigned char)0xa1) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
       return -1;
-  };
+  }
 };
 
 #endif 

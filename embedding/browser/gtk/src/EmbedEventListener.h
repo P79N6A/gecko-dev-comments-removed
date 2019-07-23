@@ -120,7 +120,7 @@ class EmbedEventListener : public nsIDOMKeyListener,
   
   NS_IMETHOD MouseMove(nsIDOMEvent* aDOMEvent);
   NS_IMETHOD DragMove(nsIDOMEvent* aMouseEvent);
-  EmbedContextMenuInfo* GetContextInfo() { return mCtxInfo; };
+  EmbedContextMenuInfo* GetContextInfo() { return mCtxInfo; }
 
   
   NS_IMETHOD Focus(nsIDOMEvent* aEvent);

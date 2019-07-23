@@ -72,7 +72,7 @@ public:
 
 protected:
   nsPrefBranch()	
-    { };
+    { }
 
   nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, PRUnichar **return_buf);
   const char *getPrefName(const char *aPrefName);

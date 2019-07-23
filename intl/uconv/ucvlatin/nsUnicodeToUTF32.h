@@ -60,8 +60,8 @@ public:
  
 
 
-  nsUnicodeToUTF32() {mHighSurrogate = 0;};
-  virtual ~nsUnicodeToUTF32() {};
+  nsUnicodeToUTF32() {mHighSurrogate = 0;}
+  virtual ~nsUnicodeToUTF32() {}
 
 protected:
   PRUnichar  mHighSurrogate;
@@ -72,12 +72,12 @@ protected:
   
   
 
-  NS_IMETHOD Reset() {mHighSurrogate = 0; return NS_OK;};
+  NS_IMETHOD Reset() {mHighSurrogate = 0; return NS_OK;}
   NS_IMETHOD FillInfo(PRUint32* aInfo);
   NS_IMETHOD SetOutputErrorBehavior(PRInt32 aBehavior, 
                                     nsIUnicharEncoder * aEncoder, 
                                     PRUnichar aChar) 
-                                    {return NS_OK;};
+                                    {return NS_OK;}
 
 };
 

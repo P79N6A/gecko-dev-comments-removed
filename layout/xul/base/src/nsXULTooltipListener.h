@@ -66,29 +66,29 @@ public:
   
   NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent);
-  NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent) { return NS_OK; };
-  NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent) { return NS_OK; };
-  NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent) { return NS_OK; };
+  NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+  NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent) { return NS_OK; }
+  NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent) { return NS_OK; }
   NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent);
 
   
-  NS_IMETHOD DragMove(nsIDOMEvent* aMouseEvent) { return NS_OK; };
+  NS_IMETHOD DragMove(nsIDOMEvent* aMouseEvent) { return NS_OK; }
   NS_IMETHOD MouseMove(nsIDOMEvent* aMouseEvent);
 
   
   NS_IMETHOD KeyDown(nsIDOMEvent* aKeyEvent);
-  NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent) { return NS_OK; };
-  NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent) { return NS_OK; };
+  NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent) { return NS_OK; }
+  NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent) { return NS_OK; }
 
   
-  NS_IMETHOD PopupShowing(nsIDOMEvent* aEvent) { return NS_OK; };
-  NS_IMETHOD PopupShown(nsIDOMEvent* aEvent) { return NS_OK; };
+  NS_IMETHOD PopupShowing(nsIDOMEvent* aEvent) { return NS_OK; }
+  NS_IMETHOD PopupShown(nsIDOMEvent* aEvent) { return NS_OK; }
   NS_IMETHOD PopupHiding(nsIDOMEvent* aEvent);
-  NS_IMETHOD PopupHidden(nsIDOMEvent* aEvent) { return NS_OK; };
-  NS_IMETHOD Close(nsIDOMEvent* aEvent) { return NS_OK; };
-  NS_IMETHOD Command(nsIDOMEvent* aEvent) { return NS_OK; };
-  NS_IMETHOD Broadcast(nsIDOMEvent* aEvent) { return NS_OK; };
-  NS_IMETHOD CommandUpdate(nsIDOMEvent* aEvent) { return NS_OK; };
+  NS_IMETHOD PopupHidden(nsIDOMEvent* aEvent) { return NS_OK; }
+  NS_IMETHOD Close(nsIDOMEvent* aEvent) { return NS_OK; }
+  NS_IMETHOD Command(nsIDOMEvent* aEvent) { return NS_OK; }
+  NS_IMETHOD Broadcast(nsIDOMEvent* aEvent) { return NS_OK; }
+  NS_IMETHOD CommandUpdate(nsIDOMEvent* aEvent) { return NS_OK; }
 
   
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);

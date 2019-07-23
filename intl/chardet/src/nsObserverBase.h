@@ -48,8 +48,8 @@ class nsObserverBase {
 
 public:
 
-  nsObserverBase() {};
-  virtual ~nsObserverBase() {};
+  nsObserverBase() {}
+  virtual ~nsObserverBase() {}
 
   
 
