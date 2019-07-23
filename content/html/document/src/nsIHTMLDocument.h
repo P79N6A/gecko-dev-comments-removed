@@ -144,6 +144,14 @@ public:
 
 
   virtual PRBool IsEditingOn() = 0;
+
+  
+
+
+
+
+  virtual nsresult GetDocumentAllResult(const nsAString& aID,
+                                        nsISupports** aResult) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIHTMLDocument, NS_IHTMLDOCUMENT_IID)

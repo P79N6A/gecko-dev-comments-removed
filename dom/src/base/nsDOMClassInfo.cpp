@@ -7876,44 +7876,12 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
 
       nsDependentJSString str(id);
 
-      nsCOMPtr<nsIDOMElement> element;
-      domdoc->GetElementById(str, getter_AddRefs(element));
+      rv = doc->GetDocumentAllResult(str, getter_AddRefs(result));
 
-      result = element;
+      if (NS_FAILED(rv)) {
+        nsDOMClassInfo::ThrowJSException(cx, rv);
 
-      if (!result) {
-        doc->ResolveName(str, nsnull, getter_AddRefs(result));
-      }
-
-      if (!result) {
-        nsCOMPtr<nsIDOMNodeList> nodeList;
-        rv = domdoc->GetElementsByName(str, getter_AddRefs(nodeList));
-
-        if (nodeList) {
-          
-          
-          
-          
-          
-          
-
-          nsCOMPtr<nsIDOMNode> node;
-          rv |= nodeList->Item(1, getter_AddRefs(node));
-
-          if (node) {
-            result = nodeList;
-          } else {
-            rv |= nodeList->Item(0, getter_AddRefs(node));
-
-            result = node;
-          }
-        }
-
-        if (NS_FAILED(rv)) {
-          nsDOMClassInfo::ThrowJSException(cx, rv);
-
-          return JS_FALSE;
-        }
+        return JS_FALSE;
       }
     }
   } else if (JSVAL_TO_INT(id) >= 0) {
@@ -7940,6 +7908,8 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSObject *obj,
 
       return JS_FALSE;
     }
+  } else {
+    *vp = JSVAL_VOID;
   }
 
   return JS_TRUE;
