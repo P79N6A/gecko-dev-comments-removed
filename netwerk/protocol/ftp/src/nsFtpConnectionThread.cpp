@@ -1259,34 +1259,18 @@ nsFtpState::S_pasv() {
     if (!mAddressChecked) {
         
         mAddressChecked = PR_TRUE;
-        PR_InitializeNetAddr(PR_IpAddrAny, 0, &mServerAddress);
-
         nsITransport *controlSocket = mControlConnection->Transport();
         if (!controlSocket)
             return FTP_ERROR;
 
         nsCOMPtr<nsISocketTransport> sTrans = do_QueryInterface(controlSocket);
         if (sTrans) {
-            nsresult rv = sTrans->GetPeerAddr(&mServerAddress);
+            PRNetAddr addr;
+            nsresult rv = sTrans->GetPeerAddr(&addr);
             if (NS_SUCCEEDED(rv)) {
-                if (!PR_IsNetAddrType(&mServerAddress, PR_IpAddrAny))
-                    mServerIsIPv6 = mServerAddress.raw.family == PR_AF_INET6 &&
-                        !PR_IsNetAddrType(&mServerAddress, PR_IpAddrV4Mapped);
-                else {
-                    
-
-
-
-
-
-
-                    PRNetAddr selfAddress;
-                    rv = sTrans->GetSelfAddr(&selfAddress);
-                    if (NS_SUCCEEDED(rv))
-                        mServerIsIPv6 = selfAddress.raw.family == PR_AF_INET6
-                            && !PR_IsNetAddrType(&selfAddress,
-                                                 PR_IpAddrV4Mapped);
-                }
+                mServerIsIPv6 = addr.raw.family == PR_AF_INET6 &&
+                                !PR_IsNetAddrType(&addr, PR_IpAddrV4Mapped);
+                PR_NetAddrToString(&addr, mServerAddress, sizeof(mServerAddress));
             }
         }
     }
@@ -1409,32 +1393,14 @@ nsFtpState::R_pasv() {
             return FTP_ERROR;
        
         nsCOMPtr<nsISocketTransport> strans;
-
-        nsCAutoString host;
-        if (!PR_IsNetAddrType(&mServerAddress, PR_IpAddrAny)) {
-            char buf[64];
-            PR_NetAddrToString(&mServerAddress, buf, sizeof(buf));
-            host.Assign(buf);
-        } else {
-            
-
-
-
-
-
-            rv = mChannel->URI()->GetAsciiHost(host);
-            if (NS_FAILED(rv))
-                return FTP_ERROR;
-        }
-
-        rv =  sts->CreateTransport(nsnull, 0, host,
-                                   port, mChannel->ProxyInfo(),
-                                   getter_AddRefs(strans)); 
+        rv = sts->CreateTransport(nsnull, 0, nsDependentCString(mServerAddress),
+                                  port, mChannel->ProxyInfo(),
+                                  getter_AddRefs(strans)); 
         if (NS_FAILED(rv))
             return FTP_ERROR;
         mDataTransport = strans;
         
-        LOG(("FTP:(%x) created DT (%s:%x)\n", this, host.get(), port));
+        LOG(("FTP:(%x) created DT (%s:%x)\n", this, mServerAddress, port));
         
         
         rv = mDataTransport->SetEventSink(this, NS_GetCurrentThread());
