@@ -395,6 +395,18 @@ public:
 
     JSContext* GetSafeJSContext();
 
+    
+
+
+
+
+
+    static PRBool SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
+
+    static nsresult 
+    ReportError(JSContext* cx, const nsAString& messageTag,
+                nsIURI* aSource, nsIURI* aTarget);
+
 private:
 
     
@@ -420,10 +432,6 @@ private:
     nsIPrincipal*
     doGetSubjectPrincipal(nsresult* rv);
     
-    static nsresult 
-    ReportError(JSContext* cx, const nsAString& messageTag,
-                nsIURI* aSource, nsIURI* aTarget);
-
     nsresult
     CheckPropertyAccessImpl(PRUint32 aAction,
                             nsAXPCNativeCallContext* aCallContext,
@@ -541,15 +549,8 @@ private:
 
 
     
-
-
-
-
-
-    PRBool SecurityCompareURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
-
-    
-    PRBool SecurityCompareFileURIs(nsIURI* aSourceURI, nsIURI* aTargetURI);
+    static PRBool SecurityCompareFileURIs(nsIURI* aSourceURI,
+                                          nsIURI* aTargetURI);
 
 #ifdef XPC_IDISPATCH_SUPPORT
     
@@ -590,7 +591,8 @@ private:
     PRPackedBool mXPCDefaultGrantAll;
     static const char sXPCDefaultGrantAllName[];
 #endif
-    PRInt32 mFileURIOriginPolicy;
+
+    static PRInt32 sFileURIOriginPolicy;
 
     static nsIIOService    *sIOService;
     static nsIXPConnect    *sXPConnect;
