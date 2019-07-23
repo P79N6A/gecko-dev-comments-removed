@@ -566,10 +566,9 @@ LoginManagerPrompter.prototype = {
             
             
             if (notifyWindow.opener) {
-                var webnav = notifyWindow
+                var chromeWin = notifyWindow
                                     .QueryInterface(Ci.nsIInterfaceRequestor)
-                                    .getInterface(Ci.nsIWebNavigation);
-                var chromeWin = webnav
+                                    .getInterface(Ci.nsIWebNavigation)
                                     .QueryInterface(Ci.nsIDocShellTreeItem)
                                     .rootTreeItem
                                     .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -578,10 +577,7 @@ LoginManagerPrompter.prototype = {
 
                 
                 
-                
-                
-                if (chromeDoc.getAttribute("chromehidden") &&
-                    webnav.sessionHistory.count == 1) {
+                if (chromeDoc.getAttribute("chromehidden")) {
                     this.log("Using opener window for notification bar.");
                     notifyWindow = notifyWindow.opener;
                 }
