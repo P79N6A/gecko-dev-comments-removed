@@ -353,7 +353,8 @@ nsObjectLoadingContent::~nsObjectLoadingContent()
 
 
 NS_IMETHODIMP
-nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
+nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
+                                       nsISupports *aContext)
 {
   if (aRequest != mChannel) {
     
@@ -409,6 +410,17 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
     mContentType = channelType;
   }
 
+  nsCOMPtr<nsIURI> uri;
+  chan->GetURI(getter_AddRefs(uri));
+
+  if (mContentType.EqualsASCII(APPLICATION_OCTET_STREAM)) {
+    nsCAutoString extType;
+    if (IsPluginEnabledByExtension(uri, extType)) {
+      mContentType = extType;
+      chan->SetContentType(extType);
+    }
+  }
+
   
   
   
@@ -430,8 +442,6 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest, nsISupports *aConte
       contentPolicyType = nsIContentPolicy::TYPE_OBJECT;
       break;
   }
-  nsCOMPtr<nsIURI> uri;
-  chan->GetURI(getter_AddRefs(uri));
   nsCOMPtr<nsIContent> thisContent = 
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ASSERTION(thisContent, "must be a content");
