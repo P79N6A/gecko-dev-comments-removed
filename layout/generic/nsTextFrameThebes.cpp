@@ -503,6 +503,14 @@ static PRBool IsTrimmableSpace(const nsTextFragment* aFrag, PRUint32 aPos)
   return ch == '\t' || ch == '\n' || ch == '\f';
 }
 
+static PRBool IsTrimmableSpace(const nsTextFragment* aFrag,
+                               const nsStyleText* aText, PRUint32 aPos)
+{
+  if (aText->WhiteSpaceIsSignificant())
+    return PR_FALSE;
+  return IsTrimmableSpace(aFrag, aPos);
+}
+
 static PRBool IsSelectionSpace(const nsTextFragment* aFrag, PRUint32 aPos)
 {
   NS_ASSERTION(aPos < aFrag->GetLength(), "No text for IsSpace!");
@@ -4775,12 +4783,14 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
         nscoord trailingWhitespaceWidth;
         PRUint32 trimStart = GetEndOfTrimmedText(frag, wordStart, i, &iter);
         if (trimStart == start) {
-          trailingWhitespaceWidth = width;
+          
+          
+          aData->trailingWhitespace += width;
         } else {
-          trailingWhitespaceWidth =
+          
+          aData->trailingWhitespace =
             NSToCoordCeil(mTextRun->GetAdvanceWidth(trimStart, i - trimStart, &provider));
         }
-        aData->trailingWhitespace += trailingWhitespaceWidth;
       } else {
         aData->trailingWhitespace = 0;
       }
@@ -4798,7 +4808,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
 
   
   aData->skipWhitespace =
-    IsTrimmableSpace(provider.GetFragment(),
+    IsTrimmableSpace(provider.GetFragment(), provider.GetStyleText(),
                      iter.ConvertSkippedToOriginal(flowEndInTextRun - 1));
 }
 
@@ -4851,20 +4861,20 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
   if (collapseWhitespace) {
     
     
-    aData->currentLine +=
+    nscoord width =
       NSToCoordCeil(mTextRun->GetAdvanceWidth(start, flowEndInTextRun - start, &provider));
+    aData->currentLine += width;
 
     PRUint32 trimStart = GetEndOfTrimmedText(provider.GetFragment(), start,
                                              flowEndInTextRun, &iter);
-    nscoord trimWidth =
-      NSToCoordCeil(mTextRun->GetAdvanceWidth(trimStart, flowEndInTextRun - trimStart, &provider));
     if (trimStart == start) {
       
       
-      aData->trailingWhitespace += trimWidth;
+      aData->trailingWhitespace += width;
     } else {
       
-      aData->trailingWhitespace = trimWidth;
+      aData->trailingWhitespace =
+        NSToCoordCeil(mTextRun->GetAdvanceWidth(trimStart, flowEndInTextRun - trimStart, &provider));
     }
   } else {
     
@@ -4886,7 +4896,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsIRenderingContext *aRenderingContext,
 
   
   aData->skipWhitespace =
-    IsTrimmableSpace(provider.GetFragment(),
+    IsTrimmableSpace(provider.GetFragment(), provider.GetStyleText(),
                      iter.ConvertSkippedToOriginal(flowEndInTextRun - 1));
 }
 
