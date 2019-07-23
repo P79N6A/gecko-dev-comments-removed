@@ -4334,7 +4334,21 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         else
           event.mSizeMode = nsSizeMode_Normal;
 #else
-        event.mSizeMode = mSizeMode;
+        
+        
+        
+        RECT wr;
+        ::GetWindowRect(mWnd, &wr);
+
+        if (::IsIconic(mWnd))
+          event.mSizeMode = nsSizeMode_Minimized;
+        else if (wr.left   == 0 &&
+                 wr.top    == 0 &&
+                 wr.right  == ::GetSystemMetrics(SM_CXSCREEN) &&
+                 wr.bottom == ::GetSystemMetrics(SM_CYSCREEN))
+          event.mSizeMode = nsSizeMode_Maximized;
+        else
+          event.mSizeMode = nsSizeMode_Normal;
 #endif
         InitEvent(event);
 
