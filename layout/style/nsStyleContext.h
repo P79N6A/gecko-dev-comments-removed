@@ -115,8 +115,17 @@ public:
                                                   NS_STYLE_CONTEXT_TYPE_SHIFT);
   }
 
+  
+  
+  
+  
+  
+  
+  
   NS_HIDDEN_(already_AddRefed<nsStyleContext>)
-  FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules);
+  FindChildWithRules(const nsIAtom* aPseudoTag, nsRuleNode* aRules,
+                     nsRuleNode* aRulesIfVisited,
+                     PRBool aRelevantLinkVisited);
 
   
   
