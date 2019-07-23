@@ -6904,28 +6904,31 @@ js_MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, RecordReason reason)
 
     
     if (tm->recorder) {
-        jsbytecode* innerLoopHeaderPC = cx->fp->regs->pc;
+        jsbytecode* pc = cx->fp->regs->pc;
+        if (pc == tm->recorder->tree->ip) {
+            tm->recorder->closeLoop();
+        } else {
+            if (TraceRecorder::recordLoopEdge(cx, tm->recorder, inlineCallCount))
+                return true;
 
-        if (TraceRecorder::recordLoopEdge(cx, tm->recorder, inlineCallCount))
-            return true;
-
-        
-
-
-
-
+            
 
 
 
 
 
 
-         if (innerLoopHeaderPC != cx->fp->regs->pc) {
+
+
+
+
+            if (pc != cx->fp->regs->pc) {
 #ifdef MOZ_TRACEVIS
-             tvso.r = R_INNER_SIDE_EXIT;
+                tvso.r = R_INNER_SIDE_EXIT;
 #endif
-             return false;
-         }
+                return false;
+            }
+        }
     }
     JS_ASSERT(!tm->recorder);
 
