@@ -186,6 +186,14 @@ class nsParser : public nsIParser,
 
 
 
+    NS_IMETHOD_(nsDTDMode) GetParseMode(void);
+
+    
+
+
+
+
+
 
     NS_IMETHOD Parse(nsIURI* aURL,
                      nsIRequestObserver* aListener = nsnull,
@@ -216,7 +224,11 @@ class nsParser : public nsIParser,
                              const nsACString& aContentType,
                              nsDTDMode aMode = eDTDMode_autodetect);
 
-
+    NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
+                             nsISupports* aTargetNode,
+                             nsIAtom* aContextLocalName,
+                             PRInt32 aContextNamespace);
+                             
     
 
 
@@ -331,7 +343,7 @@ class nsParser : public nsIParser,
 
 
 
-    virtual PRBool CanInterrupt();
+    PRBool CanInterrupt(void);
 
     
 
@@ -381,9 +393,18 @@ class nsParser : public nsIParser,
       return sSpeculativeThreadPool;
     }
 
-    PRBool IsScriptExecuting() {
-      return mSink && mSink->IsScriptExecuting();
-    }
+    
+
+
+
+
+    virtual void ScriptExecuting();
+
+    
+
+
+
+    virtual void ScriptDidExecute();
 
  protected:
 
@@ -454,7 +475,6 @@ protected:
     
       
     CParserContext*              mParserContext;
-    nsCOMPtr<nsIDTD>             mDTD;
     nsCOMPtr<nsIRequestObserver> mObserver;
     nsCOMPtr<nsIContentSink>     mSink;
     nsIRunnable*                 mContinueEvent;  
@@ -469,6 +489,7 @@ protected:
     PRInt32             mCharsetSource;
     
     PRUint16            mFlags;
+    PRUint32            mScriptsExecuting;
 
     nsString            mUnusedInput;
     nsCString           mCharset;

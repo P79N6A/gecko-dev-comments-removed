@@ -216,6 +216,10 @@ class nsHtml5Parser : public nsIParser,
                              const nsACString& aContentType,
                              nsDTDMode aMode = eDTDMode_autodetect);
 
+    NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
+                             nsISupports* aTargetNode,
+                             nsIAtom* aContextLocalName,
+                             PRInt32 aContextNamespace);
 
     
 

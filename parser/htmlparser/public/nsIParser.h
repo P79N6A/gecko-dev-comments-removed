@@ -52,6 +52,7 @@
 #include "nsIDTD.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
+#include "nsIAtom.h"
 
 
 #define NS_IPARSER_IID \
@@ -257,6 +258,11 @@ class nsIParser : public nsISupports {
                              PRBool aXMLMode,
                              const nsACString& aContentType,
                              nsDTDMode aMode = eDTDMode_autodetect) = 0;
+
+    NS_IMETHOD ParseFragment(const nsAString& aSourceBuffer,
+                             nsISupports* aTargetNode,
+                             nsIAtom* aContextLocalName,
+                             PRInt32 aContextNamespace) = 0;
 
     
 
