@@ -2071,11 +2071,13 @@ static nsresult GetPartialTextRect(nsLayoutUtils::RectCallback* aCallback,
     nsIFrame* relativeTo = nsLayoutUtils::GetContainingBlockForClientRect(textFrame);
     for (nsTextFrame* f = textFrame; f; f = static_cast<nsTextFrame*>(f->GetNextContinuation())) {
       PRInt32 fstart = f->GetContentOffset(), fend = f->GetContentEnd();
-      PRBool rtl = f->GetTextRun()->IsRightToLeft();
       if (fend <= aStartOffset || fstart >= aEndOffset)
         continue;
 
       
+      f->EnsureTextRun();
+      NS_ENSURE_TRUE(f->GetTextRun(), NS_ERROR_OUT_OF_MEMORY);
+      PRBool rtl = f->GetTextRun()->IsRightToLeft();
       nsRect r(f->GetOffsetTo(relativeTo), f->GetSize());
       if (fstart < aStartOffset) {
         
