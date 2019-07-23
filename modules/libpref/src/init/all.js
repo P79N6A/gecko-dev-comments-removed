@@ -964,8 +964,15 @@ pref("mousewheel.transaction.ignoremovedelay", 100);
 pref("mousewheel.enable_pixel_scrolling", true);
 
 
+
+
+pref("mousewheel.acceleration.start", 3);
+
+pref("mousewheel.acceleration.factor", 10);
+
+
 pref("mousewheel.withnokey.action",0);
-pref("mousewheel.withnokey.numlines",1);	
+pref("mousewheel.withnokey.numlines",6);
 pref("mousewheel.withnokey.sysnumlines",true);
 pref("mousewheel.withcontrolkey.action",0);
 pref("mousewheel.withcontrolkey.numlines",1);
