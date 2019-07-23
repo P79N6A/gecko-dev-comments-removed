@@ -3763,16 +3763,7 @@ nsTypedSelection::AddItem(nsIRange *aItem, PRInt32 *aOutIndex)
     
     
     startIndex = mRanges.Length();
-    endIndex = endIndex;
-  }
-
-  if (startIndex == endIndex) {
-    
-    if (!mRanges.InsertElementAt(startIndex, RangeData(aItem)))
-      return NS_ERROR_OUT_OF_MEMORY;
-    if (aOutIndex)
-      *aOutIndex = startIndex;
-    return NS_OK;
+    endIndex = startIndex;
   }
 
   
@@ -3781,6 +3772,15 @@ nsTypedSelection::AddItem(nsIRange *aItem, PRInt32 *aOutIndex)
                                         aItem->GetEndParent(),
                                         aItem->EndOffset(), startIndex);
   if (sameRange) {
+    if (aOutIndex)
+      *aOutIndex = startIndex;
+    return NS_OK;
+  }
+
+  if (startIndex == endIndex) {
+    
+    if (!mRanges.InsertElementAt(startIndex, RangeData(aItem)))
+      return NS_ERROR_OUT_OF_MEMORY;
     if (aOutIndex)
       *aOutIndex = startIndex;
     return NS_OK;
@@ -3896,6 +3896,42 @@ nsTypedSelection::GetType(PRInt16 *aType)
   *aType = mType;
 
   return NS_OK;
+}
+
+
+
+
+
+
+static inline PRBool
+RangeMatchesBeginPoint(nsIRange* aRange, nsINode* aNode, PRInt32 aOffset)
+{
+  return aRange->GetStartParent() == aNode && aRange->StartOffset() == aOffset;
+}
+
+static inline PRBool
+RangeMatchesEndPoint(nsIRange* aRange, nsINode* aNode, PRInt32 aOffset)
+{
+  return aRange->GetEndParent() == aNode && aRange->EndOffset() == aOffset;
+}
+
+
+
+
+
+PRBool
+nsTypedSelection::EqualsRangeAtPoint(
+    nsINode* aBeginNode, PRInt32 aBeginOffset,
+    nsINode* aEndNode, PRInt32 aEndOffset,
+    PRInt32 aRangeIndex)
+{
+  if (aRangeIndex >=0 && aRangeIndex < (PRInt32) mRanges.Length()) {
+    nsIRange* range = mRanges[aRangeIndex].mRange;
+    if (RangeMatchesBeginPoint(range, aBeginNode, aBeginOffset) &&
+        RangeMatchesEndPoint(range, aEndNode, aEndOffset))
+      return PR_TRUE;
+  }
+  return PR_FALSE;
 }
 
 
@@ -4026,12 +4062,30 @@ nsTypedSelection::GetIndicesForInterval(nsINode* aBeginNode,
   if (mRanges.Length() == 0)
     return;
 
+  PRBool intervalIsCollapsed = aBeginNode == aEndNode &&
+    aBeginOffset == aEndOffset;
+
   
   
   PRInt32 endsBeforeIndex =
     FindInsertionPoint(&mRanges, aEndNode, aEndOffset, &CompareToRangeStart);
-  if (endsBeforeIndex == 0)
-    return; 
+
+  if (endsBeforeIndex == 0) {
+    nsIRange* endRange = mRanges[endsBeforeIndex].mRange;
+
+    
+    
+    if (!RangeMatchesBeginPoint(endRange, aEndNode, aEndOffset))
+      return;
+
+    
+    
+    
+    
+    
+    if (!aAllowAdjacent && !(endRange->Collapsed() && intervalIsCollapsed))
+      return;
+  }
   *aEndIndex = endsBeforeIndex;
 
   PRInt32 beginsAfterIndex =
@@ -4043,68 +4097,63 @@ nsTypedSelection::GetIndicesForInterval(nsINode* aBeginNode,
     
     
     
-    if (endsBeforeIndex < mRanges.Length()) {
-      nsINode* endNode = mRanges[endsBeforeIndex].mRange->GetStartParent();
-      PRInt32 endOffset = mRanges[endsBeforeIndex].mRange->StartOffset();
-      if (endNode == aEndNode && endOffset == aEndOffset)
-        endsBeforeIndex++;
+    
+    
+    
+    
+    
+    
+    
+    while (endsBeforeIndex < (PRInt32) mRanges.Length()) {
+      nsIRange* endRange = mRanges[endsBeforeIndex].mRange;
+      if (!RangeMatchesBeginPoint(endRange, aEndNode, aEndOffset))
+        break;
+      endsBeforeIndex++;
     }
 
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    nsIRange* beginRange = mRanges[beginsAfterIndex].mRange;
+    if (beginsAfterIndex > 0 && beginRange->Collapsed() &&
+        RangeMatchesEndPoint(beginRange, aBeginNode, aBeginOffset)) {
+      beginRange = mRanges[beginsAfterIndex - 1].mRange;
+      if (RangeMatchesEndPoint(beginRange, aBeginNode, aBeginOffset))
+        beginsAfterIndex--;
+    }
   } else {
     
     
-    nsINode* startNode = mRanges[beginsAfterIndex].mRange->GetEndParent();
-    PRInt32 startOffset = mRanges[beginsAfterIndex].mRange->EndOffset();
-    if (startNode == aBeginNode && startOffset == aBeginOffset)
+    
+    
+    nsIRange* beginRange = mRanges[beginsAfterIndex].mRange;
+    if (RangeMatchesEndPoint(beginRange, aBeginNode, aBeginOffset) &&
+        !beginRange->Collapsed())
       beginsAfterIndex++;
 
     
     
     
+    
+    if (endsBeforeIndex < (PRInt32) mRanges.Length()) {
+      nsIRange* endRange = mRanges[endsBeforeIndex].mRange;
+      if (RangeMatchesBeginPoint(endRange, aEndNode, aEndOffset) &&
+          endRange->Collapsed())
+        endsBeforeIndex++;
+     }
   }
 
   *aStartIndex = beginsAfterIndex;
   *aEndIndex = endsBeforeIndex;
   return;
-}
-
-
-
-
-
-
-static inline PRBool
-RangeMatchesBeginPoint(nsIRange* aRange, nsINode* aNode, PRInt32 aOffset)
-{
-  return aRange->GetStartParent() == aNode && aRange->StartOffset() == aOffset;
-}
-
-static inline PRBool
-RangeMatchesEndPoint(nsIRange* aRange, nsINode* aNode, PRInt32 aOffset)
-{
-  return aRange->GetEndParent() == aNode && aRange->EndOffset() == aOffset;
-}
-
-
-
-
-
-PRBool
-nsTypedSelection::EqualsRangeAtPoint(
-    nsINode* aBeginNode, PRInt32 aBeginOffset,
-    nsINode* aEndNode, PRInt32 aEndOffset,
-    PRInt32 aRangeIndex)
-{
-  if (aRangeIndex >=0 && aRangeIndex < mRanges.Length()) {
-    nsIRange* range = mRanges[aRangeIndex].mRange;
-    if (RangeMatchesBeginPoint(range, aBeginNode, aBeginOffset)
-        && RangeMatchesEndPoint(range, aEndNode, aEndOffset))
-      return PR_TRUE;
-  }
-  return PR_FALSE;
 }
 
 
