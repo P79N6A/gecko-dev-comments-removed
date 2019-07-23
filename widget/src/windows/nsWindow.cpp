@@ -4852,7 +4852,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         newHeight = PRInt32(r.bottom - r.top);
         nsRect rect(wp->x, wp->y, newWidth, newHeight);
 
-
 #ifdef MOZ_XUL
         if (eTransparencyTransparent == mTransparencyMode)
           ResizeTranslucentWindow(newWidth, newHeight);
@@ -4894,7 +4893,9 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
         
         
         
-        if ( !newWidth && !newHeight && IsIconic(mWnd)) {
+        
+        HWND toplevelWnd = GetTopLevelHWND(mWnd);
+        if ( !newWidth && !newHeight && IsIconic(toplevelWnd)) {
           result = PR_FALSE;
           break;
         }
