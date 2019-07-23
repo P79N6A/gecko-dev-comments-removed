@@ -80,6 +80,18 @@
   "@mozilla.org/autocomplete/simple-result;1"
 
 
+
+
+
+
+
+inline PRBool
+StartsWithJS(const nsAString &aString)
+{
+  return StringBeginsWith(aString, NS_LITERAL_STRING("javascript:"));
+}
+
+
 nsresult
 nsNavHistory::InitAutoComplete()
 {
@@ -256,14 +268,15 @@ nsNavHistory::PerformAutoComplete()
     rv = StartAutoCompleteTimer(mAutoCompleteSearchTimeout);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
-    DoneSearching();
+    DoneSearching(PR_TRUE);
   }
   return NS_OK;
 }
 
 void
-nsNavHistory::DoneSearching()
+nsNavHistory::DoneSearching(PRBool aFinished)
 {
+  mAutoCompleteFinishedSearch = aFinished;
   mCurrentResult = nsnull;
   mCurrentListener = nsnull;
 }
@@ -284,6 +297,10 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   NS_ENSURE_ARG_POINTER(aListener);
 
   
+  PRUint32 prevMatchCount = mCurrentResultURLs.Count();
+  nsAutoString prevSearchString(mCurrentSearchString);
+
+  
   ToLowerCase(aSearchString, mCurrentSearchString);
   
   mCurrentSearchString.Trim(" \r\n\t\b");
@@ -294,6 +311,36 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   mCurrentResult = do_CreateInstance(NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  
+  
+  if (mAutoCompleteFinishedSearch &&
+      prevMatchCount < (PRUint32)mAutoCompleteMaxResults &&
+      !prevSearchString.IsEmpty() &&
+      StringBeginsWith(mCurrentSearchString, prevSearchString) &&
+      (StartsWithJS(prevSearchString) == StartsWithJS(mCurrentSearchString))) {
+
+    
+    if (prevMatchCount == 0) {
+      
+      mCurrentResult->SetSearchString(mCurrentSearchString);
+      mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
+      mCurrentResult->SetDefaultIndex(-1);
+
+      rv = mCurrentResult->SetListener(this);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      (void)mCurrentListener->OnSearchResult(this, mCurrentResult);
+      DoneSearching(PR_TRUE);
+
+      return NS_OK;
+    }
+  }
+
+  mAutoCompleteFinishedSearch = PR_FALSE;
   mCurrentChunkOffset = 0;
   mCurrentResultURLs.Clear();
   mCurrentSearchTokens.Clear();
@@ -342,7 +389,7 @@ nsNavHistory::StopSearch()
     mAutoCompleteTimer->Cancel();
 
   mCurrentSearchString.Truncate();
-  DoneSearching();
+  DoneSearching(PR_FALSE);
 
   return NS_OK;
 }
@@ -437,9 +484,8 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
   NS_ENSURE_TRUE(faviconService, NS_ERROR_OUT_OF_MEMORY);
 
   
-  const nsString &javascriptColon = NS_LITERAL_STRING("javascript:");
   PRBool filterJavascript = mAutoCompleteFilterJavascript &&
-    mCurrentSearchString.Find(javascriptColon) != 0;
+    !StartsWithJS(mCurrentSearchString);
 
   PRBool hasMore = PR_FALSE;
   
@@ -449,7 +495,7 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    if (filterJavascript && escapedEntryURL.Find(javascriptColon) == 0)
+    if (filterJavascript && StartsWithJS(escapedEntryURL))
       continue;
 
     
