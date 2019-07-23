@@ -171,11 +171,7 @@ namespace nanojit
         const CallInfo* call = ins->callInfo();
 		
 		uint32_t iargs = call->count_iargs();
-		int32_t fargs = call->count_args() - iargs - call->isIndirect();
-
-        bool imt = call->isInterface();
-        if (imt)
-            iargs --;
+        int32_t fargs = call->count_args() - iargs;
 
         uint32_t max_regs = max_abi_regs[call->_abi];
         if (max_regs > iargs)
@@ -205,19 +201,8 @@ namespace nanojit
             }
         }
 
-        bool indirect = false;
-        if (ins->isop(LIR_call) || ins->isop(LIR_fcall)) {
-    		CALL(call);
-        }
-        else {
-            
-            
-            
-            
-            NanoAssert(ins->isop(LIR_calli) || ins->isop(LIR_fcalli));
-            CALLr(call, EAX);
-            indirect = true;
-        }
+        NanoAssert(ins->isop(LIR_call) || ins->isop(LIR_fcall));
+        CALL(call);
 
 		
 		NanoAssert(_allocator.isFree(FST0));
@@ -228,17 +213,6 @@ namespace nanojit
 
         ArgSize sizes[2*MAXARGS];
         uint32_t argc = call->get_sizes(sizes);
-        if (indirect) {
-            argc--;
-            asm_arg(ARGSIZE_LO, ins->arg(argc), EAX);
-        }
-
-        if (imt) {
-            
-            NanoAssert(call->_abi == ABI_CDECL);
-            argc--;
-            asm_arg(ARGSIZE_LO, ins->arg(argc), EDX);
-        }
 
 		for(uint32_t i=0; i < argc; i++)
 		{
@@ -361,10 +335,10 @@ namespace nanojit
 	{
 		uint32_t op = i->opcode();
 		int prefer = allow;
-        if (op == LIR_call || op == LIR_calli) {
+        if (op == LIR_call) {
 			prefer &= rmask(retRegs[0]);
         }
-        else if (op == LIR_fcall || op == LIR_fcalli) {
+        else if (op == LIR_fcall) {
             prefer &= rmask(FST0);
         }
         else if (op == LIR_param) {
