@@ -117,7 +117,7 @@ unsigned short* a2w_malloc(const char* inACPString, int inACPChars, int* outWide
 
 
 
-int w2a_buffer(const unsigned short* inWideString, int inWideChars, char* outACPString, int inACPChars);
+int w2a_buffer( unsigned short* inWideString, int inWideChars, char* outACPString, int inACPChars);
 
 
 
@@ -145,8 +145,6 @@ int w2a_buffer(const unsigned short* inWideString, int inWideChars, char* outACP
 char* w2a_malloc(unsigned short* inWideString, int inWideChars, int* outACPChars);
 
 
-void dumpMemoryInfo();
-
 #define charcount(array) (sizeof(array) / sizeof(array[0]))
 
 
@@ -163,24 +161,5 @@ extern "C" {
 
 int nclog (const char *fmt, ...);
 void nclograw(const char* data, long length);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define MOZCE_PRECHECK                 \
-{                                      \
-    SetLastError(0);                   \
-}
-
 
 #endif

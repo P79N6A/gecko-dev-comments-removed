@@ -39,15 +39,15 @@
 
 #include <bldver.h> 
 
-#ifndef MOZCE_STATIC_BUILD
+
 #ifdef MOZCE_SHUNT_EXPORTS
 #define MOZCE_SHUNT_API __declspec(dllexport)
 #else
 #define MOZCE_SHUNT_API __declspec(dllimport)
 #endif
-#else
-#define MOZCE_SHUNT_API
-#endif
+
+
+
 
 
 
@@ -201,10 +201,24 @@ typedef struct GLYPHMETRICS
   short gmCellIncY; 
 } GLYPHMETRICS;
 
+typedef struct tagWCRANGE {
+  WCHAR  wcLow;
+  USHORT cGlyphs;
+} WCRANGE, *PWCRANGE;
 
+typedef struct tagGLYPHSET {
+  DWORD    cbThis;
+  DWORD    flAccel;
+  DWORD    cGlyphsSupported;
+  DWORD    cRanges;
+  WCRANGE  ranges[1];
+} GLYPHSET, *PGLYPHSET;
+
+#define SW_SHOWDEFAULT 0
 #define SW_SHOWMINIMIZED 2 
 #define GGO_METRICS 0
-#define GGO_GLYPH_INDEX 1
+
+#define GGO_GLYPH_INDEX 0 
 
 
 
@@ -250,6 +264,10 @@ typedef struct GLYPHMETRICS
 
 #ifndef MA_ACTIVATE
 #define MA_ACTIVATE 1
+#endif
+
+#ifndef WM_ACTIVATEAPP
+#define WM_ACTIVATEAPP WM_ACTIVATE
 #endif
 
 #ifndef WM_MOUSEACTIVATE
@@ -476,7 +494,9 @@ typedef LPGCP_RESULTSA LPGCP_RESULTS;
 #define GCP_NUMERICSLATIN   0x04000000L
 #define GCP_NUMERICSLOCAL   0x08000000L
 
-#define ETO_GLYPH_INDEX              0x0010
+
+#define ETO_GLYPH_INDEX    0      
+
 #define GGO_NATIVE         2
 #define TT_POLYGON_TYPE   24
 
@@ -505,7 +525,9 @@ typedef struct tagTTPOLYGONHEADER
 } TTPOLYGONHEADER, FAR* LPTTPOLYGONHEADER;
 
 #define HALFTONE                     4
-#define ETO_PDY                      0x2000
+
+
+#define ETO_PDY                      0       
 #define ALTERNATE                    1
 #define WINDING                      2
 
@@ -626,6 +648,7 @@ typedef struct tagMENUBARINFO
     BOOL fBarFocused:1;  
     BOOL fFocused:1;     
 } MENUBARINFO, *PMENUBARINFO, *LPMENUBARINFO;
+
 
 
 typedef struct tagGUITHREADINFO

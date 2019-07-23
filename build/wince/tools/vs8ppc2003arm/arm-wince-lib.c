@@ -9,9 +9,6 @@ main(int argc, char **argv)
 
   args[i++] = LIB_PATH;
 
-  
-  
-
   argpath_conv(&argv[1], &args[i]);
 
   return run(args);
