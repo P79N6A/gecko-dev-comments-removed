@@ -37,6 +37,7 @@
 
 
 
+
 #ifdef IBMBIDI
 
 #include "nsBidiPresUtils.h"
@@ -1187,6 +1188,10 @@ nsBidiPresUtils::FormatUnicodeText(nsPresContext*  aPresContext,
       HandleNumbers(aText,aTextLength,IBMBIDI_NUMERAL_ARABIC);
       break;
 
+    case IBMBIDI_NUMERAL_PERSIAN:
+      HandleNumbers(aText,aTextLength,IBMBIDI_NUMERAL_PERSIAN);
+      break;
+
     case IBMBIDI_NUMERAL_REGULAR:
 
       switch (aCharType) {
@@ -1203,10 +1208,17 @@ nsBidiPresUtils::FormatUnicodeText(nsPresContext*  aPresContext,
           break;
       }
       break;
-      
+
     case IBMBIDI_NUMERAL_HINDICONTEXT:
       if ( ( (GET_BIDI_OPTION_DIRECTION(bidiOptions)==IBMBIDI_TEXTDIRECTION_RTL) && (IS_ARABIC_DIGIT (aText[0])) ) || (eCharType_ArabicNumber == aCharType) )
         HandleNumbers(aText,aTextLength,IBMBIDI_NUMERAL_HINDI);
+      else if (eCharType_EuropeanNumber == aCharType)
+        HandleNumbers(aText,aTextLength,IBMBIDI_NUMERAL_ARABIC);
+      break;
+
+    case IBMBIDI_NUMERAL_PERSIANCONTEXT:
+      if ( ( (GET_BIDI_OPTION_DIRECTION(bidiOptions)==IBMBIDI_TEXTDIRECTION_RTL) && (IS_ARABIC_DIGIT (aText[0])) ) || (eCharType_ArabicNumber == aCharType) )
+        HandleNumbers(aText,aTextLength,IBMBIDI_NUMERAL_PERSIAN);
       else if (eCharType_EuropeanNumber == aCharType)
         HandleNumbers(aText,aTextLength,IBMBIDI_NUMERAL_ARABIC);
       break;

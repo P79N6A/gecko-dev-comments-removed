@@ -1018,6 +1018,8 @@ pref("bidi.controlstextmode", 1);
 
 
 
+
+
 pref("bidi.numeral", 0);
 
 
