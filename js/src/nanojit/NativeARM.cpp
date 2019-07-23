@@ -863,7 +863,7 @@ Assembler::asm_call(LInsp ins)
     
     if (_config.arm_vfp && ins->isUsed()) {
         
-        ArgType rsize = (ArgType)(ci->_typesig & ARGTYPE_MASK_ANY);
+        ArgType rsize = (ArgType)(ci->_typesig & ARGTYPE_MASK);
 
         
         
