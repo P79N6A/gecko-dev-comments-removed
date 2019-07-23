@@ -427,29 +427,10 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(PRInt32 aSelectionType)
 {
   ForceCompositionEnd();
 
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_PASTE);
-    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
-                                nsnull, &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault)
-      return NS_OK;
-
-    
-    
-    
-    if (mDidPreDestroy)
-      return NS_OK;
-  }
+  PRBool preventDefault;
+  nsresult rv = FireClipboardEvent(NS_PASTE, &preventDefault);
+  if (NS_FAILED(rv) || preventDefault)
+    return rv;
 
   
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
@@ -483,27 +464,10 @@ NS_IMETHODIMP nsPlaintextEditor::CanPaste(PRInt32 aSelectionType, PRBool *aCanPa
   NS_ENSURE_ARG_POINTER(aCanPaste);
   *aCanPaste = PR_FALSE;
 
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps)
-    return NS_ERROR_NOT_INITIALIZED;
+  nsresult rv = FireClipboardEvent(NS_BEFOREPASTE, aCanPaste);
+  if (NS_FAILED(rv) || *aCanPaste)
+    return rv;
 
-  
-  
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_BEFOREPASTE);
-    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
-                                nsnull, &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      *aCanPaste = PR_TRUE;
-      return NS_OK;
-    }
-  }
-  
   
   if (!IsModifiable())
     return NS_OK;

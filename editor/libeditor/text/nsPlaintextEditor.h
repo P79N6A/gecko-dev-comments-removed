@@ -216,7 +216,8 @@ protected:
 
   
   
-  virtual nsresult GetClipboardEventTarget(nsIDOMNode** aEventTarget);
+  nsresult GetClipboardEventTarget(nsIDOMNode** aEventTarget);
+  nsresult FireClipboardEvent(PRUint32 msg, PRBool* aPreventDefault);
 
 
 protected:

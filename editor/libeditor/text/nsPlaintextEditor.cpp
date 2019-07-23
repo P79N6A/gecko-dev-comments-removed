@@ -1148,25 +1148,50 @@ nsresult nsPlaintextEditor::GetClipboardEventTarget(nsIDOMNode** aEventTarget)
   return nsCopySupport::GetClipboardEventTarget(selection, aEventTarget);
 }
 
-NS_IMETHODIMP nsPlaintextEditor::Cut()
+nsresult nsPlaintextEditor::FireClipboardEvent(PRUint32 msg,
+                                               PRBool* aPreventDefault)
 {
+  *aPreventDefault = PR_FALSE;
+
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
   if (!ps)
     return NS_ERROR_NOT_INITIALIZED;
 
   
+  PRBool isReflowing = PR_TRUE;
+  nsresult rv = ps->IsReflowLocked(&isReflowing);
+  if (NS_FAILED(rv) || isReflowing)
+    return NS_OK;
+
   nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_CUT);
-    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
-                                nsnull, &status);
+  rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
+  if (NS_FAILED(rv))
     
-    if (status == nsEventStatus_eConsumeNoDefault)
-      return NS_OK;
-  }
+    return NS_OK;
+
+  nsEventStatus status = nsEventStatus_eIgnore;
+  nsEvent evt(PR_TRUE, msg);
+  nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
+                              nsnull, &status);
+  
+  if (status == nsEventStatus_eConsumeNoDefault)
+    *aPreventDefault = PR_TRUE;
+
+  
+  
+  
+  if (mDidPreDestroy)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsPlaintextEditor::Cut()
+{
+  PRBool preventDefault;
+  nsresult rv = FireClipboardEvent(NS_CUT, &preventDefault);
+  if (NS_FAILED(rv) || preventDefault)
+    return rv;
 
   nsCOMPtr<nsISelection> selection;
   rv = GetSelection(getter_AddRefs(selection));
@@ -1177,6 +1202,8 @@ NS_IMETHODIMP nsPlaintextEditor::Cut()
   if (NS_SUCCEEDED(selection->GetIsCollapsed(&isCollapsed)) && isCollapsed)
     return NS_OK;  
 
+  
+  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
   rv = ps->DoCopy();
   if (NS_SUCCEEDED(rv))
     rv = DeleteSelection(eNone);
@@ -1188,26 +1215,9 @@ NS_IMETHODIMP nsPlaintextEditor::CanCut(PRBool *aCanCut)
   NS_ENSURE_ARG_POINTER(aCanCut);
   *aCanCut = PR_FALSE;
 
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  
-  
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_BEFORECUT);
-    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
-                                nsnull, &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      *aCanCut = PR_TRUE;
-      return NS_OK;
-    }
-  }
+  nsresult rv = FireClipboardEvent(NS_BEFORECUT, aCanCut);
+  if (NS_FAILED(rv) || *aCanCut)
+    return rv;
 
   nsCOMPtr<nsISelection> selection;
   rv = GetSelection(getter_AddRefs(selection));
@@ -1223,26 +1233,13 @@ NS_IMETHODIMP nsPlaintextEditor::CanCut(PRBool *aCanCut)
 
 NS_IMETHODIMP nsPlaintextEditor::Copy()
 {
+  PRBool preventDefault;
+  nsresult rv = FireClipboardEvent(NS_COPY, &preventDefault);
+  if (NS_FAILED(rv) || preventDefault)
+    return rv;
+
+  
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_COPY);
-    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
-                                nsnull, &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault)
-      return NS_OK;
-    
-    
-  }
-
   return ps->DoCopy();
 }
 
@@ -1251,27 +1248,10 @@ NS_IMETHODIMP nsPlaintextEditor::CanCopy(PRBool *aCanCopy)
   NS_ENSURE_ARG_POINTER(aCanCopy);
   *aCanCopy = PR_FALSE;
 
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps)
-    return NS_ERROR_NOT_INITIALIZED;
+  nsresult rv = FireClipboardEvent(NS_BEFORECOPY, aCanCopy);
+  if (NS_FAILED(rv) || *aCanCopy)
+    return rv;
 
-  
-  
-  nsCOMPtr<nsIDOMNode> eventTarget;
-  nsresult rv = GetClipboardEventTarget(getter_AddRefs(eventTarget));
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsEvent evt(PR_TRUE, NS_BEFORECOPY);
-    nsEventDispatcher::Dispatch(eventTarget, ps->GetPresContext(), &evt,
-                                nsnull, &status);
-    
-    if (status == nsEventStatus_eConsumeNoDefault) {
-      *aCanCopy = PR_TRUE;
-      return NS_OK;
-    }
-  }
-  
   nsCOMPtr<nsISelection> selection;
   rv = GetSelection(getter_AddRefs(selection));
   if (NS_FAILED(rv)) return rv;
