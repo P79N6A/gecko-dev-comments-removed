@@ -48,7 +48,6 @@
 #include "nsSMILTimeContainer.h"
 #include "nsSMILCompositorTable.h"
 #include "nsSMILMilestone.h"
-#include "nsRefreshDriver.h"
 
 struct nsSMILTargetIdentifier;
 class nsISMILAnimationElement;
@@ -67,8 +66,7 @@ class nsIDocument;
 
 
 
-class nsSMILAnimationController : public nsSMILTimeContainer,
-                                  public nsARefreshObserver
+class nsSMILAnimationController : public nsSMILTimeContainer
 {
 public:
   nsSMILAnimationController();
@@ -79,12 +77,6 @@ public:
   virtual void Resume(PRUint32 aType);
   virtual nsSMILTime GetParentTime() const;
 
-  
-  NS_IMETHOD_(nsrefcnt) AddRef();
-  NS_IMETHOD_(nsrefcnt) Release();
-
-  virtual void WillRefresh(mozilla::TimeStamp aTime);
-  
   
   void RegisterAnimationElement(nsISMILAnimationElement* aAnimationElement);
   void UnregisterAnimationElement(nsISMILAnimationElement* aAnimationElement);
@@ -109,11 +101,6 @@ public:
   
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
   void Unlink();
-
-  
-  
-  void StartSampling(nsRefreshDriver* aRefreshDriver);
-  void StopSampling(nsRefreshDriver* aRefreshDriver);
 
 protected:
   
@@ -151,6 +138,8 @@ protected:
 
   
   static void Notify(nsITimer* aTimer, void* aClosure);
+  nsresult    StartTimer();
+  nsresult    StopTimer();
 
   
   virtual void DoSample();
@@ -176,10 +165,8 @@ protected:
   virtual void     RemoveChild(nsSMILTimeContainer& aChild);
 
   
-  nsAutoRefCnt mRefCnt;
-  NS_DECL_OWNINGTHREAD
-
   static const PRUint32      kTimerInterval;
+  nsCOMPtr<nsITimer>         mTimer;
   AnimationElementHashtable  mAnimationElementTable;
   TimeContainerHashtable     mChildContainerTable;
   PRPackedBool               mResampleNeeded;
