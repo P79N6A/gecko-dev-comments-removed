@@ -389,18 +389,9 @@ class nsParser : public nsIParser,
       return sSpeculativeThreadPool;
     }
 
-    
-
-
-
-
-    virtual void ScriptExecuting();
-
-    
-
-
-
-    virtual void ScriptDidExecute();
+    PRBool IsScriptExecuting() {
+      return mSink && mSink->IsScriptExecuting();
+    }
 
  protected:
 
@@ -486,7 +477,6 @@ protected:
     PRInt32             mCharsetSource;
     
     PRUint16            mFlags;
-    PRUint32            mScriptsExecuting;
 
     nsString            mUnusedInput;
     nsCString           mCharset;
