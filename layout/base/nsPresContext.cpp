@@ -49,7 +49,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsIFocusController.h"
 #include "nsStyleSet.h"
-#include "nsImageLoadNotifier.h"
+#include "nsImageLoader.h"
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIRenderingContext.h"
@@ -84,7 +84,6 @@
 #include "nsRuleNode.h"
 #include "nsEventDispatcher.h"
 #include "gfxUserFontSet.h"
-#include "nsIEventListenerManager.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -151,7 +150,7 @@ IsVisualCharset(const nsCString& aCharset)
 
 
 static PLDHashOperator
-destroy_notifiers(const void * aKey, nsRefPtr<nsImageLoadNotifier>& aData, void* closure)
+destroy_loads(const void * aKey, nsRefPtr<nsImageLoader>& aData, void* closure)
 {
   aData->Destroy();
   return PL_DHASH_NEXT;
@@ -232,7 +231,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
 
 nsPresContext::~nsPresContext()
 {
-  mImageNotifiers.Enumerate(destroy_notifiers, nsnull);
+  mImageLoaders.Enumerate(destroy_loads, nsnull);
 
   NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
   SetShell(nsnull);
@@ -300,7 +299,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsPresContext)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsPresContext)
 
 static PLDHashOperator
-TraverseImageNotifier(const void * aKey, nsRefPtr<nsImageLoadNotifier>& aData,
+TraverseImageLoader(const void * aKey, nsRefPtr<nsImageLoader>& aData,
                     void* aClosure)
 {
   nsCycleCollectionTraversalCallback *cb =
@@ -318,7 +317,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsPresContext)
   
   
 
-  tmp->mImageNotifiers.Enumerate(TraverseImageNotifier, &cb);
+  tmp->mImageLoaders.Enumerate(TraverseImageLoader, &cb);
 
   
   
@@ -340,8 +339,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
   
   
 
-  tmp->mImageNotifiers.Enumerate(destroy_notifiers, nsnull);
-  tmp->mImageNotifiers.Clear();
+  tmp->mImageLoaders.Enumerate(destroy_loads, nsnull);
+  tmp->mImageLoaders.Clear();
 
   
   
@@ -814,7 +813,7 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
     mDeviceContext->FlushFontCache();
   mCurAppUnitsPerDevPixel = AppUnitsPerDevPixel();
 
-  if (!mImageNotifiers.Init())
+  if (!mImageLoaders.Init())
     return NS_ERROR_OUT_OF_MEMORY;
   
   
@@ -1026,9 +1025,9 @@ static void SetImgAnimModeOnImgReq(imgIRequest* aImgReq, PRUint16 aMode)
 
  
 static PLDHashOperator
-set_animation_mode(const void * aKey, nsRefPtr<nsImageLoadNotifier>& aData, void* closure)
+set_animation_mode(const void * aKey, nsRefPtr<nsImageLoader>& aData, void* closure)
 {
-  for (nsImageLoadNotifier *loader = aData; loader;
+  for (nsImageLoader *loader = aData; loader;
        loader = loader->GetNextLoader()) {
     imgIRequest* imgReq = loader->GetRequest();
     SetImgAnimModeOnImgReq(imgReq, (PRUint16)NS_PTR_TO_INT32(closure));
@@ -1070,7 +1069,7 @@ nsPresContext::SetImageAnimationModeInternal(PRUint16 aMode)
 
   
   
-  mImageNotifiers.Enumerate(set_animation_mode, NS_INT32_TO_PTR(aMode));
+  mImageLoaders.Enumerate(set_animation_mode, NS_INT32_TO_PTR(aMode));
 
   
   
@@ -1168,26 +1167,26 @@ nsPresContext::SetFullZoom(float aZoom)
 }
 
 void
-nsPresContext::SetImageNotifiers(nsIFrame* aTargetFrame,
-                                 nsImageLoadNotifier* aImageNotifiers)
+nsPresContext::SetImageLoaders(nsIFrame* aTargetFrame,
+                               nsImageLoader* aImageLoaders)
 {
-  nsRefPtr<nsImageLoadNotifier> oldNotifiers;
-  mImageNotifiers.Get(aTargetFrame, getter_AddRefs(oldNotifiers));
+  nsRefPtr<nsImageLoader> oldLoaders;
+  mImageLoaders.Get(aTargetFrame, getter_AddRefs(oldLoaders));
 
-  if (aImageNotifiers) {
-    mImageNotifiers.Put(aTargetFrame, aImageNotifiers);
-  } else if (oldNotifiers) {
-    mImageNotifiers.Remove(aTargetFrame);
+  if (aImageLoaders) {
+    mImageLoaders.Put(aTargetFrame, aImageLoaders);
+  } else if (oldLoaders) {
+    mImageLoaders.Remove(aTargetFrame);
   }
 
-  if (oldNotifiers)
-    oldNotifiers->Destroy();
+  if (oldLoaders)
+    oldLoaders->Destroy();
 }
 
 void
 nsPresContext::StopImagesFor(nsIFrame* aTargetFrame)
 {
-  SetImageNotifiers(aTargetFrame, nsnull);
+  SetImageLoaders(aTargetFrame, nsnull);
 }
 
 void
@@ -1542,10 +1541,10 @@ nsPresContext::SetUserFontSet(gfxUserFontSet *aUserFontSet)
 void
 nsPresContext::FireDOMPaintEvent()
 {
-  nsCOMPtr<nsPIDOMWindow> ourWindow = mDocument->GetWindow();
-  if (!ourWindow)
+  nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mContainer));
+  if (!docShell)
     return;
-
+  nsCOMPtr<nsPIDOMWindow> ourWindow = do_GetInterface(docShell);
   nsISupports* eventTarget = ourWindow;
   if (mSameDocDirtyRegion.IsEmpty() && !IsChrome()) {
     
@@ -1553,9 +1552,6 @@ nsPresContext::FireDOMPaintEvent()
     
     
     eventTarget = ourWindow->GetChromeEventHandler();
-    if (!eventTarget) {
-      return;
-    }
   }
   
   
@@ -1574,43 +1570,10 @@ nsPresContext::FireDOMPaintEvent()
   nsEventDispatcher::Dispatch(eventTarget, this, &event);
 }
 
-static PRBool MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
-{
-  if (!aInnerWindow)
-    return PR_FALSE;
-  if (aInnerWindow->HasPaintEventListeners())
-    return PR_TRUE;
-
-  nsPIDOMEventTarget* chromeEventHandler = aInnerWindow->GetChromeEventHandler();
-  if (!chromeEventHandler)
-    return PR_FALSE;
-
-  nsCOMPtr<nsIEventListenerManager> manager;
-  chromeEventHandler->GetListenerManager(PR_FALSE, getter_AddRefs(manager));
-  if (manager && manager->MayHavePaintEventListener())
-    return PR_TRUE;
-
-  nsCOMPtr<nsINode> node = do_QueryInterface(chromeEventHandler);
-  if (node)
-    return MayHavePaintEventListener(node->GetOwnerDoc()->GetInnerWindow());
-
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(chromeEventHandler);
-  if (window)
-    return MayHavePaintEventListener(window);
-
-  return PR_FALSE;
-}
-
 void
 nsPresContext::NotifyInvalidation(const nsRect& aRect, PRBool aIsCrossDoc)
 {
-  
-  
-  
-  
-  
-  if (aRect.IsEmpty() ||
-      !MayHavePaintEventListener(mDocument->GetInnerWindow()))
+  if (aRect.IsEmpty())
     return;
 
   if (mSameDocDirtyRegion.IsEmpty() && mCrossDocDirtyRegion.IsEmpty()) {
