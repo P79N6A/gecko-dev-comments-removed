@@ -804,6 +804,14 @@ nsHTMLInputElement::SetFileName(const nsAString& aValue)
   
   mFileName = aValue.IsEmpty() ? nsnull : new nsString(aValue);
 
+  
+  
+  
+  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
+  if (formControlFrame) {
+    formControlFrame->SetFormProperty(nsGkAtoms::value, aValue);
+  }
+  
   SetValueChanged(PR_TRUE);
 }
 
