@@ -55,6 +55,8 @@
 
 #include "nsIDOMWindow.h"
 
+#include "nsIPresShell.h"
+#include "nsPresContext.h"
 #include "nsIStringBundle.h"
 #include "nsIScriptSecurityManager.h"
 
@@ -151,7 +153,6 @@ nsDocLoader::nsDocLoader()
     mListenerInfoList(8),
     mIsLoadingDocument(PR_FALSE),
     mIsRestoringDocument(PR_FALSE),
-    mDontFlushLayout(PR_FALSE),
     mIsFlushingLayout(PR_FALSE)
 {
 #if defined(PR_LOGGING)
@@ -325,10 +326,6 @@ nsDocLoader::Stop(void)
 
   if (mLoadGroup)
     rv = mLoadGroup->Cancel(NS_BINDING_ABORTED);
-
-  
-  
-  mIsFlushingLayout = PR_FALSE;
 
   
   
@@ -751,13 +748,13 @@ void nsDocLoader::DocLoaderIsEmpty(PRBool aFlushLayout)
 
     
     
-    if (aFlushLayout && !mDontFlushLayout) {
+    if (aFlushLayout) {
       nsCOMPtr<nsIDOMDocument> domDoc = do_GetInterface(GetAsSupports(this));
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
       if (doc) {
-        mDontFlushLayout = mIsFlushingLayout = PR_TRUE;
+        mIsFlushingLayout = PR_TRUE;
         doc->FlushPendingNotifications(Flush_Layout);
-        mDontFlushLayout = mIsFlushingLayout = PR_FALSE;
+        mIsFlushingLayout = PR_FALSE;
       }
     }
 
