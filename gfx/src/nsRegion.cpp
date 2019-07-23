@@ -100,7 +100,11 @@ class RgnRectMemoryAllocator
   void Lock ()        { PR_Lock   (mLock); }
   void Unlock ()      { PR_Unlock (mLock); }
 #elif defined (DEBUG)
-  NS_DECL_OWNINGTHREAD
+  struct _ {
+    _() { mThread = PR_CurrentThread(); }
+      void* GetThread() { return mThread; }
+    void* mThread;
+  } _mOwningThread;
 
   void InitLock ()    { NS_ASSERT_OWNINGTHREAD (RgnRectMemoryAllocator); }
   void DestroyLock () { NS_ASSERT_OWNINGTHREAD (RgnRectMemoryAllocator); }
@@ -139,6 +143,12 @@ public:
 
   nsRegion::RgnRect* Alloc ();
   void Free (nsRegion::RgnRect* aRect);
+
+#if defined(DEBUG)
+  void SetOwningThread(void* aOwningThread) {
+      _mOwningThread.mThread = aOwningThread;
+  }
+#endif
 };
 
 
@@ -206,27 +216,24 @@ void RgnRectMemoryAllocator::Free (nsRegion::RgnRect* aRect)
 
 
 
-static RgnRectMemoryAllocator* gRectPool;
+static RgnRectMemoryAllocator gRectPool (INIT_MEM_CHUNK_ENTRIES);
 
-nsresult nsRegion::InitStatic()
-{
-  gRectPool = new RgnRectMemoryAllocator(INIT_MEM_CHUNK_ENTRIES);
-  return !gRectPool ? NS_ERROR_OUT_OF_MEMORY : NS_OK;
-}
 
-void nsRegion::ShutdownStatic()
+void nsRegion::MigrateToCurrentThread()
 {
-    delete gRectPool;
+#if defined(DEBUG)
+  gRectPool.SetOwningThread(PR_CurrentThread());
+#endif
 }
 
 void* nsRegion::RgnRect::operator new (size_t) CPP_THROW_NEW
 {
-  return gRectPool->Alloc ();
+  return gRectPool.Alloc ();
 }
 
 void nsRegion::RgnRect::operator delete (void* aRect, size_t)
 {
-  gRectPool->Free (static_cast<RgnRect*>(aRect));
+  gRectPool.Free (static_cast<RgnRect*>(aRect));
 }
 
 
