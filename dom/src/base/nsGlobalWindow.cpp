@@ -867,14 +867,6 @@ nsGlobalWindow::FreeInnerObjects(PRBool aClearScope)
   
   nsDOMThreadService* dts = nsDOMThreadService::get();
   if (dts) {
-    nsIScriptContext *scx = GetContextInternal();
-
-    JSContext *cx = scx ? (JSContext *)scx->GetNativeContext() : nsnull;
-
-    
-    
-    JSAutoSuspendRequest asr(cx);
-
     dts->CancelWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
   }
 

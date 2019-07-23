@@ -57,7 +57,8 @@
 #include "nsIScriptGlobalObject.h" 
 
 class nsDOMScriptObjectFactory : public nsIDOMScriptObjectFactory,
-                                 public nsIObserver
+                                 public nsIObserver,
+                                 public nsIExceptionProvider
 {
 public:
   nsDOMScriptObjectFactory();
@@ -66,6 +67,9 @@ public:
 
   
   NS_DECL_NSIOBSERVER
+
+  
+  NS_DECL_NSIEXCEPTIONPROVIDER
 
   
   NS_IMETHOD GetScriptRuntime(const nsAString &aLanguageName,
@@ -95,11 +99,4 @@ public:
 protected:
   PRBool mLoadedAllLanguages;
   nsCOMPtr<nsIScriptRuntime> mLanguageArray[NS_STID_ARRAY_UBOUND];
-};
-
-class nsDOMExceptionProvider : public nsIExceptionProvider
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIEXCEPTIONPROVIDER
 };

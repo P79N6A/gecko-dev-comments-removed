@@ -478,13 +478,6 @@ DOMWorkerErrorReporter(JSContext* aCx,
 
   nsDOMWorkerThread* worker = (nsDOMWorkerThread*)JS_GetContextPrivate(aCx);
 
-  if (worker->IsCanceled()) {
-    
-    
-    
-    return;
-  }
-
   nsresult rv;
   nsCOMPtr<nsIScriptError> errorObject =
     do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
