@@ -45,6 +45,7 @@
 
 
 
+
 #include "nsString.h"
 #include "nsGkAtoms.h"
 #include "nsIContent.h"
@@ -87,6 +88,43 @@ HaveFeatures(const nsSubstring& aFeatures)
   nsWhitespaceTokenizer tokenizer(aFeatures);
   while (tokenizer.hasMoreTokens()) {
     if (!NS_SVG_HaveFeature(tokenizer.nextToken())) {
+      return PR_FALSE;
+    }
+  }
+  return PR_TRUE;
+}
+
+
+
+
+
+
+
+static PRBool
+HaveExtension(const nsAString& aExtension)
+{
+#define SVG_SUPPORTED_EXTENSION(str) if (aExtension.Equals(NS_LITERAL_STRING(str).get())) return PR_TRUE;
+  SVG_SUPPORTED_EXTENSION("http://www.w3.org/1999/xhtml")
+#ifdef MOZ_MATHML
+  SVG_SUPPORTED_EXTENSION("http://www.w3.org/1998/Math/MathML")
+#endif
+#undef SVG_SUPPORTED_EXTENSION
+
+  return PR_FALSE;
+}
+
+
+
+
+
+
+
+static PRBool
+HaveExtensions(const nsSubstring& aExtensions)
+{
+  nsWhitespaceTokenizer tokenizer(aExtensions);
+  while (tokenizer.hasMoreTokens()) {
+    if (!HaveExtension(tokenizer.nextToken())) {
       return PR_FALSE;
     }
   }
@@ -175,10 +213,10 @@ NS_SVG_PassesConditionalProcessingTests(nsIContent *aContent)
   
   
   
-  
-  
-  if (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::requiredExtensions)) {
-    return PR_FALSE;
+  if (aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::requiredExtensions, value)) {
+    if (value.IsEmpty() || !HaveExtensions(value)) {
+      return PR_FALSE;
+    }
   }
 
   
