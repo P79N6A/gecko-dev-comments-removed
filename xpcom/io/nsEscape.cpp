@@ -295,7 +295,7 @@ nsEscapeHTML2(const PRUnichar *aSourceBuffer, PRInt32 aSourceBufferLen)
 
   
   if (aSourceBufferLen >=
-      ((PR_UINT32_MAX / (6 * sizeof(PRUnichar))) + sizeof(PRUnichar)))
+      ((PR_UINT32_MAX - sizeof(PRUnichar)) / (6 * sizeof(PRUnichar))) )
     return nsnull;
 
   PRUnichar *resultBuffer = (PRUnichar *)nsMemory::Alloc(aSourceBufferLen *
