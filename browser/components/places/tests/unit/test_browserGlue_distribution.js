@@ -51,6 +51,10 @@ const TOPIC_CUSTOMIZATION_COMPLETE = "distribution-customization-complete";
 
 function run_test() {
   
+  
+  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+         getService(Ci.nsINavHistoryService);
+  
   return;
 
   do_test_pending();
