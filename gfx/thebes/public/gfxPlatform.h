@@ -46,6 +46,7 @@
 
 #include "gfxTypes.h"
 #include "gfxASurface.h"
+#include "gfxColor.h"
 
 #ifdef XP_OS2
 #undef OS2EMX_PLAIN_CHAR
@@ -236,6 +237,13 @@ public:
 
 
     static int GetRenderingIntent();
+
+    
+
+
+
+
+    static void TransformPixel(const gfxRGBA& in, gfxRGBA& out, cmsHTRANSFORM transform);
 
     
 
