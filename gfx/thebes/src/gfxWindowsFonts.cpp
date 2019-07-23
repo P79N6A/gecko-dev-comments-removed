@@ -35,9 +35,6 @@
 
 
 
-#ifdef DEBUG_smontagu
-#define DEBUG_pavlov
-#endif
 
 
 #define FORCE_PR_LOG
@@ -919,12 +916,26 @@ public:
 
         const PRUnichar *str = mAlternativeString ? mAlternativeString : mRangeString;
 
+        SCRIPT_ANALYSIS sa = mScriptItem->a;
+        sa.fLogicalOrder = PR_TRUE;
+        
+
+
+
+
+
+
+
+        if (mRangeString > mItemString)
+            sa.fLinkBefore = PR_FALSE;
+        if (mRangeString + mRangeLength < mItemString + mItemLength)
+            sa.fLinkAfter = PR_FALSE;
+
         while (PR_TRUE) {
-            mScriptItem->a.fLogicalOrder = PR_TRUE;
 
             rv = ScriptShape(shapeDC, mCurrentFont->ScriptCache(),
                              str, mRangeLength,
-                             mMaxGlyphs, &mScriptItem->a,
+                             mMaxGlyphs, &sa,
                              mGlyphs, mClusters,
                              mAttr, &mNumGlyphs);
 
