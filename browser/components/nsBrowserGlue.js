@@ -61,7 +61,6 @@ const BrowserGlueServiceFactory = {
 
 function BrowserGlue() {
   this._init();
-  this._profileStarted = false;
 }
 
 BrowserGlue.prototype = {
@@ -81,10 +80,7 @@ BrowserGlue.prototype = {
       case "xpcom-shutdown":
         this._dispose();
         break;
-      case "profile-before-change":
-        this._onProfileChange();
-        break;
-      case "profile-change-teardown": 
+      case "quit-application": 
         this._onProfileShutdown();
         break;
       case "prefservice:after-app-defaults":
@@ -122,8 +118,7 @@ BrowserGlue.prototype = {
     
     const osvr = Cc['@mozilla.org/observer-service;1'].
                  getService(Ci.nsIObserverService);
-    osvr.addObserver(this, "profile-before-change", false);
-    osvr.addObserver(this, "profile-change-teardown", false);
+    osvr.addObserver(this, "quit-application", false);
     osvr.addObserver(this, "xpcom-shutdown", false);
     osvr.addObserver(this, "prefservice:after-app-defaults", false);
     osvr.addObserver(this, "final-ui-startup", false);
@@ -139,8 +134,7 @@ BrowserGlue.prototype = {
     
     const osvr = Cc['@mozilla.org/observer-service;1'].
                  getService(Ci.nsIObserverService);
-    osvr.removeObserver(this, "profile-before-change");
-    osvr.removeObserver(this, "profile-change-teardown");
+    osvr.removeObserver(this, "quit-application");
     osvr.removeObserver(this, "xpcom-shutdown");
     osvr.removeObserver(this, "prefservice:after-app-defaults");
     osvr.removeObserver(this, "final-ui-startup");
@@ -199,37 +193,13 @@ BrowserGlue.prototype = {
 
     
     this._migrateUI();
-
-    
-    this._profileStarted = true;
-  },
-
-  _onProfileChange: function()
-  {
-    
-    
-    if (this._profileStarted) {
-      
-      this._shutdownPlaces();
-    }
   },
 
   
   _onProfileShutdown: function() 
   {
-    
-    
-    const appStartup = Cc['@mozilla.org/toolkit/app-startup;1'].
-                       getService(Ci.nsIAppStartup);
-    try {
-      appStartup.enterLastWindowClosingSurvivalArea();
-
-      this.Sanitizer.onShutdown();
-
-    } catch(ex) {
-    } finally {
-      appStartup.exitLastWindowClosingSurvivalArea();
-    }
+    this._shutdownPlaces();
+    this.Sanitizer.onShutdown();
   },
 
   _onQuitRequest: function(aCancelQuit, aQuitType)
