@@ -1399,7 +1399,13 @@ nsComboboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 void nsComboboxControlFrame::PaintFocus(nsIRenderingContext& aRenderingContext,
-                                        nsPoint aPt) {
+                                        nsPoint aPt)
+{
+  
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) ||
+      mFocused != this)
+    return;
+
   aRenderingContext.PushState();
   nsRect clipRect = mDisplayFrame->GetRect() + aPt;
   aRenderingContext.SetClipRect(clipRect, nsClipCombine_kIntersect);
@@ -1410,16 +1416,12 @@ void nsComboboxControlFrame::PaintFocus(nsIRenderingContext& aRenderingContext,
 
   
   
+
+  aRenderingContext.SetLineStyle(nsLineStyle_kDotted);
+  aRenderingContext.SetColor(GetStyleColor()->mColor);
+
   
-  if (!mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) &&
-      mFocused == this) {
-    aRenderingContext.SetLineStyle(nsLineStyle_kDotted);
-    aRenderingContext.SetColor(GetStyleColor()->mColor);
-  } else {
-    aRenderingContext.SetColor(GetStyleBackground()->mBackgroundColor);
-    aRenderingContext.SetLineStyle(nsLineStyle_kSolid);
-  }
-  
+
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
   clipRect.width -= onePixel;
   clipRect.height -= onePixel;
