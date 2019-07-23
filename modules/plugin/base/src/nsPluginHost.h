@@ -175,6 +175,10 @@ public:
 
   nsTArray< nsAutoPtr<nsPluginInstanceTag> > *InstanceTagArray();
 
+  
+  nsPluginTag*
+  FindTagForLibrary(PRLibrary* aLibrary);
+
 private:
   nsresult
   TrySetUpPluginInstance(const char *aMimeType, nsIURI *aURL, nsIPluginInstanceOwner *aOwner);
