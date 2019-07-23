@@ -47,6 +47,9 @@
 
 #include "nsXULAppAPI.h"        
 
+#include "nsDirectoryServiceDefs.h"
+#include "nsIFile.h"
+
 namespace mozilla {
 namespace ipc {
 
