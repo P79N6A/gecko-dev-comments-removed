@@ -6654,11 +6654,18 @@ already_AddRefed<nsStyleContext>
 nsCSSFrameConstructor::ResolveStyleContext(nsIFrame*         aParentFrame,
                                            nsIContent*       aContent)
 {
-  aParentFrame = nsFrame::CorrectStyleParentFrame(aParentFrame, nsnull);
+  nsStyleContext* parentStyleContext;
+  if (aContent->GetParent()) {
+    aParentFrame = nsFrame::CorrectStyleParentFrame(aParentFrame, nsnull);
   
-  
-  
-  nsStyleContext* parentStyleContext = aParentFrame->GetStyleContext();
+    
+    
+    parentStyleContext = aParentFrame->GetStyleContext();
+  } else {
+    
+    
+    parentStyleContext = nsnull;
+  }
 
   nsStyleSet *styleSet = mPresShell->StyleSet();
 

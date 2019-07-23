@@ -5527,7 +5527,11 @@ nsFrame::CorrectStyleParentFrame(nsIFrame* aProspectiveParent,
   
   
   NS_ASSERTION(aProspectiveParent->GetStyleContext()->GetPseudoType() ==
-               nsCSSAnonBoxes::viewportScroll,
+                 nsCSSAnonBoxes::viewportScroll ||
+               aProspectiveParent->GetStyleContext()->GetPseudoType() ==
+                 nsCSSAnonBoxes::canvas ||
+               aProspectiveParent->GetStyleContext()->GetPseudoType() ==
+                 nsCSSAnonBoxes::pageSequence,
                "Should have found a parent before this");
   return aProspectiveParent;
 }
