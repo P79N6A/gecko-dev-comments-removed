@@ -1104,7 +1104,7 @@ public:
 
 
   PRBool IsShowing() { return mIsShowing; }
-  
+
 protected:
   ~nsIDocument()
   {
