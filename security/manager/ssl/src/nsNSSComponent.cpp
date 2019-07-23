@@ -1061,6 +1061,7 @@ static CipherPref CipherPrefs[] = {
  {"security.ssl3.dhe_dss_des_sha", SSL_DHE_DSS_WITH_DES_CBC_SHA}, 
  {"security.ssl3.rsa_null_sha", SSL_RSA_WITH_NULL_SHA}, 
  {"security.ssl3.rsa_null_md5", SSL_RSA_WITH_NULL_MD5}, 
+ {"security.ssl3.rsa_seed_sha", TLS_RSA_WITH_SEED_CBC_SHA}, 
  {NULL, 0} 
 };
 
