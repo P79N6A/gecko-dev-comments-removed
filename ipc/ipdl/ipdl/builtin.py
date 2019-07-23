@@ -62,7 +62,7 @@ Types = (
 
     
     'PRBool',
-    'PRPackedBool'
+    'PRPackedBool',
     'PRInt8',
     'PRUint8',
     'PRInt16',

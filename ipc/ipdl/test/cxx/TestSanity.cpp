@@ -28,7 +28,7 @@ TestSanityParent::Main()
 
 bool
 TestSanityParent::RecvPong(const int& one, const float& zeroPtTwoFive,
-                           const uint8_t&)
+                           const PRUint8&)
 {
     if (1 != one)
         fail("invalid argument `%d', should have been `1'", one);
@@ -57,7 +57,7 @@ TestSanityChild::~TestSanityChild()
 
 bool
 TestSanityChild::RecvPing(const int& zero, const float& zeroPtFive,
-                          const int8_t&)
+                          const PRInt8&)
 {
     if (0 != zero)
         fail("invalid argument `%d', should have been `0'", zero);
