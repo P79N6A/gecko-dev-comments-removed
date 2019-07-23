@@ -339,9 +339,6 @@ nsThebesDeviceContext::CreateRenderingContext(nsIRenderingContext *&aContext)
     nsCOMPtr<nsIRenderingContext> pContext;
     rv = CreateRenderingContextInstance(*getter_AddRefs(pContext));
     if (NS_SUCCEEDED(rv)) {
-#ifdef XP_MACOSX
-        mDeviceContextSpec->GetSurfaceForPrinter(getter_AddRefs(mPrintingSurface));
-#endif
         if (mPrintingSurface)
             rv = pContext->Init(this, mPrintingSurface);
         else
@@ -580,10 +577,15 @@ nsThebesDeviceContext::AbortDocument(void)
 NS_IMETHODIMP
 nsThebesDeviceContext::BeginPage(void)
 {
-    mPrintingSurface->BeginPage();
-
     if (mDeviceContextSpec)
         mDeviceContextSpec->BeginPage();
+
+   
+#ifdef XP_MACOSX
+    mDeviceContextSpec->GetSurfaceForPrinter(getter_AddRefs(mPrintingSurface));
+#endif
+    mPrintingSurface->BeginPage();
+
     return NS_OK;
 }
 
@@ -593,6 +595,7 @@ nsThebesDeviceContext::EndPage(void)
     mPrintingSurface->EndPage();
 
     
+
 
 #ifdef XP_MACOSX
     mPrintingSurface = nsnull;
