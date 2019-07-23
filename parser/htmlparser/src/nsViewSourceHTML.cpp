@@ -47,10 +47,6 @@
 
 #define NS_VIEWSOURCE_TOKENS_PER_BLOCK 16
 
-
-#define STOP_TIMER()
-#define START_TIMER()
-
 #include "nsIAtom.h"
 #include "nsViewSourceHTML.h"
 #include "nsCRT.h"
@@ -261,7 +257,6 @@ CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
   NS_START_STOPWATCH(vsTimer);
 #endif
 
-  STOP_TIMER();
   mSink=(nsIHTMLContentSink*)aSink;
 
   if((!aParserContext.mPrevContext) && (mSink)) {
@@ -301,8 +296,6 @@ CViewSourceHTML::WillBuildModel(const CParserContext& aParserContext,
   else mDocType=aParserContext.mDocType;
 
   mLineNumber = 1;
-
-  START_TIMER();
 
   return result;
 }
@@ -540,8 +533,6 @@ NS_IMETHODIMP CViewSourceHTML::DidBuildModel(nsresult anErrorCode)
 
   
 
-  STOP_TIMER();
-
   if (mSink) {
       
 
@@ -560,8 +551,6 @@ NS_IMETHODIMP CViewSourceHTML::DidBuildModel(nsresult anErrorCode)
       mSink->CloseContainer(eHTMLTag_html);
     }
   }
-
-  START_TIMER();
 
 #ifdef RAPTOR_PERF_METRICS
   NS_STOP_STOPWATCH(vsTimer);
@@ -769,8 +758,6 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
 #endif 
   }
 
-  STOP_TIMER();
-
   mITextToken.SetIndirectString(aText);  
 
   nsCParserNode theNode(&mITextToken, 0);
@@ -815,8 +802,6 @@ nsresult CViewSourceHTML::WriteTag(PRInt32 aTagType,const nsSubstring & aText,PR
       fprintf(gDumpFile, "</span>");
 #endif 
   }
-
-  START_TIMER();
 
   return result;
 }

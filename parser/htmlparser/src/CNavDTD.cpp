@@ -80,9 +80,6 @@ static const  char kInvalidTagStackPos[] = "Error: invalid tag stack position";
 
 #include "nsElementTable.h"
 
-#define START_TIMER()
-#define STOP_TIMER()
-
 
 #define NS_DTD_FLAG_NONE                   0x00000000
 #define NS_DTD_FLAG_HAS_OPEN_HEAD          0x00000001
@@ -1085,15 +1082,9 @@ CNavDTD::WillHandleStartTag(CToken* aToken, eHTMLTags aTag,
     }
   }
 
-  STOP_TIMER()
-  MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::WillHandleStartTag(), this=%p\n", this));
-
   if (aTag <= NS_HTML_TAG_MAX) {
     result = mSink->NotifyTagObservers(&aNode);
   }
-
-  MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::WillHandleStartTag(), this=%p\n", this));
-  START_TIMER()
 
   return result;
 }
@@ -1336,16 +1327,11 @@ CNavDTD::HandleStartToken(CToken* aToken)
             isTokenHandled = PR_TRUE;
           }
 
-          STOP_TIMER();
-          MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::HandleStartToken(), this=%p\n", this));
-
           if (mOpenMapCount > 0 && mSink) {
             result = mSink->AddLeaf(*theNode);
             isTokenHandled = PR_TRUE;
           }
-
-          MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleStartToken(), this=%p\n", this));
-          START_TIMER();
+	  
           break;
 
         case eHTMLTag_image:
@@ -1777,13 +1763,9 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
         ++anIndex;
       }
 
-      STOP_TIMER()
-      MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::HandleSavedTokensAbove(), this=%p\n", this));
       
       result = mSink->BeginContext(anIndex);
-      MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleSavedTokensAbove(), this=%p\n", this));
-      START_TIMER()
-
+      
       NS_ENSURE_SUCCESS(result, result);
 
       
@@ -1855,12 +1837,8 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
       
       mTempContext->MoveEntries(*mBodyContext, theTagCount - theTopIndex);
 
-      STOP_TIMER()
-      MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::HandleSavedTokensAbove(), this=%p\n", this));
       
       mSink->EndContext(anIndex);
-      MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleSavedTokensAbove(), this=%p\n", this));
-      START_TIMER()
 
       mFlags &= ~NS_DTD_FLAG_IN_MISPLACED_CONTENT;
     }
@@ -1936,15 +1914,9 @@ CNavDTD::HandleCommentToken(CToken* aToken)
   nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
   NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
 
-  STOP_TIMER();
-  MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::HandleCommentToken(), this=%p\n", this));
-
   nsresult result = mSink ? mSink->AddComment(*theNode) : NS_OK;
 
   IF_FREE(theNode, &mNodeAllocator);
-
-  MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleCommentToken(), this=%p\n", this));
-  START_TIMER();
 
   return result;
 }
@@ -1983,15 +1955,9 @@ CNavDTD::HandleProcessingInstructionToken(CToken* aToken)
   nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
   NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
 
-  STOP_TIMER();
-  MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::HandleProcessingInstructionToken(), this=%p\n", this));
-
   nsresult result = mSink ? mSink->AddProcessingInstruction(*theNode) : NS_OK;
 
   IF_FREE(theNode, &mNodeAllocator);
-
-  MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleProcessingInstructionToken(), this=%p\n", this));
-  START_TIMER();
 
   return result;
 }
@@ -2029,15 +1995,10 @@ CNavDTD::HandleDocTypeDeclToken(CToken* aToken)
 
   nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
   NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-  STOP_TIMER();
-  MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::HandleDocTypeDeclToken(), this=%p\n", this));
 
   nsresult result = mSink ? mSink->AddDocTypeDecl(*theNode) : NS_OK;
 
   IF_FREE(theNode, &mNodeAllocator);
-
-  MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::HandleDocTypeDeclToken(), this=%p\n", this));
-  START_TIMER();
 
   return result;
 }
@@ -2494,13 +2455,7 @@ CNavDTD::OpenHTML(const nsCParserNode *aNode)
 {
   NS_PRECONDITION(mBodyContext->GetCount() >= 0, kInvalidTagStackPos);
 
-  STOP_TIMER();
-  MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::OpenHTML(), this=%p\n", this));
-
   nsresult result = mSink ? mSink->OpenContainer(*aNode) : NS_OK; 
-
-  MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::OpenHTML(), this=%p\n", this));
-  START_TIMER();
 
   
   if (mBodyContext->GetCount() == 0)  {
@@ -2528,17 +2483,11 @@ CNavDTD::OpenBody(const nsCParserNode *aNode)
   if (!(mFlags & NS_DTD_FLAG_HAD_FRAMESET)) {
     mFlags |= NS_DTD_FLAG_HAD_BODY;
 
-    STOP_TIMER();
-    MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::OpenBody(), this=%p\n", this));
-
     
     CloseContainer(eHTMLTag_head, PR_FALSE);
 
     
     result = mSink ? mSink->OpenContainer(*aNode) : NS_OK; 
-
-    MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::OpenBody(), this=%p\n", this));
-    START_TIMER();
 
     if (!HasOpenContainer(eHTMLTag_body)) {
       mBodyContext->Push(const_cast<nsCParserNode*>(aNode), 0, PR_FALSE);
@@ -2662,13 +2611,8 @@ CNavDTD::OpenContainer(const nsCParserNode *aNode,
   }
 
   if (!done) {
-    STOP_TIMER();
-    MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::OpenContainer(), this=%p\n", this));
 
     result = mSink ? mSink->OpenContainer(*aNode) : NS_OK;
-
-    MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::OpenContainer(), this=%p\n", this));
-    START_TIMER();
 
     
     
@@ -2753,8 +2697,6 @@ CNavDTD::CloseContainer(const eHTMLTags aTag, PRBool aMalformed)
   }
 
   if (!done) {
-    STOP_TIMER();
-    MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::CloseContainer(), this=%p\n", this));
 
     if (mSink) {
       result = !aMalformed
@@ -2776,9 +2718,6 @@ CNavDTD::CloseContainer(const eHTMLTags aTag, PRBool aMalformed)
         result = headresult;
       }
     }
-
-    MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::CloseContainer(), this=%p\n", this));
-    START_TIMER();
   }
 
   return result;
@@ -3002,13 +2941,7 @@ CNavDTD::AddLeaf(const nsIParserNode *aNode)
     eHTMLTags theTag = (eHTMLTags)aNode->GetNodeType();
     OpenTransientStyles(theTag);
 
-    STOP_TIMER();
-    MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::AddLeaf(), this=%p\n", this));
-
     result = mSink->AddLeaf(*aNode);
-
-    MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::AddLeaf(), this=%p\n", this));
-    START_TIMER();
   }
 
   return result;
@@ -3041,9 +2974,6 @@ CNavDTD::AddHeadContent(nsIParserNode *aNode)
   }
 
   if (mSink) {
-    STOP_TIMER();
-    MOZ_TIMER_DEBUGLOG(("Stop: Parse Time: CNavDTD::AddHeadContent(), this=%p\n", this));
-
     
     if (!(mFlags & NS_DTD_FLAG_HAS_OPEN_HEAD)) {
       result = mSink->OpenHead();
@@ -3073,9 +3003,6 @@ CNavDTD::AddHeadContent(nsIParserNode *aNode)
       mBodyContext->Push(static_cast<nsCParserNode*>(aNode), nsnull,
                          PR_FALSE);
     }
-
-    MOZ_TIMER_DEBUGLOG(("Start: Parse Time: CNavDTD::AddHeadContent(), this=%p\n", this));
-    START_TIMER();
   }
 
   return result;
