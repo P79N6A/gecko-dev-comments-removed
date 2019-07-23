@@ -654,11 +654,11 @@ nsContextMenu.prototype = {
   
   openFrameInTab: function() {
     var doc = this.target.ownerDocument;
-    var frameURL = doc.documentURIObject.spec;
+    var frameURL = doc.location.href;
     var referrer = doc.referrer;
 
-    openNewTabWith(frameURL, null, null, null, false,
-                   referrer ? makeURI(referrer) : null);
+    return openNewTabWith(frameURL, null, null, null, false,
+                          referrer ? makeURI(referrer) : null);
   },
 
   
@@ -669,17 +669,17 @@ nsContextMenu.prototype = {
   
   openFrame: function() {
     var doc = this.target.ownerDocument;
-    var frameURL = doc.documentURIObject.spec;
+    var frameURL = doc.location.href;
     var referrer = doc.referrer;
 
-    openNewWindowWith(frameURL, null, null, false,
-                      referrer ? makeURI(referrer) : null);
+    return openNewWindowWith(frameURL, null, null, false,
+                             referrer ? makeURI(referrer) : null);
   },
 
   
   showOnlyThisFrame: function() {
     var doc = this.target.ownerDocument;
-    var frameURL = doc.documentURIObject.spec;
+    var frameURL = doc.location.href;
 
     urlSecurityCheck(frameURL, this.browser.contentPrincipal,
                      Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);

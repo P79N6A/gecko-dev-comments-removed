@@ -27,13 +27,13 @@ function test() {
   newBrowser.contentWindow.location = testPage;
 }
 
-var loadCount = 0;
 function test1Setup() {
-  if(!loadCount++)
+  
+  if(newBrowser.contentWindow.frames.length < 2 ||
+     newBrowser.contentWindow.frames[1].document.location != invalidPage)
     
     return;
   
-  loadCount = 0;
   newBrowser.removeEventListener("load", test1Setup, true);
 
   var badFrame = newBrowser.contentWindow.frames[1];
@@ -65,11 +65,11 @@ function testShowOnlyThisFrame() {
 }
 
 function test2Setup() {
-  if(!loadCount++)
+  if(newBrowser.contentWindow.frames.length < 2 ||
+     newBrowser.contentWindow.frames[1].document.location != invalidPage)
     
     return;
   
-  loadCount = 0;
   gBrowser.removeEventListener("load", test2Setup, true);
   
   
