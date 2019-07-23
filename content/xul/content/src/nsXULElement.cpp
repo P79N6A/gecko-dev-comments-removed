@@ -73,7 +73,6 @@
 #include "nsIDOMFocusListener.h"
 #include "nsIDOMKeyListener.h"
 #include "nsIDOMFormListener.h"
-#include "nsIDOMXULListener.h"
 #include "nsIDOMContextMenuListener.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMEventTarget.h"
@@ -1576,13 +1575,18 @@ nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
         return NS_OK;
     }
     if (aVisitor.mEvent->message == NS_XUL_COMMAND &&
+        aVisitor.mEvent->eventStructType == NS_INPUT_EVENT &&
         aVisitor.mEvent->originalTarget == static_cast<nsIContent*>(this) &&
         tag != nsGkAtoms::command) {
         
         
+        nsCOMPtr<nsIDOMXULCommandEvent> xulEvent =
+            do_QueryInterface(aVisitor.mDOMEvent);
+        
+        
         nsAutoString command;
-        GetAttr(kNameSpaceID_None, nsGkAtoms::command, command);
-        if (!command.IsEmpty()) {
+        if (xulEvent && GetAttr(kNameSpaceID_None, nsGkAtoms::command, command) &&
+            !command.IsEmpty()) {
             
             
             aVisitor.mCanHandle = PR_FALSE;
@@ -1598,29 +1602,6 @@ nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
                 
                 
                 
-
-                nsXULCommandEvent event(NS_IS_TRUSTED_EVENT(aVisitor.mEvent),
-                                        NS_XUL_COMMAND, nsnull);
-                if (aVisitor.mEvent->eventStructType == NS_XUL_COMMAND_EVENT) {
-                    nsXULCommandEvent *orig =
-                        static_cast<nsXULCommandEvent*>(aVisitor.mEvent);
-
-                    event.isShift = orig->isShift;
-                    event.isControl = orig->isControl;
-                    event.isAlt = orig->isAlt;
-                    event.isMeta = orig->isMeta;
-                } else {
-                    NS_WARNING("Incorrect eventStructType for command event");
-                }
-
-                if (!aVisitor.mDOMEvent) {
-                    
-                    nsEventDispatcher::CreateEvent(aVisitor.mPresContext,
-                                                   aVisitor.mEvent,
-                                                   EmptyString(),
-                                                   &aVisitor.mDOMEvent);
-                }
-
                 nsCOMPtr<nsIDOMNSEvent> nsevent =
                     do_QueryInterface(aVisitor.mDOMEvent);
                 while (nsevent) {
@@ -1636,12 +1617,17 @@ nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
                     nsevent = do_QueryInterface(tmp);
                 }
 
-                event.sourceEvent = aVisitor.mDOMEvent;
-
-                nsEventStatus status = nsEventStatus_eIgnore;
-                nsEventDispatcher::Dispatch(commandContent,
-                                            aVisitor.mPresContext,
-                                            &event, nsnull, &status);
+                nsInputEvent* orig =
+                    static_cast<nsInputEvent*>(aVisitor.mEvent);
+                nsContentUtils::DispatchXULCommand(
+                  commandContent,
+                  NS_IS_TRUSTED_EVENT(aVisitor.mEvent),
+                  aVisitor.mDOMEvent,
+                  nsnull,
+                  orig->isControl,
+                  orig->isAlt,
+                  orig->isShift,
+                  orig->isMeta);
             } else {
                 NS_WARNING("A XUL element is attached to a command that doesn't exist!\n");
             }
@@ -2132,15 +2118,7 @@ nsXULElement::DoCommand()
 {
     nsCOMPtr<nsIDocument> doc = GetCurrentDoc(); 
     if (doc) {
-        nsPresShellIterator iter(doc);
-        nsCOMPtr<nsIPresShell> shell;
-        while ((shell = iter.GetNextShell())) {
-            nsCOMPtr<nsPresContext> context = shell->GetPresContext();
-            nsEventStatus status = nsEventStatus_eIgnore;
-            nsXULCommandEvent event(PR_TRUE, NS_XUL_COMMAND, nsnull);
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &event, nsnull, &status);
-        }
+        nsContentUtils::DispatchXULCommand(this, PR_TRUE);
     }
 
     return NS_OK;

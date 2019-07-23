@@ -106,6 +106,7 @@ class nsIWidget;
 class nsIDragSession;
 class nsPIDOMWindow;
 class nsPIDOMEventTarget;
+class nsIPresShell;
 #ifdef MOZ_XTF
 class nsIXTFService;
 #endif
@@ -1400,6 +1401,21 @@ public:
   static nsresult GetUTFOrigin(nsIPrincipal* aPrincipal,
                                nsString& aOrigin);
   static nsresult GetUTFOrigin(nsIURI* aURI, nsString& aOrigin);
+
+  
+
+
+
+
+
+  static nsresult DispatchXULCommand(nsIContent* aTarget,
+                                     PRBool aTrusted,
+                                     nsIDOMEvent* aSourceEvent = nsnull,
+                                     nsIPresShell* aShell = nsnull,
+                                     PRBool aCtrl = PR_FALSE,
+                                     PRBool aAlt = PR_FALSE,
+                                     PRBool aShift = PR_FALSE,
+                                     PRBool aMeta = PR_FALSE);
 
   
 

@@ -53,6 +53,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsGUIEvent.h"
 #include "nsEventDispatcher.h"
+#include "nsContentUtils.h"
 
 
 
@@ -259,10 +260,7 @@ void
 nsResizerFrame::MouseClicked(nsPresContext* aPresContext, nsGUIEvent *aEvent)
 {
   
-  nsEventStatus status = nsEventStatus_eIgnore;
-
-  nsXULCommandEvent event(aEvent ? NS_IS_TRUSTED_EVENT(aEvent) : PR_FALSE,
-                          NS_XUL_COMMAND, nsnull);
-
-  nsEventDispatcher::Dispatch(mContent, aPresContext, &event, nsnull, &status);
+  nsContentUtils::DispatchXULCommand(mContent,
+                                     aEvent ?
+                                       NS_IS_TRUSTED_EVENT(aEvent) : PR_FALSE);
 }
