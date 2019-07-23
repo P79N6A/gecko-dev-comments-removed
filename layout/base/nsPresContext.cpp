@@ -387,6 +387,10 @@ static const char* const kGenericFont[] = {
 
 
 
+static PRBool sNoTheme = PR_FALSE;
+
+
+
 
 static PRBool sLookAndFeelChanged;
 
@@ -1387,10 +1391,10 @@ nsPresContext::GetBidi() const
 nsITheme*
 nsPresContext::GetTheme()
 {
-  if (!mNoTheme && !mTheme) {
+  if (!sNoTheme && !mTheme) {
     mTheme = do_GetService("@mozilla.org/chrome/chrome-native-theme;1");
     if (!mTheme)
-      mNoTheme = PR_TRUE;
+      sNoTheme = PR_TRUE;
   }
 
   return mTheme;
