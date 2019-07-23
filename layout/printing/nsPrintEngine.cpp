@@ -2201,6 +2201,27 @@ nsPrintEngine::DoPrint(nsPrintObject * aPO)
               {
                 startRect.y -= totalMargin.top;
                 endRect.y   -= totalMargin.top;
+
+                
+                if (startRect.y < 0) {
+                  
+                  
+                  startRect.height = PR_MAX(0, startRect.YMost());
+                  startRect.y = 0;
+                }
+                if (endRect.y < 0) {
+                  
+                  
+                  endRect.height = PR_MAX(0, endRect.YMost());
+                  endRect.y = 0;
+                }
+                NS_ASSERTION(endRect.y >= startRect.y,
+                             "Selection end point should be after start point");
+                NS_ASSERTION(startRect.height >= 0,
+                             "rect should have non-negative height.");
+                NS_ASSERTION(endRect.height >= 0,
+                             "rect should have non-negative height.");
+
                 nscoord selectionHgt = endRect.y + endRect.height - startRect.y;
                 
                 pageSequence->SetSelectionHeight(startRect.y * aPO->mZoomRatio,
