@@ -1075,7 +1075,8 @@ function delayedStartup()
   gBrowser.addEventListener("command", BrowserOnCommand, false);
 
   tabPreviews.init();
-  ctrlTab.init();
+  if (gPrefService.getBoolPref("browser.ctrlTab.mostRecentlyUsed"))
+    ctrlTab.init();
 
   
   
