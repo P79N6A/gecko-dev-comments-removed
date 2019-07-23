@@ -967,10 +967,16 @@ namespace nanojit
         
         LIns*        ins_eq0(LIns* oprnd1);
         
+        LIns*        ins_peq0(LIns* oprnd1);
+        
         
         LIns*        ins2i(LOpcode op, LIns *oprnd1, int32_t);
         LIns*        qjoin(LInsp lo, LInsp hi);
         LIns*        insImmPtr(const void *ptr);
+        LIns*        insImmWord(intptr_t ptr);
+        
+        LIns*        ins_i2p(LIns* intIns);
+        LIns*        ins_u2p(LIns* uintIns);
     };
 
 
