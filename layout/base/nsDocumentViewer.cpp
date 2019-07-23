@@ -1019,7 +1019,7 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   
   if (mDocument)
-    mDocument->OnPageShow(restoring);
+    mDocument->OnPageShow(restoring, nsnull);
 
   
   
@@ -1169,7 +1169,7 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
     return NS_ERROR_NULL_POINTER;
   }
 
-  mDocument->OnPageHide(!aIsUnload);
+  mDocument->OnPageHide(!aIsUnload, nsnull);
   if (aIsUnload) {
     
     NS_ENSURE_STATE(mDocument);

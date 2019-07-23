@@ -69,6 +69,7 @@ class nsIViewManager;
 class nsIScriptGlobalObject;
 class nsPIDOMWindow;
 class nsIDOMEvent;
+class nsIDOMEventTarget;
 class nsIDeviceContext;
 class nsIParser;
 class nsIDOMNode;
@@ -854,7 +855,12 @@ public:
 
 
 
-  virtual void OnPageShow(PRBool aPersisted) = 0;
+
+
+
+
+  virtual void OnPageShow(PRBool aPersisted,
+                          nsIDOMEventTarget* aDispatchStartTarget) = 0;
 
   
 
@@ -864,7 +870,12 @@ public:
 
 
 
-  virtual void OnPageHide(PRBool aPersisted) = 0;
+
+
+
+
+  virtual void OnPageHide(PRBool aPersisted,
+                          nsIDOMEventTarget* aDispatchStartTarget) = 0;
   
   
 

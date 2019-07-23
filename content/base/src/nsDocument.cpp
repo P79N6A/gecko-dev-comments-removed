@@ -7150,7 +7150,7 @@ nsDocument::DispatchEventToWindow(nsEvent *aEvent)
 }
 
 void
-nsDocument::OnPageShow(PRBool aPersisted)
+nsDocument::OnPageShow(PRBool aPersisted, nsIDOMEventTarget* aDispatchStartTarget)
 {
   mVisible = PR_TRUE;
   UpdateLinkMap();
@@ -7174,9 +7174,10 @@ nsDocument::OnPageShow(PRBool aPersisted)
   }
 
   
-  
-  mIsShowing = PR_TRUE;
-
+  if (!aDispatchStartTarget) {
+    mIsShowing = PR_TRUE;
+  }
+ 
 #ifdef MOZ_SMIL
   if (mAnimationController) {
     mAnimationController->OnPageShow();
@@ -7184,11 +7185,16 @@ nsDocument::OnPageShow(PRBool aPersisted)
 #endif
   
   nsPageTransitionEvent event(PR_TRUE, NS_PAGE_SHOW, aPersisted);
-  DispatchEventToWindow(&event);
+  if (aDispatchStartTarget) {
+    event.target = static_cast<nsIDocument*>(this);
+    nsEventDispatcher::Dispatch(aDispatchStartTarget, nsnull, &event);
+  } else {
+    DispatchEventToWindow(&event);
+  }
 }
 
 void
-nsDocument::OnPageHide(PRBool aPersisted)
+nsDocument::OnPageHide(PRBool aPersisted, nsIDOMEventTarget* aDispatchStartTarget)
 {
   
   
@@ -7210,8 +7216,9 @@ nsDocument::OnPageHide(PRBool aPersisted)
   }
 
   
-  
-  mIsShowing = PR_FALSE;
+  if (!aDispatchStartTarget) {
+    mIsShowing = PR_FALSE;
+  }
 
 #ifdef MOZ_SMIL
   if (mAnimationController) {
@@ -7221,7 +7228,12 @@ nsDocument::OnPageHide(PRBool aPersisted)
   
   
   nsPageTransitionEvent event(PR_TRUE, NS_PAGE_HIDE, aPersisted);
-  DispatchEventToWindow(&event);
+  if (aDispatchStartTarget) {
+    event.target = static_cast<nsIDocument*>(this);
+    nsEventDispatcher::Dispatch(aDispatchStartTarget, nsnull, &event);
+  } else {
+    DispatchEventToWindow(&event);
+  }
 
   mVisible = PR_FALSE;
 }
