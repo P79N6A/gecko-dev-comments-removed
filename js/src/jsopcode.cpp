@@ -2800,13 +2800,24 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 sn = js_GetSrcNote(jp->script, pc);
 
 #if JS_HAS_DESTRUCTURING
-                if (sn && SN_TYPE(sn) == SRC_GROUPASSIGN && len > JSOP_GETLOCAL_LENGTH) {
-                    pc = DecompileGroupAssignment(ss, pc, endpc, sn, &todo);
-                    if (!pc)
-                        return NULL;
-                    LOCAL_ASSERT(*pc == JSOP_POPN);
-                    len = oplen = JSOP_POPN_LENGTH;
-                    goto end_groupassignment;
+                if (sn && SN_TYPE(sn) == SRC_GROUPASSIGN) {
+                    
+
+
+
+
+
+                    if (endpc - pc > JSOP_GETLOCAL_LENGTH || pc > startpc) {
+                        pc = DecompileGroupAssignment(ss, pc, endpc, sn, &todo);
+                        if (!pc)
+                            return NULL;
+                        LOCAL_ASSERT(*pc == JSOP_POPN);
+                        len = oplen = JSOP_POPN_LENGTH;
+                        goto end_groupassignment;
+                    }
+
+                    
+                    sn = NULL;
                 }
 #endif
 
