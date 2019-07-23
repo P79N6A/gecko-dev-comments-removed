@@ -785,6 +785,8 @@ protected:
                                     nsIContent * aParentContent,
                                     nsIPresShell* aShell);
 
+  nsresult ShowResizersInner(nsIDOMElement *aResizedElement);
+
   
   nsresult GetElementOrigin(nsIDOMElement * aElement, PRInt32 & aX, PRInt32 & aY);
   nsresult GetPositionAndDimensions(nsIDOMElement * aElement,
