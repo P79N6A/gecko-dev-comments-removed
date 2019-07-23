@@ -70,6 +70,9 @@
 #include "nsRuleData.h"
 #include "nsContentErrors.h"
 #include "nsRuleProcessorData.h"
+#include "Element.h"
+
+using namespace mozilla::dom;
 
 NS_IMPL_ISUPPORTS1(nsHTMLStyleSheet::HTMLColorRule, nsIStyleRule)
 
@@ -228,65 +231,61 @@ static nsresult GetBodyColor(nsPresContext* aPresContext, nscolor* aColor)
 NS_IMETHODIMP
 nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 {
-  nsIContent *content = aData->mContent;
-
-  if (content) {
-    nsRuleWalker *ruleWalker = aData->mRuleWalker;
-    if (aData->mIsHTMLContent) {
-      nsIAtom* tag = aData->mContentTag;
-
-      
-      if (tag == nsGkAtoms::a) {
-        if (mLinkRule || mVisitedRule || mActiveRule) {
-          PRUint32 state = aData->GetContentStateForVisitedHandling(
-                                    ruleWalker->VisitedHandling(),
-                                    
-                                    
-                                    aData->IsLink());
-          if (mLinkRule && (state & NS_EVENT_STATE_UNVISITED)) {
-            ruleWalker->Forward(mLinkRule);
-            ruleWalker->SetHaveRelevantLink();
-          }
-          else if (mVisitedRule && (state & NS_EVENT_STATE_VISITED)) {
-            ruleWalker->Forward(mVisitedRule);
-            ruleWalker->SetHaveRelevantLink();
-          }
-
-          
-          if (mActiveRule && aData->IsLink() &&
-              (state & NS_EVENT_STATE_ACTIVE)) {
-            ruleWalker->Forward(mActiveRule);
-          }
-        } 
-      } 
-      
-      else if (tag == nsGkAtoms::th) {
-        ruleWalker->Forward(mTableTHRule);
-      }
-      else if (tag == nsGkAtoms::table) {
-        if (aData->mCompatMode == eCompatibility_NavQuirks) {
-          nscolor bodyColor;
-          nsresult rv =
-            GetBodyColor(ruleWalker->CurrentNode()->GetPresContext(),
-                         &bodyColor);
-          if (NS_SUCCEEDED(rv) &&
-              (!mDocumentColorRule || bodyColor != mDocumentColorRule->mColor)) {
-            NS_IF_RELEASE(mDocumentColorRule);
-            mDocumentColorRule = new HTMLColorRule();
-            if (mDocumentColorRule) {
-              NS_ADDREF(mDocumentColorRule);
-              mDocumentColorRule->mColor = bodyColor;
-            }
-          }
-          if (mDocumentColorRule)
-            ruleWalker->Forward(mDocumentColorRule);
-        }
-      }
-    } 
+  nsRuleWalker *ruleWalker = aData->mRuleWalker;
+  if (aData->mIsHTMLContent) {
+    nsIAtom* tag = aData->mContentTag;
 
     
-    content->WalkContentStyleRules(ruleWalker);
-  }
+    if (tag == nsGkAtoms::a) {
+      if (mLinkRule || mVisitedRule || mActiveRule) {
+        PRUint32 state = aData->GetContentStateForVisitedHandling(
+                                  ruleWalker->VisitedHandling(),
+                                  
+                                  
+                                  aData->IsLink());
+        if (mLinkRule && (state & NS_EVENT_STATE_UNVISITED)) {
+          ruleWalker->Forward(mLinkRule);
+          ruleWalker->SetHaveRelevantLink();
+        }
+        else if (mVisitedRule && (state & NS_EVENT_STATE_VISITED)) {
+          ruleWalker->Forward(mVisitedRule);
+          ruleWalker->SetHaveRelevantLink();
+        }
+
+        
+        if (mActiveRule && aData->IsLink() &&
+            (state & NS_EVENT_STATE_ACTIVE)) {
+          ruleWalker->Forward(mActiveRule);
+        }
+      } 
+    } 
+    
+    else if (tag == nsGkAtoms::th) {
+      ruleWalker->Forward(mTableTHRule);
+    }
+    else if (tag == nsGkAtoms::table) {
+      if (aData->mCompatMode == eCompatibility_NavQuirks) {
+        nscolor bodyColor;
+        nsresult rv =
+          GetBodyColor(ruleWalker->CurrentNode()->GetPresContext(),
+                       &bodyColor);
+        if (NS_SUCCEEDED(rv) &&
+            (!mDocumentColorRule || bodyColor != mDocumentColorRule->mColor)) {
+          NS_IF_RELEASE(mDocumentColorRule);
+          mDocumentColorRule = new HTMLColorRule();
+          if (mDocumentColorRule) {
+            NS_ADDREF(mDocumentColorRule);
+            mDocumentColorRule->mColor = bodyColor;
+          }
+        }
+        if (mDocumentColorRule)
+          ruleWalker->Forward(mDocumentColorRule);
+      }
+    }
+  } 
+
+    
+  aData->mElement->WalkContentStyleRules(ruleWalker);
 
   return NS_OK;
 }
@@ -326,11 +325,10 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
   
 
   
-  nsIContent *content = aData->mContent;
+  Element *element = aData->mElement;
   if (aData->mAttribute == nsGkAtoms::href &&
       (mLinkRule || mVisitedRule || mActiveRule) &&
-      content &&
-      content->IsHTML() &&
+      element->IsHTML() &&
       aData->mContentTag == nsGkAtoms::a) {
     return eRestyle_Self;
   }
@@ -339,7 +337,7 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
   
 
   
-  if (content && content->IsAttributeMapped(aData->mAttribute)) {
+  if (element->IsAttributeMapped(aData->mAttribute)) {
     return eRestyle_Self;
   }
 

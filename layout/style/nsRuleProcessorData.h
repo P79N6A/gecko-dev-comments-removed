@@ -61,7 +61,7 @@ class nsAttrValue;
 
 struct RuleProcessorData {
   RuleProcessorData(nsPresContext* aPresContext,
-                    nsIContent* aContent, 
+                    mozilla::dom::Element* aElement, 
                     nsRuleWalker* aRuleWalker,
                     nsCompatibility* aCompat = nsnull);
   
@@ -70,16 +70,16 @@ struct RuleProcessorData {
 
   
   static RuleProcessorData* Create(nsPresContext* aPresContext,
-                                   nsIContent* aContent, 
+                                   mozilla::dom::Element* aElement, 
                                    nsRuleWalker* aRuleWalker,
                                    nsCompatibility aCompat)
   {
     if (NS_LIKELY(aPresContext)) {
-      return new (aPresContext) RuleProcessorData(aPresContext, aContent,
+      return new (aPresContext) RuleProcessorData(aPresContext, aElement,
                                                   aRuleWalker, &aCompat);
     }
 
-    return new RuleProcessorData(aPresContext, aContent, aRuleWalker,
+    return new RuleProcessorData(aPresContext, aElement, aRuleWalker,
                                  &aCompat);
   }
   
@@ -124,7 +124,7 @@ public:
                       PRBool aCheckEdgeOnly);
 
   nsPresContext*    mPresContext;
-  nsIContent*       mContent;       
+  mozilla::dom::Element* mElement;       
   nsIContent*       mParentContent; 
   nsRuleWalker*     mRuleWalker; 
   nsIContent*       mScopedRoot;    
@@ -164,9 +164,9 @@ private:
 
 struct ElementRuleProcessorData : public RuleProcessorData {
   ElementRuleProcessorData(nsPresContext* aPresContext,
-                           nsIContent* aContent, 
+                           mozilla::dom::Element* aElement, 
                            nsRuleWalker* aRuleWalker)
-  : RuleProcessorData(aPresContext,aContent,aRuleWalker)
+  : RuleProcessorData(aPresContext, aElement, aRuleWalker)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
@@ -175,10 +175,10 @@ struct ElementRuleProcessorData : public RuleProcessorData {
 
 struct PseudoElementRuleProcessorData : public RuleProcessorData {
   PseudoElementRuleProcessorData(nsPresContext* aPresContext,
-                                 nsIContent* aParentContent,
+                                 mozilla::dom::Element* aParentElement,
                                  nsRuleWalker* aRuleWalker,
                                  nsCSSPseudoElements::Type aPseudoType)
-    : RuleProcessorData(aPresContext, aParentContent, aRuleWalker),
+    : RuleProcessorData(aPresContext, aParentElement, aRuleWalker),
       mPseudoType(aPseudoType)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
@@ -212,11 +212,11 @@ struct AnonBoxRuleProcessorData {
 #ifdef MOZ_XUL
 struct XULTreeRuleProcessorData : public RuleProcessorData {
   XULTreeRuleProcessorData(nsPresContext* aPresContext,
-                           nsIContent* aParentContent,
+                           mozilla::dom::Element* aParentElement,
                            nsRuleWalker* aRuleWalker,
                            nsIAtom* aPseudoTag,
                            nsICSSPseudoComparator* aComparator)
-    : RuleProcessorData(aPresContext, aParentContent, aRuleWalker),
+    : RuleProcessorData(aPresContext, aParentElement, aRuleWalker),
       mPseudoTag(aPseudoTag),
       mComparator(aComparator)
   {
@@ -233,9 +233,9 @@ struct XULTreeRuleProcessorData : public RuleProcessorData {
 
 struct StateRuleProcessorData : public RuleProcessorData {
   StateRuleProcessorData(nsPresContext* aPresContext,
-                         nsIContent* aContent,
+                         mozilla::dom::Element* aElement,
                          PRInt32 aStateMask)
-    : RuleProcessorData(aPresContext, aContent, nsnull),
+    : RuleProcessorData(aPresContext, aElement, nsnull),
       mStateMask(aStateMask)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
@@ -246,11 +246,11 @@ struct StateRuleProcessorData : public RuleProcessorData {
 
 struct AttributeRuleProcessorData : public RuleProcessorData {
   AttributeRuleProcessorData(nsPresContext* aPresContext,
-                             nsIContent* aContent,
+                             mozilla::dom::Element* aElement,
                              nsIAtom* aAttribute,
                              PRInt32 aModType,
                              PRBool aAttrHasChanged)
-    : RuleProcessorData(aPresContext, aContent, nsnull),
+    : RuleProcessorData(aPresContext, aElement, nsnull),
       mAttribute(aAttribute),
       mModType(aModType),
       mAttrHasChanged(aAttrHasChanged)

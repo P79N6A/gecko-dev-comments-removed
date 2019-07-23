@@ -55,6 +55,9 @@
 #include "nsRuleWalker.h"
 #include "nsRuleData.h"
 #include "nsRuleProcessorData.h"
+#include "Element.h"
+
+using namespace mozilla::dom;
 
 nsHTMLCSSStyleSheet::nsHTMLCSSStyleSheet()
   : mRefCnt(0),
@@ -75,24 +78,24 @@ NS_IMPL_ISUPPORTS2(nsHTMLCSSStyleSheet,
 NS_IMETHODIMP
 nsHTMLCSSStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 {
-  nsIContent* content = aData->mContent;
+  Element* element = aData->mElement;
 
   
-  nsICSSStyleRule* rule = content->GetInlineStyleRule();
+  nsICSSStyleRule* rule = element->GetInlineStyleRule();
   if (rule) {
     rule->RuleMatched();
     aData->mRuleWalker->Forward(rule);
   }
 
 #ifdef MOZ_SMIL
-  rule = content->GetSMILOverrideStyleRule();
+  rule = element->GetSMILOverrideStyleRule();
   if (rule) {
     if (aData->mPresContext->IsProcessingRestyles() &&
         !aData->mPresContext->IsProcessingAnimationStyleChange()) {
       
       
       
-      aData->mPresContext->PresShell()->RestyleForAnimation(aData->mContent);
+      aData->mPresContext->PresShell()->RestyleForAnimation(element);
     } else {
       
       
