@@ -216,10 +216,14 @@ gfxPangoFont::Shutdown()
 {
     gfxPangoFontCache::Shutdown();
 
+    
+    
+    
+#if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING) || defined(NS_TRACE_MALLOC)
     PangoFontMap *fontmap = pango_cairo_font_map_get_default ();
     if (PANGO_IS_FC_FONT_MAP (fontmap))
         pango_fc_font_map_shutdown (PANGO_FC_FONT_MAP (fontmap));
-
+#endif
 }
 
 static PangoStyle
