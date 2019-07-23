@@ -51,7 +51,6 @@
 #include "jshash.h" 
 #include "jspubtd.h"
 #include "jsprvtd.h"
-#include "jsstdint.h"
 
 
 
@@ -118,7 +117,7 @@ struct PropertyDescriptor {
     jsval value, get, set;
 
     
-    uint8_t attrs;
+    uint8 attrs;
 
     
     bool hasGet : 1;
