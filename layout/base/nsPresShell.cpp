@@ -208,6 +208,7 @@ static NS_DEFINE_CID(kCSSStyleSheetCID, NS_CSS_STYLESHEET_CID);
 static NS_DEFINE_IID(kRangeCID,     NS_RANGE_CID);
 
 PRBool nsIPresShell::gIsAccessibilityActive = PR_FALSE;
+CapturingContentInfo nsIPresShell::gCaptureInfo;
 
 
 
@@ -797,6 +798,7 @@ public:
   NS_IMETHOD_(void) InvalidateFrameForView(nsIView *view);
   NS_IMETHOD_(void) DispatchSynthMouseMove(nsGUIEvent *aEvent,
                                            PRBool aFlushOnHoverChange);
+  NS_IMETHOD_(void) ClearMouseCapture(nsIView* aView);
 
   
   NS_IMETHOD GetCaret(nsCaret **aOutCaret);
@@ -4370,6 +4372,41 @@ PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
   }
 }
 
+NS_IMETHODIMP_(void)
+PresShell::ClearMouseCapture(nsIView* aView)
+{
+  if (gCaptureInfo.mContent) {
+    if (aView) {
+      
+      
+      nsIFrame* frame = GetPrimaryFrameFor(gCaptureInfo.mContent);
+      if (frame) {
+        nsIView* view = frame->GetClosestView();
+        while (view) {
+          if (view == aView) {
+            NS_RELEASE(gCaptureInfo.mContent);
+            
+            
+            gCaptureInfo.mAllowed = PR_FALSE;
+            break;
+          }
+
+          view = view->GetParent();
+        }
+        
+        return;
+      }
+    }
+
+    NS_RELEASE(gCaptureInfo.mContent);
+  }
+
+  
+  
+  
+  gCaptureInfo.mAllowed = PR_FALSE;
+}
+
 NS_IMETHODIMP
 PresShell::DoGetContents(const nsACString& aMimeType, PRUint32 aFlags, PRBool aSelectionOnly, nsAString& aOutValue)
 {
@@ -5693,6 +5730,22 @@ PresShell::PaintDefaultBackground(nsIView*             aView,
   return NS_OK;
 }
 
+
+void
+nsIPresShell::SetCapturingContent(nsIContent* aContent, PRUint8 aFlags)
+{
+  NS_IF_RELEASE(gCaptureInfo.mContent);
+
+  
+  
+  if ((aFlags & CAPTURE_IGNOREALLOWED) || gCaptureInfo.mAllowed) {
+    if (aContent) {
+      NS_ADDREF(gCaptureInfo.mContent = aContent);
+    }
+    gCaptureInfo.mRetargetToElement = (aFlags & CAPTURE_RETARGETTOELEMENT) != 0;
+  }
+}
+
 nsIFrame*
 PresShell::GetCurrentEventFrame()
 {
@@ -5849,40 +5902,49 @@ PresShell::HandleEvent(nsIView         *aView,
   }
 #endif
 
+  nsCOMPtr<nsIDocument> retargetEventDoc;
   
-  if (!sDontRetargetEvents && NS_IsEventTargetedAtFocusedWindow(aEvent)) {
-    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (!fm)
-      return NS_ERROR_FAILURE;
+  if (!sDontRetargetEvents) {
+    if (NS_IsEventTargetedAtFocusedWindow(aEvent)) {
+      nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+      if (!fm)
+         return NS_ERROR_FAILURE;
+ 
+      nsCOMPtr<nsIDOMWindow> window;
+      fm->GetFocusedWindow(getter_AddRefs(window));
 
-    nsCOMPtr<nsIDOMWindow> window;
-    fm->GetFocusedWindow(getter_AddRefs(window));
+      
+      
+      nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(window);
+      if (!piWindow)
+        return NS_OK;
 
-    
-    
-    nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(window);
-    if (!piWindow)
-      return NS_OK;
+      retargetEventDoc = do_QueryInterface(piWindow->GetExtantDocument());
+      if (!retargetEventDoc)
+        return NS_OK;
+    } else if (NS_IS_MOUSE_EVENT(aEvent) && GetCapturingContent()) {
+      
+      
+      retargetEventDoc = gCaptureInfo.mContent->GetCurrentDoc();
+    }
 
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(piWindow->GetExtantDocument()));    
-    if (!doc)
-      return NS_OK;
+    if (retargetEventDoc) {
+      nsIPresShell* presShell = retargetEventDoc->GetPrimaryShell();
+      if (!presShell)
+        return NS_OK;
 
-    nsIPresShell *presShell = doc->GetPrimaryShell();
-    if (!presShell)
-      return NS_OK;
+      if (presShell != this) {
+        nsCOMPtr<nsIViewObserver> viewObserver = do_QueryInterface(presShell);
+        if (!viewObserver)
+          return NS_ERROR_FAILURE;
 
-    if (presShell != this) {
-      nsCOMPtr<nsIViewObserver> viewObserver = do_QueryInterface(presShell);
-      if (!viewObserver)
-        return NS_ERROR_FAILURE;
-
-      nsIView *view;
-      presShell->GetViewManager()->GetRootView(view);
-      sDontRetargetEvents = PR_TRUE;
-      nsresult rv = viewObserver->HandleEvent(view, aEvent, aEventStatus);
-      sDontRetargetEvents = PR_FALSE;
-      return rv;
+        nsIView *view;
+        presShell->GetViewManager()->GetRootView(view);
+        sDontRetargetEvents = PR_TRUE;
+        nsresult rv = viewObserver->HandleEvent(view, aEvent, aEventStatus);
+        sDontRetargetEvents = PR_FALSE;
+        return rv;
+      }
     }
   }
 
@@ -5933,7 +5995,40 @@ PresShell::HandleEvent(nsIView         *aView,
     return NS_OK;
   }
 
+  PRBool getDescendantPoint = PR_TRUE;
   nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
+
+  if (NS_IS_MOUSE_EVENT(aEvent) && GetCapturingContent()) {
+    
+    
+    
+    
+    nsIContent* capturingContent = gCaptureInfo.mContent;
+    frame = GetPrimaryFrameFor(capturingContent);
+    if (frame) {
+      getDescendantPoint = !gCaptureInfo.mRetargetToElement;
+      if (!capturingContent->GetParent()) {
+        frame = frame->GetParent();
+      }
+      else {
+        
+        if (capturingContent->Tag() == nsGkAtoms::select &&
+            capturingContent->IsNodeOfType(nsINode::eHTML)) {
+          nsIFrame* childframe = frame->GetChildList(nsGkAtoms::selectPopupList).FirstChild();
+          if (childframe) {
+            frame = childframe;
+          }
+        }
+
+        
+        nsIScrollableFrame* scrollFrame = do_QueryFrame(frame);
+        if (scrollFrame) {
+          frame = scrollFrame->GetScrolledFrame();
+        }
+      }
+      aView = frame->GetClosestView();
+    }
+  }
 
   PRBool dispatchUsingCoordinates = NS_IsEventUsingCoordinates(aEvent);
 
@@ -5987,17 +6082,19 @@ PresShell::HandleEvent(nsIView         *aView,
 #endif
     }
 
-    nsPoint eventPoint
-        = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, frame);
-    nsIFrame* targetFrame;
-    {
-      nsAutoDisableGetUsedXAssertions disableAssert;
-      PRBool ignoreRootScrollFrame = PR_FALSE;
-      if (aEvent->eventStructType == NS_MOUSE_EVENT) {
-        ignoreRootScrollFrame = static_cast<nsMouseEvent*>(aEvent)->ignoreRootScrollFrame;
+    nsIFrame* targetFrame = nsnull;
+    if (getDescendantPoint) {
+      nsPoint eventPoint
+          = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, frame);
+      {
+        nsAutoDisableGetUsedXAssertions disableAssert;
+        PRBool ignoreRootScrollFrame = PR_FALSE;
+        if (aEvent->eventStructType == NS_MOUSE_EVENT) {
+          ignoreRootScrollFrame = static_cast<nsMouseEvent*>(aEvent)->ignoreRootScrollFrame;
+        }
+        targetFrame = nsLayoutUtils::GetFrameForPoint(frame, eventPoint,
+                                                      PR_FALSE, ignoreRootScrollFrame);
       }
-      targetFrame = nsLayoutUtils::GetFrameForPoint(frame, eventPoint,
-                                                    PR_FALSE, ignoreRootScrollFrame);
     }
 
     if (targetFrame) {
@@ -6277,7 +6374,8 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       }
     }                                
 
-    nsAutoHandlingUserInputStatePusher userInpStatePusher(isHandlingUserInput);
+    nsAutoHandlingUserInputStatePusher userInpStatePusher(isHandlingUserInput,
+                                                          aEvent->message == NS_MOUSE_BUTTON_DOWN);
 
     nsAutoPopupStatePusher popupStatePusher(nsDOMEvent::GetEventPopupControlState(aEvent));
 
@@ -6322,6 +6420,11 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
                                       GetCurrentEventFrame(), aStatus,
                                       weakView.GetView());
       }
+    }
+
+    if (aEvent->message == NS_MOUSE_BUTTON_UP) {
+      
+      SetCapturingContent(nsnull, 0);
     }
   }
   return rv;

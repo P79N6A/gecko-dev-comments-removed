@@ -263,8 +263,6 @@ NS_IMETHODIMP nsViewManager::Init(nsIDeviceContext* aContext)
 
   mRefreshEnabled = PR_TRUE;
 
-  mMouseGrabber = nsnull;
-
   return NS_OK;
 }
 
@@ -1077,29 +1075,22 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         }
 
         if (aEvent->message == NS_DEACTIVATE) {
-          PRBool result;
-          GrabMouseEvents(nsnull, result);
+          
+          
+          nsIViewObserver* viewObserver = GetViewObserver();
+          if (viewObserver) {
+            viewObserver->ClearMouseCapture(nsnull);
+          }
         }
 
         
         nsView* baseView = static_cast<nsView*>(aView);
         nsView* view = baseView;
-        PRBool capturedEvent = PR_FALSE;
-        
+
         if (NS_IsEventUsingCoordinates(aEvent)) {
           
           
           view = GetDisplayRootFor(baseView);
-        }
-
-        
-        
-        if (NS_IS_MOUSE_EVENT(aEvent) || NS_IS_DRAG_EVENT(aEvent)) {
-          nsView* mouseGrabber = GetMouseEventGrabber();
-          if (mouseGrabber) {
-            view = mouseGrabber;
-            capturedEvent = PR_TRUE;
-          }
         }
 
         if (nsnull != view) {
@@ -1171,7 +1162,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
             NSFloatPixelsToAppUnits(float(aEvent->refPoint.y) + 0.5f, p2a);
           pt += offset;
 
-          *aStatus = HandleEvent(view, pt, aEvent, capturedEvent);
+          *aStatus = HandleEvent(view, pt, aEvent);
         }
     
         break;
@@ -1182,7 +1173,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 }
 
 nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsPoint aPoint,
-                                         nsGUIEvent* aEvent, PRBool aCaptured) {
+                                         nsGUIEvent* aEvent) {
 
 
 
@@ -1196,37 +1187,6 @@ nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsPoint aPoint,
   }
 
   return status;
-}
-
-NS_IMETHODIMP nsViewManager::GrabMouseEvents(nsIView *aView, PRBool &aResult)
-{
-  if (!IsRootVM()) {
-    return RootViewManager()->GrabMouseEvents(aView, aResult);
-  }
-
-  
-  
-  if (aView && !static_cast<nsView*>(aView)->IsEffectivelyVisible()) {
-    aView = nsnull;
-  }
-
-#ifdef DEBUG_mjudge
-  if (aView)
-    {
-      printf("capturing mouse events for view %x\n",aView);
-    }
-  printf("removing mouse capture from view %x\n",mMouseGrabber);
-#endif
-
-  mMouseGrabber = static_cast<nsView*>(aView);
-  aResult = PR_TRUE;
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsViewManager::GetMouseEventGrabber(nsIView *&aView)
-{
-  aView = GetMouseEventGrabber();
-  return NS_OK;
 }
 
 

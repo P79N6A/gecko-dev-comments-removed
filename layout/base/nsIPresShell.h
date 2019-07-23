@@ -105,6 +105,23 @@ typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
 
+
+
+#define CAPTURE_IGNOREALLOWED 1
+
+#define CAPTURE_RETARGETTOELEMENT 2
+
+typedef struct CapturingContentInfo {
+  
+  PRPackedBool mAllowed;
+  PRPackedBool mRetargetToElement;
+  nsIContent* mContent;
+
+  CapturingContentInfo() :
+    mAllowed(PR_FALSE), mRetargetToElement(PR_FALSE), mContent(nsnull) { }
+} CapturingContentInfo;
+
+
 #define NS_IPRESSHELL_IID     \
 { 0xeba51d41, 0x68db, 0x4dab, \
   { 0xa5, 0x7b, 0xdc, 0x1a, 0x27, 0x04, 0xde, 0x87 } }
@@ -856,6 +873,42 @@ public:
     return mObservesMutationsForPrint;
   }
 
+  
+
+  static CapturingContentInfo gCaptureInfo;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void SetCapturingContent(nsIContent* aContent, PRUint8 aFlags);
+
+  
+
+
+  static nsIContent* GetCapturingContent()
+  {
+    return gCaptureInfo.mContent;
+  }
+
+  
+
+
+  static void AllowMouseCapture(PRBool aAllowed)
+  {
+    gCaptureInfo.mAllowed = aAllowed;
+  }
+
 protected:
   
   
@@ -908,4 +961,4 @@ protected:
 nsresult
 NS_NewPresShell(nsIPresShell** aInstancePtrResult);
 
-#endif
+#endif 
