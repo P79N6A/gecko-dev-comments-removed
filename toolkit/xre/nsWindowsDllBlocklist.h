@@ -98,6 +98,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   {"fgjk4wvb.dll", MAKE_VERSION(8,8,8,8)},
   
   
+  {"radhslib.dll", UNVERSIONED},
+  
+  
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
 
