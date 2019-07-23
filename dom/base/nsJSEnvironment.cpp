@@ -2419,11 +2419,6 @@ nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal
   
   
   
-  ::JS_ClearScope(mContext, myobject);
-
-  
-  
-  
   
   
   
@@ -2520,6 +2515,18 @@ nsJSContext::InitContext(nsIScriptGlobalObject *aGlobalObject)
       NS_ENSURE_SUCCESS(rv, rv);
     }
   } else {
+    
+    
+    
+
+    
+    
+    
+    ::JS_ClearScope(mContext, global);
+
+    
+    
+    
     
     
     
