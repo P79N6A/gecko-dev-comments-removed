@@ -1699,9 +1699,6 @@ GK_ATOM(IMETxnName, "IME")
 GK_ATOM(DeleteTxnName, "Deleting")
 
 
-GK_ATOM(Remote, "remote")
-
-
 GK_ATOM(scrollbar_start_backward, "scrollbar-start-backward")
 GK_ATOM(scrollbar_start_forward, "scrollbar-start-forward")
 GK_ATOM(scrollbar_end_backward, "scrollbar-end-backward")
