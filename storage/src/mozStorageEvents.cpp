@@ -194,12 +194,6 @@ public:
     return NS_OK;
   }
 
-  virtual void cancel()
-  {
-    
-    mReason = CANCELED;
-  }
-
 private:
   CompletionNotifier() { }
 
