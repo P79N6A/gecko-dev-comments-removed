@@ -59,6 +59,8 @@
 
 #include "nsICanvasRenderingContextInternal.h"
 
+#include "nsLayoutUtils.h"
+
 #define DEFAULT_CANVAS_WIDTH 300
 #define DEFAULT_CANVAS_HEIGHT 150
 
@@ -544,7 +546,14 @@ nsHTMLCanvasElement::SetWriteOnly()
 NS_IMETHODIMP
 nsHTMLCanvasElement::InvalidateFrame()
 {
-  nsIFrame *frame = GetPrimaryFrame(Flush_Frames);
+  nsIDocument* doc = GetCurrentDoc();
+  if (!doc) {
+    return NS_OK;
+  }
+
+  
+  
+  nsIFrame *frame = GetPrimaryFrameFor(this, doc);
   if (frame) {
     nsRect r = frame->GetRect();
     r.x = r.y = 0;
@@ -557,8 +566,20 @@ nsHTMLCanvasElement::InvalidateFrame()
 NS_IMETHODIMP
 nsHTMLCanvasElement::InvalidateFrameSubrect(const gfxRect& damageRect)
 {
-  nsIFrame *frame = GetPrimaryFrame(Flush_Frames);
+  nsIDocument* doc = GetCurrentDoc();
+  if (!doc) {
+    return NS_OK;
+  }
+
+  
+  
+  nsIFrame *frame = GetPrimaryFrameFor(this, doc);
   if (frame) {
+    
+    
+    
+    nsAutoDisableGetUsedXAssertions noAssert;
+    
     nsRect contentArea(frame->GetContentRect());
     nsIntSize size = GetWidthHeight();
 
