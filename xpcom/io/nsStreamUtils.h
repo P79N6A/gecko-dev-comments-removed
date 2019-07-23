@@ -99,6 +99,12 @@ typedef void (* nsAsyncCopyCallbackFun)(void *closure, nsresult status);
 
 
 
+
+
+
+
+
+
 extern NS_COM nsresult
 NS_AsyncCopy(nsIInputStream         *aSource,
              nsIOutputStream        *aSink,
@@ -106,7 +112,22 @@ NS_AsyncCopy(nsIInputStream         *aSource,
              nsAsyncCopyMode         aMode = NS_ASYNCCOPY_VIA_READSEGMENTS,
              PRUint32                aChunkSize = 4096,
              nsAsyncCopyCallbackFun  aCallbackFun = nsnull,
-             void                   *aCallbackClosure = nsnull);
+             void                   *aCallbackClosure = nsnull,
+             PRBool                  aCloseSource = PR_TRUE,
+             PRBool                  aCloseSink = PR_TRUE,
+             nsISupports           **aCopierCtx = nsnull);
+
+
+
+
+
+
+
+
+
+
+extern NS_COM nsresult
+NS_CancelAsyncCopy(nsISupports *aCopierCtx, nsresult aReason);
 
 
 
