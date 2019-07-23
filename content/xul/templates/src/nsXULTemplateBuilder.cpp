@@ -1109,7 +1109,9 @@ nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
         
         
         if (aAttribute == nsGkAtoms::ref)
-            Rebuild();
+            nsContentUtils::AddScriptRunner(
+                NS_NEW_RUNNABLE_METHOD(nsXULTemplateBuilder, this,
+                                       RunnableRebuild));
 
         
         
@@ -1119,7 +1121,9 @@ nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
             PRBool shouldDelay;
             LoadDataSources(aDocument, &shouldDelay);
             if (!shouldDelay)
-                Rebuild();
+                nsContentUtils::AddScriptRunner(
+                    NS_NEW_RUNNABLE_METHOD(nsXULTemplateBuilder, this,
+                                           RunnableRebuild));
         }
     }
 }
