@@ -419,8 +419,8 @@ nsXULTooltipListener::ShowTooltip()
       
       
       
-      if (mCurrentTooltip->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
-                                       nsGkAtoms::_true, eCaseMatters))
+      if (!mCurrentTooltip->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
+                                        nsGkAtoms::_true, eCaseMatters))
         CreateAutoHideTimer();
 
       
