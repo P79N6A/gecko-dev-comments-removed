@@ -2170,7 +2170,12 @@ nsNavBookmarks::GetFolderIdForItem(PRInt64 aItemId, PRInt64 *aFolderId)
   if (!results)
     return NS_ERROR_INVALID_ARG; 
 
-  return mDBGetItemProperties->GetInt64(kGetItemPropertiesIndex_Parent, aFolderId);
+  rv = mDBGetItemProperties->GetInt64(kGetItemPropertiesIndex_Parent, aFolderId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  NS_ENSURE_TRUE(aItemId != *aFolderId, NS_ERROR_UNEXPECTED);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
