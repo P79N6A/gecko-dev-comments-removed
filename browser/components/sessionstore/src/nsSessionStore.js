@@ -358,9 +358,10 @@ SessionStoreService.prototype = {
       case "pageshow":
         this.onTabLoad(aEvent.currentTarget.ownerDocument.defaultView, aEvent.currentTarget, aEvent);
         break;
+      case "change":
       case "input":
       case "DOMAutoComplete":
-        this.onTabInput(aEvent.currentTarget.ownerDocument.defaultView, aEvent.currentTarget, aEvent);
+        this.onTabInput(aEvent.currentTarget.ownerDocument.defaultView, aEvent.currentTarget);
         break;
       case "TabOpen":
       case "TabClose":
@@ -522,6 +523,7 @@ SessionStoreService.prototype = {
   onTabAdd: function sss_onTabAdd(aWindow, aPanel, aNoNotification) {
     aPanel.addEventListener("load", this, true);
     aPanel.addEventListener("pageshow", this, true);
+    aPanel.addEventListener("change", this, true);
     aPanel.addEventListener("input", this, true);
     aPanel.addEventListener("DOMAutoComplete", this, true);
     
@@ -542,11 +544,11 @@ SessionStoreService.prototype = {
   onTabRemove: function sss_onTabRemove(aWindow, aPanel, aNoNotification) {
     aPanel.removeEventListener("load", this, true);
     aPanel.removeEventListener("pageshow", this, true);
+    aPanel.removeEventListener("change", this, true);
     aPanel.removeEventListener("input", this, true);
     aPanel.removeEventListener("DOMAutoComplete", this, true);
     
     delete aPanel.__SS_data;
-    delete aPanel.__SS_text;
     
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -612,7 +614,6 @@ SessionStoreService.prototype = {
     }
     
     delete aPanel.__SS_data;
-    delete aPanel.__SS_text;
     this.saveStateDelayed(aWindow);
     
     
@@ -626,13 +627,11 @@ SessionStoreService.prototype = {
 
 
 
-
-
-
-  onTabInput: function sss_onTabInput(aWindow, aPanel, aEvent) {
-    if (this._saveTextData(aPanel, aEvent.originalTarget)) {
-      this.saveStateDelayed(aWindow, 3000);
-    }
+  onTabInput: function sss_onTabInput(aWindow, aPanel) {
+    if (aPanel.__SS_data)
+      delete aPanel.__SS_data._formDataSaved;
+    
+    this.saveStateDelayed(aWindow, 3000);
   },
 
   
@@ -1047,56 +1046,6 @@ SessionStoreService.prototype = {
 
 
 
-
-
-  _saveTextData: function sss_saveTextData(aPanel, aTextarea) {
-    var id = aTextarea.id ? "#" + aTextarea.id :
-                            aTextarea.name;
-    if (!id
-      || !(aTextarea instanceof Ci.nsIDOMHTMLTextAreaElement 
-      || aTextarea instanceof Ci.nsIDOMHTMLInputElement)) {
-      return false; 
-    }
-    
-    if (!aPanel.__SS_text) {
-      aPanel.__SS_text = [];
-      aPanel.__SS_text._refs = [];
-    }
-    
-    
-    var ix = aPanel.__SS_text._refs.indexOf(aTextarea);
-    if (ix == -1) {
-      
-      aPanel.__SS_text._refs.push(aTextarea);
-      ix = aPanel.__SS_text.length;
-    }
-    else if (!aPanel.__SS_text[ix].cache) {
-      
-      
-      return false;
-    }
-    
-    
-    var content = aTextarea.ownerDocument.defaultView;
-    while (content != content.top) {
-      var frames = content.parent.frames;
-      for (var i = 0; i < frames.length && frames[i] != content; i++);
-      id = i + "|" + id;
-      content = content.parent;
-    }
-    
-    
-    aPanel.__SS_text[ix] = { id: id, element: aTextarea };
-    
-    return true;
-  },
-
-  
-
-
-
-
-
   _updateTextAndScrollData: function sss_updateTextAndScrollData(aWindow) {
     var browsers = aWindow.getBrowser().browsers;
     for (var i = 0; i < browsers.length; i++) {
@@ -1125,30 +1074,19 @@ SessionStoreService.prototype = {
 
   _updateTextAndScrollDataForTab:
     function sss_updateTextAndScrollDataForTab(aWindow, aBrowser, aTabData, aFullData) {
-    var text = [];
-    if (aBrowser.parentNode.__SS_text &&
-        (aFullData || this._checkPrivacyLevel(aBrowser.currentURI.schemeIs("https")))) {
-      for (var ix = aBrowser.parentNode.__SS_text.length - 1; ix >= 0; ix--) {
-        var data = aBrowser.parentNode.__SS_text[ix];
-        if (!data.cache)
-          
-          data.cache = encodeURI(data.element.value);
-        text.push(data.id + "=" + data.cache);
-      }
-    }
-    if (aBrowser.currentURI.spec == "about:config")
-      text = ["#textbox=" + encodeURI(aBrowser.contentDocument.getElementById("textbox").
-                                               wrappedJSObject.value)];
-    if (text.length > 0)
-      aTabData.text = text.join(" ");
-    else if (aTabData.text)
-      delete aTabData.text;
-    
     var tabIndex = (aTabData.index || aTabData.entries.length) - 1;
     
-    if (aTabData.entries[tabIndex])
-      this._updateTextAndScrollDataForFrame(aWindow, aBrowser.contentWindow,
-                                            aTabData.entries[tabIndex], aFullData);
+    if (!aTabData.entries[tabIndex])
+      return;
+    
+    this._updateTextAndScrollDataForFrame(aWindow, aBrowser.contentWindow,
+                                          aTabData.entries[tabIndex],
+                                          !aTabData._formDataSaved, aFullData);
+    aTabData._formDataSaved = true;
+    if (aBrowser.currentURI.spec == "about:config")
+      aTabData.entries[tabIndex].formdata = {
+        "#textbox": aBrowser.contentDocument.getElementById("textbox").wrappedJSObject.value
+      };
   },
 
   
@@ -1163,27 +1101,74 @@ SessionStoreService.prototype = {
 
 
 
+
+
   _updateTextAndScrollDataForFrame:
-    function sss_updateTextAndScrollDataForFrame(aWindow, aContent, aData, aFullData) {
+    function sss_updateTextAndScrollDataForFrame(aWindow, aContent, aData,
+                                                 aUpdateFormData, aFullData) {
     for (var i = 0; i < aContent.frames.length; i++) {
       if (aData.children && aData.children[i])
-        this._updateTextAndScrollDataForFrame(aWindow, aContent.frames[i], aData.children[i], aFullData);
+        this._updateTextAndScrollDataForFrame(aWindow, aContent.frames[i],
+                                              aData.children[i], aUpdateFormData, aFullData);
     }
-    
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
                                          document.location.href).schemeIs("https");
-    if ((aContent.document.designMode || "") == "on" &&
-        (aFullData || this._checkPrivacyLevel(isHTTPS))) {
-      if (aData.innerHTML === undefined && !aFullData) {
-        
-        var _this = this;
-        aContent.addEventListener("keypress", function(aEvent) {
-          _this.saveStateDelayed(aWindow, 3000); }, true);
+    if (aFullData || this._checkPrivacyLevel(isHTTPS)) {
+      if (aFullData || aUpdateFormData) {
+        let formData = this._collectFormDataForFrame(aContent.document);
+        if (formData)
+          aData.formdata = formData;
+        else if (aData.formdata)
+          delete aData.formdata;
       }
-      aData.innerHTML = aContent.document.body.innerHTML;
+      
+      
+      if ((aContent.document.designMode || "") == "on") {
+        if (aData.innerHTML === undefined && !aFullData) {
+          
+          let _this = this;
+          aContent.addEventListener("keypress", function(aEvent) {
+            _this.saveStateDelayed(aWindow, 3000);
+          }, true);
+        }
+        aData.innerHTML = aContent.document.body.innerHTML;
+      }
     }
     aData.scroll = aContent.scrollX + "," + aContent.scrollY;
    },
+
+  
+
+
+
+
+  _collectFormDataForFrame: function sss_collectFormDataForFrame(aDocument) {
+    let formNodesXPath = "//textarea|//select|//xhtml:textarea|//xhtml:select|" +
+      "//input[not(@type) or @type='text' or @type='checkbox' or @type='radio' or @type='file']|" +
+      "//xhtml:input[not(@type) or @type='text' or @type='checkbox' or @type='radio' or @type='file']";
+    let formNodes = aDocument.evaluate(formNodesXPath, aDocument, XPathHelper.resolveNS,
+                                       Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
+    let node = formNodes.iterateNext();
+    if (!node)
+      return null;
+    
+    let data = {};
+    do {
+      let id = node.id ? "#" + node.id : XPathHelper.generate(node);
+      if (node instanceof Ci.nsIDOMHTMLInputElement)
+        data[id] = node.type == "checkbox" || node.type == "radio" ? node.checked : node.value;
+      else if (node instanceof Ci.nsIDOMHTMLTextAreaElement)
+        data[id] = node.value;
+      else if (!node.multiple)
+        data[id] = node.selectedIndex;
+      else {
+        let options = Array.map(node.options, function(aOpt, aIx) aOpt.selected ? aIx : -1);
+        data[id] = options.filter(function(aIx) aIx >= 0);
+      }
+    } while ((node = formNodes.iterateNext()));
+    
+    return data;
+  },
 
   
 
@@ -1717,6 +1702,7 @@ SessionStoreService.prototype = {
       return;
     }
     
+    
     var textArray = this.__SS_restore_text ? this.__SS_restore_text.split(" ") : [];
     function restoreTextData(aContent, aPrefix) {
       textArray.forEach(function(aEntry) {
@@ -1734,8 +1720,41 @@ SessionStoreService.prototype = {
       });
     }
     
+    function restoreFormData(aDocument, aData) {
+      for (let key in aData) {
+        let node = key.charAt(0) == "#" ? aDocument.getElementById(key.slice(1)) :
+                                          XPathHelper.resolve(aDocument, key);
+        if (!node)
+          continue;
+        
+        let value = aData[key];
+        if (typeof value == "string") {
+          node.value = value;
+          
+          let event = aDocument.createEvent("UIEvents");
+          event.initUIEvent("input", true, true, aDocument.defaultView, 0);
+          node.dispatchEvent(event);
+        }
+        else if (typeof value == "boolean")
+          node.checked = value;
+        else if (typeof value == "number")
+          try {
+            node.selectedIndex = value;
+          } catch (ex) {  }
+        else if (value && typeof value.indexOf == "function" && node.options) {
+          Array.forEach(node.options, function(aOpt, aIx) {
+            aOpt.selected = value.indexOf(aIx) > -1;
+          });
+        }
+        
+      }
+    }
+    
     function restoreTextDataAndScrolling(aContent, aData, aPrefix) {
-      restoreTextData(aContent, aPrefix);
+      if (aData.formdata)
+        restoreFormData(aContent.document, aData.formdata);
+      else
+        restoreTextData(aContent, aPrefix);
       if (aData.innerHTML) {
         aContent.setTimeout(function(aHTML) { if (this.document.designMode == "on") { this.document.body.innerHTML = aHTML; } }, 0, aData.innerHTML);
       }
@@ -2145,7 +2164,7 @@ SessionStoreService.prototype = {
 
 
   _toJSONString: function sss_toJSONString(aJSObject) {
-    var str = JSON.toString(aJSObject, ["_tab", "_hosts"] );
+    let str = JSON.toString(aJSObject, ["_tab", "_hosts", "_formDataSaved"] );
     
     
     if (!JSON.isMostlyHarmless(str))
@@ -2183,6 +2202,66 @@ SessionStoreService.prototype = {
     } else {
       stream.close();
     }
+  }
+};
+
+let XPathHelper = {
+  
+  namespaceURIs:     { "xhtml": "http://www.w3.org/1999/xhtml" },
+  namespacePrefixes: { "http://www.w3.org/1999/xhtml": "xhtml" },
+
+  
+
+
+  generate: function sss_xph_generate(aNode) {
+    
+    if (!aNode.parentNode)
+      return "";
+    
+    let prefix = this.namespacePrefixes[aNode.namespaceURI] || null;
+    let tag = (prefix ? prefix + ":" : "") + aNode.localName;
+    
+    
+    if (aNode.id)
+      return "//" + tag + "[@id=" + this.quoteArgument(aNode.id) + "]";
+    
+    
+    
+    let count = 0;
+    let nName = aNode.name || null;
+    for (let n = aNode; (n = n.previousSibling); )
+      if (n.localName == aNode.localName && n.namespaceURI == aNode.namespaceURI &&
+          (!nName || n.name == nName))
+        count++;
+    
+    
+    return this.generate(aNode.parentNode) + "/" + tag +
+           (nName ? "[@name=" + this.quoteArgument(nName) + "]" : "") +
+           (count ? "[" + (count + 1) + "]" : "");
+  },
+
+  
+
+
+  resolve: function sss_xph_resolve(aDocument, aQuery) {
+    let xptype = Ci.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE;
+    return aDocument.evaluate(aQuery, aDocument, this.resolveNS, xptype, null).singleNodeValue;
+  },
+
+  
+
+
+  resolveNS: function sss_xph_resolveNS(aPrefix) {
+    return XPathHelper.namespaceURIs[aPrefix] || null;
+  },
+
+  
+
+
+  quoteArgument: function sss_xph_quoteArgument(aArg) {
+    return !/'/.test(aArg) ? "'" + aArg + "'" :
+           !/"/.test(aArg) ? '"' + aArg + '"' :
+           "concat('" + aArg.replace(/'+/g, "',\"$&\",'") + "')";
   }
 };
 
