@@ -508,14 +508,14 @@ var gContextMenus = [
   ["menuitem_pause", "menuitem_cancel", "menuseparator_copy_location",
    "menuitem_copyLocation"],
   
-  ["menuitem_open", "menuitem_show", "menuitem_remove",
+  ["menuitem_open", "menuitem_show", "menuitem_remove", "menuitem_clearList",
    "menuseparator_copy_location", "menuitem_copyLocation"],
   
-  ["menuitem_retry", "menuitem_remove", "menuseparator_copy_location",
-   "menuitem_copyLocation"],
+  ["menuitem_retry", "menuitem_remove", "menuitem_clearList",
+   "menuseparator_copy_location", "menuitem_copyLocation"],
   
-  ["menuitem_retry", "menuitem_remove", "menuseparator_copy_location",
-   "menuitem_copyLocation"],
+  ["menuitem_retry", "menuitem_remove", "menuitem_clearList",
+   "menuseparator_copy_location", "menuitem_copyLocation"],
   
   ["menuitem_resume", "menuitem_cancel", "menuseparator_copy_location",
    "menuitem_copyLocation"],
@@ -523,8 +523,8 @@ var gContextMenus = [
   ["menuitem_cancel", "menuseparator_copy_location",
    "menuitem_copyLocation"],
   
-  ["menuitem_retry", "menuitem_remove", "menuseparator_copy_location",
-   "menuitem_copyLocation"],
+  ["menuitem_retry", "menuitem_remove", "menuitem_clearList",
+   "menuseparator_copy_location", "menuitem_copyLocation"],
   
   ["menuitem_copyLocation"]
 ];
@@ -600,6 +600,12 @@ var gDownloadViewController = {
     if (!window.gDownloadsView)
       return false;
     
+    
+    switch (aCommand) {
+      case "cmd_clearList":
+        return gDownloadManager.canCleanUp;
+    }
+
     var dl = gDownloadsView.selectedItem;
     if (!dl)
       return false;
@@ -685,6 +691,9 @@ var gDownloadViewController = {
     },
     cmd_copyLocation: function(aSelectedItem) {
       copySourceLocation(aSelectedItem);
+    },
+    cmd_clearList: function() {
+      gDownloadManager.cleanUp();
     }
   }
 };
