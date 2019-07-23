@@ -167,6 +167,7 @@ var gPrivacyPane = {
 
 
 
+
   
 
 
@@ -193,7 +194,7 @@ var gPrivacyPane = {
   writeAcceptCookies: function ()
   {
     var checkbox = document.getElementById("acceptCookies");
-    return checkbox.checked ? 1 : 2;
+    return checkbox.checked ? 0 : 2;
   },
 
   
