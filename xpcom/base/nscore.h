@@ -46,16 +46,6 @@
 #endif
 
 
-#if !defined(XPCOM_GLUE) && !defined(NS_NO_XPCOM) && !defined(MOZ_NO_MOZALLOC)
-#  if defined(__cplusplus)
-#    include <new>              
-#  endif
-#  include <stdlib.h>         
-#  include "mozilla/mozalloc.h"
-#  include "mozilla/mozalloc_macro_wrappers.h"
-#endif
-
-
 
 
 #include "prtypes.h"

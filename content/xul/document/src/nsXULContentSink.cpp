@@ -47,7 +47,6 @@
 
 
 
-#include "jscntxt.h"  
 #include "nsXULContentSink.h"
 #include "nsCOMPtr.h"
 #include "nsForwardReference.h"
@@ -80,6 +79,7 @@
 #include "nsXULElement.h"
 #include "prlog.h"
 #include "prmem.h"
+#include "jscntxt.h"  
 #include "nsCRT.h"
 
 #include "nsXULPrototypeDocument.h"     

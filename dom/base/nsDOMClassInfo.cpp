@@ -37,13 +37,6 @@
 
 
 
-
-#include "jsapi.h"
-#include "jsprvtd.h"    
-#include "jscntxt.h"
-#include "jsdbgapi.h"
-#include "jsnum.h"
-
 #include "nscore.h"
 #include "nsDOMClassInfo.h"
 #include "nsCRT.h"
@@ -68,6 +61,13 @@
 #include "nsCSSValue.h"
 #include "nsIRunnable.h"
 #include "nsThreadUtils.h"
+
+
+#include "jsapi.h"
+#include "jsprvtd.h"    
+#include "jscntxt.h"
+#include "jsdbgapi.h"
+#include "jsnum.h"
 
 
 #include "nsGlobalWindow.h"
