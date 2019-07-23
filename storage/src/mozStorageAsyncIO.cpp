@@ -556,9 +556,6 @@ mozStorageService::InitStorageAsyncIO()
 nsresult
 mozStorageService::FlushAsyncIO()
 {
-  AsyncMessage *message = 0;
-  int rc;
-
   
   if (!AsyncWriteThreadInstance)
     return NS_OK;
@@ -575,7 +572,7 @@ mozStorageService::FlushAsyncIO()
 
   PR_Lock(flushLock);
 
-  rc = AsyncBarrier(flushLock, flushCond);
+  int rc = AsyncBarrier(flushLock, flushCond);
   if (rc == SQLITE_OK) {
     
     
