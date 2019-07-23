@@ -3155,7 +3155,11 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
         }
     }
 
-    if (cx->debugHooks->objectHook) {
+    
+
+
+
+    if (cx->debugHooks->objectHook && !JS_ON_TRACE(cx)) {
         JS_KEEP_ATOMS(cx->runtime);
         cx->debugHooks->objectHook(cx, obj, JS_TRUE,
                                    cx->debugHooks->objectHookData);
