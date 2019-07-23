@@ -848,11 +848,12 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
   }
 
   
+  
   if (uri && ioService) {
     PRBool hasFlag;
     nsresult rv = 
       ioService->URIChainHasFlags(uri, 
-                                  nsIProtocolHandler::URI_IS_UI_RESOURCE, 
+                                  nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
                                   &hasFlag);
     if (NS_SUCCEEDED(rv) && hasFlag) {
       isSubDocumentRelevant = PR_FALSE;
