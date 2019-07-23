@@ -104,7 +104,7 @@ test(
     do_check_eq(null, h); 
 
     h = CSPHost.fromString("com");
-    do_check_eq(null, h); 
+    do_check_neq(null, h); 
 
     h = CSPHost.fromString("f00b4r.com");
     do_check_neq(null, h); 
