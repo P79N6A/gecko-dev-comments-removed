@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsOSHelperAppService.h"
 #include "nsISupports.h"
 #include "nsString.h"
@@ -57,7 +58,15 @@
 #include "prenv.h"      
 #include "nsMIMEInfoOS2.h"
 #include "nsAutoPtr.h"
+#include "nsIRwsService.h"
+#include "nsIStringBundle.h"
+#include "nsLocalHandlerApp.h"
 #include <stdlib.h>     
+
+
+
+
+static PRBool sUseRws = PR_TRUE;
 
 static nsresult
 FindSemicolon(nsAString::const_iterator& aSemicolon_iter,
@@ -72,6 +81,8 @@ ParseMIMEType(const nsAString::const_iterator& aStart_iter,
 
 inline PRBool
 IsNetscapeFormat(const nsACString& aBuffer);
+
+
 
 nsOSHelperAppService::nsOSHelperAppService() : nsExternalHelperAppService()
 {
@@ -1344,6 +1355,212 @@ nsOSHelperAppService::GetFromType(const nsCString& aMIMEType) {
 
   return mimeInfo;
 }
+
+
+
+
+
+static nsresult
+GetNLSString(const PRUnichar *aKey, nsAString& result)
+{
+  nsresult rv;
+
+  nsCOMPtr<nsIStringBundleService> bundleSvc =
+    do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIStringBundle> bundle;
+  rv = bundleSvc->CreateBundle(
+    "chrome://mozapps/locale/downloads/unknownContentType.properties",
+    getter_AddRefs(bundle));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsXPIDLString string;
+  rv = bundle->GetStringFromName(aKey, getter_Copies(string));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  result.Assign(string);
+
+  return rv;
+}
+
+
+
+
+
+
+
+static PRUint32
+WpsGetDefaultHandler(const char *aFileExt, nsAString& aDescription)
+{
+  aDescription.Truncate();
+
+  if (sUseRws) {
+    nsCOMPtr<nsIRwsService> rwsSvc(do_GetService("@mozilla.org/rwsos2;1"));
+    if (!rwsSvc)
+      sUseRws = PR_FALSE;
+    else {
+      PRUint32 handle;
+      
+      if (NS_SUCCEEDED(rwsSvc->HandlerFromExtension(aFileExt, &handle, aDescription)))
+        return handle;
+    }
+  }
+
+  
+  if (NS_FAILED(GetNLSString(NS_LITERAL_STRING("wpsDefaultOS2").get(),
+                             aDescription)))
+    aDescription.Assign(NS_LITERAL_STRING("WPS default"));
+
+  return 0;
+}
+
+
+
+
+
+
+static void
+WpsMimeInfoFromExtension(const char *aFileExt, nsMIMEInfoOS2 *aMI)
+{
+  
+  
+  
+  PRBool exists;
+  aMI->ExtensionExists(nsDependentCString(aFileExt), &exists);
+
+  
+  nsAutoString ustr;
+  PRUint32 handle = WpsGetDefaultHandler(aFileExt, ustr);
+  aMI->SetDefaultDescription(ustr);
+  aMI->SetDefaultAppHandle(handle);
+
+  
+  if (!exists) {
+    nsCAutoString extLower;
+    nsCAutoString cstr;
+    ToLowerCase(nsDependentCString(aFileExt), extLower);
+    cstr.Assign(NS_LITERAL_CSTRING("application/x-") + extLower);
+    aMI->SetMIMEType(cstr);
+    aMI->SetFileExtensions(extLower);
+  }
+
+  
+  
+  if (exists)
+    aMI->GetDescription(ustr);
+  else
+    ustr.Truncate();
+
+  if (ustr.IsEmpty()) {
+    nsCAutoString extUpper;
+    ToUpperCase(nsDependentCString(aFileExt), extUpper);
+    CopyUTF8toUTF16(extUpper, ustr);
+
+    nsAutoString fileType;
+    if (NS_FAILED(GetNLSString(NS_LITERAL_STRING("fileType").get(), fileType)))
+      ustr.Assign(NS_LITERAL_STRING("%S file"));
+    int pos = -1;
+    if ((pos = fileType.Find("%S")) > -1);
+      fileType.Replace(pos, 2, ustr);
+    aMI->SetDescription(fileType);
+  }
+}
+
+
+
+
+
+
+
+
+NS_IMETHODIMP
+nsOSHelperAppService::GetFromTypeAndExtension(const nsACString& aMIMEType,
+                                              const nsACString& aFileExt,
+                                              nsIMIMEInfo **_retval)
+{
+  
+  nsresult rv = nsExternalHelperAppService::GetFromTypeAndExtension(
+                                            aMIMEType, aFileExt, _retval);
+  if (!(*_retval))
+    return rv;
+
+  
+  nsMIMEInfoOS2 *mi = static_cast<nsMIMEInfoOS2*>(*_retval);
+
+  
+  
+  nsCAutoString ext;
+  if (!aFileExt.IsEmpty())
+    ext.Assign(aFileExt);
+  else {
+    mi->GetPrimaryExtension(ext);
+    if (ext.IsEmpty())
+      return rv;
+  }
+
+  nsCOMPtr<nsIFile> defApp;
+  nsCOMPtr<nsIHandlerApp> prefApp;
+  mi->GetDefaultApplication(getter_AddRefs(defApp));
+  mi->GetPreferredApplicationHandler(getter_AddRefs(prefApp));
+  nsCOMPtr<nsILocalHandlerApp> locPrefApp = do_QueryInterface(prefApp, &rv);
+
+  
+  
+  if (!defApp && !locPrefApp) {
+    WpsMimeInfoFromExtension(ext.get(), mi);
+    return rv;
+  }
+
+  PRBool gotPromoted = PR_FALSE;
+
+  
+  
+  if (defApp && locPrefApp) {
+    PRBool sameFile;
+    nsCOMPtr<nsIFile> app;
+    rv = locPrefApp->GetExecutable(getter_AddRefs(app));
+    defApp->Equals(app, &sameFile);
+    if (!sameFile)
+      return rv;
+
+    defApp = 0;
+    mi->SetDefaultApplication(0);
+    mi->SetDefaultDescription(EmptyString());
+    gotPromoted = PR_TRUE;
+  }
+
+  nsAutoString description;
+
+  
+  
+  if (defApp && !locPrefApp) {
+    mi->GetDefaultDescription(description);
+    nsLocalHandlerApp *handlerApp(new nsLocalHandlerApp(description, defApp));
+    mi->SetPreferredApplicationHandler(handlerApp);
+    gotPromoted = PR_TRUE;
+  }
+
+  
+  
+  if (gotPromoted) {
+    nsHandlerInfoAction action;
+    mi->GetPreferredAction(&action);
+    if (action == nsIMIMEInfo::useSystemDefault) {
+      mi->SetPreferredAction(nsIMIMEInfo::useHelperApp);
+      mi->SetPreferredAction(nsIMIMEInfo::useHelperApp);
+    }
+  }
+
+  
+  PRUint32 handle = WpsGetDefaultHandler(ext.get(), description);
+  mi->SetDefaultDescription(description);
+  mi->SetDefaultApplication(0);
+  mi->SetDefaultAppHandle(handle);
+
+  return rv;
+}
+
 
 
 already_AddRefed<nsIMIMEInfo>

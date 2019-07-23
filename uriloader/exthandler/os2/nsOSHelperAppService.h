@@ -62,6 +62,9 @@ public:
   virtual ~nsOSHelperAppService();
 
   
+  NS_IMETHOD GetFromTypeAndExtension(const nsACString& aMIMEType,
+                                     const nsACString& aFileExt,
+                                     nsIMIMEInfo **_retval);
   already_AddRefed<nsIMIMEInfo> GetMIMEInfoFromOS(const nsACString& aMimeType,
                                                   const nsACString& aFileExt,
                                                   PRBool     *aFound);

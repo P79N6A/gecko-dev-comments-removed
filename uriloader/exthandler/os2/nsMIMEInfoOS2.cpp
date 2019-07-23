@@ -39,13 +39,27 @@
 
 
 
+
+
+#ifdef MOZ_OS2_HIGH_MEMORY
+
+#include <os2safe.h>
+#endif
+
 #include "nsMIMEInfoOS2.h"
 #include "nsOSHelperAppService.h"
 #include "nsExternalHelperAppService.h"
 #include "nsCExternalHandlerService.h"
 #include "nsReadableUtils.h"
 #include "nsIProcess.h"
+#include "nsNetUtil.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsIVariant.h"
+#include "nsArrayEnumerator.h"
+#include "nsIRwsService.h"
 #include <stdlib.h>
+
+
 
 #define SALT_SIZE 8
 #define TABLE_SIZE 36
@@ -56,22 +70,71 @@ static const PRUnichar table[] =
     '4','5','6','7','8','9'};
 
 
+static PRBool sUseRws = PR_TRUE;
+
+
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsMIMEInfoOS2, nsMIMEInfoBase, nsIPropertyBag)
+
 nsMIMEInfoOS2::~nsMIMEInfoOS2()
 {
 }
 
-NS_IMETHODIMP nsMIMEInfoOS2::LaunchWithURI(nsIURI* aURI,
-                                           nsIInterfaceRequestor* aWindowContext)
+
+
+static nsresult Make8Dot3Name(nsIFile *aFile, nsACString& aPath)
+{
+  nsCAutoString leafName;
+  aFile->GetNativeLeafName(leafName);
+  const char *lastDot = strrchr(leafName.get(), '.');
+
+  char suffix[8] = "";
+  if (lastDot) {
+    strncpy(suffix, lastDot, 4);
+    suffix[4] = '\0';
+  }
+
+  nsCOMPtr<nsIFile> tempPath;
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(tempPath));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoString saltedTempLeafName;
+  do {
+    saltedTempLeafName.Truncate();
+
+    
+    
+    double fpTime;
+    LL_L2D(fpTime, PR_Now());
+    srand((uint)(fpTime * 1e-6 + 0.5));
+
+    for (PRInt32 i=0; i < SALT_SIZE; i++)
+      saltedTempLeafName.Append(table[(rand()%TABLE_SIZE)]);
+
+    AppendASCIItoUTF16(suffix, saltedTempLeafName);
+    rv = aFile->CopyTo(tempPath, saltedTempLeafName);
+  } while (NS_FAILED(rv));
+
+  nsCOMPtr<nsPIExternalAppLauncher>
+    helperAppService(do_GetService(NS_EXTERNALHELPERAPPSERVICE_CONTRACTID));
+  if (!helperAppService)
+    return NS_ERROR_FAILURE;
+
+  tempPath->Append(saltedTempLeafName);
+  helperAppService->DeleteTemporaryFileOnExit(tempPath);
+  tempPath->GetNativePath(aPath);
+
+  return rv;
+}
+
+
+
+
+
+NS_IMETHODIMP nsMIMEInfoOS2::LaunchWithFile(nsIFile *aFile)
 {
   nsresult rv = NS_OK;
 
-  nsCOMPtr<nsILocalFile> docToLoad;
-  rv = GetLocalFileFromURI(aURI, getter_AddRefs(docToLoad));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCAutoString path;
-  docToLoad->GetNativePath(path);
-  
   nsCOMPtr<nsIFile> application;
   if (mPreferredAction == useHelperApp) {
     nsCOMPtr<nsILocalHandlerApp> localHandlerApp =
@@ -86,73 +149,152 @@ NS_IMETHODIMP nsMIMEInfoOS2::LaunchWithURI(nsIURI* aURI,
     return NS_ERROR_INVALID_ARG;
   }
 
-  
+  nsCAutoString filePath;
+  aFile->GetNativePath(filePath);
+
   
   if (!application) {
-    HOBJECT hobject = WinQueryObject(path.get());
-    if (WinSetObjectData( hobject, "OPEN=DEFAULT" ))
-      return NS_OK;
-    else
-      return NS_ERROR_FAILURE;
+    rv = NS_ERROR_FAILURE;
+
+    
+    
+    if (sUseRws) {
+      PRUint32 appHandle;
+      GetDefaultAppHandle(&appHandle);
+      if (appHandle) {
+        nsCOMPtr<nsIRwsService> rwsSvc(do_GetService("@mozilla.org/rwsos2;1"));
+        if (!rwsSvc) {
+          sUseRws = PR_FALSE;
+        } else {
+          
+          
+          rv = rwsSvc->OpenWithAppHandle(filePath.get(), appHandle);
+        }
+      }
+    }
+
+    
+    if (NS_FAILED(rv)) {
+      if (WinSetObjectData(WinQueryObject(filePath.get()), "OPEN=DEFAULT"))
+        rv = NS_OK;
+    }
+
+    return rv;
   }
+
   
+  nsCAutoString appPath;
+  if (application) {
+    application->GetNativePath(appPath);
+  }
+
   ULONG ulAppType;
-  nsCAutoString apppath;
-  application->GetNativePath(apppath);
-  DosQueryAppType(apppath.get(), &ulAppType);
+  DosQueryAppType(appPath.get(), &ulAppType);
   if (ulAppType & (FAPPTYP_DOS |
                    FAPPTYP_WINDOWSPROT31 |
                    FAPPTYP_WINDOWSPROT |
                    FAPPTYP_WINDOWSREAL)) {
-    
-    
-    nsCOMPtr<nsPIExternalAppLauncher> helperAppService (do_GetService(NS_EXTERNALHELPERAPPSERVICE_CONTRACTID));
-    if (helperAppService)
-    {
-      nsCAutoString leafName; 
-      docToLoad->GetNativeLeafName(leafName);
-      const char* lastDot = strrchr(leafName.get(), '.');
-      char suffix[CCHMAXPATH + 1] = "";
-      if (lastDot)
-      {
-          strcpy(suffix, lastDot);
-      }
-      suffix[4] = '\0';
-      
-      nsAutoString saltedTempLeafName;
-      do {
-          saltedTempLeafName.Truncate();
-          
-          
-          double fpTime;
-          LL_L2D(fpTime, PR_Now());
-          srand((uint)(fpTime * 1e-6 + 0.5));
-          PRInt32 i;
-          for (i=0;i<SALT_SIZE;i++) {
-            saltedTempLeafName.Append(table[(rand()%TABLE_SIZE)]);
-          }
-          AppendASCIItoUTF16(suffix, saltedTempLeafName);
-          rv = docToLoad->MoveTo(nsnull, saltedTempLeafName);
-      } while (NS_FAILED(rv));
-      helperAppService->DeleteTemporaryFileOnExit(docToLoad);
-      docToLoad->GetNativePath(path);
-    }
-  } else {
-    path.Insert('\"', 0);
-    path.Append('\"');
+    rv = Make8Dot3Name(aFile, filePath);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-    
-  const char * strPath = path.get();
+
+  filePath.Insert('\"', 0);
+  filePath.Append('\"');
+
   
   
-  nsCOMPtr<nsIProcess> process = do_CreateInstance(NS_PROCESS_CONTRACTID);
-  if (NS_FAILED(rv = process->Init(application)))
-    return rv;
-  PRUint32 pid;
-  return process->Run(PR_FALSE, &strPath, 1, &pid);
+  rv = NS_ERROR_FAILURE;
+  if (sUseRws) {
+    nsCOMPtr<nsIRwsService> rwsSvc(do_GetService("@mozilla.org/rwsos2;1"));
+    if (!rwsSvc) {
+      sUseRws = PR_FALSE;
+    } else {
+      rv = rwsSvc->OpenWithAppPath(filePath.get(), appPath.get());
+    }
+  }
+
+  
+  if (NS_FAILED(rv)) {
+    nsCOMPtr<nsIProcess> process = do_CreateInstance(NS_PROCESS_CONTRACTID);
+    if (NS_FAILED(rv = process->Init(application)))
+      return rv;
+    const char *strPath = filePath.get();
+    PRUint32 pid;
+    return process->Run(PR_FALSE, &strPath, 1, &pid);
+  }
+
+  return rv;
 }
 
-nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI* aURL)
+
+
+
+
+NS_IMETHODIMP nsMIMEInfoOS2::GetHasDefaultHandler(PRBool *_retval)
+{
+  *_retval = !mDefaultAppDescription.IsEmpty();
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+nsMIMEInfoOS2::GetDefaultDescription(nsAString& aDefaultDescription)
+{
+  if (mDefaultAppDescription.IsEmpty() && mDefaultApplication)
+    mDefaultApplication->GetLeafName(aDefaultDescription);
+  else
+    aDefaultDescription = mDefaultAppDescription;
+
+  return NS_OK;
+}
+
+
+
+
+
+
+void nsMIMEInfoOS2::GetDefaultApplication(nsIFile **aDefaultAppHandler)
+{
+  *aDefaultAppHandler = mDefaultApplication;
+  NS_IF_ADDREF(*aDefaultAppHandler);
+  return;
+}
+
+void nsMIMEInfoOS2::SetDefaultApplication(nsIFile *aDefaultApplication)
+{
+  mDefaultApplication = aDefaultApplication;
+  return;
+}
+
+
+
+
+
+void nsMIMEInfoOS2::GetDefaultAppHandle(PRUint32 *aHandle)
+{
+  if (aHandle) {
+    if (mDefaultAppHandle <= 0x10000 || mDefaultAppHandle >= 0x40000)
+      mDefaultAppHandle = 0;
+    *aHandle = mDefaultAppHandle;
+  }
+  return;
+}
+
+void nsMIMEInfoOS2::SetDefaultAppHandle(PRUint32 aHandle)
+{
+  if (aHandle <= 0x10000 || aHandle >= 0x40000)
+    mDefaultAppHandle = 0;
+  else
+    mDefaultAppHandle = aHandle;
+  return;
+}
+
+
+
+nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI *aURL)
 {
   nsresult rv;
   nsCOMPtr<nsIPrefService> thePrefsService(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
@@ -409,3 +551,74 @@ nsresult nsMIMEInfoOS2::LoadUriInternal(nsIURI* aURL)
   return NS_OK;
 }
 
+
+
+
+
+NS_IMETHODIMP
+nsMIMEInfoOS2::GetEnumerator(nsISimpleEnumerator **_retval)
+{
+  nsCOMArray<nsIVariant> properties;
+
+  nsCOMPtr<nsIVariant> variant;
+  GetProperty(NS_LITERAL_STRING("defaultApplicationIconURL"), getter_AddRefs(variant));
+  if (variant)
+    properties.AppendObject(variant);
+
+  GetProperty(NS_LITERAL_STRING("customApplicationIconURL"), getter_AddRefs(variant));
+  if (variant)
+    properties.AppendObject(variant);
+
+  return NS_NewArrayEnumerator(_retval, properties);
+}
+
+
+
+NS_IMETHODIMP
+nsMIMEInfoOS2::GetProperty(const nsAString& aName, nsIVariant **_retval)
+{
+  nsresult rv = NS_ERROR_FAILURE;
+
+  if (aName.EqualsLiteral(PROPERTY_DEFAULT_APP_ICON_URL)) {
+    rv = GetIconURLVariant(mDefaultApplication, _retval);
+  } else {
+    if (aName.EqualsLiteral(PROPERTY_CUSTOM_APP_ICON_URL) &&
+        mPreferredApplication) {
+      
+      nsCOMPtr<nsIFile> appFile;
+      nsCOMPtr<nsILocalHandlerApp> localHandlerApp =
+        do_QueryInterface(mPreferredApplication, &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = localHandlerApp->GetExecutable(getter_AddRefs(appFile));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = GetIconURLVariant(appFile, _retval);
+    }
+  }
+
+  return rv;
+}
+
+
+
+NS_IMETHODIMP
+nsMIMEInfoOS2::GetIconURLVariant(nsIFile *aApplication, nsIVariant **_retval)
+{
+  nsresult rv = CallCreateInstance("@mozilla.org/variant;1", _retval);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCAutoString fileURLSpec;
+  if (aApplication)
+    NS_GetURLSpecFromFile(aApplication, fileURLSpec);
+  else {
+    GetPrimaryExtension(fileURLSpec);
+    fileURLSpec.Insert(NS_LITERAL_CSTRING("moztmp."), 0);
+  }
+
+  nsCAutoString iconURLSpec(NS_LITERAL_CSTRING("moz-icon://"));
+  iconURLSpec += fileURLSpec;
+  nsCOMPtr<nsIWritableVariant> writable(do_QueryInterface(*_retval));
+  writable->SetAsAUTF8String(iconURLSpec);
+
+  return NS_OK;
+}
