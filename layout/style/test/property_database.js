@@ -975,7 +975,10 @@ var gCSSProperties = {
 
 
 
-		prerequisites: { "font-size": "19px", "font-size-adjust": "none" },
+
+
+
+		prerequisites: { "font-size": "19px", "font-size-adjust": "none", "font-family": "serif", "font-weight": "normal", "font-style": "normal" },
 		initial_values: [ "normal" ],
 		other_values: [ "1.0", "1", "1em", "27px" ],
 		invalid_values: []
