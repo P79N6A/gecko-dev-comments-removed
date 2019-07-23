@@ -529,6 +529,18 @@ function OnDocumentLoad(event)
             utils.processUpdates();
         }
 
+        function WhenMozAfterPaintFlushed(continuation) {
+            if (utils.isMozAfterPaintPending) {
+                function handler() {
+                    gBrowser.removeEventListener("MozAfterPaint", handler, false);
+                    continuation();
+                }
+                gBrowser.addEventListener("MozAfterPaint", handler, false);
+            } else {
+                continuation();
+            }
+        }
+
         function AfterPaintListener(event) {
             if (event.target.document != currentDoc) {
                 
@@ -574,25 +586,28 @@ function OnDocumentLoad(event)
         function StartWaitingForTestEnd() {
             FlushRendering();
 
-            gBrowser.addEventListener("MozAfterPaint", AfterPaintListener, false);
-            contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
+            function continuation() {
+                gBrowser.addEventListener("MozAfterPaint", AfterPaintListener, false);
+                contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
 
-            
-            InitCurrentCanvasWithSnapshot();
+                
+                InitCurrentCanvasWithSnapshot();
 
-            if (!shouldWait()) {
+                if (!shouldWait()) {
+                    
+                    
+                    
+                    
+                    AttrModifiedListener();
+                    return;
+                }
+
                 
-                
-                
-                
-                AttrModifiedListener();
-                return;
+                var notification = document.createEvent("Events");
+                notification.initEvent("MozReftestInvalidate", true, false);
+                contentRootElement.dispatchEvent(notification);
             }
-
-            
-            var notification = document.createEvent("Events");
-            notification.initEvent("MozReftestInvalidate", true, false);
-            contentRootElement.dispatchEvent(notification);
+            WhenMozAfterPaintFlushed(continuation);
         }
 
         
