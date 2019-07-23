@@ -955,8 +955,6 @@ JS_EndRequest(JSContext *cx)
     JS_ASSERT(cx->requestDepth > 0);
     JS_ASSERT(cx->outstandingRequests > 0);
     if (cx->requestDepth == 1) {
-        js_LeaveTrace(cx);  
-
         
         rt = cx->runtime;
         JS_LOCK_GC(rt);
