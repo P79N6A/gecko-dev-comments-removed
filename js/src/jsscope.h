@@ -418,6 +418,9 @@ js_DestroyScope(JSContext *cx, JSScope *scope);
 extern void
 js_HoldScope(JSScope *scope);
 
+
+
+
 extern JSBool
 js_DropScope(JSContext *cx, JSScope *scope, JSObject *obj);
 
