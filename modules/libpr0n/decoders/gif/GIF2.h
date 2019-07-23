@@ -74,7 +74,6 @@ typedef enum {
 
 
 typedef struct gif_struct {
-    void* clientptr;
     
     gstate state;                   
     PRUint32 bytes_to_consume;      
@@ -85,7 +84,6 @@ typedef struct gif_struct {
     int datasize;
     int codesize;
     int codemask;
-    int clear_code;             
     int avail;                  
     int oldcode;
     PRUint8 firstchar;
@@ -112,7 +110,6 @@ typedef struct gif_struct {
 
 
     
-    int screen_bgcolor;         
     int version;                
     PRUintn screen_width;       
     PRUintn screen_height;
@@ -133,17 +130,6 @@ typedef struct gif_struct {
     PRUint8   stack[MAX_BITS];           
 
 } gif_struct;
-
-
-
-
-PRBool GIFInit(gif_struct* gs, void* aClientData);
-
-void gif_destroy(gif_struct* aGIFStruct);
-
-PRStatus gif_write(gif_struct* aGIFStruct, const PRUint8 * buf, PRUint32 numbytes);
-
-PRBool gif_write_ready(const gif_struct* aGIFStruct);
 
 #endif
 
