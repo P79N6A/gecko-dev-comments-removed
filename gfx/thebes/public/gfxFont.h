@@ -268,9 +268,12 @@ public:
     THEBES_INLINE_DECL_REFCOUNTING(gfxFontFamily)
 
     gfxFontFamily(const nsAString& aName) :
-        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE),
+        mName(aName),
+        mOtherFamilyNamesInitialized(PR_FALSE),
+        mHasOtherFamilyNames(PR_FALSE),
+        mHasStyles(PR_FALSE),
         mIsSimpleFamily(PR_FALSE),
-        mHasStyles(PR_FALSE)
+        mIsBadUnderlineFamily(PR_FALSE)
         { }
 
     virtual ~gfxFontFamily() { }
@@ -304,6 +307,7 @@ public:
     virtual void ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunctor);
 
     
+    
     virtual void FindStyleVariations() { }
 
     
@@ -319,13 +323,11 @@ public:
     }
 
     
-    void SetBadUnderlineFont(PRBool aIsBadUnderlineFont) {
-        PRUint32 i, numFonts = mAvailableFonts.Length();
-        
-        
-        
-        for (i = 0; i < numFonts; i++)
-            mAvailableFonts[i]->mIsBadUnderlineFont = aIsBadUnderlineFont;
+    void SetBadUnderlineFamily() {
+        mIsBadUnderlineFamily = PR_TRUE;
+        if (mHasStyles) {
+            SetBadUnderlineFonts();
+        }
     }
 
     
@@ -346,12 +348,23 @@ protected:
                                        gfxFontEntry *aFontEntry,
                                        PRBool useFullName = PR_FALSE);
 
+    
+    void SetBadUnderlineFonts() {
+        PRUint32 i, numFonts = mAvailableFonts.Length();
+        for (i = 0; i < numFonts; i++) {
+            if (mAvailableFonts[i]) {
+                mAvailableFonts[i]->mIsBadUnderlineFont = PR_TRUE;
+            }
+        }
+    }
+
     nsString mName;
     nsTArray<nsRefPtr<gfxFontEntry> >  mAvailableFonts;
     PRPackedBool mOtherFamilyNamesInitialized;
     PRPackedBool mHasOtherFamilyNames;
-    PRPackedBool mIsSimpleFamily;
     PRPackedBool mHasStyles;
+    PRPackedBool mIsSimpleFamily;
+    PRPackedBool mIsBadUnderlineFamily;
 
     enum {
         

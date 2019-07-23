@@ -412,6 +412,9 @@ void gfxFontFamily::LocalizedName(nsAString& aLocalizedName)
 void
 gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
 {
+    if (!mHasStyles)
+        FindStyleVariations();
+
     
     
     
@@ -546,6 +549,8 @@ gfxFontFamily::ReadOtherFamilyNames(AddOtherFamilyNameFunctor& aOtherFamilyFunct
     if (mOtherFamilyNamesInitialized) 
         return;
     mOtherFamilyNamesInitialized = PR_TRUE;
+
+    FindStyleVariations();
 
     
     PRUint32 numFonts = mAvailableFonts.Length();
