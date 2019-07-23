@@ -6100,7 +6100,7 @@ PRBool nsWindow::OnPaint(HDC aDC)
           
           
           int width_left = surfaceSize.width;
-          while (width_left > 4) {
+          while (width_left >= 4) {
             unsigned int a = *src++;
             unsigned int b = *src++;
             unsigned int c = *src++;
