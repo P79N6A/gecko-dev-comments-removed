@@ -520,7 +520,7 @@ function Startup()
   
   var downloadStrings = document.getElementById("downloadStrings");
   gDownloadListener = new DownloadProgressListener(document, downloadStrings);
-  gDownloadManager.listener = gDownloadListener;
+  gDownloadManager.addListener(gDownloadListener);
 
   
   
@@ -580,7 +580,7 @@ function Startup()
 
 function Shutdown() 
 {
-  gDownloadManager.listener = null;
+  gDownloadManager.removeListener(gDownloadListener);
 
   var pbi = Components.classes["@mozilla.org/preferences-service;1"]
                       .getService(Components.interfaces.nsIPrefBranch2);
