@@ -70,10 +70,10 @@ enum EValueRule
 };
 
 
-static const char *kBoolState = 0;
+#define kBoolState 0
 
 
-static const PRUint32 kNoReqStates = 0;
+#define kNoReqStates 0
 
 
 
