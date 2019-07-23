@@ -122,6 +122,12 @@ namespace nanojit
         size_t totalAllocated;
 
         
+        const size_t bytesPerPage;
+        
+        
+        const size_t bytesPerAlloc;
+
+        
         static CodeList* removeBlock(CodeList* &list);
 
         
@@ -137,7 +143,7 @@ namespace nanojit
         void sanity_check();
 
         
-        static CodeList* firstBlock(CodeList* term);
+        CodeList* firstBlock(CodeList* term);
 
         
         
