@@ -41,6 +41,8 @@ do_load_httpd_js();
 
 DEBUG = true;
 
+const Timer = CC("@mozilla.org/timer;1", "nsITimer", "initWithCallback");
+
 
 
 
@@ -202,6 +204,104 @@ function skipHeaders(iter)
 
 
 
+function isException(e, code)
+{
+  if (e !== code && e.result !== code)
+    do_throw("unexpected error: " + e);
+}
+
+
+
+
+
+var __pendingTimers = [];
+
+
+
+
+
+
+
+const __timerFuzz = 15;
+
+
+
+
+
+
+
+
+
+
+
+function callLater(msecs, callback)
+{
+  do_check_true(msecs >= 0);
+
+  var start = Date.now();
+
+  function checkTime()
+  {
+    var index = __pendingTimers.indexOf(timer);
+    do_check_true(index >= 0); 
+    __pendingTimers.splice(index, 1);
+    do_check_eq(__pendingTimers.indexOf(timer), -1);
+
+    
+    
+    
+    var end = Date.now();
+    var elapsed = end - start;
+    if (elapsed >= msecs)
+    {
+      dumpn("*** TIMER FIRE " + elapsed + "ms (" + msecs + "ms requested)");
+      try
+      {
+        callback();
+      }
+      catch (e)
+      {
+        do_throw("exception thrown from callLater callback: " + e);
+      }
+      return;
+    }
+
+    
+    
+    var newDelay = msecs - elapsed;
+    dumpn("*** TIMER UNDERSHOOT " + newDelay + "ms " +
+          "(" + msecs + "ms requested, delaying)");
+
+    callLater(newDelay, callback);
+  }
+
+  var timer =
+    new Timer(checkTime, msecs + __timerFuzz, Ci.nsITimer.TYPE_ONE_SHOT);
+  __pendingTimers.push(timer);
+}
+
+
+
+
+
+
+
+
+
+
+function testComplete(srv)
+{
+  return function complete()
+  {
+    do_test_pending();
+    srv.stop(function quit() { do_test_finished(); });
+  };
+}
+
+
+
+
+
 
 
 
@@ -244,7 +344,14 @@ function runHttpTests(testArray, done)
   {
     if (++testIndex == testArray.length)
     {
-      done();
+      try
+      {
+        done();
+      }
+      catch (e)
+      {
+        do_throw("error running test-completion callback: " + e);
+      }
       return;
     }
 
@@ -397,7 +504,14 @@ function runRawTests(testArray, done)
     if (++testIndex == testArray.length)
     {
       do_test_finished();
-      done();
+      try
+      {
+        done();
+      }
+      catch (e)
+      {
+        do_throw("error running test-completion callback: " + e);
+      }
       return;
     }
 

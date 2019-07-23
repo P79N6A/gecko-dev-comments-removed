@@ -136,17 +136,13 @@ function run_test()
         
         do_check_true(didResumeServer);
 
-        httpserv.stop();
         aDl.targetFile.remove(false);
-        
-        do_test_finished();
+        httpserv.stop(do_test_finished);
       }
       else if (aDl.state == nsIDM.DOWNLOAD_FAILED) {
         
         do_check_true(doNotError);
-        httpserv.stop();
-        
-        do_test_finished();
+        httpserv.stop(do_test_finished);
       }
     },
     onStateChange: function(a, b, aState, d, aDl) {

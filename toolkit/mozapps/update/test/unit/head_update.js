@@ -340,8 +340,9 @@ function start_httpserver(aRelativeDirName) {
 }
 
 
-function stop_httpserver() {
-  gTestserver.stop();
+function stop_httpserver(callback) {
+  do_check_true(!!callback);
+  gTestserver.stop(callback);
 }
 
 

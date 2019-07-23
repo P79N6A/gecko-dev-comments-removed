@@ -42,11 +42,15 @@
 
 
 const PORT = 4444;
+const FAKE_PORT_ONE = 8888;
+const FAKE_PORT_TWO = 8889;
 
-var srv;
+var srv, id;
 
 function run_test()
 {
+  dumpn("*** run_test");
+
   srv = createServer();
 
   srv.registerPathHandler("/http/1.0-request", http10Request);
@@ -55,12 +59,9 @@ function run_test()
                           http11goodHostWackyPort);
   srv.registerPathHandler("/http/1.1-ip-host", http11ipHost);
 
-  const FAKE_PORT_ONE = 8888;
-  const FAKE_PORT_TWO = 8889;
-
   srv.start(FAKE_PORT_ONE);
 
-  var id = srv.identity;
+  id = srv.identity;
 
   
   
@@ -108,7 +109,26 @@ function run_test()
   
   
   
-  srv.stop();
+  do_test_pending();
+  srv.stop(function()
+  {
+    try
+    {
+      do_test_pending();
+      run_test_2();
+    }
+    finally
+    {
+      do_test_finished();
+    }
+  });
+}
+
+function run_test_2()
+{
+  dumpn("*** run_test_2");
+
+  do_test_finished();
 
   
   
@@ -152,7 +172,26 @@ function run_test()
   do_check_false(id.has("http", "localhost", FAKE_PORT_ONE));
   do_check_false(id.has("http", "127.0.0.1", FAKE_PORT_ONE));
 
-  srv.stop();
+  do_test_pending();
+  srv.stop(function()
+  {
+    try
+    {
+      do_test_pending();
+      run_test_3();
+    }
+    finally
+    {
+      do_test_finished();
+    }
+  });
+}
+
+function run_test_3()
+{
+  dumpn("*** run_test_3");
+
+  do_test_finished();
 
   
   
@@ -201,7 +240,7 @@ function run_test()
 
   
   
-  runRawTests(tests, function() { srv.stop(); });
+  runRawTests(tests, testComplete(srv));
 }
 
 

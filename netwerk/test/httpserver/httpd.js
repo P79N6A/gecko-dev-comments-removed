@@ -55,7 +55,7 @@ const CC = Components.Constructor;
 const PR_UINT32_MAX = Math.pow(2, 32) - 1;
 
 
-var DEBUG = false; 
+var DEBUG = true; 
 
 var gGlobalObject = this;
 
@@ -209,9 +209,6 @@ const Pipe = CC("@mozilla.org/pipe;1",
 const FileInputStream = CC("@mozilla.org/network/file-input-stream;1",
                            "nsIFileInputStream",
                            "init");
-const StreamCopier = CC("@mozilla.org/network/async-stream-copier;1",
-                        "nsIAsyncStreamCopier",
-                        "init");
 const ConverterInputStream = CC("@mozilla.org/intl/converter-input-stream;1",
                                 "nsIConverterInputStream",
                                 "init");
@@ -353,6 +350,19 @@ function nsHttpServer()
 
 
   this._socketClosed = true;
+
+  
+
+
+
+
+  this._connectionGen = 0;
+
+  
+
+
+
+  this._connections = {};
 }
 nsHttpServer.prototype =
 {
@@ -376,19 +386,46 @@ nsHttpServer.prototype =
 
     const SEGMENT_SIZE = 8192;
     const SEGMENT_COUNT = 1024;
-    var input = trans.openInputStream(0, SEGMENT_SIZE, SEGMENT_COUNT)
-                     .QueryInterface(Ci.nsIAsyncInputStream);
-    var output = trans.openOutputStream(Ci.nsITransport.OPEN_BLOCKING, 0, 0);
+    try
+    {
+      var input = trans.openInputStream(0, SEGMENT_SIZE, SEGMENT_COUNT)
+                       .QueryInterface(Ci.nsIAsyncInputStream);
+      var output = trans.openOutputStream(Ci.nsITransport.OPEN_BLOCKING, 0, 0);
+    }
+    catch (e)
+    {
+      dumpn("*** error opening transport streams: " + e);
+      trans.close(Cr.NS_BINDING_ABORTED);
+      return;
+    }
 
-    var conn = new Connection(input, output, this, socket.port);
-    var reader = new RequestReader(conn);
+    var connectionNumber = ++this._connectionGen;
 
-    
+    try
+    {
+      var conn = new Connection(input, output, this, socket.port, trans.port,
+                                connectionNumber);
+      var reader = new RequestReader(conn);
 
-    
-    
-    
-    input.asyncWait(reader, 0, 0, gThreadManager.mainThread);
+      
+
+      
+      
+      
+      input.asyncWait(reader, 0, 0, gThreadManager.mainThread);
+    }
+    catch (e)
+    {
+      
+      
+      
+      dumpn("*** error in initial request-processing stages: " + e);
+      trans.close(Cr.NS_BINDING_ABORTED);
+      return;
+    }
+
+    this._connections[connectionNumber] = conn;
+    dumpn("*** starting connection " + connectionNumber);
   },
 
   
@@ -403,8 +440,26 @@ nsHttpServer.prototype =
 
   onStopListening: function(socket, status)
   {
-    dumpn(">>> shutting down server");
+    dumpn(">>> shutting down server on port " + socket.port);
     this._socketClosed = true;
+    if (!this._hasOpenConnections())
+    {
+      dumpn("*** no open connections, notifying async from onStopListening");
+
+      
+      
+      var self = this;
+      var stopEvent =
+        {
+          run: function()
+          {
+            dumpn("*** _notifyStopped async callback");
+            self._notifyStopped();
+          }
+        };
+      gThreadManager.currentThread
+                    .dispatch(stopEvent, Ci.nsIThreadManager.DISPATCH_NORMAL);
+    }
   },
 
   
@@ -420,23 +475,37 @@ nsHttpServer.prototype =
     this._port = port;
     this._doQuit = this._socketClosed = false;
 
-    var socket = new ServerSocket(this._port,
-                                  true, 
-                                  -1);  
+    try
+    {
+      var socket = new ServerSocket(this._port,
+                                    true, 
+                                    -1);  
 
-    dumpn(">>> listening on port " + socket.port);
-    socket.asyncListen(this);
-    this._identity._initialize(port, true);
-    this._socket = socket;
+      dumpn(">>> listening on port " + socket.port);
+      socket.asyncListen(this);
+      this._identity._initialize(port, true);
+      this._socket = socket;
+    }
+    catch (e)
+    {
+      dumpn("!!! could not start server on port " + port + ": " + e);
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
+    }
   },
 
   
   
   
-  stop: function()
+  stop: function(callback)
   {
+    if (!callback)
+      throw Cr.NS_ERROR_NULL_POINTER;
     if (!this._socket)
-      return;
+      throw Cr.NS_ERROR_UNEXPECTED;
+
+    this._stopCallback = typeof callback === "function"
+                       ? callback
+                       : function() { callback.onStopped(); };
 
     dumpn(">>> stopping listening on port " + this._socket.port);
     this._socket.close();
@@ -449,9 +518,6 @@ nsHttpServer.prototype =
     this._doQuit = false;
 
     
-    var thr = gThreadManager.currentThread;
-    while (!this._socketClosed || this._handler.hasPendingRequests())
-      thr.processNextEvent(true);
   },
 
   
@@ -556,6 +622,23 @@ nsHttpServer.prototype =
   },
 
   
+  
+  
+  getObjectState: function(k)
+  {
+    return this._handler._getObjectState(k);
+  },
+
+  
+  
+  
+  setObjectState: function(k, v)
+  {
+    return this._handler._setObjectState(k, v);
+  },
+
+
+  
 
   
   
@@ -580,19 +663,13 @@ nsHttpServer.prototype =
 
   isStopped: function()
   {
-    return this._socketClosed && !this._handler.hasPendingRequests();
+    return this._socketClosed && !this._hasOpenConnections();
   },
 
   
-  
 
   
-
-
-
-
-
-  _endConnection: function(connection)
+  _hasOpenConnections: function()
   {
     
     
@@ -601,14 +678,57 @@ nsHttpServer.prototype =
     
     
     
+    for (var n in this._connections)
+      return true;
+    return false;
+  },
 
-    connection.close();
+  
+  _notifyStopped: function()
+  {
+    NS_ASSERT(this._stopCallback !== null, "double-notifying?");
+    NS_ASSERT(!this._hasOpenConnections(), "should be done serving by now");
 
-    NS_ASSERT(this == connection.server);
+    
+    
+    
+    
+    
+    
+    
+    var callback = this._stopCallback;
+    this._stopCallback = null;
+    try
+    {
+      callback();
+    }
+    catch (e)
+    {
+      
+      
+      dump("!!! error running onStopped callback: " + e + "\n");
+    }
+  },
 
-    this._handler._pendingRequests--;
+  
 
-    connection.destroy();
+
+
+
+
+  _connectionClosed: function(connection)
+  {
+    NS_ASSERT(connection.number in this._connections,
+              "closing a connection " + this + " that we never added to the " +
+              "set of open connections?");
+    NS_ASSERT(this._connections[connection.number] === connection,
+              "connection number mismatch?  " +
+              this._connections[connection.number]);
+    delete this._connections[connection.number];
+
+    
+    if (!this._hasOpenConnections() && this._socketClosed)
+      this._notifyStopped();
   },
 
   
@@ -620,7 +740,6 @@ nsHttpServer.prototype =
     dumpStack();
     this._doQuit = true;
   }
-
 };
 
 
@@ -894,8 +1013,14 @@ ServerIdentity.prototype =
 
 
 
-function Connection(input, output, server, port)
+
+
+
+
+function Connection(input, output, server, port, outgoingPort, number)
 {
+  dumpn("*** opening new connection " + number + " on port " + outgoingPort);
+
   
   this.input = input;
 
@@ -907,7 +1032,19 @@ function Connection(input, output, server, port)
 
   
   this.port = port;
+
   
+  this._outgoingPort = outgoingPort;
+
+  
+  this.number = number;
+
+  
+
+
+
+  this.request = null;
+
   
   this._closed = this._processed = false;
 }
@@ -916,9 +1053,19 @@ Connection.prototype =
   
   close: function()
   {
+    dumpn("*** closing connection " + this.number +
+          " on port " + this._outgoingPort);
+
     this.input.close();
     this.output.close();
     this._closed = true;
+
+    var server = this.server;
+    server._connectionClosed(this);
+
+    
+    if (server._doQuit)
+      server.stop(function() {  });
   },
 
   
@@ -934,7 +1081,8 @@ Connection.prototype =
 
     this._processed = true;
 
-    this.server._handler.handleResponse(this, request);
+    this.request = request;
+    this.server._handler.handleResponse(this);
   },
 
   
@@ -947,37 +1095,21 @@ Connection.prototype =
 
 
 
-  processError: function(code, metadata)
+  processError: function(code, request)
   {
     NS_ASSERT(!this._closed && !this._processed);
 
     this._processed = true;
-
-    this.server._handler.handleError(code, this, metadata);
+    this.request = request;
+    this.server._handler.handleError(code, this);
   },
 
   
-
-
-
-
-
-
-  end: function()
+  toString: function()
   {
-    this.server._endConnection(this);
-  },
-
-  
-  destroy: function()
-  {
-    if (!this._closed)
-      this.close();
-
-    
-    var server = this.server;
-    if (server._doQuit)
-      server.stop();
+    return "<Connection(" + this.number +
+           (this.request ? ", " + this.request.path : "") +"): " +
+           (this._closed ? "closed" : "open") + ">";
   }
 };
 
@@ -1082,27 +1214,26 @@ RequestReader.prototype =
     }
     catch (e)
     {
-      if (e.result !== Cr.NS_ERROR_BASE_STREAM_CLOSED)
+      if (e.result !== Cr.NS_BASE_STREAM_CLOSED)
       {
         dumpn("*** WARNING: unexpected error when reading from socket; will " +
               "be treated as if the input stream had been closed");
+        dumpn("*** WARNING: actual error was: " + e);
       }
 
       
       
       
-      
-      
       dumpn("*** onInputStreamReady called on a closed input, destroying " +
             "connection");
-      this._connection.destroy();
+      this._connection.close();
       return;
     }
 
     switch (this._state)
     {
       default:
-        NS_ASSERT(false);
+        NS_ASSERT(false, "invalid state: " + this._state);
         break;
 
       case READER_IN_REQUEST_LINE:
@@ -1147,7 +1278,6 @@ RequestReader.prototype =
   _processRequestLine: function()
   {
     NS_ASSERT(this._state == READER_IN_REQUEST_LINE);
-
 
     
     
@@ -1361,6 +1491,7 @@ RequestReader.prototype =
 
   _handleError: function(e)
   {
+    
     this._state = READER_FINISHED;
 
     var server = this._connection.server;
@@ -1370,6 +1501,9 @@ RequestReader.prototype =
     }
     else
     {
+      dumpn("!!! UNEXPECTED ERROR: " + e +
+            (e.lineNumber ? ", line " + e.lineNumber : ""));
+
       
       code = 500;
       server._requestQuit();
@@ -1949,13 +2083,6 @@ function ServerHandler(server)
 
 
 
-  this._pendingRequests = 0;
-
-  
-
-
-
-
 
 
 
@@ -1996,6 +2123,9 @@ function ServerHandler(server)
 
   
   this._sharedState = {};
+
+  
+  this._objectState = {};
 }
 ServerHandler.prototype =
 {
@@ -2010,13 +2140,12 @@ ServerHandler.prototype =
 
 
 
-
-
-  handleResponse: function(connection, metadata)
+  handleResponse: function(connection)
   {
-    var response = new Response();
+    var request = connection.request;
+    var response = new Response(connection);
 
-    var path = metadata.path;
+    var path = request.path;
     dumpn("*** path == " + path);
 
     try
@@ -2028,33 +2157,46 @@ ServerHandler.prototype =
           
           
           dumpn("calling override for " + path);
-          this._overridePaths[path](metadata, response);
+          this._overridePaths[path](request, response);
         }
         else
-          this._handleDefault(metadata, response);
+        {
+          this._handleDefault(request, response);
+        }
       }
       catch (e)
       {
-        response.recycle();
+        if (response.partiallySent())
+        {
+          response.abort(e);
+          return;
+        }
 
         if (!(e instanceof HttpError))
         {
           dumpn("*** unexpected error: e == " + e);
           throw HTTP_500;
         }
-        if (e.code != 404)
+        if (e.code !== 404)
           throw e;
 
         dumpn("*** default: " + (path in this._defaultPaths));
 
+        response = new Response(connection);
         if (path in this._defaultPaths)
-          this._defaultPaths[path](metadata, response);
+          this._defaultPaths[path](request, response);
         else
           throw HTTP_404;
       }
     }
     catch (e)
     {
+      if (response.partiallySent())
+      {
+        response.abort(e);
+        return;
+      }
+
       var errorCode = "internal";
 
       try
@@ -2065,23 +2207,22 @@ ServerHandler.prototype =
         errorCode = e.code;
         dumpn("*** errorCode == " + errorCode);
 
-        response.recycle();
-
-        this._handleError(errorCode, metadata, response);
+        response = new Response(connection);
+        this._handleError(errorCode, request, response);
+        return;
       }
       catch (e2)
       {
         dumpn("*** error handling " + errorCode + " error: " +
               "e2 == " + e2 + ", shutting down server");
 
-        response.destroy();
-        connection.close();
-        connection.server.stop();
+        connection.server._requestQuit();
+        response.abort(e2);
         return;
       }
     }
 
-    this._end(response, connection);
+    response.complete();
   },
 
   
@@ -2101,13 +2242,13 @@ ServerHandler.prototype =
 
     var self = this;
     this._overridePaths[path] =
-      function(metadata, response)
+      function(request, response)
       {
         if (!file.exists())
           throw HTTP_404;
 
-        response.setStatusLine(metadata.httpVersion, 200, "OK");
-        self._writeFileResponse(metadata, file, response);
+        response.setStatusLine(request.httpVersion, 200, "OK");
+        self._writeFileResponse(request, file, response, 0, file.fileSize);
       };
   },
 
@@ -2196,19 +2337,6 @@ ServerHandler.prototype =
 
 
 
-  hasPendingRequests: function()
-  {
-    return this._pendingRequests > 0;
-  },
-
-
-  
-
-  
-
-
-
-
 
 
 
@@ -2238,9 +2366,10 @@ ServerHandler.prototype =
 
 
 
-
   _handleDefault: function(metadata, response)
   {
+    dumpn("*** _handleDefault()");
+
     response.setStatusLine(metadata.httpVersion, 200, "OK");
 
     var path = metadata.path;
@@ -2359,10 +2488,31 @@ ServerHandler.prototype =
         
         
         var self = this;
-        s.importFunction(function getState(k) { return self._getState(metadata.path, k); });
-        s.importFunction(function setState(k, v) { self._setState(metadata.path, k, v); });
-        s.importFunction(function getSharedState(k) { return self._getSharedState(k); });
-        s.importFunction(function setSharedState(k, v) { self._setSharedState(k, v); });
+        var path = metadata.path;
+        s.importFunction(function getState(k)
+        {
+          return self._getState(path, k);
+        });
+        s.importFunction(function setState(k, v)
+        {
+          self._setState(path, k, v);
+        });
+        s.importFunction(function getSharedState(k)
+        {
+          return self._getSharedState(k);
+        });
+        s.importFunction(function setSharedState(k, v)
+        {
+          self._setSharedState(k, v);
+        });
+        s.importFunction(function getObjectState(k, callback)
+        {
+          callback(self._getObjectState(k));
+        });
+        s.importFunction(function setObjectState(k, v)
+        {
+          self._setObjectState(k, v);
+        });
 
         try
         {
@@ -2386,8 +2536,11 @@ ServerHandler.prototype =
         }
         catch (e)
         {
-          dumpn("*** error running SJS at " + file.path + ": " +
-                e + " on line " + (e.lineNumber - line));
+          dump("*** error running SJS at " + file.path + ": " +
+               e + " on line " +
+               (e instanceof Error
+               ? e.lineNumber + " in httpd.js"
+               : (e.lineNumber - line)) + "\n");
           throw HTTP_500;
         }
       }
@@ -2407,33 +2560,88 @@ ServerHandler.prototype =
       catch (e) {  }
 
       response.setHeader("Content-Type", type, false);
-  
+      maybeAddHeaders(file, metadata, response);
+      response.setHeader("Content-Length", "" + count, false);
+
       var fis = new FileInputStream(file, PR_RDONLY, 0444,
                                     Ci.nsIFileInputStream.CLOSE_ON_EOF);
 
+      offset = offset || 0;
+      count  = count || file.fileSize;
+      NS_ASSERT(offset === 0 || offset < file.fileSize, "bad offset");
+      NS_ASSERT(count >= 0, "bad count");
+      NS_ASSERT(offset + count <= file.fileSize, "bad total data size");
+
       try
       {
-        offset = offset || 0;
-        count  = count || file.fileSize;
-  
-        NS_ASSERT(offset == 0 || offset < file.fileSize, "bad offset");
-        NS_ASSERT(count >= 0, "bad count");
-  
-        if (offset != 0)
+        if (offset !== 0)
         {
           
           
-          var sis = new ScriptableInputStream(fis);
-          sis.read(offset);
+          if (fis instanceof Ci.nsISeekableStream)
+            fis.seek(Ci.nsISeekableStream.SEEK_SET, offset);
+          else
+            new ScriptableInputStream(fis).read(offset);
         }
-        response.bodyOutputStream.writeFrom(fis, count);
       }
-      finally
+      catch (e)
       {
         fis.close();
+        throw e;
       }
+
+      function writeMore()
+      {
+        gThreadManager.currentThread
+                      .dispatch(writeData, Ci.nsIThreadManager.DISPATCH_NORMAL);
+      }
+
+      var input = new BinaryInputStream(fis);
+      var output = new BinaryOutputStream(response.bodyOutputStream);
+      var writeData =
+        {
+          run: function()
+          {
+            var chunkSize = Math.min(65536, count);
+            count -= chunkSize;
+            NS_ASSERT(count >= 0, "underflow");
+
+            try
+            {
+              var data = input.readByteArray(chunkSize);
+              NS_ASSERT(data.length === chunkSize,
+                        "incorrect data returned?  got " + data.length +
+                        ", expected " + chunkSize);
+              output.writeByteArray(data, data.length);
+              if (count === 0)
+              {
+                fis.close();
+                response.finish();
+              }
+              else
+              {
+                writeMore();
+              }
+            }
+            catch (e)
+            {
+              try
+              {
+                fis.close();
+              }
+              finally
+              {
+                response.finish();
+              }
+              throw e;
+            }
+          }
+        };
+
+      writeMore();
+
       
-      maybeAddHeaders(file, metadata, response);
+      response.processAsync();
     }
   },
 
@@ -2470,7 +2678,7 @@ ServerHandler.prototype =
   _setState: function(path, k, v)
   {
     if (typeof v !== "string")
-      throw new Exception("non-string value passed");
+      throw new Error("non-string value passed");
     var state = this._state;
     if (!(path in state))
       state[path] = {};
@@ -2506,8 +2714,48 @@ ServerHandler.prototype =
   _setSharedState: function(k, v)
   {
     if (typeof v !== "string")
-      throw new Exception("non-string value passed");
+      throw new Error("non-string value passed");
     this._sharedState[k] = v;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getObjectState: function(k)
+  {
+    if (typeof k !== "string")
+      throw new Error("non-string key passed");
+    return this._objectState[k] || null;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _setObjectState: function(k, v)
+  {
+    if (typeof k !== "string")
+      throw new Error("non-string key passed");
+    if (typeof v !== "object")
+      throw new Error("non-object value passed");
+    if (v && !("QueryInterface" in v))
+    {
+      throw new Error("must pass an nsISupports; use wrappedJSObject to ease " +
+                      "pain when using the server from JS");
+    }
+
+    this._objectState[k] = v;
   },
 
   
@@ -2645,21 +2893,11 @@ ServerHandler.prototype =
 
   handleError: function(errorCode, connection)
   {
-    var response = new Response();
+    var response = new Response(connection);
 
     dumpn("*** error in request: " + errorCode);
 
-    try
-    {
-      this._handleError(errorCode, new Request(connection.port), response);
-      this._end(response, connection);
-    }
-    catch (e)
-    {
-      dumpn("*** error in handleError: " + e);
-      connection.close();
-      connection.server.stop();
-    }
+    this._handleError(errorCode, new Request(connection.port), response);
   }, 
 
   
@@ -2701,17 +2939,24 @@ ServerHandler.prototype =
       {
         if (errorCode in this._overrideErrors)
           this._overrideErrors[errorCode](metadata, response);
-        else if (errorCode in this._defaultErrors)
+        else
           this._defaultErrors[errorCode](metadata, response);
       }
       catch (e)
       {
+        if (response.partiallySent())
+        {
+          response.abort(e);
+          return;
+        }
+
         
         if (errorX00 == errorCode)
           throw HTTP_500;
 
         dumpn("*** error in handling for error code " + errorCode + ", " +
               "falling back to " + errorX00 + "...");
+        response = new Response(response._connection);
         if (errorX00 in this._overrideErrors)
           this._overrideErrors[errorX00](metadata, response);
         else if (errorX00 in this._defaultErrors)
@@ -2722,7 +2967,11 @@ ServerHandler.prototype =
     }
     catch (e)
     {
-      response.recycle();
+      if (response.partiallySent())
+      {
+        response.abort();
+        return;
+      }
 
       
       dumpn("*** error in handling for error code " + errorX00 + ", falling " +
@@ -2730,6 +2979,7 @@ ServerHandler.prototype =
 
       try
       {
+        response = new Response(response._connection);
         if (500 in this._overrideErrors)
           this._overrideErrors[500](metadata, response);
         else
@@ -2739,197 +2989,12 @@ ServerHandler.prototype =
       {
         dumpn("*** multiple errors in default error handlers!");
         dumpn("*** e == " + e + ", e2 == " + e2);
-        throw e2;
+        response.abort(e2);
+        return;
       }
     }
-  },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _end:  function(response, connection)
-  {
-    
-    response.setHeader("Connection", "close", false);
-    response.setHeader("Server", "httpd.js", false);
-    if (!response._headers.hasHeader("Date"))
-      response.setHeader("Date", toDateString(Date.now()), false);
-
-    var bodyStream = response.bodyInputStream;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    try
-    {
-      var available = bodyStream.available();
-    }
-    catch (e)
-    {
-      available = 0;
-    }
-
-    response.setHeader("Content-Length", available.toString(), false);
-
-
-    
-
-    
-    var preamble = "HTTP/" + response.httpVersion + " " +
-                   response.httpCode + " " +
-                   response.httpDescription + "\r\n";
-
-    
-    var head = response.headers;
-    var headEnum = head.enumerator;
-    while (headEnum.hasMoreElements())
-    {
-      var fieldName = headEnum.getNext()
-                              .QueryInterface(Ci.nsISupportsString)
-                              .data;
-      var values = head.getHeaderValues(fieldName);
-      for (var i = 0, sz = values.length; i < sz; i++)
-        preamble += fieldName + ": " + values[i] + "\r\n";
-    }
-
-    
-    preamble += "\r\n";
-
-    var outStream = connection.output;
-    try
-    {
-      outStream.write(preamble, preamble.length);
-    }
-    catch (e)
-    {
-      
-      
-      
-      response.destroy();
-      connection.close();
-      return;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    this._pendingRequests++;
-
-    var server = this._server;
-
-    
-    
-    
-    
-    if (available != 0)
-    {
-      
-
-
-
-
-
-      var copyObserver =
-        {
-          onStartRequest: function(request, context) {  },
-
-          
-
-
-
-
-
-          onStopRequest: function(request, cx, statusCode)
-          {
-            
-            
-            
-            
-            
-            
-            
-            if (!Components.isSuccessCode(statusCode))
-            {
-              dumpn("*** WARNING: non-success statusCode in onStopRequest: " +
-                    statusCode);
-            }
-
-            
-            response.destroy();
-
-            connection.end();
-          },
-
-          QueryInterface: function(aIID)
-          {
-            if (aIID.equals(Ci.nsIRequestObserver) ||
-                aIID.equals(Ci.nsISupports))
-              return this;
-
-            throw Cr.NS_ERROR_NO_INTERFACE;
-          }
-        };
-
-
-      
-      
-      
-      
-      var copier = new StreamCopier(bodyStream, outStream,
-                                    null,
-                                    true, true, 8192, true, true);
-      copier.asyncCopy(copyObserver, null);
-    }
-    else
-    {
-      
-      response.destroy();
-      this._server._endConnection(connection);
-    }
+    response.complete();
   },
 
   
@@ -3195,11 +3260,77 @@ function isCTL(code)
 
 
 
-function Response()
+
+
+
+function Response(connection)
 {
   
+  this._connection = connection;
+
   
-  this.recycle();
+
+
+
+  this._httpVersion = nsHttpVersion.HTTP_1_1;
+
+  
+
+
+  this._httpCode = 200;
+
+  
+
+
+  this._httpDescription = "OK";
+
+  
+
+
+
+
+
+
+
+  this._headers = new nsHttpHeaders();
+
+  
+
+
+
+  this._ended = false;
+
+  
+
+
+  this._bodyOutputStream = null;
+
+  
+
+
+
+
+
+  this._bodyInputStream = null;
+
+  
+
+
+
+  this._asyncCopier = null;
+
+  
+
+
+
+
+  this._processAsync = false;
+
+  
+
+
+
+  this._finished = false;
 }
 Response.prototype =
 {
@@ -3210,13 +3341,17 @@ Response.prototype =
   
   get bodyOutputStream()
   {
-    this._ensureAlive();
+    if (this._finished)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
 
-    if (!this._bodyOutputStream && !this._outputProcessed)
+    if (!this._bodyOutputStream)
     {
-      var pipe = new Pipe(false, false, 0, PR_UINT32_MAX, null);
+      var pipe = new Pipe(false, false, Response.SEGMENT_SIZE, PR_UINT32_MAX,
+                          null);
       this._bodyOutputStream = pipe.outputStream;
       this._bodyInputStream = pipe.inputStream;
+      if (this._processAsync)
+        this._startAsyncProcessor();
     }
 
     return this._bodyOutputStream;
@@ -3227,6 +3362,9 @@ Response.prototype =
   
   write: function(data)
   {
+    if (this._finished)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
+
     var dataAsString = String(data);
     this.bodyOutputStream.write(dataAsString, dataAsString.length);
   },
@@ -3236,6 +3374,8 @@ Response.prototype =
   
   setStatusLine: function(httpVersion, code, description)
   {
+    if (!this._headers || this._finished)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
     this._ensureAlive();
 
     if (!(code >= 0 && code < 1000))
@@ -3279,9 +3419,58 @@ Response.prototype =
   
   setHeader: function(name, value, merge)
   {
+    if (!this._headers || this._finished)
+      throw Cr.NS_ERROR_NOT_AVAILABLE;
     this._ensureAlive();
 
     this._headers.setHeader(name, value, merge);
+  },
+
+  
+  
+  
+  processAsync: function()
+  {
+    if (this._finished)
+      throw Cr.NS_ERROR_UNEXPECTED;
+    if (this._processAsync)
+      return;
+
+    dumpn("*** processing connection " + this._connection.number + " async");
+    this._processAsync = true;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if (this._bodyOutputStream && !this._asyncCopier)
+      this._startAsyncProcessor();
+  },
+
+  
+  
+  
+  finish: function()
+  {
+    if (!this._processAsync)
+      throw Cr.NS_ERROR_UNEXPECTED;
+    if (this._finished)
+      return;
+
+    dumpn("*** finishing async connection " + this._connection.number);
+    this._startAsyncProcessor(); 
+    if (this._bodyOutputStream)
+      this._bodyOutputStream.close();
+    this._finished = true;
   },
 
   
@@ -3347,120 +3536,400 @@ Response.prototype =
 
 
 
-  get bodyInputStream()
+
+  partiallySent: function()
   {
-    this._ensureAlive();
-
-    if (!this._outputProcessed)
-    {
-      
-      
-      if (!this._bodyOutputStream)
-        this.bodyOutputStream.write("", 0);
-
-      this._outputProcessed = true;
-    }
-    if (this._bodyOutputStream)
-    {
-      this._bodyOutputStream.close(); 
-      this._bodyOutputStream = null;  
-    }
-    return this._bodyInputStream;
+    dumpn("*** partiallySent()");
+    return this._headers === null;
   },
 
   
 
 
 
-
-
-
-
-
-  recycle: function()
+  complete: function()
   {
-    if (this._bodyOutputStream)
-    {
-      this._bodyOutputStream.close();
-      this._bodyOutputStream = null;
-    }
-    if (this._bodyInputStream)
-    {
-      this._bodyInputStream.close();
-      this._bodyInputStream = null;
-    }
-
-    
-
-
-
-    this._httpVersion = nsHttpVersion.HTTP_1_1;
-
-    
-
-
-    this._httpCode = 200;
-
-    
-
-
-    this._httpDescription = "OK";
-
-    
-
-
-
-    this._headers = new nsHttpHeaders();
-
-    
-
-
-
-    this._destroyed = false;
-
-    
-
-
-
-    this._outputProcessed = false;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  destroy: function()
-  {
-    if (this._destroyed)
+    dumpn("*** complete()");
+    if (this._processAsync)
       return;
 
-    if (this._bodyOutputStream)
-    {
-      this._bodyOutputStream.close();
-      this._bodyOutputStream = null;
-    }
-    if (this._bodyInputStream)
-    {
-      this._bodyInputStream.close();
-      this._bodyInputStream = null;
-    }
+    NS_ASSERT(!this.partiallySent(), "completing a partially-sent response?");
 
-    this._destroyed = true;
+    this._startAsyncProcessor();
+
+    
+    if (this._bodyOutputStream)
+      this._bodyOutputStream.close();
   },
 
   
+
+
+
+
+
+
+
+
+
+
+  abort: function(e)
+  {
+    dumpn("*** abort(<" + e + ">)");
+
+    
+    var processor = this._asyncCopier;
+    if (processor)
+      processor.cancel(Cr.NS_BINDING_ABORTED);
+    else
+      this.end();
+  },
+
+  
+
+
+
+  end: function()
+  {
+    NS_ASSERT(!this._ended, "ending this response twice?!?!");
+
+    this._connection.close();
+    if (this._bodyOutputStream)
+      this._bodyOutputStream.close();
+
+    this._finished = true;
+    this._ended = true;
+  },
+
+  
+
+  
+
+
+
+
+
+
+  _sendHeaders: function()
+  {
+    dumpn("*** _sendHeaders()");
+
+    NS_ASSERT(this._headers);
+
+    
+    var statusLine = "HTTP/" + this.httpVersion + " " +
+                     this.httpCode + " " +
+                     this.httpDescription + "\r\n";
+
+    
+
+    var headers = this._headers;
+    headers.setHeader("Connection", "close", false);
+    headers.setHeader("Server", "httpd.js", false);
+    if (!headers.hasHeader("Date"))
+      headers.setHeader("Date", toDateString(Date.now()), false);
+
+    
+    
+    
+    
+    
+    
+    if (!this._processAsync)
+    {
+      dumpn("*** non-async response, set Content-Length");
+
+      var bodyStream = this._bodyInputStream;
+      var avail = bodyStream ? bodyStream.available() : 0;
+
+      
+      headers.setHeader("Content-Length", "" + avail, false);
+    }
+
+
+    
+    dumpn("*** header post-processing completed, sending response head...");
+
+    
+    var preamble = statusLine;
+
+    
+    var headEnum = headers.enumerator;
+    while (headEnum.hasMoreElements())
+    {
+      var fieldName = headEnum.getNext()
+                              .QueryInterface(Ci.nsISupportsString)
+                              .data;
+      var values = headers.getHeaderValues(fieldName);
+      for (var i = 0, sz = values.length; i < sz; i++)
+        preamble += fieldName + ": " + values[i] + "\r\n";
+    }
+
+    
+    preamble += "\r\n";
+
+    var connection = this._connection;
+    try
+    {
+      connection.output.write(preamble, preamble.length);
+    }
+    catch (e)
+    {
+      
+      
+      
+      dumpn("*** error writing headers to socket: " + e);
+      response.end();
+      return;
+    }
+
+    
+    this._headers = null;
+  },
+
+  
+
+
+
+
+  _startAsyncProcessor: function()
+  {
+    dumpn("*** _startAsyncProcessor()");
+
+    
+    
+    
+    
+    if (this._asyncCopier || this._ended)
+    {
+      dumpn("*** ignoring second call to _startAsyncProcessor");
+      return;
+    }
+
+    
+    if (this._headers)
+      this._sendHeaders();
+    NS_ASSERT(this._headers === null, "flushHeaders() failed?");
+
+    var response = this;
+    var connection = this._connection;
+
+    
+    if (!this._bodyInputStream)
+    {
+      dumpn("*** empty body, response finished");
+      response.end();
+      return;
+    }
+
+    var copyObserver =
+      {
+        onStartRequest: function(request, context)
+        {
+          dumpn("*** onStartRequest");
+        },
+
+        onStopRequest: function(request, cx, statusCode)
+        {
+          dumpn("*** onStopRequest [status=" + statusCode.toString(16) + "]");
+
+          if (!Components.isSuccessCode(statusCode))
+          {
+            dumpn("*** WARNING: non-success statusCode in onStopRequest: " +
+                  statusCode);
+          }
+
+          response.end();
+        },
+
+        QueryInterface: function(aIID)
+        {
+          if (aIID.equals(Ci.nsIRequestObserver) ||
+              aIID.equals(Ci.nsISupports))
+            return this;
+
+          throw Cr.NS_ERROR_NO_INTERFACE;
+        }
+      };
+
+    dumpn("*** starting async copier of body data...");
+    var copier = this._asyncCopier =
+      new WriteThroughCopier(this._bodyInputStream, this._connection.output,
+                            copyObserver, null);
+  },
 
   
   _ensureAlive: function()
   {
-    if (this._destroyed)
-      throw Cr.NS_ERROR_FAILURE;
+    NS_ASSERT(!this._ended, "not handling response lifetime correctly");
+  }
+};
+
+
+
+
+
+Response.SEGMENT_SIZE = 8192;
+
+
+function notImplemented()
+{
+  throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function WriteThroughCopier(input, output, observer, context)
+{
+  if (!input || !output || !observer)
+    throw Cr.NS_ERROR_NULL_POINTER;
+
+  
+  this._input = input;
+
+  
+  this._output = new BinaryOutputStream(output);
+
+  
+  this._observer = observer;
+
+  
+  this._context = context;
+
+  
+  this._completed = false;
+
+  
+  this.loadFlags = 0;
+  
+  this.loadGroup = null;
+  
+  this.name = "response-body-copy";
+
+  
+  this.status = Cr.NS_OK;
+
+  
+  try
+  {
+    observer.onStartRequest(this, context);
+    this._waitForData();
+  }
+  catch (e)
+  {
+    dumpn("!!! error starting copy: " + e);
+    this.cancel(Cr.NS_ERROR_UNEXPECTED);
+  }
+}
+WriteThroughCopier.prototype =
+{
+  
+
+
+
+
+
+
+  cancel: function(status)
+  {
+    dumpn("*** cancel(" + status.toString(16) + ")");
+
+    if (this._completed)
+      return;
+
+    this._completed = true;
+    this.status = status;
+
+    var self = this;
+    var cancelEvent =
+      {
+        run: function()
+        {
+          dumpn("*** onStopRequest async callback");
+          try
+          {
+            self._observer.onStopRequest(self, self._context, self.status);
+          }
+          catch (e)
+          {
+            NS_ASSERT(false, "how are we throwing an exception here?  " + e);
+          }
+        }
+      };
+    gThreadManager.currentThread
+                  .dispatch(cancelEvent, Ci.nsIThreadManager.DISPATCH_NORMAL);
+  },
+
+  
+
+
+
+  isPending: function()
+  {
+    return !this._completed;
+  },
+
+  
+  suspend: notImplemented,
+  
+  resume: notImplemented,
+
+  
+
+
+
+  onInputStreamReady: function()
+  {
+    dumpn("*** onInputStreamReady");
+    if (this._completed)
+      return;
+
+    var input = new BinaryInputStream(this._input);
+    try
+    {
+      var avail = input.available();
+      var data = input.readByteArray(avail);
+      this._output.writeByteArray(data, data.length);
+    }
+    catch (e)
+    {
+      if (e === Cr.NS_BASE_STREAM_CLOSED ||
+          e.result === Cr.NS_BASE_STREAM_CLOSED)
+      {
+        this.cancel(Cr.NS_OK);
+      }
+      else
+      {
+        dumpn("!!! error copying from input to output: " + e);
+        this.cancel(Cr.NS_ERROR_UNEXPECTED);
+      }
+      return;
+    }
+
+    if (avail === 0)
+      this.cancel(Cr.NS_OK);
+    else
+      this._waitForData();
+  },
+
+  
+
+
+  _waitForData: function()
+  {
+    dumpn("*** _waitForData");
+    this._input.asyncWait(this, 0, 1, gThreadManager.mainThread);
   }
 };
 

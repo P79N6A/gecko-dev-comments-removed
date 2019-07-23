@@ -114,6 +114,14 @@ function makeTags() {
   }
 }
 
+var _quitting = false;
+
+
+function serverStopped()
+{
+  _quitting = true;
+}
+
 
 if (this["nsHttpServer"]) {
   
@@ -122,9 +130,15 @@ if (this["nsHttpServer"]) {
   runServer();
 
   
+  if (_quitting)
+  {
+    dumpn("HTTP server stopped, all pending requests complete");
+    quit(0);
+  }
+
   
-  
-  quit(0);
+  dumpn("TEST-UNEXPECTED-FAIL | failure to correctly shut down HTTP server");
+  quit(1);
 }
 
 var serverBasePath;
@@ -276,8 +290,8 @@ function serverShutdown(metadata, response)
   var body = "Server shut down.";
   response.bodyOutputStream.write(body, body.length);
 
-  
-  server.stop();
+  dumpn("Server shutting down now...");
+  server.stop(serverStopped);
 }
 
 

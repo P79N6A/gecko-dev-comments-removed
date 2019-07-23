@@ -38,6 +38,8 @@
 
 
 
+
+
 var tests =
   [
    new Test("http://localhost:4444/objHandler",
@@ -65,7 +67,7 @@ function run_test()
 
   srv.start(4444);
 
-  runHttpTests(tests, function() { srv.stop(); });
+  runHttpTests(tests, testComplete(srv));
 }
 
 
