@@ -488,13 +488,17 @@ static nsIFrame* GetSpecialPrevSibling(nsIFrame* aFrame)
 }
 
 static nsIFrame*
-GetLastSpecialSibling(nsIFrame* aFrame, PRBool aIgnoreEmpty)
+GetLastSpecialSibling(nsIFrame* aFrame, PRBool aReturnEmptyTrailingInline)
 {
   for (nsIFrame *frame = aFrame, *next; ; frame = next) {
     next = GetSpecialSibling(frame);
     if (!next ||
-        (aIgnoreEmpty && !next->GetFirstChild(nsnull)))
+        (!aReturnEmptyTrailingInline && !next->GetFirstChild(nsnull) &&
+         !GetSpecialSibling(next))) {
+      NS_ASSERTION(!next || !IsInlineOutside(frame),
+                   "Should have a block here!");
       return frame;
+    }
   }
   NS_NOTREACHED("unreachable code");
   return nsnull;
@@ -508,8 +512,9 @@ SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
   
   NS_ASSERTION(!aFrame->GetPrevContinuation(),
                "assigning special sibling to other than first continuation!");
-  NS_ASSERTION(!aFrame->GetNextContinuation(),
-               "should have no continuations here");
+  NS_ASSERTION(!aFrame->GetNextContinuation() ||
+               IsFrameSpecial(aFrame->GetNextContinuation()),
+               "should have no non-special continuations here");
 
   
   aFrame->AddStateBits(NS_FRAME_IS_SPECIAL);
@@ -585,19 +590,16 @@ FindFirstBlock(nsFrameList::FrameLinkEnumerator& aLink)
 
 
 
-
 static nsFrameList::FrameLinkEnumerator
-FindLastBlock(const nsFrameList& aList)
+FindFirstNonBlock(const nsFrameList& aList)
 {
-  nsFrameList::FrameLinkEnumerator cur(aList), last(aList);
-  for ( ; !cur.AtEnd(); cur.Next()) {
-    if (!IsInlineOutside(cur.NextFrame())) {
-      last = cur;
-      last.Next();
+  nsFrameList::FrameLinkEnumerator link(aList);
+  for (; !link.AtEnd(); link.Next()) {
+    if (IsInlineOutside(link.NextFrame())) {
+      break;
     }
   }
-
-  return last;
+  return link;
 }
 
 inline void
@@ -1165,17 +1167,6 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
     frameItems->InsertFrame(nsnull, aInsertAfterFrame, aNewFrame);
   } else {
     frameItems->AddChild(aNewFrame);
-  }
-
-  
-  nsIFrame* specialSibling = aNewFrame;
-  while (specialSibling && IsFrameSpecial(specialSibling)) {
-    specialSibling = GetSpecialSibling(specialSibling);
-    if (specialSibling) {
-      NS_ASSERTION(frameItems == &aFrameItems,
-                   "IB split ending up in an out-of-flow childlist?");
-      frameItems->AddChild(specialSibling);
-    }
   }
   
   return NS_OK;
@@ -5367,8 +5358,11 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     
     BuildInlineChildItems(aState, *item);
     item->mHasInlineEnds = PR_TRUE;
+    item->mIsBlock = PR_FALSE;
   } else {
-    item->mIsAllInline = item->mHasInlineEnds =
+    
+    
+    PRBool isInline =
       
       
       
@@ -5377,6 +5371,17 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
         aParentFrame->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_INLINE)) ||
       
       display->IsInlineOutside() ||
+      
+      isPopup;
+
+    
+    
+    
+    
+    item->mIsAllInline = item->mHasInlineEnds = isInline ||
+      
+      
+      
       
       
       
@@ -5388,13 +5393,21 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
       
       
       (!(bits & FCDATA_DISALLOW_OUT_OF_FLOW) &&
-       aState.GetGeometricParent(display, nsnull)) ||
-      
-      isPopup;
+       aState.GetGeometricParent(display, nsnull));
+
+    
+    
+    
+    
+    
+    item->mIsBlock =
+      !isInline && !display->IsAbsolutelyPositioned() && !display->IsFloating();
   }
 
   if (item->mIsAllInline) {
     aItems.InlineItemAdded();
+  } else if (item->mIsBlock) {
+    aItems.BlockItemAdded();
   }
 
   
@@ -5671,6 +5684,19 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
   }
 
   *aAfterFrame = nsnull;
+
+  if (IsFrameSpecial(aParentFrame)) {
+    
+    
+    
+    
+    
+    nsIFrame* trailingInline = GetSpecialSibling(aParentFrame);
+    if (trailingInline) {
+      aParentFrame = trailingInline->GetLastContinuation();
+    }
+  }
+
   return aParentFrame;
 }
 
@@ -5709,7 +5735,6 @@ GetInsertNextSibling(nsIFrame* aParentFrame, nsIFrame* aPrevSibling)
 
 
 
-
 nsresult
 nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
                                     nsIFrame*                      aParentFrame,
@@ -5729,35 +5754,46 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
                !aParentFrame->GetNextContinuation() ||
                !aParentFrame->GetNextContinuation()->GetFirstChild(nsnull),
                "aParentFrame has later continuations with kids?");
+  NS_ASSERTION(nextSibling ||
+               !IsFrameSpecial(aParentFrame) ||
+               (IsInlineFrame(aParentFrame) &&
+                !GetSpecialSibling(aParentFrame) &&
+                !aParentFrame->GetNextContinuation()),
+               "aParentFrame is not last?");
 
   
   
   
-  if (!nextSibling &&
-      IsFrameSpecial(aParentFrame) &&
-      !IsInlineFrame(aParentFrame) &&
-      IsInlineOutside(aFrameList.LastChild())) {
+  if (!nextSibling && IsFrameSpecial(aParentFrame)) {
     
-    nsFrameList::FrameLinkEnumerator lastBlock = FindLastBlock(aFrameList);
-    nsFrameList inlineKids = aFrameList.ExtractTail(lastBlock);
+    nsFrameList::FrameLinkEnumerator firstBlockEnumerator(aFrameList);
+    FindFirstBlock(firstBlockEnumerator);
 
-    NS_ASSERTION(inlineKids.NotEmpty(), "How did that happen?");
+    nsFrameList inlineKids = aFrameList.ExtractHead(firstBlockEnumerator);
+    if (!inlineKids.IsEmpty()) {
+      aState.mFrameManager->AppendFrames(aParentFrame, nsnull, inlineKids);
+    }
 
-    nsIFrame* inlineSibling = GetSpecialSibling(aParentFrame);
-    NS_ASSERTION(inlineSibling, "How did that happen?");
+    if (!aFrameList.IsEmpty()) {
+      const nsStyleDisplay* parentDisplay = aParentFrame->GetStyleDisplay();
+      PRBool positioned =
+        parentDisplay->mPosition == NS_STYLE_POSITION_RELATIVE ||
+        parentDisplay->HasTransform();
+      nsFrameItems ibSiblings;
+      CreateIBSiblings(aState, aParentFrame, positioned, aFrameList,
+                       ibSiblings);
 
-    nsIFrame* stateParent = inlineSibling->GetParent();
+      
+      
+      
+      mPresShell->FrameNeedsReflow(aParentFrame,
+                                   nsIPresShell::eTreeChange,
+                                   NS_FRAME_HAS_DIRTY_CHILDREN);
 
-    nsFrameConstructorState targetState(mPresShell, mFixedContainingBlock,
-                                        GetAbsoluteContainingBlock(stateParent),
-                                        GetFloatContainingBlock(stateParent));
+      return aState.mFrameManager->InsertFrames(aParentFrame->GetParent(),
+                                                nsnull, aParentFrame, ibSiblings);
+    }
 
-    MoveFramesToEndOfIBSplit(aState, inlineSibling, inlineKids,
-                             aParentFrame, &targetState);
-  }
-    
-  if (aFrameList.IsEmpty()) {
-    
     return NS_OK;
   }
   
@@ -5878,7 +5914,7 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
     
     
     if (IsFrameSpecial(sibling)) {
-      sibling = GetLastSpecialSibling(sibling, PR_FALSE);
+      sibling = GetLastSpecialSibling(sibling, PR_TRUE);
     }
 
     
@@ -6026,7 +6062,7 @@ nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
         
         
         
-        aParentFrame = GetLastSpecialSibling(aParentFrame, PR_TRUE);
+        aParentFrame = GetLastSpecialSibling(aParentFrame, PR_FALSE);
       }
       
       
@@ -6287,7 +6323,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     
     
     
-    parentFrame = GetLastSpecialSibling(parentFrame, PR_TRUE);
+    parentFrame = GetLastSpecialSibling(parentFrame, PR_FALSE);
   }
 
   
@@ -8998,16 +9034,17 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
 
   
   
-  
-  
-  if (IsInlineOutside(inFlowFrame)) {
+  if (inFlowFrame != parent->GetFirstChild(nsnull) ||
+      inFlowFrame->GetLastContinuation()->GetNextSibling()) {
     return PR_FALSE;
   }
 
   
   
-  if (inFlowFrame != parent->GetFirstChild(nsnull) &&
-      inFlowFrame->GetLastContinuation()->GetNextSibling()) {
+  
+  nsIFrame* parentFirstContinuation = parent->GetFirstContinuation();
+  if (!GetSpecialSibling(parentFirstContinuation) ||
+      !GetSpecialPrevSibling(parentFirstContinuation)) {
     return PR_FALSE;
   }
 
@@ -10646,6 +10683,62 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
                                        nsFrameItems&            aFrameItems,
                                        nsIFrame**               aNewFrame)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
@@ -10708,130 +10801,121 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
 
   
   
-  
-  
-  
-  
-  
-  
 
   
   nsFrameList firstInlineKids = childItems.ExtractHead(firstBlockEnumerator);
   newFrame->SetInitialChildList(nsnull, firstInlineKids);
-                                             
+
+  aFrameItems.AddChild(newFrame);
+
+  CreateIBSiblings(aState, newFrame, positioned, childItems, aFrameItems);
+
+  *aNewFrame = newFrame;
+  return NS_OK;
+}
+
+void
+nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
+                                        nsIFrame* aInitialInline,
+                                        PRBool aIsPositioned,
+                                        nsFrameItems& aChildItems,
+                                        nsFrameItems& aSiblings)
+{
+  nsIContent* content = aInitialInline->GetContent();
+  nsStyleContext* styleContext = aInitialInline->GetStyleContext();
+  nsIFrame* parentFrame = aInitialInline->GetParent();
+
   
-  
-  
-  nsIAtom* blockStyle;
-  nsRefPtr<nsStyleContext> blockSC;
-  nsIFrame* blockFrame;
-  if (positioned) {
-    blockStyle = nsCSSAnonBoxes::mozAnonymousPositionedBlock;
+  nsRefPtr<nsStyleContext> blockSC =
+    mPresShell->StyleSet()->
+      ResolvePseudoStyleFor(content,
+                            aIsPositioned ?
+                              nsCSSAnonBoxes::mozAnonymousPositionedBlock :
+                              nsCSSAnonBoxes::mozAnonymousBlock,
+                            styleContext);
+
+  nsIFrame* lastNewInline = aInitialInline->GetFirstContinuation();
+  do {
     
-    blockSC = mPresShell->StyleSet()->
-      ResolvePseudoStyleFor(content, blockStyle, styleContext);
-  }
-  else {
-    blockStyle = nsCSSAnonBoxes::mozAnonymousBlock;
-
-    blockSC = mPresShell->StyleSet()->
-      ResolvePseudoStyleFor(content, blockStyle, styleContext);
-  }
-  blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
-
-  InitAndRestoreFrame(aState, content, aParentFrame, nsnull, blockFrame, PR_FALSE);
-
-  
-  nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_FALSE);
-
-  
-  
-  nsFrameList::FrameLinkEnumerator lastBlock = FindLastBlock(childItems);
-  nsFrameList blockKids = childItems.ExtractHead(lastBlock);
-
-  if (blockFrame->HasView() || newFrame->HasView()) {
     
-    nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext, blockKids,
-                                                newFrame, blockFrame);
-  }
+    NS_PRECONDITION(aChildItems.NotEmpty(), "Should have child items");
+    NS_PRECONDITION(!IsInlineOutside(aChildItems.FirstChild()),
+                    "Must have list starting with block");
 
-  
-  
-  nsIFrame* firstBlock = blockKids.FirstChild();
-  blockFrame->SetInitialChildList(nsnull, blockKids);
+    
+    
+    
+    nsIFrame* blockFrame;
+    blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
 
-  nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
-                                GetAbsoluteContainingBlock(blockFrame),
-                                GetFloatContainingBlock(blockFrame));
+    InitAndRestoreFrame(aState, content, parentFrame, nsnull, blockFrame,
+                        PR_FALSE);
 
-  
-  
-  
-  
-  
-  MoveChildrenTo(state.mFrameManager, blockFrame, firstBlock, nsnull,
-                 &state, &aState);
+    
+    nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_FALSE);
 
-  
-  nsIFrame* inlineFrame;
-  if (positioned) {
-    inlineFrame = NS_NewPositionedInlineFrame(mPresShell, styleContext);
-  }
-  else {
-    inlineFrame = NS_NewInlineFrame(mPresShell, styleContext);
-  }
+    
+    
+    nsFrameList::FrameLinkEnumerator firstNonBlock =
+      FindFirstNonBlock(aChildItems);
+    nsFrameList blockKids = aChildItems.ExtractHead(firstNonBlock);
 
-  InitAndRestoreFrame(aState, content, aParentFrame, nsnull, inlineFrame,
-                      PR_FALSE);
-
-  
-  nsHTMLContainerFrame::CreateViewForFrame(inlineFrame, PR_FALSE);
-
-  if (childItems.NotEmpty()) {
-    MoveFramesToEndOfIBSplit(aState, inlineFrame, childItems, blockFrame,
-                             nsnull);
-  }
-
-  
-  
-  
-  SetFrameIsSpecial(newFrame, blockFrame);
-  SetFrameIsSpecial(blockFrame, inlineFrame);
-  SetFrameIsSpecial(inlineFrame, nsnull);
-
-#ifdef DEBUG
-  if (gNoisyInlineConstruction) {
-    printf("nsCSSFrameConstructor::ConstructInline:\n");
-    if (*aNewFrame) {
-      printf("  ==> leading inline frame:\n");
-      (*aNewFrame)->List(stdout, 2);
+    if (blockFrame->HasView() || aInitialInline->HasView()) {
+      
+      nsHTMLContainerFrame::ReparentFrameViewList(aState.mPresContext,
+                                                  blockKids, aInitialInline,
+                                                  blockFrame);
     }
-    if (blockFrame) {
-      printf("  ==> block frame:\n");
-      blockFrame->List(stdout, 2);
-    }
-    if (inlineFrame) {
-      printf("  ==> trailing inline frame:\n");
-      inlineFrame->List(stdout, 2);
-    }
-  }
-#endif
 
-  if (NS_SUCCEEDED(rv)) {
-    aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame);
-    *aNewFrame = newFrame;
-  }
-  return rv;
+    
+    
+    nsIFrame* firstBlock = blockKids.FirstChild();
+    blockFrame->SetInitialChildList(nsnull, blockKids);
+
+    
+    MoveChildrenTo(aState.mFrameManager, blockFrame, firstBlock, nsnull,
+                   nsnull, nsnull);
+
+    SetFrameIsSpecial(lastNewInline, blockFrame);
+    aSiblings.AddChild(blockFrame);
+
+    
+    
+    nsIFrame* inlineFrame;
+    if (aIsPositioned) {
+      inlineFrame = NS_NewPositionedInlineFrame(mPresShell, styleContext);
+    }
+    else {
+      inlineFrame = NS_NewInlineFrame(mPresShell, styleContext);
+    }
+
+    InitAndRestoreFrame(aState, content, parentFrame, nsnull, inlineFrame,
+                        PR_FALSE);
+
+    
+    nsHTMLContainerFrame::CreateViewForFrame(inlineFrame, PR_FALSE);
+
+    if (aChildItems.NotEmpty()) {
+      nsFrameList::FrameLinkEnumerator firstBlock(aChildItems);
+      FindFirstBlock(firstBlock);
+      nsFrameList inlineKids = aChildItems.ExtractHead(firstBlock);
+      MoveFramesToEndOfIBSplit(aState, inlineFrame, inlineKids, nsnull);
+    }
+
+    SetFrameIsSpecial(blockFrame, inlineFrame);
+    aSiblings.AddChild(inlineFrame);
+    lastNewInline = inlineFrame;
+  } while (aChildItems.NotEmpty());
+
+  SetFrameIsSpecial(lastNewInline, nsnull);
 }
 
 void
 nsCSSFrameConstructor::MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
                                                 nsIFrame* aExistingEndFrame,
                                                 nsFrameList& aFramesToMove,
-                                                nsIFrame* aBlockPart,
                                                 nsFrameConstructorState* aTargetState)
 {
-  NS_PRECONDITION(aBlockPart, "Must have a block part");
   NS_PRECONDITION(aExistingEndFrame, "Must have trailing inline");
   NS_PRECONDITION(aFramesToMove.NotEmpty(), "Must have frames to move");
 
@@ -11100,66 +11184,46 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
 
   
   
-  
-  
-  
+  do {
+    if (IsInlineFrame(aFrame)) {
+      if (aItems.AreAllItemsInline()) {
+        
+        return PR_FALSE;
+      }
 
-  
-  
-  
-  
-  
+      if (!IsFrameSpecial(aFrame)) {
+        
+        break;
+      }
 
-  if (IsInlineFrame(aFrame)) {
+      
+      
+      
+      
+      
+      if (aIsAppend && !nextSibling && !aFrame->GetNextContinuation() &&
+          !GetSpecialSibling(aFrame)) {
+        return PR_FALSE;
+      }
+
+      
+      break;
+    }
+
     
-    if (aItems.AreAllItemsInline()) {
+    if (!IsFrameSpecial(aFrame)) {
       return PR_FALSE;
     }
-  } else if (!IsFrameSpecial(aFrame)) {
-    return PR_FALSE;
-  } else {
+
     
     
-    if (aPrevSibling || !aItems.IsStartInline()) {
-      
-      if (nextSibling) {
-        
-        return PR_FALSE;
-      }
-
-      if (aIsAppend) {
-        
-        
-        
-
-        
-        
-        
-        
-        
-        
-        
-        nsIFrame* floatContainer = aFrame;
-        do {
-          floatContainer =
-            GetFloatContainingBlock(GetSpecialPrevSibling(floatContainer));
-          if (!floatContainer) {
-            break;
-          }
-          if (!IsFrameSpecial(floatContainer)) {
-            return PR_FALSE;
-          }
-        } while (1);
-      }
-
-      
-      
-      
-      if (!aItems.IsEndInline()) {
-        return PR_FALSE;
-      }
+    if (aItems.AreAllItemsBlock()) {
+      return PR_FALSE;
     }
-  }
+
+    
+    break;
+  } while (0);
 
   
   if (!aContainingBlock) {
@@ -11812,6 +11876,9 @@ AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta)
   if (aItem->mIsAllInline) {
     mInlineCount += aDelta;
   }
+  if (aItem->mIsBlock) {
+    mBlockCount += aDelta;
+  }
   if (aItem->mIsLineParticipant) {
     mLineParticipantCount += aDelta;
   }
@@ -11888,6 +11955,7 @@ Iterator::AppendItemsToList(const Iterator& aEnd,
 
   
   aTargetList.mInlineCount = mList.mInlineCount;
+  aTargetList.mBlockCount = mList.mBlockCount;
   aTargetList.mLineParticipantCount = mList.mLineParticipantCount;
   aTargetList.mItemCount = mList.mItemCount;
   memcpy(aTargetList.mDesiredParentCounts, mList.mDesiredParentCounts,

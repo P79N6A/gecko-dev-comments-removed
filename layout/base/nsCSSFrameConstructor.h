@@ -720,6 +720,7 @@ private:
   public:
     FrameConstructionItemList() :
       mInlineCount(0),
+      mBlockCount(0),
       mLineParticipantCount(0),
       mItemCount(0),
       mLineBoundaryAtStart(PR_FALSE),
@@ -753,14 +754,7 @@ private:
     PRBool IsEmpty() const { return PR_CLIST_IS_EMPTY(&mItems); }
     PRBool AnyItemsNeedBlockParent() const { return mLineParticipantCount != 0; }
     PRBool AreAllItemsInline() const { return mInlineCount == mItemCount; }
-    PRBool IsStartInline() const {
-      NS_ASSERTION(!IsEmpty(), "Someone forgot to check IsEmpty()");
-      return ToItem(PR_LIST_HEAD(&mItems))->mHasInlineEnds;
-    }
-    PRBool IsEndInline() const {
-      NS_ASSERTION(!IsEmpty(), "Someone forgot to check IsEmpty()");
-      return ToItem(PR_LIST_TAIL(&mItems))->mHasInlineEnds;
-    }
+    PRBool AreAllItemsBlock() const { return mBlockCount == mItemCount; }
     PRBool AllWantParentType(ParentType aDesiredParentType) const {
       return mDesiredParentCounts[aDesiredParentType] == mItemCount;
     }
@@ -790,6 +784,7 @@ private:
     }
 
     void InlineItemAdded() { ++mInlineCount; }
+    void BlockItemAdded() { ++mBlockCount; }
     void LineParticipantItemAdded() { ++mLineParticipantCount; }
 
     class Iterator;
@@ -900,6 +895,7 @@ private:
 
     PRCList mItems;
     PRUint32 mInlineCount;
+    PRUint32 mBlockCount;
     PRUint32 mLineParticipantCount;
     PRUint32 mItemCount;
     PRUint32 mDesiredParentCounts[eParentTypeCount];
@@ -932,7 +928,7 @@ private:
       mNameSpaceID(aNameSpaceID), mContentIndex(aContentIndex),
       mStyleContext(aStyleContext),
       mIsText(PR_FALSE), mIsGeneratedContent(PR_FALSE),
-      mIsRootPopupgroup(PR_FALSE), mIsAllInline(PR_FALSE),
+      mIsRootPopupgroup(PR_FALSE), mIsAllInline(PR_FALSE), mIsBlock(PR_FALSE),
       mHasInlineEnds(PR_FALSE), mIsPopup(PR_FALSE),
       mIsLineParticipant(PR_FALSE)
     {}
@@ -953,7 +949,7 @@ private:
     PRBool IsWhitespace() const;
 
     PRBool IsLineBoundary() const {
-      return !mHasInlineEnds || (mFCData->mBits & FCDATA_IS_LINE_BREAK);
+      return mIsBlock || (mFCData->mBits & FCDATA_IS_LINE_BREAK);
     }
 
     
@@ -978,7 +974,15 @@ private:
     PRPackedBool mIsRootPopupgroup;
     
     
+    
+    
     PRPackedBool mIsAllInline;
+    
+    
+    
+    
+    
+    PRPackedBool mIsBlock;
     
     
     
@@ -1460,10 +1464,32 @@ private:
 
 
 
+
+
+
+
+
+
+  void CreateIBSiblings(nsFrameConstructorState& aState,
+                        nsIFrame* aInitialInline,
+                        PRBool aIsPositioned,
+                        nsFrameItems& aChildItems,
+                        nsFrameItems& aSiblings);
+
+  
+
+
+
+
+
+
+
+
+
+
   void MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
                                 nsIFrame* aExistingEndFrame,
                                 nsFrameList& aFramesToMove,
-                                nsIFrame* aBlockPart,
                                 nsFrameConstructorState* aTargetState);
 
   

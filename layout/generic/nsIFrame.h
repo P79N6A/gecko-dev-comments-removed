@@ -237,6 +237,8 @@ enum {
   
   
   
+  
+  
   NS_FRAME_IS_SPECIAL =                         0x00008000,
 
   
