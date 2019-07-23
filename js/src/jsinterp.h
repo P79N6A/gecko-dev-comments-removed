@@ -498,6 +498,15 @@ js_OnUnknownMethod(JSContext *cx, jsval *vp);
 
 
 
+
+
+
+extern JSBool
+js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, jsval *vp, jsval *vp2);
+
+
+
+
 extern void
 js_MeterOpcodePair(JSOp op1, JSOp op2);
 
