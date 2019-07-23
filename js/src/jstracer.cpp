@@ -79,6 +79,13 @@
 
 
 
+#define JSVAL_BOXED 3
+
+
+static const char typeChar[] = "OIDVS?B?";
+
+
+
 #define HOTLOOP 2
 
 
@@ -821,6 +828,7 @@ TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
         uint8 type = getCoercedType(*vp);
         if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx->fp->script, gslots[n]))
             type = JSVAL_DOUBLE;
+        JS_ASSERT(type != JSVAL_BOXED);
         *m++ = type;
     );
 }
@@ -840,6 +848,12 @@ TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
         }
         *m++ = type;
     );
+    
+
+    if (*cx->fp->regs->pc == JSOP_RESUME) {
+        JS_ASSERT(m > map);
+        m[-1] = JSVAL_BOXED;
+    }
 }
 
 
@@ -1136,6 +1150,7 @@ ValueToNative(JSContext* cx, jsval v, uint8 type, double* slot)
         debug_only_v(printf("string<%p> ", *(JSString**)slot);)
         return true;
       default:
+        
         JS_ASSERT(type == JSVAL_OBJECT);
         if (v == JSVAL_VOID) {
             *(JSObject**)slot = NULL;
@@ -1247,6 +1262,10 @@ NativeToValue(JSContext* cx, jsval& v, uint8 type, double* slot)
       case JSVAL_STRING:
         v = STRING_TO_JSVAL(*(JSString**)slot);
         debug_only_v(printf("string<%p> ", *(JSString**)slot);)
+        break;
+      case JSVAL_BOXED:
+        v = *(jsval*)slot;
+        debug_only_v(printf("box<%lx> ", v));
         break;
       default:
         JS_ASSERT(type == JSVAL_OBJECT);
@@ -1379,7 +1398,7 @@ TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         ins = lir->insLoadi(base, offset);
         ins = lir->ins1(LIR_i2f, ins);
     } else {
-        JS_ASSERT(isNumber(*p) == (t == JSVAL_DOUBLE));
+        JS_ASSERT(t == JSVAL_BOXED || isNumber(*p) == (t == JSVAL_DOUBLE));
         if (t == JSVAL_DOUBLE) {
             ins = lir->insLoad(LIR_ldq, base, offset);
         } else if (t == JSVAL_BOOLEAN) {
@@ -1758,8 +1777,8 @@ TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
     
 #ifdef DEBUG
     if (JSVAL_TAG(v) != t) {
-        debug_only_v(printf("Type mismatch: val %c, map %c ", "OID?S?B"[JSVAL_TAG(v)],
-                            "OID?S?B"[t]););
+        debug_only_v(printf("Type mismatch: val %c, map %c ", typeChar[JSVAL_TAG(v)],
+                            typeChar[t]););
     }
 #endif
     return JSVAL_TAG(v) == t;
