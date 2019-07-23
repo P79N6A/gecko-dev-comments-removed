@@ -252,7 +252,7 @@ JSScope::destroy(JSContext *cx, JSScope *scope)
     js_FinishTitle(cx, &scope->title);
 #endif
     if (scope->table)
-        cx->runtime->asynchronousFree(scope->table);
+        JS_free(cx, scope->table);
     if (scope->emptyScope)
         scope->emptyScope->drop(cx, NULL);
 
@@ -1032,12 +1032,14 @@ JSScope::reportReadOnlyScope(JSContext *cx)
     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_READ_ONLY, bytes);
 }
 
-static inline void
-js_MakeScopeShapeUnique(JSContext *cx, JSScope *scope)
+void
+JSScope::generateOwnShape(JSContext *cx)
 {
-    if (scope->object)
-        js_LeaveTraceIfGlobalObject(cx, scope->object);
-    scope->shape = js_GenerateShape(cx, false);
+    if (object)
+        js_LeaveTraceIfGlobalObject(cx, object);
+
+    shape = js_GenerateShape(cx, false);
+    setOwnShape();
 }
 
 JSScopeProperty *
@@ -1154,7 +1156,6 @@ JSScope::add(JSContext *cx, jsid id,
             }
             setMiddleDelete();
         }
-        js_MakeScopeShapeUnique(cx, this);
 
         
 
@@ -1537,7 +1538,7 @@ JSScope::remove(JSContext *cx, jsid id)
     } else if (!hadMiddleDelete()) {
         setMiddleDelete();
     }
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
     CHECK_ANCESTOR_LINE(this, true);
 
     
@@ -1567,25 +1568,25 @@ JSScope::clear(JSContext *cx)
 void
 JSScope::brandingShapeChange(JSContext *cx, uint32 slot, jsval v)
 {
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
 }
 
 void
 JSScope::deletingShapeChange(JSContext *cx, JSScopeProperty *sprop)
 {
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
 }
 
 void
 JSScope::methodShapeChange(JSContext *cx, uint32 slot, jsval toval)
 {
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
 }
 
 void
 JSScope::protoShapeChange(JSContext *cx)
 {
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
 }
 
 void
@@ -1594,19 +1595,19 @@ JSScope::replacingShapeChange(JSContext *cx, JSScopeProperty *sprop, JSScopeProp
     if (shape == sprop->shape)
         shape = newsprop->shape;
     else 
-        js_MakeScopeShapeUnique(cx, this);
+        generateOwnShape(cx);
 }
 
 void
 JSScope::sealingShapeChange(JSContext *cx)
 {
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
 }
 
 void 
 JSScope::shadowingShapeChange(JSContext *cx, JSScopeProperty *sprop)
 {
-    js_MakeScopeShapeUnique(cx, this);
+    generateOwnShape(cx);
 }
 
 void
@@ -1826,10 +1827,12 @@ js_SweepScopeProperties(JSContext *cx)
 
             if (sprop->flags & SPROP_MARK) {
                 sprop->flags &= ~SPROP_MARK;
-                if (sprop->flags & SPROP_FLAG_SHAPE_REGEN)
-                    sprop->flags &= ~SPROP_FLAG_SHAPE_REGEN;
-                else
-                    sprop->shape = js_RegenerateShapeForGC(cx);
+                if (rt->gcRegenShapes) {
+                    if (sprop->flags & SPROP_FLAG_SHAPE_REGEN)
+                        sprop->flags &= ~SPROP_FLAG_SHAPE_REGEN;
+                    else
+                        sprop->shape = js_RegenerateShapeForGC(cx);
+                }
                 liveCount++;
                 continue;
             }
@@ -1888,8 +1891,7 @@ js_SweepScopeProperties(JSContext *cx)
 
 
                             chunk->kids[i] = NULL;
-                            if (!InsertPropertyTreeChild(rt, parent, kid,
-                                                         chunk)) {
+                            if (!InsertPropertyTreeChild(rt, parent, kid, chunk)) {
                                 
 
 
