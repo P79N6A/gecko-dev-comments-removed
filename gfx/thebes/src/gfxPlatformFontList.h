@@ -40,6 +40,7 @@
 
 #include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
+#include "nsHashSets.h"
 
 #include "gfxFontUtils.h"
 #include "gfxFont.h"
@@ -205,7 +206,7 @@ protected:
     
     nsString mReplacementCharFallbackFamily;
 
-    nsTHashtable<nsStringHashKey> mBadUnderlineFamilyNames;
+    nsStringHashSet mBadUnderlineFamilyNames;
 
     
     nsTArray<nsRefPtr<gfxFontFamily> > mFontFamiliesToLoad;
