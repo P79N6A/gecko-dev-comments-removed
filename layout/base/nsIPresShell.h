@@ -620,7 +620,7 @@ public:
 
 
 
-  virtual NS_HIDDEN_(PRInt16) GetSelectionFlags() = 0;
+  PRInt16 GetSelectionFlags() const { return mSelectionFlags; }
 
   virtual nsISelection* GetCurrentSelection(SelectionType aType) = 0;
 
@@ -669,14 +669,14 @@ public:
 
 
 
-  virtual NS_HIDDEN_(PRBool) IsReflowLocked() const = 0;
+  PRBool IsReflowLocked() const { return mIsReflowing; }
 
   
 
 
 
 
-  virtual NS_HIDDEN_(PRBool) IsPaintingSuppressed() const = 0;
+  PRBool IsPaintingSuppressed() const { return mPaintingSuppressed; }
 
   
 
@@ -1011,9 +1011,13 @@ protected:
   nsIFrame*                 mDrawEventTargetFrame;
 #endif
 
+  PRInt16                   mSelectionFlags;
+
   PRPackedBool              mStylesHaveChanged;
   PRPackedBool              mDidInitialReflow;
   PRPackedBool              mIsDestroying;
+  PRPackedBool              mIsReflowing;
+  PRPackedBool              mPaintingSuppressed;  
 
 #ifdef ACCESSIBILITY
   
