@@ -107,6 +107,24 @@ function test()
   if (win)
     win.close();
 
+  var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+           getService(Ci.nsIWindowWatcher);
+
+  
+  
+  var obs = {
+    observe: function(aSubject, aTopic, aData) {
+      
+      ww.unregisterNotification(this);
+
+      var win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
+      win.addEventListener("DOMContentLoaded", finishUp, false);
+    }
+  };
+
+  
+  ww.registerNotification(obs);
+
   
   Cc["@mozilla.org/download-manager-ui;1"].
   getService(Ci.nsIDownloadManagerUI).show();
@@ -123,5 +141,4 @@ function test()
   }
   
   waitForExplicitFinish();
-  window.setTimeout(finishUp, 1000);
 }

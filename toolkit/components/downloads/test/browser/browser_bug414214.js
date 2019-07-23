@@ -56,10 +56,23 @@ function test()
   Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
   setBoolPref(PREF_BDM_CLOSEWHENDONE, true);
 
+  var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+           getService(Ci.nsIWindowWatcher);
+
   
   
-  var key = navigator.platform.match("Linux") ? "y" : "j";
-  EventUtils.synthesizeKey(key, {metaKey: true}, window.opener);
+  var obs = {
+    observe: function(aSubject, aTopic, aData) {
+      
+      ww.unregisterNotification(this);
+
+      var win = aSubject.QueryInterface(Ci.nsIDOMEventTarget);
+      win.addEventListener("DOMContentLoaded", finishUp, false);
+    }
+  };
+
+  
+  ww.registerNotification(obs);
 
   
   function finishUp() {
@@ -74,6 +87,10 @@ function test()
     finish();
   }
   
+  
+  
+  var key = navigator.platform.match("Linux") ? "y" : "j";
+  EventUtils.synthesizeKey(key, {metaKey: true}, window.opener);
+
   waitForExplicitFinish();
-  window.setTimeout(finishUp, 1000);
 }
