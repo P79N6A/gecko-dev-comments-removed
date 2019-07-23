@@ -496,24 +496,32 @@ nsThread::ProcessNextEvent(PRBool mayWait, PRBool *result)
   if (obs)
     obs->OnProcessNextEvent(this, mayWait && !ShuttingDown(), mRunningEvent);
 
-  
-  nsCOMPtr<nsIRunnable> event; 
-  mEvents->GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
-
-  *result = (event.get() != nsnull);
+  ++mRunningEvent;
 
   nsresult rv = NS_OK;
 
-  if (event) {
-    LOG(("THRD(%p) running [%p]\n", this, event.get()));
-    ++mRunningEvent;
-    event->Run();
-    --mRunningEvent;
-  } else if (mayWait) {
-    NS_ASSERTION(ShuttingDown(), "This should only happen when shutting down");
-    rv = NS_ERROR_UNEXPECTED;
+  {
+    
+    
+    
+
+    
+    nsCOMPtr<nsIRunnable> event;
+    mEvents->GetEvent(mayWait && !ShuttingDown(), getter_AddRefs(event));
+
+    *result = (event.get() != nsnull);
+
+    if (event) {
+      LOG(("THRD(%p) running [%p]\n", this, event.get()));
+      event->Run();
+    } else if (mayWait) {
+      NS_ASSERTION(ShuttingDown(),
+                   "This should only happen when shutting down");
+      rv = NS_ERROR_UNEXPECTED;
+    }
   }
 
+  --mRunningEvent;
   if (obs)
     obs->AfterProcessNextEvent(this, mRunningEvent);
 
