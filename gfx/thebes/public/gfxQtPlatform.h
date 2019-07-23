@@ -40,14 +40,17 @@
 #define GFX_PLATFORM_QT_H
 
 #include "gfxPlatform.h"
+#include "nsAutoRef.h"
 #include "nsDataHashtable.h"
 #include "nsTArray.h"
 
+class gfxFontconfigUtils;
+#ifndef MOZ_PANGO
 typedef struct FT_LibraryRec_ *FT_Library;
 
-class gfxFontconfigUtils;
 class FontFamily;
 class FontEntry;
+#endif
 
 class THEBES_API gfxQtPlatform : public gfxPlatform {
 public:
@@ -89,15 +92,43 @@ public:
                                   const gfxFontStyle *aStyle,
                                   gfxUserFontSet* aUserFontSet);
 
+#ifdef MOZ_PANGO
+    
+
+
+
+    virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
+                                          const nsAString& aFontName);
+
+    
+
+
+
+    virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
+                                           const PRUint8 *aFontData,
+                                           PRUint32 aLength);
+
+    
+
+
+
+    virtual PRBool IsFontFormatSupported(nsIURI *aFontURI,
+                                         PRUint32 aFormatFlags);
+#endif
+
+#ifndef MOZ_PANGO
     FontFamily *FindFontFamily(const nsAString& aName);
     FontEntry *FindFontEntry(const nsAString& aFamilyName, const gfxFontStyle& aFontStyle);
     already_AddRefed<gfxFont> FindFontForChar(PRUint32 aCh, gfxFont *aFont);
     PRBool GetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> > *aFontEntryList);
     void SetPrefFontEntries(const nsCString& aLangGroup, nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList);
+#endif
 
     void ClearPrefFonts() { mPrefFonts.Clear(); }
 
+#ifndef MOZ_PANGO
     FT_Library GetFTLibrary();
+#endif
 
     RenderMode GetRenderMode() { return mRenderMode; }
     void SetRenderMode(RenderMode rmode) { mRenderMode = rmode; }
