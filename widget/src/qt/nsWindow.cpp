@@ -552,10 +552,6 @@ nsWindow::SetSizeMode(PRInt32 aMode)
         widget->showMinimized();
         break;
     case nsSizeMode_Fullscreen:
-        
-        
-        
-        XSync(QX11Info().display(), False);
         widget->showFullScreen();
         break;
 
@@ -575,16 +571,23 @@ nsWindow::SetSizeMode(PRInt32 aMode)
 
 static void find_first_visible_parent(QGraphicsItem* aItem, QGraphicsItem*& aVisibleItem)
 {
-    if (!aItem)
-        return;
+    NS_ENSURE_TRUE(aItem, );
 
-    if (!aVisibleItem && aItem->isVisible())
-        aVisibleItem = aItem;
-    else if (aVisibleItem && !aItem->isVisible())
-        aVisibleItem = nsnull;
-
-    
-    find_first_visible_parent(aItem->parentItem(), aVisibleItem);
+    aVisibleItem = nsnull;
+    QGraphicsItem* parItem = nsnull;
+    while (!aVisibleItem) {
+        if (aItem->isVisible())
+            aVisibleItem = aItem;
+        else {
+            parItem = aItem->parentItem();
+            if (parItem)
+                aItem = parItem;
+            else {
+                aItem->setVisible(true);
+                aVisibleItem = aItem;
+            }
+        }
+    }
 }
 
 NS_IMETHODIMP
@@ -596,6 +599,9 @@ nsWindow::SetFocus(PRBool aRaise)
 
     if (!mWidget)
         return NS_ERROR_FAILURE;
+
+    if (mWidget->hasFocus())
+        return NS_OK;
 
     
     
@@ -669,6 +675,8 @@ nsWindow::Invalidate(const nsIntRect &aRect,
 
     if (!mWidget)
         return NS_OK;
+
+    mDirtyScrollArea = mDirtyScrollArea.united(QRect(aRect.x, aRect.y, aRect.width, aRect.height));
 
     mWidget->update(aRect.x, aRect.y, aRect.width, aRect.height);
 
@@ -1941,10 +1949,6 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
             mLastSizeMode = mSizeMode;
 
         mSizeMode = nsSizeMode_Fullscreen;
-        
-        
-        
-        XSync(QX11Info().display(), False);
         widget->showFullScreen();
     }
     else {
@@ -1965,10 +1969,10 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
             break;
         }
     }
-    
+
     NS_ASSERTION(mLastSizeMode != nsSizeMode_Fullscreen,
                  "mLastSizeMode should never be fullscreen");
-    return NS_OK;
+    return nsBaseWidget::MakeFullScreen(aFullScreen);
 }
 
 NS_IMETHODIMP

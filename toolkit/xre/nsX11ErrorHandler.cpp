@@ -181,6 +181,16 @@ X11Error(Display *display, XErrorEvent *event) {
 #endif
 #endif
 
+#ifdef MOZ_WIDGET_QT
+  
+  
+  
+  if (!PR_GetEnv("MOZ_X_SYNC")) {
+    fprintf(stderr, "XError: %s\n", notes.get());
+    return 0; 
+  }
+#endif
+
   NS_RUNTIMEABORT(notes.get());
   return 0; 
 }

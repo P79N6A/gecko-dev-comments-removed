@@ -18,12 +18,12 @@ MozQWidget::MozQWidget(nsWindow* aReceiver, QGraphicsItem* aParent)
     : QGraphicsWidget(aParent),
       mReceiver(aReceiver)
 {
- #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
      setFlag(QGraphicsItem::ItemAcceptsInputMethod);
 
      setAcceptTouchEvents(true);
      grabGesture(Qt::PinchGesture);
- #endif
+#endif
 }
 
 MozQWidget::~MozQWidget()
@@ -39,11 +39,15 @@ void MozQWidget::paint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOpti
 
 void MozQWidget::activate()
 {
+    
+    hideVKB();
     mReceiver->DispatchActivateEvent();
 }
 
 void MozQWidget::deactivate()
 {
+    
+    hideVKB();
     mReceiver->DispatchDeactivateEvent();
 }
 
@@ -286,7 +290,7 @@ void MozQWidget::showVKB()
 
 void MozQWidget::hideVKB()
 {
- #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
+#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
     QInputContext *inputContext = qApp->inputContext();
     if (!inputContext) {
         NS_WARNING("Closing SIP: but no input context");
@@ -301,26 +305,10 @@ void MozQWidget::hideVKB()
 #endif
 }
 
-
-
-
-
-
-
-
 bool MozQWidget::isVKBOpen()
 {
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-    QVariantList areas;
-    QInputContext* input_context = qApp->inputContext();
-
-    if (input_context)
-        areas = input_context->property("InputMethodArea").toList();
-
     
-    return areas.empty();
-#else
+    
     return PR_FALSE;
-#endif
 }
 
