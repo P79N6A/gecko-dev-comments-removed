@@ -69,6 +69,7 @@ class nsAttrValue;
 class gfxContext;
 class gfxASurface;
 class nsIRenderingContext;
+class gfxImageSurface;
 struct gfxRect;
 struct gfxMatrix;
 struct gfxSize;
@@ -382,6 +383,11 @@ public:
 
   static PRBool
   CanOptimizeOpacity(nsIFrame *aFrame);
+
+#ifdef DEBUG
+  static void
+  WritePPM(const char *fname, gfxImageSurface *aSurface);
+#endif
 
 private:
   
