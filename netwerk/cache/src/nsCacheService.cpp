@@ -91,6 +91,25 @@
 #define MEMORY_CACHE_CAPACITY_PREF  "browser.cache.memory.capacity"
 #define MEMORY_CACHE_MAX_ENTRY_SIZE_PREF "browser.cache.memory.max_entry_size"
 
+static const char * observerList[] = { 
+    "profile-before-change",
+    "profile-after-change",
+    NS_XPCOM_SHUTDOWN_OBSERVER_ID
+};
+static const char * prefList[] = { 
+#ifdef NECKO_DISK_CACHE
+    DISK_CACHE_ENABLE_PREF,
+    DISK_CACHE_CAPACITY_PREF,
+    DISK_CACHE_DIR_PREF,
+#endif
+#ifdef NECKO_OFFLINE_CACHE
+    OFFLINE_CACHE_ENABLE_PREF,
+    OFFLINE_CACHE_CAPACITY_PREF,
+    OFFLINE_CACHE_DIR_PREF,
+#endif
+    MEMORY_CACHE_ENABLE_PREF,
+    MEMORY_CACHE_CAPACITY_PREF
+};
 
 class nsCacheProfilePrefObserver : public nsIObserver
 {
@@ -151,40 +170,24 @@ nsCacheProfilePrefObserver::Install()
     
     
     nsCOMPtr<nsIObserverService> observerService = do_GetService("@mozilla.org/observer-service;1", &rv);
-    if (NS_FAILED(rv)) return rv;
+    NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_ARG(observerService);
     
-    rv = observerService->AddObserver(this, "profile-before-change", PR_FALSE);
-    if (NS_FAILED(rv)) rv2 = rv;
-    
-    rv = observerService->AddObserver(this, "profile-after-change", PR_FALSE);
-    if (NS_FAILED(rv)) rv2 = rv;
-
-
-    
-    rv = observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
-    if (NS_FAILED(rv)) rv2 = rv;
+    for (int i=0; i<NS_ARRAY_LENGTH(observerList); i++) {
+        rv = observerService->AddObserver(this, observerList[i], PR_FALSE);
+        if (NS_FAILED(rv)) 
+            rv2 = rv;
+    }
     
     
     
     nsCOMPtr<nsIPrefBranch2> branch = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (!branch) return NS_ERROR_FAILURE;
 
-    char * prefList[] = { 
-        DISK_CACHE_ENABLE_PREF,
-        DISK_CACHE_CAPACITY_PREF,
-        DISK_CACHE_DIR_PREF,
-        OFFLINE_CACHE_ENABLE_PREF,
-        OFFLINE_CACHE_CAPACITY_PREF,
-        OFFLINE_CACHE_DIR_PREF,
-        MEMORY_CACHE_ENABLE_PREF,
-        MEMORY_CACHE_CAPACITY_PREF
-    };
-    int listCount = NS_ARRAY_LENGTH(prefList);
-      
-    for (int i=0; i<listCount; i++) {
+    for (int i=0; i<NS_ARRAY_LENGTH(prefList); i++) {
         rv = branch->AddObserver(prefList[i], this, PR_FALSE);
-        if (NS_FAILED(rv))  rv2 = rv;
+        if (NS_FAILED(rv))
+            rv2 = rv;
     }
 
     
@@ -202,8 +205,9 @@ nsCacheProfilePrefObserver::Install()
     }
 
     rv = ReadPrefs(branch);
-    
-    return NS_SUCCEEDED(rv) ? rv2 : rv;
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return rv2;
 }
 
 
@@ -214,28 +218,19 @@ nsCacheProfilePrefObserver::Remove()
     nsCOMPtr<nsIObserverService> obs =
             do_GetService("@mozilla.org/observer-service;1");
     if (obs) {
-        obs->RemoveObserver(this, "profile-before-change");
-        obs->RemoveObserver(this, "profile-after-change");
-        obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
+        for (int i=0; i<NS_ARRAY_LENGTH(observerList); i++) {
+            obs->RemoveObserver(this, observerList[i]);
+        }
     }
 
     
     nsCOMPtr<nsIPrefBranch2> prefs =
            do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (prefs) {
-        
-        prefs->RemoveObserver(DISK_CACHE_ENABLE_PREF, this);
-        prefs->RemoveObserver(DISK_CACHE_CAPACITY_PREF, this);
-        prefs->RemoveObserver(DISK_CACHE_DIR_PREF, this);
-
-        
-        prefs->RemoveObserver(OFFLINE_CACHE_ENABLE_PREF, this);
-        prefs->RemoveObserver(OFFLINE_CACHE_CAPACITY_PREF, this);
-        prefs->RemoveObserver(OFFLINE_CACHE_DIR_PREF, this);
-
-        
-        prefs->RemoveObserver(MEMORY_CACHE_ENABLE_PREF, this);
-        prefs->RemoveObserver(MEMORY_CACHE_CAPACITY_PREF, this);
+        for (int i=0; i<NS_ARRAY_LENGTH(prefList); i++) {
+            
+            prefs->RemoveObserver(prefList[i], this);
+        }
     }
 }
 
@@ -301,7 +296,9 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
             
 #endif            
         } else 
+#endif
 
+#ifdef NECKO_OFFLINE_CACHE
         
         if (!strcmp(OFFLINE_CACHE_ENABLE_PREF, data.get())) {
 
@@ -318,7 +315,7 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
             mOfflineCacheCapacity = PR_MAX(0, capacity);
             nsCacheService::SetOfflineCacheCapacity(mOfflineCacheCapacity);
 #if 0
-        } else if (!strcmp(DISK_OFFLINE_DIR_PREF, data.get())) {
+        } else if (!strcmp(OFFLINE_CACHE_DIR_PREF, data.get())) {
             
             
             
@@ -404,7 +401,9 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
         if (directory)
             mDiskCacheParentDirectory = do_QueryInterface(directory, &rv);
     }
+#endif 
 
+#ifdef NECKO_OFFLINE_CACHE
     
     mOfflineCacheEnabled = PR_TRUE;  
     (void) branch->GetBoolPref(OFFLINE_CACHE_ENABLE_PREF,
