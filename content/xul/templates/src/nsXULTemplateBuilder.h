@@ -212,8 +212,7 @@ public:
 
 
 
-    nsresult
-    DetermineMemberVariable(nsIContent* aActionElement, nsIAtom** aMemberVariable);
+    already_AddRefed<nsIAtom> DetermineMemberVariable(nsIContent* aElement);
 
     
 
