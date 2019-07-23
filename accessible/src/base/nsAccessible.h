@@ -91,6 +91,14 @@ private:
 };
 
 
+#define NS_ACCESSIBLE_IMPL_CID                          \
+{  /* 4E36C7A8-9203-4ef9-B619-271DDF6BB839 */           \
+  0x4e36c7a8,                                           \
+  0x9203,                                               \
+  0x4ef9,                                               \
+  { 0xb6, 0x19, 0x27, 0x1d, 0xdf, 0x6b, 0xb8, 0x39 }    \
+}
+
 class nsAccessible : public nsAccessNodeWrap, 
                      public nsIAccessible, 
                      public nsPIAccessible,
@@ -110,11 +118,28 @@ public:
   NS_DECL_NSIACCESSIBLEHYPERLINK
   NS_DECL_NSIACCESSIBLESELECTABLE
   NS_DECL_NSIACCESSIBLEVALUE
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ACCESSIBLE_IMPL_CID)
 
   
   NS_IMETHOD Shutdown();
 
   
+  
+
+  
+
+
+  nsresult GetARIAName(nsAString& aName);
+
+  
+
+
+
+  virtual nsresult GetNameInternal(nsAString& aName);
+
+  
+
+
 
 
 
@@ -127,6 +152,11 @@ public:
 
 
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
+
+  
+  
+  
+  
 
 #ifdef DEBUG_A11Y
   static PRBool IsTextInterfaceSupportCorrect(nsIAccessible *aAccessible);
@@ -286,6 +316,8 @@ protected:
   PRInt32 mAccChildCount;
 };
 
+NS_DEFINE_STATIC_IID_ACCESSOR(nsAccessible,
+                              NS_ACCESSIBLE_IMPL_CID)
 
 #endif  
 

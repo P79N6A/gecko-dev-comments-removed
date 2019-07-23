@@ -50,9 +50,12 @@ class nsXFormsLabelAccessible : public nsXFormsAccessible
 public:
   nsXFormsLabelAccessible(nsIDOMNode *aNode, nsIWeakReference *aShell);
 
+  
   NS_IMETHOD GetRole(PRUint32 *aRole);
-  NS_IMETHOD GetName(nsAString& aName);
   NS_IMETHOD GetDescription(nsAString& aDescription);
+
+  
+  virtual nsresult GetNameInternal(nsAString& aName);
 };
 
 

@@ -795,6 +795,7 @@ NS_IMETHODIMP nsXULTreeitemAccessible::Shutdown()
 NS_IMETHODIMP
 nsXULTreeitemAccessible::GetName(nsAString& aName)
 {
+  
   aName.Truncate();
 
   if (IsDefunct())

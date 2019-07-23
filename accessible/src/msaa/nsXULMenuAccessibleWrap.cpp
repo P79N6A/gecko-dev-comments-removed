@@ -49,7 +49,8 @@ nsXULMenuitemAccessible(aDOMNode, aShell)
 {
 }
 
-NS_IMETHODIMP nsXULMenuitemAccessibleWrap::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsXULMenuitemAccessibleWrap::GetName(nsAString& aName)
 {
   
   

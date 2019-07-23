@@ -80,10 +80,10 @@ public:
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
 
   
-  NS_IMETHOD GetName(nsAString& aName);
+  NS_IMETHOD GetDescription(nsAString& aDescription);
 
   
-  NS_IMETHOD GetDescription(nsAString& aDescription);
+  virtual nsresult GetNameInternal(nsAString& aName);
 
   
   

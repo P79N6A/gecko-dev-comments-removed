@@ -176,7 +176,8 @@ NS_INTERFACE_MAP_END_INHERITING(nsHyperTextAccessible)
 NS_IMPL_ADDREF_INHERITED(nsDocAccessible, nsHyperTextAccessible)
 NS_IMPL_RELEASE_INHERITED(nsDocAccessible, nsHyperTextAccessible)
 
-NS_IMETHODIMP nsDocAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsDocAccessible::GetName(nsAString& aName)
 {
   nsresult rv = NS_OK;
   aName.Truncate();
@@ -184,7 +185,8 @@ NS_IMETHODIMP nsDocAccessible::GetName(nsAString& aName)
     rv = mParent->GetName(aName); 
   }
   if (aName.IsEmpty()) {
-    rv = nsAccessible::GetName(aName); 
+    
+    rv = nsAccessible::GetName(aName);
   }
   if (aName.IsEmpty()) {
     rv = GetTitle(aName);   

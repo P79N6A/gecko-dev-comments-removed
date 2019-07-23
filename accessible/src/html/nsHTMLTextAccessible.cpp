@@ -53,8 +53,10 @@ nsTextAccessibleWrap(aDomNode, aShell)
 { 
 }
 
-NS_IMETHODIMP nsHTMLTextAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsHTMLTextAccessible::GetName(nsAString& aName)
 {
+  
   aName.Truncate();
   return AppendTextTo(aName, 0, PR_UINT32_MAX);
 }
@@ -143,7 +145,8 @@ nsHTMLBRAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsHTMLBRAccessible::GetName(nsAString& aName)
+nsresult
+nsHTMLBRAccessible::GetNameInternal(nsAString& aName)
 {
   aName = static_cast<PRUnichar>('\n');    
   return NS_OK;
@@ -158,7 +161,8 @@ nsTextAccessible(aDomNode, aShell)
 { 
 }
 
-NS_IMETHODIMP nsHTMLLabelAccessible::GetName(nsAString& aReturn)
+nsresult
+nsHTMLLabelAccessible::GetNameInternal(nsAString& aReturn)
 { 
   nsresult rv = NS_ERROR_FAILURE;
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
@@ -312,6 +316,7 @@ nsHTMLListBulletAccessible::Shutdown()
 NS_IMETHODIMP
 nsHTMLListBulletAccessible::GetName(nsAString &aName)
 {
+  
   aName = mBulletText;
   return NS_OK;
 }

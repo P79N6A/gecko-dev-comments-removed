@@ -84,7 +84,11 @@ public:
   nsHTMLSelectableAccessible(nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
   virtual ~nsHTMLSelectableAccessible() {}
 
-  NS_IMETHOD GetName(nsAString &aName) { return GetHTMLName(aName, PR_FALSE); }
+  
+  virtual nsresult GetNameInternal(nsAString &aName)
+  {
+    return GetHTMLName(aName, PR_FALSE);
+  }
 
 protected:
 
@@ -162,7 +166,9 @@ public:
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
   NS_IMETHOD GetRole(PRUint32 *aRole);
-  NS_IMETHOD GetName(nsAString& aName);
+
+  
+  virtual nsresult GetNameInternal(nsAString& aName);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   nsIFrame*  GetBoundsFrame();
@@ -273,13 +279,17 @@ public:
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD GetParent(nsIAccessible **_retval);
-  NS_IMETHOD GetName(nsAString& _retval);
   NS_IMETHOD GetRole(PRUint32 *_retval);
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
+  NS_IMETHOD GetName(nsAString& aName);
+
+  
   NS_IMETHOD GetUniqueID(void **aUniqueID);
 
+protected:
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
 };
+
 #endif
 
 

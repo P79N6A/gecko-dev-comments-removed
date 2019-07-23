@@ -510,45 +510,33 @@ NS_IMETHODIMP nsHTMLSelectOptionAccessible::GetRole(PRUint32 *aRole)
   return NS_OK;
 }
 
-
-
-
-NS_IMETHODIMP
-nsHTMLSelectOptionAccessible::GetName(nsAString& aName)
+nsresult
+nsHTMLSelectOptionAccessible::GetNameInternal(nsAString& aName)
 {
-  aName.Truncate();
-
   
   
-  nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(mDOMNode));
-  if (!domElement)
-    return NS_ERROR_FAILURE;
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::label, aName);
+  if (!aName.IsEmpty())
+    return NS_OK;
+  
+  
+  
+  nsCOMPtr<nsIContent> text = content->GetChildAt(0);
+  if (!text)
+    return NS_OK;
 
-  nsresult rv = domElement->GetAttribute(NS_LITERAL_STRING("label"), aName) ;
-  if (NS_SUCCEEDED(rv) && !aName.IsEmpty()) {
+  if (text->IsNodeOfType(nsINode::eTEXT)) {
+    nsAutoString txtValue;
+    nsresult rv = AppendFlatStringFromContentNode(text, &txtValue);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    txtValue.CompressWhitespace();
+    aName.Assign(txtValue);
     return NS_OK;
   }
-  
-  
-  
-  nsCOMPtr<nsIDOMNode> child;
-  mDOMNode->GetFirstChild(getter_AddRefs(child));
 
-  if (child) {
-    nsCOMPtr<nsIContent> text = do_QueryInterface(child);
-    if (text && text->IsNodeOfType(nsINode::eTEXT)) {
-      nsAutoString txtValue;
-      rv = AppendFlatStringFromContentNode(text, &txtValue);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      txtValue.CompressWhitespace();
-      aName.Assign(txtValue);
-      return NS_OK;
-    }
-  }
-  
-  aName.Truncate();
   return NS_OK;
 }
 
@@ -1383,14 +1371,11 @@ NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetParent(nsIAccessible **aParent)
   return NS_OK;
 }
 
-
-
-
 NS_IMETHODIMP
 nsHTMLComboboxButtonAccessible::GetName(nsAString& aName)
 {
+  
   aName.Truncate();
-
   return GetActionName(eAction_Click, aName);
 }
 

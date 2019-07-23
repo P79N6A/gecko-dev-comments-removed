@@ -126,16 +126,15 @@ nsHTMLImageAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
-
-
-NS_IMETHODIMP nsHTMLImageAccessible::GetName(nsAString& aName)
+NS_IMETHODIMP
+nsHTMLImageAccessible::GetName(nsAString& aName)
 {
   aName.Truncate();
+
   if (IsDefunct())
     return NS_ERROR_FAILURE;
   
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  NS_ASSERTION(content, "Image node always supports nsIContent");
     
   
   
@@ -147,8 +146,16 @@ NS_IMETHODIMP nsHTMLImageAccessible::GetName(nsAString& aName)
         content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_labelledby)) {
       
       
-      GetHTMLName(aName, PR_FALSE);
+      nsresult rv = GetARIAName(aName);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (!aName.IsEmpty())
+        return NS_OK;
+
+      rv = GetHTMLName(aName, PR_FALSE);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
+
     if (aName.IsEmpty()) { 
       content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title, aName);
       if (!hasAltAttrib && aName.IsEmpty()) { 
