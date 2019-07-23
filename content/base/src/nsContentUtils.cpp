@@ -463,19 +463,21 @@ nsContentUtils::InitializeEventTable() {
 #ifdef MOZ_MEDIA 
     { &nsGkAtoms::onloadstart,                   { NS_LOADSTART, EventNameType_HTML }},
     { &nsGkAtoms::onprogress,                    { NS_PROGRESS, EventNameType_HTML }},
-    { &nsGkAtoms::onloadedmetadata,              { NS_LOADEDMETADATA, EventNameType_HTML }},
-    { &nsGkAtoms::onloadeddata,                  { NS_LOADEDDATA, EventNameType_HTML }},
+    { &nsGkAtoms::onsuspend,                     { NS_SUSPEND, EventNameType_HTML }},
     { &nsGkAtoms::onemptied,                     { NS_EMPTIED, EventNameType_HTML }},
     { &nsGkAtoms::onstalled,                     { NS_STALLED, EventNameType_HTML }},
     { &nsGkAtoms::onplay,                        { NS_PLAY, EventNameType_HTML }},
     { &nsGkAtoms::onpause,                       { NS_PAUSE, EventNameType_HTML }},
+    { &nsGkAtoms::onloadedmetadata,              { NS_LOADEDMETADATA, EventNameType_HTML }},
+    { &nsGkAtoms::onloadeddata,                  { NS_LOADEDDATA, EventNameType_HTML }},
     { &nsGkAtoms::onwaiting,                     { NS_WAITING, EventNameType_HTML }},
+    { &nsGkAtoms::onplaying,                     { NS_PLAYING, EventNameType_HTML }},
+    { &nsGkAtoms::oncanplay,                     { NS_CANPLAY, EventNameType_HTML }},
+    { &nsGkAtoms::oncanplaythrough,              { NS_CANPLAYTHROUGH, EventNameType_HTML }},
     { &nsGkAtoms::onseeking,                     { NS_SEEKING, EventNameType_HTML }},
     { &nsGkAtoms::onseeked,                      { NS_SEEKED, EventNameType_HTML }},
     { &nsGkAtoms::ontimeupdate,                  { NS_TIMEUPDATE, EventNameType_HTML }},
     { &nsGkAtoms::onended,                       { NS_ENDED, EventNameType_HTML }},
-    { &nsGkAtoms::oncanplay,                     { NS_CANPLAY, EventNameType_HTML }},
-    { &nsGkAtoms::oncanplaythrough,              { NS_CANPLAYTHROUGH, EventNameType_HTML }},
     { &nsGkAtoms::onratechange,                  { NS_RATECHANGE, EventNameType_HTML }},
     { &nsGkAtoms::ondurationchange,              { NS_DURATIONCHANGE, EventNameType_HTML }},
     { &nsGkAtoms::onvolumechange,                { NS_VOLUMECHANGE, EventNameType_HTML }},
@@ -3163,8 +3165,10 @@ nsContentUtils::DispatchChromeEvent(nsIDocument *aDoc,
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ASSERTION(aDoc, "GetEventAndTarget lied?");
-  NS_ENSURE_ARG_POINTER(aDoc->GetWindow());
-  NS_ENSURE_ARG_POINTER(aDoc->GetWindow()->GetChromeEventHandler());
+  if (!aDoc->GetWindow())
+    return NS_ERROR_INVALID_ARG;
+  if (!aDoc->GetWindow()->GetChromeEventHandler())
+    return NS_ERROR_INVALID_ARG;
 
   nsEventStatus status = nsEventStatus_eIgnore;
   rv = aDoc->GetWindow()->GetChromeEventHandler()->DispatchDOMEvent(nsnull,
