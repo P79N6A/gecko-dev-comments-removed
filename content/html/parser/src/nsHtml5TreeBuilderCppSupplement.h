@@ -376,10 +376,7 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   if (aName == nsHtml5Atoms::script) {
 
     requestSuspension();
-    nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
-    
-    treeOp->Init(eTreeOpScriptEnd, aElement);
-    Flush();
+    mParser->SetScriptElement(aElement);
     return;
   }
   

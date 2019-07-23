@@ -51,7 +51,6 @@ enum eHtml5TreeOperation {
   eTreeOpAppendToDocument,
   eTreeOpAddAttributes,
   
-  eTreeOpScriptEnd,
   eTreeOpDoneAddingChildren,
   eTreeOpDoneCreatingElement,
   eTreeOpUpdateStyleSheet,
