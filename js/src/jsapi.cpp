@@ -4058,13 +4058,13 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
         
         sprop = (JSScopeProperty *) JSVAL_TO_PRIVATE(v);
         if (sprop)
-            TRACE_SCOPE_PROPERTY(trc, sprop);
+            sprop->trace(trc);
     } else {
         
         ida = (JSIdArray *) JSVAL_TO_PRIVATE(v);
         for (i = 0, n = ida->length; i < n; i++) {
             id = ida->vector[i];
-            TRACE_ID(trc, id);
+            js_TraceId(trc, id);
         }
     }
 }
