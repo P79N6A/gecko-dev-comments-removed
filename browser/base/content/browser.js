@@ -2219,7 +2219,7 @@ function BrowserPageInfo(doc, initialTab)
   toOpenDialogByTypeAndUrl("Browser:page-info",
                            doc ? doc.location : window.content.document.location,
                            "chrome:
-                           "chrome,dialog=no",
+                           "chrome,toolbar,dialog=no,resizable",
                            args);
 }
 
@@ -4221,7 +4221,7 @@ function onViewToolbarCommand(aEvent)
 
 function displaySecurityInfo()
 {
-  BrowserPageInfo(null, "securityTab");
+  BrowserPageInfo(null, "security");
 }
 
 
