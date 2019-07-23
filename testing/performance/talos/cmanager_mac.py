@@ -60,32 +60,32 @@ import ffprocess
 
 def GetProcessData(pid):
   """Runs a ps on the process identified by pid and returns the output line
-    as a list (uid, pid, ppid, cpu, pri, ni, vsz, rss, wchan, stat, tt, time, command)
+    as a list (pid, vsz, rss)
   """
-  command = ['ps -Acup'+str(pid)]
+  command = ['ps -o pid,vsize,rss -p'+str(pid)]
   handle = subprocess.Popen(command, stdout=subprocess.PIPE, universal_newlines=True, shell=True)
   handle.wait()
   data = handle.stdout.readlines()
   
   
-  for line in data:
-    if line.find(str(pid)) >= 0:
-      
-      line = line.split()
-      if (line[1] == str(pid)):
-        return line
+  
+  
+  line = data[1]
+  line = line.split()
+  if (line[0] == str(pid)):
+      return line
 
 def GetPrivateBytes(pid):
   """Calculate the amount of private, writeable memory allocated to a process.
   """
   psData = GetProcessData(pid)
-  return psData[5]
+  return psData[2]
 
 
 def GetResidentSize(pid):
   """Retrieve the current resident memory for a given process"""
   psData = GetProcessData(pid)
-  return psData[4]
+  return psData[1]
 
 def GetCpuTime(pid):
   
