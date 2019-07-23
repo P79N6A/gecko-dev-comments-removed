@@ -81,7 +81,7 @@ class nsStyleTransformMatrix
 
 
 
-  gfxMatrix GetThebesMatrix(const nsRect& aBounds, PRInt32 aFactor) const;
+  gfxMatrix GetThebesMatrix(const nsRect& aBounds, float aFactor) const;
 
   
 
@@ -175,7 +175,7 @@ class nsStyleTransformMatrix
 
 
   float mMain[4];
-  nscoord  mDelta[2];
+  nscoord mDelta[2];
   float mX[2];
   float mY[2];
 };

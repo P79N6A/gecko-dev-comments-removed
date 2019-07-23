@@ -48,7 +48,8 @@
 #include <math.h>
 
 
-const float kPi = 3.1415926535897932384626433f;
+const float kPi      = 3.1415926535897932384626433832795f;
+const float kTwoPi   = 6.283185307179586476925286766559f;
 const float kEpsilon = 0.0001f;
 
 
@@ -76,6 +77,18 @@ static float SafeTangent(float aTheta)
 
 
 
+
+static inline float ConstrainFloatValue(float aValue)
+{
+  
+  aValue = fmod(aValue, kTwoPi);
+  return aValue >= kPi ? aValue - kTwoPi : aValue;
+}
+
+
+
+
+
 static float CSSToRadians(const nsCSSValue &aValue)
 {
   NS_PRECONDITION(aValue.IsAngularUnit(),
@@ -84,13 +97,15 @@ static float CSSToRadians(const nsCSSValue &aValue)
   switch (aValue.GetUnit()) {
   case eCSSUnit_Degree:
     
-    return aValue.GetFloatValue() * kPi / 180.0f;
+    return
+      ConstrainFloatValue(aValue.GetFloatValue() * kPi / 180.0f);
   case eCSSUnit_Grad:
     
-    return aValue.GetFloatValue() * kPi / 200.0f;
+    return
+      ConstrainFloatValue(aValue.GetFloatValue() * kPi / 200.0f);
   case eCSSUnit_Radian:
     
-    return aValue.GetFloatValue();
+    return ConstrainFloatValue(aValue.GetFloatValue());
   default:
     NS_NOTREACHED("Unexpected angular unit!");
     return 0.0f;
@@ -124,19 +139,20 @@ void nsStyleTransformMatrix::SetToIdentity()
 
 nscoord nsStyleTransformMatrix::GetXTranslation(const nsRect& aBounds) const
 {
-  return nscoord(aBounds.width * mX[0] + aBounds.height * mY[0]) + mDelta[0];
+  return NSToCoordRound(aBounds.width * mX[0] + aBounds.height * mY[0]) +
+    mDelta[0];
 }
 nscoord nsStyleTransformMatrix::GetYTranslation(const nsRect& aBounds) const
 {
-  return nscoord(aBounds.width * mX[1] + aBounds.height * mY[1]) + mDelta[1];
+  return NSToCoordRound(aBounds.width * mX[1] + aBounds.height * mY[1]) +
+    mDelta[1];
 }
 
 
 gfxMatrix nsStyleTransformMatrix::GetThebesMatrix(const nsRect& aBounds,
-                                                  PRInt32 aScale) const
+                                                  float aScale) const
 {
   
-
 
 
 
@@ -176,12 +192,10 @@ nsStyleTransformMatrix::operator *= (const nsStyleTransformMatrix &aOther)
   newMatrix[1] = aOther.mMain[0] * mMain[1] + aOther.mMain[1] * mMain[3];
   newMatrix[2] = aOther.mMain[2] * mMain[0] + aOther.mMain[3] * mMain[2];
   newMatrix[3] = aOther.mMain[2] * mMain[1] + aOther.mMain[3] * mMain[3];
-  newDelta[0] =
-    NSCoordMultiply(aOther.mDelta[0], mMain[0]) +
-    NSCoordMultiply(aOther.mDelta[1], mMain[2]) + mDelta[0];
-  newDelta[1] =
-    NSCoordMultiply(aOther.mDelta[0], mMain[1]) +
-    NSCoordMultiply(aOther.mDelta[1], mMain[3]) + mDelta[1];
+  newDelta[0] = NSToCoordRound(aOther.mDelta[0] * mMain[0] +
+                               aOther.mDelta[1] * mMain[2]) + mDelta[0];
+  newDelta[1] = NSToCoordRound(aOther.mDelta[0] * mMain[1] +
+                               aOther.mDelta[1] * mMain[3]) + mDelta[1];
 
   
 
