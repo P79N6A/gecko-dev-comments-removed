@@ -100,12 +100,14 @@ function testInvalidUrlForward() {
        "urls" : add1Urls }]);
   update += "u:asdf://blah/blah\n";  
 
+  
+
   var assertions = {
-    "tableData" : "",
-    "urlsDontExist" : add1Urls
+    "tableData" : "test-phish-simple;a:1",
+    "urlsExist" : add1Urls
   };
 
-  doTest([update], assertions, true);
+  doTest([update], assertions, false);
 }
 
 
@@ -117,12 +119,14 @@ function testErrorUrlForward() {
        "urls" : add1Urls }]);
   update += "u:http://test.invalid/asdf/asdf\n";  
 
+  
+
   var assertions = {
-    "tableData" : "",
-    "urlsDontExist" : add1Urls
+    "tableData" : "test-phish-simple;a:1",
+    "urlsExist" : add1Urls
   };
 
-  doTest([update], assertions, true);
+  doTest([update], assertions, false);
 }
 
 function testMultipleTables() {
