@@ -810,9 +810,14 @@ nsNSSComponent::InstallLoadableRoots()
                             PR_FALSE); 
 
     if (RootsModule) {
-      
+      PRBool found = (RootsModule->loaded);
+
       SECMOD_DestroyModule(RootsModule);
-      break;
+      RootsModule = nsnull;
+
+      if (found) {
+        break;
+      }
     }
   }
 }
