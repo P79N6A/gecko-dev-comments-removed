@@ -247,6 +247,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(nsOggDecoder_h_)
 #define nsOggDecoder_h_
 
@@ -268,10 +279,12 @@
 
 class nsAudioStream;
 class nsOggDecodeStateMachine;
+class nsOggStepDecodeEvent;
 
 class nsOggDecoder : public nsMediaDecoder
 {
   friend class nsOggDecodeStateMachine;
+  friend class nsOggStepDecodeEvent;
 
   
   NS_DECL_ISUPPORTS
