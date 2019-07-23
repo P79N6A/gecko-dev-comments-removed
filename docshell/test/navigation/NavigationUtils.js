@@ -209,9 +209,14 @@ function xpcWaitForFinishedFrames(callback, numFrames) {
   }
 
   function poll() {
-    
-    
-    xpcEnumerateContentWindows(searchForFinishedFrames);
+    try {
+      
+      
+      xpcEnumerateContentWindows(searchForFinishedFrames);
+    } catch(ex) {
+      
+      
+    }
   }
 
   var frameWaitInterval = setInterval(poll, 500);
