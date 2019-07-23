@@ -1242,12 +1242,6 @@ js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes)
     
     *flagp = (uint8)flags;
 
-    
-
-
-
-    thing->next = NULL;
-    thing->flagp = NULL;
 #ifdef DEBUG_gchist
     gchist[gchpos].lastDitch = doGC;
     gchist[gchpos].freeList = rt->gcArenaList[flindex].freeList;
