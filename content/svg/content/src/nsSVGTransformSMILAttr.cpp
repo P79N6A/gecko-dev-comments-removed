@@ -74,9 +74,10 @@ nsSVGTransformSMILAttr::ValueFromString(const nsAString& aStr,
 nsSMILValue
 nsSVGTransformSMILAttr::GetBaseValue() const
 {
+  
+  
+  
   nsSMILValue val(&nsSVGTransformSMILType::sSingleton);
-  if (val.IsNull())
-    return val; 
 
   nsIDOMSVGTransformList *list = mVal->mBaseVal.get();
 
@@ -87,7 +88,10 @@ nsSVGTransformSMILAttr::GetBaseValue() const
     nsresult rv = list->GetItem(i, getter_AddRefs(transform));
     if (NS_SUCCEEDED(rv) && transform) {
       rv = AppendSVGTransformToSMILValue(transform.get(), val);
-      NS_ENSURE_SUCCESS(rv, nsSMILValue());
+      if (NS_FAILED(rv)) {   
+        val = nsSMILValue();
+        break;
+      }
     }
   }
 
