@@ -154,6 +154,12 @@ namespace nanojit
 		LInsp after = before+count+LIR_FAR_SLOTS;
 		if (!samepage(before,after+LirBuffer::LIR_BUF_THRESHOLD))
 		{
+			if (!_buf->_thresholdPage)
+			{
+				
+				_buf->_thresholdPage = _buf->pageAlloc();
+				NanoAssert(_buf->_thresholdPage || _buf->_noMem);
+			}
 			
 			if (!samepage(before,after))
 			{
@@ -163,12 +169,6 @@ namespace nanojit
 
 				
 				insLinkTo(LIR_skip, before-1);
-			}
-			else if (!_buf->_thresholdPage)
-			{
-				
-				_buf->_thresholdPage = _buf->pageAlloc();
-				NanoAssert(_buf->_thresholdPage || _buf->_noMem);
 			}
 		}
 	}
