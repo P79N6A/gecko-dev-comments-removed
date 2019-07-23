@@ -51,6 +51,9 @@
 #include "nsIStreamListener.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsChannelToPipeListener.h"
+#include "nsCrossSiteListenerProxy.h"
+#include "nsHTMLMediaElement.h"
+#include "nsIDocument.h"
 
 
 
@@ -106,11 +109,34 @@ nsresult nsDefaultStreamStrategy::Open(nsIStreamListener** aStreamListener)
   nsresult rv = mListener->Init();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIStreamListener> listener = do_QueryInterface(mListener);
+
   if (aStreamListener) {
     *aStreamListener = mListener;
     NS_ADDREF(mListener);
   } else {
-    rv = mChannel->AsyncOpen(mListener, nsnull);
+    
+    
+    nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+    NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
+    if (element->ShouldCheckAllowOrigin()) {
+      listener = new nsCrossSiteListenerProxy(mListener,
+                                              element->NodePrincipal(),
+                                              mChannel, 
+                                              PR_FALSE,
+                                              &rv);
+      NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+      
+      
+      rv = nsContentUtils::GetSecurityManager()->
+             CheckLoadURIWithPrincipal(element->NodePrincipal(),
+                                       mURI,
+                                       nsIScriptSecurityManager::STANDARD);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    rv = mChannel->AsyncOpen(listener, nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -251,6 +277,17 @@ nsresult nsFileStreamStrategy::Open(nsIStreamListener** aStreamListener)
 
     rv = NS_NewLocalFileInputStream(getter_AddRefs(mInput), file);
   } else {
+    
+    
+    nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+    NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
+
+    rv = nsContentUtils::GetSecurityManager()->
+           CheckLoadURIWithPrincipal(element->NodePrincipal(),
+                                     mURI,
+                                     nsIScriptSecurityManager::STANDARD);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     rv = mChannel->Open(getter_AddRefs(mInput));
   }
   NS_ENSURE_SUCCESS(rv, rv);
@@ -379,9 +416,10 @@ public:
   
   
   
-  void Reset(nsIChannel* aChannel, 
-             nsChannelToPipeListener* aListener, 
-             nsIInputStream* aStream);
+  nsresult OpenInternal(nsIChannel* aChannel, PRInt64 aOffset);
+
+  
+  nsresult OpenInternal(nsIStreamListener **aStreamListener, PRInt64 aOffset);
 
 private:
   
@@ -411,18 +449,25 @@ private:
   PRPackedBool mCancelled;
 };
 
-void nsHttpStreamStrategy::Reset(nsIChannel* aChannel, 
-                                 nsChannelToPipeListener* aListener, 
-                                 nsIInputStream* aStream)
+nsresult nsHttpStreamStrategy::Open(nsIStreamListener **aStreamListener)
+{
+  return OpenInternal(aStreamListener, 0);
+}
+
+nsresult nsHttpStreamStrategy::OpenInternal(nsIChannel* aChannel,
+                                            PRInt64 aOffset)
 {
   nsAutoLock lock(mLock);
   mChannel = aChannel;
-  mListener = aListener;
-  mPipeInput = aStream;
+  return OpenInternal(static_cast<nsIStreamListener**>(nsnull), aOffset);
 }
 
-nsresult nsHttpStreamStrategy::Open(nsIStreamListener **aStreamListener)
+nsresult nsHttpStreamStrategy::OpenInternal(nsIStreamListener **aStreamListener,
+                                            PRInt64 aOffset)
 {
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  NS_ENSURE_TRUE(mChannel, NS_ERROR_NULL_POINTER);
+
   if (aStreamListener) {
     *aStreamListener = nsnull;
   }
@@ -433,34 +478,59 @@ nsresult nsHttpStreamStrategy::Open(nsIStreamListener **aStreamListener)
   nsresult rv = mListener->Init();
   NS_ENSURE_SUCCESS(rv, rv);
   
+  nsCOMPtr<nsIStreamListener> listener = do_QueryInterface(mListener);
+
   if (aStreamListener) {
     *aStreamListener = mListener;
     NS_ADDREF(*aStreamListener);
   } else {
     
     
+    nsHTMLMediaElement* element = mDecoder->GetMediaElement();
+    NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
+    if (element->ShouldCheckAllowOrigin()) {
+      listener = new nsCrossSiteListenerProxy(mListener,
+                                              element->NodePrincipal(),
+                                              mChannel, 
+                                              PR_FALSE,
+                                              &rv);
+      NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+      rv = nsContentUtils::GetSecurityManager()->
+             CheckLoadURIWithPrincipal(element->NodePrincipal(),
+                                       mURI,
+                                       nsIScriptSecurityManager::STANDARD);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+    }
+    
+    
     
     nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
     if (hc) {
-      hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"),
-          NS_LITERAL_CSTRING("bytes=0-"),
-          PR_FALSE);
+      nsCAutoString rangeString("bytes=");
+      rangeString.AppendInt(aOffset);
+      rangeString.Append("-");
+      hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, PR_FALSE);
     }
  
-    rv = mChannel->AsyncOpen(mListener, nsnull);
+    rv = mChannel->AsyncOpen(listener, nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   
   rv = mListener->GetInputStream(getter_AddRefs(mPipeInput));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mPosition = 0;
+  mPosition = aOffset;
 
   return NS_OK;
 }
 
+
 nsresult nsHttpStreamStrategy::Close()
 {
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
   nsAutoLock lock(mLock);
   if (mChannel) {
     mChannel->Cancel(NS_BINDING_ABORTED);
@@ -496,11 +566,9 @@ class nsByteRangeEvent : public nsRunnable
 {
 public:
   nsByteRangeEvent(nsHttpStreamStrategy* aStrategy, 
-                   nsMediaDecoder* aDecoder, 
                    nsIURI* aURI, 
                    PRInt64 aOffset) :
     mStrategy(aStrategy),
-    mDecoder(aDecoder),
     mURI(aURI),
     mOffset(aOffset),
     mResult(NS_OK)
@@ -530,35 +598,16 @@ public:
       return NS_OK;
     }
 
+    nsCOMPtr<nsIChannel> channel;
     mStrategy->Close();
-    mResult = NS_NewChannel(getter_AddRefs(mChannel),
+    mResult = NS_NewChannel(getter_AddRefs(channel),
                             mURI,
                             nsnull,
                             nsnull,
                             nsnull,
                             nsIRequest::LOAD_NORMAL);
     NS_ENSURE_SUCCESS(mResult, mResult);
-    nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
-    if (hc) {
-      nsCAutoString rangeString("bytes=");
-      rangeString.AppendInt(mOffset);
-      rangeString.Append("-");
-      hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, PR_FALSE);
-    }
-
-    mListener = new nsChannelToPipeListener(mDecoder, PR_TRUE);
-    NS_ENSURE_TRUE(mListener, NS_ERROR_OUT_OF_MEMORY);
-
-    mResult = mListener->Init();
-    NS_ENSURE_SUCCESS(mResult, mResult);
-
-    mResult = mChannel->AsyncOpen(mListener, nsnull);
-    NS_ENSURE_SUCCESS(mResult, mResult);
-
-    mResult = mListener->GetInputStream(getter_AddRefs(mStream));
-    NS_ENSURE_SUCCESS(mResult, mResult);
-
-    mStrategy->Reset(mChannel, mListener, mStream);
+    mResult = mStrategy->OpenInternal(channel, mOffset);
     return NS_OK;
   }
 
@@ -663,7 +712,7 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
 
   
   
-  nsCOMPtr<nsByteRangeEvent> event = new nsByteRangeEvent(this, mDecoder, mURI, aOffset);
+  nsCOMPtr<nsByteRangeEvent> event = new nsByteRangeEvent(this, mURI, aOffset);
   NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
 
   
