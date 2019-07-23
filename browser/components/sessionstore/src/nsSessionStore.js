@@ -2692,16 +2692,24 @@ SessionStoreService.prototype = {
     argString.data = "";
 
     
+    let features = "chrome,dialog=no,all";
+    let winState = aState.windows[0];
+    WINDOW_ATTRIBUTES.forEach(function(aFeature) {
+      
+      if (aFeature in winState && !isNaN(winState[aFeature]))
+        features += "," + aFeature + "=" + winState[aFeature];
+    });
+
     var window = Cc["@mozilla.org/embedcomp/window-watcher;1"].
                  getService(Ci.nsIWindowWatcher).
                  openWindow(null, this._prefBranch.getCharPref("chromeURL"), "_blank",
-                            "chrome,dialog=no,all", argString);
-    
+                            features, argString);
+
     do {
       var ID = "window" + Math.random();
     } while (ID in this._statesToRestore);
     this._statesToRestore[(window.__SS_restoreID = ID)] = aState;
-    
+
     return window;
   },
 
