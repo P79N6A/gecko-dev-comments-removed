@@ -2319,6 +2319,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
     loopLabel(NULL),
     lirbuf(traceMonitor->lirbuf),
     mark(*traceMonitor->traceAlloc),
+    numSideExitsBefore(treeInfo->sideExits.length()),
     tracker(),
     nativeFrameTracker(),
     global_dslots(NULL),
@@ -2552,16 +2553,21 @@ TraceRecorder::finishAbort(const char* reason)
 
 
 
-    if (fragment->root == fragment)
+
+
+
+
+
+    if (fragment->root == fragment) {
         TrashTree(cx, fragment->toTreeFragment());
+    } else {
+        JS_ASSERT(numSideExitsBefore >= fragment->root->treeInfo->sideExits.length());
+        fragment->root->treeInfo->sideExits.setLength(numSideExitsBefore);
+    }
 
     
     JSContext* localcx = cx;
     JSTraceMonitor* localtm = traceMonitor;
-
-    
-
-
 
     localtm->recorder = NULL;
     delete this;
@@ -4151,12 +4157,6 @@ TraceRecorder::guard(bool expected, LIns* cond, VMSideExit* exit)
 
     GuardRecord* guardRec = createGuardRecord(exit);
 
-    
-
-
-
-
-
     if (exit->exitType == LOOP_EXIT)
         treeInfo->sideExits.add(exit);
 
@@ -4185,12 +4185,6 @@ TraceRecorder::copy(VMSideExit* copy)
     exit->guards = NULL;
     exit->from = fragment;
     exit->target = NULL;
-
-    
-
-
-
-
 
     if (exit->exitType == LOOP_EXIT)
         treeInfo->sideExits.add(exit);
