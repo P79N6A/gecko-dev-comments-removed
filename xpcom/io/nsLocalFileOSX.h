@@ -96,25 +96,22 @@ private:
 protected:
   nsLocalFile(const nsLocalFile& src);
 
-  nsresult SetBaseRef(CFURLRef aCFURLRef); 
-  nsresult UpdateTargetRef();
+  nsresult SetBaseURL(CFURLRef aCFURLRef); 
 
   nsresult GetFSRefInternal(FSRef& aFSRef);
   nsresult GetPathInternal(nsACString& path); 
   nsresult EqualsInternal(nsISupports* inFile, PRBool *_retval);
-
   nsresult CopyInternal(nsIFile* newParentDir,
                         const nsAString& newName,
                         PRBool followLinks);
+  nsresult FillStatBufferInternal(struct STAT *statBuffer);
 
   static nsresult CFStringReftoUTF8(CFStringRef aInStrRef, nsACString& aOutStr);
 
 protected:
-  CFURLRef mBaseURL;   
-  CFURLRef mTargetURL; 
+  CFURLRef mBaseURL; 
 
   PRPackedBool mFollowLinks;
-  PRPackedBool mFollowLinksDirty;
 };
 
 #endif 

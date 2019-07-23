@@ -58,19 +58,6 @@ function makeSymLink(from, toName, relative) {
   print(to.path);
   print(to.target);
 
-  if (isMac) {
-    
-    if (from.leafName != DOES_NOT_EXIST) {
-      let fromN = from.clone();
-      fromN.normalize();
-      let toN = to.clone();
-      toN.normalize();
-      do_check_eq(fromN.path, toN.path);
-    }
-
-    return to;
-  }
-
   if (from.leafName != DOES_NOT_EXIST && from.isSymlink()) {
     
     
@@ -136,13 +123,6 @@ function testSymLinks(testDir, relative) {
   const dirs  = [DIR_TARGET].concat(dirLinks);
   const files = [FILE_TARGET].concat(fileLinks);
   const links = otherLinks.concat(dirLinks, fileLinks);
-
-  if (isMac) {
-    
-    for each (link in otherLinks) {
-      files.push(link);
-    }
-  }
 
   const spaces = createSpaces(dirs, files, links);
   const bools = {false: " false", true: " true "};
