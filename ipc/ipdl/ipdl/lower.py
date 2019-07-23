@@ -809,19 +809,20 @@ class GenerateProtocolHeader(Visitor):
             name=md.decl.progname,
             params=[ ],
             ret=cxx.Type('nsresult'),
-            virtual=True)
+            virtual=1)
         for param in md._cxx.params:
             pcopy = deepcopy(param)
-            pcopy.type.const = True
+            pcopy.type.const = 1
             if not param.type.actor:
-                pcopy.type.ref = True
+                pcopy.type.ref = 1
             method.params.append(pcopy)
         for ret in md._cxx.returns:
             rcopy = deepcopy(ret)
             if rcopy.type.actor:
-                rcopy.type.ptrptr = True
+                rcopy.type.ptr = 0
+                rcopy.type.ptrptr = 1
             else:
-                rcopy.type.ptr = True
+                rcopy.type.ptr = 1
             method.params.append(rcopy)
         md._cxx.method = method
 
@@ -1674,11 +1675,22 @@ class GenerateProtocolActorHeader(Visitor):
                                                '__msg')))
             msgvar = cxx.ExprVar('__msg')
 
+            impl.addstmt(cxx.Whitespace.NL)
+
             
             
             for param in mdecl.params:
                 if not param.type.actor:
                     continue
+
+                
+                if param.type.ptrptr:
+                    checknull = cxx.StmtIf(
+                        cxx.ExprPrefixUnop(cxx.ExprVar(param.name), '!'))
+                    checknull.addifstmt(cxx.StmtReturn(valueerrcode))
+                    impl.addstmt(checknull)
+                    continue
+
                 pavar = cxx.ExprVar(param.name)
                 pahvar = cxx.ExprVar(param.name +'__ah')
                 impl.addstmt(cxx.StmtDecl(cxx.Decl(
@@ -1856,21 +1868,15 @@ class GenerateProtocolActorHeader(Visitor):
 
                 
                 
+                
+                
                 for ret in md._cxx.returns:
                     if not ret.type.actor: continue
-                    
-                    ravar = cxx.ExprVar(ret.name)
-                    rahvar = cxx.ExprVar(ret.name +'__ah')
-                    actortype = deepcopy(ret.type)
-                    actortype.name = _actorName(actortype.name, self.myside)
-                    actortype.ptrptr = 0; actortype.ptr = 1
-                    
+
                     impl.addstmt(cxx.StmtDecl(cxx.Decl(
-                        cxx.Type('mozilla::ipc::ActorHandle'), rahvar.name)))
-                    impl.addstmts(_actorHandleToActor(handle=rahvar,
-                                                      actor=ravar,
-                                                      actortype=actortype,
-                                                      failcode=valueerrcode))
+                        cxx.Type('mozilla::ipc::ActorHandle'),
+                        ret.name +'__ah')))
+
                 impl.addstmt(cxx.Whitespace.NL)
 
                 unpackargs = [ cxx.ExprAddrOf(replyvar) ]
@@ -1888,6 +1894,24 @@ class GenerateProtocolActorHeader(Visitor):
                 errhandle = cxx.StmtIf(cxx.ExprPrefixUnop(unpack, '!'))
                 errhandle.ifb.addstmt(cxx.StmtReturn(valueerrcode))
                 impl.addstmt(errhandle)
+
+                impl.addstmt(cxx.Whitespace.NL)
+
+                
+                for ret in md._cxx.returns:
+                    if not ret.type.actor: continue
+
+                    ravar = cxx.ExprVar(ret.name)
+                    rahvar = cxx.ExprVar(ret.name +'__ah')
+                    actortype = deepcopy(ret.type)
+                    actortype.name = _actorName(actortype.name, self.myside)
+                    actortype.ptrptr = 0; actortype.ptr = 1
+
+                    impl.addstmts(_actorHandleToActor(
+                        handle=rahvar,
+                        actor=cxx.ExprDeref(ravar),
+                        actortype=actortype,
+                        failcode=valueerrcode))
 
                 
                 
@@ -2189,6 +2213,20 @@ class GenerateProtocolActorHeader(Visitor):
 
                 
                 
+                for ret in md._cxx.returns:
+                    if not ret.type.actor:
+                        continue
+
+                    retavar = cxx.ExprVar(ret.name)
+                    retahvar = cxx.ExprVar(ret.name +'__ah')
+                    block.addstmts(_actorToActorHandle(
+                        actor=retavar, handle=retahvar,
+                        failcode=cxx.ExprVar('MsgValueError')))
+
+                block.addstmt(cxx.Whitespace.NL)
+
+                
+                
                 
                 
                 
@@ -2249,6 +2287,8 @@ class GenerateProtocolActorHeader(Visitor):
                 ctorparams = [ ]
                 for i, r in enumerate(md._cxx.returns):
                     rvar = cxx.ExprVar(r.name)
+                    if r.type.actor:
+                        rvar.name += '__ah'
                     ctorparams.append(rvar)
 
                 replymsgctor = cxx.ExprNew(cxx.Type(md._cxx.nsreplyid),
