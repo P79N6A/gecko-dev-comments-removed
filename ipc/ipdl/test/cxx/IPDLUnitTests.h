@@ -51,6 +51,7 @@
 #include "nsDebug.h"
 #include "nsServiceManagerUtils.h" 
 #include "nsWidgetsCID.h"       
+#include "nsXULAppAPI.h"
 
 
 #define MOZ_IPDL_TESTFAIL_LABEL "TEST-UNEXPECTED-FAIL"
@@ -101,13 +102,7 @@ inline void passed(const char* fmt, ...)
 
 void IPDLUnitTestMain(void* aData);
 
-inline void
-QuitParent()
-{
-  static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
-  nsCOMPtr<nsIAppShell> appShell (do_GetService(kAppShellCID));
-  appShell->Exit();
-}
+void QuitParent();
 
 
 
@@ -119,11 +114,7 @@ void IPDLUnitTestChildInit(IPC::Channel* transport,
 inline void
 QuitChild()
 {
-  mozilla::ipc::BrowserProcessSubThread::
-    GetMessageLoop(mozilla::ipc::BrowserProcessSubThread::IO)->
-      PostTask(FROM_HERE, new MessageLoop::QuitTask());
-
-  MessageLoopForUI::current()->Quit();
+  XRE_ShutdownChildProcess();
 }
 
 } 
