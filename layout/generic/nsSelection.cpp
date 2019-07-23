@@ -1996,7 +1996,7 @@ nsFrameSelection::GetFrameForNodeOffset(nsIContent *aNode,
 
   nsCOMPtr<nsIContent> theNode = aNode;
 
-  if (aNode->IsNodeOfType(nsINode::eELEMENT))
+  if (aNode->IsElement())
   {
     PRInt32 childIndex  = 0;
     PRInt32 numChildren = theNode->GetChildCount();
@@ -2037,7 +2037,7 @@ nsFrameSelection::GetFrameForNodeOffset(nsIContent *aNode,
     
     
 
-    if (theNode->IsNodeOfType(nsINode::eELEMENT))
+    if (theNode->IsElement())
     {
       PRInt32 newOffset = 0;
 
@@ -2296,7 +2296,7 @@ GetFirstSelectedContent(nsIRange* aRange)
   }
 
   NS_PRECONDITION(aRange->GetStartParent(), "Must have start parent!");
-  NS_PRECONDITION(aRange->GetStartParent()->IsNodeOfType(nsINode::eELEMENT),
+  NS_PRECONDITION(aRange->GetStartParent()->IsElement(),
                   "Unexpected parent");
 
   return aRange->GetStartParent()->GetChildAt(aRange->StartOffset());
@@ -3182,7 +3182,7 @@ nsTypedSelection::GetTableSelectionType(nsIRange* aRange,
     return NS_OK;
 
   nsIContent* startContent = static_cast<nsIContent*>(startNode);
-  if (!(startNode->IsNodeOfType(nsINode::eELEMENT) && startContent->IsHTML())) {
+  if (!(startNode->IsElement() && startContent->IsHTML())) {
     
     
     return NS_OK;
@@ -4140,7 +4140,7 @@ nsTypedSelection::GetPrimaryFrameForRangeEndpoint(nsIDOMNode *aNode, PRInt32 aOf
   if (!content)
     return NS_ERROR_NULL_POINTER;
   
-  if (content->IsNodeOfType(nsINode::eELEMENT))
+  if (content->IsElement())
   {
     if (aIsEndNode)
       aOffset--;
