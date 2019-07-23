@@ -6137,7 +6137,8 @@ MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
 #endif
 
 void
-nsCSSFrameConstructor::AddTextItemIfNeeded(nsIFrame* aParentFrame,
+nsCSSFrameConstructor::AddTextItemIfNeeded(nsFrameConstructorState& aState,
+                                           nsIFrame* aParentFrame,
                                            nsIContent* aParentContent,
                                            PRInt32 aContentIndex,
                                            FrameConstructionItemList& aItems)
@@ -6157,16 +6158,8 @@ nsCSSFrameConstructor::AddTextItemIfNeeded(nsIFrame* aParentFrame,
     
     return;
   }
-  
-  const FrameConstructionData* data = FindTextData(aParentFrame);
-  if (!data)
-    return;
-  nsRefPtr<nsStyleContext> sc =
-    ResolveStyleContext(aParentFrame, content);
-  if (!sc)
-    return;
-  aItems.AppendItem(data, content, content->Tag(), content->GetNameSpaceID(),
-                    aContentIndex, sc.forget());
+
+  AddFrameConstructionItems(aState, content, aContentIndex, aParentFrame, aItems);
 }
 
 void
@@ -6395,7 +6388,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     
     
     
-    AddTextItemIfNeeded(parentFrame, aContainer,
+    AddTextItemIfNeeded(state, parentFrame, aContainer,
                         aNewIndexInContainer - 1, items);
   }
   for (PRUint32 i = aNewIndexInContainer, count = aContainer->GetChildCount();
@@ -6752,7 +6745,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     
     
-    AddTextItemIfNeeded(parentFrame, aContainer, aIndexInContainer - 1,
+    AddTextItemIfNeeded(state, parentFrame, aContainer, aIndexInContainer - 1,
                         items);
   }
 
@@ -6762,7 +6755,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     
     
-    AddTextItemIfNeeded(parentFrame, aContainer, aIndexInContainer + 1,
+    AddTextItemIfNeeded(state, parentFrame, aContainer, aIndexInContainer + 1,
                         items);
   }
 
@@ -7366,11 +7359,19 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
       
       
       
-      if (aIndexInContainer > 0) {
-        ReframeTextIfNeeded(aContainer, aIndexInContainer - 1);
-      }
       PRInt32 childCount = aContainer->GetChildCount();
-      if (aIndexInContainer < childCount) {
+      
+      
+      
+      
+      
+      PRInt32 prevSiblingIndex = aIndexInContainer - 1;
+      if (prevSiblingIndex > 0 && prevSiblingIndex < childCount - 1) {
+        ReframeTextIfNeeded(aContainer, prevSiblingIndex);
+      }
+      
+      
+      if (aIndexInContainer > 0 && aIndexInContainer < childCount - 1) {
         ReframeTextIfNeeded(aContainer, aIndexInContainer);
       }
     }

@@ -1025,7 +1025,8 @@ private:
 
   
   
-  void AddTextItemIfNeeded(nsIFrame* aParentFrame,
+  void AddTextItemIfNeeded(nsFrameConstructorState& aState,
+                           nsIFrame* aParentFrame,
                            nsIContent* aParentContent,
                            PRInt32 aContentIndex,
                            FrameConstructionItemList& aItems);
