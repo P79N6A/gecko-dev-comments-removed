@@ -893,6 +893,11 @@ nsImageMap::AddArea(nsIContent* aArea)
   
   aArea->AddEventListenerByIID(this, NS_GET_IID(nsIDOMFocusListener));
 
+  
+  
+  
+  
+  
   mPresShell->FrameManager()->SetPrimaryFrameFor(aArea, mImageFrame);
   aArea->SetMayHaveFrame(PR_TRUE);
   NS_ASSERTION(aArea->MayHaveFrame(), "SetMayHaveFrame failed?");
