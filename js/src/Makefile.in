@@ -216,6 +216,8 @@ VPATH		+= $(srcdir)/nanojit
 INSTALLED_HEADERS += \
 		jsbuiltins.h    \
 		Assembler.h     \
+		Allocator.h     \
+		CodeAlloc.h     \
 		LIR.h		\
 		avmplus.h	\
 		Fragmento.h	\
@@ -228,6 +230,8 @@ INSTALLED_HEADERS += \
 CPPSRCS += \
 		jstracer.cpp \
 		Assembler.cpp  \
+		Allocator.cpp  \
+		CodeAlloc.cpp  \
 		Fragmento.cpp  \
 		LIR.cpp        \
 		RegAlloc.cpp   \
@@ -345,7 +349,7 @@ endif
 
 DIST_GARBAGE = config.cache config.log config.status \
    config/myrules.mk config/myconfig.mk \
-   unallmakefiles js-config js-config.h js-confdefs.h
+   unallmakefiles js-config js-config.h mozilla-config.h
 
 distclean::
 	cat unallmakefiles | $(XARGS) rm -f

@@ -536,7 +536,7 @@ Assembler::nFragExit(LInsp guard)
     }
 
 #ifdef NJ_VERBOSE
-    if (_frago->core()->config.show_stats) {
+    if (config.show_stats) {
         
         
         int fromfrag = int((Fragment*)_thisfrag);
@@ -811,32 +811,6 @@ Assembler::asm_call(LInsp ins)
 
         asm_arg(sz, arg, r, stkd);
     }
-}
-
-void
-Assembler::nMarkExecute(Page* page, int flags)
-{
-    NanoAssert(sizeof(Page) == NJ_PAGE_SIZE);
-#ifdef UNDER_CE
-    static const DWORD kProtFlags[4] = {
-        PAGE_READONLY,          
-        PAGE_READWRITE,         
-        PAGE_EXECUTE_READ,      
-        PAGE_EXECUTE_READWRITE  
-    };
-    DWORD prot = kProtFlags[flags & (PAGE_WRITE|PAGE_EXEC)];
-    DWORD dwOld;
-    BOOL res = VirtualProtect(page, NJ_PAGE_SIZE, prot, &dwOld);
-    if (!res)
-    {
-        
-        NanoAssertMsg(false, "FATAL ERROR: VirtualProtect() failed\n");
-    }
-#endif
-#ifdef AVMPLUS_PORTING_API
-    NanoJIT_PortAPI_MarkExecutable(page, (void*)((char*)page+NJ_PAGE_SIZE), flags);
-    
-#endif
 }
 
 Register
@@ -1334,21 +1308,17 @@ Assembler::nativePageReset()
 void
 Assembler::nativePageSetup()
 {
-    if (!_nIns)      _nIns     = pageAlloc();
-    if (!_nExitIns)  _nExitIns = pageAlloc(true);
+    if (!_nIns)
+        codeAlloc(codeStart, codeEnd, _nIns);
+    if (!_nExitIns)
+        codeAlloc(exitStart, exitEnd, _nExitIns);
+
     
-
+    
     if (!_nSlot)
-    {
-        
-        
-        _nIns--;
-        _nExitIns--;
-
-        
-        
-        _nSlot = (int*)pageDataStart(_nIns);
-    }
+        _nSlot = codeStart;
+    if (!_nExitSlot)
+        _nExitSlot = exitStart;
 }
 
 
@@ -1371,42 +1341,28 @@ Assembler::resetInstructionPointer()
     NanoAssert(samepage(_nIns,_nSlot));
 }
 
-
-
-
 void
 Assembler::underrunProtect(int bytes)
 {
     NanoAssertMsg(bytes<=LARGEST_UNDERRUN_PROT, "constant LARGEST_UNDERRUN_PROT is too small");
-    intptr_t u = bytes + sizeof(PageHeader)/sizeof(NIns) + 8;
-    if ( (samepage(_nIns,_nSlot) && (((intptr_t)_nIns-u) <= intptr_t(_nSlot+1))) ||
-         (!samepage((intptr_t)_nIns-u,_nIns)) )
+    NanoAssert(_nSlot != 0 && int(_nIns)-int(_nSlot) <= 4096);
+    uintptr_t top = uintptr_t(_nSlot);
+    uintptr_t pc = uintptr_t(_nIns);
+    if (pc - bytes < top)
     {
+        verbose_only(verbose_outputf("        %p:", _nIns);)
         NIns* target = _nIns;
+        if (_inExit)
+            codeAlloc(exitStart, exitEnd, _nIns);
+        else
+            codeAlloc(codeStart, codeEnd, _nIns);
 
-        _nIns = pageAlloc(_inExit);
-
-        
-        
-        
-        
-        
-        
-        
-        _nIns--;
-
-        
-        
-        _nSlot = (int*)pageDataStart(_nIns);
+        _nSlot = _inExit ? exitStart : codeStart;
 
         
         
         
-        
-        JMP_nochk(target);
-    } else if (!_nSlot) {
-        
-        _nSlot = (int*)pageDataStart(_nIns);
+        B_nochk(target);
     }
 }
 
@@ -1613,19 +1569,22 @@ Assembler::asm_ld_imm(Register d, int32_t imm, bool chk )
         underrunProtect(LD32_size);
     }
 
-    int offset = PC_OFFSET_FROM(_nSlot+1, _nIns-1);
+    int offset = PC_OFFSET_FROM(_nSlot, _nIns-1);
     
     while (offset <= -4096) {
         ++_nSlot;
         offset += sizeof(_nSlot);
     }
-    NanoAssert(isS12(offset) && (offset < -8));
+    NanoAssert(isS12(offset) && (offset < 0));
 
     
-    *(++_nSlot) = imm;
+    *(_nSlot++) = imm;
+    asm_output("## imm= 0x%x", imm);
 
     
     LDR_nochk(d,PC,offset);
+    NanoAssert(uintptr_t(_nIns) + 8 + offset == uintptr_t(_nSlot-1));
+    NanoAssert(*((int32_t*)_nSlot-1) == imm);
 }
 
 
