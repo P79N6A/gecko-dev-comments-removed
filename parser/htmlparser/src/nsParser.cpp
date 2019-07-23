@@ -1538,6 +1538,7 @@ nsParser::DidBuildModel(nsresult anErrorCode)
 void
 nsParser::SpeculativelyParse()
 {
+#if 0 
   if (mParserContext->mParserCommand == eViewNormal &&
       !mParserContext->mMimeType.EqualsLiteral("text/html")) {
     return;
@@ -1554,6 +1555,7 @@ nsParser::SpeculativelyParse()
   if (NS_FAILED(rv)) {
     mSpeculativeScriptThread = nsnull;
   }
+#endif
 }
 
 
