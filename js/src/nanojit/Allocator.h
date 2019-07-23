@@ -67,7 +67,7 @@ namespace nanojit
             return allocSlow(nbytes);
         }
 
-    private:
+    protected:
         void* allocSlow(size_t nbytes);
         void fill(size_t minbytes);
 
@@ -81,8 +81,8 @@ namespace nanojit
         char* current_top;
         char* current_limit;
 
-    
-    private:
+        
+
         
         void* allocChunk(size_t nbytes);
 

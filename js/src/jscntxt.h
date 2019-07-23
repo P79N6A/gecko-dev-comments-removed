@@ -154,7 +154,24 @@ struct JSTraceMonitor {
 
     JSContext               *tracecx;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     CLS(VMAllocator)        dataAlloc;   
+    CLS(VMAllocator)        traceAlloc;  
     CLS(VMAllocator)        tempAlloc;   
     CLS(nanojit::CodeAlloc) codeAlloc;   
     CLS(nanojit::Assembler) assembler;
