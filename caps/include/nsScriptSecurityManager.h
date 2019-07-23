@@ -529,13 +529,46 @@ private:
     nsresult
     SavePrincipal(nsIPrincipal* aToSave);
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     nsresult
-    CheckXPCPermissions(nsISupports* aObj,
+    CheckXPCPermissions(JSContext* cx,
+                        nsISupports* aObj, JSObject* aJSObject,
+                        nsIPrincipal* aSubjectPrincipal,
                         const char* aObjectSecurityLevel);
 
     nsresult
     Init();
-    
+
     nsresult
     InitPrefs();
 
