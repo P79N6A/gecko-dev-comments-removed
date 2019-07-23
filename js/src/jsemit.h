@@ -163,88 +163,6 @@ struct JSStmtInfo {
 # define JS_SCOPE_DEPTH_METERING_IF(code, x) ((void) 0)
 #endif
 
-struct JSTreeContext {              
-    uint32          flags;          
-    uint16          ngvars;         
-    uint32          bodyid;         
-    uint32          blockidGen;     
-    JSStmtInfo      *topStmt;       
-    JSStmtInfo      *topScopeStmt;  
-    JSObject        *blockChain;    
-
-
-    JSParseNode     *blockNode;     
-
-    JSAtomList      decls;          
-    js::Parser      *parser;        
-
-    union {
-        JSFunction  *fun;           
-
-        JSObject    *scopeChain;    
-    };
-
-    JSAtomList      lexdeps;        
-    JSTreeContext   *parent;        
-    uintN           staticLevel;    
-
-    JSFunctionBox   *funbox;        
-
-
-    JSFunctionBox   *functionList;
-
-#ifdef JS_SCOPE_DEPTH_METER
-    uint16          scopeDepth;     
-    uint16          maxScopeDepth;  
-#endif
-
-    JSTreeContext(js::Parser *prs)
-      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
-        parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
-        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
-    {
-        prs->tc = this;
-        JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
-    }
-
-    
-
-
-
-
-    ~JSTreeContext() {
-        parser->tc = this->parent;
-        JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
-                                   JS_BASIC_STATS_ACCUM(&parser
-                                                          ->context
-                                                          ->runtime
-                                                          ->lexicalScopeDepthStats,
-                                                        maxScopeDepth));
-    }
-
-    uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
-
-    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
-
-    
-    bool inStatement(JSStmtType type);
-
-    inline bool needStrictChecks();
-
-    
-
-
-
-    int sharpSlotBase;
-    bool ensureSharpSlots();
-
-    
-    
-    
-    bool skipSpansGenerator(unsigned skip);
-};
-
 #define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
 #define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
@@ -338,6 +256,92 @@ struct JSTreeContext {
                                  TCF_FUN_USES_OWN_NAME   |                    \
                                  TCF_HAS_SHARPS          |                    \
                                  TCF_STRICT_MODE_CODE)
+
+struct JSTreeContext {              
+    uint32          flags;          
+    uint16          ngvars;         
+    uint32          bodyid;         
+    uint32          blockidGen;     
+    JSStmtInfo      *topStmt;       
+    JSStmtInfo      *topScopeStmt;  
+    JSObject        *blockChain;    
+
+
+    JSParseNode     *blockNode;     
+
+    JSAtomList      decls;          
+    js::Parser      *parser;        
+
+    union {
+        JSFunction  *fun;           
+
+        JSObject    *scopeChain;    
+    };
+
+    JSAtomList      lexdeps;        
+    JSTreeContext   *parent;        
+    uintN           staticLevel;    
+
+    JSFunctionBox   *funbox;        
+
+
+    JSFunctionBox   *functionList;
+
+#ifdef JS_SCOPE_DEPTH_METER
+    uint16          scopeDepth;     
+    uint16          maxScopeDepth;  
+#endif
+
+    JSTreeContext(js::Parser *prs)
+      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
+        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
+        parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
+        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
+    {
+        prs->tc = this;
+        JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
+    }
+
+    
+
+
+
+
+    ~JSTreeContext() {
+        parser->tc = this->parent;
+        JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
+                                   JS_BASIC_STATS_ACCUM(&parser
+                                                          ->context
+                                                          ->runtime
+                                                          ->lexicalScopeDepthStats,
+                                                        maxScopeDepth));
+    }
+
+    uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
+
+    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
+
+    
+    bool inStatement(JSStmtType type);
+
+    inline bool needStrictChecks();
+
+    
+
+
+
+    int sharpSlotBase;
+    bool ensureSharpSlots();
+
+    
+    
+    
+    bool skipSpansGenerator(unsigned skip);
+
+    bool compileAndGo() { return !!(flags & TCF_COMPILE_N_GO); }
+    bool inFunction() { return !!(flags & TCF_IN_FUNCTION); }
+    bool compiling() { return !!(flags & TCF_COMPILING); }
+};
 
 
 
