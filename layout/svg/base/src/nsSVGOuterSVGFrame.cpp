@@ -569,7 +569,9 @@ nsSVGOuterSVGFrame::GetCanvasTM()
 
     
     
-    if (svgElement->mEnumAttributes[nsSVGSVGElement::ZOOMANDPAN].GetAnimValue()
+    if (mCurrentScale &&
+        mCurrentTranslate &&
+        svgElement->mEnumAttributes[nsSVGSVGElement::ZOOMANDPAN].GetAnimValue()
         == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_MAGNIFY) {
       nsCOMPtr<nsIDOMSVGMatrix> zoomPanMatrix;
       nsCOMPtr<nsIDOMSVGMatrix> temp;
