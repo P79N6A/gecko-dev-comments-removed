@@ -56,15 +56,22 @@ var expect= '';
 var expectedvalues = [];
 
 
-
-
-
-var INVALID_CHAR = 0xFFFD;
-
-
 status = inSection(1);
-actual = decodeURI("%C0%AF").charCodeAt(0);
-expect = INVALID_CHAR;
+expect = "URIError thrown";
+try
+{
+  decodeURI("%C0%AF");
+  actual = "no error thrown";
+}
+catch (e)
+{
+  if (e instanceof URIError)
+    actual = "URIError thrown";
+  else if (e instanceof Error)
+    actual = "wrong error thrown: " + e.name;
+  else
+    actual = "non-error thrown: " + e;
+}
 addThis();
 
 
