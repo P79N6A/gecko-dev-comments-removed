@@ -39,13 +39,16 @@
 
 
 
+
 #include "mozStorageService.h"
 #include "mozStorageConnection.h"
 #include "prinit.h"
-#include "nsAutoLock.h"
 #include "nsAutoPtr.h"
+#include "nsCollationCID.h"
 #include "nsEmbedCID.h"
 #include "mozStoragePrivateHelpers.h"
+#include "nsILocale.h"
+#include "nsILocaleService.h"
 #include "nsIXPConnect.h"
 #include "nsIObserverService.h"
 
@@ -118,6 +121,11 @@ Service::getXPConnect()
   return xpc.forget();
 }
 
+Service::Service()
+: mMutex("Service::mMutex")
+{
+}
+
 Service::~Service()
 {
   
@@ -127,7 +135,6 @@ Service::~Service()
     NS_WARNING("sqlite3 did not shutdown cleanly.");
 
   gService = nsnull;
-  ::PR_DestroyLock(mLock);
 }
 
 void
@@ -139,9 +146,6 @@ Service::shutdown()
 nsresult
 Service::initialize()
 {
-  mLock = ::PR_NewLock();
-  NS_ENSURE_TRUE(mLock, NS_ERROR_OUT_OF_MEMORY);
-
   
   
   
@@ -175,6 +179,69 @@ Service::initialize()
   
   (void)CallGetService(nsIXPConnect::GetCID(), &sXPConnect);
   return NS_OK;
+}
+
+int
+Service::localeCompareStrings(const nsAString &aStr1,
+                              const nsAString &aStr2,
+                              PRInt32 aComparisonStrength)
+{
+  
+  
+  
+  MutexAutoLock mutex(mMutex);
+
+  nsICollation *coll = getLocaleCollation();
+  if (!coll) {
+    NS_ERROR("Storage service has no collation");
+    return 0;
+  }
+
+  PRInt32 res;
+  nsresult rv = coll->CompareString(aComparisonStrength, aStr1, aStr2, &res);
+  if (NS_FAILED(rv)) {
+    NS_ERROR("Collation compare string failed");
+    return 0;
+  }
+
+  return res;
+}
+
+nsICollation *
+Service::getLocaleCollation()
+{
+  mMutex.AssertCurrentThreadOwns();
+
+  if (mLocaleCollation)
+    return mLocaleCollation;
+
+  nsCOMPtr<nsILocaleService> svc(do_GetService(NS_LOCALESERVICE_CONTRACTID));
+  if (!svc) {
+    NS_WARNING("Could not get locale service");
+    return nsnull;
+  }
+
+  nsCOMPtr<nsILocale> appLocale;
+  nsresult rv = svc->GetApplicationLocale(getter_AddRefs(appLocale));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Could not get application locale");
+    return nsnull;
+  }
+
+  nsCOMPtr<nsICollationFactory> collFact =
+    do_CreateInstance(NS_COLLATIONFACTORY_CONTRACTID);
+  if (!collFact) {
+    NS_WARNING("Could not create collation factory");
+    return nsnull;
+  }
+
+  rv = collFact->CreateCollation(appLocale, getter_AddRefs(mLocaleCollation));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Could not create collation");
+    return nsnull;
+  }
+
+  return mLocaleCollation;
 }
 
 
@@ -228,7 +295,7 @@ Service::OpenDatabase(nsIFile *aDatabaseFile,
   NS_ENSURE_TRUE(msc, NS_ERROR_OUT_OF_MEMORY);
 
   {
-    nsAutoLock lock(mLock);
+    MutexAutoLock mutex(mMutex);
     nsresult rv = msc->initialize(aDatabaseFile);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -252,7 +319,7 @@ Service::OpenUnsharedDatabase(nsIFile *aDatabaseFile,
   
   nsresult rv;
   {
-    nsAutoLock lock(mLock);
+    MutexAutoLock mutex(mMutex);
     int rc = ::sqlite3_enable_shared_cache(0);
     if (rc != SQLITE_OK)
       return convertResultCode(rc);

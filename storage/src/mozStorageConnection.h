@@ -41,6 +41,7 @@
 #ifndef _MOZSTORAGECONNECTION_H_
 #define _MOZSTORAGECONNECTION_H_
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Mutex.h"
 
@@ -48,6 +49,7 @@
 #include "nsInterfaceHashtable.h"
 #include "mozIStorageProgressHandler.h"
 #include "mozIStorageConnection.h"
+#include "mozStorageService.h"
 
 #include "nsIMutableArray.h"
 
@@ -57,7 +59,6 @@ struct PRLock;
 class nsIFile;
 class nsIEventTarget;
 class nsIThread;
-class mozIStorageService;
 
 namespace mozilla {
 namespace storage {
@@ -68,7 +69,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_MOZISTORAGECONNECTION
 
-  Connection(mozIStorageService* aService);
+  Connection(Service *aService);
 
   
 
@@ -168,7 +169,8 @@ private:
 
   
   
-  nsCOMPtr<mozIStorageService> mStorageService;
+  
+  nsRefPtr<Service> mStorageService;
 };
 
 } 

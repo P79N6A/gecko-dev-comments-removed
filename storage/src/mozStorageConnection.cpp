@@ -40,6 +40,7 @@
 
 
 
+
 #include <stdio.h>
 
 #include "nsError.h"
@@ -63,6 +64,7 @@
 #include "mozStorageArgValueArray.h"
 #include "mozStoragePrivateHelpers.h"
 #include "mozStorageStatementData.h"
+#include "SQLCollations.h"
 
 #include "prlog.h"
 #include "prprf.h"
@@ -242,7 +244,7 @@ aggregateFunctionFinalHelper(sqlite3_context *aCtx)
 
 
 
-Connection::Connection(mozIStorageService *aService)
+Connection::Connection(Service *aService)
 : sharedAsyncExecutionMutex("Connection::sharedAsyncExecutionMutex")
 , mDBConn(nsnull)
 , mAsyncExecutionMutex(nsAutoLock::NewLock("AsyncExecutionMutex"))
@@ -338,7 +340,17 @@ Connection::initialize(nsIFile *aDatabaseFile)
 #endif
 
   
-  if (registerFunctions(mDBConn) != SQLITE_OK) {
+  srv = registerFunctions(mDBConn);
+  if (srv != SQLITE_OK) {
+    ::sqlite3_close(mDBConn);
+    mDBConn = nsnull;
+    return convertResultCode(srv);
+  }
+
+  
+  srv = registerCollations(mDBConn, mStorageService);
+  if (srv != SQLITE_OK) {
+    ::sqlite3_close(mDBConn);
     mDBConn = nsnull;
     return convertResultCode(srv);
   }
