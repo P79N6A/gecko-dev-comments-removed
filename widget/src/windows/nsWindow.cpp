@@ -2341,21 +2341,6 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     }
 
     if (flags & SW_SCROLLCHILDREN) {
-      for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
-        const Configuration& configuration = aConfigurations[i];
-        nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
-        
-        
-        
-        
-        
-        if (w->mBounds.Intersects(affectedRect) &&
-            !ClipRegionContainedInRect(configuration.mClipRegion,
-                                       affectedRect - (w->mBounds.TopLeft() + aDelta))) {
-          w->Invalidate(PR_FALSE);
-        }
-      }
-
       
       
       
@@ -2390,6 +2375,25 @@ nsWindow::Scroll(const nsIntPoint& aDelta,
     ::SetRectRgn(destRgn, destRect.x, destRect.y, destRect.XMost(), destRect.YMost());
     ::CombineRgn(updateRgn, updateRgn, destRgn, RGN_AND);
     if (flags & SW_SCROLLCHILDREN) {
+      for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
+           w = static_cast<nsWindow*>(w->GetNextSibling())) {
+        if ((w->mBounds - aDelta).Intersects(affectedRect)) {
+          
+          
+          
+          
+          nsAutoTArray<nsIntRect,1> clipRegion;
+          w->GetWindowClipRegion(&clipRegion);
+          if (!ClipRegionContainedInRect(clipRegion,
+                                         destRect - w->mBounds.TopLeft()) ||
+              !ClipRegionContainedInRect(clipRegion,
+                                         destRect - (w->mBounds.TopLeft() - aDelta))) {
+            ::SetRectRgn(destRgn, w->mBounds.x, w->mBounds.y, w->mBounds.XMost(), w->mBounds.YMost());
+            ::CombineRgn(updateRgn, updateRgn, destRgn, RGN_OR);
+          }
+        }
+      }
+
       InvalidateRgnInWindowSubtree(mWnd, updateRgn, destRgn);
     } else {
       ::InvalidateRgn(mWnd, updateRgn, FALSE);
