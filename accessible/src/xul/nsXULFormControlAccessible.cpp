@@ -741,8 +741,12 @@ nsXULTextFieldAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   
   
   
-  nsHTMLTextFieldAccessible tempAccessible(inputField, mWeakShell);
-  rv = tempAccessible.GetState(aState, nsnull);
+  nsHTMLTextFieldAccessible* tempAccessible =
+    new nsHTMLTextFieldAccessible(inputField, mWeakShell);
+  if (!tempAccessible)
+    return NS_ERROR_OUT_OF_MEMORY;
+  nsCOMPtr<nsIAccessible> kungFuDeathGrip = tempAccessible;
+  rv = tempAccessible->GetState(aState, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (gLastFocusedNode == mDOMNode) {
