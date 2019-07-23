@@ -459,6 +459,11 @@ nsHostResolver::ResolveHost(const char            *host,
             }
             
             
+            else if (he->rec->addr) {
+                result = he->rec;
+            }
+            
+            
             
             else if (PR_StringToNetAddr(host, &tempAddr) == PR_SUCCESS) {
                 
