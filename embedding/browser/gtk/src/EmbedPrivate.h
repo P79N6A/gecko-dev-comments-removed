@@ -111,13 +111,6 @@ class EmbedPrivate {
   
   void        ContentFinishedLoading(void);
 
-#ifdef MOZ_WIDGET_GTK
-  
-  
-  void        TopLevelFocusIn (void);
-  void        TopLevelFocusOut(void);
-#endif
-
   
   
   void        ChildFocusIn (void);
