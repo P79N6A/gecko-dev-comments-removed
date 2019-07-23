@@ -74,6 +74,10 @@ class nsAudioStream
 
   
   
+  PRInt32 Available();
+
+  
+  
   nsresult GetTime(double* aTime);
 
   

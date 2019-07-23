@@ -37,7 +37,7 @@
 
 #include "nsIDOMHTMLMediaElement.h"
 #include "nsGenericHTMLElement.h"
-#include "nsVideoDecoder.h"
+#include "nsMediaDecoder.h"
 
 
 
@@ -98,12 +98,20 @@ public:
 
   
   
-  void PlaybackCompleted();
+  void PlaybackEnded();
 
   
   
   
   void CanPlayThrough();
+
+  
+  
+  void SeekStarted();
+
+  
+  
+  void SeekCompleted();
 
   
   
@@ -120,13 +128,25 @@ public:
   void ChangeReadyState(nsMediaReadyState aState);
 
   
+  
+  PRBool IsActivelyPlaying() const;
+
+  
+  
+  PRBool IsPlaybackEnded() const;
+
+  
   nsIPrincipal* GetCurrentPrincipal();
+
+  
+  
+  void UpdateMediaSize(nsIntSize size);
 
 protected:
   nsresult PickMediaElement(nsAString& aChosenMediaResource);
   virtual nsresult InitializeDecoder(nsAString& aChosenMediaResource);
 
-  nsRefPtr<nsVideoDecoder> mDecoder;
+  nsRefPtr<nsMediaDecoder> mDecoder;
 
   
   nsCOMPtr<nsIDOMHTMLMediaError> mError;
@@ -138,6 +158,10 @@ protected:
 
   
   float mMutedVolume;
+
+  
+  
+  nsIntSize mMediaSize;
 
   
   
@@ -178,12 +202,15 @@ protected:
   PRPackedBool mPaused;
 
   
-  PRPackedBool mSeeking;
-
-  
   PRPackedBool mMuted;
 
   
   
   PRPackedBool mIsDoneAddingChildren;
+
+  
+  
+  
+  
+  PRPackedBool mPlayingBeforeSeek;
 };

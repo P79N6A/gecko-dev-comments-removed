@@ -35,10 +35,11 @@
 
 
 
-#if !defined(nsVideoDecoder_h___)
-#define nsVideoDecoder_h___
+#if !defined(nsMediaDecoder_h_)
+#define nsMediaDecoder_h_
 
 #include "nsIObserver.h"
+#include "nsIPrincipal.h"
 #include "nsSize.h"
 #include "prlog.h"
 #include "gfxContext.h"
@@ -56,11 +57,11 @@ class nsHTMLMediaElement;
 
 
 
-class nsVideoDecoder : public nsIObserver
+class nsMediaDecoder : public nsIObserver
 {
  public:
-  nsVideoDecoder();
-  virtual ~nsVideoDecoder() { }
+  nsMediaDecoder();
+  virtual ~nsMediaDecoder();
 
   
   static nsresult InitLogger();
@@ -103,13 +104,6 @@ class nsVideoDecoder : public nsIObserver
 
   
   
-  virtual nsIntSize GetVideoSize(nsIntSize defaultSize) = 0;
-
-  
-  virtual double GetVideoFramerate() = 0;
-
-  
-  
   virtual nsresult Play() = 0;
 
   
@@ -132,11 +126,18 @@ class nsVideoDecoder : public nsIObserver
 
   
   
+  virtual PRBool IsSeeking() const = 0;
+
+  
+  
   virtual PRUint32 GetBytesLoaded() = 0;
 
   
   
-  virtual PRUint32 GetTotalBytes() = 0;
+  virtual PRInt64 GetTotalBytes() = 0;
+
+  
+  virtual void SetTotalBytes(PRInt64 aBytes) = 0;
 
   
   virtual void ElementAvailable(nsHTMLMediaElement* anElement);
@@ -150,16 +151,14 @@ class nsVideoDecoder : public nsIObserver
   
   virtual void Progress();
 
-protected:
+  
+  virtual void UpdateBytesDownloaded(PRUint32 aBytes) = 0;
+
+  
   
   virtual void Shutdown();
 
-  
-  
-  nsresult StartInvalidating(double aFramerate);
-
-  
-  void StopInvalidating();
+protected:
 
   
   nsresult StartProgress();
@@ -170,17 +169,20 @@ protected:
   
   
   
+  void MediaSizeChanged();
+
+  
+  
+  
+  
   
   
   void SetRGBData(PRInt32 aWidth, 
                   PRInt32 aHeight, 
-                  double aFramerate, 
+                  float aFramerate, 
                   unsigned char* aRGBBuffer);
 
 protected:
-  
-  nsCOMPtr<nsITimer> mInvalidateTimer;
-
   
   nsCOMPtr<nsITimer> mProgressTimer;
 
@@ -213,7 +215,7 @@ protected:
 
   
   
-  double mFramerate;
+  float mFramerate;
 };
 
 #endif
