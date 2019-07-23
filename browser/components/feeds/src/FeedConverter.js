@@ -464,7 +464,6 @@ var FeedResultService = {
 
 
 
-
 function FeedProtocolHandler(scheme) {
   this._scheme = scheme;
   var ios = 
@@ -491,6 +490,23 @@ FeedProtocolHandler.prototype = {
   },
   
   newURI: function FPH_newURI(spec, originalCharset, baseURI) {
+    
+    
+    
+    
+    
+    
+
+    const feedSlashes = "feed:
+    const feedHttpSlashes = "feed:http:
+    const feedHttpsSlashes = "feed:https:
+    const NS_ERROR_MALFORMED_URI = 0x804B000A;
+
+    if (spec.substr(0, feedSlashes.length) != feedSlashes &&
+        spec.substr(0, feedHttpSlashes.length) != feedHttpSlashes &&
+        spec.substr(0, feedHttpsSlashes.length) != feedHttpsSlashes)
+      throw NS_ERROR_MALFORMED_URI;
+
     var uri = 
         Cc["@mozilla.org/network/standard-url;1"].
         createInstance(Ci.nsIStandardURL);
@@ -499,26 +515,28 @@ FeedProtocolHandler.prototype = {
     return uri;
   },
   
-  newChannel: function FPH_newChannel(uri) {
+  newChannel: function FPH_newChannel(aUri) {
     var ios = 
         Cc["@mozilla.org/network/io-service;1"].
         getService(Ci.nsIIOService);
     
     
+    var feedSpec = aUri.spec;
     const httpsChunk = "feed:
     const httpChunk = "feed:
-    if (uri.spec.substr(0, httpsChunk.length) == httpsChunk)
-      uri.spec = "https:
-    else if (uri.spec.substr(0, httpChunk.length) == httpChunk)
-      uri.spec = "http:
+    if (feedSpec.substr(0, httpsChunk.length) == httpsChunk)
+      feedSpec = "https:
+    else if (feedSpec.substr(0, httpChunk.length) == httpChunk)
+      feedSpec = "http:
     else
-      uri.scheme = "http";
+      feedSpec = feedSpec.replace(/^feed/, "http");
 
+    var uri = ios.newURI(feedSpec, aUri.originCharset, null);
     var channel =
       ios.newChannelFromURI(uri, null).QueryInterface(Ci.nsIHttpChannel);
     
     channel.setRequestHeader("X-Moz-Is-Feed", "1", false);
-    channel.originalURI = uri;
+    channel.originalURI = aUri;
     return channel;
   },
   
