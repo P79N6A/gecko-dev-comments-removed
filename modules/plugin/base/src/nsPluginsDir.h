@@ -35,8 +35,8 @@
 
 
 
-#ifndef nsPluginsDir_h___
-#define nsPluginsDir_h___
+#ifndef nsPluginsDir_h_
+#define nsPluginsDir_h_
 
 #include "nsError.h"
 #include "nsIFile.h"

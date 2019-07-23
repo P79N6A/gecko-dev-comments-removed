@@ -36,8 +36,8 @@
 
 
 
-#ifndef nsJVMAuthTools_h___
-#define nsJVMAuthTools_h___
+#ifndef nsJVMAuthTools_h_
+#define nsJVMAuthTools_h_
 
 #include "nsAgg.h"
 #include "nsIJVMAuthTools.h"

@@ -36,8 +36,8 @@
 
 
 
-#ifndef __nsPluginDirServiceProvider_h__
-#define __nsPluginDirServiceProvider_h__
+#ifndef nsPluginDirServiceProvider_h_
+#define nsPluginDirServiceProvider_h_
 
 #include "nsIDirectoryService.h"
 

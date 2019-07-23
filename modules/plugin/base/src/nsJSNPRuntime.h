@@ -35,8 +35,8 @@
 
 
 
-#ifndef nsJSNPRuntime_h__
-#define nsJSNPRuntime_h__
+#ifndef nsJSNPRuntime_h_
+#define nsJSNPRuntime_h_
 
 #include "nscore.h"
 #include "jsapi.h"

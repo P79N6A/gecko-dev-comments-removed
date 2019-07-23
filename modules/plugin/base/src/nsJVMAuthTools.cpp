@@ -45,7 +45,6 @@ static NS_DEFINE_CID(kHttpAuthManagerCID, NS_HTTPAUTHMANAGER_CID);
 
 
 
-
 NS_IMPL_ISUPPORTS1(nsAuthenticationInfoImp, nsIAuthenticationInfo)
 
 nsAuthenticationInfoImp::nsAuthenticationInfoImp(char* username,
@@ -64,21 +63,17 @@ nsAuthenticationInfoImp::~nsAuthenticationInfoImp()
         nsMemory::Free(mPassWord);
 }
 
-
 NS_IMETHODIMP nsAuthenticationInfoImp::GetUsername(const char * *aUsername)
 {
     *aUsername = mUserName;
     return NS_OK;
 }
 
-
 NS_IMETHODIMP nsAuthenticationInfoImp::GetPassword(const char * *aPassword)
 {
     *aPassword = mPassWord;
     return NS_OK;
 }
-
-
 
 
 

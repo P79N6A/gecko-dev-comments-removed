@@ -110,8 +110,6 @@ public:
                              PRBool aCallNotify,
                              const char * aURL);
 
-    
-    
     nsNPAPIPluginInstance(NPPluginFuncs* callbacks, PRLibrary* aLibrary);
 
     
