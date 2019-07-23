@@ -201,6 +201,33 @@ XULContentSinkImpl::ContextStack::GetTopNodeScriptType(PRUint32 *aScriptType)
     return rv;
 }
 
+void
+XULContentSinkImpl::ContextStack::Clear()
+{
+  Entry *cur = mTop;
+  while (cur) {
+    
+    
+    for (PRInt32 i = cur->mChildren.Count() - 1; i >= 0; --i) {
+      nsXULPrototypeNode* child =
+          reinterpret_cast<nsXULPrototypeNode*>(cur->mChildren.ElementAt(i));
+
+      child->ReleaseSubtree();
+    }
+
+    
+    Entry *next = cur->mNext;
+    if (!next)
+      cur->mNode->ReleaseSubtree();
+
+    delete cur;
+    cur = next;
+  }
+
+  mTop = nsnull;
+  mDepth = 0;
+}
+
 
 
 
@@ -225,30 +252,8 @@ XULContentSinkImpl::~XULContentSinkImpl()
     NS_IF_RELEASE(mParser); 
 
     
-    
-    
-    while (mContextStack.Depth()) {
-        nsresult rv;
-
-        nsVoidArray* children;
-        rv = mContextStack.GetTopChildren(&children);
-        if (NS_SUCCEEDED(rv)) {
-            for (PRInt32 i = children->Count() - 1; i >= 0; --i) {
-                nsXULPrototypeNode* child =
-                    reinterpret_cast<nsXULPrototypeNode*>(children->ElementAt(i));
-
-                child->Release();
-            }
-        }
-
-        nsXULPrototypeNode* node;
-        rv = mContextStack.GetTopNode(&node);
-        if (NS_SUCCEEDED(rv))
-            node->Release();
-
-        State state;
-        mContextStack.Pop(&state);
-    }
+    NS_ASSERTION(mContextStack.Depth() == 0, "Context stack not empty?");
+    mContextStack.Clear();
 
     PR_FREEIF(mText);
 }
@@ -751,21 +756,7 @@ XULContentSinkImpl::ReportError(const PRUnichar* aErrorText,
 
   
   
-  while (mContextStack.Depth()) {
-    nsVoidArray* children;
-    rv = mContextStack.GetTopChildren(&children);
-    if (NS_SUCCEEDED(rv)) {
-      for (PRInt32 i = children->Count() - 1; i >= 0; --i) {
-        nsXULPrototypeNode* child =
-            reinterpret_cast<nsXULPrototypeNode*>(children->ElementAt(i));
-
-        child->Release();
-      }
-    }
-
-    State state;
-    mContextStack.Pop(&state);
-  }
+  mContextStack.Clear();
 
   mState = eInProlog;
 
