@@ -1180,8 +1180,12 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
         
         
         
+        
+        
+        
         nsIFrame* clipFrame = clipItem->GetClippingFrame();
-        if (!aBuilder->IsMovingFrame(clipFrame)) {
+        if (!aBuilder->IsMovingFrame(clipFrame) &&
+            nsLayoutUtils::IsProperAncestorFrame(clipFrame, aBuilder->GetRootMovingFrame())) {
           nscoord appUnitsPerDevPixel = clipFrame->PresContext()->AppUnitsPerDevPixel();
           
           
