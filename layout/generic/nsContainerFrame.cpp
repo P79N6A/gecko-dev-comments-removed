@@ -453,7 +453,7 @@ IsTopLevelWidget(nsIWidget* aWidget)
   nsWindowType windowType;
   aWidget->GetWindowType(windowType);
   return windowType == eWindowType_toplevel ||
-         windowType == eWindowType_dialog || 
+         windowType == eWindowType_dialog ||
          windowType == eWindowType_sheet;
   
 }
@@ -549,7 +549,7 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
   }
 
   nsIViewManager* vm = aView->GetViewManager();
- 
+
   if (nsnull == aStyleContext) {
     aStyleContext = aFrame->GetStyleContext();
   }
@@ -646,7 +646,7 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
         kid->AddInlinePrefWidth(aRenderingContext,
                                 static_cast<InlinePrefWidthData*>(aData));
     }
-    
+
     
     
     aData->line = nsnull;
@@ -654,7 +654,7 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
 
     lastInFlow = nif;
   }
-  
+
   aData->line = savedLine;
   aData->lineContainer = savedLineContainer;
 
@@ -846,7 +846,7 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
     
     aKidFrame->Invalidate(aDesiredSize.mOverflowArea);
   }
-  
+
   return aKidFrame->DidReflow(aPresContext, aReflowState, NS_FRAME_REFLOW_FINISHED);
 }
 
@@ -1124,7 +1124,7 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
 
   
 #ifdef DEBUG
-  nsresult rv = 
+  nsresult rv =
 #endif
     StealFrame(aPresContext, aNextInFlow);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failure");

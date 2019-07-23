@@ -67,8 +67,8 @@ class nsTableFrame;
 
 
 
-class nsTableCellFrame : public nsHTMLContainerFrame, 
-                         public nsITableCellLayout, 
+class nsTableCellFrame : public nsHTMLContainerFrame,
+                         public nsITableCellLayout,
                          public nsIPercentHeightObserver
 {
 public:
@@ -95,7 +95,7 @@ public:
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
-  
+
   
   
   
@@ -127,7 +127,7 @@ public:
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
-                              
+
   void PaintCellBackground(nsIRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect, nsPoint aPt,
                            PRUint32 aFlags);
@@ -158,8 +158,8 @@ public:
   void VerticallyAlignChild(nscoord aMaxAscent);
 
   PRBool HasVerticalAlignBaseline();
-  
-  PRBool CellHasVisibleContent(nscoord       height, 
+
+  PRBool CellHasVisibleContent(nscoord       height,
                                nsTableFrame* tableFrame,
                                nsIFrame*     kidFrame);
 
@@ -198,14 +198,14 @@ public:
 
 
   virtual PRInt32 GetColSpan();
-  
+
   
   virtual nsresult GetColIndex(PRInt32 &aColIndex) const;
   void SetColIndex(PRInt32 aColIndex);
 
   
   inline nscoord GetPriorAvailWidth();
-  
+
   
   inline void SetPriorAvailWidth(nscoord aPriorAvailWidth);
 
@@ -232,7 +232,7 @@ public:
 
   void DecorateForSelection(nsIRenderingContext& aRenderingContext,
                             nsPoint              aPt);
-                                 
+
 protected:
   
   virtual PRIntn GetSkipSides() const;
@@ -265,7 +265,7 @@ inline nsSize nsTableCellFrame::GetDesiredSize()
 { return mDesiredSize; }
 
 inline void nsTableCellFrame::SetDesiredSize(const nsHTMLReflowMetrics & aDesiredSize)
-{ 
+{
   mDesiredSize.width = aDesiredSize.width;
   mDesiredSize.height = aDesiredSize.height;
 }
@@ -335,7 +335,7 @@ public:
                                PRUint32             aFlags);
 
 private:
-  
+
   
   
   BCPixelSize mTopBorder;

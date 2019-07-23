@@ -331,15 +331,15 @@
 #define NS_STYLE_CURSOR_CROSSHAIR               2
 #define NS_STYLE_CURSOR_DEFAULT                 3    // ie: an arrow
 #define NS_STYLE_CURSOR_POINTER                 4    // for links
-#define NS_STYLE_CURSOR_MOVE                    5 
-#define NS_STYLE_CURSOR_E_RESIZE                6     
-#define NS_STYLE_CURSOR_NE_RESIZE               7      
-#define NS_STYLE_CURSOR_NW_RESIZE               8      
-#define NS_STYLE_CURSOR_N_RESIZE                9     
-#define NS_STYLE_CURSOR_SE_RESIZE               10      
-#define NS_STYLE_CURSOR_SW_RESIZE               11     
-#define NS_STYLE_CURSOR_S_RESIZE                12    
-#define NS_STYLE_CURSOR_W_RESIZE                13    
+#define NS_STYLE_CURSOR_MOVE                    5
+#define NS_STYLE_CURSOR_E_RESIZE                6
+#define NS_STYLE_CURSOR_NE_RESIZE               7
+#define NS_STYLE_CURSOR_NW_RESIZE               8
+#define NS_STYLE_CURSOR_N_RESIZE                9
+#define NS_STYLE_CURSOR_SE_RESIZE               10
+#define NS_STYLE_CURSOR_SW_RESIZE               11
+#define NS_STYLE_CURSOR_S_RESIZE                12
+#define NS_STYLE_CURSOR_W_RESIZE                13
 #define NS_STYLE_CURSOR_TEXT                    14   // ie: i-beam
 #define NS_STYLE_CURSOR_WAIT                    15
 #define NS_STYLE_CURSOR_HELP                    16
@@ -552,7 +552,7 @@
 #define NS_STYLE_LIST_STYLE_MOZ_JAPANESE_FORMAL       31
 #define NS_STYLE_LIST_STYLE_MOZ_ARABIC_INDIC          32
 #define NS_STYLE_LIST_STYLE_MOZ_PERSIAN               33
-#define NS_STYLE_LIST_STYLE_MOZ_URDU                  34 
+#define NS_STYLE_LIST_STYLE_MOZ_URDU                  34
 #define NS_STYLE_LIST_STYLE_MOZ_DEVANAGARI            35
 #define NS_STYLE_LIST_STYLE_MOZ_GURMUKHI              36
 #define NS_STYLE_LIST_STYLE_MOZ_GUJARATI              37
@@ -804,9 +804,9 @@
 #define NS_STYLE_STROKE_LINEJOIN_BEVEL          2
 
 
-#define NS_STYLE_TEXT_ANCHOR_START              0 
-#define NS_STYLE_TEXT_ANCHOR_MIDDLE             1 
-#define NS_STYLE_TEXT_ANCHOR_END                2 
+#define NS_STYLE_TEXT_ANCHOR_START              0
+#define NS_STYLE_TEXT_ANCHOR_MIDDLE             1
+#define NS_STYLE_TEXT_ANCHOR_END                2
 
 
 #define NS_STYLE_TEXT_RENDERING_AUTO               0

@@ -56,7 +56,7 @@ class CellData
 public:
   
 
- 
+
   void   Init(nsTableCellFrame* aCellFrame);
 
   
@@ -80,7 +80,7 @@ public:
 
 
   PRBool IsRowSpan() const;
-  
+
   
 
 
@@ -130,7 +130,7 @@ public:
 
 
   void SetColSpanOffset(PRUint32 aSpan);
-  
+
   
 
 
@@ -140,7 +140,7 @@ public:
 
 
   void SetOverlap(PRBool aOverlap);
-  
+
   
 
 
@@ -158,7 +158,7 @@ private:
 
   
   ~CellData(); 
-  
+
 protected:
 
   
@@ -174,16 +174,16 @@ protected:
 };
 
 
-enum BCBorderOwner 
+enum BCBorderOwner
 {
   eTableOwner        =  0,
-  eColGroupOwner     =  1, 
+  eColGroupOwner     =  1,
   eAjaColGroupOwner  =  2, 
   eColOwner          =  3,
   eAjaColOwner       =  4, 
-  eRowGroupOwner     =  5, 
+  eRowGroupOwner     =  5,
   eAjaRowGroupOwner  =  6, 
-  eRowOwner          =  7, 
+  eRowOwner          =  7,
   eAjaRowOwner       =  8, 
   eCellOwner         =  9,
   eAjaCellOwner      = 10  
@@ -242,7 +242,7 @@ public:
 
   void SetTopStart(PRBool aValue);
 
-               
+
 protected:
   BCPixelSize mLeftSize;      
   BCPixelSize mTopSize;       
@@ -273,7 +273,7 @@ public:
 };
 
 
-#define SPAN             0x00000001 // there a row or col span 
+#define SPAN             0x00000001 // there a row or col span
 #define ROW_SPAN         0x00000002 // there is a row span
 #define ROW_SPAN_0       0x00000004 // the row span is 0
 #define ROW_SPAN_OFFSET  0x0000FFF8 // the row offset to the data containing the original cell
@@ -292,7 +292,7 @@ inline nsTableCellFrame* CellData::GetCellFrame() const
   return nsnull;
 }
 
-inline void CellData::Init(nsTableCellFrame* aCellFrame) 
+inline void CellData::Init(nsTableCellFrame* aCellFrame)
 {
   mOrigCell = aCellFrame;
 }
@@ -314,13 +314,13 @@ inline PRBool CellData::IsSpan() const
 
 inline PRBool CellData::IsRowSpan() const
 {
-  return (SPAN     == (SPAN & mBits)) && 
+  return (SPAN     == (SPAN & mBits)) &&
          (ROW_SPAN == (ROW_SPAN & mBits));
 }
 
 inline PRBool CellData::IsZeroRowSpan() const
 {
-  return (SPAN       == (SPAN & mBits))     && 
+  return (SPAN       == (SPAN & mBits))     &&
          (ROW_SPAN   == (ROW_SPAN & mBits)) &&
          (ROW_SPAN_0 == (ROW_SPAN_0 & mBits));
 }
@@ -345,7 +345,7 @@ inline PRUint32 CellData::GetRowSpanOffset() const
   return 0;
 }
 
-inline void CellData::SetRowSpanOffset(PRUint32 aSpan) 
+inline void CellData::SetRowSpanOffset(PRUint32 aSpan)
 {
   mBits &= ~ROW_SPAN_OFFSET;
   mBits |= (aSpan << ROW_SPAN_SHIFT);
@@ -355,13 +355,13 @@ inline void CellData::SetRowSpanOffset(PRUint32 aSpan)
 
 inline PRBool CellData::IsColSpan() const
 {
-  return (SPAN     == (SPAN & mBits)) && 
+  return (SPAN     == (SPAN & mBits)) &&
          (COL_SPAN == (COL_SPAN & mBits));
 }
 
 inline PRBool CellData::IsZeroColSpan() const
 {
-  return (SPAN       == (SPAN & mBits))     && 
+  return (SPAN       == (SPAN & mBits))     &&
          (COL_SPAN   == (COL_SPAN & mBits)) &&
          (COL_SPAN_0 == (COL_SPAN_0 & mBits));
 }
@@ -386,7 +386,7 @@ inline PRUint32 CellData::GetColSpanOffset() const
   return 0;
 }
 
-inline void CellData::SetColSpanOffset(PRUint32 aSpan) 
+inline void CellData::SetColSpanOffset(PRUint32 aSpan)
 {
   mBits &= ~COL_SPAN_OFFSET;
   mBits |= (aSpan << COL_SPAN_SHIFT);
@@ -400,7 +400,7 @@ inline PRBool CellData::IsOverlap() const
   return (SPAN == (SPAN & mBits)) && (OVERLAP == (OVERLAP & mBits));
 }
 
-inline void CellData::SetOverlap(PRBool aOverlap) 
+inline void CellData::SetOverlap(PRBool aOverlap)
 {
   if (SPAN == (SPAN & mBits)) {
     if (aOverlap) {

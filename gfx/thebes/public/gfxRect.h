@@ -149,7 +149,7 @@ struct THEBES_API gfxRect {
     
     
     void Round();
-    
+
     
     
     void RoundIn();
@@ -190,7 +190,7 @@ struct THEBES_API gfxRect {
         size.width *= k;
         size.height *= k;
     }
-    
+
     void Scale(gfxFloat sx, gfxFloat sy) {
         NS_ASSERTION(sx >= 0.0, "Invalid (negative) scale factor");
         NS_ASSERTION(sy >= 0.0, "Invalid (negative) scale factor");

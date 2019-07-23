@@ -172,7 +172,7 @@ GetLastChildFrame(nsIFrame*       aFrame,
     
     
     lastChildFrame = lastChildFrame->GetFirstContinuation();
-    
+
     
     
     
@@ -287,7 +287,7 @@ nsLayoutUtils::GetBeforeFrame(nsIFrame* aFrame)
   NS_PRECONDITION(aFrame, "NULL frame pointer");
   NS_ASSERTION(!aFrame->GetPrevContinuation(),
                "aFrame must be first continuation");
-  
+
   nsIFrame* firstFrame = GetFirstChildFrame(aFrame, aFrame->GetContent());
 
   if (firstFrame && IsGeneratedContentFor(nsnull, firstFrame,
@@ -372,7 +372,7 @@ nsLayoutUtils::IsGeneratedContentFor(nsIContent* aContent,
     
     return PR_FALSE;
   }
-  
+
   if (aContent && parent->GetContent() != aContent) {
     return PR_FALSE;
   }
@@ -412,7 +412,7 @@ nsLayoutUtils::IsProperAncestorFrameCrossDoc(nsIFrame* aAncestorFrame, nsIFrame*
 {
   if (aFrame == aCommonAncestor)
     return PR_FALSE;
-  
+
   nsIFrame* parentFrame = GetCrossDocParentFrame(aFrame);
 
   while (parentFrame != aCommonAncestor) {
@@ -443,7 +443,7 @@ nsLayoutUtils::IsProperAncestorFrame(nsIFrame* aAncestorFrame, nsIFrame* aFrame,
   if (aFrame == aCommonAncestor) {
     return PR_FALSE;
   }
-  
+
   nsIFrame* parentFrame = aFrame->GetParent();
 
   while (parentFrame != aCommonAncestor) {
@@ -490,7 +490,7 @@ nsLayoutUtils::DoCompareTreePosition(nsIContent* aContent1,
     return DoCompareTreePosition(aContent1, aContent2,
                                  aIf1Ancestor, aIf2Ancestor, nsnull);
   }
-  
+
   int last1 = content1Ancestors.Length() - 1;
   int last2 = content2Ancestors.Length() - 1;
   nsINode* content1Ancestor = nsnull;
@@ -737,7 +737,7 @@ nsLayoutUtils::GetDOMEventCoordinatesRelativeTo(nsIDOMEvent* aDOMEvent, nsIFrame
 nsPoint
 nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aFrame)
 {
-  if (!aEvent || (aEvent->eventStructType != NS_MOUSE_EVENT && 
+  if (!aEvent || (aEvent->eventStructType != NS_MOUSE_EVENT &&
                   aEvent->eventStructType != NS_MOUSE_SCROLL_EVENT &&
                   aEvent->eventStructType != NS_DRAG_EVENT &&
                   aEvent->eventStructType != NS_SIMPLE_GESTURE_EVENT &&
@@ -779,7 +779,7 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
 
   if (transformFound)
     return InvertTransformsToRoot(aFrame, widgetToView);
-  
+
   
 
 
@@ -842,12 +842,12 @@ static void ConstrainToCoordValues(gfxFloat &aVal)
 
 nsRect
 nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor)
-{ 
-   
+{
+  
   gfxRect scaledRect(aRect.pos.x * aFactor, aRect.pos.y * aFactor,
                      aRect.size.width * aFactor,
                      aRect.size.height * aFactor);
-  
+
   
   scaledRect.RoundOut();
 
@@ -856,7 +856,7 @@ nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor)
   ConstrainToCoordValues(scaledRect.pos.y);
   ConstrainToCoordValues(scaledRect.size.width);
   ConstrainToCoordValues(scaledRect.size.height);
-  
+
   
   return nsRect(nscoord(scaledRect.pos.x), nscoord(scaledRect.pos.y),
                 nscoord(scaledRect.size.width), nscoord(scaledRect.size.height));
@@ -870,7 +870,7 @@ nsLayoutUtils::MatrixTransformRect(const nsRect &aBounds,
                                                   NSAppUnitsToFloatPixels(aBounds.y, aFactor),
                                                   NSAppUnitsToFloatPixels(aBounds.width, aFactor),
                                                   NSAppUnitsToFloatPixels(aBounds.height, aFactor)));
-  
+
   return RoundGfxRectToAppRect(image, aFactor);
 }
 
@@ -948,7 +948,7 @@ static nsIntPoint GetWidgetOffset(nsIWidget* aWidget, nsIWidget*& aRootWidget) {
 }
 
 nsPoint
-nsLayoutUtils::TranslateWidgetToView(nsPresContext* aPresContext, 
+nsLayoutUtils::TranslateWidgetToView(nsPresContext* aPresContext,
                                      nsIWidget* aWidget, nsIntPoint aPt,
                                      nsIView* aView)
 {
@@ -1524,13 +1524,13 @@ nsLayoutUtils::GetZIndex(nsIFrame* aFrame) {
 
 
 PRBool
-nsLayoutUtils::BinarySearchForPosition(nsIRenderingContext* aRendContext, 
+nsLayoutUtils::BinarySearchForPosition(nsIRenderingContext* aRendContext,
                         const PRUnichar* aText,
                         PRInt32    aBaseWidth,
                         PRInt32    aBaseInx,
-                        PRInt32    aStartInx, 
-                        PRInt32    aEndInx, 
-                        PRInt32    aCursorPos, 
+                        PRInt32    aStartInx,
+                        PRInt32    aEndInx,
+                        PRInt32    aCursorPos,
                         PRInt32&   aIndex,
                         PRInt32&   aTextWidth)
 {
@@ -1707,7 +1707,7 @@ nsLayoutUtils::GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
 {
   
   gfxUserFontSet* fs = aStyleContext->PresContext()->GetUserFontSet();
-  
+
   return aStyleContext->PresContext()->DeviceContext()->GetMetricsFor(
                   aStyleContext->GetStyleFont()->mFont,
                   aStyleContext->GetStyleVisibility()->mLanguage,
@@ -1854,7 +1854,7 @@ static PRBool GetAbsoluteCoord(const nsStyleCoord& aStyle, nscoord& aResult)
 {
   if (eStyleUnit_Coord != aStyle.GetUnit())
     return PR_FALSE;
-  
+
   aResult = aStyle.GetCoordValue();
   return PR_TRUE;
 }
@@ -2070,7 +2070,7 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
       }
     }
   }
-      
+
   if (aFrame->GetType() == nsGkAtoms::tableFrame) {
     
     
@@ -2302,7 +2302,7 @@ IsAutoHeight(const nsStyleCoord &aCoord, nscoord aCBHeight)
   nsStyleUnit unit = aCoord.GetUnit();
   return unit == eStyleUnit_Auto ||  
          unit == eStyleUnit_None ||  
-         (unit == eStyleUnit_Percent && 
+         (unit == eStyleUnit_Percent &&
           aCBHeight == NS_AUTOHEIGHT);
 }
 
@@ -2509,7 +2509,7 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
         }
       } else if (tentWidth < minWidth) {
         if (tentHeight < minHeight) {
-          if (PRInt64(minWidth) * PRInt64(tentHeight) <= 
+          if (PRInt64(minWidth) * PRInt64(tentHeight) <=
               PRInt64(minHeight) * PRInt64(tentWidth)) {
             width = widthAtMinHeight;
             height = minHeight;
@@ -2627,7 +2627,7 @@ nsLayoutUtils::DrawString(const nsIFrame*      aFrame,
   }
   if (NS_FAILED(rv))
 #endif 
-  { 
+  {
     aContext->SetTextRunRTL(PR_FALSE);
     aContext->DrawString(aString, aLength, aPoint.x, aPoint.y);
   }
@@ -3055,7 +3055,7 @@ nsLayoutUtils::DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
   return DrawImageInternal(aRenderingContext, aImage, gfxPattern::FILTER_NEAREST,
                            dest, fill, aDest, aDirty, imageSize, aImageFlags);
 }
- 
+
  nsresult
 nsLayoutUtils::DrawSingleImage(nsIRenderingContext* aRenderingContext,
                                imgIContainer*       aImage,
@@ -3127,7 +3127,7 @@ nsLayoutUtils::GetWholeImageDestination(const nsIntSize& aWholeImageSize,
 }
 
 void
-nsLayoutUtils::SetFontFromStyle(nsIRenderingContext* aRC, nsStyleContext* aSC) 
+nsLayoutUtils::SetFontFromStyle(nsIRenderingContext* aRC, nsStyleContext* aSC)
 {
   const nsStyleFont* font = aSC->GetStyleFont();
   const nsStyleVisibility* visibility = aSC->GetStyleVisibility();
@@ -3241,7 +3241,7 @@ nsLayoutUtils::IsPopup(nsIFrame* aFrame)
   
   if (frameType == nsGkAtoms::listControlFrame) {
     nsListControlFrame* listControlFrame = static_cast<nsListControlFrame*>(aFrame);
-      
+
     if (listControlFrame) {
       return listControlFrame->IsInDropDownMode();
     }
@@ -3405,7 +3405,7 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
       } else {
         surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(gfxIntSize(w, h), gfxASurface::ImageFormatARGB32);
       }
-                
+
       nsRefPtr<gfxContext> ctx = new gfxContext(surf);
       rv = canvas->RenderContexts(ctx, gfxPattern::FILTER_NEAREST);
       if (NS_FAILED(rv))
@@ -3494,7 +3494,7 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
   rv = uri->SchemeIs("data", &isDataURI);
   if (NS_FAILED(rv))
     return result;
-    
+
   
   
   nsCOMPtr<nsIPrincipal> principal;

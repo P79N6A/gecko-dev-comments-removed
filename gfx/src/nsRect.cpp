@@ -49,7 +49,7 @@ PRBool nsRect::Contains(nscoord aX, nscoord aY) const
 
 PRBool nsRect::Contains(const nsRect &aRect) const
 {
-  return aRect.IsEmpty() || 
+  return aRect.IsEmpty() ||
           ((PRBool) ((aRect.x >= x) && (aRect.y >= y) &&
                     (aRect.XMost() <= XMost()) && (aRect.YMost() <= YMost())));
 }
@@ -185,7 +185,7 @@ nsMargin nsRect::operator-(const nsRect& aRect) const
 }
 
 
-nsRect& nsRect::ScaleRoundOut(float aScale) 
+nsRect& nsRect::ScaleRoundOut(float aScale)
 {
   nscoord right = NSToCoordCeil(float(XMost()) * aScale);
   nscoord bottom = NSToCoordCeil(float(YMost()) * aScale);

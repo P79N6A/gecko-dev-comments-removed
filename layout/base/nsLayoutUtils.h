@@ -254,7 +254,7 @@ public:
 
   static nsIFrame* GetCrossDocParentFrame(const nsIFrame* aFrame,
                                           nsPoint* aCrossDocOffset = nsnull);
-  
+
   
 
 
@@ -294,7 +294,7 @@ public:
 
   static nsIFrame* GetFrameFor(nsIView *aView)
   { return static_cast<nsIFrame*>(aView->GetClientData()); }
-  
+
   
 
 
@@ -403,7 +403,7 @@ public:
 
 
 
-  static nsPoint TranslateWidgetToView(nsPresContext* aPresContext, 
+  static nsPoint TranslateWidgetToView(nsPresContext* aPresContext,
                                        nsIWidget* aWidget, nsIntPoint aPt,
                                        nsIView* aView);
 
@@ -622,13 +622,13 @@ public:
 
 
   static PRBool
-  BinarySearchForPosition(nsIRenderingContext* acx, 
+  BinarySearchForPosition(nsIRenderingContext* acx,
                           const PRUnichar* aText,
                           PRInt32    aBaseWidth,
                           PRInt32    aBaseInx,
-                          PRInt32    aStartInx, 
-                          PRInt32    aEndInx, 
-                          PRInt32    aCursorPos, 
+                          PRInt32    aStartInx,
+                          PRInt32    aEndInx,
+                          PRInt32    aCursorPos,
                           PRInt32&   aIndex,
                           PRInt32&   aTextWidth);
 
@@ -720,7 +720,7 @@ public:
 
 
   static nsIFrame* FindChildContainingDescendant(nsIFrame* aParent, nsIFrame* aDescendantFrame);
-  
+
   
 
 
@@ -737,7 +737,7 @@ public:
 
 
   static nsBlockFrame* GetAsBlock(nsIFrame* aFrame);
-  
+
   
 
 
@@ -757,7 +757,7 @@ public:
 
   static nsIFrame*
   GetFirstContinuationOrSpecialSibling(nsIFrame *aFrame);
-  
+
   
 
 

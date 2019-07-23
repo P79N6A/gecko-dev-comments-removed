@@ -62,7 +62,7 @@ struct nsColInfo
   PRInt32 mNumCellsOrig; 
   PRInt32 mNumCellsSpan; 
 
-  nsColInfo(); 
+  nsColInfo();
   nsColInfo(PRInt32 aNumCellsOrig,
             PRInt32 aNumCellsSpan);
 };
@@ -92,7 +92,7 @@ public:
 
 
   ~nsTableCellMap();
-  
+
   void RemoveGroupCellMap(nsTableRowGroupFrame* aRowGroup);
 
   void InsertGroupCellMap(nsTableRowGroupFrame*  aNewRowGroup,
@@ -118,7 +118,7 @@ public:
                                  PRBool    aUseRowIfOverlap) const;
 
   
-  CellData* GetDataAt(PRInt32 aRowIndex, 
+  CellData* GetDataAt(PRInt32 aRowIndex,
                       PRInt32 aColIndex) const;
 
   
@@ -171,9 +171,9 @@ public:
   
   PRInt32 GetRowCount() const;
 
-  nsTableCellFrame* GetCellInfoAt(PRInt32  aRowX, 
-                                  PRInt32  aColX, 
-                                  PRBool*  aOriginates = nsnull, 
+  nsTableCellFrame* GetCellInfoAt(PRInt32  aRowX,
+                                  PRInt32  aColX,
+                                  PRBool*  aOriginates = nsnull,
                                   PRInt32* aColSpan = nsnull) const;
 
   
@@ -235,10 +235,10 @@ public:
                       PRUint32   aXPos,
                       PRBool     aIsLowerRight = PR_FALSE);
 
-  void SetBCBorderEdge(PRUint8       aEdge, 
+  void SetBCBorderEdge(PRUint8       aEdge,
                        nsCellMap&    aCellMap,
                        PRUint32      aCellMapStart,
-                       PRUint32      aYPos, 
+                       PRUint32      aYPos,
                        PRUint32      aXPos,
                        PRUint32      aLength,
                        BCBorderOwner aOwner,
@@ -248,7 +248,7 @@ public:
   void SetBCBorderCorner(Corner      aCorner,
                          nsCellMap&  aCellMap,
                          PRUint32    aCellMapStart,
-                         PRUint32    aYPos, 
+                         PRUint32    aYPos,
                          PRUint32    aXPos,
                          PRUint8     aOwner,
                          nscoord     aSubSize,
@@ -268,7 +268,7 @@ protected:
   friend class BCMapCellIterator;
   friend class BCPaintBorderIterator;
   friend class nsCellMapColumnIterator;
-  
+
 
 
 
@@ -375,7 +375,7 @@ public:
 
 
   CellData* AppendCell(nsTableCellMap&   aMap,
-                       nsTableCellFrame* aCellFrame, 
+                       nsTableCellFrame* aCellFrame,
                        PRInt32           aRowIndex,
                        PRBool            aRebuildIfNecessary,
                        nsRect&           aDamageArea,
@@ -480,15 +480,15 @@ protected:
 
   PRBool Grow(nsTableCellMap& aMap,
               PRInt32         aNumRows,
-              PRInt32         aRowIndex = -1); 
+              PRInt32         aRowIndex = -1);
 
   void GrowRow(CellDataArray& aRow,
                PRInt32        aNumCols);
 
   
   void SetDataAt(nsTableCellMap& aMap,
-                 CellData&       aCellData, 
-                 PRInt32         aMapRowIndex, 
+                 CellData&       aCellData,
+                 PRInt32         aMapRowIndex,
                  PRInt32         aColIndex);
 
   CellData* GetDataAt(PRInt32         aMapRowIndex,
@@ -543,7 +543,7 @@ protected:
                                nsRect&                      aDamageArea);
 
   PRBool CellsSpanOut(nsTArray<nsTableRowFrame*>& aNewRows) const;
- 
+
   
 
 
@@ -570,9 +570,9 @@ protected:
                                PRInt32           aRowIndex,
                                PRBool&           aIsZeroRowSpan) const;
 
-  PRInt32 GetColSpanForNewCell(nsTableCellFrame& aCellFrameToAdd, 
+  PRInt32 GetColSpanForNewCell(nsTableCellFrame& aCellFrameToAdd,
                                PRBool&           aIsZeroColSpan) const;
- 
+
   
   
   void DestroyCellData(CellData* aData);
@@ -585,7 +585,7 @@ protected:
 
 
   
-  nsTArray<CellDataArray> mRows; 
+  nsTArray<CellDataArray> mRows;
 
   
 
@@ -637,7 +637,7 @@ public:
   }
 
   nsTableCellFrame* GetNextFrame(PRInt32* aRow, PRInt32* aColSpan);
-  
+
 private:
   void AdvanceRowGroup();
 
@@ -652,7 +652,7 @@ private:
   
   
   PRUint32 mCurMapStart;
-  
+
   
   
   
@@ -696,20 +696,20 @@ inline nsTableRowGroupFrame* nsCellMap::GetRowGroup() const
 }
 
 inline PRInt32 nsCellMap::GetRowCount(PRBool aConsiderDeadRowSpanRows) const
-{ 
+{
   PRInt32 rowCount = (aConsiderDeadRowSpanRows) ? mRows.Length() : mContentRowCount;
-  return rowCount; 
+  return rowCount;
 }
 
 
 
 inline nsColInfo::nsColInfo()
- :mNumCellsOrig(0), mNumCellsSpan(0) 
+ :mNumCellsOrig(0), mNumCellsSpan(0)
 {}
 
 inline nsColInfo::nsColInfo(PRInt32 aNumCellsOrig,
                             PRInt32 aNumCellsSpan)
- :mNumCellsOrig(aNumCellsOrig), mNumCellsSpan(aNumCellsSpan) 
+ :mNumCellsOrig(aNumCellsOrig), mNumCellsSpan(aNumCellsSpan)
 {}
 
 
