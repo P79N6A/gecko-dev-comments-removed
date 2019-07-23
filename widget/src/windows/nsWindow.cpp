@@ -79,6 +79,11 @@
 #include <windows.h>
 #include <process.h>
 
+#ifndef WINCE
+
+#include <mmsystem.h>
+#endif
+
 #ifdef WINCE
 #include "aygshell.h"
 #include "imm.h"
@@ -1887,6 +1892,10 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode) {
                          SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
           if (hwndBelow)
             ::SetForegroundWindow(hwndBelow);
+
+          
+          
+          ::PlaySound("Minimize", nsnull, SND_ALIAS | SND_NODEFAULT | SND_ASYNC);
         }
 #endif
         break;
