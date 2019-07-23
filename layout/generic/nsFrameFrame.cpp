@@ -86,7 +86,7 @@
 #include "nsIRenderingContext.h"
 #include "nsIFrameFrame.h"
 #include "nsAutoPtr.h"
-#include "nsIDOMNSHTMLDocument.h"
+#include "nsIHTMLDocument.h"
 #include "nsDisplayList.h"
 #include "nsUnicharUtils.h"
 #include "nsIReflowCallback.h"
@@ -978,18 +978,12 @@ nsSubDocumentFrame::ShowDocShell()
   
   docShell->GetPresShell(getter_AddRefs(presShell));
   if (presShell) {
-    nsCOMPtr<nsIDOMNSHTMLDocument> doc =
+    nsCOMPtr<nsIHTMLDocument> doc =
       do_QueryInterface(presShell->GetDocument());
 
-    if (doc) {
-      nsAutoString designMode;
-      doc->GetDesignMode(designMode);
-
-      if (designMode.EqualsLiteral("on")) {
-        doc->SetDesignMode(NS_LITERAL_STRING("off"));
-        doc->SetDesignMode(NS_LITERAL_STRING("on"));
-      }
-    }
+    
+    if (doc && doc->IsEditingOn())
+      doc->ReinitEditor();
   }
 
   return NS_OK;

@@ -171,6 +171,13 @@ public:
 
 
   virtual nsresult SetEditingState(EditingState aState) = 0;
+  
+  
+
+
+
+
+  virtual nsresult ReinitEditor() = 0;
 
   
 
