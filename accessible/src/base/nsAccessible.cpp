@@ -925,9 +925,13 @@ PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen)
   
 
   nsRect relFrameRect = frame->GetRect();
-  nsPoint frameOffset;
   nsIView *containingView = frame->GetViewExternal();
-  if (!containingView) {
+  if (containingView) {
+    
+    relFrameRect.x = relFrameRect.y = 0;
+  }
+  else {
+    nsPoint frameOffset;
     frame->GetOffsetFromView(frameOffset, &containingView);
     if (!containingView)
       return PR_FALSE;  

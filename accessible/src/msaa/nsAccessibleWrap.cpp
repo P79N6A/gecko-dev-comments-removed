@@ -1523,8 +1523,26 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
       do_QueryInterface(newAccessible);
     if (privateAccessNode) {
       nsIFrame *frame = privateAccessNode->GetFrame();
-      if (frame)
-        hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
+      if (frame) {
+        nsIWidget *window = frame->GetWindow();
+        PRBool isVisible;
+        window->IsVisible(isVisible);
+        if (isVisible) {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          hWnd = (HWND)frame->GetWindow()->GetNativeData(NS_NATIVE_WINDOW);
+        }
+      }
     }
   }
 
