@@ -712,6 +712,18 @@ toolbar[iconsize="small"] #paste-button[disabled="true"] {
 
 
 
+
+
+#urlbar-icons-spacer {
+  width: 100px;
+}
+
+#urlbar-spacer {
+  visibility: hidden;
+}
+
+
+
 #page-proxy-deck,
 #page-proxy-favicon,
 #page-proxy-button {
