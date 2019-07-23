@@ -3682,27 +3682,39 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
                "Failed to prevent a nonqueued message from running!");
 
   
-  if (mWindowType == eWindowType_plugin && msg == WM_SETFOCUS &&
-      ::GetPropW(mWnd, L"PluginInstanceParentProperty")) {
-      ::ReplyMessage(0);
-      return;
+  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() &&
+      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
+    LRESULT res;
+    if (IsAsyncResponseEvent(msg, res)) {
+      ReplyMessage(res);
+    }
+    return;
   }
 
   
-  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() &&
-      (::InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    LRESULT res;
-    if (IsAsyncResponseEvent(msg, res)) {
-      ::ReplyMessage(res);
-    }
+  
+
+  
+  if (mWindowType == eWindowType_plugin && msg == WM_SETFOCUS &&
+    GetPropW(mWnd, L"PluginInstanceParentProperty")) {
+    ReplyMessage(0);
+    return;
   }
 
   
   
   if (msg == WM_ACTIVATE && lParam != 0 &&
       LOWORD(wParam) == WA_ACTIVE && IsWindow((HWND)lParam) &&
-      (::InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ::ReplyMessage(0);
+      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
+    ReplyMessage(0);
+    return;
+  }
+
+  
+  
+  if (msg == WM_SYSCOMMAND &&
+      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
+    ReplyMessage(0);
     return;
   }
 }
