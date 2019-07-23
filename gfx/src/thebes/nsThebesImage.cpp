@@ -231,52 +231,25 @@ nsThebesImage::Optimize(nsIDeviceContext* aContext)
     if (mOptSurface || mSinglePixel)
         return NS_OK;
 
-    
+    if (mWidth == 1 && mHeight == 1) {
+        
+        if (mFormat == gfxImageSurface::ImageFormatARGB32 ||
+            mFormat == gfxImageSurface::ImageFormatRGB24)
+        {
+            PRUint32 pixel = *((PRUint32 *) mImageSurface->Data());
 
-    
-    if (mStride == mWidth * 4) {
-        PRUint32 *imgData = (PRUint32*) mImageSurface->Data();
-        PRUint32 firstPixel = * (PRUint32*) imgData;
-        PRUint32 pixelCount = mWidth * mHeight + 1;
+            mSinglePixelColor = gfxRGBA
+                (pixel,
+                 (mFormat == gfxImageSurface::ImageFormatRGB24 ?
+                  gfxRGBA::PACKED_XRGB :
+                  gfxRGBA::PACKED_ARGB_PREMULTIPLIED));
 
-        while (--pixelCount && *imgData++ == firstPixel)
-            ;
+            mSinglePixel = PR_TRUE;
 
-        if (pixelCount == 0) {
-            
-            if (mFormat == gfxImageSurface::ImageFormatARGB32 ||
-                mFormat == gfxImageSurface::ImageFormatRGB24)
-            {
-                mSinglePixelColor = gfxRGBA
-                    (firstPixel,
-                     (mFormat == gfxImageSurface::ImageFormatRGB24 ?
-                      gfxRGBA::PACKED_XRGB :
-                      gfxRGBA::PACKED_ARGB_PREMULTIPLIED));
-
-                mSinglePixel = PR_TRUE;
-
-                
-                
-                
-                
-                
-                
-#if 0
-                
-
-                mImageSurface = nsnull;
-                mOptSurface = nsnull;
-#ifdef XP_WIN
-                mWinSurface = nsnull;
-#endif
-#ifdef XP_MACOSX
-                mQuartzSurface = nsnull;
-#endif
-#endif
-                return NS_OK;
-            }
+            return NS_OK;
         }
 
+        
         
     }
 
