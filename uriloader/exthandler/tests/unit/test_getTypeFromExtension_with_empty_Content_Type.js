@@ -41,9 +41,16 @@
 
 
 function run_test() {
-  Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+  
 
   
+  
+  if (!("@mozilla.org/windows-registry-key;1" in Components.classes))
+    return;
+
+  
+
+  Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
   
 
@@ -195,30 +202,18 @@ function run_test() {
   
 
   
-
-
-  function isOnWindows() {
-    return ("@mozilla.org/windows-registry-key;1" in Components.classes);
-  }
-
-  
-
-  
-  if(isOnWindows()) {
+  registerMockWindowsRegKeyFactory();
+  try {
     
-    registerMockWindowsRegKeyFactory();
-    try {
-      
-      
-      var type = Cc["@mozilla.org/mime;1"].
-                 getService(Ci.nsIMIMEService).
-                 getTypeFromExtension(".txt");
-    } catch (e if (e instanceof Ci.nsIException &&
-                   e.result == Cr.NS_ERROR_NOT_AVAILABLE)) {
-      
-    } finally {
-      
-      unregisterMockWindowsRegKeyFactory();
-    }
+    
+    var type = Cc["@mozilla.org/mime;1"].
+               getService(Ci.nsIMIMEService).
+               getTypeFromExtension(".txt");
+  } catch (e if (e instanceof Ci.nsIException &&
+                 e.result == Cr.NS_ERROR_NOT_AVAILABLE)) {
+    
+  } finally {
+    
+    unregisterMockWindowsRegKeyFactory();
   }
 }
