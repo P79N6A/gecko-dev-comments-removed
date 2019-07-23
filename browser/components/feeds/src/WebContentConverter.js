@@ -501,7 +501,6 @@ WebContentConverterRegistrar.prototype = {
 
 
 
-
   registerContentHandler: 
   function WCCR_registerContentHandler(aContentType, aURIString, aTitle, aContentWindow) {
     LOG("registerContentHandler(" + aContentType + "," + aURIString + "," + aTitle + ")");
@@ -513,12 +512,16 @@ WebContentConverterRegistrar.prototype = {
     if (contentType != TYPE_MAYBE_FEED)
       return;
 
-    var uri = this._checkAndGetURI(aURIString, aContentWindow);
-
-    var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
-    var browserElement = this._getBrowserForContentWindow(browserWindow, aContentWindow);
-    var notificationBox = browserWindow.getBrowser().getNotificationBox(browserElement);
-    this._appendFeedReaderNotification(uri, aTitle, notificationBox);
+    if (aContentWindow) {
+      var uri = this._checkAndGetURI(aURIString, aContentWindow);
+  
+      var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);
+      var browserElement = this._getBrowserForContentWindow(browserWindow, aContentWindow);
+      var notificationBox = browserWindow.getBrowser().getNotificationBox(browserElement);
+      this._appendFeedReaderNotification(uri, aTitle, notificationBox);
+    }
+    else
+      this._registerContentHandler(contentType, aURIString, aTitle);
   },
 
   
@@ -608,25 +611,8 @@ WebContentConverterRegistrar.prototype = {
           var outer = aButtonInfo._outer;
 
           
-          if (!outer.getWebContentHandlerByURI(TYPE_MAYBE_FEED, uri)) {
+          if (!outer.getWebContentHandlerByURI(TYPE_MAYBE_FEED, uri))
             outer._registerContentHandler(TYPE_MAYBE_FEED, uri, name);
-            outer._saveContentHandlerToPrefs(TYPE_MAYBE_FEED, uri, name);
-
-            
-            
-            var pb = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefService).getBranch(null);
-            pb.setCharPref(PREF_SELECTED_READER, "web");
-
-            var supportsString = 
-              Cc["@mozilla.org/supports-string;1"].
-              createInstance(Ci.nsISupportsString);
-              supportsString.data = uri;
-            pb.setComplexValue(PREF_SELECTED_WEB, Ci.nsISupportsString,
-                               supportsString);
-            pb.setCharPref(PREF_SELECTED_ACTION, "ask");
-            outer._setAutoHandler(TYPE_MAYBE_FEED, null);
-          }
 
           
           aButtonInfo._outer = null;
@@ -736,8 +722,41 @@ WebContentConverterRegistrar.prototype = {
 
 
 
-  _registerContentHandler: 
+  _registerContentHandler:
   function WCCR__registerContentHandler(contentType, uri, title) {
+    this._updateContentTypeHandlerMap(contentType, uri, title);
+    this._saveContentHandlerToPrefs(contentType, uri, title);
+
+    if (contentType == TYPE_MAYBE_FEED) {
+      
+      
+      var pb = Cc["@mozilla.org/preferences-service;1"].
+               getService(Ci.nsIPrefService).getBranch(null);
+      pb.setCharPref(PREF_SELECTED_READER, "web");
+  
+      var supportsString = 
+        Cc["@mozilla.org/supports-string;1"].
+        createInstance(Ci.nsISupportsString);
+        supportsString.data = uri;
+      pb.setComplexValue(PREF_SELECTED_WEB, Ci.nsISupportsString,
+                         supportsString);
+      pb.setCharPref(PREF_SELECTED_ACTION, "ask");
+      this._setAutoHandler(TYPE_MAYBE_FEED, null);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _updateContentTypeHandlerMap: 
+  function WCCR__updateContentTypeHandlerMap(contentType, uri, title) {
     if (!(contentType in this._contentTypes))
       this._contentTypes[contentType] = [];
 
@@ -805,7 +824,7 @@ WebContentConverterRegistrar.prototype = {
       var uri = branch.getComplexValue("uri", Ci.nsIPrefLocalizedString).data;
       var title = branch.getComplexValue("title",
                                          Ci.nsIPrefLocalizedString).data;
-      this._registerContentHandler(type, uri, title);
+      this._updateContentTypeHandlerMap(type, uri, title);
     }
     catch(ex) {
       
