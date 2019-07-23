@@ -8808,12 +8808,9 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
     aDocument->BindingManager()->ResolveTag(aContainer, &namespaceID);
 
   
-  if (aContainer->GetParent() &&
-      (tag == nsGkAtoms::treechildren ||
-       tag == nsGkAtoms::treeitem ||
-       tag == nsGkAtoms::treerow ||
-       (namespaceID == kNameSpaceID_XUL && aUseXBLForms &&
-        ShouldIgnoreSelectChild(aContainer))))
+  
+  if (aUseXBLForms && aContainer->GetParent() &&
+      namespaceID == kNameSpaceID_XUL && ShouldIgnoreSelectChild(aContainer))
     return PR_TRUE;
 
   return PR_FALSE;
