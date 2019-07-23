@@ -159,7 +159,7 @@ nsGeolocationRequest::Init()
   
   nsRefPtr<nsGeolocationService> geoService = nsGeolocationService::GetInstance();
   if (!geoService->HasGeolocationProvider()) {
-    NotifyError(NS_GEO_ERROR_CODE_LOCATION_PROVIDER_ERROR);
+    NotifyError(nsIDOMGeoPositionError::POSITION_UNAVAILABLE);
     return NS_ERROR_FAILURE;;
   }
 
@@ -196,7 +196,7 @@ nsGeolocationRequest::Notify(nsITimer* aTimer)
   
   
   if (!mHasSentData) {
-    NotifyError(NS_GEO_ERROR_CODE_TIMEOUT);
+    NotifyError(nsIDOMGeoPositionError::TIMEOUT);
     
     mLocator->RemoveRequest(this);
   }
@@ -226,7 +226,7 @@ nsGeolocationRequest::GetRequestingWindow(nsIDOMWindow * *aRequestingWindow)
 NS_IMETHODIMP
 nsGeolocationRequest::Cancel()
 {
-  NotifyError(NS_GEO_ERROR_CODE_PERMISSION_ERROR);
+  NotifyError(nsIDOMGeoPositionError::PERMISSION_DENIED);
 
   
   mLocator->RemoveRequest(this);
@@ -242,7 +242,7 @@ nsGeolocationRequest::Allow()
   
   if (NS_FAILED(rv)) {
     
-    NotifyError(NS_GEO_ERROR_CODE_LOCATION_PROVIDER_ERROR);
+    NotifyError(nsIDOMGeoPositionError::POSITION_UNAVAILABLE);
     return NS_OK;
   }
 
