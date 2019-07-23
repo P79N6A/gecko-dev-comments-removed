@@ -4391,18 +4391,20 @@ PutProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
         
         else if (vxml && vxml->xml_class == JSXML_CLASS_LIST) {
             
-            copyobj = js_NewXMLObject(cx, JSXML_CLASS_LIST);
+
+
+
+
+
+
+
+
+            copy = DeepCopyInLRS(cx, vxml, 0);
+            if (!copy)
+                goto bad;
+            copyobj = js_GetXMLObject(cx, copy);
             if (!copyobj)
                 goto bad;
-            copy = (JSXML *) JS_GetPrivate(cx, copyobj);
-            n = vxml->xml_kids.length;
-            ok = XMLArraySetCapacity(cx, &copy->xml_kids, n);
-            if (!ok)
-                goto out;
-            for (k = 0; k < n; k++) {
-                kid2 = XMLARRAY_MEMBER(&vxml->xml_kids, k, JSXML);
-                XMLARRAY_SET_MEMBER(&copy->xml_kids, k, kid2);
-            }
 
             JS_ASSERT(parent != xml);
             if (parent) {
@@ -4427,6 +4429,7 @@ PutProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 
 
+            n = copy->xml_kids.length;
             if (n == 0) {
                 XMLArrayDelete(cx, &xml->xml_kids, i, JS_TRUE);
             } else {
