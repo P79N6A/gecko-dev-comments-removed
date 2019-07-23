@@ -373,6 +373,21 @@ nsNavHistoryContainerResultNode::nsNavHistoryContainerResultNode(
 {
 }
 
+nsNavHistoryContainerResultNode::nsNavHistoryContainerResultNode(
+    const nsACString& aURI, const nsACString& aTitle,
+    PRTime aTime,
+    const nsACString& aIconURI, PRUint32 aContainerType, PRBool aReadOnly,
+    const nsACString& aDynamicContainerType, 
+    nsNavHistoryQueryOptions* aOptions) :
+  nsNavHistoryResultNode(aURI, aTitle, 0, aTime, aIconURI),
+  mResult(nsnull),
+  mContainerType(aContainerType),
+  mExpanded(PR_FALSE),
+  mChildrenReadOnly(aReadOnly),
+  mDynamicContainerType(aDynamicContainerType),
+  mOptions(aOptions)
+{
+}
 
 
 
@@ -526,8 +541,9 @@ nsNavHistoryContainerResultNode::CloseContainer(PRBool aUpdateView)
 void
 nsNavHistoryContainerResultNode::FillStats()
 {
-  mAccessCount = 0;
-  mTime = 0;
+  PRUint32 accessCount = 0;
+  PRTime newTime = 0;
+
   for (PRInt32 i = 0; i < mChildren.Count(); i ++) {
     nsNavHistoryResultNode* node = mChildren[i];
     node->mParent = this;
@@ -537,12 +553,17 @@ nsNavHistoryContainerResultNode::FillStats()
       container->mResult = mResult;
       container->FillStats();
     }
-    mAccessCount += node->mAccessCount;
+    accessCount += node->mAccessCount;
     
     
-    
-    if (node->mTime > mTime)
-      mTime = node->mTime;
+    if (node->mTime > newTime)
+      newTime = node->mTime;
+  }
+
+  if (mExpanded) {
+    mAccessCount = accessCount;
+    if (!IsQuery() || newTime > mTime)
+      mTime = newTime;
   }
 }
 
@@ -676,10 +697,6 @@ nsNavHistoryContainerResultNode::GetSortingComparator(PRUint16 aSortType)
       return &SortComparison_LastModifiedLess;
     case nsINavHistoryQueryOptions::SORT_BY_LASTMODIFIED_DESCENDING:
       return &SortComparison_LastModifiedGreater;
-    case nsINavHistoryQueryOptions::SORT_BY_COUNT_ASCENDING:
-      return &SortComparison_CountLess;
-    case nsINavHistoryQueryOptions::SORT_BY_COUNT_DESCENDING:
-      return &SortComparison_CountGreater;
     case nsINavHistoryQueryOptions::SORT_BY_TAGS_ASCENDING:
       return &SortComparison_TagsLess;
     case nsINavHistoryQueryOptions::SORT_BY_TAGS_DESCENDING:
@@ -721,8 +738,11 @@ nsNavHistoryContainerResultNode::RecursiveSort(
 PRUint32
 nsNavHistoryContainerResultNode::FindInsertionPoint(
     nsNavHistoryResultNode* aNode, SortComparator aComparator,
-    const char* aData)
+    const char* aData, PRBool* aItemExists)
 {
+  if (aItemExists)
+    (*aItemExists) = PR_FALSE;
+
   if (mChildren.Count() == 0)
     return 0;
 
@@ -730,10 +750,19 @@ nsNavHistoryContainerResultNode::FindInsertionPoint(
 
   
   
-  if (aComparator(aNode, mChildren[0], data) <= 0)
+  PRInt32 res;
+  res = aComparator(aNode, mChildren[0], data);
+  if (res <= 0) {
+    if (aItemExists && res == 0)
+      (*aItemExists) = PR_TRUE;
     return 0;
-  if (aComparator(aNode, mChildren[mChildren.Count() - 1], data) >= 0)
+  }
+  res = aComparator(aNode, mChildren[mChildren.Count() - 1], data);
+  if (res >= 0) {
+    if (aItemExists && res == 0)
+      (*aItemExists) = PR_TRUE;
     return mChildren.Count();
+  }
 
   PRUint32 beginRange = 0; 
   PRUint32 endRange = mChildren.Count(); 
@@ -741,10 +770,15 @@ nsNavHistoryContainerResultNode::FindInsertionPoint(
     if (beginRange == endRange)
       return endRange;
     PRUint32 center = beginRange + (endRange - beginRange) / 2;
-    if (aComparator(aNode, mChildren[center], data) <= 0)
+    PRInt32 res = aComparator(aNode, mChildren[center], data);
+    if (res <= 0) {
       endRange = center; 
-    else
+      if (aItemExists && res == 0)
+        (*aItemExists) = PR_TRUE;
+    }
+    else {
       beginRange = center + 1; 
+    }
   }
 }
 
@@ -787,7 +821,7 @@ PRInt32 nsNavHistoryContainerResultNode::SortComparison_StringLess(
   nsNavHistory* history = nsNavHistory::GetHistoryService();
   NS_ENSURE_TRUE(history, 0);
   nsICollation* collation = history->GetCollation();
-  NS_ENSURE_TRUE(history, 0);
+  NS_ENSURE_TRUE(collation, 0);
 
   PRInt32 res = 0;
   collation->CompareString(nsICollation::kCollationCaseInSensitive, a, b, &res);
@@ -820,18 +854,6 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_TitleLess(
 {
   PRUint32 aType;
   a->GetType(&aType);
-
-  if (aType == nsINavHistoryResultNode::RESULT_TYPE_DAY) {
-    
-    
-    
-    
-    
-    
-    
-    
-    return -ComparePRTime(a->mTime, b->mTime);
-  }
 
   PRInt32 value = SortComparison_StringLess(NS_ConvertUTF8toUTF16(a->mTitle),
                                             NS_ConvertUTF8toUTF16(b->mTitle));
@@ -919,70 +941,6 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_LastModified
     nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure)
 {
   return -nsNavHistoryContainerResultNode::SortComparison_LastModifiedLess(a, b, closure);
-}
-
-
-
-
-PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_CountLess(
-    nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure)
-{
-  PRUint32 count1 = 0;
-  PRUint32 count2 = 0;
-
-  nsresult rv;
-
-  if (a->IsContainer()) {
-    nsNavHistoryResult* result = a->GetResult();
-    nsCOMPtr<nsINavHistoryResultViewer> viewer;
-    if (result) {
-      rv = result->GetViewer(getter_AddRefs(viewer));
-      if (NS_SUCCEEDED(rv))
-        result->SetViewer(nsnull);
-    }
-
-    rv = a->GetAsContainer()->SetContainerOpen(PR_TRUE);
-    if (NS_SUCCEEDED(rv))
-      rv = a->GetAsContainer()->GetChildCount(&count1);
-    if (NS_FAILED(rv))
-      count1 = 0;
-    (void)a->GetAsContainer()->SetContainerOpen(PR_FALSE);
-    if (result && viewer)
-      result->SetViewer(viewer);
-  }
-
-  if (b->IsContainer()) {
-    nsNavHistoryResult* result = a->GetResult();
-    nsCOMPtr<nsINavHistoryResultViewer> viewer;
-    if (result) {
-      rv = result->GetViewer(getter_AddRefs(viewer));
-      if (NS_SUCCEEDED(rv))
-        result->SetViewer(nsnull);
-    }
-
-    rv = b->GetAsContainer()->SetContainerOpen(PR_TRUE);
-    if (NS_SUCCEEDED(rv))
-      rv = b->GetAsContainer()->GetChildCount(&count2);
-    if (NS_FAILED(rv))
-      count2 = 0;
-    (void)b->GetAsContainer()->SetContainerOpen(PR_FALSE);
-    if (result && viewer)
-      result->SetViewer(viewer);
-  }
-
-  PRInt32 value = CompareIntegers(count1, count2);
-  if (value == 0) {
-    value = SortComparison_StringLess(NS_ConvertUTF8toUTF16(a->mTitle),
-                                      NS_ConvertUTF8toUTF16(b->mTitle));
-    if (value == 0)
-      value = nsNavHistoryContainerResultNode::SortComparison_Bookmark(a, b, closure);
-  }
-  return value;
-}
-PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_CountGreater(
-    nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure)
-{
-  return -nsNavHistoryContainerResultNode::SortComparison_CountLess(a, b, closure);
 }
 
 
@@ -1372,7 +1330,8 @@ nsNavHistoryContainerResultNode::InsertChildAt(nsNavHistoryResultNode* aNode,
 
 nsresult
 nsNavHistoryContainerResultNode::InsertSortedChild(
-    nsNavHistoryResultNode* aNode, PRBool aIsTemporary)
+    nsNavHistoryResultNode* aNode, 
+    PRBool aIsTemporary, PRBool aIgnoreDuplicates)
 {
 
   if (mChildren.Count() == 0)
@@ -1395,8 +1354,14 @@ nsNavHistoryContainerResultNode::InsertSortedChild(
 
     nsCAutoString sortingAnnotation;
     GetSortingAnnotation(sortingAnnotation);
-    return InsertChildAt(aNode, FindInsertionPoint(aNode, comparator, sortingAnnotation.get()),
-                         aIsTemporary);
+    PRBool itemExists;
+    PRUint32 position = FindInsertionPoint(aNode, comparator, 
+                                           sortingAnnotation.get(), 
+                                           &itemExists);
+    if (aIgnoreDuplicates && itemExists)
+      return NS_OK;
+
+    return InsertChildAt(aNode, position, aIsTemporary);
   }
   return InsertChildAt(aNode, mChildren.Count(), aIsTemporary);
 }
@@ -1426,7 +1391,8 @@ nsNavHistoryContainerResultNode::EnsureItemPosition(PRUint32 aIndex) {
   nsRefPtr<nsNavHistoryResultNode> node(mChildren[aIndex]);
   mChildren.RemoveObjectAt(aIndex);
 
-  PRUint32 newIndex = FindInsertionPoint(node, comparator,sortAnno.get());
+  PRUint32 newIndex = FindInsertionPoint(
+                          node, comparator,sortAnno.get(), nsnull);
   mChildren.InsertObjectAt(node.get(), newIndex);
 
   nsNavHistoryResult* result = GetResult();
@@ -1437,7 +1403,6 @@ nsNavHistoryContainerResultNode::EnsureItemPosition(PRUint32 aIndex) {
 
   return PR_TRUE;
 }
-
 
 
 
@@ -1628,12 +1593,6 @@ nsNavHistoryContainerResultNode::RecursiveFindURIs(PRBool aOnlyOne,
         if (aOnlyOne)
           return;
       }
-    } else if (nsNavHistoryResultNode::IsTypeQuerySubcontainer(type)) {
-      
-      RecursiveFindURIs(aOnlyOne, aContainer->mChildren[child]->GetAsContainer(),
-                        aSpec, aMatches);
-      if (aOnlyOne && aMatches->Count() > 0)
-        return;
     }
   }
 }
@@ -2078,6 +2037,26 @@ nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
                                                &mHasSearchTerms);
 }
 
+nsNavHistoryQueryResultNode::nsNavHistoryQueryResultNode(
+    const nsACString& aTitle, const nsACString& aIconURI,
+    PRTime aTime,
+    const nsCOMArray<nsNavHistoryQuery>& aQueries,
+    nsNavHistoryQueryOptions* aOptions) :
+  nsNavHistoryContainerResultNode(EmptyCString(), aTitle, aTime, aIconURI,
+                                  nsNavHistoryResultNode::RESULT_TYPE_QUERY,
+                                  PR_TRUE, EmptyCString(), aOptions),
+  mQueries(aQueries),
+  mContentsValid(PR_FALSE),
+  mBatchInProgress(PR_FALSE)
+{
+  NS_ASSERTION(aQueries.Count() > 0, "Must have at least one query");
+
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  NS_ASSERTION(history, "History service missing");
+  mLiveUpdate = history->GetUpdateRequirements(mQueries, mOptions,
+                                               &mHasSearchTerms);
+}
+
 
 
 
@@ -2311,19 +2290,26 @@ nsNavHistoryQueryResultNode::FillChildren()
   
   FillStats();
 
+  PRUint16 sortType = GetSortType();
+
   
   
-  SortComparator comparator = GetSortingComparator(GetSortType());
-  if (comparator) {
-    nsCAutoString sortingAnnotation;
-    GetSortingAnnotation(sortingAnnotation);
-    RecursiveSort(sortingAnnotation.get(), comparator);
+  if (mOptions->QueryType() != nsINavHistoryQueryOptions::QUERY_TYPE_HISTORY ||
+      sortType != nsINavHistoryQueryOptions::SORT_BY_NONE) {
+    
+    
+    SortComparator comparator = GetSortingComparator(GetSortType());
+    if (comparator) {
+      nsCAutoString sortingAnnotation;
+      GetSortingAnnotation(sortingAnnotation);
+      RecursiveSort(sortingAnnotation.get(), comparator);
+    }
   }
 
   
   
   
-  if (mOptions->ApplyOptionsToContainers() && mOptions->MaxResults()) {
+  if (!mParent && mOptions->MaxResults()) {
     while (mChildren.Count() > mOptions->MaxResults())
       mChildren.RemoveObjectAt(mChildren.Count() - 1);
   }
@@ -2517,7 +2503,8 @@ NS_IMETHODIMP
 nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
                                      PRTime aTime, PRInt64 aSessionId,
                                      PRInt64 aReferringId,
-                                     PRUint32 aTransitionType)
+                                     PRUint32 aTransitionType,
+                                     PRUint32* aAdded)
 {
   
   if (mBatchInProgress)
@@ -2529,11 +2516,37 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
   nsresult rv;
   nsRefPtr<nsNavHistoryResultNode> addition;
   switch(mLiveUpdate) {
+
+    case QUERYUPDATE_HOST: {
+      
+      
+      NS_ASSERTION(mQueries.Count() == 1, 
+          "Host updated queries can have only one object");
+      nsCOMPtr<nsNavHistoryQuery> queryHost = 
+          do_QueryInterface(mQueries[0], &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      PRBool hasDomain;
+      queryHost->GetHasDomain(&hasDomain);
+      if (!hasDomain || !queryHost->DomainIsHost())
+        return NS_OK;
+
+      nsCAutoString host;
+      if (NS_FAILED(aURI->GetAsciiHost(host)))
+        return NS_OK;
+
+      if (!queryHost->Domain().Equals(host))
+        return NS_OK;
+
+    } 
+      
     case QUERYUPDATE_TIME: {
       
       
-      NS_ASSERTION(mQueries.Count() == 1, "Time updated queries can have only one object");
-      nsCOMPtr<nsNavHistoryQuery> query = do_QueryInterface(mQueries[0], &rv);
+      NS_ASSERTION(mQueries.Count() == 1, 
+          "Time updated queries can have only one object");
+      nsCOMPtr<nsNavHistoryQuery> query = 
+          do_QueryInterface(mQueries[0], &rv);
       NS_ENSURE_SUCCESS(rv, rv);
 
       PRBool hasIt;
@@ -2555,6 +2568,11 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
       rv = history->VisitIdToResultNode(aVisitId, mOptions,
                                         getter_AddRefs(addition));
       NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      if (!addition)
+          return NS_OK;
+
       break;
     }
     case QUERYUPDATE_SIMPLE: {
@@ -2588,23 +2606,16 @@ nsNavHistoryQueryResultNode::OnVisit(nsIURI* aURI, PRInt64 aVisitId,
   
   
 
-  PRUint32 groupCount;
-  const PRUint16* groupings = mOptions->GroupingMode(&groupCount);
-  nsCOMArray<nsNavHistoryResultNode> grouped;
-  if (groupCount > 0) {
-    
-    
-    nsCOMArray<nsNavHistoryResultNode> itemSource;
-    if (! itemSource.AppendObject(addition))
-      return NS_ERROR_OUT_OF_MEMORY;
-    history->RecursiveGroup(this, itemSource, groupings, groupCount, &grouped);
-  } else {
-    
-    if (! grouped.AppendObject(addition))
-      return NS_ERROR_OUT_OF_MEMORY;
-  }
+  nsCOMArray<nsNavHistoryResultNode> mergerNode;
 
-  MergeResults(&grouped);
+  if (!mergerNode.AppendObject(addition))
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  MergeResults(&mergerNode);
+
+  if (aAdded)
+    (*aAdded)++;
+
   return NS_OK;
 }
 
@@ -2680,7 +2691,7 @@ nsNavHistoryQueryResultNode::OnDeleteURI(nsIURI *aURI)
     NS_ASSERTION(childIndex >= 0, "Child not found in parent");
     parent->RemoveChildAt(childIndex);
 
-    if (parent->mChildren.Count() == 0 && parent->IsQuerySubcontainer()) {
+    if (parent->mChildren.Count() == 0 && parent->IsQuery()) {
       
       
       
@@ -3086,6 +3097,14 @@ nsNavHistoryFolderResultNode::FillChildren()
     nsCAutoString sortingAnnotation;
     GetSortingAnnotation(sortingAnnotation);
     RecursiveSort(sortingAnnotation.get(), comparator);
+  }
+
+  
+  
+  
+  if (!mParent && mOptions->MaxResults()) {
+    while (mChildren.Count() > mOptions->MaxResults())
+      mChildren.RemoveObjectAt(mChildren.Count() - 1);
   }
 
   
@@ -4107,10 +4126,117 @@ nsNavHistoryResult::OnItemMoved(PRInt64 aItemId,
 NS_IMETHODIMP
 nsNavHistoryResult::OnVisit(nsIURI* aURI, PRInt64 aVisitId, PRTime aTime,
                             PRInt64 aSessionId, PRInt64 aReferringId,
-                            PRUint32 aTransitionType)
+                            PRUint32 aTransitionType, PRUint32* aAdded)
 {
+  PRUint32 added = 0;
+
   ENUMERATE_HISTORY_OBSERVERS(OnVisit(aURI, aVisitId, aTime, aSessionId,
-                                      aReferringId, aTransitionType));
+                                      aReferringId, aTransitionType, &added));
+
+  if (!added && mRootNode->mExpanded) {
+    nsresult rv;
+
+    
+    
+    
+    
+    PRUint32 resultType = mRootNode->mOptions->ResultType();
+    nsNavHistoryResultNode * siteRoot = mRootNode;
+    nsCAutoString dateRange;
+
+    
+    if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ||
+        resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY) {
+      nsNavHistory* history = nsNavHistory::GetHistoryService();
+      NS_ENSURE_TRUE(history, 0);
+
+      
+      
+      
+      
+      
+      static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
+
+      dateRange = nsPrintfCString(255,
+        "&beginTime=%lld&endTime=%lld",
+        history->NormalizeTime(
+          nsINavHistoryQuery::TIME_RELATIVE_TODAY, 0),
+        history->NormalizeTime(
+          nsINavHistoryQuery::TIME_RELATIVE_TODAY, USECS_PER_DAY));
+
+      PRBool todayIsMissing = PR_FALSE;
+      PRUint32 childCount;
+      rv = mRootNode->GetChildCount(&childCount);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCAutoString todayLabel;
+      history->GetStringFromName(
+        NS_LITERAL_STRING("finduri-AgeInDays-is-0").get(), todayLabel);
+
+      if (!childCount) {
+        todayIsMissing = PR_TRUE;
+      } else {
+        nsCOMPtr<nsINavHistoryResultNode> firstChild;
+        rv = mRootNode->GetChild(0, getter_AddRefs(firstChild));
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsCAutoString title;
+        rv = firstChild->GetTitle( title);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (todayLabel.Equals(title)) {
+          siteRoot = static_cast<nsNavHistoryResultNode *>(firstChild.get());
+        } else {
+          todayIsMissing = PR_TRUE;
+        }
+      }
+
+      if (todayIsMissing) { 
+        nsCAutoString queryUri;
+        queryUri = nsPrintfCString(255,
+          "place:type=%ld&sort=%ld%s",
+          resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY
+            ?nsINavHistoryQueryOptions::RESULTS_AS_URI
+            :nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY,
+          nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING,
+          dateRange.get());
+
+        nsRefPtr<nsNavHistoryQueryResultNode> todayNode;
+        todayNode = new nsNavHistoryQueryResultNode(todayLabel, 
+                                                    EmptyCString(), queryUri);
+        rv = mRootNode->InsertChildAt( todayNode, 0);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+      if (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY || 
+          todayIsMissing)
+        return NS_OK; 
+    }
+
+    if (siteRoot->IsQuery() && siteRoot->GetAsQuery()->mContentsValid &&
+         (resultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_SITE_QUERY ||
+          resultType == nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY)) {
+      nsCAutoString host;
+      rv = aURI->GetAsciiHost(host);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCAutoString queryUri;
+      queryUri = nsPrintfCString(255,
+        "place:type=%ld&sort=%ld&domain=%s&domainIsHost=true%s",
+        nsINavHistoryQueryOptions::RESULTS_AS_URI,
+        nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING,
+        host.get(),
+        dateRange.get());
+
+      nsRefPtr<nsNavHistoryQueryResultNode> siteNode;
+      siteNode = new nsNavHistoryQueryResultNode(host, EmptyCString(), queryUri);
+      rv = siteRoot->GetAsContainer()->InsertSortedChild(
+               siteNode, PR_FALSE, PR_TRUE);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
   return NS_OK;
 }
 

@@ -94,6 +94,7 @@
 #define QUERYUPDATE_SIMPLE 1
 #define QUERYUPDATE_COMPLEX 2
 #define QUERYUPDATE_COMPLEX_WITH_BOOKMARKS 3
+#define QUERYUPDATE_HOST 4
 
 
 
@@ -110,6 +111,7 @@ class nsNavBookmarks;
 class QueryKeyValuePair;
 class nsIEffectiveTLDService;
 class nsIIDNService;
+class PlacesSQLQueryBuilder;
 
 
 
@@ -126,6 +128,8 @@ class nsNavHistory : public nsSupportsWeakReference,
 {
   friend class AutoCompleteIntermediateResultSet;
   friend class AutoCompleteResultComparator;
+  friend class PlacesSQLQueryBuilder;
+
 public:
   nsNavHistory();
 
@@ -237,6 +241,7 @@ public:
     { return mCollation; }
   nsIDateTimeFormat* GetDateFormatter()
     { return mDateFormatter; }
+  void GetStringFromName(const PRUnichar* aName, nsACString& aResult);
 
   
   PRBool IsHistoryDisabled() { return mExpireDaysMax == 0; }
@@ -319,10 +324,6 @@ public:
   void DomainNameFromURI(nsIURI* aURI,
                          nsACString& aDomainName);
   static PRTime NormalizeTime(PRUint32 aRelative, PRTime aOffset);
-  nsresult RecursiveGroup(nsNavHistoryQueryResultNode *aResultNode,
-                          const nsCOMArray<nsNavHistoryResultNode>& aSource,
-                          const PRUint16* aGroupingMode, PRUint32 aGroupCount,
-                          nsCOMArray<nsNavHistoryResultNode>* aDest);
 
   
   
@@ -455,6 +456,7 @@ protected:
 
 
   nsresult InitDB(PRInt16 *aMadeChanges);
+  nsresult InitFunctions();
   nsresult InitStatements();
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
   nsresult MigrateV3Up(mozIStorageConnection *aDBConn);
@@ -564,14 +566,14 @@ protected:
 
   nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
                                 nsNavHistoryQueryOptions *aOptions,
-                                nsCString &queryString);
+                                nsCString& queryString,
+                                PRBool& aParamsPresent);
 
   nsresult QueryToSelectClause(nsNavHistoryQuery* aQuery,
                                nsNavHistoryQueryOptions* aOptions,
                                PRInt32 aStartParameter,
                                nsCString* aClause,
-                               PRInt32* aParamCount,
-                               const nsACString& aCommonConditions);
+                               PRInt32* aParamCount);
   nsresult BindQueryClauseParameters(mozIStorageStatement* statement,
                                      PRInt32 aStartParameter,
                                      nsNavHistoryQuery* aQuery,
@@ -585,24 +587,9 @@ protected:
   void GetAgeInDaysString(PRInt32 aInt, const PRUnichar *aName, 
                           nsACString& aResult);
 
-  void GetStringFromName(const PRUnichar *aName, nsACString& aResult);
-
   void TitleForDomain(const nsCString& domain, nsACString& aTitle);
 
   nsresult SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle);
-
-  nsresult GroupByDay(nsNavHistoryQueryResultNode *aResultNode,
-                      const nsCOMArray<nsNavHistoryResultNode>& aSource,
-                      nsCOMArray<nsNavHistoryResultNode>* aDest);
-
-  nsresult GroupByHost(nsNavHistoryQueryResultNode *aResultNode,
-                       const nsCOMArray<nsNavHistoryResultNode>& aSource,
-                       nsCOMArray<nsNavHistoryResultNode>* aDest,
-                       PRBool aIsDomain);
-
-  nsresult GroupByFolder(nsNavHistoryQueryResultNode *aResultNode,
-                         const nsCOMArray<nsNavHistoryResultNode>& aSource,
-                         nsCOMArray<nsNavHistoryResultNode>* aDest);
 
   PRBool URIHasTag(const nsACString& aURISpec, const nsAString& aTag);
   PRBool URIHasAnyTagFromTerms(const nsACString& aURISpec, const nsStringArray& aTerms);

@@ -641,6 +641,10 @@ pref("browser.places.migratePostDataAnnotations", true);
 
 
 
+pref("browser.places.updateRecentTagsUri", true);
+
+
+
 pref("places.frecency.numVisits", 10);
 
 

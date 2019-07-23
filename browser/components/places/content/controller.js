@@ -413,6 +413,17 @@ PlacesController.prototype = {
       switch(nodeType) {
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY:
           nodeData["query"] = true;
+          if (node.parent) {
+            switch (asQuery(node.parent).queryOptions.resultType) {
+              case Ci.nsINavHistoryQueryOptions.RESULTS_AS_SITE_QUERY:
+                nodeData["host"] = true;
+                break;
+              case Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY:
+              case Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY:
+                nodeData["day"] = true;
+                break;
+            }
+          }
           break;
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_DYNAMIC_CONTAINER:
           nodeData["dynamiccontainer"] = true;
@@ -420,9 +431,6 @@ PlacesController.prototype = {
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER:
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT:
           nodeData["folder"] = true;
-          break;
-        case Ci.nsINavHistoryResultNode.RESULT_TYPE_HOST:
-          nodeData["host"] = true;
           break;
         case Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR:
           nodeData["separator"] = true;
@@ -442,8 +450,6 @@ PlacesController.prototype = {
               nodeData["livemarkChild"] = true;
           }
           break;
-        case Ci.nsINavHistoryResultNode.RESULT_TYPE_DAY:
-          nodeData["day"] = true;
       }
 
       
@@ -903,14 +909,16 @@ PlacesController.prototype = {
         
         var endDate = node.time;
 
+        var nodeIdx = 0;
+        var cc = root.childCount;
+
         
+        while (nodeIdx < cc && root.getChild(nodeIdx) != node)
+          ++nodeIdx;
+
         
-        for (var j = 0; j < root.childCount-1 && !beginDate; ++j) {
-          if (root.getChild(j) != node)
-            continue;
-          var nextNode = root.getChild(j+1);
-          beginDate = nextNode.time
-        }
+        if (nodeIdx+1 < cc)
+          beginDate = root.getChild(nodeIdx+1).time;
 
         
         bhist.removePagesByTimeframe(beginDate+1, endDate);

@@ -137,6 +137,14 @@ treechildren::-moz-tree-image(query) {
 
 
 
+treechildren::-moz-tree-image(title, query, folder),
+treechildren::-moz-tree-image(title, query, folder, open) {
+  list-style-image: url("chrome://global/skin/tree/folder.png");
+  -moz-image-region: rect(0, 16px, 16px, 0);
+}
+
+
+
 treechildren::-moz-tree-cell-text(date, session-continue) {
   color:white;
 }
