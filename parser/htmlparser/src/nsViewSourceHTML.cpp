@@ -1046,13 +1046,19 @@ void CViewSourceHTML::WriteHrefAttribute(nsTokenAllocator* allocator,
   CreateViewSourceURL(hrefProper, viewSourceUrl);
 
   
-  NS_NAMED_LITERAL_STRING(HREF, "href");
-  if (fullPrecedingText.Length() > 0) {
-    WriteTextInSpan(fullPrecedingText, allocator, EmptyString(), EmptyString());
-  }
-  WriteTextInAnchor(hrefProper, allocator, HREF, viewSourceUrl);
-  if (succeedingText.Length() > 0) {
-    WriteTextInSpan(succeedingText, allocator, EmptyString(), EmptyString());
+  if (viewSourceUrl.IsEmpty()) {
+    nsAutoString equalsHref(kEqual);
+    equalsHref.Append(href);
+    WriteTextInSpan(equalsHref, allocator, EmptyString(), EmptyString());
+  } else {
+    NS_NAMED_LITERAL_STRING(HREF, "href");
+    if (fullPrecedingText.Length() > 0) {
+      WriteTextInSpan(fullPrecedingText, allocator, EmptyString(), EmptyString());
+    }
+    WriteTextInAnchor(hrefProper, allocator, HREF, viewSourceUrl);
+    if (succeedingText.Length() > 0) {
+      WriteTextInSpan(succeedingText, allocator, EmptyString(), EmptyString());
+    }
   }
 }
 
@@ -1062,8 +1068,6 @@ nsresult CViewSourceHTML::CreateViewSourceURL(const nsAString& linkUrl,
   nsCOMPtr<nsIURI> hrefURI;
   nsresult rv;
 
-  
-  
   
   viewSourceUrl.Truncate();
   
@@ -1085,7 +1089,28 @@ nsresult CViewSourceHTML::CreateViewSourceURL(const nsAString& linkUrl,
   hrefURI->GetSpec(absoluteLinkUrl);
 
   
-  viewSourceUrl.AssignLiteral("view-source:");
+  
+  
+  
+  PRBool openingExecutesScript = PR_FALSE;
+  rv = NS_URIChainHasFlags(hrefURI, nsIProtocolHandler::URI_OPENING_EXECUTES_SCRIPT,
+                           &openingExecutesScript);
+  NS_ENSURE_SUCCESS(rv, NS_OK); 
+  if (openingExecutesScript) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  PRBool doesNotReturnData = PR_FALSE;
+  rv = NS_URIChainHasFlags(hrefURI, nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA,
+                           &doesNotReturnData);
+  NS_ENSURE_SUCCESS(rv, NS_OK);  
+  if (!doesNotReturnData) {
+    viewSourceUrl.AssignLiteral("view-source:");    
+  }
+
   viewSourceUrl.AppendWithConversion(absoluteLinkUrl);
 
   return NS_OK;
