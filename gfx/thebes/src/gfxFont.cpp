@@ -1483,13 +1483,47 @@ gfxFontGroup::BuildFontList()
 
     if (mFonts.Length() == 0) {
         PRBool needsBold;
-        gfxFontEntry *defaultFont = 
-            gfxPlatformFontList::PlatformFontList()->GetDefaultFont(&mStyle, needsBold);
+        gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
+        gfxFontEntry *defaultFont = pfl->GetDefaultFont(&mStyle, needsBold);
         NS_ASSERTION(defaultFont, "invalid default font returned by GetDefaultFont");
 
-        nsRefPtr<gfxFont> font = defaultFont->FindOrMakeFont(&mStyle, needsBold);
-        if (font) {
-            mFonts.AppendElement(font);
+        if (defaultFont) {
+            nsRefPtr<gfxFont> font = defaultFont->FindOrMakeFont(&mStyle,
+                                                                 needsBold);
+            if (font) {
+                mFonts.AppendElement(font);
+            }
+        }
+
+        if (mFonts.Length() == 0) {
+            
+            
+            
+            
+            
+            nsAutoTArray<nsRefPtr<gfxFontFamily>,200> families;
+            pfl->GetFontFamilyList(families);
+            for (PRUint32 i = 0; i < families.Length(); ++i) {
+                gfxFontEntry *fe = families[i]->FindFontForStyle(mStyle,
+                                                                 needsBold);
+                if (fe) {
+                    nsRefPtr<gfxFont> font = fe->FindOrMakeFont(&mStyle,
+                                                                needsBold);
+                    if (font) {
+                        mFonts.AppendElement(font);
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (mFonts.Length() == 0) {
+            
+            
+            char msg[256]; 
+            sprintf(msg, "unable to find a usable font (%.220s)",
+                    NS_ConvertUTF16toUTF8(mFamilies).get());
+            NS_RUNTIMEABORT(msg);
         }
     }
 
