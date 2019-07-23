@@ -2140,6 +2140,9 @@ protected:
     PRPackedBool mSawBeforeType;
     
     PRPackedBool mLastCharWasPunctuation;
+    
+    
+    nsAutoString mContext;
 
     PeekWordState() : mAtStart(PR_TRUE), mSawBeforeType(PR_FALSE),
         mLastCharWasPunctuation(PR_FALSE) {}
