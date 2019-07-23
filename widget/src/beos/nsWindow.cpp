@@ -1258,31 +1258,6 @@ NS_METHOD nsWindow::SetBackgroundColor(const nscolor &aColor)
 
 
 
-nsIFontMetrics* nsWindow::GetFont(void)
-{
-	return mFontMetrics;
-}
-
-
-
-
-
-
-
-NS_METHOD nsWindow::SetFont(const nsFont &aFont)
-{
-  
-	NS_IF_RELEASE(mFontMetrics);
-	if (mContext)
-		mContext->GetMetricsFor(aFont, mFontMetrics);
-	return NS_OK;
-}
-
-
-
-
-
-
 
 
 NS_METHOD nsWindow::SetCursor(nsCursor aCursor)

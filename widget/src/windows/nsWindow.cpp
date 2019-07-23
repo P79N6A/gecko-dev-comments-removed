@@ -796,7 +796,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mLastPoint.y        = 0;
   mPreferredWidth     = 0;
   mPreferredHeight    = 0;
-  mFont               = nsnull;
   mIsVisible          = PR_FALSE;
   mHas3DBorder        = PR_FALSE;
 #ifdef MOZ_XUL
@@ -890,9 +889,6 @@ nsWindow::~nsWindow()
   if (NULL != mWnd) {
     Destroy();
   }
-
-  
-  delete mFont;
 
   if (mCursor == -1) {
     
@@ -2391,52 +2387,6 @@ NS_METHOD nsWindow::SetBackgroundColor(const nscolor &aColor)
 #endif
   return NS_OK;
 }
-
-
-
-
-
-
-
-nsIFontMetrics* nsWindow::GetFont(void)
-{
-  NS_NOTYETIMPLEMENTED("GetFont not yet implemented"); 
-  return NULL;
-}
-
-
-
-
-
-
-
-NS_METHOD nsWindow::SetFont(const nsFont &aFont)
-{
-  
-  if (mFont == nsnull) {
-    mFont = new nsFont(aFont);
-  } else {
-    *mFont  = aFont;
-  }
-
-  
-  if (nsnull == mContext) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsIFontMetrics* metrics;
-  mContext->GetMetricsFor(aFont, metrics);
-  nsFontHandle  fontHandle;
-  metrics->GetFontHandle(fontHandle);
-  HFONT hfont = (HFONT)fontHandle;
-
-  
-  ::SendMessageW(mWnd, WM_SETFONT, (WPARAM)hfont, (LPARAM)0);
-  NS_RELEASE(metrics);
-
-  return NS_OK;
-}
-
 
 
 

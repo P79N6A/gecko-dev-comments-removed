@@ -624,22 +624,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual nsIFontMetrics* GetFont(void) = 0;
-
-    
-
-
-
-
-
-    NS_IMETHOD SetFont(const nsFont &aFont) = 0;
-
-    
-
-
-
-
-
     virtual nsCursor GetCursor(void) = 0;
 
     
