@@ -5229,7 +5229,8 @@ nsBlockInFlowLineIterator::Prev()
   }
 }
 
-static nsresult RemoveBlockChild(nsIFrame* aFrame, PRBool aDestroyFrames)
+static nsresult RemoveBlockChild(nsIFrame* aFrame, PRBool aDestroyFrames,
+                                 PRBool aRemoveOnlyFluidContinuations)
 {
   if (!aFrame)
     return NS_OK;
@@ -5238,7 +5239,8 @@ static nsresult RemoveBlockChild(nsIFrame* aFrame, PRBool aDestroyFrames)
   NS_ASSERTION(nextBlock->GetType() == nsGkAtoms::blockFrame ||
                nextBlock->GetType() == nsGkAtoms::areaFrame,
                "Our child's continuation's parent is not a block?");
-  return nextBlock->DoRemoveFrame(aFrame, aDestroyFrames);
+  return nextBlock->DoRemoveFrame(aFrame, aDestroyFrames,
+                                  aRemoveOnlyFluidContinuations);
 }
 
 
@@ -5295,7 +5297,8 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRBool aDestroyFrames,
       } else {
         aDeletedFrame->SetNextSibling(nsnull);
       }
-      return RemoveBlockChild(nif, aDestroyFrames);
+      return RemoveBlockChild(nif, aDestroyFrames,
+                              aRemoveOnlyFluidContinuations);
     }
   }
   
@@ -5455,7 +5458,8 @@ found_frame:;
       
       
       if (isPlaceholder) {
-        return RemoveBlockChild(deletedNextContinuation, aDestroyFrames);
+        return RemoveBlockChild(deletedNextContinuation, aDestroyFrames,
+                                aRemoveOnlyFluidContinuations);
       }
 
       
@@ -5504,7 +5508,8 @@ found_frame:;
 #endif
 
   
-  return RemoveBlockChild(aDeletedFrame, aDestroyFrames);
+  return RemoveBlockChild(aDeletedFrame, aDestroyFrames,
+                          aRemoveOnlyFluidContinuations);
 }
 
 nsresult
