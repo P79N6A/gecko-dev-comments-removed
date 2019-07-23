@@ -1161,7 +1161,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       nsCOMPtr<nsPIDOMWindow> win = mDocument->GetWindow();
 
       if (!win) {
-        NS_ERROR("win is null.  this happens [often on xlib builds].  see bug #79213");
+        
         return NS_ERROR_NULL_POINTER;
       }
 
@@ -4982,6 +4982,16 @@ nsEventStateManager::GetDocSelectionLocation(nsIContent **aStartContent,
   if (startContent) {
     startFrame = shell->GetPrimaryFrameFor(startContent);
     if (isCollapsed) {
+      
+      
+      
+      
+      nsIContent *parentContent = startContent;
+      while ((parentContent = parentContent->GetParent()) != nsnull) {
+        if (parentContent->Tag() == nsGkAtoms::label) {
+          return NS_OK; 
+        }
+      }
       
       
       
