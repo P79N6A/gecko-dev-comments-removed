@@ -128,8 +128,8 @@ typedef struct JSTraceMonitor {
     uint32                  globalShape;
     CLS(SlotList)           globalSlots;
     CLS(TypeMap)            globalTypeMap;
-    jsval                   *recoveryDoublePool;
-    jsval                   *recoveryDoublePoolPtr;
+    jsval                   *reservedDoublePool;
+    jsval                   *reservedDoublePoolPtr;
 
     
 
