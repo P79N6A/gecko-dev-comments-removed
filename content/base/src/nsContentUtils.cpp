@@ -3591,7 +3591,7 @@ nsContentUtils::CreateContextualFragment(nsIDOMNode* aContextNode,
   nsCOMPtr<nsIHTMLDocument> htmlDoc(do_QueryInterface(document));
   PRBool bHTML = htmlDoc && !bCaseSensitive;
 
-  if (bHTML && nsContentUtils::GetBoolPref("html5.enable", PR_TRUE)) {
+  if (bHTML && nsContentUtils::GetBoolPref("html5.enable", PR_FALSE)) {
     
     
     nsCOMPtr<nsIParser> parser = document->GetFragmentParser();

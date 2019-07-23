@@ -614,12 +614,7 @@ pref("network.http.default-socket-type", "");
 
 pref("network.http.keep-alive", true); 
 pref("network.http.proxy.keep-alive", true);
-
-
-
-
-
-pref("network.http.keep-alive.timeout", 115);
+pref("network.http.keep-alive.timeout", 300);
 
 
 pref("network.http.max-connections", 30);
@@ -2713,11 +2708,6 @@ pref("signon.autofillForms",                true);
 pref("signon.debug",                        false); 
 
 
-pref("browser.formfill.enable",     true);
-pref("browser.formfill.debug",      false);
-
-
-
 pref("browser.zoom.full", false);
 pref("zoom.minPercent", 30);
 pref("zoom.maxPercent", 300);
@@ -2743,3 +2733,6 @@ pref("mozilla.widget.disable-native-theme", true);
 
 
 pref("geo.enabled", true);
+
+
+pref("html5.enable", false);
