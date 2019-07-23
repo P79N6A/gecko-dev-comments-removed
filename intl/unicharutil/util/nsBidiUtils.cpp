@@ -27,7 +27,7 @@
 
 #define FE_TO_06_OFFSET 0xfe70
 
-static PRUnichar FE_TO_06 [][2] = {
+static const PRUnichar FE_TO_06 [][2] = {
     {0x064b,0x0000},{0x064b,0x0640},{0x064c,0x0000},
     {0x0000,0x0000},{0x064d,0x0000},{0x0000,0x0000},
     {0x064e,0x0000},{0x064e,0x0640},{0x064f,0x0000},
@@ -77,7 +77,7 @@ static PRUnichar FE_TO_06 [][2] = {
     {0x0644,0x0625},{0x0644,0x0627},{0x0644,0x0627}
 };
 
-static PRUnichar FB_TO_06 [] = {
+static const PRUnichar FB_TO_06 [] = {
     0x0671,0x0671,0x067B,0x067B,0x067B,0x067B,0x067E,0x067E, 
     0x067E,0x067E,0x0680,0x0680,0x0680,0x0680,0x067A,0x067A, 
     0x067A,0x067A,0x067F,0x067F,0x067F,0x067F,0x0679,0x0679, 
@@ -110,19 +110,19 @@ static PRUnichar FB_TO_06 [] = {
 
 
 
-static PRUint8 gArabicMap1[] = {
+static const PRUint8 gArabicMap1[] = {
             0x81, 0x83, 0x85, 0x87, 0x89, 0x8D, 
 0x8F, 0x93, 0x95, 0x99, 0x9D, 0xA1, 0xA5, 0xA9, 
 0xAB, 0xAD, 0xAF, 0xB1, 0xB5, 0xB9, 0xBD, 0xC1, 
 0xC5, 0xC9, 0xCD                                
 };
 
-static PRUint8 gArabicMap2[] = {
+static const PRUint8 gArabicMap2[] = {
       0xD1, 0xD5, 0xD9, 0xDD, 0xE1, 0xE5, 0xE9, 
 0xED, 0xEF, 0xF1                                
 };
 
-static PRUint8 gArabicMapEx[] = {
+static const PRUint8 gArabicMapEx[] = {
       0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 0x00, 0x66, 0x5E, 0x52, 0x00, 0x00, 0x56, 0x62, 
 0x5A, 0x00, 0x00, 0x76, 0x72, 0x00, 0x7A, 0x7E, 
@@ -145,13 +145,15 @@ static PRUint8 gArabicMapEx[] = {
         (0xFE00|(gArabicMap2[(c)-0x0641] + (form))) :                    \
          (((0x0671<=(c)) && ((c))<=0x06D3) && gArabicMapEx[(c)-0x0671]) ? \
           (0xFB00|(gArabicMapEx[(c)-0x0671] + (form))) : (c)))
-enum {
+
+typedef enum {
    eIsolated,  
    eFinal,     
    eInitial,   
    eMedial     
 } eArabicForm;
-enum {
+
+typedef enum {
    eTr = 0, 
    eRJ = 1, 
    eLJ = 2, 
@@ -179,7 +181,7 @@ enum {
 
 
 
-static PRInt8 gJoiningClass[] = {
+static const PRInt8 gJoiningClass[] = {
           eNJ, eRJ, eRJ, eRJ, eRJ, eDJ, eRJ, 
 eDJ, eRJ, eDJ, eDJ, eDJ, eDJ, eDJ, eRJ, 
 eRJ, eRJ, eRJ, eDJ, eDJ, eDJ, eDJ, eDJ, 
@@ -215,7 +217,7 @@ eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ, eNJ
        (gJoiningClass[(c) - 0x0621]) :       \
       ((0x200D == (c)) ? eJC : eTr))
 
-static PRUint16 gArabicLigatureMap[] = 
+static const PRUint16 gArabicLigatureMap[] = 
 {
 0x82DF, 
 0x82E0, 
@@ -238,7 +240,7 @@ static PRUint16 gArabicLigatureMap[] =
    (c))
 
 
-void ReverseString(PRUnichar* aBuffer, PRUint32 aLen)
+static void ReverseString(PRUnichar* aBuffer, PRUint32 aLen)
 {
   PRUnichar *start, *end;
   PRUnichar swapChar;
