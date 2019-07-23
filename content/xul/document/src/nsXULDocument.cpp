@@ -219,7 +219,7 @@ nsXULDocument::~nsXULDocument()
 
     
     if (mBroadcasterMap) {
-        NS_ASSERTION(mBroadcasterMap->entryCount == 0, "Leaking BroadcastListeners");
+        NS_WARN_IF_FALSE(mBroadcasterMap->entryCount == 0, "Leaking BroadcastListeners");
         PL_DHashTableDestroy(mBroadcasterMap);
     }
 
