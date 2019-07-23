@@ -94,7 +94,8 @@ public:
 #ifdef MOZ_IPC
   
   
-  void PluginCrashed();
+  
+  void PluginCrashed(const nsAString& dumpID);
 #endif
 
 protected:
