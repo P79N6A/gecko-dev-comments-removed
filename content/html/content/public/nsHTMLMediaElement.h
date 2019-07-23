@@ -40,39 +40,14 @@
 #include "nsMediaDecoder.h"
 #include "nsIChannel.h"
 #include "nsThreadUtils.h"
+#include "nsIDOMRange.h"
+#include "nsCycleCollectionParticipant.h"
 
 
 
 
 typedef PRUint16 nsMediaNetworkState;
 typedef PRUint16 nsMediaReadyState;
-
-
-
-
-
-class nsMediaLoad : public nsISupports
-{
-public:
-  NS_DECL_ISUPPORTS
-  nsMediaLoad() : mPosition(0) {}
-  ~nsMediaLoad() {}
-
-  
-  
-  void AddCandidate(nsIURI *aURI);
-
-  
-  already_AddRefed<nsIURI> GetNextCandidate();
-
-  PRBool HasMoreCandidates() { return mPosition < mCandidates.Count(); }
-private:
-  
-  nsCOMArray<nsIURI> mCandidates;
-
-  
-  PRInt32 mPosition;
-};
 
 class nsHTMLMediaElement : public nsGenericHTMLElement
 {
@@ -92,6 +67,11 @@ public:
 
   
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLMediaElement,
+                                           nsGenericHTMLElement)
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
                                 nsIAtom* aAttribute,
@@ -226,6 +206,12 @@ public:
 
   void NotifyAddedSource();
 
+  
+
+
+
+  void NotifyLoadError();
+
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
 
   
@@ -233,37 +219,33 @@ public:
 
 
 
-
-  nsMediaLoad* GetCurrentMediaLoad() { return mCurrentLoad; }
+  PRUint32 GetCurrentLoadID() { return mCurrentLoadID; }
 
 
 protected:
   class MediaLoadListener;
-  class LoadNextCandidateEvent;
+  class LoadNextSourceEvent;
+  class SelectResourceEvent;
 
-  
-
-
-
-  nsresult PickMediaElement(nsIURI** aURI);
   
 
 
 
   PRBool CreateDecoder(const nsACString& aMIMEType);
+
   
 
 
 
   nsresult InitializeDecoderForChannel(nsIChannel *aChannel,
                                        nsIStreamListener **aListener);
+
   
 
 
 
 
-
-  PRBool AbortExistingLoads();
+  void AbortExistingLoads();
 
   
 
@@ -274,26 +256,41 @@ protected:
 
 
 
+
   void NoSupportedMediaError();
 
   
-  
-  
-  
-  
-  void LoadNextCandidate();
+
+
+
+
+  void LoadFromSourceChildren();
 
   
-  void GenerateCandidates();
+
+
+  void QueueLoadFromSourceTask();
+ 
+  
+
+
+  void SelectResource();
 
   
-  
-  
-  void QueueLoadTask();
+
+
+  void QueueSelectResourceTask();
 
   
+
+
+  nsresult LoadResource(nsIURI* aURI);
+
   
-  void QueueLoadNextCandidateTask();
+
+
+
+  already_AddRefed<nsIURI> GetNextSource();
 
   nsRefPtr<nsMediaDecoder> mDecoder;
 
@@ -304,12 +301,32 @@ protected:
 
   
   
-  nsRefPtr<nsMediaLoad> mCurrentLoad;
+  
+  PRUint32 mCurrentLoadID;
+
+  
+  
+  nsCOMPtr<nsIDOMRange> mSourcePointer;
 
   
   
   nsMediaNetworkState mNetworkState;
   nsMediaReadyState mReadyState;
+
+  enum LoadAlgorithmState {
+    
+    NOT_WAITING,
+    
+    WAITING_FOR_SRC_OR_SOURCE, 
+    
+    
+    
+    WAITING_FOR_SOURCE 
+  };
+  
+  
+  
+  LoadAlgorithmState mLoadWaitStatus;
 
   
   float mVolume;
@@ -369,4 +386,10 @@ protected:
 
   
   PRPackedBool mIsBindingToTree;
+
+  
+  PRPackedBool mIsRunningLoadMethod;
+
+  
+  PRPackedBool mIsLoadingFromSrcAttribute;
 };
