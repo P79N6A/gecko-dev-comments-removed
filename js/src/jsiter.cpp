@@ -396,11 +396,14 @@ js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp)
 
 
 
-
-
-            iterobj = js_NewObject(cx, &js_IteratorClass, NULL, NULL);
-            if (!iterobj)
-                return false;
+            iterobj = JS_THREAD_DATA(cx)->cachedIteratorObject;
+            if (iterobj) {
+                JS_THREAD_DATA(cx)->cachedIteratorObject = NULL;
+            } else {
+                iterobj = js_NewObjectWithGivenProto(cx, &js_IteratorClass, NULL, NULL);
+                if (!iterobj)
+                    return false;
+            }
 
             
             *vp = OBJECT_TO_JSVAL(iterobj);
@@ -434,6 +437,7 @@ js_CloseIterator(JSContext *cx, jsval v)
 
     if (clasp == &js_IteratorClass) {
         js_CloseNativeIterator(cx, obj);
+        JS_THREAD_DATA(cx)->cachedIteratorObject = obj;
     }
 #if JS_HAS_GENERATORS
     else if (clasp == &js_GeneratorClass) {
