@@ -87,6 +87,10 @@ var _fromByTestLists =
 
 var gFromByBundles =
 [
+  
+  new TestcaseBundle(gPropList.cursor, [
+    new AnimTestcaseFromBy("crosshair", "move"),
+  ]),
   new TestcaseBundle(gPropList.fill, [].concat(_fromByTestLists.color,
                                                _fromByTestLists.paint)),
   

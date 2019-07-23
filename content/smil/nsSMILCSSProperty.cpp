@@ -206,16 +206,12 @@ nsSMILCSSProperty::IsPropertyAnimatable(nsCSSProperty aPropID)
       
       return PR_FALSE;
 
-    
-    
-    
-    
     case eCSSProperty_clip_rule:
     case eCSSProperty_clip_path:
     case eCSSProperty_color:
     case eCSSProperty_color_interpolation:
     case eCSSProperty_color_interpolation_filters:
-    
+    case eCSSProperty_cursor:
     case eCSSProperty_display:
     case eCSSProperty_dominant_baseline:
     case eCSSProperty_fill:
