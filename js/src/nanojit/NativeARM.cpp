@@ -270,18 +270,30 @@ Assembler::asm_call(LInsp ins)
 }
 
 void
-Assembler::nMarkExecute(Page* page, int32_t count, bool enable)
+Assembler::nMarkExecute(Page* page, int flags)
 {
+	NanoAssert(sizeof(Page) == NJ_PAGE_SIZE);
 #ifdef UNDER_CE
+	static const DWORD kProtFlags[4] = 
+	{
+		PAGE_READONLY,			
+		PAGE_READWRITE,			
+		PAGE_EXECUTE_READ,		
+		PAGE_EXECUTE_READWRITE	
+	};
+	DWORD prot = kProtFlags[flags & (PAGE_WRITE|PAGE_EXEC)];
     DWORD dwOld;
-    VirtualProtect(page, NJ_PAGE_SIZE, PAGE_EXECUTE_READWRITE, &dwOld);
+    BOOL res = VirtualProtect(page, NJ_PAGE_SIZE, prot, &dwOld);
+	if (!res)
+	{
+		
+		NanoAssertMsg(false, "FATAL ERROR: VirtualProtect() failed\n");
+	}
 #endif
 #ifdef AVMPLUS_PORTING_API
-    NanoJIT_PortAPI_MarkExecutable(page, (void*)((int32_t)page+count));
+    NanoJIT_PortAPI_MarkExecutable(page, (void*)((char*)page+NJ_PAGE_SIZE), flags);
+    
 #endif
-    (void)page;
-    (void)count;
-    (void)enable;
 }
 
 Register

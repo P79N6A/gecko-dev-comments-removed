@@ -320,13 +320,21 @@ namespace nanojit
             void        reserveSavedRegs();
             void        assignParamRegs();
             void        handleLoopCarriedExprs();
-
+			
+			
+			enum 
+			{
+				PAGE_READ = 0x0,	
+				PAGE_WRITE = 0x01,
+				PAGE_EXEC = 0x02
+			};
+			
 			
 			void		nInit(uint32_t flags);
 			void		nInit(AvmCore *);
 			Register	nRegisterAllocFromSet(int32_t set);
 			void		nRegisterResetAll(RegAlloc& a);
-			void		nMarkExecute(Page* page, int32_t count=1, bool enable=true);
+			void		nMarkExecute(Page* page, int flags);
 			void		nFrameRestore(RegisterMask rmask);
 			NIns*    	nPatchBranch(NIns* branch, NIns* location);
 			void		nFragExit(LIns* guard);
