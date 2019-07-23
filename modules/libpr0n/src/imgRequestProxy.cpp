@@ -263,8 +263,20 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
   mCanceled = PR_TRUE;
 
   
+  PRBool oldIsInLoadGroup = mIsInLoadGroup;
+  mIsInLoadGroup = PR_FALSE;
+  
+  
   
   mOwner->RemoveProxy(this, aStatus, PR_FALSE);
+
+  mIsInLoadGroup = oldIsInLoadGroup;
+
+  if (mIsInLoadGroup) {
+    nsCOMPtr<nsIRunnable> ev =
+      NS_NEW_RUNNABLE_METHOD(imgRequestProxy, this, DoRemoveFromLoadGroup);
+    NS_DispatchToCurrentThread(ev);
+  }
 
   NullOutListener();
 
