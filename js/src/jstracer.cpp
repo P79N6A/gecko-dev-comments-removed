@@ -4143,6 +4143,7 @@ TraceRecorder::call_imacro(jsbytecode* imacro)
 
     JS_ASSERT(!fp->imacpc);
     fp->imacpc = regs->pc;
+    fp->flags |= JSFRAME_IMACRO_START;
     regs->pc = imacro;
     atoms = COMMON_ATOMS_START(&cx->runtime->atomState);
     return false;
@@ -4378,9 +4379,10 @@ TraceRecorder::cmp(LOpcode op, int flags)
             (JSVAL_TAG(l) == JSVAL_BOOLEAN || JSVAL_TAG(r) == JSVAL_BOOLEAN)) {
             x = INS_CONST(negate);
             cond = negate;
-        } else if (!JSVAL_IS_STRING(l) || !JSVAL_IS_STRING(r)) {
-            ABORT_TRACE("unsupported type for cmp vs string");
         } else {
+            if (!JSVAL_IS_STRING(l) || !JSVAL_IS_STRING(r))
+                ABORT_TRACE("unsupported type for cmp vs string");
+
             LIns* args[] = { r_ins, l_ins };
             if (op == LIR_feq)
                 l_ins = lir->ins_eq0(lir->insCall(&js_EqualStrings_ci, args));

@@ -471,15 +471,22 @@ public:
 
 
 
+
+
+
+
+
+
 #define RECORD_ARGS(x,args)                                                   \
     JS_BEGIN_MACRO                                                            \
         if (!js_MonitorRecording(TRACE_RECORDER(cx))) {                       \
             ENABLE_TRACER(0);                                                 \
         } else {                                                              \
             TRACE_ARGS_(x, args,                                              \
-                if (fp->imacpc &&                                             \
+                if ((fp->flags & JSFRAME_IMACRO_START) &&                     \
                     (x == JSOP_ITER || x == JSOP_NEXTITER ||                  \
                     JSOP_IS_BINARY(x))) {                                     \
+                    fp->flags &= ~JSFRAME_IMACRO_START;                       \
                     atoms = COMMON_ATOMS_START(&rt->atomState);               \
                     op = JSOp(*regs.pc);                                      \
                     DO_OP();                                                  \
