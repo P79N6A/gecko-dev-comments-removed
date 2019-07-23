@@ -470,6 +470,7 @@ protected:
 
   static BOOL   sIsRegistered;
   static BOOL   sIsPopupClassRegistered;
+  static BOOL   sIsOleInitialized; 
 
   HDWP mDeferredPositioner;
   static UINT   uWM_MSIME_MOUSE;     
