@@ -49,12 +49,13 @@
 #include "nsEmbedCID.h"
 #include "mozStoragePrivateHelpers.h"
 #include "nsIXPConnect.h"
+#include "nsIObserverService.h"
 
 #include "sqlite3.h"
 
 #include "nsIPromptService.h"
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(mozStorageService, mozIStorageService)
+NS_IMPL_THREADSAFE_ISUPPORTS2(mozStorageService, mozIStorageService, nsIObserver)
 
 mozStorageService *mozStorageService::gStorageService = nsnull;
 
@@ -93,19 +94,19 @@ mozStorageService::GetSingleton()
     return gStorageService;
 }
 
-nsIXPConnect *mozStorageService::sXPConnect = nsnull;
-
-nsIXPConnect *
+already_AddRefed<nsIXPConnect>
 mozStorageService::XPConnect()
 {
-  NS_ASSERTION(gStorageService,
-               "Can not get XPConnect without an instance of our service!");
+    NS_ASSERTION(gStorageService,
+                 "Can not get XPConnect without an instance of our service!");
 
-  if (!sXPConnect) {
-    (void)CallGetService(nsIXPConnect::GetCID(), &sXPConnect);
-    NS_ASSERTION(sXPConnect, "Could not get XPConnect!");
-  }
-  return sXPConnect;
+    
+    
+    nsCOMPtr<nsIXPConnect> xpc(sXPConnect);
+    if (!xpc)
+        xpc = do_GetService(nsIXPConnect::GetCID());
+    NS_ASSERTION(xpc, "Could not get XPConnect!");
+    return xpc.forget();
 }
 
 mozStorageService::~mozStorageService()
@@ -115,13 +116,18 @@ mozStorageService::~mozStorageService()
     int rc = sqlite3_shutdown();
     if (rc != SQLITE_OK)
         NS_WARNING("sqlite3 did not shutdown cleanly.");
-    
+
     gStorageService = nsnull;
     PR_DestroyLock(mLock);
-
-    NS_IF_RELEASE(sXPConnect);
-    sXPConnect = nsnull;
 }
+
+void
+mozStorageService::Shutdown()
+{
+    NS_IF_RELEASE(sXPConnect);
+}
+
+nsIXPConnect *mozStorageService::sXPConnect = nsnull;
 
 nsresult
 mozStorageService::Init()
@@ -129,14 +135,14 @@ mozStorageService::Init()
     mLock = PR_NewLock();
     if (!mLock)
         return NS_ERROR_OUT_OF_MEMORY;
-    
+
     
     
     
     int rc = sqlite3_config(SQLITE_CONFIG_MEMSTATUS, 0);
     if (rc != SQLITE_OK)
         return ConvertResultCode(rc);
-    
+
     
     
     
@@ -153,8 +159,19 @@ mozStorageService::Init()
     if (rc != SQLITE_OK)
         return ConvertResultCode(rc);
 
-    return NS_OK;
+    nsCOMPtr<nsIObserverService> os =
+        do_GetService("@mozilla.org/observer-service;1");
+    NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
+
+    nsresult rv = os->AddObserver(this, "xpcom-shutdown", PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    (void)CallGetService(nsIXPConnect::GetCID(), &sXPConnect);
 }
+
+
+
 
 #ifndef NS_APP_STORAGE_50_FILE
 #define NS_APP_STORAGE_50_FILE "UStor"
@@ -289,3 +306,13 @@ mozStorageService::BackupDatabaseFile(nsIFile *aDBFile,
     return aDBFile->CopyTo(parentDir, fileName);
 }
 
+
+
+
+NS_IMETHODIMP
+mozStorageService::Observe(nsISupports *, const char *aTopic, const PRUnichar *)
+{
+    if (strcmp(aTopic, "xpcom-shutdown") == 0)
+        Shutdown();
+    return NS_OK;
+}

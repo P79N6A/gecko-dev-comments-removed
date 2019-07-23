@@ -45,7 +45,6 @@
 #include "nsCOMPtr.h"
 #include "nsIFile.h"
 #include "nsIObserver.h"
-#include "nsIObserverService.h"
 #include "prlock.h"
 
 #include "mozIStorageService.h"
@@ -54,6 +53,7 @@ class mozStorageConnection;
 class nsIXPConnect;
 
 class mozStorageService : public mozIStorageService
+                        , public nsIObserver
 {
     friend class mozStorageConnection;
 
@@ -63,16 +63,15 @@ public:
 
     static mozStorageService *GetSingleton();
 
-    
     NS_DECL_ISUPPORTS
-
-    
     NS_DECL_MOZISTORAGESERVICE
+    NS_DECL_NSIOBSERVER
 
     
 
 
-    static nsIXPConnect *XPConnect();
+
+    static already_AddRefed<nsIXPConnect> XPConnect();
 private:
     virtual ~mozStorageService();
 
@@ -81,6 +80,11 @@ private:
 
 
     PRLock *mLock;
+
+    
+
+
+    void Shutdown();
 protected:
     nsCOMPtr<nsIFile> mProfileStorageFile;
 
