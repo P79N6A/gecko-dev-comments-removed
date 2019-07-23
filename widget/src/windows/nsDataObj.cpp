@@ -1745,6 +1745,8 @@ nsDataObj::ExtractUniformResourceLocatorW(FORMATETC& aFE, STGMEDIUM& aSTG )
 nsresult nsDataObj::GetDownloadDetails(nsIURI **aSourceURI,
                                        nsAString &aFilename)
 {
+  *aSourceURI = nsnull;
+
   NS_ENSURE_TRUE(mTransferable, NS_ERROR_FAILURE);
 
   
@@ -1754,42 +1756,37 @@ nsresult nsDataObj::GetDownloadDetails(nsIURI **aSourceURI,
   nsCOMPtr<nsISupportsString> srcUrlPrimitive = do_QueryInterface(urlPrimitive);
   NS_ENSURE_TRUE(srcUrlPrimitive, NS_ERROR_FAILURE);
   
-  
-  
-  nsAutoString strData;
-  srcUrlPrimitive->GetData(strData);
-  if (strData.IsEmpty())
+  nsAutoString srcUri;
+  srcUrlPrimitive->GetData(srcUri);
+  if (srcUri.IsEmpty())
     return NS_ERROR_FAILURE;
-
-  
-  
-  
-  nsCAutoString strFileName;
   nsCOMPtr<nsIURI> sourceURI;
-  
-  PRInt32 nPos = strData.FindChar('\n');
-  
-  NS_NewURI(aSourceURI, Substring(strData, 0, nPos));
-  if (nPos != -1) {
-    
-    CopyUTF16toUTF8(Substring(strData, nPos + 1, strData.Length()), strFileName);
+  NS_NewURI(getter_AddRefs(sourceURI), srcUri);
+
+  nsAutoString srcFileName;
+  nsCOMPtr<nsISupports> fileNamePrimitive;
+  mTransferable->GetTransferData(kFilePromiseDestFilename, getter_AddRefs(fileNamePrimitive), &dataSize);
+  nsCOMPtr<nsISupportsString> srcFileNamePrimitive = do_QueryInterface(fileNamePrimitive);
+  if (srcFileNamePrimitive) {
+    srcFileNamePrimitive->GetData(srcFileName);
   } else {
+    nsCOMPtr<nsIURL> sourceURL = do_QueryInterface(sourceURI);
+    if (!sourceURL)
+      return NS_ERROR_FAILURE;
     
-    nsCOMPtr<nsIURL> sourceURL = do_QueryInterface(*aSourceURI);
-    sourceURL->GetFileName(strFileName);
+    nsCAutoString urlFileName;
+    sourceURL->GetFileName(urlFileName);
+    NS_UnescapeURL(urlFileName);
+    CopyUTF8toUTF16(urlFileName, srcFileName);
   }
-  
-  if (strFileName.IsEmpty())
+  if (srcFileName.IsEmpty())
     return NS_ERROR_FAILURE;
 
-  NS_UnescapeURL(strFileName);
-  NS_ConvertUTF8toUTF16 wideFileName(strFileName);
-
   
-  MangleTextToValidFilename(wideFileName);
+  MangleTextToValidFilename(srcFileName);
 
-  aFilename = wideFileName;
-
+  sourceURI.swap(*aSourceURI);
+  aFilename = srcFileName;
   return NS_OK;
 }
 
