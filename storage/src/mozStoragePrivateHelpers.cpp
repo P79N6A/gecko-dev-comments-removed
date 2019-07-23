@@ -92,6 +92,12 @@ convertResultCode(int aSQLiteResultCode)
   }
 
   
+#ifdef DEBUG
+  nsCAutoString message;
+  message.AppendLiteral("Unknown SQLite error code: ");
+  message.AppendInt(aSQLiteResultCode);
+  NS_WARNING(message.get());
+#endif
   return NS_ERROR_FAILURE;
 }
 
