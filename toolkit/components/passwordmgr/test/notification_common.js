@@ -36,19 +36,18 @@ function getNotificationBar(aBox, aKind) {
 
 
 
-function clickNotificationButton(aBar, aButtonName) {
+function clickNotificationButton(aBar, aButtonIndex) {
     
     
     
-    var buttons = aBar.getElementsByTagName("button");
-    var clicked = false;
-    for (var i = 0; i < buttons.length; i++) {
-        if (buttons[i].label == aButtonName) {
-            buttons[i].click();
-            clicked = true;
-            break;
-        }
-    }
-
-    ok(clicked, "Clicked \"" + aButtonName + "\" button"); 
+    var button = aBar.getElementsByTagName("button").item(aButtonIndex);
+    ok(button, "Got button " + aButtonIndex);
+    button.doCommand();
 }
+
+const kRememberButton = 0;
+const kNeverButton = 1;
+const kNotNowButton = 2;
+
+const kChangeButton = 0;
+const kDontChangeButton = 1;
