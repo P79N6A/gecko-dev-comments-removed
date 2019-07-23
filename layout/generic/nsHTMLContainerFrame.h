@@ -88,14 +88,7 @@ public:
 
 
 
-
-
-
-
-
-
   static nsresult CreateViewForFrame(nsIFrame* aFrame,
-                                     nsIFrame* aContentParentFrame,
                                      PRBool aForce);
 
   static nsresult ReparentFrameView(nsPresContext* aPresContext,

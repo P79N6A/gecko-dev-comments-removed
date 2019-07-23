@@ -3504,8 +3504,7 @@ nsCSSFrameConstructor::ConstructTableFrame(nsFrameConstructorState& aState,
   
   
   InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, aNewOuterFrame);  
-  nsHTMLContainerFrame::CreateViewForFrame(aNewOuterFrame, aContentParent,
-                                           PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(aNewOuterFrame, PR_FALSE);
 
   
 #ifdef MOZ_MATHML
@@ -3585,8 +3584,7 @@ nsCSSFrameConstructor::ConstructTableCaptionFrame(nsFrameConstructorState& aStat
     return NS_ERROR_OUT_OF_MEMORY;
   }
   InitAndRestoreFrame(aState, aContent, parentFrame, nsnull, aNewFrame);
-  
-  nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, nsnull, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, PR_FALSE);
 
   nsFrameItems childItems;
   rv = ProcessChildren(aState, aContent, aStyleContext, aNewFrame,
@@ -3638,7 +3636,7 @@ nsCSSFrameConstructor::ConstructTableRowGroupFrame(nsFrameConstructorState& aSta
   if (styleDisplay->IsScrollableOverflow()) {
     
     BuildScrollFrame(aState, aContent, aStyleContext, aNewFrame, parentFrame,
-                     nsnull, scrollFrame, aStyleContext);
+                     scrollFrame, aStyleContext);
 
   } 
   else {
@@ -3646,8 +3644,7 @@ nsCSSFrameConstructor::ConstructTableRowGroupFrame(nsFrameConstructorState& aSta
       return NS_ERROR_OUT_OF_MEMORY;
     }
     InitAndRestoreFrame(aState, aContent, parentFrame, nsnull, aNewFrame);
-    
-    nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, nsnull, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, PR_FALSE);
   }
 
   if (!aIsPseudo) {
@@ -3761,8 +3758,7 @@ nsCSSFrameConstructor::ConstructTableRowFrame(nsFrameConstructorState& aState,
     return NS_ERROR_OUT_OF_MEMORY;
   }
   InitAndRestoreFrame(aState, aContent, parentFrame, nsnull, aNewFrame);
-  
-  nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, nsnull, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, PR_FALSE);
   if (!aIsPseudo) {
     nsFrameItems childItems;
     rv = ProcessChildren(aState, aContent, aStyleContext, aNewFrame, PR_TRUE,
@@ -3892,8 +3888,7 @@ nsCSSFrameConstructor::ConstructTableCellFrame(nsFrameConstructorState& aState,
 
   
   InitAndRestoreFrame(aState, aContent, parentFrame, nsnull, aNewCellOuterFrame);
-  
-  nsHTMLContainerFrame::CreateViewForFrame(aNewCellOuterFrame, nsnull, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(aNewCellOuterFrame, PR_FALSE);
   
   
   nsRefPtr<nsStyleContext> innerPseudoStyle;
@@ -4230,7 +4225,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
         processChildren = PR_TRUE;
 
         
-        nsHTMLContainerFrame::CreateViewForFrame(contentFrame, aParentFrame, PR_FALSE);
+        nsHTMLContainerFrame::CreateViewForFrame(contentFrame, PR_FALSE);
       } else {
         return NS_ERROR_FAILURE;
       }
@@ -4518,7 +4513,6 @@ nsCSSFrameConstructor::ConstructRootFrame(nsIContent*     aDocElement,
                                                   aDocElement,
                                                   styleContext,
                                                   viewportFrame,
-                                                  nsnull,
                                                   rootPseudo,
                                                   PR_TRUE,
                                                   newFrame);
@@ -4743,7 +4737,7 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
     return rv;
   }
   
-  nsHTMLContainerFrame::CreateViewForFrame(buttonFrame, aParentFrame, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(buttonFrame, PR_FALSE);
 
   
   
@@ -4873,7 +4867,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
                           aState.GetGeometricParent(aStyleDisplay, aParentFrame),
                           nsnull, comboboxFrame);
 
-      nsHTMLContainerFrame::CreateViewForFrame(comboboxFrame, aParentFrame, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(comboboxFrame, PR_FALSE);
 
       rv = aState.AddChild(comboboxFrame, aFrameItems, aContent, aStyleContext,
                            aParentFrame);
@@ -5015,8 +5009,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
     }
   }
       
-  nsHTMLContainerFrame::CreateViewForFrame(scrollFrame, aParentFrame,
-                                           aBuildCombobox);
+  nsHTMLContainerFrame::CreateViewForFrame(scrollFrame, aBuildCombobox);
   if (aBuildCombobox) {
     
     nsIView* view = scrollFrame->GetView();
@@ -5040,8 +5033,7 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
 
   nsStyleContext* scrolledPseudoStyle;
   BuildScrollFrame(aState, aContent, aStyleContext, scrolledFrame,
-                   geometricParent, aParentFrame, scrollFrame,
-                   scrolledPseudoStyle);
+                   geometricParent, scrollFrame, scrolledPseudoStyle);
 
   if (aState.mFrameState && aState.mFrameManager) {
     
@@ -5089,7 +5081,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
 
   
   
-  nsHTMLContainerFrame::CreateViewForFrame(newFrame, aParentFrame, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
   
   nsRefPtr<nsStyleContext> styleContext;
@@ -5426,16 +5418,6 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
     
     newFrame = NS_NewSubDocumentFrame(mPresShell, aStyleContext);
     triedFrame = PR_TRUE;
-
-    if (newFrame) {
-      
-      
-      
-      nsCOMPtr<nsIAtom> contentParentAtom = do_GetAtom("contentParent");
-      aState.mPresContext->PropertyTable()->
-        SetProperty(newFrame, contentParentAtom,
-                    aParentFrame, nsnull, nsnull);
-    }
   }
   else if (nsGkAtoms::spacer == aTag) {
     NS_ASSERTION(!display->IsAbsolutelyPositioned() && !display->IsFloating(),
@@ -5506,8 +5488,7 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
     rv = InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, newFrame);
     NS_ASSERTION(NS_SUCCEEDED(rv), "InitAndRestoreFrame failed");
     
-    
-    nsHTMLContainerFrame::CreateViewForFrame(newFrame, aParentFrame, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
     rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
                          aParentFrame);
@@ -5931,7 +5912,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
         if (display->IsScrollableOverflow()) {
           
           BuildScrollFrame(aState, aContent, aStyleContext, newFrame,
-                           aParentFrame, nsnull, topFrame, aStyleContext);
+                           aParentFrame, topFrame, aStyleContext);
 
           
           aParentFrame = newFrame->GetParent();
@@ -6022,7 +6003,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
     if (mayBeScrollable && display->IsScrollableOverflow()) {
       
       BuildScrollFrame(aState, aContent, aStyleContext, newFrame,
-                       aParentFrame, nsnull, topFrame, aStyleContext);
+                       aParentFrame, topFrame, aStyleContext);
 
       
       
@@ -6083,7 +6064,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 
 
         
-        nsHTMLContainerFrame::CreateViewForFrame(newFrame, aParentFrame, PR_FALSE);
+        nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
       
 
@@ -6172,7 +6153,6 @@ nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
                                                 nsIContent*              aContent,
                                                 nsStyleContext*          aContentStyle,
                                                 nsIFrame*                aParentFrame,
-                                                nsIFrame*                aContentParentFrame,
                                                 nsIAtom*                 aScrolledPseudo,
                                                 PRBool                   aIsRoot,
                                                 nsIFrame*&               aNewFrame)
@@ -6196,8 +6176,7 @@ nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
     InitAndRestoreFrame(aState, aContent, aParentFrame, nsnull, gfxScrollFrame);
 
     
-    nsHTMLContainerFrame::CreateViewForFrame(gfxScrollFrame,
-                                             aContentParentFrame, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(gfxScrollFrame, PR_FALSE);
   }
 
   
@@ -6229,7 +6208,9 @@ nsCSSFrameConstructor::FinishBuildingScrollFrame(nsIFrame* aScrollFrame,
   
   
   
-  nsHTMLContainerFrame::CreateViewForFrame(aScrolledFrame, nsnull, PR_TRUE);
+  nsHTMLContainerFrame::CreateViewForFrame(aScrolledFrame, PR_TRUE);
+
+  
   nsIView* view = aScrolledFrame->GetView();
   if (!view)
     return;
@@ -6273,13 +6254,12 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
                                         nsStyleContext*          aContentStyle,
                                         nsIFrame*                aScrolledFrame,
                                         nsIFrame*                aParentFrame,
-                                        nsIFrame*                aContentParentFrame,
                                         nsIFrame*&               aNewFrame, 
                                         nsStyleContext*&         aScrolledContentStyle)
 {
     nsRefPtr<nsStyleContext> scrolledContentStyle =
       BeginBuildingScrollFrame(aState, aContent, aContentStyle, aParentFrame,
-                               aContentParentFrame, nsCSSAnonBoxes::scrolledContent,
+                               nsCSSAnonBoxes::scrolledContent,
                                PR_FALSE, aNewFrame);
     
     aScrolledFrame->SetStyleContextWithoutNotification(scrolledContentStyle);
@@ -6344,7 +6324,6 @@ nsCSSFrameConstructor::ConstructFrameByDisplayType(nsFrameConstructorState& aSta
     nsRefPtr<nsStyleContext> scrolledContentStyle
       = BeginBuildingScrollFrame(aState, aContent, aStyleContext,
                                  aState.GetGeometricParent(aDisplay, aParentFrame),
-                                 aParentFrame,
                                  nsCSSAnonBoxes::scrolledContent,
                                  PR_FALSE, newFrame);
     
@@ -6834,7 +6813,7 @@ nsCSSFrameConstructor::ConstructMathMLFrame(nsFrameConstructorState& aState,
     InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, newFrame);
 
     
-    nsHTMLContainerFrame::CreateViewForFrame(newFrame, aParentFrame, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
     rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
                          aParentFrame, isMath, isMath);
@@ -7120,7 +7099,7 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
   
   if (newFrame != nsnull) {
     InitAndRestoreFrame(aState, aContent, geometricParent, nsnull, newFrame);
-    nsHTMLContainerFrame::CreateViewForFrame(newFrame, aParentFrame, forceView);
+    nsHTMLContainerFrame::CreateViewForFrame(newFrame, forceView);
 
     rv = aState.AddChild(newFrame, aFrameItems, aContent, aStyleContext,
                          aParentFrame, isOuterSVGNode, isOuterSVGNode);
@@ -7150,7 +7129,7 @@ nsCSSFrameConstructor::ConstructSVGFrame(nsFrameConstructorState& aState,
                           &blockFrame, childItems, PR_TRUE);
       
       
-      nsHTMLContainerFrame::CreateViewForFrame(blockFrame, nsnull, PR_TRUE);
+      nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_TRUE);
     } else {
       
       rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_FALSE,
@@ -10136,8 +10115,7 @@ nsCSSFrameConstructor::CreateContinuingOuterTableFrame(nsIPresShell*    aPresShe
 
   if (newFrame) {
     newFrame->Init(aContent, aParentFrame, aFrame);
-    
-    nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
     
     
@@ -10183,8 +10161,7 @@ nsCSSFrameConstructor::CreateContinuingTableFrame(nsIPresShell* aPresShell,
 
   if (newFrame) {
     newFrame->Init(aContent, aParentFrame, aFrame);
-    
-    nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
     
     nsFrameItems  childFrames;
@@ -10264,8 +10241,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
     
   } else if (nsGkAtoms::inlineFrame == frameType) {
@@ -10273,8 +10249,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
   
   } else if (nsGkAtoms::blockFrame == frameType) {
@@ -10282,8 +10257,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
   
 #ifdef MOZ_XUL
@@ -10292,8 +10266,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
 #endif  
   } else if (nsGkAtoms::columnSetFrame == frameType) {
@@ -10301,8 +10274,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
   
   } else if (nsGkAtoms::positionedInlineFrame == frameType) {
@@ -10310,8 +10282,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
 
   } else if (nsGkAtoms::pageFrame == frameType) {
@@ -10331,8 +10302,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
 
   } else if (nsGkAtoms::tableRowFrame == frameType) {
@@ -10340,8 +10310,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
       
       nsFrameItems  newChildList;
@@ -10376,8 +10345,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
       
       nsIFrame* continuingBlockFrame;
@@ -10399,8 +10367,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
   
   } else if (nsGkAtoms::letterFrame == frameType) {
@@ -10408,8 +10375,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
 
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
     }
 
   } else if (nsGkAtoms::imageFrame == frameType) {
@@ -10447,8 +10413,7 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
     if (newFrame) {
       newFrame->Init(content, aParentFrame, aFrame);
 
-      
-      nsHTMLContainerFrame::CreateViewForFrame(newFrame, nsnull, PR_FALSE);
+      nsHTMLContainerFrame::CreateViewForFrame(newFrame, PR_FALSE);
 
       
       
@@ -12335,7 +12300,6 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   
   nsIFrame* blockFrame = *aNewFrame;
   nsIFrame* parent = aParentFrame;
-  nsIFrame* contentParent = aContentParentFrame;
   nsRefPtr<nsStyleContext> blockStyle = aStyleContext;
   const nsStyleColumn* columns = aStyleContext->GetStyleColumn();
 
@@ -12349,12 +12313,10 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
 
     InitAndRestoreFrame(aState, aContent, aParentFrame, nsnull, columnSetFrame);
     
-    nsHTMLContainerFrame::CreateViewForFrame(columnSetFrame, aContentParentFrame,
-                                             PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(columnSetFrame, PR_FALSE);
     blockStyle = mPresShell->StyleSet()->
       ResolvePseudoStyleFor(aContent, nsCSSAnonBoxes::columnContent,
                             aStyleContext);
-    contentParent = columnSetFrame;
     parent = columnSetFrame;
     *aNewFrame = columnSetFrame;
 
@@ -12373,7 +12335,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   }
 
   
-  nsHTMLContainerFrame::CreateViewForFrame(blockFrame, contentParent, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_FALSE);
 
   if (!mInitialContainingBlock) {
     
@@ -12435,8 +12397,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
                                                   
 
   
-  
-  nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, nsnull, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(aNewFrame, PR_FALSE);
 
   if (aIsPositioned) {                            
     
@@ -12518,8 +12479,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   InitAndRestoreFrame(aState, aContent, aParentFrame, nsnull, blockFrame, PR_FALSE);  
 
   
-  
-  nsHTMLContainerFrame::CreateViewForFrame(blockFrame, nsnull, PR_FALSE);
+  nsHTMLContainerFrame::CreateViewForFrame(blockFrame, PR_FALSE);
 
   if (blockFrame->HasView() || aNewFrame->HasView()) {
     
@@ -12617,8 +12577,7 @@ nsCSSFrameConstructor::MoveFramesToEndOfIBSplit(nsFrameConstructorState& aState,
                         inlineFrame, PR_FALSE);
 
     
-    
-    nsHTMLContainerFrame::CreateViewForFrame(inlineFrame, nsnull, PR_FALSE);
+    nsHTMLContainerFrame::CreateViewForFrame(inlineFrame, PR_FALSE);
   }
   
   if (inlineFrame->HasView() || aFramesToMove->GetParent()->HasView()) {

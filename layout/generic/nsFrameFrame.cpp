@@ -283,23 +283,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   
   
   if (!HasView()) {
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIAtom> contentParentAtom = do_GetAtom("contentParent");
-    nsIFrame* contentParent = nsnull;
-
-    void *value =
-      aPresContext->PropertyTable()->UnsetProperty(this,
-                                                   contentParentAtom, &rv);
-    if (NS_SUCCEEDED(rv)) {
-          contentParent = (nsIFrame*)value;
-    }
-
-    rv = nsHTMLContainerFrame::CreateViewForFrame(this, contentParent, PR_TRUE);
+    rv = nsHTMLContainerFrame::CreateViewForFrame(this, PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   nsIView* view = GetView();

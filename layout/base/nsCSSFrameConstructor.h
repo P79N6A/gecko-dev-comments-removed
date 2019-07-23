@@ -809,13 +809,13 @@ private:
   
   
   
+  
   nsresult
   BuildScrollFrame(nsFrameConstructorState& aState,
                    nsIContent*              aContent,
                    nsStyleContext*          aContentStyle,
                    nsIFrame*                aScrolledFrame,
                    nsIFrame*                aParentFrame,
-                   nsIFrame*                aContentParentFrame,
                    nsIFrame*&               aNewFrame,
                    nsStyleContext*&         aScrolledChildStyle);
 
@@ -825,7 +825,6 @@ private:
                            nsIContent*              aContent,
                            nsStyleContext*          aContentStyle,
                            nsIFrame*                aParentFrame,
-                           nsIFrame*                aContentParentFrame,
                            nsIAtom*                 aScrolledPseudo,
                            PRBool                   aIsRoot,
                            nsIFrame*&               aNewFrame);
