@@ -29,16 +29,6 @@
 typedef uint32_t __be32;
 typedef uint16_t __be16;
 
-
-
-#ifdef _MSC_VER
-#define LITTLE_ENDIAN
-#endif
-
-#ifdef __OS2__
-#define LITTLE_ENDIAN
-#endif
-
 #if !defined(BIG_ENDIAN) && !defined(LITTLE_ENDIAN)
 #error Unknown endianess
 #endif
