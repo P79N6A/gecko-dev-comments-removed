@@ -128,6 +128,14 @@ public:
 
   PRBool IsLoading() { return mLoader != nsnull; }
 
+  
+
+
+  PRBool IsPACURI(nsIURI *uri) {
+    PRBool result;
+    return mPACURI && NS_SUCCEEDED(mPACURI->Equals(uri, &result)) && result;
+  }
+
 private:
   NS_DECL_NSISTREAMLOADEROBSERVER
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -161,14 +169,6 @@ private:
 
 
   void OnLoadFailure();
-
-  
-
-
-  PRBool IsPACURI(nsIURI *uri) {
-    PRBool result;
-    return mPACURI && NS_SUCCEEDED(mPACURI->Equals(uri, &result)) && result;
-  }
 
 private:
   nsCOMPtr<nsIProxyAutoConfig> mPAC;

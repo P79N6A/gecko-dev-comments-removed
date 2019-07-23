@@ -327,6 +327,10 @@
     "@mozilla.org/network/incremental-download;1"
 
 
+#define NS_SYSTEMPROXYSETTINGS_CONTRACTID \
+    "@mozilla.org/system-proxy-settings;1"
+
+
 #define NS_STREAMTRANSPORTSERVICE_CLASSNAME \
     "nsStreamTransportService"
 #define NS_STREAMTRANSPORTSERVICE_CONTRACTID \
