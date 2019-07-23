@@ -760,8 +760,10 @@ struct nsStyleDisplay : public nsStyleStruct {
 #ifdef DEBUG
   static nsChangeHint MaxDifference();
 #endif
+
   
-  nsCOMPtr<nsIURI> mBinding;    
+  
+  nsRefPtr<nsCSSValue::URL> mBinding;    
 #if 0
   
   

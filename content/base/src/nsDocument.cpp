@@ -3406,8 +3406,22 @@ nsDocument::AddBinding(nsIDOMElement* aContent, const nsAString& aURI)
   if (NS_FAILED(rv)) {
     return rv;
   }
+
   
-  return mBindingManager->AddLayeredBinding(content, uri);
+  nsCOMPtr<nsIPrincipal> subject;
+  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+  if (secMan) {
+    rv = secMan->GetSubjectPrincipal(getter_AddRefs(subject));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (!subject) {
+    
+    
+    subject = NodePrincipal();
+  }
+  
+  return mBindingManager->AddLayeredBinding(content, uri, subject);
 }
 
 NS_IMETHODIMP
@@ -3439,7 +3453,21 @@ nsDocument::LoadBindingDocument(const nsAString& aURI)
                           static_cast<nsIDocument *>(this)->GetBaseURI());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mBindingManager->LoadBindingDocument(this, uri);
+  
+  nsCOMPtr<nsIPrincipal> subject;
+  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+  if (secMan) {
+    rv = secMan->GetSubjectPrincipal(getter_AddRefs(subject));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  if (!subject) {
+    
+    
+    subject = NodePrincipal();
+  }
+  
+  mBindingManager->LoadBindingDocument(this, uri, subject);
 
   return NS_OK;
 }

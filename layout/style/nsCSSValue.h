@@ -232,6 +232,14 @@ public:
       mValue.mURL->mURI : mValue.mImage->mURI;
   }
 
+  URL* GetURLStructValue() const
+  {
+    
+    
+    NS_ASSERTION(mUnit == eCSSUnit_URL, "not a URL value");
+    return mValue.mURL;
+  }
+
   const PRUnichar* GetOriginalURLValue() const
   {
     NS_ASSERTION(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
@@ -387,6 +395,12 @@ public:
     ~URL() NS_HIDDEN;
 
     NS_HIDDEN_(PRBool) operator==(const URL& aOther) const;
+
+    
+    
+    
+    
+    NS_HIDDEN_(PRBool) URIEquals(const URL& aOther) const;
 
     nsCOMPtr<nsIURI> mURI; 
     nsStringBuffer* mString; 

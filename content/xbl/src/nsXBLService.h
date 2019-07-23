@@ -66,7 +66,8 @@ class nsXBLService : public nsIXBLService,
 
   
   
-  NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL, PRBool aAugmentFlag,
+  NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL,
+                          nsIPrincipal* aOriginPrincipal, PRBool aAugmentFlag,
                           nsXBLBinding** aBinding, PRBool* aResolveStyle);
 
   
@@ -76,9 +77,14 @@ class nsXBLService : public nsIXBLService,
   NS_IMETHOD ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID, nsIAtom** aResult);
 
   
-  NS_IMETHOD LoadBindingDocumentInfo(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
+  
+  
+  NS_IMETHOD LoadBindingDocumentInfo(nsIContent* aBoundElement,
+                                     nsIDocument* aBoundDocument,
                                      nsIURI* aBindingURI,
-                                     PRBool aForceSyncLoad, nsIXBLDocumentInfo** aResult);
+                                     nsIPrincipal* aOriginPrincipal,
+                                     PRBool aForceSyncLoad,
+                                     nsIXBLDocumentInfo** aResult);
 
   
   NS_IMETHOD AttachGlobalKeyHandler(nsPIDOMEventTarget* aTarget);
@@ -108,8 +114,8 @@ protected:
 
 
   nsresult GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
-                      PRBool aPeekFlag, PRBool* aIsReady,
-                      nsXBLBinding** aResult);
+                      PRBool aPeekFlag, nsIPrincipal* aOriginPrincipal,
+                      PRBool* aIsReady, nsXBLBinding** aResult);
 
   
 
@@ -125,9 +131,12 @@ protected:
 
 
 
+
+
+
   nsresult GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
-                      PRBool aPeekFlag, PRBool* aIsReady,
-                      nsXBLBinding** aResult,
+                      PRBool aPeekFlag, nsIPrincipal* aOriginPrincipal,
+                      PRBool* aIsReady, nsXBLBinding** aResult,
                       nsTArray<nsIURI*>& aDontExtendURIs);
 
 

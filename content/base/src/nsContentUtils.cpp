@@ -3605,6 +3605,7 @@ nsContentUtils::CheckSecurityBeforeLoad(nsIURI* aURIToLoad,
                                         const nsACString& aMimeGuess,
                                         nsISupports* aExtra)
 {
+  
   nsCOMPtr<nsIURI> loadingURI;
   nsresult rv = aLoadingPrincipal->GetURI(getter_AddRefs(loadingURI));
   NS_ENSURE_SUCCESS(rv, rv);

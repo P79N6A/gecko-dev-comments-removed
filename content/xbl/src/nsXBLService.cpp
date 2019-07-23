@@ -486,9 +486,12 @@ nsXBLService::~nsXBLService(void)
 
 
 NS_IMETHODIMP
-nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL, PRBool aAugmentFlag,
+nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
+                           nsIPrincipal* aOriginPrincipal, PRBool aAugmentFlag,
                            nsXBLBinding** aBinding, PRBool* aResolveStyle) 
-{ 
+{
+  NS_PRECONDITION(aOriginPrincipal, "Must have an origin principal");
+  
   *aBinding = nsnull;
   *aResolveStyle = PR_FALSE;
 
@@ -522,26 +525,10 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL, PRBool aAugmentFl
     }
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  rv = nsContentUtils::CheckSecurityBeforeLoad(aURL,
-                                               document->NodePrincipal(),
-                                               nsIScriptSecurityManager::ALLOW_CHROME,
-                                               PR_TRUE,
-                                               nsIContentPolicy::TYPE_XBL,
-                                               document);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   PRBool ready;
   nsRefPtr<nsXBLBinding> newBinding;
-  if (NS_FAILED(rv = GetBinding(aContent, aURL, PR_FALSE, &ready,
-                                getter_AddRefs(newBinding)))) {
+  if (NS_FAILED(rv = GetBinding(aContent, aURL, PR_FALSE, aOriginPrincipal,
+                                &ready, getter_AddRefs(newBinding)))) {
     return rv;
   }
 
@@ -757,23 +744,25 @@ NS_IMETHODIMP nsXBLService::BindingReady(nsIContent* aBoundElement,
                                          nsIURI* aURI, 
                                          PRBool* aIsReady)
 {
-  return GetBinding(aBoundElement, aURI, PR_TRUE, aIsReady, nsnull);
+  
+  return GetBinding(aBoundElement, aURI, PR_TRUE, nsnull, aIsReady, nsnull);
 }
 
 nsresult
 nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI, 
-                         PRBool aPeekOnly, PRBool* aIsReady, 
-                         nsXBLBinding** aResult)
+                         PRBool aPeekOnly, nsIPrincipal* aOriginPrincipal,
+                         PRBool* aIsReady, nsXBLBinding** aResult)
 {
   
   nsTArray<nsIURI*> uris(6);
-  return GetBinding(aBoundElement, aURI, aPeekOnly, aIsReady, aResult, uris);
+  return GetBinding(aBoundElement, aURI, aPeekOnly, aOriginPrincipal, aIsReady,
+                    aResult, uris);
 }
 
 nsresult
 nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI, 
-                         PRBool aPeekOnly, PRBool* aIsReady,
-                         nsXBLBinding** aResult,
+                         PRBool aPeekOnly, nsIPrincipal* aOriginPrincipal,
+                         PRBool* aIsReady, nsXBLBinding** aResult,
                          nsTArray<nsIURI*>& aDontExtendURIs)
 {
   NS_ASSERTION(aPeekOnly || aResult,
@@ -796,8 +785,11 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
   nsCOMPtr<nsIDocument> boundDocument = aBoundElement->GetOwnerDoc();
 
   nsCOMPtr<nsIXBLDocumentInfo> docInfo;
-  LoadBindingDocumentInfo(aBoundElement, boundDocument, aURI, PR_FALSE,
-                          getter_AddRefs(docInfo));
+  nsresult rv = LoadBindingDocumentInfo(aBoundElement, boundDocument, aURI,
+                                        aOriginPrincipal,
+                                        PR_FALSE, getter_AddRefs(docInfo));
+  NS_ENSURE_SUCCESS(rv, rv);
+  
   if (!docInfo)
     return NS_ERROR_FAILURE;
 
@@ -830,9 +822,11 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
   PRBool hasBase = protoBinding->HasBasePrototype();
   nsXBLPrototypeBinding* baseProto = protoBinding->GetBasePrototype();
   if (baseProto) {
-    nsresult rv = GetBinding(aBoundElement, baseProto->BindingURI(), aPeekOnly,
-                             aIsReady, getter_AddRefs(baseBinding),
-                             aDontExtendURIs);
+    
+    
+    rv = GetBinding(aBoundElement, baseProto->BindingURI(), aPeekOnly,
+                    child->NodePrincipal(), aIsReady,
+                    getter_AddRefs(baseBinding), aDontExtendURIs);
     if (NS_FAILED(rv))
       return rv; 
   }
@@ -899,10 +893,9 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
         
         
         nsCOMPtr<nsIURI> bindingURI;
-        nsresult rv =
-          NS_NewURI(getter_AddRefs(bindingURI), value,
-                    doc->GetDocumentCharacterSet().get(),
-                    doc->GetBaseURI());
+        rv = NS_NewURI(getter_AddRefs(bindingURI), value,
+                       doc->GetDocumentCharacterSet().get(),
+                       doc->GetBaseURI());
         NS_ENSURE_SUCCESS(rv, rv);
         
         PRUint32 count = aDontExtendURIs.Length();
@@ -926,7 +919,10 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
           }
         }
 
-        rv = GetBinding(aBoundElement, bindingURI, aPeekOnly, aIsReady,
+        
+        
+        rv = GetBinding(aBoundElement, bindingURI, aPeekOnly,
+                        child->NodePrincipal(), aIsReady,
                         getter_AddRefs(baseBinding), aDontExtendURIs);
         if (NS_FAILED(rv))
           return rv; 
@@ -960,15 +956,26 @@ NS_IMETHODIMP
 nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
                                       nsIDocument* aBoundDocument,
                                       nsIURI* aBindingURI,
+                                      nsIPrincipal* aOriginPrincipal,
                                       PRBool aForceSyncLoad,
                                       nsIXBLDocumentInfo** aResult)
 {
   NS_PRECONDITION(aBindingURI, "Must have a binding URI");
+  NS_PRECONDITION(!aOriginPrincipal || aBoundDocument,
+                  "If we're doing a security check, we better have a document!");
   
   nsresult rv;
-  if (aBoundDocument) {
+  if (aOriginPrincipal) {
+    
+    
+    
+    
+    
+    
+    
+    
     rv = nsContentUtils::
-      CheckSecurityBeforeLoad(aBindingURI, aBoundDocument->NodePrincipal(),
+      CheckSecurityBeforeLoad(aBindingURI, aOriginPrincipal,
                               nsIScriptSecurityManager::ALLOW_CHROME,
                               PR_TRUE,
                               nsIContentPolicy::TYPE_XBL,

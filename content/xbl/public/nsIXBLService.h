@@ -55,10 +55,11 @@ class nsXBLBinding;
 class nsIXBLDocumentInfo;
 class nsIURI;
 class nsIAtom;
+class nsIPrincipal;
 
 #define NS_IXBLSERVICE_IID      \
-  { 0xefda61b3, 0x5d04, 0x43b0, \
-    { 0x98, 0x0c, 0x32, 0x62, 0x72, 0xc8, 0x5c, 0x68 } }
+{ 0x98b28f4e, 0x698f, 0x4f77,   \
+ { 0xa8, 0x9e, 0x65, 0xf5, 0xd0, 0xde, 0x6a, 0xbf } }
 
 class nsIXBLService : public nsISupports
 {
@@ -67,7 +68,8 @@ public:
 
   
   
-  NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL, PRBool aAugmentFlag,
+  NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL,
+                          nsIPrincipal* aOriginPrincipal, PRBool aAugmentFlag,
                           nsXBLBinding** aBinding, PRBool* aResolveStyle) = 0;
 
   
@@ -77,9 +79,14 @@ public:
   NS_IMETHOD ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID, nsIAtom** aResult) = 0;
 
   
-  NS_IMETHOD LoadBindingDocumentInfo(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
+  
+  
+  NS_IMETHOD LoadBindingDocumentInfo(nsIContent* aBoundElement,
+                                     nsIDocument* aBoundDocument,
                                      nsIURI* aBindingURI,
-                                     PRBool aForceSyncLoad, nsIXBLDocumentInfo** aResult) = 0;
+                                     nsIPrincipal* aOriginPrincipal,
+                                     PRBool aForceSyncLoad,
+                                     nsIXBLDocumentInfo** aResult) = 0;
 
   
   NS_IMETHOD AttachGlobalKeyHandler(nsPIDOMEventTarget* aTarget)=0;
