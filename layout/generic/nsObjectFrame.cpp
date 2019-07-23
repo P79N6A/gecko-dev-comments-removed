@@ -838,8 +838,7 @@ nsObjectFrame::Reflow(nsPresContext*           aPresContext,
 
   
   GetDesiredSize(aPresContext, aReflowState, aMetrics);
-  aMetrics.mOverflowArea = nsRect(0, 0,
-                                  aMetrics.width, aMetrics.height);
+  FinishAndStoreOverflow(&aMetrics);
 
   
   
