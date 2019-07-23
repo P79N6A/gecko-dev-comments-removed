@@ -1691,31 +1691,15 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
     attributes->SetStringProperty(NS_LITERAL_CSTRING("valuetext"), valuetext, oldValueUnused);
   }
 
-
-  PRUint32 role = nsAccUtils::Role(this);
-  if (role == nsIAccessibleRole::ROLE_CHECKBUTTON ||
-      role == nsIAccessibleRole::ROLE_PUSHBUTTON ||
-      role == nsIAccessibleRole::ROLE_MENUITEM ||
-      role == nsIAccessibleRole::ROLE_LISTITEM ||
-      role == nsIAccessibleRole::ROLE_OPTION ||
-      role == nsIAccessibleRole::ROLE_RADIOBUTTON ||
-      role == nsIAccessibleRole::ROLE_RICH_OPTION ||
-      role == nsIAccessibleRole::ROLE_OUTLINEITEM ||
-      content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_checked)) {
-    
-    PRUint32 state = 0;
-    GetState(&state, nsnull);
-    if (state & nsIAccessibleStates::STATE_CHECKABLE) {
-      
-      attributes->SetStringProperty(NS_LITERAL_CSTRING("checkable"), NS_LITERAL_STRING("true"),
-                                    oldValueUnused);
-    }
-  }
+  
+  if (nsAccUtils::State(this) & nsIAccessibleStates::STATE_CHECKABLE)
+    nsAccUtils::SetAccAttr(attributes, nsAccessibilityAtoms::checkable, NS_LITERAL_STRING("true"));
 
   
   if (!nsAccUtils::HasAccGroupAttrs(attributes)) {
     
     
+    PRUint32 role = nsAccUtils::Role(this);
     rv = ComputeGroupAttributes(role, attributes);
     NS_ENSURE_SUCCESS(rv, rv);
   }
