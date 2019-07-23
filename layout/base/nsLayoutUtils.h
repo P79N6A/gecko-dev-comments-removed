@@ -722,7 +722,6 @@ public:
 
 
 
-
   static nsresult DrawImage(nsIRenderingContext* aRenderingContext,
                             imgIContainer* aImage,
                             const nsRect& aDestRect,
