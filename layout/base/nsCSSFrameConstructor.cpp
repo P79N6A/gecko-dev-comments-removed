@@ -1426,30 +1426,6 @@ MoveChildrenTo(nsPresContext* aPresContext,
 
 
 
-
-struct NS_STACK_CLASS nsAutoEnqueueBinding
-{
-  nsAutoEnqueueBinding(nsIDocument* aDocument) :
-    mDocument(aDocument)
-  {}
-
-  ~nsAutoEnqueueBinding();
-
-  nsRefPtr<nsXBLBinding> mBinding;
-private:
-  nsIDocument* mDocument;
-};
-
-nsAutoEnqueueBinding::~nsAutoEnqueueBinding()
-{
-  if (mBinding) {
-    mDocument->BindingManager()->AddToAttachedQueue(mBinding);
-  }
-}
-
-
-
-
 static nsIAtom*
 GetChildListNameFor(nsIFrame*       aChildFrame)
 {
