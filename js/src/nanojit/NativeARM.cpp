@@ -982,7 +982,7 @@ Assembler::LD32_nochk(Register r, int32_t imm)
         return;
     }
 
-    if (AvmCore::config.v6t2) {
+    if (AvmCore::config.thumb2) {
         
         
         if (((imm >> 16) & 0xFFFF) != 0)

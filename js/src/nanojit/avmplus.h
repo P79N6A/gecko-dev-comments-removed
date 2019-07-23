@@ -357,11 +357,28 @@ namespace avmplus {
 # endif
 
         
-# if defined (NJ_FORCE_NO_ARM_V6T2)
-        static const bool v6t2 = false;
+# if defined (NJ_FORCE_ARM_ARCH_VERSION)
+        static const unsigned int arch = NJ_FORCE_ARM_ARCH_VERSION;
 # else
-        bool v6t2;
+        unsigned int arch;
 # endif
+
+        
+        
+# if defined (NJ_FORCE_NO_ARM_THUMB)
+        static const bool thumb = false;
+# else
+        bool thumb;
+# endif
+
+        
+        
+# if defined (NJ_FORCE_NO_ARM_THUMB2)
+        static const bool thumb2 = false;
+# else
+        bool thumb2;
+# endif
+
 #endif
 
 #if defined (NJ_FORCE_SOFTFLOAT)

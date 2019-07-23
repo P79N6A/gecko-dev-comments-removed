@@ -4872,11 +4872,27 @@ js_CheckForSSE2()
 #if defined(_MSC_VER) && defined(WINCE)
 
 
+extern "C" int js_arm_try_thumb_op();
 extern "C" int js_arm_try_armv6t2_op();
+extern "C" int js_arm_try_armv5_op();
+extern "C" int js_arm_try_armv6_op();
+extern "C" int js_arm_try_armv7_op();
 extern "C" int js_arm_try_vfp_op();
 
 static bool
-js_arm_check_armv6t2() {
+js_arm_check_thumb() {
+    bool ret = false;
+    __try {
+        js_arm_try_thumb_op();
+        ret = true;
+    } __except(GetExceptionCode() == EXCEPTION_ILLEGAL_INSTRUCTION) {
+        ret = false;
+    }
+    return ret;
+}
+
+static bool
+js_arm_check_thumb2() {
     bool ret = false;
     __try {
         js_arm_try_armv6t2_op();
@@ -4885,6 +4901,21 @@ js_arm_check_armv6t2() {
         ret = false;
     }
     return ret;
+}
+
+static unsigned int
+js_arm_check_arch() {
+    unsigned int arch = 4;
+    __try {
+        js_arm_try_armv5_op();
+        arch = 5;
+        js_arm_try_armv6_op();
+        arch = 6;
+        js_arm_try_armv7_op();
+        arch = 7;
+    } __except(GetExceptionCode() == EXCEPTION_ILLEGAL_INSTRUCTION) {
+    }
+    return arch;
 }
 
 static bool
@@ -4910,8 +4941,9 @@ js_arm_check_vfp() {
 #include <string.h>
 #include <elf.h>
 
-static bool arm_has_v7 = false;
-static bool arm_has_v6 = false;
+
+static unsigned int arm_arch = 4;
+static bool arm_has_thumb = false;
 static bool arm_has_vfp = false;
 static bool arm_has_neon = false;
 static bool arm_has_iwmmxt = false;
@@ -4931,6 +4963,7 @@ arm_read_auxv() {
                     hwcap = strtoul(getenv("ARM_FORCE_HWCAP"), NULL, 0);
                 
                 
+                arm_has_thumb = (hwcap & 4) != 0;
                 arm_has_vfp = (hwcap & 64) != 0;
                 arm_has_iwmmxt = (hwcap & 512) != 0;
                 
@@ -4939,11 +4972,22 @@ arm_read_auxv() {
                 const char *plat = (const char*) aux.a_un.a_val;
                 if (getenv("ARM_FORCE_PLATFORM"))
                     plat = getenv("ARM_FORCE_PLATFORM");
-                if (strncmp(plat, "v7l", 3) == 0) {
-                    arm_has_v7 = true;
-                    arm_has_v6 = true;
-                } else if (strncmp(plat, "v6l", 3) == 0) {
-                    arm_has_v6 = true;
+                
+                
+                
+                
+                
+                if ((plat[0] == 'v') &&
+                    (plat[1] >= '4') && (plat[1] <= '9') &&
+                    ((plat[2] == 'l') || (plat[2] == 'b')))
+                {
+                    arm_arch = plat[1] - '0';
+                }
+                else
+                {
+                    
+                    
+                    JS_ASSERT(false);
                 }
             }
         }
@@ -4951,7 +4995,7 @@ arm_read_auxv() {
 
         
         
-        if (!getenv("ARM_TRUST_HWCAP") && arm_has_v7)
+        if (!getenv("ARM_TRUST_HWCAP") && (arm_arch >= 7))
             arm_has_neon = true;
     }
 
@@ -4959,11 +5003,30 @@ arm_read_auxv() {
 }
 
 static bool
-js_arm_check_armv6t2() {
+js_arm_check_thumb() {
     if (!arm_tests_initialized)
         arm_read_auxv();
 
-    return arm_has_v7;
+    return arm_has_thumb;
+}
+
+static bool
+js_arm_check_thumb2() {
+    if (!arm_tests_initialized)
+        arm_read_auxv();
+
+    
+    
+    
+    return (arm_arch >= 7);
+}
+
+static unsigned int
+js_arm_check_arch() {
+    if (!arm_tests_initialized)
+        arm_read_auxv();
+
+    return arm_arch;
 }
 
 static bool
@@ -4975,9 +5038,13 @@ js_arm_check_vfp() {
 }
 
 #else
-#warning Not sure how to check for armv6t2 and vfp on your platform, assuming neither present.
+#warning Not sure how to check for architecture variant on your platform. Assuming ARMv4.
 static bool
-js_arm_check_armv6t2() { return false; }
+js_arm_check_thumb() { return false; }
+static bool
+js_arm_check_thumb2() { return false; }
+static unsigned int
+js_arm_check_arch() { return 4; }
 static bool
 js_arm_check_vfp() { return false; }
 #endif
@@ -5009,9 +5076,26 @@ js_InitJIT(JSTraceMonitor *tm)
         avmplus::AvmCore::config.sse2 = js_CheckForSSE2();
 #endif
 #if defined NANOJIT_ARM
-        avmplus::AvmCore::config.vfp = js_arm_check_vfp();
-        avmplus::AvmCore::config.soft_float = !avmplus::AvmCore::config.vfp;
-        avmplus::AvmCore::config.v6t2 = js_arm_check_armv6t2();
+        bool            arm_vfp     = js_arm_check_vfp();
+        bool            arm_thumb   = js_arm_check_thumb();
+        bool            arm_thumb2  = js_arm_check_thumb2();
+        unsigned int    arm_arch    = js_arm_check_arch();
+
+        avmplus::AvmCore::config.vfp        = arm_vfp;
+        avmplus::AvmCore::config.soft_float = !arm_vfp;
+        avmplus::AvmCore::config.thumb      = arm_thumb;
+        avmplus::AvmCore::config.thumb2     = arm_thumb2;
+        avmplus::AvmCore::config.arch       = arm_arch;
+
+        
+        
+        JS_ASSERT(arm_arch >= 4);
+        
+        JS_ASSERT((arm_thumb) || (arm_arch == 4));
+        
+        JS_ASSERT((arm_thumb2) || (arm_arch <= 6));
+        
+        JS_ASSERT((arm_thumb2 && arm_thumb) || (!arm_thumb2));
 #endif
         did_we_check_processor_features = true;
     }
