@@ -2156,11 +2156,12 @@ class RegExpNativeCompiler {
         
         Fragmento* fragmento = JS_TRACE_MONITOR(cx).reFragmento;
         fragment = fragmento->getLoop(re);
-        if (!fragment) 
+        if (!fragment) {
             fragment = fragmento->getAnchor(re);
-        fragment->lirbuf = new (&gc) LirBuffer(fragmento, NULL);
-        
-        fragment->root = fragment;
+            fragment->lirbuf = new (&gc) LirBuffer(fragmento, NULL);
+            
+            fragment->root = fragment;
+        }
         LirBuffer* lirbuf = fragment->lirbuf;
         LirBufWriter* lirb;
         if (lirbuf->outOmem()) goto fail2;
