@@ -134,7 +134,7 @@ public:
   
   nsresult AddLazyChildren(nsIContent* aContent,
                            nsLazyFrameConstructionCallback* aCallback,
-                           void* aArg);
+                           void* aArg, PRBool aIsSynch = PR_FALSE);
 
   
   
