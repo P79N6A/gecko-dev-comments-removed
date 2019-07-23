@@ -134,7 +134,7 @@ public:
                              jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull);
+                             nsIXPConnectJSObjectHolder** aHolder);
   static nsresult ThrowJSException(JSContext *cx, nsresult aResult);
 
   static nsresult InitDOMJSClass(JSContext *cx, JSObject *obj);
