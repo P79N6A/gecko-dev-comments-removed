@@ -66,7 +66,7 @@
 
 
 
-template <class T>
+template <typename T>
 class Tracker 
 {
     struct Page {
