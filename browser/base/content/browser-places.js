@@ -889,9 +889,9 @@ var BookmarksEventHandler = {
       
       target._endOptOpenSiteURI = document.createElement("menuitem");
       target._endOptOpenSiteURI.className = "openlivemarksite-menuitem";
-      target._endOptOpenSiteURI.setAttribute("siteURI", siteURIString);
+      target._endOptOpenSiteURI.setAttribute("targetURI", siteURIString);
       target._endOptOpenSiteURI.setAttribute("oncommand",
-          "openUILink(this.getAttribute('siteURI'), event);");
+          "openUILink(this.getAttribute('targetURI'), event);");
       
       
       
@@ -922,6 +922,7 @@ var BookmarksEventHandler = {
   fillInBHTooltip: function(aDocument, aEvent) {
     var node;
     var cropped = false;
+    var targetURI;
 
     if (aDocument.tooltipNode.localName == "treechildren") {
       var tree = aDocument.tooltipNode.parentNode;
@@ -933,18 +934,28 @@ var BookmarksEventHandler = {
       node = tree.view.nodeForTreeIndex(row.value);
       cropped = tbo.isCellCropped(row.value, column.value);
     }
-    else
-      node = aDocument.tooltipNode.node;
+    else {
+      
+      
+      var tooltipNode = aDocument.tooltipNode;
+      if (tooltipNode.node)
+        node = tooltipNode.node;
+      else {
+        
+        targetURI = tooltipNode.getAttribute("targetURI");
+      }
+    }
 
-    if (!node)
+    if (!node && !targetURI)
       return false;
 
-    var title = node.title;
-    var url;
+    
+    var title = node ? node.title : tooltipNode.label;
 
     
-    if (PlacesUtils.nodeIsURI(node))
-      url = node.uri;
+    var url;
+    if (targetURI || PlacesUtils.nodeIsURI(node))
+      url = targetURI || node.uri;
 
     
     if (!cropped && !url)
