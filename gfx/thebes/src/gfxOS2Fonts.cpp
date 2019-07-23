@@ -429,7 +429,6 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
 
     nsStringArray familyArray;
     ForEachFont(FontCallback, &familyArray);
-    FindGenericFontFromStyle(PR_TRUE, FontCallback, &familyArray);
 
     
     

@@ -1469,10 +1469,6 @@ protected:
                                       FontCreationCallback fc,
                                       void *closure);
 
-    
-    void FindGenericFontFromStyle(PRBool aResolveFontName,
-                                  FontCreationCallback fc, void *closure);
-
     static PRBool FontResolverProc(const nsAString& aName, void *aClosure);
 };
 #endif

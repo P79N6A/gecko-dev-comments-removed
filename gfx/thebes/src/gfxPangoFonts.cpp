@@ -164,8 +164,6 @@ gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
     ForEachFontInternal(families, aStyle->langGroup, PR_TRUE, PR_FALSE,
                         FontCallback, &familyArray);
 
-    FindGenericFontFromStyle(PR_FALSE, FontCallback, &familyArray);
-
     
     nsAutoString fcFamilies;
     if (familyArray.Count()) {
