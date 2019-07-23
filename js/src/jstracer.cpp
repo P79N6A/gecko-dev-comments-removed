@@ -3375,12 +3375,10 @@ TraceRecorder::cmp(LOpcode op, int flags)
 
     
     if (!x) {
-        if (!l_ins->isQuad()) {
-            JS_ASSERT(!r_ins->isQuad());
+        
+        if (!isNumber(l) || !l_ins->isQuad()) {
             JS_ASSERT(op >= LIR_feq && op <= LIR_fge);
             op = LOpcode(op + (LIR_eq - LIR_feq));
-        } else {
-            JS_ASSERT(r_ins->isQuad());
         }
         x = lir->ins2(op, l_ins, r_ins);
         if (negate) {
