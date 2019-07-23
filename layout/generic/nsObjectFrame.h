@@ -170,7 +170,7 @@ protected:
 
   void NotifyContentObjectWrapper();
 
-  nsPoint GetWindowOriginInPixels(PRBool aWindowless);
+  nsIntPoint GetWindowOriginInPixels(PRBool aWindowless);
 
   static void PaintPrintPlugin(nsIFrame* aFrame,
                                nsIRenderingContext* aRenderingContext,
@@ -192,7 +192,7 @@ protected:
   friend class nsPluginInstanceOwner;
 private:
   nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
-  nsRect                mWindowlessRect;
+  nsIntRect                       mWindowlessRect;
 
   
   

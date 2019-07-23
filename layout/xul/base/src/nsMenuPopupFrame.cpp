@@ -910,7 +910,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   }
 
   
-  nsSize parentSize = aAnchorFrame->GetSize();
+  nsRect parentRect = aAnchorFrame->GetScreenRectInAppUnits();
 
   
   
@@ -919,8 +919,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   
   float adj = float(presContext->AppUnitsPerDevPixel()) /
               aAnchorFrame->PresContext()->AppUnitsPerDevPixel();
-  parentSize.width = NSToCoordCeil(parentSize.width * adj);
-  parentSize.height = NSToCoordCeil(parentSize.height * adj);
+  parentRect.ScaleRoundOut(adj);
 
   
   
@@ -928,7 +927,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   
   NS_ASSERTION(mPrefSize.width >= 0 || mPrefSize.height >= 0,
                "preferred size of popup not set");
-  mRect.width = sizedToPopup ? parentSize.width : mPrefSize.width;
+  mRect.width = sizedToPopup ? parentRect.width : mPrefSize.width;
   mRect.height = mPrefSize.height;
 
   
@@ -936,7 +935,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   
-  nsRect anchorRect;
+  nsRect anchorRect = parentRect;
 
   
   PRBool hFlip = PR_FALSE, vFlip = PR_FALSE;
@@ -960,9 +959,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     
     
     if (mAnchorContent) {
-      anchorRect = aAnchorFrame->GetScreenRectInAppUnits();
-      anchorRect.ScaleRoundOut(adj);
-
       
       
       
@@ -1077,7 +1073,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   if (sizedToPopup) {
     nsBoxLayoutState state(PresContext());
     
-    SetBounds(state, nsRect(mRect.x, mRect.y, parentSize.width, mRect.height));
+    SetBounds(state, nsRect(mRect.x, mRect.y, parentRect.width, mRect.height));
   }
 
   return NS_OK;

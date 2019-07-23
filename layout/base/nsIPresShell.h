@@ -104,8 +104,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0xb5bc1dd3, 0x9fd3, 0x4fe7, \
-  { 0x83, 0x11, 0x5d, 0xfc, 0xa5, 0x5e, 0xa3, 0x71 } }
+{ 0xb86c23c5, 0x602d, 0x4ca6, \
+  { 0xa9, 0x68, 0x37, 0x9b, 0x24, 0x4f, 0xed, 0x9e } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -744,8 +744,8 @@ public:
 
   virtual already_AddRefed<gfxASurface> RenderNode(nsIDOMNode* aNode,
                                                    nsIRegion* aRegion,
-                                                   nsPoint& aPoint,
-                                                   nsRect* aScreenRect) = 0;
+                                                   nsIntPoint& aPoint,
+                                                   nsIntRect* aScreenRect) = 0;
 
   
 
@@ -763,8 +763,8 @@ public:
 
 
   virtual already_AddRefed<gfxASurface> RenderSelection(nsISelection* aSelection,
-                                                        nsPoint& aPoint,
-                                                        nsRect* aScreenRect) = 0;
+                                                        nsIntPoint& aPoint,
+                                                        nsIntRect* aScreenRect) = 0;
 
   void AddWeakFrame(nsWeakFrame* aWeakFrame);
   void RemoveWeakFrame(nsWeakFrame* aWeakFrame);

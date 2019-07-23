@@ -144,11 +144,11 @@ private:
 
     
     
-    PRBool SetAlphaPixmap(gfxASurface    *aPixbuf,
-                          GdkDragContext *aContext,
-                          PRInt32         aXOffset,
-                          PRInt32         aYOffset,
-                          const nsRect&   dragRect);
+    PRBool SetAlphaPixmap(gfxASurface     *aPixbuf,
+                          GdkDragContext  *aContext,
+                          PRInt32          aXOffset,
+                          PRInt32          aYOffset,
+                          const nsIntRect &dragRect);
 
 };
 

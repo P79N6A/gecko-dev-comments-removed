@@ -648,8 +648,7 @@ nsTreeBodyFrame::GetSelectionRegion(nsIScriptableRegion **aRegion)
   region->Init();
 
   nsRefPtr<nsPresContext> presContext = PresContext();
-  nsRect rect = mRect;
-  rect.ScaleRoundOut(1.0 / presContext->AppUnitsPerCSSPixel());
+  nsIntRect rect = nsRect::ToOutsidePixels(mRect, presContext->AppUnitsPerCSSPixel());
 
   nsIFrame* rootFrame = presContext->PresShell()->GetRootFrame();
   nsPoint origin = GetOffsetTo(rootFrame);
@@ -2134,14 +2133,15 @@ nsTreeBodyFrame::GetTwistyRect(PRInt32 aRowIndex,
   }
 
   if (useTheme) {
-    nsSize minTwistySize(0,0);
+    nsIntSize minTwistySizePx(0,0);
     PRBool canOverride = PR_TRUE;
     theme->GetMinimumWidgetSize(&aRenderingContext, this, twistyDisplayData->mAppearance,
-                                &minTwistySize, &canOverride);
+                                &minTwistySizePx, &canOverride);
 
     
-    minTwistySize.width = aPresContext->DevPixelsToAppUnits(minTwistySize.width);
-    minTwistySize.height = aPresContext->DevPixelsToAppUnits(minTwistySize.height);
+    nsSize minTwistySize;
+    minTwistySize.width = aPresContext->DevPixelsToAppUnits(minTwistySizePx.width);
+    minTwistySize.height = aPresContext->DevPixelsToAppUnits(minTwistySizePx.height);
 
     if (aTwistyRect.width < minTwistySize.width || !canOverride)
       aTwistyRect.width = minTwistySize.width;

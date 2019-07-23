@@ -286,13 +286,13 @@ nsScreenManagerGtk :: ScreenForRect ( PRInt32 aX, PRInt32 aY,
     
     
     PRUint32 area = 0;
-    nsRect   windowRect(aX, aY, aWidth, aHeight);
+    nsIntRect windowRect(aX, aY, aWidth, aHeight);
     for (PRInt32 i = 0, i_end = mCachedScreenArray.Count(); i < i_end; ++i) {
       PRInt32  x, y, width, height;
       x = y = width = height = 0;
       mCachedScreenArray[i]->GetRect(&x, &y, &width, &height);
       
-      nsRect screenRect(x, y, width, height);
+      nsIntRect screenRect(x, y, width, height);
       screenRect.IntersectRect(screenRect, windowRect);
       PRUint32 tempArea = screenRect.width * screenRect.height;
       if (tempArea >= area) {
