@@ -3779,72 +3779,52 @@ nsTextFrame::ClearTextRun()
   }
 }
 
+static void
+ClearTextRunsInFlowChain(nsTextFrame* aFrame)
+{
+  nsTextFrame* f;
+  for (f = aFrame; f; f = static_cast<nsTextFrame*>(f->GetNextInFlow())) {
+    f->ClearTextRun();
+  }
+}
+
 NS_IMETHODIMP
 nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
-  
-  
-  nsTextFrame* next;
-  nsTextFrame* textFrame = this;
-  while (PR_TRUE) {
-    next = static_cast<nsTextFrame*>(textFrame->GetNextContinuation());
-    if (!next || next->GetContentOffset() > PRInt32(aInfo->mChangeStart))
-      break;
-    textFrame = next;
-  }
+  ClearTextRunsInFlowChain(this);
 
-  PRInt32 endOfChangedText = aInfo->mChangeStart + aInfo->mReplaceLength;
-  nsTextFrame* lastDirtiedFrame = nsnull;
+  nsTextFrame* targetTextFrame;
+  PRInt32 nodeLength = mContent->GetText()->GetLength();
 
-  nsIPresShell* shell = PresContext()->GetPresShell();
-  do {
+  if (aInfo->mAppend) {
+    targetTextFrame = static_cast<nsTextFrame*>(GetLastContinuation());
+    targetTextFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
+  } else {
     
     
-    textFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
-    textFrame->ClearTextRun();
-    if (!lastDirtiedFrame ||
-        lastDirtiedFrame->GetParent() != textFrame->GetParent()) {
+    
+    
+    nsTextFrame* textFrame = this;
+    PRInt32 newLength = nodeLength;
+    do {
+      textFrame->mState &= ~TEXT_WHITESPACE_FLAGS;
       
-      shell->FrameNeedsReflow(textFrame, nsIPresShell::eStyleChange,
-                              NS_FRAME_IS_DIRTY);
-      lastDirtiedFrame = textFrame;
-    } else {
-      
-      
-      
-      textFrame->AddStateBits(NS_FRAME_IS_DIRTY);
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    if (textFrame->mContentOffset > endOfChangedText) {
-      textFrame->mContentOffset = endOfChangedText;
-    }
-
-    textFrame = static_cast<nsTextFrame*>(textFrame->GetNextContinuation());
-  } while (textFrame && textFrame->GetContentOffset() < PRInt32(aInfo->mChangeEnd));
-
-  
-  
-  PRInt32 sizeChange =
-    aInfo->mChangeStart + aInfo->mReplaceLength - aInfo->mChangeEnd;
-
-  if (sizeChange) {
-    
-    
-    while (textFrame) {
-      textFrame->mContentOffset += sizeChange;
-      
-      
-      textFrame->ClearTextRun();
+      if (textFrame->mContentOffset > newLength) {
+        textFrame->mContentOffset = newLength;
+      }
       textFrame = static_cast<nsTextFrame*>(textFrame->GetNextContinuation());
-    }
+      if (!textFrame) {
+        break;
+      }
+      textFrame->mState |= NS_FRAME_IS_DIRTY;
+    } while (1);
+    targetTextFrame = this;
   }
+
+  
+  PresContext()->GetPresShell()->FrameNeedsReflow(targetTextFrame,
+                                                  nsIPresShell::eStyleChange,
+                                                  NS_FRAME_IS_DIRTY);
 
   return NS_OK;
 }
@@ -5918,33 +5898,13 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
 }
 
 void
-nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
+nsTextFrame::SetLength(PRInt32 aLength)
 {
   mContentLengthHint = aLength;
   PRInt32 end = GetContentOffset() + aLength;
   nsTextFrame* f = static_cast<nsTextFrame*>(GetNextInFlow());
   if (!f)
     return;
-
-  
-  
-  
-  
-  
-  
-  
-  if (aLineLayout &&
-      (end != f->mContentOffset || (f->GetStateBits() & NS_FRAME_IS_DIRTY))) {
-    const nsLineList::iterator* line = aLineLayout->GetLine();
-    nsBlockFrame* block = do_QueryFrame(aLineLayout->GetLineContainerFrame());
-    if (line && block) {
-      nsLineList::iterator next = line->next();
-      if (next != block->end_lines() && !next->IsBlock()) {
-        next->MarkDirty();
-      }
-    }
-  }
-
   if (end < f->mContentOffset) {
     
     f->mContentOffset = end;
@@ -5954,12 +5914,8 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
     }
     return;
   }
-  
-  
-  
-  
-  
   while (f && f->mContentOffset < end) {
+    
     f->mContentOffset = end;
     if (f->GetTextRun() != mTextRun) {
       ClearTextRun();
@@ -5967,7 +5923,6 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
     }
     f = static_cast<nsTextFrame*>(f->GetNextInFlow());
   }
-
 #ifdef DEBUG
   f = this;
   PRInt32 iterations = 0;
@@ -6091,7 +6046,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (lineLayout.GetInFirstLetter() || lineLayout.GetInFirstLine()) {
-    SetLength(maxContentLength, &lineLayout);
+    SetLength(maxContentLength);
 
     if (lineLayout.GetInFirstLetter()) {
       
@@ -6133,7 +6088,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
         
         
         
-        SetLength(offset + length - GetContentOffset(), &lineLayout);
+        SetLength(offset + length - GetContentOffset());
         
         ClearTextRun();
       }
@@ -6430,9 +6385,10 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
         charsFit - numJustifiableCharacters);
   }
 
-  SetLength(contentLength, &lineLayout);
+  SetLength(contentLength);
 
   if (mContent->HasFlag(NS_TEXT_IN_SELECTION)) {
+    
     SelectionDetails* details = GetSelectionDetails();
     if (details) {
       AddStateBits(NS_FRAME_SELECTED_CONTENT);
@@ -6863,7 +6819,7 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
   }
 
   mContentOffset = aStart;
-  SetLength(aEnd - aStart, nsnull);
+  SetLength(aEnd - aStart);
 }
 
 
