@@ -57,6 +57,10 @@ textbox[enablehistory="true"] {
   background-color: transparent;
 }
 
+textbox[nomatch="true"][highlightnonmatches="true"] {
+  color: red;
+}
+
 
 textbox.padded {
   padding-top: 1px;
