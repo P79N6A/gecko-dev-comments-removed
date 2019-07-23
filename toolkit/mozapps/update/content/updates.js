@@ -625,6 +625,15 @@ var gIncompatibleCheckPage = {
 
 
   onPageShow: function() {
+    var aus = CoC["@mozilla.org/updates/update-service;1"].
+              getService(CoI.nsIApplicationUpdateService2);
+    
+    if (!aus.canApplyUpdates) {
+      gUpdates.wiz.currentPage.setAttribute("next", "manualUpdate");
+      gUpdates.wiz.advance();
+      return;
+    }
+
     var ai = CoC["@mozilla.org/xre/app-info;1"].getService(CoI.nsIXULAppInfo);
     var vc = CoC["@mozilla.org/xpcom/version-comparator;1"].
              getService(CoI.nsIVersionComparator);
@@ -737,6 +746,24 @@ var gIncompatibleCheckPage = {
         !iid.equals(CoI.nsISupports))
       throw CoR.NS_ERROR_NO_INTERFACE;
     return this;
+  }
+};
+
+
+
+
+
+var gManualUpdatePage = {
+  onPageShow: function() {
+    var formatter = CoC["@mozilla.org/toolkit/URLFormatterService;1"].
+                    getService(CoI.nsIURLFormatter);
+    var manualURL = formatter.formatURLPref(PREF_UPDATE_MANUAL_URL);
+    var manualUpdateLinkLabel = document.getElementById("manualUpdateLinkLabel");
+    manualUpdateLinkLabel.value = manualURL;
+    manualUpdateLinkLabel.setAttribute("url", manualURL);
+
+    gUpdates.setButtons(null, null, "okButton", true);
+    gUpdates.wiz.getButton("finish").focus();
   }
 };
 

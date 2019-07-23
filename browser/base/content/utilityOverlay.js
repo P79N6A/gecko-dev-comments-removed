@@ -475,7 +475,7 @@ function buildHelpMenu()
 #ifdef MOZ_UPDATER
   var updates = 
       Components.classes["@mozilla.org/updates/update-service;1"].
-      getService(Components.interfaces.nsIApplicationUpdateService);
+      getService(Components.interfaces.nsIApplicationUpdateService2);
   var um = 
       Components.classes["@mozilla.org/updates/update-manager;1"].
       getService(Components.interfaces.nsIUpdateManager);
@@ -483,9 +483,9 @@ function buildHelpMenu()
   
   
   var checkForUpdates = document.getElementById("checkForUpdates");
-  var canUpdate = updates.canUpdate;
-  checkForUpdates.setAttribute("disabled", !canUpdate);
-  if (!canUpdate)
+  var canCheckForUpdates = updates.canCheckForUpdates;
+  checkForUpdates.setAttribute("disabled", !canCheckForUpdates);
+  if (!canCheckForUpdates)
     return; 
 
   var strings = document.getElementById("bundle_browser");
