@@ -246,6 +246,7 @@ public:
                              SelectionDetails **aReturnDetails, SelectionType aType, PRBool aSlowCheck);
   NS_IMETHOD   Repaint(nsPresContext* aPresContext);
 
+  
   nsresult     StartAutoScrollTimer(nsPresContext *aPresContext,
                                     nsIView *aView,
                                     nsPoint& aPoint,
@@ -257,12 +258,15 @@ public:
 private:
   friend class nsAutoScrollTimer;
 
+  
   nsresult DoAutoScrollView(nsPresContext *aPresContext,
                             nsIView *aView,
                             nsPoint& aPoint,
                             PRBool aScrollParentViews);
 
+  
   nsresult     ScrollPointIntoClipView(nsPresContext *aPresContext, nsIView *aView, nsPoint& aPoint, PRBool *aDidScroll);
+  
   nsresult     ScrollPointIntoView(nsPresContext *aPresContext, nsIView *aView, nsPoint& aPoint, PRBool aScrollParentViews, PRBool *aDidScroll);
   nsresult     GetViewAncestorOffset(nsIView *aView, nsIView *aAncestorView, nscoord *aXOffset, nscoord *aYOffset);
 
@@ -5084,10 +5088,25 @@ nsTypedSelection::ScrollPointIntoClipView(nsPresContext *aPresContext, nsIView *
 
   if (dx != 0 || dy != 0)
   {
-    
-    aPresContext->GetViewManager()->Composite();
+    nsCOMPtr<nsIPresShell> presShell;
+    GetPresShell(getter_AddRefs(presShell));
+    NS_ASSERTION(presShell, "no pres shell");
+
+    nsWeakView weakView = scrollableView->View();
 
     
+    
+    
+    nsCOMPtr<nsIViewManager> viewManager = aPresContext->GetViewManager();
+    viewManager->Composite();
+
+    if (!weakView.IsAlive()) {
+      return NS_ERROR_NULL_POINTER;
+    }
+
+    if (presShell->IsDestroying()) {
+      return NS_ERROR_NULL_POINTER;
+    }
 
     result = scrollableView->ScrollTo(bounds.x + dx, bounds.y + dy, 0);
 

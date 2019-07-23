@@ -297,6 +297,7 @@ public:
 
 
 
+  
   nsresult StartAutoScrollTimer(nsIView *aView,
                                 nsPoint aPoint,
                                 PRUint32 aDelay);
@@ -352,6 +353,7 @@ public:
 
 
 
+  
   nsresult ScrollSelectionIntoView(SelectionType aType,
                                    SelectionRegion aRegion,
                                    PRBool aIsSynchronous) const;
@@ -558,7 +560,7 @@ public:
 
   nsIPresShell *GetShell()const  { return mShell; }
 
-  void DisconnectFromPresShell() { mShell = nsnull; }
+  void DisconnectFromPresShell() { StopAutoScrollTimer(); mShell = nsnull; }
 private:
   nsresult TakeFocus(nsIContent *aNewFocus,
                      PRUint32 aContentOffset,
