@@ -439,7 +439,8 @@ public:
 
   void SetVisibleArea(const nsRect& r) {
     mVisibleArea = r;
-    if (HasCachedStyleData())
+    
+    if (!IsPaginated() && HasCachedStyleData())
       PostMediaFeatureValuesChangedEvent();
   }
 
