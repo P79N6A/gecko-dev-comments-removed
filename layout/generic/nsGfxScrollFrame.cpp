@@ -1326,6 +1326,19 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
+  
+  nsIFrame* kid = mOuter->GetFirstChild(nsnull);
+  while (kid) {
+    if (kid != mScrolledFrame) {
+      rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    kid = kid->GetNextSibling();
+  }
+
+  
+  
+  
   nsRect frameClip = mScrollableView->View()->GetBounds();
   nsRect dirtyRect;
   
@@ -1347,18 +1360,6 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, PR_TRUE, mIsRoot);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  nsIFrame* kid = mOuter->GetFirstChild(nsnull);
-  
-  nsDisplayListSet scrollbarSet(aLists, aLists.Content());
-  while (kid) {
-    if (kid != mScrolledFrame) {
-      rv = mOuter->BuildDisplayListForChild(aBuilder, kid, aDirtyRect, scrollbarSet,
-                                            nsIFrame::DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    kid = kid->GetNextSibling();
-  }
   return NS_OK;
 }
 
