@@ -576,6 +576,10 @@ NS_METHOD nsWidget::SetCursor( nsCursor aCursor ) {
 		  curs = Ph_CURSOR_DRAG_HORIZONTAL;
 		  break;
 
+		case eCursor_none:
+		  
+		  break;
+
 		default:
 		  NS_ASSERTION(0, "Invalid cursor type");
 		  break;
