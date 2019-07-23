@@ -632,7 +632,7 @@ nsFastLoadFileReader::SetInputStream(nsIInputStream *aInputStream)
 
 
 
-#define MFL_CHECKSUM_BUFSIZE    (6 * 8192)
+#define MFL_CHECKSUM_BUFSIZE    8192
 
 NS_IMETHODIMP
 nsFastLoadFileReader::ComputeChecksum(PRUint32 *aResult)
