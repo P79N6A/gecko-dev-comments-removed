@@ -366,6 +366,38 @@ nsBlockReflowState::GetFloatAvailableSpaceWithState(
   return result;
 }
 
+nsFlowAreaRect
+nsBlockReflowState::GetFloatAvailableSpaceForHeight(
+                      nscoord aY, nscoord aHeight,
+                      nsFloatManager::SavedState *aState) const
+{
+#ifdef DEBUG
+  
+  nscoord wx, wy;
+  mFloatManager->GetTranslation(wx, wy);
+  NS_ASSERTION((wx == mFloatManagerX) && (wy == mFloatManagerY),
+               "bad coord system");
+#endif
+
+  nsFlowAreaRect result =
+    mFloatManager->GetFlowArea(aY - BorderPadding().top, 
+                               nsFloatManager::WIDTH_WITHIN_HEIGHT,
+                               aHeight, mContentArea.width, aState);
+  
+  if (result.mRect.width < 0)
+    result.mRect.width = 0;
+
+#ifdef DEBUG
+  if (nsBlockFrame::gNoisyReflow) {
+    nsFrame::IndentBy(stdout, nsBlockFrame::gNoiseIndent);
+    printf("GetAvailableSpaceForHeight: space=%d,%d,%d,%d hasfloats=%d\n",
+           result.mRect.x, result.mRect.y, result.mRect.width,
+           result.mRect.height, result.mHasFloats);
+  }
+#endif
+  return result;
+}
+
 
 
 

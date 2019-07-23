@@ -50,6 +50,7 @@
 #include "nsLineBox.h"
 #include "nsCSSPseudoElements.h"
 #include "nsStyleSet.h"
+#include "nsFloatManager.h"
 
 enum LineReflowStatus {
   
@@ -61,6 +62,10 @@ enum LineReflowStatus {
   
   
   LINE_REFLOW_REDO_NO_PULL,
+  
+  
+  
+  LINE_REFLOW_REDO_MORE_FLOATS,
   
   
   LINE_REFLOW_REDO_NEXT_BAND,
@@ -480,10 +485,14 @@ protected:
                       PRBool* aKeepReflowGoing);
 
   
-  void PlaceLine(nsBlockReflowState& aState,
-                 nsLineLayout&       aLineLayout,
-                 line_iterator       aLine,
-                 PRBool*             aKeepReflowGoing);
+  
+  
+  PRBool PlaceLine(nsBlockReflowState& aState,
+                   nsLineLayout&       aLineLayout,
+                   line_iterator       aLine,
+                   nsFloatManager::SavedState* aFloatStateBeforeLine,
+                   nsRect&             aFloatAvailableSpace, 
+                   PRBool*             aKeepReflowGoing);
 
   
 
@@ -522,6 +531,9 @@ protected:
   nsresult DoReflowInlineFrames(nsBlockReflowState& aState,
                                 nsLineLayout& aLineLayout,
                                 line_iterator aLine,
+                                nsFlowAreaRect& aFloatAvailableSpace,
+                                nsFloatManager::SavedState*
+                                  aFloatStateBeforeLine,
                                 PRBool* aKeepReflowGoing,
                                 LineReflowStatus* aLineReflowStatus,
                                 PRBool aAllowPullUp);
