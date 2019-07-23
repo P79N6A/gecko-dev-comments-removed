@@ -4035,8 +4035,6 @@ var XULBrowserWindow = {
         
         PlacesStarButton.updateState();
       }
-
-      FullZoom.onLocationChange(aLocationURI);
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
 
@@ -4172,6 +4170,7 @@ var XULBrowserWindow = {
 
   
   onUpdateCurrentBrowser: function (aStateFlags, aStatus, aMessage, aTotalProgress) {
+    FullZoom.onLocationChange(gBrowser.currentURI);
     var nsIWebProgressListener = Components.interfaces.nsIWebProgressListener;
     var loadingDone = aStateFlags & nsIWebProgressListener.STATE_STOP;
     
@@ -4236,6 +4235,9 @@ var TabsProgressListener = {
   },
 
   onLocationChange: function (aBrowser, aWebProgress, aRequest, aLocationURI) {
+    
+    if (aBrowser.contentWindow == aWebProgress.DOMWindow)
+      FullZoom.onLocationChange(aLocationURI, aBrowser);
   },
   
   onStatusChange: function (aBrowser, aWebProgress, aRequest, aStatus, aMessage) {
