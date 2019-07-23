@@ -54,7 +54,9 @@ typedef enum {
   RESULT_FAILED = 0,  
   RESULT_REJECTED,    
                       
-  RESULT_SUCCEEDED    
+  RESULT_SUCCEEDED,   
+  RESULT_THROTTLED    
+                      
 } ReportResult;
 
 class CrashReportSender {
@@ -63,24 +65,57 @@ class CrashReportSender {
   
   
   
+  explicit CrashReportSender(const wstring &checkpoint_file);
+  ~CrashReportSender() {}
+
+  
+  
+  
+  void set_max_reports_per_day(int reports) {
+    max_reports_per_day_ = reports;
+  }
+
+  int max_reports_per_day() const { return max_reports_per_day_; }
+
   
   
   
   
   
   
-  static ReportResult SendCrashReport(const wstring &url,
-                                      const map<wstring, wstring> &parameters,
-                                      const wstring &dump_file_name,
-                                      wstring *report_code);
+  
+  
+  
+  
+  ReportResult SendCrashReport(const wstring &url,
+                               const map<wstring, wstring> &parameters,
+                               const wstring &dump_file_name,
+                               wstring *report_code);
 
  private:
   
+  void ReadCheckpoint(FILE *fd);
+
   
-  CrashReportSender();
+  void ReportSent(int today);
+
+  
+  int GetCurrentDate() const;
+
+  
+  
+  int OpenCheckpointFile(const wchar_t *mode, FILE **fd);
+
+  wstring checkpoint_file_;
+  int max_reports_per_day_;
+  
+  int last_sent_date_;
+  
+  int reports_sent_;
+
+  
   explicit CrashReportSender(const CrashReportSender &);
   void operator=(const CrashReportSender &);
-  ~CrashReportSender();
 };
 
 }  

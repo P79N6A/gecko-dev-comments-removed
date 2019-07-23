@@ -185,6 +185,10 @@ class ExceptionHandler {
 
   
   
+  static void HandlePureVirtualCall();
+
+  
+  
   
   
   
@@ -253,6 +257,10 @@ class ExceptionHandler {
   
   _invalid_parameter_handler previous_iph_;
 #endif  
+
+  
+  
+  _purecall_handler previous_pch_;
 
   
   HANDLE handler_thread_;

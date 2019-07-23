@@ -37,7 +37,10 @@
 #define PROCESSOR_CONTAINED_RANGE_MAP_INL_H__
 
 
+#include <cassert>
+
 #include "processor/contained_range_map.h"
+#include "processor/logging.h"
 
 
 namespace google_breakpad {
@@ -56,8 +59,11 @@ bool ContainedRangeMap<AddressType, EntryType>::StoreRange(
   AddressType high = base + size - 1;
 
   
-  if (size <= 0 || high < base)
+  if (size <= 0 || high < base) {
+    BPLOG(INFO) << "StoreRange failed, " << HexString(base) << "+" <<
+                   HexString(size) << ", " << HexString(high);
     return false;
+  }
 
   if (!map_)
     map_ = new AddressToRangeMap();
@@ -74,8 +80,11 @@ bool ContainedRangeMap<AddressType, EntryType>::StoreRange(
     
     
     
-    if (iterator_base->second->base_ == base && iterator_base->first == high)
+    if (iterator_base->second->base_ == base && iterator_base->first == high) {
+      BPLOG(INFO) << "StoreRange failed, identical range is already "
+                     "present: " << HexString(base) << "+" << HexString(size);
       return false;
+    }
 
     
     return iterator_base->second->StoreRange(base, size, entry);
@@ -92,6 +101,12 @@ bool ContainedRangeMap<AddressType, EntryType>::StoreRange(
   
   if ((iterator_base != iterator_end && base > iterator_base->second->base_) ||
       (contains_high && high < iterator_high->first)) {
+    
+    
+    
+    
+    
+    
     return false;
   }
 
@@ -130,7 +145,12 @@ bool ContainedRangeMap<AddressType, EntryType>::StoreRange(
 template<typename AddressType, typename EntryType>
 bool ContainedRangeMap<AddressType, EntryType>::RetrieveRange(
     const AddressType &address, EntryType *entry) const {
-  if (!entry || !map_)
+  BPLOG_IF(ERROR, !entry) << "ContainedRangeMap::RetrieveRange requires "
+                             "|entry|";
+  assert(entry);
+
+  
+  if (!map_)
     return false;
 
   
