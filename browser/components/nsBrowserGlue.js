@@ -95,6 +95,10 @@ function BrowserGlue() {
                                      "@mozilla.org/observer-service;1",
                                      "nsIObserverService");
 
+  XPCOMUtils.defineLazyGetter(this, "_distributionCustomizer", function() {
+                                return new DistributionCustomizer();
+                              });
+
   this._init();
 }
 
@@ -180,6 +184,10 @@ BrowserGlue.prototype = {
         
         this._observerService.removeObserver(this, "places-database-locked");
         this._isPlacesLockedObserver = false;
+
+        
+        
+        this._distributionCustomizer.applyBookmarks();
         break;
       case "places-database-locked":
         this._isPlacesDatabaseLocked = true;
@@ -191,6 +199,10 @@ BrowserGlue.prototype = {
       case "idle":
         if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
           this._backupBookmarks();
+        break;
+      case "distribution-customization-complete":
+        
+        delete this._distributionCustomizer;
         break;
     }
   }, 
@@ -216,6 +228,7 @@ BrowserGlue.prototype = {
     this._isPlacesInitObserver = true;
     osvr.addObserver(this, "places-database-locked", false);
     this._isPlacesLockedObserver = true;
+    osvr.addObserver(this, "distribution-customization-complete", false);
   },
 
   
@@ -247,8 +260,7 @@ BrowserGlue.prototype = {
   {
     
     
-    var distro = new DistributionCustomizer();
-    distro.applyPrefDefaults();
+    this._distributionCustomizer.applyPrefDefaults();
   },
 
   
@@ -267,8 +279,7 @@ BrowserGlue.prototype = {
 
     
     
-    var distro = new DistributionCustomizer();
-    distro.applyCustomizations();
+    this._distributionCustomizer.applyCustomizations();
 
     
     this._migrateUI();
