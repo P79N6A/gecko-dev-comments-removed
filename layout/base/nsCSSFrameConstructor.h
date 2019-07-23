@@ -52,7 +52,6 @@
 #include "nsHashKeys.h"
 #include "nsThreadUtils.h"
 #include "nsPageContentFrame.h"
-#include "nsIViewManager.h"
 
 class nsIDocument;
 struct nsFrameItems;
@@ -72,19 +71,6 @@ struct nsFindFrameHint
 {
   nsIFrame *mPrimaryFrameForPrevSibling;  
   nsFindFrameHint() : mPrimaryFrameForPrevSibling(nsnull) { }
-};
-
-
-
-
-
-class nsFocusEventSuppressor
-{
-public:
-  void Suppress(nsIPresShell *aPresShell);
-  void Unsuppress();
-private:
-  nsCOMPtr<nsIViewManager> mViewManager;
 };
 
 typedef void (PR_CALLBACK nsLazyFrameConstructionCallback)
@@ -162,7 +148,7 @@ public:
                             PRInt32     aModType,
                             PRUint32    aStateMask);
 
-  void BeginUpdate();
+  void BeginUpdate() { ++mUpdateCount; }
   void EndUpdate();
   void RecalcQuotesAndCounters();
 
@@ -176,9 +162,6 @@ public:
   nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray);
 
 private:
-
-  nsFocusEventSuppressor mFocusSuppressor;
-
   
   
   
