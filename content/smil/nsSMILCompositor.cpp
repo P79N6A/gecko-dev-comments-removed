@@ -41,15 +41,6 @@
 #include "nsHashKeys.h"
 
 
-inline PRBool
-nsSMILCompositorKey::Equals(const nsSMILCompositorKey &aOther) const
-{
-  return (aOther.mElement       == mElement &&
-          aOther.mAttributeName == mAttributeName &&
-          aOther.mIsCSS         == mIsCSS);
-}
-
-
 PRBool
 nsSMILCompositor::KeyEquals(KeyTypePointer aKey) const
 {

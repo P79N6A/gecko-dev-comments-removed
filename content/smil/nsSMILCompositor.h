@@ -38,31 +38,12 @@
 #ifndef NS_SMILCOMPOSITOR_H_
 #define NS_SMILCOMPOSITOR_H_
 
-#include "nsIContent.h"
 #include "nsTHashtable.h"
-#include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsSMILAnimationFunction.h"
+#include "nsSMILTargetIdentifier.h"
 #include "nsSMILCompositorTable.h"
 #include "pldhash.h"
-
-
-
-
-
-
-
-
-
-
-struct nsSMILCompositorKey
-{
-  PRBool    Equals(const nsSMILCompositorKey &aOther) const;
-
-  nsRefPtr<nsIContent> mElement;
-  nsRefPtr<nsIAtom>    mAttributeName; 
-  PRPackedBool         mIsCSS;
-};
 
 
 
@@ -74,8 +55,9 @@ struct nsSMILCompositorKey
 class nsSMILCompositor : public PLDHashEntryHdr
 {
 public:
-  typedef const nsSMILCompositorKey& KeyType;
-  typedef const nsSMILCompositorKey* KeyTypePointer;
+  typedef nsSMILTargetIdentifier KeyType;
+  typedef const KeyType& KeyTypeRef;
+  typedef const KeyType* KeyTypePointer;
 
   explicit nsSMILCompositor(KeyTypePointer aKey) : mKey(*aKey) { }
   nsSMILCompositor(const nsSMILCompositor& toCopy)
@@ -85,9 +67,9 @@ public:
   ~nsSMILCompositor() { }
 
   
-  KeyType GetKey() const { return mKey; }
+  KeyTypeRef GetKey() const { return mKey; }
   PRBool KeyEquals(KeyTypePointer aKey) const;
-  static KeyTypePointer KeyToPointer(KeyType aKey) { return &aKey; }
+  static KeyTypePointer KeyToPointer(KeyTypeRef aKey) { return &aKey; }
   static PLDHashNumber HashKey(KeyTypePointer aKey);
   enum { ALLOW_MEMMOVE = PR_FALSE };
 
@@ -115,7 +97,7 @@ public:
       nsSMILCompositor* aCompositor, void *aData);
 
   
-  nsSMILCompositorKey  mKey;
+  KeyType mKey;
 
   
   

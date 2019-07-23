@@ -558,8 +558,8 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
   nsISMILAnimationElement* aElement, nsSMILCompositorTable* aCompositorTable)
 {
   
-  nsSMILCompositorKey key;
-  if (!GetCompositorKeyForAnimation(aElement, key))
+  nsSMILTargetIdentifier key;
+  if (!GetTargetIdentifierForAnimation(aElement, key))
     
     return;
 
@@ -581,8 +581,8 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
 
 
  PRBool
-nsSMILAnimationController::GetCompositorKeyForAnimation(
-    nsISMILAnimationElement* aAnimElem, nsSMILCompositorKey& aResult)
+nsSMILAnimationController::GetTargetIdentifierForAnimation(
+    nsISMILAnimationElement* aAnimElem, nsSMILTargetIdentifier& aResult)
 {
   
   nsIContent* targetElem = aAnimElem->GetTargetElementContent();
