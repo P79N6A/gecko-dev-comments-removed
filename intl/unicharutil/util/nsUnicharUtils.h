@@ -79,6 +79,15 @@ public:
                           PRUnichar) const;
 };
 
+class nsCaseInsensitiveStringArrayComparator
+{
+public:
+  template<class A, class B>
+  PRBool Equals(const A& a, const B& b) const {
+    return a.Equals(b, nsCaseInsensitiveStringComparator());
+  }
+};
+
 inline PRBool
 CaseInsensitiveFindInReadable(const nsAString& aPattern,
                               nsAString::const_iterator& aSearchStart,

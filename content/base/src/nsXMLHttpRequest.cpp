@@ -85,12 +85,12 @@
 #include "nsDOMError.h"
 #include "nsIHTMLDocument.h"
 #include "nsIDOM3Document.h"
-#include "nsWhitespaceTokenizer.h"
 #include "nsIMultiPartChannel.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIStorageStream.h"
 #include "nsIPromptFactory.h"
 #include "nsIWindowWatcher.h"
+#include "nsCommaSeparatedTokenizer.h"
 
 #define LOAD_STR "load"
 #define ERROR_STR "error"
@@ -126,7 +126,7 @@
 
 #define XML_HTTP_REQUEST_MPART_HEADERS  (1 << 15) // Internal
 #define XML_HTTP_REQUEST_USE_XSITE_AC   (1 << 16) // Internal
-#define XML_HTTP_REQUEST_NON_GET        (1 << 17) // Internal
+#define XML_HTTP_REQUEST_NEED_AC_PREFLIGHT (1 << 17) // Internal
 
 #define XML_HTTP_REQUEST_LOADSTATES         \
   (XML_HTTP_REQUEST_UNINITIALIZED |         \
@@ -306,6 +306,8 @@ public:
   NS_DECL_NSICHANNELEVENTSINK
 
 private:
+  void AddResultToCache(nsIRequest* aRequest);
+
   nsCOMPtr<nsIChannel> mOuterChannel;
   nsCOMPtr<nsIStreamListener> mOuterListener;
   nsCOMPtr<nsISupports> mOuterContext;
@@ -315,6 +317,120 @@ private:
 
 NS_IMPL_ISUPPORTS4(nsACProxyListener, nsIStreamListener, nsIRequestObserver,
                    nsIInterfaceRequestor, nsIChannelEventSink)
+
+void
+nsACProxyListener::AddResultToCache(nsIRequest *aRequest)
+{
+  nsCOMPtr<nsIHttpChannel> http = do_QueryInterface(aRequest);
+  NS_ASSERTION(http, "Request was not http");
+
+  
+  nsCAutoString headerVal;
+  http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Max-Age"),
+                          headerVal);
+  if (headerVal.IsEmpty()) {
+    return;
+  }
+
+  
+  
+  
+  PRUint32 age = 0;
+  nsCSubstring::const_char_iterator iter, end;
+  headerVal.BeginReading(iter);
+  headerVal.EndReading(end);
+  while (iter != end) {
+    if (*iter < '0' || *iter > '9') {
+      return;
+    }
+    age = age * 10 + (*iter - '0');
+    
+    age = PR_MIN(age, 86400);
+    ++iter;
+  }
+
+  if (!age || !nsXMLHttpRequest::EnsureACCache()) {
+    return;
+  }
+
+
+  
+  
+  
+
+  nsCOMPtr<nsIURI> uri;
+  http->GetURI(getter_AddRefs(uri));
+
+  
+  PRTime expirationTime = PR_Now() + (PRUint64)age * PR_USEC_PER_SEC;
+
+  nsAccessControlLRUCache::CacheEntry* entry =
+    nsXMLHttpRequest::sAccessControlCache->
+    GetEntry(uri, mReferrerPrincipal, PR_TRUE);
+  if (!entry) {
+    return;
+  }
+
+  
+  
+  http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Allow-Methods"),
+                          headerVal);
+
+  nsCCommaSeparatedTokenizer methods(headerVal);
+  while(methods.hasMoreTokens()) {
+    const nsDependentCSubstring& method = methods.nextToken();
+    if (method.IsEmpty()) {
+      continue;
+    }
+    PRUint32 i;
+    for (i = 0; i < entry->mMethods.Length(); ++i) {
+      if (entry->mMethods[i].token.Equals(method)) {
+        entry->mMethods[i].expirationTime = expirationTime;
+        break;
+      }
+    }
+    if (i == entry->mMethods.Length()) {
+      nsAccessControlLRUCache::TokenTime* newMethod =
+        entry->mMethods.AppendElement();
+      if (!newMethod) {
+        return;
+      }
+
+      newMethod->token = method;
+      newMethod->expirationTime = expirationTime;
+    }
+  }
+
+  
+  
+  http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Allow-Headers"),
+                          headerVal);
+
+  nsCCommaSeparatedTokenizer headers(headerVal);
+  while(headers.hasMoreTokens()) {
+    const nsDependentCSubstring& header = headers.nextToken();
+    if (header.IsEmpty()) {
+      continue;
+    }
+    PRUint32 i;
+    for (i = 0; i < entry->mHeaders.Length(); ++i) {
+      if (entry->mHeaders[i].token.Equals(header)) {
+        entry->mHeaders[i].expirationTime = expirationTime;
+        break;
+      }
+    }
+    if (i == entry->mHeaders.Length()) {
+      nsAccessControlLRUCache::TokenTime* newHeader =
+        entry->mHeaders.AppendElement();
+      if (!newHeader) {
+        return;
+      }
+
+      newHeader->token = header;
+      newHeader->expirationTime = expirationTime;
+    }
+  }
+}
 
 NS_IMETHODIMP
 nsACProxyListener::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
@@ -328,40 +444,8 @@ nsACProxyListener::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
   if (NS_SUCCEEDED(rv)) {
     
-    
+    AddResultToCache(aRequest);
 
-    nsCOMPtr<nsIHttpChannel> http = do_QueryInterface(aRequest, &rv);
-
-    
-    nsCAutoString ageString;
-    http->GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Max-Age"),
-                            ageString);
-
-    
-    
-    
-    
-    
-    ageString.StripWhitespace();
-    if (ageString.CharAt(0) >= '0' || ageString.CharAt(0) <= '9') {
-      PRUint64 age;
-      PRInt32 convertedChars = PR_sscanf(ageString.get(), "%llu", &age);
-      if ((PRInt32)ageString.Length() == convertedChars &&
-          nsXMLHttpRequest::EnsureACCache()) {
-
-        
-        nsCOMPtr<nsIURI> uri;
-        http->GetURI(getter_AddRefs(uri));
-
-        
-        PRTime expirationTime = PR_Now() + age * PR_USEC_PER_SEC;
-        nsXMLHttpRequest::sAccessControlCache->PutEntry(uri, mReferrerPrincipal,
-                                                        expirationTime);
-      }
-    }
-  }
-
-  if (NS_SUCCEEDED(rv)) {
     rv = mOuterChannel->AsyncOpen(mOuterListener, mOuterContext);
   }
 
@@ -751,46 +835,87 @@ NS_IMPL_ADDREF_INHERITED(nsXMLHttpRequestUpload, nsXHREventTarget)
 NS_IMPL_RELEASE_INHERITED(nsXMLHttpRequestUpload, nsXHREventTarget)
 
 void
-nsAccessControlLRUCache::GetEntry(nsIURI* aURI,
-                                  nsIPrincipal* aPrincipal,
-                                  PRTime* _retval)
+nsAccessControlLRUCache::CacheEntry::PurgeExpired(PRTime now)
 {
-  nsCAutoString key;
-  if (GetCacheKey(aURI, aPrincipal, key)) {
-    CacheEntry* entry;
-    if (GetEntryInternal(key, &entry)) {
-      *_retval = entry->value;
-      return;
+  PRUint32 i;
+  for (i = 0; i < mMethods.Length(); ++i) {
+    if (now >= mMethods[i].expirationTime) {
+      mMethods.RemoveElementAt(i--);
     }
   }
-  *_retval = 0;
+  for (i = 0; i < mHeaders.Length(); ++i) {
+    if (now >= mHeaders[i].expirationTime) {
+      mHeaders.RemoveElementAt(i--);
+    }
+  }
 }
 
-void
-nsAccessControlLRUCache::PutEntry(nsIURI* aURI,
+PRBool
+nsAccessControlLRUCache::CacheEntry::CheckRequest(const nsCString& aMethod,
+                                                  const nsTArray<nsCString>& aHeaders)
+{
+  PurgeExpired(PR_Now());
+
+  if (!aMethod.EqualsLiteral("GET") && !aMethod.EqualsLiteral("POST")) {
+    PRUint32 i;
+    for (i = 0; i < mMethods.Length(); ++i) {
+      if (aMethod.Equals(mMethods[i].token))
+        break;
+    }
+    if (i == mMethods.Length()) {
+      return PR_FALSE;
+    }
+  }
+
+  for (PRUint32 i = 0; i < aHeaders.Length(); ++i) {
+    PRUint32 j;
+    for (j = 0; j < mHeaders.Length(); ++j) {
+      if (aHeaders[i].Equals(mHeaders[j].token,
+                             nsCaseInsensitiveCStringComparator())) {
+        break;
+      }
+    }
+    if (j == mHeaders.Length()) {
+      return PR_FALSE;
+    }
+  }
+
+  return PR_TRUE;
+}
+
+nsAccessControlLRUCache::CacheEntry*
+nsAccessControlLRUCache::GetEntry(nsIURI* aURI,
                                   nsIPrincipal* aPrincipal,
-                                  PRTime aValue)
+                                  PRBool aCreate)
 {
   nsCString key;
   if (!GetCacheKey(aURI, aPrincipal, key)) {
     NS_WARNING("Invalid cache key!");
-    return;
+    return nsnull;
   }
 
   CacheEntry* entry;
-  if (GetEntryInternal(key, &entry)) {
+
+  if (mTable.Get(key, &entry)) {
     
+
     
-    entry->value = aValue;
-    return;
+    PR_REMOVE_LINK(entry);
+    PR_INSERT_LINK(entry, &mList);
+
+    return entry;
+  }
+
+  if (!aCreate) {
+    return nsnull;
   }
 
   
   
-  entry = new CacheEntry(key, aValue);
+  entry = new CacheEntry(key);
   if (!entry) {
     NS_WARNING("Failed to allocate new cache entry!");
-    return;
+    return nsnull;
   }
 
   if (!mTable.Put(key, entry)) {
@@ -798,7 +923,7 @@ nsAccessControlLRUCache::PutEntry(nsIURI* aURI,
     delete entry;
 
     NS_WARNING("Failed to add entry to the access control cache!");
-    return;
+    return nsnull;
   }
 
   PR_INSERT_LINK(entry, &mList);
@@ -819,12 +944,14 @@ nsAccessControlLRUCache::PutEntry(nsIURI* aURI,
       PR_REMOVE_LINK(lruEntry);
 
       
-      mTable.Remove(lruEntry->key);
+      mTable.Remove(lruEntry->mKey);
 
       NS_ASSERTION(mTable.Count() >= ACCESS_CONTROL_CACHE_SIZE,
                    "Somehow tried to remove an entry that was never added!");
     }
   }
+  
+  return entry;
 }
 
 void
@@ -834,27 +961,17 @@ nsAccessControlLRUCache::Clear()
   mTable.Clear();
 }
 
-PRBool
-nsAccessControlLRUCache::GetEntryInternal(const nsACString& aKey,
-                                          CacheEntry** _retval)
-{
-  if (!mTable.Get(aKey, _retval))
-    return PR_FALSE;
-
-  
-  PR_REMOVE_LINK(*_retval);
-  PR_INSERT_LINK(*_retval, &mList);
-
-  return PR_TRUE;
-}
-
  PR_CALLBACK PLDHashOperator
 nsAccessControlLRUCache::RemoveExpiredEntries(const nsACString& aKey,
                                               nsAutoPtr<CacheEntry>& aValue,
                                               void* aUserData)
 {
   PRTime* now = static_cast<PRTime*>(aUserData);
-  if (*now >= aValue->value) {
+  
+  aValue->PurgeExpired(*now);
+  
+  if (aValue->mHeaders.IsEmpty() &&
+      aValue->mHeaders.IsEmpty()) {
     
     PR_REMOVE_LINK(aValue);
     return PL_DHASH_REMOVE;
@@ -877,16 +994,19 @@ nsAccessControlLRUCache::GetCacheKey(nsIURI* aURI,
   nsresult rv = aPrincipal->GetURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
   
-  nsCAutoString host;
+  nsCAutoString scheme, host, port;
   if (uri) {
+    uri->GetScheme(scheme);
     uri->GetHost(host);
+    PRInt32 portInt = NS_GetRealPort(uri);
+    port.AppendInt(portInt);
   }
 
   nsCAutoString spec;
   rv = aURI->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-  _retval.Assign(host + space + spec);
+  _retval.Assign(scheme + space + host + space + port + space + spec);
 
   return PR_TRUE;
 }
@@ -1280,6 +1400,20 @@ NS_IMETHODIMP nsXMLHttpRequest::GetResponseText(nsAString& aResponseText)
 NS_IMETHODIMP
 nsXMLHttpRequest::GetStatus(PRUint32 *aStatus)
 {
+  *aStatus = 0;
+
+  if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
+    
+    
+    if (mChannel) {
+      nsresult status;
+      mChannel->GetStatus(&status);
+      if (NS_FAILED(status)) {
+        return NS_OK;
+      }
+    }
+  }
+
   nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
 
   if (httpChannel) {
@@ -1298,7 +1432,6 @@ nsXMLHttpRequest::GetStatus(PRUint32 *aStatus)
 
     return rv;
   }
-  *aStatus = 0;
 
   return NS_OK;
 }
@@ -1602,19 +1735,7 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
   }
 
   
-
-  
   mState |= XML_HTTP_REQUEST_USE_XSITE_AC;
-
-  
-  nsCOMPtr<nsIHttpChannel> http = do_QueryInterface(aChannel);
-  if (http) {
-    PRUint32 i;
-    for (i = 0; i < mExtraRequestHeaders.Length(); ++i) {
-      http->SetRequestHeader(mExtraRequestHeaders[i], EmptyCString(), PR_FALSE);
-    }
-    mExtraRequestHeaders.Clear();
-  }
 
   return NS_OK;
 }
@@ -1737,46 +1858,11 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
     
     mState |= XML_HTTP_REQUEST_XSITEENABLED;
   }
-  else if (!(mState & XML_HTTP_REQUEST_XSITEENABLED) &&
-           !CheckMayLoad(mPrincipal, mChannel)) {
-    mState |= XML_HTTP_REQUEST_USE_XSITE_AC;
-  }
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
   if (httpChannel) {
     rv = httpChannel->SetRequestMethod(method);
     NS_ENSURE_SUCCESS(rv, rv);
-    
-    if (!method.LowerCaseEqualsLiteral("get")) {
-      mState |= XML_HTTP_REQUEST_NON_GET;
-    }
-  }
-
-  
-  
-  if ((mState & XML_HTTP_REQUEST_USE_XSITE_AC) &&
-      (mState & XML_HTTP_REQUEST_NON_GET)) {
-
-    
-    
-    PRTime expiration = 0;
-    if (sAccessControlCache) {
-      sAccessControlCache->GetEntry(uri, mPrincipal, &expiration);
-    }
-
-    if (expiration <= PR_Now()) {
-      
-      
-      rv = NS_NewChannel(getter_AddRefs(mACGetChannel), uri, nsnull, loadGroup,
-                         nsnull, loadFlags);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      nsCOMPtr<nsIHttpChannel> acHttp = do_QueryInterface(mACGetChannel);
-      NS_ASSERTION(acHttp, "Failed to QI to nsIHttpChannel!");
-
-      rv = acHttp->SetRequestMethod(NS_LITERAL_CSTRING("OPTIONS"));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
   }
 
   ChangeState(XML_HTTP_REQUEST_OPENED);
@@ -1814,11 +1900,6 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url)
     nsCOMPtr<nsIURI> targetURI;
     rv = NS_NewURI(getter_AddRefs(targetURI), url, nsnull, GetBaseURI());
     if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-
-    nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
-    if (!secMan) {
-      return NS_ERROR_FAILURE;
-    }
 
     
     if (nsContentUtils::IsCallerTrustedForRead()) {
@@ -2488,6 +2569,68 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   rv = CheckChannelForCrossSiteRequest(mChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
+    
+    NS_ENSURE_TRUE(httpChannel, NS_ERROR_DOM_BAD_URI);
+    
+    nsCAutoString method;
+    httpChannel->GetRequestMethod(method);
+    if (!mACUnsafeHeaders.IsEmpty()) {
+      mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
+    }
+    else if (method.LowerCaseEqualsLiteral("post")) {
+      nsCAutoString contentTypeHeader;
+      httpChannel->GetRequestHeader(NS_LITERAL_CSTRING("Content-Type"),
+                                    contentTypeHeader);
+
+      nsCAutoString contentType, charset;
+      NS_ParseContentType(contentTypeHeader, contentType, charset);
+
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (!contentType.LowerCaseEqualsLiteral("text/plain")) {
+        mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
+      }
+    }
+    else if (!method.LowerCaseEqualsLiteral("get")) {
+      mState |= XML_HTTP_REQUEST_NEED_AC_PREFLIGHT;
+    }
+
+    
+    if (mState & XML_HTTP_REQUEST_NEED_AC_PREFLIGHT) {
+      
+      
+      nsCOMPtr<nsIURI> uri;
+      rv = mChannel->GetURI(getter_AddRefs(uri));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsAccessControlLRUCache::CacheEntry* entry =
+        sAccessControlCache ?
+        sAccessControlCache->GetEntry(uri, mPrincipal, PR_FALSE) :
+        nsnull;
+
+      if (!entry || !entry->CheckRequest(method, mACUnsafeHeaders)) {
+        
+        
+        nsCOMPtr<nsILoadGroup> loadGroup;
+        GetLoadGroup(getter_AddRefs(loadGroup));
+
+        nsLoadFlags loadFlags;
+        rv = mChannel->GetLoadFlags(&loadFlags);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        rv = NS_NewChannel(getter_AddRefs(mACGetChannel), uri, nsnull,
+                           loadGroup, nsnull, loadFlags);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        nsCOMPtr<nsIHttpChannel> acHttp = do_QueryInterface(mACGetChannel);
+        NS_ASSERTION(acHttp, "Failed to QI to nsIHttpChannel!");
+
+        rv = acHttp->SetRequestMethod(NS_LITERAL_CSTRING("OPTIONS"));
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
+  }
+
   
   mChannel->GetNotificationCallbacks(getter_AddRefs(mNotificationCallbacks));
   mChannel->SetNotificationCallbacks(this);
@@ -2540,16 +2683,17 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   
   
   if (mACGetChannel) {
-    nsCOMPtr<nsIStreamListener> acListener =
+    nsCOMPtr<nsIStreamListener> acProxyListener =
       new nsACProxyListener(mChannel, listener, nsnull, mPrincipal, method);
-    NS_ENSURE_TRUE(acListener, NS_ERROR_OUT_OF_MEMORY);
+    NS_ENSURE_TRUE(acProxyListener, NS_ERROR_OUT_OF_MEMORY);
 
-    listener = new nsCrossSiteListenerProxy(acListener, mPrincipal,
-                                            mACGetChannel, &rv);
-    NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
+    acProxyListener =
+      new nsCrossSiteListenerProxy(acProxyListener, mPrincipal, mACGetChannel,
+                                   method, mACUnsafeHeaders, &rv);
+    NS_ENSURE_TRUE(acProxyListener, NS_ERROR_OUT_OF_MEMORY);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mACGetChannel->AsyncOpen(listener, nsnull);
+    rv = mACGetChannel->AsyncOpen(acProxyListener, nsnull);
   }
   else {
     
@@ -2559,6 +2703,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (NS_FAILED(rv)) {
     
     mChannel = nsnull;
+    mACGetChannel = nsnull;
     return rv;
   }
 
@@ -2601,6 +2746,11 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   nsresult rv;
 
   
+  if (!IsValidHTTPToken(header)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
   
   
   if (mACGetChannel) {
@@ -2634,8 +2784,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     const char *kInvalidHeaders[] = {
       "accept-charset", "accept-encoding", "connection", "content-length",
       "content-transfer-encoding", "date", "expect", "host", "keep-alive",
-      "referer", "access-control-origin", "te", "trailer",
-      "transfer-encoding", "upgrade", "via", "xmlhttprequest-security-check"
+      "referer", "te", "trailer", "transfer-encoding", "upgrade", "via"
     };
     PRUint32 i;
     for (i = 0; i < NS_ARRAY_LENGTH(kInvalidHeaders); ++i) {
@@ -2656,7 +2805,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     PRBool safeHeader = !!(mState & XML_HTTP_REQUEST_XSITEENABLED);
     if (!safeHeader) {
       const char *kCrossOriginSafeHeaders[] = {
-        "accept", "accept-language"
+        "accept", "accept-language", "content-type"
       };
       for (i = 0; i < NS_ARRAY_LENGTH(kCrossOriginSafeHeaders); ++i) {
         if (header.LowerCaseEqualsASCII(kCrossOriginSafeHeaders[i])) {
@@ -2667,15 +2816,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
 
     if (!safeHeader) {
-      
-      
-      if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
-        return NS_ERROR_FAILURE;
-      }
-
-      
-      
-      mExtraRequestHeaders.AppendElement(header);
+      mACUnsafeHeaders.AppendElement(header);
     }
   }
 
@@ -2892,8 +3033,7 @@ nsXMLHttpRequest::OnChannelRedirect(nsIChannel *aOldChannel,
   
   
   
-  if ((mState & XML_HTTP_REQUEST_NON_GET) &&
-     (mState & XML_HTTP_REQUEST_USE_XSITE_AC)) {
+  if ((mState & XML_HTTP_REQUEST_NEED_AC_PREFLIGHT)) {
      return NS_ERROR_DOM_BAD_URI;
   }
 
