@@ -139,7 +139,7 @@ class EmbedPrivate {
   nsCOMPtr<nsPIDOMEventTarget>   mEventTarget;
 
   
-  nsString                       mURI;
+  nsCString                      mURI;
 
   
   static PRUint32                sWidgetCount;

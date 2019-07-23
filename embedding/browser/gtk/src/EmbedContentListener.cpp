@@ -35,9 +35,6 @@
 
 
 
-#include <strings.h>
-#include <nsXPIDLString.h>
-
 #include "nsIURI.h"
 
 #include "EmbedContentListener.h"
