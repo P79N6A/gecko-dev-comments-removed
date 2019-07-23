@@ -272,5 +272,6 @@ static const int kNonContainer     = 0x0200;
 static const int kHandleStrayTag   = 0x0400; 
 static const int kRequiresBody     = 0x0800; 
 static const int kVerifyHierarchy  = 0x1000; 
+static const int kPreferHead       = 0x2000; 
 
 #endif

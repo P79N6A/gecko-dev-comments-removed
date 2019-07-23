@@ -790,8 +790,8 @@ const nsHTMLElement gHTMLElements[] = {
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gInHead,&gInHead,
      0,0,0,0,
-              kHeadContent, kNone, kNone,
-           kNonContainer,kDefaultPropRange,
+              kAllTags - kHeadContent, kNone, kNone,
+           kNonContainer|kPreferHead,kDefaultPropRange,
            &gInHead,0,eHTMLTag_unknown,
                         0
   },
@@ -1089,7 +1089,7 @@ const nsHTMLElement gHTMLElements[] = {
               &gRootTags,&gRootTags,
      0,0,0,0,
               kAllTags - kHeadContent, kCDATA, kNone,
-           kNoStyleLeaksIn, kNoPropRange,
+           kNoStyleLeaksIn|kPreferHead, kNoPropRange,
            0,0,eHTMLTag_unknown,
                         0
   },
