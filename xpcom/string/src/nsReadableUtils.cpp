@@ -498,22 +498,17 @@ IsASCII( const nsAString& aString )
 
     
 
-    nsAString::const_iterator done_reading;
+    nsAString::const_iterator iter, done_reading;
+    aString.BeginReading(iter);
     aString.EndReading(done_reading);
 
-      
-    PRUint32 fragmentLength = 0;
-    nsAString::const_iterator iter;
-    for ( aString.BeginReading(iter); iter != done_reading; iter.advance( PRInt32(fragmentLength) ) )
+    const PRUnichar* c = iter.get();
+    const PRUnichar* end = done_reading.get();
+    
+    while ( c < end )
       {
-        fragmentLength = PRUint32(iter.size_forward());
-        const PRUnichar* c = iter.get();
-        const PRUnichar* fragmentEnd = c + fragmentLength;
-
-          
-        while ( c < fragmentEnd )
-          if ( *c++ & NOT_ASCII )
-            return PR_FALSE;
+        if ( *c++ & NOT_ASCII )
+          return PR_FALSE;
       }
 
     return PR_TRUE;
@@ -528,22 +523,17 @@ IsASCII( const nsACString& aString )
 
     
 
-    nsACString::const_iterator done_reading;
+    nsACString::const_iterator iter, done_reading;
+    aString.BeginReading(iter);
     aString.EndReading(done_reading);
 
-      
-    PRUint32 fragmentLength = 0;
-    nsACString::const_iterator iter;
-    for ( aString.BeginReading(iter); iter != done_reading; iter.advance( PRInt32(fragmentLength) ) )
+    const char* c = iter.get();
+    const char* end = done_reading.get();
+    
+    while ( c < end )
       {
-        fragmentLength = PRUint32(iter.size_forward());
-        const char* c = iter.get();
-        const char* fragmentEnd = c + fragmentLength;
-
-          
-        while ( c < fragmentEnd )
-          if ( *c++ & NOT_ASCII )
-            return PR_FALSE;
+        if ( *c++ & NOT_ASCII )
+          return PR_FALSE;
       }
 
     return PR_TRUE;
@@ -563,85 +553,78 @@ IsUTF8( const nsACString& aString )
     PRUint16 olupper = 0; 
     PRUint16 slower = 0;  
 
-      
-    PRUint32 fragmentLength = 0;
     nsReadingIterator<char> iter;
+    aString.BeginReading(iter);
 
-    for ( aString.BeginReading(iter); iter != done_reading; iter.advance( PRInt32(fragmentLength) ) )
+    const char* ptr = iter.get();
+    const char* end = done_reading.get();
+    while ( ptr < end )
       {
-        fragmentLength = PRUint32(iter.size_forward());
-        const char* ptr = iter.get();
-        const char* fragmentEnd = ptr + fragmentLength;
-
-          
-        while ( ptr < fragmentEnd )
+        PRUint8 c;
+        
+        if (0 == state)
           {
-            PRUint8 c;
-            
-            if (0 == state)
+            c = *ptr++;
+
+            if ( UTF8traits::isASCII(c) ) 
+              continue;
+
+            if ( c <= 0xC1 ) 
+              return PR_FALSE;
+            else if ( UTF8traits::is2byte(c) ) 
+                state = 1;
+            else if ( UTF8traits::is3byte(c) ) 
               {
-                c = *ptr++;
-
-                if ( UTF8traits::isASCII(c) ) 
-                  continue;
-
-                if ( c <= 0xC1 ) 
-                  return PR_FALSE;
-                else if ( UTF8traits::is2byte(c) ) 
-                    state = 1;
-                else if ( UTF8traits::is3byte(c) ) 
+                state = 2;
+                if ( c == 0xE0 ) 
                   {
-                    state = 2;
-                    if ( c == 0xE0 ) 
-                      {
-                        overlong = PR_TRUE;
-                        olupper = 0x9F;
-                      }
-                    else if ( c == 0xED ) 
-                      {
-                        surrogate = PR_TRUE;
-                        slower = 0xA0;
-                      }
-                    else if ( c == 0xEF ) 
-                      nonchar = PR_TRUE;
+                    overlong = PR_TRUE;
+                    olupper = 0x9F;
                   }
-                else if ( c <= 0xF4 ) 
+                else if ( c == 0xED ) 
                   {
-                    state = 3;
-                    nonchar = PR_TRUE;
-                    if ( c == 0xF0 ) 
-                      {
-                        overlong = PR_TRUE;
-                        olupper = 0x8F;
-                      }
-                    else if ( c == 0xF4 ) 
-                      {
-                        
-                        surrogate = PR_TRUE;
-                        slower = 0x90;
-                      }
+                    surrogate = PR_TRUE;
+                    slower = 0xA0;
                   }
-                else
-                  return PR_FALSE; 
+                else if ( c == 0xEF ) 
+                  nonchar = PR_TRUE;
               }
-              
-              while (ptr < fragmentEnd && state)
-                {
-                  c = *ptr++;
-                  --state;
+            else if ( c <= 0xF4 ) 
+              {
+                state = 3;
+                nonchar = PR_TRUE;
+                if ( c == 0xF0 ) 
+                  {
+                    overlong = PR_TRUE;
+                    olupper = 0x8F;
+                  }
+                else if ( c == 0xF4 ) 
+                  {
+                    
+                    surrogate = PR_TRUE;
+                    slower = 0x90;
+                  }
+              }
+            else
+              return PR_FALSE; 
+          }
+          
+        while ( ptr < end && state )
+          {
+            c = *ptr++;
+            --state;
 
-                  
-                  if ( nonchar &&  ( !state &&  c < 0xBE ||
-                       state == 1 && c != 0xBF  ||
-                       state == 2 && 0x0F != (0x0F & c) ))
-                     nonchar = PR_FALSE;
+            
+            if ( nonchar &&  ( !state &&  c < 0xBE ||
+                  state == 1 && c != 0xBF  ||
+                  state == 2 && 0x0F != (0x0F & c) ))
+                nonchar = PR_FALSE;
 
-                  if ( !UTF8traits::isInSeq(c) || overlong && c <= olupper || 
-                       surrogate && slower <= c || nonchar && !state )
-                    return PR_FALSE; 
-                  overlong = surrogate = PR_FALSE;
-                }
-            }
+            if ( !UTF8traits::isInSeq(c) || overlong && c <= olupper || 
+                  surrogate && slower <= c || nonchar && !state )
+              return PR_FALSE; 
+            overlong = surrogate = PR_FALSE;
+          }
         }
     return !state; 
   }
