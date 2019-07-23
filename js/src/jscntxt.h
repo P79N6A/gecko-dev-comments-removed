@@ -844,7 +844,7 @@ class JSAutoTempValueRooter
 
 
 extern JSBool
-js_InitThreadPrivateIndex(void *ptr);
+js_InitThreadPrivateIndex(void (JS_DLL_CALLBACK *ptr)(void *));
 
 
 
