@@ -15,6 +15,8 @@ var gSmallTests = [
 
 var gPlayTests = [
   
+  { name:"r11025_u8_c1.wav", type:"audio/x-wav", duration:1.0 },
+  
   { name:"r11025_u8_c1_trunc.wav", type:"audio/x-wav", duration:1.8 },
   
   { name:"r11025_s16_c1_trailing.wav", type:"audio/x-wav", duration:1.0 },
