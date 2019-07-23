@@ -534,7 +534,7 @@ private:
 
   PRBool SetupXShm();
   void ReleaseXShm();
-  nsresult NativeImageDraw();
+  void NativeImageDraw(NPRect* invalidRect = nsnull);
   PRBool UpdateVisibility();
 
 #endif
@@ -2702,13 +2702,18 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 
 NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 {
-#ifdef MOZ_PLATFORM_HILDON
-  if (mObjectFrame && mBlitWindow && NS_SUCCEEDED(NativeImageDraw()))
-    return NS_OK;
-#endif
-
   if (!mObjectFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
+
+#ifdef MOZ_PLATFORM_HILDON
+  PRBool simpleImageRender = PR_FALSE;
+  mInstance->GetValueFromPlugin(NPPVpluginWindowlessLocalBool,
+                                &simpleImageRender);
+  if (simpleImageRender) {  
+    NativeImageDraw(invalidRect);
+    return NS_OK;
+  }
+#endif
 
 #ifndef XP_MACOSX
   
@@ -4790,15 +4795,17 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
     return;
 
 #ifdef MOZ_PLATFORM_HILDON
+  
+  
+  
   PRBool simpleImageRender = PR_FALSE;
   mInstance->GetValueFromPlugin(NPPVpluginWindowlessLocalBool,
                                 &simpleImageRender);
-  if (simpleImageRender) {    
+  if (simpleImageRender) {
     gfxMatrix matrix = aContext->CurrentMatrix();
-    if (!matrix.HasNonAxisAlignedTransform() &&
-        NS_SUCCEEDED(NativeImageDraw()))
-      return;
-  }
+    if (!matrix.HasNonAxisAlignedTransform())
+      NativeImageDraw();
+  } 
 #endif
 
   
@@ -4962,11 +4969,24 @@ nsPluginInstanceOwner::SetupXShm()
   if (!mSharedXImage)
     return PR_FALSE;
 
+  NS_ASSERTION(mSharedXImage->height, "do not call shmget with zero");
   mSharedSegmentInfo.shmid = shmget(IPC_PRIVATE,
                                     mSharedXImage->bytes_per_line * mSharedXImage->height,
                                     IPC_CREAT | 0777);
+  if (mSharedSegmentInfo.shmid == -1) {
+    XDestroyImage(mSharedXImage);
+    mSharedXImage = nsnull;
+    return PR_FALSE;
+  }
 
   mSharedXImage->data = static_cast<char*>(shmat(mSharedSegmentInfo.shmid, 0, 0));
+  if (mSharedXImage->data == (char*) -1) {
+    shmctl(mSharedSegmentInfo.shmid, IPC_RMID, 0);
+    XDestroyImage(mSharedXImage);
+    mSharedXImage = nsnull;
+    return PR_FALSE;
+  }
+    
   mSharedSegmentInfo.shmaddr = mSharedXImage->data;
   mSharedSegmentInfo.readOnly = False;
 
@@ -5004,22 +5024,26 @@ nsPluginInstanceOwner::SetupXShm()
 
 
 
-nsresult
-nsPluginInstanceOwner::NativeImageDraw()
+void
+nsPluginInstanceOwner::NativeImageDraw(NPRect* invalidRect)
 {
   
   if (!mBlitParentElement)
-    return NS_OK;
+    return;
 
   
   if (NSToIntCeil(mAbsolutePositionClip.Width()) == 0 ||
       NSToIntCeil(mAbsolutePositionClip.Height()) == 0)
-    return NS_OK;
+    return;
   
   
   
   PRInt32 absPosWidth  = NSToIntCeil(mAbsolutePosition.Width()) / 2 * 2;
   PRInt32 absPosHeight = NSToIntCeil(mAbsolutePosition.Height()) / 2 * 2;
+
+  
+  if (absPosHeight == 0 || absPosWidth == 0)
+    return;
 
   if (!mSharedXImage ||
       mPluginSize.width != absPosWidth ||
@@ -5028,7 +5052,7 @@ nsPluginInstanceOwner::NativeImageDraw()
     mPluginSize = nsIntSize(absPosWidth, absPosHeight);
 
     if (NS_FAILED(SetupXShm()))
-      return NS_ERROR_FAILURE;
+      return;
   }  
   
   NPWindow* window;
@@ -5088,7 +5112,7 @@ nsPluginInstanceOwner::NativeImageDraw()
   imageExpose.translateY = 0;
 
   if (window->width == 0)
-    return NS_OK;
+    return;
   
   float scale = mAbsolutePosition.Width() / (float) window->width;
   
@@ -5100,15 +5124,14 @@ nsPluginInstanceOwner::NativeImageDraw()
   imageExpose.dataSize.width  = mPluginSize.width;
   imageExpose.dataSize.height = mPluginSize.height; 
 
+  if (invalidRect)
+    memset(mSharedXImage->data, 0, mPluginSize.width * mPluginSize.height * 2);
+
   PRBool eventHandled = PR_FALSE;
   mInstance->HandleEvent(&pluginEvent, &eventHandled);
 
-  if (!eventHandled) {
-    
-    
-    
-    return NS_ERROR_FAILURE;
-  }
+  if (!eventHandled)
+    return;
 
   
   XRectangle rect;
@@ -5142,7 +5165,7 @@ nsPluginInstanceOwner::NativeImageDraw()
   XSetClipRectangles(gdk_x11_get_default_xdisplay(), mXlibSurfGC, 0, 0, nsnull, 0, Unsorted);  
 
   XFlush(gdk_x11_get_default_xdisplay());
-  return NS_OK;
+  return;
 }
 #endif
 
