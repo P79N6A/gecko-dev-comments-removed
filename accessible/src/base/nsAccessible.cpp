@@ -319,21 +319,27 @@ nsAccessible::GetName(nsAString& aName)
 
 NS_IMETHODIMP nsAccessible::GetDescription(nsAString& aDescription)
 {
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
   
   
   
   
   
   nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-  if (!content) {
-    return NS_ERROR_FAILURE;  
-  }
+  NS_ASSERTION(content, "No content of valid accessible!");
+  if (!content)
+    return NS_ERROR_FAILURE;
+
   if (!content->IsNodeOfType(nsINode::eTEXT)) {
     nsAutoString description;
     nsresult rv = nsTextEquivUtils::
       GetTextEquivFromIDRefs(this, nsAccessibilityAtoms::aria_describedby,
                              description);
-    if (NS_FAILED(rv)) {
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (description.IsEmpty()) {
       PRBool isXUL = content->IsNodeOfType(nsINode::eXUL);
       if (isXUL) {
         
