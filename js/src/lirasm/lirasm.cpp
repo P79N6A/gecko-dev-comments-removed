@@ -1975,8 +1975,9 @@ Lirasm::Lirasm(bool verbose) :
 #include "nanojit/LIRopcode.tbl"
 #undef OP___
 
-    mOpMap["alloc"] = mOpMap[PTR_SIZE("ialloc", "qalloc")];
-    mOpMap["param"] = mOpMap[PTR_SIZE("iparam", "qparam")];
+    
+    mOpMap["allocp"] = mOpMap[PTR_SIZE("allocl", "allocq")];
+    mOpMap["paramp"] = mOpMap[PTR_SIZE("paraml", "paramq")];
 }
 
 Lirasm::~Lirasm()
