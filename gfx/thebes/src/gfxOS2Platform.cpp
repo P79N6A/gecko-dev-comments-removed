@@ -219,3 +219,22 @@ gfxOS2Platform::FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont)
     mCodepointsWithNoFonts.set(aCh);
     return nsnull;
 }
+
+void
+gfxOS2Platform::InitDisplayCaps()
+{
+    
+    HDC dc = DevOpenDC((HAB)1, OD_MEMORY,"*",0L, NULL, NULLHANDLE);
+    if (dc > 0) {
+        
+        LONG lDPI;
+        if (DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &lDPI))
+            gfxPlatform::sDPI = lDPI;
+        DevCloseDC(dc);
+    }
+
+    if (gfxPlatform::sDPI <= 0) {
+        
+        gfxPlatform::sDPI = 96;
+    }
+}

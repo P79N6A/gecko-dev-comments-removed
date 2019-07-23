@@ -51,6 +51,7 @@
 #include "nsThebesDeviceContext.h"
 #include "nsThebesRenderingContext.h"
 #include "gfxUserFontSet.h"
+#include "gfxPlatform.h"
 
 #include "nsIWidget.h"
 #include "nsIView.h"
@@ -656,11 +657,30 @@ nsThebesDeviceContext::SetDPI()
     }
 
     
-    if (mPrintingSurface &&
-        (mPrintingSurface->GetType() == gfxASurface::SurfaceTypePDF ||
-         mPrintingSurface->GetType() == gfxASurface::SurfaceTypePS ||
-         mPrintingSurface->GetType() == gfxASurface::SurfaceTypeQuartz)) {
-        dpi = 72;
+    
+    if (mPrintingSurface) {
+        switch (mPrintingSurface->GetType()) {
+            case gfxASurface::SurfaceTypePDF:
+            case gfxASurface::SurfaceTypePS:
+            case gfxASurface::SurfaceTypeQuartz:
+                dpi = 72;
+                break;
+#ifdef XP_WIN
+            case gfxASurface::SurfaceTypeWin32:
+            case gfxASurface::SurfaceTypeWin32Printing:
+                PRInt32 OSVal = GetDeviceCaps(GetPrintHDC(), LOGPIXELSY);
+                dpi = 144;
+                mPrintingScale = float(OSVal) / dpi;
+                break;
+#endif
+#ifdef XP_OS2
+            case gfxASurface::SurfaceTypeOS2:
+                LONG lDPI;
+                if (DevQueryCaps(GetPrintHDC(), CAPS_VERTICAL_FONT_RES, 1, &lDPI))
+                    dpi = lDPI;
+                break;
+#endif
+        }
         dotsArePixels = PR_FALSE;
     } else {
         nsresult rv;
@@ -676,67 +696,7 @@ nsThebesDeviceContext::SetDPI()
             }
         }
 
-#if defined(MOZ_ENABLE_GTK2)
-        GdkScreen *screen = gdk_screen_get_default();
-        gtk_settings_get_for_screen(screen); 
-        PRInt32 OSVal = PRInt32(round(gdk_screen_get_resolution(screen)));
-
-        if (prefDPI == 0) 
-            dpi = OSVal;
-        else  
-            dpi = PR_MAX(OSVal, 96);
-
-#elif defined(XP_WIN)
-        
-        HDC dc = GetPrintHDC();
-        if (dc) {
-            PRInt32 OSVal = GetDeviceCaps(dc, LOGPIXELSY);
-
-            dpi = 144;
-            mPrintingScale = float(OSVal)/dpi;
-            dotsArePixels = PR_FALSE;
-        } else {
-            dc = GetDC((HWND)nsnull);
-
-            PRInt32 OSVal = GetDeviceCaps(dc, LOGPIXELSY);
-
-            ReleaseDC((HWND)nsnull, dc);
-
-            if (OSVal != 0)
-                dpi = OSVal;
-        }
-
-#elif defined(XP_OS2)
-        
-        HDC dc = GetPrintHDC();
-        PRBool doCloseDC = PR_FALSE;
-        if (dc <= 0) { 
-            
-            dc = DevOpenDC((HAB)1, OD_MEMORY,"*",0L, NULL, NULLHANDLE);
-            doCloseDC = PR_TRUE;
-        }
-        if (dc > 0) {
-            
-            LONG lDPI;
-            if (DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &lDPI))
-                dpi = lDPI;
-            if (doCloseDC)
-                DevCloseDC(dc);
-        }
-        if (dpi < 0) 
-            dpi = 96;
-#elif defined(XP_MACOSX)
-
-        
-        dpi = 96;
-
-#elif defined(MOZ_WIDGET_QT)
-        
-        dpi = 96;
-#else
-#error undefined platform dpi
-#endif
-
+        dpi = gfxPlatform::GetDPI();        
         if (prefDPI > 0 && !mPrintingSurface)
             dpi = prefDPI;
     }
