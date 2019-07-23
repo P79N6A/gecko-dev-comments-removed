@@ -869,9 +869,13 @@ SessionStoreService.prototype = {
     
     var cacheKey = aEntry.cacheKey;
     if (cacheKey && cacheKey instanceof Ci.nsISupportsPRUint32) {
+      
+      
       entry.cacheKey = cacheKey.data;
     }
     entry.ID = aEntry.ID;
+    
+    entry.contentType = aEntry.contentType;
     
     var x = {}, y = {};
     aEntry.getScrollPosition(x, y);
@@ -882,16 +886,48 @@ SessionStoreService.prototype = {
       if (prefPostdata && aEntry.postData && this._checkPrivacyLevel(aEntry.URI.schemeIs("https"))) {
         aEntry.postData.QueryInterface(Ci.nsISeekableStream).
                         seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
-        var stream = Cc["@mozilla.org/scriptableinputstream;1"].
-                     createInstance(Ci.nsIScriptableInputStream);
-        stream.init(aEntry.postData);
-        var postdata = stream.read(stream.available());
-        if (prefPostdata == -1 || postdata.replace(/^(Content-.*\r\n)+(\r\n)*/, "").length <= prefPostdata) {
-          entry.postdata = postdata;
+        var stream = Cc["@mozilla.org/binaryinputstream;1"].
+                     createInstance(Ci.nsIBinaryInputStream);
+        stream.setInputStream(aEntry.postData);
+        var postBytes = stream.readByteArray(stream.available());
+        var postdata = String.fromCharCode.apply(null, postBytes);
+        if (prefPostdata == -1 ||
+            postdata.replace(/^(Content-.*\r\n)+(\r\n)*/, "").length <=
+              prefPostdata) {
+          
+          
+          
+          entry.postdata_b64 = btoa(postdata);
         }
       }
     }
     catch (ex) { debug(ex); } 
+
+    if (aEntry.owner) {
+      
+      
+      try {
+        var binaryStream = Cc["@mozilla.org/binaryoutputstream;1"].
+                           createInstance(Ci.nsIObjectOutputStream);
+        var pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+        pipe.init(false, false, 0, 0xffffffff, null);
+        binaryStream.setOutputStream(pipe.outputStream);
+        binaryStream.writeCompoundObject(aEntry.owner, Ci.nsISupports, true);
+        binaryStream.close();
+
+        
+        var scriptableStream = Cc["@mozilla.org/binaryinputstream;1"].
+                               createInstance(Ci.nsIBinaryInputStream);
+        scriptableStream.setInputStream(pipe.inputStream);
+        var ownerBytes =
+          scriptableStream.readByteArray(scriptableStream.available());
+        
+        
+        
+        entry.owner_b64 = btoa(String.fromCharCode.apply(null, ownerBytes));
+      }
+      catch (ex) { debug(ex); }
+    }
     
     if (!(aEntry instanceof Ci.nsISHContainer)) {
       return entry;
@@ -1420,6 +1456,7 @@ SessionStoreService.prototype = {
     shEntry.setTitle(aEntry.title || aEntry.url);
     shEntry.setIsSubFrame(aEntry.subframe || false);
     shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
+    shEntry.contentType = aEntry.contentType;
     
     if (aEntry.cacheKey) {
       var cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].
@@ -1442,12 +1479,37 @@ SessionStoreService.prototype = {
     var scrollPos = (aEntry.scroll || "0,0").split(",");
     scrollPos = [parseInt(scrollPos[0]) || 0, parseInt(scrollPos[1]) || 0];
     shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
-    
-    if (aEntry.postdata) {
+
+    var postdata;
+    if (aEntry.postdata_b64) {  
+      postdata = atob(aEntry.postdata_b64);
+    } else if (aEntry.postdata) { 
+      postdata = aEntry.postdata;
+    }
+
+    if (postdata) {
       var stream = Cc["@mozilla.org/io/string-input-stream;1"].
                    createInstance(Ci.nsIStringInputStream);
-      stream.setData(aEntry.postdata, -1);
+      stream.setData(postdata, postdata.length);
       shEntry.postData = stream;
+    }
+
+    if (aEntry.owner_b64) {  
+      var ownerInput = Cc["@mozilla.org/io/string-input-stream;1"].
+                       createInstance(Ci.nsIStringInputStream);
+      var binaryData = atob(aEntry.owner_b64);
+      ownerInput.setData(binaryData, binaryData.length);
+      var binaryStream = Cc["@mozilla.org/binaryinputstream;1"].
+                         createInstance(Ci.nsIObjectInputStream);
+      binaryStream.setInputStream(ownerInput);
+      try { 
+        shEntry.owner = binaryStream.readObject(true);
+      } catch (ex) { debug(ex); }
+    } else if (aEntry.ownerURI) { 
+      var uriObj = ioService.newURI(aEntry.ownerURI, null, null);
+      shEntry.owner = Cc["@mozilla.org/scriptsecuritymanager;1"].
+                      getService(Ci.nsIScriptSecurityManager).
+                      getCodebasePrincipal(uriObj);
     }
     
     if (aEntry.children && shEntry instanceof Ci.nsISHContainer) {
