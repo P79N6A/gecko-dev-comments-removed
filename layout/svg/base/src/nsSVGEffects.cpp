@@ -221,14 +221,17 @@ nsSVGMarkerProperty::DoUpdate()
   if (!mFrame)
     return;
 
-  NS_ASSERTION(mFrame->IsFrameOfType(nsIFrame::eSVG), "SVG frame expected");
-
-  
-  nsChangeHint changeHint =
-    nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
-
-  mFramePresShell->FrameConstructor()->PostRestyleEvent(
-    mFrame->GetContent(), nsReStyleHint(0), changeHint);
+  if (mFrame->IsFrameOfType(nsIFrame::eSVG)) {
+    if (!(mFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+      nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(mFrame);
+      if (outerSVGFrame) {
+        
+        outerSVGFrame->UpdateAndInvalidateCoveredRegion(mFrame);
+      }
+    }
+  } else {
+    InvalidateAllContinuations(mFrame);
+  }
 }
 
 void
@@ -365,17 +368,10 @@ nsSVGEffects::UpdateEffects(nsIFrame *aFrame)
 
   
   
-  GetEffectProperty(aFrame->GetStyleSVGReset()->mFilter,
-                    aFrame, nsGkAtoms::filter, CreateFilterProperty);
-
-  
-  const nsStyleSVG *style = aFrame->GetStyleSVG();
-  GetEffectProperty(style->mMarkerStart, aFrame, nsGkAtoms::marker_start,
-                    CreateMarkerProperty);
-  GetEffectProperty(style->mMarkerMid, aFrame, nsGkAtoms::marker_mid,
-                    CreateMarkerProperty);
-  GetEffectProperty(style->mMarkerEnd, aFrame, nsGkAtoms::marker_end,
-                    CreateMarkerProperty);
+  const nsStyleSVGReset *style = aFrame->GetStyleSVGReset();
+  if (style->mFilter) {
+    GetEffectProperty(style->mFilter, aFrame, nsGkAtoms::filter, CreateFilterProperty);
+  }
 }
 
 nsSVGFilterProperty *

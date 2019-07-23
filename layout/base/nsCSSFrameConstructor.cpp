@@ -149,8 +149,6 @@
 #endif
 #ifdef MOZ_SVG
 #include "nsSVGEffects.h"
-#include "nsSVGUtils.h"
-#include "nsSVGOuterSVGFrame.h"
 #endif
 
 nsIFrame*
@@ -8717,8 +8715,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     
     isAppend = PR_TRUE;
     
-    parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
-    
     parentFrame = ::GetAdjustedParentFrame(parentFrame, parentFrame->GetType(),
                                            aContainer, aIndexInContainer);
     parentFrame =
@@ -9470,20 +9466,9 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     UpdateViewsForTree(aFrame, aViewManager, aFrameManager, aChange);
 
     
-    if (aChange & nsChangeHint_RepaintFrame) {
-      if (aFrame->IsFrameOfType(nsIFrame::eSVG)) {
-#ifdef MOZ_SVG
-        if (!(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-          nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(aFrame);
-          if (outerSVGFrame) {
-            
-            outerSVGFrame->UpdateAndInvalidateCoveredRegion(aFrame);
-          }
-        }
-#endif
-      } else {
-        aFrame->Invalidate(aFrame->GetOverflowRect());
-      }
+    if ((aChange & nsChangeHint_RepaintFrame) &&
+        !aFrame->IsFrameOfType(nsIFrame::eSVG)) {
+      aFrame->Invalidate(aFrame->GetOverflowRect());
     }
   }
 }
