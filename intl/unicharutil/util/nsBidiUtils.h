@@ -37,8 +37,11 @@
 
 
 
+
+
   nsresult ArabicShaping(const PRUnichar* aString, PRUint32 aLen,
-                         PRUnichar* aBuf, PRUint32* aBufLen);
+                         PRUnichar* aBuf, PRUint32* aBufLen,
+                         PRBool aInputLogical, PRBool aOutputLogical);
 
   
 
