@@ -197,6 +197,7 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
     idx = JSVAL_TO_INT(aId);
 
     
+    
     if (idx >= mParamCount)
       return NS_ERROR_INVALID_ARG;
   }
@@ -209,8 +210,10 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
     
     NS_ConvertUTF16toUTF8 name(nameChars, nameLength);
     nsresult rv = mStatement->GetParameterIndex(name, &idx);
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
+      *_objp = NULL;
       return NS_OK;
+    }
 
     *_retval = ::JS_DefineUCProperty(aCtx, aScopeObj, nameChars, nameLength,
                                      JSVAL_VOID, nsnull, nsnull, 0);
