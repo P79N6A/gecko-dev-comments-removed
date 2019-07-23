@@ -2816,7 +2816,9 @@ ServerHandler.prototype =
       var fieldName = headEnum.getNext()
                               .QueryInterface(Ci.nsISupportsString)
                               .data;
-      preamble += fieldName + ": " + head.getHeader(fieldName) + "\r\n";
+      var values = head.getHeaderValues(fieldName);
+      for (index in values)
+        preamble += fieldName + ": " + values[index] + "\r\n";
     }
 
     
@@ -3668,10 +3670,28 @@ nsHttpHeaders.prototype =
     var name = headerUtils.normalizeFieldName(fieldName);
     var value = headerUtils.normalizeFieldValue(fieldValue);
 
+    
+    
+    
     if (merge && name in this._headers)
-      this._headers[name] = this._headers[name] + "," + value;
+    {
+      if (name === "www-authenticate" ||
+          name === "proxy-authenticate" ||
+          name === "set-cookie") 
+      {
+        this._headers[name].push(value);
+      }
+      else 
+      {
+        this._headers[name][0] += "," + value;
+        NS_ASSERT(this._headers[name].length === 1,
+            "how'd a non-special header have multiple values?")
+      }
+    }
     else
-      this._headers[name] = value;
+    {
+      this._headers[name] = [value];
+    }
   },
 
   
@@ -3686,7 +3706,31 @@ nsHttpHeaders.prototype =
 
 
 
+
+
   getHeader: function(fieldName)
+  {
+    return this.getHeaderValues(fieldName).join("\n");
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getHeaderValues: function(fieldName)
   {
     var name = headerUtils.normalizeFieldName(fieldName);
 
