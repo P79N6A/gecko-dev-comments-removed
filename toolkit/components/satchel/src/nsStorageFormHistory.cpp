@@ -509,6 +509,7 @@ nsFormHistory::Notify(nsIDOMHTMLFormElement* formElt, nsIDOMWindowInternal* aWin
         
         nsAutoString value;
         inputElt->GetValue(value);
+        value.Trim(" \t", PR_TRUE, PR_TRUE);
         if (!value.IsEmpty()) {
           
           
