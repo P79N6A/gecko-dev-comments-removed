@@ -92,27 +92,22 @@ var PrintUtils = {
   
   
   
-  
-  printPreview: function (aListenerOrEnterCallback, aExitCallback)
+  printPreview: function (aCallback)
   {
     
     
     
     if (!document.getElementById("print-preview-toolbar")) {
-      if (typeof aListenerOrEnterCallback == "object") {
-        this._onEnterPP = function () { aListenerOrEnterCallback.onEnter(); };
-        this._onExitPP  = function () { aListenerOrEnterCallback.onExit(); };
-      } else {
-        this._onEnterPP = aListenerOrEnterCallback;
-        this._onExitPP  = aExitCallback;
-      }
+      this._callback = aCallback;
+      this._sourceBrowser = aCallback.getSourceBrowser();
+      this._originalTitle = this._sourceBrowser.contentDocument.title;
+      this._originalURL = this._sourceBrowser.currentURI.spec;
     } else {
       
       
       
-      var browser = getPPBrowser();
-      if (browser)
-        browser.collapsed = true;
+      this._sourceBrowser = this._callback.getPrintPreviewBrowser();
+      this._sourceBrowser.collapsed = true;
     }
 
     this._webProgressPP = {};
@@ -133,17 +128,16 @@ var PrintUtils = {
       PPROMPTSVC.showProgress(window, webBrowserPrint, printSettings, this._obsPP, false,
                               this._webProgressPP, ppParams, notifyOnOpen);
       if (ppParams.value) {
-        var webNav = getWebNavigation();
-        ppParams.value.docTitle = webNav.document.title;
-        ppParams.value.docURL   = webNav.currentURI.spec;
+        ppParams.value.docTitle = this._originalTitle;
+        ppParams.value.docURL   = this._originalURL;
       }
 
       
       
       if (!notifyOnOpen.value.valueOf() || this._webProgressPP.value == null)
-        this.enterPrintPreview(aWindow);
+        this.enterPrintPreview();
     } catch (e) {
-      this.enterPrintPreview(aWindow);
+      this.enterPrintPreview();
     }
   },
 
@@ -155,11 +149,7 @@ var PrintUtils = {
   },
 
   getPrintPreview: function() {
-    if (this._printPreviewTab) {
-      var docShell = getPPBrowser().getBrowserForTab(this._printPreviewTab).docShell;
-      return docShell.printPreview;
-    }
-    return null;
+    return this._callback.getPrintPreviewBrowser().docShell.printPreview;
   },
 
   
@@ -202,11 +192,12 @@ var PrintUtils = {
     return printSettings;
   },
 
-  _originalZoomValue: null,
   _closeHandlerPP: null,
   _webProgressPP: null,
-  _onEnterPP: null,
-  _onExitPP: null,
+  _callback: null,
+  _sourceBrowser: null,
+  _originalTitle: "",
+  _originalURL: "",
 
   
   _obsPP: 
@@ -227,44 +218,19 @@ var PrintUtils = {
     }
   },
 
-  _originalTab: null,
-  _printPreviewTab: null,
-
   enterPrintPreview: function ()
   {
     gFocusedElement = document.commandDispatcher.focusedElement;
 
-    
-    if (typeof ZoomManager == "object") {
-      this._originalZoomValue = ZoomManager.zoom;
-      ZoomManager.reset();
-    }
-
     var webBrowserPrint;
     var printSettings  = this.getPrintSettings();
-    var tabbrowser = getPPBrowser();
-    var contentWindow = null;
-    if (tabbrowser) {
-      if (this._printPreviewTab) {
-        contentWindow =
-          tabbrowser.getBrowserForTab(this._printPreviewTab).contentWindow;
-      } else {
-        this._originalTab = tabbrowser.mCurrentTab;
-        contentWindow = window.content
-        this._printPreviewTab = tabbrowser.loadOneTab("about:blank", null, null,
-                                                      null, true, false);
-      }
-    }
+    var originalWindow = this._sourceBrowser.contentWindow;
 
     try {
       webBrowserPrint = this.getPrintPreview();
-      webBrowserPrint.printPreview(printSettings, contentWindow,
+      webBrowserPrint.printPreview(printSettings, originalWindow,
                                    this._webProgressPP.value);
     } catch (e) {
-      this._printPreviewTab = null;
-      this._originalTab = null;
-      if (typeof ZoomManager == "object")
-        ZoomManager.zoom = this._originalZoomValue;
       
       
       
@@ -275,12 +241,9 @@ var PrintUtils = {
     var printPreviewTB = document.getElementById("print-preview-toolbar");
     if (printPreviewTB) {
       printPreviewTB.updateToolbar();
-      var browser = getPPBrowser();
-      if (browser)
-        browser.collapsed = false;
-
-      tabbrowser.getBrowserForTab(this._printPreviewTab).contentWindow.focus();
-      tabbrowser.selectedTab = this._printPreviewTab;
+      var browser = this._callback.getPrintPreviewBrowser();
+      browser.collapsed = false;
+      browser.contentWindow.focus();
       return;
     }
 
@@ -293,7 +256,7 @@ var PrintUtils = {
     printPreviewTB.id = "print-preview-toolbar";
     printPreviewTB.className = "toolbar-primary";
 
-    var navToolbox = getNavToolbox();
+    var navToolbox = this._callback.getNavToolbox();
     navToolbox.parentNode.insertBefore(printPreviewTB, navToolbox);
 
     
@@ -306,14 +269,12 @@ var PrintUtils = {
     
     window.addEventListener("keypress", this.onKeyPressPP, true);
 
-    tabbrowser.getBrowserForTab(this._printPreviewTab).contentWindow.focus();
-    tabbrowser.selectedTab = this._printPreviewTab;
+    var browser = this._callback.getPrintPreviewBrowser();
+    browser.collapsed = false;
+    browser.contentWindow.focus();
 
     
-    if (this._onEnterPP) {
-      this._onEnterPP();
-      this._onEnterPP = null;
-    }
+    this._callback.onEnter();
   },
 
   exitPrintPreview: function ()
@@ -324,23 +285,12 @@ var PrintUtils = {
     document.documentElement.setAttribute("onclose", this._closeHandlerPP);
     this._closeHandlerPP = null;
 
-    var webBrowserPrint = this.getWebBrowserPrint();
+    var webBrowserPrint = this.getPrintPreview();
     webBrowserPrint.exitPrintPreview();
-
-    var tabbrowser = getPPBrowser();
-    if (tabbrowser) {
-      tabbrowser.removeTab(this._printPreviewTab);
-      tabbrowser.selectedTab = this._originalTab;
-      this._originalTab = null;
-      this._printPreviewTab = null;
-    }
-
-    if (typeof ZoomManager == "object")
-      ZoomManager.zoom = this._originalZoomValue;
 
     
     var printPreviewTB = document.getElementById("print-preview-toolbar");
-    getNavToolbox().parentNode.removeChild(printPreviewTB);
+    this._callback.getNavToolbox().parentNode.removeChild(printPreviewTB);
 
     var fm = Components.classes["@mozilla.org/focus-manager;1"]
                        .getService(Components.interfaces.nsIFocusManager);
@@ -350,11 +300,7 @@ var PrintUtils = {
       window.content.focus();
     gFocusedElement = null;
 
-    
-    if (this._onExitPP) {
-      this._onExitPP();
-      this._onExitPP = null;
-    }
+    this._callback.onExit();
   },
 
   onKeyPressPP: function (aEvent)
