@@ -257,31 +257,112 @@ nsOSHelperAppService::typeFromExtEquals(const PRUnichar* aExt, const char *aType
   return eq;
 }
 
-static void RemoveParameters(nsString& aPath)
+
+static void CleanupHandlerPath(nsString& aPath)
+{
+  
+
+  
+  
+  
+  
+
+  PRInt32 lastCommaPos = aPath.RFindChar(',');
+  if (lastCommaPos != kNotFound)
+    aPath.Truncate(lastCommaPos);
+
+  aPath.AppendLiteral(" ");
+
+  
+  PRUint32 index = aPath.Find(".exe ", PR_TRUE);
+  if (index == kNotFound)
+    index = aPath.Find(".dll ", PR_TRUE);
+  if (index == kNotFound)
+    index = aPath.Find(".cpl ", PR_TRUE);
+
+  if (index != kNotFound)
+    aPath.Truncate(index + 4);
+  aPath.Trim(" ", PR_TRUE, PR_TRUE);
+}
+
+
+
+static void StripRundll32(nsString& aCommandString)
 {
   
   
   
   
   
+
+  NS_NAMED_LITERAL_STRING(rundllSegment, "rundll32.exe ");
+  NS_NAMED_LITERAL_STRING(rundllSegmentShort, "rundll32 ");
+
   
-  
-  
-  
-  
-  
-  
-  if (aPath.First() == PRUnichar('"')) {
-    aPath = Substring(aPath, 1, aPath.Length() - 1);
-    PRInt32 nextQuote = aPath.FindChar(PRUnichar('"'));
-    if (nextQuote != kNotFound)
-      aPath.Truncate(nextQuote);
+  PRInt32 strLen = rundllSegment.Length();
+  PRInt32 index = aCommandString.Find(rundllSegment, PR_TRUE);
+  if (index == kNotFound) {
+    strLen = rundllSegmentShort.Length();
+    index = aCommandString.Find(rundllSegmentShort, PR_TRUE);
   }
-  else {
-    PRInt32 firstSpace = aPath.FindChar(PRUnichar(' '));
-    if (firstSpace != kNotFound) 
-      aPath.Truncate(firstSpace);
+
+  if (index != kNotFound) {
+    PRUint32 rundllSegmentLength = index + strLen;
+    aCommandString.Cut(0, rundllSegmentLength);
   }
+}
+
+
+
+
+
+
+ PRBool nsOSHelperAppService::CleanupCmdHandlerPath(nsAString& aCommandHandler)
+{
+  nsAutoString handlerCommand(aCommandHandler);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  PRUint32 bufLength = ::ExpandEnvironmentStringsW(handlerCommand.get(),
+                                                   L"", 0);
+  if (bufLength == 0) 
+    return PR_FALSE;
+
+  nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]);
+  if (!destination)
+    return PR_FALSE;
+  if (!::ExpandEnvironmentStringsW(handlerCommand.get(), destination,
+                                   bufLength))
+    return PR_FALSE;
+
+  handlerCommand = destination;
+
+  
+  handlerCommand.StripChars("\"");
+
+  
+  
+  StripRundll32(handlerCommand);
+
+  
+  
+  CleanupHandlerPath(handlerCommand);
+
+  aCommandHandler.Assign(handlerCommand);
+  return PR_TRUE;
 }
 
 
@@ -348,83 +429,6 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aTypeName,
   }
 
   return NS_OK;
-}
-
-
- PRBool nsOSHelperAppService::CleanupCmdHandlerPath(nsAString& aCommandHandler)
-{
-  nsAutoString handlerFilePath;
-  nsAutoString handlerCommand(aCommandHandler);
-
-  
-  
-  
-
-  
-  
-  
-  
-
-
-  
-  PRUint32 bufLength = ::ExpandEnvironmentStringsW(handlerCommand.get(),
-                                                   L"", 0);
-  if (bufLength == 0) 
-    return PR_FALSE;
-
-  nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]);
-  if (!destination)
-    return PR_FALSE;
-  if (!::ExpandEnvironmentStringsW(handlerCommand.get(), destination,
-                                   bufLength))
-    return PR_FALSE;
-
-  handlerCommand = destination;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  NS_NAMED_LITERAL_STRING(rundllSegment, "rundll32.exe ");
-
-  PRInt32 index = handlerCommand.Find(rundllSegment);
-  if (index != kNotFound) {
-    
-    PRInt32 lastCommaPos = handlerCommand.RFindChar(',');
-    PRUint32 rundllSegmentLength = index + rundllSegment.Length();
-    PRUint32 len;
-
-    if (lastCommaPos == kNotFound) {
-      
-
-      
-      len = handlerCommand.Length() - rundllSegmentLength;
-    } else {
-      
-
-      
-
-      len = lastCommaPos - rundllSegmentLength;
-    }
-
-    
-    handlerFilePath = Substring(handlerCommand, rundllSegmentLength, len);
-  } else {
-    handlerFilePath = handlerCommand;
-  }
-
-  
-  
-  RemoveParameters(handlerFilePath);
-
-  aCommandHandler = handlerFilePath;
-  return PR_TRUE;
 }
 
 already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFlatString& aFileExt, const char *aTypeHint)
