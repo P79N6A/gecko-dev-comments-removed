@@ -43,13 +43,11 @@
 #include <ole2.h>
 #include <shlobj.h>
 
-#ifndef WINCE 
 #ifndef IDropTargetHelper
 #ifndef __MINGW32__   
 #include <shobjidl.h> 
 #endif  
 #endif
-#endif  
 
 class nsIDragService;
 class nsIWidget;
@@ -121,9 +119,7 @@ protected:
   nsIDragService * mDragService;
 
   
-#ifndef WINCE
   IDropTargetHelper * mDropTargetHelper;
-#endif
 };
 
 #endif 

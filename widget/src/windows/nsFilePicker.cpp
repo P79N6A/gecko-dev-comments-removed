@@ -265,8 +265,11 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         result = ::GetSaveFileNameW(&ofn);
         if (!result) {
           
-          if (::GetLastError() == ERROR_INVALID_PARAMETER ||
-              ::CommDlgExtendedError() == FNERR_INVALIDFILENAME) {
+          if (::GetLastError() == ERROR_INVALID_PARAMETER 
+#ifndef WINCE
+              || ::CommDlgExtendedError() == FNERR_INVALIDFILENAME
+#endif
+              ) {
             
             
             ofn.lpstrFile[0] = 0;
@@ -457,13 +460,13 @@ NS_IMETHODIMP nsFilePicker::SetDefaultString(const nsAString& aString)
     nameIndex ++;
   nameLength = mDefault.Length() - nameIndex;
   
-  if (nameLength > _MAX_FNAME) {
+  if (nameLength > MAX_PATH) {
     PRInt32 extIndex = mDefault.RFind(".");
     if (extIndex == kNotFound)
       extIndex = mDefault.Length();
 
     
-    PRInt32 charsToRemove = nameLength - _MAX_FNAME;
+    PRInt32 charsToRemove = nameLength - MAX_PATH;
     if (extIndex - nameIndex >= charsToRemove) {
       mDefault.Cut(extIndex - charsToRemove, charsToRemove);
     }

@@ -46,9 +46,12 @@
 #include "nsIServiceManager.h"
 #include "nsComponentManagerUtils.h"
 #include "nsWidgetAtoms.h"
-#include "nsUXThemeData.h"
 #include <objbase.h>
 #include <initguid.h>
+
+#ifndef WINCE
+#include "nsUXThemeData.h"
+#endif
 
 
 #include <unknwn.h>
@@ -269,7 +272,9 @@ nsToolkit::Startup(HMODULE hModule)
     if (setDPIAware)
       setDPIAware();
 
+#ifndef WINCE
     nsUXThemeData::Initialize();
+#endif
 }
 
 
@@ -395,7 +400,7 @@ LRESULT CALLBACK nsToolkit::WindowProc(HWND hWnd, UINT msg, WPARAM wParam,
             MethodInfo *info = (MethodInfo *)lParam;
             return info->Invoke();
         }
-
+#ifndef WINCE
         case WM_SYSCOLORCHANGE:
         {
           
@@ -409,7 +414,7 @@ LRESULT CALLBACK nsToolkit::WindowProc(HWND hWnd, UINT msg, WPARAM wParam,
           
           nsWindow::GlobalMsgWindowProc(hWnd, msg, wParam, lParam);
         }
-
+#endif
     }
 
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);

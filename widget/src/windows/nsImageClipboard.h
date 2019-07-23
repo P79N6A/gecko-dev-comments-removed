@@ -39,8 +39,6 @@
 
 
 
-#ifndef WINCE
-
 
 
 
@@ -123,5 +121,3 @@ private:
   void CalcBitShift(bitFields * aColorMask);
 
 }; 
-
-#endif 
