@@ -589,7 +589,6 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
 
     if (styleBinding) {
       
-      styleBinding->UnhookEventHandlers();
       styleBinding->ChangeDocument(document, nsnull);
     }
 
