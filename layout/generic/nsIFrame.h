@@ -107,9 +107,10 @@ struct nsMargin;
 typedef class nsIFrame nsIBox;
 
 
+
 #define NS_IFRAME_IID \
-  { 0x7e9018b5, 0x5405, 0x4e2b, \
-    { 0x87, 0x67, 0xe2, 0xb4, 0xb1, 0x3e, 0xc1, 0x69 } }
+  { 0x7b437d20, 0xa34e, 0x11dd, \
+    { 0xad, 0x8b, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
 
 
 
@@ -2284,6 +2285,9 @@ NS_PTR_TO_INT32(frame->GetProperty(nsGkAtoms::embeddingLevel))
 
   NS_IMETHOD DumpBox(FILE* out)=0;
 #endif
+
+  
+  virtual PRBool ChildrenMustHaveWidgets() const { return PR_FALSE; }
 
   
 
