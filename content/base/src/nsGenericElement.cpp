@@ -5176,7 +5176,7 @@ TryMatchingElementsInSubtree(nsINode* aRoot,
 
   union { char c[2 * sizeof(RuleProcessorData)]; void *p; } databuf;
   RuleProcessorData* prevSibling = nsnull;
-  RuleProcessorData* data = reinterpret_cast<RuleProcessorData*>(databuf);
+  RuleProcessorData* data = reinterpret_cast<RuleProcessorData*>(databuf.c);
 
   PRBool continueIteration = PR_TRUE;
   for (nsINode::ChildIterator iter(aRoot); !iter.IsDone(); iter.Next()) {
