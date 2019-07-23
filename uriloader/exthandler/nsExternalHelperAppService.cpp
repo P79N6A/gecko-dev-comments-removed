@@ -1119,6 +1119,19 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
   
   mSuggestedFileName.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
   mTempFileExtension.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+
+  
+  const PRUnichar unsafeBidiCharacters[] = {
+    PRUnichar(0x202a), 
+    PRUnichar(0x202b), 
+    PRUnichar(0x202c), 
+    PRUnichar(0x202d), 
+    PRUnichar(0x202e)  
+  };
+  for (int i = 0; i < NS_ARRAY_LENGTH(unsafeBidiCharacters); ++i) {
+    mSuggestedFileName.ReplaceChar(unsafeBidiCharacters[i], '_');
+    mTempFileExtension.ReplaceChar(unsafeBidiCharacters[i], '_');
+  }
   
   
   EnsureSuggestedFileName();
