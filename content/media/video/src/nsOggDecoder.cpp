@@ -188,7 +188,7 @@ public:
     FrameQueue() :
       mHead(0),
       mTail(0),
-      mEmpty(PR_TRUE)
+      mCount(0)
     {
     }
 
@@ -197,40 +197,45 @@ public:
       NS_ASSERTION(!IsFull(), "FrameQueue is full");
       mQueue[mTail] = frame;
       mTail = (mTail+1) % OGGPLAY_BUFFER_SIZE;
-      mEmpty = PR_FALSE;
+      ++mCount;
     }
 
-    FrameData* Peek()
+    FrameData* Peek() const
     {
-      NS_ASSERTION(!mEmpty, "FrameQueue is empty");
+      NS_ASSERTION(mCount > 0, "FrameQueue is empty");
 
       return mQueue[mHead];
     }
 
     FrameData* Pop()
     {
-      NS_ASSERTION(!mEmpty, "FrameQueue is empty");
+      NS_ASSERTION(mCount, "FrameQueue is empty");
 
       FrameData* result = mQueue[mHead];
       mHead = (mHead + 1) % OGGPLAY_BUFFER_SIZE;
-      mEmpty = mHead == mTail;
+      --mCount;
       return result;
     }
 
     PRBool IsEmpty() const
     {
-      return mEmpty;
+      return mCount == 0;
+    }
+
+    PRInt32 GetCount() const
+    {
+      return mCount;
     }
 
     PRBool IsFull() const
     {
-      return !mEmpty && mHead == mTail;
+      return mCount == OGGPLAY_BUFFER_SIZE;
     }
 
     float ResetTimes(float aPeriod)
     {
       float time = 0.0;
-      if (!mEmpty) {
+      if (mCount > 0) {
         PRInt32 current = mHead;
         do {
           mQueue[current]->mTime = time;
@@ -245,7 +250,9 @@ public:
     FrameData* mQueue[OGGPLAY_BUFFER_SIZE];
     PRInt32 mHead;
     PRInt32 mTail;
-    PRPackedBool mEmpty;
+    
+    
+    PRInt32 mCount;
   };
 
   
@@ -340,8 +347,8 @@ public:
   
   PRBool HaveNextFrameData() const {
     return !mDecodedFrames.IsEmpty() &&
-      (mState == DECODER_STATE_DECODING ||
-       mState == DECODER_STATE_COMPLETED);
+      (mDecodedFrames.Peek()->mDecodedFrameTime > mCurrentFrameTime ||
+       mDecodedFrames.GetCount() > 1);
   }
 
   
@@ -608,7 +615,12 @@ public:
 
         if (InStopDecodingState())
           break;
+
         
+        
+        
+        mon.NotifyAll();
+
         
         
         
@@ -1021,6 +1033,16 @@ void nsOggDecodeStateMachine::QueueDecodedFrames()
   
   FrameData* frame;
   while (!mDecodedFrames.IsFull() && (frame = NextFrame())) {
+    if (mDecodedFrames.GetCount() < 2) {
+      
+      
+      
+      
+      
+      nsCOMPtr<nsIRunnable> event = 
+        NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, UpdateReadyStateForData);
+      NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+    }
     mDecodedFrames.Push(frame);
   }
 }
@@ -1195,6 +1217,7 @@ nsresult nsOggDecodeStateMachine::Run()
         }
 
         
+        QueueDecodedFrames();
         while (mDecodedFrames.IsEmpty()) {
           mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*500)));
           if (mState != DECODER_STATE_DECODING)
