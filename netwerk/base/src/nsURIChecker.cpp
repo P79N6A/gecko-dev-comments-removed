@@ -60,9 +60,10 @@ ServerIsNES3x(nsIHttpChannel *httpChannel)
 
 
 
-NS_IMPL_ISUPPORTS5(nsURIChecker,
+NS_IMPL_ISUPPORTS6(nsURIChecker,
                    nsIURIChecker,
                    nsIRequest,
+                   nsIRequestObserver,
                    nsIStreamListener,
                    nsIChannelEventSink,
                    nsIInterfaceRequestor)
@@ -332,6 +333,10 @@ nsURIChecker::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
     }
     return NS_OK;
 }
+
+
+
+
 
 NS_IMETHODIMP
 nsURIChecker::OnDataAvailable(nsIRequest *aRequest, nsISupports *aCtxt,
