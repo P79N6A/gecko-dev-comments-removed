@@ -1213,7 +1213,7 @@ moz_gtk_entry_paint(GdkDrawable* drawable, GdkRectangle* rect,
 {
     GtkStateType bg_state = state->disabled ?
                                 GTK_STATE_INSENSITIVE : GTK_STATE_NORMAL;
-    gint x, y, bg_width, width = rect->width, height = rect->height;
+    gint x, y, width = rect->width, height = rect->height;
     GtkStyle* style;
     gboolean interior_focus;
     gint focus_width;
@@ -1221,25 +1221,6 @@ moz_gtk_entry_paint(GdkDrawable* drawable, GdkRectangle* rect,
     gtk_widget_set_direction(widget, direction);
 
     style = widget->style;
-
-    
-    x = XTHICKNESS(style);
-    y = YTHICKNESS(style);
-    bg_width = rect->width - 2*x;
-
-    if (GTK_IS_COMBO_BOX_ENTRY(widget->parent)) {
-        bg_width += x;
-        if (direction == GTK_TEXT_DIR_RTL)
-            x = 0;
-    }
-
-    
-    gtk_widget_set_sensitive(widget, !state->disabled);
-
-    TSOffsetStyleGCs(style, rect->x + x, rect->y + y);
-    gtk_paint_flat_box(style, drawable, bg_state, GTK_SHADOW_NONE,
-                       cliprect, widget, "entry_bg",  rect->x + x,
-                       rect->y + y, bg_width, rect->height - 2*y);
 
     gtk_widget_style_get(widget,
                          "interior-focus", &interior_focus,
@@ -1251,17 +1232,38 @@ moz_gtk_entry_paint(GdkDrawable* drawable, GdkRectangle* rect,
 
 
 
+    TSOffsetStyleGCs(style, rect->x, rect->y);
 
+    
+    gtk_widget_set_sensitive(widget, !state->disabled);
 
+    
+    gdk_draw_rectangle(drawable, style->base_gc[bg_state], TRUE,
+                       rect->x, rect->y, rect->width, rect->height);
 
+    
+    x = XTHICKNESS(style);
+    y = YTHICKNESS(style);
 
+    if (!interior_focus) {
+        x += focus_width;
+        y += focus_width;
+    }
+
+    
+    gtk_paint_flat_box(style, drawable, bg_state, GTK_SHADOW_NONE,
+                       cliprect, widget, "entry_bg",  rect->x + x,
+                       rect->y + y, rect->width - 2*x, rect->height - 2*y);
+
+    
 
 
     x = rect->x;
     y = rect->y;
 
     if (state->focused && !state->disabled) {
-         
+        
+
         GTK_WIDGET_SET_FLAGS(widget, GTK_HAS_FOCUS);
 
         if (!interior_focus) {
@@ -1274,19 +1276,18 @@ moz_gtk_entry_paint(GdkDrawable* drawable, GdkRectangle* rect,
         }
     }
 
-    TSOffsetStyleGCs(style, x, y);
     gtk_paint_shadow(style, drawable, GTK_STATE_NORMAL, GTK_SHADOW_IN,
                      cliprect, widget, "entry", x, y, width, height);
 
     if (state->focused && !state->disabled) {
         if (!interior_focus) {
-            TSOffsetStyleGCs(style, rect->x, rect->y);
             gtk_paint_focus(style, drawable,  GTK_STATE_NORMAL, cliprect,
                             widget, "entry",
                             rect->x, rect->y, rect->width, rect->height);
         }
 
         
+
         GTK_WIDGET_UNSET_FLAGS(widget, GTK_HAS_FOCUS);
     }
 
