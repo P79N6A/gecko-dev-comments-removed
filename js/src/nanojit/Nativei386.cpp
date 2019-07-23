@@ -1156,6 +1156,70 @@ namespace nanojit
 		LIns* disp = ins->oprnd2();
 		Register rr = prepResultReg(ins, GpRegs);
 		int d = disp->constval();
+
+#ifdef NANOJIT_IA32
+		
+		if (base->isconst()) {
+			intptr_t addr = base->constval();
+			addr += d;
+			if (op == LIR_ldcb)
+				LD8Zdm(rr, addr);
+			else if (op == LIR_ldcs)
+				LD16Zdm(rr, addr);
+			else
+				LDdm(rr, addr);
+			return;
+		}
+
+		
+		
+		if (base->opcode() == LIR_piadd) {
+			int scale = 0;
+			LIns *lhs = base->oprnd1();
+			LIns *rhs = base->oprnd2();
+
+			
+
+
+			if (rhs->opcode() == LIR_pilsh && rhs->oprnd2()->isconst()) {
+				scale = rhs->oprnd2()->constval();
+				if (scale >= 1 && scale <= 3)
+					rhs = rhs->oprnd1();
+				else
+					scale = 0;
+			}
+
+			Register rleft;
+			Reservation *rL = getresv(lhs);
+
+			
+
+
+			if (rL == NULL || rL->reg == UnknownReg)
+				rleft = getBaseReg(lhs, d, rmask(rr));
+			else
+				rleft = rL->reg;
+
+			Register rright = UnknownReg;
+			Reservation *rR = getresv(rhs);
+
+			
+			if (rr != rleft && (rR == NULL || rR->reg == UnknownReg))
+				rright = findSpecificRegFor(rhs, rr);
+			if (rright == UnknownReg)
+				rright = findRegFor(rhs, GpRegs & ~(rmask(rleft)));
+
+			if (op == LIR_ldcb)
+				LD8Zsib(rr, d, rleft, rright, scale);
+			else if (op == LIR_ldcs)
+				LD16Zsib(rr, d, rleft, rright, scale);
+			else
+				LDsib(rr, d, rleft, rright, scale);
+
+			return;
+		}
+#endif
+
 		Register ra = getBaseReg(base, d, GpRegs);
 		if (op == LIR_ldcb)
 			LD8Z(rr, d, ra);
