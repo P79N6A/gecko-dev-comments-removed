@@ -957,7 +957,6 @@ protected:
 
 #endif 
 
-MOZ_DECL_CTOR_COUNTER(nsDisplayCaret)
 class nsDisplayCaret : public nsDisplayItem {
 public:
   nsDisplayCaret(nsIFrame* aCaretFrame, nsCaret *aCaret)
