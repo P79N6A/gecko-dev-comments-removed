@@ -188,13 +188,15 @@ public:
                                  PRBool  aCollapseGroup,
                                  PRBool& aDidCollapse);
 
-  void InsertCellFrame(nsTableCellFrame* aFrame, 
-                       nsTableCellFrame* aPrevSibling);
+  
+
+
+
+
+
 
   void InsertCellFrame(nsTableCellFrame* aFrame,
                        PRInt32           aColIndex);
-
-  void RemoveCellFrame(nsTableCellFrame* aFrame);
 
   nsresult CalculateCellActualSize(nsIFrame*       aRowFrame,
                                    nscoord&        aDesiredWidth,
