@@ -43,7 +43,7 @@
 #ifndef _nsAccessNode_H_
 #define _nsAccessNode_H_
 
-#include "nsCOMPtr.h"
+#include "nsAccCache.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsCoreUtils.h"
 #include "nsAccUtils.h"
@@ -55,7 +55,6 @@
 #include "nsINameSpaceManager.h"
 #include "nsIStringBundle.h"
 #include "nsWeakReference.h"
-#include "nsInterfaceHashtable.h"
 #include "nsAccessibilityService.h"
 
 class nsIPresShell;
@@ -69,9 +68,6 @@ class nsIDocShellTreeItem;
 
 #define ACCESSIBLE_BUNDLE_URL "chrome://global-platform/locale/accessible.properties"
 #define PLATFORM_KEYS_BUNDLE_URL "chrome://global-platform/locale/platformKeys.properties"
-
-typedef nsInterfaceHashtable<nsVoidPtrHashKey, nsAccessNode>
-        nsAccessNodeHashtable;
 
 
 
@@ -126,11 +122,6 @@ class nsAccessNode: public nsIAccessNode
 
 
     static already_AddRefed<nsApplicationAccessibleWrap> GetApplicationAccessible();
-
-  
-
-
-  static void ClearCache(nsAccessNodeHashtable& aCache);
 
     
     static already_AddRefed<nsIAccessibleDocument> GetDocAccessibleFor(nsIDocument *aDocument);

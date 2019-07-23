@@ -103,8 +103,7 @@ public:
 
 
 
-
-  void GetTreeItemAccessible(PRInt32 aRow, nsIAccessible **aAccessible);
+  nsAccessible* GetTreeItemAccessible(PRInt32 aRow);
 
   
 
@@ -137,12 +136,11 @@ protected:
   
 
 
-  virtual void CreateTreeItemAccessible(PRInt32 aRowIndex,
-                                        nsAccessNode** aAccessNode);
+  virtual already_AddRefed<nsAccessible> CreateTreeItemAccessible(PRInt32 aRow);
 
   nsCOMPtr<nsITreeBoxObject> mTree;
   nsCOMPtr<nsITreeView> mTreeView;
-  nsAccessNodeHashtable mAccessNodeCache;
+  nsAccessibleHashtable mAccessibleCache;
 
   NS_IMETHOD ChangeSelection(PRInt32 aIndex, PRUint8 aMethod, PRBool *aSelState);
 };
@@ -215,9 +213,8 @@ public:
 
 
 
-  virtual void GetCellAccessible(nsITreeColumn *aColumn,
-                                 nsIAccessible **aCellAcc)
-    { *aCellAcc = nsnull; }
+  virtual nsAccessible* GetCellAccessible(nsITreeColumn *aColumn)
+    { return nsnull; }
 
   
 
@@ -229,8 +226,8 @@ protected:
 
   
   virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
-  virtual nsIAccessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                            nsresult* aError = nsnull);
+  virtual nsAccessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                           nsresult *aError = nsnull);
 
   
 
@@ -293,7 +290,8 @@ public:
 protected:
 
   
-  nsIAccessible* GetSiblingAtOffset(PRInt32 aOffset, nsresult* aError = nsnull);
+  virtual nsAccessible* GetSiblingAtOffset(PRInt32 aOffset,
+                                           nsresult *aError = nsnull);
 };
 
 #endif
