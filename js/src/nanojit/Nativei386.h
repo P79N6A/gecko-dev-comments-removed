@@ -44,16 +44,9 @@
 namespace nanojit
 {
 	const int NJ_LOG2_PAGE_SIZE	= 12;		
-	const int NJ_LOG2_CACHE_SIZE = 24;		
-	const int NJ_LOG2_PAGES = NJ_LOG2_CACHE_SIZE - NJ_LOG2_PAGE_SIZE;
-	const int NJ_PAGES = 1 << NJ_LOG2_PAGES;
-	const int NJ_PAGE_SIZE = 1 << NJ_LOG2_PAGE_SIZE;
 	const int NJ_MAX_REGISTERS = 24; 
 	const int NJ_STACK_OFFSET = 0;
 	
-	
-	const bool NJ_UNLIMITED_GROWTH	= true;
-
 	#define NJ_MAX_STACK_ENTRY 256
 	#define NJ_MAX_PARAMETERS 1
 

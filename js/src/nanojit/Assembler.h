@@ -170,7 +170,7 @@ namespace nanojit
 
 
 
-	class Assembler
+	class Assembler MMGC_SUBCLASS_DECL
 	{
 		friend class DeadCodeFilter;
 		friend class VerboseBlockReader;
@@ -340,6 +340,13 @@ namespace nanojit
 			inline void fpu_pop() { 
 				debug_only( --_fpuStkDepth;  NanoAssert(_fpuStkDepth<=0); )
 			}
+	#ifdef AVMPLUS_PORTING_API
+			
+			
+			
+			void* _endJit1Addr;
+			void* _endJit2Addr;
+	#endif 
 	};
 
 	inline int32_t disp(Reservation* r) 

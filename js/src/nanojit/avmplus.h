@@ -169,6 +169,8 @@ class GCObject
 {
 };
 
+#define MMGC_SUBCLASS_DECL
+
 class GCFinalizedObject
 {
 };
@@ -802,6 +804,8 @@ namespace avmplus
             return -(lo + 1);  
         }
     };
+
+    #define GCSortedMap SortedMap
     
     
 
