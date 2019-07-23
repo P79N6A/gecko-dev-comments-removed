@@ -578,7 +578,7 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
   
   
   if (mBelowCurrentLineFloats.IsEmpty() &&
-      (aLineLayout.CanPlaceFloatNow() ||
+      (aLineLayout.LineIsEmpty() ||
        mBlock->ComputeFloatWidth(*this, aPlaceholder) <= aAvailableWidth)) {
     
     

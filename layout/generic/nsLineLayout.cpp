@@ -206,7 +206,7 @@ nsLineLayout::BeginLineReflow(nscoord aX, nscoord aY,
   mPlacedFloats = 0;
   SetFlag(LL_IMPACTEDBYFLOATS, aImpactedByFloats);
   mTotalPlacedFrames = 0;
-  SetFlag(LL_CANPLACEFLOAT, PR_TRUE);
+  SetFlag(LL_LINEISEMPTY, PR_TRUE);
   SetFlag(LL_LINEENDSINBR, PR_FALSE);
   mSpanDepth = 0;
   mMaxTopBoxHeight = mMaxBottomBoxHeight = 0;
@@ -629,14 +629,10 @@ nsLineLayout::NewPerFrameData(PerFrameData** aResult)
 }
 
 PRBool
-nsLineLayout::CanPlaceFloatNow() const
-{
-  return GetFlag(LL_CANPLACEFLOAT);
-}
-
-PRBool
 nsLineLayout::LineIsBreakable() const
 {
+  
+  
   if ((0 != mTotalPlacedFrames) || GetFlag(LL_IMPACTEDBYFLOATS)) {
     return PR_TRUE;
   }
@@ -816,7 +812,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
-  PRBool notSafeToBreak = CanPlaceFloatNow() && !GetFlag(LL_IMPACTEDBYFLOATS);
+  PRBool notSafeToBreak = LineIsEmpty() && !GetFlag(LL_IMPACTEDBYFLOATS);
   
   
   
@@ -1014,6 +1010,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
                       aReflowStatus, &optionalBreakAfterFits)) {
       if (!isEmpty) {
         psd->mHasNonemptyContent = PR_TRUE;
+        SetFlag(LL_LINEISEMPTY, PR_FALSE);
       }
 
       
@@ -1029,7 +1026,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       }
       
       if (!continuingTextRun) {
-        if (!psd->mNoWrap && (!CanPlaceFloatNow() || placedFloat)) {
+        if (!psd->mNoWrap && (!LineIsEmpty() || placedFloat)) {
           
           
           
@@ -1314,11 +1311,6 @@ nsLineLayout::PlaceFrame(PerFrameData* pfd, nsHTMLReflowMetrics& aMetrics)
   
   if (!emptyFrame) {
     mTotalPlacedFrames++;
-  }
-  if (psd->mX != psd->mLeftEdge || pfd->mBounds.x != psd->mLeftEdge) {
-    
-    
-    SetFlag(LL_CANPLACEFLOAT, PR_FALSE);
   }
 }
 
