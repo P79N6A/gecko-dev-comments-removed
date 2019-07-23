@@ -471,38 +471,41 @@ IsMenuPopup(nsIFrame *aFrame)
   return (frameType == nsGkAtoms::menuPopupFrame);
 }
 
-static PRBool
-IsTopLevelWidget(nsPresContext* aPresContext)
+static nsIWidget*
+GetPresContextContainerWidget(nsPresContext* aPresContext)
 {
   nsCOMPtr<nsISupports> container = aPresContext->Document()->GetContainer();
   nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(container);
   if (!baseWindow)
-    return PR_FALSE;
+    return nsnull;
 
   nsCOMPtr<nsIWidget> mainWidget;
   baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
-  if (!mainWidget)
-    return PR_FALSE;
+  return mainWidget;
+}
 
+static PRBool
+IsTopLevelWidget(nsIWidget* aWidget)
+{
   nsWindowType windowType;
-  mainWidget->GetWindowType(windowType);
+  aWidget->GetWindowType(windowType);
   return windowType == eWindowType_toplevel ||
-         windowType == eWindowType_dialog;
+         windowType == eWindowType_dialog || 
+         windowType == eWindowType_sheet;
   
 }
 
-static void
-SyncFrameViewGeometryDependentProperties(nsPresContext*   aPresContext,
-                                         nsIFrame*        aFrame,
-                                         nsStyleContext*  aStyleContext,
-                                         nsIView*         aView,
-                                         PRUint32         aFlags)
+void
+nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
+                                       nsIFrame*            aFrame,
+                                       nsIView*             aView)
 {
 #ifdef MOZ_XUL
-  if (!nsCSSRendering::IsCanvasFrame(aFrame))
+  if (!aView || !nsCSSRendering::IsCanvasFrame(aFrame) || !aView->HasWidget())
     return;
 
-  if (!aView->HasWidget() || !IsTopLevelWidget(aPresContext))
+  nsIWidget* windowWidget = GetPresContextContainerWidget(aPresContext);
+  if (!windowWidget || !IsTopLevelWidget(windowWidget))
     return;
 
   nsIViewManager* vm = aView->GetViewManager();
@@ -532,21 +535,21 @@ SyncFrameViewGeometryDependentProperties(nsPresContext*   aPresContext,
     return;
   }
 
-  
-  
-  
-  
-  nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame);
   nsIFrame *rootFrame = aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
-  if (rootFrame &&
-      NS_THEME_WIN_GLASS == rootFrame->GetStyleDisplay()->mAppearance) {
+  if (!rootFrame)
+    return;
+
+  nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(aFrame);
+  
+  
+  
+  
+  if (NS_THEME_WIN_GLASS == rootFrame->GetStyleDisplay()->mAppearance) {
     mode = eTransparencyGlass;
   }
-  nsIWidget* widget = aView->GetWidget();
-  widget->SetTransparencyMode(mode);
-  if (rootFrame) {
-    widget->SetWindowShadowStyle(rootFrame->GetStyleUIReset()->mWindowShadow);
-  }
+  nsIWidget* viewWidget = aView->GetWidget();
+  viewWidget->SetTransparencyMode(mode);
+  windowWidget->SetWindowShadowStyle(rootFrame->GetStyleUIReset()->mWindowShadow);
 #endif
 }
 
@@ -572,15 +575,6 @@ nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
     nsIViewManager* vm = aView->GetViewManager();
 
     vm->ResizeView(aView, *aCombinedArea, PR_TRUE);
-
-    
-    
-    
-    
-    
-    
-    nsStyleContext* savedStyleContext = aFrame->GetStyleContext();
-    SyncFrameViewGeometryDependentProperties(aPresContext, aFrame, savedStyleContext, aView, aFlags);
   }
 }
 
@@ -664,8 +658,6 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
   }
 
   vm->SetViewZIndex(aView, autoZIndex, zIndex, isPositioned);
-
-  SyncFrameViewGeometryDependentProperties(aPresContext, aFrame, aStyleContext, aView, aFlags);
 }
 
 PRBool

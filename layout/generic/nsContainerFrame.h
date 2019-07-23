@@ -126,9 +126,13 @@ public:
                                        nsIView*        aView,
                                        const nsRect*   aCombinedArea,
                                        PRUint32        aFlags = 0);
+
   
   
-  
+  static void SyncWindowProperties(nsPresContext*       aPresContext,
+                                   nsIFrame*            aFrame,
+                                   nsIView*             aView);
+
   
   
   
