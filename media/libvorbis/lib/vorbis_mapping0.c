@@ -56,7 +56,7 @@ static int ilog(unsigned int v){
 }
 
 static void mapping0_pack(vorbis_info *vi,vorbis_info_mapping *vm,
-			  oggpack_buffer *opb){
+                          oggpack_buffer *opb){
   int i;
   vorbis_info_mapping0 *info=(vorbis_info_mapping0 *)vm;
 
@@ -118,10 +118,10 @@ static vorbis_info_mapping *mapping0_unpack(vorbis_info *vi,oggpack_buffer *opb)
       int testA=info->coupling_ang[i]=oggpack_read(opb,ilog(vi->channels));
 
       if(testM<0 || 
-	 testA<0 || 
-	 testM==testA || 
-	 testM>=vi->channels ||
-	 testA>=vi->channels) goto err_out;
+         testA<0 || 
+         testM==testA || 
+         testM>=vi->channels ||
+         testA>=vi->channels) goto err_out;
     }
 
   }
@@ -229,16 +229,6 @@ static float FLOOR1_fromdB_LOOKUP[256]={
 
 #endif 
 
-extern int *floor1_fit(vorbis_block *vb,vorbis_look_floor *look,
-		       const float *logmdct,   
-		       const float *logmask);
-extern int *floor1_interpolate_fit(vorbis_block *vb,vorbis_look_floor *look,
-				   int *A,int *B,
-				   int del);
-extern int floor1_encode(oggpack_buffer *opb,vorbis_block *vb,
-			 vorbis_look_floor *look,
-			 int *post,int *ilogmask);
-
 
 static int mapping0_forward(vorbis_block *vb){
   vorbis_dsp_state      *vd=vb->vd;
@@ -290,22 +280,28 @@ static int mapping0_forward(vorbis_block *vb){
 
 
 #if 0
-    if(vi->channels==2)
+    if(vi->channels==2){
       if(i==0)
-	_analysis_output("pcmL",seq,pcm,n,0,0,total-n/2);
+        _analysis_output("pcmL",seq,pcm,n,0,0,total-n/2);
       else
-	_analysis_output("pcmR",seq,pcm,n,0,0,total-n/2);
+        _analysis_output("pcmR",seq,pcm,n,0,0,total-n/2);
+    }else{
+      _analysis_output("pcm",seq,pcm,n,0,0,total-n/2);
+    }
 #endif
   
     
     _vorbis_apply_window(pcm,b->window,ci->blocksizes,vb->lW,vb->W,vb->nW);
 
 #if 0
-    if(vi->channels==2)
+    if(vi->channels==2){
       if(i==0)
-	_analysis_output("windowedL",seq,pcm,n,0,0,total-n/2);
+        _analysis_output("windowedL",seq,pcm,n,0,0,total-n/2);
       else
-	_analysis_output("windowedR",seq,pcm,n,0,0,total-n/2);
+        _analysis_output("windowedR",seq,pcm,n,0,0,total-n/2);
+    }else{
+      _analysis_output("windowed",seq,pcm,n,0,0,total-n/2);
+    }
 #endif
 
     
@@ -355,10 +351,12 @@ static int mapping0_forward(vorbis_block *vb){
 #if 0
     if(vi->channels==2){
       if(i==0){
-	_analysis_output("fftL",seq,logfft,n/2,1,0,0);
+        _analysis_output("fftL",seq,logfft,n/2,1,0,0);
       }else{
-	_analysis_output("fftR",seq,logfft,n/2,1,0,0);
+        _analysis_output("fftR",seq,logfft,n/2,1,0,0);
       }
+    }else{
+      _analysis_output("fft",seq,logfft,n/2,1,0,0);
     }
 #endif
 
@@ -387,7 +385,7 @@ static int mapping0_forward(vorbis_block *vb){
       memset(floor_posts[i],0,sizeof(**floor_posts)*PACKETBLOBS);
       
       for(j=0;j<n/2;j++)
-	logmdct[j]=todB(mdct+j)  + .345; 
+        logmdct[j]=todB(mdct+j)  + .345; 
 
 
 
@@ -404,12 +402,12 @@ static int mapping0_forward(vorbis_block *vb){
 
 #if 0
       if(vi->channels==2){
-	if(i==0)
-	  _analysis_output("mdctL",seq,logmdct,n/2,1,0,0);
-	else
-	  _analysis_output("mdctR",seq,logmdct,n/2,1,0,0);
+        if(i==0)
+          _analysis_output("mdctL",seq,logmdct,n/2,1,0,0);
+        else
+          _analysis_output("mdctR",seq,logmdct,n/2,1,0,0);
       }else{
-	_analysis_output("mdct",seq,logmdct,n/2,1,0,0);
+        _analysis_output("mdct",seq,logmdct,n/2,1,0,0);
       }
 #endif 
       
@@ -420,15 +418,17 @@ static int mapping0_forward(vorbis_block *vb){
 
 
       _vp_noisemask(psy_look,
-		    logmdct,
-		    noise); 
+                    logmdct,
+                    noise); 
 
 #if 0
       if(vi->channels==2){
-	if(i==0)
-	  _analysis_output("noiseL",seq,noise,n/2,1,0,0);
-	else
-	  _analysis_output("noiseR",seq,noise,n/2,1,0,0);
+        if(i==0)
+          _analysis_output("noiseL",seq,noise,n/2,1,0,0);
+        else
+          _analysis_output("noiseR",seq,noise,n/2,1,0,0);
+      }else{
+        _analysis_output("noise",seq,noise,n/2,1,0,0);
       }
 #endif
 
@@ -437,17 +437,19 @@ static int mapping0_forward(vorbis_block *vb){
 
 
       _vp_tonemask(psy_look,
-		   logfft,
-		   tone,
-		   global_ampmax,
-		   local_ampmax[i]);
+                   logfft,
+                   tone,
+                   global_ampmax,
+                   local_ampmax[i]);
 
 #if 0
       if(vi->channels==2){
-	if(i==0)
-	  _analysis_output("toneL",seq,tone,n/2,1,0,0);
-	else
-	  _analysis_output("toneR",seq,tone,n/2,1,0,0);
+        if(i==0)
+          _analysis_output("toneL",seq,tone,n/2,1,0,0);
+        else
+          _analysis_output("toneR",seq,tone,n/2,1,0,0);
+      }else{
+        _analysis_output("tone",seq,tone,n/2,1,0,0);
       }
 #endif
 
@@ -461,31 +463,35 @@ static int mapping0_forward(vorbis_block *vb){
       float aotuv[psy_look->n];
 #endif
 
-	_vp_offset_and_mix(psy_look,
-			   noise,
-			   tone,
-			   1,
-			   logmask,
-			   mdct,
-			   logmdct);
-	
+        _vp_offset_and_mix(psy_look,
+                           noise,
+                           tone,
+                           1,
+                           logmask,
+                           mdct,
+                           logmdct);
+        
 #if 0
-	if(vi->channels==2){
-	  if(i==0)
-	    _analysis_output("aotuvM1_L",seq,aotuv,psy_look->n,1,1,0);
-	  else
-	    _analysis_output("aotuvM1_R",seq,aotuv,psy_look->n,1,1,0);
-	}
+        if(vi->channels==2){
+          if(i==0)
+            _analysis_output("aotuvM1_L",seq,aotuv,psy_look->n,1,1,0);
+          else
+            _analysis_output("aotuvM1_R",seq,aotuv,psy_look->n,1,1,0);
+        }else{
+          _analysis_output("aotuvM1",seq,aotuv,psy_look->n,1,1,0);
+        }
       }
 #endif
 
 
 #if 0
       if(vi->channels==2){
-	if(i==0)
-	  _analysis_output("mask1L",seq,logmask,n/2,1,0,0);
-	else
-	  _analysis_output("mask1R",seq,logmask,n/2,1,0,0);
+        if(i==0)
+          _analysis_output("mask1L",seq,logmask,n/2,1,0,0);
+        else
+          _analysis_output("mask1R",seq,logmask,n/2,1,0,0);
+      }else{
+        _analysis_output("mask1",seq,logmask,n/2,1,0,0);
       }
 #endif
 
@@ -495,73 +501,78 @@ static int mapping0_forward(vorbis_block *vb){
       if(ci->floor_type[info->floorsubmap[submap]]!=1)return(-1);
 
       floor_posts[i][PACKETBLOBS/2]=
-	floor1_fit(vb,b->flr[info->floorsubmap[submap]],
-		   logmdct,
-		   logmask);
+        floor1_fit(vb,b->flr[info->floorsubmap[submap]],
+                   logmdct,
+                   logmask);
       
       
 
       if(vorbis_bitrate_managed(vb) && floor_posts[i][PACKETBLOBS/2]){
-	
+        
 
-	_vp_offset_and_mix(psy_look,
-			   noise,
-			   tone,
-			   2,
-			   logmask,
-			   mdct,
-			   logmdct);
+        _vp_offset_and_mix(psy_look,
+                           noise,
+                           tone,
+                           2,
+                           logmask,
+                           mdct,
+                           logmdct);
 
 #if 0
-	if(vi->channels==2){
-	  if(i==0)
-	    _analysis_output("mask2L",seq,logmask,n/2,1,0,0);
-	  else
-	    _analysis_output("mask2R",seq,logmask,n/2,1,0,0);
-	}
+        if(vi->channels==2){
+          if(i==0)
+            _analysis_output("mask2L",seq,logmask,n/2,1,0,0);
+          else
+            _analysis_output("mask2R",seq,logmask,n/2,1,0,0);
+        }else{
+          _analysis_output("mask2",seq,logmask,n/2,1,0,0);
+        }
 #endif
-	
-	floor_posts[i][PACKETBLOBS-1]=
-	  floor1_fit(vb,b->flr[info->floorsubmap[submap]],
-		     logmdct,
-		     logmask);
+        
+        floor_posts[i][PACKETBLOBS-1]=
+          floor1_fit(vb,b->flr[info->floorsubmap[submap]],
+                     logmdct,
+                     logmask);
       
-	
-	_vp_offset_and_mix(psy_look,
-			   noise,
-			   tone,
-			   0,
-			   logmask,
-			   mdct,
-			   logmdct);
+        
+        _vp_offset_and_mix(psy_look,
+                           noise,
+                           tone,
+                           0,
+                           logmask,
+                           mdct,
+                           logmdct);
 
 #if 0
-	if(vi->channels==2)
-	  if(i==0)
-	    _analysis_output("mask0L",seq,logmask,n/2,1,0,0);
-	  else
-	    _analysis_output("mask0R",seq,logmask,n/2,1,0,0);
+        if(vi->channels==2){
+          if(i==0)
+            _analysis_output("mask0L",seq,logmask,n/2,1,0,0);
+          else
+            _analysis_output("mask0R",seq,logmask,n/2,1,0,0);
+        }else{
+          _analysis_output("mask0",seq,logmask,n/2,1,0,0);
+        }
 #endif
 
-	floor_posts[i][0]=
-	  floor1_fit(vb,b->flr[info->floorsubmap[submap]],
-		     logmdct,
-		     logmask);
-	
-	
+        floor_posts[i][0]=
+          floor1_fit(vb,b->flr[info->floorsubmap[submap]],
+                     logmdct,
+                     logmask);
+        
+        
 
-	for(k=1;k<PACKETBLOBS/2;k++)
-	  floor_posts[i][k]=
-	    floor1_interpolate_fit(vb,b->flr[info->floorsubmap[submap]],
-				   floor_posts[i][0],
-				   floor_posts[i][PACKETBLOBS/2],
-				   k*65536/(PACKETBLOBS/2));
-	for(k=PACKETBLOBS/2+1;k<PACKETBLOBS-1;k++)
-	  floor_posts[i][k]=
-	    floor1_interpolate_fit(vb,b->flr[info->floorsubmap[submap]],
-				   floor_posts[i][PACKETBLOBS/2],
-				   floor_posts[i][PACKETBLOBS-1],
-				   (k-PACKETBLOBS/2)*65536/(PACKETBLOBS/2));
+        for(k=1;k<PACKETBLOBS/2;k++)
+          floor_posts[i][k]=
+            floor1_interpolate_fit(vb,b->flr[info->floorsubmap[submap]],
+                                   floor_posts[i][0],
+                                   floor_posts[i][PACKETBLOBS/2],
+                                   k*65536/(PACKETBLOBS/2));
+        for(k=PACKETBLOBS/2+1;k<PACKETBLOBS-1;k++)
+          floor_posts[i][k]=
+            floor1_interpolate_fit(vb,b->flr[info->floorsubmap[submap]],
+                                   floor_posts[i][PACKETBLOBS/2],
+                                   floor_posts[i][PACKETBLOBS-1],
+                                   (k-PACKETBLOBS/2)*65536/(PACKETBLOBS/2));
       }
     }
   }
@@ -586,39 +597,39 @@ static int mapping0_forward(vorbis_block *vb){
     float **couple_bundle=alloca(sizeof(*couple_bundle)*vi->channels);
     int *zerobundle=alloca(sizeof(*zerobundle)*vi->channels);
     int **sortindex=alloca(sizeof(*sortindex)*vi->channels);
-    float **mag_memo;
-    int **mag_sort;
+    float **mag_memo=NULL;
+    int **mag_sort=NULL;
 
     if(info->coupling_steps){
       mag_memo=_vp_quantize_couple_memo(vb,
-					&ci->psy_g_param,
-					psy_look,
-					info,
-					gmdct);    
+                                        &ci->psy_g_param,
+                                        psy_look,
+                                        info,
+                                        gmdct);    
       
       mag_sort=_vp_quantize_couple_sort(vb,
-					psy_look,
-					info,
-					mag_memo);    
+                                        psy_look,
+                                        info,
+                                        mag_memo);    
 
       hf_reduction(&ci->psy_g_param,
-		   psy_look,
-		   info,
-		   mag_memo);
+                   psy_look,
+                   info,
+                   mag_memo);
     }
 
     memset(sortindex,0,sizeof(*sortindex)*vi->channels);
     if(psy_look->vi->normal_channel_p){
       for(i=0;i<vi->channels;i++){
-	float *mdct    =gmdct[i];
-	sortindex[i]=alloca(sizeof(**sortindex)*n/2);
-	_vp_noise_normalize_sort(psy_look,mdct,sortindex[i]);
+        float *mdct    =gmdct[i];
+        sortindex[i]=alloca(sizeof(**sortindex)*n/2);
+        _vp_noise_normalize_sort(psy_look,mdct,sortindex[i]);
       }
     }
 
     for(k=(vorbis_bitrate_managed(vb)?0:PACKETBLOBS/2);
-	k<=(vorbis_bitrate_managed(vb)?PACKETBLOBS-1:PACKETBLOBS/2);
-	k++){
+        k<=(vorbis_bitrate_managed(vb)?PACKETBLOBS-1:PACKETBLOBS/2);
+        k++){
       oggpack_buffer *opb=vbi->packetblob[k];
 
       
@@ -628,50 +639,50 @@ static int mapping0_forward(vorbis_block *vb){
       
       oggpack_write(opb,modenumber,b->modebits);
       if(vb->W){
-	oggpack_write(opb,vb->lW,1);
-	oggpack_write(opb,vb->nW,1);
+        oggpack_write(opb,vb->lW,1);
+        oggpack_write(opb,vb->nW,1);
       }
 
       
       for(i=0;i<vi->channels;i++){
-	int submap=info->chmuxlist[i];
-	float *mdct    =gmdct[i];
-	float *res     =vb->pcm[i];
-	int   *ilogmask=ilogmaskch[i]=
-	  _vorbis_block_alloc(vb,n/2*sizeof(**gmdct));
+        int submap=info->chmuxlist[i];
+        float *mdct    =gmdct[i];
+        float *res     =vb->pcm[i];
+        int   *ilogmask=ilogmaskch[i]=
+          _vorbis_block_alloc(vb,n/2*sizeof(**gmdct));
       
-	nonzero[i]=floor1_encode(opb,vb,b->flr[info->floorsubmap[submap]],
-				 floor_posts[i][k],
-				 ilogmask);
+        nonzero[i]=floor1_encode(opb,vb,b->flr[info->floorsubmap[submap]],
+                                 floor_posts[i][k],
+                                 ilogmask);
 #if 0
-	{
-	  char buf[80];
-	  sprintf(buf,"maskI%c%d",i?'R':'L',k);
-	  float work[n/2];
-	  for(j=0;j<n/2;j++)
-	    work[j]=FLOOR1_fromdB_LOOKUP[ilogmask[j]];
-	  _analysis_output(buf,seq,work,n/2,1,1,0);
-	}
+        {
+          char buf[80];
+          sprintf(buf,"maskI%c%d",i?'R':'L',k);
+          float work[n/2];
+          for(j=0;j<n/2;j++)
+            work[j]=FLOOR1_fromdB_LOOKUP[ilogmask[j]];
+          _analysis_output(buf,seq,work,n/2,1,1,0);
+        }
 #endif
-	_vp_remove_floor(psy_look,
-			 mdct,
-			 ilogmask,
-			 res,
-			 ci->psy_g_param.sliding_lowpass[vb->W][k]);
+        _vp_remove_floor(psy_look,
+                         mdct,
+                         ilogmask,
+                         res,
+                         ci->psy_g_param.sliding_lowpass[vb->W][k]);
 
-	_vp_noise_normalize(psy_look,res,res+n/2,sortindex[i]);
+        _vp_noise_normalize(psy_look,res,res+n/2,sortindex[i]);
 
-	
+        
 #if 0
-	{
-	  char buf[80];
-	  float work[n/2];
-	  for(j=0;j<n/2;j++)
-	    work[j]=FLOOR1_fromdB_LOOKUP[ilogmask[j]]*(res+n/2)[j];
-	  sprintf(buf,"resI%c%d",i?'R':'L',k);
-	  _analysis_output(buf,seq,work,n/2,1,1,0);
+        {
+          char buf[80];
+          float work[n/2];
+          for(j=0;j<n/2;j++)
+            work[j]=FLOOR1_fromdB_LOOKUP[ilogmask[j]]*(res+n/2)[j];
+          sprintf(buf,"resI%c%d",i?'R':'L',k);
+          _analysis_output(buf,seq,work,n/2,1,1,0);
 
-	}
+        }
 #endif
       }
       
@@ -682,39 +693,47 @@ static int mapping0_forward(vorbis_block *vb){
       
 
       if(info->coupling_steps){
-	_vp_couple(k,
-		   &ci->psy_g_param,
-		   psy_look,
-		   info,
-		   vb->pcm,
-		   mag_memo,
-		   mag_sort,
-		   ilogmaskch,
-		   nonzero,
-		   ci->psy_g_param.sliding_lowpass[vb->W][k]);
+        _vp_couple(k,
+                   &ci->psy_g_param,
+                   psy_look,
+                   info,
+                   vb->pcm,
+                   mag_memo,
+                   mag_sort,
+                   ilogmaskch,
+                   nonzero,
+                   ci->psy_g_param.sliding_lowpass[vb->W][k]);
       }
       
       
       for(i=0;i<info->submaps;i++){
-	int ch_in_bundle=0;
-	long **classifications;
-	int resnum=info->residuesubmap[i];
+        int ch_in_bundle=0;
+        long **classifications;
+        int resnum=info->residuesubmap[i];
 
-	for(j=0;j<vi->channels;j++){
-	  if(info->chmuxlist[j]==i){
-	    zerobundle[ch_in_bundle]=0;
-	    if(nonzero[j])zerobundle[ch_in_bundle]=1;
-	    res_bundle[ch_in_bundle]=vb->pcm[j];
-	    couple_bundle[ch_in_bundle++]=vb->pcm[j]+n/2;
-	  }
-	}
-	
-	classifications=_residue_P[ci->residue_type[resnum]]->
-	  class(vb,b->residue[resnum],couple_bundle,zerobundle,ch_in_bundle);
-	
-	_residue_P[ci->residue_type[resnum]]->
-	  forward(opb,vb,b->residue[resnum],
-		  couple_bundle,NULL,zerobundle,ch_in_bundle,classifications);
+        for(j=0;j<vi->channels;j++){
+          if(info->chmuxlist[j]==i){
+            zerobundle[ch_in_bundle]=0;
+            if(nonzero[j])zerobundle[ch_in_bundle]=1;
+            res_bundle[ch_in_bundle]=vb->pcm[j];
+            couple_bundle[ch_in_bundle++]=vb->pcm[j]+n/2;
+          }
+        }
+        
+        classifications=_residue_P[ci->residue_type[resnum]]->
+          class(vb,b->residue[resnum],couple_bundle,zerobundle,ch_in_bundle);
+
+        
+
+
+        ch_in_bundle=0;        
+        for(j=0;j<vi->channels;j++)
+          if(info->chmuxlist[j]==i)
+            couple_bundle[ch_in_bundle++]=vb->pcm[j]+n/2;
+
+        _residue_P[ci->residue_type[resnum]]->
+          forward(opb,vb,b->residue[resnum],
+                  couple_bundle,NULL,zerobundle,ch_in_bundle,classifications);
       }
       
       
@@ -735,7 +754,6 @@ static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
   codec_setup_info     *ci=vi->codec_setup;
   private_state        *b=vd->backend_state;
   vorbis_info_mapping0 *info=(vorbis_info_mapping0 *)l;
-  int hs=ci->halfrate_flag; 
 
   int                   i,j;
   long                  n=vb->pcmend=ci->blocksizes[vb->W];
@@ -772,17 +790,17 @@ static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
     int ch_in_bundle=0;
     for(j=0;j<vi->channels;j++){
       if(info->chmuxlist[j]==i){
-	if(nonzero[j])
-	  zerobundle[ch_in_bundle]=1;
-	else
-	  zerobundle[ch_in_bundle]=0;
-	pcmbundle[ch_in_bundle++]=vb->pcm[j];
+        if(nonzero[j])
+          zerobundle[ch_in_bundle]=1;
+        else
+          zerobundle[ch_in_bundle]=0;
+        pcmbundle[ch_in_bundle++]=vb->pcm[j];
       }
     }
 
     _residue_P[ci->residue_type[info->residuesubmap[i]]]->
       inverse(vb,b->residue[info->residuesubmap[i]],
-	      pcmbundle,zerobundle,ch_in_bundle);
+              pcmbundle,zerobundle,ch_in_bundle);
   }
 
   
@@ -795,21 +813,21 @@ static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
       float ang=pcmA[j];
 
       if(mag>0)
-	if(ang>0){
-	  pcmM[j]=mag;
-	  pcmA[j]=mag-ang;
-	}else{
-	  pcmA[j]=mag;
-	  pcmM[j]=mag+ang;
-	}
+        if(ang>0){
+          pcmM[j]=mag;
+          pcmA[j]=mag-ang;
+        }else{
+          pcmA[j]=mag;
+          pcmM[j]=mag+ang;
+        }
       else
-	if(ang>0){
-	  pcmM[j]=mag;
-	  pcmA[j]=mag+ang;
-	}else{
-	  pcmA[j]=mag;
-	  pcmM[j]=mag-ang;
-	}
+        if(ang>0){
+          pcmM[j]=mag;
+          pcmA[j]=mag+ang;
+        }else{
+          pcmA[j]=mag;
+          pcmM[j]=mag-ang;
+        }
     }
   }
 
@@ -819,7 +837,7 @@ static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
     int submap=info->chmuxlist[i];
     _floor_P[ci->floor_type[info->floorsubmap[submap]]]->
       inverse2(vb,b->flr[info->floorsubmap[submap]],
-	       floormemo[i],pcm);
+               floormemo[i],pcm);
   }
 
   
@@ -834,7 +852,7 @@ static int mapping0_inverse(vorbis_block *vb,vorbis_info_mapping *l){
 }
 
 
-vorbis_func_mapping mapping0_exportbundle={
+const vorbis_func_mapping mapping0_exportbundle={
   &mapping0_pack,
   &mapping0_unpack,
   &mapping0_free_info,

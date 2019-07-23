@@ -83,7 +83,9 @@ void *_alloca(size_t size);
 #  define max(x,y)  ((x)<(y)?(y):(x))
 #endif
 
-#if defined(__i386__) && defined(__GNUC__) && !defined(__BEOS__) && !defined(WINCE)
+
+
+#if defined(__i386__) && defined(__GNUC__) && !defined(__BEOS__)
 #  define VORBIS_FPU_CONTROL
 
 
@@ -98,10 +100,10 @@ static inline void vorbis_fpu_setround(vorbis_fpu_control *fpu){
   ogg_int16_t ret;
   ogg_int16_t temp;
   __asm__ __volatile__("fnstcw %0\n\t"
-	  "movw %0,%%dx\n\t"
-	  "orw $62463,%%dx\n\t"
-	  "movw %%dx,%1\n\t"
-	  "fldcw %1\n\t":"=m"(ret):"m"(temp): "dx");
+          "movw %0,%%dx\n\t"
+          "orw $62463,%%dx\n\t"
+          "movw %%dx,%1\n\t"
+          "fldcw %1\n\t":"=m"(ret):"m"(temp): "dx");
   *fpu=ret;
 }
 
@@ -117,21 +119,23 @@ static inline int vorbis_ftoi(double f){
   __asm__("fistl %0": "=m"(i) : "t"(f));
   return(i);
 }
-#endif
+#endif 
 
 
-#if defined(_WIN32) && !defined(__GNUC__) && !defined(__BORLANDC__) && !defined(WINCE)
+
+
+#if defined(_MSC_VER) && !defined(_WIN64) && !defined(_WIN32_WCE)
 #  define VORBIS_FPU_CONTROL
 
 typedef ogg_int16_t vorbis_fpu_control;
 
 static __inline int vorbis_ftoi(double f){
-	int i;
-	__asm{
-		fld f
-		fistp i
-	}
-	return i;
+        int i;
+        __asm{
+                fld f
+                fistp i
+        }
+        return i;
 }
 
 static __inline void vorbis_fpu_setround(vorbis_fpu_control *fpu){
@@ -140,7 +144,30 @@ static __inline void vorbis_fpu_setround(vorbis_fpu_control *fpu){
 static __inline void vorbis_fpu_restore(vorbis_fpu_control fpu){
 }
 
-#endif
+#endif 
+
+
+
+
+#if (defined(_MSC_VER) && defined(_WIN64)) || (defined(__GNUC__) && defined (__x86_64__))
+#  define VORBIS_FPU_CONTROL
+
+typedef ogg_int16_t vorbis_fpu_control;
+
+#include <emmintrin.h>
+static __inline int vorbis_ftoi(double f){
+        return _mm_cvtsd_si32(_mm_load_sd(&f));
+}
+
+static __inline void vorbis_fpu_setround(vorbis_fpu_control *fpu){
+}
+
+static __inline void vorbis_fpu_restore(vorbis_fpu_control fpu){
+}
+
+#endif 
+
+
 
 
 #ifndef VORBIS_FPU_CONTROL
@@ -148,13 +175,16 @@ static __inline void vorbis_fpu_restore(vorbis_fpu_control fpu){
 typedef int vorbis_fpu_control;
 
 static int vorbis_ftoi(double f){
-  return (int)(f+.5);
+        
+
+
+        return (int)floor(f+.5);
 }
 
 
 #  define vorbis_fpu_setround(vorbis_fpu_control) {}
 #  define vorbis_fpu_restore(vorbis_fpu_control) {}
 
-#endif
+#endif 
 
 #endif 

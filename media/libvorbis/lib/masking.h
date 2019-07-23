@@ -22,7 +22,7 @@
 
 
 #define MAX_ATH 88
-static float ATH[]={
+static const float ATH[]={
     -51, -52, -53, -54, -55, -56, -57, -58,  
     -59, -60, -61, -62, -63, -64, -65, -66,
     -67, -68, -69, -70, -71, -72, -73, -74, 
@@ -48,7 +48,7 @@ static float ATH[]={
 
 
 
-static float tonemasks[P_BANDS][6][EHMER_MAX]={
+static const float tonemasks[P_BANDS][6][EHMER_MAX]={
   
   {{ -60,  -60,  -60,  -60,  -60,  -60,  -60,  -60, 
      -60,  -60,  -60,  -60,  -62,  -62,  -65,  -73, 

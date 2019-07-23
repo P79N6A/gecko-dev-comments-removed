@@ -21,11 +21,16 @@
 #include <math.h>
 #include "os.h"
 
+#ifdef _MSC_VER
+
+#define inline __inline
+#endif
+
 
 #define VORBIS_IEEE_FLOAT32 1
 #ifdef VORBIS_IEEE_FLOAT32
 
-static float unitnorm(float x){
+static inline float unitnorm(float x){
   union {
     ogg_uint32_t i;
     float f;
@@ -36,7 +41,7 @@ static float unitnorm(float x){
 }
 
 
-static float todB(const float *x){
+static inline float todB(const float *x){
   union {
     ogg_uint32_t i;
     float f;

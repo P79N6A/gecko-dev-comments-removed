@@ -62,7 +62,7 @@
 
 
 void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
-			    float amp,float ampoffset){
+                            float amp,float ampoffset){
   int i;
   float wdel=M_PI/ln;
   vorbis_fpu_control fpu;
@@ -100,9 +100,9 @@ void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
 
     q=frexp(p+q,&qexp);
     q=vorbis_fromdBlook(amp*             
-			vorbis_invsqlook(q)*
-			vorbis_invsq2explook(qexp+m)- 
-			ampoffset);
+                        vorbis_invsqlook(q)*
+                        vorbis_invsq2explook(qexp+m)- 
+                        ampoffset);
 
     do{
       curve[i++]*=q;
@@ -118,26 +118,26 @@ void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
 
 
 
-static int MLOOP_1[64]={
+static const int MLOOP_1[64]={
    0,10,11,11, 12,12,12,12, 13,13,13,13, 13,13,13,13,
   14,14,14,14, 14,14,14,14, 14,14,14,14, 14,14,14,14,
   15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15,
   15,15,15,15, 15,15,15,15, 15,15,15,15, 15,15,15,15,
 };
 
-static int MLOOP_2[64]={
+static const int MLOOP_2[64]={
   0,4,5,5, 6,6,6,6, 7,7,7,7, 7,7,7,7,
   8,8,8,8, 8,8,8,8, 8,8,8,8, 8,8,8,8,
   9,9,9,9, 9,9,9,9, 9,9,9,9, 9,9,9,9,
   9,9,9,9, 9,9,9,9, 9,9,9,9, 9,9,9,9,
 };
 
-static int MLOOP_3[8]={0,1,2,2,3,3,3,3};
+static const int MLOOP_3[8]={0,1,2,2,3,3,3,3};
 
 
 
 void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
-			    float amp,float ampoffset){
+                            float amp,float ampoffset){
 
   
 
@@ -161,15 +161,15 @@ void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
 
     for(j=3;j<m;j+=2){
       if(!(shift=MLOOP_1[(pi|qi)>>25]))
-	if(!(shift=MLOOP_2[(pi|qi)>>19]))
-	  shift=MLOOP_3[(pi|qi)>>16];
+        if(!(shift=MLOOP_2[(pi|qi)>>19]))
+          shift=MLOOP_3[(pi|qi)>>16];
       qi=(qi>>shift)*labs(ilsp[j-1]-wi);
       pi=(pi>>shift)*labs(ilsp[j]-wi);
       qexp+=shift;
     }
     if(!(shift=MLOOP_1[(pi|qi)>>25]))
       if(!(shift=MLOOP_2[(pi|qi)>>19]))
-	shift=MLOOP_3[(pi|qi)>>16];
+        shift=MLOOP_3[(pi|qi)>>16];
 
     
 
@@ -181,8 +181,8 @@ void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
       qexp+=shift;
 
       if(!(shift=MLOOP_1[(pi|qi)>>25]))
-	if(!(shift=MLOOP_2[(pi|qi)>>19]))
-	  shift=MLOOP_3[(pi|qi)>>16];
+        if(!(shift=MLOOP_2[(pi|qi)>>19]))
+          shift=MLOOP_3[(pi|qi)>>16];
       
       pi>>=shift;
       qi>>=shift;
@@ -224,13 +224,13 @@ void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
       qi>>=1; qexp++; 
     }else
       while(qi && !(qi&0x8000)){ 
-	qi<<=1; qexp--; 
+        qi<<=1; qexp--; 
       }
 
     amp=vorbis_fromdBlook_i(ampi*                     
-			    vorbis_invsqlook_i(qi,qexp)- 
-			                              
-			    ampoffseti);              
+                            vorbis_invsqlook_i(qi,qexp)- 
+                                                      
+                            ampoffseti);              
 
     curve[i]*=amp;
     while(map[++i]==k)curve[i]*=amp;
@@ -245,7 +245,7 @@ void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
 
 
 void vorbis_lsp_to_curve(float *curve,int *map,int n,int ln,float *lsp,int m,
-			    float amp,float ampoffset){
+                            float amp,float ampoffset){
   int i;
   float wdel=M_PI/ln;
   for(i=0;i<m;i++)lsp[i]=2.f*cos(lsp[i]);
@@ -321,22 +321,22 @@ static int Laguerre_With_Deflation(float *a,int ord,float *r){
       
       
       for(i=m;i>0;i--){
-	ppp = new*ppp + pp;
-	pp  = new*pp  + p;
-	p   = new*p   + defl[i-1];
+        ppp = new*ppp + pp;
+        pp  = new*pp  + p;
+        p   = new*p   + defl[i-1];
       }
       
       
       denom=(m-1) * ((m-1)*pp*pp - m*p*ppp);
       if(denom<0)
-	return(-1);  
+        return(-1);  
 
       if(pp>0){
-	denom = pp + sqrt(denom);
-	if(denom<EPSILON)denom=EPSILON;
+        denom = pp + sqrt(denom);
+        if(denom<EPSILON)denom=EPSILON;
       }else{
-	denom = pp - sqrt(denom);
-	if(denom>-(EPSILON))denom=-(EPSILON);
+        denom = pp - sqrt(denom);
+        if(denom>-(EPSILON))denom=-(EPSILON);
       }
 
       delta  = m*p/denom;
@@ -378,8 +378,8 @@ static int Newton_Raphson(float *a,int ord,float *r){
       double p=a[ord];
       for(k=ord-1; k>= 0; k--) {
 
-	pp= pp* rooti + p;
-	p = p * rooti + a[k];
+        pp= pp* rooti + p;
+        p = p * rooti + a[k];
       }
 
       delta = p/pp;
