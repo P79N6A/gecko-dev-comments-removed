@@ -1,0 +1,119 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const nsIDownloadManager = Ci.nsIDownloadManager;
+const dm = Cc["@mozilla.org/download-manager;1"].getService(nsIDownloadManager);
+
+const resultFileName = "test" + Date.now() + ".doc";
+
+function checkResult() {
+  do_check_true(checkRecentDocsFor(resultFileName));
+
+  
+  var resultFile = dirSvc.get("ProfD", Ci.nsIFile);
+  resultFile.append(resultFileName);
+  resultFile.remove(false);
+
+  do_test_finished();
+}
+
+function checkRecentDocsFor(aFileName) {
+  var recentDocsKey = Cc["@mozilla.org/windows-registry-key;1"].
+                        createInstance(Ci.nsIWindowsRegKey);
+  var recentDocsPath =
+        "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\RecentDocs";
+  recentDocsKey.open(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+                     recentDocsPath,
+                     Ci.nsIWindowsRegKey.ACCESS_READ);
+  var count = recentDocsKey.valueCount;
+  for (var i = 0; i < count; ++i) {
+    var valueName = recentDocsKey.getValueName(i);
+    var binValue = recentDocsKey.readBinaryValue(valueName);
+
+    
+    var fileName = binValue.split("\0\0")[0];
+
+    
+    fileName = fileName.replace(/\x00/g, "");
+
+    if (aFileName == fileName)
+      return true;
+  }
+  return false;
+}
+
+var httpserv = null;
+function run_test()
+{
+  
+  
+  var httpPH = Cc["@mozilla.org/network/protocol;1?name=http"].
+               getService(Ci.nsIHttpProtocolHandler);
+  if (httpPH.platform != "Windows")
+    return;
+
+  
+  do_test_pending();
+
+  httpserv = new nsHttpServer();
+  httpserv.registerDirectory("/", dirSvc.get("ProfD", Ci.nsILocalFile));
+  httpserv.start(4444);
+
+  var listener = {
+    onDownloadStateChange: function test_401430_odsc(aState, aDownload) {
+      if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED) {
+        
+        
+        do_timeout(1000, "checkResult();");
+      }
+    },
+    onStateChange: function(a, b, c, d, e) { },
+    onProgressChange: function(a, b, c, d, e, f, g) { },
+    onStatusChange: function(a, b, c, d, e) { },
+    onLocationChange: function(a, b, c, d) { },
+    onSecurityChange: function(a, b, c, d) { }
+  };
+
+  dm.addListener(listener);
+  dm.addListener(getDownloadListener());
+
+  var dl = addDownload(resultFileName);
+
+  cleanup();
+}
