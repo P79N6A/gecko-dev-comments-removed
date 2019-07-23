@@ -52,6 +52,7 @@
 #include "zlib.h"
 #include "zipstruct.h"
 #include "nsAutoPtr.h"
+#include "nsILocalFile.h"
 
 class nsZipFind;
 
@@ -132,7 +133,7 @@ public:
 
 
 
-  nsresult OpenArchive(PRFileDesc* fd);
+  nsresult OpenArchive(nsIFile *aZipFile);
 
   
 
@@ -227,7 +228,6 @@ public:
   NS_METHOD_(nsrefcnt) Release(void);
 
 protected:
-  PRFileDesc * mFd;       
   PRUint8 *    mFileData; 
   PRUint32     mLen;      
 
