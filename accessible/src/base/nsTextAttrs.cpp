@@ -117,43 +117,43 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
 
   
   nsLangTextAttr langTextAttr(mHyperTextAcc, mHyperTextNode, mOffsetNode);
-  textAttrArray.AppendElement(&langTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&langTextAttr));
 
   
   nsCSSTextAttr colorTextAttr(0, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&colorTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&colorTextAttr));
 
   
   nsCSSTextAttr fontFamilyTextAttr(1, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&fontFamilyTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontFamilyTextAttr));
 
   
   nsCSSTextAttr fontStyleTextAttr(2, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&fontStyleTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontStyleTextAttr));
 
   
   nsCSSTextAttr fontWeightTextAttr(3, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&fontWeightTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontWeightTextAttr));
 
   
   nsCSSTextAttr lineThroughTextAttr(4, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&lineThroughTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&lineThroughTextAttr));
 
   
   nsCSSTextAttr underlineTextAttr(5, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&underlineTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&underlineTextAttr));
 
   
   nsCSSTextAttr posTextAttr(6, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(&posTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&posTextAttr));
 
   
   nsBGColorTextAttr bgColorTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(&bgColorTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&bgColorTextAttr));
 
   
   nsFontSizeTextAttr fontSizeTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(&fontSizeTextAttr);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontSizeTextAttr));
 
   
   if (aAttributes) {
@@ -400,7 +400,7 @@ nsTextAttrsMgr::FindStartOffsetInSubtree(const nsTPtrArray<nsITextAttr>& aTextAt
 
 nsLangTextAttr::nsLangTextAttr(nsHyperTextAccessible *aRootAcc, 
                                nsIDOMNode *aRootNode, nsIDOMNode *aNode) :
-  nsTextAttr<nsAutoString>::nsTextAttr(aNode == nsnull)
+  nsTextAttr<nsAutoString>(aNode == nsnull)
 {
   mRootContent = do_QueryInterface(aRootNode);
 
@@ -438,7 +438,7 @@ nsLangTextAttr::GetLang(nsIContent *aContent, nsAString& aLang)
 
 nsCSSTextAttr::nsCSSTextAttr(PRUint32 aIndex, nsIDOMElement *aRootElm,
                              nsIDOMElement *aElm) :
-  nsTextAttr<nsAutoString>::nsTextAttr(aElm == nsnull), mIndex(aIndex)
+  nsTextAttr<nsAutoString>(aElm == nsnull), mIndex(aIndex)
 {
   mIsRootDefined = GetValueFor(aRootElm, &mRootNativeValue);
 
@@ -488,7 +488,7 @@ nsCSSTextAttr::Format(const nsAutoString& aValue, nsAString& aFormattedValue)
 
 
 nsBGColorTextAttr::nsBGColorTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame) :
-  nsTextAttr<nscolor>::nsTextAttr(aFrame == nsnull), mRootFrame(aRootFrame)
+  nsTextAttr<nscolor>(aFrame == nsnull), mRootFrame(aRootFrame)
 {
   mIsRootDefined = GetColor(mRootFrame, &mRootNativeValue);
   if (aFrame)
@@ -550,7 +550,7 @@ nsBGColorTextAttr::GetColor(nsIFrame *aFrame, nscolor *aColor)
 
 
 nsFontSizeTextAttr::nsFontSizeTextAttr(nsIFrame *aRootFrame, nsIFrame *aFrame) :
-  nsTextAttr<nscoord>::nsTextAttr(aFrame == nsnull)
+  nsTextAttr<nscoord>(aFrame == nsnull)
 {
   mDC = aRootFrame->PresContext()->DeviceContext();
 
