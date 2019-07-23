@@ -374,8 +374,7 @@ protected:
   PRBool   IsLeftButton(nsIDOMEvent* aMouseEvent);
 
   
-  
-  nscoord  CalcFallbackRowHeight(PRInt32 aNumOptions);
+  nscoord  CalcFallbackRowHeight();
 
   
   

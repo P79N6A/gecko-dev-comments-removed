@@ -344,7 +344,7 @@ void nsListControlFrame::PaintFocus(nsIRenderingContext& aRC, nsPoint aPt)
   } else {
     fRect.x = fRect.y = 0;
     fRect.width = GetScrollPortSize().width;
-    fRect.height = CalcFallbackRowHeight(0);
+    fRect.height = CalcFallbackRowHeight();
     fRect.MoveBy(containerFrame->GetOffsetTo(this));
   }
   fRect += aPt;
@@ -380,7 +380,7 @@ nsListControlFrame::InvalidateFocus()
     
     
     nsRect invalidateArea = containerFrame->GetOverflowRect();
-    nsRect emptyFallbackArea(0, 0, GetScrollPortSize().width, CalcFallbackRowHeight(0));
+    nsRect emptyFallbackArea(0, 0, GetScrollPortSize().width, CalcFallbackRowHeight());
     invalidateArea.UnionRect(invalidateArea, emptyFallbackArea);
     containerFrame->Invalidate(invalidateArea);
   }
@@ -510,8 +510,9 @@ nsListControlFrame::CalcHeightOfARow()
   PRInt32 heightOfARow = GetMaxOptionHeight(GetOptionsContainer());
 
   
-  if (heightOfARow == 0) {
-    heightOfARow = CalcFallbackRowHeight(GetNumberOfOptions());
+  
+  if (heightOfARow == 0 && GetNumberOfOptions() == 0) {
+    heightOfARow = CalcFallbackRowHeight();
   }
 
   return heightOfARow;
@@ -1875,27 +1876,12 @@ nsListControlFrame::IsLeftButton(nsIDOMEvent* aMouseEvent)
 }
 
 nscoord
-nsListControlFrame::CalcFallbackRowHeight(PRInt32 aNumOptions)
+nsListControlFrame::CalcFallbackRowHeight()
 {
-  nsIFrame *fontFrame = nsnull;
-    
-  if (aNumOptions > 0) {
-    
-    nsCOMPtr<nsIContent> option = GetOptionContent(0);
-    if (option) {
-      fontFrame = PresContext()->PresShell()->GetPrimaryFrameFor(option);
-    }
-  }
-
-  if (!fontFrame) {
-    
-    fontFrame = this;
-  }
-
   nscoord rowHeight = 0;
   
   nsCOMPtr<nsIFontMetrics> fontMet;
-  nsLayoutUtils::GetFontMetricsForFrame(fontFrame, getter_AddRefs(fontMet));
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet));
   if (fontMet) {
     fontMet->GetHeight(rowHeight);
   }
