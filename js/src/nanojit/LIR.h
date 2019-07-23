@@ -586,6 +586,7 @@ namespace nanojit
 
     typedef LIns* LInsp;
     typedef SeqBuilder<LIns*> InsList;
+    typedef SeqBuilder<char*> StringList;
 
 
     
@@ -1163,15 +1164,20 @@ namespace nanojit
         InsList code;
         LirNameMap* names;
         LogControl* logc;
+        const char* const prefix;
+        bool const always_flush;
     public:
         VerboseWriter(Allocator& alloc, LirWriter *out,
-                      LirNameMap* names, LogControl* logc)
-            : LirWriter(out), code(alloc), names(names), logc(logc)
+                      LirNameMap* names, LogControl* logc, const char* prefix = "", bool always_flush = false)
+            : LirWriter(out), code(alloc), names(names), logc(logc), prefix(prefix), always_flush(always_flush)
         {}
 
         LInsp add(LInsp i) {
-            if (i)
+            if (i) {
                 code.add(i);
+                if (always_flush)
+                    flush();
+            }
             return i;
         }
 
@@ -1186,7 +1192,7 @@ namespace nanojit
             if (!code.isEmpty()) {
                 int32_t count = 0;
                 for (Seq<LIns*>* p = code.get(); p != NULL; p = p->tail) {
-                    logc->printf("    %s\n",names->formatIns(p->head));
+                    logc->printf("%s    %s\n",prefix,names->formatIns(p->head));
                     count++;
                 }
                 code.clear();
@@ -1478,7 +1484,7 @@ namespace nanojit
     class Assembler;
 
     void compile(Assembler *assm, Fragment *frag, Allocator& alloc verbose_only(, LabelMap*));
-    verbose_only(void live(Allocator& alloc, Fragment* frag, LogControl*);)
+    verbose_only(void live(LirFilter* in, Allocator& alloc, Fragment* frag, LogControl*);)
 
     class StackFilter: public LirFilter
     {
@@ -1540,5 +1546,35 @@ namespace nanojit
         LIns* ins3(LOpcode v, LIns* s0, LIns* s1, LIns* s2);
     };
 #endif
+
+#ifdef NJ_VERBOSE
+    
+
+
+
+
+    class ReverseLister : public LirFilter
+    {
+        Allocator&   _alloc;
+        LirNameMap*  _names;
+        const char*  _title;
+        StringList   _strs;
+        LogControl*  _logc;
+    public:
+        ReverseLister(LirFilter* in, Allocator& alloc,
+                      LirNameMap* names, LogControl* logc, const char* title)
+            : LirFilter(in)
+            , _alloc(alloc)
+            , _names(names)
+            , _title(title)
+            , _strs(alloc)
+            , _logc(logc)
+        { }
+
+        void finish();
+        LInsp read();
+    };
+#endif
+
 }
 #endif 

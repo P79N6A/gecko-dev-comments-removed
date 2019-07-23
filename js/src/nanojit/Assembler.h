@@ -227,8 +227,6 @@ namespace nanojit
         LabelState *get(LIns *);
     };
 
-    typedef SeqBuilder<char*> StringList;
-
     
 
     typedef HashMap<SideExit*, RegAlloc*> RegAllocMap;
