@@ -575,21 +575,23 @@ JSObject::lockedSetSlot(uintN slot, jsval value)
 
 
 
+namespace js {
+
 inline JSObject *
-js_CastAsObject(JSPropertyOp op)
+CastAsObject(JSPropertyOp op)
 {
     return JS_FUNC_TO_DATA_PTR(JSObject *, op);
 }
 
 inline jsval
-js_CastAsObjectJSVal(JSPropertyOp op)
+CastAsObjectJSVal(JSPropertyOp op)
 {
     return OBJECT_TO_JSVAL(JS_FUNC_TO_DATA_PTR(JSObject *, op));
 }
 
-namespace js {
 class PropertyTree;
-}
+
+} 
 
 struct JSScopeProperty {
     friend struct JSScope;
@@ -602,12 +604,16 @@ struct JSScopeProperty {
 
   private:
     union {
-        JSPropertyOp rawGetter;         
+        JSPropertyOp    rawGetter;      
+        JSObject        *getterObj;     
+
         JSScopeProperty *next;          
     };
 
     union {
-        JSPropertyOp rawSetter;         
+        JSPropertyOp    rawSetter;      
+
+        JSObject        *setterObj;     
 
         JSScopeProperty **prevp;        
 
@@ -673,10 +679,8 @@ struct JSScopeProperty {
         : id(id), rawGetter(getter), rawSetter(setter), slot(slot), attrs(uint8(attrs)),
           flags(uint8(flags)), shortid(int16(shortid))
     {
-        JS_ASSERT_IF(getter && (attrs & JSPROP_GETTER),
-                     JSVAL_TO_OBJECT(getterValue())->isCallable());
-        JS_ASSERT_IF(setter && (attrs & JSPROP_SETTER),
-                     JSVAL_TO_OBJECT(setterValue())->isCallable());
+        JS_ASSERT_IF(getter && (attrs & JSPROP_GETTER), getterObj->isCallable());
+        JS_ASSERT_IF(setter && (attrs & JSPROP_SETTER), setterObj->isCallable());
     }
 
     bool marked() const { return (flags & MARK) != 0; }
@@ -698,48 +702,34 @@ struct JSScopeProperty {
         PUBLIC_FLAGS    = ALIAS | HAS_SHORTID | METHOD
     };
 
-    uintN getFlags() const { return flags & PUBLIC_FLAGS; }
-    bool isAlias() const { return (flags & ALIAS) != 0; }
+    uintN getFlags() const  { return flags & PUBLIC_FLAGS; }
+    bool isAlias() const    { return (flags & ALIAS) != 0; }
     bool hasShortID() const { return (flags & HAS_SHORTID) != 0; }
-    bool isMethod() const { return (flags & METHOD) != 0; }
+    bool isMethod() const   { return (flags & METHOD) != 0; }
 
-    JSObject *methodObject() const {
-        JS_ASSERT(isMethod());
-        return js_CastAsObject(rawGetter);
-    }
-    jsval methodValue() const {
-        JS_ASSERT(isMethod());
-        return js_CastAsObjectJSVal(rawGetter);
-    }
+    JSObject *methodObject() const { JS_ASSERT(isMethod()); return getterObj; }
+    jsval methodValue() const      { return OBJECT_TO_JSVAL(methodObject()); }
 
-    JSPropertyOp getter() const { return rawGetter; }
-    bool hasDefaultGetter() const { return !rawGetter; }
-    JSPropertyOp getterOp() const {
-        JS_ASSERT(!hasGetterValue());
-        return rawGetter;
-    }
-    JSObject *getterObject() const {
-        JS_ASSERT(hasGetterValue());
-        return js_CastAsObject(rawGetter);
-    }
+    JSPropertyOp getter() const    { return rawGetter; }
+    bool hasDefaultGetter() const  { return !rawGetter; }
+    JSPropertyOp getterOp() const  { JS_ASSERT(!hasGetterValue()); return rawGetter; }
+    JSObject *getterObject() const { JS_ASSERT(hasGetterValue()); return getterObj; }
+
+    
     jsval getterValue() const {
         JS_ASSERT(hasGetterValue());
-        return rawGetter ? js_CastAsObjectJSVal(rawGetter) : JSVAL_VOID;
+        return getterObj ? OBJECT_TO_JSVAL(getterObj) : JSVAL_VOID;
     }
 
-    JSPropertyOp setter() const { return rawSetter; }
-    bool hasDefaultSetter() const { return !rawSetter; }
-    JSPropertyOp setterOp() const {
-        JS_ASSERT(!hasSetterValue());
-        return rawSetter;
-    }
-    JSObject *setterObject() const {
-        JS_ASSERT(hasSetterValue() && rawSetter);
-        return js_CastAsObject(rawSetter);
-    }
+    JSPropertyOp setter() const    { return rawSetter; }
+    bool hasDefaultSetter() const  { return !rawSetter; }
+    JSPropertyOp setterOp() const  { JS_ASSERT(!hasSetterValue()); return rawSetter; }
+    JSObject *setterObject() const { JS_ASSERT(hasSetterValue()); return setterObj; }
+
+    
     jsval setterValue() const {
         JS_ASSERT(hasSetterValue());
-        return rawSetter ? js_CastAsObjectJSVal(rawSetter) : JSVAL_VOID;
+        return setterObj ? OBJECT_TO_JSVAL(setterObj) : JSVAL_VOID;
     }
 
     inline JSDHashNumber hash() const;
