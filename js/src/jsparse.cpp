@@ -935,7 +935,7 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
 
 
     scriptGlobals = cg.ngvars + cg.regexpList.length;
-    if (scriptGlobals != 0) {
+    if (scriptGlobals != 0 || cg.hasSharps()) {
         jsbytecode *code, *end;
         JSOp op;
         const JSCodeSpec *cs;
