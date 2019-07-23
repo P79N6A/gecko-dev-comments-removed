@@ -153,9 +153,6 @@ public:
     return (mType & NS_HANDLER_ALLOW_UNTRUSTED) != 0;
   }
 
-  void Trace(TraceCallback aCallback, void *aClosure) const;
-  void UnlinkJSObjects();
-	
 public:
   static PRUint32 gRefCnt;
   
@@ -180,11 +177,6 @@ protected:
   nsresult EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
                               nsIScriptContext *aBoundContext, nsIAtom *aName,
                               nsScriptObjectHolder &aHandler);
-  void ForgetCachedHandler()
-  {
-    mCachedHandler = nsnull;
-    mGlobalForCachedHandler = nsnull;
-  }
   static PRInt32 KeyToMask(PRInt32 key);
   
   static PRInt32 kAccelKey;
@@ -229,10 +221,6 @@ protected:
   
   PRInt32 mDetail;           
                              
-
-  
-  void *mCachedHandler;
-  nsWeakPtr mGlobalForCachedHandler;
 
   
   nsXBLPrototypeHandler* mNextHandler;
