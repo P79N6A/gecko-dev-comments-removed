@@ -577,9 +577,6 @@ var BookmarkPropertiesPanel = {
       
       
       
-      
-      
-      
       this._microsummaries = null;
     }
     if (this._microsummaries) {
