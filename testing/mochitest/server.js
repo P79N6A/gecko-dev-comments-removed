@@ -197,7 +197,6 @@ function serverShutdown(metadata, response)
 
   
   server.stop();
-  otherDomainServer.stop();
 }
 
 function redirect(metadata, response)
