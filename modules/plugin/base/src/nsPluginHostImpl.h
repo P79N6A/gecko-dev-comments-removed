@@ -149,6 +149,7 @@ public:
   nsIPlugin     *mEntryPoint;
   PRPackedBool  mCanUnloadLibrary;
   PRPackedBool  mXPConnected;
+  PRPackedBool  mIsJavaPlugin;
   char          *mFileName;
   char          *mFullPath;
   PRInt64       mLastModifiedTime;
@@ -324,6 +325,10 @@ public:
   
   nsresult UpdatePluginInfo(nsPluginTag* aPluginTag);
 
+  
+  
+  static PRBool IsJavaMIMEType(const char *aType);
+
 private:
   NS_IMETHOD
   TrySetUpPluginInstance(const char *aMimeType, nsIURI *aURL, nsIPluginInstanceOwner *aOwner);
@@ -402,14 +407,6 @@ private:
   
   
   PRBool IsUnwantedJavaPlugin(nsPluginTag * aPluginTag);
-
-  
-  
-  PRBool IsJavaPluginTag(nsPluginTag * aPluginTag);
-
-  
-  
-  PRBool IsJavaMIMEType(const char *aType);
 
   nsresult EnsurePrivateDirServiceProvider();
 
