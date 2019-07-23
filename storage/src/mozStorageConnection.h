@@ -42,7 +42,7 @@
 #define _MOZSTORAGECONNECTION_H_
 
 #include "nsCOMPtr.h"
-#include "nsAutoLock.h"
+#include "mozilla/Mutex.h"
 
 #include "nsString.h"
 #include "nsInterfaceHashtable.h"
@@ -53,6 +53,7 @@
 
 #include <sqlite3.h>
 
+struct PRLock;
 class nsIFile;
 class nsIEventTarget;
 class nsIThread;
@@ -90,6 +91,13 @@ public:
 
 
   already_AddRefed<nsIEventTarget> getAsyncExecutionTarget();
+
+  
+
+
+
+
+  Mutex sharedAsyncExecutionMutex;
 
 private:
   ~Connection();
@@ -158,7 +166,6 @@ private:
   PRLock *mProgressHandlerMutex;
   nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
 
-  
   
   
   nsCOMPtr<mozIStorageService> mStorageService;
