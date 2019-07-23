@@ -94,9 +94,14 @@ PRBool nsNodeIterator::NodePointer::MoveToPrevious(nsINode *aRoot)
     return PR_TRUE;
 }
 
-void nsNodeIterator::NodePointer::AdjustAfterInsertion(nsINode *aContainer, PRInt32 aIndexInContainer)
+void nsNodeIterator::NodePointer::AdjustAfterInsertion(nsINode *aRoot,
+                                                       nsINode *aContainer,
+                                                       PRInt32 aIndexInContainer)
 {
-    if (!mNode)
+    
+    
+    
+    if (!mNode || mNode == aRoot)
         return;
 
     
@@ -104,21 +109,19 @@ void nsNodeIterator::NodePointer::AdjustAfterInsertion(nsINode *aContainer, PRIn
         mIndexInParent++;
 }
 
-void nsNodeIterator::NodePointer::AdjustAfterRemoval(nsINode* aRoot,
+void nsNodeIterator::NodePointer::AdjustAfterRemoval(nsINode *aRoot,
                                                      nsINode *aContainer,
                                                      nsIContent *aChild,
                                                      PRInt32 aIndexInContainer)
 {
-    if (!mNode)
+    
+    
+    
+    if (!mNode || mNode == aRoot)
         return;
 
     
-    
-    
-    
-    
-    if (mNode != aRoot &&
-        aContainer == mNodeParent && aIndexInContainer < mIndexInParent) {
+    if (aContainer == mNodeParent && aIndexInContainer < mIndexInParent) {
         --mIndexInParent;
         return;
     }
@@ -368,15 +371,15 @@ NS_IMETHODIMP nsNodeIterator::GetPointerBeforeReferenceNode(PRBool *aBeforeNode)
 
 
 
-void nsNodeIterator::ContentInserted(nsIDocument* aDocument,
-                                     nsIContent* aContainer,
-                                     nsIContent* aChild,
+void nsNodeIterator::ContentInserted(nsIDocument *aDocument,
+                                     nsIContent *aContainer,
+                                     nsIContent *aChild,
                                      PRInt32 aIndexInContainer)
 {
     nsINode *container = NODE_FROM(aContainer, aDocument);
 
-    mPointer.AdjustAfterInsertion(container, aIndexInContainer);
-    mWorkingPointer.AdjustAfterInsertion(container, aIndexInContainer);
+    mPointer.AdjustAfterInsertion(mRoot, container, aIndexInContainer);
+    mWorkingPointer.AdjustAfterInsertion(mRoot, container, aIndexInContainer);
 }
 
 
