@@ -536,11 +536,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   
-  nsSize size;
-  lineLayout->EndSpan(this, size);
+  aMetrics.width = lineLayout->EndSpan(this);
 
   
-  aMetrics.width = size.width;
   if (nsnull == GetPrevContinuation()) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
                           : aReflowState.mComputedBorderPadding.right;
