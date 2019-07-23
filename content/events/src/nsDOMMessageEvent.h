@@ -49,6 +49,7 @@
 
 
 
+
 class nsDOMMessageEvent : public nsIDOMMessageEvent,
                           public nsDOMEvent
 {
@@ -69,6 +70,7 @@ public:
 private:
   nsString mData;
   nsString mOrigin;
+  nsString mLastEventId;
   nsCOMPtr<nsIDOMWindow> mSource;
 };
 

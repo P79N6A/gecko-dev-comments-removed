@@ -5186,10 +5186,155 @@ nsGlobalWindow::CallerInnerWindow()
   return static_cast<nsGlobalWindow*>(win.get());
 }
 
+
+
+
+
+
+class PostMessageEvent : public nsRunnable
+{
+  public:
+    NS_DECL_NSIRUNNABLE
+
+    PostMessageEvent(nsGlobalWindow* aSource,
+                     const nsAString& aCallerOrigin,
+                     const nsAString& aMessage,
+                     nsGlobalWindow* aTargetWindow,
+                     nsIURI* aProvidedOrigin,
+                     PRBool aTrustedCaller)
+    : mSource(aSource),
+      mCallerOrigin(aCallerOrigin),
+      mMessage(aMessage),
+      mTargetWindow(aTargetWindow),
+      mProvidedOrigin(aProvidedOrigin),
+      mTrustedCaller(aTrustedCaller)
+    {
+      MOZ_COUNT_CTOR(PostMessageEvent);
+    }
+    
+    ~PostMessageEvent()
+    {
+      MOZ_COUNT_DTOR(PostMessageEvent);
+    }
+
+  private:
+    nsRefPtr<nsGlobalWindow> mSource;
+    nsString mCallerOrigin;
+    nsString mMessage;
+    nsRefPtr<nsGlobalWindow> mTargetWindow;
+    nsCOMPtr<nsIURI> mProvidedOrigin;
+    PRBool mTrustedCaller;
+};
+
+NS_IMETHODIMP
+PostMessageEvent::Run()
+{
+  NS_ABORT_IF_FALSE(mTargetWindow->IsOuterWindow(),
+                    "should have been passed an outer window!");
+  NS_ABORT_IF_FALSE(!mSource || mSource->IsOuterWindow(),
+                    "should have been passed an outer window!");
+
+  nsRefPtr<nsGlobalWindow> targetWindow =
+    mTargetWindow->GetCurrentInnerWindowInternal();
+  NS_ABORT_IF_FALSE(targetWindow->IsInnerWindow(),
+                    "we ordered an inner window!");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mProvidedOrigin) {
+    
+    
+    
+    nsIPrincipal* targetPrin = targetWindow->GetPrincipal();
+    if (!targetPrin)
+      return NS_OK;
+    nsCOMPtr<nsIURI> targetURI;
+    if (NS_FAILED(targetPrin->GetURI(getter_AddRefs(targetURI))))
+      return NS_OK;
+    if (!targetURI) {
+      targetURI = targetWindow->mDoc->GetDocumentURI();
+      if (!targetURI)
+        return NS_OK;
+    }
+
+    
+    
+    
+    
+    
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    nsresult rv =
+      ssm->CheckSameOriginURI(mProvidedOrigin, targetURI, PR_TRUE);
+    if (NS_FAILED(rv))
+      return NS_OK;
+  }
+
+
+  
+  nsCOMPtr<nsIDOMDocumentEvent> docEvent =
+    do_QueryInterface(targetWindow->mDocument);
+  if (!docEvent)
+    return NS_OK;
+  nsCOMPtr<nsIDOMEvent> event;
+  docEvent->CreateEvent(NS_LITERAL_STRING("MessageEvent"),
+                        getter_AddRefs(event));
+  if (!event)
+    return NS_OK;
+
+  nsCOMPtr<nsIDOMMessageEvent> message = do_QueryInterface(event);
+  nsresult rv = message->InitMessageEvent(NS_LITERAL_STRING("message"),
+                                          PR_FALSE ,
+                                          PR_TRUE ,
+                                          mMessage,
+                                          mCallerOrigin,
+                                          EmptyString(),
+                                          mSource);
+  if (NS_FAILED(rv))
+    return NS_OK;
+
+
+  
+  
+  
+  
+
+  nsIPresShell *shell = targetWindow->mDoc->GetPrimaryShell();
+  nsRefPtr<nsPresContext> presContext;
+  if (shell)
+    presContext = shell->GetPresContext();
+
+  nsEvent* internalEvent;
+  nsCOMPtr<nsIPrivateDOMEvent> privEvent = do_QueryInterface(message);
+  privEvent->SetTrusted(mTrustedCaller);
+  privEvent->GetInternalNSEvent(&internalEvent);
+
+  nsEventStatus status = nsEventStatus_eIgnore;
+  nsEventDispatcher::Dispatch(static_cast<nsPIDOMWindow*>(mTargetWindow),
+                              presContext,
+                              internalEvent,
+                              message,
+                              &status);
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrigin)
 {
-  FORWARD_TO_INNER_CREATE(PostMessageMoz, (aMessage, aOrigin));
+  
+  
+  
+  
+  
+  
+  
+  
+  NS_ABORT_IF_FALSE(IsOuterWindow(), "only call this method on outer windows");
 
   
   
@@ -5198,31 +5343,37 @@ nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrig
   
   
   
-
 
   
   nsRefPtr<nsGlobalWindow> callerInnerWin = CallerInnerWindow();
   if (!callerInnerWin)
     return NS_OK;
-  NS_ASSERTION(callerInnerWin->IsInnerWindow(), "should have gotten an inner window here");
+  NS_ABORT_IF_FALSE(callerInnerWin->IsInnerWindow(),
+                    "should have gotten an inner window here");
 
+  
+  
+  
   
   
   
   nsIPrincipal* callerPrin = callerInnerWin->GetPrincipal();
   if (!callerPrin)
     return NS_OK;
-  nsCOMPtr<nsIURI> callerURI;
-  if (NS_FAILED(callerPrin->GetURI(getter_AddRefs(callerURI))))
+  nsCOMPtr<nsIURI> callerOuterURI;
+  if (NS_FAILED(callerPrin->GetURI(getter_AddRefs(callerOuterURI))))
     return NS_OK;
-  if (!callerURI) {
+  if (!callerOuterURI) {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(callerInnerWin->mDocument);
     if (!doc)
       return NS_OK;
-    callerURI = doc->GetDocumentURI();
-    if (!callerURI)
+    callerOuterURI = doc->GetDocumentURI();
+    if (!callerOuterURI)
       return NS_OK;
   }
+  nsCOMPtr<nsIURI> callerURI = NS_GetInnermostURI(callerOuterURI);
+  if (!callerURI)
+    return NS_OK;
   const nsCString& empty = EmptyCString();
   nsCOMPtr<nsIURI> callerOrigin;
   if (NS_FAILED(callerURI->Clone(getter_AddRefs(callerOrigin))) ||
@@ -5231,96 +5382,32 @@ nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrig
 
 
   
-  if (!mDocument)
-    return NS_OK;
-
-  nsCOMPtr<nsIDOMEventTarget> targetDoc = do_QueryInterface(mDocument);
-  nsCOMPtr<nsIDOMDocumentEvent> docEvent = do_QueryInterface(mDocument);
-
-
   
-  
-  if (!aOrigin.IsVoid()) {
-    nsCOMPtr<nsIURI> providedOrigin;
+  nsCOMPtr<nsIURI> providedOrigin;
+  if (!aOrigin.EqualsASCII("*")) {
     if (NS_FAILED(NS_NewURI(getter_AddRefs(providedOrigin), aOrigin)))
       return NS_ERROR_DOM_SYNTAX_ERR;
     if (NS_FAILED(providedOrigin->SetUserPass(empty)) ||
         NS_FAILED(providedOrigin->SetPath(empty)))
       return NS_OK;
-
-    
-    
-    
-    nsIPrincipal* targetPrin = GetPrincipal();
-    if (!targetPrin)
-      return NS_OK;
-    nsCOMPtr<nsIURI> targetURI;
-    if (NS_FAILED(targetPrin->GetURI(getter_AddRefs(targetURI))))
-      return NS_OK;
-    if (!targetURI) {
-      nsCOMPtr<nsIDocument> targetDoc = do_QueryInterface(mDocument);
-      if (!targetDoc)
-        return NS_OK;
-      targetURI = targetDoc->GetDocumentURI();
-      if (!targetURI)
-        return NS_OK;
-    }
-    nsCOMPtr<nsIURI> targetOrigin;
-    if (NS_FAILED(targetURI->Clone(getter_AddRefs(targetOrigin))) ||
-        NS_FAILED(targetOrigin->SetUserPass(empty)) ||
-        NS_FAILED(targetOrigin->SetPath(empty)))
-      return NS_OK;
-
-    PRBool equal = PR_FALSE;
-    if (NS_FAILED(targetOrigin->Equals(providedOrigin, &equal)) || !equal)
-      return NS_OK;
   }
 
-
-  
-  nsCOMPtr<nsIDOMEvent> event;
-  docEvent->CreateEvent(NS_LITERAL_STRING("MessageEvent"),
-                        getter_AddRefs(event));
-  if (!event)
-    return NS_OK;
-  
   nsCAutoString origin;
   if (NS_FAILED(callerOrigin->GetPrePath(origin)))
     return NS_OK;
 
-  nsCOMPtr<nsIDOMMessageEvent> message = do_QueryInterface(event);
-  nsresult rv = message->InitMessageEvent(NS_LITERAL_STRING("message"),
-                                          PR_TRUE ,
-                                          PR_TRUE ,
-                                          aMessage,
-                                          NS_ConvertUTF8toUTF16(origin),
-                                          nsContentUtils::IsCallerChrome()
-                                          ? nsnull
-                                          : callerInnerWin->GetOuterWindowInternal());
-  if (NS_FAILED(rv))
-    return NS_OK;
-
-
   
   
-  PRBool dummy;
-  targetDoc->DispatchEvent(message, &dummy);
-
-  
-  
-  
-  
-  
-  nsAXPCNativeCallContext *ncc;
-  rv = nsContentUtils::XPConnect()->GetCurrentNativeCallContext(&ncc);
-  if (NS_FAILED(rv) || !ncc)
-    return NS_OK;
-
-  JSContext *cx = nsnull;
-  if (NS_SUCCEEDED(ncc->GetJSContext(&cx)))
-    ::JS_ClearPendingException(cx);
-
-  return NS_OK;
+  nsRefPtr<PostMessageEvent> event =
+    new PostMessageEvent(nsContentUtils::IsCallerChrome()
+                         ? nsnull
+                         : callerInnerWin->GetOuterWindowInternal(),
+                         NS_ConvertUTF8toUTF16(origin),
+                         aMessage,
+                         this,
+                         providedOrigin,
+                         nsContentUtils::IsCallerTrustedForWrite());
+  return NS_DispatchToCurrentThread(event);
 }
 
 class nsCloseEvent : public nsRunnable {
