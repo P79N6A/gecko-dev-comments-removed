@@ -674,7 +674,7 @@ private:
 
   HINT  mHint;   
 #ifdef IBMBIDI
-  PRInt8 mCaretBidiLevel;
+  PRUint8 mCaretBidiLevel;
 #endif
 
   PRInt32 mDesiredX;
