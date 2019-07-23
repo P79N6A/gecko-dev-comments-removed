@@ -786,15 +786,12 @@ Assembler::asm_quad(LInsp ins)
 void
 Assembler::asm_nongp_copy(Register r, Register s)
 {
-    if ((rmask(r) & FpRegs) && (rmask(s) & FpRegs)) {
+    if (IsFpReg(r) && IsFpReg(s)) {
         
         FCPYD(r, s);
-    } else if ((rmask(r) & GpRegs) && (rmask(s) & FpRegs)) {
-        
-        
-        NanoAssert(0);
-        
     } else {
+        
+        
         NanoAssert(0);
     }
 }
