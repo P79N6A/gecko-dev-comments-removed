@@ -299,6 +299,7 @@ nsDocShell::nsDocShell():
     mIsBeingDestroyed(PR_FALSE),
     mIsExecutingOnLoadHandler(PR_FALSE),
     mIsPrintingOrPP(PR_FALSE),
+    mIsOffScreenBrowser(PR_FALSE),
     mSavingOldViewer(PR_FALSE),
     mAppType(nsIDocShell::APP_TYPE_UNKNOWN),
     mChildOffset(0),
@@ -3929,6 +3930,7 @@ nsDocShell::GetVisibility(PRBool * aVisibility)
 
     
     
+    
 
     nsCOMPtr<nsIDocShellTreeItem> treeItem = this;
     nsCOMPtr<nsIDocShellTreeItem> parentItem;
@@ -3953,7 +3955,9 @@ nsDocShell::GetVisibility(PRBool * aVisibility)
         NS_ASSERTION(shellContent, "subshell not in the map");
 
         nsIFrame* frame = pPresShell->GetPrimaryFrameFor(shellContent);
-        if (frame && !frame->AreAncestorViewsVisible()) {
+        PRBool isDocShellOffScreen = PR_FALSE;
+        docShell->GetIsOffScreenBrowser(&isDocShellOffScreen);
+        if (frame && !frame->AreAncestorViewsVisible() && !isDocShellOffScreen) {
             *aVisibility = PR_FALSE;
             return NS_OK;
         }
@@ -3972,6 +3976,20 @@ nsDocShell::GetVisibility(PRBool * aVisibility)
     
     
     return treeOwnerAsWin->GetVisibility(aVisibility);
+}
+
+NS_IMETHODIMP
+nsDocShell::SetIsOffScreenBrowser(PRBool aIsOffScreen) 
+{
+    mIsOffScreenBrowser = aIsOffScreen;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetIsOffScreenBrowser(PRBool *aIsOffScreen) 
+{
+    *aIsOffScreen = mIsOffScreenBrowser;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
