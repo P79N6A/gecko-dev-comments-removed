@@ -576,9 +576,25 @@ TimeoutHasExpired(const TimeoutData& aData)
 
 } 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool
 RPCChannel::SpinInternalEventLoop()
 {
+  EnterSpinLoop();
+
   
   
   do {
@@ -588,12 +604,13 @@ RPCChannel::SpinInternalEventLoop()
     {
       MutexAutoLock lock(mMutex);
       if (!Connected()) {
-        RPCChannel::ExitModalLoop();
+        ExitSpinLoop();
         return false;
       }
     }
 
     if (!RPCChannel::IsSpinLoopActive()) {
+      ExitSpinLoop();
       return false;
     }
 
@@ -603,7 +620,8 @@ RPCChannel::SpinInternalEventLoop()
     
     if (PeekMessageW(&msg, (HWND)-1, gOOPPStopNativeLoopEvent,
                      gOOPPStopNativeLoopEvent, PM_REMOVE)) {
-      RPCChannel::ExitModalLoop();
+      DecModalLoopCnt();
+      ExitSpinLoop();
       return false;
     }
 
@@ -612,21 +630,24 @@ RPCChannel::SpinInternalEventLoop()
     
     if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
                      PM_REMOVE)) {
+      ExitSpinLoop();
       return true;
     }
 
     
     if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
       if (msg.message == gOOPPStopNativeLoopEvent) {
-        RPCChannel::ExitModalLoop();
+        DecModalLoopCnt();
+        ExitSpinLoop();
         return false;
       }
       else if (msg.message == gOOPPSpinNativeLoopEvent) {
         
-        RPCChannel::EnterModalLoop();
+        IncModalLoopCnt();
         continue;
       }
       else if (msg.message == gEventLoopMessage) {
+        ExitSpinLoop();
         return true;
       }
 
@@ -643,17 +664,6 @@ RPCChannel::SpinInternalEventLoop()
       WaitMessage();
     }
   } while (true);
-}
-
-bool
-RPCChannel::IsMessagePending()
-{
-  MSG msg = { 0 };
-  if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                   PM_REMOVE)) {
-    return true;
-  }
-  return false;
 }
 
 bool
@@ -805,16 +815,7 @@ RPCChannel::WaitForNotify()
 
   bool retval = true;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (RPCChannel::IsSpinLoopActive()) {
+  if (WaitNeedsSpinLoop()) {
     SpinInternalEventLoop();
     return true; 
   }
@@ -907,9 +908,17 @@ RPCChannel::WaitForNotify()
         
         
         
-        RPCChannel::EnterModalLoop();
+        IncModalLoopCnt();
         SpinInternalEventLoop();
         return true; 
+      }
+
+      
+      
+      if (PeekMessageW(&msg, (HWND)-1, gOOPPStopNativeLoopEvent,
+                       gOOPPStopNativeLoopEvent, PM_REMOVE)) {
+        DecModalLoopCnt();
+        break;
       }
 
       if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
