@@ -608,3 +608,5 @@ pref("browser.ssl_override_behavior", 1);
 
 pref("editor.singleLine.pasteNewlines", 2);
 
+
+pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
