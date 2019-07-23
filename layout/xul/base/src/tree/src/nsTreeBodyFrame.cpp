@@ -3199,14 +3199,11 @@ nsTreeBodyFrame::PaintCell(PRInt32              aRowIndex,
 
       const nsStyleBorder* borderStyle = lineContext->GetStyleBorder();
       nscolor color;
-      PRBool transparent, foreground;
-      borderStyle->GetBorderColor(NS_SIDE_LEFT, color, transparent, foreground);
+      PRBool foreground;
+      borderStyle->GetBorderColor(NS_SIDE_LEFT, color, foreground);
       if (foreground) {
         
         color = lineContext->GetStyleColor()->mColor;
-      } else if (transparent) {
-        
-        color = NS_RGBA(0, 0, 0, 0);
       }
       aRenderingContext.SetColor(color);
       PRUint8 style;

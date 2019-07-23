@@ -3423,14 +3423,6 @@ CSSParserImpl::ParseColor(nsCSSValue& aValue)
         nsCSSKeyword keyword = nsCSSKeywords::LookupKeyword(tk->mIdent);
         if (eCSSKeyword_UNKNOWN < keyword) { 
           PRInt32 value;
-          
-          
-          
-          
-          if (keyword == eCSSKeyword_transparent) {
-            aValue.SetColorValue(NS_RGBA(0, 0, 0, 0));
-            return PR_TRUE;
-          }
           if (nsCSSProps::FindKeyword(keyword, nsCSSProps::kColorKTable, value)) {
             aValue.SetIntValue(value, eCSSUnit_EnumColor);
             return PR_TRUE;
@@ -5061,8 +5053,7 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
     return ParseVariant(aValue, VARIANT_HK,
                         nsCSSProps::kBackgroundClipKTable);
   case eCSSProperty_background_color:
-    return ParseVariant(aValue, VARIANT_HCK,
-                        nsCSSProps::kBackgroundColorKTable);
+    return ParseVariant(aValue, VARIANT_HC, nsnull);
   case eCSSProperty_background_image:
     return ParseVariant(aValue, VARIANT_HUO, nsnull);
   case eCSSProperty__moz_background_inline_policy:
@@ -5608,8 +5599,7 @@ CSSParserImpl::ParseBackground()
 
   
   
-  mTempData.mColor.mBackColor.SetIntValue(NS_STYLE_BG_COLOR_TRANSPARENT,
-                                          eCSSUnit_Enumerated);
+  mTempData.mColor.mBackColor.SetColorValue(NS_RGBA(0, 0, 0, 0));
   mTempData.SetPropertyBit(eCSSProperty_background_color);
   mTempData.mColor.mBackImage.SetNoneValue();
   mTempData.SetPropertyBit(eCSSProperty_background_image);
