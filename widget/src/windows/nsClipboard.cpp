@@ -111,8 +111,6 @@ UINT nsClipboard::GetFormat(const char* aMimeStr)
 #endif
   else if (strcmp(aMimeStr, kNativeHTMLMime) == 0)
     format = CF_HTML;
-  else if (strcmp(aMimeStr, kURLMime) == 0)
-    format = ::RegisterClipboardFormat(CFSTR_INETURLW);
   else
     format = ::RegisterClipboardFormat(aMimeStr);
 
@@ -616,8 +614,13 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
       if ( !dataFound ) {
         if ( strcmp(flavorStr, kUnicodeMime) == 0 )
           dataFound = FindUnicodeFromPlainText ( aDataObject, anIndex, &data, &dataLen );
-        else if ( strcmp(flavorStr, kURLMime) == 0 )
-          dataFound = FindURLFromLocalFile ( aDataObject, anIndex, &data, &dataLen );
+        else if ( strcmp(flavorStr, kURLMime) == 0 ) {
+          
+          
+          dataFound = FindURLFromNativeURL ( aDataObject, anIndex, &data, &dataLen );
+          if ( !dataFound )
+            dataFound = FindURLFromLocalFile ( aDataObject, anIndex, &data, &dataLen );
+        }
       } 
 
       
@@ -789,6 +792,34 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
   return dataFound;
 } 
 
+
+
+
+
+
+
+
+PRBool
+nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
+{
+  PRBool dataFound = PR_FALSE;
+
+  void* tempOutData = nsnull;
+  PRUint32 tempDataLen = 0;
+  nsresult loadResult = GetNativeDataOffClipboard(inDataObject, inIndex, ::RegisterClipboardFormat(CFSTR_INETURLW), &tempOutData, &tempDataLen);
+  if ( NS_SUCCEEDED(loadResult) && tempOutData ) {
+    nsDependentString urlString(static_cast<PRUnichar*>(tempOutData));
+    
+    
+    
+    *outData = ToNewUnicode(urlString + NS_LITERAL_STRING("\n") + urlString);
+    *outDataLen = nsCRT::strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
+    nsMemory::Free(tempOutData);
+    dataFound = PR_TRUE;
+  }
+
+  return dataFound;
+} 
 
 
 
