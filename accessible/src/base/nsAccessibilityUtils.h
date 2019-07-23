@@ -279,6 +279,23 @@ public:
 
 
 
+  static const char *TrimmedRole(const char *aRole, nsIContent *aContent);  
+
+  
+
+
+
+
+
+   static nsRoleMapEntry* GetRoleMapEntry(nsIDOMNode *aNode);
+
+  
+
+
+
+
+
+
 
 
 

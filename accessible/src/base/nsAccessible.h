@@ -1,4 +1,4 @@
- 
+
 
 
 
@@ -114,7 +114,6 @@ public:
   NS_DECL_NSIACCESSIBLEVALUE
 
   
-  NS_IMETHOD Init();
   NS_IMETHOD Shutdown();
 
   
@@ -161,6 +160,15 @@ public:
     return parent;
   }
   
+  
+
+
+
+
+
+
+  static nsIContent *GetRoleContent(nsIDOMNode *aDOMNode);
+
 protected:
   PRBool MappedAttrState(nsIContent *aContent, PRUint32 *aStateInOut, nsStateMapEntry *aStateMapEntry);
   virtual nsIFrame* GetBoundsFrame();
@@ -181,7 +189,6 @@ protected:
 
   static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
   static nsIContent *GetLabelContent(nsIContent *aForNode);
-  static nsIContent *GetRoleContent(nsIDOMNode *aDOMNode);
 
   
   nsresult GetHTMLName(nsAString& _retval, PRBool aCanAggregateSubtree = PR_TRUE);

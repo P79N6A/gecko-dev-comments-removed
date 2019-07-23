@@ -47,7 +47,6 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocument.h"
 #include "nsIDocumentViewer.h"
-#include "nsIDOM3Node.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsIDOMCSSPrimitiveValue.h"
 #include "nsIDOMDocument.h"
@@ -844,66 +843,10 @@ nsAccessNode::GetARIARole(nsIContent *aContent, nsString& aRole)
 {
   aRole.Truncate();
 
-  PRBool allowPrefixLookup = PR_TRUE;
-
   if (aContent->IsNodeOfType(nsINode::eHTML)) {
     
-    if (!aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::role, aRole)) {
-      return PR_FALSE;
-    }
-    nsCOMPtr<nsIDOMNSDocument> doc(do_QueryInterface(aContent->GetDocument()));
-    if (doc) {
-      nsAutoString mimeType;
-      doc->GetContentType(mimeType);
-      if (mimeType.EqualsLiteral("text/html")) {
-        allowPrefixLookup = PR_FALSE;
-      }
-    }
+    return aContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::role, aRole);
   }
   
-  else if (!aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole)) {
-    return PR_FALSE;
-  }
-
-  PRBool hasPrefix = (aRole.Find(":") >= 0);
-
-  if (!hasPrefix) {
-    
-    
-    return PR_TRUE;
-  }
-
-  
-
-  
-  NS_NAMED_LITERAL_STRING(hardcodedWairolePrefix, "wairole:");
-  if (StringBeginsWith(aRole, hardcodedWairolePrefix)) {
-    
-    
-    aRole.Cut(0, hardcodedWairolePrefix.Length());
-    return PR_TRUE;
-  }
-
-  
-  nsAutoString prefix;
-  if (allowPrefixLookup) {  
-    
-    
-    
-    nsCOMPtr<nsIDOM3Node> dom3Node(do_QueryInterface(aContent));
-    if (dom3Node) {
-      
-      NS_NAMED_LITERAL_STRING(kWAIRoles_Namespace, "http://www.w3.org/2005/01/wai-rdf/GUIRoleTaxonomy#");
-      dom3Node->LookupPrefix(kWAIRoles_Namespace, prefix);
-      prefix += ':';
-      PRUint32 length = prefix.Length();
-      if (length > 1 && StringBeginsWith(aRole, prefix)) {
-        
-        
-        aRole.Cut(0, length);
-      }
-    }
-  }
-
-  return PR_TRUE;
+  return aContent->GetAttr(kNameSpaceID_XHTML, nsAccessibilityAtoms::role, aRole);
 }

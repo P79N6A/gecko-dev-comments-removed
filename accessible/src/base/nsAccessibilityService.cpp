@@ -40,6 +40,7 @@
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
 #include "nsAccessibilityUtils.h"
+#include "nsARIAMap.h"
 #include "nsCURILoader.h"
 #include "nsDocAccessible.h"
 #include "nsHTMLImageAccessibleWrap.h"
@@ -1175,7 +1176,8 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessibleInWeakShell(nsIDOMNode *aNode
 }
 
 nsresult nsAccessibilityService::InitAccessible(nsIAccessible *aAccessibleIn,
-                                                nsIAccessible **aAccessibleOut)
+                                                nsIAccessible **aAccessibleOut,
+                                                nsRoleMapEntry *aRoleMapEntry)
 {
   if (!aAccessibleIn) {
     return NS_ERROR_FAILURE; 
@@ -1186,6 +1188,9 @@ nsresult nsAccessibilityService::InitAccessible(nsIAccessible *aAccessibleIn,
   NS_ASSERTION(privateAccessNode, "All accessibles must support nsPIAccessNode");
   nsresult rv = privateAccessNode->Init(); 
   if (NS_SUCCEEDED(rv)) {
+    nsCOMPtr<nsPIAccessible> privateAccessible =
+      do_QueryInterface(privateAccessNode);
+    privateAccessible->SetRoleMapEntry(aRoleMapEntry);
     NS_ADDREF(*aAccessibleOut = aAccessibleIn);
   }
   return rv;
@@ -1350,11 +1355,12 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
       return NS_OK;
     }
     frame->GetAccessible(getter_AddRefs(newAcc));
-    return InitAccessible(newAcc, aAccessible);
+    return InitAccessible(newAcc, aAccessible, nsnull);
   }
 
-  nsAutoString role;
-  if (nsAccessNode::GetARIARole(content, role) && role.EqualsLiteral("presentation") && !content->IsFocusable()) {
+  nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(aNode);
+  if (roleMapEntry && !nsCRT::strcmp(roleMapEntry->roleString, "presentation") &&
+      !content->IsFocusable()) { 
     
     
     
@@ -1449,7 +1455,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
   if (!newAcc && content->Tag() != nsAccessibilityAtoms::body && content->GetParent() && 
       (content->IsFocusable() ||
       (isHTML && nsAccUtils::HasListener(content, NS_LITERAL_STRING("click"))) ||
-       HasUniversalAriaProperty(content, aWeakShell) || !role.IsEmpty())) {
+       HasUniversalAriaProperty(content, aWeakShell) || roleMapEntry)) {
     
     
     
@@ -1463,7 +1469,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     }
   }
 
-  return InitAccessible(newAcc, aAccessible);
+  return InitAccessible(newAcc, aAccessible, roleMapEntry);
 }
 
 PRBool

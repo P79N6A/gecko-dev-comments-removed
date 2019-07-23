@@ -51,6 +51,7 @@ class nsObjectFrame;
 class nsIDocShell;
 class nsIPresShell;
 class nsIContent;
+struct nsRoleMapEntry;
 
 class nsAccessibilityService : public nsIAccessibilityService,
                                public nsIObserver,
@@ -100,7 +101,12 @@ private:
 
 
 
-  nsresult InitAccessible(nsIAccessible *aAccessibleIn, nsIAccessible **aAccessibleOut);
+
+
+
+
+  nsresult InitAccessible(nsIAccessible *aAccessibleIn, nsIAccessible **aAccessibleOut,
+                          nsRoleMapEntry *aRoleMapEntry = nsnull);
 
   
 
