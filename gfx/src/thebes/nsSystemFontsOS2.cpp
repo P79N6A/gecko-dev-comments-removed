@@ -195,15 +195,11 @@ nsresult nsSystemFontsOS2::GetSystemFont(nsSystemFontID aID, nsString* aFontName
 
     
     
-    gfxFloat vertScreenRes = 120; 
     HPS ps = WinGetScreenPS(HWND_DESKTOP);
     HDC dc = GpiQueryDevice(ps);
-    LONG lStart = CAPS_FAMILY, lCount = CAPS_CHAR_WIDTH;
-    LONG alArray[CAPS_CHAR_WIDTH];
-    if (DevQueryCaps(dc, lStart, lCount, alArray)) {
-        
-        vertScreenRes = alArray[CAPS_VERTICAL_RESOLUTION] * 0.0254;
-    }
+    
+    LONG vertScreenRes = 120; 
+    DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &vertScreenRes);
     WinReleasePS(ps);
 
     
