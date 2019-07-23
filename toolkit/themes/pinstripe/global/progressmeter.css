@@ -36,13 +36,7 @@
 
 
 
-
-
-
-
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
-
-
 
 progressmeter {
   -moz-appearance: progressbar;
@@ -55,8 +49,6 @@ progressmeter {
   background-image: none !important;
   -moz-appearance: none;
 }
-
-
 
 .progressmeter-statusbar {
   margin: 0;

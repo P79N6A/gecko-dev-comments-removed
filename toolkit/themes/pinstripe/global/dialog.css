@@ -36,13 +36,7 @@
 
 
 
-
-
-
-
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
-
-
 
 #commonDialog > image {
   -moz-margin-end: 14px !important;
