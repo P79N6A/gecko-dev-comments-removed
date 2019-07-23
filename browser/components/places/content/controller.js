@@ -43,10 +43,10 @@ const NHRVO = Ci.nsINavHistoryResultViewObserver;
 
 
 
-const ORGANIZER_ROOT_HISTORY_UNSORTED = "place:&beginTime=-2592000000000&beginTimeRef=1&endTime=7200000000&endTimeRef=2&type=1"
+const ORGANIZER_ROOT_HISTORY_UNSORTED = "place:beginTime=-2592000000000&beginTimeRef=1&endTime=7200000000&endTimeRef=2&type=1"
 const ORGANIZER_ROOT_HISTORY = ORGANIZER_ROOT_HISTORY_UNSORTED + "&sort=" + Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING;
-const ORGANIZER_ROOT_BOOKMARKS = "place:&folder=2&group=3&excludeItems=1";
-const ORGANIZER_SUBSCRIPTIONS_QUERY = "place:&annotation=livemark%2FfeedURI";
+const ORGANIZER_ROOT_BOOKMARKS = "place:folder=2&group=3&excludeItems=1";
+const ORGANIZER_SUBSCRIPTIONS_QUERY = "place:annotation=livemark%2FfeedURI";
 
 
 const RELOAD_ACTION_NOTHING = 0;
