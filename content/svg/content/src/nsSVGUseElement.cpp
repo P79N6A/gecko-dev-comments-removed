@@ -277,11 +277,11 @@ nsSVGUseElement::CreateAnonymousContent()
   if (!targetContent)
     return nsnull;
 
+  PRBool needAddObserver = PR_FALSE;
   if (mSourceContent != targetContent) {
     RemoveListener();
-    targetContent->AddMutationObserver(this);
+    needAddObserver = PR_TRUE;
   }
-  mSourceContent = targetContent;
 
   
   
@@ -402,6 +402,10 @@ nsSVGUseElement::CreateAnonymousContent()
     }
   }
 
+  if (needAddObserver) {
+    targetContent->AddMutationObserver(this);
+  }
+  mSourceContent = targetContent;
   mClone = newcontent;
   return mClone;
 }
