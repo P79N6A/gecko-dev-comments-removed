@@ -910,7 +910,8 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mPreviousSiblingData(nsnull),
     mParentData(nsnull),
     mLanguage(nsnull),
-    mGotContentState(PR_FALSE)
+    mGotContentState(PR_FALSE),
+    mGotLinkInfo(PR_FALSE)
 {
   MOZ_COUNT_CTOR(RuleProcessorData);
 
@@ -957,6 +958,9 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
   
   mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
   mIsHTML = mIsHTMLContent && aContent->IsInHTMLDocument();
+
+  
+  
 
   
   
@@ -1034,13 +1038,6 @@ RuleProcessorData::ContentState()
     } else {
       mContentState = mContent->IntrinsicState();
     }
-
-    
-    
-    if (!gSupportVisitedPseudo && (mContentState & NS_EVENT_STATE_VISITED)) {
-      mContentState = (mContentState & ~PRUint32(NS_EVENT_STATE_VISITED)) |
-                      NS_EVENT_STATE_UNVISITED;
-    }
   }
   return mContentState;
 }
@@ -1048,8 +1045,37 @@ RuleProcessorData::ContentState()
 PRBool
 RuleProcessorData::IsLink()
 {
-  PRUint32 state = ContentState();
-  return (state & (NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED)) != 0;
+  if (!mGotLinkInfo) {
+    mGotLinkInfo = PR_TRUE;
+    mLinkState = eLinkState_Unknown;
+    mIsLink = PR_FALSE;
+    
+    
+    
+    nsILinkHandler* linkHandler =
+      mPresContext ? mPresContext->GetLinkHandler() : nsnull;
+    if (mIsHTMLContent && mHasAttributes) {
+      
+      if (nsStyleUtil::IsHTMLLink(mContent, linkHandler, &mLinkState)) {
+        mIsLink = PR_TRUE;
+      }
+    }
+
+    
+    
+    
+    if(!mIsLink &&
+       mHasAttributes && 
+       !(mIsHTMLContent || mContent->IsXUL()) && 
+       nsStyleUtil::IsLink(mContent, linkHandler, &mLinkState)) {
+      mIsLink = PR_TRUE;
+    }
+
+    if (mLinkState == eLinkState_Visited && !gSupportVisitedPseudo) {
+      mLinkState = eLinkState_Unvisited;
+    }
+  }
+  return mIsLink;
 }
 
 PRInt32
@@ -1612,6 +1638,31 @@ langMatches(RuleProcessorData& data, PRBool setNodeFlags,
 }
 
 static PRBool NS_FASTCALL
+mozAnyLinkMatches(RuleProcessorData& data, PRBool setNodeFlags,
+                  nsPseudoClassList* pseudoClass)
+{
+  NS_PRECONDITION(pseudoClass->mAtom == nsCSSPseudoClasses::mozAnyLink,
+                  "Unexpected atom");
+  return data.IsLink();
+}
+
+static PRBool NS_FASTCALL
+linkMatches(RuleProcessorData& data, PRBool setNodeFlags,
+            nsPseudoClassList* pseudoClass)
+{
+  NS_NOTREACHED("Shouldn't be called");
+  return PR_FALSE;
+}
+
+static PRBool NS_FASTCALL
+visitedMatches(RuleProcessorData& data, PRBool setNodeFlags,
+               nsPseudoClassList* pseudoClass)
+{
+  NS_NOTREACHED("Shouldn't be called");
+  return PR_FALSE;
+}
+
+static PRBool NS_FASTCALL
 mozIsHTMLMatches(RuleProcessorData& data, PRBool setNodeFlags,
                  nsPseudoClassList* pseudoClass)
 {
@@ -1690,7 +1741,7 @@ typedef PRBool
 
 struct PseudoClassInfo {
   PseudoClassMatcher mFunc;
-  PRInt32 mBits;
+  PRInt32 mBit;
 };
 
 static const PseudoClassInfo sPseudoClassInfo[] = {
@@ -1814,15 +1865,33 @@ static PRBool SelectorMatches(RuleProcessorData &data,
   
   for (nsPseudoClassList* pseudoClass = aSelector->mPseudoClassList;
        pseudoClass; pseudoClass = pseudoClass->mNext) {
+    
+    
+    if (pseudoClass->mAtom == nsCSSPseudoClasses::link ||
+        pseudoClass->mAtom == nsCSSPseudoClasses::visited) {
+      if (!data.IsLink()) {
+        return PR_FALSE;
+      }
+
+      if (aStateMask & NS_EVENT_STATE_VISITED) {
+        if (aDependence)
+          *aDependence = PR_TRUE;
+      } else if ((eLinkState_Visited == data.LinkState()) ==
+                 (nsCSSPseudoClasses::link == pseudoClass->mAtom)) {
+        
+        return PR_FALSE;
+      }
+      continue;
+    }
     const PseudoClassInfo& info = sPseudoClassInfo[pseudoClass->mType];
     if (info.mFunc) {
       if (!(*info.mFunc)(data, setNodeFlags, pseudoClass)) {
         return PR_FALSE;
       }
     } else {
-      PRInt32 statesToCheck = info.mBits;
-      NS_ABORT_IF_FALSE(statesToCheck != 0, "How did that happen?");
-      if ((statesToCheck & (NS_EVENT_STATE_HOVER | NS_EVENT_STATE_ACTIVE)) &&
+      PRInt32 stateToCheck = info.mBit;
+      NS_ABORT_IF_FALSE(stateToCheck != 0, "How did that happen?");
+      if ((stateToCheck & (NS_EVENT_STATE_HOVER | NS_EVENT_STATE_ACTIVE)) &&
           data.mCompatMode == eCompatibility_NavQuirks &&
           
           !aSelector->HasTagSelector() && !aSelector->mIDList && 
@@ -1839,11 +1908,11 @@ static PRBool SelectorMatches(RuleProcessorData &data,
         
         return PR_FALSE;
       } else {
-        if (aStateMask & statesToCheck) {
+        if (aStateMask & stateToCheck) {
           if (aDependence)
             *aDependence = PR_TRUE;
         } else {
-          if (!(data.ContentState() & statesToCheck)) {
+          if (!(data.ContentState() & stateToCheck)) {
             return PR_FALSE;
           }
         }
@@ -2256,6 +2325,28 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
   
   if (aData->mAttrHasChanged) {
     
+    
+    
+    if (aData->mAttribute == nsGkAtoms::href &&
+        aData->mIsHTMLContent &&
+        (aData->mContentTag == nsGkAtoms::a ||
+         aData->mContentTag == nsGkAtoms::area ||
+         aData->mContentTag == nsGkAtoms::link)) {
+      data.change = nsReStyleHint(data.change | eReStyle_Self);
+    }
+    
+#ifdef MOZ_SVG
+    
+    if (aData->mAttribute == nsGkAtoms::href &&
+        aData->mNameSpaceID == kNameSpaceID_SVG &&
+        aData->mContentTag == nsGkAtoms::a) {
+      data.change = nsReStyleHint(data.change | eReStyle_Self);
+    }
+#endif
+    
+    
+
+    
     if ((aData->mAttribute == nsGkAtoms::localedir ||
          aData->mAttribute == nsGkAtoms::lwtheme ||
          aData->mAttribute == nsGkAtoms::lwthemetextcolor) &&
@@ -2371,7 +2462,11 @@ PRBool IsStateSelector(nsCSSSelector& aSelector)
     if (pseudoClass->mType >= nsCSSPseudoClasses::ePseudoClass_Count) {
       continue;
     }
-    if (sPseudoClassInfo[pseudoClass->mType].mBits) {
+    
+    
+    if (sPseudoClassInfo[pseudoClass->mType].mBit ||
+        pseudoClass->mAtom == nsCSSPseudoClasses::link ||
+        pseudoClass->mAtom == nsCSSPseudoClasses::visited) {
       return PR_TRUE;
     }
   }

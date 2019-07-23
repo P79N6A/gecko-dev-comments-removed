@@ -55,7 +55,6 @@
 
 
 
-
 #ifdef DEFINED_CSS_STATE_PSEUDO_CLASS
 #error "This shouldn't be defined"
 #endif
@@ -74,11 +73,9 @@ CSS_PSEUDO_CLASS(notPseudo, ":not")
 CSS_PSEUDO_CLASS(mozBoundElement, ":-moz-bound-element")
 CSS_PSEUDO_CLASS(root, ":root")
 
-CSS_STATE_PSEUDO_CLASS(link, ":link", NS_EVENT_STATE_UNVISITED)
-
-CSS_STATE_PSEUDO_CLASS(mozAnyLink, ":-moz-any-link",
-                       NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED)
-CSS_STATE_PSEUDO_CLASS(visited, ":visited", NS_EVENT_STATE_VISITED)
+CSS_PSEUDO_CLASS(link, ":link")
+CSS_PSEUDO_CLASS(mozAnyLink, ":-moz-any-link") 
+CSS_PSEUDO_CLASS(visited, ":visited")
 
 CSS_STATE_PSEUDO_CLASS(active, ":active", NS_EVENT_STATE_ACTIVE)
 CSS_STATE_PSEUDO_CLASS(checked, ":checked", NS_EVENT_STATE_CHECKED)
