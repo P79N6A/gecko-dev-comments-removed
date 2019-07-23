@@ -348,7 +348,6 @@ struct InterpState
 {
     double        *sp;                  
     void          *rp;                  
-    double        *global;              
     JSContext     *cx;                  
     double        *eos;                 
     void          *eor;                 
@@ -402,7 +401,6 @@ class TraceRecorder : public avmplus::GCObject {
     nanojit::LirWriter*     float_filter;
 #endif
     nanojit::LIns*          cx_ins;
-    nanojit::LIns*          gp_ins;
     nanojit::LIns*          eos_ins;
     nanojit::LIns*          eor_ins;
     nanojit::LIns*          globalObj_ins;
