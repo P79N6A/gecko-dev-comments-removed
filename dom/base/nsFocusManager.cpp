@@ -1306,17 +1306,21 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
 
     
     
-    nsIFrame* contentFrame = presShell->GetPrimaryFrameFor(content);
-    nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
-    if (objectFrame) {
-      
-      
-      nsIViewManager* vm = presShell->GetViewManager();
-      if (vm) {
-        nsCOMPtr<nsIWidget> widget;
-        vm->GetWidget(getter_AddRefs(widget));
-        if (widget)
-          widget->SetFocus(PR_TRUE);
+    
+    
+    if (mActiveWindow) {
+      nsIFrame* contentFrame = presShell->GetPrimaryFrameFor(content);
+      nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
+      if (objectFrame) {
+        
+        
+        nsIViewManager* vm = presShell->GetViewManager();
+        if (vm) {
+          nsCOMPtr<nsIWidget> widget;
+          vm->GetWidget(getter_AddRefs(widget));
+          if (widget)
+            widget->SetFocus(PR_TRUE);
+        }
       }
     }
   }
