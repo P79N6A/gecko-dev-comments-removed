@@ -1605,6 +1605,27 @@ function testArrayNaNIndex()
 testArrayNaNIndex.expected = "ok";
 test(testArrayNaNIndex);
 
+function innerTestInnerMissingArgs(a,b,c,d)
+{
+        if (a) {
+        } else {
+        }
+}
+function doTestInnerMissingArgs(k)
+{
+    for (i = 0; i < 10; i++) {
+        innerTestInnerMissingArgs(k);
+    }
+}
+function testInnerMissingArgs()
+{
+    doTestInnerMissingArgs(1);
+    doTestInnerMissingArgs(0);
+    return 1;
+}
+testInnerMissingArgs.expected = 1;  
+test(testInnerMissingArgs);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
