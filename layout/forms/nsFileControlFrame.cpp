@@ -612,7 +612,9 @@ NS_IMETHODIMP nsFileControlFrame::GetAccessible(nsIAccessible** aAccessible)
 
 
 
-NS_IMPL_ISUPPORTS1(nsFileControlFrame::MouseListener, nsIDOMMouseListener)
+NS_IMPL_ISUPPORTS2(nsFileControlFrame::MouseListener,
+                   nsIDOMMouseListener,
+                   nsIDOMEventListener)
 
 NS_IMETHODIMP
 nsFileControlFrame::MouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
