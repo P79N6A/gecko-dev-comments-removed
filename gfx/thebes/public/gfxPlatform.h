@@ -49,32 +49,6 @@
 #undef OS2EMX_PLAIN_CHAR
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
-#define GFX_SSE2_POSSIBLE
-#define GFX_SSE2_AVAILABLE __sse2_available
-#define GFX_SSE2_ALIGN __declspec(align(16))
-extern "C" int __sse2_available;
-#endif
-
-#if defined(__GNUC__) && defined(__i386__) && defined(XP_MACOSX)
-#define GFX_SSE2_POSSIBLE
-#define GFX_SSE2_AVAILABLE 1
-#define GFX_SSE2_ALIGN __attribute__ ((aligned (16)))
-#endif
-
 typedef void* cmsHPROFILE;
 typedef void* cmsHTRANSFORM;
 

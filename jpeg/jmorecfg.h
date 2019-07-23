@@ -107,29 +107,21 @@ typedef short JCOEF;
 
 
 
-
-
-
-
 #if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
-#define HAVE_MMX_INTEL_MNEMONICS
+#define HAVE_MMX_INTEL_MNEMONICS 
+
+
 #define HAVE_SSE2_INTEL_MNEMONICS
+#define HAVE_SSE2_INTRINSICS
 #endif
 
-#if defined(__GNUC__) && defined(__i386__) && defined(XP_MACOSX)
+#if defined(__GNUC__) && defined(__i386__)
+#if defined(XP_MACOSX)
 #define HAVE_SSE2_INTRINSICS
+#endif 
 #endif 
 
 
-
-
-
-
-#ifdef HAVE_SSE2_INTRINSICS
-#define SSE2_ALIGN __attribute__ ((aligned (16)))
-#else
-#define SSE2_ALIGN
-#endif
 
 
 
@@ -328,7 +320,7 @@ typedef unsigned char boolean;
 
 
 #define DCT_ISLOW_SUPPORTED
-#define DCT_IFAST_SUPPORTED
+#undef  DCT_IFAST_SUPPORTED	/* faster, less accurate integer method */
 #undef  DCT_FLOAT_SUPPORTED	/* floating-point: accurate, fast on fast HW */
 
 

@@ -67,9 +67,13 @@ int MMXAvailable;
 static int mmxsupport();
 #endif
 
-#ifdef HAVE_SSE2_INTEL_MNEMONICS
+#ifdef HAVE_SSE2_INTRINSICS
 int SSE2Available = 0;
+#ifdef HAVE_SSE2_INTEL_MNEMONICS
 static int sse2support();
+#else
+static int sse2supportGCC();
+#endif 
 #endif 
 
 
@@ -88,17 +92,27 @@ jpeg_CreateDecompress (j_decompress_ptr cinfo, int version, size_t structsize)
 
   if(!cpuidDetected)
   {
-        MMXAvailable = mmxsupport();
+	MMXAvailable = mmxsupport();
 
 #ifdef HAVE_SSE2_INTEL_MNEMONICS
 	
 
 	if (MMXAvailable)
 	    SSE2Available = sse2support();
-#endif 
+#endif
 
 	cpuidDetected = 1;
   }
+#else
+#ifdef HAVE_SSE2_INTRINSICS
+  static int cpuidDetected = 0;
+
+  if(!cpuidDetected) {
+    SSE2Available = sse2supportGCC();
+    cpuidDetected = 1;
+  }
+
+#endif 
 #endif 
 
   
@@ -479,7 +493,7 @@ static int mmxsupport()
   else
     return 0;
 }
-#endif 
+#endif
 
 #ifdef HAVE_SSE2_INTEL_MNEMONICS
 static int sse2support()
@@ -492,5 +506,25 @@ static int sse2support()
   else
     return 2;
 }
+#else
+#ifdef HAVE_SSE2_INTRINSICS
+static int sse2supportGCC()
+{
+
+  
+
+#if defined(__GNUC__) && defined(__i386__)
+#if defined(XP_MACOSX)
+  return 1;
+#endif 
+#endif 
+
+  
+
+  
+
+  return 2;
+}
+#endif 
 #endif 
 

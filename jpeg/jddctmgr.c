@@ -19,7 +19,7 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jdct.h"		
-#ifdef HAVE_SSE2_INTEL_MNEMONICS
+#ifdef HAVE_SSE2_INTRINSICS
 extern int SSE2Available;
 #endif
 
@@ -80,7 +80,6 @@ typedef union {
 #endif
 #endif
 
-#ifdef HAVE_SSE2_INTEL_MNEMONICS
 GLOBAL(void)
 jpeg_idct_islow_sse2 (
 	j_decompress_ptr cinfo, 
@@ -88,16 +87,7 @@ jpeg_idct_islow_sse2 (
 	JCOEFPTR coef_block,
 	JSAMPARRAY output_buf, 
 	JDIMENSION output_col);
-#endif 
 
-#ifdef HAVE_SSE2_INTRINSICS
-jpeg_idct_ifast_sse2 (
-        j_decompress_ptr cinfo, 
-        jpeg_component_info * compptr,
-        JCOEFPTR coef_block,
-        JSAMPARRAY output_buf, 
-        JDIMENSION output_col);
-#endif 
 
 
 
@@ -157,12 +147,20 @@ start_pass (j_decompress_ptr cinfo)
 #endif
 #ifdef DCT_IFAST_SUPPORTED
       case JDCT_IFAST:
-#ifdef HAVE_SSE2_INTRINSICS
-        method_ptr = jpeg_idct_ifast_sse2;
-        method = JDCT_IFAST;
+#ifdef HAVE_SSE2_INTEL_MNEMONICS
+		if (SSE2Available==1) 
+		{
+			method_ptr = jpeg_idct_islow_sse2;
+			method = JDCT_ISLOW;
+		}
+		else
+		{
+			method_ptr = jpeg_idct_ifast;
+			method = JDCT_IFAST;
+		}
 #else
-        method_ptr = jpeg_idct_ifast;
-        method = JDCT_IFAST;
+		method_ptr = jpeg_idct_ifast;
+		method = JDCT_IFAST;
 #endif 
 	break;
 
@@ -299,21 +297,9 @@ jinit_inverse_dct (j_decompress_ptr cinfo)
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
     
-#ifdef HAVE_SSE2_INTRINSICS
-
-    
-
-    PRUptrdiff buffer_pointer;
-
-    buffer_pointer = (PRUptrdiff)
-      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-                                  SIZEOF(multiplier_table) + 15);
-    compptr->dct_table = (void *) ((buffer_pointer + 15) & ~15);
-#else
     compptr->dct_table =
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
 				  SIZEOF(multiplier_table));
-#endif 
     MEMZERO(compptr->dct_table, SIZEOF(multiplier_table));
     
     idct->cur_method[ci] = -1;
