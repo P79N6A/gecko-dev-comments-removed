@@ -57,8 +57,9 @@ public:
 
   
   
-  static char *
-  default_nickname(CERTCertificate *cert, nsIInterfaceRequestor* ctx);
+  static void
+  get_default_nickname(CERTCertificate *cert, nsIInterfaceRequestor* ctx,
+                       nsCString &nickname);
 
   static nsresult 
   ImportValidCACerts(int numCACerts, SECItem *CACerts, nsIInterfaceRequestor *ctx);

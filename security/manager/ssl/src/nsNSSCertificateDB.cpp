@@ -83,6 +83,7 @@ extern PRLogModuleInfo* gPIPNSSLog;
 NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
 NSSCleanupAutoPtrClass(CERTCertList, CERT_DestroyCertList)
 NSSCleanupAutoPtrClass(CERTCertificateList, CERT_DestroyCertificateList)
+NSSCleanupAutoPtrClass(PK11SlotInfo, PK11_FreeSlot)
 
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
@@ -885,7 +886,7 @@ nsNSSCertificateDB::ImportUserCertificate(PRUint8 *data, PRUint32 length, nsIInt
 {
   nsNSSShutDownPreventionLock locker;
   PK11SlotInfo *slot;
-  char * nickname = NULL;
+  nsCAutoString nickname;
   nsresult rv = NS_ERROR_FAILURE;
   int numCACerts;
   SECItem *CACerts;
@@ -925,11 +926,14 @@ nsNSSCertificateDB::ImportUserCertificate(PRUint8 *data, PRUint32 length, nsIInt
   	nickname = cert->nickname;
   }
   else {
-    nickname = default_nickname(cert, ctx);
+    get_default_nickname(cert, ctx, nickname);
   }
 
   
-  slot = PK11_ImportCertForKey(cert, nickname, ctx);
+  {
+    char *cast_const_away = const_cast<char*>(nickname.get());
+    slot = PK11_ImportCertForKey(cert, cast_const_away, ctx);
+  }
   if (!slot) {
     goto loser;
   }
@@ -1541,86 +1545,101 @@ nsNSSCertificateDB::ConstructX509FromBase64(const char * base64, nsIX509Cert **_
   return rv;
 }
 
+void
+nsNSSCertificateDB::get_default_nickname(CERTCertificate *cert, 
+                                         nsIInterfaceRequestor* ctx,
+                                         nsCString &nickname)
+{
+  nickname.Truncate();
 
-
-char *
-nsNSSCertificateDB::default_nickname(CERTCertificate *cert, nsIInterfaceRequestor* ctx)
-{   
   nsNSSShutDownPreventionLock locker;
   nsresult rv;
-  char *username = NULL;
-  char *caname = NULL;
-  char *nickname = NULL;
-  char *tmp = NULL;
-  int count;
-  char *nickFmt=NULL, *nickFmtWithNum = NULL;
-  CERTCertificate *dummycert;
-  PK11SlotInfo *slot=NULL;
   CK_OBJECT_HANDLE keyHandle;
-  nsAutoString tmpNickFmt;
-  nsAutoString tmpNickFmtWithNum;
 
   CERTCertDBHandle *defaultcertdb = CERT_GetDefaultCertDB();
   nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
-  if (NS_FAILED(rv)) goto loser; 
+  if (NS_FAILED(rv))
+    return;
 
-  username = CERT_GetCommonName(&cert->subject);
-  if ( username == NULL ) 
-    username = PL_strdup("");
+  nsCAutoString username;
+  char *temp_un = CERT_GetCommonName(&cert->subject);
+  if (temp_un) {
+    username = temp_un;
+    PORT_Free(temp_un);
+    temp_un = nsnull;
+  }
 
-  if ( username == NULL ) 
-    goto loser;
-    
-  caname = CERT_GetOrgName(&cert->issuer);
-  if ( caname == NULL ) 
-    caname = PL_strdup("");
-  
-  if ( caname == NULL ) 
-    goto loser;
-  
-  count = 1;
+  nsCAutoString caname;
+  char *temp_ca = CERT_GetOrgName(&cert->issuer);
+  if (temp_ca) {
+    caname = temp_ca;
+    PORT_Free(temp_ca);
+    temp_ca = nsnull;
+  }
+
+  nsAutoString tmpNickFmt;
   nssComponent->GetPIPNSSBundleString("nick_template", tmpNickFmt);
-  nickFmt = ToNewUTF8String(tmpNickFmt);
+  NS_ConvertUTF16toUTF8 nickFmt(tmpNickFmt);
 
-  nssComponent->GetPIPNSSBundleString("nick_template_with_num", tmpNickFmtWithNum);
-  nickFmtWithNum = ToNewUTF8String(tmpNickFmtWithNum);
+  nsCAutoString baseName;
+  char *temp_nn = PR_smprintf(nickFmt.get(), username.get(), caname.get());
+  if (!temp_nn) {
+    return;
+  } else {
+    baseName = temp_nn;
+    PR_smprintf_free(temp_nn);
+    temp_nn = nsnull;
+  }
 
+  nickname = baseName;
 
-  nickname = PR_smprintf(nickFmt, username, caname);
   
 
 
 
 
-  slot = PK11_KeyForCertExists(cert, &keyHandle, ctx);
-  if (slot == NULL) {
-    goto loser;
-  }
+  PK11SlotInfo *slot = PK11_KeyForCertExists(cert, &keyHandle, ctx);
+  PK11SlotInfoCleaner slotCleaner(slot);
+  if (!slot)
+    return;
+
   if (!PK11_IsInternal(slot)) {
-    tmp = PR_smprintf("%s:%s", PK11_GetTokenName(slot), nickname);
-    PR_Free(nickname);
-    nickname = tmp;
-    tmp = NULL;
-  }
-  tmp = nickname;
-  while ( 1 ) {	
-    if ( count > 1 ) {
-      nickname = PR_smprintf("%s #%d", tmp, count);
+    char *tmp = PR_smprintf("%s:%s", PK11_GetTokenName(slot), baseName.get());
+    if (!tmp) {
+      nickname.Truncate();
+      return;
     }
-  
-    if ( nickname == NULL ) 
-      goto loser;
- 
+    baseName = tmp;
+    PR_smprintf_free(tmp);
+
+    nickname = baseName;
+  }
+
+  int count = 1;
+  while (true) {
+    if ( count > 1 ) {
+      char *tmp = PR_smprintf("%s #%d", baseName.get(), count);
+      if (!tmp) {
+        nickname.Truncate();
+        return;
+      }
+      nickname = tmp;
+      PR_smprintf_free(tmp);
+    }
+
+    CERTCertificate *dummycert = nsnull;
+    CERTCertificateCleaner dummycertCleaner(dummycert);
+
     if (PK11_IsInternal(slot)) {
       
-      dummycert = CERT_FindCertByNickname(defaultcertdb, nickname);
-      
+      dummycert = CERT_FindCertByNickname(defaultcertdb, nickname.get());
+
     } else {
       
 
 
 
-      dummycert = PK11_FindCertFromNickname(nickname, ctx);
+      dummycert = PK11_FindCertFromNickname(nickname.get(), ctx);
       if (dummycert != NULL) {
 	
 
@@ -1637,45 +1656,11 @@ nsNSSCertificateDB::default_nickname(CERTCertificate *cert, nsIInterfaceRequesto
 	}
       }
     }
-    if ( dummycert == NULL ) 
-      goto done;
+    if (!dummycert) 
+      break;
     
-    
-    CERT_DestroyCertificate(dummycert);
-    if (tmp != nickname) PR_Free(nickname);
     count++;
-  } 
-    
-loser:
-  if ( nickname ) {
-    PR_Free(nickname);
   }
-  nickname = NULL;
-done:
-  if ( caname ) {
-    PR_Free(caname);
-  }
-  if ( username )  {
-    PR_Free(username);
-  }
-  if (slot != NULL) {
-      PK11_FreeSlot(slot);
-      if (nickname != NULL) {
-	      tmp = nickname;
-	      nickname = strchr(tmp, ':');
-	      if (nickname != NULL) {
-	        nickname++;
-	        nickname = PL_strdup(nickname);
-	        PR_Free(tmp);
-             tmp = nsnull;
-	      } else {
-	        nickname = tmp;
-	        tmp = NULL;
-	      }
-      }
-    }
-    PR_FREEIF(tmp);
-    return(nickname);
 }
 
 NS_IMETHODIMP nsNSSCertificateDB::AddCertFromBase64(const char *aBase64, const char *aTrust, const char *aName)
