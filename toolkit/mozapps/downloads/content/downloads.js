@@ -47,8 +47,6 @@
 
 const PREF_BDM_CLOSEWHENDONE = "browser.download.manager.closeWhenDone";
 const PREF_BDM_ALERTONEXEOPEN = "browser.download.manager.alertOnEXEOpen";
-const PREF_BDM_DISPLAYEDHISTORYDAYS =
-  "browser.download.manager.displayedHistoryDays";
 
 const nsLocalFile = Components.Constructor("@mozilla.org/file/local;1",
                                            "nsILocalFile", "initWithPath");
@@ -59,13 +57,18 @@ var Ci = Components.interfaces;
 const nsIDM = Ci.nsIDownloadManager;
 
 let gDownloadManager = Cc["@mozilla.org/download-manager;1"].getService(nsIDM);
-var gDownloadListener     = null;
-var gDownloadsView        = null;
-var gDownloadsActiveArea  = null;
-var gDownloadsDoneArea    = null;
-var gDownloadInfoPopup    = null;
-var gUserInterfered       = false;
-var gSearching            = false;
+let gDownloadListener = null;
+let gDownloadsView = null;
+let gSearchBox = null;
+let gDownloadInfoPopup = null;
+let gSearchTerms = "";
+let gBuilder = 0;
+
+
+
+
+const gListBuildDelay = 100;
+const gListBuildChunk = 10;
 
 
 
@@ -102,11 +105,12 @@ let gStr = {
 };
 
 
-let gBaseQuery = "SELECT id, target, name, source, state, startTime, " +
-                        "endTime, referrer, currBytes, maxBytes " +
-                 "FROM moz_downloads " +
-                 "WHERE #1 " +
-                 "ORDER BY endTime ASC, startTime ASC";
+let gStmt = gDownloadManager.DBConnection.createStatement(
+  "SELECT id, target, name, source, state, startTime, endTime, referrer, " +
+         "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive " +
+  "FROM moz_downloads " +
+  "WHERE isActive OR name LIKE ?6 ESCAPE '/' " +
+  "ORDER BY isActive DESC, endTime DESC, startTime DESC");
 
 
 
@@ -117,43 +121,6 @@ function fireEventForElement(aElement, aEventType)
   e.initEvent("download-" + aEventType, true, true);
 
   aElement.dispatchEvent(e);
-}
-
-function createDownloadItem(aID, aFile, aTarget, aURI, aState, aProgress,
-                            aStartTime, aEndTime, aReferrer, aCurrBytes,
-                            aMaxBytes)
-{
-  var dl = document.createElement("richlistitem");
-  dl.setAttribute("type", "download");
-  dl.setAttribute("id", "dl" + aID);
-  dl.setAttribute("dlid", aID);
-  dl.setAttribute("image", "moz-icon://" + aFile + "?size=32");
-  dl.setAttribute("file", aFile);
-  dl.setAttribute("target", aTarget);
-  dl.setAttribute("uri", aURI);
-  dl.setAttribute("state", aState);
-  dl.setAttribute("progress", aProgress);
-  dl.setAttribute("startTime", aStartTime);
-  dl.setAttribute("endTime", aEndTime);
-  if (aReferrer)
-    dl.setAttribute("referrer", aReferrer);
-  dl.setAttribute("currBytes", aCurrBytes);
-  dl.setAttribute("maxBytes", aMaxBytes);
-  dl.setAttribute("lastSeconds", Infinity);
-
-  updateTime(dl);
-  updateStatus(dl);
-
-  try {
-    var file = getLocalFileFromNativePathOrUrl(aFile);
-    dl.setAttribute("path", file.nativePath || file.path);
-    return dl;
-  }
-  catch (ex) {
-    
-    
-  }
-  return null;
 }
 
 function getDownload(aID)
@@ -183,11 +150,19 @@ function downloadCompleted(aDownload)
 
     
     
-    if (!gSearching) {
-      gDownloadsView.insertBefore(dl, gDownloadsDoneArea.nextSibling);
-      evenOddCellAttribution();
-    } else
+    if (gSearchTerms.length == 0) {
+      
+      let next = dl.nextSibling;
+      while (next && next.inProgress)
+        next = next.nextSibling;
+
+      
+      let fixup = dl.nextSibling;
+      gDownloadsView.insertBefore(dl, next);
+      stripeifyList(fixup);
+    } else {
       removeFromView(dl);
+    }
 
     
     try {
@@ -459,10 +434,9 @@ function onUpdateProgress()
 
 function Startup()
 {
-  gDownloadsView        = document.getElementById("downloadView");
-  gDownloadsActiveArea  = document.getElementById("active-downloads-area");
-  gDownloadsDoneArea    = document.getElementById("done-downloads-area");
-  gDownloadInfoPopup    = document.getElementById("information");
+  gDownloadsView = document.getElementById("downloadView");
+  gSearchBox = document.getElementById("searchbox");
+  gDownloadInfoPopup = document.getElementById("information");
 
   
   let (sb = document.getElementById("downloadStrings")) {
@@ -471,7 +445,7 @@ function Startup()
       gStr[name] = typeof value == "string" ? getStr(value) : value.map(getStr);
   }
 
-  buildDefaultView();
+  buildDownloadList();
 
   
   gDownloadsView.addEventListener("dblclick", onDownloadDblClick, false);
@@ -498,6 +472,10 @@ function Shutdown()
   let obs = Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService);
   obs.removeObserver(gDownloadObserver, "download-manager-remove-download");
+
+  clearTimeout(gBuilder);
+  gStmt.reset();
+  gStmt.finalize();
 }
 
 let gDownloadObserver = {
@@ -507,7 +485,7 @@ let gDownloadObserver = {
         
         if (!aSubject) {
           
-          buildDefaultView();
+          buildDownloadList();
           break;
         }
 
@@ -781,9 +759,8 @@ var gDownloadViewController = {
 
 function setSearchboxFocus()
 {
-  var searchbox = document.getElementById("searchbox");
-  searchbox.focus();
-  searchbox.select();
+  gSearchBox.focus();
+  gSearchBox.select();
 }
 
 function onDownloadShowInfo()
@@ -806,6 +783,45 @@ function openExternal(aFile)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+function createDownloadItem(aAttrs)
+{
+  let dl = document.createElement("richlistitem");
+
+  
+  for (let attr in aAttrs)
+    dl.setAttribute(attr, aAttrs[attr]);
+
+  
+  dl.setAttribute("type", "download");
+  dl.setAttribute("id", "dl" + aAttrs.dlid);
+  dl.setAttribute("image", "moz-icon://" + aAttrs.file + "?size=32");
+  dl.setAttribute("lastSeconds", Infinity);
+
+  
+  updateTime(dl);
+  updateStatus(dl);
+
+  try {
+    let file = getLocalFileFromNativePathOrUrl(aAttrs.file);
+    dl.setAttribute("path", file.nativePath || file.path);
+    return dl;
+  } catch (e) {
+    
+    
+  }
+  return null;
+}
 
 
 
@@ -1051,7 +1067,9 @@ function removeFromView(aDownload)
   let index = gDownloadsView.selectedIndex;
   gDownloadsView.removeChild(aDownload);
   gDownloadsView.selectedIndex = Math.min(index, gDownloadsView.itemCount - 1);
-  evenOddCellAttribution();
+
+  
+  stripeifyList(gDownloadsView.selectedItem);
 }
 
 function getReferrerOrSource(aDownload)
@@ -1067,38 +1085,42 @@ function getReferrerOrSource(aDownload)
 
 
 
-function buildDefaultView()
-{
-  buildActiveDownloadsList();
 
-  let pref = Cc["@mozilla.org/preferences-service;1"].
-             getService(Ci.nsIPrefBranch);
-  let days = pref.getIntPref(PREF_BDM_DISPLAYEDHISTORYDAYS);
-  buildDownloadListWithTime(Date.now() - days * 24 * 60 * 60 * 1000);
+function buildDownloadList()
+{
+  
+  clearTimeout(gBuilder);
+  gStmt.reset();
+  gSearchTerms = "";
 
   
-  var children = gDownloadsView.children;
-  if (children.length > 0)
-    gDownloadsView.selectedItem = children[0];
-}
-
- 
-
-
-
-function evenOddCellAttribution()
-{
-  let alternateCell = false;
-  let allDownloadsInView = gDownloadsView.getElementsByTagName("richlistitem");
-
-  for (let i = 0; i < allDownloadsInView.length; i++) {
-    if (alternateCell)
-      allDownloadsInView[i].setAttribute("alternate", "true");
-    else 
-      allDownloadsInView[i].removeAttribute("alternate");
-
-    alternateCell = !alternateCell;
+  let (empty = gDownloadsView.cloneNode(false)) {
+    gDownloadsView.parentNode.replaceChild(empty, gDownloadsView);
+    gDownloadsView = empty;
   }
+
+  
+  if (!gSearchBox.hasAttribute("empty"))
+    gSearchTerms = gSearchBox.value.replace(/^\s+|\s+$/, "");
+
+  let like = "%" + gStmt.escapeStringForLIKE(gSearchTerms, "/") + "%";
+
+  try {
+    gStmt.bindInt32Parameter(0, nsIDM.DOWNLOAD_NOTSTARTED);
+    gStmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_DOWNLOADING);
+    gStmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_PAUSED);
+    gStmt.bindInt32Parameter(3, nsIDM.DOWNLOAD_QUEUED);
+    gStmt.bindInt32Parameter(4, nsIDM.DOWNLOAD_SCANNING);
+    gStmt.bindStringParameter(5, like);
+  } catch (e) {
+    
+    gStmt.reset();
+    return;
+  }
+
+  
+  stepListBuilder(1);
+  gDownloadsView.selectedIndex = 0;
 }
 
 
@@ -1109,160 +1131,121 @@ function evenOddCellAttribution()
 
 
 
+function stepListBuilder(aNumItems) {
+  try {
+    
+    if (!gStmt.executeStep())
+      return;
 
+    
+    let attrs = {
+      dlid: gStmt.getInt64(0),
+      file: gStmt.getString(1),
+      target: gStmt.getString(2),
+      uri: gStmt.getString(3),
+      state: gStmt.getInt32(4),
+      startTime: Math.round(gStmt.getInt64(5) / 1000),
+      endTime: Math.round(gStmt.getInt64(6) / 1000),
+      currBytes: gStmt.getInt64(8),
+      maxBytes: gStmt.getInt64(9)
+    };
 
-
-
-
-
-function buildDownloadList(aStmt, aRef)
-{
-  while (aRef.nextSibling && aRef.nextSibling.tagName == "richlistitem")
-    gDownloadsView.removeChild(aRef.nextSibling);
-
-  while (aStmt.executeStep()) {
-    let id = aStmt.getInt64(0);
-    let state = aStmt.getInt32(4);
-    let percentComplete = 100;
-    if (state == nsIDM.DOWNLOAD_NOTSTARTED ||
-        state == nsIDM.DOWNLOAD_DOWNLOADING ||
-        state == nsIDM.DOWNLOAD_PAUSED) {
-      
-      
-      
-      let dl = gDownloadManager.getDownload(id);
-      percentComplete = dl.percentComplete;
+    
+    let (referrer = gStmt.getString(7)) {
+      if (referrer)
+        attrs.referrer = referrer;
     }
-    let dl = createDownloadItem(id,
-                                aStmt.getString(1),
-                                aStmt.getString(2),
-                                aStmt.getString(3),
-                                state,
-                                percentComplete,
-                                Math.round(aStmt.getInt64(5) / 1000),
-                                Math.round(aStmt.getInt64(6) / 1000),
-                                aStmt.getString(7),
-                                aStmt.getInt64(8),
-                                aStmt.getInt64(9));
-    if (dl)
-      gDownloadsView.insertBefore(dl, aRef.nextSibling);
-  }
-  evenOddCellAttribution();
-}
 
-var gActiveDownloadsQuery = null;
-function buildActiveDownloadsList()
-{
-  
-  if (gDownloadManager.activeDownloadCount == 0)
-    return;
+    
+    attrs.progress = gStmt.getInt32(10) ?
+      gDownloadManager.getDownload(attrs.dlid).percentComplete : 100;
 
-  
-  var db = gDownloadManager.DBConnection;
-  var stmt = gActiveDownloadsQuery;
-  if (!stmt) {
-    stmt = db.createStatement(replaceInsert(gBaseQuery, 1,
-      "state = ?1 OR state = ?2 OR state = ?3 OR state = ?4 OR state = ?5"));
-    gActiveDownloadsQuery = stmt;
-  }
-
-  try {
-    stmt.bindInt32Parameter(0, nsIDM.DOWNLOAD_NOTSTARTED);
-    stmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_DOWNLOADING);
-    stmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_PAUSED);
-    stmt.bindInt32Parameter(3, nsIDM.DOWNLOAD_QUEUED);
-    stmt.bindInt32Parameter(4, nsIDM.DOWNLOAD_SCANNING);
-    buildDownloadList(stmt, gDownloadsActiveArea);
-  } finally {
-    stmt.reset();
-  }
-}
-
-
-
-
-
-
-
-
-var gDownloadListWithTimeQuery = null;
-function buildDownloadListWithTime(aTime)
-{
-  var db = gDownloadManager.DBConnection;
-  var stmt = gDownloadListWithTimeQuery;
-  if (!stmt) {
-    stmt = db.createStatement(replaceInsert(gBaseQuery, 1, "startTime >= ?1 " +
-      "AND (state = ?2 OR state = ?3 OR state = ?4 OR state = ?5 OR state = ?6)"));
-    gDownloadListWithTimeQuery = stmt;
-  }
-
-  try {
-    stmt.bindInt64Parameter(0, aTime * 1000);
-    stmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_FINISHED);
-    stmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_FAILED);
-    stmt.bindInt32Parameter(3, nsIDM.DOWNLOAD_CANCELED);
-    stmt.bindInt32Parameter(4, nsIDM.DOWNLOAD_BLOCKED);
-    stmt.bindInt32Parameter(5, nsIDM.DOWNLOAD_DIRTY);
-    buildDownloadList(stmt, gDownloadsDoneArea);
-  } finally {
-    stmt.reset();
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-function buildDownloadListWithSearch(aTerms)
-{
-  gSearching = true;
-
-  
-  aTerms = aTerms.replace(/^\s+|\s+$/, "");
-  if (aTerms.length == 0) {
-    gSearching = false;
-    buildDefaultView();
+    
+    let item = createDownloadItem(attrs);
+    if (item) {
+      
+      gDownloadsView.appendChild(item);
+      stripeifyList(item);
+    }
+  } catch (e) {
+    
+    gStmt.reset();
     return;
   }
 
-  var db = gDownloadManager.DBConnection;
-  let stmt = db.createStatement(replaceInsert(gBaseQuery, 1,
-    "name LIKE ?1 ESCAPE '/' AND state != ?2 AND state != ?3"));
-
-  try {
-    var paramForLike = stmt.escapeStringForLIKE(aTerms, '/');
-    stmt.bindStringParameter(0, "%" + paramForLike + "%");
-    stmt.bindInt32Parameter(1, nsIDM.DOWNLOAD_DOWNLOADING);
-    stmt.bindInt32Parameter(2, nsIDM.DOWNLOAD_PAUSED);
-    buildDownloadList(stmt, gDownloadsDoneArea);
-  } finally {
-    stmt.reset();
+  
+  
+  if (aNumItems > 1) {
+    stepListBuilder(aNumItems - 1);
+  } else {
+    
+    let delay = Math.min(gDownloadsView.itemCount, gListBuildDelay);
+    gBuilder = setTimeout(stepListBuilder, delay, gListBuildChunk);
   }
 }
 
-function performSearch() {
-  buildDownloadListWithSearch(document.getElementById("searchbox").value);
+
+
+
+
+
+
+function prependList(aDownload)
+{
+  let attrs = {
+    dlid: aDownload.id,
+    file: aDownload.target.spec,
+    target: aDownload.displayName,
+    uri: aDownload.source.spec,
+    state: aDownload.state,
+    progress: aDownload.percentComplete,
+    startTime: Math.round(aDownload.startTime / 1000),
+    endTime: Date.now(),
+    currBytes: aDownload.amountTransferred,
+    maxBytes: aDownload.size
+  };
+
+  
+  let item = createDownloadItem(attrs);
+  if (item) {
+    
+    gDownloadsView.insertBefore(item, gDownloadsView.firstChild);
+    stripeifyList(item);
+  }
+}
+
+
+
+
+
+
+
+
+function stripeifyList(aItem)
+{
+  let alt = "alternate";
+  
+  let flipFrom = function(aOther) aOther && aOther.hasAttribute(alt) ?
+    aItem.removeAttribute(alt) : aItem.setAttribute(alt, "true");
+
+  
+  while (aItem) {
+    flipFrom(aItem.previousSibling);
+    aItem = aItem.nextSibling;
+  }
 }
 
 function onSearchboxBlur() {
-  var searchbox = document.getElementById("searchbox");
-  if (searchbox.value == "") {
-    searchbox.setAttribute("empty", "true");
-    searchbox.value = searchbox.getAttribute("defaultValue");
+  if (gSearchBox.value == "") {
+    gSearchBox.setAttribute("empty", "true");
+    gSearchBox.value = gSearchBox.getAttribute("defaultValue");
   }
 }
 
 function onSearchboxFocus() {
-  var searchbox = document.getElementById("searchbox");
-  if (searchbox.hasAttribute("empty")) {
-    searchbox.value = "";
-    searchbox.removeAttribute("empty");
+  if (gSearchBox.hasAttribute("empty")) {
+    gSearchBox.value = "";
+    gSearchBox.removeAttribute("empty");
   }
 }
 
