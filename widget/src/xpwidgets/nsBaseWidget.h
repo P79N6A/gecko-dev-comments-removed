@@ -169,6 +169,11 @@ protected:
                                             const nsAString& aUnmodifiedCharacters)
   { return NS_ERROR_UNEXPECTED; }
 
+  virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
+                                              PRUint32 aNativeMessage,
+                                              PRUint32 aModifierFlags)
+  { return NS_ERROR_UNEXPECTED; }
+
   
   
   PRBool StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);

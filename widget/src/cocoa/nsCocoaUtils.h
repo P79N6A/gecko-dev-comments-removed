@@ -141,16 +141,10 @@ class nsCocoaUtils
   static BOOL IsEventOverWindow(NSEvent* anEvent, NSWindow* aWindow);
 
   
-  static BOOL WindowAcceptsEvent(NSWindow* aWindow, NSEvent* anEvent);
-
-  
   
   
   
   static NSPoint EventLocationForWindow(NSEvent* anEvent, NSWindow* aWindow);
-  
-  
-  static NSWindow* FindWindowForEvent(NSEvent* anEvent, BOOL* isUnderMouse);
 
   
   static void HideOSChromeOnScreen(PRBool aShouldHide, NSScreen* aScreen);

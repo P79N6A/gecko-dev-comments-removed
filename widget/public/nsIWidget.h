@@ -102,8 +102,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xb681539f, 0x5dac, 0x45af, \
-    { 0x8a, 0x25, 0xdf, 0xd7, 0x14, 0xe0, 0x9f, 0x43 } }
+  { 0x5c55f106, 0xb7ab, 0x4f54, \
+    { 0x89, 0xf3, 0xd3, 0xcf, 0x91, 0xf9, 0x63, 0x95 } }
 
 
 
@@ -929,6 +929,18 @@ class nsIWidget : public nsISupports {
                                               PRUint32 aModifierFlags,
                                               const nsAString& aCharacters,
                                               const nsAString& aUnmodifiedCharacters) = 0;
+
+    
+
+
+
+
+
+
+
+    virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
+                                                PRUint32 aNativeMessage,
+                                                PRUint32 aModifierFlags) = 0;
 
     
 
