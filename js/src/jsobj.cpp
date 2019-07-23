@@ -1254,6 +1254,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSScript **bucket = NULL;   
 #if JS_HAS_EVAL_THIS_SCOPE
     JSObject *callerScopeChain = NULL, *callerVarObj = NULL;
+    JSObject *withObject = NULL;
     JSBool setCallerScopeChain = JS_FALSE, setCallerVarObj = JS_FALSE;
     JSTempValueRooter scopetvr, varobjtvr;
 #endif
@@ -1323,7 +1324,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     MUST_FLOW_THROUGH("out");
     uintN staticLevel = caller->script->staticLevel + 1;
     if (!scopeobj) {
-
         
 
 
@@ -1397,6 +1397,19 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                                       cx->runtime->atomState.evalAtom);
         if (!ok)
             goto out;
+
+        
+
+
+
+        if (scopeobj->getParent()) {
+            withObject = js_NewWithObject(cx, scopeobj, scopeobj->getParent(), 0);
+            if (!withObject) {
+                ok = JS_FALSE;
+                goto out;
+            }
+            scopeobj = withObject;
+        }
 
         
         staticLevel = 0;
@@ -1530,6 +1543,8 @@ out:
         caller->scopeChain = callerScopeChain;
         JS_POP_TEMP_ROOT(cx, &scopetvr);
     }
+    if (withObject)
+        withObject->setPrivate(NULL);
 #endif
     return ok;
 }
