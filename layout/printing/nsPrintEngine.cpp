@@ -712,13 +712,6 @@ nsPrintEngine::Print(nsIPrintSettings*       aPrintSettings,
   return CommonPrint(PR_FALSE, aPrintSettings, aWebProgressListener);
 }
 
-
-
-
-
-
-
-
 NS_IMETHODIMP
 nsPrintEngine::PrintPreview(nsIPrintSettings* aPrintSettings, 
                                  nsIDOMWindow *aChildDOMWin, 
@@ -2533,6 +2526,9 @@ void nsPrintEngine::SetIsPrinting(PRBool aIsPrinting)
   mIsDoingPrinting = aIsPrinting;
   if (mDocViewerPrint) {
     mDocViewerPrint->SetIsPrinting(aIsPrinting);
+  }
+  if (mPrt && aIsPrinting) {
+    mPrt->mPreparingForPrint = PR_TRUE;
   }
 }
 

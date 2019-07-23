@@ -1464,6 +1464,14 @@ DocumentViewerImpl::Destroy()
 
 #ifdef NS_PRINTING
   if (mPrintEngine) {
+#ifdef NS_PRINT_PREVIEW
+    PRBool doingPrintPreview;
+    mPrintEngine->GetDoingPrintPreview(&doingPrintPreview);
+    if (doingPrintPreview) {
+      mPrintEngine->FinishPrintPreview();
+    }
+#endif
+
     mPrintEngine->Destroy();
     mPrintEngine = nsnull;
   }
@@ -3450,13 +3458,6 @@ DocumentViewerImpl::Print(nsIPrintSettings*       aPrintSettings,
   }
   return rv;
 }
-
-
-
-
-
-
-
 
 NS_IMETHODIMP
 DocumentViewerImpl::PrintPreview(nsIPrintSettings* aPrintSettings, 

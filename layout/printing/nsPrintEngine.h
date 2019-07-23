@@ -60,16 +60,6 @@ class nsIPageSequenceFrame;
 
 
 
-
-
-
-
-
-
-
-
-
-
 class nsPrintEngine : public nsIObserver
 {
 public:
