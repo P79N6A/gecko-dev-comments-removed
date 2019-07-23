@@ -633,7 +633,11 @@ nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
 
   
   
-  TryLayout(aState, &kidDesiredSize, PR_TRUE, PR_TRUE, PR_TRUE, &rv);
+  
+  TryLayout(aState, &kidDesiredSize,
+            aState->mStyles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN,
+            aState->mStyles.mVertical != NS_STYLE_OVERFLOW_HIDDEN,
+            PR_TRUE, &rv);
   return rv;
 }
 
