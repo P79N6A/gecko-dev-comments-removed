@@ -93,7 +93,11 @@ function onLoadViewSource()
 {
   viewSource(window.arguments[0]);
   document.commandDispatcher.focusedWindow = content;
-      
+  gBrowser.droppedLinkHandler = function (event, url, name) {
+    viewSource(url)
+    event.preventDefault();
+  }
+
   if (!isHistoryEnabled()) {
     
     var viewSourceNavigation = document.getElementById("viewSourceNavigation");
