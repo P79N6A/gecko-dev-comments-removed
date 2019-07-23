@@ -260,7 +260,7 @@ def p_NamespacedProtocolDefn(p):
         p[0] = protocol
 
 def p_ProtocolDefn(p):
-    """ProtocolDefn : SendSemanticsQual PROTOCOL ID '{' ManagerStmtOpt ManagesStmts MessageDecls TransitionStmts '}' ';'"""
+    """ProtocolDefn : OptionalSendSemanticsQual PROTOCOL ID '{' ManagerStmtOpt ManagesStmts MessageDecls TransitionStmts '}' ';'"""
     protocol = Protocol(locFromTok(p, 2))
     protocol.name = p[3]
     protocol.sendSemantics = p[1]
@@ -322,8 +322,7 @@ def p_MessageDirectionLabel(p):
         assert 0
 
 def p_MessageDecl(p):
-    """MessageDecl : SendSemanticsQual MessageBody
-                   | MessageBody"""
+    """MessageDecl : OptionalSendSemanticsQual MessageBody"""
     if Parser.current.direction is None:
         p_error(p[1])
 
@@ -415,6 +414,12 @@ def p_State(p):
     p[0] = State(locFromTok(p, 1), p[1])
 
 
+
+def p_OptionalSendSemanticsQual(p):
+    """OptionalSendSemanticsQual : SendSemanticsQual
+                                 | """
+    if 2 == len(p): p[0] = p[1]
+    else:           p[0] = ASYNC
 
 def p_SendSemanticsQual(p):
     """SendSemanticsQual : ASYNC

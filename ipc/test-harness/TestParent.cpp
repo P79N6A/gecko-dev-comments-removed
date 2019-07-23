@@ -2,12 +2,40 @@
 
 using mozilla::test::TestParent;
 
+
+TestParent::TestParent()
+{
+}
+
+TestParent::~TestParent()
+{
+}
+
+
 void
 TestParent::DoStuff()
 {
+#if 1
+    puts("[TestParent] in DoStuff()");
+    SendHello();
+#elif 0
     puts("[TestParent] pinging child ...");
     SendPing();
+#endif
 }
+
+
+#if 1
+
+
+nsresult TestParent::RecvWorld()
+{
+    puts("[TestParent] world!");
+    return NS_OK;
+}
+
+
+#elif 0
 
 
 nsresult TestParent::RecvPing()
@@ -39,10 +67,4 @@ nsresult TestParent::RecvSetValue(
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-TestParent::TestParent()
-{
-}
-
-TestParent::~TestParent()
-{
-}
+#endif
