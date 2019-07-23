@@ -115,7 +115,11 @@ struct JSScript {
 
     uint8           trynotesOffset; 
 
-    uint8           flags;      
+    bool            noScriptRval:1; 
+
+    bool            savedCallerFun:1; 
+    bool            hasSharps:1;      
+
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
     const char      *filename;  
@@ -169,11 +173,6 @@ struct JSScript {
 
     inline JSObject *getRegExp(size_t index);
 };
-
-#define JSSF_NO_SCRIPT_RVAL     0x01    /* no need for result value of last
-                                           expression statement */
-#define JSSF_SAVED_CALLER_FUN   0x02    /* object 0 is caller function */
-#define JSSF_HAS_SHARPS         0x04    /* script uses sharp variables */
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
                                            uses sharp variables */
