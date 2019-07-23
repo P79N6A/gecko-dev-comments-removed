@@ -55,6 +55,8 @@
 #include "mozStoragePrivateHelpers.h"
 #include "mozStorageEvents.h"
 
+using namespace mozilla::storage;
+
 
 
 
@@ -625,7 +627,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(
 
 nsresult
 NS_executeAsync(nsTArray<sqlite3_stmt *> &aStatements,
-                mozStorageConnection *aConnection,
+                Connection *aConnection,
                 mozIStorageStatementCallback *aCallback,
                 mozIStoragePendingStatement **_stmt)
 {

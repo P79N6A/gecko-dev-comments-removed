@@ -43,9 +43,14 @@
 #include "nscore.h"
 #include "nsTArray.h"
 struct sqlite3_stmt;
-class mozStorageConnection;
 class mozIStorageStatementCallback;
 class mozIStoragePendingStatement;
+
+namespace mozilla {
+namespace storage {
+class Connection;
+} 
+} 
 
 
 
@@ -62,7 +67,7 @@ class mozIStoragePendingStatement;
 
 nsresult NS_executeAsync(
   nsTArray<sqlite3_stmt *> &aStatements,
-  mozStorageConnection *aConnection,
+  mozilla::storage::Connection *aConnection,
   mozIStorageStatementCallback *aCallback,
   mozIStoragePendingStatement **_stmt
 );

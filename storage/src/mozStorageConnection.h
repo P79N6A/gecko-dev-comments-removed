@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef _MOZSTORAGECONNECTION_H_
 #define _MOZSTORAGECONNECTION_H_
 
@@ -57,52 +58,55 @@ class nsIEventTarget;
 class nsIThread;
 class mozIStorageService;
 
-class mozStorageConnection : public mozIStorageConnection
+namespace mozilla {
+namespace storage {
+
+class Connection : public mozIStorageConnection
 {
 public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGECONNECTION
 
-    mozStorageConnection(mozIStorageService* aService);
+  Connection(mozIStorageService* aService);
 
-    NS_IMETHOD Initialize(nsIFile *aDatabaseFile);
-
-    
-    NS_DECL_ISUPPORTS
-    NS_DECL_MOZISTORAGECONNECTION
-
-    
-    sqlite3 *GetNativeConnection() { return mDBConn; }
-
-    
+  
 
 
 
 
 
 
-    already_AddRefed<nsIEventTarget> getAsyncExecutionTarget();
+
+  nsresult initialize(nsIFile *aDatabaseFile);
+
+  
+  sqlite3 *GetNativeConnection() { return mDBConn; }
+
+  
+
+
+
+
+
+
+  already_AddRefed<nsIEventTarget> getAsyncExecutionTarget();
 
 private:
-    ~mozStorageConnection();
+  ~Connection();
 
-protected:
-    struct FindFuncEnumArgs {
-        nsISupports *mTarget;
-        PRBool       mFound;
-    };
-
-    
+  
 
 
 
 
 
 
-    enum DatabaseElementType {
-        INDEX,
-        TABLE
-    };
+  enum DatabaseElementType {
+    INDEX,
+    TABLE
+  };
 
-    
+  
 
 
 
@@ -111,56 +115,56 @@ protected:
 
 
 
-    nsresult DatabaseElementExists(enum DatabaseElementType aElementType,
-                                   const nsACString& aElementName,
-                                   PRBool *_exists);
+  nsresult databaseElementExists(enum DatabaseElementType aElementType,
+                                 const nsACString& aElementName,
+                                 PRBool *_exists);
 
-    void HandleSqliteError(const char *aSqlStatement);
-    static PLDHashOperator s_FindFuncEnum(const nsACString &aKey,
-                                          nsISupports* aData, void* userArg);
-    PRBool FindFunctionByInstance(nsISupports *aInstance);
+  bool findFunctionByInstance(nsISupports *aInstance);
 
-    static int s_ProgressHelper(void *arg);
-    
-    
-    
-    int ProgressHandler();
+  static int sProgressHelper(void *aArg);
+  
+  
+  
+  int progressHandler();
 
-    sqlite3 *mDBConn;
-    nsCOMPtr<nsIFile> mDatabaseFile;
+  sqlite3 *mDBConn;
+  nsCOMPtr<nsIFile> mDatabaseFile;
 
-    
+  
 
 
-    PRLock *mAsyncExecutionMutex;
+  PRLock *mAsyncExecutionMutex;
 
-    
+  
 
 
 
 
-    nsCOMPtr<nsIThread> mAsyncExecutionThread;
-    
+  nsCOMPtr<nsIThread> mAsyncExecutionThread;
+  
 
 
 
 
 
-    PRBool mAsyncExecutionThreadShuttingDown;
+  PRBool mAsyncExecutionThreadShuttingDown;
 
-    PRLock *mTransactionMutex;
-    PRBool mTransactionInProgress;
+  PRLock *mTransactionMutex;
+  PRBool mTransactionInProgress;
 
-    PRLock *mFunctionsMutex;
-    nsInterfaceHashtable<nsCStringHashKey, nsISupports> mFunctions;
+  PRLock *mFunctionsMutex;
+  nsInterfaceHashtable<nsCStringHashKey, nsISupports> mFunctions;
 
-    PRLock *mProgressHandlerMutex;
-    nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
+  PRLock *mProgressHandlerMutex;
+  nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
 
-    
-    
-    
-    nsCOMPtr<mozIStorageService> mStorageService;
+  
+  
+  
+  nsCOMPtr<mozIStorageService> mStorageService;
 };
+
+} 
+} 
 
 #endif 
