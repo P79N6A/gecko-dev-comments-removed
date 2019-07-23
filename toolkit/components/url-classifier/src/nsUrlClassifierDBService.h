@@ -96,9 +96,6 @@ private:
   nsresult LookupURI(nsIURI* uri, nsIUrlClassifierCallback* c);
 
   
-  void EnsureThreadStarted();
-  
-  
   nsresult Shutdown();
   
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
