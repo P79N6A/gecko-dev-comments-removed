@@ -68,6 +68,7 @@ class nsIAtom;
 
 
 
+
 enum eFontPrefLang {
     eFontPrefLang_Western     =  0,
     eFontPrefLang_CentEuro    =  1,
