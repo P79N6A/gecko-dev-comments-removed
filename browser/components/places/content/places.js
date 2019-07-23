@@ -293,6 +293,14 @@ var PlacesOrganizer = {
   
 
 
+
+  getCurrentQueries: function PO_getCurrentQueries() {
+    return asQuery(this._content.getResult().root).getQueries({});
+  },
+
+  
+
+
   importBookmarks: function PO_import() {
     
     var features = "modal,centerscreen,chrome,resizable=no";
@@ -1042,9 +1050,7 @@ var PlacesQueryBuilder = {
       var searchTermsField = document.getElementById("advancedSearch1Textbox");
       if (searchTermsField)
         setTimeout(function() { searchTermsField.value = PlacesSearchBox.value; }, 10);
-      var query = PlacesUtils.history.getNewQuery();
-      query.searchTerms = PlacesSearchBox.value;
-      this.queries = [query];
+      this.queries = PlacesOrganizer.getCurrentQueries();
       return;
     }
 
