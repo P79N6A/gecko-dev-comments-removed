@@ -2421,7 +2421,7 @@ SessionStoreService.prototype = {
     }
     
     
-    if (this.windowToFocus) {
+    if (this.windowToFocus && this.windowToFocus.content) {
       this.windowToFocus.content.focus();
     }
   },
