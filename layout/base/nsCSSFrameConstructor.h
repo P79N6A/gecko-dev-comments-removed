@@ -693,19 +693,6 @@ private:
                              PRBool*                  aHaltProcessing);
 
 
-
-#ifdef MOZ_XTF
-  nsresult ConstructXTFFrame(nsFrameConstructorState& aState,
-                             nsIContent*              aContent,
-                             nsIFrame*                aParentFrame,
-                             nsIAtom*                 aTag,
-                             PRInt32                  aNameSpaceID,
-                             nsStyleContext*          aStyleContext,
-                             nsFrameItems&            aFrameItems,
-                             PRBool                   aHasPseudoParent);
-#endif
-
-
 #ifdef MOZ_SVG
   nsresult ConstructSVGFrame(nsFrameConstructorState& aState,
                              nsIContent*              aContent,
