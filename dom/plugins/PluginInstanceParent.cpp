@@ -897,7 +897,11 @@ PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
 
     switch (message) {
         case WM_SETFOCUS:
-        self->CallSetPluginFocus();
+        
+        
+        
+        if ((::InSendMessageEx(NULL) & ISMEX_SEND|ISMEX_REPLIED) != ISMEX_SEND)
+            self->CallSetPluginFocus();
         break;
 
         case WM_CLOSE:
