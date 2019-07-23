@@ -139,7 +139,13 @@ protected:
   
   nsCOMPtr<nsITimer> mTooltipTimer;
   static void sTooltipCallback (nsITimer* aTimer, void* aListener);
-  PRInt32 mMouseClientX, mMouseClientY;
+
+  
+  
+  PRInt32 mMouseScreenX, mMouseScreenY;
+
+  
+  nsCOMPtr<nsIDOMEvent> mCachedMouseEvent;
 
   
   nsCOMPtr<nsITimer> mAutoHideTimer;
