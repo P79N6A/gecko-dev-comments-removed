@@ -1902,7 +1902,7 @@ NS_IMETHODIMP nsAccessible::GetFinalRole(PRUint32 *aRole)
     if (*aRole == nsIAccessibleRole::ROLE_PUSHBUTTON) {
       nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
       if (content) {
-        if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_pressed)) {
+        if (nsAccUtils::HasDefinedARIAToken(content, nsAccessibilityAtoms::aria_pressed)) {
           
           
           *aRole = nsIAccessibleRole::ROLE_TOGGLE_BUTTON;
@@ -2181,6 +2181,17 @@ PRBool nsAccessible::MappedAttrState(nsIContent *aContent, PRUint32 *aStateInOut
     return PR_FALSE;  
   }
 
+  
+  
+  
+  
+  
+  
+  
+  if (!nsAccUtils::HasDefinedARIAToken(aContent, *aStateMapEntry->attributeName)) {
+    return PR_TRUE;
+  }
+  
   nsAutoString attribValue;
   if (aContent->GetAttr(kNameSpaceID_None, *aStateMapEntry->attributeName, attribValue)) {
     if (aStateMapEntry->attributeValue == kBoolState) {

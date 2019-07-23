@@ -139,6 +139,15 @@ public:
   
 
 
+
+
+
+
+  static PRBool HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom);
+
+  
+
+
   static nsresult FireAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible,
                                PRBool aIsAsynch = PR_FALSE);
 
