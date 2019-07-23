@@ -659,14 +659,12 @@ var gIncompatibleCheckPage = {
              getService(CoI.nsIExtensionManager);
     this.addons = em.getIncompatibleItemList(gUpdates.update.extensionVersion,
                                              gUpdates.update.platformVersion,
-                                             CoI.nsIUpdateItem.TYPE_ANY, false,
-                                             { });
+                                             CoI.nsIUpdateItem.TYPE_ANY, false);
     if (this.addons.length > 0) {
       
       
       var addons = em.getIncompatibleItemList(null, null,
-                                              CoI.nsIUpdateItem.TYPE_ANY, false,
-                                              { });
+                                              CoI.nsIUpdateItem.TYPE_ANY, false);
       for (var i = 0; i < addons.length; ++i) {
         for (var j = 0; j < this.addons.length; ++j) {
           if (addons[i].id == this.addons[j].id) {
