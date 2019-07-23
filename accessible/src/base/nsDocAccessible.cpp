@@ -62,9 +62,8 @@
 #include "nsINameSpaceManager.h"
 #include "nsIPresShell.h"
 #include "nsIServiceManager.h"
-#include "nsIScrollableView.h"
 #include "nsIViewManager.h"
-#include "nsIView.h"
+#include "nsIScrollableFrame.h"
 #include "nsUnicharUtils.h"
 #include "nsIURI.h"
 #include "nsIWebNavigation.h"
@@ -725,31 +724,24 @@ void nsDocAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aRelativeFrame)
     if (!presShell) {
       return;
     }
-    nsIViewManager* vm = presShell->GetViewManager();
-    if (!vm) {
-      return;
-    }
 
-    nsIScrollableView* scrollableView = nsnull;
-    vm->GetRootScrollableView(&scrollableView);
-
-    nsRect viewBounds(0, 0, 0, 0);
-    if (scrollableView) {
-      viewBounds = scrollableView->View()->GetBounds();
-    }
-    else {
-      nsIView *view;
-      vm->GetRootView(view);
-      if (view) {
-        viewBounds = view->GetBounds();
-      }
+    nsRect scrollPort;
+    nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
+    if (sf) {
+      scrollPort = sf->GetScrollPortRect();
+    } else {
+      scrollPort = presShell->GetRootFrame()->GetRect();
     }
 
     if (parentDoc) {  
-      aBounds.IntersectRect(viewBounds, aBounds);
+      
+      
+      
+      
+      aBounds.IntersectRect(scrollPort, aBounds);
     }
     else {  
-      aBounds = viewBounds;
+      aBounds = scrollPort;
     }
 
     document = parentDoc = document->GetParentDocument();
@@ -947,34 +939,26 @@ void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
 void nsDocAccessible::AddScrollListener()
 {
   nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
+  if (!presShell)
+    return;
 
-  nsIViewManager* vm = nsnull;
-  if (presShell)
-    vm = presShell->GetViewManager();
-
-  nsIScrollableView* scrollableView = nsnull;
-  if (vm)
-    vm->GetRootScrollableView(&scrollableView);
-
-  if (scrollableView)
-    scrollableView->AddScrollPositionListener(this);
+  nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
+  if (sf) {
+    sf->AddScrollPositionListener(this);
+  }
 }
 
 
 void nsDocAccessible::RemoveScrollListener()
 {
   nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
-
-  nsIViewManager* vm = nsnull;
-  if (presShell)
-    vm = presShell->GetViewManager();
-
-  nsIScrollableView* scrollableView = nsnull;
-  if (vm)
-    vm->GetRootScrollableView(&scrollableView);
-
-  if (scrollableView)
-    scrollableView->RemoveScrollPositionListener(this);
+  if (!presShell)
+    return;
+ 
+  nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
+  if (sf) {
+    sf->RemoveScrollPositionListener(this);
+  }
 }
 
 
