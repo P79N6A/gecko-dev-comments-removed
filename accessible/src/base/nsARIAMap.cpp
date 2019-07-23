@@ -78,7 +78,9 @@ nsRoleMapEntry nsARIAMap::gWAIRoleMap[] =
             {"selected", kBoolState, nsIAccessibleStates::STATE_SELECTED | nsIAccessibleStates::STATE_SELECTABLE},
             {"selected", "false", nsIAccessibleStates::STATE_SELECTABLE},
             {"readonly", kBoolState, nsIAccessibleStates::STATE_READONLY}, kEndEntry},
-  {"combobox", nsIAccessibleRole::ROLE_COMBOBOX, eNameLabelOrTitle, eHasValueMinMax, nsIAccessibleStates::STATE_COLLAPSED,
+  {"combobox", nsIAccessibleRole::ROLE_COMBOBOX, eNameLabelOrTitle, eHasValueMinMax,
+               nsIAccessibleStates::STATE_COLLAPSED | nsIAccessibleStates::STATE_HASPOPUP,
+            
             {"disabled", kBoolState, nsIAccessibleStates::STATE_UNAVAILABLE},
             {"readonly", kBoolState, nsIAccessibleStates::STATE_READONLY},
             {"expanded", kBoolState, nsIAccessibleStates::STATE_EXPANDED}, kEndEntry},
@@ -172,6 +174,9 @@ nsRoleMapEntry nsARIAMap::gWAIRoleMap[] =
   {"tabpanel", nsIAccessibleRole::ROLE_PROPERTYPAGE, eNameLabelOrTitle, eNoValue, kNoReqStates, kEndEntry},
   {"textbox", nsIAccessibleRole::ROLE_ENTRY, eNameLabelOrTitle, eNoValue, kNoReqStates,
             
+            
+            {"autocomplete", "list", nsIAccessibleStates::STATE_HASPOPUP},
+            {"autocomplete", "both", nsIAccessibleStates::STATE_HASPOPUP},
             {"secret", kBoolState, nsIAccessibleStates::STATE_PROTECTED},
             {"disabled", kBoolState, nsIAccessibleStates::STATE_UNAVAILABLE},
             {"readonly", kBoolState, nsIAccessibleStates::STATE_READONLY}, kEndEntry},
