@@ -144,9 +144,13 @@ function best_favicon_for_revhost(aTableName)
 
 
 
-function AutoCompleteStatementCallbackWrapper(aCallback)
+
+
+function AutoCompleteStatementCallbackWrapper(aCallback,
+                                              aDBConnection)
 {
   this._callback = aCallback;
+  this._db = aDBConnection;
 }
 
 AutoCompleteStatementCallbackWrapper.prototype = {
@@ -183,9 +187,11 @@ AutoCompleteStatementCallbackWrapper.prototype = {
 
 
 
-  executeAsync: function ACSCW_executeAsync(aQuery)
+
+  executeAsync: function ACSCW_executeAsync(aQueries)
   {
-    return this._handle = aQuery.executeAsync(this);
+    return this._handle = this._db.executeAsync(aQueries, aQueries.length,
+                                                this);
   },
 
   
@@ -438,7 +444,7 @@ nsPlacesAutoComplete.prototype = {
   stopSearch: function PAC_stopSearch()
   {
     
-    this._stopActiveQueries();
+    this._stopActiveQuery();
 
     this._finishSearch(false);
   },
@@ -464,7 +470,7 @@ nsPlacesAutoComplete.prototype = {
 
       if (this._result.matchCount == this._maxRichResults) {
         
-        this._stopActiveQueries();
+        this._stopActiveQuery();
 
         
         this._finishSearch(true);
@@ -487,15 +493,6 @@ nsPlacesAutoComplete.prototype = {
   {
     
     if (this.isSearchComplete())
-      return;
-
-    
-    
-    this._pendingQueries.shift();
-
-    
-    
-    if (this._pendingQueries.length)
       return;
 
     
@@ -610,6 +607,7 @@ nsPlacesAutoComplete.prototype = {
     delete this._listener;
     delete this._result;
     delete this._usedPlaceIds;
+    delete this._pendingQuery;
     this._secondPass = false;
   },
 
@@ -624,21 +622,19 @@ nsPlacesAutoComplete.prototype = {
     
     
     
-    let PAC = this;
-    this._pendingQueries = aQueries.map(function(aQuery) {
-      
-      let callbackWrapper = new AutoCompleteStatementCallbackWrapper(PAC);
-      return callbackWrapper.executeAsync(aQuery);
-    });
+
+    
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, this._db);
+    this._pendingQuery = wrapper.executeAsync(aQueries);
   },
 
   
 
 
-  _stopActiveQueries: function PAC_stopActiveQueries()
+  _stopActiveQuery: function PAC_stopActiveQuery()
   {
-    this._pendingQueries.forEach(function(aQuery) aQuery.cancel());
-    delete this._pendingQueries;
+    this._pendingQuery.cancel();
+    delete this._pendingQuery;
   },
 
   
@@ -1014,7 +1010,7 @@ nsPlacesAutoComplete.prototype = {
   {
     
     
-    return this._pendingQueries == null;
+    return this._pendingQuery == null;
   },
 
   
@@ -1028,7 +1024,7 @@ nsPlacesAutoComplete.prototype = {
 
   isPendingSearch: function PAC_isPendingSearch(aHandle)
   {
-    return this._pendingQueries.indexOf(aHandle) != -1;
+    return this._pendingQuery == aHandle;
   },
 
   
