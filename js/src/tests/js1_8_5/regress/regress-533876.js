@@ -18,4 +18,3 @@ delete eval;
 gc();
 var f = eval("function () { return /x/; }");
 x.watch('x', f);  
-print(" PASSED!");
