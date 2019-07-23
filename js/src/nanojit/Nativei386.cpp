@@ -1024,18 +1024,7 @@ namespace nanojit
 		RegisterMask allow = GpRegs;
 		bool forceReg = (op == LIR_mul || !rhs->isconst());
 
-#ifdef NANOJIT_ARM
-		
-		
-		
-		if (!forceReg)
-		{
-			if (rhs->isconst() && !isU8(rhs->constval()))
-				forceReg = true;
-		}
-#endif
-
-		if (lhs != rhs && forceReg)
+		if ((lhs != rhs || (op == LIR_lsh || op == LIR_rsh || op == LIR_ush)) && forceReg)
 		{
 			if ((rb = asm_binop_rhs_reg(ins)) == UnknownReg) {
 				rb = findRegFor(rhs, allow);
