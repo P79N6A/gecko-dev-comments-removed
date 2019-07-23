@@ -2758,10 +2758,9 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
   lineHeight = PR_MAX(lineHeight, 1.0);
 
   gfxFloat ascent = NS_round(aAscent);
-  gfxFloat descentLimit = NS_round(aDescentLimit);
+  gfxFloat descentLimit = NS_floor(aDescentLimit);
 
   gfxFloat suggestedMaxRectHeight = PR_MAX(PR_MIN(ascent, descentLimit), 1.0);
-  gfxFloat underlineOffsetAdjust = 0.0;
   r.size.height = lineHeight;
   if (aStyle == DECORATION_STYLE_DOUBLE) {
     
@@ -2805,12 +2804,6 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
 
     r.size.height = lineHeight > 2.0 ? lineHeight * 4.0 : lineHeight * 3.0;
     if (canLiftUnderline) {
-      
-      
-      
-      descentLimit += lineHeight;
-      
-      suggestedMaxRectHeight = PR_MAX(PR_MIN(ascent, descentLimit), 1.0);
       if (r.Height() > suggestedMaxRectHeight) {
         
         
@@ -2819,18 +2812,13 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
         r.size.height = PR_MAX(suggestedMaxRectHeight, lineHeight * 2.0);
       }
     }
-    
-    
-    
-    
-    underlineOffsetAdjust = r.Height() / 2.0;
   }
 
   gfxFloat baseline = NS_floor(aPt.y + aAscent + 0.5);
   gfxFloat offset = 0.0;
   switch (aDecoration) {
     case NS_STYLE_TEXT_DECORATION_UNDERLINE:
-      offset = aOffset + underlineOffsetAdjust;
+      offset = aOffset;
       if (canLiftUnderline) {
         if (descentLimit < -offset + r.Height()) {
           
@@ -2838,7 +2826,7 @@ nsCSSRendering::GetTextDecorationRectInternal(const gfxPoint& aPt,
           
           
           gfxFloat offsetBottomAligned = -descentLimit + r.Height();
-          gfxFloat offsetTopAligned = underlineOffsetAdjust;
+          gfxFloat offsetTopAligned = 0.0;
           offset = PR_MIN(offsetBottomAligned, offsetTopAligned);
         }
       }
