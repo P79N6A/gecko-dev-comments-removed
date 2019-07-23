@@ -103,6 +103,12 @@ public:
   
 
 
+
+  const nsCOMPtr<nsIThread> threadOpenedOn;
+
+  
+
+
   nsresult internalClose();
 
 private:
@@ -179,12 +185,6 @@ private:
 
   PRLock *mProgressHandlerMutex;
   nsCOMPtr<mozIStorageProgressHandler> mProgressHandler;
-
-  
-
-
-
-  nsCOMPtr<nsIThread> mOpenedThread;
 
   
   
