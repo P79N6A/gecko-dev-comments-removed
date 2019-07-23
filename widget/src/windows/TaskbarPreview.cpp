@@ -153,6 +153,13 @@ TaskbarPreview::SetVisible(PRBool visible) {
   if (mVisible == visible) return NS_OK;
   mVisible = visible;
 
+  
+  
+  
+  
+  if (!mWnd)
+    return NS_OK;
+
   return visible ? Enable() : Disable();
 }
 
@@ -288,10 +295,20 @@ TaskbarPreview::WndProc(UINT nMsg, WPARAM wParam, LPARAM lParam) {
 
 PRBool
 TaskbarPreview::CanMakeTaskbarCalls() {
-  nsWindow *window = nsWindow::GetNSWindowPtr(mWnd);
-  NS_ASSERTION(window, "Cannot use taskbar previews in an embedded context!");
-
-  return mVisible && window->HasTaskbarIconBeenCreated();
+  
+  
+  if (!mWnd)
+    return PR_FALSE;
+  
+  
+  if (!::IsWindowVisible(mWnd))
+    return PR_FALSE;
+  if (mVisible) {
+    nsWindow *window = nsWindow::GetNSWindowPtr(mWnd);
+    NS_ASSERTION(window, "Could not get nsWindow from HWND");
+    return window->HasTaskbarIconBeenCreated();
+  }
+  return PR_FALSE;
 }
 
 WindowHook&
