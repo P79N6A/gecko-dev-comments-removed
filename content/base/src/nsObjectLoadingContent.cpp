@@ -60,6 +60,7 @@
 #include "nsIURL.h"
 #include "nsIWebNavigation.h"
 #include "nsIWebNavigationInfo.h"
+#include "nsIScriptChannel.h"
 
 #include "nsPluginError.h"
 
@@ -857,6 +858,23 @@ nsObjectLoadingContent::LoadObject(const nsAString& aURI,
   return LoadObject(uri, aNotify, aTypeHint, aForceLoad);
 }
 
+static PRBool
+IsAboutBlank(nsIURI* aURI)
+{
+  
+  NS_PRECONDITION(aURI, "Must have URI");
+    
+  
+  PRBool isAbout = PR_FALSE;
+  if (NS_FAILED(aURI->SchemeIs("about", &isAbout)) || !isAbout) {
+    return PR_FALSE;
+  }
+    
+  nsCAutoString str;
+  aURI->GetSpec(str);
+  return str.EqualsLiteral("about:blank");  
+}
+
 nsresult
 nsObjectLoadingContent::LoadObject(nsIURI* aURI,
                                    PRBool aNotify,
@@ -1138,6 +1156,23 @@ nsObjectLoadingContent::LoadObject(nsIURI* aURI,
   
   if (!aTypeHint.IsEmpty()) {
     chan->SetContentType(aTypeHint);
+  }
+
+  
+  PRBool inheritPrincipal;
+  rv = NS_URIChainHasFlags(aURI,
+                           nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
+                           &inheritPrincipal);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (inheritPrincipal || IsAboutBlank(aURI)) {
+    chan->SetOwner(thisContent->NodePrincipal());
+  }
+
+  nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(chan);
+  if (scriptChannel) {
+    
+    scriptChannel->
+      SetExecutionPolicy(nsIScriptChannel::EXECUTE_NORMAL);
   }
 
   

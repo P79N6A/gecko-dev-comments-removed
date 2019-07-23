@@ -7267,19 +7267,21 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     
     
     
-
+    
+    
     PRBool inherit;
     
     
     rv = URIInheritsSecurityContext(aURI, &inherit);
     if (NS_SUCCEEDED(rv) && (inherit || IsAboutBlank(aURI))) {
         channel->SetOwner(aOwner);
-        nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);
-        if (scriptChannel) {
-            
-            scriptChannel->
-                SetExecutionPolicy(nsIScriptChannel::EXECUTE_NORMAL);
-        }
+    }
+
+    nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);
+    if (scriptChannel) {
+        
+        scriptChannel->
+            SetExecutionPolicy(nsIScriptChannel::EXECUTE_NORMAL);
     }
 
     if (aIsNewWindowTarget) {
