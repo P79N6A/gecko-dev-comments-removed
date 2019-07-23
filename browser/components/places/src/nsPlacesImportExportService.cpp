@@ -896,9 +896,12 @@ BookmarkContentSink::HandleLinkBegin(const nsIParserNode& node)
   
   if (frame.mPreviousId == 0) {
     
-    rv = mBookmarksService->InsertItem(frame.mContainerID, frame.mPreviousLink,
-                                       mBookmarksService->DEFAULT_INDEX, &frame.mPreviousId);
-    NS_ASSERTION(NS_SUCCEEDED(rv), "InsertItem failed");
+    rv = mBookmarksService->InsertBookmark(frame.mContainerID,
+                                           frame.mPreviousLink,
+                                           mBookmarksService->DEFAULT_INDEX,
+                                           EmptyString(),
+                                           &frame.mPreviousId);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "InsertBookmark failed");
 
     
     
