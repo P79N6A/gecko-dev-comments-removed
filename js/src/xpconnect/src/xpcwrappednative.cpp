@@ -1158,6 +1158,10 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
     {
         
 
+        
+        nsXPConnect* xpc = nsXPConnect::GetXPConnect();
+        xpc->UpdateXOWs(ccx, wrapper, nsIXPConnect::XPC_XOW_CLEARSCOPE);
+
         AutoMarkingWrappedNativeProtoPtr oldProto(ccx);
         AutoMarkingWrappedNativeProtoPtr newProto(ccx);
 
@@ -1177,6 +1181,12 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 NS_RELEASE(wrapper);
                 return NS_ERROR_FAILURE;
             }
+        }
+
+        if(!XPC_XOW_WrapperMoved(ccx, wrapper, aNewScope))
+        {
+            NS_RELEASE(wrapper);
+            return NS_ERROR_FAILURE;
         }
 
         Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();

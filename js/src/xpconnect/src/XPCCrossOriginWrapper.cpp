@@ -191,6 +191,44 @@ GetSecurityManager()
   return gScriptSecurityManager;
 }
 
+JSBool
+XPC_XOW_WrapperMoved(JSContext *cx, XPCWrappedNative *innerObj,
+                     XPCWrappedNativeScope *newScope)
+{
+  typedef WrappedNative2WrapperMap::Link Link;
+  XPCJSRuntime *rt = nsXPConnect::GetRuntime();
+  WrappedNative2WrapperMap *map = innerObj->GetScope()->GetWrapperMap();
+  Link *link;
+
+  { 
+    XPCAutoLock al(rt->GetMapLock());
+    link = map->FindLink(innerObj->GetFlatJSObject());
+  }
+
+  if (!link) {
+    
+    return JS_TRUE;
+  }
+
+  JSObject *xow = link->obj;
+
+  { 
+    XPCAutoLock al(rt->GetMapLock());
+    if (!newScope->GetWrapperMap()->AddLink(innerObj->GetFlatJSObject(), link))
+      return JS_FALSE;
+    map->Remove(innerObj->GetFlatJSObject());
+  }
+
+  if (!xow) {
+    
+    return JS_TRUE;
+  }
+
+  return JS_SetReservedSlot(cx, xow, XPCWrapper::sNumSlots,
+                            PRIVATE_TO_JSVAL(newScope)) &&
+         JS_SetParent(cx, xow, newScope->GetGlobalJSObject());
+}
+
 static JSBool
 IsValFrame(JSContext *cx, JSObject *obj, jsval v, XPCWrappedNative *wn)
 {
@@ -433,43 +471,34 @@ XPC_XOW_WrapObject(JSContext *cx, JSObject *parent, jsval *vp)
   XPCCallContext ccx(NATIVE_CALLER, cx);
   NS_ENSURE_TRUE(ccx.IsValid(), JS_FALSE);
 
-  XPCWrappedNativeScope *parentScope =
-    XPCWrappedNativeScope::FindInJSObjectScope(ccx, parent);
-  XPCWrappedNativeScope *wrapperScope = wn->GetScope();
-
-#ifdef DEBUG_mrbkap
-  printf("Wrapping object at %p (%s) [%p %p]\n",
-         (void *)wrappedObj, JS_GET_CLASS(cx, wrappedObj)->name,
-         (void *)parentScope, (void *)wrapperScope);
-#endif
-
-  JSObject *outerObj = nsnull;
-  JSBool sameOrigin = (parentScope == wrapperScope);
-  WrappedNative2WrapperMap *map =
-    sameOrigin ? wrapperScope->GetWrapperMap() : parentScope->GetWrapperMap();
-
-  if (sameOrigin) {
-    outerObj = wn->GetWrapper();
-    if (outerObj && JS_GET_CLASS(cx, outerObj) == &sXPC_XOW_JSClass.base) {
-#ifdef DEBUG_mrbkap
-      printf("But found a wrapper already there %p!\n", (void *)outerObj);
-#endif
-      *vp = OBJECT_TO_JSVAL(outerObj);
-      return JS_TRUE;
+  
+  parent = JS_GetGlobalForObject(cx, parent);
+  JSClass *clasp = JS_GET_CLASS(cx, parent);
+  if (clasp->flags & JSCLASS_IS_EXTENDED) {
+    JSExtendedClass *xclasp = reinterpret_cast<JSExtendedClass *>(clasp);
+    if (xclasp->innerObject) {
+      parent = xclasp->innerObject(cx, parent);
+      if (!parent) {
+        return JS_FALSE;
+      }
     }
   }
 
+  XPCWrappedNativeScope *parentScope =
+    XPCWrappedNativeScope::FindInJSObjectScope(ccx, parent);
+
+#ifdef DEBUG_mrbkap
+  printf("Wrapping object at %p (%s) [%p]\n",
+         (void *)wrappedObj, JS_GET_CLASS(cx, wrappedObj)->name,
+         (void *)parentScope);
+#endif
+
+  JSObject *outerObj = nsnull;
+  WrappedNative2WrapperMap *map = parentScope->GetWrapperMap();
+
   { 
     XPCAutoLock al(rt->GetMapLock());
-
-    if (outerObj) {
-      outerObj = map->Add(wrappedObj, outerObj);
-      if (sameOrigin) {
-        wn->SetWrapper(nsnull);
-      }
-    } else {
-      outerObj = map->Find(wrappedObj);
-    }
+    outerObj = map->Find(wrappedObj);
   }
 
   if (outerObj) {
@@ -478,9 +507,6 @@ XPC_XOW_WrapObject(JSContext *cx, JSObject *parent, jsval *vp)
 #ifdef DEBUG_mrbkap
     printf("But found a wrapper in the map %p!\n", (void *)outerObj);
 #endif
-    if (sameOrigin) {
-      wn->SetWrapper(outerObj);
-    }
     *vp = OBJECT_TO_JSVAL(outerObj);
     return JS_TRUE;
   }
@@ -509,14 +535,10 @@ XPC_XOW_WrapObject(JSContext *cx, JSObject *parent, jsval *vp)
   }
 
   *vp = OBJECT_TO_JSVAL(outerObj);
-  if (!sameOrigin) {
+
+  { 
     XPCAutoLock al(rt->GetMapLock());
-    map->Add(wrappedObj, outerObj);
-  } else {
-#ifdef DEBUG_mrbkap
-    printf("Setting wrapper to %p\n", (void *)outerObj);
-#endif
-    wn->SetWrapper(outerObj);
+    map->Add(wn->GetScope()->GetWrapperMap(), wrappedObj, outerObj);
   }
 
   return JS_TRUE;
@@ -860,7 +882,7 @@ XPC_XOW_Finalize(JSContext *cx, JSObject *obj)
   
   XPCWrappedNativeScope *scope = reinterpret_cast<XPCWrappedNativeScope *>
                                                  (JSVAL_TO_PRIVATE(scopeVal));
-  if (!scope || XPCWrappedNativeScope::IsDyingScope(scope)) {
+  if (!scope) {
     return;
   }
 
