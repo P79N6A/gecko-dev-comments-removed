@@ -53,6 +53,29 @@
 struct _AtkObject;
 typedef struct _AtkObject AtkObject;
 
+enum AtkProperty {
+  PROP_0,           
+  PROP_NAME,
+  PROP_DESCRIPTION,
+  PROP_PARENT,      
+  PROP_ROLE,
+  PROP_LAYER,
+  PROP_MDI_ZORDER,
+  PROP_TABLE_CAPTION,
+  PROP_TABLE_COLUMN_DESCRIPTION,
+  PROP_TABLE_COLUMN_HEADER,
+  PROP_TABLE_ROW_DESCRIPTION,
+  PROP_TABLE_ROW_HEADER,
+  PROP_TABLE_SUMMARY,
+  PROP_LAST         
+};
+
+struct AtkPropertyChange {
+  PRInt32 type;     
+  void *oldvalue;
+  void *newvalue;
+};
+
 
 
 
@@ -85,6 +108,13 @@ public:
     }
     
 protected:
+    nsresult FireAtkStateChangeEvent(nsIAccessibleEvent *aEvent,
+                                     AtkObject *aObject);
+    nsresult FireAtkTextChangedEvent(nsIAccessibleEvent *aEvent,
+                                     AtkObject *aObject);
+    nsresult FireAtkPropChangedEvent(nsIAccessibleEvent *aEvent,
+                                     AtkObject *aObject);
+
     AtkObject *mAtkObject;
 
 private:
