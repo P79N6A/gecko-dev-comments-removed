@@ -2835,6 +2835,9 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
     nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(newChannel);
     if (httpInternal) {
         
+        httpInternal->SetForceAllowThirdPartyCookie(mForceAllowThirdPartyCookie);
+
+        
         
         
         
