@@ -340,6 +340,10 @@ class nsOggDecoder : public nsMediaDecoder
   virtual PRBool IsSeeking() const;
 
   
+  
+  virtual PRBool IsEnded() const;
+
+  
   virtual void SetTotalBytes(PRInt64 aBytes);
 
   

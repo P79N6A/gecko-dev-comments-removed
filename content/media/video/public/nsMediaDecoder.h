@@ -136,6 +136,10 @@ class nsMediaDecoder : public nsIObserver
 
   
   
+  virtual PRBool IsEnded() const = 0;
+
+  
+  
   virtual PRUint64 GetBytesLoaded() = 0;
 
   

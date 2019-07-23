@@ -215,9 +215,6 @@ protected:
   PRPackedBool mBegun;
 
   
-  PRPackedBool mEnded;
-
-  
   
   PRPackedBool mLoadedFirstFrame;
 

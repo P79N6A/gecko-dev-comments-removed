@@ -174,6 +174,9 @@ class nsWaveDecoder : public nsMediaDecoder
   virtual PRBool IsSeeking() const;
 
   
+  virtual PRBool IsEnded() const;
+
+  
   
   virtual nsresult Load(nsIURI* aURI, nsIChannel* aChannel, nsIStreamListener** aStreamListener);
 
@@ -264,6 +267,7 @@ private:
   
   float mEndedCurrentTime;
   float mEndedDuration;
+  PRPackedBool mEnded;
 
   
   PRPackedBool mNotifyOnShutdown;
