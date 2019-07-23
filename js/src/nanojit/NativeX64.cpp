@@ -1787,6 +1787,13 @@ namespace nanojit
             }
         }
 
+        
+        verbose_only(
+           if (_logc->lcbits & LC_FragProfile) {
+              asm_inc_m32( &guard->record()->profCount );
+           }
+        )
+
         MR(RSP, RBP);
 
         
@@ -1861,9 +1868,17 @@ namespace nanojit
     
     
     verbose_only(
-    void Assembler::asm_inc_m32(uint32_t* )
+    void Assembler::asm_inc_m32(uint32_t* pCtr)
     {
         
+        
+        
+        
+        
+        emitr(X64_popr, RAX);             
+        emit(X64_inclmRAX);               
+        asm_quad(RAX, (uint64_t)pCtr);    
+        emitr(X64_pushr, RAX);            
     }
     )
 

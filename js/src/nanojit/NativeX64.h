@@ -307,6 +307,7 @@ namespace nanojit
         X64_xorps   = 0xC0570F4000000004LL, 
         X64_xorpsm  = 0x05570F4000000004LL, 
         X64_xorpsa  = 0x2504570F40000005LL, 
+        X64_inclmRAX= 0x00FF000000000002LL, 
         X64_jmpx    = 0xC524ff4000000004LL, 
         X64_jmpxb   = 0xC024ff4000000004LL, 
 
