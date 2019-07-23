@@ -221,7 +221,7 @@ nsContextMenu.prototype = {
     }
 
     
-    this.showItem("context-showimage", (this.onImage && !this.onCompletedImage));
+    this.showItem("context-reloadimage", (this.onImage && !this.onCompletedImage));
 
     
     
@@ -740,7 +740,7 @@ nsContextMenu.prototype = {
     BrowserPageInfo(this.target.ownerDocument);
   },
 
-  showImage: function(e) {
+  reloadImage: function(e) {
     urlSecurityCheck(this.mediaURL,
                      this.browser.contentPrincipal,
                      Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
