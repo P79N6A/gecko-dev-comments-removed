@@ -3902,8 +3902,14 @@ js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, jsval *vp)
 
 
 
-        if (SPROP_HAS_STUB_SETTER(sprop))
+
+
+
+
+        if (!(sprop->attrs & JSPROP_GETTER) && SPROP_HAS_STUB_SETTER(sprop)) {
+            JS_ASSERT(!(sprop->attrs & JSPROP_SETTER));
             return JS_TRUE;
+        }
     }
 
     sample = cx->runtime->propertyRemovals;
