@@ -62,7 +62,7 @@
 
 static NS_DEFINE_CID(kCPluginManagerCID, NS_PLUGINMANAGER_CID); 
 
-#define NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION "MozillaPluginWindowPropertyAssociation"
+#define NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION TEXT("MozillaPluginWindowPropertyAssociation")
 
 typedef nsTWeakRef<class nsPluginNativeWindowWin> PluginWindowWeakRef;
 
