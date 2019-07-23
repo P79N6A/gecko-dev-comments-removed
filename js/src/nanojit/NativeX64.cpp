@@ -70,7 +70,7 @@
 namespace nanojit
 {
     const Register Assembler::retRegs[] = { RAX };
-#ifdef _MSC_VER
+#ifdef _WIN64
     const Register Assembler::argRegs[] = { RCX, RDX, R8, R9 };
     const Register Assembler::savedRegs[] = { RBX, RSI, RDI, R12, R13, R14, R15 };
 #else
@@ -588,7 +588,7 @@ namespace nanojit
             emit(X64_callrax);
         }
 
-    #ifdef _MSC_VER
+    #ifdef _WIN64
         int stk_used = 32; 
     #else
         int stk_used = 0;
@@ -604,7 +604,7 @@ namespace nanojit
                 asm_regarg(sz, arg, argRegs[arg_index]);
                 arg_index++;
             }
-        #ifdef _MSC_VER
+        #ifdef _WIN64
             else if (sz == ARGSIZE_F && arg_index < NumArgRegs) {
                 
                 asm_regarg(sz, arg, Register(XMM0+arg_index));
@@ -1154,7 +1154,7 @@ namespace nanojit
         if (kind == 0) {
             
             
-            if (a < 6) {
+            if (a < NumArgRegs) {
                 
                 prepResultReg(ins, rmask(argRegs[a]));
             } else {
@@ -1281,7 +1281,7 @@ namespace nanojit
     void Assembler::nRegisterResetAll(RegAlloc &a) {
         
         a.clear();
-#ifdef _MSC_VER
+#ifdef _WIN64
         a.free = 0x001fffcf; 
 #else
         a.free = 0xffffffff & ~(1<<RSP | 1<<RBP);
@@ -1316,7 +1316,7 @@ namespace nanojit
     }
 
     Register Assembler::nRegisterAllocFromSet(RegisterMask set) {
-    #if defined _WIN64
+    #if defined _MSC_VER
         DWORD tr;
         _BitScanForward(&tr, set);
         _allocator.free &= ~rmask((Register)tr);
