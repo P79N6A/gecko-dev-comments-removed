@@ -49,7 +49,7 @@
 #include "nsITimer.h"
 #include "nsIReflowCallback.h"
 #include "nsILookAndFeel.h"
-#include "nsValueArray.h"
+#include "nsTArray.h"
 #include "nsTreeStyleCache.h"
 #include "nsTreeColumns.h"
 #include "nsTreeImageListener.h"
@@ -492,8 +492,7 @@ protected:
 
   class Slots {
     public:
-      Slots()
-        : mValueArray(~PRInt32(0)) {
+      Slots() {
       }
 
       ~Slots() {
@@ -525,7 +524,7 @@ protected:
       nsCOMPtr<nsITimer>       mTimer;
 
       
-      nsValueArray             mValueArray;
+      nsTArray<PRInt32>        mArray;
   };
 
   Slots* mSlots;
