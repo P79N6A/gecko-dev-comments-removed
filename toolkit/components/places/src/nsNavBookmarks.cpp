@@ -1490,10 +1490,11 @@ nsNavBookmarks::GetLastChildId(PRInt64 aFolder, PRInt64* aItemId)
   NS_ENSURE_SUCCESS(rv, rv);
   if (!hasMore) {
     
-    return NS_ERROR_INVALID_ARG;
+    *aItemId = -1;
   }
+  else
+    *aItemId = statement->AsInt64(0);
 
-  *aItemId = statement->AsInt64(0);
   return NS_OK;
 }
 
@@ -1503,7 +1504,8 @@ nsNavBookmarks::GetIdForItemAt(PRInt64 aFolder, PRInt32 aIndex, PRInt64* aItemId
   nsresult rv;
   if (aIndex == nsINavBookmarksService::DEFAULT_INDEX) {
     
-    return GetLastChildId(aFolder, aItemId);
+    rv = GetLastChildId(aFolder, aItemId);
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     {
       
@@ -1519,10 +1521,10 @@ nsNavBookmarks::GetIdForItemAt(PRInt64 aFolder, PRInt32 aIndex, PRInt64* aItemId
       NS_ENSURE_SUCCESS(rv, rv);
       if (!hasMore) {
         
-        return NS_ERROR_INVALID_ARG;
+        *aItemId = -1;
       }
-      
-      *aItemId = mDBGetChildAt->AsInt64(0);
+      else
+        *aItemId = mDBGetChildAt->AsInt64(0);
     }
   }
   return NS_OK;

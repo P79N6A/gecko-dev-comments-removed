@@ -942,15 +942,6 @@ nsSafariProfileMigrator::CopyBookmarks(PRBool aReplace)
         (CFArrayRef)::CFDictionaryGetValue(safariBookmarks, CFSTR("Children"));
       if (children) {
         rv = ParseBookmarksFolder(children, folder, bms, PR_TRUE);
-        if (NS_SUCCEEDED(rv)) {
-          
-          
-          
-          nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID));
-          NS_ENSURE_TRUE(pref, NS_ERROR_FAILURE);
-          rv = pref->SetBoolPref("browser.places.importBookmarksHTML", PR_FALSE);
-          NS_ENSURE_SUCCESS(rv, rv);
-        }
       }
     }
   }
