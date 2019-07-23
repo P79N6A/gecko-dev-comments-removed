@@ -511,69 +511,6 @@ namespace nanojit
 		NanoAssert(_pages == 0);
     }
 
-    void Fragment::addLink(GuardRecord* lnk)
-    {
-        
-        lnk->next = _links;
-        _links = lnk;
-    }
-
-    void Fragment::addLink(SideExit* exit)
-    {
-        GuardRecord* rec = exit->guards;
-        AvmAssert(rec);
-        while (rec) {
-            addLink(rec);
-            rec = rec->peer;
-        }
-    }
-    
-    void Fragment::link(Assembler* assm)
-    {
-        
-        GuardRecord* lr = _links;
-        while (lr)
-        {
-            GuardRecord* next = lr->next;
-            Fragment* from = lr->exit->target;
-            if (from && from->fragEntry) assm->patch(lr);
-            lr = next;
-        }
-    }
-
-#ifdef _DEBUG
-    bool Fragment::hasOnlyTreeLinks()
-    {
-        
-        bool isIt = true;
-        GuardRecord *lr = _links;
-        while (lr)
-        {
-            GuardRecord *next = lr->next;
-            NanoAssert(lr->exit->target == this);  
-            if (lr->exit->from->root != root)
-            {
-                isIt = false;
-                break;
-            }
-            lr = next;
-        }       
-        return isIt;            
-    }
-#endif
-
-    void Fragment::linkBranches(Assembler* assm)
-    {
-        
-        NanoAssert(isRoot());
-        Fragment* frag = treeBranches;
-        while(frag)
-        {
-            if (frag->fragEntry) frag->link(assm);
-            frag = frag->treeBranches;
-        }
-    }
-
     void Fragment::blacklist()
     {
         blacklistLevel++;

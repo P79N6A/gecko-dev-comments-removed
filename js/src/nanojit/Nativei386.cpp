@@ -955,12 +955,16 @@ namespace nanojit
 
 	void Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
 	{
-		(void)ins;
-		JMP_long_placeholder(); 
-		verbose_only( if (_verbose && _outputCache) { _outputCache->removeLast(); outputf("         jmp   SOT"); } );
-		
-		loopJumps.add(_nIns);
+		JMP_long(0);
 
+        loopJumps.add(_nIns);
+
+		
+		
+		Fragment* target = ins->record()->exit->target;
+		if (target != _thisfrag)
+	        MR(SP,FP);
+		
 		#ifdef NJ_VERBOSE
 		
 		if (_frago->core()->config.show_stats)
