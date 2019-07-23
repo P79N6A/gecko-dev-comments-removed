@@ -232,14 +232,39 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
         }
 
         
-        if (!(cs->format & JOF_SET) &&
-            SPROP_HAS_STUB_GETTER(sprop) &&
+
+
+
+
+
+        vword = SPROP_TO_PCVAL(sprop);
+        if (SPROP_HAS_STUB_GETTER(sprop) &&
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
-            
-            vword = SLOT_TO_PCVAL(sprop->slot);
-        } else {
-            
-            vword = SPROP_TO_PCVAL(sprop);
+            if (!(cs->format & JOF_SET)) {
+                
+                vword = SLOT_TO_PCVAL(sprop->slot);
+            } else {
+                JSScript *script = cx->fp->script;
+
+                
+
+
+
+                if (script->ngvars &&
+                    JOF_OPTYPE(*cx->fp->regs->pc) == JOF_ATOM &&
+                    JOF_OPMODE(*cx->fp->regs->pc) == JOF_NAME &&
+                    SPROP_HAS_STUB_SETTER(sprop)) {
+                    jsatomid index = GET_INDEX(cx->fp->regs->pc);
+
+                    if (index < script->ngvars) {
+                        JS_ASSERT_IF(!JSVAL_IS_NULL(cx->fp->vars[index]),
+                                     JSVAL_IS_INT(cx->fp->vars[index]) &&
+                                     (uint32) JSVAL_TO_INT(cx->fp->vars[index])
+                                     == sprop->slot);
+                        cx->fp->vars[index] = INT_TO_JSVAL(sprop->slot);
+                    }
+                }
+            }
         }
     } while (0);
 
