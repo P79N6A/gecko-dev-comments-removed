@@ -989,6 +989,13 @@ nsNavHistoryExpire::ExpireInputHistoryParanoid(mozIStorageConnection* aConnectio
       "WHERE h.id IS NULL)"));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  rv = aConnection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "UPDATE moz_inputhistory "
+    "SET use_count = use_count * .9"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   return NS_OK;
 }
 
