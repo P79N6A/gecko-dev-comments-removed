@@ -188,12 +188,6 @@ function ValidateData()
   return ValidateImage();
 }
 
-function doHelpButton()
-{
-  openHelp("image_properties");
-  return true;
-}
-
 function onAccept()
 {
   
