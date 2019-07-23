@@ -609,13 +609,25 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
 
       
       
-      PRBool matchInBookmarkTitle = itemId && 
-        CaseInsensitiveFindInReadable(mCurrentSearchString, entryBookmarkTitle);
+      PRBool everMatchedBookmark = PR_FALSE;
+      
+      PRBool matchAll = PR_TRUE;
+      for (PRUint32 i = 0; i < mCurrentSearchTokens.Count() && matchAll; i++) {
+        const nsString *token = mCurrentSearchTokens.StringAt(i);
+
+        
+        PRBool bookmarkMatch = itemId &&
+          CaseInsensitiveFindInReadable(*token, entryBookmarkTitle);
+        everMatchedBookmark |= bookmarkMatch;
+
+        
+        matchAll = bookmarkMatch ||
+          CaseInsensitiveFindInReadable(*token, entryTitle) ||
+          CaseInsensitiveFindInReadable(*token, entryURL);
+      }
 
       
-      if (!matchInBookmarkTitle &&
-          !CaseInsensitiveFindInReadable(mCurrentSearchString, entryTitle) &&
-          !CaseInsensitiveFindInReadable(mCurrentSearchString, entryURL))
+      if (!matchAll)
         continue;
 
       
@@ -637,7 +649,7 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
         NS_ConvertUTF16toUTF8(entryFavicon), faviconSpec);
 
       rv = mCurrentResult->AppendMatch(entryURL, 
-        matchInBookmarkTitle ? entryBookmarkTitle : entryTitle, 
+        everMatchedBookmark ? entryBookmarkTitle : entryTitle, 
         NS_ConvertUTF8toUTF16(faviconSpec), 
         isBookmark ? NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon"));
       NS_ENSURE_SUCCESS(rv, rv);
