@@ -499,7 +499,6 @@ struct VMFragment : public Fragment
     uint32 globalShape;
 };
 
-
 static VMFragment*
 getVMFragment(JSTraceMonitor* tm, const void *ip, uint32 globalShape)
 {
@@ -550,17 +549,29 @@ getAnchor(JSTraceMonitor* tm, const void *ip, uint32 globalShape)
 static void
 js_AttemptCompilation(JSTraceMonitor* tm, JSObject* globalObj, jsbytecode* pc)
 {
-    Fragment* f = getLoop(tm, pc, OBJ_SHAPE(globalObj));
-    JS_ASSERT(f->root == f);
     
 
 
+    JS_ASSERT(*(jsbytecode*)pc == JSOP_NOP || *(jsbytecode*)pc == JSOP_LOOP);
+    *(jsbytecode*)pc = JSOP_LOOP;
 
+    
+
+
+    Fragment* f = (VMFragment*)getLoop(tm, pc, OBJ_SHAPE(globalObj));
+    if (!f) {
+        
+
+
+
+
+
+        return;
+    }
+    JS_ASSERT(f->root == f);
     f = f->first;
     while (f) {
         JS_ASSERT(f->root == f);
-        JS_ASSERT(*(jsbytecode*)f->ip == JSOP_NOP || *(jsbytecode*)f->ip == JSOP_LOOP);
-        *(jsbytecode*)f->ip = JSOP_LOOP;
         --f->recordAttempts;
         f->hits() = HOTLOOP;
         f = f->peer;
