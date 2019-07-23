@@ -1718,20 +1718,16 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
     return NS_ERROR_FAILURE;
   }
 
-  nsCAutoString newURIString;
-  if (NS_FAILED(uri->GetScheme(newURIString)))
-    return NS_ERROR_FAILURE;
-  nsCAutoString path;
-  if (NS_FAILED(uri->GetPath(path)))
-    return NS_ERROR_FAILURE;
-  newURIString.AppendLiteral("://");
-  AppendUTF16toUTF8(aDomain, newURIString);
-  newURIString.Append(path);
-
   nsCOMPtr<nsIURI> newURI;
-  if (NS_FAILED(NS_NewURI(getter_AddRefs(newURI), newURIString)))
-    return NS_ERROR_FAILURE;
+  nsresult rv = uri->Clone(getter_AddRefs(newURI));
+  NS_ENSURE_TRUE(newURI, rv);
 
+  rv = newURI->SetUserPass(EmptyCString());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = newURI->SetHostPort(NS_ConvertUTF16toUTF8(aDomain));
+  NS_ENSURE_SUCCESS(rv, rv);
+  
   
   
   
@@ -1762,6 +1758,7 @@ nsHTMLDocument::SetDomain(const nsAString& aDomain)
     return NS_ERROR_DOM_BAD_DOCUMENT_DOMAIN;
   }
 
+  NS_TryToSetImmutable(newURI);
   return NodePrincipal()->SetDomain(newURI);
 }
 
