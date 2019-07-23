@@ -271,10 +271,12 @@ nsDocumentEncoder::SerializeNodeStart(nsIDOMNode* aNode,
   nsCOMPtr<nsIDOMNode> node;
 
   
-  if (!aOriginalNode && mNodeFixup) {
+  if (!aOriginalNode) {
     aOriginalNode = aNode;
-    PRBool dummy;
-    mNodeFixup->FixupNode(aNode, &dummy, getter_AddRefs(node));
+    if (mNodeFixup) { 
+      PRBool dummy;
+      mNodeFixup->FixupNode(aNode, &dummy, getter_AddRefs(node));
+    }
   }
 
   
