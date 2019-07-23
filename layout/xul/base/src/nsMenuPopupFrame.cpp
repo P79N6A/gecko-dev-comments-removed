@@ -602,67 +602,33 @@ nsMenuPopupFrame::GetLayoutFlags(PRUint32& aFlags)
 
 
 
-void
-nsMenuPopupFrame::GetViewOffset(nsIView* aView, nsPoint& aPoint)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIView* rootView;
-  aView->GetViewManager()->GetRootView(rootView);
-  aPoint = aView->GetOffsetTo(rootView);
-}
-
-
-
-
-
-
-
 
 nsIView*
-nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame,
-                                      PRBool    aStopAtViewManagerRoot)
+nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
 {
   nsIView* view = aStartFrame->GetClosestView();
   NS_ASSERTION(view, "frame must have a closest view!");
-  if (view) {
-    nsIView* rootView = nsnull;
-    if (aStopAtViewManagerRoot) {
-      view->GetViewManager()->GetRootView(rootView);
-    }
+  nsIView* rootView = nsnull;
+  while (view) {
     
-    while (view) {
-      
-      
-      
-      nsIWidget* widget = view->GetWidget();
-      if (widget) {
-        nsWindowType wtype;
-        widget->GetWindowType(wtype);
-        if (wtype == eWindowType_popup) {
-          return view;
-        }
-      }
-
-      if (aStopAtViewManagerRoot && view == rootView) {
+    
+    
+    nsIWidget* widget = view->GetWidget();
+    if (widget) {
+      nsWindowType wtype;
+      widget->GetWindowType(wtype);
+      if (wtype == eWindowType_popup) {
         return view;
       }
-
-      nsIView* temp = view->GetParent();
-      if (!temp) {
-        
-        
-        return view;
-      }
-      view = temp;
     }
+
+    nsIView* temp = view->GetParent();
+    if (!temp) {
+      
+      
+      return view;
+    }
+    view = temp;
   }
 
   return nsnull;
@@ -854,6 +820,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   PRBool sizedToPopup = PR_FALSE;
 
   nsPresContext* presContext = PresContext();
+  nsIFrame* rootFrame = presContext->PresShell()->FrameManager()->GetRootFrame();
 
   
   
@@ -871,7 +838,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     }
 
     if (!aAnchorFrame) {
-      aAnchorFrame = presContext->PresShell()->FrameManager()->GetRootFrame();
+      aAnchorFrame = rootFrame;
       if (!aAnchorFrame)
         return NS_OK;
     }
@@ -884,28 +851,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   
-  
-  
-  nsIView* containingView = nsnull;
-  nsPoint offset;
-  nsMargin margin;
-  containingView = aAnchorFrame->GetClosestView(&offset);
-  if (!containingView)
-    return NS_OK;
-
-  
-  
-  
-  nsPoint parentPos;
-  GetViewOffset(containingView, parentPos);
-
-  
-  
   nsRect parentRect = aAnchorFrame->GetRect();
-
-  
-  nsIPresShell *presShell = presContext->PresShell();
-  nsIDocument *document = presShell->GetDocument();
 
   
   
@@ -915,16 +861,16 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   
-  nsPoint parentViewWidgetOffset;
-  nsIWidget* parentViewWidget = containingView->GetNearestWidget(&parentViewWidgetOffset);
-  nsRect localParentWidgetRect(0,0,0,0), screenParentWidgetRect;
-  parentViewWidget->WidgetToScreen ( localParentWidgetRect, screenParentWidgetRect );
-
-  
-  
   PRBool readjustAboveBelow = PR_FALSE;
   PRInt32 xpos = 0, ypos = 0;
+  nsMargin margin;
+
+  
   PRInt32 screenViewLocX, screenViewLocY;
+
+  
+  nsRect anchorScreenRect;
+  nsRect rootScreenRect = rootFrame->GetScreenRect();
 
   if (mScreenXPos == -1 && mScreenYPos == -1) {
     
@@ -932,46 +878,29 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     
     
     
-
     if (mAnchorContent) {
-      xpos = parentPos.x + offset.x;
-      ypos = parentPos.y + offset.y;
+      anchorScreenRect = aAnchorFrame->GetScreenRect();
+      xpos = presContext->DevPixelsToAppUnits(anchorScreenRect.x - rootScreenRect.x);
+      ypos = presContext->DevPixelsToAppUnits(anchorScreenRect.y - rootScreenRect.y);
 
       
       
       AdjustPositionForAnchorAlign(&xpos, &ypos, parentRect, &readjustAboveBelow);
-
-      
-      xpos += presContext->DevPixelsToAppUnits(mXPos);
-      ypos += presContext->DevPixelsToAppUnits(mYPos);
     }
     else {
+      
+      anchorScreenRect = rootScreenRect;
       GetStyleMargin()->GetMargin(margin);
-      xpos = presContext->DevPixelsToAppUnits(mXPos) + margin.left;
-      ypos = presContext->DevPixelsToAppUnits(mYPos) + margin.top;
+      xpos = margin.left;
+      ypos = margin.top;
     }
 
     
-    
-    
-    
-    
-    
-    
+    xpos += presContext->CSSPixelsToAppUnits(mXPos);
+    ypos += presContext->CSSPixelsToAppUnits(mYPos);
 
-    
-    
-    
-    
-    
-    nsIView* parentView = GetRootViewForPopup(aAnchorFrame, PR_FALSE);
-    if (!parentView)
-      return NS_OK;
-
-    screenViewLocX = presContext->DevPixelsToAppUnits(screenParentWidgetRect.x) +
-      (xpos - parentPos.x) + parentViewWidgetOffset.x;
-    screenViewLocY = presContext->DevPixelsToAppUnits(screenParentWidgetRect.y) +
-      (ypos - parentPos.y) + parentViewWidgetOffset.y;
+    screenViewLocX = presContext->DevPixelsToAppUnits(rootScreenRect.x) + xpos;
+    screenViewLocY = presContext->DevPixelsToAppUnits(rootScreenRect.y) + ypos;
   }
   else {
     
@@ -979,19 +908,15 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     screenViewLocX = nsPresContext::CSSPixelsToAppUnits(mScreenXPos) + margin.left;
     screenViewLocY = nsPresContext::CSSPixelsToAppUnits(mScreenYPos) + margin.top;
 
-    xpos = screenViewLocX - presContext->DevPixelsToAppUnits(screenParentWidgetRect.x) -
-           parentViewWidgetOffset.x - parentPos.x;
-    ypos = screenViewLocY - presContext->DevPixelsToAppUnits(screenParentWidgetRect.y) -
-           parentViewWidgetOffset.y - parentPos.y;
+    
+    
+    xpos = screenViewLocX - presContext->DevPixelsToAppUnits(rootScreenRect.x);
+    ypos = screenViewLocY - presContext->DevPixelsToAppUnits(rootScreenRect.y);
   }
 
   
   
   
-  nsPIDOMWindow *window = document->GetWindow();
-  if (!window)
-    return NS_OK;
-
   nsIDeviceContext* devContext = PresContext()->DeviceContext();
   nsRect rect;
   if ( mMenuCanOverlapOSBar ) {
@@ -1007,7 +932,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   if (mInContentShell) {
-    nsRect rootScreenRect = presShell->GetRootFrame()->GetScreenRect();
     rootScreenRect.ScaleRoundIn(presContext->AppUnitsPerDevPixel());
     rect.IntersectRect(rect, rootScreenRect);
   }
@@ -1020,6 +944,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
   PRInt32 screenBottomTwips = rect.YMost();
 
   if (mPopupAnchor != POPUPALIGNMENT_NONE) {
+    NS_ASSERTION(mScreenXPos == -1 && mScreenYPos == -1,
+                 "screen position used with anchor");
     
     
     
@@ -1041,16 +967,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     
     
     
-
-
-
-    
-    
-    nsRect screenParentFrameRect (presContext->AppUnitsToDevPixels(offset.x), presContext->AppUnitsToDevPixels(offset.y),
-                                    parentRect.width, parentRect.height );
-    parentViewWidget->WidgetToScreen ( screenParentFrameRect, screenParentFrameRect );
-    screenParentFrameRect.x = presContext->DevPixelsToAppUnits(screenParentFrameRect.x);
-    screenParentFrameRect.y = presContext->DevPixelsToAppUnits(screenParentFrameRect.y);
 
     
     if (screenViewLocY < screenTopTwips) {
@@ -1063,7 +979,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     if ( (screenViewLocX + mRect.width) > screenRightTwips ||
            screenViewLocX < screenLeftTwips ||
           (screenViewLocY + mRect.height) > screenBottomTwips ) {
-      
+      nsRect screenParentFrameRect(anchorScreenRect);
+      screenParentFrameRect.ScaleRoundOut(PresContext()->AppUnitsPerDevPixel());
+
       
       
       PRBool switchSides = IsMoreRoomOnOtherSideOfParent ( readjustAboveBelow, screenViewLocX, screenViewLocY,
@@ -1576,9 +1494,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
 NS_IMETHODIMP
 nsMenuPopupFrame::GetWidget(nsIWidget **aWidget)
 {
-  
-  
-  nsIView * view = GetRootViewForPopup(this, PR_FALSE);
+  nsIView * view = GetRootViewForPopup(this);
   if (!view)
     return NS_OK;
 

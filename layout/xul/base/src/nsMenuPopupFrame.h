@@ -204,9 +204,7 @@ public:
   
   void AdjustView();
 
-  void GetViewOffset(nsIView* aView, nsPoint& aPoint);
-  nsIView* GetRootViewForPopup(nsIFrame* aStartFrame,
-                               PRBool aStopAtViewManagerRoot);
+  nsIView* GetRootViewForPopup(nsIFrame* aStartFrame);
 
   
   
