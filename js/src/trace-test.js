@@ -1824,6 +1824,14 @@ testBug462388.expected = true;
 test(testBug462388);
 
 
+function testBug462407() {
+    for each (let i in [0, {}, 0, 1.5, {}, 0, 1.5, 0, 0]) { }
+    return true;
+}
+testBug462407.expected = true;
+test(testBug462407);
+
+
 
 
 
