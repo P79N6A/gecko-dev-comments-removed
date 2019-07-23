@@ -90,7 +90,7 @@ struct LasmSideExit : public SideExit {
 
 
 void
-nanojit::StackFilter::getTops(LIns* guard, int& spTop, int& rpTop)
+nanojit::StackFilter::getTops(LIns*, int& spTop, int& rpTop)
 {
     spTop = 0;
     rpTop = 0;
@@ -427,7 +427,7 @@ dep_u32(char *&buf, uint32_t word, uint32_t &cksum)
 }
 
 void
-dump_srecords(ostream &out, Fragment *frag)
+dump_srecords(ostream &, Fragment *)
 {
     
     
@@ -526,7 +526,6 @@ FragmentAssembler::bad(const string &msg)
 {
     cerr << "line " << mLineno << ": " << msg << endl;
     exit(1);
-    exit(1);
 }
 
 void
@@ -598,7 +597,7 @@ FragmentAssembler::assemble_load()
 LIns *
 FragmentAssembler::assemble_call(const string &op)
 {
-    CallInfo *ci = new (mParent.mAlloc) CallInfo();
+    CallInfo *ci = new (mParent.mAlloc) CallInfo;
     mCallInfos.push_back(ci);
     LIns *args[MAXARGS];
     memset(&args[0], 0, sizeof(args));
@@ -664,6 +663,7 @@ FragmentAssembler::assemble_call(const string &op)
         }
 
         
+        ty = 0;
         if      (mOpcode == LIR_icall) ty = ARGSIZE_LO;
         else if (mOpcode == LIR_fcall) ty = ARGSIZE_F;
         else if (mOpcode == LIR_qcall) ty = ARGSIZE_Q;
@@ -696,7 +696,7 @@ FragmentAssembler::createSideExit()
 GuardRecord*
 FragmentAssembler::createGuardRecord(LasmSideExit *exit)
 {
-    GuardRecord *rec = new (mParent.mAlloc) GuardRecord();
+    GuardRecord *rec = new (mParent.mAlloc) GuardRecord;
     memset(rec, 0, sizeof(GuardRecord));
     rec->exit = exit;
     exit->addGuard(rec);
@@ -1152,7 +1152,7 @@ static double f_F_F8(double a, double b, double c, double d,
     return a + b + c + d + e + f + g + h;
 }
 
-static void f_N_IQF(int32_t a, uint64_t b, double c)
+static void f_N_IQF(int32_t, uint64_t, double)
 {
     return;     
 }
@@ -1494,7 +1494,7 @@ FragmentAssembler::assembleRandomFragment(int nIns)
                         
                         
                         LIns* gt0  = mLir->ins2i(LIR_gt, rhs, 0);
-                        LIns* rhs2 = mLir->ins3(LIR_cmov, gt0, rhs, mLir->insImm(-rnd(99) - 2));
+                        LIns* rhs2 = mLir->ins3(LIR_cmov, gt0, rhs, mLir->insImm(-((int32_t)rnd(99)) - 2));
                         LIns* div  = mLir->ins2(LIR_div, lhs, rhs2);
                         if (op == LIR_div) {
                             ins = div;
@@ -2001,7 +2001,7 @@ main(int argc, char **argv)
         switch (i->second.mReturnType) {
           case RT_FLOAT:
           {
-            float res = i->second.rfloat();
+            double res = i->second.rfloat();
             cout << "Output is: " << res << endl;
             break;
           }
