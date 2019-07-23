@@ -221,9 +221,23 @@
 #define IS_ARABIC_CHAR(c) ((0x0600 <= (c)) && ((c)<= 0x06FF))
 #define IS_ARABIC_ALPHABETIC(c) (IS_ARABIC_CHAR(c) && \
                                 !(IS_HINDI_DIGIT(c) || IS_FARSI_DIGIT(c) || IS_ARABIC_SEPARATOR(c)))
-#define IS_CYPRIOT_CHAR(c) ((0x10800 <= (c)) && ((c) <=0x1083F))
 
-#define CHAR_IS_BIDI(c) ( (IS_HINDI_DIGIT(c) ) || (IS_HEBREW_CHAR(c) ) \
-                        || (IS_06_CHAR(c) ) || (IS_FE_CHAR(c) ) \
-                        || (IS_CYPRIOT_CHAR(c) ) )
+
+
+
+
+
+
+
+
+
+#define IS_IN_BMP_RTL_BLOCK(c) ((0x590 <= (c)) && ((c) <= 0x8ff))
+#define IS_RTL_PRESENTATION_FORM(c) (((0xfb1d <= (c)) && ((c) <= 0xfdff)) || \
+                                     ((0xfe70 <= (c)) && ((c) <= 0xfefc)))
+#define IS_IN_SMP_RTL_BLOCK(c) ((0x10800 <= (c)) && ((c) <= 0x10fff))
+#define UCS2_CHAR_IS_BIDI(c) ((IS_IN_BMP_RTL_BLOCK(c)) || \
+                              (IS_RTL_PRESENTATION_FORM(c)))
+#define UTF32_CHAR_IS_BIDI(c)  ((IS_IN_BMP_RTL_BLOCK(c)) || \
+                               (IS_RTL_PRESENTATION_FORM(c)) || \
+                               (IS_IN_SMP_RTL_BLOCK(c)))
 #endif  
