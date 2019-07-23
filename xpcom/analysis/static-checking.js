@@ -6,6 +6,17 @@
 
 
 
+function treehydra_enabled() {
+  return this.hasOwnProperty('TREE_CODE');
+}
+
+if (treehydra_enabled()) {
+  include('outparams.js');
+}
+
+
+
+
 
 
 
