@@ -59,7 +59,7 @@ try {
 }
 
 
-var root = bmsvc.bookmarksRoot;
+var root = bmsvc.bookmarksMenuFolder;
 
 
 function run_test() {
