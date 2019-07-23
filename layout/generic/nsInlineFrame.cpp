@@ -124,16 +124,39 @@ nsInlineFrame::IsSelfEmpty()
   
   
   
-  if (border->GetActualBorderWidth(NS_SIDE_RIGHT) != 0 ||
-      border->GetActualBorderWidth(NS_SIDE_LEFT) != 0 ||
-      !IsPaddingZero(padding->mPadding.GetRightUnit(),
-                     padding->mPadding.GetRight()) ||
-      !IsPaddingZero(padding->mPadding.GetLeftUnit(),
-                     padding->mPadding.GetLeft()) ||
-      !IsMarginZero(margin->mMargin.GetRightUnit(),
-                    margin->mMargin.GetRight()) ||
-      !IsMarginZero(margin->mMargin.GetLeftUnit(),
-                    margin->mMargin.GetLeft())) {
+  PRBool haveRight =
+    border->GetActualBorderWidth(NS_SIDE_RIGHT) != 0 ||
+    !IsPaddingZero(padding->mPadding.GetRightUnit(),
+                   padding->mPadding.GetRight()) ||
+    !IsMarginZero(margin->mMargin.GetRightUnit(),
+                  margin->mMargin.GetRight());
+  PRBool haveLeft =
+    border->GetActualBorderWidth(NS_SIDE_LEFT) != 0 ||
+    !IsPaddingZero(padding->mPadding.GetLeftUnit(),
+                   padding->mPadding.GetLeft()) ||
+    !IsMarginZero(margin->mMargin.GetLeftUnit(),
+                  margin->mMargin.GetLeft());
+  if (haveLeft || haveRight) {
+    if (GetStateBits() & NS_FRAME_IS_SPECIAL) {
+      PRBool haveStart, haveEnd;
+      if (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection) {
+        haveStart = haveLeft;
+        haveEnd = haveRight;
+      } else {
+        haveStart = haveRight;
+        haveEnd = haveLeft;
+      }
+      
+      
+      
+
+      
+      
+      nsIFrame* firstCont = GetFirstContinuation();
+      return
+        (!haveStart || nsLayoutUtils::FrameIsNonFirstInIBSplit(firstCont)) &&
+        (!haveEnd || nsLayoutUtils::FrameIsNonLastInIBSplit(firstCont));
+    }
     return PR_FALSE;
   }
   return PR_TRUE;
