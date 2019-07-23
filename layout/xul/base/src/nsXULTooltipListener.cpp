@@ -72,6 +72,7 @@ nsXULTooltipListener* nsXULTooltipListener::mInstance = nsnull;
 nsXULTooltipListener::nsXULTooltipListener()
   : mMouseScreenX(0)
   , mMouseScreenY(0)
+  , mTooltipShownOnce(PR_FALSE)
 #ifdef MOZ_XUL
   , mIsSourceTree(PR_FALSE)
   , mNeedTitletip(PR_FALSE)
@@ -136,6 +137,9 @@ nsXULTooltipListener::MouseUp(nsIDOMEvent* aMouseEvent)
 NS_IMETHODIMP
 nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
 {
+  
+  mTooltipShownOnce = PR_FALSE;
+   
   
   
   mCachedMouseEvent = nsnull;
@@ -204,7 +208,18 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
   PRInt32 newMouseX, newMouseY;
   mouseEvent->GetScreenX(&newMouseX);
   mouseEvent->GetScreenY(&newMouseY);
+
+  
   if (mMouseScreenX == newMouseX && mMouseScreenY == newMouseY)
+    return NS_OK;  
+
+  
+  
+  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
+
+  if ((currentTooltip) &&
+      (abs(mMouseScreenX - newMouseX) <= kTooltipMouseMoveTolerance) &&
+      (abs(mMouseScreenY - newMouseY) <= kTooltipMouseMoveTolerance))
     return NS_OK;
   mMouseScreenX = newMouseX;
   mMouseScreenY = newMouseY;
@@ -229,8 +244,7 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
   
   
   
-  nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
-  if (!currentTooltip) {
+  if (!currentTooltip && !mTooltipShownOnce) {
     mTooltipTimer = do_CreateInstance("@mozilla.org/timer;1");
     if (mTooltipTimer) {
       aMouseEvent->GetTarget(getter_AddRefs(eventTarget));
@@ -245,6 +259,8 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
         }
       }
     }
+  } else {
+    HideTooltip();
   }
 
   return NS_OK;
@@ -421,13 +437,6 @@ nsXULTooltipListener::ShowTooltip()
 
       
       
-      
-      if (!currentTooltip->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
-                                       nsGkAtoms::_true, eCaseMatters))
-        CreateAutoHideTimer();
-
-      
-      
       nsCOMPtr<nsIDOMEventTarget> evtTarget(do_QueryInterface(currentTooltip));
       evtTarget->AddEventListener(NS_LITERAL_STRING("popuphiding"), 
                                   static_cast<nsIDOMMouseListener*>(this), PR_FALSE);
@@ -527,6 +536,11 @@ nsXULTooltipListener::LaunchTooltip()
     
     if (!pm->IsPopupOpen(currentTooltip))
       mCurrentTooltip = nsnull;
+    else {
+      
+      
+      mTooltipShownOnce = PR_TRUE;
+    }
   }
 #endif
 
@@ -711,10 +725,6 @@ nsXULTooltipListener::DestroyTooltip()
 #ifdef MOZ_XUL
   mLastTreeCol = nsnull;
 #endif
-  if (mAutoHideTimer) {
-    mAutoHideTimer->Cancel();
-    mAutoHideTimer = nsnull;
-  }
 
   return NS_OK;
 }
@@ -730,33 +740,11 @@ nsXULTooltipListener::KillTooltipTimer()
 }
 
 void
-nsXULTooltipListener::CreateAutoHideTimer()
-{
-  if (mAutoHideTimer) {
-    mAutoHideTimer->Cancel();
-    mAutoHideTimer = nsnull;
-  }
-
-  mAutoHideTimer = do_CreateInstance("@mozilla.org/timer;1");
-  if ( mAutoHideTimer )
-    mAutoHideTimer->InitWithFuncCallback(sAutoHideCallback, this, kTooltipAutoHideTime, 
-                                         nsITimer::TYPE_ONE_SHOT);
-}
-
-void
 nsXULTooltipListener::sTooltipCallback(nsITimer *aTimer, void *aListener)
 {
   nsRefPtr<nsXULTooltipListener> instance = mInstance;
   if (instance)
     instance->ShowTooltip();
-}
-
-void
-nsXULTooltipListener::sAutoHideCallback(nsITimer *aTimer, void* aListener)
-{
-  nsRefPtr<nsXULTooltipListener> instance = mInstance;
-  if (instance)
-    instance->HideTooltip();
 }
 
 #ifdef MOZ_XUL
