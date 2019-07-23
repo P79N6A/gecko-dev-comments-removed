@@ -1208,6 +1208,7 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell*          aPresShe
     mFrameState(aHistoryState),
     mPseudoFrames()
 {
+  MOZ_COUNT_CTOR(nsFrameConstructorState);
 }
 
 nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
@@ -1228,6 +1229,7 @@ nsFrameConstructorState::nsFrameConstructorState(nsIPresShell* aPresShell,
     mFirstLineStyle(PR_FALSE),
     mPseudoFrames()
 {
+  MOZ_COUNT_CTOR(nsFrameConstructorState);
   mFrameState = aPresShell->GetDocument()->GetLayoutHistoryState();
 }
 
@@ -1241,6 +1243,7 @@ nsFrameConstructorState::~nsFrameConstructorState()
   
   
   
+  MOZ_COUNT_DTOR(nsFrameConstructorState);
   ProcessFrameInsertions(mFloatedItems, nsGkAtoms::floatList);
   ProcessFrameInsertions(mAbsoluteItems, nsGkAtoms::absoluteList);
   ProcessFrameInsertions(mFixedItems, nsGkAtoms::fixedList);
@@ -7937,6 +7940,16 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
     
     
     
+    
+    char stateBuf[2 * sizeof(nsFrameConstructorState)];
+    nsFrameConstructorState* sourceState = &aState;
+    nsFrameConstructorState* targetState =
+      reinterpret_cast<nsFrameConstructorState*>(stateBuf);
+
+    
+    
+    
+    
     do {
       NS_ASSERTION(IsFrameSpecial(parentFrame) && !IsInlineFrame(parentFrame),
                    "Shouldn't be in this code");
@@ -7957,15 +7970,32 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
       nsIFrame* stateParent =
         inlineSibling ? inlineSibling->GetParent() : parentFrame->GetParent();
 
-      nsFrameConstructorState
-        targetState(mPresShell, mFixedContainingBlock,
-                    GetAbsoluteContainingBlock(stateParent),
-                    GetFloatContainingBlock(stateParent));
+      new (targetState)
+        nsFrameConstructorState(mPresShell, mFixedContainingBlock,
+                                GetAbsoluteContainingBlock(stateParent),
+                                GetFloatContainingBlock(stateParent));
       nsIFrame* newInlineSibling =
-        MoveFramesToEndOfIBSplit(aState, inlineSibling,
+        MoveFramesToEndOfIBSplit(*sourceState, inlineSibling,
                                  isPositioned, content,
                                  styleContext, firstTrailingInline,
-                                 parentFrame, &targetState);
+                                 parentFrame, targetState);
+
+      if (sourceState == &aState) {
+        NS_ASSERTION(targetState ==
+                       reinterpret_cast<nsFrameConstructorState*>(stateBuf),
+                     "Bogus target state?");
+        
+        sourceState = targetState + 1;
+      } else {
+        
+        sourceState->~nsFrameConstructorState();
+      }
+
+      
+      
+      nsFrameConstructorState* temp = sourceState;
+      sourceState = targetState;
+      targetState = temp;;
 
       if (inlineSibling) {
         
@@ -7996,6 +8026,9 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
         firstTrailingInline = newInlineSibling;
       }      
     } while (firstTrailingInline);
+
+    
+    sourceState->~nsFrameConstructorState();
   }
     
   if (!aFrameList.childList) {
