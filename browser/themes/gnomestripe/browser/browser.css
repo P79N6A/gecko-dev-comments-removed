@@ -55,16 +55,30 @@
   min-height: 26px;
 }
 
+%ifdef XP_WIN
 
 
 
-#navigator-toolbox {
-  margin-bottom: -1px;
+
+
+
+#navigator-toolbox > toolbar {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  -moz-border-top-colors: ThreeDHighlight;
+  -moz-border-bottom-colors: ThreeDShadow;
 }
 
-.tabbrowser-strip {
-  margin-top: 1px;
+
+#navigator-toolbox > toolbar:first-child,
+#navigator-toolbox > toolbar[moz-collapsed="true"]:first-child + toolbar {
+  border-top: none;
 }
+
+#sidebar-box > sidebarheader {
+  border-top: 1px solid ThreeDHighlight;
+}
+%endif
 
 
 
