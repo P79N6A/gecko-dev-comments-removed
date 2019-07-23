@@ -222,14 +222,11 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mPort(0)
 {
   mThreadData = new nsSSLSocketThreadData;
-  mCallbacksLock = nsAutoLock::NewLock("nsNSSSocketInfo::mCallbacksLock");
 }
 
 nsNSSSocketInfo::~nsNSSSocketInfo()
 {
   delete mThreadData;
-
-  nsAutoLock::DestroyLock(mCallbacksLock);
 
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -331,192 +328,119 @@ PRBool nsNSSSocketInfo::GetHasCleartextPhase()
 NS_IMETHODIMP
 nsNSSSocketInfo::GetNotificationCallbacks(nsIInterfaceRequestor** aCallbacks)
 {
-  nsCOMPtr<nsISupports> supports;
-  {
-    nsAutoLock lock(mCallbacksLock);
-    supports = mCallbacks;
-  }
-  nsCOMPtr<nsIInterfaceRequestor> callbacks(do_QueryInterface(supports));
-  callbacks.forget(aCallbacks);
+  *aCallbacks = mCallbacks;
+  NS_IF_ADDREF(*aCallbacks);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsNSSSocketInfo::SetNotificationCallbacks(nsIInterfaceRequestor* aCallbacks)
 {
-  nsCOMPtr<nsISupports> callbacks(do_QueryInterface(aCallbacks));
+  if (!aCallbacks) {
+    mCallbacks = nsnull;
+    return NS_OK;
+  }
 
-  nsAutoLock lock(mCallbacksLock);
+  mCallbacks = aCallbacks;
+  mDocShellDependentStuffKnown = PR_FALSE;
 
-  callbacks.swap(mCallbacks);
-  if (mCallbacks) {
-    mDocShellDependentStuffKnown = PR_FALSE;
+  return NS_OK;
+}
+
+nsresult
+nsNSSSocketInfo::EnsureDocShellDependentStuffKnown()
+{
+  if (mDocShellDependentStuffKnown)
+    return NS_OK;
+
+  if (!mCallbacks || nsSSLThread::exitRequested())
+    return NS_ERROR_FAILURE;
+
+  mDocShellDependentStuffKnown = PR_TRUE;
+
+  nsCOMPtr<nsIInterfaceRequestor> proxiedCallbacks;
+  NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                       NS_GET_IID(nsIInterfaceRequestor),
+                       static_cast<nsIInterfaceRequestor*>(mCallbacks),
+                       NS_PROXY_SYNC,
+                       getter_AddRefs(proxiedCallbacks));
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsCOMPtr<nsIDocShell> docshell;
+
+  nsCOMPtr<nsIDocShellTreeItem> item(do_GetInterface(proxiedCallbacks));
+  if (item)
+  {
+    nsCOMPtr<nsIDocShellTreeItem> proxiedItem;
+    nsCOMPtr<nsIDocShellTreeItem> rootItem;
+    NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                         NS_GET_IID(nsIDocShellTreeItem),
+                         item.get(),
+                         NS_PROXY_SYNC,
+                         getter_AddRefs(proxiedItem));
+
+    proxiedItem->GetSameTypeRootTreeItem(getter_AddRefs(rootItem));
+    docshell = do_QueryInterface(rootItem);
+    NS_ASSERTION(docshell, "rootItem do_QI is null");
+  }
+
+  if (docshell)
+  {
+    nsCOMPtr<nsIDocShell> proxiedDocShell;
+    NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                         NS_GET_IID(nsIDocShell),
+                         docshell.get(),
+                         NS_PROXY_SYNC,
+                         getter_AddRefs(proxiedDocShell));
+    nsISecureBrowserUI* secureUI;
+    proxiedDocShell->GetSecurityUI(&secureUI);
+    if (secureUI)
+    {
+      nsCOMPtr<nsIThread> mainThread(do_GetMainThread());
+      NS_ProxyRelease(mainThread, secureUI, PR_FALSE);
+      mExternalErrorReporting = PR_TRUE;
+
+      
+      
+      
+      
+      nsCOMPtr<nsISSLStatusProvider> statprov = do_QueryInterface(secureUI);
+      if (statprov) {
+        nsCOMPtr<nsISupports> isup_stat;
+        statprov->GetSSLStatus(getter_AddRefs(isup_stat));
+        if (isup_stat) {
+          nsCOMPtr<nsISSLStatus> sslstat = do_QueryInterface(isup_stat);
+          if (sslstat) {
+            sslstat->GetServerCert(getter_AddRefs(mPreviousCert));
+          }
+        }
+      }
+    }
   }
 
   return NS_OK;
 }
 
-class nsGatherDocshellInfoForPSMRunnable : public nsRunnable
-{
-public:
-  nsGatherDocshellInfoForPSMRunnable(nsIInterfaceRequestor* aCallbacks,
-                                     PRBool* aExternalReporting,
-                                     nsIX509Cert** aPreviousCert)
-  : mCallbacks(aCallbacks), mExternalReporting(aExternalReporting),
-    mPreviousCert(aPreviousCert)
-  {
-    NS_ASSERTION(aCallbacks, "Null pointer!");
-  }
-
-  NS_IMETHOD Run()
-  {
-    NS_ASSERTION(NS_IsMainThread(), "Must run only on the main thread!");
-
-    *mExternalReporting = PR_FALSE;
-    *mPreviousCert = nsnull;
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-    nsCOMPtr<nsIDocShellTreeItem> item(do_GetInterface(mCallbacks));
-    if (!item)
-      return NS_OK;
-
-    nsCOMPtr<nsIDocShellTreeItem> rootItem;
-    item->GetSameTypeRootTreeItem(getter_AddRefs(rootItem));
-
-    nsCOMPtr<nsIDocShell> docshell(do_QueryInterface(rootItem));
-    NS_ASSERTION(docshell, "rootItem do_QI is null");
-    if (!docshell)
-      return NS_OK;
-
-    nsCOMPtr<nsISecureBrowserUI> secureUI;
-    docshell->GetSecurityUI(getter_AddRefs(secureUI));
-    if (!secureUI)
-      return NS_OK;
-
-    *mExternalReporting = PR_TRUE;
-
-    
-    
-    
-    
-    nsCOMPtr<nsISSLStatusProvider> statprov(do_QueryInterface(secureUI));
-    if (!statprov)
-      return NS_OK;
-
-    nsCOMPtr<nsISupports> isup_stat;
-    statprov->GetSSLStatus(getter_AddRefs(isup_stat));
-
-    nsCOMPtr<nsISSLStatus> sslstat(do_QueryInterface(isup_stat));
-    if (!sslstat)
-      return NS_OK;
-
-    sslstat->GetServerCert(mPreviousCert);
-    return NS_OK;
-  }
-
-private:
-  nsIInterfaceRequestor* mCallbacks;
-  PRBool* mExternalReporting;
-  nsIX509Cert** mPreviousCert;
-};
-
-nsresult
-nsNSSSocketInfo::EnsureDocShellDependentStuffKnown(PRBool* aExternalReporting,
-                                                   nsIX509Cert** aPreviousCert)
-{
-  do {
-    nsCOMPtr<nsISupports> origCallbacks;
-    {
-      nsAutoLock lock(mCallbacksLock);
-
-      if (mDocShellDependentStuffKnown) {
-        if (aExternalReporting) {
-          *aExternalReporting = mExternalErrorReporting;
-        }
-        if (aPreviousCert) {
-          NS_IF_ADDREF(*aPreviousCert = mPreviousCert);
-        }
-        return NS_OK;
-      }
-
-      origCallbacks = mCallbacks;
-    }
-
-    if (nsSSLThread::exitRequested() || !origCallbacks) {
-      return NS_ERROR_FAILURE;
-    }
-
-    nsCOMPtr<nsIInterfaceRequestor> callbacks(do_QueryInterface(origCallbacks));
-    NS_ASSERTION(callbacks, "How does this not QI to nsIInterfaceRequestor?!");
-
-    
-    nsCOMPtr<nsIThread> mainThread(do_GetMainThread());
-    NS_ENSURE_TRUE(mainThread, NS_ERROR_FAILURE);
-
-    PRBool externalReporting = PR_FALSE;
-    nsCOMPtr<nsIX509Cert> previousCert;
-
-    nsCOMPtr<nsIRunnable> runnable =
-      new nsGatherDocshellInfoForPSMRunnable(callbacks, &externalReporting,
-                                             getter_AddRefs(previousCert));
-    NS_ENSURE_TRUE(runnable, NS_ERROR_OUT_OF_MEMORY);
-
-    nsresult rv = mainThread->Dispatch(runnable, NS_DISPATCH_SYNC);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    {
-      nsAutoLock lock(mCallbacksLock);
-
-      
-      
-      
-      if (mCallbacks == origCallbacks) {
-        
-        mDocShellDependentStuffKnown = PR_TRUE;
-        mExternalErrorReporting = externalReporting;
-        previousCert.swap(mPreviousCert);
-
-        if (aExternalReporting) {
-          *aExternalReporting = mExternalErrorReporting;
-        }
-        if (aPreviousCert) {
-          NS_IF_ADDREF(*aPreviousCert = mPreviousCert);
-        }
-        return NS_OK;
-      }
-    }
-
-    
-    NS_WARNING("Contention for mCallbacks, trying again");
-
-  } while(1); 
-
-  NS_NOTREACHED("Should never get here");
-  return NS_ERROR_UNEXPECTED;
-}
-
 nsresult
 nsNSSSocketInfo::GetExternalErrorReporting(PRBool* state)
 {
-  NS_ENSURE_ARG_POINTER(state);
-  nsresult rv = EnsureDocShellDependentStuffKnown(state);
+  nsresult rv = EnsureDocShellDependentStuffKnown();
   NS_ENSURE_SUCCESS(rv, rv);
-
+  *state = mExternalErrorReporting;
   return NS_OK;
 }
 
 nsresult
 nsNSSSocketInfo::SetExternalErrorReporting(PRBool aState)
 {
-  nsAutoLock lock(mCallbacksLock);
   mExternalErrorReporting = aState;
   return NS_OK;
 }
@@ -620,33 +544,27 @@ nsNSSSocketInfo::SetErrorMessage(const PRUnichar* aText) {
 
 NS_IMETHODIMP nsNSSSocketInfo::GetInterface(const nsIID & uuid, void * *result)
 {
-  nsCOMPtr<nsISupports> callbacks;
+  nsresult rv;
+  if (!mCallbacks) {
+    nsCOMPtr<nsIInterfaceRequestor> ir = new PipUIContext();
+    if (!ir)
+      return NS_ERROR_OUT_OF_MEMORY;
 
-  {
-    nsAutoLock lock(mCallbacksLock);
-    callbacks = mCallbacks;
-  }
-
-  if (callbacks) {
-    
+    rv = ir->GetInterface(uuid, result);
+  } else {
     if (nsSSLThread::exitRequested())
       return NS_ERROR_FAILURE;
 
     nsCOMPtr<nsIInterfaceRequestor> proxiedCallbacks;
-    nsresult rv = NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
-                                       NS_GET_IID(nsIInterfaceRequestor),
-                                       callbacks,
-                                       NS_PROXY_SYNC,
-                                       getter_AddRefs(proxiedCallbacks));
-    NS_ENSURE_SUCCESS(rv, rv);
+    NS_GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+                         NS_GET_IID(nsIInterfaceRequestor),
+                         mCallbacks,
+                         NS_PROXY_SYNC,
+                         getter_AddRefs(proxiedCallbacks));
 
-    return proxiedCallbacks->GetInterface(uuid, result);
+    rv = proxiedCallbacks->GetInterface(uuid, result);
   }
-
-  nsCOMPtr<nsIInterfaceRequestor> ir = new PipUIContext();
-  NS_ENSURE_TRUE(ir, NS_ERROR_OUT_OF_MEMORY);
-
-  return ir->GetInterface(uuid, result);
+  return rv;
 }
 
 nsresult
@@ -795,8 +713,11 @@ nsresult nsNSSSocketInfo::SetFileDescPtr(PRFileDesc* aFilePtr)
 nsresult nsNSSSocketInfo::GetPreviousCert(nsIX509Cert** _result)
 {
   NS_ENSURE_ARG_POINTER(_result);
-  nsresult rv = EnsureDocShellDependentStuffKnown(nsnull, _result);
+  nsresult rv = EnsureDocShellDependentStuffKnown();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  *_result = mPreviousCert;
+  NS_IF_ADDREF(*_result);
 
   return NS_OK;
 }

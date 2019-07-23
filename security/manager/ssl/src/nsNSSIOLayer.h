@@ -43,7 +43,6 @@
 
 #include "prtypes.h"
 #include "prio.h"
-#include "prlock.h"
 #include "certt.h"
 #include "nsString.h"
 #include "nsIInterfaceRequestor.h"
@@ -202,7 +201,7 @@ public:
   PRStatus CloseSocketAndDestroy();
   
 protected:
-  nsCOMPtr<nsISupports> mCallbacks;
+  nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   PRFileDesc* mFd;
   nsCOMPtr<nsIX509Cert> mCert;
   nsCOMPtr<nsIX509Cert> mPreviousCert; 
@@ -236,13 +235,7 @@ protected:
 
   nsSSLSocketThreadData *mThreadData;
 
-  
-  
-  PRLock* mCallbacksLock;
-
-  nsresult
-  EnsureDocShellDependentStuffKnown(PRBool* aExternalReporting = nsnull,
-                                    nsIX509Cert** aPreviousCert = nsnull);
+  nsresult EnsureDocShellDependentStuffKnown();
 
 private:
   virtual void virtualDestroyNSSReference();
