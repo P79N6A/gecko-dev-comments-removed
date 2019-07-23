@@ -3270,20 +3270,23 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
   
   
   nscoord divisor = 0;
+  PRUint32 rowCount = 0;
   for (rgX = 0; rgX < rowGroups.Length(); rgX++) {
     nsTableRowGroupFrame* rgFrame = rowGroups[rgX];
     if (!firstUnStyledRG || !rgFrame->HasStyleHeight()) {
       nsTableRowFrame* rowFrame = rgFrame->GetFirstRow();
       while (rowFrame) {
         if (!firstUnStyledRG || !rowFrame->HasStyleHeight()) {
+          NS_ASSERTION(rowFrame->GetSize().height >= 0, "negative height");
           divisor += rowFrame->GetSize().height;
+          ++rowCount;
           lastElligibleRow = rowFrame;
         }
         rowFrame = rowFrame->GetNextRow();
       }
     }
   }
-  if (divisor <= 0) {
+  if (divisor < 0) {
     NS_ERROR("invalid divisor");
     return;
   }
@@ -3305,7 +3308,12 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
         
         if (!firstUnStyledRow || !rowFrame->HasStyleHeight()) {
           
-          float percent = rowRect.height / ((float)divisor);
+          float percent;
+          if (divisor != 0) {
+            percent = float(rowRect.height) / float(divisor);
+          } else {
+            percent = 1.0f / float(rowCount);
+          }
           
           nscoord amountForRow = (rowFrame == lastElligibleRow) 
                                  ? aAmount - amountUsed : NSToCoordRound(((float)(pctBasis)) * percent);
