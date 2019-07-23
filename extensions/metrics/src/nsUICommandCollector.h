@@ -81,7 +81,29 @@ class nsUICommandCollector : public nsIObserver,
   nsresult GetEventWindow(nsIDOMEvent *event, PRUint32 *window) const;
 
  private:
+  
+  
+  struct EventHandler {
+    const char* event;
+    nsresult (nsUICommandCollector::* handler)(nsIDOMEvent*);
+  };
+
+  
+  static const EventHandler kEvents[];
+
   ~nsUICommandCollector();
+
+  
+  void AddEventListeners(nsIDOMEventTarget* window);
+
+  
+  void RemoveEventListeners(nsIDOMEventTarget* window);
+
+  
+  nsresult HandleCommandEvent(nsIDOMEvent* event);
+
+  
+  nsresult HandleTabMoveEvent(nsIDOMEvent* event);
 
   
   
