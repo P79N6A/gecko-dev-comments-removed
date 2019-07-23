@@ -133,17 +133,22 @@ gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup
                                   PRUint32 aAppUnitsPerDevUnit, PRBool aIsRTL,
                                   PRBool aEnableSpacing, PRBool *aCallerOwns)
 {
+    gfxSkipChars skipChars;
     
     gfxTextRunFactory::Parameters params = {
-        aContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
+        aContext, nsnull, nsnull, &skipChars, nsnull, 0, aAppUnitsPerDevUnit,
+        ComputeFlags(aIsRTL, aEnableSpacing)
     };
-    PRUint32 flags = ComputeFlags(aIsRTL, aEnableSpacing);
-    if (IsAscii(aString, aLength)) {
-        flags |= gfxTextRunFactory::TEXT_IS_ASCII;
-    } else {
+
+    if (IsAscii(aString, aLength))
+        params.mFlags |= gfxTextRunFactory::TEXT_IS_ASCII;
+    
+    
+
+    if (!(params.mFlags & gfxTextRunFactory::TEXT_IS_ASCII)) {
         for (PRUint32 i = 0; i < aLength; ++i) {
             if (NS_IS_HIGH_SURROGATE(aString[i])) {
-                flags |= gfxTextRunFactory::TEXT_HAS_SURROGATES;
+                params.mFlags |= gfxTextRunFactory::TEXT_HAS_SURROGATES;
                 break;
             }
         }
@@ -171,12 +176,9 @@ gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup
                 tr->SetContext(aContext);
             }
         } else {
-            key.Realize();
-            
-            
-            tr = aFontGroup->MakeTextRun(key.GetRealString(), aLength, &params,
-                                         flags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
+            tr = aFontGroup->MakeTextRun(aString, aLength, &params);
             entry = new TextRunEntry(tr);
+            key.Realize();
             mHashTableUTF16.Put(key, entry);
         }
     }
@@ -186,11 +188,11 @@ gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup
     } else {
         
         *aCallerOwns = PR_TRUE;
-        PRUnichar *newStr = new PRUnichar[aLength];
-        if (newStr) {
-            memcpy(newStr, aString, sizeof(PRUnichar)*aLength);
-            tr = aFontGroup->MakeTextRun(aString, aLength, &params, flags);
-        }
+        tr = aFontGroup->MakeTextRun(aString, aLength, &params);
+    }
+    if (tr) {
+        
+        tr->RememberText(aString, aLength);
     }
 
     return tr;
@@ -202,13 +204,16 @@ gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup
                                   PRUint32 aAppUnitsPerDevUnit, PRBool aIsRTL,
                                   PRBool aEnableSpacing, PRBool *aCallerOwns)
 {
+    gfxSkipChars skipChars;
     
     gfxTextRunFactory::Parameters params = { 
-        aContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
+        aContext, nsnull, nsnull, &skipChars, nsnull, 0, aAppUnitsPerDevUnit,
+        ComputeFlags(aIsRTL, aEnableSpacing)
     };
-    PRUint32 flags = ComputeFlags(aIsRTL, aEnableSpacing) | gfxTextRunFactory::TEXT_IS_8BIT;
     if (IsAscii(aString, aLength))
-        flags |= gfxTextRunFactory::TEXT_IS_ASCII;
+        params.mFlags |= gfxTextRunFactory::TEXT_IS_ASCII;
+    else
+        params.mFlags |= gfxTextRunFactory::TEXT_IS_8BIT;
 
     const PRUint8 *str = reinterpret_cast<const PRUint8*>(aString);
 
@@ -234,13 +239,9 @@ gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup
                 tr->SetContext(aContext);
             }
         } else {
-            key.Realize();
-            
-            
-            tr = aFontGroup->MakeTextRun(reinterpret_cast<const PRUint8 *>(key.GetRealString()),
-                                         aLength, &params,
-                                         flags | gfxTextRunFactory::TEXT_IS_PERSISTENT);
+            tr = aFontGroup->MakeTextRun(str, aLength, &params);
             entry = new TextRunEntry(tr);
+            key.Realize();
             mHashTableASCII.Put(key, entry);
         }
     }
@@ -250,11 +251,11 @@ gfxTextRunCache::GetOrMakeTextRun(gfxContext *aContext, gfxFontGroup *aFontGroup
     } else {
         
         *aCallerOwns = PR_TRUE;
-        PRUint8 *newStr = new PRUint8[aLength];
-        if (newStr) {
-            memcpy(newStr, str, aLength);
-            tr = aFontGroup->MakeTextRun(newStr, aLength, &params, flags);
-        }
+        tr = aFontGroup->MakeTextRun(str, aLength, &params);
+    }
+    if (tr) {
+        
+        tr->RememberText(str, aLength);
     }
 
     return tr;

@@ -56,7 +56,7 @@ public:
 
     virtual const gfxFont::Metrics& GetMetrics();
 
-    float GetCharWidth(PRUnichar c, PRUint32 *aGlyphID = nsnull);
+    float GetCharWidth(PRUnichar c);
     float GetCharHeight(PRUnichar c);
 
     ATSUFontID GetATSUFontID() { return mATSUFontID; }
@@ -67,8 +67,6 @@ public:
     ATSUStyle GetATSUStyle() { return mATSUStyle; }
 
     virtual nsString GetUniqueName();
-
-    virtual PRUint32 GetSpaceGlyph() { return mSpaceGlyph; }
 
 protected:
     const gfxFontStyle *mFontStyle;
@@ -84,8 +82,6 @@ protected:
     gfxFont::Metrics mMetrics;
 
     gfxFloat mAdjustedSize;
-    PRUint32 mSpaceGlyph;    
-
     void InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef);
 
     virtual void SetupCairoFont(cairo_t *aCR)
@@ -103,17 +99,17 @@ public:
     virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle);
 
     virtual gfxTextRun *MakeTextRun(const PRUnichar* aString, PRUint32 aLength,
-                                    const Parameters* aParams, PRUint32 aFlags);
+                                    Parameters* aParams);
     virtual gfxTextRun *MakeTextRun(const PRUint8* aString, PRUint32 aLength,
-                                    const Parameters* aParams, PRUint32 aFlags);
+                                    Parameters* aParams);
     
     
     
     
     
     
-    void MakeTextRunInternal(const PRUnichar *aString, PRUint32 aLength,
-                             PRBool aWrapped, gfxTextRun *aTextRun);
+    gfxTextRun *MakeTextRunInternal(const PRUnichar *aString, PRUint32 aLength,
+                                    PRBool aWrapped, Parameters *aParams);
 
     ATSUFontFallbacks *GetATSUFontFallbacksPtr() { return &mFallbacks; }
     

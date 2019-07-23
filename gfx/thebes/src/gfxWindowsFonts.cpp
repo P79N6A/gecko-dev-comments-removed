@@ -382,16 +382,6 @@ gfxWindowsFont::ComputeMetrics()
     GetTextExtentPoint32(dc, " ", 1, &size);
     mMetrics->spaceWidth = ROUND(size.cx);
 
-    mSpaceGlyph = 0;
-    if (metrics.tmPitchAndFamily & TMPF_TRUETYPE) {
-        WORD glyph;
-        DWORD ret = GetGlyphIndicesA(dc, " ", 1, &glyph,
-                                     GGI_MARK_NONEXISTING_GLYPHS);
-        if (ret != GDI_ERROR && glyph != 0xFFFF) {
-            mSpaceGlyph = glyph;
-        }
-    }
-
     SelectObject(dc, oldFont);
 
     ReleaseDC((HWND)nsnull, dc);
@@ -561,13 +551,13 @@ gfxWindowsFontGroup::Copy(const gfxFontStyle *aStyle)
 
 gfxTextRun *
 gfxWindowsFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                                 const Parameters *aParams, PRUint32 aFlags)
+                                 Parameters *aParams)
 {
     
     
     
 
-    gfxTextRun *textRun = new gfxTextRun(aParams, aString, aLength, this, aFlags);
+    gfxTextRun *textRun = new gfxTextRun(aParams, aLength);
     if (!textRun)
         return nsnull;
 
@@ -589,11 +579,10 @@ gfxWindowsFontGroup::MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
 
 gfxTextRun *
 gfxWindowsFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                                 const Parameters *aParams, PRUint32 aFlags)
+                                 Parameters *aParams)
 {
-    NS_ASSERTION(aFlags & TEXT_IS_8BIT, "should be marked 8bit");
- 
-    gfxTextRun *textRun = new gfxTextRun(aParams, aString, aLength, this, aFlags);
+    aParams->mFlags |= TEXT_IS_8BIT;
+    gfxTextRun *textRun = new gfxTextRun(aParams, aLength);
     if (!textRun)
         return nsnull;
 
@@ -606,7 +595,7 @@ gfxWindowsFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
     
 
 
-    if (!isComplex && (mFlags & TEXT_IS_ASCII)) {
+    if (!isComplex && (aParams->mFlags & TEXT_IS_ASCII)) {
         InitTextRunGDI(aParams->mContext, textRun,
                        reinterpret_cast<const char*>(aString), aLength);
     }
