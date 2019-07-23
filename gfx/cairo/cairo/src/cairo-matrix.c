@@ -35,7 +35,6 @@
 
 
 #define _GNU_SOURCE
-#include <stdlib.h>
 
 #include "cairoint.h"
 
@@ -476,6 +475,10 @@ cairo_matrix_invert (cairo_matrix_t *matrix)
     if (det == 0)
 	return CAIRO_STATUS_INVALID_MATRIX;
 
+    
+    if (! (det * det > 0.))
+	return CAIRO_STATUS_INVALID_MATRIX;
+
     _cairo_matrix_compute_adjoint (matrix);
     _cairo_matrix_scalar_multiply (matrix, 1 / det);
 
@@ -496,7 +499,7 @@ _cairo_matrix_compute_determinant (const cairo_matrix_t *matrix,
 }
 
 
-cairo_status_t
+void
 _cairo_matrix_compute_scale_factors (const cairo_matrix_t *matrix,
 				     double *sx, double *sy, int x_major)
 {
@@ -536,8 +539,6 @@ _cairo_matrix_compute_scale_factors (const cairo_matrix_t *matrix,
 	    *sy = major;
 	}
     }
-
-    return CAIRO_STATUS_SUCCESS;
 }
 
 cairo_bool_t
@@ -735,13 +736,13 @@ _cairo_matrix_to_pixman_matrix (const cairo_matrix_t	*matrix,
         *pixman_transform = pixman_identity_transform;
     }
     else {
-        pixman_transform->matrix[0][0] = _cairo_fixed_from_double (matrix->xx);
-        pixman_transform->matrix[0][1] = _cairo_fixed_from_double (matrix->xy);
-        pixman_transform->matrix[0][2] = _cairo_fixed_from_double (matrix->x0);
+        pixman_transform->matrix[0][0] = _cairo_fixed_16_16_from_double (matrix->xx);
+        pixman_transform->matrix[0][1] = _cairo_fixed_16_16_from_double (matrix->xy);
+        pixman_transform->matrix[0][2] = _cairo_fixed_16_16_from_double (matrix->x0);
 
-        pixman_transform->matrix[1][0] = _cairo_fixed_from_double (matrix->yx);
-        pixman_transform->matrix[1][1] = _cairo_fixed_from_double (matrix->yy);
-        pixman_transform->matrix[1][2] = _cairo_fixed_from_double (matrix->y0);
+        pixman_transform->matrix[1][0] = _cairo_fixed_16_16_from_double (matrix->yx);
+        pixman_transform->matrix[1][1] = _cairo_fixed_16_16_from_double (matrix->yy);
+        pixman_transform->matrix[1][2] = _cairo_fixed_16_16_from_double (matrix->y0);
 
         pixman_transform->matrix[2][0] = 0;
         pixman_transform->matrix[2][1] = 0;
