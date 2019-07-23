@@ -1658,7 +1658,6 @@ GK_ATOM(volumechange, "volumechange")
 
 GK_ATOM(boxMetricsProperty, "BoxMetricsProperty") 
 GK_ATOM(changeListProperty, "ChangeListProperty") 
-GK_ATOM(collapseOffsetProperty, "CollapseOffsetProperty")  
 GK_ATOM(computedOffsetProperty, "ComputedOffsetProperty")  
 GK_ATOM(floatContinuationProperty, "FloatContinuationProperty") 
 GK_ATOM(floatRegionProperty, "FloatRegionProperty") 
