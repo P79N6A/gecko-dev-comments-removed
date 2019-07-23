@@ -596,58 +596,38 @@ function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup,
 
 
  
-function recognizeFeedFromLink(aLink, aPrincipal)
+function isValidFeed(aData, aPrincipal, aIsFeed)
 {
-  if (!aLink || !aPrincipal)
-    return null;
+  if (!aData || !aPrincipal)
+    return false;
 
-  var erel = aLink.rel && aLink.rel.toLowerCase();
-  var etype = aLink.type && aLink.type.toLowerCase();
-  var etitle = aLink.title;
-  const rssTitleRegex = /(^|\s)rss($|\s)/i;
-  var rels = {};
+  if (!aIsFeed) {
+    var type = aData.type && aData.type.toLowerCase();
+    type = type.replace(/^\s+|\s*(?:;.*)?$/g, "");
 
-  if (erel) {
-    for each (var relValue in erel.split(/\s+/))
-      rels[relValue] = true;
-  }
-  var isFeed = rels.feed;
+    aIsFeed = (type == "application/rss+xml" ||
+               type == "application/atom+xml");
 
-  if (!isFeed && (!rels.alternate || rels.stylesheet || !etype))
-    return null;
-
-  if (!isFeed) {
-    
-    etype = etype.replace(/^\s+/, "");
-    etype = etype.replace(/\s+$/, "");
-    etype = etype.replace(/\s*;.*/, "");
-    isFeed = (etype == "application/rss+xml" ||
-              etype == "application/atom+xml");
-    if (!isFeed) {
+    if (!aIsFeed) {
       
-      isFeed = ((etype == "text/xml" || etype == "application/xml" ||
-                 etype == "application/rdf+xml") && rssTitleRegex.test(etitle));
+      const titleRegex = /(^|\s)rss($|\s)/i;
+      aIsFeed = ((type == "text/xml" || type == "application/rdf+xml" ||
+                  type == "application/xml") && titleRegex.test(aData.title));
     }
   }
 
-  if (isFeed) {
-    try { 
-      urlSecurityCheck(aLink.href,
-                       aPrincipal,
+  if (aIsFeed) {
+    try {
+      urlSecurityCheck(aData.href, aPrincipal,
                        Components.interfaces.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL);
     }
-    catch (ex) {
-      dump(ex.message);
-      return null; 
+    catch(ex) {
+      aIsFeed = false;
     }
-
-    
-    return {
-        href: aLink.href,
-        type: etype,
-        title: aLink.title
-      };
   }
 
-  return null;
+  if (type)
+    aData.type = type;
+
+  return aIsFeed;
 }

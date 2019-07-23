@@ -936,10 +936,11 @@ function prepareForStartup()
   gBrowser.addProgressListener(window.XULBrowserWindow, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
 
   
-  FeedHandler.init();
+  gBrowser.addEventListener("DOMLinkAdded",
+                            function (event) { DOMLinkHandler.onLinkAdded(event); },
+                            false);
 
-  
-  BrowserSearch.init();
+  gBrowser.addEventListener("pagehide", FeedHandler.onPageHide, false);
 }
 
 function delayedStartup()
@@ -2647,84 +2648,145 @@ var DownloadsButtonDNDObserver = {
   }
 }
 
-const BrowserSearch = {
-
-  
-
-
-  init: function() {
-    gBrowser.addEventListener("DOMLinkAdded", 
-                              function (event) { BrowserSearch.onLinkAdded(event); }, 
-                              false);
-  },
-
-  
-
-
-
+const DOMLinkHandler = {
   onLinkAdded: function(event) {
-    
-    
-    const target = event.target;
-    var etype = target.type;
-    const searchRelRegex = /(^|\s)search($|\s)/i;
-    const searchHrefRegex = /^(https?|ftp):\/\//i;
-
-    if (!etype)
-      return;
-      
-    
-    
-    if (!target.title)
+    var link = event.originalTarget;
+    var rel = link.rel && link.rel.toLowerCase();
+    if (!link || !link.ownerDocument || !rel || !link.href)
       return;
 
-    if (etype == "application/opensearchdescription+xml" &&
-        searchRelRegex.test(target.rel) && searchHrefRegex.test(target.href))
-    {
-      const targetDoc = target.ownerDocument;
+    var feedAdded = false;
+    var iconAdded = false;
+    var searchAdded = false;
+    var relStrings = rel.split(/\s+/);
+    var rels = {};
+    for (let i = 0; i < relStrings.length; i++)
+      rels[relStrings[i]] = true;
+
+    for (let relVal in rels) {
+      switch (relVal) {
+        case "feed":
+        case "alternate":
+          if (!feedAdded) {
+            if (!rels.feed && rels.alternate && rels.stylesheet)
+              break;
+
+            var feed = { title: link.title, href: link.href, type: link.type };
+            if (isValidFeed(feed, link.ownerDocument.nodePrincipal, rels.feed)) {
+              FeedHandler.addFeed(feed, link.ownerDocument);
+              feedAdded = true;
+            }
+          }
+          break;
+        case "icon":
+          if (!iconAdded) {
+            if (!gBrowser.mPrefs.getBoolPref("browser.chrome.site_icons"))
+              break;
+
+            try {
+              var contentPolicy = Cc["@mozilla.org/layout/content-policy;1"].
+                                  getService(Ci.nsIContentPolicy);
+            } catch(e) {
+              break; 
+            }
+
+            var targetDoc = link.ownerDocument;
+            var ios = Cc["@mozilla.org/network/io-service;1"].
+                      getService(Ci.nsIIOService);
+            var uri = ios.newURI(link.href, targetDoc.characterSet, null);
+            try {
+              
+              
+              
+              const aboutNeterr = "about:neterror?";
+              if (targetDoc.documentURI.substr(0, aboutNeterr.length) != aboutNeterr ||
+                  !uri.schemeIs("chrome")) {
+              var ssm = Cc["@mozilla.org/scriptsecuritymanager;1"].
+                        getService(Ci.nsIScriptSecurityManager);
+              ssm.checkLoadURIWithPrincipal(targetDoc.nodePrincipal, uri,
+                                            Ci.nsIScriptSecurityManager.DISALLOW_SCRIPT);
+              }
+            } catch(e) {
+              break;
+            }
+
+            
+            if (contentPolicy.shouldLoad(Ci.nsIContentPolicy.TYPE_IMAGE,
+                                         uri, targetDoc.documentURIObject,
+                                         link, link.type, null)
+                                         != Ci.nsIContentPolicy.ACCEPT)
+              break;
+
+            var browserIndex = gBrowser.getBrowserIndexForDocument(targetDoc);
+            
+            if (browserIndex == -1)
+              break;
+
+            var tab = gBrowser.mTabContainer.childNodes[browserIndex];
+            gBrowser.setIcon(tab, link.href);
+            iconAdded = true;
+          }
+          break;
+        case "search":
+          if (!searchAdded) {
+            var type = link.type && link.type.toLowerCase();
+            type = type.replace(/^\s+|\s*(?:;.*)?$/g, "");
+
+            if (type == "application/opensearchdescription+xml" && link.title &&
+                /^(https?|ftp):/i.test(link.href)) {
+              var engine = { title: link.title, href: link.href };
+              BrowserSearch.addEngine(engine, link.ownerDocument);
+              searchAdded = true;
+            }
+          }
+          break;
+      }
+    }
+  }
+}
+
+const BrowserSearch = {
+  addEngine: function(engine, targetDoc) {
+    
+    var searchButton = document.getAnonymousElementByAttribute(this.getSearchBar(), "anonid",
+                                                               "searchbar-engine-button");
+    if (searchButton) {
+      var browser = gBrowser.getBrowserForDocument(targetDoc);
       
-      var searchButton = document.getAnonymousElementByAttribute(this.getSearchBar(),
-                                  "anonid", "searchbar-engine-button");
-      if (searchButton) {
-        var browser = gBrowser.getBrowserForDocument(targetDoc);
-         
-        var iconURL = null;
-        if (gBrowser.shouldLoadFavIcon(browser.currentURI))
-          iconURL = browser.currentURI.prePath + "/favicon.ico";
+      var iconURL = null;
+      if (gBrowser.shouldLoadFavIcon(browser.currentURI))
+        iconURL = browser.currentURI.prePath + "/favicon.ico";
 
-        var hidden = false;
-        
-        
-        
-        
-         var searchService =
-            Components.classes["@mozilla.org/browser/search-service;1"]
-                      .getService(Components.interfaces.nsIBrowserSearchService);
-        if (searchService.getEngineByName(target.title))
-          hidden = true;
+      var hidden = false;
+      
+      
+      
+      
+      var searchService = Cc["@mozilla.org/browser/search-service;1"].
+                          getService(Ci.nsIBrowserSearchService);
+      if (searchService.getEngineByName(engine.title))
+        hidden = true;
 
-        var engines = [];
-        if (hidden) {
-          if (browser.hiddenEngines)
-            engines = browser.hiddenEngines;
-        }
-        else {
-          if (browser.engines)
-            engines = browser.engines;
-        }
+      var engines = [];
+      if (hidden) {
+        if (browser.hiddenEngines)
+          engines = browser.hiddenEngines;
+      }
+      else {
+        if (browser.engines)
+          engines = browser.engines;
+      }
 
-        engines.push({ uri: target.href,
-                       title: target.title,
-                       icon: iconURL });
+      engines.push({ uri: engine.href,
+                     title: engine.title,
+                     icon: iconURL });
 
-         if (hidden) {
-           browser.hiddenEngines = engines;
-         }
-         else {
-           browser.engines = engines;
-           if (browser == gBrowser || browser == gBrowser.mCurrentBrowser)
-             this.updateSearchButton();
-         }
+      if (hidden)
+        browser.hiddenEngines = engines;
+      else {
+        browser.engines = engines;
+        if (browser == gBrowser || browser == gBrowser.mCurrentBrowser)
+          this.updateSearchButton();
       }
     }
   },
@@ -5073,16 +5135,6 @@ function convertFromUnicode(charset, str)
 
 
 var FeedHandler = {
-  
-
-
-  init: function() {
-    gBrowser.addEventListener("DOMLinkAdded", 
-                              function (event) { FeedHandler.onLinkAdded(event); }, 
-                              true);
-    gBrowser.addEventListener("pagehide", FeedHandler.onPageHide, true);
-  },
-  
   onPageHide: function(event) {
     var theBrowser = gBrowser.getBrowserForDocument(event.target);
     if (theBrowser)
@@ -5237,25 +5289,9 @@ var FeedHandler = {
       }
     }
   }, 
-  
-  
 
-
-
-  onLinkAdded: function(event) {
-    
-    
-    
-    
-    
-    
-
-    var feed = recognizeFeedFromLink(event.target,
-      event.target.ownerDocument.nodePrincipal);
-
+  addFeed: function(feed, targetDoc) {
     if (feed) {
-      const targetDoc = event.target.ownerDocument;
-
       
       var browserForLink = gBrowser.getBrowserForDocument(targetDoc);
       if (!browserForLink) {
