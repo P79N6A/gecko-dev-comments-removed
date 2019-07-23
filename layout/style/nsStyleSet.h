@@ -127,12 +127,7 @@ class nsStyleSet
   already_AddRefed<nsStyleContext>
   ResolvePseudoElementStyle(nsIContent* aParentContent,
                             nsCSSPseudoElements::Type aType,
-                            nsStyleContext* aParentContext) {
-    return ResolvePseudoStyleFor(aParentContent,
-                                 nsCSSPseudoElements::GetPseudoAtom(aType),
-                                 aType,
-                                 aParentContext);
-  }
+                            nsStyleContext* aParentContext);
 
   
   
@@ -334,7 +329,7 @@ public:
 
   
   
-  void WalkRestrictionRule(nsIAtom* aPseudoType,
+  void WalkRestrictionRule(nsCSSPseudoElements::Type aPseudoType,
                            nsRuleWalker* aRuleWalker);
 
 #ifdef DEBUG
