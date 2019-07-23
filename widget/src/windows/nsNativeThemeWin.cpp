@@ -1082,10 +1082,11 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
         return NS_OK;
       }
 
-      if (mIsVistaOrLater && isHTML) {
-        nsIComboboxControlFrame* ccf = nsnull;
-        CallQueryInterface(aFrame, &ccf);
-        if (ccf && ccf->IsDroppedDown()) {
+      if (mIsVistaOrLater) {
+        if (isHTML) {
+          nsIComboboxControlFrame* ccf = nsnull;
+          CallQueryInterface(aFrame, &ccf);
+          if (ccf && ccf->IsDroppedDown()) {
           
 
 
@@ -1093,11 +1094,20 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
 
 
 
-          aState = TS_HOVER;
-          return NS_OK;
+            aState = TS_HOVER;
+            return NS_OK;
+          }
+        } else {
+          
+
+
+
+
+            aState = TS_NORMAL;
+            return NS_OK;
         }
       }
-
+  
       aState = StandardGetState(aFrame, aWidgetType, PR_FALSE);
 
       return NS_OK;
