@@ -105,8 +105,8 @@ class nsIBoxObject;
 
 
 #define NS_IDOCUMENT_IID      \
-  {0x1666cc78, 0x54ad, 0x4672, \
-      {0x93, 0x79, 0x9b, 0x6a, 0x61, 0x78, 0x94, 0x1a } }
+{ 0xe0ca6723, 0x1efa, 0x4819, \
+  { 0x84, 0xbb, 0xfa, 0x48, 0x39, 0xe8, 0xef, 0x19 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1164,24 +1164,6 @@ public:
 
 
   virtual PRBool IsDocumentRightToLeft() { return PR_FALSE; }
-
-  
-
-
-
-
-  virtual nsIContent* GetFirstBaseNodeWithHref() = 0;
-
-  
-
-
-
-
-
-
-
-
-  virtual nsresult SetFirstBaseNodeWithHref(nsIContent *node) = 0;
 
 protected:
   ~nsIDocument()
