@@ -42,24 +42,6 @@
 
 struct GrowlDelegateWrapper;
 
-
-
-
-
-
-
-
-
-
-
-nsresult
-NS_DispatchNamedNotification(const nsAString &aName,
-                             const nsAString &aImage,
-                             const nsAString &aTitle,
-                             const nsAString &aMessage,
-                             const nsAString &aCookie,
-                             nsIObserver *aListener);
-
 class nsAlertsService : public nsIAlertsService,
                         public nsIObserver
 {

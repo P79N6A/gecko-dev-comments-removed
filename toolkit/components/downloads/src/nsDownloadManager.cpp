@@ -1585,7 +1585,8 @@ nsDownload::SetState(DownloadState aState)
               
               alerts->ShowAlertNotification(
                   NS_LITERAL_STRING(DOWNLOAD_MANAGER_ALERT_ICON), title,
-                  message, !removeWhenDone, EmptyString(), mDownloadManager);
+                  message, !removeWhenDone, EmptyString(), mDownloadManager,
+                  EmptyString());
             }
         }
       }
