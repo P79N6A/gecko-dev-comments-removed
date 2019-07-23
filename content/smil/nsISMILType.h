@@ -133,6 +133,30 @@ protected:
 
 
 
+  virtual PRBool IsEqual(const nsSMILValue& aLeft,
+                         const nsSMILValue& aRight) const
+  { return PR_FALSE; }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

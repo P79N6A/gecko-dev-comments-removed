@@ -56,6 +56,13 @@ public:
 
   const nsSMILValue& operator=(const nsSMILValue& aVal);
 
+  
+  
+  PRBool operator==(const nsSMILValue& aVal) const;
+  PRBool operator!=(const nsSMILValue& aVal) const {
+    return !(*this == aVal);
+  }
+
   PRBool IsNull() const
   {
     return (mType == &nsSMILNullType::sSingleton);
