@@ -105,6 +105,9 @@ struct nsBidiPositionResolve
   
   
   PRInt32 visualLeftTwips;
+  
+  
+  PRInt32 visualWidth;
 };
 
 class nsBidiPresUtils {

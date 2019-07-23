@@ -1384,6 +1384,7 @@ nsresult nsBidiPresUtils::ProcessText(const PRUnichar*       aText,
   {
     aPosResolve[nPosResolve].visualIndex = kNotFound;
     aPosResolve[nPosResolve].visualLeftTwips = kNotFound;
+    aPosResolve[nPosResolve].visualWidth = kNotFound;
   }
 
   for (i = 0; i < runCount; i++) {
@@ -1468,6 +1469,7 @@ nsresult nsBidiPresUtils::ProcessText(const PRUnichar*       aText,
           if (subRunLength == 1) {
             posResolve->visualIndex = visualStart;
             posResolve->visualLeftTwips = xOffset;
+            posResolve->visualWidth = width;
           }
           
 
@@ -1479,25 +1481,53 @@ nsresult nsBidiPresUtils::ProcessText(const PRUnichar*       aText,
 
 
           else {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             nscoord subWidth;
             
-            const PRUnichar* visualLeftPart;
+            const PRUnichar* visualLeftPart, *visualRightSide;
             if (level & 1) {
               
               posResolve->visualIndex = visualStart + (subRunLength - (posResolve->logicalIndex + 1 - start));
               
               visualLeftPart = aText + posResolve->logicalIndex + 1;
+              
+              visualRightSide = visualLeftPart - 1;
             }
             else {
               posResolve->visualIndex = visualStart + (posResolve->logicalIndex - start);
               
               visualLeftPart = aText + start;
+              
+              visualRightSide = visualLeftPart;
             }
             
             PRInt32 visualLeftLength = posResolve->visualIndex - visualStart;
             aprocessor.SetText(visualLeftPart, visualLeftLength, nsBidiDirection(level & 1));
             subWidth = aprocessor.GetWidth();
+            aprocessor.SetText(visualRightSide, visualLeftLength + 1, nsBidiDirection(level & 1));
             posResolve->visualLeftTwips = xOffset + subWidth;
+            posResolve->visualWidth = aprocessor.GetWidth() - subWidth;
           }
         }
       }
