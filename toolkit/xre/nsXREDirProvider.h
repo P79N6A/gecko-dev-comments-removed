@@ -86,7 +86,7 @@ public:
 
   
   nsIFile* GetGREDir() { return mGREDir; }
-  nsIFile* GetAppDir() { 
+  nsIFile* GetAppDir() {
     if (mXULAppDir)
       return mXULAppDir;
     return mGREDir;
@@ -118,6 +118,14 @@ protected:
   static nsresult GetUserDataDirectory(nsILocalFile* *aFile, PRBool aLocal);
   static nsresult EnsureDirectoryExists(nsIFile* aDirectory);
   void EnsureProfileFileExists(nsIFile* aFile);
+
+  
+  
+  static nsresult AppendProfilePath(nsIFile* aFile);
+
+  
+  
+  static inline nsresult AppendProfileString(nsIFile* aFile, const char* aPath);
 
   
   
