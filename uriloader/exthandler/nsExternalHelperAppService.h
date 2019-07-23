@@ -39,6 +39,7 @@
 
 
 
+
 #ifndef nsExternalHelperAppService_h__
 #define nsExternalHelperAppService_h__
 
@@ -203,12 +204,31 @@ protected:
   
 
 
+  static void ExpungeTemporaryFilesHelper(nsCOMArray<nsILocalFile> &fileList);
+  
 
-  NS_HIDDEN_(nsresult) ExpungeTemporaryFiles();
+
+
+  void ExpungeTemporaryFiles();
+  
+
+
+
+
+  void ExpungeTemporaryPrivateFiles();
   
 
 
   nsCOMArray<nsILocalFile> mTemporaryFilesList;
+  
+
+
+
+  nsCOMArray<nsILocalFile> mTemporaryPrivateFilesList;
+  
+
+
+  PRBool mInPrivateBrowsing;
 };
 
 
