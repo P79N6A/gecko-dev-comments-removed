@@ -551,7 +551,6 @@ protected:
     PRPackedBool               mObserveErrorPages;
     PRPackedBool               mAllowAuth;
     PRPackedBool               mAllowKeywordFixup;
-    PRPackedBool               mStrictFilePolicy;
 
     
     

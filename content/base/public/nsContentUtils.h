@@ -1166,6 +1166,11 @@ public:
   
 
 
+  static PRBool URIIsLocalFile(nsIURI *aURI);
+
+  
+
+
 
 
 
