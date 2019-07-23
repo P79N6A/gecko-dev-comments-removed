@@ -311,8 +311,27 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 #define GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom)                       \
     JS_BEGIN_MACRO                                                            \
+        JS_ASSERT(*(pc) != JSOP_DOUBLE);                                      \
         uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
-        JS_GET_SCRIPT_ATOM((script), index_, atom);                           \
+        JS_GET_SCRIPT_ATOM(script, pc, index_, atom);                         \
+    JS_END_MACRO
+
+
+
+
+
+
+
+
+
+
+
+#define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, atom)                     \
+    JS_BEGIN_MACRO                                                            \
+        uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
+        JS_ASSERT(index_ < (script)->atomMap.length);                         \
+        (atom) = (script)->atomMap.vector[index_];                            \
+        JS_ASSERT(ATOM_IS_DOUBLE(atom));                                      \
     JS_END_MACRO
 
 #define GET_OBJECT_FROM_BYTECODE(script, pc, pcoff, obj)                      \
