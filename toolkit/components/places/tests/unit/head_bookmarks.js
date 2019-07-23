@@ -299,6 +299,26 @@ function flush_main_thread_events()
 
 
 
+
+function waitForClearHistory(aCallback) {
+  const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
+  let os = Cc["@mozilla.org/observer-service;1"].
+           getService(Ci.nsIObserverService);
+  let observer = {
+    observe: function(aSubject, aTopic, aData) {
+      os.removeObserver(this, TOPIC_EXPIRATION_FINISHED);
+      aCallback();
+    }
+  };
+  os.addObserver(observer, TOPIC_EXPIRATION_FINISHED, false);
+
+  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+           getService(Ci.nsINavHistoryService);
+  hs.QueryInterface(Ci.nsIBrowserHistory).removeAllPages();
+}
+
+
+
 let randomFailingSyncTests = [
   "test_multi_word_tags.js",
   "test_removeVisitsByTimeframe.js",

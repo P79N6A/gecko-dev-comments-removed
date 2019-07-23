@@ -52,6 +52,8 @@ let lms = Cc["@mozilla.org/browser/livemark-service;2"].
           getService(Ci.nsILivemarkService);
 
 const kSyncFinished = "places-sync-finished";
+const kExpirationFinished = "places-expiration-finished";
+
 
 const EXPECTED_SYNCS = 4;
 
@@ -89,38 +91,45 @@ let observer = {
     
     do_check_eq(0, bh.count);
 
-    
-    
-    
-    
-    stmt = mDBConn.createStatement(
-      "SELECT id FROM moz_places_temp WHERE frecency > 0 LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
+    let expirationObserver = {
+      observe: function (aSubject, aTopic, aData) {
+        os.removeObserver(this, kExpirationFinished, false);
+ 
+        
+        
+        
+        
+        stmt = mDBConn.createStatement(
+          "SELECT id FROM moz_places_temp WHERE frecency > 0 LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
 
-    stmt = mDBConn.createStatement(
-      "SELECT h.id FROM moz_places_temp h WHERE h.frecency = -2 " +
-        "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
-    do_check_true(stmt.executeStep());
-    stmt.finalize();
+        stmt = mDBConn.createStatement(
+          "SELECT h.id FROM moz_places_temp h WHERE h.frecency = -2 " +
+            "AND EXISTS (SELECT id FROM moz_bookmarks WHERE fk = h.id) LIMIT 1");
+        do_check_true(stmt.executeStep());
+        stmt.finalize();
 
-    
-    stmt = mDBConn.createStatement(
-      "SELECT id FROM moz_places_temp WHERE visit_count <> 0 LIMIT 1");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
+        
+        stmt = mDBConn.createStatement(
+          "SELECT id FROM moz_places_temp WHERE visit_count <> 0 LIMIT 1");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
 
-    
-    stmt = mDBConn.createStatement(
-      "SELECT * FROM (SELECT id FROM moz_historyvisits_temp LIMIT 1) " +
-      "UNION ALL " +
-      "SELECT * FROM (SELECT id FROM moz_historyvisits LIMIT 1)");
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
+        
+        stmt = mDBConn.createStatement(
+          "SELECT * FROM (SELECT id FROM moz_historyvisits_temp LIMIT 1) " +
+          "UNION ALL " +
+          "SELECT * FROM (SELECT id FROM moz_historyvisits LIMIT 1)");
+        do_check_false(stmt.executeStep());
+        stmt.finalize();
 
-    
-    bs.insertBookmark(bs.unfiledBookmarksFolder, uri("place:folder=4"),
-                      bs.DEFAULT_INDEX, "shortcut");
+        
+        bs.insertBookmark(bs.unfiledBookmarksFolder, uri("place:folder=4"),
+                          bs.DEFAULT_INDEX, "shortcut");
+      }
+    }
+    os.addObserver(expirationObserver, kExpirationFinished, false);
   },
 
   onPageChanged: function(aURI, aWhat, aValue) {
@@ -147,6 +156,7 @@ let syncObserver = {
       bh.removeAllPages();
       return;
     }
+    os.removeObserver(this, kSyncFinished, false);
 
     
     stmt = mDBConn.createStatement(
@@ -173,7 +183,6 @@ let syncObserver = {
       "SELECT id FROM moz_places WHERE visit_count <> 0 LIMIT 1");
     do_check_false(stmt.executeStep());
     stmt.finalize();
-
 
     
     stmt = mDBConn.createStatement(
@@ -225,7 +234,6 @@ let syncObserver = {
   }
 }
 os.addObserver(syncObserver, kSyncFinished, false);
-
 
 
 function run_test() {
