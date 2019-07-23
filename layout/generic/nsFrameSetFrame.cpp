@@ -477,6 +477,21 @@ nsHTMLFramesetFrame::Init(nsIContent*      aContent,
   return rv;
 }
 
+NS_IMETHODIMP
+nsHTMLFramesetFrame::SetInitialChildList(nsIAtom*  aListName,
+                                         nsIFrame* aChildList)
+{
+  
+  
+  
+  
+  if (!aListName && !aChildList) {
+    return NS_OK;
+  }
+
+  return nsHTMLContainerFrame::SetInitialChildList(aListName, aChildList);
+}
+
 
 void nsHTMLFramesetFrame::Scale(nscoord  aDesired, 
                                 PRInt32  aNumIndicies, 

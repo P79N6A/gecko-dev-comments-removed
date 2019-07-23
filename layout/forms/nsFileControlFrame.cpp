@@ -412,19 +412,6 @@ NS_IMETHODIMP nsFileControlFrame::Reflow(nsPresContext*          aPresContext,
                              aStatus);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 nsNewFrame*
 nsFileControlFrame::GetTextControlFrame(nsPresContext* aPresContext, nsIFrame* aStart)
 {

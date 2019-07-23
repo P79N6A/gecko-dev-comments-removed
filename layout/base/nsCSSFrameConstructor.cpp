@@ -5506,9 +5506,7 @@ nsCSSFrameConstructor::ConstructHTMLFrame(nsFrameConstructorState& aState,
                          childItems, PR_FALSE);
 
     
-    if (childItems.childList) {
-      newFrame->SetInitialChildList(nsnull, childItems.childList);
-    }
+    newFrame->SetInitialChildList(nsnull, childItems.childList);
   }
 
   if (!addedToFrameList) {
