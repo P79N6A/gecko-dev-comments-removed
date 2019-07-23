@@ -6018,25 +6018,32 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                     return JS_FALSE;
             }
 
+            if (!pn2)
+                break;
+
             
-            for (index = 0; pn2; pn2 = pn2->pn_next, index++) {
+
+
+
+
+
+
+            if (pn2 == pn->pn_head) {
+                index = 0;
+            } else {
+                if (!js_Emit1(cx, cg, JSOP_OBJTOSTR))
+                    return JS_FALSE;
+                index = 1;
+            }
+
+            for (; pn2; pn2 = pn2->pn_next, index++) {
                 if (!js_EmitTree(cx, cg, pn2))
                     return JS_FALSE;
-                if (!pn2->isLiteral() &&
-                    js_Emit1(cx, cg, JSOP_OBJTOSTR) < 0) {
+                if (!pn2->isLiteral() && js_Emit1(cx, cg, JSOP_OBJTOSTR) < 0)
                     return JS_FALSE;
-                }
             }
 
-            if (index != 0) {
-                EMIT_UINT16_IMM_OP(JSOP_CONCATN, index);
-
-                
-                if (pn->pn_head->pn_type != TOK_STRING &&
-                    js_Emit1(cx, cg, JSOP_ADD) < 0) {
-                    return JS_FALSE;
-                }
-            }
+            EMIT_UINT16_IMM_OP(JSOP_CONCATN, index);
             break;
         }
       case TOK_BITOR:
