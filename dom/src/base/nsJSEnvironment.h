@@ -279,8 +279,7 @@ private:
   PRPackedBool mProcessingScriptTag;
   PRPackedBool mIsTrackingChromeCodeTime;
 
-  PRUint32 mBranchCallbackCount;
-  PRTime mBranchCallbackTime;
+  PRTime mOperationCallbackTime;
   PRUint32 mDefaultJSOptions;
 
   
@@ -292,8 +291,7 @@ private:
 
   static int PR_CALLBACK JSOptionChangedCallback(const char *pref, void *data);
 
-  static JSBool JS_DLL_CALLBACK DOMBranchCallback(JSContext *cx,
-                                                  JSScript *script);
+  static JSBool JS_DLL_CALLBACK DOMOperationCallback(JSContext *cx);
 };
 
 class nsIJSRuntimeService;
