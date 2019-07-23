@@ -23,6 +23,7 @@
 #   Seth Spitzer <sspitzer@mozilla.com>
 #   Asaf Romano <mano@mozilla.com>
 #   Marco Bonardo <mak77@bonardo.net>
+#   Dietrich Ayala <dietrich@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -70,18 +71,36 @@ const BrowserGlueServiceFactory = {
 
 
 function BrowserGlue() {
+
+  this.__defineGetter__("_prefs", function() {
+    delete this._prefs;
+    return this._prefs = Cc["@mozilla.org/preferences-service;1"].
+                         getService(Ci.nsIPrefBranch);
+  });
+
+  this.__defineGetter__("_bundleService", function() {
+    delete this._bundleService;
+    return this._bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
+                                 getService(Ci.nsIStringBundleService);
+  });
+
+  this.__defineGetter__("_idleService", function() {
+    delete this._idleService;
+    return this._idleService = Cc["@mozilla.org/widget/idleservice;1"].
+                           getService(Ci.nsIIdleService);
+  });
+
+  this.__defineGetter__("_observerService", function() {
+    delete this._observerService;
+    return this._observerService = Cc['@mozilla.org/observer-service;1'].
+                                   getService(Ci.nsIObserverService);
+  });
+
   this._init();
 }
 
 BrowserGlue.prototype = {
-  __prefs: null,
-  get _prefs() {
-    if (!this.__prefs)
-      this.__prefs = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefBranch);
-    return this.__prefs;
-  },
-
+  
   _saveSession: false,
 
   _setPrefToSaveSession: function()
@@ -130,9 +149,18 @@ BrowserGlue.prototype = {
         break;
       case "places-init-complete":
         this._initPlaces();
+        this._observerService.removeObserver(this, "places-init-complete");
+        
+        this._observerService.removeObserver(this, "places-database-locked");
+        break;
+      case "places-database-locked":
+        this._isPlacesDatabaseLocked = true;
+        
+        
+        this._observerService.removeObserver(this, "places-database-locked");
         break;
       case "idle":
-        if (this.idleService.idleTime > BOOKMARKS_ARCHIVE_IDLE_TIME * 1000) {
+        if (this._idleService.idleTime > BOOKMARKS_ARCHIVE_IDLE_TIME * 1000) {
           
           this._archiveBookmarks();
         }
@@ -144,8 +172,7 @@ BrowserGlue.prototype = {
   _init: function() 
   {
     
-    const osvr = Cc['@mozilla.org/observer-service;1'].
-                 getService(Ci.nsIObserverService);
+    const osvr = this._observerService;
     osvr.addObserver(this, "quit-application", false);
     osvr.addObserver(this, "xpcom-shutdown", false);
     osvr.addObserver(this, "prefservice:after-app-defaults", false);
@@ -156,14 +183,14 @@ BrowserGlue.prototype = {
     osvr.addObserver(this, "quit-application-granted", false);
     osvr.addObserver(this, "session-save", false);
     osvr.addObserver(this, "places-init-complete", false);
+    osvr.addObserver(this, "places-database-locked", false);
   },
 
   
   _dispose: function() 
   {
     
-    const osvr = Cc['@mozilla.org/observer-service;1'].
-                 getService(Ci.nsIObserverService);
+    const osvr = this._observerService;
     osvr.removeObserver(this, "quit-application");
     osvr.removeObserver(this, "xpcom-shutdown");
     osvr.removeObserver(this, "prefservice:after-app-defaults");
@@ -173,7 +200,6 @@ BrowserGlue.prototype = {
     osvr.removeObserver(this, "quit-application-requested");
     osvr.removeObserver(this, "quit-application-granted");
     osvr.removeObserver(this, "session-save");
-    osvr.removeObserver(this, "places-init-complete");
   },
 
   _onAppDefaults: function()
@@ -206,16 +232,14 @@ BrowserGlue.prototype = {
     
     this._migrateUI();
 
-    const osvr = Cc['@mozilla.org/observer-service;1'].
-                 getService(Ci.nsIObserverService);
-    osvr.notifyObservers(null, "browser-ui-startup-complete", "");
+    this._observerService.notifyObservers(null, "browser-ui-startup-complete", "");
   },
 
   
   _onProfileShutdown: function() 
   {
     this._shutdownPlaces();
-    this.idleService.removeIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
+    this._idleService.removeIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
     this.Sanitizer.onShutdown();
   },
 
@@ -244,6 +268,15 @@ BrowserGlue.prototype = {
                getService(Ci.nsIWindowWatcher);
       ww.openWindow(null, EMURL, "_blank", EMFEATURES, args);
       this._prefs.clearUserPref(PREF_EM_NEW_ADDONS_LIST);
+    }
+
+    
+    
+    
+    
+    
+    if (this._isPlacesDatabaseLocked) {
+      this._showPlacesLockedNotificationBox();
     }
   },
 
@@ -295,14 +328,12 @@ BrowserGlue.prototype = {
       return false;
 
     var buttonChoice = 0;
-    var bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
-                        getService(Ci.nsIStringBundleService);
-    var quitBundle = bundleService.createBundle("chrome://browser/locale/quitDialog.properties");
-    var brandBundle = bundleService.createBundle("chrome://branding/locale/brand.properties");
+    var quitBundle = this._bundleService.createBundle("chrome://browser/locale/quitDialog.properties");
+    var brandBundle = this._bundleService.createBundle("chrome://branding/locale/brand.properties");
 
     var appName = brandBundle.GetStringFromName("brandShortName");
     var quitDialogTitle = quitBundle.formatStringFromName(aQuitType + "DialogTitle",
-                                                            [appName], 1);
+                                                          [appName], 1);
 
     var message;
     if (aQuitType == "restart")
@@ -408,10 +439,8 @@ BrowserGlue.prototype = {
     var browser = win.gBrowser; 
     var notifyBox = browser.getNotificationBox();
 
-    var bundleService = Cc["@mozilla.org/intl/stringbundle;1"].
-                        getService(Ci.nsIStringBundleService);
-    var brandBundle  = bundleService.createBundle("chrome://branding/locale/brand.properties");
-    var rightsBundle = bundleService.createBundle("chrome://browser/locale/aboutRights.properties");
+    var brandBundle  = this._bundleService.createBundle("chrome://branding/locale/brand.properties");
+    var rightsBundle = this._bundleService.createBundle("chrome://browser/locale/aboutRights.properties");
 
     var buttonLabel     = rightsBundle.GetStringFromName("buttonLabel");
     var buttonAccessKey = rightsBundle.GetStringFromName("buttonAccessKey");
@@ -448,14 +477,6 @@ BrowserGlue.prototype = {
     return Sanitizer;
   },
 
-  _idleService: null,
-  get idleService() {
-    if (!this._idleService)
-      this._idleService = Cc["@mozilla.org/widget/idleservice;1"].
-                          getService(Ci.nsIIdleService);
-    return this._idleService;
-  },
-
   
 
 
@@ -482,11 +503,12 @@ BrowserGlue.prototype = {
     
     var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                   getService(Ci.nsINavHistoryService);
-    var databaseStatus = histsvc.databaseStatus;
 
     
     
-    var importBookmarks = databaseStatus != histsvc.DATABASE_STATUS_OK;
+    var databaseStatus = histsvc.databaseStatus;
+    var importBookmarks = databaseStatus == histsvc.DATABASE_STATUS_CREATE ||
+                          databaseStatus == histsvc.DATABASE_STATUS_CORRUPT;
 
     
     var importBookmarksHTML = false;
@@ -584,7 +606,7 @@ BrowserGlue.prototype = {
 
     
     
-    this.idleService.addIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
+    this._idleService.addIdleObserver(this, BOOKMARKS_ARCHIVE_IDLE_TIME);
   },
 
   
@@ -634,6 +656,44 @@ BrowserGlue.prototype = {
 
       PlacesUtils.archiveBookmarksFile(maxBackups, false );
     }
+  },
+
+  
+
+
+  _showPlacesLockedNotificationBox: function nsBrowserGlue__showPlacesLockedNotificationBox() {
+    var brandBundle  = this._bundleService.createBundle("chrome://branding/locale/brand.properties");
+    var applicationName = brandBundle.GetStringFromName("brandShortName");
+    var placesBundle = this._bundleService.createBundle("chrome://browser/locale/places/places.properties");
+    var title = placesBundle.GetStringFromName("lockPrompt.title");
+    var text = placesBundle.formatStringFromName("lockPrompt.text", [applicationName], 1);
+    var buttonText = placesBundle.GetStringFromName("lockPromptInfoButton.label");
+    var accessKey = placesBundle.GetStringFromName("lockPromptInfoButton.accessKey");
+
+    var helpTopic = "places-locked";
+    var url = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
+              getService(Components.interfaces.nsIURLFormatter).
+              formatURLPref("app.support.baseURL");
+    url += helpTopic;
+
+    var browser = this.getMostRecentBrowserWindow().gBrowser;
+
+    var buttons = [
+                    {
+                      label:     buttonText,
+                      accessKey: accessKey,
+                      popup:     null,
+                      callback:  function(aNotificationBar, aButton) {
+                        browser.selectedTab = browser.addTab(url);
+                      }
+                    }
+                  ];
+
+    var notifyBox = browser.getNotificationBox();
+    var box = notifyBox.appendNotification(text, title, null,
+                                           notifyBox.PRIORITY_CRITICAL_MEDIUM,
+                                           buttons);
+    box.persistence = -1; 
   },
 
   _migrateUI: function bg__migrateUI() {
@@ -746,10 +806,6 @@ BrowserGlue.prototype = {
                   getService(Ci.nsIAnnotationService);
 
     var callback = {
-      _placesBundle: Cc["@mozilla.org/intl/stringbundle;1"].
-                     getService(Ci.nsIStringBundleService).
-                     createBundle("chrome://browser/locale/places/places.properties"),
-
       _uri: function(aSpec) {
         return Cc["@mozilla.org/network/io-service;1"].
                getService(Ci.nsIIOService).
@@ -761,10 +817,14 @@ BrowserGlue.prototype = {
         var bookmarksMenuIndex = 0;
         var bookmarksToolbarIndex = 0;
 
+        var placesBundle = Cc["@mozilla.org/intl/stringbundle;1"].
+                           getService(Ci.nsIStringBundleService).
+                           createBundle("chrome://browser/locale/places/places.properties");
+
         
         var smart = {queryId: "MostVisited", 
                      itemId: null,
-                     title: this._placesBundle.GetStringFromName("mostVisitedTitle"),
+                     title: placesBundle.GetStringFromName("mostVisitedTitle"),
                      uri: this._uri("place:queryType=" +
                                     Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY +
                                     "&sort=" +
@@ -777,7 +837,7 @@ BrowserGlue.prototype = {
         
         smart = {queryId: "RecentlyBookmarked", 
                  itemId: null,
-                 title: this._placesBundle.GetStringFromName("recentlyBookmarkedTitle"),
+                 title: placesBundle.GetStringFromName("recentlyBookmarkedTitle"),
                  uri: this._uri("place:folder=BOOKMARKS_MENU" +
                                 "&folder=UNFILED_BOOKMARKS" +
                                 "&folder=TOOLBAR" +
@@ -795,7 +855,7 @@ BrowserGlue.prototype = {
         
         smart = {queryId: "RecentTags", 
                  itemId: null,
-                 title: this._placesBundle.GetStringFromName("recentTagsTitle"),
+                 title: placesBundle.GetStringFromName("recentTagsTitle"),
                  uri: this._uri("place:"+
                     "type=" +
                     Ci.nsINavHistoryQueryOptions.RESULTS_AS_TAG_QUERY +
