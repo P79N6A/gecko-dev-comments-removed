@@ -51,7 +51,6 @@
 #include <alloca.h>
 #endif
 
-#define AVMPLUS_DEFINE_NEW_DELETE
 #include "nanojit/avmplus.h"    
 #include "nanojit/nanojit.h"
 #include "jsarray.h"            
