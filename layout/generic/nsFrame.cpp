@@ -4056,6 +4056,17 @@ nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
   const nsStyleBorder* border = GetStyleBorder();
   NS_FOR_CSS_SIDES(side) {
     if (border->GetActualBorderWidth(side) != 0) {
+      if ((side == NS_SIDE_LEFT || side == NS_SIDE_TOP) &&
+          !nsLayoutUtils::HasNonZeroCornerOnSide(border->mBorderRadius, side) &&
+          !border->GetBorderImage() &&
+          border->GetBorderStyle(side) == NS_STYLE_BORDER_STYLE_SOLID) {
+        
+        
+        
+        
+        
+        continue;
+      }
       Invalidate(nsRect(0, 0, aOldRect.width, aOldRect.height));
       return;
     }

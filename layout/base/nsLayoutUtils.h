@@ -947,6 +947,13 @@ public:
 
 
 
+  static PRBool HasNonZeroCornerOnSide(const nsStyleCorners& aCorners,
+                                       PRUint8 aSide);
+
+  
+
+
+
 
   static nsTransparencyMode GetFrameTransparency(nsIFrame* aFrame);
 
