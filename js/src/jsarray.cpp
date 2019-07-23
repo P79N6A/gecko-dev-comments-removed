@@ -1317,19 +1317,25 @@ array_join_sub(JSContext *cx, JSObject *obj, enum ArrayToStringOp op,
     growth = (size_t) -1;
 #endif
 
-    if (op == TO_SOURCE) {
-        if (IS_SHARP(he)) {
-#if JS_HAS_SHARP_VARS
-            nchars = js_strlen(chars);
-#else
-            chars[0] = '[';
-            chars[1] = ']';
-            chars[2] = 0;
-            nchars = 2;
-#endif
-            goto make_string;
-        }
+    
 
+
+
+
+
+    if (IS_SHARP(he)) {
+#if JS_HAS_SHARP_VARS
+        nchars = js_strlen(chars);
+#else
+        chars[0] = '[';
+        chars[1] = ']';
+        chars[2] = 0;
+        nchars = 2;
+#endif
+        goto make_string;
+    }
+
+    if (op == TO_SOURCE) {
         
 
 
