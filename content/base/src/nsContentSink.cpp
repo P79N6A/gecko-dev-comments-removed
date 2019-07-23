@@ -91,6 +91,7 @@
 #include "nsNodeUtils.h"
 #include "nsIDOMNode.h"
 #include "nsThreadUtils.h"
+#include "nsPresShellIterator.h"
 
 PRLogModuleInfo* gContentSinkLogModuleInfo;
 
@@ -949,32 +950,30 @@ nsContentSink::ScrollToRef()
   
   NS_ConvertUTF8toUTF16 ref(unescapedRef);
 
-  PRInt32 i, ns = mDocument->GetNumberOfShells();
-  for (i = 0; i < ns; i++) {
-    nsIPresShell* shell = mDocument->GetShellAt(i);
-    if (shell) {
+  nsPresShellIterator iter(mDocument);
+  nsCOMPtr<nsIPresShell> shell;
+  while ((shell = iter.GetNextShell())) {
+    
+    if (!ref.IsEmpty()) {
       
-      if (!ref.IsEmpty()) {
-        
+      rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+    } else {
+      rv = NS_ERROR_FAILURE;
+    }
+
+    
+    
+
+    if (NS_FAILED(rv)) {
+      const nsACString &docCharset = mDocument->GetDocumentCharacterSet();
+
+      rv = nsContentUtils::ConvertStringFromCharset(docCharset, unescapedRef, ref);
+
+      if (NS_SUCCEEDED(rv) && !ref.IsEmpty())
         rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
-      } else {
-        rv = NS_ERROR_FAILURE;
-      }
-
-      
-      
-
-      if (NS_FAILED(rv)) {
-        const nsACString &docCharset = mDocument->GetDocumentCharacterSet();
-
-        rv = nsContentUtils::ConvertStringFromCharset(docCharset, unescapedRef, ref);
-
-        if (NS_SUCCEEDED(rv) && !ref.IsEmpty())
-          rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
-      }
-      if (NS_SUCCEEDED(rv)) {
-        mScrolledToRefAlready = PR_TRUE;
-      }
+    }
+    if (NS_SUCCEEDED(rv)) {
+      mScrolledToRefAlready = PR_TRUE;
     }
   }
 }
@@ -1029,46 +1028,40 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
 
   mLayoutStarted = PR_TRUE;
   mLastNotificationTime = PR_Now();
-  
-  PRUint32 i;
 
-  
-  
-  for (i = 0; i < mDocument->GetNumberOfShells(); i++) {
-    nsIPresShell *shell = mDocument->GetShellAt(i);
+  nsPresShellIterator iter(mDocument);
+  nsCOMPtr<nsIPresShell> shell;
+  while ((shell = iter.GetNextShell())) {
+    
+    
+    
+    
+    
 
-    if (shell) {
-      
+    PRBool didInitialReflow = PR_FALSE;
+    shell->GetDidInitialReflow(&didInitialReflow);
+    if (didInitialReflow) {
       
       
       
       
 
-      PRBool didInitialReflow = PR_FALSE;
-      shell->GetDidInitialReflow(&didInitialReflow);
-      if (didInitialReflow) {
-        
-        
-        
-        
-
-        continue;
-      }
-
-      
-      shell->BeginObservingDocument();
-
-      
-      nsRect r = shell->GetPresContext()->GetVisibleArea();
-      nsCOMPtr<nsIPresShell> shellGrip = shell;
-      nsresult rv = shell->InitialReflow(r.width, r.height);
-      if (NS_FAILED(rv)) {
-        return;
-      }
-
-      
-      RefreshIfEnabled(shell->GetViewManager());
+      continue;
     }
+
+    
+    shell->BeginObservingDocument();
+
+    
+    nsRect r = shell->GetPresContext()->GetVisibleArea();
+    nsCOMPtr<nsIPresShell> shellGrip = shell;
+    nsresult rv = shell->InitialReflow(r.width, r.height);
+    if (NS_FAILED(rv)) {
+      return;
+    }
+
+    
+    RefreshIfEnabled(shell->GetViewManager());
   }
 
   

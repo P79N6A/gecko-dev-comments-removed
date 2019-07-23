@@ -74,7 +74,7 @@ nsresult
 nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument)
 {
     
-    if (!aDocument->GetNumberOfShells()) {
+    if (!aDocument->GetPrimaryShell()) {
         return NS_OK;
     }
 

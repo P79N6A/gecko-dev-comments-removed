@@ -2352,7 +2352,7 @@ nsHTMLDocument::Close()
     
     
     
-    if (GetNumberOfShells() != 0) {
+    if (GetPrimaryShell()) {
       FlushPendingNotifications(Flush_Layout);
     }
 

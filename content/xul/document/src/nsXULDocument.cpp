@@ -901,9 +901,9 @@ nsXULDocument::ExecuteOnBroadcastHandlerFor(nsIContent* aBroadcaster,
         
         nsEvent event(PR_TRUE, NS_XUL_BROADCAST);
 
-        PRInt32 j = GetNumberOfShells();
-        while (--j >= 0) {
-            nsCOMPtr<nsIPresShell> shell = GetShellAt(j);
+        nsPresShellIterator iter(this);
+        nsCOMPtr<nsIPresShell> shell;
+        while ((shell = iter.GetNextShell())) {
 
             nsCOMPtr<nsPresContext> aPresContext = shell->GetPresContext();
 
@@ -1973,10 +1973,9 @@ nsXULDocument::StartLayout(void)
         return NS_OK;
     }
 
-    
-    
-    for (PRUint32 i = 0; i < GetNumberOfShells(); ++i) {
-        nsIPresShell *shell = GetShellAt(i);
+    nsPresShellIterator iter(this);
+    nsCOMPtr<nsIPresShell> shell;
+    while ((shell = iter.GetNextShell())) {
 
         
         nsPresContext *cx = shell->GetPresContext();

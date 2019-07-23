@@ -211,7 +211,7 @@ nsFocusController::UpdateCommands()
   }
 
   
-  if (window && doc && doc->GetNumberOfShells()) {
+  if (window && doc && doc->GetPrimaryShell()) {
     
     window->UpdateCommands(NS_LITERAL_STRING("focus"));
     mNeedUpdateCommands = PR_FALSE;
@@ -283,10 +283,6 @@ nsFocusController::MoveFocus(PRBool aForward, nsIDOMElement* aElt)
 
 
   
-  PRInt32 count = doc->GetNumberOfShells();
-  if (count == 0)
-    return NS_OK;
-
   nsIPresShell *shell = doc->GetPrimaryShell();
   if (!shell)
     return NS_OK;
