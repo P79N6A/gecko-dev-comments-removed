@@ -88,11 +88,11 @@ using namespace mozilla::places;
 
 
 
-#define RECENT_EVENT_THRESHOLD (15 * 60 * PR_USEC_PER_SEC)
+#define RECENT_EVENT_THRESHOLD ((PRInt64)15 * 60 * PR_USEC_PER_SEC)
 
 
 
-#define BOOKMARK_REDIRECT_TIME_THRESHOLD (2 * 60 * PR_USEC_PER_SEC)
+#define BOOKMARK_REDIRECT_TIME_THRESHOLD ((PRInt64)2 * 60 * PR_USEC_PER_SEC)
 
 
 
@@ -103,6 +103,7 @@ using namespace mozilla::places;
 
 
 #define PREF_BRANCH_BASE                        "browser."
+
 #define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MIN    "history_expire_days_min"
 #define PREF_BROWSER_HISTORY_EXPIRE_DAYS_MAX    "history_expire_days"
 #define PREF_BROWSER_HISTORY_EXPIRE_SITES       "history_expire_sites"
@@ -139,10 +140,34 @@ using namespace mozilla::places;
 
 
 
+#define DATABASE_SCHEMA_VERSION 10
 
 
 
-#define DEFAULT_DB_PAGE_SIZE 4096
+
+
+
+#define DATABASE_PAGE_SIZE 4096
+
+
+#define DATABASE_FILENAME NS_LITERAL_STRING("places.sqlite")
+
+
+#define DATABASE_CORRUPT_FILENAME NS_LITERAL_STRING("places.sqlite.corrupt")
+
+
+
+#define DATABASE_JOURNAL_MODE "TRUNCATE"
+
+
+
+#define DATABASE_VACUUM_FREEPAGES_THRESHOLD 0.1
+
+
+#define DATABASE_MAX_TIME_BEFORE_VACUUM (PRInt64)60 * 24 * 60 * 60 * 1000 * 1000
+
+
+#define DATABASE_MIN_TIME_BEFORE_VACUUM (PRInt64)30 * 24 * 60 * 60 * 1000 * 1000
 
 
 
@@ -150,19 +175,6 @@ using namespace mozilla::places;
 
 
 static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
-
-
-
-#define HISTORY_URI_LENGTH_MAX 65536
-#define HISTORY_TITLE_LENGTH_MAX 4096
-
-
-#define DB_FILENAME NS_LITERAL_STRING("places.sqlite")
-
-
-#define DB_CORRUPT_FILENAME NS_LITERAL_STRING("places.sqlite.corrupt")
-
-
 
 #ifdef LAZY_ADD
 
@@ -183,10 +195,6 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 
 
 
-#define DEFAULT_JOURNAL_MODE "TRUNCATE"
-
-
-
 #define HISTORY_ADDITIONAL_DATE_CONT_NUM 3
 
 
@@ -195,16 +203,6 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
    NS_MIN(6, (PRInt32)NS_ceilf((float)_daysFromOldestVisit/30)))
 
 #define HISTORY_DATE_CONT_MAX 10
-
-
-
-#define VACUUM_FREEPAGES_THRESHOLD 0.1
-
-
-#define MAX_TIME_BEFORE_VACUUM (PRInt64)60 * 24 * 60 * 60 * 1000 * 1000
-
-
-#define MIN_TIME_BEFORE_VACUUM (PRInt64)30 * 24 * 60 * 60 * 1000 * 1000
 
 #ifdef MOZ_XUL
 #define TOPIC_AUTOCOMPLETE_FEEDBACK_INCOMING "autocomplete-will-enter-text"
@@ -246,6 +244,8 @@ NS_IMPL_CI_INTERFACE_GETTER5(
 , nsIBrowserHistory
 )
 
+namespace {
+
 static nsresult GetReversedHostname(nsIURI* aURI, nsAString& host);
 static void GetReversedHostname(const nsString& aForward, nsAString& aReversed);
 static PRInt64 GetSimpleBookmarksQueryFolder(
@@ -260,6 +260,8 @@ inline void ReverseString(const nsString& aInput, nsAString& aReversed)
   for (PRInt32 i = aInput.Length() - 1; i >= 0; i --)
     aReversed.Append(aInput[i]);
 }
+
+} 
 
 namespace mozilla {
   namespace places {
@@ -284,8 +286,8 @@ namespace mozilla {
         nsAutoString leafName;
         rv = currFile->GetLeafName(leafName);
         NS_ENSURE_SUCCESS(rv, false);
-        if (leafName.Length() >= DB_CORRUPT_FILENAME.Length() &&
-            leafName.Find(".corrupt", DB_FILENAME.Length()) != -1) {
+        if (leafName.Length() >= DATABASE_CORRUPT_FILENAME.Length() &&
+            leafName.Find(".corrupt", DATABASE_FILENAME.Length()) != -1) {
           PRInt64 lastMod;
           rv = currFile->GetLastModifiedTime(&lastMod);
           NS_ENSURE_SUCCESS(rv, false);
@@ -322,9 +324,11 @@ namespace mozilla {
       _sqlFragment.AppendLiteral(" AS tags ");
     }
 
-  }
-}
+  } 
+} 
 
+
+namespace {
 
 
 
@@ -362,6 +366,9 @@ class PlacesEvent : public nsRunnable {
   protected:
   const char* mTopic;
 };
+
+} 
+
 
 
 
@@ -549,7 +556,7 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = profDir->Clone(getter_AddRefs(mDBFile));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDBFile->Append(DB_FILENAME);
+  rv = mDBFile->Append(DATABASE_FILENAME);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aForceInit) {
@@ -561,8 +568,8 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     if (!hasRecentCorruptDB()) {
       
       nsCOMPtr<nsIFile> backup;
-      rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
-                                          getter_AddRefs(backup));
+      rv = mDBService->BackupDatabaseFile(mDBFile, DATABASE_CORRUPT_FILENAME,
+                                          profDir, getter_AddRefs(backup));
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -604,6 +611,7 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
   
   mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+  
   rv = mDBService->OpenUnsharedDatabase(mDBFile, getter_AddRefs(mDBConn));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     
@@ -611,18 +619,16 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 
     
     nsCOMPtr<nsIFile> backup;
-    rv = mDBService->BackupDatabaseFile(mDBFile, DB_CORRUPT_FILENAME, profDir,
-                                        getter_AddRefs(backup));
+    rv = mDBService->BackupDatabaseFile(mDBFile, DATABASE_CORRUPT_FILENAME,
+                                        profDir, getter_AddRefs(backup));
     NS_ENSURE_SUCCESS(rv, rv);
- 
-    
     rv = mDBFile->Remove(PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = profDir->Clone(getter_AddRefs(mDBFile));
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBFile->Append(DB_FILENAME);
+    rv = mDBFile->Append(DATABASE_FILENAME);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = mDBService->OpenUnsharedDatabase(mDBFile, getter_AddRefs(mDBConn));
   }
@@ -641,25 +647,18 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 }
 
 
-
-
-#define PLACES_SCHEMA_VERSION 10
-
 nsresult
 nsNavHistory::InitDB()
 {
-  PRInt32 pageSize = DEFAULT_DB_PAGE_SIZE;
+  PRInt32 pageSize = DATABASE_PAGE_SIZE;
 
   
-  PRInt32 DBSchemaVersion = 0;
-  nsresult rv = mDBConn->GetSchemaVersion(&DBSchemaVersion);
+  PRInt32 currentSchemaVersion = 0;
+  nsresult rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
-  bool databaseInitialized = (DBSchemaVersion > 0);
+  bool databaseInitialized = (currentSchemaVersion > 0);
 
   if (!databaseInitialized) {
-    
-    
-    
     
     
     
@@ -673,15 +672,13 @@ nsNavHistory::InitDB()
     
     
     nsCOMPtr<mozIStorageStatement> statement;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "PRAGMA page_size"),
-      getter_AddRefs(statement));
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
+                                  getter_AddRefs(statement));
     NS_ENSURE_SUCCESS(rv, rv);
 
     PRBool hasResult;
     rv = statement->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
     pageSize = statement->AsInt32(0);
   }
 
@@ -717,9 +714,6 @@ nsNavHistory::InitDB()
 
   
   PRInt64 cachePages = cacheSize / pageSize;
-
-  
-  
   nsCAutoString pageSizePragma("PRAGMA cache_size = ");
   pageSizePragma.AppendInt(cachePages);
   rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
@@ -727,13 +721,12 @@ nsNavHistory::InitDB()
 
   
   
-  
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "PRAGMA locking_mode = EXCLUSIVE"));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "PRAGMA journal_mode = " DEFAULT_JOURNAL_MODE));
+      "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -755,10 +748,10 @@ nsNavHistory::InitDB()
     
     rv = UpdateSchemaVersion();
     NS_ENSURE_SUCCESS(rv, rv);
-    DBSchemaVersion = PLACES_SCHEMA_VERSION;
+    currentSchemaVersion = DATABASE_SCHEMA_VERSION;
   }
 
-  if (PLACES_SCHEMA_VERSION != DBSchemaVersion) {
+  if (DATABASE_SCHEMA_VERSION != currentSchemaVersion) {
     
     
     
@@ -772,48 +765,48 @@ nsNavHistory::InitDB()
     
     
     
-    if (DBSchemaVersion < PLACES_SCHEMA_VERSION) {
+    if (currentSchemaVersion < DATABASE_SCHEMA_VERSION) {
       
       mDatabaseStatus = DATABASE_STATUS_UPGRADED;
 
       
-      if (DBSchemaVersion < 3) {
+      if (currentSchemaVersion < 3) {
         rv = MigrateV3Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      if (DBSchemaVersion < 5) {
+      if (currentSchemaVersion < 5) {
         rv = ForceMigrateBookmarksDB(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      if (DBSchemaVersion < 6) {
+      if (currentSchemaVersion < 6) {
         rv = MigrateV6Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      if (DBSchemaVersion < 7) {
+      if (currentSchemaVersion < 7) {
         rv = MigrateV7Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      if (DBSchemaVersion < 8) {
+      if (currentSchemaVersion < 8) {
         rv = MigrateV8Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      if (DBSchemaVersion < 9) {
+      if (currentSchemaVersion < 9) {
         rv = MigrateV9Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
-      if (DBSchemaVersion < 10) {
+      if (currentSchemaVersion < 10) {
         rv = MigrateV10Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
@@ -830,7 +823,7 @@ nsNavHistory::InitDB()
 
       
       
-      if (DBSchemaVersion > 2 && DBSchemaVersion < 6) {
+      if (currentSchemaVersion > 2 && currentSchemaVersion < 6) {
         
         rv = ForceMigrateBookmarksDB(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -897,6 +890,7 @@ nsNavHistory::InitDB()
   return NS_OK;
 }
 
+
 nsresult
 nsNavHistory::InitAdditionalDBItems()
 {
@@ -912,6 +906,7 @@ nsNavHistory::InitAdditionalDBItems()
   return NS_OK;
 }
 
+
 NS_IMETHODIMP
 nsNavHistory::GetDatabaseStatus(PRUint16 *aDatabaseStatus)
 {
@@ -923,10 +918,11 @@ nsNavHistory::GetDatabaseStatus(PRUint16 *aDatabaseStatus)
 
 
 
+
 nsresult
 nsNavHistory::UpdateSchemaVersion()
 {
-  return mDBConn->SetSchemaVersion(PLACES_SCHEMA_VERSION);
+  return mDBConn->SetSchemaVersion(DATABASE_SCHEMA_VERSION);
 }
 
 
@@ -1328,6 +1324,7 @@ nsNavHistory::InitStatements()
 
 
 
+
 nsresult
 nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn) 
 {
@@ -1678,6 +1675,7 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
   return transaction.Commit();
 }
 
+
 nsresult
 nsNavHistory::MigrateV8Up(mozIStorageConnection *aDBConn)
 {
@@ -1728,6 +1726,7 @@ nsNavHistory::MigrateV8Up(mozIStorageConnection *aDBConn)
   return transaction.Commit();
 }
 
+
 nsresult
 nsNavHistory::MigrateV9Up(mozIStorageConnection *aDBConn)
 {
@@ -1773,12 +1772,13 @@ nsNavHistory::MigrateV9Up(mozIStorageConnection *aDBConn)
 
     
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "PRAGMA journal_mode = " DEFAULT_JOURNAL_MODE));
+        "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   return transaction.Commit();
 }
+
 
 nsresult
 nsNavHistory::MigrateV10Up(mozIStorageConnection *aDBConn)
@@ -1862,7 +1862,7 @@ nsNavHistory::InternalAddNewPage(nsIURI* aURI,
   }
   else {
     rv = mDBAddNewPage->BindStringParameter(1,
-        StringHead(aTitle, HISTORY_TITLE_LENGTH_MAX));
+        StringHead(aTitle, TITLE_LENGTH_MAX));
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2028,8 +2028,6 @@ PRBool nsNavHistory::IsURIStringVisited(const nsACString& aURIString)
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
   return hasMore;
 }
-
-
 
 
 nsresult
@@ -3093,18 +3091,18 @@ PlacesSQLQueryBuilder::PlacesSQLQueryBuilder(
     nsNavHistoryQueryOptions* aOptions, 
     PRBool aUseLimit,
     nsNavHistory::StringHash& aAddParams,
-    PRBool aHasSearchTerms) :
-  mConditions(aConditions),
-  mUseLimit(aUseLimit),
-  mResultType(aOptions->ResultType()),
-  mQueryType(aOptions->QueryType()),
-  mIncludeHidden(aOptions->IncludeHidden()),
-  mRedirectsMode(aOptions->RedirectsMode()),
-  mSortingMode(aOptions->SortingMode()),
-  mMaxResults(aOptions->MaxResults()),
-  mSkipOrderBy(PR_FALSE),
-  mAddParams(aAddParams),
-  mHasSearchTerms(aHasSearchTerms)
+    PRBool aHasSearchTerms)
+: mConditions(aConditions)
+, mUseLimit(aUseLimit)
+, mHasSearchTerms(aHasSearchTerms)
+, mResultType(aOptions->ResultType())
+, mQueryType(aOptions->QueryType())
+, mIncludeHidden(aOptions->IncludeHidden())
+, mRedirectsMode(aOptions->RedirectsMode())
+, mSortingMode(aOptions->SortingMode())
+, mMaxResults(aOptions->MaxResults())
+, mSkipOrderBy(PR_FALSE)
+, mAddParams(aAddParams)
 {
   mHasDateColumns = (mQueryType == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS);
 }
@@ -3392,9 +3390,9 @@ PlacesSQLQueryBuilder::SelectAsDay()
     sortingMode = mSortingMode;
 
   PRUint16 resultType =
-    mResultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ?
-                   nsINavHistoryQueryOptions::RESULTS_AS_URI :
-                   nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY;
+    (mResultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY) ?
+      nsINavHistoryQueryOptions::RESULTS_AS_URI :
+      nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY;
 
   
   
@@ -5448,7 +5446,8 @@ nsNavHistory::GetDBConnection(mozIStorageConnection **_DBConnection)
   return NS_OK;
 }
 
-NS_HIDDEN_(nsresult)
+
+nsresult
 nsNavHistory::FinalizeInternalStatements()
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
@@ -5650,7 +5649,8 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   return NS_OK;
 }
 
-NS_HIDDEN_(nsresult)
+
+nsresult
 nsNavHistory::VacuumDatabase()
 {
   
@@ -5676,8 +5676,8 @@ nsNavHistory::VacuumDatabase()
   nsresult rv;
   float freePagesRatio = 0;
   if (!lastVacuumTime ||
-      (lastVacuumTime < (PR_Now() - MIN_TIME_BEFORE_VACUUM) &&
-       lastVacuumTime > (PR_Now() - MAX_TIME_BEFORE_VACUUM))) {
+      (lastVacuumTime < (PR_Now() - DATABASE_MIN_TIME_BEFORE_VACUUM) &&
+       lastVacuumTime > (PR_Now() - DATABASE_MAX_TIME_BEFORE_VACUUM))) {
     
     
     
@@ -5703,8 +5703,8 @@ nsNavHistory::VacuumDatabase()
     freePagesRatio = (float)(freelistCount / pageCount);
   }
   
-  if (freePagesRatio > VACUUM_FREEPAGES_THRESHOLD ||
-      lastVacuumTime < (PR_Now() - MAX_TIME_BEFORE_VACUUM)) {
+  if (freePagesRatio > DATABASE_VACUUM_FREEPAGES_THRESHOLD ||
+      lastVacuumTime < (PR_Now() - DATABASE_MAX_TIME_BEFORE_VACUUM)) {
     
     
     
@@ -5737,7 +5737,7 @@ nsNavHistory::VacuumDatabase()
 
     nsCOMPtr<mozIStorageStatement> journalToDefault;
     rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "PRAGMA journal_mode = " DEFAULT_JOURNAL_MODE),
+        "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE),
       getter_AddRefs(journalToDefault));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -5759,7 +5759,7 @@ nsNavHistory::VacuumDatabase()
   return NS_OK;
 }
 
-NS_HIDDEN_(nsresult)
+nsresult
 nsNavHistory::DecayFrecency()
 {
   
@@ -5888,7 +5888,7 @@ nsNavHistory::LazyTimerCallback(nsITimer* aTimer, void* aClosure)
 
 
 
-NS_HIDDEN_(void)
+void
 nsNavHistory::CommitLazyMessages(PRBool aIsShutdown)
 {
   mozStorageTransaction transaction(mDBConn, PR_TRUE);
@@ -6219,7 +6219,7 @@ nsNavHistory::BindQueryClauseParameters(mozIStorageStatement* statement,
       aQuery->Uri()->GetSpec(uriString);
       uriString.Append(char(0x7F)); 
       rv = statement->BindUTF8StringParameter(index.For("uri_upper"),
-        StringHead(uriString, HISTORY_URI_LENGTH_MAX));
+        StringHead(uriString, URI_LENGTH_MAX));
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -7037,7 +7037,7 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
   if (aTitle.IsVoid())
     rv = mDBSetPlaceTitle->BindNullParameter(0);
   else
-    rv = mDBSetPlaceTitle->BindStringParameter(0, StringHead(aTitle, HISTORY_TITLE_LENGTH_MAX));
+    rv = mDBSetPlaceTitle->BindStringParameter(0, StringHead(aTitle, TITLE_LENGTH_MAX));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -7257,7 +7257,7 @@ nsNavHistory::RemoveDuplicateURIs()
 }
 
 
-
+namespace {
 
 
 
@@ -7409,6 +7409,8 @@ void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
   }
 }
 
+} 
+
 
 
 
@@ -7425,7 +7427,7 @@ BindStatementURI(mozIStorageStatement* statement, PRInt32 index, nsIURI* aURI)
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = statement->BindUTF8StringParameter(index,
-      StringHead(utf8URISpec, HISTORY_URI_LENGTH_MAX));
+      StringHead(utf8URISpec, URI_LENGTH_MAX));
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
@@ -7491,7 +7493,7 @@ nsNavHistory::UpdateFrecencyInternal(PRInt64 aPlaceId, PRInt32 aTyped,
   
   
   
-  if (newFrecency == aOldFrecency || aOldFrecency && newFrecency < 0)
+  if ((newFrecency == aOldFrecency) || (aOldFrecency && newFrecency < 0))
     return NS_OK;
 
   mozStorageStatementScoper updateScoper(mDBUpdateFrecencyAndHidden);
@@ -8000,7 +8002,7 @@ nsNavHistory::GetDBBookmarkToUrlResult()
   return mDBBookmarkToUrlResult;
 }
 
-NS_HIDDEN_(nsresult)
+nsresult
 nsNavHistory::FinalizeStatements() {
   mozIStorageStatement* stmts[] = {
 #ifdef MOZ_XUL

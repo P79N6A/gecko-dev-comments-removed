@@ -84,6 +84,11 @@
 #define PRIVATEBROWSING_NOTINITED (PRBool(0xffffffff))
 
 
+
+#define URI_LENGTH_MAX 65536
+#define TITLE_LENGTH_MAX 4096
+
+
 class mozIAnnotationService;
 class nsNavHistory;
 class nsNavBookmarks;
@@ -408,22 +413,22 @@ protected:
   
 
 
-  NS_HIDDEN_(nsresult) FinalizeStatements();
+  nsresult FinalizeStatements();
 
   
 
 
-  NS_HIDDEN_(nsresult) DecayFrecency();
+  nsresult DecayFrecency();
   
 
 
-  NS_HIDDEN_(nsresult) VacuumDatabase();
+  nsresult VacuumDatabase();
 
   
 
 
 
-  NS_HIDDEN_(nsresult) FinalizeInternalStatements();
+  nsresult FinalizeInternalStatements();
 
   
   NS_DECL_NSICHARSETRESOLVER
@@ -569,7 +574,7 @@ protected:
   nsresult StartLazyTimer();
   nsresult AddLazyMessage(const LazyMessage& aMessage);
   static void LazyTimerCallback(nsITimer* aTimer, void* aClosure);
-  NS_HIDDEN_(void) CommitLazyMessages(PRBool aIsShutdown = PR_FALSE);
+  void CommitLazyMessages(PRBool aIsShutdown = PR_FALSE);
 #endif
 
   nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
