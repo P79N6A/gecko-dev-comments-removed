@@ -2750,7 +2750,9 @@ nsCanvasRenderingContext2D::CairoSurfaceFromElement(nsIDOMElement *imgElt,
             if (!forceCopy && canvas->CountContexts() == 1) {
                 nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
                 rv = srcCanvas->GetThebesSurface(getter_AddRefs(sourceSurface));
-                if (NS_FAILED(rv))
+                
+                
+                if (sourceSurface == mThebesSurface || NS_FAILED(rv))
                     sourceSurface = nsnull;
             }
 
