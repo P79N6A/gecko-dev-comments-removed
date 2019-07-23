@@ -2262,6 +2262,10 @@ static void ContentEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
       
     }
   }
+
+  if (treeContext.mHaveRelevantLink) {
+    data->mRuleWalker->SetHaveRelevantLink();
+  }
 }
 
 NS_IMETHODIMP
