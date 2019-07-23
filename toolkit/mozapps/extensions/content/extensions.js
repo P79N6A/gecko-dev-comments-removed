@@ -1031,7 +1031,7 @@ function Startup()
   } catch(e) { }
 
   
-  gExtensionManager.sortTypeByProperty(nsIUpdateItem.TYPE_ADDON, "name", true);
+  gExtensionManager.sortTypeByProperty(nsIUpdateItem.TYPE_ANY, "name", true);
   
   gExtensionsView.controllers.appendController(gExtensionsViewController);
   gExtensionsView.addEventListener("select", onAddonSelect, false);
@@ -1283,7 +1283,7 @@ XPInstallDownloadManager.prototype = {
         break;
       case nsIXPIProgressDialog.DIALOG_CLOSE:
         
-        gExtensionManager.sortTypeByProperty(nsIUpdateItem.TYPE_ADDON, "name", true);
+        gExtensionManager.sortTypeByProperty(nsIUpdateItem.TYPE_ANY, "name", true);
         
         
         

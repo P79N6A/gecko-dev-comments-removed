@@ -708,7 +708,7 @@ var gUpdatesAvailablePage = {
                        .getService(Components.interfaces.nsIExtensionManager);
     var items = em.getIncompatibleItemList("", gUpdates.update.version,
                                            gUpdates.update.platformVersion,
-                                           nsIUpdateItem.TYPE_ADDON, false,
+                                           nsIUpdateItem.TYPE_ANY, false,
                                            { });
     if (items.length > 0) {
       
