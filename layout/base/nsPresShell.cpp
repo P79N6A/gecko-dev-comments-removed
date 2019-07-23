@@ -5381,32 +5381,60 @@ PresShell::Paint(nsIView*             aView,
   
   
   
+  
 
-  PRBool needTransparency = PR_FALSE;
-
+  nscolor backgroundColor = mPresContext->DefaultBackgroundColor();
   for (nsIView *view = aView; view; view = view->GetParent()) {
     if (view->HasWidget() &&
         view->GetWidget()->GetTransparencyMode() != eTransparencyOpaque) {
-      needTransparency = PR_TRUE;
+      backgroundColor = NS_RGBA(0,0,0,0);
       break;
     }
   }
 
-  nscolor backgroundColor;
-  if (needTransparency)
-    backgroundColor = NS_RGBA(0,0,0,0);
-  else
-    backgroundColor = mPresContext->DefaultBackgroundColor();
+  
+  
+  
+  
+  
+  
+  
+  
+  nscolor viewDefaultColor = NS_RGBA(0,0,0,0);
+  if (mViewManager)
+    mViewManager->GetDefaultBackgroundColor(&viewDefaultColor);
 
+  
+  
   nsIFrame* frame = static_cast<nsIFrame*>(aView->GetClientData());
-  if (frame) {
-    nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion,
-                              backgroundColor);
-  } else if (NS_GET_A(backgroundColor) > 0) {
+  if (!frame) {
+    backgroundColor = NS_ComposeColors(backgroundColor, viewDefaultColor);
     aRenderingContext->SetColor(backgroundColor);
     aRenderingContext->FillRect(aDirtyRegion.GetBounds());
+    return NS_OK;
   }
 
+  
+  
+  
+  
+  nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
+  if (rootFrame) {
+    const nsStyleBackground* bgStyle =
+      nsCSSRendering::FindRootFrameBackground(rootFrame);
+    
+    
+    
+    
+    backgroundColor = NS_ComposeColors(backgroundColor,
+                                       bgStyle->mBackgroundColor);
+    mViewManager->SetDefaultBackgroundColor(backgroundColor);
+  } else {
+    backgroundColor = NS_ComposeColors(backgroundColor, viewDefaultColor);
+  }
+
+  nsLayoutUtils::PaintFrame(aRenderingContext, frame, aDirtyRegion,
+                            backgroundColor);
   return NS_OK;
 }
 

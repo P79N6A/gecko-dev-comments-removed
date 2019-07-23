@@ -898,8 +898,8 @@ nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
 
 
 
-inline PRBool
-IsCanvasFrame(nsIFrame *aFrame)
+PRBool
+nsCSSRendering::IsCanvasFrame(nsIFrame *aFrame)
 {
   nsIAtom* frameType = aFrame->GetType();
   return frameType == nsGkAtoms::canvasFrame ||
@@ -909,50 +909,54 @@ IsCanvasFrame(nsIFrame *aFrame)
          frameType == nsGkAtoms::viewportFrame;
 }
 
-inline PRBool
+const nsStyleBackground*
+nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
+{
+  const nsStyleBackground* result = aForFrame->GetStyleBackground();
+
+  
+  if (result->IsTransparent()) {
+    nsIContent* content = aForFrame->GetContent();
+    
+    
+    
+    nsIDocument* document = content->GetOwnerDoc();
+    nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
+    if (htmlDoc) {
+      nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (bodyContent) {
+        nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
+          GetPrimaryFrameFor(bodyContent);
+        if (bodyFrame)
+          result = bodyFrame->GetStyleBackground();
+      }
+    }
+  }
+
+  return result;
+}
+
+inline void
 FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
                      const nsStyleBackground** aBackground)
 {
   if (aRootElementFrame) {
-    const nsStyleBackground* result = aRootElementFrame->GetStyleBackground();
-
-    
-    if (result->IsTransparent()) {
-      nsIContent* content = aRootElementFrame->GetContent();
-      
-      
-      
-      nsIDocument* document = content->GetOwnerDoc();
-      nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
-      if (htmlDoc) {
-        nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (bodyContent) {
-          nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
-            GetPrimaryFrameFor(bodyContent);
-          if (bodyFrame)
-            result = bodyFrame->GetStyleBackground();
-        }
-      }
-    }
-
-    *aBackground = result;
+    *aBackground = nsCSSRendering::FindRootFrameBackground(aRootElementFrame);
   } else {
     
     
     
     *aBackground = aForFrame->GetStyleBackground();
   }
-
-  return PR_TRUE;
 }
 
 inline PRBool
@@ -1001,16 +1005,16 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
 PRBool
 nsCSSRendering::FindBackground(nsPresContext* aPresContext,
                                nsIFrame* aForFrame,
-                               const nsStyleBackground** aBackground,
-                               PRBool* aIsCanvas)
+                               const nsStyleBackground** aBackground)
 {
   nsIFrame* rootElementFrame =
     aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
-  PRBool isCanvasFrame = IsCanvasFrame(aForFrame);
-  *aIsCanvas = isCanvasFrame;
-  return isCanvasFrame
-      ? FindCanvasBackground(aForFrame, rootElementFrame, aBackground)
-      : FindElementBackground(aForFrame, rootElementFrame, aBackground);
+  if (IsCanvasFrame(aForFrame)) {
+    FindCanvasBackground(aForFrame, rootElementFrame, aBackground);
+    return PR_TRUE;
+  } else {
+    return FindElementBackground(aForFrame, rootElementFrame, aBackground);
+  }
 }
 
 void
@@ -1271,10 +1275,8 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
   NS_PRECONDITION(aForFrame,
                   "Frame is expected to be provided to PaintBackground");
 
-  PRBool isCanvas;
   const nsStyleBackground *color;
-
-  if (!FindBackground(aPresContext, aForFrame, &color, &isCanvas)) {
+  if (!FindBackground(aPresContext, aForFrame, &color)) {
     
     
     
@@ -1290,13 +1292,6 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
     }
         
     color = aForFrame->GetStyleBackground();
-  }
-
-  if (isCanvas) {
-    nsIViewManager* vm = aPresContext->GetViewManager();
-    vm->SetDefaultBackgroundColor(
-      NS_ComposeColors(aPresContext->DefaultBackgroundColor(),
-                       color->mBackgroundColor));
   }
 
   PaintBackgroundWithSC(aPresContext, aRenderingContext, aForFrame,

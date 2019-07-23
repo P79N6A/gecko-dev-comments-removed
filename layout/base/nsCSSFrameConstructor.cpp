@@ -8759,9 +8759,7 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
   
   
   const nsStyleBackground *bg;
-  PRBool isCanvas;
-  while (!nsCSSRendering::FindBackground(aPresContext, aFrame,
-                                         &bg, &isCanvas)) {
+  while (!nsCSSRendering::FindBackground(aPresContext, aFrame, &bg)) {
     aFrame = aFrame->GetParent();
     NS_ASSERTION(aFrame, "root frame must paint");
   }
@@ -8826,10 +8824,8 @@ InvalidateCanvasIfNeeded(nsIFrame* aFrame)
   
   nsIFrame *ancestor = aFrame;
   const nsStyleBackground *bg;
-  PRBool isCanvas;
   nsPresContext* presContext = aFrame->PresContext();
-  while (!nsCSSRendering::FindBackground(presContext, ancestor,
-                                         &bg, &isCanvas)) {
+  while (!nsCSSRendering::FindBackground(presContext, ancestor, &bg)) {
     ancestor = ancestor->GetParent();
     NS_ASSERTION(ancestor, "canvas must paint");
   }

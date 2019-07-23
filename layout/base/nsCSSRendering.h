@@ -121,15 +121,25 @@ struct nsCSSRendering {
   
 
 
+  static PRBool IsCanvasFrame(nsIFrame* aFrame);
+
+  
+
 
 
 
 
   static PRBool FindBackground(nsPresContext* aPresContext,
                                nsIFrame* aForFrame,
-                               const nsStyleBackground** aBackground,
-                               PRBool* aIsCanvas);
-                               
+                               const nsStyleBackground** aBackground);
+
+  
+
+
+
+
+  static const nsStyleBackground* FindRootFrameBackground(nsIFrame* aForFrame);
+
   
 
 
