@@ -8,7 +8,7 @@ const MAX_TIME_DIFF = 2000000;
 
 var ENTRY_NAME = "test";
 
-var ENTRY_TIME = new Date(2007, 4, 7, 14, 35, 49, 0);
+var ENTRY_TIME = new Date(Date.UTC(2007, 4, 7, 13, 35, 49, 0));
 
 function run_test() {
   var file = do_get_file(path);

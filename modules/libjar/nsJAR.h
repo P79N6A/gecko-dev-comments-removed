@@ -85,8 +85,6 @@ typedef enum
   JAR_NOT_SIGNED          = 7
 } JARManifestStatusType;
 
-PRTime GetModTime(PRUint16 aDate, PRUint16 aTime);
-
 
 
 
@@ -184,8 +182,7 @@ private:
     PRUint32     mSize;             
     PRUint32     mRealsize;         
     PRUint32     mCrc32;
-    PRUint16     mDate;
-    PRUint16     mTime;
+    PRTime       mLastModTime;
     PRUint16     mCompression;
     PRPackedBool mIsDirectory; 
     PRPackedBool mIsSynthetic;

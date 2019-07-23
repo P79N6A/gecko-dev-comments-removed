@@ -123,6 +123,10 @@ typedef struct ZipEnd_
 #define ENDSIG      0x06054B50l
 
 
+#define EXTENDED_TIMESTAMP_FIELD   0x5455
+#define EXTENDED_TIMESTAMP_MODTIME 0x01
+
+
 #define STORED            0
 #define SHRUNK            1
 #define REDUCED1          2
