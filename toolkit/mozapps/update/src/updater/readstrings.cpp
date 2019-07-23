@@ -44,9 +44,11 @@
 #include "prtypes.h"
 
 #if defined(XP_WIN) || defined(XP_OS2)
-#define BINARY_MODE "b"
+# define NS_tfopen _wfopen
+# define OPEN_MODE L"rb"
 #else
-#define BINARY_MODE
+# define NS_tfopen fopen
+# define OPEN_MODE "r"
 #endif
 
 
@@ -111,9 +113,9 @@ NS_strtok(const char *delims, char **str)
 
 
 int
-ReadStrings(const char *path, StringTable *results)
+ReadStrings(const NS_tchar *path, StringTable *results)
 {
-  AutoFILE fp = fopen(path, "r" BINARY_MODE);
+  AutoFILE fp = NS_tfopen(path, OPEN_MODE);
 
   if (!fp)
     return READ_ERROR;
