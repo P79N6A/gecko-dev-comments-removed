@@ -57,6 +57,9 @@ const PR_UINT32_MAX = Math.pow(2, 32) - 1;
 
 var DEBUG = false; 
 
+
+var DEBUG_TIMESTAMP = false; 
+
 var gGlobalObject = this;
 
 
@@ -75,7 +78,7 @@ function NS_ASSERT(cond, msg)
 
     var stack = new Error().stack.split(/\n/);
     dumpn(stack.map(function(val) { return "###!!!   " + val; }).join("\n"));
-    
+
     throw Cr.NS_ERROR_ABORT;
   }
 }
@@ -165,11 +168,31 @@ const HEADERS_SUFFIX = HIDDEN_CHAR + "headers" + HIDDEN_CHAR;
 const SJS_TYPE = "sjs";
 
 
+var firstStamp = 0;
+
 
 function dumpn(str)
 {
   if (DEBUG)
-    dump(str + "\n");
+  {
+    var prefix = "HTTPD-INFO | ";
+    if (DEBUG_TIMESTAMP)
+    {
+      if (firstStamp === 0)
+        firstStamp = Date.now();
+
+      var elapsed = Date.now() - firstStamp; 
+      var min = Math.floor(elapsed / 60000);
+      var sec = (elapsed % 60000) / 1000;
+
+      if (sec < 10)
+        prefix += min + ":0" + sec.toFixed(3) + " | ";
+      else
+        prefix += min + ":" + sec.toFixed(3) + " | ";
+    }
+
+    dump(prefix + str + "\n");
+  }
 }
 
 
