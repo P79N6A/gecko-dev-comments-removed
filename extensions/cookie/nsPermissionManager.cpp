@@ -992,12 +992,15 @@ nsPermissionManager::Write()
 nsresult
 nsPermissionManager::GetHost(nsIURI *aURI, nsACString &aResult)
 {
-  aURI->GetHost(aResult);
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
+  if (!innerURI) return NS_ERROR_FAILURE;
+
+  innerURI->GetHost(aResult);
 
   
   
   if (aResult.IsEmpty()) {
-    aURI->GetScheme(aResult);
+    innerURI->GetScheme(aResult);
     if (aResult.IsEmpty()) {
       
       return NS_ERROR_FAILURE;
