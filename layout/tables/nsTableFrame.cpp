@@ -4714,34 +4714,7 @@ PRBool
 nsTableFrame::BCRecalcNeeded(nsStyleContext* aOldStyleContext,
                              nsStyleContext* aNewStyleContext)
 {
-   
-   
-   
-   
-  const nsStyleBorder* oldStyleData = static_cast<const nsStyleBorder*>
-                       (aOldStyleContext->PeekStyleData(eStyleStruct_Border));
-  if (!oldStyleData)
-    return PR_FALSE;
   
-  const nsStyleBorder* newStyleData = aNewStyleContext->GetStyleBorder();
-  nsChangeHint change = newStyleData->CalcDifference(*oldStyleData);
-  if (change == NS_STYLE_HINT_NONE)
-    return PR_FALSE;
-  if (change == NS_STYLE_HINT_REFLOW)
-    return PR_TRUE; 
-  if (change == NS_STYLE_HINT_VISUAL) {
-    NS_FOR_CSS_SIDES(side) {
-      if (newStyleData->GetBorderStyle(side) !=
-          oldStyleData->GetBorderStyle(side)) {
-        
-        
-        nsCOMPtr<nsIRunnable> evt = new nsDelayedCalcBCBorders(this);
-        if (evt)
-          NS_DispatchToCurrentThread(evt);
-        return PR_TRUE;
-      }
-    }
-  }
   return PR_FALSE;
 }
 
