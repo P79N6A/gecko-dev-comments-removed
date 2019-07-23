@@ -40,16 +40,29 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
-String.prototype.endsWith = function endsWith(aString)
+
+
+
+
+
+
+String.prototype.hasRootDomain = function hasRootDomain(aDomain)
 {
-  let index = this.indexOf(aString);
+  let index = this.indexOf(aDomain);
   
   if (index == -1)
     return false;
 
   
+  if (this == aDomain)
+    return true;
+
   
-  return index == (this.length - aString.length);
+  
+  
+  let prevChar = this[index - 1];
+  return (index == (this.length - aDomain.length)) &&
+         (prevChar == "." || prevChar == "/");
 }
 
 
@@ -328,7 +341,7 @@ PrivateBrowsingService.prototype = {
       let enumerator = cm.enumerator;
       while (enumerator.hasMoreElements()) {
         let cookie = enumerator.getNext().QueryInterface(Ci.nsICookie);
-        if (cookie.host.endsWith(aDomain))
+        if (cookie.host.hasRootDomain(aDomain))
           cm.remove(cookie.host, cookie.name, cookie.path, false);
       }
     }
@@ -340,7 +353,7 @@ PrivateBrowsingService.prototype = {
       let enumerator = dm.activeDownloads;
       while (enumerator.hasMoreElements()) {
         let dl = enumerator.getNext().QueryInterface(Ci.nsIDownload);
-        if (dl.source.host.endsWith(aDomain)) {
+        if (dl.source.host.hasRootDomain(aDomain)) {
           dm.cancelDownload(dl.id);
           dm.removeDownload(dl.id);
         }
@@ -382,7 +395,7 @@ PrivateBrowsingService.prototype = {
       try {
         let logins = lm.getAllLogins({});
         for (let i = 0; i < logins.length; i++)
-          if (logins[i].hostname.endsWith(aDomain))
+          if (logins[i].hostname.hasRootDomain(aDomain))
             lm.removeLogin(logins[i]);
       }
       
@@ -392,7 +405,7 @@ PrivateBrowsingService.prototype = {
       
       let disabledHosts = lm.getAllDisabledHosts({});
       for (let i = 0; i < disabledHosts.length; i++)
-        if (disabledHosts[i].endsWith(aDomain))
+        if (disabledHosts[i].hasRootDomain(aDomain))
           lm.setLoginSavingEnabled(disabledHosts, true);
     }
 
@@ -403,7 +416,7 @@ PrivateBrowsingService.prototype = {
       let enumerator = pm.enumerator;
       while (enumerator.hasMoreElements()) {
         let perm = enumerator.getNext().QueryInterface(Ci.nsIPermission);
-        if (perm.host.endsWith(aDomain))
+        if (perm.host.hasRootDomain(aDomain))
           pm.remove(perm.host, perm.type);
       }
     }
@@ -423,7 +436,8 @@ PrivateBrowsingService.prototype = {
       stmt.bindStringParameter(0, "%" + pattern);
       try {
         while (stmt.executeStep())
-          names.push(stmt.getString(0));
+          if (stmt.getString(0).hasRootDomain(aDomain))
+            names.push(stmt.getString(0));
       }
       finally {
         stmt.finalize();
