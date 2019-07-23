@@ -135,7 +135,8 @@ function test() {
             gBrowser.removeTab(tab_A);
 
             
-            gPrefService.clearUserPref("browser.sessionstore.interval");
+            if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
+              gPrefService.clearUserPref("browser.sessionstore.interval");
             gPrefService.setIntPref("browser.sessionstore.interval", 0);
             let endPBModeTimeStamp = getSessionstorejsModificationTime();
 

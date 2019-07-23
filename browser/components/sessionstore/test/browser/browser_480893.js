@@ -77,7 +77,10 @@ function test() {
 
           
           gBrowser.removeTab(tab);
-          gPrefService.clearUserPref("browser.startup.page");
+          
+          
+          if (gPrefService.prefHasUserValue("browser.startup.page"))
+            gPrefService.clearUserPref("browser.startup.page");
           gPrefService.clearUserPref("browser.startup.homepage");
           finish();
         }, true);

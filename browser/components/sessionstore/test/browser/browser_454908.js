@@ -71,7 +71,8 @@ function test() {
       }
       
       
-      gPrefService.clearUserPref("browser.sessionstore.privacy_level");
+      if (gPrefService.prefHasUserValue("browser.sessionstore.privacy_level"))
+        gPrefService.clearUserPref("browser.sessionstore.privacy_level");
       
       
       if (gBrowser.tabContainer.childNodes.length == 1)

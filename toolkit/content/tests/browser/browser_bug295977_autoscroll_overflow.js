@@ -77,7 +77,8 @@ function test()
 
   function endTest() {
     
-    prefSvc.clearUserPref(kPrefName_AutoScroll);
+    if (prefSvc.prefHasUserValue(kPrefName_AutoScroll))
+      prefSvc.clearUserPref(kPrefName_AutoScroll);
 
     
     gBrowser.addTab().linkedBrowser.stop();

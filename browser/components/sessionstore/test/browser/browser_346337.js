@@ -131,7 +131,8 @@ function test() {
             ok(!compareFormValue(tab, xpath, fieldList[xpath]),
                "The value for \"" + xpath + "\" was correctly discarded");
         
-        gPrefService.clearUserPref("browser.sessionstore.privacy_level");
+        if (gPrefService.prefHasUserValue("browser.sessionstore.privacy_level"))
+          gPrefService.clearUserPref("browser.sessionstore.privacy_level");
         
         
         if (tabbrowser.tabContainer.childNodes.length == 1)

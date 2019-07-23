@@ -104,7 +104,9 @@
     var prefs = Components.classes[prefSvcContractID].getService(prefSvcIID)
                                                      .getBranch("ui.key.");
     if (!newValue) {
-      prefs.clearUserPref("contentAccess");
+      try {
+        prefs.clearUserPref("contentAccess");
+      } catch(ex) {}
     } else {
       prefs.setIntPref("contentAccess", newValue);
     }
