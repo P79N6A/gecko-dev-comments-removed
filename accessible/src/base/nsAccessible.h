@@ -181,8 +181,18 @@ protected:
   nsresult GetTextFromRelationID(nsIAtom *aIDProperty, nsString &aName);
 
   
-  nsresult GetHTMLName(nsAString& _retval, PRBool aCanAggregateSubtree = PR_TRUE);
-  nsresult GetXULName(nsAString& aName, PRBool aCanAggregateSubtree = PR_TRUE);
+  
+
+  
+
+
+  nsresult GetHTMLName(nsAString& aName);
+
+  
+
+
+  nsresult GetXULName(nsAString& aName);
+
   
   
   nsresult AppendFlatStringFromSubtree(nsIContent *aContent, nsAString *aFlatString);

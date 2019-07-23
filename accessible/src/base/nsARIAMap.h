@@ -44,26 +44,6 @@
 #include "nsAccessibilityAtoms.h"
 
 
-enum ENameRule
-{
-  
-  
-  
-  
-  
-  eNameLabelOrTitle,
-  
-  
-  
-  
-  
-  
-  
-  
-  eNameOkFromChildren
-};
-
-
 enum EValueRule
 {
   eNoValue,
@@ -106,9 +86,6 @@ struct nsRoleMapEntry
   
   
   PRUint32 role;
-  
-  
-  ENameRule nameRule;
   
   
   EValueRule valueRule;
