@@ -49,6 +49,7 @@
 #include <string>
 #include <Carbon/Carbon.h>
 #include <fcntl.h>
+#include "mac_utils.h"
 #elif defined(XP_LINUX)
 #include "client/linux/handler/exception_handler.h"
 #include <fcntl.h>
@@ -105,6 +106,9 @@ static XP_CHAR* crashReporterPath;
 static bool doReport = true;
 
 
+static bool showOSCrashReporter = false;
+
+
 static nsDataHashtable<nsCStringHashKey,nsCString>* crashReporterAPIData_Hash;
 static nsCString* crashReporterAPIData = nsnull;
 
@@ -131,7 +135,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
 #endif
                       bool succeeded)
 {
-  printf("Wrote minidump ID %s\n", minidump_id);
+  bool returnValue = showOSCrashReporter ? false : succeeded;
 
   XP_CHAR minidumpPath[XP_PATH_MAX];
   int size = XP_PATH_MAX;
@@ -170,7 +174,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   }
 
   if (!doReport) {
-    return succeeded;
+    return returnValue;
   }
 
   STARTUPINFO si;
@@ -204,7 +208,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   }
 
   if (!doReport) {
-    return succeeded;
+    return returnValue;
   }
 
   pid_t pid = fork();
@@ -218,7 +222,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   }
 #endif
 
- return succeeded;
+ return returnValue;
 }
 
 nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
@@ -310,6 +314,13 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   if (aServerURL)
     AnnotateCrashReport(NS_LITERAL_CSTRING("ServerURL"),
                         nsDependentCString(aServerURL));
+
+#if defined(XP_MACOSX)
+  
+  
+  
+  showOSCrashReporter = PassToOSCrashReporter();
+#endif
 
   return NS_OK;
 }
