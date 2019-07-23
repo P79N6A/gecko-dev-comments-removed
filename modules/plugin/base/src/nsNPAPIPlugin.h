@@ -100,6 +100,9 @@ public:
   void PluginCrashed();
 #endif
 
+  void SetIsDefaultPlugin();
+  PRBool IsDefaultPlugin();
+
 protected:
   
   static void CheckClassInitialized(void);
@@ -116,6 +119,8 @@ protected:
 
   
   static NPNetscapeFuncs CALLBACKS;
+
+  PRBool mIsDefaultPlugin;
 };
 
 namespace mozilla {
