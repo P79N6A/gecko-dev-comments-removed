@@ -80,11 +80,6 @@
 
 
 
-#define NS_MEMORY_REPORTER_MANAGER_CONTRACTID "@mozilla.org/memory-reporter-manager;1"
-
-
-
-
 #define XULAPPINFO_SERVICE_CONTRACTID \
   "@mozilla.org/xre/app-info;1"
 

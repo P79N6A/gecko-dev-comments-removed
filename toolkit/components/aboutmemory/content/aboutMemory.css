@@ -1,0 +1,79 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+html {
+  background: -moz-dialog;
+}
+
+body {
+  margin: 0;
+  padding: 0 1em;
+  color: -moz-FieldText;
+  font: message-box;
+}
+
+h1 {
+    font-weight: bold;
+    font-size: x-large;
+}
+
+label {
+    -moz-user-select: text;
+}
+
+h2 {
+    margin-top: 0;
+    font-weight: bold;
+    font-size: large;
+}
+
+.memBox {
+    max-width: 30em;
+    background: white;
+    margin-top: 25px;
+    padding: 5px;
+    border: 1px solid black;
+    -moz-border-radius: 10px 10px;
+}
+
+.memValue {
+    text-align: right;
+}
+
+.memOverview table {
+    font-size: 120%;
+}
