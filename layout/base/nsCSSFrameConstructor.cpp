@@ -1794,6 +1794,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   : mDocument(aDocument)
   , mPresShell(aPresShell)
   , mInitialContainingBlock(nsnull)
+  , mRootElementStyleFrame(nsnull)
   , mFixedContainingBlock(nsnull)
   , mDocElementContainingBlock(nsnull)
   , mGfxScrollFrame(nsnull)
@@ -4379,6 +4380,16 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsFrameConstructorState& aState,
 
   mInitialContainingBlock = contentFrame;
   mInitialContainingBlockIsAbsPosContainer = PR_FALSE;
+
+  
+  
+  
+  PRBool isChild;
+  contentFrame->GetParentStyleContextFrame(aState.mPresContext,
+          &mRootElementStyleFrame, &isChild);
+  if (!isChild) {
+    mRootElementStyleFrame = mInitialContainingBlock;
+  }
 
   
   if (!docElemIsTable) {
@@ -7654,6 +7665,9 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
             return rv;
           }
         }
+        
+        mInitialContainingBlock = nsnull;
+        mRootElementStyleFrame = nsnull;
 
         
         nsIFrame* newChild;
@@ -9460,7 +9474,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
 
     if (mInitialContainingBlock == childFrame) {
       mInitialContainingBlock = nsnull;
-      mInitialContainingBlockIsAbsPosContainer = PR_FALSE;
+      mRootElementStyleFrame = nsnull;
     }
 
     if (haveFLS && mInitialContainingBlock) {
