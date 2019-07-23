@@ -830,7 +830,7 @@ GetUXPCObject(JSContext *cx, JSObject *obj)
     return nsnull;
   }
 
-  JSAutoTempValueRooter tvr(cx, uxpco);
+  js::AutoValueRooter tvr(cx, uxpco);
 
   jsval wrappedObj, parentScope;
   if (!JS_GetReservedSlot(cx, obj, sWrappedObjSlot, &wrappedObj) ||
@@ -1206,7 +1206,7 @@ XPC_XOW_Iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
     return nsnull;
   }
 
-  JSAutoTempValueRooter tvr(cx, OBJECT_TO_JSVAL(wrapperIter));
+  js::AutoObjectRooter tvr(cx, wrapperIter);
 
   
   jsval v = OBJECT_TO_JSVAL(wrappedObj);

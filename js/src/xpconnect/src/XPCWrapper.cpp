@@ -153,8 +153,8 @@ IteratorNext(JSContext *cx, uintN argc, jsval *vp)
     }
 
     jsval vec[2] = { STRING_TO_JSVAL(str), v };
-    JSAutoTempValueRooter tvr(cx, 2, vec);
-    JSObject *array = JS_NewArrayObject(cx, 2, vec);
+    js::AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(vec), vec);
+    JSObject *array = JS_NewArrayObject(cx, JS_ARRAY_LENGTH(vec), vec);
     if (!array) {
       return JS_FALSE;
     }
@@ -192,7 +192,7 @@ CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
     return nsnull;
   }
 
-  JSAutoTempValueRooter tvr(cx, OBJECT_TO_JSVAL(iterObj));
+  js::AutoObjectRooter tvr(cx, iterObj);
 
   
   
@@ -213,7 +213,7 @@ CreateIteratorObj(JSContext *cx, JSObject *tempWrapper,
     
     
 
-    JSAutoTempValueRooter tvr(cx, tempWrapper);
+    js::AutoValueRooter tvr(cx, tempWrapper);
     if (!JS_SetPrototype(cx, iterObj, wrapperObj) ||
         !XPCWrapper::Enumerate(cx, iterObj, wrapperObj) ||
         !JS_SetPrototype(cx, iterObj, tempWrapper)) {
