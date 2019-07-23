@@ -315,9 +315,9 @@ nsPrintOptions::ReadPrefs(nsIPrintSettings* aPS, const nsAString& aPrinterName,
     
     
     if (success) {
-      success = (sizeUnit == nsIPrintSettings::kPaperSizeInches)
-             && (width < 100.0)
-             && (height < 100.0);
+      success = (sizeUnit != nsIPrintSettings::kPaperSizeInches)
+             || (width < 100.0)
+             || (height < 100.0);
     }
 
     if (success) {
