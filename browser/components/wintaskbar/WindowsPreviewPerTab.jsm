@@ -517,9 +517,9 @@ TabWindow.prototype = {
   },
   onStatusChange: function () {
   },
-  onLinkIconAvailable: function (aBrowser) {
+  onLinkIconAvailable: function (aBrowser, aIconURL) {
     let self = this;
-    getFaviconAsImage(aBrowser.mIconURL, function (img) {
+    getFaviconAsImage(aIconURL, function (img) {
       let index = self.tabbrowser.browsers.indexOf(aBrowser);
       
       if (index != -1)
