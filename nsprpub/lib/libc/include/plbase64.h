@@ -59,6 +59,10 @@ PR_BEGIN_EXTERN_C
 
 
 
+
+
+
+
 PR_EXTERN(char *)
 PL_Base64Encode
 (
@@ -66,6 +70,12 @@ PL_Base64Encode
     PRUint32    srclen,
     char       *dest
 );
+
+
+
+
+
+
 
 
 
