@@ -622,6 +622,13 @@ pref("browser.places.migratePostDataAnnotations", true);
 pref("places.frecency.numVisits", 10);
 
 
+pref("places.frecency.numCalcOnIdle", 50);
+
+
+
+pref("places.frecency.numCalcOnMigrate", 50);
+
+
 
 
 pref("places.frecency.updateIdleTime", 60000);
