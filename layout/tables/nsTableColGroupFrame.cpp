@@ -247,20 +247,17 @@ nsTableColGroupFrame::InsertFrames(nsIAtom*        aListName,
     
     
     
+    NS_ASSERTION(col != aPrevFrame, "Bad aPrevFrame");
     nextCol = col->GetNextCol();
     RemoveFrame(nsnull, col);
     col = nextCol;
   }
 
-  if (aPrevFrame) {
-    col = GetNextColumn(aPrevFrame);
-    while (col && col->GetColType() == eColAnonymousCol) {
-      
-      
-      aPrevFrame = col;
-      col = col->GetNextCol();
-    }
-  }
+  NS_ASSERTION(!aPrevFrame || aPrevFrame == aPrevFrame->GetLastContinuation(),
+               "Prev frame should be last in continuation chain");
+  NS_ASSERTION(!aPrevFrame || !GetNextColumn(aPrevFrame) ||
+               GetNextColumn(aPrevFrame)->GetColType() != eColAnonymousCol,
+               "Shouldn't be inserting before a spanned colframe");
 
   mFrames.InsertFrames(this, aPrevFrame, aFrameList);
   nsIFrame* prevFrame = nsTableFrame::GetFrameAtOrBefore(this, aPrevFrame,
