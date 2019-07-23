@@ -615,7 +615,7 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION         "3.6.16"
+#define SQLITE_VERSION         "3.6.16.1"
 #define SQLITE_VERSION_NUMBER  3006016
 
 
@@ -8941,7 +8941,7 @@ struct Expr {
 
   int iTable;            
 
-  i16 iColumn;           
+  int iColumn;           
   i16 iAgg;              
   i16 iRightJoinTable;   
   u16 flags2;            
@@ -60287,7 +60287,7 @@ SQLITE_PRIVATE void sqlite3CodeSubselect(
       if( sqlite3Select(pParse, pSel, &dest) ){
         return;
       }
-      pExpr->iColumn = (i16)dest.iParm;
+      pExpr->iColumn = dest.iParm;
       ExprSetIrreducible(pExpr);
       break;
     }
