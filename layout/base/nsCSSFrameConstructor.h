@@ -103,6 +103,7 @@ public:
   static void GetAlternateTextFor(nsIContent*    aContent,
                                   nsIAtom*       aTag,  
                                   nsXPIDLString& aAltText);
+
 private: 
   
   nsCSSFrameConstructor(const nsCSSFrameConstructor& aCopy); 
@@ -307,8 +308,6 @@ public:
                                 PRBool          aIsAppend,
                                 PRBool          aIsScrollbar,
                                 nsILayoutHistoryState* aFrameState);
-
-  nsresult RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame);
 
   
   

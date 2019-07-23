@@ -76,6 +76,13 @@ class nsBlockFrame;
 class nsLayoutUtils
 {
 public:
+
+  
+
+
+
+  static nsIAtom* GetChildListNameFor(nsIFrame* aChildFrame);
+
   
 
 

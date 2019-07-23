@@ -56,6 +56,17 @@ nsPopupFrameList::nsPopupFrameList(nsIContent* aPopupContent, nsPopupFrameList* 
 {
 }
 
+nsPopupFrameList::~nsPopupFrameList()
+{
+  if (mPopupFrame) {
+    nsIFrame* prevSib = mPopupFrame->GetPrevSibling();
+    if (prevSib)
+      prevSib->SetNextSibling(mPopupFrame->GetNextSibling());
+    mPopupFrame->SetNextSibling(nsnull);
+    mPopupFrame->Destroy();
+  }
+}
+
 
 
 
@@ -138,12 +149,9 @@ nsPopupSetFrame::Destroy()
 {
   
   while (mPopupList) {
-    if (mPopupList->mPopupFrame) {
-      mPopupList->mPopupFrame->Destroy();
-    }
     nsPopupFrameList* temp = mPopupList;
     mPopupList = mPopupList->mNextPopup;
-    delete temp;
+    delete temp; 
   }
 
   
@@ -243,11 +251,8 @@ nsPopupSetFrame::RemovePopupFrame(nsIFrame* aPopup)
                    aPopup->GetType() == nsGkAtoms::menuPopupFrame,
                    "found wrong type of frame in popupset's ::popupList");
       
-      currEntry->mPopupFrame->Destroy();
-
-      
       currEntry->mNextPopup = nsnull;
-      delete currEntry;
+      delete currEntry; 
 #ifdef DEBUG
       found = PR_TRUE;
 #endif

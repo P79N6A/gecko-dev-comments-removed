@@ -1517,10 +1517,6 @@ nsListBoxBodyFrame::RemoveChildFrame(nsBoxLayoutState &aState,
     
     return;
   }
-  
-  nsPresContext* presContext = PresContext();
-  nsCSSFrameConstructor* fc = presContext->PresShell()->FrameConstructor();
-  fc->RemoveMappingsForFrameSubtree(aFrame);
 
   mFrames.RemoveFrame(aFrame);
   if (mLayoutManager)

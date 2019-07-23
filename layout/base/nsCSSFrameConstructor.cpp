@@ -366,10 +366,6 @@ static PRInt32 FFWC_recursions=0;
 static PRInt32 FFWC_nextInFlows=0;
 #endif
 
-static nsresult
-DeletingFrameSubtree(nsFrameManager* aFrameManager,
-                     nsIFrame*       aFrame);
-
 static inline nsIFrame*
 GetFieldSetBlockFrame(nsIFrame* aFieldsetFrame)
 {
@@ -624,60 +620,6 @@ IsOutOfFlowList(nsIAtom* aListName)
 
 
 
-
-
-static void
-DoCleanupFrameReferences(nsFrameManager*  aFrameManager,
-                         nsIFrame*        aFrameIn)
-{
-  nsIContent* content = aFrameIn->GetContent();
-
-  if (aFrameIn->GetType() == nsGkAtoms::placeholderFrame) {
-    nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>
-                                                 (aFrameIn);
-    
-    aFrameIn = nsPlaceholderFrame::GetRealFrameForPlaceholder(placeholder);
-
-    
-    
-    
-    
-    aFrameManager->UnregisterPlaceholderFrame(placeholder);
-  }
-
-  
-  aFrameManager->RemoveAsPrimaryFrame(content, aFrameIn);
-  aFrameManager->ClearAllUndisplayedContentIn(content);
-
-  
-  nsIAtom* childListName = nsnull;
-  PRInt32 childListIndex = 0;
-  do {
-    nsIFrame* childFrame = aFrameIn->GetFirstChild(childListName);
-    while (childFrame) {
-      DoCleanupFrameReferences(aFrameManager, childFrame);
-    
-      
-      childFrame = childFrame->GetNextSibling();
-    }
-
-    childListName = aFrameIn->GetAdditionalChildListName(childListIndex++);
-  } while (childListName);
-}
-
-
-static void
-CleanupFrameReferences(nsFrameManager*  aFrameManager,
-                       const nsFrameList& aFrameList)
-{
-  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
-    DoCleanupFrameReferences(aFrameManager, e.get());
-  }
-}
-
-
-
-
 struct nsFrameItems : public nsFrameList
 {
   
@@ -858,7 +800,6 @@ public:
                                nsIFrame* aContentParentFrame);
 
   
-
 
 
 
@@ -1227,7 +1168,6 @@ nsFrameConstructorState::AddChild(nsIFrame* aNewFrame,
       
       
       
-      DoCleanupFrameReferences(mFrameManager, aNewFrame);
       aNewFrame->Destroy();
       return rv;
     }
@@ -1432,78 +1372,6 @@ MoveChildrenTo(nsPresContext* aPresContext,
   } else {
     aNewParent->AppendFrames(nsnull, aFrameList);
   }
-}
-
-
-
-
-
-static nsIAtom*
-GetChildListNameFor(nsIFrame*       aChildFrame)
-{
-  nsIAtom*      listName;
-
-  if (aChildFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-    listName = nsGkAtoms::overflowContainersList;
-  }
-  
-  else if (aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-    
-    const nsStyleDisplay* disp = aChildFrame->GetStyleDisplay();
-    
-    if (NS_STYLE_POSITION_ABSOLUTE == disp->mPosition) {
-      listName = nsGkAtoms::absoluteList;
-    } else if (NS_STYLE_POSITION_FIXED == disp->mPosition) {
-      if (nsLayoutUtils::IsReallyFixedPos(aChildFrame)) {
-        listName = nsGkAtoms::fixedList;
-      } else {
-        listName = nsGkAtoms::absoluteList;
-      }
-#ifdef MOZ_XUL
-    } else if (NS_STYLE_DISPLAY_POPUP == disp->mDisplay) {
-      
-#ifdef DEBUG
-      nsIFrame* parent = aChildFrame->GetParent();
-      NS_ASSERTION(parent && parent->GetType() == nsGkAtoms::popupSetFrame,
-                   "Unexpected parent");
-#endif 
-
-      
-      
-      
-      
-      return nsGkAtoms::popupList;      
-#endif
-    } else {
-      NS_ASSERTION(aChildFrame->GetStyleDisplay()->IsFloating(),
-                   "not a floated frame");
-      listName = nsGkAtoms::floatList;
-    }
-
-  } else {
-    listName = nsnull;
-  }
-
-#ifdef NS_DEBUG
-  
-  
-  nsIFrame* parent = aChildFrame->GetParent();
-  PRBool found = parent->GetChildList(listName).ContainsFrame(aChildFrame);
-  if (!found) {
-    if (!(aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
-      found = parent->GetChildList(nsGkAtoms::overflowList)
-                .ContainsFrame(aChildFrame);
-    }
-    else if (aChildFrame->GetStyleDisplay()->IsFloating()) {
-      found = parent->GetChildList(nsGkAtoms::overflowOutOfFlowList)
-                .ContainsFrame(aChildFrame);
-    }
-    
-    NS_POSTCONDITION(found, "not in child list");
-  }
-#endif
-
-  return listName;
 }
 
 
@@ -3970,7 +3838,6 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
 
       if (childItems.NotEmpty()) {
         
-        CleanupFrameReferences(aState.mFrameManager, childItems);
         childItems.DestroyFrames();
       }
 
@@ -7003,215 +6870,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   return NS_OK;
 }
 
-static void
-DoDeletingFrameSubtree(nsFrameManager*      aFrameManager,
-                       nsTArray<nsIFrame*>& aDestroyQueue,
-                       nsIFrame*            aRemovedFrame,
-                       nsIFrame*            aFrame);
-
-static void
-DoDeletingOverflowContainers(nsFrameManager*      aFrameManager,
-                             nsTArray<nsIFrame*>& aDestroyQueue,
-                             nsIFrame*            aRemovedFrame,
-                             nsIFrame*            aFrame)
-{
-  
-  
-  
-  
-  
-  const PRBool orphanSubtree = aRemovedFrame == aFrame;
-  for (nsIFrame* next = aFrame->GetNextContinuation();
-       next && (next->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER);
-       next = next->GetNextContinuation()) {
-    DoDeletingFrameSubtree(aFrameManager, aDestroyQueue,
-                           orphanSubtree ? next : aRemovedFrame,
-                           next);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-DoDeletingFrameSubtree(nsFrameManager*      aFrameManager,
-                       nsTArray<nsIFrame*>& aDestroyQueue,
-                       nsIFrame*            aRemovedFrame,
-                       nsIFrame*            aFrame)
-{
-#undef RECURSE
-#define RECURSE(top, child)                                                  \
-  DoDeletingFrameSubtree(aFrameManager, aDestroyQueue, (top), (child));      \
-  DoDeletingOverflowContainers(aFrameManager, aDestroyQueue, (top), (child));
-
-  
-  nsIContent* content = aFrame->GetContent();
-  if (content) {
-    aFrameManager->RemoveAsPrimaryFrame(content, aFrame);
-    aFrameManager->ClearAllUndisplayedContentIn(content);
-  }
-
-  nsIAtom* childListName = nsnull;
-  PRInt32 childListIndex = 0;
-
-  do {
-    
-    nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
-    for (; childFrame; childFrame = childFrame->GetNextSibling()) {
-      NS_ASSERTION(!(childFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW),
-                   "out-of-flow on wrong child list");
-      if (NS_LIKELY(nsGkAtoms::placeholderFrame != childFrame->GetType())) {
-        RECURSE(aRemovedFrame, childFrame);
-      } else {
-        nsIFrame* outOfFlowFrame =
-          nsPlaceholderFrame::GetRealFrameForPlaceholder(childFrame);
-  
-        
-        
-        
-        
-        
-        
-        
-        if (outOfFlowFrame->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_POPUP ||
-            !nsLayoutUtils::IsProperAncestorFrame(aRemovedFrame, outOfFlowFrame)) {
-          NS_ASSERTION(!aDestroyQueue.Contains(outOfFlowFrame),
-                       "out-of-flow is already in the destroy queue");
-          aDestroyQueue.AppendElement(outOfFlowFrame);
-          
-          RECURSE(outOfFlowFrame, outOfFlowFrame);
-        }
-        else {
-          
-          
-          RECURSE(aRemovedFrame, outOfFlowFrame);
-        }
-      }
-    }
-
-    
-    
-    
-    do {
-      childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-    } while (IsOutOfFlowList(childListName) ||
-             childListName == nsGkAtoms::overflowContainersList ||
-             childListName == nsGkAtoms::excessOverflowContainersList);
-  } while (childListName);
-}
-
-
-
-
-
-static nsresult
-DeletingFrameSubtree(nsFrameManager* aFrameManager,
-                     nsIFrame*       aFrame)
-{
-  NS_ENSURE_TRUE(aFrame, NS_OK); 
-
-  
-  
-  if (NS_UNLIKELY(!aFrameManager)) {
-    return NS_OK;
-  }
-
-  nsAutoTArray<nsIFrame*, 8> destroyQueue;
-
-  
-  
-  NS_ASSERTION(!IsFrameSpecial(aFrame),
-               "DeletingFrameSubtree on a special frame.  Prepare to crash.");
-
-  do {
-    DoDeletingFrameSubtree(aFrameManager, destroyQueue, aFrame, aFrame);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    aFrame = aFrame->GetNextContinuation();
-  } while (aFrame);
-
-  
-  
-  for (PRInt32 i = destroyQueue.Length() - 1; i >= 0; --i) {
-    nsIFrame* outOfFlowFrame = destroyQueue[i];
-
-    
-    
-    aFrameManager->RemoveFrame(outOfFlowFrame->GetParent(),
-                               GetChildListNameFor(outOfFlowFrame),
-                               outOfFlowFrame);
-  }
-
-  return NS_OK;
-}
-
-nsresult
-nsCSSFrameConstructor::RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame)
-{
-  NS_ASSERTION(!(aRemovedFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW),
-               "RemoveMappingsForFrameSubtree doesn't handle out-of-flows");
-
-  if (NS_UNLIKELY(mIsDestroyingFrameTree)) {
-    
-    
-    
-    
-    return NS_OK;
-  }
-
-  nsFrameManager *frameManager = mPresShell->FrameManager();
-  if (nsGkAtoms::placeholderFrame == aRemovedFrame->GetType()) {
-    nsIFrame *placeholderFrame = aRemovedFrame;
-    do {
-      NS_ASSERTION(placeholderFrame->GetType() == nsGkAtoms::placeholderFrame,
-                   "continuation must be of same type");
-      nsIFrame* outOfFlowFrame =
-        nsPlaceholderFrame::GetRealFrameForPlaceholder(placeholderFrame);
-      
-      frameManager->UnregisterPlaceholderFrame(
-        static_cast<nsPlaceholderFrame*>(placeholderFrame));
-      ::DeletingFrameSubtree(frameManager, outOfFlowFrame);
-      frameManager->RemoveFrame(outOfFlowFrame->GetParent(),
-                                GetChildListNameFor(outOfFlowFrame),
-                                outOfFlowFrame);
-      placeholderFrame = placeholderFrame->GetNextContinuation();
-    } while (placeholderFrame);
-  }
-
-  
-  CaptureStateFor(aRemovedFrame, mTempFrameTreeState);
-
-  return ::DeletingFrameSubtree(frameManager, aRemovedFrame);
-}
-
 nsresult
 nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
                                       nsIContent* aChild,
@@ -7393,45 +7051,16 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     }
 #endif
 
-    
-    
-    ::DeletingFrameSubtree(frameManager, childFrame);
 
     
     if (childFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-      nsPlaceholderFrame* placeholderFrame =
-        frameManager->GetPlaceholderFrameFor(childFrame);
-      NS_ASSERTION(placeholderFrame, "No placeholder for out-of-flow?");
-
-      
-      
-      
-      
-      
-      
-      rv = frameManager->RemoveFrame(parentFrame,
-                                     GetChildListNameFor(childFrame),
-                                     childFrame);
-
-      
-      
-      nsIFrame* placeholderParent = placeholderFrame->GetParent();
-      ::DeletingFrameSubtree(frameManager, placeholderFrame);
-      rv |= frameManager->RemoveFrame(placeholderParent,
-                                      nsnull, placeholderFrame);
-    } else {
-      
-      
-      nsIFrame* outerTableFrame; 
-      if (GetCaptionAdjustedParent(parentFrame, childFrame, &outerTableFrame)) {
-        rv = frameManager->RemoveFrame(outerTableFrame,
-                                       nsGkAtoms::captionList,
-                                       childFrame);
-      }
-      else {
-        rv = frameManager->RemoveFrame(parentFrame, nsnull, childFrame);
-      }
+      childFrame = frameManager->GetPlaceholderFrameFor(childFrame);
+      NS_ASSERTION(childFrame, "Missing placeholder frame for out of flow.");
+      parentFrame = childFrame->GetParent();
     }
+    rv = frameManager->RemoveFrame(nsLayoutUtils::GetChildListNameFor(childFrame),
+                                   childFrame);
+    
 
     if (isRoot) {
       mRootElementFrame = nsnull;
@@ -10314,8 +9943,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLetterFrame(
     }
     else {
       
-      ::DeletingFrameSubtree(mPresShell->FrameManager(), textFrame);
-      parentFrame->RemoveFrame(nsnull, textFrame);
+      mPresShell->FrameManager()->RemoveFrame(nsnull, textFrame);
 
       
       parentFrame->InsertFrames(nsnull, prevFrame, letterFrames);
@@ -10461,12 +10089,8 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
   
   nsIFrame* frameToDelete = textFrame->GetLastContinuation();
   while (frameToDelete != textFrame) {
-    nsIFrame* frameToDeleteParent = frameToDelete->GetParent();
     nsIFrame* nextFrameToDelete = frameToDelete->GetPrevContinuation();
-    if (frameToDeleteParent) {
-      ::DeletingFrameSubtree(aFrameManager, frameToDelete);
-      aFrameManager->RemoveFrame(frameToDeleteParent, nsnull, frameToDelete);
-    }
+    aFrameManager->RemoveFrame(nsnull, frameToDelete);
     frameToDelete = nextFrameToDelete;
   }
 
@@ -10479,13 +10103,7 @@ nsCSSFrameConstructor::RemoveFloatingFirstLetterFrames(
 #endif
 
   
-  ::DeletingFrameSubtree(aFrameManager, floatFrame);
-  aFrameManager->RemoveFrame(aBlockFrame, nsGkAtoms::floatList,
-                             floatFrame);
-
-  
-  ::DeletingFrameSubtree(aFrameManager, placeholderFrame);
-  aFrameManager->RemoveFrame(parentFrame, nsnull, placeholderFrame);
+  aFrameManager->RemoveFrame(nsnull, placeholderFrame);
 
   
   nsFrameList textList(newTextFrame, newTextFrame);
@@ -10530,8 +10148,7 @@ nsCSSFrameConstructor::RemoveFirstLetterFrames(nsPresContext* aPresContext,
       textFrame->Init(textContent, aFrame, nsnull);
 
       
-      ::DeletingFrameSubtree(aFrameManager, kid);
-      aFrameManager->RemoveFrame(aFrame, nsnull, kid);
+      aFrameManager->RemoveFrame(nsnull, kid);
 
       
       nsFrameList textList(textFrame, textFrame);
@@ -10612,8 +10229,7 @@ nsCSSFrameConstructor::RecoverLetterFrames(nsIFrame* aBlockFrame)
 
   if (parentFrame) {
     
-    ::DeletingFrameSubtree(mPresShell->FrameManager(), textFrame);
-    parentFrame->RemoveFrame(nsnull, textFrame);
+    mPresShell->FrameManager()->RemoveFrame(nsnull, textFrame);
 
     
     parentFrame->InsertFrames(nsnull, prevFrame, letterFrames);

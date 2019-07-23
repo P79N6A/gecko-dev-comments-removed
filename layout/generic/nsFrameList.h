@@ -148,7 +148,7 @@ public:
 
 
 
-  PRBool RemoveFirstChild();
+  nsIFrame* RemoveFirstChild();
 
   
 

@@ -181,6 +181,98 @@ GetLastChildFrame(nsIFrame*       aFrame,
 }
 
 
+nsIAtom*
+nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
+{
+  nsIAtom*      listName;
+
+  if (aChildFrame->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+    nsIFrame* pif = aChildFrame->GetPrevInFlow();
+    if (pif->GetParent() == aChildFrame->GetParent()) {
+      listName = nsGkAtoms::excessOverflowContainersList;
+    }
+    else {
+      listName = nsGkAtoms::overflowContainersList;
+    }
+  }
+  
+  else if (aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
+    
+    const nsStyleDisplay* disp = aChildFrame->GetStyleDisplay();
+
+    if (NS_STYLE_POSITION_ABSOLUTE == disp->mPosition) {
+      listName = nsGkAtoms::absoluteList;
+    } else if (NS_STYLE_POSITION_FIXED == disp->mPosition) {
+      if (nsLayoutUtils::IsReallyFixedPos(aChildFrame)) {
+        listName = nsGkAtoms::fixedList;
+      } else {
+        listName = nsGkAtoms::absoluteList;
+      }
+#ifdef MOZ_XUL
+    } else if (NS_STYLE_DISPLAY_POPUP == disp->mDisplay) {
+      
+#ifdef DEBUG
+      nsIFrame* parent = aChildFrame->GetParent();
+      NS_ASSERTION(parent && parent->GetType() == nsGkAtoms::popupSetFrame,
+                   "Unexpected parent");
+#endif 
+
+      
+      
+      
+      
+      return nsGkAtoms::popupList;
+#endif
+    } else {
+      NS_ASSERTION(aChildFrame->GetStyleDisplay()->IsFloating(),
+                   "not a floated frame");
+      listName = nsGkAtoms::floatList;
+    }
+
+  } else {
+    nsIAtom* childType = aChildFrame->GetType();
+    if (nsGkAtoms::menuPopupFrame == childType) {
+      nsIFrame* parent = aChildFrame->GetParent();
+      nsIFrame* firstPopup = (parent)
+                             ? parent->GetFirstChild(nsGkAtoms::popupList)
+                             : nsnull;
+      NS_ASSERTION(!firstPopup || !firstPopup->GetNextSibling(),
+                   "We assume popupList only has one child, but it has more.");
+      listName = (!firstPopup || firstPopup == aChildFrame)
+                 ? nsGkAtoms::popupList
+                 : nsnull;
+    } else if (nsGkAtoms::tableColGroupFrame == childType) {
+      listName = nsGkAtoms::colGroupList;
+    } else if (nsGkAtoms::tableCaptionFrame == aChildFrame->GetType()) {
+      listName = nsGkAtoms::captionList;
+    } else {
+      listName = nsnull;
+    }
+  }
+
+#ifdef NS_DEBUG
+  
+  
+  nsIFrame* parent = aChildFrame->GetParent();
+  PRBool found = parent->GetChildList(listName).ContainsFrame(aChildFrame);
+  if (!found) {
+    if (!(aChildFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+      found = parent->GetChildList(nsGkAtoms::overflowList)
+                .ContainsFrame(aChildFrame);
+    }
+    else if (aChildFrame->GetStyleDisplay()->IsFloating()) {
+      found = parent->GetChildList(nsGkAtoms::overflowOutOfFlowList)
+                .ContainsFrame(aChildFrame);
+    }
+    
+    NS_POSTCONDITION(found, "not in child list");
+  }
+#endif
+
+  return listName;
+}
+
+
 nsIFrame*
 nsLayoutUtils::GetBeforeFrame(nsIFrame* aFrame)
 {
