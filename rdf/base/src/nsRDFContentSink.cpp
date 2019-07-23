@@ -210,8 +210,7 @@ protected:
     
     void ParseText(nsIRDFNode **aResult);
 
-    nsresult FlushText(PRBool aCreateTextNode=PR_TRUE,
-                       PRBool* aDidFlush=nsnull);
+    nsresult FlushText();
     nsresult AddText(const PRUnichar* aText, PRInt32 aLength);
 
     
@@ -769,12 +768,11 @@ RDFContentSinkImpl::ParseText(nsIRDFNode **aResult)
 }
 
 nsresult
-RDFContentSinkImpl::FlushText(PRBool aCreateTextNode, PRBool* aDidFlush)
+RDFContentSinkImpl::FlushText()
 {
     nsresult rv = NS_OK;
-    PRBool didFlush = PR_FALSE;
     if (0 != mTextLength) {
-        if (aCreateTextNode && rdf_IsDataInBuffer(mText, mTextLength)) {
+        if (rdf_IsDataInBuffer(mText, mTextLength)) {
             
             
 
@@ -803,10 +801,6 @@ RDFContentSinkImpl::FlushText(PRBool aCreateTextNode, PRBool* aDidFlush)
             }
         }
         mTextLength = 0;
-        didFlush = PR_TRUE;
-    }
-    if (nsnull != aDidFlush) {
-        *aDidFlush = didFlush;
     }
     return rv;
 }

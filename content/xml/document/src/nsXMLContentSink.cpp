@@ -837,30 +837,22 @@ nsXMLContentSink::GetTarget()
 }
 
 nsresult
-nsXMLContentSink::FlushText(PRBool aCreateTextNode, PRBool* aDidFlush)
+nsXMLContentSink::FlushText()
 {
-  nsresult rv = NS_OK;
-  PRBool didFlush = PR_FALSE;
-  if (0 != mTextLength) {
-    if (aCreateTextNode) {
-      nsCOMPtr<nsIContent> textContent;
-      rv = NS_NewTextNode(getter_AddRefs(textContent), mNodeInfoManager);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      textContent->SetText(mText, mTextLength, PR_FALSE);
-
-      
-      AddContentAsLeaf(textContent);
-    }
-    mTextLength = 0;
-    didFlush = PR_TRUE;
+  if (mTextLength == 0) {
+    return NS_OK;
   }
 
-  if (nsnull != aDidFlush) {
-    *aDidFlush = didFlush;
-  }
-  return rv;
+  nsCOMPtr<nsIContent> textContent;
+  nsresult rv = NS_NewTextNode(getter_AddRefs(textContent), mNodeInfoManager);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  textContent->SetText(mText, mTextLength, PR_FALSE);
+  mTextLength = 0;
+
+  
+  return AddContentAsLeaf(textContent);
 }
 
 nsIContent*

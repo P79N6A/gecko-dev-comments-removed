@@ -145,8 +145,7 @@ protected:
   
 
   
-  nsresult FlushText(PRBool aCreateTextNode=PR_TRUE,
-                     PRBool* aDidFlush=nsnull);
+  nsresult FlushText();
 
   
   NS_IMETHOD ReportError(const PRUnichar* aErrorText,
