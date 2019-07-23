@@ -947,6 +947,10 @@ protected:
 
   PRPackedBool mSynchronousDOMContentLoaded:1;
 
+  
+  
+  PRPackedBool mHaveInputEncoding:1;
+
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;

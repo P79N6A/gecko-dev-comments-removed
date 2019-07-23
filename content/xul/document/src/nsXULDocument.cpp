@@ -441,6 +441,8 @@ nsXULDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
 
     mChannel = aChannel;
 
+    mHaveInputEncoding = PR_TRUE;
+
     
     nsresult rv =
         NS_GetFinalChannelURI(aChannel, getter_AddRefs(mDocumentURI));

@@ -225,8 +225,6 @@ public:
   
 
 
-
-
   const nsCString& GetDocumentCharacterSet() const
   {
     return mCharacterSet;
