@@ -5059,7 +5059,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext,
     if (frame)
     {
       
-      frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown);
+      frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown, mType);
 #ifndef OLD_TABLE_SELECTION
       if (mFrameSelection->GetTableCellSelection())
       {
@@ -5084,7 +5084,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext,
         
 
         
-        frame->SetSelected(aPresContext, nsnull,aFlags,eSpreadDown);
+        frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown, mType);
         nsRect frameRect = frame->GetRect();
 
         
@@ -5096,7 +5096,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext,
           if (frame)
           {
             frameRect = frame->GetRect();
-            frame->SetSelected(aPresContext, nsnull,aFlags,eSpreadDown);
+            frame->SetSelected(aPresContext, nsnull, aFlags, eSpreadDown, mType);
           }
           else
             break;
@@ -5162,7 +5162,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIDOMRange *aRange,
     {
       frame = mFrameSelection->GetShell()->GetPrimaryFrameFor(content);
       if (frame)
-        frame->SetSelected(aPresContext, aRange,aFlags,eSpreadDown);
+        frame->SetSelected(aPresContext, aRange, aFlags, eSpreadDown, mType);
     }
 
     iter->First();
@@ -5186,7 +5186,7 @@ nsTypedSelection::selectFrames(nsPresContext* aPresContext, nsIDOMRange *aRange,
       {
         frame = mFrameSelection->GetShell()->GetPrimaryFrameFor(content);
         if (frame)
-           frame->SetSelected(aPresContext, aRange,aFlags,eSpreadDown);
+           frame->SetSelected(aPresContext, aRange, aFlags, eSpreadDown, mType);
       }
     }
 

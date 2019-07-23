@@ -493,7 +493,8 @@ NS_IMETHODIMP
 nsTableCellFrame::SetSelected(nsPresContext* aPresContext,
                               nsIDOMRange*    aRange,
                               PRBool          aSelected,
-                              nsSpread        aSpread)
+                              nsSpread        aSpread,
+                              SelectionType   aType)
 {
   
 #if 0
@@ -509,7 +510,7 @@ nsTableCellFrame::SetSelected(nsPresContext* aPresContext,
   
   
   
-  nsFrame::SetSelected(aPresContext, aRange, aSelected, aSpread);
+  nsFrame::SetSelected(aPresContext, aRange, aSelected, aSpread, aType);
 
   nsCOMPtr<nsFrameSelection> frameSelection =
     aPresContext->PresShell()->FrameSelection();

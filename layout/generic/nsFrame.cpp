@@ -4148,18 +4148,20 @@ nsFrame::VerifyTree() const
 
 
 NS_IMETHODIMP
-nsFrame::SetSelected(nsPresContext* aPresContext, nsIDOMRange *aRange, PRBool aSelected, nsSpread aSpread)
+nsFrame::SetSelected(nsPresContext* aPresContext, nsIDOMRange *aRange, PRBool aSelected, nsSpread aSpread, SelectionType aType)
 {
 
 
 
 
 
-  
-  PRBool  selectable;
-  IsSelectable(&selectable, nsnull);
-  if (!selectable)
-    return NS_OK;
+  if (aType == nsISelectionController::SELECTION_NORMAL) {
+    
+    PRBool  selectable;
+    IsSelectable(&selectable, nsnull);
+    if (!selectable)
+      return NS_OK;
+  }
 
 
 
@@ -4186,7 +4188,7 @@ nsFrame::SetSelected(nsPresContext* aPresContext, nsIDOMRange *aRange, PRBool aS
     GetFirstLeaf(aPresContext, &frame);
     GetOffsets(start, end);
     if (start && end) {
-      frame->SetSelected(aPresContext, aRange, aSelected, aSpread);
+      frame->SetSelected(aPresContext, aRange, aSelected, aSpread, aType);
     }
   }
 #endif 

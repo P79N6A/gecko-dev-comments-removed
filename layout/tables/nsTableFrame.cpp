@@ -1483,7 +1483,8 @@ NS_IMETHODIMP
 nsTableFrame::SetSelected(nsPresContext* aPresContext,
                           nsIDOMRange *aRange,
                           PRBool aSelected,
-                          nsSpread aSpread)
+                          nsSpread aSpread,
+                          SelectionType aType)
 {
 #if 0
   
@@ -1498,7 +1499,7 @@ nsTableFrame::SetSelected(nsPresContext* aPresContext,
   
   
   
-  nsFrame::SetSelected(aPresContext, aRange, aSelected, aSpread);
+  nsFrame::SetSelected(aPresContext, aRange, aSelected, aSpread, aType);
   return NS_OK;
   
 }

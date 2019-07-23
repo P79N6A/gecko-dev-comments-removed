@@ -1725,10 +1725,12 @@ public:
 
 
 
+
   NS_IMETHOD  SetSelected(nsPresContext* aPresContext,
                           nsIDOMRange*    aRange,
                           PRBool          aSelected,
-                          nsSpread        aSpread) = 0;
+                          nsSpread        aSpread,
+                          SelectionType   aType) = 0;
 
   NS_IMETHOD  GetSelected(PRBool *aSelected) const = 0;
 
