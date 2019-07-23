@@ -3624,6 +3624,14 @@ nsSVGFEMorphologyElement::Filter(nsSVGFilterInstance *instance,
   PRInt32 rx, ry;
   GetRXY(&rx, &ry, *instance);
 
+  if (rx < 0 || ry < 0) {
+    
+    return NS_OK;
+  }
+  if (rx == 0 && ry == 0) {
+    return NS_OK;
+  }
+
   PRUint8* sourceData = aSources[0]->mImage->Data();
   PRUint8* targetData = aTarget->mImage->Data();
   PRUint32 stride = aTarget->mImage->Stride();
@@ -3631,10 +3639,6 @@ nsSVGFEMorphologyElement::Filter(nsSVGFilterInstance *instance,
   PRUint8 extrema[4];         
   PRUint16 op = mEnumAttributes[OPERATOR].GetAnimValue();
 
-  if (rx == 0 && ry == 0) {
-    CopyRect(aTarget, aSources[0], rect);
-    return NS_OK;
-  }
   
 
 
