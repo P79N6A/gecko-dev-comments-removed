@@ -198,14 +198,12 @@ function UpdateBackForwardCommands(aWebNavigation) {
 
 
 
-function ClickAndHoldMouseDownCallback(aButton)
-{
+function ClickAndHoldMouseDownCallback(aButton) {
   aButton.open = true;
   gClickAndHoldTimer = null;
 }
 
-function ClickAndHoldMouseDown(aEvent)
-{
+function ClickAndHoldMouseDown(aEvent) {
   
 
 
@@ -223,49 +221,35 @@ function ClickAndHoldMouseDown(aEvent)
     setTimeout(ClickAndHoldMouseDownCallback, 500, aEvent.currentTarget);
 }
 
-function MayStopClickAndHoldTimer(aEvent)
-{
+function MayStopClickAndHoldTimer(aEvent) {
   
   clearTimeout(gClickAndHoldTimer);
 }
 
-function ClickAndHoldStopEvent(aEvent)
-{
+function ClickAndHoldStopEvent(aEvent) {
   if (aEvent.originalTarget.localName != "menuitem" &&
       aEvent.currentTarget.open)
     aEvent.stopPropagation();
 }
 
-function SetClickAndHoldHandlers()
-{
-  function _addClickAndHoldListenersOnElement(aElm)
-  {
-    aElm.addEventListener("mousedown",
-                          ClickAndHoldMouseDown,
-                          false);
-    aElm.addEventListener("mouseup",
-                          MayStopClickAndHoldTimer,
-                          false);
-    aElm.addEventListener("mouseout",
-                          MayStopClickAndHoldTimer,
-                          false);
+function SetClickAndHoldHandlers() {
+  function _addClickAndHoldListenersOnElement(aElm) {
+    aElm.addEventListener("mousedown", ClickAndHoldMouseDown, false);
+    aElm.addEventListener("mouseup", MayStopClickAndHoldTimer, false);
+    aElm.addEventListener("mouseout", MayStopClickAndHoldTimer, false);
+
     
     
-    
-    aElm.addEventListener("command",
-                          ClickAndHoldStopEvent,
-                          true);  
-    aElm.addEventListener("click",
-                          ClickAndHoldStopEvent,
-                          true);  
+    aElm.addEventListener("command", ClickAndHoldStopEvent, true);
+    aElm.addEventListener("click", ClickAndHoldStopEvent, true);
   }
 
   
   
   var unifiedButton = document.getElementById("unified-back-forward-button");
-  if (unifiedButton && !unifiedButton._clickHandlersAttached)  {
+  if (unifiedButton && !unifiedButton._clickHandlersAttached) {
     var popup = document.getElementById("back-forward-dropmarker")
-                       .firstChild.cloneNode(true);
+                        .firstChild.cloneNode(true);
     var backButton = document.getElementById("back-button");
     backButton.setAttribute("type", "menu-button");
     backButton.appendChild(popup);
