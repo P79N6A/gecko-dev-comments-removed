@@ -559,7 +559,12 @@ nsPageFrame::PaintPageContent(nsIRenderingContext& aRenderingContext,
     
     
     NS_ASSERTION(mPageNum > 0, "page num should be positive");
-    clipRect.y =  expectedPageContentHeight * (mPageNum - 1);
+    
+    
+    
+    
+    clipRect.y = NSToCoordCeil((-pageContentFrame->GetRect().y + 
+                                mPD->mReflowMargin.top) / scale);
     clipRect.height = expectedPageContentHeight;
     NS_ASSERTION(clipRect.y < pageContentFrame->GetSize().height,
                  "Should be clipping to region inside the page content bounds");
