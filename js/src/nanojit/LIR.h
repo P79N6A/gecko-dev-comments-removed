@@ -470,9 +470,13 @@ namespace nanojit
 		
 	    LIns*		insLoadi(LIns *base, int disp);
 	    LIns*		insLoad(LOpcode op, LIns *base, int disp);
+		
+		
 	    LIns*		ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse);
 	    
 	    LIns*		ins_eq0(LIns* oprnd1);
+		
+		
         LIns*       ins2i(LOpcode op, LIns *oprnd1, int32_t);
 		LIns*		qjoin(LInsp lo, LInsp hi);
 		LIns*		insImmPtr(const void *ptr);
