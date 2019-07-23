@@ -1278,8 +1278,6 @@ nsOperaProfileMigrator::ParseBookmarksFolder(nsILineInputStream* aStream,
     rv = aStream->ReadLine(cBuffer, &moreData);
     if (NS_FAILED(rv)) return rv;
     
-    if (!moreData) break;
-
     CopyUTF8toUTF16(cBuffer, buffer);
     nsString data;
     LineType type = GetLineType(buffer, getter_Copies(data));
@@ -1313,6 +1311,7 @@ nsOperaProfileMigrator::ParseBookmarksFolder(nsILineInputStream* aStream,
         onToolbar = PR_TRUE;
       break;
     case LineType_NL: {
+      
       
       
       
@@ -1353,7 +1352,7 @@ nsOperaProfileMigrator::ParseBookmarksFolder(nsILineInputStream* aStream,
       break;
     }
   }
-  while (1);
+  while (moreData);
 
 done:
   return rv;
