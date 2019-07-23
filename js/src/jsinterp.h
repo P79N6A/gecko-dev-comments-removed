@@ -243,6 +243,10 @@ struct JSPropCacheEntry {
     jsuword             kshape;         
     jsuword             vcap;           
     jsuword             vword;          
+
+    bool adding() const {
+        return PCVCAP_TAG(vcap) == 0 && kshape != PCVCAP_SHAPE(vcap);
+    }
 };
 
 
