@@ -262,8 +262,7 @@ pref("browser.download.useDownloadDir", true);
 
 #ifdef WINCE
 pref("browser.download.folderList", 2);
-
-pref("browser.download.dir", "\\Hard Disk");
+pref("browser.download.dir", "\\Storage Card");
 #else
 pref("browser.download.folderList", 1);
 #endif
@@ -311,7 +310,6 @@ pref("browser.microsummary.updateGenerators", true);
 
 pref("browser.search.suggest.enabled", true);
 
-pref("browser.history.showSessions", false);
 pref("browser.sessionhistory.max_entries", 50);
 pref("browser.history_expire_days", 180);
 pref("browser.history_expire_days_min", 90);
@@ -364,10 +362,6 @@ pref("browser.ctrlTab.previews", false);
 pref("browser.ctrlTab.recentlyUsedLimit", 7);
 
 
-pref("browser.bookmarks.sort.direction", "descending");
-pref("browser.bookmarks.sort.resource", "rdf:http://home.netscape.com/NC-rdf#Name");
-
-
 
 
 pref("browser.bookmarks.autoExportHTML",          false);
@@ -376,7 +370,7 @@ pref("browser.bookmarks.autoExportHTML",          false);
 
 
 
-pref("browser.bookmarks.max_backups",             5);
+pref("browser.bookmarks.max_backups",             10);
 
 
 pref("dom.disable_open_during_load",              true);
@@ -758,7 +752,11 @@ pref("browser.rights.3.shown", false);
 pref("browser.rights.override", true);
 #endif
 
+#ifdef WINCE
+pref("browser.sessionstore.resume_from_crash", false);
+#else
 pref("browser.sessionstore.resume_from_crash", true);
+#endif
 pref("browser.sessionstore.resume_session_once", false);
 
 

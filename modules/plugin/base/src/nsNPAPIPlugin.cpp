@@ -1827,6 +1827,8 @@ _setexception(NPObject* npobj, const NPUTF8 *message)
     return;
   }
 
+  if (!message) return;
+
   if (gNPPException) {
     
     

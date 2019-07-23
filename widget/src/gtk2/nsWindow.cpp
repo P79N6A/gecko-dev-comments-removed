@@ -134,8 +134,6 @@ D_DEBUG_DOMAIN( ns_Window, "nsWindow", "nsWindow" );
 }
 #include "gfxDirectFBSurface.h"
 #define GDK_WINDOW_XWINDOW(_win) _win
-#else
-#define D_DEBUG_AT(x,y...)    do {} while (0)
 #endif
 
 
@@ -200,6 +198,8 @@ static gboolean scroll_event_cb           (GtkWidget *widget,
                                            GdkEventScroll *event);
 static gboolean visibility_notify_event_cb(GtkWidget *widget,
                                            GdkEventVisibility *event);
+static void     hierarchy_changed_cb      (GtkWidget *widget,
+                                           GtkWidget *previous_toplevel);
 static gboolean window_state_event_cb     (GtkWidget *widget,
                                            GdkEventWindowState *event);
 static void     theme_changed_cb          (GtkSettings *settings,
@@ -364,6 +364,17 @@ static PRBool gForce24bpp = PR_FALSE;
 
 static GtkWidget *gInvisibleContainer = NULL;
 
+
+
+template<class T> gpointer
+FuncToGpointer(T aFunction)
+{
+    return reinterpret_cast<gpointer>
+        (reinterpret_cast<uintptr_t>
+         
+         (reinterpret_cast<void (*)()>(aFunction)));
+}
+
 nsWindow::nsWindow()
 {
     mIsTopLevel       = PR_FALSE;
@@ -384,7 +395,8 @@ nsWindow::nsWindow()
     mContainerGotFocus   = PR_FALSE;
     mContainerLostFocus  = PR_FALSE;
     mContainerBlockFocus = PR_FALSE;
-    mIsVisible           = PR_FALSE;
+    mHasMappedToplevel   = PR_FALSE;
+    mIsFullyObscured     = PR_FALSE;
     mRetryPointerGrab    = PR_FALSE;
     mRetryKeyboardGrab   = PR_FALSE;
     mTransientParent     = nsnull;
@@ -704,7 +716,7 @@ nsWindow::Destroy(void)
     }
 
     g_signal_handlers_disconnect_by_func(gtk_settings_get_default(),
-                                         (gpointer)G_CALLBACK(theme_changed_cb),
+                                         FuncToGpointer(theme_changed_cb),
                                          this);
 
     
@@ -840,11 +852,11 @@ nsWindow::SetParent(nsIWidget *aNewParent)
     NS_ABORT_IF_FALSE(!GDK_WINDOW_OBJECT(mGdkWindow)->destroyed,
                       "destroyed GdkWindow with widget");
 
+    nsWindow* newParent = static_cast<nsWindow*>(aNewParent);
     GdkWindow* newParentWindow = NULL;
     GtkWidget* newContainer = NULL;
     if (aNewParent) {
-        newParentWindow = static_cast<GdkWindow*>
-            (aNewParent->GetNativeData(NS_NATIVE_WINDOW));
+        newParentWindow = newParent->mGdkWindow;
         if (newParentWindow) {
             newContainer = get_gtk_widget_for_gdk_window(newParentWindow);
         }
@@ -871,6 +883,12 @@ nsWindow::SetParent(nsIWidget *aNewParent)
         }
 
         gdk_window_reparent(mGdkWindow, newParentWindow, 0, 0);
+    }
+
+    PRBool parentHasMappedToplevel =
+        newParent && newParent->mHasMappedToplevel;
+    if (mHasMappedToplevel != parentHasMappedToplevel) {
+        SetHasMappedToplevel(parentHasMappedToplevel);
     }
 
     return NS_OK;
@@ -915,33 +933,6 @@ nsWindow::IsVisible(PRBool& aState)
     return NS_OK;
 }
 
-
-PRBool
-nsWindow::CanBeSeen()
-{
-    
-    
-    
-    
-    if (!mIsShown || !mIsVisible)
-        return PR_FALSE;
-
-    GtkWidget *topWidget = nsnull;
-    GetToplevelWidget(&topWidget);
-
-    
-    
-    
-    
-    
-    mIsVisible =
-        topWidget &&
-        !(gdk_window_get_state(topWidget->window) &
-          (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_WITHDRAWN));
-        
-    return mIsVisible;
-}
-
 NS_IMETHODIMP
 nsWindow::ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY)
 {
@@ -974,9 +965,18 @@ nsWindow::ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY)
 NS_IMETHODIMP
 nsWindow::Show(PRBool aState)
 {
+    if (aState == mIsShown)
+        return NS_OK;
+
     mIsShown = aState;
 
     LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
+
+    if (aState) {
+        
+        
+        SetHasMappedToplevel(mHasMappedToplevel);
+    }
 
     
     
@@ -1172,6 +1172,11 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
 {
     LOG(("nsWindow::Move [%p] %d %d\n", (void *)this,
          aX, aY));
+
+    if (mWindowType == eWindowType_toplevel ||
+        mWindowType == eWindowType_dialog) {
+        SetSizeMode(nsSizeMode_Normal);
+    }
 
     mPlaced = PR_TRUE;
 
@@ -1655,7 +1660,7 @@ NS_IMETHODIMP
 nsWindow::Invalidate(const nsIntRect &aRect,
                      PRBool           aIsSynchronous)
 {
-    if (!mGdkWindow || !CanBeSeen())
+    if (!mGdkWindow)
         return NS_OK;
 
     GdkRectangle rect;
@@ -1679,6 +1684,8 @@ nsWindow::Update()
 {
     if (!mGdkWindow)
         return NS_OK;
+
+    LOGDRAW(("Update [%p] %p\n", this, mGdkWindow));
 
     gdk_window_process_updates(mGdkWindow, FALSE);
     return NS_OK;
@@ -2056,7 +2063,8 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         return FALSE;
     }
 
-    if (!mGdkWindow)
+    
+    if (!mGdkWindow || mIsFullyObscured || !mHasMappedToplevel)
         return FALSE;
 
     static NS_DEFINE_CID(kRegionCID, NS_REGION_CID);
@@ -3209,10 +3217,23 @@ void
 nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
                                   GdkEventVisibility *aEvent)
 {
+    LOGDRAW(("Visibility event %i on [%p] %p\n",
+             aEvent->state, this, aEvent->window));
+
+    if (!mGdkWindow)
+        return;
+
     switch (aEvent->state) {
     case GDK_VISIBILITY_UNOBSCURED:
     case GDK_VISIBILITY_PARTIAL:
-        mIsVisible = PR_TRUE;
+        if (mIsFullyObscured && mHasMappedToplevel) {
+            
+            
+            gdk_window_invalidate_rect(mGdkWindow, NULL, FALSE);
+        }
+
+        mIsFullyObscured = PR_FALSE;
+
 #ifdef MOZ_PLATFORM_HILDON
 #ifdef USE_XIM
         
@@ -3228,7 +3249,7 @@ nsWindow::OnVisibilityNotifyEvent(GtkWidget *aWidget,
         EnsureGrabs();
         break;
     default: 
-        mIsVisible = PR_FALSE;
+        mIsFullyObscured = PR_TRUE;
         break;
     }
 }
@@ -3238,6 +3259,27 @@ nsWindow::OnWindowStateEvent(GtkWidget *aWidget, GdkEventWindowState *aEvent)
 {
     LOG(("nsWindow::OnWindowStateEvent [%p] changed %d new_window_state %d\n",
          (void *)this, aEvent->changed_mask, aEvent->new_window_state));
+
+    if (IS_MOZ_CONTAINER(aWidget)) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        PRBool mapped =
+            !(aEvent->new_window_state &
+              (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_WITHDRAWN));
+        if (mHasMappedToplevel != mapped) {
+            SetHasMappedToplevel(mapped);
+        }
+        return;
+    }
+    
 
     nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
 
@@ -3866,6 +3908,10 @@ nsWindow::Create(nsIWidget        *aParent,
     case eWindowType_child: {
         if (parentMozContainer) {
             mGdkWindow = CreateGdkWindow(parentGdkWindow, parentMozContainer);
+            nsWindow *parentnsWindow =
+                get_window_for_gdk_window(parentGdkWindow);
+            if (parentnsWindow)
+                mHasMappedToplevel = parentnsWindow->mHasMappedToplevel;
         }
         else if (parentGtkContainer) {
             GtkWidget *container = moz_container_new();
@@ -3953,6 +3999,10 @@ nsWindow::Create(nsIWidget        *aParent,
                          G_CALLBACK(scroll_event_cb), NULL);
         g_signal_connect(G_OBJECT(mContainer), "visibility_notify_event",
                          G_CALLBACK(visibility_notify_event_cb), NULL);
+        g_signal_connect(G_OBJECT(mContainer), "hierarchy_changed",
+                         G_CALLBACK(hierarchy_changed_cb), NULL);
+        
+        hierarchy_changed_cb(GTK_WIDGET(mContainer), NULL);
 
         gtk_drag_dest_set((GtkWidget *)mContainer,
                           (GtkDestDefaults)0,
@@ -4243,6 +4293,48 @@ nsWindow::NativeShow (PRBool  aAction)
         }
         else if (mGdkWindow) {
             gdk_window_hide(mGdkWindow);
+        }
+    }
+}
+
+void
+nsWindow::SetHasMappedToplevel(PRBool aState)
+{
+    
+    
+    
+    PRBool oldState = mHasMappedToplevel;
+    mHasMappedToplevel = aState;
+
+    
+    
+    
+    
+    
+    
+    
+    if (!mIsShown || !mGdkWindow)
+        return;
+
+    if (aState && !oldState && !mIsFullyObscured) {
+        
+        
+        
+        gdk_window_invalidate_rect(mGdkWindow, NULL, FALSE);
+
+        
+        
+        EnsureGrabs();
+    }
+
+    for (GList *children = gdk_window_peek_children(mGdkWindow);
+         children;
+         children = children->next) {
+        GdkWindow *gdkWin = GDK_WINDOW(children->data);
+        nsWindow *child = get_window_for_gdk_window(gdkWin);
+
+        if (child && child->mHasMappedToplevel != aState) {
+            child->SetHasMappedToplevel(aState);
         }
     }
 }
@@ -4540,7 +4632,7 @@ nsWindow::GrabPointer(void)
     
     
     
-    if (!CanBeSeen()) {
+    if (!mHasMappedToplevel || mIsFullyObscured) {
         LOG(("GrabPointer: window not visible\n"));
         mRetryPointerGrab = PR_TRUE;
         return;
@@ -4577,7 +4669,7 @@ nsWindow::GrabKeyboard(void)
     
     
     
-    if (!CanBeSeen()) {
+    if (!mHasMappedToplevel || mIsFullyObscured) {
         LOG(("GrabKeyboard: window not visible\n"));
         mRetryKeyboardGrab = PR_TRUE;
         return;
@@ -5646,6 +5738,44 @@ visibility_notify_event_cb (GtkWidget *widget, GdkEventVisibility *event)
     window->OnVisibilityNotifyEvent(widget, event);
 
     return TRUE;
+}
+
+static void
+hierarchy_changed_cb (GtkWidget *widget,
+                      GtkWidget *previous_toplevel)
+{
+    GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+    GdkWindowState old_window_state = GDK_WINDOW_STATE_WITHDRAWN;
+    GdkEventWindowState event;
+
+    event.new_window_state = GDK_WINDOW_STATE_WITHDRAWN;
+
+    if (GTK_IS_WINDOW(previous_toplevel)) {
+        g_signal_handlers_disconnect_by_func(previous_toplevel,
+                                             FuncToGpointer(window_state_event_cb),
+                                             widget);
+        if (widget->window) {
+            old_window_state = gdk_window_get_state(widget->window);
+        }
+    }
+
+    if (GTK_IS_WINDOW(toplevel)) {
+        g_signal_connect_swapped(toplevel, "window-state-event",
+                                 G_CALLBACK(window_state_event_cb), widget);
+        if (widget->window) {
+            event.new_window_state = gdk_window_get_state(widget->window);
+        }
+    }
+
+    event.changed_mask = static_cast<GdkWindowState>
+        (old_window_state ^ event.new_window_state);
+
+    if (event.changed_mask) {
+        event.type = GDK_WINDOW_STATE;
+        event.window = NULL;
+        event.send_event = TRUE;
+        window_state_event_cb(widget, &event);
+    }
 }
 
 
