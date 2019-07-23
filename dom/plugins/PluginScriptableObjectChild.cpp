@@ -698,6 +698,8 @@ PluginScriptableObjectChild::AnswerInvoke(const NPRemoteIdentifier& aId,
                                           Variant* aResult,
                                           bool* aSuccess)
 {
+  *aResult = null_t();
+
   if (!mObject) {
     NS_WARNING("Calling AnswerInvoke with an invalidated object!");
     *aSuccess = false;
@@ -757,6 +759,8 @@ PluginScriptableObjectChild::AnswerInvokeDefault(const nsTArray<Variant>& aArgs,
                                                  Variant* aResult,
                                                  bool* aSuccess)
 {
+  *aResult = null_t();
+
   if (!mObject) {
     NS_WARNING("Calling AnswerInvokeDefault with an invalidated object!");
     *aSuccess = false;
@@ -837,6 +841,8 @@ PluginScriptableObjectChild::AnswerGetProperty(const NPRemoteIdentifier& aId,
                                                Variant* aResult,
                                                bool* aSuccess)
 {
+  *aResult = null_t();
+
   if (!mObject) {
     NS_WARNING("Calling AnswerGetProperty with an invalidated object!");
     *aSuccess = false;
@@ -961,6 +967,8 @@ PluginScriptableObjectChild::AnswerConstruct(const nsTArray<Variant>& aArgs,
                                              Variant* aResult,
                                              bool* aSuccess)
 {
+  *aResult = null_t();
+
   if (!mObject) {
     NS_WARNING("Calling AnswerConstruct with an invalidated object!");
     *aSuccess = false;
