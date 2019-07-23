@@ -1134,15 +1134,13 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
   aNextInFlow->Invalidate(aNextInFlow->GetOverflowRect());
 
   
-  nsSplittableFrame::BreakFromPrevFlow(aNextInFlow);
-
-  
 #ifdef DEBUG
   nsresult rv = 
 #endif
     StealFrame(aPresContext, aNextInFlow);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failure");
 
+  
   
   aNextInFlow->Destroy();
 
