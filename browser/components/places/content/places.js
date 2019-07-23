@@ -674,6 +674,9 @@ var PlacesOrganizer = {
                                          PlacesUtils.bookmarks.DEFAULT_INDEX,
                                          input.value);
     PlacesUtils.ptm.doTransaction(txn);
+
+    
+    this._places.selectPlaceURI(placeSpec);
   }
 };
 
