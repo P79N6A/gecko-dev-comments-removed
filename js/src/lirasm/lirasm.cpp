@@ -1132,15 +1132,15 @@ addOrReplace(vector<t> &v, t x)
 }
 
 
-static int32_t rndOffset32(size_t scratchSzB)
+static int32_t rndOffset32(size_t szB)
 {
-    return int32_t(rnd(scratchSzB)) & ~3;
+    return int32_t(rnd(szB)) & ~3;
 }
 
 
-static int32_t rndOffset64(size_t scratchSzB)
+static int32_t rndOffset64(size_t szB)
 {
-    return int32_t(rnd(scratchSzB)) & ~7;
+    return int32_t(rnd(szB)) & ~7;
 }
 
 static int32_t f_I_I1(int32_t a)
@@ -1255,15 +1255,15 @@ const CallInfo ci_N_IQF = CI(f_N_IQF, argMask(I32, 1, 3) |
 
 
 
-
-
 void
 FragmentAssembler::assembleRandomFragment(int nIns)
 {
-    vector<LIns*> Bs;
-    vector<LIns*> Is;
-    vector<LIns*> Qs;
-    vector<LIns*> Fs;
+    vector<LIns*> Bs;       
+    vector<LIns*> Is;       
+    vector<LIns*> Qs;       
+    vector<LIns*> Fs;       
+    vector<LIns*> M4s;      
+    vector<LIns*> M8ps;     
 
     vector<LOpcode> I_I_ops;
     I_I_ops.push_back(LIR_neg);
@@ -1417,9 +1417,14 @@ FragmentAssembler::assembleRandomFragment(int nIns)
 
     
     
+    const size_t stackSzB = NJ_MAX_STACK_ENTRY * 4;
+    const size_t spillStackSzB = 1024;
+    const size_t maxExplicitlyUsedStackSzB = stackSzB - spillStackSzB;
+    size_t explicitlyUsedStackSzB = 0;
+
     
-    const size_t scratchSzB = NJ_MAX_STACK_ENTRY;
-    LIns *scratch = mLir->insAlloc(scratchSzB);
+    
+    addOrReplace(M8ps, mLir->insAlloc(8));
 
     int n = 0;
     while (n < nIns) {
@@ -1436,6 +1441,38 @@ FragmentAssembler::assembleRandomFragment(int nIns)
             }
             n++;
             break;
+
+        case LALLOC: {
+            
+            
+            size_t szB;
+            switch (rnd(3)) {
+            case 0: szB = 4;                break;
+            case 1: szB = 8;                break;
+            case 2: szB = 4 * (rnd(6) + 3); break;  
+            }
+            if (explicitlyUsedStackSzB + szB <= maxExplicitlyUsedStackSzB) {
+                ins = mLir->insAlloc(szB);
+                
+                
+                
+#if defined NANOJIT_64BIT
+                addOrReplace(Qs, ins);
+#else
+                addOrReplace(Is, ins);
+#endif
+                if (szB == 4)
+                    addOrReplace(M4s, ins);
+                else
+                    addOrReplace(M8ps, ins);
+
+                
+                
+                explicitlyUsedStackSzB += szB;
+                n++;
+            }
+            break;
+        }
 
         
         
@@ -1652,31 +1689,45 @@ FragmentAssembler::assembleRandomFragment(int nIns)
 #endif
             break;
 
-        case LLD_I:
-            ins = mLir->insLoad(rndPick(I_loads), scratch, rndOffset32(scratchSzB));
-            addOrReplace(Is, ins);
-            n++;
-            break;
-
-        case LLD_QorF:
-            ins = mLir->insLoad(rndPick(QorF_loads), scratch, rndOffset64(scratchSzB));
-            addOrReplace((rnd(2) ? Qs : Fs), ins);
-            n++;
-            break;
-
-        case LST_I:
-            if (!Is.empty()) {
-                mLir->insStorei(rndPick(Is), scratch, rndOffset32(scratchSzB));
+        case LLD_I: {
+            vector<LIns*> Ms = rnd(2) ? M4s : M8ps;
+            if (!Ms.empty()) {
+                LIns* base = rndPick(Ms);
+                ins = mLir->insLoad(rndPick(I_loads), base, rndOffset32(base->size()));
+                addOrReplace(Is, ins);
                 n++;
             }
             break;
+        }
 
-        case LST_QorF:
-            if (!Fs.empty()) {
-                mLir->insStorei(rndPick(Fs), scratch, rndOffset64(scratchSzB));
+        case LLD_QorF: {
+            if (!M8ps.empty()) {
+                LIns* base = rndPick(M8ps);
+                ins = mLir->insLoad(rndPick(QorF_loads), base, rndOffset64(base->size()));
+                addOrReplace((rnd(2) ? Qs : Fs), ins);
                 n++;
             }
             break;
+        }
+
+        case LST_I: {
+            vector<LIns*> Ms = rnd(2) ? M4s : M8ps;
+            if (!Ms.empty() && !Is.empty()) {
+                LIns* base = rndPick(Ms);
+                mLir->insStorei(rndPick(Is), base, rndOffset32(base->size()));
+                n++;
+            }
+            break;
+        }
+
+        case LST_QorF: {
+            if (!M8ps.empty() && !Fs.empty()) {
+                LIns* base = rndPick(M8ps);
+                mLir->insStorei(rndPick(Fs), base, rndOffset64(base->size()));
+                n++;
+            }
+            break;
+        }
 
         case LCALL_I_I1:
             if (!Is.empty()) {
