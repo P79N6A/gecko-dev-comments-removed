@@ -505,36 +505,38 @@ void nsCSSSelector::ToStringInternal(nsAString& aString,
       aString.Append(PRUnichar('|'));
       wroteNamespace = PR_TRUE;
     } else {
-      nsXMLNameSpaceMap *sheetNS = aSheet->GetNameSpaceMap();
+      if (aSheet) {
+        nsXMLNameSpaceMap *sheetNS = aSheet->GetNameSpaceMap();
     
-      
-      
-      
-      
-      
-      if (sheetNS) {
-        if (mNameSpace != kNameSpaceID_Unknown) {
-          if (sheetNS->FindNameSpaceID(nsnull) != mNameSpace) {
-            nsIAtom *prefixAtom = sheetNS->FindPrefix(mNameSpace);
-            NS_ASSERTION(prefixAtom, "how'd we get a non-default namespace "
-                                     "without a prefix?");
-            nsAutoString prefix;
-            prefixAtom->ToString(prefix);
-            aString.Append(prefix);
-            aString.Append(PRUnichar('|'));
-            wroteNamespace = PR_TRUE;
-          }
-          
-        } else {
-          
-          if (
-              sheetNS->FindNameSpaceID(nsnull) != kNameSpaceID_None &&
-              
-              
-              (!aIsNegated || (!mIDList && !mClassList &&
-                               !mPseudoClassList && !mAttrList))) {
-            aString.AppendLiteral("*|");
-            wroteNamespace = PR_TRUE;
+        
+        
+        
+        
+        
+        if (sheetNS) {
+          if (mNameSpace != kNameSpaceID_Unknown) {
+            if (sheetNS->FindNameSpaceID(nsnull) != mNameSpace) {
+              nsIAtom *prefixAtom = sheetNS->FindPrefix(mNameSpace);
+              NS_ASSERTION(prefixAtom, "how'd we get a non-default namespace "
+                                       "without a prefix?");
+              nsAutoString prefix;
+              prefixAtom->ToString(prefix);
+              aString.Append(prefix);
+              aString.Append(PRUnichar('|'));
+              wroteNamespace = PR_TRUE;
+            }
+            
+          } else {
+            
+            if (
+                sheetNS->FindNameSpaceID(nsnull) != kNameSpaceID_None &&
+                
+                
+                (!aIsNegated || (!mIDList && !mClassList &&
+                                 !mPseudoClassList && !mAttrList))) {
+              aString.AppendLiteral("*|");
+              wroteNamespace = PR_TRUE;
+            }
           }
         }
       }
@@ -596,14 +598,16 @@ void nsCSSSelector::ToStringInternal(nsAString& aString,
       aString.Append(PRUnichar('['));
       
       if (list->mNameSpace > 0) {
-        nsXMLNameSpaceMap *sheetNS = aSheet->GetNameSpaceMap();
-        
-        nsIAtom *prefixAtom = sheetNS->FindPrefix(list->mNameSpace);
-        if (prefixAtom) { 
-          nsAutoString prefix;
-          prefixAtom->ToString(prefix);
-          aString.Append(prefix);
-          aString.Append(PRUnichar('|'));
+        if (aSheet) {
+          nsXMLNameSpaceMap *sheetNS = aSheet->GetNameSpaceMap();
+          
+          nsIAtom *prefixAtom = sheetNS->FindPrefix(list->mNameSpace);
+          if (prefixAtom) { 
+            nsAutoString prefix;
+            prefixAtom->ToString(prefix);
+            aString.Append(prefix);
+            aString.Append(PRUnichar('|'));
+          }
         }
       }
       
