@@ -1,0 +1,162 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+try {
+  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                getService(Ci.nsINavHistoryService);
+} catch(ex) {
+  do_throw("Could not get history service\n");
+}
+
+
+try {
+  var tagssvc = Cc["@mozilla.org/browser/tagging-service;1"].
+                getService(Ci.nsITaggingService);
+} catch(ex) {
+  do_throw("Could not get tagging service\n");
+}
+
+
+function run_test() {
+  var uri1 = uri("http://site.tld/1");
+  var uri2 = uri("http://site.tld/2");
+  var uri3 = uri("http://site.tld/3");
+  var uri4 = uri("http://site.tld/4");
+  var uri5 = uri("http://site.tld/5");
+  var uri6 = uri("http://site.tld/6");
+
+  tagssvc.tagURI(uri1, ["foo"]);
+  tagssvc.tagURI(uri2, ["bar"]);
+  tagssvc.tagURI(uri3, ["cheese"]);
+  tagssvc.tagURI(uri4, ["foo bar"]);
+  tagssvc.tagURI(uri5, ["bar cheese"]);
+  tagssvc.tagURI(uri6, ["foo bar cheese"]);
+
+  
+  var options = histsvc.getNewQueryOptions();
+  options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
+  var query = histsvc.getNewQuery();
+  query.searchTerms = "foo";
+  var result = histsvc.executeQuery(query, options);
+  var root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 1);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/1");
+
+  query.searchTerms = "bar";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 1);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/2");
+
+  query.searchTerms = "cheese";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 1);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/3");
+
+  query.searchTerms = "foo bar";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 3);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/1");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/2");
+  do_check_eq(root.getChild(2).uri, "http://site.tld/4");
+
+  query.searchTerms = "bar foo";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 2);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/1");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/2");
+
+  query.searchTerms = "bar cheese";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 3);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/2");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/3");
+  do_check_eq(root.getChild(2).uri, "http://site.tld/5");
+
+  query.searchTerms = "cheese bar";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 2);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/2");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/3");
+
+  query.searchTerms = "foo bar cheese";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 6);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/1");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/2");
+  do_check_eq(root.getChild(2).uri, "http://site.tld/3");
+  do_check_eq(root.getChild(3).uri, "http://site.tld/4");
+  do_check_eq(root.getChild(4).uri, "http://site.tld/5");
+  do_check_eq(root.getChild(5).uri, "http://site.tld/6");
+
+  query.searchTerms = "cheese foo bar";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 4);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/1");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/2");
+  do_check_eq(root.getChild(2).uri, "http://site.tld/3");
+  do_check_eq(root.getChild(3).uri, "http://site.tld/4");
+
+  query.searchTerms = "cheese bar foo";
+  result = histsvc.executeQuery(query, options);
+  root = result.root;
+  root.containerOpen = true;
+  do_check_eq(root.childCount, 3);
+  do_check_eq(root.getChild(0).uri, "http://site.tld/1");
+  do_check_eq(root.getChild(1).uri, "http://site.tld/2");
+  do_check_eq(root.getChild(2).uri, "http://site.tld/3");
+}
