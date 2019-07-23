@@ -1314,8 +1314,9 @@ BookmarkContentSink::SetFaviconForURI(nsIURI* aPageURI, nsIURI* aIconURI,
   }
 
   
-  rv = faviconService->SetFaviconDataFromDataURL(faviconURI, aData, 0);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  (void) faviconService->SetFaviconDataFromDataURL(faviconURI, aData, 0);
 
   rv = faviconService->SetFaviconUrlForPage(aPageURI, faviconURI);
   NS_ENSURE_SUCCESS(rv, rv);

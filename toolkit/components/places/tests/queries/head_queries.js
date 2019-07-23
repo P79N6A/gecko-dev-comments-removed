@@ -213,9 +213,11 @@ function populateDB(aArray) {
       if (qdata.isFavicon) {
         
         
-        faviconsvc.setFaviconData(uri(qdata.faviconURI), qdata.favicon,
-                                  qdata.faviconLen, qdata.faviconMimeType,
-                                  qdata.faviconExpiration);
+        try {
+          faviconsvc.setFaviconData(uri(qdata.faviconURI), qdata.favicon,
+                                    qdata.faviconLen, qdata.faviconMimeType,
+                                    qdata.faviconExpiration);
+        } catch (ex) {}
         faviconsvc.setFaviconUrlForPage(uri(qdata.uri), uri(qdata.faviconURI));
       }
 

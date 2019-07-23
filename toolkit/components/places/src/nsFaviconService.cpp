@@ -77,6 +77,15 @@
 #define CONTENT_SNIFFING_SERVICES "content-sniffing-services"
 
 
+
+
+#define OPTIMIZED_FAVICON_SIZE 1024
+
+
+
+
+#define MAX_FAVICON_SIZE 10240
+
 class FaviconLoadListener : public nsIStreamListener,
                             public nsIInterfaceRequestor,
                             public nsIChannelEventSink
@@ -593,13 +602,17 @@ nsFaviconService::SetFaviconData(nsIURI* aFaviconURI, const PRUint8* aData,
   
   
   
-  
-  if (aDataLen > 1024) {
+  if (aDataLen > OPTIMIZED_FAVICON_SIZE) {
     rv = OptimizeFaviconImage(aData, aDataLen, aMimeType, newData, newMimeType);
     if (NS_SUCCEEDED(rv) && newData.Length() < aDataLen) {
       data = reinterpret_cast<PRUint8*>(const_cast<char*>(newData.get())),
       dataLen = newData.Length();
       mimeType = &newMimeType;
+    }
+    else if (aDataLen > MAX_FAVICON_SIZE) {
+      
+      
+      return NS_ERROR_FAILURE;
     }
   }
 
@@ -1087,10 +1100,11 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
                       (PRInt64)(24 * 60 * 60) * (PRInt64)PR_USEC_PER_SEC;
 
   
-  rv = mFaviconService->SetFaviconData(mFaviconURI,
+  
+  
+  (void) mFaviconService->SetFaviconData(mFaviconURI,
                reinterpret_cast<PRUint8*>(const_cast<char*>(mData.get())),
                mData.Length(), mimeType, expiration);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   PRBool hasData;
