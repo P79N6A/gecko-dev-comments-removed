@@ -42,6 +42,7 @@
 #include "nsAtomListUtils.h"
 #include "nsStaticAtom.h"
 #include "nsMemory.h"
+#include "nsCSSAnonBoxes.h"
 
 
 #define CSS_PSEUDO_ELEMENT(name_, value_, flags_) \
@@ -78,6 +79,25 @@ PRBool nsCSSPseudoElements::IsPseudoElement(nsIAtom *aAtom)
 {
   return nsAtomListUtils::IsMember(aAtom, CSSPseudoElements_info,
                                    NS_ARRAY_LENGTH(CSSPseudoElements_info));
+}
+
+ PRBool
+nsCSSPseudoElements::IsCSS2PseudoElement(nsIAtom *aAtom)
+{
+  
+  
+  NS_ASSERTION(nsCSSPseudoElements::IsPseudoElement(aAtom) ||
+               nsCSSAnonBoxes::IsAnonBox(aAtom),
+               "must be pseudo element or anon box");
+  PRBool result = aAtom == nsCSSPseudoElements::after ||
+                  aAtom == nsCSSPseudoElements::before ||
+                  aAtom == nsCSSPseudoElements::firstLetter ||
+                  aAtom == nsCSSPseudoElements::firstLine;
+  NS_ASSERTION(nsCSSAnonBoxes::IsAnonBox(aAtom) ||
+               result ==
+                 PseudoElementHasFlags(aAtom, CSS_PSEUDO_ELEMENT_IS_CSS2),
+               "result doesn't match flags");
+  return result;
 }
 
  PRUint32
