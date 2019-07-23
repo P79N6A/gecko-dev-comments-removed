@@ -144,6 +144,8 @@ typedef enum {
   
   MOZ_GTK_FRAME,
   
+  MOZ_GTK_RESIZER,
+  
   MOZ_GTK_PROGRESSBAR,
   
   MOZ_GTK_PROGRESS_CHUNK,
