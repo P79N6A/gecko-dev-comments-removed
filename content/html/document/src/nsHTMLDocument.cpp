@@ -3663,6 +3663,7 @@ nsHTMLDocument::CreateAndAddWyciwygChannel(void)
 
   
   
+  SetDocumentCharacterSetSource(kCharsetFromHintPrevDoc);
   mWyciwygChannel->SetCharsetAndSource(kCharsetFromHintPrevDoc,
                                        GetDocumentCharacterSet());
 
