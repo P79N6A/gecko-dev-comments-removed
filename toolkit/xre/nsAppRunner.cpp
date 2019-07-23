@@ -242,6 +242,8 @@ protected:
   extern void InstallUnixSignalHandlers(const char *ProgramName);
 #endif
 
+#define FILE_COMPATIBILITY_INFO NS_LITERAL_CSTRING("compatibility.ini")
+
 int    gArgc;
 char **gArgv;
 
@@ -737,6 +739,48 @@ nsXULAppInfo::GetProcessType(PRUint32* aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = XRE_GetProcessType();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::InvalidateCachesOnRestart()
+{
+  nsCOMPtr<nsIFile> file;
+  nsresult rv = NS_GetSpecialDirectory(NS_APP_PROFILE_DIR_STARTUP, 
+                                       getter_AddRefs(file));
+  if (NS_FAILED(rv))
+    return rv;
+  if (!file)
+    return NS_ERROR_NOT_AVAILABLE;
+  
+  file->AppendNative(FILE_COMPATIBILITY_INFO);
+
+  nsCOMPtr<nsILocalFile> localFile(do_QueryInterface(file));
+  nsINIParser parser;
+  rv = parser.Init(localFile);
+  if (NS_FAILED(rv)) {
+    
+    
+    return NS_OK;
+  }
+  
+  nsCAutoString buf;
+  rv = parser.GetString("Compatibility", "InvalidateCaches", buf);
+  
+  if (NS_FAILED(rv)) {
+    PRFileDesc *fd = nsnull;
+    localFile->OpenNSPRFileDesc(PR_RDWR | PR_APPEND, 0600, &fd);
+    if (!fd) {
+      NS_ERROR("could not create output stream");
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+    static const char kInvalidationHeader[] = NS_LINEBREAK "InvalidateCaches=1" NS_LINEBREAK;
+    rv = PR_Write(fd, kInvalidationHeader, sizeof(kInvalidationHeader) - 1);
+    PR_Close(fd);
+    
+    if (NS_FAILED(rv))
+      return rv;
+  }
   return NS_OK;
 }
 
@@ -2175,13 +2219,19 @@ SelectProfile(nsIProfileLock* *aResult, nsINativeAppSupport* aNative,
   return ShowProfileManager(profileSvc, aNative);
 }
 
-#define FILE_COMPATIBILITY_INFO NS_LITERAL_CSTRING("compatibility.ini")
+
+
+
+
+
+
 
 static PRBool
 CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
                    const nsCString& aOSABI, nsIFile* aXULRunnerDir,
-                   nsIFile* aAppDir)
+                   nsIFile* aAppDir, PRBool* aCachesOK)
 {
+  *aCachesOK = false;
   nsCOMPtr<nsIFile> file;
   aProfileDir->Clone(getter_AddRefs(file));
   if (!file)
@@ -2233,6 +2283,10 @@ CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
       return PR_FALSE;
   }
 
+  rv = parser.GetString("Compatibility", "InvalidateCaches", buf);
+  
+  
+  *aCachesOK = (NS_FAILED(rv) || !buf.EqualsLiteral("1"));
   return PR_TRUE;
 }
 
@@ -2299,19 +2353,6 @@ WriteVersion(nsIFile* aProfileDir, const nsCString& aVersion,
   PR_Close(fd);
 }
 
-static PRBool ComponentsListChanged(nsIFile* aProfileDir)
-{
-  nsCOMPtr<nsIFile> file;
-  aProfileDir->Clone(getter_AddRefs(file));
-  if (!file)
-    return PR_TRUE;
-  file->AppendNative(NS_LITERAL_CSTRING(".autoreg"));
-
-  PRBool exists = PR_FALSE;
-  file->Exists(&exists);
-  return exists;
-}
-
 static void RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfileDir,
                                       PRBool aRemoveEMFiles)
 {
@@ -2339,6 +2380,9 @@ static void RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfi
     return;
 
   file->AppendNative(NS_LITERAL_CSTRING("XUL" PLATFORM_FASL_SUFFIX));
+  file->Remove(PR_FALSE);
+  
+  file->SetNativeLeafName(NS_LITERAL_CSTRING("XPC" PLATFORM_FASL_SUFFIX));
   file->Remove(PR_FALSE);
 }
 
@@ -3225,9 +3269,12 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     
     
     
-    PRBool versionOK = CheckCompatibility(profD, version, osABI,
+    
+    
+    PRBool cachesOK;
+    PRBool versionOK = CheckCompatibility(profD, version, osABI, 
                                           dirProvider.GetGREDir(),
-                                          gAppData->directory);
+                                          gAppData->directory, &cachesOK);
 
     
     
@@ -3242,11 +3289,15 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
                    dirProvider.GetGREDir(), gAppData->directory);
     }
     else if (versionOK) {
-      if (ComponentsListChanged(profD)) {
+      if (!cachesOK) {
         
         
         
         RemoveComponentRegistries(profD, profLD, PR_FALSE);
+        
+        
+        WriteVersion(profD, version, osABI,
+                     dirProvider.GetGREDir(), gAppData->directory);
       }
       
     }
