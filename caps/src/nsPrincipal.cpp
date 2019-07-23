@@ -265,8 +265,26 @@ nsPrincipal::Equals(nsIPrincipal *aOther, PRBool *aResult)
         aOther->GetSubjectName(str);
         *aResult = str.Equals(mCert->subjectName) || str.IsEmpty();
       }
-        
-      return NS_OK;
+
+      if (!*aResult) {
+        return NS_OK;
+      }
+
+      
+      
+      
+      nsCOMPtr<nsIURI> otherURI;
+      nsresult rv = aOther->GetURI(getter_AddRefs(otherURI));
+      if (NS_FAILED(rv)) {
+        *aResult = PR_FALSE;
+        return rv;
+      }
+
+      if (!otherURI || !mCodebase) {
+        return NS_OK;
+      }
+
+      
     }
 
     
