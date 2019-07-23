@@ -65,15 +65,13 @@ struct JSRegExpStatics {
     JSSubString rightContext;   
 };
 
-namespace js { class AutoValueRooter; }
-
 extern JS_FRIEND_API(void)
 js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                             js::AutoValueRooter *tvr);
+                             JSTempValueRooter *tvr);
 
 extern JS_FRIEND_API(void)
 js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
-                        js::AutoValueRooter *tvr);
+                        JSTempValueRooter *tvr);
 
 
 
