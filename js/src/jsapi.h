@@ -859,6 +859,16 @@ JS_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 
 
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
+
+
+
+
+
 extern JS_PUBLIC_API(void)
 JS_MarkGCThing(JSContext *cx, void *thing, const char *name, void *arg);
 

@@ -223,6 +223,13 @@ struct JSRuntime {
 #endif
 
     
+
+
+
+    JSTraceDataOp       gcExtraRootsTraceOp;
+    void                *gcExtraRootsData;
+
+    
     JSAtomState         atomState;
 
     
