@@ -2974,13 +2974,16 @@ nsGenericElement::SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
 
   if (aNotify) {
     nsIDocument* doc = GetCurrentDoc();
-    NS_ABORT_IF_FALSE(doc, "Shouldn't be able to animate style on a node "
-                      "unless it's in a document...");
-    nsPresShellIterator iter(doc);
-    nsCOMPtr<nsIPresShell> shell;
-    while (shell = iter.GetNextShell()) {
-      nsPresContext* presContext = shell->GetPresContext();
-      presContext->SMILOverrideStyleChanged(this);
+    
+    
+    
+    if (doc) {
+      nsPresShellIterator iter(doc);
+      nsCOMPtr<nsIPresShell> shell;
+      while (shell = iter.GetNextShell()) {
+        nsPresContext* presContext = shell->GetPresContext();
+        presContext->SMILOverrideStyleChanged(this);
+      }
     }
   }
 
