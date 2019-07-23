@@ -366,6 +366,23 @@ nsNavBookmarks::InitStatements()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT id "
+      "FROM moz_bookmarks "
+      "WHERE fk = ?1 "
+        "AND type = ?2 "
+        "AND parent NOT IN ("
+          "SELECT a.item_id "
+          "FROM moz_items_annos a "
+          "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
+          "WHERE n.name = ?3"
+        ") "
+      "LIMIT 1"),
+    getter_AddRefs(mDBIsRealBookmark));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT id "
       "FROM moz_bookmarks "
@@ -446,6 +463,7 @@ nsNavBookmarks::FinalizeStatements() {
     mDBGetRedirectDestinations,
     mDBInsertBookmark,
     mDBIsBookmarkedInDatabase,
+    mDBIsRealBookmark,
     mDBGetLastBookmarkID,
     mDBSetItemDateAdded,
     mDBSetItemLastModified,
@@ -889,6 +907,34 @@ nsNavBookmarks::UpdateBookmarkHashOnRemove(PRInt64 aPlaceId)
   return NS_OK;
 }
 
+
+PRBool
+nsNavBookmarks::IsRealBookmark(PRInt64 aPlaceId)
+{
+  
+  
+  PRInt64 bookmarkId;
+  PRBool isBookmark = mBookmarksHash.Get(aPlaceId, &bookmarkId);
+  if (!isBookmark)
+    return PR_FALSE;
+
+  {
+    mozStorageStatementScoper scope(mDBIsRealBookmark);
+
+    (void)mDBIsRealBookmark->BindInt64Parameter(0, aPlaceId);
+    (void)mDBIsRealBookmark->BindInt32Parameter(1, TYPE_BOOKMARK);
+    (void)mDBIsRealBookmark->BindUTF8StringParameter(
+      2, NS_LITERAL_CSTRING(LMANNO_FEEDURI)
+    );
+
+    
+    
+    if (NS_SUCCEEDED(mDBIsRealBookmark->ExecuteStep(&isBookmark)))
+      return isBookmark;
+  }
+
+  return PR_FALSE;
+}
 
 
 
@@ -2577,42 +2623,8 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI *aNewURI)
   
   
   
-  PRBool isBookmarked = PR_FALSE;
 
-  nsCOMPtr<mozIStorageStatement> isBookmarkedStmt;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT id "
-      "FROM moz_bookmarks "
-      "WHERE fk = ?1 AND "
-            "type = ?2 AND "
-            "parent NOT IN ("
-              "SELECT a.item_id "
-              "FROM moz_items_annos a "
-              "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
-              "WHERE n.name = ?3"
-            ")"),
-    getter_AddRefs(isBookmarkedStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  {
-    mozStorageStatementScoper scope(isBookmarkedStmt);
-
-    rv = isBookmarkedStmt->BindInt64Parameter(0, oldPlaceId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = isBookmarkedStmt->BindInt32Parameter(1, TYPE_BOOKMARK);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = isBookmarkedStmt->BindUTF8StringParameter(
-           2, NS_LITERAL_CSTRING(LMANNO_FEEDURI));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    rv = isBookmarkedStmt->ExecuteStep(&isBookmarked);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  rv = History()->UpdateFrecency(oldPlaceId, isBookmarked);
+  rv = History()->UpdateFrecency(oldPlaceId, IsRealBookmark(oldPlaceId));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCAutoString spec;

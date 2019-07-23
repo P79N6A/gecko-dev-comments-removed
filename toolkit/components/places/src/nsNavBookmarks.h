@@ -97,6 +97,15 @@ public:
                                  PRInt64* aNewFolder);
 
   
+
+
+
+
+
+
+  PRBool IsRealBookmark(PRInt64 aPlaceId);
+
+  
   nsresult OnQuit();
 
   nsresult BeginUpdateBatch();
@@ -225,6 +234,7 @@ private:
   nsCOMPtr<mozIStorageStatement> mDBGetRedirectDestinations;
   nsCOMPtr<mozIStorageStatement> mDBInsertBookmark;
   nsCOMPtr<mozIStorageStatement> mDBIsBookmarkedInDatabase;
+  nsCOMPtr<mozIStorageStatement> mDBIsRealBookmark;
   nsCOMPtr<mozIStorageStatement> mDBGetLastBookmarkID;
   nsCOMPtr<mozIStorageStatement> mDBSetItemDateAdded;
   nsCOMPtr<mozIStorageStatement> mDBSetItemLastModified;

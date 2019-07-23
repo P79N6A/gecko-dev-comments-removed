@@ -40,6 +40,15 @@
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+const TRANSITION_LINK = Ci.nsINavHistoryService.TRANSITION_LINK;
+const TRANSITION_TYPED = Ci.nsINavHistoryService.TRANSITION_TYPED;
+const TRANSITION_BOOKMARK = Ci.nsINavHistoryService.TRANSITION_BOOKMARK;
+const TRANSITION_EMBED = Ci.nsINavHistoryService.TRANSITION_EMBED;
+const TRANSITION_REDIRECT_PERMANENT = Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT;
+const TRANSITION_REDIRECT_TEMPORARY = Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
+const TRANSITION_DOWNLOAD = Ci.nsINavHistoryService.TRANSITION_DOWNLOAD;
+
 let current_test = 0;
 
 function AutoCompleteInput(aSearches) {
@@ -164,7 +173,56 @@ let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 
 let gPages = [];
 
-function addPageBook(aURI, aTitle, aBook, aTags, aKey)
+
+
+
+
+
+
+
+
+function setPageTitle(aURI, aTitle)
+{
+  
+  
+  let db = histsvc.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
+  let stmt = db.createStatement(
+    "UPDATE moz_places_view " +
+    "SET title = :title " +
+    "WHERE url = :uri"
+  );
+  stmt.params.title = aTitle;
+  stmt.params.uri = aURI.spec;
+  stmt.execute();
+  stmt.finalize();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function addPageBook(aURI, aTitle, aBook, aTags, aKey, aTransitionType)
 {
   
   gPages[aURI] = [aURI, aBook != undefined ? aBook : aTitle, aTags];
@@ -177,7 +235,11 @@ function addPageBook(aURI, aTitle, aBook, aTags, aKey)
   out.push("\ntitle=" + title);
 
   
-  bhist.addPageWithDetails(uri, title, gDate);
+  let tt = aTransitionType || TRANSITION_LINK;
+  let isRedirect = tt == TRANSITION_REDIRECT_PERMANENT ||
+                   tt == TRANSITION_REDIRECT_TEMPORARY;
+  histsvc.addVisit(uri, gDate, null, tt, isRedirect, 0);
+  setPageTitle(uri, title);
 
   
   if (aBook != undefined) {
