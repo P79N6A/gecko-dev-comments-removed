@@ -136,13 +136,18 @@ namespace nanojit
 
     LInsp ReverseLister::read()
     {
-        LInsp i = in->read();
+        
+        
+        if (_prevIns && _prevIns->isop(LIR_start))
+            return _prevIns;
+        LInsp ins = in->read();
         InsBuf b;
-        const char* str = _printer->formatIns(&b, i);
+        const char* str = _printer->formatIns(&b, ins);
         char* cpy = new (_alloc) char[strlen(str)+1];
         VMPI_strcpy(cpy, str);
         _strs.insert(cpy);
-        return i;
+        _prevIns = ins;
+        return ins;
     }
 #endif
 
@@ -403,19 +408,19 @@ namespace nanojit
         };
 
         
-        NanoAssert(_i && !_i->isop(LIR_skip));
+        NanoAssert(_ins && !_ins->isop(LIR_skip));
 
         
         
         
         
-        LInsp ret = _i;
-        _i = (LInsp)(uintptr_t(_i) - insSizes[_i->opcode()]);
+        LInsp ret = _ins;
+        _ins = (LInsp)(uintptr_t(_ins) - insSizes[_ins->opcode()]);
 
         
-        while (_i->isop(LIR_skip)) {
-            NanoAssert(_i->prevLIns() != _i);
-            _i = _i->prevLIns();
+        while (_ins->isop(LIR_skip)) {
+            NanoAssert(_ins->prevLIns() != _ins);
+            _ins = _ins->prevLIns();
         }
 
         return ret;
@@ -1567,7 +1572,7 @@ namespace nanojit
         uint32_t exits = 0;
         int total = 0;
         if (frag->lirbuf->state)
-            live.add(frag->lirbuf->state, in->pos());
+            live.add(frag->lirbuf->state, in->finalIns());
         for (LInsp ins = in->read(); !ins->isop(LIR_start); ins = in->read())
         {
             total++;

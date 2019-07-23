@@ -80,6 +80,7 @@ namespace nanojit
         , _config(config)
     {
         VMPI_memset(&_stats, 0, sizeof(_stats));
+        VMPI_memset(lookahead, 0, N_LOOKAHEAD * sizeof(LInsp));
         nInit(core);
         (void)logc;
         verbose_only( _logc = logc; )
@@ -1208,67 +1209,77 @@ namespace nanojit
         NanoAssert(_thisfrag->nStaticExits == 0);
 
         
-        NanoAssert(reader->pos()->isop(LIR_x)    ||
-                   reader->pos()->isop(LIR_xtbl) ||
-                   reader->pos()->isRet()        ||
-                   reader->pos()->isLive());
+        NanoAssert(reader->finalIns()->isop(LIR_x)    ||
+                   reader->finalIns()->isop(LIR_xtbl) ||
+                   reader->finalIns()->isRet()        ||
+                   reader->finalIns()->isLive());
 
         InsList pending_lives(alloc);
 
         NanoAssert(!error());
-        for (LInsp ins = reader->read(); !ins->isop(LIR_start); ins = reader->read())
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        for (int32_t i = 0; i < N_LOOKAHEAD; i++)
+            lookahead[i] = reader->read();
+
+        while (!lookahead[0]->isop(LIR_start))
         {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            LInsp ins = lookahead[0];   
+            LOpcode op = ins->opcode();
 
             bool required = ins->isStmt() || ins->isUsed();
             if (!required)
-                continue;
+                goto end_of_loop;
 
 #ifdef NJ_VERBOSE
             
@@ -1281,8 +1292,7 @@ namespace nanojit
                 printRegState();
 #endif
 
-            LOpcode op = ins->opcode();
-            switch(op)
+            switch (op)
             {
                 default:
                     NanoAssertMsgf(false, "unsupported LIR instruction: %d\n", op);
@@ -1851,6 +1861,11 @@ namespace nanojit
             
             debug_only( pageValidate(); )
             debug_only( resourceConsistencyCheck();  )
+
+          end_of_loop:
+            for (int32_t i = 1; i < N_LOOKAHEAD; i++)
+                lookahead[i-1] = lookahead[i];
+            lookahead[N_LOOKAHEAD-1] = reader->read();
         }
     }
 

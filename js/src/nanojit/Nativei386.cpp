@@ -742,11 +742,19 @@ namespace nanojit
             
             Register r = findRegFor(lhs, GpRegs);
             if (c == 0 && cond->isop(LIR_eq)) {
-                TEST(r, r);
+                NanoAssert(N_LOOKAHEAD >= 3);
+                if ((lhs->isop(LIR_and) || lhs->isop(LIR_or)) &&
+                    cond == lookahead[1] && lhs == lookahead[2])
+                {
+                    
+                    
+                    
+                } else {
+                    TEST(r, r);     
+                }
             } else {
                 CMPi(r, c);
             }
-
         } else {
             Register ra, rb;
             findRegFor2(GpRegs, lhs, ra, GpRegs, rhs, rb);

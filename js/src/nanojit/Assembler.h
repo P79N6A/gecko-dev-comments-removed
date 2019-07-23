@@ -413,6 +413,13 @@ namespace nanojit
             NIns*       pedanticTop;
         #endif
 
+
+            
+            
+            
+            static const int N_LOOKAHEAD = 3;
+            LInsp       lookahead[N_LOOKAHEAD];
+
             AR          _activation;
             RegAlloc    _allocator;
 

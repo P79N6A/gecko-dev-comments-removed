@@ -891,7 +891,7 @@ namespace nanojit
         
         
         bool isStmt() {
-            NanoAssert(!isop(LIR_start) && !isop(LIR_skip));
+            NanoAssert(!isop(LIR_skip));
             
             
             if (isCall())
@@ -1943,21 +1943,25 @@ namespace nanojit
         LirFilter(LirFilter *in) : in(in) {}
         virtual ~LirFilter(){}
 
+        
+        
+        
         virtual LInsp read() {
             return in->read();
         }
-        virtual LInsp pos() {
-            return in->pos();
+        virtual LInsp finalIns() {
+            return in->finalIns();
         }
     };
 
     
     class LirReader : public LirFilter
     {
-        LInsp _i; 
+        LInsp _ins;         
+        LInsp _finalIns;    
 
     public:
-        LirReader(LInsp i) : LirFilter(0), _i(i)
+        LirReader(LInsp ins) : LirFilter(0), _ins(ins), _finalIns(ins)
         {
             
             
@@ -1966,7 +1970,7 @@ namespace nanojit
             
             
             
-            NanoAssert(i && !i->isop(LIR_skip));
+            NanoAssert(ins && !ins->isop(LIR_skip));
         }
         virtual ~LirReader() {}
 
@@ -1974,9 +1978,8 @@ namespace nanojit
         
         LInsp read();
 
-        
-        LInsp pos() {
-            return _i;
+        LInsp finalIns() {
+            return _finalIns;
         }
     };
 
@@ -2102,6 +2105,7 @@ namespace nanojit
         const char*  _title;
         StringList   _strs;
         LogControl*  _logc;
+        LIns*        _prevIns;
     public:
         ReverseLister(LirFilter* in, Allocator& alloc,
                       LInsPrinter* printer, LogControl* logc, const char* title)
@@ -2111,6 +2115,7 @@ namespace nanojit
             , _title(title)
             , _strs(alloc)
             , _logc(logc)
+            , _prevIns(NULL)
         { }
 
         void finish();
