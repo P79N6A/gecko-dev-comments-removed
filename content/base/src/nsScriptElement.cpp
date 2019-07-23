@@ -195,18 +195,16 @@ nsScriptElement::MaybeProcessScript()
   }
 
   nsresult scriptresult = NS_OK;
-  nsRefPtr<nsScriptLoader> loader = cont->GetOwnerDoc()->GetScriptLoader();
-  if (loader) {
-    mIsEvaluated = PR_TRUE;
-    scriptresult = loader->ProcessScriptElement(this);
+  nsRefPtr<nsScriptLoader> loader = cont->GetOwnerDoc()->ScriptLoader();
+  mIsEvaluated = PR_TRUE;
+  scriptresult = loader->ProcessScriptElement(this);
 
-    
-    
-    
-    if (NS_FAILED(scriptresult) &&
-        scriptresult != NS_ERROR_HTMLPARSER_BLOCK) {
-      scriptresult = NS_OK;
-    }
+  
+  
+  
+  if (NS_FAILED(scriptresult) &&
+      scriptresult != NS_ERROR_HTMLPARSER_BLOCK) {
+    scriptresult = NS_OK;
   }
 
   return scriptresult;

@@ -530,7 +530,7 @@ public:
   
 
  
-  virtual nsScriptLoader* GetScriptLoader() = 0;
+  virtual nsScriptLoader* ScriptLoader() = 0;
 
   
 

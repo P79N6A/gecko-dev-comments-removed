@@ -1852,10 +1852,7 @@ HTMLContentSink::DidBuildModel(void)
 
   ScrollToRef();
 
-  nsScriptLoader *loader = mDocument->GetScriptLoader();
-  if (loader) {
-    loader->RemoveObserver(this);
-  }
+  mDocument->ScriptLoader()->RemoveObserver(this);
 
   
   

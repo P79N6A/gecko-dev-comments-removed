@@ -920,15 +920,13 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
     }
 
     
-    nsScriptLoader *loader = mDocument->GetScriptLoader();
-    if (loader) {
-        if (mNotifier) {
-            loader->AddObserver(mNotifier);
-        }
-        else {
-            
-            loader->SetEnabled(PR_FALSE);
-        }
+    nsScriptLoader *loader = mDocument->ScriptLoader();
+    if (mNotifier) {
+        loader->AddObserver(mNotifier);
+    }
+    else {
+        
+        loader->SetEnabled(PR_FALSE);
     }
 
     if (mNotifier) {
@@ -1120,11 +1118,8 @@ txTransformNotifier::SignalTransformEnd(nsresult aResult)
 
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(mDocument);
     if (doc) {
-        nsScriptLoader *scriptLoader = doc->GetScriptLoader();
-        if (scriptLoader) {
-            scriptLoader->RemoveObserver(this);
-            
-        }
+        doc->ScriptLoader()->RemoveObserver(this);
+        
 
         if (NS_FAILED(aResult)) {
             doc->CSSLoader()->Stop();

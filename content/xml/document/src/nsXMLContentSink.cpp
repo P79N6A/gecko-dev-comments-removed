@@ -327,10 +327,7 @@ nsXMLContentSink::DidBuildModel()
   }
   else {
     
-    nsScriptLoader *loader = mDocument->GetScriptLoader();
-    if (loader) {
-      loader->RemoveObserver(this);
-    }
+    mDocument->ScriptLoader()->RemoveObserver(this);
 
     if (mDocElement) {
       
@@ -405,10 +402,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
     mDocument = aResultDocument;
   }
 
-  nsScriptLoader *loader = originalDocument->GetScriptLoader();
-  if (loader) {
-    loader->RemoveObserver(this);
-  }
+  originalDocument->ScriptLoader()->RemoveObserver(this);
 
   
   
@@ -929,10 +923,7 @@ nsXMLContentSink::SetDocElement(PRInt32 aNameSpaceID,
       
       
       mAllowAutoXLinks = PR_FALSE;
-      nsScriptLoader* scriptLoader = mDocument->GetScriptLoader();
-      if (scriptLoader) {
-        scriptLoader->SetEnabled(PR_FALSE);
-      }
+      mDocument->ScriptLoader()->SetEnabled(PR_FALSE);
       if (mCSSLoader) {
         mCSSLoader->SetEnabled(PR_FALSE);
       }

@@ -568,10 +568,7 @@ nsXMLDocument::StartDocumentLoad(const char* aCommand,
     
 
     
-    nsScriptLoader *loader = GetScriptLoader();
-    if (loader) {
-      loader->SetEnabled(PR_FALSE); 
-    }
+    ScriptLoader()->SetEnabled(PR_FALSE);
 
     
     CSSLoader()->SetEnabled(PR_FALSE); 
