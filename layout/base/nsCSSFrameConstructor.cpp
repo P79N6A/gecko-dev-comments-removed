@@ -4649,8 +4649,6 @@ nsCSSFrameConstructor::ConstructPageFrame(nsIPresShell*   aPresShell,
 
   aPageFrame->SetInitialChildList(nsnull, aPageContentFrame);
 
-  
-
   return NS_OK;
 }
 
@@ -10605,75 +10603,58 @@ nsCSSFrameConstructor::CreateContinuingFrame(nsPresContext* aPresContext,
   if (aFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT) {
     newFrame->AddStateBits(NS_FRAME_GENERATED_CONTENT);
   }
-  
-  
-  
-  
-  if (!aParentFrame) {
-    return NS_OK;
+
+  if (nextInFlow) {
+    nextInFlow->SetPrevInFlow(newFrame);
+    newFrame->SetNextInFlow(nextInFlow);
+  } else if (nextContinuation) {
+    nextContinuation->SetPrevContinuation(newFrame);
+    newFrame->SetNextContinuation(nextContinuation);
   }
+  return NS_OK;
+}
 
-  if (aParentFrame->GetType() != nsGkAtoms::pageContentFrame) {
-    if (nextInFlow) {
-      nextInFlow->SetPrevInFlow(newFrame);
-      newFrame->SetNextInFlow(nextInFlow);
-    } else if (nextContinuation) {
-      nextContinuation->SetPrevContinuation(newFrame);
-      newFrame->SetNextContinuation(nextContinuation);
-    }
-    return NS_OK;
-  }
-
+nsresult
+nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
+{
   
   
-  nsIFrame* pageFrame = aParentFrame->GetParent();
-  if (!pageFrame) {
-    NS_ERROR("pageContentFrame does not have parent!");
-    newFrame->Destroy();
-    *aContinuingFrame = nsnull;
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  nsIFrame* prevPage = pageFrame->GetPrevInFlow();
-  if (!prevPage) {
-    return NS_OK;
-  }
-
   
-  
-  nsIFrame* prevPageContentFrame = prevPage->GetFirstChild(nsnull);
 
+  nsIFrame* prevPageContentFrame = aParentFrame->GetPrevInFlow();
   if (!prevPageContentFrame) {
-    newFrame->Destroy();
-    *aContinuingFrame = nsnull;
+    return NS_OK;
+  }
+  nsIFrame* docRootFrame = aParentFrame->GetFirstChild(nsnull);
+  if (!docRootFrame) {
+    
     return NS_ERROR_UNEXPECTED;
   }
-  
+
   nsFrameItems fixedPlaceholders;
   nsIFrame* firstFixed = prevPageContentFrame->GetFirstChild(nsGkAtoms::fixedList);
   if (!firstFixed) {
     return NS_OK;
   }
 
+  
   nsFrameConstructorState state(mPresShell, aParentFrame,
                                 mInitialContainingBlock,
                                 mInitialContainingBlock);
   
   
   for (nsIFrame* fixed = firstFixed; fixed; fixed = fixed->GetNextSibling()) {
-    rv = ConstructFrame(state, fixed->GetContent(),
-                        newFrame, fixedPlaceholders);
-    if (NS_FAILED(rv)) {
-      newFrame->Destroy();
-      *aContinuingFrame = nsnull;
-      return rv;
-    }
+    nsresult rv = ConstructFrame(state, fixed->GetContent(),
+                                 docRootFrame, fixedPlaceholders);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
   
   
-  newFrame->SetInitialChildList(nsnull, fixedPlaceholders.childList);
+  NS_ASSERTION(!docRootFrame->GetFirstChild(nsnull),
+               "leaking frames; doc root continuation must be empty");
+  docRootFrame->SetInitialChildList(nsnull, fixedPlaceholders.childList);
   return NS_OK;
 }
 

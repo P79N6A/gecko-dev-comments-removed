@@ -51,6 +51,7 @@
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsThreadUtils.h"
+#include "nsPageContentFrame.h"
 
 class nsIDocument;
 struct nsFrameItems;
@@ -184,6 +185,9 @@ public:
                                  nsIFrame*       aParentFrame,
                                  nsIFrame**      aContinuingFrame,
                                  PRBool          aIsFluid = PR_TRUE);
+
+  
+  nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
 
   
   
