@@ -1133,13 +1133,16 @@ statusbarpanel#statusbar-display {
 }
 
 .tabbrowser-tab {
-  border: none !important;
-  padding: 0 2px;
+  padding: 0 2px 2px;
   margin-bottom: 1px;
+  min-height: 25px; 
 }
 
 .tabbrowser-tab[selected="true"] {
-  margin-bottom: 0px;
+  margin-bottom: 0;
+  padding-top: 2px; 
+  padding-bottom: 3px; 
+  min-height: 28px;
 }
 
 .tab-icon-image {
@@ -1221,12 +1224,11 @@ statusbarpanel#statusbar-display {
 .tab-close-button > .toolbarbutton-icon {
   
 
-  margin: -3px !important;
+  margin: -4px;
 }
 
 .tab-close-button {
-  padding: 0px;
-  border: none;
+  padding: 0;
   list-style-image: url("moz-icon://stock/gtk-close?size=menu");
 }
 
