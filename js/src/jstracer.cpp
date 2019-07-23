@@ -1488,16 +1488,39 @@ TraceRecorder::isLoopHeader(JSContext* cx) const
 
 
 void
+TraceRecorder::compile(Fragmento* fragmento)
+{
+    if (treeInfo->maxNativeStackSlots >= MAX_NATIVE_STACK_SLOTS) {
+        debug_only_v(printf("Trace rejected: excessive stack use.\n"));
+        fragment->blacklist();
+        return;
+    }
+    ::compile(fragmento->assm(), fragment);
+    if (anchor) {
+        fragment->addLink(anchor);
+        fragmento->assm()->patch(anchor);
+    }
+    JS_ASSERT(fragment->code());
+    JS_ASSERT(!fragment->vmprivate);
+    if (fragment == fragment->root)
+        fragment->vmprivate = treeInfo;
+    
+#if defined DEBUG && !defined WIN32
+    char* label = (char*)malloc(strlen(cx->fp->script->filename) + 64);
+    sprintf(label, "%s:%u", cx->fp->script->filename,
+            js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc));
+    fragmento->labels->add(fragment, sizeof(Fragment), 0, label);
+    free(label);
+#endif
+}
+
+
+void
 TraceRecorder::closeLoop(Fragmento* fragmento)
 {
     if (!verifyTypeStability()) {
         AUDIT(unstableLoopVariable);
         debug_only_v(printf("Trace rejected: unstable loop variables.\n");)
-        return;
-    }
-    if (treeInfo->maxNativeStackSlots >= MAX_NATIVE_STACK_SLOTS) {
-        debug_only_v(printf("Trace rejected: excessive stack use.\n"));
-        fragment->blacklist();
         return;
     }
     SideExit *exit = snapshot(LOOP_EXIT);
@@ -1507,23 +1530,16 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
     } else {
         fragment->lastIns = lir->insGuard(LIR_x, lir->insImm(1), exit);
     }
-    compile(fragmento->assm(), fragment);
-    if (anchor) {
-        fragment->addLink(anchor);
-        fragmento->assm()->patch(anchor);
-    }
-    JS_ASSERT(fragment->code());
-    JS_ASSERT(!fragment->vmprivate);
-    if (fragment == fragment->root)
-        fragment->vmprivate = treeInfo;
-	
-#if defined DEBUG && !defined WIN32
-    char* label = (char*)malloc(strlen(cx->fp->script->filename) + 64);
-    sprintf(label, "%s:%u", cx->fp->script->filename,
-            js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc));
-    fragmento->labels->add(fragment, sizeof(Fragment), 0, label);
-    free(label);
-#endif
+    compile(fragmento);
+}
+
+
+void
+TraceRecorder::endLoop(Fragmento* fragmento)
+{
+    SideExit *exit = snapshot(LOOP_EXIT);
+    fragment->lastIns = lir->insGuard(LIR_x, lir->insImm(1), exit);
+    compile(fragmento);
 }
 
 
