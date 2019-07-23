@@ -369,7 +369,7 @@ nsMenuFrame::GetAdditionalChildListName(PRInt32 aIndex) const
 }
 
 void
-nsMenuFrame::Destroy()
+nsMenuFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   
@@ -393,9 +393,9 @@ nsMenuFrame::Destroy()
   }
 
   if (mPopupFrame)
-    mPopupFrame->Destroy();
+    mPopupFrame->DestroyFrom(aDestructRoot);
 
-  nsBoxFrame::Destroy();
+  nsBoxFrame::DestroyFrom(aDestructRoot);
 }
 
 NS_IMETHODIMP

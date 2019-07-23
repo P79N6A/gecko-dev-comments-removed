@@ -945,7 +945,7 @@ nsBoxFrame::DoLayout(nsBoxLayoutState& aState)
 }
 
 void
-nsBoxFrame::Destroy()
+nsBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   RegUnregAccessKey(PR_FALSE);
@@ -953,7 +953,7 @@ nsBoxFrame::Destroy()
   
   SetLayoutManager(nsnull);
 
-  nsContainerFrame::Destroy();
+  nsContainerFrame::DestroyFrom(aDestructRoot);
 } 
 
 #ifdef DEBUG_LAYOUT

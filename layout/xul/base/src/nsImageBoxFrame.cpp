@@ -204,7 +204,7 @@ nsImageBoxFrame::MarkIntrinsicWidthsDirty()
 }
 
 void
-nsImageBoxFrame::Destroy()
+nsImageBoxFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   if (mImageRequest)
@@ -213,7 +213,7 @@ nsImageBoxFrame::Destroy()
   if (mListener)
     reinterpret_cast<nsImageBoxListener*>(mListener.get())->SetFrame(nsnull); 
 
-  nsLeafBoxFrame::Destroy();
+  nsLeafBoxFrame::DestroyFrom(aDestructRoot);
 }
 
 

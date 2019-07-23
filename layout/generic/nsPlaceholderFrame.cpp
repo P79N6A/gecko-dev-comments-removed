@@ -127,19 +127,27 @@ nsPlaceholderFrame::Reflow(nsPresContext*          aPresContext,
 }
 
 void
-nsPlaceholderFrame::Destroy()
+nsPlaceholderFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   nsIPresShell* shell = PresContext()->GetPresShell();
   nsIFrame* oof = mOutOfFlowFrame;
   if (oof) {
-    NS_ASSERTION(shell && oof->GetParent(), "Null presShell or parent!?");
     
     shell->FrameManager()->UnregisterPlaceholderFrame(this);
-    nsIAtom* listName = nsLayoutUtils::GetChildListNameFor(oof);
-    shell->FrameManager()->RemoveFrame(listName, oof);
+    mOutOfFlowFrame = nsnull;
+    
+    
+    
+    if (shell->FrameManager() &&
+        ((GetStateBits() & PLACEHOLDER_FOR_FLOAT) ||
+         !nsLayoutUtils::IsProperAncestorFrame(aDestructRoot, oof))) {
+      nsIAtom* listName = nsLayoutUtils::GetChildListNameFor(oof);
+      shell->FrameManager()->RemoveFrame(listName, oof);
+    }
+    
   }
 
-  nsFrame::Destroy();
+  nsFrame::DestroyFrom(aDestructRoot);
 }
 
 nsIAtom*

@@ -1210,7 +1210,7 @@ nsComboboxControlFrame::CreateFrameFor(nsIContent*      aContent)
 }
 
 void
-nsComboboxControlFrame::Destroy()
+nsComboboxControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   mRedisplayTextEvent.Revoke();
@@ -1232,10 +1232,10 @@ nsComboboxControlFrame::Destroy()
   }
 
   
-  mPopupFrames.DestroyFrames();
+  mPopupFrames.DestroyFramesFrom(aDestructRoot);
   nsContentUtils::DestroyAnonymousContent(&mDisplayContent);
   nsContentUtils::DestroyAnonymousContent(&mButtonContent);
-  nsBlockFrame::Destroy();
+  nsBlockFrame::DestroyFrom(aDestructRoot);
 }
 
 

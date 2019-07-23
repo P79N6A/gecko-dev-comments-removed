@@ -284,38 +284,38 @@ nsBlockFrame::~nsBlockFrame()
 }
 
 void
-nsBlockFrame::Destroy()
+nsBlockFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  mAbsoluteContainer.DestroyFrames(this);
+  mAbsoluteContainer.DestroyFrames(this, aDestructRoot);
   
   
   if (mBullet && HaveOutsideBullet()) {
-    mBullet->Destroy();
+    mBullet->DestroyFrom(aDestructRoot);
     mBullet = nsnull;
   }
 
-  mFloats.DestroyFrames();
+  mFloats.DestroyFramesFrom(aDestructRoot);
 
   nsPresContext* presContext = PresContext();
 
-  nsLineBox::DeleteLineList(presContext, mLines);
+  nsLineBox::DeleteLineList(presContext, mLines, aDestructRoot);
   
   mFrames.Clear();
 
   
   nsLineList* overflowLines = RemoveOverflowLines();
   if (overflowLines) {
-    nsLineBox::DeleteLineList(presContext, *overflowLines);
+    nsLineBox::DeleteLineList(presContext, *overflowLines, aDestructRoot);
     delete overflowLines;
   }
 
   {
     nsAutoOOFFrameList oofs(this);
-    oofs.mList.DestroyFrames();
+    oofs.mList.DestroyFramesFrom(aDestructRoot);
     
   }
 
-  nsBlockFrameSuper::Destroy();
+  nsBlockFrameSuper::DestroyFrom(aDestructRoot);
 }
 
  nsILineIterator*
@@ -4548,7 +4548,7 @@ DestroyOverflowLines(void*           aFrame,
   if (aPropertyValue) {
     nsLineList* lines = static_cast<nsLineList*>(aPropertyValue);
     nsPresContext *context = static_cast<nsPresContext*>(aDtorData);
-    nsLineBox::DeleteLineList(context, *lines);
+    nsLineBox::DeleteLineList(context, *lines, nsnull);
     delete lines;
   }
 }

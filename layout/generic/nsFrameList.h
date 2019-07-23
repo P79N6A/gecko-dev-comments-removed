@@ -87,7 +87,21 @@ public:
 
 
 
+  void DestroyFramesFrom(nsIFrame* aDestructRoot);
+
+  
+
+
+
+
   void Destroy();
+
+  
+
+
+
+
+  void DestroyFrom(nsIFrame* aDestructRoot);
 
   void Clear() { mFirstChild = mLastChild = nsnull; }
 

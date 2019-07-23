@@ -93,7 +93,7 @@ public:
 
   virtual nsFrameList GetChildList(nsIAtom* aListName) const;
   virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const;
-  virtual void Destroy();
+  virtual void DestroyFrom(nsIFrame* aDestructRoot);
   virtual void ChildIsDirty(nsIFrame* aChild);
 
   virtual PRBool IsLeaf() const;
@@ -383,7 +383,8 @@ protected:
   
 
 
-  void DestroyOverflowList(nsPresContext* aPresContext);
+  void DestroyOverflowList(nsPresContext* aPresContext,
+                           nsIFrame*      aDestructRoot = nsnull);
 
   
 

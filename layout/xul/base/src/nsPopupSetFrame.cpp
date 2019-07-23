@@ -56,14 +56,14 @@ nsPopupFrameList::nsPopupFrameList(nsIContent* aPopupContent, nsPopupFrameList* 
 {
 }
 
-nsPopupFrameList::~nsPopupFrameList()
+void nsPopupFrameList::Destroy(nsIFrame* aDestructRoot)
 {
   if (mPopupFrame) {
     nsIFrame* prevSib = mPopupFrame->GetPrevSibling();
     if (prevSib)
       prevSib->SetNextSibling(mPopupFrame->GetNextSibling());
     mPopupFrame->SetNextSibling(nsnull);
-    mPopupFrame->Destroy();
+    mPopupFrame->DestroyFrom((aDestructRoot) ? aDestructRoot : mPopupFrame);
   }
 }
 
@@ -145,13 +145,13 @@ nsPopupSetFrame::SetInitialChildList(nsIAtom*        aListName,
 }
 
 void
-nsPopupSetFrame::Destroy()
+nsPopupSetFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   while (mPopupList) {
     nsPopupFrameList* temp = mPopupList;
     mPopupList = mPopupList->mNextPopup;
-    delete temp; 
+    temp->Destroy(aDestructRoot); 
   }
 
   
@@ -161,7 +161,7 @@ nsPopupSetFrame::Destroy()
     rootBox->SetPopupSetFrame(nsnull);
   }
 
-  nsBoxFrame::Destroy();
+  nsBoxFrame::DestroyFrom(aDestructRoot);
 }
 
 NS_IMETHODIMP
@@ -252,7 +252,7 @@ nsPopupSetFrame::RemovePopupFrame(nsIFrame* aPopup)
                    "found wrong type of frame in popupset's ::popupList");
       
       currEntry->mNextPopup = nsnull;
-      delete currEntry; 
+      currEntry->Destroy(); 
 #ifdef DEBUG
       found = PR_TRUE;
 #endif

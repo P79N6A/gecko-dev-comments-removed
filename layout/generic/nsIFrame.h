@@ -527,7 +527,18 @@ public:
 
 
 
-  virtual void Destroy() = 0;
+  void Destroy() { DestroyFrom(this); }
+
+protected:
+  
+
+
+
+
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) = 0;
+  friend class nsFrameList; 
+  friend class nsLineBox;   
+public:
 
   
 

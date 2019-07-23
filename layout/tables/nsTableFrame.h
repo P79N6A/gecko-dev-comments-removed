@@ -194,7 +194,7 @@ public:
                            nsIAtom*        aAttribute); 
 
   
-  virtual void Destroy();
+  virtual void DestroyFrom(nsIFrame* aDestructRoot);
   
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);

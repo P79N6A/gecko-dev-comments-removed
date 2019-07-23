@@ -3416,7 +3416,7 @@ nsTextFrame::Init(nsIContent*      aContent,
 }
 
 void
-nsTextFrame::Destroy()
+nsTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   
@@ -3426,7 +3426,7 @@ nsTextFrame::Destroy()
     mNextContinuation->SetPrevInFlow(nsnull);
   }
   
-  nsFrame::Destroy();
+  nsFrame::DestroyFrom(aDestructRoot);
 }
 
 class nsContinuingTextFrame : public nsTextFrame {
@@ -3439,7 +3439,7 @@ public:
                   nsIFrame*        aParent,
                   nsIFrame*        aPrevInFlow);
 
-  virtual void Destroy();
+  virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
   virtual nsIFrame* GetPrevContinuation() const {
     return mPrevContinuation;
@@ -3551,7 +3551,7 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
 }
 
 void
-nsContinuingTextFrame::Destroy()
+nsContinuingTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   
@@ -3574,7 +3574,7 @@ nsContinuingTextFrame::Destroy()
   }
   nsSplittableFrame::RemoveFromFlow(this);
   
-  nsFrame::Destroy();
+  nsFrame::DestroyFrom(aDestructRoot);
 }
 
 nsIFrame*
