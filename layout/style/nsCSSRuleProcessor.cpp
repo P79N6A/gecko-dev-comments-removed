@@ -2244,9 +2244,8 @@ IsSiblingOperator(PRUnichar oper)
   return oper == PRUnichar('+') || oper == PRUnichar('~');
 }
 
-NS_IMETHODIMP
-nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData,
-                                           nsReStyleHint* aResult)
+nsReStyleHint
+nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
 {
   NS_PRECONDITION(aData->mContent->IsNodeOfType(nsINode::eELEMENT),
                   "content must be element");
@@ -2261,8 +2260,8 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData,
   
   
   
+  nsReStyleHint hint = nsReStyleHint(0);
   if (cascade) {
-    *aResult = nsReStyleHint(0);
     nsCSSSelector **iter = cascade->mStateSelectors.Elements(),
                   **end = iter + cascade->mStateSelectors.Length();
     for(; iter != end; ++iter) {
@@ -2274,14 +2273,14 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData,
       
       
       
-      if ((possibleChange & ~(*aResult)) &&
+      if ((possibleChange & ~hint) &&
           SelectorMatches(*aData, selector, aData->mStateMask, PR_FALSE) &&
           SelectorMatchesTree(*aData, selector->mNext, PR_FALSE)) {
-        *aResult = nsReStyleHint(*aResult | possibleChange);
+        hint = nsReStyleHint(hint | possibleChange);
       }
     }
   }
-  return NS_OK;
+  return hint;
 }
 
 struct AttributeEnumData {

@@ -63,8 +63,8 @@ class nsPresContext;
 
 
 #define NS_ISTYLE_RULE_PROCESSOR_IID     \
-{ 0xec92bc0c, 0x9518, 0x48ea, \
- { 0x92, 0x89, 0x74, 0xe6, 0x54, 0x65, 0x9b, 0xe9 } }
+{ 0x566a7bea, 0xfdc5, 0x40a5, \
+ { 0xbf, 0x8a, 0x87, 0xb5, 0xa2, 0x31, 0xd7, 0x9e } }
 
 
 
@@ -117,8 +117,8 @@ public:
 
 
 
-  NS_IMETHOD HasStateDependentStyle(StateRuleProcessorData* aData,
-                                    nsReStyleHint* aResult) = 0;
+  virtual nsReStyleHint
+    HasStateDependentStyle(StateRuleProcessorData* aData) = 0;
 
   
 
