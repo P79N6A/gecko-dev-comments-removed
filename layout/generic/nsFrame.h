@@ -505,6 +505,17 @@ public:
 
 
 
+  nsresult DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
+                                          const nsDisplayListSet& aLists,
+                                          PRBool aForceBackground = PR_FALSE);
+  
+
+
+
+
+
+
+
 
   nsresult DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
                                           const nsDisplayListSet& aLists,

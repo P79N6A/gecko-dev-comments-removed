@@ -961,6 +961,22 @@ nsFrame::HasBorder() const
 }
 
 nsresult
+nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
+                                        const nsDisplayListSet& aLists,
+                                        PRBool                  aForceBackground)
+{
+  
+  
+  
+  if (aBuilder->IsForEventDelivery() || aForceBackground ||
+      !GetStyleBackground()->IsTransparent() || GetStyleDisplay()->mAppearance) {
+    return aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+        nsDisplayBackground(this));
+  }
+  return NS_OK;
+}
+
+nsresult
 nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
                                         const nsDisplayListSet& aLists,
                                         PRBool                  aForceBackground)
@@ -978,24 +994,18 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  
-  
-  
-  if (aBuilder->IsForEventDelivery() || aForceBackground ||
-      !GetStyleBackground()->IsTransparent() || GetStyleDisplay()->mAppearance) {
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-        nsDisplayBackground(this));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  nsresult rv =
+    DisplayBackgroundUnconditional(aBuilder, aLists, aForceBackground);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (hasBoxShadow) {
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+    rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayBoxShadowInner(this));
     NS_ENSURE_SUCCESS(rv, rv);
   }
   
   if (HasBorder()) {
-    nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+    rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayBorder(this));
     NS_ENSURE_SUCCESS(rv, rv);
   }
