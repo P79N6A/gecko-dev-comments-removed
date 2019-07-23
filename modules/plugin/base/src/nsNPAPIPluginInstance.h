@@ -112,7 +112,14 @@ public:
   virtual ~nsNPAPIPluginInstance();
 
   
-  PRBool IsRunning();
+  bool IsRunning() {
+    return RUNNING == mRunning;
+  }
+
+  
+  bool CanFireNotifications() {
+    return mRunning == RUNNING || mRunning == DESTROYING;
+  }
 
   
   mozilla::TimeStamp LastStopTime();
@@ -154,12 +161,18 @@ protected:
   NPDrawingModel mDrawingModel;
 #endif
 
+  enum {
+    NOT_STARTED,
+    RUNNING,
+    DESTROYING,
+    DESTROYED
+  } mRunning;
+
   
   
   PRPackedBool mWindowless;
   PRPackedBool mWindowlessLocal;
   PRPackedBool mTransparent;
-  PRPackedBool mRunning;
   PRPackedBool mCached;
   PRPackedBool mWantsAllNetworkStreams;
 
