@@ -43,7 +43,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsEncoderDecoderUtils.h"
 #include "nsContentUtils.h"
-#include "nsICharsetDetector.h"
 #include "nsHtml5Tokenizer.h"
 #include "nsIHttpChannel.h"
 #include "nsHtml5Parser.h"
@@ -93,6 +92,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsHtml5StreamParser)
   tmp->mExecutorFlusher = nsnull;
   tmp->mExecutor = nsnull;
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDocument)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mChardet)
   tmp->mTreeBuilder->DropSpeculativeLoader();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -108,7 +108,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsHtml5StreamParser)
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mExecutorFlusher->mExecutor");
     cb.NoteXPCOMChild(static_cast<nsIContentSink*> (tmp->mExecutor));
   }
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDocument)  
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mDocument)
+  
+  if (tmp->mChardet) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, 
+      "mChardet->mObserver");
+    cb.NoteXPCOMChild(static_cast<nsIStreamListener*>(tmp));
+  }
   
   if (tmp->mDocument) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, 
@@ -154,6 +160,22 @@ nsHtml5StreamParser::nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
   #endif
   mTokenizer->setInterner(&mAtomTable);
   mTokenizer->setEncodingDeclarationHandler(this);
+
+  
+  
+  
+  
+  const nsAdoptingString& detectorName = 
+    nsContentUtils::GetLocalizedStringPref("intl.charset.detector");
+  if (!detectorName.IsEmpty()) {
+    nsCAutoString detectorContractID;
+    detectorContractID.AssignLiteral(NS_CHARSET_DETECTOR_CONTRACTID_BASE);
+    AppendUTF16toUTF8(detectorName, detectorContractID);
+    if (mChardet = do_CreateInstance(detectorContractID.get())) {
+      (void) mChardet->Init(this);
+    }
+  }
+
   
 }
 
@@ -275,30 +297,20 @@ nsHtml5StreamParser::FinalizeSniffing(const PRUint8* aFromSegment,
     return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(aFromSegment, aCount, aWriteCount);
   }
   
-  const nsAdoptingString& detectorName = nsContentUtils::GetLocalizedStringPref("intl.charset.detector");
-  if (!detectorName.IsEmpty()) {
-    nsCAutoString detectorContractID;
-    detectorContractID.AssignLiteral(NS_CHARSET_DETECTOR_CONTRACTID_BASE);
-    AppendUTF16toUTF8(detectorName, detectorContractID);
-    nsCOMPtr<nsICharsetDetector> detector = do_CreateInstance(detectorContractID.get());
-    if (detector) {
-      nsresult rv = detector->Init(this);
+  if (mChardet) {
+    nsresult rv;
+    PRBool dontFeed = PR_FALSE;
+    if (mSniffingBuffer) {
+      rv = mChardet->DoIt((const char*)mSniffingBuffer.get(), mSniffingLength, &dontFeed);
       NS_ENSURE_SUCCESS(rv, rv);
-      PRBool dontFeed = PR_FALSE;
-      if (mSniffingBuffer) {
-        rv = detector->DoIt((const char*)mSniffingBuffer.get(), mSniffingLength, &dontFeed);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-      if (!dontFeed && aFromSegment) {
-        rv = detector->DoIt((const char*)aFromSegment, aCountToSniffingLimit, &dontFeed);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-      rv = detector->Done();
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-    } else {
-      NS_ERROR("Could not instantiate charset detector.");
     }
+    if (!dontFeed && aFromSegment) {
+      rv = mChardet->DoIt((const char*)aFromSegment, aCountToSniffingLimit, &dontFeed);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    rv = mChardet->Done();
+    NS_ENSURE_SUCCESS(rv, rv);
+    
   }
   if (mCharsetSource == kCharsetUninitialized) {
     

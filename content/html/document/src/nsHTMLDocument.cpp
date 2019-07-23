@@ -597,6 +597,12 @@ void
 nsHTMLDocument::StartAutodetection(nsIDocShell *aDocShell, nsACString& aCharset,
                                    const char* aCommand)
 {
+  if (mIsRegularHTML && 
+      nsHtml5Module::sEnabled && 
+      aCommand && 
+      !nsCRT::strcmp(aCommand, "view")) {
+    return; 
+  }
   nsCOMPtr <nsIParserFilter> cdetflt;
 
   nsresult rv_detect;

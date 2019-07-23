@@ -53,6 +53,7 @@
 #include "nsHtml5AtomTable.h"
 #include "nsHtml5Speculation.h"
 #include "nsITimer.h"
+#include "nsICharsetDetector.h"
 
 class nsHtml5Parser;
 
@@ -456,6 +457,11 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
     nsCOMPtr<nsIDocument>         mDocument;
+
+    
+
+
+    nsCOMPtr<nsICharsetDetector>  mChardet;
 
     
 
