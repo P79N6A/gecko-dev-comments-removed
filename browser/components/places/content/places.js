@@ -645,7 +645,6 @@ var PlacesOrganizer = {
  
     if (aSelectedNode && !PlacesUtils.nodeIsSeparator(aSelectedNode)) {
       detailsDeck.selectedIndex = 1;
-      infoBox.hidden = false;
       
       
       
@@ -666,9 +665,6 @@ var PlacesOrganizer = {
     }
     else {
       detailsDeck.selectedIndex = 0;
-      
-      
-      infoBox.hidden = true;
       var selectItemDesc = document.getElementById("selectItemDescription");
       var itemsCountLabel = document.getElementById("itemsCountText");
       var rowCount = this._content.treeBoxObject.view.rowCount;
