@@ -49,6 +49,7 @@
 #include "nsIInterfaceRequestor.h"
 
 #include "nsIComponentManager.h"
+#include "nsComponentManagerUtils.h"
 
 
 #include "nsIWindowWatcher.h"

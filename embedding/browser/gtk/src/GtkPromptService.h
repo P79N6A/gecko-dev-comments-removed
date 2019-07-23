@@ -38,7 +38,7 @@
 
 
 #include "nsIPromptService.h"
-#include "nsString.h"
+#include "nsStringGlue.h"
 #include <gtk/gtk.h>
 
 class nsIDOMWindow;
