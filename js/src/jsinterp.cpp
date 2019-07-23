@@ -3340,6 +3340,14 @@ js_Interpret(JSContext *cx)
             STORE_OPND(-1, lval);
             STORE_OPND(-2, rval);
           END_CASE(JSOP_SWAP)
+          
+          BEGIN_CASE(JSOP_PICK)
+            i = regs.pc[1];
+            JS_ASSERT(regs.sp - (i+1) >= StackBase(fp));
+            lval = regs.sp[-(i+1)];
+            memmove(regs.sp - (i+1), regs.sp - i, sizeof(jsval)*i);
+            regs.sp[-1] = lval;
+          END_CASE(JSOP_PICK)
 
 #define PROPERTY_OP(n, call)                                                  \
     JS_BEGIN_MACRO                                                            \
@@ -4802,128 +4810,14 @@ js_Interpret(JSContext *cx)
             regs.sp = vp + 1;
             LOAD_INTERRUPT_HANDLER(cx);
           END_CASE(JSOP_NEW)
-
-          BEGIN_CASE(JSOP_APPLY)
-          {
-            argc = GET_ARGC(regs.pc);
-            vp = regs.sp - (argc + 2);
-            lval = *vp;
-            if (!VALUE_IS_FUNCTION(cx, lval))
-                goto do_call;
-            obj = JSVAL_TO_OBJECT(lval);
-            fun = GET_FUNCTION_PRIVATE(cx, obj);
-            if (FUN_INTERPRETED(fun))
-                goto do_call;
-
-            bool apply = (JSFastNative)fun->u.n.native == js_fun_apply;
-            if (!apply && (JSFastNative)fun->u.n.native != js_fun_call)
-                goto do_call;
-
-            
-
-
-
-            jsuint applylen = 0;
-            if (apply && argc >= 2 &&
-                !JSVAL_IS_VOID(vp[3]) && !JSVAL_IS_NULL(vp[3])) {
-                
-
-
-
-
-                if (!JSVAL_IS_OBJECT(vp[3]))
-                    goto do_call;
-
-                JSBool arraylike;
-                JSObject* aobj = JSVAL_TO_OBJECT(vp[3]);
-                if (!js_IsArrayLike(cx, aobj, &arraylike, &applylen))
-                    goto error;
-                if (!arraylike || applylen > ARGC_LIMIT)
-                    goto do_call;
-
-                JSArena *a = cx->stackPool.current;
-                JS_ASSERT(jsuword(vp + 2) <= a->limit);
-
-                
-
-
-
-
-                if (a->limit - jsuword(vp + 2) < (applylen + 1) * sizeof(jsval))
-                    goto do_call;
-            }
-
-            if (!VALUE_IS_FUNCTION(cx, vp[1]))
-                goto do_call;
-            vp[0] = vp[1];
-
-            if (argc == 0) {
-                
-
-
-
-                obj = NULL;
-            } else {
-                
-                if (!JSVAL_IS_PRIMITIVE(vp[2]))
-                    obj = JSVAL_TO_OBJECT(vp[2]);
-                else if (!js_ValueToObject(cx, vp[2], &obj))
-                    goto error;
-            }
-            vp[1] = OBJECT_TO_JSVAL(obj);
-
-            if (!apply) {
-                if (argc != 0) {
-                    --argc;
-                    memmove(vp + 2, vp + 3, argc * sizeof *vp);
-                }
-            } else if (applylen == 0) {
-                argc = 0;
-            } else {
-                
-
-
-
-                jsval* newsp = vp + 2 + applylen + 1;
-                if (newsp > regs.sp) {
-                    JSArena *a = cx->stackPool.current;
-                    JS_ASSERT(jsuword(newsp) <= a->limit); 
-                    if ((jsuword) newsp > a->avail)
-                        a->avail = (jsuword) newsp;
-                    memset(vp + 2 + argc, 0, (applylen - argc) * sizeof(jsval));
-                }
-
-                JSObject *aobj = JSVAL_TO_OBJECT(vp[3]);
-                newsp[-1] = vp[3];
-                regs.sp = newsp;
-
-                
-                for (i = 0; i < jsint(applylen); i++) {
-                    id = INT_TO_JSID(i);
-                    if (!OBJ_GET_PROPERTY(cx, aobj, id, &vp[2 + i])) {
-                        
-
-
-
-
-
-                        goto error;
-                    }
-                }
-                argc = applylen;
-            }
-            regs.sp = vp + 2 + argc;
-            TRACE_1(ApplyComplete, argc);
-            goto do_call_with_specified_vp_and_argc;
-          }
           
           BEGIN_CASE(JSOP_CALL)
           BEGIN_CASE(JSOP_EVAL)
+          BEGIN_CASE(JSOP_APPLY)
           do_call:
             argc = GET_ARGC(regs.pc);
             vp = regs.sp - (argc + 2);
             
-          do_call_with_specified_vp_and_argc:
             lval = *vp;
             if (VALUE_IS_FUNCTION(cx, lval)) {
                 obj = JSVAL_TO_OBJECT(lval);
@@ -6955,7 +6849,6 @@ js_Interpret(JSContext *cx)
           L_JSOP_DEFXMLNS:
 # endif
 
-          L_JSOP_UNUSED201:
           L_JSOP_UNUSED202:
           L_JSOP_UNUSED203:
           L_JSOP_UNUSED204:
