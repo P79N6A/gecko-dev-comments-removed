@@ -955,6 +955,34 @@ js_obj_toSource(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
             if (needOldStyleGetterSetter)
                 gsop[j] = gsopold[j];
 
+            
+            vsharp = NULL;
+            vsharplength = 0;
+#if JS_HAS_SHARP_VARS
+            if (!JSVAL_IS_PRIMITIVE(val[j]) && vchars[0] != '#') {
+                he = js_EnterSharpObject(cx, JSVAL_TO_OBJECT(val[j]), NULL,
+                                         &vsharp);
+                if (!he) {
+                    ok = JS_FALSE;
+                    goto error;
+                }
+                if (IS_SHARP(he)) {
+                    vchars = vsharp;
+                    vlength = js_strlen(vchars);
+                    needOldStyleGetterSetter = JS_TRUE;
+                    gsop[j] = gsopold[j];
+                } else {
+                    if (vsharp) {
+                        vsharplength = js_strlen(vsharp);
+                        MAKE_SHARP(he);
+                        needOldStyleGetterSetter = JS_TRUE;
+                        gsop[j] = gsopold[j];
+                    }
+                    js_LeaveSharpObject(cx, NULL);
+                }
+            }
+#endif
+
 #ifndef OLD_GETTER_SETTER
             
 
@@ -998,34 +1026,6 @@ js_obj_toSource(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 #else
             needOldStyleGetterSetter = JS_TRUE;
             gsop[j] = gsopold[j];
-#endif
-
-            
-            vsharp = NULL;
-            vsharplength = 0;
-#if JS_HAS_SHARP_VARS
-            if (!JSVAL_IS_PRIMITIVE(val[j]) && vchars[0] != '#') {
-                he = js_EnterSharpObject(cx, JSVAL_TO_OBJECT(val[j]), NULL,
-                                         &vsharp);
-                if (!he) {
-                    ok = JS_FALSE;
-                    goto error;
-                }
-                if (IS_SHARP(he)) {
-                    vchars = vsharp;
-                    vlength = js_strlen(vchars);
-                    needOldStyleGetterSetter = JS_TRUE;
-                    gsop[j] = gsopold[j];
-                } else {
-                    if (vsharp) {
-                        vsharplength = js_strlen(vsharp);
-                        MAKE_SHARP(he);
-                        needOldStyleGetterSetter = JS_TRUE;
-                        gsop[j] = gsopold[j];
-                    }
-                    js_LeaveSharpObject(cx, NULL);
-                }
-            }
 #endif
 
 #define SAFE_ADD(n)                                                          \
