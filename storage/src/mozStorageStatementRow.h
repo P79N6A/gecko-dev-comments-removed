@@ -41,7 +41,7 @@
 
 #include "mozIStorageStatementWrapper.h"
 #include "nsIXPCScriptable.h"
-#include "mozIStorageStatement.h"
+#include "mozStorageStatement.h"
 #include "nsString.h"
 #include "nsVoidArray.h"
 
@@ -49,9 +49,7 @@ class mozStorageStatementRow : public mozIStorageStatementRow,
                                public nsIXPCScriptable
 {
 public:
-    mozStorageStatementRow(mozIStorageStatement *aStatement,
-                           int aNumColumns,
-                           const nsStringArray *aColumnNames);
+    mozStorageStatementRow(mozStorageStatement *aStatement);
 
     
     NS_DECL_ISUPPORTS
@@ -66,9 +64,7 @@ protected:
         return mStatement->GetNativeStatementPointer();
     }
 
-    nsCOMPtr<mozIStorageStatement> mStatement;
-    int mNumColumns;
-    const nsStringArray *mColumnNames;
+    nsRefPtr<mozStorageStatement> mStatement;
 };
 
 #endif 

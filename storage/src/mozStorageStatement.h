@@ -49,6 +49,8 @@
 #include <sqlite3.h>
 
 class mozStorageConnection;
+class nsIXPConnectJSObjectHolder;
+class mozStorageStatementJSHelper;
 
 class mozStorageStatement : public mozIStorageStatement
 {
@@ -89,6 +91,14 @@ protected:
     nsCStringArray mColumnNames;
     PRBool mExecuting;
 
+    
+
+
+
+    nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
+    nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementRowHolder;
+
+    friend class mozStorageStatementJSHelper;
 };
 
 #endif 
