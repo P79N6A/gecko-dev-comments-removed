@@ -38,6 +38,7 @@
 
 
 
+
 const nsIX509Cert = Components.interfaces.nsIX509Cert;
 const nsIX509Cert3 = Components.interfaces.nsIX509Cert3;
 const nsX509CertDB = "@mozilla.org/security/x509certdb;1";
@@ -320,4 +321,30 @@ function getProxyOnUIThread(aObject, aInterface) {
     return proxyMgr.getProxyForObject(mainThread,
             aInterface, aObject, 5);
     
+}
+
+function getCurrentCert()
+{
+  var realIndex;
+  var tree = document.getElementById('treesetDump');
+  if (tree.view.selection.isSelected(tree.currentIndex)
+      && document.getElementById('prettyprint_tab').selected) {
+    
+
+    realIndex = tree.currentIndex;    
+  } else {
+    
+
+
+    realIndex = tree.view.rowCount - 1;
+  }
+  if (realIndex >= 0) {
+    var item = tree.contentView.getItemAtIndex(realIndex);
+    var dbKey = item.firstChild.firstChild.getAttribute('display');
+    var certdb = Components.classes[nsX509CertDB].getService(nsIX509CertDB);
+    var cert = certdb.findCertByDBKey(dbKey,null);
+    return cert;
+  }
+  
+  return null;
 }
