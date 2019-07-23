@@ -6507,6 +6507,12 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
     else {
       
       isAppend = PR_TRUE;
+      if (IsFrameSpecial(parentFrame)) {
+        
+        
+        
+        parentFrame = GetLastSpecialSibling(parentFrame, PR_TRUE);
+      }
       
       parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
       
@@ -6610,6 +6616,15 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       
       prevSibling = firstChild->GetTailContinuation();
       parentFrame = prevSibling->GetParent();
+      
+      
+      
+      
+      
+      
+      
+      
+      
       
       
       
