@@ -107,6 +107,7 @@ root_window_event_filter(GdkXEvent *aGdkXEvent, GdkEvent *aGdkEvent,
 
 nsScreenManagerGtk :: nsScreenManagerGtk ( )
   : mXineramalib(nsnull)
+  , mXineramaIsActive(PR_FALSE)
   , mRootWindow(nsnull)
 {
   
@@ -123,14 +124,16 @@ nsScreenManagerGtk :: ~nsScreenManagerGtk()
     mRootWindow = nsnull;
   }
 
+  
 
 
 
 
 
 
-#if defined (MOZ_X11) && !defined (SOLARIS)
-  if (mXineramalib && mXineramalib != SCREEN_MANAGER_LIBRARY_LOAD_FAILED) {
+#ifdef MOZ_X11
+  if (mXineramalib && mXineramalib != SCREEN_MANAGER_LIBRARY_LOAD_FAILED &&
+      !mXineramaIsActive) {
     PR_UnloadLibrary(mXineramalib);
   }
 #endif
@@ -196,6 +199,10 @@ nsScreenManagerGtk :: Init()
       screenInfo = _XnrmQueryScreens(GDK_DISPLAY(), &numScreens);
     }
   }
+
+  
+  mXineramaIsActive = numScreens > 0;
+
   
   
   if (!screenInfo || numScreens == 1) {
