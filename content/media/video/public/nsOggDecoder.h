@@ -318,6 +318,9 @@ private:
   PRPackedBool mPlayAfterLoad;
 
   
+  PRPackedBool mNotifyOnShutdown;
+
+  
 
 
   
