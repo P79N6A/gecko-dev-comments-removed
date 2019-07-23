@@ -85,6 +85,8 @@
 #include "nsIScriptGlobalObjectOwner.h"
 #include "nsIJSContextStack.h"
 #include "nsContentCreatorFunctions.h"
+#include "nsContentPolicyUtils.h"
+#include "nsContentErrors.h"
 #include "nsIDOMUserDataHandler.h"
 #include "nsEventDispatcher.h"
 #include "nsNodeUtils.h"
@@ -335,21 +337,34 @@ nsXMLDocument::Load(const nsAString& aUrl, PRBool *aReturn)
     return rv;
   }
 
+  
+  
+  
+  
+
+  
+  
+  
   nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
-  nsCOMPtr<nsIURI> codebase;
-  principal->GetURI(getter_AddRefs(codebase));
-
-  
-  
-  
-  
-
-  
-  
-  
-  if (codebase) {
+  if (!nsContentUtils::IsSystemPrincipal(principal)) {
     rv = principal->CheckMayLoad(uri, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
+    rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_XMLHTTPREQUEST,
+                                   uri,
+                                   principal,
+                                   callingDoc ? callingDoc.get() :
+                                     static_cast<nsIDocument*>(this),
+                                   NS_LITERAL_CSTRING("application/xml"),
+                                   nsnull,
+                                   &shouldLoad,
+                                   nsContentUtils::GetContentPolicy(),
+                                   nsContentUtils::GetSecurityManager());
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_CP_REJECTED(shouldLoad)) {
+      return NS_ERROR_CONTENT_BLOCKED;
+    }
   } else {
     
     

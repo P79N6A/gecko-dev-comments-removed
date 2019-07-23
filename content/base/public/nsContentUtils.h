@@ -1259,6 +1259,11 @@ public:
   
 
 
+  static PRBool IsSystemPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
 
 
 
