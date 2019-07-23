@@ -202,21 +202,19 @@ NS_IMETHODIMP nsXULPopupManager::ShouldRollupOnMouseActivate(PRBool *aShouldRoll
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXULPopupManager::GetSubmenuWidgetChain(nsISupportsArray **_retval)
+void
+nsXULPopupManager::GetSubmenuWidgetChain(nsTArray<nsIWidget*> *_retval)
 {
   
   
   
-  nsresult rv = NS_NewISupportsArray(_retval);
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ASSERTION(_retval, "null parameter");
   nsMenuChainItem* item = GetTopVisibleMenu();
   while (item) {
     nsCOMPtr<nsIWidget> widget;
     item->Frame()->GetWidget(getter_AddRefs(widget));
     NS_ASSERTION(widget, "open popup has no widget");
-    nsCOMPtr<nsISupports> genericWidget(do_QueryInterface(widget));
-    (*_retval)->AppendElement(genericWidget);
+    _retval->AppendElement(widget.get());
     
     
     
@@ -226,11 +224,9 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsISupportsArray **_retval)
       break;
     item = parent;
   }
-
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+void
 nsXULPopupManager::AdjustPopupsOnWindowChange()
 {
   
@@ -243,8 +239,6 @@ nsXULPopupManager::AdjustPopupsOnWindowChange()
       item->Frame()->SetPopupPosition(nsnull);
     item = item->GetParent();
   }
-
-  return NS_OK;
 }
 
 nsIFrame*
