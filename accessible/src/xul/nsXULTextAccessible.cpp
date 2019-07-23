@@ -149,6 +149,10 @@ nsXULLinkAccessible::
 }
 
 
+NS_IMPL_ISUPPORTS_INHERITED1(nsXULLinkAccessible, nsHyperTextAccessibleWrap,
+                             nsIAccessibleHyperLink)
+
+
 
 
 NS_IMETHODIMP
