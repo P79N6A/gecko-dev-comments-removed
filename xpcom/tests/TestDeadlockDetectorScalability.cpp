@@ -69,6 +69,13 @@
 #endif
 
 
+#undef DD_TEST1
+#undef DD_TEST2
+#undef DD_TEST3
+
+
+
+#ifdef DD_TEST1
 
 static void
 AllocLockRecurseUnlockFree(int i)
@@ -93,7 +100,11 @@ LengthNDepChain(int N)
     PASS();
 }
 
+#endif
 
+
+
+#ifdef DD_TEST2
 
 
 
@@ -129,8 +140,11 @@ OneLockNDeps(const int N, const int K)
     PASS();
 }
 
+#endif
 
 
+
+#ifdef DD_TEST3
 
 
 
@@ -170,6 +184,8 @@ MaxDepsNsq(const int N, const int K)
     PASS();
 }
 
+#endif
+
 
 
 int
@@ -183,17 +199,17 @@ main(int argc, char** argv)
 
     
 
-#if 0
+#ifdef DD_TEST1
     if (NS_FAILED(LengthNDepChain(1 << 14))) 
         rv = 1;
 #endif
 
-#if 0
+#ifdef DD_TEST2
     if (NS_FAILED(OneLockNDeps(1 << 14, 100))) 
         rv = 1;
 #endif
 
-#if 0
+#ifdef DD_TEST3
     if (NS_FAILED(MaxDepsNsq(1 << 10, 10))) 
         rv = 1;
 #endif
