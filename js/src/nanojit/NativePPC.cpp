@@ -87,6 +87,7 @@ namespace nanojit
 
 
 
+    const int min_param_area_size = 8*sizeof(void*); 
     const int linkage_size = 6*sizeof(void*);
     const int lr_offset = 2*sizeof(void*); 
     const int cr_offset = 1*sizeof(void*); 
@@ -97,7 +98,12 @@ namespace nanojit
         
 
         
-        uint32_t stackNeeded = max_param_size + linkage_size + _activation.stackSlotsNeeded() * 4;
+        
+        
+        
+        uint32_t param_area = (max_param_size > min_param_area_size) ? max_param_size : min_param_area_size;
+        
+        uint32_t stackNeeded = param_area + linkage_size + _activation.stackSlotsNeeded() * 4;
         uint32_t aligned = alignUp(stackNeeded, NJ_ALIGN_STACK);
 
         UNLESS_PEDANTIC( if (isS16(aligned)) {
