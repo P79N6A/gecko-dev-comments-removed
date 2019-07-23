@@ -100,6 +100,7 @@ static cairo_scaled_font_t *CreateScaledFont(FcPattern *aPattern);
 
 static PangoFontMap *gPangoFontMap;
 static PangoFontMap *GetPangoFontMap();
+static PRBool gPangoFontHasFontMapProperty;
 
 static FT_Library gFTLibrary;
 static nsILanguageAtomService* gLangService;
@@ -646,9 +647,22 @@ struct gfxPangoFcFont {
 
         
         
+        
+        PangoFontMap *fontmap = GetPangoFontMap();
+        
+        
         PangoFcFont *fc_font = &font->parent_instance;
-        fc_font->fontmap = GetPangoFontMap();
-        g_object_ref(fc_font->fontmap);
+        if (gPangoFontHasFontMapProperty) {
+            g_object_set(font, "fontmap", fontmap, NULL);
+        } else {
+            
+            
+            
+            
+            
+            fc_font->fontmap = fontmap;
+            g_object_ref(fc_font->fontmap);
+        }
 
         return nsReturnRef<PangoFont>(PANGO_FONT(font));
     }
@@ -724,8 +738,6 @@ gfx_pango_fc_font_finalize(GObject *object)
     if (self->mCoverage)
         pango_coverage_unref(self->mCoverage);
     NS_IF_RELEASE(self->mGfxFont);
-
-    
 
     G_OBJECT_CLASS(gfx_pango_fc_font_parent_class)->finalize(object);
 }
@@ -921,6 +933,10 @@ gfx_pango_fc_font_class_init (gfxPangoFcFontClass *klass)
     fc_font_class->lock_face = gfx_pango_fc_font_lock_face;
     fc_font_class->unlock_face = gfx_pango_fc_font_unlock_face;
     fc_font_class->get_glyph = gfx_pango_fc_font_get_glyph;
+
+    gPangoFontHasFontMapProperty =
+        g_object_class_find_property(G_OBJECT_CLASS(gfx_pango_fc_font_parent_class),
+                                     "fontmap") != NULL;
 }
 
 
@@ -2104,6 +2120,7 @@ gfxPangoFontGroup::Shutdown()
 {
     if (gPangoFontMap) {
         if (PANGO_IS_FC_FONT_MAP (gPangoFontMap)) {
+            
             
             
             pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(gPangoFontMap));
