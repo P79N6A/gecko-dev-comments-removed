@@ -106,10 +106,11 @@ nsProcess::Init(nsIFile* executable)
 
 
 #if defined(XP_WIN)
-static int assembleCmdLine(char *const *argv, char **cmdLine)
+
+static int assembleCmdLine(char *const *argv, PRUnichar **wideCmdLine)
 {
     char *const *arg;
-    char *p, *q;
+    char *p, *q, *cmdLine;
     int cmdLineSize;
     int numBackslashes;
     int i;
@@ -131,7 +132,7 @@ static int assembleCmdLine(char *const *argv, char **cmdLine)
                 + 2                      
                 + 1;                     
     }
-    p = *cmdLine = (char *) PR_MALLOC(cmdLineSize);
+    p = cmdLine = (char *) PR_MALLOC(cmdLineSize*sizeof(char));
     if (p == NULL) {
         return -1;
     }
@@ -205,6 +206,10 @@ static int assembleCmdLine(char *const *argv, char **cmdLine)
     } 
 
     *p = '\0';
+    PRInt32 numChars = MultiByteToWideChar(CP_ACP, 0, cmdLine, -1, NULL, 0); 
+    *wideCmdLine = (PRUnichar *) PR_MALLOC(numChars*sizeof(PRUnichar));
+    MultiByteToWideChar(CP_ACP, 0, cmdLine, -1, *wideCmdLine, numChars); 
+    PR_Free(cmdLine);
     return 0;
 }
 #endif
@@ -237,10 +242,10 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count,
     my_argv[count+1] = NULL;
 
 #if defined(XP_WIN) && !defined (WINCE) 
-    STARTUPINFO startupInfo;
+    STARTUPINFOW startupInfo;
     PROCESS_INFORMATION procInfo;
     BOOL retVal;
-    char *cmdLine;
+    PRUnichar *cmdLine;
 
     if (assembleCmdLine(my_argv, &cmdLine) == -1) {
         nsMemory::Free(my_argv);
@@ -256,20 +261,20 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count,
 
 
 
-    retVal = CreateProcess(NULL,
-                           
-                           cmdLine,
-                           NULL,  
+    retVal = CreateProcessW(NULL,
+                            
+                            cmdLine,
+                            NULL,  
 
-                           NULL,  
+                            NULL,  
 
-                           FALSE,  
-                           CREATE_NO_WINDOW, 
-                           NULL,  
-                           NULL,  
-                           &startupInfo,
-                           &procInfo
-                          );
+                            FALSE,  
+                            CREATE_NO_WINDOW, 
+                            NULL,  
+                            NULL,  
+                            &startupInfo,
+                            &procInfo
+                           );
     PR_Free( cmdLine );
     if (blocking) {
  
