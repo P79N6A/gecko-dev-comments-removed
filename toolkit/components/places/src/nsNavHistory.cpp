@@ -581,7 +581,8 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+      "item_child = h.id), h.rev_host, h.visit_count "
       "FROM moz_places h "
       "WHERE h.url = ?1"),
     getter_AddRefs(mDBGetURLPageInfo));
@@ -589,7 +590,8 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+      "item_child = h.id), h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id), "
         "f.url "
       "FROM moz_places h "
@@ -600,14 +602,16 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+      "item_child = h.id), h.rev_host, h.visit_count "
       "FROM moz_places h WHERE h.id = ?1"),
                                 getter_AddRefs(mDBGetIdPageInfo));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+        "item_child = h.id), h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id), "
         "f.url "
       "FROM moz_places h "
@@ -672,7 +676,8 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+        "item_child = h.id), h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id), "
         "f.url, null "
       "FROM moz_places h "
@@ -684,7 +689,8 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+             "item_child = h.id), h.rev_host, h.visit_count, "
              "v.visit_date, f.url, v.session "
       "FROM moz_places h "
       "JOIN moz_historyvisits v ON h.id = v.place_id "
@@ -695,7 +701,8 @@ nsNavHistory::InitStatements()
 
   
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+        "item_child = h.id), h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id), "
         "f.url, null "
       "FROM moz_places h "
@@ -1871,11 +1878,11 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     (aOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_VISIT ||
      aOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_FULL_VISIT);
 
-  nsCAutoString commonConditions;
+  nsCAutoString commonConditionsForHistory;
 
   if (! aOptions->IncludeHidden()) {
     
-    commonConditions.AssignLiteral("hidden <> 1 ");
+    commonConditionsForHistory.AssignLiteral("hidden <> 1 ");
 
     
     
@@ -1883,7 +1890,7 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     
     
     if (asVisits)
-      commonConditions.AppendLiteral("AND v.visit_type <> 4 "); 
+      commonConditionsForHistory.AppendLiteral("AND v.visit_type <> 4 "); 
   }
 
   
@@ -1898,7 +1905,8 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     
     
     queryString = NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title from moz_bookmarks WHERE "
+             "item_child = h.id), h.rev_host, h.visit_count, "
              "v.visit_date, f.url, v.session "
       "FROM moz_places h "
       "JOIN moz_historyvisits v ON h.id = v.place_id "
@@ -1911,7 +1919,8 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     
     
     queryString = NS_LITERAL_CSTRING(
-      "SELECT h.id, h.url, h.title, h.user_title, h.rev_host, h.visit_count, "
+      "SELECT h.id, h.url, h.title, (SELECT title FROM moz_bookmarks WHERE "
+        "item_child = h.id), h.rev_host, h.visit_count, "
         "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id), "
         "f.url, null "
       "FROM moz_places h "
@@ -1929,7 +1938,8 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
     PRInt32 clauseParameters = 0;
     rv = QueryToSelectClause(aQueries[i], numParameters,
                              &queryClause, &clauseParameters,
-                             commonConditions);
+                             aQueries[i]->OnlyBookmarked() ? 
+                               EmptyCString() : commonConditionsForHistory);
     NS_ENSURE_SUCCESS(rv, rv);
     if (! queryClause.IsEmpty()) {
       if (! conditions.IsEmpty()) 
@@ -1945,7 +1955,7 @@ nsNavHistory::GetQueryResults(const nsCOMArray<nsNavHistoryQuery>& aQueries,
   if (! conditions.IsEmpty()) {
     queryString += conditions;
   } else {
-    queryString += commonConditions;
+    queryString += commonConditionsForHistory;
   }
   queryString += groupBy;
 
