@@ -160,9 +160,6 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
                            nsReflowStatus&          aStatus)
 {
   nsresult rv = NS_OK;
-  
-  nsHTMLReflowMetrics childDesiredSize(
-                      aDesiredSize.mFlags | NS_REFLOW_CALC_BOUNDING_METRICS);
   nsSize availSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
   nsReflowStatus childStatus;
 
@@ -182,6 +179,9 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   nsHTMLReflowMetrics indexSize;
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
+    
+    nsHTMLReflowMetrics childDesiredSize(aDesiredSize.mFlags
+                                         | NS_REFLOW_CALC_BOUNDING_METRICS);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
     rv = ReflowChild(childFrame, aPresContext,

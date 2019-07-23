@@ -982,16 +982,6 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
                                     const nsHTMLReflowState& aReflowState,
                                     nsReflowStatus&          aStatus)
 {
-  aDesiredSize.width = aDesiredSize.height = 0;
-  aDesiredSize.ascent = 0;
-  aDesiredSize.mBoundingMetrics.Clear();
-  PRBool isForeign = IsForeignChild(aChildFrame);
-  if (!isForeign) {
-    
-    
-    aDesiredSize.mFlags |= NS_REFLOW_CALC_BOUNDING_METRICS;
-  }
-
   
   
   
@@ -1014,17 +1004,27 @@ nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
   nsresult rv = nsHTMLContainerFrame::
          ReflowChild(aChildFrame, aPresContext, aDesiredSize, aReflowState,
                      0, 0, NS_FRAME_NO_MOVE_FRAME, aStatus);
-  if (isForeign) {
+
+  if (aDesiredSize.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    
+    if(!nsLayoutUtils::GetLastLineBaseline(aChildFrame,
+                                           &aDesiredSize.ascent)) {
+      
+      
+      
+      aDesiredSize.ascent = aDesiredSize.height;
+    }
+  }
+  if (IsForeignChild(aChildFrame) &&
+      (aDesiredSize.mFlags | NS_REFLOW_CALC_BOUNDING_METRICS)) {
     
     gfxContext* ctx = static_cast<gfxContext*>
       (aReflowState.rendContext->GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT));  
     nsRect r = aChildFrame->ComputeTightBounds(ctx);
     aDesiredSize.mBoundingMetrics.leftBearing = r.x;
     aDesiredSize.mBoundingMetrics.rightBearing = r.XMost();
-    nscoord frameAscent = aDesiredSize.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE
-            ? aChildFrame->GetBaseline() : aDesiredSize.ascent;
-    aDesiredSize.mBoundingMetrics.ascent = frameAscent - r.y;
-    aDesiredSize.mBoundingMetrics.descent = r.YMost() - frameAscent;
+    aDesiredSize.mBoundingMetrics.ascent = aDesiredSize.ascent - r.y;
+    aDesiredSize.mBoundingMetrics.descent = r.YMost() - aDesiredSize.ascent;
     aDesiredSize.mBoundingMetrics.width = aDesiredSize.width;
   }
   return rv;
@@ -1047,9 +1047,9 @@ nsMathMLContainerFrame::Reflow(nsPresContext*          aPresContext,
 
   nsReflowStatus childStatus;
   nsSize availSize(aReflowState.ComputedWidth(), NS_UNCONSTRAINEDSIZE);
-  nsHTMLReflowMetrics childDesiredSize(aDesiredSize.mFlags);
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
+    nsHTMLReflowMetrics childDesiredSize(aDesiredSize.mFlags);
     nsHTMLReflowState childReflowState(aPresContext, aReflowState,
                                        childFrame, availSize);
     rv = ReflowChild(childFrame, aPresContext, childDesiredSize,
@@ -1101,6 +1101,7 @@ nsMathMLContainerFrame::Reflow(nsPresContext*          aPresContext,
       childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
       if (mathMLFrame) {
         
+        nsHTMLReflowMetrics childDesiredSize;
         GetReflowAndBoundingMetricsFor(childFrame,
           childDesiredSize, childDesiredSize.mBoundingMetrics);
 
