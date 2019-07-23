@@ -1012,6 +1012,22 @@ DocumentViewerImpl::DumpContentToPPM(const char* aFileName)
 NS_IMETHODIMP
 DocumentViewerImpl::LoadComplete(nsresult aStatus)
 {
+  
+
+
+
+
+  nsCOMPtr<nsIDocumentViewer> kungFuDeathGrip(this);
+
+  
+  
+  
+  if (mPresShell && !mStopped) {
+    
+    nsCOMPtr<nsIPresShell> shell = mPresShell;
+    shell->FlushPendingNotifications(Flush_Layout);
+  }
+  
   nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
 
@@ -1023,20 +1039,6 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
 
   mLoaded = PR_TRUE;
 
-  
-
-
-
-
-  nsCOMPtr<nsIDocumentViewer> kungFuDeathGrip(this);
-
-  
-  if (mPresShell && !mStopped) {
-    
-    nsCOMPtr<nsIPresShell> shell = mPresShell;
-    shell->FlushPendingNotifications(Flush_Layout);
-  }
-  
   
   PRBool restoring = PR_FALSE;
   if(NS_SUCCEEDED(aStatus)) {
