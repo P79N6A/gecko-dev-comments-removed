@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsContentTreeOwner.h"
 #include "nsXULWindow.h"
 
@@ -66,6 +67,7 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIWebNavigation.h"
+#include "nsIJSContextStack.h"
 
 #include "nsIDOMDocument.h"
 #include "nsIScriptObjectPrincipal.h"
@@ -73,6 +75,8 @@
 
 
 static NS_DEFINE_CID(kWindowMediatorCID, NS_WINDOWMEDIATOR_CID);
+
+static const char *sJSStackContractID="@mozilla.org/js/xpc/ContextStack;1";
 
 
 
@@ -780,6 +784,34 @@ NS_IMETHODIMP nsContentTreeOwner::SetTitle(const PRUnichar* aTitle)
   return mXULWindow->SetTitle(title.get());
 }
 
+NS_STACK_CLASS class NullJSContextPusher {
+public:
+  NullJSContextPusher() {
+    mService = do_GetService(sJSStackContractID);
+    if (mService) {
+#ifdef DEBUG
+      nsresult rv =
+#endif
+        mService->Push(nsnull);
+      NS_ASSERTION(NS_SUCCEEDED(rv), "Mismatched push/pop");
+    }
+  }
+
+  ~NullJSContextPusher() {
+    if (mService) {
+#ifdef DEBUG
+      JSContext *cx;
+      nsresult rv =
+#endif
+        mService->Pop(&cx);
+      NS_ASSERTION(NS_SUCCEEDED(rv) && !cx, "Bad pop!");
+    }
+  }
+
+private:
+  nsCOMPtr<nsIThreadJSContextStack> mService;
+};
+
 
 
 
@@ -878,10 +910,14 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
 
   *aWindowIsNew = (containerPref != nsIBrowserDOMWindow::OPEN_CURRENTWINDOW);
 
-  
-  
-  return browserDOMWin->OpenURI(nsnull, aParent, containerPref,
-                                nsIBrowserDOMWindow::OPEN_NEW, aReturn);
+  {
+    NullJSContextPusher pusher;
+
+    
+    
+    return browserDOMWin->OpenURI(nsnull, aParent, containerPref,
+                                  nsIBrowserDOMWindow::OPEN_NEW, aReturn);
+  }
 }
 
 
