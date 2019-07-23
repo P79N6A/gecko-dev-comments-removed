@@ -1049,7 +1049,8 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
         
         if (aName == nsGkAtoms::hidechrome &&
-            mNodeInfo->Equals(nsGkAtoms::window)) {
+            mNodeInfo->Equals(nsGkAtoms::window) &&
+            aValue) {
             HideWindowChrome(aValue && NS_LITERAL_STRING("true").Equals(*aValue));
         }
 
@@ -1225,6 +1226,8 @@ nsXULElement::FindAttrValueIn(PRInt32 aNameSpaceID,
 nsresult
 nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
 {
+    
+    
     NS_ASSERTION(nsnull != aName, "must have attribute name");
     nsresult rv;
 

@@ -271,7 +271,8 @@ nsHTMLSelectElement::InsertOptionsIntoList(nsIContent* aOptions,
           
           
           
-          OnOptionSelected(selectFrame, presContext, i, PR_TRUE, PR_FALSE);
+          OnOptionSelected(selectFrame, presContext, i, PR_TRUE, PR_FALSE,
+                           PR_FALSE);
         }
       }
     }
@@ -829,6 +830,7 @@ nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
                                       nsPresContext* aPresContext,
                                       PRInt32 aIndex,
                                       PRBool aSelected,
+                                      PRBool aChangeOptionState,
                                       PRBool aNotify)
 {
   
@@ -838,12 +840,14 @@ nsHTMLSelectElement::OnOptionSelected(nsISelectControlFrame* aSelectFrame,
     FindSelectedIndex(aIndex+1);
   }
 
-  
-  nsCOMPtr<nsIDOMNode> option;
-  Item(aIndex, getter_AddRefs(option));
-  if (option) {
-    nsCOMPtr<nsIOptionElement> optionElement(do_QueryInterface(option));
-    optionElement->SetSelectedInternal(aSelected, aNotify);
+  if (aChangeOptionState) {
+    
+    nsCOMPtr<nsIDOMNode> option;
+    Item(aIndex, getter_AddRefs(option));
+    if (option) {
+      nsCOMPtr<nsIOptionElement> optionElement(do_QueryInterface(option));
+      optionElement->SetSelectedInternal(aSelected, aNotify);
+    }
   }
 
   
@@ -865,6 +869,11 @@ nsHTMLSelectElement::FindSelectedIndex(PRInt32 aStartIndex)
     }
   }
 }
+
+
+
+
+
 
 
 
@@ -996,7 +1005,8 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
 
             did_get_frame = PR_TRUE;
 
-            OnOptionSelected(selectFrame, presContext, optIndex, PR_TRUE, aNotify);
+            OnOptionSelected(selectFrame, presContext, optIndex, PR_TRUE,
+                             PR_TRUE, aNotify);
             optionsSelected = PR_TRUE;
           }
         }
@@ -1028,7 +1038,8 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
                 did_get_frame = PR_TRUE;
               }
 
-              OnOptionSelected(selectFrame, presContext, optIndex, PR_FALSE, aNotify);
+              OnOptionSelected(selectFrame, presContext, optIndex, PR_FALSE,
+                               PR_TRUE, aNotify);
               optionsDeselected = PR_TRUE;
 
               
@@ -1069,7 +1080,8 @@ nsHTMLSelectElement::SetOptionsSelectedByIndex(PRInt32 aStartIndex,
             did_get_frame = PR_TRUE;
           }
 
-          OnOptionSelected(selectFrame, presContext, optIndex, PR_FALSE, aNotify);
+          OnOptionSelected(selectFrame, presContext, optIndex, PR_FALSE,
+                           PR_TRUE, aNotify);
           optionsDeselected = PR_TRUE;
         }
       }

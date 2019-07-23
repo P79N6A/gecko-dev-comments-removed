@@ -826,8 +826,6 @@ protected:
 
 
 
-
-
   
   
   virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
@@ -837,8 +835,6 @@ protected:
   }
 
   
-
-
 
 
 

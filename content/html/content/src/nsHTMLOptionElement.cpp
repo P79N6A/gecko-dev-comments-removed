@@ -108,6 +108,9 @@ public:
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
                                               PRInt32 aModType) const;
 
+  virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                 const nsAString* aValue, PRBool aNotify);
+  
   
   NS_IMETHOD SetSelectedInternal(PRBool aValue, PRBool aNotify);
 
@@ -127,6 +130,10 @@ protected:
 
   PRPackedBool mSelectedChanged;
   PRPackedBool mIsSelected;
+
+  
+  
+  PRPackedBool mIsInSetDefaultSelected;
 };
 
 nsGenericHTMLElement*
@@ -156,7 +163,8 @@ NS_NewHTMLOptionElement(nsINodeInfo *aNodeInfo, PRBool aFromParser)
 nsHTMLOptionElement::nsHTMLOptionElement(nsINodeInfo *aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
     mSelectedChanged(PR_FALSE),
-    mIsSelected(PR_FALSE)
+    mIsSelected(PR_FALSE),
+    mIsInSetDefaultSelected(PR_FALSE)
 {
 }
 
@@ -206,7 +214,9 @@ nsHTMLOptionElement::SetSelectedInternal(PRBool aValue, PRBool aNotify)
   mSelectedChanged = PR_TRUE;
   mIsSelected = aValue;
 
-  if (aNotify) {
+  
+  
+  if (aNotify && !mIsInSetDefaultSelected) {
     nsIDocument* document = GetCurrentDoc();
     if (document) {
       mozAutoDocUpdate upd(document, UPDATE_CONTENT_STATE, aNotify);
@@ -326,6 +336,53 @@ nsHTMLOptionElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
     NS_UpdateHint(retval, NS_STYLE_HINT_REFLOW);
   }
   return retval;
+}
+
+nsresult
+nsHTMLOptionElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                   const nsAString* aValue, PRBool aNotify)
+{
+  nsresult rv = nsGenericHTMLElement::BeforeSetAttr(aNamespaceID, aName,
+                                                    aValue, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aNamespaceID != kNameSpaceID_None || aName != nsGkAtoms::selected ||
+      mSelectedChanged) {
+    return NS_OK;
+  }
+  
+  
+  
+  
+  nsCOMPtr<nsISelectElement> selectInt = do_QueryInterface(GetSelect());
+  if (!selectInt) {
+    return NS_OK;
+  }
+
+  
+  
+  NS_ASSERTION(!mSelectedChanged, "Shouldn't be here");
+  
+  PRBool newSelected = (aValue != nsnull);
+  PRBool inSetDefaultSelected = mIsInSetDefaultSelected;
+  mIsInSetDefaultSelected = PR_TRUE;
+  
+  PRInt32 index;
+  GetIndex(&index);
+  
+  
+  
+  rv = selectInt->SetOptionsSelectedByIndex(index, index, newSelected,
+                                            PR_FALSE, PR_TRUE, aNotify,
+                                            nsnull);
+
+  
+  
+  mIsInSetDefaultSelected = inSetDefaultSelected;
+  mSelectedChanged = PR_FALSE;
+  
+
+  return rv;
 }
 
 NS_IMETHODIMP
