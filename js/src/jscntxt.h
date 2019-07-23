@@ -103,11 +103,13 @@ class TraceRecorder;
 
 
 struct JSFragmentCacheEntry {
-    jsbytecode*              pc;
-    nanojit::Fragment*       fragment;
+    jsbytecode*             pc;
+    nanojit::Fragment*      fragment;
 };
 
-#define JS_FRAGMENT_CACHE_SIZE 4
+#define JS_FRAGMENT_CACHE_LOG2  2
+#define JS_FRAGMENT_CACHE_SIZE  JS_BIT(JS_FRAGMENT_CACHE_LOG2)
+#define JS_FRAGMENT_CACHE_MASK  JS_BITMASK(JS_FRAGMENT_CACHE_LOG2)
 
 
 
