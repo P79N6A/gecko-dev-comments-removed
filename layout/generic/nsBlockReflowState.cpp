@@ -617,93 +617,87 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize,
       
       result = PR_FALSE;
     }
+  }
+
+  if (!result)
+    return result;
+
+  
+  
+  
+  if (mAvailSpaceRect.height < aFloatSize.height) {
+    
+    
+    
+    
+    
+    
+    
+    
+    nscoord xa;
+    if (NS_STYLE_FLOAT_LEFT == aFloats) {
+      xa = mAvailSpaceRect.x;
+    }
     else {
+      xa = mAvailSpaceRect.XMost() - aFloatSize.width;
+
       
       
       
-      if (mAvailSpaceRect.height < aFloatSize.height) {
-        
-        
-        
-        
-        
-        
-        
-        
-        nscoord xa;
-        if (NS_STYLE_FLOAT_LEFT == aFloats) {
-          xa = mAvailSpaceRect.x;
-        }
-        else {
-          xa = mAvailSpaceRect.XMost() - aFloatSize.width;
-
-          
-          
-          
-          if (xa < mAvailSpaceRect.x) {
-            xa = mAvailSpaceRect.x;
-          }
-        }
-        nscoord xb = xa + aFloatSize.width;
-
-        
-        
-        const nsMargin& borderPadding = BorderPadding();
-        nscoord ya = mY - borderPadding.top;
-        if (ya < 0) {
-          
-          
-          
-          
-          
-          ya = 0;
-        }
-        nscoord yb = ya + aFloatSize.height;
-
-        nscoord saveY = mY;
-        for (;;) {
-          
-          if (mAvailSpaceRect.height <= 0) {
-            
-            result = PR_FALSE;
-            break;
-          }
-
-          mY += mAvailSpaceRect.height;
-          GetAvailableSpace(mY, aForceFit);
-
-          if (0 == mBand.GetFloatCount()) {
-            
-            
-            break;
-          }
-
-          
-          
-          
-          if ((xa < mAvailSpaceRect.x) || (xb > mAvailSpaceRect.XMost())) {
-            
-            result = PR_FALSE;
-            break;
-          }
-
-          
-          if (yb < mY + mAvailSpaceRect.height) {
-            
-            
-            break;
-          }
-        }
-
-        
-        
-        mY = saveY;
-        GetAvailableSpace(mY, aForceFit);
+      if (xa < mAvailSpaceRect.x) {
+        xa = mAvailSpaceRect.x;
       }
     }
-  } else if (!aForceFit && (aFloatSize.height > mAvailSpaceRect.height)) {
-    result = PR_FALSE;
+    nscoord xb = xa + aFloatSize.width;
+
+    
+    
+    const nsMargin& borderPadding = BorderPadding();
+    nscoord ya = mY - borderPadding.top;
+    if (ya < 0) {
+      
+      
+      
+      
+      
+      ya = 0;
+    }
+    nscoord yb = ya + aFloatSize.height;
+
+    nscoord saveY = mY;
+    for (;;) {
+      
+      if (mAvailSpaceRect.height <= 0) {
+        
+        result = PR_FALSE;
+        break;
+      }
+
+      mY += mAvailSpaceRect.height;
+      GetAvailableSpace(mY, aForceFit);
+
+      if (0 != mBand.GetFloatCount()) {
+        if ((xa < mAvailSpaceRect.x) || (xb > mAvailSpaceRect.XMost())) {
+          
+          result = PR_FALSE;
+          break;
+        }
+      }
+
+      
+      if (yb < mY + mAvailSpaceRect.height) {
+        
+        
+        break;
+      }
+    }
+
+    
+    
+    mY = saveY;
+    GetAvailableSpace(mY, aForceFit);
   }
+
   return result;
 }
 
