@@ -1101,14 +1101,18 @@ function HandleAppCommandEvent(evt) {
 }
 
 function prepareForStartup() {
+  var os = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+
   gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
   
   
   gBrowser.addEventListener("PluginNotFound", gMissingPluginInstaller.newMissingPlugin, true, true);
+  gBrowser.addEventListener("PluginCrashed", gMissingPluginInstaller.pluginInstanceCrashed, true, true);
   gBrowser.addEventListener("PluginBlocklisted", gMissingPluginInstaller.newMissingPlugin, true, true);
   gBrowser.addEventListener("PluginOutdated", gMissingPluginInstaller.newMissingPlugin, true, true);
   gBrowser.addEventListener("PluginDisabled", gMissingPluginInstaller.newDisabledPlugin, true, true);
   gBrowser.addEventListener("NewPluginInstalled", gMissingPluginInstaller.refreshBrowser, false);
+  os.addObserver(gMissingPluginInstaller.pluginCrashed, "plugin-crashed", false);
   window.addEventListener("AppCommand", HandleAppCommandEvent, true);
 
   var webNavigation;
@@ -1152,7 +1156,6 @@ function prepareForStartup() {
   
   webNavigation.sessionHistory = Components.classes["@mozilla.org/browser/shistory;1"]
                                            .createInstance(Components.interfaces.nsISHistory);
-  var os = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
   os.addObserver(gBrowser.browsers[0], "browser:purge-session-history", false);
 
   
@@ -5993,6 +5996,20 @@ function getPluginInfo(pluginElement)
 
 var gMissingPluginInstaller = {
 
+  get CrashSubmit() {
+    delete this.CrashSubmit;
+    Cu.import("resource://gre/modules/CrashSubmit.jsm", this);
+    return this.CrashSubmit;
+  },
+
+  get crashReportHelpURL() {
+    delete this.crashReportHelpURL;
+    let url = formatURL("app.support.baseURL", true);
+    url += "plugin-crashed";
+    this.crashReportHelpURL = url;
+    return this.crashReportHelpURL;
+  },
+
   installSinglePlugin: function (aEvent) {
     if (!aEvent.isTrusted)
         return;
@@ -6166,6 +6183,129 @@ var gMissingPluginInstaller = {
                                    function(evt) { if (evt.keyCode == evt.DOM_VK_RETURN)
                                                      gMissingPluginInstaller.managePlugins(evt) },
                                    true);
+  },
+
+  
+  
+  pluginCrashed : function(subject, topic, data) {
+    let propertyBag = subject;
+    if (!(propertyBag instanceof Ci.nsIPropertyBag2) ||
+        !(propertyBag instanceof Ci.nsIWritablePropertyBag2))
+     return;
+
+#ifdef MOZ_CRASHREPORTER
+    let minidumpID = subject.getPropertyAsAString("minidumpID");
+    let submitReports = gCrashReporter.submitReports;
+    
+    
+    if (submitReports)
+      gMissingPluginInstaller.CrashSubmit.submit(minidumpID, gBrowser, null, null);
+    propertyBag.setPropertyAsBool("submittedCrashReport", submitReports);
+#endif
+  },
+
+  pluginInstanceCrashed: function (aEvent) {
+    
+    if (!aEvent.isTrusted)
+      return;
+
+    if (!(aEvent instanceof Ci.nsIDOMDataContainerEvent))
+      return;
+
+    let submittedReport = aEvent.getData("submittedCrashReport");
+    let pluginName      = aEvent.getData("pluginName");
+
+    
+    let plugin = aEvent.target;
+    if (!(plugin instanceof Ci.nsIObjectLoadingContent))
+      return;
+
+    
+    plugin.clientTop;
+
+    let messageString = gNavigatorBundle.getFormattedString("crashedpluginsMessage.title", [pluginName]);
+
+    
+    
+    
+    let doc = plugin.ownerDocument;
+    let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
+
+    
+    
+    
+    overlay.removeAttribute("role");
+
+#ifdef MOZ_CRASHREPORTER
+    let helpClass = submittedReport ? "submitLink" : "notSubmitLink";
+    let helpLink = doc.getAnonymousElementByAttribute(plugin, "class", helpClass);
+    helpLink.href = gMissingPluginInstaller.crashReportHelpURL;
+    let showClass = submittedReport ? "msg msgSubmitted" : "msg msgNotSubmitted";
+    let textToShow = doc.getAnonymousElementByAttribute(plugin, "class", showClass);
+    textToShow.style.display = "block";
+#endif
+
+    let crashText = doc.getAnonymousElementByAttribute(plugin, "class", "msg msgCrashed");
+    crashText.textContent = messageString;
+
+    let link = doc.getAnonymousElementByAttribute(plugin, "class", "reloadLink");
+    link.addEventListener("click", function(e) { if (e.isTrusted) browser.reload(); }, true);
+
+    let browser = gBrowser.getBrowserForDocument(plugin.ownerDocument
+                                                       .defaultView.top.document);
+    let notificationBox = gBrowser.getNotificationBox(browser);
+
+    
+    let pluginRect = plugin.getBoundingClientRect();
+    
+    
+    let isObjectTooSmall = (overlay.scrollWidth > pluginRect.width) ||
+                           (overlay.scrollHeight - 5 > pluginRect.height);
+    if (isObjectTooSmall) {
+        
+        
+        overlay.style.visibility = "hidden";
+        
+        
+        if (!doc.mozNoPluginCrashedNotification)
+          showNotificationBar();
+    } else {
+        
+        
+        
+        hideNotificationBar();
+        doc.mozNoPluginCrashedNotification = true;
+    }
+
+    function hideNotificationBar() {
+      let notification = notificationBox.getNotificationWithValue("plugin-crashed");
+      if (notification)
+        notificationBox.removeNotification(notification, true);
+    }
+
+    function showNotificationBar() {
+      
+      let notification = notificationBox.getNotificationWithValue("plugin-crashed");
+      if (notification)
+        return;
+
+      
+      let priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+      let iconURL = "chrome://mozapps/skin/plugins/pluginGeneric-16.png";
+      let label = gNavigatorBundle.getString("crashedpluginsMessage.reloadButton.label");
+      let accessKey = gNavigatorBundle.getString("crashedpluginsMessage.reloadButton.accesskey");
+
+      let buttons = [{
+        label: label,
+        accessKey: accessKey,
+        popup: null,
+        callback: function() { browser.reload(); },
+      }];
+
+      let notification = notificationBox.appendNotification(messageString, "plugin-crashed",
+                                                            iconURL, priority, buttons);
+    }
+
   },
 
   refreshBrowser: function (aEvent) {
