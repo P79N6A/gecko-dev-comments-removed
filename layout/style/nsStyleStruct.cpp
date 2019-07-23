@@ -1962,7 +1962,7 @@ nsStyleVisibility::nsStyleVisibility(nsPresContext* aPresContext)
   } else {
     
     
-    mLanguage = aPresContext->GetLanguage();
+    mLanguage = aPresContext->GetLanguageFromCharset();
   }
 
   mVisible = NS_STYLE_VISIBILITY_VISIBLE;
