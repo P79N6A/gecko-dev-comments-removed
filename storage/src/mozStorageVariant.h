@@ -58,17 +58,20 @@
 
 
 
+namespace mozilla {
+namespace storage {
 
 
 
-class mozStorageVariant_base : public nsIVariant
+
+class Variant_base : public nsIVariant
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIVARIANT
 
 protected:
-  virtual ~mozStorageVariant_base() { }
+  virtual ~Variant_base() { }
 };
 
 
@@ -139,7 +142,8 @@ struct variant_traits<PRInt64>
 template < >
 struct variant_integer_traits<PRInt64>
 {
-  static inline nsresult asInt32(PRInt64 aValue, PRInt32 *_result)
+  static inline nsresult asInt32(PRInt64 aValue,
+                                 PRInt32 *_result)
   {
     if (aValue > PR_INT32_MAX || aValue < PR_INT32_MIN)
       return NS_ERROR_CANNOT_CONVERT_DATA;
@@ -147,7 +151,8 @@ struct variant_integer_traits<PRInt64>
     *_result = aValue;
     return NS_OK;
   }
-  static inline nsresult asInt64(PRInt64 aValue, PRInt64 *_result)
+  static inline nsresult asInt64(PRInt64 aValue,
+                                 PRInt64 *_result)
   {
     *_result = aValue;
     return NS_OK;
@@ -157,7 +162,8 @@ struct variant_integer_traits<PRInt64>
 template < >
 struct variant_float_traits<PRInt64>
 {
-  static inline nsresult asDouble(PRInt64 aValue, double *_result)
+  static inline nsresult asDouble(PRInt64 aValue,
+                                  double *_result)
   {
     *_result = double(aValue);
     return NS_OK;
@@ -176,7 +182,8 @@ struct variant_traits<double>
 template < >
 struct variant_float_traits<double>
 {
-  static inline nsresult asDouble(double aValue, double *_result)
+  static inline nsresult asDouble(double aValue,
+                                  double *_result)
   {
     *_result = aValue;
     return NS_OK;
@@ -277,7 +284,8 @@ template < >
 struct variant_blob_traits<PRUint8[]>
 {
   static inline nsresult asArray(nsTArray<PRUint8> &aData,
-                                 PRUint16 *_type, PRUint32 *_size,
+                                 PRUint16 *_type,
+                                 PRUint32 *_size,
                                  void **_result)
   {
     
@@ -295,11 +303,11 @@ struct variant_blob_traits<PRUint8[]>
 
 
 template <typename DataType>
-class mozStorageVariant : public mozStorageVariant_base
+class Variant : public Variant_base
 {
 public:
-  mozStorageVariant(typename variant_storage_traits<DataType>::ConstructorType aData) :
-      mData(variant_storage_traits<DataType>::storage_conversion(aData))
+  Variant(typename variant_storage_traits<DataType>::ConstructorType aData)
+    : mData(variant_storage_traits<DataType>::storage_conversion(aData))
   {
   }
 
@@ -333,25 +341,29 @@ public:
     return variant_text_traits<DataType>::asString(mData, _str);
   }
 
-  NS_IMETHOD GetAsArray(PRUint16 *_type, nsIID *, PRUint32 *_size, void **_data)
+  NS_IMETHOD GetAsArray(PRUint16 *_type,
+                        nsIID *,
+                        PRUint32 *_size,
+                        void **_data)
   {
     return variant_blob_traits<DataType>::asArray(mData, _type, _size, _data);
   }
 
 private:
-  mozStorageVariant() { }
   typename variant_storage_traits<DataType>::StorageType mData;
 };
 
 
 
 
+typedef Variant<PRInt64> IntegerVariant;
+typedef Variant<double> FloatVariant;
+typedef Variant<nsString> TextVariant;
+typedef Variant<nsCString> UTF8TextVariant;
+typedef Variant<PRUint8[]> BlobVariant;
+typedef Variant_base NullVariant;
 
-typedef mozStorageVariant<PRInt64> mozStorageInteger;
-typedef mozStorageVariant<double> mozStorageFloat;
-typedef mozStorageVariant<nsString> mozStorageText;
-typedef mozStorageVariant<nsCString> mozStorageUTF8Text;
-typedef mozStorageVariant<PRUint8[]> mozStorageBlob;
-typedef mozStorageVariant_base mozStorageNull;
+} 
+} 
 
 #endif 
