@@ -766,14 +766,14 @@ DetectByteOrderMark(const unsigned char* aBytes, PRInt32 aLen, nsCString& oChars
     if (0xFF == aBytes[1]) {
       
       
-      oCharset.Assign("UTF-16BE");
+      oCharset.Assign("UTF-16");
     }
     break;
   case 0xFF:
     if (0xFE == aBytes[1]) {
       
       
-      oCharset.Assign("UTF-16LE");
+      oCharset.Assign("UTF-16");
     }
     break;
   }

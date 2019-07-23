@@ -167,7 +167,7 @@ static nsresult ConvertCommon(const char * aSrc,
 
 
 
-nsUTF32ToUnicode::nsUTF32ToUnicode() : nsBasicDecoderSupport()
+nsUTF32ToUnicodeBase::nsUTF32ToUnicodeBase() : nsBasicDecoderSupport()
 {
   Reset();
 }
@@ -175,9 +175,9 @@ nsUTF32ToUnicode::nsUTF32ToUnicode() : nsBasicDecoderSupport()
 
 
 
-NS_IMETHODIMP nsUTF32ToUnicode::GetMaxLength(const char * aSrc, 
-                                            PRInt32 aSrcLength, 
-                                            PRInt32 * aDestLength)
+NS_IMETHODIMP nsUTF32ToUnicodeBase::GetMaxLength(const char * aSrc, 
+                                                 PRInt32 aSrcLength, 
+                                                 PRInt32 * aDestLength)
 {
   
   
@@ -189,7 +189,7 @@ NS_IMETHODIMP nsUTF32ToUnicode::GetMaxLength(const char * aSrc,
 
 
 
-NS_IMETHODIMP nsUTF32ToUnicode::Reset()
+NS_IMETHODIMP nsUTF32ToUnicodeBase::Reset()
 {
   
   mState = 0;  
@@ -227,6 +227,82 @@ NS_IMETHODIMP nsUTF32LEToUnicode::Convert(const char * aSrc,
 {
   return ConvertCommon(aSrc, aSrcLength, aDest, aDestLength, &mState, 
                        mBufferInc, PR_TRUE);
+}
+
+
+
+
+
+
+
+NS_IMETHODIMP nsUTF32ToUnicode::Reset()
+{
+  nsresult rv = nsUTF32ToUnicodeBase::Reset();
+  mState = 4;
+  mEndian = kUnknown;
+  mFoundBOM = PR_FALSE;
+  return rv;
+}
+
+NS_IMETHODIMP nsUTF32ToUnicode::Convert(const char * aSrc, 
+                                        PRInt32 * aSrcLength, 
+                                        PRUnichar * aDest, 
+                                        PRInt32 * aDestLength)
+{
+  PRBool foundBOM = PR_FALSE;
+  if (4 == mState) 
+  {
+    if (*aSrcLength < 4)
+      return NS_ERROR_ILLEGAL_INPUT;
+
+    
+    
+    if (0xFF == PRUint8(aSrc[0]) && 0xFE == PRUint8(aSrc[1]) &&
+        0 == PRUint8(aSrc[2]) && 0 == PRUint8(aSrc[3])) {
+      aSrc += 4;
+      *aSrcLength -= 4;
+      mState = 0;
+      mEndian = kLittleEndian;
+      mFoundBOM = foundBOM = PR_TRUE;
+    }
+    else if (0 == PRUint8(aSrc[0]) && 0 == PRUint8(aSrc[1]) &&
+             0xFE == PRUint8(aSrc[2]) && 0xFF == PRUint8(aSrc[3])) {
+      aSrc += 4;
+      *aSrcLength -= 4;
+      mState = 0;
+      mEndian = kBigEndian;
+      mFoundBOM = foundBOM = PR_TRUE;
+    }
+    
+    
+    
+#if 0 
+    else if (!aSrc[0] && !aSrc[1] && (aSrc[2] || aSrc[3])) {  
+      mState = 0;
+      mEndian = kBigEndian;
+    }
+#endif
+    else if ((aSrc[0] || aSrc[1]) && !aSrc[2] && !aSrc[3]) {  
+      mState = 0;
+      mEndian = kLittleEndian;
+    }
+    else { 
+           
+           
+           
+      mState = 0;
+      mEndian = kBigEndian;
+    }
+  }
+
+  nsresult rv = ConvertCommon(aSrc, aSrcLength, aDest, aDestLength, &mState, 
+                              mBufferInc, mEndian == kLittleEndian);
+  if (foundBOM)
+    *aSrcLength += 4; 
+
+  
+  
+  return (rv == NS_OK && !mFoundBOM) ? NS_OK_UDEC_NOBOMFOUND : rv;
 }
 
 
