@@ -600,7 +600,7 @@ PlacesController.prototype = {
     for (var i = 0; i < aPopup.childNodes.length; ++i) {
       var item = aPopup.childNodes[i];
       if (item.localName != "menuseparator") {
-        item.hidden = (item.getAttribute("hideifnoinsetionpoint") == "true" && noIp) ||
+        item.hidden = (item.getAttribute("hideifnoinsertionpoint") == "true" && noIp) ||
                       !this._shouldShowMenuItem(item, metadata);
 
         if (!item.hidden) {
@@ -1055,7 +1055,7 @@ PlacesController.prototype = {
     var oldViewer = result.viewer;
     try {
       result.viewer = null;
-      var nodes = this._view.getDragableSelection();
+      var nodes = this._view.getDraggableSelection();
 
       for (var i = 0; i < nodes.length; ++i) {
         var node = nodes[i];
