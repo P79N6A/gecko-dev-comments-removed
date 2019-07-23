@@ -1785,12 +1785,15 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
   
   nsCOMPtr<nsIDocShell> shell = do_QueryReferent(mDocumentContainer);
-  if (shell) {
-    PRBool inUnload;
-    shell->GetIsInUnload(&inUnload);
-    if (inUnload) {
-      return NS_OK;
-    }
+  if (!shell) {
+    
+    return NS_OK;
+  }
+
+  PRBool inUnload;
+  shell->GetIsInUnload(&inUnload);
+  if (inUnload) {
+    return NS_OK;
   }
 
   
@@ -1846,12 +1849,10 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIDocShell> docshell = do_QueryReferent(mDocumentContainer);
-
   
-  if (mScriptGlobalObject && docshell) {
+  if (mScriptGlobalObject) {
     nsCOMPtr<nsIContentViewer> cv;
-    docshell->GetContentViewer(getter_AddRefs(cv));
+    shell->GetContentViewer(getter_AddRefs(cv));
 
     if (cv) {
       PRBool okToUnload;
@@ -1864,7 +1865,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
       }
     }
 
-    nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(docshell));
+    nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(shell));
     webnav->Stop(nsIWebNavigation::STOP_NETWORK);
   }
 
@@ -1997,30 +1998,33 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIHTMLContentSink> sink;
 
-    rv = NS_NewHTMLContentSink(getter_AddRefs(sink), this, uri, docshell,
+    rv = NS_NewHTMLContentSink(getter_AddRefs(sink), this, uri, shell,
                                channel);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+      
+      mParser = nsnull;
+      mWriteState = eNotWriting;
+      return rv;
+    }
 
     mParser->SetContentSink(sink);
   }
 
   
   
-  if (docshell) {
-    docshell->PrepareForNewContentModel();
+  shell->PrepareForNewContentModel();
 
-    
-    
-    
-    
-    docshell->SetLoadType(aReplace ? LOAD_NORMAL_REPLACE : LOAD_NORMAL);
+  
+  
+  
+  
+  shell->SetLoadType(aReplace ? LOAD_NORMAL_REPLACE : LOAD_NORMAL);
 
-    nsCOMPtr<nsIContentViewer> cv;
-    docshell->GetContentViewer(getter_AddRefs(cv));
-    nsCOMPtr<nsIDocumentViewer> docViewer = do_QueryInterface(cv);
-    if (docViewer) {
-      docViewer->LoadStart(static_cast<nsIHTMLDocument *>(this));
-    }
+  nsCOMPtr<nsIContentViewer> cv;
+  shell->GetContentViewer(getter_AddRefs(cv));
+  nsCOMPtr<nsIDocumentViewer> docViewer = do_QueryInterface(cv);
+  if (docViewer) {
+    docViewer->LoadStart(static_cast<nsIHTMLDocument *>(this));
   }
 
   
