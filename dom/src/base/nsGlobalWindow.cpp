@@ -8791,7 +8791,7 @@ nsNavigator::IsLocallyAvailable(const nsAString &aURI,
   
   
   PRUint32 loadFlags = nsIChannel::INHIBIT_CACHING |
-                       nsIChannel::LOAD_NO_NETWORK_IO |
+                       nsICachingChannel::LOAD_NO_NETWORK_IO |
                        nsICachingChannel::LOAD_ONLY_IF_MODIFIED |
                        nsICachingChannel::LOAD_BYPASS_LOCAL_CACHE_IF_BUSY;
 
