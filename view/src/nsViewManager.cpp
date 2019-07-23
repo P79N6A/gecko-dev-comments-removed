@@ -978,7 +978,8 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
             
             nsRefPtr<nsViewManager> rootVM = RootViewManager();
 
-            nsIWidget *widget = mRootView->GetWidget();
+            nsCOMPtr<nsIWidget> widget;
+            rootVM->GetRootWidget(getter_AddRefs(widget));
             PRBool transparentWindow = PR_FALSE;
             if (widget)
                 transparentWindow = widget->GetTransparencyMode() == eTransparencyTransparent;
