@@ -1912,8 +1912,9 @@ function URLBarSetURI(aURI) {
         value = "";
     } else {
       
+      
       try {
-        value = decodeURI(value).replace(/%/g, "%25");
+        value = decodeURI(value).replace(/[%\r\n\t]/g, encodeURI);
       } catch(e) {}
 
       state = "valid";
