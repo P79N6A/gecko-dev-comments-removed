@@ -63,7 +63,8 @@ imgRequestProxy::imgRequestProxy() :
   mListener(nsnull),
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mCanceled(PR_FALSE),
-  mIsInLoadGroup(PR_FALSE)
+  mIsInLoadGroup(PR_FALSE),
+  mListenerIsStrongRef(PR_FALSE)
 {
   
 
@@ -76,7 +77,8 @@ imgRequestProxy::~imgRequestProxy()
   
   
   
-  mListener = nsnull;
+  
+  NullOutListener();
 
   if (mOwner) {
     if (!mCanceled) {
@@ -108,6 +110,13 @@ nsresult imgRequestProxy::Init(imgRequest *request, nsILoadGroup *aLoadGroup, im
 
   mOwner = request;
   mListener = aObserver;
+  
+  
+  
+  if (mListener) {
+    mListenerIsStrongRef = PR_TRUE;
+    NS_ADDREF(mListener);
+  }
   mLoadGroup = aLoadGroup;
 
   
@@ -210,7 +219,7 @@ NS_IMETHODIMP imgRequestProxy::Cancel(nsresult status)
   
   mOwner->RemoveProxy(this, status, PR_FALSE);
 
-  mListener = nsnull;
+  NullOutListener();
 
   return NS_OK;
 }
@@ -511,5 +520,26 @@ void imgRequestProxy::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
       AddToLoadGroup();
     }
   }
+
+  if (mListenerIsStrongRef) {
+    NS_PRECONDITION(mListener, "How did that happen?");
+    
+    
+    
+    imgIDecoderObserver* obs = mListener;
+    mListenerIsStrongRef = PR_FALSE;
+    NS_RELEASE(obs);
+  }
 }
 
+void imgRequestProxy::NullOutListener()
+{
+  if (mListenerIsStrongRef) {
+    
+    nsCOMPtr<imgIDecoderObserver> obs;
+    obs.swap(mListener);
+    mListenerIsStrongRef = PR_FALSE;
+  } else {
+    mListener = nsnull;
+  }
+}

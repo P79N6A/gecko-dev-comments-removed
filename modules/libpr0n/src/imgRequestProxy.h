@@ -102,6 +102,9 @@ protected:
   inline PRBool HasObserver() const {
     return mListener != nsnull;
   }
+
+  
+  void NullOutListener();
   
 private:
   friend class imgCacheValidator;
@@ -114,10 +117,14 @@ private:
   
   nsRefPtr<imgRequest> mOwner;
 
-  imgIDecoderObserver* mListener;  
+  
+  
+  
+  imgIDecoderObserver* mListener;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
   nsLoadFlags mLoadFlags;
   PRPackedBool mCanceled;
   PRPackedBool mIsInLoadGroup;
+  PRPackedBool mListenerIsStrongRef;
 };
