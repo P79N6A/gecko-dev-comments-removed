@@ -191,7 +191,11 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
         }
 
         
-        if (!(cs->format & (JOF_SET | JOF_INCDEC | JOF_FOR)) &&
+
+
+
+        if (!(cs->format & (JOF_SET | JOF_FOR)) &&
+            (!(cs->format & JOF_INCDEC) || sprop->hasDefaultSetter()) &&
             sprop->hasDefaultGetter() &&
             SPROP_HAS_VALID_SLOT(sprop, scope)) {
             
