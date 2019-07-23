@@ -690,37 +690,5 @@ var BookmarkPropertiesPanel = {
 
     PlacesUIUtils.ptm.doTransaction(txn);
     this._itemId = PlacesUtils.bookmarks.getIdForItemAt(container, index);
-  },
-
-  _getFolderIdFromMenuList:
-  function BPP__getFolderIdFromMenuList() {
-    var selectedItem = this._element("folderPicker").selectedItem;
-    NS_ASSERT("folderId" in selectedItem,
-              "Invalid menuitem in the folders-menulist");
-    return selectedItem.folderId;
-  },
-
-  
-
-
-
-
-
-
-
-  _getFolderMenuItem:
-  function BPP__getFolderMenuItem(aFolderId) {
-    var menupopup = this._folderMenuList.menupopup;
-
-    for (var i = 0; i < menupopup.childNodes.length; i++) {
-      if (menupopup.childNodes[i].folderId == aFolderId)
-        return menupopup.childNodes[i];
-    }
-
-    
-    if (menupopup.childNodes.length == 3 + MAX_FOLDER_ITEM_IN_MENU_LIST)
-      menupopup.removeChild(menupopup.lastChild);
-
-    return this._appendFolderItemToMenupopup(menupopup, aFolderId);
   }
 };
