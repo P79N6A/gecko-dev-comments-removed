@@ -75,6 +75,7 @@
 #include "nsIDOMNodeList.h"
 
 #include "nsITimer.h"
+#include "nsXULPopupManager.h"
 
 #include "prmem.h"
 #include "prlock.h"
@@ -306,12 +307,30 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
 
 
       case NS_MOVE: {
+#ifndef XP_MACOSX
+        
+        
+        
+        
+        nsCOMPtr<nsIMenuRollup> pm =
+          do_GetService("@mozilla.org/xul/xul-popup-manager;1");
+        if (pm)
+          pm->AdjustPopupsOnWindowChange();
+#endif
+
         
         
         eventWindow->SetPersistenceTimer(PAD_POSITION);
         break;
       }
       case NS_SIZE: {
+#ifndef XP_MACOSX
+        nsCOMPtr<nsIMenuRollup> pm =
+          do_GetService("@mozilla.org/xul/xul-popup-manager;1");
+        if (pm)
+          pm->AdjustPopupsOnWindowChange();
+#endif
+ 
         nsSizeEvent* sizeEvent = (nsSizeEvent*)aEvent;
         nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(docShell));
         shellAsWin->SetPositionAndSize(0, 0, sizeEvent->windowSize->width, 

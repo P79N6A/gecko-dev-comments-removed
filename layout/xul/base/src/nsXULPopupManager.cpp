@@ -211,6 +211,23 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsISupportsArray **_retval)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsXULPopupManager::AdjustPopupsOnWindowChange()
+{
+  
+  
+  
+  nsMenuChainItem* item = mPanels;
+  while (item) {
+    
+    if (item->Frame()->GetAutoPosition())
+      item->Frame()->SetPopupPosition(nsnull);
+    item = item->GetParent();
+  }
+
+  return NS_OK;
+}
+
 nsIFrame*
 nsXULPopupManager::GetFrameOfTypeForContent(nsIContent* aContent,
                                             nsIAtom* aFrameType,
@@ -468,10 +485,7 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
   
   
   
-  if (popupType == ePopupTypeTooltip ||
-      (popupType == ePopupTypePanel &&
-       aPopup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
-                            nsGkAtoms::_true, eIgnoreCase))) {
+  if (aPopupFrame->IsNoAutoHide() || popupType == ePopupTypeTooltip) {
     item->SetParent(mPanels);
     mPanels = item;
   }
@@ -1940,5 +1954,14 @@ nsXULMenuCommandEvent::Run()
   if (popup && mCloseMenuMode != CloseMenuMode_None)
     pm->HidePopup(popup, mCloseMenuMode == CloseMenuMode_Auto, PR_TRUE, PR_FALSE);
 
+  return NS_OK;
+}
+
+nsresult
+NS_NewXULPopupManager(nsISupports** aResult)
+{
+  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+  NS_IF_ADDREF(pm);
+  *aResult = static_cast<nsIMenuRollup *>(pm);
   return NS_OK;
 }

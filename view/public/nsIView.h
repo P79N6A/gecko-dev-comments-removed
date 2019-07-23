@@ -61,8 +61,8 @@ enum nsViewVisibility {
 
 
 #define NS_IVIEW_IID    \
-{ 0x1b0215f7, 0xf5d1, 0x4574, \
-  { 0x9a, 0xb9, 0xab, 0xdc, 0xce, 0xdd, 0xb8, 0x2e } }
+{ 0x1377ae0e, 0x99e6, 0x42fa, \
+{ 0x9a, 0x2e, 0xee, 0xec, 0x6b, 0x31, 0xb7, 0xb6 } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -283,12 +283,15 @@ public:
 
 
 
+
+
   nsresult CreateWidget(const nsIID &aWindowIID,
                         nsWidgetInitData *aWidgetInitData = nsnull,
                         nsNativeWidget aNative = nsnull,
                         PRBool aEnableDragDrop = PR_TRUE,
                         PRBool aResetVisibility = PR_TRUE,
-                        nsContentType aWindowType = eContentTypeInherit);
+                        nsContentType aWindowType = eContentTypeInherit,
+                        nsIWidget* aParentWidget = nsnull);
 
   
 

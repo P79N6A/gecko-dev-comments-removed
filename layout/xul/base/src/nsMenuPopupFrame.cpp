@@ -80,6 +80,8 @@
 #include "nsIPopupBoxObject.h"
 #include "nsIReflowCallback.h"
 #include "nsBindingManager.h"
+#include "nsIDocShellTreeOwner.h"
+#include "nsIBaseWindow.h"
 #ifdef XP_WIN
 #include "nsISound.h"
 #endif
@@ -174,6 +176,17 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   return rv;
 }
 
+PRBool
+nsMenuPopupFrame::IsNoAutoHide()
+{
+  
+  
+  
+  return (!mInContentShell && mPopupType == ePopupTypePanel &&
+           mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautohide,
+                                 nsGkAtoms::_true, eIgnoreCase));
+}
+
 void
 nsMenuPopupFrame::EnsureWidget()
 {
@@ -201,14 +214,34 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   if (parentContent)
     tag = parentContent->Tag();
   widgetData.mDropShadow = !(viewHasTransparentContent || tag == nsGkAtoms::menulist);
+
   
+  
+  
+  nsCOMPtr<nsIWidget> parentWidget;
+  if (IsNoAutoHide()) {
+    nsCOMPtr<nsISupports> cont = PresContext()->GetContainer();
+    nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
+    if (!dsti)
+      return NS_ERROR_FAILURE;
+
+    nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+    dsti->GetTreeOwner(getter_AddRefs(treeOwner));
+    if (!treeOwner) return NS_ERROR_FAILURE;
+
+    nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(treeOwner));
+    if (baseWindow)
+      baseWindow->GetMainWidget(getter_AddRefs(parentWidget));
+  }
+
 #if defined(XP_MACOSX) || defined(XP_BEOS)
   static NS_DEFINE_IID(kCPopupCID,  NS_POPUP_CID);
   aView->CreateWidget(kCPopupCID, &widgetData, nsnull, PR_TRUE, PR_TRUE, 
-                      eContentTypeUI);
+                      eContentTypeUI, parentWidget);
 #else
   static NS_DEFINE_IID(kCChildCID,  NS_CHILD_CID);
-  aView->CreateWidget(kCChildCID, &widgetData, nsnull, PR_TRUE, PR_TRUE);
+  aView->CreateWidget(kCChildCID, &widgetData, nsnull, PR_TRUE, PR_TRUE,
+                      eContentTypeInherit, parentWidget);
 #endif
   aView->GetWidget()->SetWindowTranslucency(viewHasTransparentContent);
   return NS_OK;
@@ -1638,10 +1671,10 @@ nsMenuPopupFrame::MoveToInternal(PRInt32 aLeft, PRInt32 aTop)
     widget->Move(aLeft - screenPos.x, aTop - screenPos.y);
 }
 
-void 
-nsMenuPopupFrame::GetAutoPosition(PRBool* aShouldAutoPosition)
+PRBool
+nsMenuPopupFrame::GetAutoPosition()
 {
-  *aShouldAutoPosition = mShouldAutoPosition;
+  return mShouldAutoPosition;
 }
 
 void

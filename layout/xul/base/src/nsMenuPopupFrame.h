@@ -178,6 +178,10 @@ public:
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
                                   PRBool aImmediate);
 
+  
+  
+  PRBool IsNoAutoHide();
+
   void EnsureWidget();
 
   virtual nsresult CreateWidgetForView(nsIView* aView);
@@ -264,7 +268,7 @@ public:
   
   void MoveTo(PRInt32 aLeft, PRInt32 aTop);
 
-  void GetAutoPosition(PRBool* aShouldAutoPosition);
+  PRBool GetAutoPosition();
   void SetAutoPosition(PRBool aShouldAutoPosition);
   void SetConsumeRollupEvent(PRUint32 aConsumeMode);
 
