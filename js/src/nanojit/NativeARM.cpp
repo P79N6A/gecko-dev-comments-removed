@@ -164,10 +164,11 @@ Assembler::nFragExit(LInsp guard)
 NIns*
 Assembler::genEpilogue()
 {
-    BX(LR); 
+    
+    
+    NanoAssert(AvmCore::config.arch >= 5);
 
-    RegisterMask savingMask = rmask(FP) | rmask(LR);
-
+    RegisterMask savingMask = rmask(FP) | rmask(PC);
     if (!_thisfrag->lirbuf->explicitSavedRegs)
         for (int i = 0; i < NumSavedRegs; ++i)
             savingMask |= rmask(savedRegs[i]);
