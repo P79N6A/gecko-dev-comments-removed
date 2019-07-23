@@ -114,7 +114,8 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mMenuCanOverlapOSBar(PR_FALSE),
   mShouldAutoPosition(PR_TRUE),
   mConsumeRollupEvent(nsIPopupBoxObject::ROLLUP_DEFAULT),
-  mInContentShell(PR_TRUE)
+  mInContentShell(PR_TRUE),
+  mPrefSize(-1, -1)
 {
 } 
 
@@ -297,6 +298,14 @@ nsMenuPopupFrame::IsLeaf() const
   nsIContent* parentContent = mContent->GetParent();
   return (parentContent &&
           !parentContent->HasAttr(kNameSpaceID_None, nsGkAtoms::sizetopopup));
+}
+
+void
+nsMenuPopupFrame::SetPreferredBounds(nsBoxLayoutState& aState,
+                                     const nsRect& aRect)
+{
+  nsBox::SetBounds(aState, aRect, PR_FALSE);
+  mPrefSize = aRect.Size();
 }
 
 void
@@ -909,9 +918,17 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   
+  
+  
+  NS_ASSERTION(mPrefSize.width >= 0 || mPrefSize.height >= 0,
+               "preferred size of popup not set");
   if (sizedToPopup) {
     mRect.width = parentSize.width;
   }
+  else {
+    mRect.width = mPrefSize.width;
+  }
+  mRect.height = mPrefSize.height;
 
   
   

@@ -271,7 +271,15 @@ public:
   void SetConsumeRollupEvent(PRUint32 aConsumeMode);
 
   nsIScrollableView* GetScrollableView(nsIFrame* aStart);
+
   
+  void SetPreferredBounds(nsBoxLayoutState& aState, const nsRect& aRect);
+
+  
+  nsSize PreferredSize() { return mPrefSize; }
+  
+  void SetPreferredSize(nsSize aSize) { mPrefSize = aSize; }
+
 protected:
   
   void MoveToInternal(PRInt32 aLeft, PRInt32 aTop);                             
@@ -327,6 +335,15 @@ protected:
   PRPackedBool mInContentShell; 
 
   nsString     mIncrementalString;  
+
+  
+  
+  
+  
+  
+  
+  
+  nsSize mPrefSize;
 
 }; 
 
