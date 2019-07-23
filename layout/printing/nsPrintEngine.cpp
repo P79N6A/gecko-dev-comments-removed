@@ -1939,6 +1939,9 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
 
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  aPO->mPresShell->FlushPendingNotifications(Flush_OnlyReflow);
+
   nsCOMPtr<nsIPresShell> displayShell;
   aPO->mDocShell->GetPresShell(getter_AddRefs(displayShell));
   

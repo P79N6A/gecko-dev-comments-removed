@@ -523,10 +523,10 @@ nsHTMLScrollFrame::InInitialReflow() const
   
   
   
-  return
-    (GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
-    (!mInner.mIsRoot ||
-     PresContext()->PresShell()->IsInEagerStartLayout());
+  
+  
+  
+  return !mInner.mIsRoot && (GetStateBits() & NS_FRAME_FIRST_REFLOW);
 }
 
 nsresult

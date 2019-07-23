@@ -720,13 +720,6 @@ public:
   void AddWeakFrame(nsWeakFrame* aWeakFrame);
   void RemoveWeakFrame(nsWeakFrame* aWeakFrame);
 
-  void SetInEagerStartLayout(PRBool aInEagerStartLayout) {
-    mInEagerStartLayout = aInEagerStartLayout;
-  }
-  PRBool IsInEagerStartLayout() const {
-    return mInEagerStartLayout;
-  }
-
 #ifdef NS_DEBUG
   nsIFrame* GetDrawEventTargetFrame() { return mDrawEventTargetFrame; }
 #endif
@@ -766,10 +759,6 @@ protected:
   
   
   PRPackedBool              mIsAccessibilityActive;
-
-  
-  
-  PRPackedBool              mInEagerStartLayout;
 
   
   nsWeakFrame*              mWeakFrames;
