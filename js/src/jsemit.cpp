@@ -2136,6 +2136,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
+
         if (cg->flags & TCF_IN_FUNCTION)
             return JS_TRUE;
 
