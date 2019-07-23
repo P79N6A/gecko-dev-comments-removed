@@ -845,9 +845,9 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
         
         
 #endif
-        double pageWidth = 0, pageHeight = 0;
-        mPresContext->GetPrintSettings()->GetEffectivePageSize(&pageWidth,
-                                                               &pageHeight);
+        PRInt32 pageWidth = 0, pageHeight = 0;
+        mPresContext->GetPrintSettings()->GetPageSizeInTwips(&pageWidth,
+                                                             &pageHeight);
         mPresContext->SetPageSize(
           nsSize(mPresContext->TwipsToAppUnits(pageWidth),
                  mPresContext->TwipsToAppUnits(pageHeight)));
