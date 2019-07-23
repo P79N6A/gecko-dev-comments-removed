@@ -6027,6 +6027,13 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
 {
   AddStateBits(NS_FRAME_IS_BIDI);
 
+  
+
+
+
+
+  ClearTextRun();
+
   nsTextFrame* prev = static_cast<nsTextFrame*>(GetPrevInFlow());
   if (prev) {
     
@@ -6034,13 +6041,10 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
     PRInt32 prevOffset = prev->GetContentOffset();
     aStart = PR_MAX(aStart, prevOffset);
     aEnd = PR_MAX(aEnd, prevOffset);
+    prev->ClearTextRun();
   }
   if (mContentOffset != aStart) {
     mContentOffset = aStart;
-    ClearTextRun();
-    if (prev) {
-      prev->ClearTextRun();
-    }
   }
 
   SetLength(aEnd - aStart);
