@@ -1,0 +1,137 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let kURIs = [
+  "http://url/",
+  "http://url/2",
+  "http://foo.bar/",
+  "http://foo.bar/2",
+  "http://url/star",
+  "http://url/star/2",
+  "http://foo.bar/star",
+  "http://foo.bar/star/2",
+  "http://url/tag",
+  "http://url/tag/2",
+  "http://foo.bar/tag",
+  "http://foo.bar/tag/2",
+];
+let kTitles = [
+  "title",
+  "foo.bar",
+];
+
+
+addPageBook(0, 0); 
+addPageBook(1, 1); 
+addPageBook(2, 0); 
+addPageBook(3, 1); 
+
+
+addPageBook(4, 0, 0); 
+addPageBook(5, 1, 1); 
+addPageBook(6, 0, 0); 
+addPageBook(7, 1, 1); 
+
+
+addPageBook(8, 0, 0, [1]); 
+addPageBook(9, 1, 1, [1]); 
+addPageBook(10, 0, 0, [1]); 
+addPageBook(11, 1, 1, [1]); 
+
+
+
+for each (let uri in [4,6,7,8,9,11])
+  histsvc.removePage(toURI(kURIs[uri]));
+
+
+
+let gTests = [
+  
+  ["0: History restrict",
+   "^", [0,1,2,3,5,10]],
+  ["1: Star restrict",
+   "*", [4,5,6,7,8,9,10,11]],
+  ["2: Tag restrict",
+   "+", [8,9,10,11]],
+
+  
+  ["3: Special as first word",
+   "^ foo bar", [1,2,3,5,10]],
+  ["4: Special as middle word",
+   "foo ^ bar", [1,2,3,5,10]],
+  ["5: Special as last word",
+   "foo bar ^", [1,2,3,5,10]],
+
+  
+  ["6: foo ^ -> history",
+   "foo ^", [1,2,3,5,10]],
+  ["7: foo * -> is star",
+   "foo *", [5,6,7,8,9,10,11]],
+  ["8: foo # -> in title",
+   "foo #", [1,3,5,7,8,9,10,11]],
+  ["9: foo @ -> in url",
+   "foo @", [2,3,6,7,10,11]],
+  ["10: foo + -> is tag",
+   "foo +", [8,9,10,11]],
+
+  
+  ["11: foo ^ * -> history, is star",
+   "foo ^ *", [5,10]],
+  ["12: foo ^ # -> history, in title",
+   "foo ^ #", [1,3,5,10]],
+  ["13: foo ^ @ -> history, in url",
+   "foo ^ @", [2,3,10]],
+  ["14: foo ^ + -> history, is tag",
+   "foo ^ +", [10]],
+  ["15: foo * # -> is star, in title",
+   "foo * #", [5,7,8,9,10,11]],
+  ["16: foo * @ -> is star, in url",
+   "foo * @", [6,7,10,11]],
+  ["17: foo * + -> same as +",
+   "foo * +", [8,9,10,11]],
+  ["18: foo # @ -> in title, in url",
+   "foo # @", [3,7,10,11]],
+  ["19: foo # + -> in title, is tag",
+   "foo # +", [8,9,10,11]],
+  ["20: foo @ + -> in url, is tag",
+   "foo @ +", [10,11]],
+];

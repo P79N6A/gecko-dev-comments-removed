@@ -230,6 +230,15 @@ pref("browser.urlbar.search.timeout", 100);
 
 
 
+pref("browser.urlbar.restrict.history", "^");
+pref("browser.urlbar.restrict.bookmark", "*");
+pref("browser.urlbar.restrict.tag", "+");
+pref("browser.urlbar.match.title", "#");
+pref("browser.urlbar.match.url", "@");
+
+
+
+
 
 pref("browser.download.saveLinkAsFilenameTimeout", 1000);
 

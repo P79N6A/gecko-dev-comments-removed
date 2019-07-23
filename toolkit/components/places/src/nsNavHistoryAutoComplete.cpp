@@ -252,15 +252,13 @@ nsNavHistory::InitAutoComplete()
 nsresult
 nsNavHistory::CreateAutoCompleteQueries()
 {
-  nsCString sql = NS_LITERAL_CSTRING(
-    "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(" "
+  
+  nsCString sqlHead = NS_LITERAL_CSTRING(
+    "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
+      "h.visit_count "
     "FROM moz_places h "
     "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
     "WHERE h.frecency <> 0 ");
-
-  if (mAutoCompleteOnlyTyped)
-    sql += NS_LITERAL_CSTRING("AND h.typed = 1 ");
-
   
   
   
@@ -268,14 +266,32 @@ nsNavHistory::CreateAutoCompleteQueries()
   
   
   
-  sql += NS_LITERAL_CSTRING(
+  nsCString sqlTail = NS_LITERAL_CSTRING(
     "ORDER BY h.frecency DESC LIMIT ?2 OFFSET ?3");
-  nsresult rv = mDBConn->CreateStatement(sql, 
+
+  nsresult rv = mDBConn->CreateStatement(sqlHead + (mAutoCompleteOnlyTyped ?
+      NS_LITERAL_CSTRING("AND h.typed = 1 ") : EmptyCString()) + sqlTail,
     getter_AddRefs(mDBAutoCompleteQuery));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  sql = NS_LITERAL_CSTRING(
+  rv = mDBConn->CreateStatement(sqlHead +
+      NS_LITERAL_CSTRING("AND h.visit_count > 0 ") + sqlTail,
+    getter_AddRefs(mDBAutoCompleteHistoryQuery));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBConn->CreateStatement(sqlHead +
+      NS_LITERAL_CSTRING("AND bookmark IS NOT NULL ") + sqlTail,
+    getter_AddRefs(mDBAutoCompleteStarQuery));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBConn->CreateStatement(sqlHead +
+      NS_LITERAL_CSTRING("AND tags IS NOT NULL ") + sqlTail,
+    getter_AddRefs(mDBAutoCompleteTagsQuery));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCString sql = NS_LITERAL_CSTRING(
     "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
+      "h.visit_count, "
       "ROUND(MAX(((i.input = ?2) + (SUBSTR(i.input, 1, LENGTH(?2)) = ?2)) * "
                 "i.use_count), 1) rank "
     "FROM moz_inputhistory i "
@@ -293,7 +309,7 @@ nsNavHistory::CreateAutoCompleteQueries()
        "JOIN moz_favicons f ON f.id = r.favicon_id "
        "WHERE r.rev_host = s.rev_host "
        "ORDER BY r.frecency DESC LIMIT 1)), "
-      "b.parent, b.title, NULL "
+      "b.parent, b.title, NULL, h.visit_count "
     "FROM moz_keywords k "
     "JOIN moz_bookmarks b ON b.keyword_id = k.id "
     "JOIN moz_places s ON s.id = b.fk "
@@ -510,7 +526,8 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
       
       
       nsCString sql = NS_LITERAL_CSTRING(
-        "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(" "
+        "SELECT h.url, h.title, f.url") + BOOK_TAG_SQL + NS_LITERAL_CSTRING(", "
+          "h.visit_count "
         "FROM moz_places h "
         "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id "
         "WHERE h.url IN (");
@@ -558,7 +575,14 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   mLivemarkFeedURIs.Clear();
 
   
+  mRestrictHistory = mRestrictBookmark = mRestrictTag = PR_FALSE;
+  mMatchTitle = mMatchUrl = PR_FALSE;
+
+  
   GenerateSearchTokens();
+
+  
+  ProcessTokensForSpecialSearch();
 
   
   
@@ -634,6 +658,40 @@ nsNavHistory::AddSearchToken(nsAutoString &aToken)
     mCurrentSearchTokens.AppendString(aToken);
 }
 
+void
+nsNavHistory::ProcessTokensForSpecialSearch()
+{
+  
+  for (PRInt32 i = mCurrentSearchTokens.Count(); --i >= 0; ) {
+    PRBool needToRemove = PR_TRUE;
+    const nsString *token = mCurrentSearchTokens.StringAt(i);
+
+    if (token->Equals(mAutoCompleteRestrictHistory))
+      mRestrictHistory = PR_TRUE;
+    else if (token->Equals(mAutoCompleteRestrictBookmark))
+      mRestrictBookmark = PR_TRUE;
+    else if (token->Equals(mAutoCompleteRestrictTag))
+      mRestrictTag = PR_TRUE;
+    else if (token->Equals(mAutoCompleteMatchTitle))
+      mMatchTitle = PR_TRUE;
+    else if (token->Equals(mAutoCompleteMatchUrl))
+      mMatchUrl = PR_TRUE;
+    else
+      needToRemove = PR_FALSE;
+
+    
+    if (needToRemove)
+      (void)mCurrentSearchTokens.RemoveStringAt(i);
+  }
+
+  
+  
+  mDBCurrentQuery = mRestrictTag ? mDBAutoCompleteTagsQuery :
+    mRestrictBookmark ? mDBAutoCompleteStarQuery :
+    mRestrictHistory ? mDBAutoCompleteHistoryQuery :
+    mDBAutoCompleteQuery;
+}
+
 nsresult
 nsNavHistory::AutoCompleteKeywordSearch()
 {
@@ -673,7 +731,7 @@ nsNavHistory::AutoCompleteAdaptiveSearch()
   rv = mDBAdaptiveQuery->BindStringParameter(1, mCurrentSearchString);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = AutoCompleteProcessSearch(mDBAdaptiveQuery, QUERY_ADAPTIVE);
+  rv = AutoCompleteProcessSearch(mDBAdaptiveQuery, QUERY_FILTERED);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -685,7 +743,7 @@ nsNavHistory::AutoCompletePreviousSearch()
   nsresult rv = mDBPreviousQuery->BindInt32Parameter(0, GetTagsFolder());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = AutoCompleteProcessSearch(mDBPreviousQuery, QUERY_FULL);
+  rv = AutoCompleteProcessSearch(mDBPreviousQuery, QUERY_FILTERED);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -706,18 +764,18 @@ nsNavHistory::AutoCompletePreviousSearch()
 nsresult
 nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
 {
-  mozStorageStatementScoper scope(mDBAutoCompleteQuery);
+  mozStorageStatementScoper scope(mDBCurrentQuery);
 
-  nsresult rv = mDBAutoCompleteQuery->BindInt32Parameter(0, GetTagsFolder());
+  nsresult rv = mDBCurrentQuery->BindInt32Parameter(0, GetTagsFolder());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mDBAutoCompleteQuery->BindInt32Parameter(1, mAutoCompleteSearchChunkSize);
+  rv = mDBCurrentQuery->BindInt32Parameter(1, mAutoCompleteSearchChunkSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mDBAutoCompleteQuery->BindInt32Parameter(2, mCurrentChunkOffset);
+  rv = mDBCurrentQuery->BindInt32Parameter(2, mCurrentChunkOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = AutoCompleteProcessSearch(mDBAutoCompleteQuery, QUERY_FULL, aHasMoreResults);
+  rv = AutoCompleteProcessSearch(mDBCurrentQuery, QUERY_FILTERED, aHasMoreResults);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -781,6 +839,9 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
       nsAutoString entryTags;
       rv = aQuery->GetString(kAutoCompleteIndex_Tags, entryTags);
       NS_ENSURE_SUCCESS(rv, rv);
+      PRInt32 visitCount = 0;
+      rv = aQuery->GetInt32(kAutoCompleteIndex_VisitCount, &visitCount);
+      NS_ENSURE_SUCCESS(rv, rv);
 
       
       nsAutoString title =
@@ -799,17 +860,24 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
           break;
         }
-        case QUERY_FULL: {
+        case QUERY_FILTERED: {
           
           if (aHasMoreResults)
             *aHasMoreResults = PR_TRUE;
+
+          
+          
+          
+          
+          PRBool matchAll = !((mRestrictHistory && visitCount == 0) ||
+            (mRestrictBookmark && !parentId) ||
+            (mRestrictTag && entryTags.IsEmpty()));
 
           
           nsString entryURL = FixupURIText(escapedEntryURL);
 
           
           
-          PRBool matchAll = PR_TRUE;
           for (PRInt32 i = 0; i < mCurrentSearchTokens.Count() && matchAll; i++) {
             const nsString *token = mCurrentSearchTokens.StringAt(i);
 
@@ -817,11 +885,20 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
             PRBool matchTags = (*tokenMatchesTarget)(*token, entryTags);
             
             PRBool matchTitle = (*tokenMatchesTarget)(*token, title);
-            
-            PRBool matchUrl = (*tokenMatchesTarget)(*token, entryURL);
 
             
-            matchAll = matchTags || matchTitle || matchUrl;
+            matchAll = matchTags || matchTitle;
+            if (mMatchTitle && !matchAll)
+              break;
+
+            
+            PRBool matchUrl = (*tokenMatchesTarget)(*token, entryURL);
+            
+            
+            if (mMatchUrl && !matchUrl)
+              matchAll = PR_FALSE;
+            else
+              matchAll |= matchUrl;
           }
 
           
