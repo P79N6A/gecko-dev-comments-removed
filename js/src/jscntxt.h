@@ -121,9 +121,13 @@ struct JSThread {
 
 
     JSGSNCache          gsnCache;
+
+    
+    JSPropertyCache     propertyCache;
 };
 
-#define JS_GSN_CACHE(cx) ((cx)->thread->gsnCache)
+#define JS_GSN_CACHE(cx)        ((cx)->thread->gsnCache)
+#define JS_PROPERTY_CACHE(cx)   ((cx)->thread->propertyCache)
 
 extern void JS_DLL_CALLBACK
 js_ThreadDestructorCB(void *ptr);
@@ -386,8 +390,26 @@ struct JSRuntime {
 
     JSGSNCache          gsnCache;
 
-#define JS_GSN_CACHE(cx) ((cx)->runtime->gsnCache)
+    
+    JSPropertyCache     propertyCache;
+
+#define JS_GSN_CACHE(cx)        ((cx)->runtime->gsnCache)
+#define JS_PROPERTY_CACHE(cx)   ((cx)->runtime->propertyCache)
 #endif
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    uint32              shapeGen;
 
     
     JSAtomState         atomState;

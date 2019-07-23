@@ -112,9 +112,29 @@ typedef struct JSFatLockTable {
 
 
 
+
+
+
+
+
+
 JS_END_EXTERN_C
 #include "jsscope.h"
 JS_BEGIN_EXTERN_C
+
+#ifdef JS_DEBUG_SCOPE_LOCKS
+
+#define SET_OBJ_INFO(obj_,file_,line_)                                        \
+    SET_SCOPE_INFO(OBJ_SCOPE(obj_),file_,line_)
+
+#define SET_SCOPE_INFO(scope_,file_,line_)                                    \
+    ((scope_)->ownercx ? (void)0 :                                            \
+     (JS_ASSERT((0 < (scope_)->u.count && (scope_)->u.count <= 4) ||          \
+                SCOPE_IS_SEALED(scope_)),                                     \
+      (void)((scope_)->file[(scope_)->u.count-1] = (file_),                   \
+             (scope_)->line[(scope_)->u.count-1] = (line_))))
+
+#endif
 
 #define JS_LOCK_RUNTIME(rt)         js_LockRuntime(rt)
 #define JS_UNLOCK_RUNTIME(rt)       js_UnlockRuntime(rt)
@@ -126,18 +146,20 @@ JS_BEGIN_EXTERN_C
 
 
 
-#define JS_LOCK_OBJ(cx,obj)         ((OBJ_SCOPE(obj)->ownercx == (cx))        \
-                                     ? (void)0                                \
-                                     : (js_LockObj(cx, obj)))
-#define JS_UNLOCK_OBJ(cx,obj)       ((OBJ_SCOPE(obj)->ownercx == (cx))        \
-                                     ? (void)0 : js_UnlockObj(cx, obj))
+#define JS_LOCK_OBJ(cx,obj)       ((OBJ_SCOPE(obj)->ownercx == (cx))          \
+                                   ? (void)0                                  \
+                                   : (js_LockObj(cx, obj),                    \
+                                      SET_OBJ_INFO(obj,__FILE__,__LINE__)))
+#define JS_UNLOCK_OBJ(cx,obj)     ((OBJ_SCOPE(obj)->ownercx == (cx))          \
+                                   ? (void)0 : js_UnlockObj(cx, obj))
 
-#define JS_LOCK_SCOPE(cx,scope)     ((scope)->ownercx == (cx) ? (void)0       \
-                                     : js_LockScope(cx, scope))
-#define JS_UNLOCK_SCOPE(cx,scope)   ((scope)->ownercx == (cx) ? (void)0       \
-                                     : js_UnlockScope(cx, scope))
+#define JS_LOCK_SCOPE(cx,scope)   ((scope)->ownercx == (cx) ? (void)0         \
+                                   : (js_LockScope(cx, scope),                \
+                                      SET_SCOPE_INFO(scope,__FILE__,__LINE__)))
+#define JS_UNLOCK_SCOPE(cx,scope) ((scope)->ownercx == (cx) ? (void)0         \
+                                   : js_UnlockScope(cx, scope))
 #define JS_TRANSFER_SCOPE_LOCK(cx, scope, newscope)                           \
-                                    js_TransferScopeLock(cx, scope, newscope)
+                                  js_TransferScopeLock(cx, scope, newscope)
 
 extern void js_LockRuntime(JSRuntime *rt);
 extern void js_UnlockRuntime(JSRuntime *rt);
@@ -265,6 +287,13 @@ JS_BEGIN_EXTERN_C
 
 #define JS_LOCK(P,CX)               JS_LOCK0(P, CX_THINLOCK_ID(CX))
 #define JS_UNLOCK(P,CX)             JS_UNLOCK0(P, CX_THINLOCK_ID(CX))
+ 
+#ifndef SET_OBJ_INFO
+#define SET_OBJ_INFO(obj,f,l)       ((void)0)
+#endif
+#ifndef SET_SCOPE_INFO
+#define SET_SCOPE_INFO(scope,f,l)   ((void)0)
+#endif
 
 JS_END_EXTERN_C
 

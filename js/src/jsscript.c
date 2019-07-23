@@ -1390,6 +1390,9 @@ js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
               nsrcnotes * sizeof(jssrcnote) ==
               (uint8 *)script + size);
 
+#ifdef CHECK_SCRIPT_OWNER
+    script->owner = cx->thread;
+#endif
     return script;
 }
 
@@ -1454,6 +1457,9 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         JS_ASSERT(FUN_INTERPRETED(fun) && !FUN_SCRIPT(fun));
         js_FreezeLocalNames(cx, fun);
         fun->u.i.script = script;
+#ifdef CHECK_SCRIPT_OWNER
+        script->owner = NULL;
+#endif
         if (cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT)
             fun->flags |= JSFUN_HEAVYWEIGHT;
         if (fun->flags & JSFUN_HEAVYWEIGHT)
@@ -1502,12 +1508,40 @@ void
 js_DestroyScript(JSContext *cx, JSScript *script)
 {
     js_CallDestroyScriptHook(cx, script);
-
     JS_ClearScriptTraps(cx, script);
+
     if (script->principals)
         JSPRINCIPALS_DROP(cx, script->principals);
+
     if (JS_GSN_CACHE(cx).script == script)
         JS_CLEAR_GSN_CACHE(cx);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef CHECK_SCRIPT_OWNER
+    JS_ASSERT_IF(cx->runtime->gcRunning, !script->owner);
+#endif
+
+    if (!cx->runtime->gcRunning &&
+        !(cx->fp && (cx->fp->flags & JSFRAME_EVAL))) {
+#ifdef CHECK_SCRIPT_OWNER
+        JS_ASSERT(script->owner == cx->thread);
+#endif
+        js_FlushPropertyCacheForScript(cx, script);
+    }
+
     JS_free(cx, script);
 }
 

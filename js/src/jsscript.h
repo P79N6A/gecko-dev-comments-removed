@@ -38,7 +38,6 @@
 
 
 
-
 #ifndef jsscript_h___
 #define jsscript_h___
 
@@ -84,6 +83,10 @@ typedef struct JSObjectArray {
 #define JS_OBJECT_ARRAY_SIZE(length)                                          \
     (offsetof(JSObjectArray, vector) + sizeof(JSObject *) * (length))
 
+#if defined DEBUG && defined JS_THREADSAFE
+# define CHECK_SCRIPT_OWNER 1
+#endif
+
 struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
@@ -103,6 +106,9 @@ struct JSScript {
     uintN           depth;      
     JSPrincipals    *principals;
     JSObject        *object;    
+#ifdef CHECK_SCRIPT_OWNER
+    JSThread        *owner;     
+#endif
 };
 
 

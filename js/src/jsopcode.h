@@ -125,6 +125,10 @@ typedef enum JSOpLength {
 #define JOF_TMPSLOT_SHIFT 23
 
 
+#define JOF_TYPE(fmt)   ((fmt) & JOF_TYPEMASK)
+#define JOF_OPTYPE(op)  JOF_TYPE(js_CodeSpec[op].format)
+
+
 #define JOF_MODE(fmt)   ((fmt) & JOF_MODEMASK)
 #define JOF_OPMODE(op)  JOF_MODE(js_CodeSpec[op].format)
 

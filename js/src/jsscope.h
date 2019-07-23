@@ -44,13 +44,10 @@
 
 
 #include "jstypes.h"
+#include "jslock.h"
 #include "jsobj.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
-
-#ifdef JS_THREADSAFE
-# include "jslock.h"
-#endif
 
 JS_BEGIN_EXTERN_C
 
@@ -201,6 +198,7 @@ JS_BEGIN_EXTERN_C
 struct JSScope {
     JSObjectMap     map;                
     JSObject        *object;            
+    uint32          shape;              
     uint8           flags;              
     int8            hashShift;          
     uint16          spare;              
@@ -215,7 +213,7 @@ struct JSScope {
         jsrefcount  count;              
         JSScope     *link;              
     } u;
-#ifdef DEBUG
+#ifdef JS_DEBUG_SCOPE_LOCKS
     const char      *file[4];           
     unsigned int    line[4];            
 #endif
@@ -223,6 +221,7 @@ struct JSScope {
 };
 
 #define OBJ_SCOPE(obj)                  ((JSScope *)(obj)->map)
+#define SCOPE_GENERATE_PCTYPE(cx,scope) ((scope)->shape = js_GenerateShape(cx))
 
 
 #define SCOPE_CAPACITY(scope)           JS_BIT(JS_DHASH_BITS-(scope)->hashShift)
@@ -230,6 +229,7 @@ struct JSScope {
 
 #define SCOPE_MIDDLE_DELETE             0x0001
 #define SCOPE_SEALED                    0x0002
+#define SCOPE_BRANDED                   0x0004
 
 #define SCOPE_HAD_MIDDLE_DELETE(scope)  ((scope)->flags & SCOPE_MIDDLE_DELETE)
 #define SCOPE_SET_MIDDLE_DELETE(scope)  ((scope)->flags |= SCOPE_MIDDLE_DELETE)
@@ -242,8 +242,17 @@ struct JSScope {
 
 
 
-#define SCOPE_CLR_SEALED(scope)         ((scope)->flags &= ~SCOPE_SEALED)
+#undef  SCOPE_CLR_SEALED(scope)         ((scope)->flags &= ~SCOPE_SEALED)
 #endif
+
+
+
+
+
+
+#define SCOPE_IS_BRANDED(scope)         ((scope)->flags & SCOPE_BRANDED)
+#define SCOPE_SET_BRANDED(scope)        ((scope)->flags |= SCOPE_BRANDED)
+#define SCOPE_CLR_BRANDED(scope)        ((scope)->flags &= ~SCOPE_BRANDED)
 
 
 
@@ -264,6 +273,7 @@ struct JSScopeProperty {
     JSScopeProperty *parent;            
     JSScopeProperty *kids;              
 
+    uint32          shape;              
 };
 
 
@@ -290,6 +300,7 @@ struct JSScopeProperty {
 #define SPROP_MARK                      0x01
 #define SPROP_IS_ALIAS                  0x02
 #define SPROP_HAS_SHORTID               0x04
+#define SPROP_FLAG_SHAPE_REGEN          0x08
 
 
 
