@@ -11,6 +11,9 @@
 
 
 
+
+
+
 #define PNG_INTERNAL
 #include "png.h"
 #if defined(PNG_READ_SUPPORTED)
@@ -77,6 +80,7 @@ png_get_uint_32(png_bytep buf)
 
 
 
+
 png_int_32 PNGAPI
 png_get_int_32(png_bytep buf)
 {
@@ -132,10 +136,12 @@ png_read_chunk_header(png_structp png_ptr)
 void 
 png_crc_read(png_structp png_ptr, png_bytep buf, png_size_t length)
 {
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_read_data(png_ptr, buf, length);
    png_calculate_crc(png_ptr, buf, length);
 }
+
 
 
 
@@ -159,7 +165,7 @@ png_crc_finish(png_structp png_ptr, png_uint_32 skip)
    if (png_crc_error(png_ptr))
    {
       if (((png_ptr->chunk_name[0] & 0x20) &&                
-           !(png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN)) ||
+          !(png_ptr->flags & PNG_FLAG_CRC_ANCILLARY_NOWARN)) ||
           (!(png_ptr->chunk_name[0] & 0x20) &&             
           (png_ptr->flags & PNG_FLAG_CRC_CRITICAL_USE)))
       {
@@ -174,6 +180,7 @@ png_crc_finish(png_structp png_ptr, png_uint_32 skip)
 
    return (0);
 }
+
 
 
 
@@ -331,14 +338,17 @@ png_decompress_chunk(png_structp png_ptr, int comp_type,
             png_snprintf(umsg, 52,
                 "Buffer error in compressed datastream in %s chunk",
                 png_ptr->chunk_name);
+
          else if (ret == Z_DATA_ERROR)
             png_snprintf(umsg, 52,
                 "Data error in compressed datastream in %s chunk",
                 png_ptr->chunk_name);
+
          else
             png_snprintf(umsg, 52,
                 "Incomplete compressed datastream in %s chunk",
                 png_ptr->chunk_name);
+
          png_warning(png_ptr, umsg);
 #else
          png_warning(png_ptr,
@@ -437,12 +447,15 @@ png_handle_IHDR(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
       case PNG_COLOR_TYPE_PALETTE:
          png_ptr->channels = 1;
          break;
+
       case PNG_COLOR_TYPE_RGB:
          png_ptr->channels = 3;
          break;
+
       case PNG_COLOR_TYPE_GRAY_ALPHA:
          png_ptr->channels = 2;
          break;
+
       case PNG_COLOR_TYPE_RGB_ALPHA:
          png_ptr->channels = 4;
          break;
@@ -473,12 +486,14 @@ png_handle_PLTE(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
    if (!(png_ptr->mode & PNG_HAVE_IHDR))
       png_error(png_ptr, "Missing IHDR before PLTE");
+
    else if (png_ptr->mode & PNG_HAVE_IDAT)
    {
       png_warning(png_ptr, "Invalid PLTE after IDAT");
       png_crc_finish(png_ptr, length);
       return;
    }
+
    else if (png_ptr->mode & PNG_HAVE_PLTE)
       png_error(png_ptr, "Duplicate PLTE chunk");
 
@@ -507,6 +522,7 @@ png_handle_PLTE(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
          png_crc_finish(png_ptr, length);
          return;
       }
+
       else
       {
          png_error(png_ptr, "Invalid palette chunk");
@@ -539,6 +555,7 @@ png_handle_PLTE(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 #endif
 
    
+
 
 
 
@@ -1050,6 +1067,7 @@ png_handle_iCCP(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    ++profile;
 
    
+
 
    if ( profile >= png_ptr->chunkdata + slength - 1)
    {
@@ -2145,6 +2163,7 @@ png_handle_iTXt(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
 
 
+
    if (lang >= png_ptr->chunkdata + slength - 3)
    {
       png_warning(png_ptr, "Truncated iTXt chunk");
@@ -2402,7 +2421,7 @@ png_handle_unknown(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
 
    if (!(png_ptr->chunk_name[0] & 0x20))
    {
-#if defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED)
+#if defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
       if (png_handle_as_unknown(png_ptr, png_ptr->chunk_name) !=
            PNG_HANDLE_CHUNK_ALWAYS
 #if defined(PNG_READ_USER_CHUNKS_SUPPORTED)
@@ -2414,8 +2433,11 @@ png_handle_unknown(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
    }
 
 #if defined(PNG_READ_UNKNOWN_CHUNKS_SUPPORTED)
-   if ((png_ptr->flags & PNG_FLAG_KEEP_UNKNOWN_CHUNKS) ||
-       (png_ptr->read_user_chunk_fn != NULL))
+   if ((png_ptr->flags & PNG_FLAG_KEEP_UNKNOWN_CHUNKS)
+#if defined(PNG_READ_USER_CHUNKS_SUPPORTED)
+       || (png_ptr->read_user_chunk_fn != NULL)
+#endif
+        )
    {
 #ifdef PNG_MAX_MALLOC_64K
        if (length > (png_uint_32)65535L)
@@ -2426,7 +2448,7 @@ png_handle_unknown(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
        }
 #endif
        png_memcpy((png_charp)png_ptr->unknown_chunk.name,
-                  (png_charp)png_ptr->chunk_name, 
+                  (png_charp)png_ptr->chunk_name,
                   png_sizeof(png_ptr->unknown_chunk.name));
        png_ptr->unknown_chunk.name[png_sizeof(png_ptr->unknown_chunk.name)-1] = '\0';
        png_ptr->unknown_chunk.size = (png_size_t)length;
@@ -2449,8 +2471,10 @@ png_handle_unknown(png_structp png_ptr, png_infop info_ptr, png_uint_32 length)
           if (ret == 0)
           {
              if (!(png_ptr->chunk_name[0] & 0x20))
+#if defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
                 if (png_handle_as_unknown(png_ptr, png_ptr->chunk_name) !=
                      PNG_HANDLE_CHUNK_ALWAYS)
+#endif
                    png_chunk_error(png_ptr, "unknown critical chunk");
              png_set_unknown_chunks(png_ptr, info_ptr,
                &png_ptr->unknown_chunk, 1);
@@ -3054,6 +3078,7 @@ png_read_filter_row(png_structp png_ptr, png_row_infop row_info, png_bytep row,
    }
 }
 
+#ifndef PNG_NO_SEQUENTIAL_READ_SUPPORTED
 void 
 png_read_finish_row(png_structp png_ptr)
 {
@@ -3185,6 +3210,7 @@ png_read_finish_row(png_structp png_ptr)
 
    png_ptr->mode |= PNG_AFTER_IDAT;
 }
+#endif 
 
 void 
 png_read_start_row(png_structp png_ptr)
@@ -3341,8 +3367,10 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
 
    
 
+
    row_bytes = ((png_ptr->width + 7) & ~((png_uint_32)7));
    
+
 
    row_bytes = PNG_ROWBYTES(max_pixel_depth, row_bytes) +
       1 + ((max_pixel_depth + 7) >> 3);
@@ -3354,27 +3382,30 @@ defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
    if (row_bytes + 64 > png_ptr->old_big_row_buf_size)
    {
      png_free(png_ptr, png_ptr->big_row_buf);
-     png_ptr->big_row_buf = (png_bytep)png_malloc(png_ptr, row_bytes+64);
-     png_ptr->row_buf = png_ptr->big_row_buf+32;
-     png_ptr->old_big_row_buf_size = row_bytes+64;
+     png_ptr->big_row_buf = (png_bytep)png_malloc(png_ptr, row_bytes + 64);
+     if (png_ptr->interlaced)
+       png_memset(png_ptr->big_row_buf, 0, row_bytes + 64);
+     png_ptr->row_buf = png_ptr->big_row_buf + 32;
+     png_ptr->old_big_row_buf_size = row_bytes + 64;
    }
 
 #ifdef PNG_MAX_MALLOC_64K
-   if ((png_uint_32)png_ptr->rowbytes + 1 > (png_uint_32)65536L)
+   if ((png_uint_32)row_bytes + 1 > (png_uint_32)65536L)
       png_error(png_ptr, "This image requires a row greater than 64KB");
 #endif
-   if ((png_uint_32)png_ptr->rowbytes > (png_uint_32)(PNG_SIZE_MAX - 1))
+   if ((png_uint_32)row_bytes > (png_uint_32)(PNG_SIZE_MAX - 1))
       png_error(png_ptr, "Row has too many bytes to allocate in memory.");
 
-   if (png_ptr->rowbytes+1 > png_ptr->old_prev_row_size)
+   if (row_bytes + 1 > png_ptr->old_prev_row_size)
    {
-     png_free(png_ptr, png_ptr->prev_row);
-     png_ptr->prev_row = (png_bytep)png_malloc(png_ptr, (png_uint_32)(
-        png_ptr->rowbytes + 1));
-     png_ptr->old_prev_row_size = png_ptr->rowbytes+1;
+      png_free(png_ptr, png_ptr->prev_row);
+      png_ptr->prev_row = (png_bytep)png_malloc(png_ptr, (png_uint_32)(
+        row_bytes + 1));
+      png_memset_check(png_ptr, png_ptr->prev_row, 0, row_bytes + 1);
+      png_ptr->old_prev_row_size = row_bytes + 1;
    }
 
-   png_memset_check(png_ptr, png_ptr->prev_row, 0, png_ptr->rowbytes + 1);
+   png_ptr->rowbytes = row_bytes;
 
    png_debug1(3, "width = %lu,", png_ptr->width);
    png_debug1(3, "height = %lu,", png_ptr->height);
@@ -3406,6 +3437,8 @@ png_read_reinit(png_structp png_ptr, png_infop info_ptr)
     png_ptr->width = info_ptr->next_frame_width;
     png_ptr->height = info_ptr->next_frame_height;
     png_ptr->rowbytes = PNG_ROWBYTES(png_ptr->pixel_depth,png_ptr->width);
+    if (png_ptr->prev_row)
+       png_memset_check(png_ptr, png_ptr->prev_row, 0, png_ptr->rowbytes + 1);
 }
 
 

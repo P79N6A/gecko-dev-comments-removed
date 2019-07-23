@@ -14,12 +14,15 @@
 
 
 
+
+
+
 #ifndef PNGCONF_H
 #define PNGCONF_H
+#include "mozpngconf.h"
+
 
 #define PNG_1_2_X
-
-#include "mozpngconf.h"
 
 
 
@@ -213,8 +216,8 @@
 #        if !defined(PNG_DLL)
 #          define PNG_DLL
 #        endif
-#      endif  
-#    endif  
+#      endif
+#    endif
 #  endif
 #endif
 
@@ -318,18 +321,26 @@
 
 
 
-#  ifdef __linux__
-#    ifdef _BSD_SOURCE
-#      define PNG_SAVE_BSD_SOURCE
-#      undef _BSD_SOURCE
-#    endif
-#    ifdef _SETJMP_H
-     
 
 
-         __pngconf.h__ already includes setjmp.h;
-         __dont__ include it again.;
-#    endif
+
+
+
+
+#  ifndef PNG_SKIP_SETJMP_CHECK
+#    ifdef __linux__
+#      ifdef _BSD_SOURCE
+#        define PNG_SAVE_BSD_SOURCE
+#        undef _BSD_SOURCE
+#      endif
+#      ifdef _SETJMP_H
+       
+
+
+           __pngconf.h__ in libpng already includes setjmp.h;
+           __dont__ include it again.;
+#      endif
+#    endif 
 #  endif 
 
    
@@ -515,6 +526,7 @@
 #  define PNG_NO_FREE_ME
 #  define PNG_NO_READ_UNKNOWN_CHUNKS
 #  define PNG_NO_WRITE_UNKNOWN_CHUNKS
+#  define PNG_NO_HANDLE_AS_UNKNOWN
 #  define PNG_NO_READ_USER_CHUNKS
 #  define PNG_NO_READ_iCCP
 #  define PNG_NO_WRITE_iCCP
@@ -544,7 +556,7 @@
 #  define PNG_FREE_ME_SUPPORTED
 #endif
 
-#if defined(PNG_READ_SUPPORTED)
+#ifdef PNG_READ_SUPPORTED
 
 #if !defined(PNG_READ_TRANSFORMS_NOT_SUPPORTED) && \
       !defined(PNG_NO_READ_TRANSFORMS)
@@ -632,7 +644,7 @@
 
 #endif 
 
-#if defined(PNG_WRITE_SUPPORTED)
+#ifdef PNG_WRITE_SUPPORTED
 
 # if !defined(PNG_WRITE_TRANSFORMS_NOT_SUPPORTED) && \
     !defined(PNG_NO_WRITE_TRANSFORMS)
@@ -803,7 +815,6 @@
 #endif
 
 
-
 #ifndef PNG_STRING_NEWLINE
 #define PNG_STRING_NEWLINE "\n"
 #endif
@@ -931,21 +942,29 @@
 #  define PNG_READ_tRNS_SUPPORTED
 #  define PNG_tRNS_SUPPORTED
 #endif
-#ifndef PNG_NO_READ_zTXt
-#  define PNG_READ_zTXt_SUPPORTED
-#  define PNG_zTXt_SUPPORTED
-#endif
 #ifndef PNG_NO_READ_APNG
 #  define PNG_READ_APNG_SUPPORTED
 #  define PNG_APNG_SUPPORTED
 #endif
+#ifndef PNG_NO_READ_zTXt
+#  define PNG_READ_zTXt_SUPPORTED
+#  define PNG_zTXt_SUPPORTED
+#endif
+#ifndef PNG_NO_READ_OPT_PLTE
+#  define PNG_READ_OPT_PLTE_SUPPORTED
+#endif                      
+#if defined(PNG_READ_iTXt_SUPPORTED) || defined(PNG_READ_tEXt_SUPPORTED) || \
+    defined(PNG_READ_zTXt_SUPPORTED)
+#  define PNG_READ_TEXT_SUPPORTED
+#  define PNG_TEXT_SUPPORTED
+#endif
+
+#endif 
+
 #ifndef PNG_NO_READ_UNKNOWN_CHUNKS
 #  define PNG_READ_UNKNOWN_CHUNKS_SUPPORTED
 #  ifndef PNG_UNKNOWN_CHUNKS_SUPPORTED
 #    define PNG_UNKNOWN_CHUNKS_SUPPORTED
-#  endif
-#  ifndef PNG_NO_HANDLE_AS_UNKNOWN
-#    define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 #  endif
 #endif
 #if !defined(PNG_NO_READ_USER_CHUNKS) && \
@@ -959,17 +978,14 @@
 #    undef PNG_NO_HANDLE_AS_UNKNOWN
 #  endif
 #endif
-#ifndef PNG_NO_READ_OPT_PLTE
-#  define PNG_READ_OPT_PLTE_SUPPORTED
-#endif                      
-#if defined(PNG_READ_iTXt_SUPPORTED) || defined(PNG_READ_tEXt_SUPPORTED) || \
-    defined(PNG_READ_zTXt_SUPPORTED)
-#  define PNG_READ_TEXT_SUPPORTED
-#  define PNG_TEXT_SUPPORTED
+
+#ifndef PNG_NO_HANDLE_AS_UNKNOWN
+#  ifndef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#    define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#  endif
 #endif
 
-#endif 
-
+#ifdef PNG_WRITE_SUPPORTED
 #ifdef PNG_WRITE_ANCILLARY_CHUNKS_SUPPORTED
 
 #ifdef PNG_NO_WRITE_TEXT
@@ -1081,23 +1097,6 @@
 #    define PNG_zTXt_SUPPORTED
 #  endif
 #endif
-#ifndef PNG_NO_WRITE_APNG
-#  define PNG_WRITE_APNG_SUPPORTED
-#  ifndef PNG_APNG_SUPPORTED
-#    define PNG_APNG_SUPPORTED
-#  endif
-#endif
-#ifndef PNG_NO_WRITE_UNKNOWN_CHUNKS
-#  define PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED
-#  ifndef PNG_UNKNOWN_CHUNKS_SUPPORTED
-#    define PNG_UNKNOWN_CHUNKS_SUPPORTED
-#  endif
-#  ifndef PNG_NO_HANDLE_AS_UNKNOWN
-#     ifndef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-#       define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-#     endif
-#  endif
-#endif
 #if defined(PNG_WRITE_iTXt_SUPPORTED) || defined(PNG_WRITE_tEXt_SUPPORTED) || \
     defined(PNG_WRITE_zTXt_SUPPORTED)
 #  define PNG_WRITE_TEXT_SUPPORTED
@@ -1105,7 +1104,29 @@
 #    define PNG_TEXT_SUPPORTED
 #  endif
 #endif
+#ifndef PNG_NO_WRITE_APNG
+#  ifndef PNG_WRITE_APNG_SUPPORTED
+#    define PNG_WRITE_APNG_SUPPORTED
+#  endif
+#  ifndef PNG_APNG_SUPPORTED
+#    define PNG_APNG_SUPPORTED
+#  endif
+#endif
 
+#endif 
+
+#ifndef PNG_NO_WRITE_UNKNOWN_CHUNKS
+#  define PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED
+#  ifndef PNG_UNKNOWN_CHUNKS_SUPPORTED
+#    define PNG_UNKNOWN_CHUNKS_SUPPORTED
+#  endif
+#endif
+
+#ifndef PNG_NO_HANDLE_AS_UNKNOWN
+#  ifndef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#    define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
+#  endif
+#endif
 #endif 
 
 
@@ -1326,7 +1347,7 @@ typedef z_stream FAR *  png_zstreamp;
 #  define PNGAPI __cdecl
 #  undef PNG_IMPEXP
 #  define PNG_IMPEXP
-#endif  
+#endif
 
 
 

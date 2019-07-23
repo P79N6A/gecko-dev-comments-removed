@@ -15,9 +15,13 @@
 
 
 
+
+
+
 #define PNG_INTERNAL
 #include "png.h"
 #if defined(PNG_READ_SUPPORTED)
+
 
 
 
@@ -39,13 +43,15 @@ png_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 
 
 
+
 #ifndef USE_FAR_KEYWORD
 void PNGAPI
 png_default_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
    png_size_t check;
 
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    
 
 
@@ -76,7 +82,8 @@ png_default_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
    png_byte *n_data;
    png_FILE_p io_ptr;
 
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    
    n_data = (png_byte *)CVT_PTR_NOCHECK(data);
    io_ptr = (png_FILE_p)CVT_PTR(png_ptr->io_ptr);
@@ -133,11 +140,15 @@ png_default_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 
 
 
+
+
+
 void PNGAPI
 png_set_read_fn(png_structp png_ptr, png_voidp io_ptr,
    png_rw_ptr read_data_fn)
 {
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->io_ptr = io_ptr;
 
 #if !defined(PNG_NO_STDIO)

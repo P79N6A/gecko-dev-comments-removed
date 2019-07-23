@@ -8,6 +8,9 @@
 
 
 
+
+
+
 #define PNG_INTERNAL
 #include "png.h"
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
@@ -18,7 +21,8 @@ void PNGAPI
 png_set_bgr(png_structp png_ptr)
 {
    png_debug(1, "in png_set_bgr");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->transformations |= PNG_BGR;
 }
 #endif
@@ -29,7 +33,8 @@ void PNGAPI
 png_set_swap(png_structp png_ptr)
 {
    png_debug(1, "in png_set_swap");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    if (png_ptr->bit_depth == 16)
       png_ptr->transformations |= PNG_SWAP_BYTES;
 }
@@ -41,7 +46,8 @@ void PNGAPI
 png_set_packing(png_structp png_ptr)
 {
    png_debug(1, "in png_set_packing");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    if (png_ptr->bit_depth < 8)
    {
       png_ptr->transformations |= PNG_PACK;
@@ -56,7 +62,8 @@ void PNGAPI
 png_set_packswap(png_structp png_ptr)
 {
    png_debug(1, "in png_set_packswap");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    if (png_ptr->bit_depth < 8)
       png_ptr->transformations |= PNG_PACKSWAP;
 }
@@ -67,7 +74,8 @@ void PNGAPI
 png_set_shift(png_structp png_ptr, png_color_8p true_bits)
 {
    png_debug(1, "in png_set_shift");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->transformations |= PNG_SHIFT;
    png_ptr->shift = *true_bits;
 }
@@ -99,7 +107,8 @@ void PNGAPI
 png_set_filler(png_structp png_ptr, png_uint_32 filler, int filler_loc)
 {
    png_debug(1, "in png_set_filler");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->transformations |= PNG_FILLER;
    png_ptr->filler = (png_byte)filler;
    if (filler_loc == PNG_FILLER_AFTER)
@@ -132,7 +141,8 @@ void PNGAPI
 png_set_add_alpha(png_structp png_ptr, png_uint_32 filler, int filler_loc)
 {
    png_debug(1, "in png_set_add_alpha");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_set_filler(png_ptr, filler, filler_loc);
    png_ptr->transformations |= PNG_ADD_ALPHA;
 }
@@ -146,7 +156,8 @@ void PNGAPI
 png_set_swap_alpha(png_structp png_ptr)
 {
    png_debug(1, "in png_set_swap_alpha");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->transformations |= PNG_SWAP_ALPHA;
 }
 #endif
@@ -157,7 +168,8 @@ void PNGAPI
 png_set_invert_alpha(png_structp png_ptr)
 {
    png_debug(1, "in png_set_invert_alpha");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->transformations |= PNG_INVERT_ALPHA;
 }
 #endif
@@ -167,7 +179,8 @@ void PNGAPI
 png_set_invert_mono(png_structp png_ptr)
 {
    png_debug(1, "in png_set_invert_mono");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
    png_ptr->transformations |= PNG_INVERT_MONO;
 }
 
@@ -404,9 +417,9 @@ png_do_strip_filler(png_row_infop row_info, png_bytep row, png_uint_32 flags)
       png_uint_32 i;
 
       if ((row_info->color_type == PNG_COLOR_TYPE_RGB ||
-         (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA &&
-         (flags & PNG_FLAG_STRIP_ALPHA))) &&
-         row_info->channels == 4)
+          (row_info->color_type == PNG_COLOR_TYPE_RGB_ALPHA &&
+          (flags & PNG_FLAG_STRIP_ALPHA))) &&
+          row_info->channels == 4)
       {
          if (row_info->bit_depth == 8)
          {
@@ -624,14 +637,15 @@ png_do_bgr(png_row_infop row_info, png_bytep row)
 #endif 
 
 #if defined(PNG_READ_USER_TRANSFORM_SUPPORTED) || \
-    defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED) || \
-    defined(PNG_LEGACY_SUPPORTED)
+    defined(PNG_LEGACY_SUPPORTED) || \
+    defined(PNG_WRITE_USER_TRANSFORM_SUPPORTED)
 void PNGAPI
 png_set_user_transform_info(png_structp png_ptr, png_voidp
    user_transform_ptr, int user_transform_depth, int user_transform_channels)
 {
    png_debug(1, "in png_set_user_transform_info");
-   if (png_ptr == NULL) return;
+   if (png_ptr == NULL)
+      return;
 #if defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
    png_ptr->user_transform_ptr = user_transform_ptr;
    png_ptr->user_transform_depth = (png_byte)user_transform_depth;
@@ -652,10 +666,12 @@ png_set_user_transform_info(png_structp png_ptr, png_voidp
 png_voidp PNGAPI
 png_get_user_transform_ptr(png_structp png_ptr)
 {
-   if (png_ptr == NULL) return (NULL);
+   if (png_ptr == NULL)
+      return (NULL);
 #if defined(PNG_USER_TRANSFORM_PTR_SUPPORTED)
    return ((png_voidp)png_ptr->user_transform_ptr);
-#endif
+#else
    return (NULL);
+#endif
 }
 #endif

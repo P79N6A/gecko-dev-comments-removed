@@ -13,6 +13,9 @@
 
 
 
+
+
+
 #define PNG_INTERNAL
 #include "png.h"
 #if defined(PNG_READ_SUPPORTED) || defined(PNG_WRITE_SUPPORTED)
@@ -44,7 +47,7 @@ png_error(png_structp png_ptr, png_const_charp error_message)
      {
        if (*error_message == '#')
        {
-         
+           
            int offset;
            for (offset = 1; offset<15; offset++)
               if (error_message[offset] == ' ')
@@ -229,15 +232,23 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
      if ((offset > 1) && (offset < 15))
      {
        error_number[offset - 1] = '\0';
-       fprintf(stderr, "libpng error no. %s: %s\n", error_number,
-          error_message + offset + 1);
+       fprintf(stderr, "libpng error no. %s: %s",
+          error_number, error_message + offset + 1);
+       fprintf(stderr, PNG_STRING_NEWLINE);
      }
      else
-       fprintf(stderr, "libpng error: %s, offset=%d\n", error_message, offset);
+     {
+       fprintf(stderr, "libpng error: %s, offset=%d",
+          error_message, offset);
+       fprintf(stderr, PNG_STRING_NEWLINE);
+     }
    }
    else
 #endif
-   fprintf(stderr, "libpng error: %s\n", error_message);
+   {
+      fprintf(stderr, "libpng error: %s", error_message);
+      fprintf(stderr, PNG_STRING_NEWLINE);
+   }
 #endif
 
 #ifdef PNG_SETJMP_SUPPORTED
@@ -285,15 +296,23 @@ png_default_warning(png_structp png_ptr, png_const_charp warning_message)
      if ((offset > 1) && (offset < 15))
      {
        warning_number[offset + 1] = '\0';
-       fprintf(stderr, "libpng warning no. %s: %s\n", warning_number,
-          warning_message + offset);
+       fprintf(stderr, "libpng warning no. %s: %s",
+          warning_number, warning_message + offset);
+       fprintf(stderr, PNG_STRING_NEWLINE);
      }
      else
-       fprintf(stderr, "libpng warning: %s\n", warning_message);
+     {
+       fprintf(stderr, "libpng warning: %s",
+          warning_message);
+       fprintf(stderr, PNG_STRING_NEWLINE);
+     }
    }
    else
 #  endif
-     fprintf(stderr, "libpng warning: %s\n", warning_message);
+   {
+     fprintf(stderr, "libpng warning: %s", warning_message);
+     fprintf(stderr, PNG_STRING_NEWLINE);
+   }
 #else
    warning_message = warning_message; 
 #endif

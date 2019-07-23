@@ -415,6 +415,31 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -425,9 +450,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.2.35"
+#define PNG_LIBPNG_VER_STRING "1.2.40"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.2.35 - February 14, 2009\n"
+   " libpng version 1.2.40 - September 10, 2009\n"
 
 #define PNG_LIBPNG_VER_SONUM   0
 #define PNG_LIBPNG_VER_DLLNUM  13
@@ -435,7 +460,8 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   2
-#define PNG_LIBPNG_VER_RELEASE 35
+#define PNG_LIBPNG_VER_RELEASE 40
+
 
 
 
@@ -447,7 +473,7 @@
 #define PNG_LIBPNG_BUILD_RC       3
 #define PNG_LIBPNG_BUILD_STABLE   4
 #define PNG_LIBPNG_BUILD_RELEASE_STATUS_MASK 7
-  
+
 
 #define PNG_LIBPNG_BUILD_PATCH    8 /* Can be OR'ed with
                                        PNG_LIBPNG_BUILD_STABLE only */
@@ -463,7 +489,8 @@
 
 
 
-#define PNG_LIBPNG_VER 10235 /* 1.2.35 */
+
+#define PNG_LIBPNG_VER 10240 /* 1.2.40 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -672,6 +699,7 @@ typedef png_text FAR * FAR * png_textpp;
 
 
 
+
 #define PNG_TEXT_COMPRESSION_NONE_WR -3
 #define PNG_TEXT_COMPRESSION_zTXt_WR -2
 #define PNG_TEXT_COMPRESSION_NONE    -1
@@ -698,7 +726,8 @@ typedef struct png_time_struct
 typedef png_time FAR * png_timep;
 typedef png_time FAR * FAR * png_timepp;
 
-#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
+#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED) || \
+ defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
 
 
 
@@ -933,7 +962,8 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
    png_uint_32 free_me;     
 #endif
 
-#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
+#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED) || \
+ defined(PNG_HANDLE_AS_UNKNOWN_SUPPORTED)
    
    png_unknown_chunkp unknown_chunks;
    png_size_t unknown_chunks_num;
@@ -994,7 +1024,7 @@ defined(PNG_READ_BACKGROUND_SUPPORTED)
    png_fixed_point int_y_blue;
 #endif
 
-#if defined(PNG_APNG_SUPPORTED)
+#ifdef PNG_APNG_SUPPORTED
    png_uint_32 num_frames; 
    png_uint_32 num_plays;
    png_uint_32 next_frame_width;
@@ -1108,8 +1138,10 @@ typedef png_info FAR * FAR * png_infopp;
 #define PNG_INFO_sPLT 0x2000   /* ESR, 1.0.6 */
 #define PNG_INFO_sCAL 0x4000   /* ESR, 1.0.6 */
 #define PNG_INFO_IDAT 0x8000L  /* ESR, 1.0.6 */
+#ifdef PNG_APNG_SUPPORTED
 #define PNG_INFO_acTL 0x10000L
 #define PNG_INFO_fcTL 0x20000L
+#endif
 
 
 
@@ -1150,7 +1182,7 @@ typedef void (PNGAPI *png_progressive_info_ptr) PNGARG((png_structp, png_infop))
 typedef void (PNGAPI *png_progressive_end_ptr) PNGARG((png_structp, png_infop));
 typedef void (PNGAPI *png_progressive_row_ptr) PNGARG((png_structp, png_bytep,
    png_uint_32, int));
-#if defined(PNG_APNG_SUPPORTED)
+#ifdef PNG_APNG_SUPPORTED
 typedef void (PNGAPI *png_progressive_frame_ptr) PNGARG((png_structp, 
    png_uint_32));
 #endif
@@ -1183,10 +1215,10 @@ typedef void (PNGAPI *png_unknown_chunk_ptr) PNGARG((png_structp));
 #define PNG_TRANSFORM_SWAP_ALPHA     0x0100    /* read and write */
 #define PNG_TRANSFORM_SWAP_ENDIAN    0x0200    /* read and write */
 #define PNG_TRANSFORM_INVERT_ALPHA   0x0400    /* read and write */
-#define PNG_TRANSFORM_STRIP_FILLER   0x0800    /* WRITE only, deprecated */
+#define PNG_TRANSFORM_STRIP_FILLER   0x0800    /* write only, deprecated */
 
-#define PNG_TRANSFORM_STRIP_FILLER_BEFORE 0x0800  /* WRITE only */
-#define PNG_TRANSFORM_STRIP_FILLER_AFTER  0x1000  /* WRITE only */
+#define PNG_TRANSFORM_STRIP_FILLER_BEFORE 0x0800  /* write only */
+#define PNG_TRANSFORM_STRIP_FILLER_AFTER  0x1000  /* write only */
 
 
 #define PNG_FLAG_MNG_EMPTY_PLTE     0x01
@@ -1303,7 +1335,7 @@ struct png_struct_def
 #endif 
 
 #if defined(PNG_WRITE_FLUSH_SUPPORTED)
-   png_flush_ptr output_flush_fn;
+   png_flush_ptr output_flush_fn; 
    png_uint_32 flush_dist;    
    png_uint_32 flush_rows;    
 #endif
@@ -1401,7 +1433,7 @@ struct png_struct_def
 
 
 #ifdef PNG_FREE_ME_SUPPORTED
-   png_uint_32 free_me;       
+   png_uint_32 free_me;   
 #endif
 
 #if defined(PNG_USER_CHUNKS_SUPPORTED)
@@ -1409,7 +1441,7 @@ struct png_struct_def
    png_user_chunk_ptr read_user_chunk_fn; 
 #endif
 
-#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
    int num_chunk_list;
    png_bytep chunk_list;
 #endif
@@ -1463,21 +1495,21 @@ struct png_struct_def
 
 
 #ifdef PNG_USER_MEM_SUPPORTED
-   png_voidp mem_ptr;                
-   png_malloc_ptr malloc_fn;         
-   png_free_ptr free_fn;             
+   png_voidp mem_ptr;            
+   png_malloc_ptr malloc_fn;     
+   png_free_ptr free_fn;         
 #endif
 
 
-   png_bytep big_row_buf;         
+   png_bytep big_row_buf;        
 
 #if defined(PNG_READ_DITHER_SUPPORTED)
 
-   png_bytep dither_sort;            
-   png_bytep index_to_palette;       
-                                     
-   png_bytep palette_to_index;       
-                                     
+   png_bytep dither_sort;        
+   png_bytep index_to_palette;   
+                                 
+   png_bytep palette_to_index;   
+                                 
 #endif
 
 
@@ -1488,13 +1520,13 @@ struct png_struct_def
    png_uint_32 user_height_max;
 #endif
 
-#if defined(PNG_APNG_SUPPORTED)
+#ifdef PNG_APNG_SUPPORTED
    png_uint_32 apng_flags;
    png_uint_32 next_seq_num;         
    png_uint_32 first_frame_width;
    png_uint_32 first_frame_height;
 
-#if defined(PNG_READ_APNG_SUPPORTED)
+#ifdef PNG_READ_APNG_SUPPORTED
    png_uint_32 num_frames_read;      
                                      
 #ifdef PNG_PROGRESSIVE_READ_SUPPORTED
@@ -1503,10 +1535,9 @@ struct png_struct_def
 #endif
 #endif
 
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+#ifdef PNG_WRITE_APNG_SUPPORTED
    png_uint_32 num_frames_to_write;
    png_uint_32 num_frames_written;
-#endif
 #endif
 
 
@@ -1520,6 +1551,7 @@ struct png_struct_def
 
 #define PNG_BLEND_OP_SOURCE        0x00
 #define PNG_BLEND_OP_OVER          0x01
+#endif 
 
 
 #if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
@@ -1539,7 +1571,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_2_35;
+typedef png_structp version_1_2_40;
 
 typedef png_struct FAR * FAR * png_structpp;
 
@@ -1854,7 +1886,7 @@ extern PNG_EXPORT(void,png_write_rows) PNGARG((png_structp png_ptr,
 extern PNG_EXPORT(void,png_write_image) PNGARG((png_structp png_ptr,
    png_bytepp image));
 
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+#ifdef PNG_WRITE_APNG_SUPPORTED
 extern PNG_EXPORT (void,png_write_frame_head) PNGARG((png_structp png_ptr,
    png_infop png_info, png_bytepp row_pointers,
    png_uint_32 width, png_uint_32 height,
@@ -2052,6 +2084,11 @@ extern PNG_EXPORT(png_voidp,png_get_error_ptr) PNGARG((png_structp png_ptr));
 
 
 
+
+
+
+
+
 extern PNG_EXPORT(void,png_set_write_fn) PNGARG((png_structp png_ptr,
    png_voidp io_ptr, png_rw_ptr write_data_fn, png_flush_ptr output_flush_fn));
 
@@ -2114,7 +2151,7 @@ extern PNG_EXPORT(void,png_set_progressive_read_fn) PNGARG((png_structp png_ptr,
    png_voidp progressive_ptr,
    png_progressive_info_ptr info_fn, png_progressive_row_ptr row_fn,
    png_progressive_end_ptr end_fn));
-#if defined(PNG_READ_APNG_SUPPORTED)
+#ifdef PNG_READ_APNG_SUPPORTED
 extern PNG_EXPORT(void,png_set_progressive_frame_fn) PNGARG((png_structp png_ptr,
    png_progressive_frame_ptr frame_info_fn,
    png_progressive_frame_ptr frame_end_fn));
@@ -2162,6 +2199,7 @@ extern PNG_EXPORT(void,png_zfree) PNGARG((voidpf png_ptr, voidpf ptr));
 extern PNG_EXPORT(void,png_free_data) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 free_me, int num));
 #ifdef PNG_FREE_ME_SUPPORTED
+
 
 
 extern PNG_EXPORT(void,png_data_freer) PNGARG((png_structp png_ptr,
@@ -2252,8 +2290,10 @@ png_infop info_ptr));
 #if defined(PNG_INFO_IMAGE_SUPPORTED)
 
 
+
 extern PNG_EXPORT(png_bytepp,png_get_rows) PNGARG((png_structp png_ptr,
 png_infop info_ptr));
+
 
 
 extern PNG_EXPORT(void,png_set_rows) PNGARG((png_structp png_ptr,
@@ -2556,7 +2596,7 @@ extern PNG_EXPORT(void,png_set_sCAL_s) PNGARG((png_structp png_ptr,
 #endif
 #endif 
 
-#if defined(PNG_APNG_SUPPORTED)
+#ifdef PNG_APNG_SUPPORTED
 extern PNG_EXPORT(png_uint_32,png_get_acTL) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_uint_32 *num_frames, png_uint_32 *num_plays));
 extern PNG_EXPORT(png_uint_32,png_set_acTL) PNGARG((png_structp png_ptr, 
@@ -2604,12 +2644,12 @@ extern PNG_EXPORT(png_uint_32,png_set_first_frame_is_hidden)
    PNGARG((png_structp png_ptr, png_infop info_ptr, png_byte is_hidden));
 #endif 
 
-#if defined(PNG_READ_APNG_SUPPORTED)
+#ifdef PNG_READ_APNG_SUPPORTED
 extern PNG_EXPORT(void,png_read_frame_head) PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 #endif
 
-#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
+#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 
 
 
@@ -2621,6 +2661,10 @@ extern PNG_EXPORT(void,png_read_frame_head) PNGARG((png_structp png_ptr,
 
 extern PNG_EXPORT(void, png_set_keep_unknown_chunks) PNGARG((png_structp
    png_ptr, int keep, png_bytep chunk_list, int num_chunks));
+PNG_EXPORT(int,png_handle_as_unknown) PNGARG((png_structp png_ptr, png_bytep
+   chunk_name));
+#endif
+#if defined(PNG_UNKNOWN_CHUNKS_SUPPORTED)
 extern PNG_EXPORT(void, png_set_unknown_chunks) PNGARG((png_structp png_ptr,
    png_infop info_ptr, png_unknown_chunkp unknowns, int num_unknowns));
 extern PNG_EXPORT(void, png_set_unknown_chunk_location)
@@ -2628,10 +2672,7 @@ extern PNG_EXPORT(void, png_set_unknown_chunk_location)
 extern PNG_EXPORT(png_uint_32,png_get_unknown_chunks) PNGARG((png_structp
    png_ptr, png_infop info_ptr, png_unknown_chunkpp entries));
 #endif
-#ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-PNG_EXPORT(int,png_handle_as_unknown) PNGARG((png_structp png_ptr, png_bytep
-   chunk_name));
-#endif
+
 
 
 
@@ -2678,64 +2719,73 @@ extern PNG_EXPORT(void, png_write_png) PNGARG((png_structp png_ptr,
 #ifndef PNG_DEBUG_FILE
 #define PNG_DEBUG_FILE stderr
 #endif 
+
 #if (PNG_DEBUG > 1)
-#ifndef png_debug
 
 
-#ifdef __STDC__
-#define png_debug(l,m) \
-{ \
-     int num_tabs=l; \
-     fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
-       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":"")))); \
-}
-#endif
-#ifndef png_debug1
-#define png_debug1(l,m,p1) \
-{ \
-     int num_tabs=l; \
-     fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
-       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))),p1); \
-}
-#endif
-#ifndef png_debug2
-#define png_debug2(l,m,p1,p2) \
-{ \
-     int num_tabs=l; \
-     fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
-       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))),p1,p2); \
-}
-#endif
-#else 
-#ifndef png_debug
-#define png_debug(l,m) \
-     int num_tabs=l; \
-     char format[256]; \
-     snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
-       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
-       m,PNG_STRING_NEWLINE); \
-     fprintf(PNG_DEBUG_FILE,format);
-#endif
-#ifndef png_debug1
-#define png_debug1(l,m,p1) \
-     int num_tabs=l; \
-     char format[256]; \
-     snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
-       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
-       m,PNG_STRING_NEWLINE); \
-     fprintf(PNG_DEBUG_FILE,format,p1);
-#endif
-#ifndef png_debug2
-#define png_debug2(l,m,p1,p2) \
-     int num_tabs=l; \
-     char format[256]; \
-     snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
-       (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
-       m,PNG_STRING_NEWLINE); \
-     fprintf(PNG_DEBUG_FILE,format,p1,p2);
-#endif
+
+#  ifdef __STDC__
+#    ifndef png_debug
+#      define png_debug(l,m) \
+       { \
+       int num_tabs=l; \
+       fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
+         (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":"")))); \
+       }
+#    endif
+#    ifndef png_debug1
+#      define png_debug1(l,m,p1) \
+       { \
+       int num_tabs=l; \
+       fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
+         (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))),p1); \
+       }
+#    endif
+#    ifndef png_debug2
+#      define png_debug2(l,m,p1,p2) \
+       { \
+       int num_tabs=l; \
+       fprintf(PNG_DEBUG_FILE,"%s"m PNG_STRING_NEWLINE,(num_tabs==1 ? "\t" : \
+         (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))),p1,p2); \
+       }
+#    endif
+#  else 
+#    ifndef png_debug
+#      define png_debug(l,m) \
+       { \
+       int num_tabs=l; \
+       char format[256]; \
+       snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
+         (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
+         m,PNG_STRING_NEWLINE); \
+       fprintf(PNG_DEBUG_FILE,format); \
+       }
+#    endif
+#    ifndef png_debug1
+#      define png_debug1(l,m,p1) \
+       { \
+       int num_tabs=l; \
+       char format[256]; \
+       snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
+         (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
+         m,PNG_STRING_NEWLINE); \
+       fprintf(PNG_DEBUG_FILE,format,p1); \
+       }
+#    endif
+#    ifndef png_debug2
+#      define png_debug2(l,m,p1,p2) \
+       { \
+       int num_tabs=l; \
+       char format[256]; \
+       snprintf(format,256,"%s%s%s",(num_tabs==1 ? "\t" : \
+         (num_tabs==2 ? "\t\t":(num_tabs>2 ? "\t\t\t":""))), \
+         m,PNG_STRING_NEWLINE); \
+       fprintf(PNG_DEBUG_FILE,format,p1,p2); \
+       }
+#    endif
+#  endif 
 #endif 
-#endif 
+
 #endif 
 #endif 
 #endif 
@@ -2831,6 +2881,8 @@ extern PNG_EXPORT(void,png_set_mmx_thresholds)
 
 extern PNG_EXPORT(int,png_mmx_support) PNGARG((void));
 #endif 
+#endif 
+
 
 
 
@@ -2838,8 +2890,6 @@ extern PNG_EXPORT(int,png_mmx_support) PNGARG((void));
 extern PNG_EXPORT(void,png_set_strip_error_numbers) PNGARG((png_structp
    png_ptr, png_uint_32 strip_mode));
 #endif
-
-#endif 
 
 
 #ifdef PNG_SET_USER_LIMITS_SUPPORTED
@@ -2850,6 +2900,8 @@ extern PNG_EXPORT(png_uint_32,png_get_user_width_max) PNGARG((png_structp
 extern PNG_EXPORT(png_uint_32,png_get_user_height_max) PNGARG((png_structp
    png_ptr));
 #endif
+
+
 
 
 
@@ -2963,8 +3015,10 @@ extern PNG_EXPORT(void,png_save_uint_16)
 #define PNG_BACKGROUND_IS_GRAY     0x800
 #define PNG_HAVE_PNG_SIGNATURE    0x1000
 #define PNG_HAVE_CHUNK_AFTER_IDAT 0x2000 /* Have another chunk after IDAT */
+#ifdef PNG_APNG_SUPPORTED
 #define PNG_HAVE_acTL             0x4000
 #define PNG_HAVE_fcTL             0x8000L
+#endif
 
 
 #define PNG_BGR                0x0001
@@ -3068,6 +3122,7 @@ extern PNG_EXPORT(void,png_save_uint_16)
 
 
 
+
 #define PNG_OUT_OF_RANGE(value, ideal, delta) \
         ( (value) < (ideal)-(delta) || (value) > (ideal)+(delta) )
 
@@ -3105,9 +3160,11 @@ extern PNG_EXPORT(void,png_save_uint_16)
 #define PNG_tIME png_byte png_tIME[5] = {116,  73,  77,  69, '\0'}
 #define PNG_tRNS png_byte png_tRNS[5] = {116,  82,  78,  83, '\0'}
 #define PNG_zTXt png_byte png_zTXt[5] = {122,  84,  88, 116, '\0'}
+#ifdef PNG_APNG_SUPPORTED
 #define PNG_acTL png_byte png_acTL[5] = { 97,  99,  84,  76, '\0'}
 #define PNG_fcTL png_byte png_fcTL[5] = {102,  99,  84,  76, '\0'}
 #define PNG_fdAT png_byte png_fdAT[5] = {102, 100,  65,  84, '\0'}
+#endif
 
 #ifdef PNG_USE_GLOBAL_ARRAYS
 PNG_EXPORT_VAR (png_byte FARDATA) png_IHDR[5];
@@ -3131,9 +3188,11 @@ PNG_EXPORT_VAR (png_byte FARDATA) png_tEXt[5];
 PNG_EXPORT_VAR (png_byte FARDATA) png_tIME[5];
 PNG_EXPORT_VAR (png_byte FARDATA) png_tRNS[5];
 PNG_EXPORT_VAR (png_byte FARDATA) png_zTXt[5];
+#ifdef PNG_APNG_SUPPORTED
 PNG_EXPORT_VAR (png_byte FARDATA) png_acTL[5];
 PNG_EXPORT_VAR (png_byte FARDATA) png_fcTL[5];
 PNG_EXPORT_VAR (png_byte FARDATA) png_fdAT[5];
+#endif
 #endif 
 
 #if defined(PNG_1_0_X) || defined (PNG_1_2_X)
@@ -3196,6 +3255,7 @@ PNG_EXTERN void png_zfree PNGARG((voidpf png_ptr, voidpf ptr));
 
    PNG_EXTERN png_size_t PNGAPI png_convert_size PNGARG((size_t size));
 #endif
+
 
 
 
@@ -3408,7 +3468,7 @@ PNG_EXTERN void png_write_sCAL_s PNGARG((png_structp png_ptr,
 #endif
 #endif
 
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+#ifdef PNG_WRITE_APNG_SUPPORTED
 PNG_EXTERN void png_write_acTL PNGARG((png_structp png_ptr,
    png_uint_32 num_frames, png_uint_32 num_plays));
 
@@ -3470,14 +3530,14 @@ PNG_EXTERN void png_read_start_row PNGARG((png_structp png_ptr));
 PNG_EXTERN void png_read_transform_info PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 
-#if defined(PNG_READ_APNG_SUPPORTED)
+#ifdef PNG_READ_APNG_SUPPORTED
 
 PNG_EXTERN void png_read_reset PNGARG((png_structp png_ptr));
 PNG_EXTERN void png_read_reinit PNGARG((png_structp png_ptr,
    png_infop info_ptr));
 PNG_EXTERN void png_progressive_read_reset PNGARG((png_structp png_ptr));
 #endif
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+#ifdef PNG_WRITE_APNG_SUPPORTED
 
 PNG_EXTERN void png_write_reset PNGARG((png_structp png_ptr));
 PNG_EXTERN void png_write_reinit PNGARG((png_structp png_ptr, 
@@ -3699,7 +3759,7 @@ PNG_EXTERN void png_handle_zTXt PNGARG((png_structp png_ptr, png_infop info_ptr,
    png_uint_32 length));
 #endif
 
-#if defined(PNG_READ_APNG_SUPPORTED)
+#ifdef PNG_READ_APNG_SUPPORTED
 PNG_EXTERN void png_handle_acTL PNGARG((png_structp png_ptr, png_infop info_ptr,
    png_uint_32 length));
 PNG_EXTERN void png_handle_fcTL PNGARG((png_structp png_ptr, png_infop info_ptr,
@@ -3818,6 +3878,14 @@ PNG_EXTERN int png_check_cHRM_fixed  PNGARG((png_structp png_ptr,
    png_fixed_point int_red_x, png_fixed_point int_red_y, png_fixed_point
    int_green_x, png_fixed_point int_green_y, png_fixed_point int_blue_x,
    png_fixed_point int_blue_y));
+#endif
+
+#if defined(PNG_cHRM_SUPPORTED)
+#if !defined(PNG_NO_CHECK_cHRM)
+
+PNG_EXTERN void png_64bit_product (long v1, long v2, unsigned long *hi_product,
+   unsigned long *lo_product);
+#endif
 #endif
 
 

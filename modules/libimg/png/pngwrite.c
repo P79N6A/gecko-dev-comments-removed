@@ -9,6 +9,9 @@
 
 
 
+
+
+
 #define PNG_INTERNAL
 #include "png.h"
 #ifdef PNG_WRITE_SUPPORTED
@@ -49,6 +52,11 @@ png_write_info_before_PLTE(png_structp png_ptr, png_infop info_ptr)
 #endif
 
 
+
+#if defined(PNG_WRITE_APNG_SUPPORTED)
+   if (info_ptr->valid & PNG_INFO_acTL)
+      png_write_acTL(png_ptr, info_ptr->num_frames, info_ptr->num_plays);
+#endif
 #if defined(PNG_WRITE_gAMA_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_gAMA)
    {
@@ -97,14 +105,14 @@ png_write_info_before_PLTE(png_structp png_ptr, png_infop info_ptr)
 #if defined(PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED)
    if (info_ptr->unknown_chunks_num)
    {
-       png_unknown_chunk *up;
+      png_unknown_chunk *up;
 
-       png_debug(5, "writing extra chunks");
+      png_debug(5, "writing extra chunks");
 
-       for (up = info_ptr->unknown_chunks;
-            up < info_ptr->unknown_chunks + info_ptr->unknown_chunks_num;
-            up++)
-       {
+      for (up = info_ptr->unknown_chunks;
+           up < info_ptr->unknown_chunks + info_ptr->unknown_chunks_num;
+           up++)
+      {
          int keep=png_handle_as_unknown(png_ptr, up->name);
          if (keep != PNG_HANDLE_CHUNK_NEVER &&
             up->location && !(up->location & PNG_HAVE_PLTE) &&
@@ -116,7 +124,7 @@ png_write_info_before_PLTE(png_structp png_ptr, png_infop info_ptr)
                png_warning(png_ptr, "Writing zero-length unknown chunk");
             png_write_chunk(png_ptr, up->name, up->data, up->size);
          }
-       }
+      }
    }
 #endif
       png_ptr->mode |= PNG_WROTE_INFO_BEFORE_PLTE;
@@ -145,20 +153,20 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
 
 #if defined(PNG_WRITE_tRNS_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_tRNS)
-      {
+   {
 #if defined(PNG_WRITE_INVERT_ALPHA_SUPPORTED)
-         
-         if ((png_ptr->transformations & PNG_INVERT_ALPHA) &&
-            info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
-         {
-            int j;
-            for (j=0; j<(int)info_ptr->num_trans; j++)
-               info_ptr->trans[j] = (png_byte)(255 - info_ptr->trans[j]);
-         }
+      
+      if ((png_ptr->transformations & PNG_INVERT_ALPHA) &&
+         info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
+      {
+         int j;
+         for (j=0; j<(int)info_ptr->num_trans; j++)
+            info_ptr->trans[j] = (png_byte)(255 - info_ptr->trans[j]);
+      }
 #endif
       png_write_tRNS(png_ptr, info_ptr->trans, &(info_ptr->trans_values),
          info_ptr->num_trans, info_ptr->color_type);
-      }
+   }
 #endif
 #if defined(PNG_WRITE_bKGD_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_bKGD)
@@ -179,38 +187,45 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
          info_ptr->pcal_X1, info_ptr->pcal_type, info_ptr->pcal_nparams,
          info_ptr->pcal_units, info_ptr->pcal_params);
 #endif
-#if defined(PNG_WRITE_sCAL_SUPPORTED)
+
+#if defined(PNG_sCAL_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_sCAL)
+#if defined(PNG_WRITE_sCAL_SUPPORTED)
 #if defined(PNG_FLOATING_POINT_SUPPORTED) && !defined(PNG_NO_STDIO)
       png_write_sCAL(png_ptr, (int)info_ptr->scal_unit,
           info_ptr->scal_pixel_width, info_ptr->scal_pixel_height);
-#else
+#else 
 #ifdef PNG_FIXED_POINT_SUPPORTED
       png_write_sCAL_s(png_ptr, (int)info_ptr->scal_unit,
           info_ptr->scal_s_width, info_ptr->scal_s_height);
-#else
+#endif 
+#endif 
+#else  
       png_warning(png_ptr,
           "png_write_sCAL not supported; sCAL chunk not written.");
-#endif
-#endif
-#endif
+#endif 
+#endif 
+
 #if defined(PNG_WRITE_pHYs_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_pHYs)
       png_write_pHYs(png_ptr, info_ptr->x_pixels_per_unit,
          info_ptr->y_pixels_per_unit, info_ptr->phys_unit_type);
-#endif
+#endif 
+
 #if defined(PNG_WRITE_tIME_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_tIME)
    {
       png_write_tIME(png_ptr, &(info_ptr->mod_time));
       png_ptr->mode |= PNG_WROTE_tIME;
    }
-#endif
+#endif 
+
 #if defined(PNG_WRITE_sPLT_SUPPORTED)
    if (info_ptr->valid & PNG_INFO_sPLT)
      for (i = 0; i < (int)info_ptr->splt_palettes_num; i++)
        png_write_sPLT(png_ptr, info_ptr->splt_palettes + i);
-#endif
+#endif 
+
 #if defined(PNG_WRITE_TEXT_SUPPORTED)
    
    for (i = 0; i < info_ptr->num_text; i++)
@@ -255,18 +270,16 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
          png_write_tEXt(png_ptr, info_ptr->text[i].key,
                          info_ptr->text[i].text,
                          0);
-#else
-         png_warning(png_ptr, "Unable to write uncompressed text");
-#endif
          
          info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
+#else
+         
+         png_warning(png_ptr, "Unable to write uncompressed text");
+#endif
       }
    }
-#endif
-#if defined(PNG_WRITE_APNG_SUPPORTED)
-   if (info_ptr->valid & PNG_INFO_acTL)
-      png_write_acTL(png_ptr, info_ptr->num_frames, info_ptr->num_plays);
-#endif
+#endif 
+
 #if defined(PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED)
    if (info_ptr->unknown_chunks_num)
    {
@@ -750,6 +763,7 @@ png_write_image(png_structp png_ptr, png_bytepp image)
 #if defined(PNG_WRITE_INTERLACING_SUPPORTED)
    
 
+
    num_pass = png_set_interlace_handling(png_ptr);
 #else
    num_pass = 1;
@@ -777,39 +791,39 @@ png_write_row(png_structp png_ptr, png_bytep row)
    
    if (png_ptr->row_number == 0 && png_ptr->pass == 0)
    {
-   
-   if (!(png_ptr->mode & PNG_WROTE_INFO_BEFORE_PLTE))
-      png_error(png_ptr,
-         "png_write_info was never called before png_write_row.");
+      
+      if (!(png_ptr->mode & PNG_WROTE_INFO_BEFORE_PLTE))
+         png_error(png_ptr,
+            "png_write_info was never called before png_write_row.");
 
-   
+      
 #if !defined(PNG_WRITE_INVERT_SUPPORTED) && defined(PNG_READ_INVERT_SUPPORTED)
-   if (png_ptr->transformations & PNG_INVERT_MONO)
-      png_warning(png_ptr, "PNG_WRITE_INVERT_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_INVERT_MONO)
+         png_warning(png_ptr, "PNG_WRITE_INVERT_SUPPORTED is not defined.");
 #endif
 #if !defined(PNG_WRITE_FILLER_SUPPORTED) && defined(PNG_READ_FILLER_SUPPORTED)
-   if (png_ptr->transformations & PNG_FILLER)
-      png_warning(png_ptr, "PNG_WRITE_FILLER_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_FILLER)
+         png_warning(png_ptr, "PNG_WRITE_FILLER_SUPPORTED is not defined.");
 #endif
 #if !defined(PNG_WRITE_PACKSWAP_SUPPORTED) && defined(PNG_READ_PACKSWAP_SUPPORTED)
-   if (png_ptr->transformations & PNG_PACKSWAP)
-      png_warning(png_ptr, "PNG_WRITE_PACKSWAP_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_PACKSWAP)
+         png_warning(png_ptr, "PNG_WRITE_PACKSWAP_SUPPORTED is not defined.");
 #endif
 #if !defined(PNG_WRITE_PACK_SUPPORTED) && defined(PNG_READ_PACK_SUPPORTED)
-   if (png_ptr->transformations & PNG_PACK)
-      png_warning(png_ptr, "PNG_WRITE_PACK_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_PACK)
+         png_warning(png_ptr, "PNG_WRITE_PACK_SUPPORTED is not defined.");
 #endif
 #if !defined(PNG_WRITE_SHIFT_SUPPORTED) && defined(PNG_READ_SHIFT_SUPPORTED)
-   if (png_ptr->transformations & PNG_SHIFT)
-      png_warning(png_ptr, "PNG_WRITE_SHIFT_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_SHIFT)
+         png_warning(png_ptr, "PNG_WRITE_SHIFT_SUPPORTED is not defined.");
 #endif
 #if !defined(PNG_WRITE_BGR_SUPPORTED) && defined(PNG_READ_BGR_SUPPORTED)
-   if (png_ptr->transformations & PNG_BGR)
-      png_warning(png_ptr, "PNG_WRITE_BGR_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_BGR)
+         png_warning(png_ptr, "PNG_WRITE_BGR_SUPPORTED is not defined.");
 #endif
 #if !defined(PNG_WRITE_SWAP_SUPPORTED) && defined(PNG_READ_SWAP_SUPPORTED)
-   if (png_ptr->transformations & PNG_SWAP_BYTES)
-      png_warning(png_ptr, "PNG_WRITE_SWAP_SUPPORTED is not defined.");
+      if (png_ptr->transformations & PNG_SWAP_BYTES)
+         png_warning(png_ptr, "PNG_WRITE_SWAP_SUPPORTED is not defined.");
 #endif
 
       png_write_start_row(png_ptr);
@@ -963,7 +977,7 @@ png_write_flush(png_structp png_ptr)
       return;
    
    if (png_ptr->row_number >= png_ptr->num_rows)
-     return;
+      return;
 
    do
    {
@@ -1478,7 +1492,7 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
 #if defined(PNG_WRITE_INVERT_ALPHA_SUPPORTED)
    
    if (transforms & PNG_TRANSFORM_INVERT_ALPHA)
-       png_set_invert_alpha(png_ptr);
+      png_set_invert_alpha(png_ptr);
 #endif
 
    
@@ -1489,7 +1503,7 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
 #if defined(PNG_WRITE_INVERT_SUPPORTED)
    
    if (transforms & PNG_TRANSFORM_INVERT_MONO)
-       png_set_invert_mono(png_ptr);
+      png_set_invert_mono(png_ptr);
 #endif
 
 #if defined(PNG_WRITE_SHIFT_SUPPORTED)
@@ -1498,7 +1512,7 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
 
    if ((transforms & PNG_TRANSFORM_SHIFT)
                && (info_ptr->valid & PNG_INFO_sBIT))
-       png_set_shift(png_ptr, &info_ptr->sig_bit);
+      png_set_shift(png_ptr, &info_ptr->sig_bit);
 #endif
 
 #if defined(PNG_WRITE_PACK_SUPPORTED)
@@ -1510,33 +1524,33 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
 #if defined(PNG_WRITE_SWAP_ALPHA_SUPPORTED)
    
    if (transforms & PNG_TRANSFORM_SWAP_ALPHA)
-       png_set_swap_alpha(png_ptr);
+      png_set_swap_alpha(png_ptr);
 #endif
 
 #if defined(PNG_WRITE_FILLER_SUPPORTED)
    
-  if (transforms & PNG_TRANSFORM_STRIP_FILLER_AFTER)
+   if (transforms & PNG_TRANSFORM_STRIP_FILLER_AFTER)
       png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
-  else if (transforms & PNG_TRANSFORM_STRIP_FILLER_BEFORE)
+   else if (transforms & PNG_TRANSFORM_STRIP_FILLER_BEFORE)
       png_set_filler(png_ptr, 0, PNG_FILLER_BEFORE);
 #endif
 
 #if defined(PNG_WRITE_BGR_SUPPORTED)
    
    if (transforms & PNG_TRANSFORM_BGR)
-       png_set_bgr(png_ptr);
+      png_set_bgr(png_ptr);
 #endif
 
 #if defined(PNG_WRITE_SWAP_SUPPORTED)
    
    if (transforms & PNG_TRANSFORM_SWAP_ENDIAN)
-       png_set_swap(png_ptr);
+      png_set_swap(png_ptr);
 #endif
 
 #if defined(PNG_WRITE_PACKSWAP_SUPPORTED)
    
    if (transforms & PNG_TRANSFORM_PACKSWAP)
-       png_set_packswap(png_ptr);
+      png_set_packswap(png_ptr);
 #endif
 
    
