@@ -35,8 +35,21 @@
 
 
 
+function browserWindowsCount() {
+  let count = 0;
+  let e = Cc["@mozilla.org/appshell/window-mediator;1"]
+            .getService(Ci.nsIWindowMediator)
+            .getEnumerator("navigator:browser");
+  while (e.hasMoreElements()) {
+    if (!e.getNext().closed)
+      ++count;
+  }
+  return count;
+}
+
 function test() {
   
+  is(browserWindowsCount(), 1, "Only one browser window should be open initially");
 
   waitForExplicitFinish();
 
@@ -292,7 +305,10 @@ function test() {
       tests.shift().call();
     } else {
       ss.setBrowserState(originalState);
-      executeSoon(finish);
+      executeSoon(function () {
+        is(browserWindowsCount(), 1, "Only one browser window should be open eventually");
+        finish();
+      });
     }
   }
 
