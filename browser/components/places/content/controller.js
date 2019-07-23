@@ -1240,16 +1240,48 @@ var PlacesControllerDragHelper = {
 
 
 
-  canDrop: function PCDH_canDrop() {
+
+
+  canDrop: function PCDH_canDrop(ip) {
     var session = this.getSession();
-    if (session) {
-      var types = PlacesUIUtils.GENERIC_VIEW_DROP_TYPES;
-      for (var i = 0; i < types.length; ++i) {
-        if (session.isDataFlavorSupported(types[i]))
-          return true;
+    if (!session)
+      return false;
+
+    var types = PlacesUIUtils.GENERIC_VIEW_DROP_TYPES;
+    var foundType = false;
+    for (var i = 0; i < types.length && !foundType; ++i) {
+      if (session.isDataFlavorSupported(types[i]))
+        foundType = true;
+    }
+
+    if (!foundType)
+      return false;
+
+    
+    var xferable = this._initTransferable(session);
+    var dropCount = session.numDropItems;
+    for (i = 0; i < dropCount; i++) {
+      
+      session.getData(xferable, i);
+      var data = { }, flavor = { };
+      xferable.getAnyTransferData(flavor, data, { });
+      data.value.QueryInterface(Ci.nsISupportsString);
+      var dragged = PlacesUtils.unwrapNodes(data.value.data, flavor.value)[0];
+    
+      
+      
+      if (dragged.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER ||
+          /^place:/.test(dragged.uri)) {
+        var parentId = ip.itemId;
+        while (parentId != PlacesUtils.placesRootId) {
+          if (dragged.concreteId == parentId || dragged.id == parentId)
+            return false;
+          parentId = PlacesUtils.bookmarks.getFolderIdForItem(parentId);
+        }
       }
     }
-    return false;
+
+    return true;
   },
 
   

@@ -797,7 +797,8 @@ var BookmarksMenuDropHandler = {
 
 
   canDrop: function BMDH_canDrop(event, session) {
-    return PlacesControllerDragHelper.canDrop();
+    var ip = new InsertionPoint(PlacesUtils.bookmarksMenuFolderId, -1);  
+    return ip && PlacesControllerDragHelper.canDrop(ip);
   },
 
   
