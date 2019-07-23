@@ -1524,7 +1524,7 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
     import(ti, inner_sp_ins, exit->numGlobalSlots, exit->calldepth,
            exit->typeMap, exit->typeMap + exit->numGlobalSlots);
     
-    lir->insStorei(lir->insImmPtr(lr), lirbuf->state, offsetof(InterpState, nestedExit));
+    lir->insStorei(ret, lirbuf->state, offsetof(InterpState, nestedExit));
     
 
     guard(true, lir->ins2(LIR_eq, ret, lir->insImmPtr(lr)), NESTED_EXIT);
