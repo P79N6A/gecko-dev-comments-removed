@@ -3100,7 +3100,12 @@ TraceRecorder::ifop()
         jsdouble d = asNumber(v);
         jsdpun u;
         u.d = 0;
-        guard(d == 0 || JSDOUBLE_IS_NaN(d),
+        
+
+
+        if (JSDOUBLE_IS_NaN(d))
+            guard(false, lir->ins2(LIR_feq, v_ins, v_ins), BRANCH_EXIT);
+        guard(d == 0 || !JSDOUBLE_IS_NaN(d),
               lir->ins2(LIR_feq, v_ins, lir->insImmq(u.u64)),
               BRANCH_EXIT);
     } else if (JSVAL_IS_STRING(v)) {
