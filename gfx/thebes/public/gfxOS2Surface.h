@@ -40,13 +40,19 @@
 
 #include "gfxASurface.h"
 
+#define INCL_GPIBITMAPS
 #include <os2.h>
 #include <cairo-os2.h>
 
 class THEBES_API gfxOS2Surface : public gfxASurface {
 
 public:
+    
     gfxOS2Surface(HPS aPS, const gfxIntSize& aSize);
+    
+    gfxOS2Surface(const gfxIntSize& aSize,
+                  gfxASurface::gfxImageFormat aImageFormat);
+    
     gfxOS2Surface(HWND aWnd);
     virtual ~gfxOS2Surface();
 
@@ -55,8 +61,11 @@ public:
 
 private:
     PRBool mOwnsPS;
-    HPS mPS;
-    gfxIntSize mSize;
+    PRBool mHasWnd; 
+    HDC mDC; 
+    HPS mPS; 
+    HBITMAP mBitmap; 
+    gfxIntSize mSize; 
 };
 
 #endif 

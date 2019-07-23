@@ -71,11 +71,6 @@ public:
                                   const gfxFontStyle *aStyle);
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
-
-private:
-    HDC mDC;
-    HPS mPS;
-    HBITMAP mBitmap;
 };
 
 #endif 

@@ -51,7 +51,6 @@
 gfxFontconfigUtils *gfxOS2Platform::sFontconfigUtils = nsnull;
 
 gfxOS2Platform::gfxOS2Platform()
-    : mDC(NULL), mPS(NULL), mBitmap(NULL)
 {
 #ifdef DEBUG_thebes
     printf("gfxOS2Platform::gfxOS2Platform()\n");
@@ -75,16 +74,6 @@ gfxOS2Platform::~gfxOS2Platform()
     gfxFontconfigUtils::Shutdown();
     sFontconfigUtils = nsnull;
 
-    if (mBitmap) {
-        GpiSetBitmap(mPS, NULL);
-        GpiDeleteBitmap(mBitmap);
-    }
-    if (mPS) {
-        GpiDestroyPS(mPS);
-    }
-    if (mDC) {
-        DevCloseDC(mDC);
-    }
     
     cairo_os2_fini();
 #ifdef DEBUG_thebes
@@ -107,36 +96,7 @@ gfxOS2Platform::CreateOffscreenSurface(const gfxIntSize& aSize,
     if (aImageFormat == gfxASurface::ImageFormatARGB32 ||
         aImageFormat == gfxASurface::ImageFormatRGB24)
     {
-        
-        DEVOPENSTRUC dop = { 0, 0, 0, 0, 0 };
-        SIZEL sizel = { 0, 0 }; 
-        mDC = DevOpenDC(0, OD_MEMORY, "*", 5, (PDEVOPENDATA)&dop, NULLHANDLE);
-        if (mDC != DEV_ERROR) {
-            mPS = GpiCreatePS(0, mDC, &sizel, PU_PELS | GPIT_MICRO | GPIA_ASSOC);
-            if (mPS != GPI_ERROR) {
-                
-                
-
-                
-                BITMAPINFOHEADER2 hdr = { 0 };
-                hdr.cbFix = sizeof(BITMAPINFOHEADER2);
-                hdr.cx = aSize.width;
-                hdr.cy = aSize.height;
-                hdr.cPlanes = 1;
-
-                
-                LONG lBitCount = 0;
-                DevQueryCaps(mDC, CAPS_COLOR_BITCOUNT, 1, &lBitCount);
-                hdr.cBitCount = (USHORT)lBitCount;
-
-                mBitmap = GpiCreateBitmap(mPS, &hdr, 0, 0, 0);
-                if (mBitmap != GPI_ERROR) {
-                    
-                    GpiSetBitmap(mPS, mBitmap);
-                }
-            } 
-        } 
-        newSurface = new gfxOS2Surface(mPS, aSize);
+        newSurface = new gfxOS2Surface(aSize, aImageFormat);
     } else if (aImageFormat == gfxASurface::ImageFormatA8 ||
                aImageFormat == gfxASurface::ImageFormatA1) {
         newSurface = new gfxImageSurface(aSize, aImageFormat);
