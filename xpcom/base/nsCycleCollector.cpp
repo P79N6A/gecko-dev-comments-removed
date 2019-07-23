@@ -2139,6 +2139,13 @@ nsCycleCollector::Collect(PRUint32 aTryCollections)
 
     mCollectionInProgress = PR_FALSE;
 
+#ifdef XP_OS2
+    
+    
+    
+    _heapmin();
+#endif
+
 #ifdef COLLECT_TIME_DEBUG
     printf("cc: Collect() took %lldms\n",
            (PR_Now() - start) / PR_USEC_PER_MSEC);
