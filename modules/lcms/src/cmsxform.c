@@ -93,8 +93,9 @@ LCMS_INLINE void LCMSCPUID(DWORD fxn, LPDWORD a, LPDWORD b, LPDWORD c, LPDWORD d
 #define HAVE_SSE2_INTRINSICS
 #endif
 
-#if defined(__GNUC__) && defined(__i386__)
+#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
 
+#if defined(__i386__)
 
 
 LCMS_INLINE void LCMSCPUID(DWORD fxn, LPDWORD a, LPDWORD b, LPDWORD c, LPDWORD d) {
@@ -107,6 +108,7 @@ LCMS_INLINE void LCMSCPUID(DWORD fxn, LPDWORD a, LPDWORD b, LPDWORD c, LPDWORD d
 	   *c = c_;
 	   *d = d_;
  }
+#endif
 
 #define HAVE_SSE2_INTRINSICS
 
@@ -157,6 +159,9 @@ static LCMSBOOL SSE2Available() {
 
 #ifndef HAVE_SSE2_INTEL_MNEMONICS
               isAvailable = 0;
+#elif defined(__x86_64__)
+              
+              isAvailable = 1;
 #else
        
               LCMSCPUID(function, &a, &b, &c, &d);
@@ -711,6 +716,9 @@ void MatrixShaperXFORMFloat(_LPcmsTRANSFORM p,
                       : 
                       : "r" (MatPtr), "r" (clampMax), "r" (&floatScale)
                       : "memory"
+#if defined(__x86_64__)
+                        , "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7"
+#endif
                       );
 #else
                 ASM {
