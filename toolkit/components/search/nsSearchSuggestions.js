@@ -75,7 +75,7 @@ function SuggestAutoCompleteResult(searchString,
   this._errorDescription = errorDescription;
   this._results = results;
   this._comments = comments;
-  this._formHistoryResult = formHistoryResult;
+  this._formHistResult = formHistoryResult;
 }
 SuggestAutoCompleteResult.prototype = {
   
@@ -120,7 +120,7 @@ SuggestAutoCompleteResult.prototype = {
 
 
 
-  _formHistoryResult: null,
+  _formHistResult: null,
 
   
 
@@ -211,10 +211,10 @@ SuggestAutoCompleteResult.prototype = {
     
     
     
-    if (removeFromDatabase && this._formHistoryResult &&
-        index < this._formHistoryResult.matchCount) {
+    if (removeFromDatabase && this._formHistResult &&
+        index < this._formHistResult.matchCount) {
       
-      this._formHistoryResult.removeValueAt(index, true);
+      this._formHistResult.removeValueAt(index, true);
     }
     this._results.splice(index, 1);
     this._comments.splice(index, 1);
@@ -418,11 +418,11 @@ SuggestAutoComplete.prototype = {
 
 
 
-  _startHistorySearch: function SAC_SHSearch(searchString, searchParam, previousResult) {
+  _startHistorySearch: function SAC_SHSearch(searchString, searchParam) {
     var formHistory =
       Cc["@mozilla.org/autocomplete/search;1?name=form-history"].
       createInstance(Ci.nsIAutoCompleteSearch);
-    formHistory.startSearch(searchString, searchParam, previousResult, this);
+    formHistory.startSearch(searchString, searchParam, this._formHistoryResult, this);
   },
 
   
@@ -609,6 +609,10 @@ SuggestAutoComplete.prototype = {
 
 
   startSearch: function(searchString, searchParam, previousResult, listener) {
+    
+    if (!previousResult)
+        this._formHistoryResult = null;
+
     var searchService = Cc["@mozilla.org/browser/search-service;1"].
                         getService(Ci.nsIBrowserSearchService);
 
@@ -634,7 +638,7 @@ SuggestAutoComplete.prototype = {
       
       
       this._sentSuggestRequest = false;
-      this._startHistorySearch(searchString, searchParam, previousResult);
+      this._startHistorySearch(searchString, searchParam);
       return;
     }
 
@@ -657,7 +661,7 @@ SuggestAutoComplete.prototype = {
 
     if (this._includeFormHistory) {
       this._sentSuggestRequest = true;
-      this._startHistorySearch(searchString, searchParam, previousResult);
+      this._startHistorySearch(searchString, searchParam);
     }
   },
 
