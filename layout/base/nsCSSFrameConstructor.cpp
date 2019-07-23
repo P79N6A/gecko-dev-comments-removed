@@ -9779,7 +9779,7 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
 
   
 
-  viewManager->BeginUpdateViewBatch();
+  nsIViewManager::UpdateViewBatch batch(viewManager);
 
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = PR_TRUE;
@@ -9790,7 +9790,7 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
   gInApplyRenderingChangeToTree = PR_FALSE;
 #endif
   
-  viewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 }
 
 
@@ -9850,11 +9850,10 @@ InvalidateCanvasIfNeeded(nsIFrame* aFrame)
     
     
 
-    nsIViewManager* viewManager = presContext->GetViewManager();
-    viewManager->BeginUpdateViewBatch();  
+    nsIViewManager::UpdateViewBatch batch(presContext->GetViewManager());  
     ApplyRenderingChangeToTree(presContext, ancestor,
                                nsChangeHint_RepaintFrame);
-    viewManager->EndUpdateViewBatch(NS_VMREFRESH_DEFERRED);
+    batch.EndUpdateViewBatch(NS_VMREFRESH_DEFERRED);
   }
 }
 

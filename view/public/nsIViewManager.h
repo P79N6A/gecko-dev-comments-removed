@@ -322,13 +322,34 @@ public:
 
   NS_IMETHOD EnableRefresh(PRUint32 aUpdateFlags) = 0;
 
+  class UpdateViewBatch {
+  public:
+    UpdateViewBatch() {}
   
 
 
 
 
 
-  NS_IMETHOD BeginUpdateViewBatch(void) = 0;
+
+    UpdateViewBatch(nsIViewManager* aVM) {
+      if (aVM) {
+        mRootVM = aVM->BeginUpdateViewBatch();
+      }
+    }
+    ~UpdateViewBatch() {
+      NS_ASSERTION(!mRootVM, "Someone forgot to call EndUpdateViewBatch!");
+    }
+    
+    
+
+
+    void BeginUpdateViewBatch(nsIViewManager* aVM) {
+      NS_ASSERTION(!mRootVM, "already started a batch!");
+      if (aVM) {
+        mRootVM = aVM->BeginUpdateViewBatch();
+      }
+    }
 
   
 
@@ -352,7 +373,27 @@ public:
 
 
 
+    void EndUpdateViewBatch(PRUint32 aUpdateFlags) {
+      if (!mRootVM)
+        return;
+      mRootVM->EndUpdateViewBatch(aUpdateFlags);
+      mRootVM = nsnull;
+    }
+
+  private:
+    UpdateViewBatch(const UpdateViewBatch& aOther) : mRootVM(aOther.mRootVM);
+    const UpdateViewBatch& operator=(const UpdateViewBatch& aOther);
+
+    nsCOMPtr<nsIViewManager> mRootVM;
+  };
+  
+private:
+  friend class UpdateViewBatch;
+
+  virtual nsIViewManager* BeginUpdateViewBatch(void) = 0;
   NS_IMETHOD EndUpdateViewBatch(PRUint32 aUpdateFlags) = 0;
+
+public:
 
   
 

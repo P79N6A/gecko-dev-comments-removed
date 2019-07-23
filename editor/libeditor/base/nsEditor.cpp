@@ -4353,9 +4353,7 @@ nsresult nsEditor::BeginUpdateViewBatch()
     }
 
     
-
-    if (mViewManager)
-      mViewManager->BeginUpdateViewBatch();
+    mBatch.BeginUpdateViewBatch(mViewManager);
   }
 
   mUpdateCount++;
@@ -4411,7 +4409,7 @@ nsresult nsEditor::EndUpdateViewBatch()
         
         presShell->FlushPendingNotifications(Flush_Layout);
       }
-      mViewManager->EndUpdateViewBatch(updateFlag);
+      mBatch.EndUpdateViewBatch(updateFlag);
     }
 
     

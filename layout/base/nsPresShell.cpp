@@ -2502,8 +2502,8 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     return NS_OK;
 
   NS_ASSERTION(mViewManager, "Must have view manager");
-  nsCOMPtr<nsIViewManager> viewManager = mViewManager;
-  viewManager->BeginUpdateViewBatch();
+  nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
+  nsIViewManager::UpdateViewBatch batch(mViewManager);
 
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
@@ -2531,7 +2531,7 @@ PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
     DidDoReflow();
   }
 
-  viewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
   if (!mIsDestroying) {
     CreateResizeEventTimer();
@@ -3340,7 +3340,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   
 
   NS_ASSERTION(mViewManager, "Should have view manager");
-  mViewManager->BeginUpdateViewBatch();
+  nsIViewManager::UpdateViewBatch batch(mViewManager);
 
   
   
@@ -3354,7 +3354,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
   --mChangeNestCount;
   
-  mViewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 #ifdef ACCESSIBILITY
   InvalidateAccessibleSubtree(aContent);
 #endif
@@ -4456,10 +4456,8 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
 
   NS_ASSERTION(!isSafeToFlush || mViewManager, "Must have view manager");
   
-  
-  
-  nsCOMPtr<nsIViewManager> viewManager = mViewManager;
-  if (isSafeToFlush && viewManager) {
+  nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
+  if (isSafeToFlush && mViewManager) {
     
     
     nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
@@ -4467,7 +4465,7 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
     
     
     
-    viewManager->BeginUpdateViewBatch();
+    nsIViewManager::UpdateViewBatch batch(mViewManager);
 
     
     
@@ -4519,7 +4517,7 @@ PresShell::DoFlushPendingNotifications(mozFlushType aType,
       
       updateFlags = NS_VMREFRESH_DEFERRED;
     }
-    viewManager->EndUpdateViewBatch(updateFlags);
+    batch.EndUpdateViewBatch(updateFlags);
   }
 
   return NS_OK;
@@ -6420,7 +6418,7 @@ PresShell::Observe(nsISupports* aSubject,
     
     if (rootFrame) {
       NS_ASSERTION(mViewManager, "View manager must exist");
-      mViewManager->BeginUpdateViewBatch();
+      nsIViewManager::UpdateViewBatch batch(mViewManager);
 
       WalkFramesThroughPlaceholders(mPresContext, rootFrame,
                                     &ReResolveMenusAndTrees, nsnull);
@@ -6436,7 +6434,7 @@ PresShell::Observe(nsISupports* aSubject,
       mFrameConstructor->ProcessRestyledFrames(changeList);
       --mChangeNestCount;
 
-      mViewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+      batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 #ifdef ACCESSIBILITY
       InvalidateAccessibleSubtree(nsnull);
 #endif
