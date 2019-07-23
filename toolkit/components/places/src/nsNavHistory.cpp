@@ -4317,6 +4317,7 @@ nsNavHistory::GetCount(PRUint32 *aCount)
 
 
 
+
 nsresult
 nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
 {
@@ -4460,6 +4461,11 @@ nsNavHistory::RemovePages(nsIURI **aURIs, PRUint32 aLength, PRBool aDoBatchNotif
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG(aURIs);
 
+#ifdef LAZY_ADD
+  
+  CommitLazyMessages();
+#endif
+
   nsresult rv;
   
   nsCString deletePlaceIdsQueryString;
@@ -4528,6 +4534,11 @@ NS_IMETHODIMP
 nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+#ifdef LAZY_ADD
+  
+  CommitLazyMessages();
+#endif
 
   nsresult rv;
   
@@ -4617,6 +4628,11 @@ nsNavHistory::RemovePagesByTimeframe(PRTime aBeginTime, PRTime aEndTime)
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
+#ifdef LAZY_ADD
+  
+  CommitLazyMessages();
+#endif
+
   nsresult rv;
   
   nsCString deletePlaceIdsQueryString;
@@ -4687,6 +4703,11 @@ NS_IMETHODIMP
 nsNavHistory::RemoveVisitsByTimeframe(PRTime aBeginTime, PRTime aEndTime)
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+#ifdef LAZY_ADD
+  
+  CommitLazyMessages();
+#endif
 
   nsresult rv;
 
@@ -4774,6 +4795,11 @@ NS_IMETHODIMP
 nsNavHistory::RemoveAllPages()
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
+
+#ifdef LAZY_ADD
+  
+  CommitLazyMessages();
+#endif
 
   
   mExpire.ClearHistory();
