@@ -184,14 +184,38 @@ namespace nanojit
             max_regs = iargs;
 
         int32_t istack = iargs-max_regs;  
-        int32_t pushsize = 4*istack + 8*fargs; 
+        int32_t extra = 0;
+        const int32_t pushsize = 4*istack + 8*fargs; 
 
+#if _MSC_VER
         
         
         
-        
-        if (pushsize && abi != ABI_CDECL)
-            SUBi(SP, pushsize);
+        uint32_t align = 4;
+#else
+        uint32_t align = NJ_ALIGN_STACK;
+#endif
+
+        if (pushsize) {
+            if (config.fixed_esp) {
+                
+                
+                
+                
+                if (abi != ABI_CDECL)
+                    SUBi(SP, pushsize);
+            } else {
+                
+                
+                extra = alignUp(pushsize, align) - pushsize;
+                if (call->_abi == ABI_CDECL) {
+                    
+                    ADDi(SP, extra+pushsize);
+                } else if (extra > 0) {
+                    ADDi(SP, extra);
+                }
+            }
+        }
 
         NanoAssert(ins->isop(LIR_pcall) || ins->isop(LIR_fcall));
         if (!indirect) {
@@ -215,10 +239,12 @@ namespace nanojit
         ArgSize sizes[MAXARGS];
         uint32_t argc = call->get_sizes(sizes);
         int32_t stkd = 0;
-
+        
         if (indirect) {
             argc--;
             asm_arg(ARGSIZE_P, ins->arg(argc), EAX, stkd);
+            if (!config.fixed_esp) 
+                stkd = 0;
         }
 
         for(uint32_t i=0; i < argc; i++)
@@ -230,10 +256,16 @@ namespace nanojit
                 r = argRegs[n++]; 
             }
             asm_arg(sz, ins->arg(j), r, stkd);
+            if (!config.fixed_esp) 
+                stkd = 0;
         }
 
-        if (pushsize > max_stk_args)
-            max_stk_args = pushsize;
+        if (config.fixed_esp) {
+            if (pushsize > max_stk_args)
+                max_stk_args = pushsize;
+        } else if (extra > 0) {
+            SUBi(SP, extra);
+        }
     }
 
     Register Assembler::nRegisterAllocFromSet(RegisterMask set)
@@ -1320,13 +1352,39 @@ namespace nanojit
                 }
             }
             else {
-                asm_stkarg(p, stkd);
+                if (config.fixed_esp)
+                    asm_stkarg(p, stkd);
+                else
+                    asm_pusharg(p);
             }
         }
         else
         {
             NanoAssert(sz == ARGSIZE_F);
             asm_farg(p, stkd);
+        }
+    }
+
+    void Assembler::asm_pusharg(LInsp p)
+    {
+        
+        if (!p->isUsed() && p->isconst())
+        {
+            
+            PUSHi(p->imm32());
+        }
+        else if (!p->isUsed() || p->isop(LIR_alloc))
+        {
+            Register ra = findRegFor(p, GpRegs);
+            PUSHr(ra);
+        }
+        else if (!p->hasKnownReg())
+        {
+            PUSHm(disp(p), FP);
+        }
+        else
+        {
+            PUSHr(p->getReg());
         }
     }
 
@@ -1364,6 +1422,8 @@ namespace nanojit
 
             evictIfActive(FST0);
         }
+        if (!config.fixed_esp)
+            SUBi(ESP,8);
 
         stkd += sizeof(double);
     }

@@ -202,6 +202,8 @@ namespace avmplus {
     
         bool sse2;
         bool use_cmov;
+        
+        bool fixed_esp;
 #endif
 
 #if defined (AVMPLUS_ARM)
