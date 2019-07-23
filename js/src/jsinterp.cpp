@@ -6217,11 +6217,13 @@ js_Interpret(JSContext *cx)
                     goto error;
 
                 
-                if (OBJ_GET_PARENT(cx, obj) != parent) {
-                    obj = js_CloneFunctionObject(cx, fun, parent);
-                    if (!obj)
-                        goto error;
-                }
+
+
+
+
+                obj = js_CloneFunctionObject(cx, fun, parent);
+                if (!obj)
+                    goto error;
             }
 
             PUSH_OPND(OBJECT_TO_JSVAL(obj));
