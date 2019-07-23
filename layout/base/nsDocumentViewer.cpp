@@ -1727,6 +1727,9 @@ DocumentViewerImpl::SetPreviousViewer(nsIContentViewer* aViewer)
     
     
     
+    
+    
+    
     nsCOMPtr<nsIContentViewer> prevViewer;
     aViewer->GetPreviousViewer(getter_AddRefs(prevViewer));
     if (prevViewer) {
@@ -4057,5 +4060,12 @@ NS_IMETHODIMP DocumentViewerImpl::SetPageMode(PRBool aPageMode, nsIPrintSettings
   mViewManager->EnableRefresh(NS_VMREFRESH_NO_SYNC);
 
   Show();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DocumentViewerImpl::GetHistoryEntry(nsISHEntry **aHistoryEntry)
+{
+  NS_IF_ADDREF(*aHistoryEntry = mSHEntry);
   return NS_OK;
 }

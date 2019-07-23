@@ -287,7 +287,13 @@ nsXBLProtoImplMethod::Traverse(nsCycleCollectionTraversalCallback &cb) const
 nsresult
 nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
 {
-  NS_PRECONDITION(mIsCompiled, "Can't execute uncompiled method");
+  if (!mIsCompiled) {
+    
+    
+    
+    
+    return NS_OK;
+  }
   
   if (!mJSMethodObject) {
     

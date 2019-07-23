@@ -5706,9 +5706,33 @@ nsDocShell::RestoreFromHistory()
     
     for (i = 0; i < childShells.Count(); ++i) {
         nsIDocShellTreeItem *childItem = childShells.ObjectAt(i);
+        nsCOMPtr<nsIDocShell> childShell = do_QueryInterface(childItem);
+
+        
+        
+        PRBool allowPlugins;
+        childShell->GetAllowPlugins(&allowPlugins);
+
+        PRBool allowJavascript;
+        childShell->GetAllowJavascript(&allowJavascript);
+
+        PRBool allowRedirects;
+        childShell->GetAllowMetaRedirects(&allowRedirects);
+
+        PRBool allowSubframes;
+        childShell->GetAllowSubframes(&allowSubframes);
+
+        PRBool allowImages;
+        childShell->GetAllowImages(&allowImages);
+        
         AddChild(childItem);
 
-        nsCOMPtr<nsIDocShell> childShell = do_QueryInterface(childItem);
+        childShell->SetAllowPlugins(allowPlugins);
+        childShell->SetAllowJavascript(allowJavascript);
+        childShell->SetAllowMetaRedirects(allowRedirects);
+        childShell->SetAllowSubframes(allowSubframes);
+        childShell->SetAllowImages(allowImages);
+
         rv = childShell->BeginRestore(nsnull, PR_FALSE);
         NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -6861,6 +6885,28 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
     
     if (aSHEntry && (mLoadType & LOAD_CMD_HISTORY)) {
+        
+        
+        
+        
+        if (mContentViewer) {
+            nsCOMPtr<nsIContentViewer> prevViewer;
+            mContentViewer->GetPreviousViewer(getter_AddRefs(prevViewer));
+            if (prevViewer) {
+#ifdef DEBUG
+                nsCOMPtr<nsIContentViewer> prevPrevViewer;
+                prevViewer->GetPreviousViewer(getter_AddRefs(prevPrevViewer));
+                NS_ASSERTION(!prevPrevViewer, "Should never have viewer chain here");
+#endif
+                nsCOMPtr<nsISHEntry> viewerEntry;
+                prevViewer->GetHistoryEntry(getter_AddRefs(viewerEntry));
+                if (viewerEntry == aSHEntry) {
+                    
+                    mContentViewer->SetPreviousViewer(nsnull);
+                    prevViewer->Destroy();
+                }
+            }
+        }
         nsCOMPtr<nsISHEntry> oldEntry = mOSHE;
         PRBool restoring;
         rv = RestorePresentation(aSHEntry, &restoring);
