@@ -1285,12 +1285,6 @@ struct JSExtendedClass {
 
 
 
-#define JSCLASS_FIXED_BINDING           (1<<(JSCLASS_HIGH_FLAGS_SHIFT+4))
-
-
-
-
-
 
 
 
