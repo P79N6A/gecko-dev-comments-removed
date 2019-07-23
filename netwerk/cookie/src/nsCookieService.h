@@ -37,6 +37,8 @@
 
 
 
+
+
 #ifndef nsCookieService_h__
 #define nsCookieService_h__
 
@@ -198,7 +200,9 @@ class nsCookieService : public nsICookieService
     nsCOMPtr<nsIEffectiveTLDService> mTLDService;
 
     
-    nsTHashtable<nsCookieEntry>   mHostTable;
+    nsTHashtable<nsCookieEntry>  *mHostTable;
+    nsTHashtable<nsCookieEntry>   mDefaultHostTable;
+    nsTHashtable<nsCookieEntry>   mPrivateHostTable;
     PRUint32                      mCookieCount;
 
     

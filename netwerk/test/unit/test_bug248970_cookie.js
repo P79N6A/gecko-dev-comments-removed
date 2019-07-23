@@ -1,0 +1,198 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var _PBSvc = null;
+function get_PBSvc() {
+  if (_PBSvc)
+    return _PBSvc;
+
+  try {
+    _PBSvc = Components.classes["@mozilla.org/privatebrowsing;1"].
+             getService(Components.interfaces.nsIPrivateBrowsingService);
+    if (_PBSvc) {
+      var observer = {
+        QueryInterface: function (iid) {
+          const interfaces = [Components.interfaces.nsIObserver,
+                              Components.interfaces.nsISupports];
+          if (!interfaces.some(function(v) iid.equals(v)))
+            throw Components.results.NS_ERROR_NO_INTERFACE;
+          return this;
+        },
+        observe: function (subject, topic, data) {
+          subject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
+          subject.data = 0;
+        }
+      };
+      var os = Components.classes["@mozilla.org/observer-service;1"].
+               getService(Components.interfaces.nsIObserverService);
+      os.addObserver(observer, "private-browsing-enter", false);
+    }
+    return _PBSvc;
+  } catch (e) {}
+  return null;
+}
+
+var _CMSvc = null;
+function get_CookieManager() {
+  if (_CMSvc)
+    return _CMSvc;
+
+  return _CMSvc = Components.classes["@mozilla.org/cookiemanager;1"].
+                  getService(Components.interfaces.nsICookieManager2);
+}
+
+function is_cookie_available1(domain, path, name, value,
+                              secure, httponly, session, expires) {
+  var cm = get_CookieManager();
+  var enumerator = cm.enumerator;
+  while (enumerator.hasMoreElements()) {
+    var cookie = enumerator.getNext().QueryInterface(Components.interfaces.nsICookie);
+    if (cookie.host == domain &&
+        cookie.path == path &&
+        cookie.name == name &&
+        cookie.value == value &&
+        cookie.isSecure == secure &&
+        cookie.expires == expires)
+      return true;
+  }
+  return false;
+}
+
+function is_cookie_available2(domain, path, name, value,
+                              secure, httponly, session, expires) {
+  var cookie = {
+    name: name,
+    value: value,
+    isDomain: true,
+    host: domain,
+    path: path,
+    isSecure: secure,
+    expires: expires,
+    status: 0,
+    policy: 0,
+    isSession: session,
+    expiry: expires,
+    isHttpOnly: httponly,
+    QueryInterface: function(iid) {
+      var validIIDs = [Components.interfaces.nsISupports,
+                       Components.interfaces.nsICookie,
+                       Components.interfaces.nsICookie2];
+      for (var i = 0; i < validIIDs.length; ++i) {
+        if (iid == validIIDs[i])
+          return this;
+      }
+      throw Components.results.NS_ERROR_NO_INTERFACE;
+    }
+  };
+
+  var cm = get_CookieManager();
+  return cm.cookieExists(cookie);
+}
+
+var cc_observer = null;
+function setup_cookie_changed_observer() {
+  cc_observer = {
+    gotCleared: false,
+    gotReloaded: false,
+    QueryInterface: function (iid) {
+      const interfaces = [Components.interfaces.nsIObserver,
+                          Components.interfaces.nsISupports];
+      if (!interfaces.some(function(v) iid.equals(v)))
+        throw Components.results.NS_ERROR_NO_INTERFACE;
+      return this;
+    },
+    observe: function (subject, topic, data) {
+      if (topic == "cookie-changed") {
+        if (!subject) {
+          if (data == "cleared")
+            this.gotCleared = true;
+          else if (data == "reload")
+            this.gotReloaded = true;
+        }
+      }
+    }
+  };
+  var os = Components.classes["@mozilla.org/observer-service;1"].
+           getService(Components.interfaces.nsIObserverService);
+  os.addObserver(cc_observer, "cookie-changed", false);
+}
+
+function run_test() {
+  var pb = get_PBSvc();
+  if (pb) { 
+    var cm = get_CookieManager();
+    do_check_neq(cm, null);
+
+    setup_cookie_changed_observer();
+    do_check_neq(cc_observer, null);
+
+    try {
+      
+      const time = (new Date("Jan 1, 2030")).getTime() / 1000;
+      cm.add("pbtest.example.com", "/", "C1", "V1", false, true, false, time);
+      
+      do_check_true(is_cookie_available1("pbtest.example.com", "/", "C1", "V1", false, true, false, time));
+      do_check_true(is_cookie_available2("pbtest.example.com", "/", "C1", "V1", false, true, false, time));
+      
+      pb.privateBrowsingEnabled = true;
+      
+      do_check_true(cc_observer.gotCleared);
+      
+      do_check_false(is_cookie_available1("pbtest.example.com", "/", "C1", "V1", false, true, false, time));
+      do_check_false(is_cookie_available2("pbtest.example.com", "/", "C1", "V1", false, true, false, time));
+      
+      const time2 = (new Date("Jan 2, 2030")).getTime() / 1000;
+      cm.add("pbtest2.example.com", "/", "C2", "V2", false, true, false, time2);
+      
+      do_check_true(is_cookie_available1("pbtest2.example.com", "/", "C2", "V2", false, true, false, time2));
+      do_check_true(is_cookie_available2("pbtest2.example.com", "/", "C2", "V2", false, true, false, time2));
+      
+      pb.privateBrowsingEnabled = false;
+      
+      do_check_true(cc_observer.gotReloaded);
+      
+      do_check_false(is_cookie_available1("pbtest2.example.com", "/", "C2", "V2", false, true, false, time2));
+      do_check_false(is_cookie_available2("pbtest2.example.com", "/", "C2", "V2", false, true, false, time2));
+      
+      do_check_true(is_cookie_available1("pbtest.example.com", "/", "C1", "V1", false, true, false, time));
+      do_check_true(is_cookie_available2("pbtest.example.com", "/", "C1", "V1", false, true, false, time));
+    } catch (e) {
+      do_throw("Unexpected exception while testing cookies: " + e);
+    }
+  }
+  do_test_finished();
+}
