@@ -1202,81 +1202,17 @@ nsOSHelperAppService::GetHandlerAndDescriptionFromMailcapFile(const nsAString& a
   return rv;
 }
 
-
-
-
-
-nsresult
-nsOSHelperAppService::GetHandlerAppFromPrefs(const char* aScheme,  nsIFile** aApp)
-{
-  nsresult rv;
-  nsCOMPtr<nsIPrefService> srv(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  if (NS_FAILED(rv)) 
-    return rv;
-
-  nsCOMPtr<nsIPrefBranch> branch;
-  srv->GetBranch("network.protocol-handler.app.", getter_AddRefs(branch));
-  if (!branch) 
-    return NS_ERROR_NOT_AVAILABLE;
-
-  nsXPIDLCString appPath;
-  rv = branch->GetCharPref(aScheme, getter_Copies(appPath));
-  if (NS_FAILED(rv))
-    return rv;
-
-  LOG(("   found app %s\n", appPath.get()));
-
-  
-  NS_ConvertUTF8toUTF16 utf16AppPath(appPath);
-  if (appPath.First() == '/') {
-    nsILocalFile* file;
-    rv = NS_NewLocalFile(utf16AppPath, PR_TRUE, &file);
-    *aApp = file;
-    
-    if (NS_SUCCEEDED(rv))
-      return NS_OK;
-  }
-
-  
-  rv = NS_GetSpecialDirectory(NS_OS_CURRENT_PROCESS_DIR, aApp);
-  if (NS_SUCCEEDED(rv)) {
-    rv = (*aApp)->Append(utf16AppPath);
-    if (NS_SUCCEEDED(rv)) {
-      PRBool exists = PR_FALSE;
-      rv = (*aApp)->Exists(&exists);
-      if (NS_SUCCEEDED(rv) && exists)
-        return NS_OK;
-    }
-    NS_RELEASE(*aApp);
-  }
-
-  
-  return GetFileTokenForPath(utf16AppPath.get(), aApp);
-}
-
 nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolScheme, PRBool * aHandlerExists)
 {
   LOG(("-- nsOSHelperAppService::OSProtocolHandlerExists for '%s'\n",
        aProtocolScheme));
   *aHandlerExists = PR_FALSE;
 
-  nsCOMPtr<nsIFile> app;
-  nsresult rv = GetHandlerAppFromPrefs(aProtocolScheme, getter_AddRefs(app));
-  if (NS_SUCCEEDED(rv)) {
-    PRBool isExecutable = PR_FALSE, exists = PR_FALSE;
-    nsresult rv1 = app->Exists(&exists);
-    nsresult rv2 = app->IsExecutable(&isExecutable);
-    *aHandlerExists = (NS_SUCCEEDED(rv1) && exists && NS_SUCCEEDED(rv2) && isExecutable);
-    LOG(("   handler exists: %s\n", *aHandlerExists ? "yes" : "no"));
-  }
-
 #ifdef MOZ_WIDGET_GTK2
   
-  if (!*aHandlerExists)
-    *aHandlerExists = nsGNOMERegistry::HandlerExists(aProtocolScheme);
+  *aHandlerExists = nsGNOMERegistry::HandlerExists(aProtocolScheme);
 #ifdef MOZ_PLATFORM_HILDON
-  if (!*aHandlerExists)
-    *aHandlerExists = nsMIMEInfoUnix::HandlerExists(aProtocolScheme);
+  *aHandlerExists = nsMIMEInfoUnix::HandlerExists(aProtocolScheme);
 #endif
 #endif
 
@@ -1285,12 +1221,6 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
 
 NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& aScheme, nsAString& _retval)
 {
-  nsCOMPtr<nsIFile> appFile;
-  nsresult rv = GetHandlerAppFromPrefs(PromiseFlatCString(aScheme).get(),
-                                       getter_AddRefs(appFile));
-  if (NS_SUCCEEDED(rv))
-    return appFile->GetLeafName(_retval);
-
 #ifdef MOZ_WIDGET_GTK2
   nsGNOMERegistry::GetAppDescForScheme(aScheme, _retval);
   return _retval.IsEmpty() ? NS_ERROR_NOT_AVAILABLE : NS_OK;
