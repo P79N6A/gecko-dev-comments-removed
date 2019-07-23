@@ -250,6 +250,9 @@ public:
     virtual void SetTransparencyMode(nsTransparencyMode aMode);
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive);
 
+    
+    void DispatchSizeModeEvent(nsSizeMode aSizeMode);
+
     virtual gfxASurface* GetThebesSurface();
 
     
