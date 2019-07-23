@@ -100,6 +100,11 @@ public:
 
   Mutex sharedAsyncExecutionMutex;
 
+  
+
+
+  const nsCOMPtr<nsIThread> threadOpenedOn;
+
 private:
   ~Connection();
 
