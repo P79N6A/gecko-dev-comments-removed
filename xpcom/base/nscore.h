@@ -462,4 +462,13 @@ typedef PRUint32 nsrefcnt;
 #define NS_UNLIKELY(x)  (!!(x))
 #endif
 
+ 
+
+
+
+
+#if defined(XPCOM_GLUE) && !defined(XPCOM_GLUE_USE_NSPR)
+#define XPCOM_GLUE_AVOID_NSPR
+#endif
+
 #endif

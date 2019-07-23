@@ -50,15 +50,6 @@
 #include "nsISupportsUtils.h"
 #endif
 
-#if defined(XPCOM_GLUE) && !defined(XPCOM_GLUE_USE_NSPR)
-
-
-
-
-#define XPCOM_GLUE_AVOID_NSPR
-
-#endif
-
 
 #if !defined(XPCOM_GLUE_AVOID_NSPR)
 #include "prthread.h" 
