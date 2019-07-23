@@ -90,7 +90,7 @@ RequestBackoff.prototype.canMakeRequest = function() {
 
 
 RequestBackoff.prototype.noteServerResponse = function(status) {
-  if (this.isErrorStatus_(status)) {
+  if (this.isErrorStatus(status)) {
     var now = Date.now();
     this.errorTimes_.push(now);
 
@@ -124,8 +124,8 @@ RequestBackoff.prototype.noteServerResponse = function(status) {
 
 
 
-RequestBackoff.prototype.isErrorStatus_ = function(status) {
-  return ((500 <= status && status <= 599) ||
+RequestBackoff.prototype.isErrorStatus = function(status) {
+  return ((400 <= status && status <= 599) ||
           HTTP_FOUND == status ||
           HTTP_SEE_OTHER == status ||
           HTTP_TEMPORARY_REDIRECT == status);
