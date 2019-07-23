@@ -49,6 +49,9 @@
 class nsIPrivateTextRange : public nsISupports {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPRIVATETEXTRANGE_IID)
+
+  
+  
   enum {
     TEXTRANGE_CARETPOSITION = 1,
     TEXTRANGE_RAWINPUT = 2,

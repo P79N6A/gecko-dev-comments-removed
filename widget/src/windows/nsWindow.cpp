@@ -297,7 +297,11 @@ PRInt32    nsWindow::sIMEAttributeArraySize    = 0;
 PRUint32*  nsWindow::sIMECompClauseArray       = NULL;
 PRInt32    nsWindow::sIMECompClauseArrayLength = 0;
 PRInt32    nsWindow::sIMECompClauseArraySize   = 0;
-long       nsWindow::sIMECursorPosition        = 0;
+
+
+
+#define NO_IME_CARET -1
+long       nsWindow::sIMECursorPosition        = NO_IME_CARET;
 
 RECT*      nsWindow::sIMECompCharPos           = nsnull;
 
@@ -6686,7 +6690,7 @@ nsWindow::HandleTextEvent(HIMC hIMEContext, PRBool aCheckAttr)
     
     
     
-    if (sIMECursorPosition && sIMECompCharPos &&
+    if (sIMECursorPosition > 0 && sIMECompCharPos &&
         sIMECursorPosition < IME_MAX_CHAR_POS) {
       sIMECompCharPos[sIMECursorPosition-1].right = cursorPosition.x;
       sIMECompCharPos[sIMECursorPosition-1].top = cursorPosition.y;
@@ -6825,9 +6829,9 @@ static PRUint32 PlatformToNSAttr(PRUint8 aAttr)
 }
 
 
-
 void
-nsWindow::GetTextRangeList(PRUint32* textRangeListLengthResult,nsTextRangeArray* textRangeListResult)
+nsWindow::GetTextRangeList(PRUint32* aListLength,
+                           nsTextRangeArray* textRangeListResult)
 {
   NS_ASSERTION(sIMECompUnicode, "sIMECompUnicode is null");
 
@@ -6840,39 +6844,25 @@ nsWindow::GetTextRangeList(PRUint32* textRangeListLengthResult,nsTextRangeArray*
   if (cursor > maxlen)
     cursor = maxlen;
 
-  
-  
-  
   if (sIMECompClauseArrayLength == 0) {
-    *textRangeListLengthResult = 2;
-    *textRangeListResult = new nsTextRange[2];
+    
+    
+    *aListLength = 1;
+    
+    *textRangeListResult = new nsTextRange[*aListLength + 1];
     (*textRangeListResult)[0].mStartOffset = 0;
     (*textRangeListResult)[0].mEndOffset = maxlen;
     (*textRangeListResult)[0].mRangeType = NS_TEXTRANGE_RAWINPUT;
-    (*textRangeListResult)[1].mStartOffset = cursor;
-    (*textRangeListResult)[1].mEndOffset = cursor;
-    (*textRangeListResult)[1].mRangeType = NS_TEXTRANGE_CARETPOSITION;
   } else {
-    *textRangeListLengthResult = sIMECompClauseArrayLength;
+    *aListLength = sIMECompClauseArrayLength - 1;
 
     
-    
-    
-    *textRangeListResult = new nsTextRange[*textRangeListLengthResult];
+    *textRangeListResult = new nsTextRange[*aListLength + 1];
 
-    
-    
-    
-    (*textRangeListResult)[0].mStartOffset = cursor;
-    (*textRangeListResult)[0].mEndOffset = cursor;
-    (*textRangeListResult)[0].mRangeType = NS_TEXTRANGE_CARETPOSITION;
-
-    
-    
     
     int lastOffset = 0;
-    for(int i = 1; i < sIMECompClauseArrayLength; i++) {
-      long current = sIMECompClauseArray[i];
+    for (int i = 0; i < *aListLength; i++) {
+      long current = sIMECompClauseArray[i + 1];
       NS_ASSERTION(current <= maxlen, "wrong offset");
       if(current > maxlen)
         current = maxlen;
@@ -6885,6 +6875,14 @@ nsWindow::GetTextRangeList(PRUint32* textRangeListLengthResult,nsTextRangeArray*
       lastOffset = current;
     } 
   } 
+
+  if (cursor == NO_IME_CARET)
+    return;
+
+  (*textRangeListResult)[*aListLength].mStartOffset = cursor;
+  (*textRangeListResult)[*aListLength].mEndOffset = cursor;
+  (*textRangeListResult)[*aListLength].mRangeType = NS_TEXTRANGE_CARETPOSITION;
+  ++(*aListLength);
 }
 
 
@@ -7150,12 +7148,23 @@ BOOL nsWindow::OnIMEComposition(LPARAM aGCS)
     
     
     
-    sIMECursorPosition = ::ImmGetCompositionStringW(hIMEContext, GCS_CURSORPOS, NULL, 0);
+    
+    if (aGCS & GCS_CURSORPOS) {
+      sIMECursorPosition =
+        ::ImmGetCompositionStringW(hIMEContext, GCS_CURSORPOS, NULL, 0);
+      if (sIMECursorPosition < 0)
+        sIMECursorPosition = NO_IME_CARET; 
+    } else {
+      sIMECursorPosition = NO_IME_CARET;
+    }
 
     NS_ASSERTION(sIMECursorPosition <= (long)sIMECompUnicode->Length(), "illegal pos");
 
 #ifdef DEBUG_IME
-    printf("sIMECursorPosition(Unicode): %d\n", sIMECursorPosition);
+    if (aGCS & GCS_CURSORPOS)
+      printf("sIMECursorPosition(Unicode): %d\n", sIMECursorPosition);
+    else
+      printf("sIMECursorPosition: None\n");
 #endif
     
     
