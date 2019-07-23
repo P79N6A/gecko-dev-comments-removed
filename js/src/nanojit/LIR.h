@@ -677,7 +677,6 @@ namespace nanojit
 			void        clear();
             void        rewind();
             uintptr_t   makeRoom(size_t szB);   
-            LInsp       lastWritten();          
 			bool		outOMem() { return _noMem != 0; }
 			
 			debug_only (void validate() const;)
@@ -756,7 +755,6 @@ namespace nanojit
 		LInsp _i; 
 
 	public:
-        LirReader(LirBuffer* buf) : LirFilter(0), _i(buf->lastWritten()) { }
 		LirReader(LInsp i) : LirFilter(0), _i(i) { }
 		virtual ~LirReader() {}
 

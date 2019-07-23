@@ -163,13 +163,6 @@ namespace nanojit
 		return page;
 	}
 	
-    LInsp LirBuffer::lastWritten()
-	{
-        
-        NanoAssert(_unused >= pageDataStart(_unused));
-        return (LInsp)(_unused - sizeof(LIns));     
-	}
-
     
     
     void LirBuffer::moveToNewPage(uintptr_t addrOfLastLInsOnCurrentPage)
@@ -202,8 +195,10 @@ namespace nanojit
 
         
         
-        if (_unused + szB - 1 > pageBottom(_unused))
-            moveToNewPage((uintptr_t)lastWritten());
+        if (_unused + szB - 1 > pageBottom(_unused)) {
+            uintptr_t addrOfLastLInsOnPage = _unused - sizeof(LIns);
+            moveToNewPage(addrOfLastLInsOnPage);
+        }
 
         
         
@@ -349,9 +344,19 @@ namespace nanojit
 			return 0;
         uintptr_t i = uintptr_t(cur);
         LOpcode iop = ((LInsp)i)->opcode();
+
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         NanoAssert(iop != LIR_skip);
+
 		do
 		{
 			switch (iop)
@@ -1509,24 +1514,24 @@ namespace nanojit
 		}
 	};
 
-    void live(GC *gc, LirBuffer *lirbuf)
+    void live(GC *gc, Fragment *frag)
 	{
 		
 
 		LiveTable live(gc);
 		uint32_t exits = 0;
-        LirReader br(lirbuf);
-		StackFilter sf(&br, gc, lirbuf, lirbuf->sp);
-		StackFilter r(&sf, gc, lirbuf, lirbuf->rp);
+        LirReader br(frag->lastIns);
+		StackFilter sf(&br, gc, frag->lirbuf, frag->lirbuf->sp);
+		StackFilter r(&sf, gc, frag->lirbuf, frag->lirbuf->rp);
         int total = 0;
-        if (lirbuf->state)
-            live.add(lirbuf->state, r.pos());
+        if (frag->lirbuf->state)
+            live.add(frag->lirbuf->state, r.pos());
 		for (LInsp i = r.read(); i != 0; i = r.read())
 		{
             total++;
 
             
-			if (!i->isCse(lirbuf->_functions))
+			if (!i->isCse(frag->lirbuf->_functions))
 			{
 				live.add(i,0);
                 if (i->isGuard())
@@ -1566,7 +1571,7 @@ namespace nanojit
         nj_dprintf("side exits %u\n", exits);
 
 		
-		LirNameMap *names = lirbuf->names;
+		LirNameMap *names = frag->lirbuf->names;
         bool newblock = true;
 		for (int j=live.retired.size()-1; j >= 0; j--) 
         {
@@ -1992,7 +1997,7 @@ namespace nanojit
 		verbose_only( assm->_outputCache = &asmOutput; )
 
 		verbose_only(if (assm->_verbose && core->config.verbose_live)
-			live(gc, triggerFrag->lirbuf);)
+			live(gc, triggerFrag);)
 
 		bool treeCompile = core->config.tree_opt && (triggerFrag->kind == BranchTrace);
 		RegAllocMap regMap(gc);
