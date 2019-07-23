@@ -459,7 +459,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
       
       
       nsIFrame* nextInFlow = frame->GetNextInFlow();
-      while (nextInFlow) {
+      for ( ; nextInFlow; nextInFlow = nextInFlow->GetNextInFlow()) {
         
         
         
@@ -469,7 +469,36 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
           ReparentFloatsForInlineChild(irs.mLineContainer, nextInFlow, PR_FALSE);
         }
         nextInFlow->SetParent(this);
-        nextInFlow = nextInFlow->GetNextInFlow();
+      }
+
+      
+      
+      nsIFrame* realFrame = nsPlaceholderFrame::GetRealFrameFor(frame);
+      if (realFrame->GetType() == nsGkAtoms::letterFrame) {
+        nsIFrame* child = realFrame->GetFirstChild(nsnull);
+        if (child) {
+          NS_ASSERTION(child->GetType() == nsGkAtoms::textFrame,
+                       "unexpected frame type");
+          nsIFrame* nextInFlow = child->GetNextInFlow();
+          for ( ; nextInFlow; nextInFlow = nextInFlow->GetNextInFlow()) {
+            NS_ASSERTION(nextInFlow->GetType() == nsGkAtoms::textFrame,
+                         "unexpected frame type");
+            if (mFrames.ContainsFrame(nextInFlow)) {
+              nextInFlow->SetParent(this);
+            }
+            else {
+#ifdef DEBUG              
+              
+              
+              for ( ; nextInFlow; nextInFlow = nextInFlow->GetNextInFlow()) {
+                NS_ASSERTION(!mFrames.ContainsFrame(nextInFlow),
+                             "unexpected letter frame flow");
+              }
+#endif
+              break;
+            }
+          }
+        }
       }
     }
     rv = ReflowInlineFrame(aPresContext, aReflowState, irs, frame, aStatus);
