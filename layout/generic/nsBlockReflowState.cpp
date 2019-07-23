@@ -377,7 +377,6 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
       nsIFrame* floatFrame = fc->mPlaceholder->GetOutOfFlowFrame();
       if (aDeltaY != 0) {
         fc->mRegion.y += aDeltaY;
-        fc->mCombinedArea.y += aDeltaY;
         nsPoint p = floatFrame->GetPosition();
         floatFrame->SetPosition(nsPoint(p.x, p.y + aDeltaY));
       }
@@ -520,13 +519,12 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
   
   nsFloatCache* fc = mFloatCacheFreeList.Alloc();
   fc->mPlaceholder = aPlaceholder;
-  fc->mIsCurrentLineFloat = aLineLayout.CanPlaceFloatNow();
 
   PRBool placed;
 
   
   
-  if (fc->mIsCurrentLineFloat) {
+  if (aLineLayout.CanPlaceFloatNow()) {
     
     
     
@@ -716,13 +714,14 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   const nsStyleDisplay* floatDisplay = floatFrame->GetStyleDisplay();
 
   
-  nsRect oldRegion = floatFrame->GetRect();
-  oldRegion.Inflate(aFloatCache->mMargins);
+  nsRect oldRegion = aFloatCache->mRegion;
 
   
   
   mY = NS_MAX(mSpaceManager->GetLowestRegionTop() + BorderPadding().top, mY);
 
+  
+  
   
   if (NS_STYLE_CLEAR_NONE != floatDisplay->mBreakType) {
     
@@ -735,7 +734,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
                "Float frame has wrong parent");
 
   
-  mBlock->ReflowFloat(*this, placeholder, aFloatCache, aReflowStatus);
+  nsMargin floatMargin;
+  mBlock->ReflowFloat(*this, placeholder, floatMargin, aReflowStatus);
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
@@ -748,11 +748,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   }
 #endif
 
-  nsSize floatSize = floatFrame->GetSize();
-  
-  
-  floatSize.width += aFloatCache->mMargins.left + aFloatCache->mMargins.right;
-  floatSize.height += aFloatCache->mMargins.top + aFloatCache->mMargins.bottom;
+  nsSize floatSize = floatFrame->GetSize() +
+                     nsSize(floatMargin.LeftRight(), floatMargin.TopBottom());
 
   
   
@@ -820,17 +817,13 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
       
       
       
-      mBlock->ReflowFloat(*this, placeholder, aFloatCache, aReflowStatus);
+      mBlock->ReflowFloat(*this, placeholder, floatMargin, aReflowStatus);
       
-      floatSize = floatFrame->GetSize();
-      
-      
-      floatSize.width += aFloatCache->mMargins.left + aFloatCache->mMargins.right;
-      floatSize.height += aFloatCache->mMargins.top + aFloatCache->mMargins.bottom;
+      floatSize = floatFrame->GetSize() +
+                     nsSize(floatMargin.LeftRight(), floatMargin.TopBottom());
     }
   }
   
-  nsRect prevRect(0,0,0,0);
 
   
   
@@ -899,7 +892,17 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
 
   
   
-  if (region != oldRegion) {
+  
+  
+  
+  
+  
+  aFloatCache->mRegion = region +
+                         nsPoint(borderPadding.left, borderPadding.top);
+
+  
+  
+  if (aFloatCache->mRegion != oldRegion) {
     
     
     
@@ -909,14 +912,6 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
     mSpaceManager->IncludeInDamage(top, bottom);
   }
 
-  
-  
-  
-  
-  aFloatCache->mRegion.x = region.x + borderPadding.left;
-  aFloatCache->mRegion.y = region.y + borderPadding.top;
-  aFloatCache->mRegion.width = region.width;
-  aFloatCache->mRegion.height = region.height;
 #ifdef NOISY_SPACEMANAGER
   nscoord tx, ty;
   mSpaceManager->GetTranslation(tx, ty);
@@ -930,33 +925,29 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   
   
   
-  nscoord x = borderPadding.left + aFloatCache->mMargins.left + floatX;
-  nscoord y = borderPadding.top + aFloatCache->mMargins.top + floatY;
+  
+  nsPoint origin(borderPadding.left + floatMargin.left + floatX,
+                 borderPadding.top + floatMargin.top + floatY);
 
   
-  
-  
   if (NS_STYLE_POSITION_RELATIVE == floatDisplay->mPosition) {
-    x += aFloatCache->mOffsets.left;
-    y += aFloatCache->mOffsets.top;
+    nsPoint *offsets = NS_STATIC_CAST(nsPoint*,
+        floatFrame->GetProperty(nsGkAtoms::computedOffsetProperty));
+    if (offsets) {
+      origin += *offsets;
+    }
   }
 
   
   
   
-  floatFrame->SetPosition(nsPoint(x, y));
+  floatFrame->SetPosition(origin);
   nsContainerFrame::PositionFrameView(floatFrame);
   nsContainerFrame::PositionChildViews(floatFrame);
 
   
-  nsRect combinedArea = aFloatCache->mCombinedArea;
-  combinedArea.x += x;
-  combinedArea.y += y;
-  
-  
-  
-  
-  
+  nsRect combinedArea = floatFrame->GetOverflowRect() + origin;
+
   
   mFloatCombinedArea.UnionRect(combinedArea, mFloatCombinedArea);
 
@@ -984,9 +975,7 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
 {
   nsFloatCache* fc = aList.Head();
   while (fc) {
-    NS_ASSERTION(!fc->mIsCurrentLineFloat,
-                 "A cl float crept into the bcl float list.");
-    if (!fc->mIsCurrentLineFloat) {
+    {
 #ifdef DEBUG
       if (nsBlockFrame::gNoisyReflow) {
         nsFrame::IndentBy(stdout, nsBlockFrame::gNoiseIndent);

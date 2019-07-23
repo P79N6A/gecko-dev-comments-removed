@@ -69,22 +69,9 @@ public:
 
   
   
-  PRBool mIsCurrentLineFloat;
-
-  nsMargin mMargins;                    
-
-  nsMargin mOffsets;                    
-
-  
-  
   
   
   nsRect mRegion;
-
-  
-  
-  
-  nsRect mCombinedArea;
 
 protected:
   nsFloatCache* mNext;

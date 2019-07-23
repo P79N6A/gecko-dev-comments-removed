@@ -5217,7 +5217,7 @@ nsBlockFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
 nsresult
 nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
                           nsPlaceholderFrame* aPlaceholder,
-                          nsFloatCache*       aFloatCache,
+                          nsMargin&           aFloatMargin,
                           nsReflowStatus&     aReflowStatus)
 {
   
@@ -5295,9 +5295,11 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
       }
     }
 
+    nsMargin offsets; 
+                      
     rv = brc.ReflowBlock(availSpace, PR_TRUE, margin,
                          0, isAdjacentWithTop,
-                         aFloatCache->mOffsets, floatRS,
+                         offsets, floatRS,
                          aReflowStatus);
   } while (NS_SUCCEEDED(rv) && clearanceFrame);
 
@@ -5336,17 +5338,16 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
 
   
   const nsMargin& m = brc.GetMargin();
-  aFloatCache->mMargins.top = brc.GetTopMargin();
-  aFloatCache->mMargins.right = m.right;
+  aFloatMargin.top = brc.GetTopMargin();
+  aFloatMargin.right = m.right;
   
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
     brc.GetCarriedOutBottomMargin().Include(m.bottom);
   }
-  aFloatCache->mMargins.bottom = brc.GetCarriedOutBottomMargin().get();
-  aFloatCache->mMargins.left = m.left;
+  aFloatMargin.bottom = brc.GetCarriedOutBottomMargin().get();
+  aFloatMargin.left = m.left;
 
   const nsHTMLReflowMetrics& metrics = brc.GetMetrics();
-  aFloatCache->mCombinedArea = metrics.mOverflowArea;
 
   
   
