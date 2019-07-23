@@ -48,6 +48,7 @@
 #include "jsbit.h"
 #include "jsutil.h"
 #include "jstask.h"
+#include "jsvector.h"
 #include "jsversion.h"
 
 JS_BEGIN_EXTERN_C
@@ -361,25 +362,51 @@ struct JSWeakRoots {
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
 #ifdef JS_THREADSAFE
-class JSFreePointerListTask : public JSBackgroundTask {
-    void *head;
+
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+class BackgroundSweepTask : public JSBackgroundTask {
+    static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
+    static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
+
+    Vector<void **, 16, js::SystemAllocPolicy> freeVector;
+    void            **freeCursor;
+    void            **freeCursorEnd;
+
+    void replenishAndFreeLater(void *ptr);
+
+    static void freeElementsAndArray(void **array, void **end) {
+        JS_ASSERT(array <= end);
+        for (void **p = array; p != end; ++p)
+            js_free(*p);
+        js_free(array);
+    }
+
   public:
-    JSFreePointerListTask() : head(NULL) {}
+    BackgroundSweepTask()
+        : freeCursor(NULL), freeCursorEnd(NULL) { }
 
-    void add(void* ptr) {
-        *(void**)ptr = head;
-        head = ptr;
+    void freeLater(void* ptr) {
+        if (freeCursor != freeCursorEnd)
+            *freeCursor++ = ptr;
+        else
+            replenishAndFreeLater(ptr);
     }
 
-    void run() {
-        void *ptr = head;
-        while (ptr) {
-            void *next = *(void **)ptr;
-            js_free(ptr);
-            ptr = next;
-        }
-    }
+    virtual void run();
 };
+
+}
 #endif
 
 extern void

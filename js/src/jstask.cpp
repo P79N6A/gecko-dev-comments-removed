@@ -72,6 +72,10 @@ JSBackgroundThread::init()
 void
 JSBackgroundThread::cancel()
 {
+    
+    if (!thread)
+        return;
+
     PR_Lock(lock);
     if (shutdown) {
         PR_Unlock(lock);
