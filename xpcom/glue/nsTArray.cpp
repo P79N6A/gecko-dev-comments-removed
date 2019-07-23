@@ -82,11 +82,7 @@ nsTArray_base::EnsureCapacity(size_type capacity, size_type elemSize) {
   }
 
   
-  NS_ASSERTION(mHdr->mCapacity > 0, "should not have buffer of zero size");
-  size_type temp = mHdr->mCapacity;
-  while (temp < capacity)
-    temp <<= 1;
-  capacity = temp;
+  capacity = PR_MAX(capacity, mHdr->mCapacity << 1);
 
   Header *header;
   if (UsesAutoArrayBuffer()) {
