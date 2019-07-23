@@ -679,6 +679,7 @@ pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:local
 
 
 pref("browser.safebrowsing.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
+pref("browser.geolocation.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
 
 
