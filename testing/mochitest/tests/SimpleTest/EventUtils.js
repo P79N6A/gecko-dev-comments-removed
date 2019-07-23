@@ -236,59 +236,6 @@ function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
 
 
 
-
-
-
-
-
-function synthesizeMouseScroll(aTarget, aOffsetX, aOffsetY, aEvent, aWindow)
-{
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
-  if (!aWindow)
-    aWindow = window;
-
-  var utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
-                      getInterface(Components.interfaces.nsIDOMWindowUtils);
-  if (utils) {
-    
-    const kIsVertical = 0x02;
-    const kIsHorizontal = 0x04;
-    const kIsPixels = 0x08;
-
-    var button = aEvent.button || 0;
-    var modifiers = _parseModifiers(aEvent);
-
-    var left = aTarget.boxObject.x;
-    var top = aTarget.boxObject.y;
-
-    var type = aEvent.type || "DOMMouseScroll";
-    var axis = aEvent.axis || "vertical";
-    var units = aEvent.units || "lines";
-    var scrollFlags = (axis == "horizontal") ? kIsHorizontal : kIsVertical;
-    if (units == "pixels") {
-      scrollFlags |= kIsPixels;
-    }
-    utils.sendMouseScrollEvent(type, left + aOffsetX, top + aOffsetY, button,
-                               scrollFlags, aEvent.delta, modifiers);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function synthesizeKey(aKey, aEvent, aWindow)
 {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');

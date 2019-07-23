@@ -40,6 +40,9 @@
 
 
 
+const MOUSE_SCROLL_IS_HORIZONTAL = 1 << 2;
+
+
 
 const MOUSE_SCROLL_ZOOM = 3;
 
@@ -145,7 +148,7 @@ var FullZoom = {
     
     
     var pref = "mousewheel";
-    if (event.axis == event.HORIZONTAL_AXIS)
+    if (event.scrollFlags & MOUSE_SCROLL_IS_HORIZONTAL)
       pref += ".horizscroll";
 
     if (event.shiftKey)
