@@ -1979,6 +1979,9 @@ nsresult nsExternalAppHandler::OpenWithApplication()
   
   if (mStopRequestIssued)
   {
+    
+    mFinalFileDestination->SetPermissions(0400);
+
     rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);        
     if (NS_FAILED(rv))
     {
