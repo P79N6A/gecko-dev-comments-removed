@@ -1091,13 +1091,14 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         win->GetRootFocusController();
       nsCOMPtr<nsIDOMElement> focusedElement;
       nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
+      nsFocusScrollSuppressor scrollSuppressor;
 
       if (focusController) {
         
         focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
         focusController->GetFocusedElement(getter_AddRefs(focusedElement));
 
-        focusController->SetSuppressFocusScroll(PR_TRUE);
+        scrollSuppressor.Init(focusController);
         focusController->SetActive(PR_TRUE);
       }
 
@@ -1151,7 +1152,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
           focusController->GetSuppressFocus(&isSuppressed);
         }
-        focusController->SetSuppressFocusScroll(PR_FALSE);
       }
     }
     break;
@@ -3197,13 +3197,9 @@ nsEventStateManager::ChangeFocusWith(nsIContent* aFocusContent,
 
   
   
-  PRBool suppressFocusScroll =
-    focusController && (aFocusedWith == eEventFocusedByMouse);
-  if (suppressFocusScroll) {
-    PRBool currentState = PR_FALSE;
-    focusController->GetSuppressFocusScroll(&currentState);
-    NS_ASSERTION(!currentState, "locked scroll already!");
-    focusController->SetSuppressFocusScroll(PR_TRUE);
+  nsFocusScrollSuppressor scrollSuppressor;
+  if (aFocusedWith == eEventFocusedByMouse) {
+    scrollSuppressor.Init(focusController);
   }
 
   aFocusContent->SetFocus(mPresContext);
@@ -3225,11 +3221,6 @@ nsEventStateManager::ChangeFocusWith(nsIContent* aFocusContent,
       }
     }
   }
-
-  
-  if (suppressFocusScroll)
-    focusController->SetSuppressFocusScroll(PR_FALSE);
-
   return NS_OK;
 }
 
