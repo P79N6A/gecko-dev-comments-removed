@@ -87,6 +87,8 @@ const STATE_RESTORE_FINISHED = 3;
 
 
 function PrivateBrowsingService() {
+  this._obs = Cc["@mozilla.org/observer-service;1"].
+              getService(Ci.nsIObserverService);
   this._obs.addObserver(this, "profile-after-change", true);
   this._obs.addObserver(this, "quit-application-granted", true);
   this._obs.addObserver(this, "private-browsing", true);
@@ -96,21 +98,11 @@ function PrivateBrowsingService() {
 
 PrivateBrowsingService.prototype = {
   
-  __obs: null,
-  get _obs() {
-    if (!this.__obs)
-      this.__obs = Cc["@mozilla.org/observer-service;1"].
-                   getService(Ci.nsIObserverService);
-    return this.__obs;
-  },
-
-  
-  __prefs: null,
   get _prefs() {
-    if (!this.__prefs)
-      this.__prefs = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefBranch);
-    return this.__prefs;
+    let prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
+    this.__defineGetter__("_prefs", function() prefs);
+    return this._prefs;
   },
 
   
