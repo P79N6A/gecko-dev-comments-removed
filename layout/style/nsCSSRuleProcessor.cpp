@@ -1220,10 +1220,6 @@ RuleProcessorData::GetNthIndex(PRBool aIsOfType, PRBool aIsFromEnd,
 
 
 
-
-
-
-
 struct TreeMatchContext {
   
   
@@ -1232,6 +1228,36 @@ struct TreeMatchContext {
 
   TreeMatchContext(PRBool aForStyling)
     : mForStyling(aForStyling)
+  {
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+struct NodeMatchContext {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const PRInt32 mStateMask;
+
+  NodeMatchContext(PRInt32 aStateMask)
+    : mStateMask(aStateMask)
   {
   }
 };
@@ -1839,16 +1865,9 @@ PR_STATIC_ASSERT(NS_ARRAY_LENGTH(sPseudoClassInfo) >
 
 
 
-
-
-
-
-
-
-
 static PRBool SelectorMatches(RuleProcessorData &data,
                               nsCSSSelector* aSelector,
-                              PRInt32 aStateMask, 
+                              NodeMatchContext& aNodeMatchContext,
                               TreeMatchContext& aTreeMatchContext,
                               PRBool* const aDependence = nsnull) 
 
@@ -1929,7 +1948,8 @@ static PRBool SelectorMatches(RuleProcessorData &data,
   
   
   
-  NS_ASSERTION(aStateMask == 0 || !aTreeMatchContext.mForStyling,
+  NS_ASSERTION(aNodeMatchContext.mStateMask == 0 ||
+               !aTreeMatchContext.mForStyling,
                "mForStyling must be false if we're just testing for "
                "state-dependence");
 
@@ -1961,7 +1981,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
         
         return PR_FALSE;
       } else {
-        if (aStateMask & statesToCheck) {
+        if (aNodeMatchContext.mStateMask & statesToCheck) {
           if (aDependence)
             *aDependence = PR_TRUE;
         } else {
@@ -2056,7 +2076,7 @@ static PRBool SelectorMatches(RuleProcessorData &data,
     for (nsCSSSelector *negation = aSelector->mNegations;
          result && negation; negation = negation->mNegations) {
       PRBool dependence = PR_FALSE;
-      result = !SelectorMatches(data, negation, aStateMask,
+      result = !SelectorMatches(data, negation, aNodeMatchContext,
                                 aTreeMatchContext, &dependence);
       
       
@@ -2138,7 +2158,8 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
     if (! data) {
       return PR_FALSE;
     }
-    if (SelectorMatches(*data, selector, 0, aTreeMatchContext)) {
+    NodeMatchContext nodeContext(0);
+    if (SelectorMatches(*data, selector, nodeContext, aTreeMatchContext)) {
       
       
       
@@ -2182,7 +2203,8 @@ static void ContentEnumFunc(nsICSSStyleRule* aRule, nsCSSSelector* aSelector,
   RuleProcessorData* data = (RuleProcessorData*)aData;
 
   TreeMatchContext treeContext(PR_TRUE);
-  if (SelectorMatches(*data, aSelector, 0, treeContext)) {
+  NodeMatchContext nodeContext(0);
+  if (SelectorMatches(*data, aSelector, nodeContext, treeContext)) {
     nsCSSSelector *next = aSelector->mNext;
     if (!next || SelectorMatchesTree(*data, next, treeContext)) {
       
@@ -2333,8 +2355,9 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
       
       
       TreeMatchContext treeContext(PR_FALSE);
+      NodeMatchContext nodeContext(aData->mStateMask);
       if ((possibleChange & ~hint) &&
-          SelectorMatches(*aData, selector, aData->mStateMask, treeContext) &&
+          SelectorMatches(*aData, selector, nodeContext, treeContext) &&
           SelectorMatchesTree(*aData, selector->mNext, treeContext)) {
         hint = nsRestyleHint(hint | possibleChange);
       }
@@ -2372,8 +2395,9 @@ AttributeEnumFunc(nsCSSSelector* aSelector, AttributeEnumData* aData)
   
   
   TreeMatchContext treeContext(PR_FALSE);
+  NodeMatchContext nodeContext(0);
   if ((possibleChange & ~(aData->change)) &&
-      SelectorMatches(*data, aSelector, 0, treeContext) &&
+      SelectorMatches(*data, aSelector, nodeContext, treeContext) &&
       SelectorMatchesTree(*data, aSelector->mNext, treeContext)) {
     aData->change = nsRestyleHint(aData->change | possibleChange);
   }
@@ -2916,7 +2940,8 @@ nsCSSRuleProcessor::SelectorListMatches(RuleProcessorData& aData,
     NS_ASSERTION(sel, "Should have *some* selectors");
     NS_ASSERTION(!sel->IsPseudoElement(), "Shouldn't have been called");
     TreeMatchContext treeContext(PR_FALSE);
-    if (SelectorMatches(aData, sel, 0, treeContext)) {
+    NodeMatchContext nodeContext(0);
+    if (SelectorMatches(aData, sel, nodeContext, treeContext)) {
       nsCSSSelector* next = sel->mNext;
       if (!next || SelectorMatchesTree(aData, next, treeContext)) {
         return PR_TRUE;
