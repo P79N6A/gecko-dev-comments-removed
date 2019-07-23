@@ -2865,6 +2865,8 @@ nsGenericHTMLFrameElement::BindToTree(nsIDocument* aDocument,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aDocument) {
+    NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
+                 "Missing a script blocker!");
     
     LoadSrc();
   }
