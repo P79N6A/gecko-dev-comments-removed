@@ -353,9 +353,7 @@ nsHttpTransaction::OnTransportStatus(nsresult status, PRUint64 progress)
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
     
-    if (status == nsISocketTransport::STATUS_RECEIVING_FROM)
-        return;
-
+    
     if (mActivityDistributor) {
         
         if ((mHasRequestBody) &&
@@ -375,6 +373,10 @@ nsHttpTransaction::OnTransportStatus(nsresult status, PRUint64 progress)
             progress,
             EmptyCString());
     }
+
+    
+    if (status == nsISocketTransport::STATUS_RECEIVING_FROM)
+        return;
 
     nsUint64 progressMax;
 
