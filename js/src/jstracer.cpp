@@ -1444,40 +1444,43 @@ js_AttemptToExtendTree(JSContext* cx, GuardRecord* lr, Fragment* f)
     return false;
 }
 
+static bool
+js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc)
+{
+#ifdef JS_THREADSAFE
+    if (OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->title.ownercx != cx) {
+#ifdef DEBUG
+        printf("Global object not owned by this context.\n");
+#endif
+        return false; 
+    }
+#endif
+    if (r->isLoopHeader(cx)) { 
+        AUDIT(traceCompleted);
+        r->closeLoop(JS_TRACE_MONITOR(cx).fragmento);
+        js_DeleteRecorder(cx);
+        return false; 
+    }
+    if (++r->backEdgeCount >= MAX_XJUMPS) {
+        AUDIT(returnToDifferentLoopHeader);
+        debug_only(printf("loop edge %d -> %d, header %d\n",
+                oldpc - cx->fp->script->code,
+                cx->fp->regs->pc - cx->fp->script->code,
+                (jsbytecode*)r->getFragment()->root->ip - cx->fp->script->code));
+        js_AbortRecording(cx, oldpc, "Loop edge does not return to header");
+        return false; 
+    }
+    return true; 
+}
+
 bool
 js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
     
-    if (tm->recorder) {
-        TraceRecorder* r = tm->recorder;
-#ifdef JS_THREADSAFE
-        
-        if (OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->title.ownercx != cx) {
-#ifdef DEBUG
-            printf("Global object not owned by this context.\n");
-#endif
-            return false; 
-        }
-#endif
-        if (r->isLoopHeader(cx)) { 
-            AUDIT(traceCompleted);
-            r->closeLoop(JS_TRACE_MONITOR(cx).fragmento);
-            js_DeleteRecorder(cx);
-            return false; 
-        }
-        if (++r->backEdgeCount >= MAX_XJUMPS) {
-            AUDIT(returnToDifferentLoopHeader);
-            debug_only(printf("loop edge %d -> %d, header %d\n",
-                              oldpc - cx->fp->script->code,
-                              cx->fp->regs->pc - cx->fp->script->code,
-                              (jsbytecode*)r->getFragment()->root->ip - cx->fp->script->code));
-            js_AbortRecording(cx, oldpc, "Loop edge does not return to header");
-            return false; 
-        }
-        return true; 
-    }
+    if (tm->recorder) 
+        return js_ContinueRecording(cx, tm->recorder, oldpc);
 
     Fragment* f = tm->fragmento->getLoop(cx->fp->regs->pc);
     if (!f->code()) {
