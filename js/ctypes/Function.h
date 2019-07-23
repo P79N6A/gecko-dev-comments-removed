@@ -43,18 +43,6 @@
 #include "Module.h"
 #include "nsTArray.h"
 #include "prlink.h"
-
-
-
-#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-#ifdef __i386
-#define __i386__
-#endif
-#ifdef __x86_64
-#define __x86_64__
-#endif
-#endif
-
 #include "ffi.h"
 
 namespace mozilla {
