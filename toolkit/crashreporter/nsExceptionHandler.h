@@ -81,6 +81,24 @@ nsresult SetSubmitReports(PRBool aSubmitReport);
 
 bool TakeMinidumpForChild(PRUint32 childPid, nsIFile** dump NS_OUTPARAM);
 
+#ifdef XP_WIN
+typedef HANDLE ProcessHandle;
+#else
+typedef int ProcessHandle;
+#endif
+
+
+
+
+
+
+
+
+bool CreatePairedMinidumps(ProcessHandle childPid,
+                           nsAString* pairGUID NS_OUTPARAM,
+                           nsILocalFile** childDump NS_OUTPARAM,
+                           nsILocalFile** parentDump NS_OUTPARAM);
+
 #  if defined(XP_WIN32)
 
 const char* GetChildNotificationPipe();
