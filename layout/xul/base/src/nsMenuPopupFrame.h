@@ -180,6 +180,10 @@ public:
   
   PRBool IsNoAutoHide();
 
+  
+  
+  PRBool IsTopMost();
+
   void EnsureWidget();
 
   virtual nsresult CreateWidgetForView(nsIView* aView);
@@ -353,6 +357,7 @@ protected:
   
   nsSize mPrefSize;
 
+  static PRInt8 sDefaultLevelParent;
 }; 
 
 #endif

@@ -1515,6 +1515,9 @@ pref("intl.jis0208.map", "CP932");
 
 pref("intl.keyboard.per_window_layout", false);
 
+
+pref("ui.panel.default_level_parent", false);
+
 # WINNT
 #endif
 
@@ -1932,6 +1935,9 @@ pref("print.print_extra_margin", 90);
 
 pref("print.use_native_print_dialog", true);
 
+
+pref("ui.panel.default_level_parent", false);
+
 # XP_MACOSX
 #endif
 
@@ -2129,6 +2135,11 @@ pref("intl.jis0208.map", "IBM943");
 
 pref("network.dns.disableIPv6", true);
 
+
+
+
+pref("ui.panel.default_level_parent", false);
+
 # OS2
 #endif
 
@@ -2219,6 +2230,11 @@ pref("ui.key.contentAccess", 3);
 
 
 pref("browser.download.dir", "/boot/home/Downloads");
+
+
+
+
+pref("ui.panel.default_level_parent", false);
 
 # BeOS
 #endif
@@ -2481,6 +2497,17 @@ pref("font.size.fixed.x-sinh", 13);
 pref("print.postscript.paper_size",    "letter");
 pref("print.postscript.orientation",   "portrait");
 pref("print.postscript.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
+
+
+
+
+
+
+
+
+
+
+pref("ui.panel.default_level_parent", true);
 
 # XP_UNIX
 #endif

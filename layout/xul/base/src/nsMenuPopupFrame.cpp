@@ -74,6 +74,7 @@
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsLayoutUtils.h"
+#include "nsContentUtils.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsIEventStateManager.h"
 #include "nsIBoxLayout.h"
@@ -87,6 +88,8 @@
 #endif
 
 const PRInt32 kMaxZ = 0x7fffffff; 
+
+PRInt8 nsMenuPopupFrame::sDefaultLevelParent = -1;
 
 
 
@@ -118,6 +121,10 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mInContentShell(PR_TRUE),
   mPrefSize(-1, -1)
 {
+  if (sDefaultLevelParent >= 0)
+    return;
+  sDefaultLevelParent =
+    nsContentUtils::GetBoolPref("ui.panel.default_level_parent", PR_FALSE);
 } 
 
 
@@ -189,6 +196,31 @@ nsMenuPopupFrame::IsNoAutoHide()
                                  nsGkAtoms::_true, eIgnoreCase));
 }
 
+PRBool
+nsMenuPopupFrame::IsTopMost()
+{
+  
+  if (mPopupType != ePopupTypePanel)
+    return PR_TRUE;
+
+  
+  
+  if (IsNoAutoHide())
+    return PR_FALSE;
+
+  
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::level,
+                            nsGkAtoms::top, eIgnoreCase))
+    return PR_TRUE;
+
+  if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::level,
+                            nsGkAtoms::parent, eIgnoreCase))
+    return PR_FALSE;
+
+  
+  return sDefaultLevelParent ? PR_TRUE : PR_FALSE;
+}
+
 void
 nsMenuPopupFrame::EnsureWidget()
 {
@@ -223,7 +255,7 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   
   
   nsCOMPtr<nsIWidget> parentWidget;
-  if (IsNoAutoHide()) {
+  if (!IsTopMost()) {
     nsCOMPtr<nsISupports> cont = PresContext()->GetContainer();
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
     if (!dsti)
