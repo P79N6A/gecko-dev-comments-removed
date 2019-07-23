@@ -31,7 +31,6 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
   document.addEventListener("keypress", preventDefault, false);
 
   var multiple = (seltype == "multiple");
-  var editable = false;
 
   var tree = document.getElementById(treeid);
   var treerowinfo = document.getElementById(treerowinfoid);
@@ -60,7 +59,7 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
 
   testtag_tree_TreeView(tree, testid, rowInfo);
 
-  is(tree.editable, editable, "editable");
+  is(tree.editable, false, "tree should not be editable");
   
   
   is(tree.editingRow, -1, testid + " initial editingRow");
@@ -68,8 +67,20 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
 
   testtag_tree_UI_editing(tree, testid, rowInfo);
 
+  is(tree.editable, false, "tree should not be editable after testtag_tree_UI_editing");
+  
+  
+  is(tree.editingRow, -1, testid + " initial editingRow (continued)");
+  is(tree.editingColumn, null, testid + " initial editingColumn (continued)");
+
   var ecolumn = tree.columns[0];
-  tree.startEditing(1, ecolumn);
+  ok(!tree.startEditing(1, ecolumn), "non-editable trees shouldn't start editing");
+  is(tree.editingRow, -1, testid + " failed startEditing shouldn't set editingRow");
+  is(tree.editingColumn, null, testid + " failed startEditing shouldn't set editingColumn");  
+  
+  tree.editable = true;
+
+  ok(tree.startEditing(1, ecolumn), "startEditing should have returned true");
   is(tree.editingRow, 1, testid + " startEditing editingRow");
   is(tree.editingColumn, ecolumn, testid + " startEditing editingColumn");
   is(tree.getAttribute("editing"), "true", testid + " startEditing editing attribute");
@@ -100,6 +111,8 @@ function testtag_tree(treeid, treerowinfoid, seltype, columnstype, testid)
   inputField.value = "Second Value";
   tree.stopEditing(false);
   is(tree.view.getCellText(1, ecolumn), "Changed Value", testid + "edit cell no accept");
+
+  tree.editable = false;
 
   
   
@@ -608,6 +621,24 @@ function testtag_tree_UI_editing(tree, testid, rowInfo)
   if (tree.view.isContainer(row))
     wasOpen = tree.view.isContainerOpen(row);
 
+  
+  if (tree.selType == "cell")
+  {
+    tree.stopEditing(false);
+    ok(!tree.editingColumn, "Should not be editing tree cell now");
+    tree.view.selection.currentColumn = ecolumn;
+    tree.currentIndex = rowIndex;
+
+    const isMac = (navigator.platform.indexOf("Mac") >= 0);
+    const StartEditingKey = isMac ? "VK_ENTER" : "VK_F2";
+    synthesizeKey(StartEditingKey, {});
+    is(tree.editingColumn, ecolumn, "Should be editing tree cell now");
+    synthesizeKey("VK_ESCAPE", {});
+    ok(!tree.editingColumn, "Should not be editing tree cell now");
+    is(tree.currentIndex, rowIndex, "Current index should not have changed");
+    is(tree.view.selection.currentColumn, ecolumn, "Current column should not have changed");
+  }
+
   mouseDblClickOnCell(tree, rowIndex, ecolumn, testid + "edit on double click");
   is(tree.editingColumn, ecolumn, testid + "editing column");
   is(tree.editingRow, rowIndex, testid + "editing row");
@@ -642,23 +673,8 @@ function testtag_tree_UI_editing(tree, testid, rowInfo)
   
   
 
-  if (1) 
-    return;
-
-  tree.startEditing(0, ecolumn);
-  inputField.value = "Value for Return";
-  synthesizeKey("VK_RETURN", {});
-  is(tree.view.getCellText(0, ecolumn), "Value for Return", testid + "edit cell return");
-
-  tree.startEditing(0, ecolumn);
-  inputField.value = "Value for Enter";
-  synthesizeKey("VK_ENTER", {});
-  is(tree.view.getCellText(0, ecolumn), "Value for Enter", testid + "edit cell enter");
-
-  tree.startEditing(0, ecolumn);
-  inputField.value = "Value for Escape";
-  synthesizeKey("VK_ESCAPE", {});
-  is(tree.view.getCellText(0, ecolumn), "Value for Enter", testid + "edit cell escape");
+  
+  tree.stopEditing(false);
 }
 
 function testtag_tree_TreeSelection_UI_cell(tree, testid, rowInfo)
