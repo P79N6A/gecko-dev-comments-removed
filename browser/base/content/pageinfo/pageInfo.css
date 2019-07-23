@@ -14,3 +14,8 @@ richlistitem[feed]:not([selected="true"]) .feed-subscribe {
 groupbox[closed="true"] > .groupbox-body { 
   visibility: collapse;
 }
+
+
+#thepreviewimage {
+  min-width: 1px;
+}
