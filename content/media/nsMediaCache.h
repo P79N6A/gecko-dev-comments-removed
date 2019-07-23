@@ -222,7 +222,8 @@ public:
   nsMediaCacheStream(nsMediaChannelStream* aClient)
     : mClient(aClient), mChannelOffset(0),
       mStreamOffset(0), mStreamLength(-1), mPlaybackBytesPerSecond(10000),
-      mPinCount(0), mCurrentMode(MODE_PLAYBACK), mClosed(PR_FALSE),
+      mPinCount(0), mCurrentMode(MODE_PLAYBACK),
+      mInitialized(PR_FALSE), mClosed(PR_FALSE),
       mIsSeekable(PR_FALSE), mCacheSuspended(PR_FALSE),
       mMetadataInPartialBlockBuffer(PR_FALSE),
       mUsingNullPrincipal(PR_FALSE) {}
@@ -232,6 +233,12 @@ public:
   
   
   nsresult Init();
+
+  
+  
+  
+  
+  nsresult InitAsClone(nsMediaCacheStream* aOriginal);
 
   
   
@@ -447,6 +454,8 @@ private:
   PRUint32          mPinCount;
   
   ReadMode          mCurrentMode;
+  
+  PRPackedBool      mInitialized;
   
   
   PRPackedBool      mClosed;
