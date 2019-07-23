@@ -2122,7 +2122,11 @@ class RegExpNativeCompiler {
     LIns* compileFlatDoubleChar(jschar ch1, jschar ch2, LIns* pos, 
                                 LInsList& fails) 
     {
+#ifdef IS_BIG_ENDIAN
+        uint32 word = (ch1 << 16) | ch2;
+#else
         uint32 word = (ch2 << 16) | ch1;
+#endif
         
 
 
