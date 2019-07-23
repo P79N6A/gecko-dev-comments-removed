@@ -5,7 +5,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -47,7 +47,7 @@ const kBATCH_LIMIT = 4;
 
 var gNC_NS, gWEB_NS, gRDF_NS, gXUL_NS, gNC_NS_CMD;
 
-// definition of the services frequently used for bookmarks
+
 var kRDFContractID;
 var kRDFSVCIID;
 var kRDFRSCIID;
@@ -93,7 +93,7 @@ var MICSUMSVC;
 var gBmProperties;
 var gBkmkTxnSvc;
 
-// should be moved in a separate file
+
 function initServices()
 {
   gNC_NS     = "http://home.netscape.com/NC-rdf#";
@@ -161,36 +161,36 @@ function initBMService()
   BMSVC = BMDS.QueryInterface(kBMSVCIID);
 }
 
-/**
- * XXX - 24 Jul 04
- * If you add a command that needs to run from the main browser window,
- * it needs to be added to browser/base/content/browser-sets.inc as well!
- *
- * XXX - 04/16/01
- *  ACK! massive command name collision problems are causing big issues
- *  in getting this stuff to work in the Navigator window. For sanity's 
- *  sake, we need to rename all the commands to be of the form cmd_bm_*
- *  otherwise there'll continue to be problems. For now, we're just 
- *  renaming those that affect the personal toolbar (edit operations,
- *  which were clashing with the textfield controller)
- *
- * There are also several places that need to be updated if you need
- * to change a command name. 
- *   1) the controller...
- *      - in bookmarksTree.xml if the command is tree-specifc
- *      - in bookmarksMenu.js if the command is DOM-specific
- *      - in bookmarks.js otherwise
- *   2) the command nodes in the overlay or xul file
- *   3) the command human-readable name key in bookmarks.properties
- *   4) the function 'getCommands' in bookmarks.js
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var BookmarksCommand = {
 
-  /////////////////////////////////////////////////////////////////////////////
-  // This method constructs a menuitem for a context menu for the given command.
-  // This is implemented by the client so that it can intercept menuitem naming
-  // as appropriate.
+  
+  
+  
+  
   createMenuItem: function (aDisplayName, aAccessKey, aCommandName, aSelection)
   {
     var xulElement = document.createElementNS(gXUL_NS, "menuitem");
@@ -202,9 +202,9 @@ var BookmarksCommand = {
     return xulElement;
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Fill a context menu popup with menuitems that are appropriate for the current
-  // selection.
+  
+  
+  
   createContextMenu: function (aEvent, aSelection, aDS)
   {
     if (aSelection == undefined) {
@@ -213,7 +213,7 @@ var BookmarksCommand = {
     }
 
     var popup = aEvent.target;
-    // clear out the old context menu contents (if any)
+    
     while (popup.hasChildNodes()) 
       popup.removeChild(popup.firstChild);
         
@@ -234,8 +234,8 @@ var BookmarksCommand = {
       return;
     }
     
-    // Now that we should have generated a list of commands that is valid
-    // for the entire selection, build a context menu.
+    
+    
     for (i = 0; i < commonCommands.length; ++i) {
       var currCommand = commonCommands[i].QueryInterface(kRDFRSCIID).Value;
       var element = null;
@@ -245,8 +245,8 @@ var BookmarksCommand = {
         element = this.createMenuItem(commandName, accessKey, currCommand, aSelection);
       }
       else if (i != 0 && i < commonCommands.length-1) {
-        // Never append a separator as the first or last element in a context
-        // menu.
+        
+        
         element = document.createElementNS(gXUL_NS, "menuseparator");
       }
       if (element) 
@@ -257,9 +257,9 @@ var BookmarksCommand = {
       popup.firstChild.setAttribute("default", "true");
   },
   
-  /////////////////////////////////////////////////////////////////////////////
-  // Given two unique arrays, return an array that contains only the elements
-  // common to both. 
+  
+  
+  
   findCommonNodes: function (aNewArray, aOldArray)
   {
     var common = [];
@@ -285,9 +285,9 @@ var BookmarksCommand = {
     return temp;
   },
   
-  /////////////////////////////////////////////////////////////////////////////
-  // For a given URI (a unique identifier of a resource in the graph) return 
-  // an enumeration of applicable commands for that URI. 
+  
+  
+  
   getCommands: function (aNodeID, aParent, aDS)
   {
     var type = BookmarksUtils.resolveType(aNodeID, aDS);
@@ -304,25 +304,25 @@ var BookmarksCommand = {
     }
 
     var commands = [];
-    // menu order:
-    // 
-    // bm_open, bm_openfolder
-    // bm_openinnewwindow
-    // bm_openinnewtab
-    // ---------------------
-    // bm_newfolder
-    // ---------------------
-    // cut
-    // copy
-    // paste
-    // ---------------------
-    // delete
-    // ---------------------
-    // bm_refreshlivemark
-    // bm_refreshmicrosummary
-    // bm_sortbyname
-    // ---------------------
-    // bm_properties
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     switch (type) {
     case "BookmarkSeparator":
       commands = ["bm_newbookmark", "bm_newfolder", "bm_newseparator", "bm_separator",
@@ -338,8 +338,8 @@ var BookmarksCommand = {
                   "delete", "bm_separator",
                   "bm_sortbyname", "bm_separator",
                   "bm_properties"];
-      // If this bookmark has a microsummary, add a command for refreshing it
-      // right before the "sort by name" (bm_sortbyname) command.
+      
+      
       if (MICSUMSVC.hasMicrosummary(aNodeID))
         commands.splice(14, 0, "bm_refreshmicrosummary");
       break;
@@ -384,26 +384,26 @@ var BookmarksCommand = {
     return new CommandArrayEnumerator(commands);
   },
   
-  /////////////////////////////////////////////////////////////////////////////
-  // Retrieve the human-readable name for a particular command. Used when 
-  // manufacturing a UI to invoke commands.
+  
+  
+  
   getCommandName: function (aCommand) 
   {
     var cmdName = aCommand.substring(gNC_NS_CMD.length);
     return BookmarksUtils.getLocaleString ("cmd_" + cmdName);
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Retrieve the access key for a particular command. Used when 
-  // manufacturing a UI to invoke commands.
+  
+  
+  
   getAccessKey: function (aCommand) 
   {
     var cmdName = aCommand.substring(gNC_NS_CMD.length);
     return BookmarksUtils.getLocaleString ("cmd_" + cmdName + "_accesskey");
   },
   
-  ///////////////////////////////////////////////////////////////////////////
-  // Execute a command with the given source and arguments
+  
+  
   doBookmarksCommand: function (aSource, aCommand, aArgumentsArray)
   {
     var rCommand = RDF.GetResource(aCommand);
@@ -429,7 +429,7 @@ var BookmarksCommand = {
       argsArray.AppendElement(rValue);
     }
 
-    // Exec the command in the Bookmarks datasource. 
+    
     BMDS.DoCommand(sourcesArray, rCommand, argsArray);
   },
 
@@ -475,12 +475,12 @@ var BookmarksCommand = {
     for (var i = 0; i < aSelection.length; ++i) {
       sBookmarkItem += aSelection.item[i].Value + "\n";
 
-      // save the selection property into text string that we will use later in paste function
-      // and in INSERT tranasactions
-      // (if the selection is folder or livemark save all childs property)
+      
+      
+      
       var aType = BookmarksUtils.resolveType(aSelection.item[i]);
       if (aType == "Livemark") {
-        sBookmarkItem += "\n\n\n\n\n\n\n\n\n"; // don't change livemark properties
+        sBookmarkItem += "\n\n\n\n\n\n\n\n\n"; 
       } else {
          for (var j = 0; j < gBmProperties.length; ++j) {
             var itemValue = BMDS.GetTarget(aSelection.item[i], gBmProperties[j], true);
@@ -520,7 +520,7 @@ var BookmarksCommand = {
     }
     sTextUnicode = sTextUnicode.replace(/\n$/,"");
     
-    // generate unique separator and combine the array to one string 
+    
     var bmSeparator = "]-[", extrarSeparator = "@";
     for (var i = 0; i < tmpBmItem.length; ++i) {
         while (tmpBmItem[i].indexOf(bmSeparator)>-1)
@@ -529,7 +529,7 @@ var BookmarksCommand = {
     for (var i = 0; i < tmpBmItem.length; ++i) {
       sBookmarkItem += tmpBmItem[i] + bmSeparator;
     }
-    // insert the separator to sBookmarkItem so we can extract it in pasteBookmark
+    
     sBookmarkItem = bmSeparator + "\n" + sBookmarkItem;
     
     const kXferableContractID = "@mozilla.org/widget/transferable;1";
@@ -580,9 +580,9 @@ var BookmarksCommand = {
       var sep = tmpItem.shift();
       data = tmpItem.join("\n");
       items = data.split(sep);
-      // since data are ended by separator, remove the last empty node
+      
       items.pop(); 
-      // convert propery from text string to array
+      
       var p = gBmProperties.length+1;
       for (var i = 0; i < items.length; ++i) {
         childs = items[i].split("\n");
@@ -603,11 +603,11 @@ var BookmarksCommand = {
       }
       break;
     case "text/x-moz-url":
-      // there should be only one item in this case
+      
       var ix = data.indexOf("\n");
       items = data.substring(0, ix != -1 ? ix : data.length);
       name  = data.substring(ix);
-      // XXX: we should infer the best charset
+      
       var createdBookmarkResource = BookmarksUtils.createBookmark(null, items, null, name, null);
       items = [createdBookmarkResource];
       break;
@@ -622,11 +622,11 @@ var BookmarksCommand = {
   
   deleteBookmark: function (aSelection)
   {
-    // call checkSelection here to update the immutable and other
-    // flags on the selection; when new resources get created,
-    // they're temporarily not valid because they're not in a
-    // bookmark container.  So, they can't be removed until that's
-    // fixed.
+    
+    
+    
+    
+    
     BookmarksUtils.checkSelection(aSelection);
     BookmarksUtils.removeAndCheckSelection("delete", aSelection);
   },
@@ -647,10 +647,10 @@ var BookmarksCommand = {
     if (!aTargetBrowser)
       return;
 
-    // in this case, we can just use |aSelection.length| as "Open in Tabs"
-    // is only available when you are only selecting multiple bookmarks
-    // if you selected a folder of bookmarks, we check the number of tabs in
-    // openGroupBookmark()
+    
+    
+    
+    
     if (aTargetBrowser == "tab" && !this._confirmOpenTabs(aSelection.length))
       return;
 
@@ -675,19 +675,19 @@ var BookmarksCommand = {
   
   openBookmarkProperties: function (aSelection) 
   {
-    // Bookmark Properties dialog is only ever opened with one selection 
-    // (command is disabled otherwise)
+    
+    
     var bookmark = aSelection.item[0].Value;
     var value = {};
     openDialog("chrome://browser/content/bookmarks/bookmarksProperties.xul", "", "centerscreen,chrome,modal,resizable=no", bookmark, value);
     return value.ok;
   },
 
-  // requires utilityOverlay.js if opening in new window for getTopWin()
+  
   openWebPanel: function(aResource, aDS)
   {
     var url = BookmarksUtils.getProperty(aResource, gNC_NS+"URL", aDS);
-    // Ignore "NC:" and empty urls.
+    
     if (url == "")
       return;
     var w = getTopWin();
@@ -698,11 +698,11 @@ var BookmarksCommand = {
     w.openWebPanel(BookmarksUtils.getProperty(aResource,  gNC_NS+"Name"), url);
   },
 
-  // requires contentAreaUtils.js because it calls saveURL
+  
   saveBookmark: function(aResource, aDS)
   {
     var url = BookmarksUtils.getProperty(aResource, gNC_NS+"URL", aDS);
-    // Ignore "NC:" and empty urls.
+    
     if (url == "")
       return;
     var fileName = BookmarksUtils.getProperty(aResource, gNC_NS+"Name", aDS);
@@ -710,11 +710,11 @@ var BookmarksCommand = {
     saveURL(url, fileName, null, true); 
   },
 
-  // requires utilityOverlay.js because it calls openUILinkIn
+  
   openOneBookmark: function (aURI, aTargetBrowser, aDS)
   {
     var url = BookmarksUtils.getProperty(aURI, gNC_NS+"URL", aDS);
-    // Ignore "NC:" and empty urls.
+    
     if (url == "")
       return;
 
@@ -734,7 +734,7 @@ var BookmarksCommand = {
             Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
             getService(Components.interfaces.nsIPromptService);
  
-        // default to true: if it were false, we wouldn't get this far
+        
         var warnOnOpen = { value: true };
  
         var messageKey = "tabs.openWarningMultipleBranded";
@@ -753,7 +753,7 @@ var BookmarksCommand = {
             warnOnOpen);
 
          reallyOpen = (buttonPressed == 0);
-         // don't set the pref unless they press OK and it's false
+         
          if (reallyOpen && !warnOnOpen.value)
            PREF.setBoolPref(kWarnOnOpenPref, false);
        }
@@ -765,7 +765,7 @@ var BookmarksCommand = {
   {
     var w = getTopWin();
     if (!w)
-      // no browser window is open, we have to open the group into a new window
+      
       aTargetBrowser = "window";
 
     var resource = RDF.GetResource(aURI);
@@ -774,13 +774,13 @@ var BookmarksCommand = {
     var containerChildren = RDFC.GetElements();
     var numTabsToOpen = 0;
 
-    // we can't just use |RDFC.GetCount()| as that might include
-    // folders, separators, deleted bookmarks, etc.
+    
+    
     while (containerChildren.hasMoreElements()) {
       var res = containerChildren.getNext().QueryInterface(kRDFRSCIID);
       var type = BookmarksUtils.resolveType(res);
-      // these are the types in getCommands() that support the 
-      // "bm_openinnewwindow" and "bm_openinnewtab" commands
+      
+      
       if (type == "Bookmark" || type == "LivemarkBookmark" || 
           type == "ImmutableBookmark" || type == "IEFavorite" ||
           type == "FileSystemObject")
@@ -790,8 +790,8 @@ var BookmarksCommand = {
     if (!this._confirmOpenTabs(numTabsToOpen))
       return;
 
-    // counting the number of tabs to open modified the 
-    // containerChildren enumerator, so we need to reset it.
+    
+    
     containerChildren = RDFC.GetElements();
     if (aTargetBrowser == "current" || aTargetBrowser == "tab") {
       var browser  = w.document.getElementById("content");
@@ -822,38 +822,38 @@ var BookmarksCommand = {
           if (index < tabCount)
             tabPanels[index].loadURI(uri);
           else {
-            // This is not a modal sub-action of a given tab/document within a window
-            // since opening a bookmarks group replaces all existing tabs in the window,
-            // closing extras. If this ever changes to be augmentative, this code will
-            // have to change to probably just use <tabbrowser>.loadTabs() which figures
-            // out whether or not owner should be set. 
+            
+            
+            
+            
+            
             browser.addTab(uri);
           }
           ++index;
         }
       }
 
-      // If the bookmark group was completely invalid, just bail.
+      
       if (index == index0)
         return;
 
-      // focus the first tab if prefs say to
+      
       if (!loadInBackground || doReplace) {
-        // Select the first tab in the group.
-        // Set newly selected tab after quick timeout, otherwise hideous focus problems
-        // can occur because new presshell is not ready to handle events
+        
+        
+        
         function selectNewForegroundTab(browser, tab) {
           browser.selectedTab = tab;
         }
         setTimeout(selectNewForegroundTab, 0, browser, tabs[index0]);
       }
 
-      // Close any remaining open tabs that are left over.
-      // (Always skipped when we append tabs)
+      
+      
       for (var i = tabCount-1; i >= index; --i)
         browser.removeTab(tabs[i]);
 
-      // and focus the content
+      
       w.content.focus();
 
     } else if (aTargetBrowser == "window") {
@@ -889,7 +889,7 @@ var BookmarksCommand = {
     var name     = BookmarksUtils.getLocaleString("ile_newfolder");
     var resource = BMSVC.createFolder(name);
     this.createNewResource(resource, aTarget, "newfolder");
-    // temporary hack...
+    
     return resource;
   },
 
@@ -912,7 +912,7 @@ var BookmarksCommand = {
 
   importBookmarks: function ()
   {
-      // XXX: ifdef it to be non-modal (non-"sheet") on mac (see bug 259039)
+      
       var features = "modal,centerscreen,chrome,resizable=no";
       window.fromFile = false;
       window.openDialog("chrome://browser/content/migration/migration.xul", "migration", features, "bookmarks");
@@ -924,7 +924,7 @@ var BookmarksCommand = {
 
   importBookmarksFromFile: function ()
   {
-    ///transaction...
+    
     try {
       const kFilePickerContractID = "@mozilla.org/filepicker;1";
       const kFilePickerIID = Components.interfaces.nsIFilePicker;
@@ -1021,12 +1021,12 @@ var BookmarksCommand = {
 
   sortByName: function (aSelection)
   {
-    // do the real sorting in a timeout, to make sure that
-    // if we sort from a menu that the menu gets torn down
-    // before we sort.  the template builder really doesn't
-    // like it if we move things around; the menu code also
-    // doesn't like it if we move the menuparent while a
-    // popup is open.
+    
+    
+    
+    
+    
+    
     setTimeout(function () { BookmarksCommand.realSortByName(aSelection); }, 0);
   },
 
@@ -1043,9 +1043,9 @@ var BookmarksCommand = {
     {
       theFolder = aSelection.parent[0];
     } else {
-      // we're not going to try to sort ImmutableBookmark siblings or
-      // any other such thing, since it'll probably just get us into
-      // trouble
+      
+      
+      
       return;
     }
 
@@ -1075,31 +1075,31 @@ var BookmarksCommand = {
                    var aisfolder = (atype == "Folder") || (atype == "PersonalToolbarFolder");
                    var bisfolder = (btype == "Folder") || (btype == "PersonalToolbarFolder");
 
-                   // folders above bookmarks
+                   
                    if (aisfolder && !bisfolder)
                      return -1;
                    if (bisfolder && !aisfolder)
                      return 1;
 
-                   // then sort by name
+                   
                    var aname = BMDS.GetTarget(a, kName, true).QueryInterface(kRDFLITIID).Value;
                    var bname = BMDS.GetTarget(b, kName, true).QueryInterface(kRDFLITIID).Value;
 
                    return collation.compareString(0, aname, bname);
                  });
 
-    // we now have the resources here sorted by name
+    
     BMDS.beginUpdateBatch();
 
     RDFC.Init(BMDS, theFolder);
 
-    // remove existing elements
+    
     var folderContents = RDFC.GetElements();
     while (folderContents.hasMoreElements()) {
       RDFC.RemoveElement (folderContents.getNext(), false);
     }
 
-    // and add our elements back
+    
     for (var i = 0; i < toSort.length; i++) {
       RDFC.InsertElementAt (toSort[i], i+1, true);
     }
@@ -1109,8 +1109,8 @@ var BookmarksCommand = {
 
 }
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Command handling & Updating.
+  
+  
 var BookmarksController = {
 
   supportsCommand: function (aCommand)
@@ -1151,8 +1151,8 @@ var BookmarksController = {
     default:
       isCommandSupported = false;
     }
-    //if (!isCommandSupported)
-    //  dump("Bookmark command '"+aCommand+"' is not supported!\n");
+    
+    
     return isCommandSupported;
   },
 
@@ -1417,13 +1417,13 @@ var BookmarksUtils = {
   _bundle        : null,
   _brandShortName: null,
 
-  /////////////////////////////////////////////////////////////////////////////////////
-  // returns a property from chrome://browser/locale/bookmarks/bookmarks.properties
+  
+  
   getLocaleString: function (aStringKey, aReplaceString)
   {
     if (!this._bundle) {
-      // for those who would xblify Bookmarks.js, there is a need to create string bundle 
-      // manually instead of using <xul:stringbundle/> see bug 63370 for details
+      
+      
       var LOCALESVC = Components.classes["@mozilla.org/intl/nslocaleservice;1"]
                                 .getService(Components.interfaces.nsILocaleService);
       var BUNDLESVC = Components.classes["@mozilla.org/intl/stringbundle;1"]
@@ -1452,8 +1452,8 @@ var BookmarksUtils = {
     return bundle;
   },
     
-  /////////////////////////////////////////////////////////////////////////////
-  // returns the literal targeted by the URI aArcURI for a resource or uri
+  
+  
   getProperty: function (aInput, aArcURI, aDS)
   {
     var node;
@@ -1472,8 +1472,8 @@ var BookmarksUtils = {
     }    
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Determine the rdf:type property for the given resource.
+  
+  
   resolveType: function (aResource, aDS)
   {
     var type = this.getProperty(aResource, gRDF_NS+"type", aDS);
@@ -1483,18 +1483,18 @@ var BookmarksUtils = {
       if (aResource == BMSVC.getBookmarksToolbarFolder())
         type = "PersonalToolbarFolder";
     }
-    // Treat microsummary bookmarks like regular bookmarks, since they behave
-    // like regular bookmarks in almost every regard.
+    
+    
     if (type == "MicsumBookmark")
       type = "Bookmark";
 
     if (type == "") {
-      // we're not sure what type it is.  figure out if it's a container.
+      
       var child = this.getProperty(aResource, gNC_NS+"child", aDS);
       if (child || RDFCU.IsContainer(aDS?aDS:BMDS, RDF.GetResource(aResource)))
         return "ImmutableFolder";
 
-      // not a container; make sure it has at least a URL
+      
       if (this.getProperty(aResource, gNC_NS+"URL") != null)
         return "ImmutableBookmark";
     }
@@ -1503,8 +1503,8 @@ var BookmarksUtils = {
   },
 
   
-  /////////////////////////////////////////////////////////////////////////////
-  // Caches frequently used informations about the selection
+  
+  
   checkSelection: function (aSelection)
   {
     if (aSelection.length == 0)
@@ -1558,8 +1558,8 @@ var BookmarksUtils = {
     return !aSelection.containsImmutable && !aSelection.containsPTF;
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Returns true is aContainer is a member or a child of the selection
+  
+  
   isContainerChildOrSelf: function (aContainer, aSelection)
   {
     var folder = aContainer;
@@ -1570,13 +1570,13 @@ var BookmarksUtils = {
       }
       folder = BMSVC.getParent(folder);
       if (!folder)
-        return false; // sanity check
+        return false; 
     } while (folder.Value != "NC:BookmarksRoot")
     return false;
   },
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Returns true if aSelection can be inserted in aFolder
+  
+  
   isValidTargetContainer: function (aFolder, aSelection)
   {
     if (!aFolder)
@@ -1586,24 +1586,24 @@ var BookmarksUtils = {
     if (aFolder.Value == "NC:BookmarksRoot")
       return true;
 
-    // don't insert items in an invalid container
-    // 'file:' and 'find:' items have a 'Bookmark' type
+    
+    
     var type = BookmarksUtils.resolveType(aFolder);
     if (type != "Folder" && type != "PersonalToolbarFolder")
       return false;
 
-    // bail if we just check the container
+    
     if (!aSelection)
       return true;
 
-    // check that the selected folder is not the selected item nor its child
+    
     if (this.isContainerChildOrSelf(aFolder, aSelection))
       return false;
 
     return true;
   },
 
-  /////////////////////////////////////////////////////////////////////////////
+  
   removeAndCheckSelection: function (aAction, aSelection)
   {
     var isValid = BookmarksUtils.isSelectionValidForDeletion(aSelection);
@@ -1625,21 +1625,21 @@ var BookmarksUtils = {
       BMDS.beginUpdateBatch();
 
     for (var i = 0; i < aSelection.length; ++i) {
-      // try to put back aSelection.parent[i] if it's null, so we can delete after searching
+      
       if (aSelection.parent[i] == null)
           aSelection.parent[i] = BMDS.getParent(aSelection.item[i]);
 
       if (aSelection.parent[i]) {
         RDFC.Init(BMDS, aSelection.parent[i]);
 
-        // save the selection property into array that is used later in
-        // when performing the REMOVE transaction
-        // (if the selection is folder save all childs property)
+        
+        
+        
         var propArray;
         if (aAction != "move") {
             propArray = new Array(gBmProperties.length);
             var aType = BookmarksUtils.resolveType(aSelection.item[i]);            
-            if (aType != "Livemark") {// don't change livemark properties
+            if (aType != "Livemark") {
                for (var j = 0; j < gBmProperties.length; ++j) {
                   var oldValue = BMDS.GetTarget(aSelection.item[i], gBmProperties[j], true);
                   if (oldValue)
@@ -1661,11 +1661,11 @@ var BookmarksUtils = {
     if (aSelection.length > 1)
       gBkmkTxnSvc.endBatch();
     if (aSelection.length > kBATCH_LIMIT && aAction != "move")
-      BMDS.beginUpdateBatch();
+      BMDS.endUpdateBatch();
     return true;
   },
 
-  //  this recursive function return array of all childrens properties for given folder
+  
   getAllChildren: function (folder, propArray)
   {
     var container = Components.classes[kRDFCContractID].createInstance(kRDFCIID);
@@ -1677,7 +1677,7 @@ var BookmarksUtils = {
          var aType = BookmarksUtils.resolveType(child);
          var childResource = child.QueryInterface(kRDFRSCIID);
          var props = new Array(gBmProperties.length);
-         // don't change livemark properties
+         
          if (aType != "Livemark") {
             for (var j = 0; j < gBmProperties.length; ++j) {
                var oldValue = BMDS.GetTarget(childResource, gBmProperties[j], true);
@@ -1692,7 +1692,7 @@ var BookmarksUtils = {
     }
   },
 
-  // if we are in search mode i.e. "find:" is in ref attribute we refresh the Search
+  
   refreshSearch: function ()
   {
    var bmTree, bmView = document.getElementById("bookmarks-view");
@@ -1735,15 +1735,15 @@ var BookmarksUtils = {
       if (BMSVC.isBookmarkedResource(rSource))
         rSource = BMSVC.cloneResource(rSource);
       item = rSource;
-      // we only have aSelection.prop if insertSelection call by paste action we don't use it for move
+      
       removedProps = aSelection.prop ? aSelection.prop[i] : null;
-      // Broken Insert Code attempts to always insert items in the
-      // right place (i.e. after the selected item).  However, because
-      // of RDF Container suckyness, this code gets very confused, due
-      // to rdf container indexes not matching up to number of items,
-      // and because we can't trust GetCount to return a real count.
-      // The -1 is there to handle inserting into the persontal toolbar
-      // folder via right-click on the PTF.
+      
+      
+      
+      
+      
+      
+      
       if (aTarget.index == -1) {
         index = -1;
       } else {
@@ -1792,8 +1792,8 @@ var BookmarksUtils = {
       BMDS.endUpdateBatch();
   }, 
 
-  // returns true if this selection should be copied instead of moved,
-  // if a move was originally requested
+  
+  
   shouldCopySelection: function (aAction, aSelection)
   {
     for (var i = 0; i < aSelection.length; i++) {
@@ -1803,7 +1803,7 @@ var BookmarksUtils = {
           aSelection.parent[i] == null ||
           (aSelection.type[i] == "Bookmark" && parentType == "Livemark"))
       {
-        return true;            // if any of these are found
+        return true;            
       }
     }
 
@@ -1900,7 +1900,7 @@ var BookmarksUtils = {
   getTitleForURLFromHistory: function(aURL, aDefaultName)
   {
 #ifndef MOZ_PLACES
-    // look up in the history ds to retrieve the name
+    
     var rSource = RDF.GetResource(aURL);
     var HISTDS  = RDF.GetDataSource("rdf:history");
     var nameArc = RDF.GetResource(gNC_NS+"Name");
@@ -1911,7 +1911,7 @@ var BookmarksUtils = {
       Components.classes["@mozilla.org/browser/nav-history-service;1"]
                 .getService(Components.interfaces.nsINavHistoryService);
 
-    // query for the URL
+    
     var options = histsvc.getNewQueryOptions();
     options.resultType = options.RESULTS_AS_URI;
     var query = histsvc.getNewQuery();
@@ -1995,14 +1995,14 @@ var BookmarksUtils = {
       return;
  
     var urlLiteral = RDF.GetLiteral(aURL);
-    // don't do anything if this URI isn't bookmarked
+    
     var bmResources = BMSVC.GetSources(RDF.GetResource(gNC_NS+"URL"), urlLiteral, true);
     var toUpdate = 0;
 
     while (bmResources.hasMoreElements()) {
       var bmResource = bmResources.getNext();
  
-      // don't flag this as needing update if it already has a data: icon url set
+      
       var oldIcon = BMDS.GetTarget(bmResource, RDF.GetResource(gNC_NS+"Icon"), true);
       if (oldIcon && (oldIcon.QueryInterface(kRDFLITIID).Value.substring(0,5) == "data:"))
         continue;
@@ -2091,7 +2091,7 @@ var BookmarkEditMenuTxnListener =
   }
 }
 
-// favicon loaders
+
 
 function bookmarksFavIconLoadListener(uri, faviconurl, channel) {
   this.mURI = uri;
@@ -2113,14 +2113,14 @@ bookmarksFavIconLoadListener.prototype = {
         !iid.equals(Components.interfaces.nsIInterfaceRequestor) &&
         !iid.equals(Components.interfaces.nsIRequestObserver) &&
         !iid.equals(Components.interfaces.nsIChannelEventSink) &&
-        !iid.equals(Components.interfaces.nsIProgressEventSink) && // see below
+        !iid.equals(Components.interfaces.nsIProgressEventSink) && 
         !iid.equals(Components.interfaces.nsIStreamListener)) {
       throw Components.results.NS_ERROR_NO_INTERFACE;
     }
     return this;
   },
 
-  // nsIInterfaceRequestor
+  
   getInterface: function (iid) {
     try {
       return this.QueryInterface(iid);
@@ -2129,7 +2129,7 @@ bookmarksFavIconLoadListener.prototype = {
     }
   },
 
-  // nsIRequestObserver
+  
   onStartRequest : function (aRequest, aContext) {
     this.mStream = Components.classes['@mozilla.org/binaryinputstream;1'].createInstance(Components.interfaces.nsIBinaryInputStream);
   },
@@ -2141,12 +2141,12 @@ bookmarksFavIconLoadListener.prototype = {
         this.mCountRead > 0)
     {
       var dataurl;
-      // XXX - arbitrary size beyond which we won't store a favicon.  This is /extremely/
-      // generous, and is probably too high.
+      
+      
       if (this.mCountRead > 16384) {
-        dataurl = "data:";      // hack meaning "pretend this doesn't exist"
+        dataurl = "data:";      
       } else {
-        // get us a mime type for this
+        
         var mimeType = null;
 
         const nsICategoryManager = Components.interfaces.nsICategoryManager;
@@ -2162,7 +2162,7 @@ bookmarksFavIconLoadListener.prototype = {
             mimeType = sniffer.getMIMETypeFromContent (aRequest, this.mBytes, this.mCountRead);
           } catch (e) {
             mimeType = null;
-            // ignore
+            
           }
         }
       }
@@ -2177,11 +2177,11 @@ bookmarksFavIconLoadListener.prototype = {
     this.mChannel = null;
   },
 
-  // nsIStreamObserver
+  
   onDataAvailable : function (aRequest, aContext, aInputStream, aOffset, aCount) {
-    // we could get a different aInputStream, so we don't save this;
-    // it's unlikely we'll get more than one onDataAvailable for a
-    // favicon anyway
+    
+    
+    
     this.mStream.setInputStream(aInputStream);
 
     var chunk = this.mStream.readByteArray(aCount);
@@ -2189,14 +2189,14 @@ bookmarksFavIconLoadListener.prototype = {
     this.mCountRead += aCount;
   },
 
-  // nsIChannelEventSink
+  
   onChannelRedirect : function (aOldChannel, aNewChannel, aFlags) {
     this.mChannel = aNewChannel;
   },
 
-  // nsIProgressEventSink: the only reason we support
-  // nsIProgressEventSink is to shut up a whole slew of xpconnect
-  // warnings in debug builds.  (see bug #253127)
+  
+  
+  
   onProgress : function (aRequest, aContext, aProgress, aProgressMax) { },
   onStatus : function (aRequest, aContext, aStatus, aStatusArg) { }
 }
