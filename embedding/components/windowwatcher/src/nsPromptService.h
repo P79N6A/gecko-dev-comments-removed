@@ -77,5 +77,28 @@ private:
   nsCOMPtr<nsIWindowWatcher> mWatcher;
 };
 
+
+
+
+
+class nsAutoWindowStateHelper
+{
+public:
+  nsAutoWindowStateHelper(nsIDOMWindow *aWindow);
+  ~nsAutoWindowStateHelper();
+
+  PRBool DefaultEnabled()
+  {
+    return mDefaultEnabled;
+  }
+
+protected:
+  PRBool DispatchCustomEvent(const char *aEventName);
+
+  nsIDOMWindow *mWindow;
+  PRBool mDefaultEnabled;
+};
+
+
 #endif
 
