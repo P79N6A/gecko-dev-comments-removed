@@ -2750,6 +2750,17 @@ JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
              JSPropertySpec *ps, JSFunctionSpec *fs,
              JSPropertySpec *static_ps, JSFunctionSpec *static_fs)
 {
+    return JS_InitTraceableClass(cx, obj, parent_proto, clasp, constructor, nargs,
+                                 ps, fs, static_ps, static_fs, NULL);
+}
+
+JS_PUBLIC_API(JSObject *)
+JS_InitTraceableClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
+                      JSClass *clasp, JSNative constructor, uintN nargs,
+                      JSPropertySpec *ps, JSFunctionSpec *fs,
+                      JSPropertySpec *static_ps, JSFunctionSpec *static_fs,
+                      JSTraceableNative *trcinfo)
+{
     JSAtom *atom;
     JSProtoKey key;
     JSObject *proto, *ctor;
@@ -2794,6 +2805,8 @@ JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
     JS_PUSH_TEMP_ROOT_OBJECT(cx, proto, &tvr);
 
     if (!constructor) {
+        JS_ASSERT(!trcinfo);
+
         
 
 
@@ -2831,6 +2844,15 @@ JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
 
         FUN_CLASP(fun) = clasp;
+
+        
+
+
+
+        if (trcinfo) {
+            fun->u.n.trcinfo = trcinfo;
+            fun->flags |= JSFUN_TRACEABLE;
+        }
 
         
 
