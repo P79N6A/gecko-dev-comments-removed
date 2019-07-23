@@ -11182,7 +11182,7 @@ TraceRecorder::setProp(jsval &l, JSPropCacheEntry* entry, JSScopeProperty* sprop
 
 
 
-    if (scope->branded() && VALUE_IS_FUNCTION(cx, v) && entry->directHit()) {
+    if (scope->brandedOrHasMethodBarrier() && VALUE_IS_FUNCTION(cx, v) && entry->directHit()) {
         if (obj == globalObj)
             RETURN_STOP("can't trace function-valued property set in branded global scope");
 
