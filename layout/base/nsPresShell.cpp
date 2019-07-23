@@ -5448,6 +5448,10 @@ PresShell::Paint(nsIView*             aView,
 nsIFrame*
 PresShell::GetCurrentEventFrame()
 {
+  if (NS_UNLIKELY(mIsDestroying)) {
+    return nsnull;
+  }
+    
   if (!mCurrentEventFrame && mCurrentEventContent) {
     
     
