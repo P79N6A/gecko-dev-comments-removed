@@ -286,7 +286,7 @@ nsTableOuterFrame::AppendFrames(nsIAtom*        aListName,
     
     AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
     PresContext()->PresShell()->
-      FrameNeedsReflow(mCaptionFrame, nsIPresShell::eTreeChange);
+      FrameNeedsReflow(this, nsIPresShell::eTreeChange);
     
   }
   else {
