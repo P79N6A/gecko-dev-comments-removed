@@ -70,6 +70,7 @@
 #define HOTEXIT 0
 
 
+
 #define DEMOTE_THRESHOLD 32
 
 #ifdef DEBUG
@@ -1011,7 +1012,7 @@ TraceRecorder::checkType(jsval& v, uint8& t)
         LIns* i = get(&v);
         if (TYPEMAP_GET_TYPE(t) == JSVAL_DOUBLE) {
             
-            if (guardCount > DEMOTE_THRESHOLD)
+            if (DEMOTE_THRESHOLD > 0 && guardCount > DEMOTE_THRESHOLD)
                 return true;
             if (isInt32(v) && !TYPEMAP_GET_FLAG(t, TYPEMAP_FLAG_DONT_DEMOTE)) {
                 
