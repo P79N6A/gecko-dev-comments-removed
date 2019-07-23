@@ -358,6 +358,16 @@ var PlacesUtils = {
 
 
 
+  nodeIsDay: function PU_nodeIsDay(aNode) {
+    return aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_DAY;
+  },
+
+  
+
+
+
+
+
   containerTypes: [Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER,
                    Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT,
                    Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY,

@@ -943,6 +943,8 @@ PlacesController.prototype = {
     var URIs = [];
     var bhist = PlacesUtils.history.QueryInterface(Ci.nsIBrowserHistory);
     var resultView = this._view.getResultView();
+    var root = this._view.getResultNode();
+
     for (var i = 0; i < nodes.length; ++i) {
       var node = nodes[i];
       if (PlacesUtils.nodeIsHost(node))
@@ -953,6 +955,26 @@ PlacesController.prototype = {
         if (URIs.indexOf(uri) < 0) {
           URIs.push(uri);
         }
+      }
+      else if (PlacesUtils.nodeIsDay(node)) {
+        
+        
+        var beginDate = 0;
+        
+        
+        var endDate = node.time;
+
+        
+        
+        for (var j = 0; j < root.childCount-1 && !beginDate; ++j) {
+          if (root.getChild(j) != node)
+            continue;
+          var nextNode = root.getChild(j+1);
+          beginDate = nextNode.time
+        }
+
+        
+        bhist.removePagesByTimeframe(beginDate+1, endDate);
       }
     }
 

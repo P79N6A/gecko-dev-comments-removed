@@ -3345,6 +3345,57 @@ nsNavHistory::RemovePagesFromHost(const nsACString& aHost, PRBool aEntireDomain)
 
 
 
+
+
+
+
+NS_IMETHODIMP
+nsNavHistory::RemovePagesByTimeframe(PRTime aBeginTime, PRTime aEndTime)
+{
+  nsresult rv;
+  
+  nsCString deletePlaceIdsQueryString;
+
+  
+  
+  nsCOMPtr<mozIStorageStatement> selectByTime;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT h.id FROM moz_places h WHERE "
+      "EXISTS (SELECT id FROM moz_historyvisits v WHERE v.place_id = h.id "
+      " AND v.visit_date >= ?1 AND v.visit_date <= ?2 LIMIT 1)"),
+    getter_AddRefs(selectByTime));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = selectByTime->BindInt64Parameter(0, aBeginTime);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = selectByTime->BindInt64Parameter(1, aEndTime);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool hasMore = PR_FALSE;
+  while (NS_SUCCEEDED(selectByTime->ExecuteStep(&hasMore)) && hasMore) {
+    PRInt64 placeId;
+    rv = selectByTime->GetInt64(0, &placeId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (placeId != 0) {
+      if (!deletePlaceIdsQueryString.IsEmpty())
+        deletePlaceIdsQueryString.AppendLiteral(",");
+      deletePlaceIdsQueryString.AppendInt(placeId);
+    }
+  }
+
+  rv = RemovePagesInternal(deletePlaceIdsQueryString);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  UpdateBatchScoper batch(*this); 
+
+  return NS_OK;
+}
+
+
+
+
+
+
 NS_IMETHODIMP
 nsNavHistory::RemoveAllPages()
 {
