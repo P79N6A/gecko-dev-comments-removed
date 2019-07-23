@@ -408,6 +408,9 @@ NS_COM PRBool NS_EscapeURL(const char *part,
       
       
       
+      
+      
+      
       if ((NO_NEED_ESC(c) || (c == HEX_ESCAPE && !forced)
                           || (c > 0x7f && ignoreNonAscii)
                           || (c > 0x20 && c < 0x7f && ignoreAscii))
