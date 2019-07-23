@@ -455,6 +455,7 @@ static void MoveChildTo(nsIFrame* aParent, nsIFrame* aChild, nsPoint aOrigin) {
 nscoord
 nsColumnSetFrame::GetMinWidth(nsIRenderingContext *aRenderingContext) {
   nscoord width = 0;
+  DISPLAY_MIN_WIDTH(this, width);
   if (mFrames.FirstChild()) {
     width = mFrames.FirstChild()->GetMinWidth(aRenderingContext);
   }
@@ -488,6 +489,8 @@ nsColumnSetFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext) {
   
   
   
+  nscoord result = 0;
+  DISPLAY_PREF_WIDTH(this, result);
   const nsStyleColumn* colStyle = GetStyleColumn();
   nscoord colGap = GetColumnGap(this, colStyle);
 
@@ -509,7 +512,8 @@ nsColumnSetFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext) {
   nscoord width = colWidth*numColumns + colGap*(numColumns - 1);
   
   
-  return PR_MAX(width, colWidth);
+  result = PR_MAX(width, colWidth);
+  return result;
 }
 
 PRBool
