@@ -774,8 +774,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
         float f;
     } basis; 
     if (aWidth < guess_pref) {
-        if ((aWidthType == BTLS_MIN_WIDTH  && aWidth <= guess_min) ||
-            (aWidthType == BTLS_PREF_WIDTH && aWidth <= guess_pref)) {
+        if (aWidthType != BTLS_FINAL_WIDTH && aWidth <= guess_min) {
             
             return;
         }
