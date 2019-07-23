@@ -78,8 +78,7 @@ struct THEBES_API gfxFontStyle {
     gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, gfxFloat aSize,
                  const nsACString& aLangGroup,
                  float aSizeAdjust, PRPackedBool aSystemFont,
-                 PRPackedBool aFamilyNameQuirks,
-                 PRPackedBool aPrinterFont);
+                 PRPackedBool aFamilyNameQuirks);
     gfxFontStyle(const gfxFontStyle& aStyle);
 
     
@@ -89,9 +88,6 @@ struct THEBES_API gfxFontStyle {
     
     
     PRPackedBool systemFont : 1;
-
-    
-    PRPackedBool printerFont : 1;
 
     
     
@@ -137,7 +133,6 @@ struct THEBES_API gfxFontStyle {
         return (size == other.size) &&
             (style == other.style) &&
             (systemFont == other.systemFont) &&
-            (printerFont == other.printerFont) &&
             (familyNameQuirks == other.familyNameQuirks) &&
             (weight == other.weight) &&
             (langGroup.Equals(other.langGroup)) &&

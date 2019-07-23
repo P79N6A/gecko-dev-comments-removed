@@ -1967,17 +1967,13 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     
     const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mFont.size);
 
-    PRBool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
-                          presShell->GetPresContext()->Type() == nsPresContext::eContext_Print);
-
     gfxFontStyle style(fontStyle->mFont.style,
                        fontStyle->mFont.weight,
                        NSAppUnitsToFloatPixels(fontSize, aupcp),
                        langGroup,
                        fontStyle->mFont.sizeAdjust,
                        fontStyle->mFont.systemFont,
-                       fontStyle->mFont.familyNameQuirks,
-                       printerFont);
+                       fontStyle->mFont.familyNameQuirks);
 
     CurrentState().fontGroup = gfxPlatform::GetPlatform()->CreateFontGroup(fontStyle->mFont.name, &style, presShell->GetPresContext()->GetUserFontSet());
     NS_ASSERTION(CurrentState().fontGroup, "Could not get font group");
