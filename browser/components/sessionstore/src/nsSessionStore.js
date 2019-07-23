@@ -99,8 +99,12 @@ const WINDOW_HIDEABLE_FEATURES = [
 
 
 
+
+
+
 const CAPABILITIES = [
-  "Subframes", "Plugins", "Javascript", "MetaRedirects", "Images"
+  "Subframes", "Plugins", "Javascript", "MetaRedirects", "Images",
+  "DNSPrefetch", "Auth"
 ];
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
