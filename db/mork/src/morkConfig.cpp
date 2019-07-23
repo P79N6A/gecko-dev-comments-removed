@@ -53,7 +53,7 @@ void mork_assertion_signal(const char* inMessage)
 {
 #if defined(MORK_WIN) || defined(MORK_MAC)
   
-  NS_ASSERTION(0, inMessage);
+  NS_ERROR(inMessage);
 #endif 
 }
 

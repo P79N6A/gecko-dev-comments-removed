@@ -292,7 +292,7 @@ DWORD nsWindow::WindowStyle()
       break;
 
     default:
-      NS_ASSERTION(0, "unknown border style");
+      NS_ERROR("unknown border style");
       
 
     case eWindowType_toplevel:

@@ -96,7 +96,7 @@ URLPropertyElement::SetKey(const nsACString& aKey)
     
     
     
-    NS_ASSERTION(0, "This makes no sense!");
+    NS_ERROR("This makes no sense!");
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 

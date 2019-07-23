@@ -1224,7 +1224,7 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, PRUnichar **aStuffToPaste, PRUnic
           {
               
               
-              NS_ASSERTION(0, "StartFragment byte count in the clipboard looks bad, see bug #228879");
+              NS_ERROR("StartFragment byte count in the clipboard looks bad, see bug #228879");
               startFragment = curPos - 1;
           }
           break;

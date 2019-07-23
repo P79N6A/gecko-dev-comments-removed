@@ -11257,7 +11257,7 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
   if(isReflowing) {
     
     
-    NS_ASSERTION(0, "Atemptted to nsCSSFrameConstructor::ReframeContainingBlock during a Reflow!!!");
+    NS_ERROR("Atemptted to nsCSSFrameConstructor::ReframeContainingBlock during a Reflow!!!");
     return NS_OK;
   }
 

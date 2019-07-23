@@ -326,7 +326,7 @@ nsMathMLmpaddedFrame::UpdateValue(PRInt32                  aSign,
         default:
           
           
-          NS_ASSERTION(0, "Unexpected Pseudo Unit");
+          NS_ERROR("Unexpected Pseudo Unit");
           return;
       }
     }

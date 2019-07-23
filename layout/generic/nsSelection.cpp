@@ -849,7 +849,7 @@ nsFrameSelection::FetchDesiredX(nscoord &aDesiredX)
 {
   if (!mShell)
   {
-    NS_ASSERTION(0,"fetch desired X failed\n");
+    NS_ERROR("fetch desired X failed\n");
     return NS_ERROR_FAILURE;
   }
   if (mDesiredXSet)

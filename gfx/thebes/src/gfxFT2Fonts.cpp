@@ -708,7 +708,7 @@ gfxFT2Font::GetMetrics()
         
         mSpaceGlyph = gid;
     } else {
-        NS_ASSERTION(0, "blah");
+        NS_ERROR("blah");
     }
             
     
