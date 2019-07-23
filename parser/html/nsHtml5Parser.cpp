@@ -211,7 +211,7 @@ nsHtml5Parser::ContinueInterruptedParsing()
   nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip(mStreamParser);
   nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
   CancelParsingEvents(); 
-  ParseUntilScript();
+  ParseUntilBlocked();
   return NS_OK;
 }
 
@@ -298,11 +298,12 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   }
   if (aLastCall && aSourceBuffer.IsEmpty() && aKey == GetRootContextKey()) {
     
-      NS_ASSERTION(!mStreamParser,
-                   "Had stream parser but got document.close().");
+    NS_ASSERTION(!mStreamParser,
+                 "Had stream parser but got document.close().");
     mDocumentClosed = PR_TRUE;
-    
-    MaybePostContinueEvent();
+    if (!mBlocked) {
+      ParseUntilBlocked();
+    }
     return NS_OK;
   }
 
@@ -576,9 +577,9 @@ nsHtml5Parser::HandleParserContinueEvent(nsHtml5ParserContinueEvent* ev)
 }
 
 void
-nsHtml5Parser::ParseUntilScript()
+nsHtml5Parser::ParseUntilBlocked()
 {
-  NS_PRECONDITION(!mFragmentMode, "ParseUntilScript called in fragment mode.");
+  NS_PRECONDITION(!mFragmentMode, "ParseUntilBlocked called in fragment mode.");
 
   if (mBlocked) {
     return;

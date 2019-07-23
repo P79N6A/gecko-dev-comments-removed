@@ -325,7 +325,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    void ParseUntilScript();
+    void ParseUntilBlocked();
 
     
 

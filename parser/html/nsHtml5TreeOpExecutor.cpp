@@ -356,12 +356,19 @@ nsHtml5TreeOpExecutor::Flush()
       
       return (static_cast<nsHtml5Parser*> (mParser.get()))->ContinueAfterFailedCharsetSwitch();      
     }
-  } else if (mScriptElement) {
-    NS_ASSERTION(!mCallDidBuildModel, "Had a script element and DidBuildModel call");
-    RunScript();
   } else if (mCallDidBuildModel) {
     mCallDidBuildModel = PR_FALSE;
+    
+    #ifdef DEBUG
+    nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(mScriptElement);
+    if (sele) {
+      NS_ASSERTION(sele->IsMalformed(), "Script wasn't marked as malformed.");
+    }
+    #endif
+    mScriptElement = nsnull;
     DidBuildModel(PR_FALSE);
+  } else if (mScriptElement) {
+    RunScript();
   }
 }
 
