@@ -2314,6 +2314,9 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
   }
 
   
+  ToLowerCase(typeToUse);
+
+  
   PRBool found;
   *_retval = GetMIMEInfoFromOS(typeToUse, aFileExt, &found).get();
   LOG(("OS gave back 0x%p - found: %i\n", *_retval, found));
