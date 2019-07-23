@@ -138,7 +138,10 @@ Assembler::nFragExit(LInsp guard)
 #endif
 
     
-    LDi(R0, int(lr));
+    
+    
+    
+    LDi(R2, int(lr));
 }
 
 NIns*
@@ -147,7 +150,7 @@ Assembler::genEpilogue()
     BX(LR); 
 
     
-    
+    MR(R0,R2); 
 
     RegisterMask savingMask = rmask(FP) | rmask(LR);
     POP_mask(savingMask); 
