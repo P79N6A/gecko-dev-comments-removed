@@ -6163,32 +6163,41 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
       
       
       
+      
+      
 
       
-      aDesiredSize.width = aDesiredSize.mOverflowArea.XMost();
-      if (aDesiredSize.width <= aWidth)
-        aDesiredSize.height = aDesiredSize.mOverflowArea.YMost();
-      else {
-        if (aDesiredSize.width > aWidth)
-        {
-          nscoord computedWidth = aDesiredSize.width -
-            reflowState.mComputedBorderPadding.LeftRight();
-          computedWidth = PR_MAX(computedWidth, 0);
-          reflowState.SetComputedWidth(computedWidth);
-          reflowState.availableWidth = aDesiredSize.width;
-          DidReflow(aPresContext, &reflowState, NS_FRAME_REFLOW_FINISHED);
-          #ifdef DEBUG_REFLOW
-           nsAdaptorAddIndents();
-           nsAdaptorPrintReason(reflowState);
-           printf("\n");
-          #endif
-          AddStateBits(NS_FRAME_IS_DIRTY);
-          WillReflow(aPresContext);
-          Reflow(aPresContext, aDesiredSize, reflowState, status);
-          if (GetStateBits() & NS_FRAME_OUTSIDE_CHILDREN)
-            aDesiredSize.height = aDesiredSize.mOverflowArea.YMost();
 
-        }
+      if (NS_STYLE_DIRECTION_LTR == GetStyleVisibility()->mDirection) {
+        
+        aDesiredSize.width = PR_MAX(aDesiredSize.width, 
+                                    aDesiredSize.mOverflowArea.XMost());
+      } else {
+        
+        nscoord leftmostValue = PR_MIN(0, aDesiredSize.mOverflowArea.x);
+        
+        
+        aDesiredSize.width = aDesiredSize.width - leftmostValue;
+      }
+      if (aDesiredSize.width <= aWidth) {
+        aDesiredSize.height = aDesiredSize.mOverflowArea.YMost();
+      } else {
+        nscoord computedWidth = aDesiredSize.width -
+          reflowState.mComputedBorderPadding.LeftRight();
+        computedWidth = PR_MAX(computedWidth, 0);
+        reflowState.SetComputedWidth(computedWidth);
+        reflowState.availableWidth = aDesiredSize.width;
+        DidReflow(aPresContext, &reflowState, NS_FRAME_REFLOW_FINISHED);
+        #ifdef DEBUG_REFLOW
+        nsAdaptorAddIndents();
+        nsAdaptorPrintReason(reflowState);
+        printf("\n");
+        #endif
+        AddStateBits(NS_FRAME_IS_DIRTY);
+        WillReflow(aPresContext);
+        Reflow(aPresContext, aDesiredSize, reflowState, status);
+        if (GetStateBits() & NS_FRAME_OUTSIDE_CHILDREN)
+          aDesiredSize.height = aDesiredSize.mOverflowArea.YMost();
       }
     }
 
@@ -6199,11 +6208,6 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
        Redraw(aState, &r);
     }
 
-    PRBool changedSize = PR_FALSE;
-
-    if (metrics->mLastSize.width != aDesiredSize.width || metrics->mLastSize.height != aDesiredSize.height)
-       changedSize = PR_TRUE;
-  
     PRUint32 layoutFlags = aState.LayoutFlags();
     nsContainerFrame::FinishReflowChild(this, aPresContext, &reflowState,
                                         aDesiredSize, aX, aY, layoutFlags | NS_FRAME_NO_MOVE_FRAME);
