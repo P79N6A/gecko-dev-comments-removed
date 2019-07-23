@@ -51,6 +51,21 @@
 
 
 
+
+
+#define JSVAL_ERROR_COOKIE OBJECT_TO_JSVAL((void*)0x10)
+
+
+
+
+
+
+#define INT32_ERROR_COOKIE 0xffffabcd
+
+
+
+
+
 class Tracker 
 {
     struct Page {
@@ -395,6 +410,11 @@ public:
     bool JSOP_NEWARRAY();
     bool JSOP_HOLE();
 };
+
+FASTCALL jsdouble builtin_dmod(jsdouble a, jsdouble b);
+FASTCALL jsval builtin_BoxDouble(JSContext* cx, jsdouble d);
+FASTCALL jsval builtin_BoxInt32(JSContext* cx, jsint i);
+FASTCALL jsint builtin_UnboxInt32(JSContext* cx, jsval v);
 
 
 
