@@ -1389,6 +1389,7 @@ PRBool IsBorderCollapse(nsIFrame* aFrame)
 
 
 
+
 static void
 MoveChildrenTo(nsPresContext* aPresContext,
                nsIFrame* aOldParent,
@@ -1397,10 +1398,6 @@ MoveChildrenTo(nsPresContext* aPresContext,
 {
   NS_PRECONDITION(aOldParent->GetParent() == aNewParent->GetParent(),
                   "Unexpected old and new parents");
-  NS_PRECONDITION(aNewParent->GetChildList(nsnull).IsEmpty(),
-                  "New parent should have no kids");
-  NS_PRECONDITION(aNewParent->GetStateBits() & NS_FRAME_FIRST_REFLOW,
-                  "New parent shouldn't have been reflowed yet");
 
   if (aNewParent->HasView() || aOldParent->HasView()) {
     
@@ -1424,7 +1421,12 @@ MoveChildrenTo(nsPresContext* aPresContext,
     aNewParent->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
   }
 
-  aNewParent->SetInitialChildList(nsnull, aFrameList);
+  if (aNewParent->GetChildList(nsnull).IsEmpty() &&
+      (aNewParent->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    aNewParent->SetInitialChildList(nsnull, aFrameList);
+  } else {
+    aNewParent->AppendFrames(nsnull, aFrameList);
+  }
 }
 
 
@@ -5799,6 +5801,32 @@ nsCSSFrameConstructor::AppendFrames(nsFrameConstructorState&       aState,
   
   
   if (!nextSibling && IsFrameSpecial(aParentFrame)) {
+    
+    
+    
+    
+    
+    
+    
+    if (aFrameList.NotEmpty() && !IsInlineOutside(aFrameList.FirstChild())) {
+      
+      nsIFrame* firstContinuation = aParentFrame->GetFirstContinuation();
+      if (firstContinuation->GetChildList(nsnull).IsEmpty()) {
+        
+        
+        nsFrameList::FrameLinkEnumerator firstNonBlockEnumerator =
+          FindFirstNonBlock(aFrameList);
+        nsFrameList blockKids = aFrameList.ExtractHead(firstNonBlockEnumerator);
+        NS_ASSERTION(blockKids.NotEmpty(), "No blocks?");
+
+        nsIFrame* prevBlock =
+          GetSpecialPrevSibling(firstContinuation)->GetLastContinuation();
+        NS_ASSERTION(prevBlock, "Should have previous block here");
+
+        MoveChildrenTo(aState.mPresContext, aParentFrame, prevBlock, blockKids);
+      }
+    }
+
     
     nsFrameList::FrameLinkEnumerator firstBlockEnumerator(aFrameList);
     FindFirstBlock(firstBlockEnumerator);
