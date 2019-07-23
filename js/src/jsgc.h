@@ -97,13 +97,6 @@ JS_STATIC_ASSERT(GCX_NTYPES <= GCX_LIMIT);
 
 
 
-
-#define GCF_DONT_BLOCK  0x100
-
-
-
-
-
 extern intN
 js_GetExternalStringGCType(JSString *str);
 

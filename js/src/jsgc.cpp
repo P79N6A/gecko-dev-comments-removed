@@ -1749,7 +1749,7 @@ js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes)
 
     arenaList = &rt->gcArenaList[flindex];
     for (;;) {
-        if (doGC && !(flags & GCF_DONT_BLOCK)) {
+        if (doGC && !cx->gcDontBlock) {
             
 
 
@@ -1809,7 +1809,7 @@ js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes)
         } else {
             a = NewGCArena(rt);
             if (!a) {
-                if (doGC || (flags & GCF_DONT_BLOCK))
+                if (doGC || cx->gcDontBlock)
                     goto fail;
                 doGC = JS_TRUE;
                 continue;
@@ -1912,7 +1912,7 @@ fail:
         JS_UNLOCK_GC(rt);
 #endif
     METER(astats->fail++);
-    if (!(flags & GCF_DONT_BLOCK))
+    if (!cx->gcDontBlock)
         JS_ReportOutOfMemory(cx);
     return NULL;
 }
