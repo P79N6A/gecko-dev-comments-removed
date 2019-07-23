@@ -39,7 +39,7 @@
 
 gPrefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
-gPrefs.setBoolPref("extensions.checkCompatibility", false);
+gPrefs.setBoolPref("extensions.checkCompatibility.2", false);
 
 
 var promptService = {
