@@ -49,6 +49,8 @@ var gAUS           = null;
 var gUpdateChecker = null;
 var gPrefs         = null;
 var gTestserver    = null;
+var gXHR           = null;
+var gXHRCallback   = null;
 
 
 function startAUS() {
@@ -98,6 +100,81 @@ function toggleOffline(aOffline) {
   if (ioService.offline != aOffline)
     ioService.offline = aOffline;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function overrideXHR(callback) {
+  gXHRCallback = callback;
+  gXHR = new xhr();
+  var registrar = Components.manager.QueryInterface(AUS_Ci.nsIComponentRegistrar);
+  registrar.registerFactory(gXHR.classID, gXHR.classDescription,
+                            gXHR.contractID, gXHR);
+}
+
+
+
+
+
+function xhr() {
+}
+xhr.prototype = {
+  overrideMimeType: function(mimetype) { },
+  setRequestHeader: function(header, value) { },
+  status: null,
+  channel: { set notificationCallbacks(val) { } },
+  _url: null,
+  _method: null,
+  open: function (method, url) { gXHR._method = method; gXHR._url = url; },
+  send: function(body) {
+    do_timeout(0, "gXHRCallback()"); 
+  },
+  _onprogress: null,
+  set onprogress(val) { gXHR._onprogress = val; },
+  get onprogress() { return gXHR._onprogress; },
+  _onerror: null,
+  set onerror(val) { gXHR._onerror = val; },
+  get onerror() { return gXHR._onerror; },
+  _onload: null,
+  set onload(val) { gXHR._onload = val; },
+  get onload() { return gXHR._onload; },
+  flags: AUS_Ci.nsIClassInfo.SINGLETON,
+  implementationLanguage: AUS_Ci.nsIProgrammingLanguage.JAVASCRIPT,
+  getHelperForLanguage: function(language) null,
+  getInterfaces: function(count) {
+    var interfaces = [AUS_Ci.nsIXMLHttpRequest, AUS_Ci.nsIJSXMLHttpRequest];
+    count.value = interfaces.length;
+    return interfaces;
+  },
+  classDescription: "XMLHttpRequest",
+  contractID: "@mozilla.org/xmlextras/xmlhttprequest;1",
+  classID: Components.ID("{c9b37f43-4278-4304-a5e0-600991ab08cb}"),
+  createInstance: function (outer, aIID) {
+    if (outer != null)
+      throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
+    return gXHR.QueryInterface(aIID);
+  },
+  QueryInterface: function(aIID) {
+    if (aIID.equals(AUS_Ci.nsIXMLHttpRequest) ||
+        aIID.equals(AUS_Ci.nsIJSXMLHttpRequest) ||
+        aIID.equals(AUS_Ci.nsIClassInfo) ||
+        aIID.equals(AUS_Ci.nsISupports))
+      return gXHR;
+    throw AUS_Cr.NS_ERROR_NO_INTERFACE;
+  }
+};
 
 
 
