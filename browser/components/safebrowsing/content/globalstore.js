@@ -51,6 +51,7 @@
 
 
 
+
 const kDataProviderIdPref = 'browser.safebrowsing.dataProvider';
 const kProviderBasePref = 'browser.safebrowsing.provider.';
 
@@ -110,6 +111,7 @@ PROT_DataProvider.prototype.loadDataProviderPrefs_ = function() {
   this.lookupURL_ = this.getUrlPref_(basePref + "lookupURL");
   this.keyURL_ = this.getUrlPref_(basePref + "keyURL");
   this.reportURL_ = this.getUrlPref_(basePref + "reportURL");
+  this.gethashURL_ = this.getUrlPref_(basePref + "gethashURL");
 
   
   this.reportGenericURL_ = this.getUrlPref_(basePref + "reportGenericURL");
@@ -143,6 +145,8 @@ PROT_DataProvider.prototype.updateListManager_ = function() {
     
     listManager.setKeyUrl("");
   }
+
+  listManager.setGethashUrl(this.getGethashURL());
 }
 
 
@@ -206,11 +210,9 @@ PROT_DataProvider.prototype.getUpdateURL = function() {
 PROT_DataProvider.prototype.getLookupURL = function() {
   return this.lookupURL_;
 }
-PROT_DataProvider.prototype.getKeyURL = function() {
-  return this.keyURL_;
-}
-PROT_DataProvider.prototype.getReportURL = function() {
-  return this.reportURL_;
+
+PROT_DataProvider.prototype.getGethashURL = function() {
+  return this.gethashURL_;
 }
 
 PROT_DataProvider.prototype.getReportGenericURL = function() {

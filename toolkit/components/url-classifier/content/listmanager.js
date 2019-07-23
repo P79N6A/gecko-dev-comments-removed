@@ -70,6 +70,7 @@ function PROT_ListManager() {
   this.prefs_ = new G_Preferences();
 
   this.updateserverURL_ = null;
+  this.gethashURL_ = null;
 
   this.isTesting_ = false;
 
@@ -90,6 +91,9 @@ function PROT_ListManager() {
 
   this.dbService_ = Cc["@mozilla.org/url-classifier/dbservice;1"]
                    .getService(Ci.nsIUrlClassifierDBService);
+
+  this.hashCompleter_ = Cc["@mozilla.org/url-classifier/hashcompleter;1"]
+                        .createInstance(Ci.nsIUrlClassifierHashCompleter);
 }
 
 
@@ -127,6 +131,17 @@ PROT_ListManager.prototype.setUpdateUrl = function(url) {
 
 
 
+PROT_ListManager.prototype.setGethashUrl = function(url) {
+  G_Debug(this, "Set gethash url: " + url);
+  if (url != this.gethashURL_) {
+    this.gethashURL_ = url;
+    this.hashCompleter_.gethashUrl = url;
+  }
+}
+
+
+
+
 
 PROT_ListManager.prototype.setKeyUrl = function(url) {
   G_Debug(this, "Set key url: " + url);
@@ -146,6 +161,7 @@ PROT_ListManager.prototype.registerTable = function(tableName,
                                                     opt_requireMac) {
   this.tablesData[tableName] = {};
   this.tablesData[tableName].needsUpdate = false;
+  this.dbService_.setHashCompleter(tableName, this.hashCompleter_);
 
   return true;
 }

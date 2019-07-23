@@ -44,19 +44,19 @@ function testMultipleAdds() {
 function testSimpleSub()
 {
   var addUrls = ["foo.com/a", "bar.com/b"];
-  var subUrls = ["foo.com/a"];
+  var subUrls = ["1:foo.com/a"];
 
   var addUpdate = buildPhishingUpdate(
     [{ "chunkNum" : 1, 
        "urls": addUrls }]);
 
   var subUpdate = buildPhishingUpdate(
-    [{ "chunkNum" : 1,
+    [{ "chunkNum" : 50,
        "chunkType" : "s",
        "urls": subUrls }]);
 
   var assertions = {
-    "tableData" : "test-phish-simple;a:1:s:1",
+    "tableData" : "test-phish-simple;a:1:s:50",
     "urlsExist" : [ "bar.com/b" ],
     "urlsDontExist": ["foo.com/a" ],
     "subsDontExist" : [ "foo.com/a" ]
@@ -69,20 +69,20 @@ function testSimpleSub()
 
 function testSubEmptiesAdd()
 {
-  var subUrls = ["foo.com/a"];
+  var subUrls = ["1:foo.com/a"];
   var addUrls = ["foo.com/a", "bar.com/b"];
 
   var subUpdate = buildPhishingUpdate(
-    [{ "chunkNum" : 1,
+    [{ "chunkNum" : 50,
        "chunkType" : "s",
        "urls": subUrls }]);
 
   var addUpdate = buildPhishingUpdate(
-    [{ "chunkNum" : 1, 
+    [{ "chunkNum" : 1,
        "urls": addUrls }]);
 
   var assertions = {
-    "tableData" : "test-phish-simple;a:1:s:1",
+    "tableData" : "test-phish-simple;a:1:s:50",
     "urlsExist" : [ "bar.com/b" ],
     "urlsDontExist": ["foo.com/a" ],
     "subsDontExist" : [ "foo.com/a" ] 
@@ -95,7 +95,7 @@ function testSubEmptiesAdd()
 
 function testSubPartiallyEmptiesAdd()
 {
-  var subUrls = ["foo.com/a"];
+  var subUrls = ["1:foo.com/a"];
   var addUrls = ["foo.com/a", "foo.com/b", "bar.com/b"];
 
   var subUpdate = buildPhishingUpdate(
@@ -123,7 +123,7 @@ function testSubPartiallyEmptiesAdd()
 
 function testPendingSubRemoved()
 {
-  var subUrls = ["foo.com/a", "foo.com/b"];
+  var subUrls = ["1:foo.com/a", "2:foo.com/b"];
   var addUrls = ["foo.com/a", "foo.com/b"];
 
   var subUpdate = buildPhishingUpdate(
@@ -151,7 +151,7 @@ function testPendingSubRemoved()
 
 function testPendingSubExpire()
 {
-  var subUrls = ["foo.com/a", "foo.com/b"];
+  var subUrls = ["1:foo.com/a", "1:foo.com/b"];
   var addUrls = ["foo.com/a", "foo.com/b"];
 
   var subUpdate = buildPhishingUpdate(
@@ -190,7 +190,7 @@ function testDuplicateAdds()
   var subUpdate = buildPhishingUpdate(
     [{ "chunkNum" : 3,
        "chunkType" : "s",
-       "urls": urls }]);
+       "urls": ["2:foo.com/a"]}]);
 
   var assertions = {
     "tableData" : "test-phish-simple;a:1-2:s:3",
@@ -204,17 +204,17 @@ function testDuplicateAdds()
 
 function testSubPartiallyMatches()
 {
-  var addUrls = ["foo.com/a"];
-  var subUrls = ["foo.com/a", "foo.com/b"];
+  var subUrls = ["foo.com/a"];
+  var addUrls = ["1:foo.com/a", "2:foo.com/b"];
 
   var addUpdate = buildPhishingUpdate(
     [{ "chunkNum" : 1,
-       "chunkType" : "s",
        "urls" : addUrls }]);
 
   var subUpdate = buildPhishingUpdate(
     [{ "chunkNum" : 1,
-       "urls" : subUrls }]);
+       "chunkType" : "s",
+       "urls" : addUrls }]);
 
   var assertions = {
     "tableData" : "test-phish-simple;a:1:s:1",
@@ -232,7 +232,7 @@ function testSubPartiallyMatches()
 function testSubPartiallyMatches2()
 {
   var addUrls = ["foo.com/a"];
-  var subUrls = ["foo.com/a", "foo.com/b"];
+  var subUrls = ["1:foo.com/a", "2:foo.com/b"];
   var addUrls2 = ["foo.com/b"];
 
   var addUpdate = buildPhishingUpdate(
@@ -259,10 +259,9 @@ function testSubPartiallyMatches2()
 
 
 
-
 function testSubsDifferentChunks() {
-  var subUrls1 = [ "foo.com/a" ];
-  var subUrls2 = [ "foo.com/b" ];
+  var subUrls1 = [ "3:foo.com/a" ];
+  var subUrls2 = [ "3:foo.com/b" ];
 
   var addUrls = [ "foo.com/a", "foo.com/b", "foo.com/c" ];
 
