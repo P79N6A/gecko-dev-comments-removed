@@ -343,14 +343,26 @@ NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISu
   nsCOMPtr<nsIHandlerInfo> handlerInfo;
   rv = gExtProtSvc->GetProtocolHandlerInfo(urlScheme, 
                                            getter_AddRefs(handlerInfo));
+  
   if (NS_SUCCEEDED(rv)) {
     PRInt32 preferredAction;                                           
     rv = handlerInfo->GetPreferredAction(&preferredAction);
 
-    
-    
     if (preferredAction == nsIHandlerInfo::useHelperApp) {
 
+      nsCOMPtr<nsIHandlerApp> handler;
+      rv = handlerInfo->GetPreferredApplicationHandler(getter_AddRefs(handler));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      nsCOMPtr<nsILocalHandlerApp> localHandler =
+        do_QueryInterface(handler, &rv);
+      if (NS_SUCCEEDED(rv)) {
+        OpenURL();
+        return NS_ERROR_NO_CONTENT; 
+      }
+
+      
       
       
       
