@@ -630,7 +630,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
 
     if (ARM_VFP) {
         fp_reg = findRegFor(arg, FpRegs);
-        NanoAssert(fp_reg != UnknownReg);
+        NanoAssert(isKnownReg(fp_reg));
     }
 
 #ifdef NJ_ARM_EABI
@@ -718,16 +718,15 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
 void 
 Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
 {
-    NanoAssert(r != UnknownReg);
+    NanoAssert(isKnownReg(r));
     if (sz & ARGSIZE_MASK_INT)
     {
         
         if (p->isconst()) {
             asm_ld_imm(r, p->imm32());
         } else {
-            Reservation* rA = getresv(p);
-            if (rA) {
-                if (rA->reg == UnknownReg) {
+            if (p->isUsed()) {
+                if (!p->hasKnownReg()) {
                     
                     int d = findMemFor(p);
                     if (p->isop(LIR_alloc)) {
@@ -737,7 +736,7 @@ Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
                     }
                 } else {
                     
-                    MOV(r, rA->reg);
+                    MOV(r, p->getReg());
                 }
             }
             else {
@@ -763,16 +762,16 @@ Assembler::asm_regarg(ArgSize sz, LInsp p, Register r)
 void
 Assembler::asm_stkarg(LInsp arg, int stkd)
 {
-    Reservation* argRes = getresv(arg);
     bool isQuad = arg->isQuad();
 
-    if (argRes && (argRes->reg != UnknownReg)) {
+    Register rr;
+    if (arg->isUsed() && (rr = arg->getReg(), isKnownReg(rr))) {
         
         
         if (!ARM_VFP || !isQuad) {
-            NanoAssert(IsGpReg(argRes->reg));
+            NanoAssert(IsGpReg(rr));
 
-            STR(argRes->reg, SP, stkd);
+            STR(rr, SP, stkd);
         } else {
             
             
@@ -781,14 +780,14 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
             
             
             NanoAssert(ARM_VFP);
-            NanoAssert(IsFpReg(argRes->reg));
+            NanoAssert(IsFpReg(rr));
 
 #ifdef NJ_ARM_EABI
             
             NanoAssert((stkd & 7) == 0);
 #endif
 
-            FSTD(argRes->reg, SP, stkd);
+            FSTD(rr, SP, stkd);
         }
     } else {
         
@@ -833,18 +832,17 @@ Assembler::asm_call(LInsp ins)
     
     if (ARM_VFP && ins->isUsed()) {
         
-        ArgSize         rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
+        ArgSize rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
 
         
         
         if (rsize == ARGSIZE_F) {
-            Reservation *   callRes = getresv(ins);
-            Register        rr = callRes->reg;
+            Register rr = ins->getReg();
 
             NanoAssert(ins->opcode() == LIR_fcall);
 
-            if (rr == UnknownReg) {
-                int d = disp(callRes);
+            if (!isKnownReg(rr)) {
+                int d = disp(ins);
                 NanoAssert(d != 0);
                 freeRsrcOf(ins, false);
 
@@ -1072,16 +1070,13 @@ Assembler::asm_qjoin(LIns *ins)
 void
 Assembler::asm_store32(LIns *value, int dr, LIns *base)
 {
-    Reservation *rA, *rB;
     Register ra, rb;
     if (base->isop(LIR_alloc)) {
         rb = FP;
         dr += findMemFor(base);
         ra = findRegFor(value, GpRegs);
     } else {
-        findRegFor2(GpRegs, value, rA, base, rB);
-        ra = rA->reg;
-        rb = rB->reg;
+        findRegFor2b(GpRegs, value, ra, base, rb);
     }
 
     if (!isS12(dr)) {
@@ -1096,10 +1091,10 @@ void
 Assembler::asm_restore(LInsp i, Reservation *resv, Register r)
 {
     if (i->isop(LIR_alloc)) {
-        asm_add_imm(r, FP, disp(resv));
+        asm_add_imm(r, FP, disp(i));
     } else if (i->isconst()) {
-        if (!resv->arIndex) {
-            i->resv()->clear();
+        if (!i->getArIndex()) {
+            i->markAsClear();
         }
         asm_ld_imm(r, i->imm32());
     }
@@ -1153,10 +1148,8 @@ Assembler::asm_load64(LInsp ins)
     LIns* base = ins->oprnd1();
     int offset = ins->disp();
 
-    Reservation *resv = getresv(ins);
-    NanoAssert(resv);
-    Register rr = resv->reg;
-    int d = disp(resv);
+    Register rr = ins->getReg();
+    int d = disp(ins);
 
     Register rb = findRegFor(base, GpRegs);
     NanoAssert(IsGpReg(rb));
@@ -1164,7 +1157,7 @@ Assembler::asm_load64(LInsp ins)
 
     
 
-    if (ARM_VFP && rr != UnknownReg) {
+    if (ARM_VFP && isKnownReg(rr)) {
         
         NanoAssert(IsFpReg(rr));
 
@@ -1178,7 +1171,7 @@ Assembler::asm_load64(LInsp ins)
         
         
         
-        NanoAssert(resv->reg == UnknownReg);
+        NanoAssert(!isKnownReg(rr));
         NanoAssert(d != 0);
 
         
@@ -1197,7 +1190,6 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
     
 
     if (ARM_VFP) {
-        
         Register rb = findRegFor(base, GpRegs);
 
         if (value->isconstq()) {
@@ -1214,8 +1206,8 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
 
         Register rv = findRegFor(value, FpRegs);
 
-        NanoAssert(rb != UnknownReg);
-        NanoAssert(rv != UnknownReg);
+        NanoAssert(isKnownReg(rb));
+        NanoAssert(isKnownReg(rv));
 
         Register baseReg = rb;
         intptr_t baseOffset = dr;
@@ -1276,13 +1268,12 @@ Assembler::asm_quad(LInsp ins)
 {
     
 
-    Reservation *res = getresv(ins);
-    int d = disp(res);
-    Register rr = res->reg;
+    int d = disp(ins);
+    Register rr = ins->getReg();
 
     freeRsrcOf(ins, false);
 
-    if (ARM_VFP && rr != UnknownReg)
+    if (ARM_VFP && isKnownReg(rr))
     {
         asm_spill(rr, d, false, true);
 
@@ -1805,7 +1796,7 @@ Assembler::asm_i2f(LInsp ins)
     Register srcr = findRegFor(ins->oprnd1(), GpRegs);
 
     
-    NanoAssert(srcr != UnknownReg);
+    NanoAssert(isKnownReg(srcr));
 
     FSITOD(rr, FpSingleScratch);
     FMSR(FpSingleScratch, srcr);
@@ -1818,7 +1809,7 @@ Assembler::asm_u2f(LInsp ins)
     Register sr = findRegFor(ins->oprnd1(), GpRegs);
 
     
-    NanoAssert(sr != UnknownReg);
+    NanoAssert(isKnownReg(sr));
 
     FUITOD(rr, FpSingleScratch);
     FMSR(FpSingleScratch, sr);
@@ -1830,13 +1821,9 @@ Assembler::asm_fneg(LInsp ins)
     LInsp lhs = ins->oprnd1();
     Register rr = prepResultReg(ins, FpRegs);
 
-    Reservation* rA = getresv(lhs);
-    Register sr;
-
-    if (!rA || rA->reg == UnknownReg)
-        sr = findRegFor(lhs, FpRegs);
-    else
-        sr = rA->reg;
+    Register sr = ( lhs->isUnusedOrHasUnknownReg()
+                  ? findRegFor(lhs, FpRegs)
+                  : lhs->getReg() );
 
     FNEGD(rr, sr);
 }
@@ -1878,10 +1865,8 @@ Assembler::asm_fcmp(LInsp ins)
 
     NanoAssert(op >= LIR_feq && op <= LIR_fge);
 
-    Reservation *rA, *rB;
-    findRegFor2(FpRegs, lhs, rA, rhs, rB);
-    Register ra = rA->reg;
-    Register rb = rB->reg;
+    Register ra, rb;
+    findRegFor2b(FpRegs, lhs, ra, rhs, rb);
 
     int e_bit = (op != LIR_feq);
 
@@ -1998,7 +1983,6 @@ Assembler::asm_cmp(LIns *cond)
 
     LInsp lhs = cond->oprnd1();
     LInsp rhs = cond->oprnd2();
-    Reservation *rA, *rB;
 
     
     NanoAssert(!lhs->isQuad() && !rhs->isQuad());
@@ -2017,9 +2001,8 @@ Assembler::asm_cmp(LIns *cond)
             NanoAssert(0);
         }
     } else {
-        findRegFor2(GpRegs, lhs, rA, rhs, rB);
-        Register ra = rA->reg;
-        Register rb = rB->reg;
+        Register ra, rb;
+        findRegFor2b(GpRegs, lhs, ra, rhs, rb);
         CMP(ra, rb);
     }
 }
@@ -2096,17 +2079,16 @@ Assembler::asm_arith(LInsp ins)
 
     
     Register        rr = prepResultReg(ins, allow);
-    Reservation *   rA = getresv(lhs);
-    Register        ra = UnknownReg;
-    Register        rb = UnknownReg;
 
     
-    if (!rA || (ra = rA->reg) == UnknownReg)
-        ra = findSpecificRegFor(lhs, rr);
+    
+    Register        ra = ( lhs->isUnusedOrHasUnknownReg()
+                         ? findSpecificRegFor(lhs, rr)
+                         : lhs->getReg() );
 
     
-    NanoAssert(rr != UnknownReg);
-    NanoAssert(ra != UnknownReg);
+    NanoAssert(isKnownReg(rr));
+    NanoAssert(isKnownReg(ra));
     allow &= ~rmask(rr);
     allow &= ~rmask(ra);
 
@@ -2129,7 +2111,7 @@ Assembler::asm_arith(LInsp ins)
             Register    rs = prepResultReg(ins, allow);
             int         d = findMemFor(lhs) + rhs->imm32();
 
-            NanoAssert(rs != UnknownReg);
+            NanoAssert(isKnownReg(rs));
             asm_add_imm(rs, FP, d);
         }
 
@@ -2158,15 +2140,16 @@ Assembler::asm_arith(LInsp ins)
 
     
 
+    Register rb;
     if (lhs == rhs) {
         rb = ra;
     } else {
         rb = asm_binop_rhs_reg(ins);
-        if (rb == UnknownReg)
+        if (!isKnownReg(rb))
             rb = findRegFor(rhs, allow);
         allow &= ~rmask(rb);
     }
-    NanoAssert(rb != UnknownReg);
+    NanoAssert(isKnownReg(rb));
 
     switch (op)
     {
@@ -2242,13 +2225,12 @@ Assembler::asm_neg_not(LInsp ins)
     Register rr = prepResultReg(ins, GpRegs);
 
     LIns* lhs = ins->oprnd1();
-    Reservation *rA = getresv(lhs);
     
-    Register ra;
-    if (rA == 0 || (ra=rA->reg) == UnknownReg)
-        ra = findSpecificRegFor(lhs, rr);
     
-    NanoAssert(ra != UnknownReg);
+    Register ra = ( lhs->isUnusedOrHasUnknownReg()
+                  ? findSpecificRegFor(lhs, rr)
+                  : lhs->getReg() );
+    NanoAssert(isKnownReg(ra));
 
     if (op == LIR_not)
         MVN(rr, ra);
