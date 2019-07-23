@@ -4154,23 +4154,29 @@ nsPluginInstanceOwner::Renderer::NativeDraw(Screen* screen, Drawable drawable,
 
   
   NS_ASSERTION(numClipRects <= 1, "We don't support multiple clip rectangles!");
-  nsPluginRect newClipRect;
+  nsIntRect clipRect;
   if (numClipRects) {
-    newClipRect.left = clipRects[0].x;
-    newClipRect.top = clipRects[0].y;
-    newClipRect.right  = clipRects[0].x + clipRects[0].width;
-    newClipRect.bottom = clipRects[0].y + clipRects[0].height;
+    clipRect.x = clipRects[0].x;
+    clipRect.y = clipRects[0].y;
+    clipRect.width  = clipRects[0].width;
+    clipRect.height = clipRects[0].height;
   }
   else {
     
+    
     NS_ASSERTION(offsetX >= 0 && offsetY >= 0,
                  "Clip rectangle offsets are negative!");
-    newClipRect.left = offsetX;
-    newClipRect.top  = offsetY;
-    newClipRect.right  = offsetX + mWindow->width;
-    newClipRect.bottom = offsetY + mWindow->height;
+    clipRect.x = offsetX;
+    clipRect.y = offsetY;
+    clipRect.width  = mWindow->width;
+    clipRect.height = mWindow->height;
   }
 
+  nsPluginRect newClipRect;
+  newClipRect.left = clipRect.x;
+  newClipRect.top = clipRect.y;
+  newClipRect.right = clipRect.XMost();
+  newClipRect.bottom = clipRect.YMost();
   if (mWindow->clipRect.left    != newClipRect.left   ||
       mWindow->clipRect.top     != newClipRect.top    ||
       mWindow->clipRect.right   != newClipRect.right  ||
@@ -4191,16 +4197,23 @@ nsPluginInstanceOwner::Renderer::NativeDraw(Screen* screen, Drawable drawable,
   if (doupdatewindow)
       mInstance->SetWindow(mWindow);
 
+  
+  nsIntRect dirtyRect = mDirtyRect + nsIntPoint(offsetX, offsetY);
+  
+  
+  if (!dirtyRect.IntersectRect(dirtyRect, clipRect))
+    return NS_OK;
+
   nsPluginEvent pluginEvent;
   XGraphicsExposeEvent& exposeEvent = pluginEvent.event.xgraphicsexpose;
   
   exposeEvent.type = GraphicsExpose;
   exposeEvent.display = DisplayOfScreen(screen);
   exposeEvent.drawable = drawable;
-  exposeEvent.x = mDirtyRect.x + offsetX;
-  exposeEvent.y = mDirtyRect.y + offsetY;
-  exposeEvent.width  = mDirtyRect.width;
-  exposeEvent.height = mDirtyRect.height;
+  exposeEvent.x = dirtyRect.x;
+  exposeEvent.y = dirtyRect.y;
+  exposeEvent.width  = dirtyRect.width;
+  exposeEvent.height = dirtyRect.height;
   exposeEvent.count = 0;
   
   exposeEvent.serial = 0;
