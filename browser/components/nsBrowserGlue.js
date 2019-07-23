@@ -354,6 +354,15 @@ BrowserGlue.prototype = {
     
     if (this._prefs.getBoolPref(PREF_PLUGINS_NOTIFYUSER))
       this._showPluginUpdatePage();
+
+#ifdef XP_WIN
+#ifndef WINCE
+    
+    let temp = {};
+    Cu.import("resource://gre/modules/wintaskbar/winJumpLists.jsm", temp);
+    temp.WinTaskbarJumpList.startup();
+#endif
+#endif
   },
 
   _onQuitRequest: function(aCancelQuit, aQuitType)
