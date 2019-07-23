@@ -44,6 +44,7 @@
 #include "imgIContainer.h"
 #include "imgIDecoderObserver.h"
 #include "gfxIImageFrame.h"
+#include "gfxColor.h"
 
 #define NS_BMPDECODER_CID \
 { /* {78c61626-4d1f-4843-9364-4652d98ff6e1} */ \
@@ -169,16 +170,6 @@ private:
 
     NS_METHOD CalcBitShift();
 
-    
-
-    nsresult SetData();
-
-    
-
-
-
-    nsresult WriteRLERows(PRUint32 rows);
-
     nsCOMPtr<imgIDecoderObserver> mObserver;
 
     nsCOMPtr<imgIContainer> mImage;
@@ -197,18 +188,15 @@ private:
 
     bitFields mBitFields;
 
+    PRUint32 *mImageData; 
     PRUint8 *mRow;      
     PRUint32 mRowBytes; 
     PRInt32 mCurLine;   
-    PRUint8 *mAlpha;    
-    PRUint8 *mAlphaPtr; 
-    PRUint8 *mDecoded;  
-    PRUint8 *mDecoding; 
+    PRInt32 mOldLine;   
+    PRInt32 mCurPos;    
 
     ERLEState mState;   
     PRUint32 mStateData;
-
-    PRUint32 mBpr;      
 
     
 
@@ -220,13 +208,13 @@ private:
 
 
 
-inline void SetPixel(PRUint8*& aDecoded, PRUint8 aRed, PRUint8 aGreen, PRUint8 aBlue, PRUint8 aAlpha = 0xFF)
+
+static inline void SetPixel(PRUint32*& aDecoded, PRUint8 aRed, PRUint8 aGreen, PRUint8 aBlue, PRUint8 aAlpha = 0xFF)
 {
-    *(PRUint32*)aDecoded = (aAlpha << 24) | (aRed << 16) | (aGreen << 8) | aBlue;
-    aDecoded += 4;
+    *aDecoded++ = GFX_PACKED_PIXEL(aAlpha, aRed, aGreen, aBlue);
 }
 
-inline void SetPixel(PRUint8*& aDecoded, PRUint8 idx, colorTable* aColors)
+static inline void SetPixel(PRUint32*& aDecoded, PRUint8 idx, colorTable* aColors)
 {
     SetPixel(aDecoded, aColors[idx].red, aColors[idx].green, aColors[idx].blue);
 }
@@ -236,7 +224,8 @@ inline void SetPixel(PRUint8*& aDecoded, PRUint8 idx, colorTable* aColors)
 
 
 
-inline void Set4BitPixel(PRUint8*& aDecoded, PRUint8 aData,
+
+inline void Set4BitPixel(PRUint32*& aDecoded, PRUint8 aData,
                          PRUint32& aCount, colorTable* aColors)
 {
     PRUint8 idx = aData >> 4;

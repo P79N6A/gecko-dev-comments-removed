@@ -123,11 +123,9 @@ private:
   PRUint32 mRowBytes; 
   PRInt32 mCurLine;
 
-  nsresult mStatus;
+  PRUint32* mImageData;
 
-  PRUint8* mDecodedBuffer;
-
-  PRUint8 mHaveAlphaData;
+  PRPackedBool mHaveAlphaData;
   PRPackedBool mIsCursor;
   PRPackedBool mDecodingAndMask;
 };
