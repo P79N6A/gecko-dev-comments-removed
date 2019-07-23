@@ -5514,22 +5514,6 @@ var FeedHandler = {
     this.loadFeed(href, event);
   },
     
-  
-
-
-
-
-
-  _getContentShell: function(doc) {
-    var browsers = getBrowser().browsers;
-    for (var i = 0; i < browsers.length; i++) {
-      var shell = findChildShell(doc, browsers[i].docShell, null);
-      if (shell)
-        return { shell: shell, browser: browsers[i] };
-    }
-    return null;
-  },
-  
 #ifndef MOZ_PLACES_BOOKMARKS
   
 

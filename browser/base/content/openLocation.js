@@ -6,7 +6,7 @@
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
@@ -46,7 +46,7 @@ try {
   pref = Components.classes["@mozilla.org/preferences-service;1"]
                    .getService(Components.interfaces.nsIPrefBranch);
 } catch (ex) {
-  // not critical, remain silent
+  
 }
 
 function onLoad()
@@ -80,7 +80,7 @@ function onLoad()
     catch(ex) {
     }
     if (dialog.input.value)
-      dialog.input.select(); // XXX should probably be done automatically
+      dialog.input.select(); 
   }
 
   doEnabling();
@@ -101,8 +101,8 @@ function open()
     url = dialog.input.value;
 
   try {
-    // Whichever target we use for the load, we allow third-party services to
-    // fixup the URI
+    
+    
     switch (dialog.openWhereList.value) {
       case "0":
         browser.loadURI(url, null, postData.value, true);
@@ -128,7 +128,7 @@ function open()
     pref.setIntPref("general.open_location.last_window_choice", dialog.openWhereList.value);
   }
 
-  // Delay closing slightly to avoid timing bug on Linux.
+  
   window.close();
   return false;
 }
@@ -155,12 +155,3 @@ function onChooseFile()
   }
   doEnabling();
 }
-
-function useUBHistoryItem(aMenuItem)
-{
-  var urlbar = document.getElementById("dialog.input");
-  urlbar.value = aMenuItem.getAttribute("label");
-  urlbar.focus();
-  doEnabling();
-}
-
