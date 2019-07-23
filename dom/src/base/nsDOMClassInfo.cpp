@@ -62,9 +62,11 @@
 
 
 #include "jsapi.h"
-#include "jsnum.h"
-#include "jsdbgapi.h"
+#include "jsprvtd.h"    
 #include "jscntxt.h"
+#include "jsdbgapi.h"
+#include "jsnum.h"
+#include "jsscope.h"
 
 
 #include "nsGlobalWindow.h"
