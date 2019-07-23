@@ -60,6 +60,7 @@
 
 #include "nsNavHistory.h"
 #include "nsNetUtil.h"
+#include "nsEscape.h"
 
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
@@ -560,15 +561,20 @@ nsNavHistory::AutoCompleteFullHistorySearch(PRBool* aHasMoreResults)
   
   while (NS_SUCCEEDED(mDBAutoCompleteQuery->ExecuteStep(&hasMore)) && hasMore) {
     *aHasMoreResults = PR_TRUE;
-    nsAutoString entryURL;
-    rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_URL, entryURL);
+    nsAutoString escapedEntryURL;
+    rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_URL, escapedEntryURL);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     
     
     PRBool dummy;
-    if (!mCurrentResultURLs.Get(entryURL, &dummy)) {
+    if (!mCurrentResultURLs.Get(escapedEntryURL, &dummy)) {
+      
+      NS_LossyConvertUTF16toASCII cEntryURL(escapedEntryURL);
+      NS_UnescapeURL(cEntryURL);
+      NS_ConvertUTF8toUTF16 entryURL(cEntryURL);
+
       nsAutoString entryTitle, entryFavicon, entryBookmarkTitle;
       rv = mDBAutoCompleteQuery->GetString(kAutoCompleteIndex_Title, entryTitle);
       NS_ENSURE_SUCCESS(rv, rv);
