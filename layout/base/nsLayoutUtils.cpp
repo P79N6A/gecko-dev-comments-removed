@@ -2763,9 +2763,9 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
 
   
   gfxPoint subimageTopLeft =
-    MapToFloatImagePixels(imageSize, devPixelDest, aFill.TopLeft());
+    MapToFloatImagePixels(imageSize, devPixelDest, devPixelFill.TopLeft());
   gfxPoint subimageBottomRight =
-    MapToFloatImagePixels(imageSize, devPixelDest, aFill.BottomRight());
+    MapToFloatImagePixels(imageSize, devPixelDest, devPixelFill.BottomRight());
   nsIntRect intSubimage;
   intSubimage.MoveTo(NSToIntFloor(subimageTopLeft.x),
                      NSToIntFloor(subimageTopLeft.y));
@@ -2778,7 +2778,7 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
   gfxPoint anchorPoint(aAnchor.x/appUnitsPerDevPixel,
                        aAnchor.y/appUnitsPerDevPixel);
   gfxPoint imageSpaceAnchorPoint =
-    MapToFloatImagePixels(imageSize, devPixelDest, aAnchor);
+    MapToFloatImagePixels(imageSize, devPixelDest, anchorPoint);
   gfxContextMatrixAutoSaveRestore saveMatrix(ctx);
 
   if (didSnap) {
