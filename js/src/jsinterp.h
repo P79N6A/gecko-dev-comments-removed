@@ -257,6 +257,12 @@ struct JSPropCacheEntry {
     jsuword             vword;          
 };
 
+
+
+
+
+#define JS_NO_PROP_CACHE_FILL ((JSPropCacheEntry *) NULL + 1)
+
 #if defined DEBUG_brendan || defined DEBUG_brendaneich
 #define JS_PROPERTY_CACHE_METERING 1
 #endif
@@ -339,11 +345,13 @@ typedef struct JSPropertyCache {
 
 
 
-extern JS_REQUIRES_STACK void
+
+
+
+extern JS_REQUIRES_STACK JSPropCacheEntry *
 js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
                      uintN scopeIndex, uintN protoIndex,
-                     JSObject *pobj, JSScopeProperty *sprop,
-                     JSPropCacheEntry **entryp);
+                     JSObject *pobj, JSScopeProperty *sprop);
 
 
 
