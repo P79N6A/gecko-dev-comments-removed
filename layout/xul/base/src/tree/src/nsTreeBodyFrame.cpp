@@ -2444,14 +2444,14 @@ nsTreeBodyFrame::CalcHorzWidth(const ScrollParts& aParts)
   }
 
   
-  
   if (width == 0) {
-    width = aParts.mColumnsFrame->GetRect().width;
+    mAdjustWidth = 0;
+    width = mRect.width;
+  } else {
+    
+    
+    mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
   }
-
-  
-  
-  mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
 
   return width;
 }
