@@ -1124,7 +1124,6 @@ function delayedStartup()
   
   
   try {
-    ContentPrefSink.init();
     FullZoom.init();
   }
   catch(ex) {
@@ -1175,7 +1174,6 @@ function BrowserShutdown()
 {
   try {
     FullZoom.destroy();
-    ContentPrefSink.destroy();
   }
   catch(ex) {
     Components.utils.reportError(ex);
@@ -3726,7 +3724,7 @@ nsBrowserStatusHandler.prototype =
     
     
     try {
-      ContentPrefSink.handleLocationChanged(aLocationURI);
+      FullZoom.onLocationChange(aLocationURI);
     }
     catch(ex) {
       Components.utils.reportError(ex);
@@ -5445,7 +5443,6 @@ var FeedHandler = {
 
 #include browser-places.js
 
-#include browser-contentPrefSink.js
 #include browser-textZoom.js
 
 HistoryMenu.toggleRecentlyClosedTabs = function PHM_toggleRecentlyClosedTabs() {

@@ -60,14 +60,20 @@ var FullZoom = {
   
   
   
-  globalValue: undefined,
+  get globalValue FullZoom_get_globalValue() {
+    var globalValue = this._cps.getPref(null, this.name);
+    if (typeof globalValue != "undefined")
+      globalValue = this._ensureValid(globalValue);
+    delete this.globalValue;
+    return this.globalValue = globalValue;
+  },
 
 
   
   
 
   
-  get _cps() {
+  get _cps FullZoom_get__cps() {
     delete this._cps;
     return this._cps = Cc["@mozilla.org/content-pref/service;1"].
                        getService(Ci.nsIContentPrefService);
@@ -82,7 +88,7 @@ var FullZoom = {
                Components.interfaces.nsIContentPrefObserver,
                Components.interfaces.nsISupports],
 
-  QueryInterface: function (aIID) {
+  QueryInterface: function FullZoom_QueryInterface(aIID) {
     if (!this.interfaces.some(function (v) aIID.equals(v)))
       throw Cr.NS_ERROR_NO_INTERFACE;
     return this;
@@ -92,33 +98,18 @@ var FullZoom = {
   
   
 
-  init: function () {
+  init: function FullZoom_init() {
     
     window.addEventListener("DOMMouseScroll", this, false);
 
     
     this._cps.addObserver(this.name, this);
-
-    
-    var globalValue = ContentPrefSink.addObserver(this.name, this);
-    this.globalValue = this._ensureValid(globalValue);
-
-    
-    this._applyPrefToSetting();
   },
 
-  destroy: function () {
-    ContentPrefSink.removeObserver(this.name, this);
+  destroy: function FullZoom_destroy() {
     this._cps.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
-
-    
-    
-    for (var i in this) {
-      try { this[i] = null }
-      
-      catch(ex) {}
-    }
+    delete this._cps;
   },
 
 
@@ -127,7 +118,7 @@ var FullZoom = {
 
   
 
-  handleEvent: function (event) {
+  handleEvent: function FullZoom_handleEvent(event) {
     switch (event.type) {
       case "DOMMouseScroll":
         this._handleMouseScrolled(event);
@@ -135,7 +126,7 @@ var FullZoom = {
     }
   },
 
-  _handleMouseScrolled: function (event) {
+  _handleMouseScrolled: function FullZoom__handleMouseScrolled(event) {
     
     
     var pref = "mousewheel";
@@ -175,7 +166,7 @@ var FullZoom = {
 
   
 
-  onContentPrefSet: function (aGroup, aName, aValue) {
+  onContentPrefSet: function FullZoom_onContentPrefSet(aGroup, aName, aValue) {
     if (aGroup == this._cps.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting(aValue);
     else if (aGroup == null) {
@@ -189,7 +180,7 @@ var FullZoom = {
     }
   },
 
-  onContentPrefRemoved: function (aGroup, aName) {
+  onContentPrefRemoved: function FullZoom_onContentPrefRemoved(aGroup, aName) {
     if (aGroup == this._cps.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting();
     else if (aGroup == null) {
@@ -205,25 +196,27 @@ var FullZoom = {
 
   
 
-  onLocationChanged: function (aURI, aName, aValue) {
-    this._applyPrefToSetting(aValue);
+  onLocationChange: function FullZoom_onLocationChange(aURI) {
+    if (!aURI)
+      return;
+    this._applyPrefToSetting(this._cps.getPref(aURI, this.name));
   },
 
 
   
   
 
-  reduce: function () {
+  reduce: function FullZoom_reduce() {
     ZoomManager.reduce();
     this._applySettingToPref();
   },
 
-  enlarge: function () {
+  enlarge: function FullZoom_enlarge() {
     ZoomManager.enlarge();
     this._applySettingToPref();
   },
 
-  reset: function () {
+  reset: function FullZoom_reset() {
     if (typeof this.globalValue != "undefined")
       ZoomManager.fullZoom = this.globalValue;
     else
@@ -232,7 +225,7 @@ var FullZoom = {
     this._removePref();
   },
 
-  setSettingValue: function () {
+  setSettingValue: function FullZoom_setSettingValue() {
     var value = this._cps.getPref(gBrowser.currentURI, this.name);
     this._applyPrefToSetting(value);
   },
@@ -254,24 +247,24 @@ var FullZoom = {
 
 
 
-  _applyPrefToSetting: function (aValue) {
+
+
+  _applyPrefToSetting: function FullZoom__applyPrefToSetting(aValue) {
     if (gInPrintPreviewMode)
       return;
 
-    
-    
     try {
       if (typeof aValue != "undefined")
         ZoomManager.fullZoom = this._ensureValid(aValue);
       else if (typeof this.globalValue != "undefined")
         ZoomManager.fullZoom = this.globalValue;
       else
-        ZoomManager.reset();
+        ZoomManager.fullZoom = 1;
     }
     catch(ex) {}
   },
 
-  _applySettingToPref: function () {
+  _applySettingToPref: function FullZoom__applySettingToPref() {
     if (gInPrintPreviewMode)
       return;
 
@@ -279,7 +272,7 @@ var FullZoom = {
     this._cps.setPref(gBrowser.currentURI, this.name, fullZoom);
   },
 
-  _removePref: function () {
+  _removePref: function FullZoom__removePref() {
     this._cps.removePref(gBrowser.currentURI, this.name);
   },
 
@@ -287,7 +280,7 @@ var FullZoom = {
   
   
 
-  _ensureValid: function (aValue) {
+  _ensureValid: function FullZoom__ensureValid(aValue) {
     if (isNaN(aValue))
       return 1;
 
