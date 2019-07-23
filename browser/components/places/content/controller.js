@@ -1470,7 +1470,10 @@ var PlacesControllerDragHelper = {
     var xferable = this._initTransferable(session, targetView, 
                                           insertionPoint.orientation);
     var dropCount = session.numDropItems;
-    for (var i = dropCount - 1; i >= 0; --i) {
+    
+    var movedCount = 0;
+    
+    for (var i = 0; i < dropCount; ++i) {
       session.getData(xferable, i);
     
       var data = { }, flavor = { };
@@ -1480,9 +1483,20 @@ var PlacesControllerDragHelper = {
       
       var unwrapped = PlacesUtils.unwrapNodes(data.value.data, 
                                               flavor.value)[0];
-      transactions.push(PlacesUtils.makeTransaction(unwrapped, 
-                        flavor.value, insertionPoint.itemId, 
-                        insertionPoint.index, copy));
+      var index = insertionPoint.index;
+      
+      
+      
+      
+      if ((index != -1) && ((index < unwrapped.index) ||
+                           (unwrapped.folder && (index < unwrapped.folder.index)))) {
+        index = index + movedCount;
+        movedCount++;
+      }
+        
+      transactions.push(PlacesUtils.makeTransaction(unwrapped,
+                        flavor.value, insertionPoint.itemId,
+                        index, copy));
     }
 
     var txn = PlacesUtils.ptm.aggregateTransactions("DropItems", transactions);
