@@ -3210,33 +3210,45 @@ NS_IMETHODIMP nsAccessible::SelectAllSelection(PRBool *_retval)
 
 
 
-NS_IMETHODIMP nsAccessible::GetAnchors(PRInt32 *aAnchors)
+
+NS_IMETHODIMP
+nsAccessible::GetAnchorsCount(PRInt32 *aAnchorsCount)
 {
-  *aAnchors = 1;
+  NS_ENSURE_ARG_POINTER(aAnchorsCount);
+  *aAnchorsCount = 1;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsAccessible::GetStartIndex(PRInt32 *aStartIndex)
+
+NS_IMETHODIMP
+nsAccessible::GetStartIndex(PRInt32 *aStartIndex)
 {
+  NS_ENSURE_ARG_POINTER(aStartIndex);
   *aStartIndex = 0;
   PRInt32 endIndex;
   return GetLinkOffset(aStartIndex, &endIndex);
 }
 
-NS_IMETHODIMP nsAccessible::GetEndIndex(PRInt32 *aEndIndex)
+
+NS_IMETHODIMP
+nsAccessible::GetEndIndex(PRInt32 *aEndIndex)
 {
+  NS_ENSURE_ARG_POINTER(aEndIndex);
   *aEndIndex = 0;
   PRInt32 startIndex;
   return GetLinkOffset(&startIndex, aEndIndex);
 }
 
-NS_IMETHODIMP nsAccessible::GetURI(PRInt32 i, nsIURI **aURI)
+NS_IMETHODIMP
+nsAccessible::GetURI(PRInt32 i, nsIURI **aURI)
 {
+  NS_ENSURE_ARG_POINTER(aURI);
   *aURI = nsnull;
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP nsAccessible::GetObject(PRInt32 aIndex,
+NS_IMETHODIMP
+nsAccessible::GetAnchor(PRInt32 aIndex,
                                       nsIAccessible **aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
@@ -3251,10 +3263,12 @@ NS_IMETHODIMP nsAccessible::GetObject(PRInt32 aIndex,
 }
 
 
-NS_IMETHODIMP nsAccessible::IsValid(PRBool *aIsValid)
+NS_IMETHODIMP
+nsAccessible::GetValid(PRBool *aValid)
 {
+  NS_ENSURE_ARG_POINTER(aValid);
   PRUint32 state = State(this);
-  *aIsValid = (0 == (state & nsIAccessibleStates::STATE_INVALID));
+  *aValid = (0 == (state & nsIAccessibleStates::STATE_INVALID));
   
   
   
@@ -3262,9 +3276,12 @@ NS_IMETHODIMP nsAccessible::IsValid(PRBool *aIsValid)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsAccessible::IsSelected(PRBool *aIsSelected)
+
+NS_IMETHODIMP
+nsAccessible::GetSelected(PRBool *aSelected)
 {
-  *aIsSelected = (gLastFocusedNode == mDOMNode);
+  NS_ENSURE_ARG_POINTER(aSelected);
+  *aSelected = (gLastFocusedNode == mDOMNode);
   return NS_OK;
 }
 
