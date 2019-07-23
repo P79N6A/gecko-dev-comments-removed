@@ -51,7 +51,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ["JSON"];
+var EXPORTED_SYMBOLS = ["JSONModule"];
 
 
 
@@ -61,7 +61,7 @@ var EXPORTED_SYMBOLS = ["JSON"];
 
 
 
-var JSON = {
+var JSONModule = {
   
 
 

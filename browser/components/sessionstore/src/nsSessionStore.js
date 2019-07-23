@@ -2322,10 +2322,10 @@ SessionStoreService.prototype = {
 
 
   _toJSONString: function sss_toJSONString(aJSObject) {
-    let str = JSON.toString(aJSObject, ["_tab", "_hosts", "_formDataSaved"] );
+    let str = JSONModule.toString(aJSObject, ["_tab", "_hosts", "_formDataSaved"] );
     
     
-    if (!JSON.isMostlyHarmless(str))
+    if (!JSONModule.isMostlyHarmless(str))
       throw new Error("JSON conversion failed unexpectedly!");
     
     return str;
