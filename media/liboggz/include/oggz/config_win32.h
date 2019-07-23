@@ -30,7 +30,7 @@
 #define HAVE_SSIZE_T 1
 
 
-#define HAVE_STDINT_H 1
+#undef HAVE_STDINT_H
 
 
 #define HAVE_STDLIB_H 1
@@ -131,4 +131,8 @@
 
 
 #undef size_t
-#undef DEBUG
+
+
+typedef unsigned char uint8_t;
+
+#define inline __inline // MSVC#undef DEBUG
