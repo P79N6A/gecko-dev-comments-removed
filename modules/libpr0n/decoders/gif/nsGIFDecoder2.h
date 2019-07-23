@@ -59,7 +59,7 @@
 
 
 
-class nsGIFDecoder2 : public imgIDecoder   
+class nsGIFDecoder2 : public imgIDecoder
 {
 public:
   NS_DECL_ISUPPORTS
@@ -67,14 +67,6 @@ public:
 
   nsGIFDecoder2();
   ~nsGIFDecoder2();
-  
-  nsresult ProcessData(unsigned char *data, PRUint32 count);
-  static NS_METHOD ReadDataOut(nsIInputStream* in,
-                               void* closure,
-                               const char* fromRawSegment,
-                               PRUint32 toOffset,
-                               PRUint32 count,
-                               PRUint32 *writeCount);
 
 private:
   

@@ -153,15 +153,6 @@ public:
     ~nsBMPDecoder();
 
 private:
-    
-    static NS_METHOD ReadSegCb(nsIInputStream* aIn, void* aClosure,
-                               const char* aFromRawSegment, PRUint32 aToOffset,
-                               PRUint32 aCount, PRUint32 *aWriteCount);
-
-    
-
-
-    NS_METHOD ProcessData(const char* aBuffer, PRUint32 aCount);
 
     
 

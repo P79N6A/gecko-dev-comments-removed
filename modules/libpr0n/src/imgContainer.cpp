@@ -156,7 +156,6 @@ imgContainer::imgContainer() :
   mDecoder(nsnull),
   mWorker(nsnull),
   mBytesDecoded(0),
-  mDecoderInput(nsnull),
   mDecoderFlags(imgIDecoder::DECODER_FLAG_NONE),
   mWorkerPending(PR_FALSE),
   mInDecoder(PR_FALSE),
@@ -2073,14 +2072,6 @@ imgContainer::InitDecoder (PRUint32 dFlags)
   CONTAINER_ENSURE_SUCCESS(result);
 
   
-  
-  
-  
-  
-  mDecoderInput = do_CreateInstance("@mozilla.org/io/string-input-stream;1");
-  CONTAINER_ENSURE_TRUE(mDecoderInput, NS_ERROR_OUT_OF_MEMORY);
-
-  
   mWorker = new imgDecodeWorker(this);
   CONTAINER_ENSURE_TRUE(mWorker, NS_ERROR_OUT_OF_MEMORY);
 
@@ -2139,9 +2130,6 @@ imgContainer::ShutdownDecoder(eShutdownIntent aIntent)
   }
 
   
-  mDecoderInput = nsnull;
-
-  
   mWorker = nsnull;
 
   
@@ -2166,7 +2154,6 @@ imgContainer::ShutdownDecoder(eShutdownIntent aIntent)
 }
 
 
-
 nsresult
 imgContainer::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
 {
@@ -2174,12 +2161,8 @@ imgContainer::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
   NS_ABORT_IF_FALSE(mDecoder, "Trying to write to null decoder!");
 
   
-  nsresult rv = mDecoderInput->ShareData(aBuffer, aCount);
-  CONTAINER_ENSURE_SUCCESS(rv);
-
-  
   mInDecoder = PR_TRUE;
-  rv = mDecoder->WriteFrom(mDecoderInput, aCount);
+  nsresult rv = mDecoder->Write(aBuffer, aCount);
   mInDecoder = PR_FALSE;
   CONTAINER_ENSURE_SUCCESS(rv);
 

@@ -193,49 +193,6 @@ NS_IMETHODIMP nsGIFDecoder2::Flush()
 
 
 
-NS_METHOD nsGIFDecoder2::ReadDataOut(nsIInputStream* in,
-                                     void* closure,
-                                     const char* fromRawSegment,
-                                     PRUint32 toOffset,
-                                     PRUint32 count,
-                                     PRUint32 *writeCount)
-{
-  nsGIFDecoder2 *decoder = static_cast<nsGIFDecoder2*>(closure);
-
-  
-  *writeCount = count;
-
-  
-  nsresult rv = decoder->ProcessData((unsigned char*)fromRawSegment, count);
-
-  
-  
-  
-  
-  
-  if (NS_FAILED(rv)) {
-
-    
-    PRUint32 numFrames = 0;
-    if (decoder->mImageContainer)
-      decoder->mImageContainer->GetNumFrames(&numFrames);
-
-    
-    if (numFrames > 1) { 
-      decoder->EndGIF( PR_TRUE);
-    }
-
-    
-    else
-      decoder->mError = PR_TRUE;
-  }
-
-  
-  return NS_OK;
-}
-
-
-
 
 nsresult
 nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
@@ -282,38 +239,51 @@ nsGIFDecoder2::FlushImageData()
 }
 
 
-nsresult nsGIFDecoder2::ProcessData(unsigned char *data, PRUint32 count)
+
+NS_IMETHODIMP
+nsGIFDecoder2::Write(const char *aBuffer, PRUint32 aCount)
 {
   
-  nsresult rv = GifWrite(data, count);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (mError)
+    return NS_ERROR_FAILURE;
 
   
-  if (!mGIFStruct.images_decoded) {
+  nsresult rv = GifWrite((const unsigned char *)aBuffer, aCount);
+
+  
+  if (NS_SUCCEEDED(rv) && !mGIFStruct.images_decoded) {
     rv = FlushImageData();
     NS_ENSURE_SUCCESS(rv, rv);
     mLastFlushedRow = mCurrentRow;
     mLastFlushedPass = mCurrentPass;
   }
 
-  return NS_OK;
-}
-
-
-
-NS_IMETHODIMP nsGIFDecoder2::WriteFrom(nsIInputStream *inStr, PRUint32 count)
-{
   
-  nsresult rv = NS_OK;
-  PRUint32 ignored;
-  if (!mError)
-    rv = inStr->ReadSegments(nsGIFDecoder2::ReadDataOut, this,
-                             count, &ignored);
-  if (mError || NS_FAILED(rv))
-    return NS_ERROR_FAILURE;
-  return NS_OK;
-}
+  
+  
+  
+  
+  if (NS_FAILED(rv)) {
 
+    
+    PRUint32 numFrames = 0;
+    if (mImageContainer)
+      mImageContainer->GetNumFrames(&numFrames);
+
+    
+    
+    
+    if (numFrames > 1) {
+      EndGIF( PR_TRUE);
+    }
+
+    
+    else
+      mError = PR_TRUE;
+  }
+
+  return mError ? NS_ERROR_FAILURE : NS_OK;
+}
 
 
 

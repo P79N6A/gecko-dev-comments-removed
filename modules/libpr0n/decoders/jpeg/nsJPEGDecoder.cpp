@@ -101,7 +101,6 @@ nsJPEGDecoder::nsJPEGDecoder()
   mState = JPEG_HEADER;
   mReading = PR_TRUE;
   mNotifiedDone = PR_FALSE;
-  mError = PR_FALSE;
   mImageData = nsnull;
 
   mBytesToSkip = 0;
@@ -203,7 +202,7 @@ NS_IMETHODIMP nsJPEGDecoder::Close(PRUint32 aFlags)
 
   
 
-  if (mError)
+  if (mState == JPEG_ERROR)
     return NS_OK;
 
   
@@ -223,63 +222,24 @@ NS_IMETHODIMP nsJPEGDecoder::Flush()
   LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Flush");
 
   if (mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER && mState != JPEG_ERROR)
-    return this->ProcessData(nsnull, 0);
+    return this->Write(nsnull, 0);
 
   return NS_OK;
 }
 
-static NS_METHOD ReadDataOut(nsIInputStream* in,
-                             void* closure,
-                             const char* fromRawSegment,
-                             PRUint32 toOffset,
-                             PRUint32 count,
-                             PRUint32 *writeCount)
+
+nsresult nsJPEGDecoder::Write(const char *aBuffer, PRUint32 aCount)
 {
-  nsJPEGDecoder *decoder = static_cast<nsJPEGDecoder*>(closure);
-
-  
-  *writeCount = count;
-
-  
-  nsresult rv = decoder->ProcessData(fromRawSegment, count);
-
-  
-  if (NS_FAILED(rv))
-    decoder->mError = rv;
-  return rv;
-}
-
-
-
-NS_IMETHODIMP nsJPEGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count)
-{
-  NS_ENSURE_ARG_POINTER(inStr);
-
-  
-  nsresult rv = NS_OK;
-  PRUint32 ignored;
-  if (!mError)
-    rv = inStr->ReadSegments(ReadDataOut, this, count, &ignored);
-  if (mError || NS_FAILED(rv))
-    return NS_ERROR_FAILURE;
-  return NS_OK;
-}
-
-
-nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
-{
-  LOG_SCOPE_WITH_PARAM(gJPEGlog, "nsJPEGDecoder::ProcessData", "count", count);
-
-  mSegment = (const JOCTET *)data;
-  mSegmentLen = count;
+  mSegment = (const JOCTET *)aBuffer;
+  mSegmentLen = aCount;
 
   
   nsresult error_code;
   if ((error_code = setjmp(mErr.setjmp_buffer)) != 0) {
-    mState = JPEG_SINK_NON_JPEG_TRAILER;
     if (error_code == NS_ERROR_FAILURE) {
       
 
+      mState = JPEG_SINK_NON_JPEG_TRAILER;
       PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
              ("} (setjmp returned NS_ERROR_FAILURE)"));
       return NS_OK;
@@ -287,6 +247,7 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
       
 
 
+      mState = JPEG_ERROR;
       PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
              ("} (setjmp returned an error)"));
       return error_code;
@@ -294,12 +255,12 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
   }
 
   PR_LOG(gJPEGlog, PR_LOG_DEBUG,
-         ("[this=%p] nsJPEGDecoder::ProcessData -- processing JPEG data\n", this));
+         ("[this=%p] nsJPEGDecoder::Write -- processing JPEG data\n", this));
 
   switch (mState) {
   case JPEG_HEADER:
   {
-    LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::ProcessData -- entering JPEG_HEADER case");
+    LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Write -- entering JPEG_HEADER case");
 
     
     if (jpeg_read_header(&mInfo, TRUE) == JPEG_SUSPENDED) {
@@ -453,7 +414,7 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
     }
 
     PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
-           ("        JPEGDecoderAccounting: nsJPEGDecoder::ProcessData -- created image frame with %ux%u pixels",
+           ("        JPEGDecoderAccounting: nsJPEGDecoder::Write -- created image frame with %ux%u pixels",
             mInfo.image_width, mInfo.image_height));
 
     if (mObserver)
@@ -463,7 +424,7 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
 
   case JPEG_START_DECOMPRESS:
   {
-    LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::ProcessData -- entering JPEG_START_DECOMPRESS case");
+    LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Write -- entering JPEG_START_DECOMPRESS case");
     
 
     
@@ -498,7 +459,7 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
   {
     if (mState == JPEG_DECOMPRESS_SEQUENTIAL)
     {
-      LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::ProcessData -- JPEG_DECOMPRESS_SEQUENTIAL case");
+      LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Write -- JPEG_DECOMPRESS_SEQUENTIAL case");
       
       PRBool suspend;
       nsresult rv = OutputScanlines(&suspend);
@@ -521,7 +482,7 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
   {
     if (mState == JPEG_DECOMPRESS_PROGRESSIVE)
     {
-      LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::ProcessData -- JPEG_DECOMPRESS_PROGRESSIVE case");
+      LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Write -- JPEG_DECOMPRESS_PROGRESSIVE case");
 
       int status;
       do {
@@ -613,8 +574,7 @@ nsresult nsJPEGDecoder::ProcessData(const char *data, PRUint32 count)
   case JPEG_ERROR:
     PR_LOG(gJPEGlog, PR_LOG_DEBUG,
            ("[this=%p] nsJPEGDecoder::ProcessData -- entering JPEG_ERROR case\n", this));
-
-    break;
+    return NS_ERROR_FAILURE;
   }
 
   PR_LOG(gJPEGDecoderAccountingLog, PR_LOG_DEBUG,
@@ -956,8 +916,9 @@ term_source (j_decompress_ptr jd)
   nsJPEGDecoder *decoder = (nsJPEGDecoder *)(jd->client_data);
 
   
-  NS_ABORT_IF_FALSE(!decoder->mError,
-                    "Calling term_source on a JPEG with mError=true!");
+  
+  NS_ABORT_IF_FALSE(decoder->mState != JPEG_ERROR,
+                    "Calling term_source on a JPEG with mState == JPEG_ERROR!");
 
   
   decoder->NotifyDone( PR_TRUE);

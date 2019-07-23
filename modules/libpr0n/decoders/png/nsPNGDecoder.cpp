@@ -321,9 +321,8 @@ NS_IMETHODIMP nsPNGDecoder::Flush()
   return NS_OK;
 }
 
-
-NS_METHOD
-nsPNGDecoder::ProcessData(unsigned char* aBuffer, PRUint32 aCount)
+NS_IMETHODIMP
+nsPNGDecoder::Write(const char *aBuffer, PRUint32 aCount)
 {
   
   nsresult rv;
@@ -382,7 +381,7 @@ nsPNGDecoder::ProcessData(unsigned char* aBuffer, PRUint32 aCount)
     }
 
     
-    png_process_data(mPNG, mInfo, aBuffer, aCount);
+    png_process_data(mPNG, mInfo, (unsigned char *)aBuffer, aCount);
 
   }
 
@@ -413,43 +412,6 @@ nsPNGDecoder::NotifyDone(PRBool aSuccess)
 
   
   mNotifiedDone = PR_TRUE;
-}
-
-static NS_METHOD ReadDataOut(nsIInputStream* in,
-                             void* closure,
-                             const char* fromRawSegment,
-                             PRUint32 toOffset,
-                             PRUint32 count,
-                             PRUint32 *writeCount)
-{
-  
-  NS_ENSURE_ARG_POINTER(closure);
-  nsPNGDecoder *decoder = static_cast<nsPNGDecoder*>(closure);
-
-  
-  *writeCount = count;
-
-  
-  char *unConst = const_cast<char *>(fromRawSegment);
-  unsigned char *buffer = reinterpret_cast<unsigned char *>(unConst);
-  return decoder->ProcessData(buffer, count);
-}
-
-
-
-NS_IMETHODIMP nsPNGDecoder::WriteFrom(nsIInputStream *inStr, PRUint32 count)
-{
-  NS_ASSERTION(inStr, "Got a null input stream!");
-
-  
-  nsresult rv = NS_OK;
-  PRUint32 ignored;
-  if (!mError)
-    rv = inStr->ReadSegments(ReadDataOut, this, count, &ignored);
-  if (mError || NS_FAILED(rv))
-    rv = NS_ERROR_FAILURE;
-
-  return rv;
 }
 
 
