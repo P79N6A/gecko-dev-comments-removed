@@ -1306,6 +1306,7 @@ namespace nanojit
                 }
             }
 
+#ifdef NJ_VERBOSE
             
             
             
@@ -1328,6 +1329,7 @@ namespace nanojit
                             _thisfrag->lirbuf->names->formatIns(ins->oprnd1()));
                 }
             }
+#endif
 
             if (error())
                 return;
