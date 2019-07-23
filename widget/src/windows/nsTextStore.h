@@ -47,7 +47,10 @@
 
 struct ITfThreadMgr;
 struct ITfDocumentMgr;
+struct ITfDisplayAttributeMgr;
+struct ITfCategoryMgr;
 class nsWindow;
+class nsTextEvent;
 
 
 
@@ -146,12 +149,22 @@ public:
     return sTsfTextStore->OnSelectionChangeInternal();
   }
 
-  static void*    GetNativeData(void)
+  
+  
+  static void*    GetThreadMgr(void)
   {
-    
-    
     Initialize(); 
     return (void*) & sTsfThreadMgr;
+  }
+
+  static void*    GetCategoryMgr(void)
+  {
+    return (void*) & sCategoryMgr;
+  }
+
+  static void*    GetDisplayAttrMgr(void)
+  {
+    return (void*) & sDisplayAttrMgr;
   }
 
 protected:
@@ -163,19 +176,23 @@ protected:
   PRBool   Focus(void);
   PRBool   Blur(void);
 
-  HRESULT  LoadManagers(void);
-  HRESULT  SetSelectionInternal(const TS_SELECTION_ACP*);
+  
+  
+  
+  
+  HRESULT  SetSelectionInternal(const TS_SELECTION_ACP*,
+                                PRBool aDispatchTextEvent = PR_FALSE);
   HRESULT  OnStartCompositionInternal(ITfCompositionView*, ITfRange*, PRBool);
   void     CommitCompositionInternal(PRBool);
   void     SetIMEEnabledInternal(PRUint32 aState);
   nsresult OnTextChangeInternal(PRUint32, PRUint32, PRUint32);
   void     OnTextChangeMsgInternal(void);
   nsresult OnSelectionChangeInternal(void);
-
-  
-  nsRefPtr<ITfDisplayAttributeMgr> mDAMgr;
-  
-  nsRefPtr<ITfCategoryMgr>         mCatMgr;
+  HRESULT  GetDisplayAttribute(ITfProperty* aProperty,
+                               ITfRange* aRange,
+                               TF_DISPLAYATTRIBUTE* aResult);
+  HRESULT  SendTextEventForCompositionString();
+  HRESULT  SaveTextEvent(const nsTextEvent* aEvent);
 
   
   nsRefPtr<ITfDocumentMgr>     mDocumentMgr;
@@ -212,9 +229,17 @@ protected:
   
   LONG                         mCompositionStart;
   LONG                         mCompositionLength;
+  
+  
+  nsTextEvent*                 mLastDispatchedTextEvent;
 
   
   static ITfThreadMgr*  sTsfThreadMgr;
+  
+  static ITfDisplayAttributeMgr* sDisplayAttrMgr;
+  
+  static ITfCategoryMgr* sCategoryMgr;
+
   
   static DWORD          sTsfClientId;
   

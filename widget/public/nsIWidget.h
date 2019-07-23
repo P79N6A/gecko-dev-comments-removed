@@ -94,7 +94,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_PLUGIN_PORT_CG    101
 #endif
 #ifdef XP_WIN
-#define NS_NATIVE_TSF_POINTER       100
+#define NS_NATIVE_TSF_THREAD_MGR       100
+#define NS_NATIVE_TSF_CATEGORY_MGR     101
+#define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
 
