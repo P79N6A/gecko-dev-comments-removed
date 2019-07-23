@@ -251,11 +251,6 @@ NS_METHOD nsBaseWidget::Destroy()
   
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
   
-  
-  
-  if (mContext)
-    mContext->Init(nsnull);
-  
   nsIWidget *parent = GetParent();
   if (parent) {
     parent->RemoveChild(this);

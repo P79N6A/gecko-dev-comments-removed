@@ -2310,8 +2310,16 @@ DocumentViewerImpl::CreateDeviceContext(nsIWidget* aWidget)
   
   mDeviceContext = do_CreateInstance(kDeviceContextCID);
   NS_ENSURE_TRUE(mDeviceContext, NS_ERROR_FAILURE);
-  mDeviceContext->Init(aWidget ?
-                       aWidget->GetNativeData(NS_NATIVE_WIDGET) : nsnull);
+  nsNativeWidget nativeWidget = nsnull;
+  if (aWidget) {
+    
+    
+    
+    nsIWidget* toplevelWidget = aWidget->GetTopLevelWidget();
+    NS_ASSERTION(toplevelWidget, "GetTopLevelWidget returns NULL");
+    nativeWidget = aWidget->GetNativeData(NS_NATIVE_WINDOW);
+  }
+  mDeviceContext->Init(nativeWidget);
   return NS_OK;
 }
 
