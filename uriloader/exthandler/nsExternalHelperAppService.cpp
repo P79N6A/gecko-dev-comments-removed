@@ -1265,7 +1265,7 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
   
   
   
-  if (!warn ||
+  if (!warn &&
       !alwaysAsk && (preferredAction == nsIHandlerInfo::useHelperApp ||
                      preferredAction == nsIHandlerInfo::useSystemDefault))
     return handler->LaunchWithURI(uri);
