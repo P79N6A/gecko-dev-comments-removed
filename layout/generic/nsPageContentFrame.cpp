@@ -36,6 +36,7 @@
 
 #include "nsPageContentFrame.h"
 #include "nsPageFrame.h"
+#include "nsPlaceholderFrame.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsHTMLContainerFrame.h"
 #include "nsHTMLParts.h"
@@ -68,6 +69,55 @@ nsPageContentFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
   return nsSize(aAvailableWidth, height);
 }
 
+
+
+
+inline PRBool
+nsPageContentFrame::IsFixedPlaceholder(nsIFrame* aFrame)
+{
+  if (!aFrame || nsGkAtoms::placeholderFrame != aFrame->GetType())
+    return PR_FALSE;
+
+  return static_cast<nsPlaceholderFrame*>(aFrame)->GetOutOfFlowFrame()
+           ->GetParent() == this;
+}
+
+
+
+
+
+inline nsFrameList
+nsPageContentFrame::StealFixedPlaceholders(nsIFrame* aDocRoot)
+{
+  nsPresContext* presContext = PresContext();
+  nsFrameList list;
+  if (GetPrevInFlow()) {
+    for (nsIFrame* f = aDocRoot->GetFirstChild(nsnull);
+        IsFixedPlaceholder(f); f = aDocRoot->GetFirstChild(nsnull)) {
+      nsresult rv = static_cast<nsContainerFrame*>(aDocRoot)
+                      ->StealFrame(presContext, f);
+      NS_ENSURE_SUCCESS(rv, list);
+      list.AppendFrame(nsnull, f);
+    }
+  }
+  return list;
+}
+
+
+
+
+static inline nsresult
+ReplaceFixedPlaceholders(nsIFrame*    aDocRoot,
+                         nsFrameList& aPlaceholderList)
+{
+  nsresult rv = NS_OK;
+  if (aPlaceholderList.NotEmpty()) {
+    rv = static_cast<nsContainerFrame*>(aDocRoot)
+           ->AddFrames(aPlaceholderList.FirstChild(), nsnull);
+  }
+  return rv;
+}
+
 NS_IMETHODIMP
 nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
@@ -77,6 +127,7 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   DO_GLOBAL_REFLOW_COUNT("nsPageContentFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   aStatus = NS_FRAME_COMPLETE;  
+  nsresult rv = NS_OK;
 
   
   
@@ -108,7 +159,15 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
     mPD->mPageContentSize  = aReflowState.availableWidth;
 
     
-    ReflowChild(frame, aPresContext, aDesiredSize, kidReflowState, 0, 0, 0, aStatus);
+    nsFrameList stolenPlaceholders = StealFixedPlaceholders(frame);
+
+    
+    rv = ReflowChild(frame, aPresContext, aDesiredSize, kidReflowState, 0, 0, 0, aStatus);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = ReplaceFixedPlaceholders(frame, stolenPlaceholders);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     if (!NS_FRAME_IS_FULLY_COMPLETE(aStatus)) {
       nsIFrame* nextFrame = frame->GetNextInFlow();

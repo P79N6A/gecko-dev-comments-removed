@@ -276,6 +276,13 @@ public:
 
 
 
+  virtual nsresult AddFrames(nsIFrame* aFrameList,
+                             nsIFrame* aPrevSibling);
+
+  
+
+
+
 
 
 

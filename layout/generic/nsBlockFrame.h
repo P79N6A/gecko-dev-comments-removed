@@ -387,8 +387,8 @@ protected:
 
 
 
-  nsresult AddFrames(nsIFrame* aFrameList,
-                     nsIFrame* aPrevSibling);
+  virtual nsresult AddFrames(nsIFrame* aFrameList,
+                             nsIFrame* aPrevSibling);
 
 #ifdef IBMBIDI
   
