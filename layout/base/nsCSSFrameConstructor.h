@@ -173,6 +173,7 @@ public:
   
   
   
+  
   void ProcessPendingRestyles();
 
   void PostRestyleEvent(nsIContent* aContent, nsReStyleHint aRestyleHint,

@@ -13020,11 +13020,6 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
 
   delete [] restylesToProcess;
 
-  
-  
-  
-  mDocument->BindingManager()->ProcessAttachedQueue();
-
   EndUpdate();
 
 #ifdef DEBUG
@@ -13071,7 +13066,7 @@ NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run() {
   if (!mConstructor)
     return NS_OK;  
 
-  nsIViewManager* viewManager =
+  nsCOMPtr<nsIViewManager> viewManager =
     mConstructor->mPresShell->GetViewManager();
   NS_ASSERTION(viewManager, "Must have view manager for update");
 
@@ -13087,6 +13082,7 @@ NS_IMETHODIMP nsCSSFrameConstructor::RestyleEvent::Run() {
   mConstructor->mRestyleEvent.Forget();
 
   mConstructor->ProcessPendingRestyles();
+  mConstructor->mDocument->BindingManager()->ProcessAttachedQueue();
   viewManager->EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
   return NS_OK;
