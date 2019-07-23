@@ -143,7 +143,7 @@ public:
     
 
 
-    already_AddRefed<gfxPath> CopyPath();
+    already_AddRefed<gfxPath> CopyPath() const;
 
     
 
@@ -657,6 +657,66 @@ public:
 
 private:
   gfxContext *mContext;
+};
+
+
+
+
+
+
+
+
+class THEBES_API gfxContextPathAutoSaveRestore
+{
+public:
+    gfxContextPathAutoSaveRestore() : mContext(nsnull) {}
+
+    gfxContextPathAutoSaveRestore(gfxContext *aContext, PRBool aSave = PR_TRUE) : mContext(aContext)
+    {
+        if (aSave)
+            Save();       
+    }
+
+    ~gfxContextPathAutoSaveRestore()
+    {
+        Restore();
+    }
+
+    void SetContext(gfxContext *aContext, PRBool aSave = PR_TRUE)
+    {
+        mContext = aContext;
+        if (aSave)
+            Save();
+    }
+
+    
+
+
+
+    void Save()
+    {
+        if (!mPath && mContext) {
+            mPath = mContext->CopyPath();
+        }
+    }
+
+    
+
+
+
+    void Restore()
+    {
+        if (mPath) {
+            mContext->NewPath();
+            mContext->AppendPath(mPath);
+            mPath = nsnull;
+        }
+    }
+
+private:
+    gfxContext *mContext;
+
+    nsRefPtr<gfxPath> mPath;
 };
 
 #endif 
