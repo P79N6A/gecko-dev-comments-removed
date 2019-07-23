@@ -542,6 +542,10 @@ nsNavHistoryExpire::EraseAnnotations(mozIStorageConnection* aConnection,
 
 
 
+
+
+
+
 nsresult
 nsNavHistoryExpire::ExpireAnnotations(mozIStorageConnection* aConnection)
 {
