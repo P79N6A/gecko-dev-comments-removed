@@ -316,14 +316,22 @@ public:
     
 
 
-    void SetColor(const gfxRGBA& c);
+
+    void SetDeviceColor(const gfxRGBA& c);
 
     
 
 
 
 
-    PRBool GetColor(gfxRGBA& c);
+    PRBool GetDeviceColor(gfxRGBA& c);
+
+    
+
+
+
+
+    void SetColor(const gfxRGBA& c);
 
     
 

@@ -348,6 +348,9 @@ NS_IMETHODIMP
 nsThebesRenderingContext::SetColor(nscolor aColor)
 {
     PR_LOG(gThebesGFXLog, PR_LOG_DEBUG, ("## %p nsTRC::SetColor 0x%08x\n", this, aColor));
+    
+
+
     mThebes->SetColor(gfxRGBA(aColor));
     
     mColor = aColor;
