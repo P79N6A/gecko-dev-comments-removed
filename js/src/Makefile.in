@@ -176,7 +176,6 @@ INSTALLED_HEADERS = \
 		jsgc.h \
 		jshash.h \
 		jsinterp.h \
-		jsinttypes.h \
 		jsiter.h \
 		jslock.h \
 		jslong.h \
@@ -197,6 +196,7 @@ INSTALLED_HEADERS = \
 		jsscope.h \
 		jsscript.h \
 		jsstaticcheck.h \
+		jsstdint.h \
 		jsstr.h \
 		jstracer.h \
 		jstypes.h \
@@ -233,6 +233,12 @@ CPPSRCS += \
 		Native$(NANOJIT_ARCH).cpp \
 		jsbuiltins.cpp         \
 		$(NULL)
+
+ifdef WINCE
+# don't need -c
+AS_DASH_C_FLAG =
+ASFILES += jswince.asm
+endif
 
 ifdef DEBUG
 CPPSRCS += TraceTreeDrawer.cpp
