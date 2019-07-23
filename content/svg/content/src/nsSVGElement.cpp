@@ -60,7 +60,7 @@
 #include "nsRuleWalker.h"
 #include "nsCSSDeclaration.h"
 #include "nsCSSProps.h"
-#include "nsICSSParser.h"
+#include "nsCSSParser.h"
 #include "nsICSSLoader.h"
 #include "nsGenericHTMLElement.h"
 #include "nsNodeInfoManager.h"
@@ -1035,30 +1035,47 @@ void
 nsSVGElement::UpdateContentStyleRule()
 {
   NS_ASSERTION(!mContentStyleRule, "we already have a content style rule");
-  
+
+  PRUint32 attrCount = mAttrsAndChildren.AttrCount();
+  if (!attrCount) {
+    
+    return;
+  }
+
   nsIDocument* doc = GetOwnerDoc();
   if (!doc) {
     NS_ERROR("SVG element without owner document");
     return;
   }
+
   
+  nsCSSParser parser(doc->CSSLoader());
+  if (!parser) {
+    NS_WARNING("failed to get a css parser");
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  parser.SetSVGMode(PR_TRUE);
+
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
   nsIURI *docURI = doc->GetDocumentURI();
-  nsICSSLoader* cssLoader = doc->CSSLoader();
-
   nsCSSDeclaration* declaration = nsnull;
-  nsCOMPtr<nsICSSParser> parser;
 
-  nsresult rv = NS_OK; 
-
-  PRUint32 attrCount = mAttrsAndChildren.AttrCount();
   for (PRUint32 i = 0; i < attrCount; ++i) {
     const nsAttrName* attrName = mAttrsAndChildren.AttrNameAt(i);
     if (!attrName->IsAtom() || !IsAttributeMapped(attrName->Atom()))
       continue;
 
+    
     if (!declaration) {
-      
       declaration = new nsCSSDeclaration();
       if (!declaration) {
         NS_WARNING("Failed to allocate nsCSSDeclaration");
@@ -1069,24 +1086,6 @@ nsSVGElement::UpdateContentStyleRule()
         declaration->RuleAbort();  
         return;
       }
-
-      
-      rv = cssLoader->GetParserFor(nsnull, getter_AddRefs(parser));
-      if (NS_FAILED(rv)) {
-        NS_WARNING("failed to get a css parser");
-        declaration->RuleAbort();  
-        return;
-      }
-
-      
-      
-      
-      
-      
-      
-      
-      
-      parser->SetSVGMode(PR_TRUE);
     }
 
     nsAutoString name;
@@ -1096,21 +1095,18 @@ nsSVGElement::UpdateContentStyleRule()
     mAttrsAndChildren.AttrAt(i)->ToString(value);
 
     PRBool changed;
-    parser->ParseProperty(nsCSSProps::LookupProperty(name), value,
-                          docURI, baseURI, NodePrincipal(),
-                          declaration, &changed);
+    parser.ParseProperty(nsCSSProps::LookupProperty(name), value,
+                         docURI, baseURI, NodePrincipal(),
+                         declaration, &changed);
   }
 
   if (declaration) {
-    rv = NS_NewCSSStyleRule(getter_AddRefs(mContentStyleRule), nsnull, declaration);
+    nsresult rv = NS_NewCSSStyleRule(getter_AddRefs(mContentStyleRule),
+                                     nsnull, declaration);
     if (NS_FAILED(rv)) {
       NS_WARNING("could not create contentstylerule");
       declaration->RuleAbort();  
     }
-
-    
-    parser->SetSVGMode(PR_FALSE);
-    cssLoader->RecycleParser(parser);
   }
 }
 

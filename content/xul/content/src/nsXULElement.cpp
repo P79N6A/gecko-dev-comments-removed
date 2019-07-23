@@ -123,6 +123,7 @@
 #include "nsIDOMViewCSS.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsCSSDeclaration.h"
+#include "nsCSSParser.h"
 #include "nsIListBoxObject.h"
 #include "nsContentUtils.h"
 #include "nsContentList.h"
@@ -156,7 +157,6 @@
 #include "nsCCUncollectableMarker.h"
 
 
-nsICSSParser* nsXULPrototypeElement::sCSSParser = nsnull;
 nsIXBLService * nsXULElement::gXBLService = nsnull;
 
 
@@ -2753,23 +2753,24 @@ nsXULPrototypeElement::SetAttrAt(PRUint32 aPos, const nsAString& aValue,
         mHasClassAttribute = PR_TRUE;
         
         mAttributes[aPos].mValue.ParseAtomArray(aValue);
-        
+
         return NS_OK;
     }
     else if (mAttributes[aPos].mName.Equals(nsGkAtoms::style)) {
         mHasStyleAttribute = PR_TRUE;
         
         nsCOMPtr<nsICSSStyleRule> rule;
-        nsICSSParser* parser = GetCSSParser();
+
+        nsCSSParser parser;
         NS_ENSURE_TRUE(parser, NS_ERROR_OUT_OF_MEMORY);
 
         
-        parser->ParseStyleAttribute(aValue, aDocumentURI, aDocumentURI,
-                                    
-                                    
-                                    mNodeInfo->NodeInfoManager()->
-                                      DocumentPrincipal(),
-                                    getter_AddRefs(rule));
+        parser.ParseStyleAttribute(aValue, aDocumentURI, aDocumentURI,
+                                   
+                                   
+                                   mNodeInfo->NodeInfoManager()->
+                                     DocumentPrincipal(),
+                                   getter_AddRefs(rule));
         if (rule) {
             mAttributes[aPos].mValue.SetTo(rule);
 

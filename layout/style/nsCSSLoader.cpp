@@ -47,7 +47,20 @@
 
 
 
-#include "nsCSSLoader.h"
+
+#include "nsICSSLoader.h"
+#include "nsIRunnable.h"
+#include "nsIUnicharStreamLoader.h"
+#include "nsCOMPtr.h"
+#include "nsCOMArray.h"
+#include "nsString.h"
+#include "nsURIHashKey.h"
+#include "nsInterfaceHashtable.h"
+#include "nsDataHashtable.h"
+#include "nsAutoPtr.h"
+#include "nsTArray.h"
+#include "nsIPrincipal.h"
+#include "nsTObserverArray.h"
 #include "nsIContent.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMWindow.h"
@@ -74,8 +87,7 @@
 #include "nsICSSStyleSheet.h"
 #include "nsIStyleSheetLinkingElement.h"
 #include "nsICSSLoaderObserver.h"
-#include "nsICSSLoader.h"
-#include "nsICSSParser.h"
+#include "nsCSSParser.h"
 #include "nsICSSImportRule.h"
 #include "nsThreadUtils.h"
 #include "nsGkAtoms.h"
@@ -91,6 +103,449 @@
 #include "nsIDOMCSSStyleSheet.h"
 #include "nsIDOMCSSImportRule.h"
 #include "nsContentErrors.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class CSSLoaderImpl;
+
+
+
+
+
+class SheetLoadData : public nsIRunnable,
+		      public nsIUnicharStreamLoaderObserver
+{
+public:
+  virtual ~SheetLoadData(void);
+  
+  SheetLoadData(CSSLoaderImpl* aLoader,
+		const nsSubstring& aTitle,
+		nsIURI* aURI,
+		nsICSSStyleSheet* aSheet,
+		nsIStyleSheetLinkingElement* aOwningElement,
+		PRBool aIsAlternate,
+		nsICSSLoaderObserver* aObserver,
+		nsIPrincipal* aLoaderPrincipal);
+
+  
+  SheetLoadData(CSSLoaderImpl* aLoader,
+		nsIURI* aURI,
+		nsICSSStyleSheet* aSheet,
+		SheetLoadData* aParentData,
+		nsICSSLoaderObserver* aObserver,
+		nsIPrincipal* aLoaderPrincipal);
+
+  
+  SheetLoadData(CSSLoaderImpl* aLoader,
+		nsIURI* aURI,
+		nsICSSStyleSheet* aSheet,
+		PRBool aSyncLoad,
+		PRBool aAllowUnsafeRules,
+		PRBool aUseSystemPrincipal,
+		const nsCString& aCharset,
+		nsICSSLoaderObserver* aObserver,
+		nsIPrincipal* aLoaderPrincipal);
+
+  already_AddRefed<nsIURI> GetReferrerURI();
+
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_NSIUNICHARSTREAMLOADEROBSERVER
+
+  
+  
+  CSSLoaderImpl*             mLoader; 
+
+  
+  
+  nsString                   mTitle;
+
+  
+  nsCString                  mCharset;
+
+  
+  nsCOMPtr<nsIURI>           mURI;
+
+  
+  PRUint32                   mLineNumber;
+
+  
+  nsCOMPtr<nsICSSStyleSheet> mSheet;
+
+  
+  SheetLoadData*             mNext;  
+
+  
+  
+  SheetLoadData*             mParentData;  
+
+  
+  PRUint32                   mPendingChildren;
+
+  
+  
+  PRPackedBool               mSyncLoad : 1;
+
+  
+  
+  
+  PRPackedBool               mIsNonDocumentSheet : 1;
+
+  
+  
+  
+  
+  PRPackedBool               mIsLoading : 1;
+
+  
+  
+  
+  
+  PRPackedBool               mIsCancelled : 1;
+
+  
+  
+  
+  PRPackedBool               mMustNotify : 1;
+
+  
+  
+  PRPackedBool               mWasAlternate : 1;
+
+  
+  
+  PRPackedBool               mAllowUnsafeRules : 1;
+
+  
+  
+  
+  PRPackedBool               mUseSystemPrincipal : 1;
+
+  
+  
+  nsCOMPtr<nsIStyleSheetLinkingElement> mOwningElement;
+
+  
+  nsCOMPtr<nsICSSLoaderObserver>        mObserver;
+
+  
+  nsCOMPtr<nsIPrincipal> mLoaderPrincipal;
+
+  
+  
+  nsCString mCharsetHint;
+};
+
+class nsURIAndPrincipalHashKey : public nsURIHashKey
+{
+public:
+  typedef nsURIAndPrincipalHashKey* KeyType;
+  typedef const nsURIAndPrincipalHashKey* KeyTypePointer;
+
+  nsURIAndPrincipalHashKey(const nsURIAndPrincipalHashKey* aKey)
+    : nsURIHashKey(aKey->mKey), mPrincipal(aKey->mPrincipal)
+  {
+    MOZ_COUNT_CTOR(nsURIAndPrincipalHashKey);
+  }
+  nsURIAndPrincipalHashKey(nsIURI* aURI, nsIPrincipal* aPrincipal)
+    : nsURIHashKey(aURI), mPrincipal(aPrincipal)
+  {
+    MOZ_COUNT_CTOR(nsURIAndPrincipalHashKey);
+  }
+  nsURIAndPrincipalHashKey(const nsURIAndPrincipalHashKey& toCopy)
+    : nsURIHashKey(toCopy), mPrincipal(toCopy.mPrincipal)
+  {
+    MOZ_COUNT_CTOR(nsURIAndPrincipalHashKey);
+  }
+  ~nsURIAndPrincipalHashKey()
+  {
+    MOZ_COUNT_DTOR(nsURIAndPrincipalHashKey);
+  }
+
+  nsURIAndPrincipalHashKey* GetKey() const {
+    return const_cast<nsURIAndPrincipalHashKey*>(this);
+  }
+  const nsURIAndPrincipalHashKey* GetKeyPointer() const { return this; }
+
+  PRBool KeyEquals(const nsURIAndPrincipalHashKey* aKey) const {
+    if (!nsURIHashKey::KeyEquals(aKey->mKey)) {
+      return PR_FALSE;
+    }
+
+    if (!mPrincipal != !aKey->mPrincipal) {
+      
+      return PR_FALSE;
+    }
+
+    PRBool eq;
+    return !mPrincipal ||
+      (NS_SUCCEEDED(mPrincipal->Equals(aKey->mPrincipal, &eq)) && eq);
+  }
+
+  static const nsURIAndPrincipalHashKey*
+  KeyToPointer(nsURIAndPrincipalHashKey* aKey) { return aKey; }
+  static PLDHashNumber HashKey(const nsURIAndPrincipalHashKey* aKey) {
+    return nsURIHashKey::HashKey(aKey->mKey);
+  }
+
+  enum { ALLOW_MEMMOVE = PR_TRUE };
+
+protected:
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+};
+
+
+
+
+enum StyleSheetState {
+  eSheetStateUnknown = 0,
+  eSheetNeedsParser,
+  eSheetPending,
+  eSheetLoading,
+  eSheetComplete
+};
+
+
+
+
+
+
+class CSSLoaderImpl : public nsICSSLoader
+{
+public:
+  CSSLoaderImpl(void);
+  virtual ~CSSLoaderImpl(void);
+
+  NS_DECL_ISUPPORTS
+
+  
+  NS_IMETHOD Init(nsIDocument* aDocument);
+  NS_IMETHOD DropDocumentReference(void);
+
+  NS_IMETHOD SetCompatibilityMode(nsCompatibility aCompatMode);
+  NS_IMETHOD_(nsCompatibility) GetCompatibilityMode();
+  NS_IMETHOD SetPreferredSheet(const nsAString& aTitle);
+  NS_IMETHOD GetPreferredSheet(nsAString& aTitle);
+
+  NS_IMETHOD LoadInlineStyle(nsIContent* aElement,
+			     nsIUnicharInputStream* aStream,
+			     PRUint32 aLineNumber,
+			     const nsSubstring& aTitle,
+			     const nsSubstring& aMedia,
+			     nsICSSLoaderObserver* aObserver,
+			     PRBool* aCompleted,
+			     PRBool* aIsAlternate);
+
+  NS_IMETHOD LoadStyleLink(nsIContent* aElement,
+			   nsIURI* aURL,
+			   const nsSubstring& aTitle,
+			   const nsSubstring& aMedia,
+			   PRBool aHasAlternateRel,
+			   nsICSSLoaderObserver* aObserver,
+			   PRBool* aIsAlternate);
+
+  NS_IMETHOD LoadChildSheet(nsICSSStyleSheet* aParentSheet,
+			    nsIURI* aURL,
+			    nsMediaList* aMedia,
+			    nsICSSImportRule* aRule);
+
+  NS_IMETHOD LoadSheetSync(nsIURI* aURL, PRBool aAllowUnsafeRules,
+			   PRBool aUseSystemPrincipal,
+			   nsICSSStyleSheet** aSheet);
+
+  NS_IMETHOD LoadSheet(nsIURI* aURL,
+		       nsIPrincipal* aOriginPrincipal,
+		       const nsCString& aCharset,
+		       nsICSSLoaderObserver* aObserver,
+		       nsICSSStyleSheet** aSheet);
+
+  NS_IMETHOD LoadSheet(nsIURI* aURL,
+		       nsIPrincipal* aOriginPrincipal,
+		       const nsCString& aCharset,
+		       nsICSSLoaderObserver* aObserver);
+
+  
+  NS_IMETHOD Stop(void);
+
+  
+  NS_IMETHOD StopLoadingSheet(nsIURI* aURL);
+
+  
+
+
+
+
+
+
+  NS_IMETHOD GetEnabled(PRBool *aEnabled);
+  NS_IMETHOD SetEnabled(PRBool aEnabled);
+
+  NS_IMETHOD_(PRBool) HasPendingLoads();
+  NS_IMETHOD AddObserver(nsICSSLoaderObserver* aObserver);
+  NS_IMETHOD_(void) RemoveObserver(nsICSSLoaderObserver* aObserver);
+
+  
+
+  
+  
+  PRBool IsAlternate(const nsAString& aTitle, PRBool aHasAlternateRel);
+
+private:
+  
+  
+  nsresult CheckLoadAllowed(nsIPrincipal* aSourcePrincipal,
+			    nsIURI* aTargetURI,
+			    nsISupports* aContext);
+
+
+  
+  
+  
+  nsresult CreateSheet(nsIURI* aURI,
+		       nsIContent* aLinkingContent,
+		       nsIPrincipal* aLoaderPrincipal,
+		       PRBool aSyncLoad,
+		       StyleSheetState& aSheetState,
+		       nsICSSStyleSheet** aSheet);
+
+  
+  
+  
+  
+  nsresult PrepareSheet(nsICSSStyleSheet* aSheet,
+			const nsSubstring& aTitle,
+			const nsSubstring& aMediaString,
+			nsMediaList* aMediaList,
+			PRBool aHasAlternateRel = PR_FALSE,
+			PRBool *aIsAlternate = nsnull);
+
+  nsresult InsertSheetInDoc(nsICSSStyleSheet* aSheet,
+			    nsIContent* aLinkingContent,
+			    nsIDocument* aDocument);
+
+  nsresult InsertChildSheet(nsICSSStyleSheet* aSheet,
+			    nsICSSStyleSheet* aParentSheet,
+			    nsICSSImportRule* aParentRule);
+
+  nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
+					PRBool aAllowUnsafeRules,
+					PRBool aUseSystemPrincipal,
+					nsIPrincipal* aOriginPrincipal,
+					const nsCString& aCharset,
+					nsICSSStyleSheet** aSheet,
+					nsICSSLoaderObserver* aObserver);
+
+  
+  
+  
+  
+  
+  
+  nsresult PostLoadEvent(nsIURI* aURI,
+			 nsICSSStyleSheet* aSheet,
+			 nsICSSLoaderObserver* aObserver,
+			 PRBool aWasAlternate);
+
+  
+  void StartAlternateLoads();
+
+public:
+  
+  void HandleLoadEvent(SheetLoadData* aEvent);
+
+protected:
+  
+  
+  nsresult LoadSheet(SheetLoadData* aLoadData, StyleSheetState aSheetState);
+
+  friend class SheetLoadData;
+
+  
+  
+
+  
+  
+  
+  
+  nsresult ParseSheet(nsIUnicharInputStream* aStream,
+		      SheetLoadData* aLoadData,
+		      PRBool& aCompleted);
+
+  
+  
+  void SheetComplete(SheetLoadData* aLoadData, nsresult aStatus);
+
+public:
+  typedef nsTArray<nsRefPtr<SheetLoadData> > LoadDataArray;
+
+private:
+  
+  
+  
+  void DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
+		       LoadDataArray& aDatasToNotify);
+
+  
+  nsIDocument*      mDocument;  
+
+#ifdef DEBUG
+  PRPackedBool            mSyncCallback;
+#endif
+
+  PRPackedBool      mEnabled; 
+  nsCompatibility   mCompatMode;
+  nsString          mPreferredSheet;  
+
+  nsInterfaceHashtable<nsURIAndPrincipalHashKey,
+		       nsICSSStyleSheet> mCompleteSheets;
+  nsDataHashtable<nsURIAndPrincipalHashKey,
+		  SheetLoadData*> mLoadingDatas; 
+  nsDataHashtable<nsURIAndPrincipalHashKey,
+		  SheetLoadData*> mPendingDatas; 
+
+  
+  
+  nsAutoTArray<SheetLoadData*, 8> mParsingDatas;
+
+  
+  
+  LoadDataArray mPostedEvents;
+
+  
+  
+  
+  
+  PRUint32 mDatasToNotifyOn;
+
+  
+  nsTObserverArray<nsCOMPtr<nsICSSLoaderObserver> > mObservers;
+};
 
 #ifdef MOZ_LOGGING
 
@@ -269,9 +724,6 @@ SheetLoadData::Run()
 
 
 
-
-nsCOMArray<nsICSSParser>* CSSLoaderImpl::gParsers = nsnull;
-
 CSSLoaderImpl::CSSLoaderImpl(void)
   : mDocument(nsnull), 
     mEnabled(PR_TRUE), 
@@ -292,13 +744,6 @@ CSSLoaderImpl::~CSSLoaderImpl(void)
 }
 
 NS_IMPL_ISUPPORTS1(CSSLoaderImpl, nsICSSLoader)
-
-void
-CSSLoaderImpl::Shutdown()
-{
-  delete gParsers;
-  gParsers = nsnull;
-}
 
 NS_IMETHODIMP
 CSSLoaderImpl::Init(nsIDocument* aDocument)
@@ -335,6 +780,12 @@ CSSLoaderImpl::SetCompatibilityMode(nsCompatibility aCompatMode)
 {
   mCompatMode = aCompatMode;
   return NS_OK;
+}
+
+NS_IMETHODIMP_(nsCompatibility)
+CSSLoaderImpl::GetCompatibilityMode()
+{
+  return mCompatMode;
 }
 
 static PLDHashOperator
@@ -395,58 +846,6 @@ CSSLoaderImpl::GetPreferredSheet(nsAString& aTitle)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-CSSLoaderImpl::GetParserFor(nsICSSStyleSheet* aSheet, 
-                            nsICSSParser** aParser)
-{
-  NS_PRECONDITION(aParser, "Null out param");
-
-  *aParser = nsnull;
-
-  if (!gParsers) {
-    gParsers = new nsCOMArray<nsICSSParser>;
-    if (!gParsers) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-
-  PRInt32 count = gParsers->Count();
-  if (0 < count--) {
-    *aParser = gParsers->ObjectAt(count);
-    NS_ADDREF(*aParser);
-    gParsers->RemoveObjectAt(count);
-  }
-
-  nsresult result = NS_OK;
-  if (! *aParser) {
-    result = NS_NewCSSParser(aParser);
-  }
-  
-  if (*aParser) {
-    (*aParser)->SetQuirkMode(mCompatMode == eCompatibility_NavQuirks);
-    if (aSheet) {
-      (*aParser)->SetStyleSheet(aSheet);
-    }
-    (*aParser)->SetChildLoader(this);
-  }
-  return result;
-}
-
-NS_IMETHODIMP
-CSSLoaderImpl::RecycleParser(nsICSSParser* aParser)
-{
-  NS_PRECONDITION(aParser, "Recycle only good parsers, please");
-  NS_ENSURE_TRUE(gParsers, NS_ERROR_UNEXPECTED);
-
-  if (!gParsers->AppendObject(aParser)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  aParser->SetStyleSheet(nsnull);
-  
-  return NS_OK;
-}
 
 static const char kCharsetSym[] = "@charset \"";
 
@@ -1141,15 +1540,15 @@ CSSLoaderImpl::PrepareSheet(nsICSSStyleSheet* aSheet,
                  "must not provide both aMediaString and aMediaList");
     mediaList = new nsMediaList();
     NS_ENSURE_TRUE(mediaList, NS_ERROR_OUT_OF_MEMORY);
-    nsCOMPtr<nsICSSParser> mediumParser;
-    nsresult rv = GetParserFor(nsnull, getter_AddRefs(mediumParser));
-    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCSSParser mediumParser(this);
+    NS_ENSURE_TRUE(mediumParser, NS_ERROR_OUT_OF_MEMORY);
+
     
     
-    rv = mediumParser->ParseMediaList(aMediaString, nsnull, 0, mediaList,
-                                      PR_TRUE);
+    rv = mediumParser.ParseMediaList(aMediaString, nsnull, 0, mediaList,
+                                     PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
-    RecycleParser(mediumParser);
   }
 
   rv = aSheet->SetMedia(mediaList);
@@ -1540,12 +1939,11 @@ CSSLoaderImpl::ParseSheet(nsIUnicharInputStream* aStream,
 
   aCompleted = PR_FALSE;
 
-  nsCOMPtr<nsICSSParser> parser;
-  nsresult rv = GetParserFor(aLoadData->mSheet, getter_AddRefs(parser));
-  if (NS_FAILED(rv)) {
+  nsCSSParser parser(this, aLoadData->mSheet);
+  if (!parser) {
     LOG_ERROR(("  Failed to get CSS parser"));
-    SheetComplete(aLoadData, rv);
-    return rv;
+    SheetComplete(aLoadData, NS_ERROR_OUT_OF_MEMORY);
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
   
@@ -1553,15 +1951,21 @@ CSSLoaderImpl::ParseSheet(nsIUnicharInputStream* aStream,
   nsCOMPtr<nsIURI> sheetURI, baseURI;
   aLoadData->mSheet->GetSheetURI(getter_AddRefs(sheetURI));
   aLoadData->mSheet->GetBaseURI(getter_AddRefs(baseURI));
-  rv = parser->Parse(aStream, sheetURI, baseURI,
-                     aLoadData->mSheet->Principal(), aLoadData->mLineNumber,
-                     aLoadData->mAllowUnsafeRules);
+  nsresult rv = parser.Parse(aStream, sheetURI, baseURI,
+                             aLoadData->mSheet->Principal(),
+                             aLoadData->mLineNumber,
+                             aLoadData->mAllowUnsafeRules);
   mParsingDatas.RemoveElementAt(mParsingDatas.Length() - 1);
-  RecycleParser(parser);
+
+  if (NS_FAILED(rv)) {
+    LOG_ERROR(("  Low-level error in parser!"));
+    SheetComplete(aLoadData, rv);
+    return rv;
+  }
 
   NS_ASSERTION(aLoadData->mPendingChildren == 0 || !aLoadData->mSyncLoad,
                "Sync load has leftover pending children!");
-  
+
   if (aLoadData->mPendingChildren == 0) {
     LOG(("  No pending kids from parse"));
     aCompleted = PR_TRUE;
@@ -1569,7 +1973,7 @@ CSSLoaderImpl::ParseSheet(nsIUnicharInputStream* aStream,
   }
   
   
-  
+
   return NS_OK;
 }
 

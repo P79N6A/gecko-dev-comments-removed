@@ -46,7 +46,7 @@
 #include "nsCOMPtr.h"
 
 class nsCSSDeclaration;
-class nsICSSParser;
+class nsCSSParser;
 class nsICSSLoader;
 class nsIURI;
 class nsIPrincipal;
@@ -94,7 +94,7 @@ public:
                          const nsAString & value, const nsAString & priority);
   NS_IMETHOD GetLength(PRUint32 *aLength);
   NS_IMETHOD Item(PRUint32 index, nsAString & _retval);
-  NS_IMETHOD GetParentRule(nsIDOMCSSRule * *aParentRule) = 0; 
+  NS_IMETHOD GetParentRule(nsIDOMCSSRule * *aParentRule) = 0;
 
 protected:
   
@@ -107,15 +107,14 @@ protected:
   
   
   virtual nsIDocument* DocToUpdate() = 0;
-  
+
   
   
   
   virtual nsresult GetCSSParsingEnvironment(nsIURI** aSheetURI,
                                             nsIURI** aBaseURI,
                                             nsIPrincipal** aSheetPrincipal,
-                                            nsICSSLoader** aCSSLoader,
-                                            nsICSSParser** aCSSParser) = 0;
+                                            nsICSSLoader** aCSSLoader) = 0;
 
   nsresult ParsePropertyValue(const nsCSSProperty aPropID,
                               const nsAString& aPropValue);
@@ -125,8 +124,7 @@ protected:
   
   
   nsresult RemoveProperty(const nsCSSProperty aPropID);
-  
-  
+
 protected:
   virtual ~nsDOMCSSDeclaration();
 };
