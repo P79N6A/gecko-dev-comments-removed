@@ -981,6 +981,9 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
            parentViewWidgetOffset.x - parentPos.x;
     ypos = screenViewLocY - presContext->DevPixelsToAppUnits(screenParentWidgetRect.y) -
            parentViewWidgetOffset.y - parentPos.y;
+
+    
+    mShouldAutoPosition = PR_FALSE;
   }
 
   

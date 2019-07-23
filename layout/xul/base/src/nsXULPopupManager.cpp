@@ -184,9 +184,6 @@ NS_IMETHODIMP nsXULPopupManager::ShouldRollupOnMouseActivate(PRBool *aShouldRoll
 NS_IMETHODIMP
 nsXULPopupManager::GetSubmenuWidgetChain(nsISupportsArray **_retval)
 {
-  
-  
-  
   nsresult rv = NS_NewISupportsArray(_retval);
   NS_ENSURE_SUCCESS(rv, rv);
   nsMenuChainItem* item = mCurrentMenu;
@@ -195,13 +192,7 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsISupportsArray **_retval)
     item->Frame()->GetWidget(getter_AddRefs(widget));
     nsCOMPtr<nsISupports> genericWidget(do_QueryInterface(widget));
     (*_retval)->AppendElement(genericWidget);
-    
-    
-    
-    nsMenuChainItem* parent= item->GetParent();
-    if (parent && item->Frame()->PopupType() != parent->Frame()->PopupType())
-      break;
-    item = parent;
+    item = item->GetParent();
   }
 
   return NS_OK;
