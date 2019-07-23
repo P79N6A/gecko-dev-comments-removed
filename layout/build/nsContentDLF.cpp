@@ -165,6 +165,11 @@ nsContentDLF::CreateInstance(const char* aCommand,
                              nsIContentViewer** aDocViewer)
 {
   
+  
+  
+  nsCAutoString type;
+
+  
 #ifdef MOZ_VIEW_SOURCE
   nsCOMPtr<nsIViewSourceChannel> viewSourceChannel = do_QueryInterface(aChannel);
   if (viewSourceChannel)
@@ -175,7 +180,6 @@ nsContentDLF::CreateInstance(const char* aCommand,
     
     
     
-    nsCAutoString type;
     viewSourceChannel->GetOriginalContentType(type);
     PRBool knownType = PR_FALSE;
     PRInt32 typeIndex;
@@ -210,6 +214,10 @@ nsContentDLF::CreateInstance(const char* aCommand,
 
     if (knownType) {
       viewSourceChannel->SetContentType(type);
+    } else if (IsImageContentType(type.get())) {
+      
+      
+      aContentType = type.get();
     } else {
       viewSourceChannel->SetContentType(NS_LITERAL_CSTRING("text/plain"));
     }
@@ -279,10 +287,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
 #endif
 
   
-  nsCOMPtr<imgILoader> loader(do_GetService("@mozilla.org/image/loader;1"));
-  PRBool isReg = PR_FALSE;
-  loader->SupportImageWithMimeType(aContentType, &isReg);
-  if (isReg) {
+  if (IsImageContentType(aContentType)) {
     return CreateDocument(aCommand, 
                           aChannel, aLoadGroup,
                           aContainer, kImageDocumentCID,
@@ -606,3 +611,11 @@ nsContentDLF::UnregisterDocumentFactories(nsIComponentManager* aCompMgr,
 
   return rv;
 }
+
+PRBool nsContentDLF::IsImageContentType(const char* aContentType) {
+  nsCOMPtr<imgILoader> loader(do_GetService("@mozilla.org/image/loader;1"));
+  PRBool isDecoderAvailable = PR_FALSE;
+  loader->SupportImageWithMimeType(aContentType, &isDecoderAvailable);
+  return isDecoderAvailable;
+}
+
