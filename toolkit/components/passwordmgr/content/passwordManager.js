@@ -163,6 +163,19 @@ function DeleteSignon() {
 }
 
 function DeleteAllSignons() {
+  var prompter = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+                           .getService(Components.interfaces.nsIPromptService);
+
+  
+  var dummy = { value: false };
+  if (prompter.confirmEx(window,
+                         null,
+                         kSignonBundle.getString("removeAllPasswordsPrompt"),
+                         prompter.BUTTON_TITLE_YES * prompter.BUTTON_POS_0 +
+                         prompter.BUTTON_TITLE_NO * prompter.BUTTON_POS_1,
+                         null, null, null, null, dummy) == 1) 
+    return;
+
   DeleteAllFromTree(signonsTree, signonsTreeView,
                         signons, deletedSignons,
                         "removeSignon", "removeAllSignons");
