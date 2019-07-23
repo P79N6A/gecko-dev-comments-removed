@@ -1344,6 +1344,7 @@ private:
         return -1;
     }
 
+    
     void GetPrefFonts(const char *aLangGroup, nsTArray<nsRefPtr<FontEntry> >& array) {
         NS_ASSERTION(aLangGroup, "aLangGroup is null");
         gfxWindowsPlatform *platform = gfxWindowsPlatform::GetPlatform();
@@ -1361,58 +1362,64 @@ private:
         array.AppendElements(fonts);
     }
 
+    
     void GetCJKPrefFonts(nsTArray<nsRefPtr<FontEntry> >& array) {
-       nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-       if (!prefs)
-           return;
+        gfxWindowsPlatform *platform = gfxWindowsPlatform::GetPlatform();
+        if (!platform->GetPrefFontEntries("x-internal-cjk", &array)) {
+            nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+            if (!prefs)
+                return;
 
-       nsCOMPtr<nsIPrefBranch> prefBranch;
-       prefs->GetBranch(0, getter_AddRefs(prefBranch));
-       if (!prefBranch)
-           return;
+            nsCOMPtr<nsIPrefBranch> prefBranch;
+            prefs->GetBranch(0, getter_AddRefs(prefBranch));
+            if (!prefBranch)
+                return;
 
-       
-       nsXPIDLCString list;
-       nsresult rv = prefBranch->GetCharPref("intl.accept_languages", getter_Copies(list));
-       if (NS_SUCCEEDED(rv) && !list.IsEmpty()) {
-           const char kComma = ',';
-           const char *p, *p_end;
-           list.BeginReading(p);
-           list.EndReading(p_end);
-           while (p < p_end) {
-               while (nsCRT::IsAsciiSpace(*p)) {
-                   if (++p == p_end)
-                       break;
-               }
-               if (p == p_end)
-                   break;
-               const char *start = p;
-               while (++p != p_end && *p != kComma)
-                    ;
-               nsCAutoString lang(Substring(start, p));
-               lang.CompressWhitespace(PR_FALSE, PR_TRUE);
-               PRInt32 index = GetCJKLangGroupIndex(lang.get());
-               if (index >= 0)
-                   GetPrefFonts(sCJKLangGroup[index], array);
-               p++;
-           }
-       }
+            
+            nsXPIDLCString list;
+            nsresult rv = prefBranch->GetCharPref("intl.accept_languages", getter_Copies(list));
+            if (NS_SUCCEEDED(rv) && !list.IsEmpty()) {
+                const char kComma = ',';
+                const char *p, *p_end;
+                list.BeginReading(p);
+                list.EndReading(p_end);
+                while (p < p_end) {
+                    while (nsCRT::IsAsciiSpace(*p)) {
+                        if (++p == p_end)
+                            break;
+                    }
+                    if (p == p_end)
+                        break;
+                    const char *start = p;
+                    while (++p != p_end && *p != kComma)
+                         ;
+                    nsCAutoString lang(Substring(start, p));
+                    lang.CompressWhitespace(PR_FALSE, PR_TRUE);
+                    PRInt32 index = GetCJKLangGroupIndex(lang.get());
+                    if (index >= 0)
+                        GetPrefFonts(sCJKLangGroup[index], array);
+                    p++;
+                }
+            }
 
-       
-       switch (::GetACP()) {
-           case 932: GetPrefFonts(CJK_LANG_JA, array);    break;
-           case 936: GetPrefFonts(CJK_LANG_ZH_CN, array); break;
-           case 949: GetPrefFonts(CJK_LANG_KO, array);    break;
-           
-           case 950: GetPrefFonts(CJK_LANG_ZH_TW, array); break;
-       }
+            
+            switch (::GetACP()) {
+                case 932: GetPrefFonts(CJK_LANG_JA, array); break;
+                case 936: GetPrefFonts(CJK_LANG_ZH_CN, array); break;
+                case 949: GetPrefFonts(CJK_LANG_KO, array); break;
+                
+                case 950: GetPrefFonts(CJK_LANG_ZH_TW, array); break;
+            }
 
-       
-       GetPrefFonts(CJK_LANG_JA, array);
-       GetPrefFonts(CJK_LANG_KO, array);
-       GetPrefFonts(CJK_LANG_ZH_CN, array);
-       GetPrefFonts(CJK_LANG_ZH_HK, array);
-       GetPrefFonts(CJK_LANG_ZH_TW, array);
+            
+            GetPrefFonts(CJK_LANG_JA, array);
+            GetPrefFonts(CJK_LANG_KO, array);
+            GetPrefFonts(CJK_LANG_ZH_CN, array);
+            GetPrefFonts(CJK_LANG_ZH_HK, array);
+            GetPrefFonts(CJK_LANG_ZH_TW, array);
+
+            platform->SetPrefFontEntries("x-internal-cjk", array);
+        }
     }
 
     void GenerateAlternativeString() {
@@ -1455,8 +1462,6 @@ private:
 
     GOFFSET *mOffsets;
     int *mAdvances;
-
-    nsTArray< nsRefPtr<gfxWindowsFont> > mFonts;
 
     nsRefPtr<gfxWindowsFont> mCurrentFont;
 
