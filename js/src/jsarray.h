@@ -64,7 +64,8 @@ extern JSObject *
 js_InitArrayClass(JSContext *cx, JSObject *obj);
 
 extern JSObject *
-js_NewArrayObject(JSContext *cx, jsuint length, jsval *vector);
+js_NewArrayObject(JSContext *cx, jsuint length, jsval *vector,
+                  JSBool holey = JS_FALSE);
 
 
 extern JSObject *
