@@ -75,7 +75,8 @@ nsSVGGraphicElement::nsSVGGraphicElement(nsINodeInfo *aNodeInfo)
 
 NS_IMETHODIMP nsSVGGraphicElement::GetNearestViewportElement(nsIDOMSVGElement * *aNearestViewportElement)
 {
-  return nsSVGUtils::GetNearestViewportElement(this, aNearestViewportElement);
+  nsSVGUtils::GetNearestViewportElement(this, aNearestViewportElement);
+  return NS_OK; 
 }
 
 
@@ -103,8 +104,8 @@ NS_IMETHODIMP nsSVGGraphicElement::GetBBox(nsIDOMSVGRect **_retval)
 
 
 nsresult
-nsSVGGraphicElement::AppendLocalTransform(nsIDOMSVGMatrix *aCTM,
-                                          nsIDOMSVGMatrix **_retval)
+nsSVGGraphicElement::AppendTransform(nsIDOMSVGMatrix *aCTM,
+                                     nsIDOMSVGMatrix **_retval)
 {
   if (!mTransforms) {
     *_retval = aCTM;
@@ -127,61 +128,15 @@ nsSVGGraphicElement::AppendLocalTransform(nsIDOMSVGMatrix *aCTM,
 }
 
 
-NS_IMETHODIMP nsSVGGraphicElement::GetCTM(nsIDOMSVGMatrix **_retval)
+NS_IMETHODIMP nsSVGGraphicElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 {
-  nsresult rv;
-  *_retval = nsnull;
-
-  nsIDocument* currentDoc = GetCurrentDoc();
-  if (currentDoc) {
-    
-    currentDoc->FlushPendingNotifications(Flush_Layout);
-  }
-
-  nsIContent* parent = nsSVGUtils::GetParentElement(this);
-
-  nsCOMPtr<nsIDOMSVGLocatable> locatableElement = do_QueryInterface(parent);
-  if (!locatableElement) {
-    
-    NS_WARNING("SVGGraphicElement without an SVGLocatable parent");
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  nsCOMPtr<nsIDOMSVGMatrix> parentCTM;
-  rv = locatableElement->GetCTM(getter_AddRefs(parentCTM));
-  if (NS_FAILED(rv)) return rv;
-
-  return AppendLocalTransform(parentCTM, _retval);
+  return nsSVGUtils::GetCTM(this, aCTM);
 }
 
 
-NS_IMETHODIMP nsSVGGraphicElement::GetScreenCTM(nsIDOMSVGMatrix **_retval)
+NS_IMETHODIMP nsSVGGraphicElement::GetScreenCTM(nsIDOMSVGMatrix * *aCTM)
 {
-  nsresult rv;
-  *_retval = nsnull;
-
-  nsIDocument* currentDoc = GetCurrentDoc();
-  if (currentDoc) {
-    
-    currentDoc->FlushPendingNotifications(Flush_Layout);
-  }
-
-  nsIContent* parent = nsSVGUtils::GetParentElement(this);
-
-  nsCOMPtr<nsIDOMSVGLocatable> locatableElement = do_QueryInterface(parent);
-  if (!locatableElement) {
-    
-    NS_WARNING("SVGGraphicElement without an SVGLocatable parent");
-    return NS_ERROR_FAILURE;
-  }
-
-  
-  nsCOMPtr<nsIDOMSVGMatrix> parentScreenCTM;
-  rv = locatableElement->GetScreenCTM(getter_AddRefs(parentScreenCTM));
-  if (NS_FAILED(rv)) return rv;
-
-  return AppendLocalTransform(parentScreenCTM, _retval);
+  return nsSVGUtils::GetScreenCTM(this, aCTM);
 }
 
 

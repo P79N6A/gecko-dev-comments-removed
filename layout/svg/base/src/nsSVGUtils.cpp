@@ -69,6 +69,7 @@
 #include "nsSVGContainerFrame.h"
 #include "nsSVGLength2.h"
 #include "nsGenericElement.h"
+#include "nsSVGGraphicElement.h"
 #include "nsAttrValue.h"
 #include "nsSVGGeometryFrame.h"
 #include "nsIScriptError.h"
@@ -457,8 +458,102 @@ nsSVGUtils::GetNearestViewportElement(nsIContent *aContent,
 
     ancestor = GetParentElement(ancestor);
   }
+  if (ancestor && ancestor->GetNameSpaceID() == kNameSpaceID_SVG &&
+                  ancestor->Tag() == nsGkAtoms::foreignObject )
+    return NS_ERROR_FAILURE;
 
   return NS_OK;
+}
+
+nsresult
+nsSVGUtils::AppendTransformUptoElement(nsIContent *aContent, nsIDOMSVGElement *aElement, nsIDOMSVGMatrix * *aCTM){
+  nsresult rv;
+  nsCOMPtr<nsIDOMSVGElement> element = do_QueryInterface(aContent);
+  nsIContent *ancestor = GetParentElement(aContent);
+  if (!aElement) {
+    
+    if (ancestor && ancestor->GetNameSpaceID() == kNameSpaceID_SVG) {
+      if (ancestor->Tag() == nsGkAtoms::foreignObject && aContent->Tag() != nsGkAtoms::svg)
+        return NS_ERROR_FAILURE;
+      rv = AppendTransformUptoElement(ancestor, aElement, aCTM);
+      if (NS_FAILED(rv)) return rv;
+    }
+  } else if (element != aElement) { 
+    NS_ASSERTION(ancestor != nsnull, "ancestor shouldn't be null.");
+    if (!ancestor)
+      return NS_ERROR_FAILURE;
+    rv = AppendTransformUptoElement(ancestor, aElement, aCTM);
+    if (NS_FAILED(rv)) return rv;
+  }
+
+  nsCOMPtr<nsIDOMSVGMatrix> tmp;
+  if (nsCOMPtr<nsIDOMSVGSVGElement>(do_QueryInterface(aContent))) {
+    nsSVGSVGElement *svgElement = static_cast<nsSVGSVGElement*>(aContent);
+    rv = svgElement->AppendTransform(*aCTM, getter_AddRefs(tmp));
+    if (NS_FAILED(rv)) return rv;
+  } else if (nsCOMPtr<nsIDOMSVGTransformable>(do_QueryInterface(aContent))) {
+    nsSVGGraphicElement *graphicElement = static_cast<nsSVGGraphicElement*>(aContent);
+    rv = graphicElement->AppendTransform(*aCTM, getter_AddRefs(tmp));
+    if (NS_FAILED(rv)) return rv;
+  } else {
+    
+    
+  }
+  if (tmp)
+    tmp.swap(*aCTM);
+
+  return NS_OK;
+}
+
+nsresult
+nsSVGUtils::GetCTM(nsIContent *aContent, nsIDOMSVGMatrix * *aCTM)
+{
+  nsresult rv;
+  nsIDocument* currentDoc = aContent->GetCurrentDoc();
+  if (currentDoc) {
+    
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
+
+  *aCTM = nsnull;
+  nsCOMPtr<nsIDOMSVGElement> nearestViewportElement;
+  rv = GetNearestViewportElement(aContent, getter_AddRefs(nearestViewportElement));
+  
+  
+  
+  if (NS_FAILED(rv) || !nearestViewportElement)
+    return NS_OK; 
+
+  nsCOMPtr<nsIDOMSVGMatrix> tmp;
+  rv = NS_NewSVGMatrix(getter_AddRefs(tmp), 1, 0, 0, 1, 0, 0);
+  if (NS_FAILED(rv)) return NS_OK; 
+  tmp.swap(*aCTM);
+  rv = AppendTransformUptoElement(aContent, nearestViewportElement, aCTM);
+  if (NS_FAILED(rv))
+    tmp.swap(*aCTM);
+  return NS_OK; 
+}
+
+nsresult
+nsSVGUtils::GetScreenCTM(nsIContent *aContent, nsIDOMSVGMatrix * *aCTM)
+{
+  nsresult rv;
+  nsIDocument* currentDoc = aContent->GetCurrentDoc();
+  if (currentDoc) {
+    
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
+
+  *aCTM = nsnull;
+
+  nsCOMPtr<nsIDOMSVGMatrix> tmp;
+  rv = NS_NewSVGMatrix(getter_AddRefs(tmp), 1, 0, 0, 1, 0, 0);
+  if (NS_FAILED(rv)) return NS_OK; 
+  tmp.swap(*aCTM);
+  rv = AppendTransformUptoElement(aContent, nsnull, aCTM);
+  if (NS_FAILED(rv))
+    tmp.swap(*aCTM);
+  return NS_OK; 
 }
 
 nsSVGDisplayContainerFrame*

@@ -200,6 +200,8 @@ public:
 
   
   nsresult GetViewboxToViewportTransform(nsIDOMSVGMatrix **_retval);
+  nsresult AppendTransform(nsIDOMSVGMatrix *aCTM,
+                           nsIDOMSVGMatrix **_retval);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 

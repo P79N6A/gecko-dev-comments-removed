@@ -250,6 +250,28 @@ public:
   static float CoordToFloat(nsPresContext *aPresContext,
                             nsSVGElement *aContent,
                             const nsStyleCoord &aCoord);
+
+  
+
+
+
+
+
+
+
+
+  static nsresult AppendTransformUptoElement(nsIContent *aContent,
+                                             nsIDOMSVGElement *aElement,
+                                             nsIDOMSVGMatrix * *aCTM);
+  
+
+
+  static nsresult GetCTM(nsIContent *aContent, nsIDOMSVGMatrix * *aCTM);
+
+  
+
+
+  static nsresult GetScreenCTM(nsIContent *aContent, nsIDOMSVGMatrix * *aCTM);
   
 
 
