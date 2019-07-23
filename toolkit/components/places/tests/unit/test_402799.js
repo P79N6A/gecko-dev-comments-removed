@@ -38,7 +38,6 @@
 
 
 
-
 try {
   var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
@@ -65,32 +64,32 @@ try {
 }
 
 
+
 function run_test() {
-  var uri1 = uri("http://foo.tld/");
-  var uri2 = uri("https://bar.tld/");
+  var uri1 = uri("http://foo.bar/");
 
-  bhist.addPageWithDetails(uri1, "foo title", Date.now() * 1000);
-  bhist.addPageWithDetails(uri2, "bar title", Date.now() * 1000);
-
-  bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, uri1, bmsvc.DEFAULT_INDEX, null);
-  bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, uri2, bmsvc.DEFAULT_INDEX, null);
   
-  tagssvc.tagURI(uri1, ["tag 1"]);
-  tagssvc.tagURI(uri2, ["tag 2"]);
+  var bookmark1id = bmsvc.insertBookmark(bmsvc.bookmarksMenuFolder, uri1,
+                                         bmsvc.DEFAULT_INDEX, "title 1");
+  var bookmark2id = bmsvc.insertBookmark(bmsvc.toolbarFolder, uri1,
+                                         bmsvc.DEFAULT_INDEX, "title 2");
+  
+  tagssvc.tagURI(uri1, ["foo", "bar", "foobar", "foo bar"]);
 
+  
   var options = histsvc.getNewQueryOptions();
   options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_BOOKMARKS;
-  options.resultType = options.RESULTS_AS_TAG_CONTENTS;
 
   var query = histsvc.getNewQuery();
-  
-  
   var result = histsvc.executeQuery(query, options);
   var root = result.root;
+
   root.containerOpen = true;
-  do_check_eq(root.childCount, 2);
-  
-  
-  do_check_eq(root.getChild(0).title, "bar title");
-  do_check_eq(root.getChild(1).title, "foo title");
+  var cc = root.childCount;
+  do_check_eq(cc, 2);
+  var node1 = root.getChild(0);
+  do_check_eq(bmsvc.getFolderIdForItem(node1.itemId), bmsvc.bookmarksMenuFolder);
+  var node2 = root.getChild(1);
+  do_check_eq(bmsvc.getFolderIdForItem(node2.itemId), bmsvc.toolbarFolder);
+  root.containerOpen = false;
 }
