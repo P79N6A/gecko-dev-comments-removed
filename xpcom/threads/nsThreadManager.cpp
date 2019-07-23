@@ -156,6 +156,11 @@ nsThreadManager::Shutdown()
   }
 
   
+  
+  
+  mMainThread->SetObserver(nsnull);
+
+  
   mMainThread = nsnull;
 
   
