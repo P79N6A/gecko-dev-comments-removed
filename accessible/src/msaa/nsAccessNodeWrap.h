@@ -166,12 +166,6 @@ class nsAccessNodeWrap :  public nsAccessNode,
     void GetAccessibleFor(nsIDOMNode *node, nsIAccessible **newAcc);
     ISimpleDOMNode* MakeAccessNode(nsIDOMNode *node);
 
-    
-
-
-    static HRESULT QueryISimpleDOMNode(nsIAccessNode *aAccessNode,
-                                       ISimpleDOMNode __RPC_FAR *__RPC_FAR *aNode);
-
     static PRBool gIsEnumVariantSupportDisabled;
 
     
