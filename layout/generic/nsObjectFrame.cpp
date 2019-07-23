@@ -692,10 +692,12 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   viewMan->ResizeView(view, r);
   viewMan->MoveViewTo(view, origin.x, origin.y);
 
+  nsRootPresContext* rpc = PresContext()->GetRootPresContext();
+  if (!rpc) {
+    return NS_ERROR_FAILURE;
+  }
+
   if (!aViewOnly && !mWidget && usewidgets) {
-    nsRootPresContext* rpc = PresContext()->GetRootPresContext();
-    if (!rpc)
-      return NS_ERROR_FAILURE;
     mInnerView = viewMan->CreateView(GetContentRect() - GetPosition(), view);
     if (!mInnerView) {
       NS_ERROR("Could not create inner view");
@@ -727,9 +729,6 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
 
     mWidget->EnableDragDrop(PR_TRUE);
 
-    rpc->RegisterPluginForGeometryUpdates(this);
-    rpc->UpdatePluginGeometry(this);
-
     
     
     
@@ -741,6 +740,9 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   }
 
   if (mWidget) {
+    rpc->RegisterPluginForGeometryUpdates(this);
+    rpc->UpdatePluginGeometry(this);
+
     
     
     
