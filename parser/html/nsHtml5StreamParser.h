@@ -49,6 +49,8 @@
 #include "nsHtml5UTF16Buffer.h"
 #include "nsIInputStream.h"
 #include "nsICharsetAlias.h"
+#include "mozilla/Mutex.h"
+#include "nsHtml5AtomTable.h"
 
 class nsHtml5Parser;
 
@@ -91,6 +93,12 @@ enum eBomState {
   BOM_SNIFFING_OVER = 5
 };
 
+enum eHtml5StreamState {
+  STREAM_NOT_STARTED = 0,
+  STREAM_BEING_READ = 1,
+  STREAM_ENDED = 2
+};
+
 class nsHtml5StreamParser : public nsIStreamListener,
                             public nsICharsetDetectionObserver {
   public:
@@ -98,8 +106,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHtml5StreamParser, nsIStreamListener)
 
-    nsHtml5StreamParser(nsHtml5Tokenizer* aTokenizer,
-                        nsHtml5TreeOpExecutor* aExecutor,
+    nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
                         nsHtml5Parser* aOwner);
                         
     virtual ~nsHtml5StreamParser();
@@ -131,35 +138,48 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
     inline void SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource) {
+      NS_PRECONDITION(mStreamState == STREAM_NOT_STARTED,
+                      "SetDocumentCharset called too late.");
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
       mCharset = aCharset;
       mCharsetSource = aSource;
     }
     
     inline void SetObserver(nsIRequestObserver* aObserver) {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
       mObserver = aObserver;
     }
     
     nsresult GetChannel(nsIChannel** aChannel);
 
-    inline void Block() {
-      mBlocked = PR_TRUE;
-    }
+    void ParseUntilScript();
     
-    inline void Unblock() {
-      mBlocked = PR_FALSE;
-    }
+    
 
-    inline void Suspend() {
-      mSuspending = PR_TRUE;
-    }
 
-    void ParseUntilSuspend();
-    
-    PRBool IsDone() {
-      return mDone;
+
+
+    void ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer, 
+                              nsHtml5TreeBuilder* aTreeBuilder,
+                              PRBool aLastWasCR);
+
+    void Terminate() {
+      mozilla::MutexAutoLock autoLock(mTerminatedMutex);
+      mTerminated = PR_TRUE;
+      
+      
     }
     
+    void DoExecFlush();
+
   private:
+
+    PRBool IsTerminated() {
+      mozilla::MutexAutoLock autoLock(mTerminatedMutex);
+      return mTerminated;    
+    }
+
+    void TellExecutorToFlush();
 
     static NS_METHOD ParserWriteFunc(nsIInputStream* aInStream,
                                      void* aHtml5StreamParser,
@@ -290,6 +310,11 @@ class nsHtml5StreamParser : public nsIStreamListener,
     nsCString                     mCharset;
 
     
+
+
+    PRBool                        mReparseForbidden;
+
+    
     
 
 
@@ -309,12 +334,26 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsHtml5TreeBuilder*           mTreeBuilder;
+    nsAutoPtr<nsHtml5TreeBuilder> mTreeBuilder;
 
     
 
 
-    nsHtml5Tokenizer*             mTokenizer;
+    nsAutoPtr<nsHtml5Tokenizer>   mTokenizer;
+
+    
+
+
+
+    mozilla::Mutex                mTokenizerMutex;
+
+    
+
+
+    nsHtml5AtomTable              mAtomTable;
+
+    
+
 
     nsCOMPtr<nsHtml5Parser>       mOwner;
 
@@ -326,24 +365,18 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    PRBool                        mBlocked;
+    eHtml5StreamState             mStreamState;
+    
+    
+
+
+    PRBool                        mWaitingForScripts;
 
     
 
 
-    PRBool                        mSuspending;
-
-    
-
-
-    PRBool                        mDone;
-
-#ifdef DEBUG
-    
-
-
-    eStreamState                  mStreamListenerState;
-#endif
+    PRBool                        mTerminated;
+    mozilla::Mutex                mTerminatedMutex;
 
 };
 

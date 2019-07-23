@@ -49,13 +49,13 @@
 
 
 jArray<PRUnichar,PRInt32> nsHtml5TreeBuilder::ISINDEX_PROMPT = jArray<PRUnichar,PRInt32>();
-nsHtml5TreeBuilder::nsHtml5TreeBuilder(nsHtml5TreeOpExecutor* aExec)
+nsHtml5TreeBuilder::nsHtml5TreeBuilder(nsAHtml5TreeOpSink* aOpSink)
   : scriptingEnabled(PR_FALSE)
   , fragment(PR_FALSE)
   , contextNode(nsnull)
   , formPointer(nsnull)
   , headPointer(nsnull)
-  , mExecutor(aExec)
+  , mOpSink(aOpSink)
   , mHandles(new nsIContent*[NS_HTML5_TREE_BUILDER_HANDLE_ARRAY_LENGTH])
   , mHandlesUsed(0)
 #ifdef DEBUG
@@ -117,7 +117,7 @@ nsHtml5TreeBuilder::appendElement(nsIContent** aChild, nsIContent** aParent)
 {
   nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
   
-  treeOp->Init(aChild, aParent);
+  treeOp->Init(eTreeOpAppend, aChild, aParent);
 }
 
 void
@@ -167,7 +167,7 @@ nsHtml5TreeBuilder::appendCharacters(nsIContent** aParent, PRUnichar* aBuffer, P
 
   treeOp = mOpQueue.AppendElement();
   
-  treeOp->Init(text, aParent);
+  treeOp->Init(eTreeOpAppend, text, aParent);
 }
 
 void
@@ -184,7 +184,7 @@ nsHtml5TreeBuilder::appendComment(nsIContent** aParent, PRUnichar* aBuffer, PRIn
 
   treeOp = mOpQueue.AppendElement();
   
-  treeOp->Init(comment, aParent);
+  treeOp->Init(eTreeOpAppend, comment, aParent);
 }
 
 void
@@ -227,15 +227,6 @@ void
 nsHtml5TreeBuilder::start(PRBool fragment)
 {
   
-  if (!fragment) {
-    
-
-
-
-
-    mExecutor->WillBuildModel(eDTDMode_unknown);
-  }
-  mExecutor->Start();
 #ifdef DEBUG
   mActive = PR_TRUE;
 #endif
@@ -244,7 +235,6 @@ nsHtml5TreeBuilder::start(PRBool fragment)
 void
 nsHtml5TreeBuilder::end()
 {
-  mExecutor->End();
   mOpQueue.Clear();
 #ifdef DEBUG
   mActive = PR_FALSE;
@@ -286,7 +276,6 @@ nsHtml5TreeBuilder::elementPushed(PRInt32 aNamespace, nsIAtom* aName, nsIContent
       return;
     }
   }
-  mExecutor->MaybeSuspend();
 }
 
 void
@@ -295,7 +284,6 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   NS_ASSERTION(aNamespace == kNameSpaceID_XHTML || aNamespace == kNameSpaceID_SVG || aNamespace == kNameSpaceID_MathML, "Element isn't HTML, SVG or MathML!");
   NS_ASSERTION(aName, "Element doesn't have local name!");
   NS_ASSERTION(aElement, "No element!");
-  mExecutor->MaybeSuspend();
   if (aNamespace == kNameSpaceID_MathML) {
     return;
   }
@@ -304,7 +292,7 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
     requestSuspension();
     nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
     
-    treeOp->Init(eTreeOpRunScript, aElement);
+    treeOp->Init(eTreeOpRunScript, aElement, nsnull);
     return;
   }
   if (aName == nsHtml5Atoms::title) {
@@ -337,6 +325,7 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
       nsEventDispatcher::Dispatch(aElement, ctx, &event);
     }
 #endif
+    
     return;
   }
   
@@ -412,6 +401,56 @@ nsHtml5TreeBuilder::HasScript()
     return PR_FALSE;
   }
   return mOpQueue.ElementAt(len - 1).IsRunScript();
+}
+
+void
+nsHtml5TreeBuilder::Flush()
+{
+  mOpSink->ForcedFlush(mOpQueue);
+}
+
+void
+nsHtml5TreeBuilder::MaybeFlush()
+{
+  mOpSink->MaybeFlush(mOpQueue);
+}
+
+void
+nsHtml5TreeBuilder::SetDocumentCharset(nsACString& aCharset)
+{
+  nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+  
+  treeOp->Init(eTreeOpSetDocumentCharset, aCharset);  
+}
+
+void
+nsHtml5TreeBuilder::StreamEnded()
+{
+  
+  
+  
+  
+  
+  if (!fragment) {
+    nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+    
+    treeOp->Init(eTreeOpStreamEnded);
+  }
+}
+
+void
+nsHtml5TreeBuilder::NeedsCharsetSwitchTo(const nsACString& aCharset)
+{
+  nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+  
+  treeOp->Init(eTreeOpNeedsCharsetSwitchTo, aCharset);  
+}
+
+void
+nsHtml5TreeBuilder::AddSnapshotToScript(nsAHtml5TreeBuilderState* aSnapshot)
+{
+  NS_PRECONDITION(HasScript(), "No script to add a snapshot to!");
+  mOpQueue.ElementAt(mOpQueue.Length() - 1).SetSnapshot(aSnapshot);
 }
 
 

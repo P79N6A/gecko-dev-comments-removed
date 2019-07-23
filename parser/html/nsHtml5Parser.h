@@ -271,14 +271,11 @@ class nsHtml5Parser : public nsIParser {
                         nsISupports* aContainer,
                         nsIChannel* aChannel);
 
-    
-
-
-    void Suspend();
-        
     inline nsHtml5Tokenizer* GetTokenizer() {
       return mTokenizer;
     }
+
+    void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState);
 
     
 
@@ -288,13 +285,21 @@ class nsHtml5Parser : public nsIParser {
     void DropStreamParser() {
       mStreamParser = nsnull;
     }
+    
+    void StartTokenizer(PRBool aScriptingEnabled);
+
+#ifdef DEBUG
+    PRBool HasStreamParser() {
+      return !!mStreamParser;
+    }
+#endif
 
   private:
 
     
 
 
-    void ParseUntilSuspend();
+    void ParseUntilScript();
 
     
 
@@ -312,13 +317,11 @@ class nsHtml5Parser : public nsIParser {
 
 
     PRBool                        mBlocked;
-
+    
     
 
 
-    PRBool                        mSuspending;
-
-    
+    PRBool                        mDocumentClosed;
 
     
     void*                         mRootContextKey;
@@ -359,7 +362,7 @@ class nsHtml5Parser : public nsIParser {
     
 
 
-    const nsAutoPtr<nsHtml5AtomTable>   mAtomTable;
+    nsHtml5AtomTable                    mAtomTable;
 
 };
 #endif
