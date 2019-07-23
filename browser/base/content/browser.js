@@ -2294,7 +2294,7 @@ function handleURLBarRevert()
   
   
   if ((!throbberElement || !throbberElement.hasAttribute("busy")) && !isScrolling) {
-    if (url != "about:blank") {
+    if (url != "about:blank" || content.opener) {
       gURLBar.value = url;
       gURLBar.select();
       SetPageProxyState("valid");
@@ -3842,8 +3842,9 @@ nsBrowserStatusHandler.prototype =
     var browser = getBrowser().selectedBrowser;
     if (aWebProgress.DOMWindow == content) {
 
-      if (location == "about:blank" || location == "") {   
-        location = "";                                     
+      if ((location == "about:blank" && !content.opener) ||
+           location == "") {                        
+        location = "";                              
         this.reloadCommand.setAttribute("disabled", "true");
         this.reloadSkipCacheCommand.setAttribute("disabled", "true");
       } else {
