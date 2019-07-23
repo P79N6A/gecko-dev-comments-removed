@@ -328,17 +328,19 @@ static void ProcessTranslate(nscoord aDelta[2], float aX[2], float aY[2],
 
 
   const nsCSSValue &dx = aData->Item(1);
-  const nsCSSValue &dy = (aData->Count() == 2 ? dx : aData->Item(2));
-
   if (dx.GetUnit() == eCSSUnit_Percent)
     aX[0] = dx.GetPercentValue();
   else
     SetCoordToValue(dx, aContext, aPresContext, aDelta[0]);
 
-  if (dy.GetUnit() == eCSSUnit_Percent)
-    aY[1] = dy.GetPercentValue();
-  else
-    SetCoordToValue(dy, aContext, aPresContext, aDelta[1]); 
+  
+  if (aData->Count() == 3) {
+    const nsCSSValue &dy = aData->Item(2);
+    if (dy.GetUnit() == eCSSUnit_Percent)
+      aY[1] = dy.GetPercentValue();
+    else
+      SetCoordToValue(dy, aContext, aPresContext, aDelta[1]); 
+  }
 }
 
 
