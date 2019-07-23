@@ -3439,7 +3439,7 @@ nsCSSFrameConstructor::ConstructTableRowGroupFrame(nsFrameConstructorState& aSta
   if (styleDisplay->IsScrollableOverflow()) {
     
     BuildScrollFrame(aState, aContent, aStyleContext, aNewFrame, parentFrame,
-                     scrollFrame, aStyleContext);
+                     scrollFrame);
 
   } 
   else {
@@ -4771,9 +4771,8 @@ nsCSSFrameConstructor::InitializeSelectFrame(nsFrameConstructorState& aState,
     }
   }
 
-  nsStyleContext* scrolledPseudoStyle;
   BuildScrollFrame(aState, aContent, aStyleContext, scrolledFrame,
-                   geometricParent, scrollFrame, scrolledPseudoStyle);
+                   geometricParent, scrollFrame);
 
   if (aState.mFrameState && aState.mFrameManager) {
     
@@ -5742,7 +5741,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
     if (mayBeScrollable && display->IsScrollableOverflow()) {
       
       BuildScrollFrame(aState, aContent, aStyleContext, newFrame,
-                       aParentFrame, topFrame, aStyleContext);
+                       aParentFrame, topFrame);
 
       
       
@@ -5958,8 +5957,7 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
                                         nsStyleContext*          aContentStyle,
                                         nsIFrame*                aScrolledFrame,
                                         nsIFrame*                aParentFrame,
-                                        nsIFrame*&               aNewFrame, 
-                                        nsStyleContext*&         aScrolledContentStyle)
+                                        nsIFrame*&               aNewFrame)
 {
     nsRefPtr<nsStyleContext> scrolledContentStyle =
       BeginBuildingScrollFrame(aState, aContent, aContentStyle, aParentFrame,
@@ -5970,8 +5968,6 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
     InitAndRestoreFrame(aState, aContent, aNewFrame, nsnull, aScrolledFrame);
 
     FinishBuildingScrollFrame(aNewFrame, aScrolledFrame);
-
-    aScrolledContentStyle = scrolledContentStyle;
 
     
     aState.mFrameManager->SetPrimaryFrameFor( aContent, aNewFrame );
