@@ -541,11 +541,13 @@ nsSVGOuterSVGFrame::NotifyViewportChange()
   
   if (!mViewportInitialized) return NS_OK;
 
-  
-  nsSVGSVGElement *svgElem = NS_STATIC_CAST(nsSVGSVGElement*, mContent);
-  if (!svgElem->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
-    return NS_OK;
-  }
+
+
+
+
+
+
+
 
   
   mCanvasTM = nsnull;
