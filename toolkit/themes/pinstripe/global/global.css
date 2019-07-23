@@ -345,3 +345,32 @@ notification > button > .button-box > .button-text {
 .autoscroller[scrolldir="EW"] {
   background-position: right bottom;
 }
+
+
+
+.popup-internal-box > autorepeatbutton {
+  height: 15px;
+  position: relative;
+  
+
+
+
+
+
+
+
+
+  -moz-appearance: menuitem;
+}
+
+.popup-internal-box > .autorepeatbutton-up {
+  margin-bottom: -15px;
+}
+
+.popup-internal-box > .autorepeatbutton-down {
+  margin-top: -15px;
+}
+
+.popup-internal-box > autorepeatbutton[disabled="true"] {
+  visibility: collapse;
+}
