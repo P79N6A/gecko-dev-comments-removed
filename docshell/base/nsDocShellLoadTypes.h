@@ -50,7 +50,7 @@
 
 
 
-#define LOAD_FLAGS_ERROR_PAGE 0x8000U
+#define LOAD_FLAGS_ERROR_PAGE 0x0001U
 
 #define MAKE_LOAD_TYPE(type, flags) ((type) | ((flags) << 16))
 #define LOAD_TYPE_HAS_FLAGS(type, flags) ((type) & ((flags) << 16))
@@ -59,9 +59,14 @@
 
 
 
+
+
 #define EXTRA_LOAD_FLAGS (LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP | \
-                          LOAD_FLAGS_FIRST_LOAD | \
-                          LOAD_FLAGS_BYPASS_CLASSIFIER)
+                          LOAD_FLAGS_FIRST_LOAD              | \
+                          LOAD_FLAGS_ALLOW_POPUPS            | \
+                          0xffff0000)
+
+
 
 
 
