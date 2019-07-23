@@ -794,6 +794,10 @@ nsDownloadManager::CancelDownload(PRUint32 aID)
     return NS_OK;
 
   
+  if (dl->mPaused)
+    (void)dl->PauseResume(PR_FALSE);
+
+  
   if (dl->mCancelable)
     dl->mCancelable->Cancel(NS_BINDING_ABORTED);
 
