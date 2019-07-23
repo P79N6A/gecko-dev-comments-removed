@@ -609,6 +609,15 @@ private:
   
 
 #define FCDATA_SKIP_ABSPOS_PUSH 0x200
+  
+
+
+
+#define FCDATA_FORCE_VIEW 0x400
+  
+
+
+#define FCDATA_DISALLOW_GENERATED_CONTENT 0x800
 
   
 
@@ -899,15 +908,20 @@ private:
 
 
 #ifdef MOZ_SVG
-  nsresult ConstructSVGFrame(nsFrameConstructorState& aState,
-                             nsIContent*              aContent,
-                             nsIFrame*                aParentFrame,
-                             nsIAtom*                 aTag,
-                             PRInt32                  aNameSpaceID,
-                             nsStyleContext*          aStyleContext,
-                             nsFrameItems&            aFrameItems,
-                             PRBool                   aHasPseudoParent,
-                             PRBool*                  aHaltProcessing);
+  static const FrameConstructionData* FindSVGData(nsIContent* aContent,
+                                                  nsIAtom* aTag,
+                                                  PRInt32 aNameSpaceID,
+                                                  nsIFrame* aParentFrame,
+                                                  nsStyleContext* aStyleContext);
+
+  nsresult ConstructSVGForeignObjectFrame(nsFrameConstructorState& aState,
+                                          nsIContent* aContent,
+                                          nsIFrame* aParentFrame,
+                                          nsIAtom* aTag,
+                                          nsStyleContext* aStyleContext,
+                                          const nsStyleDisplay* aStyleDisplay,
+                                          nsFrameItems& aFrameItems,
+                                          nsIFrame** aNewFrame);
 #endif
 
   nsresult ConstructFrameByDisplayType(nsFrameConstructorState& aState,
