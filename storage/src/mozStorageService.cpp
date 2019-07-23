@@ -91,6 +91,9 @@ mozStorageService::Init()
     
     sqlite3_enable_shared_cache(1);
 
+    
+    
+#if 0
     nsresult rv;
     nsCOMPtr<nsIObserverService> observerService = 
             do_GetService("@mozilla.org/observer-service;1", &rv);
@@ -101,6 +104,7 @@ mozStorageService::Init()
 
     rv = observerService->AddObserver(this, kShutdownMessage, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
+#endif
 
     return NS_OK;
 }
