@@ -136,18 +136,6 @@ static const PRInt32 DEFAULT_UNDO_CAP = 1000;
 static nsINativeKeyBindings *sNativeInputBindings = nsnull;
 static nsINativeKeyBindings *sNativeTextAreaBindings = nsnull;
 
-static void
-PlatformToDOMLineBreaks(nsString &aString)
-{
-  
-  aString.ReplaceSubstring(NS_LITERAL_STRING("\r\n").get(),
-                           NS_LITERAL_STRING("\n").get());
-
-  
-  aString.ReplaceSubstring(NS_LITERAL_STRING("\r").get(),
-                           NS_LITERAL_STRING("\n").get());
-}
-
 
 typedef enum {
   eHTMLTextWrap_Off     = 1,    
@@ -2532,7 +2520,7 @@ nsTextControlFrame::GetText(nsString& aText)
   if (IsSingleLineTextControl()) {
     
     GetValue(aText, PR_TRUE);
-    RemoveNewlines(aText);
+    nsContentUtils::RemoveNewlines(aText);
   } else {
     nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea = do_QueryInterface(mContent);
     if (textArea) {
@@ -2561,14 +2549,6 @@ nsTextControlFrame::GetPhonetic(nsAString& aPhonetic)
 }
 
 
-
-
-void nsTextControlFrame::RemoveNewlines(nsString &aString)
-{
-  
-  static const char badChars[] = {10, 13, 0};
-  aString.StripChars(badChars);
-}
 
 
 PRBool
@@ -2742,9 +2722,7 @@ nsTextControlFrame::SetValue(const nsAString& aValue)
       
       
       nsString newValue(aValue);
-      if (aValue.FindChar(PRUnichar('\r')) != -1) {
-        ::PlatformToDOMLineBreaks(newValue);
-      }
+      nsContentUtils::PlatformToDOMLineBreaks(newValue);
 
       nsCOMPtr<nsIDOMDocument> domDoc;
       editor->GetDocument(getter_AddRefs(domDoc));
@@ -3110,7 +3088,7 @@ nsTextControlFrame::UpdatePlaceholderText(PRBool aNotify)
   nsAutoString placeholderValue;
 
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::placeholder, placeholderValue);
-  RemoveNewlines(placeholderValue);
+  nsContentUtils::RemoveNewlines(placeholderValue);
   NS_ASSERTION(mPlaceholderDiv->GetChildAt(0), "placeholder div has no child");
   mPlaceholderDiv->GetChildAt(0)->SetText(placeholderValue, aNotify);
 
