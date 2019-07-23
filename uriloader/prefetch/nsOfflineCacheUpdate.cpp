@@ -1160,16 +1160,21 @@ nsOfflineCacheUpdate::LoadCompleted()
     rv = item->GetStatus(&status);
 
     
+    
     if (NS_FAILED(rv) || status == 0 || status >= 400) {
-        mSucceeded = PR_FALSE;
-        NotifyError();
-        Finish();
-        return;
+        if (item->mItemType &
+            (nsIApplicationCache::ITEM_EXPLICIT |
+             nsIApplicationCache::ITEM_FALLBACK)) {
+            mSucceeded = PR_FALSE;
+        }
+    } else {
+        rv = mApplicationCache->MarkEntry(item->mCacheKey, item->mItemType);
+        if (NS_FAILED(rv)) {
+            mSucceeded = PR_FALSE;
+        }
     }
 
-    rv = mApplicationCache->MarkEntry(item->mCacheKey, item->mItemType);
-    if (NS_FAILED(rv)) {
-        mSucceeded = PR_FALSE;
+    if (!mSucceeded) {
         NotifyError();
         Finish();
         return;
