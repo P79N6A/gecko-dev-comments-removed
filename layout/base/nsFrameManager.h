@@ -184,7 +184,8 @@ public:
 
 
 
-  NS_HIDDEN_(nsChangeHint)
+
+  NS_HIDDEN_(void)
     ComputeStyleChangeFor(nsIFrame* aFrame,
                           nsStyleChangeList* aChangeList,
                           nsChangeHint aMinChange);

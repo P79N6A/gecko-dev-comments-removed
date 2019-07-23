@@ -10047,22 +10047,18 @@ nsCSSFrameConstructor::RestyleElement(nsIContent     *aContent,
                                       nsIFrame       *aPrimaryFrame,
                                       nsChangeHint   aMinHint)
 {
+  NS_ASSERTION(aPrimaryFrame == mPresShell->GetPrimaryFrameFor(aContent),
+               "frame/content mismatch");
+  NS_ASSERTION(!aPrimaryFrame || aPrimaryFrame->GetContent() == aContent,
+               "frame/content mismatch");
+
   if (aMinHint & nsChangeHint_ReconstructFrame) {
     RecreateFramesForContent(aContent);
   } else if (aPrimaryFrame) {
     nsStyleChangeList changeList;
-    if (aMinHint) {
-      changeList.AppendChange(aPrimaryFrame, aContent, aMinHint);
-    }
-    nsChangeHint frameChange = mPresShell->FrameManager()->
+    mPresShell->FrameManager()->
       ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint);
-
-    if (frameChange & nsChangeHint_ReconstructFrame) {
-      RecreateFramesForContent(aContent);
-      changeList.Clear();
-    } else {
-      ProcessRestyledFrames(changeList);
-    }
+    ProcessRestyledFrames(changeList);
   } else {
     
     MaybeRecreateFramesForContent(aContent);
@@ -13182,8 +13178,12 @@ nsCSSFrameConstructor::ProcessOneRestyle(nsIContent* aContent,
 #define RESTYLE_ARRAY_STACKSIZE 128
 
 void
-nsCSSFrameConstructor::RebuildAllStyleData()
+nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
 {
+  NS_ASSERTION(!(aExtraHint & nsChangeHint_ReconstructFrame),
+               "Should not reconstruct the root of the frame tree.  "
+               "Use ReconstructDocElementHierarchy instead.");
+
   mRebuildAllStyleData = PR_FALSE;
 
   if (!mPresShell || !mPresShell->GetRootFrame())
@@ -13202,8 +13202,10 @@ nsCSSFrameConstructor::RebuildAllStyleData()
   
   
   nsStyleChangeList changeList;
+  
+  
   mPresShell->FrameManager()->ComputeStyleChangeFor(mPresShell->GetRootFrame(),
-                                                    &changeList, nsChangeHint(0));
+                                                    &changeList, aExtraHint);
   
   ProcessRestyledFrames(changeList);
   
@@ -13264,7 +13266,7 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   if (mRebuildAllStyleData) {
     
     
-    RebuildAllStyleData();
+    RebuildAllStyleData(nsChangeHint(0));
   }
 }
 

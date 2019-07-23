@@ -584,6 +584,10 @@ nsPresContext::GetUserPreferences()
     nsContentUtils::GetIntPref("browser.display.base_font_scaler",
                                mFontScaler);
 
+
+  mAutoQualityMinFontSizePixelsPref =
+    nsContentUtils::GetIntPref("browser.display.auto_quality_min_font_size");
+
   
   GetDocumentColorPreferences();
 
@@ -661,6 +665,8 @@ nsPresContext::GetUserPreferences()
     mImageAnimationModePref = imgIContainer::kDontAnimMode;
   else if (animatePref.Equals("once"))
     mImageAnimationModePref = imgIContainer::kLoopOnceAnimMode;
+  else 
+    mImageAnimationModePref = imgIContainer::kNormalAnimMode;
 
   PRUint32 bidiOptions = GetBidi();
 
@@ -701,12 +707,11 @@ nsPresContext::GetUserPreferences()
   SetBidi(bidiOptions, PR_FALSE);
 }
 
-static const char sMinFontSizePref[] = "browser.display.auto_quality_min_font_size";
-
 void
 nsPresContext::PreferenceChanged(const char* aPrefName)
 {
-  if (!nsCRT::strcmp(aPrefName, "layout.css.dpi")) {
+  nsDependentCString prefName(aPrefName);
+  if (prefName.EqualsLiteral("layout.css.dpi")) {
     PRInt32 oldAppUnitsPerDevPixel = AppUnitsPerDevPixel();
     if (mDeviceContext->CheckDPIChange() && mShell) {
       mDeviceContext->FlushFontCache();
@@ -723,14 +728,20 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
       nscoord height = NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel());
       vm->SetWindowDimensions(width, height);
 
-      RebuildAllStyleData();
+      RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
     }
     return;
   }
-  if (!nsCRT::strcmp(aPrefName, sMinFontSizePref)) {
-    mAutoQualityMinFontSizePixelsPref = nsContentUtils::GetIntPref(sMinFontSizePref);
-    RebuildAllStyleData();
-    return;
+  if (StringBeginsWith(prefName, NS_LITERAL_CSTRING("font."))) {
+    
+    
+    
+
+    
+    
+    
+    
+    mPrefChangePendingNeedsReflow = PR_TRUE;
   }
   
   if (!mPrefChangedTimer)
@@ -764,7 +775,14 @@ nsPresContext::UpdateAfterPreferencesChanged()
   }
 
   mDeviceContext->FlushFontCache();
-  RebuildAllStyleData();
+
+  nsChangeHint hint = nsChangeHint(0);
+
+  if (mPrefChangePendingNeedsReflow) {
+    NS_UpdateHint(hint, NS_STYLE_HINT_REFLOW);
+  }
+
+  RebuildAllStyleData(hint);
 }
 
 nsresult
@@ -828,9 +846,6 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
   nsContentUtils::RegisterPrefCallback("layout.css.dpi",
                                        nsPresContext::PrefChangedCallback,
                                        this);
-
-  
-  mAutoQualityMinFontSizePixelsPref = nsContentUtils::GetIntPref(sMinFontSizePref);
 
   rv = mEventManager->Init();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -950,7 +965,7 @@ nsPresContext::Observe(nsISupports* aSubject,
   if (!nsCRT::strcmp(aTopic, "charset")) {
     UpdateCharSet(NS_LossyConvertUTF16toASCII(aData));
     mDeviceContext->FlushFontCache();
-    RebuildAllStyleData();
+    RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
     return NS_OK;
   }
 
@@ -1145,7 +1160,7 @@ nsPresContext::SetFullZoom(float aZoom)
   mFullZoom = aZoom;
   GetViewManager()->SetWindowDimensions(NSToCoordRound(oldWidthDevPixels * AppUnitsPerDevPixel()),
                                         NSToCoordRound(oldHeightDevPixels * AppUnitsPerDevPixel()));
-  RebuildAllStyleData();
+  RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
 
   mSupressResizeReflow = PR_FALSE;
 
@@ -1286,7 +1301,7 @@ nsPresContext::SetBidi(PRUint32 aSource, PRBool aForceRestyle)
     }
   }
   if (aForceRestyle) {
-    RebuildAllStyleData();
+    RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
   }
 }
 
@@ -1347,7 +1362,7 @@ nsPresContext::ThemeChangedInternal()
   
   
   
-  RebuildAllStyleData();
+  RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
 }
 
 void
@@ -1381,21 +1396,17 @@ nsPresContext::SysColorChangedInternal()
 
   
   
-  
-  
-  
-  
-  RebuildAllStyleData();
+  RebuildAllStyleData(nsChangeHint(0));
 }
 
 void
-nsPresContext::RebuildAllStyleData()
+nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
 {
   if (!mShell) {
     
     return;
   }
-  mShell->FrameConstructor()->RebuildAllStyleData();
+  mShell->FrameConstructor()->RebuildAllStyleData(aExtraHint);
 }
 
 void
