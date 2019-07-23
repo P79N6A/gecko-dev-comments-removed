@@ -46,9 +46,7 @@
 #include "nsCOMPtr.h"
 #include "nsIRenderingContext.h"
 
-#ifdef MOZ_CAIRO_GFX
 #include "gfxImageSurface.h"
-#endif
 
 
 #define DRAG_TRANSLUCENCY 0.65
@@ -79,7 +77,6 @@ public:
 
 protected:
 
-#ifdef MOZ_CAIRO_GFX
   
 
 
@@ -112,7 +109,6 @@ protected:
                             PRInt32 aScreenX, PRInt32 aScreenY,
                             nsRect* aScreenDragRect,
                             gfxASurface** aSurface);
-#endif
 
   PRPackedBool mCanDrop;
   PRPackedBool mDoingDrag;
