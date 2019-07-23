@@ -688,16 +688,6 @@ var PlacesOrganizer = {
       gEditItemOverlay.initPanel(itemId, { hiddenRows: ["folderPicker"],
                                            forceReadOnly: readOnly });
 
-      
-      
-      
-      
-      
-      if (aSelectedNode.itemId == -1 &&
-          (PlacesUtils.nodeIsDay(aSelectedNode) ||
-           PlacesUtils.nodeIsHost(aSelectedNode)))
-        gEditItemOverlay._element("namePicker").value = aSelectedNode.title;
-
       this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
     }
     else if (!aSelectedNode && aNodeList[0]) {
