@@ -2658,6 +2658,9 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   
   nsIDocument *document =
     HasFlag(NODE_FORCE_XBL_BINDINGS) ? GetOwnerDoc() : GetCurrentDoc();
+
+  mParentPtrBits = aNullParent ? 0 : mParentPtrBits & ~PARENT_BIT_INDOCUMENT;
+
   if (document) {
     
     
@@ -2669,9 +2672,6 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
     document->ClearBoxObjectFor(this);
   }
-
-  
-  mParentPtrBits = aNullParent ? 0 : mParentPtrBits & ~PARENT_BIT_INDOCUMENT;
 
   
   UnsetFlags(NODE_FORCE_XBL_BINDINGS);
