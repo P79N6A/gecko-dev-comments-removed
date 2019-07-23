@@ -49,6 +49,7 @@
 
 
 
+
 #include "nsWindow.h"
 #include "nsIAppShell.h"
 #include "nsIFontMetrics.h"
@@ -149,7 +150,9 @@
 #include "prprf.h"
 #include "prmem.h"
 
-
+#ifdef NS_ENABLE_TSF
+#include "nsTextStore.h"
+#endif 
 
 #ifdef WINCE
 
@@ -746,14 +749,18 @@ nsWindow::nsWindow() : nsBaseWidget()
   mIsTopWidgetWindow = PR_FALSE;
   mLastKeyboardLayout = 0;
 
+#ifdef NS_ENABLE_TSF
+  if (!sInstanceCount)
+    nsTextStore::Initialize();
+#endif 
+
 #ifndef WINCE
   if (!sInstanceCount && SUCCEEDED(::OleInitialize(NULL))) {
     sIsOleInitialized = TRUE;
   }
   NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
-
-  sInstanceCount++;
 #endif
+  sInstanceCount++;
 }
 
 
@@ -788,11 +795,17 @@ nsWindow::~nsWindow()
     SetCursor(eCursor_standard);
   }
 
+  sInstanceCount--;
+
+#ifdef NS_ENABLE_TSF
+  if (!sInstanceCount)
+    nsTextStore::Terminate();
+#endif 
+
 #ifndef WINCE
   
   
   
-  sInstanceCount--;
   if (sInstanceCount == 0) {
     if (sIMECompUnicode) 
       delete sIMECompUnicode;
@@ -2816,6 +2829,12 @@ void* nsWindow::GetNativeData(PRUint32 aDataType)
 #else
       return (void*)::GetDC(mWnd);
 #endif
+
+#ifdef NS_ENABLE_TSF
+    case NS_NATIVE_TSF_POINTER:
+      return nsTextStore::GetNativeData();
+#endif 
+
     case NS_NATIVE_COLORMAP:
     default:
       break;
@@ -5309,6 +5328,12 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam, LRESULT 
       }
 #endif 
 
+#ifdef NS_ENABLE_TSF
+      else if (msg == WM_USER_TSF_TEXTCHANGE) {
+        nsTextStore::OnTextChangeMsg();
+      }
+#endif 
+
     }
     break;
 #ifndef WINCE
@@ -7433,8 +7458,8 @@ PRBool nsWindow::OnIMEQueryCharPosition(LPARAM aData, LRESULT *oResult)
 
   nsIntRect r;
   if (!useCaretRect) {
-    nsQueryContentEvent charRect(PR_TRUE, NS_QUERY_CHARACTER_RECT, this);
-    charRect.InitForQueryCharacterRect(offset);
+    nsQueryContentEvent charRect(PR_TRUE, NS_QUERY_TEXT_RECT, this);
+    charRect.InitForQueryTextRect(offset, 1);
     InitEvent(charRect, &point);
     DispatchWindowEvent(&charRect);
     if (charRect.mSucceeded)
@@ -7542,6 +7567,11 @@ NS_IMETHODIMP nsWindow::ResetInputState()
 #ifdef DEBUG_KBSTATE
   printf("ResetInputState\n");
 #endif
+
+#ifdef NS_ENABLE_TSF
+  nsTextStore::CommitComposition(PR_FALSE);
+#endif 
+
   HIMC hIMC = ::ImmGetContext(mWnd);
   if (hIMC) {
     BOOL ret = FALSE;
@@ -7559,6 +7589,11 @@ NS_IMETHODIMP nsWindow::SetIMEOpenState(PRBool aState)
 #ifdef DEBUG_KBSTATE
   printf("SetIMEOpenState %s\n", (aState ? "Open" : "Close"));
 #endif 
+
+#ifdef NS_ENABLE_TSF
+  nsTextStore::SetIMEOpenState(aState);
+#endif 
+
   HIMC hIMC = ::ImmGetContext(mWnd);
   if (hIMC) {
     ::ImmSetOpenStatus(hIMC, aState ? TRUE : FALSE);
@@ -7577,12 +7612,21 @@ NS_IMETHODIMP nsWindow::GetIMEOpenState(PRBool* aState)
     ::ImmReleaseContext(mWnd, hIMC);
   } else 
     *aState = PR_FALSE;
+
+#ifdef NS_ENABLE_TSF
+  *aState |= nsTextStore::GetIMEOpenState();
+#endif 
+
   return NS_OK;
 }
 
 
 NS_IMETHODIMP nsWindow::SetIMEEnabled(PRUint32 aState)
 {
+#ifdef NS_ENABLE_TSF
+  nsTextStore::SetIMEEnabled(aState);
+#endif 
+
   if (sIMEIsComposing)
     ResetInputState();
   mIMEEnabled = aState;
@@ -7609,6 +7653,11 @@ NS_IMETHODIMP nsWindow::CancelIMEComposition()
 #ifdef DEBUG_KBSTATE
   printf("CancelIMEComposition\n");
 #endif 
+
+#ifdef NS_ENABLE_TSF
+  nsTextStore::CommitComposition(PR_TRUE);
+#endif 
+
   HIMC hIMC = ::ImmGetContext(mWnd);
   if (hIMC) {
     BOOL ret = FALSE;
@@ -7813,6 +7862,30 @@ static VOID CALLBACK nsGetAttentionTimerFunc(HWND hwnd, UINT uMsg, UINT idEvent,
   else
     gAttentionTimerMonitor->KillTimer(hwnd);
 }
+
+
+#ifdef NS_ENABLE_TSF
+NS_IMETHODIMP
+nsWindow::OnIMEFocusChange(PRBool aFocus)
+{
+  return nsTextStore::OnFocusChange(aFocus, this, mIMEEnabled);
+}
+
+NS_IMETHODIMP
+nsWindow::OnIMETextChange(PRUint32 aStart,
+                          PRUint32 aOldEnd,
+                          PRUint32 aNewEnd)
+{
+  return nsTextStore::OnTextChange(aStart, aOldEnd, aNewEnd);
+}
+
+NS_IMETHODIMP
+nsWindow::OnIMESelectionChange(void)
+{
+  return nsTextStore::OnSelectionChange();
+}
+#endif 
+
 
 
 NS_IMETHODIMP

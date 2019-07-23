@@ -40,6 +40,7 @@
 
 
 
+
 #ifndef Window_h__
 #define Window_h__
 
@@ -72,6 +73,11 @@ struct nsFakeCharMessage;
 #endif
 
 #include "gfxWindowsSurface.h"
+
+
+#ifndef WINCE
+#define NS_ENABLE_TSF
+#endif 
 
 #define IME_MAX_CHAR_POS       64
 
@@ -235,6 +241,12 @@ public:
   NS_IMETHOD CancelIMEComposition();
   NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState);
 
+#ifdef NS_ENABLE_TSF
+  NS_IMETHOD OnIMEFocusChange(PRBool aFocus);
+  NS_IMETHOD OnIMETextChange(PRUint32 aStart, PRUint32 aOldEnd, PRUint32 aNewEnd);
+  NS_IMETHOD OnIMESelectionChange(void);
+#endif 
+
   PRBool IMEMouseHandling(PRInt32 aAction, LPARAM lParam);
   PRBool IMECompositionHitTest(POINT * ptPos);
   PRBool HandleMouseActionOfIME(PRInt32 aAction, POINT* ptPos);
@@ -250,6 +262,8 @@ public:
                                              LPARAM lParam,
                                              PRBool aIsContextMenuKey = PR_FALSE,
                                              PRInt16 aButton = nsMouseEvent::eLeftButton);
+  virtual PRBool          DispatchWindowEvent(nsGUIEvent* event);
+  virtual PRBool          DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus);
 #ifdef ACCESSIBILITY
   virtual PRBool          DispatchAccessibleEvent(PRUint32 aEventType, nsIAccessible** aAccessible, nsIntPoint* aPoint = nsnull);
   already_AddRefed<nsIAccessible> GetRootAccessible();
@@ -303,8 +317,6 @@ protected:
   LRESULT                 ProcessKeyDownMessage(const MSG &aMsg,
                                                 PRBool *aEventDispatched);
 
-  virtual PRBool          DispatchWindowEvent(nsGUIEvent* event);
-  virtual PRBool          DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus);
 
    
    

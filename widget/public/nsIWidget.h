@@ -93,11 +93,14 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_PLUGIN_PORT_QD    100
 #define NS_NATIVE_PLUGIN_PORT_CG    101
 #endif
+#ifdef XP_WIN
+#define NS_NATIVE_TSF_POINTER       100
+#endif
 
 
 #define NS_IWIDGET_IID \
-{ 0xa85944af, 0x7fce, 0x4e45, \
-  { 0xbf, 0x04, 0xac, 0x12, 0xc8, 0x23, 0x39, 0x4b } }
+{ 0x51c24e3b, 0x229f, 0x4c4f, \
+  { 0xad, 0xa5, 0xbe, 0x89, 0x1f, 0xd9, 0xef, 0xe9 } }
 
 
 
@@ -1241,6 +1244,29 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState) = 0;
+
+    
+
+
+
+
+
+    NS_IMETHOD OnIMEFocusChange(PRBool aFocus) = 0;
+
+    
+
+
+
+
+
+    NS_IMETHOD OnIMETextChange(PRUint32 aStart,
+                               PRUint32 aOldEnd,
+                               PRUint32 aNewEnd) = 0;
+
+    
+
+
+    NS_IMETHOD OnIMESelectionChange(void) = 0;
 
 protected:
     
