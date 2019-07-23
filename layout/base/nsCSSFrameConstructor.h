@@ -762,6 +762,10 @@ private:
   PRBool HaveFirstLetterStyle(nsIContent*      aContent,
                               nsStyleContext*  aStyleContext);
 
+  
+  
+  PRBool HaveFirstLetterStyle(nsIFrame* aBlockFrame);
+
   PRBool HaveFirstLineStyle(nsIContent*      aContent,
                             nsStyleContext*  aStyleContext);
 
