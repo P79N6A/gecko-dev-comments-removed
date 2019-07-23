@@ -1719,6 +1719,12 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
         if (nb < 0 && -(nb + 1) == (intN)ss->top - cs->nuses + cs->ndefs)
             return pc;
 
+        
+
+
+
+        token = CodeToken[op];
+
         if (pc + oplen == jp->dvgfence) {
             JSStackFrame *fp;
             uint32 format, mode, type;
@@ -1818,7 +1824,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb)
             jp->dvgfence = NULL;
         }
 
-        token = CodeToken[op];
         if (token) {
             switch (cs->nuses) {
               case 2:
