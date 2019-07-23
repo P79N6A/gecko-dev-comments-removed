@@ -664,6 +664,7 @@ nsTableCellFrame::CellHasVisibleContent(nscoord       height,
                                         nsTableFrame* tableFrame,
                                         nsIFrame* kidFrame)
 {
+  
   if (height > 0)
     return PR_TRUE;
   if (tableFrame->IsBorderCollapse())
