@@ -314,6 +314,11 @@ protected:
   
 
 
+  void StopSuspendingAfterFirstFrame();
+
+  
+
+
 
   nsresult OnChannelRedirect(nsIChannel *aChannel,
                              nsIChannel *aNewChannel,
@@ -435,4 +440,12 @@ protected:
   
   
   PRPackedBool mIsRunningSelectResource;
+
+  
+  
+  PRPackedBool mSuspendedAfterFirstFrame;
+
+  
+  
+  PRPackedBool mAllowSuspendAfterFirstFrame;
 };

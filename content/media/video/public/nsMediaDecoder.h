@@ -215,8 +215,11 @@ public:
   
   
   
+  
   virtual void Suspend() = 0;
 
+  
+  
   
   
   
