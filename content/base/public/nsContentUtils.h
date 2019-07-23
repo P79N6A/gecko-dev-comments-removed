@@ -108,6 +108,7 @@ class nsIDragSession;
 class nsPIDOMWindow;
 class nsPIDOMEventTarget;
 class nsIPresShell;
+class nsIXPConnectJSObjectHolder;
 #ifdef MOZ_XTF
 class nsIXTFService;
 #endif
@@ -1466,6 +1467,25 @@ public:
 
 
   static PRBool CanAccessNativeAnon();
+
+  static nsresult WrapNative(JSContext *cx, JSObject *scope,
+                             nsISupports *native, const nsIID* aIID, jsval *vp,
+                             
+                             
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
+                             PRBool aAllowWrapping = PR_FALSE);
+
+  
+  static nsresult WrapNative(JSContext *cx, JSObject *scope,
+                             nsISupports *native,  jsval *vp,
+                             
+                             
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull,
+                             PRBool aAllowWrapping = PR_FALSE)
+  {
+    return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
+  }
+
 private:
 
   static PRBool InitializeEventTable();

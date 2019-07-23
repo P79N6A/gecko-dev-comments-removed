@@ -131,20 +131,16 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   JSContext* jscontext = (JSContext*)aContext->GetNativeContext();
   JSObject* global = sgo->GetGlobalJSObject();
   nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
-  rv = nsContentUtils::XPConnect()->WrapNative(jscontext, global,
-                                               aBoundElement,
-                                               NS_GET_IID(nsISupports),
-                                               getter_AddRefs(wrapper));
-  NS_ENSURE_SUCCESS(rv, rv);
-  JSObject * object = nsnull;
-  rv = wrapper->GetJSObject(&object);
+  jsval v;
+  rv = nsContentUtils::WrapNative(jscontext, global, aBoundElement, &v,
+                                  getter_AddRefs(wrapper));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
   
-  rv = aBinding->InitClass(mClassName, jscontext, global, object,
+  rv = aBinding->InitClass(mClassName, jscontext, global, JSVAL_TO_OBJECT(v),
                            aTargetClassObject);
   if (NS_FAILED(rv))
     return rv;

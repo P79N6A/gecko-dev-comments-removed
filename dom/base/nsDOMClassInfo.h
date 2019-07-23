@@ -48,6 +48,7 @@
 #include "nsIScriptContext.h"
 #include "nsDOMJSUtils.h" 
 #include "nsIScriptGlobalObject.h"
+#include "nsContentUtils.h"
 
 class nsIDOMWindow;
 class nsIDOMNSHTMLOptionCollection;
@@ -137,7 +138,11 @@ public:
                              PRBool aAllowWrapping, jsval *vp,
                              
                              
-                             nsIXPConnectJSObjectHolder** aHolder = nsnull);
+                             nsIXPConnectJSObjectHolder** aHolder = nsnull)
+  {
+    return nsContentUtils::WrapNative(cx, scope, native, aIID, vp, aHolder,
+                                      aAllowWrapping);
+  }
 
   
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
