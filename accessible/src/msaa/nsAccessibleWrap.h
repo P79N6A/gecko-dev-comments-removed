@@ -288,14 +288,23 @@ class nsAccessibleWrap : public nsAccessible,
 
         
   
+  virtual HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT *pctinfo);
 
-  STDMETHODIMP GetTypeInfoCount(UINT *p);
-  STDMETHODIMP GetTypeInfo(UINT i, LCID lcid, ITypeInfo **ppti);
-  STDMETHODIMP GetIDsOfNames(REFIID riid, LPOLESTR *rgszNames,
-                               UINT cNames, LCID lcid, DISPID *rgDispId);
-  STDMETHODIMP Invoke(DISPID dispIdMember, REFIID riid,
-        LCID lcid, WORD wFlags, DISPPARAMS *pDispParams,
-        VARIANT *pVarResult, EXCEPINFO *pExcepInfo, UINT *puArgErr);
+  virtual HRESULT STDMETHODCALLTYPE GetTypeInfo(UINT iTInfo, LCID lcid,
+                                                ITypeInfo **ppTInfo);
+
+  virtual HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID riid,
+                                                  LPOLESTR *rgszNames,
+                                                  UINT cNames,
+                                                  LCID lcid,
+                                                  DISPID *rgDispId);
+
+  virtual HRESULT STDMETHODCALLTYPE Invoke(DISPID dispIdMember, REFIID riid,
+                                           LCID lcid, WORD wFlags,
+                                           DISPPARAMS *pDispParams,
+                                           VARIANT *pVarResult,
+                                           EXCEPINFO *pExcepInfo,
+                                           UINT *puArgErr);
 
   
   virtual nsresult FireAccessibleEvent(nsIAccessibleEvent *aEvent);
@@ -339,6 +348,14 @@ protected:
   
   
   PRInt32 mEnumVARIANTPosition;
+
+  
+
+
+  ITypeInfo *GetTI(LCID lcid);
+
+  ITypeInfo *mTypeInfo;
+
 
   enum navRelations {
     NAVRELATION_CONTROLLED_BY = 0x1000,
