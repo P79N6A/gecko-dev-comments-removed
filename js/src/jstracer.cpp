@@ -2836,7 +2836,7 @@ NativeToValueBase(JSContext* cx, jsval& v, JSTraceType type, double* slot)
 
 
 
-        if (cx->doubleFreeList) {
+            if (JS_THREAD_DATA(cx)->doubleFreeList) {
 #ifdef DEBUG
             JSBool ok =
 #endif

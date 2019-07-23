@@ -295,18 +295,15 @@ struct JSGCArenaList {
     JSGCThing       *freeList;      
 };
 
-typedef union JSGCDoubleCell JSGCDoubleCell;
-
 union JSGCDoubleCell {
     double          number;
     JSGCDoubleCell  *link;
 };
 
-typedef struct JSGCDoubleArenaList {
+struct JSGCDoubleArenaList {
     JSGCArenaInfo   *first;             
-    jsbitmap        *nextDoubleFlags;   
-
-} JSGCDoubleArenaList;
+    JSGCArenaInfo   *cursor;            
+};
 
 extern void
 js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);

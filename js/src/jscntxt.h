@@ -290,6 +290,9 @@ typedef struct JSFunctionMeter {
 
 struct JSThreadData {
     
+    JSGCDoubleCell      *doubleFreeList;
+
+    
 
 
 
@@ -1090,9 +1093,6 @@ struct JSContext {
 
     
     JSTempValueRooter   *tempValueRooters;
-
-    
-    JSGCDoubleCell      *doubleFreeList;
 
     
     JSDebugHooks        *debugHooks;

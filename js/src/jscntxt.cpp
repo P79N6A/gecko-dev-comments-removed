@@ -109,6 +109,11 @@ FinishThreadData(JSThreadData *data)
 static void
 PurgeThreadData(JSContext *cx, JSThreadData *data)
 {
+    
+
+
+    data->doubleFreeList = NULL;
+
     js_PurgeGSNCache(&data->gsnCache);
 
     
