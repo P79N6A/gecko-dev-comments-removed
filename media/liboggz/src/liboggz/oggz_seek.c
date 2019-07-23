@@ -614,6 +614,12 @@ oggz_offset_end (OGGZ * oggz)
   return offset_end;
 }
 
+static int
+is_header_page(ogg_page* page)
+{
+  return page && page->header[5] & 0x2;
+}
+
 ogg_int64_t
 oggz_bounded_seek_set (OGGZ * oggz,
                        ogg_int64_t unit_target,
@@ -684,7 +690,17 @@ oggz_bounded_seek_set (OGGZ * oggz,
     ogg_int64_t granulepos = 0;
     unit_begin = 0;
     
-    while (oggz_get_next_start_page (oggz, og) >= 0 && unit_begin <= 0) {
+    
+    
+    
+    
+    
+    
+    
+    while (oggz_get_next_start_page (oggz, og) >= 0 &&
+           !is_header_page(og) &&
+           unit_begin <= 0)
+    {
       serialno = ogg_page_serialno (og);
       granulepos = ogg_page_granulepos (og);
       unit_begin = oggz_get_unit (oggz, serialno, granulepos);
@@ -693,6 +709,7 @@ oggz_bounded_seek_set (OGGZ * oggz,
 
   
   if (unit_target < unit_begin || unit_target > unit_end) {
+    oggz_reset (oggz, offset_orig, unit_at, SEEK_SET);
     return -1;
   }
 
@@ -772,6 +789,10 @@ oggz_bounded_seek_set (OGGZ * oggz,
   }
 
    
+
+  offset_at = oggz_reset (oggz, offset_at, unit_at, SEEK_SET);
+  if (offset_at == -1)
+    return -1;
 
   return (long)reader->current_unit;
 }
