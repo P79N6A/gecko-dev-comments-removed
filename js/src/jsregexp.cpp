@@ -2001,7 +2001,7 @@ CompileRegExpToAST(JSContext* cx, JSTokenStream* ts,
 }
 
 #ifdef JS_TRACER
-typedef JSTempVector<LIns *> LInsList;
+typedef js::Vector<LIns *, 4, js::ContextAllocPolicy> LInsList;
 
 
 static GC gc;

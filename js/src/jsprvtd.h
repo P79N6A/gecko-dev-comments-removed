@@ -143,12 +143,22 @@ typedef struct JSXMLArrayCursor     JSXMLArrayCursor;
 #ifdef __cplusplus
 extern "C++" {
 
-template <class T, size_t MinInlineCapacity = 0> class JSTempVector;
+namespace js {
+
+class ContextAllocPolicy;
+class SystemAllocPolicy;
+
+template <class T,
+          size_t MinInlineCapacity = 0,
+          class AllocPolicy = ContextAllocPolicy>
+class Vector;
+
+} 
 
 
-typedef JSTempVector<jschar, 32> JSCharBuffer;
+typedef js::Vector<jschar, 32> JSCharBuffer;
 
-}
+} 
 #endif  
 
 
