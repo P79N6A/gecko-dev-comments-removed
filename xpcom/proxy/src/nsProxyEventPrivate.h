@@ -181,9 +181,10 @@ public:
 private:
     ~nsProxyEventObject();
 
-    nsCOMPtr<nsISomeInterface>  mRealInterface;
+    
     nsProxyEventClass          *mClass;
     nsCOMPtr<nsProxyObject>     mProxyObject;
+    nsCOMPtr<nsISomeInterface>  mRealInterface;
 
     
     nsProxyEventObject         *mNext;

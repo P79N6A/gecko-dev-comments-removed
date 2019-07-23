@@ -57,9 +57,9 @@ nsProxyEventObject::nsProxyEventObject(nsProxyObject *aParent,
                             nsProxyEventClass* aClass,
                             already_AddRefed<nsISomeInterface> aRealInterface,
                             nsresult *rv)
-    : mRealInterface(aRealInterface),
-      mClass(aClass),
+    : mClass(aClass),
       mProxyObject(aParent),
+      mRealInterface(aRealInterface),
       mNext(nsnull)
 {
     *rv = InitStub(aClass->GetProxiedIID());
@@ -71,6 +71,11 @@ nsProxyEventObject::~nsProxyEventObject()
     
 
     mProxyObject->LockedRemove(this);
+
+    
+    
+    
+    mRealInterface = nsnull;
 }
 
 
