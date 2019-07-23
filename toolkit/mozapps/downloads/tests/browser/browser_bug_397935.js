@@ -74,7 +74,7 @@ function test()
     
     let dmui = Cc["@mozilla.org/download-manager-ui;1"].
                getService(Ci.nsIDownloadManagerUI);
-    
+    ok(dmui.visible, "Download Manager stays open on alert click");
 
     setClose(false);
     finish();

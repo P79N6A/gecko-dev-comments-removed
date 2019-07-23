@@ -403,6 +403,11 @@ function Startup()
 
   
   
+  if (window.arguments[1] == Ci.nsIDownloadManagerUI.REASON_USER_INTERACTED)
+    gUserInteracted = true;
+
+  
+  
   if (!autoRemoveAndClose())
     gDownloadsView.focus();
 

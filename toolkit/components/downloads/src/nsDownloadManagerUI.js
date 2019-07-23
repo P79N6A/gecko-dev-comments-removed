@@ -58,39 +58,53 @@ nsDownloadManagerUI.prototype = {
   
   
 
-  show: function show(aWindowContext, aID)
+  show: function show(aWindowContext, aID, aReason)
   {
+    if (!aReason)
+      aReason = Ci.nsIDownloadManagerUI.REASON_USER_INTERACTED;
+
     
-    if (this.recentWindow) {
-      this.recentWindow.focus();
+    let window = this.recentWindow;
+    if (window) {
+      window.focus();
+      
+      
+      
+      if (aReason == Ci.nsIDownloadManagerUI.REASON_USER_INTERACTED)
+        window.gUserInteracted = true;
       return;
     }
 
+    let parent = null;
     
     
     
-    var window = null;
     try {
       if (aWindowContext)
-        window = aWindowContext.getInterface(Ci.nsIDOMWindow);
+        parent = aWindowContext.getInterface(Ci.nsIDOMWindow);
     } catch (e) {  }
 
     
     var params = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    var dm = Cc["@mozilla.org/download-manager;1"].
-             getService(Ci.nsIDownloadManager);
-    params.appendElement(dm, false);
 
     
     var download = null;
     try {
+      let dm = Cc["@mozilla.org/download-manager;1"].
+               getService(Ci.nsIDownloadManager);
       download = dm.getDownload(aID);
     } catch (ex) {}
     params.appendElement(download, false);
 
+    
+    let reason = Cc["@mozilla.org/supports-PRInt16;1"].
+                 createInstance(Ci.nsISupportsPRInt16);
+    reason.data = aReason;
+    params.appendElement(reason, false);
+
     var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
              getService(Ci.nsIWindowWatcher);
-    ww.openWindow(window,
+    ww.openWindow(parent,
                   DOWNLOAD_MANAGER_URL,
                   "Download:Manager",
                   "chrome,dialog=no,resizable",
