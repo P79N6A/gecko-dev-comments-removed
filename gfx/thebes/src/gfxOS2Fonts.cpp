@@ -119,10 +119,16 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
 
         FT_UInt gid; 
         FT_Face face = cairo_ft_scaled_font_lock_face(CairoScaledFont());
-        if (!face) {
+        if (!face || !face->charmap) {
             
             
             
+            
+            
+            
+            
+            if (face)
+                cairo_ft_scaled_font_unlock_face(CairoScaledFont());
             return *mMetrics;
         }
 
@@ -430,12 +436,8 @@ PRBool gfxOS2Font::SetupCairoFont(gfxContext *aContext)
 
 
 
-
-
-
-
-static already_AddRefed<gfxOS2Font> GetOrMakeFont(const nsAString& aName,
-                                                  const gfxFontStyle *aStyle)
+already_AddRefed<gfxOS2Font> gfxOS2Font::GetOrMakeFont(const nsAString& aName,
+                                                       const gfxFontStyle *aStyle)
 {
     nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aName, aStyle);
     if (!font) {
@@ -448,6 +450,10 @@ static already_AddRefed<gfxOS2Font> GetOrMakeFont(const nsAString& aName,
     font.swap(f);
     return static_cast<gfxOS2Font *>(f);
 }
+
+
+
+
 
 gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
                                  const gfxFontStyle* aStyle)
@@ -487,43 +493,11 @@ gfxOS2FontGroup::gfxOS2FontGroup(const nsAString& aFamilies,
     }
 
     for (int i = 0; i < familyArray.Count(); i++) {
-        nsRefPtr<gfxOS2Font> font = GetOrMakeFont(*familyArray[i], &mStyle);
+        nsRefPtr<gfxOS2Font> font = gfxOS2Font::GetOrMakeFont(*familyArray[i], &mStyle);
         if (font) {
             mFonts.AppendElement(font);
         }
     }
-
-#ifdef REALLY_DESPERATE_FONT_MATCHING
-    
-    nsStringArray fontList;
-    nsCAutoString generic;
-    if (!gfxPlatform::GetPlatform()->GetFontList(GetStyle()->langGroup, generic, fontList)) {
-        
-        
-        fontList.RemoveString(NS_LITERAL_STRING("MARKSYM"));
-        fontList.RemoveString(NS_LITERAL_STRING("MT Extra"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math1"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math2"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math3"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math4"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math5"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math1Mono"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math2Mono"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math3Mono"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math4Mono"));
-        fontList.RemoveString(NS_LITERAL_STRING("Math5Mono"));
-        
-        for (int i = 3; i < fontList.Count(); i++) {
-            
-            if (familyArray.IndexOf(*fontList[i]) == -1) {
-                nsRefPtr<gfxOS2Font> font = GetOrMakeFont(*fontList[i], &mStyle);
-                if (font) {
-                    mFonts.AppendElement(font);
-                }
-            }
-        }
-    }
-#endif
 }
 
 gfxOS2FontGroup::~gfxOS2FontGroup()
@@ -662,12 +636,13 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
                font->GetStyle()->size);
     }
 #endif
-    PRUint32 fontlistLast = FontListLength()-1;
+    PRUint32 lastFont = FontListLength()-1;
     gfxOS2Font *font0 = GetFontAt(0);
     const PRUint8 *p = aUTF8;
     PRUint32 utf16Offset = 0;
     gfxTextRun::CompressedGlyph g;
     const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
+    gfxOS2Platform *platform = gfxOS2Platform::GetPlatform();
 
     aTextRun->AddGlyphRun(font0, 0);
     
@@ -683,32 +658,55 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
         printf("\'%c\' (%d, %#x, %s) [%#x %#x]:", (char)ch, ch, ch, ch >=0x10000 ? "non-BMP!" : "BMP", ch >=0x10000 ? H_SURROGATE(ch) : 0, ch >=0x10000 ? L_SURROGATE(ch) : 0);
 #endif
 
-        if (ch == 0) {
+        if (ch == 0 || platform->noFontWithChar(ch)) {
             
-            aTextRun->SetMissingGlyph(utf16Offset, 0);
+            aTextRun->SetMissingGlyph(utf16Offset, ch);
         } else {
             
             
             
             
-            for (PRUint32 i = 0; i <= fontlistLast; i++) {
+            
+            for (PRUint32 i = 0; i <= lastFont; i++) {
                 gfxOS2Font *font = font0;
                 FT_Face face = face0;
                 if (i > 0) {
                     font = GetFontAt(i);
                     face = cairo_ft_scaled_font_lock_face(font->CairoScaledFont());
 #ifdef DEBUG_thebes_2
-                    if (i == fontlistLast) {
+                    if (i == lastFont) {
                         printf("Last font %d (%s) for ch=%#x (pos=%d)",
                                i, NS_LossyConvertUTF16toASCII(font->GetName()).get(), ch, utf16Offset);
                     }
 #endif
                 }
-                
-                aTextRun->AddGlyphRun(font, utf16Offset);
+                if (!face || !face->charmap) { 
+                    if (face && face != face0)
+                        cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
+                    continue; 
+                }
 
                 NS_ASSERTION(!IsInvalidChar(ch), "Invalid char detected");
                 FT_UInt gid = FT_Get_Char_Index(face, ch); 
+
+                if (gid == 0 && i == lastFont) {
+                    
+                    nsRefPtr<gfxOS2Font> fontX = platform->FindFontForChar(ch, font0);
+                    if (fontX) {
+                        font = fontX; 
+                        cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
+                        face = cairo_ft_scaled_font_lock_face(fontX->CairoScaledFont());
+                        gid = FT_Get_Char_Index(face, ch);
+                        
+                        
+                        mFonts.AppendElement(fontX);
+                        lastFont = FontListLength()-1;
+                    }
+                }
+
+                
+                aTextRun->AddGlyphRun(font, utf16Offset);
+
                 PRInt32 advance = 0;
                 if (gid == font->GetSpaceGlyph()) {
                     advance = (int)(font->GetMetrics().spaceWidth * appUnitsPerDevUnit);
@@ -767,7 +765,7 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
                     glyphFound = PR_TRUE;
                 } else if (gid == 0) {
                     
-                    if (i == fontlistLast) {
+                    if (i == lastFont) {
                         
                         
                         aTextRun->SetMissingGlyph(utf16Offset, ch);

@@ -42,6 +42,8 @@
 #include <os2.h>
 
 #include "gfxPlatform.h"
+#include "gfxOS2Fonts.h"
+#include "gfxFontUtils.h"
 
 class gfxFontconfigUtils;
 
@@ -70,8 +72,24 @@ public:
 
     gfxFontGroup *CreateFontGroup(const nsAString &aFamilies,
                                   const gfxFontStyle *aStyle);
+
+    
+    
+    
+    
+    already_AddRefed<gfxOS2Font> FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont);
+
+    
+    PRBool noFontWithChar(PRUint32 aCh) {
+        return mCodepointsWithNoFonts.test(aCh);
+    }
+
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
+
+private:
+    
+    gfxSparseBitSet mCodepointsWithNoFonts;
 };
 
 #endif 

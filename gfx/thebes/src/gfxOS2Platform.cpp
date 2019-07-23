@@ -123,12 +123,21 @@ gfxOS2Platform::GetFontList(const nsACString& aLangGroup,
 #endif
     return sFontconfigUtils->GetFontList(aLangGroup, aGenericFamily,
                                          aListOfFonts);
-    
 }
 
 nsresult gfxOS2Platform::UpdateFontList()
 {
-    return sFontconfigUtils->UpdateFontList();
+#ifdef DEBUG_thebes
+    printf("gfxOS2Platform::UpdateFontList()\n");
+#endif
+    mCodepointsWithNoFonts.reset();
+
+    nsresult rv = sFontconfigUtils->UpdateFontList();
+
+    
+    mCodepointsWithNoFonts.SetRange(0,0x1f);     
+    mCodepointsWithNoFonts.SetRange(0x7f,0x9f);  
+    return rv;
 }
 
 nsresult
@@ -155,7 +164,58 @@ gfxOS2Platform::GetStandardFamilyName(const nsAString& aFontName, nsAString& aFa
 
 gfxFontGroup *
 gfxOS2Platform::CreateFontGroup(const nsAString &aFamilies,
-				const gfxFontStyle *aStyle)
+                                const gfxFontStyle *aStyle)
 {
     return new gfxOS2FontGroup(aFamilies, aStyle);
+}
+
+already_AddRefed<gfxOS2Font>
+gfxOS2Platform::FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont)
+{
+#ifdef DEBUG_thebes
+    printf("gfxOS2Platform::FindFontForChar(%d, ...)\n", aCh);
+#endif
+
+    
+    if (mCodepointsWithNoFonts.test(aCh)) {
+        return nsnull;
+    }
+
+    
+    
+
+    
+    nsStringArray fontList;
+    nsCAutoString generic;
+    nsresult rv = GetFontList(aFont->GetStyle()->langGroup, generic, fontList);
+    if (NS_SUCCEEDED(rv)) {
+        
+        for (int i = 3; i < fontList.Count(); i++) {
+#ifdef DEBUG_thebes
+            printf("searching in entry i=%d (%s)\n",
+                   i, NS_LossyConvertUTF16toASCII(*fontList[i]).get());
+#endif
+            nsRefPtr<gfxOS2Font> font =
+                gfxOS2Font::GetOrMakeFont(*fontList[i], aFont->GetStyle());
+            if (!font)
+                continue;
+            FT_Face face = cairo_ft_scaled_font_lock_face(font->CairoScaledFont());
+            if (!face || !face->charmap) {
+                if (face)
+                    cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
+                continue;
+            }
+
+            FT_UInt gid = FT_Get_Char_Index(face, aCh); 
+            if (gid != 0) {
+                
+                cairo_ft_scaled_font_unlock_face(font->CairoScaledFont());
+                return font.forget();
+            }
+        }
+    }
+
+    
+    mCodepointsWithNoFonts.set(aCh);
+    return nsnull;
 }
