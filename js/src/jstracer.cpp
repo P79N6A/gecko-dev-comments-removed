@@ -1723,9 +1723,8 @@ public:
             
             
             return split(ci, args);
-        } else {
-            return out->insCall(ci, args);
         }
+        return out->insCall(ci, args);
     }
 };
 
@@ -8315,14 +8314,17 @@ TraceRecorder::f2i(LIns* f)
         if (ci == &js_UnboxDouble_ci) {
             LIns* args[] = { fcallarg(f, 0) };
             return lir->insCall(&js_UnboxInt32_ci, args);
-        } else if (ci == &js_StringToNumber_ci) {
+        }
+        if (ci == &js_StringToNumber_ci) {
             LIns* args[] = { fcallarg(f, 1), fcallarg(f, 0) };
             return lir->insCall(&js_StringToInt32_ci, args);
-        } else if (ci == &js_String_p_charCodeAt0_ci) {
+        }
+        if (ci == &js_String_p_charCodeAt0_ci) {
             
             LIns* args[] = { fcallarg(f, 1) };
             return lir->insCall(&js_String_p_charCodeAt0_int_ci, args);
-        } else if (ci == &js_String_p_charCodeAt_ci) {
+        }
+        if (ci == &js_String_p_charCodeAt_ci) {
             LIns* idx = fcallarg(f, 1);
             
             idx = isPromote(idx)
