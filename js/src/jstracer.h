@@ -45,6 +45,7 @@
 #ifdef JS_TRACER
 
 #include "jscntxt.h"
+#include "jsstddef.h"
 #include "jstypes.h"
 #include "jslock.h"
 #include "jsnum.h"
@@ -628,23 +629,5 @@ js_GetBuiltinFunction(JSContext *cx, uintN index);
 #define TRACE_2(x,a,b)          ((void)0)
 
 #endif 
-
-static JS_INLINE JS_FORCES_STACK void
-js_LeaveTrace(JSContext *cx)
-{
-    if (JS_ON_TRACE(cx))
-        js_GetTopStackFrame(cx);
-}
-
-static JS_INLINE bool
-js_CanLeaveTrace(JSContext *cx)
-{
-    JS_ASSERT(JS_ON_TRACE(cx));
-#ifdef JS_TRACER
-    return cx->bailExit;
-#else
-    return false;
-#endif
-}
 
 #endif 

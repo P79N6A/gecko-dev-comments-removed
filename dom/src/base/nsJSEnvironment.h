@@ -43,6 +43,7 @@
 #include "jsapi.h"
 #include "nsIObserver.h"
 #include "nsIXPCScriptNotify.h"
+#include "nsITimer.h"
 #include "prtime.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsScriptNameSpaceManager.h"
@@ -50,7 +51,8 @@
 class nsIXPConnectJSObjectHolder;
 
 class nsJSContext : public nsIScriptContext,
-                    public nsIXPCScriptNotify
+                    public nsIXPCScriptNotify,
+                    public nsITimerCallback
 {
 public:
   nsJSContext(JSRuntime *aRuntime);
@@ -166,6 +168,8 @@ public:
 
   NS_DECL_NSIXPCSCRIPTNOTIFY
 
+  NS_DECL_NSITIMERCALLBACK
+
   static void LoadStart();
   static void LoadEnd();
 
@@ -190,21 +194,21 @@ public:
 
   
   static void CCIfUserInactive();
-
-  static void FireGCTimer(PRBool aLoadInProgress);
-
 protected:
   nsresult InitializeExternalClasses();
   
   nsresult FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder);
 
   
-  nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
-                                   void *aScope,
-                                   PRUint32 *aArgc, void **aArgv,
-                                   void **aMarkp);
+  JS_FORCES_STACK nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
+                                                   void *aScope,
+                                                   PRUint32 *aArgc,
+                                                   void **aArgv,
+                                                   void **aMarkp);
 
   nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv);
+
+  void FireGCTimer(PRBool aLoadInProgress);
 
   
   

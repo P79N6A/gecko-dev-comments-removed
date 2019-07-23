@@ -376,7 +376,7 @@ class AutoFreeJSStack {
 public:
   AutoFreeJSStack(JSContext *ctx, void *aPtr) : mContext(ctx), mStack(aPtr) {
   }
-  ~AutoFreeJSStack() {
+  JS_REQUIRES_STACK ~AutoFreeJSStack() {
     if (mContext && mStack)
       js_FreeStack(mContext, mStack);
   }
@@ -1337,6 +1337,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSContext)
   NS_INTERFACE_MAP_ENTRY(nsIScriptContext)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptNotify)
+  NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptContext)
 NS_INTERFACE_MAP_END
 
@@ -2523,6 +2524,8 @@ nsJSContext::ConvertSupportsTojsvals(nsISupports *aArgs,
 {
   nsresult rv = NS_OK;
 
+  js_LeaveTrace(mContext);
+
   
   nsCOMPtr<nsIJSArgArray> fastArray = do_QueryInterface(aArgs);
   if (fastArray != nsnull) {
@@ -3498,10 +3501,11 @@ nsJSContext::CCIfUserInactive()
   }
 }
 
-
-void
-GCTimerFired(nsITimer *aTimer, void *aClosure)
+NS_IMETHODIMP
+nsJSContext::Notify(nsITimer *timer)
 {
+  NS_ASSERTION(mContext, "No context in nsJSContext::Notify()!");
+
   NS_RELEASE(sGCTimer);
 
   if (sPendingLoadCount == 0 || sLoadInProgressGCTimer) {
@@ -3515,12 +3519,14 @@ GCTimerFired(nsITimer *aTimer, void *aClosure)
     
     sPendingLoadCount = 0;
 
-    nsJSContext::CCIfUserInactive();
+    CCIfUserInactive();
   } else {
-    nsJSContext::FireGCTimer(PR_TRUE);
+    FireGCTimer(PR_TRUE);
   }
 
   sReadyForGC = PR_TRUE;
+
+  return NS_OK;
 }
 
 
@@ -3549,10 +3555,15 @@ nsJSContext::LoadEnd()
   }
 }
 
-
 void
 nsJSContext::FireGCTimer(PRBool aLoadInProgress)
 {
+  
+  
+  
+  
+  ::JS_ClearNewbornRoots(mContext);
+
   if (sGCTimer) {
     
     return;
@@ -3573,11 +3584,11 @@ nsJSContext::FireGCTimer(PRBool aLoadInProgress)
 
   static PRBool first = PR_TRUE;
 
-  sGCTimer->InitWithFuncCallback(GCTimerFired, nsnull,
-                                 first ? NS_FIRST_GC_DELAY :
-                                 aLoadInProgress ? NS_LOAD_IN_PROCESS_GC_DELAY :
-                                                   NS_GC_DELAY,
-                                 nsITimer::TYPE_ONE_SHOT);
+  sGCTimer->InitWithCallback(this,
+                             first ? NS_FIRST_GC_DELAY :
+                             aLoadInProgress ? NS_LOAD_IN_PROCESS_GC_DELAY :
+                                               NS_GC_DELAY,
+                             nsITimer::TYPE_ONE_SHOT);
 
   sLoadInProgressGCTimer = aLoadInProgress;
 

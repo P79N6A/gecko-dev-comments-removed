@@ -1401,17 +1401,53 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 extern JSBool
 js_InvokeOperationCallback(JSContext *cx);
 
-
-
-
-
-
-
-extern JS_FORCES_STACK JSStackFrame *
-js_GetTopStackFrame(JSContext *cx);
-
 extern JSStackFrame *
 js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp);
+
+#ifdef JS_TRACER
+
+
+
+
+
+
+
+JS_FORCES_STACK JS_FRIEND_API(void)
+js_DeepBail(JSContext *cx);
+#endif
+
+static JS_FORCES_STACK JS_INLINE void
+js_LeaveTrace(JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_ON_TRACE(cx))
+        js_DeepBail(cx);
+#endif
+}
+
+static JS_INLINE JSBool
+js_CanLeaveTrace(JSContext *cx)
+{
+    JS_ASSERT(JS_ON_TRACE(cx));
+#ifdef JS_TRACER
+    return cx->bailExit != NULL;
+#else
+    return JS_FALSE;
+#endif
+}
+
+
+
+
+
+
+
+static JS_FORCES_STACK JS_INLINE JSStackFrame *
+js_GetTopStackFrame(JSContext *cx)
+{
+    js_LeaveTrace(cx);
+    return cx->fp;
+}
 
 JS_END_EXTERN_C
 

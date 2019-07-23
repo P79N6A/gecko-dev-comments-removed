@@ -41,6 +41,7 @@
 
 
 
+#include "jsstddef.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1488,15 +1489,6 @@ js_InvokeOperationCallback(JSContext *cx)
 
     return !cb || cb(cx);
 }
-
-#ifndef JS_TRACER
-
-extern JS_FORCES_STACK JSStackFrame *
-js_GetTopStackFrame(JSContext *cx)
-{
-    return cx->fp;
-}
-#endif
 
 JSStackFrame *
 js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp)
