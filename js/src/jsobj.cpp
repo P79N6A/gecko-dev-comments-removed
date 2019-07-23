@@ -4134,20 +4134,6 @@ out:
 
 
 
-struct JSNativeEnumerator {
-    uint32              cursor;         
-
-    uint32              length;         
-    JSNativeEnumerator  *next;          
-    JSNativeEnumerator  **prevp;
-    jsid                ids[1];         
-};
-
-
-
-
-
-
 JSBool
 js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
              jsval *statep, jsid *idp)

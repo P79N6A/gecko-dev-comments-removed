@@ -60,6 +60,12 @@ JS_BEGIN_EXTERN_C
 
 
 
+#define JSSLOT_ITER_STATE       (JSSLOT_PRIVATE)
+#define JSSLOT_ITER_FLAGS       (JSSLOT_PRIVATE + 1)
+
+
+
+
 
 
 

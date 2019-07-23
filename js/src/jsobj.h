@@ -388,8 +388,7 @@ extern void
 js_TraceSharpMap(JSTracer *trc, JSSharpObjectMap *map);
 
 extern JSBool
-js_HasOwnPropertyHelper(JSContext *cx, JSLookupPropOp lookup, uintN argc,
-                        jsval *vp);
+js_HasOwnPropertyHelper(JSContext *cx, JSLookupPropOp lookup, jsval *vp);
 
 extern JSObject *
 js_InitBlockClass(JSContext *cx, JSObject* obj);
@@ -609,6 +608,22 @@ js_DeleteProperty(JSContext *cx, JSObject *obj, jsid id, jsval *rval);
 
 extern JSBool
 js_DefaultValue(JSContext *cx, JSObject *obj, JSType hint, jsval *vp);
+
+
+
+
+
+
+
+
+struct JSNativeEnumerator {
+    uint32              cursor;         
+
+    uint32              length;         
+    JSNativeEnumerator  *next;          
+    JSNativeEnumerator  **prevp;
+    jsid                ids[1];         
+};
 
 extern JSBool
 js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
