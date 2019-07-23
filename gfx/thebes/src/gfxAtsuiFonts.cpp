@@ -1076,7 +1076,9 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aTextRun,
                 charEnd += direction;
             }
             
-            if (!isLTR && NS_IS_LOW_SURROGATE(aString[charEnd+1])) {
+            
+            if (!isLTR && charToGlyph[charEnd+1] == NO_GLYPH &&
+                NS_IS_LOW_SURROGATE(aString[charEnd+1])) {
                 charEnd += 1;
             }
 
