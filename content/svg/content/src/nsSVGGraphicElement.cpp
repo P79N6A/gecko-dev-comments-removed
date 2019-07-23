@@ -141,6 +141,12 @@ NS_IMETHODIMP nsSVGGraphicElement::GetCTM(nsIDOMSVGMatrix **_retval)
   nsresult rv;
   *_retval = nsnull;
 
+  nsIDocument* currentDoc = GetCurrentDoc();
+  if (currentDoc) {
+    
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
+
   nsBindingManager *bindingManager = nsnull;
   
   
@@ -182,6 +188,12 @@ NS_IMETHODIMP nsSVGGraphicElement::GetScreenCTM(nsIDOMSVGMatrix **_retval)
 {
   nsresult rv;
   *_retval = nsnull;
+
+  nsIDocument* currentDoc = GetCurrentDoc();
+  if (currentDoc) {
+    
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
 
   nsBindingManager *bindingManager = nsnull;
   
