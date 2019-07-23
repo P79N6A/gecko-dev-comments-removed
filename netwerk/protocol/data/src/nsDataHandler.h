@@ -55,6 +55,15 @@ public:
     
     static NS_METHOD
     Create(nsISupports* aOuter, const nsIID& aIID, void* *aResult);
+
+    
+    
+    
+    static NS_HIDDEN_(nsresult) ParseURI(nsCString& spec,
+                                         nsCString& contentType,
+                                         nsCString& contentCharset,
+                                         PRBool&    isBase64,
+                                         nsCString& dataBuffer);
 };
 
 #endif 
