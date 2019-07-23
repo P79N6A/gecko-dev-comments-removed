@@ -151,6 +151,9 @@ protected:
 
   void DestroyImageLoadingContent();
 
+  void ClearBrokenState() { mBroken = PR_FALSE; }
+
+  PRBool LoadingEnabled() { return mLoadingEnabled; }
 private:
   
 

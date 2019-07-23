@@ -5197,6 +5197,7 @@ public:
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest,
                               imgIContainer *aContainer);
 
+  void MaybeLoadSVGImage();
 private:
   
   void Invalidate();
@@ -5301,6 +5302,16 @@ nsSVGFEImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                                                aValue, aNotify);
 }
 
+void
+nsSVGFEImageElement::MaybeLoadSVGImage()
+{
+  if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href) &&
+      (NS_FAILED(LoadSVGImage(PR_FALSE, PR_TRUE)) ||
+       !LoadingEnabled())) {
+    CancelImageRequests(PR_TRUE);
+  }
+}
+
 nsresult
 nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
@@ -5312,11 +5323,10 @@ nsSVGFEImageElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (HasAttr(kNameSpaceID_XLink, nsGkAtoms::href)) {
-    
-    
-    
-    
-    LoadSVGImage(PR_FALSE, PR_FALSE);
+    ClearBrokenState();
+    nsContentUtils::AddScriptRunner(
+      new nsRunnableMethod<nsSVGFEImageElement>(this,
+                                                &nsSVGFEImageElement::MaybeLoadSVGImage));
   }
 
   return rv;

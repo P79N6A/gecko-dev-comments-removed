@@ -124,6 +124,8 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
+  void StartObjectLoad() { StartObjectLoad(PR_TRUE); }
+
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLObjectElement,
                                                      nsGenericHTMLFormElement)
 
@@ -224,9 +226,9 @@ nsHTMLObjectElement::BindToTree(nsIDocument *aDocument,
 
   
   if (mIsDoneAddingChildren) {
-    
-    
-    StartObjectLoad(PR_FALSE);
+    nsContentUtils::AddScriptRunner(
+      new nsRunnableMethod<nsHTMLObjectElement>(this,
+                                                &nsHTMLObjectElement::StartObjectLoad));
   }
 
   return NS_OK;

@@ -316,6 +316,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLInputElement,
                                                      nsGenericHTMLFormElement)
 
+  void MaybeLoadImage();
 protected:
   
   nsresult SetValueInternal(const nsAString& aValue,
@@ -1966,6 +1967,19 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   return rv;
 }
 
+void
+nsHTMLInputElement::MaybeLoadImage()
+{
+  
+  
+  nsAutoString uri;
+  if (mType == NS_FORM_INPUT_IMAGE &&
+      GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri) &&
+      (NS_FAILED(LoadImage(uri, PR_FALSE, PR_TRUE)) ||
+       !LoadingEnabled())) {
+    CancelImageRequests(PR_TRUE);
+  }
+}
 
 nsresult
 nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -1980,11 +1994,11 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   if (mType == NS_FORM_INPUT_IMAGE) {
     
     
-    nsAutoString uri;
-    if (GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri)) {
-      
-      
-      LoadImage(uri, PR_FALSE, PR_FALSE);
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::src)) {
+      ClearBrokenState();
+      nsContentUtils::AddScriptRunner(
+        new nsRunnableMethod<nsHTMLInputElement>(this,
+                                                 &nsHTMLInputElement::MaybeLoadImage));
     }
   }
 
