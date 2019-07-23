@@ -25,23 +25,25 @@ function snapshotWindow(win) {
 }
 
 
-function compareSnapshots(s1, s2) {
+
+
+function compareSnapshots(s1, s2, expected) {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 
   var s1Str, s2Str;
-  var equal = false;
+  var correct = false;
   if (gWindowUtils) {
-    equal = (gWindowUtils.compareCanvases(s1, s2, {}) == 0);
+    correct = ((gWindowUtils.compareCanvases(s1, s2, {}) == 0) == expected);
   }
 
-  if (!equal) {
+  if (!correct) {
     s1Str = s1.toDataURL();
     s2Str = s2.toDataURL();
 
     if (!gWindowUtils) {
-      equal = (s1Str == s2Str);
+	correct = ((s1Str == s2Str) == expected);
     }
   }
 
-  return [equal, s1Str, s2Str];
+  return [correct, s1Str, s2Str];
 }
