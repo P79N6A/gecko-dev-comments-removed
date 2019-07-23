@@ -474,8 +474,6 @@ public:
   
   virtual void BeginUpdate(nsUpdateType aUpdateType);
   virtual void EndUpdate(nsUpdateType aUpdateType);
-  virtual PRUint32 GetUpdateNestingLevel();
-  virtual PRBool AllUpdatesAreContent();
   virtual void BeginLoad();
   virtual void EndLoad();
   virtual void ContentStatesChanged(nsIContent* aContent1,
@@ -802,8 +800,6 @@ protected:
 
   
   PRUint32 mUpdateNestLevel;
-  
-  PRUint32 mContentUpdateNestLevel;
 
 private:
   friend class nsUnblockOnloadEvent;
