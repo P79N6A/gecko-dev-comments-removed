@@ -47,10 +47,19 @@ version(180);
 
 
 
-var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
-              getService(Ci.nsINavHistoryService);
-var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-            getService(Ci.nsINavBookmarksService);
+
+
+
+try {
+  var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                getService(Ci.nsINavHistoryService);
+  var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+              getService(Ci.nsINavBookmarksService);
+  var tagssvc = Cc["@mozilla.org/browser/tagging-service;1"].
+                getService(Ci.nsITaggingService);
+} catch (ex) {
+  do_throw("Could not get services\n");
+}
 
 function add_visit(aURI, aVisitDate, aVisitType) {
   var isRedirect = aVisitType == histsvc.TRANSITION_REDIRECT_PERMANENT ||
@@ -63,9 +72,11 @@ function add_visit(aURI, aVisitDate, aVisitType) {
 
 
 var searchTerm = "ユニコード";
+var theTag = "superTag";
 var decoded = "http://www.foobar.com/" + searchTerm + "/";
 var url = uri(decoded);
 add_visit(url, Date.now(), Ci.nsINavHistoryService.TRANSITION_LINK);
+tagssvc.tagURI(url, [theTag]);
 
 function AutoCompleteInput(aSearches) {
   this.searches = aSearches;
@@ -145,5 +156,5 @@ function run_test() {
     do_test_finished();
   };
 
-  controller.startSearch(searchTerm);
+  controller.startSearch(theTag);
 }
