@@ -5867,7 +5867,9 @@ nsCSSFrameConstructor::FindFrameForContentSibling(nsIContent* aContent,
                                                   PRBool aPrevSibling)
 {
   nsIFrame* sibling = mPresShell->GetPrimaryFrameFor(aContent);
-  if (!sibling) {
+  if (!sibling || sibling->GetContent() != aContent) {
+    
+    
     return nsnull;
   }
 
