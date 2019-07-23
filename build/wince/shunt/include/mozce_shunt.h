@@ -54,11 +54,53 @@ typedef unsigned short wchar_t;
 #ifdef MOZ_MEMORY
 
 #ifdef __cplusplus
+
+
+
 #define _NEW_
-void * operator new(size_t _Size);
-void operator delete(void * ptr);
-void *operator new[](size_t size);
-void operator delete[](void *ptr);
+#define _INC_NEW
+
+#ifndef __NOTHROW_T_DEFINED
+#define __NOTHROW_T_DEFINED
+namespace std {
+  struct nothrow_t {};
+  extern const nothrow_t nothrow;
+};
+#endif
+
+
+#include "jemalloc.h"
+
+
+
+
+inline void *operator new(size_t size) throw() {
+  return (void*) malloc(size);
+}
+inline void *operator new(size_t size, const std::nothrow_t&) throw() {
+  return (void*) malloc(size);
+}
+inline void operator delete(void *ptr) throw() {
+  free(ptr);
+}
+inline void *operator new[](size_t size) throw() {
+  return (void*) malloc(size);
+}
+inline void *operator new[](size_t size, const std::nothrow_t&) throw() {
+  return (void*) malloc(size);
+}
+inline void operator delete[](void *ptr) throw() {
+  return free(ptr);
+}
+
+
+
+inline void *operator new(size_t, void *p) {
+  return p;
+}
+inline void *operator new[](size_t, void *p) {
+  return p;
+}
 
 extern "C" {
 #endif
