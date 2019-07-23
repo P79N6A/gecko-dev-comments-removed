@@ -1868,8 +1868,12 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, PRInt64 aReferringVisit,
     
     
     
+    
+    
+    
+    
     hidden = oldHiddenState;
-    if (hidden && ! aIsRedirect &&
+    if (hidden && (!aIsRedirect || aTransitionType == TRANSITION_TYPED) &&
         aTransitionType != nsINavHistoryService::TRANSITION_EMBED)
       hidden = PR_FALSE; 
 
