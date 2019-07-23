@@ -103,9 +103,6 @@ using namespace mozilla::ipc::windows;
 
 namespace {
 
-UINT gEventLoopMessage =
-    RegisterWindowMessage(L"SyncChannel Windows Message Loop Message");
-
 UINT gOOPPSpinNativeLoopEvent =
     RegisterWindowMessage(L"SyncChannel Spin Inner Loop Message");
 
@@ -590,13 +587,17 @@ TimeoutHasExpired(const TimeoutData& aData)
 
 
 
-bool
+void
 RPCChannel::SpinInternalEventLoop()
 {
   EnterSpinLoop();
 
   
   
+  
+  
+  
+
   do {
     MSG msg = { 0 };
 
@@ -605,33 +606,21 @@ RPCChannel::SpinInternalEventLoop()
       MutexAutoLock lock(mMutex);
       if (!Connected()) {
         ExitSpinLoop();
-        return false;
+        return;
       }
     }
 
     if (!RPCChannel::IsSpinLoopActive()) {
       ExitSpinLoop();
-      return false;
+      return;
     }
 
-    
-    
-    
     
     if (PeekMessageW(&msg, (HWND)-1, gOOPPStopNativeLoopEvent,
                      gOOPPStopNativeLoopEvent, PM_REMOVE)) {
       DecModalLoopCnt();
       ExitSpinLoop();
-      return false;
-    }
-
-    
-    
-    
-    if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                     PM_REMOVE)) {
-      ExitSpinLoop();
-      return true;
+      return;
     }
 
     
@@ -639,16 +628,12 @@ RPCChannel::SpinInternalEventLoop()
       if (msg.message == gOOPPStopNativeLoopEvent) {
         DecModalLoopCnt();
         ExitSpinLoop();
-        return false;
+        return;
       }
       else if (msg.message == gOOPPSpinNativeLoopEvent) {
         
         IncModalLoopCnt();
         continue;
-      }
-      else if (msg.message == gEventLoopMessage) {
-        ExitSpinLoop();
-        return true;
       }
 
       
@@ -659,11 +644,22 @@ RPCChannel::SpinInternalEventLoop()
           TranslateMessage(&msg);
           DispatchMessageW(&msg);
           ExitSpinLoop();
-          return false;
+          return;
       }
-    } else {
+    }
+
+    
+    
+    
+    
+
+    
+    DWORD result = MsgWaitForMultipleObjects(1, &mEvent, FALSE, INFINITE,
+                                             QS_ALLINPUT);
+    if (result == WAIT_OBJECT_0) {
       
-      WaitMessage();
+      ExitSpinLoop();
+      return;
     }
   } while (true);
 }
@@ -723,9 +719,14 @@ SyncChannel::WaitForNotify()
       
       
       
-      DWORD result = MsgWaitForMultipleObjects(0, NULL, FALSE, INFINITE,
+      DWORD result = MsgWaitForMultipleObjects(1, &mEvent, FALSE, INFINITE,
                                                QS_ALLINPUT);
-      if (result != WAIT_OBJECT_0) {
+      if (result == WAIT_OBJECT_0) {
+        
+        ResetEvent(mEvent);
+        break;
+      } else
+      if (result != (WAIT_OBJECT_0 + 1)) {
         NS_ERROR("Wait failed!");
         break;
       }
@@ -751,13 +752,6 @@ SyncChannel::WaitForNotify()
       
       
       
-
-      
-      
-      if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                       PM_REMOVE)) {
-        break;
-      }
 
       
       
@@ -819,7 +813,8 @@ RPCChannel::WaitForNotify()
 
   if (WaitNeedsSpinLoop()) {
     SpinInternalEventLoop();
-    return true; 
+    ResetEvent(mEvent);
+    return true;
   }
 
   if (++gEventLoopDepth == 1) {
@@ -860,9 +855,14 @@ RPCChannel::WaitForNotify()
         }
       }
 
-      DWORD result = MsgWaitForMultipleObjects(0, NULL, FALSE, INFINITE,
+      DWORD result = MsgWaitForMultipleObjects(1, &mEvent, FALSE, INFINITE,
                                                QS_ALLINPUT);
-      if (result != WAIT_OBJECT_0) {
+      if (result == WAIT_OBJECT_0) {
+        
+        ResetEvent(mEvent);
+        break;
+      } else
+      if (result != (WAIT_OBJECT_0 + 1)) {
         NS_ERROR("Wait failed!");
         break;
       }
@@ -908,11 +908,10 @@ RPCChannel::WaitForNotify()
         
         
         
-        
-        
         IncModalLoopCnt();
         SpinInternalEventLoop();
-        return true; 
+        ResetEvent(mEvent);
+        return true;
       }
 
       
@@ -920,11 +919,6 @@ RPCChannel::WaitForNotify()
       if (PeekMessageW(&msg, (HWND)-1, gOOPPStopNativeLoopEvent,
                        gOOPPStopNativeLoopEvent, PM_REMOVE)) {
         DecModalLoopCnt();
-        break;
-      }
-
-      if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                       PM_REMOVE)) {
         break;
       }
 
@@ -968,9 +962,9 @@ void
 SyncChannel::NotifyWorkerThread()
 {
   mMutex.AssertCurrentThreadOwns();
-  NS_ASSERTION(gUIThreadId, "This should have been set already!");
-  if (!PostThreadMessage(gUIThreadId, gEventLoopMessage, 0, 0)) {
-    NS_WARNING("Failed to post thread message!");
+  NS_ASSERTION(mEvent, "No signal event to set, this is really bad!");
+  if (!SetEvent(mEvent)) {
+    NS_WARNING("Failed to set NotifyWorkerThread event!");
   }
 }
 
