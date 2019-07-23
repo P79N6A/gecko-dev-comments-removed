@@ -138,6 +138,25 @@ RuleHash_CIHashKey(PLDHashTable *table, const void *key)
   return HashString(str);
 }
 
+typedef nsIAtom*
+(* PR_CALLBACK RuleHashGetKey)    (PLDHashTable *table,
+                                   const PLDHashEntryHdr *entry);
+
+struct RuleHashTableOps {
+  PLDHashTableOps ops;
+  
+  
+  
+  RuleHashGetKey getKey;
+};
+
+inline const RuleHashTableOps*
+ToLocalOps(const PLDHashTableOps *aOps)
+{
+  return (const RuleHashTableOps*)
+           (((const char*) aOps) - offsetof(RuleHashTableOps, ops));
+}
+
 PR_STATIC_CALLBACK(PRBool)
 RuleHash_CIMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
                       const void *key)
@@ -145,9 +164,7 @@ RuleHash_CIMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
   nsIAtom *match_atom = NS_CONST_CAST(nsIAtom*, NS_STATIC_CAST(const nsIAtom*,
                             key));
   
-  
-  nsIAtom *entry_atom = NS_CONST_CAST(nsIAtom*, NS_STATIC_CAST(const nsIAtom*,
-             table->ops->getKey(table, NS_CONST_CAST(PLDHashEntryHdr*, hdr))));
+  nsIAtom *entry_atom = ToLocalOps(table->ops)->getKey(table, hdr);
 
   
   if (match_atom == entry_atom)
@@ -167,39 +184,33 @@ RuleHash_CSMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
   nsIAtom *match_atom = NS_CONST_CAST(nsIAtom*, NS_STATIC_CAST(const nsIAtom*,
                             key));
   
-  
-  nsIAtom *entry_atom = NS_CONST_CAST(nsIAtom*, NS_STATIC_CAST(const nsIAtom*,
-             table->ops->getKey(table, NS_CONST_CAST(PLDHashEntryHdr*, hdr))));
+  nsIAtom *entry_atom = ToLocalOps(table->ops)->getKey(table, hdr);
 
   return match_atom == entry_atom;
 }
 
-PR_STATIC_CALLBACK(const void*)
-RuleHash_TagTable_GetKey(PLDHashTable *table, PLDHashEntryHdr *hdr)
+PR_STATIC_CALLBACK(nsIAtom*)
+RuleHash_TagTable_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 {
-  RuleHashTableEntry *entry = NS_STATIC_CAST(RuleHashTableEntry*, hdr);
+  const RuleHashTableEntry *entry =
+    NS_STATIC_CAST(const RuleHashTableEntry*, hdr);
   return entry->mRules->mSelector->mTag;
 }
 
-PR_STATIC_CALLBACK(const void*)
-RuleHash_ClassTable_GetKey(PLDHashTable *table, PLDHashEntryHdr *hdr)
+PR_STATIC_CALLBACK(nsIAtom*)
+RuleHash_ClassTable_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 {
-  RuleHashTableEntry *entry = NS_STATIC_CAST(RuleHashTableEntry*, hdr);
+  const RuleHashTableEntry *entry =
+    NS_STATIC_CAST(const RuleHashTableEntry*, hdr);
   return entry->mRules->mSelector->mClassList->mAtom;
 }
 
-PR_STATIC_CALLBACK(const void*)
-RuleHash_IdTable_GetKey(PLDHashTable *table, PLDHashEntryHdr *hdr)
+PR_STATIC_CALLBACK(nsIAtom*)
+RuleHash_IdTable_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 {
-  RuleHashTableEntry *entry = NS_STATIC_CAST(RuleHashTableEntry*, hdr);
+  const RuleHashTableEntry *entry =
+    NS_STATIC_CAST(const RuleHashTableEntry*, hdr);
   return entry->mRules->mSelector->mIDList->mAtom;
-}
-
-PR_STATIC_CALLBACK(const void*)
-RuleHash_NameSpaceTable_GetKey(PLDHashTable *table, PLDHashEntryHdr *hdr)
-{
-  RuleHashTableEntry *entry = NS_STATIC_CAST(RuleHashTableEntry*, hdr);
-  return NS_INT32_TO_PTR(entry->mRules->mSelector->mNameSpace);
 }
 
 PR_STATIC_CALLBACK(PLDHashNumber)
@@ -220,80 +231,89 @@ RuleHash_NameSpaceTable_MatchEntry(PLDHashTable *table,
          entry->mRules->mSelector->mNameSpace;
 }
 
-static PLDHashTableOps RuleHash_TagTable_Ops = {
+static const RuleHashTableOps RuleHash_TagTable_Ops = {
+  {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  RuleHash_TagTable_GetKey,
   PL_DHashVoidPtrKeyStub,
   RuleHash_CSMatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
   NULL
+  },
+  RuleHash_TagTable_GetKey
 };
 
 
-static PLDHashTableOps RuleHash_ClassTable_CSOps = {
+static const RuleHashTableOps RuleHash_ClassTable_CSOps = {
+  {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  RuleHash_ClassTable_GetKey,
   PL_DHashVoidPtrKeyStub,
   RuleHash_CSMatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
   NULL
+  },
+  RuleHash_ClassTable_GetKey
 };
 
 
-static PLDHashTableOps RuleHash_ClassTable_CIOps = {
+static const RuleHashTableOps RuleHash_ClassTable_CIOps = {
+  {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  RuleHash_ClassTable_GetKey,
   RuleHash_CIHashKey,
   RuleHash_CIMatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
   NULL
+  },
+  RuleHash_ClassTable_GetKey
 };
 
 
-static PLDHashTableOps RuleHash_IdTable_CSOps = {
+static const RuleHashTableOps RuleHash_IdTable_CSOps = {
+  {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  RuleHash_IdTable_GetKey,
   PL_DHashVoidPtrKeyStub,
   RuleHash_CSMatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
   NULL
+  },
+  RuleHash_IdTable_GetKey
 };
 
 
-static PLDHashTableOps RuleHash_IdTable_CIOps = {
+static const RuleHashTableOps RuleHash_IdTable_CIOps = {
+  {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  RuleHash_IdTable_GetKey,
   RuleHash_CIHashKey,
   RuleHash_CIMatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
   NULL
+  },
+  RuleHash_IdTable_GetKey
 };
 
-static PLDHashTableOps RuleHash_NameSpaceTable_Ops = {
+static const PLDHashTableOps RuleHash_NameSpaceTable_Ops = {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  RuleHash_NameSpaceTable_GetKey,
   RuleHash_NameSpaceTable_HashKey,
   RuleHash_NameSpaceTable_MatchEntry,
   PL_DHashMoveEntryStub,
   PL_DHashClearEntryStub,
   PL_DHashFinalizeStub,
-  NULL
+  NULL,
 };
 
 #undef RULE_HASH_STATS
@@ -389,15 +409,15 @@ RuleHash::RuleHash(PRBool aQuirksMode)
   
   PL_INIT_ARENA_POOL(&mArena, "RuleHashArena", NS_RULEHASH_ARENA_BLOCK_SIZE);
 
-  PL_DHashTableInit(&mTagTable, &RuleHash_TagTable_Ops, nsnull,
+  PL_DHashTableInit(&mTagTable, &RuleHash_TagTable_Ops.ops, nsnull,
                     sizeof(RuleHashTableEntry), 64);
   PL_DHashTableInit(&mIdTable,
-                    aQuirksMode ? &RuleHash_IdTable_CIOps
-                                : &RuleHash_IdTable_CSOps,
+                    aQuirksMode ? &RuleHash_IdTable_CIOps.ops
+                                : &RuleHash_IdTable_CSOps.ops,
                     nsnull, sizeof(RuleHashTableEntry), 16);
   PL_DHashTableInit(&mClassTable,
-                    aQuirksMode ? &RuleHash_ClassTable_CIOps
-                                : &RuleHash_ClassTable_CSOps,
+                    aQuirksMode ? &RuleHash_ClassTable_CIOps.ops
+                                : &RuleHash_ClassTable_CSOps.ops,
                     nsnull, sizeof(RuleHashTableEntry), 16);
   PL_DHashTableInit(&mNameSpaceTable, &RuleHash_NameSpaceTable_Ops, nsnull,
                     sizeof(RuleHashTableEntry), 16);
@@ -636,10 +656,9 @@ AttributeSelectorClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
   memset(entry, 0, table->entrySize);
 }
 
-static PLDHashTableOps AttributeSelectorOps = {
+static const PLDHashTableOps AttributeSelectorOps = {
   PL_DHashAllocTable,
   PL_DHashFreeTable,
-  PL_DHashGetKeyStub,
   PL_DHashVoidPtrKeyStub,
   PL_DHashMatchEntryStub,
   PL_DHashMoveEntryStub,

@@ -397,7 +397,6 @@ nsCacheEntryHashTable::ops =
 {
     PL_DHashAllocTable,
     PL_DHashFreeTable,
-    GetKey,
     HashKey,
     MatchEntry,
     MoveEntry,
@@ -519,13 +518,6 @@ nsCacheEntryHashTable::VisitEntry(PLDHashTable *table,
 
 
 
-
-const void * PR_CALLBACK
-nsCacheEntryHashTable::GetKey( PLDHashTable * , PLDHashEntryHdr *hashEntry)
-{
-    nsCacheEntry *cacheEntry = ((nsCacheEntryHashTableEntry *)hashEntry)->cacheEntry;
-    return cacheEntry->mKey;
-}
 
 
 PLDHashNumber PR_CALLBACK

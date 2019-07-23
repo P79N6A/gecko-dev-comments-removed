@@ -111,6 +111,7 @@ typedef struct PLDHashTableOps  PLDHashTableOps;
 
 
 
+
 struct PLDHashEntryHdr {
     PLDHashNumber       keyHash;        
 };
@@ -247,16 +248,6 @@ typedef void
 
 
 
-
-
-typedef const void *
-(* PR_CALLBACK PLDHashGetKey)    (PLDHashTable *table,
-                                      PLDHashEntryHdr *entry);
-
-
-
-
-
 typedef PLDHashNumber
 (* PR_CALLBACK PLDHashHashKey)   (PLDHashTable *table, const void *key);
 
@@ -340,7 +331,6 @@ struct PLDHashTableOps {
     
     PLDHashAllocTable   allocTable;
     PLDHashFreeTable    freeTable;
-    PLDHashGetKey       getKey;
     PLDHashHashKey      hashKey;
     PLDHashMatchEntry   matchEntry;
     PLDHashMoveEntry    moveEntry;
@@ -368,9 +358,6 @@ struct PLDHashEntryStub {
     PLDHashEntryHdr hdr;
     const void      *key;
 };
-
-NS_COM_GLUE const void *
-PL_DHashGetKeyStub(PLDHashTable *table, PLDHashEntryHdr *entry);
 
 NS_COM_GLUE PLDHashNumber
 PL_DHashVoidPtrKeyStub(PLDHashTable *table, const void *key);

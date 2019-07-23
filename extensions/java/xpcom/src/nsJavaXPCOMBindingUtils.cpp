@@ -449,18 +449,6 @@ FreeJavaGlobals(JNIEnv* env)
 
 
 
-static PLDHashTableOps hash_ops =
-{
-  PL_DHashAllocTable,
-  PL_DHashFreeTable,
-  PL_DHashGetKeyStub,
-  PL_DHashVoidPtrKeyStub,
-  PL_DHashMatchEntryStub,
-  PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
-  PL_DHashFinalizeStub
-};
-
 
 
 
@@ -470,7 +458,8 @@ static PLDHashTableOps hash_ops =
 nsresult
 NativeToJavaProxyMap::Init()
 {
-  mHashTable = PL_NewDHashTable(&hash_ops, nsnull, sizeof(Entry), 16);
+  mHashTable = PL_NewDHashTable(PL_DHashGetStubOps(), nsnull,
+                                sizeof(Entry), 16);
   if (!mHashTable)
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;
@@ -659,7 +648,8 @@ NativeToJavaProxyMap::Remove(JNIEnv* env, nsISupports* aNativeObject,
 nsresult
 JavaToXPTCStubMap::Init()
 {
-  mHashTable = PL_NewDHashTable(&hash_ops, nsnull, sizeof(Entry), 16);
+  mHashTable = PL_NewDHashTable(PL_DHashGetStubOps(), nsnull,
+                                sizeof(Entry), 16);
   if (!mHashTable)
     return NS_ERROR_OUT_OF_MEMORY;
   return NS_OK;

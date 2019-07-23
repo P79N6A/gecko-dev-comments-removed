@@ -110,6 +110,7 @@ typedef struct JSDHashTableOps  JSDHashTableOps;
 
 
 
+
 struct JSDHashEntryHdr {
     JSDHashNumber       keyHash;        
 };
@@ -246,16 +247,6 @@ typedef void
 
 
 
-
-
-typedef const void *
-(* JS_DLL_CALLBACK JSDHashGetKey)    (JSDHashTable *table,
-                                      JSDHashEntryHdr *entry);
-
-
-
-
-
 typedef JSDHashNumber
 (* JS_DLL_CALLBACK JSDHashHashKey)   (JSDHashTable *table, const void *key);
 
@@ -339,7 +330,6 @@ struct JSDHashTableOps {
     
     JSDHashAllocTable   allocTable;
     JSDHashFreeTable    freeTable;
-    JSDHashGetKey       getKey;
     JSDHashHashKey      hashKey;
     JSDHashMatchEntry   matchEntry;
     JSDHashMoveEntry    moveEntry;
@@ -367,9 +357,6 @@ struct JSDHashEntryStub {
     JSDHashEntryHdr hdr;
     const void      *key;
 };
-
-extern JS_PUBLIC_API(const void *)
-JS_DHashGetKeyStub(JSDHashTable *table, JSDHashEntryHdr *entry);
 
 extern JS_PUBLIC_API(JSDHashNumber)
 JS_DHashVoidPtrKeyStub(JSDHashTable *table, const void *key);
