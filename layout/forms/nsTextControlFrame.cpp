@@ -1388,10 +1388,6 @@ nsTextControlFrame::DelayedEditorInit()
 {
   
   
-  nsAutoScriptBlocker scriptBlocker;
-
-  
-  
   nsCxPusher pusher;
   pusher.PushNull();
 
