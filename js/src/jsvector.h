@@ -43,7 +43,6 @@
 #include <string.h>
 #include <new>
 
-#include "jsutil.h"
 #include "jsbit.h"
 
 
@@ -75,11 +74,15 @@ template <class T> struct BitSize {
 };
 
 
+template <bool> struct StaticAssert {};
+template <> struct StaticAssert<true> { typedef int result; };
+
+
 
 
 
 template <size_t N> struct NBitMask {
-    JS_STATIC_ASSERT(N < BitSize<size_t>::result);
+    typedef typename StaticAssert<N < BitSize<size_t>::result>::result _;
     static const size_t result = ~((size_t(1) << N) - 1);
 };
 template <> struct NBitMask<BitSize<size_t>::result> {
