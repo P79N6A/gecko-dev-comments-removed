@@ -78,7 +78,8 @@ typedef enum JSStmtType {
     STMT_DO_LOOP,               
     STMT_FOR_LOOP,              
     STMT_FOR_IN_LOOP,           
-    STMT_WHILE_LOOP             
+    STMT_WHILE_LOOP,            
+    STMT_LIMIT
 } JSStmtType;
 
 #define STMT_TYPE_IN_RANGE(t,b,e) ((uint)((t) - (b)) <= (uintN)((e) - (b)))

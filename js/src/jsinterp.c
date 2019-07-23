@@ -2032,6 +2032,61 @@ InternNonIntElementId(JSContext *cx, JSObject *obj, jsval idval, jsid *idp)
 
 
 
+static JSBool
+EnterWith(JSContext *cx, jsint stackIndex)
+{
+    JSStackFrame *fp;
+    jsval *sp;
+    JSObject *obj, *parent, *withobj;
+
+    fp = cx->fp;
+    sp = fp->sp;
+    JS_ASSERT(stackIndex < 0);
+    JS_ASSERT(fp->spbase <= sp + stackIndex);
+
+    if (!JSVAL_IS_PRIMITIVE(sp[-1])) {
+        obj = JSVAL_TO_OBJECT(sp[-1]);
+    } else {
+        obj = js_ValueToNonNullObject(cx, sp[-1]);
+        if (!obj)
+            return JS_FALSE;
+        sp[-1] = OBJECT_TO_JSVAL(obj);
+    }
+
+    parent = js_GetScopeChain(cx, fp);
+    if (!parent)
+        return JS_FALSE;
+
+    OBJ_TO_INNER_OBJECT(cx, obj);
+    if (!obj)
+        return JS_FALSE;
+
+    withobj = js_NewWithObject(cx, obj, parent,
+                               sp + stackIndex - fp->spbase);
+    if (!withobj)
+        return JS_FALSE;
+
+    fp->scopeChain = withobj;
+    js_DisablePropertyCache(cx);
+    return JS_TRUE;
+}
+
+static void
+LeaveWith(JSContext *cx)
+{
+    JSObject *withobj;
+
+    withobj = cx->fp->scopeChain;
+    JS_ASSERT(OBJ_GET_CLASS(cx, withobj) == &js_WithClass);
+    cx->fp->scopeChain = OBJ_GET_PARENT(cx, withobj);
+    JS_SetPrivate(cx, withobj, NULL);
+    js_EnablePropertyCache(cx);
+}
+
+
+
+
+
 
 
 
@@ -2231,7 +2286,7 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
     uintN argc, attrs, flags, slot;
     jsval *vp, lval, rval, ltmp, rtmp;
     jsid id;
-    JSObject *withobj, *iterobj;
+    JSObject *iterobj;
     JSProperty *prop;
     JSScopeProperty *sprop;
     JSString *str, *str2;
@@ -2594,30 +2649,27 @@ interrupt:
 
           BEGIN_CASE(JSOP_ENTERWITH)
             SAVE_SP_AND_PC(fp);
-            FETCH_OBJECT(cx, -1, rval, obj);
-            OBJ_TO_INNER_OBJECT(cx, obj);
-            if (!obj || !(obj2 = js_GetScopeChain(cx, fp))) {
-                ok = JS_FALSE;
+            ok = EnterWith(cx, -1);
+            if (!ok)
                 goto out;
-            }
-            withobj = js_NewWithObject(cx, obj, obj2, sp - fp->spbase - 1);
-            if (!withobj) {
-                ok = JS_FALSE;
-                goto out;
-            }
-            fp->scopeChain = withobj;
-            STORE_OPND(-1, OBJECT_TO_JSVAL(withobj));
-            js_DisablePropertyCache(cx);
+
+            
+
+
+
+
+
+
+
+
+            sp[-1] = OBJECT_TO_JSVAL(fp->scopeChain);
           END_CASE(JSOP_ENTERWITH)
 
           BEGIN_CASE(JSOP_LEAVEWITH)
-            rval = POP_OPND();
-            JS_ASSERT(JSVAL_IS_OBJECT(rval));
-            withobj = JSVAL_TO_OBJECT(rval);
-            JS_ASSERT(OBJ_GET_CLASS(cx, withobj) == &js_WithClass);
-            fp->scopeChain = OBJ_GET_PARENT(cx, withobj);
-            JS_SetPrivate(cx, withobj, NULL);
-            js_EnablePropertyCache(cx);
+            JS_ASSERT(sp[-1] == OBJECT_TO_JSVAL(fp->scopeChain));
+            sp--;
+            SAVE_SP_AND_PC(fp);
+            LeaveWith(cx);
           END_CASE(JSOP_LEAVEWITH)
 
           BEGIN_CASE(JSOP_SETRVAL)
@@ -6080,19 +6132,43 @@ interrupt:
           END_CASE(JSOP_DESCENDANTS)
 
           BEGIN_CASE(JSOP_FILTER)
+            
+
+
+
+
+            PUSH_OPND(JSVAL_HOLE);
             len = GET_JUMP_OFFSET(pc);
-            SAVE_SP_AND_PC(fp);
-            FETCH_OBJECT(cx, -1, lval, obj);
-            ok = js_FilterXMLList(cx, obj, pc + js_CodeSpec[op].length, &rval);
-            if (!ok)
-                goto out;
-            JS_ASSERT(fp->sp == sp);
-            STORE_OPND(-1, rval);
+            JS_ASSERT(len > 0);
           END_VARLEN_CASE
 
           BEGIN_CASE(JSOP_ENDFILTER)
-            *result = POP_OPND();
-            goto out;
+            SAVE_SP_AND_PC(fp);
+            cond = (sp[-1] != JSVAL_HOLE);
+            if (cond) {
+                
+                LeaveWith(cx);
+            }
+            ok = js_StepXMLListFilter(cx, cond);
+            if (!ok)
+                goto out;
+            if (sp[-1] != JSVAL_NULL) {
+                
+
+
+
+                JS_ASSERT(VALUE_IS_XML(cx, sp[-1]));
+                ok = EnterWith(cx, -2);
+                if (!ok)
+                    goto out;
+                sp--;
+                len = GET_JUMP_OFFSET(pc);
+                JS_ASSERT(len < 0);
+                CHECK_BRANCH(len);
+                DO_NEXT_OP(len);
+            }
+            sp--;
+          END_CASE(JSOP_ENDFILTER);
 
           EMPTY_CASE(JSOP_STARTXML)
           EMPTY_CASE(JSOP_STARTXMLEXPR)
@@ -6338,7 +6414,7 @@ interrupt:
 
             SAVE_SP_AND_PC(fp);
             ok = js_CloseIterator(cx, sp[-1]);
-            --sp;
+            sp--;
             if (!ok)
                 goto out;
           END_CASE(JSOP_ENDITER)
@@ -6358,13 +6434,6 @@ interrupt:
 
           BEGIN_CASE(JSOP_YIELD)
             ASSERT_NOT_THROWING(cx);
-            if (fp->flags & JSFRAME_FILTERING) {
-                
-                JS_ReportErrorNumberUC(cx, js_GetErrorMessage, NULL,
-                                       JSMSG_YIELD_FROM_FILTER);
-                ok = JS_FALSE;
-                goto out;
-            }
             if (FRAME_TO_GENERATOR(fp)->state == JSGEN_CLOSING) {
                 js_ReportValueError(cx, JSMSG_BAD_GENERATOR_YIELD,
                                     JSDVG_SEARCH_STACK, fp->argv[-2], NULL);
@@ -6406,7 +6475,7 @@ interrupt:
             ok = OBJ_SET_PROPERTY(cx, obj, id, &rval);
             if (!ok)
                 goto out;
-            --sp;
+            sp--;
           END_CASE(JSOP_ARRAYPUSH)
 #endif 
 
@@ -6514,31 +6583,8 @@ interrupt:
 
 out:
     JS_ASSERT((size_t)(pc - script->code) < script->length);
-    if (!ok && cx->throwing && !(fp->flags & JSFRAME_FILTERING)) {
+    if (!ok && cx->throwing) {
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         JSTrapHandler handler;
         JSTryNote *tn, *tnlimit;
         uint32 offset;
@@ -6618,7 +6664,8 @@ out:
             fp->blockChain = obj;
 
             JS_ASSERT(ok);
-            for (obj = fp->scopeChain; ; obj = OBJ_GET_PARENT(cx, obj)) {
+            for (;;) {
+                obj = fp->scopeChain;
                 clasp = OBJ_GET_CLASS(cx, obj);
                 if (clasp != &js_WithClass && clasp != &js_BlockClass)
                     break;
@@ -6629,14 +6676,12 @@ out:
                 if (clasp == &js_BlockClass) {
                     
                     ok &= js_PutBlockObject(cx, obj);
+                    fp->scopeChain = OBJ_GET_PARENT(cx, obj);
                 } else {
-                    JS_ASSERT(clasp == &js_WithClass);
-                    JS_SetPrivate(cx, obj, NULL);
-                    js_EnablePropertyCache(cx);
+                    LeaveWith(cx);
                 }
             }
 
-            fp->scopeChain = obj;
             sp = fp->spbase + i;
 
             
@@ -6726,7 +6771,6 @@ out:
     }
 
     
-
 
 
 
