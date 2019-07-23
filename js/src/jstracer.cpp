@@ -1145,7 +1145,7 @@ TraceRecorder::writeBack(LIns* i, LIns* base, ptrdiff_t offset)
     
 
 
-    if (isPromoteInt(i)) 
+    if (isPromoteInt(i))
         i = ::demote(lir, i);
     return lir->insStorei(i, base, offset);
 }
@@ -1226,6 +1226,41 @@ struct FrameInfo {
         uint32      word;       
     };
 };
+
+
+
+bool
+TraceRecorder::adjustCallerTypes(Fragment* f)
+{
+    JSTraceMonitor* tm = traceMonitor;
+    uint8* m = tm->globalTypeMap->data();
+    uint16* gslots = traceMonitor->globalSlots->data();
+    unsigned ngslots = traceMonitor->globalSlots->length();
+    FORALL_GLOBAL_SLOTS(cx, ngslots, gslots, 
+        LIns* i = get(vp);
+        bool isPromote = isPromoteInt(i);
+        if (isPromote && *m == JSVAL_DOUBLE) 
+            lir->insStorei(get(vp), gp_ins, nativeGlobalOffset(vp));
+        ++m;
+    );
+    m = ((TreeInfo*)f->vmprivate)->stackTypeMap.data();
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
+        LIns* i = get(vp);
+        bool isPromote = isPromoteInt(i);
+        if (isPromote && *m == JSVAL_DOUBLE) 
+            lir->insStorei(get(vp), lirbuf->sp, 
+                           -treeInfo->nativeStackBase + nativeStackOffset(vp));
+        ++m;
+    );
+    return true;
+}
+
+
+bool TraceRecorder::selectCallablePeerFragment(Fragment** first)
+{
+    
+    return (*first)->code();
+}
 
 SideExit*
 TraceRecorder::snapshot(ExitType exitType)
@@ -1422,7 +1457,7 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
 
 
 void
-TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
+TraceRecorder::prepareTreeCall(Fragment* inner)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
     inner_sp_ins = lirbuf->sp;
@@ -1458,8 +1493,6 @@ TraceRecorder::emitTreeCallStackSetup(Fragment* inner)
         lir->insStorei(lir->ins2i(LIR_piadd, lirbuf->rp, rp_adj),
                 lirbuf->state, offsetof(InterpState, rp));
     }
-    
-    snapshot(SNAPSHOT_ONLY);
 }
 
 
@@ -1467,24 +1500,6 @@ void
 TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 {
     TreeInfo* ti = (TreeInfo*)inner->vmprivate;
-    JSTraceMonitor* tm = traceMonitor;
-    JS_ASSERT(exit.exitType == SNAPSHOT_ONLY);
-    
-
-    uint8* m = exit.typeMap;
-    uint8* z = tm->globalTypeMap->data(); 
-    FORALL_GLOBAL_SLOTS(cx, exit.numGlobalSlots, tm->globalSlots->data(),
-        if (*m == JSVAL_INT && *z == JSVAL_DOUBLE)
-            lir->insStorei(get(vp), gp_ins, nativeGlobalOffset(vp));
-        ++m; ++z;
-    );
-    m = exit.typeMap + exit.numGlobalSlots;
-    z = ti->stackTypeMap.data();
-    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if (*m == JSVAL_INT && *z == JSVAL_DOUBLE)
-            lir->insStorei(get(vp), lirbuf->sp, -treeInfo->nativeStackBase + nativeStackOffset(vp));
-        ++m; ++z;
-    );
     
     LIns* args[] = { lir->insImmPtr(inner), lirbuf->state }; 
     LIns* ret = lir->insCall(F_CallTree, args);
@@ -1795,30 +1810,12 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
     }
     
     Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
-    if (nesting_enabled && f && f->code()) {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        r->emitTreeCallStackSetup(f);
-        debug_only(printf("first fragment: %p\n", f)); 
+    if (nesting_enabled && 
+        f && 
+        r->selectCallablePeerFragment(&f) && 
+        r->adjustCallerTypes(f)) { 
+        r->prepareTreeCall(f);
         GuardRecord* lr = js_ExecuteTree(cx, &f, inlineCallCount);
-        debug_only(printf("actual fragment: %p\n", f)); 
         if (!lr) {
             js_AbortRecording(cx, oldpc, "Couldn't call inner tree");
             return false;
@@ -1852,8 +1849,25 @@ static inline GuardRecord*
 js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
 {
     Fragment* f = *treep;
-    JS_ASSERT(f->code() && f->vmprivate);
+
     
+    if (!f->code()) {
+        JS_ASSERT(!f->vmprivate);
+        return NULL;
+    }
+    JS_ASSERT(f->vmprivate);
+
+    AUDIT(traceTriggered);
+
+    
+    TreeInfo* ti = (TreeInfo*)f->vmprivate;
+
+#ifdef DEBUG
+    printf("entering trace at %s:%u@%u, native stack slots: %u\n",
+           cx->fp->script->filename, js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
+           cx->fp->regs->pc - cx->fp->script->code, ti->maxNativeStackSlots);
+#endif
+
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
     unsigned ngslots = tm->globalSlots->length();
     uint16* gslots = tm->globalSlots->data();
@@ -1878,35 +1892,18 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
         return NULL;
     }
 
-    TreeInfo* ti = NULL;
-    for ( ; f != NULL; f = f->peer) {
-        
-        if (!f->code()) {
-            JS_ASSERT(!f->vmprivate);
-            continue;
-        }
-        JS_ASSERT(f->vmprivate);
-
-        AUDIT(traceTriggered);
-
-        
-        ti = (TreeInfo*)f->vmprivate;
-
-#ifdef DEBUG
-        printf("entering trace at %s:%u@%u, native stack slots: %u\n",
-               cx->fp->script->filename, js_PCToLineNumber(cx, cx->fp->script, cx->fp->regs->pc),
-               cx->fp->regs->pc - cx->fp->script->code, ti->maxNativeStackSlots);
-#endif
-
-        if (BuildNativeStackFrame(cx, 0, ti->stackTypeMap.data(), stack))
-            break;
-        
+    if (!BuildNativeStackFrame(cx, 0, ti->stackTypeMap.data(), stack)) {
         AUDIT(typeMapMismatchAtEntry);
         debug_only(printf("type-map mismatch.\n");)
-    }
-    if (!f) 
+        if (++ti->mismatchCount > MAX_MISMATCH) {
+            debug_only(printf("excessive mismatches, flushing tree.\n"));
+            js_TrashTree(cx, f);
+            f->blacklist();
+        }
         return NULL;
-    *treep = f;
+    }
+
+    ti->mismatchCount = 0;
 
     double* entry_sp = &stack[ti->nativeStackBase/sizeof(double)];
     FrameInfo* callstack = (FrameInfo*) alloca(MAX_CALL_STACK_ENTRIES * sizeof(FrameInfo));
@@ -2060,20 +2057,14 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc, uintN& inlineCallCount)
     
 
     GuardRecord* lr = NULL;
-    if (f->code())
+    if (f->code() || f->peer)
         lr = js_ExecuteTree(cx, &f, inlineCallCount);
     if (!lr) {
         JS_ASSERT(!tm->recorder);
         
 
-
-        if (f->code()) {
-            f = tm->fragmento->newLoop(f->ip);
+        if (!f->code() && (++f->hits() >= HOTLOOP))
             return js_RecordTree(cx, tm, f);
-        } else {
-            if (++f->hits() >= HOTLOOP)
-                return js_RecordTree(cx, tm, f);
-        }
         return false;
     }
     
@@ -3198,11 +3189,16 @@ TraceRecorder::record_JSOP_ADD()
         LIns* args[] = { NULL, get(&l), cx_ins };
         if (JSVAL_IS_STRING(r)) {
             args[0] = get(&r);
-        } else if (JSVAL_IS_NUMBER(r)) {
-            LIns* args2[] = { get(&r), cx_ins };
-            args[0] = lir->insCall(F_NumberToString, args2);
         } else {
-            ABORT_TRACE("untraceable right operand to string-JSOP_ADD");
+            LIns* args2[] = { get(&r), cx_ins };
+            if (JSVAL_IS_NUMBER(r)) {
+                args[0] = lir->insCall(F_NumberToString, args2);
+            } else if (JSVAL_IS_OBJECT(r)) {
+                args[0] = lir->insCall(F_ObjectToString, args2);
+            } else {
+                ABORT_TRACE("untraceable right operand to string-JSOP_ADD");
+            }
+            guard(false, lir->ins_eq0(args[0]), OOM_EXIT);
         }
         LIns* concat = lir->insCall(F_ConcatStrings, args);
         guard(false, lir->ins_eq0(concat), OOM_EXIT);
@@ -5426,24 +5422,6 @@ TraceRecorder::record_JSOP_HOLE()
     stack(0, lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_HOLE)));
     return true;
 }
-
-#ifdef DEBUG
-void 
-TraceRecorder::printTypeMap(uint8* globalTypeMap, uint8* stackTypeMap)
-{
-    uint8* m = globalTypeMap;
-    const char* types[] = { "object", "int", "double", "int", "string", "int", "boolean", "int" };
-    FORALL_GLOBAL_SLOTS(cx, traceMonitor->globalSlots->length(), traceMonitor->globalSlots->data(),
-        printf("%s%d type=%s value=%lx\n", vpname, vpnum, types[(unsigned)*m], *vp);
-        ++m;
-    );
-    m = stackTypeMap;
-    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        printf("%s%d type=%s value=%lx\n", vpname, vpnum, types[(unsigned)*m], *vp);
-        ++m;
-    );
-}
-#endif DEBUG
 
 #define UNUSED(op) bool TraceRecorder::record_##op() { return false; }
 
