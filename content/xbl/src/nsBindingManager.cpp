@@ -915,7 +915,10 @@ nsBindingManager::DoProcessAttachedQueue()
   mProcessAttachedQueueEvent = nsnull;
 
   if (mDocument) {
-    mDocument->UnblockOnload(PR_TRUE);
+    
+    
+    nsCOMPtr<nsIDocument> doc = mDocument;
+    doc->UnblockOnload(PR_TRUE);
   }
 }
 
