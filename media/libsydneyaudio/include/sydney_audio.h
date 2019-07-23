@@ -100,7 +100,7 @@ typedef __int64 int64_t;
 
 typedef struct sa_stream sa_stream_t;
 
-#if defined(WIN32)
+#if defined(WIN32) || defined(OS2)
 
 #define SA_VOLUME_MUTED ((int32_t) (0x00000000))
 #else
