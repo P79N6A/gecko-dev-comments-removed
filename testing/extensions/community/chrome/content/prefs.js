@@ -176,7 +176,7 @@ var CC_loginManager = Components.classes["@mozilla.org/login-manager;1"];
 
       
       
-      var newLogin = new nsLoginInfo('chrome://qa', 'Litmus Login', litmus.baseURL,
+      var newLogin = new nsLoginInfo('chrome://qa', null, litmus.baseURL,
                                      username, password, "username", "password");
       try {
         this.manager().addLogin(newLogin);
@@ -187,7 +187,7 @@ var CC_loginManager = Components.classes["@mozilla.org/login-manager;1"];
     getPasswordObj: function() {
       try {
         var logins = this.manager().findLogins({}, 'chrome://qa',
-          'Litmus Login', litmus.baseURL);
+          null, litmus.baseURL);
         if (logins.length > 0 && logins[0] != null)
           return logins[0];
         return false;
