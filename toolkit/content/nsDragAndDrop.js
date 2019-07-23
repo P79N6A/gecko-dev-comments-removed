@@ -585,13 +585,6 @@ var nsDragAndDrop = {
 
   dragDropSecurityCheck: function (aEvent, aDragSession, aDraggedText)
     {
-      if (!aDragSession)
-        aDragSession = this.mDragService.getCurrentSession();
-
-      var sourceDoc = aDragSession.sourceDocument;
-      if (!sourceDoc)
-        return;
-
       
       
       
@@ -620,8 +613,16 @@ var nsDragAndDrop = {
       var secMan = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
                              .getService(nsIScriptSecurityManager);
 
+      if (!aDragSession)
+        aDragSession = this.mDragService.getCurrentSession();
+
+      var sourceDoc = aDragSession.sourceDocument;
+      
+      
+      var sourceURI = sourceDoc ? sourceDoc.documentURI : "file:///";
+
       try {
-        secMan.checkLoadURIStr(sourceDoc.documentURI, aDraggedText,
+        secMan.checkLoadURIStr(sourceURI, aDraggedText,
                                nsIScriptSecurityManager.STANDARD);
       } catch (e) {
         
