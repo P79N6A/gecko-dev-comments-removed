@@ -677,8 +677,10 @@ protected:
   static const PRInt32 kAutoCompleteIndex_BookmarkTitle;
   static const PRInt32 kAutoCompleteIndex_Tags;
   static const PRInt32 kAutoCompleteIndex_VisitCount;
+  static const PRInt32 kAutoCompleteIndex_Typed;
   nsCOMPtr<mozIStorageStatement> mDBCurrentQuery; 
   nsCOMPtr<mozIStorageStatement> mDBAutoCompleteQuery; 
+  nsCOMPtr<mozIStorageStatement> mDBAutoCompleteTypedQuery; 
   mozIStorageStatement* GetDBAutoCompleteHistoryQuery();
   nsCOMPtr<mozIStorageStatement> mDBAutoCompleteHistoryQuery; 
   mozIStorageStatement* GetDBAutoCompleteStarQuery();
@@ -724,6 +726,7 @@ protected:
   nsString mAutoCompleteRestrictTag;
   nsString mAutoCompleteMatchTitle;
   nsString mAutoCompleteMatchUrl;
+  nsString mAutoCompleteRestrictTyped;
   PRInt32 mAutoCompleteSearchChunkSize;
   PRInt32 mAutoCompleteSearchTimeout;
   nsCOMPtr<nsITimer> mAutoCompleteTimer;
@@ -733,6 +736,7 @@ protected:
   static const PRInt32 kAutoCompleteBehaviorTag;
   static const PRInt32 kAutoCompleteBehaviorTitle;
   static const PRInt32 kAutoCompleteBehaviorUrl;
+  static const PRInt32 kAutoCompleteBehaviorTyped;
 
   PRInt32 mAutoCompleteDefaultBehavior; 
   PRInt32 mAutoCompleteCurrentBehavior; 
