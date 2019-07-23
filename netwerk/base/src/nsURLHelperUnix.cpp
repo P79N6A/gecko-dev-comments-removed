@@ -47,20 +47,27 @@
 nsresult
 net_GetURLSpecFromFile(nsIFile *aFile, nsACString &result)
 {
-    
-
     nsresult rv;
+    nsCAutoString nativePath, ePath;
     nsAutoString path;
 
-    
-    rv = aFile->GetPath(path);
+    rv = aFile->GetNativePath(nativePath);
     if (NS_FAILED(rv)) return rv;
 
+    
+    NS_CopyNativeToUnicode(nativePath, path);
+    NS_CopyUnicodeToNative(path, ePath);
+
+    
+    if (nativePath == ePath)
+        CopyUTF16toUTF8(path, ePath);
+    else
+        ePath = nativePath;
+    
     nsCAutoString escPath;
     NS_NAMED_LITERAL_CSTRING(prefix, "file://");
         
     
-    NS_ConvertUTF16toUTF8 ePath(path);
     if (NS_EscapeURL(ePath.get(), -1, esc_Directory+esc_Forced, escPath))
         escPath.Insert(prefix, 0);
     else
