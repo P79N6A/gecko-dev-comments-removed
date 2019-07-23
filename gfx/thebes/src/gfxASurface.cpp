@@ -55,6 +55,7 @@
 #endif
 
 #include <stdio.h>
+#include <limits.h>
 
 static cairo_user_data_key_t gfxasurface_pointer_key;
 
@@ -280,6 +281,14 @@ gfxASurface::CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit)
         NS_WARNING("Surface width or height < 0!");
         return PR_FALSE;
     }
+
+#if defined(XP_MACOSX)
+    
+    if (sz.height > SHRT_MAX) {
+        NS_WARNING("Surface size too large (would overflow)!");
+        return PR_FALSE;
+    }
+#endif
 
     
     PRInt32 tmp = sz.width * sz.height;

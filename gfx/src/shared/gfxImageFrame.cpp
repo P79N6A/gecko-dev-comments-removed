@@ -39,6 +39,7 @@
 
 #include "gfxImageFrame.h"
 #include "nsIServiceManager.h"
+#include <limits.h>
 
 NS_IMPL_ISUPPORTS2(gfxImageFrame, gfxIImageFrame, nsIInterfaceRequestor)
 
@@ -63,6 +64,8 @@ NS_IMETHODIMP gfxImageFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt3
   if (mInitialized)
     return NS_ERROR_FAILURE;
 
+  
+  
   if (aWidth <= 0 || aHeight <= 0) {
     NS_ASSERTION(0, "error - negative image size\n");
     return NS_ERROR_FAILURE;
@@ -71,26 +74,34 @@ NS_IMETHODIMP gfxImageFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt3
   
   PRInt32 tmp = aWidth * aHeight;
   if (tmp / aHeight != aWidth) {
-    NS_ASSERTION(0, "width or height too large\n");
+    NS_WARNING("width or height too large");
     return NS_ERROR_FAILURE;
   }
   tmp = tmp * 4;
   if (tmp / 4 != aWidth * aHeight) {
-    NS_ASSERTION(0, "width or height too large\n");
+    NS_WARNING("width or height too large");
     return NS_ERROR_FAILURE;
   }
 
   if ( (aDepth != 8) && (aDepth != 24) ){
-    NS_ERROR("This Depth is not supported\n");
+    NS_ERROR("This Depth is not supported");
     return NS_ERROR_FAILURE;
   }
 
   
   const PRInt32 k64KLimit = 0x0000FFFF;
   if ( aWidth > k64KLimit || aHeight > k64KLimit ){
-    NS_ERROR("image too big");
+    NS_WARNING("image too big");
     return NS_ERROR_FAILURE;
   }
+  
+#if defined(XP_MACOSX)
+  
+  if (aHeight > SHRT_MAX) {
+    NS_WARNING("image too big");
+    return NS_ERROR_FAILURE;
+  }
+#endif
 
   nsresult rv;
 
