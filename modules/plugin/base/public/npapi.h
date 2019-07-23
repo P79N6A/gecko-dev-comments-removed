@@ -327,9 +327,7 @@ typedef enum {
   
 
 
-  NPPVpluginWantsAllNetworkStreams = 18,
-
-  NPPVprivateModeBool = 19
+  NPPVpluginWantsAllNetworkStreams = 18
 
 #ifdef XP_MACOSX
   
