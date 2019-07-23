@@ -1133,12 +1133,13 @@ gfxCoreTextFontGroup::SetGlyphsFromRun(gfxTextRun *aTextRun,
         }
 
         
-        if (baseCharIndex < aLayoutStart || baseCharIndex >= aLayoutStart + aLayoutLength) {
+        if (endCharIndex <= aLayoutStart || baseCharIndex >= aLayoutStart + aLayoutLength) {
             glyphStart = glyphEnd;
             charStart = charEnd;
             continue;
         }
         
+        baseCharIndex = PR_MAX(baseCharIndex, aLayoutStart);
         endCharIndex = PR_MIN(endCharIndex, aLayoutStart + aLayoutLength);
 
         
