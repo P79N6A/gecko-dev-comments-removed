@@ -138,8 +138,10 @@ nsPlacesDBFlush.prototype = {
     this._inBatchMode = false;
 
     
-    this._syncTables(["places", "historyvisits"]);
     this._timer = this._newTimer();
+
+    
+    this._syncTables(["places", "historyvisits"]);
   },
 
   onItemAdded: function() this._syncTables(["places"]),
