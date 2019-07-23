@@ -135,7 +135,7 @@ nsIsIndexFrame::UpdatePromptLabel(PRBool aNotify)
     
     result =
       nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
-                                         "IsIndexPrompt", prompt);
+                                         "IsIndexPromptWithSpace", prompt);
   }
 
   mTextContent->SetText(prompt, aNotify);
