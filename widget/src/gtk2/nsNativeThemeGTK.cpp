@@ -192,7 +192,9 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
     } else {
 
       
-      if (aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD)
+      
+      if (aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD ||
+          aWidgetType == NS_THEME_SPINNER_TEXTFIELD)
         aFrame = aFrame->GetParent();
 
       
@@ -252,6 +254,7 @@ nsNativeThemeGTK::GetGtkWidgetAndState(PRUint8 aWidgetType, nsIFrame* aFrame,
         if (aWidgetType == NS_THEME_TEXTFIELD ||
             aWidgetType == NS_THEME_TEXTFIELD_MULTILINE ||
             aWidgetType == NS_THEME_DROPDOWN_TEXTFIELD ||
+            aWidgetType == NS_THEME_SPINNER_TEXTFIELD ||
             aWidgetType == NS_THEME_RADIO_CONTAINER ||
             aWidgetType == NS_THEME_RADIO_LABEL) {
           aState->focused = IsFocused(aFrame);

@@ -124,6 +124,9 @@
 #define NS_THEME_SPINNER_DOWN_BUTTON                       74
 
 
+#define NS_THEME_SPINNER_TEXTFIELD                         75
+
+
 #define NS_THEME_SCROLLBAR                                 80
 
 
