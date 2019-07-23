@@ -36,13 +36,12 @@
 
 
 
-#ifndef nsCollationMacUC_h__
-#define nsCollationMacUC_h__
+#ifndef nsCollationMacUC_h_
+#define nsCollationMacUC_h_
 
 #include "nsICollation.h"
-#include "nsCollation.h"  
-#include <MacLocales.h>
-#include <UnicodeUtilities.h>
+#include "nsCollation.h"
+#include <Carbon/Carbon.h>
 
 
 
