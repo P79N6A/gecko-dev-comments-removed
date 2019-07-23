@@ -112,6 +112,14 @@ function getPrefBranch() {
 
 
 function cleanUp() {
+  
+  
+  
+  
+  
+  if (gAUS)
+    gAUS.observe(null, "xpcom-shutdown", "");
+
   removeUpdateDirsAndFiles();
   gDirSvc.unregisterProvider(gDirProvider);
 
@@ -159,7 +167,8 @@ function startAUS() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1.0", "2.0");
   setDefaultPrefs();
   gAUS = AUS_Cc["@mozilla.org/updates/update-service;1"].
-         getService(AUS_Ci.nsIApplicationUpdateService);
+         getService(AUS_Ci.nsIApplicationUpdateService).
+         QueryInterface(AUS_Ci.nsIObserver);
   var os = AUS_Cc["@mozilla.org/observer-service;1"].
            getService(AUS_Ci.nsIObserverService);
   os.notifyObservers(null, "profile-after-change", null);

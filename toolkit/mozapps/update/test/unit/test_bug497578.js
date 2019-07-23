@@ -76,10 +76,6 @@ function run_test() {
 
 function end_test() {
   do_test_finished();
-  
-  
-  
-  gAUS.observe(null, "xpcom-shutdown", "");
   cleanUp();
 }
 
