@@ -1938,56 +1938,6 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     }
   }
 
-  if (loadAsHtml5) {
-    
-    PRUint32 count = mChildren.ChildCount();
-    { 
-      MOZ_AUTO_DOC_UPDATE(this, UPDATE_CONTENT_MODEL, PR_TRUE);    
-      for (PRInt32 i = PRInt32(count) - 1; i >= 0; i--) {
-        nsCOMPtr<nsIContent> content = mChildren.ChildAt(i);
-        
-        
-        
-        nsNodeUtils::ContentRemoved(this, content, i);
-        content->UnbindFromTree();
-        mChildren.RemoveChildAt(i);
-      }
-    }
-  }
-
-  
-  
-
-  
-  nsCOMPtr<nsIContent> root = GetRootContent();
-
-  if (root) {
-    PRInt32 rootIndex = mChildren.IndexOfChild(root);
-    NS_ASSERTION(rootIndex >= 0, "Root must be in list!");
-    
-    PRUint32 count = root->GetChildCount();
-
-    
-    while (count-- > 0) {
-      root->RemoveChildAt(count, PR_TRUE);
-    }
-
-    count = root->GetAttrCount();
-
-    
-    while (count-- > 0) {
-      const nsAttrName* name = root->GetAttrNameAt(count);
-      
-      
-      nsCOMPtr<nsIAtom> localName = name->LocalName();
-      root->UnsetAttr(name->NamespaceID(), localName, PR_FALSE);
-    }
-
-    
-    mChildren.RemoveChildAt(rootIndex);
-    mCachedRootContent = nsnull;
-  }
-
   
   Reset(channel, group);
   if (baseURI) {
