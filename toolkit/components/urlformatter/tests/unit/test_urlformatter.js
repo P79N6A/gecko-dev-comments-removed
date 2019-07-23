@@ -34,7 +34,6 @@
 
 
 function run_test() {
-  return;
   var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
                   getService(Ci.nsIURLFormatter);
   var locale = Cc["@mozilla.org/chrome/chrome-registry;1"].
