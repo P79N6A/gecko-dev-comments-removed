@@ -545,10 +545,6 @@ BrowserGlue.prototype = {
     }
     else {
       
-      
-      this._prefs.setIntPref("browser.places.leftPaneFolderId", -1);
-
-      
       this._prefs.setIntPref("browser.places.smartBookmarksVersion", 0);
 
       
