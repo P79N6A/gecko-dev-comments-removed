@@ -87,7 +87,7 @@ protected:
     
     
     
-  PRInt16 GetLocalFiles(const nsString& inTitle, PRBool inAllowMultiple, nsCOMArray<nsILocalFile>& outFiles);
+  PRInt16 GetLocalFiles(const nsString& inTitle, const nsString& inDefaultName, PRBool inAllowMultiple, nsCOMArray<nsILocalFile>& outFiles);
   PRInt16 GetLocalFolder(const nsString& inTitle, nsILocalFile** outFile);
   PRInt16 PutLocalFile(const nsString& inTitle, const nsString& inDefaultName, nsILocalFile** outFile);
 
