@@ -132,7 +132,6 @@ public:
 
   
   NS_IMETHOD GetCanvasTM(nsIDOMSVGMatrix * *aCTM);
-  virtual nsresult UpdateGraphic(PRBool suppressInvalidation = PR_FALSE);
 
   
   
@@ -207,8 +206,7 @@ protected:
   void FillCharacters(CharacterIterator *aIter,
                       gfxContext *aContext);
 
-  void UpdateGeometry(PRBool bRedraw, PRBool suppressInvalidation);
-  void UpdateMetrics();
+  void NotifyGlyphMetricsChange();
   PRBool ContainsPoint(float x, float y);
   PRBool GetGlobalTransform(gfxMatrix *aMatrix);
   void SetupGlobalTransform(gfxContext *aContext);

@@ -100,7 +100,6 @@ public:
 
   
   NS_IMETHOD GetCanvasTM(nsIDOMSVGMatrix * *aCTM);
-  virtual nsresult UpdateGraphic(PRBool suppressInvalidation = PR_FALSE);
 
 protected:
   

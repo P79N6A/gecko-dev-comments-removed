@@ -372,6 +372,9 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   
   
   mRect = GetTransformedRegion(x, y, w, h, ctm);
+
+  nsSVGUtils::UpdateFilterRegion(this);
+
   return NS_OK;
 }
 
@@ -574,33 +577,7 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
 
 void nsSVGForeignObjectFrame::UpdateGraphic()
 {
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
-    return;
-
-  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
-  if (!outerSVGFrame) {
-    NS_ERROR("null outerSVGFrame");
-    return;
-  }
-  
-  if (outerSVGFrame->IsRedrawSuspended()) {
-    AddStateBits(NS_STATE_SVG_DIRTY);
-  } else {
-    RemoveStateBits(NS_STATE_SVG_DIRTY);
-
-    
-    
-    
-    outerSVGFrame->InvalidateCoveredRegion(this);
-
-    UpdateCoveredRegion();
-
-    
-    
-    
-    outerSVGFrame->InvalidateCoveredRegion(this);
-    nsSVGUtils::NotifyAncestorsOfFilterRegionChange(this);
-  }
+  nsSVGUtils::UpdateGraphic(this);
 
   
   mDirtyRegion.SetEmpty();

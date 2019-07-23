@@ -273,6 +273,11 @@ public:
   
 
 
+  static void UpdateGraphic(nsISVGChildFrame *aSVGFrame);
+
+  
+
+
   static void NotifyAncestorsOfFilterRegionChange(nsIFrame *aFrame);
 
   
