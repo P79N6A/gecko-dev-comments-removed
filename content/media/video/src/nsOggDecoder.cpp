@@ -1254,8 +1254,6 @@ nsresult nsOggDecoder::Load(nsIURI* aURI, nsIChannel* aChannel,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  StartProgress();
-
   RegisterShutdownObserver();
 
   mReader = new nsChannelReader();
@@ -1389,6 +1387,13 @@ void nsOggDecoder::MetadataLoaded()
   if (mElement) {
     mElement->MetadataLoaded();
   }
+
+  
+  
+  
+  if (mBytesDownloaded != mContentLength) {
+    StartProgress();
+  }
 }
 
 void nsOggDecoder::FirstFrameLoaded()
@@ -1414,10 +1419,25 @@ void nsOggDecoder::FirstFrameLoaded()
 
 void nsOggDecoder::ResourceLoaded()
 {
+  {
+    
+    
+    nsAutoMonitor mon(mMonitor);
+    if (mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_LOADING)
+      return;
+  }
+
+  mBytesDownloaded = mContentLength;
+  StopProgress();
+
+  
+  if (mElement) {
+    mElement->DispatchProgressEvent(NS_LITERAL_STRING("progress"));
+  }
+
   if (mElement) {
     mElement->ResourceLoaded();
   }
-  StopProgress();
 }
 
 void nsOggDecoder::NetworkError()
@@ -1472,7 +1492,16 @@ void nsOggDecoder::SetTotalBytes(PRInt64 aBytes)
 
 void nsOggDecoder::UpdateBytesDownloaded(PRUint64 aBytes)
 {
-  mBytesDownloaded = aBytes;
+  nsAutoMonitor mon(mMonitor);
+
+  
+  
+  
+  
+  
+  if (mPlayState != PLAY_STATE_LOADING) {
+    mBytesDownloaded = aBytes;
+  }
 }
 
 void nsOggDecoder::BufferingStopped()
@@ -1507,6 +1536,8 @@ void nsOggDecoder::SeekingStopped()
   if (mElement) {
     mElement->SeekCompleted();
   }
+
+  StartProgress();
 }
 
 void nsOggDecoder::SeekingStarted()
@@ -1516,6 +1547,11 @@ void nsOggDecoder::SeekingStarted()
     if (mPlayState == PLAY_STATE_SHUTDOWN)
       return;
   }
+
+  
+  
+  
+  StopProgress();
 
   if (mElement) {
     mElement->SeekStarted();

@@ -52,6 +52,12 @@
 #include "nsPresContext.h"
 #include "nsMediaDecoder.h"
 
+
+#define PROGRESS_MS 350
+
+
+#define STALL_MS 3000
+
 #ifdef PR_LOGGING
 
 PRLogModuleInfo* gVideoDecoderLog = nsnull;
@@ -61,6 +67,8 @@ nsMediaDecoder::nsMediaDecoder() :
   mElement(0),
   mRGBWidth(-1),
   mRGBHeight(-1),
+  mProgressTime(0),
+  mDataTime(0),
   mSizeChanged(PR_FALSE),
   mVideoUpdateLock(nsnull),
   mFramerate(0.0)
@@ -127,26 +135,46 @@ void nsMediaDecoder::Invalidate()
 static void ProgressCallback(nsITimer* aTimer, void* aClosure)
 {
   nsMediaDecoder* decoder = static_cast<nsMediaDecoder*>(aClosure);
-  decoder->Progress();
+  decoder->Progress(PR_TRUE);
 }
 
-void nsMediaDecoder::Progress()
+void nsMediaDecoder::Progress(PRBool aTimer)
 {
-  if (!mElement)
+  
+  
+  if (!mElement || !mProgressTimer)
     return;
 
-  mElement->DispatchProgressEvent(NS_LITERAL_STRING("progress"));
+  PRIntervalTime now = PR_IntervalNow();
+
+  if (mProgressTime == 0 ||
+      PR_IntervalToMilliseconds(PR_IntervalNow() - mProgressTime) >= PROGRESS_MS) {
+    mElement->DispatchProgressEvent(NS_LITERAL_STRING("progress"));
+    mProgressTime = now;
+  }
+
+  
+  
+  if (aTimer &&
+      mDataTime != 0 &&
+      PR_IntervalToMilliseconds(now - mDataTime) >= STALL_MS) {
+    mElement->DispatchProgressEvent(NS_LITERAL_STRING("stalled"));
+    mDataTime = 0;
+  }
+
+  if (!aTimer) {
+    mDataTime = now;
+  }
 }
 
 nsresult nsMediaDecoder::StartProgress()
 {
   nsresult rv = NS_OK;
-
   if (!mProgressTimer) {
     mProgressTimer = do_CreateInstance("@mozilla.org/timer;1");
     rv = mProgressTimer->InitWithFuncCallback(ProgressCallback, 
                                               this, 
-                                              350, 
+                                              PROGRESS_MS,
                                               nsITimer::TYPE_REPEATING_PRECISE);
   }
   return rv;
@@ -159,6 +187,7 @@ nsresult nsMediaDecoder::StopProgress()
     rv = mProgressTimer->Cancel();
     mProgressTimer = nsnull;
   }
+
   return rv;
 }
 
