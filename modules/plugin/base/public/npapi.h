@@ -40,7 +40,6 @@
 
 
 
-
 #ifndef _NPAPI_H_
 #define _NPAPI_H_
 
@@ -48,56 +47,33 @@
 #pragma pack(1)
 #endif
 
-#include "prtypes.h"
+#include "nptypes.h"
 
-
-#ifndef _INT16
-#define _INT16
-#endif
-#ifndef _INT32
-#define _INT32
-#endif
-#ifndef _UINT16
-#define _UINT16
-#endif
-#ifndef _UINT32
-#define _UINT32
-#endif
-
-
-
-
-
-
- 
-#ifndef NO_NSPR_10_SUPPORT
-#define NO_NSPR_10_SUPPORT
-#endif
 #ifdef OJI
 #include "jri.h"                
 #endif
 
-#if defined (__OS2__ ) || defined (OS2)
-#	ifndef XP_OS2
-#		define XP_OS2 1
-#	endif 
+#if defined (__OS2__) || defined (OS2)
+# ifndef XP_OS2
+#  define XP_OS2 1
+# endif 
 #endif 
 
 #ifdef _WINDOWS
-#	include <windef.h>
-#	ifndef XP_WIN
-#		define XP_WIN 1
-#	endif 
+# include <windef.h>
+# ifndef XP_WIN
+#  define XP_WIN 1
+# endif 
 #endif 
 
 #ifdef __MWERKS__
-#	define _declspec __declspec
-#	ifdef __INTEL__
-#		undef NULL
-#		ifndef XP_WIN
-#			define XP_WIN 1
-#		endif 
-#	endif 
+# define _declspec __declspec
+# ifdef __INTEL__
+#  undef NULL
+#  ifndef XP_WIN
+#   define XP_WIN 1
+#  endif 
+# endif 
 #endif 
 
 #ifdef XP_MACOSX
@@ -108,11 +84,11 @@
 #endif
 
 #if defined(XP_UNIX) 
-#	include <stdio.h>
-#	if defined(MOZ_X11)
-#		include <X11/Xlib.h>
-#		include <X11/Xutil.h>
-#	endif
+# include <stdio.h>
+# if defined(MOZ_X11)
+#  include <X11/Xlib.h>
+#  include <X11/Xutil.h>
+# endif
 #endif
 
 
@@ -121,7 +97,6 @@
 
 #define NP_VERSION_MAJOR 0
 #define NP_VERSION_MINOR 20
-
 
 
 
@@ -174,62 +149,10 @@
 
 
 
-
-
-#ifndef _UINT16
-typedef unsigned short uint16;
-#endif
-
-#ifndef _UINT32
-#    if defined(__alpha) || defined(__amd64__) || defined(__x86_64__) || defined(__LP64__)
-typedef unsigned int uint32;
-#    else  
-typedef unsigned long uint32;
-#    endif 
-#endif
-
-
-
-
-#ifndef AIX
-#ifndef _INT16
-typedef short int16;
-#endif
-
-#ifndef _INT32
-#    if defined(__alpha) || defined(__amd64__) || defined(__x86_64__) || defined(__LP64__)
-typedef int int32;
-#    else  
-typedef long int32;
-#    endif 
-#endif
-#endif
-
-#ifndef FALSE
-#define FALSE (0)
-#endif
-#ifndef TRUE
-#define TRUE (1)
-#endif
-#ifndef NULL
-#define NULL (0L)
-#endif
-
-#ifdef XP_MACOSX
-typedef enum {
-#ifndef NP_NO_QUICKDRAW
-  NPDrawingModelQuickDraw = 0,
-#endif
-  NPDrawingModelCoreGraphics = 1
-} NPDrawingModel;
-#endif
-
-typedef unsigned char	NPBool;
-typedef int16			NPError;
-typedef int16			NPReason;
-typedef char*			NPMIMEType;
-
-
+typedef unsigned char NPBool;
+typedef int16_t       NPError;
+typedef int16_t       NPReason;
+typedef char*         NPMIMEType;
 
 
 
@@ -240,22 +163,21 @@ typedef char*			NPMIMEType;
 
 typedef struct _NPP
 {
-  void*	pdata;      
-  void*	ndata;      
+  void* pdata;      
+  void* ndata;      
 } NPP_t;
 
 typedef NPP_t*  NPP;
 
-
 typedef struct _NPStream
 {
-  void*  pdata; 
-  void*  ndata; 
-  const  char* url;
-  uint32 end;
-  uint32 lastmodified;
-  void*  notifyData;
-  const  char* headers; 
+  void*    pdata; 
+  void*    ndata; 
+  const    char* url;
+  uint32_t end;
+  uint32_t lastmodified;
+  void*    notifyData;
+  const    char* headers; 
 
 
 
@@ -267,34 +189,31 @@ typedef struct _NPStream
 
 } NPStream;
 
-
 typedef struct _NPByteRange
 {
-  int32  offset; 
-  uint32 length;
+  int32_t  offset; 
+  uint32_t length;
   struct _NPByteRange* next;
 } NPByteRange;
 
-
 typedef struct _NPSavedData
 {
-  int32	len;
-  void*	buf;
+  int32_t len;
+  void*   buf;
 } NPSavedData;
-
 
 typedef struct _NPRect
 {
-  uint16 top;
-  uint16 left;
-  uint16 bottom;
-  uint16 right;
+  uint16_t top;
+  uint16_t left;
+  uint16_t bottom;
+  uint16_t right;
 } NPRect;
 
 typedef struct _NPSize 
 { 
-  int32 width; 
-  int32 height; 
+  int32_t width; 
+  int32_t height; 
 } NPSize; 
 
 #ifdef XP_UNIX
@@ -314,12 +233,12 @@ enum {
 
 typedef struct
 {
-  int32 type;
+  int32_t type;
 } NPAnyCallbackStruct;
 
 typedef struct
 {
-  int32        type;
+  int32_t      type;
 #ifdef MOZ_X11
   Display*     display;
   Visual*      visual;
@@ -330,12 +249,20 @@ typedef struct
 
 typedef struct
 {
-  int32 type;
+  int32_t type;
   FILE* fp;
 } NPPrintCallbackStruct;
 
 #endif 
 
+#ifdef XP_MACOSX
+typedef enum {
+#ifndef NP_NO_QUICKDRAW
+  NPDrawingModelQuickDraw = 0,
+#endif
+  NPDrawingModelCoreGraphics = 1
+} NPDrawingModel;
+#endif
 
 
 
@@ -361,7 +288,6 @@ typedef struct
 #define _NP_ABI_MIXIN_FOR_GCC3 0
 #endif
 
-
 #define NP_ABI_MACHO_MASK 0x01000000
 
 
@@ -375,7 +301,6 @@ typedef struct
 #else
 #define _NP_ABI_MIXIN_FOR_MACHO 0
 #endif
-
 
 #define NP_ABI_MASK (_NP_ABI_MIXIN_FOR_GCC3 | _NP_ABI_MIXIN_FOR_MACHO)
 
@@ -483,12 +408,12 @@ typedef struct _NPWindow
   void* window;  
                  
                  
-  int32 x;       
-  int32 y;       
-  uint32 width;  
-  uint32 height;
-  NPRect clipRect; 
-                   
+  int32_t  x;      
+  int32_t  y;      
+  uint32_t width;  
+  uint32_t height;
+  NPRect   clipRect; 
+                     
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
   void * ws_info; 
 #endif 
@@ -499,7 +424,7 @@ typedef struct _NPWindow
 typedef struct _NPFullPrint
 {
   NPBool pluginPrinted;
-  NPBool printOne;		 
+  NPBool printOne;     
   void* platformPrint; 
 } NPFullPrint;
 
@@ -511,7 +436,7 @@ typedef struct _NPEmbedPrint
 
 typedef struct _NPPrint
 {
-  uint16 mode;               
+  uint16_t mode;               
   union
   {
     NPFullPrint fullPrint;   
@@ -520,25 +445,25 @@ typedef struct _NPPrint
 } NPPrint;
 
 #ifdef XP_MACOSX
-typedef EventRecord	NPEvent;
+typedef EventRecord NPEvent;
 #elif defined(XP_WIN)
 typedef struct _NPEvent
 {
-  uint16 event;
-  uint32 wParam;
-  uint32 lParam;
+  uint16_t event;
+  uint32_t wParam;
+  uint32_t lParam;
 } NPEvent;
 #elif defined(XP_OS2)
 typedef struct _NPEvent
 {
-  uint32 event;
-  uint32 wParam;
-  uint32 lParam;
+  uint32_t event;
+  uint32_t wParam;
+  uint32_t lParam;
 } NPEvent;
 #elif defined (XP_UNIX) && defined(MOZ_X11)
 typedef XEvent NPEvent;
 #else
-typedef void*			NPEvent;
+typedef void*  NPEvent;
 #endif 
 
 #ifdef XP_MACOSX
@@ -563,8 +488,8 @@ typedef void *NPRegion;
 typedef struct NP_Port
 {
   CGrafPtr port; 
-  int32 portx;   
-  int32 porty;
+  int32_t portx;   
+  int32_t porty;
 } NP_Port;
 
 typedef struct NP_CGContext
@@ -608,7 +533,7 @@ enum NPEventType {
 #define NP_ASFILE     3
 #define NP_ASFILEONLY 4
 
-#define NP_MAXREADY	(((unsigned)(~0)<<1)>>1)
+#define NP_MAXREADY (((unsigned)(~0)<<1)>>1)
 
 
 
@@ -696,22 +621,22 @@ char* NPP_GetMIMEDescription(void);
 NPError NP_LOADDS NPP_Initialize(void);
 void    NP_LOADDS NPP_Shutdown(void);
 NPError NP_LOADDS NPP_New(NPMIMEType pluginType, NPP instance,
-                          uint16 mode, int16 argc, char* argn[],
+                          uint16_t mode, int16_t argc, char* argn[],
                           char* argv[], NPSavedData* saved);
 NPError NP_LOADDS NPP_Destroy(NPP instance, NPSavedData** save);
 NPError NP_LOADDS NPP_SetWindow(NPP instance, NPWindow* window);
 NPError NP_LOADDS NPP_NewStream(NPP instance, NPMIMEType type,
                                 NPStream* stream, NPBool seekable,
-                                uint16* stype);
+                                uint16_t* stype);
 NPError NP_LOADDS NPP_DestroyStream(NPP instance, NPStream* stream,
                                     NPReason reason);
-int32   NP_LOADDS NPP_WriteReady(NPP instance, NPStream* stream);
-int32   NP_LOADDS NPP_Write(NPP instance, NPStream* stream, int32 offset,
-                            int32 len, void* buffer);
+int32_t NP_LOADDS NPP_WriteReady(NPP instance, NPStream* stream);
+int32_t NP_LOADDS NPP_Write(NPP instance, NPStream* stream, int32_t offset,
+                            int32_t len, void* buffer);
 void    NP_LOADDS NPP_StreamAsFile(NPP instance, NPStream* stream,
                                    const char* fname);
 void    NP_LOADDS NPP_Print(NPP instance, NPPrint* platformPrint);
-int16   NP_LOADDS NPP_HandleEvent(NPP instance, void* event);
+int16_t NP_LOADDS NPP_HandleEvent(NPP instance, void* event);
 void    NP_LOADDS NPP_URLNotify(NPP instance, const char* url,
                                 NPReason reason, void* notifyData);
 #ifdef OJI
@@ -730,22 +655,22 @@ NPError NP_LOADDS NPN_GetURLNotify(NPP instance, const char* url,
 NPError NP_LOADDS NPN_GetURL(NPP instance, const char* url,
                              const char* target);
 NPError NP_LOADDS NPN_PostURLNotify(NPP instance, const char* url,
-                                    const char* target, uint32 len,
+                                    const char* target, uint32_t len,
                                     const char* buf, NPBool file,
                                     void* notifyData);
 NPError NP_LOADDS NPN_PostURL(NPP instance, const char* url,
-                              const char* target, uint32 len,
+                              const char* target, uint32_t len,
                               const char* buf, NPBool file);
 NPError NP_LOADDS NPN_RequestRead(NPStream* stream, NPByteRange* rangeList);
 NPError NP_LOADDS NPN_NewStream(NPP instance, NPMIMEType type,
                                 const char* target, NPStream** stream);
-int32   NP_LOADDS NPN_Write(NPP instance, NPStream* stream, int32 len, void* buffer);
+int32_t NP_LOADDS NPN_Write(NPP instance, NPStream* stream, int32_t len, void* buffer);
 NPError NP_LOADDS NPN_DestroyStream(NPP instance, NPStream* stream, NPReason reason);
 void    NP_LOADDS NPN_Status(NPP instance, const char* message);
-const char* NP_LOADDS	NPN_UserAgent(NPP instance);
-void*   NP_LOADDS NPN_MemAlloc(uint32 size);
+const char* NP_LOADDS NPN_UserAgent(NPP instance);
+void*   NP_LOADDS NPN_MemAlloc(uint32_t size);
 void    NP_LOADDS NPN_MemFree(void* ptr);
-uint32  NP_LOADDS NPN_MemFlush(uint32 size);
+uint32_t NP_LOADDS NPN_MemFlush(uint32_t size);
 void    NP_LOADDS NPN_ReloadPlugins(NPBool reloadPages);
 #ifdef OJI
 JRIEnv* NP_LOADDS NPN_GetJavaEnv(void);

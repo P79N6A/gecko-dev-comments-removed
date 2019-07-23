@@ -135,7 +135,7 @@ NPP_New(NPMIMEType pluginType,
     This->type = dupMimeType(pluginType);
     This->instance = instance;
     This->pluginsPrintMessage = NULL;
-    This->exists = FALSE;
+    This->exists = false;
 
     
     
@@ -348,7 +348,7 @@ NPP_Print(NPP instance, NPPrint* printInfo)
 
 
             
-            printInfo->print.fullPrint.pluginPrinted = FALSE;
+            printInfo->print.fullPrint.pluginPrinted = false;
         }
         else {  
             
