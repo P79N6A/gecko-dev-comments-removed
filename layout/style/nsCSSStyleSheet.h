@@ -183,6 +183,10 @@ public:
   
   NS_DECL_NSIDOMCSSSTYLESHEET
 
+  
+  
+  static PRBool RebuildChildList(nsICSSRule* aRule, void* aBuilder);
+
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
                   nsICSSStyleSheet* aParentToUse,
