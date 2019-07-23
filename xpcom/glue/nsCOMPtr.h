@@ -1065,6 +1065,16 @@ class nsCOMPtr<nsISupports>
           mRawPtr = temp;
         }
 
+      already_AddRefed<nsISupports>
+      forget()
+          
+          
+        {
+          nsISupports* temp = 0;
+          swap(temp);
+          return temp;
+        }
+
       void
       forget( nsISupports** rhs NS_OUTPARAM )
           

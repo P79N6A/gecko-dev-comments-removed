@@ -2248,11 +2248,16 @@ public:
     GetRuntime() const {XPCWrappedNativeScope* scope = GetScope();
                         return scope ? scope->GetRuntime() : nsnull;}
 
+    
+
+
+
     static nsresult
     GetNewOrUsed(XPCCallContext& ccx,
                  nsISupports* Object,
                  XPCWrappedNativeScope* Scope,
                  XPCNativeInterface* Interface,
+                 nsWrapperCache* cache,
                  JSBool isGlobal,
                  XPCWrappedNative** wrapper);
 
@@ -2403,11 +2408,11 @@ protected:
     XPCWrappedNative(); 
 
     
-    XPCWrappedNative(nsISupports* aIdentity,
+    XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
                      XPCWrappedNativeProto* aProto);
 
     
-    XPCWrappedNative(nsISupports* aIdentity,
+    XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
                      XPCWrappedNativeScope* aScope,
                      XPCNativeSet* aSet);
 
