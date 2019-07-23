@@ -381,7 +381,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mHas3DBorder          = PR_FALSE;
   mIsInMouseCapture     = PR_FALSE;
   mIsTopWidgetWindow    = PR_FALSE;
-  mInScrollProcessing   = PR_FALSE;
   mUnicodeWidget        = PR_TRUE;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
@@ -6051,6 +6050,11 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
   point.x = GET_X_LPARAM(dwPoints);
   point.y = GET_Y_LPARAM(dwPoints);
 
+  static PRBool sIsProcessing = PR_FALSE;
+  if (sIsProcessing) {
+    return PR_TRUE;  
+  }
+
   static PRBool sMayBeUsingLogitechMouse = PR_FALSE;
   if (aMsg == WM_MOUSEHWHEEL) {
     
@@ -6115,20 +6119,15 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
         
         
         
-        if (mInScrollProcessing) {
-          destWnd = parentWnd;
-          destWindow = parentWindow;
-        } else {
-          
-          
-          
-          
-          mInScrollProcessing = PR_TRUE;
-          if (0 == ::SendMessageW(destWnd, aMsg, aWParam, aLParam))
-            aHandled = PR_TRUE;
-          destWnd = nsnull;
-          mInScrollProcessing = PR_FALSE;
-        }
+
+        
+        
+        
+        
+        sIsProcessing = PR_TRUE;
+        if (0 == ::SendMessageW(destWnd, aMsg, aWParam, aLParam))
+          aHandled = PR_TRUE;
+        sIsProcessing = PR_FALSE;
         return PR_FALSE; 
       }
       parentWnd = ::GetParent(parentWnd);
@@ -6138,7 +6137,9 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
     return PR_FALSE;
   if (destWnd != mWnd) {
     if (destWindow) {
+      sIsProcessing = PR_TRUE;
       aHandled = destWindow->ProcessMessage(aMsg, aWParam, aLParam, aRetValue);
+      sIsProcessing = PR_FALSE;
       aQuitProcessing = PR_TRUE;
       return PR_FALSE; 
     }
