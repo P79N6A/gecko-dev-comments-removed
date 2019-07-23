@@ -1,0 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef __7ZLIB_H
+#define __7ZLIB_H
+
+#define SZ_OK 0
+#define SZ_ERROR_DATA 1
+#define SZ_ERROR_PARAM 5
+#define SZ_ERROR_FAIL 11
+#define SZ_ERROR_NO_ARCHIVE 17
+
+const WCHAR* GetExtractorError();
+
+typedef void SzExtractProgressCallback(int nPercentComplete);
+
+
+
+
+int SzExtract(const WCHAR *archiveName,
+              const WCHAR *fileToExtract, const WCHAR *outputDir,
+              SzExtractProgressCallback *progressCallback);
+
+int SzExtractSfx(const WCHAR *archiveName, DWORD sfxStubSize,
+              const WCHAR *fileToExtract, const WCHAR *outputDir,
+              SzExtractProgressCallback *progressCallback);
+
+#endif 
