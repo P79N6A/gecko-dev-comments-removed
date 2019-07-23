@@ -1,0 +1,144 @@
+#include "TestLatency.h"
+
+#include "nsIAppShell.h"
+
+#include "nsCOMPtr.h"
+#include "nsServiceManagerUtils.h" 
+#include "nsWidgetsCID.h"       
+
+#include "IPDLUnitTests.h"      
+
+
+#define NR_TRIALS 100000
+
+namespace mozilla {
+namespace _ipdltest {
+
+
+
+
+TestLatencyParent::TestLatencyParent() :
+    mStart(),
+    mPPTimeTotal(),
+    mPP5TimeTotal(),
+    mPPTrialsToGo(NR_TRIALS),
+    mPP5TrialsToGo(NR_TRIALS),
+    mPongsToGo(0)
+{
+    MOZ_COUNT_CTOR(TestLatencyParent);
+}
+
+TestLatencyParent::~TestLatencyParent()
+{
+    MOZ_COUNT_DTOR(TestLatencyParent);
+}
+
+void
+TestLatencyParent::Main()
+{
+    PingPongTrial();
+}
+
+void
+TestLatencyParent::PingPongTrial()
+{
+    mStart = TimeStamp::Now();
+    SendPing();
+}
+
+void
+TestLatencyParent::Ping5Pong5Trial()
+{
+    mStart = TimeStamp::Now();
+    
+    mPongsToGo = 5;
+
+    SendPing5();
+    SendPing5();
+    SendPing5();
+    SendPing5();
+    SendPing5();
+}
+
+void
+TestLatencyParent::Exit()
+{
+    passed("average ping/pong latency: %g sec, average ping5/pong5 latency: %g sec",
+           mPPTimeTotal.ToSeconds() / (double) NR_TRIALS,
+           mPP5TimeTotal.ToSeconds() / (double) NR_TRIALS);
+
+    static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
+    nsCOMPtr<nsIAppShell> appShell (do_GetService(kAppShellCID));
+    appShell->Exit();
+}
+
+bool
+TestLatencyParent::RecvPong()
+{
+    TimeDuration thisTrial = (TimeStamp::Now() - mStart);
+    mPPTimeTotal += thisTrial;
+
+    if (0 == ((mPPTrialsToGo % 1000)))
+        printf("  PP trial %d: %g\n",
+               mPPTrialsToGo, thisTrial.ToSeconds());
+
+    if (--mPPTrialsToGo > 0)
+        PingPongTrial();
+    else
+        Ping5Pong5Trial();
+    return true;
+}
+
+bool
+TestLatencyParent::RecvPong5()
+{
+    
+    if (0 < --mPongsToGo)
+        return true;
+
+    TimeDuration thisTrial = (TimeStamp::Now() - mStart);
+    mPP5TimeTotal += thisTrial;
+
+    if (0 == ((mPP5TrialsToGo % 1000)))
+        printf("  PP5 trial %d: %g\n",
+               mPP5TrialsToGo, thisTrial.ToSeconds());
+
+    if (0 < --mPP5TrialsToGo)
+        Ping5Pong5Trial();
+    else
+        Exit();
+
+    return true;
+}
+
+
+
+
+
+TestLatencyChild::TestLatencyChild()
+{
+    MOZ_COUNT_CTOR(TestLatencyChild);
+}
+
+TestLatencyChild::~TestLatencyChild()
+{
+    MOZ_COUNT_DTOR(TestLatencyChild);
+}
+
+bool
+TestLatencyChild::RecvPing()
+{
+    SendPong();
+    return true;
+}
+
+bool
+TestLatencyChild::RecvPing5()
+{
+    SendPong5();
+    return true;
+}
+
+
+} 
+} 
