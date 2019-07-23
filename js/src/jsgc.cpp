@@ -3468,7 +3468,12 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     JS_ASSERT(rt->gcTraceLaterCount == 0);
 
     
+
+
+
+
     rt->shapeGen = 0;
+    rt->protoHazardShape = 0;
 
     
 

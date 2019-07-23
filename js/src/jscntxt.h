@@ -142,23 +142,25 @@ struct JSTraceMonitor {
     jsval                   *reservedDoublePool;
     jsval                   *reservedDoublePoolPtr;
 
-    struct GlobalState globalStates[MONITOR_N_GLOBAL_STATES];
-    struct VMFragment* vmfragments[FRAGMENT_TABLE_SIZE];
+    struct GlobalState      globalStates[MONITOR_N_GLOBAL_STATES];
+    struct VMFragment*      vmfragments[FRAGMENT_TABLE_SIZE];
     JSDHashTable            recordAttempts;
 
     
 
 
 
-
-    uintN                   prohibitFlush;
-    JSPackedBool            needFlush;
+    uint32                  maxCodeCacheBytes;
 
     
 
 
 
-    uint32                  maxCodeCacheBytes;
+
+
+
+    uintN                   prohibitFlush;
+    JSPackedBool            needFlush;
 
     
 
@@ -236,11 +238,6 @@ struct JSThreadData {
     
     JSPropertyCache     propertyCache;
 
-
-
-
-
-
 #ifdef JS_TRACER
     
     JSTraceMonitor      traceMonitor;
@@ -276,6 +273,7 @@ struct JSThread {
     
     JSTitle             *titleToShare;
 
+    
     JSThreadData        data;
 };
 
@@ -347,6 +345,20 @@ struct JSRuntime {
 
     
     JSContextCallback   cxCallback;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    uint32              protoHazardShape;
 
     
     JSGCChunkInfo       *gcChunkList;
