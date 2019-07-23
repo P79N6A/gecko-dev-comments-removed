@@ -3317,7 +3317,9 @@ nsNavHistoryFolderResultNode::FindChildById(PRInt64 aItemId,
     PRUint32* aNodeIndex)
 {
   for (PRInt32 i = 0; i < mChildren.Count(); i ++) {
-    if (mChildren[i]->mItemId == aItemId) {
+    if (mChildren[i]->mItemId == aItemId ||
+        (mChildren[i]->IsFolder() &&
+         mChildren[i]->GetAsFolder()->mQueryItemId == aItemId)) {
       *aNodeIndex = i;
       return mChildren[i];
     }
