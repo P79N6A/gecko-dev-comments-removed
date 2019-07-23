@@ -746,20 +746,47 @@ TextContainsLineBreakerWhiteSpace(const void* aText, PRUint32 aLength,
   }
 }
 
-static PRBool
-CanTextRunCrossFrameBoundary(nsIFrame* aFrame)
+struct TextRunFrameTraversal {
+  nsIFrame*    mFrameToDescendInto;
+  PRPackedBool mDescendIntoFrameSiblings;
+  PRPackedBool mTextRunCanCrossFrameBoundary;
+};
+
+static TextRunFrameTraversal
+CanTextRunCrossFrameBoundary(nsIFrame* aFrame, nsIAtom* aType)
 {
-  
-  
-  
-  return aFrame->CanContinueTextRun() ||
-    aFrame->GetType() == nsGkAtoms::placeholderFrame;
+  NS_ASSERTION(aType == aFrame->GetType(), "Wrong type");
+
+  TextRunFrameTraversal result;
+
+  PRBool continuesTextRun = aFrame->CanContinueTextRun();
+  if (aType == nsGkAtoms::placeholderFrame) {
+    
+    
+    
+    
+    
+    
+    
+    result.mFrameToDescendInto = continuesTextRun
+      ? (static_cast<nsPlaceholderFrame*>(aFrame))->GetOutOfFlowFrame()
+      : nsnull;
+    result.mDescendIntoFrameSiblings = PR_FALSE;
+    result.mTextRunCanCrossFrameBoundary = !result.mFrameToDescendInto;
+  } else {
+    result.mFrameToDescendInto = continuesTextRun
+      ? aFrame->GetFirstChild(nsnull) : nsnull;
+    result.mDescendIntoFrameSiblings = PR_TRUE;
+    result.mTextRunCanCrossFrameBoundary = continuesTextRun;
+  }    
+  return result;
 }
 
 BuildTextRunsScanner::FindBoundaryResult
 BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState)
 {
-  nsTextFrame* textFrame = aFrame->GetType() == nsGkAtoms::textFrame
+  nsIAtom* frameType = aFrame->GetType();
+  nsTextFrame* textFrame = frameType == nsGkAtoms::textFrame
     ? static_cast<nsTextFrame*>(aFrame) : nsnull;
   if (textFrame) {
     if (aState->mLastTextFrame &&
@@ -795,28 +822,24 @@ BuildTextRunsScanner::FindBoundaries(nsIFrame* aFrame, FindBoundaryState* aState
     return FB_CONTINUE; 
   }
 
-  PRBool continueTextRun = CanTextRunCrossFrameBoundary(aFrame);
-  PRBool descendInto = PR_TRUE;
-  if (!continueTextRun) {
-    
-    
-    descendInto = !aFrame->IsFloatContainingBlock();
+  TextRunFrameTraversal traversal =
+    CanTextRunCrossFrameBoundary(aFrame, frameType);
+  if (!traversal.mTextRunCanCrossFrameBoundary) {
     aState->mSeenTextRunBoundaryOnThisLine = PR_TRUE;
     if (aState->mSeenSpaceForLineBreakingOnThisLine)
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
   }
   
-  if (descendInto) {
-    nsIFrame* child = aFrame->GetFirstChild(nsnull);
-    while (child) {
-      FindBoundaryResult result = FindBoundaries(child, aState);
-      if (result != FB_CONTINUE)
-        return result;
-      child = child->GetNextSibling();
-    }
+  for (nsIFrame* f = traversal.mFrameToDescendInto; f;
+       f = f->GetNextSibling()) {
+    FindBoundaryResult result = FindBoundaries(f, aState);
+    if (result != FB_CONTINUE)
+      return result;
+    if (!traversal.mDescendIntoFrameSiblings)
+      break;
   }
 
-  if (!continueTextRun) {
+  if (!traversal.mTextRunCanCrossFrameBoundary) {
     aState->mSeenTextRunBoundaryOnThisLine = PR_TRUE;
     if (aState->mSeenSpaceForLineBreakingOnThisLine)
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
@@ -1207,29 +1230,26 @@ void BuildTextRunsScanner::ScanFrame(nsIFrame* aFrame)
     return;
   }
 
-  PRBool continueTextRun = CanTextRunCrossFrameBoundary(aFrame);
-  PRBool descendInto = PR_TRUE;
+  TextRunFrameTraversal traversal =
+    CanTextRunCrossFrameBoundary(aFrame, frameType);
   PRBool isBR = frameType == nsGkAtoms::brFrame;
-  if (!continueTextRun) {
+  if (!traversal.mTextRunCanCrossFrameBoundary) {
     
     
     FlushFrames(PR_TRUE, isBR);
     mCommonAncestorWithLastFrame = aFrame;
     mTrimNextRunLeadingWhitespace = PR_FALSE;
-    
-    
-    descendInto = !aFrame->IsFloatContainingBlock();
     mStartOfLine = PR_FALSE;
   }
 
-  if (descendInto) {
-    nsIFrame* f;
-    for (f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling()) {
-      ScanFrame(f);
-    }
+  for (nsIFrame* f = traversal.mFrameToDescendInto; f;
+       f = f->GetNextSibling()) {
+    ScanFrame(f);
+    if (!traversal.mDescendIntoFrameSiblings)
+      break;
   }
 
-  if (!continueTextRun) {
+  if (!traversal.mTextRunCanCrossFrameBoundary) {
     
     
     FlushFrames(PR_TRUE, isBR);
@@ -3192,7 +3212,7 @@ nsContinuingTextFrame::Init(nsIContent* aContent,
   aPrevInFlow->SetNextInFlow(this);
   nsTextFrame* prev = static_cast<nsTextFrame*>(aPrevInFlow);
   mContentOffset = prev->GetContentOffset() + prev->GetContentLengthHint();
-  NS_ASSERTION(mContentOffset < aContent->GetText()->GetLength(),
+  NS_ASSERTION(mContentOffset < PRInt32(aContent->GetText()->GetLength()),
                "Creating ContinuingTextFrame, but there is no more content");
   if (prev->GetStyleContext() != GetStyleContext()) {
     
