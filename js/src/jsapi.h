@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef jsapi_h___
 #define jsapi_h___
 
@@ -665,13 +666,28 @@ JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
 
 
 
+
+
+
+
+
+
+
+
+
+
 #define JS_CALLEE(cx,vp)        ((vp)[0])
 #define JS_ARGV_CALLEE(argv)    ((argv)[-2])
-#define JS_THIS(cx,vp)          ((vp)[1])
+#define JS_THIS(cx,vp)          (JSVAL_IS_NULL((vp)[1])                       \
+                                 ? JS_ComputeThis(cx, vp)                     \
+                                 : (vp)[1])
 #define JS_THIS_OBJECT(cx,vp)   ((JSObject *) JS_THIS(cx,vp))
 #define JS_ARGV(cx,vp)          ((vp) + 2)
 #define JS_RVAL(cx,vp)          (*(vp))
 #define JS_SET_RVAL(cx,vp,v)    (*(vp) = (v))
+
+extern JS_PUBLIC_API(jsval)
+JS_ComputeThis(JSContext *cx, jsval *vp);
 
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);

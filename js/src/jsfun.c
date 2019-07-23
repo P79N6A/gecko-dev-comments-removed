@@ -1427,7 +1427,10 @@ fun_toStringHelper(JSContext *cx, uint32 indent, uintN argc, jsval *vp)
     JSFunction *fun;
     JSString *str;
 
-    fval = vp[1];
+    fval = JS_THIS(cx, vp);
+    if (JSVAL_IS_NULL(fval))
+        return JS_FALSE;
+
     if (!VALUE_IS_FUNCTION(cx, fval)) {
         
 
@@ -1490,8 +1493,8 @@ fun_call(JSContext *cx, uintN argc, jsval *vp)
     void *mark;
     JSBool ok;
 
-    obj = JSVAL_TO_OBJECT(vp[1]);
-    if (!OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_FUNCTION, &vp[1]))
+    obj = JS_THIS_OBJECT(cx, vp);
+    if (!obj || !OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_FUNCTION, &vp[1]))
         return JS_FALSE;
     fval = vp[1];
 
@@ -1556,8 +1559,8 @@ fun_apply(JSContext *cx, uintN argc, jsval *vp)
         return fun_call(cx, argc, vp);
     }
 
-    obj = JSVAL_TO_OBJECT(vp[1]);
-    if (!OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_FUNCTION, &vp[1]))
+    obj = JS_THIS_OBJECT(cx, vp);
+    if (!obj || !OBJ_DEFAULT_VALUE(cx, obj, JSTYPE_FUNCTION, &vp[1]))
         return JS_FALSE;
     fval = vp[1];
 
