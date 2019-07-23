@@ -2299,10 +2299,10 @@ ssl_NewSocket(PRBool makeLocks)
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_UNRESTRICTED;
 	    else if (ev[0] == '0' || LOWER(ev[0]) == 'n')
 	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_NEVER;
-	    else if (ev[0] == '3' || LOWER(ev[0]) == 'c')
-	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_CLIENT_ONLY;
-	    else
-	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_REQUIRES_XTN;
+	    else if (ev[0] == '2' || LOWER(ev[0]) == 'r')
+		ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_REQUIRES_XTN;
+	    else if (ev[0] == '3' || LOWER(ev[0]) == 't')
+	    	ssl_defaults.enableRenegotiation = SSL_RENEGOTIATE_TRANSITIONAL;
 	    SSL_TRACE(("SSL: enableRenegotiation set to %d", 
 	               ssl_defaults.enableRenegotiation));
 	}

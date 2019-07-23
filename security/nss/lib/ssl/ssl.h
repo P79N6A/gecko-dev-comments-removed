@@ -123,7 +123,7 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 #define SSL_ENABLE_DEFLATE             19 /* Enable TLS compression with    */
                                           
 #define SSL_ENABLE_RENEGOTIATION       20 /* Values below (default: never)  */
-#define SSL_REQUIRE_SAFE_NEGOTIATION   21 /* Peer must send Signalling      */
+#define SSL_REQUIRE_SAFE_NEGOTIATION   21 /* Peer must send Signaling       */
 					  
                                           
 					  
@@ -186,7 +186,9 @@ SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
 #define SSL_RENEGOTIATE_REQUIRES_XTN ((PRBool)2) 
 
 
-#define SSL_RENEGOTIATE_CLIENT_ONLY  ((PRBool)3)
+
+
+#define SSL_RENEGOTIATE_TRANSITIONAL ((PRBool)3)
 
 
 
