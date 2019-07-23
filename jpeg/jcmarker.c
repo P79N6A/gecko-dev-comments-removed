@@ -433,7 +433,7 @@ emit_adobe_app14 (j_compress_ptr cinfo)
 
 
 METHODDEF(void)
-write_marker_header (j_compress_ptr cinfo, int16 marker, unsigned int datalen)
+write_marker_header (j_compress_ptr cinfo, int marker, unsigned int datalen)
 
 {
   if (datalen > (unsigned int) 65533)		
@@ -445,10 +445,10 @@ write_marker_header (j_compress_ptr cinfo, int16 marker, unsigned int datalen)
 }
 
 METHODDEF(void)
-write_marker_byte (j_compress_ptr cinfo, int16 val)
+write_marker_byte (j_compress_ptr cinfo, int val)
 
 {
-  emit_byte(cinfo, val);
+  emit_byte(cinfo, (int16) val);
 }
 
 
