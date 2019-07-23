@@ -58,15 +58,12 @@ public:
 
   NS_IMETHOD_(float) GetAdvance(PRBool aForceGlobalTransform)=0;
 
-  NS_IMETHOD_(void) SetGlyphPosition(float x, float y, PRBool aForceGlobalTransform)=0;
+  NS_IMETHOD_(void) SetGlyphPosition(gfxPoint *aPosition, PRBool aForceGlobalTransform)=0;
   NS_IMETHOD_(nsSVGTextPathFrame*) FindTextPathParent()=0;
   NS_IMETHOD_(PRBool) IsStartOfChunk()=0; 
-  NS_IMETHOD_(void) GetAdjustedPosition( float &x,  float &y)=0;
 
   NS_IMETHOD_(already_AddRefed<nsIDOMSVGLengthList>) GetX()=0;
   NS_IMETHOD_(already_AddRefed<nsIDOMSVGLengthList>) GetY()=0;
-  NS_IMETHOD_(already_AddRefed<nsIDOMSVGLengthList>) GetDx()=0;
-  NS_IMETHOD_(already_AddRefed<nsIDOMSVGLengthList>) GetDy()=0;
   NS_IMETHOD_(PRUint16) GetTextAnchor()=0;
   NS_IMETHOD_(PRBool) IsAbsolutelyPositioned()=0;
 };
