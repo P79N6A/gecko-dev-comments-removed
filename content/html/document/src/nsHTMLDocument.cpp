@@ -1818,23 +1818,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   
   nsCOMPtr<nsIDocument> callerDoc =
     do_QueryInterface(nsContentUtils::GetDocumentFromContext());
-
-  
-  
-  nsCOMPtr<nsISupports> securityInfo;
-  nsCOMPtr<nsIURI> uri, baseURI;
-  if (callerDoc) {
-    securityInfo = callerDoc->GetSecurityInfo();
-    uri = callerDoc->GetDocumentURI();
-    baseURI = callerDoc->GetBaseURI();
-  }
-
-  nsCOMPtr<nsIPrincipal> callerPrincipal;
-  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
-
-  secMan->GetSubjectPrincipal(getter_AddRefs(callerPrincipal));
-
-  if (!callerPrincipal) {
+  if (!callerDoc) {
     
     
     
@@ -1844,6 +1828,13 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
     return NS_ERROR_DOM_SECURITY_ERR;
   }
+
+  
+  
+  nsCOMPtr<nsISupports> securityInfo = callerDoc->GetSecurityInfo();;
+  nsCOMPtr<nsIURI> uri = callerDoc->GetDocumentURI();
+  nsCOMPtr<nsIURI> baseURI = callerDoc->GetBaseURI();
+  nsCOMPtr<nsIPrincipal> callerPrincipal = callerDoc->NodePrincipal();
 
   
   
