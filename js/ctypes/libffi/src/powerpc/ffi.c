@@ -43,10 +43,11 @@ enum {
   FLAG_RETURNS_64BITS   = 1 << (31-28),
 
   FLAG_RETURNS_128BITS  = 1 << (31-27), 
+  FLAG_SYSV_SMST_R4     = 1 << (31-26), 
 
-  FLAG_SYSV_SMST_R4     = 1 << (31-16), 
+  FLAG_SYSV_SMST_R3     = 1 << (31-25), 
 
-  FLAG_SYSV_SMST_R3     = 1 << (31-15), 
+  
 
   FLAG_ARG_NEEDS_COPY   = 1 << (31- 7),
   FLAG_FP_ARGUMENTS     = 1 << (31- 6), 
@@ -685,14 +686,14 @@ ffi_prep_cif_machdep (ffi_cif *cif)
 	      if (size <= 4)
 		{
 		  flags |= FLAG_SYSV_SMST_R3;
-		  flags |= 8 * (4 - size) << 4;
+		  flags |= 8 * (4 - size) << 8;
 		  break;
 		}
 	      
 	      if  (size <= 8)
 		{
-		  flags |= FLAG_SYSV_SMST_R4;
-		  flags |= 8 * (8 - size) << 4;
+		  flags |= FLAG_SYSV_SMST_R3 | FLAG_SYSV_SMST_R4;
+		  flags |= 8 * (8 - size) << 8;
 		  break;
 		}
 	    }
