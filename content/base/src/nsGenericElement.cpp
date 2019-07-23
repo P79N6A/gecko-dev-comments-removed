@@ -3509,12 +3509,21 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGenericElement)
   
   {
     PRUint32 i;
+    PRUint32 attrs = tmp->mAttrsAndChildren.AttrCount();
+    for (i = 0; i < attrs; i++) {
+      const nsAttrName* name = tmp->mAttrsAndChildren.AttrNameAt(i);
+      if (!name->IsAtom())
+        cb.NoteXPCOMChild(name->NodeInfo());
+    }
+
     PRUint32 kids = tmp->mAttrsAndChildren.ChildCount();
     for (i = 0; i < kids; i++) {
       NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mAttrsAndChildren[i]");
       cb.NoteXPCOMChild(tmp->mAttrsAndChildren.GetSafeChildAt(i));
     }
   }
+
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mNodeInfo)
 
   
   {

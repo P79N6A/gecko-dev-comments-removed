@@ -44,6 +44,7 @@
 
 #include "nsCOMPtr.h" 
 #include "plhash.h"
+#include "nsCycleCollectionParticipant.h"
 
 class nsIAtom;
 class nsIDocument;
@@ -57,12 +58,15 @@ class nsIDOMDocument;
 class nsAString;
 class nsIDOMNamedNodeMap;
 class nsXULPrototypeDocument;
+class nsBindingManager;
 
 class nsNodeInfoManager
 {
 public:
   nsNodeInfoManager();
   ~nsNodeInfoManager();
+
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsNodeInfoManager)
 
   nsrefcnt AddRef(void);
   nsrefcnt Release(void);
@@ -123,6 +127,11 @@ public:
 
   void RemoveNodeInfo(nsNodeInfo *aNodeInfo);
 
+  nsBindingManager* GetBindingManager() const
+  {
+    return mBindingManager;
+  }
+
 protected:
   friend class nsDocument;
   friend class nsXULPrototypeDocument;
@@ -158,6 +167,9 @@ private:
   nsINodeInfo *mTextNodeInfo; 
   nsINodeInfo *mCommentNodeInfo; 
   nsINodeInfo *mDocumentNodeInfo; 
+  nsBindingManager* mBindingManager; 
+                                     
+                                     
 };
 
 #endif 

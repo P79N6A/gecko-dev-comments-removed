@@ -51,6 +51,7 @@
 #include "nsIAtom.h"
 #include "nsCompatibility.h"
 #include "nsTObserverArray.h"
+#include "nsNodeInfoManager.h"
 
 class nsIContent;
 class nsPresContext;
@@ -80,7 +81,6 @@ class nsIObserver;
 class nsScriptLoader;
 class nsIContentSink;
 class nsIScriptEventManager;
-class nsNodeInfoManager;
 class nsICSSLoader;
 class nsHTMLStyleSheet;
 class nsIHTMLCSSStyleSheet;
@@ -97,8 +97,8 @@ class nsFrameLoader;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xd76acf2e, 0x4b55, 0x420c, \
-  { 0xaa, 0xbf, 0x5c, 0x4d, 0xbf, 0xc9, 0x81, 0x08 } }
+{ 0x0cf9986f, 0x6e27, 0x4c24, \
+  { 0x9f, 0x43, 0x87, 0x01, 0x52, 0xf7, 0x4c, 0x0a } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -117,7 +117,6 @@ public:
   nsIDocument()
     : nsINode(nsnull),
       mCharacterSet(NS_LITERAL_CSTRING("ISO-8859-1")),
-      mBindingManager(nsnull),
       mNodeInfoManager(nsnull),
       mCompatMode(eCompatibility_FullStandards),
       mIsInitialDocumentInWindow(PR_FALSE),
@@ -631,7 +630,7 @@ public:
 
   nsBindingManager* BindingManager() const
   {
-    return mBindingManager;
+    return mNodeInfoManager->GetBindingManager();
   }
 
   
@@ -966,7 +965,6 @@ protected:
     
     
     
-    
   }
 
   
@@ -1001,7 +999,6 @@ protected:
   
   
   
-  nsBindingManager* mBindingManager; 
   nsNodeInfoManager* mNodeInfoManager; 
   nsICSSLoader* mCSSLoader; 
 
