@@ -108,6 +108,7 @@ protected:
   PRPackedBool       mTerminated;
   PRPackedBool       mNotifiedWillTerminate;
   PRPackedBool       mSkippedNativeCallback;
+  PRPackedBool       mRunningCocoaEmbedded;
 
   
   
