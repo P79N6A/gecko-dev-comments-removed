@@ -1788,6 +1788,9 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
       }
     }
     mContext = nsnull; 
+#ifdef DEBUG
+    nsCycleCollector_DEBUG_shouldBeFreed(NS_STATIC_CAST(nsIScriptGlobalObject*, this));
+#endif
   }
 
   mDocShell = aDocShell;        
