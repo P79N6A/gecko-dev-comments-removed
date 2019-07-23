@@ -6314,9 +6314,9 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
     
     
     
+    
     nsIAtom *pseudo = GetStyleContext()->GetPseudoType();
     PRBool haveFirstLetterStyle =
-      !GetPrevContinuation() &&
       (!pseudo ||
        (pseudo == nsCSSAnonBoxes::cellContent &&
         mParent->GetStyleContext()->GetPseudoType() == nsnull) ||
