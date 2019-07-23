@@ -1441,7 +1441,7 @@ namespace nanojit
 
 
 
-    void live(LirFilter* in, Allocator& alloc, Fragment *frag, LogControl *logc, bool optimize)
+    void live(LirFilter* in, Allocator& alloc, Fragment *frag, LogControl *logc)
     {
         
 
@@ -2144,8 +2144,12 @@ namespace nanojit
             logc->printf("=== Results of liveness analysis:\n");
             logc->printf("===\n");
             LirReader br(frag->lastIns);
-            StackFilter sf(&br, alloc, frag->lirbuf, frag->lirbuf->sp, frag->lirbuf->rp);
-            live(&sf, alloc, frag, logc, optimize);
+            LirFilter* lir = &br;
+            if (optimize) {
+                StackFilter sf(lir, alloc, frag->lirbuf, frag->lirbuf->sp, frag->lirbuf->rp);
+                lir = &sf;
+            }
+            live(lir, alloc, frag, logc);
         })
 
         
