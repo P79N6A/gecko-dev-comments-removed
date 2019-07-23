@@ -386,7 +386,7 @@ protected:
 
 
 
-  nsresult DoCommand(nsIContent *aContent = nsnull, PRUint32 aActionIndex = 0);
+  void DoCommand(nsIContent *aContent = nsnull, PRUint32 aActionIndex = 0);
 
   
 
