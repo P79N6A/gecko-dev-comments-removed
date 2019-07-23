@@ -91,12 +91,6 @@
 #include FT_FREETYPE_H
 #endif
 
-#ifdef MOZ_PLATFORM_HILDON
-#include "nsIPropertyBag2.h"
-PRInt32 gfxPlatformGtk::sMaemoClassic = -1;
-#endif
-
-PRInt32 gfxPlatformGtk::sPlatformDPI = -1;
 gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nsnull;
 
 #ifndef MOZ_PANGO
@@ -529,41 +523,10 @@ gfxPlatformGtk::CreateFontGroup(const nsAString &aFamilies,
 void
 gfxPlatformGtk::InitDisplayCaps()
 {
-    GdkScreen *screen = gdk_screen_get_default();
-    gtk_settings_get_for_screen(screen); 
-    gfxPlatformGtk::sPlatformDPI = PRInt32(round(gdk_screen_get_resolution(screen)));
-
-    if (gfxPlatformGtk::sPlatformDPI <= 0) {
-        
-        gfxPlatformGtk::sPlatformDPI = 96;
-    }
-
-#ifdef MOZ_PLATFORM_HILDON
     
-    if (gfxPlatform::sDPI == -1) {
-        nsresult rv;
-        nsCOMPtr<nsIPropertyBag2> infoService = do_GetService("@mozilla.org/system-info;1", &rv);
-        if (NS_FAILED(rv)) {
-            NS_ASSERTION(infoService, "Could not find a system info service");
-            return;
-        }
-        nsCString deviceType;
-        rv = infoService->GetPropertyAsACString(NS_LITERAL_STRING("device"), deviceType);
-        if (NS_SUCCEEDED(rv)) {
-          if (deviceType.EqualsLiteral("Nokia N900")) {
-              gfxPlatform::sDPI = 265; 
-              gfxPlatformGtk::sMaemoClassic = 0;
-          }
-          else if (deviceType.EqualsLiteral("Nokia N8xx")) {
-              gfxPlatform::sDPI = 225; 
-              gfxPlatformGtk::sMaemoClassic = 1;
-          }
-        }
-    }
-#else
-    gfxPlatform::sDPI = gfxPlatformGtk::sPlatformDPI;
-#endif
-
+    GdkScreen *screen = gdk_screen_get_default();
+    gtk_settings_get_for_screen(screen);
+    gfxPlatform::sDPI = PRInt32(round(gdk_screen_get_resolution(screen)));
     if (gfxPlatform::sDPI <= 0) {
         
         gfxPlatform::sDPI = 96;

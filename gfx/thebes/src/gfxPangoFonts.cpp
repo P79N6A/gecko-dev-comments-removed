@@ -709,7 +709,7 @@ gfx_pango_fc_font_describe(PangoFont *font)
     gfxFcFont *gfxFont = gfxPangoFcFont::GfxFont(self);
     if (gfxFont) {
         double pixelsize = gfxFont->GetStyle()->size;
-        double dpi = gfxPlatformGtk::GetPlatformDPI();
+        double dpi = gfxPlatform::GetDPI();
         gint size = moz_pango_units_from_double(pixelsize * dpi / 72.0);
         pango_font_description_set_size(result, size);
     }
@@ -1707,7 +1707,7 @@ gfx_pango_font_map_get_resolution(PangoFcFontMap *fcfontmap,
 {
     
     
-    return gfxPlatformGtk::GetPlatformDPI();
+    return gfxPlatform::GetDPI();
 }
 
 #ifdef MOZ_WIDGET_GTK2
