@@ -1797,23 +1797,17 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
 }
 
 static void
-gfx_pango_font_map_context_substitute(PangoFcFontMap *fontmap,
-                                      PangoContext *context,
+gfx_pango_font_map_default_substitute(PangoFcFontMap *fontmap,
                                       FcPattern *pattern)
 {
     
-    PangoFontDescription *desc = pango_context_get_font_description(context);
-    double size = pango_font_description_get_size(desc) / FLOAT_PANGO_SCALE;
-    gfxPangoFontGroup *fontGroup = GetFontGroup(context);
-    PRBool usePrinterFont = fontGroup && fontGroup->GetStyle()->printerFont;
-    PrepareSortPattern(pattern, size, 1.0, usePrinterFont);
+    
+    PrepareSortPattern(pattern, 18.0, 1.0, FALSE);
 }
 
 static PangoFcFont *
-gfx_pango_font_map_create_font(PangoFcFontMap *fontmap,
-                               PangoContext *context,
-                               const PangoFontDescription *desc,
-                               FcPattern *pattern)
+gfx_pango_font_map_new_font(PangoFcFontMap *fontmap,
+                            FcPattern *pattern)
 {
     return PANGO_FC_FONT(g_object_new(GFX_TYPE_PANGO_FC_FONT,
                                       "pattern", pattern, NULL));
@@ -1838,8 +1832,12 @@ gfx_pango_font_map_class_init(gfxPangoFontMapClass *klass)
 
     
     
-    fcfontmap_class->context_substitute = gfx_pango_font_map_context_substitute;
-    fcfontmap_class->create_font = gfx_pango_font_map_create_font;
+    
+    
+    
+    
+    fcfontmap_class->default_substitute = gfx_pango_font_map_default_substitute;
+    fcfontmap_class->new_font = gfx_pango_font_map_new_font;
 }
 
 
