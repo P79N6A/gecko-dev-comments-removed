@@ -6569,10 +6569,6 @@ var gIdentityHandler = {
     delete this._identityIconLabel;
     return this._identityIconLabel = document.getElementById("identity-icon-label");
   },
-  get _identityIconCountryLabel () {
-    delete this._identityIconCountryLabel;
-    return this._identityIconCountryLabel = document.getElementById("identity-icon-country-label");
-  },
 
   
 
@@ -6581,10 +6577,8 @@ var gIdentityHandler = {
   _cacheElements : function() {
     delete this._identityBox;
     delete this._identityIconLabel;
-    delete this._identityIconCountryLabel;
     this._identityBox = document.getElementById("identity-box");
     this._identityIconLabel = document.getElementById("identity-icon-label");
-    this._identityIconCountryLabel = document.getElementById("identity-icon-country-label");
   },
 
   
@@ -6706,8 +6700,6 @@ var gIdentityHandler = {
       
       
       var icon_label = "";
-      var icon_country_label = "";
-      var icon_labels_dir = "ltr";
       switch (gPrefService.getIntPref("browser.identity.ssl_domain_display")) {
         case 2 : 
           icon_label = this._lastLocation.hostname;
@@ -6746,34 +6738,20 @@ var gIdentityHandler = {
       iData = this.getIdentityData();  
       tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                       [iData.caOrg]);
-      icon_label = iData.subjectOrg;
       if (iData.country)
-        icon_country_label = "(" + iData.country + ")";
-      
-      
-      
-      
-      
-      
-      icon_labels_dir = /^[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(icon_label) ?
-                        "rtl" : "ltr";
+        icon_label = this._stringBundle.getFormattedString("identity.identified.title_with_country",
+                                                           [iData.subjectOrg, iData.country]);
+      else
+        icon_label = iData.subjectOrg;
     }
     else {
       tooltip = this._stringBundle.getString("identity.unknown.tooltip");
       icon_label = "";
-      icon_country_label = "";
-      icon_labels_dir = "ltr";
     }
     
     
     this._identityBox.tooltipText = tooltip;
     this._identityIconLabel.value = icon_label;
-    this._identityIconCountryLabel.value = icon_country_label;
-    
-    this._identityIconLabel.crop = icon_country_label ? "end" : "center";
-    this._identityIconLabel.parentNode.style.direction = icon_labels_dir;
-    
-    this._identityIconLabel.parentNode.hidden = icon_label ? false : true;
   },
   
   
