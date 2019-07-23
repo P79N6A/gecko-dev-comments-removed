@@ -41,6 +41,7 @@
 
 
 
+
 #include "nsContentSink.h"
 #include "nsScriptLoader.h"
 #include "nsIDocument.h"
@@ -1404,6 +1405,11 @@ nsContentSink::FavorPerformanceHint(PRBool perfOverStarvation, PRUint32 starvati
 void
 nsContentSink::BeginUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
 {
+  
+  if (mInNotification && mUpdatesInNotification < 2) {
+    ++mUpdatesInNotification;
+  }
+
   
   
   
