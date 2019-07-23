@@ -64,9 +64,7 @@
 #include "nsIAlertsService.h"
 #include "nsEmbedCID.h"
 #include "nsInt64.h"
-#ifdef MOZ_XUL_APP
 #include "nsToolkitCompsCID.h" 
-#endif
 
 
 
