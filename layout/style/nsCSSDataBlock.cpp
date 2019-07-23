@@ -45,6 +45,7 @@
 #include "nsRuleData.h"
 #include "nsRuleNode.h"
 #include "nsStyleSet.h"
+#include "nsStyleContext.h"
 
 
 
@@ -203,6 +204,20 @@ TryToStartImageLoad(const nsCSSValue& aValue, nsIDocument* aDocument,
   }
 }
 
+static inline PRBool
+ShouldStartImageLoads(nsRuleData *aRuleData, nsCSSProperty aProperty)
+{
+  
+  
+  
+  
+  
+  
+  
+  return !aRuleData->mStyleContext->IsStyleIfVisited() &&
+         nsCSSProps::PropHasFlags(aProperty, CSS_PROPERTY_START_IMAGE_LOADS);
+}
+
 nsresult
 nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
 {
@@ -231,8 +246,7 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                     if (target->GetUnit() == eCSSUnit_Null) {
                         const nsCSSValue *val = ValueAtCursor(cursor);
                         NS_ASSERTION(val->GetUnit() != eCSSUnit_Null, "oops");
-                        if (nsCSSProps::PropHasFlags(iProp,
-                                CSS_PROPERTY_START_IMAGE_LOADS)) {
+                        if (ShouldStartImageLoads(aRuleData, iProp)) {
                             TryToStartImageLoad(*val, doc, iProp);
                         }
                         *target = *val;
@@ -301,8 +315,7 @@ nsCSSCompressedDataBlock::MapRuleInfoInto(nsRuleData *aRuleData) const
                 case eCSSType_ValuePairList: {
                     void** target = static_cast<void**>(prop);
                     if (!*target) {
-                        if (nsCSSProps::PropHasFlags(iProp,
-                                CSS_PROPERTY_START_IMAGE_LOADS)) {
+                        if (ShouldStartImageLoads(aRuleData, iProp)) {
                             for (nsCSSValueList* l = ValueListAtCursor(cursor);
                                  l; l = l->mNext) {
                                 TryToStartImageLoad(l->mValue, doc, iProp);
