@@ -97,6 +97,7 @@ enum nsCSSUnit {
                                   
   eCSSUnit_DummyInherit = 8,      
                                   
+  eCSSUnit_RectIsAuto   = 9,      
   eCSSUnit_String       = 10,     
   eCSSUnit_Attr         = 11,     
   eCSSUnit_Local_Font   = 12,     
@@ -174,7 +175,7 @@ public:
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
     : mUnit(aUnit)
   {
-    NS_ASSERTION(aUnit <= eCSSUnit_DummyInherit, "not a valueless unit");
+    NS_ASSERTION(aUnit <= eCSSUnit_RectIsAuto, "not a valueless unit");
   }
 
   nsCSSValue(PRInt32 aValue, nsCSSUnit aUnit) NS_HIDDEN;
@@ -317,6 +318,7 @@ public:
   NS_HIDDEN_(void)  SetSystemFontValue();
   NS_HIDDEN_(void)  SetDummyValue();
   NS_HIDDEN_(void)  SetDummyInheritValue();
+  NS_HIDDEN_(void)  SetRectIsAutoValue();
   NS_HIDDEN_(void)  StartImageLoad(nsIDocument* aDocument)
                                    const;  
 

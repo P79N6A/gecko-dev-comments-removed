@@ -127,7 +127,7 @@ nsCSSValue::nsCSSValue(nsCSSValue::Image* aValue)
 nsCSSValue::nsCSSValue(const nsCSSValue& aCopy)
   : mUnit(aCopy.mUnit)
 {
-  if (mUnit <= eCSSUnit_DummyInherit) {
+  if (mUnit <= eCSSUnit_RectIsAuto) {
     
   }
   else if (eCSSUnit_Percent <= mUnit) {
@@ -172,7 +172,7 @@ nsCSSValue& nsCSSValue::operator=(const nsCSSValue& aCopy)
 PRBool nsCSSValue::operator==(const nsCSSValue& aOther) const
 {
   if (mUnit == aOther.mUnit) {
-    if (mUnit <= eCSSUnit_DummyInherit) {
+    if (mUnit <= eCSSUnit_RectIsAuto) {
       return PR_TRUE;
     }
     else if (UnitHasStringValue()) {
@@ -384,6 +384,12 @@ void nsCSSValue::SetDummyInheritValue()
 {
   Reset();
   mUnit = eCSSUnit_DummyInherit;
+}
+
+void nsCSSValue::SetRectIsAutoValue()
+{
+  Reset();
+  mUnit = eCSSUnit_RectIsAuto;
 }
 
 void nsCSSValue::StartImageLoad(nsIDocument* aDocument) const
