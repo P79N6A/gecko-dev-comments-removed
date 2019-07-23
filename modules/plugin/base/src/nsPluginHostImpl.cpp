@@ -92,7 +92,6 @@
 #include "nsIPrefBranch2.h"
 #include "nsIScriptChannel.h"
 #include "nsPrintfCString.h"
-#include "nsVersionComparator.h"
 
 
 #ifdef None
@@ -204,10 +203,7 @@
 
 
 
-
 static const char *kPluginRegistryVersion = "0.10";
-
-static const char *kMinimumRegistryVersion = "0.9";
 
 
 static NS_DEFINE_IID(kIPluginInstanceIID, NS_IPLUGININSTANCE_IID);
@@ -5778,13 +5774,7 @@ nsPluginHostImpl::ReadPluginInfo()
   }
 
   
-  PRInt32 vdiff = NS_CompareVersions(values[1], kPluginRegistryVersion);
-  
-  if (vdiff > 0) {
-    return rv;
-  }
-  
-  if (NS_CompareVersions(values[1], kMinimumRegistryVersion) < 0) {
+  if (PL_strcmp(values[1], kPluginRegistryVersion)) {
     return rv;
   }
 
@@ -5801,22 +5791,15 @@ nsPluginHostImpl::ReadPluginInfo()
     if (!reader.NextLine())
       return rv;
 
-    char *version;
-    if (NS_CompareVersions(values[1], "0.10") >= 0) {
-      version = reader.LinePtr();
-      if (!reader.NextLine())
-        return rv;
-    }
-    else {
-      version = "0";
-    }
+    char *version = reader.LinePtr();
+    if (!reader.NextLine())
+      return rv;
 
     
     if (3 != reader.ParseLine(values, 3))
       return rv;
 
-    
-    PRInt64 lastmod = vdiff == 0 ? nsCRT::atoll(values[0]) : -1;
+    PRInt64 lastmod = nsCRT::atoll(values[0]);
     PRBool canunload = atoi(values[1]);
     PRUint32 tagflag = atoi(values[2]);
     if (!reader.NextLine())
