@@ -35,8 +35,6 @@
 
 
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
 
 
 
@@ -53,9 +51,8 @@ function test() {
   let zoomLevel;
 
   
-  let testTab = gBrowser.addTab();
-  gBrowser.selectedTab = testTab;
-  let testBrowser = gBrowser.getBrowserForTab(testTab);
+  gBrowser.selectedTab = gBrowser.addTab();
+  let testBrowser = gBrowser.selectedBrowser;
 
   let finishTest = function() {
     testBrowser.removeProgressListener(progressListener);

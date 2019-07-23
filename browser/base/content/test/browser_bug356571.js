@@ -1,11 +1,7 @@
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cm = Components.manager;
-
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 var didFail = false;
