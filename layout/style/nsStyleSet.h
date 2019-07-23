@@ -159,9 +159,6 @@ class nsStyleSet
   }
 
   
-  static void FreeGlobals() { NS_IF_RELEASE(gQuirkURI); }
-
-  
   
   enum sheetType {
     eAgentSheet, 
@@ -209,6 +206,11 @@ class nsStyleSet
   
   void EndReconstruct();
 
+  
+  
+  
+  void SetQuirkStyleSheet(nsIStyleSheet* aQuirkStyleSheet);
+  
  private:
   
   nsStyleSet(const nsStyleSet& aCopy);
@@ -252,8 +254,6 @@ class nsStyleSet
                                               nsIAtom* aPseudoTag);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
-
-  static nsIURI  *gQuirkURI;
 
   
   

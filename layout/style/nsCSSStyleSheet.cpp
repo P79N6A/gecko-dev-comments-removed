@@ -1281,46 +1281,6 @@ nsCSSStyleSheet::GetOwnerRule(nsICSSImportRule** aOwnerRule)
 }
 
 NS_IMETHODIMP
-nsCSSStyleSheet::ContainsStyleSheet(nsIURI* aURL, PRBool& aContains, nsIStyleSheet** aTheChild )
-{
-  NS_PRECONDITION(nsnull != aURL, "null arg");
-
-  if (!mInner->mSheetURI) {
-    
-    
-    
-    NS_ERROR("ContainsStyleSheet called on a sheet that's still loading");
-    aContains = PR_FALSE;
-    return NS_OK;
-  }
-  
-  
-  nsresult rv = mInner->mSheetURI->Equals(aURL, &aContains);
-  if (NS_FAILED(rv)) aContains = PR_FALSE;
-
-  if (aContains) {
-    
-    if (aTheChild) {
-      rv = CallQueryInterface(this, aTheChild);
-    }
-  } else {
-    
-    for (nsCSSStyleSheet* child = mInner->mFirstChild;
-         child;
-         child = child->mNext) {
-      child->ContainsStyleSheet(aURL, aContains, aTheChild);
-      if (aContains) {
-        break;
-      }
-    }
-  }
-
-  
-  
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsCSSStyleSheet::AppendStyleSheet(nsICSSStyleSheet* aSheet)
 {
   NS_PRECONDITION(nsnull != aSheet, "null arg");
