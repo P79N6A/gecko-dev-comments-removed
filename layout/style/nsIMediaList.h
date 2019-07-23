@@ -48,6 +48,7 @@
 #include "nsIDOMMediaList.h"
 #include "nsAString.h"
 #include "nsTArray.h"
+#include "nsTPtrArray.h"
 #include "nsIAtom.h"
 #include "nsMediaFeatures.h"
 #include "nsCSSValue.h"
@@ -66,6 +67,55 @@ struct nsMediaExpression {
   
   PRBool Matches(nsPresContext* aPresContext,
                  const nsCSSValue& aActualValue) const;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsMediaQueryResultCacheKey {
+public:
+  nsMediaQueryResultCacheKey(nsIAtom* aMedium)
+    : mMedium(aMedium)
+  {}
+
+  
+
+
+
+
+  void AddExpression(const nsMediaExpression* aExpression,
+                     PRBool aExpressionMatches);
+  PRBool Matches(nsPresContext* aPresContext) const;
+private:
+  struct ExpressionEntry {
+    
+    
+    
+    nsMediaExpression mExpression;
+    PRBool mExpressionMatches;
+  };
+  struct FeatureEntry {
+    const nsMediaFeature *mFeature;
+    nsTArray<ExpressionEntry> mExpressions;
+  };
+  nsCOMPtr<nsIAtom> mMedium;
+  nsTArray<FeatureEntry> mFeatureCache;
 };
 
 class nsMediaQuery {
@@ -114,7 +164,8 @@ public:
   nsMediaQuery* Clone() const;
 
   
-  PRBool Matches(nsPresContext* aPresContext) const;
+  PRBool Matches(nsPresContext* aPresContext,
+                 nsMediaQueryResultCacheKey& aKey) const;
 
 private:
   PRPackedBool mNegated;
@@ -135,7 +186,8 @@ public:
 
   nsresult GetText(nsAString& aMediaText);
   nsresult SetText(const nsAString& aMediaText);
-  PRBool Matches(nsPresContext* aPresContext);
+  PRBool Matches(nsPresContext* aPresContext,
+                 nsMediaQueryResultCacheKey& aKey);
   nsresult SetStyleSheet(nsICSSStyleSheet* aSheet);
   nsresult AppendQuery(nsAutoPtr<nsMediaQuery>& aQuery) {
     

@@ -80,6 +80,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 #include "nsContentUtils.h"
+#include "nsIMediaList.h"
 
 static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 static nsTArray< nsCOMPtr<nsIAtom> >* sSystemMetrics = 0;
@@ -683,7 +684,7 @@ struct RuleCascadeData {
   RuleCascadeData(nsIAtom *aMedium, PRBool aQuirksMode)
     : mRuleHash(aQuirksMode),
       mStateSelectors(),
-      mMedium(aMedium),
+      mCacheKey(aMedium),
       mNext(nsnull)
   {
     PL_DHashTableInit(&mAttributeSelectors, &AttributeSelectorOps, nsnull,
@@ -704,7 +705,7 @@ struct RuleCascadeData {
   
   nsVoidArray* AttributeListFor(nsIAtom* aAttribute);
 
-  nsCOMPtr<nsIAtom> mMedium;
+  nsMediaQueryResultCacheKey mCacheKey;
   RuleCascadeData*  mNext; 
 };
 
@@ -2224,8 +2225,11 @@ static PLDHashTableOps gRulesByWeightOps = {
 };
 
 struct CascadeEnumData {
-  CascadeEnumData(nsPresContext* aPresContext, PLArenaPool& aArena)
+  CascadeEnumData(nsPresContext* aPresContext,
+                  nsMediaQueryResultCacheKey& aKey,
+                  PLArenaPool& aArena)
     : mPresContext(aPresContext),
+      mCacheKey(aKey),
       mArena(aArena)
   {
     if (!PL_DHashTableInit(&mRulesByWeight, &gRulesByWeightOps, nsnull,
@@ -2240,6 +2244,7 @@ struct CascadeEnumData {
   }
 
   nsPresContext* mPresContext;
+  nsMediaQueryResultCacheKey& mCacheKey;
   
   
   PLDHashTable mRulesByWeight; 
@@ -2275,7 +2280,7 @@ InsertRuleByWeight(nsICSSRule* aRule, void* aData)
   else if (nsICSSRule::MEDIA_RULE == type ||
            nsICSSRule::DOCUMENT_RULE == type) {
     nsICSSGroupRule* groupRule = (nsICSSGroupRule*)aRule;
-    if (groupRule->UseForPresentation(data->mPresContext))
+    if (groupRule->UseForPresentation(data->mPresContext, data->mCacheKey))
       if (!groupRule->EnumerateRulesForwards(InsertRuleByWeight, aData))
         return PR_FALSE;
   }
@@ -2291,7 +2296,8 @@ CascadeSheetRulesInto(nsICSSStyleSheet* aSheet, void* aData)
   PRBool bSheetApplicable = PR_TRUE;
   sheet->GetApplicable(bSheetApplicable);
 
-  if (bSheetApplicable && sheet->UseForMedium(data->mPresContext)) {
+  if (bSheetApplicable &&
+      sheet->UseForPresentation(data->mPresContext, data->mCacheKey)) {
     nsCSSStyleSheet* child = sheet->mFirstChild;
     while (child) {
       CascadeSheetRulesInto(child, data);
@@ -2349,19 +2355,19 @@ nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
 
   RuleCascadeData **cascadep = &mRuleCascades;
   RuleCascadeData *cascade;
-  nsIAtom *medium = aPresContext->Medium();
   while ((cascade = *cascadep)) {
-    if (cascade->mMedium == medium)
+    if (cascade->mCacheKey.Matches(aPresContext))
       return cascade;
     cascadep = &cascade->mNext;
   }
 
   if (mSheets.Count() != 0) {
     nsAutoPtr<RuleCascadeData> newCascade(
-      new RuleCascadeData(medium,
+      new RuleCascadeData(aPresContext->Medium(),
                           eCompatibility_NavQuirks == aPresContext->CompatibilityMode()));
     if (newCascade) {
-      CascadeEnumData data(aPresContext, newCascade->mRuleHash.Arena());
+      CascadeEnumData data(aPresContext, newCascade->mCacheKey,
+                           newCascade->mRuleHash.Arena());
       if (!data.mRulesByWeight.ops)
         return nsnull;
       if (!mSheets.EnumerateForwards(CascadeSheetRulesInto, &data))

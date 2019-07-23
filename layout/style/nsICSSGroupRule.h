@@ -48,6 +48,7 @@
 
 class nsIAtom;
 class nsPresContext;
+class nsMediaQueryResultCacheKey;
 
 
 #define NS_ICSS_GROUP_RULE_IID     \
@@ -75,7 +76,8 @@ public:
                                  nsCOMArray<nsICSSRule>& aRules) = 0;
   NS_IMETHOD  ReplaceStyleRule(nsICSSRule* aOld, nsICSSRule* aNew) = 0;
 
-  NS_IMETHOD_(PRBool) UseForPresentation(nsPresContext* aPresContext) = 0;
+  NS_IMETHOD_(PRBool) UseForPresentation(nsPresContext* aPresContext,
+                                         nsMediaQueryResultCacheKey& aKey) = 0;
    
 };
 
