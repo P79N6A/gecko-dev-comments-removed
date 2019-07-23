@@ -100,6 +100,10 @@ typedef JSUintPtr uintptr_t;
 
 
 
+#ifdef _MSC_VER
+#undef SIZE_MAX
+#endif
+
 #define INTPTR_MAX  ((intptr_t) (UINTPTR_MAX >> 1))
 #define INTPTR_MIN  (intptr_t(uintptr_t(INTPTR_MAX) + uintptr_t(1)))
 #define UINTPTR_MAX ((uintptr_t) -1)

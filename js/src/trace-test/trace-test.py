@@ -144,7 +144,7 @@ def check_output(out, err, rc, allow_oom):
     if rc != 0:
         
         
-        return allow_oom and ': out of memory\n' in err
+        return allow_oom and ': out of memory' in err
 
     return True
 

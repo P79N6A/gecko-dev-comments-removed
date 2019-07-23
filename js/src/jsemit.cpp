@@ -2312,9 +2312,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             JS_ASSERT(op != JSOP_CALLEE);
             JS_ASSERT((cg->fun->flags & JSFUN_LAMBDA) && atom == cg->fun->atom);
 
-            switch (op) {
-              default:
-                
+            
 
 
 
@@ -2325,13 +2323,12 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-                JS_ASSERT(op != JSOP_DELNAME);
-                if (!(cg->flags & TCF_FUN_HEAVYWEIGHT)) {
-                    op = JSOP_CALLEE;
-                    pn->pn_dflags |= PND_CONST;
-                }
-                break;
+            JS_ASSERT(op != JSOP_DELNAME);
+            if (!(cg->flags & TCF_FUN_HEAVYWEIGHT)) {
+                op = JSOP_CALLEE;
+                pn->pn_dflags |= PND_CONST;
             }
+
             pn->pn_op = op;
             pn->pn_dflags |= PND_BOUND;
             return JS_TRUE;
