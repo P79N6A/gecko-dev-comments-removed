@@ -1320,7 +1320,7 @@ DocumentViewerImpl::Close(nsISHEntry *aSHEntry)
       
       mDocument->SetScriptGlobalObject(nsnull);
 
-      if (!mSHEntry)
+      if (!mSHEntry && mDocument)
         mDocument->RemovedFromDocShell();
     }
 
