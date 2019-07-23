@@ -493,7 +493,7 @@ nsHTMLScrollFrame::GuessVScrollbarNeeded(const ScrollReflowState& aState)
 
   
   
-  if (GetStateBits() & NS_FRAME_FIRST_REFLOW)
+  if (InInitialReflow())
     return PR_FALSE;
 
   if (mInner.mIsRoot) {
@@ -515,6 +515,18 @@ nsHTMLScrollFrame::GuessVScrollbarNeeded(const ScrollReflowState& aState)
   
   
   return PR_FALSE;
+}
+
+PRBool
+nsHTMLScrollFrame::InInitialReflow() const
+{
+  
+  
+  
+  return
+    (GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
+    (!mInner.mIsRoot ||
+     PresContext()->PresShell()->IsInEagerStartLayout());
 }
 
 nsresult
@@ -782,8 +794,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.mOverflowArea = nsRect(0, 0, aDesiredSize.width, aDesiredSize.height);
   FinishAndStoreOverflow(&aDesiredSize);
 
-  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW) &&
-      !mInner.mHadNonInitialReflow) {
+  if (!InInitialReflow() && !mInner.mHadNonInitialReflow) {
     mInner.mHadNonInitialReflow = PR_TRUE;
     if (mInner.mIsRoot) {
       

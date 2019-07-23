@@ -397,6 +397,10 @@ protected:
   PRBool IsScrollbarUpdateSuppressed() const {
     return mInner.mSupppressScrollbarUpdate;
   }
+
+  
+  
+  PRBool InInitialReflow() const;
   
 private:
   friend class nsGfxScrollFrameInner;
