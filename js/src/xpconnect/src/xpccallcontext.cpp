@@ -60,6 +60,18 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mCallerLanguage(callerLanguage),
         mCallee(nsnull)
 {
+    
+    
+    
+    StringWrapperEntry *se =
+        reinterpret_cast<StringWrapperEntry*>(&mStringWrapperData);
+
+    PRUint32 i;
+    for(i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i)
+    {
+        se[i].mInUse = PR_FALSE;
+    }
+
     if(!mXPC)
         return;
 
@@ -163,16 +175,6 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         SetArgsAndResultPtr(argc, argv, rval);
 
     CHECK_STATE(HAVE_OBJECT);
-
-    
-    StringWrapperEntry *se =
-        reinterpret_cast<StringWrapperEntry*>(&mStringWrapperData);
-
-    PRUint32 i;
-    for(i = 0; i < XPCCCX_STRING_CACHE_SIZE; ++i)
-    {
-        se[i].mInUse = PR_FALSE;
-    }
 }
 
 void
