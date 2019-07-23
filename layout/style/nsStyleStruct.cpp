@@ -1918,6 +1918,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
         break;
       }
   }
+
   
   
   
