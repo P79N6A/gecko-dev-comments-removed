@@ -45,6 +45,7 @@
 
 #include "nsRect.h"
 #include "nsObjCExceptions.h"
+#include "imgIContainer.h"
 
 class nsIWidget;
 
@@ -130,6 +131,37 @@ class nsCocoaUtils
 
   static void PrepareForNativeAppModalDialog();
   static void CleanUpAfterNativeAppModalDialog();
+
+  
+  
+  
+  
+
+
+
+
+
+
+
+  static nsresult CreateCGImageFromImageContainer(imgIContainer *aImage, PRUint32 aWhichFrame, CGImageRef *aResult);
+  
+  
+
+
+
+
+
+
+  static nsresult CreateNSImageFromCGImage(CGImageRef aInputImage, NSImage **aResult);
+
+  
+
+
+
+
+
+  
+  static nsresult CreateNSImageFromImageContainer(imgIContainer *aImage, PRUint32 aWhichFrame, NSImage **aResult);
 };
 
 #endif 

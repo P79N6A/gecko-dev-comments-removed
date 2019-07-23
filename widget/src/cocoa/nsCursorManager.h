@@ -50,7 +50,7 @@
 {
   @private
   NSMutableDictionary *mCursors;
-  nsCursor mCurrentCursor;
+  nsMacCursor *mCurrentMacCursor;
 }
 
 
@@ -59,7 +59,18 @@
 
 
 
-- (void) setCursor: (nsCursor) aCursor;
+- (nsresult) setCursor: (nsCursor) aCursor;
+
+
+
+
+
+
+
+
+
+- (nsresult) setCursorWithImage: (imgIContainer*) aCursorImage hotSpotX: (PRUint32) aHotspotX hotSpotY: (PRUint32) aHotspotY;
+
 
 
 

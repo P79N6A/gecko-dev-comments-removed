@@ -37,6 +37,7 @@
 #define nsMacCursor_h_
 
 #import <Cocoa/Cocoa.h>
+#import "nsIWidget.h"
 
 
 
@@ -49,6 +50,7 @@
   @private
   NSTimer *mTimer;
   @protected
+  nsCursor mType;
   int mFrameCounter;    
 }
 
@@ -58,7 +60,8 @@
 
 
 
-+ (nsMacCursor *) cursorWithCursor: (NSCursor *) aCursor;
+
++ (nsMacCursor *) cursorWithCursor: (NSCursor *) aCursor type: (nsCursor) aType;
 
 
 
@@ -70,7 +73,8 @@
 
 
 
-+ (nsMacCursor *) cursorWithImageNamed: (NSString *) aCursorImage hotSpot: (NSPoint) aPoint;
+
++ (nsMacCursor *) cursorWithImageNamed: (NSString *) aCursorImage hotSpot: (NSPoint) aPoint type: (nsCursor) aType;
 
 
 
@@ -80,7 +84,8 @@
 
 
 
-+ (nsMacCursor *) cursorWithFrames: (NSArray *) aCursorFrames;
+
++ (nsMacCursor *) cursorWithFrames: (NSArray *) aCursorFrames type: (nsCursor) aType;
 
 
 
@@ -118,6 +123,14 @@
 
 - (BOOL) isAnimated;
 
+
+
+
+
+
+
+
+- (nsCursor) type;
 @end
 
 #endif 
