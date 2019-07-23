@@ -51,7 +51,7 @@
 #include <alloca.h>
 #endif
 
-#include "nanojit.h"
+#include "nanojit/nanojit.h"
 #include "jsarray.h"            
 #include "jsbool.h"
 #include "jscntxt.h"
