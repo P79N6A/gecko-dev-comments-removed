@@ -148,12 +148,6 @@ nsHTMLCSSStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
   return nsReStyleHint(0);
 }
 
-PRBool
-nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aData)
-{
-  return PR_FALSE;
-}
-
 
 nsReStyleHint
 nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)

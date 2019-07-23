@@ -115,18 +115,11 @@ class Link;
 } 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x94fb5716, 0xff00, 0x4b97, \
- { 0x90, 0x01, 0x91, 0x65, 0x1a, 0x5f, 0xbe, 0x64 } }
+{ 0x36f0a42c, 0x089b, 0x4909, \
+  { 0xb3, 0xee, 0xc5, 0xa4, 0x00, 0x90, 0x30, 0x02 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
-
-
-
-
-#define NS_DOCUMENT_STATE_RTL_LOCALE              (1 << 0)
-
-#define NS_DOCUMENT_STATE_WINDOW_INACTIVE         (1 << 1)
 
 
 
@@ -683,11 +676,6 @@ public:
   virtual void ContentStatesChanged(nsIContent* aContent1,
                                     nsIContent* aContent2,
                                     PRInt32 aStateMask) = 0;
-
-  
-  
-  
-  virtual void DocumentStatesChanged(PRInt32 aStateMask) = 0;
 
   
   
@@ -1293,13 +1281,6 @@ public:
 
 
   virtual int GetDocumentLWTheme() { return Doc_Theme_None; }
-
-  
-
-
-
-
-  virtual PRInt32 GetDocumentState() = 0;
 
   
 
