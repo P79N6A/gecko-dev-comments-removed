@@ -897,7 +897,6 @@ nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
 
 
 
-
 inline PRBool
 IsCanvasFrame(nsIFrame *aFrame)
 {
@@ -1178,7 +1177,7 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
     color = aForFrame->GetStyleBackground();
   }
 
-  if (isCanvas && NS_GET_A(color->mBackgroundColor) == 255) {
+  if (isCanvas) {
     nsIViewManager* vm = aPresContext->GetViewManager();
     vm->SetDefaultBackgroundColor(color->mBackgroundColor);
   }
