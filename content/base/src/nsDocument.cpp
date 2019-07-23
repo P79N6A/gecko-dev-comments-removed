@@ -7121,6 +7121,34 @@ nsDocument::GetLayoutHistoryState() const
 }
 
 void
+nsDocument::EnsureOnloadBlocker()
+{
+  
+  
+  if (mOnloadBlockCount != 0 && mScriptGlobalObject) {
+    nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
+    if (loadGroup) {
+      
+      nsCOMPtr<nsISimpleEnumerator> requests;
+      loadGroup->GetRequests(getter_AddRefs(requests));
+
+      PRBool hasMore = PR_FALSE;
+      while (NS_SUCCEEDED(requests->HasMoreElements(&hasMore)) && hasMore) {
+        nsCOMPtr<nsISupports> elem;
+        requests->GetNext(getter_AddRefs(elem));
+        nsCOMPtr<nsIRequest> request = do_QueryInterface(elem);
+        if (request && request == mOnloadBlocker) {
+          return;
+        }
+      }
+
+      
+      loadGroup->AddRequest(mOnloadBlocker, nsnull);
+    }
+  }
+}
+
+void
 nsDocument::BlockOnload()
 {
   if (mDisplayDocument) {

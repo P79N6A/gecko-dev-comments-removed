@@ -1939,6 +1939,12 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
 
     nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(shell));
     webnav->Stop(nsIWebNavigation::STOP_NETWORK);
+
+    
+    
+    
+    
+    EnsureOnloadBlocker();
   }
 
   
