@@ -94,6 +94,7 @@ struct nsID {
 
   NS_COM_GLUE PRBool Parse(const char *aIDStr);
 
+#ifndef XPCOM_GLUE_AVOID_NSPR
   
 
 
@@ -107,6 +108,9 @@ struct nsID {
 
 
   NS_COM_GLUE void ToProvidedString(char (&dest)[NSID_LENGTH]) const;
+
+#endif 
+
   
 };
 
