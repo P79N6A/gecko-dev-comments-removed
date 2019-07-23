@@ -655,16 +655,16 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
   const nsStylePadding *stylePadding = GetStylePadding();
   const nsStyleBorder *styleBorder = GetStyleBorder();
   const nsStyleMargin *styleMargin = GetStyleMargin();
-  nsStyleCoord tmp;
+  nsStyleCoord marginCoord, paddingCoord;
 
   
   
   
   
   aData->currentLine +=
-    GetCoord(stylePadding->mPadding.Get(startSide, tmp), 0) +
+    GetCoord(stylePadding->mPadding.Get(startSide, paddingCoord), 0) +
     styleBorder->GetBorderWidth(startSide) +
-    GetCoord(styleMargin->mMargin.Get(startSide, tmp), 0);
+    GetCoord(styleMargin->mMargin.Get(startSide, marginCoord), 0);
 
   const nsLineList_iterator* savedLine = aData->line;
 
@@ -692,9 +692,9 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsIRenderingContext *aRenderingContext,
   
   
   aData->currentLine +=
-    GetCoord(stylePadding->mPadding.Get(endSide, tmp), 0) +
+    GetCoord(stylePadding->mPadding.Get(endSide, paddingCoord), 0) +
     styleBorder->GetBorderWidth(endSide) +
-    GetCoord(styleMargin->mMargin.Get(endSide, tmp), 0);
+    GetCoord(styleMargin->mMargin.Get(endSide, marginCoord), 0);
 }
 
  nsSize
