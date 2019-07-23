@@ -95,6 +95,11 @@ private:
   PRUint32 *mColormap;       
   PRUint32 mColormapSize;
   PRUint32 mOldColor;        
+
+  
+  
+  PRInt32 mCurrentFrame;
+
   PRUint8 mCurrentPass;
   PRUint8 mLastFlushedPass;
   PRPackedBool mGIFOpen;
