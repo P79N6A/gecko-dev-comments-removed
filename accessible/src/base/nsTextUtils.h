@@ -58,7 +58,7 @@ public:
 
 
 
-  virtual PRBool equal(nsIDOMElement *aElm) = 0;
+  virtual PRBool Equal(nsIDOMElement *aElm) = 0;
 };
 
 
@@ -71,7 +71,7 @@ public:
   nsLangTextAttr(nsAString& aLang, nsIContent *aRootContent) :
     mLang(aLang), mRootContent(aRootContent) { }
 
-  virtual PRBool equal(nsIDOMElement *aElm);
+  virtual PRBool Equal(nsIDOMElement *aElm);
 
 private:
   nsString mLang;
@@ -89,18 +89,18 @@ public:
                 nsIDOMElement *aRootElm);
 
   
-  virtual PRBool equal(nsIDOMElement *aElm);
+  virtual PRBool Equal(nsIDOMElement *aElm);
 
   
   
 
 
-  PRBool iterate();
+  PRBool Iterate();
 
   
 
 
-  PRBool get(nsACString& aName, nsAString& aValue);
+  PRBool Get(nsACString& aName, nsAString& aValue);
 
 private:
   PRInt32 mIndex;
@@ -120,13 +120,13 @@ public:
   nsBackgroundTextAttr(nsIFrame *aFrame, nsIFrame *aRootFrame);
   
   
-  virtual PRBool equal(nsIDOMElement *aElm);
+  virtual PRBool Equal(nsIDOMElement *aElm);
 
   
 
 
 
-  virtual PRBool get(nsAString& aValue);
+  virtual PRBool Get(nsAString& aValue);
 
 private:
   
@@ -140,7 +140,7 @@ private:
 
 
 
-  nscolor getColor(nsIFrame *aFrame);
+  nscolor GetColor(nsIFrame *aFrame);
 
   nsIFrame *mFrame;
   nsIFrame *mRootFrame;
