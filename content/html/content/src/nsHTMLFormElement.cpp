@@ -1433,19 +1433,21 @@ nsHTMLFormElement::AddElement(nsIFormControl* aChild,
     if (!*firstSubmitSlot ||
         (!lastElement &&
          CompareFormControlPosition(aChild, *firstSubmitSlot, this) < 0)) {
-      NS_ASSERTION(*firstSubmitSlot == mDefaultSubmitElement ||
-                   mDefaultSubmitElement,
-                   "How can we have a null mDefaultSubmitElement but a "
-                   "first-submit slot in one of the lists?");
-      if (*firstSubmitSlot == mDefaultSubmitElement ||
-          CompareFormControlPosition(aChild,
-                                     mDefaultSubmitElement, this) < 0) {
+      
+      
+      
+      if ((mDefaultSubmitElement ||
+           (!mFirstSubmitInElements && !mFirstSubmitNotInElements)) &&
+          (*firstSubmitSlot == mDefaultSubmitElement ||
+           CompareFormControlPosition(aChild,
+                                      mDefaultSubmitElement, this) < 0)) {
         mDefaultSubmitElement = aChild;
       }
       *firstSubmitSlot = aChild;
     }
     NS_POSTCONDITION(mDefaultSubmitElement == mFirstSubmitInElements ||
-                     mDefaultSubmitElement == mFirstSubmitNotInElements,
+                     mDefaultSubmitElement == mFirstSubmitNotInElements ||
+                     !mDefaultSubmitElement,
                      "What happened here?");
 
     
