@@ -23,6 +23,7 @@
 # Contributor(s):
 #   Peter Annema <disttsc@bart.nl> (Original Author)
 #   Jonas Sicking <sicking@bigfoot.com>
+#   Jason Barnabe <jason_barnabe@fastmail.fm>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -37,7 +38,6 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-
 
 
 
@@ -69,7 +69,7 @@ ZoomManager.prototype = {
   get textZoom() {
     var currentZoom;
     try {
-      currentZoom = Math.round(getMarkupDocumentViewer().textZoom * 100);
+      currentZoom = Math.round(this.markupDocumentViewer.textZoom * 100);
       if (this.indexOf(currentZoom) == -1) {
         if (currentZoom != this.factorOther) {
           this.factorOther = currentZoom;
@@ -86,7 +86,7 @@ ZoomManager.prototype = {
     if (aZoom < this.MIN || aZoom > this.MAX)
       throw Components.results.NS_ERROR_INVALID_ARG;
 
-    getMarkupDocumentViewer().textZoom = aZoom / 100;
+    this.markupDocumentViewer.textZoom = aZoom / 100;
   },
 
   enlarge : function() {
@@ -183,6 +183,10 @@ ZoomManager.prototype = {
     }
 
     return aZoom;
+  },
+
+  get markupDocumentViewer() {
+    return getBrowser().markupDocumentViewer;
   }
 }
 
