@@ -121,11 +121,9 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
     
 
 
+
     if (cx->runtime->gcRegenShapes)
         tm->needFlush = JS_TRUE;
-
-    if (tm->recorder)
-        tm->recorder->deepAbort();
 
     
 

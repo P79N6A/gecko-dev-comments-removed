@@ -2806,17 +2806,8 @@ js_Interpret(JSContext *cx)
 
 #ifdef JS_TRACER
     
-    TraceRecorder *tr = TRACE_RECORDER(cx);
-    SET_TRACE_RECORDER(cx, NULL);
-
-    
-
-    if (tr) {
-        if (tr->wasDeepAborted())
-            tr->removeFragmentReferences();
-        else
-            tr->pushAbortStack();
-    }
+    if (TRACE_RECORDER(cx))
+        js_AbortRecording(cx, "attempt to reenter interpreter while recording");
 #endif
 
     
@@ -3308,15 +3299,6 @@ js_Interpret(JSContext *cx)
         js_SetVersion(cx, originalVersion);
     --cx->interpLevel;
 
-#ifdef JS_TRACER
-    if (tr) {
-        SET_TRACE_RECORDER(cx, tr);
-        if (!tr->wasDeepAborted()) {
-            tr->popAbortStack();
-            tr->deepAbort();
-        }
-    }
-#endif
     return ok;
 
   atom_not_defined:

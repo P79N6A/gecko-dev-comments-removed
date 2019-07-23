@@ -203,9 +203,6 @@ struct JSTraceMonitor {
 
     CLS(VMAllocator)        reTempAlloc;
 
-    
-    CLS(TraceRecorder)      abortStack;
-
 #ifdef DEBUG
     
     CLS(nanojit::Seq<nanojit::Fragment*>) branches;
