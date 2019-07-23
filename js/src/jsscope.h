@@ -196,9 +196,6 @@
 
 
 
-
-
-
 struct JSScope {
     JSObjectMap     map;                
     JSObject        *object;            
