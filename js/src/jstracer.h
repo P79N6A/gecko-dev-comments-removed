@@ -392,6 +392,33 @@ struct VMSideExit : public nanojit::SideExit
     }
 };
 
+struct VMAllocator : public nanojit::Allocator
+{
+
+public:
+    VMAllocator() : mOutOfMemory(false), mSize(0)
+    {}
+
+    size_t size() {
+        return mSize;
+    }
+
+    bool outOfMemory() {
+        return mOutOfMemory;
+    }
+
+    bool mOutOfMemory;
+    size_t mSize;
+    
+
+
+
+
+
+
+    uintptr_t mReserve[0x10000];
+};
+
 struct FrameInfo {
     JSObject*       callee;     
     JSObject*       block;      

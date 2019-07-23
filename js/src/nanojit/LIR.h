@@ -95,7 +95,6 @@ namespace nanojit
 
     struct GuardRecord;
     struct SideExit;
-    struct Page;
 
     enum AbiKind {
         ABI_FASTCALL,
@@ -494,7 +493,13 @@ namespace nanojit
     private:
         
         
+        union {
         Reservation lastWord;
+            
+            
+            
+            void* dummy;
+        };
 
         
         LInsOp0* toLInsOp0() const { return (LInsOp0*)( uintptr_t(this+1) - sizeof(LInsOp0) ); }
@@ -660,7 +665,6 @@ namespace nanojit
         double         imm64f()    const;
         Reservation*   resv()            { return &lastWord; }
         void*          payload()   const;
-        inline Page*   page()            { return (Page*) alignTo(this,NJ_PAGE_SIZE); }
         inline int32_t size()      const {
             NanoAssert(isop(LIR_ialloc));
             return toLInsI()->imm32 << 2;
@@ -847,20 +851,6 @@ namespace nanojit
     };
 
 
-    
-    #define NJ_PAGE_CODE_AREA_SZB       (NJ_PAGE_SIZE - sizeof(PageHeader))
-
-    
-    
-    
-    #define NJ_MAX_LINS_SZB             (NJ_PAGE_CODE_AREA_SZB - sizeof(LInsSk))
-
-    
-    
-    
-    #define NJ_MAX_SKIP_PAYLOAD_SZB     (NJ_MAX_LINS_SZB - sizeof(LInsSk))
-
-
 #ifdef NJ_VERBOSE
     extern const char* lirNames[];
 
@@ -869,6 +859,7 @@ namespace nanojit
 
     class LabelMap MMGC_SUBCLASS_DECL
     {
+        Allocator& allocator;
         class Entry MMGC_SUBCLASS_DECL
         {
         public:
@@ -884,7 +875,7 @@ namespace nanojit
         void formatAddr(const void *p, char *buf);
     public:
         avmplus::AvmCore *core;
-        LabelMap(avmplus::AvmCore *);
+        LabelMap(avmplus::AvmCore *, Allocator& allocator);
         ~LabelMap();
         void add(const void *p, size_t size, size_t align, const char *name);
         void add(const void *p, size_t size, size_t align, avmplus::String*);
@@ -895,6 +886,8 @@ namespace nanojit
 
     class LirNameMap MMGC_SUBCLASS_DECL
     {
+        Allocator& allocator;
+
         template <class Key>
         class CountMap: public avmplus::SortedMap<Key, int, avmplus::LIST_NonGCObjects> {
         public:
@@ -924,8 +917,9 @@ namespace nanojit
         void formatImm(int32_t c, char *buf);
     public:
 
-        LirNameMap(GC *gc, LabelMap *r)
-            : lircounts(gc),
+        LirNameMap(GC *gc, Allocator& allocator, LabelMap *r)
+            : allocator(allocator),
+            lircounts(gc),
             funccounts(gc),
             names(gc),
             labels(r)
@@ -1095,13 +1089,10 @@ namespace nanojit
     class LirBuffer : public GCFinalizedObject
     {
         public:
-            DWB(Fragmento*)        _frago;
-            LirBuffer(Fragmento* frago);
-            virtual ~LirBuffer();
+            LirBuffer(Allocator&);
+            ~LirBuffer();
             void        clear();
-            void        rewind();
             uintptr_t   makeRoom(size_t szB);   
-            bool        outOMem() { return _noMem != 0; }
 
             debug_only (void validate() const;)
             verbose_only(DWB(LirNameMap*) names;)
@@ -1121,14 +1112,32 @@ namespace nanojit
             LInsp savedRegs[NumSavedRegs];
             bool explicitSavedRegs;
 
-        protected:
-            Page*        pageAlloc();
-            void        moveToNewPage(uintptr_t addrOfLastLInsOnCurrentPage);
+            
 
-            PageList    _pages;
-            Page*        _nextPage; 
-            uintptr_t   _unused;    
-            int            _noMem;        
+
+            static const size_t CHUNK_SZB = 8000;
+
+            
+
+
+            static const size_t MAX_LINS_SZB = CHUNK_SZB - sizeof(LInsSk);
+
+            
+
+
+            static const size_t MAX_SKIP_PAYLOAD_SZB = MAX_LINS_SZB - sizeof(LInsSk);
+
+        protected:
+            friend class LirBufWriter;
+
+            
+            void        chunkAlloc();
+            void        moveToNewChunk(uintptr_t addrOfLastLInsOnCurrentChunk);
+
+            Allocator&  _allocator;
+            uintptr_t   _unused;   
+            uintptr_t   _limit;    
+            size_t      _bytesAllocated;
     };
 
     class LirBufWriter : public LirWriter
@@ -1193,7 +1202,7 @@ namespace nanojit
 
     class Assembler;
 
-    void compile(Assembler *assm, Fragment *frag);
+    void compile(Fragmento *frago, Assembler *assm, Fragment *frag);
     verbose_only(void live(GC *gc, LirBuffer *lirbuf);)
 
     class StackFilter: public LirFilter
