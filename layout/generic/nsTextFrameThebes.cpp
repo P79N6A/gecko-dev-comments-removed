@@ -3408,6 +3408,11 @@ nsTextFrame::Init(nsIContent*      aContent,
   NS_ASSERTION(!aPrevInFlow, "Can't be a continuation!");
   NS_PRECONDITION(aContent->IsNodeOfType(nsINode::eTEXT),
                   "Bogus content!");
+
+  
+  
+  aContent->DeleteProperty(nsGkAtoms::newline);
+
   
   aContent->UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE);
   
@@ -3781,6 +3786,8 @@ nsTextFrame::ClearTextRun()
 NS_IMETHODIMP
 nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
+  mContent->DeleteProperty(nsGkAtoms::newline);
+
   
   
   nsTextFrame* next;
@@ -6032,6 +6039,18 @@ nsTextFrame::IsFloatingFirstLetterChild()
   return frame->GetStyleDisplay()->IsFloating();
 }
 
+struct NewlineProperty {
+  PRInt32 mStartOffset;
+  
+  PRInt32 mNewlineOffset;
+
+  static void Destroy(void* aObject, nsIAtom* aPropertyName,
+                      void* aPropertyValue, void* aData)
+  {
+    delete static_cast<NewlineProperty*>(aPropertyValue);
+  }
+};
+
 NS_IMETHODIMP
 nsTextFrame::Reflow(nsPresContext*           aPresContext,
                     nsHTMLReflowMetrics&     aMetrics,
@@ -6106,8 +6125,18 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
   
   PRInt32 newLineOffset = -1; 
+  
+  NewlineProperty* cachedNewlineOffset;
   if (textStyle->NewlineIsSignificant()) {
-    newLineOffset = FindChar(frag, offset, length, '\n');
+    cachedNewlineOffset =
+      static_cast<NewlineProperty*>(mContent->GetProperty(nsGkAtoms::newline));
+    if (cachedNewlineOffset && cachedNewlineOffset->mStartOffset <= offset &&
+        (cachedNewlineOffset->mNewlineOffset == -1 ||
+         cachedNewlineOffset->mNewlineOffset >= offset)) {
+      newLineOffset = cachedNewlineOffset->mNewlineOffset;
+    } else {
+      newLineOffset = FindChar(frag, offset, length, '\n');
+    }
     if (newLineOffset >= 0) {
       length = newLineOffset + 1 - offset;
     }
@@ -6449,6 +6478,28 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   if (completedFirstLetter) {
     lineLayout.SetFirstLetterStyleOK(PR_FALSE);
     aStatus |= NS_INLINE_BREAK_FIRST_LETTER_COMPLETE;
+  }
+
+  
+  if (contentLength < maxContentLength &&
+      textStyle->NewlineIsSignificant() &&
+      (newLineOffset < 0 || mContentOffset + contentLength <= newLineOffset)) {
+    if (!cachedNewlineOffset) {
+      cachedNewlineOffset = new NewlineProperty;
+      if (cachedNewlineOffset) {
+        if (NS_FAILED(mContent->SetProperty(nsGkAtoms::newline, cachedNewlineOffset,
+                                            NewlineProperty::Destroy))) {
+          delete cachedNewlineOffset;
+          cachedNewlineOffset = nsnull;
+        }
+      }
+    }
+    if (cachedNewlineOffset) {
+      cachedNewlineOffset->mStartOffset = offset;
+      cachedNewlineOffset->mNewlineOffset = newLineOffset;
+    }
+  } else if (cachedNewlineOffset) {
+    mContent->DeleteProperty(nsGkAtoms::newline);
   }
 
   
