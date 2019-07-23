@@ -11,28 +11,30 @@ test("animate(Hash, Object, Function)", function() {
 	});
 });
 
-test("animate option (queue === false)", function () {
-	expect(1);
-	stop();
 
-	var order = [];
 
-	var $foo = $("#foo");
-	$foo.animate({width:'100px'}, 200, function () {
-		
-		order.push(2);
-	});
-	$foo.animate({fontSize:'2em'}, {queue:false, duration:10, complete:function () {
-		
-		order.push(1);
-	}});
-	$foo.animate({height:'100px'}, 10, function() {
-		
-		order.push(3);
-		isSet( order, [ 1, 2, 3], "Animations finished in the correct order" );
-		start();
-	});
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 test("queue() defaults to 'fx' type", function () {
 	expect(2);
