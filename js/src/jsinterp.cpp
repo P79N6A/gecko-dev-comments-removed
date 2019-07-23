@@ -3021,7 +3021,7 @@ js_Interpret(JSContext *cx)
 
 #include "jsops.cpp"
 
-
+              
 #if !JS_THREADED_INTERP
           default:
 #endif

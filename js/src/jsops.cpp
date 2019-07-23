@@ -39,7 +39,7 @@
 
 
 
-
+            
 #if JS_THREADED_INTERP
   interrupt:
 #else 
