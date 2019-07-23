@@ -140,113 +140,117 @@ typedef PRUint32 nsSplittableType;
 
 typedef PRUint32 nsFrameState;
 
-#define NS_FRAME_IN_REFLOW                            0x00000001
-
-#define NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO      0x00000001
-
-
-
-
-#define NS_FRAME_FIRST_REFLOW                         0x00000002
-
-
-
-
-#define NS_FRAME_IS_FLUID_CONTINUATION                0x00000004
-
-
-
-#define NS_FRAME_OUTSIDE_CHILDREN                     0x00000008
-
-
-
-
-#define NS_FRAME_EXTERNAL_REFERENCE                   0x00000010
-
-
-
-
-
-#define NS_FRAME_CONTAINS_RELATIVE_HEIGHT             0x00000020
-
-
-#define NS_FRAME_GENERATED_CONTENT                    0x00000040
-
-
-
-#define NS_FRAME_IS_BOX                               0x00000080
-
-
-
-#define NS_FRAME_OUT_OF_FLOW                          0x00000100
-
-
-#define NS_FRAME_SELECTED_CONTENT                     0x00000200
-
-
-
-
-
-
-
-#define NS_FRAME_IS_DIRTY                             0x00000400
-
-
-#define NS_FRAME_IS_UNFLOWABLE                        0x00000800
-
-
-
-
-
-
-
-
-
-
-
-#define NS_FRAME_HAS_DIRTY_CHILDREN                   0x00001000
-
-
-#define NS_FRAME_HAS_VIEW                             0x00002000
-
-
-#define NS_FRAME_INDEPENDENT_SELECTION                0x00004000
-
-
-
-
-#define NS_FRAME_IS_SPECIAL                           0x00008000
-
-
-
-
-
-
-#define NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE         0x00010000
+enum {
+  NS_FRAME_IN_REFLOW =                          0x00000001,
+
+  
+  NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO =    0x00000001,
+
+  
+  
+  
+  NS_FRAME_FIRST_REFLOW =                       0x00000002,
+
+  
+  
+  
+  NS_FRAME_IS_FLUID_CONTINUATION =              0x00000004,
+
+  
+  
+  NS_FRAME_OUTSIDE_CHILDREN =                   0x00000008,
+
+  
+  
+  
+  NS_FRAME_EXTERNAL_REFERENCE =                 0x00000010,
+
+  
+  
+  
+  
+  NS_FRAME_CONTAINS_RELATIVE_HEIGHT =           0x00000020,
+
+  
+  NS_FRAME_GENERATED_CONTENT =                  0x00000040,
+
+  
+  
+  NS_FRAME_IS_BOX =                             0x00000080,
+
+  
+  
+  NS_FRAME_OUT_OF_FLOW =                        0x00000100,
+
+  
+  NS_FRAME_SELECTED_CONTENT =                   0x00000200,
+
+  
+  
+  
+  
+  
+  
+  NS_FRAME_IS_DIRTY =                           0x00000400,
+
+  
+  NS_FRAME_IS_UNFLOWABLE =                      0x00000800,
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  NS_FRAME_HAS_DIRTY_CHILDREN =                 0x00001000,
+
+  
+  NS_FRAME_HAS_VIEW =                           0x00002000,
+
+  
+  NS_FRAME_INDEPENDENT_SELECTION =              0x00004000,
+
+  
+  
+  
+  NS_FRAME_IS_SPECIAL =                         0x00008000,
+
+  
+  
+  
+  
+  
+  NS_FRAME_EXCLUDE_IGNORABLE_WHITESPACE =       0x00010000,
 
 #ifdef IBMBIDI
-
-
-#define NS_FRAME_IS_BIDI                              0x00020000
+  
+  
+  NS_FRAME_IS_BIDI =                            0x00020000,
 #endif
 
+  
+  NS_FRAME_HAS_CHILD_WITH_VIEW =                0x00040000,
 
-#define NS_FRAME_HAS_CHILD_WITH_VIEW                  0x00040000
+  
+  
+  NS_FRAME_REFLOW_ROOT =                        0x00080000,
 
+  
+  NS_FRAME_RESERVED =                           0x000FFFFF,
 
+  
+  
+  NS_FRAME_IMPL_RESERVED =                      0xFFF00000,
 
-#define NS_FRAME_REFLOW_ROOT                          0x00080000
+  
+  NS_STATE_IS_HORIZONTAL =                      0x00400000,
+  NS_STATE_IS_DIRECTION_NORMAL =                0x80000000,
 
-
-#define NS_FRAME_RESERVED                             0x000FFFFF
-
-
-
-#define NS_FRAME_IMPL_RESERVED                        0xFFF00000
-
-
-#define NS_STATE_IS_HORIZONTAL                        0x00400000
-#define NS_STATE_IS_DIRECTION_NORMAL                  0x80000000
+};
 
 
 #define NS_SUBTREE_DIRTY(_frame)  \
