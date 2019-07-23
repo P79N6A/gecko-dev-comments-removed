@@ -3904,23 +3904,19 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
                  "Bogus y coord for draw rect");
     
     nsRect sourceRect = drawRect - absTileRect.TopLeft();
-    
-    
-    
-    nsRect destRect; 
-    destRect.IntersectRect(absTileRect, bgClipArea);
-    nsRect subimageRect = destRect - aBorderArea.TopLeft() - tileRect.TopLeft();
     if (sourceRect.XMost() <= tileWidth && sourceRect.YMost() <= tileHeight) {
       
       
+      
+      
+      
+      nsRect destRect; 
+      destRect.IntersectRect(absTileRect, bgClipArea);
+      nsRect subimageRect = destRect - aBorderArea.TopLeft() - tileRect.TopLeft();
       nsLayoutUtils::DrawImage(&aRenderingContext, image,
               destRect, drawRect, &subimageRect);
     } else {
-      
-      
-      subimageRect.ScaleRoundOutInverse(nsIDeviceContext::AppUnitsPerCSSPixel());
-      aRenderingContext.DrawTile(image, absTileRect.x, absTileRect.y,
-              &drawRect, &subimageRect);
+      aRenderingContext.DrawTile(image, absTileRect.x, absTileRect.y, &drawRect);
     }
   }
 

@@ -599,13 +599,10 @@ public:
 
 
 
-
-
-
   NS_IMETHOD DrawTile(imgIContainer *aImage,
                       nscoord aXImageStart, nscoord aYImageStart,
-                      const nsRect * aTargetRect,
-                      const nsIntRect * aSubimageRect) = 0;
+                      const nsRect * aTargetRect) = 0;
+
 
   
 

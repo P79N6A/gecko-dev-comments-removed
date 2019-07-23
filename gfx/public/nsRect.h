@@ -179,10 +179,6 @@ struct NS_GFX nsRect {
   nsRect& ScaleRoundOut(float aScale);
   
   
-  
-  nsRect& ScaleRoundOutInverse(float aScale);
-  
-  
   nsRect& ScaleRoundIn(float aScale);
   
   
