@@ -272,8 +272,6 @@ public:
     
     NS_IMETHOD ResetInputState();
     
-    void MakeBackgroundTransparent(PRBool aTransparent);
-
     NS_IMETHOD BeginSecureKeyboardInput();
     NS_IMETHOD EndSecureKeyboardInput();
 

@@ -155,9 +155,6 @@ enum {
   NSMutableArray* mPendingDirtyRects;
   BOOL mPendingFullDisplay;
 
-  
-  
-  BOOL mIsTransparent;
   PRIntervalTime mLastShadowInvalidation;
   BOOL mNeedsShadowInvalidation;
 
@@ -206,8 +203,6 @@ enum {
 
 
 - (void)delayedTearDown;
-
-- (void)setTransparent:(BOOL)transparent;
 
 - (void)sendFocusEvent:(PRUint32)eventType;
 
