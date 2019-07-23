@@ -170,6 +170,7 @@ struct JSFunction {
 
 extern JSClass js_ArgumentsClass;
 extern JS_FRIEND_DATA(JSClass) js_CallClass;
+extern JSClass js_DeclEnvClass;
 
 
 extern JS_FRIEND_DATA(JSClass) js_FunctionClass;
