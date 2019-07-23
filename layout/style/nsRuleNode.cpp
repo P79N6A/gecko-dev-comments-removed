@@ -4162,13 +4162,27 @@ nsRuleNode::ComputeTableBorderData(void* aStartStruct,
               NS_STYLE_BORDER_SEPARATE, 0, 0, 0, 0);
 
   
-  SetCoord(tableData.mBorderSpacing.mXValue, table->mBorderSpacingX,
-           parentTable->mBorderSpacingX, SETCOORD_LH | SETCOORD_INITIAL_ZERO,
-           aContext, mPresContext, inherited);
+  nsStyleCoord tempCoord;
+  if (SetCoord(tableData.mBorderSpacing.mXValue, tempCoord,
+               parentTable->mBorderSpacingX,
+               SETCOORD_LH | SETCOORD_INITIAL_ZERO,
+               aContext, mPresContext, inherited)) {
+    table->mBorderSpacingX = tempCoord.GetCoordValue();
+  } else {
+    NS_ASSERTION(tableData.mBorderSpacing.mXValue.GetUnit() == eCSSUnit_Null,
+                 "unexpected unit");
+  }
+
   
-  SetCoord(tableData.mBorderSpacing.mYValue, table->mBorderSpacingY,
-           parentTable->mBorderSpacingY, SETCOORD_LH | SETCOORD_INITIAL_ZERO,
-           aContext, mPresContext, inherited);
+  if (SetCoord(tableData.mBorderSpacing.mYValue, tempCoord,
+               parentTable->mBorderSpacingY,
+               SETCOORD_LH | SETCOORD_INITIAL_ZERO,
+               aContext, mPresContext, inherited)) {
+    table->mBorderSpacingY = tempCoord.GetCoordValue();
+  } else {
+    NS_ASSERTION(tableData.mBorderSpacing.mYValue.GetUnit() == eCSSUnit_Null,
+                 "unexpected unit");
+  }
 
   
   SetDiscrete(tableData.mCaptionSide, table->mCaptionSide, inherited,
