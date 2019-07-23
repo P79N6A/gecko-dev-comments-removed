@@ -729,6 +729,9 @@ nsTextEditorDragListener::CanDrop(nsIDOMDragEvent* aEvent)
   PRBool flavorSupported = PR_FALSE;
   dragSession->IsDataFlavorSupported(kUnicodeMime, &flavorSupported);
 
+  if (!flavorSupported)
+    dragSession->IsDataFlavorSupported(kMozTextInternal, &flavorSupported);
+
   
   if (!flavorSupported 
      && (flags & nsIPlaintextEditor::eEditorPlaintextMask) == 0)
