@@ -1641,7 +1641,7 @@ nsScriptSecurityManager::CheckFunctionAccess(JSContext *aCx, void *aFunObj,
     {
 #ifdef DEBUG
         {
-            JSFunction *fun = OBJ_TO_FUNCTION((JSObject *)aFunObj);
+            JSFunction *fun = GET_FUNCTION_PRIVATE(aCx, (JSObject *)aFunObj);
             JSScript *script = JS_GetFunctionScript(aCx, fun);
 
             NS_ASSERTION(!script, "Null principal for non-native function!");
@@ -2156,7 +2156,7 @@ nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
                                                     nsresult *rv)
 {
     NS_PRECONDITION(rv, "Null out param");
-    JSFunction *fun = OBJ_TO_FUNCTION(obj);
+    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, obj);
     JSScript *script = JS_GetFunctionScript(cx, fun);
 
     *rv = NS_OK;
@@ -2180,17 +2180,29 @@ nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
         
         
 
-        return GetScriptPrincipal(cx, frameScript, rv);
+        script = frameScript;
+    }
+    else if (JS_GetFunctionObject(fun) != obj)
+    {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        nsIPrincipal *result = doGetObjectPrincipal(obj);
+        if (!result)
+            *rv = NS_ERROR_FAILURE;
+        return result;
     }
 
-    
-    
-    
-
-    nsIPrincipal *result = doGetObjectPrincipal(obj);
-    if (!result)
-        *rv = NS_ERROR_FAILURE;
-    return result;
+    return GetScriptPrincipal(cx, script, rv);
 }
 
 
@@ -2213,7 +2225,7 @@ nsScriptSecurityManager::GetFramePrincipal(JSContext *cx,
 #ifdef DEBUG
     if (NS_SUCCEEDED(*rv) && !result)
     {
-        JSFunction *fun = OBJ_TO_FUNCTION(obj);
+        JSFunction *fun = GET_FUNCTION_PRIVATE(cx, obj);
         JSScript *script = JS_GetFunctionScript(cx, fun);
 
         NS_ASSERTION(!script, "Null principal for non-native function!");

@@ -1087,7 +1087,7 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
     } else {
 have_fun:
         
-        fun = OBJ_TO_FUNCTION(funobj);
+        fun = GET_FUNCTION_PRIVATE(cx, funobj);
         if (FUN_IS_SCRIPTED(fun)) {
             JSScriptedFunction *sfun;
 
@@ -1408,7 +1408,7 @@ js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
     JS_ASSERT(mode == JSACC_READ || mode == JSACC_WRITE);
     if (cx->runtime->checkObjectAccess &&
         VALUE_IS_FUNCTION(cx, fval) &&
-        FUN_IS_SCRIPTED(OBJ_TO_FUNCTION(JSVAL_TO_OBJECT(fval))) &&
+        FUN_IS_SCRIPTED(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fval))) &&
         !cx->runtime->checkObjectAccess(cx, obj, ID_TO_VALUE(id), mode,
                                         &fval)) {
         return JS_FALSE;
@@ -1841,17 +1841,16 @@ js_InvokeConstructor(JSContext *cx, jsval *vp, uintN argc)
         parent = OBJ_GET_PARENT(cx, obj2);
 
         if (OBJ_GET_CLASS(cx, obj2) == &js_FunctionClass) {
-            fun2 = OBJ_TO_FUNCTION(obj2);
+            fun2 = GET_FUNCTION_PRIVATE(cx, obj2);
             if (!FUN_IS_SCRIPTED(fun2)) {
-                JSClass *constructorClass;
+                JSNativeFunction *nfun;
 
-                constructorClass = NATIVE_FUN_GET_CLASS(FUN_TO_NATIVE(fun2));
-                if (constructorClass)
-                    clasp = constructorClass;
+                nfun = FUN_TO_NATIVE(fun2);
+                if (nfun->clasp)
+                    clasp = nfun->clasp;
             }
         }
     }
-
     obj = js_NewObject(cx, clasp, proto, parent, 0);
     if (!obj)
         return JS_FALSE;
@@ -4295,7 +4294,7 @@ interrupt:
                 
                 if (!VALUE_IS_FUNCTION(cx, rval) ||
                     (obj = JSVAL_TO_OBJECT(rval),
-                     fun = OBJ_TO_FUNCTION(obj),
+                     fun = GET_FUNCTION_PRIVATE(cx, obj),
                      !PRIMITIVE_THIS_TEST(fun, lval))) {
                     if (!js_PrimitiveToObject(cx, &regs.sp[-1]))
                         goto error;
@@ -4622,7 +4621,7 @@ interrupt:
                 JSNativeFunction *nfun;
 
                 obj = JSVAL_TO_OBJECT(lval);
-                fun = OBJ_TO_FUNCTION(obj);
+                fun = GET_FUNCTION_PRIVATE(cx, obj);
                 if (FUN_IS_SCRIPTED(fun)) {
                     uintN nframeslots, nvars, missing;
                     JSArena *a;
@@ -5622,7 +5621,7 @@ interrupt:
 
 
 
-            sfun = FUN_TO_SCRIPTED(OBJ_TO_FUNCTION(obj));
+            sfun = FUN_TO_SCRIPTED(GET_FUNCTION_PRIVATE(cx, obj));
             flags = JSFUN_GSFLAG2ATTR(sfun->flags);
             if (flags) {
                 attrs |= flags | JSPROP_SHARED;
@@ -5762,7 +5761,7 @@ interrupt:
 
 
 
-            sfun = FUN_TO_SCRIPTED(OBJ_TO_FUNCTION(obj));
+            sfun = FUN_TO_SCRIPTED(GET_FUNCTION_PRIVATE(cx, obj));
             attrs = JSFUN_GSFLAG2ATTR(sfun->flags);
             if (attrs) {
                 attrs |= JSPROP_SHARED;
