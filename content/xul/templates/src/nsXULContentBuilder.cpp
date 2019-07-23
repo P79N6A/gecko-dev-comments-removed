@@ -265,6 +265,8 @@ protected:
 
 
 
+
+
     nsresult
     CreateTemplateAndContainerContents(nsIContent* aElement,
                                        PRBool aForceCreation,
@@ -272,6 +274,8 @@ protected:
                                        PRInt32* aNewIndexInContainer);
 
     
+
+
 
 
 
@@ -1211,7 +1215,9 @@ nsXULContentBuilder::CreateContainerContents(nsIContent* aElement,
         return NS_OK;
 
     if (aContainer) {
-        *aContainer = nsnull;
+        
+        
+        NS_IF_RELEASE(*aContainer);
         *aNewIndexInContainer = -1;
     }
 
