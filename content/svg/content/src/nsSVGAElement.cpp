@@ -136,7 +136,8 @@ nsSVGAElement::SetLinkState(nsLinkState aState)
 already_AddRefed<nsIURI>
 nsSVGAElement::GetHrefURI() const
 {
-  return nsnull; 
+  nsCOMPtr<nsIURI> hrefURI;
+  return IsLink(getter_AddRefs(hrefURI)) ? hrefURI.forget() : nsnull;
 }
 
 
