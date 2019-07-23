@@ -488,10 +488,6 @@ function cleanUpItemForPalette(aItem, aWrapper)
 
   if (aItem.localName == "toolbaritem" && aItem.firstChild) {
     aItem.firstChild.removeAttribute("observes");
-
-    
-    
-    aItem.firstChild.removeAttribute("busy");
   }
 }
 
