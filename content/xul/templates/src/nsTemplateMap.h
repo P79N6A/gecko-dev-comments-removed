@@ -84,7 +84,20 @@ public:
 
         PL_DHashTableOperate(&mTable, aContent, PL_DHASH_REMOVE);
 
-        PRUint32 count = aContent->GetChildCount();
+        PRUint32 count;
+
+        
+        
+        
+        
+        nsXULElement *xulcontent = nsXULElement::FromContent(aContent);
+        if (xulcontent) {
+            count = xulcontent->PeekChildCount();
+        }
+        else {
+            count = aContent->GetChildCount();
+        }
+
         for (PRUint32 i = 0; i < count; ++i) {
             Remove(aContent->GetChildAt(i));
         }
