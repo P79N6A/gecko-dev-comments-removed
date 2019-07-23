@@ -104,18 +104,12 @@ Tracker<T>::get(const void* v) const
     JS_ASSERT(p != 0); 
     T i = p->map[(((long)v) & 0xfff) >> 2];
     JS_ASSERT(i != 0);
-#ifdef DEBUG    
-    
-#endif    
     return i;
 }
 
 template <typename T> void
 Tracker<T>::set(const void* v, T i)
 {
-#ifdef DEBUG    
-    
-#endif    
     struct Tracker::Page* p = findPage(v);
     if (!p)
         p = addPage(v);
