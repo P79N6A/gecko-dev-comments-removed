@@ -210,6 +210,13 @@ BrowserGlue.prototype = {
         
         delete this._distributionCustomizer;
         break;
+      case "bookmarks-restore-success":
+      case "bookmarks-restore-failed":
+        this._observerService.removeObserver(this, "bookmarks-restore-success");
+        this._observerService.removeObserver(this, "bookmarks-restore-failed");
+        if (topic == "bookmarks-restore-success" && data == "html-initial")
+          this.ensurePlacesDefaultQueriesInitialized();
+        break;
     }
   }, 
 
@@ -677,9 +684,12 @@ BrowserGlue.prototype = {
       }
     }
 
+    
+    
+    
+    
+    
     if (!importBookmarks) {
-      
-      
       this.ensurePlacesDefaultQueriesInitialized();
     }
     else {
@@ -712,6 +722,11 @@ BrowserGlue.prototype = {
 
       if (bookmarksFile.exists()) {
         
+        
+        this._observerService.addObserver(this, "bookmarks-restore-success", false);
+        this._observerService.addObserver(this, "bookmarks-restore-failed", false);
+
+        
         try {
           var importer = Cc["@mozilla.org/browser/places/import-export-service;1"].
                          getService(Ci.nsIPlacesImportExportService);
@@ -719,6 +734,8 @@ BrowserGlue.prototype = {
         } catch (err) {
           
           Cu.reportError("Bookmarks.html file could be corrupt. " + err);
+          this._observerService.removeObserver(this, "bookmarks-restore-success");
+          this._observerService.removeObserver(this, "bookmarks-restore-failed");
         }
       }
       else

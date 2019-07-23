@@ -23,7 +23,18 @@ class nsPlacesImportExportService : public nsIPlacesImportExportService,
     NS_DECL_NSINAVHISTORYBATCHCALLBACK
     nsPlacesImportExportService();
 
+  
+
+
+  static nsPlacesImportExportService* GetSingleton();
+
+  
+
+
+  nsresult Init();
+
   private:
+    static nsPlacesImportExportService* gImportExportService;
     virtual ~nsPlacesImportExportService();
 
   protected:
