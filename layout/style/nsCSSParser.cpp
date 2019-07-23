@@ -404,12 +404,18 @@ protected:
   
   
   
+  
+  
   void TransferTempData(nsCSSDeclaration* aDeclaration,
-                        nsCSSProperty aPropID, PRBool aIsImportant,
+                        nsCSSProperty aPropID,
+                        PRBool aIsImportant,
+                        PRBool aOverrideImportant,
                         PRBool aMustCallValueAppended,
                         PRBool* aChanged);
   void DoTransferTempData(nsCSSDeclaration* aDeclaration,
-                          nsCSSProperty aPropID, PRBool aIsImportant,
+                          nsCSSProperty aPropID,
+                          PRBool aIsImportant,
+                          PRBool aOverrideImportant,
                           PRBool aMustCallValueAppended,
                           PRBool* aChanged);
   
@@ -1144,7 +1150,8 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
       CopyValue(mTempData.PropertyAt(aPropID), valueSlot, aPropID, aChanged);
       mTempData.ClearPropertyBit(aPropID);
     } else {
-      TransferTempData(aDeclaration, aPropID, aIsImportant, PR_FALSE, aChanged);
+      TransferTempData(aDeclaration, aPropID, aIsImportant,
+                       PR_TRUE, PR_FALSE, aChanged);
     }
   } else {
     if (parsedOK) {
@@ -3983,7 +3990,7 @@ CSSParserImpl::ParseDeclaration(nsCSSDeclaration* aDeclaration,
   PRBool isImportant = PR_FALSE;
   if (!GetToken(PR_TRUE)) {
     
-    TransferTempData(aDeclaration, propID, isImportant,
+    TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
                      aMustCallValueAppended, aChanged);
     return PR_TRUE;
   }
@@ -4016,13 +4023,13 @@ CSSParserImpl::ParseDeclaration(nsCSSDeclaration* aDeclaration,
   
   if (!GetToken(PR_TRUE)) {
     
-    TransferTempData(aDeclaration, propID, isImportant,
+    TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
                      aMustCallValueAppended, aChanged);
     return PR_TRUE;
   }
   if (eCSSToken_Symbol == tk->mType) {
     if (';' == tk->mSymbol) {
-      TransferTempData(aDeclaration, propID, isImportant,
+      TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
                        aMustCallValueAppended, aChanged);
       return PR_TRUE;
     }
@@ -4030,7 +4037,7 @@ CSSParserImpl::ParseDeclaration(nsCSSDeclaration* aDeclaration,
       
       
       UngetToken();
-      TransferTempData(aDeclaration, propID, isImportant,
+      TransferTempData(aDeclaration, propID, isImportant, PR_FALSE,
                        aMustCallValueAppended, aChanged);
       return PR_TRUE;
     }
@@ -4060,17 +4067,19 @@ CSSParserImpl::ClearTempData(nsCSSProperty aPropID)
 
 void
 CSSParserImpl::TransferTempData(nsCSSDeclaration* aDeclaration,
-                                nsCSSProperty aPropID, PRBool aIsImportant,
+                                nsCSSProperty aPropID,
+                                PRBool aIsImportant,
+                                PRBool aOverrideImportant,
                                 PRBool aMustCallValueAppended,
                                 PRBool* aChanged)
 {
   if (nsCSSProps::IsShorthand(aPropID)) {
     CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID) {
-      DoTransferTempData(aDeclaration, *p, aIsImportant,
+      DoTransferTempData(aDeclaration, *p, aIsImportant, aOverrideImportant,
                          aMustCallValueAppended, aChanged);
     }
   } else {
-    DoTransferTempData(aDeclaration, aPropID, aIsImportant,
+    DoTransferTempData(aDeclaration, aPropID, aIsImportant, aOverrideImportant,
                        aMustCallValueAppended, aChanged);
   }
   mTempData.AssertInitialState();
@@ -4081,7 +4090,9 @@ CSSParserImpl::TransferTempData(nsCSSDeclaration* aDeclaration,
 
 void
 CSSParserImpl::DoTransferTempData(nsCSSDeclaration* aDeclaration,
-                                  nsCSSProperty aPropID, PRBool aIsImportant,
+                                  nsCSSProperty aPropID,
+                                  PRBool aIsImportant,
+                                  PRBool aOverrideImportant,
                                   PRBool aMustCallValueAppended,
                                   PRBool* aChanged)
 {
@@ -4092,8 +4103,17 @@ CSSParserImpl::DoTransferTempData(nsCSSDeclaration* aDeclaration,
     mData.SetImportantBit(aPropID);
   } else {
     if (mData.HasImportantBit(aPropID)) {
-      mTempData.ClearProperty(aPropID);
-      return;
+      
+      
+      
+      
+      
+      if (!aOverrideImportant) {
+        mTempData.ClearProperty(aPropID);
+        return;
+      }
+      *aChanged = PR_TRUE;
+      mData.ClearImportantBit(aPropID);
     }
   }
 
