@@ -516,9 +516,6 @@ NS_IMPL_ISUPPORTS4(imgLoader, imgILoader, nsIContentSniffer, imgICache, nsISuppo
 imgLoader::imgLoader()
 {
   
-#ifdef DEBUG_pavlov
-  PrintImageDecoders();
-#endif
 }
 
 imgLoader::~imgLoader()
