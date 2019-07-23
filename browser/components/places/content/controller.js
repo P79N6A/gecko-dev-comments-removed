@@ -113,8 +113,7 @@ PlacesController.prototype = {
     case "cmd_cut":
     case "cmd_delete":
     case "placesCmd_moveBookmarks":
-      return !this.rootNodeIsSelected() && 
-             this._hasRemovableSelection();
+      return this._hasRemovableSelection();
     case "cmd_copy":
       return this._view.hasSelection;
     case "cmd_paste":
@@ -322,19 +321,29 @@ PlacesController.prototype = {
       return false;
 
     var nodes = this._view.getSelectionNodes();
-    var root = this._view.getResult().root;
+    var root = this._view.getResultNode();
 
+    var btFolderId = PlacesUtils.toolbarFolderId;
     for (var i = 0; i < nodes.length; ++i) {
+      
+      if (nodes[i] == root)
+        return false;
+
+      
+      if (PlacesUtils.nodeIsFolder(nodes[i]) &&
+          asFolder(nodes[i]).folderId == btFolderId)
+        return false;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
       var parent = nodes[i].parent || root;
-      
-      
-      
-      
-      
-      
-      
-      
-      
       if (PlacesUtils.isReadonlyFolder(parent))
         return false;
     }
@@ -370,16 +379,7 @@ PlacesController.prototype = {
 
 
   _canInsert: function PC__canInsert() {
-    var nodes = this._view.getSelectionNodes();
-    var root = this._view.getResult().root;
-    for (var i = 0; i < nodes.length; ++i) {
-      var parent = nodes[i].parent || root;
-      if (PlacesUtils.nodeIsReadOnly(parent))
-        return false;
-    }
-    
-    
-    return !PlacesUtils.nodeIsReadOnly(root);
+    return this._view.insertionPoint != null;
   },
 
   
