@@ -666,8 +666,6 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
 #ifdef DEBUG
     , mSetOpenerWindowCalled(PR_FALSE)
 #endif
-    , mCleanedUp(PR_FALSE)
-    , mCallCleanUpAfterModalDialogCloses(PR_FALSE)
 {
   memset(mScriptGlobals, 0, sizeof(mScriptGlobals));
   nsLayoutStatics::AddRef();
@@ -778,11 +776,68 @@ nsGlobalWindow::~nsGlobalWindow()
            ("DOMWINDOW %p destroyed", this));
 #endif
 
-  CleanUp(PR_TRUE);
+  if (mObserver) {
+    nsCOMPtr<nsIObserverService> os =
+      do_GetService("@mozilla.org/observer-service;1");
+    if (os) {
+      os->RemoveObserver(mObserver, NS_IOSERVICE_OFFLINE_STATUS_TOPIC);
+      os->RemoveObserver(mObserver, "dom-storage2-changed");
+      os->RemoveObserver(mObserver, "dom-storage-changed");
+    }
+
+    
+    
+    mObserver->Forget();
+    NS_RELEASE(mObserver);
+  }
+
+  if (IsOuterWindow()) {
+    
+    
+    
+    
+
+    nsGlobalWindow *w;
+    while ((w = (nsGlobalWindow *)PR_LIST_HEAD(this)) != this) {
+      NS_ASSERTION(w->mOuterWindow == this, "Uh, bad outer window pointer?");
+
+      w->mOuterWindow = nsnull;
+
+      PR_REMOVE_AND_INIT_LINK(w);
+    }
+  } else {
+    if (mListenerManager) {
+      mListenerManager->Disconnect();
+      mListenerManager = nsnull;
+    }
+
+    
+    
+
+    PR_REMOVE_LINK(this);
+
+    
+    
+    nsGlobalWindow *outer = GetOuterWindowInternal();
+    if (outer && outer->mInnerWindow == this) {
+      outer->mInnerWindow = nsnull;
+    }
+  }
+
+  mDocument = nsnull;           
+  mDoc = nsnull;
+
+  NS_ASSERTION(!mArguments, "mArguments wasn't cleaned up properly!");
+
+  CleanUp();
 
 #ifdef DEBUG
   nsCycleCollector_DEBUG_wasFreed(static_cast<nsIScriptGlobalObject*>(this));
 #endif
+
+  delete mPendingStorageEventsObsolete;
+
+  nsLayoutStatics::Release();
 }
 
 
@@ -815,226 +870,57 @@ nsGlobalWindow::CleanupCachedXBLHandlers(nsGlobalWindow* aWindow)
 }
 
 void
-nsGlobalWindow::MaybeForgiveSpamCount()
+nsGlobalWindow::CleanUp()
 {
-  if (IsOuterWindow() &&
-      IsPopupSpamWindow())
-  {
-    SetPopupSpamWindow(PR_FALSE);
-    --gOpenPopupSpamCount;
-    NS_ASSERTION(gOpenPopupSpamCount >= 0,
-                 "Unbalanced decrement of gOpenPopupSpamCount");
-  }
-}
+  mNavigator = nsnull;
+  mScreen = nsnull;
+  mHistory = nsnull;
+  mMenubar = nsnull;
+  mToolbar = nsnull;
+  mLocationbar = nsnull;
+  mPersonalbar = nsnull;
+  mStatusbar = nsnull;
+  mScrollbars = nsnull;
+  mLocation = nsnull;
+  mFrames = nsnull;
+  mApplicationCache = nsnull;
 
-void
-nsGlobalWindow::CleanUp(PRBool aIgnoreModalDialog)
-{
-  if (IsOuterWindow() && !aIgnoreModalDialog) {
-    nsGlobalWindow* inner = GetCurrentInnerWindowInternal();
-    nsCOMPtr<nsIDOMModalContentWindow>
-      dlg(do_QueryInterface(static_cast<nsPIDOMWindow*>(inner)));
-    if (dlg) {
-      
-      
-      
-      mCallCleanUpAfterModalDialogCloses = PR_TRUE;
-      return;
-    }
-  }
+  ClearControllers();
 
-  
-  if (mCleanedUp)
-    return;
-  mCleanedUp = PR_TRUE;
-
-  
-  {
-    NS_ASSERTION(!mDocShell, "Should already have nulled out mDocShell.");
-
-    MaybeForgiveSpamCount();
-
-    NS_ASSERTION(PR_CLIST_IS_EMPTY(&mTimeouts),
-                 "Uh, outer window holds timeouts!");
-
-    
-    NotifyDOMWindowDestroyed(this);
-
-    nsGlobalWindow *currentInner = GetCurrentInnerWindowInternal();
-
-    if (currentInner) {
-      NS_ASSERTION(mDoc, "Must have doc!");
-
-      
-      mDocumentPrincipal = mDoc->NodePrincipal();
-
-      
-      mDocument = nsnull;
-      mDoc = nsnull;
-    }
-
-    PRUint32 lang_id;
-    nsIScriptContext *langCtx;
-    
-    
-    
-    
-    
-
-    
-    NS_STID_FOR_ID(lang_id) {
-      langCtx = mScriptContexts[NS_STID_INDEX(lang_id)];
-      if (langCtx)
-        langCtx->ClearScope(mScriptGlobals[NS_STID_INDEX(lang_id)], PR_TRUE);
-    }
-
-    ClearControllers();
-
-    mChromeEventHandler = nsnull; 
-
-    if (mArguments) { 
-      
-      
-      mArguments = nsnull;
-      mArgumentsLast = nsnull;
-      mArgumentsOrigin = nsnull;
-    }
-
-    PRUint32 st_ndx;
-
-    
-    NS_ASSERTION(mContext == mScriptContexts[NS_STID_INDEX(nsIProgrammingLanguage::JAVASCRIPT)],
-                 "Contexts confused");
-    NS_STID_FOR_INDEX(st_ndx) {
-      mInnerWindowHolders[st_ndx] = nsnull;
-      langCtx = mScriptContexts[st_ndx];
-      if (langCtx) {
-        langCtx->GC();
-        langCtx->FinalizeContext();
-        mScriptContexts[st_ndx] = nsnull;
-      }
-    }
-  }
-  
-
-  
-  {
-    if (mObserver) {
-      nsCOMPtr<nsIObserverService> os =
-        do_GetService("@mozilla.org/observer-service;1");
-      if (os) {
-        os->RemoveObserver(mObserver, NS_IOSERVICE_OFFLINE_STATUS_TOPIC);
-        os->RemoveObserver(mObserver, "dom-storage2-changed");
-        os->RemoveObserver(mObserver, "dom-storage-changed");
-      }
-
-      
-      
-      mObserver->Forget();
-      NS_RELEASE(mObserver);
-    }
-
-    if (IsOuterWindow()) {
-      
-      
-      
-
-      nsGlobalWindow *w;
-      while ((w = (nsGlobalWindow *)PR_LIST_HEAD(this)) != this) {
-        NS_ASSERTION(w->mOuterWindow == this, "Uh, bad outer window pointer?");
-
-        w->FreeInnerObjects(PR_TRUE);
-
-        w->mOuterWindow = nsnull;
-
-        PR_REMOVE_AND_INIT_LINK(w);
-      }
-    } else {
-      if (mListenerManager) {
-        mListenerManager->Disconnect();
-        mListenerManager = nsnull;
-      }
-
-      
-      
-
-      PR_REMOVE_LINK(this);
-
-      
-      
-      nsGlobalWindow *outer = GetOuterWindowInternal();
-      if (outer && outer->mInnerWindow == this) {
-        outer->mInnerWindow = nsnull;
-      }
-    }
-
-    mDocument = nsnull;           
-    mDoc = nsnull;
-
-    NS_ASSERTION(!mArguments, "mArguments wasn't cleaned up properly!");
-  }
-  
-
-  
-  {
-    mNavigator = nsnull;
-    mScreen = nsnull;
-    mHistory = nsnull;
-    mMenubar = nsnull;
-    mToolbar = nsnull;
-    mLocationbar = nsnull;
-    mPersonalbar = nsnull;
-    mStatusbar = nsnull;
-    mScrollbars = nsnull;
-    mLocation = nsnull;
-    mFrames = nsnull;
-    mApplicationCache = nsnull;
-
-    ClearControllers();
-
-    mOpener = nsnull;             
-    if (mContext) {
+  mOpener = nsnull;             
+  if (mContext) {
 #ifdef DEBUG
-      nsCycleCollector_DEBUG_shouldBeFreed(mContext);
+    nsCycleCollector_DEBUG_shouldBeFreed(mContext);
 #endif
-      mContext = nsnull;          
-    }
-    mChromeEventHandler = nsnull; 
-
-    nsGlobalWindow *inner = GetCurrentInnerWindowInternal();
-
-    if (inner) {
-      inner->CleanUp(aIgnoreModalDialog);
-    }
-
-    if (mHasAcceleration) {
-      nsCOMPtr<nsIAccelerometer> ac = do_GetService(NS_ACCELEROMETER_CONTRACTID);
-      if (ac)
-        ac->RemoveWindowListener(this);
-    }
-
-    PRUint32 scriptIndex;
-    NS_STID_FOR_INDEX(scriptIndex) {
-      mInnerWindowHolders[scriptIndex] = nsnull;
-    }
-    mArguments = nsnull;
-    mArgumentsLast = nsnull;
-    mArgumentsOrigin = nsnull;
-
-    CleanupCachedXBLHandlers(this);
-
-    #ifdef DEBUG
-      nsCycleCollector_DEBUG_shouldBeFreed(static_cast<nsIScriptGlobalObject*>(this));
-    #endif
+    mContext = nsnull;            
   }
-  
+  mChromeEventHandler = nsnull; 
 
-  
-  {
-    delete mPendingStorageEventsObsolete;
-    nsLayoutStatics::Release();
+  nsGlobalWindow *inner = GetCurrentInnerWindowInternal();
+
+  if (inner) {
+    inner->CleanUp();
   }
-  
+
+  if (mHasAcceleration) {
+    nsCOMPtr<nsIAccelerometer> ac = do_GetService(NS_ACCELEROMETER_CONTRACTID);
+    if (ac)
+      ac->RemoveWindowListener(this);
+  }
+
+  PRUint32 scriptIndex;
+  NS_STID_FOR_INDEX(scriptIndex) {
+    mInnerWindowHolders[scriptIndex] = nsnull;
+  }
+  mArguments = nsnull;
+  mArgumentsLast = nsnull;
+  mArgumentsOrigin = nsnull;
+
+  CleanupCachedXBLHandlers(this);
+
+#ifdef DEBUG
+  nsCycleCollector_DEBUG_shouldBeFreed(static_cast<nsIScriptGlobalObject*>(this));
+#endif
 }
 
 void
@@ -2241,6 +2127,93 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
   if (aDocShell == mDocShell)
     return;
 
+  if (!aDocShell && 
+      IsOuterWindow() && IsPopupSpamWindow())
+  {
+    SetPopupSpamWindow(PR_FALSE);
+    --gOpenPopupSpamCount;
+    NS_ASSERTION(gOpenPopupSpamCount >= 0,
+                 "Unbalanced decrement of gOpenPopupSpamCount");
+  }
+
+  PRUint32 lang_id;
+  nsIScriptContext *langCtx;
+  
+  
+  
+  
+  
+
+  if (!aDocShell) {
+    NS_ASSERTION(PR_CLIST_IS_EMPTY(&mTimeouts),
+                 "Uh, outer window holds timeouts!");
+
+    
+    
+    
+    for (nsRefPtr<nsGlobalWindow> inner = (nsGlobalWindow *)PR_LIST_HEAD(this);
+         inner != this;
+         inner = (nsGlobalWindow*)PR_NEXT_LINK(inner)) {
+      NS_ASSERTION(inner->mOuterWindow == this, "bad outer window pointer");
+      inner->FreeInnerObjects(PR_TRUE);
+    }
+
+    
+    NotifyDOMWindowDestroyed(this);
+
+    nsGlobalWindow *currentInner = GetCurrentInnerWindowInternal();
+
+    if (currentInner) {
+      NS_ASSERTION(mDoc, "Must have doc!");
+      
+      
+      mDocumentPrincipal = mDoc->NodePrincipal();
+
+      
+      mDocument = nsnull;
+      mDoc = nsnull;
+    }
+
+    
+    NS_STID_FOR_ID(lang_id) {
+      langCtx = mScriptContexts[NS_STID_INDEX(lang_id)];
+      if (langCtx)
+        langCtx->ClearScope(mScriptGlobals[NS_STID_INDEX(lang_id)], PR_TRUE);
+    }
+
+    ClearControllers();
+
+    mChromeEventHandler = nsnull; 
+
+    if (mArguments) { 
+      
+      
+      mArguments = nsnull;
+      mArgumentsLast = nsnull;
+      mArgumentsOrigin = nsnull;
+    }
+
+    PRUint32 st_ndx;
+
+    
+    NS_ASSERTION(mContext == mScriptContexts[NS_STID_INDEX(nsIProgrammingLanguage::JAVASCRIPT)],
+                 "Contexts confused");
+    NS_STID_FOR_INDEX(st_ndx) {
+      mInnerWindowHolders[st_ndx] = nsnull;
+      langCtx = mScriptContexts[st_ndx];
+      if (langCtx) {
+        langCtx->GC();
+        langCtx->FinalizeContext();
+        mScriptContexts[st_ndx] = nsnull;
+      }
+    }
+#ifdef DEBUG
+    nsCycleCollector_DEBUG_shouldBeFreed(mContext);
+    nsCycleCollector_DEBUG_shouldBeFreed(static_cast<nsIScriptGlobalObject*>(this));
+#endif
+    mContext = nsnull; 
+  }
+
   mDocShell = aDocShell;        
 
   if (mNavigator)
@@ -2254,10 +2227,7 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
   if (mScreen)
     mScreen->SetDocShell(aDocShell);
 
-  if (!mDocShell) {
-    NS_ASSERTION(!mCleanedUp, "Should be calling CleanUp for the first time.");
-    CleanUp(PR_FALSE);
-  } else {
+  if (mDocShell) {
     
     if (mMenubar) {
       nsCOMPtr<nsIWebBrowserChrome> browserChrome;
@@ -5536,30 +5506,19 @@ nsGlobalWindow::PostMessageMoz(const nsAString& aMessage, const nsAString& aOrig
 }
 
 class nsCloseEvent : public nsRunnable {
-
-  nsRefPtr<nsGlobalWindow> mWindow;
-
-  nsCloseEvent(nsGlobalWindow *aWindow)
-    : mWindow(aWindow)
-  {}
-
 public:
-
-  static nsresult
-  PostCloseEvent(nsGlobalWindow* aWindow) {
-    nsCOMPtr<nsIRunnable> ev = new nsCloseEvent(aWindow);
-    nsresult rv = NS_DispatchToCurrentThread(ev);
-    if (NS_SUCCEEDED(rv))
-      aWindow->MaybeForgiveSpamCount();
-    return rv;
+  nsCloseEvent (nsGlobalWindow *aWindow)
+    : mWindow(aWindow)
+  {
   }
-
+ 
   NS_IMETHOD Run() {
     if (mWindow)
       mWindow->ReallyCloseWindow();
     return NS_OK;
   }
 
+  nsRefPtr<nsGlobalWindow> mWindow;
 };
 
 PRBool
@@ -5727,7 +5686,8 @@ nsGlobalWindow::FinalClose()
   
   rv = NS_ERROR_FAILURE;
   if (!nsContentUtils::IsCallerChrome()) {
-    rv = nsCloseEvent::PostCloseEvent(this);
+    nsCOMPtr<nsIRunnable> ev = new nsCloseEvent(this);
+    rv = NS_DispatchToCurrentThread(ev);
   }
   
   if (NS_FAILED(rv)) {
@@ -5789,7 +5749,7 @@ nsGlobalWindow::ReallyCloseWindow()
       }
     }
 
-    CleanUp(PR_FALSE);
+    CleanUp();
   }
 }
 
@@ -6274,9 +6234,8 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
       }
     }
 
-    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(dlgWin));
-
     if (canAccess) {
+      nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(dlgWin));
       nsPIDOMWindow *inner = win->GetCurrentInnerWindow();
 
       nsCOMPtr<nsIDOMModalContentWindow> dlgInner(do_QueryInterface(inner));
@@ -6285,15 +6244,8 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
         dlgInner->GetReturnValue(aRetVal);
       }
     }
-
-    nsRefPtr<nsGlobalWindow> winInternal =
-      static_cast<nsGlobalWindow*>(win.get());
-    if (winInternal->mCallCleanUpAfterModalDialogCloses) {
-      winInternal->mCallCleanUpAfterModalDialogCloses = PR_FALSE;
-      winInternal->CleanUp(PR_TRUE);
-    }
   }
-
+  
   return NS_OK;
 }
 
@@ -7992,7 +7944,10 @@ nsGlobalWindow::CloseWindow(nsISupports *aWindow)
 
   
   
-  nsCloseEvent::PostCloseEvent(globalWin);
+  nsCOMPtr<nsIRunnable> ev = new nsCloseEvent(globalWin);
+  if (ev) {
+    NS_DispatchToCurrentThread(ev);
+  }
   
 }
 
