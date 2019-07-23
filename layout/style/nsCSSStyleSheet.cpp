@@ -1299,7 +1299,7 @@ nsCSSStyleSheet::AppendStyleSheet(nsICSSStyleSheet* aSheet)
     while (*tail) {
       tail = &(*tail)->mNext;
     }
-    *tail - sheet;
+    *tail = sheet;
   
     
     
