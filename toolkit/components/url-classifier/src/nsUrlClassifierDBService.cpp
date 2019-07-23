@@ -126,7 +126,7 @@ static const PRLogModuleInfo *gUrlClassifierDbServiceLog = nsnull;
 
 
 
-#define IMPLEMENTATION_VERSION 2
+#define IMPLEMENTATION_VERSION 3
 
 #define MAX_HOST_COMPONENTS 5
 #define MAX_PATH_COMPONENTS 4
