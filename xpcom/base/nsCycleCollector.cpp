@@ -139,7 +139,9 @@
 #include "nsPrintfCString.h"
 #include "nsTArray.h"
 #include "nsIObserverService.h"
+#include "nsIConsoleService.h"
 #include "nsServiceManagerUtils.h"
+#include "nsThreadUtils.h"
 
 #include <stdio.h>
 #ifdef WIN32
@@ -918,6 +920,33 @@ static nsCycleCollector *sCollector = nsnull;
 
 
 
+class CCRunnableFaultReport : public nsRunnable {
+public:
+    CCRunnableFaultReport(const nsCString& report)
+    {
+        CopyUTF8toUTF16(report, mReport);
+    }
+    
+    NS_IMETHOD Run() {
+        nsCOMPtr<nsIObserverService> obs =
+            do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+        if (obs) {
+            obs->NotifyObservers(nsnull, "cycle-collector-fault",
+                                 mReport.get());
+        }
+
+        nsCOMPtr<nsIConsoleService> cons =
+            do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+        if (cons) {
+            cons->LogStringMessage(mReport.get());
+        }
+        return NS_OK;
+    }
+
+private:
+    nsString mReport;
+};
+
 static void
 Fault(const char *msg, const void *ptr=nsnull)
 {
@@ -951,9 +980,9 @@ Fault(const char *msg, const void *ptr=nsnull)
     }
 #endif
 
-    NS_NOTREACHED(nsPrintfCString(256,
-                  "Fault in cycle collector: %s (ptr: %p)\n",
-                  msg, ptr).get());
+    nsPrintfCString str(256, "Fault in cycle collector: %s (ptr: %p)\n",
+                        msg, ptr);
+    NS_NOTREACHED(str.get());
 
     
     
@@ -963,6 +992,11 @@ Fault(const char *msg, const void *ptr=nsnull)
     
 
     sCollector->mParams.mDoNothing = PR_TRUE;
+
+    
+    
+    nsCOMPtr<nsIRunnable> ev = new CCRunnableFaultReport(str);
+    NS_DispatchToCurrentThread(ev);
 }
 
 #ifdef DEBUG_CC
