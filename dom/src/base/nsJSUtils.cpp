@@ -44,6 +44,7 @@
 
 
 
+
 #include "nsJSUtils.h"
 #include "jsapi.h"
 #include "jsdbgapi.h"
@@ -60,7 +61,7 @@
 
 JSBool
 nsJSUtils::GetCallingLocation(JSContext* aContext, const char* *aFilename,
-                              PRUint32 *aLineno)
+                              PRUint32* aLineno, JSPrincipals* aPrincipals)
 {
   
   JSStackFrame* frame = nsnull;
@@ -74,6 +75,20 @@ nsJSUtils::GetCallingLocation(JSContext* aContext, const char* *aFilename,
   } while (frame && !script);
 
   if (script) {
+    
+    
+    if (aPrincipals) {
+      JSPrincipals* scriptPrins = JS_GetScriptPrincipals(aContext, script);
+
+      
+      if (scriptPrins != aPrincipals &&
+          scriptPrins->subsume(scriptPrins, aPrincipals)) {
+        *aFilename = aPrincipals->codebase;
+        *aLineno = 0;
+        return JS_TRUE;
+      }
+    }
+
     const char* filename = ::JS_GetScriptFilename(aContext, script);
 
     if (filename) {
