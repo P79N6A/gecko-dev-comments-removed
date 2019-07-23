@@ -37,8 +37,16 @@ function createAppInfo(id, name, version, platformVersion) {
       
     },
 
+    
+    annotations: {},
+
+    annotateCrashReport: function(key, data) {
+      this.annotations[key] = data;
+    },
+
     QueryInterface: XPCOMUtils.generateQI([AM_Ci.nsIXULAppInfo,
                                            AM_Ci.nsIXULRuntime,
+                                           AM_Ci.nsICrashReporter,
                                            AM_Ci.nsISupports])
   };
   
@@ -52,6 +60,50 @@ function createAppInfo(id, name, version, platformVersion) {
   var registrar = Components.manager.QueryInterface(AM_Ci.nsIComponentRegistrar);
   registrar.registerFactory(XULAPPINFO_CID, "XULAppInfo",
                             XULAPPINFO_CONTRACTID, XULAppInfoFactory);
+}
+
+
+
+
+
+
+
+
+
+
+function do_check_in_crash_annotation(id, version) {
+  if (!("nsICrashReporter" in AM_Ci))
+    return;
+
+  if (!("Add-ons" in gAppInfo.annotations)) {
+    do_check_false(true);
+    return;
+  }
+
+  let addons = gAppInfo.annotations["Add-ons"].split(",");
+  do_check_false(addons.indexOf(id + ":" + version) < 0);
+}
+
+
+
+
+
+
+
+
+
+
+function do_check_not_in_crash_annotation(id, version) {
+  if (!("nsICrashReporter" in AM_Ci))
+    return;
+
+  if (!("Add-ons" in gAppInfo.annotations)) {
+    do_check_true(true);
+    return;
+  }
+
+  let addons = gAppInfo.annotations["Add-ons"].split(",");
+  do_check_true(addons.indexOf(id + ":" + version) < 0);
 }
 
 
@@ -146,6 +198,9 @@ function shutdownManager() {
   obs.notifyObservers(null, "quit-application-granted", null);
   gInternalManager.observe(null, "xpcom-shutdown", null);
   gInternalManager = null;
+
+  
+  gAppInfo.annotations = {};
 }
 
 function loadAddonsList(appChanged) {
