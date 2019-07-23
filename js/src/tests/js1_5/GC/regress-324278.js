@@ -55,11 +55,16 @@ function build(N) {
   
   
   
+  
+  
+  
+  
 
   var chainTop = null;
   for (var i = 0; i != N; ++i) {
-    var f = Function('some_arg'+i, ' return /test/;');
-    var re = f();
+    var f = Function('some_arg'+i, ' return some_arg'+i+'.re;');
+    var re = /test/;
+    f.re = re;
     re.previous = chainTop;
     chainTop = f;
   }
@@ -68,7 +73,7 @@ function build(N) {
 
 function check(chainTop, N) {
   for (var i = 0; i != N; ++i) {
-    var re = chainTop();
+    var re = chainTop(chainTop);
     chainTop = re.previous;
   }
   if (chainTop !== null)
