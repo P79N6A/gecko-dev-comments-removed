@@ -671,6 +671,9 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 #endif
 
         if (last) {
+            
+            memset(rt->builtinFunctions, 0, sizeof rt->builtinFunctions);
+
             js_GC(cx, GC_LAST_CONTEXT);
             DUMP_EVAL_CACHE_METER(cx);
             DUMP_FUNCTION_METER(cx);
