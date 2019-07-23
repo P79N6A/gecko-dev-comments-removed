@@ -750,7 +750,7 @@ struct JSContext {
 
 
 
-    int32               operationCount;
+    volatile int32      operationCount;
 
     
     JSCList             link;
@@ -863,8 +863,7 @@ struct JSContext {
 
 
 
-
-    uint32              operationCallbackIsSet :    1;
+    uint32              branchCallbackWasSet   :    1;
     uint32              operationLimit         :    31;
     JSOperationCallback operationCallback;
 
@@ -1273,6 +1272,23 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 extern JSBool
 js_ResetOperationCount(JSContext *cx);
+
+static JS_INLINE void
+js_InitOperationLimit(JSContext *cx)
+{
+    
+
+
+
+    cx->operationCount = (int32) JS_MAX_OPERATION_LIMIT + 1;
+    cx->operationLimit = JS_MAX_OPERATION_LIMIT + 1;
+}
+
+static JS_INLINE JSBool
+js_HasOperationLimit(JSContext *cx)
+{
+    return cx->operationLimit <= JS_MAX_OPERATION_LIMIT;
+}
 
 
 

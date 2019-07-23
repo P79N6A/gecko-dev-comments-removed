@@ -2174,31 +2174,37 @@ JS_CallFunctionValue(JSContext *cx, JSObject *obj, jsval fval, uintN argc,
 
 
 
-#define JS_MAX_OPERATION_LIMIT ((uint32) 0x7FFFFFFF)
+#define JS_MAX_OPERATION_LIMIT ((uint32) 0x7FFFFFFF - (uint32) 1)
 
 #define JS_OPERATION_WEIGHT_BASE 4096
 
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(void)
-JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback,
-                        uint32 operationLimit);
-
-extern JS_PUBLIC_API(void)
-JS_ClearOperationCallback(JSContext *cx);
+JS_SetOperationCallbackFunction(JSContext *cx, JSOperationCallback callback);
 
 extern JS_PUBLIC_API(JSOperationCallback)
 JS_GetOperationCallback(JSContext *cx);
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_TriggerOperationCallback(JSContext *cx);
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetOperationLimit(JSContext *cx, uint32 operationLimit);
 
 
 
@@ -2208,13 +2214,12 @@ JS_GetOperationCallback(JSContext *cx);
 extern JS_PUBLIC_API(uint32)
 JS_GetOperationLimit(JSContext *cx);
 
-
-
-
-
+extern JS_PUBLIC_API(void)
+JS_SetOperationCallback(JSContext *cx, JSOperationCallback callback,
+                        uint32 operationLimit);
 
 extern JS_PUBLIC_API(void)
-JS_SetOperationLimit(JSContext *cx, uint32 operationLimit);
+JS_ClearOperationCallback(JSContext *cx);
 
 
 
