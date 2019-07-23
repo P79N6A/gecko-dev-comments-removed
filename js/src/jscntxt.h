@@ -1583,6 +1583,9 @@ js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp);
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
 
+extern bool
+js_CurrentPCIsInImacro(JSContext *cx);
+
 #ifdef JS_TRACER
 
 
