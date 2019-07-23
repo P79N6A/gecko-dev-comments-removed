@@ -49,6 +49,7 @@ const gParamURL = window.arguments[0];
 const gParamUserAgent = navigator.userAgent;
 const gParamOSCPU = navigator.oscpu;
 const gParamPlatform = navigator.platform;
+const gCharset = window.arguments[1];
 
 
 var gParamDescription;
@@ -232,6 +233,7 @@ function sendReport() {
     'buildconfig':      gParamBuildConfig,
     'language':         gParamLanguage,
     'email':            gParamEmail,
+    'charset':          gCharset,
     'sysid':            sysId
   };
 
@@ -316,6 +318,7 @@ function onSendReportDataLoad(req) {
   finishExtendedDoc.getElementById('userAgentStri').textContent   = gParamUserAgent;
   finishExtendedDoc.getElementById('langStri').textContent        = gParamLanguage;
   finishExtendedDoc.getElementById('emailStri').textContent       = gParamEmail;
+  finishExtendedDoc.getElementById('charsetStri').textContent       = gCharset;
 
   reportWizard.canRewind = false;
 
