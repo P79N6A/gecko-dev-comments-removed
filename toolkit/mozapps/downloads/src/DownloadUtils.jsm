@@ -140,6 +140,11 @@ let gStr = {
 
 gStr._init();
 
+
+
+const kCachedLastMaxSize = 10;
+let gCachedLast = [];
+
 let DownloadUtils = {
   
 
@@ -247,6 +252,15 @@ let DownloadUtils = {
 
     if (aSeconds < 0)
       return [gStr.timeUnknown, aLastSec];
+
+    
+    aLastSec = gCachedLast.reduce(function(aResult, aItem)
+      aItem[0] == aSeconds ? aItem[1] : aResult, aLastSec);
+
+    
+    gCachedLast.push([aSeconds, aLastSec]);
+    if (gCachedLast.length > kCachedLastMaxSize)
+      gCachedLast.shift();
 
     
     
