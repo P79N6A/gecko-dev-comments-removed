@@ -78,7 +78,6 @@
 #include "gfxPlatform.h"
 #include "gfxImageSurface.h"
 #include "nsStyleStructInlines.h"
-#include "nsCSSFrameConstructor.h"
 
 #include "nsCSSRenderingBorders.h"
 
@@ -1012,48 +1011,76 @@ nsCSSRendering::FindNonTransparentBackground(nsStyleContext* aContext,
 
 
 
-inline PRBool
+
+
+
+
+inline nsIFrame*
 IsCanvasFrame(nsIFrame *aFrame)
 {
   nsIAtom* frameType = aFrame->GetType();
-  return frameType == nsGkAtoms::canvasFrame ||
-         frameType == nsGkAtoms::rootFrame ||
-         frameType == nsGkAtoms::pageFrame ||
-         frameType == nsGkAtoms::pageContentFrame ||
-         frameType == nsGkAtoms::viewportFrame;
+  if (frameType == nsGkAtoms::canvasFrame ||
+      frameType == nsGkAtoms::rootFrame ||
+      frameType == nsGkAtoms::pageFrame ||
+      frameType == nsGkAtoms::pageContentFrame) {
+    return aFrame;
+  } else if (frameType == nsGkAtoms::viewportFrame) {
+    nsIFrame* firstChild = aFrame->GetFirstChild(nsnull);
+    if (firstChild) {
+      return firstChild;
+    }
+  }
+  
+  return nsnull;
 }
 
 inline PRBool
-FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
+FindCanvasBackground(nsIFrame* aForFrame,
                      const nsStyleBackground** aBackground)
 {
-  if (aRootElementFrame) {
-    const nsStyleBackground* result = aRootElementFrame->GetStyleBackground();
+  
+  
+  nsIFrame *firstChild = aForFrame->GetFirstChild(nsnull);
+  if (firstChild) {
+    const nsStyleBackground* result = firstChild->GetStyleBackground();
+    nsIFrame* topFrame = aForFrame;
+
+    if (firstChild->GetType() == nsGkAtoms::pageContentFrame) {
+      topFrame = firstChild->GetFirstChild(nsnull);
+      NS_ASSERTION(topFrame,
+                   "nsPageContentFrame is missing a normal flow child");
+      if (!topFrame) {
+        return PR_FALSE;
+      }
+      NS_ASSERTION(topFrame->GetContent(),
+                   "nsPageContentFrame child without content");
+      result = topFrame->GetStyleBackground();
+    }
 
     
     if (result->IsTransparent()) {
-      nsIContent* content = aRootElementFrame->GetContent();
-      
-      
-      
-      nsIDocument* document = content->GetOwnerDoc();
-      nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
-      if (htmlDoc) {
-        nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
+      nsIContent* content = topFrame->GetContent();
+      if (content) {
         
-        
-        
-        
-        
-        
-        
-        
-        
-        if (bodyContent) {
-          nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
-            GetPrimaryFrameFor(bodyContent);
-          if (bodyFrame)
-            result = bodyFrame->GetStyleBackground();
+        nsIDocument* document = content->GetOwnerDoc();
+        nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
+        if (htmlDoc) {
+          nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          if (bodyContent) {
+            nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
+              GetPrimaryFrameFor(bodyContent);
+            if (bodyFrame)
+              result = bodyFrame->GetStyleBackground();
+          }
         }
       }
     }
@@ -1070,12 +1097,16 @@ FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
 }
 
 inline PRBool
-FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
+FindElementBackground(nsIFrame* aForFrame,
                       const nsStyleBackground** aBackground)
 {
-  if (aForFrame == aRootElementFrame) {
+  nsIFrame *parentFrame = aForFrame->GetParent();
+  
+  if (parentFrame && IsCanvasFrame(parentFrame) == parentFrame) {
     
-    return PR_FALSE;
+    nsIFrame *childFrame = parentFrame->GetFirstChild(nsnull);
+    if (childFrame == aForFrame)
+      return PR_FALSE; 
   }
 
   *aBackground = aForFrame->GetStyleBackground();
@@ -1083,13 +1114,17 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
   
   
 
-  nsIContent* content = aForFrame->GetContent();
-  if (!content || content->Tag() != nsGkAtoms::body)
-    return PR_TRUE; 
-  
-  
-
   if (aForFrame->GetStyleContext()->GetPseudoType())
+    return PR_TRUE; 
+
+  nsIContent* content = aForFrame->GetContent();
+  if (!content || !content->IsNodeOfType(nsINode::eHTML))
+    return PR_TRUE;  
+
+  if (!parentFrame)
+    return PR_TRUE; 
+
+  if (content->Tag() != nsGkAtoms::body)
     return PR_TRUE; 
 
   
@@ -1102,13 +1137,7 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
   if (bodyContent != content)
     return PR_TRUE; 
 
-  
-  
-  
-  if (!aRootElementFrame)
-    return PR_TRUE;
-
-  const nsStyleBackground* htmlBG = aRootElementFrame->GetStyleBackground();
+  const nsStyleBackground* htmlBG = parentFrame->GetStyleBackground();
   return !htmlBG->IsTransparent();
 }
 
@@ -1118,13 +1147,11 @@ nsCSSRendering::FindBackground(nsPresContext* aPresContext,
                                const nsStyleBackground** aBackground,
                                PRBool* aIsCanvas)
 {
-  nsIFrame* rootElementFrame =
-    aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
-  PRBool isCanvasFrame = IsCanvasFrame(aForFrame);
-  *aIsCanvas = isCanvasFrame;
-  return isCanvasFrame
-      ? FindCanvasBackground(aForFrame, rootElementFrame, aBackground)
-      : FindElementBackground(aForFrame, rootElementFrame, aBackground);
+  nsIFrame* canvasFrame = IsCanvasFrame(aForFrame);
+  *aIsCanvas = canvasFrame != nsnull;
+  return canvasFrame
+      ? FindCanvasBackground(canvasFrame, aBackground)
+      : FindElementBackground(aForFrame, aBackground);
 }
 
 void

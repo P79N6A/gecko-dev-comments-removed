@@ -248,13 +248,7 @@ public:
 
   nsresult RemoveMappingsForFrameSubtree(nsIFrame* aRemovedFrame);
 
-  
   nsIFrame* GetInitialContainingBlock() { return mInitialContainingBlock; }
-  
-  nsIFrame* GetRootElementFrame() { return mInitialContainingBlock; }
-  
-  
-  nsIFrame* GetRootElementStyleFrame() { return mRootElementStyleFrame; }
   nsIFrame* GetPageSequenceFrame() { return mPageSequenceFrame; }
 
 private:
@@ -1150,15 +1144,8 @@ private:
   nsIDocument*        mDocument;  
   nsIPresShell*       mPresShell; 
 
-  
-  
   nsIFrame*           mInitialContainingBlock;
-  
-  nsIFrame*           mRootElementStyleFrame;
-  
   nsIFrame*           mFixedContainingBlock;
-  
-  
   nsIFrame*           mDocElementContainingBlock;
   nsIFrame*           mGfxScrollFrame;
   nsIFrame*           mPageSequenceFrame;
