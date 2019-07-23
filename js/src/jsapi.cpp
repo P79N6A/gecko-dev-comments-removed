@@ -825,6 +825,9 @@ JSRuntime::~JSRuntime()
 JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32 maxbytes)
 {
+#ifdef MUST_DETECT_SSE2
+    js_use_SSE2 = js_DetectSSE2();
+#endif
 #ifdef DEBUG
     if (!js_NewRuntimeWasCalled) {
         
@@ -1216,7 +1219,6 @@ JS_GetGlobalObject(JSContext *cx)
 JS_PUBLIC_API(void)
 JS_SetGlobalObject(JSContext *cx, JSObject *obj)
 {
-    CHECK_REQUEST(cx);
     cx->globalObject = obj;
 
 #if JS_HAS_XML_SUPPORT
@@ -5827,8 +5829,7 @@ JS_PUBLIC_API(JSBool)
 JS_ThrowReportedError(JSContext *cx, const char *message,
                       JSErrorReport *reportp)
 {
-    return JS_IsRunning(cx) &&
-           js_ErrorToException(cx, message, reportp, NULL, NULL);
+    return JS_IsRunning(cx) && js_ErrorToException(cx, message, reportp);
 }
 
 JS_PUBLIC_API(JSBool)
