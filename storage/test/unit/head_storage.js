@@ -72,10 +72,22 @@ function getService()
 }
 
 var gDBConn = null;
-function getOpenedDatabase()
+
+
+
+
+
+
+
+
+
+
+function getOpenedDatabase(unshared)
 {
   if (!gDBConn) {
-    gDBConn = getService().openDatabase(getTestDB());
+    gDBConn = getService()
+              [unshared ? "openUnsharedDatabase" : "openDatabase"]
+              (getTestDB());
   }
   return gDBConn;
 }

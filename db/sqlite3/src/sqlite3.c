@@ -73480,3 +73480,40506 @@ SQLITE_API int sqlite3_file_control(sqlite3 *db, const char *zDbName, int op, vo
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
+
+#if defined(SQLITE_ENABLE_FTS3) && !defined(SQLITE_CORE)
+# define SQLITE_CORE 1
+#endif
+
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+#include <stdarg.h>     
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+int sqlite3Fts3Init(sqlite3 *db);
+
+#if 0
+}  
+#endif  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_HASH_H_
+#define _FTS3_HASH_H_
+
+
+typedef struct fts3Hash fts3Hash;
+typedef struct fts3HashElem fts3HashElem;
+
+
+
+
+
+
+
+
+
+struct fts3Hash {
+  char keyClass;          
+  char copyKey;           
+  int count;              
+  fts3HashElem *first;    
+  int htsize;             
+  struct _fts3ht {        
+    int count;               
+    fts3HashElem *chain;     
+  } *ht;
+};
+
+
+
+
+
+
+
+struct fts3HashElem {
+  fts3HashElem *next, *prev; 
+  void *data;                
+  void *pKey; int nKey;      
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define FTS3_HASH_STRING    1
+#define FTS3_HASH_BINARY    2
+
+
+
+
+void sqlite3Fts3HashInit(fts3Hash*, int keytype, int copyKey);
+void *sqlite3Fts3HashInsert(fts3Hash*, const void *pKey, int nKey, void *pData);
+void *sqlite3Fts3HashFind(const fts3Hash*, const void *pKey, int nKey);
+void sqlite3Fts3HashClear(fts3Hash*);
+
+
+
+
+#define fts3HashInit   sqlite3Fts3HashInit
+#define fts3HashInsert sqlite3Fts3HashInsert
+#define fts3HashFind   sqlite3Fts3HashFind
+#define fts3HashClear  sqlite3Fts3HashClear
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define fts3HashFirst(H)  ((H)->first)
+#define fts3HashNext(E)   ((E)->next)
+#define fts3HashData(E)   ((E)->data)
+#define fts3HashKey(E)    ((E)->pKey)
+#define fts3HashKeysize(E) ((E)->nKey)
+
+
+
+
+#define fts3HashCount(H)  ((H)->count)
+
+#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_TOKENIZER_H_
+#define _FTS3_TOKENIZER_H_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_tokenizer_module sqlite3_tokenizer_module;
+typedef struct sqlite3_tokenizer sqlite3_tokenizer;
+typedef struct sqlite3_tokenizer_cursor sqlite3_tokenizer_cursor;
+
+struct sqlite3_tokenizer_module {
+
+  
+
+
+  int iVersion;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int (*xCreate)(
+    int argc,                           
+    const char *const*argv,             
+    sqlite3_tokenizer **ppTokenizer     
+  );
+
+  
+
+
+
+  int (*xDestroy)(sqlite3_tokenizer *pTokenizer);
+
+  
+
+
+
+
+  int (*xOpen)(
+    sqlite3_tokenizer *pTokenizer,       
+    const char *pInput, int nBytes,      
+    sqlite3_tokenizer_cursor **ppCursor  
+  );
+
+  
+
+
+
+  int (*xClose)(sqlite3_tokenizer_cursor *pCursor);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  int (*xNext)(
+    sqlite3_tokenizer_cursor *pCursor,   
+    const char **ppToken, int *pnBytes,  
+    int *piStartOffset,  
+    int *piEndOffset,    
+    int *piPosition      
+  );
+};
+
+struct sqlite3_tokenizer {
+  const sqlite3_tokenizer_module *pModule;  
+  
+};
+
+struct sqlite3_tokenizer_cursor {
+  sqlite3_tokenizer *pTokenizer;       
+  
+};
+
+#endif
+
+
+
+#ifndef SQLITE_CORE 
+  #include "sqlite3ext.h"
+  SQLITE_EXTENSION_INIT1
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+# define FTSTRACE(A)  printf A; fflush(stdout)
+#else
+# define FTSTRACE(A)
+#endif
+
+
+
+
+#define SQLITE_FTS3_DEFAULT_NEAR_PARAM 10
+
+
+
+
+
+
+
+
+
+
+static int safe_isspace(char c){
+  return (c&0x80)==0 ? isspace(c) : 0;
+}
+static int safe_tolower(char c){
+  return (c&0x80)==0 ? tolower(c) : c;
+}
+static int safe_isalnum(char c){
+  return (c&0x80)==0 ? isalnum(c) : 0;
+}
+
+typedef enum DocListType {
+  DL_DOCIDS,              
+  DL_POSITIONS,           
+  DL_POSITIONS_OFFSETS    
+} DocListType;
+
+
+
+
+
+
+
+
+
+
+#ifndef DL_DEFAULT
+# define DL_DEFAULT DL_POSITIONS
+#endif
+
+enum {
+  POS_END = 0,        
+  POS_COLUMN,         
+  POS_BASE
+};
+
+
+
+
+#define MERGE_COUNT 16
+
+
+
+
+
+
+
+
+
+
+
+#define CLEAR(b) memset(b, '\0', sizeof(*(b)))
+
+#ifndef NDEBUG
+#  define SCRAMBLE(b) memset(b, 0x55, sizeof(*(b)))
+#else
+#  define SCRAMBLE(b)
+#endif
+
+
+#define VARINT_MAX 10
+
+
+
+
+static int fts3PutVarint(char *p, sqlite_int64 v){
+  unsigned char *q = (unsigned char *) p;
+  sqlite_uint64 vu = v;
+  do{
+    *q++ = (unsigned char) ((vu & 0x7f) | 0x80);
+    vu >>= 7;
+  }while( vu!=0 );
+  q[-1] &= 0x7f;  
+  assert( q - (unsigned char *)p <= VARINT_MAX );
+  return (int) (q - (unsigned char *)p);
+}
+
+
+
+
+static int fts3GetVarint(const char *p, sqlite_int64 *v){
+  const unsigned char *q = (const unsigned char *) p;
+  sqlite_uint64 x = 0, y = 1;
+  while( (*q & 0x80) == 0x80 ){
+    x += y * (*q++ & 0x7f);
+    y <<= 7;
+    if( q - (unsigned char *)p >= VARINT_MAX ){  
+      assert( 0 );
+      return 0;
+    }
+  }
+  x += y * (*q++);
+  *v = (sqlite_int64) x;
+  return (int) (q - (unsigned char *)p);
+}
+
+static int fts3GetVarint32(const char *p, int *pi){
+ sqlite_int64 i;
+ int ret = fts3GetVarint(p, &i);
+ *pi = (int) i;
+ assert( *pi==i );
+ return ret;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct DataBuffer {
+  char *pData;          
+  int nCapacity;        
+  int nData;            
+} DataBuffer;
+
+static void dataBufferInit(DataBuffer *pBuffer, int nCapacity){
+  assert( nCapacity>=0 );
+  pBuffer->nData = 0;
+  pBuffer->nCapacity = nCapacity;
+  pBuffer->pData = nCapacity==0 ? NULL : sqlite3_malloc(nCapacity);
+}
+static void dataBufferReset(DataBuffer *pBuffer){
+  pBuffer->nData = 0;
+}
+static void dataBufferDestroy(DataBuffer *pBuffer){
+  if( pBuffer->pData!=NULL ) sqlite3_free(pBuffer->pData);
+  SCRAMBLE(pBuffer);
+}
+static void dataBufferSwap(DataBuffer *pBuffer1, DataBuffer *pBuffer2){
+  DataBuffer tmp = *pBuffer1;
+  *pBuffer1 = *pBuffer2;
+  *pBuffer2 = tmp;
+}
+static void dataBufferExpand(DataBuffer *pBuffer, int nAddCapacity){
+  assert( nAddCapacity>0 );
+  
+
+
+
+  if( pBuffer->nData+nAddCapacity>pBuffer->nCapacity ){
+    pBuffer->nCapacity = pBuffer->nData+nAddCapacity;
+    pBuffer->pData = sqlite3_realloc(pBuffer->pData, pBuffer->nCapacity);
+  }
+}
+static void dataBufferAppend(DataBuffer *pBuffer,
+                             const char *pSource, int nSource){
+  assert( nSource>0 && pSource!=NULL );
+  dataBufferExpand(pBuffer, nSource);
+  memcpy(pBuffer->pData+pBuffer->nData, pSource, nSource);
+  pBuffer->nData += nSource;
+}
+static void dataBufferAppend2(DataBuffer *pBuffer,
+                              const char *pSource1, int nSource1,
+                              const char *pSource2, int nSource2){
+  assert( nSource1>0 && pSource1!=NULL );
+  assert( nSource2>0 && pSource2!=NULL );
+  dataBufferExpand(pBuffer, nSource1+nSource2);
+  memcpy(pBuffer->pData+pBuffer->nData, pSource1, nSource1);
+  memcpy(pBuffer->pData+pBuffer->nData+nSource1, pSource2, nSource2);
+  pBuffer->nData += nSource1+nSource2;
+}
+static void dataBufferReplace(DataBuffer *pBuffer,
+                              const char *pSource, int nSource){
+  dataBufferReset(pBuffer);
+  dataBufferAppend(pBuffer, pSource, nSource);
+}
+
+
+typedef struct StringBuffer {
+  DataBuffer b;            
+} StringBuffer;
+
+static void initStringBuffer(StringBuffer *sb){
+  dataBufferInit(&sb->b, 100);
+  dataBufferReplace(&sb->b, "", 1);
+}
+static int stringBufferLength(StringBuffer *sb){
+  return sb->b.nData-1;
+}
+static char *stringBufferData(StringBuffer *sb){
+  return sb->b.pData;
+}
+static void stringBufferDestroy(StringBuffer *sb){
+  dataBufferDestroy(&sb->b);
+}
+
+static void nappend(StringBuffer *sb, const char *zFrom, int nFrom){
+  assert( sb->b.nData>0 );
+  if( nFrom>0 ){
+    sb->b.nData--;
+    dataBufferAppend2(&sb->b, zFrom, nFrom, "", 1);
+  }
+}
+static void append(StringBuffer *sb, const char *zFrom){
+  nappend(sb, zFrom, strlen(zFrom));
+}
+
+
+static void appendList(StringBuffer *sb, int nString, char **azString){
+  int i;
+  for(i=0; i<nString; ++i){
+    if( i>0 ) append(sb, ", ");
+    append(sb, azString[i]);
+  }
+}
+
+static int endsInWhiteSpace(StringBuffer *p){
+  return stringBufferLength(p)>0 &&
+    safe_isspace(stringBufferData(p)[stringBufferLength(p)-1]);
+}
+
+
+
+
+static void appendWhiteSpace(StringBuffer *p){
+  if( stringBufferLength(p)==0 ) return;
+  if( !endsInWhiteSpace(p) ) append(p, " ");
+}
+
+
+static void trimWhiteSpace(StringBuffer *p){
+  while( endsInWhiteSpace(p) ){
+    p->b.pData[--p->b.nData-1] = '\0';
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct DLReader {
+  DocListType iType;
+  const char *pData;
+  int nData;
+
+  sqlite_int64 iDocid;
+  int nElement;
+} DLReader;
+
+static int dlrAtEnd(DLReader *pReader){
+  assert( pReader->nData>=0 );
+  return pReader->nData==0;
+}
+static sqlite_int64 dlrDocid(DLReader *pReader){
+  assert( !dlrAtEnd(pReader) );
+  return pReader->iDocid;
+}
+static const char *dlrDocData(DLReader *pReader){
+  assert( !dlrAtEnd(pReader) );
+  return pReader->pData;
+}
+static int dlrDocDataBytes(DLReader *pReader){
+  assert( !dlrAtEnd(pReader) );
+  return pReader->nElement;
+}
+static int dlrAllDataBytes(DLReader *pReader){
+  assert( !dlrAtEnd(pReader) );
+  return pReader->nData;
+}
+
+
+
+
+static const char *dlrPosData(DLReader *pReader){
+  sqlite_int64 iDummy;
+  int n = fts3GetVarint(pReader->pData, &iDummy);
+  assert( !dlrAtEnd(pReader) );
+  return pReader->pData+n;
+}
+static int dlrPosDataLen(DLReader *pReader){
+  sqlite_int64 iDummy;
+  int n = fts3GetVarint(pReader->pData, &iDummy);
+  assert( !dlrAtEnd(pReader) );
+  return pReader->nElement-n;
+}
+static void dlrStep(DLReader *pReader){
+  assert( !dlrAtEnd(pReader) );
+
+  
+  assert( pReader->nElement<=pReader->nData );
+  pReader->pData += pReader->nElement;
+  pReader->nData -= pReader->nElement;
+
+  
+  if( pReader->nData!=0 ){
+    sqlite_int64 iDocidDelta;
+    int iDummy, n = fts3GetVarint(pReader->pData, &iDocidDelta);
+    pReader->iDocid += iDocidDelta;
+    if( pReader->iType>=DL_POSITIONS ){
+      assert( n<pReader->nData );
+      while( 1 ){
+        n += fts3GetVarint32(pReader->pData+n, &iDummy);
+        assert( n<=pReader->nData );
+        if( iDummy==POS_END ) break;
+        if( iDummy==POS_COLUMN ){
+          n += fts3GetVarint32(pReader->pData+n, &iDummy);
+          assert( n<pReader->nData );
+        }else if( pReader->iType==DL_POSITIONS_OFFSETS ){
+          n += fts3GetVarint32(pReader->pData+n, &iDummy);
+          n += fts3GetVarint32(pReader->pData+n, &iDummy);
+          assert( n<pReader->nData );
+        }
+      }
+    }
+    pReader->nElement = n;
+    assert( pReader->nElement<=pReader->nData );
+  }
+}
+static void dlrInit(DLReader *pReader, DocListType iType,
+                    const char *pData, int nData){
+  assert( pData!=NULL && nData!=0 );
+  pReader->iType = iType;
+  pReader->pData = pData;
+  pReader->nData = nData;
+  pReader->nElement = 0;
+  pReader->iDocid = 0;
+
+  
+  dlrStep(pReader);
+}
+static void dlrDestroy(DLReader *pReader){
+  SCRAMBLE(pReader);
+}
+
+#ifndef NDEBUG
+
+
+
+
+static void docListValidate(DocListType iType, const char *pData, int nData,
+                            sqlite_int64 *pLastDocid){
+  sqlite_int64 iPrevDocid = 0;
+  assert( nData>0 );
+  assert( pData!=0 );
+  assert( pData+nData>pData );
+  while( nData!=0 ){
+    sqlite_int64 iDocidDelta;
+    int n = fts3GetVarint(pData, &iDocidDelta);
+    iPrevDocid += iDocidDelta;
+    if( iType>DL_DOCIDS ){
+      int iDummy;
+      while( 1 ){
+        n += fts3GetVarint32(pData+n, &iDummy);
+        if( iDummy==POS_END ) break;
+        if( iDummy==POS_COLUMN ){
+          n += fts3GetVarint32(pData+n, &iDummy);
+        }else if( iType>DL_POSITIONS ){
+          n += fts3GetVarint32(pData+n, &iDummy);
+          n += fts3GetVarint32(pData+n, &iDummy);
+        }
+        assert( n<=nData );
+      }
+    }
+    assert( n<=nData );
+    pData += n;
+    nData -= n;
+  }
+  if( pLastDocid ) *pLastDocid = iPrevDocid;
+}
+#define ASSERT_VALID_DOCLIST(i, p, n, o) docListValidate(i, p, n, o)
+#else
+#define ASSERT_VALID_DOCLIST(i, p, n, o) assert( 1 )
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct DLWriter {
+  DocListType iType;
+  DataBuffer *b;
+  sqlite_int64 iPrevDocid;
+#ifndef NDEBUG
+  int has_iPrevDocid;
+#endif
+} DLWriter;
+
+static void dlwInit(DLWriter *pWriter, DocListType iType, DataBuffer *b){
+  pWriter->b = b;
+  pWriter->iType = iType;
+  pWriter->iPrevDocid = 0;
+#ifndef NDEBUG
+  pWriter->has_iPrevDocid = 0;
+#endif
+}
+static void dlwDestroy(DLWriter *pWriter){
+  SCRAMBLE(pWriter);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void dlwAppend(DLWriter *pWriter,
+                      const char *pData, int nData,
+                      sqlite_int64 iFirstDocid, sqlite_int64 iLastDocid){
+  sqlite_int64 iDocid = 0;
+  char c[VARINT_MAX];
+  int nFirstOld, nFirstNew;     
+#ifndef NDEBUG
+  sqlite_int64 iLastDocidDelta;
+#endif
+
+  
+  nFirstOld = fts3GetVarint(pData, &iDocid);
+  assert( nFirstOld<nData || (nFirstOld==nData && pWriter->iType==DL_DOCIDS) );
+  nFirstNew = fts3PutVarint(c, iFirstDocid-pWriter->iPrevDocid);
+
+  
+
+
+
+  ASSERT_VALID_DOCLIST(pWriter->iType, pData, nData, &iLastDocidDelta);
+  assert( iLastDocid==iFirstDocid-iDocid+iLastDocidDelta );
+
+  
+
+
+  if( nFirstOld<nData ){
+    dataBufferAppend2(pWriter->b, c, nFirstNew,
+                      pData+nFirstOld, nData-nFirstOld);
+  }else{
+    dataBufferAppend(pWriter->b, c, nFirstNew);
+  }
+  pWriter->iPrevDocid = iLastDocid;
+}
+static void dlwCopy(DLWriter *pWriter, DLReader *pReader){
+  dlwAppend(pWriter, dlrDocData(pReader), dlrDocDataBytes(pReader),
+            dlrDocid(pReader), dlrDocid(pReader));
+}
+static void dlwAdd(DLWriter *pWriter, sqlite_int64 iDocid){
+  char c[VARINT_MAX];
+  int n = fts3PutVarint(c, iDocid-pWriter->iPrevDocid);
+
+  
+  assert( !pWriter->has_iPrevDocid || iDocid>pWriter->iPrevDocid );
+  assert( pWriter->iType==DL_DOCIDS );
+
+  dataBufferAppend(pWriter->b, c, n);
+  pWriter->iPrevDocid = iDocid;
+#ifndef NDEBUG
+  pWriter->has_iPrevDocid = 1;
+#endif
+}
+
+
+
+
+
+
+
+
+
+
+
+typedef struct PLReader {
+  
+
+
+
+  const char *pData;
+  int nData;
+
+  DocListType iType;
+  int iColumn;         
+  int iPosition;       
+  int iStartOffset;    
+  int iEndOffset;      
+} PLReader;
+
+static int plrAtEnd(PLReader *pReader){
+  return pReader->pData==NULL;
+}
+static int plrColumn(PLReader *pReader){
+  assert( !plrAtEnd(pReader) );
+  return pReader->iColumn;
+}
+static int plrPosition(PLReader *pReader){
+  assert( !plrAtEnd(pReader) );
+  return pReader->iPosition;
+}
+static int plrStartOffset(PLReader *pReader){
+  assert( !plrAtEnd(pReader) );
+  return pReader->iStartOffset;
+}
+static int plrEndOffset(PLReader *pReader){
+  assert( !plrAtEnd(pReader) );
+  return pReader->iEndOffset;
+}
+static void plrStep(PLReader *pReader){
+  int i, n;
+
+  assert( !plrAtEnd(pReader) );
+
+  if( pReader->nData==0 ){
+    pReader->pData = NULL;
+    return;
+  }
+
+  n = fts3GetVarint32(pReader->pData, &i);
+  if( i==POS_COLUMN ){
+    n += fts3GetVarint32(pReader->pData+n, &pReader->iColumn);
+    pReader->iPosition = 0;
+    pReader->iStartOffset = 0;
+    n += fts3GetVarint32(pReader->pData+n, &i);
+  }
+  
+  assert( i!=POS_COLUMN );
+
+  if( i==POS_END ){
+    pReader->nData = 0;
+    pReader->pData = NULL;
+    return;
+  }
+
+  pReader->iPosition += i-POS_BASE;
+  if( pReader->iType==DL_POSITIONS_OFFSETS ){
+    n += fts3GetVarint32(pReader->pData+n, &i);
+    pReader->iStartOffset += i;
+    n += fts3GetVarint32(pReader->pData+n, &i);
+    pReader->iEndOffset = pReader->iStartOffset+i;
+  }
+  assert( n<=pReader->nData );
+  pReader->pData += n;
+  pReader->nData -= n;
+}
+
+static void plrInit(PLReader *pReader, DLReader *pDLReader){
+  pReader->pData = dlrPosData(pDLReader);
+  pReader->nData = dlrPosDataLen(pDLReader);
+  pReader->iType = pDLReader->iType;
+  pReader->iColumn = 0;
+  pReader->iPosition = 0;
+  pReader->iStartOffset = 0;
+  pReader->iEndOffset = 0;
+  plrStep(pReader);
+}
+static void plrDestroy(PLReader *pReader){
+  SCRAMBLE(pReader);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct PLWriter {
+  DLWriter *dlw;
+
+  int iColumn;    
+  int iPos;       
+  int iOffset;    
+} PLWriter;
+
+
+
+
+
+static void plwAdd(PLWriter *pWriter, int iColumn, int iPos,
+                   int iStartOffset, int iEndOffset){
+  
+
+
+  char c[5*VARINT_MAX];
+  int n = 0;
+
+  
+  assert( pWriter->iPos!=-1 );
+
+  if( pWriter->dlw->iType==DL_DOCIDS ) return;
+
+  if( iColumn!=pWriter->iColumn ){
+    n += fts3PutVarint(c+n, POS_COLUMN);
+    n += fts3PutVarint(c+n, iColumn);
+    pWriter->iColumn = iColumn;
+    pWriter->iPos = 0;
+    pWriter->iOffset = 0;
+  }
+  assert( iPos>=pWriter->iPos );
+  n += fts3PutVarint(c+n, POS_BASE+(iPos-pWriter->iPos));
+  pWriter->iPos = iPos;
+  if( pWriter->dlw->iType==DL_POSITIONS_OFFSETS ){
+    assert( iStartOffset>=pWriter->iOffset );
+    n += fts3PutVarint(c+n, iStartOffset-pWriter->iOffset);
+    pWriter->iOffset = iStartOffset;
+    assert( iEndOffset>=iStartOffset );
+    n += fts3PutVarint(c+n, iEndOffset-iStartOffset);
+  }
+  dataBufferAppend(pWriter->dlw->b, c, n);
+}
+static void plwCopy(PLWriter *pWriter, PLReader *pReader){
+  plwAdd(pWriter, plrColumn(pReader), plrPosition(pReader),
+         plrStartOffset(pReader), plrEndOffset(pReader));
+}
+static void plwInit(PLWriter *pWriter, DLWriter *dlw, sqlite_int64 iDocid){
+  char c[VARINT_MAX];
+  int n;
+
+  pWriter->dlw = dlw;
+
+  
+  assert( !pWriter->dlw->has_iPrevDocid || iDocid>pWriter->dlw->iPrevDocid );
+  n = fts3PutVarint(c, iDocid-pWriter->dlw->iPrevDocid);
+  dataBufferAppend(pWriter->dlw->b, c, n);
+  pWriter->dlw->iPrevDocid = iDocid;
+#ifndef NDEBUG
+  pWriter->dlw->has_iPrevDocid = 1;
+#endif
+
+  pWriter->iColumn = 0;
+  pWriter->iPos = 0;
+  pWriter->iOffset = 0;
+}
+
+
+
+
+
+
+
+
+static void plwTerminate(PLWriter *pWriter){
+  if( pWriter->dlw->iType>DL_DOCIDS ){
+    char c[VARINT_MAX];
+    int n = fts3PutVarint(c, POS_END);
+    dataBufferAppend(pWriter->dlw->b, c, n);
+  }
+#ifndef NDEBUG
+  
+  pWriter->iPos = -1;
+#endif
+}
+static void plwDestroy(PLWriter *pWriter){
+  SCRAMBLE(pWriter);
+}
+
+
+
+
+
+
+
+
+
+
+
+typedef struct DLCollector {
+  DataBuffer b;
+  DLWriter dlw;
+  PLWriter plw;
+} DLCollector;
+
+
+
+
+
+
+
+
+
+static void dlcAddDoclist(DLCollector *pCollector, DataBuffer *b){
+  if( pCollector->dlw.iType>DL_DOCIDS ){
+    char c[VARINT_MAX];
+    int n = fts3PutVarint(c, POS_END);
+    dataBufferAppend2(b, pCollector->b.pData, pCollector->b.nData, c, n);
+  }else{
+    dataBufferAppend(b, pCollector->b.pData, pCollector->b.nData);
+  }
+}
+static void dlcNext(DLCollector *pCollector, sqlite_int64 iDocid){
+  plwTerminate(&pCollector->plw);
+  plwDestroy(&pCollector->plw);
+  plwInit(&pCollector->plw, &pCollector->dlw, iDocid);
+}
+static void dlcAddPos(DLCollector *pCollector, int iColumn, int iPos,
+                      int iStartOffset, int iEndOffset){
+  plwAdd(&pCollector->plw, iColumn, iPos, iStartOffset, iEndOffset);
+}
+
+static DLCollector *dlcNew(sqlite_int64 iDocid, DocListType iType){
+  DLCollector *pCollector = sqlite3_malloc(sizeof(DLCollector));
+  dataBufferInit(&pCollector->b, 0);
+  dlwInit(&pCollector->dlw, iType, &pCollector->b);
+  plwInit(&pCollector->plw, &pCollector->dlw, iDocid);
+  return pCollector;
+}
+static void dlcDelete(DLCollector *pCollector){
+  plwDestroy(&pCollector->plw);
+  dlwDestroy(&pCollector->dlw);
+  dataBufferDestroy(&pCollector->b);
+  SCRAMBLE(pCollector);
+  sqlite3_free(pCollector);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+static void docListTrim(DocListType iType, const char *pData, int nData,
+                        int iColumn, DocListType iOutType, DataBuffer *out){
+  DLReader dlReader;
+  DLWriter dlWriter;
+
+  assert( iOutType<=iType );
+
+  dlrInit(&dlReader, iType, pData, nData);
+  dlwInit(&dlWriter, iOutType, out);
+
+  while( !dlrAtEnd(&dlReader) ){
+    PLReader plReader;
+    PLWriter plWriter;
+    int match = 0;
+
+    plrInit(&plReader, &dlReader);
+
+    while( !plrAtEnd(&plReader) ){
+      if( iColumn==-1 || plrColumn(&plReader)==iColumn ){
+        if( !match ){
+          plwInit(&plWriter, &dlWriter, dlrDocid(&dlReader));
+          match = 1;
+        }
+        plwAdd(&plWriter, plrColumn(&plReader), plrPosition(&plReader),
+               plrStartOffset(&plReader), plrEndOffset(&plReader));
+      }
+      plrStep(&plReader);
+    }
+    if( match ){
+      plwTerminate(&plWriter);
+      plwDestroy(&plWriter);
+    }
+
+    plrDestroy(&plReader);
+    dlrStep(&dlReader);
+  }
+  dlwDestroy(&dlWriter);
+  dlrDestroy(&dlReader);
+}
+
+
+
+
+typedef struct OrderedDLReader {
+  DLReader *pReader;
+
+  
+
+
+
+  int idx;
+} OrderedDLReader;
+
+
+static int orderedDLReaderCmp(OrderedDLReader *r1, OrderedDLReader *r2){
+  if( dlrAtEnd(r1->pReader) ){
+    if( dlrAtEnd(r2->pReader) ) return 0;  
+    return 1;                              
+  }
+  if( dlrAtEnd(r2->pReader) ) return -1;   
+
+  if( dlrDocid(r1->pReader)<dlrDocid(r2->pReader) ) return -1;
+  if( dlrDocid(r1->pReader)>dlrDocid(r2->pReader) ) return 1;
+
+  
+  return r2->idx-r1->idx;
+}
+
+
+
+
+
+
+
+
+
+static void orderedDLReaderReorder(OrderedDLReader *p, int n){
+  while( n>1 && orderedDLReaderCmp(p, p+1)>0 ){
+    OrderedDLReader tmp = p[0];
+    p[0] = p[1];
+    p[1] = tmp;
+    n--;
+    p++;
+  }
+}
+
+
+
+
+
+
+
+
+
+static void docListMerge(DataBuffer *out,
+                         DLReader *pReaders, int nReaders){
+  OrderedDLReader readers[MERGE_COUNT];
+  DLWriter writer;
+  int i, n;
+  const char *pStart = 0;
+  int nStart = 0;
+  sqlite_int64 iFirstDocid = 0, iLastDocid = 0;
+
+  assert( nReaders>0 );
+  if( nReaders==1 ){
+    dataBufferAppend(out, dlrDocData(pReaders), dlrAllDataBytes(pReaders));
+    return;
+  }
+
+  assert( nReaders<=MERGE_COUNT );
+  n = 0;
+  for(i=0; i<nReaders; i++){
+    assert( pReaders[i].iType==pReaders[0].iType );
+    readers[i].pReader = pReaders+i;
+    readers[i].idx = i;
+    n += dlrAllDataBytes(&pReaders[i]);
+  }
+  
+
+
+  dataBufferExpand(out, n);
+
+  
+  while( i-->0 ){
+    orderedDLReaderReorder(readers+i, nReaders-i);
+  }
+
+  dlwInit(&writer, pReaders[0].iType, out);
+  while( !dlrAtEnd(readers[0].pReader) ){
+    sqlite_int64 iDocid = dlrDocid(readers[0].pReader);
+
+    
+
+
+
+    if( dlrDocData(readers[0].pReader)==pStart+nStart ){
+      nStart += dlrDocDataBytes(readers[0].pReader);
+    }else{
+      if( pStart!=0 ){
+        dlwAppend(&writer, pStart, nStart, iFirstDocid, iLastDocid);
+      }
+      pStart = dlrDocData(readers[0].pReader);
+      nStart = dlrDocDataBytes(readers[0].pReader);
+      iFirstDocid = iDocid;
+    }
+    iLastDocid = iDocid;
+    dlrStep(readers[0].pReader);
+
+    
+    for(i=1; i<nReaders &&
+             !dlrAtEnd(readers[i].pReader) &&
+             dlrDocid(readers[i].pReader)==iDocid; i++){
+      dlrStep(readers[i].pReader);
+    }
+
+    
+    while( i-->0 ){
+      orderedDLReaderReorder(readers+i, nReaders-i);
+    }
+  }
+
+  
+  if( nStart>0 ) dlwAppend(&writer, pStart, nStart, iFirstDocid, iLastDocid);
+  dlwDestroy(&writer);
+}
+
+
+
+
+
+
+static int posListCmp(PLReader *pLeft, PLReader *pRight){
+  assert( pLeft->iType==pRight->iType );
+  if( pLeft->iType==DL_DOCIDS ) return 0;
+
+  if( plrAtEnd(pLeft) ) return plrAtEnd(pRight) ? 0 : 1;
+  if( plrAtEnd(pRight) ) return -1;
+
+  if( plrColumn(pLeft)<plrColumn(pRight) ) return -1;
+  if( plrColumn(pLeft)>plrColumn(pRight) ) return 1;
+
+  if( plrPosition(pLeft)<plrPosition(pRight) ) return -1;
+  if( plrPosition(pLeft)>plrPosition(pRight) ) return 1;
+  if( pLeft->iType==DL_POSITIONS ) return 0;
+
+  if( plrStartOffset(pLeft)<plrStartOffset(pRight) ) return -1;
+  if( plrStartOffset(pLeft)>plrStartOffset(pRight) ) return 1;
+
+  if( plrEndOffset(pLeft)<plrEndOffset(pRight) ) return -1;
+  if( plrEndOffset(pLeft)>plrEndOffset(pRight) ) return 1;
+
+  return 0;
+}
+
+
+
+
+
+
+static void posListUnion(DLReader *pLeft, DLReader *pRight, DLWriter *pOut){
+  PLReader left, right;
+  PLWriter writer;
+
+  assert( dlrDocid(pLeft)==dlrDocid(pRight) );
+  assert( pLeft->iType==pRight->iType );
+  assert( pLeft->iType==pOut->iType );
+
+  plrInit(&left, pLeft);
+  plrInit(&right, pRight);
+  plwInit(&writer, pOut, dlrDocid(pLeft));
+
+  while( !plrAtEnd(&left) || !plrAtEnd(&right) ){
+    int c = posListCmp(&left, &right);
+    if( c<0 ){
+      plwCopy(&writer, &left);
+      plrStep(&left);
+    }else if( c>0 ){
+      plwCopy(&writer, &right);
+      plrStep(&right);
+    }else{
+      plwCopy(&writer, &left);
+      plrStep(&left);
+      plrStep(&right);
+    }
+  }
+
+  plwTerminate(&writer);
+  plwDestroy(&writer);
+  plrDestroy(&left);
+  plrDestroy(&right);
+}
+
+
+
+
+
+static void docListUnion(
+  const char *pLeft, int nLeft,
+  const char *pRight, int nRight,
+  DataBuffer *pOut      
+){
+  DLReader left, right;
+  DLWriter writer;
+
+  if( nLeft==0 ){
+    if( nRight!=0) dataBufferAppend(pOut, pRight, nRight);
+    return;
+  }
+  if( nRight==0 ){
+    dataBufferAppend(pOut, pLeft, nLeft);
+    return;
+  }
+
+  dlrInit(&left, DL_DEFAULT, pLeft, nLeft);
+  dlrInit(&right, DL_DEFAULT, pRight, nRight);
+  dlwInit(&writer, DL_DEFAULT, pOut);
+
+  while( !dlrAtEnd(&left) || !dlrAtEnd(&right) ){
+    if( dlrAtEnd(&right) ){
+      dlwCopy(&writer, &left);
+      dlrStep(&left);
+    }else if( dlrAtEnd(&left) ){
+      dlwCopy(&writer, &right);
+      dlrStep(&right);
+    }else if( dlrDocid(&left)<dlrDocid(&right) ){
+      dlwCopy(&writer, &left);
+      dlrStep(&left);
+    }else if( dlrDocid(&left)>dlrDocid(&right) ){
+      dlwCopy(&writer, &right);
+      dlrStep(&right);
+    }else{
+      posListUnion(&left, &right, &writer);
+      dlrStep(&left);
+      dlrStep(&right);
+    }
+  }
+
+  dlrDestroy(&left);
+  dlrDestroy(&right);
+  dlwDestroy(&writer);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void posListPhraseMerge(
+  DLReader *pLeft, 
+  DLReader *pRight,
+  int nNear,
+  int isSaveLeft,
+  DLWriter *pOut
+){
+  PLReader left, right;
+  PLWriter writer;
+  int match = 0;
+
+  assert( dlrDocid(pLeft)==dlrDocid(pRight) );
+  assert( pOut->iType!=DL_POSITIONS_OFFSETS );
+
+  plrInit(&left, pLeft);
+  plrInit(&right, pRight);
+
+  while( !plrAtEnd(&left) && !plrAtEnd(&right) ){
+    if( plrColumn(&left)<plrColumn(&right) ){
+      plrStep(&left);
+    }else if( plrColumn(&left)>plrColumn(&right) ){
+      plrStep(&right);
+    }else if( plrPosition(&left)>=plrPosition(&right) ){
+      plrStep(&right);
+    }else{
+      if( (plrPosition(&right)-plrPosition(&left))<=(nNear+1) ){
+        if( !match ){
+          plwInit(&writer, pOut, dlrDocid(pLeft));
+          match = 1;
+        }
+        if( !isSaveLeft ){
+          plwAdd(&writer, plrColumn(&right), plrPosition(&right), 0, 0);
+        }else{
+          plwAdd(&writer, plrColumn(&left), plrPosition(&left), 0, 0);
+        }
+        plrStep(&right);
+      }else{
+        plrStep(&left);
+      }
+    }
+  }
+
+  if( match ){
+    plwTerminate(&writer);
+    plwDestroy(&writer);
+  }
+
+  plrDestroy(&left);
+  plrDestroy(&right);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int plrCompare(PLReader *pLeft, PLReader *pRight){
+  assert(!plrAtEnd(pLeft) || !plrAtEnd(pRight));
+
+  if( plrAtEnd(pRight) || plrAtEnd(pLeft) ){
+    return (plrAtEnd(pRight) ? -1 : 1);
+  }
+  if( plrColumn(pLeft)!=plrColumn(pRight) ){
+    return ((plrColumn(pLeft)<plrColumn(pRight)) ? -1 : 1);
+  }
+  if( plrPosition(pLeft)!=plrPosition(pRight) ){
+    return ((plrPosition(pLeft)<plrPosition(pRight)) ? -1 : 1);
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void docListPhraseMerge(
+  const char *pLeft, int nLeft,
+  const char *pRight, int nRight,
+  int nNear,            
+  int nPhrase,          
+  DocListType iType,    
+  DataBuffer *pOut      
+){
+  DLReader left, right;
+  DLWriter writer;
+
+  if( nLeft==0 || nRight==0 ) return;
+
+  assert( iType!=DL_POSITIONS_OFFSETS );
+
+  dlrInit(&left, DL_POSITIONS, pLeft, nLeft);
+  dlrInit(&right, DL_POSITIONS, pRight, nRight);
+  dlwInit(&writer, iType, pOut);
+
+  while( !dlrAtEnd(&left) && !dlrAtEnd(&right) ){
+    if( dlrDocid(&left)<dlrDocid(&right) ){
+      dlrStep(&left);
+    }else if( dlrDocid(&right)<dlrDocid(&left) ){
+      dlrStep(&right);
+    }else{
+      if( nNear==0 ){
+        posListPhraseMerge(&left, &right, 0, 0, &writer);
+      }else{
+        
+
+
+
+
+        DataBuffer one = {0, 0, 0};
+        DataBuffer two = {0, 0, 0};
+
+        DLWriter dlwriter2;
+        DLReader dr1 = {0, 0, 0, 0, 0}; 
+        DLReader dr2 = {0, 0, 0, 0, 0};
+
+        dlwInit(&dlwriter2, iType, &one);
+        posListPhraseMerge(&right, &left, nNear-3+nPhrase, 1, &dlwriter2);
+        dlwInit(&dlwriter2, iType, &two);
+        posListPhraseMerge(&left, &right, nNear-1, 0, &dlwriter2);
+
+        if( one.nData) dlrInit(&dr1, iType, one.pData, one.nData);
+        if( two.nData) dlrInit(&dr2, iType, two.pData, two.nData);
+
+        if( !dlrAtEnd(&dr1) || !dlrAtEnd(&dr2) ){
+          PLReader pr1 = {0};
+          PLReader pr2 = {0};
+
+          PLWriter plwriter;
+          plwInit(&plwriter, &writer, dlrDocid(dlrAtEnd(&dr1)?&dr2:&dr1));
+
+          if( one.nData ) plrInit(&pr1, &dr1);
+          if( two.nData ) plrInit(&pr2, &dr2);
+          while( !plrAtEnd(&pr1) || !plrAtEnd(&pr2) ){
+            int iCompare = plrCompare(&pr1, &pr2);
+            switch( iCompare ){
+              case -1:
+                plwCopy(&plwriter, &pr1);
+                plrStep(&pr1);
+                break;
+              case 1:
+                plwCopy(&plwriter, &pr2);
+                plrStep(&pr2);
+                break;
+              case 0:
+                plwCopy(&plwriter, &pr1);
+                plrStep(&pr1);
+                plrStep(&pr2);
+                break;
+            }
+          }
+          plwTerminate(&plwriter);
+        }
+        dataBufferDestroy(&one);
+        dataBufferDestroy(&two);
+      }
+      dlrStep(&left);
+      dlrStep(&right);
+    }
+  }
+
+  dlrDestroy(&left);
+  dlrDestroy(&right);
+  dlwDestroy(&writer);
+}
+
+
+
+
+
+static void docListAndMerge(
+  const char *pLeft, int nLeft,
+  const char *pRight, int nRight,
+  DataBuffer *pOut      
+){
+  DLReader left, right;
+  DLWriter writer;
+
+  if( nLeft==0 || nRight==0 ) return;
+
+  dlrInit(&left, DL_DOCIDS, pLeft, nLeft);
+  dlrInit(&right, DL_DOCIDS, pRight, nRight);
+  dlwInit(&writer, DL_DOCIDS, pOut);
+
+  while( !dlrAtEnd(&left) && !dlrAtEnd(&right) ){
+    if( dlrDocid(&left)<dlrDocid(&right) ){
+      dlrStep(&left);
+    }else if( dlrDocid(&right)<dlrDocid(&left) ){
+      dlrStep(&right);
+    }else{
+      dlwAdd(&writer, dlrDocid(&left));
+      dlrStep(&left);
+      dlrStep(&right);
+    }
+  }
+
+  dlrDestroy(&left);
+  dlrDestroy(&right);
+  dlwDestroy(&writer);
+}
+
+
+
+
+
+static void docListOrMerge(
+  const char *pLeft, int nLeft,
+  const char *pRight, int nRight,
+  DataBuffer *pOut      
+){
+  DLReader left, right;
+  DLWriter writer;
+
+  if( nLeft==0 ){
+    if( nRight!=0 ) dataBufferAppend(pOut, pRight, nRight);
+    return;
+  }
+  if( nRight==0 ){
+    dataBufferAppend(pOut, pLeft, nLeft);
+    return;
+  }
+
+  dlrInit(&left, DL_DOCIDS, pLeft, nLeft);
+  dlrInit(&right, DL_DOCIDS, pRight, nRight);
+  dlwInit(&writer, DL_DOCIDS, pOut);
+
+  while( !dlrAtEnd(&left) || !dlrAtEnd(&right) ){
+    if( dlrAtEnd(&right) ){
+      dlwAdd(&writer, dlrDocid(&left));
+      dlrStep(&left);
+    }else if( dlrAtEnd(&left) ){
+      dlwAdd(&writer, dlrDocid(&right));
+      dlrStep(&right);
+    }else if( dlrDocid(&left)<dlrDocid(&right) ){
+      dlwAdd(&writer, dlrDocid(&left));
+      dlrStep(&left);
+    }else if( dlrDocid(&right)<dlrDocid(&left) ){
+      dlwAdd(&writer, dlrDocid(&right));
+      dlrStep(&right);
+    }else{
+      dlwAdd(&writer, dlrDocid(&left));
+      dlrStep(&left);
+      dlrStep(&right);
+    }
+  }
+
+  dlrDestroy(&left);
+  dlrDestroy(&right);
+  dlwDestroy(&writer);
+}
+
+
+
+
+
+static void docListExceptMerge(
+  const char *pLeft, int nLeft,
+  const char *pRight, int nRight,
+  DataBuffer *pOut      
+){
+  DLReader left, right;
+  DLWriter writer;
+
+  if( nLeft==0 ) return;
+  if( nRight==0 ){
+    dataBufferAppend(pOut, pLeft, nLeft);
+    return;
+  }
+
+  dlrInit(&left, DL_DOCIDS, pLeft, nLeft);
+  dlrInit(&right, DL_DOCIDS, pRight, nRight);
+  dlwInit(&writer, DL_DOCIDS, pOut);
+
+  while( !dlrAtEnd(&left) ){
+    while( !dlrAtEnd(&right) && dlrDocid(&right)<dlrDocid(&left) ){
+      dlrStep(&right);
+    }
+    if( dlrAtEnd(&right) || dlrDocid(&left)<dlrDocid(&right) ){
+      dlwAdd(&writer, dlrDocid(&left));
+    }
+    dlrStep(&left);
+  }
+
+  dlrDestroy(&left);
+  dlrDestroy(&right);
+  dlwDestroy(&writer);
+}
+
+static char *string_dup_n(const char *s, int n){
+  char *str = sqlite3_malloc(n + 1);
+  memcpy(str, s, n);
+  str[n] = '\0';
+  return str;
+}
+
+
+
+
+static char *string_dup(const char *s){
+  return string_dup_n(s, strlen(s));
+}
+
+
+
+
+
+static char *string_format(const char *zFormat,
+                           const char *zDb, const char *zName){
+  const char *p;
+  size_t len = 0;
+  size_t nDb = strlen(zDb);
+  size_t nName = strlen(zName);
+  size_t nFullTableName = nDb+1+nName;
+  char *result;
+  char *r;
+
+  
+  for(p = zFormat ; *p ; ++p){
+    len += (*p=='%' ? nFullTableName : 1);
+  }
+  len += 1;  
+
+  r = result = sqlite3_malloc(len);
+  for(p = zFormat; *p; ++p){
+    if( *p=='%' ){
+      memcpy(r, zDb, nDb);
+      r += nDb;
+      *r++ = '.';
+      memcpy(r, zName, nName);
+      r += nName;
+    } else {
+      *r++ = *p;
+    }
+  }
+  *r++ = '\0';
+  assert( r == result + len );
+  return result;
+}
+
+static int sql_exec(sqlite3 *db, const char *zDb, const char *zName,
+                    const char *zFormat){
+  char *zCommand = string_format(zFormat, zDb, zName);
+  int rc;
+  FTSTRACE(("FTS3 sql: %s\n", zCommand));
+  rc = sqlite3_exec(db, zCommand, NULL, 0, NULL);
+  sqlite3_free(zCommand);
+  return rc;
+}
+
+static int sql_prepare(sqlite3 *db, const char *zDb, const char *zName,
+                       sqlite3_stmt **ppStmt, const char *zFormat){
+  char *zCommand = string_format(zFormat, zDb, zName);
+  int rc;
+  FTSTRACE(("FTS3 prepare: %s\n", zCommand));
+  rc = sqlite3_prepare_v2(db, zCommand, -1, ppStmt, NULL);
+  sqlite3_free(zCommand);
+  return rc;
+}
+
+
+
+
+typedef struct fulltext_vtab fulltext_vtab;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct QueryTerm {
+  short int nPhrase; 
+  short int iPhrase; 
+  short int iColumn; 
+  signed char nNear; 
+  signed char isOr;  
+  signed char isNot; 
+  signed char isPrefix; 
+  char *pTerm;       
+  int nTerm;         
+} QueryTerm;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct Query {
+  fulltext_vtab *pFts;  
+  int nTerms;           
+  QueryTerm *pTerms;    
+  int nextIsOr;         
+  int nextIsNear;       
+  int nextColumn;       
+  int dfltColumn;       
+} Query;
+
+
+
+
+
+
+typedef struct Snippet {
+  int nMatch;     
+  int nAlloc;     
+  struct snippetMatch { 
+    char snStatus;       
+    short int iCol;      
+    short int iTerm;     
+    int iToken;          
+    short int nByte;     
+    int iStart;          
+  } *aMatch;      
+  char *zOffset;  
+  int nOffset;    
+  char *zSnippet; 
+  int nSnippet;   
+} Snippet;
+
+
+typedef enum QueryType {
+  QUERY_GENERIC,   
+  QUERY_DOCID,     
+  QUERY_FULLTEXT   
+} QueryType;
+
+typedef enum fulltext_statement {
+  CONTENT_INSERT_STMT,
+  CONTENT_SELECT_STMT,
+  CONTENT_UPDATE_STMT,
+  CONTENT_DELETE_STMT,
+
+  BLOCK_INSERT_STMT,
+  BLOCK_SELECT_STMT,
+  BLOCK_DELETE_STMT,
+
+  SEGDIR_MAX_INDEX_STMT,
+  SEGDIR_SET_STMT,
+  SEGDIR_SELECT_STMT,
+  SEGDIR_SPAN_STMT,
+  SEGDIR_DELETE_STMT,
+  SEGDIR_SELECT_ALL_STMT,
+
+  MAX_STMT                     
+} fulltext_statement;
+
+
+
+
+
+
+static const char *const fulltext_zStatement[MAX_STMT] = {
+   NULL,  
+   NULL,  
+   NULL,  
+   "delete from %_content where docid = ?",
+
+  
+  "insert into %_segments (blockid, block) values (null, ?)",
+   "select block from %_segments where blockid = ?",
+   "delete from %_segments where blockid between ? and ?",
+
+   "select max(idx) from %_segdir where level = ?",
+   "insert into %_segdir values (?, ?, ?, ?, ?, ?)",
+  
+  "select start_block, leaves_end_block, root from %_segdir "
+  " where level = ? order by idx",
+  
+  "select min(start_block), max(end_block) from %_segdir "
+  " where level = ? and start_block <> 0",
+   "delete from %_segdir where level = ?",
+  
+  "select root, leaves_end_block from %_segdir order by level desc, idx",
+};
+
+
+
+
+
+
+
+
+struct fulltext_vtab {
+  sqlite3_vtab base;               
+  sqlite3 *db;                     
+  const char *zDb;                 
+  const char *zName;               
+  int nColumn;                     
+  char **azColumn;                 
+  char **azContentColumn;          
+  sqlite3_tokenizer *pTokenizer;   
+
+  
+
+
+  sqlite3_stmt *pFulltextStatements[MAX_STMT];
+
+  
+
+
+  sqlite3_stmt *pLeafSelectStmts[MERGE_COUNT];
+  
+#define LEAF_SELECT \
+  "select block from %_segments where blockid between ? and ? order by blockid"
+
+  
+
+
+
+
+
+
+
+
+
+  int nPendingData;
+#define kPendingThreshold (1*1024*1024)
+  sqlite_int64 iPrevDocid;
+  fts3Hash pendingTerms;
+};
+
+
+
+
+
+
+typedef struct fulltext_cursor {
+  sqlite3_vtab_cursor base;        
+  QueryType iCursorType;           
+  sqlite3_stmt *pStmt;             
+  int eof;                         
+  Query q;                         
+  Snippet snippet;                 
+  int iColumn;                     
+  DataBuffer result;               
+  DLReader reader;                 
+} fulltext_cursor;
+
+static struct fulltext_vtab *cursor_vtab(fulltext_cursor *c){
+  return (fulltext_vtab *) c->base.pVtab;
+}
+
+static const sqlite3_module fts3Module;   
+
+
+
+
+static const char *contentInsertStatement(fulltext_vtab *v){
+  StringBuffer sb;
+  int i;
+
+  initStringBuffer(&sb);
+  append(&sb, "insert into %_content (docid, ");
+  appendList(&sb, v->nColumn, v->azContentColumn);
+  append(&sb, ") values (?");
+  for(i=0; i<v->nColumn; ++i)
+    append(&sb, ", ?");
+  append(&sb, ")");
+  return stringBufferData(&sb);
+}
+
+
+
+
+static const char *contentSelectStatement(fulltext_vtab *v){
+  StringBuffer sb;
+  initStringBuffer(&sb);
+  append(&sb, "SELECT ");
+  appendList(&sb, v->nColumn, v->azContentColumn);
+  append(&sb, " FROM %_content WHERE docid = ?");
+  return stringBufferData(&sb);
+}
+
+
+
+
+
+static const char *contentUpdateStatement(fulltext_vtab *v){
+  StringBuffer sb;
+  int i;
+
+  initStringBuffer(&sb);
+  append(&sb, "update %_content set ");
+  for(i=0; i<v->nColumn; ++i) {
+    if( i>0 ){
+      append(&sb, ", ");
+    }
+    append(&sb, v->azContentColumn[i]);
+    append(&sb, " = ?");
+  }
+  append(&sb, " where docid = ?");
+  return stringBufferData(&sb);
+}
+
+
+
+
+
+static int sql_get_statement(fulltext_vtab *v, fulltext_statement iStmt,
+                             sqlite3_stmt **ppStmt){
+  assert( iStmt<MAX_STMT );
+  if( v->pFulltextStatements[iStmt]==NULL ){
+    const char *zStmt;
+    int rc;
+    switch( iStmt ){
+      case CONTENT_INSERT_STMT:
+        zStmt = contentInsertStatement(v); break;
+      case CONTENT_SELECT_STMT:
+        zStmt = contentSelectStatement(v); break;
+      case CONTENT_UPDATE_STMT:
+        zStmt = contentUpdateStatement(v); break;
+      default:
+        zStmt = fulltext_zStatement[iStmt];
+    }
+    rc = sql_prepare(v->db, v->zDb, v->zName, &v->pFulltextStatements[iStmt],
+                         zStmt);
+    if( zStmt != fulltext_zStatement[iStmt]) sqlite3_free((void *) zStmt);
+    if( rc!=SQLITE_OK ) return rc;
+  } else {
+    int rc = sqlite3_reset(v->pFulltextStatements[iStmt]);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+
+  *ppStmt = v->pFulltextStatements[iStmt];
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int sql_single_step(sqlite3_stmt *s){
+  int rc = sqlite3_step(s);
+  return (rc==SQLITE_DONE) ? SQLITE_OK : rc;
+}
+
+
+
+
+
+
+
+static int sql_get_leaf_statement(fulltext_vtab *v, int idx,
+                                  sqlite3_stmt **ppStmt){
+  assert( idx>=0 && idx<MERGE_COUNT );
+  if( v->pLeafSelectStmts[idx]==NULL ){
+    int rc = sql_prepare(v->db, v->zDb, v->zName, &v->pLeafSelectStmts[idx],
+                         LEAF_SELECT);
+    if( rc!=SQLITE_OK ) return rc;
+  }else{
+    int rc = sqlite3_reset(v->pLeafSelectStmts[idx]);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+
+  *ppStmt = v->pLeafSelectStmts[idx];
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int content_insert(fulltext_vtab *v, sqlite3_value *docid,
+                          sqlite3_value **pValues){
+  sqlite3_stmt *s;
+  int i;
+  int rc = sql_get_statement(v, CONTENT_INSERT_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_value(s, 1, docid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  for(i=0; i<v->nColumn; ++i){
+    rc = sqlite3_bind_value(s, 2+i, pValues[i]);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+
+  return sql_single_step(s);
+}
+
+
+
+static int content_update(fulltext_vtab *v, sqlite3_value **pValues,
+                          sqlite_int64 iDocid){
+  sqlite3_stmt *s;
+  int i;
+  int rc = sql_get_statement(v, CONTENT_UPDATE_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  for(i=0; i<v->nColumn; ++i){
+    rc = sqlite3_bind_value(s, 1+i, pValues[i]);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+
+  rc = sqlite3_bind_int64(s, 1+v->nColumn, iDocid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return sql_single_step(s);
+}
+
+static void freeStringArray(int nString, const char **pString){
+  int i;
+
+  for (i=0 ; i < nString ; ++i) {
+    if( pString[i]!=NULL ) sqlite3_free((void *) pString[i]);
+  }
+  sqlite3_free((void *) pString);
+}
+
+
+
+
+
+
+
+static int content_select(fulltext_vtab *v, sqlite_int64 iDocid,
+                          const char ***pValues){
+  sqlite3_stmt *s;
+  const char **values;
+  int i;
+  int rc;
+
+  *pValues = NULL;
+
+  rc = sql_get_statement(v, CONTENT_SELECT_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 1, iDocid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_step(s);
+  if( rc!=SQLITE_ROW ) return rc;
+
+  values = (const char **) sqlite3_malloc(v->nColumn * sizeof(const char *));
+  for(i=0; i<v->nColumn; ++i){
+    if( sqlite3_column_type(s, i)==SQLITE_NULL ){
+      values[i] = NULL;
+    }else{
+      values[i] = string_dup((char*)sqlite3_column_text(s, i));
+    }
+  }
+
+  
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_DONE ){
+    *pValues = values;
+    return SQLITE_OK;
+  }
+
+  freeStringArray(v->nColumn, values);
+  return rc;
+}
+
+
+static int content_delete(fulltext_vtab *v, sqlite_int64 iDocid){
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, CONTENT_DELETE_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 1, iDocid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return sql_single_step(s);
+}
+
+
+
+
+static int block_insert(fulltext_vtab *v, const char *pData, int nData,
+                        sqlite_int64 *piBlockid){
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, BLOCK_INSERT_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_blob(s, 1, pData, nData, SQLITE_STATIC);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_ROW ) return SQLITE_ERROR;
+  if( rc!=SQLITE_DONE ) return rc;
+
+  
+  *piBlockid = sqlite3_last_insert_rowid(v->db);
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+static int block_delete(fulltext_vtab *v,
+                        sqlite_int64 iStartBlockid, sqlite_int64 iEndBlockid){
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, BLOCK_DELETE_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 1, iStartBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 2, iEndBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return sql_single_step(s);
+}
+
+
+
+
+
+static int segdir_max_index(fulltext_vtab *v, int iLevel, int *pidx){
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, SEGDIR_MAX_INDEX_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int(s, 1, iLevel);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_step(s);
+  
+  if( rc==SQLITE_DONE ) return SQLITE_DONE;
+  if( rc!=SQLITE_ROW ) return rc;
+
+  
+  if( SQLITE_NULL==sqlite3_column_type(s, 0) ){
+    rc = sqlite3_step(s);
+    if( rc==SQLITE_ROW ) return SQLITE_ERROR;
+    return rc;
+  }
+
+  *pidx = sqlite3_column_int(s, 0);
+
+  
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_ROW ) return SQLITE_ERROR;
+  if( rc!=SQLITE_DONE ) return rc;
+  return SQLITE_ROW;
+}
+
+
+
+
+
+
+
+static int segdir_set(fulltext_vtab *v, int iLevel, int idx,
+                      sqlite_int64 iStartBlockid,
+                      sqlite_int64 iLeavesEndBlockid,
+                      sqlite_int64 iEndBlockid,
+                      const char *pRootData, int nRootData){
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, SEGDIR_SET_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int(s, 1, iLevel);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int(s, 2, idx);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 3, iStartBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 4, iLeavesEndBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 5, iEndBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_blob(s, 6, pRootData, nRootData, SQLITE_STATIC);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return sql_single_step(s);
+}
+
+
+
+
+
+static int segdir_span(fulltext_vtab *v, int iLevel,
+                       sqlite_int64 *piStartBlockid,
+                       sqlite_int64 *piEndBlockid){
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, SEGDIR_SPAN_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int(s, 1, iLevel);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_DONE ) return SQLITE_DONE;  
+  if( rc!=SQLITE_ROW ) return rc;
+
+  
+  if( SQLITE_NULL==sqlite3_column_type(s, 0) ){
+    
+
+    int rc2 = sqlite3_step(s);
+    if( rc2==SQLITE_ROW ) return SQLITE_ERROR;
+    return rc2;
+  }
+
+  *piStartBlockid = sqlite3_column_int64(s, 0);
+  *piEndBlockid = sqlite3_column_int64(s, 1);
+
+  
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_ROW ) return SQLITE_ERROR;
+  if( rc!=SQLITE_DONE ) return rc;
+  return SQLITE_ROW;
+}
+
+
+
+
+static int segdir_delete(fulltext_vtab *v, int iLevel){
+  sqlite3_stmt *s;
+  sqlite_int64 iStartBlockid, iEndBlockid;
+  int rc = segdir_span(v, iLevel, &iStartBlockid, &iEndBlockid);
+  if( rc!=SQLITE_ROW && rc!=SQLITE_DONE ) return rc;
+
+  if( rc==SQLITE_ROW ){
+    rc = block_delete(v, iStartBlockid, iEndBlockid);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+
+  
+  rc = sql_get_statement(v, SEGDIR_DELETE_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 1, iLevel);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return sql_single_step(s);
+}
+
+
+
+
+
+
+
+static int clearPendingTerms(fulltext_vtab *v);
+
+
+
+
+static void fulltext_vtab_destroy(fulltext_vtab *v){
+  int iStmt, i;
+
+  FTSTRACE(("FTS3 Destroy %p\n", v));
+  for( iStmt=0; iStmt<MAX_STMT; iStmt++ ){
+    if( v->pFulltextStatements[iStmt]!=NULL ){
+      sqlite3_finalize(v->pFulltextStatements[iStmt]);
+      v->pFulltextStatements[iStmt] = NULL;
+    }
+  }
+
+  for( i=0; i<MERGE_COUNT; i++ ){
+    if( v->pLeafSelectStmts[i]!=NULL ){
+      sqlite3_finalize(v->pLeafSelectStmts[i]);
+      v->pLeafSelectStmts[i] = NULL;
+    }
+  }
+
+  if( v->pTokenizer!=NULL ){
+    v->pTokenizer->pModule->xDestroy(v->pTokenizer);
+    v->pTokenizer = NULL;
+  }
+
+  clearPendingTerms(v);
+
+  sqlite3_free(v->azColumn);
+  for(i = 0; i < v->nColumn; ++i) {
+    sqlite3_free(v->azContentColumn[i]);
+  }
+  sqlite3_free(v->azContentColumn);
+  sqlite3_free(v);
+}
+
+
+
+
+#define TOKEN_EOF         0    /* End of file */
+#define TOKEN_SPACE       1    /* Any kind of whitespace */
+#define TOKEN_ID          2    /* An identifier */
+#define TOKEN_STRING      3    /* A string literal */
+#define TOKEN_PUNCT       4    /* A single punctuation character */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const char isFtsIdChar[] = {
+
+    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,  
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1,  
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,  
+};
+#define ftsIdChar(C)  (((c=C)&0x80)!=0 || (c>0x1f && isFtsIdChar[c-0x20]))
+
+
+
+
+
+
+static int ftsGetToken(const char *z, int *tokenType){
+  int i, c;
+  switch( *z ){
+    case 0: {
+      *tokenType = TOKEN_EOF;
+      return 0;
+    }
+    case ' ': case '\t': case '\n': case '\f': case '\r': {
+      for(i=1; safe_isspace(z[i]); i++){}
+      *tokenType = TOKEN_SPACE;
+      return i;
+    }
+    case '`':
+    case '\'':
+    case '"': {
+      int delim = z[0];
+      for(i=1; (c=z[i])!=0; i++){
+        if( c==delim ){
+          if( z[i+1]==delim ){
+            i++;
+          }else{
+            break;
+          }
+        }
+      }
+      *tokenType = TOKEN_STRING;
+      return i + (c!=0);
+    }
+    case '[': {
+      for(i=1, c=z[0]; c!=']' && (c=z[i])!=0; i++){}
+      *tokenType = TOKEN_ID;
+      return i;
+    }
+    default: {
+      if( !ftsIdChar(*z) ){
+        break;
+      }
+      for(i=1; ftsIdChar(z[i]); i++){}
+      *tokenType = TOKEN_ID;
+      return i;
+    }
+  }
+  *tokenType = TOKEN_PUNCT;
+  return 1;
+}
+
+
+
+
+
+typedef struct FtsToken {
+  const char *z;       
+  short int n;         
+} FtsToken;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static char **tokenizeString(const char *z, int *pnToken){
+  int nToken = 0;
+  FtsToken *aToken = sqlite3_malloc( strlen(z) * sizeof(aToken[0]) );
+  int n = 1;
+  int e, i;
+  int totalSize = 0;
+  char **azToken;
+  char *zCopy;
+  while( n>0 ){
+    n = ftsGetToken(z, &e);
+    if( e!=TOKEN_SPACE ){
+      aToken[nToken].z = z;
+      aToken[nToken].n = n;
+      nToken++;
+      totalSize += n+1;
+    }
+    z += n;
+  }
+  azToken = (char**)sqlite3_malloc( nToken*sizeof(char*) + totalSize );
+  zCopy = (char*)&azToken[nToken];
+  nToken--;
+  for(i=0; i<nToken; i++){
+    azToken[i] = zCopy;
+    n = aToken[i].n;
+    memcpy(zCopy, aToken[i].z, n);
+    zCopy[n] = 0;
+    zCopy += n+1;
+  }
+  azToken[nToken] = 0;
+  sqlite3_free(aToken);
+  *pnToken = nToken;
+  return azToken;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void dequoteString(char *z){
+  int quote;
+  int i, j;
+  if( z==0 ) return;
+  quote = z[0];
+  switch( quote ){
+    case '\'':  break;
+    case '"':   break;
+    case '`':   break;                
+    case '[':   quote = ']';  break;  
+    default:    return;
+  }
+  for(i=1, j=0; z[i]; i++){
+    if( z[i]==quote ){
+      if( z[i+1]==quote ){
+        z[j++] = quote;
+        i++;
+      }else{
+        z[j++] = 0;
+        break;
+      }
+    }else{
+      z[j++] = z[i];
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void tokenListToIdList(char **azIn){
+  int i, j;
+  if( azIn ){
+    for(i=0, j=-1; azIn[i]; i++){
+      if( safe_isalnum(azIn[i][0]) || azIn[i][1] ){
+        dequoteString(azIn[i]);
+        if( j>=0 ){
+          azIn[j] = azIn[i];
+        }
+        j++;
+      }
+    }
+    azIn[j] = 0;
+  }
+}
+
+
+
+
+
+
+
+static char *firstToken(char *zIn, char **pzTail){
+  int n, ttype;
+  while(1){
+    n = ftsGetToken(zIn, &ttype);
+    if( ttype==TOKEN_SPACE ){
+      zIn += n;
+    }else if( ttype==TOKEN_EOF ){
+      *pzTail = zIn;
+      return 0;
+    }else{
+      zIn[n] = 0;
+      *pzTail = &zIn[1];
+      dequoteString(zIn);
+      return zIn;
+    }
+  }
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+static int startsWith(const char *s, const char *t){
+  while( safe_isspace(*s) ){ s++; }
+  while( *t ){
+    if( safe_tolower(*s++)!=safe_tolower(*t++) ) return 0;
+  }
+  return *s!='_' && !safe_isalnum(*s);
+}
+
+
+
+
+
+
+typedef struct TableSpec {
+  const char *zDb;         
+  const char *zName;       
+  int nColumn;             
+  char **azColumn;         
+  char **azContentColumn;  
+  char **azTokenizer;      
+} TableSpec;
+
+
+
+
+static void clearTableSpec(TableSpec *p) {
+  sqlite3_free(p->azColumn);
+  sqlite3_free(p->azContentColumn);
+  sqlite3_free(p->azTokenizer);
+}
+
+
+
+
+
+
+
+
+
+static int parseSpec(TableSpec *pSpec, int argc, const char *const*argv,
+                     char**pzErr){
+  int i, n;
+  char *z, *zDummy;
+  char **azArg;
+  const char *zTokenizer = 0;    
+
+  assert( argc>=3 );
+  
+
+
+
+
+
+
+
+  
+
+
+
+  CLEAR(pSpec);
+  for(i=n=0; i<argc; i++){
+    n += strlen(argv[i]) + 1;
+  }
+  azArg = sqlite3_malloc( sizeof(char*)*argc + n );
+  if( azArg==0 ){
+    return SQLITE_NOMEM;
+  }
+  z = (char*)&azArg[argc];
+  for(i=0; i<argc; i++){
+    azArg[i] = z;
+    strcpy(z, argv[i]);
+    z += strlen(z)+1;
+  }
+
+  
+
+
+  pSpec->zDb = azArg[1];
+  pSpec->zName = azArg[2];
+  pSpec->nColumn = 0;
+  pSpec->azColumn = azArg;
+  zTokenizer = "tokenize simple";
+  for(i=3; i<argc; ++i){
+    if( startsWith(azArg[i],"tokenize") ){
+      zTokenizer = azArg[i];
+    }else{
+      z = azArg[pSpec->nColumn] = firstToken(azArg[i], &zDummy);
+      pSpec->nColumn++;
+    }
+  }
+  if( pSpec->nColumn==0 ){
+    azArg[0] = "content";
+    pSpec->nColumn = 1;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  pSpec->azContentColumn = sqlite3_malloc( pSpec->nColumn * sizeof(char *) );
+  if( pSpec->azContentColumn==0 ){
+    clearTableSpec(pSpec);
+    return SQLITE_NOMEM;
+  }
+  for(i=0; i<pSpec->nColumn; i++){
+    char *p;
+    pSpec->azContentColumn[i] = sqlite3_mprintf("c%d%s", i, azArg[i]);
+    for (p = pSpec->azContentColumn[i]; *p ; ++p) {
+      if( !safe_isalnum(*p) ) *p = '_';
+    }
+  }
+
+  
+
+
+  pSpec->azTokenizer = tokenizeString(zTokenizer, &n);
+  tokenListToIdList(pSpec->azTokenizer);
+
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+
+static char *fulltextSchema(
+  int nColumn,                  
+  const char *const* azColumn,  
+  const char *zTableName        
+){
+  int i;
+  char *zSchema, *zNext;
+  const char *zSep = "(";
+  zSchema = sqlite3_mprintf("CREATE TABLE x");
+  for(i=0; i<nColumn; i++){
+    zNext = sqlite3_mprintf("%s%s%Q", zSchema, zSep, azColumn[i]);
+    sqlite3_free(zSchema);
+    zSchema = zNext;
+    zSep = ",";
+  }
+  zNext = sqlite3_mprintf("%s,%Q HIDDEN", zSchema, zTableName);
+  sqlite3_free(zSchema);
+  zSchema = zNext;
+  zNext = sqlite3_mprintf("%s,docid HIDDEN)", zSchema);
+  sqlite3_free(zSchema);
+  return zNext;
+}
+
+
+
+
+
+static int constructVtab(
+  sqlite3 *db,              
+  fts3Hash *pHash,          
+  TableSpec *spec,          
+  sqlite3_vtab **ppVTab,    
+  char **pzErr              
+){
+  int rc;
+  int n;
+  fulltext_vtab *v = 0;
+  const sqlite3_tokenizer_module *m = NULL;
+  char *schema;
+
+  char const *zTok;         
+  int nTok;                 
+
+  v = (fulltext_vtab *) sqlite3_malloc(sizeof(fulltext_vtab));
+  if( v==0 ) return SQLITE_NOMEM;
+  CLEAR(v);
+  
+  v->db = db;
+  v->zDb = spec->zDb;       
+  v->zName = spec->zName;   
+  v->nColumn = spec->nColumn;
+  v->azContentColumn = spec->azContentColumn;
+  spec->azContentColumn = 0;
+  v->azColumn = spec->azColumn;
+  spec->azColumn = 0;
+
+  if( spec->azTokenizer==0 ){
+    return SQLITE_NOMEM;
+  }
+
+  zTok = spec->azTokenizer[0]; 
+  if( !zTok ){
+    zTok = "simple";
+  }
+  nTok = strlen(zTok)+1;
+
+  m = (sqlite3_tokenizer_module *)sqlite3Fts3HashFind(pHash, zTok, nTok);
+  if( !m ){
+    *pzErr = sqlite3_mprintf("unknown tokenizer: %s", spec->azTokenizer[0]);
+    rc = SQLITE_ERROR;
+    goto err;
+  }
+
+  for(n=0; spec->azTokenizer[n]; n++){}
+  if( n ){
+    rc = m->xCreate(n-1, (const char*const*)&spec->azTokenizer[1],
+                    &v->pTokenizer);
+  }else{
+    rc = m->xCreate(0, 0, &v->pTokenizer);
+  }
+  if( rc!=SQLITE_OK ) goto err;
+  v->pTokenizer->pModule = m;
+
+  
+
+  schema = fulltextSchema(v->nColumn, (const char*const*)v->azColumn,
+                          spec->zName);
+  rc = sqlite3_declare_vtab(db, schema);
+  sqlite3_free(schema);
+  if( rc!=SQLITE_OK ) goto err;
+
+  memset(v->pFulltextStatements, 0, sizeof(v->pFulltextStatements));
+
+  
+  v->nPendingData = -1;
+
+  *ppVTab = &v->base;
+  FTSTRACE(("FTS3 Connect %p\n", v));
+
+  return rc;
+
+err:
+  fulltext_vtab_destroy(v);
+  return rc;
+}
+
+static int fulltextConnect(
+  sqlite3 *db,
+  void *pAux,
+  int argc, const char *const*argv,
+  sqlite3_vtab **ppVTab,
+  char **pzErr
+){
+  TableSpec spec;
+  int rc = parseSpec(&spec, argc, argv, pzErr);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = constructVtab(db, (fts3Hash *)pAux, &spec, ppVTab, pzErr);
+  clearTableSpec(&spec);
+  return rc;
+}
+
+
+
+
+
+
+
+static int fulltextCreate(sqlite3 *db, void *pAux,
+                          int argc, const char * const *argv,
+                          sqlite3_vtab **ppVTab, char **pzErr){
+  int rc;
+  TableSpec spec;
+  StringBuffer schema;
+  FTSTRACE(("FTS3 Create\n"));
+
+  rc = parseSpec(&spec, argc, argv, pzErr);
+  if( rc!=SQLITE_OK ) return rc;
+
+  initStringBuffer(&schema);
+  append(&schema, "CREATE TABLE %_content(");
+  append(&schema, "  docid INTEGER PRIMARY KEY,");
+  appendList(&schema, spec.nColumn, spec.azContentColumn);
+  append(&schema, ")");
+  rc = sql_exec(db, spec.zDb, spec.zName, stringBufferData(&schema));
+  stringBufferDestroy(&schema);
+  if( rc!=SQLITE_OK ) goto out;
+
+  rc = sql_exec(db, spec.zDb, spec.zName,
+                "create table %_segments("
+                "  blockid INTEGER PRIMARY KEY,"
+                "  block blob"
+                ");"
+                );
+  if( rc!=SQLITE_OK ) goto out;
+
+  rc = sql_exec(db, spec.zDb, spec.zName,
+                "create table %_segdir("
+                "  level integer,"
+                "  idx integer,"
+                "  start_block integer,"
+                "  leaves_end_block integer,"
+                "  end_block integer,"
+                "  root blob,"
+                "  primary key(level, idx)"
+                ");");
+  if( rc!=SQLITE_OK ) goto out;
+
+  rc = constructVtab(db, (fts3Hash *)pAux, &spec, ppVTab, pzErr);
+
+out:
+  clearTableSpec(&spec);
+  return rc;
+}
+
+
+static int fulltextBestIndex(sqlite3_vtab *pVTab, sqlite3_index_info *pInfo){
+  fulltext_vtab *v = (fulltext_vtab *)pVTab;
+  int i;
+  FTSTRACE(("FTS3 BestIndex\n"));
+
+  for(i=0; i<pInfo->nConstraint; ++i){
+    const struct sqlite3_index_constraint *pConstraint;
+    pConstraint = &pInfo->aConstraint[i];
+    if( pConstraint->usable ) {
+      if( (pConstraint->iColumn==-1 || pConstraint->iColumn==v->nColumn+1) &&
+          pConstraint->op==SQLITE_INDEX_CONSTRAINT_EQ ){
+        pInfo->idxNum = QUERY_DOCID;      
+        FTSTRACE(("FTS3 QUERY_DOCID\n"));
+      } else if( pConstraint->iColumn>=0 && pConstraint->iColumn<=v->nColumn &&
+                 pConstraint->op==SQLITE_INDEX_CONSTRAINT_MATCH ){
+        
+        pInfo->idxNum = QUERY_FULLTEXT + pConstraint->iColumn;
+        FTSTRACE(("FTS3 QUERY_FULLTEXT %d\n", pConstraint->iColumn));
+      } else continue;
+
+      pInfo->aConstraintUsage[i].argvIndex = 1;
+      pInfo->aConstraintUsage[i].omit = 1;
+
+      
+
+
+      pInfo->estimatedCost = 1.0;   
+
+      return SQLITE_OK;
+    }
+  }
+  pInfo->idxNum = QUERY_GENERIC;
+  return SQLITE_OK;
+}
+
+static int fulltextDisconnect(sqlite3_vtab *pVTab){
+  FTSTRACE(("FTS3 Disconnect %p\n", pVTab));
+  fulltext_vtab_destroy((fulltext_vtab *)pVTab);
+  return SQLITE_OK;
+}
+
+static int fulltextDestroy(sqlite3_vtab *pVTab){
+  fulltext_vtab *v = (fulltext_vtab *)pVTab;
+  int rc;
+
+  FTSTRACE(("FTS3 Destroy %p\n", pVTab));
+  rc = sql_exec(v->db, v->zDb, v->zName,
+                "drop table if exists %_content;"
+                "drop table if exists %_segments;"
+                "drop table if exists %_segdir;"
+                );
+  if( rc!=SQLITE_OK ) return rc;
+
+  fulltext_vtab_destroy((fulltext_vtab *)pVTab);
+  return SQLITE_OK;
+}
+
+static int fulltextOpen(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor){
+  fulltext_cursor *c;
+
+  c = (fulltext_cursor *) sqlite3_malloc(sizeof(fulltext_cursor));
+  if( c ){
+    memset(c, 0, sizeof(fulltext_cursor));
+    
+    *ppCursor = &c->base;
+    FTSTRACE(("FTS3 Open %p: %p\n", pVTab, c));
+    return SQLITE_OK;
+  }else{
+    return SQLITE_NOMEM;
+  }
+}
+
+
+
+
+static void queryClear(Query *q){
+  int i;
+  for(i = 0; i < q->nTerms; ++i){
+    sqlite3_free(q->pTerms[i].pTerm);
+  }
+  sqlite3_free(q->pTerms);
+  CLEAR(q);
+}
+
+
+
+
+static void snippetClear(Snippet *p){
+  sqlite3_free(p->aMatch);
+  sqlite3_free(p->zOffset);
+  sqlite3_free(p->zSnippet);
+  CLEAR(p);
+}
+
+
+
+static void snippetAppendMatch(
+  Snippet *p,               
+  int iCol, int iTerm,      
+  int iToken,               
+  int iStart, int nByte     
+){
+  int i;
+  struct snippetMatch *pMatch;
+  if( p->nMatch+1>=p->nAlloc ){
+    p->nAlloc = p->nAlloc*2 + 10;
+    p->aMatch = sqlite3_realloc(p->aMatch, p->nAlloc*sizeof(p->aMatch[0]) );
+    if( p->aMatch==0 ){
+      p->nMatch = 0;
+      p->nAlloc = 0;
+      return;
+    }
+  }
+  i = p->nMatch++;
+  pMatch = &p->aMatch[i];
+  pMatch->iCol = iCol;
+  pMatch->iTerm = iTerm;
+  pMatch->iToken = iToken;
+  pMatch->iStart = iStart;
+  pMatch->nByte = nByte;
+}
+
+
+
+
+#define FTS3_ROTOR_SZ   (32)
+#define FTS3_ROTOR_MASK (FTS3_ROTOR_SZ-1)
+
+
+
+
+
+static void snippetOffsetsOfColumn(
+  Query *pQuery,
+  Snippet *pSnippet,
+  int iColumn,
+  const char *zDoc,
+  int nDoc
+){
+  const sqlite3_tokenizer_module *pTModule;  
+  sqlite3_tokenizer *pTokenizer;             
+  sqlite3_tokenizer_cursor *pTCursor;        
+  fulltext_vtab *pVtab;                
+  int nColumn;                         
+  const QueryTerm *aTerm;              
+  int nTerm;                             
+  int i, j;                            
+  int rc;                              
+  unsigned int match, prevMatch;       
+  const char *zToken;                  
+  int nToken;                          
+  int iBegin, iEnd, iPos;              
+
+  
+
+  unsigned int iRotor = 0;             
+  int iRotorBegin[FTS3_ROTOR_SZ];      
+  int iRotorLen[FTS3_ROTOR_SZ];        
+
+  pVtab = pQuery->pFts;
+  nColumn = pVtab->nColumn;
+  pTokenizer = pVtab->pTokenizer;
+  pTModule = pTokenizer->pModule;
+  rc = pTModule->xOpen(pTokenizer, zDoc, nDoc, &pTCursor);
+  if( rc ) return;
+  pTCursor->pTokenizer = pTokenizer;
+  aTerm = pQuery->pTerms;
+  nTerm = pQuery->nTerms;
+  if( nTerm>=FTS3_ROTOR_SZ ){
+    nTerm = FTS3_ROTOR_SZ - 1;
+  }
+  prevMatch = 0;
+  while(1){
+    rc = pTModule->xNext(pTCursor, &zToken, &nToken, &iBegin, &iEnd, &iPos);
+    if( rc ) break;
+    iRotorBegin[iRotor&FTS3_ROTOR_MASK] = iBegin;
+    iRotorLen[iRotor&FTS3_ROTOR_MASK] = iEnd-iBegin;
+    match = 0;
+    for(i=0; i<nTerm; i++){
+      int iCol;
+      iCol = aTerm[i].iColumn;
+      if( iCol>=0 && iCol<nColumn && iCol!=iColumn ) continue;
+      if( aTerm[i].nTerm>nToken ) continue;
+      if( !aTerm[i].isPrefix && aTerm[i].nTerm<nToken ) continue;
+      assert( aTerm[i].nTerm<=nToken );
+      if( memcmp(aTerm[i].pTerm, zToken, aTerm[i].nTerm) ) continue;
+      if( aTerm[i].iPhrase>1 && (prevMatch & (1<<i))==0 ) continue;
+      match |= 1<<i;
+      if( i==nTerm-1 || aTerm[i+1].iPhrase==1 ){
+        for(j=aTerm[i].iPhrase-1; j>=0; j--){
+          int k = (iRotor-j) & FTS3_ROTOR_MASK;
+          snippetAppendMatch(pSnippet, iColumn, i-j, iPos-j,
+                iRotorBegin[k], iRotorLen[k]);
+        }
+      }
+    }
+    prevMatch = match<<1;
+    iRotor++;
+  }
+  pTModule->xClose(pTCursor);  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void trimSnippetOffsetsForNear(Query *pQuery, Snippet *pSnippet){
+  int ii;
+  int iDir = 1;
+
+  while(iDir>-2) {
+    assert( iDir==1 || iDir==-1 );
+    for(ii=0; ii<pSnippet->nMatch; ii++){
+      int jj;
+      int nNear;
+      struct snippetMatch *pMatch = &pSnippet->aMatch[ii];
+      QueryTerm *pQueryTerm = &pQuery->pTerms[pMatch->iTerm];
+
+      if( (pMatch->iTerm+iDir)<0 
+       || (pMatch->iTerm+iDir)>=pQuery->nTerms
+      ){
+        continue;
+      }
+     
+      nNear = pQueryTerm->nNear;
+      if( iDir<0 ){
+        nNear = pQueryTerm[-1].nNear;
+      }
+  
+      if( pMatch->iTerm>=0 && nNear ){
+        int isOk = 0;
+        int iNextTerm = pMatch->iTerm+iDir;
+        int iPrevTerm = iNextTerm;
+
+        int iEndToken;
+        int iStartToken;
+
+        if( iDir<0 ){
+          int nPhrase = 1;
+          iStartToken = pMatch->iToken;
+          while( (pMatch->iTerm+nPhrase)<pQuery->nTerms 
+              && pQuery->pTerms[pMatch->iTerm+nPhrase].iPhrase>1 
+          ){
+            nPhrase++;
+          }
+          iEndToken = iStartToken + nPhrase - 1;
+        }else{
+          iEndToken   = pMatch->iToken;
+          iStartToken = pMatch->iToken+1-pQueryTerm->iPhrase;
+        }
+
+        while( pQuery->pTerms[iNextTerm].iPhrase>1 ){
+          iNextTerm--;
+        }
+        while( (iPrevTerm+1)<pQuery->nTerms && 
+               pQuery->pTerms[iPrevTerm+1].iPhrase>1 
+        ){
+          iPrevTerm++;
+        }
+  
+        for(jj=0; isOk==0 && jj<pSnippet->nMatch; jj++){
+          struct snippetMatch *p = &pSnippet->aMatch[jj];
+          if( p->iCol==pMatch->iCol && ((
+               p->iTerm==iNextTerm && 
+               p->iToken>iEndToken && 
+               p->iToken<=iEndToken+nNear
+          ) || (
+               p->iTerm==iPrevTerm && 
+               p->iToken<iStartToken && 
+               p->iToken>=iStartToken-nNear
+          ))){
+            isOk = 1;
+          }
+        }
+        if( !isOk ){
+          for(jj=1-pQueryTerm->iPhrase; jj<=0; jj++){
+            pMatch[jj].iTerm = -1;
+          }
+          ii = -1;
+          iDir = 1;
+        }
+      }
+    }
+    iDir -= 2;
+  }
+}
+
+
+
+
+
+static void snippetAllOffsets(fulltext_cursor *p){
+  int nColumn;
+  int iColumn, i;
+  int iFirst, iLast;
+  fulltext_vtab *pFts;
+
+  if( p->snippet.nMatch ) return;
+  if( p->q.nTerms==0 ) return;
+  pFts = p->q.pFts;
+  nColumn = pFts->nColumn;
+  iColumn = (p->iCursorType - QUERY_FULLTEXT);
+  if( iColumn<0 || iColumn>=nColumn ){
+    iFirst = 0;
+    iLast = nColumn-1;
+  }else{
+    iFirst = iColumn;
+    iLast = iColumn;
+  }
+  for(i=iFirst; i<=iLast; i++){
+    const char *zDoc;
+    int nDoc;
+    zDoc = (const char*)sqlite3_column_text(p->pStmt, i+1);
+    nDoc = sqlite3_column_bytes(p->pStmt, i+1);
+    snippetOffsetsOfColumn(&p->q, &p->snippet, i, zDoc, nDoc);
+  }
+
+  trimSnippetOffsetsForNear(&p->q, &p->snippet);
+}
+
+
+
+
+
+static void snippetOffsetText(Snippet *p){
+  int i;
+  int cnt = 0;
+  StringBuffer sb;
+  char zBuf[200];
+  if( p->zOffset ) return;
+  initStringBuffer(&sb);
+  for(i=0; i<p->nMatch; i++){
+    struct snippetMatch *pMatch = &p->aMatch[i];
+    if( pMatch->iTerm>=0 ){
+      
+
+
+
+
+      zBuf[0] = ' ';
+      sprintf(&zBuf[cnt>0], "%d %d %d %d", pMatch->iCol,
+          pMatch->iTerm, pMatch->iStart, pMatch->nByte);
+      append(&sb, zBuf);
+      cnt++;
+    }
+  }
+  p->zOffset = stringBufferData(&sb);
+  p->nOffset = stringBufferLength(&sb);
+}
+
+
+
+
+
+
+
+
+
+
+static int wordBoundary(
+  int iBreak,                   
+  const char *zDoc,             
+  int nDoc,                     
+  struct snippetMatch *aMatch,  
+  int nMatch,                   
+  int iCol                      
+){
+  int i;
+  if( iBreak<=10 ){
+    return 0;
+  }
+  if( iBreak>=nDoc-10 ){
+    return nDoc;
+  }
+  for(i=0; i<nMatch && aMatch[i].iCol<iCol; i++){}
+  while( i<nMatch && aMatch[i].iStart+aMatch[i].nByte<iBreak ){ i++; }
+  if( i<nMatch ){
+    if( aMatch[i].iStart<iBreak+10 ){
+      return aMatch[i].iStart;
+    }
+    if( i>0 && aMatch[i-1].iStart+aMatch[i-1].nByte>=iBreak ){
+      return aMatch[i-1].iStart;
+    }
+  }
+  for(i=1; i<=10; i++){
+    if( safe_isspace(zDoc[iBreak-i]) ){
+      return iBreak - i + 1;
+    }
+    if( safe_isspace(zDoc[iBreak+i]) ){
+      return iBreak + i + 1;
+    }
+  }
+  return iBreak;
+}
+
+
+
+
+
+
+#define SNIPPET_IGNORE  0   /* It is ok to omit this match from the snippet */
+#define SNIPPET_DESIRED 1   /* We want to include this match in the snippet */
+
+
+
+
+static void snippetText(
+  fulltext_cursor *pCursor,   
+  const char *zStartMark,     
+  const char *zEndMark,       
+  const char *zEllipsis       
+){
+  int i, j;
+  struct snippetMatch *aMatch;
+  int nMatch;
+  int nDesired;
+  StringBuffer sb;
+  int tailCol;
+  int tailOffset;
+  int iCol;
+  int nDoc;
+  const char *zDoc;
+  int iStart, iEnd;
+  int tailEllipsis = 0;
+  int iMatch;
+  
+
+  sqlite3_free(pCursor->snippet.zSnippet);
+  pCursor->snippet.zSnippet = 0;
+  aMatch = pCursor->snippet.aMatch;
+  nMatch = pCursor->snippet.nMatch;
+  initStringBuffer(&sb);
+
+  for(i=0; i<nMatch; i++){
+    aMatch[i].snStatus = SNIPPET_IGNORE;
+  }
+  nDesired = 0;
+  for(i=0; i<pCursor->q.nTerms; i++){
+    for(j=0; j<nMatch; j++){
+      if( aMatch[j].iTerm==i ){
+        aMatch[j].snStatus = SNIPPET_DESIRED;
+        nDesired++;
+        break;
+      }
+    }
+  }
+
+  iMatch = 0;
+  tailCol = -1;
+  tailOffset = 0;
+  for(i=0; i<nMatch && nDesired>0; i++){
+    if( aMatch[i].snStatus!=SNIPPET_DESIRED ) continue;
+    nDesired--;
+    iCol = aMatch[i].iCol;
+    zDoc = (const char*)sqlite3_column_text(pCursor->pStmt, iCol+1);
+    nDoc = sqlite3_column_bytes(pCursor->pStmt, iCol+1);
+    iStart = aMatch[i].iStart - 40;
+    iStart = wordBoundary(iStart, zDoc, nDoc, aMatch, nMatch, iCol);
+    if( iStart<=10 ){
+      iStart = 0;
+    }
+    if( iCol==tailCol && iStart<=tailOffset+20 ){
+      iStart = tailOffset;
+    }
+    if( (iCol!=tailCol && tailCol>=0) || iStart!=tailOffset ){
+      trimWhiteSpace(&sb);
+      appendWhiteSpace(&sb);
+      append(&sb, zEllipsis);
+      appendWhiteSpace(&sb);
+    }
+    iEnd = aMatch[i].iStart + aMatch[i].nByte + 40;
+    iEnd = wordBoundary(iEnd, zDoc, nDoc, aMatch, nMatch, iCol);
+    if( iEnd>=nDoc-10 ){
+      iEnd = nDoc;
+      tailEllipsis = 0;
+    }else{
+      tailEllipsis = 1;
+    }
+    while( iMatch<nMatch && aMatch[iMatch].iCol<iCol ){ iMatch++; }
+    while( iStart<iEnd ){
+      while( iMatch<nMatch && aMatch[iMatch].iStart<iStart
+             && aMatch[iMatch].iCol<=iCol ){
+        iMatch++;
+      }
+      if( iMatch<nMatch && aMatch[iMatch].iStart<iEnd
+             && aMatch[iMatch].iCol==iCol ){
+        nappend(&sb, &zDoc[iStart], aMatch[iMatch].iStart - iStart);
+        iStart = aMatch[iMatch].iStart;
+        append(&sb, zStartMark);
+        nappend(&sb, &zDoc[iStart], aMatch[iMatch].nByte);
+        append(&sb, zEndMark);
+        iStart += aMatch[iMatch].nByte;
+        for(j=iMatch+1; j<nMatch; j++){
+          if( aMatch[j].iTerm==aMatch[iMatch].iTerm
+              && aMatch[j].snStatus==SNIPPET_DESIRED ){
+            nDesired--;
+            aMatch[j].snStatus = SNIPPET_IGNORE;
+          }
+        }
+      }else{
+        nappend(&sb, &zDoc[iStart], iEnd - iStart);
+        iStart = iEnd;
+      }
+    }
+    tailCol = iCol;
+    tailOffset = iEnd;
+  }
+  trimWhiteSpace(&sb);
+  if( tailEllipsis ){
+    appendWhiteSpace(&sb);
+    append(&sb, zEllipsis);
+  }
+  pCursor->snippet.zSnippet = stringBufferData(&sb);
+  pCursor->snippet.nSnippet = stringBufferLength(&sb);
+}
+
+
+
+
+
+
+static int fulltextClose(sqlite3_vtab_cursor *pCursor){
+  fulltext_cursor *c = (fulltext_cursor *) pCursor;
+  FTSTRACE(("FTS3 Close %p\n", c));
+  sqlite3_finalize(c->pStmt);
+  queryClear(&c->q);
+  snippetClear(&c->snippet);
+  if( c->result.nData!=0 ) dlrDestroy(&c->reader);
+  dataBufferDestroy(&c->result);
+  sqlite3_free(c);
+  return SQLITE_OK;
+}
+
+static int fulltextNext(sqlite3_vtab_cursor *pCursor){
+  fulltext_cursor *c = (fulltext_cursor *) pCursor;
+  int rc;
+
+  FTSTRACE(("FTS3 Next %p\n", pCursor));
+  snippetClear(&c->snippet);
+  if( c->iCursorType < QUERY_FULLTEXT ){
+    
+    rc = sqlite3_step(c->pStmt);
+    switch( rc ){
+      case SQLITE_ROW:
+        c->eof = 0;
+        return SQLITE_OK;
+      case SQLITE_DONE:
+        c->eof = 1;
+        return SQLITE_OK;
+      default:
+        c->eof = 1;
+        return rc;
+    }
+  } else {  
+    rc = sqlite3_reset(c->pStmt);
+    if( rc!=SQLITE_OK ) return rc;
+
+    if( c->result.nData==0 || dlrAtEnd(&c->reader) ){
+      c->eof = 1;
+      return SQLITE_OK;
+    }
+    rc = sqlite3_bind_int64(c->pStmt, 1, dlrDocid(&c->reader));
+    dlrStep(&c->reader);
+    if( rc!=SQLITE_OK ) return rc;
+    
+    rc = sqlite3_step(c->pStmt);
+    if( rc==SQLITE_ROW ){   
+      c->eof = 0;
+      return SQLITE_OK;
+    }
+    
+    return rc==SQLITE_DONE ? SQLITE_ERROR : rc;
+  }
+}
+
+
+
+
+
+
+static int termSelect(fulltext_vtab *v, int iColumn,
+                      const char *pTerm, int nTerm, int isPrefix,
+                      DocListType iType, DataBuffer *out);
+
+
+
+
+
+
+
+
+static int docListOfTerm(
+  fulltext_vtab *v,    
+  int iColumn,         
+  QueryTerm *pQTerm,   
+  DataBuffer *pResult  
+){
+  DataBuffer left, right, new;
+  int i, rc;
+
+  
+  assert( pQTerm->nPhrase==0 || DL_DEFAULT!=DL_DOCIDS );
+
+  
+  assert( v->nPendingData<0 );
+
+  dataBufferInit(&left, 0);
+  rc = termSelect(v, iColumn, pQTerm->pTerm, pQTerm->nTerm, pQTerm->isPrefix,
+                  (0<pQTerm->nPhrase ? DL_POSITIONS : DL_DOCIDS), &left);
+  if( rc ) return rc;
+  for(i=1; i<=pQTerm->nPhrase && left.nData>0; i++){
+    
+
+
+
+    int nPhraseRight = 1;
+    while( (i+nPhraseRight)<=pQTerm->nPhrase 
+        && pQTerm[i+nPhraseRight].nNear==0 
+    ){
+      nPhraseRight++;
+    }
+
+    dataBufferInit(&right, 0);
+    rc = termSelect(v, iColumn, pQTerm[i].pTerm, pQTerm[i].nTerm,
+                    pQTerm[i].isPrefix, DL_POSITIONS, &right);
+    if( rc ){
+      dataBufferDestroy(&left);
+      return rc;
+    }
+    dataBufferInit(&new, 0);
+    docListPhraseMerge(left.pData, left.nData, right.pData, right.nData,
+                       pQTerm[i-1].nNear, pQTerm[i-1].iPhrase + nPhraseRight,
+                       ((i<pQTerm->nPhrase) ? DL_POSITIONS : DL_DOCIDS),
+                       &new);
+    dataBufferDestroy(&left);
+    dataBufferDestroy(&right);
+    left = new;
+  }
+  *pResult = left;
+  return SQLITE_OK;
+}
+
+
+
+static void queryAdd(Query *q, const char *pTerm, int nTerm){
+  QueryTerm *t;
+  ++q->nTerms;
+  q->pTerms = sqlite3_realloc(q->pTerms, q->nTerms * sizeof(q->pTerms[0]));
+  if( q->pTerms==0 ){
+    q->nTerms = 0;
+    return;
+  }
+  t = &q->pTerms[q->nTerms - 1];
+  CLEAR(t);
+  t->pTerm = sqlite3_malloc(nTerm+1);
+  memcpy(t->pTerm, pTerm, nTerm);
+  t->pTerm[nTerm] = 0;
+  t->nTerm = nTerm;
+  t->isOr = q->nextIsOr;
+  t->isPrefix = 0;
+  q->nextIsOr = 0;
+  t->iColumn = q->nextColumn;
+  q->nextColumn = q->dfltColumn;
+}
+
+
+
+
+
+
+static int checkColumnSpecifier(
+  fulltext_vtab *pVtab,    
+  const char *zToken,      
+  int nToken               
+){
+  int i;
+  for(i=0; i<pVtab->nColumn; i++){
+    if( memcmp(pVtab->azColumn[i], zToken, nToken)==0
+        && pVtab->azColumn[i][nToken]==0 ){
+      return i;
+    }
+  }
+  return -1;
+}
+
+
+
+
+
+
+
+
+
+
+
+static int tokenizeSegment(
+  sqlite3_tokenizer *pTokenizer,          
+  const char *pSegment, int nSegment,     
+  int inPhrase,                           
+  Query *pQuery                           
+){
+  const sqlite3_tokenizer_module *pModule = pTokenizer->pModule;
+  sqlite3_tokenizer_cursor *pCursor;
+  int firstIndex = pQuery->nTerms;
+  int iCol;
+  int nTerm = 1;
+  
+  int rc = pModule->xOpen(pTokenizer, pSegment, nSegment, &pCursor);
+  if( rc!=SQLITE_OK ) return rc;
+  pCursor->pTokenizer = pTokenizer;
+
+  while( 1 ){
+    const char *pToken;
+    int nToken, iBegin, iEnd, iPos;
+
+    rc = pModule->xNext(pCursor,
+                        &pToken, &nToken,
+                        &iBegin, &iEnd, &iPos);
+    if( rc!=SQLITE_OK ) break;
+    if( !inPhrase &&
+        pSegment[iEnd]==':' &&
+         (iCol = checkColumnSpecifier(pQuery->pFts, pToken, nToken))>=0 ){
+      pQuery->nextColumn = iCol;
+      continue;
+    }
+    if( !inPhrase && pQuery->nTerms>0 && nToken==2 
+     && pSegment[iBegin+0]=='O'
+     && pSegment[iBegin+1]=='R' 
+    ){
+      pQuery->nextIsOr = 1;
+      continue;
+    }
+    if( !inPhrase && pQuery->nTerms>0 && !pQuery->nextIsOr && nToken==4 
+      && pSegment[iBegin+0]=='N' 
+      && pSegment[iBegin+1]=='E' 
+      && pSegment[iBegin+2]=='A' 
+      && pSegment[iBegin+3]=='R' 
+    ){
+      QueryTerm *pTerm = &pQuery->pTerms[pQuery->nTerms-1];
+      if( (iBegin+6)<nSegment 
+       && pSegment[iBegin+4] == '/'
+       && pSegment[iBegin+5]>='0' && pSegment[iBegin+5]<='9'
+      ){
+        pTerm->nNear = (pSegment[iBegin+5] - '0');
+        nToken += 2;
+        if( pSegment[iBegin+6]>='0' && pSegment[iBegin+6]<=9 ){
+          pTerm->nNear = pTerm->nNear * 10 + (pSegment[iBegin+6] - '0');
+          iEnd++;
+        }
+        pModule->xNext(pCursor, &pToken, &nToken, &iBegin, &iEnd, &iPos);
+      } else {
+        pTerm->nNear = SQLITE_FTS3_DEFAULT_NEAR_PARAM;
+      }
+      pTerm->nNear++;
+      continue;
+    }
+
+    queryAdd(pQuery, pToken, nToken);
+    if( !inPhrase && iBegin>0 && pSegment[iBegin-1]=='-' ){
+      pQuery->pTerms[pQuery->nTerms-1].isNot = 1;
+    }
+    if( iEnd<nSegment && pSegment[iEnd]=='*' ){
+      pQuery->pTerms[pQuery->nTerms-1].isPrefix = 1;
+    }
+    pQuery->pTerms[pQuery->nTerms-1].iPhrase = nTerm;
+    if( inPhrase ){
+      nTerm++;
+    }
+  }
+
+  if( inPhrase && pQuery->nTerms>firstIndex ){
+    pQuery->pTerms[firstIndex].nPhrase = pQuery->nTerms - firstIndex - 1;
+  }
+
+  return pModule->xClose(pCursor);
+}
+
+
+
+
+
+
+static int parseQuery(
+  fulltext_vtab *v,        
+  const char *zInput,      
+  int nInput,              
+  int dfltColumn,          
+  Query *pQuery            
+){
+  int iInput, inPhrase = 0;
+  int ii;
+  QueryTerm *aTerm;
+
+  if( zInput==0 ) nInput = 0;
+  if( nInput<0 ) nInput = strlen(zInput);
+  pQuery->nTerms = 0;
+  pQuery->pTerms = NULL;
+  pQuery->nextIsOr = 0;
+  pQuery->nextColumn = dfltColumn;
+  pQuery->dfltColumn = dfltColumn;
+  pQuery->pFts = v;
+
+  for(iInput=0; iInput<nInput; ++iInput){
+    int i;
+    for(i=iInput; i<nInput && zInput[i]!='"'; ++i){}
+    if( i>iInput ){
+      tokenizeSegment(v->pTokenizer, zInput+iInput, i-iInput, inPhrase,
+                       pQuery);
+    }
+    iInput = i;
+    if( i<nInput ){
+      assert( zInput[i]=='"' );
+      inPhrase = !inPhrase;
+    }
+  }
+
+  if( inPhrase ){
+    
+    queryClear(pQuery);
+    return SQLITE_ERROR;
+  }
+
+  
+
+
+
+
+  aTerm = pQuery->pTerms;
+  for(ii=0; ii<pQuery->nTerms; ii++){
+    if( aTerm[ii].nNear || aTerm[ii].nPhrase ){
+      while (aTerm[ii+aTerm[ii].nPhrase].nNear) {
+        aTerm[ii].nPhrase += (1 + aTerm[ii+aTerm[ii].nPhrase+1].nPhrase);
+      }
+    }
+  }
+
+  return SQLITE_OK;
+}
+
+
+static int flushPendingTerms(fulltext_vtab *v);
+
+
+
+
+
+
+
+
+static int fulltextQuery(
+  fulltext_vtab *v,      
+  int iColumn,           
+  const char *zInput,    
+  int nInput,            
+  DataBuffer *pResult,   
+  Query *pQuery          
+){
+  int i, iNext, rc;
+  DataBuffer left, right, or, new;
+  int nNot = 0;
+  QueryTerm *aTerm;
+
+  
+
+
+
+
+
+
+
+  
+  rc = flushPendingTerms(v);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+
+
+  rc = parseQuery(v, zInput, nInput, iColumn, pQuery);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  if( pQuery->nTerms==0 ){
+    dataBufferInit(pResult, 0);
+    return SQLITE_OK;
+  }
+
+  
+  
+  aTerm = pQuery->pTerms;
+  for(i = 0; i<pQuery->nTerms; i=iNext){
+    if( aTerm[i].isNot ){
+      
+      nNot++;
+      iNext = i + aTerm[i].nPhrase+1;
+      continue;
+    }
+    iNext = i + aTerm[i].nPhrase + 1;
+    rc = docListOfTerm(v, aTerm[i].iColumn, &aTerm[i], &right);
+    if( rc ){
+      if( i!=nNot ) dataBufferDestroy(&left);
+      queryClear(pQuery);
+      return rc;
+    }
+    while( iNext<pQuery->nTerms && aTerm[iNext].isOr ){
+      rc = docListOfTerm(v, aTerm[iNext].iColumn, &aTerm[iNext], &or);
+      iNext += aTerm[iNext].nPhrase + 1;
+      if( rc ){
+        if( i!=nNot ) dataBufferDestroy(&left);
+        dataBufferDestroy(&right);
+        queryClear(pQuery);
+        return rc;
+      }
+      dataBufferInit(&new, 0);
+      docListOrMerge(right.pData, right.nData, or.pData, or.nData, &new);
+      dataBufferDestroy(&right);
+      dataBufferDestroy(&or);
+      right = new;
+    }
+    if( i==nNot ){           
+      left = right;
+    }else{
+      dataBufferInit(&new, 0);
+      docListAndMerge(left.pData, left.nData, right.pData, right.nData, &new);
+      dataBufferDestroy(&right);
+      dataBufferDestroy(&left);
+      left = new;
+    }
+  }
+
+  if( nNot==pQuery->nTerms ){
+    
+    return SQLITE_ERROR;
+  }
+
+  
+  for(i=0; i<pQuery->nTerms;  i += aTerm[i].nPhrase + 1){
+    if( !aTerm[i].isNot ) continue;
+    rc = docListOfTerm(v, aTerm[i].iColumn, &aTerm[i], &right);
+    if( rc ){
+      queryClear(pQuery);
+      dataBufferDestroy(&left);
+      return rc;
+    }
+    dataBufferInit(&new, 0);
+    docListExceptMerge(left.pData, left.nData, right.pData, right.nData, &new);
+    dataBufferDestroy(&right);
+    dataBufferDestroy(&left);
+    left = new;
+  }
+
+  *pResult = left;
+  return rc;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int fulltextFilter(
+  sqlite3_vtab_cursor *pCursor,     
+  int idxNum, const char *idxStr,   
+  int argc, sqlite3_value **argv    
+){
+  fulltext_cursor *c = (fulltext_cursor *) pCursor;
+  fulltext_vtab *v = cursor_vtab(c);
+  int rc;
+  StringBuffer sb;
+
+  FTSTRACE(("FTS3 Filter %p\n",pCursor));
+
+  initStringBuffer(&sb);
+  append(&sb, "SELECT docid, ");
+  appendList(&sb, v->nColumn, v->azContentColumn);
+  append(&sb, " FROM %_content");
+  if( idxNum!=QUERY_GENERIC ) append(&sb, " WHERE docid = ?");
+  sqlite3_finalize(c->pStmt);
+  rc = sql_prepare(v->db, v->zDb, v->zName, &c->pStmt, stringBufferData(&sb));
+  stringBufferDestroy(&sb);
+  if( rc!=SQLITE_OK ) return rc;
+
+  c->iCursorType = idxNum;
+  switch( idxNum ){
+    case QUERY_GENERIC:
+      break;
+
+    case QUERY_DOCID:
+      rc = sqlite3_bind_int64(c->pStmt, 1, sqlite3_value_int64(argv[0]));
+      if( rc!=SQLITE_OK ) return rc;
+      break;
+
+    default:   
+    {
+      const char *zQuery = (const char *)sqlite3_value_text(argv[0]);
+      assert( idxNum<=QUERY_FULLTEXT+v->nColumn);
+      assert( argc==1 );
+      queryClear(&c->q);
+      if( c->result.nData!=0 ){
+        
+        dlrDestroy(&c->reader);
+        dataBufferReset(&c->result);
+      }else{
+        dataBufferInit(&c->result, 0);
+      }
+      rc = fulltextQuery(v, idxNum-QUERY_FULLTEXT, zQuery, -1, &c->result, &c->q);
+      if( rc!=SQLITE_OK ) return rc;
+      if( c->result.nData!=0 ){
+        dlrInit(&c->reader, DL_DOCIDS, c->result.pData, c->result.nData);
+      }
+      break;
+    }
+  }
+
+  return fulltextNext(pCursor);
+}
+
+
+
+
+
+static int fulltextEof(sqlite3_vtab_cursor *pCursor){
+  fulltext_cursor *c = (fulltext_cursor *) pCursor;
+  return c->eof;
+}
+
+
+
+
+
+
+
+static int fulltextColumn(sqlite3_vtab_cursor *pCursor,
+                          sqlite3_context *pContext, int idxCol){
+  fulltext_cursor *c = (fulltext_cursor *) pCursor;
+  fulltext_vtab *v = cursor_vtab(c);
+
+  if( idxCol<v->nColumn ){
+    sqlite3_value *pVal = sqlite3_column_value(c->pStmt, idxCol+1);
+    sqlite3_result_value(pContext, pVal);
+  }else if( idxCol==v->nColumn ){
+    
+
+
+    sqlite3_result_blob(pContext, &c, sizeof(c), SQLITE_TRANSIENT);
+  }else if( idxCol==v->nColumn+1 ){
+    
+    sqlite3_value *pVal = sqlite3_column_value(c->pStmt, 0);
+    sqlite3_result_value(pContext, pVal);
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+static int fulltextRowid(sqlite3_vtab_cursor *pCursor, sqlite_int64 *pRowid){
+  fulltext_cursor *c = (fulltext_cursor *) pCursor;
+
+  *pRowid = sqlite3_column_int64(c->pStmt, 0);
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int buildTerms(fulltext_vtab *v, sqlite_int64 iDocid,
+                      const char *zText, int iColumn){
+  sqlite3_tokenizer *pTokenizer = v->pTokenizer;
+  sqlite3_tokenizer_cursor *pCursor;
+  const char *pToken;
+  int nTokenBytes;
+  int iStartOffset, iEndOffset, iPosition;
+  int rc;
+
+  rc = pTokenizer->pModule->xOpen(pTokenizer, zText, -1, &pCursor);
+  if( rc!=SQLITE_OK ) return rc;
+
+  pCursor->pTokenizer = pTokenizer;
+  while( SQLITE_OK==(rc=pTokenizer->pModule->xNext(pCursor,
+                                                   &pToken, &nTokenBytes,
+                                                   &iStartOffset, &iEndOffset,
+                                                   &iPosition)) ){
+    DLCollector *p;
+    int nData;                   
+
+    
+
+    if( iPosition<0 || pToken == NULL || nTokenBytes == 0 ){
+      rc = SQLITE_ERROR;
+      break;
+    }
+
+    p = fts3HashFind(&v->pendingTerms, pToken, nTokenBytes);
+    if( p==NULL ){
+      nData = 0;
+      p = dlcNew(iDocid, DL_DEFAULT);
+      fts3HashInsert(&v->pendingTerms, pToken, nTokenBytes, p);
+
+      
+      v->nPendingData += sizeof(struct fts3HashElem)+sizeof(*p)+nTokenBytes;
+    }else{
+      nData = p->b.nData;
+      if( p->dlw.iPrevDocid!=iDocid ) dlcNext(p, iDocid);
+    }
+    if( iColumn>=0 ){
+      dlcAddPos(p, iColumn, iPosition, iStartOffset, iEndOffset);
+    }
+
+    
+    v->nPendingData += p->b.nData-nData;
+  }
+
+  
+
+
+
+
+  pTokenizer->pModule->xClose(pCursor);
+  if( SQLITE_DONE == rc ) return SQLITE_OK;
+  return rc;
+}
+
+
+static int insertTerms(fulltext_vtab *v, sqlite_int64 iDocid,
+                       sqlite3_value **pValues){
+  int i;
+  for(i = 0; i < v->nColumn ; ++i){
+    char *zText = (char*)sqlite3_value_text(pValues[i]);
+    int rc = buildTerms(v, iDocid, zText, i);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+static int deleteTerms(fulltext_vtab *v, sqlite_int64 iDocid){
+  const char **pValues;
+  int i, rc;
+
+  
+  if( DL_DEFAULT==DL_DOCIDS ) return SQLITE_ERROR;
+
+  rc = content_select(v, iDocid, &pValues);
+  if( rc!=SQLITE_OK ) return rc;
+
+  for(i = 0 ; i < v->nColumn; ++i) {
+    rc = buildTerms(v, iDocid, pValues[i], -1);
+    if( rc!=SQLITE_OK ) break;
+  }
+
+  freeStringArray(v->nColumn, pValues);
+  return SQLITE_OK;
+}
+
+
+static int initPendingTerms(fulltext_vtab *v, sqlite_int64 iDocid);
+
+
+
+
+static int index_insert(fulltext_vtab *v, sqlite3_value *pRequestDocid,
+                        sqlite3_value **pValues, sqlite_int64 *piDocid){
+  int rc;
+
+  rc = content_insert(v, pRequestDocid, pValues);  
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  *piDocid = sqlite3_last_insert_rowid(v->db);
+  rc = initPendingTerms(v, *piDocid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return insertTerms(v, *piDocid, pValues);
+}
+
+
+
+
+static int index_delete(fulltext_vtab *v, sqlite_int64 iRow){
+  int rc = initPendingTerms(v, iRow);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = deleteTerms(v, iRow);
+  if( rc!=SQLITE_OK ) return rc;
+
+  return content_delete(v, iRow);  
+}
+
+
+
+
+
+static int index_update(fulltext_vtab *v, sqlite_int64 iRow,
+                        sqlite3_value **pValues){
+  int rc = initPendingTerms(v, iRow);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+
+  rc = deleteTerms(v, iRow);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = content_update(v, pValues, iRow);  
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  return insertTerms(v, iRow, pValues);
+}
+
+
+
+
+
+
+
+
+#define INTERIOR_MAX 2048
+
+
+
+
+
+
+#define INTERIOR_MIN_TERMS 7
+#if INTERIOR_MIN_TERMS<1
+# error INTERIOR_MIN_TERMS must be greater than 0.
+#endif
+
+
+
+
+
+
+
+
+
+#define ROOT_MAX 1024
+#if ROOT_MAX<VARINT_MAX*2
+# error ROOT_MAX must have enough space for a header.
+#endif
+
+
+
+
+typedef struct InteriorBlock {
+  DataBuffer term;           
+  DataBuffer data;           
+  struct InteriorBlock *next;
+} InteriorBlock;
+
+static InteriorBlock *interiorBlockNew(int iHeight, sqlite_int64 iChildBlock,
+                                       const char *pTerm, int nTerm){
+  InteriorBlock *block = sqlite3_malloc(sizeof(InteriorBlock));
+  char c[VARINT_MAX+VARINT_MAX];
+  int n;
+
+  if( block ){
+    memset(block, 0, sizeof(*block));
+    dataBufferInit(&block->term, 0);
+    dataBufferReplace(&block->term, pTerm, nTerm);
+
+    n = fts3PutVarint(c, iHeight);
+    n += fts3PutVarint(c+n, iChildBlock);
+    dataBufferInit(&block->data, INTERIOR_MAX);
+    dataBufferReplace(&block->data, c, n);
+  }
+  return block;
+}
+
+#ifndef NDEBUG
+
+static void interiorBlockValidate(InteriorBlock *pBlock){
+  const char *pData = pBlock->data.pData;
+  int nData = pBlock->data.nData;
+  int n, iDummy;
+  sqlite_int64 iBlockid;
+
+  assert( nData>0 );
+  assert( pData!=0 );
+  assert( pData+nData>pData );
+
+  
+  n = fts3GetVarint32(pData, &iDummy);
+  assert( n>0 );
+  assert( iDummy>0 );
+  assert( n<nData );
+  pData += n;
+  nData -= n;
+
+  
+  n = fts3GetVarint(pData, &iBlockid);
+  assert( n>0 );
+  assert( n<=nData );
+  pData += n;
+  nData -= n;
+
+  
+  if( nData!=0 ){
+    
+    n = fts3GetVarint32(pData, &iDummy);
+    assert( n>0 );
+    assert( iDummy>0 );
+    assert( n+iDummy>0);
+    assert( n+iDummy<=nData );
+    pData += n+iDummy;
+    nData -= n+iDummy;
+
+    
+    while( nData!=0 ){
+      
+      n = fts3GetVarint32(pData, &iDummy);
+      assert( n>0 );
+      assert( iDummy>=0 );
+      assert( n<nData );
+      pData += n;
+      nData -= n;
+
+      
+      n = fts3GetVarint32(pData, &iDummy);
+      assert( n>0 );
+      assert( iDummy>0 );
+      assert( n+iDummy>0);
+      assert( n+iDummy<=nData );
+      pData += n+iDummy;
+      nData -= n+iDummy;
+    }
+  }
+}
+#define ASSERT_VALID_INTERIOR_BLOCK(x) interiorBlockValidate(x)
+#else
+#define ASSERT_VALID_INTERIOR_BLOCK(x) assert( 1 )
+#endif
+
+typedef struct InteriorWriter {
+  int iHeight;                   
+  InteriorBlock *first, *last;
+  struct InteriorWriter *parentWriter;
+
+  DataBuffer term;               
+  sqlite_int64 iOpeningChildBlock; 
+#ifndef NDEBUG
+  sqlite_int64 iLastChildBlock;  
+#endif
+} InteriorWriter;
+
+
+
+
+
+static void interiorWriterInit(int iHeight, const char *pTerm, int nTerm,
+                               sqlite_int64 iChildBlock,
+                               InteriorWriter *pWriter){
+  InteriorBlock *block;
+  assert( iHeight>0 );
+  CLEAR(pWriter);
+
+  pWriter->iHeight = iHeight;
+  pWriter->iOpeningChildBlock = iChildBlock;
+#ifndef NDEBUG
+  pWriter->iLastChildBlock = iChildBlock;
+#endif
+  block = interiorBlockNew(iHeight, iChildBlock, pTerm, nTerm);
+  pWriter->last = pWriter->first = block;
+  ASSERT_VALID_INTERIOR_BLOCK(pWriter->last);
+  dataBufferInit(&pWriter->term, 0);
+}
+
+
+
+
+static void interiorWriterAppend(InteriorWriter *pWriter,
+                                 const char *pTerm, int nTerm,
+                                 sqlite_int64 iChildBlock){
+  char c[VARINT_MAX+VARINT_MAX];
+  int n, nPrefix = 0;
+
+  ASSERT_VALID_INTERIOR_BLOCK(pWriter->last);
+
+  
+
+
+
+
+
+  if( pWriter->term.nData==0 ){
+    n = fts3PutVarint(c, nTerm);
+  }else{
+    while( nPrefix<pWriter->term.nData &&
+           pTerm[nPrefix]==pWriter->term.pData[nPrefix] ){
+      nPrefix++;
+    }
+
+    n = fts3PutVarint(c, nPrefix);
+    n += fts3PutVarint(c+n, nTerm-nPrefix);
+  }
+
+#ifndef NDEBUG
+  pWriter->iLastChildBlock++;
+#endif
+  assert( pWriter->iLastChildBlock==iChildBlock );
+
+  
+
+
+  if( pWriter->last->data.nData+n+nTerm-nPrefix>INTERIOR_MAX &&
+      iChildBlock-pWriter->iOpeningChildBlock>INTERIOR_MIN_TERMS ){
+    pWriter->last->next = interiorBlockNew(pWriter->iHeight, iChildBlock,
+                                           pTerm, nTerm);
+    pWriter->last = pWriter->last->next;
+    pWriter->iOpeningChildBlock = iChildBlock;
+    dataBufferReset(&pWriter->term);
+  }else{
+    dataBufferAppend2(&pWriter->last->data, c, n,
+                      pTerm+nPrefix, nTerm-nPrefix);
+    dataBufferReplace(&pWriter->term, pTerm, nTerm);
+  }
+  ASSERT_VALID_INTERIOR_BLOCK(pWriter->last);
+}
+
+
+
+
+static int interiorWriterDestroy(InteriorWriter *pWriter){
+  InteriorBlock *block = pWriter->first;
+
+  while( block!=NULL ){
+    InteriorBlock *b = block;
+    block = block->next;
+    dataBufferDestroy(&b->term);
+    dataBufferDestroy(&b->data);
+    sqlite3_free(b);
+  }
+  if( pWriter->parentWriter!=NULL ){
+    interiorWriterDestroy(pWriter->parentWriter);
+    sqlite3_free(pWriter->parentWriter);
+  }
+  dataBufferDestroy(&pWriter->term);
+  SCRAMBLE(pWriter);
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+static int interiorWriterRootInfo(fulltext_vtab *v, InteriorWriter *pWriter,
+                                  char **ppRootInfo, int *pnRootInfo,
+                                  sqlite_int64 *piEndBlockid){
+  InteriorBlock *block = pWriter->first;
+  sqlite_int64 iBlockid = 0;
+  int rc;
+
+  
+  if( block==pWriter->last && block->data.nData<ROOT_MAX ){
+    *ppRootInfo = block->data.pData;
+    *pnRootInfo = block->data.nData;
+    return SQLITE_OK;
+  }
+
+  
+
+
+  ASSERT_VALID_INTERIOR_BLOCK(block);
+  rc = block_insert(v, block->data.pData, block->data.nData, &iBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+  *piEndBlockid = iBlockid;
+
+  pWriter->parentWriter = sqlite3_malloc(sizeof(*pWriter->parentWriter));
+  interiorWriterInit(pWriter->iHeight+1,
+                     block->term.pData, block->term.nData,
+                     iBlockid, pWriter->parentWriter);
+
+  
+
+
+  for(block=block->next; block!=NULL; block=block->next){
+    ASSERT_VALID_INTERIOR_BLOCK(block);
+    rc = block_insert(v, block->data.pData, block->data.nData, &iBlockid);
+    if( rc!=SQLITE_OK ) return rc;
+    *piEndBlockid = iBlockid;
+
+    interiorWriterAppend(pWriter->parentWriter,
+                         block->term.pData, block->term.nData, iBlockid);
+  }
+
+  
+  return interiorWriterRootInfo(v, pWriter->parentWriter,
+                                ppRootInfo, pnRootInfo, piEndBlockid);
+}
+
+
+
+
+
+typedef struct InteriorReader {
+  const char *pData;
+  int nData;
+
+  DataBuffer term;          
+
+  sqlite_int64 iBlockid;
+} InteriorReader;
+
+static void interiorReaderDestroy(InteriorReader *pReader){
+  dataBufferDestroy(&pReader->term);
+  SCRAMBLE(pReader);
+}
+
+
+
+
+static void interiorReaderInit(const char *pData, int nData,
+                               InteriorReader *pReader){
+  int n, nTerm;
+
+  
+  assert( nData>0 );
+  assert( pData[0]!='\0' );
+
+  CLEAR(pReader);
+
+  
+  n = fts3GetVarint(pData+1, &pReader->iBlockid);
+  assert( 1+n<=nData );
+  pReader->pData = pData+1+n;
+  pReader->nData = nData-(1+n);
+
+  
+
+
+
+  if( pReader->nData==0 ){
+    dataBufferInit(&pReader->term, 0);
+  }else{
+    n = fts3GetVarint32(pReader->pData, &nTerm);
+    dataBufferInit(&pReader->term, nTerm);
+    dataBufferReplace(&pReader->term, pReader->pData+n, nTerm);
+    assert( n+nTerm<=pReader->nData );
+    pReader->pData += n+nTerm;
+    pReader->nData -= n+nTerm;
+  }
+}
+
+static int interiorReaderAtEnd(InteriorReader *pReader){
+  return pReader->term.nData==0;
+}
+
+static sqlite_int64 interiorReaderCurrentBlockid(InteriorReader *pReader){
+  return pReader->iBlockid;
+}
+
+static int interiorReaderTermBytes(InteriorReader *pReader){
+  assert( !interiorReaderAtEnd(pReader) );
+  return pReader->term.nData;
+}
+static const char *interiorReaderTerm(InteriorReader *pReader){
+  assert( !interiorReaderAtEnd(pReader) );
+  return pReader->term.pData;
+}
+
+
+static void interiorReaderStep(InteriorReader *pReader){
+  assert( !interiorReaderAtEnd(pReader) );
+
+  
+
+
+  if( pReader->nData==0 ){
+    dataBufferReset(&pReader->term);
+  }else{
+    int n, nPrefix, nSuffix;
+
+    n = fts3GetVarint32(pReader->pData, &nPrefix);
+    n += fts3GetVarint32(pReader->pData+n, &nSuffix);
+
+    
+    pReader->term.nData = nPrefix;
+    dataBufferAppend(&pReader->term, pReader->pData+n, nSuffix);
+
+    assert( n+nSuffix<=pReader->nData );
+    pReader->pData += n+nSuffix;
+    pReader->nData -= n+nSuffix;
+  }
+  pReader->iBlockid++;
+}
+
+
+
+
+static int interiorReaderTermCmp(InteriorReader *pReader,
+                                 const char *pTerm, int nTerm, int isPrefix){
+  const char *pReaderTerm = interiorReaderTerm(pReader);
+  int nReaderTerm = interiorReaderTermBytes(pReader);
+  int c, n = nReaderTerm<nTerm ? nReaderTerm : nTerm;
+
+  if( n==0 ){
+    if( nReaderTerm>0 ) return -1;
+    if( nTerm>0 ) return 1;
+    return 0;
+  }
+
+  c = memcmp(pReaderTerm, pTerm, n);
+  if( c!=0 ) return c;
+  if( isPrefix && n==nTerm ) return 0;
+  return nReaderTerm - nTerm;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define STANDALONE_MIN 1024
+
+
+#define LEAF_MAX 2048
+
+typedef struct LeafWriter {
+  int iLevel;
+  int idx;
+  sqlite_int64 iStartBlockid;     
+  sqlite_int64 iEndBlockid;       
+
+  DataBuffer term;                
+  DataBuffer data;                
+
+  
+
+
+  int nTermDistinct;
+
+  InteriorWriter parentWriter;    
+  int has_parent;
+} LeafWriter;
+
+static void leafWriterInit(int iLevel, int idx, LeafWriter *pWriter){
+  CLEAR(pWriter);
+  pWriter->iLevel = iLevel;
+  pWriter->idx = idx;
+
+  dataBufferInit(&pWriter->term, 32);
+
+  
+  dataBufferInit(&pWriter->data, LEAF_MAX);
+}
+
+#ifndef NDEBUG
+
+static void leafNodeValidate(const char *pData, int nData){
+  int n, iDummy;
+
+  if( nData==0 ) return;
+  assert( nData>0 );
+  assert( pData!=0 );
+  assert( pData+nData>pData );
+
+  
+  n = fts3GetVarint32(pData, &iDummy);
+  assert( iDummy==0 );
+  assert( n>0 );
+  assert( n<nData );
+  pData += n;
+  nData -= n;
+
+  
+  n = fts3GetVarint32(pData, &iDummy);
+  assert( n>0 );
+  assert( iDummy>0 );
+  assert( n+iDummy>0 );
+  assert( n+iDummy<nData );
+  pData += n+iDummy;
+  nData -= n+iDummy;
+
+  
+  n = fts3GetVarint32(pData, &iDummy);
+  assert( n>0 );
+  assert( iDummy>0 );
+  assert( n+iDummy>0 );
+  assert( n+iDummy<=nData );
+  ASSERT_VALID_DOCLIST(DL_DEFAULT, pData+n, iDummy, NULL);
+  pData += n+iDummy;
+  nData -= n+iDummy;
+
+  
+  while( nData!=0 ){
+    n = fts3GetVarint32(pData, &iDummy);
+    assert( n>0 );
+    assert( iDummy>=0 );
+    assert( n<nData );
+    pData += n;
+    nData -= n;
+    n = fts3GetVarint32(pData, &iDummy);
+    assert( n>0 );
+    assert( iDummy>0 );
+    assert( n+iDummy>0 );
+    assert( n+iDummy<nData );
+    pData += n+iDummy;
+    nData -= n+iDummy;
+
+    n = fts3GetVarint32(pData, &iDummy);
+    assert( n>0 );
+    assert( iDummy>0 );
+    assert( n+iDummy>0 );
+    assert( n+iDummy<=nData );
+    ASSERT_VALID_DOCLIST(DL_DEFAULT, pData+n, iDummy, NULL);
+    pData += n+iDummy;
+    nData -= n+iDummy;
+  }
+}
+#define ASSERT_VALID_LEAF_NODE(p, n) leafNodeValidate(p, n)
+#else
+#define ASSERT_VALID_LEAF_NODE(p, n) assert( 1 )
+#endif
+
+
+
+
+
+static int leafWriterInternalFlush(fulltext_vtab *v, LeafWriter *pWriter,
+                                   int iData, int nData){
+  sqlite_int64 iBlockid = 0;
+  const char *pStartingTerm;
+  int nStartingTerm, rc, n;
+
+  
+
+
+  assert( nData>2 );
+  assert( iData>=0 );
+  assert( iData+nData<=pWriter->data.nData );
+  ASSERT_VALID_LEAF_NODE(pWriter->data.pData+iData, nData);
+
+  rc = block_insert(v, pWriter->data.pData+iData, nData, &iBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+  assert( iBlockid!=0 );
+
+  
+
+
+  n = fts3GetVarint32(pWriter->data.pData+iData+1, &nStartingTerm);
+  pStartingTerm = pWriter->data.pData+iData+1+n;
+  assert( pWriter->data.nData>iData+1+n+nStartingTerm );
+  assert( pWriter->nTermDistinct>0 );
+  assert( pWriter->nTermDistinct<=nStartingTerm );
+  nStartingTerm = pWriter->nTermDistinct;
+
+  if( pWriter->has_parent ){
+    interiorWriterAppend(&pWriter->parentWriter,
+                         pStartingTerm, nStartingTerm, iBlockid);
+  }else{
+    interiorWriterInit(1, pStartingTerm, nStartingTerm, iBlockid,
+                       &pWriter->parentWriter);
+    pWriter->has_parent = 1;
+  }
+
+  
+  if( pWriter->iEndBlockid==0 ){
+    pWriter->iEndBlockid = pWriter->iStartBlockid = iBlockid;
+  }else{
+    pWriter->iEndBlockid++;
+    assert( iBlockid==pWriter->iEndBlockid );
+  }
+
+  return SQLITE_OK;
+}
+static int leafWriterFlush(fulltext_vtab *v, LeafWriter *pWriter){
+  int rc = leafWriterInternalFlush(v, pWriter, 0, pWriter->data.nData);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  dataBufferReset(&pWriter->data);
+
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+
+static int leafWriterRootInfo(fulltext_vtab *v, LeafWriter *pWriter,
+                              char **ppRootInfo, int *pnRootInfo,
+                              sqlite_int64 *piEndBlockid){
+  
+  if( !pWriter->has_parent && pWriter->data.nData<ROOT_MAX ){
+    *ppRootInfo = pWriter->data.pData;
+    *pnRootInfo = pWriter->data.nData;
+    *piEndBlockid = 0;
+    return SQLITE_OK;
+  }
+
+  
+  if( pWriter->data.nData>0 ){
+    int rc = leafWriterFlush(v, pWriter);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+
+  
+  assert( pWriter->has_parent );
+
+  
+
+
+
+
+  *piEndBlockid = pWriter->iEndBlockid;
+
+  return interiorWriterRootInfo(v, &pWriter->parentWriter,
+                                ppRootInfo, pnRootInfo, piEndBlockid);
+}
+
+
+
+
+
+static int leafWriterFinalize(fulltext_vtab *v, LeafWriter *pWriter){
+  sqlite_int64 iEndBlockid;
+  char *pRootInfo;
+  int rc, nRootInfo;
+
+  rc = leafWriterRootInfo(v, pWriter, &pRootInfo, &nRootInfo, &iEndBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  if( iEndBlockid==0 && nRootInfo==0 ) return SQLITE_OK;
+
+  return segdir_set(v, pWriter->iLevel, pWriter->idx,
+                    pWriter->iStartBlockid, pWriter->iEndBlockid,
+                    iEndBlockid, pRootInfo, nRootInfo);
+}
+
+static void leafWriterDestroy(LeafWriter *pWriter){
+  if( pWriter->has_parent ) interiorWriterDestroy(&pWriter->parentWriter);
+  dataBufferDestroy(&pWriter->term);
+  dataBufferDestroy(&pWriter->data);
+}
+
+
+
+
+
+
+static int leafWriterEncodeTerm(LeafWriter *pWriter,
+                                const char *pTerm, int nTerm){
+  char c[VARINT_MAX+VARINT_MAX];
+  int n, nPrefix = 0;
+
+  assert( nTerm>0 );
+  while( nPrefix<pWriter->term.nData &&
+         pTerm[nPrefix]==pWriter->term.pData[nPrefix] ){
+    nPrefix++;
+    
+    assert( nPrefix<nTerm );
+  }
+
+  if( pWriter->data.nData==0 ){
+    
+
+
+
+
+    n = fts3PutVarint(c, '\0');
+    n += fts3PutVarint(c+n, nTerm);
+    dataBufferAppend2(&pWriter->data, c, n, pTerm, nTerm);
+  }else{
+    
+
+
+
+
+    n = fts3PutVarint(c, nPrefix);
+    n += fts3PutVarint(c+n, nTerm-nPrefix);
+    dataBufferAppend2(&pWriter->data, c, n, pTerm+nPrefix, nTerm-nPrefix);
+  }
+  dataBufferReplace(&pWriter->term, pTerm, nTerm);
+
+  return nPrefix+1;
+}
+
+
+
+
+
+
+static int leafWriterInlineFlush(fulltext_vtab *v, LeafWriter *pWriter,
+                                 const char *pTerm, int nTerm,
+                                 int iDoclistData){
+  char c[VARINT_MAX+VARINT_MAX];
+  int iData, n = fts3PutVarint(c, 0);
+  n += fts3PutVarint(c+n, nTerm);
+
+  
+
+
+
+
+  assert( iDoclistData>=n+nTerm );
+
+  iData = iDoclistData-(n+nTerm);
+  memcpy(pWriter->data.pData+iData, c, n);
+  memcpy(pWriter->data.pData+iData+n, pTerm, nTerm);
+
+  return leafWriterInternalFlush(v, pWriter, iData, pWriter->data.nData-iData);
+}
+
+
+
+
+static int leafWriterStepMerge(fulltext_vtab *v, LeafWriter *pWriter,
+                               const char *pTerm, int nTerm,
+                               DLReader *pReaders, int nReaders){
+  char c[VARINT_MAX+VARINT_MAX];
+  int iTermData = pWriter->data.nData, iDoclistData;
+  int i, nData, n, nActualData, nActual, rc, nTermDistinct;
+
+  ASSERT_VALID_LEAF_NODE(pWriter->data.pData, pWriter->data.nData);
+  nTermDistinct = leafWriterEncodeTerm(pWriter, pTerm, nTerm);
+
+  
+  if( iTermData==0 ) pWriter->nTermDistinct = nTermDistinct;
+
+  iDoclistData = pWriter->data.nData;
+
+  
+
+
+  for(i=0, nData=0; i<nReaders; i++){
+    nData += dlrAllDataBytes(&pReaders[i]);
+  }
+  n = fts3PutVarint(c, nData);
+  dataBufferAppend(&pWriter->data, c, n);
+
+  docListMerge(&pWriter->data, pReaders, nReaders);
+  ASSERT_VALID_DOCLIST(DL_DEFAULT,
+                       pWriter->data.pData+iDoclistData+n,
+                       pWriter->data.nData-iDoclistData-n, NULL);
+
+  
+
+
+
+
+  nActualData = pWriter->data.nData-(iDoclistData+n);
+  nActual = fts3PutVarint(c, nActualData);
+  assert( nActualData<=nData );
+  assert( nActual<=n );
+
+  
+
+
+
+  
+
+
+
+
+  if( nTerm+nActualData>STANDALONE_MIN ){
+    
+    if( iTermData>0 ){
+      rc = leafWriterInternalFlush(v, pWriter, 0, iTermData);
+      if( rc!=SQLITE_OK ) return rc;
+
+      pWriter->nTermDistinct = nTermDistinct;
+    }
+
+    
+    iDoclistData += n - nActual;
+    memcpy(pWriter->data.pData+iDoclistData, c, nActual);
+
+    
+    rc = leafWriterInlineFlush(v, pWriter, pTerm, nTerm, iDoclistData);
+    if( rc!=SQLITE_OK ) return rc;
+
+    
+    dataBufferReset(&pWriter->data);
+
+    return rc;
+  }
+
+  
+
+
+  if( nActual<n ){
+    memmove(pWriter->data.pData+iDoclistData+nActual,
+            pWriter->data.pData+iDoclistData+n,
+            pWriter->data.nData-(iDoclistData+n));
+    pWriter->data.nData -= n-nActual;
+  }
+
+  
+  memcpy(pWriter->data.pData+iDoclistData, c, nActual);
+
+  
+  
+
+
+
+
+  if( iTermData+nTerm+nActualData>LEAF_MAX ){
+    
+    rc = leafWriterInternalFlush(v, pWriter, 0, iTermData);
+    if( rc!=SQLITE_OK ) return rc;
+
+    pWriter->nTermDistinct = nTermDistinct;
+
+    
+    n = fts3PutVarint(pWriter->data.pData, 0);
+    n += fts3PutVarint(pWriter->data.pData+n, nTerm);
+    memcpy(pWriter->data.pData+n, pTerm, nTerm);
+    n += nTerm;
+
+    
+
+
+    assert( n<iDoclistData );
+    
+
+
+    assert( 2*STANDALONE_MIN<=LEAF_MAX );
+    assert( n+pWriter->data.nData-iDoclistData<iDoclistData );
+    memcpy(pWriter->data.pData+n,
+           pWriter->data.pData+iDoclistData,
+           pWriter->data.nData-iDoclistData);
+    pWriter->data.nData -= iDoclistData-n;
+  }
+  ASSERT_VALID_LEAF_NODE(pWriter->data.pData, pWriter->data.nData);
+
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+static int leafWriterStep(fulltext_vtab *v, LeafWriter *pWriter,
+                          const char *pTerm, int nTerm,
+                          const char *pData, int nData){
+  int rc;
+  DLReader reader;
+
+  dlrInit(&reader, DL_DEFAULT, pData, nData);
+  rc = leafWriterStepMerge(v, pWriter, pTerm, nTerm, &reader, 1);
+  dlrDestroy(&reader);
+
+  return rc;
+}
+
+
+
+
+typedef struct LeafReader {
+  DataBuffer term;          
+
+  const char *pData;        
+  int nData;
+} LeafReader;
+
+static void leafReaderDestroy(LeafReader *pReader){
+  dataBufferDestroy(&pReader->term);
+  SCRAMBLE(pReader);
+}
+
+static int leafReaderAtEnd(LeafReader *pReader){
+  return pReader->nData<=0;
+}
+
+
+static int leafReaderTermBytes(LeafReader *pReader){
+  return pReader->term.nData;
+}
+static const char *leafReaderTerm(LeafReader *pReader){
+  assert( pReader->term.nData>0 );
+  return pReader->term.pData;
+}
+
+
+static int leafReaderDataBytes(LeafReader *pReader){
+  int nData;
+  assert( pReader->term.nData>0 );
+  fts3GetVarint32(pReader->pData, &nData);
+  return nData;
+}
+static const char *leafReaderData(LeafReader *pReader){
+  int n, nData;
+  assert( pReader->term.nData>0 );
+  n = fts3GetVarint32(pReader->pData, &nData);
+  return pReader->pData+n;
+}
+
+static void leafReaderInit(const char *pData, int nData,
+                           LeafReader *pReader){
+  int nTerm, n;
+
+  assert( nData>0 );
+  assert( pData[0]=='\0' );
+
+  CLEAR(pReader);
+
+  
+  n = fts3GetVarint32(pData+1, &nTerm);
+  dataBufferInit(&pReader->term, nTerm);
+  dataBufferReplace(&pReader->term, pData+1+n, nTerm);
+
+  
+  assert( 1+n+nTerm<nData );
+  pReader->pData = pData+1+n+nTerm;
+  pReader->nData = nData-1-n-nTerm;
+}
+
+
+static void leafReaderStep(LeafReader *pReader){
+  int n, nData, nPrefix, nSuffix;
+  assert( !leafReaderAtEnd(pReader) );
+
+  
+  n = fts3GetVarint32(pReader->pData, &nData);
+  assert( n+nData<=pReader->nData );
+  pReader->pData += n+nData;
+  pReader->nData -= n+nData;
+
+  if( !leafReaderAtEnd(pReader) ){
+    
+
+
+    n = fts3GetVarint32(pReader->pData, &nPrefix);
+    n += fts3GetVarint32(pReader->pData+n, &nSuffix);
+    assert( n+nSuffix<pReader->nData );
+    pReader->term.nData = nPrefix;
+    dataBufferAppend(&pReader->term, pReader->pData+n, nSuffix);
+
+    pReader->pData += n+nSuffix;
+    pReader->nData -= n+nSuffix;
+  }
+}
+
+
+
+
+static int leafReaderTermCmp(LeafReader *pReader,
+                             const char *pTerm, int nTerm, int isPrefix){
+  int c, n = pReader->term.nData<nTerm ? pReader->term.nData : nTerm;
+  if( n==0 ){
+    if( pReader->term.nData>0 ) return -1;
+    if(nTerm>0 ) return 1;
+    return 0;
+  }
+
+  c = memcmp(pReader->term.pData, pTerm, n);
+  if( c!=0 ) return c;
+  if( isPrefix && n==nTerm ) return 0;
+  return pReader->term.nData - nTerm;
+}
+
+
+
+
+
+
+typedef struct LeavesReader {
+  int idx;                  
+
+  sqlite3_stmt *pStmt;      
+  int eof;                  
+
+  LeafReader leafReader;    
+  DataBuffer rootData;      
+} LeavesReader;
+
+
+static int leavesReaderTermBytes(LeavesReader *pReader){
+  assert( !pReader->eof );
+  return leafReaderTermBytes(&pReader->leafReader);
+}
+static const char *leavesReaderTerm(LeavesReader *pReader){
+  assert( !pReader->eof );
+  return leafReaderTerm(&pReader->leafReader);
+}
+
+
+static int leavesReaderDataBytes(LeavesReader *pReader){
+  assert( !pReader->eof );
+  return leafReaderDataBytes(&pReader->leafReader);
+}
+static const char *leavesReaderData(LeavesReader *pReader){
+  assert( !pReader->eof );
+  return leafReaderData(&pReader->leafReader);
+}
+
+static int leavesReaderAtEnd(LeavesReader *pReader){
+  return pReader->eof;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int leavesReaderReset(LeavesReader *pReader){
+  return sqlite3_reset(pReader->pStmt);
+}
+
+static void leavesReaderDestroy(LeavesReader *pReader){
+  leafReaderDestroy(&pReader->leafReader);
+  dataBufferDestroy(&pReader->rootData);
+  SCRAMBLE(pReader);
+}
+
+
+
+
+
+static int leavesReaderInit(fulltext_vtab *v,
+                            int idx,
+                            sqlite_int64 iStartBlockid,
+                            sqlite_int64 iEndBlockid,
+                            const char *pRootData, int nRootData,
+                            LeavesReader *pReader){
+  CLEAR(pReader);
+  pReader->idx = idx;
+
+  dataBufferInit(&pReader->rootData, 0);
+  if( iStartBlockid==0 ){
+    
+    dataBufferReplace(&pReader->rootData, pRootData, nRootData);
+    leafReaderInit(pReader->rootData.pData, pReader->rootData.nData,
+                   &pReader->leafReader);
+  }else{
+    sqlite3_stmt *s;
+    int rc = sql_get_leaf_statement(v, idx, &s);
+    if( rc!=SQLITE_OK ) return rc;
+
+    rc = sqlite3_bind_int64(s, 1, iStartBlockid);
+    if( rc!=SQLITE_OK ) return rc;
+
+    rc = sqlite3_bind_int64(s, 2, iEndBlockid);
+    if( rc!=SQLITE_OK ) return rc;
+
+    rc = sqlite3_step(s);
+    if( rc==SQLITE_DONE ){
+      pReader->eof = 1;
+      return SQLITE_OK;
+    }
+    if( rc!=SQLITE_ROW ) return rc;
+
+    pReader->pStmt = s;
+    leafReaderInit(sqlite3_column_blob(pReader->pStmt, 0),
+                   sqlite3_column_bytes(pReader->pStmt, 0),
+                   &pReader->leafReader);
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+static int leavesReaderStep(fulltext_vtab *v, LeavesReader *pReader){
+  assert( !leavesReaderAtEnd(pReader) );
+  leafReaderStep(&pReader->leafReader);
+
+  if( leafReaderAtEnd(&pReader->leafReader) ){
+    int rc;
+    if( pReader->rootData.pData ){
+      pReader->eof = 1;
+      return SQLITE_OK;
+    }
+    rc = sqlite3_step(pReader->pStmt);
+    if( rc!=SQLITE_ROW ){
+      pReader->eof = 1;
+      return rc==SQLITE_DONE ? SQLITE_OK : rc;
+    }
+    leafReaderDestroy(&pReader->leafReader);
+    leafReaderInit(sqlite3_column_blob(pReader->pStmt, 0),
+                   sqlite3_column_bytes(pReader->pStmt, 0),
+                   &pReader->leafReader);
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+static int leavesReaderTermCmp(LeavesReader *lr1, LeavesReader *lr2){
+  if( leavesReaderAtEnd(lr1) ){
+    if( leavesReaderAtEnd(lr2) ) return 0;
+    return 1;
+  }
+  if( leavesReaderAtEnd(lr2) ) return -1;
+
+  return leafReaderTermCmp(&lr1->leafReader,
+                           leavesReaderTerm(lr2), leavesReaderTermBytes(lr2),
+                           0);
+}
+
+
+
+
+static int leavesReaderCmp(LeavesReader *lr1, LeavesReader *lr2){
+  int c = leavesReaderTermCmp(lr1, lr2);
+  if( c!=0 ) return c;
+  return lr1->idx-lr2->idx;
+}
+
+
+
+
+static void leavesReaderReorder(LeavesReader *pLr, int nLr){
+  while( nLr>1 && leavesReaderCmp(pLr, pLr+1)>0 ){
+    LeavesReader tmp = pLr[0];
+    pLr[0] = pLr[1];
+    pLr[1] = tmp;
+    nLr--;
+    pLr++;
+  }
+}
+
+
+
+
+
+static int leavesReadersInit(fulltext_vtab *v, int iLevel,
+                             LeavesReader *pReaders, int *piReaders){
+  sqlite3_stmt *s;
+  int i, rc = sql_get_statement(v, SEGDIR_SELECT_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int(s, 1, iLevel);
+  if( rc!=SQLITE_OK ) return rc;
+
+  i = 0;
+  while( (rc = sqlite3_step(s))==SQLITE_ROW ){
+    sqlite_int64 iStart = sqlite3_column_int64(s, 0);
+    sqlite_int64 iEnd = sqlite3_column_int64(s, 1);
+    const char *pRootData = sqlite3_column_blob(s, 2);
+    int nRootData = sqlite3_column_bytes(s, 2);
+
+    assert( i<MERGE_COUNT );
+    rc = leavesReaderInit(v, i, iStart, iEnd, pRootData, nRootData,
+                          &pReaders[i]);
+    if( rc!=SQLITE_OK ) break;
+
+    i++;
+  }
+  if( rc!=SQLITE_DONE ){
+    while( i-->0 ){
+      leavesReaderDestroy(&pReaders[i]);
+    }
+    return rc;
+  }
+
+  *piReaders = i;
+
+  
+  while( i-- ){
+    leavesReaderReorder(pReaders+i, *piReaders-i);
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+static int leavesReadersMerge(fulltext_vtab *v,
+                              LeavesReader *pReaders, int nReaders,
+                              LeafWriter *pWriter){
+  DLReader dlReaders[MERGE_COUNT];
+  const char *pTerm = leavesReaderTerm(pReaders);
+  int i, nTerm = leavesReaderTermBytes(pReaders);
+
+  assert( nReaders<=MERGE_COUNT );
+
+  for(i=0; i<nReaders; i++){
+    dlrInit(&dlReaders[i], DL_DEFAULT,
+            leavesReaderData(pReaders+i),
+            leavesReaderDataBytes(pReaders+i));
+  }
+
+  return leafWriterStepMerge(v, pWriter, pTerm, nTerm, dlReaders, nReaders);
+}
+
+
+static int segmentMerge(fulltext_vtab *v, int iLevel);
+
+
+
+
+
+static int segdirNextIndex(fulltext_vtab *v, int iLevel, int *pidx){
+  int rc = segdir_max_index(v, iLevel, pidx);
+  if( rc==SQLITE_DONE ){              
+    *pidx = 0;
+  }else if( rc==SQLITE_ROW ){
+    if( *pidx==(MERGE_COUNT-1) ){
+      rc = segmentMerge(v, iLevel);
+      if( rc!=SQLITE_OK ) return rc;
+      *pidx = 0;
+    }else{
+      (*pidx)++;
+    }
+  }else{
+    return rc;
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int segmentMerge(fulltext_vtab *v, int iLevel){
+  LeafWriter writer;
+  LeavesReader lrs[MERGE_COUNT];
+  int i, rc, idx = 0;
+
+  
+
+
+  rc = segdirNextIndex(v, iLevel+1, &idx);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+
+
+
+
+  memset(&lrs, '\0', sizeof(lrs));
+  rc = leavesReadersInit(v, iLevel, lrs, &i);
+  if( rc!=SQLITE_OK ) return rc;
+  assert( i==MERGE_COUNT );
+
+  leafWriterInit(iLevel+1, idx, &writer);
+
+  
+
+
+  while( !leavesReaderAtEnd(lrs) ){
+    
+    for(i=1; i<MERGE_COUNT && !leavesReaderAtEnd(lrs+i); i++){
+      if( 0!=leavesReaderTermCmp(lrs, lrs+i) ) break;
+    }
+
+    rc = leavesReadersMerge(v, lrs, i, &writer);
+    if( rc!=SQLITE_OK ) goto err;
+
+    
+    while( i-->0 ){
+      rc = leavesReaderStep(v, lrs+i);
+      if( rc!=SQLITE_OK ) goto err;
+
+      
+      leavesReaderReorder(lrs+i, MERGE_COUNT-i);
+    }
+  }
+
+  for(i=0; i<MERGE_COUNT; i++){
+    leavesReaderDestroy(&lrs[i]);
+  }
+
+  rc = leafWriterFinalize(v, &writer);
+  leafWriterDestroy(&writer);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  return segdir_delete(v, iLevel);
+
+ err:
+  for(i=0; i<MERGE_COUNT; i++){
+    leavesReaderDestroy(&lrs[i]);
+  }
+  leafWriterDestroy(&writer);
+  return rc;
+}
+
+
+static void docListAccumulateUnion(DataBuffer *acc,
+                                   const char *pData, int nData) {
+  DataBuffer tmp = *acc;
+  dataBufferInit(acc, tmp.nData+nData);
+  docListUnion(tmp.pData, tmp.nData, pData, nData, acc);
+  dataBufferDestroy(&tmp);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int loadSegmentLeavesInt(fulltext_vtab *v, LeavesReader *pReader,
+                                const char *pTerm, int nTerm, int isPrefix,
+                                DataBuffer *out){
+  
+
+
+
+
+
+  DataBuffer *pBuffers = NULL;
+  int nBuffers = 0, nMaxBuffers = 0, rc;
+
+  assert( nTerm>0 );
+
+  for(rc=SQLITE_OK; rc==SQLITE_OK && !leavesReaderAtEnd(pReader);
+      rc=leavesReaderStep(v, pReader)){
+    
+
+
+
+
+    int c = leafReaderTermCmp(&pReader->leafReader, pTerm, nTerm, isPrefix);
+    if( c>0 ) break;      
+    if( c==0 ){
+      const char *pData = leavesReaderData(pReader);
+      int iBuffer, nData = leavesReaderDataBytes(pReader);
+
+      
+      for(iBuffer=0; iBuffer<nBuffers; ++iBuffer){
+        if( 0==pBuffers[iBuffer].nData ) break;
+      }
+
+      
+      if( iBuffer==nBuffers ){
+        if( nBuffers==nMaxBuffers ){
+          DataBuffer *p;
+          nMaxBuffers += 20;
+
+          
+          p = sqlite3_malloc(nMaxBuffers*sizeof(*pBuffers));
+          if( p==NULL ){
+            rc = SQLITE_NOMEM;
+            break;
+          }
+
+          if( nBuffers>0 ){
+            assert(pBuffers!=NULL);
+            memcpy(p, pBuffers, nBuffers*sizeof(*pBuffers));
+            sqlite3_free(pBuffers);
+          }
+          pBuffers = p;
+        }
+        dataBufferInit(&(pBuffers[nBuffers]), 0);
+        nBuffers++;
+      }
+
+      
+      assert(iBuffer<nBuffers && pBuffers[iBuffer].nData==0);
+
+      
+      if( iBuffer==0 ){
+        dataBufferReplace(&(pBuffers[0]), pData, nData);
+      }else{
+        
+        DataBuffer *pAcc = &(pBuffers[iBuffer]);
+        DataBuffer *p = &(pBuffers[0]);
+
+        
+
+
+        dataBufferSwap(p, pAcc);
+        docListAccumulateUnion(pAcc, pData, nData);
+
+        
+        for(++p; p<pAcc; ++p){
+          docListAccumulateUnion(pAcc, p->pData, p->nData);
+
+          
+
+
+          if( p->nCapacity<1024 ){
+            dataBufferReset(p);
+          }else{
+            dataBufferDestroy(p);
+            dataBufferInit(p, 0);
+          }
+        }
+      }
+    }
+  }
+
+  
+  
+  if( rc==SQLITE_OK && nBuffers>0 ){
+    int iBuffer;
+    for(iBuffer=0; iBuffer<nBuffers; ++iBuffer){
+      if( pBuffers[iBuffer].nData>0 ){
+        if( out->nData==0 ){
+          dataBufferSwap(out, &(pBuffers[iBuffer]));
+        }else{
+          docListAccumulateUnion(out, pBuffers[iBuffer].pData,
+                                 pBuffers[iBuffer].nData);
+        }
+      }
+    }
+  }
+
+  while( nBuffers-- ){
+    dataBufferDestroy(&(pBuffers[nBuffers]));
+  }
+  if( pBuffers!=NULL ) sqlite3_free(pBuffers);
+
+  return rc;
+}
+
+
+static int loadSegmentLeaf(fulltext_vtab *v, const char *pData, int nData,
+                           const char *pTerm, int nTerm, int isPrefix,
+                           DataBuffer *out){
+  LeavesReader reader;
+  int rc;
+
+  assert( nData>1 );
+  assert( *pData=='\0' );
+  rc = leavesReaderInit(v, 0, 0, 0, pData, nData, &reader);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = loadSegmentLeavesInt(v, &reader, pTerm, nTerm, isPrefix, out);
+  leavesReaderReset(&reader);
+  leavesReaderDestroy(&reader);
+  return rc;
+}
+
+
+
+
+
+static int loadSegmentLeaves(fulltext_vtab *v,
+                             sqlite_int64 iStartLeaf, sqlite_int64 iEndLeaf,
+                             const char *pTerm, int nTerm, int isPrefix,
+                             DataBuffer *out){
+  int rc;
+  LeavesReader reader;
+
+  assert( iStartLeaf<=iEndLeaf );
+  rc = leavesReaderInit(v, 0, iStartLeaf, iEndLeaf, NULL, 0, &reader);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = loadSegmentLeavesInt(v, &reader, pTerm, nTerm, isPrefix, out);
+  leavesReaderReset(&reader);
+  leavesReaderDestroy(&reader);
+  return rc;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+static void getChildrenContaining(const char *pData, int nData,
+                                  const char *pTerm, int nTerm, int isPrefix,
+                                  sqlite_int64 *piStartChild,
+                                  sqlite_int64 *piEndChild){
+  InteriorReader reader;
+
+  assert( nData>1 );
+  assert( *pData!='\0' );
+  interiorReaderInit(pData, nData, &reader);
+
+  
+  while( !interiorReaderAtEnd(&reader) ){
+    if( interiorReaderTermCmp(&reader, pTerm, nTerm, 0)>0 ) break;
+    interiorReaderStep(&reader);
+  }
+  *piStartChild = interiorReaderCurrentBlockid(&reader);
+
+  
+
+
+
+  while( !interiorReaderAtEnd(&reader) ){
+    if( interiorReaderTermCmp(&reader, pTerm, nTerm, isPrefix)>0 ) break;
+    interiorReaderStep(&reader);
+  }
+  *piEndChild = interiorReaderCurrentBlockid(&reader);
+
+  interiorReaderDestroy(&reader);
+
+  
+  assert( *piEndChild>=*piStartChild );
+  assert( isPrefix || *piStartChild==*piEndChild );
+}
+
+
+
+
+static int loadAndGetChildrenContaining(
+  fulltext_vtab *v,
+  sqlite_int64 iBlockid,
+  const char *pTerm, int nTerm, int isPrefix,
+  sqlite_int64 *piStartChild, sqlite_int64 *piEndChild
+){
+  sqlite3_stmt *s = NULL;
+  int rc;
+
+  assert( iBlockid!=0 );
+  assert( pTerm!=NULL );
+  assert( nTerm!=0 );        
+  assert( piStartChild!=NULL );
+  assert( piEndChild!=NULL );
+
+  rc = sql_get_statement(v, BLOCK_SELECT_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_bind_int64(s, 1, iBlockid);
+  if( rc!=SQLITE_OK ) return rc;
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_DONE ) return SQLITE_ERROR;
+  if( rc!=SQLITE_ROW ) return rc;
+
+  getChildrenContaining(sqlite3_column_blob(s, 0), sqlite3_column_bytes(s, 0),
+                        pTerm, nTerm, isPrefix, piStartChild, piEndChild);
+
+  
+
+
+  rc = sqlite3_step(s);
+  if( rc==SQLITE_ROW ) return SQLITE_ERROR;
+  if( rc!=SQLITE_DONE ) return rc;
+
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int loadSegmentInt(fulltext_vtab *v, const char *pData, int nData,
+                          sqlite_int64 iLeavesEnd,
+                          const char *pTerm, int nTerm, int isPrefix,
+                          DataBuffer *out){
+  
+  if( *pData=='\0' ){
+    return loadSegmentLeaf(v, pData, nData, pTerm, nTerm, isPrefix, out);
+  }else{
+    int rc;
+    sqlite_int64 iStartChild, iEndChild;
+
+    
+
+
+    getChildrenContaining(pData, nData, pTerm, nTerm, isPrefix,
+                          &iStartChild, &iEndChild);
+    while( iStartChild>iLeavesEnd ){
+      sqlite_int64 iNextStart, iNextEnd;
+      rc = loadAndGetChildrenContaining(v, iStartChild, pTerm, nTerm, isPrefix,
+                                        &iNextStart, &iNextEnd);
+      if( rc!=SQLITE_OK ) return rc;
+
+      
+      if( iStartChild!=iEndChild ){
+        sqlite_int64 iDummy;
+        rc = loadAndGetChildrenContaining(v, iEndChild, pTerm, nTerm, isPrefix,
+                                          &iDummy, &iNextEnd);
+        if( rc!=SQLITE_OK ) return rc;
+      }
+
+      assert( iNextStart<=iNextEnd );
+      iStartChild = iNextStart;
+      iEndChild = iNextEnd;
+    }
+    assert( iStartChild<=iLeavesEnd );
+    assert( iEndChild<=iLeavesEnd );
+
+    
+    return loadSegmentLeaves(v, iStartChild, iEndChild,
+                             pTerm, nTerm, isPrefix, out);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int loadSegment(fulltext_vtab *v, const char *pData, int nData,
+                       sqlite_int64 iLeavesEnd,
+                       const char *pTerm, int nTerm, int isPrefix,
+                       DataBuffer *out){
+  DataBuffer result;
+  int rc;
+
+  assert( nData>1 );
+
+  
+  assert( v->nPendingData<0 );
+
+  dataBufferInit(&result, 0);
+  rc = loadSegmentInt(v, pData, nData, iLeavesEnd,
+                      pTerm, nTerm, isPrefix, &result);
+  if( rc==SQLITE_OK && result.nData>0 ){
+    if( out->nData==0 ){
+      DataBuffer tmp = *out;
+      *out = result;
+      result = tmp;
+    }else{
+      DataBuffer merged;
+      DLReader readers[2];
+
+      dlrInit(&readers[0], DL_DEFAULT, out->pData, out->nData);
+      dlrInit(&readers[1], DL_DEFAULT, result.pData, result.nData);
+      dataBufferInit(&merged, out->nData+result.nData);
+      docListMerge(&merged, readers, 2);
+      dataBufferDestroy(out);
+      *out = merged;
+      dlrDestroy(&readers[0]);
+      dlrDestroy(&readers[1]);
+    }
+  }
+  dataBufferDestroy(&result);
+  return rc;
+}
+
+
+
+
+static int termSelect(fulltext_vtab *v, int iColumn,
+                      const char *pTerm, int nTerm, int isPrefix,
+                      DocListType iType, DataBuffer *out){
+  DataBuffer doclist;
+  sqlite3_stmt *s;
+  int rc = sql_get_statement(v, SEGDIR_SELECT_ALL_STMT, &s);
+  if( rc!=SQLITE_OK ) return rc;
+
+  
+  assert( v->nPendingData<0 );
+
+  dataBufferInit(&doclist, 0);
+
+  
+
+
+  while( (rc = sqlite3_step(s))==SQLITE_ROW ){
+    const char *pData = sqlite3_column_blob(s, 0);
+    const int nData = sqlite3_column_bytes(s, 0);
+    const sqlite_int64 iLeavesEnd = sqlite3_column_int64(s, 1);
+    rc = loadSegment(v, pData, nData, iLeavesEnd, pTerm, nTerm, isPrefix,
+                     &doclist);
+    if( rc!=SQLITE_OK ) goto err;
+  }
+  if( rc==SQLITE_DONE ){
+    if( doclist.nData!=0 ){
+      
+
+
+
+
+      if( iColumn==v->nColumn) iColumn = -1;
+      docListTrim(DL_DEFAULT, doclist.pData, doclist.nData,
+                  iColumn, iType, out);
+    }
+    rc = SQLITE_OK;
+  }
+
+ err:
+  dataBufferDestroy(&doclist);
+  return rc;
+}
+
+
+
+typedef struct TermData {
+  const char *pTerm;
+  int nTerm;
+  DLCollector *pCollector;
+} TermData;
+
+
+
+
+static int termDataCmp(const void *av, const void *bv){
+  const TermData *a = (const TermData *)av;
+  const TermData *b = (const TermData *)bv;
+  int n = a->nTerm<b->nTerm ? a->nTerm : b->nTerm;
+  int c = memcmp(a->pTerm, b->pTerm, n);
+  if( c!=0 ) return c;
+  return a->nTerm-b->nTerm;
+}
+
+
+
+
+static int writeZeroSegment(fulltext_vtab *v, fts3Hash *pTerms){
+  fts3HashElem *e;
+  int idx, rc, i, n;
+  TermData *pData;
+  LeafWriter writer;
+  DataBuffer dl;
+
+  
+  rc = segdirNextIndex(v, 0, &idx);
+  if( rc!=SQLITE_OK ) return rc;
+
+  n = fts3HashCount(pTerms);
+  pData = sqlite3_malloc(n*sizeof(TermData));
+
+  for(i = 0, e = fts3HashFirst(pTerms); e; i++, e = fts3HashNext(e)){
+    assert( i<n );
+    pData[i].pTerm = fts3HashKey(e);
+    pData[i].nTerm = fts3HashKeysize(e);
+    pData[i].pCollector = fts3HashData(e);
+  }
+  assert( i==n );
+
+  
+
+
+  if( n>1 ) qsort(pData, n, sizeof(*pData), termDataCmp);
+
+  
+
+
+  leafWriterInit(0, idx, &writer);
+  dataBufferInit(&dl, 0);
+  for(i=0; i<n; i++){
+    dataBufferReset(&dl);
+    dlcAddDoclist(pData[i].pCollector, &dl);
+    rc = leafWriterStep(v, &writer,
+                        pData[i].pTerm, pData[i].nTerm, dl.pData, dl.nData);
+    if( rc!=SQLITE_OK ) goto err;
+  }
+  rc = leafWriterFinalize(v, &writer);
+
+ err:
+  dataBufferDestroy(&dl);
+  sqlite3_free(pData);
+  leafWriterDestroy(&writer);
+  return rc;
+}
+
+
+static int clearPendingTerms(fulltext_vtab *v){
+  if( v->nPendingData>=0 ){
+    fts3HashElem *e;
+    for(e=fts3HashFirst(&v->pendingTerms); e; e=fts3HashNext(e)){
+      dlcDelete(fts3HashData(e));
+    }
+    fts3HashClear(&v->pendingTerms);
+    v->nPendingData = -1;
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+static int flushPendingTerms(fulltext_vtab *v){
+  if( v->nPendingData>=0 ){
+    int rc = writeZeroSegment(v, &v->pendingTerms);
+    if( rc==SQLITE_OK ) clearPendingTerms(v);
+    return rc;
+  }
+  return SQLITE_OK;
+}
+
+
+
+
+static int initPendingTerms(fulltext_vtab *v, sqlite_int64 iDocid){
+  
+
+
+
+
+
+  if( iDocid<=v->iPrevDocid || v->nPendingData>kPendingThreshold ){
+    int rc = flushPendingTerms(v);
+    if( rc!=SQLITE_OK ) return rc;
+  }
+  if( v->nPendingData<0 ){
+    fts3HashInit(&v->pendingTerms, FTS3_HASH_STRING, 1);
+    v->nPendingData = 0;
+  }
+  v->iPrevDocid = iDocid;
+  return SQLITE_OK;
+}
+
+
+
+static int fulltextUpdate(sqlite3_vtab *pVtab, int nArg, sqlite3_value **ppArg,
+                          sqlite_int64 *pRowid){
+  fulltext_vtab *v = (fulltext_vtab *) pVtab;
+  int rc;
+
+  FTSTRACE(("FTS3 Update %p\n", pVtab));
+
+  if( nArg<2 ){
+    rc = index_delete(v, sqlite3_value_int64(ppArg[0]));
+  } else if( sqlite3_value_type(ppArg[0]) != SQLITE_NULL ){
+    
+
+
+
+
+
+
+    sqlite_int64 rowid = sqlite3_value_int64(ppArg[0]);
+    if( sqlite3_value_type(ppArg[1]) != SQLITE_INTEGER ||
+        sqlite3_value_int64(ppArg[1]) != rowid ){
+      rc = SQLITE_ERROR;  
+    }else if( sqlite3_value_type(ppArg[2+v->nColumn+1]) != SQLITE_INTEGER ||
+              sqlite3_value_int64(ppArg[2+v->nColumn+1]) != rowid ){
+      rc = SQLITE_ERROR;  
+    }else{
+      assert( nArg==2+v->nColumn+2);
+      rc = index_update(v, rowid, &ppArg[2]);
+    }
+  } else {
+    
+
+
+
+
+
+    sqlite3_value *pRequestDocid = ppArg[2+v->nColumn+1];
+    assert( nArg==2+v->nColumn+2);
+    if( SQLITE_NULL != sqlite3_value_type(pRequestDocid) &&
+        SQLITE_NULL != sqlite3_value_type(ppArg[1]) ){
+      
+
+
+
+
+
+
+      rc = SQLITE_ERROR;
+    }else{
+      if( SQLITE_NULL == sqlite3_value_type(pRequestDocid) ){
+        pRequestDocid = ppArg[1];
+      }
+      rc = index_insert(v, pRequestDocid, &ppArg[2], pRowid);
+    }
+  }
+
+  return rc;
+}
+
+static int fulltextSync(sqlite3_vtab *pVtab){
+  FTSTRACE(("FTS3 xSync()\n"));
+  return flushPendingTerms((fulltext_vtab *)pVtab);
+}
+
+static int fulltextBegin(sqlite3_vtab *pVtab){
+  fulltext_vtab *v = (fulltext_vtab *) pVtab;
+  FTSTRACE(("FTS3 xBegin()\n"));
+
+  
+
+
+  assert( v->nPendingData<0 );
+  return clearPendingTerms(v);
+}
+
+static int fulltextCommit(sqlite3_vtab *pVtab){
+  fulltext_vtab *v = (fulltext_vtab *) pVtab;
+  FTSTRACE(("FTS3 xCommit()\n"));
+
+  
+  assert( v->nPendingData<0 );
+  return clearPendingTerms(v);
+}
+
+static int fulltextRollback(sqlite3_vtab *pVtab){
+  FTSTRACE(("FTS3 xRollback()\n"));
+  return clearPendingTerms((fulltext_vtab *)pVtab);
+}
+
+
+
+
+static void snippetFunc(
+  sqlite3_context *pContext,
+  int argc,
+  sqlite3_value **argv
+){
+  fulltext_cursor *pCursor;
+  if( argc<1 ) return;
+  if( sqlite3_value_type(argv[0])!=SQLITE_BLOB ||
+      sqlite3_value_bytes(argv[0])!=sizeof(pCursor) ){
+    sqlite3_result_error(pContext, "illegal first argument to html_snippet",-1);
+  }else{
+    const char *zStart = "<b>";
+    const char *zEnd = "</b>";
+    const char *zEllipsis = "<b>...</b>";
+    memcpy(&pCursor, sqlite3_value_blob(argv[0]), sizeof(pCursor));
+    if( argc>=2 ){
+      zStart = (const char*)sqlite3_value_text(argv[1]);
+      if( argc>=3 ){
+        zEnd = (const char*)sqlite3_value_text(argv[2]);
+        if( argc>=4 ){
+          zEllipsis = (const char*)sqlite3_value_text(argv[3]);
+        }
+      }
+    }
+    snippetAllOffsets(pCursor);
+    snippetText(pCursor, zStart, zEnd, zEllipsis);
+    sqlite3_result_text(pContext, pCursor->snippet.zSnippet,
+                        pCursor->snippet.nSnippet, SQLITE_STATIC);
+  }
+}
+
+
+
+
+static void snippetOffsetsFunc(
+  sqlite3_context *pContext,
+  int argc,
+  sqlite3_value **argv
+){
+  fulltext_cursor *pCursor;
+  if( argc<1 ) return;
+  if( sqlite3_value_type(argv[0])!=SQLITE_BLOB ||
+      sqlite3_value_bytes(argv[0])!=sizeof(pCursor) ){
+    sqlite3_result_error(pContext, "illegal first argument to offsets",-1);
+  }else{
+    memcpy(&pCursor, sqlite3_value_blob(argv[0]), sizeof(pCursor));
+    snippetAllOffsets(pCursor);
+    snippetOffsetText(&pCursor->snippet);
+    sqlite3_result_text(pContext,
+                        pCursor->snippet.zOffset, pCursor->snippet.nOffset,
+                        SQLITE_STATIC);
+  }
+}
+
+
+
+
+
+static int fulltextFindFunction(
+  sqlite3_vtab *pVtab,
+  int nArg,
+  const char *zName,
+  void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+  void **ppArg
+){
+  if( strcmp(zName,"snippet")==0 ){
+    *pxFunc = snippetFunc;
+    return 1;
+  }else if( strcmp(zName,"offsets")==0 ){
+    *pxFunc = snippetOffsetsFunc;
+    return 1;
+  }
+  return 0;
+}
+
+
+
+
+static int fulltextRename(
+  sqlite3_vtab *pVtab,
+  const char *zName
+){
+  fulltext_vtab *p = (fulltext_vtab *)pVtab;
+  int rc = SQLITE_NOMEM;
+  char *zSql = sqlite3_mprintf(
+    "ALTER TABLE %Q.'%q_content'  RENAME TO '%q_content';"
+    "ALTER TABLE %Q.'%q_segments' RENAME TO '%q_segments';"
+    "ALTER TABLE %Q.'%q_segdir'   RENAME TO '%q_segdir';"
+    , p->zDb, p->zName, zName 
+    , p->zDb, p->zName, zName 
+    , p->zDb, p->zName, zName
+  );
+  if( zSql ){
+    rc = sqlite3_exec(p->db, zSql, 0, 0, 0);
+    sqlite3_free(zSql);
+  }
+  return rc;
+}
+
+static const sqlite3_module fts3Module = {
+   0,
+   fulltextCreate,
+   fulltextConnect,
+   fulltextBestIndex,
+   fulltextDisconnect,
+   fulltextDestroy,
+   fulltextOpen,
+   fulltextClose,
+   fulltextFilter,
+   fulltextNext,
+   fulltextEof,
+   fulltextColumn,
+   fulltextRowid,
+   fulltextUpdate,
+   fulltextBegin,
+   fulltextSync,
+   fulltextCommit,
+   fulltextRollback,
+   fulltextFindFunction,
+         fulltextRename,
+};
+
+static void hashDestroy(void *p){
+  fts3Hash *pHash = (fts3Hash *)p;
+  sqlite3Fts3HashClear(pHash);
+  sqlite3_free(pHash);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3Fts3SimpleTokenizerModule(sqlite3_tokenizer_module const**ppModule);
+void sqlite3Fts3PorterTokenizerModule(sqlite3_tokenizer_module const**ppModule);
+void sqlite3Fts3IcuTokenizerModule(sqlite3_tokenizer_module const**ppModule);
+
+int sqlite3Fts3InitHashTable(sqlite3 *, fts3Hash *, const char *);
+
+
+
+
+
+
+
+int sqlite3Fts3Init(sqlite3 *db){
+  int rc = SQLITE_OK;
+  fts3Hash *pHash = 0;
+  const sqlite3_tokenizer_module *pSimple = 0;
+  const sqlite3_tokenizer_module *pPorter = 0;
+  const sqlite3_tokenizer_module *pIcu = 0;
+
+  sqlite3Fts3SimpleTokenizerModule(&pSimple);
+  sqlite3Fts3PorterTokenizerModule(&pPorter);
+#ifdef SQLITE_ENABLE_ICU
+  sqlite3Fts3IcuTokenizerModule(&pIcu);
+#endif
+
+  
+  pHash = sqlite3_malloc(sizeof(fts3Hash));
+  if( !pHash ){
+    rc = SQLITE_NOMEM;
+  }else{
+    sqlite3Fts3HashInit(pHash, FTS3_HASH_STRING, 1);
+  }
+
+  
+  if( rc==SQLITE_OK ){
+    if( sqlite3Fts3HashInsert(pHash, "simple", 7, (void *)pSimple)
+     || sqlite3Fts3HashInsert(pHash, "porter", 7, (void *)pPorter) 
+     || (pIcu && sqlite3Fts3HashInsert(pHash, "icu", 4, (void *)pIcu))
+    ){
+      rc = SQLITE_NOMEM;
+    }
+  }
+
+  
+
+
+
+  if( SQLITE_OK==rc 
+   && SQLITE_OK==(rc = sqlite3Fts3InitHashTable(db, pHash, "fts3_tokenizer"))
+   && SQLITE_OK==(rc = sqlite3_overload_function(db, "snippet", -1))
+   && SQLITE_OK==(rc = sqlite3_overload_function(db, "offsets", -1))
+  ){
+    return sqlite3_create_module_v2(
+        db, "fts3", &fts3Module, (void *)pHash, hashDestroy
+    );
+  }
+
+  
+  assert( rc!=SQLITE_OK );
+  if( pHash ){
+    sqlite3Fts3HashClear(pHash);
+    sqlite3_free(pHash);
+  }
+  return rc;
+}
+
+#if !SQLITE_CORE
+int sqlite3_extension_init(
+  sqlite3 *db, 
+  char **pzErrMsg,
+  const sqlite3_api_routines *pApi
+){
+  SQLITE_EXTENSION_INIT2(pApi)
+  return sqlite3Fts3Init(db);
+}
+#endif
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_HASH_H_
+#define _FTS3_HASH_H_
+
+
+typedef struct fts3Hash fts3Hash;
+typedef struct fts3HashElem fts3HashElem;
+
+
+
+
+
+
+
+
+
+struct fts3Hash {
+  char keyClass;          
+  char copyKey;           
+  int count;              
+  fts3HashElem *first;    
+  int htsize;             
+  struct _fts3ht {        
+    int count;               
+    fts3HashElem *chain;     
+  } *ht;
+};
+
+
+
+
+
+
+
+struct fts3HashElem {
+  fts3HashElem *next, *prev; 
+  void *data;                
+  void *pKey; int nKey;      
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define FTS3_HASH_STRING    1
+#define FTS3_HASH_BINARY    2
+
+
+
+
+void sqlite3Fts3HashInit(fts3Hash*, int keytype, int copyKey);
+void *sqlite3Fts3HashInsert(fts3Hash*, const void *pKey, int nKey, void *pData);
+void *sqlite3Fts3HashFind(const fts3Hash*, const void *pKey, int nKey);
+void sqlite3Fts3HashClear(fts3Hash*);
+
+
+
+
+#define fts3HashInit   sqlite3Fts3HashInit
+#define fts3HashInsert sqlite3Fts3HashInsert
+#define fts3HashFind   sqlite3Fts3HashFind
+#define fts3HashClear  sqlite3Fts3HashClear
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define fts3HashFirst(H)  ((H)->first)
+#define fts3HashNext(E)   ((E)->next)
+#define fts3HashData(E)   ((E)->data)
+#define fts3HashKey(E)    ((E)->pKey)
+#define fts3HashKeysize(E) ((E)->nKey)
+
+
+
+
+#define fts3HashCount(H)  ((H)->count)
+
+#endif 
+
+
+
+
+
+
+
+static void *fts3HashMalloc(int n){
+  void *p = sqlite3_malloc(n);
+  if( p ){
+    memset(p, 0, n);
+  }
+  return p;
+}
+static void fts3HashFree(void *p){
+  sqlite3_free(p);
+}
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3Fts3HashInit(fts3Hash *pNew, int keyClass, int copyKey){
+  assert( pNew!=0 );
+  assert( keyClass>=FTS3_HASH_STRING && keyClass<=FTS3_HASH_BINARY );
+  pNew->keyClass = keyClass;
+  pNew->copyKey = copyKey;
+  pNew->first = 0;
+  pNew->count = 0;
+  pNew->htsize = 0;
+  pNew->ht = 0;
+}
+
+
+
+
+
+void sqlite3Fts3HashClear(fts3Hash *pH){
+  fts3HashElem *elem;         
+
+  assert( pH!=0 );
+  elem = pH->first;
+  pH->first = 0;
+  fts3HashFree(pH->ht);
+  pH->ht = 0;
+  pH->htsize = 0;
+  while( elem ){
+    fts3HashElem *next_elem = elem->next;
+    if( pH->copyKey && elem->pKey ){
+      fts3HashFree(elem->pKey);
+    }
+    fts3HashFree(elem);
+    elem = next_elem;
+  }
+  pH->count = 0;
+}
+
+
+
+
+static int fts3StrHash(const void *pKey, int nKey){
+  const char *z = (const char *)pKey;
+  int h = 0;
+  if( nKey<=0 ) nKey = (int) strlen(z);
+  while( nKey > 0  ){
+    h = (h<<3) ^ h ^ *z++;
+    nKey--;
+  }
+  return h & 0x7fffffff;
+}
+static int fts3StrCompare(const void *pKey1, int n1, const void *pKey2, int n2){
+  if( n1!=n2 ) return 1;
+  return strncmp((const char*)pKey1,(const char*)pKey2,n1);
+}
+
+
+
+
+static int fts3BinHash(const void *pKey, int nKey){
+  int h = 0;
+  const char *z = (const char *)pKey;
+  while( nKey-- > 0 ){
+    h = (h<<3) ^ h ^ *(z++);
+  }
+  return h & 0x7fffffff;
+}
+static int fts3BinCompare(const void *pKey1, int n1, const void *pKey2, int n2){
+  if( n1!=n2 ) return 1;
+  return memcmp(pKey1,pKey2,n1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int (*ftsHashFunction(int keyClass))(const void*,int){
+  if( keyClass==FTS3_HASH_STRING ){
+    return &fts3StrHash;
+  }else{
+    assert( keyClass==FTS3_HASH_BINARY );
+    return &fts3BinHash;
+  }
+}
+
+
+
+
+
+
+
+static int (*ftsCompareFunction(int keyClass))(const void*,int,const void*,int){
+  if( keyClass==FTS3_HASH_STRING ){
+    return &fts3StrCompare;
+  }else{
+    assert( keyClass==FTS3_HASH_BINARY );
+    return &fts3BinCompare;
+  }
+}
+
+
+
+static void fts3HashInsertElement(
+  fts3Hash *pH,            
+  struct _fts3ht *pEntry,  
+  fts3HashElem *pNew       
+){
+  fts3HashElem *pHead;     
+  pHead = pEntry->chain;
+  if( pHead ){
+    pNew->next = pHead;
+    pNew->prev = pHead->prev;
+    if( pHead->prev ){ pHead->prev->next = pNew; }
+    else             { pH->first = pNew; }
+    pHead->prev = pNew;
+  }else{
+    pNew->next = pH->first;
+    if( pH->first ){ pH->first->prev = pNew; }
+    pNew->prev = 0;
+    pH->first = pNew;
+  }
+  pEntry->count++;
+  pEntry->chain = pNew;
+}
+
+
+
+
+
+
+static void fts3Rehash(fts3Hash *pH, int new_size){
+  struct _fts3ht *new_ht;          
+  fts3HashElem *elem, *next_elem;  
+  int (*xHash)(const void*,int);   
+
+  assert( (new_size & (new_size-1))==0 );
+  new_ht = (struct _fts3ht *)fts3HashMalloc( new_size*sizeof(struct _fts3ht) );
+  if( new_ht==0 ) return;
+  fts3HashFree(pH->ht);
+  pH->ht = new_ht;
+  pH->htsize = new_size;
+  xHash = ftsHashFunction(pH->keyClass);
+  for(elem=pH->first, pH->first=0; elem; elem = next_elem){
+    int h = (*xHash)(elem->pKey, elem->nKey) & (new_size-1);
+    next_elem = elem->next;
+    fts3HashInsertElement(pH, &new_ht[h], elem);
+  }
+}
+
+
+
+
+
+static fts3HashElem *fts3FindElementByHash(
+  const fts3Hash *pH, 
+  const void *pKey,   
+  int nKey,
+  int h               
+){
+  fts3HashElem *elem;            
+  int count;                     
+  int (*xCompare)(const void*,int,const void*,int);  
+
+  if( pH->ht ){
+    struct _fts3ht *pEntry = &pH->ht[h];
+    elem = pEntry->chain;
+    count = pEntry->count;
+    xCompare = ftsCompareFunction(pH->keyClass);
+    while( count-- && elem ){
+      if( (*xCompare)(elem->pKey,elem->nKey,pKey,nKey)==0 ){ 
+        return elem;
+      }
+      elem = elem->next;
+    }
+  }
+  return 0;
+}
+
+
+
+
+static void fts3RemoveElementByHash(
+  fts3Hash *pH,         
+  fts3HashElem* elem,   
+  int h                 
+){
+  struct _fts3ht *pEntry;
+  if( elem->prev ){
+    elem->prev->next = elem->next; 
+  }else{
+    pH->first = elem->next;
+  }
+  if( elem->next ){
+    elem->next->prev = elem->prev;
+  }
+  pEntry = &pH->ht[h];
+  if( pEntry->chain==elem ){
+    pEntry->chain = elem->next;
+  }
+  pEntry->count--;
+  if( pEntry->count<=0 ){
+    pEntry->chain = 0;
+  }
+  if( pH->copyKey && elem->pKey ){
+    fts3HashFree(elem->pKey);
+  }
+  fts3HashFree( elem );
+  pH->count--;
+  if( pH->count<=0 ){
+    assert( pH->first==0 );
+    assert( pH->count==0 );
+    fts3HashClear(pH);
+  }
+}
+
+
+
+
+
+void *sqlite3Fts3HashFind(const fts3Hash *pH, const void *pKey, int nKey){
+  int h;                 
+  fts3HashElem *elem;    
+  int (*xHash)(const void*,int);  
+
+  if( pH==0 || pH->ht==0 ) return 0;
+  xHash = ftsHashFunction(pH->keyClass);
+  assert( xHash!=0 );
+  h = (*xHash)(pKey,nKey);
+  assert( (pH->htsize & (pH->htsize-1))==0 );
+  elem = fts3FindElementByHash(pH,pKey,nKey, h & (pH->htsize-1));
+  return elem ? elem->data : 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3Fts3HashInsert(
+  fts3Hash *pH,        
+  const void *pKey,    
+  int nKey,            
+  void *data           
+){
+  int hraw;                 
+  int h;                    
+  fts3HashElem *elem;       
+  fts3HashElem *new_elem;   
+  int (*xHash)(const void*,int);  
+
+  assert( pH!=0 );
+  xHash = ftsHashFunction(pH->keyClass);
+  assert( xHash!=0 );
+  hraw = (*xHash)(pKey, nKey);
+  assert( (pH->htsize & (pH->htsize-1))==0 );
+  h = hraw & (pH->htsize-1);
+  elem = fts3FindElementByHash(pH,pKey,nKey,h);
+  if( elem ){
+    void *old_data = elem->data;
+    if( data==0 ){
+      fts3RemoveElementByHash(pH,elem,h);
+    }else{
+      elem->data = data;
+    }
+    return old_data;
+  }
+  if( data==0 ) return 0;
+  new_elem = (fts3HashElem*)fts3HashMalloc( sizeof(fts3HashElem) );
+  if( new_elem==0 ) return data;
+  if( pH->copyKey && pKey!=0 ){
+    new_elem->pKey = fts3HashMalloc( nKey );
+    if( new_elem->pKey==0 ){
+      fts3HashFree(new_elem);
+      return data;
+    }
+    memcpy((void*)new_elem->pKey, pKey, nKey);
+  }else{
+    new_elem->pKey = (void*)pKey;
+  }
+  new_elem->nKey = nKey;
+  pH->count++;
+  if( pH->htsize==0 ){
+    fts3Rehash(pH,8);
+    if( pH->htsize==0 ){
+      pH->count = 0;
+      fts3HashFree(new_elem);
+      return data;
+    }
+  }
+  if( pH->count > pH->htsize ){
+    fts3Rehash(pH,pH->htsize*2);
+  }
+  assert( pH->htsize>0 );
+  assert( (pH->htsize & (pH->htsize-1))==0 );
+  h = hraw & (pH->htsize-1);
+  fts3HashInsertElement(pH, &pH->ht[h], new_elem);
+  new_elem->data = data;
+  return 0;
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_TOKENIZER_H_
+#define _FTS3_TOKENIZER_H_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_tokenizer_module sqlite3_tokenizer_module;
+typedef struct sqlite3_tokenizer sqlite3_tokenizer;
+typedef struct sqlite3_tokenizer_cursor sqlite3_tokenizer_cursor;
+
+struct sqlite3_tokenizer_module {
+
+  
+
+
+  int iVersion;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int (*xCreate)(
+    int argc,                           
+    const char *const*argv,             
+    sqlite3_tokenizer **ppTokenizer     
+  );
+
+  
+
+
+
+  int (*xDestroy)(sqlite3_tokenizer *pTokenizer);
+
+  
+
+
+
+
+  int (*xOpen)(
+    sqlite3_tokenizer *pTokenizer,       
+    const char *pInput, int nBytes,      
+    sqlite3_tokenizer_cursor **ppCursor  
+  );
+
+  
+
+
+
+  int (*xClose)(sqlite3_tokenizer_cursor *pCursor);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  int (*xNext)(
+    sqlite3_tokenizer_cursor *pCursor,   
+    const char **ppToken, int *pnBytes,  
+    int *piStartOffset,  
+    int *piEndOffset,    
+    int *piPosition      
+  );
+};
+
+struct sqlite3_tokenizer {
+  const sqlite3_tokenizer_module *pModule;  
+  
+};
+
+struct sqlite3_tokenizer_cursor {
+  sqlite3_tokenizer *pTokenizer;       
+  
+};
+
+#endif
+
+
+
+
+
+
+
+typedef struct porter_tokenizer {
+  sqlite3_tokenizer base;      
+} porter_tokenizer;
+
+
+
+
+typedef struct porter_tokenizer_cursor {
+  sqlite3_tokenizer_cursor base;
+  const char *zInput;          
+  int nInput;                  
+  int iOffset;                 
+  int iToken;                  
+  char *zToken;                
+  int nAllocated;              
+} porter_tokenizer_cursor;
+
+
+
+static const sqlite3_tokenizer_module porterTokenizerModule;
+
+
+
+
+
+static int porterCreate(
+  int argc, const char * const *argv,
+  sqlite3_tokenizer **ppTokenizer
+){
+  porter_tokenizer *t;
+  t = (porter_tokenizer *) sqlite3_malloc(sizeof(*t));
+  if( t==NULL ) return SQLITE_NOMEM;
+  memset(t, 0, sizeof(*t));
+  *ppTokenizer = &t->base;
+  return SQLITE_OK;
+}
+
+
+
+
+static int porterDestroy(sqlite3_tokenizer *pTokenizer){
+  sqlite3_free(pTokenizer);
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+static int porterOpen(
+  sqlite3_tokenizer *pTokenizer,         
+  const char *zInput, int nInput,        
+  sqlite3_tokenizer_cursor **ppCursor    
+){
+  porter_tokenizer_cursor *c;
+
+  c = (porter_tokenizer_cursor *) sqlite3_malloc(sizeof(*c));
+  if( c==NULL ) return SQLITE_NOMEM;
+
+  c->zInput = zInput;
+  if( zInput==0 ){
+    c->nInput = 0;
+  }else if( nInput<0 ){
+    c->nInput = (int)strlen(zInput);
+  }else{
+    c->nInput = nInput;
+  }
+  c->iOffset = 0;                 
+  c->iToken = 0;
+  c->zToken = NULL;               
+  c->nAllocated = 0;
+
+  *ppCursor = &c->base;
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int porterClose(sqlite3_tokenizer_cursor *pCursor){
+  porter_tokenizer_cursor *c = (porter_tokenizer_cursor *) pCursor;
+  sqlite3_free(c->zToken);
+  sqlite3_free(c);
+  return SQLITE_OK;
+}
+
+
+
+static const char cType[] = {
+   0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0,
+   1, 1, 1, 2, 1
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int isVowel(const char*);
+static int isConsonant(const char *z){
+  int j;
+  char x = *z;
+  if( x==0 ) return 0;
+  assert( x>='a' && x<='z' );
+  j = cType[x-'a'];
+  if( j<2 ) return j;
+  return z[1]==0 || isVowel(z + 1);
+}
+static int isVowel(const char *z){
+  int j;
+  char x = *z;
+  if( x==0 ) return 0;
+  assert( x>='a' && x<='z' );
+  j = cType[x-'a'];
+  if( j<2 ) return 1-j;
+  return isConsonant(z + 1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int m_gt_0(const char *z){
+  while( isVowel(z) ){ z++; }
+  if( *z==0 ) return 0;
+  while( isConsonant(z) ){ z++; }
+  return *z!=0;
+}
+
+
+
+
+static int m_eq_1(const char *z){
+  while( isVowel(z) ){ z++; }
+  if( *z==0 ) return 0;
+  while( isConsonant(z) ){ z++; }
+  if( *z==0 ) return 0;
+  while( isVowel(z) ){ z++; }
+  if( *z==0 ) return 1;
+  while( isConsonant(z) ){ z++; }
+  return *z==0;
+}
+
+
+
+
+static int m_gt_1(const char *z){
+  while( isVowel(z) ){ z++; }
+  if( *z==0 ) return 0;
+  while( isConsonant(z) ){ z++; }
+  if( *z==0 ) return 0;
+  while( isVowel(z) ){ z++; }
+  if( *z==0 ) return 0;
+  while( isConsonant(z) ){ z++; }
+  return *z!=0;
+}
+
+
+
+
+static int hasVowel(const char *z){
+  while( isConsonant(z) ){ z++; }
+  return *z!=0;
+}
+
+
+
+
+
+
+
+static int doubleConsonant(const char *z){
+  return isConsonant(z) && z[0]==z[1] && isConsonant(z+1);
+}
+
+
+
+
+
+
+
+
+
+static int star_oh(const char *z){
+  return
+    z[0]!=0 && isConsonant(z) &&
+    z[0]!='w' && z[0]!='x' && z[0]!='y' &&
+    z[1]!=0 && isVowel(z+1) &&
+    z[2]!=0 && isConsonant(z+2);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static int stem(
+  char **pz,             
+  const char *zFrom,     
+  const char *zTo,       
+  int (*xCond)(const char*)   
+){
+  char *z = *pz;
+  while( *zFrom && *zFrom==*z ){ z++; zFrom++; }
+  if( *zFrom!=0 ) return 0;
+  if( xCond && !xCond(z) ) return 1;
+  while( *zTo ){
+    *(--z) = *(zTo++);
+  }
+  *pz = z;
+  return 1;
+}
+
+
+
+
+
+
+
+
+
+static void copy_stemmer(const char *zIn, int nIn, char *zOut, int *pnOut){
+  int i, mx, j;
+  int hasDigit = 0;
+  for(i=0; i<nIn; i++){
+    int c = zIn[i];
+    if( c>='A' && c<='Z' ){
+      zOut[i] = c - 'A' + 'a';
+    }else{
+      if( c>='0' && c<='9' ) hasDigit = 1;
+      zOut[i] = c;
+    }
+  }
+  mx = hasDigit ? 3 : 10;
+  if( nIn>mx*2 ){
+    for(j=mx, i=nIn-mx; i<nIn; i++, j++){
+      zOut[j] = zOut[i];
+    }
+    i = j;
+  }
+  zOut[i] = 0;
+  *pnOut = i;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void porter_stemmer(const char *zIn, int nIn, char *zOut, int *pnOut){
+  int i, j, c;
+  char zReverse[28];
+  char *z, *z2;
+  if( nIn<3 || nIn>=sizeof(zReverse)-7 ){
+    
+
+    copy_stemmer(zIn, nIn, zOut, pnOut);
+    return;
+  }
+  for(i=0, j=sizeof(zReverse)-6; i<nIn; i++, j--){
+    c = zIn[i];
+    if( c>='A' && c<='Z' ){
+      zReverse[j] = c + 'a' - 'A';
+    }else if( c>='a' && c<='z' ){
+      zReverse[j] = c;
+    }else{
+      
+
+      copy_stemmer(zIn, nIn, zOut, pnOut);
+      return;
+    }
+  }
+  memset(&zReverse[sizeof(zReverse)-5], 0, 5);
+  z = &zReverse[j+1];
+
+
+  
+  if( z[0]=='s' ){
+    if(
+     !stem(&z, "sess", "ss", 0) &&
+     !stem(&z, "sei", "i", 0)  &&
+     !stem(&z, "ss", "ss", 0)
+    ){
+      z++;
+    }
+  }
+
+    
+  z2 = z;
+  if( stem(&z, "dee", "ee", m_gt_0) ){
+    
+  }else if( 
+     (stem(&z, "gni", "", hasVowel) || stem(&z, "de", "", hasVowel))
+      && z!=z2
+  ){
+     if( stem(&z, "ta", "ate", 0) ||
+         stem(&z, "lb", "ble", 0) ||
+         stem(&z, "zi", "ize", 0) ){
+       
+     }else if( doubleConsonant(z) && (*z!='l' && *z!='s' && *z!='z') ){
+       z++;
+     }else if( m_eq_1(z) && star_oh(z) ){
+       *(--z) = 'e';
+     }
+  }
+
+  
+  if( z[0]=='y' && hasVowel(z+1) ){
+    z[0] = 'i';
+  }
+
+  
+  switch( z[1] ){
+   case 'a':
+     stem(&z, "lanoita", "ate", m_gt_0) ||
+     stem(&z, "lanoit", "tion", m_gt_0);
+     break;
+   case 'c':
+     stem(&z, "icne", "ence", m_gt_0) ||
+     stem(&z, "icna", "ance", m_gt_0);
+     break;
+   case 'e':
+     stem(&z, "rezi", "ize", m_gt_0);
+     break;
+   case 'g':
+     stem(&z, "igol", "log", m_gt_0);
+     break;
+   case 'l':
+     stem(&z, "ilb", "ble", m_gt_0) ||
+     stem(&z, "illa", "al", m_gt_0) ||
+     stem(&z, "iltne", "ent", m_gt_0) ||
+     stem(&z, "ile", "e", m_gt_0) ||
+     stem(&z, "ilsuo", "ous", m_gt_0);
+     break;
+   case 'o':
+     stem(&z, "noitazi", "ize", m_gt_0) ||
+     stem(&z, "noita", "ate", m_gt_0) ||
+     stem(&z, "rota", "ate", m_gt_0);
+     break;
+   case 's':
+     stem(&z, "msila", "al", m_gt_0) ||
+     stem(&z, "ssenevi", "ive", m_gt_0) ||
+     stem(&z, "ssenluf", "ful", m_gt_0) ||
+     stem(&z, "ssensuo", "ous", m_gt_0);
+     break;
+   case 't':
+     stem(&z, "itila", "al", m_gt_0) ||
+     stem(&z, "itivi", "ive", m_gt_0) ||
+     stem(&z, "itilib", "ble", m_gt_0);
+     break;
+  }
+
+  
+  switch( z[0] ){
+   case 'e':
+     stem(&z, "etaci", "ic", m_gt_0) ||
+     stem(&z, "evita", "", m_gt_0)   ||
+     stem(&z, "ezila", "al", m_gt_0);
+     break;
+   case 'i':
+     stem(&z, "itici", "ic", m_gt_0);
+     break;
+   case 'l':
+     stem(&z, "laci", "ic", m_gt_0) ||
+     stem(&z, "luf", "", m_gt_0);
+     break;
+   case 's':
+     stem(&z, "ssen", "", m_gt_0);
+     break;
+  }
+
+  
+  switch( z[1] ){
+   case 'a':
+     if( z[0]=='l' && m_gt_1(z+2) ){
+       z += 2;
+     }
+     break;
+   case 'c':
+     if( z[0]=='e' && z[2]=='n' && (z[3]=='a' || z[3]=='e')  && m_gt_1(z+4)  ){
+       z += 4;
+     }
+     break;
+   case 'e':
+     if( z[0]=='r' && m_gt_1(z+2) ){
+       z += 2;
+     }
+     break;
+   case 'i':
+     if( z[0]=='c' && m_gt_1(z+2) ){
+       z += 2;
+     }
+     break;
+   case 'l':
+     if( z[0]=='e' && z[2]=='b' && (z[3]=='a' || z[3]=='i') && m_gt_1(z+4) ){
+       z += 4;
+     }
+     break;
+   case 'n':
+     if( z[0]=='t' ){
+       if( z[2]=='a' ){
+         if( m_gt_1(z+3) ){
+           z += 3;
+         }
+       }else if( z[2]=='e' ){
+         stem(&z, "tneme", "", m_gt_1) ||
+         stem(&z, "tnem", "", m_gt_1) ||
+         stem(&z, "tne", "", m_gt_1);
+       }
+     }
+     break;
+   case 'o':
+     if( z[0]=='u' ){
+       if( m_gt_1(z+2) ){
+         z += 2;
+       }
+     }else if( z[3]=='s' || z[3]=='t' ){
+       stem(&z, "noi", "", m_gt_1);
+     }
+     break;
+   case 's':
+     if( z[0]=='m' && z[2]=='i' && m_gt_1(z+3) ){
+       z += 3;
+     }
+     break;
+   case 't':
+     stem(&z, "eta", "", m_gt_1) ||
+     stem(&z, "iti", "", m_gt_1);
+     break;
+   case 'u':
+     if( z[0]=='s' && z[2]=='o' && m_gt_1(z+3) ){
+       z += 3;
+     }
+     break;
+   case 'v':
+   case 'z':
+     if( z[0]=='e' && z[2]=='i' && m_gt_1(z+3) ){
+       z += 3;
+     }
+     break;
+  }
+
+  
+  if( z[0]=='e' ){
+    if( m_gt_1(z+1) ){
+      z++;
+    }else if( m_eq_1(z+1) && !star_oh(z+1) ){
+      z++;
+    }
+  }
+
+  
+  if( m_gt_1(z) && z[0]=='l' && z[1]=='l' ){
+    z++;
+  }
+
+  
+
+
+  *pnOut = i = strlen(z);
+  zOut[i] = 0;
+  while( *z ){
+    zOut[--i] = *(z++);
+  }
+}
+
+
+
+
+
+
+
+static const char porterIdChar[] = {
+
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,  
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1,  
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,  
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,  
+};
+#define isDelim(C) (((ch=C)&0x80)==0 && (ch<0x30 || !porterIdChar[ch-0x30]))
+
+
+
+
+
+static int porterNext(
+  sqlite3_tokenizer_cursor *pCursor,  
+  const char **pzToken,               
+  int *pnBytes,                       
+  int *piStartOffset,                 
+  int *piEndOffset,                   
+  int *piPosition                     
+){
+  porter_tokenizer_cursor *c = (porter_tokenizer_cursor *) pCursor;
+  const char *z = c->zInput;
+
+  while( c->iOffset<c->nInput ){
+    int iStartOffset, ch;
+
+    
+    while( c->iOffset<c->nInput && isDelim(z[c->iOffset]) ){
+      c->iOffset++;
+    }
+
+    
+    iStartOffset = c->iOffset;
+    while( c->iOffset<c->nInput && !isDelim(z[c->iOffset]) ){
+      c->iOffset++;
+    }
+
+    if( c->iOffset>iStartOffset ){
+      int n = c->iOffset-iStartOffset;
+      if( n>c->nAllocated ){
+        c->nAllocated = n+20;
+        c->zToken = sqlite3_realloc(c->zToken, c->nAllocated);
+        if( c->zToken==NULL ) return SQLITE_NOMEM;
+      }
+      porter_stemmer(&z[iStartOffset], n, c->zToken, pnBytes);
+      *pzToken = c->zToken;
+      *piStartOffset = iStartOffset;
+      *piEndOffset = c->iOffset;
+      *piPosition = c->iToken++;
+      return SQLITE_OK;
+    }
+  }
+  return SQLITE_DONE;
+}
+
+
+
+
+static const sqlite3_tokenizer_module porterTokenizerModule = {
+  0,
+  porterCreate,
+  porterDestroy,
+  porterOpen,
+  porterClose,
+  porterNext,
+};
+
+
+
+
+
+void sqlite3Fts3PorterTokenizerModule(
+  sqlite3_tokenizer_module const**ppModule
+){
+  *ppModule = &porterTokenizerModule;
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3EXT_H_
+#define _SQLITE3EXT_H_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+typedef struct sqlite3_api_routines sqlite3_api_routines;
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_api_routines {
+  void * (*aggregate_context)(sqlite3_context*,int nBytes);
+  int  (*aggregate_count)(sqlite3_context*);
+  int  (*bind_blob)(sqlite3_stmt*,int,const void*,int n,void(*)(void*));
+  int  (*bind_double)(sqlite3_stmt*,int,double);
+  int  (*bind_int)(sqlite3_stmt*,int,int);
+  int  (*bind_int64)(sqlite3_stmt*,int,sqlite_int64);
+  int  (*bind_null)(sqlite3_stmt*,int);
+  int  (*bind_parameter_count)(sqlite3_stmt*);
+  int  (*bind_parameter_index)(sqlite3_stmt*,const char*zName);
+  const char * (*bind_parameter_name)(sqlite3_stmt*,int);
+  int  (*bind_text)(sqlite3_stmt*,int,const char*,int n,void(*)(void*));
+  int  (*bind_text16)(sqlite3_stmt*,int,const void*,int,void(*)(void*));
+  int  (*bind_value)(sqlite3_stmt*,int,const sqlite3_value*);
+  int  (*busy_handler)(sqlite3*,int(*)(void*,int),void*);
+  int  (*busy_timeout)(sqlite3*,int ms);
+  int  (*changes)(sqlite3*);
+  int  (*close)(sqlite3*);
+  int  (*collation_needed)(sqlite3*,void*,void(*)(void*,sqlite3*,int eTextRep,const char*));
+  int  (*collation_needed16)(sqlite3*,void*,void(*)(void*,sqlite3*,int eTextRep,const void*));
+  const void * (*column_blob)(sqlite3_stmt*,int iCol);
+  int  (*column_bytes)(sqlite3_stmt*,int iCol);
+  int  (*column_bytes16)(sqlite3_stmt*,int iCol);
+  int  (*column_count)(sqlite3_stmt*pStmt);
+  const char * (*column_database_name)(sqlite3_stmt*,int);
+  const void * (*column_database_name16)(sqlite3_stmt*,int);
+  const char * (*column_decltype)(sqlite3_stmt*,int i);
+  const void * (*column_decltype16)(sqlite3_stmt*,int);
+  double  (*column_double)(sqlite3_stmt*,int iCol);
+  int  (*column_int)(sqlite3_stmt*,int iCol);
+  sqlite_int64  (*column_int64)(sqlite3_stmt*,int iCol);
+  const char * (*column_name)(sqlite3_stmt*,int);
+  const void * (*column_name16)(sqlite3_stmt*,int);
+  const char * (*column_origin_name)(sqlite3_stmt*,int);
+  const void * (*column_origin_name16)(sqlite3_stmt*,int);
+  const char * (*column_table_name)(sqlite3_stmt*,int);
+  const void * (*column_table_name16)(sqlite3_stmt*,int);
+  const unsigned char * (*column_text)(sqlite3_stmt*,int iCol);
+  const void * (*column_text16)(sqlite3_stmt*,int iCol);
+  int  (*column_type)(sqlite3_stmt*,int iCol);
+  sqlite3_value* (*column_value)(sqlite3_stmt*,int iCol);
+  void * (*commit_hook)(sqlite3*,int(*)(void*),void*);
+  int  (*complete)(const char*sql);
+  int  (*complete16)(const void*sql);
+  int  (*create_collation)(sqlite3*,const char*,int,void*,int(*)(void*,int,const void*,int,const void*));
+  int  (*create_collation16)(sqlite3*,const char*,int,void*,int(*)(void*,int,const void*,int,const void*));
+  int  (*create_function)(sqlite3*,const char*,int,int,void*,void (*xFunc)(sqlite3_context*,int,sqlite3_value**),void (*xStep)(sqlite3_context*,int,sqlite3_value**),void (*xFinal)(sqlite3_context*));
+  int  (*create_function16)(sqlite3*,const void*,int,int,void*,void (*xFunc)(sqlite3_context*,int,sqlite3_value**),void (*xStep)(sqlite3_context*,int,sqlite3_value**),void (*xFinal)(sqlite3_context*));
+  int (*create_module)(sqlite3*,const char*,const sqlite3_module*,void*);
+  int  (*data_count)(sqlite3_stmt*pStmt);
+  sqlite3 * (*db_handle)(sqlite3_stmt*);
+  int (*declare_vtab)(sqlite3*,const char*);
+  int  (*enable_shared_cache)(int);
+  int  (*errcode)(sqlite3*db);
+  const char * (*errmsg)(sqlite3*);
+  const void * (*errmsg16)(sqlite3*);
+  int  (*exec)(sqlite3*,const char*,sqlite3_callback,void*,char**);
+  int  (*expired)(sqlite3_stmt*);
+  int  (*finalize)(sqlite3_stmt*pStmt);
+  void  (*free)(void*);
+  void  (*free_table)(char**result);
+  int  (*get_autocommit)(sqlite3*);
+  void * (*get_auxdata)(sqlite3_context*,int);
+  int  (*get_table)(sqlite3*,const char*,char***,int*,int*,char**);
+  int  (*global_recover)(void);
+  void  (*interruptx)(sqlite3*);
+  sqlite_int64  (*last_insert_rowid)(sqlite3*);
+  const char * (*libversion)(void);
+  int  (*libversion_number)(void);
+  void *(*malloc)(int);
+  char * (*mprintf)(const char*,...);
+  int  (*open)(const char*,sqlite3**);
+  int  (*open16)(const void*,sqlite3**);
+  int  (*prepare)(sqlite3*,const char*,int,sqlite3_stmt**,const char**);
+  int  (*prepare16)(sqlite3*,const void*,int,sqlite3_stmt**,const void**);
+  void * (*profile)(sqlite3*,void(*)(void*,const char*,sqlite_uint64),void*);
+  void  (*progress_handler)(sqlite3*,int,int(*)(void*),void*);
+  void *(*realloc)(void*,int);
+  int  (*reset)(sqlite3_stmt*pStmt);
+  void  (*result_blob)(sqlite3_context*,const void*,int,void(*)(void*));
+  void  (*result_double)(sqlite3_context*,double);
+  void  (*result_error)(sqlite3_context*,const char*,int);
+  void  (*result_error16)(sqlite3_context*,const void*,int);
+  void  (*result_int)(sqlite3_context*,int);
+  void  (*result_int64)(sqlite3_context*,sqlite_int64);
+  void  (*result_null)(sqlite3_context*);
+  void  (*result_text)(sqlite3_context*,const char*,int,void(*)(void*));
+  void  (*result_text16)(sqlite3_context*,const void*,int,void(*)(void*));
+  void  (*result_text16be)(sqlite3_context*,const void*,int,void(*)(void*));
+  void  (*result_text16le)(sqlite3_context*,const void*,int,void(*)(void*));
+  void  (*result_value)(sqlite3_context*,sqlite3_value*);
+  void * (*rollback_hook)(sqlite3*,void(*)(void*),void*);
+  int  (*set_authorizer)(sqlite3*,int(*)(void*,int,const char*,const char*,const char*,const char*),void*);
+  void  (*set_auxdata)(sqlite3_context*,int,void*,void (*)(void*));
+  char * (*snprintf)(int,char*,const char*,...);
+  int  (*step)(sqlite3_stmt*);
+  int  (*table_column_metadata)(sqlite3*,const char*,const char*,const char*,char const**,char const**,int*,int*,int*);
+  void  (*thread_cleanup)(void);
+  int  (*total_changes)(sqlite3*);
+  void * (*trace)(sqlite3*,void(*xTrace)(void*,const char*),void*);
+  int  (*transfer_bindings)(sqlite3_stmt*,sqlite3_stmt*);
+  void * (*update_hook)(sqlite3*,void(*)(void*,int ,char const*,char const*,sqlite_int64),void*);
+  void * (*user_data)(sqlite3_context*);
+  const void * (*value_blob)(sqlite3_value*);
+  int  (*value_bytes)(sqlite3_value*);
+  int  (*value_bytes16)(sqlite3_value*);
+  double  (*value_double)(sqlite3_value*);
+  int  (*value_int)(sqlite3_value*);
+  sqlite_int64  (*value_int64)(sqlite3_value*);
+  int  (*value_numeric_type)(sqlite3_value*);
+  const unsigned char * (*value_text)(sqlite3_value*);
+  const void * (*value_text16)(sqlite3_value*);
+  const void * (*value_text16be)(sqlite3_value*);
+  const void * (*value_text16le)(sqlite3_value*);
+  int  (*value_type)(sqlite3_value*);
+  char *(*vmprintf)(const char*,va_list);
+  
+  int (*overload_function)(sqlite3*, const char *zFuncName, int nArg);
+  
+  int (*prepare_v2)(sqlite3*,const char*,int,sqlite3_stmt**,const char**);
+  int (*prepare16_v2)(sqlite3*,const void*,int,sqlite3_stmt**,const void**);
+  int (*clear_bindings)(sqlite3_stmt*);
+  
+  int (*create_module_v2)(sqlite3*,const char*,const sqlite3_module*,void*,void (*xDestroy)(void *));
+  
+  int (*bind_zeroblob)(sqlite3_stmt*,int,int);
+  int (*blob_bytes)(sqlite3_blob*);
+  int (*blob_close)(sqlite3_blob*);
+  int (*blob_open)(sqlite3*,const char*,const char*,const char*,sqlite3_int64,int,sqlite3_blob**);
+  int (*blob_read)(sqlite3_blob*,void*,int,int);
+  int (*blob_write)(sqlite3_blob*,const void*,int,int);
+  int (*create_collation_v2)(sqlite3*,const char*,int,void*,int(*)(void*,int,const void*,int,const void*),void(*)(void*));
+  int (*file_control)(sqlite3*,const char*,int,void*);
+  sqlite3_int64 (*memory_highwater)(int);
+  sqlite3_int64 (*memory_used)(void);
+  sqlite3_mutex *(*mutex_alloc)(int);
+  void (*mutex_enter)(sqlite3_mutex*);
+  void (*mutex_free)(sqlite3_mutex*);
+  void (*mutex_leave)(sqlite3_mutex*);
+  int (*mutex_try)(sqlite3_mutex*);
+  int (*open_v2)(const char*,sqlite3**,int,const char*);
+  int (*release_memory)(int);
+  void (*result_error_nomem)(sqlite3_context*);
+  void (*result_error_toobig)(sqlite3_context*);
+  int (*sleep)(int);
+  void (*soft_heap_limit)(int);
+  sqlite3_vfs *(*vfs_find)(const char*);
+  int (*vfs_register)(sqlite3_vfs*,int);
+  int (*vfs_unregister)(sqlite3_vfs*);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef SQLITE_CORE
+#define sqlite3_aggregate_context      sqlite3_api->aggregate_context
+#define sqlite3_aggregate_count        sqlite3_api->aggregate_count
+#define sqlite3_bind_blob              sqlite3_api->bind_blob
+#define sqlite3_bind_double            sqlite3_api->bind_double
+#define sqlite3_bind_int               sqlite3_api->bind_int
+#define sqlite3_bind_int64             sqlite3_api->bind_int64
+#define sqlite3_bind_null              sqlite3_api->bind_null
+#define sqlite3_bind_parameter_count   sqlite3_api->bind_parameter_count
+#define sqlite3_bind_parameter_index   sqlite3_api->bind_parameter_index
+#define sqlite3_bind_parameter_name    sqlite3_api->bind_parameter_name
+#define sqlite3_bind_text              sqlite3_api->bind_text
+#define sqlite3_bind_text16            sqlite3_api->bind_text16
+#define sqlite3_bind_value             sqlite3_api->bind_value
+#define sqlite3_busy_handler           sqlite3_api->busy_handler
+#define sqlite3_busy_timeout           sqlite3_api->busy_timeout
+#define sqlite3_changes                sqlite3_api->changes
+#define sqlite3_close                  sqlite3_api->close
+#define sqlite3_collation_needed       sqlite3_api->collation_needed
+#define sqlite3_collation_needed16     sqlite3_api->collation_needed16
+#define sqlite3_column_blob            sqlite3_api->column_blob
+#define sqlite3_column_bytes           sqlite3_api->column_bytes
+#define sqlite3_column_bytes16         sqlite3_api->column_bytes16
+#define sqlite3_column_count           sqlite3_api->column_count
+#define sqlite3_column_database_name   sqlite3_api->column_database_name
+#define sqlite3_column_database_name16 sqlite3_api->column_database_name16
+#define sqlite3_column_decltype        sqlite3_api->column_decltype
+#define sqlite3_column_decltype16      sqlite3_api->column_decltype16
+#define sqlite3_column_double          sqlite3_api->column_double
+#define sqlite3_column_int             sqlite3_api->column_int
+#define sqlite3_column_int64           sqlite3_api->column_int64
+#define sqlite3_column_name            sqlite3_api->column_name
+#define sqlite3_column_name16          sqlite3_api->column_name16
+#define sqlite3_column_origin_name     sqlite3_api->column_origin_name
+#define sqlite3_column_origin_name16   sqlite3_api->column_origin_name16
+#define sqlite3_column_table_name      sqlite3_api->column_table_name
+#define sqlite3_column_table_name16    sqlite3_api->column_table_name16
+#define sqlite3_column_text            sqlite3_api->column_text
+#define sqlite3_column_text16          sqlite3_api->column_text16
+#define sqlite3_column_type            sqlite3_api->column_type
+#define sqlite3_column_value           sqlite3_api->column_value
+#define sqlite3_commit_hook            sqlite3_api->commit_hook
+#define sqlite3_complete               sqlite3_api->complete
+#define sqlite3_complete16             sqlite3_api->complete16
+#define sqlite3_create_collation       sqlite3_api->create_collation
+#define sqlite3_create_collation16     sqlite3_api->create_collation16
+#define sqlite3_create_function        sqlite3_api->create_function
+#define sqlite3_create_function16      sqlite3_api->create_function16
+#define sqlite3_create_module          sqlite3_api->create_module
+#define sqlite3_create_module_v2       sqlite3_api->create_module_v2
+#define sqlite3_data_count             sqlite3_api->data_count
+#define sqlite3_db_handle              sqlite3_api->db_handle
+#define sqlite3_declare_vtab           sqlite3_api->declare_vtab
+#define sqlite3_enable_shared_cache    sqlite3_api->enable_shared_cache
+#define sqlite3_errcode                sqlite3_api->errcode
+#define sqlite3_errmsg                 sqlite3_api->errmsg
+#define sqlite3_errmsg16               sqlite3_api->errmsg16
+#define sqlite3_exec                   sqlite3_api->exec
+#define sqlite3_expired                sqlite3_api->expired
+#define sqlite3_finalize               sqlite3_api->finalize
+#define sqlite3_free                   sqlite3_api->free
+#define sqlite3_free_table             sqlite3_api->free_table
+#define sqlite3_get_autocommit         sqlite3_api->get_autocommit
+#define sqlite3_get_auxdata            sqlite3_api->get_auxdata
+#define sqlite3_get_table              sqlite3_api->get_table
+#define sqlite3_global_recover         sqlite3_api->global_recover
+#define sqlite3_interrupt              sqlite3_api->interruptx
+#define sqlite3_last_insert_rowid      sqlite3_api->last_insert_rowid
+#define sqlite3_libversion             sqlite3_api->libversion
+#define sqlite3_libversion_number      sqlite3_api->libversion_number
+#define sqlite3_malloc                 sqlite3_api->malloc
+#define sqlite3_mprintf                sqlite3_api->mprintf
+#define sqlite3_open                   sqlite3_api->open
+#define sqlite3_open16                 sqlite3_api->open16
+#define sqlite3_prepare                sqlite3_api->prepare
+#define sqlite3_prepare16              sqlite3_api->prepare16
+#define sqlite3_prepare_v2             sqlite3_api->prepare_v2
+#define sqlite3_prepare16_v2           sqlite3_api->prepare16_v2
+#define sqlite3_profile                sqlite3_api->profile
+#define sqlite3_progress_handler       sqlite3_api->progress_handler
+#define sqlite3_realloc                sqlite3_api->realloc
+#define sqlite3_reset                  sqlite3_api->reset
+#define sqlite3_result_blob            sqlite3_api->result_blob
+#define sqlite3_result_double          sqlite3_api->result_double
+#define sqlite3_result_error           sqlite3_api->result_error
+#define sqlite3_result_error16         sqlite3_api->result_error16
+#define sqlite3_result_int             sqlite3_api->result_int
+#define sqlite3_result_int64           sqlite3_api->result_int64
+#define sqlite3_result_null            sqlite3_api->result_null
+#define sqlite3_result_text            sqlite3_api->result_text
+#define sqlite3_result_text16          sqlite3_api->result_text16
+#define sqlite3_result_text16be        sqlite3_api->result_text16be
+#define sqlite3_result_text16le        sqlite3_api->result_text16le
+#define sqlite3_result_value           sqlite3_api->result_value
+#define sqlite3_rollback_hook          sqlite3_api->rollback_hook
+#define sqlite3_set_authorizer         sqlite3_api->set_authorizer
+#define sqlite3_set_auxdata            sqlite3_api->set_auxdata
+#define sqlite3_snprintf               sqlite3_api->snprintf
+#define sqlite3_step                   sqlite3_api->step
+#define sqlite3_table_column_metadata  sqlite3_api->table_column_metadata
+#define sqlite3_thread_cleanup         sqlite3_api->thread_cleanup
+#define sqlite3_total_changes          sqlite3_api->total_changes
+#define sqlite3_trace                  sqlite3_api->trace
+#define sqlite3_transfer_bindings      sqlite3_api->transfer_bindings
+#define sqlite3_update_hook            sqlite3_api->update_hook
+#define sqlite3_user_data              sqlite3_api->user_data
+#define sqlite3_value_blob             sqlite3_api->value_blob
+#define sqlite3_value_bytes            sqlite3_api->value_bytes
+#define sqlite3_value_bytes16          sqlite3_api->value_bytes16
+#define sqlite3_value_double           sqlite3_api->value_double
+#define sqlite3_value_int              sqlite3_api->value_int
+#define sqlite3_value_int64            sqlite3_api->value_int64
+#define sqlite3_value_numeric_type     sqlite3_api->value_numeric_type
+#define sqlite3_value_text             sqlite3_api->value_text
+#define sqlite3_value_text16           sqlite3_api->value_text16
+#define sqlite3_value_text16be         sqlite3_api->value_text16be
+#define sqlite3_value_text16le         sqlite3_api->value_text16le
+#define sqlite3_value_type             sqlite3_api->value_type
+#define sqlite3_vmprintf               sqlite3_api->vmprintf
+#define sqlite3_overload_function      sqlite3_api->overload_function
+#define sqlite3_prepare_v2             sqlite3_api->prepare_v2
+#define sqlite3_prepare16_v2           sqlite3_api->prepare16_v2
+#define sqlite3_clear_bindings         sqlite3_api->clear_bindings
+#define sqlite3_bind_zeroblob          sqlite3_api->bind_zeroblob
+#define sqlite3_blob_bytes             sqlite3_api->blob_bytes
+#define sqlite3_blob_close             sqlite3_api->blob_close
+#define sqlite3_blob_open              sqlite3_api->blob_open
+#define sqlite3_blob_read              sqlite3_api->blob_read
+#define sqlite3_blob_write             sqlite3_api->blob_write
+#define sqlite3_create_collation_v2    sqlite3_api->create_collation_v2
+#define sqlite3_file_control           sqlite3_api->file_control
+#define sqlite3_memory_highwater       sqlite3_api->memory_highwater
+#define sqlite3_memory_used            sqlite3_api->memory_used
+#define sqlite3_mutex_alloc            sqlite3_api->mutex_alloc
+#define sqlite3_mutex_enter            sqlite3_api->mutex_enter
+#define sqlite3_mutex_free             sqlite3_api->mutex_free
+#define sqlite3_mutex_leave            sqlite3_api->mutex_leave
+#define sqlite3_mutex_try              sqlite3_api->mutex_try
+#define sqlite3_open_v2                sqlite3_api->open_v2
+#define sqlite3_release_memory         sqlite3_api->release_memory
+#define sqlite3_result_error_nomem     sqlite3_api->result_error_nomem
+#define sqlite3_result_error_toobig    sqlite3_api->result_error_toobig
+#define sqlite3_sleep                  sqlite3_api->sleep
+#define sqlite3_soft_heap_limit        sqlite3_api->soft_heap_limit
+#define sqlite3_vfs_find               sqlite3_api->vfs_find
+#define sqlite3_vfs_register           sqlite3_api->vfs_register
+#define sqlite3_vfs_unregister         sqlite3_api->vfs_unregister
+#endif 
+
+#define SQLITE_EXTENSION_INIT1     const sqlite3_api_routines *sqlite3_api;
+#define SQLITE_EXTENSION_INIT2(v)  sqlite3_api = v;
+
+#endif
+
+
+
+SQLITE_EXTENSION_INIT1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_HASH_H_
+#define _FTS3_HASH_H_
+
+
+typedef struct fts3Hash fts3Hash;
+typedef struct fts3HashElem fts3HashElem;
+
+
+
+
+
+
+
+
+
+struct fts3Hash {
+  char keyClass;          
+  char copyKey;           
+  int count;              
+  fts3HashElem *first;    
+  int htsize;             
+  struct _fts3ht {        
+    int count;               
+    fts3HashElem *chain;     
+  } *ht;
+};
+
+
+
+
+
+
+
+struct fts3HashElem {
+  fts3HashElem *next, *prev; 
+  void *data;                
+  void *pKey; int nKey;      
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define FTS3_HASH_STRING    1
+#define FTS3_HASH_BINARY    2
+
+
+
+
+void sqlite3Fts3HashInit(fts3Hash*, int keytype, int copyKey);
+void *sqlite3Fts3HashInsert(fts3Hash*, const void *pKey, int nKey, void *pData);
+void *sqlite3Fts3HashFind(const fts3Hash*, const void *pKey, int nKey);
+void sqlite3Fts3HashClear(fts3Hash*);
+
+
+
+
+#define fts3HashInit   sqlite3Fts3HashInit
+#define fts3HashInsert sqlite3Fts3HashInsert
+#define fts3HashFind   sqlite3Fts3HashFind
+#define fts3HashClear  sqlite3Fts3HashClear
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define fts3HashFirst(H)  ((H)->first)
+#define fts3HashNext(E)   ((E)->next)
+#define fts3HashData(E)   ((E)->data)
+#define fts3HashKey(E)    ((E)->pKey)
+#define fts3HashKeysize(E) ((E)->nKey)
+
+
+
+
+#define fts3HashCount(H)  ((H)->count)
+
+#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_TOKENIZER_H_
+#define _FTS3_TOKENIZER_H_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_tokenizer_module sqlite3_tokenizer_module;
+typedef struct sqlite3_tokenizer sqlite3_tokenizer;
+typedef struct sqlite3_tokenizer_cursor sqlite3_tokenizer_cursor;
+
+struct sqlite3_tokenizer_module {
+
+  
+
+
+  int iVersion;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int (*xCreate)(
+    int argc,                           
+    const char *const*argv,             
+    sqlite3_tokenizer **ppTokenizer     
+  );
+
+  
+
+
+
+  int (*xDestroy)(sqlite3_tokenizer *pTokenizer);
+
+  
+
+
+
+
+  int (*xOpen)(
+    sqlite3_tokenizer *pTokenizer,       
+    const char *pInput, int nBytes,      
+    sqlite3_tokenizer_cursor **ppCursor  
+  );
+
+  
+
+
+
+  int (*xClose)(sqlite3_tokenizer_cursor *pCursor);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  int (*xNext)(
+    sqlite3_tokenizer_cursor *pCursor,   
+    const char **ppToken, int *pnBytes,  
+    int *piStartOffset,  
+    int *piEndOffset,    
+    int *piPosition      
+  );
+};
+
+struct sqlite3_tokenizer {
+  const sqlite3_tokenizer_module *pModule;  
+  
+};
+
+struct sqlite3_tokenizer_cursor {
+  sqlite3_tokenizer *pTokenizer;       
+  
+};
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void scalarFunc(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  fts3Hash *pHash;
+  void *pPtr = 0;
+  const unsigned char *zName;
+  int nName;
+
+  assert( argc==1 || argc==2 );
+
+  pHash = (fts3Hash *)sqlite3_user_data(context);
+
+  zName = sqlite3_value_text(argv[0]);
+  nName = sqlite3_value_bytes(argv[0])+1;
+
+  if( argc==2 ){
+    void *pOld;
+    int n = sqlite3_value_bytes(argv[1]);
+    if( n!=sizeof(pPtr) ){
+      sqlite3_result_error(context, "argument type mismatch", -1);
+      return;
+    }
+    pPtr = *(void **)sqlite3_value_blob(argv[1]);
+    pOld = sqlite3Fts3HashInsert(pHash, (void *)zName, nName, pPtr);
+    if( pOld==pPtr ){
+      sqlite3_result_error(context, "out of memory", -1);
+      return;
+    }
+  }else{
+    pPtr = sqlite3Fts3HashFind(pHash, zName, nName);
+    if( !pPtr ){
+      char *zErr = sqlite3_mprintf("unknown tokenizer: %s", zName);
+      sqlite3_result_error(context, zErr, -1);
+      sqlite3_free(zErr);
+      return;
+    }
+  }
+
+  sqlite3_result_blob(context, (void *)&pPtr, sizeof(pPtr), SQLITE_TRANSIENT);
+}
+
+#ifdef SQLITE_TEST
+
+#include <tcl.h>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void testFunc(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  fts3Hash *pHash;
+  sqlite3_tokenizer_module *p;
+  sqlite3_tokenizer *pTokenizer = 0;
+  sqlite3_tokenizer_cursor *pCsr = 0;
+
+  const char *zErr = 0;
+
+  const char *zName;
+  int nName;
+  const char *zInput;
+  int nInput;
+
+  const char *zArg = 0;
+
+  const char *zToken;
+  int nToken;
+  int iStart;
+  int iEnd;
+  int iPos;
+
+  Tcl_Obj *pRet;
+
+  assert( argc==2 || argc==3 );
+
+  nName = sqlite3_value_bytes(argv[0]);
+  zName = (const char *)sqlite3_value_text(argv[0]);
+  nInput = sqlite3_value_bytes(argv[argc-1]);
+  zInput = (const char *)sqlite3_value_text(argv[argc-1]);
+
+  if( argc==3 ){
+    zArg = (const char *)sqlite3_value_text(argv[1]);
+  }
+
+  pHash = (fts3Hash *)sqlite3_user_data(context);
+  p = (sqlite3_tokenizer_module *)sqlite3Fts3HashFind(pHash, zName, nName+1);
+
+  if( !p ){
+    char *zErr = sqlite3_mprintf("unknown tokenizer: %s", zName);
+    sqlite3_result_error(context, zErr, -1);
+    sqlite3_free(zErr);
+    return;
+  }
+
+  pRet = Tcl_NewObj();
+  Tcl_IncrRefCount(pRet);
+
+  if( SQLITE_OK!=p->xCreate(zArg ? 1 : 0, &zArg, &pTokenizer) ){
+    zErr = "error in xCreate()";
+    goto finish;
+  }
+  pTokenizer->pModule = p;
+  if( SQLITE_OK!=p->xOpen(pTokenizer, zInput, nInput, &pCsr) ){
+    zErr = "error in xOpen()";
+    goto finish;
+  }
+  pCsr->pTokenizer = pTokenizer;
+
+  while( SQLITE_OK==p->xNext(pCsr, &zToken, &nToken, &iStart, &iEnd, &iPos) ){
+    Tcl_ListObjAppendElement(0, pRet, Tcl_NewIntObj(iPos));
+    Tcl_ListObjAppendElement(0, pRet, Tcl_NewStringObj(zToken, nToken));
+    zToken = &zInput[iStart];
+    nToken = iEnd-iStart;
+    Tcl_ListObjAppendElement(0, pRet, Tcl_NewStringObj(zToken, nToken));
+  }
+
+  if( SQLITE_OK!=p->xClose(pCsr) ){
+    zErr = "error in xClose()";
+    goto finish;
+  }
+  if( SQLITE_OK!=p->xDestroy(pTokenizer) ){
+    zErr = "error in xDestroy()";
+    goto finish;
+  }
+
+finish:
+  if( zErr ){
+    sqlite3_result_error(context, zErr, -1);
+  }else{
+    sqlite3_result_text(context, Tcl_GetString(pRet), -1, SQLITE_TRANSIENT);
+  }
+  Tcl_DecrRefCount(pRet);
+}
+
+static
+int registerTokenizer(
+  sqlite3 *db, 
+  char *zName, 
+  const sqlite3_tokenizer_module *p
+){
+  int rc;
+  sqlite3_stmt *pStmt;
+  const char zSql[] = "SELECT fts3_tokenizer(?, ?)";
+
+  rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, 0);
+  if( rc!=SQLITE_OK ){
+    return rc;
+  }
+
+  sqlite3_bind_text(pStmt, 1, zName, -1, SQLITE_STATIC);
+  sqlite3_bind_blob(pStmt, 2, &p, sizeof(p), SQLITE_STATIC);
+  sqlite3_step(pStmt);
+
+  return sqlite3_finalize(pStmt);
+}
+
+static
+int queryTokenizer(
+  sqlite3 *db, 
+  char *zName,  
+  const sqlite3_tokenizer_module **pp
+){
+  int rc;
+  sqlite3_stmt *pStmt;
+  const char zSql[] = "SELECT fts3_tokenizer(?)";
+
+  *pp = 0;
+  rc = sqlite3_prepare_v2(db, zSql, -1, &pStmt, 0);
+  if( rc!=SQLITE_OK ){
+    return rc;
+  }
+
+  sqlite3_bind_text(pStmt, 1, zName, -1, SQLITE_STATIC);
+  if( SQLITE_ROW==sqlite3_step(pStmt) ){
+    if( sqlite3_column_type(pStmt, 0)==SQLITE_BLOB ){
+      memcpy(pp, sqlite3_column_blob(pStmt, 0), sizeof(*pp));
+    }
+  }
+
+  return sqlite3_finalize(pStmt);
+}
+
+void sqlite3Fts3SimpleTokenizerModule(sqlite3_tokenizer_module const**ppModule);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void intTestFunc(
+  sqlite3_context *context,
+  int argc,
+  sqlite3_value **argv
+){
+  int rc;
+  const sqlite3_tokenizer_module *p1;
+  const sqlite3_tokenizer_module *p2;
+  sqlite3 *db = (sqlite3 *)sqlite3_user_data(context);
+
+  
+  sqlite3Fts3SimpleTokenizerModule(&p1);
+  rc = queryTokenizer(db, "simple", &p2);
+  assert( rc==SQLITE_OK );
+  assert( p1==p2 );
+  rc = queryTokenizer(db, "nosuchtokenizer", &p2);
+  assert( rc==SQLITE_ERROR );
+  assert( p2==0 );
+  assert( 0==strcmp(sqlite3_errmsg(db), "unknown tokenizer: nosuchtokenizer") );
+
+  
+  rc = registerTokenizer(db, "nosuchtokenizer", p1);
+  assert( rc==SQLITE_OK );
+  rc = queryTokenizer(db, "nosuchtokenizer", &p2);
+  assert( rc==SQLITE_OK );
+  assert( p2==p1 );
+
+  sqlite3_result_text(context, "ok", -1, SQLITE_STATIC);
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3Fts3InitHashTable(
+  sqlite3 *db, 
+  fts3Hash *pHash, 
+  const char *zName
+){
+  int rc = SQLITE_OK;
+  void *p = (void *)pHash;
+  const int any = SQLITE_ANY;
+  char *zTest = 0;
+  char *zTest2 = 0;
+
+#ifdef SQLITE_TEST
+  void *pdb = (void *)db;
+  zTest = sqlite3_mprintf("%s_test", zName);
+  zTest2 = sqlite3_mprintf("%s_internal_test", zName);
+  if( !zTest || !zTest2 ){
+    rc = SQLITE_NOMEM;
+  }
+#endif
+
+  if( rc!=SQLITE_OK
+   || (rc = sqlite3_create_function(db, zName, 1, any, p, scalarFunc, 0, 0))
+   || (rc = sqlite3_create_function(db, zName, 2, any, p, scalarFunc, 0, 0))
+#ifdef SQLITE_TEST
+   || (rc = sqlite3_create_function(db, zTest, 2, any, p, testFunc, 0, 0))
+   || (rc = sqlite3_create_function(db, zTest, 3, any, p, testFunc, 0, 0))
+   || (rc = sqlite3_create_function(db, zTest2, 0, any, pdb, intTestFunc, 0, 0))
+#endif
+  );
+
+  sqlite3_free(zTest);
+  sqlite3_free(zTest2);
+  return rc;
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_TOKENIZER_H_
+#define _FTS3_TOKENIZER_H_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_tokenizer_module sqlite3_tokenizer_module;
+typedef struct sqlite3_tokenizer sqlite3_tokenizer;
+typedef struct sqlite3_tokenizer_cursor sqlite3_tokenizer_cursor;
+
+struct sqlite3_tokenizer_module {
+
+  
+
+
+  int iVersion;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int (*xCreate)(
+    int argc,                           
+    const char *const*argv,             
+    sqlite3_tokenizer **ppTokenizer     
+  );
+
+  
+
+
+
+  int (*xDestroy)(sqlite3_tokenizer *pTokenizer);
+
+  
+
+
+
+
+  int (*xOpen)(
+    sqlite3_tokenizer *pTokenizer,       
+    const char *pInput, int nBytes,      
+    sqlite3_tokenizer_cursor **ppCursor  
+  );
+
+  
+
+
+
+  int (*xClose)(sqlite3_tokenizer_cursor *pCursor);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  int (*xNext)(
+    sqlite3_tokenizer_cursor *pCursor,   
+    const char **ppToken, int *pnBytes,  
+    int *piStartOffset,  
+    int *piEndOffset,    
+    int *piPosition      
+  );
+};
+
+struct sqlite3_tokenizer {
+  const sqlite3_tokenizer_module *pModule;  
+  
+};
+
+struct sqlite3_tokenizer_cursor {
+  sqlite3_tokenizer *pTokenizer;       
+  
+};
+
+#endif
+
+
+
+
+typedef struct simple_tokenizer {
+  sqlite3_tokenizer base;
+  char delim[128];             
+} simple_tokenizer;
+
+typedef struct simple_tokenizer_cursor {
+  sqlite3_tokenizer_cursor base;
+  const char *pInput;          
+  int nBytes;                  
+  int iOffset;                 
+  int iToken;                  
+  char *pToken;                
+  int nTokenAllocated;         
+} simple_tokenizer_cursor;
+
+
+
+static const sqlite3_tokenizer_module simpleTokenizerModule;
+
+static int simpleDelim(simple_tokenizer *t, unsigned char c){
+  return c<0x80 && t->delim[c];
+}
+
+
+
+
+static int simpleCreate(
+  int argc, const char * const *argv,
+  sqlite3_tokenizer **ppTokenizer
+){
+  simple_tokenizer *t;
+
+  t = (simple_tokenizer *) sqlite3_malloc(sizeof(*t));
+  if( t==NULL ) return SQLITE_NOMEM;
+  memset(t, 0, sizeof(*t));
+
+  
+
+
+
+
+  if( argc>1 ){
+    int i, n = strlen(argv[1]);
+    for(i=0; i<n; i++){
+      unsigned char ch = argv[1][i];
+      
+      if( ch>=0x80 ){
+        sqlite3_free(t);
+        return SQLITE_ERROR;
+      }
+      t->delim[ch] = 1;
+    }
+  } else {
+    
+    int i;
+    for(i=1; i<0x80; i++){
+      t->delim[i] = !isalnum(i);
+    }
+  }
+
+  *ppTokenizer = &t->base;
+  return SQLITE_OK;
+}
+
+
+
+
+static int simpleDestroy(sqlite3_tokenizer *pTokenizer){
+  sqlite3_free(pTokenizer);
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+static int simpleOpen(
+  sqlite3_tokenizer *pTokenizer,         
+  const char *pInput, int nBytes,        
+  sqlite3_tokenizer_cursor **ppCursor    
+){
+  simple_tokenizer_cursor *c;
+
+  c = (simple_tokenizer_cursor *) sqlite3_malloc(sizeof(*c));
+  if( c==NULL ) return SQLITE_NOMEM;
+
+  c->pInput = pInput;
+  if( pInput==0 ){
+    c->nBytes = 0;
+  }else if( nBytes<0 ){
+    c->nBytes = (int)strlen(pInput);
+  }else{
+    c->nBytes = nBytes;
+  }
+  c->iOffset = 0;                 
+  c->iToken = 0;
+  c->pToken = NULL;               
+  c->nTokenAllocated = 0;
+
+  *ppCursor = &c->base;
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int simpleClose(sqlite3_tokenizer_cursor *pCursor){
+  simple_tokenizer_cursor *c = (simple_tokenizer_cursor *) pCursor;
+  sqlite3_free(c->pToken);
+  sqlite3_free(c);
+  return SQLITE_OK;
+}
+
+
+
+
+
+static int simpleNext(
+  sqlite3_tokenizer_cursor *pCursor,  
+  const char **ppToken,               
+  int *pnBytes,                       
+  int *piStartOffset,                 
+  int *piEndOffset,                   
+  int *piPosition                     
+){
+  simple_tokenizer_cursor *c = (simple_tokenizer_cursor *) pCursor;
+  simple_tokenizer *t = (simple_tokenizer *) pCursor->pTokenizer;
+  unsigned char *p = (unsigned char *)c->pInput;
+
+  while( c->iOffset<c->nBytes ){
+    int iStartOffset;
+
+    
+    while( c->iOffset<c->nBytes && simpleDelim(t, p[c->iOffset]) ){
+      c->iOffset++;
+    }
+
+    
+    iStartOffset = c->iOffset;
+    while( c->iOffset<c->nBytes && !simpleDelim(t, p[c->iOffset]) ){
+      c->iOffset++;
+    }
+
+    if( c->iOffset>iStartOffset ){
+      int i, n = c->iOffset-iStartOffset;
+      if( n>c->nTokenAllocated ){
+        c->nTokenAllocated = n+20;
+        c->pToken = sqlite3_realloc(c->pToken, c->nTokenAllocated);
+        if( c->pToken==NULL ) return SQLITE_NOMEM;
+      }
+      for(i=0; i<n; i++){
+        
+
+
+        unsigned char ch = p[iStartOffset+i];
+        c->pToken[i] = ch<0x80 ? tolower(ch) : ch;
+      }
+      *ppToken = c->pToken;
+      *pnBytes = n;
+      *piStartOffset = iStartOffset;
+      *piEndOffset = c->iOffset;
+      *piPosition = c->iToken++;
+
+      return SQLITE_OK;
+    }
+  }
+  return SQLITE_DONE;
+}
+
+
+
+
+static const sqlite3_tokenizer_module simpleTokenizerModule = {
+  0,
+  simpleCreate,
+  simpleDestroy,
+  simpleOpen,
+  simpleClose,
+  simpleNext,
+};
+
+
+
+
+
+void sqlite3Fts3SimpleTokenizerModule(
+  sqlite3_tokenizer_module const**ppModule
+){
+  *ppModule = &simpleTokenizerModule;
+}
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined(SQLITE_CORE) || defined(SQLITE_ENABLE_FTS3)
+#ifdef SQLITE_ENABLE_ICU
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _FTS3_TOKENIZER_H_
+#define _FTS3_TOKENIZER_H_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef _SQLITE3_H_
+#define _SQLITE3_H_
+
+
+
+
+#if 0
+extern "C" {
+#endif
+
+
+
+
+
+#ifndef SQLITE_EXTERN
+# define SQLITE_EXTERN extern
+#endif
+
+
+
+
+
+#ifdef SQLITE_VERSION
+# undef SQLITE_VERSION
+#endif
+#ifdef SQLITE_VERSION_NUMBER
+# undef SQLITE_VERSION_NUMBER
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_VERSION         "3.5.4"
+#define SQLITE_VERSION_NUMBER 3005004
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN const char sqlite3_version[];
+const char *sqlite3_libversion(void);
+int sqlite3_libversion_number(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_threadsafe(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3 sqlite3;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef SQLITE_INT64_TYPE
+  typedef SQLITE_INT64_TYPE sqlite_int64;
+  typedef unsigned SQLITE_INT64_TYPE sqlite_uint64;
+#elif defined(_MSC_VER) || defined(__BORLANDC__)
+  typedef __int64 sqlite_int64;
+  typedef unsigned __int64 sqlite_uint64;
+#else
+  typedef long long int sqlite_int64;
+  typedef unsigned long long int sqlite_uint64;
+#endif
+typedef sqlite_int64 sqlite3_int64;
+typedef sqlite_uint64 sqlite3_uint64;
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# define double sqlite3_int64
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_close(sqlite3 *);
+
+
+
+
+
+
+typedef int (*sqlite3_callback)(void*,int,char**, char**);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_exec(
+  sqlite3*,                                  
+  const char *sql,                           
+  int (*callback)(void*,int,char**,char**),  
+  void *,                                    
+  char **errmsg                              
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_OK           0   /* Successful result */
+
+#define SQLITE_ERROR        1   /* SQL error or missing database */
+#define SQLITE_INTERNAL     2   /* Internal logic error in SQLite */
+#define SQLITE_PERM         3   /* Access permission denied */
+#define SQLITE_ABORT        4   /* Callback routine requested an abort */
+#define SQLITE_BUSY         5   /* The database file is locked */
+#define SQLITE_LOCKED       6   /* A table in the database is locked */
+#define SQLITE_NOMEM        7   /* A malloc() failed */
+#define SQLITE_READONLY     8   /* Attempt to write a readonly database */
+#define SQLITE_INTERRUPT    9   /* Operation terminated by sqlite3_interrupt()*/
+#define SQLITE_IOERR       10   /* Some kind of disk I/O error occurred */
+#define SQLITE_CORRUPT     11   /* The database disk image is malformed */
+#define SQLITE_NOTFOUND    12   /* NOT USED. Table or record not found */
+#define SQLITE_FULL        13   /* Insertion failed because database is full */
+#define SQLITE_CANTOPEN    14   /* Unable to open the database file */
+#define SQLITE_PROTOCOL    15   /* NOT USED. Database lock protocol error */
+#define SQLITE_EMPTY       16   /* Database is empty */
+#define SQLITE_SCHEMA      17   /* The database schema changed */
+#define SQLITE_TOOBIG      18   /* String or BLOB exceeds size limit */
+#define SQLITE_CONSTRAINT  19   /* Abort due to constraint violation */
+#define SQLITE_MISMATCH    20   /* Data type mismatch */
+#define SQLITE_MISUSE      21   /* Library used incorrectly */
+#define SQLITE_NOLFS       22   /* Uses OS features not supported on host */
+#define SQLITE_AUTH        23   /* Authorization denied */
+#define SQLITE_FORMAT      24   /* Auxiliary database format error */
+#define SQLITE_RANGE       25   /* 2nd parameter to sqlite3_bind out of range */
+#define SQLITE_NOTADB      26   /* File opened that is not a database file */
+#define SQLITE_ROW         100  /* sqlite3_step() has another row ready */
+#define SQLITE_DONE        101  /* sqlite3_step() has finished executing */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOERR_READ          (SQLITE_IOERR | (1<<8))
+#define SQLITE_IOERR_SHORT_READ    (SQLITE_IOERR | (2<<8))
+#define SQLITE_IOERR_WRITE         (SQLITE_IOERR | (3<<8))
+#define SQLITE_IOERR_FSYNC         (SQLITE_IOERR | (4<<8))
+#define SQLITE_IOERR_DIR_FSYNC     (SQLITE_IOERR | (5<<8))
+#define SQLITE_IOERR_TRUNCATE      (SQLITE_IOERR | (6<<8))
+#define SQLITE_IOERR_FSTAT         (SQLITE_IOERR | (7<<8))
+#define SQLITE_IOERR_UNLOCK        (SQLITE_IOERR | (8<<8))
+#define SQLITE_IOERR_RDLOCK        (SQLITE_IOERR | (9<<8))
+#define SQLITE_IOERR_DELETE        (SQLITE_IOERR | (10<<8))
+#define SQLITE_IOERR_BLOCKED       (SQLITE_IOERR | (11<<8))
+#define SQLITE_IOERR_NOMEM         (SQLITE_IOERR | (12<<8))
+
+
+
+
+
+
+
+
+
+#define SQLITE_OPEN_READONLY         0x00000001
+#define SQLITE_OPEN_READWRITE        0x00000002
+#define SQLITE_OPEN_CREATE           0x00000004
+#define SQLITE_OPEN_DELETEONCLOSE    0x00000008
+#define SQLITE_OPEN_EXCLUSIVE        0x00000010
+#define SQLITE_OPEN_MAIN_DB          0x00000100
+#define SQLITE_OPEN_TEMP_DB          0x00000200
+#define SQLITE_OPEN_TRANSIENT_DB     0x00000400
+#define SQLITE_OPEN_MAIN_JOURNAL     0x00000800
+#define SQLITE_OPEN_TEMP_JOURNAL     0x00001000
+#define SQLITE_OPEN_SUBJOURNAL       0x00002000
+#define SQLITE_OPEN_MASTER_JOURNAL   0x00004000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_IOCAP_ATOMIC          0x00000001
+#define SQLITE_IOCAP_ATOMIC512       0x00000002
+#define SQLITE_IOCAP_ATOMIC1K        0x00000004
+#define SQLITE_IOCAP_ATOMIC2K        0x00000008
+#define SQLITE_IOCAP_ATOMIC4K        0x00000010
+#define SQLITE_IOCAP_ATOMIC8K        0x00000020
+#define SQLITE_IOCAP_ATOMIC16K       0x00000040
+#define SQLITE_IOCAP_ATOMIC32K       0x00000080
+#define SQLITE_IOCAP_ATOMIC64K       0x00000100
+#define SQLITE_IOCAP_SAFE_APPEND     0x00000200
+#define SQLITE_IOCAP_SEQUENTIAL      0x00000400
+
+
+
+
+
+
+
+
+#define SQLITE_LOCK_NONE          0
+#define SQLITE_LOCK_SHARED        1
+#define SQLITE_LOCK_RESERVED      2
+#define SQLITE_LOCK_PENDING       3
+#define SQLITE_LOCK_EXCLUSIVE     4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_SYNC_NORMAL        0x00002
+#define SQLITE_SYNC_FULL          0x00003
+#define SQLITE_SYNC_DATAONLY      0x00010
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_file sqlite3_file;
+struct sqlite3_file {
+  const struct sqlite3_io_methods *pMethods;  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_io_methods sqlite3_io_methods;
+struct sqlite3_io_methods {
+  int iVersion;
+  int (*xClose)(sqlite3_file*);
+  int (*xRead)(sqlite3_file*, void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xWrite)(sqlite3_file*, const void*, int iAmt, sqlite3_int64 iOfst);
+  int (*xTruncate)(sqlite3_file*, sqlite3_int64 size);
+  int (*xSync)(sqlite3_file*, int flags);
+  int (*xFileSize)(sqlite3_file*, sqlite3_int64 *pSize);
+  int (*xLock)(sqlite3_file*, int);
+  int (*xUnlock)(sqlite3_file*, int);
+  int (*xCheckReservedLock)(sqlite3_file*);
+  int (*xFileControl)(sqlite3_file*, int op, void *pArg);
+  int (*xSectorSize)(sqlite3_file*);
+  int (*xDeviceCharacteristics)(sqlite3_file*);
+  
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_FCNTL_LOCKSTATE        1
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_mutex sqlite3_mutex;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vfs sqlite3_vfs;
+struct sqlite3_vfs {
+  int iVersion;            
+  int szOsFile;            
+  int mxPathname;          
+  sqlite3_vfs *pNext;      
+  const char *zName;       
+  void *pAppData;          
+  int (*xOpen)(sqlite3_vfs*, const char *zName, sqlite3_file*,
+               int flags, int *pOutFlags);
+  int (*xDelete)(sqlite3_vfs*, const char *zName, int syncDir);
+  int (*xAccess)(sqlite3_vfs*, const char *zName, int flags);
+  int (*xGetTempname)(sqlite3_vfs*, int nOut, char *zOut);
+  int (*xFullPathname)(sqlite3_vfs*, const char *zName, int nOut, char *zOut);
+  void *(*xDlOpen)(sqlite3_vfs*, const char *zFilename);
+  void (*xDlError)(sqlite3_vfs*, int nByte, char *zErrMsg);
+  void *(*xDlSym)(sqlite3_vfs*,void*, const char *zSymbol);
+  void (*xDlClose)(sqlite3_vfs*, void*);
+  int (*xRandomness)(sqlite3_vfs*, int nByte, char *zOut);
+  int (*xSleep)(sqlite3_vfs*, int microseconds);
+  int (*xCurrentTime)(sqlite3_vfs*, double*);
+  
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_ACCESS_EXISTS    0
+#define SQLITE_ACCESS_READWRITE 1
+#define SQLITE_ACCESS_READ      2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_extended_result_codes(sqlite3*, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_last_insert_rowid(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_total_changes(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_interrupt(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_complete(const char *sql);
+int sqlite3_complete16(const void *sql);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_handler(sqlite3*, int(*)(void*,int), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_busy_timeout(sqlite3*, int ms);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_table(
+  sqlite3*,              
+  const char *sql,       
+  char ***resultp,       
+  int *nrow,             
+  int *ncolumn,          
+  char **errmsg          
+);
+void sqlite3_free_table(char **result);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char *sqlite3_mprintf(const char*,...);
+char *sqlite3_vmprintf(const char*, va_list);
+char *sqlite3_snprintf(int,char*,const char*, ...);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_malloc(int);
+void *sqlite3_realloc(void*, int);
+void sqlite3_free(void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_memory_used(void);
+sqlite3_int64 sqlite3_memory_highwater(int resetFlag);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_set_authorizer(
+  sqlite3*,
+  int (*xAuth)(void*,int,const char*,const char*,const char*,const char*),
+  void *pUserData
+);
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_DENY   1   /* Abort the SQL statement with an error */
+#define SQLITE_IGNORE 2   /* Don't allow access, but don't generate an error */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_CREATE_INDEX          1   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TABLE          2   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_INDEX     3   /* Index Name      Table Name      */
+#define SQLITE_CREATE_TEMP_TABLE     4   /* Table Name      NULL            */
+#define SQLITE_CREATE_TEMP_TRIGGER   5   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_TEMP_VIEW      6   /* View Name       NULL            */
+#define SQLITE_CREATE_TRIGGER        7   /* Trigger Name    Table Name      */
+#define SQLITE_CREATE_VIEW           8   /* View Name       NULL            */
+#define SQLITE_DELETE                9   /* Table Name      NULL            */
+#define SQLITE_DROP_INDEX           10   /* Index Name      Table Name      */
+#define SQLITE_DROP_TABLE           11   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_INDEX      12   /* Index Name      Table Name      */
+#define SQLITE_DROP_TEMP_TABLE      13   /* Table Name      NULL            */
+#define SQLITE_DROP_TEMP_TRIGGER    14   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_TEMP_VIEW       15   /* View Name       NULL            */
+#define SQLITE_DROP_TRIGGER         16   /* Trigger Name    Table Name      */
+#define SQLITE_DROP_VIEW            17   /* View Name       NULL            */
+#define SQLITE_INSERT               18   /* Table Name      NULL            */
+#define SQLITE_PRAGMA               19   /* Pragma Name     1st arg or NULL */
+#define SQLITE_READ                 20   /* Table Name      Column Name     */
+#define SQLITE_SELECT               21   /* NULL            NULL            */
+#define SQLITE_TRANSACTION          22   /* NULL            NULL            */
+#define SQLITE_UPDATE               23   /* Table Name      Column Name     */
+#define SQLITE_ATTACH               24   /* Filename        NULL            */
+#define SQLITE_DETACH               25   /* Database Name   NULL            */
+#define SQLITE_ALTER_TABLE          26   /* Database Name   Table Name      */
+#define SQLITE_REINDEX              27   /* Index Name      NULL            */
+#define SQLITE_ANALYZE              28   /* Table Name      NULL            */
+#define SQLITE_CREATE_VTABLE        29   /* Table Name      Module Name     */
+#define SQLITE_DROP_VTABLE          30   /* Table Name      Module Name     */
+#define SQLITE_FUNCTION             31   /* Function Name   NULL            */
+#define SQLITE_COPY                  0   /* No longer used */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_trace(sqlite3*, void(*xTrace)(void*,const char*), void*);
+void *sqlite3_profile(sqlite3*,
+   void(*xProfile)(void*,const char*,sqlite3_uint64), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_open(
+  const char *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open16(
+  const void *filename,   
+  sqlite3 **ppDb          
+);
+int sqlite3_open_v2(
+  const char *filename,   
+  sqlite3 **ppDb,         
+  int flags,              
+  const char *zVfs        
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_errcode(sqlite3 *db);
+const char *sqlite3_errmsg(sqlite3*);
+const void *sqlite3_errmsg16(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_stmt sqlite3_stmt;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_prepare(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare_v2(
+  sqlite3 *db,            
+  const char *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const char **pzTail     
+);
+int sqlite3_prepare16(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+int sqlite3_prepare16_v2(
+  sqlite3 *db,            
+  const void *zSql,       
+  int nByte,              
+  sqlite3_stmt **ppStmt,  
+  const void **pzTail     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_sql(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+typedef struct Mem sqlite3_value;
+
+
+
+
+
+
+
+
+typedef struct sqlite3_context sqlite3_context;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int n, void(*)(void*));
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_int64(sqlite3_stmt*, int, sqlite3_int64);
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int n, void(*)(void*));
+int sqlite3_bind_text16(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_zeroblob(sqlite3_stmt*, int, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_count(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_bind_parameter_name(sqlite3_stmt*, int);
+
+
+
+
+
+
+
+
+
+int sqlite3_bind_parameter_index(sqlite3_stmt*, const char *zName);
+
+
+
+
+
+
+
+
+
+int sqlite3_clear_bindings(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+int sqlite3_column_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_name(sqlite3_stmt*, int N);
+const void *sqlite3_column_name16(sqlite3_stmt*, int N);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_database_name(sqlite3_stmt*,int);
+const void *sqlite3_column_database_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_table_name(sqlite3_stmt*,int);
+const void *sqlite3_column_table_name16(sqlite3_stmt*,int);
+const char *sqlite3_column_origin_name(sqlite3_stmt*,int);
+const void *sqlite3_column_origin_name16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const char *sqlite3_column_decltype(sqlite3_stmt *, int i);
+const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_step(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_data_count(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define SQLITE_INTEGER  1
+#define SQLITE_FLOAT    2
+#define SQLITE_BLOB     4
+#define SQLITE_NULL     5
+#ifdef SQLITE_TEXT
+# undef SQLITE_TEXT
+#else
+# define SQLITE_TEXT     3
+#endif
+#define SQLITE3_TEXT     3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+int sqlite3_column_bytes16(sqlite3_stmt*, int iCol);
+double sqlite3_column_double(sqlite3_stmt*, int iCol);
+int sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64 sqlite3_column_int64(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void *sqlite3_column_text16(sqlite3_stmt*, int iCol);
+int sqlite3_column_type(sqlite3_stmt*, int iCol);
+sqlite3_value *sqlite3_column_value(sqlite3_stmt*, int iCol);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_reset(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_function(
+  sqlite3 *,
+  const char *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+int sqlite3_create_function16(
+  sqlite3*,
+  const void *zFunctionName,
+  int nArg,
+  int eTextRep,
+  void*,
+  void (*xFunc)(sqlite3_context*,int,sqlite3_value**),
+  void (*xStep)(sqlite3_context*,int,sqlite3_value**),
+  void (*xFinal)(sqlite3_context*)
+);
+
+
+
+
+
+
+
+#define SQLITE_UTF8           1
+#define SQLITE_UTF16LE        2
+#define SQLITE_UTF16BE        3
+#define SQLITE_UTF16          4    /* Use native byte order */
+#define SQLITE_ANY            5    /* sqlite3_create_function only */
+#define SQLITE_UTF16_ALIGNED  8    /* sqlite3_create_collation only */
+
+
+
+
+
+
+
+
+
+
+int sqlite3_aggregate_count(sqlite3_context*);
+int sqlite3_expired(sqlite3_stmt*);
+int sqlite3_transfer_bindings(sqlite3_stmt*, sqlite3_stmt*);
+int sqlite3_global_recover(void);
+void sqlite3_thread_cleanup(void);
+int sqlite3_memory_alarm(void(*)(void*,sqlite3_int64,int),void*,sqlite3_int64);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const void *sqlite3_value_blob(sqlite3_value*);
+int sqlite3_value_bytes(sqlite3_value*);
+int sqlite3_value_bytes16(sqlite3_value*);
+double sqlite3_value_double(sqlite3_value*);
+int sqlite3_value_int(sqlite3_value*);
+sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+const unsigned char *sqlite3_value_text(sqlite3_value*);
+const void *sqlite3_value_text16(sqlite3_value*);
+const void *sqlite3_value_text16le(sqlite3_value*);
+const void *sqlite3_value_text16be(sqlite3_value*);
+int sqlite3_value_type(sqlite3_value*);
+int sqlite3_value_numeric_type(sqlite3_value*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_aggregate_context(sqlite3_context*, int nBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_user_data(sqlite3_context*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_get_auxdata(sqlite3_context*, int N);
+void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(void*));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void (*sqlite3_destructor_type)(void*);
+#define SQLITE_STATIC      ((sqlite3_destructor_type)0)
+#define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_result_blob(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_double(sqlite3_context*, double);
+void sqlite3_result_error(sqlite3_context*, const char*, int);
+void sqlite3_result_error16(sqlite3_context*, const void*, int);
+void sqlite3_result_error_toobig(sqlite3_context*);
+void sqlite3_result_error_nomem(sqlite3_context*);
+void sqlite3_result_int(sqlite3_context*, int);
+void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
+void sqlite3_result_null(sqlite3_context*);
+void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
+void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
+void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
+void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
+void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_create_collation(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+int sqlite3_create_collation_v2(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*),
+  void(*xDestroy)(void*)
+);
+int sqlite3_create_collation16(
+  sqlite3*, 
+  const char *zName, 
+  int eTextRep, 
+  void*,
+  int(*xCompare)(void*,int,const void*,int,const void*)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_collation_needed(
+  sqlite3*, 
+  void*, 
+  void(*)(void*,sqlite3*,int eTextRep,const char*)
+);
+int sqlite3_collation_needed16(
+  sqlite3*, 
+  void*,
+  void(*)(void*,sqlite3*,int eTextRep,const void*)
+);
+
+
+
+
+
+
+
+
+int sqlite3_key(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+int sqlite3_rekey(
+  sqlite3 *db,                   
+  const void *pKey, int nKey     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_sleep(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_EXTERN char *sqlite3_temp_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_get_autocommit(sqlite3*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3 *sqlite3_db_handle(sqlite3_stmt*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_commit_hook(sqlite3*, int(*)(void*), void*);
+void *sqlite3_rollback_hook(sqlite3*, void(*)(void *), void*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void *sqlite3_update_hook(
+  sqlite3*, 
+  void(*)(void *,int ,char const *,char const *,sqlite3_int64),
+  void*
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_shared_cache(int);
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_release_memory(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_soft_heap_limit(int);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_table_column_metadata(
+  sqlite3 *db,                
+  const char *zDbName,        
+  const char *zTableName,     
+  const char *zColumnName,    
+  char const **pzDataType,    
+  char const **pzCollSeq,     
+  int *pNotNull,              
+  int *pPrimaryKey,           
+  int *pAutoinc               
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_load_extension(
+  sqlite3 *db,          
+  const char *zFile,    
+  const char *zProc,    
+  char **pzErrMsg       
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_enable_load_extension(sqlite3 *db, int onoff);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_auto_extension(void *xEntryPoint);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void sqlite3_reset_auto_extension(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_vtab sqlite3_vtab;
+typedef struct sqlite3_index_info sqlite3_index_info;
+typedef struct sqlite3_vtab_cursor sqlite3_vtab_cursor;
+typedef struct sqlite3_module sqlite3_module;
+
+
+
+
+
+
+struct sqlite3_module {
+  int iVersion;
+  int (*xCreate)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xConnect)(sqlite3*, void *pAux,
+               int argc, const char *const*argv,
+               sqlite3_vtab **ppVTab, char**);
+  int (*xBestIndex)(sqlite3_vtab *pVTab, sqlite3_index_info*);
+  int (*xDisconnect)(sqlite3_vtab *pVTab);
+  int (*xDestroy)(sqlite3_vtab *pVTab);
+  int (*xOpen)(sqlite3_vtab *pVTab, sqlite3_vtab_cursor **ppCursor);
+  int (*xClose)(sqlite3_vtab_cursor*);
+  int (*xFilter)(sqlite3_vtab_cursor*, int idxNum, const char *idxStr,
+                int argc, sqlite3_value **argv);
+  int (*xNext)(sqlite3_vtab_cursor*);
+  int (*xEof)(sqlite3_vtab_cursor*);
+  int (*xColumn)(sqlite3_vtab_cursor*, sqlite3_context*, int);
+  int (*xRowid)(sqlite3_vtab_cursor*, sqlite3_int64 *pRowid);
+  int (*xUpdate)(sqlite3_vtab *, int, sqlite3_value **, sqlite3_int64 *);
+  int (*xBegin)(sqlite3_vtab *pVTab);
+  int (*xSync)(sqlite3_vtab *pVTab);
+  int (*xCommit)(sqlite3_vtab *pVTab);
+  int (*xRollback)(sqlite3_vtab *pVTab);
+  int (*xFindFunction)(sqlite3_vtab *pVtab, int nArg, const char *zName,
+                       void (**pxFunc)(sqlite3_context*,int,sqlite3_value**),
+                       void **ppArg);
+
+  int (*xRename)(sqlite3_vtab *pVtab, const char *zNew);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_index_info {
+  
+  int nConstraint;           
+  struct sqlite3_index_constraint {
+     int iColumn;              
+     unsigned char op;         
+     unsigned char usable;     
+     int iTermOffset;          
+  } *aConstraint;            
+  int nOrderBy;              
+  struct sqlite3_index_orderby {
+     int iColumn;              
+     unsigned char desc;       
+  } *aOrderBy;               
+
+  
+  struct sqlite3_index_constraint_usage {
+    int argvIndex;           
+    unsigned char omit;      
+  } *aConstraintUsage;
+  int idxNum;                
+  char *idxStr;              
+  int needToFreeIdxStr;      
+  int orderByConsumed;       
+  double estimatedCost;      
+};
+#define SQLITE_INDEX_CONSTRAINT_EQ    2
+#define SQLITE_INDEX_CONSTRAINT_GT    4
+#define SQLITE_INDEX_CONSTRAINT_LE    8
+#define SQLITE_INDEX_CONSTRAINT_LT    16
+#define SQLITE_INDEX_CONSTRAINT_GE    32
+#define SQLITE_INDEX_CONSTRAINT_MATCH 64
+
+
+
+
+
+
+
+int sqlite3_create_module(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *                     
+);
+
+
+
+
+
+
+int sqlite3_create_module_v2(
+  sqlite3 *db,               
+  const char *zName,         
+  const sqlite3_module *,    
+  void *,                    
+  void(*xDestroy)(void*)     
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab {
+  const sqlite3_module *pModule;  
+  int nRef;                       
+  char *zErrMsg;                  
+  
+};
+
+
+
+
+
+
+
+
+
+
+struct sqlite3_vtab_cursor {
+  sqlite3_vtab *pVtab;      
+  
+};
+
+
+
+
+
+
+int sqlite3_declare_vtab(sqlite3*, const char *zCreateTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_overload_function(sqlite3*, const char *zFuncName, int nArg);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_blob sqlite3_blob;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_open(
+  sqlite3*,
+  const char *zDb,
+  const char *zTable,
+  const char *zColumn,
+  sqlite3_int64 iRow,
+  int flags,
+  sqlite3_blob **ppBlob
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_close(sqlite3_blob *);
+
+
+
+
+
+
+
+int sqlite3_blob_bytes(sqlite3_blob *);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_read(sqlite3_blob *, void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_blob_write(sqlite3_blob *, const void *z, int n, int iOffset);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_vfs *sqlite3_vfs_find(const char *zVfsName);
+int sqlite3_vfs_register(sqlite3_vfs*, int makeDflt);
+int sqlite3_vfs_unregister(sqlite3_vfs*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_mutex *sqlite3_mutex_alloc(int);
+void sqlite3_mutex_free(sqlite3_mutex*);
+void sqlite3_mutex_enter(sqlite3_mutex*);
+int sqlite3_mutex_try(sqlite3_mutex*);
+void sqlite3_mutex_leave(sqlite3_mutex*);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_mutex_held(sqlite3_mutex*);
+int sqlite3_mutex_notheld(sqlite3_mutex*);
+
+
+
+
+
+
+
+#define SQLITE_MUTEX_FAST             0
+#define SQLITE_MUTEX_RECURSIVE        1
+#define SQLITE_MUTEX_STATIC_MASTER    2
+#define SQLITE_MUTEX_STATIC_MEM       3  /* sqlite3_malloc() */
+#define SQLITE_MUTEX_STATIC_MEM2      4  /* sqlite3_release_memory() */
+#define SQLITE_MUTEX_STATIC_PRNG      5  /* sqlite3_random() */
+#define SQLITE_MUTEX_STATIC_LRU       6  /* lru page list */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int sqlite3_file_control(sqlite3*, const char *zDbName, int op, void*);
+
+
+
+
+
+#ifdef SQLITE_OMIT_FLOATING_POINT
+# undef double
+#endif
+
+#if 0
+}  
+#endif
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct sqlite3_tokenizer_module sqlite3_tokenizer_module;
+typedef struct sqlite3_tokenizer sqlite3_tokenizer;
+typedef struct sqlite3_tokenizer_cursor sqlite3_tokenizer_cursor;
+
+struct sqlite3_tokenizer_module {
+
+  
+
+
+  int iVersion;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  int (*xCreate)(
+    int argc,                           
+    const char *const*argv,             
+    sqlite3_tokenizer **ppTokenizer     
+  );
+
+  
+
+
+
+  int (*xDestroy)(sqlite3_tokenizer *pTokenizer);
+
+  
+
+
+
+
+  int (*xOpen)(
+    sqlite3_tokenizer *pTokenizer,       
+    const char *pInput, int nBytes,      
+    sqlite3_tokenizer_cursor **ppCursor  
+  );
+
+  
+
+
+
+  int (*xClose)(sqlite3_tokenizer_cursor *pCursor);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  int (*xNext)(
+    sqlite3_tokenizer_cursor *pCursor,   
+    const char **ppToken, int *pnBytes,  
+    int *piStartOffset,  
+    int *piEndOffset,    
+    int *piPosition      
+  );
+};
+
+struct sqlite3_tokenizer {
+  const sqlite3_tokenizer_module *pModule;  
+  
+};
+
+struct sqlite3_tokenizer_cursor {
+  sqlite3_tokenizer *pTokenizer;       
+  
+};
+
+#endif
+
+
+
+
+#include <unicode/ubrk.h>
+#include <unicode/ucol.h>
+#include <unicode/ustring.h>
+#include <unicode/utf16.h>
+
+typedef struct IcuTokenizer IcuTokenizer;
+typedef struct IcuCursor IcuCursor;
+
+struct IcuTokenizer {
+  sqlite3_tokenizer base;
+  char *zLocale;
+};
+
+struct IcuCursor {
+  sqlite3_tokenizer_cursor base;
+
+  UBreakIterator *pIter;      
+  int nChar;                  
+  UChar *aChar;               
+  int *aOffset;               
+
+  int nBuffer;
+  char *zBuffer;
+
+  int iToken;
+};
+
+
+
+
+static int icuCreate(
+  int argc,                            
+  const char * const *argv,            
+  sqlite3_tokenizer **ppTokenizer      
+){
+  IcuTokenizer *p;
+  int n = 0;
+
+  if( argc>0 ){
+    n = strlen(argv[0])+1;
+  }
+  p = (IcuTokenizer *)sqlite3_malloc(sizeof(IcuTokenizer)+n);
+  if( !p ){
+    return SQLITE_NOMEM;
+  }
+  memset(p, 0, sizeof(IcuTokenizer));
+
+  if( n ){
+    p->zLocale = (char *)&p[1];
+    memcpy(p->zLocale, argv[0], n);
+  }
+
+  *ppTokenizer = (sqlite3_tokenizer *)p;
+
+  return SQLITE_OK;
+}
+
+
+
+
+static int icuDestroy(sqlite3_tokenizer *pTokenizer){
+  IcuTokenizer *p = (IcuTokenizer *)pTokenizer;
+  sqlite3_free(p);
+  return SQLITE_OK;
+}
+
+
+
+
+
+
+
+static int icuOpen(
+  sqlite3_tokenizer *pTokenizer,         
+  const char *zInput,                    
+  int nInput,                            
+  sqlite3_tokenizer_cursor **ppCursor    
+){
+  IcuTokenizer *p = (IcuTokenizer *)pTokenizer;
+  IcuCursor *pCsr;
+
+  const int32_t opt = U_FOLD_CASE_DEFAULT;
+  UErrorCode status = U_ZERO_ERROR;
+  int nChar;
+
+  UChar32 c;
+  int iInput = 0;
+  int iOut = 0;
+
+  *ppCursor = 0;
+
+  if( -1 == nInput ) nInput = strlen(nInput);
+  nChar = nInput+1;
+  pCsr = (IcuCursor *)sqlite3_malloc(
+      sizeof(IcuCursor) +                
+      nChar * sizeof(UChar) +            
+      (nChar+1) * sizeof(int)            
+  );
+  if( !pCsr ){
+    return SQLITE_NOMEM;
+  }
+  memset(pCsr, 0, sizeof(IcuCursor));
+  pCsr->aChar = (UChar *)&pCsr[1];
+  pCsr->aOffset = (int *)&pCsr->aChar[nChar];
+
+  pCsr->aOffset[iOut] = iInput;
+  U8_NEXT(zInput, iInput, nInput, c); 
+  while( c>0 ){
+    int isError = 0;
+    c = u_foldCase(c, opt);
+    U16_APPEND(pCsr->aChar, iOut, nChar, c, isError);
+    if( isError ){
+      sqlite3_free(pCsr);
+      return SQLITE_ERROR;
+    }
+    pCsr->aOffset[iOut] = iInput;
+
+    if( iInput<nInput ){
+      U8_NEXT(zInput, iInput, nInput, c);
+    }else{
+      c = 0;
+    }
+  }
+
+  pCsr->pIter = ubrk_open(UBRK_WORD, p->zLocale, pCsr->aChar, iOut, &status);
+  if( !U_SUCCESS(status) ){
+    sqlite3_free(pCsr);
+    return SQLITE_ERROR;
+  }
+  pCsr->nChar = iOut;
+
+  ubrk_first(pCsr->pIter);
+  *ppCursor = (sqlite3_tokenizer_cursor *)pCsr;
+  return SQLITE_OK;
+}
+
+
+
+
+static int icuClose(sqlite3_tokenizer_cursor *pCursor){
+  IcuCursor *pCsr = (IcuCursor *)pCursor;
+  ubrk_close(pCsr->pIter);
+  sqlite3_free(pCsr->zBuffer);
+  sqlite3_free(pCsr);
+  return SQLITE_OK;
+}
+
+
+
+
+static int icuNext(
+  sqlite3_tokenizer_cursor *pCursor,  
+  const char **ppToken,               
+  int *pnBytes,                       
+  int *piStartOffset,                 
+  int *piEndOffset,                   
+  int *piPosition                     
+){
+  IcuCursor *pCsr = (IcuCursor *)pCursor;
+
+  int iStart = 0;
+  int iEnd = 0;
+  int nByte = 0;
+
+  while( iStart==iEnd ){
+    UChar32 c;
+
+    iStart = ubrk_current(pCsr->pIter);
+    iEnd = ubrk_next(pCsr->pIter);
+    if( iEnd==UBRK_DONE ){
+      return SQLITE_DONE;
+    }
+
+    while( iStart<iEnd ){
+      int iWhite = iStart;
+      U8_NEXT(pCsr->aChar, iWhite, pCsr->nChar, c);
+      if( u_isspace(c) ){
+        iStart = iWhite;
+      }else{
+        break;
+      }
+    }
+    assert(iStart<=iEnd);
+  }
+
+  do {
+    UErrorCode status = U_ZERO_ERROR;
+    if( nByte ){
+      char *zNew = sqlite3_realloc(pCsr->zBuffer, nByte);
+      if( !zNew ){
+        return SQLITE_NOMEM;
+      }
+      pCsr->zBuffer = zNew;
+      pCsr->nBuffer = nByte;
+    }
+
+    u_strToUTF8(
+        pCsr->zBuffer, pCsr->nBuffer, &nByte,    
+        &pCsr->aChar[iStart], iEnd-iStart,       
+        &status                                  
+    );
+  } while( nByte>pCsr->nBuffer );
+
+  *ppToken = pCsr->zBuffer;
+  *pnBytes = nByte;
+  *piStartOffset = pCsr->aOffset[iStart];
+  *piEndOffset = pCsr->aOffset[iEnd];
+  *piPosition = pCsr->iToken++;
+
+  return SQLITE_OK;
+}
+
+
+
+
+static const sqlite3_tokenizer_module icuTokenizerModule = {
+  0,                           
+  icuCreate,                   
+  icuDestroy,                  
+  icuOpen,                     
+  icuClose,                    
+  icuNext,                     
+};
+
+
+
+
+void sqlite3Fts3IcuTokenizerModule(
+  sqlite3_tokenizer_module const**ppModule
+){
+  *ppModule = &icuTokenizerModule;
+}
+
+#endif
+#endif
+
+

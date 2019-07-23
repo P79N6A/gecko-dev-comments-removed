@@ -37,6 +37,7 @@
 
 
 
+
 function test_openSpecialDatabase_invalid_arg()
 {
   try {
