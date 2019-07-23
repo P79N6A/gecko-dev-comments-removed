@@ -294,11 +294,7 @@ protected:
       
       JS_ClearRegExpStatics(cx);
 
-#ifdef DEBUG
-      nsresult rv =
-#endif
       runnable->Run();
-      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Runnable failed!");
     }
   }
 
