@@ -40,6 +40,8 @@
 
 
 
+
+
 #include "nsCookiePermission.h"
 #include "nsICookie2.h"
 #include "nsIServiceManager.h"
@@ -53,6 +55,7 @@
 #include "nsIDocShell.h"
 #include "nsIWebNavigation.h"
 #include "nsIChannel.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsIDOMWindow.h"
 #include "nsIDOMDocument.h"
 #include "nsIPrincipal.h"
@@ -444,11 +447,30 @@ nsCookiePermission::GetOriginatingURI(nsIChannel  *aChannel,
 
 
 
+
+
+
   *aURI = nsnull;
 
   
   if (!aChannel)
     return NS_ERROR_NULL_POINTER;
+
+  
+  nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal = do_QueryInterface(aChannel);
+  if (httpChannelInternal)
+  {
+    PRBool doForce = PR_FALSE;
+    if (NS_SUCCEEDED(httpChannelInternal->GetForceAllowThirdPartyCookie(&doForce)) && doForce)
+    {
+      
+      aChannel->GetURI(aURI);
+      if (!*aURI)
+        return NS_ERROR_NULL_POINTER;
+
+      return NS_OK;
+    }
+  }
 
   
   nsCOMPtr<nsILoadContext> ctx;
