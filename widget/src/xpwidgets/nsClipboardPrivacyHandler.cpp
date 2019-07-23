@@ -47,6 +47,10 @@
 #include "nsNetCID.h"
 #include "nsXPCOM.h"
 
+#ifdef XP_WIN
+#include <ole2.h>
+#endif
+
 #define NS_MOZ_DATA_FROM_PRIVATEBROWSING "application/x-moz-private-browsing"
 
 NS_IMPL_ISUPPORTS2(nsClipboardPrivacyHandler, nsIObserver, nsISupportsWeakReference)
@@ -105,6 +109,14 @@ nsClipboardPrivacyHandler::Observe(nsISupports *aSubject, char const *aTopic, PR
                                            nsIClipboard::kGlobalClipboard,
                                            &haveFlavors);
     if (NS_SUCCEEDED(rv) && haveFlavors) {
+#ifdef XP_WIN
+      
+      
+      
+      
+      
+      NS_ENSURE_TRUE(S_OK == ::OleSetClipboard(NULL), NS_ERROR_FAILURE);
+#else
       
       nsCOMPtr<nsITransferable> nullData =
         do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
@@ -112,6 +124,7 @@ nsClipboardPrivacyHandler::Observe(nsISupports *aSubject, char const *aTopic, PR
       rv = clipboard->SetData(nullData, nsnull,
                               nsIClipboard::kGlobalClipboard);
       NS_ENSURE_SUCCESS(rv, rv);
+#endif
     }
   }
 
