@@ -1896,18 +1896,7 @@ function BrowserViewSourceOfDocument(aDocument)
     
   }
 
-  ViewSourceOfURL(webNav.currentURI.spec, pageCookie, aDocument);
-}
-
-function ViewSourceOfURL(aURL, aPageDescriptor, aDocument)
-{
-  var utils = window.top.gViewSourceUtils;
-  if (getBoolPref("view_source.editor.external", false)) {
-    utils.openInExternalEditor(aURL, aPageDescriptor, aDocument);
-  }
-  else {
-    utils.openInInternalViewer(aURL, aPageDescriptor, aDocument);
-  }
+  top.gViewSourceUtils.viewSource(webNav.currentURI.spec, pageCookie, aDocument);
 }
 
 
