@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsURILoader.h"
 #include "nsAutoPtr.h"
 #include "nsIURIContentListener.h"
@@ -975,19 +976,20 @@ nsresult nsURILoader::OpenChannel(nsIChannel* channel,
 
   
   
-  if (aChannelIsOpen) {
-    nsCOMPtr<nsILoadGroup> oldGroup;
-    channel->GetLoadGroup(getter_AddRefs(oldGroup));
-    if (oldGroup) {
+  nsCOMPtr<nsILoadGroup> oldGroup;
+  channel->GetLoadGroup(getter_AddRefs(oldGroup));
+  if (aChannelIsOpen && !SameCOMIdentity(oldGroup, loadGroup)) {
+    
+    
+    
+    loadGroup->AddRequest(channel, nsnull);
+
+   if (oldGroup) {
       oldGroup->RemoveRequest(channel, nsnull, NS_BINDING_RETARGETED);
     }
   }
 
   channel->SetLoadGroup(loadGroup);
-
-  if (aChannelIsOpen) {
-    loadGroup->AddRequest(channel, nsnull);
-  }
 
   
   nsresult rv = loader->Prepare();
