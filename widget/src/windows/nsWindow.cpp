@@ -283,6 +283,12 @@ LPFNLRESULTFROMOBJECT
 const PRUnichar* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
 PRUint32        nsWindow::sOOPPPluginFocusEvent   =
                   RegisterWindowMessageW(kOOPPPluginFocusEventId);
+
+const PRUnichar* kOOPPGetBaseMessageEventId   = L"Get Base Widget Event Message";
+PRUint32        nsWindow::sOOPPGetBaseMessageEvent =
+                  RegisterWindowMessage(kOOPPGetBaseMessageEventId);
+PRInt32         nsWindow::sCallDepth              = 0;
+UINT            nsWindow::sBaseMsg                = 0;
 #endif
 
 
@@ -3716,7 +3722,7 @@ LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
   nsAutoRollup autoRollup;
 
   LRESULT popupHandlingResult;
-  if ( DealWithPopups(hWnd, msg, wParam, lParam, &popupHandlingResult) )
+  if (DealWithPopups(hWnd, msg, wParam, lParam, &popupHandlingResult))
     return popupHandlingResult;
 
   
@@ -3742,16 +3748,30 @@ LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     }
   }
 
+#ifdef MOZ_IPC
   
-  if (nsnull != someWindow) {
-    LRESULT retValue;
-    if (PR_TRUE == someWindow->ProcessMessage(msg, wParam, lParam, &retValue)) {
-      return retValue;
-    }
+  NS_ASSERTION(nsWindow::sCallDepth >= 0, "Call depth out of sync.");
+  if (++nsWindow::sCallDepth == 1)
+    nsWindow::sBaseMsg = msg;
+#endif
+
+  
+  LRESULT retValue;
+  if (PR_TRUE == someWindow->ProcessMessage(msg, wParam, lParam, &retValue)) {
+#ifdef MOZ_IPC
+    nsWindow::sCallDepth--;
+#endif
+    return retValue;
   }
 
-  return ::CallWindowProcW(someWindow->GetPrevWindowProc(),
-                           hWnd, msg, wParam, lParam);
+  LRESULT res = ::CallWindowProcW(someWindow->GetPrevWindowProc(),
+                                  hWnd, msg, wParam, lParam);
+
+#ifdef MOZ_IPC
+  nsWindow::sCallDepth--;
+#endif
+
+  return res;
 }
 
 
@@ -4702,13 +4722,23 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         SetHasTaskbarIconBeenCreated();
 #endif
 #ifdef MOZ_IPC
-    if (msg == sOOPPPluginFocusEvent) {
-      
-      
-      
-      
-      ::SendMessage(mWnd, WM_MOUSEACTIVATE, 0, 0); 
-    } 
+      if (msg == sOOPPPluginFocusEvent) {
+        
+        
+        
+        
+        ::SendMessage(mWnd, WM_MOUSEACTIVATE, 0, 0); 
+      }
+      else if (msg == sOOPPGetBaseMessageEvent && wParam) {
+        
+        
+        
+        NS_ASSERTION(nsWindow::sCallDepth > 0,
+                     "Call depth not 0 when requesting base message?");
+        *(reinterpret_cast<UINT*>(wParam)) = sBaseMsg;
+        *aRetValue = 1;
+        return PR_TRUE;
+      }
 #endif
     }
     break;
