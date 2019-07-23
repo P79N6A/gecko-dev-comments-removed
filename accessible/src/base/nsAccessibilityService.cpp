@@ -1385,8 +1385,14 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     }
 
     if (tryFrame) {
-      if (frame->GetType() != nsAccessibilityAtoms::placeholderFrame &&
-          frame->GetRect().IsEmpty()) {
+      
+      
+      
+      
+      if (frame->GetType() == nsAccessibilityAtoms::tableCaptionFrame &&
+         frame->GetRect().IsEmpty()) {
+        
+        
         *aIsHidden = PR_TRUE;
         return NS_OK;
       }
