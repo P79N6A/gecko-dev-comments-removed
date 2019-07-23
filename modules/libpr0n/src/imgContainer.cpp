@@ -1123,8 +1123,8 @@ nsresult imgContainer::DrawFrameTo(gfxIImageFrame *aSrc,
       return NS_OK;
     }
     
-    PRUint32 width = (PRUint32)aDstRect.width;
-    PRUint32 height = (PRUint32)aDstRect.height;
+    PRInt32 width = (PRUint32)aDstRect.width;
+    PRInt32 height = (PRUint32)aDstRect.height;
     if (aDstRect.x + aDstRect.width > dstRect.width) {
       width = dstRect.width - aDstRect.x;
     }
@@ -1160,22 +1160,25 @@ nsresult imgContainer::DrawFrameTo(gfxIImageFrame *aSrc,
     
     dstPixels += aDstRect.x + (aDstRect.y * dstRect.width);
     if (format == gfxIFormats::PAL) {
-      for (PRUint32 r = height; r > 0; --r) {
-        for (PRUint32 c = width; c > 0; --c) {
-          *dstPixels++ = colormap[*srcPixels++];
+      for (PRInt32 r = height; r > 0; --r) {
+        for (PRInt32 c = 0; c < width; c++) {
+          dstPixels[c] = colormap[srcPixels[c]];
         }
-        dstPixels += dstRect.width - width;
+        
+        srcPixels += srcRect.width;
+        dstPixels += dstRect.width;
       }
     } else {
       
-      for (PRUint32 r = height; r > 0; --r) {
-        for (PRUint32 c = width; c > 0; --c) {
-          const PRUint32 color = colormap[*srcPixels++];
+      for (PRInt32 r = height; r > 0; --r) {
+        for (PRInt32 c = 0; c < width; c++) {
+          const PRUint32 color = colormap[srcPixels[c]];
           if (color)
-            *dstPixels = color;
-          dstPixels ++;
+            dstPixels[c] = color;
         }
-        dstPixels += dstRect.width - width;
+        
+        srcPixels += srcRect.width;
+        dstPixels += dstRect.width;
       }
     }
     aDst->UnlockImageData();
