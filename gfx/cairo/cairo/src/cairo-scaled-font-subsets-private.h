@@ -39,52 +39,12 @@
 
 #include "cairoint.h"
 
-typedef struct _cairo_scaled_font_subsets_glyph {
-    unsigned int font_id;
-    unsigned int subset_id;
-    unsigned int subset_glyph_index;
-    cairo_bool_t is_scaled;
-    cairo_bool_t is_composite;
-    double       x_advance;
-} cairo_scaled_font_subsets_glyph_t;
+typedef struct _cairo_scaled_font_subsets cairo_scaled_font_subsets_t;
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-cairo_private cairo_scaled_font_subsets_t *
-_cairo_scaled_font_subsets_create_scaled (void);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_private cairo_scaled_font_subsets_t *
-_cairo_scaled_font_subsets_create_simple (void);
 
 
 
@@ -108,7 +68,8 @@ _cairo_scaled_font_subsets_create_simple (void);
 
 
 cairo_private cairo_scaled_font_subsets_t *
-_cairo_scaled_font_subsets_create_composite (void);
+_cairo_scaled_font_subsets_create (int max_glyphs_unscaled_per_subset,
+                                   int max_glyphs_scaled_per_subset);
 
 
 
@@ -169,24 +130,13 @@ _cairo_scaled_font_subsets_destroy (cairo_scaled_font_subsets_t *font_subsets);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 cairo_private cairo_status_t
 _cairo_scaled_font_subsets_map_glyph (cairo_scaled_font_subsets_t	*font_subsets,
 				      cairo_scaled_font_t		*scaled_font,
 				      unsigned long			 scaled_font_glyph_index,
-                                      cairo_scaled_font_subsets_glyph_t *subset_glyph_ret);
+				      unsigned int			*font_id_ret,
+				      unsigned int			*subset_id_ret,
+				      unsigned int			*subset_glyph_index_ret);
 
 typedef void
 (*cairo_scaled_font_subset_callback_func_t) (cairo_scaled_font_subset_t	*font_subset,
@@ -303,37 +253,6 @@ _cairo_cff_subset_init (cairo_cff_subset_t          *cff_subset,
 cairo_private void
 _cairo_cff_subset_fini (cairo_cff_subset_t *cff_subset);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_private cairo_status_t
-_cairo_cff_fallback_init (cairo_cff_subset_t          *cff_subset,
-                          const char                  *name,
-                          cairo_scaled_font_subset_t  *font_subset);
-
-
-
-
-
-
-
-
-
-cairo_private void
-_cairo_cff_fallback_fini (cairo_cff_subset_t *cff_subset);
-
 typedef struct _cairo_truetype_subset {
     char *base_font;
     double *widths;
@@ -428,15 +347,6 @@ _cairo_type1_subset_fini (cairo_type1_subset_t *subset);
 
 
 
-cairo_private cairo_bool_t
-_cairo_type1_scaled_font_is_type1 (cairo_scaled_font_t	*scaled_font);
-
-
-
-
-
-
-
 
 
 
@@ -483,43 +393,6 @@ _cairo_type1_fallback_init_hex (cairo_type1_subset_t	   *type_subset,
 
 cairo_private void
 _cairo_type1_fallback_fini (cairo_type1_subset_t *subset);
-
-typedef struct _cairo_type2_charstrings {
-    int *widths;
-    long x_min, y_min, x_max, y_max;
-    long ascent, descent;
-    cairo_array_t charstrings;
-} cairo_type2_charstrings_t;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-cairo_private cairo_status_t
-_cairo_type2_charstrings_init (cairo_type2_charstrings_t   *charstrings,
-                               cairo_scaled_font_subset_t  *font_subset);
-
-
-
-
-
-
-
-
-
-cairo_private void
-_cairo_type2_charstrings_fini (cairo_type2_charstrings_t *charstrings);
 
 
 

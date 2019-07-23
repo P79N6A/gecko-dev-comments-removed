@@ -40,7 +40,9 @@
 
 
 
-#include "cairoint.h"
+#include <limits.h>
+
+#include <cairoint.h>
 
 #define UTF8_COMPUTE(Char, Mask, Len)					      \
   if (Char < 128)							      \
