@@ -74,6 +74,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     NS_IMETHOD AppendExtension(const nsACString & aExtension);
     NS_IMETHOD GetPrimaryExtension(nsACString & aPrimaryExtension);
     NS_IMETHOD SetPrimaryExtension(const nsACString & aPrimaryExtension);
+    NS_IMETHOD GetType(nsACString & aType);
     NS_IMETHOD GetMIMEType(nsACString & aMIMEType);
     NS_IMETHOD GetDescription(nsAString & aDescription);
     NS_IMETHOD SetDescription(const nsAString & aDescription);
@@ -91,10 +92,18 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     NS_IMETHOD GetAlwaysAskBeforeHandling(PRBool *aAlwaysAskBeforeHandling);
     NS_IMETHOD SetAlwaysAskBeforeHandling(PRBool aAlwaysAskBeforeHandling); 
 
+    enum HandlerClass {
+      eMIMEInfo,
+      eProtocolInfo
+    };
+
     
     nsMIMEInfoBase(const char *aMIMEType = "") NS_HIDDEN;
     nsMIMEInfoBase(const nsACString& aMIMEType) NS_HIDDEN;
+    nsMIMEInfoBase(const nsACString& aType, HandlerClass aClass) NS_HIDDEN;
     virtual ~nsMIMEInfoBase();        
+
+    void SetType(const nsACString & aType) { mType = aType; }
 
     void SetMIMEType(const nsACString & aMIMEType) { mMIMEType = aMIMEType; }
 
@@ -158,6 +167,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     nsCStringArray         mExtensions; 
     nsString               mDescription; 
     PRUint32               mMacType, mMacCreator; 
+    nsCString              mType;
     nsCString              mMIMEType;
     nsCOMPtr<nsIHandlerApp> mPreferredApplication;
     nsHandlerInfoAction    mPreferredAction; 
@@ -179,6 +189,8 @@ class nsMIMEInfoImpl : public nsMIMEInfoBase {
   public:
     nsMIMEInfoImpl(const char *aMIMEType = "") : nsMIMEInfoBase(aMIMEType) {}
     nsMIMEInfoImpl(const nsACString& aMIMEType) : nsMIMEInfoBase(aMIMEType) {}
+    nsMIMEInfoImpl(const nsACString& aType, HandlerClass aClass) :
+      nsMIMEInfoBase(aType, aClass) {}
     virtual ~nsMIMEInfoImpl() {}
 
     
