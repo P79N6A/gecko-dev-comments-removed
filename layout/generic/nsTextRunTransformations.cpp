@@ -240,13 +240,21 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
                     !g.IsLowSurrogate()),
                    "Don't know how to merge this stuff");
 
-      if (anyMissing) {
-        g.SetMissing(glyphs.Length());
-      } else {
-        g.SetComplex(PR_TRUE, PR_TRUE, glyphs.Length());
+      
+      
+      
+      
+      
+      if (!aCharsToMerge[mergeRunStart]) {
+        if (anyMissing) {
+          g.SetMissing(glyphs.Length());
+        } else {
+          g.SetComplex(PR_TRUE, PR_TRUE, glyphs.Length());
+        }
+        aDest->SetGlyphs(offset, g, glyphs.Elements());
+        ++offset;
       }
-      aDest->SetGlyphs(offset, g, glyphs.Elements());
-      ++offset;
+
       glyphs.Clear();
       anyMissing = PR_FALSE;
       mergeRunStart = k + 1;
