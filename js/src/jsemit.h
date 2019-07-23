@@ -342,8 +342,6 @@ struct JSCodeGenerator {
     JSEmittedObjectList regexpList; 
 
 
-    uintN           loopHeaders;    
-
     JSCodeGenerator *parent;        
 };
 

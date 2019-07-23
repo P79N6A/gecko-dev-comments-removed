@@ -3020,52 +3020,6 @@ JS_INTERPRET(JSContext *cx)
 #endif
           END_EMPTY_CASES
 
-          BEGIN_CASE(JSOP_HEADER)
-#if 0          
-            if (script->loopBase != LOOP_TABLE_NO_SLOT) {
-                slot = GET_UINT8(regs.pc);
-                JS_ASSERT(slot < script->loopHeaders);
-                slot += script->loopBase;
-                JS_ASSERT(slot < (uint32) rt->loopTableCursor);
-
-                JSTraceMonitor *tm = &JS_TRACE_MONITOR(cx);
-                if (slot >= tm->loopTableSize && !js_GrowLoopTable(cx, slot))
-                    goto error;
-
-                vp = &JS_TRACE_MONITOR(cx).loopTable[slot];
-                rval = *vp;
-                if (JSVAL_IS_INT(rval)) {
-                    
-
-
-
-                    if (JSVAL_TO_INT(rval) >= TRACE_THRESHOLD) {
-                        
-
-
-
-
-
-
-                        obj = js_NewObject(cx, &js_ObjectClass, NULL, NULL, 0);
-                        if (!obj)
-                            goto error;
-                        *vp = OBJECT_TO_JSVAL(obj);
-                    } else {
-                        
-
-
-
-                        *vp = rval + 2;
-                    }
-                } else {
-                    JS_ASSERT(JSVAL_IS_GCTHING(rval));
-                    
-                }
-            }
-#endif          
-          END_CASE(JSOP_HEADER)
-
           
           TRACE_CASE(JSOP_LINENO)
           END_CASE(JSOP_LINENO)

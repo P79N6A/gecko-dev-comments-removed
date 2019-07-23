@@ -412,19 +412,6 @@ struct JSRuntime {
 
 
 
-#define LOOP_TABLE_LIMIT        2048
-#define LOOP_TABLE_BITMAP_WORDS JS_HOWMANY(LOOP_TABLE_LIMIT, JS_BITS_PER_WORD)
-#define LOOP_TABLE_NO_SLOT      ((uint32) -1)
-
-    jsword              loopTableCursor;
-    jsbitmap            loopTableBitmap[LOOP_TABLE_BITMAP_WORDS];
-
-    
-
-
-
-
-
 
 
 
