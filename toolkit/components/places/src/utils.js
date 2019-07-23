@@ -726,9 +726,14 @@ var PlacesUtils = {
 
 
 
+
   setAnnotationsForURI: function PU_setAnnotationsForURI(aURI, aAnnos) {
     var annosvc = this.annotations;
     aAnnos.forEach(function(anno) {
+      if (!anno.value) {
+        annosvc.removePageAnnotation(aURI, anno.name);
+        return;
+      }
       var flags = ("flags" in anno) ? anno.flags : 0;
       var expires = ("expires" in anno) ?
         anno.expires : Ci.nsIAnnotationService.EXPIRE_NEVER;
@@ -751,9 +756,15 @@ var PlacesUtils = {
 
 
 
+
   setAnnotationsForItem: function PU_setAnnotationsForItem(aItemId, aAnnos) {
     var annosvc = this.annotations;
+
     aAnnos.forEach(function(anno) {
+      if (!anno.value) {
+        annosvc.removeItemAnnotation(aItemId, anno.name);
+        return;
+      }
       var flags = ("flags" in anno) ? anno.flags : 0;
       var expires = ("expires" in anno) ?
         anno.expires : Ci.nsIAnnotationService.EXPIRE_NEVER;

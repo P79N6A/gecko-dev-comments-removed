@@ -322,12 +322,12 @@ var gEditItemOverlay = {
 
 
 
-    var folders = [];
-    for (var i=0; i < folderIds.length; i++) {
+    this._recentFolders = [];
+    for (var i = 0; i < folderIds.length; i++) {
       var lastUsed = annos.getItemAnnotation(folderIds[i], LAST_USED_ANNO);
-      folders.push({ folderId: folderIds[i], lastUsed: lastUsed });
+      this._recentFolders.push({ folderId: folderIds[i], lastUsed: lastUsed });
     }
-    folders.sort(function(a, b) {
+    this._recentFolders.sort(function(a, b) {
       if (b.lastUsed < a.lastUsed)
         return -1;
       if (b.lastUsed > a.lastUsed)
@@ -335,9 +335,11 @@ var gEditItemOverlay = {
       return 0;
     });
 
-    var numberOfItems = Math.min(MAX_FOLDER_ITEM_IN_MENU_LIST, folders.length);
-    for (i=0; i < numberOfItems; i++) {
-      this._appendFolderItemToMenupopup(menupopup, folders[i].folderId);
+    var numberOfItems = Math.min(MAX_FOLDER_ITEM_IN_MENU_LIST,
+                                 this._recentFolders.length);
+    for (var i = 0; i < numberOfItems; i++) {
+      this._appendFolderItemToMenupopup(menupopup,
+                                        this._recentFolders[i].folderId);
     }
 
     var defaultItem = this._getFolderMenuItem(aSelectedFolder);
@@ -814,6 +816,7 @@ var gEditItemOverlay = {
     
     this._folderMenuList.setAttribute("selectedIndex",
                                       this._folderMenuList.selectedIndex);
+
     if (aEvent.target.id == "editBMPanel_chooseFolderMenuItem") {
       
       
@@ -865,12 +868,41 @@ var gEditItemOverlay = {
 
   _markFolderAsRecentlyUsed:
   function EIO__markFolderAsRecentlyUsed(aFolderId) {
+    var txns = [];
+
     
+    var anno = this._getLastUsedAnnotationObject(false);
+    while (this._recentFolders.length > MAX_FOLDER_ITEM_IN_MENU_LIST) {
+      var folderId = this._recentFolders.pop().folderId;
+      txns.push(PlacesUIUtils.ptm.setItemAnnotation(folderId, anno));
+    }
+
     
-    PlacesUtils.annotations
-               .setItemAnnotation(aFolderId, LAST_USED_ANNO,
-                                  new Date().getTime(), 0,
-                                  Ci.nsIAnnotationService.EXPIRE_NEVER);
+    anno = this._getLastUsedAnnotationObject(true);
+    txns.push(PlacesUIUtils.ptm.setItemAnnotation(aFolderId, anno));
+
+    var aggregate = PlacesUIUtils.ptm.aggregateTransactions("Update last used folders", txns);
+    PlacesUIUtils.ptm.doTransaction(aggregate);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getLastUsedAnnotationObject:
+  function EIO__getLastUsedAnnotationObject(aLastUsed) {
+    var anno = { name: LAST_USED_ANNO,
+                 type: Ci.nsIAnnotationService.TYPE_INT32,
+                 flags: 0,
+                 value: aLastUsed ? new Date().getTime() : null,
+                 expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
+
+    return anno;
   },
 
   _rebuildTagsSelectorList: function EIO__rebuildTagsSelectorList() {

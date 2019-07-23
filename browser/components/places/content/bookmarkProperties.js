@@ -457,11 +457,11 @@ var BookmarkPropertiesPanel = {
   },
 
   _element: function BPP__element(aID) {
-    return gEditItemOverlay._element(aID);
+    return document.getElementById("editBMPanel_" + aID);
   },
 
   onDialogUnload: function BPP_onDialogUnload() {
-    gEditItemOverlay.uninitPanel(true);
+    
     
     
     this._element("tagsSelector")
@@ -479,11 +479,20 @@ var BookmarkPropertiesPanel = {
   },
 
   onDialogAccept: function BPP_onDialogAccept() {
+    
+    
+    gEditItemOverlay.uninitPanel(true);
+    gEditItemOverlay = null;
     this._endBatch();
     window.arguments[0].performed = true;
   },
 
   onDialogCancel: function BPP_onDialogCancel() {
+    
+    
+    
+    gEditItemOverlay.uninitPanel(true);
+    gEditItemOverlay = null;
     this._endBatch();
     PlacesUIUtils.ptm.undoTransaction();
     window.arguments[0].performed = false;
@@ -539,68 +548,6 @@ var BookmarkPropertiesPanel = {
 
 
 
-
-
-
-
-  
-
-
-
-
-
-
-
-
-  _getDescriptionAnnotation:
-  function BPP__getDescriptionAnnotation(aDescription) {
-    var anno = { name: DESCRIPTION_ANNO,
-                 type: Ci.nsIAnnotationService.TYPE_STRING,
-                 flags: 0,
-                 value: aDescription,
-                 expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
-
-    
-
-
-
-
-    return anno;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  _getLoadInSidebarAnnotation:
-  function BPP__getLoadInSidebarAnnotation(aLoadInSidebar) {
-    var anno = { name: LOAD_IN_SIDEBAR_ANNO,
-                 type: Ci.nsIAnnotationService.TYPE_INT32,
-                 flags: 0,
-                 value: aLoadInSidebar,
-                 expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
-
-    
-
-
-
-
-    return anno;
-  },
-
-  
-
-
-
-
-
-
   _getInsertionPointDetails: function BPP__getInsertionPointDetails() {
     var containerId = this._defaultInsertionPoint.itemId;
     var indexInContainer = this._defaultInsertionPoint.index;
@@ -615,12 +562,18 @@ var BookmarkPropertiesPanel = {
   _getCreateNewBookmarkTransaction:
   function BPP__getCreateNewBookmarkTransaction(aContainer, aIndex) {
     var annotations = [];
-    if (this._description)
-      annotations.push(this._getDescriptionAnnotation(this._description));
-    if (this._loadInSidebar)
-      annotations.push(this._getLoadInSidebarAnnotation(true));
-
     var childTransactions = [];
+
+    if (this._description) {
+      childTransactions.push(
+        PlacesUIUtils.ptm.editItemDescription(-1, this._description));
+    }
+
+    if (this._loadInSidebar) {
+      childTransactions.push(
+        PlacesUIUtils.ptm.setLoadInSidebar(-1, this._loadInSidebar));
+    }
+
     if (this._postData) {
       childTransactions.push(
         PlacesUIUtils.ptm.editBookmarkPostData(-1, this._postData));
