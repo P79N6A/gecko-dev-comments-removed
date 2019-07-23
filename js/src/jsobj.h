@@ -284,12 +284,31 @@ STOBJ_GET_CLASS(const JSObject* obj)
 
 
 
+#define LOCKED_OBJ_WRITE_SLOT(cx,obj,slot,newval)                             \
+    JS_BEGIN_MACRO                                                            \
+        LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, newval);                      \
+        LOCKED_OBJ_SET_SLOT(obj, slot, newval);                               \
+    JS_END_MACRO
+
+
+
+
+
+
+
 #define LOCKED_OBJ_WRITE_BARRIER(cx,obj,slot,newval)                          \
     JS_BEGIN_MACRO                                                            \
         JSScope *scope_ = OBJ_SCOPE(obj);                                     \
-        JS_ASSERT(scope_->object == (obj));                                   \
-        GC_WRITE_BARRIER(cx, scope_, LOCKED_OBJ_GET_SLOT(obj, slot), newval); \
-        LOCKED_OBJ_SET_SLOT(obj, slot, newval);                               \
+        JS_ASSERT(scope_->object == obj);                                     \
+        if (scope_->branded()) {                                              \
+            jsval oldval_ = LOCKED_OBJ_GET_SLOT(obj, slot);                   \
+            if (oldval_ != (newval) &&                                        \
+                (VALUE_IS_FUNCTION(cx, oldval_) ||                            \
+                 VALUE_IS_FUNCTION(cx, newval))) {                            \
+                scope_->methodShapeChange(cx, slot, newval);                  \
+            }                                                                 \
+        }                                                                     \
+        GC_POKE(cx, oldval);                                                  \
     JS_END_MACRO
 
 #define LOCKED_OBJ_GET_PROTO(obj) \
@@ -321,7 +340,7 @@ STOBJ_GET_CLASS(const JSObject* obj)
     JS_BEGIN_MACRO                                                            \
         OBJ_CHECK_SLOT(obj, slot);                                            \
         if (OBJ_IS_NATIVE(obj) && OBJ_SCOPE(obj)->title.ownercx == cx)        \
-            LOCKED_OBJ_WRITE_BARRIER(cx, obj, slot, value);                   \
+            LOCKED_OBJ_WRITE_SLOT(cx, obj, slot, value);                      \
         else                                                                  \
             js_SetSlotThreadSafe(cx, obj, slot, value);                       \
     JS_END_MACRO
@@ -347,8 +366,7 @@ STOBJ_GET_CLASS(const JSObject* obj)
 #else   
 
 #define OBJ_GET_SLOT(cx,obj,slot)       LOCKED_OBJ_GET_SLOT(obj,slot)
-#define OBJ_SET_SLOT(cx,obj,slot,value) LOCKED_OBJ_WRITE_BARRIER(cx,obj,slot, \
-                                                                 value)
+#define OBJ_SET_SLOT(cx,obj,slot,value) LOCKED_OBJ_WRITE_SLOT(cx,obj,slot,value)
 
 #endif 
 
