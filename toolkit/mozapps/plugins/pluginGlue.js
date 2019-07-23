@@ -36,43 +36,24 @@
 
 
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+function pluginBindings() { }
 
-
-
-
-var module = {
-    categoryEntry: "pluginfinder xbl binding",
-    categoryValue: "chrome://mozapps/content/plugins/pluginProblemBinding.css",
-
+pluginBindings.prototype = {
     
-    registerSelf: function (compMgr, fileSpec, location, type) {
-      var catman = Components.classes['@mozilla.org/categorymanager;1']
-                             .getService(Components.interfaces.nsICategoryManager);
-      catman.addCategoryEntry("agent-style-sheets", this.categoryEntry,
-                              this.categoryValue, true, true);
-
-    },
-
     
-    unregisterSelf: function (aCompMgr, aLocation, aLoaderStr) {
-      catman.deleteCategoryEntry("agent-style-sheets", this.categoryEntry,
-                                 true);
-    },
+    classDescription: "plugin bindings",
+    classID:          Components.ID("12663f3a-a311-4606-83eb-b6b9108dcc36"),
+    contractID:       "@mozilla.org/plugin-bindings;1",
+    QueryInterface: XPCOMUtils.generateQI([]),
 
-    
-    getClassObject: function (compMgr, cid, iid) {
-        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-    },
-
-    
-    canUnload: function(compMgr) {
-        return true;
-    }
+    _xpcom_categories: [{ category: "agent-style-sheets",
+                          entry:    "pluginfinder xbl binding",
+                          value:    "chrome://mozapps/content/plugins/pluginFinderBinding.css"},
+                        { category: "agent-style-sheets",
+                          entry:    "pluginproblem xbl binding",
+                          value:    "chrome://mozapps/content/plugins/pluginProblemBinding.css"}]
 };
 
-
-function NSGetModule(compMgr, fileSpec) {
-    return module;
-}
-
+var NSGetModule = XPCOMUtils.generateNSGetModule([pluginBindings]);
