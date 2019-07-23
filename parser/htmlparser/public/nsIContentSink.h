@@ -70,17 +70,14 @@ public:
 
 
 
-
-
-
-  NS_IMETHOD WillTokenize(void)=0;
+  NS_IMETHOD WillParse(void)=0;
 
   
 
 
 
 
-     
+
   NS_IMETHOD WillBuildModel(void)=0;
 
   
@@ -88,7 +85,7 @@ public:
 
 
 
-     
+
   NS_IMETHOD DidBuildModel()=0;
 
   
@@ -97,7 +94,7 @@ public:
 
 
 
-     
+
   NS_IMETHOD WillInterrupt(void)=0;
 
   
@@ -105,7 +102,7 @@ public:
 
 
 
-     
+
   NS_IMETHOD WillResume(void)=0;
 
   

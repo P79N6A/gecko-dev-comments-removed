@@ -82,9 +82,10 @@
 #include "nsIContentSink.h"
 #include "nsHTMLTags.h"
 
+
 #define NS_IHTML_CONTENT_SINK_IID \
-{ 0x73b5a072, 0x0f87, 0x4d07, \
-  { 0xa8, 0x16, 0xe6, 0xac, 0x73, 0xa7, 0x04, 0x3c } }
+{ 0xd19e6730, 0x5e2f, 0x4131, \
+  { 0x89, 0xdb, 0x8a, 0x91, 0x85, 0x15, 0x09, 0x7d } }
 
 
 #if defined(XP_MAC) 
@@ -129,12 +130,6 @@ public:
 
 
   NS_IMETHOD IsEnabled(PRInt32 aTag, PRBool* aReturn) = 0;
-
-   
-
-
-
-  NS_IMETHOD WillProcessTokens(void) = 0;
 
   
 
