@@ -109,7 +109,10 @@ struct nsStyleFont {
                         
                         
                         
-  PRUint8 mFlags;       
+                        
+                        
+  PRUint8 mGenericID;   
+                        
 
 #ifdef MOZ_MATHML
   

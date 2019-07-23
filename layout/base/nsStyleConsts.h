@@ -447,10 +447,6 @@
 #define NS_STYLE_FONT_STRETCH_NARROWER          -10
 
 
-#define NS_STYLE_FONT_DEFAULT                   0x00
-#define NS_STYLE_FONT_FACE_MASK                 0xFF // used to flag generic fonts
-
-
 #define NS_STYLE_FONT_CAPTION                   1		// css2
 #define NS_STYLE_FONT_ICON                      2
 #define NS_STYLE_FONT_MENU                      3
