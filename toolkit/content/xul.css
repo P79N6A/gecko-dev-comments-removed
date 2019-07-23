@@ -21,13 +21,13 @@
 }
 
 
-*[hidden="true"] {
+[hidden="true"] {
   display: none;
 }
 
 
-*[collapsed="true"], 
-*[moz-collapsed="true"] {
+[collapsed="true"], 
+[moz-collapsed="true"] {
   visibility: collapse;
 }
 
@@ -43,8 +43,7 @@ window[chromehidden~="status"] .chromeclass-status,
 window[chromehidden~="extrachrome"] .chromeclass-extrachrome,
 window[chromehidden~="location"] .chromeclass-location,
 window[chromehidden~="location"][chromehidden~="toolbar"] .chromeclass-toolbar,
-window[chromehidden~="toolbar"] .chromeclass-toolbar-additional
-{
+window[chromehidden~="toolbar"] .chromeclass-toolbar-additional {
   display: none;
 }
 
@@ -53,8 +52,7 @@ window[chromehidden~="toolbar"] .chromeclass-toolbar-additional
 
 
 
-.uri-element
-{
+.uri-element {
   direction: ltr !important;
 }
 
@@ -362,40 +360,6 @@ window[sizemode="maximized"] statusbarpanel.statusbar-resizerpanel {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 grid {
   display: -moz-grid;
 }
@@ -640,11 +604,11 @@ progressmeter {
 
 
 
- .box-inherit {
-   -moz-box-orient: inherit;
-   -moz-box-pack: inherit;
-   -moz-box-align: inherit;
-   -moz-box-direction: inherit;
+.box-inherit {
+  -moz-box-orient: inherit;
+  -moz-box-pack: inherit;
+  -moz-box-align: inherit;
+  -moz-box-direction: inherit;
 }
 
 
@@ -949,8 +913,7 @@ autorepeatbutton {
 
 
 
-statusbar 
-{
+statusbar {
   -moz-binding: url("chrome://global/content/bindings/general.xml#statusbar");
 %ifdef XP_MACOSX
   padding-right: 14px;
@@ -1081,8 +1044,7 @@ radio[pane] {
   -moz-box-align: center;
 }
 
-prefwindow[chromehidden~="toolbar"] .chromeclass-toolbar
-{
+prefwindow[chromehidden~="toolbar"] .chromeclass-toolbar {
   display: none;
 }
 
