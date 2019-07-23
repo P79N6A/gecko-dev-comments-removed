@@ -42,6 +42,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
+#include "nsBidiUtils.h"
 
 
 
@@ -153,79 +154,6 @@ enum nsBidiDirection {
 
 typedef enum nsBidiDirection nsBidiDirection;
 
-
-
-   
-
-
-
-
-
-
-
-
-typedef enum {
-  eBidiCat_Undefined,
-  eBidiCat_L,          
-  eBidiCat_R,          
-  eBidiCat_AL,         
-  eBidiCat_AN,         
-  eBidiCat_EN,         
-  eBidiCat_ES,         
-  eBidiCat_ET,         
-  eBidiCat_CS,         
-  eBidiCat_ON,         
-  eBidiCat_NSM,        
-  eBidiCat_BN,         
-  eBidiCat_B,          
-  eBidiCat_S,          
-  eBidiCat_WS,         
-  eBidiCat_CC = 0xf,   
-                       
-  eBidiCat_LRE = 0x2a, 
-  eBidiCat_RLE = 0x2b, 
-  eBidiCat_PDF = 0x2c, 
-  eBidiCat_LRO = 0x2d, 
-  eBidiCat_RLO = 0x2e  
-} eBidiCategory;
-
-enum nsCharType   { 
-  eCharType_LeftToRight              = 0, 
-  eCharType_RightToLeft              = 1, 
-  eCharType_EuropeanNumber           = 2,
-  eCharType_EuropeanNumberSeparator  = 3,
-  eCharType_EuropeanNumberTerminator = 4,
-  eCharType_ArabicNumber             = 5,
-  eCharType_CommonNumberSeparator    = 6,
-  eCharType_BlockSeparator           = 7,
-  eCharType_SegmentSeparator         = 8,
-  eCharType_WhiteSpaceNeutral        = 9, 
-  eCharType_OtherNeutral             = 10, 
-  eCharType_LeftToRightEmbedding     = 11,
-  eCharType_LeftToRightOverride      = 12,
-  eCharType_RightToLeftArabic        = 13,
-  eCharType_RightToLeftEmbedding     = 14,
-  eCharType_RightToLeftOverride      = 15,
-  eCharType_PopDirectionalFormat     = 16,
-  eCharType_DirNonSpacingMark        = 17,
-  eCharType_BoundaryNeutral          = 18,
-  eCharType_CharTypeCount
-};
-
-
-
-
-typedef enum nsCharType nsCharType;
-
-
-
-
-
-#define CHARTYPE_IS_RTL(val) ( ( (val) == eCharType_RightToLeft) || ( (val) == eCharType_RightToLeftArabic) )
-
-#define CHARTYPE_IS_WEAK(val) ( ( (val) == eCharType_EuropeanNumberSeparator)    \
-                           || ( (val) == eCharType_EuropeanNumberTerminator) \
-                           || ( ( (val) > eCharType_ArabicNumber) && ( (val) != eCharType_RightToLeftArabic) ) )
 
 
 
@@ -956,13 +884,6 @@ public:
 
   nsresult WriteReverse(const PRUnichar *aSrc, PRInt32 aSrcLength, PRUnichar *aDest, PRUint16 aOptions, PRInt32 *aDestSize);
 
-  
-
-
-
-
-  PRBool IsBidiControl(PRUint32 aChar);
-
 protected:
   
   PRInt32 mLength;
@@ -1030,27 +951,6 @@ private:
   void ReorderLine(nsBidiLevel aMinLevel, nsBidiLevel aMaxLevel);
 
   PRBool PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength, PRInt32 *aIndexMap, nsBidiLevel *aMinLevel, nsBidiLevel *aMaxLevel);
-  
-
-
-  eBidiCategory GetBidiCategory(PRUint32 aChar);
-
-  
-
-
-
-
-  PRBool IsBidiCategory(PRUint32 aChar, eBidiCategory aBidiCategory);
-
-  
-
-
-  nsCharType GetCharType(PRUint32 aChar);
-
-  
-
-
-  PRUint32 SymmSwap(PRUint32 aChar);
 
   PRInt32 doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
                          PRUnichar *dest, PRUint16 options);

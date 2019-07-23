@@ -1225,7 +1225,7 @@ nsBidiPresUtils::StripBidiControlCharacters(PRUnichar* aText,
   for (PRInt32 i = 0; i < aTextLength; i++) {
     
     
-    if (mBidiEngine->IsBidiControl((PRUint32)aText[i])) {
+    if (IsBidiControl((PRUint32)aText[i])) {
       ++stripLen;
     }
     else {
