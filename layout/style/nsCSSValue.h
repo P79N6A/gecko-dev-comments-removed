@@ -54,6 +54,37 @@ class imgIRequest;
 class nsIDocument;
 class nsIPrincipal;
 
+
+#define NS_CSS_DELETE_LIST_MEMBER(type_, ptr_, member_)                        \
+  {                                                                            \
+    type_ *cur = (ptr_)->member_;                                              \
+    (ptr_)->member_ = nsnull;                                                  \
+    while (cur) {                                                              \
+      type_ *next = cur->member_;                                              \
+      cur->member_ = nsnull;                                                   \
+      delete cur;                                                              \
+      cur = next;                                                              \
+    }                                                                          \
+  }
+
+
+
+
+#define NS_CSS_CLONE_LIST_MEMBER(type_, from_, member_, to_, args_)            \
+  {                                                                            \
+    type_ *dest = (to_);                                                       \
+    (to_)->member_ = nsnull;                                                   \
+    for (const type_ *src = (from_)->member_; src; src = src->member_) {       \
+      type_ *clone = src->Clone args_;                                         \
+      if (!clone) {                                                            \
+        delete (to_);                                                          \
+        return nsnull;                                                         \
+      }                                                                        \
+      dest->member_ = clone;                                                   \
+      dest = clone;                                                            \
+    }                                                                          \
+  }
+
 enum nsCSSUnit {
   eCSSUnit_Null         = 0,      
   eCSSUnit_Auto         = 1,      

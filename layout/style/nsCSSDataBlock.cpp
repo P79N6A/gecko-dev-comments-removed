@@ -470,10 +470,10 @@ nsCSSCompressedDataBlock::Clone() const
                         
                         
                     case eCSSType_ValueList:
-                        copy = new nsCSSValueList(*ValueListAtCursor(cursor));
+                        copy = ValueListAtCursor(cursor)->Clone();
                         break;
                     case eCSSType_ValuePairList:
-                        copy = new nsCSSValuePairList(*ValuePairListAtCursor(cursor));
+                        copy = ValuePairListAtCursor(cursor)->Clone();
                         break;
                 }
                 if (!copy) {
