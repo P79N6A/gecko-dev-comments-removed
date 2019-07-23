@@ -150,15 +150,18 @@ shellMkdir (wchar_t **pArgv)
 
             
             _wgetcwd ( path, _MAX_PATH );
-            if ( _wchdir ( tmpPath ) != -1 ) {
-                _wchdir ( path );
+            if ( _wchdir ( tmpPath ) == -1 &&
+                 _wmkdir ( tmpPath ) == -1 && 
+                 _wchdir ( tmpPath ) == -1) { 
+                char buf[2048];
+                _snprintf(buf, 2048, "Could not create the directory: %S",
+                          tmpPath);
+                perror ( buf );
+                retVal = 3;
+                break;
             } else {
-                if ( _wmkdir ( tmpPath ) == -1 ) {
-                    printf ( "%ls: ", tmpPath );
-                    perror ( "Could not create the directory" );
-                    retVal = 3;
-                    break;
-                }
+                
+                _wchdir ( path );
             }
             if ( *pArg == '\0' )      
                 break;
