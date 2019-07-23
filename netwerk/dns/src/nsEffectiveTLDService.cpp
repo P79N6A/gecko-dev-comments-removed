@@ -169,12 +169,17 @@ nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
                                              nsACString &aBaseDomain)
 {
   if (aHostname.IsEmpty())
-    return NS_ERROR_INVALID_ARG;
+    return NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS;
 
   
   PRBool trailingDot = aHostname.Last() == '.';
   if (trailingDot)
     aHostname.Truncate(aHostname.Length() - 1);
+
+  
+  
+  if (aHostname.IsEmpty() || aHostname.Last() == '.')
+    return NS_ERROR_INVALID_ARG;
 
   
   PRNetAddr addr;
@@ -191,6 +196,13 @@ nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
   const char *end = currDomain + aHostname.Length();
   const char *eTLD = currDomain;
   while (1) {
+    
+    
+    
+    if (*currDomain == '.')
+      return NS_ERROR_INVALID_ARG;
+
+    
     nsDomainEntry *entry = mHash.GetEntry(currDomain);
     if (entry) {
       if (entry->IsWild() && prevDomain) {
