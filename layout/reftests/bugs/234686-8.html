@@ -1,0 +1,35 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+
+
+
+
+
+<html lang="en">
+ <head>
+  <title>CSS Box Model: Min/Max Height and Width Constraints on Replaced Elements</title>
+  <style type="text/css">
+
+    /* Diagrams are scaled so that w and h line up.
+       Image is 75px x 75px; target dimensions will thus be 75px. */
+
+    /* h < min-height
+     * wmax/w > hmin/h
+     *
+     *               w              wmax
+     * |-------------+----------------+-----------> height 
+     *               h       hmin
+     * |-------------+---------+------------------> width
+     *
+     * target: [hmin * w/h, hmin]
+     */
+
+    #img8 {max-width: 100px; /* 400% */
+           min-height: 75px; /* 300% */}
+
+  </style>
+ </head>
+ <body>
+   <p><img src="234686-8.gif" alt="" id="img8"></p> 
+
+ </body>
+</html>
