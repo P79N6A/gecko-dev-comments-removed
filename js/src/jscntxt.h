@@ -254,7 +254,7 @@ struct JSRuntime {
     uint32              gcLastBytes;
     uint32              gcMaxBytes;
     uint32              gcMaxMallocBytes;
-    uint32              gcStackPoolLifespan;
+    uint32              gcEmptyArenaPoolLifespan;
     uint32              gcLevel;
     uint32              gcNumber;
     JSTracer            *gcMarkingTracer;
@@ -884,6 +884,9 @@ struct JSContext {
 
     
     JSSecurityCallbacks *securityCallbacks;
+
+    
+    JSArenaPool         regexpPool;
 };
 
 #ifdef JS_THREADSAFE
