@@ -4947,7 +4947,7 @@ nsFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsK
     if (!aState->mAtStart) {
       if (aState->mLastCharWasPunctuation) {
         
-        if (BreakWordBetweenPunctuation(aState, PR_FALSE, PR_FALSE, aIsKeyboardSelect))
+        if (BreakWordBetweenPunctuation(aForward, aIsKeyboardSelect))
           return PR_TRUE;
       } else {
         
@@ -4957,9 +4957,7 @@ nsFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsK
     }
     
     *aOffset = 1 - startOffset;
-    aState->Update(PR_FALSE, 
-                   PR_FALSE  
-                   );
+    aState->Update(PR_FALSE);
     if (!aWordSelectEatSpace)
       aState->SetSawBeforeType();
   }
@@ -4967,18 +4965,9 @@ nsFrame::PeekOffsetWord(PRBool aForward, PRBool aWordSelectEatSpace, PRBool aIsK
 }
 
 PRBool
-nsFrame::BreakWordBetweenPunctuation(const PeekWordState* aState,
-                                     PRBool aPunctAfter, PRBool aWhitespaceAfter,
-                                     PRBool aIsKeyboardSelect)
+nsFrame::BreakWordBetweenPunctuation(PRBool aAfterPunct, PRBool aIsKeyboardSelect)
 {
-  NS_ASSERTION(aPunctAfter != aState->mLastCharWasPunctuation,
-               "Call this only at punctuation boundaries");
-  if (aState->mLastCharWasWhitespace) {
-    
-    return PR_TRUE;
-  }
   if (!nsContentUtils::GetBoolPref("layout.word_select.stop_at_punctuation")) {
-    
     
     return PR_FALSE;
   }
@@ -4986,13 +4975,8 @@ nsFrame::BreakWordBetweenPunctuation(const PeekWordState* aState,
     
     return PR_TRUE;
   }
-  if (!aState->mLastCharWasPunctuation) {
-    
-    return PR_FALSE;
-  }
   
-  
-  return aState->mSeenNonPunctuationSinceWhitespace;
+  return aAfterPunct;
 }
 
 NS_IMETHODIMP
