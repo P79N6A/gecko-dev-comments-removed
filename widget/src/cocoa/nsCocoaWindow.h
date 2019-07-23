@@ -47,7 +47,6 @@
 #include "nsBaseWidget.h"
 #include "nsPIWidgetCocoa.h"
 #include "nsAutoPtr.h"
-#include "nsNativeThemeColors.h"
 
 class nsCocoaWindow;
 class nsChildView;
@@ -125,25 +124,6 @@ struct UnifiedGradientInfo {
   BOOL windowIsMain;
   BOOL drawTitlebar; 
 };
-
-
-
-static void unifiedShading(void* aInfo, const float* aIn, float* aOut)
-{
-  UnifiedGradientInfo* info = (UnifiedGradientInfo*)aInfo;
-  
-  float start = info->titlebarHeight / (info->titlebarHeight + info->toolbarHeight - 1);
-  const float startGrey = NativeGreyColorAsFloat(headerStartGrey, info->windowIsMain);
-  const float endGrey = NativeGreyColorAsFloat(headerEndGrey, info->windowIsMain);
-  
-  
-  float a = info->drawTitlebar ? *aIn * start : start + *aIn * (1 - start);
-  float result = (1.0f - a) * startGrey + a * endGrey;
-  aOut[0] = result;
-  aOut[1] = result;
-  aOut[2] = result;
-  aOut[3] = 1.0f;
-}
 
 
 
@@ -302,6 +282,8 @@ public:
 
     NS_IMETHOD BeginSecureKeyboardInput();
     NS_IMETHOD EndSecureKeyboardInput();
+
+    static void UnifiedShading(void* aInfo, const float* aIn, float* aOut);
 
 protected:
   
