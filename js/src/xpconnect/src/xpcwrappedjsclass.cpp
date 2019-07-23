@@ -593,6 +593,44 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
 
     
 
+#ifndef XPCONNECT_STANDALONE
+    
+    
+    
+
+    if(aIID.Equals(NS_GET_IID(nsISecurityCheckedComponent)))
+    {
+        
+        
+        
+
+        nsXPConnect *xpc = nsXPConnect::GetXPConnect();
+        nsCOMPtr<nsIScriptSecurityManager> secMan =
+            do_QueryInterface(xpc->GetDefaultSecurityManager());
+        if(!secMan)
+        {
+            *aInstancePtr = nsnull;
+            return NS_NOINTERFACE;
+        }
+        nsCOMPtr<nsIPrincipal> objPrin;
+        nsresult rv = secMan->GetObjectPrincipal(ccx, self->GetJSObject(),
+                                                 getter_AddRefs(objPrin));
+        if(NS_SUCCEEDED(rv))
+        {
+            nsCOMPtr<nsIPrincipal> systemPrin;
+            rv = secMan->GetSystemPrincipal(getter_AddRefs(systemPrin));
+            if(systemPrin != objPrin)
+                rv = NS_NOINTERFACE;
+        }
+
+        if(NS_FAILED(rv))
+        {
+            *aInstancePtr = nsnull;
+            return rv;
+        }
+    }
+#endif
+
     
     JSObject* jsobj = CallQueryInterfaceOnJSObject(ccx, self->GetJSObject(),
                                                    aIID);
