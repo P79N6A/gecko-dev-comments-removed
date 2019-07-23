@@ -3231,6 +3231,7 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
     PRBool allowPullUp = PR_TRUE;
     nsIContent* forceBreakInContent = nsnull;
     PRInt32 forceBreakOffset = -1;
+    gfxBreakPriority forceBreakPriority = eNoBreak;
     do {
       nsSpaceManager::SavedState spaceManagerState;
       aState.mReflowState.mSpaceManager->PushState(&spaceManagerState);
@@ -3261,7 +3262,7 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
           
           
           
-          forceBreakInContent = lineLayout.GetLastOptionalBreakPosition(&forceBreakOffset);
+          forceBreakInContent = lineLayout.GetLastOptionalBreakPosition(&forceBreakOffset, &forceBreakPriority);
         } else {
           forceBreakInContent = nsnull;
         }
@@ -3389,7 +3390,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   if (impactedByFloats) {
     
     
-    if (aLineLayout.NotifyOptionalBreakPosition(frame->GetContent(), 0, PR_TRUE)) {
+    if (aLineLayout.NotifyOptionalBreakPosition(frame->GetContent(), 0, PR_TRUE, eNormalBreak)) {
       lineReflowStatus = LINE_REFLOW_REDO_NEXT_BAND;
     }
   }
@@ -3467,7 +3468,8 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   if (needsBackup) {
     
     PRInt32 offset;
-    nsIContent* breakContent = aLineLayout.GetLastOptionalBreakPosition(&offset);
+    gfxBreakPriority breakPriority;
+    nsIContent* breakContent = aLineLayout.GetLastOptionalBreakPosition(&offset, &breakPriority);
     
     
     

@@ -103,6 +103,7 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
     mForceBreakContent(nsnull),
     mLastOptionalBreakContentOffset(-1),
     mForceBreakContentOffset(-1),
+    mLastOptionalBreakPriority(eNoBreak),
     mBlockRS(nsnull),
     mMinLineHeight(0),
     mTextIndent(0)
@@ -844,8 +845,10 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
 
   nsIAtom* frameType = aFrame->GetType();
   PRInt32 savedOptionalBreakOffset;
+  gfxBreakPriority savedOptionalBreakPriority;
   nsIContent* savedOptionalBreakContent =
-    GetLastOptionalBreakPosition(&savedOptionalBreakOffset);
+    GetLastOptionalBreakPosition(&savedOptionalBreakOffset,
+                                 &savedOptionalBreakPriority);
 
   rv = aFrame->Reflow(mPresContext, metrics, reflowState, aReflowStatus);
   if (NS_FAILED(rv)) {
@@ -1030,7 +1033,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          if (NotifyOptionalBreakPosition(aFrame->GetContent(), PR_INT32_MAX, optionalBreakAfterFits)) {
+          if (NotifyOptionalBreakPosition(aFrame->GetContent(), PR_INT32_MAX, optionalBreakAfterFits, eNormalBreak)) {
             
             aReflowStatus = NS_INLINE_LINE_BREAK_AFTER(aReflowStatus);
           }
@@ -1043,7 +1046,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       
       
       RestoreSavedBreakPosition(savedOptionalBreakContent,
-                                savedOptionalBreakOffset);
+                                savedOptionalBreakOffset,
+                                savedOptionalBreakPriority);
     }
   }
   else {

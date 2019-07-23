@@ -55,6 +55,7 @@
 #include "nsLineBox.h"
 #include "nsBlockReflowState.h"
 #include "plarena.h"
+#include "gfxTypes.h"
 
 class nsBlockFrame;
 
@@ -276,15 +277,21 @@ public:
 
 
 
+
+
+
+
   PRBool NotifyOptionalBreakPosition(nsIContent* aContent, PRInt32 aOffset,
-                                     PRBool aFits) {
+                                     PRBool aFits, gfxBreakPriority aPriority) {
     NS_ASSERTION(!aFits || !GetFlag(LL_NEEDBACKUP),
                   "Shouldn't be updating the break position with a break that fits after we've already flagged an overrun");
     
     
-    if (aFits || !mLastOptionalBreakContent) {
+    if ((aFits && aPriority >= mLastOptionalBreakPriority) ||
+        !mLastOptionalBreakContent) {
       mLastOptionalBreakContent = aContent;
       mLastOptionalBreakContentOffset = aOffset;
+      mLastOptionalBreakPriority = aPriority;
     }
     return aContent && mForceBreakContent == aContent &&
       mForceBreakContentOffset == aOffset;
@@ -294,9 +301,11 @@ public:
 
 
 
-  void RestoreSavedBreakPosition(nsIContent* aContent, PRInt32 aOffset) {
+  void RestoreSavedBreakPosition(nsIContent* aContent, PRInt32 aOffset,
+                                 gfxBreakPriority aPriority) {
     mLastOptionalBreakContent = aContent;
     mLastOptionalBreakContentOffset = aOffset;
+    mLastOptionalBreakPriority = aPriority;
   }
   
 
@@ -305,11 +314,14 @@ public:
     SetFlag(LL_NEEDBACKUP, PR_FALSE);
     mLastOptionalBreakContent = nsnull;
     mLastOptionalBreakContentOffset = -1;
+    mLastOptionalBreakPriority = eNoBreak;
   }
   
   
-  nsIContent* GetLastOptionalBreakPosition(PRInt32* aOffset) {
+  nsIContent* GetLastOptionalBreakPosition(PRInt32* aOffset,
+                                           gfxBreakPriority* aPriority) {
     *aOffset = mLastOptionalBreakContentOffset;
+    *aPriority = mLastOptionalBreakPriority;
     return mLastOptionalBreakContent;
   }
   
@@ -369,6 +381,7 @@ protected:
   nsIContent* mForceBreakContent;
   PRInt32     mLastOptionalBreakContentOffset;
   PRInt32     mForceBreakContentOffset;
+  gfxBreakPriority mLastOptionalBreakPriority;
   
   
   friend class nsInlineFrame;

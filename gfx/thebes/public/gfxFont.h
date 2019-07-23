@@ -924,6 +924,13 @@ public:
 
 
 
+
+
+
+
+
+
+
     PRUint32 BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
                                  PRBool aLineBreakBefore, gfxFloat aWidth,
                                  PropertyProvider *aProvider,
@@ -932,7 +939,9 @@ public:
                                  Metrics *aMetrics, PRBool aTightBoundingBox,
                                  gfxContext *aRefContextForTightBoundingBox,
                                  PRBool *aUsedHyphenation,
-                                 PRUint32 *aLastBreak);
+                                 PRUint32 *aLastBreak,
+                                 PRBool aCanWordWrap,
+                                 gfxBreakPriority *aBreakPriority);
 
     
 

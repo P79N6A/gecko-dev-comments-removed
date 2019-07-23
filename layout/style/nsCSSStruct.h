@@ -265,6 +265,7 @@ struct nsCSSText : public nsCSSStruct  {
   nsCSSValue mUnicodeBidi;  
   nsCSSValue mLineHeight;
   nsCSSValue mWhiteSpace;
+  nsCSSValue mWordWrap;
 private:
   nsCSSText(const nsCSSText& aOther); 
 };

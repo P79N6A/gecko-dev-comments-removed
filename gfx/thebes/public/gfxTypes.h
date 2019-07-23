@@ -58,6 +58,31 @@ typedef double gfxFloat;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum gfxBreakPriority {
+    eNoBreak       = 0,
+    eWordWrapBreak,
+    eNormalBreak
+};
+
+
+
+
+
 #include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
 

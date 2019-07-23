@@ -193,6 +193,7 @@ public:
   static const PRInt32 kVolumeKTable[];
   static const PRInt32 kWhitespaceKTable[];
   static const PRInt32 kWidthKTable[]; 
+  static const PRInt32 kWordwrapKTable[];
 };
 
 #endif 

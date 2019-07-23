@@ -806,6 +806,7 @@ struct nsStyleText {
   PRUint8 mTextAlign;                   
   PRUint8 mTextTransform;               
   PRUint8 mWhiteSpace;                  
+  PRUint8 mWordWrap;                    
 
   nsStyleCoord  mLetterSpacing;         
   nsStyleCoord  mLineHeight;            
@@ -822,6 +823,10 @@ struct nsStyleText {
   PRBool WhiteSpaceCanWrap() const {
     return mWhiteSpace == NS_STYLE_WHITESPACE_NORMAL ||
            mWhiteSpace == NS_STYLE_WHITESPACE_PRE_WRAP;
+  }
+
+  PRBool WordCanWrap() const {
+    return mWordWrap == NS_STYLE_WORDWRAP_BREAK_WORD;
   }
 };
 

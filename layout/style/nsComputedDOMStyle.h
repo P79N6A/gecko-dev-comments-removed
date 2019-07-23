@@ -249,6 +249,7 @@ private:
   nsresult GetLetterSpacing(nsIDOMCSSValue** aValue);
   nsresult GetWordSpacing(nsIDOMCSSValue** aValue);
   nsresult GetWhiteSpace(nsIDOMCSSValue** aValue);
+  nsresult GetWordWrap(nsIDOMCSSValue** aValue);
 
   
   nsresult GetOpacity(nsIDOMCSSValue** aValue);
