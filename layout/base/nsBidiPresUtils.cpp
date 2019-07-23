@@ -592,18 +592,16 @@ nsBidiPresUtils::CreateBlockBuffer(nsPresContext* aPresContext)
     }
     else if (nsGkAtoms::brFrame == frameType) { 
       
-      mBuffer.Append( (PRUnichar) kLineSeparator);
+      mBuffer.Append(kLineSeparator);
     }
     else if (nsGkAtoms::directionalFrame == frameType) {
-      nsDirectionalFrame* dirFrame;
-      frame->QueryInterface(NS_GET_IID(nsDirectionalFrame),
-                            (void**) &dirFrame);
-      mBuffer.Append(dirFrame->GetChar() );
+      nsDirectionalFrame* dirFrame = static_cast<nsDirectionalFrame*>(frame);
+      mBuffer.Append(dirFrame->GetChar());
     }
     else { 
       
       
-      mBuffer.Append( (PRUnichar) kObjectSubstitute);
+      mBuffer.Append(kObjectSubstitute);
     }
   }
   
