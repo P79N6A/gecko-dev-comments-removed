@@ -51,8 +51,8 @@ using mozilla::ipc::GeckoThread;
 namespace mozilla {
 namespace dom {
 
-ContentProcessThread::ContentProcessThread() :
-    GeckoThread(),
+ContentProcessThread::ContentProcessThread(ProcessHandle mParentHandle) :
+    GeckoThread(mParentHandle),
     mContentProcess()
 {
 }
@@ -69,7 +69,7 @@ ContentProcessThread::Init()
     
     
     
-    mContentProcess.Init(owner_loop(), channel());
+    mContentProcess.Init(owner_loop(), GetParentProcessHandle(), channel());
 }
 
 void

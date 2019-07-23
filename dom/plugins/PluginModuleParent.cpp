@@ -57,7 +57,8 @@ PluginModuleParent::LoadModule(const char* aFilePath)
     
     PluginModuleParent* parent = new PluginModuleParent(aFilePath);
     parent->mSubprocess.Launch();
-    parent->Open(parent->mSubprocess.GetChannel());
+    parent->Open(parent->mSubprocess.GetChannel(),
+                 parent->mSubprocess.GetChildProcessHandle());
 
     return parent;
 }
