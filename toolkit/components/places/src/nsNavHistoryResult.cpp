@@ -2435,7 +2435,9 @@ nsNavHistoryQueryResultNode::Refresh()
   
   
   
-  if (mOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS)
+  
+  if (mOptions->ResultType() == nsINavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS &&
+      !mExpanded)
     return NS_OK;
 
   
