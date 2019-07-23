@@ -5945,18 +5945,27 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
   else {
     nsPresContext* presContext = PresContext();
 
+#ifdef DEBUG
     
     
     
     
     
-    NS_ASSERTION(GetPrevContinuation() ||
-                 (GetStyleContext()->GetPseudoType() ==
-                  nsCSSAnonBoxes::mozAnonymousBlock) ||
-                 (nsRefPtr<nsStyleContext>(GetFirstLetterStyle(presContext)) !=
-                  nsnull) ==
+    
+    nsIAtom *pseudo = GetStyleContext()->GetPseudoType();
+    PRBool haveFirstLetterStyle =
+      !GetPrevContinuation() &&
+      (!pseudo ||
+       (pseudo == nsCSSAnonBoxes::cellContent &&
+        mParent->GetStyleContext()->GetPseudoType() == nsnull) ||
+       pseudo == nsCSSAnonBoxes::fieldsetContent ||
+       pseudo == nsCSSAnonBoxes::scrolledContent ||
+       pseudo == nsCSSAnonBoxes::columnContent) &&
+      nsRefPtr<nsStyleContext>(GetFirstLetterStyle(presContext)) != nsnull;
+    NS_ASSERTION(haveFirstLetterStyle ==
                  ((mState & NS_BLOCK_HAS_FIRST_LETTER_STYLE) != 0),
                  "NS_BLOCK_HAS_FIRST_LETTER_STYLE state out of sync");
+#endif
     
     rv = AddFrames(aChildList, nsnull);
     if (NS_FAILED(rv)) {
