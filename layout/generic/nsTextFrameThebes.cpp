@@ -5326,7 +5326,9 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
   PRInt32 limitLength = length;
   PRInt32 forceBreak = lineLayout.GetForcedBreakPosition(mContent);
+  PRBool forceBreakAfter = PR_FALSE;
   if (forceBreak >= offset + length) {
+    forceBreakAfter = forceBreak == offset + length;
     
     forceBreak = -1;
   }
@@ -5480,9 +5482,14 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     lineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth);
   }
-  PRBool breakAfter = PR_FALSE;
-  if ((charsFit == length && transformedOffset + transformedLength == mTextRun->GetLength() &&
-       (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK))) {
+  PRBool breakAfter = forceBreakAfter;
+  if (!breakAfter && charsFit == length &&
+      transformedOffset + transformedLength == mTextRun->GetLength() &&
+      (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_HAS_TRAILING_BREAK)) {
+    
+    
+    
+
     
     
     
