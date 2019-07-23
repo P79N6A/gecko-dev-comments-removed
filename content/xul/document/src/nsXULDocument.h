@@ -485,12 +485,12 @@ protected:
     {
     protected:
         nsXULDocument* mDocument;              
-        nsCOMPtr<nsIContent> mObservesElement; 
+        nsCOMPtr<mozilla::dom::Element> mObservesElement; 
         PRBool mResolved;
 
     public:
         BroadcasterHookup(nsXULDocument* aDocument,
-                          nsIContent* aObservesElement)
+                          mozilla::dom::Element* aObservesElement)
             : mDocument(aDocument),
               mObservesElement(aObservesElement),
               mResolved(PR_FALSE)
@@ -550,14 +550,14 @@ protected:
     
     
     nsresult
-    FindBroadcaster(nsIContent* aElement,
+    FindBroadcaster(mozilla::dom::Element* aElement,
                     nsIDOMElement** aListener,
                     nsString& aBroadcasterID,
                     nsString& aAttribute,
                     nsIDOMElement** aBroadcaster);
 
     nsresult
-    CheckBroadcasterHookup(nsIContent* aElement,
+    CheckBroadcasterHookup(mozilla::dom::Element* aElement,
                            PRBool* aNeedsHookup,
                            PRBool* aDidResolve);
 
