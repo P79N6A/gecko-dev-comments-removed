@@ -1132,7 +1132,7 @@ MappedAttrParser::ParseMappedAttrValue(nsIAtom* aMappedAttrName,
     nsCSSProps::LookupProperty(nsAtomString(aMappedAttrName));
   PRBool changed; 
   mParser.ParseProperty(propertyID, aMappedAttrValue, mDocURI, mBaseURI,
-                        mNodePrincipal, mDecl, &changed);
+                        mNodePrincipal, mDecl, &changed, PR_FALSE);
 }
 
 already_AddRefed<nsICSSStyleRule>

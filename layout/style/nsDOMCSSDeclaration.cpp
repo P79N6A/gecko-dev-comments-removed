@@ -103,7 +103,7 @@ nsDOMCSSDeclaration::SetPropertyValue(const nsCSSProperty aPropID,
     return RemoveProperty(aPropID);
   }
 
-  return ParsePropertyValue(aPropID, aValue);
+  return ParsePropertyValue(aPropID, aValue, PR_FALSE);
 }
 
 
@@ -206,24 +206,24 @@ nsDOMCSSDeclaration::SetProperty(const nsAString& aPropertyName,
   if (propID == eCSSProperty_UNKNOWN) {
     return NS_OK;
   }
-  
+
   if (aValue.IsEmpty()) {
+    
     
     
     return RemoveProperty(propID);
   }
 
   if (aPriority.IsEmpty()) {
-    return ParsePropertyValue(propID, aValue);
+    return ParsePropertyValue(propID, aValue, PR_FALSE);
+  }
+
+  if (aPriority.EqualsLiteral("important")) {
+    return ParsePropertyValue(propID, aValue, PR_TRUE);
   }
 
   
-  
-  
-  
-  return ParseDeclaration(aPropertyName + NS_LITERAL_STRING(":") +
-                          aValue + NS_LITERAL_STRING("!") + aPriority,
-                          PR_TRUE, PR_FALSE);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -245,7 +245,8 @@ nsDOMCSSDeclaration::RemoveProperty(const nsAString& aPropertyName,
 
 nsresult
 nsDOMCSSDeclaration::ParsePropertyValue(const nsCSSProperty aPropID,
-                                        const nsAString& aPropValue)
+                                        const nsAString& aPropValue,
+                                        PRBool aIsImportant)
 {
   nsCSSDeclaration* decl;
   nsresult result = GetCSSDeclaration(&decl, PR_TRUE);
@@ -275,7 +276,8 @@ nsDOMCSSDeclaration::ParsePropertyValue(const nsCSSProperty aPropID,
   nsCSSParser cssParser(cssLoader);
   PRBool changed;
   result = cssParser.ParseProperty(aPropID, aPropValue, sheetURI, baseURI,
-                                   sheetPrincipal, decl, &changed);
+                                   sheetPrincipal, decl, &changed,
+                                   aIsImportant);
   if (NS_SUCCEEDED(result) && changed) {
     result = DeclarationChanged();
   }

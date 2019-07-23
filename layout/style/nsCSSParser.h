@@ -151,7 +151,8 @@ public:
                                      nsIURI*             aBaseURL,
                                      nsIPrincipal*       aSheetPrincipal,
                                      nsCSSDeclaration*   aDeclaration,
-                                     PRBool*             aChanged);
+                                     PRBool*             aChanged,
+                                     PRBool              aIsImportant);
 
   
 

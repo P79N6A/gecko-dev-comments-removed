@@ -215,7 +215,8 @@ public:
                          nsIURI* aBaseURL,
                          nsIPrincipal* aSheetPrincipal,
                          nsCSSDeclaration* aDeclaration,
-                         PRBool* aChanged);
+                         PRBool* aChanged,
+                         PRBool aIsImportant);
 
   nsresult ParseMediaList(const nsSubstring& aBuffer,
                           nsIURI* aURL, 
@@ -1089,7 +1090,8 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
                              nsIURI* aBaseURI,
                              nsIPrincipal* aSheetPrincipal,
                              nsCSSDeclaration* aDeclaration,
-                             PRBool* aChanged)
+                             PRBool* aChanged,
+                             PRBool aIsImportant)
 {
   NS_PRECONDITION(aSheetPrincipal, "Must have principal here!");
   AssertInitialState();
@@ -1127,7 +1129,10 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
     NS_WARNING("out of memory");
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  void* valueSlot = aDeclaration->SlotForValue(aPropID);
+  void* valueSlot = nsnull;
+  if (!aIsImportant) {
+    valueSlot = aDeclaration->SlotForValue(aPropID);
+  }
   if (!valueSlot) {
     
     aDeclaration->ExpandTo(&mData);
@@ -1139,7 +1144,7 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
       CopyValue(mTempData.PropertyAt(aPropID), valueSlot, aPropID, aChanged);
       mTempData.ClearPropertyBit(aPropID);
     } else {
-      TransferTempData(aDeclaration, aPropID, PR_FALSE, PR_FALSE, aChanged);
+      TransferTempData(aDeclaration, aPropID, aIsImportant, PR_FALSE, aChanged);
     }
   } else {
     if (parsedOK) {
@@ -9229,11 +9234,12 @@ nsCSSParser::ParseProperty(const nsCSSProperty aPropID,
                            nsIURI*             aBaseURI,
                            nsIPrincipal*       aSheetPrincipal,
                            nsCSSDeclaration*   aDeclaration,
-                           PRBool*             aChanged)
+                           PRBool*             aChanged,
+                           PRBool              aIsImportant)
 {
   return static_cast<CSSParserImpl*>(mImpl)->
     ParseProperty(aPropID, aPropValue, aSheetURI, aBaseURI,
-                  aSheetPrincipal, aDeclaration, aChanged);
+                  aSheetPrincipal, aDeclaration, aChanged, aIsImportant);
 }
 
 nsresult
