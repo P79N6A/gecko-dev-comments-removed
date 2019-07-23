@@ -44,7 +44,6 @@
 #include "nsIPrintOptions.h"
 #include "nsTArray.h"
 #include "nsCOMArray.h"
-#include "nsAutoPtr.h"
 
 
 class nsPrintObject;
