@@ -2610,6 +2610,14 @@ nsGfxScrollFrameInner::GetScrolledRect(const nsSize& aScrollPortSize) const
   } else {
     if (x2 > aScrollPortSize.width)
       x2 = aScrollPortSize.width;
+    
+    
+    
+    
+    
+    
+    nscoord extraWidth = PR_MAX(0, mScrolledFrame->GetSize().width - aScrollPortSize.width);
+    x2 += extraWidth;
   }
 
   return nsRect(x1, y1, x2 - x1, y2 - y1);
