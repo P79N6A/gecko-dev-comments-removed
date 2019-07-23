@@ -84,10 +84,6 @@ oggplay_initialise(OggPlay *me, int block) {
   OggPlayErrorCode  return_val;
   int               i;
 
-  if (me == NULL) {
-    return E_OGGPLAY_BAD_OGGPLAY;
-  }
-  
   return_val = me->reader->initialise(me->reader, block);
 
   if (return_val != E_OGGPLAY_OK) {
@@ -122,25 +118,9 @@ oggplay_initialise(OggPlay *me, int block) {
     return E_OGGPLAY_OGGZ_UNHAPPY;
 
   while (1) {
-    i = oggz_read (me->oggz, OGGZ_READ_CHUNK_SIZE);
-    
-    switch (i) {
-      case 0:
-        
 
-
-
-      case OGGZ_ERR_HOLE_IN_DATA:
-        
-        return E_OGGPLAY_BAD_INPUT;
-      
-      case OGGZ_ERR_OUT_OF_MEMORY:
-        
-        return E_OGGPLAY_OUT_OF_MEMORY;
-      
-      case OGGZ_ERR_STOP_ERR:
-        
-        return E_OGGPLAY_BAD_OGGPLAY;
+    if (oggz_read(me->oggz, OGGZ_READ_CHUNK_SIZE) <= 0) {
+      return E_OGGPLAY_BAD_INPUT;
     }
 
     if (me->all_tracks_initialised) {
@@ -154,6 +134,7 @@ oggplay_initialise(OggPlay *me, int block) {
   for (i = 0; i < me->num_tracks; i++) {
     me->decode_data[i]->active = 0;
   }
+  me->active_tracks = 0;
 
   
 
@@ -172,7 +153,7 @@ oggplay_open_with_reader(OggPlayReader *reader) {
   OggPlay *me = NULL;
   int r = E_OGGPLAY_TIMEOUT;
 
-  if ((me = oggplay_new_with_reader(reader)) == NULL)
+  if ( (me = oggplay_new_with_reader(reader)) == NULL)
     return NULL;
 
   while (r == E_OGGPLAY_TIMEOUT) {
@@ -180,7 +161,6 @@ oggplay_open_with_reader(OggPlayReader *reader) {
   }
 
   if (r != E_OGGPLAY_OK) {
-    
     
     oggplay_close(me);
 
@@ -217,7 +197,7 @@ oggplay_set_data_callback(OggPlay *me, OggPlayDataCallback callback,
 
 void
 oggplay_set_data_callback_force(OggPlay *me, OggPlayDataCallback callback,
-                                void *user) {
+                void *user) {
 
   me->callback = callback;
   me->callback_user_ptr = user;
@@ -335,7 +315,7 @@ oggplay_get_video_aspect_ratio(OggPlay *me, int track, int* aspect_denom, int* a
 }
 
 OggPlayErrorCode
-oggplay_convert_video_to_rgb(OggPlay *me, int track, int convert, int swap_rgb) {
+oggplay_convert_video_to_rgb(OggPlay *me, int track, int convert) {
   OggPlayTheoraDecode *decode;
 
   if (me == NULL) {
@@ -352,9 +332,8 @@ oggplay_convert_video_to_rgb(OggPlay *me, int track, int convert, int swap_rgb) 
 
   decode = (OggPlayTheoraDecode *)(me->decode_data[track]);
 
-  if (decode->convert_to_rgb != convert || decode->swap_rgb != swap_rgb) {
+  if (decode->convert_to_rgb != convert) {
     decode->convert_to_rgb = convert;
-    decode->swap_rgb = swap_rgb;
     me->decode_data[track]->decoded_type = convert ? OGGPLAY_RGBA_VIDEO : OGGPLAY_YUV_VIDEO;
 
     
@@ -500,8 +479,8 @@ oggplay_get_kate_category(OggPlay *me, int track, const char** category) {
   decode = (OggPlayKateDecode *)(me->decode_data[track]);
 
 #ifdef HAVE_KATE
-  if (decode->decoder.initialised) {
-    (*category) = decode->k_state.ki->category;
+  if (decode->init) {
+    (*category) = decode->k.ki->category;
     return E_OGGPLAY_OK;
   }
   else return E_OGGPLAY_UNINITIALISED;
@@ -530,8 +509,8 @@ oggplay_get_kate_language(OggPlay *me, int track, const char** language) {
   decode = (OggPlayKateDecode *)(me->decode_data[track]);
 
 #ifdef HAVE_KATE
-  if (decode->decoder.initialised) {
-    (*language) = decode->k_state.ki->language;
+  if (decode->init) {
+    (*language) = decode->k.ki->language;
     return E_OGGPLAY_OK;
   }
   else return E_OGGPLAY_UNINITIALISED;
@@ -541,7 +520,7 @@ oggplay_get_kate_language(OggPlay *me, int track, const char** language) {
 }
 
 OggPlayErrorCode
-oggplay_set_kate_tiger_rendering(OggPlay *me, int track, int use_tiger, int swap_rgb, int default_width, int default_height) {
+oggplay_set_kate_tiger_rendering(OggPlay *me, int track, int use_tiger) {
 
   OggPlayKateDecode * decode;
 
@@ -561,11 +540,8 @@ oggplay_set_kate_tiger_rendering(OggPlay *me, int track, int use_tiger, int swap
 
 #ifdef HAVE_KATE
 #ifdef HAVE_TIGER
-  if (decode->decoder.initialised && decode->tr) {
+  if (decode->init && decode->tr) {
     decode->use_tiger = use_tiger;
-    decode->swap_rgb = swap_rgb;
-    decode->default_width = default_width;
-    decode->default_height = default_height;
     decode->decoder.decoded_type = use_tiger ? OGGPLAY_RGBA_VIDEO : OGGPLAY_KATE;
     return E_OGGPLAY_OK;
   }
@@ -639,28 +615,13 @@ oggplay_step_decoding(OggPlay *me) {
   if (me == NULL) {
     return E_OGGPLAY_BAD_OGGPLAY;
   }
-  
-  
-
-
-
-
-  if (me->callback == NULL) {
-    return E_OGGPLAY_UNINITIALISED;
-  }
 
   
 
 
 
 
-  if 
-  (
-    me->trash != NULL 
-    && 
-    (me->buffer == NULL || me->buffer->last_emptied > -1)
-  ) 
-  {
+  if (me->trash != NULL && me->buffer->last_emptied > -1) {
     oggplay_take_out_trash(me, me->trash);
     me->trash = NULL;
   }
@@ -730,58 +691,36 @@ read_more_data:
 
     r = oggz_read(me->oggz, OGGZ_READ_CHUNK_SIZE);
 
-    switch (r) {
-      case 0:
-        
-        
-        num_records = oggplay_callback_info_prepare(me, &info);
-        
+    
+    if (r == 0) {
+      num_records = oggplay_callback_info_prepare(me, &info);
+     
 
 
-        for (i = 0; i < me->num_tracks; i++) {
-          me->decode_data[i]->active = 0;
-        }
-        me->active_tracks = 0;
+      for (i = 0; i < me->num_tracks; i++) {
+        me->decode_data[i]->active = 0;
+      }
+      me->active_tracks = 0;
 
-        if (info != NULL) {
-          me->callback (me, num_records, info, me->callback_user_ptr);
-          oggplay_callback_info_destroy(me, info);
-        }
-
-        
-
-
-
-
-        if (me->buffer != NULL && !me->shutdown) {
-          oggplay_buffer_set_last_data(me, me->buffer);
-        }
-
-        
-        return E_OGGPLAY_OK;
-              
-      case OGGZ_ERR_HOLE_IN_DATA:
-        
-        return E_OGGPLAY_BAD_INPUT;
-
-      case OGGZ_ERR_STOP_ERR:
-        
-
-
-
-
-
-
-
+      if (info != NULL) {
+        me->callback (me, num_records, info, me->callback_user_ptr);
+        oggplay_callback_info_destroy(me, info);
+      }
 
       
-      case OGGZ_ERR_OUT_OF_MEMORY:
-        
-        return E_OGGPLAY_OUT_OF_MEMORY;
-                
-      default:
-        break;
+
+
+
+
+      if (me->buffer != NULL && !me->shutdown) {
+        oggplay_buffer_set_last_data(me, me->buffer);
+      }
+
+      return E_OGGPLAY_OK;
+    } else if (r == OGGZ_ERR_HOLE_IN_DATA) {
+      return E_OGGPLAY_BAD_INPUT;
     }
+
   }
   
 
@@ -800,21 +739,11 @@ read_more_data:
   for (i = 0; i < me->num_tracks; i++) {
     oggplay_data_clean_list (me->decode_data[i]);
   }
-  
-  
 
-
-
-  if (num_records < 0) {
-    return num_records;
-  }
-  
-  
   if (me->shutdown) {
     return E_OGGPLAY_OK;
   }
-  
-  
+
   if (info == NULL) {
     goto read_more_data;
   }
@@ -855,8 +784,8 @@ oggplay_close(OggPlay *me) {
     me->reader->destroy(me->reader);
   }
 
-  
-  if (me->decode_data != NULL) {
+
+  if (me->decode_data) {
     for (i = 0; i < me->num_tracks; i++) {
       oggplay_callback_shutdown(me->decode_data[i]);
     }
@@ -869,10 +798,7 @@ oggplay_close(OggPlay *me) {
     oggplay_buffer_shutdown(me, me->buffer);
   }
 
-  if (me->callback_info != NULL) {
-    oggplay_free(me->callback_info);
-  }
-    
+  oggplay_free(me->callback_info);
   oggplay_free(me->decode_data);
   oggplay_free(me);
 
