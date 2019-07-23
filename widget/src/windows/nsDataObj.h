@@ -50,6 +50,7 @@
 #include "nsIURI.h"
 #include "nsIInputStream.h"
 #include "nsIChannel.h"
+#include "nsTArray.h"
 
 
 
@@ -322,6 +323,23 @@ class nsDataObj : public IDataObject,
     };
 
     HRESULT CreateStream(IStream **outStream);
+
+  private:
+
+    
+    typedef struct {
+      FORMATETC   fe;
+      STGMEDIUM   stgm;
+    } DATAENTRY, *LPDATAENTRY;
+
+    nsTArray <LPDATAENTRY> mDataEntryList;
+
+    HRESULT FindFORMATETC(FORMATETC *pfe, LPDATAENTRY *ppde, BOOL fAdd);
+    HRESULT AddRefStgMedium(STGMEDIUM *pstgmIn, STGMEDIUM *pstgmOut,
+                            BOOL fCopyIn);
+    IUnknown* GetCanonicalIUnknown(IUnknown *punk);
+    HGLOBAL GlobalClone(HGLOBAL hglobIn);
+
 };
 
 

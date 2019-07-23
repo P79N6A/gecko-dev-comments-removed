@@ -41,6 +41,10 @@
 #include "nsCOMPtr.h"
 #include "nsIDragSession.h"
 #include <ole2.h>
+#include <shlobj.h>
+#ifndef IDropTargetHelper
+#include <shobjidl.h> 
+#endif
 
 class nsIDragService;
 class nsIWidget;
@@ -108,6 +112,10 @@ protected:
   
   nsIWidget      * mWindow;
   nsIDragService * mDragService;
+
+  
+  IDropTargetHelper * mDropTargetHelper;
+
 };
 
 #endif 

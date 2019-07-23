@@ -85,6 +85,11 @@ protected:
   
   PRUint64 GetShellVersion();
 
+  
+  PRBool CreateDragImage(nsIDOMNode *aDOMNode,
+                         nsIScriptableRegion *aRegion,
+                         SHDRAGIMAGE *psdi);
+
   IDropSource * mNativeDragSrc;
   nsNativeDragTarget * mNativeDragTarget;
   IDataObject * mDataObject;
