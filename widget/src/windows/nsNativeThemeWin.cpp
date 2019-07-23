@@ -1393,8 +1393,11 @@ RENDER_AGAIN:
     SIZE gutterSize(GetGutterSize(theme,hdc));
 
     RECT sepRect = widgetRect;
-    sepRect.left += gutterSize.cx;
-    
+    if (IsFrameRTL(aFrame))
+      sepRect.right += gutterSize.cx;
+    else
+      sepRect.left += gutterSize.cx;
+
     drawThemeBG(theme, hdc, MENU_POPUPSEPARATOR,  0, &sepRect, &clipRect);
   }
   
