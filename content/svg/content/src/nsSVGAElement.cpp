@@ -267,19 +267,12 @@ nsSVGAElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                        nsIAtom* aPrefix, const nsAString& aValue,
                        PRBool aNotify)
 {
-  nsresult rv = nsSVGAElementBase::SetAttr(aNameSpaceID, aName, aPrefix,
-                                           aValue, aNotify);
-
-  
-  
-  
-  
-  
   if (aName == nsGkAtoms::href && aNameSpaceID == kNameSpaceID_XLink) {
     Link::ResetLinkState(!!aNotify);
   }
 
-  return rv;
+  return nsSVGAElementBase::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
+                                    aNotify);
 }
 
 nsresult

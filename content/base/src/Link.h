@@ -60,7 +60,7 @@ public:
 
   static const nsLinkState defaultState = eLinkState_Unknown;
   Link();
-  nsLinkState GetLinkState() const;
+  virtual nsLinkState GetLinkState() const;
   virtual void SetLinkState(nsLinkState aState);
 
   
@@ -100,7 +100,7 @@ public:
 
 
 
-  void ResetLinkState(bool aNotify);
+  virtual void ResetLinkState(bool aNotify);
 
 protected:
   virtual ~Link();
