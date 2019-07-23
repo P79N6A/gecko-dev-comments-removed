@@ -247,3 +247,13 @@ nsSVGFilterElement::DidAnimateLength(PRUint8 aAttrEnum)
     nsSVGEffects::InvalidateRenderingObservers(frame);
   }
 }
+
+void
+nsSVGFilterElement::DidAnimateEnum(PRUint8 aAttrEnum)
+{
+  
+  nsIFrame* frame = GetPrimaryFrame();
+  if (frame) {
+    nsSVGEffects::InvalidateRenderingObservers(frame);
+  }
+}

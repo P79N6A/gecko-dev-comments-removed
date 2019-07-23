@@ -1,0 +1,107 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "SMILEnumType.h"
+#include "nsSMILValue.h"
+#include "nsDebug.h"
+#include <math.h>
+
+namespace mozilla {
+
+ SMILEnumType SMILEnumType::sSingleton;
+
+nsresult
+SMILEnumType::Init(nsSMILValue& aValue) const
+{
+  NS_PRECONDITION(aValue.mType == this || aValue.IsNull(),
+    "Unexpected value type");
+  aValue.mU.mUint = 0;
+  aValue.mType = this;
+  return NS_OK;
+}
+
+void
+SMILEnumType::Destroy(nsSMILValue& aValue) const
+{
+  NS_PRECONDITION(aValue.mType == this, "Unexpected SMIL value.");
+  aValue.mU.mUint = 0;
+  aValue.mType = &nsSMILNullType::sSingleton;
+}
+
+nsresult
+SMILEnumType::Assign(nsSMILValue& aDest, const nsSMILValue& aSrc) const
+{
+  NS_PRECONDITION(aDest.mType == aSrc.mType, "Incompatible SMIL types.");
+  NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL value.");
+  aDest.mU.mUint = aSrc.mU.mUint;
+  return NS_OK;
+}
+
+nsresult
+SMILEnumType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
+                  PRUint32 aCount) const
+{
+  NS_PRECONDITION(aValueToAdd.mType == aDest.mType,
+                  "Trying to add invalid types");
+  NS_PRECONDITION(aValueToAdd.mType == this, "Unexpected source type");
+  return NS_ERROR_FAILURE; 
+}
+
+nsresult
+SMILEnumType::ComputeDistance(const nsSMILValue& aFrom,
+                              const nsSMILValue& aTo,
+                              double& aDistance) const
+{
+  NS_PRECONDITION(aFrom.mType == aTo.mType,"Trying to compare different types");
+  NS_PRECONDITION(aFrom.mType == this, "Unexpected source type");
+  return NS_ERROR_FAILURE; 
+}
+
+nsresult
+SMILEnumType::Interpolate(const nsSMILValue& aStartVal,
+                          const nsSMILValue& aEndVal,
+                          double aUnitDistance,
+                          nsSMILValue& aResult) const
+{
+  NS_PRECONDITION(aStartVal.mType == aEndVal.mType,
+      "Trying to interpolate different types");
+  NS_PRECONDITION(aStartVal.mType == this,
+      "Unexpected types for interpolation.");
+  NS_PRECONDITION(aResult.mType   == this, "Unexpected result type.");
+  return NS_ERROR_FAILURE; 
+}
+
+} 

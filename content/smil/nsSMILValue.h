@@ -69,6 +69,7 @@ public:
                        nsSMILValue& aResult) const;
 
   union {
+    PRUint64 mUint;
     PRInt64 mInt;
     double mDouble;
     void* mPtr;
