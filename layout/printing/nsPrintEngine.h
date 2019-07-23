@@ -199,6 +199,9 @@ public:
 
   nsIViewManager* GetPrintPreviewViewManager() {return mPrtPreview->mPrintObject->mViewManager;}
 
+  float GetPrintPreviewScale() { return mPrtPreview->mPrintObject->
+                                        mPresContext->GetPrintPreviewScale(); }
+  
   static nsIPresShell* GetPresShellFor(nsIDocShell* aDocShell);
 
   
