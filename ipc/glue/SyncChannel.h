@@ -105,9 +105,17 @@ protected:
         return mPendingReply != 0;
     }
 
+    int32 NextSeqno() {
+        AssertWorkerThread();
+        return mChild ? --mNextSeqno : ++mNextSeqno;
+    }
+
     MessageId mPendingReply;
     bool mProcessingSyncMessage;
     Message mRecvd;
+    
+    
+    int32 mNextSeqno;
 
     static bool sIsPumpingMessages;
 };
