@@ -235,6 +235,7 @@ protected:
 
 
 protected: 
+  void RemoveInsertionParent(nsIContent* aParent);
   
   
   nsRefPtrHashtable<nsISupportsHashKey,nsXBLBinding> mBindingTable;

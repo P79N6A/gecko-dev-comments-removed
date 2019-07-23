@@ -164,6 +164,9 @@ public:
 
   PRBool AllowScripts();  
 
+  void RemoveInsertionParent(nsIContent* aParent);
+  PRBool HasInsertionParent(nsIContent* aParent);
+
 
 protected:
   nsAutoRefCnt mRefCnt;
