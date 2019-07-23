@@ -59,7 +59,6 @@
 #include "jsarray.h"
 #include "jstask.h"
 #include "jsvector.h"
-#include "jshashtable.h"
 
 
 
@@ -131,27 +130,6 @@ typedef nanojit::HashMap<REHashKey, REFragment*, REHashFn> REHashMap;
 struct FragPI;
 typedef nanojit::HashMap<uint32, FragPI, nanojit::DefaultHash<uint32> > FragStatsMap;
 #endif
-
-
-
-
-
-
-
-class ContextAllocPolicy
-{
-    JSContext *cx;
-
-  public:
-    ContextAllocPolicy(JSContext *cx) : cx(cx) {}
-    JSContext *context() const { return cx; }
-
-    
-    void *malloc(size_t bytes);
-    void free(void *p);
-    void *realloc(void *p, size_t bytes);
-    void reportAllocOverflow() const;
-};
 
 
 struct InterpState
@@ -318,12 +296,6 @@ class CallStack
 };
 
 
-typedef HashMap<jsbytecode*,
-                size_t,
-                DefaultHasher<jsbytecode*>,
-                SystemAllocPolicy> RecordAttemptMap;
-
-
 
 
 
@@ -388,7 +360,7 @@ struct TraceMonitor {
 
     GlobalState             globalStates[MONITOR_N_GLOBAL_STATES];
     TreeFragment*           vmfragments[FRAGMENT_TABLE_SIZE];
-    RecordAttemptMap*       recordAttempts;
+    JSDHashTable            recordAttempts;
 
     
 
@@ -1226,10 +1198,7 @@ struct JSGCReachableFrame
     JSStackFrame        *frame;
 };
 
-struct JSContext
-{
-    explicit JSContext(JSRuntime *rt) : runtime(rt), busyArrays(this) {}
-
+struct JSContext {
     
 
 
@@ -1298,6 +1267,8 @@ struct JSContext
     
     JSRuntime * const   runtime;
 
+    explicit JSContext(JSRuntime *rt) : runtime(rt) {}
+
     
     JS_REQUIRES_STACK
     JSArenaPool         stackPool;
@@ -1319,7 +1290,7 @@ struct JSContext
 
     
     JSSharpObjectMap    sharpObjectMap;
-    js::HashSet<JSObject *> busyArrays;
+    JSHashTable         *busyArrayTable;
 
     
     JSArgumentFormatMap *argumentFormatMap;
@@ -2218,29 +2189,25 @@ js_RegenerateShapeForGC(JSContext *cx)
 
 namespace js {
 
-inline void *
-ContextAllocPolicy::malloc(size_t bytes)
-{
-    return cx->malloc(bytes);
-}
 
-inline void
-ContextAllocPolicy::free(void *p)
-{
-    cx->free(p);
-}
 
-inline void *
-ContextAllocPolicy::realloc(void *p, size_t bytes)
-{
-    return cx->realloc(p, bytes);
-}
 
-inline void
-ContextAllocPolicy::reportAllocOverflow() const
+
+
+
+class ContextAllocPolicy
 {
-    js_ReportAllocationOverflow(cx);
-}
+    JSContext *mCx;
+
+  public:
+    ContextAllocPolicy(JSContext *cx) : mCx(cx) {}
+    JSContext *context() const { return mCx; }
+
+    void *malloc(size_t bytes) { return mCx->malloc(bytes); }
+    void free(void *p) { mCx->free(p); }
+    void *realloc(void *p, size_t bytes) { return mCx->realloc(p, bytes); }
+    void reportAllocOverflow() const { js_ReportAllocationOverflow(mCx); }
+};
 
 }
 

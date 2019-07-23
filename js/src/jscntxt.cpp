@@ -485,6 +485,11 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
     js_InitRegExpStatics(cx);
     JS_ASSERT(cx->resolveFlags == 0);
 
+    if (!js_InitContextBusyArrayTable(cx)) {
+        FreeContext(cx);
+        return NULL;
+    }
+
 #ifdef JS_THREADSAFE
     if (!js_InitContextThread(cx)) {
         FreeContext(cx);
@@ -567,12 +572,6 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
     cxCallback = rt->cxCallback;
     if (cxCallback && !cxCallback(cx, JSCONTEXT_NEW)) {
         js_DestroyContext(cx, JSDCM_NEW_FAILED);
-        return NULL;
-    }
-
-    
-    if (!cx->busyArrays.init()) {
-        FreeContext(cx);
         return NULL;
     }
 
@@ -835,13 +834,18 @@ FreeContext(JSContext *cx)
     }
 
     
+    if (cx->busyArrayTable) {
+        JS_HashTableDestroy(cx->busyArrayTable);
+        cx->busyArrayTable = NULL;
+    }
+
+    
     if (cx->resolvingTable) {
         JS_DHashTableDestroy(cx->resolvingTable);
         cx->resolvingTable = NULL;
     }
 
     
-    cx->~JSContext();
     js_free(cx);
 }
 
