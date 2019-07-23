@@ -217,7 +217,13 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
       
       
       if (parent == this) {
-        parent->mFrames.DestroyFrame(aOldFrame);
+        if (!parent->mFrames.DestroyFrame(aOldFrame)) {
+          
+          
+          nsresult rv = StealFrame(PresContext(), aOldFrame, PR_TRUE);
+          NS_ASSERTION(NS_SUCCEEDED(rv), "Could not find frame to remove!");
+          aOldFrame->Destroy();
+        }
       } else {
         
         
