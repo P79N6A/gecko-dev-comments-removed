@@ -763,6 +763,9 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
   mozAutoDocUpdate updateBatch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, PR_TRUE);
 
   
+  mozAutoSubtreeModified subtree(GetOwnerDoc(), nsnull);
+
+  
   nsContentUtils::SetNodeTextContent(this, EmptyString(), PR_FALSE);
 
   nsCOMPtr<nsIDOMDocumentFragment> df;

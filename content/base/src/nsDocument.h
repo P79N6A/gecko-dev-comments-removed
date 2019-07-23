@@ -509,6 +509,13 @@ public:
 
   virtual void OnPageShow(PRBool aPersisted);
   virtual void OnPageHide(PRBool aPersisted);
+  
+  virtual void WillDispatchMutationEvent(nsINode* aTarget);
+  virtual void MutationEventDispatched(nsINode* aTarget);
+  virtual PRBool MutationEventBeingDispatched()
+  {
+    return (mSubtreeModifiedDepth > 0);
+  }
 
   
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
@@ -826,6 +833,9 @@ private:
 
   
   nsString mLastStyleSheetSet;
+
+  nsCOMArray<nsINode> mSubtreeModifiedTargets;
+  PRUint32            mSubtreeModifiedDepth;
 
   
   PRUint32 mUpdateNestLevel;

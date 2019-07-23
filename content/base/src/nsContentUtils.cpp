@@ -2821,6 +2821,12 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
   }
 
   
+  
+  if (doc->MutationEventBeingDispatched()) {
+    return PR_TRUE;
+  }
+
+  
   nsCOMPtr<nsPIDOMWindow> window;
   window = do_QueryInterface(doc->GetScriptGlobalObject());
   if (window && !window->HasMutationListeners(aType)) {

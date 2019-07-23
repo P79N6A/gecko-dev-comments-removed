@@ -1088,6 +1088,9 @@ nsresult nsRange::DeleteContents()
     return NS_ERROR_DOM_INVALID_STATE_ERR;
 
   
+  mozAutoSubtreeModified subtree(mRoot ? mRoot->GetOwnerDoc(): nsnull, nsnull);
+
+  
   
 
   nsCOMPtr<nsIDOMNode> startContainer = do_QueryInterface(mStartParent);
@@ -1275,6 +1278,9 @@ nsresult nsRange::ExtractContents(nsIDOMDocumentFragment** aReturn)
 { 
   if(mIsDetached)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
+
+  
+  mozAutoSubtreeModified subtree(mRoot ? mRoot->GetOwnerDoc(): nsnull, nsnull);
 
   
   

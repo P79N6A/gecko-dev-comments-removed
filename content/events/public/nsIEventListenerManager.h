@@ -181,6 +181,7 @@ public:
 
 
 
+
   virtual PRUint32 MutationListenerBits() = 0;
 };
 
