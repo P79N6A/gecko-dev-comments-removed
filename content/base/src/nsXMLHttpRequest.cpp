@@ -1161,6 +1161,17 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
 
   
   if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
+    
+    
+    
+    if (mChannel) {
+      nsresult status;
+      mChannel->GetStatus(&status);
+      if (NS_FAILED(status)) {
+        return NS_OK;
+      }
+    }
+
     const char *kCrossOriginSafeHeaders[] = {
       "cache-control", "content-language", "content-type", "expires",
       "last-modified", "pragma"
