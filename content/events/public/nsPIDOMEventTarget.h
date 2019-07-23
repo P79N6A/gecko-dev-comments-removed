@@ -51,8 +51,8 @@ class nsIDOMEventGroup;
 
 
 #define NS_PIDOMEVENTTARGET_IID \
-  { 0x44a6597b, 0x9fc3, 0x4a8d, \
-    { 0xb7, 0xa4, 0xd9, 0x00, 0x9a, 0xbf, 0x9d, 0x15 } }
+  { 0xf35ffc3b, 0xc8c0, 0x43fd, \
+    { 0xb0, 0xb0, 0xf3, 0x39, 0xe9, 0x5f, 0x57, 0x4a } }
 
 class nsPIDOMEventTarget : public nsISupports
 {
@@ -91,6 +91,14 @@ public:
 
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) = 0;
+
+  
+
+
+  virtual nsresult WillHandleEvent(nsEventChainPostVisitor& aVisitor)
+  {
+    return NS_OK;
+  }
 
   
 

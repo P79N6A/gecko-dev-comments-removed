@@ -211,6 +211,7 @@ public:
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+  virtual nsresult WillHandleEvent(nsEventChainPostVisitor& aVisitor);
   virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -830,6 +831,21 @@ nsHTMLFormElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
   return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+}
+
+nsresult
+nsHTMLFormElement::WillHandleEvent(nsEventChainPostVisitor& aVisitor)
+{
+  
+  
+  
+  if ((aVisitor.mEvent->message == NS_FORM_SUBMIT ||
+       aVisitor.mEvent->message == NS_FORM_RESET) &&
+      aVisitor.mEvent->flags & NS_EVENT_FLAG_BUBBLE &&
+      aVisitor.mEvent->originalTarget != static_cast<nsIContent*>(this)) {
+    aVisitor.mEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
+  }
+  return NS_OK;
 }
 
 nsresult
