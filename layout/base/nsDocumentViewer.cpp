@@ -862,8 +862,8 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
         mPresContext->GetPrintSettings()->GetEffectivePageSize(&pageWidth,
                                                                &pageHeight);
         mPresContext->SetPageSize(
-          nsSize(mPresContext->TwipsToAppUnits(pageWidth),
-                 mPresContext->TwipsToAppUnits(pageHeight)));
+          nsSize(mPresContext->TwipsToAppUnits(NSToIntFloor(pageWidth)),
+                 mPresContext->TwipsToAppUnits(NSToIntFloor(pageHeight))));
         mPresContext->SetIsRootPaginatedDocument(PR_TRUE);
         mPresContext->SetPageScale(1.0f);
       }
@@ -3668,11 +3668,12 @@ DocumentViewerImpl::PrintPreviewNavigate(PRInt16 aType, PRInt32 aPageNum)
   }
 
   if (fndPageFrame && scrollableView) {
-    nscoord deadSpaceGap = 0;
+    nscoord deadSpaceGapTwips = 0;
     nsIPageSequenceFrame * sqf;
     if (NS_SUCCEEDED(CallQueryInterface(seqFrame, &sqf))) {
-      sqf->GetDeadSpaceValue(&deadSpaceGap);
+      sqf->GetDeadSpaceValue(&deadSpaceGapTwips);
     }
+    nscoord deadSpaceGap = mPresContext->TwipsToAppUnits(deadSpaceGapTwips);
 
     
     scrollableView->ScrollTo(0, fndPageFrame->GetPosition().y-deadSpaceGap, PR_TRUE);
