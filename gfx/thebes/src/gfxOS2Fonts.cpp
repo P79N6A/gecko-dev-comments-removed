@@ -180,6 +180,26 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
     return *mMetrics;
 }
 
+
+
+static const PRInt8 nFcWeight = 2; 
+static const int fcWeight[] = {
+    
+    
+    
+    
+    FC_WEIGHT_REGULAR, 
+    
+    
+    FC_WEIGHT_BOLD,
+    
+    
+};
+
+
+
+
+
 cairo_font_face_t *gfxOS2Font::CairoFontFace()
 {
 #ifdef DEBUG_thebes_2
@@ -197,20 +217,34 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         FcPatternAddString(fcPattern, FC_FAMILY,
                            (FcChar8 *)NS_LossyConvertUTF16toASCII(mName).get());
 
-        PRUint8 fcProperty;
         
-        switch (mStyle.weight) {
-        case FONT_WEIGHT_NORMAL:
-            fcProperty = FC_WEIGHT_NORMAL;
-            break;
-        case FONT_WEIGHT_BOLD:
-            fcProperty = FC_WEIGHT_BOLD;
-            break;
-        default:
-            fcProperty = FC_WEIGHT_MEDIUM;
+        
+        
+        
+        PRInt8 weight, offset;
+        mStyle.ComputeWeightAndOffset(&weight, &offset);
+        
+        
+        
+        PRInt16 fcW = 40 * weight - 80; 
+        
+        PRInt8 i = 0;
+        while (i < nFcWeight && fcWeight[i] < fcW) {
+            i++;
         }
-        FcPatternAddInteger(fcPattern, FC_WEIGHT, fcProperty);
+        
+        i += offset;
+        if (i < 0) {
+            i = 0;
+        } else if (i >= nFcWeight) {
+            i = nFcWeight - 1;
+        }
+        fcW = fcWeight[i];
 
+        
+        FcPatternAddInteger(fcPattern, FC_WEIGHT, fcW);
+
+        PRUint8 fcProperty;
         
         switch (mStyle.style) {
         case FONT_STYLE_ITALIC:
@@ -253,11 +287,6 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         mFontFace = cairo_ft_font_face_create_for_pattern(fcMatch);
         FcPatternDestroy(fcMatch);
     }
-#ifdef DEBUG_thebes_2
-    printf("  cairo_font_face_type=%s (%d)\n",
-           cairo_font_face_get_type(mFontFace) == CAIRO_FONT_TYPE_FT ? "FT" : "??",
-           cairo_font_face_get_type(mFontFace));
-#endif
 
     NS_ASSERTION(mFontFace, "Failed to make font face");
     return mFontFace;
