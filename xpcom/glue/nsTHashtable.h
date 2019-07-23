@@ -98,6 +98,10 @@ PL_DHashStubEnumRemove(PLDHashTable    *table,
 
 
 
+
+
+
+
 template<class EntryType>
 class nsTHashtable
 {
@@ -242,8 +246,10 @@ public:
   }
 
 protected:
-  static const PLDHashTableOps sOps;
   PLDHashTable mTable;
+
+  static const void* PR_CALLBACK s_GetKey(PLDHashTable    *table,
+                                          PLDHashEntryHdr *entry);
 
   static PLDHashNumber PR_CALLBACK s_HashKey(PLDHashTable *table,
                                              const void   *key);
@@ -251,6 +257,10 @@ protected:
   static PRBool PR_CALLBACK s_MatchEntry(PLDHashTable           *table,
                                          const PLDHashEntryHdr  *entry,
                                          const void             *key);
+  
+  static void PR_CALLBACK s_CopyEntry(PLDHashTable          *table,
+                                      const PLDHashEntryHdr *from,
+                                      PLDHashEntryHdr       *to);
   
   static void PR_CALLBACK s_ClearEntry(PLDHashTable *table,
                                        PLDHashEntryHdr *entry);
@@ -289,20 +299,6 @@ private:
 
 
 template<class EntryType>
-const PLDHashTableOps
-nsTHashtable<EntryType>::sOps =
-{
-  ::PL_DHashAllocTable,
-  ::PL_DHashFreeTable,
-  s_HashKey,
-  s_MatchEntry,
-  ::PL_DHashMoveEntryStub,
-  s_ClearEntry,
-  ::PL_DHashFinalizeStub,
-  s_InitEntry
-};
-
-template<class EntryType>
 nsTHashtable<EntryType>::nsTHashtable()
 {
   
@@ -326,6 +322,23 @@ nsTHashtable<EntryType>::Init(PRUint32 initSize)
     return PR_TRUE;
   }
 
+  static PLDHashTableOps sOps = 
+  {
+    ::PL_DHashAllocTable,
+    ::PL_DHashFreeTable,
+    s_HashKey,
+    s_MatchEntry,
+    ::PL_DHashMoveEntryStub,
+    s_ClearEntry,
+    ::PL_DHashFinalizeStub,
+    s_InitEntry
+  };
+
+  if (!EntryType::ALLOW_MEMMOVE)
+  {
+    sOps.moveEntry = s_CopyEntry;
+  }
+  
   if (!PL_DHashTableInit(&mTable, &sOps, nsnull, sizeof(EntryType), initSize))
   {
     
@@ -354,6 +367,20 @@ nsTHashtable<EntryType>::s_MatchEntry(PLDHashTable          *table,
 {
   return ((const EntryType*) entry)->KeyEquals(
     reinterpret_cast<const KeyTypePointer>(key));
+}
+
+template<class EntryType>
+void
+nsTHashtable<EntryType>::s_CopyEntry(PLDHashTable          *table,
+                                     const PLDHashEntryHdr *from,
+                                     PLDHashEntryHdr       *to)
+{
+  EntryType* fromEntry =
+    const_cast<EntryType*>(reinterpret_cast<const EntryType*>(from));
+
+  new(to) EntryType(*fromEntry);
+
+  fromEntry->~EntryType();
 }
 
 template<class EntryType>
