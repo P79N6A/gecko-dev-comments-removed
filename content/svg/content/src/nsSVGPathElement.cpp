@@ -154,7 +154,7 @@ nsSVGPathElement::GetPathSegAtLength(float distance, PRUint32 *_retval)
   
   
   
-  while (distCovered < distance && i < numSegments - 1) {
+  while (distCovered < distance && i + 1 < numSegments) {
     nsCOMPtr<nsIDOMSVGPathSeg> segment;
     mSegments->GetItem(i, getter_AddRefs(segment));
     nsSVGPathSeg* curSeg = static_cast<nsSVGPathSeg*>(segment.get());
