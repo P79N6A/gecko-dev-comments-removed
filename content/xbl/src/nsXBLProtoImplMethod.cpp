@@ -339,7 +339,8 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
   
 
   
-  nsCxPusher pusher(aBoundElement);
+  nsCxPusher pusher;
+  NS_ENSURE_STATE(pusher.Push(aBoundElement));
 
   
   rv = nsContentUtils::GetSecurityManager()->CheckFunctionAccess(cx, method,

@@ -1089,9 +1089,8 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
 
   
   
-  nsCxPusher pusher(aCurrentTarget);
-
-  if (NS_SUCCEEDED(result)) {
+  nsCxPusher pusher;
+  if (NS_SUCCEEDED(result) && pusher.Push(aCurrentTarget)) {
     
     result = aListener->HandleEvent(aDOMEvent);
   }

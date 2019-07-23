@@ -921,12 +921,14 @@ public:
 
 
 
+
   static nsresult CreateDocument(const nsAString& aNamespaceURI, 
                                  const nsAString& aQualifiedName, 
                                  nsIDOMDocumentType* aDoctype,
                                  nsIURI* aDocumentURI,
                                  nsIURI* aBaseURI,
                                  nsIPrincipal* aPrincipal,
+                                 nsIScriptGlobalObject* aScriptObject,
                                  nsIDOMDocument** aResult);
 
   
@@ -1172,10 +1174,11 @@ private:
 class nsCxPusher
 {
 public:
-  nsCxPusher(nsISupports *aCurrentTarget);
-  ~nsCxPusher();
+  nsCxPusher();
+  ~nsCxPusher(); 
 
-  void Push(nsISupports *aCurrentTarget);
+  
+  PRBool Push(nsISupports *aCurrentTarget);
   void Pop();
 
 private:

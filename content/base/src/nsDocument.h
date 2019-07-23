@@ -433,6 +433,10 @@ public:
   virtual nsIScriptGlobalObject* GetScriptGlobalObject() const;
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject);
 
+  virtual nsIScriptGlobalObject*
+    GetScriptHandlingObject(PRBool& aHasHadScriptHandlingObject) const;
+  virtual void SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject);
+
   virtual nsIScriptGlobalObject* GetScopeObject();
 
   
@@ -747,6 +751,11 @@ protected:
   
   
   
+  nsWeakPtr mScriptObject;
+
+  
+  
+  
   nsWeakPtr mScopeObject;
 
   nsCOMPtr<nsIEventListenerManager> mListenerManager;
@@ -763,6 +772,8 @@ protected:
   PRPackedBool mInDestructor:1;
   
   PRPackedBool mVisible:1;
+  
+  PRPackedBool mHasHadScriptHandlingObject:1;
 
   PRUint8 mXMLDeclarationBits;
 

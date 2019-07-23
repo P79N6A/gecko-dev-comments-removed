@@ -242,9 +242,11 @@ nsTextBoxFrame::UpdateAccesskey(nsWeakFrame& aWeakThis)
         
         
         
-        nsCxPusher cx(mContent);
-        labelElement->GetAccessKey(accesskey);
-        NS_ENSURE_TRUE(aWeakThis.IsAlive(), PR_FALSE);
+        nsCxPusher cx;
+        if (cx.Push(mContent)) {
+          labelElement->GetAccessKey(accesskey);
+          NS_ENSURE_TRUE(aWeakThis.IsAlive(), PR_FALSE);
+        }
     }
     else {
         mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accesskey, accesskey);
