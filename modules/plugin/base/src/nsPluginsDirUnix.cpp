@@ -36,13 +36,6 @@
 
 
 
-
-
-
-
-
-
-
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsIMemory.h"
@@ -57,11 +50,6 @@
 #include "nsILocalFile.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
-#ifdef AIX
-#include "nsPluginLogging.h"
-#include "prprf.h"
-#define LOG(args)  PLUGIN_LOG(PLUGIN_LOG_NORMAL, args)
-#endif
 
 #define LOCAL_PLUGIN_DLL_SUFFIX ".so"
 #if defined(__hpux)
@@ -253,10 +241,6 @@ static void LoadExtraSharedLibs()
 
 
 
-
-
-
-
 PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
     nsCAutoString filename;
@@ -279,82 +263,14 @@ PRBool nsPluginsDir::IsPluginFile(nsIFile* file)
 
 
 
-
-
 nsPluginFile::nsPluginFile(nsIFile* file)
 : mPlugin(file)
 {
-    
 }
 
 nsPluginFile::~nsPluginFile()
 {
-    
 }
-
-#ifdef AIX
-
-
-
-
-
-
-
-
-static char *javaLibPath = NULL;
-
-static void SetJavaLibPath(const nsCString& pluginPath)
-{
-    
-    
-    if (javaLibPath)
-        return;
-
-    nsCAutoString javaDir, newLibPath;
-
-    PRInt32 pos = pluginPath.RFindChar('/');
-    if (pos == kNotFound || pos == 0)
-        return;
-
-    javaDir = Substring(pluginPath, 0, pos);
-    LOG(("AIX: Java dir is %s\n", javaDir.get()));
-
-    
-    newLibPath += javaDir;
-
-    
-    
-    PRFileInfo info;
-    javaDir.AppendLiteral("/classic");
-    if (PR_GetFileInfo(javaDir.get(), &info) == PR_SUCCESS &&
-        info.type == PR_FILE_DIRECTORY)
-    {
-        newLibPath.Append(':');
-        newLibPath.Append(javaDir);
-    }
-
-    
-    const char *currentLibPath = PR_GetEnv("LIBPATH");
-    LOG(("AIX: current LIBPATH=%s\n", currentLibPath));
-    if (currentLibPath && *currentLibPath) {
-        newLibPath.Append(':');
-        newLibPath.Append(currentLibPath);
-    }
-
-    
-    
-    
-    javaLibPath = PR_smprintf("LIBPATH=%s", newLibPath.get());
-    if (javaLibPath) {
-        LOG(("AIX: new LIBPATH=%s\n", newLibPath.get()));
-        PR_SetEnv(javaLibPath);
-    }
-}
-#endif
-
-
-
-
 
 nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 {
@@ -371,21 +287,10 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
     if (NS_FAILED(rv))
         return rv;
 
-#ifdef AIX
-    nsCAutoString leafName;
-    rv = mPlugin->GetNativeLeafName(leafName);
-    if (NS_FAILED(rv))
-        return rv;
-
-    if (StringBeginsWith(leafName, NS_LITERAL_CSTRING("libjavaplugin_oji")))
-        SetJavaLibPath(path);
-#endif
-
     libSpec.value.pathname = path.get();
 
 #if defined(MOZ_WIDGET_GTK2)
 
-    
     
     
     
@@ -423,9 +328,6 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
     
     return NS_OK;
 }
-
-
-
 
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
 {
@@ -476,7 +378,6 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
     }
     return NS_OK;
 }
-
 
 nsresult nsPluginFile::FreePluginInfo(nsPluginInfo& info)
 {
