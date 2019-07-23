@@ -54,6 +54,13 @@ var PlacesOrganizer = {
   _content: null,
 
   init: function PO_init() {
+    var self = this;
+    
+    
+    setTimeout(function() { self._init(); }, 0);
+  },
+  
+  _init: function PO__init() {
     this._places = document.getElementById("placesList");
     this._content = document.getElementById("placeContent");
 

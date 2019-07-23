@@ -52,8 +52,11 @@ var gMoveBookmarksDialog = {
     this._tm = window.arguments[1];
 
     
-    this.foldersTree.selectFolders([PlacesUtils.bookmarksRootId]);
-    this.foldersTree.selectedNode.containerOpen = true;
+    setTimeout(function(aSelf) {
+        
+        aSelf.foldersTree.selectFolders([PlacesUtils.bookmarksRootId]);
+        aSelf.foldersTree.selectedNode.containerOpen = true;
+      }, 0, this);
   },
 
   onOK: function MBD_onOK(aEvent) {
