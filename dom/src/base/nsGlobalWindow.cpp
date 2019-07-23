@@ -45,6 +45,7 @@
 
 
 
+
 #include "nsGlobalWindow.h"
 #include "nsScreen.h"
 #include "nsHistory.h"
@@ -106,6 +107,7 @@
 #include "nsIDOMHTMLDocument.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMKeyEvent.h"
+#include "nsIDOMMessageEvent.h"
 #include "nsIDOMPopupBlockedEvent.h"
 #include "nsIDOMPkcs11.h"
 #include "nsIDOMOfflineResourceList.h"
@@ -4970,6 +4972,147 @@ nsGlobalWindow::GetFrames(nsIDOMWindow** aFrames)
   return NS_OK;
 }
 
+static nsGlobalWindow*
+CallerInnerWindow()
+{
+  nsAXPCNativeCallContext *ncc;
+  nsresult rv = nsContentUtils::XPConnect()->GetCurrentNativeCallContext(&ncc);
+  if (NS_FAILED(rv) || !ncc) {
+    NS_ASSERTION(ncc, "Please don't call this method from C++!");
+    return nsnull;
+  }
+
+  JSContext *cx = nsnull;
+  if (NS_FAILED(ncc->GetJSContext(&cx))) {
+    NS_WARNING("couldn't get JS context from native context");
+    return nsnull;
+  }
+
+  JSObject *scope = ::JS_GetScopeChain(cx);
+  if (!scope)
+    return nsnull;
+
+  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+  nsContentUtils::XPConnect()->
+    GetWrappedNativeOfJSObject(cx, ::JS_GetGlobalForObject(cx, scope),
+                               getter_AddRefs(wrapper));
+  if (!wrapper)
+    return nsnull;
+
+  
+  
+  
+  nsCOMPtr<nsPIDOMWindow> win = do_QueryWrappedNative(wrapper);
+  return static_cast<nsGlobalWindow*>(win.get());
+}
+
+
+#ifdef PostMessage
+#undef PostMessage
+#endif
+
+NS_IMETHODIMP
+nsGlobalWindow::PostMessage(const nsAString& aMessage)
+{
+  FORWARD_TO_INNER_CREATE(PostMessage, (aMessage));
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  nsRefPtr<nsGlobalWindow> callerInnerWin = CallerInnerWindow();
+  if (!callerInnerWin)
+    return NS_OK;
+  NS_ASSERTION(callerInnerWin->IsInnerWindow(), "should have gotten an inner window here");
+
+  
+  
+  nsIPrincipal* callerPrin = callerInnerWin->GetPrincipal();
+  if (!callerPrin)
+    return NS_OK;
+  nsCOMPtr<nsIURI> docURI;
+  if (NS_FAILED(callerPrin->GetURI(getter_AddRefs(docURI))))
+    return NS_OK;
+
+  
+  
+  if (!docURI) {
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(callerInnerWin->mDocument);
+    if (!doc)
+      return NS_OK;
+
+    docURI = doc->GetDocumentURI();
+    if (!docURI)
+      return NS_OK;
+  }
+
+  nsCAutoString domain, uri;
+  nsresult rv  = docURI->GetSpec(uri);
+  if (NS_FAILED(rv))
+    return NS_OK;
+
+  
+  
+  
+  
+  
+  
+  if (NS_FAILED(docURI->GetHost(domain)))
+    domain.Truncate();
+
+  
+  nsCOMPtr<nsIDOMDocumentEvent> docEvent = do_QueryInterface(mDocument);
+  if (!docEvent)
+    return NS_OK;
+  nsCOMPtr<nsIDOMEvent> event;
+  docEvent->CreateEvent(NS_LITERAL_STRING("MessageEvent"),
+                        getter_AddRefs(event));
+  if (!event)
+    return NS_ERROR_FAILURE;
+  
+  nsCOMPtr<nsIDOMMessageEvent> message = do_QueryInterface(event);
+  rv = message->InitMessageEvent(NS_LITERAL_STRING("message"),
+                                 PR_TRUE ,
+                                 PR_TRUE ,
+                                 aMessage,
+                                 NS_ConvertUTF8toUTF16(domain),
+                                 NS_ConvertUTF8toUTF16(uri),
+                                 nsContentUtils::IsCallerChrome()
+                                 ? nsnull
+                                 : callerInnerWin->GetOuterWindowInternal());
+  if (NS_FAILED(rv))
+    return rv;
+
+
+  
+  
+  PRBool dummy;
+  nsCOMPtr<nsIDOMEventTarget> targetDoc = do_QueryInterface(mDocument);
+  targetDoc->DispatchEvent(message, &dummy);
+
+  
+  
+  
+  
+  
+  nsAXPCNativeCallContext *ncc;
+  rv = nsContentUtils::XPConnect()->GetCurrentNativeCallContext(&ncc);
+  if (NS_FAILED(rv) || !ncc)
+    return NS_OK;
+
+  JSContext *cx = nsnull;
+  if (NS_SUCCEEDED(ncc->GetJSContext(&cx)))
+    ::JS_ClearPendingException(cx);
+
+  return NS_OK;
+}
+
 class nsCloseEvent : public nsRunnable {
 public:
   nsCloseEvent (nsGlobalWindow *aWindow)
@@ -7192,33 +7335,7 @@ nsGlobalWindow::SetTimeoutOrInterval(PRBool aIsInterval, PRInt32 *aReturn)
   
 
   if (IsOuterWindow()) {
-    nsAXPCNativeCallContext *ncc = nsnull;
-    nsresult rv = nsContentUtils::XPConnect()->
-      GetCurrentNativeCallContext(&ncc);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (!ncc) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    JSContext *cx = nsnull;
-
-    rv = ncc->GetJSContext(&cx);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    JSObject *scope = ::JS_GetScopeChain(cx);
-
-    if (!scope) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-    nsContentUtils::XPConnect()->
-      GetWrappedNativeOfJSObject(cx, ::JS_GetGlobalForObject(cx, scope),
-                                 getter_AddRefs(wrapper));
-    NS_ENSURE_TRUE(wrapper, NS_ERROR_NOT_AVAILABLE);
-
-    nsGlobalWindow *callerInner = FromWrapper(wrapper);
+    nsGlobalWindow* callerInner = CallerInnerWindow();
     NS_ENSURE_TRUE(callerInner, NS_ERROR_NOT_AVAILABLE);
 
     

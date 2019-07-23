@@ -98,6 +98,11 @@
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
 
+
+#ifdef PostMessage
+#undef PostMessage
+#endif
+
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
 

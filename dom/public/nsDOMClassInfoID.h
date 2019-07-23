@@ -421,6 +421,10 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_DataContainerEvent_id,
 
   
+  
+  eDOMClassInfo_MessageEvent_id,
+
+  
   eDOMClassInfoIDCount
 };
 
