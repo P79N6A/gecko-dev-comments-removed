@@ -647,6 +647,9 @@ public:
     return (mFlags & nsIPlaintextEditor::eEditorDontEchoPassword) != 0;
   }
 
+  
+  virtual PRBool HasFocus();
+
 protected:
 
   PRUint32        mModCount;		

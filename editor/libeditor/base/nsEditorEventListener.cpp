@@ -917,6 +917,9 @@ FindSelectionRoot(nsEditor *aEditor, nsIContent *aContent)
     return root;
   }
 
+  
+  
+  
   if (aEditor->IsReadonly()) {
     
     nsCOMPtr<nsIDOMElement> rootElement;
@@ -934,6 +937,11 @@ FindSelectionRoot(nsEditor *aEditor, nsIContent *aContent)
     return nsnull;
   }
 
+  
+  
+  
+  
+  
   
   
   nsIContent *parent, *content = aContent;
@@ -965,6 +973,12 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
   PRBool targetIsEditableDoc = PR_FALSE;
   nsCOMPtr<nsIContent> editableRoot;
   if (content) {
+    
+    
+    
+    
+    
+    
     editableRoot = FindSelectionRoot(mEditor, content);
 
     

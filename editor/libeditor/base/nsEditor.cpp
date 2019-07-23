@@ -45,6 +45,8 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMNSHTMLElement.h"
 #include "nsPIDOMEventTarget.h"
+#include "nsIMEStateManager.h"
+#include "nsFocusManager.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsUnicharUtils.h"
@@ -219,12 +221,16 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   if ((nsnull==aDoc) || (nsnull==aPresShell))
     return NS_ERROR_NULL_POINTER;
 
+  
+  
+  
+  
+  nsresult rv = SetFlags(aFlags);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "SetFlags() failed");
+
   mDocWeak = do_GetWeakReference(aDoc);  
   mPresShellWeak = do_GetWeakReference(aPresShell);   
   mSelConWeak = do_GetWeakReference(aSelCon);   
-
-  nsresult rv = SetFlags(aFlags);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "SetFlags() failed");
 
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
   if (!ps) return NS_ERROR_NOT_INITIALIZED;
@@ -280,7 +286,7 @@ NS_IMETHODIMP
 nsEditor::PostCreate()
 {
   
-  nsresult rv = SyncRealTimeSpell();
+  nsresult rv = SetFlags(mFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -437,8 +443,29 @@ nsEditor::SetFlags(PRUint32 aFlags)
 {
   mFlags = aFlags;
 
+  if (!mDocWeak || !mPresShellWeak) {
+    
+    
+    
+    return NS_OK;
+  }
+
   
-  SyncRealTimeSpell();
+  nsresult rv = SyncRealTimeSpell();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  if (HasFocus()) {
+    
+    
+    PRUint32 newState = nsIContent::IME_STATUS_ENABLE;
+    rv = GetPreferredIMEState(&newState);
+    if (NS_SUCCEEDED(rv)) {
+      nsIMEStateManager::ChangeIMEStateTo(newState);
+    }
+  }
+
   return NS_OK;
 }
 
@@ -5154,4 +5181,19 @@ PRBool
 nsEditor::IsModifiableNode(nsIDOMNode *aNode)
 {
   return PR_TRUE;
+}
+
+PRBool
+nsEditor::HasFocus()
+{
+  nsCOMPtr<nsPIDOMEventTarget> piTarget = GetPIDOMEventTarget();
+  if (!piTarget) {
+    return PR_FALSE;
+  }
+
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  NS_ENSURE_TRUE(fm, PR_FALSE);
+
+  nsCOMPtr<nsIContent> content = fm->GetFocusedContent();
+  return SameCOMIdentity(content, piTarget);
 }

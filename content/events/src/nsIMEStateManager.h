@@ -80,10 +80,11 @@ public:
   
   static nsresult GetFocusSelectionAndRoot(nsISelection** aSel,
                                            nsIContent** aRoot);
+  
+  
+  static void ChangeIMEStateTo(PRUint32 aNewIMEState);
 protected:
-  static void SetIMEState(nsPresContext* aPresContext,
-                          PRUint32 aState,
-                          nsIWidget* aKB);
+  static void SetIMEState(PRUint32 aState, nsIWidget* aWidget);
   static PRUint32 GetNewIMEState(nsPresContext* aPresContext,
                                  nsIContent* aContent);
 
