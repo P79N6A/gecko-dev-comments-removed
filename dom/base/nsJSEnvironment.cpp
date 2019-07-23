@@ -1899,8 +1899,6 @@ nsJSContext::CompileEventHandler(nsIAtom *aName,
                                           aURL, aLineNo);
 
   if (!fun) {
-    
-    
     ReportPendingException();
     return NS_ERROR_ILLEGAL_VALUE;
   }
