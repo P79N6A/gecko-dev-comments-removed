@@ -243,6 +243,8 @@ public:
   static const PRInt32 kGetInfoIndex_ItemId;
   static const PRInt32 kGetInfoIndex_ItemDateAdded;
   static const PRInt32 kGetInfoIndex_ItemLastModified;
+  static const PRInt32 kGetInfoIndex_ItemTags;
+  static const PRInt32 kGetInfoIndex_ItemParentId;
 
   
   mozIStorageStatement* DBGetIdPageInfo() { return mDBGetIdPageInfo; }
@@ -415,7 +417,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBUpdatePageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBAddNewPage; 
   nsCOMPtr<mozIStorageStatement> mDBGetTags; 
-  nsCOMPtr<mozIStorageStatement> mFoldersWithAnnotationQuery;  
+  nsCOMPtr<mozIStorageStatement> mDBGetItemsWithAnno; 
   nsCOMPtr<mozIStorageStatement> mDBSetPlaceTitle; 
 
   
