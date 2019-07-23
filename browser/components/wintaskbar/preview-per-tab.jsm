@@ -393,15 +393,15 @@ TabWindow.prototype = {
   destroy: function () {
     let tabs = this.tabbrowser.mTabs;
 
-    for (let i = 0; i < tabs.length; i++)
-      this.removeTab(tabs[i]);
+    for each (let evtName in this.events)
+      this.tabbrowser.tabContainer.removeEventListener(evtName, this, false);
 
-    let idx = AeroPeek.windows.indexOf(win.gTaskbarTabGroup);
+    for (let i = 0; i < tabs.length; i++)
+      this.removeTab(tabs[i], true);
+
+    let idx = AeroPeek.windows.indexOf(this.win.gTaskbarTabGroup);
     AeroPeek.windows.splice(idx, 1);
     AeroPeek.checkPreviewCount();
-
-    for each (let evtName in this.events)
-      this.tabbrowser.tabcontainer.removeEventListener(evtName, this, false);
   },
 
   get width () {
@@ -427,15 +427,17 @@ TabWindow.prototype = {
   },
 
   
-  removeTab: function (tab) {
+  removeTab: function (tab, dontSplice) {
     let preview = this.previewFromTab(tab);
     preview.active = false;
     preview.visible = false;
     preview.move(null);
     preview.controller.wrappedJSObject.destroy();
 
-
-    this.previews.splice(tab._tPos, 1);
+    
+    
+    if (!dontSplice)
+      this.previews.splice(tab._tPos, 1);
     AeroPeek.removePreview(preview);
   },
 
