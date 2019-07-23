@@ -48,7 +48,7 @@
 #include "prtypes.h"
 #include "nsIAtom.h"
 #include "nsCOMPtr.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsMenuListener.h"
 
 #include "nsBoxFrame.h"
@@ -242,7 +242,7 @@ protected:
   nsIMenuFrame* mCurrentMenu; 
 
   nsMenuListener* mKeyboardNavigator; 
-  nsIDOMEventTarget* mTarget;
+  nsIDOMEventReceiver* mTarget;
 
   nsIMenuFrame* mTimerMenu; 
   nsCOMPtr<nsITimer> mCloseTimer; 

@@ -37,7 +37,7 @@
 
 #include "nsIDOMHTMLStyleElement.h"
 #include "nsIDOMLinkStyle.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"

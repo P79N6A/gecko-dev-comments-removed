@@ -71,7 +71,7 @@
 #include "nsIDOMKeyEvent.h"
 #include "nsIFormControlFrame.h"
 #include "nsINodeInfo.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsContentCID.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
@@ -98,7 +98,8 @@ nsIsIndexFrame::Destroy()
 {
   
   if (mInputContent) {
-    mInputContent->RemoveEventListenerByIID(this, NS_GET_IID(nsIDOMKeyListener));
+    nsCOMPtr<nsIDOMEventReceiver> receiver(do_QueryInterface(mInputContent));
+    receiver->RemoveEventListenerByIID(this, NS_GET_IID(nsIDOMKeyListener));
     nsContentUtils::DestroyAnonymousContent(&mInputContent);
   }
   nsContentUtils::DestroyAnonymousContent(&mTextContent);
@@ -224,7 +225,8 @@ nsIsIndexFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  mInputContent->AddEventListenerByIID(this, NS_GET_IID(nsIDOMKeyListener));
+  nsCOMPtr<nsIDOMEventReceiver> receiver(do_QueryInterface(mInputContent));
+  receiver->AddEventListenerByIID(this, NS_GET_IID(nsIDOMKeyListener));
 
   
   NS_NewHTMLElement(getter_AddRefs(mPostHr), hrInfo);

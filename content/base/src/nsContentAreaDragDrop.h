@@ -44,7 +44,7 @@
 
 #include "nsIDragDropHandler.h"
 #include "nsIDOMDragListener.h"
-#include "nsPIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsITransferable.h"
 
 class nsIDOMNode;
@@ -120,7 +120,7 @@ private:
 
   PRPackedBool mListenerInstalled;
 
-  nsCOMPtr<nsPIDOMEventTarget> mEventTarget;
+  nsCOMPtr<nsIDOMEventReceiver> mEventReceiver;
 
   
   

@@ -156,7 +156,7 @@ protected:
   
   nsIMenuFrame* mRecentRollupMenu; 
 
-  nsIDOMEventTarget* mTarget;
+  nsIDOMEventReceiver* mTarget;
 
 private:
   PRBool mCaretWasVisible;

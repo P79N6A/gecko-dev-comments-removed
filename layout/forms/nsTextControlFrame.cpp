@@ -84,7 +84,7 @@
 #include "nsBoxLayoutState.h"
 
 #include "nsIPrivateDOMEvent.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsIDocument.h" 
 #include "nsIStyleSheet.h"
 #include "nsIStyleRule.h"
@@ -1134,13 +1134,14 @@ nsTextControlFrame::PreDestroy()
   nsFormControlFrame::RegUnRegAccessKey(NS_STATIC_CAST(nsIFrame*, this), PR_FALSE);
   if (mTextListener)
   {
-    if (mContent)
+    nsCOMPtr<nsIDOMEventReceiver> erP = do_QueryInterface(mContent);
+    if (erP)
     {
-      mContent->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMFocusListener  *,mTextListener), NS_GET_IID(nsIDOMFocusListener));
+      erP->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMFocusListener  *,mTextListener), NS_GET_IID(nsIDOMFocusListener));
     }
 
     nsCOMPtr<nsIDOMEventGroup> systemGroup;
-    mContent->GetSystemEventGroup(getter_AddRefs(systemGroup));
+    erP->GetSystemEventGroup(getter_AddRefs(systemGroup));
     nsCOMPtr<nsIDOM3EventTarget> dom3Targ = do_QueryInterface(mContent);
     if (dom3Targ) {
       
@@ -2731,10 +2732,10 @@ nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
   }
 
   
-  if (mContent) {
+  nsCOMPtr<nsIDOMEventReceiver> erP = do_QueryInterface(mContent);
+  if (erP) {
     
-    rv = mContent->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMFocusListener *,mTextListener),
-                                         NS_GET_IID(nsIDOMFocusListener));
+    rv = erP->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMFocusListener *,mTextListener), NS_GET_IID(nsIDOMFocusListener));
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to register focus listener");
     
     if (!PresContext()->GetPresShell())
@@ -2742,7 +2743,7 @@ nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
   }
 
   nsCOMPtr<nsIDOMEventGroup> systemGroup;
-  mContent->GetSystemEventGroup(getter_AddRefs(systemGroup));
+  erP->GetSystemEventGroup(getter_AddRefs(systemGroup));
   nsCOMPtr<nsIDOM3EventTarget> dom3Targ = do_QueryInterface(mContent);
   if (dom3Targ) {
     

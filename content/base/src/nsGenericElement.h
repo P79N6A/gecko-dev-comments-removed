@@ -49,7 +49,7 @@
 #include "nsIContent.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocumentFragment.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsIDOM3EventTarget.h"
 #include "nsIDOM3Node.h"
 #include "nsIDOMNSEventTarget.h"
@@ -225,7 +225,7 @@ private:
 
 
 
-class nsDOMEventRTTearoff : public nsIDOMEventTarget,
+class nsDOMEventRTTearoff : public nsIDOMEventReceiver,
                             public nsIDOM3EventTarget,
                             public nsIDOMNSEventTarget
 {
@@ -248,6 +248,7 @@ private:
 
   void LastRelease();
 
+  nsresult GetEventReceiver(nsIDOMEventReceiver **aReceiver);
   nsresult GetDOM3EventTarget(nsIDOM3EventTarget **aTarget);
 
 public:
@@ -272,6 +273,15 @@ public:
 
   
   NS_DECL_NSIDOM3EVENTTARGET
+
+  
+  NS_IMETHOD AddEventListenerByIID(nsIDOMEventListener *aListener,
+                                   const nsIID& aIID);
+  NS_IMETHOD RemoveEventListenerByIID(nsIDOMEventListener *aListener,
+                                      const nsIID& aIID);
+  NS_IMETHOD GetListenerManager(PRBool aCreateIfNotFound,
+                                nsIEventListenerManager** aResult);
+  NS_IMETHOD GetSystemEventGroup(nsIDOMEventGroup** aGroup);
 
   
   NS_DECL_NSIDOMNSEVENTTARGET
@@ -389,13 +399,8 @@ public:
   virtual nsresult DispatchDOMEvent(nsEvent* aEvent, nsIDOMEvent* aDOMEvent,
                                     nsPresContext* aPresContext,
                                     nsEventStatus* aEventStatus);
-  virtual nsresult GetListenerManager(PRBool aCreateIfNotFound,
-                                      nsIEventListenerManager** aResult);
-  virtual nsresult AddEventListenerByIID(nsIDOMEventListener *aListener,
-                                         const nsIID& aIID);
-  virtual nsresult RemoveEventListenerByIID(nsIDOMEventListener *aListener,
-                                            const nsIID& aIID);
-  virtual nsresult GetSystemEventGroup(nsIDOMEventGroup** aGroup);
+  NS_IMETHOD GetListenerManager(PRBool aCreateIfNotFound,
+                                nsIEventListenerManager** aResult);
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,

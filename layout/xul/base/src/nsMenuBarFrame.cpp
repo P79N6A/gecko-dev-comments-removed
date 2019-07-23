@@ -49,7 +49,7 @@
 #include "nsCSSRendering.h"
 #include "nsINameSpaceManager.h"
 #include "nsIDocument.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsGkAtoms.h"
 #include "nsMenuFrame.h"
 #include "nsMenuPopupFrame.h"
@@ -139,7 +139,7 @@ nsMenuBarFrame::Init(nsIContent*      aContent,
 
   
   
-  nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(aContent->GetDocument());
+  nsCOMPtr<nsIDOMEventReceiver> target = do_QueryInterface(aContent->GetDocument());
   
   mTarget = target;
 

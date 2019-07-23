@@ -1686,8 +1686,8 @@ nsXULDocument::AddElementToDocumentPost(nsIContent* aElement)
         
         nsCOMPtr<nsIXBLService> xblService(do_GetService("@mozilla.org/xbl;1"));
         if (xblService) {
-            nsCOMPtr<nsPIDOMEventTarget> piTarget(do_QueryInterface(aElement));
-            xblService->AttachGlobalKeyHandler(piTarget);
+            nsCOMPtr<nsIDOMEventReceiver> rec(do_QueryInterface(aElement));
+            xblService->AttachGlobalKeyHandler(rec);
         }
     }
 

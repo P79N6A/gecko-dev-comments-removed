@@ -36,7 +36,7 @@
 
 #include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
-#include "nsIDOMEventTarget.h"
+#include "nsIDOMEventReceiver.h"
 #include "nsGenericHTMLElement.h"
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
