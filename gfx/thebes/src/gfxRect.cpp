@@ -108,8 +108,11 @@ gfxRect::RoundOut()
 
 
 
-#define CAIRO_COORD_MAX (16382.0)
-#define CAIRO_COORD_MIN (-16383.0)
+
+
+
+#define CAIRO_COORD_MAX (16777215.0)
+#define CAIRO_COORD_MIN (-16777216.0)
 
 void
 gfxRect::Condition()
