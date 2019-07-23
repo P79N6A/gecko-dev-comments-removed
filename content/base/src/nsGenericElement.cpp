@@ -2793,7 +2793,9 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
        aVisitor.mEvent->message == NS_MOUSE_EXIT_SYNTH) &&
       
       
-      static_cast<nsISupports*>(aContent) == aVisitor.mEvent->target) {
+      
+      ((static_cast<nsISupports*>(aContent) == aVisitor.mEvent->originalTarget &&
+        !aContent->IsInNativeAnonymousSubtree()) || isAnonForEvents)) {
      nsCOMPtr<nsIContent> relatedTarget =
        do_QueryInterface(static_cast<nsMouseEvent*>
                                     (aVisitor.mEvent)->relatedTarget);
@@ -2823,19 +2825,37 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
               anonOwnerRelated = FindNativeAnonymousSubtreeOwner(anonOwnerRelated);
             }
             if (anonOwner == anonOwnerRelated) {
-              nsCOMPtr<nsIContent> target =
+#ifdef DEBUG_smaug
+              nsCOMPtr<nsIContent> originalTarget =
                 do_QueryInterface(aVisitor.mEvent->originalTarget);
-              
-              
-              
-              
-              if (relatedTarget->FindFirstNonNativeAnonymous() ==
-                  target->FindFirstNonNativeAnonymous()) {
-                aVisitor.mParentTarget = nsnull;
-                
-                aVisitor.mCanHandle = isAnonForEvents;
-                return NS_OK;
+              nsAutoString ot, ct, rt;
+              if (originalTarget) {
+                originalTarget->Tag()->ToString(ot);
               }
+              aContent->Tag()->ToString(ct);
+              relatedTarget->Tag()->ToString(rt);
+              printf("Stopping %s propagation:"
+                     "\n\toriginalTarget=%s \n\tcurrentTarget=%s %s"
+                     "\n\trelatedTarget=%s %s \n%s",
+                     (aVisitor.mEvent->message == NS_MOUSE_ENTER_SYNTH)
+                       ? "mouseover" : "mouseout",
+                     NS_ConvertUTF16toUTF8(ot).get(),
+                     NS_ConvertUTF16toUTF8(ct).get(),
+                     isAnonForEvents
+                       ? "(is native anonymous)"
+                       : (aContent->IsInNativeAnonymousSubtree()
+                           ? "(is in native anonymous subtree)" : ""),
+                     NS_ConvertUTF16toUTF8(rt).get(),
+                     relatedTarget->IsInNativeAnonymousSubtree()
+                       ? "(is in native anonymous subtree)" : "",
+                     (originalTarget && relatedTarget->FindFirstNonNativeAnonymous() ==
+                       originalTarget->FindFirstNonNativeAnonymous())
+                       ? "" : "Wrong event propagation!?!\n");
+#endif
+              aVisitor.mParentTarget = nsnull;
+              
+              aVisitor.mCanHandle = isAnonForEvents;
+              return NS_OK;
             }
           }
         }
