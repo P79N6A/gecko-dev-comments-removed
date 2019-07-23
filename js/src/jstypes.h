@@ -290,19 +290,12 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-typedef uint8_t JSUint8;
-typedef int8_t JSInt8;
-
-
-
-
-
-
-
-
-typedef uint16_t JSUint16;
-typedef int16_t JSInt16;
+#if JS_BYTES_PER_BYTE == 1
+typedef unsigned char JSUint8;
+typedef signed char JSInt8;
+#else
+# error No suitable type for JSInt8/JSUint8
+#endif
 
 
 
@@ -310,14 +303,12 @@ typedef int16_t JSInt16;
 
 
 
-
-typedef uint32_t JSUint32;
-typedef int32_t JSInt32;
-
-
-
-
-
+#if JS_BYTES_PER_SHORT == 2
+typedef unsigned short JSUint16;
+typedef short JSInt16;
+#else
+# error No suitable type for JSInt16/JSUint16
+#endif
 
 
 
@@ -325,8 +316,19 @@ typedef int32_t JSInt32;
 
 
 
-typedef uint64_t JSUint64;
-typedef int64_t JSInt64;
+#if JS_BYTES_PER_INT == 4
+typedef unsigned int JSUint32;
+typedef int JSInt32;
+# define JS_INT32(x)    x
+# define JS_UINT32(x)   x ## U
+#elif JS_BYTES_PER_LONG == 4
+typedef unsigned long JSUint32;
+typedef long JSInt32;
+# define JS_INT32(x)    x ## L
+# define JS_UINT32(x)   x ## UL
+#else
+# error No suitable type for JSInt32/JSUint32
+#endif
 
 
 
@@ -338,8 +340,50 @@ typedef int64_t JSInt64;
 
 
 
+#ifdef JS_HAVE_LONG_LONG
+
+# if JS_BYTES_PER_LONG == 8
+typedef long JSInt64;
+typedef unsigned long JSUint64;
+# elif defined(WIN16)
+typedef __int64 JSInt64;
+typedef unsigned __int64 JSUint64;
+# elif defined(WIN32) && !defined(__GNUC__)
+typedef __int64  JSInt64;
+typedef unsigned __int64 JSUint64;
+# else
+typedef long long JSInt64;
+typedef unsigned long long JSUint64;
+# endif 
+
+#else  
+
+typedef struct {
+# ifdef IS_LITTLE_ENDIAN
+    JSUint32 lo, hi;
+# else
+    JSUint32 hi, lo;
+#endif
+} JSInt64;
+typedef JSInt64 JSUint64;
+
+#endif 
+
+
+
+
+
+
+
+
+
+
+#if JS_BYTES_PER_INT >= 2
 typedef int JSIntn;
 typedef unsigned int JSUintn;
+#else
+# error 'sizeof(int)' not sufficient for platform use
+#endif
 
 
 
@@ -369,7 +413,11 @@ typedef ptrdiff_t JSPtrdiff;
 
 
 
-typedef uintptr_t JSUptrdiff;
+#if JS_BYTES_PER_WORD == 8 && JS_BYTES_PER_LONG != 8
+typedef JSUint64 JSUptrdiff;
+#else
+typedef unsigned long JSUptrdiff;
+#endif
 
 
 
@@ -394,8 +442,13 @@ typedef JSUint8 JSPackedBool;
 
 
 
-typedef intptr_t JSWord;
-typedef uintptr_t JSUword;
+#if JS_BYTES_PER_WORD == 8 && JS_BYTES_PER_LONG != 8
+typedef JSInt64 JSWord;
+typedef JSUint64 JSUword;
+#else
+typedef long JSWord;
+typedef unsigned long JSUword;
+#endif
 
 #include "jsotypes.h"
 
@@ -446,12 +499,6 @@ typedef uintptr_t JSUword;
 
 #define JS_ARRAY_LENGTH(array) (sizeof (array) / sizeof (array)[0])
 #define JS_ARRAY_END(array)    ((array) + JS_ARRAY_LENGTH(array))
-
-#define JS_BITS_PER_BYTE 8
-#define JS_BITS_PER_BYTE_LOG2 3
-
-#define JS_BITS_PER_WORD (JS_BITS_PER_BYTE * JS_BYTES_PER_WORD)
-#define JS_BITS_PER_DOUBLE (JS_BITS_PER_BYTE * JS_BYTES_PER_DOUBLE)
 
 JS_END_EXTERN_C
 
