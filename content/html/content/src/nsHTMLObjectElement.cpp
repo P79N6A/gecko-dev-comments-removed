@@ -231,8 +231,11 @@ nsHTMLObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
   
   
   
-  if (aNotify && aNameSpaceID == kNameSpaceID_None &&
-      aName == nsGkAtoms::data) {
+  
+  
+  
+  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
+      aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::data) {
     nsAutoString type;
     GetAttr(kNameSpaceID_None, nsGkAtoms::type, type);
     LoadObject(aValue, aNotify, NS_ConvertUTF16toUTF8(type), PR_TRUE);

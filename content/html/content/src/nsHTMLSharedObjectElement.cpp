@@ -274,8 +274,11 @@ nsHTMLSharedObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
   
   
   
-  if (aNotify && aNameSpaceID == kNameSpaceID_None &&
-      aName == URIAttrName()) {
+  
+  
+  
+  if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
+      aNameSpaceID == kNameSpaceID_None && aName == URIAttrName()) {
     nsCAutoString type;
     GetTypeAttrValue(type);
     LoadObject(aValue, aNotify, type, PR_TRUE);
