@@ -40,16 +40,19 @@
 const nsIDownloadManager = Ci.nsIDownloadManager;
 const dm = Cc["@mozilla.org/download-manager;1"].getService(nsIDownloadManager);
 
-const resultFileName = "test" + Date.now() + ".doc";
+
+
+
+
+const resultFileName = "test\u00e3\u041b\u3056" + Date.now() + ".doc";
 
 function checkResult() {
-  do_check_true(checkRecentDocsFor(resultFileName));
-
   
   var resultFile = dirSvc.get("ProfD", Ci.nsIFile);
   resultFile.append(resultFileName);
   resultFile.remove(false);
 
+  do_check_true(checkRecentDocsFor(resultFileName));
   do_test_finished();
 }
 
@@ -67,10 +70,14 @@ function checkRecentDocsFor(aFileName) {
     var binValue = recentDocsKey.readBinaryValue(valueName);
 
     
-    var fileName = binValue.split("\0\0")[0];
+    
+    var fileNameRaw = binValue.split("\0\0")[0];
 
     
-    fileName = fileName.replace(/\x00/g, "");
+    var fileName = "";
+    for (var c = 0; c < fileNameRaw.length; c += 2)
+      fileName += String.fromCharCode(fileNameRaw.charCodeAt(c) |
+                                      fileNameRaw.charCodeAt(c+1) * 256);
 
     if (aFileName == fileName)
       return true;
