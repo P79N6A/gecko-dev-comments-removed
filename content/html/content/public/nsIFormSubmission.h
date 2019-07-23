@@ -88,6 +88,27 @@ public:
 
 
 
+  virtual PRBool SupportsIsindexSubmission()
+  {
+    return PR_FALSE;
+  }
+
+  
+
+
+
+
+  virtual nsresult AddIsindex(const nsAString& aValue)
+  {
+    NS_NOTREACHED("AddIsindex called when not supported");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+
+
+
+
 
 
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,

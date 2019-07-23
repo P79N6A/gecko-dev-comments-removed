@@ -114,6 +114,13 @@ public:
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream);
 
+  virtual PRBool SupportsIsindexSubmission()
+  {
+    return PR_TRUE;
+  }
+
+  virtual nsresult AddIsindex(const nsAString& aValue);
+
 protected:
 
   
@@ -164,6 +171,24 @@ nsFSURLEncoded::AddNameValuePair(const nsAString& aName,
   } else {
     mQueryString += NS_LITERAL_CSTRING("&") + convName
                   + NS_LITERAL_CSTRING("=") + convValue;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsFSURLEncoded::AddIsindex(const nsAString& aValue)
+{
+  
+  nsCString convValue;
+  nsresult rv = URLEncode(aValue, convValue);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (mQueryString.IsEmpty()) {
+    mQueryString.Assign(convValue);
+  } else {
+    mQueryString += NS_LITERAL_CSTRING("&isindex=") + convValue;
   }
 
   return NS_OK;
