@@ -240,7 +240,6 @@ protected:
 
     
     NS_IMETHOD EnsureContentViewer();
-    NS_IMETHOD EnsureDeviceContext();
     
     
     nsresult CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal);
@@ -600,7 +599,6 @@ protected:
     nsRect                     mBounds; 
     nsCOMPtr<nsIContentViewer> mContentViewer;
     nsCOMPtr<nsIDocumentCharsetInfo> mDocumentCharsetInfo;
-    nsCOMPtr<nsIDeviceContext> mDeviceContext;
     nsCOMPtr<nsIWidget>        mParentWidget;
     nsCOMPtr<nsIPrefBranch>    mPrefs;
 

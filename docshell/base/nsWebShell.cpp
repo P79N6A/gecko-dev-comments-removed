@@ -565,7 +565,6 @@ nsWebShell::~nsWebShell()
              
 
   mContentViewer=nsnull;
-  mDeviceContext=nsnull;
 
   InitFrameData();
 

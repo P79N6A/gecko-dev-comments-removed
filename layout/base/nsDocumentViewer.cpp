@@ -1505,10 +1505,7 @@ DocumentViewerImpl::Destroy()
     mPreviousViewer = nsnull;
   }
 
-  if (mDeviceContext) {
-    mDeviceContext->FlushFontCache();
-    mDeviceContext = nsnull;
-  }
+  mDeviceContext = nsnull;
 
   if (mPresShell) {
     
@@ -1957,10 +1954,6 @@ DocumentViewerImpl::Hide(void)
     
 
     return NS_OK;
-  }
-
-  if (mDeviceContext) {
-    mDeviceContext->FlushFontCache();
   }
 
   
