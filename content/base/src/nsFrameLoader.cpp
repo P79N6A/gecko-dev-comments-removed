@@ -864,18 +864,20 @@ nsFrameLoader::EnsureDocShell()
   NS_ASSERTION(frame_element, "frame loader owner element not a DOM element!");
 
   nsCOMPtr<nsPIDOMWindow> win_private(do_GetInterface(mDocShell));
-  NS_ENSURE_TRUE(win_private, NS_ERROR_UNEXPECTED);
-
-  win_private->SetFrameElementInternal(frame_element);
-
   nsCOMPtr<nsIBaseWindow> base_win(do_QueryInterface(mDocShell));
-  NS_ENSURE_TRUE(base_win, NS_ERROR_UNEXPECTED);
+  if (win_private) {
+    win_private->SetFrameElementInternal(frame_element);
+  }
 
   
   
   
-
-  base_win->Create();
+  if (NS_FAILED(base_win->Create()) || !win_private) {
+    
+    
+    Destroy();
+    return NS_ERROR_FAILURE;
+  }
 
   return NS_OK;
 }

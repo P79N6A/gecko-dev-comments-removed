@@ -154,7 +154,7 @@ public:
   void EndUpdate();
   void RecalcQuotesAndCounters();
 
-  void WillDestroyFrameTree();
+  void WillDestroyFrameTree(PRBool aDestroyingPresShell);
 
   
   
@@ -1193,6 +1193,7 @@ private:
   nsQuoteList         mQuoteList;
   nsCounterManager    mCounterManager;
   PRUint16            mUpdateCount;
+  PRUint32            mFocusSuppressCount;
   PRPackedBool        mQuotesDirty : 1;
   PRPackedBool        mCountersDirty : 1;
   PRPackedBool        mIsDestroyingFrameTree : 1;
