@@ -215,7 +215,9 @@ nsDOMUIEvent::GetPagePoint()
                    nsPresContext::AppUnitsToIntCSSPixels(pt.y));
   }
 
-  return mPagePoint;
+  
+  
+  return mPrivateDataDuplicated ? mPagePoint : GetClientPoint();
 }
 
 
