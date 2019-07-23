@@ -124,7 +124,6 @@ oggz_comment_get_vendor (OGGZ * oggz, long serialno);
 
 
 
-
 int
 oggz_comment_set_vendor (OGGZ * oggz, long serialno,
 			 const char * vendor_string);
@@ -192,10 +191,8 @@ oggz_comment_next_byname (OGGZ * oggz, long serialno,
 
 
 
-
 int
 oggz_comment_add (OGGZ * oggz, long serialno, OggzComment * comment);
-
 
 
 

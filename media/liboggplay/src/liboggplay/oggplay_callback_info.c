@@ -48,7 +48,7 @@ oggplay_callback_info_prepare(OggPlay *me, OggPlayCallbackInfo ***info) {
   int i;
   int tcount = 0;
   
-  int         added_required_record   = me->num_tracks;
+  int         added_required_record   = 1;
   ogg_int64_t diff;
   ogg_int64_t latest_first_record     = 0x0LL;
   
@@ -79,7 +79,6 @@ oggplay_callback_info_prepare(OggPlay *me, OggPlayCallbackInfo ***info) {
       track_info->available_records = track_info->required_records = 0;
       track_info->records = NULL;
       track_info->stream_info = OGGPLAY_STREAM_UNINITIALISED;
-      added_required_record --;
       continue;
     }
  
@@ -145,6 +144,7 @@ oggplay_callback_info_prepare(OggPlay *me, OggPlayCallbackInfo ***info) {
         
       }
     }
+
      
     if (track_info->required_records > 0) {
       
@@ -199,30 +199,24 @@ oggplay_callback_info_prepare(OggPlay *me, OggPlayCallbackInfo ***info) {
 
 
 
-     
-     
-     
     if 
     (
-      track->decoded_type == OGGPLAY_CMML 
-      ||
-      track->decoded_type == OGGPLAY_KATE 
-      ||
-      (
-        track_info->required_records == 0
-        &&
-        track->active == 1
-        && 
-        me->pt_update_valid
-      )
+      track->decoded_type != OGGPLAY_CMML 
+      && 
+      track->decoded_type != OGGPLAY_KATE 
+      && 
+      track_info->required_records == 0
+      &&
+      track->active == 1
+      && 
+      me->pt_update_valid
     ) {
-      added_required_record --;
+      added_required_record = 0;
+      me->pt_update_valid = 0;
     }
 
   }
  
-   me->pt_update_valid = 0;
-    
   
 
   
@@ -403,7 +397,7 @@ oggplay_callback_info_get_presentation_time(OggPlayDataHeader *header) {
   }
 
   
-  return (((header->presentation_time >> 16) * 1000) >> 16) & 0xFFFFFFFF;
+  return (header->presentation_time >> 32) & 0xFFFFFFFF;
 }
 
 OggPlayVideoData *

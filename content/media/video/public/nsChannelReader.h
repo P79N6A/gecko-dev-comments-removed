@@ -73,11 +73,6 @@ public:
   
   void Resume();
 
-  
-  
-  
-  void SetDuration(PRInt64 aDuration);
-
   nsIPrincipal* GetCurrentPrincipal();
   
   
@@ -86,13 +81,9 @@ public:
   size_t io_read(char* aBuffer, size_t aCount);
   int io_seek(long aOffset, int aWhence);
   long io_tell();  
-  ogg_int64_t duration();
   
 public:
   nsMediaStream mStream;
-
-  
-  PRInt64 mDuration;
 };
 
 #endif

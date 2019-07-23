@@ -96,10 +96,6 @@ oggz_new (int flags)
   oggz->cb_next = 0;
 
   oggz->streams = oggz_vector_new ();
-  if (oggz->streams == NULL) {
-    goto err_oggz_new;
-  }
-  
   oggz->all_at_eos = 0;
 
   oggz->metric = NULL;
@@ -110,26 +106,14 @@ oggz_new (int flags)
   oggz->order_user_data = NULL;
 
   oggz->packet_buffer = oggz_dlist_new ();
-  if (oggz->packet_buffer == NULL) {
-    goto err_streams_new;
-  }
 
   if (OGGZ_CONFIG_WRITE && (oggz->flags & OGGZ_WRITE)) {
-    if (oggz_write_init (oggz) == NULL)
-      goto err_packet_buffer_new;
+    oggz_write_init (oggz);
   } else if (OGGZ_CONFIG_READ) {
     oggz_read_init (oggz);
   }
 
   return oggz;
-
-err_packet_buffer_new:
-  oggz_free (oggz->packet_buffer);
-err_streams_new:
-  oggz_free (oggz->streams);
-err_oggz_new:
-  oggz_free (oggz);
-  return NULL;
 }
 
 OGGZ *
@@ -341,10 +325,7 @@ oggz_add_stream (OGGZ * oggz, long serialno)
 
   ogg_stream_init (&stream->ogg_stream, (int)serialno);
 
-  if (oggz_comments_init (stream) == -1) {
-    oggz_free (stream);
-    return NULL;
-  }
+  oggz_comments_init (stream);
 
   stream->content = OGGZ_CONTENT_UNKNOWN;
   stream->numheaders = 3; 
@@ -617,8 +598,6 @@ oggz_set_order (OGGZ * oggz, long serialno,
     oggz->order_user_data = user_data;
   } else {
     stream = oggz_get_stream (oggz, serialno);
-    if (stream == NULL) return OGGZ_ERR_BAD_SERIALNO;
-
     stream->order = order;
     stream->order_user_data = user_data;
   }
@@ -642,28 +621,3 @@ oggz_map_return_value_to_error (int cb_ret)
   }
 }
 
-const char *
-oggz_content_type (OggzStreamContent content)
-{
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  if (content < 0 || content >= OGGZ_CONTENT_UNKNOWN)
-    return NULL;
-
-  return oggz_auto_codec_ident[content].content_type;
-}
