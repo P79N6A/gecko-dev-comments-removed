@@ -1192,15 +1192,6 @@ statusbarpanel#statusbar-display {
 }
 
 
-.tabbrowser-tab > .tab-text {
-  border: 1px dotted transparent;
-}
-
-.tabbrowser-tab:focus > .tab-text {
-  border: 1px dotted -moz-DialogText;
-}
-
-
 .tab-drop-indicator-bar {
   height: 11px;
   margin-top: -11px;
