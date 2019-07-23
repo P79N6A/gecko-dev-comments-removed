@@ -129,7 +129,7 @@ public:
 
   
   
-  nsIContent* GetInsertionPoint(nsIContent* aChild, PRUint32* aIndex);
+  nsIContent* GetInsertionPoint(const nsIContent* aChild, PRUint32* aIndex);
 
   nsIContent* GetSingleInsertionPoint(PRUint32* aIndex,
                                       PRBool* aMultipleInsertionPoints);

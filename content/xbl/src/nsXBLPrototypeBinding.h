@@ -164,7 +164,8 @@ public:
   
   
   nsIContent* GetInsertionPoint(nsIContent* aBoundElement,
-                                nsIContent* aCopyRoot, nsIContent *aChild,
+                                nsIContent* aCopyRoot,
+                                const nsIContent *aChild,
                                 PRUint32* aIndex);
 
   nsIContent* GetSingleInsertionPoint(nsIContent* aBoundElement,

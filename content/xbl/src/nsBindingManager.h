@@ -167,7 +167,7 @@ public:
   
   
   nsIContent* GetInsertionPoint(nsIContent* aParent,
-                                nsIContent* aChild, PRUint32* aIndex);
+                                const nsIContent* aChild, PRUint32* aIndex);
 
   
 
@@ -176,6 +176,11 @@ public:
 
   nsIContent* GetSingleInsertionPoint(nsIContent* aParent, PRUint32* aIndex,
                                       PRBool* aMultipleInsertionPoints);
+
+  nsIContent* GetNestedInsertionPoint(nsIContent* aParent,
+                                      const nsIContent* aChild);
+  nsIContent* GetNestedSingleInsertionPoint(nsIContent* aParent,
+                                            PRBool* aMultipleInsertionPoints);
 
   nsresult AddLayeredBinding(nsIContent* aContent, nsIURI* aURL,
                              nsIPrincipal* aOriginPrincipal);
@@ -236,10 +241,6 @@ protected:
                                         PRBool* aIsAnonymousContentList);
   nsINodeList* GetAnonymousNodesInternal(nsIContent* aContent,
                                          PRBool* aIsAnonymousContentList);
-
-  nsIContent* GetNestedInsertionPoint(nsIContent* aParent, nsIContent* aChild);
-  nsIContent* GetNestedSingleInsertionPoint(nsIContent* aParent,
-                                            PRBool* aMultipleInsertionPoints);
 
   
   
