@@ -53,4 +53,5 @@ function run_test() {
   
   dump("Testing: nsIApplicationUpdateService:canUpdate\n");
   do_check_true(gAUS.canUpdate);
+  cleanUp();
 }
