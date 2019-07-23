@@ -5195,10 +5195,18 @@ LeaveTree(InterpState& state, VMSideExit* lr)
 
 
             JSTraceType* typeMap = getStackTypeMap(innermost);
+
+            
+
+
+
+
+
+            JS_ASSERT(state.deepBailSp >= state.stackBase && state.sp <= state.deepBailSp);
             NativeToValue(cx,
                           cx->fp->regs->sp[-1],
                           typeMap[innermost->numStackSlots - 1],
-                          (jsdouble *) state.sp + innermost->sp_adj / sizeof(jsdouble) - 1);
+                          (jsdouble *) state.deepBailSp + innermost->sp_adj / sizeof(jsdouble) - 1);
         }
         JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
         if (tm->prohibitFlush && --tm->prohibitFlush == 0 && tm->needFlush)
@@ -6226,7 +6234,10 @@ js_DeepBail(JSContext *cx)
     debug_only_print0(LC_TMTracer, "Deep bail.\n");
     LeaveTree(*tracecx->interpState, tracecx->bailExit);
     tracecx->bailExit = NULL;
-    tracecx->interpState->builtinStatus |= JSBUILTIN_BAILED;
+
+    InterpState* state = tracecx->interpState;
+    state->builtinStatus |= JSBUILTIN_BAILED;
+    state->deepBailSp = state->sp;
 }
 
 JS_REQUIRES_STACK jsval&
