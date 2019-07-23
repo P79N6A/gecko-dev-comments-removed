@@ -281,6 +281,12 @@ protected:
 
 
 
+  nsIDOMNode* GetAtomicRegion();
+
+  
+
+
+
 
 
 
