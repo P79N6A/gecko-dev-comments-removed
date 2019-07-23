@@ -1531,6 +1531,9 @@ function focusAndSelectUrlBar()
 
 function openLocation()
 {
+  if (window.fullScreen)
+    FullScreen.mouseoverToggle(true);
+
   if (focusAndSelectUrlBar())
     return;
 #ifdef XP_MACOSX
@@ -1635,8 +1638,24 @@ function BrowserCloseTabOrWindow()
 
 function BrowserTryToCloseWindow()
 {
-  if (WindowIsClosing())
+  if (WindowIsClosing()) {
+    if (window.fullScreen) {
+      gBrowser.mPanelContainer.removeEventListener("mousemove",
+                                                   FullScreen._collapseCallback, false);
+      document.removeEventListener("keypress", FullScreen._keyToggleCallback, false);
+      document.removeEventListener("popupshown", FullScreen._setPopupOpen, false);
+      document.removeEventListener("popuphidden", FullScreen._setPopupOpen, false);
+      gPrefService.removeObserver("browser.fullscreen", FullScreen);
+
+      var fullScrToggler = document.getElementById("fullscr-toggler");
+      if (fullScrToggler) {
+        fullScrToggler.removeEventListener("mouseover", FullScreen._expandCallback, false);
+        fullScrToggler.removeEventListener("dragenter", FullScreen._expandCallback, false);
+      }
+    }
+
     window.close();     
+  }
 }
 
 function loadURI(uri, referrer, postData, allowThirdPartyFixup)
@@ -2930,6 +2949,9 @@ const BrowserSearch = {
       return;
     }
 #endif
+    if (window.fullScreen)
+      FullScreen.mouseoverToggle(true);
+
     var searchBar = this.searchBar;
     if (isElementVisible(searchBar)) {
       searchBar.select();
@@ -3322,18 +3344,235 @@ function updateEditUIVisibility()
 
 var FullScreen =
 {
+  _XULNS: "http:
   toggle: function()
   {
     
     this.showXULChrome("toolbar", window.fullScreen);
     this.showXULChrome("statusbar", window.fullScreen);
     document.getElementById("fullScreenItem").setAttribute("checked", !window.fullScreen);
+
+    var fullScrToggler = document.getElementById("fullscr-toggler");
+    if (!window.fullScreen) {
+      
+      
+      
+      if (!fullScrToggler) {
+        fullScrToggler = document.createElement("toolbar");
+        fullScrToggler.id = "fullscr-toggler";
+        fullScrToggler.setAttribute("customizable", "false");
+        fullScrToggler.setAttribute("moz-collapsed", "true");
+        var navBar = document.getElementById("nav-bar");
+        navBar.parentNode.insertBefore(fullScrToggler, navBar);
+      }
+      fullScrToggler.addEventListener("mouseover", this._expandCallback, false);
+      fullScrToggler.addEventListener("dragenter", this._expandCallback, false);
+
+      if (gPrefService.getBoolPref("browser.fullscreen.autohide"))
+        gBrowser.mPanelContainer.addEventListener("mousemove",
+                                                  this._collapseCallback, false);
+
+      document.addEventListener("keypress", this._keyToggleCallback, false);
+      document.addEventListener("popupshown", this._setPopupOpen, false);
+      document.addEventListener("popuphidden", this._setPopupOpen, false);
+      this._shouldAnimate = true;
+      this.mouseoverToggle(false);
+
+      
+      gPrefService.addObserver("browser.fullscreen", this, false);
+    }
+    else {
+      document.removeEventListener("keypress", this._keyToggleCallback, false);
+      document.removeEventListener("popupshown", this._setPopupOpen, false);
+      document.removeEventListener("popuphidden", this._setPopupOpen, false);
+      gPrefService.removeObserver("browser.fullscreen", this);
+
+      if (fullScrToggler) {
+        fullScrToggler.removeEventListener("mouseover", this._expandCallback, false);
+        fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
+      }
+
+      
+      clearInterval(this._animationInterval);
+      getNavToolbox().style.marginTop = "0px";
+      if (this._isChromeCollapsed)
+        this.mouseoverToggle(true);
+      this._isAnimating = false;
+      
+      this._isPopupOpen = false;
+
+      gBrowser.mPanelContainer.removeEventListener("mousemove",
+                                                   this._collapseCallback, false);
+    }
+  },
+
+  observe: function(aSubject, aTopic, aData)
+  {
+    if (aData == "browser.fullscreen.autohide") {
+      if (gPrefService.getBoolPref("browser.fullscreen.autohide")) {
+        gBrowser.mPanelContainer.addEventListener("mousemove",
+                                                  this._collapseCallback, false);
+      }
+      else {
+        gBrowser.mPanelContainer.removeEventListener("mousemove",
+                                                     this._collapseCallback, false);
+      }
+    }
+  },
+
+  
+  _expandCallback: function()
+  {
+    FullScreen.mouseoverToggle(true);
+  },
+  _collapseCallback: function()
+  {
+    FullScreen.mouseoverToggle(false);
+  },
+  _keyToggleCallback: function(aEvent)
+  {
+    
+    
+    if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE) {
+      FullScreen._shouldAnimate = false;
+      FullScreen.mouseoverToggle(false, true);
+    }
+    
+    else if (aEvent.keyCode == aEvent.DOM_VK_F6)
+      FullScreen.mouseoverToggle(true);
+  },
+
+  
+  _isPopupOpen: false,
+  _isChromeCollapsed: false,
+  _safeToCollapse: function(forceHide)
+  {
+    if (!gPrefService.getBoolPref("browser.fullscreen.autohide"))
+      return false;
+
+    
+    if (!forceHide && this._isPopupOpen)
+      return false;
+
+    
+    if (document.commandDispatcher.focusedElement &&
+        document.commandDispatcher.focusedElement.ownerDocument == document &&
+        document.commandDispatcher.focusedElement.localName == "input") {
+      if (forceHide)
+        
+        document.commandDispatcher.focusedElement.blur();
+      else
+        return false;
+    }
+    return true;
+  },
+
+  _setPopupOpen: function(aEvent)
+  {
+    
+    
+    
+    
+    if (aEvent.type == "popupshown" && !FullScreen._isChromeCollapsed &&
+        aEvent.target.localName != "tooltip" && aEvent.target.localName != "window")
+      FullScreen._isPopupOpen = true;
+    else if (aEvent.type == "popuphidden" && aEvent.target.localName != "tooltip" &&
+             aEvent.target.localName != "window")
+      FullScreen._isPopupOpen = false;
+  },
+
+  
+  getAutohide: function(aItem)
+  {
+    aItem.setAttribute("checked", gPrefService.getBoolPref("browser.fullscreen.autohide"));
+  },
+  setAutohide: function()
+  {
+    gPrefService.setBoolPref("browser.fullscreen.autohide", !gPrefService.getBoolPref("browser.fullscreen.autohide"));
+  },
+
+  
+  _shouldAnimate: true,
+  _isAnimating: false,
+  _animationInterval: null,
+  _animateUp: function()
+  {
+    
+    if (!window.fullScreen || !FullScreen._safeToCollapse(false)) {
+      FullScreen._isAnimating = false;
+      FullScreen._shouldAnimate = true;
+      return;
+    }
+
+    var navToolbox = getNavToolbox();
+    var animateFrameAmount = 2;
+    function animateUpFrame() {
+      animateFrameAmount *= 2;
+      if (animateFrameAmount >=
+          (navToolbox.boxObject.height + gBrowser.mStrip.boxObject.height)) {
+        
+        clearInterval(FullScreen._animationInterval);
+        navToolbox.style.marginTop = "0px";
+        FullScreen._isAnimating = false;
+        FullScreen._shouldAnimate = false; 
+        FullScreen.mouseoverToggle(false);
+        return;
+      }
+      navToolbox.style.marginTop = (animateFrameAmount * -1) + "px";
+    }
+
+    FullScreen._animationInterval = setInterval(animateUpFrame, 70);
+  },
+
+  mouseoverToggle: function(aShow, forceHide)
+  {
+    
+    
+    
+    
+    if (aShow != this._isChromeCollapsed || (!aShow && this._isAnimating) ||
+        (!aShow && !this._safeToCollapse(forceHide)))
+      return;
+
+    
+    
+    
+    
+    if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 0)
+      this._shouldAnimate = false;
+
+    if (!aShow && this._shouldAnimate) {
+      this._isAnimating = true;
+      this._shouldAnimate = false;
+      setTimeout(this._animateUp, 800);
+      return;
+    }
+
+    
+    if (aShow) {
+      gBrowser.mPanelContainer.addEventListener("mousemove",
+                                                this._collapseCallback, false);
+    }
+    else {
+      gBrowser.mPanelContainer.removeEventListener("mousemove",
+                                                   this._collapseCallback, false);
+    }
+
+    gBrowser.mStrip.setAttribute("moz-collapsed", !aShow);
+    var allFSToolbars = document.getElementsByTagNameNS(this._XULNS, "toolbar");
+    for (var i = 0; i < allFSToolbars.length; i++) {
+      if (allFSToolbars[i].getAttribute("fullscreentoolbar") == "true")
+        allFSToolbars[i].setAttribute("moz-collapsed", !aShow);
+    }
+    document.getElementById("fullscr-toggler").setAttribute("moz-collapsed", aShow);
+    this._isChromeCollapsed = !aShow;
+    if (gPrefService.getIntPref("browser.fullscreen.animateUp") == 2)
+      this._shouldAnimate = true;
   },
 
   showXULChrome: function(aTag, aShow)
   {
-    var XULNS = "http:
-    var els = document.getElementsByTagNameNS(XULNS, aTag);
+    var els = document.getElementsByTagNameNS(this._XULNS, aTag);
 
     for (var i = 0; i < els.length; ++i) {
       
@@ -3351,10 +3590,12 @@ var FullScreen =
 
           
           
-          
           els[i].setAttribute("saved-context",
                               els[i].getAttribute("context"));
-          els[i].removeAttribute("context");
+          if (els[i].id == "nav-bar")
+            els[i].setAttribute("context", "autohide-context");
+          else
+            els[i].removeAttribute("context");
 
           
           
@@ -3364,15 +3605,14 @@ var FullScreen =
           function restoreAttr(attrName) {
             var savedAttr = "saved-" + attrName;
             if (els[i].hasAttribute(savedAttr)) {
-              var savedValue = els[i].getAttribute(savedAttr);
-              els[i].setAttribute(attrName, savedValue);
+              els[i].setAttribute(attrName, els[i].getAttribute(savedAttr));
               els[i].removeAttribute(savedAttr);
             }
           }
 
           restoreAttr("mode");
           restoreAttr("iconsize");
-          restoreAttr("context"); 
+          restoreAttr("context");
 
           els[i].removeAttribute("inFullscreen");
         }
@@ -3828,7 +4068,7 @@ nsBrowserStatusHandler.prototype =
         notification = notificationBox.appendNotification(
           message,
           "refresh-blocked",
-          "chrome:
+          "chrome://browser/skin/Info.png",
           priority,
           buttons);
         notification.refreshURI = aURI;
