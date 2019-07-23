@@ -262,8 +262,7 @@ pref("browser.download.useDownloadDir", true);
 
 #ifdef WINCE
 pref("browser.download.folderList", 2);
-
-pref("browser.download.dir", "\\Hard Disk");
+pref("browser.download.dir", "\\Storage Card");
 #else
 pref("browser.download.folderList", 1);
 #endif
