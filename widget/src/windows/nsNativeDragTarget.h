@@ -42,9 +42,12 @@
 #include "nsIDragSession.h"
 #include <ole2.h>
 #include <shlobj.h>
-#ifndef WINCE
+
+#ifndef WINCE 
 #ifndef IDropTargetHelper
+#ifndef __MINGW32__   
 #include <shobjidl.h> 
+#endif  
 #endif
 #endif  
 
