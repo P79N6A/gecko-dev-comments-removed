@@ -199,22 +199,15 @@ var gSanitizePromptDialog = {
 
   onReadGeneric: function ()
   {
-    
-    
-    
-    var combinedCb = document.getElementById("history-downloads-checkbox");
-    var found = combinedCb.checked;
+    var found = false;
 
     
     var i = 0;
     while (!found && i < this.sanitizePreferences.childNodes.length) {
       var preference = this.sanitizePreferences.childNodes[i];
 
-      
       found = !!preference.value &&
-              !preference.disabled &&
-              preference.id !== "privacy.cpd.history" &&
-              preference.id !== "privacy.cpd.downloads";
+              !preference.disabled;
       i++;
     }
 
@@ -223,23 +216,6 @@ var gSanitizePromptDialog = {
     }
     catch (e) { }
     return undefined;
-  },
-
-  
-
-
-
-
-  onReadHistoryOrDownloads: function ()
-  {
-    
-    this.onReadGeneric();
-
-    var historyPref = document.getElementById("privacy.cpd.history");
-    var downloadsPref = document.getElementById("privacy.cpd.downloads");
-    var combinedCb = document.getElementById("history-downloads-checkbox");
-    combinedCb.disabled = historyPref.disabled && downloadsPref.disabled;
-    combinedCb.checked = historyPref.value || downloadsPref.value;
   },
 
   
@@ -256,13 +232,8 @@ var gSanitizePromptDialog = {
     Sanitizer.prefs.setIntPref("timeSpan", this.selectedTimespan);
 
     
-    
-    var combinedCbChecked =
-      document.getElementById("history-downloads-checkbox").checked;
-    var historyPref = document.getElementById("privacy.cpd.history");
-    historyPref.value = !historyPref.disabled && combinedCbChecked;
-    var downloadsPref = document.getElementById("privacy.cpd.downloads");
-    downloadsPref.value = !downloadsPref.disabled && combinedCbChecked;
+    document.getElementById("privacy.cpd.downloads").value =
+      document.getElementById("privacy.cpd.history").value;
 
     
     

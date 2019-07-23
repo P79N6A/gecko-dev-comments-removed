@@ -111,7 +111,7 @@ var gAllTests = [
                      wh.getRowCount() - 1);
 
       
-      wh.checkPrefCheckbox("history-downloads-checkbox", false);
+      wh.checkPrefCheckbox("history", false);
 
       wh.cancelDialog();
       ensureHistoryClearedState(uris, false);
@@ -157,7 +157,7 @@ var gAllTests = [
 
       
       
-      wh.checkPrefCheckbox("history-downloads-checkbox", true);
+      wh.checkPrefCheckbox("history", true);
       wh.acceptDialog();
       ensureHistoryClearedState(uris, true);
       ensureDownloadsClearedState(downloadIDs, true);
@@ -201,7 +201,7 @@ var gAllTests = [
                      wh.getRowCount() - 1);
 
       
-      wh.checkPrefCheckbox("history-downloads-checkbox", false);
+      wh.checkPrefCheckbox("history", false);
       wh.checkPrefCheckbox("formdata", true);
       wh.acceptDialog();
 
@@ -232,7 +232,7 @@ var gAllTests = [
     openWindow(function (aWin) {
       let wh = new WindowHelper(aWin);
       wh.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
-      wh.checkPrefCheckbox("history-downloads-checkbox", true);
+      wh.checkPrefCheckbox("history", true);
       wh.acceptDialog();
       ensureHistoryClearedState(uris, true);
     });
@@ -308,18 +308,13 @@ WindowHelper.prototype = {
 
 
 
-
   checkPrefCheckbox: function (aPrefName, aCheckState) {
-    let checkBoxes = this.win.document.getElementsByTagName("listitem");
-    for (let i = 0; i < checkBoxes.length; i++) {
-      let cb = checkBoxes[i];
-      if (cb.id === aPrefName ||
-          (cb.hasAttribute("preference") &&
-           cb.getAttribute("preference") === "privacy.cpd." + aPrefName)) {
-        cb.checked = aCheckState;
-        break;
-      }
-    }
+    var pref = "privacy.cpd." + aPrefName;
+    var cb = this.win.document.querySelectorAll(
+               "#itemList > [preference='" + pref + "']");
+    is(cb.length, 1, "found checkbox for " + pref + " preference");
+    if (cb[0].checked != aCheckState)
+      cb[0].click();
   },
 
   
