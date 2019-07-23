@@ -51,6 +51,7 @@
 #include "nsIProtocolHandler.h"
 #include "nsIIOService.h"
 #include "nsIExternalProtocolHandler.h"
+#include "nsNetUtil.h"
 
 NS_IMPL_ISUPPORTS1(nsNoDataProtocolContentPolicy, nsIContentPolicy)
 
@@ -70,9 +71,11 @@ nsNoDataProtocolContentPolicy::ShouldLoad(PRUint32 aContentType,
   if (aContentType != TYPE_DOCUMENT &&
       aContentType != TYPE_SUBDOCUMENT &&
       aContentType != TYPE_OBJECT) {
+
+    
+    
     nsCAutoString scheme;
     aContentLocation->GetScheme(scheme);
-    
     if (scheme.EqualsLiteral("http") ||
         scheme.EqualsLiteral("https") ||
         scheme.EqualsLiteral("ftp") ||
@@ -81,19 +84,11 @@ nsNoDataProtocolContentPolicy::ShouldLoad(PRUint32 aContentType,
       return NS_OK;
     }
 
-    nsIIOService* ios = nsContentUtils::GetIOService();
-    if (!ios) {
-      
-      return NS_OK;
-    }
-    
-    nsCOMPtr<nsIProtocolHandler> handler;
-    ios->GetProtocolHandler(scheme.get(), getter_AddRefs(handler));
-
-    nsCOMPtr<nsIExternalProtocolHandler> extHandler =
-      do_QueryInterface(handler);
-
-    if (extHandler) {
+    PRBool shouldBlock;
+    nsresult rv = NS_URIChainHasFlags(aContentLocation,
+                                      nsIProtocolHandler::URI_DOES_NOT_RETURN_DATA,
+                                      &shouldBlock);
+    if (NS_SUCCEEDED(rv) && shouldBlock) {
       *aDecision = nsIContentPolicy::REJECT_REQUEST;
     }
   }
