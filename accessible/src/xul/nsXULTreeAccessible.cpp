@@ -356,6 +356,15 @@ nsXULTreeAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
 }
 
 
+NS_IMETHODIMP
+nsXULTreeAccessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                            nsIAccessible **aAccessible)
+{
+  
+  return GetChildAtPoint(aX, aY, aAccessible);
+}
+
+
 NS_IMETHODIMP nsXULTreeAccessible::GetSelectedChildren(nsIArray **_retval)
 {
   *_retval = nsnull;

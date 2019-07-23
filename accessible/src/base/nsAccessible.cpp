@@ -1104,10 +1104,10 @@ NS_IMETHODIMP nsAccessible::GetFocusedChild(nsIAccessible **aFocusedChild)
   return NS_OK;
 }
 
-  
+
 NS_IMETHODIMP
-nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
-                              nsIAccessible **aAccessible)
+nsAccessible::GetDeepestChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                     nsIAccessible **aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
   *aAccessible = nsnull;
@@ -1205,26 +1205,49 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
     
     
   }
-  else {
-    nsCOMPtr<nsIAccessible> parent;
-    while (PR_TRUE) {
-      accessible->GetParent(getter_AddRefs(parent));
-      if (!parent) {
-        
-        
-        NS_IF_ADDREF(*aAccessible = fallbackAnswer);
-        return NS_OK;
-      }
-      if (parent == this) {
-        
-        
-        break;
-      }
-      accessible.swap(parent);
-    }
-  }
 
   NS_IF_ADDREF(*aAccessible = accessible);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
+                              nsIAccessible **aAccessible)
+{
+  nsresult rv = GetDeepestChildAtPoint(aX, aY, aAccessible);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!*aAccessible)
+    return NS_OK;
+
+  nsCOMPtr<nsIAccessible> parent, accessible(*aAccessible);
+  while (PR_TRUE) {
+    accessible->GetParent(getter_AddRefs(parent));
+    if (!parent) {
+      NS_ASSERTION(PR_FALSE,
+                   "Obtained accessible isn't a child of this accessible.");
+      
+      
+
+      
+      
+      PRInt32 x, y, width, height;
+      GetBounds(&x, &y, &width, &height);
+      if (aX >= x && aX < x + width && aY >= y && aY < y + height)
+        NS_ADDREF(*aAccessible = this);
+
+      return NS_OK;
+    }
+
+    if (parent == this) {
+      
+      NS_ADDREF(*aAccessible = accessible);
+      return NS_OK;
+    }
+    accessible.swap(parent);
+  }
+
   return NS_OK;
 }
 
