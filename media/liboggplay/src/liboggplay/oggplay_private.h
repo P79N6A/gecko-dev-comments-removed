@@ -146,22 +146,22 @@ struct _OggPlayCallbackInfo {
 
 
 typedef struct {
-  long                  serialno;
-  int                   content_type;
-  const char          * content_type_name;
-  OggPlayDataType       decoded_type;
-  ogg_int64_t           granuleperiod;
-  ogg_int64_t           last_granulepos;
-  ogg_int64_t           offset;
-  ogg_int64_t           current_loc;
-  int                   active;
-  ogg_int64_t           final_granulepos;
-  struct _OggPlay     * player;
-  OggPlayDataHeader   * data_list;
-  OggPlayDataHeader   * end_of_data_list;
-  OggPlayDataHeader   * untimed_data_list;
-  OggPlayStreamInfo     stream_info;
-  int                   preroll;
+  long                  serialno;           
+  int                   content_type;       
+  const char          * content_type_name;  
+  OggPlayDataType       decoded_type;       
+  ogg_int64_t           granuleperiod;      
+  ogg_int64_t           last_granulepos;    
+  ogg_int64_t           offset;             
+  ogg_int64_t           current_loc;        
+  int                   active;             
+  ogg_int64_t           final_granulepos;   
+  struct _OggPlay     * player;             
+  OggPlayDataHeader   * data_list;          
+  OggPlayDataHeader   * end_of_data_list;   
+  OggPlayDataHeader   * untimed_data_list;  
+  OggPlayStreamInfo     stream_info;        
+  int                   preroll;            
 } OggPlayDecode;
 
 typedef struct {
@@ -192,6 +192,9 @@ typedef struct {
   OggPlayDecode   decoder;
   int             granuleshift;
 } OggPlayCmmlDecode;
+
+
+
 
 typedef struct {
   OggPlayDecode   decoder;

@@ -90,6 +90,15 @@ oggplay_callback_theora (OGGZ * oggz, ogg_packet * op, long serialno,
   int                     musec;
 #endif
 
+  if ( (granulepos > 0) && (common->last_granulepos > granulepos)) {
+    
+
+
+
+
+    return 0;
+  }
+
   
 
 
@@ -160,10 +169,19 @@ oggplay_callback_theora (OGGZ * oggz, ogg_packet * op, long serialno,
 #endif
 
   if (granulepos != -1) {
+    
+
+
+
+    common->last_granulepos = granulepos;
+
+    
     granuleshift = oggz_get_granuleshift(oggz, serialno);
     frame = (granulepos >> granuleshift);
     frame += (granulepos & ((1 << granuleshift) - 1));
-    common->current_loc = frame * common->granuleperiod;
+    
+    
+    common->current_loc = frame * common->granuleperiod;    
   } else {
     common->current_loc = -1;
   }
