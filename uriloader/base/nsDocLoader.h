@@ -48,7 +48,8 @@
 #include "nsWeakReference.h"
 #include "nsILoadGroup.h"
 #include "nsCOMArray.h"
-#include "nsVoidArray.h"
+#include "nsTPtrArray.h"
+#include "nsTObserverArray.h"
 #include "nsString.h"
 #include "nsIChannel.h"
 #include "nsIProgressEventSink.h"
@@ -62,7 +63,6 @@
 #include "pldhash.h"
 
 struct nsRequestInfo;
-struct nsListenerInfo;
 
 
 
@@ -128,6 +128,20 @@ public:
     nsresult AddChildLoader(nsDocLoader* aChild);
     nsDocLoader* GetParent() const { return mParent; }
 
+    struct nsListenerInfo {
+      nsListenerInfo(nsIWeakReference *aListener, unsigned long aNotifyMask) 
+        : mWeakListener(aListener),
+          mNotifyMask(aNotifyMask)
+      {
+      }
+
+      
+      nsWeakPtr mWeakListener;
+
+      
+      unsigned long mNotifyMask;
+    };
+
 protected:
     virtual ~nsDocLoader();
 
@@ -137,14 +151,6 @@ protected:
 
     void Destroy();
     virtual void DestroyChildren();
-
-    nsIDocumentLoader* ChildAt(PRInt32 i) {
-        return static_cast<nsDocLoader*>(mChildList[i]);
-    }
-
-    nsIDocumentLoader* SafeChildAt(PRInt32 i) {
-        return static_cast<nsDocLoader*>(mChildList.SafeElementAt(i));
-    }
 
     void FireOnProgressChange(nsDocLoader* aLoadInitiator,
                               nsIRequest *request,
@@ -216,11 +222,12 @@ protected:
 
     nsDocLoader*               mParent;                
 
-    nsVoidArray                mListenerInfoList;
+    typedef nsAutoTObserverArray<nsListenerInfo, 8> ListenerArray;
+    ListenerArray mListenerInfoList;
 
-    nsCOMPtr<nsILoadGroup>        mLoadGroup;
+    nsCOMPtr<nsILoadGroup>         mLoadGroup;
     
-    nsVoidArray                   mChildList;
+    nsTPtrArray<nsIDocumentLoader> mChildList;
 
     
     
@@ -263,14 +270,13 @@ private:
     
     void DocLoaderIsEmpty(PRBool aFlushLayout);
 
-    nsListenerInfo *GetListenerInfo(nsIWebProgressListener* aListener);
-
     PRInt64 GetMaxTotalProgress();
 
     nsresult AddRequestInfo(nsIRequest* aRequest);
     void RemoveRequestInfo(nsIRequest* aRequest);
     nsRequestInfo *GetRequestInfo(nsIRequest* aRequest);
     void ClearRequestInfoHash();
+    void RemoveEmptyListeners();
     PRInt64 CalculateMaxProgress();
 
 
