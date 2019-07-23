@@ -125,6 +125,16 @@
 
 
 
+#define NS_NESTEDABOUTURI_CID                            \
+{ /* 2f277c00-0eaf-4ddb-b936-41326ba48aae */             \
+     0x2f277c00,                                         \
+     0x0eaf,                                             \
+     0x4ddb,                                             \
+     { 0xb9, 0x36, 0x41, 0x32, 0x6b, 0xa4, 0x8a, 0xae }  \
+}
+
+
+
 #define NS_STANDARDURL_CLASSNAME \
     "nsStandardURL"
 #define NS_STANDARDURL_CONTRACTID \
