@@ -58,6 +58,15 @@ class nsPresContext;
 
 class nsARefreshObserver {
 public:
+  
+  
+  
+  
+  
+  
+  NS_IMETHOD_(nsrefcnt) AddRef(void) = 0;
+  NS_IMETHOD_(nsrefcnt) Release(void) = 0;
+
   virtual void WillRefresh(mozilla::TimeStamp aTime) = 0;
 };
 
@@ -82,6 +91,9 @@ public:
   mozilla::TimeStamp MostRecentRefresh() const;
 
   
+
+
+
 
 
 
