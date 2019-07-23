@@ -359,12 +359,6 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
             *urlPtr++ = *fwdPtr;
         }
     }
-    
-    for (; *fwdPtr != '\0'; ++fwdPtr)
-    {
-        *urlPtr++ = *fwdPtr;
-    }
-    *urlPtr = '\0';  
 
     
 
@@ -372,7 +366,14 @@ net_CoalesceDirs(netCoalesceFlags flags, char* path)
 
 
     if ((urlPtr > (path+1)) && (*(urlPtr-1) == '.') && (*(urlPtr-2) == '/'))
-        *(urlPtr-1) = '\0';
+        urlPtr--;
+
+    
+    for (; *fwdPtr != '\0'; ++fwdPtr)
+    {
+        *urlPtr++ = *fwdPtr;
+    }
+    *urlPtr = '\0';  
 }
 
 nsresult
