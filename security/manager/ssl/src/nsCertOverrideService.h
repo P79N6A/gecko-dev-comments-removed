@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef __NSCERTOVERRIDESERVICE_H__
 #define __NSCERTOVERRIDESERVICE_H__
 
@@ -47,6 +48,7 @@
 #include "nsIFile.h"
 #include "prmon.h"
 #include "secoidt.h"
+#include "nsWeakReference.h"
 
 class nsCertOverride
 {
@@ -152,6 +154,7 @@ class nsCertOverrideEntry : public PLDHashEntryHdr
 
 class nsCertOverrideService : public nsICertOverrideService
                             , public nsIObserver
+                            , public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS

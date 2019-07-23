@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCertOverrideService.h"
 #include "nsIX509Cert.h"
 #include "nsNSSCertificate.h"
@@ -47,7 +48,9 @@
 #include "nsILineInputStream.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
+#include "nsISupportsPrimitives.h"
 #include "nsPromiseFlatString.h"
+#include "nsProxiedService.h"
 #include "nsStringBuffer.h"
 #include "nsAutoLock.h"
 #include "nsAutoPtr.h"
@@ -109,9 +112,10 @@ nsCertOverride::convertStringToBits(const nsACString &str, OverrideBits &ob)
   }
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsCertOverrideService, 
+NS_IMPL_THREADSAFE_ISUPPORTS3(nsCertOverrideService, 
                               nsICertOverrideService,
-                              nsIObserver)
+                              nsIObserver,
+                              nsISupportsWeakReference)
 
 nsCertOverrideService::nsCertOverrideService()
 {
@@ -151,8 +155,10 @@ nsCertOverrideService::Init()
 
   Read();
 
-  nsCOMPtr<nsIObserverService> mObserverService = 
-    do_GetService("@mozilla.org/observer-service;1");
+  nsresult rv;
+  NS_WITH_ALWAYS_PROXIED_SERVICE(nsIObserverService, mObserverService,
+                                 "@mozilla.org/observer-service;1",
+                                 NS_PROXY_TO_MAIN_THREAD, &rv);
 
   if (mObserverService) {
     mObserverService->AddObserver(this, "profile-before-change", PR_TRUE);
