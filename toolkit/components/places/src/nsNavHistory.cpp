@@ -3448,7 +3448,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
             "(datetime(0, 'unixepoch')*1000000)");
           
           sqlFragmentContainerEndTime = NS_LITERAL_CSTRING(
-            "(strftime('%s','now','localtime','start of day','-6 months','utc')*1000000)");
+            "(strftime('%s','now','localtime','start of month','-5 months','utc')*1000000)");
           
           sqlFragmentSearchBeginTime = sqlFragmentContainerBeginTime;
           sqlFragmentSearchEndTime = sqlFragmentContainerEndTime;
@@ -3460,6 +3460,10 @@ PlacesSQLQueryBuilder::SelectAsDay()
         PRExplodedTime tm;
         PR_ExplodeTime(PR_Now(), PR_LocalTimeParameters, &tm);
         PRUint16 currentYear = tm.tm_year;
+        
+        
+        
+        tm.tm_mday = 1;
         tm.tm_month -= MonthIndex;
         PR_NormalizeTime(&tm, PR_LocalTimeParameters);
         
