@@ -268,18 +268,31 @@ nsHTMLTableRowElement::InsertCell(PRInt32 aIndex, nsIDOMHTMLElement** aValue)
   if (aIndex < -1) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
+
   
   nsCOMPtr<nsIDOMHTMLCollection> cells;
-  GetCells(getter_AddRefs(cells));
-
-  PRUint32 cellCount;
-  cells->GetLength(&cellCount);
-
-  if (aIndex > PRInt32(cellCount)) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
+  nsresult rv = GetCells(getter_AddRefs(cells));
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
-  PRBool doInsert = (aIndex < PRInt32(cellCount)) && (aIndex != -1);
+  NS_ASSERTION(mCells, "How did that happen?");
+
+  nsCOMPtr<nsIDOMNode> nextSibling;
+  
+  if (aIndex != -1) {
+    cells->Item(aIndex, getter_AddRefs(nextSibling));
+    
+    
+    
+    if (!nextSibling) {
+      PRUint32 cellCount;
+      cells->GetLength(&cellCount);
+      if (aIndex > PRInt32(cellCount)) {
+        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+      }
+    }
+  }
 
   
   nsCOMPtr<nsINodeInfo> nodeInfo;
@@ -295,16 +308,7 @@ nsHTMLTableRowElement::InsertCell(PRInt32 aIndex, nsIDOMHTMLElement** aValue)
   NS_ASSERTION(cellNode, "Should implement nsIDOMNode!");
 
   nsCOMPtr<nsIDOMNode> retChild;
-
-  nsresult rv;
-  if (doInsert) {
-    nsCOMPtr<nsIDOMNode> refCell;
-    cells->Item(aIndex, getter_AddRefs(refCell));
-
-    rv = InsertBefore(cellNode, refCell, getter_AddRefs(retChild));
-  } else {
-    rv = AppendChild(cellNode, getter_AddRefs(retChild));
-  }
+  InsertBefore(cellNode, nextSibling, getter_AddRefs(retChild));
 
   if (retChild) {
     CallQueryInterface(retChild, aValue);
