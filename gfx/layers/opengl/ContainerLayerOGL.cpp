@@ -132,54 +132,57 @@ ContainerLayerOGL::RenderLayer(int aPreviousFrameBuffer)
 
 
   GLuint containerSurface;
-
-  sglWrapper.GenTextures(1, &containerSurface);
-  sglWrapper.BindTexture(LOCAL_GL_TEXTURE_2D, containerSurface);
-  sglWrapper.TexImage2D(LOCAL_GL_TEXTURE_2D,
-                        0,
-                        LOCAL_GL_RGBA,
-                        mVisibleRect.width,
-                        mVisibleRect.height,
-                        0,
-                        LOCAL_GL_BGRA,
-                        LOCAL_GL_UNSIGNED_BYTE,
-                        NULL);
-  sglWrapper.TexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
-  sglWrapper.TexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
-
-  
-
-
-
   GLuint frameBuffer;
-  sglWrapper.GenFramebuffersEXT(1, &frameBuffer);
-  sglWrapper.BindFramebufferEXT(LOCAL_GL_FRAMEBUFFER_EXT, frameBuffer);
-  sglWrapper.FramebufferTexture2DEXT(LOCAL_GL_FRAMEBUFFER_EXT,
-                                     LOCAL_GL_COLOR_ATTACHMENT0_EXT,
-                                     LOCAL_GL_TEXTURE_2D,
-                                     containerSurface,
-                                     0);
-
-  NS_ASSERTION(
-      sglWrapper.CheckFramebufferStatusEXT(LOCAL_GL_FRAMEBUFFER_EXT) ==
-	LOCAL_GL_FRAMEBUFFER_COMPLETE, "Error setting up framebuffer.");
-
   RGBLayerProgram *rgbProgram =
     static_cast<LayerManagerOGL*>(mManager)->GetRGBLayerProgram();
   YCbCrLayerProgram *yCbCrProgram =
     static_cast<LayerManagerOGL*>(mManager)->GetYCbCrLayerProgram();
 
-  
+  if (GetOpacity() != 1.0) {
+    sglWrapper.GenTextures(1, &containerSurface);
+    sglWrapper.BindTexture(LOCAL_GL_TEXTURE_2D, containerSurface);
+    sglWrapper.TexImage2D(LOCAL_GL_TEXTURE_2D,
+			    0,
+			    LOCAL_GL_RGBA,
+			    mVisibleRect.width,
+			    mVisibleRect.height,
+			    0,
+			    LOCAL_GL_BGRA,
+			    LOCAL_GL_UNSIGNED_BYTE,
+			    NULL);
+    sglWrapper.TexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
+    sglWrapper.TexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
+
+    
 
 
 
-  
-  rgbProgram->Activate();
-  rgbProgram->PushRenderTargetOffset((GLfloat)GetVisibleRect().x,
-                                     (GLfloat)GetVisibleRect().y);
-  yCbCrProgram->Activate();
-  yCbCrProgram->PushRenderTargetOffset((GLfloat)GetVisibleRect().x,
-                                       (GLfloat)GetVisibleRect().y);
+    sglWrapper.GenFramebuffersEXT(1, &frameBuffer);
+    sglWrapper.BindFramebufferEXT(LOCAL_GL_FRAMEBUFFER_EXT, frameBuffer);
+    sglWrapper.FramebufferTexture2DEXT(LOCAL_GL_FRAMEBUFFER_EXT,
+					 LOCAL_GL_COLOR_ATTACHMENT0_EXT,
+					 LOCAL_GL_TEXTURE_2D,
+					 containerSurface,
+					 0);
+
+    NS_ASSERTION(
+	  sglWrapper.CheckFramebufferStatusEXT(LOCAL_GL_FRAMEBUFFER_EXT) ==
+	    LOCAL_GL_FRAMEBUFFER_COMPLETE, "Error setting up framebuffer.");
+
+    
+
+
+
+    
+    rgbProgram->Activate();
+    rgbProgram->PushRenderTargetOffset((GLfloat)GetVisibleRect().x,
+					 (GLfloat)GetVisibleRect().y);
+    yCbCrProgram->Activate();
+    yCbCrProgram->PushRenderTargetOffset((GLfloat)GetVisibleRect().x,
+					   (GLfloat)GetVisibleRect().y);
+  } else {
+    frameBuffer = aPreviousFrameBuffer;
+  }
   
   
 
@@ -200,45 +203,47 @@ ContainerLayerOGL::RenderLayer(int aPreviousFrameBuffer)
     layerToRender = layerToRender->GetNextSibling();
   }
 
-  
-  sglWrapper.BindFramebufferEXT(LOCAL_GL_FRAMEBUFFER_EXT, aPreviousFrameBuffer);
-  sglWrapper.DeleteFramebuffersEXT(1, &frameBuffer);
+  if (GetOpacity() != 1.0) {
+    
+    sglWrapper.BindFramebufferEXT(LOCAL_GL_FRAMEBUFFER_EXT, aPreviousFrameBuffer);
+    sglWrapper.DeleteFramebuffersEXT(1, &frameBuffer);
 
-  
-  yCbCrProgram->Activate();
-  yCbCrProgram->PopRenderTargetOffset();
+    
+    yCbCrProgram->Activate();
+    yCbCrProgram->PopRenderTargetOffset();
 
-  rgbProgram->Activate();
-  rgbProgram->PopRenderTargetOffset();
+    rgbProgram->Activate();
+    rgbProgram->PopRenderTargetOffset();
 
-  
-
-
-  float quadTransform[4][4];
-  
+    
 
 
+    float quadTransform[4][4];
+    
 
-  memset(&quadTransform, 0, sizeof(quadTransform));
-  quadTransform[0][0] = (float)GetVisibleRect().width;
-  quadTransform[1][1] = (float)GetVisibleRect().height;
-  quadTransform[2][2] = 1.0f;
-  quadTransform[3][0] = (float)GetVisibleRect().x;
-  quadTransform[3][1] = (float)GetVisibleRect().y;
-  quadTransform[3][3] = 1.0f;
 
-  rgbProgram->SetLayerQuadTransform(&quadTransform[0][0]);
 
-  sglWrapper.BindTexture(LOCAL_GL_TEXTURE_2D, containerSurface);
+    memset(&quadTransform, 0, sizeof(quadTransform));
+    quadTransform[0][0] = (float)GetVisibleRect().width;
+    quadTransform[1][1] = (float)GetVisibleRect().height;
+    quadTransform[2][2] = 1.0f;
+    quadTransform[3][0] = (float)GetVisibleRect().x;
+    quadTransform[3][1] = (float)GetVisibleRect().y;
+    quadTransform[3][3] = 1.0f;
 
-  rgbProgram->SetLayerOpacity(GetOpacity());
-  rgbProgram->SetLayerTransform(&mTransform._11);
-  rgbProgram->Apply();
+    rgbProgram->SetLayerQuadTransform(&quadTransform[0][0]);
 
-  sglWrapper.DrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+    sglWrapper.BindTexture(LOCAL_GL_TEXTURE_2D, containerSurface);
 
-  
-  sglWrapper.DeleteTextures(1, &containerSurface);
+    rgbProgram->SetLayerOpacity(GetOpacity());
+    rgbProgram->SetLayerTransform(&mTransform._11);
+    rgbProgram->Apply();
+
+    sglWrapper.DrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+
+    
+    sglWrapper.DeleteTextures(1, &containerSurface);
+  }
 }
 
 } 
