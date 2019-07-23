@@ -37,7 +37,6 @@
 
 
 #include "nsAccessibilityService.h"
-#include "nsAccEvent.h"
 #include "nsApplicationAccessibleWrap.h"
 
 #include "nsHTMLSelectAccessible.h"
@@ -518,26 +517,10 @@ nsRootAccessible::FireAccessibleFocusEvent(nsIAccessible *aAccessible,
 
   gLastFocusedFrameType = (focusFrame && focusFrame->GetStyleVisibility()->IsVisible()) ? focusFrame->GetType() : 0;
 
-  nsCOMPtr<nsIAccessibleDocument> docAccessible = do_QueryInterface(finalFocusAccessible);
-  if (docAccessible) {
-    
-    nsCOMPtr<nsIDOMNode> realFocusedNode = GetCurrentFocus();
-    if ((realFocusedNode != aNode || realFocusedNode == mDOMNode) &&
-        !(nsAccUtils::ExtendedState(finalFocusAccessible) &
-                    nsIAccessibleStates::EXT_STATE_EDITABLE)) {
-      
-      
-      
-      
-
-      
-
-      return PR_FALSE;
-    }
-  }
-
+  
+  
   FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                             finalFocusNode, nsAccEvent::eRemoveDupes,
+                             finalFocusNode, nsAccEvent::eCoalesceFromSameDocument,
                              aIsAsynch, aIsFromUserInput);
 
   return PR_TRUE;

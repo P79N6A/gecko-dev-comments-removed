@@ -41,18 +41,17 @@
 #ifndef _nsAccEvent_H_
 #define _nsAccEvent_H_
 
-#include "nsAutoPtr.h"
+#include "nsIAccessibleEvent.h"
+
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
-#include "nsIAccessibleEvent.h"
-#include "nsIAccessible.h"
-#include "nsIAccessibleDocument.h"
-#include "nsIDOMNode.h"
 #include "nsString.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsAccUtils.h"
 
-class nsIPresShell;
+#include "nsINode.h"
+#include "nsIDOMNode.h"
+
+class nsDocAccessible;
 
 
 enum EIsFromUserInput
@@ -83,13 +82,20 @@ public:
      
      
      eAllowDupes,
+
      
      
      
      eCoalesceFromSameSubtree,
+
+    
+    
+    eCoalesceFromSameDocument,
+
      
      
      eRemoveDupes,
+
      
      eDoNotEmit
   };
@@ -120,6 +126,9 @@ public:
   PRBool IsFromUserInput() const { return mIsFromUserInput; }
   nsIAccessible* GetAccessible() const { return mAccessible; }
 
+  nsINode* GetNode();
+  nsDocAccessible* GetDocAccessible();
+
 protected:
   
 
@@ -139,7 +148,6 @@ protected:
   PRPackedBool mIsAsync;
   nsCOMPtr<nsIAccessible> mAccessible;
   nsCOMPtr<nsINode> mNode;
-  nsCOMPtr<nsIAccessibleDocument> mDocAccessible;
 
   friend class nsAccEventQueue;
 };

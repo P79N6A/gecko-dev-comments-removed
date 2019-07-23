@@ -329,6 +329,18 @@ nsAccEventQueue::CoalesceEvents()
       }
     } break; 
 
+    case nsAccEvent::eCoalesceFromSameDocument:
+    {
+      for (PRInt32 index = 0; index < tail; index ++) {
+        nsAccEvent* thisEvent = mEvents[index];
+        if (thisEvent->mEventType == tailEvent->mEventType &&
+            thisEvent->mEventRule == tailEvent->mEventRule &&
+            thisEvent->GetDocAccessible() == tailEvent->GetDocAccessible()) {
+          thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
+        }
+      }
+    } break; 
+
     case nsAccEvent::eRemoveDupes:
     {
       

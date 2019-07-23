@@ -40,7 +40,6 @@
 
 #include "nsAccessibilityAtoms.h"
 #include "nsCoreUtils.h"
-#include "nsAccUtils.h"
 #include "nsBaseWidgetAccessible.h"
 #include "nsIDOMXULDescriptionElement.h"
 #include "nsINameSpaceManager.h"

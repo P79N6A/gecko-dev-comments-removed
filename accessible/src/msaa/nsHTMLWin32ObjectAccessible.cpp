@@ -37,7 +37,6 @@
 
 
 #include "nsHTMLWin32ObjectAccessible.h"
-#include "nsAccessibleWrap.h"
 
 
 
