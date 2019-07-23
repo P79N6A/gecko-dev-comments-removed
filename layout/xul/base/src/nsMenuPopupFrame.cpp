@@ -950,7 +950,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   nsRect anchorScreenRect;
-  nsRect rootScreenRect = rootFrame->GetScreenRect();
+  nsRect rootScreenRect = rootFrame->GetScreenRectInAppUnits();
 
   nsIDeviceContext* devContext = PresContext()->DeviceContext();
   nscoord offsetForContextMenu = 0;
@@ -961,9 +961,11 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     
     
     if (mAnchorContent) {
-      anchorScreenRect = aAnchorFrame->GetScreenRect();
-      xpos = presContext->DevPixelsToAppUnits(anchorScreenRect.x - rootScreenRect.x);
-      ypos = presContext->DevPixelsToAppUnits(anchorScreenRect.y - rootScreenRect.y);
+      anchorScreenRect = aAnchorFrame->GetScreenRectInAppUnits();
+      
+      anchorScreenRect.ScaleRoundOut(adj);
+      xpos = anchorScreenRect.x - rootScreenRect.x;
+      ypos = anchorScreenRect.y - rootScreenRect.y;
 
       
       
@@ -981,8 +983,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
     xpos += presContext->CSSPixelsToAppUnits(mXPos);
     ypos += presContext->CSSPixelsToAppUnits(mYPos);
 
-    screenViewLocX = presContext->DevPixelsToAppUnits(rootScreenRect.x) + xpos;
-    screenViewLocY = presContext->DevPixelsToAppUnits(rootScreenRect.y) + ypos;
+    screenViewLocX = rootScreenRect.x + xpos;
+    screenViewLocY = rootScreenRect.y + ypos;
   }
   else {
     
@@ -1009,8 +1011,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
     
     
-    xpos = screenViewLocX - presContext->DevPixelsToAppUnits(rootScreenRect.x);
-    ypos = screenViewLocY - presContext->DevPixelsToAppUnits(rootScreenRect.y);
+    xpos = screenViewLocX - rootScreenRect.x;
+    ypos = screenViewLocY - rootScreenRect.y;
   }
 
   
@@ -1030,7 +1032,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
 
   
   if (mInContentShell) {
-    rootScreenRect.ScaleRoundIn(presContext->AppUnitsPerDevPixel());
     rect.IntersectRect(rect, rootScreenRect);
   }
 
@@ -1076,7 +1077,6 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame)
            screenViewLocX < screenLeftTwips ||
           (screenViewLocY + mRect.height) > screenBottomTwips ) {
       nsRect screenParentFrameRect(anchorScreenRect);
-      screenParentFrameRect.ScaleRoundOut(PresContext()->AppUnitsPerDevPixel());
 
       
       

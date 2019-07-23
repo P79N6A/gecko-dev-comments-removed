@@ -1519,6 +1519,13 @@ public:
 
 
 
+  nsRect GetScreenRectInAppUnits() const;
+  virtual nsRect GetScreenRectInAppUnitsExternal() const;
+
+  
+
+
+
   NS_IMETHOD  GetOffsetFromView(nsPoint&  aOffset,
                                 nsIView** aView) const = 0;
 

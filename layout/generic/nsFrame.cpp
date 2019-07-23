@@ -3477,7 +3477,20 @@ nsIntRect nsIFrame::GetScreenRectExternal() const
 
 nsIntRect nsIFrame::GetScreenRect() const
 {
-  nsIntRect retval(0,0,0,0);
+  nsRect r = GetScreenRectInAppUnits().ScaleRoundOutInverse(PresContext()->AppUnitsPerDevPixel());
+  
+  return nsIntRect(r.x, r.y, r.width, r.height);
+}
+
+
+nsRect nsIFrame::GetScreenRectInAppUnitsExternal() const
+{
+  return GetScreenRectInAppUnits();
+}
+
+nsRect nsIFrame::GetScreenRectInAppUnits() const
+{
+  nsRect retval(0,0,0,0);
   nsPoint toViewOffset(0,0);
   nsIView* view = GetClosestView(&toViewOffset);
 
@@ -3486,14 +3499,14 @@ nsIntRect nsIFrame::GetScreenRect() const
     nsIWidget* widget = view->GetNearestWidget(&toWidgetOffset);
 
     if (widget) {
-      nsRect ourRect = mRect;
-      ourRect.MoveTo(toViewOffset + toWidgetOffset);
-      ourRect.ScaleRoundOut(1.0f / PresContext()->AppUnitsPerDevPixel());
       
-      
-      nsIntRect ourPxRect(ourRect.x, ourRect.y, ourRect.width, ourRect.height);
-      
-      widget->WidgetToScreen(ourPxRect, retval);
+      nsIntRect localRect(0,0,0,0), screenRect;
+      widget->WidgetToScreen(localRect, screenRect);
+
+      retval = mRect;
+      retval.MoveTo(toViewOffset + toWidgetOffset);
+      retval.x += PresContext()->DevPixelsToAppUnits(screenRect.x);
+      retval.y += PresContext()->DevPixelsToAppUnits(screenRect.y);
     }
   }
 
