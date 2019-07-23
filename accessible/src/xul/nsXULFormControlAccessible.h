@@ -46,12 +46,20 @@
 #include "nsXULMenuAccessible.h"
 #include "nsHyperTextAccessibleWrap.h"
 
-class nsXULButtonAccessible : public nsAccessibleWrap
 
+
+
+
+
+
+class nsXULButtonAccessible : public nsAccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
   nsXULButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
+
+  
+  NS_DECL_ISUPPORTS_INHERITED
 
   
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
@@ -59,12 +67,24 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
+  virtual nsresult Init();
+
+  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
+
+  
   void CacheChildren();
+
+  
+  PRBool ContainsMenu();
 };
+
+
+
+
 
 class nsXULCheckboxAccessible : public nsFormControlAccessible
 {

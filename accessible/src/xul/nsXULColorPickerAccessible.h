@@ -40,9 +40,12 @@
 #define _nsXULColorPickerAccessible_H_
 
 
-#include "nsFormControlAccessible.h"
+#include "nsAccessibleWrap.h"
 
-class nsXULColorPickerTileAccessible : public nsFormControlAccessible
+
+
+
+class nsXULColorPickerTileAccessible : public nsAccessibleWrap
 {
 public:
   nsXULColorPickerTileAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
@@ -55,14 +58,26 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
+
+
+
+
 class nsXULColorPickerAccessible : public nsXULColorPickerTileAccessible
 {
 public:
   nsXULColorPickerAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
+  virtual nsresult Init();
+
+  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+
+protected:
+
+  
+  virtual void CacheChildren();
 };
 
 #endif  

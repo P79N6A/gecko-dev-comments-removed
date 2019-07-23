@@ -60,29 +60,31 @@
 
 
 
-
-
-
-
-
-nsXULButtonAccessible::nsXULButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
-nsAccessibleWrap(aNode, aShell)
-{ 
+nsXULButtonAccessible::
+  nsXULButtonAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell) :
+  nsAccessibleWrap(aNode, aShell)
+{
 }
 
 
 
 
-NS_IMETHODIMP nsXULButtonAccessible::GetNumActions(PRUint8 *_retval)
+NS_IMPL_ISUPPORTS_INHERITED0(nsXULButtonAccessible, nsAccessible)
+
+
+
+
+NS_IMETHODIMP
+nsXULButtonAccessible::GetNumActions(PRUint8 *aCount)
 {
-  *_retval = 1;
+  NS_ENSURE_ARG_POINTER(aCount);
+
+  *aCount = 1;
   return NS_OK;
 }
 
-
-
-
-NS_IMETHODIMP nsXULButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+NS_IMETHODIMP
+nsXULButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click) {
     aName.AssignLiteral("press"); 
@@ -91,15 +93,28 @@ NS_IMETHODIMP nsXULButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aN
   return NS_ERROR_INVALID_ARG;
 }
 
-
-
-
-NS_IMETHODIMP nsXULButtonAccessible::DoAction(PRUint8 index)
+NS_IMETHODIMP
+nsXULButtonAccessible::DoAction(PRUint8 aIndex)
 {
-  if (index == 0) {
+  if (aIndex == 0)
     return DoCommand();
-  }
+
   return NS_ERROR_INVALID_ARG;
+}
+
+
+
+
+nsresult
+nsXULButtonAccessible::Init()
+{
+  nsresult rv = nsAccessibleWrap::Init();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (ContainsMenu())
+    nsCoreUtils::GeneratePopupTree(mDOMNode);
+
+  return NS_OK;
 }
 
 
@@ -112,12 +127,11 @@ nsXULButtonAccessible::GetRoleInternal(PRUint32 *aRole)
   return NS_OK;
 }
 
-
-
-
 nsresult
 nsXULButtonAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
+  
+
   
   nsresult rv = nsAccessible::GetStateInternal(aState, aExtraState);
   NS_ENSURE_A11Y_SUCCESS(rv, rv);
@@ -152,58 +166,113 @@ nsXULButtonAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
     }
   }
 
-  nsCOMPtr<nsIDOMElement> element(do_QueryInterface(mDOMNode));
-  if (element) {
-    PRBool isDefault = PR_FALSE;
-    element->HasAttribute(NS_LITERAL_STRING("default"), &isDefault) ;
-    if (isDefault)
-      *aState |= nsIAccessibleStates::STATE_DEFAULT;
+  if (ContainsMenu())
+    *aState |= nsIAccessibleStates::STATE_HASPOPUP;
 
-    nsAutoString type;
-    element->GetAttribute(NS_LITERAL_STRING("type"), type);
-    if (type.EqualsLiteral("menu") || type.EqualsLiteral("menu-button")) {
-      *aState |= nsIAccessibleStates::STATE_HASPOPUP;
-    }
-  }
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  if (content->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::_default))
+    *aState |= nsIAccessibleStates::STATE_DEFAULT;
 
   return NS_OK;
 }
 
-void nsXULButtonAccessible::CacheChildren()
+
+
+
+void
+nsXULButtonAccessible::CacheChildren()
 {
   
+  
+  
+
   if (!mWeakShell) {
     mAccChildCount = eChildCountUninitialized;
     return;   
   }
   if (mAccChildCount == eChildCountUninitialized) {
     mAccChildCount = 0;  
+
     SetFirstChild(nsnull);
-    PRBool allowsAnonChildren = GetAllowsAnonChildAccessibles();
-    nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, allowsAnonChildren);
+
+    
+    
+    nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+
+    PRBool isMenu = content->AttrValueIs(kNameSpaceID_None,
+                                         nsAccessibilityAtoms::type,
+                                         nsAccessibilityAtoms::menu,
+                                         eCaseMatters);
+
+    PRBool isMenuButton = isMenu ?
+      PR_FALSE :
+      content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                           nsAccessibilityAtoms::menuButton, eCaseMatters);
+
+    if (!isMenu && !isMenuButton)
+      return;
+
+    nsCOMPtr<nsIAccessible> buttonAccessible;
+    nsCOMPtr<nsIAccessible> menupopupAccessible;
+
+    nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, PR_TRUE);
     walker.GetFirstChild();
-    nsCOMPtr<nsIAccessible> dropMarkerAccessible;
+
     while (walker.mState.accessible) {
-      dropMarkerAccessible = walker.mState.accessible;
+      PRUint32 role = nsAccUtils::Role(walker.mState.accessible);
+
+      if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+        
+        menupopupAccessible = walker.mState.accessible;
+
+      } else if (isMenuButton && role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
+        
+        
+        buttonAccessible = walker.mState.accessible;
+        break;
+      }
+
       walker.GetNextSibling();
     }
 
-    
-    
-    
+    if (!menupopupAccessible)
+      return;
 
-    if (dropMarkerAccessible) {
-      if (nsAccUtils::RoleInternal(dropMarkerAccessible) ==
-          nsIAccessibleRole::ROLE_PUSHBUTTON) {
-        SetFirstChild(dropMarkerAccessible);
-        nsRefPtr<nsAccessible> childAcc =
-          nsAccUtils::QueryAccessible(dropMarkerAccessible);
-        childAcc->SetNextSibling(nsnull);
-        childAcc->SetParent(this);
-        mAccChildCount = 1;
-      }
+    SetFirstChild(menupopupAccessible);
+
+    nsRefPtr<nsAccessible> menupopupAcc =
+      nsAccUtils::QueryObject<nsAccessible>(menupopupAccessible);
+    menupopupAcc->SetParent(this);
+
+    mAccChildCount++;
+
+    if (buttonAccessible) {
+      if (menupopupAcc)
+        menupopupAcc->SetNextSibling(buttonAccessible);
+      else
+        SetFirstChild(buttonAccessible);
+
+      nsRefPtr<nsAccessible> buttonAcc =
+        nsAccUtils::QueryObject<nsAccessible>(buttonAccessible);
+      buttonAcc->SetParent(this);
+
+      mAccChildCount++;
     }
   }
+}
+
+
+
+
+PRBool
+nsXULButtonAccessible::ContainsMenu()
+{
+  static nsIContent::AttrValuesArray strings[] =
+    {&nsAccessibilityAtoms::menu, &nsAccessibilityAtoms::menuButton, nsnull};
+
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+  return content->FindAttrValueIn(kNameSpaceID_None, nsAccessibilityAtoms::type,
+                                  strings, eCaseMatters) >= 0;
 }
 
 
