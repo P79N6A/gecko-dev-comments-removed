@@ -435,6 +435,9 @@ static const WindowsRoleMapItem gWindowsRoleMap[] = {
   { ROLE_SYSTEM_LIST, ROLE_SYSTEM_LIST },
   
   
+  { ROLE_SYSTEM_EQUATION, ROLE_SYSTEM_EQUATION },
+  
+  
   { ROLE_WINDOWS_LAST_ENTRY, ROLE_WINDOWS_LAST_ENTRY }
 };
 
