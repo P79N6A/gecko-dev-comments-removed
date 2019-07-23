@@ -278,6 +278,23 @@ function escapeString (str)
 
 
 
+if (typeof assertEq == 'undefined')
+{
+  var assertEq =
+    function (actual, expected)
+    {
+      if (actual !== expected)
+      {
+        throw new TypeError('Assertion failed: got "' + actual + '", expected "' + expected);
+      }
+    };
+}
+
+
+
+
+
+
 function reportCompare (expected, actual, description) {
   var expected_t = typeof expected;
   var actual_t = typeof actual;
