@@ -237,9 +237,14 @@ public:
     NS_DECLARE_STATIC_IID_ACCESSOR(NS_CANVASPATTERN_PRIVATE_IID)
 
     nsCanvasPattern(cairo_pattern_t *cpat,
-                    nsIURI* URIForSecurityCheck, PRBool forceWriteOnly)
-        : mPattern(cpat), mURI(URIForSecurityCheck), mForceWriteOnly(forceWriteOnly)
-    { }
+                    nsIPrincipal* principalForSecurityCheck,
+                    PRBool forceWriteOnly)
+        : mPattern(cpat),
+          mPrincipal(principalForSecurityCheck),
+          mForceWriteOnly(forceWriteOnly)
+    {
+        NS_PRECONDITION(mPrincipal, "Must have a principal");
+    }
 
     ~nsCanvasPattern() {
         if (mPattern)
@@ -250,7 +255,7 @@ public:
         cairo_set_source(cairo, mPattern);
     }
     
-    nsIURI* GetURI() { return mURI; }
+    nsIPrincipal* Principal() { return mPrincipal; }
     PRBool GetForceWriteOnly() { return mForceWriteOnly; }
 
     NS_DECL_ISUPPORTS
@@ -258,7 +263,7 @@ public:
 protected:
     cairo_pattern_t *mPattern;
     PRUint8 *mData;
-    nsCOMPtr<nsIURI> mURI;
+    nsCOMPtr<nsIPrincipal> mPrincipal;
     PRPackedBool mForceWriteOnly;
 };
 
@@ -328,7 +333,8 @@ protected:
     
     
     
-    void DoDrawImageSecurityCheck(nsIURI* aURI, PRBool forceWriteOnly);
+    void DoDrawImageSecurityCheck(nsIPrincipal* aPrincipal,
+                                  PRBool forceWriteOnly);
 
     
     PRInt32 mWidth, mHeight;
@@ -415,7 +421,8 @@ protected:
                                      cairo_surface_t **aCairoSurface,
                                      PRUint8 **imgDataOut,
                                      PRInt32 *widthOut, PRInt32 *heightOut,
-                                     nsIURI **uriOut, PRBool *forceWriteOnlyOut);
+                                     nsIPrincipal **prinOut,
+                                     PRBool *forceWriteOnlyOut);
 };
 
 NS_IMPL_ADDREF(nsCanvasRenderingContext2D)
@@ -569,8 +576,11 @@ nsCanvasRenderingContext2D::DirtyAllStyles()
 }
 
 void
-nsCanvasRenderingContext2D::DoDrawImageSecurityCheck(nsIURI* aURI, PRBool forceWriteOnly)
+nsCanvasRenderingContext2D::DoDrawImageSecurityCheck(nsIPrincipal* aPrincipal,
+                                                     PRBool forceWriteOnly)
 {
+    NS_PRECONDITION(aPrincipal, "Must have a principal here");
+    
     if (mCanvasElement->IsWriteOnly())
         return;
 
@@ -580,30 +590,18 @@ nsCanvasRenderingContext2D::DoDrawImageSecurityCheck(nsIURI* aURI, PRBool forceW
         return;
     }
 
-    
-    
-    if (!aURI)
-        return;
-
-    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-
     nsCOMPtr<nsINode> elem = do_QueryInterface(mCanvasElement);
-    if (elem && ssm) {
-        nsCOMPtr<nsIPrincipal> uriPrincipal;
-        ssm->GetCodebasePrincipal(aURI, getter_AddRefs(uriPrincipal));
-
-        if (uriPrincipal) {
-            PRBool subsumes;
-            nsresult rv =
-                elem->NodePrincipal()->Subsumes(uriPrincipal, &subsumes);
+    if (elem) { 
+        PRBool subsumes;
+        nsresult rv =
+            elem->NodePrincipal()->Subsumes(aPrincipal, &subsumes);
             
-            if (NS_SUCCEEDED(rv) && subsumes) {
-                
-                return;
-            }
+        if (NS_SUCCEEDED(rv) && subsumes) {
+            
+            return;
         }
     }
-
+    
     mCanvasElement->SetWriteOnly();
 }
 
@@ -622,7 +620,8 @@ nsCanvasRenderingContext2D::ApplyStyle(PRInt32 aWhichStyle)
 
     nsCanvasPattern* pattern = CurrentState().patternStyles[aWhichStyle];
     if (pattern) {
-        DoDrawImageSecurityCheck(pattern->GetURI(), pattern->GetForceWriteOnly());
+        DoDrawImageSecurityCheck(pattern->Principal(),
+                                 pattern->GetForceWriteOnly());
         pattern->Apply(mCairo);
         return;
     }
@@ -1061,10 +1060,11 @@ nsCanvasRenderingContext2D::CreatePattern(nsIDOMHTMLElement *image,
     cairo_surface_t *imgSurf = nsnull;
     PRUint8 *imgData = nsnull;
     PRInt32 imgWidth, imgHeight;
-    nsCOMPtr<nsIURI> uri;
+    nsCOMPtr<nsIPrincipal> principal;
     PRBool forceWriteOnly = PR_FALSE;
     rv = CairoSurfaceFromElement(image, &imgSurf, &imgData,
-                                 &imgWidth, &imgHeight, getter_AddRefs(uri), &forceWriteOnly);
+                                 &imgWidth, &imgHeight,
+                                 getter_AddRefs(principal), &forceWriteOnly);
     if (NS_FAILED(rv))
         return rv;
 
@@ -1073,7 +1073,8 @@ nsCanvasRenderingContext2D::CreatePattern(nsIDOMHTMLElement *image,
 
     cairo_pattern_set_extend (cairopat, extend);
 
-    nsCanvasPattern *pat = new nsCanvasPattern(cairopat, uri, forceWriteOnly);
+    nsCanvasPattern *pat = new nsCanvasPattern(cairopat, principal,
+                                               forceWriteOnly);
     if (!pat) {
         cairo_pattern_destroy(cairopat);
         return NS_ERROR_OUT_OF_MEMORY;
@@ -1889,13 +1890,14 @@ nsCanvasRenderingContext2D::DrawImage()
     cairo_path_t *old_path;
     PRUint8 *imgData = nsnull;
     PRInt32 imgWidth, imgHeight;
-    nsCOMPtr<nsIURI> uri;
+    nsCOMPtr<nsIPrincipal> principal;
     PRBool forceWriteOnly = PR_FALSE;
     rv = CairoSurfaceFromElement(imgElt, &imgSurf, &imgData,
-                                 &imgWidth, &imgHeight, getter_AddRefs(uri), &forceWriteOnly);
+                                 &imgWidth, &imgHeight,
+                                 getter_AddRefs(principal), &forceWriteOnly);
     if (NS_FAILED(rv))
         return rv;
-    DoDrawImageSecurityCheck(uri, forceWriteOnly);
+    DoDrawImageSecurityCheck(principal, forceWriteOnly);
 
 #define GET_ARG(dest,whicharg) \
     do { if (!ConvertJSValToDouble(dest, ctx, whicharg)) { rv = NS_ERROR_INVALID_ARG; goto FINISH; } } while (0)
@@ -2128,8 +2130,10 @@ nsresult
 nsCanvasRenderingContext2D::CairoSurfaceFromElement(nsIDOMElement *imgElt,
                                                     cairo_surface_t **aCairoSurface,
                                                     PRUint8 **imgData,
-                                                    PRInt32 *widthOut, PRInt32 *heightOut,
-                                                    nsIURI **uriOut, PRBool *forceWriteOnlyOut)
+                                                    PRInt32 *widthOut,
+                                                    PRInt32 *heightOut,
+                                                    nsIPrincipal **prinOut,
+                                                    PRBool *forceWriteOnlyOut)
 {
     nsresult rv;
 
@@ -2151,8 +2155,9 @@ nsCanvasRenderingContext2D::CairoSurfaceFromElement(nsIDOMElement *imgElt,
             return NS_ERROR_NOT_AVAILABLE;
 
         nsCOMPtr<nsIURI> uri;
-        rv = imageLoader->GetCurrentURI(uriOut);
+        rv = imgRequest->GetImagePrincipal(prinOut);
         NS_ENSURE_SUCCESS(rv, rv);
+        NS_ENSURE_TRUE(*prinOut, NS_ERROR_DOM_SECURITY_ERR);
 
         *forceWriteOnlyOut = PR_FALSE;
 
@@ -2161,7 +2166,8 @@ nsCanvasRenderingContext2D::CairoSurfaceFromElement(nsIDOMElement *imgElt,
     } else {
         
         nsCOMPtr<nsICanvasElement> canvas = do_QueryInterface(imgElt);
-        if (canvas) {
+        nsCOMPtr<nsINode> node = do_QueryInterface(imgElt);
+        if (canvas && node) {
             PRUint32 w, h;
             rv = canvas->GetSize(&w, &h);
             NS_ENSURE_SUCCESS(rv, rv);
@@ -2183,7 +2189,7 @@ nsCanvasRenderingContext2D::CairoSurfaceFromElement(nsIDOMElement *imgElt,
             *widthOut = w;
             *heightOut = h;
 
-            *uriOut = nsnull;
+            NS_ADDREF(*prinOut = node->NodePrincipal());
             *forceWriteOnlyOut = canvas->IsWriteOnly();
 
             return NS_OK;
@@ -2354,25 +2360,6 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, PRInt32 aX, PRInt3
     Redraw();
 
     return rv;
-}
-
-
-
-
-
-
-
-
-static PRUint32 ComputeScaleFactor(PRUint32 aBits)
-{
-  static PRUint32 table[9] = {
-    0, 255*256, 85*256, 9330, 17*256, 2110, 1038, 515, 256
-  };
-  
-  NS_ASSERTION(aBits <= 8, "more than 8 bits in a color channel not supported");
-  NS_ASSERTION(((table[aBits]*((1 << aBits) - 1)) >> 8) == 255,
-               "Invalid table entry");
-  return table[aBits];
 }
 
 
