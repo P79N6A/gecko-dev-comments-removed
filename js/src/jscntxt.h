@@ -144,6 +144,7 @@ struct JSTraceMonitor {
 
     struct GlobalState globalStates[MONITOR_N_GLOBAL_STATES];
     struct VMFragment* vmfragments[FRAGMENT_TABLE_SIZE];
+    JSDHashTable            recordAttempts;
 
     
 
