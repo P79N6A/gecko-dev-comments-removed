@@ -933,5 +933,35 @@ AssociateIconWithPageStep::HandleCompletion(PRUint16 aReason)
 
 
 
+
+NS_IMPL_ISUPPORTS_INHERITED0(
+  NotifyStep
+, AsyncFaviconStep
+)
+
+
+void
+NotifyStep::Run()
+{
+  NS_ASSERTION(mStepper, "Step is not associated to a stepper");
+  
+  
+  FAVICONSTEP_CANCEL_IF_TRUE(mStepper->mData.Length() == 0, PR_FALSE);
+
+  if (mStepper->mIconStatus & ICON_STATUS_SAVED ||
+      mStepper->mIconStatus & ICON_STATUS_ASSOCIATED) {
+    nsFaviconService* fs = nsFaviconService::GetFaviconService();
+    FAVICONSTEP_FAIL_IF_FALSE(fs);
+    fs->SendFaviconNotifications(mStepper->mPageURI, mStepper->mIconURI);
+    nsresult rv = fs->UpdateBookmarkRedirectFavicon(mStepper->mPageURI,
+                                                    mStepper->mIconURI);
+    FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+  }
+
+  
+  nsresult rv = mStepper->Step();
+  FAVICONSTEP_FAIL_IF_FALSE(NS_SUCCEEDED(rv));
+}
+
 } 
 } 

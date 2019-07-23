@@ -378,6 +378,19 @@ public:
   void Run();
 };
 
+
+
+
+
+class NotifyStep : public AsyncFaviconStep
+{
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+
+  NotifyStep() {};
+  void Run();
+};
+
 } 
 } 
 
