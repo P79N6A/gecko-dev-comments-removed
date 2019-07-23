@@ -1779,12 +1779,6 @@ pref("print.print_extra_margin", 90);
 
 pref("print.use_native_print_dialog", true);
 
-
-
-
-
-pref("network.dns.disableIPv6", true);
-
 # XP_MACOSX
 #endif
 
