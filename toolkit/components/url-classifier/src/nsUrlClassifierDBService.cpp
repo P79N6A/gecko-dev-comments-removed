@@ -647,7 +647,8 @@ nsUrlClassifierDBServiceWorker::GetLookupFragments(const nsACString& spec,
   }
 
   const nsCSubstring& host = Substring(begin, iter++);
-  const nsCSubstring& path = Substring(iter, end);
+  nsCAutoString path;
+  path.Assign(Substring(iter, end));
 
   
 
@@ -686,8 +687,17 @@ nsUrlClassifierDBServiceWorker::GetLookupFragments(const nsACString& spec,
 
 
 
+
   nsCStringArray paths;
   paths.AppendCString(path);
+
+  path.BeginReading(iter);
+  path.EndReading(end);
+  if (FindCharInReadable('?', iter, end)) {
+    path.BeginReading(begin);
+    path = Substring(begin, iter);
+    paths.AppendCString(path);
+  }
 
   numComponents = 0;
   path.BeginReading(begin);
@@ -700,26 +710,15 @@ nsUrlClassifierDBServiceWorker::GetLookupFragments(const nsACString& spec,
     numComponents++;
   }
 
-  
-
-
-  nsCAutoString key;
-  key.Assign(spec);
-  key.Append('$');
-  LOG(("Chking %s", key.get()));
-
-  nsUrlClassifierHash* hash = fragments.AppendElement();
-  if (!hash) return NS_ERROR_OUT_OF_MEMORY;
-  hash->FromPlaintext(key, mCryptoHash);
-
   for (int hostIndex = 0; hostIndex < hosts.Count(); hostIndex++) {
     for (int pathIndex = 0; pathIndex < paths.Count(); pathIndex++) {
+      nsCAutoString key;
       key.Assign(*hosts[hostIndex]);
       key.Append('/');
       key.Append(*paths[pathIndex]);
       LOG(("Chking %s", key.get()));
 
-      hash = fragments.AppendElement();
+      nsUrlClassifierHash* hash = fragments.AppendElement();
       if (!hash) return NS_ERROR_OUT_OF_MEMORY;
       hash->FromPlaintext(key, mCryptoHash);
     }

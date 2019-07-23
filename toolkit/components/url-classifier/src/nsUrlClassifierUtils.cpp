@@ -142,10 +142,6 @@ nsUrlClassifierUtils::GetKeyForURI(nsIURI * uri, nsACString & _retval)
   if (ref != kNotFound)
     path.SetLength(ref);
 
-  ref = path.FindChar('?');
-  if (ref != kNotFound)
-    path.SetLength(ref);
-
   nsCAutoString temp;
   rv = CanonicalizePath(path, temp);
   NS_ENSURE_SUCCESS(rv, rv);
