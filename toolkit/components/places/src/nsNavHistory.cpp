@@ -1220,6 +1220,7 @@ nsNavHistory::InternalAddVisit(PRInt64 aPageID, PRInt64 aReferringVisit,
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDBInsertVisit->BindInt64Parameter(2, aTime);
   NS_ENSURE_SUCCESS(rv, rv);
+
   rv = mDBInsertVisit->BindInt32Parameter(3, aTransitionType);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDBInsertVisit->BindInt64Parameter(4, aSessionID);
@@ -2129,6 +2130,8 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
   
   
   if (IsHistoryMenuQuery(aQueries, aOptions)) {
+    
+    
     queryString = NS_LITERAL_CSTRING(
       "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
       "MAX(v.visit_date), f.url, null, null "
@@ -2137,7 +2140,7 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
       "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id WHERE "
       "(h.id IN (SELECT DISTINCT h.id FROM moz_historyvisits, "
       " moz_places h WHERE place_id = "
-      " h.id AND hidden <> 1 AND visit_type <> 4 "
+      " h.id AND hidden <> 1 AND visit_type <> 4 AND visit_type <> 0 "
       " ORDER BY visit_date DESC LIMIT ");
     queryString.AppendInt(aOptions->MaxResults());
     queryString += NS_LITERAL_CSTRING(")) GROUP BY h.id ORDER BY 6 DESC"); 
@@ -2155,15 +2158,15 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
     commonConditions.AssignLiteral("b.type = 1 ");
   } else if (!aOptions->IncludeHidden()) {
     
-    commonConditions.AssignLiteral("h.hidden <> 1 ");
-
     
     
     
     
     
-    if (asVisits)
-      commonConditions.AppendLiteral("AND v.visit_type <> 4 "); 
+    
+    
+    commonConditions.AssignLiteral(
+      "h.hidden <> 1 AND v.visit_type <> 4 AND v.visit_type <> 0 "); 
   }
 
   
@@ -3093,10 +3096,19 @@ nsNavHistory::AddVisitChain(nsIURI* aURI, PRTime aTime,
     
     
     
+    
+    
+    
+    
+    
     if (CheckIsRecentEvent(&mRecentTyped, spec))
       transitionType = nsINavHistoryService::TRANSITION_TYPED;
     else if (CheckIsRecentEvent(&mRecentBookmark, spec))
       transitionType = nsINavHistoryService::TRANSITION_BOOKMARK;
+    else if (aToplevel)
+      transitionType = nsINavHistoryService::TRANSITION_LINK;
+    else
+      transitionType = nsINavHistoryService::TRANSITION_EMBED;
 
     visitTime = PR_Now();
     *aSessionID = GetNewSessionID();
@@ -3294,7 +3306,7 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 
     
     mExpire.OnQuit();
-    
+
     
     
     
