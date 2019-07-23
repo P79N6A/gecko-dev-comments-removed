@@ -95,9 +95,9 @@ public:
   nsresult GetFaviconLinkForIconString(const nsCString& aIcon, nsIURI** aOutput);
   void GetFaviconSpecForIconString(const nsCString& aIcon, nsACString& aOutput);
 
-  static nsresult OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
-                                       const nsACString& aMimeType,
-                                       nsACString& aNewData, nsACString& aNewMimeType);
+  nsresult OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
+                                const nsACString& aMimeType,
+                                nsACString& aNewData, nsACString& aNewMimeType);
 
   
 
@@ -145,6 +145,12 @@ private:
   
   
   bool mExpirationRunning;
+
+  
+  
+  
+  
+  PRInt32 mOptimizedIconDimension;
 
   PRUint32 mFailedFaviconSerial;
   nsDataHashtable<nsCStringHashKey, PRUint32> mFailedFavicons;

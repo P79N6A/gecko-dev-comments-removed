@@ -69,6 +69,7 @@
 #include "mozIStorageStatementCallback.h"
 #include "mozIStorageError.h"
 #include "nsPlacesTables.h"
+#include "nsIPrefService.h"
 
 
 #include "imgITools.h"
@@ -83,8 +84,11 @@
 
 
 
+#define OPTIMIZED_FAVICON_DIMENSION 16
 
-#define OPTIMIZED_FAVICON_SIZE 1024
+
+
+#define MAX_ICON_FILESIZE(s) ((PRUint32) s*s*4)
 
 
 
@@ -143,6 +147,7 @@ NS_IMPL_ISUPPORTS1(
 
 
 nsFaviconService::nsFaviconService() : mExpirationRunning(false)
+                                     , mOptimizedIconDimension(OPTIMIZED_FAVICON_DIMENSION)
                                      , mFailedFaviconSerial(0)
 {
   NS_ASSERTION(! gFaviconService, "ATTEMPTING TO CREATE TWO FAVICON SERVICES!");
@@ -220,6 +225,10 @@ nsFaviconService::Init()
   
   if (! mFailedFavicons.Init(MAX_FAVICON_CACHE_SIZE))
     return NS_ERROR_OUT_OF_MEMORY;
+
+  nsCOMPtr<nsIPrefBranch> pb = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (pb)
+    pb->GetIntPref("places.favicons.optimizeToDimension", &mOptimizedIconDimension);
 
   return NS_OK;
 }
@@ -697,7 +706,7 @@ nsFaviconService::SetFaviconData(nsIURI* aFaviconURI, const PRUint8* aData,
   
   
   
-  if (aDataLen > OPTIMIZED_FAVICON_SIZE) {
+  if (aDataLen > MAX_ICON_FILESIZE(mOptimizedIconDimension)) {
     rv = OptimizeFaviconImage(aData, aDataLen, aMimeType, newData, newMimeType);
     if (NS_SUCCEEDED(rv) && newData.Length() < aDataLen) {
       data = reinterpret_cast<PRUint8*>(const_cast<char*>(newData.get())),
@@ -1102,7 +1111,9 @@ nsFaviconService::OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
 
   
   nsCOMPtr<nsIInputStream> iconStream;
-  rv = imgtool->EncodeScaledImage(container, aNewMimeType, 16, 16,
+  rv = imgtool->EncodeScaledImage(container, aNewMimeType,
+                                  mOptimizedIconDimension,
+                                  mOptimizedIconDimension,
                                   getter_AddRefs(iconStream));
   NS_ENSURE_SUCCESS(rv, rv);
 
