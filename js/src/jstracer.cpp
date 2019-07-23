@@ -273,10 +273,17 @@ TraceRecorder::nativeFrameOffset(void* p) const
 }
 
 
+
 static inline int gettag(jsval v)
 {
     if (JSVAL_IS_INT(v))
         return JSVAL_INT;
+    if (JSVAL_IS_DOUBLE(v)) {
+        jsdouble d = *JSVAL_TO_DOUBLE(v);
+        jsint i;
+        if (JSDOUBLE_IS_INT(d, i))
+            return JSVAL_INT;
+    }
     return JSVAL_TAG(v);
 }   
 
@@ -302,18 +309,34 @@ TraceRecorder::unbox_jsval(jsval v, int t, double* slot) const
 {
     if (t != gettag(v))
         return false;
-    if (JSVAL_IS_BOOLEAN(v))
+    switch (t) {
+    case JSVAL_BOOLEAN:
         *(bool*)slot = JSVAL_TO_BOOLEAN(v);
-    else if (JSVAL_IS_INT(v))
-        *(jsint*)slot = JSVAL_TO_INT(v);
-    else if (JSVAL_IS_DOUBLE(v))
+        break;
+    case JSVAL_INT:
+        *(jsint*)slot = JSVAL_IS_INT(v);
+        if (JSVAL_IS_INT(v))
+            *(jsint*)slot = JSVAL_TO_INT(v);
+        else {
+            jsdouble d = *JSVAL_TO_DOUBLE(v);
+            JS_ASSERT(JSDOUBLE_IS_INT(d, t));
+            *(jsint*)slot = (jsint)d;
+        }
+        break;
+    case JSVAL_DOUBLE:
         *(jsdouble*)slot = *JSVAL_TO_DOUBLE(v);
-    else {
+        break;
+    case JSVAL_STRING:
+        *(JSString**)slot = JSVAL_TO_STRING(v);
+        break;
+    default:
         JS_ASSERT(JSVAL_IS_GCTHING(v));
         *(void**)slot = JSVAL_TO_GCTHING(v);
     }
     return true;
 }
+
+
 
 
 bool 
@@ -324,7 +347,11 @@ TraceRecorder::box_jsval(jsval* vp, int t, double* slot) const
         *vp = BOOLEAN_TO_JSVAL(*(bool*)slot);
         return true;
     case JSVAL_INT:
-        *vp = INT_TO_JSVAL(*(jsint*)slot);
+        jsint i = *(jsint*)slot;
+        if (INT_FITS_IN_JSVAL(i)) 
+            *vp = INT_TO_JSVAL(i);
+        else
+            return js_NewDoubleInRootedValue(cx, (double)i, vp);
         return true;
     case JSVAL_DOUBLE:
         return js_NewDoubleInRootedValue(cx, *slot, vp);
