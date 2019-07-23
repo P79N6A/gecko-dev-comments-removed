@@ -51,6 +51,12 @@ nsXULSliderAccessible::nsXULSliderAccessible(nsIDOMNode* aNode,
 
 
 
+NS_IMPL_ISUPPORTS_INHERITED1(nsXULSliderAccessible,
+                             nsAccessibleWrap,
+                             nsIAccessibleValue)
+
+
+
 nsresult
 nsXULSliderAccessible::GetRoleInternal(PRUint32 *aRole)
 {
@@ -175,7 +181,7 @@ nsXULSliderAccessible::GetSliderAttr(nsIAtom *aName, nsAString& aValue)
 {
   aValue.Truncate();
 
-  if (!mDOMNode)
+  if (IsDefunct())
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIContent> sliderNode(GetSliderNode());
@@ -188,7 +194,7 @@ nsXULSliderAccessible::GetSliderAttr(nsIAtom *aName, nsAString& aValue)
 nsresult
 nsXULSliderAccessible::SetSliderAttr(nsIAtom *aName, const nsAString& aValue)
 {
-  if (!mDOMNode)
+  if (IsDefunct())
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIContent> sliderNode(GetSliderNode());
@@ -204,13 +210,20 @@ nsXULSliderAccessible::GetSliderAttr(nsIAtom *aName, double *aValue)
   NS_ENSURE_ARG_POINTER(aValue);
   *aValue = 0;
 
-  nsAutoString value;
-  nsresult rv = GetSliderAttr(aName, value);
+  nsAutoString attrValue;
+  nsresult rv = GetSliderAttr(aName, attrValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  if (attrValue.IsEmpty())
+    return NS_OK;
+
   PRInt32 error = NS_OK;
-  *aValue = value.ToFloat(&error);
-  return error;
+  double value = attrValue.ToFloat(&error);
+  if (NS_SUCCEEDED(error))
+    *aValue = value;
+
+  return NS_OK;
 }
 
 nsresult

@@ -49,14 +49,13 @@ public:
   nsXULSliderAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
 
   
+  NS_DECL_ISUPPORTS_INHERITED
+
+  
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  NS_IMETHOD GetMaximumValue(double *aMaximumValue);
-  NS_IMETHOD GetMinimumValue(double *aMinimumValue);
-  NS_IMETHOD GetMinimumIncrement(double *aMinIncrement);
-  NS_IMETHOD GetCurrentValue(double *aValue);
-  NS_IMETHOD SetCurrentValue(double aValue);
+  NS_DECL_NSIACCESSIBLEVALUE
 
   
   NS_IMETHOD GetAllowsAnonChildAccessibles(PRBool *aAllowsAnonChildren);
