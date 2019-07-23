@@ -1494,7 +1494,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
       frameType == nsAccessibilityAtoms::tableRowGroupFrame ||
       frameType == nsAccessibilityAtoms::tableRowFrame;
 
-    if (!roleMapEntry && partOfHTMLTable) {
+    if (partOfHTMLTable) {
       
       
       
@@ -1503,31 +1503,45 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
         nsIFrame *tableFrame = aPresShell->GetPrimaryFrameFor(tableContent);
         if (!tableFrame)
           continue;
+
         if (tableFrame->GetType() == nsAccessibilityAtoms::tableOuterFrame) {
           nsCOMPtr<nsIDOMNode> tableNode(do_QueryInterface(tableContent));
           nsCOMPtr<nsIAccessible> tableAccessible;
-          GetAccessibleInShell(tableNode, aPresShell, getter_AddRefs(tableAccessible));
-          if (!tableAccessible && !content->IsFocusable()) {
+          GetAccessibleInShell(tableNode, aPresShell,
+                               getter_AddRefs(tableAccessible));
+
+          if (tableAccessible) {
+            if (!roleMapEntry &&
+                nsAccUtils::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
+              
+              roleMapEntry = &nsARIAMap::gEmptyRoleMap;
+            }
+
+            break;
+          }
+
 #ifdef DEBUG
-            nsRoleMapEntry *tableRoleMapEntry =
-              nsAccUtils::GetRoleMapEntry(tableNode);
-            NS_ASSERTION(tableRoleMapEntry &&
-                         !nsCRT::strcmp(tableRoleMapEntry->roleString, "presentation"),
-                         "No accessible for parent table and it didn't have role of presentation");
+          nsRoleMapEntry *tableRoleMapEntry =
+            nsAccUtils::GetRoleMapEntry(tableNode);
+          NS_ASSERTION(tableRoleMapEntry &&
+                       !nsCRT::strcmp(tableRoleMapEntry->roleString, "presentation"),
+                       "No accessible for parent table and it didn't have role of presentation");
 #endif
+
+          if (!roleMapEntry && !content->IsFocusable()) {
+            
+            
             
             
             return NS_OK;
           }
-          if (tableAccessible &&
-              nsAccUtils::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
-            NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
-            
-            roleMapEntry = &nsARIAMap::gEmptyRoleMap;
-          }
+
+          
+          tryTagNameOrFrame = PR_FALSE;
           break;
         }
-        else if (tableContent->Tag() == nsAccessibilityAtoms::table) {
+
+        if (tableContent->Tag() == nsAccessibilityAtoms::table) {
           
           
           tryTagNameOrFrame = PR_FALSE;
