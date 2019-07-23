@@ -112,6 +112,9 @@ static const char tagChar[]  = "OIDISIBI";
 #define MAX_CALL_STACK_ENTRIES 64
 
 
+#define MAX_SKIP_BYTES (NJ_PAGE_SIZE - LIR_FAR_SLOTS)
+
+
 #define MAX_INTERP_STACK_BYTES                                                \
     (MAX_NATIVE_STACK_SLOTS * sizeof(jsval) +                                 \
      MAX_CALL_STACK_ENTRIES * sizeof(JSInlineFrame))
@@ -1939,6 +1942,8 @@ TraceRecorder::snapshot(ExitType exitType)
     }
     intptr_t ip_adj = ENCODE_IP_ADJ(fp, pc);
 
+    JS_STATIC_ASSERT (sizeof(GuardRecord) + sizeof(VMSideExit) < MAX_SKIP_BYTES);
+
     
 
     VMSideExit** exits = treeInfo->sideExits.data();
@@ -1959,6 +1964,22 @@ TraceRecorder::snapshot(ExitType exitType)
                 return data;
             }
         }
+    }
+
+    if (sizeof(GuardRecord) +
+        sizeof(VMSideExit) + 
+        (stackSlots + ngslots) * sizeof(uint8) >= MAX_SKIP_BYTES) {
+        
+
+
+
+
+
+
+
+        stackSlots = 0;
+        ngslots = 0;
+        trashSelf = true;
     }
 
     
@@ -6709,6 +6730,8 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
 
     
     unsigned stackSlots = js_NativeStackSlots(cx, 0);
+    if (sizeof(FrameInfo) + stackSlots * sizeof(uint8) > MAX_SKIP_BYTES)
+        ABORT_TRACE("interpreted function call requires saving too much stack");
     LIns* data = lir_buf_writer->skip(sizeof(FrameInfo) + stackSlots * sizeof(uint8));
     FrameInfo* fi = (FrameInfo*)data->payload();
     uint8* typemap = (uint8 *)(fi + 1);
@@ -8385,6 +8408,8 @@ TraceRecorder::record_JSOP_GENERATOR()
 
     
     unsigned stackSlots = js_NativeStackSlots(cx, 0);
+    if (stackSlots > MAX_SKIP_BYTES) 
+        ABORT_TRACE("generator requires saving too much stack");
     LIns* data = lir_buf_writer->skip(stackSlots * sizeof(uint8));
     uint8* typemap = (uint8 *)data->payload();
     uint8* m = typemap;
