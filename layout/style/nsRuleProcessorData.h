@@ -106,6 +106,12 @@ private:
   }
 public:
   const nsString* GetLang();
+  PRUint32 ContentState();
+  PRBool IsLink();
+  nsLinkState LinkState() {
+    NS_ASSERTION(mGotLinkInfo && mIsLink, "Why am I being called?");
+    return mLinkState;
+  }
 
   
   
@@ -125,11 +131,8 @@ public:
   nsIAtom*          mContentTag;    
   nsIAtom*          mContentID;     
   PRPackedBool      mIsHTMLContent; 
-  PRPackedBool      mIsLink;        
   PRPackedBool      mHasAttributes; 
   nsCompatibility   mCompatMode;    
-  nsLinkState       mLinkState;     
-  PRInt32           mEventState;    
   PRInt32           mNameSpaceID;   
   const nsAttrValue* mClasses;      
   
@@ -138,7 +141,7 @@ public:
   RuleProcessorData* mPreviousSiblingData;
   RuleProcessorData* mParentData;
 
-protected:
+private:
   nsString *mLanguage; 
 
   
@@ -148,6 +151,14 @@ protected:
   
   
   PRInt32 mNthIndices[2][2];
+
+  PRInt32 mContentState;  
+  nsLinkState mLinkState; 
+  PRPackedBool mIsLink;   
+                          
+  PRPackedBool mGotContentState;
+  PRPackedBool mGotLinkInfo; 
+                             
 };
 
 struct ElementRuleProcessorData : public RuleProcessorData {
