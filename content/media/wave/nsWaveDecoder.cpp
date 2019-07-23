@@ -1338,6 +1338,9 @@ nsWaveDecoder::PlaybackEnded()
     return;
   }
 
+  
+  
+  UpdateReadyStateForData();
   if (mElement) {
     mElement->PlaybackEnded();
   }
