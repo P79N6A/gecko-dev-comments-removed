@@ -45,6 +45,7 @@
 #include "nsServiceManagerUtils.h"
 #include "prlink.h"
 
+#include <stdlib.h>
 #include <glib.h>
 #include <glib-object.h>
 
@@ -158,8 +159,25 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
     return NS_OK;
   }
 
+#ifdef ACCESSIBILITY
+  
+  
+  
+  static const char *accEnv = "GNOME_ACCESSIBILITY";
+  const char *accOldValue = getenv(accEnv);
+  setenv(accEnv, "0", 1);
+#endif
+
   char *argv[2] = { "gecko", "--disable-crash-dialog" };
   gnome_program_init("Gecko", "1.0", libgnomeui_module_info_get(), 2, argv, NULL);
+
+#ifdef ACCESSIBILITY
+  if (accOldValue) { 
+    setenv(accEnv, accOldValue, 1);
+  } else {
+    unsetenv(accEnv);
+  }
+#endif
 
   
   
