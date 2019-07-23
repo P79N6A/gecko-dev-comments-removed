@@ -193,6 +193,10 @@ nsInstallTrigger::HandleContent(const char * aContentType,
     
     
     PRBool enabled = PR_FALSE;
+    
+    
+    
+    nsCAutoString host;
 
     if ( useReferrer )
     {
@@ -205,6 +209,7 @@ nsInstallTrigger::HandleContent(const char * aContentType,
         
 
         enabled = AllowInstall( referringURI );
+        referringURI->GetHost(host);
     }
     else
     {
@@ -241,6 +246,7 @@ nsInstallTrigger::HandleContent(const char * aContentType,
         
 
         enabled = AllowInstall( uri );
+        uri->GetHost(host);
     }
 
 
@@ -257,8 +263,8 @@ nsInstallTrigger::HandleContent(const char * aContentType,
         nsCOMPtr<nsIObserverService> os(do_GetService("@mozilla.org/observer-service;1"));
         if (os) {
             os->NotifyObservers(win->GetDocShell(),
-                                "xpinstall-install-blocked", 
-                                NS_LITERAL_STRING("install-chrome").get());
+                                "xpinstall-install-blocked",
+                                NS_ConvertUTF8toUTF16(host).get());
         }
         rv = NS_ERROR_ABORT;
     }
