@@ -143,13 +143,16 @@ nsWindow::GetThebesSurface()
 
         if (!gfxPlatform::UseGlitz()) {
             qDebug("QT_WIDGET NOT SURE: Func:%s::%d, [%ix%i]\n", __PRETTY_FUNCTION__, __LINE__, width, height);
-            
-            
             mThebesSurface = new gfxXlibSurface
             (mWidget->x11Info().display(),
             (Drawable)mWidget->handle(),
              static_cast<Visual*>(mWidget->x11Info().visual()),
              gfxIntSize(width, height));
+            
+            
+            
+            
+             mWidget->setAttribute(Qt::WA_PaintOnScreen);
 
             
             
