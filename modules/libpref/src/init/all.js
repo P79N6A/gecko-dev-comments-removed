@@ -966,9 +966,21 @@ pref("mousewheel.enable_pixel_scrolling", true);
 
 
 
-pref("mousewheel.acceleration.start", 3);
+pref("mousewheel.acceleration.start", -1);
 
 pref("mousewheel.acceleration.factor", 10);
+
+
+
+
+
+
+
+
+
+
+pref("mousewheel.system_scroll_override_on_root_content.vertical.factor", 200);
+pref("mousewheel.system_scroll_override_on_root_content.horizontal.factor", 200);
 
 
 pref("mousewheel.withnokey.action",0);
@@ -1611,6 +1623,8 @@ pref("intl.tsf.on_layout_change_interval", 100);
 
 pref("ui.panel.default_level_parent", false);
 
+pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
+
 # WINNT
 #endif
 
@@ -2033,6 +2047,8 @@ pref("print.print_extra_margin", 90);
 
 pref("ui.panel.default_level_parent", false);
 
+pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
+
 # XP_MACOSX
 #endif
 
@@ -2234,6 +2250,8 @@ pref("network.dns.disableIPv6", true);
 
 pref("ui.panel.default_level_parent", false);
 
+pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
+
 # OS2
 #endif
 
@@ -2327,6 +2345,8 @@ pref("browser.download.dir", "/boot/home/Downloads");
 
 
 pref("ui.panel.default_level_parent", false);
+
+pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 # BeOS
 #endif
@@ -2599,6 +2619,8 @@ pref("print.postscript.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER
 
 
 pref("ui.panel.default_level_parent", true);
+
+pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 # XP_UNIX
 #endif

@@ -2640,6 +2640,69 @@ nsWindow::OnDefaultButtonLoaded(const nsIntRect &aButtonRect)
 #endif
 }
 
+NS_IMETHODIMP
+nsWindow::OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
+                                         PRBool aIsHorizontal,
+                                         PRInt32 &aOverriddenDelta)
+{
+  
+  
+  const PRInt32 kSystemDefaultScrollingSpeed = 3;
+
+  
+  PRInt32 computedOverriddenDelta;
+  nsresult rv =
+    nsBaseWidget::OverrideSystemMouseScrollSpeed(aOriginalDelta, aIsHorizontal,
+                                                 computedOverriddenDelta);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aOverriddenDelta = aOriginalDelta;
+
+  if (computedOverriddenDelta == aOriginalDelta) {
+    
+    return NS_OK;
+  }
+
+  
+  
+  UINT systemSpeed;
+  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &systemSpeed, 0)) {
+    return NS_ERROR_FAILURE;
+  }
+  
+  
+  if (systemSpeed != kSystemDefaultScrollingSpeed) {
+    return NS_OK;
+  }
+
+  
+  
+  if (GetWindowsVersion() >= VISTA_VERSION) {
+    if (!::SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &systemSpeed, 0)) {
+      return NS_ERROR_FAILURE;
+    }
+    
+    
+    if (systemSpeed != kSystemDefaultScrollingSpeed) {
+      return NS_OK;
+    }
+  }
+
+  
+  
+  
+  
+  PRInt32 deltaLimit;
+  rv =
+    nsBaseWidget::OverrideSystemMouseScrollSpeed(kSystemDefaultScrollingSpeed,
+                                                 aIsHorizontal, deltaLimit);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aOverriddenDelta = PR_MIN(computedOverriddenDelta, deltaLimit);
+
+  return NS_OK;
+}
+
 
 
 

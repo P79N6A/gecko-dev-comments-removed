@@ -102,8 +102,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x5c55f106, 0xb7ab, 0x4f54, \
-    { 0x89, 0xf3, 0xd3, 0xcf, 0x91, 0xf9, 0x63, 0x95 } }
+  { 0x155c4b, 0x78da, 0x4607, \
+    { 0x92, 0x87, 0xd6, 0xcf, 0x32, 0xcd, 0x42, 0xb5 } }
 
 
 
@@ -1067,6 +1067,29 @@ class nsIWidget : public nsISupports {
 
  
     NS_IMETHOD OnDefaultButtonLoaded(const nsIntRect &aButtonRect) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
+                                              PRBool aIsHorizontal,
+                                              PRInt32 &aOverriddenDelta) = 0;
 
 protected:
     
