@@ -84,6 +84,7 @@ class nsMathMLOperators {
 public:
   static void AddRefTable(void);
   static void ReleaseTable(void);
+  static void CleanUp();
 
   
   
