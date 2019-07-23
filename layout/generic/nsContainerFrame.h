@@ -259,14 +259,6 @@ protected:
                     nsIFrame*       aFromChild,
                     nsIFrame*       aPrevSibling);
 
-  
-
-
-
-
-  static void CleanupGeneratedContentIn(nsIContent* aRealContent,
-                                        nsIFrame* aRoot);
-
   nsFrameList mFrames;
 };
 

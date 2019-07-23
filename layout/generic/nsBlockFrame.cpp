@@ -284,20 +284,6 @@ nsBlockFrame::~nsBlockFrame()
 void
 nsBlockFrame::Destroy()
 {
-  if (mState & NS_FRAME_GENERATED_CONTENT) {
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    nsContainerFrame::CleanupGeneratedContentIn(mContent, this);
-  }
-
   mAbsoluteContainer.DestroyFrames(this);
   
   

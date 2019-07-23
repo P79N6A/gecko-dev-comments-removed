@@ -172,6 +172,9 @@ enum {
   NS_FRAME_CONTAINS_RELATIVE_HEIGHT =           0x00000020,
 
   
+  
+  
+  
   NS_FRAME_GENERATED_CONTENT =                  0x00000040,
 
   

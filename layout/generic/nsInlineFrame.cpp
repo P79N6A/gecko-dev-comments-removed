@@ -88,25 +88,6 @@ nsInlineFrame::QueryInterface(const nsIID& aIID, void** aInstancePtr)
   return nsInlineFrameSuper::QueryInterface(aIID, aInstancePtr);
 }
 
-void
-nsInlineFrame::Destroy()
-{
-  if (mState & NS_FRAME_GENERATED_CONTENT) {
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    nsContainerFrame::CleanupGeneratedContentIn(mContent, this);
-  }
-  nsInlineFrameSuper::Destroy();
-}
-
 #ifdef DEBUG
 NS_IMETHODIMP
 nsInlineFrame::GetFrameName(nsAString& aResult) const

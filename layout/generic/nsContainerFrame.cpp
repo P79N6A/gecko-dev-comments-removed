@@ -235,28 +235,6 @@ nsContainerFrame::RemoveFrame(nsIAtom*  aListName,
 }
 
 void
-nsContainerFrame::CleanupGeneratedContentIn(nsIContent* aRealContent,
-                                            nsIFrame* aRoot) {
-  nsIAtom* frameList = nsnull;
-  PRInt32 listIndex = 0;
-  do {
-    nsIFrame* child = aRoot->GetFirstChild(frameList);
-    while (child) {
-      nsIContent* content = child->GetContent();
-      if (content && content != aRealContent) {
-        
-        
-        aRoot->PresContext()->EventStateManager()->ContentRemoved(content);
-        content->UnbindFromTree();
-      }
-      CleanupGeneratedContentIn(aRealContent, child);
-      child = child->GetNextSibling();
-    }
-    frameList = aRoot->GetAdditionalChildListName(listIndex++);
-  } while (frameList);
-}
-
-void
 nsContainerFrame::Destroy()
 {
   
@@ -270,6 +248,27 @@ nsContainerFrame::Destroy()
   
   nsFrameList overflowFrames(GetOverflowFrames(PresContext(), PR_TRUE));
   overflowFrames.DestroyFrames();
+
+  if (IsGeneratedContentFrame()) {
+    
+    
+    
+    
+    nsCOMArray<nsIContent>* generatedContent =
+      static_cast<nsCOMArray<nsIContent>*>(
+        UnsetProperty(nsGkAtoms::generatedContent));
+
+    if (generatedContent) {
+      for (int i = generatedContent->Count() - 1; i >= 0; --i) {
+        nsIContent* content = generatedContent->ObjectAt(i);
+        
+        
+        PresContext()->EventStateManager()->ContentRemoved(content);
+        content->UnbindFromTree();
+      }
+      delete generatedContent;
+    }
+  }
 
   
   nsSplittableFrame::Destroy();

@@ -1861,6 +1861,7 @@ nsCSSFrameConstructor::CreateAttributeContent(nsIContent* aParentContent,
                                               PRInt32 aAttrNamespace,
                                               nsIAtom* aAttrName,
                                               nsStyleContext* aStyleContext,
+                                              nsCOMArray<nsIContent>& aGeneratedContent,
                                               nsIContent** aNewContent,
                                               nsIFrame** aNewFrame)
 {
@@ -1884,6 +1885,12 @@ nsCSSFrameConstructor::CreateAttributeContent(nsIContent* aParentContent,
   
   nsIFrame* textFrame = NS_NewTextFrame(mPresShell, aStyleContext);
   rv = textFrame->Init(content, aParentFrame, nsnull);
+  if (NS_SUCCEEDED(rv)) {
+    if (NS_UNLIKELY(!aGeneratedContent.AppendObject(content))) {
+      rv = NS_ERROR_OUT_OF_MEMORY;
+    }
+  }
+
   if (NS_FAILED(rv)) {
     content->UnbindFromTree();
     textFrame->Destroy();
@@ -1902,6 +1909,7 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
                                                nsStyleContext*       aStyleContext,
                                                const nsStyleContent* aStyleContent,
                                                PRUint32              aContentIndex,
+                                               nsCOMArray<nsIContent>& aGeneratedContent,
                                                nsIFrame**            aFrame)
 {
   *aFrame = nsnull;  
@@ -1950,13 +1958,15 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
     
     nsIFrame* imageFrame = NS_NewImageFrame(mPresShell, aStyleContext);
     if (NS_UNLIKELY(!imageFrame)) {
+      content->UnbindFromTree();
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
     rv = imageFrame->Init(content, aParentFrame, nsnull);
-    if (NS_FAILED(rv)) {
+    if (NS_FAILED(rv) || NS_UNLIKELY(!aGeneratedContent.AppendObject(content))) {
+      content->UnbindFromTree();
       imageFrame->Destroy();
-      return rv == NS_ERROR_FRAME_REPLACED ? NS_OK : rv;
+      return NS_FAILED(rv) ? rv : NS_ERROR_OUT_OF_MEMORY;
     }
 
     
@@ -1997,7 +2007,7 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
 
         nsresult rv =
           CreateAttributeContent(aContent, aParentFrame, attrNameSpace,
-                                 attrName, aStyleContext,
+                                 attrName, aStyleContext, aGeneratedContent,
                                  getter_AddRefs(content), aFrame);
         NS_ENSURE_SUCCESS(rv, rv);
       }
@@ -2075,15 +2085,15 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
         if (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::alt)) {
           rv = CreateAttributeContent(aContent, aParentFrame,
                                       kNameSpaceID_None, nsGkAtoms::alt,
-                                      aStyleContext, getter_AddRefs(content),
-                                      aFrame);
+                                      aStyleContext, aGeneratedContent,
+                                      getter_AddRefs(content), aFrame);
         } else if (aContent->IsNodeOfType(nsINode::eHTML) &&
                    aContent->NodeInfo()->Equals(nsGkAtoms::input)) {
           if (aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::value)) {
             rv = CreateAttributeContent(aContent, aParentFrame,
                                         kNameSpaceID_None, nsGkAtoms::value,
-                                        aStyleContext, getter_AddRefs(content),
-                                        aFrame);
+                                        aStyleContext, aGeneratedContent,
+                                        getter_AddRefs(content), aFrame);
           } else {
             nsXPIDLString temp;
             rv = nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
@@ -2138,6 +2148,10 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
         textFrame->Init(textContent, aParentFrame, nsnull);
 
         content = textContent;
+        if (NS_UNLIKELY(!aGeneratedContent.AppendObject(content))) {
+          NS_NOTREACHED("this OOM case isn't handled very well");
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
       } else {
         
         
@@ -2187,6 +2201,7 @@ nsCSSFrameConstructor::CreateGeneratedContentFrame(nsFrameConstructorState& aSta
     
     nsIFrame*     containerFrame;
     nsFrameItems  childFrames;
+    nsresult rv;
 
     const PRUint8 disp = pseudoStyleContext->GetStyleDisplay()->mDisplay;
     if (disp == NS_STYLE_DISPLAY_BLOCK ||
@@ -2198,13 +2213,30 @@ nsCSSFrameConstructor::CreateGeneratedContentFrame(nsFrameConstructorState& aSta
       containerFrame = NS_NewBlockFrame(mPresShell, pseudoStyleContext, flags);
     } else {
       containerFrame = NS_NewInlineFrame(mPresShell, pseudoStyleContext);
-    }        
+    }
+
+    if (NS_UNLIKELY(!containerFrame)) {
+      return PR_FALSE;
+    }
     InitAndRestoreFrame(aState, aContent, aFrame, nsnull, containerFrame);
     
     nsHTMLContainerFrame::CreateViewForFrame(containerFrame, nsnull, PR_FALSE);
 
     
     containerFrame->AddStateBits(NS_FRAME_GENERATED_CONTENT);
+
+    
+    
+    
+    
+    nsCOMArray<nsIContent>* generatedContent = new nsCOMArray<nsIContent>;
+    rv = containerFrame->SetProperty(nsGkAtoms::generatedContent,
+                                     generatedContent);
+    if (NS_UNLIKELY(!generatedContent) || NS_FAILED(rv)) {
+      containerFrame->Destroy(); 
+      delete generatedContent;
+      return PR_FALSE;
+    }
 
     
     
@@ -2220,12 +2252,12 @@ nsCSSFrameConstructor::CreateGeneratedContentFrame(nsFrameConstructorState& aSta
       nsIFrame* frame;
 
       
-      nsresult result;
-      result = CreateGeneratedFrameFor(containerFrame,
-                                       aContent, textStyleContext,
-                                       styleContent, contentIndex, &frame);
+      rv = CreateGeneratedFrameFor(containerFrame,
+                                   aContent, textStyleContext,
+                                   styleContent, contentIndex,
+                                   *generatedContent, &frame);
       
-      if (NS_SUCCEEDED(result) && frame) {
+      if (NS_SUCCEEDED(rv) && frame) {
         
         childFrames.AddChild(frame);
       }

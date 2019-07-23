@@ -275,11 +275,14 @@ private:
 
 
 
+
+
   nsresult CreateAttributeContent(nsIContent* aParentContent,
                                   nsIFrame* aParentFrame,
                                   PRInt32 aAttrNamespace,
                                   nsIAtom* aAttrName,
                                   nsStyleContext* aStyleContext,
+                                  nsCOMArray<nsIContent>& aGeneratedContent,
                                   nsIContent** aNewContent,
                                   nsIFrame** aNewFrame);
   
@@ -288,6 +291,7 @@ private:
                                    nsStyleContext*       aStyleContext,
                                    const nsStyleContent* aStyleContent,
                                    PRUint32              aContentIndex,
+                                   nsCOMArray<nsIContent>& aGeneratedContent,
                                    nsIFrame**            aFrame);
 
   PRBool CreateGeneratedContentFrame(nsFrameConstructorState& aState,
