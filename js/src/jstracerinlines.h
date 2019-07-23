@@ -345,7 +345,8 @@ static inline void
 prim_int_is_nonzero(JSContext* cx, jsint& a, JSBool& r)
 {
     interp_prim_int_is_nonzero(cx, a, r);
-    recorder(cx)->binary0(LIR_ugt, &a, &r);
+    recorder(cx)->binary0(LIR_eq, &a, &r); 
+    recorder(cx)->binary0(LIR_eq, &r, &r); 
 }
 
 static inline void
@@ -444,10 +445,8 @@ static inline void
 prim_dcmp_ne(JSContext *cx, bool ifnan, jsdouble& a, jsdouble& b, JSBool& r)
 {
     interp_prim_dcmp_ne(cx, ifnan, a, b, r);
-#if 0
-    
-    recorder(cx)->binary(LIR_ne, &a, &b, &r);
-#endif
+    recorder(cx)->binary(LIR_eq, &a, &b, &r); 
+    recorder(cx)->binary0(LIR_eq, &r, &r);    
 }
 
 static inline void
@@ -524,7 +523,8 @@ static inline void
 prim_object_as_boolean(JSContext* cx, JSObject*& obj, JSBool& r)
 {
     interp_prim_object_as_boolean(cx, obj, r);
-    recorder(cx)->binary0(LIR_ugt, &obj, &r);
+    recorder(cx)->binary0(LIR_eq, &obj, &r); 
+    recorder(cx)->binary0(LIR_eq, &r, &r);   
 }
 
 static inline void
