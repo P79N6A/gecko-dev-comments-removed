@@ -308,7 +308,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
     
     if (SUCCEEDED(aDataObj->QueryInterface(IID_IAsyncOperation,
                                           (void**)&pAsyncOp)))
-      pAsyncOp->SetAsyncMode(TRUE);
+      pAsyncOp->SetAsyncMode(VARIANT_TRUE);
   }
 
   
