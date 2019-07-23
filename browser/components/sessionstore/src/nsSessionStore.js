@@ -487,16 +487,19 @@ SessionStoreService.prototype = {
         this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
         this.restoreWindow(aWindow, this._initialState, this._isCmdLineEmpty(aWindow));
         delete this._initialState;
+        
+        
+        this.saveState(true);
       }
       else {
         
         var observerService = Cc["@mozilla.org/observer-service;1"].
                               getService(Ci.nsIObserverService);
         observerService.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
+        
+        
+        this._lastSaveTime -= this._interval;
       }
-      
-      
-      this.saveState(true);
     }
     
     else if (!this._isWindowLoaded(aWindow)) {
