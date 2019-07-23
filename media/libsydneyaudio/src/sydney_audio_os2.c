@@ -557,8 +557,10 @@ int     sa_stream_drain(sa_stream_t *s)
 
   
 
-  memset(buf, 0, sizeof(buf));
-  sa_stream_write(s, buf, s->nchannels * SAOS2_SAMPLE_SIZE);
+  if (s->freeCnt < SAOS2_BUF_CNT) {
+    memset(buf, 0, sizeof(buf));
+    sa_stream_write(s, buf, s->nchannels * SAOS2_SAMPLE_SIZE);
+  }
 
   
   if (s->readyCnt)
