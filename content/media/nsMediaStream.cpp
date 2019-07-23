@@ -556,8 +556,17 @@ void nsMediaChannelStream::Resume()
       mChannel->Resume();
       element->DownloadResumed();
     } else {
+      PRInt64 totalLength = mCacheStream.GetLength();
       
-      CacheClientSeek(mOffset, PR_FALSE);
+      
+      
+      
+      
+      if (totalLength < 0 || mOffset < totalLength) {
+        
+        
+        CacheClientSeek(mOffset, PR_FALSE);
+      }
       element->DownloadResumed();
     }
   }
