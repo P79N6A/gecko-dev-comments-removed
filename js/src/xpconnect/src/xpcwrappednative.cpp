@@ -1367,6 +1367,15 @@ return_tearoff:
     {
         JSObject *outer = ((JSExtendedClass*)clazz)->outerObject(cx, obj);
 
+        
+        JSObject *unsafeObj;
+        clazz = JS_GET_CLASS(cx, outer);
+        if(clazz == &sXPC_XOW_JSClass.base &&
+           (unsafeObj = XPCWrapper::Unwrap(cx, outer)))
+        {
+            outer = unsafeObj;
+        }
+
         if(outer && outer != obj)
             return GetWrappedNativeOfJSObject(cx, outer, funobj, pobj2,
                                               pTearOff);
