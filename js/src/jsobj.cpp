@@ -4306,9 +4306,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
     if (defineHow & JSDNP_CACHE_RESULT) {
         JS_ASSERT_NOT_ON_TRACE(cx);
-        PropertyCacheEntry *entry =
-            JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, sprop, added);
-        TRACE_2(SetPropHit, entry, sprop);
+        JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, sprop, added);
     }
     if (propp)
         *propp = (JSProperty *) sprop;
@@ -4952,11 +4950,6 @@ ReportReadOnly(JSContext* cx, jsid id, uintN flags)
 
 }
 
-
-
-
-
-
 JSBool
 js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                      jsval *vp)
@@ -5035,8 +5028,6 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
         if (sprop->isAccessorDescriptor()) {
             if (sprop->hasDefaultSetter()) {
                 JS_UNLOCK_SCOPE(cx, scope);
-                if (defineHow & JSDNP_CACHE_RESULT)
-                    TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, sprop);
                 return js_ReportGetterOnlyAssignment(cx);
             }
         } else {
@@ -5046,20 +5037,11 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                 JS_UNLOCK_SCOPE(cx, scope);
 
                 PCMETER((defineHow & JSDNP_CACHE_RESULT) && JS_PROPERTY_CACHE(cx).rofills++);
-                if (defineHow & JSDNP_CACHE_RESULT) {
-                    JS_ASSERT_NOT_ON_TRACE(cx);
-                    TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, sprop);
-                }
 
                 
                 if (JS_HAS_STRICT_OPTION(cx))
                     return ReportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                 return JS_TRUE;
-
-#ifdef JS_TRACER
-              error: 
-                return JS_FALSE;
-#endif
             }
         }
         if (scope->sealed() && !sprop->hasSlot()) {
@@ -5082,9 +5064,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             if (!sprop->hasSlot()) {
                 if (defineHow & JSDNP_CACHE_RESULT) {
                     JS_ASSERT_NOT_ON_TRACE(cx);
-                    PropertyCacheEntry *entry =
-                        JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, protoIndex, pobj, sprop);
-                    TRACE_2(SetPropHit, entry, sprop);
+                    JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, protoIndex, pobj, sprop);
                 }
 
                 if (sprop->hasDefaultSetter() && !sprop->hasGetterValue())
@@ -5142,8 +5122,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
 
 
-        if ((defineHow & JSDNP_SET_METHOD) &&
-            obj->getClass() == &js_ObjectClass) {
+        if ((defineHow & JSDNP_SET_METHOD) && obj->getClass() == &js_ObjectClass) {
             JS_ASSERT(VALUE_IS_FUNCTION(cx, *vp));
             JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
 
@@ -5180,8 +5159,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
     if (defineHow & JSDNP_CACHE_RESULT) {
         JS_ASSERT_NOT_ON_TRACE(cx);
-        PropertyCacheEntry *entry = JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, sprop, added);
-        TRACE_2(SetPropHit, entry, sprop);
+        JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, sprop, added);
     }
 
     if (!js_NativeSet(cx, obj, sprop, added, vp))
