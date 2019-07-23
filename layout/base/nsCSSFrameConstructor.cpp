@@ -9768,8 +9768,6 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
     PRBool haveFirstLetterStyle = PR_FALSE;
     if (block) {
       
-      nsIContent* blockContent = block->GetContent();
-      nsStyleContext* blockSC = block->GetStyleContext();
       haveFirstLetterStyle = HasFirstLetterStyle(block);
       if (haveFirstLetterStyle) {
         RemoveLetterFrames(mPresShell->GetPresContext(), mPresShell,
