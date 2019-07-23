@@ -676,16 +676,6 @@ public:
     mContext->Save();    
   }
 
-  void Reset(gfxContext *aContext) {
-    
-    NS_PRECONDITION(aContext, "must provide a context");
-    if (mContext) {
-      mContext->Restore();
-    }
-    mContext = aContext;
-    mContext->Save();
-  }
-
 private:
   gfxContext *mContext;
 };
