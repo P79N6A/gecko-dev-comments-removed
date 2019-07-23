@@ -270,7 +270,7 @@ private:
                               nsIFrame*      aParentFrame,
                               nsIFrame*      aPrevPageFrame,
                               nsIFrame*&     aPageFrame,
-                              nsIFrame*&     aPageContentFrame);
+                              nsIFrame*&     aCanvasFrame);
 
   void DoContentStateChanged(nsIContent*     aContent,
                              PRInt32         aStateMask);
@@ -1166,6 +1166,9 @@ private:
 
   
   
+  
+  
+  
   nsIFrame*           mInitialContainingBlock;
   
   nsIFrame*           mRootElementStyleFrame;
@@ -1181,9 +1184,10 @@ private:
   PRUint16            mUpdateCount;
   PRPackedBool        mQuotesDirty : 1;
   PRPackedBool        mCountersDirty : 1;
-  PRPackedBool        mInitialContainingBlockIsAbsPosContainer : 1;
   PRPackedBool        mIsDestroyingFrameTree : 1;
   PRPackedBool        mRebuildAllStyleData : 1;
+  
+  PRPackedBool        mHasRootAbsPosContainingBlock : 1;
 
   nsRevocableEventPtr<RestyleEvent> mRestyleEvent;
 
