@@ -953,126 +953,154 @@ LoginManager.prototype = {
 
         var autofillForm = this._prefBranch.getBoolPref("autofillForms");
         var previousActionOrigin = null;
+        var foundLogins = null;
 
         for (var i = 0; i < forms.length; i++) {
             var form = forms[i];
 
             
             
-            
-            
-            var [usernameField, passwordField, ignored] =
-                this._getFormFields(form, false);
-
-            
-            if (passwordField == null)
-                continue;
-
-
-            
-            
             var actionOrigin = this._getActionOrigin(form);
             if (actionOrigin != previousActionOrigin) {
-                var foundLogins =
-                    this.findLogins({}, formOrigin, actionOrigin, null);
-
-                this.log("form[" + i + "]: found " + foundLogins.length +
-                        " matching logins.");
-
+                foundLogins = null;
                 previousActionOrigin = actionOrigin;
-            } else {
-                this.log("form[" + i + "]: reusing logins from last form.");
             }
-
-
-            
-            
-            
-            
-            var maxUsernameLen = Number.MAX_VALUE;
-            var maxPasswordLen = Number.MAX_VALUE;
-
-            
-            if (usernameField && usernameField.maxLength >= 0)
-                maxUsernameLen = usernameField.maxLength;
-            if (passwordField.maxLength >= 0)
-                maxPasswordLen = passwordField.maxLength;
-
-            logins = foundLogins.filter(function (l) {
-                    var fit = (l.username.length <= maxUsernameLen &&
-                               l.password.length <= maxPasswordLen);
-                    if (!fit)
-                        this.log("Ignored " + l.username + " login: won't fit");
-
-                    return fit;
-                }, this);
-
-
-            
-            if (logins.length == 0)
-                continue;
-
-
-            
-            
-            
-            if (usernameField)
-                this._attachToInput(usernameField);
-
-            
-            
-            
-            
-            var isFormDisabled = false;
-            if (this._isAutocompleteDisabled(form) ||
-                this._isAutocompleteDisabled(usernameField) ||
-                this._isAutocompleteDisabled(passwordField)) {
-
-                isFormDisabled = true;
-                this.log("form[" + i + "]: not filled, has autocomplete=off");
-            }
-
-            if (autofillForm && !isFormDisabled) {
-
-                if (usernameField && usernameField.value) {
-                    
-                    
-
-                    var username = usernameField.value;
-
-                    var matchingLogin;
-                    var found = logins.some(function(l) {
-                                                matchingLogin = l;
-                                                return (l.username == username);
-                                            });
-                    if (found)
-                        passwordField.value = matchingLogin.password;
-                    else
-                        this.log("Password not filled. None of the stored " +
-                                 "logins match the username already present.");
-
-                } else if (usernameField && logins.length == 2) {
-                    
-                    
-                    
-                    
-                    
-                    if (!logins[0].username && logins[1].username) {
-                        usernameField.value = logins[1].username;
-                        passwordField.value = logins[1].password;
-                    } else if (!logins[1].username && logins[0].username) {
-                        usernameField.value = logins[0].username;
-                        passwordField.value = logins[0].password;
-                    }
-                } else if (logins.length == 1) {
-                    if (usernameField)
-                        usernameField.value = logins[0].username;
-                    passwordField.value = logins[0].password;
-                } else {
-                    this.log("Multiple logins for form, so not filling any.");
-                }
-            }
+            this.log("_fillDocument processing form[" + i + "]");
+            foundLogins = this._fillForm(form, autofillForm, foundLogins);
         } 
+    },
+
+
+    
+
+
+
+
+
+
+
+    _fillForm : function (form, autofillForm, foundLogins) {
+        
+        
+        
+        
+        var [usernameField, passwordField, ignored] =
+            this._getFormFields(form, false);
+
+        
+        if (passwordField == null)
+            return foundLogins;
+
+        
+        if (foundLogins == null) {
+            var formOrigin = 
+                this._getPasswordOrigin(form.ownerDocument.documentURI);
+            var actionOrigin = this._getActionOrigin(form);
+            foundLogins = this.findLogins({}, formOrigin, actionOrigin, null);
+            this.log("found " + foundLogins.length + " matching logins.");
+        } else {
+            this.log("reusing logins from last form.");
+        }
+
+        
+        
+        
+        
+        var maxUsernameLen = Number.MAX_VALUE;
+        var maxPasswordLen = Number.MAX_VALUE;
+
+        
+        if (usernameField && usernameField.maxLength >= 0)
+            maxUsernameLen = usernameField.maxLength;
+        if (passwordField.maxLength >= 0)
+            maxPasswordLen = passwordField.maxLength;
+
+        logins = foundLogins.filter(function (l) {
+                var fit = (l.username.length <= maxUsernameLen &&
+                           l.password.length <= maxPasswordLen);
+                if (!fit)
+                    this.log("Ignored " + l.username + " login: won't fit");
+
+                return fit;
+            }, this);
+
+
+        
+        if (logins.length == 0)
+            return foundLogins;
+
+
+        
+        
+        
+        if (usernameField)
+            this._attachToInput(usernameField);
+
+        
+        
+        
+        
+        var isFormDisabled = false;
+        if (this._isAutocompleteDisabled(form) ||
+            this._isAutocompleteDisabled(usernameField) ||
+            this._isAutocompleteDisabled(passwordField)) {
+
+            isFormDisabled = true;
+            this.log("form not filled, has autocomplete=off");
+        }
+
+        if (autofillForm && !isFormDisabled) {
+
+            if (usernameField && usernameField.value) {
+                
+                
+
+                var username = usernameField.value;
+
+                var matchingLogin;
+                var found = logins.some(function(l) {
+                                            matchingLogin = l;
+                                            return (l.username == username);
+                                        });
+                if (found)
+                    passwordField.value = matchingLogin.password;
+                else
+                    this.log("Password not filled. None of the stored " +
+                             "logins match the username already present.");
+
+            } else if (usernameField && logins.length == 2) {
+                
+                
+                
+                
+                
+                if (!logins[0].username && logins[1].username) {
+                    usernameField.value = logins[1].username;
+                    passwordField.value = logins[1].password;
+                } else if (!logins[1].username && logins[0].username) {
+                    usernameField.value = logins[0].username;
+                    passwordField.value = logins[0].password;
+                }
+            } else if (logins.length == 1) {
+                if (usernameField)
+                    usernameField.value = logins[0].username;
+                passwordField.value = logins[0].password;
+            } else {
+                this.log("Multiple logins for form, so not filling any.");
+            }
+        }
+        return foundLogins;
+    },
+
+
+    
+
+
+
+
+    fillForm : function (form) {
+        this.log("fillForm processing form[id=" + form.id + "]");
+        this._fillForm(form, true, null)
     },
 
 
