@@ -530,16 +530,31 @@ nsXULPopupManager::HidePopup(nsIContent* aPopup,
     
     
     
+    
+    
+
+    nsMenuChainItem* topMenu = foundMenu;
+    
+    
+    
+    if (foundMenu->IsMenu()) {
+      item = topMenu->GetChild();
+      while (item && item->IsMenu()) {
+        topMenu = item;
+        item = item->GetChild();
+      }
+    }
+    
     deselectMenu = aDeselectMenu;
-    popupToHide = mCurrentMenu->Content();
-    popupFrame = mCurrentMenu->Frame();
+    popupToHide = topMenu->Content();
+    popupFrame = topMenu->Frame();
     type = popupFrame->PopupType();
 
-    nsMenuChainItem* parent = mCurrentMenu->GetParent();
+    nsMenuChainItem* parent = topMenu->GetParent();
 
     
     
-    if (parent && (aHideChain || mCurrentMenu != item))
+    if (parent && (aHideChain || topMenu != foundMenu))
       nextPopup = parent->Content();
 
     lastPopup = aHideChain ? nsnull : aPopup;
@@ -1794,8 +1809,21 @@ nsXULMenuCommandEvent::Run()
   
   
   
+
+  nsCOMPtr<nsIContent> popup;
   nsMenuFrame* menuFrame = pm->GetMenuFrameForContent(mMenu);
   if (menuFrame) {
+    
+    
+    nsIFrame* popupFrame = menuFrame->GetParent();
+    while (popupFrame) {
+      if (popupFrame->GetType() == nsGkAtoms::menuPopupFrame) {
+        popup = popupFrame->GetContent();
+        break;
+      }
+      popupFrame = popupFrame->GetParent();
+    }
+
     nsPresContext* presContext = menuFrame->PresContext();
     nsCOMPtr<nsIViewManager> kungFuDeathGrip = presContext->GetViewManager();
     nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
@@ -1814,7 +1842,8 @@ nsXULMenuCommandEvent::Run()
     shell->HandleDOMEventWithTarget(mMenu, &commandEvent, &status);
   }
 
-  pm->Rollup();
+  if (popup)
+    pm->HidePopup(popup, PR_TRUE, PR_TRUE, PR_TRUE);
 
   return NS_OK;
 }
