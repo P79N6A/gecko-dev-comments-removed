@@ -86,7 +86,7 @@
 static struct {
     uint64 recorderStarted, recorderAborted, traceCompleted, sideExitIntoInterpreter,
     typeMapMismatchAtEntry, returnToDifferentLoopHeader, traceTriggered,
-    globalShapeMismatchAtEntry, typeMapTrashed, globalSlotsTrashed, slotPromoted,
+    globalShapeMismatchAtEntry, typeMapTrashed, gslotsTrashed, slotPromoted,
     unstableLoopVariable;
 } stat = { 0LL, };
 #define AUDIT(x) (stat.x++)
@@ -503,7 +503,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
     localNames = NULL;
 #endif
     ptrdiff_t offset = 0;
-    FORALL_GLOBAL_SLOTS(cx, treeInfo->numGlobalSlots, treeInfo->globalSlots,
+    FORALL_GLOBAL_SLOTS(cx, treeInfo->ngslots, treeInfo->gslots,
         import(gp_ins, offset, vp, *m, vpname, vpnum, localNames);
         m++; offset += sizeof(double);
     );
@@ -546,6 +546,11 @@ unsigned
 TraceRecorder::getCallDepth() const
 {
     return callDepth;
+}
+
+static int compare_uint16(const void* a, const void* b)
+{
+    return (*(uint16*)a) - (*(uint16*)b);
 }
 
 static int
@@ -593,6 +598,9 @@ findInternableGlobals(JSContext* cx, JSStackFrame* fp, uint16* slots)
         }
         JS_UNLOCK_OBJ(cx, pobj);
     }
+    
+    if (slots)
+        qsort(slots, count, sizeof(uint16), compare_uint16);
     return count;
 }
 
@@ -618,8 +626,8 @@ ptrdiff_t
 TraceRecorder::nativeGlobalOffset(jsval* p) const
 {
     size_t offset = 0;
-    unsigned ngslots = treeInfo->numGlobalSlots;
-    uint16* gslots = treeInfo->globalSlots;
+    unsigned ngslots = treeInfo->ngslots;
+    uint16* gslots = treeInfo->gslots;
     for (unsigned n = 0; n < ngslots; ++n, offset += sizeof(double))
         if (p == &STOBJ_GET_SLOT(globalObj, gslots[n]))
             return offset;
@@ -883,6 +891,84 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
 }
 
 
+bool
+SwitchNativeGlobalFrame(JSContext* cx,
+                        unsigned from_ngslots, uint16* from_gslots,
+                        uint8* from_mp, double* from_np,
+                        unsigned to_ngslots, uint16* to_gslots,
+                        uint8* to_mp, double* to_np)
+{
+    JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
+    uint16* from_gslots_stop = from_gslots + from_ngslots;
+    uint16* to_gslots_stop = to_gslots + to_ngslots;
+
+    
+    struct ds {
+        jsval* vp;
+        double d;
+    };
+    ds* write_buffer_base = (ds*) alloca(sizeof(ds) * from_ngslots);
+    ds* write_buffer = write_buffer_base;
+    while (from_gslots < from_gslots_stop && to_gslots < to_gslots_stop) {
+        uint16 from_slot = *from_gslots;
+        uint16 to_slot = *to_gslots;
+        if (from_slot == to_slot) {
+            
+            *to_np++ = *from_np++;
+            ++from_gslots, ++from_mp;
+            ++to_gslots, ++to_mp;
+        } else if (from_slot < to_slot) {
+            
+            if (*from_mp == JSVAL_DOUBLE) {
+                write_buffer->vp = &STOBJ_GET_SLOT(globalObj, from_slot);
+                write_buffer->d = *from_np;
+                ++write_buffer;
+            } else {
+                if (!NativeToValue(cx, STOBJ_GET_SLOT(globalObj, from_slot), *from_mp, from_np))
+                    return false;
+            }
+            ++from_gslots; ++from_mp; ++from_np;
+        } else {
+            
+            if (!ValueToNative(STOBJ_GET_SLOT(globalObj, to_slot), *to_mp, to_np))
+                return false;
+            ++to_gslots; ++to_mp; ++to_np;
+        }
+    }
+
+    while (from_gslots < from_gslots_stop) {
+        unsigned from_slot = *from_gslots;
+        
+        if (*from_mp == JSVAL_DOUBLE) {
+            write_buffer->vp = &STOBJ_GET_SLOT(globalObj, from_slot);
+            write_buffer->d = *from_np;
+            ++write_buffer;
+        } else {
+            if (!NativeToValue(cx, STOBJ_GET_SLOT(globalObj, from_slot), *from_mp, from_np))
+                return false;
+        }
+        ++from_gslots; ++from_mp; ++from_np;
+    }
+
+    while (to_gslots < to_gslots_stop) {
+        
+        if (!ValueToNative(STOBJ_GET_SLOT(globalObj, *to_gslots++), *to_mp, to_np))
+            return false;
+        ++to_gslots; ++to_mp; ++to_np;
+    }
+
+    
+    while (write_buffer > write_buffer_base) {
+        if (!js_NewDoubleInRootedValue(cx, write_buffer->d, write_buffer->vp))
+            return false;
+        --write_buffer;
+    }
+    
+    
+    return true;
+}
+
+
 void
 TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8& t,
         const char *prefix, int index, jsuword *localNames)
@@ -1009,7 +1095,7 @@ TraceRecorder::snapshot(ExitType exitType)
     unsigned stackSlots = nativeStackSlots(callDepth, cx->fp, *cx->fp->regs);
     trackNativeStackUse(stackSlots);
     
-    LIns* data = lir_buf_writer->skip((stackSlots + treeInfo->numGlobalSlots) * sizeof(uint8));
+    LIns* data = lir_buf_writer->skip((stackSlots + treeInfo->ngslots) * sizeof(uint8));
     
     memset(&exit, 0, sizeof(exit));
     exit.from = fragment;
@@ -1023,7 +1109,7 @@ TraceRecorder::snapshot(ExitType exitType)
     
 
 
-    FORALL_SLOTS(cx, treeInfo->numGlobalSlots, treeInfo->globalSlots, callDepth,
+    FORALL_SLOTS(cx, treeInfo->ngslots, treeInfo->gslots, callDepth,
         LIns* i = get(vp);
         *m++ = isNumber(*vp)
             ? (isPromoteInt(i) ? JSVAL_INT : JSVAL_DOUBLE)
@@ -1092,7 +1178,7 @@ bool
 TraceRecorder::verifyTypeStability(uint8* map)
 {
     uint8* m = map;
-    FORALL_SLOTS(cx, treeInfo->numGlobalSlots, treeInfo->globalSlots, callDepth,
+    FORALL_SLOTS(cx, treeInfo->ngslots, treeInfo->gslots, callDepth,
         if (!checkType(*vp, *m))
             return false;
         ++m
@@ -1210,11 +1296,11 @@ js_StartRecorder(JSContext* cx, GuardRecord* anchor, Fragment* f, uint8* typeMap
 static void
 js_TrashInternedGlobals(TreeInfo* ti)
 {
-    AUDIT(globalSlotsTrashed);
+    AUDIT(gslotsTrashed);
     debug_only(printf("Trashing interned globals.\n");)
-    JS_ASSERT(ti->globalSlots);
-    free(ti->globalSlots);
-    ti->globalSlots = NULL;
+    JS_ASSERT(ti->gslots);
+    free(ti->gslots);
+    ti->gslots = NULL;
 }
 
 static void
@@ -1245,12 +1331,12 @@ js_ExecuteTree(JSContext* cx, Fragment* f)
         return NULL;
     }
 
-    double* global = (double *)alloca((ti->numGlobalSlots+1) * sizeof(double));
-    debug_only(*(uint64*)&global[ti->numGlobalSlots] = 0xdeadbeefdeadbeefLL;)
+    double* global = (double *)alloca((ti->ngslots+1) * sizeof(double));
+    debug_only(*(uint64*)&global[ti->ngslots] = 0xdeadbeefdeadbeefLL;)
     double* stack = (double *)alloca((ti->maxNativeStackSlots+1) * sizeof(double));
     debug_only(*(uint64*)&stack[ti->maxNativeStackSlots] = 0xdeadbeefdeadbeefLL;)
-    if (!BuildNativeGlobalFrame(cx, ti->numGlobalSlots, ti->globalSlots, ti->typeMap, global) ||
-        !BuildNativeStackFrame(cx, 0, ti->typeMap + ti->numGlobalSlots, stack)) {
+    if (!BuildNativeGlobalFrame(cx, ti->ngslots, ti->gslots, ti->typeMap, global) ||
+        !BuildNativeStackFrame(cx, 0, ti->typeMap + ti->ngslots, stack)) {
         AUDIT(typeMapMismatchAtEntry);
         debug_only(printf("type-map mismatch, skipping trace.\n");)
         return NULL;
@@ -1284,10 +1370,10 @@ js_ExecuteTree(JSContext* cx, Fragment* f)
            state.sp, lr->jmp,
            (rdtsc() - start));
 #endif
-    FlushNativeGlobalFrame(cx, ti->numGlobalSlots, ti->globalSlots, ti->typeMap, global);
-    FlushNativeStackFrame(cx, lr->calldepth, lr->exit->typeMap + ti->numGlobalSlots, stack);
+    FlushNativeGlobalFrame(cx, ti->ngslots, ti->gslots, ti->typeMap, global);
+    FlushNativeStackFrame(cx, lr->calldepth, lr->exit->typeMap + ti->ngslots, stack);
     JS_ASSERT(*(uint64*)&stack[ti->maxNativeStackSlots] == 0xdeadbeefdeadbeefLL);
-    JS_ASSERT(*(uint64*)&global[ti->numGlobalSlots] == 0xdeadbeefdeadbeefLL);
+    JS_ASSERT(*(uint64*)&global[ti->ngslots] == 0xdeadbeefdeadbeefLL);
 
     AUDIT(sideExitIntoInterpreter);
 
@@ -1388,23 +1474,23 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc)
             JS_ASSERT(ti->entryStackDepth == unsigned(cx->fp->regs->sp - StackBase(cx->fp)));
 
             
-            if (!ti->globalSlots) {
+            if (!ti->gslots) {
                 int internableGlobals = findInternableGlobals(cx, cx->fp, NULL);
                 if (internableGlobals < 0)
                     return false;
-                ti->globalSlots = (uint16*)malloc(sizeof(uint16) * internableGlobals);
-                if ((ti->numGlobalSlots = findInternableGlobals(cx, cx->fp, ti->globalSlots)) < 0)
+                ti->gslots = (uint16*)malloc(sizeof(uint16) * internableGlobals);
+                if ((ti->ngslots = findInternableGlobals(cx, cx->fp, ti->gslots)) < 0)
                     return false;
-                JS_ASSERT(ti->numGlobalSlots == (unsigned) internableGlobals);
+                JS_ASSERT(ti->ngslots == (unsigned) internableGlobals);
                 ti->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->shape;
             }
 
             
             if (!ti->typeMap) {
-                ti->typeMap = (uint8*)malloc((ti->entryNativeStackSlots + ti->numGlobalSlots) * sizeof(uint8));
+                ti->typeMap = (uint8*)malloc((ti->entryNativeStackSlots + ti->ngslots) * sizeof(uint8));
                 uint8* m = ti->typeMap;
                 
-                FORALL_SLOTS(cx, ti->numGlobalSlots, ti->globalSlots, 0,
+                FORALL_SLOTS(cx, ti->ngslots, ti->gslots, 0,
                     *m++ = isInt32(*vp) ? JSVAL_INT : JSVAL_TAG(*vp);
                 );
             }
@@ -1426,10 +1512,12 @@ js_LoopEdge(JSContext* cx, jsbytecode* oldpc)
     case LOOP_EXIT:
         
         return false;
-    default:
-        JS_ASSERT(lr->exit->exitType == DONT_GROW);
+    case OVERFLOW_EXIT:
         
-
+        return false;
+    default:
+        JS_ASSERT(lr->exit->exitType == nanojit::OOM_EXIT);
+        
         return false;
     }
 }
@@ -1472,7 +1560,7 @@ js_DestroyJIT(JSContext* cx)
            "type map trashed(%llu), gslots trashed(%llu), slot promoted(%llu), "
            "unstable loop variable(%llu)\n", stat.recorderStarted, stat.recorderAborted,
            stat.traceCompleted, stat.returnToDifferentLoopHeader, stat.typeMapTrashed,
-           stat.globalSlotsTrashed, stat.slotPromoted, stat.unstableLoopVariable);
+           stat.gslotsTrashed, stat.slotPromoted, stat.unstableLoopVariable);
     printf("monitor: triggered(%llu), exits (%llu), type mismatch(%llu), "
            "global mismatch(%llu)\n", stat.traceTriggered, stat.sideExitIntoInterpreter,
            stat.typeMapMismatchAtEntry, stat.globalShapeMismatchAtEntry);
@@ -1546,15 +1634,15 @@ bool TraceRecorder::ifop()
 {
     jsval& v = stackval(-1);
     if (JSVAL_IS_BOOLEAN(v)) {
-        guard(!JSVAL_TO_BOOLEAN(v), lir->ins_eq0(get(&v)), BRANCH_EXIT);
+        guard(!JSVAL_TO_BOOLEAN(v), lir->ins_eq0(get(&v)));
     } else if (JSVAL_IS_OBJECT(v)) {
-        guard(!JSVAL_IS_NULL(v), lir->ins_eq0(get(&v)), BRANCH_EXIT);
+        guard(!JSVAL_IS_NULL(v), lir->ins_eq0(get(&v)));
     } else if (isNumber(v)) {
         jsdouble d = asNumber(v);
         jsdpun u;
         u.d = 0;
         
-        guard(d == 0, lir->ins2(LIR_feq, get(&v), lir->insImmq(u.u64)), BRANCH_EXIT);
+        guard(d == 0, lir->ins2(LIR_feq, get(&v), lir->insImmq(u.u64)));
     } else if (JSVAL_IS_STRING(v)) {
         ABORT_TRACE("strings not supported");
     } else {
@@ -1672,7 +1760,7 @@ TraceRecorder::cmp(LOpcode op, bool negate)
         
 
         if (cx->fp->regs->pc[1] == JSOP_IFEQ || cx->fp->regs->pc[1] == JSOP_IFNE)
-            guard(cond, x, BRANCH_EXIT);
+            guard(cond, x);
 
         
 
@@ -2166,7 +2254,7 @@ bool TraceRecorder::record_JSOP_ADD()
     if (JSVAL_IS_STRING(l) && JSVAL_IS_STRING(r)) {
         LIns* args[] = { get(&r), get(&l), cx_ins };
         LIns* concat = lir->insCall(F_ConcatStrings, args);
-        guard(false, lir->ins_eq0(concat), OOM_EXIT);
+        guard(false, lir->ins_eq0(concat));
         set(&l, concat);
         return true;
     }
@@ -2620,7 +2708,7 @@ bool TraceRecorder::record_JSOP_CALL()
 
         LIns* res_ins = lir->insCall(known->builtin, args);
         if (known->fallible)
-            guard(false, lir->ins_eq0(res_ins), OOM_EXIT);
+            guard(false, lir->ins_eq0(res_ins));
         set(&fval, res_ins);
         return true;
     }
@@ -3468,6 +3556,8 @@ bool TraceRecorder::record_JSOP_CALLELEM()
 bool TraceRecorder::record_JSOP_STOP()
 {
     
+    
+    
     rval_ins = lir->insImm(JSVAL_TO_BOOLEAN(JSVAL_VOID));
     clearFrameSlotsFromCache();
     return true;
@@ -3675,6 +3765,7 @@ bool TraceRecorder::record_JSOP_LENGTH()
             ABORT_TRACE("non-string primitives unsupported");
         LIns* str_ins = get(&l);
         LIns* len_ins = lir->insLoadi(str_ins, offsetof(JSString, length));
+
         
         guard(true, addName(lir->ins_eq0(lir->ins2(LIR_and, len_ins,
                                                    INS_CONST(JSSTRFLAG_DEPENDENT))),
