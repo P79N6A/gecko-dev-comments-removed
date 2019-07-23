@@ -319,12 +319,6 @@ namespace nanojit
             inline void fpu_pop() {
                 debug_only( --_fpuStkDepth;  NanoAssert(_fpuStkDepth<=0); )
             }
-    #ifdef AVMPLUS_PORTING_API
-            
-            
-            
-            void* _endJit2Addr;
-    #endif 
             avmplus::Config &config;
     };
 
