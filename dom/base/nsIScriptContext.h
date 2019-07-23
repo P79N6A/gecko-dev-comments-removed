@@ -56,10 +56,10 @@ class nsScriptObjectHolder;
 
 typedef void (*nsScriptTerminationFunc)(nsISupports* aRef);
 
+
 #define NS_ISCRIPTCONTEXT_IID \
-{ /* {09316a0e-8d05-4d26-9efd-8f907a7c79d2} */ \
-  0x09316a0e, 0x8d05, 0x4d26, \
- { 0x9e, 0xfd, 0x8f, 0x90, 0x7a, 0x7c, 0x79, 0xd2 } }
+{ 0x87482b5e, 0xe019, 0x4df5, \
+  { 0x9b, 0xc2, 0xb2, 0xa5, 0x1b, 0x1f, 0x2d, 0x28 } }
 
 
 
@@ -456,6 +456,9 @@ public:
 
   virtual nsresult DropScriptObject(void *object) = 0;
   virtual nsresult HoldScriptObject(void *object) = 0;
+
+  virtual void EnterModalState() = 0;
+  virtual void LeaveModalState() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContext, NS_ISCRIPTCONTEXT_IID)

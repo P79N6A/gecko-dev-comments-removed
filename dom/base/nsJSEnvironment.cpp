@@ -906,11 +906,13 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   
   
   PRTime callbackTime = ctx->mOperationCallbackTime;
+  PRTime modalStateTime = ctx->mModalStateTime;
 
   MaybeGC(cx);
 
   
   ctx->mOperationCallbackTime = callbackTime;
+  ctx->mModalStateTime = modalStateTime;
 
   
   nsCOMPtr<nsIMemory> mem;
@@ -965,15 +967,20 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   PRTime now = PR_Now();
 
-  if (LL_IS_ZERO(callbackTime)) {
+  if (callbackTime == 0) {
     
     
     ctx->mOperationCallbackTime = now;
     return JS_TRUE;
   }
 
-  PRTime duration;
-  LL_SUB(duration, now, callbackTime);
+  if (ctx->mModalStateDepth) {
+    
+
+    return JS_TRUE;
+  }
+
+  PRTime duration = now - callbackTime;
 
   
   
@@ -1153,6 +1160,46 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   return JS_FALSE;
 }
 
+void
+nsJSContext::EnterModalState()
+{
+  if (!mModalStateDepth) {
+    mModalStateTime =  mOperationCallbackTime ? PR_Now() : 0;
+  }
+  ++mModalStateDepth;
+}
+
+void
+nsJSContext::LeaveModalState()
+{
+  if (!mModalStateDepth) {
+    NS_ERROR("Uh, mismatched LeaveModalState() call!");
+
+    return;
+  }
+
+  --mModalStateDepth;
+
+  
+  
+  if (mModalStateDepth || !mOperationCallbackTime) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  if (mModalStateTime) {
+    mOperationCallbackTime += PR_Now() - mModalStateTime;
+  }
+  else {
+    mOperationCallbackTime = PR_Now();
+  }
+}
+
 #define JS_OPTIONS_DOT_STR "javascript.options."
 
 static const char js_options_dot_str[]   = JS_OPTIONS_DOT_STR;
@@ -1275,7 +1322,9 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime) : mGCOnDestruction(PR_TRUE)
   mNumEvaluations = 0;
   mTerminations = nsnull;
   mScriptsEnabled = PR_TRUE;
-  mOperationCallbackTime = LL_ZERO;
+  mOperationCallbackTime = 0;
+  mModalStateTime = 0;
+  mModalStateDepth = 0;
   mProcessingScriptTag = PR_FALSE;
 }
 
@@ -3363,7 +3412,8 @@ nsJSContext::ScriptEvaluated(PRBool aTerminated)
   }
 
   if (aTerminated) {
-    mOperationCallbackTime = LL_ZERO;
+    mOperationCallbackTime = 0;
+    mModalStateTime = 0;
   }
 }
 
