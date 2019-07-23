@@ -72,6 +72,9 @@
 #include "jsautooplen.h"        
 
 
+
+
+
 #define HOTLOOP 2
 
 
@@ -2050,6 +2053,12 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
     newifp->callerRegs.pc = fi.callpc;
     newifp->callerRegs.sp = cx->fp->slots + fi.s.spdist;
     newifp->frame.argv = newifp->callerRegs.sp - JS_MAX(fun->nargs, argc);
+    JS_ASSERT(newifp->frame.argv);
+#ifdef DEBUG
+    
+    
+    newifp->frame.argv[-1] = JSVAL_HOLE;
+#endif
     JS_ASSERT(newifp->frame.argv >= StackBase(cx->fp));
 
     newifp->frame.rval = JSVAL_VOID;
@@ -2499,6 +2508,14 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     if (slots < 0)
         return NULL;
     JS_ASSERT(unsigned(slots) == e->numStackSlots);
+
+#ifdef DEBUG
+    
+    for (JSStackFrame* fp = cx->fp; fp; fp = fp->down) {
+        JS_ASSERT(!fp->callee || JSVAL_IS_OBJECT(fp->argv[-1]));
+        JS_ASSERT(!fp->callee || fp->thisp == JSVAL_TO_OBJECT(fp->argv[-1]));
+    }
+#endif
 
     AUDIT(sideExitIntoInterpreter);
 
