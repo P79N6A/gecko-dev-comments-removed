@@ -419,6 +419,7 @@ nsXULDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     
     
     mStillWalking = PR_TRUE;
+    mMayStartLayout = PR_FALSE;
     mDocumentLoadGroup = do_GetWeakReference(aLoadGroup);
 
     mDocumentTitle.SetIsVoid(PR_TRUE);
@@ -1932,19 +1933,13 @@ nsXULDocument::StartLayout(void)
             }
         }
 
+        mMayStartLayout = PR_TRUE;
+        
         
         
         nsCOMPtr<nsIPresShell> shellGrip = shell;
         rv = shell->InitialReflow(r.width, r.height);
         NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        
-        
-        
-        
-        
-        shell->BeginObservingDocument();
     }
 
     return NS_OK;

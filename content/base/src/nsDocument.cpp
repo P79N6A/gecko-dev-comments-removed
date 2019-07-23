@@ -1453,6 +1453,8 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
     CSSLoader()->SetEnabled(PR_FALSE); 
   }
 
+  mMayStartLayout = PR_FALSE;
+
   if (aReset) {
     Reset(aChannel, aLoadGroup);
   }

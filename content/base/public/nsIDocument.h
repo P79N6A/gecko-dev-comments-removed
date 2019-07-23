@@ -96,9 +96,8 @@ struct JSObject;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xed21686d, 0x4e2f, 0x41f5, \
-  { 0x94, 0xaa, 0xcc, 0x1f, 0xbd, 0xfa, 0x1f, 0x84 } }
-
+{ 0x626d86d2, 0x615f, 0x4a12, \
+ { 0x94, 0xd8, 0xe3, 0xdb, 0x3a, 0x29, 0x83, 0x72 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -121,6 +120,7 @@ public:
       mNodeInfoManager(nsnull),
       mCompatMode(eCompatibility_FullStandards),
       mIsInitialDocumentInWindow(PR_FALSE),
+      mMayStartLayout(PR_TRUE),
       mPartID(0),
       mJSObject(nsnull)
   {
@@ -129,6 +129,11 @@ public:
 #endif
   
   
+
+
+
+
+
 
 
 
@@ -357,6 +362,8 @@ public:
   virtual void SetHeaderData(nsIAtom* aheaderField, const nsAString& aData) = 0;
 
   
+
+
 
 
 
@@ -914,6 +921,16 @@ public:
     return mLoadedAsData;
   }
 
+  PRBool MayStartLayout()
+  {
+    return mMayStartLayout;
+  }
+
+  void SetMayStartLayout(PRBool aMayStartLayout)
+  {
+    mMayStartLayout = aMayStartLayout;
+  }
+
   JSObject* GetJSObject() const
   {
     return mJSObject;
@@ -992,6 +1009,10 @@ protected:
   
   
   PRPackedBool mLoadedAsData;
+
+  
+  
+  PRPackedBool mMayStartLayout;
 
   
   
