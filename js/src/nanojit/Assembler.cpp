@@ -57,7 +57,7 @@ namespace nanojit
 
 
 
-    Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& dataAlloc, Allocator& alloc, AvmCore* core, LogControl* logc)
+    Assembler::Assembler(CodeAlloc& codeAlloc, Allocator& dataAlloc, Allocator& alloc, AvmCore* core, LogControl* logc, const Config& config)
         : codeList(NULL)
         , alloc(alloc)
         , _codeAlloc(codeAlloc)
@@ -77,7 +77,7 @@ namespace nanojit
     #ifdef VTUNE
         , cgen(NULL)
     #endif
-        , config(core->config)
+        , _config(config)
     {
         VMPI_memset(&_stats, 0, sizeof(_stats));
         nInit(core);

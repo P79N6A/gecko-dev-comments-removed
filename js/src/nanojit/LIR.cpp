@@ -953,7 +953,7 @@ namespace nanojit
         LOpcode op = getCallOpcode(ci);
 #if NJ_SOFTFLOAT_SUPPORTED
         
-        if (!_config.arm_vfp && op == LIR_fcall)
+        if (_config.soft_float && op == LIR_fcall)
             op = LIR_icall;
 #endif
 
