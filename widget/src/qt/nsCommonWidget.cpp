@@ -89,22 +89,19 @@ nsCommonWidget::InitKeyEvent(nsKeyEvent &aEvent, QKeyEvent *aQEvent)
     
     aEvent.nativeMsg = (void *)aQEvent;
 
+    if (aQEvent->text().length() && aQEvent->text()[0].isPrint()) {
+        aEvent.charCode = (PRInt32)aQEvent->text()[0].unicode();
+    }
+    else {
+        aEvent.charCode = 0;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    if (aEvent.charCode) {
+        aEvent.keyCode = 0;
+    }
+    else {
+        aEvent.keyCode = QtKeyCodeToDOMKeyCode(aQEvent->key());
+    }
 }
 
 void
