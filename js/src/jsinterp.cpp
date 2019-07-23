@@ -2567,12 +2567,14 @@ js_Interpret(JSContext *cx)
 
 #endif 
 
+#ifdef JS_TRACER
     
     TraceRecorder *tr = NULL;
     if (cx->executingTrace) {
         tr = JS_TRACE_MONITOR(cx).recorder;
         JS_TRACE_MONITOR(cx).recorder = NULL;
     }
+#endif    
 
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
@@ -7049,10 +7051,12 @@ js_Interpret(JSContext *cx)
         js_SetVersion(cx, originalVersion);
     --cx->interpLevel;
 
+#ifdef JS_TRACER    
     if (tr) {
         JS_TRACE_MONITOR(cx).recorder = tr;
         tr->deepAbort();
     }
+#endif    
     return ok;
 
   atom_not_defined:
