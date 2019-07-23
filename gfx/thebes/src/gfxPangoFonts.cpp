@@ -475,6 +475,7 @@ gfxPangoFont::GetCharSize(char aChar, gfxSize& aInkSize, gfxSize& aLogSize,
     
     
     
+    
     memset(&analysis, 0, sizeof(analysis));
     analysis.font = GetPangoFont();
     analysis.language = pango_language_from_string("en");
@@ -924,22 +925,23 @@ gfxPangoFont::SetupCairoFont(cairo_t *aCR)
         
         cairo_matrix_t fontCTM;
         cairo_scaled_font_get_ctm(mCairoFont, &fontCTM);
-        if (fontCTM.xx == currentCTM.xx && fontCTM.yy == currentCTM.yy &&
-            fontCTM.xy == currentCTM.xy && fontCTM.yx == currentCTM.yx) {
-            cairo_set_scaled_font(aCR, mCairoFont);
-            return PR_TRUE;
+        if (fontCTM.xx != currentCTM.xx || fontCTM.yy != currentCTM.yy ||
+            fontCTM.xy != currentCTM.xy || fontCTM.yx != currentCTM.yx) {
+            
+            cairo_scaled_font_destroy(mCairoFont);
+            mCairoFont = nsnull;
         }
-
+    }
+    if (!mCairoFont) {
+        mCairoFont = CreateScaledFont(aCR, &currentCTM, GetPangoFont());
+    }
+    if (cairo_scaled_font_status(mCairoFont) != CAIRO_STATUS_SUCCESS) {
         
-        cairo_scaled_font_destroy(mCairoFont);
+        
+        return PR_FALSE;
     }
-
-    mCairoFont = CreateScaledFont(aCR, &currentCTM, GetPangoFont());
-    if (NS_LIKELY(mCairoFont)) {
-        cairo_set_scaled_font(aCR, mCairoFont);
-        return PR_TRUE;
-    }
-    return PR_FALSE;
+    cairo_set_scaled_font(aCR, mCairoFont);
+    return PR_TRUE;
 }
 
 static void
