@@ -136,20 +136,20 @@ typedef nanojit::HashMap<uint32, FragPI, nanojit::DefaultHash<uint32> > FragStat
 
 struct InterpState
 {
-    double*        sp;                  
-    FrameInfo**    rp;                  
     JSContext*     cx;                  
+    double*        stackBase;           
+    double*        sp;                  
     double*        eos;                 
-    void*          eor;                 
+    FrameInfo**    callstackBase;       
     void*          sor;                 
+    FrameInfo**    rp;                  
+    void*          eor;                 
     VMSideExit*    lastTreeExitGuard;   
     VMSideExit*    lastTreeCallGuard;   
                                         
     void*          rpAtLastTreeCall;    
     VMSideExit*    outermostTreeExitGuard; 
     TreeInfo*      outermostTree;       
-    double*        stackBase;           
-    FrameInfo**    callstackBase;       
     uintN*         inlineCallCountp;    
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
@@ -167,6 +167,10 @@ struct InterpState
     
     uintN          nativeVpLen;
     jsval*         nativeVp;
+
+    InterpState(JSContext *cx, JSTraceMonitor *tm, TreeInfo *ti,
+                uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
+    ~InterpState();
 };
 
 
@@ -182,7 +186,7 @@ struct TraceNativeStorage
 
     double *stack() { return stack_global_buf; }
     double *global() { return stack_global_buf + MAX_NATIVE_STACK_SLOTS; }
-    FrameInfo **callstack() { return callstack_buf; } 
+    FrameInfo **callstack() { return callstack_buf; }
 };
 
 
@@ -298,6 +302,8 @@ struct JSTraceMonitor {
 
     
     void mark(JSTracer *trc);
+
+    bool outOfMemory() const;
 };
 
 typedef struct InterpStruct InterpStruct;
