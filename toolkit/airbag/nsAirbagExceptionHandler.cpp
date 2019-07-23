@@ -419,12 +419,20 @@ SetRestartArgs(int argc, char **argv)
 {
   int i;
   nsCAutoString envVar;
+  char *env;
   for (i = 0; i < argc; i++) {
     envVar = "MOZ_CRASHREPORTER_RESTART_ARG_";
     envVar.AppendInt(i);
     envVar += "=";
     envVar += argv[i];
-    PR_SetEnv(envVar.get());
+
+    
+    
+    env = ToNewCString(envVar);
+    if (!env)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    PR_SetEnv(env);
   }
 
   
@@ -432,7 +440,13 @@ SetRestartArgs(int argc, char **argv)
   envVar.AppendInt(i);
   envVar += "=";
 
-  PR_SetEnv(envVar.get());
+  
+  
+  env = ToNewCString(envVar);
+  if (!env)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  PR_SetEnv(env);
 
   return NS_OK;
 }
