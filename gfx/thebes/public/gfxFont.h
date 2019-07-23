@@ -748,22 +748,13 @@ public:
         
 
 
-        TEXT_ENABLE_NEGATIVE_SPACING = 0x0010,
+
+        TEXT_ENABLE_HYPHEN_BREAKS    = 0x0010,
         
 
 
 
-        TEXT_ENABLE_HYPHEN_BREAKS    = 0x0040,
-        
-
-
-
-        TEXT_IS_8BIT                 = 0x0080,
-        
-
-
-
-        TEXT_HAS_SURROGATES          = 0x0100,
+        TEXT_IS_8BIT                 = 0x0020,
         
 
 
@@ -771,18 +762,18 @@ public:
 
 
 
-        TEXT_NEED_BOUNDING_BOX       = 0x0200,
+        TEXT_NEED_BOUNDING_BOX       = 0x0040,
         
 
 
 
-        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0400,
+        TEXT_DISABLE_OPTIONAL_LIGATURES = 0x0080,
         
 
 
 
 
-        TEXT_OPTIMIZE_SPEED          = 0x0800
+        TEXT_OPTIMIZE_SPEED          = 0x0100
     };
 
     
@@ -1196,7 +1187,6 @@ public:
             FLAG_NOT_MISSING              = 0x01,
             FLAG_NOT_CLUSTER_START        = 0x02,
             FLAG_NOT_LIGATURE_GROUP_START = 0x04,
-            FLAG_LOW_SURROGATE            = 0x08,
             
             GLYPH_COUNT_MASK = 0x00FFFF00U,
             GLYPH_COUNT_SHIFT = 8
@@ -1222,9 +1212,6 @@ public:
         PRUint32 GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
 
         PRBool IsMissing() const { return (mValue & (FLAG_NOT_MISSING|FLAG_IS_SIMPLE_GLYPH)) == 0; }
-        PRBool IsLowSurrogate() const {
-            return (mValue & (FLAG_LOW_SURROGATE|FLAG_IS_SIMPLE_GLYPH)) == FLAG_LOW_SURROGATE;
-        }
         PRBool IsClusterStart() const {
             return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_CLUSTER_START);
         }
@@ -1269,15 +1256,6 @@ public:
         CompressedGlyph& SetMissing(PRUint32 aGlyphCount) {
             mValue = (mValue & FLAG_CAN_BREAK_BEFORE) |
                 (aGlyphCount << GLYPH_COUNT_SHIFT);
-            return *this;
-        }
-        
-
-
-
-        CompressedGlyph& SetLowSurrogate() {
-            mValue = (mValue & FLAG_CAN_BREAK_BEFORE) | FLAG_NOT_MISSING |
-                FLAG_LOW_SURROGATE;
             return *this;
         }
         PRUint32 GetGlyphCount() const {
@@ -1351,11 +1329,6 @@ public:
 
     
     
-    
-
-
-
-    void RecordSurrogates(const PRUnichar *aString);
     
 
 

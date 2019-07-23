@@ -2377,30 +2377,6 @@ gfxTextRun::SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar)
     mCharacterGlyphs[aIndex].SetMissing(1);
 }
 
-void
-gfxTextRun::RecordSurrogates(const PRUnichar *aString)
-{
-    
-    
-    
-    
-    
-    
-
-    if (!(mFlags & gfxTextRunFactory::TEXT_HAS_SURROGATES))
-        return;
-
-    
-    
-    PRUint32 i;
-    gfxTextRun::CompressedGlyph g;
-    for (i = 0; i < mCharacterCount; ++i) {
-        if (NS_IS_LOW_SURROGATE(aString[i])) {
-            SetGlyphs(i, g.SetLowSurrogate(), nsnull);
-        }
-    }
-}
-
 static void
 ClearCharacters(gfxTextRun::CompressedGlyph *aGlyphs, PRUint32 aLength)
 {

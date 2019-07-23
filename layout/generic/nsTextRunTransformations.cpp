@@ -173,15 +173,13 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
       
 
       if (k + 1 < iter.GetStringEnd() && aCharsToMerge[k + 1]) {
-        NS_ASSERTION(g.IsClusterStart() && g.IsLigatureGroupStart() &&
-                     !g.IsLowSurrogate(),
+        NS_ASSERTION(g.IsClusterStart() && g.IsLigatureGroupStart(),
                      "Don't know how to merge this stuff");
         continue;
       }
 
       NS_ASSERTION(mergeRunStart == k ||
-                   (g.IsClusterStart() && g.IsLigatureGroupStart() &&
-                    !g.IsLowSurrogate()),
+                   (g.IsClusterStart() && g.IsLigatureGroupStart()),
                    "Don't know how to merge this stuff");
 
       

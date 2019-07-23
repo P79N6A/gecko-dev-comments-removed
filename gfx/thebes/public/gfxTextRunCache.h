@@ -58,7 +58,6 @@ public:
 
 
 
-
     static gfxTextRun *MakeTextRun(const PRUnichar *aText, PRUint32 aLength,
                                    gfxFontGroup *aFontGroup,
                                    gfxContext *aRefContext,
