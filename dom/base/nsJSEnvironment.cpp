@@ -1882,10 +1882,14 @@ AtomToEventHandlerName(nsIAtom *aName)
 nsresult
 nsJSContext::JSObjectFromInterface(nsISupports* aTarget, void *aScope, JSObject **aRet)
 {
-  if (!aTarget) { 
+  
+  if (!aTarget) {
       *aRet = nsnull;
       return NS_OK;
   }
+
+  
+  
   
   nsresult rv;
   jsval v;
@@ -1893,6 +1897,7 @@ nsJSContext::JSObjectFromInterface(nsISupports* aTarget, void *aScope, JSObject 
                                                       (JSObject *)aScope,
                                                       aTarget,
                                                       &NS_GET_IID(nsISupports),
+                                                      PR_FALSE,
                                                       &v, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
 

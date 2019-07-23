@@ -134,19 +134,20 @@ public:
 
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
                              nsISupports *native, const nsIID* aIID,
-                             jsval *vp,
+                             PRBool aAllowWrapping, jsval *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull);
 
   
   static nsresult WrapNative(JSContext *cx, JSObject *scope,
-                             nsISupports *native, jsval *vp,
+                             nsISupports *native, PRBool aAllowWrapping,
+                             jsval *vp,
                              
                              
                              nsIXPConnectJSObjectHolder** aHolder = nsnull)
   {
-    return WrapNative(cx, scope, native, nsnull, vp, aHolder);
+    return WrapNative(cx, scope, native, nsnull, aAllowWrapping, vp, aHolder);
   }
 
   static nsresult ThrowJSException(JSContext *cx, nsresult aResult);

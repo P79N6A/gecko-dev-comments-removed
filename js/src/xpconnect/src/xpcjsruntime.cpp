@@ -61,7 +61,8 @@ const char* XPCJSRuntime::mStrings[] = {
     "createInstance",       
     "item",                 
     "__proto__",            
-    "__iterator__"          
+    "__iterator__",         
+    "__parent__"            
 #ifdef XPC_IDISPATCH_SUPPORT
     , "GeckoActiveXObject"  
     , "COMObject"           

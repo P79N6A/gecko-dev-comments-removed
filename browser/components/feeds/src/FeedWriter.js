@@ -845,8 +845,6 @@ FeedWriter.prototype = {
 
   
   handleEvent: function(event) {
-    
-    event = new XPCNativeWrapper(event);
     if (event.target.ownerDocument != this._document) {
       LOG("FeedWriter.handleEvent: Someone passed the feed writer as a listener to the events of another document!");
       return;
@@ -1152,10 +1150,7 @@ FeedWriter.prototype = {
 
   
   init: function FW_init(aWindow) {
-    
-    
-    
-    var window = new XPCNativeWrapper(aWindow);
+    var window = aWindow;
     this._feedURI = this._getOriginalURI(window);
     if (!this._feedURI)
       return;
@@ -1332,9 +1327,6 @@ FeedWriter.prototype = {
 
   
   observe: function FW_observe(subject, topic, data) {
-    
-    subject = new XPCNativeWrapper(subject);
-    
     if (!this._window) {
       
       
@@ -1401,9 +1393,6 @@ FeedWriter.prototype = {
 
    
    onPageChanged: function FW_onPageChanged(aURI, aWhat, aValue) {
-     
-     aURI = new XPCNativeWrapper(aURI);
-
      if (aWhat == Ci.nsINavHistoryObserver.ATTRIBUTE_FAVICON) {
        
        
