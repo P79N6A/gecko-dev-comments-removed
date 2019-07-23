@@ -37,17 +37,12 @@
 
 #include "stdafx.h"
 
-#include "jni.h"
 #include "npapi.h"
 
 #include "nsISupports.h"
 
 #ifdef MOZ_ACTIVEX_PLUGIN_XPCONNECT
 #include "XPConnect.h"
-#endif
-
-#ifdef MOZ_ACTIVEX_PLUGIN_LIVECONNECT
-#include "LiveConnect.h"
 #endif
 
 #include "LegacyPlugin.h"
@@ -244,25 +239,9 @@ NPError NPP_Initialize(void)
 void NPP_Shutdown(void)
 {
     ATLTRACE(_T("NPP_Shutdown()\n"));
-#ifdef MOZ_ACTIVEX_PLUGIN_LIVECONNECT
-    liveconnect_Shutdown();
-#endif
     _Module.Unlock();
 }
 
-
-
-
-
-
-jref NPP_GetJavaClass(void)
-{
-    ATLTRACE(_T("NPP_GetJavaClass()\n"));
-#ifdef MOZ_ACTIVEX_PLUGIN_LIVECONNECT
-    return liveconnect_GetJavaClass();
-#endif
-    return NULL;
-}
 
 #define MIME_OLEOBJECT1   "application/x-oleobject"
 #define MIME_OLEOBJECT2   "application/oleobject"

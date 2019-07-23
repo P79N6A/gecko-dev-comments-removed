@@ -51,11 +51,6 @@
 #include "nsPluginInstancePeer.h"
 #include "nsIPlugin.h"
 #include "nsIPluginInstanceInternal.h"
-#ifdef OJI
-#include "nsIJVMPlugin.h"
-#include "nsIJVMPluginInstance.h"
-#include "nsIJVMManager.h"
-#endif
 #include "nsIPluginStreamListener.h"
 #include "nsIHTTPHeaderListener.h"
 #include "nsIHttpHeaderVisitor.h"
@@ -3713,63 +3708,6 @@ nsPluginHostImpl::TrySetUpPluginInstance(const char *aMimeType,
   NS_ASSERTION(pluginTag, "Must have plugin tag here!");
   PRBool isJavaPlugin = pluginTag->mIsJavaPlugin;
 
-  if (isJavaPlugin && !pluginTag->mIsNPRuntimeEnabledJavaPlugin) {
-#if !defined(OJI) && defined(XP_MACOSX)
-    
-    
-    return NS_ERROR_FAILURE;
-#endif
-
-    
-    nsCOMPtr<nsIDocument> document;
-    aOwner->GetDocument(getter_AddRefs(document));
-    if (document) {
-      nsCOMPtr<nsPIDOMWindow> window =
-        do_QueryInterface(document->GetScriptGlobalObject());
-
-      if (window) {
-        window->InitJavaProperties();
-      }
-    }
-
-#if defined(OJI) && ((defined(XP_UNIX) && !defined(XP_MACOSX)) || defined(XP_OS2))
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    nsCOMPtr<nsIJVMManager> jvmManager = do_GetService(nsIJVMManager::GetCID(),
-                                                       &result);
-    if (NS_SUCCEEDED(result)) {
-      JNIEnv* proxyEnv;
-      
-      jvmManager->GetProxyJNI(&proxyEnv);
-    }
-#endif
-  }
-
   nsCAutoString contractID(
           NS_LITERAL_CSTRING(NS_INLINE_PLUGIN_CONTRACTID_PREFIX) +
           nsDependentCString(mimetype));
@@ -4477,15 +4415,11 @@ NS_IMETHODIMP nsPluginHostImpl::GetPluginFactory(const char *aMimeType, nsIPlugi
       nsGetFactory = (nsFactoryProc) PR_FindFunctionSymbol(pluginTag->mLibrary, "NSGetFactory");
 #endif
       if (nsGetFactory && IsCompatibleExecutable(pluginTag->mFullPath.get())) {
-
-
-#if !defined(XP_WIN) || !defined(__GNUC__)
         rv = nsGetFactory(serviceManager, kPluginCID, nsnull, nsnull,    
                           (nsIFactory**)&pluginTag->mEntryPoint);
         plugin = pluginTag->mEntryPoint;
         if (plugin)
           plugin->Initialize();
-#endif
       }
 #ifdef XP_OS2
       
