@@ -465,12 +465,12 @@ nsFrame::Destroy()
   
   
 
-  size_t sz = GetAllocatedSize();
+  nsQueryFrame::FrameIID id = GetFrameId();
   this->~nsFrame();
 
   
   
-  shell->FreeFrame(sz, 0 , (void*)this);
+  shell->FreeFrame(id, this);
 }
 
 NS_IMETHODIMP
