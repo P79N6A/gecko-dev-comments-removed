@@ -572,13 +572,12 @@ nsTextEditorDragListener::DragOver(nsIDOMEvent* aDragEvent)
   PRBool canDrop = CanDrop(aDragEvent);
   dragSession->SetCanDrop(canDrop);
 
-  
-  
-
-  aDragEvent->PreventDefault(); 
-    
   if (canDrop)
   {
+    
+    
+    aDragEvent->PreventDefault(); 
+
     if (mCaret && nsuiEvent)
     {
       PRInt32 offset = 0;
