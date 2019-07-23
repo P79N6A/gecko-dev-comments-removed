@@ -4476,7 +4476,6 @@ nsNavHistory::GetPageTitle(nsIURI* aURI, nsAString& aTitle)
 }
 
 
-#ifndef MOZILLA_1_8_BRANCH
 
 
 
@@ -4497,7 +4496,6 @@ nsNavHistory::SetURIGeckoFlags(nsIURI* aURI, PRUint32 aFlags)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
-#endif
 
 
 

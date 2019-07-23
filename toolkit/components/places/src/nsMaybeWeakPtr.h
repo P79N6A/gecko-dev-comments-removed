@@ -43,10 +43,6 @@
 #include "nsWeakReference.h"
 #include "nsTArray.h"
 
-#ifdef MOZILLA_1_8_BRANCH
-#define NS_GET_TEMPLATE_IID NS_GET_IID
-#endif
-
 
 
 
