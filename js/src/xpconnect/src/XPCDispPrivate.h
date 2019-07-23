@@ -320,6 +320,11 @@ public:
     
 
 
+    inline void Mark(JSContext*);
+    
+    
+
+
     JSBool IsMarked() const;
 private:
     JSBool mMarked;

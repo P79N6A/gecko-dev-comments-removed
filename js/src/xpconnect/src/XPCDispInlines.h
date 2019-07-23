@@ -463,7 +463,7 @@ JSBool XPCDispIDArray::IsMarked() const
 
     
 inline
-void XPCDispIDArray::TraceJS(JSTracer* trc)
+void XPCDispIDArray::Mark()
 {
 }
 
