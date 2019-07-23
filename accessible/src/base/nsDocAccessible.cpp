@@ -1244,8 +1244,8 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
     return;
 
   PRInt32 length = aIsInserted ?
-    aInfo->mReplaceLength; 
-    aInfo->mChangeEnd - start : 
+    aInfo->mReplaceLength: 
+    aInfo->mChangeEnd - start; 
 
   if (length > 0) {
     nsCOMPtr<nsIPresShell> shell(do_QueryReferent(mWeakShell));
