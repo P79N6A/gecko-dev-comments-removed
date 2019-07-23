@@ -154,6 +154,7 @@
 #include "mozAutoDocUpdate.h"
 
 #include "nsCSSParser.h"
+#include "nsTPtrArray.h"
 
 #ifdef MOZ_SVG
 #include "nsSVGFeatures.h"
@@ -601,6 +602,179 @@ nsINode::GetBaseURI(nsAString &aURI) const
   CopyUTF8toUTF16(spec, aURI);
 }
 
+static nsresult
+SetUserDataProperty(PRUint16 aCategory, nsINode *aNode, nsIAtom *aKey,
+                    nsISupports* aValue, void** aOldValue)
+{
+  nsresult rv = aNode->SetProperty(aCategory, aKey, aValue,
+                                   nsPropertyTable::SupportsDtorFunc, PR_TRUE,
+                                   aOldValue);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  NS_ADDREF(aValue);
+
+  return NS_OK;
+}
+
+
+nsresult
+nsNodeUtils::SetUserData(nsINode *aNode, const nsAString &aKey,
+                         nsIVariant *aData, nsIDOMUserDataHandler *aHandler,
+                         nsIVariant **aResult)
+{
+  *aResult = nsnull;
+
+  nsCOMPtr<nsIAtom> key = do_GetAtom(aKey);
+  if (!key) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsresult rv;
+  void *data;
+  if (aData) {
+    rv = SetUserDataProperty(DOM_USER_DATA, aNode, key, aData, &data);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
+    data = aNode->UnsetProperty(DOM_USER_DATA, key);
+  }
+
+  
+  nsCOMPtr<nsIVariant> oldData = dont_AddRef(static_cast<nsIVariant*>(data));
+
+  if (aData && aHandler) {
+    nsCOMPtr<nsIDOMUserDataHandler> oldHandler;
+    rv = SetUserDataProperty(DOM_USER_DATA_HANDLER, aNode, key, aHandler,
+                             getter_AddRefs(oldHandler));
+    if (NS_FAILED(rv)) {
+      
+      aNode->DeleteProperty(DOM_USER_DATA, key);
+
+      return rv;
+    }
+  }
+  else {
+    aNode->DeleteProperty(DOM_USER_DATA_HANDLER, key);
+  }
+
+  oldData.swap(*aResult);
+
+  return NS_OK;
+}
+
+PRUint16
+nsContentUtils::ComparePosition(nsINode* aNode1,
+                                nsINode* aNode2)
+{
+  NS_PRECONDITION(aNode1 && aNode2, "don't pass null");
+
+  if (aNode1 == aNode2) {
+    return 0;
+  }
+
+  nsAutoTPtrArray<nsINode, 32> parents1, parents2;
+
+  
+  nsIAttribute* attr1 = nsnull;
+  if (aNode1->IsNodeOfType(nsINode::eATTRIBUTE)) {
+    attr1 = static_cast<nsIAttribute*>(aNode1);
+    nsIContent* elem = attr1->GetContent();
+    
+    
+    if (elem) {
+      aNode1 = elem;
+      parents1.AppendElement(static_cast<nsINode*>(attr1));
+    }
+  }
+  if (aNode2->IsNodeOfType(nsINode::eATTRIBUTE)) {
+    nsIAttribute* attr2 = static_cast<nsIAttribute*>(aNode2);
+    nsIContent* elem = attr2->GetContent();
+    if (elem == aNode1 && attr1) {
+      
+      
+
+      PRUint32 i;
+      const nsAttrName* attrName;
+      for (i = 0; (attrName = elem->GetAttrNameAt(i)); ++i) {
+        if (attrName->Equals(attr1->NodeInfo())) {
+          NS_ASSERTION(!attrName->Equals(attr2->NodeInfo()),
+                       "Different attrs at same position");
+          return nsIDOM3Node::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC |
+            nsIDOM3Node::DOCUMENT_POSITION_PRECEDING;
+        }
+        if (attrName->Equals(attr2->NodeInfo())) {
+          return nsIDOM3Node::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC |
+            nsIDOM3Node::DOCUMENT_POSITION_FOLLOWING;
+        }
+      }
+      NS_NOTREACHED("neither attribute in the element");
+      return nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED;
+    }
+
+    if (elem) {
+      aNode2 = elem;
+      parents2.AppendElement(static_cast<nsINode*>(attr2));
+    }
+  }
+
+  
+  
+  
+  
+
+  
+  do {
+    parents1.AppendElement(aNode1);
+    aNode1 = aNode1->GetNodeParent();
+  } while (aNode1);
+  do {
+    parents2.AppendElement(aNode2);
+    aNode2 = aNode2->GetNodeParent();
+  } while (aNode2);
+
+  
+  PRUint32 pos1 = parents1.Length();
+  PRUint32 pos2 = parents2.Length();
+  nsINode* top1 = parents1.ElementAt(--pos1);
+  nsINode* top2 = parents2.ElementAt(--pos2);
+  if (top1 != top2) {
+    return top1 < top2 ?
+      (nsIDOM3Node::DOCUMENT_POSITION_PRECEDING |
+       nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED |
+       nsIDOM3Node::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC) :
+      (nsIDOM3Node::DOCUMENT_POSITION_FOLLOWING |
+       nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED |
+       nsIDOM3Node::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC);
+  }
+
+  
+  nsINode* parent = top1;
+  PRUint32 len;
+  for (len = NS_MIN(pos1, pos2); len > 0; --len) {
+    nsINode* child1 = parents1.ElementAt(--pos1);
+    nsINode* child2 = parents2.ElementAt(--pos2);
+    if (child1 != child2) {
+      
+      
+      
+      return parent->IndexOf(child1) < parent->IndexOf(child2) ?
+        static_cast<PRUint16>(nsIDOM3Node::DOCUMENT_POSITION_PRECEDING) :
+        static_cast<PRUint16>(nsIDOM3Node::DOCUMENT_POSITION_FOLLOWING);
+    }
+    parent = child1;
+  }
+
+  
+  
+  
+  return pos1 < pos2 ?
+    (nsIDOM3Node::DOCUMENT_POSITION_PRECEDING |
+     nsIDOM3Node::DOCUMENT_POSITION_CONTAINS) :
+    (nsIDOM3Node::DOCUMENT_POSITION_FOLLOWING |
+     nsIDOM3Node::DOCUMENT_POSITION_CONTAINED_BY);    
+}
+
 
 
 PRInt32
@@ -689,6 +863,42 @@ nsIContent::GetDesiredIMEState()
   nsresult rv = imeEditor->GetPreferredIMEState(&state);
   NS_ENSURE_SUCCESS(rv, IME_STATUS_ENABLE);
   return state;
+}
+
+
+nsresult
+nsContentUtils::LookupNamespaceURI(nsIContent* aNamespaceResolver,
+                                   const nsAString& aNamespacePrefix,
+                                   nsAString& aNamespaceURI)
+{
+  if (aNamespacePrefix.EqualsLiteral("xml")) {
+    
+    aNamespaceURI.AssignLiteral("http://www.w3.org/XML/1998/namespace");
+    return NS_OK;
+  }
+
+  if (aNamespacePrefix.EqualsLiteral("xmlns")) {
+    
+    aNamespaceURI.AssignLiteral("http://www.w3.org/2000/xmlns/");
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIAtom> name;
+  if (!aNamespacePrefix.IsEmpty()) {
+    name = do_GetAtom(aNamespacePrefix);
+    NS_ENSURE_TRUE(name, NS_ERROR_OUT_OF_MEMORY);
+  }
+  else {
+    name = nsGkAtoms::xmlns;
+  }
+  
+  
+  for (nsIContent* content = aNamespaceResolver; content;
+       content = content->GetParent()) {
+    if (content->GetAttr(kNameSpaceID_XMLNS, name, aNamespaceURI))
+      return NS_OK;
+  }
+  return NS_ERROR_FAILURE;
 }
 
 
@@ -1916,6 +2126,27 @@ nsGenericElement::SetPrefix(const nsAString& aPrefix)
   return NS_OK;
 }
 
+already_AddRefed<nsIDOMNSFeatureFactory>
+nsGenericElement::GetDOMFeatureFactory(const nsAString& aFeature,
+                                       const nsAString& aVersion)
+{
+  nsIDOMNSFeatureFactory *factory = nsnull;
+  nsCOMPtr<nsICategoryManager> categoryManager =
+    do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
+  if (categoryManager) {
+    nsCAutoString featureCategory(NS_DOMNS_FEATURE_PREFIX);
+    AppendUTF16toUTF8(aFeature, featureCategory);
+    nsXPIDLCString contractID;
+    nsresult rv = categoryManager->GetCategoryEntry(featureCategory.get(),
+                                                    NS_ConvertUTF16toUTF8(aVersion).get(),
+                                                    getter_Copies(contractID));
+    if (NS_SUCCEEDED(rv)) {
+      CallGetService(contractID.get(), &factory);  
+    }
+  }
+  return factory;
+}
+
 nsresult
 nsGenericElement::InternalIsSupported(nsISupports* aObject,
                                       const nsAString& aFeature,
@@ -2007,27 +2238,6 @@ nsGenericElement::InternalGetFeature(nsISupports* aObject,
   }
 
   return NS_OK;
-}
-
-already_AddRefed<nsIDOMNSFeatureFactory>
-nsGenericElement::GetDOMFeatureFactory(const nsAString& aFeature,
-                                       const nsAString& aVersion)
-{
-  nsIDOMNSFeatureFactory *factory = nsnull;
-  nsCOMPtr<nsICategoryManager> categoryManager =
-    do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
-  if (categoryManager) {
-    nsCAutoString featureCategory(NS_DOMNS_FEATURE_PREFIX);
-    AppendUTF16toUTF8(aFeature, featureCategory);
-    nsXPIDLCString contractID;
-    nsresult rv = categoryManager->GetCategoryEntry(featureCategory.get(),
-                                                    NS_ConvertUTF16toUTF8(aVersion).get(),
-                                                    getter_Copies(contractID));
-    if (NS_SUCCEEDED(rv)) {
-      CallGetService(contractID.get(), &factory);  
-    }
-  }
-  return factory;
 }
 
 NS_IMETHODIMP
