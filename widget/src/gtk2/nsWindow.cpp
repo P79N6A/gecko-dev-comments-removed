@@ -5155,8 +5155,13 @@ nsWindow::IMEReleaseData(void)
 
 
 
-static void disconnect_gtk_xim_display_closed(GtkWidget *aGtkWidget,
-                                              GtkIMContext *aContext)
+
+
+
+
+
+static void workaround_gtk_im_display_closed(GtkWidget *aGtkWidget,
+                                             GtkIMContext *aContext)
 {
     GtkIMMulticontext *multicontext = GTK_IM_MULTICONTEXT (aContext);
     GtkIMContext *slave = multicontext->slave;
@@ -5164,30 +5169,36 @@ static void disconnect_gtk_xim_display_closed(GtkWidget *aGtkWidget,
         return;
 
     GType slaveType = G_TYPE_FROM_INSTANCE(slave);
-    if (strcmp(g_type_name(slaveType), "GtkIMContextXIM") != 0)
-        return; 
+    const gchar *im_type_name = g_type_name(slaveType);
+    if (strcmp(im_type_name, "GtkIMContextXIM") == 0) {
+        if (gtk_check_version(2, 12, 1) == NULL) 
+            return;
 
-    struct GtkIMContextXIM
-    {
-        GtkIMContext parent;
-        gpointer private_data;
-        
-    };
-    gpointer signal_data =
-        reinterpret_cast<GtkIMContextXIM*>(slave)->private_data;
-    if (!signal_data)
-        return; 
+        struct GtkIMContextXIM
+        {
+            GtkIMContext parent;
+            gpointer private_data;
+            
+        };
+        gpointer signal_data =
+            reinterpret_cast<GtkIMContextXIM*>(slave)->private_data;
+        if (!signal_data)
+            return; 
 
-    guint disconnected =
         g_signal_handlers_disconnect_matched(gtk_widget_get_display(aGtkWidget),
                                              G_SIGNAL_MATCH_DATA, 0, 0, NULL,
                                              NULL, signal_data);
 
-    if (disconnected) {
         
         
         
-        g_type_class_ref(slaveType);
+        static gpointer gtk_xim_context_class =
+            g_type_class_ref(slaveType);
+    }
+    else if (strcmp(im_type_name, "GtkIMContextIIIM") == 0) {
+        
+        static gpointer gtk_iiim_context_class =
+            g_type_class_ref(slaveType);
     }
 }
 
@@ -5224,10 +5235,8 @@ nsWindow::IMEDestroyContext(void)
     mIMEData->mEnabled = nsIKBStateControl::IME_STATUS_DISABLED;
 
     if (mIMEData->mContext) {
-        if (gtk_check_version(2,12,1) != NULL) { 
-            disconnect_gtk_xim_display_closed(GTK_WIDGET(mContainer),
-                                              mIMEData->mContext);
-        }
+        workaround_gtk_im_display_closed(GTK_WIDGET(mContainer),
+                                         mIMEData->mContext);
         gtk_im_context_set_client_window(mIMEData->mContext, nsnull);
         g_object_unref(G_OBJECT(mIMEData->mContext));
         mIMEData->mContext = nsnull;
