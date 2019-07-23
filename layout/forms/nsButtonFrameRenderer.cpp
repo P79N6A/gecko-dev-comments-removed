@@ -182,6 +182,8 @@ nsButtonFrameRenderer::PaintOutlineAndFocusBorders(nsPresContext* aPresContext,
   
   
   
+  
+  
 
   nsRect rect;
 
@@ -192,7 +194,7 @@ nsButtonFrameRenderer::PaintOutlineAndFocusBorders(nsPresContext* aPresContext,
 
     const nsStyleBorder* border = mOuterFocusStyle->GetStyleBorder();
     nsCSSRendering::PaintBorder(aPresContext, aRenderingContext, mFrame,
-                                aDirtyRect, rect, *border, mOuterFocusStyle, 0);
+                                aDirtyRect, rect, *border, mOuterFocusStyle);
   }
 
   if (mInnerFocusStyle) { 
@@ -202,7 +204,7 @@ nsButtonFrameRenderer::PaintOutlineAndFocusBorders(nsPresContext* aPresContext,
 
     const nsStyleBorder* border = mInnerFocusStyle->GetStyleBorder();
     nsCSSRendering::PaintBorder(aPresContext, aRenderingContext, mFrame,
-                                aDirtyRect, rect, *border, mInnerFocusStyle, 0);
+                                aDirtyRect, rect, *border, mInnerFocusStyle);
   }
 }
 
@@ -227,7 +229,7 @@ nsButtonFrameRenderer::PaintBorderAndBackground(nsPresContext* aPresContext,
                                   aDirtyRect, buttonRect, *border, *padding,
                                   PR_FALSE);
   nsCSSRendering::PaintBorder(aPresContext, aRenderingContext, mFrame,
-                              aDirtyRect, buttonRect, *border, context, 0);
+                              aDirtyRect, buttonRect, *border, context);
 }
 
 

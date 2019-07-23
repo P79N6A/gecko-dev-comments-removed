@@ -95,7 +95,6 @@
 
 
 
-
 static void ComputeBorderCornerDimensions(const gfxRect& aOuterRect,
                                           const gfxRect& aInnerRect,
                                           const gfxCornerSizes& aRadii,
@@ -176,8 +175,7 @@ nsCSSBorderRenderer::nsCSSBorderRenderer(PRInt32 aAppUnitsPerPixel,
                                          const nscolor* aBorderColors,
                                          nsBorderColors* const* aCompositeColors,
                                          PRIntn aSkipSides,
-                                         nscolor aBackgroundColor,
-                                         const gfxRect* aGapRect)
+                                         nscolor aBackgroundColor)
   : mAUPP(aAppUnitsPerPixel),
     mContext(aDestContext),
     mOuterRect(aOuterRect),
@@ -187,8 +185,7 @@ nsCSSBorderRenderer::nsCSSBorderRenderer(PRInt32 aAppUnitsPerPixel,
     mBorderColors(aBorderColors),
     mCompositeColors(aCompositeColors),
     mSkipSides(aSkipSides),
-    mBackgroundColor(aBackgroundColor),
-    mGapRect(aGapRect)
+    mBackgroundColor(aBackgroundColor)
 {
   if (!mCompositeColors) {
     static nsBorderColors * const noColors[4] = { NULL };
@@ -1103,24 +1100,6 @@ nsCSSBorderRenderer::DrawBorders()
     mat.y0 = floor(mat.y0 + 0.5);
     mContext->SetMatrix(mat);
   }
-
-  
-  
-  if (mGapRect) {
-    mContext->NewPath();
-    mContext->Rectangle(mOuterRect);
-
-    
-    
-    mContext->MoveTo(mGapRect->pos);
-    mContext->LineTo(mGapRect->pos + gfxSize(0.0, mGapRect->size.height));
-    mContext->LineTo(mGapRect->pos + mGapRect->size);
-    mContext->LineTo(mGapRect->pos + gfxSize(mGapRect->size.width, 0.0));
-    mContext->ClosePath();
-
-    mContext->Clip();
-  }
-
 
   if (allBordersSame && !forceSeparateCorners) {
     

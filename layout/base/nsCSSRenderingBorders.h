@@ -105,8 +105,7 @@ struct nsCSSBorderRenderer {
                       const nscolor* aBorderColors,
                       nsBorderColors* const* aCompositeColors,
                       PRIntn aSkipSides,
-                      nscolor aBackgroundColor,
-                      const gfxRect* aGapRect = nsnull);
+                      nscolor aBackgroundColor);
 
   
   PRInt32 mAUPP;
@@ -128,10 +127,8 @@ struct nsCSSBorderRenderer {
   nsBorderColors* const* mCompositeColors;
 
   
-  
   PRIntn mSkipSides;
   nscolor mBackgroundColor;
-  const gfxRect* mGapRect;
 
   
   PRPackedBool mOneUnitBorder;

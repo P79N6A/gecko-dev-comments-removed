@@ -80,10 +80,7 @@ public:
                           const nsRect& aBorderArea,
                           const nsStyleBorder& aBorderStyle,
                           nsStyleContext* aStyleContext,
-                          PRIntn aSkipSides,
-                          nsRect* aGap = 0,
-                          nscoord aHardBorderSize = 0,
-                          PRBool aShouldIgnoreRounded = PR_FALSE);
+                          PRIntn aSkipSides = 0);
 
   
 
@@ -100,8 +97,18 @@ public:
                           const nsRect& aBorderArea,
                           const nsStyleBorder& aBorderStyle,
                           const nsStyleOutline& aOutlineStyle,
-                          nsStyleContext* aStyleContext,
-                          nsRect* aGap = 0);
+                          nsStyleContext* aStyleContext);
+
+  
+
+
+
+
+
+  static void PaintFocus(nsPresContext* aPresContext,
+                         nsIRenderingContext& aRenderingContext,
+                         const nsRect& aFocusRect,
+                         nscolor aColor);
 
   
 
@@ -163,29 +170,6 @@ public:
 
 
   static void DidPaint();
-
-
-  static void DrawDashedSides(PRIntn startSide,
-                              nsIRenderingContext& aContext,
-                              const nsRect& aDirtyRect,
-                              const PRUint8 borderStyles[],
-                              const nscolor borderColors[],    
-                              const nsRect& borderOutside,
-                              const nsRect& borderInside,
-                              PRIntn aSkipSides,
-                              nsRect* aGap);
-
-  static void DrawDashedSides(PRIntn startSide,
-                              nsIRenderingContext& aContext,
-                              const nsRect& aDirtyRect,
-                              const nsStyleColor* aColorStyle,
-                              const nsStyleBorder* aBorderStyle,  
-                              const nsStyleOutline* aOutlineStyle,  
-                              PRBool aDoOutline,
-                              const nsRect& borderOutside,
-                              const nsRect& borderInside,
-                              PRIntn aSkipSides,
-                              nsRect* aGap);
 
   
   static void DrawTableBorderSegment(nsIRenderingContext&     aContext,
@@ -277,8 +261,7 @@ protected:
                               nsIRenderingContext& aRenderingContext,
                               nsIFrame* aForFrame,
                               const nsRect& aBorderArea,
-                              const nsStyleBorder& aBorderStyle,
-                              nscoord aHardBorderSize);
+                              const nsStyleBorder& aBorderStyle);
 
   static void DrawBorderImageSide(gfxContext *aThebesContext,
                                   nsIDeviceContext* aDeviceContext,
