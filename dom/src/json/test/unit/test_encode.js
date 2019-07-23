@@ -230,8 +230,11 @@ function deleteDuringEncode() {
 
 function run_test() {
   testStringEncode();
-  testOutputStreams();
   throwingToJSON();
   throwingIterator();
   deleteDuringEncode();
+  
+  
+  
+  
 }
