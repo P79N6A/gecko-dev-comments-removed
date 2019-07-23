@@ -320,10 +320,8 @@ LookupCatalogData(const PRUnichar* aPublicID)
 
 
 
-
-
-static PRBool
-IsLoadableDTD(const nsCatalogData* aCatalogData, nsIURI* aDTD,
+static void
+GetLocalDTDURI(const nsCatalogData* aCatalogData, nsIURI* aDTD,
               nsIURI** aResult)
 {
   NS_ASSERTION(aDTD, "Null parameter.");
@@ -341,41 +339,18 @@ IsLoadableDTD(const nsCatalogData* aCatalogData, nsIURI* aDTD,
     
     nsCOMPtr<nsIURL> dtdURL = do_QueryInterface(aDTD);
     if (!dtdURL) {
-      return PR_FALSE;
+      return;
     }
 
     dtdURL->GetFileName(fileName);
     if (fileName.IsEmpty()) {
-      return PR_FALSE;
+      return;
     }
   }
 
-  nsCOMPtr<nsIFile> dtdPath;
-  NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(dtdPath));
-  if (!dtdPath) {
-    return PR_FALSE;
-  }
-
-  nsCOMPtr<nsILocalFile> lfile = do_QueryInterface(dtdPath);
-
-  
-  
-  
-  lfile->AppendNative(NS_LITERAL_CSTRING("res"));
-  lfile->AppendNative(NS_LITERAL_CSTRING("dtd"));
-  lfile->AppendNative(fileName);
-
-  PRBool exists;
-  dtdPath->Exists(&exists);
-  if (!exists) {
-    return PR_FALSE;
-  }
-
-  
-  
-  NS_NewFileURI(aResult, dtdPath);
-
-  return *aResult != nsnull;
+  nsCAutoString respath("resource://gre/res/dtd/");
+  respath += fileName;
+  NS_NewURI(aResult, respath);
 }
 
 
@@ -795,7 +770,8 @@ nsExpatDriver::OpenInputStreamFromExternalDTD(const PRUnichar* aFPIStr,
     }
 
     nsCOMPtr<nsIURI> localURI;
-    if (!IsLoadableDTD(mCatalogData, uri, getter_AddRefs(localURI))) {
+    GetLocalDTDURI(mCatalogData, uri, getter_AddRefs(localURI));
+    if (!localURI) {
       return NS_ERROR_NOT_IMPLEMENTED;
     }
 
