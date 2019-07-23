@@ -208,11 +208,9 @@ enum { XKeyPress = KeyPress };
 static PRLogModuleInfo *nsObjectFrameLM = PR_NewLogModule("nsObjectFrame");
 #endif 
 
+#define NORMAL_PLUGIN_DELAY 20
 
-#define NORMAL_PLUGIN_DELAY 17
-
-
-#define HIDDEN_PLUGIN_DELAY 100
+#define HIDDEN_PLUGIN_DELAY 250
 
 
 
