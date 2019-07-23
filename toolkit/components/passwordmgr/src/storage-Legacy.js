@@ -169,6 +169,19 @@ LoginManagerStorage_legacy.prototype = {
 
 
     addLogin : function (login) {
+        
+        
+        
+        
+        if (!login.wrappedJSObject) {
+            var clone = Cc["@mozilla.org/login-manager/loginInfo;1"].
+                        createInstance(Ci.nsILoginInfo);
+            clone.init(login.hostname, login.formSubmitURL, login.httpRealm,
+                       login.username,      login.password,
+                       login.usernameField, login.passwordField);
+            login = clone;
+        }
+
         var key = login.hostname;
 
         
@@ -191,6 +204,10 @@ LoginManagerStorage_legacy.prototype = {
 
         if (!logins)
             throw "No logins found for hostname (" + key + ")";
+
+        
+        
+        this._decryptLogins(logins);
 
         for (var i = 0; i < logins.length; i++) {
             if (logins[i].equals(login)) {
@@ -225,12 +242,15 @@ LoginManagerStorage_legacy.prototype = {
 
 
     getAllLogins : function (count) {
-        var result = [];
+        var result = [], userCanceled;
 
         
         for each (var hostLogins in this._logins) {
             result = result.concat(hostLogins);
         }
+
+        
+        [result, userCanceled] = this._decryptLogins(result);
 
         count.value = result.length; 
         return result;
@@ -300,7 +320,7 @@ LoginManagerStorage_legacy.prototype = {
             return [];
         }
 
-        var result = [];
+        var result = [], userCanceled;
 
         for each (var login in hostLogins) {
 
@@ -317,6 +337,15 @@ LoginManagerStorage_legacy.prototype = {
 
             result.push(login);
         }
+
+        
+        [result, userCanceled] = this._decryptLogins(result);
+
+        
+        
+        
+        if (userCanceled)
+            throw "User canceled Master Password entry";
 
         count.value = result.length; 
         return result;
@@ -383,7 +412,6 @@ LoginManagerStorage_legacy.prototype = {
 
     _readFile : function () {
         var oldFormat = false;
-        var writeOnFinish = false;
 
         this.log("Reading passwords from " + this._signonsFile.path);
 
@@ -484,7 +512,7 @@ LoginManagerStorage_legacy.prototype = {
 
                 
                 case STATE.USERVALUE:
-                    entry.username = this._decrypt(line.value);
+                    entry.wrappedJSObject.encryptedUsername = line.value;
                     parseState++;
                     break;
 
@@ -497,7 +525,7 @@ LoginManagerStorage_legacy.prototype = {
 
                 
                 case STATE.PASSVALUE:
-                    entry.password = this._decrypt(line.value);
+                    entry.wrappedJSObject.encryptedPassword = line.value;
                     if (oldFormat) {
                         entry.formSubmitURL = "";
                         processEntry = true;
@@ -517,23 +545,17 @@ LoginManagerStorage_legacy.prototype = {
             }
 
             if (processEntry) {
-                if (entry.username == "" && entry.password == "") {
-                    
-                    writeOnFinish = true;
-                } else {
-                    if (!this._logins[hostname])
-                        this._logins[hostname] = [];
-                    this._logins[hostname].push(entry);
-                }
+                if (!this._logins[hostname])
+                    this._logins[hostname] = [];
+
+                this._logins[hostname].push(entry);
+
                 entry = null;
                 processEntry = false;
             }
         } while (hasMore);
 
         lineStream.close();
-
-        if (writeOnFinish)
-            this._writeFile();
 
         return;
     },
@@ -594,6 +616,7 @@ LoginManagerStorage_legacy.prototype = {
             
             var lastRealm = null;
             var firstEntry = true;
+            var userCanceled = false;
             for each (var login in this._logins[hostname]) {
 
                 
@@ -611,8 +634,28 @@ LoginManagerStorage_legacy.prototype = {
 
                 firstEntry = false;
 
-                var encUsername = this._encrypt(login.username);
-                var encPassword = this._encrypt(login.password);
+                
+                
+                var encUsername = login.wrappedJSObject.encryptedUsername;
+                if (!encUsername) {
+                    [encUsername, userCanceled] = this._encrypt(login.username);
+                    login.wrappedJSObject.encryptedUsername = encUsername;
+                }
+
+                if (userCanceled)
+                    break;
+
+                
+                
+                var encPassword = login.wrappedJSObject.encryptedPassword;
+                if (!encPassword) {
+                    [encPassword, userCanceled] = this._encrypt(login.password);
+                    login.wrappedJSObject.encryptedPassword = encPassword;
+                }
+
+                if (userCanceled)
+                    break;
+
 
                 writeLine((login.usernameField ?  login.usernameField : ""));
                 writeLine(encUsername);
@@ -622,6 +665,13 @@ LoginManagerStorage_legacy.prototype = {
                 writeLine((login.formSubmitURL ? login.formSubmitURL : ""));
 
                 lastRealm = login.httpRealm;
+            }
+
+            if (userCanceled) {
+                this.log("User canceled Master Password, aborting write.");
+                
+                outputStream.close();
+                return;
             }
 
             
@@ -638,13 +688,54 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
-    _encrypt : function (plainText) {
-        var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                             .createInstance(Ci.nsIScriptableUnicodeConverter);
-        converter.charset = "UTF-8";
-        var plainOctet = converter.ConvertFromUnicode(plainText);
-        plainOctet += converter.Finish();
-        return this._decoderRing.encryptString(plainOctet);
+
+
+
+
+
+
+
+
+
+
+
+    _decryptLogins : function (logins) {
+        var result = [], userCanceled = false;
+
+        for each (var login in logins) {
+            if (!login.username)
+                [login.username, userCanceled] =
+                    this._decrypt(login.wrappedJSObject.encryptedUsername);
+
+            if (userCanceled)
+                break;
+
+            if (!login.password)
+                [login.password, userCanceled] =
+                    this._decrypt(login.wrappedJSObject.encryptedPassword);
+
+            
+            if (userCanceled)
+                break;
+
+            
+            
+            if (!login.username || !login.password)
+                continue;
+
+            
+            if (login.wrappedJSObject.encryptedUsername &&
+                login.wrappedJSObject.encryptedUsername.charAt(0) == '~')
+                login.wrappedJSObject.encryptedUsername = null;
+
+            if (login.wrappedJSObject.encryptedPassword &&
+                login.wrappedJSObject.encryptedPassword.charAt(0) == '~')
+                login.wrappedJSObject.encryptedPassword = null;
+
+            result.push(login);
+        }
+
+        return [result, userCanceled];
     },
 
 
@@ -652,8 +743,52 @@ LoginManagerStorage_legacy.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+    _encrypt : function (plainText) {
+        var cipherText = null, userCanceled = false;
+
+        try {
+            var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+                            createInstance(Ci.nsIScriptableUnicodeConverter);
+            converter.charset = "UTF-8";
+            var plainOctet = converter.ConvertFromUnicode(plainText);
+            plainOctet += converter.Finish();
+            cipherText = this._decoderRing.encryptString(plainOctet);
+        } catch (e) {
+            this.log("Failed to encrypt string. (" + e.name + ")");
+            if (e.result == Components.results.NS_ERROR_NOT_AVAILABLE)
+                userCanceled = true;
+        }
+
+        return [cipherText, userCanceled];
+    },
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     _decrypt : function (cipherText) {
-        var plainText = null;
+        var plainText = null, userCanceled = false;
 
         try {
             var plainOctet;
@@ -670,10 +805,18 @@ LoginManagerStorage_legacy.prototype = {
             converter.charset = "UTF-8";
             plainText = converter.ConvertToUnicode(plainOctet);
         } catch (e) {
-            this.log("Failed to decrypt string: " + cipherText);
+            this.log("Failed to decrypt string: " + cipherText +
+                " (" + e.name + ")");
+
+            
+            
+            
+            
+            if (e.result == Components.results.NS_ERROR_NOT_AVAILABLE)
+                userCanceled = true;
         }
 
-        return plainText;
+        return [plainText, userCanceled];
     },
 
 }; 
