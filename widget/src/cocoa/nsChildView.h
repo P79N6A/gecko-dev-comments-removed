@@ -128,9 +128,9 @@ enum {
   
   
   nsChildView* mGeckoChild;
-    
-  
+
   BOOL mIsPluginView;
+  BOOL mSendCarbonPluginEvents; 
 
   
   
@@ -385,7 +385,10 @@ public:
   NS_IMETHOD        StartDrawPlugin();
   NS_IMETHOD        EndDrawPlugin();
   NS_IMETHOD        SetPluginInstanceOwner(nsIPluginInstanceOwner* aInstanceOwner);
-  
+
+  NS_IMETHOD        SetPluginEventModel(int inEventModel);
+  NS_IMETHOD        GetPluginEventModel(int* outEventModel);
+
   virtual nsTransparencyMode GetTransparencyMode();
   virtual void                SetTransparencyMode(nsTransparencyMode aMode);
   

@@ -158,6 +158,7 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
 #ifdef XP_MACOSX
 #include "gfxQuartzNativeDrawing.h"
+#include "nsPluginUtilsOSX.h"
 #endif
 
 #ifdef MOZ_X11
@@ -280,6 +281,11 @@ public:
 
   NS_IMETHOD GetNetscapeWindow(void *value);
 
+  NPError    ShowNativeContextMenu(NPMenu* menu, nsPluginEvent* event);
+
+  NPBool     ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
+                          double *destX, double *destY, NPCoordinateSpace destSpace);
+
   
 
   NS_IMETHOD GetAttributes(PRUint16& n, const char*const*& names,
@@ -345,7 +351,7 @@ public:
 #ifdef XP_WIN
   void Paint(const RECT& aDirty, HDC aDC);
 #elif defined(XP_MACOSX)
-  void Paint();  
+  void Paint(const gfxRect& aDirtyRect);  
 #elif defined(MOZ_X11) || defined(MOZ_DFB)
   void Paint(gfxContext* aContext,
              const gfxRect& aFrameRect,
@@ -378,7 +384,8 @@ public:
 
 #ifdef XP_MACOSX
   NPDrawingModel GetDrawingModel();
-  WindowRef FixUpPluginWindow(PRInt32 inPaintState);
+  NPEventModel GetEventModel();
+  void* FixUpPluginWindow(PRInt32 inPaintState);
   
   
   void SetPluginPortChanged(PRBool aState) { mPluginPortChanged = aState; }
@@ -1599,7 +1606,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       }
 
       mInstanceOwner->BeginCGPaint();
-      mInstanceOwner->Paint();
+      mInstanceOwner->Paint(nativeClipRect - offset);
       mInstanceOwner->EndCGPaint();
 
       nativeDrawing.EndNativeDrawing();
@@ -1608,7 +1615,9 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
       nsIRenderingContext::AutoPushTranslation
         translate(&aRenderingContext, aFramePt.x, aFramePt.y);
 
-      mInstanceOwner->Paint();
+      
+      gfxRect tmpRect(0, 0, 0, 0);
+      mInstanceOwner->Paint(tmpRect);
     }
   }
 #elif defined(MOZ_X11) || defined(MOZ_DFB)
@@ -1856,6 +1865,7 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
                            nsGUIEvent*     anEvent,
                            nsEventStatus*  anEventStatus)
 {
+  NS_ENSURE_ARG_POINTER(anEvent);
   NS_ENSURE_ARG_POINTER(anEventStatus);
   nsresult rv = NS_OK;
 
@@ -1879,6 +1889,14 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
 #ifdef XP_WIN
   rv = nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
   return rv;
+#endif
+
+#ifdef XP_MACOSX
+  
+  if (anEvent->message == NS_MOUSE_ENTER && mInstanceOwner->GetEventModel() == NPEventModelCocoa) {
+    *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
+    return rv;
+  }
 #endif
 
   switch (anEvent->message) {
@@ -2123,8 +2141,6 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
       inst->GetValue(nsPluginInstanceVariable_CallSetWindowAfterDestroyBool, 
                      (void *)&doCallSetWindowAfterDestroy);
       if (doCallSetWindowAfterDestroy) {
-        
-        
         inst->Stop();
 
         if (window) 
@@ -2808,6 +2824,37 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
 #endif
 }
 
+NPError nsPluginInstanceOwner::ShowNativeContextMenu(NPMenu* menu, nsPluginEvent* event)
+{
+  if (!menu || !event)
+    return NPERR_GENERIC_ERROR;
+
+#ifdef XP_MACOSX
+  if (GetEventModel() != NPEventModelCocoa)
+    return NPERR_INCOMPATIBLE_VERSION_ERROR;
+
+  return NS_NPAPI_ShowCocoaContextMenu(static_cast<void*>(menu), mWidget,
+                                       static_cast<NPCocoaEvent*>(event->event));
+#else
+  return NPERR_INCOMPATIBLE_VERSION_ERROR;
+#endif
+}
+
+NPBool nsPluginInstanceOwner::ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
+                                           double *destX, double *destY, NPCoordinateSpace destSpace)
+{
+#ifdef XP_MACOSX
+  if (!mWidget)
+    return PR_FALSE;
+
+  return NS_NPAPI_ConvertPointCocoa(mWidget->GetNativeData(NS_NATIVE_WIDGET),
+                                    sourceX, sourceY, sourceSpace, destX, destY, destSpace);
+#else
+  
+  return PR_FALSE;
+#endif
+}
+
 NS_IMETHODIMP nsPluginInstanceOwner::GetTagType(nsPluginTagType *result)
 {
   NS_ENSURE_ARG_POINTER(result);
@@ -3341,6 +3388,11 @@ static void InitializeEventRecord(EventRecord* event, Point* aMousePosition)
   event->modifiers = ::GetCurrentEventKeyModifiers();
 }
 
+static void InitializeNPCocoaEvent(NPCocoaEvent* event)
+{
+  memset(event, 0, sizeof(NPCocoaEvent));
+}
+
 NPDrawingModel nsPluginInstanceOwner::GetDrawingModel()
 {
 #ifndef NP_NO_QUICKDRAW
@@ -3356,6 +3408,23 @@ NPDrawingModel nsPluginInstanceOwner::GetDrawingModel()
                       (void *)&drawingModel);
 
   return drawingModel;
+}
+
+NPEventModel nsPluginInstanceOwner::GetEventModel()
+{
+#ifndef NP_NO_QUICKDRAW
+  NPEventModel eventModel = NPEventModelCarbon;
+#else
+  NPEventModel eventModel = NPEventModelCocoa;
+#endif
+
+  if (!mInstance)
+    return eventModel;
+
+  mInstance->GetValue(nsPluginInstanceVariable_EventModel,
+                      (void *)&eventModel);
+    
+  return eventModel;
 }
 
 
@@ -3409,7 +3478,7 @@ void nsPluginInstanceOwner::BeginCGPaint()
 void nsPluginInstanceOwner::EndCGPaint()
 {
   --mInCGPaintLevel;
-  NS_ASSERTION(mInCGPaintLevel >= 0, "Mismatched call to nsPluginInstanceOwner::EndCGPlugin()!");
+  NS_ASSERTION(mInCGPaintLevel >= 0, "Mismatched call to nsPluginInstanceOwner::EndCGPaint()!");
 }
 
 #endif
@@ -3443,6 +3512,9 @@ nsPluginInstanceOwner::GetEventloopNestingLevel()
 nsresult nsPluginInstanceOwner::ScrollPositionWillChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY)
 {
 #ifdef XP_MACOSX
+  if (GetEventModel() != NPEventModelCarbon)
+    return NS_OK;
+
   CancelTimer();
 
   if (mInstance) {
@@ -3452,7 +3524,7 @@ nsresult nsPluginInstanceOwner::ScrollPositionWillChange(nsIScrollableView* aScr
       InitializeEventRecord(&scrollEvent, nsnull);
       scrollEvent.what = NPEventType_ScrollingBeginsEvent;
 
-      WindowRef window = FixUpPluginWindow(ePluginPaintDisable);
+      void* window = FixUpPluginWindow(ePluginPaintDisable);
       if (window) {
         nsPluginEvent pluginEvent = { &scrollEvent, nsPluginPlatformWindowRef(window) };
         PRBool eventHandled = PR_FALSE;
@@ -3468,6 +3540,9 @@ nsresult nsPluginInstanceOwner::ScrollPositionWillChange(nsIScrollableView* aScr
 nsresult nsPluginInstanceOwner::ScrollPositionDidChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY)
 {
 #ifdef XP_MACOSX
+  if (GetEventModel() != NPEventModelCarbon)
+    return NS_OK;
+
   if (mInstance) {
     nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
     if (pluginWidget && NS_SUCCEEDED(pluginWidget->StartDrawPlugin())) {
@@ -3475,7 +3550,7 @@ nsresult nsPluginInstanceOwner::ScrollPositionDidChange(nsIScrollableView* aScro
       InitializeEventRecord(&scrollEvent, nsnull);
       scrollEvent.what = NPEventType_ScrollingEndsEvent;
 
-      WindowRef window = FixUpPluginWindow(ePluginPaintEnable);
+      void* window = FixUpPluginWindow(ePluginPaintEnable);
       if (window) {
         nsPluginEvent pluginEvent = { &scrollEvent, nsPluginPlatformWindowRef(window) };
         PRBool eventHandled = PR_FALSE;
@@ -3546,7 +3621,10 @@ nsresult nsPluginInstanceOwner::KeyUp(nsIDOMEvent* aKeyEvent)
 
 nsresult nsPluginInstanceOwner::KeyPress(nsIDOMEvent* aKeyEvent)
 {
-#ifdef XP_MACOSX 
+#ifdef XP_MACOSX
+  
+  if (GetEventModel() != NPEventModelCarbon)
+    return aKeyEvent->PreventDefault();
 
   
   
@@ -4071,54 +4149,97 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
 #endif
 
   nsEventStatus rv = nsEventStatus_eIgnore;
+
   if (!mInstance || !mOwner)   
-    return rv;
+    return nsEventStatus_eIgnore;
 
 #ifdef XP_MACOSX
-  
   if (mWidget) {
+    
+    if (anEvent.message == NS_MOUSE_ENTER_SYNTH)
+      return nsEventStatus_eIgnore;
+
     nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
     if (pluginWidget && NS_SUCCEEDED(pluginWidget->StartDrawPlugin())) {
-      EventRecord carbonEvent;
+      NPEventModel eventModel = GetEventModel();
+
+      
+      EventRecord synthCarbonEvent;
+      NPCocoaEvent synthCocoaEvent;
+
       void* event = anEvent.nativeMsg;
-      if (!event || (static_cast<EventRecord*>(event)->what == nullEvent)) {
-        event = &carbonEvent;
+
+      if (!event) {
         nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mOwner);
         nsPresContext* presContext = mOwner->PresContext();
         nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x),
                         presContext->AppUnitsToDevPixels(pt.y));
-        Point carbonPt = { ptPx.y + mPluginWindow->y, ptPx.x + mPluginWindow->x };
-        InitializeEventRecord(&carbonEvent, &carbonPt);
+
+        if (eventModel == NPEventModelCarbon) {
+          Point carbonPt = { ptPx.y + mPluginWindow->y, ptPx.x + mPluginWindow->x };
+
+          event = &synthCarbonEvent;
+          InitializeEventRecord(&synthCarbonEvent, &carbonPt);
+        } else {
+          event = &synthCocoaEvent;
+          InitializeNPCocoaEvent(&synthCocoaEvent);
+        }
 
         switch (anEvent.message) {
         case NS_FOCUS_CONTENT:
         case NS_BLUR_CONTENT:
-          carbonEvent.what = (anEvent.message == NS_FOCUS_CONTENT) ?
+          if (eventModel == NPEventModelCarbon) {
+            synthCarbonEvent.what = (anEvent.message == NS_FOCUS_CONTENT) ?
             NPEventType_GetFocusEvent : NPEventType_LoseFocusEvent;
+          } else {
+            synthCocoaEvent.type = NPCocoaEventFocusChanged;
+            synthCocoaEvent.data.focus.hasFocus = (anEvent.message == NS_FOCUS_CONTENT);
+          }
           break;
         case NS_MOUSE_MOVE:
-          carbonEvent.what = osEvt;
+          if (eventModel == NPEventModelCarbon) {
+            synthCarbonEvent.what = osEvt;
+          } else {
+            synthCocoaEvent.type = NPCocoaEventMouseMoved;
+            synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
+            synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
+          }
           break;
         case NS_MOUSE_BUTTON_DOWN:
-          carbonEvent.what = mouseDown;
+          if (eventModel == NPEventModelCarbon) {
+            synthCarbonEvent.what = mouseDown;
+          } else {
+            synthCocoaEvent.type = NPCocoaEventMouseDown;
+            synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
+            synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
+          }
           break;
         case NS_MOUSE_BUTTON_UP:
-          carbonEvent.what = mouseUp;
+          if (eventModel == NPEventModelCarbon) {
+            synthCarbonEvent.what = mouseUp;
+          } else {
+            synthCocoaEvent.type = NPCocoaEventMouseUp;
+            synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
+            synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
+          }
           break;
         }
+      } else if ((eventModel == NPEventModelCarbon) && (static_cast<EventRecord*>(event)->what == nullEvent)) {
+        Point carbonPt = { 20000, 20000 };
+        InitializeEventRecord(&synthCarbonEvent, &carbonPt);
+        event = &synthCarbonEvent;
       }
 
-      if (anEvent.message == NS_FOCUS_CONTENT) {
-        
-        
-        
+      
+      
+      
+      if (eventModel == NPEventModelCarbon && anEvent.message == NS_FOCUS_CONTENT)
         ::DeactivateTSMDocument(::TSMGetActiveDocument());
-      }
 
       PRBool eventHandled = PR_FALSE;
-      WindowRef window = FixUpPluginWindow(ePluginPaintEnable);
-      if (window) {
-        nsPluginEvent pluginEvent = { (EventRecord*)event, nsPluginPlatformWindowRef(window) };
+      void* window = FixUpPluginWindow(ePluginPaintEnable);
+      if (window ||  (eventModel == NPEventModelCocoa)) {
+        nsPluginEvent pluginEvent = { event, nsPluginPlatformWindowRef(window) };
         mInstance->HandleEvent(&pluginEvent, &eventHandled);
       }
 
@@ -4520,20 +4641,35 @@ nsPluginInstanceOwner::PrepareToStop(PRBool aDelayedStop)
 
 
 #ifdef XP_MACOSX
-void nsPluginInstanceOwner::Paint()
+void nsPluginInstanceOwner::Paint(const gfxRect& aDirtyRect)
 {
   if (!mInstance || !mOwner)
     return;
  
   nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
   if (pluginWidget && NS_SUCCEEDED(pluginWidget->StartDrawPlugin())) {
-    WindowRef window = FixUpPluginWindow(ePluginPaintEnable);
-    if (window) {
+    void* window = FixUpPluginWindow(ePluginPaintEnable);
+    if (GetEventModel() == NPEventModelCarbon && window) {
       EventRecord updateEvent;
       InitializeEventRecord(&updateEvent, nsnull);
       updateEvent.what = updateEvt;
       updateEvent.message = UInt32(window);
-    
+
+      nsPluginEvent pluginEvent = { &updateEvent, nsPluginPlatformWindowRef(window) };
+      PRBool eventHandled = PR_FALSE;
+      mInstance->HandleEvent(&pluginEvent, &eventHandled);
+    }
+    else {
+      
+      NPCocoaEvent updateEvent;
+      InitializeNPCocoaEvent(&updateEvent);
+      updateEvent.type = NPCocoaEventDrawRect;
+      updateEvent.data.draw.context = mPluginPortCopy.cgPort.context;
+      updateEvent.data.draw.x = aDirtyRect.X();
+      updateEvent.data.draw.y = aDirtyRect.Y();
+      updateEvent.data.draw.width = aDirtyRect.Width();
+      updateEvent.data.draw.height = aDirtyRect.Height();
+
       nsPluginEvent pluginEvent = { &updateEvent, nsPluginPlatformWindowRef(window) };
       PRBool eventHandled = PR_FALSE;
       mInstance->HandleEvent(&pluginEvent, &eventHandled);
@@ -4840,16 +4976,19 @@ nsPluginInstanceOwner::Renderer::NativeDraw(QWidget * drawable,
 
 
 
-NS_IMETHODIMP nsPluginInstanceOwner::Notify(nsITimer* )
+NS_IMETHODIMP nsPluginInstanceOwner::Notify(nsITimer* timer)
 {
 #ifdef XP_MACOSX
+  if (GetEventModel() != NPEventModelCarbon)
+    return NS_OK;
+
   
   
   
   if (mInstance) {
     nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
     if (pluginWidget && NS_SUCCEEDED(pluginWidget->StartDrawPlugin())) {
-      WindowRef window = FixUpPluginWindow(ePluginPaintEnable);
+      void* window = FixUpPluginWindow(ePluginPaintEnable);
       if (window) {
         EventRecord idleEvent;
         InitializeEventRecord(&idleEvent, nsnull);
@@ -4876,6 +5015,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::Notify(nsITimer* )
 void nsPluginInstanceOwner::StartTimer(unsigned int aDelay)
 {
 #ifdef XP_MACOSX
+  if (GetEventModel() != NPEventModelCarbon)
+    return;
+
   if (!mTimerCanceled)
     return;
 
@@ -5097,12 +5239,19 @@ void nsPluginInstanceOwner::SetPluginHost(nsIPluginHost* aHost)
   
 #ifdef XP_MACOSX
 
-WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
+void* nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
 {
   if (!mWidget || !mPluginWindow || !mInstance || !mOwner)
     return nsnull;
 
   NPDrawingModel drawingModel = GetDrawingModel();
+  NPEventModel eventModel = GetEventModel();
+
+  nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
+  if (!pluginWidget)
+    return nsnull;
+
+  pluginWidget->SetPluginEventModel(eventModel);
 
   
   
@@ -5116,8 +5265,6 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
   if (!pluginPort)
     return nsnull;
 
-  nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-  
   nsIntPoint pluginOrigin;
   nsIntRect widgetClip;
   PRBool widgetVisible;
@@ -5142,12 +5289,14 @@ WindowRef nsPluginInstanceOwner::FixUpPluginWindow(PRInt32 inPaintState)
     
     nsIntPoint geckoScreenCoords = mWidget->WidgetToScreenOffset();
 
-    Rect windowRect;
-    WindowRef window = (WindowRef)pluginPort->cgPort.window;
-    ::GetWindowBounds(window, kWindowStructureRgn, &windowRect);
+    nsRect windowRect;
+    if (eventModel == NPEventModelCarbon)
+      NS_NPAPI_CarbonWindowFrame(static_cast<WindowRef>(pluginPort->cgPort.window), windowRect);
+    else
+      NS_NPAPI_CocoaWindowFrame(pluginPort->cgPort.window, windowRect);
 
-    mPluginWindow->x = geckoScreenCoords.x - windowRect.left;
-    mPluginWindow->y = geckoScreenCoords.y - windowRect.top;
+    mPluginWindow->x = geckoScreenCoords.x - windowRect.x;
+    mPluginWindow->y = geckoScreenCoords.y - windowRect.y;
   }
 
   nsPluginRect oldClipRect = mPluginWindow->clipRect;
