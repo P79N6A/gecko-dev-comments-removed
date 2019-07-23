@@ -534,18 +534,34 @@ ParseType2Msg(const void *inBuf, PRUint32 inLen, Type2Msg *msg)
   
   if (memcmp(cursor, NTLM_SIGNATURE, sizeof(NTLM_SIGNATURE)) != 0)
     return NS_ERROR_UNEXPECTED;
+
   cursor += sizeof(NTLM_SIGNATURE);
 
   
   if (memcmp(cursor, NTLM_TYPE2_MARKER, sizeof(NTLM_TYPE2_MARKER)) != 0)
     return NS_ERROR_UNEXPECTED;
+
   cursor += sizeof(NTLM_TYPE2_MARKER);
 
   
-  msg->targetLen = ReadUint16(cursor);
-  ReadUint16(cursor); 
-  PRUint32 offset = ReadUint32(cursor); 
-  msg->target = ((const PRUint8 *) inBuf) + offset;
+  
+  PRUint32 targetLen = ReadUint16(cursor);
+  
+  ReadUint16(cursor);
+  
+  PRUint32 offset = ReadUint32(cursor);
+  
+  
+  if (NS_LIKELY(offset < offset + targetLen && offset + targetLen <= inLen)) {
+    msg->targetLen = targetLen;
+    msg->target = ((const PRUint8 *) inBuf) + offset;
+  }
+  else
+  {
+    
+    msg->targetLen = 0;
+    msg->target = NULL;
+  }
 
   
   msg->flags = ReadUint32(cursor);
