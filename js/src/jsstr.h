@@ -99,16 +99,6 @@ JS_STATIC_ASSERT(JS_BITS_PER_WORD >= 32);
 
 
 
-
-
-
-
-
-
-
-
-
-
 struct JSString {
     friend class TraceRecorder;
 
@@ -118,7 +108,11 @@ struct JSString {
     friend JSString * JS_FASTCALL
     js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
+    
+    
     size_t          mLength;
+    size_t          mOffset;
+    jsword          mFlags;
     union {
         jschar      *mChars;
         JSString    *mBase;
@@ -129,35 +123,18 @@ struct JSString {
 
 
 
-
-
-
-
-    static const size_t DEPENDENT =     JSSTRING_BIT(JS_BITS_PER_WORD - 1);
-    static const size_t PREFIX =        JSSTRING_BIT(JS_BITS_PER_WORD - 2);
-    static const size_t MUTABLE =       PREFIX;
-    static const size_t ATOMIZED =      JSSTRING_BIT(JS_BITS_PER_WORD - 3);
-    static const size_t DEFLATED =      JSSTRING_BIT(JS_BITS_PER_WORD - 4);
-#if JS_BITS_PER_WORD > 32
-    static const size_t LENGTH_BITS =   28;
-#else
-    static const size_t LENGTH_BITS =   JS_BITS_PER_WORD - 4;
-#endif
-    static const size_t LENGTH_MASK =   JSSTRING_BITMASK(LENGTH_BITS);
-    static const size_t DEPENDENT_LENGTH_BITS = 8;
-    static const size_t DEPENDENT_LENGTH_MASK = JSSTRING_BITMASK(DEPENDENT_LENGTH_BITS);
-    static const size_t DEPENDENT_START_BITS =  LENGTH_BITS - DEPENDENT_LENGTH_BITS;
-    static const size_t DEPENDENT_START_SHIFT = DEPENDENT_LENGTH_BITS;
-    static const size_t DEPENDENT_START_MASK =  JSSTRING_BITMASK(DEPENDENT_START_BITS);
+    static const size_t DEPENDENT =     JSSTRING_BIT(1);
+    static const size_t MUTABLE =       JSSTRING_BIT(2);
+    static const size_t ATOMIZED =      JSSTRING_BIT(3);
+    static const size_t DEFLATED =      JSSTRING_BIT(4);
 
     bool hasFlag(size_t flag) const {
-        return (mLength & flag) != 0;
+        return (mFlags & flag) != 0;
     }
 
   public:
-    static const size_t MAX_LENGTH = LENGTH_MASK;
-    static const size_t MAX_DEPENDENT_START = DEPENDENT_START_MASK;
-    static const size_t MAX_DEPENDENT_LENGTH = DEPENDENT_LENGTH_MASK;
+    
+    static const size_t MAX_LENGTH = (1 << 28);
 
     bool isDependent() const {
         return hasFlag(DEPENDENT);
@@ -172,7 +149,7 @@ struct JSString {
     }
 
     void setDeflated() {
-        JS_ATOMIC_SET_MASK((jsword *) &mLength, DEFLATED);
+        JS_ATOMIC_SET_MASK(&mFlags, DEFLATED);
     }
 
     bool isMutable() const {
@@ -188,7 +165,7 @@ struct JSString {
     }
 
     JS_ALWAYS_INLINE size_t length() const {
-        return isDependent() ? dependentLength() : flatLength();
+        return mLength;
     }
 
     JS_ALWAYS_INLINE bool empty() const {
@@ -196,25 +173,20 @@ struct JSString {
     }
 
     JS_ALWAYS_INLINE void getCharsAndLength(const jschar *&chars, size_t &length) {
-        if (isDependent()) {
-            length = dependentLength();
-            chars = dependentChars();
-        } else {
-            length = flatLength();
-            chars = flatChars();
-        }
+        chars = this->chars();
+        length = this->length();
     }
 
     JS_ALWAYS_INLINE void getCharsAndEnd(const jschar *&chars, const jschar *&end) {
-        end = isDependent()
-              ? dependentLength() + (chars = dependentChars())
-              : flatLength() + (chars = flatChars());
+        end = length() + (chars = this->chars());
     }
 
     
     void initFlat(jschar *chars, size_t length) {
         JS_ASSERT(length <= MAX_LENGTH);
         mLength = length;
+        mOffset = 0;
+        mFlags = 0;
         mChars = chars;
     }
 
@@ -223,9 +195,9 @@ struct JSString {
         return mChars;
     }
 
-    size_t flatLength() const {
+    JS_ALWAYS_INLINE size_t flatLength() const {
         JS_ASSERT(isFlat());
-        return mLength & LENGTH_MASK;
+        return length();
     }
 
     
@@ -234,8 +206,9 @@ struct JSString {
 
 
     void reinitFlat(jschar *chars, size_t length) {
-        JS_ASSERT(length <= MAX_LENGTH);
-        mLength = (mLength & DEFLATED) | (length & ~DEFLATED);
+        mLength = length;
+        mOffset = 0;
+        mFlags = mFlags & DEFLATED;
         mChars = chars;
     }
 
@@ -268,44 +241,40 @@ struct JSString {
 
     void flatSetAtomized() {
         JS_ASSERT(isFlat() && !isMutable());
-        JS_STATIC_ASSERT(sizeof(mLength) == sizeof(jsword));
-        JS_ATOMIC_SET_MASK((jsword *) &mLength, ATOMIZED);
+        JS_ATOMIC_SET_MASK(&mFlags, ATOMIZED);
     }
 
     void flatSetMutable() {
         JS_ASSERT(isFlat() && !isAtomized());
-        mLength |= MUTABLE;
+        mFlags |= MUTABLE;
     }
 
     void flatClearMutable() {
         JS_ASSERT(isFlat());
         if (hasFlag(MUTABLE))
-            mLength &= ~MUTABLE;
+            mFlags &= ~MUTABLE;
     }
 
     void initDependent(JSString *bstr, size_t off, size_t len) {
-        JS_ASSERT(off <= MAX_DEPENDENT_START);
-        JS_ASSERT(len <= MAX_DEPENDENT_LENGTH);
-        mLength = DEPENDENT | (off << DEPENDENT_START_SHIFT) | len;
+        JS_ASSERT(len <= MAX_LENGTH);
+        mLength = len;
+        mOffset = off;
+        mFlags = DEPENDENT;
         mBase = bstr;
     }
 
     
     void reinitDependent(JSString *bstr, size_t off, size_t len) {
-        JS_ASSERT(off <= MAX_DEPENDENT_START);
-        JS_ASSERT(len <= MAX_DEPENDENT_LENGTH);
-        mLength = DEPENDENT | (mLength & DEFLATED) | (off << DEPENDENT_START_SHIFT) | len;
+        JS_ASSERT(len <= MAX_LENGTH);
+        mLength = len;
+        mOffset = off;
+        mFlags = DEPENDENT | (mFlags & DEFLATED);
         mBase = bstr;
     }
 
     JSString *dependentBase() const {
         JS_ASSERT(isDependent());
         return mBase;
-    }
-
-    bool dependentIsPrefix() const {
-        JS_ASSERT(isDependent());
-        return hasFlag(PREFIX);
     }
 
     JS_ALWAYS_INLINE jschar *dependentChars() {
@@ -315,39 +284,12 @@ struct JSString {
     }
 
     JS_ALWAYS_INLINE size_t dependentStart() const {
-        return dependentIsPrefix()
-               ? 0
-               : ((mLength >> DEPENDENT_START_SHIFT) & DEPENDENT_START_MASK);
+        return mOffset;
     }
 
     JS_ALWAYS_INLINE size_t dependentLength() const {
         JS_ASSERT(isDependent());
-        if (dependentIsPrefix())
-            return mLength & LENGTH_MASK;
-        return mLength & DEPENDENT_LENGTH_MASK;
-    }
-
-    void initPrefix(JSString *bstr, size_t len) {
-        JS_ASSERT(len <= MAX_LENGTH);
-        mLength = DEPENDENT | PREFIX | len;
-        mBase = bstr;
-    }
-
-    
-    void reinitPrefix(JSString *bstr, size_t len) {
-        JS_ASSERT(len <= MAX_LENGTH);
-        mLength = DEPENDENT | PREFIX | (mLength & DEFLATED) | len;
-        mBase = bstr;
-    }
-
-    JSString *prefixBase() const {
-        JS_ASSERT(isDependent() && dependentIsPrefix());
-        return dependentBase();
-    }
-
-    void prefixSetBase(JSString *bstr) {
-        JS_ASSERT(isDependent() && dependentIsPrefix());
-        mBase = bstr;
+        return length();
     }
 
     static inline bool isUnitString(void *ptr) {
