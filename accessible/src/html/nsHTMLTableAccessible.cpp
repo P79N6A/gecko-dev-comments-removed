@@ -785,6 +785,15 @@ NS_IMETHODIMP nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForL
     return NS_ERROR_FAILURE; 
   }
 
+  nsCOMPtr<nsIAccessible> docAccessible = do_QueryInterface(nsCOMPtr<nsIAccessibleDocument>(GetDocAccessible()));
+  if (docAccessible) {
+    PRUint32 state, extState;
+    docAccessible->GetFinalState(&state, &extState);
+    if (extState & nsIAccessibleStates::EXT_STATE_EDITABLE) {  
+      RETURN_LAYOUT_ANSWER(PR_FALSE, "In editable document");
+    }
+  }
+
   
   PRBool hasNonTableRole = (Role(this) != nsIAccessibleRole::ROLE_TABLE);
   if (hasNonTableRole) {
