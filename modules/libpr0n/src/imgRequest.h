@@ -164,6 +164,11 @@ private:
   
   PRBool HasTransferredData() const { return mGotData; }
 
+  
+  
+  
+  void SetCacheable(PRBool cacheable);
+
 public:
   NS_DECL_IMGILOAD
   NS_DECL_IMGIDECODEROBSERVER
@@ -189,10 +194,6 @@ private:
 
   nsTObserverArray<imgRequestProxy*> mObservers;
 
-  PRPackedBool mLoading;
-  PRPackedBool mProcessing;
-  PRPackedBool mHadLastPart;
-  PRPackedBool mGotData;
   PRUint32 mImageStatus;
   PRUint32 mState;
   nsCString mContentType;
@@ -205,9 +206,14 @@ private:
   PRTime mLoadTime;
 
   imgCacheValidator *mValidator;
-  PRBool   mIsMultiPartChannel;
-
   nsCategoryCache<nsIContentSniffer> mImageSniffers;
+
+  PRPackedBool mIsMultiPartChannel : 1;
+  PRPackedBool mLoading : 1;
+  PRPackedBool mProcessing : 1;
+  PRPackedBool mHadLastPart : 1;
+  PRPackedBool mGotData : 1;
+  PRPackedBool mIsCacheable : 1;
 };
 
 #endif

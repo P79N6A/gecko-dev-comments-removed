@@ -692,6 +692,8 @@ PRBool imgLoader::PutIntoCache(nsIURI *key, imgCacheEntry *entry)
     nsRefPtr<imgRequest> tmpRequest = getter_AddRefs(tmpCacheEntry->GetRequest());
     void *cacheId = NS_GetCurrentThread();
 
+    
+    
     if (!tmpRequest->IsReusable(cacheId))
       return PR_FALSE;
 
@@ -1267,7 +1269,8 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     }
 
     
-    PutIntoCache(aURI, entry);
+    if (!PutIntoCache(aURI, entry))
+      request->SetCacheable(PR_FALSE);
 
   
   } else {
@@ -1403,7 +1406,8 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
     NS_RELEASE(pl);
 
     
-    PutIntoCache(uri, entry);
+    if (!PutIntoCache(uri, entry))
+      request->SetCacheable(PR_FALSE);
   }
 
   
@@ -1682,7 +1686,8 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   
   
   
-  sImgLoader.PutIntoCache(uri, entry);
+  if (!sImgLoader.PutIntoCache(uri, entry))
+    request->SetCacheable(PR_FALSE);
 
   PRUint32 count = mProxies.Count();
   for (PRInt32 i = count-1; i>=0; i--) {
