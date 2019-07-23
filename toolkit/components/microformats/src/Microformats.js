@@ -81,17 +81,38 @@ var Microformats = {
       
     }
     
+
+    function isVisible(node, checkChildren) {
+      if (node.getBoundingClientRect) {
+        var box = node.getBoundingClientRect();
+      } else {
+        var box = node.ownerDocument.getBoxObjectFor(node);
+      }
+      
+      if ((box.height == 0) || (box.width == 0)) {
+        if (checkChildren && node.childNodes.length > 0) {
+          for(let i=0; i < node.childNodes.length; i++) {
+            if (node.childNodes[i].nodeType == Components.interfaces.nsIDOMNode.ELEMENT_NODE) {
+              
+              
+              if (isVisible(node.childNodes[i], false)) {
+                return true;
+              }
+            }
+          }
+        }
+        return false
+      }
+      return true;
+    }
+    
+    
     
     for (let i = 0; i < microformatNodes.length; i++) {
       
       if (!options || !options.hasOwnProperty("showHidden") || !options.showHidden) {
         if (microformatNodes[i].ownerDocument) {
-          if (microformatNodes[i].getBoundingClientRect) {
-            var box = microformatNodes[i].getBoundingClientRect();
-          } else {
-            var box = microformatNodes[i].ownerDocument.getBoxObjectFor(microformatNodes[i]);
-          }
-          if ((box.height == 0) || (box.width == 0)) {
+          if (!isVisible(microformatNodes[i], true)) {
             continue;
           }
         }
