@@ -1528,8 +1528,8 @@ NS_IMETHODIMP nsDocAccessible::FlushPendingEvents()
     PRBool isFromUserInput = nsAccEvent::IsFromUserInput(accessibleEvent);
 
     if (domNode == gLastFocusedNode &&
-        eventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE || 
-        eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW) {
+        (eventType == nsIAccessibleEvent::EVENT_ASYNCH_HIDE || 
+        eventType == nsIAccessibleEvent::EVENT_ASYNCH_SHOW)) {
       
       
       
