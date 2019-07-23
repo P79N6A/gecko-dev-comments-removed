@@ -1088,7 +1088,7 @@ js_IsLoopExit(JSContext* cx, JSScript* script, jsbytecode* pc)
     
     jssrcnote* note = js_GetSrcNote(script, pc);
     if (!note) 
-        return true;
+        return false;
     switch (SN_TYPE(note)) {
     case SRC_WHILE:
     case SRC_BREAK2LABEL:
