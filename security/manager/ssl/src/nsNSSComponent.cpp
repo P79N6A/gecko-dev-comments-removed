@@ -1597,6 +1597,10 @@ nsNSSComponent::InitializeNSS(PRBool showWarningBox)
       SSL_OptionSetDefault(SSL_ENABLE_TLS, enabled);
 
       
+      mPrefBranch->GetBoolPref("security.enable_tls_session_tickets", &enabled);
+      SSL_OptionSetDefault(SSL_ENABLE_SESSION_TICKETS, enabled);
+
+      
       for (PRUint16 i = 0; i < SSL_NumImplementedCiphers; ++i)
       {
         PRUint16 cipher_id = SSL_ImplementedCiphers[i];
@@ -2047,6 +2051,9 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
       mPrefBranch->GetBoolPref("security.enable_tls", &enabled);
       SSL_OptionSetDefault(SSL_ENABLE_TLS, enabled);
       clearSessionCache = PR_TRUE;
+    } else if (prefName.Equals("security.enable_tls_session_tickets")) {
+      mPrefBranch->GetBoolPref("security.enable_tls_session_tickets", &enabled);
+      SSL_OptionSetDefault(SSL_ENABLE_SESSION_TICKETS, enabled);
     } else if (prefName.Equals("security.OCSP.enabled")
                || prefName.Equals("security.OCSP.require")) {
       setOCSPOptions(mPrefBranch);
