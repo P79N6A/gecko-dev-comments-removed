@@ -225,6 +225,7 @@ public:
   nscoord mY;
 
   
+  
   nsRect mAvailSpaceRect;
 
   

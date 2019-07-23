@@ -1066,13 +1066,18 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  if (mBullet && HaveOutsideBullet() &&
-      (mLines.empty() ||
-       mLines.front()->IsBlock() ||
-       0 == mLines.front()->mBounds.height)) {
+  if (mBullet && HaveOutsideBullet() && !mLines.empty() &&
+      (mLines.front()->IsBlock() ||
+       (0 == mLines.front()->mBounds.height &&
+        mLines.front() != mLines.back() &&
+        mLines.begin().next()->IsBlock()))) {
     
     nsHTMLReflowMetrics metrics;
-    ReflowBullet(state, metrics);
+    
+    
+    
+    
+    ReflowBullet(state, metrics, aReflowState.mComputedBorderPadding.top);
 
     nscoord baseline;
     if (nsLayoutUtils::GetFirstLineBaseline(this, &baseline)) {
@@ -2189,7 +2194,8 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
   
   if (mBullet && HaveOutsideBullet() && mLines.empty()) {
     nsHTMLReflowMetrics metrics;
-    ReflowBullet(aState, metrics);
+    ReflowBullet(aState, metrics,
+                 aState.mReflowState.mComputedBorderPadding.top);
 
     
     
@@ -3956,17 +3962,15 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   
   
   
-  
-  
-  
-  
-  
-  
   PRBool addedBullet = PR_FALSE;
-  if (mBullet && HaveOutsideBullet() && (aLine == mLines.front()) &&
-      (!aLineLayout.IsZeroHeight() || (aLine == mLines.back()))) {
+  if (mBullet && HaveOutsideBullet() &&
+      ((aLine == mLines.front() &&
+        (!aLineLayout.IsZeroHeight() || (aLine == mLines.back()))) ||
+       (mLines.front() != mLines.back() &&
+        0 == mLines.front()->mBounds.height &&
+        aLine == mLines.begin().next()))) {
     nsHTMLReflowMetrics metrics;
-    ReflowBullet(aState, metrics);
+    ReflowBullet(aState, metrics, aState.mY);
     aLineLayout.AddBulletFrame(mBullet, metrics);
     addedBullet = PR_TRUE;
   }
@@ -6542,7 +6546,8 @@ nsBlockFrame::RenumberListsFor(nsPresContext* aPresContext,
 
 void
 nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
-                           nsHTMLReflowMetrics& aMetrics)
+                           nsHTMLReflowMetrics& aMetrics,
+                           nscoord aLineTop)
 {
   const nsHTMLReflowState &rs = aState.mReflowState;
 
@@ -6563,17 +6568,37 @@ nsBlockFrame::ReflowBullet(nsBlockReflowState& aState,
 
   
   
-  nscoord x = 
-#ifdef IBMBIDI
-           (NS_STYLE_DIRECTION_RTL == GetStyleVisibility()->mDirection)
-             
-             
-             
-             
-             ? rs.ComputedWidth() + rs.mComputedBorderPadding.LeftRight() +
-               reflowState.mComputedMargin.left :
-#endif
-             - reflowState.mComputedMargin.right - aMetrics.width;
+  
+  
+  
+  
+  
+  
+  
+  
+  nscoord x;
+  aState.GetAvailableSpace(aLineTop, PR_FALSE);
+  if (rs.mStyleVisibility->mDirection == NS_STYLE_DIRECTION_LTR) {
+    
+    
+    
+    
+    
+    x = aState.mAvailSpaceRect.x
+        - reflowState.mComputedMargin.right - aMetrics.width;
+  } else {
+    
+    
+    
+    
+    x = PR_MIN(rs.ComputedWidth(), aState.mAvailSpaceRect.XMost())
+        + rs.mComputedBorderPadding.LeftRight()
+        + reflowState.mComputedMargin.left;
+  }
+
+  
+  
+  aState.GetAvailableSpace();
 
   
   
