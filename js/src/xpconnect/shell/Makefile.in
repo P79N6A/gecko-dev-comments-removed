@@ -49,7 +49,7 @@ PROGRAM		= xpcshell$(BIN_SUFFIX)
 
 CPPSRCS		= xpcshell.cpp
 
-ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+ifneq (,$(filter mac cocoa,$(MOZ_WIDGET_TOOLKIT)))
 CMMSRCS += xpcshellMacUtils.mm
 endif
 
@@ -64,11 +64,12 @@ NSDISTMODE = copy
 
 ifdef _MSC_VER
 ifdef WINCE
-WIN32_EXE_LDFLAGS += -ENTRY:mainWCRTStartup
-LOCAL_INCLUDES += -I$(topsrcdir)/toolkit/xre/
+WIN32_EXE_LDFLAGS += -ENTRY:mainACRTStartup
 endif
 endif
 
+include $(topsrcdir)/config/config.mk
+include $(topsrcdir)/ipc/chromium/chromium-config.mk
 include $(topsrcdir)/config/rules.mk
 
 DEFINES		+= -DJS_THREADSAFE
