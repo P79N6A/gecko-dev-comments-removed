@@ -855,7 +855,9 @@ XULContentSinkImpl::SetElementScriptType(nsXULPrototypeElement* element,
             
             
             
-            rv = mContextStack.GetTopNodeScriptType(&element->mScriptTypeID);
+            PRUint32 scriptId = 0;
+            rv = mContextStack.GetTopNodeScriptType(&scriptId);
+            element->mScriptTypeID = scriptId;
         }
     }
     return rv;

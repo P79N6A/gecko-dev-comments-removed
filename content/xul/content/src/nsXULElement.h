@@ -246,6 +246,9 @@ public:
           mChildren(nsnull),
           mNumAttributes(0),
           mAttributes(nsnull),
+          mHasIdAttribute(PR_FALSE),
+          mHasClassAttribute(PR_FALSE),
+          mHasStyleAttribute(PR_FALSE),
           mScriptTypeID(nsIProgrammingLanguage::UNKNOWN)
     {
         NS_LOG_ADDREF(this, 1, ClassName(), ClassSize());
@@ -298,12 +301,16 @@ public:
 
     PRUint32                 mNumAttributes;
     nsXULPrototypeAttribute* mAttributes;         
+    
+    PRPackedBool             mHasIdAttribute:1;
+    PRPackedBool             mHasClassAttribute:1;
+    PRPackedBool             mHasStyleAttribute:1;
 
     
     
     
     
-    PRUint32                 mScriptTypeID;
+    PRUint16                 mScriptTypeID;
     static void ReleaseGlobals()
     {
         NS_IF_RELEASE(sCSSParser);
