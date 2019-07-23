@@ -103,7 +103,24 @@ nsPlacesDBFlush.prototype = {
       this._prefs.QueryInterface(Ci.nsIPrefBranch2).removeObserver("", this);
       this._timer.cancel();
       this._timer = null;
-      this._syncTables(["places", "historyvisits"]);
+      
+      
+      
+      
+      let tm = Cc["@mozilla.org/thread-manager;1"].
+          getService(Ci.nsIThreadManager);
+      tm.mainThread.dispatch({
+        _self: this,
+        run: function() {
+          this._self._syncTables(["places", "historyvisits"]);
+          
+          
+          Cc["@mozilla.org/browser/nav-history-service;1"].
+            getService(Ci.nsPIPlacesDatabase).finalizeInternalStatements();
+          this._self._db.close();
+        }
+      }, Ci.nsIThread.DISPATCH_NORMAL);
+
     }
     else if (aTopic == "nsPref:changed" && aData == kSyncPrefName) {
       

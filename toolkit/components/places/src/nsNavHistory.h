@@ -445,6 +445,11 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
 
   
+
+
+  void FinalizeStatements();
+
+  
   NS_DECL_NSICHARSETRESOLVER
 
   
