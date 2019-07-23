@@ -920,24 +920,45 @@ var BookmarksEventHandler = {
     }
   },
 
-  fillInBTTooltip: function(aTipElement) {
-    if (!aTipElement.node)
+  fillInBHTooltip: function(aDocument, aEvent) {
+    var node;
+    var cropped = false;
+
+    if (aDocument.tooltipNode.localName == "treechildren") {
+      var tree = aDocument.tooltipNode.parentNode;
+      var row = {}, column = {};
+      var tbo = tree.treeBoxObject;
+      tbo.getCellAt(aEvent.clientX, aEvent.clientY, row, column, {});
+
+      node = tree.view.nodeForTreeIndex(row.value);
+      cropped = tbo.isCellCropped(row.value, column.value);
+    }
+    else
+      node = aDocument.tooltipNode.node;
+
+    if (!node)
       return false;
+
+    var title = node.title;
+    var url;
 
     
-    if (!PlacesUtils.nodeIsURI(aTipElement.node))
+    if (PlacesUtils.nodeIsURI(node))
+      url = node.uri;
+
+    
+    if (!cropped && !url)
       return false;
 
-    var title = aTipElement.node.title;
-    var url = aTipElement.node.uri;
-
-    var tooltipTitle = document.getElementById("btTitleText");
-    tooltipTitle.hidden = !title || (title == url);
+    var tooltipTitle = aDocument.getElementById("bhtTitleText");
+    tooltipTitle.hidden = (!title || (title == url));
     if (!tooltipTitle.hidden)
       tooltipTitle.textContent = title;
 
-    var tooltipUrl = document.getElementById("btUrlText");
-    tooltipUrl.value = url;
+    var tooltipUrl = aDocument.getElementById("bhtUrlText");
+    tooltipUrl.hidden = !url;
+    if (!tooltipUrl.hidden)
+      tooltipUrl.value = url;
 
     
     return true;
