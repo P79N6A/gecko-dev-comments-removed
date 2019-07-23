@@ -60,7 +60,8 @@ function test() {
       
       if (frameCount++ < 2)
         return;
-      
+      this.removeEventListener("load", arguments.callee, true);
+
       let maxWait = Date.now() + 1000;
       executeSoon(function() {
         let iframes = tab2.linkedBrowser.contentWindow.frames;

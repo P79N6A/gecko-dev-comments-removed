@@ -67,6 +67,7 @@ function test() {
   
   let newWin = openDialog(location, "_blank", "chrome,all,dialog=no");
   newWin.addEventListener("load", function(aEvent) {
+    this.removeEventListener("load", arguments.callee, false);
     gPrefService.setIntPref("browser.sessionstore.max_tabs_undo",
                             test_state.windows[0]._closedTabs.length);
     ss.setWindowState(newWin, JSON.stringify(test_state), true);
