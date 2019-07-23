@@ -424,7 +424,10 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
        
        
   if (constrainHeight) {
-    kidReflowState.availableHeight = aReflowState.availableHeight - aKidFrame->GetRect().y;
+    kidReflowState.availableHeight = aReflowState.availableHeight - border.top
+                                     - kidReflowState.mComputedMargin.top;
+    if (NS_AUTOOFFSET != kidReflowState.mComputedOffsets.top)
+      kidReflowState.availableHeight -= kidReflowState.mComputedOffsets.top;
   }
 
   
