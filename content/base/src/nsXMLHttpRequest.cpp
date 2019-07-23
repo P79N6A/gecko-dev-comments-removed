@@ -1044,7 +1044,7 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   
   nsCOMPtr<nsIDocument> doc = GetDocumentFromScriptContext(mScriptContext);
   PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
-  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_OTHER,
+  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_XMLHTTPREQUEST,
                                  uri,
                                  (doc ? doc->GetDocumentURI() : nsnull),
                                  doc,

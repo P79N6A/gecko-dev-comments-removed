@@ -47,7 +47,7 @@ class nsIPrefBranch;
 
 
 
-#define NUMBER_OF_TYPES 8
+#define NUMBER_OF_TYPES 12
 
 class nsContentBlocker : public nsIContentPolicy,
                          public nsIObserver,
