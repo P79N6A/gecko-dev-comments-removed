@@ -171,7 +171,9 @@ protected:
                                             const nsAString& aUnmodifiedCharacters)
   { return NS_ERROR_UNEXPECTED; }
 
-  void StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
+  
+  
+  PRBool StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
 
 protected: 
   void*             mClientData;

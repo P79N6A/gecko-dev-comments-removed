@@ -2299,6 +2299,17 @@ NS_IMETHODIMP nsWindow::Update()
 
 
 
+static PRBool
+ClipRegionContainedInRect(const nsTArray<nsIntRect>& aClipRects,
+                          const nsIntRect& aRect)
+{
+  for (PRUint32 i = 0; i < aClipRects.Length(); ++i) {
+    if (!aRect.Contains(aClipRects[i]))
+      return PR_FALSE;
+  }
+  return PR_TRUE;
+}
+
 void
 nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
                  const nsTArray<Configuration>& aConfigurations)
@@ -2338,7 +2349,25 @@ nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
     }
   }
 
-  nsIntRect destRect = aSource + aDelta;
+  if (flags & SW_SCROLLCHILDREN) {
+    for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+      const Configuration& configuration = aConfigurations[i];
+      nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+      
+      
+      
+      
+      
+      if (w->mBounds.Intersects(affectedRect) &&
+          !ClipRegionContainedInRect(configuration.mClipRegion,
+                                     affectedRect - (w->mBounds.TopLeft() + aDelta))) {
+        w->Invalidate(PR_FALSE);
+      }
+    }
+  }
+
+  
+  
   RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
   ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, NULL, NULL, flags);
 
@@ -5540,9 +5569,15 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
     
     ::SetWindowRgn(w->mWnd, NULL, TRUE);
 #endif
-    w->Resize(configuration.mBounds.x, configuration.mBounds.y,
-              configuration.mBounds.width, configuration.mBounds.height,
-              PR_TRUE);
+    nsIntRect bounds;
+    w->GetBounds(bounds);
+    if (bounds.Size() != configuration.mBounds.Size()) {
+      w->Resize(configuration.mBounds.x, configuration.mBounds.y,
+                configuration.mBounds.width, configuration.mBounds.height,
+                PR_TRUE);
+    } else if (bounds.TopLeft() != configuration.mBounds.TopLeft()) {
+      w->Move(configuration.mBounds.x, configuration.mBounds.y);
+    }
     nsresult rv = w->SetWindowClipRegion(configuration.mClipRegion, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -5575,6 +5610,11 @@ nsresult
 nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
                               PRBool aIntersectWithExisting)
 {
+  if (!aIntersectWithExisting) {
+    if (!StoreWindowClipRegion(aRects))
+      return NS_OK;
+  }
+
   HRGN dest = CreateHRGNFromArray(aRects);
   if (!dest)
     return NS_ERROR_OUT_OF_MEMORY;
