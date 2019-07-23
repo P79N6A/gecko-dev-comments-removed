@@ -410,11 +410,23 @@ class GatherDecls(Visitor):
             msg.accept(self)
         del self.currentProtocolDecl
 
+        for managed in p.managesStmts:
+            mgdname = managed.name
+            ctordecl = self.symtab.lookup(mgdname +'Constructor')
+            dtordecl = self.symtab.lookup(mgdname +'Destructor')
+
+            if not(ctordecl and dtordecl
+                   and ctordecl.type.isCtor() and dtordecl.type.isDtor()):
+                self.errors.append(
+                    errormsg(
+                        managed.loc,
+                        "constructor and destructor declarations are required for managed protocol `%s' (managed by protocol `%s')",
+                        mgdname, p.name))
+
         for trans in p.transitionStmts:
             trans.accept(self)
 
         
-
         
         
         
