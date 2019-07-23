@@ -1204,6 +1204,12 @@ function delayedStartup()
 
   
   gBookmarkAllTabsHandler = new BookmarkAllTabsHandler();
+
+  
+  
+  
+  
+  gBrowser.addEventListener("command", BrowserOnCommand, false);
 }
 
 function BrowserShutdown()
@@ -2304,6 +2310,50 @@ function BrowserImport()
                     "migration", "modal,centerscreen,chrome,resizable=no");
 #endif
 }
+
+
+
+
+function BrowserOnCommand(event) {
+    
+    
+    if (!event.isTrusted)
+      return;
+    
+    
+    
+    if (/^about:neterror\?e=nssBadCert/.test(event.originalTarget.ownerDocument.documentURI)) {
+      var ot = event.originalTarget;
+      var errorDoc = ot.ownerDocument;
+      
+      if (ot == errorDoc.getElementById('exceptionDialogButton')) {
+        var params = { location : content.location.href,
+                       exceptionAdded : false };
+        window.openDialog('chrome:
+                          '','chrome,centerscreen,modal', params);
+        
+        
+        if (params.exceptionAdded)
+          content.location.reload();
+      }
+      else if (ot == errorDoc.getElementById('getMeOutOfHereButton')) {
+        
+        var prefs = Cc["@mozilla.org/preferences-service;1"]
+                    .getService(Ci.nsIPrefService).getDefaultBranch(null);
+        var url = "about:blank";
+        try {
+          url = prefs.getComplexValue("browser.startup.homepage",
+                                      Ci.nsIPrefLocalizedString).data;
+          
+          if (url.indexOf("|") != -1)
+            url = url.split("|")[0];
+        } catch(e) {
+          Components.utils.reportError("Couldn't get homepage pref: " + e);
+        }
+        content.location = url;
+      }
+    }
+  }
 
 function BrowserFullScreen()
 {

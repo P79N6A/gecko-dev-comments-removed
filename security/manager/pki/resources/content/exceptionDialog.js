@@ -81,6 +81,17 @@ function initExceptionDialog() {
   setText("warningText", gPKIBundle.formatStringFromName("addExceptionBrandedWarning",
                                                          [brandName], 1));
   gDialog.getButton("extra1").disabled = true;
+  
+  if (window.arguments[0]
+      && window.arguments[0].location) {
+    
+    
+    document.getElementById("locationTextBox").value = window.arguments[0].location;
+    checkCert();
+  }
+  
+  
+  window.arguments[0].exceptionAdded = false;
 }
 
 
@@ -321,5 +332,7 @@ function addException() {
     getURI().hostPort,
     gCert,
     flags);
+  
+  window.arguments[0].exceptionAdded = true;
   gDialog.acceptDialog();
 }
