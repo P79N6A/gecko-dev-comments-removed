@@ -43,24 +43,39 @@
 #ifndef nsAppShell_h_
 #define nsAppShell_h_
 
+class nsCocoaWindow;
+
 #include "nsBaseAppShell.h"
+#include "nsTArray.h"
 
 typedef struct _nsCocoaAppModalWindowListItem {
-  _nsCocoaAppModalWindowListItem() : mPrev(NULL), mWindow(nil), mSession(nil) {}
-  struct _nsCocoaAppModalWindowListItem *mPrev;
+  _nsCocoaAppModalWindowListItem(NSWindow *aWindow, NSModalSession aSession) :
+    mWindow(aWindow), mSession(aSession), mWidget(nsnull) {}
+  _nsCocoaAppModalWindowListItem(NSWindow *aWindow, nsCocoaWindow *aWidget) :
+    mWindow(aWindow), mSession(nil), mWidget(aWidget) {}
   NSWindow *mWindow;       
   NSModalSession mSession; 
+  nsCocoaWindow *mWidget;  
 } nsCocoaAppModalWindowListItem;
 
 class nsCocoaAppModalWindowList {
 public:
-  nsCocoaAppModalWindowList() : mList(NULL) {}
-  ~nsCocoaAppModalWindowList();
-  nsresult Push(NSWindow *aWindow, NSModalSession aSession);
-  nsresult Pop(NSWindow *aWindow, NSModalSession aSession);
+  nsCocoaAppModalWindowList() {}
+  ~nsCocoaAppModalWindowList() {}
+  
+  nsresult PushCocoa(NSWindow *aWindow, NSModalSession aSession);
+  
+  nsresult PopCocoa(NSWindow *aWindow, NSModalSession aSession);
+  
+  nsresult PushGecko(NSWindow *aWindow, nsCocoaWindow *aWidget);
+  
+  nsresult PopGecko(NSWindow *aWindow, nsCocoaWindow *aWidget);
+  
   NSModalSession CurrentSession();
+  
+  PRBool GeckoModalAboveCocoaModal();
 private:
-  nsCocoaAppModalWindowListItem *mList;
+  nsTArray<nsCocoaAppModalWindowListItem> mList;
 };
 
 
