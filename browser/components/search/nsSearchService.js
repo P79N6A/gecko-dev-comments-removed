@@ -58,6 +58,12 @@ const NS_APP_SEARCH_DIR       = "SrchPlugns";
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 
 
+
+const SEARCH_APP_DIR = 1;
+const SEARCH_PROFILE_DIR = 2;
+const SEARCH_IN_EXTENSION = 3;
+
+
 const SEARCH_ENGINE_TOPIC        = "browser-search-engine-modified";
 const QUIT_APPLICATION_TOPIC     = "quit-application";
 
@@ -729,7 +735,7 @@ function ParamSubstitution(aParamValue, aSearchTerms, aEngine) {
 
   
   
-  if (aEngine._isInAppDir) {
+  if (aEngine._isDefault) {
     value = value.replace(MOZ_PARAM_LOCALE, getLocale());
     value = value.replace(MOZ_PARAM_DIST_ID, distributionID);
     value = value.replace(MOZ_PARAM_OFFICIAL, MOZ_OFFICIAL);
@@ -975,7 +981,8 @@ Engine.prototype = {
   
   _useNow: true,
   
-  __isInAppDir: null,
+  
+  __installLocation: null,
   
   _updateInterval: null,
   
@@ -1414,7 +1421,7 @@ Engine.prototype = {
         }
       } else if (param.localName == "MozParam" &&
                  
-                 this._isInAppDir) {
+                 this._isDefault) {
         var value;
         switch (param.getAttribute("condition")) {
           case "defaultEngine":
@@ -2023,7 +2030,7 @@ Engine.prototype = {
   get _id() {
     ENSURE_WARN(this._file, "No _file for id!", Cr.NS_ERROR_FAILURE);
 
-    if (this._file.parent.equals(getDir(NS_APP_USER_SEARCH_DIR)))
+    if (this._isInProfile)
       return "[profile]/" + this._file.leafName;
 
     if (this._isInAppDir)
@@ -2034,13 +2041,35 @@ Engine.prototype = {
     return this._file.path;
   },
 
-  get _isInAppDir() {
+  get _installLocation() {
     ENSURE_WARN(this._file && this._file.exists(),
-                "_isInAppDir: engine has no file!",
+                "_installLocation: engine has no file!",
                 Cr.NS_ERROR_FAILURE);
-    if (this.__isInAppDir === null)
-      this.__isInAppDir = this._file.parent.equals(getDir(NS_APP_SEARCH_DIR));
-    return this.__isInAppDir;
+
+    if (this.__installLocation === null) {
+      if (this._file.parent.equals(getDir(NS_APP_SEARCH_DIR)))
+        this.__installLocation = SEARCH_APP_DIR;
+      else if (this._file.parent.equals(getDir(NS_APP_USER_SEARCH_DIR)))
+        this.__installLocation = SEARCH_PROFILE_DIR;
+      else
+        this.__installLocation = SEARCH_IN_EXTENSION;
+    }
+
+    return this.__installLocation;
+  },
+
+  get _isInAppDir() {
+    return this._installLocation == SEARCH_APP_DIR;
+  },
+  get _isInProfile() {
+    return this._installLocation == SEARCH_PROFILE_DIR;
+  },
+
+  get _isDefault() {
+    
+    
+    
+    return !this._isInProfile;
   },
 
   get _hasUpdates() {
@@ -2577,20 +2606,46 @@ SearchService.prototype = {
   },
 
   getDefaultEngines: function SRCH_SVC_getDefault(aCount) {
-    function isDefault (engine) {
-      return engine._isInAppDir;
+    function isDefault(engine) {
+      return engine._isDefault;
     };
     var engines = this._sortedEngines.filter(isDefault);
     var engineOrder = {};
+    var engineName;
     var i = 1;
 
-    while (true) {
-      var name = getLocalizedPref(BROWSER_SEARCH_PREF + "order." + i);
-      if (!name)
+    
+    
+    
+
+    
+    try {
+      var prefB = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefBranch);
+      var extras = prefB.getChildList(BROWSER_SEARCH_PREF + "order.extra.",
+                                      {});
+
+      for each (var prefName in extras) {
+        engineName = prefB.getCharPref(prefName);
+
+        if (!(engineName in engineOrder))
+          engineOrder[engineName] = i++;
+      }
+    } catch (e) {
+      LOG("Getting extra order prefs failed: " + e);
+    }
+
+    
+    for (var j = 1; ; j++) {
+      engineName = getLocalizedPref(BROWSER_SEARCH_PREF + "order." + j);
+      if (!engineName)
         break;
 
-      engineOrder[name] = i++;
+      if (!(engineName in engineOrder))
+        engineOrder[engineName] = i++;
     }
+
+    LOG("getDefaultEngines: engineOrder: " + engineOrder.toSource());
 
     function compareEngines (a, b) {
       var aIdx = engineOrder[a.name];
@@ -2745,7 +2800,7 @@ SearchService.prototype = {
   restoreDefaultEngines: function SRCH_SVC_resetDefaultEngines() {
     for each (var e in this._engines) {
       
-      if (e.hidden && e._isInAppDir)
+      if (e.hidden && e._isDefault)
         e.hidden = false;
     }
   },
