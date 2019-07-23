@@ -43,6 +43,7 @@
 #include <string.h>
 #include <new>
 
+#include "jsutil.h"
 #include "jsbit.h"
 
 
