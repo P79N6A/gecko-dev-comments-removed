@@ -60,11 +60,11 @@
 #include <cairo.h>
 #include <cairo-ft.h>
 
-#include <fontconfig/fcfreetype.h>
 #include <pango/pango.h>
+#include <pango/pangocairo.h>
 #include <pango/pangofc-fontmap.h>
 
-#include <gdk/gdkscreen.h>
+#include <gdk/gdkpango.h>
 
 #include <math.h>
 
@@ -83,284 +83,9 @@
 #define IS_MISSING_GLYPH(g) ((g) & PANGO_GLYPH_UNKNOWN_FLAG)
 #define IS_EMPTY_GLYPH(g) ((g) == PANGO_GLYPH_EMPTY)
 
-
-int moz_pango_units_from_double(double d) {
-    return NS_lround(d * FLOAT_PANGO_SCALE);
-}
-
 static PangoLanguage *GetPangoLanguage(const nsACString& aLangGroup);
 
-static cairo_scaled_font_t *CreateScaledFont(FcPattern *aPattern);
-
  gfxPangoFontCache* gfxPangoFontCache::sPangoFontCache = nsnull;
-
-static PangoFontMap *gPangoFontMap;
-
-
-
-
-
-
-
-
-class gfxFcFont : public gfxFont {
-public:
-    virtual ~gfxFcFont ();
-    static already_AddRefed<gfxFcFont> GetOrMakeFont(FcPattern *aPattern);
-
-    virtual const gfxFont::Metrics& GetMetrics();
-
-    virtual nsString GetUniqueName();
-
-    
-    virtual PRUint32 GetSpaceGlyph() {
-        NS_ASSERTION(GetStyle()->size != 0,
-                     "forgot to short-circuit a text run with zero-sized font?");
-        GetMetrics();
-        return mSpaceGlyph;
-    }
-
-    cairo_scaled_font_t *CairoScaledFont() { return mCairoFont; }
-    void GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents);
-
-protected:
-    cairo_scaled_font_t *mCairoFont;
-
-    PRUint32 mSpaceGlyph;
-    Metrics mMetrics;
-    PRPackedBool mHasMetrics;
-
-    gfxFcFont(cairo_scaled_font_t *aCairoFont,
-              gfxPangoFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
-
-    virtual PRBool SetupCairoFont(gfxContext *aContext);
-
-    
-    static cairo_user_data_key_t sGfxFontKey;
-};
-
-class LockedFTFace {
-public:
-    LockedFTFace(gfxFcFont *aFont)
-        : mGfxFont(aFont),
-          mFace(cairo_ft_scaled_font_lock_face(aFont->CairoScaledFont()))
-    {
-    }
-
-    ~LockedFTFace()
-    {
-        if (mFace) {
-            cairo_ft_scaled_font_unlock_face(mGfxFont->CairoScaledFont());
-        }
-    }
-
-    
-
-
-
-
-    PRUint32 GetCharExtents(char aChar, cairo_text_extents_t* aExtents);
-
-    void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
-
-private:
-    nsRefPtr<gfxFcFont> mGfxFont;
-    FT_Face mFace;
-};
-
-
-
-
-
-
-
-
-#define GFX_TYPE_PANGO_FC_FONT              (gfx_pango_fc_font_get_type())
-#define GFX_PANGO_FC_FONT(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GFX_TYPE_PANGO_FC_FONT, gfxPangoFcFont))
-#define GFX_IS_PANGO_FC_FONT(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), GFX_TYPE_PANGO_FC_FONT))
-
-
-GType gfx_pango_fc_font_get_type (void);
-
-#define GFX_PANGO_FC_FONT_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), GFX_TYPE_PANGO_FC_FONT, gfxPangoFcFontClass))
-#define GFX_IS_PANGO_FC_FONT_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), GFX_TYPE_PANGO_FC_FONT))
-#define GFX_PANGO_FC_FONT_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), GFX_TYPE_PANGO_FC_FONT, gfxPangoFcFontClass))
-
-
-struct gfxPangoFcFont {
-    PangoFcFont parent_instance;
-
-    gfxFcFont *mGfxFont;
-
-    static gfxFcFont *GfxFont(gfxPangoFcFont *self)
-    {
-        if (!self->mGfxFont) {
-            FcPattern *pattern = PANGO_FC_FONT(self)->font_pattern;
-            self->mGfxFont = gfxFcFont::GetOrMakeFont(pattern).get();
-        }
-        return self->mGfxFont;
-    }
-
-    static cairo_scaled_font_t *CairoFont(gfxPangoFcFont *self)
-    {
-        return gfxPangoFcFont::GfxFont(self)->CairoScaledFont();
-    }
-};
-
-struct gfxPangoFcFontClass {
-    PangoFcFontClass parent_class;
-};
-
-G_DEFINE_TYPE (gfxPangoFcFont, gfx_pango_fc_font, PANGO_TYPE_FC_FONT)
-
-static void
-gfx_pango_fc_font_init(gfxPangoFcFont *fontset)
-{
-}
-
-
-static void
-gfx_pango_fc_font_finalize(GObject *object)
-{
-    gfxPangoFcFont *self = GFX_PANGO_FC_FONT(object);
-
-    if (self->mGfxFont)
-        self->mGfxFont->Release();
-
-    G_OBJECT_CLASS(gfx_pango_fc_font_parent_class)->finalize(object);
-}
-
-static void
-gfx_pango_fc_font_get_glyph_extents(PangoFont *font, PangoGlyph glyph,
-                                    PangoRectangle *ink_rect,
-                                    PangoRectangle *logical_rect)
-{
-    gfxPangoFcFont *self = GFX_PANGO_FC_FONT(font);
-    gfxFcFont *gfxFont = gfxPangoFcFont::GfxFont(self);
-
-    if (IS_MISSING_GLYPH(glyph)) {
-        const gfxFont::Metrics& metrics = gfxFont->GetMetrics();
-
-        PangoRectangle rect;
-        rect.x = 0;
-        rect.y = moz_pango_units_from_double(-metrics.maxAscent);
-        rect.width = moz_pango_units_from_double(metrics.aveCharWidth);
-        rect.height = moz_pango_units_from_double(metrics.maxHeight);
-        if (ink_rect) {
-            *ink_rect = rect;
-        }
-        if (logical_rect) {
-            *logical_rect = rect;
-        }
-        return;
-    }
-
-    if (logical_rect) {
-        
-        
-        
-        
-        
-        const gfxFont::Metrics& metrics = gfxFont->GetMetrics();
-        logical_rect->y = moz_pango_units_from_double(-metrics.maxAscent);
-        logical_rect->height = moz_pango_units_from_double(metrics.maxHeight);
-    }
-
-    cairo_text_extents_t extents;
-    if (IS_EMPTY_GLYPH(glyph)) {
-        new (&extents) cairo_text_extents_t(); 
-    } else {
-        gfxFont->GetGlyphExtents(glyph, &extents);
-    }
-
-    if (ink_rect) {
-        ink_rect->x = moz_pango_units_from_double(extents.x_bearing);
-        ink_rect->y = moz_pango_units_from_double(extents.y_bearing);
-        ink_rect->width = moz_pango_units_from_double(extents.width);
-        ink_rect->height = moz_pango_units_from_double(extents.height);
-    }
-    if (logical_rect) {
-        logical_rect->x = 0;
-        logical_rect->width = moz_pango_units_from_double(extents.x_advance);
-    }
-}
-
-#ifdef DEBUG
-static PangoFontMetrics *
-gfx_pango_fc_font_get_metrics(PangoFont *font, PangoLanguage *language)
-{
-    NS_WARNING("Using PangoFcFont::get_metrics");
-
-    return PANGO_FONT_CLASS(gfx_pango_fc_font_parent_class)->
-        get_metrics(font, language);
-}
-#endif
-
-static FT_Face
-gfx_pango_fc_font_lock_face(PangoFcFont *font)
-{
-    gfxPangoFcFont *self = GFX_PANGO_FC_FONT(font);
-    return cairo_ft_scaled_font_lock_face(gfxPangoFcFont::CairoFont(self));
-}
-
-static void
-gfx_pango_fc_font_unlock_face(PangoFcFont *font)
-{
-    gfxPangoFcFont *self = GFX_PANGO_FC_FONT(font);
-    cairo_ft_scaled_font_unlock_face(gfxPangoFcFont::CairoFont(self));
-}
-
-static void
-gfx_pango_fc_font_class_init (gfxPangoFcFontClass *klass)
-{
-    GObjectClass *object_class = G_OBJECT_CLASS (klass);
-    PangoFontClass *font_class = PANGO_FONT_CLASS (klass);
-    PangoFcFontClass *fc_font_class = PANGO_FC_FONT_CLASS (klass);
-
-    object_class->finalize = gfx_pango_fc_font_finalize;
-
-#if 0
-    
-    
-    font_class->get_coverage =
-#endif
-    font_class->get_glyph_extents = gfx_pango_fc_font_get_glyph_extents;
-#ifdef DEBUG
-    
-    font_class->get_metrics = gfx_pango_fc_font_get_metrics;
-#endif
-    
-    fc_font_class->lock_face = gfx_pango_fc_font_lock_face;
-    fc_font_class->unlock_face = gfx_pango_fc_font_unlock_face;
-}
-
-
-
-
-
-static GQuark GetBaseFontQuark()
-{
-    
-    
-    
-    static GQuark quark = g_quark_from_string("moz-base-font");
-    return quark;
-}
-
-static PangoFont *
-GetBaseFont(PangoContext *aContext)
-{
-    return static_cast<PangoFont*>
-        (g_object_get_qdata(G_OBJECT(aContext), GetBaseFontQuark()));
-}
-
-static void
-SetBaseFont(PangoContext *aContext, PangoFont *aBaseFont)
-{
-    g_object_ref(aBaseFont);
-    g_object_set_qdata_full(G_OBJECT(aContext), GetBaseFontQuark(),
-                            aBaseFont, g_object_unref);
-}
 
 
 
@@ -381,24 +106,21 @@ GType gfx_pango_fontset_get_type (void);
 struct gfxPangoFontset {
     PangoFontset parent_instance;
 
-    PangoFontMap *mFontMap;
     PangoContext *mContext;
     PangoFontDescription *mFontDesc;
     PangoLanguage *mLanguage;
     PangoFont *mBaseFont;
-    PangoFontset *mFallbackFontset;
+    PangoFontMap *mFontMap;
+    PangoFontset *mChildFontset;
 
     static PangoFontset *
-    NewFontset(PangoFontMap *aFontMap,
-               PangoContext *aContext,
+    NewFontset(PangoContext *aContext,
                const PangoFontDescription *aFontDesc,
-               PangoLanguage *aLanguage)
+               PangoLanguage *aLanguage,
+               PangoFont *aBaseFont, PangoFontMap *aFontMap)
     {
         gfxPangoFontset *fontset = static_cast<gfxPangoFontset *>
             (g_object_new(GFX_TYPE_PANGO_FONTSET, NULL));
-
-        fontset->mFontMap = aFontMap;
-        g_object_ref(aFontMap);
 
         fontset->mContext = aContext;
         g_object_ref(aContext);
@@ -406,9 +128,12 @@ struct gfxPangoFontset {
         fontset->mFontDesc = pango_font_description_copy(aFontDesc);
         fontset->mLanguage = aLanguage;
 
-        fontset->mBaseFont = GetBaseFont(aContext);
-        if(fontset->mBaseFont)
-            g_object_ref(fontset->mBaseFont);
+        fontset->mBaseFont = aBaseFont;
+        if(aBaseFont)
+            g_object_ref(aBaseFont);
+
+        fontset->mFontMap = aFontMap;
+        g_object_ref(aFontMap);
 
         return PANGO_FONTSET(fontset);
     }
@@ -423,6 +148,12 @@ G_DEFINE_TYPE (gfxPangoFontset, gfx_pango_fontset, PANGO_TYPE_FONTSET)
 static void
 gfx_pango_fontset_init(gfxPangoFontset *fontset)
 {
+    fontset->mContext = NULL;
+    fontset->mFontDesc = NULL;
+    fontset->mLanguage = NULL;
+    fontset->mBaseFont = NULL;
+    fontset->mFontMap = NULL;
+    fontset->mChildFontset = NULL;
 }
 
 
@@ -439,8 +170,8 @@ gfx_pango_fontset_finalize(GObject *object)
         g_object_unref(self->mBaseFont);
     if (self->mFontMap)
         g_object_unref(self->mFontMap);
-    if (self->mFallbackFontset)
-        g_object_unref(self->mFallbackFontset);
+    if (self->mChildFontset)
+        g_object_unref(self->mChildFontset);
 
     G_OBJECT_CLASS(gfx_pango_fontset_parent_class)->finalize(object);
 }
@@ -471,15 +202,9 @@ foreach_except_base_cb(PangoFontset *fontset, PangoFont *font, gpointer data)
 }
 
 static PangoFontset *
-gfx_pango_font_map_load_fallback_fontset(PangoFontMap *fontmap,
-                                         PangoContext *context,
-                                         const PangoFontDescription *desc,
-                                         PangoLanguage *language);
-
-static PangoFontset *
-EnsureFallbackFontset(gfxPangoFontset *self)
+EnsureChildFontset(gfxPangoFontset *self)
 {
-    if (!self->mFallbackFontset) {
+    if (!self->mChildFontset) {
         
         
         
@@ -492,13 +217,11 @@ EnsureFallbackFontset(gfxPangoFontset *self)
         
         
         
-        self->mFallbackFontset =
-            gfx_pango_font_map_load_fallback_fontset(self->mFontMap,
-                                                     self->mContext,
-                                                     self->mFontDesc,
-                                                     self->mLanguage);
+        self->mChildFontset =
+            pango_font_map_load_fontset(self->mFontMap, self->mContext,
+                                        self->mFontDesc, self->mLanguage);
     }
-    return self->mFallbackFontset;
+    return self->mChildFontset;
 }
 
 static void
@@ -511,7 +234,7 @@ gfx_pango_fontset_foreach(PangoFontset *fontset, PangoFontsetForeachFunc func,
         return;
 
     
-    PangoFontset *childFontset = EnsureFallbackFontset(self);
+    PangoFontset *childFontset = EnsureChildFontset(self);
     ForeachExceptBaseData baseData = { self->mBaseFont, fontset, func, data };
     pango_fontset_foreach(childFontset, foreach_except_base_cb, &baseData);
 }
@@ -533,7 +256,7 @@ gfx_pango_fontset_get_font(PangoFontset *fontset, guint wc)
     }
 
     if (baseLevel != PANGO_COVERAGE_EXACT) {
-        PangoFontset *childFontset = EnsureFallbackFontset(self);
+        PangoFontset *childFontset = EnsureChildFontset(self);
         PangoFont *childFont = pango_fontset_get_font(childFontset, wc);
         if (!self->mBaseFont || childFont == self->mBaseFont)
             return childFont;
@@ -586,6 +309,9 @@ gfx_pango_fontset_class_init (gfxPangoFontsetClass *klass)
 
 
 
+
+
+
 #define GFX_TYPE_PANGO_FONT_MAP              (gfx_pango_font_map_get_type())
 #define GFX_PANGO_FONT_MAP(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GFX_TYPE_PANGO_FONT_MAP, gfxPangoFontMap))
 #define GFX_IS_PANGO_FONT_MAP(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), GFX_TYPE_PANGO_FONT_MAP))
@@ -599,41 +325,81 @@ GType gfx_pango_font_map_get_type (void);
 
 
 struct gfxPangoFontMap {
-    PangoFcFontMap parent_instance;
+    PangoFontMap parent_instance;
+
+    PangoFontMap *mChildFontMap;
+    PangoFont *mBaseFont;
 
     static PangoFontMap *
-    NewFontMap()
+    NewFontMap(PangoFontMap *aChildFontMap, PangoFont *aBaseFont)
     {
+        NS_ASSERTION(strcmp(pango_font_map_get_shape_engine_type(aChildFontMap), 
+                            PANGO_RENDER_TYPE_FC) == 0,
+                     "Unexpected child PangoFontMap shape engine type");
+
         gfxPangoFontMap *fontmap = static_cast<gfxPangoFontMap *>
             (g_object_new(GFX_TYPE_PANGO_FONT_MAP, NULL));
 
+        fontmap->mChildFontMap = aChildFontMap;
+        g_object_ref(aChildFontMap);
+
+        fontmap->mBaseFont = aBaseFont;
+        if(aBaseFont)
+            g_object_ref(aBaseFont);
+
         return PANGO_FONT_MAP(fontmap);
+    }
+
+    void
+    SetBaseFont(PangoFont *aBaseFont)
+    {
+        if (mBaseFont)
+            g_object_unref(mBaseFont);
+
+        mBaseFont = aBaseFont;
+
+        if (aBaseFont)
+            g_object_ref(aBaseFont);
     }
 };
 
 struct gfxPangoFontMapClass {
-    PangoFcFontMapClass parent_class;
+    PangoFontMapClass parent_class;
 };
 
-G_DEFINE_TYPE (gfxPangoFontMap, gfx_pango_font_map, PANGO_TYPE_FC_FONT_MAP)
+G_DEFINE_TYPE (gfxPangoFontMap, gfx_pango_font_map, PANGO_TYPE_FONT_MAP)
 
 static void
 gfx_pango_font_map_init(gfxPangoFontMap *fontset)
 {
+    fontset->mChildFontMap = NULL;    
+    fontset->mBaseFont = NULL;
+}
+
+static void
+gfx_pango_font_map_finalize(GObject *object)
+{
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(object);
+
+    if (self->mChildFontMap)
+        g_object_unref(self->mChildFontMap);
+    if (self->mBaseFont)
+        g_object_unref(self->mBaseFont);
+
+    G_OBJECT_CLASS(gfx_pango_font_map_parent_class)->finalize(object);
 }
 
 static PangoFont *
 gfx_pango_font_map_load_font(PangoFontMap *fontmap, PangoContext *context,
                              const PangoFontDescription *description)
 {
-    PangoFont *baseFont = GetBaseFont(context);
-    if (baseFont) {
-        g_object_ref(baseFont);
-        return baseFont;
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(fontmap);
+    if (self->mBaseFont) {
+        g_object_ref(self->mBaseFont);
+        return self->mBaseFont;
     }
 
-    return PANGO_FONT_MAP_CLASS(gfx_pango_font_map_parent_class)->
-        load_font(fontmap, context, description);
+    return pango_font_map_load_font(self->mChildFontMap, context, description);
 }
 
 static PangoFontset *
@@ -641,113 +407,30 @@ gfx_pango_font_map_load_fontset(PangoFontMap *fontmap, PangoContext *context,
                                const PangoFontDescription *desc,
                                PangoLanguage *language)
 {
-    return gfxPangoFontset::NewFontset(fontmap, context, desc, language);
-}
-
-static PangoFontset *
-gfx_pango_font_map_load_fallback_fontset(PangoFontMap *fontmap,
-                                         PangoContext *context,
-                                         const PangoFontDescription *desc,
-                                         PangoLanguage *language)
-{
-    return PANGO_FONT_MAP_CLASS(gfx_pango_font_map_parent_class)->
-        load_fontset(fontmap, context, desc, language);
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(fontmap);
+    return gfxPangoFontset::NewFontset(context, desc, language,
+                                       self->mBaseFont, self->mChildFontMap);
 }
 
 static void
 gfx_pango_font_map_list_families(PangoFontMap *fontmap,
                                  PangoFontFamily ***families, int *n_families)
 {
-    return PANGO_FONT_MAP_CLASS(gfx_pango_font_map_parent_class)->
-        list_families(fontmap, families, n_families);
-}
-
-static double
-gfx_pango_font_map_get_resolution(PangoFcFontMap *fcfontmap,
-                                  PangoContext *context)
-{
-    
-    
-    return gfxPlatformGtk::DPI();
-}
-
-static void
-gfx_pango_font_map_context_substitute(PangoFcFontMap *fontmap,
-                                      PangoContext *context,
-                                      FcPattern *pattern)
-{
-    FcConfigSubstitute(NULL, pattern, FcMatchPattern);
-
-    
-    
-    
-    const cairo_font_options_t *options =
-        gdk_screen_get_font_options(gdk_screen_get_default());
-
-    cairo_ft_font_options_substitute(options, pattern);
-
-    FcDefaultSubstitute(pattern);
-}
-
-static PangoFcFont *
-gfx_pango_font_map_create_font(PangoFcFontMap *fontmap,
-                               PangoContext *context,
-                               const PangoFontDescription *desc,
-                               FcPattern *pattern)
-{
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    PRBool newPattern = PR_FALSE;
-    double size;
-    if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &size) != FcResultMatch) {
-        size = pango_font_description_get_size(desc) / FLOAT_PANGO_SCALE;
-        pattern = FcPatternDuplicate(pattern);
-        newPattern = PR_TRUE;
-        FcPatternDel(pattern, FC_PIXEL_SIZE);
-        FcPatternAddDouble(pattern, FC_PIXEL_SIZE, size);
-    }
-
-    PangoFcFont *font = PANGO_FC_FONT(g_object_new(GFX_TYPE_PANGO_FC_FONT,
-                                                   "pattern", pattern, NULL));
-
-    if (newPattern) {
-        FcPatternDestroy(pattern);
-    }
-    return font;
+    gfxPangoFontMap *self = GFX_PANGO_FONT_MAP(fontmap);
+    pango_font_map_list_families(self->mChildFontMap, families, n_families);
 }
 
 static void
 gfx_pango_font_map_class_init(gfxPangoFontMapClass *klass)
 {
-    
-    
-
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
     PangoFontMapClass *fontmap_class = PANGO_FONT_MAP_CLASS (klass);
+
+    object_class->finalize = gfx_pango_font_map_finalize;
     fontmap_class->load_font = gfx_pango_font_map_load_font;
     fontmap_class->load_fontset = gfx_pango_font_map_load_fontset;
     fontmap_class->list_families = gfx_pango_font_map_list_families;
-    
-
-    PangoFcFontMapClass *fcfontmap_class = PANGO_FC_FONT_MAP_CLASS (klass);
-    fcfontmap_class->get_resolution = gfx_pango_font_map_get_resolution;
-    
-    
-    fcfontmap_class->context_substitute = gfx_pango_font_map_context_substitute;
-    fcfontmap_class->create_font = gfx_pango_font_map_create_font;
+    fontmap_class->shape_engine_type = PANGO_RENDER_TYPE_FC;
 }
 
 
@@ -783,18 +466,36 @@ FontCallback (const nsAString& fontName, const nsACString& genericName,
     return PR_TRUE;
 }
 
+
+
+
+
+
+static already_AddRefed<gfxPangoFont>
+GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle)
+{
+    nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aName, aStyle);
+    if (!font) {
+        nsRefPtr<gfxPangoFontEntry> fe = new gfxPangoFontEntry(aName);
+        font = new gfxPangoFont(fe, aStyle);
+        if (!font)
+            return nsnull;
+        gfxFontCache::GetCache()->AddNew(font);
+    }
+    gfxFont *f = nsnull;
+    font.swap(f);
+    return static_cast<gfxPangoFont *>(f);
+}
+
 gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
                                       const gfxFontStyle *aStyle)
-    : gfxFontGroup(families, aStyle),
-      mBasePangoFont(nsnull), mAdjustedSize(0)
+    : gfxFontGroup(families, aStyle)
 {
     mFonts.AppendElements(1);
 }
 
 gfxPangoFontGroup::~gfxPangoFontGroup()
 {
-    if (mBasePangoFont)
-        g_object_unref(mBasePangoFont);
 }
 
 gfxFontGroup *
@@ -834,55 +535,68 @@ gfxPangoFontGroup::GetFcFamilies(nsAString& aFcFamilies)
     }
 }
 
-gfxFont *
+gfxPangoFont *
 gfxPangoFontGroup::GetFontAt(PRInt32 i) {
     NS_PRECONDITION(i == 0, "Only have one font");
 
     if (!mFonts[0]) {
-        PangoFont *pangoFont = GetBasePangoFont();
-        mFonts[0] = gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangoFont));
+        nsAutoString fcFamilies;
+        GetFcFamilies(fcFamilies);
+        nsRefPtr<gfxPangoFont> font = GetOrMakeFont(fcFamilies, &mStyle);
+        mFonts[0] = font;
     }
 
-    return mFonts[0];
+    return static_cast<gfxPangoFont*>(mFonts[i].get());
 }
 
 
 
 
 
-cairo_user_data_key_t gfxFcFont::sGfxFontKey;
-
-gfxFcFont::gfxFcFont(cairo_scaled_font_t *aCairoFont,
-                     gfxPangoFontEntry *aFontEntry,
-                     const gfxFontStyle *aFontStyle)
+gfxPangoFont::gfxPangoFont(gfxPangoFontEntry *aFontEntry,
+                           const gfxFontStyle *aFontStyle)
     : gfxFont(aFontEntry, aFontStyle),
-      mCairoFont(aCairoFont),
-      mHasMetrics(PR_FALSE)
+      mPangoFont(nsnull), mCairoFont(nsnull),
+      mHasMetrics(PR_FALSE), mAdjustedSize(0)
 {
-    cairo_scaled_font_reference(mCairoFont);
-    cairo_scaled_font_set_user_data(mCairoFont, &sGfxFontKey, this, NULL);
 }
 
-gfxFcFont::~gfxFcFont()
+
+static GQuark GetFontQuark()
 {
-    cairo_scaled_font_set_user_data(mCairoFont, &sGfxFontKey, NULL, NULL);
-    cairo_scaled_font_destroy(mCairoFont);
+    
+    
+    
+    static GQuark quark = g_quark_from_string("moz-gfxFont");
+    return quark;
+}
+
+gfxPangoFont::gfxPangoFont(PangoFont *aPangoFont, gfxPangoFontEntry *aFontEntry,
+                           const gfxFontStyle *aFontStyle)
+    : gfxFont(aFontEntry, aFontStyle),
+      mPangoFont(aPangoFont), mCairoFont(nsnull),
+      mHasMetrics(PR_FALSE), mAdjustedSize(aFontStyle->size)
+{
+    g_object_ref(mPangoFont);
+    g_object_set_qdata(G_OBJECT(mPangoFont), GetFontQuark(), this);
+}
+
+gfxPangoFont::~gfxPangoFont()
+{
+    if (mPangoFont) {
+        if (g_object_get_qdata(G_OBJECT(mPangoFont), GetFontQuark()) == this)
+            g_object_set_qdata(G_OBJECT(mPangoFont), GetFontQuark(), NULL);
+        g_object_unref(mPangoFont);
+    }
+
+    if (mCairoFont)
+        cairo_scaled_font_destroy(mCairoFont);
 }
 
  void
-gfxPangoFontGroup::Shutdown()
+gfxPangoFont::Shutdown()
 {
     gfxPangoFontCache::Shutdown();
-
-    if (gPangoFontMap) {
-        if (PANGO_IS_FC_FONT_MAP (gPangoFontMap)) {
-            
-            
-            pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(gPangoFontMap));
-        }
-        g_object_unref(gPangoFontMap);
-        gPangoFontMap = NULL;
-    }
 }
 
 static PangoStyle
@@ -894,6 +608,17 @@ ThebesStyleToPangoStyle (const gfxFontStyle *fs)
         return PANGO_STYLE_OBLIQUE;
 
     return PANGO_STYLE_NORMAL;
+}
+
+static PRUint8
+PangoStyleToThebesStyle (PangoStyle aPangoStyle)
+{
+    if (aPangoStyle == PANGO_STYLE_ITALIC)
+        return FONT_STYLE_ITALIC;
+    if (aPangoStyle == FONT_STYLE_OBLIQUE)
+        return FONT_STYLE_OBLIQUE;
+
+    return FONT_STYLE_NORMAL;
 }
 
 static PangoWeight
@@ -956,8 +681,8 @@ NewPangoFontDescription(const nsAString &aName, const gfxFontStyle *aFontStyle)
 
     pango_font_description_set_family(fontDesc,
                                       NS_ConvertUTF16toUTF8(aName).get());
-    pango_font_description_set_absolute_size
-        (fontDesc, moz_pango_units_from_double(aFontStyle->size));
+    pango_font_description_set_absolute_size(fontDesc,
+                                             aFontStyle->size * PANGO_SCALE);
     pango_font_description_set_style(fontDesc,
                                      ThebesStyleToPangoStyle(aFontStyle));
     pango_font_description_set_weight(fontDesc,
@@ -979,89 +704,48 @@ NewPangoFontDescription(const nsAString &aName, const gfxFontStyle *aFontStyle)
 
 
 
-already_AddRefed<gfxFcFont>
-gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
-{
-    cairo_scaled_font_t *cairoFont = CreateScaledFont(aPattern);
 
-    nsRefPtr<gfxFcFont> font = static_cast<gfxFcFont*>
-        (cairo_scaled_font_get_user_data(cairoFont, &sGfxFontKey));
+
+already_AddRefed<gfxPangoFont>
+gfxPangoFont::GetOrMakeFont(PangoFont *aPangoFont)
+{
+    gfxPangoFont *font = static_cast<gfxPangoFont*>
+        (g_object_get_qdata(G_OBJECT(aPangoFont), GetFontQuark()));
 
     if (!font) {
+        
+        PangoFontDescription *desc = pango_font_describe(aPangoFont);
+
+        PangoFcFont *fcfont = PANGO_FC_FONT(aPangoFont);
         double size;
-        if (FcPatternGetDouble(aPattern,
-                               FC_PIXEL_SIZE, 0, &size) != FcResultMatch) {
-            NS_NOTREACHED("No size on pattern");
-            size = 0.0;
-        }
-
-        
-        
-        PRUint8 style = gfxFontconfigUtils::GetThebesStyle(aPattern);
-        PRUint16 weight = gfxFontconfigUtils::GetThebesWeight(aPattern);
+        if (FcPatternGetDouble(fcfont->font_pattern, FC_PIXEL_SIZE, 0, &size)
+            != FcResultMatch)
+            size = pango_font_description_get_size(desc) / FLOAT_PANGO_SCALE;
 
         
         
         
+        PRUint8 style =
+            PangoStyleToThebesStyle(pango_font_description_get_style(desc));
+        PRUint16 weight = pango_font_description_get_weight(desc);
         NS_NAMED_LITERAL_CSTRING(langGroup, "x-unicode");
         gfxFontStyle fontStyle(style, weight, size, langGroup, 0.0,
                                PR_TRUE, PR_FALSE);
 
-        FcChar8 *fc_file; 
-        const char *file; 
-        if (FcPatternGetString(aPattern,
-                               FC_FILE, 0, &fc_file) == FcResultMatch) {
-            file = reinterpret_cast<char*>(fc_file);
-        } else {
-            
-            
-            NS_NOTREACHED("Fonts without a file are not supported");
-            static const char *noFile = "NO FILE";
-            file = noFile;
-        }
-        int index;
-        if (FcPatternGetInteger(aPattern, FC_INDEX, 0, &index)
-            != FcResultMatch) {
-            
-            NS_NOTREACHED("No index in pattern");
-            index = 0;
-        }
         
-        nsAutoString name;
-        AppendUTF8toUTF16(file, name);
-        if (index != 0) {
-            name.AppendLiteral("/");
-            name.AppendInt(index);
-        }
+        const char *family = pango_font_description_get_family(desc);
+        nsRefPtr<gfxPangoFontEntry> fe = new gfxPangoFontEntry(NS_ConvertUTF8toUTF16(family));
+        font = new gfxPangoFont(aPangoFont, fe, &fontStyle);
 
-        nsRefPtr<gfxPangoFontEntry> fe = new gfxPangoFontEntry(name);
+        pango_font_description_free(desc);
+        if (!font)
+            return nsnull;
 
         
         
-        
-        
-        
-        
-        
-        font = new gfxFcFont(cairoFont, fe, &fontStyle);
     }
-
-    cairo_scaled_font_destroy(cairoFont);
-    return font.forget();
-}
-
-static PangoContext *
-GetPangoContext()
-{
-    PangoContext *context = pango_context_new();
-
-    
-    if (!gPangoFontMap) {
-        gPangoFontMap = gfxPangoFontMap::NewFontMap();
-    }
-    pango_context_set_font_map(context, gPangoFontMap);
-
-    return context;
+    NS_ADDREF(font);
+    return font;
 }
 
 static PangoFont*
@@ -1080,19 +764,17 @@ LoadPangoFont(PangoContext *aPangoCtx, const PangoFontDescription *aPangoFontDes
     return pangoFont;
 }
 
-
-PangoFont *
-gfxPangoFontGroup::GetBasePangoFont()
+void
+gfxPangoFont::RealizePangoFont()
 {
-    if (mBasePangoFont)
-        return mBasePangoFont;
+    
+    if (mPangoFont)
+        return;
 
-    nsAutoString fcFamilies;
-    GetFcFamilies(fcFamilies);
-    PangoFontDescription *pangoFontDesc = 
-        NewPangoFontDescription(fcFamilies, GetStyle());
+    PangoFontDescription *pangoFontDesc =
+        NewPangoFontDescription(GetName(), GetStyle());
 
-    PangoContext *pangoCtx = GetPangoContext();
+    PangoContext *pangoCtx = gdk_pango_context_get();
 
     if (!GetStyle()->langGroup.IsEmpty()) {
         PangoLanguage *lang = GetPangoLanguage(GetStyle()->langGroup);
@@ -1100,332 +782,223 @@ gfxPangoFontGroup::GetBasePangoFont()
             pango_context_set_language(pangoCtx, lang);
     }
 
-    PangoFont *pangoFont = LoadPangoFont(pangoCtx, pangoFontDesc);
+    mPangoFont = LoadPangoFont(pangoCtx, pangoFontDesc);
 
     gfxFloat size = GetStyle()->size;
-    if (size != 0.0 && GetStyle()->sizeAdjust != 0.0) {
-        LockedFTFace
-            face(gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangoFont)));
+    
+    if (size != 0.0 && GetStyle()->sizeAdjust != 0.0 && mPangoFont) {
         
-        cairo_text_extents_t extents;
-        if (face.GetCharExtents('x', &extents) &&
-            extents.y_bearing < 0.0) {
-            gfxFloat aspect = -extents.y_bearing / size;
+        gfxSize isz, lsz;
+        GetCharSize('x', isz, lsz);
+        if (isz.height != 0.0) {
+            gfxFloat aspect = isz.height / size;
             size = GetStyle()->GetAdjustedSize(aspect);
 
-            pango_font_description_set_absolute_size
-                (pangoFontDesc, moz_pango_units_from_double(size));
-            g_object_unref(pangoFont);
-            pangoFont = LoadPangoFont(pangoCtx, pangoFontDesc);
+            pango_font_description_set_absolute_size(pangoFontDesc,
+                                                     size * PANGO_SCALE);
+            g_object_unref(mPangoFont);
+            mPangoFont = LoadPangoFont(pangoCtx, pangoFontDesc);
         }
     }
+
+    NS_ASSERTION(mHasMetrics == PR_FALSE, "metrics will be invalid...");
+    mAdjustedSize = size;
+    if (!g_object_get_qdata(G_OBJECT(mPangoFont), GetFontQuark()))
+        g_object_set_qdata(G_OBJECT(mPangoFont), GetFontQuark(), this);
 
     if (pangoFontDesc)
         pango_font_description_free(pangoFontDesc);
     if (pangoCtx)
         g_object_unref(pangoCtx);
-
-    mBasePangoFont = pangoFont;
-    mAdjustedSize = size;
-
-    return pangoFont;
 }
 
 void
-gfxFcFont::GetGlyphExtents(PRUint32 aGlyph, cairo_text_extents_t* aExtents)
+gfxPangoFont::GetCharSize(char aChar, gfxSize& aInkSize, gfxSize& aLogSize,
+                          PRUint32 *aGlyphID)
 {
-    NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
-
-    cairo_glyph_t glyphs[1];
-    glyphs[0].index = aGlyph;
-    glyphs[0].x = 0.0;
-    glyphs[0].y = 0.0;
-    
-    
-    
-    
-    
-    cairo_scaled_font_glyph_extents(CairoScaledFont(), glyphs, 1, aExtents);
-}
-
-PRUint32
-LockedFTFace::GetCharExtents(char aChar,
-                             cairo_text_extents_t* aExtents)
-{
-    NS_PRECONDITION(aExtents != NULL, "aExtents must not be NULL");
-
-    if (!mFace)
-        return 0;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    FT_UInt gid = FcFreeTypeCharIndex(mFace, aChar); 
-    if (gid) {
-        mGfxFont->GetGlyphExtents(gid, aExtents);
-    }
-
-    return gid;
-}
-
-
-
-
-#define FLOAT_FROM_26_6(x) ((x) / 64.0)
-#define FLOAT_FROM_16_16(x) ((x) / 65536.0)
-#define ROUND_26_6_TO_INT(x) ((x) >= 0 ?  ((32 + (x)) >> 6) \
-                                       : -((32 - (x)) >> 6))
-
-static inline FT_Long
-ScaleRoundDesignUnits(FT_Short aDesignMetric, FT_Fixed aScale)
-{
-    FT_Long fixed26dot6 = FT_MulFix(aDesignMetric, aScale);
-    return ROUND_26_6_TO_INT(fixed26dot6);
-}
-
-
-
-
-
-
-
-
-
-static void
-SnapLineToPixels(gfxFloat& aOffset, gfxFloat& aSize)
-{
-    gfxFloat snappedSize = PR_MAX(NS_floor(aSize + 0.5), 1.0);
-    
-    gfxFloat offset = aOffset - 0.5 * (aSize - snappedSize);
-    
-    aOffset = NS_floor(offset + 0.5);
-    aSize = snappedSize;
-}
-
-void
-LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
-{
-    NS_PRECONDITION(aMetrics != NULL, "aMetrics must not be NULL");
-    NS_PRECONDITION(aSpaceGlyph != NULL, "aSpaceGlyph must not be NULL");
-
-    if (NS_UNLIKELY(!mFace)) {
-        
-        
-        aMetrics->emHeight = mGfxFont->GetStyle()->size;
-        aMetrics->emAscent = 0.8 * aMetrics->emHeight;
-        aMetrics->emDescent = 0.2 * aMetrics->emHeight;
-        aMetrics->maxAscent = aMetrics->emAscent;
-        aMetrics->maxDescent = aMetrics->maxDescent;
-        aMetrics->maxHeight = aMetrics->emHeight;
-        aMetrics->internalLeading = 0.0;
-        aMetrics->externalLeading = 0.2 * aMetrics->emHeight;
-        aSpaceGlyph = 0;
-        aMetrics->spaceWidth = 0.5 * aMetrics->emHeight;
-        aMetrics->maxAdvance = aMetrics->spaceWidth;
-        aMetrics->aveCharWidth = aMetrics->spaceWidth;
-        aMetrics->zeroOrAveCharWidth = aMetrics->spaceWidth;
-        aMetrics->xHeight = 0.5 * aMetrics->emHeight;
-        aMetrics->underlineSize = aMetrics->emHeight / 14.0;
-        aMetrics->underlineOffset = -aMetrics->underlineSize;
-        aMetrics->strikeoutOffset = 0.25 * aMetrics->emHeight;
-        aMetrics->strikeoutSize = aMetrics->underlineSize;
-        aMetrics->superscriptOffset = aMetrics->xHeight;
-        aMetrics->subscriptOffset = aMetrics->xHeight;
-
+    if (NS_UNLIKELY(GetStyle()->size == 0.0)) {
+        if (aGlyphID)
+            *aGlyphID = 0;
+        aInkSize.SizeTo(0.0, 0.0);
+        aLogSize.SizeTo(0.0, 0.0);
         return;
     }
 
-    const FT_Size_Metrics& ftMetrics = mFace->size->metrics;
-
     
-    gfxFloat yScale;
-    if (FT_IS_SCALABLE(mFace)) {
-        
-        
-        
-        
-        
-        
-        
-        yScale = FLOAT_FROM_26_6(FLOAT_FROM_16_16(ftMetrics.y_scale));
-        aMetrics->emHeight = mFace->units_per_EM * yScale;
-    } else { 
-        
-        
-        gfxFloat emUnit = mFace->units_per_EM;
-        aMetrics->emHeight = ftMetrics.y_ppem;
-        yScale = aMetrics->emHeight / emUnit;
-    }
-
-    TT_OS2 *os2 =
-        static_cast<TT_OS2*>(FT_Get_Sfnt_Table(mFace, ft_sfnt_os2));
-
-    aMetrics->maxAscent = FLOAT_FROM_26_6(ftMetrics.ascender);
-    aMetrics->maxDescent = -FLOAT_FROM_26_6(ftMetrics.descender);
-    aMetrics->maxAdvance = FLOAT_FROM_26_6(ftMetrics.max_advance);
-
-    gfxFloat lineHeight;
-    if (os2 && os2->sTypoAscender) {
-        aMetrics->emAscent = os2->sTypoAscender * yScale;
-        aMetrics->emDescent = -os2->sTypoDescender * yScale;
-        FT_Short typoHeight =
-            os2->sTypoAscender - os2->sTypoDescender + os2->sTypoLineGap;
-        lineHeight = typoHeight * yScale;
-
-        
-        
-        if (aMetrics->emAscent > aMetrics->maxAscent)
-            aMetrics->maxAscent = aMetrics->emAscent;
-        if (aMetrics->emDescent > aMetrics->maxDescent)
-            aMetrics->maxDescent = aMetrics->emDescent;
-    } else {
-        aMetrics->emAscent = aMetrics->maxAscent;
-        aMetrics->emDescent = aMetrics->maxDescent;
-        lineHeight = FLOAT_FROM_26_6(ftMetrics.height);
-    }
-
-    cairo_text_extents_t extents;
-    *aSpaceGlyph = GetCharExtents(' ', &extents);
-    if (*aSpaceGlyph) {
-        aMetrics->spaceWidth = extents.x_advance;
-    } else {
-        aMetrics->spaceWidth = aMetrics->maxAdvance; 
-    }
-
-    aMetrics->zeroOrAveCharWidth = 0.0;
-    if (GetCharExtents('0', &extents)) {
-        aMetrics->zeroOrAveCharWidth = extents.x_advance;
-    }
-
+    
+    
+    PangoAnalysis analysis;
     
     
     
     
-    if (GetCharExtents('x', &extents) && extents.y_bearing < 0.0) {
-        aMetrics->xHeight = -extents.y_bearing;
-        aMetrics->aveCharWidth = extents.x_advance;
-    } else {
-        if (os2 && os2->sxHeight) {
-            aMetrics->xHeight = os2->sxHeight * yScale;
-        } else {
-            
-            
-            
-            aMetrics->xHeight = 0.5 * aMetrics->emHeight;
+    
+    memset(&analysis, 0, sizeof(analysis));
+    analysis.font = GetPangoFont();
+    analysis.language = pango_language_from_string("en");
+    analysis.shape_engine = pango_font_find_shaper(analysis.font, analysis.language, aChar);
+
+    PangoGlyphString *glstr = pango_glyph_string_new();
+    pango_shape (&aChar, 1, &analysis, glstr);
+
+    if (aGlyphID) {
+        *aGlyphID = 0;
+        if (glstr->num_glyphs == 1) {
+            PangoGlyph glyph = glstr->glyphs[0].glyph;
+            if (!IS_MISSING_GLYPH(glyph) && !IS_EMPTY_GLYPH(glyph)) {
+                *aGlyphID = glyph;
+            }
         }
-        aMetrics->aveCharWidth = 0.0; 
-    }
-    
-    
-    if (os2 && os2->xAvgCharWidth) {
-        
-        
-        gfxFloat avgCharWidth =
-            ScaleRoundDesignUnits(os2->xAvgCharWidth, ftMetrics.x_scale);
-        aMetrics->aveCharWidth =
-            PR_MAX(aMetrics->aveCharWidth, avgCharWidth);
-    }
-    aMetrics->aveCharWidth =
-        PR_MAX(aMetrics->aveCharWidth, aMetrics->zeroOrAveCharWidth);
-    if (aMetrics->aveCharWidth == 0.0) {
-        aMetrics->aveCharWidth = aMetrics->spaceWidth;
-    }
-    if (aMetrics->zeroOrAveCharWidth == 0.0) {
-        aMetrics->zeroOrAveCharWidth = aMetrics->aveCharWidth;
-    }
-    
-    aMetrics->maxAdvance =
-        PR_MAX(aMetrics->maxAdvance, aMetrics->aveCharWidth);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (mFace->underline_position && mFace->underline_thickness) {
-        aMetrics->underlineSize = mFace->underline_thickness * yScale;
-        TT_Postscript *post = static_cast<TT_Postscript*>
-            (FT_Get_Sfnt_Table(mFace, ft_sfnt_post));
-        if (post && post->underlinePosition) {
-            aMetrics->underlineOffset = post->underlinePosition * yScale;
-        } else {
-            aMetrics->underlineOffset = mFace->underline_position * yScale
-                + 0.5 * aMetrics->underlineSize;
-        }
-    } else { 
-        
-        aMetrics->underlineSize = aMetrics->emHeight / 14.0;
-        aMetrics->underlineOffset = -aMetrics->underlineSize;
     }
 
-    if (os2 && os2->yStrikeoutSize && os2->yStrikeoutPosition) {
-        aMetrics->strikeoutSize = os2->yStrikeoutSize * yScale;
-        aMetrics->strikeoutOffset = os2->yStrikeoutPosition * yScale;
-    } else { 
-        aMetrics->strikeoutSize = aMetrics->underlineSize;
-        
-        aMetrics->strikeoutOffset = aMetrics->emHeight * 409.0 / 2048.0
-            + 0.5 * aMetrics->strikeoutSize;
-    }
-    SnapLineToPixels(aMetrics->strikeoutOffset, aMetrics->strikeoutSize);
+    PangoRectangle ink_rect, log_rect;
+    pango_glyph_string_extents(glstr, analysis.font, &ink_rect, &log_rect);
 
-    if (os2 && os2->ySuperscriptYOffset) {
-        gfxFloat val = ScaleRoundDesignUnits(os2->ySuperscriptYOffset,
-                                             ftMetrics.y_scale);
-        aMetrics->superscriptOffset = PR_MAX(1.0, val);
-    } else {
-        aMetrics->superscriptOffset = aMetrics->xHeight;
-    }
-    
-    if (os2 && os2->ySubscriptYOffset) {
-        gfxFloat val = ScaleRoundDesignUnits(os2->ySubscriptYOffset,
-                                             ftMetrics.y_scale);
-        
-        val = fabs(val);
-        aMetrics->subscriptOffset = PR_MAX(1.0, val);
-    } else {
-        aMetrics->subscriptOffset = aMetrics->xHeight;
-    }
+    aInkSize.width = ink_rect.width / FLOAT_PANGO_SCALE;
+    aInkSize.height = ink_rect.height / FLOAT_PANGO_SCALE;
 
-    aMetrics->maxHeight = aMetrics->maxAscent + aMetrics->maxDescent;
+    aLogSize.width = log_rect.width / FLOAT_PANGO_SCALE;
+    aLogSize.height = log_rect.height / FLOAT_PANGO_SCALE;
 
-    
-    gfxFloat sum = aMetrics->emAscent + aMetrics->emDescent;
-    aMetrics->emAscent = sum > 0.0 ?
-        aMetrics->emAscent * aMetrics->emHeight / sum : 0.0;
-    aMetrics->emDescent = aMetrics->emHeight - aMetrics->emAscent;
-
-    aMetrics->internalLeading = aMetrics->maxHeight - aMetrics->emHeight;
-    
-    
-    aMetrics->externalLeading = PR_MAX(lineHeight - aMetrics->maxHeight, 0);
+    pango_glyph_string_free(glstr);
 }
 
+
+
+
+#define MOZ_FT_ROUND(x) (((x) + 32) & ~63) // 63 = 2^6 - 1
+#define MOZ_FT_TRUNC(x) ((x) >> 6)
+#define CONVERT_DESIGN_UNITS_TO_PIXELS(v, s) \
+        MOZ_FT_TRUNC(MOZ_FT_ROUND(FT_MulFix((v) , (s))))
+
 const gfxFont::Metrics&
-gfxFcFont::GetMetrics()
+gfxPangoFont::GetMetrics()
 {
     if (mHasMetrics)
         return mMetrics;
 
-    if (NS_UNLIKELY(GetStyle()->size <= 0.0)) {
-        new(&mMetrics) gfxFont::Metrics(); 
-        mSpaceGlyph = 0;
+    
+    PangoFont *font;
+    PangoFontMetrics *pfm;
+    if (NS_LIKELY(GetStyle()->size > 0.0)) {
+        font = GetPangoFont(); 
+        PangoLanguage *lang = GetPangoLanguage(GetStyle()->langGroup);
+        
+        
+        
+        
+        if (!lang)
+            lang = pango_language_from_string(setlocale(LC_CTYPE, NULL));
+
+        pfm = pango_font_get_metrics(font, lang);
     } else {
-        LockedFTFace(this).GetMetrics(&mMetrics, &mSpaceGlyph);
+        
+        
+        font = NULL;
+        pfm = NULL;
+    }
+
+    if (NS_LIKELY(pfm)) {
+        mMetrics.maxAscent =
+            pango_font_metrics_get_ascent(pfm) / FLOAT_PANGO_SCALE;
+
+        mMetrics.maxDescent =
+            pango_font_metrics_get_descent(pfm) / FLOAT_PANGO_SCALE;
+
+        
+        
+        mMetrics.aveCharWidth =
+            PR_MAX(pango_font_metrics_get_approximate_char_width(pfm),
+                   pango_font_metrics_get_approximate_digit_width(pfm))
+            / FLOAT_PANGO_SCALE;
+
+        mMetrics.underlineOffset =
+            pango_font_metrics_get_underline_position(pfm) / FLOAT_PANGO_SCALE;
+
+        mMetrics.underlineSize =
+            pango_font_metrics_get_underline_thickness(pfm) / FLOAT_PANGO_SCALE;
+
+        mMetrics.strikeoutOffset =
+            pango_font_metrics_get_strikethrough_position(pfm) / FLOAT_PANGO_SCALE;
+
+        mMetrics.strikeoutSize =
+            pango_font_metrics_get_strikethrough_thickness(pfm) / FLOAT_PANGO_SCALE;
+
+        
+        
+        mMetrics.maxAdvance = mMetrics.aveCharWidth;
+    } else {
+        mMetrics.maxAscent = 0.0;
+        mMetrics.maxDescent = 0.0;
+        mMetrics.aveCharWidth = 0.0;
+        mMetrics.underlineOffset = -1.0;
+        mMetrics.underlineSize = 0.0;
+        mMetrics.strikeoutOffset = 0.0;
+        mMetrics.strikeoutSize = 0.0;
+        mMetrics.maxAdvance = 0.0;
+    }
+
+    
+    mMetrics.emHeight = mAdjustedSize;
+
+    gfxFloat lineHeight = mMetrics.maxAscent + mMetrics.maxDescent;
+    if (lineHeight > mMetrics.emHeight)
+        mMetrics.externalLeading = lineHeight - mMetrics.emHeight;
+    else
+        mMetrics.externalLeading = 0;
+    mMetrics.internalLeading = 0;
+
+    mMetrics.maxHeight = lineHeight;
+
+    mMetrics.emAscent = lineHeight > 0.0 ?
+        mMetrics.maxAscent * mMetrics.emHeight / lineHeight : 0.0;
+    mMetrics.emDescent = mMetrics.emHeight - mMetrics.emAscent;
+
+    gfxSize isz, lsz;
+    PRUint32 zeroGlyph;
+    GetCharSize(' ', isz, lsz, &mSpaceGlyph);
+    mMetrics.spaceWidth = lsz.width;
+    GetCharSize('x', isz, lsz);
+    mMetrics.xHeight = isz.height;
+    GetCharSize('0', isz, lsz, &zeroGlyph);
+    if (zeroGlyph)
+        mMetrics.zeroOrAveCharWidth = lsz.width;
+    else
+        mMetrics.zeroOrAveCharWidth = mMetrics.aveCharWidth;
+
+    FT_Face face = NULL;
+    if (pfm && PANGO_IS_FC_FONT(font))
+        face = pango_fc_font_lock_face(PANGO_FC_FONT(font));
+
+    if (face) {
+        mMetrics.maxAdvance = face->size->metrics.max_advance / 64.0; 
+
+        float val;
+
+        TT_OS2 *os2 = (TT_OS2 *) FT_Get_Sfnt_Table(face, ft_sfnt_os2);
+    
+        if (os2 && os2->ySuperscriptYOffset) {
+            val = CONVERT_DESIGN_UNITS_TO_PIXELS(os2->ySuperscriptYOffset,
+                                                 face->size->metrics.y_scale);
+            mMetrics.superscriptOffset = PR_MAX(1, val);
+        } else {
+            mMetrics.superscriptOffset = mMetrics.xHeight;
+        }
+    
+        if (os2 && os2->ySubscriptYOffset) {
+            val = CONVERT_DESIGN_UNITS_TO_PIXELS(os2->ySubscriptYOffset,
+                                                 face->size->metrics.y_scale);
+            
+            val = (val < 0) ? -val : val;
+            mMetrics.subscriptOffset = PR_MAX(1, val);
+        } else {
+            mMetrics.subscriptOffset = mMetrics.xHeight;
+        }
+
+        pango_fc_font_unlock_face(PANGO_FC_FONT(font));
+    } else {
+        mMetrics.superscriptOffset = mMetrics.xHeight;
+        mMetrics.subscriptOffset = mMetrics.xHeight;
     }
 
     SanitizeMetrics(&mMetrics, PR_FALSE);
@@ -1442,15 +1015,30 @@ gfxFcFont::GetMetrics()
     fprintf (stderr, "    uOff: %f uSize: %f stOff: %f stSize: %f suOff: %f suSize: %f\n", mMetrics.underlineOffset, mMetrics.underlineSize, mMetrics.strikeoutOffset, mMetrics.strikeoutSize, mMetrics.superscriptOffset, mMetrics.subscriptOffset);
 #endif
 
+    if (pfm)
+        pango_font_metrics_unref(pfm);
+
     mHasMetrics = PR_TRUE;
     return mMetrics;
 }
 
 nsString
-gfxFcFont::GetUniqueName()
+gfxPangoFont::GetUniqueName()
 {
-    return GetName();
+    PangoFont *font = GetPangoFont();
+    PangoFontDescription *desc = pango_font_describe(font);
+    pango_font_description_unset_fields (desc, PANGO_FONT_MASK_SIZE);
+    char *str = pango_font_description_to_string(desc);
+    pango_font_description_free (desc);
+
+    nsString result;
+    CopyUTF8toUTF16(str, result);
+    g_free(str);
+    return result;
 }
+
+
+
 
 
 
@@ -1474,7 +1062,7 @@ static PRInt32 AppendDirectionalIndicatorUTF8(PRBool aIsRTL, nsACString& aString
     AppendUTF16toUTF8(overrides[aIsRTL], aString);
     return 3; 
 }
-
+	
 gfxTextRun *
 gfxPangoFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
                                const Parameters *aParams, PRUint32 aFlags)
@@ -1511,7 +1099,7 @@ gfxPangoFontGroup::CanTakeFastPath(PRUint32 aFlags)
     
     PRBool speed = aFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED;
     PRBool isRTL = aFlags & gfxTextRunFactory::TEXT_IS_RTL;
-    return speed && !isRTL && PANGO_IS_FC_FONT(GetBasePangoFont());
+    return speed && !isRTL && PANGO_IS_FC_FONT(GetFontAt(0)->GetPangoFont());
 }
 #endif
 
@@ -1565,223 +1153,72 @@ gfxPangoFontGroup::InitTextRun(gfxTextRun *aTextRun, const gchar *aUTF8Text,
 #endif
 }
 
-
-static cairo_scaled_font_t *
-CreateScaledFont(FcPattern *aPattern)
+static cairo_scaled_font_t*
+CreateScaledFont(cairo_t *aCR, cairo_matrix_t *aCTM, PangoFont *aPangoFont)
 {
-    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(aPattern);
+
+
+#if 0
+
+    
+    
+    return cairo_scaled_font_reference (pango_cairo_font_get_scaled_font (PANGO_CAIRO_FONT (aPangoFont)));
+#else
+    
+    
+    
+    
+    PangoFcFont *fcfont = PANGO_FC_FONT(aPangoFont);
+    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(fcfont->font_pattern);
     double size;
-    if (FcPatternGetDouble(aPattern,
-                           FC_PIXEL_SIZE, 0, &size) != FcResultMatch) {
-        NS_NOTREACHED("No size on pattern");
-        size = 0.0;
-    }
-        
+    if (FcPatternGetDouble(fcfont->font_pattern, FC_PIXEL_SIZE, 0, &size) != FcResultMatch)
+        size = 12.0;
     cairo_matrix_t fontMatrix;
     FcMatrix *fcMatrix;
-    if (FcPatternGetMatrix(aPattern, FC_MATRIX, 0, &fcMatrix) == FcResultMatch)
+    if (FcPatternGetMatrix(fcfont->font_pattern, FC_MATRIX, 0, &fcMatrix) == FcResultMatch)
         cairo_matrix_init(&fontMatrix, fcMatrix->xx, -fcMatrix->yx, -fcMatrix->xy, fcMatrix->yy, 0, 0);
     else
         cairo_matrix_init_identity(&fontMatrix);
     cairo_matrix_scale(&fontMatrix, size, size);
-
-    
-    
-    
-    cairo_matrix_t identityMatrix;
-    cairo_matrix_init_identity(&identityMatrix);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     cairo_font_options_t *fontOptions = cairo_font_options_create();
-
-    
-    
-    
-    
-    
-    
-    cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_ON);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    FcBool hinting;
-    if (FcPatternGetBool(aPattern, FC_HINTING, 0, &hinting) != FcResultMatch) {
-        hinting = FcTrue;
-    }
-    cairo_hint_style_t hint_style;
-    if (!hinting) {
-        hint_style = CAIRO_HINT_STYLE_NONE;
-    } else {
-#ifdef FC_HINT_STYLE  
-        int fc_hintstyle;
-        if (FcPatternGetInteger(aPattern, FC_HINT_STYLE,
-                                0, &fc_hintstyle        ) != FcResultMatch) {
-            fc_hintstyle = FC_HINT_FULL;
-        }
-        switch (fc_hintstyle) {
-            case FC_HINT_NONE:
-                hint_style = CAIRO_HINT_STYLE_NONE;
-                break;
-            case FC_HINT_SLIGHT:
-                hint_style = CAIRO_HINT_STYLE_SLIGHT;
-                break;
-            case FC_HINT_MEDIUM:
-            default: 
-                hint_style = CAIRO_HINT_STYLE_MEDIUM;
-                break;
-            case FC_HINT_FULL:
-                hint_style = CAIRO_HINT_STYLE_FULL;
-                break;
-        }
-#else 
-        hint_style = CAIRO_HINT_STYLE_FULL;
-#endif
-    }
-    cairo_font_options_set_hint_style(fontOptions, hint_style);
-
-    int rgba;
-    if (FcPatternGetInteger(aPattern,
-                            FC_RGBA, 0, &rgba) != FcResultMatch) {
-        rgba = FC_RGBA_UNKNOWN;
-    }
-    cairo_subpixel_order_t subpixel_order = CAIRO_SUBPIXEL_ORDER_DEFAULT;
-    switch (rgba) {
-        case FC_RGBA_UNKNOWN:
-        case FC_RGBA_NONE:
-        default:
-            
-            
-            rgba = FC_RGBA_NONE;
-            
-            
-            
-        case FC_RGBA_RGB:
-            subpixel_order = CAIRO_SUBPIXEL_ORDER_RGB;
-            break;
-        case FC_RGBA_BGR:
-            subpixel_order = CAIRO_SUBPIXEL_ORDER_BGR;
-            break;
-        case FC_RGBA_VRGB:
-            subpixel_order = CAIRO_SUBPIXEL_ORDER_VRGB;
-            break;
-        case FC_RGBA_VBGR:
-            subpixel_order = CAIRO_SUBPIXEL_ORDER_VBGR;
-            break;
-    }
-    cairo_font_options_set_subpixel_order(fontOptions, subpixel_order);
-
-    FcBool fc_antialias;
-    if (FcPatternGetBool(aPattern,
-                         FC_ANTIALIAS, 0, &fc_antialias) != FcResultMatch) {
-        fc_antialias = FcTrue;
-    }
-    cairo_antialias_t antialias;
-    if (!fc_antialias) {
-        antialias = CAIRO_ANTIALIAS_NONE;
-    } else if (rgba == FC_RGBA_NONE) {
-        antialias = CAIRO_ANTIALIAS_GRAY;
-    } else {
-        antialias = CAIRO_ANTIALIAS_SUBPIXEL;
-    }
-    cairo_font_options_set_antialias(fontOptions, antialias);
-
+    cairo_get_font_options(aCR, fontOptions);
     cairo_scaled_font_t *scaledFont =
-        cairo_scaled_font_create(face, &fontMatrix, &identityMatrix,
-                                 fontOptions);
-
+        cairo_scaled_font_create(face, &fontMatrix, aCTM, fontOptions);
     cairo_font_options_destroy(fontOptions);
     cairo_font_face_destroy(face);
-
     NS_ASSERTION(cairo_scaled_font_status(scaledFont) == CAIRO_STATUS_SUCCESS,
                  "Failed to create scaled font");
     return scaledFont;
+#endif
 }
 
 PRBool
-gfxFcFont::SetupCairoFont(gfxContext *aContext)
+gfxPangoFont::SetupCairoFont(gfxContext *aContext)
 {
     cairo_t *cr = aContext->GetCairo();
+    cairo_matrix_t currentCTM;
+    cairo_get_matrix(cr, &currentCTM);
 
-    
-    
-    
-    
-    
-    
-    cairo_scaled_font_t *cairoFont = CairoScaledFont();
-
-    if (cairo_scaled_font_status(cairoFont) != CAIRO_STATUS_SUCCESS) {
+    if (mCairoFont) {
+        
+        cairo_matrix_t fontCTM;
+        cairo_scaled_font_get_ctm(mCairoFont, &fontCTM);
+        if (fontCTM.xx != currentCTM.xx || fontCTM.yy != currentCTM.yy ||
+            fontCTM.xy != currentCTM.xy || fontCTM.yx != currentCTM.yx) {
+            
+            cairo_scaled_font_destroy(mCairoFont);
+            mCairoFont = nsnull;
+        }
+    }
+    if (!mCairoFont) {
+        mCairoFont = CreateScaledFont(cr, &currentCTM, GetPangoFont());
+    }
+    if (cairo_scaled_font_status(mCairoFont) != CAIRO_STATUS_SUCCESS) {
         
         
         return PR_FALSE;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    cairo_set_scaled_font(cr, cairoFont);
+    cairo_set_scaled_font(cr, mCairoFont);
     return PR_TRUE;
 }
 
@@ -2075,14 +1512,14 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
                                        const gchar *aUTF8, PRUint32 aUTF8Length)
 {
     const gchar *p = aUTF8;
-    PangoFont *pangofont = GetBasePangoFont();
+    gfxPangoFont *font = GetFontAt(0);
+    PangoFont *pangofont = font->GetPangoFont();
     PangoFcFont *fcfont = PANGO_FC_FONT (pangofont);
-    gfxFcFont *gfxFont = gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangofont));
     PRUint32 utf16Offset = 0;
     gfxTextRun::CompressedGlyph g;
     const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
 
-    aTextRun->AddGlyphRun(gfxFont, 0);
+    aTextRun->AddGlyphRun(font, 0);
 
     while (p < aUTF8 + aUTF8Length) {
         
@@ -2102,10 +1539,10 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
             if (!glyph)                  
                 return NS_ERROR_FAILURE; 
 
-            cairo_text_extents_t extents;
-            gfxFont->GetGlyphExtents(glyph, &extents);
+            PangoRectangle rect;
+            pango_font_get_glyph_extents (pangofont, glyph, NULL, &rect);
 
-            PRInt32 advance = NS_lround(extents.x_advance * appUnitsPerDevUnit);
+            PRInt32 advance = PANGO_PIXELS (rect.width * appUnitsPerDevUnit);
             if (advance >= 0 &&
                 gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
                 gfxTextRun::CompressedGlyph::IsSimpleGlyphID(glyph)) {
@@ -2136,23 +1573,36 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
 }
 #endif
 
+static void
+SetBaseFont(PangoContext *aContext, PangoFont *aBaseFont)
+{
+    PangoFontMap *fontmap = pango_context_get_font_map(aContext);
+    if (GFX_IS_PANGO_FONT_MAP(fontmap)) {
+        
+        GFX_PANGO_FONT_MAP(fontmap)->SetBaseFont(aBaseFont);
+    }
+    else if (aBaseFont) {
+        
+        fontmap = gfxPangoFontMap::NewFontMap(fontmap, aBaseFont);
+        pango_context_set_font_map(aContext, fontmap);
+        g_object_unref(fontmap);
+    }
+}
+
 void 
 gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
                                             const gchar *aUTF8, PRUint32 aUTF8Length,
                                             PRUint32 aUTF8HeaderLen)
 {
 
-    PangoContext *context = GetPangoContext();
+    PangoContext *context = gdk_pango_context_get();
 
-    
-    nsAutoString fcFamilies;
-    GetFcFamilies(fcFamilies);
     PangoFontDescription *fontDesc =
-        NewPangoFontDescription(fcFamilies, GetStyle());
+        NewPangoFontDescription(GetFontAt(0)->GetName(), GetStyle());
     if (GetStyle()->sizeAdjust != 0.0) {
-        gfxFloat size = GetAdjustedSize();
-        pango_font_description_set_absolute_size
-            (fontDesc, moz_pango_units_from_double(size));
+        gfxFloat size = 
+            static_cast<gfxPangoFont*>(GetFontAt(0))->GetAdjustedSize();
+        pango_font_description_set_absolute_size(fontDesc, size * PANGO_SCALE);
     }
 
     pango_context_set_font_description(context, fontDesc);
@@ -2173,7 +1623,7 @@ gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
     
     
     if (lang && !GetStyle()->systemFont) {
-        SetBaseFont(context, GetBasePangoFont());
+        SetBaseFont(context, GetFontAt(0)->GetPangoFont());
     }
 
     PangoDirection dir = aTextRun->IsRightToLeft() ? PANGO_DIRECTION_RTL : PANGO_DIRECTION_LTR;
@@ -2202,8 +1652,9 @@ gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
             offset = aUTF8HeaderLen;
         }
 
-        gfxFcFont *font =
-            gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(item->analysis.font));
+        
+        nsRefPtr<gfxPangoFont> font =
+            gfxPangoFont::GetOrMakeFont(item->analysis.font);
 
         nsresult rv = aTextRun->AddGlyphRun(font, utf16Offset, PR_TRUE);
         if (NS_FAILED(rv)) {
@@ -2211,8 +1662,7 @@ gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
             goto out;
         }
 
-        PRUint32 spaceWidth =
-            moz_pango_units_from_double(font->GetMetrics().spaceWidth);
+        PRUint32 spaceWidth = NS_lround(font->GetMetrics().spaceWidth * FLOAT_PANGO_SCALE);
 
         const gchar *p = aUTF8 + offset;
         const gchar *end = p + length;
