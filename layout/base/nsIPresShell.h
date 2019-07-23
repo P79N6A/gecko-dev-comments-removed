@@ -334,8 +334,16 @@ public:
 
 
 
-
   virtual NS_HIDDEN_(nsIFrame*) GetPrimaryFrameFor(nsIContent* aContent) const = 0;
+
+  
+
+
+
+
+
+
+  virtual NS_HIDDEN_(nsIFrame*) GetRealPrimaryFrameFor(nsIContent* aContent) const = 0;
 
   
 

@@ -216,7 +216,9 @@ NS_IMETHODIMP nsAccessibilityService::OnStateChange(nsIWebProgress *aWebProgress
   if (eventType == 0)
     return NS_OK; 
 
-  docAccessible->FireDocLoadEvents(eventType);
+  if (docAccessible) {
+    docAccessible->FireDocLoadEvents(eventType);
+  }
 
   return NS_OK;
 }
@@ -1323,7 +1325,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
 #endif
   if (!frame || content != frame->GetContent()) {
     
-    frame = aPresShell->GetPrimaryFrameFor(content);
+    frame = aPresShell->GetRealPrimaryFrameFor(content);
     if (frame) {
 #ifdef DEBUG_A11Y_FRAME_OPTIMIZATION
       
@@ -1446,7 +1448,7 @@ NS_IMETHODIMP nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
             
             return NS_OK;
           }
-          if (nsAccessible::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
+          if (tableAccessible && nsAccessible::Role(tableAccessible) != nsIAccessibleRole::ROLE_TABLE) {
             NS_ASSERTION(!roleMapEntry, "Should not be changing ARIA role, just overriding impl class role");
             roleMapEntry = &nsARIAMap::gLandmarkRoleMap; 
           }
