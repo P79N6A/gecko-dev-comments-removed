@@ -76,11 +76,14 @@ class nsAudioStream
   
   
   
-  void Write(const void* aBuf, PRUint32 aCount);
+  
+  
+  
+  void Write(const void* aBuf, PRUint32 aCount, PRBool aBlocking);
 
   
   
-  PRInt32 Available();
+  PRUint32 Available();
 
   
   
@@ -97,7 +100,10 @@ class nsAudioStream
 
   
   
-  float GetPosition();
+  PRInt64 GetPosition();
+
+  
+  PRBool IsPaused() { return mPaused; }
 
  private:
   double mVolume;
@@ -112,5 +118,8 @@ class nsAudioStream
   
   
   nsTArray<short> mBufferOverflow;
+
+  
+  PRPackedBool mPaused;
 };
 #endif

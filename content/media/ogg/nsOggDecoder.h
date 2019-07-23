@@ -253,7 +253,6 @@
 
 
 
-
 #if !defined(nsOggDecoder_h_)
 #define nsOggDecoder_h_
 
@@ -263,25 +262,27 @@
 #include "nsCOMPtr.h"
 #include "nsIThread.h"
 #include "nsIChannel.h"
-#include "nsChannelReader.h"
 #include "nsIObserver.h"
 #include "nsIFrame.h"
 #include "nsAutoPtr.h"
 #include "nsSize.h"
 #include "prlog.h"
-#include "prmon.h"
 #include "gfxContext.h"
 #include "gfxRect.h"
-#include "oggplay/oggplay.h"
+#include "nsMediaStream.h"
+#include "nsMediaDecoder.h"
+#include "mozilla/Monitor.h"
+
+using mozilla::Monitor;
 
 class nsAudioStream;
-class nsOggDecodeStateMachine;
-class nsOggStepDecodeEvent;
+class nsOggPlayStateMachine;
+class nsOggReader;
 
 class nsOggDecoder : public nsMediaDecoder
 {
-  friend class nsOggDecodeStateMachine;
-  friend class nsOggStepDecodeEvent;
+  friend class nsOggReader;
+  friend class nsOggPlayStateMachine;
 
   
   NS_DECL_ISUPPORTS
@@ -337,6 +338,7 @@ class nsOggDecoder : public nsMediaDecoder
   virtual void NotifyBytesDownloaded();
   virtual void NotifyDownloadEnded(nsresult aStatus);
   
+  
   void NotifyBytesConsumed(PRInt64 aBytes);
 
   
@@ -366,9 +368,6 @@ class nsOggDecoder : public nsMediaDecoder
   
   virtual PRBool GetSeekable();
 
-  
-  nsChannelReader* GetReader() { return mReader; }
-
   virtual Statistics GetStatistics();
 
   
@@ -388,19 +387,21 @@ class nsOggDecoder : public nsMediaDecoder
   
   void Stop();
 
+  
+  
+  void DurationChanged();
+
 protected:
 
   
   
-  PRMonitor* GetMonitor() 
-  { 
+  Monitor& GetMonitor() { 
     return mMonitor; 
   }
 
   
   
-  PlayState GetState()
-  {
+  PlayState GetState() {
     return mPlayState;
   }
 
@@ -497,7 +498,7 @@ private:
   nsChannelStatistics mPlaybackStatistics;
 
   
-  nsCOMPtr<nsIThread> mDecodeThread;
+  nsCOMPtr<nsIThread> mStateMachineThread;
 
   
   
@@ -505,8 +506,6 @@ private:
   
   float mCurrentTime;
 
-  
-  
   
   
   float mInitialVolume;
@@ -536,21 +535,15 @@ private:
   
   
   
+  nsCOMPtr<nsOggPlayStateMachine> mDecodeStateMachine;
+
   
-  nsCOMPtr<nsOggDecodeStateMachine> mDecodeStateMachine;
+  nsAutoPtr<nsMediaStream> mStream;
 
   
   
   
-  
-  
-  
-  nsAutoPtr<nsChannelReader> mReader;
-
-  
-  
-  
-  PRMonitor* mMonitor;
+  Monitor mMonitor;
 
   
   

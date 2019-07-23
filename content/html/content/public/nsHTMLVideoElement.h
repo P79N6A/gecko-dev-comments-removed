@@ -35,6 +35,9 @@
 
 
 
+#if !defined(nsHTMLVideoElement_h__)
+#define nsHTMLVideoElement_h__
+
 #include "nsIDOMHTMLVideoElement.h"
 #include "nsHTMLMediaElement.h"
 
@@ -76,3 +79,5 @@ public:
   
   nsIntSize GetVideoSize(nsIntSize defaultSize);
 };
+
+#endif
