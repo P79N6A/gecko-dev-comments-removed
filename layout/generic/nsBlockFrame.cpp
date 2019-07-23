@@ -598,12 +598,6 @@ nsBlockFrame::IsFloatContainingBlock() const
   return PR_TRUE;
 }
 
-static PRBool IsContinuationPlaceholder(nsIFrame* aFrame)
-{
-  return aFrame->GetPrevInFlow() &&
-    nsGkAtoms::placeholderFrame == aFrame->GetType();
-}
-
 static void ReparentFrame(nsIFrame* aFrame, nsIFrame* aOldParent,
                           nsIFrame* aNewParent) {
   NS_ASSERTION(aOldParent == aFrame->GetParent(),
@@ -989,55 +983,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  if (state.mOverflowPlaceholders.NotEmpty()) {
-    NS_ASSERTION(aReflowState.availableHeight != NS_UNCONSTRAINEDSIZE,
-                 "Somehow we failed to fit all content, even though we have unlimited space!");
-    state.mOverflowPlaceholders.SortByContentOrder();
-    PRInt32 numOverflowPlace = state.mOverflowPlaceholders.GetLength();
-    nsLineBox* newLine =
-      state.NewLineBox(state.mOverflowPlaceholders.FirstChild(),
-                       numOverflowPlace, PR_FALSE);
-    if (newLine) {
-      nsLineList* overflowLines = GetOverflowLines();
-      if (overflowLines) {
-        
-        
-        
-        
-        nsFrameList floats;
-        nsIFrame* lastFloat = nsnull;
-        for (nsIFrame* f = state.mOverflowPlaceholders.FirstChild();
-             f; f = f->GetNextSibling()) {
-          NS_ASSERTION(IsContinuationPlaceholder(f),
-                       "Overflow placeholders must be continuation placeholders");
-          nsIFrame* oof = nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
-          
-          floats.InsertFrames(nsnull, lastFloat, oof);
-          lastFloat = oof;
-        }
-
-        
-        
-        nsIFrame* lastChild = overflowLines->back()->LastChild();
-        lastChild->SetNextSibling(state.mOverflowPlaceholders.FirstChild());
-        
-        
-        overflowLines->push_back(newLine);
-
-        nsAutoOOFFrameList oofs(this);
-        oofs.mList.AppendFrames(nsnull, floats.FirstChild());
-      }
-      else {
-        mLines.push_back(newLine);
-        nsLineList::iterator nextToLastLine = ----end_lines();
-        PushLines(state, nextToLastLine);
-      }
-      state.mOverflowPlaceholders.Clear();
-    }
-    state.mReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
-    if (NS_FRAME_IS_COMPLETE(state.mReflowStatus))
-      NS_FRAME_SET_OVERFLOW_INCOMPLETE(state.mReflowStatus);
-  }
+  NS_ASSERTION(state.mOverflowPlaceholders.IsEmpty(), "Where are these coming from? XXXfr");
 
   if (!NS_FRAME_IS_FULLY_COMPLETE(state.mReflowStatus)) {
     if (GetOverflowLines()) {
@@ -2134,21 +2080,12 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       nsLineBox *toMove;
       PRBool collectOverflowFloats;
       if (nifLine != nextInFlow->end_lines()) {
-        if (HandleOverflowPlaceholdersOnPulledLine(aState, nifLine)) {
-          
-          continue;
-        }
         toMove = nifLine;
         nextInFlow->mLines.erase(nifLine);
         collectOverflowFloats = PR_FALSE;
       } else {
         
         nsLineList* overflowLines = nextInFlow->GetOverflowLines();
-        if (overflowLines &&
-            HandleOverflowPlaceholdersOnPulledLine(aState, overflowLines->front())) {
-          
-          continue;
-        }
         if (!overflowLines) {
           aState.mNextInFlow =
             static_cast<nsBlockFrame*>(nextInFlow->GetNextInFlow());
@@ -2560,11 +2497,6 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState& aState,
     nsIFrame* frame = fromLine->mFirstChild;
 
     if (aFromContainer != this) {
-      if (HandleOverflowPlaceholdersForPulledFrame(aState, frame)) {
-        
-        return PR_TRUE;
-      }
-
       aLine->LastChild()->SetNextSibling(frame);
     }
     
@@ -3537,10 +3469,6 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   PRInt32 i;
   nsIFrame* frame = aLine->mFirstChild;
 
-  
-  
-  PRBool isContinuingPlaceholders = PR_FALSE;
-
   if (aFloatAvailableSpace.mHasFloats) {
     
     
@@ -3553,9 +3481,6 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   
   for (i = 0; LINE_REFLOW_OK == lineReflowStatus && i < aLine->GetChildCount();
        i++, frame = frame->GetNextSibling()) {
-    if (IsContinuationPlaceholder(frame)) {
-      isContinuingPlaceholders = PR_TRUE;
-    }
     rv = ReflowInlineFrame(aState, aLineLayout, aLine, frame,
                            &lineReflowStatus);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -3582,7 +3507,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   }
 
   
-  if (!isContinuingPlaceholders && aAllowPullUp) {
+  if (aAllowPullUp) {
     
     while (LINE_REFLOW_OK == lineReflowStatus) {
       rv = PullFrame(aState, aLine, frame);
@@ -3864,9 +3789,9 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
     nsIAtom* frameType = aFrame->GetType();
 
     PRBool madeContinuation;
-    rv = (nsGkAtoms::placeholderFrame == frameType)
-         ? SplitPlaceholder(aState, aFrame)
-         : CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
+    if (nsGkAtoms::placeholderFrame == frameType)
+      NS_ASSERTION(0, "float splitting unimplemented"); 
+    rv = CreateContinuationFor(aState, aLine, aFrame, madeContinuation);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -3926,6 +3851,7 @@ nsresult
 nsBlockFrame::SplitPlaceholder(nsBlockReflowState& aState,
                                nsIFrame*           aPlaceholder)
 {
+  NS_PRECONDITION(0,"Unexpected call to SplitPlaceholder, replace with SplitFloat XXXfr");
   nsIFrame* nextInFlow;
   nsresult rv = CreateNextInFlow(aState.mPresContext, this, aPlaceholder, nextInFlow);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3940,13 +3866,9 @@ nsBlockFrame::SplitPlaceholder(nsBlockReflowState& aState,
   nsIFrame *next = contFrame->GetNextSibling();
   aPlaceholder->SetNextSibling(next);
   contFrame->SetNextSibling(nsnull);
-  
-  NS_ASSERTION(IsContinuationPlaceholder(contFrame),
-               "Didn't create the right kind of frame");
 
   
   
-  aState.mOverflowPlaceholders.AppendFrame(this, contFrame);
   return NS_OK;
 }
 
@@ -4366,132 +4288,6 @@ nsBlockFrame::PushLines(nsBlockReflowState&  aState,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-PRBool
-nsBlockFrame::HandleOverflowPlaceholdersForPulledFrame(
-  nsBlockReflowState& aState, nsIFrame* aFrame)
-{
-  if (nsGkAtoms::placeholderFrame != aFrame->GetType()) {
-    
-    
-    
-    if (!aFrame->IsFloatContainingBlock()) {
-      for (nsIFrame* f = aFrame->GetFirstChild(nsnull); f; f = f->GetNextSibling()) {
-#ifdef DEBUG
-        PRBool changed =
-#endif
-          HandleOverflowPlaceholdersForPulledFrame(aState, f);
-        NS_ASSERTION(!changed, "Shouldn't find any continuation placeholders inside inlines");
-      }
-    }
-    return PR_FALSE;
-  }
-
-  PRBool taken = PR_TRUE;
-  nsIFrame* frame = aFrame;
-  if (!aFrame->GetPrevInFlow()) {
-    
-    
-    taken = PR_FALSE;
-    frame = frame->GetNextInFlow();
-    if (!frame)
-      return PR_FALSE;
-  }
-
-  nsBlockFrame* parent = static_cast<nsBlockFrame*>(frame->GetParent());
-  
-  
-#ifdef DEBUG
-  nsresult rv =
-#endif
-    parent->DoRemoveFrame(frame, PRESERVE_REMOVED_FRAMES);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "frame should be in parent's lists");
-  
-  nsIFrame* lastOverflowPlace = aState.mOverflowPlaceholders.LastChild();
-  while (frame) {
-    NS_ASSERTION(IsContinuationPlaceholder(frame),
-                 "Should only be dealing with continuation placeholders here");
-
-    parent = static_cast<nsBlockFrame*>(frame->GetParent());
-    ReparentFrame(frame, parent, this);
-
-    
-    nsIFrame* outOfFlow = nsPlaceholderFrame::GetRealFrameForPlaceholder(frame);
-
-    if (!parent->mFloats.RemoveFrame(outOfFlow)) {
-      nsAutoOOFFrameList oofs(parent);
-#ifdef DEBUG
-      PRBool found =
-#endif
-        oofs.mList.RemoveFrame(outOfFlow);
-      NS_ASSERTION(found, "Must have the out of flow in some child list");
-    }
-    ReparentFrame(outOfFlow, parent, this);
-
-    
-    
-    aState.mOverflowPlaceholders.InsertFrames(nsnull, lastOverflowPlace, frame);
-    
-    
-    
-    
-    lastOverflowPlace = frame;
-
-    frame = frame->GetNextInFlow();
-  }
-
-  return taken;
-}
-
-
-
-
-
-
-
-PRBool
-nsBlockFrame::HandleOverflowPlaceholdersOnPulledLine(
-  nsBlockReflowState& aState, nsLineBox* aLine)
-{
-  
-  
-  if (aLine->mFirstChild && IsContinuationPlaceholder(aLine->mFirstChild)) {
-#ifdef DEBUG
-    PRBool taken =
-#endif
-      HandleOverflowPlaceholdersForPulledFrame(aState, aLine->mFirstChild);
-    NS_ASSERTION(taken, "We must have removed that frame");
-    return PR_TRUE;
-  }
- 
-  
-  
-  PRInt32 n = aLine->GetChildCount();
-  for (nsIFrame* f = aLine->mFirstChild; n > 0; f = f->GetNextSibling(), --n) {
-#ifdef DEBUG
-    PRBool taken =
-#endif
-      HandleOverflowPlaceholdersForPulledFrame(aState, f);
-    NS_ASSERTION(!taken, "Shouldn't be any continuation placeholders on this line");
-  }
-
-  return PR_FALSE;
-}
-
-
-
-
-
 PRBool
 nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
 {
@@ -4552,95 +4348,6 @@ nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
                "Should have no overflow placeholders yet");
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIFrame* lastOP = nsnull;
-  nsFrameList keepPlaceholders;
-  nsFrameList keepOutOfFlows;
-  nsIFrame* lastKP = nsnull;
-  nsIFrame* lastKOOF = nsnull;
-  nsLineList* lineLists[3] = { overflowLines, &mLines, ourOverflowLines };
-  static const PRPackedBool searchFirstLinesOnly[3] = { PR_FALSE, PR_TRUE, PR_FALSE };
-  for (PRInt32 i = 0; i < 3; ++i) {
-    nsLineList* ll = lineLists[i];
-    if (ll && !ll->empty()) {
-      line_iterator iter = ll->begin();
-      line_iterator iter_end = ll->end();
-      nsIFrame* lastFrame = nsnull;
-      while (iter != iter_end) {
-        PRUint32 n = iter->GetChildCount();
-        if (n == 0 || !IsContinuationPlaceholder(iter->mFirstChild)) {
-          if (lastFrame) {
-            lastFrame->SetNextSibling(iter->mFirstChild);
-          }
-          if (searchFirstLinesOnly[i]) {
-            break;
-          }
-          lastFrame = iter->LastChild();
-          ++iter;
-        } else {
-          nsLineBox* line = iter;
-          iter = ll->erase(iter);
-          nsIFrame* next;
-          for (nsPlaceholderFrame* f = static_cast<nsPlaceholderFrame*>(line->mFirstChild);
-               n > 0; --n, f = static_cast<nsPlaceholderFrame*>(next)) {
-            NS_ASSERTION(IsContinuationPlaceholder(f),
-                         "Line frames should all be continuation placeholders");
-            next = f->GetNextSibling();
-            f->SetNextSibling(nsnull);
-            nsIFrame* fpif = f->GetPrevInFlow();
-            nsIFrame* oof = f->GetOutOfFlowFrame();
-            
-            
-#ifdef DEBUG
-            PRBool found =
-#endif
-              mFloats.RemoveFrame(oof);
-            NS_ASSERTION(found, "Float should have been put in our mFloats list");
-
-            PRBool isAncestor = nsLayoutUtils::IsProperAncestorFrame(this, fpif);
-            if (isAncestor) {
-              
-              
-              
-              aState.mOverflowPlaceholders.InsertFrame(nsnull, lastOP, f);
-              
-              
-              lastOP = f;
-            } else {
-              NS_ASSERTION(fpif->GetParent() == prevBlock,
-                           "Block has placeholders that don't belong to it.");
-              keepPlaceholders.InsertFrame(nsnull, lastKP, f);
-              keepOutOfFlows.InsertFrame(nsnull, lastKOOF, oof);
-              lastKP = f;
-              lastKOOF = oof;
-            }
-          }
-          aState.FreeLineBox(line);
-        }
-      }
-      if (lastFrame) {
-        lastFrame->SetNextSibling(nsnull);
-      }
-    }
-  }
-
-  
   if (overflowLines) {
     if (!overflowLines->empty()) {
       
@@ -4669,23 +4376,6 @@ nsBlockFrame::DrainOverflowLines(nsBlockReflowState& aState)
       mLines.splice(mLines.end(), *ourOverflowLines);
     }
     delete ourOverflowLines;
-  }
-
-  
-  if (keepPlaceholders.NotEmpty()) {
-    keepPlaceholders.SortByContentOrder();
-    nsLineBox* newLine = aState.NewLineBox(keepPlaceholders.FirstChild(),
-                                           keepPlaceholders.GetLength(), PR_FALSE);
-    if (newLine) {
-      if (!mLines.empty()) {
-        keepPlaceholders.LastChild()->SetNextSibling(mLines.front()->mFirstChild);
-      }
-      mLines.push_front(newLine);
-    }
-
-    
-    keepOutOfFlows.SortByContentOrder();
-    mFloats.InsertFrames(nsnull, nsnull, keepOutOfFlows);
   }
 
   return PR_TRUE;
@@ -4920,8 +4610,6 @@ ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
   if (type == nsGkAtoms::textFrame)
     return aLastFrame->HasTerminalNewline() &&
            aLastFrame->GetStyleText()->NewlineIsSignificant();
-  if (type == nsGkAtoms::placeholderFrame)
-    return IsContinuationPlaceholder(aLastFrame);
   return PR_FALSE;
 }
 
@@ -5377,8 +5065,8 @@ nsBlockInFlowLineIterator::FindValidLine()
   }
 }
 
-static nsresult RemoveBlockChild(nsIFrame* aFrame, PRBool aDestroyFrames,
-                                 PRBool aRemoveOnlyFluidContinuations)
+static nsresult RemoveBlockChild(nsIFrame* aFrame,
+                                 PRBool    aRemoveOnlyFluidContinuations)
 {
   if (!aFrame)
     return NS_OK;
@@ -5387,7 +5075,6 @@ static nsresult RemoveBlockChild(nsIFrame* aFrame, PRBool aDestroyFrames,
   NS_ASSERTION(nextBlock,
                "Our child's continuation's parent is not a block?");
   return nextBlock->DoRemoveFrame(aFrame,
-      (aDestroyFrames ? 0 : nsBlockFrame::PRESERVE_REMOVED_FRAMES) |
       (aRemoveOnlyFluidContinuations ? 0 : nsBlockFrame::REMOVE_FIXED_CONTINUATIONS));
 }
 
@@ -5406,30 +5093,18 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
 
   nsPresContext* presContext = PresContext();
   if (NS_FRAME_IS_OVERFLOW_CONTAINER & aDeletedFrame->GetStateBits()) {
-    if (!(aFlags & PRESERVE_REMOVED_FRAMES)) {
-      nsIFrame* nif = aDeletedFrame->GetNextInFlow();
-      if (nif)
-        static_cast<nsContainerFrame*>(nif->GetParent())
-          ->nsContainerFrame::DeleteNextInFlowChild(presContext, nif,
-              (aFlags & FRAMES_ARE_EMPTY) != 0);
-      nsresult rv = nsContainerFrame::StealFrame(presContext, aDeletedFrame);
-      NS_ENSURE_SUCCESS(rv, rv);
-      aDeletedFrame->Destroy();
-    }
-    else {
-      PR_NOT_REACHED("We can't not destroy overflow containers");
-      return NS_ERROR_NOT_IMPLEMENTED;
-      
-      
-      
-      
-    }
+    nsIFrame* nif = aDeletedFrame->GetNextInFlow();
+    if (nif)
+      static_cast<nsContainerFrame*>(nif->GetParent())
+        ->nsContainerFrame::DeleteNextInFlowChild(presContext, nif,
+            (aFlags & FRAMES_ARE_EMPTY) != 0);
+    nsresult rv = nsContainerFrame::StealFrame(presContext, aDeletedFrame);
+    NS_ENSURE_SUCCESS(rv, rv);
+    aDeletedFrame->Destroy();
     return NS_OK;
   }
 
   if (aDeletedFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-    NS_ASSERTION(!(aFlags & PRESERVE_REMOVED_FRAMES),
-                 "We can't not destroy out of flows");
     DoRemoveOutOfFlowFrame(aDeletedFrame);
     return NS_OK;
   }
@@ -5440,14 +5115,8 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
   if (isPlaceholder) {
     nsFrameList* overflowPlaceholders = GetOverflowPlaceholders();
     if (overflowPlaceholders && overflowPlaceholders->RemoveFrame(aDeletedFrame)) {
-      nsIFrame* nif = aDeletedFrame->GetNextInFlow();
-      if (!(aFlags & PRESERVE_REMOVED_FRAMES)) {
-        aDeletedFrame->Destroy();
-      } else {
-        aDeletedFrame->SetNextSibling(nsnull);
-      }
-      return RemoveBlockChild(nif, !(aFlags & PRESERVE_REMOVED_FRAMES),
-                              !(aFlags & REMOVE_FIXED_CONTINUATIONS));
+      NS_ASSERTION(!aDeletedFrame->GetNextContinuation(), "Placeholders can't have continuations.");
+      aDeletedFrame->Destroy();
     }
   }
   
@@ -5554,11 +5223,7 @@ found_frame:;
     printf(" prevSibling=%p deletedNextContinuation=%p\n", prevSibling, deletedNextContinuation);
 #endif
 
-    if (aFlags & PRESERVE_REMOVED_FRAMES) {
-      aDeletedFrame->SetNextSibling(nsnull);
-    } else {
-      aDeletedFrame->Destroy();
-    }
+    aDeletedFrame->Destroy();
     aDeletedFrame = deletedNextContinuation;
 
     PRBool haveAdvancedToNextLine = PR_FALSE;
@@ -5612,14 +5277,6 @@ found_frame:;
 
     if (deletedNextContinuation) {
       
-      
-      if (isPlaceholder) {
-        return RemoveBlockChild(deletedNextContinuation,
-                                !(aFlags & PRESERVE_REMOVED_FRAMES),
-                                !(aFlags & REMOVE_FIXED_CONTINUATIONS));
-      }
-
-      
       if (deletedNextContinuation->GetParent() != this) {
         
         
@@ -5666,8 +5323,7 @@ found_frame:;
 #endif
 
   
-  return RemoveBlockChild(aDeletedFrame, !(aFlags & PRESERVE_REMOVED_FRAMES),
-                          !(aFlags & REMOVE_FIXED_CONTINUATIONS));
+  return RemoveBlockChild(aDeletedFrame, !(aFlags & REMOVE_FIXED_CONTINUATIONS));
 }
 
 nsresult
@@ -5807,6 +5463,7 @@ nsBlockFrame::AdjustFloatAvailableSpace(nsBlockReflowState& aState,
     availHeight = NS_UNCONSTRAINEDSIZE;
   }
 #endif
+  availHeight = NS_UNCONSTRAINEDSIZE; 
 
   return nsRect(aState.BorderPadding().left,
                 aState.BorderPadding().top,
@@ -5893,18 +5550,6 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
       (NS_UNCONSTRAINEDSIZE == availSpace.height))
     aReflowStatus = NS_FRAME_COMPLETE;
 
-  if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
-    
-    
-    
-    
-    nsIFrame* nextInFlow = aPlaceholder->GetNextInFlow();
-    if (nextInFlow) {
-      static_cast<nsHTMLContainerFrame*>(nextInFlow->GetParent())
-        ->DeleteNextInFlowChild(aState.mPresContext, nextInFlow, PR_TRUE);
-      
-    }
-  }
   if (aReflowStatus & NS_FRAME_REFLOW_NEXTINFLOW) {
     aState.mReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
   }
@@ -5948,34 +5593,6 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
          floatFrame, metrics.width, metrics.height);
 #endif
 
-  
-  
-  
-  nsIFrame* prevPlaceholder = aPlaceholder->GetPrevInFlow();
-  if (prevPlaceholder) {
-    
-    PRBool lastPlaceholder = PR_TRUE;
-    nsIFrame* next = aPlaceholder->GetNextSibling();
-    if (next) {
-      if (nsGkAtoms::placeholderFrame == next->GetType()) {
-        lastPlaceholder = PR_FALSE;
-      }
-    }
-    if (lastPlaceholder) {
-      
-      if (GetPrevInFlow()) {
-        
-        nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
-        line_iterator endLine = prevBlock->end_lines();
-        if (endLine != prevBlock->begin_lines()) {
-          --endLine;
-          if (endLine->HasFloatBreakAfter())
-            aState.mFloatBreakType = endLine->GetBreakTypeAfter();
-        }
-      }
-      else NS_ASSERTION(PR_FALSE, "no prev in flow");
-    }
-  }
   return NS_OK;
 }
 

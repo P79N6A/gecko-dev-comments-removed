@@ -280,12 +280,6 @@ public:
   
   
   nsresult SplitPlaceholder(nsBlockReflowState& aState, nsIFrame* aPlaceholder);
-  
-  PRBool HandleOverflowPlaceholdersForPulledFrame(
-    nsBlockReflowState& aState, nsIFrame* aFrame);
-
-  PRBool HandleOverflowPlaceholdersOnPulledLine(
-    nsBlockReflowState& aState, nsLineBox* aLine);
 
   static PRBool BlockIsMarginRoot(nsIFrame* aBlock);
   static PRBool BlockNeedsFloatManager(nsIFrame* aBlock);
@@ -427,12 +421,7 @@ public:
 
 
 
-
-
-
-
   enum {
-    PRESERVE_REMOVED_FRAMES    = 0x01,
     REMOVE_FIXED_CONTINUATIONS = 0x02,
     FRAMES_ARE_EMPTY           = 0x04
   };

@@ -647,18 +647,6 @@ nsBlockReflowState::AddFloat(nsLineLayout&       aLineLayout,
     
     
     mBelowCurrentLineFloats.Append(fc);
-    if (aPlaceholder->GetNextInFlow()) {
-      
-      
-      
-      
-      
-      
-      
-      if (aPlaceholder->GetSplittableType() != NS_FRAME_NOT_SPLITTABLE) {
-        aReflowStatus = NS_FRAME_NOT_COMPLETE;
-      }
-    }
   }
 
   
@@ -1044,22 +1032,12 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
       }
       else if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus)) {
         
-        nsresult rv = mBlock->SplitPlaceholder(*this, fc->mPlaceholder);
-        if (NS_FAILED(rv)) 
-          return PR_FALSE;
       } else {
         
         
         NS_WARN_IF_FALSE(!NS_FRAME_IS_TRUNCATED(reflowStatus),
                          "This situation currently leads to data not printing");
-
         
-        nsIFrame* nextPlaceholder = fc->mPlaceholder->GetNextInFlow();
-        if (nextPlaceholder) {
-          nsHTMLContainerFrame* parent =
-            static_cast<nsHTMLContainerFrame*>(nextPlaceholder->GetParent());
-          parent->DeleteNextInFlowChild(mPresContext, nextPlaceholder, PR_TRUE);
-        }
       }
     }
     fc = fc->Next();
