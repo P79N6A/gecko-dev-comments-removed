@@ -1847,26 +1847,10 @@ MakeUpvarForEval(JSParseNode *pn, JSCodeGenerator *cg)
     uintN upvarLevel = fun->u.i.script->staticLevel;
 
     JSFunctionBox *funbox = cg->funbox;
-    if (funbox) {
-        
-
-
-
-
-
-        if (funbox->level == fun->u.i.script->staticLevel + 1U &&
-            !(((JSFunction *) funbox->object)->flags & JSFUN_LAMBDA)) {
-            JS_ASSERT(((JSFunction *) funbox->object)->atom);
+    while (funbox && funbox->level >= upvarLevel) {
+        if (funbox->node->pn_dflags & PND_FUNARG)
             return true;
-        }
-
-        while (funbox->level >= upvarLevel) {
-            if (funbox->node->pn_dflags & PND_FUNARG)
-                return true;
-            funbox = funbox->parent;
-            if (!funbox)
-                break;
-        }
+        funbox = funbox->parent;
     }
 
     JSContext *cx = cg->compiler->context;
