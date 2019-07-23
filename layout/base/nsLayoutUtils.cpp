@@ -2513,7 +2513,7 @@ nsLayoutUtils::DrawImage(nsIRenderingContext* aRenderingContext,
   nsCOMPtr<nsIDeviceContext> dc;
   aRenderingContext->GetDeviceContext(*getter_AddRefs(dc));
 
-  nsRefPtr<gfxContext> ctx = aRenderingContext->ThebesContext();
+  gfxContext *ctx = aRenderingContext->ThebesContext();
 
   
   

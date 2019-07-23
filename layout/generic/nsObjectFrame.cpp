@@ -1421,7 +1421,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
 
 
 
-      nsRefPtr<gfxContext> ctx = aRenderingContext.ThebesContext();
+      gfxContext *ctx = aRenderingContext.ThebesContext();
       gfxMatrix ctxMatrix = ctx->CurrentMatrix();
       if (ctxMatrix.HasNonTranslation()) {
         
