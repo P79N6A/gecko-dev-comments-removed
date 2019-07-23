@@ -71,12 +71,6 @@
 
 
 
-
-
-
-
-
-
 nsHTMLSelectableAccessible::iterator::iterator(nsHTMLSelectableAccessible *aParent, nsIWeakReference *aWeakShell): 
   mWeakShell(aWeakShell), mParentSelect(aParent)
 {
@@ -982,30 +976,6 @@ void nsHTMLComboboxAccessible::CacheChildren()
 
   if (mAccChildCount == eChildCountUninitialized) {
     mAccChildCount = 0;
-#ifdef COMBO_BOX_WITH_THREE_CHILDREN
-    
-    
-    nsHTMLComboboxTextFieldAccessible* textFieldAccessible = 
-      new nsHTMLComboboxTextFieldAccessible(this, mDOMNode, mWeakShell);
-    SetFirstChild(textFieldAccessible);
-    if (!textFieldAccessible) {
-      return;
-    }
-    textFieldAccessible->SetParent(this);
-    textFieldAccessible->Init();
-    mAccChildCount = 1;  
-
-    nsHTMLComboboxButtonAccessible* buttonAccessible =
-      new nsHTMLComboboxButtonAccessible(mParent, mDOMNode, mWeakShell);
-    textFieldAccessible->SetNextSibling(buttonAccessible);
-    if (!buttonAccessible) {
-      return;
-    }
-
-    buttonAccessible->SetParent(this);
-    buttonAccessible->Init();
-    mAccChildCount = 2; 
-#endif
 
     nsIFrame *frame = GetFrame();
     if (!frame) {
@@ -1029,11 +999,7 @@ void nsHTMLComboboxAccessible::CacheChildren()
       mListAccessible->Init();
     }
 
-#ifdef COMBO_BOX_WITH_THREE_CHILDREN
-    buttonAccessible->SetNextSibling(mListAccessible);
-#else
     SetFirstChild(mListAccessible);
-#endif
 
     mListAccessible->SetParent(this);
     mListAccessible->SetNextSibling(nsnull);
@@ -1189,219 +1155,6 @@ NS_IMETHODIMP nsHTMLComboboxAccessible::GetActionName(PRUint8 aIndex, nsAString&
 }
 
 
-#ifdef COMBO_BOX_WITH_THREE_CHILDREN
-
-
-
-nsHTMLComboboxTextFieldAccessible::nsHTMLComboboxTextFieldAccessible(nsIAccessible* aParent, 
-                                                                     nsIDOMNode* aDOMNode, 
-                                                                     nsIWeakReference* aShell):
-nsHTMLTextFieldAccessible(aDOMNode, aShell)
-{
-}
-
-NS_IMETHODIMP nsHTMLComboboxTextFieldAccessible::GetUniqueID(void **aUniqueID)
-{
-  
-  *aUniqueID = static_cast<void*>(this);
-  return NS_OK;
-}
-
-
-
-
-
-void nsHTMLComboboxTextFieldAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame)
-{
-  
-  nsIFrame* frame = nsAccessible::GetBoundsFrame();
-  if (!frame)
-    return;
-
-  frame = frame->GetFirstChild(nsnull);
-  *aBoundingFrame = frame;
-
-  aBounds = frame->GetRect();
-}
-
-void nsHTMLComboboxTextFieldAccessible::CacheChildren()
-{
-  
-  
-  
-  if (!mWeakShell) {
-    
-    mAccChildCount = eChildCountUninitialized;
-    return;
-  }
-
-  
-  if (mAccChildCount == eChildCountUninitialized) {
-    mAccChildCount = 0; 
-    nsAccessibleTreeWalker walker(mWeakShell, mDOMNode, PR_TRUE);
-    
-    
-    
-    walker.mState.frame = GetFrame();
-
-    walker.GetFirstChild();
-    SetFirstChild(walker.mState.accessible);
-    nsRefPtr<nsAccessible> child =
-      nsAccUtils::QueryAccessible(walker.mState.accessible);
-    child->SetParent(this);
-    child->SetNextSibling(nsnull);
-    mAccChildCount = 1;
-  }
-}
-
-
-
-
-nsHTMLComboboxButtonAccessible::nsHTMLComboboxButtonAccessible(nsIAccessible* aParent, 
-                                                           nsIDOMNode* aDOMNode, 
-                                                           nsIWeakReference* aShell):
-nsLeafAccessible(aDOMNode, aShell)
-{
-}
-
-
-NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetNumActions(PRUint8 *aNumActions)
-{
-  *aNumActions = 1;
-  return NS_OK;
-}
-
-
-
-
-
-
-NS_IMETHODIMP nsHTMLComboboxButtonAccessible::DoAction(PRUint8 aIndex)
-{
-  nsIFrame* frame = nsAccessible::GetBoundsFrame();
-  nsPresContext *context = GetPresContext();
-  if (!frame || !context)
-    return NS_ERROR_FAILURE;
-
-  frame = frame->GetFirstChild(nsnull)->GetNextSibling();
-
-  
-  if (aIndex == eAction_Click) {
-    nsCOMPtr<nsIDOMHTMLInputElement>
-      element(do_QueryInterface(frame->GetContent()));
-    if (element)
-    {
-       element->Click();
-       return NS_OK;
-    }
-    return NS_ERROR_FAILURE;
-  }
-  return NS_ERROR_INVALID_ARG;
-}
-
-
-
-
-
-
-
-NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
-{
-  nsIFrame *boundsFrame = GetBoundsFrame();
-  nsIComboboxControlFrame* comboFrame;
-  boundsFrame->QueryInterface(NS_GET_IID(nsIComboboxControlFrame), (void**)&comboFrame);
-  if (!comboFrame)
-    return NS_ERROR_FAILURE;
-
-  if (comboFrame->IsDroppedDown())
-    aName.AssignLiteral("close"); 
-  else
-    aName.AssignLiteral("open");
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetUniqueID(void **aUniqueID)
-{
-  
-  *aUniqueID = static_cast<void*>(this);
-  return NS_OK;
-}
-
-
-
-
-
-void nsHTMLComboboxButtonAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame)
-{
-  
-  
-  nsIFrame *frame = nsAccessible::GetBoundsFrame();
-  *aBoundingFrame = frame;
-  nsPresContext *context = GetPresContext();
-  if (!frame || !context)
-    return;
-
-  aBounds = frame->GetFirstChild(nsnull)->GetNextSibling()->GetRect();
-    
-}
-
-
-nsresult
-nsHTMLComboboxButtonAccessible::GetRoleInternal(PRUint32 *aRole)
-{
-  *aRole = nsIAccessibleRole::ROLE_PUSHBUTTON;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP nsHTMLComboboxButtonAccessible::GetParent(nsIAccessible **aParent)
-{   
-  NS_IF_ADDREF(*aParent = mParent);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLComboboxButtonAccessible::GetName(nsAString& aName)
-{
-  
-  aName.Truncate();
-  return GetActionName(eAction_Click, aName);
-}
-
-
-
-
-
-
-
-
-nsresult
-nsHTMLComboboxButtonAccessible::GetStateInternal(PRUint32 *aState,
-                                                 PRUint32 *aExtraState)
-{
-  
-  nsresult rv = nsAccessible::GetStateInternal(aState, aExtraState);
-  NS_ENSURE_A11Y_SUCCESS(rv, rv);
-
-  nsIFrame *boundsFrame = GetBoundsFrame();
-  nsIComboboxControlFrame* comboFrame = nsnull;
-  if (boundsFrame)
-    boundsFrame->QueryInterface(NS_GET_IID(nsIComboboxControlFrame), (void**)&comboFrame);
-
-  if (!comboFrame) {
-    *aState |= nsIAccessibleStates::STATE_INVISIBLE;
-  }
-  else {
-    *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
-    if (comboFrame->IsDroppedDown()) {
-      *aState |= nsIAccessibleStates::STATE_PRESSED;
-    }
-  }
- 
-  return NS_OK;
-}
-#endif
 
 
 

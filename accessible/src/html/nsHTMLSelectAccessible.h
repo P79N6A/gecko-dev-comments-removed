@@ -244,59 +244,6 @@ private:
   nsRefPtr<nsHTMLComboboxListAccessible> mListAccessible;
 };
 
-#ifdef COMBO_BOX_WITH_THREE_CHILDREN
-
-
-
-
-class nsHTMLComboboxTextFieldAccessible  : public nsHTMLTextFieldAccessible
-{
-public:
-  
-  nsHTMLComboboxTextFieldAccessible(nsIAccessible* aParent, nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
-  virtual ~nsHTMLComboboxTextFieldAccessible() {}
-
-  
-  NS_IMETHOD GetUniqueID(void **aUniqueID);
-
-  virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
-
-protected:
-  void CacheChildren();
-};
-
-
-
-
-
-class nsHTMLComboboxButtonAccessible  : public nsLeafAccessible
-{
-public:
-  enum { eAction_Click = 0 };
-
-  nsHTMLComboboxButtonAccessible(nsIAccessible* aParent, nsIDOMNode* aDOMNode, nsIWeakReference* aShell);
-  virtual ~nsHTMLComboboxButtonAccessible() {}
-
-  
-  NS_IMETHOD DoAction(PRUint8 index);
-  NS_IMETHOD GetNumActions(PRUint8 *_retval);
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  NS_IMETHOD GetParent(nsIAccessible **_retval);
-  NS_IMETHOD GetName(nsAString& aName);
-
-  
-  NS_IMETHOD GetUniqueID(void **aUniqueID);
-
-  
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
-  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
-  
-protected:
-  virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
-};
-
-#endif
-
 
 
 
