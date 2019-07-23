@@ -482,7 +482,7 @@ public:
 
 
 
-  PRInt32 UnscaledAppUnitsPerDevPixel() { return mAppUnitsPerDevNotScaledPixel; }
+  PRInt32 UnscaledAppUnitsPerDevPixel() const { return mAppUnitsPerDevNotScaledPixel; }
 
 protected:
   PRInt32 mAppUnitsPerDevPixel;
