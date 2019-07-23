@@ -3565,7 +3565,12 @@ static PRInt64
 GetAgeInDays(PRTime aNormalizedNow, PRTime aDate)
 {
   PRTime dateMidnight = NormalizeTimeRelativeToday(aDate);
-  return ((aNormalizedNow - dateMidnight) / USECS_PER_DAY);
+  
+  
+  if (dateMidnight > aNormalizedNow)
+    return 0;
+  else
+    return ((aNormalizedNow - dateMidnight) / USECS_PER_DAY);
 }
 
 const PRInt64 UNDEFINED_AGE_IN_DAYS = -1;
