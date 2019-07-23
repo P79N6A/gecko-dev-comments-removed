@@ -215,6 +215,15 @@ public:
     return JS_TRUE;
   }
 
+  static JSBool IsSecurityWrapper(JSObject *wrapper)
+  {
+    JSClass *clasp = STOBJ_GET_CLASS(wrapper);
+    return clasp == &sXPC_COW_JSClass.base ||
+           clasp == &sXPC_SJOW_JSClass.base ||
+           clasp == &sXPC_SOW_JSClass.base ||
+           clasp == &sXPC_XOW_JSClass.base;
+  }
+
   
 
 
