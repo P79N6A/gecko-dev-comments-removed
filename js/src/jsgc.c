@@ -2457,15 +2457,14 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     if (rt->state != JSRTS_UP && gckind != GC_LAST_CONTEXT)
         return;
 
-  restart_after_callback:
+  restart_at_beginning:
     
 
 
 
 
 
-    callback = rt->gcCallback;
-    if (callback) {
+    if (gckind != GC_SET_SLOT_REQUEST && (callback = rt->gcCallback)) {
         JSBool ok;
 
         if (gckind & GC_LOCK_HELD)
@@ -2603,6 +2602,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             goto done_running;
         rt->gcLevel = 1;
         rt->gcPoke = JS_FALSE;
+        gckind = GC_LOCK_HELD;
+        goto restart_at_beginning;
     }
 
     JS_UNLOCK_GC(rt);
@@ -2924,8 +2925,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-    callback = rt->gcCallback;
-    if (callback) {
+    if (gckind != GC_SET_SLOT_REQUEST && (callback = rt->gcCallback)) {
         JSWeakRoots savedWeakRoots;
         JSTempValueRooter tvr;
 
@@ -2952,7 +2952,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-            goto restart_after_callback;
+            goto restart_at_beginning;
         }
     }
 }
