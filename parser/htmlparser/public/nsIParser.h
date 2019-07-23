@@ -56,8 +56,9 @@
 
 
 #define NS_IPARSER_IID \
-{ 0x3007e9c0, 0x4d3e, 0x4c80, \
-  { 0x8c, 0xae, 0xfb, 0xb4, 0x72, 0x3d, 0x88, 0xf2 } }
+{ 0x506527cc, 0xd832, 0x420b, \
+  { 0xba, 0x3a, 0x80, 0xc0, 0x5a, 0xa1, 0x05, 0xf4 } }
+
 
 
 #define NS_IDEBUG_DUMP_CONTENT_IID \
@@ -295,19 +296,6 @@ class nsIParser : public nsISupports {
     NS_IMETHOD CancelParsingEvents() = 0;
 
     virtual void Reset() = 0;
-
-    
-
-
-
-
-    virtual void ScriptExecuting() = 0;
-
-    
-
-
-
-    virtual void ScriptDidExecute() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIParser, NS_IPARSER_IID)

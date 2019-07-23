@@ -126,7 +126,7 @@ nsPluginStreamListener::SetupPlugin()
   nsCOMPtr<nsIContent> embed = mPluginDoc->GetPluginContent();
 
   
-  nsIPresShell* shell = mDocument->GetPrimaryShell();
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
   if (!shell) {
     
     mPluginDoc->AllowNormalInstantiation();

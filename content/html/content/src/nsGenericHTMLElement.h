@@ -200,6 +200,11 @@ public:
   nsresult GetHrefURIForAnchors(nsIURI** aURI) const;
 
   
+  
+  
+  void GetHrefURIToMutate(nsIURI** aURI);
+
+  
   void Compact() { mAttrsAndChildren.Compact(); }
   const nsAttrValue* GetParsedAttr(nsIAtom* aAttr) const
   {
@@ -689,8 +694,11 @@ protected:
 
 
 
+
+
+
   NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
-                                nsIURI** aURI) const;
+                                PRBool aCloneIfCached, nsIURI** aURI) const;
 
   
 
@@ -1141,6 +1149,13 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo, PRBool aFromParser)\
   NS_HTML_CONTENT_INTERFACE_TABLE_BEGIN(_class)                               \
     NS_INTERFACE_TABLE_ENTRY(_class, _i1)                                     \
     NS_INTERFACE_TABLE_ENTRY(_class, _i2)                                     \
+  NS_OFFSET_AND_INTERFACE_TABLE_END
+
+#define NS_HTML_CONTENT_INTERFACE_TABLE3(_class, _i1, _i2, _i3)          \
+  NS_HTML_CONTENT_INTERFACE_TABLE_BEGIN(_class)                               \
+    NS_INTERFACE_TABLE_ENTRY(_class, _i1)                                     \
+    NS_INTERFACE_TABLE_ENTRY(_class, _i2)                                     \
+    NS_INTERFACE_TABLE_ENTRY(_class, _i3)                                     \
   NS_OFFSET_AND_INTERFACE_TABLE_END
 
 #define NS_HTML_CONTENT_INTERFACE_TABLE4(_class, _i1, _i2, _i3, _i4)          \

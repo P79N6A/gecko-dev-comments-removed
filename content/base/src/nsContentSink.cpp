@@ -89,6 +89,7 @@
 #include "nsNodeInfoManager.h"
 #include "nsTimer.h"
 #include "nsIAppShell.h"
+#include "nsIWidget.h"
 #include "nsWidgetsCID.h"
 #include "nsIDOMNSDocument.h"
 #include "nsIRequest.h"
@@ -349,10 +350,6 @@ nsContentSink::ScriptAvailable(nsresult aResult,
                                PRInt32 aLineNo)
 {
   PRUint32 count = mScriptElements.Count();
-  if (mParser && NS_SUCCEEDED(aResult)) {
-    
-    mParser->ScriptExecuting();
-  }
 
   
   
@@ -406,10 +403,6 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
                                nsIScriptElement *aElement,
                                PRBool aIsInline)
 {
-  if (mParser) {
-    mParser->ScriptDidExecute();
-  }
-
   
   PRInt32 count = mScriptElements.Count();
   if (count == 0 || aElement != mScriptElements[count - 1]) {
@@ -1743,6 +1736,12 @@ nsContentSink::DropParserAndPerfHint(void)
   if (mCanInterruptParser) {
     mDocument->UnblockOnload(PR_TRUE);
   }
+}
+
+PRBool
+nsContentSink::IsScriptExecutingImpl()
+{
+  return !!mScriptLoader->GetCurrentScript();
 }
 
 nsresult
