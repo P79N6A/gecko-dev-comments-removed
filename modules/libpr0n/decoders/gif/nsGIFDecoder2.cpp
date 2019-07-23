@@ -1044,17 +1044,17 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
       if (q[8] & 0x80) 
       {
         mGIFStruct.local_colormap_size = 1 << depth;
+        PRUint32 paletteSize;
         if (mGIFStruct.images_decoded) {
           
           
-          PRUint32 paletteSize;
           mImageFrame->GetPaletteData(&mColormap, &paletteSize);
         } else {
           
           
+          paletteSize = sizeof(PRUint32) << realDepth;
           if (!mGIFStruct.local_colormap) {
-            mGIFStruct.local_colormap = 
-  			  (PRUint32*)PR_MALLOC(mGIFStruct.local_colormap_size * sizeof(PRUint32));
+            mGIFStruct.local_colormap = (PRUint32*)PR_MALLOC(paletteSize);
             if (!mGIFStruct.local_colormap) {
               mGIFStruct.state = gif_oom;
               break;
@@ -1063,9 +1063,9 @@ nsresult nsGIFDecoder2::GifWrite(const PRUint8 *buf, PRUint32 len)
           mColormap = mGIFStruct.local_colormap;
         }
         const PRUint32 size = 3 << depth;
-        
-        if (realDepth > depth) {
-          memset(mColormap + size, 0, (3<<realDepth) - size);
+        if (paletteSize > size) {
+          
+          memset(((PRUint8*)mColormap) + size, 0, paletteSize - size);
         }
         if (len < size) {
           
