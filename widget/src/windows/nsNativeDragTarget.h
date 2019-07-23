@@ -42,9 +42,11 @@
 #include "nsIDragSession.h"
 #include <ole2.h>
 #include <shlobj.h>
+#ifndef WINCE
 #ifndef IDropTargetHelper
 #include <shobjidl.h> 
 #endif
+#endif  
 
 class nsIDragService;
 class nsIWidget;
@@ -114,8 +116,9 @@ protected:
   nsIDragService * mDragService;
 
   
+#ifndef WINCE
   IDropTargetHelper * mDropTargetHelper;
-
+#endif
 };
 
 #endif 
