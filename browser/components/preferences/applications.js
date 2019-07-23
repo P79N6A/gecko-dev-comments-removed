@@ -718,6 +718,14 @@ var feedHandlerInfo = {
       this.element(PREF_FEED_SELECTED_ACTION).value = "reader";
   },
 
+  
+  
+  
+  
+  
+  
+  _storingAction: false,
+
 
   
   
@@ -881,7 +889,7 @@ var gApplicationsPane = {
   observe: function (aSubject, aTopic, aData) {
     
     
-    if (aTopic == "nsPref:changed") {
+    if (aTopic == "nsPref:changed" && !this._storingAction) {
       
       
       if (aData == PREF_SHOW_PLUGINS_IN_LIST ||
@@ -1450,6 +1458,17 @@ var gApplicationsPane = {
   
 
   onSelectAction: function(aActionItem) {
+    this._storingAction = true;
+
+    try {
+      this._storeAction(aActionItem);
+    }
+    finally {
+      this._storingAction = false;
+    }
+  },
+
+  _storeAction: function(aActionItem) {
     var typeItem = this._list.selectedItem;
     var handlerInfo = this._handledTypes[typeItem.type];
 
