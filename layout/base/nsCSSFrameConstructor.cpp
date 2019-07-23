@@ -7683,20 +7683,27 @@ nsCSSFrameConstructor::ReconstructDocElementHierarchyInternal()
             return rv;
           }
         }
-        
-        mInitialContainingBlock = nsnull;
-        mRootElementStyleFrame = nsnull;
+      }
+    }
+    
+    if (rootContent && NS_SUCCEEDED(rv)) {
+      mInitialContainingBlock = nsnull;
+      mRootElementStyleFrame = nsnull;
 
-        
-        nsIFrame* newChild;
-        rv = ConstructDocElementFrame(state, rootContent,
-                                      mDocElementContainingBlock, &newChild);
+      
+      
+      nsFrameConstructorState state(mPresShell, mFixedContainingBlock,
+                                    nsnull, nsnull, mTempFrameTreeState);
 
-        
-        if (NS_SUCCEEDED(rv) && newChild) {
-          rv = state.mFrameManager->InsertFrames(mDocElementContainingBlock,
-                                                 nsnull, nsnull, newChild);
-        }
+      
+      nsIFrame* newChild;
+      rv = ConstructDocElementFrame(state, rootContent,
+                                    mDocElementContainingBlock, &newChild);
+
+      
+      if (NS_SUCCEEDED(rv) && newChild) {
+        rv = state.mFrameManager->InsertFrames(mDocElementContainingBlock,
+                                               nsnull, nsnull, newChild);
       }
     }
   }
@@ -9328,9 +9335,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
   nsIFrame* childFrame =
     mPresShell->FrameManager()->GetPrimaryFrameFor(aChild, aIndexInContainer);
 
-  if (!childFrame || childFrame->GetContent() != aChild) {
-    
-    
+  if (! childFrame) {
     frameManager->ClearUndisplayedContentIn(aChild, aContainer);
   }
 
@@ -9415,9 +9420,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
 
       
       childFrame = mPresShell->GetPrimaryFrameFor(aChild);
-      if (!childFrame || childFrame->GetContent() != aChild) {
-        
-        
+      if (!childFrame) {
         frameManager->ClearUndisplayedContentIn(aChild, aContainer);
         return NS_OK;
       }
@@ -9838,14 +9841,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     nsIContent* content;
     nsChangeHint hint;
     aChangeList.ChangeAt(index, frame, content, hint);
-    if (frame && frame->GetContent() != content) {
-      
-      
-      frame = nsnull;
-      if (!(hint & nsChangeHint_ReconstructFrame)) {
-        continue;
-      }
-    }
 
     
     if (frame) {
@@ -9918,11 +9913,6 @@ nsCSSFrameConstructor::RestyleElement(nsIContent     *aContent,
 {
   NS_ASSERTION(aPrimaryFrame == mPresShell->GetPrimaryFrameFor(aContent),
                "frame/content mismatch");
-  if (aPrimaryFrame && aPrimaryFrame->GetContent() != aContent) {
-    
-    
-    aPrimaryFrame = nsnull;
-  }
   NS_ASSERTION(!aPrimaryFrame || aPrimaryFrame->GetContent() == aContent,
                "frame/content mismatch");
 
