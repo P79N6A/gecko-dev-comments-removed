@@ -77,7 +77,7 @@ Sanitizer.prototype = {
     if (this.ignoreTimespan)
       var range = null;  
     else
-      range = Sanitizer.getClearRange();
+      range = this.range || Sanitizer.getClearRange();
       
     for (var itemName in this.items) {
       var item = this.items[itemName];
@@ -103,7 +103,11 @@ Sanitizer.prototype = {
   
   
   
+  
+  
+  
   ignoreTimespan : true,
+  range : null,
   
   items: {
     cache: {
@@ -396,8 +400,10 @@ Sanitizer.TIMESPAN_TODAY      = 4;
 
 
 
-Sanitizer.getClearRange = function() {
-  var ts = Sanitizer.prefs.getIntPref("timeSpan");
+
+Sanitizer.getClearRange = function (ts) {
+  if (ts === undefined)
+    ts = Sanitizer.prefs.getIntPref("timeSpan");
   if (ts === Sanitizer.TIMESPAN_EVERYTHING)
     return null;
   
