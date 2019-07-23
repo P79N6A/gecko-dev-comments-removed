@@ -1369,7 +1369,7 @@ nsresult
 nsComputedDOMStyle::GetPadding(nsIDOMCSSValue** aValue)
 {
   
-  aValue = nsnull;
+  *aValue = nsnull;
 
   return NS_OK;
 }
@@ -1495,7 +1495,7 @@ nsresult
 nsComputedDOMStyle::GetBorderStyle(nsIDOMCSSValue** aValue)
 {
   
-  aValue = nsnull;
+  *aValue = nsnull;
 
   return NS_OK;
 }
@@ -1580,7 +1580,7 @@ nsresult
 nsComputedDOMStyle::GetBorderWidth(nsIDOMCSSValue** aValue)
 {
   
-  aValue = nsnull;
+  *aValue = nsnull;
 
   return NS_OK;
 }
@@ -1637,7 +1637,7 @@ nsresult
 nsComputedDOMStyle::GetMarginWidth(nsIDOMCSSValue** aValue)
 {
   
-  aValue = nsnull;
+  *aValue = nsnull;
 
   return NS_OK;
 }
@@ -1681,7 +1681,7 @@ nsresult
 nsComputedDOMStyle::GetOutline(nsIDOMCSSValue** aValue)
 {
   
-  aValue = nsnull;
+  *aValue = nsnull;
 
   return NS_OK;
 }
