@@ -824,7 +824,16 @@ NS_METHOD nsWindow::CaptureMouse(PRBool aCapture)
 
 PRInt32 nsWindow::GetHeight(PRInt32 aProposedHeight)
 {
-  return(aProposedHeight);
+  PRInt32 extra = 0;
+
+#if defined(WINCE) && !defined(WINCE_WINDOWS_MOBILE)
+  DWORD style = WindowStyle();
+  if ((style & WS_SYSMENU) && (style & WS_POPUP)) {
+    extra = GetSystemMetrics(SM_CYCAPTION);
+  }
+#endif
+
+  return aProposedHeight + extra;
 }
 
 
