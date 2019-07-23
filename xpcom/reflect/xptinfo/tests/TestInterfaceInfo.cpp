@@ -97,14 +97,14 @@ int main (int argc, char **argv) {
 
     fprintf(stderr, "\nparams work?\n");
     fprintf(stderr, "\ngetting info for name 'nsIServiceManager'\n");
-    iim->GetInfoForName("nsIServiceManager", &info5);
+    iim->GetInfoForName("nsIComponentManager", &info5);
 #ifdef DEBUG
 
 #endif
 
     
     if (info5 == NULL) {
-        fprintf(stderr, "\nNo nsIServiceManager; cannot continue.\n");
+        fprintf(stderr, "\nNo nsIComponentManager; cannot continue.\n");
         return 1;
     }
 
@@ -117,31 +117,38 @@ int main (int argc, char **argv) {
     }
 
     
-    info5->GetMethodInfo(7, &mi);
+    info5->GetMethodInfo(6, &mi);
 
-
-    nsXPTParamInfo param2 = mi->GetParam(2);
+    const nsXPTParamInfo& param2 = mi->GetParam(1);
     
     nsIID *nsISL;
-    info5->GetIIDForParam(7, &param2, &nsISL);
-
-    fprintf(stderr, "iid assoc'd with param 2 of method 7 of GetServiceWithListener - %s\n", nsISL->ToString());
+    info5->GetIIDForParam(6, &param2, &nsISL);
+    fprintf(stderr, "iid assoc'd with param 1 of method 6 - createInstanceByContractID - %s\n", nsISL->ToString());
     
     char *nsISLname;
     iim->GetNameForIID(nsISL, &nsISLname);
     fprintf(stderr, "which is called %s\n", nsISLname);
 
-    fprintf(stderr, "\nhow about one defined in a different typelib\n");
-    nsXPTParamInfo param3 = mi->GetParam(3);
-    
-    nsIID *nsISS;
-    info5->GetIIDForParam(7, &param3, &nsISS);
+    fprintf(stderr, "\nNow check the last param\n");
+    const nsXPTParamInfo& param3 = mi->GetParam(3);
 
-    fprintf(stderr, "iid assoc'd with param 3 of method 7 of GetServiceWithListener - %s\n", nsISS->ToString());
+    if (param3.GetType().TagPart() != nsXPTType::T_INTERFACE_IS) {
+        fprintf(stderr, "Param 3 is not type interface is\n");
+        
+    }
     
-    char *nsISSname;
-    iim->GetNameForIID(nsISS, &nsISSname);
-    fprintf(stderr, "which is called %s\n", nsISSname);
+    uint8 argnum;
+    info5->GetInterfaceIsArgNumberForParam(6, &param3, &argnum);
+    fprintf(stderr, "param 3 referrs to param %d of method 6 - createInstanceByContractID\n", (PRUint32)argnum);
+    
+    const nsXPTParamInfo& arg_param = mi->GetParam(argnum);
+    const nsXPTType& arg_type = arg_param.GetType();
+    
+    if(!arg_type.IsPointer() || arg_type.TagPart() != nsXPTType::T_IID) {
+        fprintf(stderr, "Param 3 of method 6 refers to a non IID parameter\n"); 
+        
+    }
+
 
     return 0;
 }    
