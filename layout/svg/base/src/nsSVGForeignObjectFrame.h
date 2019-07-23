@@ -105,8 +105,8 @@ public:
 #endif
 
   
-  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, nsRect *aDirtyRect);
-  NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit);  
+  NS_IMETHOD PaintSVG(nsSVGRenderState *aContext, nsIntRect *aDirtyRect);
+  NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   NS_IMETHOD_(nsRect) GetCoveredRegion();
   NS_IMETHOD UpdateCoveredRegion();
   NS_IMETHOD InitialUpdate();
@@ -138,7 +138,7 @@ protected:
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
   void UpdateGraphic();
   already_AddRefed<nsIDOMSVGMatrix> GetTMIncludingOffset();
-  nsresult TransformPointFromOuterPx(float aX, float aY, nsPoint* aOut);
+  nsresult TransformPointFromOuterPx(const nsPoint &aIn, nsPoint* aOut);
   void FlushDirtyRegion();
 
   

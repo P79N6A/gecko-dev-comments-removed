@@ -42,17 +42,17 @@
 
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
+#include "nsRect.h"
 
 class gfxContext;
 class nsPresContext;
 class nsIDOMSVGRect;
 class nsIDOMSVGMatrix;
 class nsSVGRenderState;
-struct nsRect;
 
 #define NS_ISVGCHILDFRAME_IID \
-{ 0x667e8781, 0x72bd, 0x4344, \
- { 0x95, 0x8c, 0x69, 0xa5, 0x70, 0xc4, 0xcc, 0xb3 } }
+{ 0xe4ecddbf, 0xde7c, 0x4cd9, \
+ { 0x92, 0x4a, 0xfa, 0x81, 0xba, 0x83, 0x26, 0x69 } }
 
 class nsISVGChildFrame : public nsISupports {
 public:
@@ -61,18 +61,13 @@ public:
 
   
   
-  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext, nsRect *aDirtyRect)=0;
+  NS_IMETHOD PaintSVG(nsSVGRenderState* aContext, nsIntRect *aDirtyRect)=0;
 
   
   
   
   
-  
-  
-  
-  
-  
-  NS_IMETHOD GetFrameForPointSVG(float x, float y, nsIFrame** hit)=0;
+  NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint)=0;
 
   
   NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
