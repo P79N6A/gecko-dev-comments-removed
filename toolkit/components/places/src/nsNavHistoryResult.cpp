@@ -2887,10 +2887,13 @@ nsNavHistoryQueryResultNode::OnItemChanged(PRInt64 aItemId,
   
   
   if (mLiveUpdate == QUERYUPDATE_COMPLEX_WITH_BOOKMARKS)
-    return Refresh();
+    (void)Refresh();
   else
     NS_WARNING("history observers should not get OnItemChanged, but should get the corresponding history notifications instead");
-  return NS_OK;
+
+  return nsNavHistoryResultNode::OnItemChanged(aItemId, aProperty,
+                                               aIsAnnotationProperty,
+                                               aValue);
 }
 
 NS_IMETHODIMP
