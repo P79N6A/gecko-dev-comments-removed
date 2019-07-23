@@ -5029,6 +5029,9 @@ TraceRecorder::tableswitch()
     if (v_ins->isconst() || v_ins->isconstq())
         return NULL;
 
+    if (!isNumber(v))
+        return NULL;
+
     jsbytecode* pc = cx->fp->regs->pc;
     
     if (anchor && (anchor->exitType == CASE_EXIT ||
