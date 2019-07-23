@@ -92,6 +92,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   {"googledesktopnetwork3.dll", UNVERSIONED},
 
   
+  {"fgjk4wvb.dll", MAKE_VERSION(8,8,8,8)},
+  
+  
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
 
