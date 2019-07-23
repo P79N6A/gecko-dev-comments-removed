@@ -52,6 +52,19 @@
 
 JS_BEGIN_EXTERN_C
 
+struct JSRegExpStatics {
+    JSString    *input;         
+    JSBool      multiline;      
+    uint16      parenCount;     
+    uint16      moreLength;     
+    JSSubString parens[9];      
+    JSSubString *moreParens;    
+    JSSubString lastMatch;      
+    JSSubString lastParen;      
+    JSSubString leftContext;    
+    JSSubString rightContext;   
+};
+
 namespace js { class AutoValueRooter; }
 
 extern JS_FRIEND_API(void)
@@ -82,6 +95,17 @@ typedef struct RECharSet {
         } src;
     } u;
 } RECharSet;
+
+
+
+
+
+#define REGEXP_PAREN_SUBSTRING(res, num)                                      \
+    (((jsuint)(num) < (jsuint)(res)->parenCount)                              \
+     ? ((jsuint)(num) < 9)                                                    \
+       ? &(res)->parens[num]                                                  \
+       : &(res)->moreParens[(num) - 9]                                        \
+     : &js_EmptySubString)
 
 typedef struct RENode RENode;
 
