@@ -827,6 +827,19 @@ namespace nanojit
         return out->insBranch(v, c, t);
     }
 
+    LIns* ExprFilter::insLoad(LOpcode op, LIns* base, int32_t off) {
+        if (base->isconstp() && !isS8(off)) {
+            
+            
+            
+            
+            
+            uintptr_t p = (uintptr_t)base->constvalp() + off;
+            return out->insLoad(op, insImmPtr((void*)p), 0);
+        }
+        return out->insLoad(op, base, off);
+    }
+
     LIns* LirWriter::ins_eq0(LIns* oprnd1)
     {
         return ins2i(LIR_eq, oprnd1, 0);

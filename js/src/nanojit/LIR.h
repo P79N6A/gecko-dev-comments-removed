@@ -1273,6 +1273,7 @@ namespace nanojit
         LIns* ins3(LOpcode v, LIns* a, LIns* b, LIns* c);
         LIns* insGuard(LOpcode, LIns *cond, LIns *);
         LIns* insBranch(LOpcode, LIns *cond, LIns *target);
+        LIns* insLoad(LOpcode op, LInsp base, int32_t off);
     };
 
     
@@ -1440,9 +1441,6 @@ namespace nanojit
         LInsp read(); 
         LInsp pos() {
             return _i;
-        }
-        void setpos(LIns *i) {
-            _i = i;
         }
     };
 
