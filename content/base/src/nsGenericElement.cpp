@@ -5140,6 +5140,8 @@ nsGenericElement::GetLinkTarget(nsAString& aTarget)
 }
 
 
+
+
 static nsresult
 ParseSelectorList(nsINode* aNode,
                   const nsAString& aSelectorString,
@@ -5155,12 +5157,27 @@ ParseSelectorList(nsINode* aNode,
   nsresult rv = doc->CSSLoader()->GetParserFor(nsnull, getter_AddRefs(parser));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCSSSelectorList* selectorList;
   rv = parser->ParseSelectorString(aSelectorString,
                                    doc->GetDocumentURI(),
                                    0, 
-                                   aSelectorList);
+                                   &selectorList);
   doc->CSSLoader()->RecycleParser(parser);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCSSSelectorList** slot = &selectorList;
+  do {
+    nsCSSSelectorList* cur = *slot;
+    if (cur->mSelectors->IsPseudoElement()) {
+      *slot = cur->mNext;
+      cur->mNext = nsnull;
+      delete cur;
+    } else {
+      slot = &cur->mNext;
+    }
+  } while (*slot);
+  *aSelectorList = selectorList;
 
   
   
