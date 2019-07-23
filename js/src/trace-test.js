@@ -1867,6 +1867,16 @@ testClosingRecursion.expected = true;
 test(testClosingRecursion);
 
 
+function testBug465145() {
+	this.__defineSetter__("x", function(){});
+	this.watch("x", function(){});
+	y = this;
+	for (var z = 0; z < 2; ++z) { x = y };
+	this.__defineSetter__("x", function(){});
+	for (var z = 0; z < 2; ++z) { x = y };
+}
+
+
 
 
 
