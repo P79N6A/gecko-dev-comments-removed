@@ -883,25 +883,6 @@ pref("mousewheel.withmetakey.numlines",1);
 pref("mousewheel.withmetakey.sysnumlines",true);
 
 
-
-#ifdef XP_WIN
-#define HORIZSCROLL_AVAILABLE
-#endif
-#ifdef XP_MACOSX
-#define HORIZSCROLL_AVAILABLE
-
-
-
-
-
-
-
-#endif
-#ifdef XP_OS2
-#define HORIZSCROLL_AVAILABLE
-#endif
-#ifdef HORIZSCROLL_AVAILABLE
-
 pref("mousewheel.horizscroll.withnokey.action",0);
 pref("mousewheel.horizscroll.withnokey.numlines",1);
 pref("mousewheel.horizscroll.withnokey.sysnumlines",true);
@@ -917,25 +898,6 @@ pref("mousewheel.horizscroll.withaltkey.sysnumlines",false);
 pref("mousewheel.horizscroll.withmetakey.action",0);
 pref("mousewheel.horizscroll.withmetakey.numlines",1);
 pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
-#endif
-#ifndef HORIZSCROLL_AVAILABLE
-
-pref("mousewheel.horizscroll.withnokey.action",2);
-pref("mousewheel.horizscroll.withnokey.numlines",-1);
-pref("mousewheel.horizscroll.withnokey.sysnumlines",false);
-pref("mousewheel.horizscroll.withcontrolkey.action",2);
-pref("mousewheel.horizscroll.withcontrolkey.numlines",-1);
-pref("mousewheel.horizscroll.withcontrolkey.sysnumlines",false);
-pref("mousewheel.horizscroll.withshiftkey.action",2);
-pref("mousewheel.horizscroll.withshiftkey.numlines",-1);
-pref("mousewheel.horizscroll.withshiftkey.sysnumlines",false);
-pref("mousewheel.horizscroll.withaltkey.action",2);
-pref("mousewheel.horizscroll.withaltkey.numlines",-1);
-pref("mousewheel.horizscroll.withaltkey.sysnumlines",false);
-pref("mousewheel.horizscroll.withmetakey.action",2);
-pref("mousewheel.horizscroll.withmetakey.numlines",-1);
-pref("mousewheel.horizscroll.withmetakey.sysnumlines",false);
-#endif
 
 pref("profile.confirm_automigration",true);
 
