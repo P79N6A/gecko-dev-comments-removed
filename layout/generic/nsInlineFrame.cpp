@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsCOMPtr.h"
 #include "nsInlineFrame.h"
 #include "nsBlockFrame.h"
@@ -227,6 +226,8 @@ nsInlineFrame::ReparentFloatsForInlineChild(nsIFrame* aOurLineContainer,
                                             nsIFrame* aFrame,
                                             PRBool aReparentSiblings)
 {
+  
+  
   NS_ASSERTION(aOurLineContainer->GetNextContinuation() ||
                aOurLineContainer->GetPrevContinuation(),
                "Don't call this when we have no continuation, it's a waste");
@@ -295,12 +296,13 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
    
   nsInlineFrame* prevInFlow = (nsInlineFrame*)GetPrevInFlow();
   if (nsnull != prevInFlow) {
-    nsIFrame* prevOverflowFrames = prevInFlow->GetOverflowFrames(aPresContext, PR_TRUE);
+    nsAutoPtr<nsFrameList> prevOverflowFrames(prevInFlow->StealOverflowFrames());
 
     if (prevOverflowFrames) {
       
       
-      nsHTMLContainerFrame::ReparentFrameViewList(aPresContext, prevOverflowFrames,
+      nsHTMLContainerFrame::ReparentFrameViewList(aPresContext,
+                                                  *prevOverflowFrames,
                                                   prevInFlow, this);
 
       
@@ -314,18 +316,18 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
         
         
         
-        
-        
-        mFrames.SetFrames(prevOverflowFrames);
+        mFrames.InsertFrames(nsnull, nsnull, *prevOverflowFrames);
         lazilySetParentPointer = PR_TRUE;
       } else {
         
         if (lineContainer && lineContainer->GetPrevContinuation()) {
-          ReparentFloatsForInlineChild(lineContainer, prevOverflowFrames, PR_TRUE);
+          ReparentFloatsForInlineChild(lineContainer,
+                                       prevOverflowFrames->FirstChild(),
+                                       PR_TRUE);
         }
         
         
-        mFrames.InsertFrames(this, nsnull, prevOverflowFrames);
+        mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
       }
     }
   }
@@ -336,19 +338,20 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
     
     
     
-    nsIFrame* overflowFrames = GetOverflowFrames(aPresContext, PR_FALSE);
-    NS_ASSERTION(!overflowFrames, "overflow list is not empty for initial reflow");
+    nsFrameList* overflowFrames = GetOverflowFrames();
+    NS_ASSERTION(!overflowFrames || overflowFrames->IsEmpty(),
+                 "overflow list is not empty for initial reflow");
   }
 #endif
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    nsIFrame* overflowFrames = GetOverflowFrames(aPresContext, PR_TRUE);
+    nsAutoPtr<nsFrameList> overflowFrames(StealOverflowFrames());
     if (overflowFrames) {
       NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
 
       
       
       
-      mFrames.AppendFrames(this, overflowFrames);
+      mFrames.AppendFrames(this, *overflowFrames);
     }
   }
 
@@ -403,12 +406,10 @@ nsInlineFrame::PullOverflowsFromPrevInFlow()
 {
   nsInlineFrame* prevInFlow = static_cast<nsInlineFrame*>(GetPrevInFlow());
   if (prevInFlow) {
-    nsPresContext* presContext = PresContext();
-    nsIFrame* prevOverflowFrames =
-      prevInFlow->GetOverflowFrames(presContext, PR_TRUE);
+    nsAutoPtr<nsFrameList> prevOverflowFrames(prevInFlow->StealOverflowFrames());
     if (prevOverflowFrames) {
       
-      mFrames.InsertFrames(this, nsnull, prevOverflowFrames);
+      mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
     }
   }
 }
@@ -562,8 +563,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 #ifdef DEBUG
   if (NS_FRAME_IS_COMPLETE(aStatus)) {
     
-    nsIFrame* overflowFrames = GetOverflowFrames(aPresContext, PR_FALSE);
-    NS_ASSERTION(!overflowFrames, "whoops");
+    NS_ASSERTION(!GetOverflowFrames(), "whoops");
   }
 #endif
 
@@ -879,15 +879,14 @@ NS_IMETHODIMP nsInlineFrame::GetAccessible(nsIAccessible** aAccessible)
 
 static void
 ReParentChildListStyle(nsPresContext* aPresContext,
-                       nsFrameList& aFrameList,
+                       const nsFrameList::Slice& aFrames,
                        nsIFrame* aParentFrame)
 {
   nsFrameManager *frameManager = aPresContext->FrameManager();
 
-  for (nsIFrame* kid = aFrameList.FirstChild(); kid;
-       kid = kid->GetNextSibling()) {
-    NS_ASSERTION(kid->GetParent() == aParentFrame, "Bogus parentage");
-    frameManager->ReParentStyleContext(kid);
+  for (nsFrameList::Enumerator e(aFrames); !e.AtEnd(); e.Next()) {
+    NS_ASSERTION(e.get()->GetParent() == aParentFrame, "Bogus parentage");
+    frameManager->ReParentStyleContext(e.get());
   }
 }
 
@@ -952,27 +951,28 @@ nsFirstLineFrame::Reflow(nsPresContext* aPresContext,
   
   nsFirstLineFrame* prevInFlow = (nsFirstLineFrame*)GetPrevInFlow();
   if (nsnull != prevInFlow) {
-    nsIFrame* prevOverflowFrames = prevInFlow->GetOverflowFrames(aPresContext, PR_TRUE);
+    nsAutoPtr<nsFrameList> prevOverflowFrames(prevInFlow->StealOverflowFrames());
     if (prevOverflowFrames) {
-      nsFrameList frames(prevOverflowFrames);
-      
       
       if (lineContainer && lineContainer->GetPrevContinuation()) {
-        ReparentFloatsForInlineChild(lineContainer, prevOverflowFrames, PR_TRUE);
+        ReparentFloatsForInlineChild(lineContainer,
+                                     prevOverflowFrames->FirstChild(),
+                                     PR_TRUE);
       }
-      mFrames.InsertFrames(this, nsnull, prevOverflowFrames);
-      ReParentChildListStyle(aPresContext, frames, this);
+      const nsFrameList::Slice& newFrames =
+        mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
+      ReParentChildListStyle(aPresContext, newFrames, this);
     }
   }
 
   
-  nsIFrame* overflowFrames = GetOverflowFrames(aPresContext, PR_TRUE);
+  nsAutoPtr<nsFrameList> overflowFrames(StealOverflowFrames());
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-    nsFrameList frames(overflowFrames);
 
-    mFrames.AppendFrames(nsnull, overflowFrames);
-    ReParentChildListStyle(aPresContext, frames, this);
+    const nsFrameList::Slice& newFrames =
+      mFrames.AppendFrames(nsnull, *overflowFrames);
+    ReParentChildListStyle(aPresContext, newFrames, this);
   }
 
   
@@ -1056,15 +1056,12 @@ nsFirstLineFrame::PullOverflowsFromPrevInFlow()
 {
   nsFirstLineFrame* prevInFlow = static_cast<nsFirstLineFrame*>(GetPrevInFlow());
   if (prevInFlow) {
-    nsPresContext* presContext = PresContext();
-    nsIFrame* prevOverflowFrames =
-      prevInFlow->GetOverflowFrames(presContext, PR_TRUE);
+    nsAutoPtr<nsFrameList> prevOverflowFrames(prevInFlow->StealOverflowFrames());
     if (prevOverflowFrames) {
-      nsFrameList frames(prevOverflowFrames);
-
       
-      mFrames.InsertFrames(this, nsnull, prevOverflowFrames);
-      ReParentChildListStyle(presContext, frames, this);
+      const nsFrameList::Slice& newFrames =
+        mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
+      ReParentChildListStyle(PresContext(), newFrames, this);
     }
   }
 }

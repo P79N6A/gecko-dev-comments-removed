@@ -865,33 +865,22 @@ nsColumnSetFrame::DrainOverflowColumns()
   
   nsColumnSetFrame* prev = static_cast<nsColumnSetFrame*>(GetPrevInFlow());
   if (prev) {
-    nsIFrame* overflows = prev->GetOverflowFrames(PresContext(), PR_TRUE);
+    nsAutoPtr<nsFrameList> overflows(prev->StealOverflowFrames());
     if (overflows) {
-      
-      nsIFrame* lastFrame = nsnull;
-      for (nsIFrame* f = overflows; f; f = f->GetNextSibling()) {
-        f->SetParent(this);
+      nsHTMLContainerFrame::ReparentFrameViewList(PresContext(), *overflows,
+                                                  prev, this);
 
-        
-        
-        nsHTMLContainerFrame::ReparentFrameView(PresContext(), f, prev, this);
-
-        
-        lastFrame = f;
-      }
-
-      NS_ASSERTION(lastFrame, "overflow list was created with no frames");
-      lastFrame->SetNextSibling(mFrames.FirstChild());
-      
-      mFrames.SetFrames(overflows);
+      mFrames.InsertFrames(this, nsnull, *overflows);
     }
   }
   
   
   
-  nsIFrame* overflows = GetOverflowFrames(PresContext(), PR_TRUE);
+  nsAutoPtr<nsFrameList> overflows(StealOverflowFrames());
   if (overflows) {
-    mFrames.AppendFrames(this, overflows);
+    
+    
+    mFrames.AppendFrames(nsnull, *overflows);
   }
 }
 

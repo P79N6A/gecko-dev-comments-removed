@@ -300,31 +300,28 @@ nsFirstLetterFrame::CanContinueTextRun() const
 void
 nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
 {
-  nsIFrame* overflowFrames;
+  nsAutoPtr<nsFrameList> overflowFrames;
 
   
   nsFirstLetterFrame* prevInFlow = (nsFirstLetterFrame*)GetPrevInFlow();
   if (nsnull != prevInFlow) {
-    overflowFrames = prevInFlow->GetOverflowFrames(aPresContext, PR_TRUE);
+    overflowFrames = prevInFlow->StealOverflowFrames();
     if (overflowFrames) {
       NS_ASSERTION(mFrames.IsEmpty(), "bad overflow list");
 
       
       
-      nsIFrame* f = overflowFrames;
-      while (f) {
-        nsHTMLContainerFrame::ReparentFrameView(aPresContext, f, prevInFlow, this);
-        f = f->GetNextSibling();
-      }
-      mFrames.InsertFrames(this, nsnull, overflowFrames);
+      nsHTMLContainerFrame::ReparentFrameViewList(aPresContext, *overflowFrames,
+                                                  prevInFlow, this);
+      mFrames.InsertFrames(this, nsnull, *overflowFrames);
     }
   }
 
   
-  overflowFrames = GetOverflowFrames(aPresContext, PR_TRUE);
+  overflowFrames = StealOverflowFrames();
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
-    mFrames.AppendFrames(nsnull, overflowFrames);
+    mFrames.AppendFrames(nsnull, *overflowFrames);
   }
 
   

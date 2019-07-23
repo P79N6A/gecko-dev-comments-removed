@@ -1030,19 +1030,22 @@ nsTableRowGroupFrame::UndoContinuedRow(nsPresContext*   aPresContext,
 
   
   nsTableRowFrame* rowBefore = (nsTableRowFrame*)aRow->GetPrevInFlow();
+  NS_PRECONDITION(mFrames.ContainsFrame(rowBefore),
+                  "rowBefore not in our frame list?");
 
-  nsIFrame* firstOverflow = GetOverflowFrames(aPresContext, PR_TRUE); 
-  if (!rowBefore || !firstOverflow || (firstOverflow != aRow)) {
-    NS_ASSERTION(PR_FALSE, "invalid continued row");
+  nsAutoPtr<nsFrameList> overflows(StealOverflowFrames());
+  if (!rowBefore || !overflows || overflows->IsEmpty() ||
+      overflows->FirstChild() != aRow) {
+    NS_ERROR("invalid continued row");
     return;
   }
 
   
-  rowBefore->SetNextSibling(aRow->GetNextSibling());
+  
+  overflows->DestroyFrame(aRow);
 
   
-  
-  aRow->Destroy();
+  mFrames.InsertFrames(nsnull, rowBefore, *overflows);
 }
 
 static nsTableRowFrame* 

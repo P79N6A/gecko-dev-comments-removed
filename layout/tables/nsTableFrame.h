@@ -638,7 +638,6 @@ protected:
                   const nsRect&        aOriginalKidOverflowRect);
 
   nsIFrame* GetFirstBodyRowGroupFrame();
-  PRBool MoveOverflowToChildList(nsPresContext* aPresContext);
   
 
 

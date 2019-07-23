@@ -44,6 +44,7 @@
 #include "nsSplittableFrame.h"
 #include "nsFrameList.h"
 #include "nsLayoutUtils.h"
+#include "nsAutoPtr.h"
 
 
 
@@ -351,13 +352,31 @@ protected:
   
 
 
-  nsIFrame* GetOverflowFrames(nsPresContext*  aPresContext,
-                              PRBool          aRemoveProperty) const;
+
+
+
+  inline nsFrameList* GetOverflowFrames() const;
+
+  
+
+
+
+
+
+
+
+  inline nsFrameList* StealOverflowFrames();
+  
   
 
 
   nsresult SetOverflowFrames(nsPresContext*  aPresContext,
-                             nsIFrame*       aOverflowFrames);
+                             const nsFrameList& aOverflowFrames);
+
+  
+
+
+  void DestroyOverflowList(nsPresContext* aPresContext);
 
   
 
@@ -568,5 +587,25 @@ private:
   
   PRBool mWalkOOFFrames;
 };
+
+inline
+nsFrameList*
+nsContainerFrame::GetOverflowFrames() const
+{
+  nsFrameList* list =
+    static_cast<nsFrameList*>(GetProperty(nsGkAtoms::overflowProperty));
+  NS_ASSERTION(!list || !list->IsEmpty(), "Unexpected empty overflow list");
+  return list;
+}
+
+inline
+nsFrameList*
+nsContainerFrame::StealOverflowFrames()
+{
+  nsFrameList* list =
+    static_cast<nsFrameList*>(UnsetProperty(nsGkAtoms::overflowProperty));
+  NS_ASSERTION(!list || !list->IsEmpty(), "Unexpected empty overflow list");
+  return list;
+}
 
 #endif 

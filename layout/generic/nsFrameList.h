@@ -203,6 +203,17 @@ public:
 
   nsIFrame* GetPrevSiblingFor(nsIFrame* aFrame) const;
 
+  
+
+
+
+  nsIFrame* OnlyChild() const {
+    if (FirstChild() == LastChild()) {
+      return FirstChild();
+    }
+    return nsnull;
+  }
+
 #ifdef IBMBIDI
   
 
@@ -220,6 +231,10 @@ public:
 #ifdef DEBUG
   void List(FILE* out) const;
 #endif
+
+  static nsresult Init();
+  static void Shutdown() { delete sEmptyList; }
+  static const nsFrameList& EmptyList() { return *sEmptyList; }
 
   class Enumerator;
 
@@ -305,7 +320,9 @@ private:
 #ifdef DEBUG
   void CheckForLoops();
 #endif
-  
+
+  static const nsFrameList* sEmptyList;
+
 protected:
   nsIFrame* mFirstChild;
 };

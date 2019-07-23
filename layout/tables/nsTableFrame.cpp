@@ -2071,49 +2071,11 @@ nsTableFrame::PushChildren(const FrameArray& aFrames,
     }
     nextInFlow->mFrames.InsertFrames(GetNextInFlow(), prevSibling, frames.FirstChild());
   }
-  else {
+  else if (frames.NotEmpty()) {
     
-    SetOverflowFrames(PresContext(), frames.FirstChild());
+    SetOverflowFrames(PresContext(), frames);
   }
 }
-
-
-
-
-
-
-
-
-PRBool
-nsTableFrame::MoveOverflowToChildList(nsPresContext* aPresContext)
-{
-  PRBool result = PR_FALSE;
-
-  
-  nsTableFrame* prevInFlow = (nsTableFrame*)GetPrevInFlow();
-  if (prevInFlow) {
-    nsIFrame* prevOverflowFrames = prevInFlow->GetOverflowFrames(aPresContext, PR_TRUE);
-    if (prevOverflowFrames) {
-      
-      
-      for (nsIFrame* f = prevOverflowFrames; f; f = f->GetNextSibling()) {
-        nsHTMLContainerFrame::ReparentFrameView(aPresContext, f, prevInFlow, this);
-      }
-      mFrames.AppendFrames(this, prevOverflowFrames);
-      result = PR_TRUE;
-    }
-  }
-
-  
-  nsIFrame* overflowFrames = GetOverflowFrames(aPresContext, PR_TRUE);
-  if (overflowFrames) {
-    mFrames.AppendFrames(nsnull, overflowFrames);
-    result = PR_TRUE;
-  }
-  return result;
-}
-
-
 
 
 
