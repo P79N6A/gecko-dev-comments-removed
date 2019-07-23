@@ -47,7 +47,6 @@
 #include "nsMediaStream.h"
 #include "nsMathUtils.h"
 #include "prlog.h"
-#include "nsTimeStamp.h"
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gMediaCacheLog;
@@ -74,9 +73,6 @@ static const PRUint32 REPLAY_DELAY = 30;
 
 
 static const PRUint32 FREE_BLOCK_SCAN_LIMIT = 16;
-
-using mozilla::TimeStamp;
-using mozilla::TimeDuration;
 
 class nsMediaCache {
 public:
@@ -152,7 +148,7 @@ public:
   
   
   void NoteBlockUsage(PRInt32 aBlockIndex, nsMediaCacheStream::ReadMode aMode,
-                      TimeStamp aNow);
+                      PRIntervalTime aNow);
 
   
   void QueueUpdate();
@@ -179,7 +175,7 @@ protected:
   
   
   
-  PRInt32 FindBlockForIncomingData(TimeStamp aNow, nsMediaCacheStream* aStream);
+  PRInt32 FindBlockForIncomingData(PRIntervalTime aNow, nsMediaCacheStream* aStream);
   
   
   
@@ -187,7 +183,7 @@ protected:
   
   
   
-  PRInt32 FindReusableBlock(TimeStamp aNow,
+  PRInt32 FindReusableBlock(PRIntervalTime aNow,
                             nsMediaCacheStream* aForStream,
                             PRInt32 aForStreamBlock,
                             PRInt32 aMaxSearchBlockIndex);
@@ -226,7 +222,7 @@ protected:
     PRUint32            mStreamBlock;
     
     
-    TimeStamp           mLastUseTime;
+    PRIntervalTime      mLastUseTime;
     
     BlockClass          mClass;
     
@@ -249,9 +245,9 @@ protected:
   void InsertReadaheadBlock(PRInt32 aBlockIndex);
 
   
-  TimeDuration PredictNextUse(TimeStamp aNow, PRInt32 aBlock);
+  PRIntervalTime PredictNextUse(PRIntervalTime aNow, PRInt32 aBlock);
   
-  TimeDuration PredictNextUseForIncomingData(nsMediaCacheStream* aStream);
+  PRIntervalTime PredictNextUseForIncomingData(nsMediaCacheStream* aStream);
 
   
   
@@ -541,7 +537,7 @@ static PRInt32 GetMaxBlocks()
 }
 
 PRInt32
-nsMediaCache::FindBlockForIncomingData(TimeStamp aNow,
+nsMediaCache::FindBlockForIncomingData(PRIntervalTime aNow,
                                        nsMediaCacheStream* aStream)
 {
   PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mMonitor);
@@ -595,7 +591,7 @@ nsMediaCache::AppendMostReusableBlock(BlockList* aBlockList,
 }
 
 PRInt32
-nsMediaCache::FindReusableBlock(TimeStamp aNow,
+nsMediaCache::FindReusableBlock(PRIntervalTime aNow,
                                 nsMediaCacheStream* aForStream,
                                 PRInt32 aForStreamBlock,
                                 PRInt32 aMaxSearchBlockIndex)
@@ -655,10 +651,10 @@ nsMediaCache::FindReusableBlock(TimeStamp aNow,
     }
   }
 
-  TimeDuration latestUse = 0;
+  PRIntervalTime latestUse = 0;
   PRInt32 latestUseBlock = -1;
   for (PRUint32 i = 0; i < candidates.Length(); ++i) {
-    TimeDuration nextUse = PredictNextUse(aNow, candidates[i]);
+    PRIntervalTime nextUse = PredictNextUse(aNow, candidates[i]);
     if (nextUse > latestUse) {
       latestUse = nextUse;
       latestUseBlock = candidates[i];
@@ -771,8 +767,8 @@ nsMediaCache::FreeBlock(PRInt32 aBlock)
   Verify();
 }
 
-TimeDuration
-nsMediaCache::PredictNextUse(TimeStamp aNow, PRInt32 aBlock)
+PRIntervalTime
+nsMediaCache::PredictNextUse(PRIntervalTime aNow, PRInt32 aBlock)
 {
   PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mMonitor);
 
@@ -789,8 +785,7 @@ nsMediaCache::PredictNextUse(TimeStamp aNow, PRInt32 aBlock)
     NS_ASSERTION(PRInt64(block->mStreamBlock)*BLOCK_SIZE <
                  block->mStream->mStreamOffset,
                  "Played block after the current stream position?");
-    return aNow - block->mLastUseTime +
-        TimeDuration::FromSeconds(REPLAY_DELAY);
+    return aNow - block->mLastUseTime + PR_SecondsToInterval(REPLAY_DELAY);
   case READAHEAD_BLOCK: {
     PRInt64 bytesAhead =
       PRInt64(block->mStreamBlock)*BLOCK_SIZE - block->mStream->mStreamOffset;
@@ -798,8 +793,7 @@ nsMediaCache::PredictNextUse(TimeStamp aNow, PRInt32 aBlock)
                  "Readahead block before the current stream position?");
     PRInt64 millisecondsAhead =
       bytesAhead*1000/block->mStream->mPlaybackBytesPerSecond;
-    return TimeDuration::FromMilliseconds(
-        PR_MIN(millisecondsAhead, PR_INT32_MAX));
+    return PR_MillisecondsToInterval(PRUint32(PR_MIN(millisecondsAhead, PR_INT32_MAX)));
   }
   default:
     NS_ERROR("Invalid class for predicting next use");
@@ -807,7 +801,7 @@ nsMediaCache::PredictNextUse(TimeStamp aNow, PRInt32 aBlock)
   }
 }
 
-TimeDuration
+PRIntervalTime
 nsMediaCache::PredictNextUseForIncomingData(nsMediaCacheStream* aStream)
 {
   PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mMonitor);
@@ -818,10 +812,9 @@ nsMediaCache::PredictNextUseForIncomingData(nsMediaCacheStream* aStream)
     return PR_SecondsToInterval(24*60*60);
   }
   if (bytesAhead <= 0)
-    return TimeDuration();
+    return PR_SecondsToInterval(0);
   PRInt64 millisecondsAhead = bytesAhead*1000/aStream->mPlaybackBytesPerSecond;
-  return TimeDuration::FromMilliseconds(
-      PR_MIN(millisecondsAhead, PR_INT32_MAX));
+  return PR_MillisecondsToInterval(PRUint32(PR_MIN(millisecondsAhead, PR_INT32_MAX)));
 }
 
 void
@@ -836,7 +829,7 @@ nsMediaCache::Update()
 #endif
 
   PRInt32 maxBlocks = GetMaxBlocks();
-  TimeStamp now = TimeStamp::Now();
+  PRIntervalTime now = PR_IntervalNow();
 
   PRInt32 freeBlockCount = mFreeBlocks.GetCount();
   
@@ -853,7 +846,7 @@ nsMediaCache::Update()
   
   
   
-  TimeDuration latestPredictedUseForOverflow = 0;
+  PRIntervalTime latestPredictedUseForOverflow = 0;
   for (PRInt32 blockIndex = mIndex.Length() - 1; blockIndex >= maxBlocks;
        --blockIndex) {
     nsMediaCacheStream* stream = mIndex[blockIndex].mStream;
@@ -862,7 +855,7 @@ nsMediaCache::Update()
       --freeBlockCount;
       continue;
     }
-    TimeDuration predictedUse = PredictNextUse(now, blockIndex);
+    PRIntervalTime predictedUse = PredictNextUse(now, blockIndex);
     latestPredictedUseForOverflow = PR_MAX(latestPredictedUseForOverflow, predictedUse);
   }
 
@@ -933,7 +926,7 @@ nsMediaCache::Update()
 
   
   
-  TimeDuration latestNextUse;
+  PRIntervalTime latestNextUse = 0;
   if (freeBlockCount == 0) {
     PRInt32 reusableBlock = FindReusableBlock(now, nsnull, 0, maxBlocks);
     if (reusableBlock >= 0) {
@@ -1013,7 +1006,7 @@ nsMediaCache::Update()
       
       LOG(PR_LOG_DEBUG, ("Stream %p reading since there are free blocks", stream));
       enableReading = PR_TRUE;
-    } else if (latestNextUse <= TimeDuration()) {
+    } else if (latestNextUse <= 0) {
       
       LOG(PR_LOG_DEBUG, ("Stream %p throttling due to no reusable blocks", stream));
       enableReading = PR_FALSE;
