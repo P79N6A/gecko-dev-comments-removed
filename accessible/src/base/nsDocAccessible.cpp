@@ -697,7 +697,8 @@ nsresult nsDocAccessible::RemoveEventListeners()
   if (rootAccessible) {
     nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
     if (caretAccessible) {
-      nsCOMPtr<nsIPresShell> presShell(GetPresShell());
+      
+      nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(mWeakShell));
       caretAccessible->RemoveDocSelectionListener(presShell);
     }
   }
