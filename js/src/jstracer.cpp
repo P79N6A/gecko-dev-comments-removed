@@ -2796,14 +2796,16 @@ TraceRecorder::ifop()
         jsdpun u;
         u.d = 0;
         LIns* v_ins = get(&v);
+
         
         
         
         
-        if (!v_ins->isconst() && !v_ins->isconstq())
+        if (!v_ins->isconst() && !v_ins->isconstq()) {
             guard(d == 0 || JSDOUBLE_IS_NaN(d),
                   lir->ins2(LIR_feq, v_ins, lir->insImmq(u.u64)),
                   BRANCH_EXIT);
+        }
     } else if (JSVAL_IS_STRING(v)) {
         guard(JSSTRING_LENGTH(JSVAL_TO_STRING(v)) == 0,
               lir->ins_eq0(lir->ins2(LIR_piand,
