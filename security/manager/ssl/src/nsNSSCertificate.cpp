@@ -38,6 +38,7 @@
 
 
 
+
 #include "prmem.h"
 #include "prerror.h"
 #include "prprf.h"
@@ -101,6 +102,7 @@ NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
 NSSCleanupAutoPtrClass(NSSCMSMessage, NSS_CMSMessage_Destroy)
 NSSCleanupAutoPtrClass_WithParam(PLArenaPool, PORT_FreeArena, FalseParam, PR_FALSE)
 NSSCleanupAutoPtrClass(NSSCMSSignedData, NSS_CMSSignedData_Destroy)
+NSSCleanupAutoPtrClass(PK11SlotList, PK11_FreeSlotList)
 
 
 
@@ -890,6 +892,58 @@ done:
   if (nssChain)
     CERT_DestroyCertList(nssChain);
   return rv;
+}
+
+NS_IMETHODIMP
+nsNSSCertificate::GetAllTokenNames(PRUint32 *aLength, PRUnichar*** aTokenNames)
+{
+  nsNSSShutDownPreventionLock locker;
+  if (isAlreadyShutDown())
+    return NS_ERROR_NOT_AVAILABLE;
+
+  NS_ENSURE_ARG(aLength);
+  NS_ENSURE_ARG(aTokenNames);
+  *aLength = 0;
+  *aTokenNames = NULL;
+
+  
+  PK11SlotList *slots = NULL;
+  PK11SlotListCleaner slotCleaner(slots);
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("Getting slots for \"%s\"\n", mCert->nickname));
+  slots = PK11_GetAllSlotsForCert(mCert, NULL);
+  if (!slots) {
+    if (PORT_GetError() == SEC_ERROR_NO_TOKEN)
+      return NS_OK; 
+    else
+      return NS_ERROR_FAILURE;
+  }
+
+  
+  PK11SlotListElement *le;
+
+  for (le = slots->head; le; le = le->next) {
+    ++(*aLength);
+  }
+
+  *aTokenNames = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *) * (*aLength));
+  if (!*aTokenNames) {
+    *aLength = 0;
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  PRUint32 iToken;
+  for (le = slots->head, iToken = 0; le; le = le->next, ++iToken) {
+    char *token = PK11_GetTokenName(le->slot);
+    (*aTokenNames)[iToken] = ToNewUnicode(NS_ConvertUTF8toUTF16(token));
+    if (!(*aTokenNames)[iToken]) {
+      NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(iToken, *aTokenNames);
+      *aLength = 0;
+      *aTokenNames = NULL;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -36,6 +36,7 @@
 
 
 
+
 #endif
 
 
@@ -56,8 +57,19 @@ function checkCert(channel) {
     issuer = cert.issuer;
   }
 
-  if (!issuer || issuer.tokenName != "Builtin Object Token")
-    throw "cert issuer is not built-in";
+  var errorstring = "cert issuer is not built-in";
+  if (!issuer)
+    throw errorstring;
+
+  issuer = issuer.QueryInterface(Ci.nsIX509Cert3);
+  var tokenNames = issuer.getAllTokenNames({});
+
+  if (!tokenNames.some(isBuiltinToken))
+    throw errorstring;
+}
+
+function isBuiltinToken(tokenName) {
+  return tokenName == "Builtin Object Token";
 }
 
 
