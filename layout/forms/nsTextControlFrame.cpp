@@ -2734,18 +2734,6 @@ nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
   
   first->AddStateBits(NS_FRAME_REFLOW_ROOT);
 
-  nsIScrollableFrame *scrollableFrame = do_QueryFrame(first);
-  NS_ASSERTION(scrollableFrame, "Child must be scrollable");
-
-  
-  
-  
-  if (IsSingleLineTextControl()) 
-  {
-    if (scrollableFrame)
-      scrollableFrame->SetScrollbarVisibility(PR_FALSE, PR_FALSE);
-  }
-
   
   nsCOMPtr<nsIDOMEventGroup> systemGroup;
   mContent->GetSystemEventGroup(getter_AddRefs(systemGroup));
