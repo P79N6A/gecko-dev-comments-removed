@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef _MOZSTORAGESERVICE_H_
 #define _MOZSTORAGESERVICE_H_
 
@@ -56,10 +57,10 @@ class mozStorageService : public mozIStorageService,
     friend class mozStorageConnection;
 
 public:
-    mozStorageService();
-
     
     nsresult Init();
+
+    static mozStorageService *GetSingleton();
 
     
     NS_DECL_ISUPPORTS
@@ -70,9 +71,11 @@ public:
     NS_DECL_NSIOBSERVER
 
 private:
-    ~mozStorageService();
+    virtual ~mozStorageService();
 protected:
     nsCOMPtr<nsIFile> mProfileStorageFile;
+
+    static mozStorageService *gStorageService;
 
     nsresult InitStorageAsyncIO();
     nsresult FlushAsyncIO();

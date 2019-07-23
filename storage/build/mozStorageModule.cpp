@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsIGenericFactory.h"
 #include "nsIModule.h"
@@ -46,7 +47,8 @@
 
 #include "mozStorageCID.h"
 
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(mozStorageService, Init)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(mozStorageService,
+                                         mozStorageService::GetSingleton)
 NS_GENERIC_FACTORY_CONSTRUCTOR(mozStorageStatementWrapper)
 
 static const nsModuleComponentInfo components[] =
