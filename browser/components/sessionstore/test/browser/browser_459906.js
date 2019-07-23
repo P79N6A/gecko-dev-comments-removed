@@ -64,6 +64,15 @@ function test() {
 
       executeSoon(function() {
         let iframes = tab2.linkedBrowser.contentWindow.frames;
+        if (iframes[1].document.body.innerHTML !== uniqueValue) {
+          
+          
+          
+          info("Polling for innerHTML value");
+          setTimeout(arguments.callee, 100);
+          return;
+        }
+
         is(iframes[1].document.body.innerHTML, uniqueValue,
            "rich textarea's content correctly duplicated");
 
