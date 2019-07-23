@@ -68,9 +68,9 @@
 
 
 
-if (!this.crockfordJSON) {
+if (!this.JSON) {
 
-    crockfordJSON = function () {
+    JSON = function () {
 
         function f(n) {    
             return n < 10 ? '0' + n : n;

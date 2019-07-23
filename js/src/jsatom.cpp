@@ -126,7 +126,6 @@ const char *const js_common_atom_names[] = {
     js_toSource_str,            
     js_toString_str,            
     js_valueOf_str,             
-    js_toJSON_str,              
     "(void 0)",                 
 
 #if JS_HAS_XML_SUPPORT
@@ -186,7 +185,6 @@ const char js_toString_str[]        = "toString";
 const char js_toLocaleString_str[]  = "toLocaleString";
 const char js_undefined_str[]       = "undefined";
 const char js_valueOf_str[]         = "valueOf";
-const char js_toJSON_str[]          = "toJSON";
 
 #if JS_HAS_XML_SUPPORT
 const char js_etago_str[]           = "</";

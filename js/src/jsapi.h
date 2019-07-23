@@ -2399,37 +2399,6 @@ JS_EncodeString(JSContext *cx, JSString *str);
 
 
 
-typedef JSBool (* JSONWriteCallback)(const jschar *buf, uint32 len, void *data);
-
-
-
-
-JS_PUBLIC_API(JSBool)
-JS_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, 
-             JSONWriteCallback callback, void *data);
-
-
-
-
-JS_PUBLIC_API(JSBool)
-JS_TryJSON(JSContext *cx, jsval *vp);
-
-
-
-
-JS_PUBLIC_API(JSONParser *)
-JS_BeginJSONParse(JSContext *cx, jsval *vp);
-
-JS_PUBLIC_API(JSBool)
-JS_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len);
-
-JS_PUBLIC_API(JSBool)
-JS_FinishJSONParse(JSContext *cx, JSONParser *jp);
-
-
-
-
-
 
 struct JSLocaleCallbacks {
     JSLocaleToUpperCase     localeToUpperCase;
