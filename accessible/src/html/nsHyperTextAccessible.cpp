@@ -1067,6 +1067,15 @@ nsHyperTextAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribute
     nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::level,
                            strHeadLevel);
   }
+  
+  
+  
+  nsIFrame *frame = GetFrame();
+  if (frame && frame->GetType() == nsAccessibilityAtoms::blockFrame) {
+    nsAutoString oldValueUnused;
+    aAttributes->SetStringProperty(NS_LITERAL_CSTRING("formatting"), NS_LITERAL_STRING("block"),
+                                   oldValueUnused);
+  }
 
   return  NS_OK;
 }
