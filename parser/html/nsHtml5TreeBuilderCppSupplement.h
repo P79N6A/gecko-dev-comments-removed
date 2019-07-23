@@ -516,14 +516,25 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
   
   
   
-  if (aName == nsHtml5Atoms::select ||
-        aName == nsHtml5Atoms::textarea ||
-#ifdef MOZ_MEDIA
-        aName == nsHtml5Atoms::video ||
-        aName == nsHtml5Atoms::audio ||
-#endif
-        aName == nsHtml5Atoms::object ||
-        aName == nsHtml5Atoms::applet) {
+  if (aName == nsHtml5Atoms::video ||
+      aName == nsHtml5Atoms::audio ||
+      aName == nsHtml5Atoms::object ||
+      aName == nsHtml5Atoms::applet) {
+    nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+    NS_ASSERTION(treeOp, "Tree op allocation failed.");
+    treeOp->Init(eTreeOpDoneAddingChildren, aElement);
+    return;
+  }
+  if (aName == nsHtml5Atoms::select || 
+      aName == nsHtml5Atoms::textarea) {
+    if (!formPointer) {
+      
+      
+      
+      nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+      NS_ASSERTION(treeOp, "Tree op allocation failed.");
+      treeOp->Init(eTreeOpFlushPendingAppendNotifications);
+    }
     nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
     NS_ASSERTION(treeOp, "Tree op allocation failed.");
     treeOp->Init(eTreeOpDoneAddingChildren, aElement);
