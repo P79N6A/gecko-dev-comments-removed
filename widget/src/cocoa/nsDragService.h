@@ -57,6 +57,7 @@ public:
   
   NS_IMETHOD InvokeDragSession(nsIDOMNode *aDOMNode, nsISupportsArray * anArrayTransferables,
                                nsIScriptableRegion * aRegion, PRUint32 aActionType);
+  NS_IMETHOD EndDragSession(PRBool aDoneDrag);
 
   
   NS_IMETHOD GetData(nsITransferable * aTransferable, PRUint32 aItemIndex);
@@ -68,6 +69,8 @@ private:
   NSImage* ConstructDragImage(nsIDOMNode* aDOMNode,
                               nsRect* aDragRect,
                               nsIScriptableRegion* aRegion);
+
+  nsCOMPtr<nsISupportsArray> mDataItems; 
 };
 
 #endif 
