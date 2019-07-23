@@ -38,6 +38,7 @@
 
 
 
+
 #include <stdio.h>
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
@@ -2268,14 +2269,11 @@ nsNavHistory::ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries
   
   if (IsHistoryMenuQuery(aQueries, aOptions, 
         nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING)) {
-    
-    
-    
-    
-    
     queryString = NS_LITERAL_CSTRING(
       "SELECT h.id, h.url, h.title, h.rev_host, h.visit_count, "
-      "null, f.url, null, null "
+      "(SELECT MAX(visit_date) FROM moz_historyvisits WHERE place_id = h.id "
+      " AND visit_type <> 4 AND visit_type <> 0), "
+      "f.url, null, null "
       "FROM moz_places h "
       "LEFT OUTER JOIN moz_favicons f ON h.favicon_id = f.id WHERE "
       "h.id IN (SELECT id FROM moz_places WHERE hidden <> 1 "
