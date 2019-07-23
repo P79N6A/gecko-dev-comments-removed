@@ -54,6 +54,11 @@
 extern "C" {
 #endif
 
+
+extern MOZCE_SHUNT_API int errno;
+MOZCE_SHUNT_API char* strerror(int);
+
+
 MOZCE_SHUNT_API void abort(void);
   
 

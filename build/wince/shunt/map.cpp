@@ -197,6 +197,18 @@ MOZCE_SHUNT_API char SetEnvironmentVariableW( const unsigned short * name, const
 
 
 
+MOZCE_SHUNT_API char* strerror(int inErrno)
+{
+  return "Unknown Error";
+}
+
+MOZCE_SHUNT_API int errno = 0;
+
+
+
+
+
+
 MOZCE_SHUNT_API unsigned short * _wgetcwd(unsigned short * dir, unsigned long size)
 {
   unsigned long i;
