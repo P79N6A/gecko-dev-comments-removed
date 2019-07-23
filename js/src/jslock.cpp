@@ -375,22 +375,6 @@ ShareScope(JSContext *cx, JSScope *scope)
 
 
 
-static JSBool
-MakeStringImmutable(JSContext *cx, JSString *str)
-{
-    uint8 *flagp;
-
-    flagp = js_GetGCThingFlags(str);
-    if (*flagp & GCF_MUTABLE) {
-        if (JSSTRING_IS_DEPENDENT(str) && !js_UndependString(cx, str)) {
-            JS_RUNTIME_METER(cx->runtime, badUndependStrings);
-            return JS_FALSE;
-        }
-        *flagp &= ~GCF_MUTABLE;
-    }
-    return JS_TRUE;
-}
-
 void
 js_FinishSharingScope(JSContext *cx, JSScope *scope)
 {
@@ -403,7 +387,7 @@ js_FinishSharingScope(JSContext *cx, JSScope *scope)
     for (i = 0; i != nslots; ++i) {
         v = STOBJ_GET_SLOT(obj, i);
         if (JSVAL_IS_STRING(v) &&
-            !MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
+            !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
             
 
 
@@ -677,7 +661,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
     
     if (JSVAL_IS_STRING(v) &&
-        !MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
+        !js_MakeStringImmutable(cx, JSVAL_TO_STRING(v))) {
         
         v = JSVAL_NULL;
     }
