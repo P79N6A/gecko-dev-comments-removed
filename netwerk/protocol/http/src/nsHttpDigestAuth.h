@@ -109,6 +109,10 @@ class nsHttpDigestAuth : public nsIHttpAuthenticator
 
     nsresult GetMethodAndPath(nsIHttpChannel *, PRBool, nsCString &, nsCString &);
 
+    
+    nsresult AppendQuotedString(const nsACString & value,
+                                nsACString & aHeaderLine);
+
   protected:
     nsCOMPtr<nsICryptoHash>        mVerifier;
     char                           mHashBuf[DIGEST_LENGTH];
