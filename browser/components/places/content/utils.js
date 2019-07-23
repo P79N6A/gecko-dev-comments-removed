@@ -37,6 +37,7 @@
 
 
 
+
 function LOG(str) {
   dump("*** " + str + "\n");
 }
@@ -164,16 +165,17 @@ var PlacesUtils = {
     return this._localStore;
   },
 
-  
-
-
-  _tm: null,
   get tm() {
-    if (!this._tm) {
-      this._tm = Cc["@mozilla.org/transactionmanager;1"].
-                 createInstance(Ci.nsITransactionManager);
+    return this.ptm.transactionManager;
+  },
+
+  _ptm: null,
+  get ptm() {
+    if (!this._ptm) {
+      this._ptm = Cc["@mozilla.org/browser/placesTransactionsService;1"].
+                  getService(Components.interfaces.nsIPlacesTransactionsService);
     }
-    return this._tm;
+    return this._ptm;
   },
 
   
@@ -628,9 +630,8 @@ var PlacesUtils = {
 
 
   _getURIItemCopyTransaction: function (aData, aContainer, aIndex) {
-    var itemURL = this._uri(aData.uri);
-    return new PlacesCreateItemTransaction(itemURL, aContainer,
-                                           aIndex, aData.title);
+    return this.ptm.createItem(this._uri(aData.uri), aContainer, aIndex,
+                               aData.title, "");
   },
 
   
@@ -661,10 +662,8 @@ var PlacesUtils = {
                     });
     }
     
-    var createTxn =
-      new PlacesCreateItemTransaction(itemURL, aContainer, aIndex, itemTitle,
-                                      keyword, annos);
-    return createTxn;
+    return this.ptm.createItem(itemURL, aContainer, aIndex, itemTitle, keyword,
+                               annos);
   },
 
   
@@ -701,18 +700,18 @@ var PlacesUtils = {
             var annos = node.folder.annos;
             var folderItemsTransactions =
               getChildItemsTransactions(node.children);
-            txn = new PlacesCreateFolderTransaction(title, -1, index, annos,
-                                                    folderItemsTransactions);
+            txn = this.ptm.createFolder(title, -1, aIndex, annos,
+                                        folderItemsTransactions);
           }
           else { 
             var feedURI = self._uri(node.uri.feed);
             var siteURI = self._uri(node.uri.site);
-            txn = new PlacesCreateLivemarkTransaction(feedURI, siteURI,
-                                    node.title, aContainer, index, node.annos);
+            txn = this.ptm.createLivemark(feedURI, siteURI, node.title,
+                                          aContainer, index, node.annos);
           }
         }
         else if (node.type == self.TYPE_X_MOZ_PLACE_SEPARATOR)
-          txn = new PlacesCreateSeparatorTransaction(-1, index);
+          txn = this.ptm.createSeparator(-1, aIndex);
         else if (node.type == self.TYPE_X_MOZ_PLACE)
           txn = self._getBookmarkItemCopyTransaction(node, -1, index);
 
@@ -722,14 +721,12 @@ var PlacesUtils = {
       }
       return childItemsTransactions;
     }
-    
+
     var title = aData.folder.title;
     var annos = aData.folder.annos;
 
-    var createTxn =
-      new PlacesCreateFolderTransaction(title, aContainer, aIndex, annos,
-                                        getChildItemsTransactions(aData.children));
-    return createTxn;
+    return this.ptm.createFolder(title, aContainer, aIndex, annos,
+                                 getChildItemsTransactions(aData.children));
   },
 
   
@@ -811,8 +808,8 @@ var PlacesUtils = {
         
         var feedURI = this._uri(data.uri.feed);
         var siteURI = this._uri(data.uri.site);
-        return new PlacesCreateLivemarkTransaction(feedURI, siteURI,
-                   data.title, container, index, data.annos);
+        return this.ptm.createLivemark(feedURI, siteURI, data.title, container,
+                                       index, data.annos);
       }
       break;
     case this.TYPE_X_MOZ_PLACE:
@@ -832,27 +829,23 @@ var PlacesUtils = {
       if (copy) {
         
         
-        return new PlacesCreateSeparatorTransaction(container, index);
+        return this.ptm.createSeparator(container, index);
       }
       break;
     default:
       if (type == this.TYPE_X_MOZ_URL || type == this.TYPE_UNICODE) {
         var title = (type == this.TYPE_X_MOZ_URL) ? data.title : data.uri;
-        var url = this._uri(data.uri);
-        var createTxn =
-          new PlacesCreateItemTransaction(url, container, index, title);
-        return createTxn;
+        return this.ptm.createItem(this._uri(data.uri), container, index,
+                                   title);
       }
-      else {
-        return null;
-      }
+      return null;
     }
     if (data.id <= 0)
       return null;
 
     
     var id = data.folder ? data.folder.id : data.id;
-    return new PlacesMoveItemTransaction(id, container, index);
+    return this.ptm.moveItem(id, container, index);
   },
 
   

@@ -35,6 +35,7 @@
 
 
 
+
 var gMoveBookmarksDialog = {
   _nodes: null,
   _tm: null,
@@ -72,11 +73,11 @@ var gMoveBookmarksDialog = {
         continue;
 
       transactions.push(new
-        PlacesMoveItemTransaction(this._nodes[i].itemId, selectedFolderID, -1));
+        PlacesUtils.txn.moveItem(this._nodes[i].itemId, selectedFolderId, -1));
     }
 
     if (transactions.length != 0) {
-      var txn = new PlacesAggregateTransaction("Move Items", transactions);
+      var txn = PlacesUtils.ptm.aggregateTransactions("Move Items", transactions);
       this._tm.doTransaction(txn);
     }
   },
