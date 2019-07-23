@@ -93,7 +93,6 @@ public:
   NS_IMETHOD Item(PRUint32 index, nsAString & _retval);
   NS_IMETHOD GetParentRule(nsIDOMCSSRule * *aParentRule) = 0; 
 
-  virtual void DropReference() = 0;
 protected:
   
   
