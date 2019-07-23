@@ -1135,10 +1135,10 @@ typedef unsigned char png_byte;
 
 #ifdef PNG_SIZE_T
    typedef PNG_SIZE_T png_size_t;
-#  define png_sizeof(x) png_convert_size(sizeof (x))
+#  define png_sizeof(x) png_convert_size(sizeof(x))
 #else
    typedef size_t png_size_t;
-#  define png_sizeof(x) sizeof (x)
+#  define png_sizeof(x) sizeof(x)
 #endif
 
 

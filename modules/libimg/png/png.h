@@ -368,6 +368,33 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -378,9 +405,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.2.24"
+#define PNG_LIBPNG_VER_STRING "1.2.31"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.2.24 - December 14, 2007\n"
+   " libpng version 1.2.31 - August 21, 2008\n"
 
 #define PNG_LIBPNG_VER_SONUM   0
 #define PNG_LIBPNG_VER_DLLNUM  13
@@ -388,7 +415,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   2
-#define PNG_LIBPNG_VER_RELEASE 24
+#define PNG_LIBPNG_VER_RELEASE 31
 
 
 
@@ -416,7 +443,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10224 /* 1.2.24 */
+#define PNG_LIBPNG_VER 10231 /* 1.2.31 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -1206,7 +1233,7 @@ struct png_struct_def
    png_uint_32 row_number;    
    png_bytep prev_row;        
    png_bytep row_buf;         
-#ifndef PNG_NO_WRITE_FILTERING
+#ifndef PNG_NO_WRITE_FILTER
    png_bytep sub_row;         
    png_bytep up_row;          
    png_bytep avg_row;         
@@ -1479,13 +1506,17 @@ struct png_struct_def
 
 
   png_uint_32 old_big_row_buf_size, old_prev_row_size;
+
+
+  png_charp chunkdata;  
+
 };
 
 
 
 
 
-typedef png_structp version_1_2_24;
+typedef png_structp version_1_2_31;
 
 typedef png_struct FAR * FAR * png_structpp;
 
@@ -2752,6 +2783,7 @@ extern PNG_EXPORT(png_uint_32,png_get_user_height_max) PNGARG((png_structp
 
 
 
+
 #ifdef PNG_READ_COMPOSITE_NODIV_SUPPORTED
 
 
@@ -3139,8 +3171,8 @@ PNG_EXTERN void png_crc_read PNGARG((png_structp png_ptr, png_bytep buf,
 
 #if defined(PNG_zTXt_SUPPORTED) || defined(PNG_iTXt_SUPPORTED) || \
     defined(PNG_iCCP_SUPPORTED) || defined(PNG_sPLT_SUPPORTED)
-PNG_EXTERN png_charp png_decompress_chunk PNGARG((png_structp png_ptr,
-   int comp_type, png_charp chunkdata, png_size_t chunklength,
+PNG_EXTERN void png_decompress_chunk PNGARG((png_structp png_ptr,
+   int comp_type, png_size_t chunklength,
    png_size_t prefix_length, png_size_t *data_length));
 #endif
 
@@ -3705,6 +3737,9 @@ PNG_EXTERN png_uint_32 png_get_pHYs_dpi PNGARG((png_structp png_ptr,
 png_infop info_ptr, png_uint_32 *res_x, png_uint_32 *res_y, int *unit_type));
 #endif 
 #endif  
+
+
+PNG_EXTERN png_uint_32 png_read_chunk_header PNGARG((png_structp png_ptr));
 
 
 
