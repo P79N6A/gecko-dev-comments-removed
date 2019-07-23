@@ -854,8 +854,18 @@ NS_IMETHODIMP nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
       }
     }
   }
+
   if (sameTypeRoot == treeItem) {
     
+    if (!isFinished) {
+      
+      
+      nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
+        new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY,
+                                  PR_FALSE, PR_TRUE);
+      FireAccessibleEvent(accEvent);
+    }
+
     nsAccUtils::FireAccEvent(aEventType, this);
   }
   return NS_OK;
