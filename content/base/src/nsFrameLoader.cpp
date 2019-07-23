@@ -808,7 +808,7 @@ nsFrameLoader::EnsureDocShell()
     do_GetInterface(doc->GetScriptGlobalObject());
 
   
-  mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
+  mDocShell = do_CreateInstance("@mozilla.org/webshell;1");
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
   
@@ -817,7 +817,9 @@ nsFrameLoader::EnsureDocShell()
   nsAutoString frameName;
 
   PRInt32 namespaceID = mOwnerContent->GetNameSpaceID();
-  if (namespaceID == kNameSpaceID_XHTML && !mOwnerContent->IsInHTMLDocument()) {
+  if (namespaceID == kNameSpaceID_XHTML
+      && mOwnerContent->GetOwnerDoc() 
+      && mOwnerContent->GetOwnerDoc()->IsCaseSensitive()) {
     mOwnerContent->GetAttr(kNameSpaceID_None, nsGkAtoms::id, frameName);
   } else {
     mOwnerContent->GetAttr(kNameSpaceID_None, nsGkAtoms::name, frameName);

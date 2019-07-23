@@ -210,6 +210,8 @@ public:
   NS_IMETHOD IsEnabled(PRInt32 aTag, PRBool* aReturn);
   NS_IMETHOD_(PRBool) IsFormOnStack();
 
+  virtual nsresult ProcessMETATag(nsIContent* aContent);
+
 #ifdef DEBUG
   
   NS_IMETHOD DumpContentModel();
@@ -2953,6 +2955,33 @@ HTMLContentSink::ProcessLINKTag(const nsIParserNode& aNode)
   }
 
   return result;
+}
+
+
+
+
+
+
+
+
+nsresult
+HTMLContentSink::ProcessMETATag(nsIContent *aContent) {
+
+  
+  nsContentSink::ProcessMETATag(aContent);
+
+  nsresult rv = NS_OK;
+
+  
+
+  if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+                            nsGkAtoms::viewport, eIgnoreCase)) {
+    nsAutoString value;
+    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, value);
+    rv = nsContentUtils::ProcessViewportInfo(mDocument, value);
+  }
+
+  return rv;
 }
 
 #ifdef DEBUG

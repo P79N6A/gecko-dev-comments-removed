@@ -172,6 +172,7 @@ public:
   virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              PRBool aNotify);
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
+  virtual void RemoveFocus(nsPresContext *aPresContext);
   virtual PRBool IsFocusable(PRInt32 *aTabIndex = nsnull)
   {
     PRBool isFocusable = PR_FALSE;
@@ -197,11 +198,6 @@ public:
 
   
   nsresult GetHrefURIForAnchors(nsIURI** aURI) const;
-
-  
-  
-  
-  void GetHrefURIToMutate(nsIURI** aURI);
 
   
   void Compact() { mAttrsAndChildren.Compact(); }
@@ -548,6 +544,13 @@ protected:
 
 
 
+
+  void SetElementFocus(PRBool aDoFocus);
+  
+
+
+
+
   void RegUnRegAccessKey(PRBool aDoReg);
 
   
@@ -686,11 +689,8 @@ protected:
 
 
 
-
-
-
   NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
-                                PRBool aCloneIfCached, nsIURI** aURI) const;
+                                nsIURI** aURI) const;
 
   
 
@@ -752,9 +752,6 @@ protected:
   {
     static const nsIContent::AttrValuesArray values[] =
       { &nsGkAtoms::_false, &nsGkAtoms::_true, &nsGkAtoms::_empty, nsnull };
-
-    if (!HasFlag(NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR))
-      return eInherit;
 
     PRInt32 value = FindAttrValueIn(kNameSpaceID_None,
                                     nsGkAtoms::contenteditable, values,
@@ -827,8 +824,6 @@ public:
   virtual PRUint32 GetDesiredIMEState();
   virtual PRInt32 IntrinsicState() const;
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
-
 protected:
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
@@ -842,6 +837,11 @@ protected:
   PRBool CanBeDisabled() const;
 
   void UpdateEditableFormControlState();
+
+  void SetFocusAndScrollIntoView(nsPresContext* aPresContext);
+
+  
+  void DoSetFocus(nsPresContext* aPresContext);
 
   
   
@@ -1141,13 +1141,6 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo, PRBool aFromParser)\
   NS_HTML_CONTENT_INTERFACE_TABLE_BEGIN(_class)                               \
     NS_INTERFACE_TABLE_ENTRY(_class, _i1)                                     \
     NS_INTERFACE_TABLE_ENTRY(_class, _i2)                                     \
-  NS_OFFSET_AND_INTERFACE_TABLE_END
-
-#define NS_HTML_CONTENT_INTERFACE_TABLE3(_class, _i1, _i2, _i3)          \
-  NS_HTML_CONTENT_INTERFACE_TABLE_BEGIN(_class)                               \
-    NS_INTERFACE_TABLE_ENTRY(_class, _i1)                                     \
-    NS_INTERFACE_TABLE_ENTRY(_class, _i2)                                     \
-    NS_INTERFACE_TABLE_ENTRY(_class, _i3)                                     \
   NS_OFFSET_AND_INTERFACE_TABLE_END
 
 #define NS_HTML_CONTENT_INTERFACE_TABLE4(_class, _i1, _i2, _i3, _i4)          \

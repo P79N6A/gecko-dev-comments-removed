@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Tests for browser context menu</title>
-  <script type="text/javascript" src="/MochiKit/packed.js"></script>
+  <script type="text/javascript" src="/MochiKit/MochiKit.js"></script>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>  
   <script type="text/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
@@ -295,7 +295,7 @@ function runTest(testNum) {
      */
 
     default:
-        ok(false, "Unexpected invocation of test #" + testNum);
+        ok(false, "Unexpected invocataion of test #" + testNum);
         subwindow.close();
         SimpleTest.finish();
         return;

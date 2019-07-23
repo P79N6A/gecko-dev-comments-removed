@@ -898,12 +898,10 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mHasAttributes = aContent->GetAttrCount() > 0;
 
     
-    if (aContent->IsNodeOfType(nsINode::eHTML)) {
-      mIsHTMLContent = PR_TRUE;
-    }
-    
-    
     mNameSpaceID = aContent->GetNameSpaceID();
+    
+    
+    mIsHTMLContent = (mNameSpaceID == kNameSpaceID_XHTML);
 
     
     
@@ -995,9 +993,7 @@ const nsString* RuleProcessorData::GetLang()
 static inline PRInt32
 CSSNameSpaceID(nsIContent *aContent)
 {
-  return aContent->IsNodeOfType(nsINode::eHTML)
-           ? kNameSpaceID_XHTML
-           : aContent->GetNameSpaceID();
+  return aContent->GetNameSpaceID();
 }
 
 PRInt32
