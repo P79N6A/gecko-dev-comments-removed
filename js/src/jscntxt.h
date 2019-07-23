@@ -147,10 +147,11 @@ struct JSTraceMonitor {
 
     JSContext               *tracecx;
 
-    CLS(nanojit::LirBuffer) lirbuf;
     CLS(VMAllocator)        allocator;   
     CLS(nanojit::CodeAlloc) codeAlloc;   
     CLS(nanojit::Assembler) assembler;
+    CLS(nanojit::LirBuffer) lirbuf;
+    CLS(nanojit::LirBuffer) reLirBuf;
 #ifdef DEBUG
     CLS(nanojit::LabelMap)  labels;
 #endif
@@ -186,14 +187,7 @@ struct JSTraceMonitor {
     
 
 
-    CLS(VMAllocator)        reAllocator;
-    CLS(nanojit::CodeAlloc) reCodeAlloc;
-    CLS(nanojit::Assembler) reAssembler;
-    CLS(nanojit::LirBuffer) reLirBuf;
     CLS(REHashMap)          reFragments;
-#ifdef DEBUG
-    CLS(nanojit::LabelMap)  reLabels;
-#endif
 
     
     CLS(TraceRecorder)      abortStack;
