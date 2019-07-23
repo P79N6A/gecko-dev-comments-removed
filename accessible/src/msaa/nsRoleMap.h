@@ -114,7 +114,13 @@ static const WindowsRoleMapItem gWindowsRoleMap[] = {
   { ROLE_SYSTEM_DOCUMENT, ROLE_SYSTEM_DOCUMENT },
 
   
-  { ROLE_SYSTEM_PANE, ROLE_SYSTEM_PANE },
+  
+  
+  
+  
+  
+  
+  { ROLE_SYSTEM_GROUPING , ROLE_SYSTEM_GROUPING }, 
 
   
   { ROLE_SYSTEM_CHART, ROLE_SYSTEM_CHART },
