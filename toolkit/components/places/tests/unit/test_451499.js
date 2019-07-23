@@ -105,17 +105,15 @@ function run_test() {
   options.excludeQueries = 1;
   options.sortingMode = options.SORT_BY_DATE_DESCENDING;
   result = histsvc.executeQuery(query, options);
-
-  let resultObserver = {
-    itemChanged: function(item) {
-      
-      if (item.uri.substr(0,5) == "place")
-        print("Testing itemChanged on: " + item.uri);
-      do_check_eq(item.icon.spec, null);
-    }
-  };
-  result.addObserver(resultObserver, false);
   
+  result.viewer = {
+                    itemChanged: function(item) {
+                      
+                      if (item.uri.substr(0,5) == "place")
+                        dump("\nTesting itemChanged on: \n " + item.uri + "\n\n");
+                        do_check_eq(item.icon.spec, null);
+                    }
+                  };
   var root = result.root;
   root.containerOpen = true;
 
@@ -127,8 +125,6 @@ function run_test() {
   do_test_pending();
   
   do_timeout(3500, end_test);
-
-  result.removeObserver(resultObserver);
 }
 
 function end_test() {
