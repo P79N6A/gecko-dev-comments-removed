@@ -129,7 +129,7 @@ public:
   
 
 
-  static nsNavHistory * GetSingleton();
+  static nsNavHistory *GetSingleton();
 
   
 
@@ -141,7 +141,7 @@ public:
 
 
 
-  static nsNavHistory * GetHistoryService()
+  static nsNavHistory *GetHistoryService()
   {
     if (!gHistoryService) {
       nsCOMPtr<nsINavHistoryService> serv =
@@ -216,9 +216,6 @@ public:
   PRBool IsHistoryDisabled() { return mExpireDaysMax == 0 || InPrivateBrowsingMode(); }
 
   
-  mozIStorageStatement* DBGetURLPageInfo() { return mDBGetURLPageInfo; }
-
-  
   static const PRInt32 kGetInfoIndex_PageID;
   static const PRInt32 kGetInfoIndex_URL;
   static const PRInt32 kGetInfoIndex_Title;
@@ -231,9 +228,9 @@ public:
   static const PRInt32 kGetInfoIndex_ItemParentId;
 
   
-  mozIStorageStatement* DBGetIdPageInfo() { return mDBGetIdPageInfo; }
+  mozIStorageStatement *DBGetIdPageInfo() { return mDBGetIdPageInfo; }
 
-  mozIStorageStatement* DBGetTags() { return mDBGetTags; }
+  mozIStorageStatement *DBGetTags() { return mDBGetTags; }
   PRInt64 GetTagsFolder();
 
   
@@ -644,7 +641,7 @@ protected:
 
 #ifdef MOZ_XUL
   
-  mozIStorageStatement* GetDBFeedbackIncrease();
+  mozIStorageStatement *GetDBFeedbackIncrease();
   nsCOMPtr<mozIStorageStatement> mDBFeedbackIncrease;
 
   nsresult AutoCompleteFeedback(PRInt32 aIndex,

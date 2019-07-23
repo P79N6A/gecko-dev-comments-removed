@@ -2582,7 +2582,7 @@ nsNavBookmarks::GetBookmarkedURIFor(nsIURI* aURI, nsIURI** _retval)
   if (GetBookmarksHash()->Get(urlID, &bookmarkID)) {
     
     mozIStorageStatement* statement = history->DBGetIdPageInfo();
-    NS_ENSURE_TRUE(statement, NS_ERROR_UNEXPECTED);
+    NS_ENSURE_STATE(statement);
     mozStorageStatementScoper scoper(statement);
 
     rv = statement->BindInt64Parameter(0, bookmarkID);
