@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsUpdateDriver_h__
 #define nsUpdateDriver_h__
 
@@ -57,8 +58,13 @@ class nsIFile;
 
 
 
+
+
+
+
 NS_HIDDEN_(nsresult) ProcessUpdates(nsIFile *greDir, nsIFile *appDir,
                                     nsIFile *updRootDir,
-                                    int argc, char **argv);
+                                    int argc, char **argv,
+                                    const char *&appVersion);
 
 #endif  
