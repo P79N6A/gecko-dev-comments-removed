@@ -302,6 +302,7 @@ STDMETHODIMP CEnumFormatEtc::Reset(void)
 
 
 
+
 STDMETHODIMP CEnumFormatEtc::Clone(LPENUMFORMATETC *ppEnum)
 {
   LPCEnumFormatEtc    pNew;

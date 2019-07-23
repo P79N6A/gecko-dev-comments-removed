@@ -435,8 +435,9 @@ STDMETHODIMP_(ULONG) nsDataObj::Release()
 	if (0 < g_cRef)
 		--g_cRef;
 
+	--m_cRef;
 	NS_LOG_RELEASE(this, m_cRef, "nsDataObj");
-	if (0 != --m_cRef)
+	if (0 != m_cRef)
 		return m_cRef;
 
 	delete this;
@@ -754,16 +755,11 @@ STDMETHODIMP nsDataObj::EnumFormatEtc(DWORD dwDir, LPENUMFORMATETC *ppEnum)
         break;
   } 
 
-  
-  
-  
   if (NULL == *ppEnum)
     return ResultFromScode(E_FAIL);
-  else
-    (*ppEnum)->AddRef();
 
+  
   return NOERROR;
-
 }
 
 
