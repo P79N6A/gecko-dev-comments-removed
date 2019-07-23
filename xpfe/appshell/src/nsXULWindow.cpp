@@ -149,7 +149,9 @@ nsXULWindow::nsXULWindow(PRUint32 aChromeFlags)
     mPersistentAttributesMask(0),
     mChromeFlags(aChromeFlags),
     
-    mAppPerDev(nsPresContext::AppUnitsPerCSSPixel()) 
+    mAppPerDev(nsPresContext::AppUnitsPerCSSPixel()),
+    mIgnoreXULSize(PR_FALSE),
+    mIgnoreXULPosition(PR_FALSE)
 {
 }
 
@@ -573,8 +575,14 @@ NS_IMETHODIMP nsXULWindow::SetPosition(PRInt32 aX, PRInt32 aY)
 
 
   mWindow->SetSizeMode(nsSizeMode_Normal);
-    
+
   NS_ENSURE_SUCCESS(mWindow->Move(aX, aY), NS_ERROR_FAILURE);
+  if (!mChromeLoaded) {
+    
+    
+    mIgnoreXULPosition = PR_TRUE;
+    return NS_OK;
+  }
   PersistentAttributesDirty(PAD_POSITION);
   SavePersistentAttributes();
   return NS_OK;
@@ -595,6 +603,12 @@ NS_IMETHODIMP nsXULWindow::SetSize(PRInt32 aCX, PRInt32 aCY, PRBool aRepaint)
   mIntrinsicallySized = PR_FALSE;
 
   NS_ENSURE_SUCCESS(mWindow->Resize(aCX, aCY, aRepaint), NS_ERROR_FAILURE);
+  if (!mChromeLoaded) {
+    
+    
+    mIgnoreXULSize = PR_TRUE;
+    return NS_OK;
+  }
   PersistentAttributesDirty(PAD_SIZE);
   SavePersistentAttributes();
   return NS_OK;
@@ -616,6 +630,13 @@ NS_IMETHODIMP nsXULWindow::SetPositionAndSize(PRInt32 aX, PRInt32 aY,
   mIntrinsicallySized = PR_FALSE;
 
   NS_ENSURE_SUCCESS(mWindow->Resize(aX, aY, aCX, aCY, aRepaint), NS_ERROR_FAILURE);
+  if (!mChromeLoaded) {
+    
+    
+    mIgnoreXULPosition = PR_TRUE;
+    mIgnoreXULSize = PR_TRUE;
+    return NS_OK;
+  }
   PersistentAttributesDirty(PAD_POSITION | PAD_SIZE);
   SavePersistentAttributes();
   return NS_OK;
@@ -978,7 +999,8 @@ void nsXULWindow::OnChromeLoaded()
     mChromeLoaded = PR_TRUE;
     ApplyChromeFlags();
     SyncAttributesToWidget();
-    LoadSizeFromXUL();
+    if (!mIgnoreXULSize)
+      LoadSizeFromXUL();
     if (mIntrinsicallySized) {
       
       nsCOMPtr<nsIContentViewer> cv;
@@ -988,7 +1010,7 @@ void nsXULWindow::OnChromeLoaded()
         markupViewer->SizeToContent();
     }
 
-    PRBool positionSet = PR_TRUE;
+    PRBool positionSet = !mIgnoreXULPosition;
     nsCOMPtr<nsIXULWindow> parentWindow(do_QueryReferent(mParentWindow));
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
     
