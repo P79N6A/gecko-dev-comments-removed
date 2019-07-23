@@ -988,6 +988,8 @@ function RequestReader(connection)
 
   this._data = new LineData();
 
+  this._contentLength = 0;
+
   
   this._state = READER_INITIAL;
 
@@ -1041,13 +1043,12 @@ RequestReader.prototype =
         moreAvailable = this._processHeaders(input, count);
         break;
 
-      case READER_IN_BODY:
-        
-        break;
-
       default:
         NS_ASSERT(false);
     }
+
+    if (this._state == READER_IN_BODY && moreAvailable)
+      moreAvailable = this._processBody(input, count);
 
     if (moreAvailable)
       input.asyncWait(this, 0, 0, gThreadManager.currentThread);
@@ -1107,6 +1108,10 @@ RequestReader.prototype =
       if (!this._parseHeaders())
         return true;
 
+      dumpn("_processRequestLine, Content-length="+this._contentLength);
+      if (this._contentLength > 0)
+        return true;
+
       
       this._validateRequest();
       return this._handleResponse();
@@ -1145,7 +1150,47 @@ RequestReader.prototype =
       if (!this._parseHeaders())
         return true;
 
+      dumpn("_processHeaders, Content-length="+this._contentLength);
+      if (this._contentLength > 0)
+        return true;
+
       
+      this._validateRequest();
+      return this._handleResponse();
+    }
+    catch (e)
+    {
+      this._handleError(e);
+      return false;
+    }
+  },
+
+  _processBody: function(input, count)
+  {
+    NS_ASSERT(this._state == READER_IN_BODY);
+
+    try
+    {
+      if (this._contentLength > 0)
+      {
+        var bodyData = this._data.purge();
+        if (bodyData.length == 0)
+        {
+          if (count > this._contentLength)
+            count = this._contentLength;
+
+          bodyData = readBytes(input, count);
+        }
+        dumpn("*** loading data="+bodyData+" len="+bodyData.length);
+
+        this._metadata._body.appendBytes(bodyData);
+        this._contentLength -= bodyData.length;
+      }
+
+      dumpn("*** remainig body data len="+this._contentLength);
+      if (this._contentLength > 0)
+        return true;
+
       this._validateRequest();
       return this._handleResponse();
     }
@@ -1287,8 +1332,6 @@ RequestReader.prototype =
   _handleResponse: function()
   {
     NS_ASSERT(this._state == READER_IN_BODY);
-
-    
 
     
     
@@ -1469,6 +1512,12 @@ RequestReader.prototype =
 
         
         this._state = READER_IN_BODY;
+        try
+        {
+          this._contentLength = parseInt(headers.getHeader("Content-Length"));
+          dumpn("Content-Length="+this._contentLength);
+        }
+        catch (e) {}
         return true;
       }
       else if (firstChar == " " || firstChar == "\t")
@@ -1869,6 +1918,11 @@ function ServerHandler(server)
 
 
   this._overridePaths = {};
+  
+  
+
+
+  this._putDataOverrides = {};
 
   
 
@@ -1917,10 +1971,55 @@ ServerHandler.prototype =
     {
       try
       {
-        
-        
-        if (path in this._overridePaths)
+        if (metadata.method == "PUT")
+        {
+          
+          var data = metadata.body.purge();
+          data = String.fromCharCode.apply(null, data.splice(0, data.length + 2));
+          var contentType;
+          try
+          {
+            contentType = metadata.getHeader("Content-Type");
+          }
+          catch (ex)
+          {
+            contentType = "application/octet-stream";
+          }
+
+          if (data.length)
+          {
+            dumpn("PUT data \'"+data+"\' for "+path);
+            this._putDataOverrides[path] =
+              function(ametadata, aresponse)
+              {
+                aresponse.setStatusLine(metadata.httpVersion, 200, "OK");
+                aresponse.setHeader("Content-Type", contentType, false);
+                dumpn("*** writting PUT data=\'"+data+"\'");
+                aresponse.bodyOutputStream.write(data, data.length);
+              };
+          }
+          else
+          {
+            delete this._putDataOverrides[path];
+            dumpn("clearing PUT data for "+path);
+          }
+
+          response.setStatusLine(metadata.httpVersion, 200, "OK");
+        }
+        else if (path in this._putDataOverrides)
+        {
+          
+          
+          dumpn("calling PUT data override for "+path);
+          this._putDataOverrides[path](metadata, response);
+        }
+        else if (path in this._overridePaths)
+        {
+          
+          
+          dumpn("calling override for "+path);
           this._overridePaths[path](metadata, response);
+        }
         else
           this._handleDefault(metadata, response);
       }
@@ -3485,6 +3584,9 @@ function Request(port)
   this._port = port;
 
   
+  this._body = new LineData();
+
+  
 
 
   this._headers = new nsHttpHeaders();
@@ -3607,6 +3709,11 @@ Request.prototype =
   {
     if (!this._bag)
       this._bag = new WritablePropertyBag();
+  },
+
+  get body()
+  {
+    return this._body;
   }
 };
 
