@@ -823,7 +823,20 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD SetWindowTitlebarColor(nscolor aColor, PRBool aActive) = 0;
+
     
+
+
+
+
+
+
+
+
+
+
+    virtual void SetDrawsInTitlebar(PRBool aState) = 0;
+
     
 
 
