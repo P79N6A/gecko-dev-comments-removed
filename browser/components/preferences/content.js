@@ -262,6 +262,16 @@ var gContentPane = {
   {
     document.documentElement.openSubDialog("chrome://browser/content/preferences/colors.xul",
                                            "", null);  
-  }
+  },
 
+  
+
+  
+
+
+  showLanguages: function ()
+  {
+    document.documentElement.openSubDialog("chrome://browser/content/preferences/languages.xul",
+                                           "", null);
+  }
 };

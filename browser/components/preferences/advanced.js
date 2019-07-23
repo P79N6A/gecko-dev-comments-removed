@@ -130,15 +130,6 @@ var gAdvancedPane = {
 
   
 
-
-  showLanguages: function ()
-  {
-    document.documentElement.openSubDialog("chrome://browser/content/preferences/languages.xul",
-                                           "", null);
-  },
-
-  
-
   
 
 
