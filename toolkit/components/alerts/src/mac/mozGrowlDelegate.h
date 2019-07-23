@@ -35,7 +35,9 @@
 
 
 #import "GrowlApplicationBridge.h"
-#include "nsIObserver.h"
+
+#include "nscore.h"
+#include "nsStringGlue.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -44,6 +46,9 @@
 
 #define OBSERVER_KEY      @"ALERT_OBSERVER"
 #define COOKIE_KEY        @"ALERT_COOKIE"
+
+class nsIObserver;
+class nsIDOMWindow;
 
 @interface mozGrowlDelegate : NSObject <GrowlApplicationBridgeDelegate>
 {
@@ -117,5 +122,17 @@
 
 
 - (void) growlNotificationWasClicked:(id)clickContext;
+
+
+
+
+
+
+- (void) forgetObserversForWindow:(nsIDOMWindow*)window;
+
+
+
+
+- (void) forgetObservers;
 
 @end
