@@ -147,6 +147,9 @@ extern JSBool
 js_InitRuntimeNumberState(JSContext *cx);
 
 extern void
+js_TraceRuntimeNumberState(JSTracer *trc);
+
+extern void
 js_FinishRuntimeNumberState(JSContext *cx);
 
 
@@ -165,18 +168,29 @@ extern const char js_isFinite_str[];
 extern const char js_parseFloat_str[];
 extern const char js_parseInt_str[];
 
-
-extern jsdouble *
-js_NewDouble(JSContext *cx, jsdouble d, uintN gcflag);
-
 extern void
 js_FinalizeDouble(JSContext *cx, jsdouble *dp);
 
-extern JSBool
-js_NewDoubleValue(JSContext *cx, jsdouble d, jsval *rval);
+
+
+
+extern jsdouble *
+js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d);
+
+
+
+
+
 
 extern JSBool
-js_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+js_NewNumberValue(JSContext *cx, jsdouble d, jsval *vp);
+
+
+
+
+
+extern jsval
+js_NewWeakNumberValue(JSContext *cx, jsdouble d);
 
 
 extern JSString *
