@@ -124,6 +124,11 @@ public:
 
   
 
+  
+
+
+
+
 
 
   virtual PRBool Get(nsAString& aValue);
@@ -141,6 +146,42 @@ private:
 
 
   nscolor GetColor(nsIFrame *aFrame);
+
+  nsIFrame *mFrame;
+  nsIFrame *mRootFrame;
+};
+
+
+
+
+
+class nsFontSizeTextAttr : public nsTextAttr
+{
+public:
+  nsFontSizeTextAttr(nsIFrame *aFrame, nsIFrame *aRootFrame);
+  
+  
+  virtual PRBool Equal(nsIDOMElement *aElm);
+
+  
+
+  
+
+
+
+
+
+
+  virtual PRBool Get(nsAString& aValue);
+
+private:
+  
+
+
+
+
+
+   nscoord GetFontSize(nsIFrame *aFrame);
 
   nsIFrame *mFrame;
   nsIFrame *mRootFrame;

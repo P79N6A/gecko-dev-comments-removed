@@ -194,6 +194,7 @@ ACCESSIBILITY_ATOM(textIndent, "text-indent")
 
   
 ACCESSIBILITY_ATOM(backgroundColor, "background-color")
+ACCESSIBILITY_ATOM(fontSize, "font-size")
 ACCESSIBILITY_ATOM(invalid, "invalid")
 ACCESSIBILITY_ATOM(language, "language")
 
