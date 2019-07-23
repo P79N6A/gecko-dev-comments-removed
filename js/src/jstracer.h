@@ -573,7 +573,7 @@ struct FrameInfo {
     bool   is_constructing() const { return (argc & CONSTRUCTING_FLAG) != 0; }
 
     
-    JSTraceType* get_typemap() { return (JSTraceType*) (this+1); }
+    const JSTraceType* get_typemap() const { return (JSTraceType*) (this+1); }
 };
 
 struct UnstableExit
