@@ -49,21 +49,16 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsINodeInfo.h"
-#include "nsIDOM3Node.h"
 #include "nsIDOM3Attr.h"
 #include "nsDOMAttributeMap.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsContentUtils.h"
-#include "nsIDOMXPathNSResolver.h"
-
-class nsDOMAttribute;
 
 
 
 class nsDOMAttribute : public nsIAttribute,
                        public nsIDOMAttr,
-                       public nsIDOM3Attr,
-                       public nsIDOMXPathNSResolver
+                       public nsIDOM3Attr
 {
 public:
   nsDOMAttribute(nsDOMAttributeMap* aAttrMap, nsINodeInfo *aNodeInfo,
@@ -74,9 +69,6 @@ public:
 
   
   NS_DECL_NSIDOMNODE
-
-  
-  NS_DECL_NSIDOM3NODE
 
   
   NS_DECL_NSIDOMATTR
