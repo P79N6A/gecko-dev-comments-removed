@@ -200,7 +200,9 @@ var PlacesUtils = {
 
   _uri: function PU__uri(aSpec) {
     NS_ASSERT(aSpec, "empty URL spec");
-    return IO.newURI(aSpec);
+    return Cc["@mozilla.org/network/io-service;1"].
+           getService(Ci.nsIIOService).
+           newURI(aSpec, null, null);
   },
 
   
@@ -651,7 +653,7 @@ var PlacesUtils = {
 
 
   _getURIItemCopyTransaction: function (aData, aContainer, aIndex) {
-    return this.ptm.createItem(IO.newURI(aData.uri), aContainer, aIndex,
+    return this.ptm.createItem(this._uri(aData.uri), aContainer, aIndex,
                                aData.title, "");
   },
 
@@ -672,7 +674,7 @@ var PlacesUtils = {
   _getBookmarkItemCopyTransaction:
   function PU__getBookmarkItemCopyTransaction(aData, aContainer, aIndex,
                                               aExcludeAnnotations) {
-    var itemURL = IO.newURI(aData.uri);
+    var itemURL = this._uri(aData.uri);
     var itemTitle = aData.title;
     var keyword = aData.keyword;
     var annos = aData.annos;
@@ -730,8 +732,8 @@ var PlacesUtils = {
                                         folderItemsTransactions);
           }
           else { 
-            var feedURI = IO.newURI(node.uri.feed);
-            var siteURI = IO.newURI(node.uri.site);
+            var feedURI = self._uri(node.uri.feed);
+            var siteURI = self._uri(node.uri.site);
             txn = self.ptm.createLivemark(feedURI, siteURI, node.title,
                                           aContainer, index, node.annos);
           }
@@ -791,13 +793,13 @@ var PlacesUtils = {
           else {
             
             try {
-              titleString = IO.newURI(uriString).QueryInterface(Ci.nsIURL)
+              titleString = this._uri(uriString).QueryInterface(Ci.nsIURL)
                               .fileName;
             }
             catch (e) {}
           }
           
-          if (IO.newURI(uriString)) {
+          if (this._uri(uriString)) {
             nodes.push({ uri: uriString,
                          title: titleString ? titleString : uriString });
           }
@@ -808,7 +810,7 @@ var PlacesUtils = {
         for (var i = 0; i < parts.length; i++) {
           var uriString = parts[i];
           
-          if (uriString != "" && IO.newURI(uriString))
+          if (uriString != "" && this._uri(uriString))
             nodes.push({ uri: uriString, title: uriString });
         }
         break;
@@ -846,8 +848,8 @@ var PlacesUtils = {
       }
       else if (copy) {
         
-        var feedURI = IO.newURI(data.uri.feed);
-        var siteURI = IO.newURI(data.uri.site);
+        var feedURI = this._uri(data.uri.feed);
+        var siteURI = this._uri(data.uri.site);
         return this.ptm.createLivemark(feedURI, siteURI, data.title, container,
                                        index, data.annos);
       }
@@ -875,7 +877,7 @@ var PlacesUtils = {
     default:
       if (type == this.TYPE_X_MOZ_URL || type == this.TYPE_UNICODE) {
         var title = (type == this.TYPE_X_MOZ_URL) ? data.title : data.uri;
-        return this.ptm.createItem(IO.newURI(data.uri), container, index,
+        return this.ptm.createItem(this._uri(data.uri), container, index,
                                    title);
       }
       return null;
@@ -1312,7 +1314,7 @@ var PlacesUtils = {
 
   checkURLSecurity: function PU_checkURLSecurity(aURINode) {
     if (!this.nodeIsBookmark(aURINode)) {
-      var uri = IO.newURI(aURINode.uri);
+      var uri = this._uri(aURINode.uri);
       if (uri.schemeIs("javascript") || uri.schemeIs("data")) {
         const BRANDING_BUNDLE_URI = "chrome://branding/locale/brand.properties";
         var brandShortName = Cc["@mozilla.org/intl/stringbundle;1"].
@@ -1862,7 +1864,7 @@ var PlacesUtils = {
         leftPaneRoot = self.bookmarks.createFolder(self.placesRootId, "", -1);
 
         
-        let uri = IO.newURI("place:sort=4&");
+        let uri = self._uri("place:sort=4&");
         let title = self.getString("OrganizerQueryHistory");
         let itemId = self.bookmarks.insertBookmark(leftPaneRoot, uri, -1, title);
         self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
@@ -1872,7 +1874,7 @@ var PlacesUtils = {
         
 
         
-        uri = IO.newURI("place:folder=" + self.tagsFolderId);
+        uri = self._uri("place:folder=" + self.tagsFolderId);
         itemId = self.bookmarks.insertBookmark(leftPaneRoot, uri, -1, null);
         self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
                                            "Tags", 0, EXPIRE_NEVER);
@@ -1887,21 +1889,21 @@ var PlacesUtils = {
         self.leftPaneQueries["AllBookmarks"] = itemId;
 
         
-        uri = IO.newURI("place:folder=" + self.toolbarFolderId);
+        uri = self._uri("place:folder=" + self.toolbarFolderId);
         itemId = self.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
         self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
                                            "BookmarksToolbar", 0, EXPIRE_NEVER);
         self.leftPaneQueries["BookmarksToolbar"] = itemId;
 
         
-        uri = IO.newURI("place:folder=" + self.bookmarksMenuFolderId);
+        uri = self._uri("place:folder=" + self.bookmarksMenuFolderId);
         itemId = self.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
         self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
                                            "BookmarksMenu", 0, EXPIRE_NEVER);
         self.leftPaneQueries["BookmarksMenu"] = itemId;
 
         
-        uri = IO.newURI("place:folder=" + self.unfiledBookmarksFolderId);
+        uri = self._uri("place:folder=" + self.unfiledBookmarksFolderId);
         itemId = self.bookmarks.insertBookmark(allBookmarksId, uri, -1, null);
         self.annotations.setItemAnnotation(itemId, ORGANIZER_QUERY_ANNO,
                                            "UnfiledBookmarks", 0,
