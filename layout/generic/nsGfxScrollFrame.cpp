@@ -336,8 +336,8 @@ nsHTMLScrollFrame::TryLayout(ScrollReflowState* aState,
   }
 
   if (aAssumeVScroll != aState->mReflowedContentsWithVScrollbar ||
-      ((mInner.mScrolledFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT) &&
-       aAssumeHScroll != aState->mReflowedContentsWithHScrollbar)) {
+      (aAssumeHScroll != aState->mReflowedContentsWithHScrollbar &&
+       ScrolledContentDependsOnHeight(aState))) {
     nsresult rv = ReflowScrolledFrame(aState, aAssumeHScroll, aAssumeVScroll,
                                       aKidMetrics, PR_FALSE);
     if (NS_FAILED(rv)) {
@@ -419,6 +419,17 @@ nsHTMLScrollFrame::TryLayout(ScrollReflowState* aState,
   }
   aState->mScrollPortRect = nsRect(scrollPortOrigin, scrollPortSize);
   return PR_TRUE;
+}
+
+PRBool
+nsHTMLScrollFrame::ScrolledContentDependsOnHeight(ScrollReflowState* aState)
+{
+  
+  
+  return (mInner.mScrolledFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT) ||
+    aState->mReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE ||
+    aState->mReflowState.mComputedMinHeight > 0 ||
+    aState->mReflowState.mComputedMaxHeight != NS_UNCONSTRAINEDSIZE;
 }
 
 nsresult
@@ -509,6 +520,16 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
 }
 
 PRBool
+nsHTMLScrollFrame::GuessHScrollbarNeeded(const ScrollReflowState& aState)
+{
+  if (aState.mStyles.mHorizontal != NS_STYLE_OVERFLOW_AUTO)
+    
+    return aState.mStyles.mHorizontal == NS_STYLE_OVERFLOW_SCROLL;
+
+  return mInner.mHasHorizontalScrollbar;
+}
+
+PRBool
 nsHTMLScrollFrame::GuessVScrollbarNeeded(const ScrollReflowState& aState)
 {
   if (aState.mStyles.mVertical != NS_STYLE_OVERFLOW_AUTO)
@@ -565,7 +586,7 @@ nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
                                   const nsHTMLReflowMetrics& aDesiredSize)
 {
   nsHTMLReflowMetrics kidDesiredSize(aDesiredSize.mFlags);
-  nsresult rv = ReflowScrolledFrame(aState, mInner.mHasHorizontalScrollbar,
+  nsresult rv = ReflowScrolledFrame(aState, GuessHScrollbarNeeded(*aState),
       GuessVScrollbarNeeded(*aState), &kidDesiredSize, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -609,15 +630,10 @@ nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
 
   
   
-  
-  
-  PRBool firstHScrollbarState =
-    (mInner.mScrolledFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)
-        ? aState->mReflowedContentsWithHScrollbar : PR_FALSE;
-  if (TryLayout(aState, &kidDesiredSize, firstHScrollbarState,
+  if (TryLayout(aState, &kidDesiredSize, aState->mReflowedContentsWithHScrollbar,
                 aState->mReflowedContentsWithVScrollbar, PR_FALSE, &rv))
     return NS_OK;
-  if (TryLayout(aState, &kidDesiredSize, !firstHScrollbarState,
+  if (TryLayout(aState, &kidDesiredSize, !aState->mReflowedContentsWithHScrollbar,
                 aState->mReflowedContentsWithVScrollbar, PR_FALSE, &rv))
     return NS_OK;
 
