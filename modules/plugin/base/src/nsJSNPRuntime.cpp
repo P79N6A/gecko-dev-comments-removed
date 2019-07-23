@@ -1452,6 +1452,52 @@ public:
 
 
 
+
+
+void
+nsNPObjWrapper::OnDestroy(NPObject *npobj)
+{
+  if (!npobj) {
+    return;
+  }
+
+  if (npobj->_class == &nsJSObjWrapper::sJSObjWrapperNPClass) {
+    
+
+    return;
+  }
+
+  if (!sNPObjWrappers.ops) {
+    
+
+    return;
+  }
+
+  NPObjWrapperHashEntry *entry =
+    NS_STATIC_CAST(NPObjWrapperHashEntry *,
+                   PL_DHashTableOperate(&sNPObjWrappers, npobj,
+                                        PL_DHASH_LOOKUP));
+
+  if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->mJSObj) {
+    
+    
+
+    JSContext *cx = GetJSContext(entry->mNpp);
+
+    if (cx) {
+      ::JS_SetPrivate(cx, entry->mJSObj, nsnull);
+    }
+
+    
+    PL_DHashTableRawRemove(&sNPObjWrappers, entry);
+
+    OnWrapperDestroyed();
+  }
+}
+
+
+
+
 JSObject *
 nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
 {
