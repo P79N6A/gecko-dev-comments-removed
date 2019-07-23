@@ -248,6 +248,12 @@ const uintptr_t JSSLOT_CLASS_MASK_BITS = 3;
 
 
 struct JSObject {
+    
+
+
+
+    friend class js::TraceRecorder;
+
     JSObjectMap *map;                       
     jsuword     classword;                  
     jsval       fslots[JS_INITIAL_NSLOTS];  
@@ -378,6 +384,33 @@ struct JSObject {
                : JSVAL_VOID;
     }
 
+    
+
+
+
+  private:
+    static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
+    static const uint32 JSSLOT_ARRAY_COUNT  = JSSLOT_PRIVATE + 1;
+    static const uint32 JSSLOT_ARRAY_UNUSED = JSSLOT_PRIVATE + 2;
+
+    
+    JS_STATIC_ASSERT(JSSLOT_ARRAY_LENGTH == JSSLOT_PRIVATE);
+
+  public:
+    inline uint32 getArrayLength() const;
+    inline uint32 getArrayCount() const;
+
+    inline void setArrayLength(uint32 length);
+    inline void setArrayCount(uint32 count);
+    inline void voidDenseArrayCount();
+    inline void incArrayCountBy(uint32 posDelta);
+    inline void decArrayCountBy(uint32 negDelta);
+    inline void voidArrayUnused();
+
+    
+
+
+
     bool isCallable();
 
     
@@ -477,6 +510,7 @@ struct JSObject {
     inline bool isArguments() const;
     inline bool isArray() const;
     inline bool isDenseArray() const;
+    inline bool isSlowArray() const;
     inline bool isFunction() const;
     inline bool isRegExp() const;
     inline bool isXML() const;
