@@ -1723,7 +1723,7 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
       if (PL_strncmp(attrStr, "aria-", 5)) 
         continue; 
       PRUint8 attrFlags = nsAccUtils::GetAttributeCharacteristics(attrAtom);
-      if (attrFlags & ATTR_EXPOSEOBJ)
+      if (attrFlags & ATTR_BYPASSOBJ)
         continue; 
       if ((attrFlags & ATTR_VALTOKEN) &&
           !nsAccUtils::HasDefinedARIAToken(content, attrAtom))

@@ -77,7 +77,8 @@ enum ELiveAttrRule
 
 
 
-const PRUint8 ATTR_EXPOSEOBJ  = 0x0001;
+
+const PRUint8 ATTR_BYPASSOBJ  = 0x0001;
 
 
 
