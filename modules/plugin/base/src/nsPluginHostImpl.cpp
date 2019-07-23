@@ -5909,6 +5909,16 @@ nsPluginHostImpl::StopPluginInstance(nsIPluginInstance* aInstance)
       }
     }
   }
+
+  nsCOMPtr<nsIPluginInstancePeer> peer;
+  aInstance->GetPeer(getter_AddRefs(peer));
+
+  if (peer) {
+    
+    
+    ((nsPluginInstancePeerImpl*)peer.get())->SetOwner(nsnull);
+  }
+
   return NS_OK;
 }
 
