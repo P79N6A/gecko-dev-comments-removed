@@ -747,7 +747,7 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 
 
 
-pref("browser.ssl_override_behavior", 1);
+pref("browser.ssl_override_behavior", 2);
 
 
 
@@ -773,3 +773,6 @@ pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
 pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%LOCALE%/");
+
+
+pref("security.alternate_certificate_error_page", "certerror");
