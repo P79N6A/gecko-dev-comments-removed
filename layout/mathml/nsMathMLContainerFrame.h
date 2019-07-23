@@ -238,8 +238,8 @@ protected:
   
   
   virtual nsresult
-  MeasureChildFrames(nsIRenderingContext& aRenderingContext,
-                     nsHTMLReflowMetrics& aDesiredSize);
+  MeasureForWidth(nsIRenderingContext& aRenderingContext,
+                  nsHTMLReflowMetrics& aDesiredSize);
 
 
   
