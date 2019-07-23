@@ -653,6 +653,7 @@ private:
 nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
 {
   PRInt64 totalBytes = mDecoder->GetStatistics().mTotalBytes;
+
   {
     nsAutoLock lock(mLock);
     if (!mChannel || !mPipeInput) 
@@ -718,6 +719,7 @@ nsresult nsHttpStreamStrategy::Seek(PRInt32 aWhence, PRInt64 aOffset)
       nsAutoArrayPtr<char> data(new char[bytesAhead]);
       if (!data)
         return NS_ERROR_OUT_OF_MEMORY;
+    
       
       
       
