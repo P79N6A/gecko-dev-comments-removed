@@ -186,11 +186,6 @@ XBLResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return JS_FALSE;
   }
 
-  if (content->HasFlag(NODE_IS_IN_BINDING_TEARDOWN)) {
-    
-    return JS_TRUE;
-  }
-
   
   nsIDocument* doc = content->GetOwnerDoc();
   if (!doc) {
@@ -1123,12 +1118,7 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
               break;
             }
 
-            
-            
-            
-            mBoundElement->SetFlags(NODE_IS_IN_BINDING_TEARDOWN);
             mPrototypeBinding->UndefineFields(cx, scriptObject);
-            mBoundElement->UnsetFlags(NODE_IS_IN_BINDING_TEARDOWN);
 
             
             
