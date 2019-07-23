@@ -210,7 +210,6 @@ static inline bool
 guard_int_fits_in_jsval(JSContext* cx, JSFrameRegs& regs, jsint& i)
 {
     bool ok = interp_guard_int_fits_in_jsval(cx, regs, i);
-    
     return ok;
 }
 
@@ -225,7 +224,6 @@ static inline bool
 guard_uint_fits_in_jsval(JSContext* cx, JSFrameRegs& regs, uint32& u)
 {
     bool ok = interp_guard_uint_fits_in_jsval(cx, regs, u);
-    
     return ok;
 }
 
