@@ -248,6 +248,11 @@ protected:
 
   static void DocumentWriteTerminationFunc(nsISupports *aRef);
 
+  
+  
+  nsIContent* GetHtmlContent();
+  
+  
   nsIContent* GetBodyContent();
 
   void GetDomainURI(nsIURI **uri);
