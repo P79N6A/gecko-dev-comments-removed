@@ -927,7 +927,8 @@ nsStyleAnimation::AddWeighted(nsCSSProperty aProperty,
 already_AddRefed<nsICSSStyleRule>
 BuildStyleRule(nsCSSProperty aProperty,
                nsIContent* aTargetElement,
-               const nsAString& aSpecifiedValue)
+               const nsAString& aSpecifiedValue,
+               PRBool aUseSVGMode)
 {
   
   nsCSSDeclaration* declaration = new nsCSSDeclaration();
@@ -941,6 +942,10 @@ BuildStyleRule(nsCSSProperty aProperty,
   nsCOMPtr<nsIURI> baseURI = aTargetElement->GetBaseURI();
   nsCOMPtr<nsICSSStyleRule> styleRule;
   nsCSSParser parser(doc->CSSLoader());
+
+  if (aUseSVGMode) {
+    parser.SetSVGMode(PR_TRUE);
+  }
 
   nsCSSProperty propertyToCheck = nsCSSProps::IsShorthand(aProperty) ?
     nsCSSProps::SubpropertyEntryFor(aProperty)[0] : aProperty;
@@ -999,14 +1004,11 @@ LookupStyleContext(nsIContent* aElement)
 
 
 
-
-
-
-
 already_AddRefed<nsStyleContext>
 StyleWithDeclarationAdded(nsCSSProperty aProperty,
                           nsIContent* aTargetElement,
-                          const nsAString& aSpecifiedValue)
+                          const nsAString& aSpecifiedValue,
+                          PRBool aUseSVGMode)
 {
   NS_ABORT_IF_FALSE(aTargetElement, "null target element");
   NS_ABORT_IF_FALSE(aTargetElement->GetCurrentDoc(),
@@ -1021,7 +1023,7 @@ StyleWithDeclarationAdded(nsCSSProperty aProperty,
 
   
   nsCOMPtr<nsICSSStyleRule> styleRule =
-    BuildStyleRule(aProperty, aTargetElement, aSpecifiedValue);
+    BuildStyleRule(aProperty, aTargetElement, aSpecifiedValue, aUseSVGMode);
   if (!styleRule) {
     return nsnull;
   }
@@ -1043,6 +1045,7 @@ PRBool
 nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
                                nsIContent* aTargetElement,
                                const nsAString& aSpecifiedValue,
+                               PRBool aUseSVGMode,
                                Value& aComputedValue)
 {
   NS_ABORT_IF_FALSE(aTargetElement, "null target element");
@@ -1051,7 +1054,8 @@ nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
                     "are in a document");
 
   nsRefPtr<nsStyleContext> tmpStyleContext =
-    StyleWithDeclarationAdded(aProperty, aTargetElement, aSpecifiedValue);
+    StyleWithDeclarationAdded(aProperty, aTargetElement,
+                              aSpecifiedValue, aUseSVGMode);
   if (!tmpStyleContext) {
     return PR_FALSE;
   }

@@ -171,13 +171,10 @@ public:
 
 
 
-
-
-
-
   static PRBool ComputeValue(nsCSSProperty aProperty,
                              nsIContent* aElement,
                              const nsAString& aSpecifiedValue,
+                             PRBool aUseSVGMode,
                              Value& aComputedValue);
 
   

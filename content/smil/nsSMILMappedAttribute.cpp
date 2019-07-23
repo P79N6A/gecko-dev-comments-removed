@@ -57,6 +57,27 @@ ReleaseStringBufferPropertyValue(void*    aObject,
   buf->Release();
 }
 
+
+nsresult
+nsSMILMappedAttribute::ValueFromString(const nsAString& aStr,
+                                       const nsISMILAnimationElement* aSrcElement,
+                                       nsSMILValue& aValue,
+                                       PRBool& aCanCache) const
+{
+  NS_ENSURE_TRUE(IsPropertyAnimatable(mPropID), NS_ERROR_FAILURE);
+
+  nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr,
+                                      PR_TRUE, aValue);
+  if (aValue.IsNull()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  aCanCache = PR_FALSE;
+  return NS_OK;
+}
+
 nsSMILValue
 nsSMILMappedAttribute::GetBaseValue() const
 {
@@ -66,8 +87,8 @@ nsSMILMappedAttribute::GetBaseValue() const
                                      baseStringValue);
   nsSMILValue baseValue;
   if (success) {
-    nsSMILCSSValueType::ValueFromString(mPropID, mElement,
-                                        baseStringValue, baseValue);
+    nsSMILCSSValueType::ValueFromString(mPropID, mElement, baseStringValue,
+                                        PR_TRUE, baseValue);
   } else {
     
     

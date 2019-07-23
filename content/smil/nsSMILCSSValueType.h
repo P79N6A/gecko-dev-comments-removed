@@ -97,9 +97,13 @@ public:
 
 
 
+
+
   static void ValueFromString(nsCSSProperty aPropID,
                               nsIContent* aTargetElement,
-                              const nsAString& aString, nsSMILValue& aValue);
+                              const nsAString& aString,
+                              PRBool aUseSVGMode,
+                              nsSMILValue& aValue);
 
   
 
