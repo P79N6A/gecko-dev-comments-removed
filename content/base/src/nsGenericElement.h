@@ -556,26 +556,6 @@ public:
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-  nsresult TriggerLink(nsPresContext* aPresContext,
-                       nsIURI* aLinkURI,
-                       const nsAFlatString& aTargetSpec,
-                       PRBool aClick,
-                       PRBool aIsUserTriggered);
-  
-
-
   nsresult LeaveLink(nsPresContext* aPresContext);
 
   

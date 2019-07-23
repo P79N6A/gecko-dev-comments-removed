@@ -3623,3 +3623,46 @@ nsContentUtils::CheckSecurityBeforeLoad(nsIURI* aURIToLoad,
   }
   return sSecurityManager->CheckSameOriginURI(loadingURI, aURIToLoad);
 }
+
+
+void
+nsContentUtils::TriggerLink(nsIContent *aContent, nsPresContext *aPresContext,
+                            nsIURI *aLinkURI, const nsString &aTargetSpec,
+                            PRBool aClick, PRBool aIsUserTriggered)
+{
+  NS_ASSERTION(aPresContext, "Need a nsPresContext");
+  NS_PRECONDITION(aLinkURI, "No link URI");
+
+  if (aContent->IsEditable()) {
+    return;
+  }
+
+  nsILinkHandler *handler = aPresContext->GetLinkHandler();
+  if (!handler) {
+    return;
+  }
+
+  if (!aClick) {
+    handler->OnOverLink(aContent, aLinkURI, aTargetSpec.get());
+
+    return;
+  }
+
+  
+  nsresult proceed = NS_OK;
+
+  if (sSecurityManager) {
+    PRUint32 flag =
+      aIsUserTriggered ?
+      (PRUint32)nsIScriptSecurityManager::STANDARD :
+      (PRUint32)nsIScriptSecurityManager::LOAD_IS_AUTOMATIC_DOCUMENT_REPLACEMENT;
+    proceed =
+      sSecurityManager->CheckLoadURIWithPrincipal(aContent->NodePrincipal(),
+                                                  aLinkURI, flag);
+  }
+
+  
+  if (NS_SUCCEEDED(proceed)) {
+    handler->OnLinkClick(aContent, aLinkURI, aTargetSpec.get());
+  }
+}

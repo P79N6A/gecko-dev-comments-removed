@@ -1800,6 +1800,10 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL, const char *aTarge
 {
   NS_ENSURE_TRUE(mOwner,NS_ERROR_NULL_POINTER);
 
+  if (mContent->IsEditable()) {
+    return NS_OK;
+  }
+
   
   nsCOMPtr<nsISupports> container = mOwner->PresContext()->GetContainer();
   NS_ENSURE_TRUE(container,NS_ERROR_FAILURE);

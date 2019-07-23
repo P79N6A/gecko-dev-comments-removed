@@ -1339,43 +1339,6 @@ nsImageFrame::GetImageMap(nsPresContext* aPresContext)
   return mImageMap;
 }
 
-void
-nsImageFrame::TriggerLink(nsPresContext* aPresContext,
-                          nsIURI* aURI,
-                          const nsString& aTargetSpec,
-                          nsINode* aTriggerNode,
-                          PRBool aClick)
-{
-  NS_PRECONDITION(aTriggerNode, "Must have triggering node");
-  
-  
-  nsILinkHandler *handler = aPresContext->GetLinkHandler();
-  if (handler) {
-    if (aClick) {
-      
-      
-      nsresult rv;
-      nsCOMPtr<nsIScriptSecurityManager> securityManager = 
-               do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-
-      if (NS_FAILED(rv))
-        return;
-
-      rv = securityManager->
-        CheckLoadURIWithPrincipal(aTriggerNode->NodePrincipal(), aURI,
-                                  nsIScriptSecurityManager::STANDARD);
-
-      
-      
-      if (NS_SUCCEEDED(rv))
-        handler->OnLinkClick(mContent, aURI, aTargetSpec.get());
-    }
-    else {
-      handler->OnOverLink(mContent, aURI, aTargetSpec.get());
-    }
-  }
-}
-
 PRBool
 nsImageFrame::IsServerImageMap()
 {
@@ -1404,7 +1367,7 @@ nsImageFrame::TranslateEventCoords(const nsPoint& aPoint,
 
 PRBool
 nsImageFrame::GetAnchorHREFTargetAndNode(nsIURI** aHref, nsString& aTarget,
-                                         nsINode** aNode)
+                                         nsIContent** aNode)
 {
   PRBool status = PR_FALSE;
   aTarget.Truncate();
@@ -1493,7 +1456,7 @@ nsImageFrame::HandleEvent(nsPresContext* aPresContext,
         
         nsCOMPtr<nsIURI> uri;
         nsAutoString target;
-        nsCOMPtr<nsINode> anchorNode;
+        nsCOMPtr<nsIContent> anchorNode;
         if (GetAnchorHREFTargetAndNode(getter_AddRefs(uri), target,
                                        getter_AddRefs(anchorNode))) {
           
@@ -1513,7 +1476,8 @@ nsImageFrame::HandleEvent(nsPresContext* aPresContext,
             *aEventStatus = nsEventStatus_eConsumeDoDefault; 
             clicked = PR_TRUE;
           }
-          TriggerLink(aPresContext, uri, target, anchorNode, clicked);
+          nsContentUtils::TriggerLink(anchorNode, aPresContext, uri, target,
+                                      clicked, PR_TRUE);
         }
       }
     }

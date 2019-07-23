@@ -1068,6 +1068,25 @@ public:
                                           const nsACString& aMimeGuess = EmptyCString(),
                                           nsISupports* aExtra = nsnull);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void TriggerLink(nsIContent *aContent, nsPresContext *aPresContext,
+                          nsIURI *aLinkURI, const nsString& aTargetSpec,
+                          PRBool aClick, PRBool aIsUserTriggered);
+
 private:
 
   static PRBool InitializeEventTable();
