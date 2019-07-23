@@ -1410,6 +1410,32 @@ nsContentUtils::ContentIsDescendantOf(nsINode* aPossibleDescendant,
 }
 
 
+PRBool
+nsContentUtils::ContentIsCrossDocDescendantOf(nsINode* aPossibleDescendant,
+                                              nsINode* aPossibleAncestor)
+{
+  NS_PRECONDITION(aPossibleDescendant, "The possible descendant is null!");
+  NS_PRECONDITION(aPossibleAncestor, "The possible ancestor is null!");
+
+  do {
+    if (aPossibleDescendant == aPossibleAncestor)
+      return PR_TRUE;
+    nsINode* parent = aPossibleDescendant->GetNodeParent();
+    if (!parent && aPossibleDescendant->IsNodeOfType(nsINode::eDOCUMENT)) {
+      nsIDocument* doc = static_cast<nsIDocument*>(aPossibleDescendant);
+      nsIDocument* parentDoc = doc->GetParentDocument();
+      aPossibleDescendant = parentDoc ?
+                            parentDoc->FindContentForSubDocument(doc) : nsnull;
+    }
+    else {
+      aPossibleDescendant = parent;
+    }
+  } while (aPossibleDescendant);
+
+  return PR_FALSE;
+}
+
+
 
 nsresult
 nsContentUtils::GetAncestors(nsIDOMNode* aNode,

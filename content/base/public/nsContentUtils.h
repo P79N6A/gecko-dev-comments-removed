@@ -214,6 +214,12 @@ public:
   
 
 
+  static PRBool ContentIsCrossDocDescendantOf(nsINode* aPossibleDescendant,
+                                              nsINode* aPossibleAncestor);
+
+  
+
+
 
   static nsresult GetAncestors(nsIDOMNode* aNode,
                                nsTArray<nsIDOMNode*>* aArray);
