@@ -483,7 +483,10 @@ SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString)
         PRUint32 i;
         for (i = breakOffset + 1; i < next; ++i) {
             gfxTextRun::CompressedGlyph g;
-            aTextRun->SetCharacterGlyph(i, g.SetClusterContinuation());
+            
+            
+            
+            aTextRun->SetGlyphs(i, g.SetComplex(PR_FALSE, PR_TRUE, 0), nsnull);
         }
         breakOffset = next;
     }
@@ -736,7 +739,7 @@ GetAdvanceAppUnits(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
 
 
 
- 
+
 static void
 SetGlyphsForCharacterGroup(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
                            Fixed *aBaselineDeltas, PRUint32 aAppUnitsPerDevUnit,
@@ -792,26 +795,26 @@ SetGlyphsForCharacterGroup(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
 
     gfxTextRun::CompressedGlyph g;
     PRUint32 offset;
+    
+    
+    
+    
     for (offset = firstOffset + 2; offset <= lastOffset; offset += 2) {
-        PRUint32 index = offset/2;
-        if (!inOrder) {
-            
-            
-            aRun->SetCharacterGlyph(aSegmentStart + index, g.SetClusterContinuation());
-        } else if (!aRun->GetCharacterGlyphs()[index].IsClusterContinuation()) {
-            aRun->SetCharacterGlyph(aSegmentStart + index, g.SetLigatureContinuation());
-        }
+        PRUint32 index = offset/2;        
+        PRBool makeClusterStart = inOrder && aRun->IsClusterStart(index);
+        g.SetComplex(makeClusterStart, PR_FALSE, 0);
+        aRun->SetGlyphs(aSegmentStart + index, g, nsnull);
     }
 
     
     PRInt32 advance = GetAdvanceAppUnits(aGlyphs, aGlyphCount, aAppUnitsPerDevUnit);
-    PRUint32 index = firstOffset/2;
+    PRUint32 charIndex = aSegmentStart + firstOffset/2;
     if (regularGlyphCount == 1) {
         if (advance >= 0 &&
             (!aBaselineDeltas || aBaselineDeltas[displayGlyph - aGlyphs] == 0) &&
             gfxTextRun::CompressedGlyph::IsSimpleAdvance(advance) &&
             gfxTextRun::CompressedGlyph::IsSimpleGlyphID(displayGlyph->glyphID)) {
-            aRun->SetCharacterGlyph(aSegmentStart + index, g.SetSimpleGlyph(advance, displayGlyph->glyphID));
+            aRun->SetSimpleGlyph(charIndex, g.SetSimpleGlyph(advance, displayGlyph->glyphID));
             return;
         }
     }
@@ -821,11 +824,37 @@ SetGlyphsForCharacterGroup(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
     for (i = 0; i < aGlyphCount; ++i) {
         ATSLayoutRecord *glyph = &aGlyphs[i];
         if (glyph->glyphID != ATSUI_SPECIAL_GLYPH_ID) {
+            if (glyph->originalOffset > firstOffset) {
+                PRUint32 glyphCharIndex = aSegmentStart + glyph->originalOffset/2;
+                PRUint32 glyphRunIndex = aRun->FindFirstGlyphRunContaining(glyphCharIndex);
+                PRUint32 numGlyphRuns;
+                const gfxTextRun::GlyphRun *glyphRun = aRun->GetGlyphRuns(&numGlyphRuns) + glyphRunIndex;
+
+                if (glyphRun->mCharacterOffset > charIndex) {
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    NS_ERROR("Font change inside character group!");
+                    
+                    continue;
+                }
+            }
+
             gfxTextRun::DetailedGlyph *details = detailedGlyphs.AppendElement();
             if (!details)
                 return;
             details->mAdvance = 0;
-            details->mIsLastGlyph = PR_FALSE;
             details->mGlyphID = glyph->glyphID;
             details->mXOffset = 0;
             if (detailedGlyphs.Length() > 1) {
@@ -839,18 +868,18 @@ SetGlyphsForCharacterGroup(ATSLayoutRecord *aGlyphs, PRUint32 aGlyphCount,
     }
     if (detailedGlyphs.Length() == 0) {
         NS_WARNING("No glyphs visible at all!");
-        aRun->SetCharacterGlyph(aSegmentStart + index, g.SetMissing());
+        aRun->SetGlyphs(aSegmentStart + charIndex, g.SetMissing(0), nsnull);
         return;
     }
 
     
     PRInt32 clusterAdvance = GetAdvanceAppUnits(aGlyphs, aGlyphCount, aAppUnitsPerDevUnit);
-    detailedGlyphs[detailedGlyphs.Length() - 1].mIsLastGlyph = PR_TRUE;
     if (aRun->IsRightToLeft())
         detailedGlyphs[0].mAdvance = clusterAdvance;
     else
         detailedGlyphs[detailedGlyphs.Length() - 1].mAdvance = clusterAdvance;
-    aRun->SetDetailedGlyphs(aSegmentStart + index, detailedGlyphs.Elements(), detailedGlyphs.Length());    
+    g.SetComplex(aRun->IsClusterStart(charIndex), PR_TRUE, detailedGlyphs.Length());
+    aRun->SetGlyphs(charIndex, g, detailedGlyphs.Elements());
 }
 
 
@@ -915,21 +944,16 @@ PostLayoutCallback(ATSULineRef aLine, gfxTextRun *aRun,
             ATSLayoutRecord *glyph = &glyphRecords[glyphIndex + direction*glyphCount];
             PRUint32 glyphOffset = glyph->originalOffset;
             allFlags |= glyph->flags;
-            
-            
-            
-            
-            
-            
-            
-            
-            if (lastOffset < glyphOffset) {
-                if (!aRun->IsClusterStart(aSegmentStart + glyphOffset/2)) {
-                    
-                    
-                    lastOffset = glyphOffset;
-                    continue;
-                }
+            if (glyphOffset <= lastOffset) {
+                
+                
+                
+                
+                
+                
+                
+                
+            } else {
                 
                 if (glyph->glyphID != ATSUI_SPECIAL_GLYPH_ID) {
                     
@@ -1248,22 +1272,6 @@ AppendCJKPrefFonts(nsTArray<nsRefPtr<gfxFont> > *aFonts,
 }
 
 static void
-AddGlyphRun(gfxTextRun *aRun, gfxAtsuiFont *aFont, PRUint32 aOffset)
-{
-    
-    aRun->AddGlyphRun(aFont, aOffset, PR_TRUE);
-    if (!aRun->IsClusterStart(aOffset)) {
-        
-        
-        
-        
-        NS_WARNING("Font mismatch inside cluster");
-        gfxTextRun::CompressedGlyph g;
-        aRun->SetCharacterGlyph(aOffset, g.SetMissing());
-    }
-}
-
-static void
 DisableOptionalLigaturesInStyle(ATSUStyle aStyle)
 {
     static ATSUFontFeatureType selectors[] = {
@@ -1526,7 +1534,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
                 }
             
                 
-                AddGlyphRun(aRun, firstFont, aSegmentStart + runStart - headerChars);
+                aRun->AddGlyphRun(firstFont, aSegmentStart + runStart - headerChars, PR_TRUE);
 
                 
                 if (status == noErr)
@@ -1572,7 +1580,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
                                         changedLength);
                     }
                 
-                    AddGlyphRun(aRun, font, aSegmentStart + changedOffset - headerChars);
+                    aRun->AddGlyphRun(font, aSegmentStart + changedOffset - headerChars, PR_TRUE);
                 } else {
                     
                     
@@ -1597,7 +1605,7 @@ gfxAtsuiFontGroup::InitTextRun(gfxTextRun *aRun,
                     missingOffsetsAndLengths.AppendElement(changedOffset);
                     missingOffsetsAndLengths.AppendElement(changedLength);
                 } else {
-                    AddGlyphRun(aRun, firstFont, aSegmentStart + changedOffset - headerChars);
+                    aRun->AddGlyphRun(firstFont, aSegmentStart + changedOffset - headerChars, PR_TRUE);
 
                     if (!closure.mUnmatchedChars) {
                         closure.mUnmatchedChars = new PRPackedBool[aLength];
