@@ -1942,13 +1942,11 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
     
     
     nsSize size(frame->GetSize());
-    if (size.width == 0) {
+    if (size.width == 0 || size.height == 0) {
       mComputedPadding.left = 0;
       mComputedPadding.right = 0;
       mComputedBorderPadding.left = 0;
       mComputedBorderPadding.right = 0;
-    }
-    if (size.height == 0) {
       mComputedPadding.top = 0;
       mComputedPadding.bottom = 0;
       mComputedBorderPadding.top = 0;
