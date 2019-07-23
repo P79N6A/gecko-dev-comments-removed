@@ -455,7 +455,7 @@ OutparamCheck.prototype.processCall = function(dest, expr, blame, state) {
       
       state.update(function(ss) {
         for each (let [vbl, sem] in updates) {
-          if (sem == ps.OUTNOFAIL) {
+          if (sem == ps.OUTNOFAIL || sem == ps.OUTNOFAILNOCHECK) {
             ss.assignValue(vbl, av.WRITTEN, blame);
             return [ss];
           } else {
@@ -644,6 +644,10 @@ OutparamCheck.prototype.logResult = function(rv, msg, kind) {
 
 let ps = {
   OUTNOFAIL: { label: 'out-no-fail', val: av.WRITTEN,  check: true },
+  
+  
+  
+  OUTNOFAILNOCHECK: { label: 'out-no-fail-no-check' },
   OUT:       { label: 'out',         val: av.WRITTEN,  check: true },
   INOUT:     { label: 'inout',       val: av.WRITTEN,  check: true },
   MAYBE:     { label: 'maybe',       val: av.MAYBE_WRITTEN},  
@@ -680,7 +684,8 @@ OutparamCheck.prototype.func_param_semantics = function(callable) {
     let sem;
     if (i == 0 && string_mutator) {
       
-      sem = ps.OUTNOFAIL;
+      
+      sem = ps.OUTNOFAILNOCHECK;
     } else {
       if (params) sem = decode_attr(DECL_ATTRIBUTES(params[i]));
       if (TRACE_CALL_SEM >= 2) print("param " + i + ": annotated " + sem);
