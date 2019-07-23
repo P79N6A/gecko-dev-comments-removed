@@ -2388,7 +2388,7 @@ nsGenericHTMLElement::MapBackgroundInto(const nsMappedAttributes* aAttributes,
             
             nsCSSValue::Image *img =
               new nsCSSValue::Image(uri, buffer, doc->GetDocumentURI(),
-                                    doc->NodePrincipal(), doc, PR_TRUE);
+                                    doc->NodePrincipal(), doc);
             buffer->Release();
             if (NS_LIKELY(img != 0)) {
               aData->mColorData->mBackImage.SetImageValue(img);

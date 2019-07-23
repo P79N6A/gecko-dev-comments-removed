@@ -277,8 +277,7 @@ public:
   NS_HIDDEN_(void)  SetNoneValue();
   NS_HIDDEN_(void)  SetNormalValue();
   NS_HIDDEN_(void)  SetSystemFontValue();
-  NS_HIDDEN_(void)  StartImageLoad(nsIDocument* aDocument,
-                                   PRBool aIsBGImage = PR_FALSE)
+  NS_HIDDEN_(void)  StartImageLoad(nsIDocument* aDocument)
                                    const;  
 
   
@@ -407,8 +406,7 @@ public:
     
     
     Image(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
-          nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument,
-          PRBool aIsBGImage = PR_FALSE) NS_HIDDEN;
+          nsIPrincipal* aOriginPrincipal, nsIDocument* aDocument) NS_HIDDEN;
     ~Image() NS_HIDDEN;
 
     
