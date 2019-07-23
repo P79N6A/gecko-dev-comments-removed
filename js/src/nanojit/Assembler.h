@@ -66,10 +66,10 @@ namespace nanojit
 
     struct AR
     {
-        LIns*            entry[ NJ_MAX_STACK_ENTRY ];    
+        LIns*           entry[ NJ_MAX_STACK_ENTRY ];    
         uint32_t        tos;                            
-        uint32_t        highwatermark;                    
-        uint32_t        lowwatermark;                    
+        uint32_t        highwatermark;                  
+        uint32_t        lowwatermark;                   
     };
 
     #ifdef AVMPLUS_WIN32
@@ -157,9 +157,7 @@ namespace nanojit
             void FASTCALL outputf(const char* format, ...);
             void FASTCALL output_asm(const char* s);
 
-            
-            
-            bool outputAddr, vpad[2];
+            bool outputAddr, vpad[3];  
             void printActivationState();
 
             StringList* _outputCache;
@@ -180,19 +178,19 @@ namespace nanojit
             void        patch(GuardRecord *lr);
             void        patch(SideExit *exit);
 #ifdef NANOJIT_IA32
-            void        patch(SideExit* exit, SwitchInfo* si);
+            void        patch(SideExit *exit, SwitchInfo* si);
 #endif
             AssmError   error()    { return _err; }
             void        setError(AssmError e) { _err = e; }
             void        reset();
 
-            debug_only ( void        pageValidate(); )
+            debug_only ( void       pageValidate(); )
 
             
             debug_only( void        resourceConsistencyCheck(); )
             debug_only( void        registerConsistencyCheck(); )
 
-            Stats        _stats;
+            Stats       _stats;
             int hasLoop;
             CodeList*   codeList;                   
 
@@ -200,8 +198,8 @@ namespace nanojit
 
             void        gen(LirFilter* toCompile, NInsList& loopJumps, LabelStateMap& labels,
                             NInsMap& patches);
-            NIns*        genPrologue();
-            NIns*        genEpilogue();
+            NIns*       genPrologue();
+            NIns*       genEpilogue();
 
             uint32_t    arReserve(LIns* l);
             void        arFree(uint32_t idx);
@@ -217,7 +215,7 @@ namespace nanojit
             LInsp       findVictim(RegAlloc& regs, RegisterMask allow);
 
             Register    getBaseReg(LIns *i, int &d, RegisterMask allow);
-            int            findMemFor(LIns* i);
+            int         findMemFor(LIns* i);
             Register    findRegFor(LIns* i, RegisterMask allow);
             void        findRegFor2(RegisterMask allow, LIns* ia, Reservation* &ra, LIns *ib, Reservation* &rb);
             Register    findSpecificRegFor(LIns* i, Register w);
@@ -237,19 +235,17 @@ namespace nanojit
             AvmCore             *core;
             DWB(CodeAlloc*)     _codeAlloc;
             avmplus::GC*        _gc;
-            DWB(Fragment*)        _thisfrag;
+            DWB(Fragment*)      _thisfrag;
             RegAllocMap*        _branchStateMap;
 
             NIns        *codeStart, *codeEnd;       
             NIns        *exitStart, *exitEnd;       
-
-            NIns*        _nIns;            
-            NIns*        _nExitIns;        
-            NIns*        _startingIns;    
+            NIns*       _nIns;          
+            NIns*       _nExitIns;      
             NIns*       _epilogue;
-            AssmError    _err;            
+            AssmError   _err;           
 
-            AR            _activation;
+            AR          _activation;
             RegAlloc    _allocator;
 
             bool        _inExit, vpad2[3];
@@ -260,7 +256,7 @@ namespace nanojit
             NIns *      asm_jmpcc(bool brOnFalse, LIns *cond, NIns *target);
             void        asm_mmq(Register rd, int dd, Register rs, int ds);
             NIns*       asm_exit(LInsp guard);
-            NIns*        asm_leave_trace(LInsp guard);
+            NIns*       asm_leave_trace(LInsp guard);
             void        asm_qjoin(LIns *ins);
             void        asm_store32(LIns *val, int d, LIns *base);
             void        asm_store64(LIns *val, int d, LIns *base);
@@ -313,8 +309,8 @@ namespace nanojit
             DECLARE_PLATFORM_ASSEMBLER()
 
         private:
-            debug_only( int32_t    _fpuStkDepth; )
-            debug_only( int32_t    _sv_fpuStkDepth; )
+            debug_only( int32_t _fpuStkDepth; )
+            debug_only( int32_t _sv_fpuStkDepth; )
 
             
             inline void fpu_push() {
