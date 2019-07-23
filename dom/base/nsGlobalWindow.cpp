@@ -8100,13 +8100,20 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     
     if (timeout->mInterval) {
       
-      
-      
-      
-      
-      
-      
       PRTime nextInterval = (PRTime)timeout->mInterval * PR_USEC_PER_MSEC;
+
+      
+      
+      
+      if (nextInterval < (PRTime)(DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC)) {
+         nextInterval = DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC;
+      }
+
+      
+      
+      
+      
+      
       if (!aTimeout || nextInterval + timeout->mWhen <= now)
         nextInterval += now;
       else
@@ -8116,9 +8123,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
       
       
-      
-      if (delay < (PRTime)(DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC)) {
-        delay = DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC;
+      if (delay < 0) {
+        delay = 0;
       }
 
       if (timeout->mTimer) {
