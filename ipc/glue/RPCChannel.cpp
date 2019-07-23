@@ -204,7 +204,11 @@ RPCChannel::Call(Message* msg, Message* reply)
         while (!EventOccurred()) {
             bool maybeTimedOut = !RPCChannel::WaitForNotify();
 
-            if (EventOccurred())
+            if (EventOccurred() ||
+                
+                
+                (!maybeTimedOut &&
+                 (!mDeferred.empty() || !mOutOfTurnReplies.empty())))
                 break;
 
             if (maybeTimedOut && !ShouldContinueFromTimeout())
@@ -224,9 +228,17 @@ RPCChannel::Call(Message* msg, Message* reply)
             recvd = it->second;
             mOutOfTurnReplies.erase(it);
         }
-        else {
+        else if (!mPending.empty()) {
             recvd = mPending.front();
             mPending.pop();
+        }
+        else {
+            
+            
+            
+            
+            
+            continue;
         }
 
         if (!recvd.is_sync() && !recvd.is_rpc()) {

@@ -658,6 +658,8 @@ RPCChannel::SpinInternalEventLoop()
       } else {
           TranslateMessage(&msg);
           DispatchMessageW(&msg);
+          ExitSpinLoop();
+          return false;
       }
     } else {
       
