@@ -52,14 +52,6 @@ class nsIWidget;
 - (nsIWidget*)widget;
 
   
-  
-  
-  
-  
-- (NSWindow*)nativeWindow;
-- (void)setNativeWindow:(NSWindow*)aWindow;
-
-  
 - (NSMenu*)contextMenu;
 
   
