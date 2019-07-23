@@ -50,14 +50,12 @@ button {
   
 
   margin: 6px;
-  padding: 0 9px;
   min-width: 79px;
-  min-height: 22px;
   color: ButtonText;
 }
 
 .button-text {
-  margin: 0 !important;
+  margin: 1px 0 !important;
   -moz-margin-start: 3px !important;
   -moz-margin-end: 2px !important;
   text-align: center;
