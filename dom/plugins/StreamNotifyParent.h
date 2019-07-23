@@ -48,7 +48,26 @@ class StreamNotifyParent : public PStreamNotifyParent
 {
   friend class PluginInstanceParent;
 
-  StreamNotifyParent() { }
+  StreamNotifyParent()
+    : mDestructionFlag(NULL)
+  { }
+  ~StreamNotifyParent() {
+    if (mDestructionFlag)
+      *mDestructionFlag = true;
+  }
+
+public:
+  
+  
+  void SetDestructionFlag(bool* flag) {
+    mDestructionFlag = flag;
+  }
+  void ClearDestructionFlag() {
+    mDestructionFlag = NULL;
+  }
+
+private:
+  bool* mDestructionFlag;
 };
 
 } 
