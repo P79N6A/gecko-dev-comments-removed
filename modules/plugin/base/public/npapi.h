@@ -120,7 +120,7 @@
 
 
 #define NP_VERSION_MAJOR 0
-#define NP_VERSION_MINOR 19
+#define NP_VERSION_MINOR 20
 
 
 
@@ -411,7 +411,14 @@ typedef enum {
 
 
 
-  NPPVformValue = 16
+  NPPVformValue = 16,
+  
+  NPPVpluginUrlRequestsDisplayedBool = 17,
+  
+  
+
+
+  NPPVpluginWantsAllNetworkStreams = 18
 #ifdef XP_MACOSX
   
   , NPPVpluginDrawingModel = 1000
@@ -658,6 +665,7 @@ enum NPEventType {
 #define NPVERS_HAS_RESPONSE_HEADERS         17
 #define NPVERS_HAS_NPOBJECT_ENUM            18
 #define NPVERS_HAS_PLUGIN_THREAD_ASYNC_CALL 19
+#define NPVERS_HAS_ALL_NETWORK_STREAMS      20
 
 
 

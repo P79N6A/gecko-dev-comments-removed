@@ -1312,6 +1312,8 @@ public:
   nsresult OnFileAvailable(nsIFile* aFile);
 
   nsresult ServeStreamAsFile(nsIRequest *request, nsISupports *ctxt);
+  
+  nsIPluginInstance *GetPluginInstance() { return mInstance; }
 
 private:
   nsresult SetUpCache(nsIURI* aURL); 
@@ -2030,13 +2032,23 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
   if (httpChannel) {
     PRUint32 responseCode = 0;
     rv = httpChannel->GetResponseStatus(&responseCode);
-    if (NS_FAILED(rv) || responseCode > 206) { 
+    if (NS_FAILED(rv)) {
       
       
       
       
       mRequestFailed = PR_TRUE;
       return NS_ERROR_FAILURE;
+    }
+
+    if (responseCode > 206) { 
+      PRBool bWantsAllNetworkStreams = PR_FALSE;
+      mInstance->GetValue(nsPluginInstanceVariable_WantsAllNetworkStreams,
+                          (void *)&bWantsAllNetworkStreams);
+      if(!bWantsAllNetworkStreams) {
+        mRequestFailed = PR_TRUE;
+        return NS_ERROR_FAILURE;
+      }
     }
   }
 
@@ -7122,8 +7134,22 @@ nsPluginByteRangeStreamListener::OnStartRequest(nsIRequest *request, nsISupports
 
   PRUint32 responseCode = 0;
   rv = httpChannel->GetResponseStatus(&responseCode);
-  if (NS_FAILED(rv) || responseCode != 200) {
+  if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
+  }
+  
+  
+  nsPluginStreamListenerPeer *pslp =
+    reinterpret_cast<nsPluginStreamListenerPeer*>(finalStreamListener.get());
+
+  if (responseCode != 200) {
+    PRBool bWantsAllNetworkStreams = PR_FALSE;
+    pslp->GetPluginInstance()->
+      GetValue(nsPluginInstanceVariable_WantsAllNetworkStreams,
+               (void *)&bWantsAllNetworkStreams);
+    if (!bWantsAllNetworkStreams){
+      return NS_ERROR_FAILURE;
+    }
   }
 
   
@@ -7131,9 +7157,6 @@ nsPluginByteRangeStreamListener::OnStartRequest(nsIRequest *request, nsISupports
   mStreamConverter = finalStreamListener;
   mRemoveMagicNumber = PR_TRUE;
 
-  
-  nsPluginStreamListenerPeer *pslp = reinterpret_cast<nsPluginStreamListenerPeer*>
-                                                     (finalStreamListener.get());
   rv = pslp->ServeStreamAsFile(request, ctxt);
   return rv;
 }
