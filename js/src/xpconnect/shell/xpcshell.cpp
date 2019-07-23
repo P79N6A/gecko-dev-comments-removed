@@ -77,9 +77,10 @@
 
 #include <stdlib.h>
 #include <errno.h>
-#if defined(XP_WIN) || defined(XP_OS2)
+#ifdef HAVE_IO_H
 #include <io.h>     
-#elif defined(XP_UNIX) || defined(XP_BEOS)
+#endif
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>     
 #endif
 
@@ -715,7 +716,9 @@ ProcessFile(JSContext *cx, JSObject *obj, const char *filename, FILE *file,
 
     if (forceTTY) {
         file = stdin;
-    } else if (!isatty(fileno(file))) {
+    }
+#ifdef HAVE_ISATTY
+    else if (!isatty(fileno(file))) {
         
 
 
@@ -746,6 +749,7 @@ ProcessFile(JSContext *cx, JSObject *obj, const char *filename, FILE *file,
 
         return;
     }
+#endif
 
     
     lineno = 1;
@@ -1407,9 +1411,11 @@ main(int argc, char **argv, char **envp)
     int result;
     nsresult rv;
 
+#ifdef HAVE_SETBUF
     
     
     setbuf(stdout, 0);
+#endif
 
     gErrFile = stderr;
     gOutFile = stdout;

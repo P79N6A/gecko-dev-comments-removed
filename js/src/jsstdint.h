@@ -87,6 +87,11 @@ typedef unsigned __int64 uint64_t;
 
 #if defined(JS_STDDEF_H_HAS_INTPTR_T)
 #include <stddef.h>
+
+
+#elif defined(JS_CRTDEFS_H_HAS_INTPTR_T)
+#include <crtdefs.h>
+
 #else
 #error "couldn't find definitions for intptr_t, uintptr_t"
 #endif
