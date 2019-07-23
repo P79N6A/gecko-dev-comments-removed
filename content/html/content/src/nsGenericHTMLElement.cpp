@@ -2109,19 +2109,6 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
     return PR_FALSE;
   }
 
-  PRBool isURIAttr = (attr->Type() == nsAttrValue::eLazyURIValue);
-
-  if (isURIAttr && (*aURI = attr->GetURIValue())) {
-    if (aCloneIfCached) {
-      nsIURI* clone = nsnull;
-      (*aURI)->Clone(&clone);
-      *aURI = clone;
-    } else {
-      NS_ADDREF(*aURI);
-    }
-    return PR_TRUE;
-  }
-  
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
 
   if (aBaseAttr) {
@@ -2142,18 +2129,8 @@ nsGenericHTMLElement::GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
   
   
   nsContentUtils::NewURIWithDocumentCharset(aURI,
-                                            isURIAttr ?
-                                              attr->GetURIStringValue() :
-                                              attr->GetStringValue(),
+                                            attr->GetStringValue(),
                                             GetOwnerDoc(), baseURI);
-
-  
-  
-  
-  
-  if (isURIAttr && GetOwnerDoc() == GetCurrentDoc()) {
-    const_cast<nsAttrValue*>(attr)->CacheURIValue(*aURI);
-  }
   return PR_TRUE;
 }
 
@@ -3021,13 +2998,6 @@ nsGenericHTMLElement::SetHrefToURI(nsIURI* aURI)
   nsCAutoString newHref;
   aURI->GetSpec(newHref);
   SetAttrHelper(nsGkAtoms::href, NS_ConvertUTF8toUTF16(newHref));
-  const nsAttrValue* attr = mAttrsAndChildren.GetAttr(nsGkAtoms::href);
-  
-  
-  if (attr && attr->Type() == nsAttrValue::eLazyURIValue &&
-      !attr->GetURIValue()) {
-    const_cast<nsAttrValue*>(attr)->CacheURIValue(aURI);
-  }
 }
 
 nsresult
