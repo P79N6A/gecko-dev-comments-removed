@@ -5126,15 +5126,17 @@ nsTextFrame::SetSelectedRange(PRUint32 aStart,
     
     
     
-    PRBool didHaveOverflowingSelection =
-      (f->GetStateBits() & TEXT_SELECTION_UNDERLINE_OVERFLOWED) != 0;
-    nsRect r(nsPoint(0, 0), GetSize());
-    PRBool willHaveOverflowingSelection =
-      aSelected && f->CombineSelectionUnderlineRect(presContext, r);
-    if (didHaveOverflowingSelection || willHaveOverflowingSelection) {
-      presContext->PresShell()->FrameNeedsReflow(f,
-                                                 nsIPresShell::eStyleChange,
-                                                 NS_FRAME_IS_DIRTY);
+    if (aType & SelectionTypesWithDecorations) {
+      PRBool didHaveOverflowingSelection =
+        (f->GetStateBits() & TEXT_SELECTION_UNDERLINE_OVERFLOWED) != 0;
+      nsRect r(nsPoint(0, 0), GetSize());
+      PRBool willHaveOverflowingSelection =
+        aSelected && f->CombineSelectionUnderlineRect(presContext, r);
+      if (didHaveOverflowingSelection || willHaveOverflowingSelection) {
+        presContext->PresShell()->FrameNeedsReflow(f,
+                                                   nsIPresShell::eStyleChange,
+                                                   NS_FRAME_IS_DIRTY);
+      }
     }
     
     f->InvalidateOverflowRect();
