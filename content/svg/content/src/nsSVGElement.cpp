@@ -195,7 +195,8 @@ nsSVGElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     nsAttrValue attrValue;
     nsAutoString stringValue;
     oldVal->ToString(stringValue);
-    ParseStyleAttribute(this, stringValue, attrValue);
+    
+    ParseStyleAttribute(this, stringValue, attrValue, PR_TRUE);
     
     
     rv = mAttrsAndChildren.SetAndTakeAttr(nsGkAtoms::style, attrValue);

@@ -80,18 +80,14 @@ public:
 
 
 
-  nsresult  ReparseStyleAttribute(void);
-  
-
-
-
 
 
 
 
   static void ParseStyleAttribute(nsIContent* aContent,
                                   const nsAString& aValue,
-                                  nsAttrValue& aResult);
+                                  nsAttrValue& aResult,
+                                  PRBool aForceInDataDoc);
 
   static void Shutdown();
   
@@ -102,6 +98,13 @@ protected:
 
   nsresult GetStyle(nsIDOMCSSStyleDeclaration** aStyle);
 
+  
+
+
+
+
+
+  nsresult  ReparseStyleAttribute(PRBool aForceInDataDoc);
 };
 
 #endif 
