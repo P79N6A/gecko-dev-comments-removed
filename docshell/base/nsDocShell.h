@@ -620,7 +620,7 @@ protected:
     nsCOMPtr<nsISupportsArray> mRefreshURIList;
     nsCOMPtr<nsISupportsArray> mSavedRefreshURIList;
     nsRefPtr<nsDSURIContentListener> mContentListener;
-    nsIntRect                  mBounds; 
+    nsRect                     mBounds; 
     nsCOMPtr<nsIContentViewer> mContentViewer;
     nsCOMPtr<nsIDocumentCharsetInfo> mDocumentCharsetInfo;
     nsCOMPtr<nsIWidget>        mParentWidget;
@@ -633,7 +633,7 @@ protected:
     nsCOMPtr<nsISHistory>      mSessionHistory;
     nsCOMPtr<nsIGlobalHistory2> mGlobalHistory;
     nsCOMPtr<nsIWebBrowserFind> mFind;
-    nsIntPoint                 mDefaultScrollbarPref; 
+    nsPoint                    mDefaultScrollbarPref; 
     
     
     nsCOMPtr<nsISHEntry>       mOSHE; 

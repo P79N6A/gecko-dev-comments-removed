@@ -103,9 +103,10 @@ typedef short SelectionType;
 typedef PRUint32 nsFrameState;
 
 
+
 #define NS_IPRESSHELL_IID \
-{ 0xb86c23c5, 0x602d, 0x4ca6, \
-  { 0xa9, 0x68, 0x37, 0x9b, 0x24, 0x4f, 0xed, 0x9e } }
+{ 0x134e504f, 0x4fd1, 0x4590, \
+  { 0x9f, 0x5d, 0x89, 0x9a, 0xfe, 0xe6, 0x3d, 0x0f } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -738,8 +739,8 @@ public:
 
   virtual already_AddRefed<gfxASurface> RenderNode(nsIDOMNode* aNode,
                                                    nsIRegion* aRegion,
-                                                   nsIntPoint& aPoint,
-                                                   nsIntRect* aScreenRect) = 0;
+                                                   nsPoint& aPoint,
+                                                   nsRect* aScreenRect) = 0;
 
   
 
@@ -757,8 +758,8 @@ public:
 
 
   virtual already_AddRefed<gfxASurface> RenderSelection(nsISelection* aSelection,
-                                                        nsIntPoint& aPoint,
-                                                        nsIntRect* aScreenRect) = 0;
+                                                        nsPoint& aPoint,
+                                                        nsRect* aScreenRect) = 0;
 
   void AddWeakFrame(nsWeakFrame* aWeakFrame);
   void RemoveWeakFrame(nsWeakFrame* aWeakFrame);

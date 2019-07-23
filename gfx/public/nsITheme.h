@@ -46,9 +46,9 @@
 #include "nsColor.h"
 
 struct nsRect;
-struct nsIntSize;
+struct nsSize;
 struct nsFont;
-struct nsIntMargin;
+struct nsMargin;
 class nsPresContext;
 class nsIRenderingContext;
 class nsIDeviceContext;
@@ -59,7 +59,7 @@ class nsIAtom;
 
 
 #define NS_ITHEME_IID     \
-{ 0x887e8902, 0xdb6b, 0x41b4, { 0x84, 0x81, 0xa8, 0x0f, 0x49, 0xc5, 0xa9, 0x3a } }
+{ 0xdf8baf21, 0x5ea7, 0x49eb, { 0xa2, 0xbc, 0xf2, 0xfd, 0x4a, 0x9f, 0xd8, 0x96 } }
 
 
 #define NS_THEMERENDERER_CID \
@@ -91,7 +91,7 @@ public:
   NS_IMETHOD GetWidgetBorder(nsIDeviceContext* aContext, 
                              nsIFrame* aFrame,
                              PRUint8 aWidgetType,
-                             nsIntMargin* aResult)=0;
+                             nsMargin* aResult)=0;
 
   
 
@@ -105,7 +105,7 @@ public:
   virtual PRBool GetWidgetPadding(nsIDeviceContext* aContext,
                                   nsIFrame* aFrame,
                                   PRUint8 aWidgetType,
-                                  nsIntMargin* aResult) = 0;
+                                  nsMargin* aResult) = 0;
 
   
 
@@ -130,7 +130,7 @@ public:
   NS_IMETHOD GetMinimumWidgetSize(nsIRenderingContext* aContext,
                                   nsIFrame* aFrame,
                                   PRUint8 aWidgetType,
-                                  nsIntSize* aResult,
+                                  nsSize* aResult,
                                   PRBool* aIsOverridable)=0;
 
   NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, PRUint8 aWidgetType, 

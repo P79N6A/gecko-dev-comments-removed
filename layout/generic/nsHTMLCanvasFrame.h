@@ -61,7 +61,7 @@ public:
                    const nsRect& aDirtyRect, nsPoint aPt);
                               
   
-  nsIntSize GetCanvasSize();
+  nsSize GetCanvasSize();
 
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);

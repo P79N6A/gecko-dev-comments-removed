@@ -74,12 +74,12 @@ public:
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
   NS_IMETHOD OnDataAvailable(imgIRequest *aRequest, gfxIImageFrame *aFrame,
-                             const nsIntRect *aRect);
+                             const nsRect *aRect);
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult status,
                           const PRUnichar *statusArg);
   
   NS_IMETHOD FrameChanged(imgIContainer *aContainer, gfxIImageFrame *newframe,
-                          nsIntRect * dirtyRect);
+                          nsRect * dirtyRect);
 
   void SetFrame(nsImageFrame *frame) { mFrame = frame; }
 
@@ -225,13 +225,13 @@ protected:
   nsresult OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
   nsresult OnDataAvailable(imgIRequest *aRequest,
                            gfxIImageFrame *aFrame,
-                           const nsIntRect *rect);
+                           const nsRect * rect);
   nsresult OnStopDecode(imgIRequest *aRequest,
                         nsresult aStatus,
                         const PRUnichar *aStatusArg);
   nsresult FrameChanged(imgIContainer *aContainer,
                         gfxIImageFrame *aNewframe,
-                        nsIntRect *aDirtyRect);
+                        nsRect *aDirtyRect);
 
 private:
   
@@ -268,7 +268,7 @@ private:
 
 
 
-  nsRect SourceRectToDest(const nsIntRect & aRect);
+  nsRect SourceRectToDest(const nsRect & aRect);
 
   nsImageMap*         mImageMap;
 

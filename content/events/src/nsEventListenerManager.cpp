@@ -1380,7 +1380,7 @@ nsEventListenerManager::FixContextMenuEvent(nsPresContext* aPresContext,
 
   
   if (contextMenuKey) {
-    nsIntPoint caretPoint;
+    nsPoint caretPoint;
     
     
     if (PrepareToUseCaretPosition(((nsGUIEvent*)aEvent)->widget,
@@ -1413,7 +1413,7 @@ nsEventListenerManager::FixContextMenuEvent(nsPresContext* aPresContext,
 
   if (currentFocus) {
     
-    nsIntPoint targetPt;
+    nsPoint targetPt;
     GetCoordinatesFor(currentFocus, aPresContext, shell, targetPt);
     aEvent->refPoint.x = targetPt.x;
     aEvent->refPoint.y = targetPt.y;
@@ -1441,7 +1441,7 @@ nsEventListenerManager::FixContextMenuEvent(nsPresContext* aPresContext,
 PRBool
 nsEventListenerManager::PrepareToUseCaretPosition(nsIWidget* aEventWidget,
                                                   nsIPresShell* aShell,
-                                                  nsIntPoint& aTargetPt)
+                                                  nsPoint& aTargetPt)
 {
   nsresult rv;
 
@@ -1548,7 +1548,7 @@ void
 nsEventListenerManager::GetCoordinatesFor(nsIDOMElement *aCurrentEl, 
                                           nsPresContext *aPresContext,
                                           nsIPresShell *aPresShell, 
-                                          nsIntPoint& aTargetPt)
+                                          nsPoint& aTargetPt)
 {
   nsCOMPtr<nsIContent> focusedContent(do_QueryInterface(aCurrentEl));
   aPresShell->ScrollContentIntoView(focusedContent,
