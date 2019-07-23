@@ -166,7 +166,10 @@ ServiceInfo.prototype = {
   }
 };
 
-function WebContentConverterRegistrar() {}
+function WebContentConverterRegistrar() {
+  this._contentTypes = { };
+  this._autoHandleContentTypes = { };
+}
 
 WebContentConverterRegistrar.prototype = {
   get stringBundle() {
@@ -184,14 +187,6 @@ WebContentConverterRegistrar.prototype = {
   _getString: function WCCR_getString(key) {
     return this.stringBundle.GetStringFromName(key);
   },
-
-  _contentTypes: { },
-
-  
-
-
-
-  _autoHandleContentTypes: { },
 
   
 
