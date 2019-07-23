@@ -5540,6 +5540,16 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     nsresult rv = os->EnumerateObservers(TOPIC_PLACES_INIT_COMPLETE,
                                          getter_AddRefs(e));
     if (NS_SUCCEEDED(rv) && e) {
+      
+      
+      
+      
+      
+      
+      
+      
+      mCanNotify = false;
+
       nsCOMPtr<nsIObserver> observer;
       PRBool loop = PR_TRUE;
       while(NS_SUCCEEDED(e->HasMoreElements(&loop)) && loop)
