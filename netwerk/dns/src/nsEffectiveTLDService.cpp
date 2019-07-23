@@ -148,7 +148,7 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
         *effTLDLength = end - prevDomain;
         break;
 
-      } else if (entry->IsNormal()) {
+      } else if (entry->IsNormal() || !nextDot) {
         
         *effTLDLength = end - currDomain;
         break;
