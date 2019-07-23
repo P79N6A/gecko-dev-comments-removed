@@ -1923,16 +1923,16 @@ NS_IMETHODIMP nsViewManager::EnableRefresh(PRUint32 aUpdateFlags)
 
   mRefreshEnabled = PR_TRUE;
 
-  if (!mHasPendingUpdates) {
-    
-    return NS_OK;
-  }
-
+  
+  
+  
   
   
   if (aUpdateFlags & NS_VMREFRESH_IMMEDIATE) {
     FlushPendingInvalidates();
     Composite();
+  } else if (!mHasPendingUpdates) {
+    
   } else if (aUpdateFlags & NS_VMREFRESH_DEFERRED) {
     PostInvalidateEvent();
   } else { 
