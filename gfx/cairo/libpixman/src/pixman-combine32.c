@@ -82,7 +82,6 @@ combine_mask_alpha_ca (const uint32_t *src, uint32_t *mask)
 
     if (a == ~0)
     {
-	x = x >> A_SHIFT;
 	x |= x << G_SHIFT;
 	x |= x << R_SHIFT;
 	*(mask) = x;
@@ -629,6 +628,8 @@ PDF_SEPARABLE_BLEND_MODE (lighten)
 
 
 
+
+
 static inline uint32_t
 blend_color_dodge (uint32_t dca, uint32_t da, uint32_t sca, uint32_t sa)
 {
@@ -638,12 +639,14 @@ blend_color_dodge (uint32_t dca, uint32_t da, uint32_t sca, uint32_t sa)
     }
     else
     {
-	uint32_t rca = dca * sa * sa / (sa - sca);
-	return DIV_ONE_UN8 (rca > sa * da ? sa * da : rca);
+	uint32_t rca = dca * sa / (sa - sca);
+	return DIV_ONE_UN8 (sa * MIN (rca, da));
     }
 }
 
 PDF_SEPARABLE_BLEND_MODE (color_dodge)
+
+
 
 
 
@@ -662,9 +665,8 @@ blend_color_burn (uint32_t dca, uint32_t da, uint32_t sca, uint32_t sa)
     }
     else
     {
-	uint32_t sada = sa * da;
-	uint32_t rca = (da - dca) * sa * sa / sca;
-	return DIV_ONE_UN8 (rca > sada ? 0 : sada - rca);
+	uint32_t rca = (da - dca) * sa / sca;
+	return DIV_ONE_UN8 (sa * (MAX (rca, da) - rca));
     }
 }
 
@@ -1588,7 +1590,7 @@ combine_src_ca (pixman_implementation_t *imp,
 
 	combine_mask_value_ca (&s, &m);
 
-	*(dest) = s;
+	*(dest + i) = s;
     }
 }
 
@@ -1611,17 +1613,14 @@ combine_over_ca (pixman_implementation_t *imp,
 	combine_mask_ca (&s, &m);
 
 	a = ~m;
-	if (a != ~0)
+	if (a)
 	{
-	    if (a)
-	    {
-		uint32_t d = *(dest + i);
-		UN8x4_MUL_UN8x4_ADD_UN8x4 (d, a, s);
-		s = d;
-	    }
-
-	    *(dest + i) = s;
+	    uint32_t d = *(dest + i);
+	    UN8x4_MUL_UN8x4_ADD_UN8x4 (d, a, s);
+	    s = d;
 	}
+
+	*(dest + i) = s;
     }
 }
 
@@ -1645,10 +1644,8 @@ combine_over_reverse_ca (pixman_implementation_t *imp,
 	    uint32_t s = *(src + i);
 	    uint32_t m = *(mask + i);
 
-	    combine_mask_value_ca (&s, &m);
-
-	    if (a != MASK)
-		UN8x4_MUL_UN8_ADD_UN8x4 (s, a, d);
+	    UN8x4_MUL_UN8x4 (s, m);
+	    UN8x4_MUL_UN8_ADD_UN8x4 (s, a, d);
 
 	    *(dest + i) = s;
 	}

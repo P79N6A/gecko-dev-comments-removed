@@ -82,7 +82,6 @@ combine_mask_alpha_ca (const uint64_t *src, uint64_t *mask)
 
     if (a == ~0)
     {
-	x = x >> A_SHIFT;
 	x |= x << G_SHIFT;
 	x |= x << R_SHIFT;
 	*(mask) = x;
@@ -629,6 +628,8 @@ PDF_SEPARABLE_BLEND_MODE (lighten)
 
 
 
+
+
 static inline uint64_t
 blend_color_dodge (uint64_t dca, uint64_t da, uint64_t sca, uint64_t sa)
 {
@@ -638,12 +639,14 @@ blend_color_dodge (uint64_t dca, uint64_t da, uint64_t sca, uint64_t sa)
     }
     else
     {
-	uint64_t rca = dca * sa * sa / (sa - sca);
-	return DIV_ONE_UN16 (rca > sa * da ? sa * da : rca);
+	uint64_t rca = dca * sa / (sa - sca);
+	return DIV_ONE_UN16 (sa * MIN (rca, da));
     }
 }
 
 PDF_SEPARABLE_BLEND_MODE (color_dodge)
+
+
 
 
 
@@ -662,9 +665,8 @@ blend_color_burn (uint64_t dca, uint64_t da, uint64_t sca, uint64_t sa)
     }
     else
     {
-	uint64_t sada = sa * da;
-	uint64_t rca = (da - dca) * sa * sa / sca;
-	return DIV_ONE_UN16 (rca > sada ? 0 : sada - rca);
+	uint64_t rca = (da - dca) * sa / sca;
+	return DIV_ONE_UN16 (sa * (MAX (rca, da) - rca));
     }
 }
 
@@ -1588,7 +1590,7 @@ combine_src_ca (pixman_implementation_t *imp,
 
 	combine_mask_value_ca (&s, &m);
 
-	*(dest) = s;
+	*(dest + i) = s;
     }
 }
 
@@ -1611,17 +1613,14 @@ combine_over_ca (pixman_implementation_t *imp,
 	combine_mask_ca (&s, &m);
 
 	a = ~m;
-	if (a != ~0)
+	if (a)
 	{
-	    if (a)
-	    {
-		uint64_t d = *(dest + i);
-		UN16x4_MUL_UN16x4_ADD_UN16x4 (d, a, s);
-		s = d;
-	    }
-
-	    *(dest + i) = s;
+	    uint64_t d = *(dest + i);
+	    UN16x4_MUL_UN16x4_ADD_UN16x4 (d, a, s);
+	    s = d;
 	}
+
+	*(dest + i) = s;
     }
 }
 
@@ -1645,10 +1644,8 @@ combine_over_reverse_ca (pixman_implementation_t *imp,
 	    uint64_t s = *(src + i);
 	    uint64_t m = *(mask + i);
 
-	    combine_mask_value_ca (&s, &m);
-
-	    if (a != MASK)
-		UN16x4_MUL_UN16_ADD_UN16x4 (s, a, d);
+	    UN16x4_MUL_UN16x4 (s, m);
+	    UN16x4_MUL_UN16_ADD_UN16x4 (s, a, d);
 
 	    *(dest + i) = s;
 	}

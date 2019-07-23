@@ -38,7 +38,7 @@ pixman_sample_ceil_y (pixman_fixed_t y, int n)
     pixman_fixed_t f = pixman_fixed_frac (y);
     pixman_fixed_t i = pixman_fixed_floor (y);
 
-    f = ((f + Y_FRAC_FIRST (n)) / STEP_Y_SMALL (n)) * STEP_Y_SMALL (n) +
+    f = DIV (f - Y_FRAC_FIRST (n) + (STEP_Y_SMALL (n) - pixman_fixed_e), STEP_Y_SMALL (n)) * STEP_Y_SMALL (n) +
 	Y_FRAC_FIRST (n);
     
     if (f > Y_FRAC_LAST (n))
@@ -67,7 +67,7 @@ pixman_sample_floor_y (pixman_fixed_t y,
     pixman_fixed_t f = pixman_fixed_frac (y);
     pixman_fixed_t i = pixman_fixed_floor (y);
 
-    f = DIV (f - Y_FRAC_FIRST (n), STEP_Y_SMALL (n)) * STEP_Y_SMALL (n) +
+    f = DIV (f - pixman_fixed_e - Y_FRAC_FIRST (n), STEP_Y_SMALL (n)) * STEP_Y_SMALL (n) +
 	Y_FRAC_FIRST (n);
 
     if (f < Y_FRAC_FIRST (n))
@@ -380,7 +380,7 @@ pixman_rasterize_trapezoid (pixman_image_t *          image,
     if (pixman_fixed_to_int (b) >= height)
 	b = pixman_int_to_fixed (height) - 1;
     b = pixman_sample_floor_y (b, bpp);
-
+    
     if (b >= t)
     {
 	
