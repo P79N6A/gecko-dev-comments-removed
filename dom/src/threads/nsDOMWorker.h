@@ -43,6 +43,7 @@
 #include "nsIDOMWorkers.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsIPrincipal.h"
+#include "nsITimer.h"
 #include "nsIURI.h"
 #include "nsIXPCScriptable.h"
 
@@ -66,39 +67,45 @@ class nsIEventTarget;
 class nsIScriptGlobalObject;
 class nsIXPConnectWrappedNative;
 
-class nsDOMWorkerScope : public nsIWorkerScope,
-                         public nsIDOMEventTarget,
-                         public nsIXPCScriptable,
-                         public nsIClassInfo
+class nsDOMWorkerScope : public nsDOMWorkerMessageHandler,
+                         public nsIWorkerScope,
+                         public nsIXPCScriptable
 {
+  friend class nsDOMWorker;
+
   typedef nsresult (NS_STDCALL nsDOMWorkerScope::*SetListenerFunc)
     (nsIDOMEventListener*);
 
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIDOMEVENTTARGET
   NS_DECL_NSIWORKERGLOBALSCOPE
   NS_DECL_NSIWORKERSCOPE
-  NS_DECL_NSIDOMEVENTTARGET
   NS_DECL_NSIXPCSCRIPTABLE
   NS_DECL_NSICLASSINFO
 
   nsDOMWorkerScope(nsDOMWorker* aWorker);
 
+protected:
+  already_AddRefed<nsIXPConnectWrappedNative> GetWrappedNative();
+
 private:
   nsDOMWorker* mWorker;
+  nsIXPConnectWrappedNative* mWrappedNative;
 
   nsRefPtr<nsDOMWorkerNavigator> mNavigator;
 
   PRPackedBool mHasOnerror;
 };
 
-class nsDOMWorker : public nsIWorker,
+class nsDOMWorker : public nsDOMWorkerMessageHandler,
+                    public nsIWorker,
+                    public nsITimerCallback,
                     public nsIJSNativeInitializer,
                     public nsIXPCScriptable
 {
   friend class nsDOMWorkerFeature;
   friend class nsDOMWorkerFunctions;
-  friend class nsDOMWorkerRefPtr;
   friend class nsDOMWorkerScope;
   friend class nsDOMWorkerScriptLoader;
   friend class nsDOMWorkerTimeout;
@@ -117,10 +124,11 @@ class nsDOMWorker : public nsIWorker,
 #endif
 
 public:
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIDOMEVENTTARGET
   NS_DECL_NSIABSTRACTWORKER
   NS_DECL_NSIWORKER
-  NS_FORWARD_SAFE_NSIDOMEVENTTARGET(mOuterHandler)
+  NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIXPCSCRIPTABLE
 
   static nsresult NewWorker(nsISupports** aNewObject);
@@ -141,16 +149,13 @@ public:
                               jsval* aArgv);
 
   void Cancel();
+  void Kill();
   void Suspend();
   void Resume();
 
-  PRBool IsCanceled() {
-    return mCanceled;
-  }
-
-  PRBool IsSuspended() {
-    return mSuspended;
-  }
+  PRBool IsCanceled();
+  PRBool IsClosing();
+  PRBool IsSuspended();
 
   PRBool SetGlobalForContext(JSContext* aCx);
 
@@ -170,6 +175,62 @@ public:
   nsDOMWorkerScope* GetInnerScope() {
     return mInnerScope;
   }
+
+  void SetExpirationTime(PRIntervalTime aExpirationTime);
+#ifdef DEBUG
+  PRIntervalTime GetExpirationTime();
+#endif
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  enum DOMWorkerStatus {
+    
+    eRunning = 0,
+
+    
+    
+    
+    
+    
+    
+    
+    
+    eClosed,
+
+    
+    
+    
+    
+    
+    
+    
+    eTerminated,
+
+    
+    
+    
+    
+    
+    
+    eCanceled,
+
+    
+    eKilled
+  };
 
 private:
   ~nsDOMWorker();
@@ -192,7 +253,6 @@ private:
   void CancelTimeoutWithId(PRUint32 aId);
   void SuspendFeatures();
   void ResumeFeatures();
-  void CancelFeatures();
 
   nsIPrincipal* GetPrincipal() {
     return mPrincipal;
@@ -210,6 +270,13 @@ private:
     mURI = aURI;
   }
 
+  nsresult FireCloseRunnable(PRIntervalTime aTimeoutInterval,
+                             PRBool aClearQueue,
+                             PRBool aFromFinalize);
+  nsresult Close();
+
+  nsresult TerminateInternal(PRBool aFromFinalize);
+
 private:
 
   
@@ -219,12 +286,10 @@ private:
 
   PRLock* mLock;
 
-  nsRefPtr<nsDOMWorkerMessageHandler> mInnerHandler;
-  nsRefPtr<nsDOMWorkerMessageHandler> mOuterHandler;
-
   nsRefPtr<nsDOMWorkerPool> mPool;
 
   nsDOMWorkerScope* mInnerScope;
+  nsCOMPtr<nsIXPConnectWrappedNative> mScopeWN;
   JSObject* mGlobal;
 
   PRUint32 mNextTimeoutId;
@@ -241,10 +306,16 @@ private:
 
   PRInt32 mErrorHandlerRecursionCount;
 
-  PRPackedBool mCanceled;
+  
+  DOMWorkerStatus mStatus;
+
+  
+  PRIntervalTime mExpirationTime;
+
+  nsCOMPtr<nsITimer> mKillTimer;
+
   PRPackedBool mSuspended;
   PRPackedBool mCompileAttempted;
-  PRPackedBool mTerminated;
 };
 
 
