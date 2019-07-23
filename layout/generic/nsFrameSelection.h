@@ -360,10 +360,10 @@ public:
 
 
 
-  nsIFrame* GetFrameForNodeOffset(nsIContent *aNode,
-                                  PRInt32     aOffset,
-                                  HINT        aHint,
-                                  PRInt32    *aReturnOffset) const;
+  virtual nsIFrame* GetFrameForNodeOffset(nsIContent *aNode,
+                                          PRInt32     aOffset,
+                                          HINT        aHint,
+                                          PRInt32    *aReturnOffset) const;
 
   
 

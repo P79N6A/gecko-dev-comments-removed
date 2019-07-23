@@ -223,6 +223,13 @@ protected:
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
 
   
+
+
+
+
+  PRInt32 GetCaretLineNumber();
+
+  
   nsresult GetDOMPointByFrameOffset(nsIFrame *aFrame, PRInt32 aOffset,
                                     nsIAccessible *aAccessible,
                                     nsIDOMNode **aNode, PRInt32 *aNodeOffset);

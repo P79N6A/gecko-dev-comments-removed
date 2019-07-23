@@ -190,3 +190,6 @@ ACCESSIBILITY_ATOM(role, "role")
 
 
 ACCESSIBILITY_ATOM(defaultLabel, "defaultLabel")
+
+
+ACCESSIBILITY_ATOM(lineNumber, "line-number")
