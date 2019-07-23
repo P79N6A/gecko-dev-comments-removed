@@ -1398,6 +1398,31 @@ public:
 };
 
 
+
+class nsTextRectangleListSH : public nsArraySH
+{
+protected:
+  nsTextRectangleListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
+  {
+  }
+
+  virtual ~nsTextRectangleListSH()
+  {
+  }
+
+  
+  
+  virtual nsresult GetItemAt(nsISupports *aNative, PRUint32 aIndex,
+                             nsISupports **aResult);
+
+public:
+  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
+  {
+    return new nsTextRectangleListSH(aData);
+  }
+};
+
+
 #ifdef MOZ_XUL
 
 

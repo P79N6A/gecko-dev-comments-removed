@@ -146,26 +146,6 @@ private:
 
 
 
-class nsNSElementTearoff : public nsIDOMNSElement
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  NS_DECL_NSIDOMNSELEMENT
-
-  nsNSElementTearoff(nsIContent *aContent) : mContent(aContent)
-  {
-  }
-  
-private:
-  nsCOMPtr<nsIContent> mContent;
-};
-
-
-
-
-
-
 class nsNodeWeakReference : public nsIWeakReference
 {
 public:
@@ -1087,5 +1067,24 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
                                                                             \
   return rv;                                                                \
 }
+
+
+
+
+
+class nsNSElementTearoff : public nsIDOMNSElement
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  NS_DECL_NSIDOMNSELEMENT
+
+  nsNSElementTearoff(nsGenericElement *aContent) : mContent(aContent)
+  {
+  }
+  
+private:
+  nsRefPtr<nsGenericElement> mContent;
+};
 
 #endif 

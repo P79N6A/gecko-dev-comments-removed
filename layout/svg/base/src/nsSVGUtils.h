@@ -248,6 +248,14 @@ public:
   GetOuterSVGFrame(nsIFrame *aFrame);
 
   
+
+
+
+
+  static nsIFrame*
+  GetOuterSVGFrameAndCoveredRegion(nsIFrame* aFrame, nsRect* aRect);
+
+  
   
   static already_AddRefed<nsIDOMSVGMatrix>
   GetViewBoxTransform(float aViewportWidth, float aViewportHeight,

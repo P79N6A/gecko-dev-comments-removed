@@ -92,7 +92,11 @@
 #include "nsPIBoxObject.h"
 #include "nsIDOMNSDocument.h"
 #include "nsIDOMNSElement.h"
-
+#include "nsTextRectangle.h"
+#ifdef MOZ_SVG
+#include "nsSVGUtils.h"
+#endif
+#include "nsLayoutUtils.h"
 #include "nsGkAtoms.h"
 #include "nsContentUtils.h"
 #include "nsIJSContextStack.h"
@@ -643,6 +647,137 @@ nsNSElementTearoff::GetElementsByClassName(const nsAString& aClasses,
                                            nsIDOMNodeList** aReturn)
 {
   return nsDocument::GetElementsByClassNameHelper(mContent, aClasses, aReturn);
+}
+
+static nsPoint
+GetOffsetFromInitialContainingBlock(nsIFrame* aFrame)
+{
+  nsPresContext* presContext = aFrame->PresContext();
+  nsIPresShell* shell = presContext->PresShell();
+  nsIFrame* rootScrollFrame = shell->GetRootScrollFrame();
+  nsPoint pt(0,0);
+  nsIFrame* child = aFrame;
+  for (nsIFrame* p = aFrame->GetParent(); p && p != rootScrollFrame;
+       p = p->GetParent()) {
+    pt += p->GetPositionOfChildIgnoringScrolling(child);
+    
+    
+    if (p->IsFrameOfType(nsIFrame::eSVGForeignObject))
+      return pt;
+    child = p;
+  }
+  return pt;
+}
+
+static double
+RoundFloat(double aValue)
+{
+  return floor(aValue + 0.5);
+}
+
+static void
+SetTextRectangle(const nsRect& aLayoutRect, nsPresContext* aPresContext,
+                 nsTextRectangle* aRect)
+{
+  double scale = 4096.0;
+  
+  
+  double scaleInv = 1/scale;
+  double t2pScaled = scale/aPresContext->AppUnitsPerCSSPixel();
+  aRect->SetRect(RoundFloat(aLayoutRect.x*t2pScaled)*scaleInv,
+                 RoundFloat(aLayoutRect.y*t2pScaled)*scaleInv,
+                 RoundFloat(aLayoutRect.width*t2pScaled)*scaleInv,
+                 RoundFloat(aLayoutRect.height*t2pScaled)*scaleInv);
+}
+
+static PRBool
+TryGetSVGBoundingRect(nsIFrame* aFrame, nsRect* aRect)
+{
+#ifdef MOZ_SVG
+  nsRect r;
+  nsIFrame* outer = nsSVGUtils::GetOuterSVGFrameAndCoveredRegion(aFrame, &r);
+  if (!outer)
+    return PR_FALSE;
+
+  
+  
+  r.ScaleRoundOut(1.0/aFrame->PresContext()->AppUnitsPerCSSPixel());
+  *aRect = r + GetOffsetFromInitialContainingBlock(outer);
+  return PR_TRUE;
+#else
+  return PR_FALSE;
+#endif
+}
+
+NS_IMETHODIMP
+nsNSElementTearoff::GetBoundingClientRect(nsIDOMTextRectangle** aResult)
+{
+  
+  nsTextRectangle* rect = new nsTextRectangle();
+  if (!rect)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  NS_ADDREF(*aResult = rect);
+  
+  nsIFrame* frame = mContent->GetPrimaryFrame(Flush_Layout);  
+  if (!frame) {
+    
+    return NS_OK;
+  }
+  
+  nsRect r;
+  if (TryGetSVGBoundingRect(frame, &r)) {
+    
+    
+    nsIFrame* next;
+    while ((next = frame->GetNextContinuation()) != nsnull) {
+      frame = next;
+      nsRect nextRect;
+#ifdef DEBUG
+      PRBool isSVG =
+#endif
+        TryGetSVGBoundingRect(frame, &nextRect);
+      NS_ASSERTION(isSVG, "SVG frames must have SVG continuations");
+      r.UnionRect(r, nextRect);
+    }
+  } else {
+    r = nsLayoutUtils::GetAllInFlowBoundingRect(frame) +
+        GetOffsetFromInitialContainingBlock(frame);
+  }
+  SetTextRectangle(r, frame->PresContext(), rect);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSElementTearoff::GetClientRects(nsIDOMTextRectangleList** aResult)
+{
+  
+  nsTextRectangleList* rectList = new nsTextRectangleList();
+  if (!rectList)
+    return NS_ERROR_OUT_OF_MEMORY;
+  
+  NS_ADDREF(*aResult = rectList);
+  
+  nsIFrame* frame = mContent->GetPrimaryFrame(Flush_Layout);
+  if (!frame) {
+    
+    return NS_OK;
+  }
+  
+  nsPresContext* presContext = frame->PresContext();
+  for (nsIFrame* f = frame; f; f = f->GetNextContinuation()) {
+    nsRefPtr<nsTextRectangle> rect = new nsTextRectangle();
+    if (!rect)
+      return NS_ERROR_OUT_OF_MEMORY;
+    
+    nsRect r;
+    if (!TryGetSVGBoundingRect(f, &r)) {
+      r = nsRect(GetOffsetFromInitialContainingBlock(f), f->GetSize());
+    }
+    SetTextRectangle(r, presContext, rect);
+    rectList->Append(rect);
+  }
+  return NS_OK;
 }
 
 

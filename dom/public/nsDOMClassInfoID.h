@@ -380,6 +380,9 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_XMLHttpProgressEvent_id,
   eDOMClassInfo_XMLHttpRequest_id,
 
+  eDOMClassInfo_TextRectangle_id,
+  eDOMClassInfo_TextRectangleList_id,
+
   
   
   
