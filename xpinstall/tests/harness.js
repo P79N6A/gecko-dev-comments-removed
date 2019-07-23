@@ -150,34 +150,15 @@ var Harness = {
 
   
 
-  installBlocked: function() {
-    
-    var notificationBox = gBrowser.getNotificationBox(gBrowser.selectedBrowser);
-    var self = this;
-    this.waitForNotification(notificationBox, function() { self.notificationComplete() });
-  },
-
-  
-  
-  waitForNotification: function(notificationBox, callback) {
-    if (!notificationBox._timer) {
-      callback();
-      return;
-    }
-  
-    setTimeout(arguments.callee, 50, notificationBox, callback);
-  },
-
-  notificationComplete: function() {
+  installBlocked: function(installInfo) {
     ok(!!this.installBlockedCallback, "Shouldn't have been blocked by the whitelist");
-    var notification = gBrowser.getNotificationBox(gBrowser.selectedBrowser)
-                               .getNotificationWithValue("xpinstall");
-    if (this.installBlockedCallback && this.installBlockedCallback()) {
+    if (this.installBlockedCallback && this.installBlockedCallback(installInfo)) {
       this.installBlockedCallback = null;
-      notification.firstChild.click();
+      var mgr = Components.classes["@mozilla.org/xpinstall/install-manager;1"]
+                          .createInstance(Components.interfaces.nsIXPInstallManager);
+      mgr.initManagerWithInstallInfo(installInfo);
     }
     else {
-      notification.close();
       this.endTest();
     }
   },
@@ -239,10 +220,8 @@ var Harness = {
   
 
   observe: function(subject, topic, data) {
-    
-    
-    var self = this;
-    executeSoon(function() { self.installBlocked() });
+    var installInfo = subject.QueryInterface(Components.interfaces.nsIXPIInstallInfo);
+    this.installBlocked(installInfo);
   },
 
   QueryInterface: function(iid) {
