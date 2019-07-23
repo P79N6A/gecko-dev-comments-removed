@@ -106,8 +106,6 @@
     "WHERE id = OLD.id; " \
     "DELETE FROM moz_places " \
     "WHERE id = OLD.id; " \
-    "DELETE FROM moz_openpages_temp " \
-    "WHERE place_id = OLD.id; " \
   "END" \
 )
 
@@ -259,19 +257,5 @@
   CREATE_TEMP_SYNC_TRIGGER_BASE("moz_places", MOZ_PLACES_COLUMNS)
 #define CREATE_MOZ_HISTORYVISITS_SYNC_TRIGGER \
   CREATE_TEMP_SYNC_TRIGGER_BASE("moz_historyvisits", MOZ_HISTORYVISITS_COLUMNS)
-
-
-
-
-
-#define CREATE_REMOVEOPENPAGE_CLEANUP_TRIGGER NS_LITERAL_CSTRING( \
-  "CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger " \
-  "AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW " \
-  "WHEN NEW.open_count = 0 " \
-  "BEGIN " \
-    "DELETE FROM moz_openpages_temp " \
-    "WHERE place_id = NEW.place_id;" \
-  "END" \
-)
 
 #endif 
