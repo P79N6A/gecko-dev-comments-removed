@@ -730,20 +730,40 @@ nsXULPopupManager::HidePopupsInDocument(nsIDocument* aDocument)
 void
 nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsEvent* aEvent)
 {
+  CloseMenuMode cmm = CloseMenuMode_Auto;
+
+  static nsIContent::AttrValuesArray strings[] =
+    {&nsGkAtoms::none, &nsGkAtoms::single, nsnull};
+
+  switch (aMenu->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::closemenu,
+                                 strings, eCaseMatters)) {
+    case 0:
+      cmm = CloseMenuMode_None;
+      break;
+    case 1:
+      cmm = CloseMenuMode_Single;
+      break;
+    default:
+      break;
+  }
+
   
   
   
   
   
   nsMenuChainItem* item = GetTopVisibleMenu();
-  while (item) {
-    
-    if (!item->IsMenu())
-      break;
-    nsMenuChainItem* next = item->GetParent();
-    item->Frame()->HidePopup(PR_TRUE, ePopupInvisible);
-
-    item = next;
+  if (cmm != CloseMenuMode_None) {
+    while (item) {
+      
+      if (!item->IsMenu())
+        break;
+      nsMenuChainItem* next = item->GetParent();
+      item->Frame()->HidePopup(cmm == CloseMenuMode_Auto, ePopupInvisible);
+      if (cmm == CloseMenuMode_Single) 
+        break;
+      item = next;
+    }
   }
 
   SetCaptureState(nsnull);
@@ -770,7 +790,8 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsEvent* aEvent)
   PRBool userinput = nsEventStateManager::IsHandlingUserInput();
 
   nsCOMPtr<nsIRunnable> event =
-    new nsXULMenuCommandEvent(aMenu, isTrusted, shift, control, alt, meta, userinput);
+    new nsXULMenuCommandEvent(aMenu, isTrusted, shift, control,
+                              alt, meta, userinput, cmm);
   NS_DispatchToCurrentThread(event);
 }
 
@@ -913,7 +934,7 @@ nsXULPopupManager::IsPopupOpen(nsIContent* aPopup)
       NS_ASSERTION(item->Frame()->IsOpen() ||
                    item->Frame()->PopupState() == ePopupHiding ||
                    item->Frame()->PopupState() == ePopupInvisible,
-                   "popup is open list not actually open");
+                   "popup in open list not actually open");
       return PR_TRUE;
     }
     item = item->GetParent();
@@ -925,7 +946,7 @@ nsXULPopupManager::IsPopupOpen(nsIContent* aPopup)
       NS_ASSERTION(item->Frame()->IsOpen() ||
                    item->Frame()->PopupState() == ePopupHiding ||
                    item->Frame()->PopupState() == ePopupInvisible,
-                   "popup is open list not actually open");
+                   "popup in open list not actually open");
       return PR_TRUE;
     }
     item = item->GetParent();
@@ -1829,7 +1850,8 @@ nsXULMenuCommandEvent::Run()
     nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
 
     
-    menuFrame->SelectMenu(PR_FALSE);
+    if (mCloseMenuMode != CloseMenuMode_None)
+      menuFrame->SelectMenu(PR_FALSE);
 
     nsAutoHandlingUserInputStatePusher userInpStatePusher(mUserInput);
 
@@ -1842,8 +1864,8 @@ nsXULMenuCommandEvent::Run()
     shell->HandleDOMEventWithTarget(mMenu, &commandEvent, &status);
   }
 
-  if (popup)
-    pm->HidePopup(popup, PR_TRUE, PR_TRUE, PR_TRUE);
+  if (popup && mCloseMenuMode != CloseMenuMode_None)
+    pm->HidePopup(popup, mCloseMenuMode == CloseMenuMode_Auto, PR_TRUE, PR_TRUE);
 
   return NS_OK;
 }

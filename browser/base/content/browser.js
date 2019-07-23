@@ -1012,8 +1012,6 @@ function delayedStartup()
   
   addBookmarkMenuitems();
 
-  PlacesMenuDNDController.init();
-
   initBookmarksToolbar();
   PlacesUtils.bookmarks.addObserver(gBookmarksObserver, false);
   PlacesStarButton.init();

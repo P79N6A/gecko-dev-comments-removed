@@ -84,6 +84,14 @@ enum nsPopupType {
 
 
 
+enum CloseMenuMode {
+  CloseMenuMode_Auto, 
+  CloseMenuMode_None, 
+  CloseMenuMode_Single 
+};
+
+
+
 
 
 
@@ -274,14 +282,16 @@ public:
                         PRBool aControl,
                         PRBool aAlt,
                         PRBool aMeta,
-                        PRBool aUserInput)
+                        PRBool aUserInput,
+                        CloseMenuMode aCloseMenuMode)
     : mMenu(aMenu),
       mIsTrusted(aIsTrusted),
       mShift(aShift),
       mControl(aControl),
       mAlt(aAlt),
       mMeta(aMeta),
-      mUserInput(aUserInput)
+      mUserInput(aUserInput),
+      mCloseMenuMode(aCloseMenuMode)
   {
     NS_ASSERTION(aMenu, "null menu supplied to nsXULMenuCommandEvent constructor");
   }
@@ -296,6 +306,7 @@ private:
   PRBool mAlt;
   PRBool mMeta;
   PRBool mUserInput;
+  CloseMenuMode mCloseMenuMode;
 };
 
 class nsXULPopupManager : public nsIDOMKeyListener,

@@ -559,18 +559,6 @@ var BookmarksMenuDropHandler = {
 
 
 var PlacesMenuDNDController = {
-  
-  
-
-
-
-
-  init: function PMDC_init() {
-    var placesContext = document.getElementById("placesContext");
-    var self = this;
-    placesContext.addEventListener("popuphidden", function () { self._closePopups() }, false);
-  },
-
   _springLoadDelay: 350, 
 
   
