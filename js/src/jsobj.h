@@ -872,7 +872,10 @@ js_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
              jsval *statep, jsid *idp);
 
 extern void
-js_TraceNativeEnumerators(JSTracer *trc);
+js_MarkEnumeratorState(JSTracer *trc, JSObject *obj, jsval state);
+
+extern void
+js_PurgeCachedNativeEnumerators(JSContext *cx, JSThreadData *data);
 
 extern JSBool
 js_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
@@ -983,25 +986,12 @@ js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
 
 
 
-
-
-
-
-
-
 static inline bool
 js_ObjectIsSimilarToProto(JSContext *cx, JSObject *obj, const JSObjectOps *ops,
                           JSClass *clasp, JSObject *proto)
 {
     JS_ASSERT(proto == OBJ_GET_PROTO(cx, obj));
-
-    JSClass *protoclasp;
-    return (proto->map->ops == ops &&
-            ((protoclasp = OBJ_GET_CLASS(cx, proto)) == clasp ||
-             (!((protoclasp->flags ^ clasp->flags) &
-                (JSCLASS_HAS_PRIVATE |
-                 (JSCLASS_RESERVED_SLOTS_MASK << JSCLASS_RESERVED_SLOTS_SHIFT))) &&
-              protoclasp->reserveSlots == clasp->reserveSlots)));
+    return (proto->map->ops == ops && OBJ_GET_CLASS(cx, proto) == clasp);
 }
 
 #ifdef DEBUG

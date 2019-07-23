@@ -95,6 +95,8 @@ FinishThreadData(JSThreadData *data)
     
     for (size_t i = 0; i != JS_ARRAY_LENGTH(data->scriptsToGC); ++i)
         JS_ASSERT(!data->scriptsToGC[i]);
+    for (size_t i = 0; i != JS_ARRAY_LENGTH(data->nativeEnumCache); ++i)
+        JS_ASSERT(!data->nativeEnumCache[i]);
 #endif
 
     js_FinishGSNCache(&data->gsnCache);
@@ -136,6 +138,8 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
 
     
     js_DestroyScriptsToGC(cx, data);
+
+    js_PurgeCachedNativeEnumerators(cx, data);
 }
 
 #ifdef JS_THREADSAFE
@@ -261,6 +265,12 @@ thread_purger(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 ,
     if (JS_CLIST_IS_EMPTY(&thread->contextList)) {
         JS_ASSERT(cx->thread != thread);
         js_DestroyScriptsToGC(cx, &thread->data);
+
+        
+
+
+
+        js_PurgeCachedNativeEnumerators(cx, &thread->data);
         DestroyThread(thread);
         return JS_DHASH_REMOVE;
     }

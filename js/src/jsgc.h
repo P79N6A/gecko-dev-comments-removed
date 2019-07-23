@@ -326,22 +326,6 @@ struct JSWeakRoots {
 
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
-
-
-
-
-
-
-
-
-
-
-extern JSBool
-js_AddAsGCBytes(JSContext *cx, size_t sz);
-
-extern void
-js_RemoveAsGCBytes(JSRuntime* rt, size_t sz);
-
 #ifdef JS_THREADSAFE
 class JSFreePointerListTask : public JSBackgroundTask {
     void *head;

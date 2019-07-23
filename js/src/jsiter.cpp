@@ -99,7 +99,7 @@ js_CloseNativeIterator(JSContext *cx, JSObject *iterobj)
         return;
 
     
-    iterable = STOBJ_GET_PARENT(iterobj);
+    iterable = iterobj->getParent();
     if (iterable) {
 #if JS_HAS_XML_SUPPORT
         uintN flags = JSVAL_TO_INT(STOBJ_GET_SLOT(iterobj, JSSLOT_ITER_FLAGS));
@@ -113,13 +113,29 @@ js_CloseNativeIterator(JSContext *cx, JSObject *iterobj)
     STOBJ_SET_SLOT(iterobj, JSSLOT_ITER_STATE, JSVAL_NULL);
 }
 
+static void
+iterator_trace(JSTracer *trc, JSObject *obj)
+{
+    
+
+
+
+
+
+    JSObject *iterable = obj->getParent();
+    jsval iter_state = obj->fslots[JSSLOT_ITER_STATE];
+    js_MarkEnumeratorState(trc, iterable, iter_state);
+}
+
 JSClass js_IteratorClass = {
     "Iterator",
     JSCLASS_HAS_RESERVED_SLOTS(2) | 
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Iterator),
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Iterator) |
+    JSCLASS_MARK_IS_TRACE,
     JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,
     JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   NULL,
-    JSCLASS_NO_OPTIONAL_MEMBERS
+    NULL,             NULL,            NULL,            NULL,
+    NULL,             NULL,            JS_CLASS_TRACE(iterator_trace), NULL
 };
 
 static JSBool
