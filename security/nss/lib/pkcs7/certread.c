@@ -332,8 +332,8 @@ notder:
     while ( cl > NS_CERT_HEADER_LEN ) {
 	if ( !PORT_Strncasecmp((char *)cp, NS_CERT_HEADER,
 			        NS_CERT_HEADER_LEN) ) {
-	    cl -= NS_CERT_HEADER_LEN;
-	    cp += NS_CERT_HEADER_LEN;
+	    cl -= NS_CERT_HEADER_LEN + 1; 
+	    cp += NS_CERT_HEADER_LEN + 1; 
 	    certbegin = cp;
 	    break;
 	}
@@ -353,7 +353,7 @@ notder:
 
     if ( certbegin ) {
 	
-	while ( cl > NS_CERT_TRAILER_LEN ) {
+	while ( cl >= NS_CERT_TRAILER_LEN ) {
 	    if ( !PORT_Strncasecmp((char *)cp, NS_CERT_TRAILER,
 				   NS_CERT_TRAILER_LEN) ) {
 		certend = (unsigned char *)cp;
