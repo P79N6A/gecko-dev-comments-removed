@@ -42,9 +42,28 @@ const AUS_Cc = Components.classes;
 const AUS_Ci = Components.interfaces;
 const AUS_Cr = Components.results;
 
-const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 const NS_APP_PROFILE_DIR_STARTUP = "ProfDS";
+const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 const NS_GRE_DIR                 = "GreD";
+const XRE_UPDATE_ROOT_DIR        = "UpdRootD";
+
+const PREF_APP_UPDATE_URL_OVERRIDE = "app.update.url.override";
+
+const URI_UPDATES_PROPERTIES = "chrome://mozapps/locale/update/updates.properties";
+const gUpdateBundle = AUS_Cc["@mozilla.org/intl/stringbundle;1"]
+                       .getService(AUS_Ci.nsIStringBundleService)
+                       .createBundle(URI_UPDATES_PROPERTIES);
+
+const STATE_NONE            = "null";
+const STATE_DOWNLOADING     = "downloading";
+const STATE_PENDING         = "pending";
+const STATE_APPLYING        = "applying";
+const STATE_SUCCEEDED       = "succeeded";
+const STATE_DOWNLOAD_FAILED = "download-failed";
+const STATE_FAILED          = "failed";
+
+const FILE_UPDATES_DB     = "updates.xml";
+const FILE_UPDATE_ACTIVE  = "active-update.xml";
 
 const MODE_RDONLY   = 0x01;
 const MODE_WRONLY   = 0x02;
@@ -55,18 +74,35 @@ const MODE_TRUNCATE = 0x20;
 const PERMS_FILE      = 0644;
 const PERMS_DIRECTORY = 0755;
 
-var gAUS           = null;
-var gUpdateChecker = null;
-var gPrefs         = null;
-var gTestserver    = null;
-var gXHR           = null;
-var gXHRCallback   = null;
+const URL_HOST = "http://localhost:4444/"
+const DIR_DATA = "data"
+
+var gPrefs = AUS_Cc["@mozilla.org/preferences;1"]
+               .getService(AUS_Ci.nsIPrefBranch);
+var gAUS;
+var gUpdateChecker;
+var gUpdateManager;
+
+var gTestserver;
+
+var gXHR;
+var gXHRCallback;
+
+var gCheckFunc;
+var gResponseBody;
+var gResponseStatusCode = 200;
+var gRequestURL;
+var gUpdateCount;
+var gUpdates;
+var gStatusCode;
+var gStatusText;
+
+
+
 
 
 function startAUS() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1.0", "2.0");
-  gPrefs = AUS_Cc["@mozilla.org/preferences;1"]
-             .getService(AUS_Ci.nsIPrefBranch);
 
   
   gPrefs.setBoolPref("app.update.log.all", true);
@@ -79,15 +115,258 @@ function startAUS() {
 
   gAUS = AUS_Cc["@mozilla.org/updates/update-service;1"]
            .getService(AUS_Ci.nsIApplicationUpdateService);
+  var os = AUS_Cc["@mozilla.org/observer-service;1"]
+             .getService(AUS_Ci.nsIObserverService);
+  os.notifyObservers(null, "profile-after-change", null);
+}
+
+
+function startUpdateChecker() {
   gUpdateChecker = AUS_Cc["@mozilla.org/updates/update-checker;1"]
                      .createInstance(AUS_Ci.nsIUpdateChecker);
-  
-  
+}
+
+
+function startUpdateManager() {
+  gUpdateManager = AUS_Cc["@mozilla.org/updates/update-manager;1"]
+                     .getService(AUS_Ci.nsIUpdateManager);
+}
 
 
 
 
 
+
+
+function getRemoteUpdatesXMLString(aUpdates) {
+  return "<?xml version=\"1.0\"?>\n" +
+         "<updates>\n" +
+           aUpdates +
+         "</updates>\n";
+}
+
+
+
+
+
+
+
+function getRemoteUpdateString(aPatches, aName, aType, aVersion,
+                               aPlatformVersion, aExtensionVersion, aBuildID,
+                               aLicenseURL, aDetailsURL) {
+  return  getUpdateString(aName, aType, aVersion, aPlatformVersion,
+                         aExtensionVersion, aBuildID, aLicenseURL,
+                         aDetailsURL) + ">\n" +
+              aPatches + 
+         "  </update>\n";
+}
+
+
+
+
+
+
+
+
+function getRemotePatchString(aType, aURL, aHashFunction, aHashValue, aSize) {
+  return getPatchString(aType, aURL, aHashFunction, aHashValue, aSize) +
+         "/>\n";
+}
+
+
+
+
+
+
+
+function getLocalUpdatesXMLString(aUpdates) {
+  if (!aUpdates || aUpdates == "")
+    return "<updates xmlns=\"http://www.mozilla.org/2005/app-update\"/>"
+  return ("<updates xmlns=\"http://www.mozilla.org/2005/app-update\">" +
+           aUpdates +
+         "</updates>").replace(/>\s+\n*</g,'><');
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getLocalUpdateString(aPatches, aName, aType, aVersion, aPlatformVersion,
+                              aExtensionVersion, aBuildID, aLicenseURL,
+                              aDetailsURL, aServiceURL, aInstallDate, aStatusText,
+                              aIsCompleteUpdate, aChannel, aForegroundDownload) {
+  var serviceURL = aServiceURL ? aServiceURL : "http://dummyservice/";
+  var installDate = aInstallDate ? aInstallDate : "1238441400314";
+  var statusText = aStatusText ? aStatusText : "Install Pending";
+  var isCompleteUpdate =
+    typeof(aIsCompleteUpdate) == "string" ? aIsCompleteUpdate : "true";
+  var channel = aChannel ? aChannel : "bogus_channel";
+  var foregroundDownload =
+    typeof(aForegroundDownload) == "string" ? aForegroundDownload : "true";
+  return getUpdateString(aName, aType, aVersion, aPlatformVersion,
+                         aExtensionVersion, aBuildID, aLicenseURL,
+                         aDetailsURL) + " " +
+                   "serviceURL=\"" + serviceURL + "\" " +
+                   "installDate=\"" + installDate + "\" " +
+                   "statusText=\"" + statusText + "\" " +
+                   "isCompleteUpdate=\"" + isCompleteUpdate + "\" " +
+                   "channel=\"" + channel + "\" " +
+                   "foregroundDownload=\"" + foregroundDownload + "\">"  +
+              aPatches + 
+         "  </update>";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getLocalPatchString(aType, aURL, aHashFunction, aHashValue, aSize,
+                             aSelected, aState) {
+  var selected = typeof(aSelected) == "string" ? aSelected : "true";
+  var state = aState ? aState : STATE_SUCCEEDED;
+  return getPatchString(aType, aURL, aHashFunction, aHashValue, aSize) + " " +
+         "selected=\"" + selected + "\" " +
+         "state=\"" + state + "\"/>\n";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getUpdateString(aName, aType, aVersion, aPlatformVersion,
+                         aExtensionVersion, aBuildID, aLicenseURL, aDetailsURL) {
+  var name = aName ? aName : "XPCShell App Update Test";
+  var type = aType ? aType : "major";
+  var version = aVersion ? aVersion : "4.0";
+  var platformVersion = aPlatformVersion ? aPlatformVersion : "4.0";
+  var extensionVersion = aExtensionVersion ? aExtensionVersion : "4.0";
+  var buildID = aBuildID ? aBuildID : "20080811053724";
+  var licenseURL = aLicenseURL ? aLicenseURL : "http://dummylicense/";
+  var detailsURL = aDetailsURL ? aDetailsURL : "http://dummydetails/";
+  return "  <update name=\"" + name + "\" " +
+                   "type=\"" + type + "\" " +
+                   "version=\"" + version + "\" " +
+                   "platformVersion=\"" + platformVersion + "\" " +
+                   "extensionVersion=\"" + extensionVersion + "\" " +
+                   "buildID=\"" + buildID + "\" " +
+                   "licenseURL=\"" + licenseURL + "\" " +
+                   "detailsURL=\"" + detailsURL + "\"";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getPatchString(aType, aURL, aHashFunction, aHashValue, aSize) {
+  var type = aType ? aType : "complete";
+  var url = aURL ? aURL : URL_HOST + DIR_DATA + "/empty.mar";
+  var hashFunction = aHashFunction ? aHashFunction : "MD5";
+  var hashValue = aHashValue ? aHashValue : "6232cd43a1c77e30191c53a329a3f99d";
+  var size = aSize ? aSize : "775";
+  return "    <patch type=\"" + type + "\" " +
+                     "URL=\"" + url + "\" " +
+                     "hashFunction=\"" + hashFunction + "\" " +
+                     "hashValue=\"" + hashValue + "\" " +
+                     "size=\"" + size + "\"";
+}
+
+
+
+
+
+
+
+
+
+
+function writeUpdatesToXMLFile(aContent, aIsActiveUpdate) {
+  var file = gCustomGreD.clone();
+  file.append(aIsActiveUpdate ? FILE_UPDATE_ACTIVE : FILE_UPDATES_DB);
+  writeFile(file, aContent);
+}
+
+
+
+
+
+
+
+
+function writeStatusFile(aStatus) {
+  var file = gCustomGreD.clone();
+  file.append("updates");
+  file.append("0");
+  file.append("update.status");
+  aStatus += "\n";
+  writeFile(file, aStatus);
 }
 
 
@@ -104,10 +383,19 @@ function writeFile(aFile, aText) {
               .createInstance(AUS_Ci.nsIFileOutputStream);
   if (!aFile.exists())
     aFile.create(AUS_Ci.nsILocalFile.NORMAL_FILE_TYPE, PERMS_FILE);
-  var modeFlags = MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE;
-  fos.init(aFile, modeFlags, PERMS_FILE, 0);
+  fos.init(aFile, MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE, PERMS_FILE, 0);
   fos.write(aText, aText.length);
-  closeSafeOutputStream(fos);
+
+  if (fos instanceof AUS_Ci.nsISafeOutputStream) {
+    try {
+      fos.finish();
+    }
+    catch (e) {
+      fos.close();
+    }
+  }
+  else
+    fos.close();
 }
 
 
@@ -115,17 +403,41 @@ function writeFile(aFile, aText) {
 
 
 
-function closeSafeOutputStream(aFOS) {
-  if (aFOS instanceof AUS_Ci.nsISafeOutputStream) {
-    try {
-      aFOS.finish();
-    }
-    catch (e) {
-      aFOS.close();
-    }
+
+function readFile(aFile) {
+  var fis = AUS_Cc["@mozilla.org/network/file-input-stream;1"]
+              .createInstance(AUS_Ci.nsIFileInputStream);
+  if (!aFile.exists())
+    return null;
+  fis.init(aFile, MODE_RDONLY, PERMS_FILE, 0);
+  var sis = AUS_Cc["@mozilla.org/scriptableinputstream;1"].
+            createInstance(AUS_Ci.nsIScriptableInputStream);
+  sis.init(fis);
+  var text = sis.read(sis.available());
+  sis.close();
+  return text;
+}
+
+
+function pathHandler(metadata, response) {
+  response.setHeader("Content-Type", "text/xml", false);
+  response.setStatusLine(metadata.httpVersion, gResponseStatusCode, "OK");
+  response.bodyOutputStream.write(gResponseBody, gResponseBody.length);
+}
+
+
+function getStatusText(aErrCode) {
+  return getString("check_error-" + aErrCode);
+}
+
+
+function getString(aName) {
+  try {
+    return gUpdateBundle.GetStringFromName(aName);
   }
-  else
-    aFOS.close();
+  catch (e) {
+  }
+  return null;
 }
 
 
@@ -185,7 +497,14 @@ xhr.prototype = {
   channel: { set notificationCallbacks(val) { } },
   _url: null,
   _method: null,
-  open: function (method, url) { gXHR._method = method; gXHR._url = url; },
+  open: function (method, url) {
+    gXHR.channel.originalURI = AUS_Cc["@mozilla.org/network/io-service;1"]
+                                 .getService(AUS_Ci.nsIIOService)
+                                 .newURI(url, null, null);
+    gXHR._method = method; gXHR._url = url;
+  },
+  responseXML: null,
+  responseText: null,
   send: function(body) {
     do_timeout(0, "gXHRCallback()"); 
   },
@@ -211,9 +530,9 @@ xhr.prototype = {
   contractID: "@mozilla.org/xmlextras/xmlhttprequest;1",
   classID: Components.ID("{c9b37f43-4278-4304-a5e0-600991ab08cb}"),
   createInstance: function (outer, aIID) {
-    if (outer != null)
-      throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
-    return gXHR.QueryInterface(aIID);
+    if (outer == null)
+      return gXHR.QueryInterface(aIID);
+    throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
   },
   QueryInterface: function(aIID) {
     if (aIID.equals(AUS_Ci.nsIXMLHttpRequest) ||
@@ -227,14 +546,48 @@ xhr.prototype = {
 };
 
 
+const updateCheckListener = {
+  onProgress: function(request, position, totalSize) {
+  },
+
+  onCheckComplete: function(request, updates, updateCount) {
+    gRequestURL = request.channel.originalURI.spec;
+    gUpdateCount = updateCount;
+    gUpdates = updates;
+    dump("onError: url = " + gRequestURL + ", " +
+         "request.status = " + request.status + ", " +
+         "update.statusText = " + request.statusText + ", " +
+         "updateCount = " + updateCount + "\n");
+    
+    do_timeout(0, "gCheckFunc()");
+  },
+
+  onError: function(request, update) {
+    gRequestURL = request.channel.originalURI.spec;
+    gStatusCode = request.status;
+    gStatusText = update.statusText;
+    dump("onError: url = " + gRequestURL + ", " +
+         "request.status = " + gStatusCode + ", " +
+         "update.statusText = " + gStatusText + "\n");
+    
+    do_timeout(0, "gCheckFunc()");
+  },
+
+  QueryInterface: function(aIID) {
+    if (!aIID.equals(AUS_Ci.nsIUpdateCheckListener) &&
+        !aIID.equals(AUS_Ci.nsISupports))
+      throw AUS_Cr.NS_ERROR_NO_INTERFACE;
+    return this;
+  }
+};
 
 
 
 
-function remove_dirs_and_files () {
-  var dir = gDirSvc.get(NS_GRE_DIR, AUS_Ci.nsIFile);
 
-  var file = dir.clone();
+
+function removeUpdateDirsAndFiles() {
+  var file = gCustomGreD.clone();
   file.append("active-update.xml");
   try {
     if (file.exists())
@@ -245,7 +598,7 @@ function remove_dirs_and_files () {
          "\nException: " + e + "\n");
   }
 
-  file = dir.clone();
+  file = gCustomGreD.clone();
   file.append("updates.xml");
   try {
     if (file.exists())
@@ -256,7 +609,7 @@ function remove_dirs_and_files () {
          "\nException: " + e + "\n");
   }
 
-  file = dir.clone();
+  file = gCustomGreD.clone();
   file.append("updates");
   file.append("last-update.log");
   try {
@@ -268,7 +621,7 @@ function remove_dirs_and_files () {
          "\nException: " + e + "\n");
   }
 
-  var updatesSubDir = dir.clone();
+  var updatesSubDir = gCustomGreD.clone();
   updatesSubDir.append("updates");
   updatesSubDir.append("0");
   if (updatesSubDir.exists()) {
@@ -315,13 +668,14 @@ function remove_dirs_and_files () {
   }
 
   
-  dir.append("updates");
+  var updatesDir = gCustomGreD.clone();
+  updatesDir.append("updates");
   try {
-    if (dir.exists())
-      dir.remove(true);
+    if (updatesDir.exists())
+      updatesDir.remove(true);
   }
   catch (e) {
-    dump("Unable to remove directory\npath: " + dir.path +
+    dump("Unable to remove directory\npath: " + updatesDir.path +
          "\nException: " + e + "\n");
   }
 }
@@ -356,8 +710,7 @@ function stop_httpserver(callback) {
 
 
 
-function createAppInfo(id, name, version, platformVersion)
-{
+function createAppInfo(id, name, version, platformVersion) {
   const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
   const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
   var XULAppInfo = {
@@ -378,16 +731,15 @@ function createAppInfo(id, name, version, platformVersion)
           iid.equals(AUS_Ci.nsIXULRuntime) ||
           iid.equals(AUS_Ci.nsISupports))
         return this;
-    
       throw AUS_Cr.NS_ERROR_NO_INTERFACE;
     }
   };
   
   var XULAppInfoFactory = {
     createInstance: function (outer, iid) {
-      if (outer != null)
-        throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
-      return XULAppInfo.QueryInterface(iid);
+      if (outer == null)
+        return XULAppInfo.QueryInterface(iid);
+      throw AUS_Cr.NS_ERROR_NO_AGGREGATION;
     }
   };
 
@@ -396,36 +748,68 @@ function createAppInfo(id, name, version, platformVersion)
                             XULAPPINFO_CONTRACTID, XULAppInfoFactory);
 }
 
+function copyUpdaterINI() {
+  try {
+    
+    var updaterINI = gRealGreD.clone();
+    updaterINI.append("updater.ini");
+    updaterINI.copyTo(gCustomGreD, updaterINI.leafName);
+  }
+  catch (e) {
+    do_throw("Unable to copy updater.ini to the custom GRE directory\n" +
+             "Exception: " + e + "\n");
+  }
+}
+
 
 var gDirSvc = AUS_Cc["@mozilla.org/file/directory_service;1"].
              getService(AUS_Ci.nsIProperties);
 
-var gTestRoot = __LOCATION__.parent.parent;
-gTestRoot.normalize();
 
-
-var gProfD = gTestRoot.clone();
+var gProfD = do_get_cwd();
 gProfD.append("profile");
 if (gProfD.exists())
   gProfD.remove(true);
-gProfD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, 0755);
+gProfD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
+
+var gRealGreD = gDirSvc.get(NS_GRE_DIR, AUS_Ci.nsIFile);
+
+
+var gCustomGreD = do_get_cwd();
+gCustomGreD.append("app_dir");
+try {
+  
+  
+  if (gCustomGreD.exists())
+    gCustomGreD.remove(true);
+}
+catch (e) {
+  dump("Unable to remove directory\npath: " + gCustomGreD.path +
+       "\nException: " + e + "\n");
+}
+
+if (!gCustomGreD.exists())
+  gCustomGreD.create(AUS_Ci.nsIFile.DIRECTORY_TYPE, PERMS_DIRECTORY);
 
 var dirProvider = {
   getFile: function(prop, persistent) {
-    persistent.value = true;
-    if (prop == NS_APP_USER_PROFILE_50_DIR ||
-        prop == NS_APP_PROFILE_DIR_STARTUP)
-      return gProfD.clone();
+    switch (prop) {
+      case NS_APP_USER_PROFILE_50_DIR:
+      case NS_APP_PROFILE_DIR_STARTUP:
+        persistent.value = true;
+        return gProfD.clone();
+      case NS_GRE_DIR:
+      case XRE_UPDATE_ROOT_DIR:
+        persistent.value = true;
+        return gCustomGreD.clone();
+    }
     return null;
   },
   QueryInterface: function(iid) {
     if (iid.equals(AUS_Ci.nsIDirectoryServiceProvider) ||
-        iid.equals(AUS_Ci.nsISupports)) {
+        iid.equals(AUS_Ci.nsISupports))
       return this;
-    }
     throw AUS_Cr.NS_ERROR_NO_INTERFACE;
   }
 };
 gDirSvc.QueryInterface(AUS_Ci.nsIDirectoryService).registerProvider(dirProvider);
-
-remove_dirs_and_files();
