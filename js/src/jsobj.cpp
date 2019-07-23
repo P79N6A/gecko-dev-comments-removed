@@ -3713,6 +3713,8 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
     JSScope *scope;
     JSScopeProperty *sprop;
 
+    js_LeaveTraceIfGlobalObject(cx, obj);
+
     
     CHECK_FOR_STRING_INDEX(id);
 
