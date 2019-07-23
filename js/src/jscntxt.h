@@ -1008,7 +1008,7 @@ struct JSContext {
 
     
     JSSharpObjectMap    sharpObjectMap;
-    JSBusyArrayTable    *busyArrayTable;
+    JSHashTable         *busyArrayTable;
 
     
     JSArgumentFormatMap *argumentFormatMap;

@@ -154,28 +154,10 @@ template <class T,
           class AllocPolicy = ContextAllocPolicy>
 class Vector;
 
-template <class T,
-          size_t MinInlineCapacity = 0,
-          class AllocPolicy = ContextAllocPolicy>
-class Pool;
-
-template <class>
-struct DefaultHasher;
-
-template <class Key,
-          class Value = void,
-          class Hasher = DefaultHasher<Key>,
-          size_t MinInlineCapacity = 0,
-          class AllocPolicy = ContextAllocPolicy>
-class HashMap;
-
 } 
 
 
 typedef js::Vector<jschar, 32> JSCharBuffer;
-
-typedef js::HashMap<JSObject *, bool, js::DefaultHasher<JSObject *>, 4,
-                    js::ContextAllocPolicy> JSBusyArrayTable;
 
 } 
 #endif  
