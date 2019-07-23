@@ -287,6 +287,7 @@ private:
   nsresult GetWordSpacing(nsIDOMCSSValue** aValue);
   nsresult GetWhiteSpace(nsIDOMCSSValue** aValue);
   nsresult GetWordWrap(nsIDOMCSSValue** aValue);
+  nsresult GetMozTabSize(nsIDOMCSSValue** aValue);
 
   
   nsresult GetOpacity(nsIDOMCSSValue** aValue);
