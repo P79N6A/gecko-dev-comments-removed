@@ -45,6 +45,7 @@
 #include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
 
+class nsIFrame;
 class nsCounterList;
 struct nsCounterUseNode;
 struct nsCounterChangeNode;
@@ -92,8 +93,9 @@ struct nsCounterNode : public nsGenConNode {
     
     
     
-    nsCounterNode(nsIFrame* aPseudoFrame, PRInt32 aContentIndex, Type aType)
-        : nsGenConNode(aPseudoFrame, aContentIndex)
+    nsCounterNode(nsIContent* aParentContent, nsStyleContext* aStyleContext,
+                  PRInt32 aContentIndex, Type aType)
+        : nsGenConNode(aParentContent, aStyleContext, aContentIndex)
         , mType(aType)
         , mValueAfter(0)
         , mScopeStart(nsnull)
@@ -115,9 +117,10 @@ struct nsCounterUseNode : public nsCounterNode {
     PRBool mAllCounters;
 
     
-    nsCounterUseNode(nsCSSValue::Array* aCounterStyle, nsIFrame* aPseudoFrame,
+    nsCounterUseNode(nsCSSValue::Array* aCounterStyle,
+                     nsIContent* aParentContent, nsStyleContext* aStyleContext,
                      PRUint32 aContentIndex, PRBool aAllCounters)
-        : nsCounterNode(aPseudoFrame, aContentIndex, USE)
+        : nsCounterNode(aParentContent, aStyleContext, aContentIndex, USE)
         , mCounterStyle(aCounterStyle)
         , mAllCounters(aAllCounters)
     {
@@ -137,14 +140,11 @@ struct nsCounterChangeNode : public nsCounterNode {
 
     
     
-    
-    
-    
-    nsCounterChangeNode(nsIFrame* aPseudoFrame,
+    nsCounterChangeNode(nsIContent* aContent, nsStyleContext* aStyleContext,
                         nsCounterNode::Type aChangeType,
                         PRInt32 aChangeValue,
                         PRInt32 aPropIndex)
-        : nsCounterNode(aPseudoFrame,
+        : nsCounterNode(aContent, aStyleContext,
                         
                         
                         
@@ -247,7 +247,9 @@ public:
 
     
     
-    PRBool DestroyNodesFor(nsIFrame *aFrame);
+    
+    
+    PRBool DestroyNodesFor(nsIContent* aParentContent, nsIAtom* aPseudo);
 
     
     void Clear() { mNames.Clear(); }
@@ -255,10 +257,14 @@ public:
 #ifdef DEBUG
     void Dump();
 #endif
+    
+    PRBool IsEmpty() { return mNames.Count() == 0; }
 
 private:
     
-    PRBool AddResetOrIncrement(nsIFrame *aFrame, PRInt32 aIndex,
+    PRBool AddResetOrIncrement(nsIContent *aContent,
+                               nsStyleContext *aStyleContext,
+                               PRInt32 aIndex,
                                const nsStyleCounterData *aCounterData,
                                nsCounterNode::Type aType);
 

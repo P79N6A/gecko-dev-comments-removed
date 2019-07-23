@@ -323,21 +323,33 @@ private:
                                   nsCOMArray<nsIContent>& aGeneratedContent,
                                   nsIContent** aNewContent,
                                   nsIFrame** aNewFrame);
-  
-  nsresult CreateGeneratedFrameFor(nsIFrame*             aParentFrame,
-                                   nsIContent*           aContent,
-                                   nsStyleContext*       aStyleContext,
-                                   const nsStyleContent* aStyleContent,
-                                   PRUint32              aContentIndex,
-                                   nsCOMArray<nsIContent>& aGeneratedContent,
-                                   nsIFrame**            aFrame);
 
-  PRBool CreateGeneratedContentFrame(nsFrameConstructorState& aState,
-                                     nsIFrame*                aFrame,
-                                     nsIContent*              aContent,
-                                     nsStyleContext*          aStyleContext,
-                                     nsIAtom*                 aPseudoElement,
-                                     nsIFrame**               aResult);
+  
+
+
+
+  already_AddRefed<nsIContent> CreateTextNode(const nsString& aString,  
+                                              nsCOMPtr<nsIDOMCharacterData>* aText);
+
+  
+
+
+
+
+
+
+
+
+  already_AddRefed<nsIContent> CreateGeneratedContent(nsIContent*     aParentContent,
+                                                      nsStyleContext* aStyleContext,
+                                                      PRUint32        aContentIndex);
+
+  void CreateGeneratedContentFrame(nsFrameConstructorState& aState,
+                                   nsIFrame*                aFrame,
+                                   nsIContent*              aContent,
+                                   nsStyleContext*          aStyleContext,
+                                   nsIAtom*                 aPseudoElement,
+                                   nsFrameItems&            aFrameItems);
 
   
   
