@@ -994,11 +994,11 @@ js_ValueToNumber(JSContext *cx, jsval *vp)
 
 
 
-        JSAutoTempValueRooter tvr(cx, v);
-        if (!obj->defaultValue(cx, JSTYPE_NUMBER, tvr.addr()))
+        AutoValueRooter gcr(cx, v);
+        if (!obj->defaultValue(cx, JSTYPE_NUMBER, gcr.addr()))
             obj = NULL;
         else
-            v = *vp = tvr.value();
+            v = *vp = gcr.value();
         if (!obj) {
             *vp = JSVAL_NULL;
             return 0.0;
