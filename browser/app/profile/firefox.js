@@ -496,6 +496,20 @@ pref("browser.contentHandlers.types.5.type", "application/vnd.mozilla.maybe.feed
 
 pref("browser.feeds.handler", "ask");
 
+
+
+
+
+
+
+
+pref("gecko.handlerService.defaultHandlersVersion", "0");
+
+
+
+pref("gecko.handlerService.schemes.webcal.0.name", "WebCal Test Handler");
+pref("gecko.handlerService.schemes.webcal.0.uriTemplate", "http://handler-test.mozilla.org/webcal?url=%s");
+
 #ifdef MOZ_SAFE_BROWSING
 
 pref("browser.safebrowsing.enabled", true);

@@ -34,6 +34,7 @@
 
 
 
+
 function run_test() {
   
   
@@ -44,7 +45,11 @@ function run_test() {
   const mimeSvc = Cc["@mozilla.org/uriloader/external-helper-app-service;1"].
                   getService(Ci.nsIMIMEService);
 
-
+  const prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefService);
+                  
+  const rootPrefBranch = prefSvc.getBranch("");
+  
   
   
 
@@ -141,11 +146,18 @@ function run_test() {
   do_check_false(handlerInfo.alwaysAskBeforeHandling);
 
   
-  
-  
   var handlerInfo2 = mimeSvc.getFromTypeAndExtension("nonexistent/type2", null);
   handlerSvc.store(handlerInfo2);
   var handlerTypes = ["nonexistent/type", "nonexistent/type2"];
+  try { 
+    
+    
+    
+    
+    
+    rootPrefBranch.getCharPref("gecko.handlerService.defaultHandlersVersion");
+    handlerTypes.push("webcal");
+  } catch (ex) {}   
   var handlers = handlerSvc.enumerate();
   while (handlers.hasMoreElements()) {
     var handler = handlers.getNext().QueryInterface(Ci.nsIHandlerInfo);

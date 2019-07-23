@@ -34,6 +34,7 @@
 
 
 
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cu = Components.utils;
@@ -46,6 +47,9 @@ const CLASS_PROTOCOLINFO    = "scheme";
 
 
 const NC_NS                 = "http://home.netscape.com/NC-rdf#";
+
+
+const NC_DEFAULT_HANDLERS_VERSION = NC_NS + "defaultHandlersVersion";
 
 
 
@@ -118,11 +122,33 @@ HandlerService.prototype = {
     
     
     this._observerSvc.addObserver(this, "xpcom-shutdown", false);
+
+    
+    this._observerSvc.addObserver(this, "profile-do-change", false);
+    
+    
+    this._updateDB();
   },
 
+  _updateDB: function HS__updateDB() {
+    
+    
+    try { 
+      if (this._datastoreDefaultHandlersVersion <
+          this._prefsDefaultHandlersVersion) {
+        this._injectNewDefaults();
+        this._datastoreDefaultHandlersVersion = 
+        this._prefsDefaultHandlersVersion;
+      }
+    } catch (ex) {
+      
+    }
+  },
+  
   _destroy: function HS__destroy() {
     this._observerSvc.removeObserver(this, "profile-before-change");
     this._observerSvc.removeObserver(this, "xpcom-shutdown");
+    this._observerSvc.removeObserver(this, "profile-do-change");
 
     
     
@@ -134,6 +160,95 @@ HandlerService.prototype = {
     this.__ds = null;
   },
 
+  _isInHandlerArray: function HS__isInHandlerArray(aArray, aHandler) {
+    var enumerator = aArray.enumerate();
+    while (enumerator.hasMoreElements()) {
+      let handler = enumerator.getNext();
+      handler.QueryInterface(Ci.nsIHandlerApp);
+      if (handler.equals(aHandler))
+        return true;
+    }
+    
+    return false;
+  },
+
+  get _datastoreDefaultHandlersVersion() {
+    var version = this._getValue("urn:root", NC_DEFAULT_HANDLERS_VERSION); 
+    
+    version = version ? version : -1;
+    
+    return version;
+  },
+
+  set _datastoreDefaultHandlersVersion(aNewVersion) {
+    return this._setLiteral("urn:root", NC_DEFAULT_HANDLERS_VERSION, 
+                            aNewVersion);
+  },
+
+  get _prefsDefaultHandlersVersion() {
+    
+    var prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefService);
+    var handlerSvcBranch = prefSvc.getBranch("gecko.handlerService.");
+  
+    
+    var version = handlerSvcBranch.getComplexValue("defaultHandlersVersion",
+                                                   Ci.nsISupportsString).data;
+                                                   
+    return version;                                                   
+  },
+  
+  _injectNewDefaults: function HS__injectNewDefaults() {
+    
+    var prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefService);
+
+    let schemesPrefBranch = prefSvc.getBranch("gecko.handlerService.schemes.");
+    let schemePrefList = schemesPrefBranch.getChildList("", {}); 
+
+    let protoSvc = Cc["@mozilla.org/uriloader/external-protocol-service;1"].
+                   getService(Ci.nsIExternalProtocolService);
+
+    var schemes = {};
+
+    
+    for each (var schemePrefName in schemePrefList) {
+
+      let [scheme, handlerNumber, attribute] = schemePrefName.split(".");
+
+      if (!(scheme in schemes))
+        schemes[scheme] = {};
+      if (!(handlerNumber in schemes[scheme]))
+        schemes[scheme][handlerNumber] = {};
+        
+      schemes[scheme][handlerNumber][attribute] = 
+        schemesPrefBranch.getComplexValue(schemePrefName,
+                                          Ci.nsISupportsString).data;
+    }
+
+    for (var scheme in schemes) {
+
+      
+      
+      let protoInfo = protoSvc.getProtocolHandlerInfo(scheme);  
+      let possibleHandlers = protoInfo.possibleApplicationHandlers;
+
+      for each (var handlerPrefs in schemes[scheme]) {
+
+        let handlerApp = Cc["@mozilla.org/uriloader/web-handler-app;1"].
+                         createInstance(Ci.nsIWebHandlerApp);
+
+        handlerApp.uriTemplate = handlerPrefs.uriTemplate;
+        handlerApp.name = handlerPrefs.name;                
+
+        if (!this._isInHandlerArray(possibleHandlers, handlerApp)) {
+             possibleHandlers.appendElement(handlerApp, false);
+        }
+      }
+
+      this.store(protoInfo);
+    }
+  },
 
   
   
@@ -146,6 +261,9 @@ HandlerService.prototype = {
       case "xpcom-shutdown":
         this._destroy();
         break;
+      case "profile-do-change":
+        this._updateDB();
+        break;  
     }
   },
 
