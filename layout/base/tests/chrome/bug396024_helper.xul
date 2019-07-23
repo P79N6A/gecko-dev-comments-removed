@@ -1,22 +1,20 @@
-<html>
-
-
-
-<head>
-  <title>Test for Bug 396024</title>
-  <script type="text/javascript" src="/MochiKit/packed.js"></script>
-  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>        
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=396024">Mozilla Bug 396024</a>
-
-<pre id="test">
-<script class="testbody" type="text/javascript">
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/css" href="chrome://global/skin"?>
+<?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css"
+                 type="text/css"?>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=396024
+-->
+<window title="Mozilla Bug 396024" onload="run()"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<iframe src="data:text/html;charset=utf-8,&lt;body onload='window.parent.loadedChild()'&gt;"></iframe>
+<script type="application/javascript">
+<![CDATA[
+var is = window.opener.wrappedJSObject.is;
+var ok = window.opener.wrappedJSObject.ok;
+var SimpleTest = window.opener.wrappedJSObject.SimpleTest;
 var gWbp;
 function printpreview() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalPreferencesRead UniversalPreferencesWrite UniversalXPConnect');
-
   gWbp = window.frames[0].QueryInterface(Components.interfaces.nsIInterfaceRequestor)
              .getInterface(Components.interfaces.nsIWebBrowserPrint);
   var listener = {
@@ -28,7 +26,7 @@ function printpreview() {
     onStateChange: function(webProgress, request, stateFlags, status) { },
     onStatusChange: function(webProgress, request, status, message) { },
     QueryInterface: function(iid) {
-      if (iid.equals(Components.interfaces.nsIWebProgessListener) ||
+      if (iid.equals(Components.interfaces.nsIWebProgressListener) ||
           iid.equals(Components.interfaces.nsISupportsWeakReference))
             return this;
       throw Components.results.NS_NOINTERFACE;
@@ -44,7 +42,6 @@ function printpreview() {
 }
 
 function exitprintpreview() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalPreferencesRead UniversalPreferencesWrite UniversalXPConnect');
   window.frames[0].QueryInterface(Components.interfaces.nsIInterfaceRequestor)
    .getInterface(Components.interfaces.nsIWebBrowserPrint).exitPrintPreview(); 
 }
@@ -52,7 +49,6 @@ function exitprintpreview() {
 function run()
 {
 /** Test for Bug 396024 **/
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalPreferencesRead UniversalPreferencesWrite UniversalXPConnect');
   var printService = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
                                .getService(Components.interfaces.nsIPrintSettingsService);
 
@@ -66,7 +62,6 @@ function run()
   }
 
   if (printService.defaultPrinterName != '') {
-    window.frames[0].frameElement.removeAttribute('onload');
     printpreview();
     ok(gWbp.doingPrintPreview, "Should be doing print preview");
     exitprintpreview();
@@ -80,26 +75,24 @@ function run()
 }
 
 function run2() {
-window.frames[0].frameElement.setAttribute('onload', 'setTimeout(run3, 0)');
-window.frames[0].location.reload();
+  window.loadedChild = function() { setTimeout(run3, 0); };
+  window.frames[0].location.reload();
 }
 
 function run3() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalPreferencesRead UniversalPreferencesWrite UniversalXPConnect');
   gWbp = window.frames[0].QueryInterface(Components.interfaces.nsIInterfaceRequestor)
              .getInterface(Components.interfaces.nsIWebBrowserPrint);
   ok(!gWbp.doingPrintPreview, "Should not be doing print preview anymore2");
-    window.frames[0].frameElement.removeAttribute('onload');
+  window.loadedChild = null;
   printpreview();
   setTimeout(run4, 0);
 }
 
 function run4() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalPreferencesRead UniversalPreferencesWrite UniversalXPConnect');
   var x = window.frames[0].frameElement.parentNode.removeChild(window.frames[0].frameElement);
-  x.setAttribute('onload', 'setTimeout(run5, 0)');
-  document.body.offsetHeight;
-  document.body.appendChild(x);
+  window.loadedChild = function() { setTimeout(run5, 0); };
+  document.documentElement.getBoundingClientRect();
+  document.documentElement.appendChild(x);
   gWbp = window.frames[0].QueryInterface(Components.interfaces.nsIInterfaceRequestor)
              .getInterface(Components.interfaces.nsIWebBrowserPrint);
   ok(!gWbp.doingPrintPreview, "Should not be doing print preview anymore3");
@@ -110,9 +103,7 @@ function run5() {
   printpreview();
   exitprintpreview();
   SimpleTest.finish(); //should not have crashed after all of this
+  window.close();
 }
-</script>
-<iframe onload="SimpleTest.waitForExplicitFinish(); setTimeout(run, 0)" src="data:text/html;charset=utf-8,"></iframe>
-</pre>
-</body>
-</html>
+]]></script>
+</window>

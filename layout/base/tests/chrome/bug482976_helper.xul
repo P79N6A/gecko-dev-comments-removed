@@ -1,22 +1,20 @@
-<html>
-
-
-
-<head>
-  <title>Test for Bug 482976</title>
-  <script type="text/javascript" src="/MochiKit/packed.js"></script>
-  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>        
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=482976">Mozilla Bug 482976</a>
-
-<pre id="test">
-<script class="testbody" type="text/javascript">
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/css" href="chrome://global/skin"?>
+<?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css"
+                 type="text/css"?>
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=482976
+-->
+<window title="Mozilla Bug 482976" onload="run1()"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<iframe src="data:text/html;charset=utf-8,&lt;body onload='window.parent.loadedChild()'&gt;&lt;q&gt;"></iframe>
+<script type="application/javascript">
+<![CDATA[
+var is = window.opener.wrappedJSObject.is;
+var ok = window.opener.wrappedJSObject.ok;
+var SimpleTest = window.opener.wrappedJSObject.SimpleTest;
 var gWbp;
 function printpreview() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
   gWbp = window.frames[0].QueryInterface(Components.interfaces.nsIInterfaceRequestor)
              .getInterface(Components.interfaces.nsIWebBrowserPrint);
   var listener = {
@@ -44,7 +42,6 @@ function printpreview() {
 }
 
 function exitprintpreview() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
   window.frames[0].QueryInterface(Components.interfaces.nsIInterfaceRequestor)
    .getInterface(Components.interfaces.nsIWebBrowserPrint).exitPrintPreview(); 
 }
@@ -52,7 +49,6 @@ function exitprintpreview() {
 function run1()
 {
 /** Test for Bug 482976 **/
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalPreferencesRead UniversalPreferencesWrite UniversalXPConnect');
   var printService = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
                                .getService(Components.interfaces.nsIPrintSettingsService);
 
@@ -75,11 +71,7 @@ function run1()
     todo(false, "No printer seems installed on this machine, that is necessary for this test");
     SimpleTest.finish();
   }
+  window.close();
 }
-
-</script>
-<iframe onload="SimpleTest.waitForExplicitFinish(); setTimeout(run1, 0); this.removeAttribute('onload')"
-        src="data:text/html,<q>"></iframe>
-</pre>
-</body>
-</html>
+]]></script>
+</window>
