@@ -1047,21 +1047,6 @@ nsTableOuterFrame::GetInnerOrigin(PRUint32         aCaptionSide,
   return NS_OK;
 }
 
-
-PRBool 
-nsTableOuterFrame::IsNested(const nsHTMLReflowState& aReflowState) const
-{
-  
-  const nsHTMLReflowState* rs = aReflowState.parentReflowState;
-  while (rs) {
-    if (nsGkAtoms::tableFrame == rs->frame->GetType()) {
-      return PR_TRUE;
-    }
-    rs = rs->parentReflowState;
-  }
-  return PR_FALSE;
-}
-
 void
 nsTableOuterFrame::OuterBeginReflowChild(nsPresContext*           aPresContext,
                                          nsIFrame*                aChildFrame,
