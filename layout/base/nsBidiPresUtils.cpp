@@ -204,7 +204,39 @@ CreateBidiContinuation(nsIFrame*       aFrame,
   if (NS_FAILED(rv)) {
     return rv;
   }
+
   
+  
+  
+  if (parent->GetType() == nsGkAtoms::letterFrame &&
+      parent->GetStyleDisplay()->IsFloating()) {
+    nsIFrame* oldParent = parent;
+    nsPlaceholderFrame* placeholderFrame =
+      presShell->FrameManager()->GetPlaceholderFrameFor(parent);
+    parent = placeholderFrame->GetParent();
+
+    (*aNewFrame)->SetParent(parent);
+    nsHTMLContainerFrame::ReparentFrameView(aFrame->PresContext(), *aNewFrame,
+                                            oldParent, parent);
+
+    
+    
+    
+    nsStyleContext* parentSC = oldParent->GetStyleContext()->GetParent();
+    if (parentSC) {
+      nsRefPtr<nsStyleContext> newSC;
+      newSC = presShell->StyleSet()->ResolveStyleForNonElement(parentSC);
+      if (newSC) {
+        (*aNewFrame)->SetStyleContext(newSC);
+      }
+    }
+
+    
+    nsFrameList temp(*aNewFrame, *aNewFrame);
+    rv = parent->InsertFrames(nsGkAtoms::nextBidi, placeholderFrame, temp);
+    return rv;
+  }
+
   
   
   nsFrameList temp(*aNewFrame, *aNewFrame);
