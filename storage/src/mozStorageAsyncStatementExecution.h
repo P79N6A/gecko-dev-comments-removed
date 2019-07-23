@@ -57,7 +57,6 @@ namespace storage {
 
 class Connection;
 class ResultSet;
-class StatementData;
 
 class AsyncExecuteStatements : public nsIRunnable
                              , public mozIStoragePendingStatement
@@ -77,7 +76,7 @@ public:
     ERROR = mozIStorageStatementCallback::REASON_ERROR
   };
 
-  typedef nsTArray<StatementData> StatementDataArray;
+  typedef nsTArray<sqlite3_stmt *> sqlite3_stmt_array;
 
   
 
@@ -93,7 +92,7 @@ public:
 
 
 
-  static nsresult execute(StatementDataArray &aStatements,
+  static nsresult execute(sqlite3_stmt_array &aStatements,
                           Connection *aConnection,
                           mozIStorageStatementCallback *aCallback,
                           mozIStoragePendingStatement **_stmt);
@@ -108,26 +107,9 @@ public:
   bool shouldNotify();
 
 private:
-  AsyncExecuteStatements(StatementDataArray &aStatements,
+  AsyncExecuteStatements(sqlite3_stmt_array &aStatements,
                          Connection *aConnection,
                          mozIStorageStatementCallback *aCallback);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  bool bindExecuteAndProcessStatement(StatementData &aData,
-                                      bool aLastStatement);
 
   
 
@@ -184,10 +166,7 @@ private:
 
 
 
-
-
   nsresult notifyError(PRInt32 aErrorCode, const char *aMessage);
-  nsresult notifyError(mozIStorageError *aError);
 
   
 
@@ -196,7 +175,7 @@ private:
 
   nsresult notifyResults();
 
-  StatementDataArray mStatements;
+  sqlite3_stmt_array mStatements;
   nsRefPtr<Connection> mConnection;
   mozStorageTransaction *mTransactionManager;
   mozIStorageStatementCallback *mCallback;

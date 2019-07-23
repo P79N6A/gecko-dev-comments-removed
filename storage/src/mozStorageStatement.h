@@ -45,7 +45,6 @@
 
 #include "nsTArray.h"
 
-#include "mozStorageBindingParamsArray.h"
 #include "mozIStorageStatement.h"
 
 class nsIXPConnectJSObjectHolder;
@@ -83,15 +82,6 @@ public:
 
   inline sqlite3_stmt *nativeStatement() { return mDBStatement; }
 
-  
-
-
-
-  inline already_AddRefed<BindingParamsArray> bindingParamsArray()
-  {
-    return mParamsArray.forget();
-  }
-
 private:
     ~Statement();
 
@@ -101,12 +91,6 @@ private:
     PRUint32 mResultColumnCount;
     nsTArray<nsCString> mColumnNames;
     bool mExecuting;
-
-    
-
-
-
-    nsRefPtr<BindingParamsArray> mParamsArray;
 
     
 

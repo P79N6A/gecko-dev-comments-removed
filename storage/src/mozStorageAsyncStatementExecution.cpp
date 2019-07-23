@@ -43,14 +43,12 @@
 #include "sqlite3.h"
 
 #include "mozIStorageStatementCallback.h"
-#include "mozStorageBindingParams.h"
 #include "mozStorageHelper.h"
 #include "mozStorageResultSet.h"
 #include "mozStorageRow.h"
 #include "mozStorageConnection.h"
 #include "mozStorageError.h"
 #include "mozStoragePrivateHelpers.h"
-#include "mozStorageStatementData.h"
 #include "mozStorageAsyncStatementExecution.h"
 
 namespace mozilla {
@@ -174,7 +172,7 @@ private:
 
 
 nsresult
-AsyncExecuteStatements::execute(StatementDataArray &aStatements,
+AsyncExecuteStatements::execute(sqlite3_stmt_array &aStatements,
                                 Connection *aConnection,
                                 mozIStorageStatementCallback *aCallback,
                                 mozIStoragePendingStatement **_stmt)
@@ -195,7 +193,7 @@ AsyncExecuteStatements::execute(StatementDataArray &aStatements,
   return NS_OK;
 }
 
-AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
+AsyncExecuteStatements::AsyncExecuteStatements(sqlite3_stmt_array &aStatements,
                                                Connection *aConnection,
                                                mozIStorageStatementCallback *aCallback)
 : mConnection(aConnection)
@@ -226,47 +224,6 @@ AsyncExecuteStatements::shouldNotify()
   
   
   return !mCancelRequested;
-}
-
-bool
-AsyncExecuteStatements::bindExecuteAndProcessStatement(StatementData &aData,
-                                                       bool aLastStatement)
-{
-  mMutex.AssertNotCurrentThreadOwns();
-
-  sqlite3_stmt *stmt(aData);
-  BindingParamsArray *paramsArray(aData);
-
-  
-  bool continueProcessing = true;
-  BindingParamsArray::iterator itr = paramsArray->begin();
-  BindingParamsArray::iterator end = paramsArray->end();
-  while (itr != end && continueProcessing) {
-    
-    nsCOMPtr<mozIStorageError> error;
-    error = (*itr)->bind(stmt);
-    if (error) {
-      
-      {
-        MutexAutoLock mutex(mMutex);
-        mState = ERROR;
-      }
-
-      
-      (void)notifyError(error);
-      return false;
-    }
-
-    
-    itr++;
-    bool lastStatement = aLastStatement && itr == end;
-    continueProcessing = executeAndProcessStatement(stmt, lastStatement);
-
-    
-    (void)::sqlite3_reset(stmt);
-  }
-
-  return continueProcessing;
 }
 
 bool
@@ -420,8 +377,10 @@ AsyncExecuteStatements::notifyComplete()
   
   
   
-  for (PRUint32 i = 0; i < mStatements.Length(); i++)
-    mStatements[i].finalize();
+  for (PRUint32 i = 0; i < mStatements.Length(); i++) {
+    (void)::sqlite3_finalize(mStatements[i]);
+    mStatements[i] = NULL;
+  }
 
   
   if (mTransactionManager) {
@@ -467,19 +426,8 @@ AsyncExecuteStatements::notifyError(PRInt32 aErrorCode,
   nsCOMPtr<mozIStorageError> errorObj(new Error(aErrorCode, aMessage));
   NS_ENSURE_TRUE(errorObj, NS_ERROR_OUT_OF_MEMORY);
 
-  return notifyError(errorObj);
-}
-
-nsresult
-AsyncExecuteStatements::notifyError(mozIStorageError *aError)
-{
-  mMutex.AssertNotCurrentThreadOwns();
-
-  if (!mCallback)
-    return NS_OK;
-
   nsRefPtr<ErrorNotifier> notifier =
-    new ErrorNotifier(mCallback, aError, this);
+    new ErrorNotifier(mCallback, errorObj, this);
   NS_ENSURE_TRUE(notifier, NS_ERROR_OUT_OF_MEMORY);
 
   return mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
@@ -562,9 +510,7 @@ AsyncExecuteStatements::Run()
   
   
   
-  
-  
-  if (mStatements.Length() > 1 || mStatements[0].hasParametersToBeBound()) {
+  if (mStatements.Length() > 1) {
     
     mTransactionManager = new mozStorageTransaction(mConnection, PR_FALSE,
                                                     mozIStorageConnection::TRANSACTION_IMMEDIATE);
@@ -572,17 +518,9 @@ AsyncExecuteStatements::Run()
 
   
   for (PRUint32 i = 0; i < mStatements.Length(); i++) {
-    bool finished = (i == (mStatements.Length() - 1));
-
-    
-    if (mStatements[i].hasParametersToBeBound()) {
-      if (!bindExecuteAndProcessStatement(mStatements[i], finished))
-        break;
-    }
-    
-    else if (!executeAndProcessStatement(mStatements[i], finished)) {
+    PRBool finished = (i == (mStatements.Length() - 1));
+    if (!executeAndProcessStatement(mStatements[i], finished))
       break;
-    }
   }
 
   
