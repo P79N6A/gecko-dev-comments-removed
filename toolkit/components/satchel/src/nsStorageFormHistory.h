@@ -140,12 +140,6 @@ public:
   nsCOMPtr<mozIStorageStatement> mDBSelectEntries;
   nsCOMPtr<mozIStorageStatement> mDBInsertNameValue;
   nsCOMPtr<mozIStorageStatement> mDBUpdateEntry;
-
-  
-  nsresult StartCache();
-  nsresult StopCache();
-  nsCOMPtr<mozIStorageConnection> mDummyConnection;
-  nsCOMPtr<mozIStorageStatement> mDummyStatement;
 };
 
 #ifdef MOZ_MORKREADER

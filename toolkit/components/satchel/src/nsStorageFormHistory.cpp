@@ -66,16 +66,6 @@
 #include "nsIPrivateBrowsingService.h"
 #include "nsNetCID.h"
 
-
-
-
-
-
-
-
-
-#define DATABASE_CACHE_PAGES 4000
-
 #define DB_SCHEMA_VERSION   1
 #define DB_FILENAME         NS_LITERAL_STRING("formhistory.sqlite")
 #define DB_CORRUPT_FILENAME NS_LITERAL_STRING("formhistory.sqlite.corrupt")
@@ -604,11 +594,6 @@ nsFormHistory::OpenDatabase(PRBool *aDoImport)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  
-  
-  
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   PRBool exists;
@@ -627,9 +612,6 @@ nsFormHistory::OpenDatabase(PRBool *aDoImport)
   
   
   transaction.Commit();
-
-  
-  StartCache();
 
   rv = CreateStatements();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -783,99 +765,6 @@ nsFormHistory::dbAreExpectedColumnsPresent()
                   "SELECT fieldname, value, timesUsed, firstUsed, lastUsed "
                   "FROM moz_formhistory"), getter_AddRefs(stmt));
   return NS_SUCCEEDED(rv) ? PR_TRUE : PR_FALSE;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsFormHistory::StartCache()
-{
-  
-  if (mDummyStatement)
-    return NS_OK;
-
-  
-  nsCOMPtr<nsIFile> formHistoryFile;
-  nsresult rv = GetDatabaseFile(getter_AddRefs(formHistoryFile));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mStorageService->OpenDatabase(formHistoryFile,
-                                     getter_AddRefs(mDummyConnection));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRBool tableExists;
-  rv = mDummyConnection->TableExists(NS_LITERAL_CSTRING("moz_dummy_table"), &tableExists);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (! tableExists) {
-    rv = mDummyConnection->ExecuteSimpleSQL(
-        NS_LITERAL_CSTRING("CREATE TABLE moz_dummy_table (id INTEGER PRIMARY KEY)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  
-  
-  
-  rv = mDummyConnection->ExecuteSimpleSQL(
-      NS_LITERAL_CSTRING("INSERT OR IGNORE INTO moz_dummy_table VALUES (1)"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mDummyConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT id FROM moz_dummy_table LIMIT 1"),
-    getter_AddRefs(mDummyStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRBool dummyHasResults;
-  rv = mDummyStatement->ExecuteStep(&dummyHasResults);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCAutoString cacheSizePragma("PRAGMA cache_size=");
-  cacheSizePragma.AppendInt(DATABASE_CACHE_PAGES);
-  rv = mDummyConnection->ExecuteSimpleSQL(cacheSizePragma);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-
-
-
-
-
-
-nsresult
-nsFormHistory::StopCache()
-{
-  
-  if (! mDummyStatement)
-    return NS_OK;
-
-  nsresult rv = mDummyStatement->Reset();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mDummyStatement = nsnull;
-  return NS_OK;
 }
 
 
