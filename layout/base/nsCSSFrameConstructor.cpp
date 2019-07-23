@@ -9553,8 +9553,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                               itemsToConstruct);
   }
 
-  if (!aFrame->IsLeaf() &&
-      mDocument->BindingManager()->ShouldBuildChildFrames(aContent)) {
+  if (!aFrame->IsLeaf()) {
     
     
     
