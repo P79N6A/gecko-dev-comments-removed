@@ -1052,6 +1052,16 @@ SessionStoreService.prototype = {
     return window;
   },
 
+  forgetClosedWindow: function sss_forgetClosedWindow(aIndex) {
+    
+    aIndex = aIndex || 0;
+    if (!(aIndex in this._closedWindows))
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    
+    
+    this._closedWindows.splice(aIndex, 1);
+  },
+
   getWindowValue: function sss_getWindowValue(aWindow, aKey) {
     if (aWindow.__SSi) {
       var data = this._windows[aWindow.__SSi].extData || {};
