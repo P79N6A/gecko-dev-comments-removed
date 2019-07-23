@@ -38,6 +38,8 @@
 #define _nsNativeDragSource_h_
 
 #include "nscore.h"
+#include "nsIDOMDataTransfer.h"
+#include "nsCOMPtr.h"
 #include <ole2.h>
 #include <oleidl.h>
 
@@ -53,7 +55,7 @@ public:
 
   
   
-  nsNativeDragSource();
+  nsNativeDragSource(nsIDOMDataTransfer* aDataTransfer);
   ~nsNativeDragSource();
 
   
@@ -78,7 +80,14 @@ public:
   PRPackedBool UserCancelled() { return mUserCancelled; }
 
 protected:
-  ULONG        m_cRef;     
+  
+  ULONG m_cRef;
+
+  
+  nsCOMPtr<nsIDOMNSDataTransfer> mDataTransfer;
+
+  
+  HCURSOR m_hCursor;
 
   
   PRPackedBool mUserCancelled;

@@ -168,6 +168,9 @@ protected:
   PRUint32 mEffectAllowed;
 
   
+  PRPackedBool mCursorState;
+
+  
   
   PRPackedBool mReadOnly;
 

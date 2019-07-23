@@ -270,7 +270,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
 {
   
   
-  nsNativeDragSource* nativeDragSource = new nsNativeDragSource();
+  nsNativeDragSource* nativeDragSource = new nsNativeDragSource(mDataTransfer);
   if (!nativeDragSource)
     return NS_ERROR_OUT_OF_MEMORY;
 

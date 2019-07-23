@@ -38,14 +38,17 @@
 #include "nsNativeDragSource.h"
 #include <stdio.h>
 #include "nsISupportsImpl.h"
+#include "nsString.h"
 
 
 
 
-
-nsNativeDragSource::nsNativeDragSource()
-  : m_cRef(0), mUserCancelled(PR_FALSE)
+nsNativeDragSource::nsNativeDragSource(nsIDOMDataTransfer* aDataTransfer) :
+  m_cRef(0),
+  mUserCancelled(PR_FALSE),
+  m_hCursor(nsnull)
 {
+  mDataTransfer = do_QueryInterface(aDataTransfer);
 }
 
 nsNativeDragSource::~nsNativeDragSource()
@@ -122,5 +125,23 @@ nsNativeDragSource::GiveFeedback(DWORD dwEffect)
 #ifdef DEBUG
   
 #endif
+  
+  
+  if (mDataTransfer) {
+    nsAutoString cursor;
+    mDataTransfer->GetMozCursor(cursor);
+    if (cursor.EqualsASCII("default")) {
+      m_hCursor = ::LoadCursor(0, IDC_ARROW);
+    } else {
+      m_hCursor =  nsnull;
+    }
+  }
+
+  if (m_hCursor) {
+    ::SetCursor(m_hCursor);
+    return S_OK;
+  }
+  
+  
 	return ResultFromScode(DRAGDROP_S_USEDEFAULTCURSORS);
 }
