@@ -128,8 +128,6 @@
 
 #include "gfxContext.h"
 
-using namespace mozilla;
-
 static NS_DEFINE_CID(kLookAndFeelCID,  NS_LOOKANDFEEL_CID);
 static NS_DEFINE_CID(kWidgetCID, NS_CHILD_CID);
 
@@ -536,22 +534,25 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     
-    FrameProperties props = Properties();
     nsMargin oldValue(0, 0, 0, 0);
     nsMargin newValue(0, 0, 0, 0);
     const nsStyleMargin* oldMargin = aOldStyleContext->PeekStyleMargin();
     if (oldMargin && oldMargin->GetMargin(oldValue)) {
       if ((!GetStyleMargin()->GetMargin(newValue) || oldValue != newValue) &&
-          !props.Get(UsedMarginProperty())) {
-        props.Set(UsedMarginProperty(), new nsMargin(oldValue));
+          !GetProperty(nsGkAtoms::usedMarginProperty)) {
+        SetProperty(nsGkAtoms::usedMarginProperty,
+                    new nsMargin(oldValue),
+                    nsCSSOffsetState::DestroyMarginFunc);
       }
     }
 
     const nsStylePadding* oldPadding = aOldStyleContext->PeekStylePadding();
     if (oldPadding && oldPadding->GetPadding(oldValue)) {
       if ((!GetStylePadding()->GetPadding(newValue) || oldValue != newValue) &&
-          !props.Get(UsedPaddingProperty())) {
-        props.Set(UsedPaddingProperty(), new nsMargin(oldValue));
+          !GetProperty(nsGkAtoms::usedPaddingProperty)) {
+        SetProperty(nsGkAtoms::usedPaddingProperty,
+                    new nsMargin(oldValue),
+                    nsCSSOffsetState::DestroyMarginFunc);
       }
     }
 
@@ -560,8 +561,10 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
       oldValue = oldBorder->GetActualBorder();
       newValue = GetStyleBorder()->GetActualBorder();
       if (oldValue != newValue &&
-          !props.Get(UsedBorderProperty())) {
-        props.Set(UsedBorderProperty(), new nsMargin(oldValue));
+          !GetProperty(nsGkAtoms::usedBorderProperty)) {
+        SetProperty(nsGkAtoms::usedBorderProperty,
+                    new nsMargin(oldValue),
+                    nsCSSOffsetState::DestroyMarginFunc);
       }
     }
   }
@@ -605,7 +608,7 @@ nsIFrame::GetUsedMargin() const
     return margin;
 
   nsMargin *m = static_cast<nsMargin*>
-                           (Properties().Get(UsedMarginProperty()));
+                           (GetProperty(nsGkAtoms::usedMarginProperty));
   if (m) {
     margin = *m;
   } else {
@@ -644,7 +647,7 @@ nsIFrame::GetUsedBorder() const
   }
 
   nsMargin *b = static_cast<nsMargin*>
-                           (Properties().Get(UsedBorderProperty()));
+                           (GetProperty(nsGkAtoms::usedBorderProperty));
   if (b) {
     border = *b;
   } else {
@@ -681,7 +684,7 @@ nsIFrame::GetUsedPadding() const
   }
 
   nsMargin *p = static_cast<nsMargin*>
-                           (Properties().Get(UsedPaddingProperty()));
+                           (GetProperty(nsGkAtoms::usedPaddingProperty));
   if (p) {
     padding = *p;
   } else {
@@ -1471,7 +1474,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     if (aChild->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
       return NS_OK;
     nsRect* savedDirty = static_cast<nsRect*>
-      (aChild->Properties().Get(nsDisplayListBuilder::OutOfFlowDirtyRectProperty()));
+                                    (aChild->GetProperty(nsGkAtoms::outOfFlowDirtyRectProperty));
     if (savedDirty) {
       dirty = *savedDirty;
     } else {
@@ -3454,8 +3457,6 @@ nsIFrame* nsIFrame::GetTailContinuation()
   return frame;
 }
 
-NS_DECLARE_FRAME_PROPERTY(ViewProperty, nsnull)
-
 
 nsIView*
 nsIFrame::GetView() const
@@ -3465,7 +3466,10 @@ nsIFrame::GetView() const
     return nsnull;
 
   
-  void* value = Properties().Get(ViewProperty());
+  nsresult rv;
+  void *value = GetProperty(nsGkAtoms::viewProperty, &rv);
+
+  NS_ENSURE_SUCCESS(rv, nsnull);
   NS_ASSERTION(value, "frame state bit was set but frame has no view");
   return static_cast<nsIView*>(value);
 }
@@ -3483,7 +3487,8 @@ nsIFrame::SetView(nsIView* aView)
     aView->SetClientData(this);
 
     
-    Properties().Set(ViewProperty(), aView);
+    nsresult rv = SetProperty(nsGkAtoms::viewProperty, aView, nsnull);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     AddStateBits(NS_FRAME_HAS_VIEW);
@@ -3676,10 +3681,12 @@ nsIFrame::InvalidateWithFlags(const nsRect& aDamageRect, PRUint32 aFlags)
   
   nsIPresShell *shell = PresContext()->GetPresShell();
   if (shell) {
-    if (shell->IsPaintingSuppressed())
+    PRBool suppressed = PR_FALSE;
+    shell->IsPaintingSuppressed(&suppressed);
+    if (suppressed)
       return;
   }
-
+  
   InvalidateInternal(aDamageRect, 0, 0, nsnull, aFlags);
 }
 
@@ -3825,7 +3832,7 @@ nsIFrame::InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2)
 void
 nsIFrame::InvalidateOverflowRect()
 {
-  Invalidate(GetOverflowRectRelativeToSelf());
+  Invalidate(GetOverflowRect());
 }
 
 void
@@ -3836,6 +3843,24 @@ nsIFrame::InvalidateRoot(const nsRect& aDamageRect, PRUint32 aFlags)
   nsIView* view = GetView();
   NS_ASSERTION(view, "This can only be called on frames with views");
   view->GetViewManager()->UpdateView(view, aDamageRect, flags);
+}
+
+static void
+DestroyRectFunc(void*    aFrame,
+                nsIAtom* aPropertyName,
+                void*    aPropertyValue,
+                void*    aDtorData)
+{
+  delete static_cast<nsRect*>(aPropertyValue);
+}
+
+static void
+SetRectProperty(nsIFrame* aFrame, nsIAtom* aProp, const nsRect& aRect)
+{
+  nsRect* r = new nsRect(aRect);
+  if (!r)
+    return;
+  aFrame->SetProperty(aProp, r, DestroyRectFunc);
 }
 
 
@@ -3884,8 +3909,7 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, PRBool* aAnyOutlineOrEffects,
     NS_ASSERTION(result, "GetOutlineWidth had no cached outline width");
     if (width > 0) {
       if (aStoreRectProperties) {
-        aFrame->Properties().
-          Set(nsIFrame::OutlineInnerRectProperty(), new nsRect(r));
+        SetRectProperty(aFrame, nsGkAtoms::outlineInnerRectProperty, r);
       }
 
       nscoord offset = outline->mOutlineOffset;
@@ -3906,8 +3930,7 @@ ComputeOutlineAndEffectsRect(nsIFrame* aFrame, PRBool* aAnyOutlineOrEffects,
   if (nsSVGIntegrationUtils::UsingEffectsForFrame(aFrame)) {
     *aAnyOutlineOrEffects = PR_TRUE;
     if (aStoreRectProperties) {
-      aFrame->Properties().
-        Set(nsIFrame::PreEffectsBBoxProperty(), new nsRect(r));
+      SetRectProperty(aFrame, nsGkAtoms::preEffectsBBoxProperty, r);
     }
     r = nsSVGIntegrationUtils::ComputeFrameEffectsRect(aFrame, r);
   }
@@ -3921,7 +3944,7 @@ nsIFrame::GetRelativeOffset(const nsStyleDisplay* aDisplay) const
 {
   if (!aDisplay || NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition) {
     nsPoint *offsets = static_cast<nsPoint*>
-      (Properties().Get(ComputedOffsetProperty()));
+                         (GetProperty(nsGkAtoms::computedOffsetProperty));
     if (offsets) {
       return *offsets;
     }
@@ -3965,14 +3988,14 @@ nsIFrame::GetOverflowRectRelativeToParent() const
 nsRect
 nsIFrame::GetOverflowRectRelativeToSelf() const
 {
-  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) &&
-      GetStyleDisplay()->HasTransform()) {
-    nsRect* preTransformBBox = static_cast<nsRect*>
-      (Properties().Get(PreTransformBBoxProperty()));
-    if (preTransformBBox)
-      return *preTransformBBox;
-  }
-  return GetOverflowRect();
+  if (!(mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) ||
+      !GetStyleDisplay()->HasTransform())
+    return GetOverflowRect();
+  nsRect* preEffectsBBox = static_cast<nsRect*>
+    (GetProperty(nsGkAtoms::preEffectsBBoxProperty));
+  if (!preEffectsBBox)
+    return GetOverflowRect();
+  return *preEffectsBBox;
 }
 
 void
@@ -5514,15 +5537,6 @@ nsFrame::GetAccessible(nsIAccessible** aAccessible)
 }
 #endif
 
-NS_DECLARE_FRAME_PROPERTY(OverflowAreaProperty, nsIFrame::DestroyRect)
-
-void
-nsIFrame::ClearOverflowRect()
-{
-  Properties().Delete(OverflowAreaProperty());
-  mOverflow.mType = NS_FRAME_OVERFLOW_NONE;
-}
-
 
 
 
@@ -5536,8 +5550,9 @@ nsIFrame::GetOverflowAreaProperty(PRBool aCreateIfNecessary)
     return nsnull;
   }
 
-  FrameProperties props = Properties();
-  void *value = props.Get(OverflowAreaProperty());
+  nsPropertyTable *propTable = PresContext()->PropertyTable();
+  void *value = propTable->GetProperty(this,
+                                       nsGkAtoms::overflowAreaProperty);
 
   if (value) {
     return (nsRect*)value;  
@@ -5545,7 +5560,8 @@ nsIFrame::GetOverflowAreaProperty(PRBool aCreateIfNecessary)
     
     
     nsRect*  overflow = new nsRect(0, 0, 0, 0);
-    props.Set(OverflowAreaProperty(), overflow);
+    propTable->SetProperty(this, nsGkAtoms::overflowAreaProperty,
+                           overflow, DestroyRectFunc, nsnull);
     return overflow;
   }
 
@@ -5573,7 +5589,7 @@ nsIFrame::SetOverflowRect(const nsRect& aRect)
     
     
     
-    Properties().Delete(OverflowAreaProperty());
+    DeleteProperty(nsGkAtoms::overflowAreaProperty);
     mOverflow.mDeltas.mLeft   = l;
     mOverflow.mDeltas.mTop    = t;
     mOverflow.mDeltas.mRight  = r;
@@ -5662,12 +5678,11 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
       &hasOutlineOrEffects);
 
   
-  PRBool hasTransform =
-    (mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
-    GetStyleDisplay()->HasTransform();
-  if (hasTransform) {
-    Properties().
-      Set(nsIFrame::PreTransformBBoxProperty(), new nsRect(*aOverflowArea));
+  if ((mState & NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS) && 
+      GetStyleDisplay()->HasTransform()) {
+    
+    SetRectProperty(this, nsGkAtoms::preTransformBBoxProperty, *aOverflowArea);
+
     
 
 
@@ -5691,7 +5706,7 @@ nsIFrame::FinishAndStoreOverflow(nsRect* aOverflowArea, nsSize aNewSize)
     }
   }
 
-  if (overflowChanged && (hasOutlineOrEffects || hasTransform)) {
+  if (overflowChanged && hasOutlineOrEffects) {
     
     
     
@@ -5760,8 +5775,8 @@ GetIBSpecialSiblingForAnonymousBlock(nsIFrame* aFrame)
 
 
 
-  nsIFrame *specialSibling = static_cast<nsIFrame*>
-    (aFrame->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+  nsIFrame *specialSibling =
+    static_cast<nsIFrame*>(aFrame->GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling));
   NS_ASSERTION(specialSibling, "Broken frame tree?");
   return specialSibling;
 }
@@ -5953,6 +5968,42 @@ nsFrame::GetFirstLeaf(nsPresContext* aPresContext, nsIFrame **aFrame)
       return;
     *aFrame = child;
   }
+}
+
+nsresult
+nsIFrame::SetProperty(nsIAtom*           aPropName,
+                      void*              aPropValue,
+                      NSPropertyDtorFunc aPropDtorFunc,
+                      void*              aDtorData)
+{
+  return PresContext()->PropertyTable()->
+    SetProperty(this, aPropName, aPropValue, aPropDtorFunc, aDtorData);
+}
+
+void* 
+nsIFrame::GetProperty(nsIAtom* aPropName, nsresult* aStatus) const
+{
+  return PresContext()->PropertyTable()->GetProperty(this, aPropName,
+                                                        aStatus);
+}
+
+ void* 
+nsIFrame::GetPropertyExternal(nsIAtom* aPropName, nsresult* aStatus) const
+{
+  return GetProperty(aPropName, aStatus);
+}
+
+nsresult
+nsIFrame::DeleteProperty(nsIAtom* aPropName) const
+{
+  return PresContext()->PropertyTable()->DeleteProperty(this, aPropName);
+}
+
+void*
+nsIFrame::UnsetProperty(nsIAtom* aPropName, nsresult* aStatus) const
+{
+  return PresContext()->PropertyTable()->UnsetProperty(this, aPropName,
+                                                          aStatus);
 }
 
  const void*
@@ -6578,19 +6629,11 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
   return NS_OK;
 }
 
-static void
-DestroyBoxMetrics(void* aPropertyValue)
-{
-  delete static_cast<nsBoxLayoutMetrics*>(aPropertyValue);
-}
-
-NS_DECLARE_FRAME_PROPERTY(BoxMetricsProperty, DestroyBoxMetrics)
-
 nsBoxLayoutMetrics*
 nsFrame::BoxMetrics() const
 {
   nsBoxLayoutMetrics* metrics =
-    static_cast<nsBoxLayoutMetrics*>(Properties().Get(BoxMetricsProperty()));
+    static_cast<nsBoxLayoutMetrics*>(GetProperty(nsGkAtoms::boxMetricsProperty));
   NS_ASSERTION(metrics, "A box layout method was called but InitBoxMetrics was never called");
   return metrics;
 }
@@ -6600,25 +6643,31 @@ nsFrame::SetParent(const nsIFrame* aParent)
 {
   PRBool wasBoxWrapped = IsBoxWrapped();
   nsIFrame::SetParent(aParent);
-  if (!wasBoxWrapped && IsBoxWrapped()) {
+  if (!wasBoxWrapped && IsBoxWrapped())
     InitBoxMetrics(PR_TRUE);
-  } else if (wasBoxWrapped && !IsBoxWrapped()) {
-    Properties().Delete(BoxMetricsProperty());
-  }
+  else if (wasBoxWrapped && !IsBoxWrapped())
+    DeleteProperty(nsGkAtoms::boxMetricsProperty);
 
   return NS_OK;
+}
+
+static void
+DeleteBoxMetrics(void    *aObject,
+                 nsIAtom *aPropertyName,
+                 void    *aPropertyValue,
+                 void    *aData)
+{
+  delete static_cast<nsBoxLayoutMetrics*>(aPropertyValue);
 }
 
 void
 nsFrame::InitBoxMetrics(PRBool aClear)
 {
-  FrameProperties props = Properties();
-  if (aClear) {
-    props.Delete(BoxMetricsProperty());
-  }
+  if (aClear)
+    DeleteProperty(nsGkAtoms::boxMetricsProperty);
 
   nsBoxLayoutMetrics *metrics = new nsBoxLayoutMetrics();
-  props.Set(BoxMetricsProperty(), metrics);
+  SetProperty(nsGkAtoms::boxMetricsProperty, metrics, DeleteBoxMetrics);
 
   nsFrame::MarkIntrinsicWidthsDirty();
   metrics->mBlockAscent = 0;

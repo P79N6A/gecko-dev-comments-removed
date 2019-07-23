@@ -307,7 +307,9 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
     
     
     
-    if (shell->IsPaintingSuppressed())
+    PRBool isSuppressed = PR_FALSE;
+    nsresult rv = shell->IsPaintingSuppressed(&isSuppressed);
+    if (NS_SUCCEEDED(rv) && isSuppressed)
       doRequestDecode = PR_TRUE;
 
     

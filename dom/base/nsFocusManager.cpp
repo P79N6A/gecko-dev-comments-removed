@@ -1899,7 +1899,8 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
   
   
   
-  nsRefPtr<nsCaret> caret = aPresShell->GetCaret();
+  nsRefPtr<nsCaret> caret;
+  aPresShell->GetCaret(getter_AddRefs(caret));
   if (!caret)
     return NS_OK;
 
@@ -2053,7 +2054,8 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
           if (newCaretFrame && newCaretContent) {
             
             
-            nsRefPtr<nsCaret> caret = aPresShell->GetCaret();
+            nsRefPtr<nsCaret> caret;
+            aPresShell->GetCaret(getter_AddRefs(caret));
             nsRect caretRect;
             nsIFrame *frame = caret->GetGeometry(domSelection, &caretRect);
             if (frame) {
