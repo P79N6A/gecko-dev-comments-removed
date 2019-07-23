@@ -702,6 +702,7 @@ function BrowserStartup()
     var openerSidebarBox = window.opener.document.getElementById("sidebar-box");
     
     
+    
     if (openerSidebarBox && !openerSidebarBox.hidden) {
       var sidebarBox = document.getElementById("sidebar-box");
       var sidebarTitle = document.getElementById("sidebar-title");
@@ -709,8 +710,12 @@ function BrowserStartup()
       sidebarBox.setAttribute("width", openerSidebarBox.boxObject.width);
       var sidebarCmd = openerSidebarBox.getAttribute("sidebarcommand");
       sidebarBox.setAttribute("sidebarcommand", sidebarCmd);
+      
+      
+      
       sidebarBox.setAttribute("src", window.opener.document.getElementById("sidebar").getAttribute("src"));
       gMustLoadSidebar = true;
+
       sidebarBox.hidden = false;
       sidebarSplitter = document.getElementById("sidebar-splitter");
       sidebarSplitter.hidden = false;
@@ -4493,6 +4498,8 @@ function toggleSidebar(commandID, forceOpen) {
       sidebarBox.hidden = true;
       sidebarSplitter.hidden = true;
       content.focus();
+    } else {
+      fireSidebarFocusedEvent();
     }
     return;
   }
@@ -4520,13 +4527,40 @@ function toggleSidebar(commandID, forceOpen) {
   var title = sidebarBroadcaster.getAttribute("sidebartitle");
   if (!title)
     title = sidebarBroadcaster.getAttribute("label");
-  sidebar.setAttribute("src", url);
+  sidebar.setAttribute("src", url); 
   sidebarBox.setAttribute("sidebarcommand", sidebarBroadcaster.id);
   sidebarTitle.value = title;
 
   
   
+  
+  
+  
   sidebarBox.setAttribute("src", url);
+
+  if (sidebar.contentDocument.location.href != url)
+    sidebar.addEventListener("load", sidebarOnLoad, true);
+  else 
+    fireSidebarFocusedEvent();
+}
+
+function sidebarOnLoad(event) {
+  var sidebar = document.getElementById("sidebar");
+  sidebar.removeEventListener("load", sidebarOnLoad, true);
+  
+  
+  
+  setTimeout(fireSidebarFocusedEvent, 0);
+}
+
+
+
+
+function fireSidebarFocusedEvent() {
+  var sidebar = document.getElementById("sidebar");
+  var event = document.createEvent("Events");
+  event.initEvent("SidebarFocused", true, false);
+  sidebar.contentWindow.dispatchEvent(event);
 }
 
 var gHomeButton = {
