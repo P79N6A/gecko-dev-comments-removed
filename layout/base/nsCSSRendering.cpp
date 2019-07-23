@@ -938,6 +938,9 @@ static inline void SX(gfxContext *ctx) {}
 #endif
 
 
+static const PRUint8 gBorderSideOrder[] = { NS_SIDE_TOP, NS_SIDE_RIGHT, NS_SIDE_BOTTOM, NS_SIDE_LEFT };
+
+
 
 
 
@@ -957,10 +960,8 @@ ShouldDoSeparateSides (const nsStyleBorder& aBorderStyle,
   nscolor sideColor;
   nsBorderColors* compositeColors = nsnull;
 
-  static PRUint8 sideOrder[] = { NS_SIDE_BOTTOM, NS_SIDE_LEFT, NS_SIDE_TOP, NS_SIDE_RIGHT };
-
   for (int i = 0; i < 4; i++) {
-    PRUint8 side = sideOrder[i];
+    PRUint8 side = gBorderSideOrder[i];
     PRUint8 borderRenderStyle = aBorderStyle.GetBorderStyle(side);
 
     
@@ -1454,7 +1455,7 @@ DoSideClipPath(gfxContext *ctx,
         end[1] = end[0] + ps * k;
       }
     }
-  } else if (startType == SIDE_CLIP_RECTANGLE) {
+  } else if (endType == SIDE_CLIP_RECTANGLE) {
     switch (whichSide) {
       case NS_SIDE_TOP:
         end[0] = gfxPoint(iRect.TopRight().x, oRect.TopRight().y);
@@ -2214,8 +2215,6 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
-  static PRUint8 sideOrder[] = { NS_SIDE_BOTTOM, NS_SIDE_LEFT, NS_SIDE_TOP, NS_SIDE_RIGHT };
-
   nsRefPtr<gfxContext> ctx = (gfxContext*)
     aRenderingContext.GetNativeGraphicData(nsIRenderingContext::NATIVE_THEBES_CONTEXT);
 
@@ -2346,10 +2345,10 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   
   int numSides = doSeparateSides ? 4 : 1;
   for (int i = 0; i < numSides; i++) {
-    PRUint8 side = sideOrder[i];
+    PRUint8 side = gBorderSideOrder[i];
 
-    
     if (doSeparateSides) {
+      
       if (aSkipSides & (1 << side))
         continue;
 
@@ -2371,6 +2370,16 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
       
       DoSideClipPath(ctx, iRect, oRect, lRect, side, aBorderStyle, borderRadii);
       ctx->Clip();
+
+#if 0
+      switch (i) {
+      case 0: ctx->SetColor(gfxRGBA(0.0,1.0,0.0,0.5)); break;
+      case 1: ctx->SetColor(gfxRGBA(1.0,0.0,0.0,0.5)); break;
+      case 2: ctx->SetColor(gfxRGBA(0.0,1.0,1.0,0.5)); break;
+      case 3: ctx->SetColor(gfxRGBA(0.0,0.0,1.0,0.5)); break;
+      }
+      ctx->Paint();
+#endif
     }
 
     
@@ -2401,6 +2410,7 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
                       doSeparateSides, side, aSkipSides,
                       twipsPerPixel,
                       haveBorderRadius ? borderRadii : nsnull);
+      SN("----------------");
     }
 
     if (doSeparateSides)
@@ -2634,11 +2644,9 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   
   
 
-  static PRUint8 sideOrder[] = { NS_SIDE_BOTTOM, NS_SIDE_LEFT, NS_SIDE_TOP, NS_SIDE_RIGHT };
-
   int numSides = doSeparateSides ? 4 : 1;
   for (int i = 0; i < numSides; i++) {
-    PRUint8 side = sideOrder[i];
+    PRUint8 side = gBorderSideOrder[i];
 
     
     if (doSeparateSides) {
