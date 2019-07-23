@@ -302,7 +302,8 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     
     
     
-    PRBool isIDispatch = Interface->GetIID()->Equals(NSID_IDISPATCH);
+    PRBool isIDispatch = Interface &&
+                         Interface->GetIID()->Equals(NSID_IDISPATCH);
     if(isIDispatch)
         identity = Object;
     else
@@ -333,7 +334,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
     if(wrapper)
     {
-        if(!wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
+        if(Interface && !wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
         {
             NS_RELEASE(wrapper);
             NS_ASSERTION(NS_FAILED(rv), "returning NS_OK on failure");
@@ -356,7 +357,8 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     
     
     
-    JSBool isClassInfo = Interface->GetIID()->Equals(NS_GET_IID(nsIClassInfo));
+    JSBool isClassInfo = Interface &&
+                         Interface->GetIID()->Equals(NS_GET_IID(nsIClassInfo));
 
     nsCOMPtr<nsIClassInfo> info;
 
@@ -429,7 +431,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
         if(wrapper)
         {
-            if(!wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
+            if(Interface && !wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
             {
                 NS_RELEASE(wrapper);
                 NS_ASSERTION(NS_FAILED(rv), "returning NS_OK on failure");
@@ -488,7 +490,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
         return NS_ERROR_FAILURE;
     }
 
-    if(!wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
+    if(Interface && !wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
     {
         
         wrapper->Release();
@@ -636,7 +638,7 @@ XPCWrappedNative::GetUsedOnly(XPCCallContext& ccx,
     }
 
     nsresult rv;
-    if(!wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
+    if(Interface && !wrapper->FindTearOff(ccx, Interface, JS_FALSE, &rv))
     {
         NS_RELEASE(wrapper);
         NS_ASSERTION(NS_FAILED(rv), "returning NS_OK on failure");

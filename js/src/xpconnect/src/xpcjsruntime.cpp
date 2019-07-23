@@ -41,6 +41,7 @@
 
 
 #include "xpcprivate.h"
+#include "dom_quickstubs.h"
 
 
 
@@ -559,6 +560,8 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                 self->mDetachedWrappedNativeProtoMap->
                     Enumerate(DetachedWrappedNativeProtoMarker, nsnull);
 
+                DOM_MarkInterfaces();
+
                 
                 
                 
@@ -813,6 +816,8 @@ DetachedWrappedNativeProtoShutdownMarker(JSDHashTable *table, JSDHashEntryHdr *h
 
 void XPCJSRuntime::SystemIsBeingShutDown(JSContext* cx)
 {
+    DOM_ClearInterfaces();
+
     if(mDetachedWrappedNativeProtoMap)
         mDetachedWrappedNativeProtoMap->
             Enumerate(DetachedWrappedNativeProtoShutdownMarker, cx);
@@ -1000,6 +1005,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
         JS_NewDHashTable(JS_DHashGetStubOps(), nsnull,
                          sizeof(JSDHashEntryStub), 128);
 #endif
+
+    DOM_InitInterfaces();
 
     
     mStrIDs[0] = 0;
