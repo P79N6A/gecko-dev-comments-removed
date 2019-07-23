@@ -1213,6 +1213,8 @@ private:
   void PostUnblockOnloadEvent();
   void DoUnblockOnload();
 
+  nsresult InitCSP();
+
   
 
 
