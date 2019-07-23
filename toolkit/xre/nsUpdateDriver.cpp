@@ -304,6 +304,11 @@ IsOlderVersion(nsILocalFile *versionFile, const char *&appVersion)
     return PR_TRUE;
 
   
+  int len = strlen(result);
+  if (len > 0 && result[len - 1] == '\n')
+    result[len - 1] = '\0';
+
+  
   
   const char kNull[] = "null";
   if (strncmp(buf, kNull, sizeof(kNull) - 1) == 0)
