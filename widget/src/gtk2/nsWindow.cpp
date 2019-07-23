@@ -591,14 +591,16 @@ nsWindow::OnDestroy(void)
         return;
 
     mOnDestroyCalled = PR_TRUE;
-
     
-    nsBaseWidget::OnDestroy();
-
     
-    mParent = nsnull;
-
     nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
+
+    
+    nsBaseWidget::OnDestroy(); 
+    
+    
+    nsBaseWidget::Destroy();
+    mParent = nsnull;
 
     nsGUIEvent event(PR_TRUE, NS_DESTROY, this);
     nsEventStatus status;
@@ -808,13 +810,14 @@ nsWindow::Destroy(void)
         CheckDestroyInvisibleContainer();
     }
 
-    OnDestroy();
-
 #ifdef ACCESSIBILITY
-    if (mRootAccessible) {
-        mRootAccessible = nsnull;
-    }
+     if (mRootAccessible) {
+         mRootAccessible = nsnull;
+     }
 #endif
+
+    
+    OnDestroy();
 
     return NS_OK;
 }
