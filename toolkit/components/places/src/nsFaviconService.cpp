@@ -47,6 +47,7 @@
 
 
 #include "nsFaviconService.h"
+#include "nsICacheService.h"
 #include "nsICacheVisitor.h"
 #include "nsICachingChannel.h"
 #include "nsICategoryManager.h"
@@ -64,6 +65,7 @@
 #include "mozStorageHelper.h"
 #include "plbase64.h"
 #include "nsPlacesTables.h"
+#include "mozIStoragePendingStatement.h"
 
 
 #include "imgITools.h"
@@ -86,6 +88,14 @@
 
 #define MAX_FAVICON_SIZE 10240
 
+
+
+
+
+
+
+#define MAX_FAVICON_EXPIRATION PRTime(7 * 24 * 60 * 60 * PR_USEC_PER_SEC)
+
 class FaviconLoadListener : public nsIStreamListener,
                             public nsIInterfaceRequestor,
                             public nsIChannelEventSink
@@ -104,7 +114,7 @@ public:
 private:
   ~FaviconLoadListener();
 
-  nsCOMPtr<nsFaviconService> mFaviconService;
+  nsRefPtr<nsFaviconService> mFaviconService;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIURI> mPageURI;
   nsCOMPtr<nsIURI> mFaviconURI;
@@ -115,7 +125,11 @@ private:
 
 nsFaviconService* nsFaviconService::gFaviconService;
 
-NS_IMPL_ISUPPORTS1(nsFaviconService, nsIFaviconService)
+NS_IMPL_ISUPPORTS2(
+  nsFaviconService
+, nsIFaviconService
+, nsIObserver
+)
 
 
 
@@ -219,6 +233,55 @@ nsFaviconService::InitTables(mozIStorageConnection* aDBConn)
   return NS_OK;
 }
 
+nsresult
+nsFaviconService::ExpireAllFavicons()
+{
+  
+  
+  
+  
+  nsCOMPtr<mozIStorageStatement> removeReferences;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "UPDATE moz_places_view "
+      "SET favicon_id = NULL "
+      "WHERE favicon_id <> NULL"
+    ), getter_AddRefs(removeReferences));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<mozIStorageStatement> removeFavicons;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "DELETE FROM moz_favicons"
+    ), getter_AddRefs(removeFavicons));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mozIStorageStatement *stmts[] = {
+    removeReferences,
+    removeFavicons
+  };
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = mDBConn->ExecuteAsync(stmts, NS_ARRAY_LENGTH(stmts), nsnull,
+                             getter_AddRefs(ps));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP
+nsFaviconService::Observe(nsISupports *aSubject, const char *aTopic,
+                          const PRUnichar *aData)
+{
+  if (strcmp(aTopic, NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID) == 0)
+    (void)ExpireAllFavicons();
+
+  return NS_OK;
+}
+
+
+
 
 
 
@@ -230,9 +293,7 @@ nsFaviconService::SetFaviconUrlForPage(nsIURI* aPageURI, nsIURI* aFaviconURI)
 
   
   PRBool hasData;
-  PRTime expiration;
-  nsresult rv = SetFaviconUrlForPageInternal(aPageURI, aFaviconURI,
-                                             &hasData, &expiration);
+  nsresult rv = SetFaviconUrlForPageInternal(aPageURI, aFaviconURI, &hasData);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -269,13 +330,10 @@ nsFaviconService::GetDefaultFavicon(nsIURI** _retval)
 
 
 
-
-
 nsresult
 nsFaviconService::SetFaviconUrlForPageInternal(nsIURI* aPageURI,
                                                nsIURI* aFaviconURI,
-                                               PRBool* aHasData,
-                                               PRTime* aExpiration)
+                                               PRBool* aHasData)
 {
   nsresult rv;
   PRInt64 iconId = -1;
@@ -297,10 +355,6 @@ nsFaviconService::SetFaviconUrlForPageInternal(nsIURI* aPageURI,
       NS_ENSURE_SUCCESS(rv, rv);
       if (dataSize > 0)
         *aHasData = PR_TRUE;
-
-      
-      rv = mDBGetIconInfo->GetInt64(2, aExpiration);
-      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
@@ -313,7 +367,6 @@ nsFaviconService::SetFaviconUrlForPageInternal(nsIURI* aPageURI,
   if (iconId == -1) {
     
     *aHasData = PR_FALSE;
-    *aExpiration = 0;
 
     
     mozStorageStatementScoper scoper(mDBInsertIcon);
@@ -391,9 +444,7 @@ nsFaviconService::UpdateBookmarkRedirectFavicon(nsIURI* aPageURI,
     return NS_OK; 
 
   PRBool hasData = PR_FALSE;
-  PRTime expiration = 0;
-  rv = SetFaviconUrlForPageInternal(bookmarkURI, aFaviconURI,
-                                    &hasData, &expiration);
+  rv = SetFaviconUrlForPageInternal(bookmarkURI, aFaviconURI, &hasData);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (hasData) {
@@ -525,7 +576,6 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
   
   
   
-  
   PRBool hasData = PR_FALSE;
   PRTime expiration = 0;
   { 
@@ -562,7 +612,7 @@ nsFaviconService::DoSetAndLoadFaviconForPage(nsIURI* aPageURI,
       return NS_OK; 
 
     
-    rv = SetFaviconUrlForPageInternal(page, aFaviconURI, &hasData, &expiration);
+    rv = SetFaviconUrlForPageInternal(page, aFaviconURI, &hasData);
     NS_ENSURE_SUCCESS(rv, rv);
 
     SendFaviconNotifications(page, aFaviconURI);
@@ -1121,13 +1171,25 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
 
   
   
+  PRTime expiration = -1;
+  nsCOMPtr<nsICachingChannel> cachingChannel(do_QueryInterface(mChannel));
+  if (cachingChannel) {
+    nsCOMPtr<nsISupports> cacheToken;
+    rv = cachingChannel->GetCacheToken(getter_AddRefs(cacheToken));
+    if (NS_SUCCEEDED(rv)) {
+      nsCOMPtr<nsICacheEntryInfo> cacheEntry(do_QueryInterface(cacheToken));
+      PRUint32 seconds;
+      rv = cacheEntry->GetExpirationTime(&seconds);
+      if (NS_SUCCEEDED(rv)) {
+        
+        expiration = PR_Now() + PR_MIN(seconds * PR_USEC_PER_SEC,
+                                       MAX_FAVICON_EXPIRATION);
+      }
+    }
+  }
   
-  
-  
-  
-  
-  PRTime expiration = PR_Now() +
-                      (PRInt64)(24 * 60 * 60) * (PRInt64)PR_USEC_PER_SEC;
+  if (expiration < 0)
+    expiration = PR_Now() + MAX_FAVICON_EXPIRATION;
 
   mozStorageTransaction transaction(mFaviconService->mDBConn, PR_FALSE);
   
@@ -1140,7 +1202,7 @@ FaviconLoadListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
   
   PRBool hasData;
   rv = mFaviconService->SetFaviconUrlForPageInternal(mPageURI, mFaviconURI,
-                                                     &hasData, &expiration);
+                                                     &hasData);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mFaviconService->UpdateBookmarkRedirectFavicon(mPageURI, mFaviconURI);
