@@ -42,53 +42,37 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
-const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-const NH_CONTRACTID = "@mozilla.org/browser/nav-history-service;1";
-const BMS_CONTRACTID = "@mozilla.org/browser/nav-bookmarks-service;1";
-const IO_CONTRACTID = "@mozilla.org/network/io-service;1";
-const ANNO_CONTRACTID = "@mozilla.org/browser/annotation-service;1";
-const FAV_CONTRACTID = "@mozilla.org/browser/favicon-service;1";
-const OBSS_CONTRACTID = "@mozilla.org/observer-service;1";
-
-var gIoService = Cc[IO_CONTRACTID].getService(Ci.nsIIOService);
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
 
 function TaggingService() {
-  this._bms = Cc[BMS_CONTRACTID].getService(Ci.nsINavBookmarksService);
+  
+  this._bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+              getService(Ci.nsINavBookmarksService);
   this._bms.addObserver(this, false);
 
-  this._obss = Cc[OBSS_CONTRACTID].getService(Ci.nsIObserverService);
+  
+  this._obss = Cc["@mozilla.org/observer-service;1"].
+               getService(Ci.nsIObserverService);
   this._obss.addObserver(this, "xpcom-shutdown", false);
+
+  XPCOMUtils.defineLazyServiceGetter(this, "_history",
+                                     "@mozilla.org/browser/nav-history-service;1",
+                                     "nsINavHistoryService");
+
+  XPCOMUtils.defineLazyServiceGetter(this, "_annos",
+                                     "@mozilla.org/browser/annotation-service;1",
+                                     "nsIAnnotationService");
+
+  XPCOMUtils.defineLazyServiceGetter(this, "_ios",
+                                     "@mozilla.org/network/io-service;1",
+                                     "nsIIOService");
 }
 
 TaggingService.prototype = {
-  get _history() {
-    if (!this.__history)
-      this.__history = Cc[NH_CONTRACTID].getService(Ci.nsINavHistoryService);
-    return this.__history;
-  },
-
-  get _annos() {
-    if (!this.__annos)
-      this.__annos =  Cc[ANNO_CONTRACTID].getService(Ci.nsIAnnotationService);
-    return this.__annos;
-  },
-
-  
-  classDescription: "Places Tagging Service",
-  contractID: "@mozilla.org/browser/tagging-service;1",
-  classID: Components.ID("{bbc23860-2553-479d-8b78-94d9038334f7}"),
-
-  
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsITaggingService,
-                                         Ci.nsINavBookmarkObserver,
-                                         Ci.nsIObserver]),
-
   
 
 
@@ -283,7 +267,7 @@ TaggingService.prototype = {
       var cc = tagNode.childCount;
       for (var i = 0; i < cc; i++) {
         try {
-          uris.push(gIoService.newURI(tagNode.getChild(i).uri, null, null));
+          uris.push(this._ios.newURI(tagNode.getChild(i).uri, null, null));
         } catch (ex) {
           
           
@@ -445,7 +429,18 @@ TaggingService.prototype = {
     if (this._tagFolders[aItemId] && this._bms.tagFolder == aOldParent &&
         this._bms.tagFolder != aNewParent)
       delete this._tagFolders[aItemId];
-  }
+  },
+
+  
+  classDescription: "Places Tagging Service",
+  contractID: "@mozilla.org/browser/tagging-service;1",
+  classID: Components.ID("{bbc23860-2553-479d-8b78-94d9038334f7}"),
+  
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsITaggingService
+  , Ci.nsINavBookmarkObserver
+  , Ci.nsIObserver
+  ])
 };
 
 
@@ -545,26 +540,21 @@ TagAutoCompleteResult.prototype = {
     this._comments.splice(index, 1);
   },
 
-  QueryInterface: function(aIID) {
-    if (!aIID.equals(Ci.nsIAutoCompleteResult) && !aIID.equals(Ci.nsISupports))
-        throw Components.results.NS_ERROR_NO_INTERFACE;
-    return this;
-  }
+  
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIAutoCompleteResult
+  ])
 };
 
 
 function TagAutoCompleteSearch() {
+  XPCOMUtils.defineLazyServiceGetter(this, "tagging",
+                                     "@mozilla.org/browser/tagging-service;1",
+                                     "nsITaggingService");
 }
 
 TagAutoCompleteSearch.prototype = {
   _stopped : false, 
-
-  get tagging() {
-    let svc = Cc["@mozilla.org/browser/tagging-service;1"].
-              getService(Ci.nsITaggingService);
-    this.__defineGetter__("tagging", function() svc);
-    return this.tagging;
-  },
 
   
 
@@ -660,14 +650,16 @@ TagAutoCompleteSearch.prototype = {
   },
 
   
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompleteSearch]), 
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIAutoCompleteSearch
+  ]),
 
   classDescription: "Places Tag AutoComplete",
   contractID: "@mozilla.org/autocomplete/search;1?name=places-tag-autocomplete",
   classID: Components.ID("{1dcc23b0-d4cb-11dc-9ad6-479d56d89593}")
 };
 
-var component = [TaggingService, TagAutoCompleteSearch];
+let component = [TaggingService, TagAutoCompleteSearch];
 function NSGetModule(compMgr, fileSpec) {
   return XPCOMUtils.generateModule(component);
 }
