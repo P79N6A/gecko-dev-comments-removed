@@ -399,42 +399,32 @@ nsIOService::GetProtocolHandler(const char* scheme, nsIProtocolHandler* *result)
             return rv;
         }
 
-        
-        
-        
-        if (listedProtocol) {
-            rv = CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"default-blocked",
-                                result);
-            if (NS_FAILED(rv))
-                return NS_ERROR_UNKNOWN_PROTOCOL;
-        }
-    }
-    
 #ifdef MOZ_X11
-    
-    
-    
-    
+        
+        
+        
+        
 
-    
-    
+        
+        
 
-    rv = CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"moz-gnomevfs",
-                        result);
-    if (NS_SUCCEEDED(rv)) {
-        nsCAutoString spec(scheme);
-        spec.Append(':');
-
-        nsIURI *uri;
-        rv = (*result)->NewURI(spec, nsnull, nsnull, &uri);
+        rv = CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX"moz-gnomevfs",
+                            result);
         if (NS_SUCCEEDED(rv)) {
-            NS_RELEASE(uri);
-            return rv;
-        }
+            nsCAutoString spec(scheme);
+            spec.Append(':');
 
-        NS_RELEASE(*result);
-    }
+            nsIURI *uri;
+            rv = (*result)->NewURI(spec, nsnull, nsnull, &uri);
+            if (NS_SUCCEEDED(rv)) {
+                NS_RELEASE(uri);
+                return rv;
+            }
+
+            NS_RELEASE(*result);
+        }
 #endif
+    }
 
     
     
