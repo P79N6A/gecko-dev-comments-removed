@@ -6106,21 +6106,56 @@ JS_PUBLIC_API(jsword)
 JS_SetContextThread(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    jsword old = JS_THREAD_ID(cx);
-    if (!js_SetContextThread(cx))
+    JS_ASSERT(cx->requestDepth == 0);
+    if (cx->thread) {
+        JS_ASSERT(cx->thread->id == js_CurrentThreadId());
+        return cx->thread->id;
+    }
+
+    JSRuntime *rt = cx->runtime;
+    JSThread *thread = js_GetCurrentThread(rt);
+    if (!thread) {
+        js_ReportOutOfMemory(cx);
         return -1;
-    return old;
-#else
-    return 0;
+    }
+
+    
+
+
+
+    JS_LOCK_GC(rt);
+    js_WaitForGC(rt);
+    js_InitContextThread(cx, thread);
+    JS_UNLOCK_GC(rt);
 #endif
+    return 0;
 }
 
 JS_PUBLIC_API(jsword)
 JS_ClearContextThread(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
-    jsword old = JS_THREAD_ID(cx);
-    js_ClearContextThread(cx);
+    
+
+
+
+
+    JS_ASSERT(cx->requestDepth == 0);
+    if (!cx->thread)
+        return 0;
+    jsword old = cx->thread->id;
+    JS_ASSERT(old == js_CurrentThreadId());
+
+    
+
+
+
+    JSRuntime *rt = cx->runtime;
+    JS_LOCK_GC(rt);
+    js_WaitForGC(rt);
+    JS_REMOVE_AND_INIT_LINK(&cx->threadLinks);
+    cx->thread = NULL;
+    JS_UNLOCK_GC(cx->runtime);
     return old;
 #else
     return 0;

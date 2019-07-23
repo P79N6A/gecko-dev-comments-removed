@@ -182,16 +182,12 @@ js_GetCurrentThread(JSRuntime *rt)
 
 
 
-
-JSBool
-js_SetContextThread(JSContext *cx)
+void
+js_InitContextThread(JSContext *cx, JSThread *thread)
 {
-    JSThread *thread = js_GetCurrentThread(cx->runtime);
-
-    if (!thread) {
-        JS_ReportOutOfMemory(cx);
-        return JS_FALSE;
-    }
+    JS_ASSERT(CURRENT_THREAD_IS_ME(thread));
+    JS_ASSERT(!cx->thread);
+    JS_ASSERT(cx->requestDepth == 0);
 
     
 
@@ -205,25 +201,8 @@ js_SetContextThread(JSContext *cx)
 #endif
     }
 
-    
-    JS_ASSERT(!cx->thread || cx->thread == thread);
-    if (!cx->thread)
-        JS_APPEND_LINK(&cx->threadLinks, &thread->contextList);
+    JS_APPEND_LINK(&cx->threadLinks, &thread->contextList);
     cx->thread = thread;
-    return JS_TRUE;
-}
-
-
-void
-js_ClearContextThread(JSContext *cx)
-{
-    
-
-
-
-    JS_ASSERT(cx->thread == js_GetCurrentThread(cx->runtime) || !cx->thread);
-    JS_REMOVE_AND_INIT_LINK(&cx->threadLinks);
-    cx->thread = NULL;
 }
 
 #endif 
@@ -251,6 +230,12 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
     JSContext *cx;
     JSBool ok, first;
     JSContextCallback cxCallback;
+#ifdef JS_THREADSAFE
+    JSThread *thread = js_GetCurrentThread(rt);
+
+    if (!thread)
+        return NULL;
+#endif
 
     cx = (JSContext *) malloc(sizeof *cx);
     if (!cx)
@@ -266,8 +251,12 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
     cx->scriptStackQuota = JS_DEFAULT_SCRIPT_STACK_QUOTA;
 #ifdef JS_THREADSAFE
     cx->gcLocalFreeLists = (JSGCFreeListSet *) &js_GCEmptyFreeListSet;
-    JS_INIT_CLIST(&cx->threadLinks);
-    js_SetContextThread(cx);
+
+    
+
+
+
+    js_InitContextThread(cx, thread);
 #endif
 
     JS_LOCK_GC(rt);
@@ -428,6 +417,9 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     JSLocalRootStack *lrs;
     JSLocalRootChunk *lrc;
 
+#ifdef JS_THREADSAFE
+    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
+#endif
     rt = cx->runtime;
 
     if (mode != JSDCM_NEW_FAILED) {
@@ -496,10 +488,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-
-
-
-
     while (cx->requestDepth != 0)
         JS_EndRequest(cx);
 #endif
@@ -560,7 +548,13 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     }
 
 #ifdef JS_THREADSAFE
-    js_ClearContextThread(cx);
+    
+
+
+
+
+
+    JS_REMOVE_LINK(&cx->threadLinks);
 #endif
 
     

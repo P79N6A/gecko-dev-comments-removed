@@ -1480,21 +1480,8 @@ js_AddRootRT(JSRuntime *rt, void *rp, const char *name)
 
 
 
-
-
-
-
-
-
     JS_LOCK_GC(rt);
-#ifdef JS_THREADSAFE
-    JS_ASSERT(!rt->gcRunning || rt->gcLevel > 0);
-    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
-        do {
-            JS_AWAIT_GC_DONE(rt);
-        } while (rt->gcLevel > 0);
-    }
-#endif
+    js_WaitForGC(rt);
     rhe = (JSGCRootHashEntry *)
           JS_DHashTableOperate(&rt->gcRootsHash, rp, JS_DHASH_ADD);
     if (rhe) {
@@ -1516,14 +1503,7 @@ js_RemoveRoot(JSRuntime *rt, void *rp)
 
 
     JS_LOCK_GC(rt);
-#ifdef JS_THREADSAFE
-    JS_ASSERT(!rt->gcRunning || rt->gcLevel > 0);
-    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
-        do {
-            JS_AWAIT_GC_DONE(rt);
-        } while (rt->gcLevel > 0);
-    }
-#endif
+    js_WaitForGC(rt);
     (void) JS_DHashTableOperate(&rt->gcRootsHash, rp, JS_DHASH_REMOVE);
     rt->gcPoke = JS_TRUE;
     JS_UNLOCK_GC(rt);
@@ -3867,6 +3847,31 @@ out:
         }
     }
 }
+
+#ifdef JS_THREADSAFE
+
+
+
+
+
+
+
+
+
+
+
+void
+js_WaitForGC(JSRuntime *rt)
+{
+    JS_ASSERT_IF(rt->gcRunning, rt->gcLevel > 0);
+    if (rt->gcRunning && rt->gcThread->id != js_CurrentThreadId()) {
+        do {
+            JS_AWAIT_GC_DONE(rt);
+        } while (rt->gcRunning);
+    }
+}
+
+#endif
 
 void
 js_UpdateMallocCounter(JSContext *cx, size_t nbytes)
