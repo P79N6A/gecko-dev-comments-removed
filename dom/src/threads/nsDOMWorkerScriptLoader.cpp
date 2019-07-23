@@ -39,7 +39,9 @@
 #include "nsDOMWorkerScriptLoader.h"
 
 
+#include "nsIChannel.h"
 #include "nsIContentPolicy.h"
+#include "nsIHttpChannel.h"
 #include "nsIIOService.h"
 #include "nsIRequest.h"
 #include "nsIScriptSecurityManager.h"
@@ -231,6 +233,7 @@ nsDOMWorkerScriptLoader::VerifyScripts(JSContext* aCx)
           message = "Malformed script URI: %s";
           break;
         case NS_ERROR_FILE_NOT_FOUND:
+        case NS_ERROR_NOT_AVAILABLE:
           message = "Script file not found: %s";
           break;
         default:
@@ -552,15 +555,15 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
 
 #ifdef DEBUG
   
-  nsCOMPtr<nsIRequest> request;
-  nsresult rvDebug = aLoader->GetRequest(getter_AddRefs(request));
+  nsCOMPtr<nsIRequest> requestDebug;
+  nsresult rvDebug = aLoader->GetRequest(getter_AddRefs(requestDebug));
 
   
   
   NS_ASSERTION(NS_SUCCEEDED(rvDebug) || mCanceled, "GetRequest failed!");
 
   if (NS_SUCCEEDED(rvDebug)) {
-    nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
+    nsCOMPtr<nsIChannel> channel(do_QueryInterface(requestDebug));
     NS_ASSERTION(channel, "QI failed!");
 
     nsCOMPtr<nsISupports> thisChannel(do_QueryInterface(channel));
@@ -582,6 +585,23 @@ nsDOMWorkerScriptLoader::OnStreamCompleteInternal(nsIStreamLoader* aLoader,
 
   if (!(aStringLen && aString)) {
     return rv = NS_ERROR_UNEXPECTED;
+  }
+
+  
+  
+  nsCOMPtr<nsIRequest> request;
+  rv = aLoader->GetRequest(getter_AddRefs(request));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(request));
+  if (httpChannel) {
+    PRBool requestSucceeded;
+    rv = httpChannel->GetRequestSucceeded(&requestSucceeded);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!requestSucceeded) {
+      return rv = NS_ERROR_NOT_AVAILABLE;
+    }
   }
 
   nsIDocument* parentDoc = mWorker->Pool()->ParentDocument();
