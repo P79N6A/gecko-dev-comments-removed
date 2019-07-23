@@ -165,9 +165,9 @@ namespace nanojit
 
 	
 	#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-	#define _sign_ signed 
+	#define _sign_int signed int
 	#else
-	#define _sign_
+	#define _sign_int int32_t
 	#endif
 
 	
@@ -187,7 +187,7 @@ namespace nanojit
         struct sti_type
         {
 			LOpcode			code:8;
-			_sign_ int32_t	disp:8;
+			_sign_int		disp:8;
 			uint32_t		oprnd_1:8;  
 			uint32_t		oprnd_2:8;  
         };
@@ -205,7 +205,7 @@ namespace nanojit
         struct t_type
         {
             LOpcode         code:8;
-            _sign_ int32_t  imm24:24;
+            _sign_int       imm24:24;
         };
 
 		
@@ -213,7 +213,7 @@ namespace nanojit
 		{
 			LOpcode			code:8;
 			uint32_t		resv:8;  
-			_sign_ int32_t  imm16:16;
+			_sign_int		imm16:16;
 		};
 
 		
