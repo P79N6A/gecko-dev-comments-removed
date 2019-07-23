@@ -996,7 +996,7 @@ protected:
   
   PRUint32 mMarkedCCGeneration;
 
-  nsTObserverArray<nsIPresShell> mPresShells;
+  nsTObserverArray<nsIPresShell*> mPresShells;
 
   nsCOMArray<nsINode> mSubtreeModifiedTargets;
   PRUint32            mSubtreeModifiedDepth;

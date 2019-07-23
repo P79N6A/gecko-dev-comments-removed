@@ -564,7 +564,7 @@ public:
     
 
 
-    nsTObserverArray<nsIMutationObserver> mMutationObservers;
+    nsTObserverArray<nsIMutationObserver*> mMutationObservers;
 
     
 
