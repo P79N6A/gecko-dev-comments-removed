@@ -184,15 +184,25 @@ gfxSkipCharsIterator::IsOriginalCharSkipped(PRInt32* aRunLength) const
         return mSkipChars->mCharCount == PRUint32(mOriginalStringOffset);
     }
   
+    PRUint32 listPrefixLength = mListPrefixLength;
     
-    PRUint32 currentRunLength = mSkipChars->mList[mListPrefixLength];
+    PRUint32 currentRunLength = mSkipChars->mList[listPrefixLength];
+    
+    
+    
+    while (currentRunLength == 0 && listPrefixLength < mSkipChars->mListLength - 1) {
+        ++listPrefixLength;
+        
+        
+        currentRunLength = mSkipChars->mList[listPrefixLength];
+    }
     NS_ASSERTION(PRUint32(mOriginalStringOffset) >= mListPrefixCharCount,
                  "Invariant violation");
     PRUint32 offsetIntoCurrentRun =
       PRUint32(mOriginalStringOffset) - mListPrefixCharCount;
-    if (mListPrefixLength >= mSkipChars->mListLength - 1 &&
+    if (listPrefixLength >= mSkipChars->mListLength - 1 &&
         offsetIntoCurrentRun >= currentRunLength) {
-        NS_ASSERTION(mListPrefixLength == mSkipChars->mListLength - 1 &&
+        NS_ASSERTION(listPrefixLength == mSkipChars->mListLength - 1 &&
                      offsetIntoCurrentRun == currentRunLength,
                      "Overran end of string");
         
@@ -202,13 +212,13 @@ gfxSkipCharsIterator::IsOriginalCharSkipped(PRInt32* aRunLength) const
         return PR_TRUE;
     }
   
-    PRBool isSkipped = !IsKeepEntry(mListPrefixLength);
+    PRBool isSkipped = !IsKeepEntry(listPrefixLength);
     if (aRunLength) {
         
         
         
         PRUint32 runLength = currentRunLength - offsetIntoCurrentRun;
-        for (PRUint32 i = mListPrefixLength + 2; i < mSkipChars->mListLength; i += 2) {
+        for (PRUint32 i = listPrefixLength + 2; i < mSkipChars->mListLength; i += 2) {
             if (mSkipChars->mList[i - 1] != 0)
                 break;
             runLength += mSkipChars->mList[i];
