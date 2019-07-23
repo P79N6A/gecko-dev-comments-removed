@@ -470,8 +470,10 @@ nsBaseChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
 
   
   nsresult rv = NS_CheckPortSafety(mURI);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
+    mCallbacks = nsnull;
     return rv;
+  }
 
   
   
@@ -488,6 +490,7 @@ nsBaseChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
     mPump = nsnull;
     mListener = nsnull;
     mListenerContext = nsnull;
+    mCallbacks = nsnull;
     return rv;
   }
 
