@@ -92,11 +92,7 @@ namespace nanojit
 
         uint32_t stackPushed =
             STACK_GRANULARITY + 
-            STACK_GRANULARITY + 
-            STACK_GRANULARITY;  
-
-        if (!_thisfrag->lirbuf->explicitSavedRegs)
-            stackPushed += NumSavedRegs * STACK_GRANULARITY;
+            STACK_GRANULARITY; 
 
         uint32_t aligned = alignUp(stackNeeded + stackPushed, NJ_ALIGN_STACK);
         uint32_t amt = aligned - stackPushed;
@@ -113,12 +109,6 @@ namespace nanojit
         MR(FP, SP); 
         PUSHr(FP); 
 
-        if (!_thisfrag->lirbuf->explicitSavedRegs) {
-            PUSHr(FP); 
-            for (int i = 0; i < NumSavedRegs; ++i)
-                PUSHr(savedRegs[i]);
-        }
-
         return fragEntry;
     }
 
@@ -133,7 +123,7 @@ namespace nanojit
         
         if (guard->isop(LIR_xtbl)) {
             lr = guard->record();
-            Register r = EBX;
+            Register r = EDX;
             SwitchInfo* si = guard->record()->exit->switchInfo;
             emitJumpTable(si, _epilogue);
             JMP_indirect(r);
@@ -160,11 +150,7 @@ namespace nanojit
     NIns *Assembler::genEpilogue()
     {
         RET();
-        if (!_thisfrag->lirbuf->explicitSavedRegs) {
-            for (int i = NumSavedRegs - 1; i >= 0; --i)
-                POPr(savedRegs[i]);
-            POPr(FP); 
-        }
+
         POPr(FP); 
         MR(SP,FP); 
         return  _nIns;
@@ -676,7 +662,7 @@ namespace nanojit
     void Assembler::asm_switch(LIns* ins, NIns* exit)
     {
         LIns* diff = ins->oprnd1();
-        findSpecificRegFor(diff, EBX);
+        findSpecificRegFor(diff, EDX);
         JMP(exit);
     }
 
@@ -716,17 +702,6 @@ namespace nanojit
             Register rb = rB->reg;
             CMP(ra, rb);
         }
-    }
-
-    void Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
-    {
-        JMP_long(0);
-        loopJumps.add(_nIns);
-
-        
-        
-        if (ins->record()->exit->target != _thisfrag)
-            MR(SP,FP);
     }
 
     void Assembler::asm_fcond(LInsp ins)

@@ -714,6 +714,7 @@ class TraceRecorder : public avmplus::GCObject {
     jsbytecode*             outer;     
     uint32                  outerArgc; 
     bool                    loop;
+    nanojit::LIns*          loopLabel;
 
     nanojit::LIns* insImmObj(JSObject* obj);
     nanojit::LIns* insImmFun(JSFunction* fun);
