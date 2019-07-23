@@ -101,12 +101,6 @@ public:
                                          PRBool aRelaxHeightConstraint,
                                          nsFloatManager::SavedState *aState,
                                          nsRect& aResult) const;
-  
-  void GetAvailableSpace() { GetAvailableSpace(mY, PR_FALSE); }
-  void GetAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint) {
-    mBandHasFloats =
-      GetFloatAvailableSpace(aY, aRelaxHeightConstraint, mAvailSpaceRect);
-  }
 
   
 
@@ -197,8 +191,6 @@ public:
     }
   }
 
-  PRBool IsImpactedByFloat() const;
-
   nsLineBox* NewLineBox(nsIFrame* aFrame, PRInt32 aCount, PRBool aIsBlock);
 
   void FreeLineBox(nsLineBox* aLine);
@@ -273,10 +265,6 @@ public:
   nscoord mY;
 
   
-  
-  nsRect mAvailSpaceRect;
-
-  
   nsRect mFloatCombinedArea;
 
   nsFloatCacheFreeList mFloatCacheFreeList;
@@ -317,11 +305,6 @@ public:
   PRInt16 mFlags;
  
   PRUint8 mFloatBreakType;
-
-  
-  
-  
-  PRPackedBool mBandHasFloats;
 
   void SetFlag(PRUint32 aFlag, PRBool aValue)
   {
