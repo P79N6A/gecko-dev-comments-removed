@@ -193,7 +193,7 @@ public:
 
 
   NS_IMETHOD GetRectVisibility(nsIView *aView, const nsRect &aRect, 
-                               nscoord aMinTwips, 
+                               PRUint16 aMinTwips, 
                                nsRectVisibility *aRectVisibility);
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll);
@@ -291,7 +291,7 @@ private:
 
 
 
-  nsIntRect ViewToWidget(nsView *aView, nsView* aWidgetView, const nsRect &aRect) const;
+  void ViewToWidget(nsView *aView, nsView* aWidgetView, nsRect &aRect) const;
 
   
 
@@ -433,7 +433,7 @@ private:
   nsIViewObserver   *mObserver;
   nsIScrollableView *mRootScrollable;
   nscolor           mDefaultBackgroundColor;
-  nsIntPoint        mMouseLocation; 
+  nsPoint           mMouseLocation; 
 
   
   

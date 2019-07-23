@@ -182,7 +182,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   
   
   
-  nsIntRect r(0, 0, aInitialWidth, aInitialHeight);
+  nsRect r(0, 0, aInitialWidth, aInitialHeight);
   
   
   mWindow = do_CreateInstance(kWindowCID, &rv);

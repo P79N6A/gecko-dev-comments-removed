@@ -445,7 +445,7 @@ public:
   
   PRUint32    message;
   
-  nsIntPoint  refPoint;
+  nsPoint     refPoint;
   
   
   PRUint32    time;
@@ -531,7 +531,7 @@ public:
   }
 
   
-  nsIntRect       *windowSize;    
+  nsRect          *windowSize;    
   
   PRInt32         mWinWidth;    
   
@@ -593,7 +593,7 @@ public:
   
   nsIRegion           *region;
   
-  nsIntRect           *rect;      
+  nsRect              *rect;      
 };
 
 
@@ -822,7 +822,7 @@ struct nsTextEventReply
   {
   }
 
-  nsIntRect mCursorPosition;
+  nsRect mCursorPosition;
   PRBool mCursorIsCollapsed;
   nsIWidget* mReferenceWidget;
 };
@@ -961,7 +961,7 @@ public:
     void* mContentsRoot;
     PRUint32 mOffset;
     nsString mString;
-    nsIntRect mRect; 
+    nsRect mRect; 
     
     nsIWidget* mFocusedWidget;
   } mReply;

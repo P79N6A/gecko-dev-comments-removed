@@ -72,8 +72,8 @@ public:
 
 private:
   PRUint32 mScreenNum;
-  nsIntRect mRect;
-  nsIntRect mAvailRect;
+  nsRect mRect; 
+  nsRect mAvailRect; 
 };
 
 #endif  
