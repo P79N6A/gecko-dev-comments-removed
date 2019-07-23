@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsNetUtil_h__
 #define nsNetUtil_h__
 
@@ -101,13 +102,46 @@
 #include "nsIIDNService.h"
 #include "nsIChannelEventSink.h"
 #include "nsIChannelPolicy.h"
+#include "mozilla/Services.h"
 
+#ifdef MOZILLA_INTERNAL_API
+
+inline already_AddRefed<nsIIOService>
+do_GetIOService(nsresult* error = 0)
+{
+    already_AddRefed<nsIIOService> ret = mozilla::services::GetIOService();
+    if (error)
+        *error = ret.get() ? NS_OK : NS_ERROR_FAILURE;
+    return ret;
+}
+
+inline already_AddRefed<nsINetUtil>
+do_GetNetUtil(nsresult *error = 0) 
+{
+    nsCOMPtr<nsIIOService> io = mozilla::services::GetIOService();
+    already_AddRefed<nsINetUtil> ret = nsnull;
+    if (io)
+        CallQueryInterface(io, &ret.mRawPtr);
+
+    if (error)
+        *error = ret.get() ? NS_OK : NS_ERROR_FAILURE;
+    return ret;
+}
+#else
 
 inline const nsGetServiceByContractIDWithError
 do_GetIOService(nsresult* error = 0)
 {
     return nsGetServiceByContractIDWithError(NS_IOSERVICE_CONTRACTID, error);
 }
+
+
+inline const nsGetServiceByContractIDWithError
+do_GetNetUtil(nsresult* error = 0)
+{
+    return do_GetIOService(error);
+}
+#endif
 
 
 inline nsresult
@@ -878,7 +912,7 @@ NS_ParseContentType(const nsACString &rawContentType,
 {
     
     nsresult rv;
-    nsCOMPtr<nsINetUtil> util = do_GetIOService(&rv);
+    nsCOMPtr<nsINetUtil> util = do_GetNetUtil(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
     nsCString charset;
     PRBool hadCharset;
@@ -898,7 +932,7 @@ NS_ExtractCharsetFromContentType(const nsACString &rawContentType,
 {
     
     nsresult rv;
-    nsCOMPtr<nsINetUtil> util = do_GetIOService(&rv);
+    nsCOMPtr<nsINetUtil> util = do_GetNetUtil(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return util->ExtractCharsetFromContentType(rawContentType,
@@ -1431,10 +1465,11 @@ NS_TryToMakeImmutable(nsIURI* uri,
                       nsresult* outRv = nsnull)
 {
     nsresult rv;
-    nsCOMPtr<nsINetUtil> util = do_GetIOService(&rv);
+    nsCOMPtr<nsINetUtil> util = do_GetNetUtil(&rv);
+
     nsIURI* result = nsnull;
     if (NS_SUCCEEDED(rv)) {
-        NS_ASSERTION(util, "do_GetIOService lied");
+        NS_ASSERTION(util, "do_GetNetUtil lied");
         rv = util->ToImmutableURI(uri, &result);
     }
 
@@ -1459,7 +1494,7 @@ NS_URIChainHasFlags(nsIURI   *uri,
                     PRBool   *result)
 {
     nsresult rv;
-    nsCOMPtr<nsINetUtil> util = do_GetIOService(&rv);
+    nsCOMPtr<nsINetUtil> util = do_GetNetUtil(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return util->URIChainHasFlags(uri, flags, result);
