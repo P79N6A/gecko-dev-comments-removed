@@ -51,6 +51,9 @@ var env = Components.classes["@mozilla.org/process/environment;1"]
 env.set("XPCOM_DEBUG_BREAK", "stack");
 
 
+gPrefs.setBoolPref("extensions.checkUpdateSecurity", false);
+
+
 var promptService = {
   
   alert: function alert(aParent,
@@ -300,6 +303,7 @@ var next_test = function() {};
 
 function do_check_item(aItem, aVersion, aAddonsEntry) {
   if (aAddonsEntry.installed) {
+    do_check_neq(aItem, null);
     do_check_eq(aItem.version, aVersion);
   } else {
     do_check_eq(aItem, null);
