@@ -3550,6 +3550,15 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                         goto out;
                 }
 
+                
+
+
+
+
+
+                if (pc[len] == JSOP_ADD)
+                    saveop = JSOP_NOP;
+
                 ok = JS_TRUE;
 
               out:
