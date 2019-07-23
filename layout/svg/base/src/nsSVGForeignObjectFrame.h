@@ -63,6 +63,9 @@ private:
 
 public:
   
+  NS_IMETHOD  Init(nsIContent* aContent,
+                   nsIFrame*   aParent,
+                   nsIFrame*   aPrevInFlow);
   virtual void Destroy();
   NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
@@ -73,13 +76,6 @@ public:
   }
 
   NS_IMETHOD DidSetStyleContext();
-
-  
-
-
-
-
-  virtual void MarkIntrinsicWidthsDirty();
 
   NS_IMETHOD Reflow(nsPresContext*           aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -134,7 +130,10 @@ public:
   nsPoint TransformPointFromOuter(nsPoint aPt);
 
   already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
+
   
+  void MaybeReflowFromOuterSVGFrame();
+
 protected:
   
   void DoReflow();

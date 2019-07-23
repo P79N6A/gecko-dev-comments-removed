@@ -91,8 +91,21 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGForeignObjectFrameBase)
 
 
 
+NS_IMETHODIMP
+nsSVGForeignObjectFrame::Init(nsIContent* aContent,
+                              nsIFrame*   aParent,
+                              nsIFrame*   aPrevInFlow)
+{
+  nsresult rv = nsSVGForeignObjectFrameBase::Init(aContent, aParent, aPrevInFlow);
+  if (NS_SUCCEEDED(rv)) {
+    nsSVGUtils::GetOuterSVGFrame(this)->RegisterForeignObject(this);
+  }
+  return rv;
+}
+
 void nsSVGForeignObjectFrame::Destroy()
 {
+  nsSVGUtils::GetOuterSVGFrame(this)->UnregisterForeignObject(this);
   
   
   
@@ -135,23 +148,6 @@ nsSVGForeignObjectFrame::DidSetStyleContext()
 {
   nsSVGUtils::StyleEffects(this);
   return NS_OK;
-}
-
- void
-nsSVGForeignObjectFrame::MarkIntrinsicWidthsDirty()
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  RequestReflow(nsIPresShell::eResize);
 }
 
 NS_IMETHODIMP
@@ -386,13 +382,35 @@ NS_IMETHODIMP
 nsSVGForeignObjectFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
 {
   mCanvasTM = nsnull;
+
   
   
   
   
   
-  RequestReflow(nsIPresShell::eResize);
-  UpdateGraphic();
+  
+  
+  
+  
+  
+  
+
+  UpdateGraphic(); 
+
+  
+  
+  
+  
+  
+  
+  
+
+  PRBool reflowing;
+  PresContext()->PresShell()->IsReflowLocked(&reflowing);
+  if (!reflowing) {
+    RequestReflow(nsIPresShell::eResize); 
+  }
+
   return NS_OK;
 }
 
@@ -524,23 +542,6 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
   if (!kid)
     return;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   PresContext()->PresShell()->FrameNeedsReflow(kid, aType, NS_FRAME_IS_DIRTY);
 }
 
@@ -580,6 +581,25 @@ void nsSVGForeignObjectFrame::UpdateGraphic()
 
   
   mDirtyRegion.SetEmpty();
+}
+
+void
+nsSVGForeignObjectFrame::MaybeReflowFromOuterSVGFrame()
+{
+  
+  
+  
+  
+
+  nsIFrame* kid = GetFirstChild(nsnull);
+  if (kid->GetStateBits() & NS_FRAME_IS_DIRTY) {
+    return;
+  }
+  kid->AddStateBits(NS_FRAME_IS_DIRTY); 
+  if (kid->GetStateBits() & NS_FRAME_HAS_DIRTY_CHILDREN) {
+    return;
+  }
+  DoReflow();
 }
 
 void

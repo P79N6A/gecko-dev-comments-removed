@@ -44,6 +44,8 @@
 #include "nsIDOMSVGPoint.h"
 #include "nsIDOMSVGNumber.h"
 
+class nsSVGForeignObjectFrame;
+
 
 
 
@@ -64,6 +66,14 @@ private:
   NS_IMETHOD_(nsrefcnt) Release() { return 1; }
 
 public:
+
+#ifdef DEBUG
+  ~nsSVGOuterSVGFrame() {
+    NS_ASSERTION(mForeignObjectHash.Count() == 0,
+                 "foreignObject(s) still registered!");
+  }
+#endif
+
   
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsIRenderingContext *aRenderingContext);
@@ -130,6 +140,14 @@ public:
   
   virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
 
+  
+
+
+
+
+  void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
+  void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
+
 protected:
 
   
@@ -137,6 +155,11 @@ protected:
 
 
   PRBool EmbeddedByReference(nsIFrame **aEmbeddingFrame = nsnull);
+
+  
+  
+  
+  nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
 
   PRUint32 mRedrawSuspendCount;
   nsCOMPtr<nsIDOMSVGMatrix> mCanvasTM;
