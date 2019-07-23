@@ -83,9 +83,6 @@
 
 
 
-
-
-
 static const int lastDayOfMonth[2][13] = {
     {-1, 30, 58, 89, 119, 150, 180, 211, 242, 272, 303, 333, 364},
     {-1, 30, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365}
@@ -105,9 +102,8 @@ static const PRInt8 nDays[2][12] = {
 
 
 static void        ComputeGMT(PRTime time, PRExplodedTime *gmt);
-static int        IsLeapYear(PRInt16 year);
+static int         IsLeapYear(PRInt16 year);
 static void        ApplySecOffset(PRExplodedTime *time, PRInt32 secOffset);
-
 
 
 
@@ -177,47 +173,45 @@ ComputeGMT(PRTime time, PRExplodedTime *gmt)
 
     
 
-    tmp = numDays / (4 * 365 + 1);
-    rem = numDays % (4 * 365 + 1);
 
-    if (rem < 0) {
-        tmp--;
-        rem += (4 * 365 + 1);
+
+
+
+
+    
+    numDays += 719162;       
+    tmp = numDays / 146097;  
+    rem = numDays % 146097;
+    gmt->tm_year = tmp * 400 + 1;
+
+    
+
+    tmp = rem / 36524;    
+    rem %= 36524;
+    if (tmp == 4) {       
+        tmp = 3;
+        rem = 36524;
+    }
+    gmt->tm_year += tmp * 100;
+
+    
+
+    tmp = rem / 1461;     
+    rem %= 1461;
+    gmt->tm_year += tmp * 4;
+    
+    
+
+    tmp = rem / 365;
+    rem %= 365;
+    if (tmp == 4) {       
+        tmp = 3;
+        rem = 365;
     }
 
-    
-
-
-
-
-    
-    tmp = (tmp * 4) + 1970;
-    isLeap = 0;
-
-    
-
-
-
-
-
-
-    if (rem >= 365) {                                
-        tmp++;
-        rem -= 365;
-        if (rem >= 365) {                        
-            tmp++;
-            rem -= 365;
-            if (rem >= 366) {                        
-                tmp++;
-                rem -= 366;
-            } else {
-                isLeap = 1;
-            }
-        }
-    }
-
-    gmt->tm_year = tmp;
+    gmt->tm_year += tmp;
     gmt->tm_yday = rem;
+    isLeap = IsLeapYear(gmt->tm_year);
 
     
 
