@@ -1160,15 +1160,6 @@ typedef struct JSResolvingEntry {
 
 extern const JSDebugHooks js_NullDebugHooks;  
 
-
-
-
-
-struct JSGCReachableFrame {
-    JSGCReachableFrame  *next;
-    JSStackFrame        *frame;
-};
-
 namespace js {
 class AutoGCRooter;
 }
@@ -1290,19 +1281,6 @@ struct JSContext
     
     void                *data;
     void                *data2;
-
-    
-    JSGCReachableFrame  *reachableFrames;
-
-    void pushGCReachableFrame(JSGCReachableFrame &gcrf, JSStackFrame *f) {
-        gcrf.next = reachableFrames;
-        gcrf.frame = f;
-        reachableFrames = &gcrf;
-    }
-
-    void popGCReachableFrame() {
-        reachableFrames = reachableFrames->next;
-    }
 
   private:
 #ifdef __GNUC__

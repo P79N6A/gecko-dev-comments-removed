@@ -2413,10 +2413,6 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
     }
 
     
-    for (JSGCReachableFrame *rf = acx->reachableFrames; rf; rf = rf->next)
-        TraceFrameChain(trc, rf->frame);
-
-    
     if (acx->globalObject && !JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
         JS_CALL_OBJECT_TRACER(trc, acx->globalObject, "global object");
     acx->weakRoots.mark(trc);
