@@ -192,9 +192,7 @@ PluginModuleChild::AnswerNP_Shutdown(NPError *rv)
 
     
 
-    if (mShutdownFunc)
-        *rv = mShutdownFunc();
-
+    *rv = mShutdownFunc ? mShutdownFunc() : NPERR_NO_ERROR;
     return true;
 }
 
