@@ -66,7 +66,7 @@
 #include "nsIDOMNSEventTarget.h"
 #include "nsIDOMNavigator.h"
 #include "nsIDOMNavigatorGeolocation.h"
-#include "nsIDOMNSLocation.h"
+#include "nsIDOMLocation.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
@@ -572,12 +572,6 @@ protected:
 
   static PRBool CanMoveResizeWindows();
 
-  
-  nsresult FindInternal(const nsAString& aStr, PRBool caseSensitive,
-                       PRBool backwards, PRBool wrapAround, PRBool wholeWord, 
-                       PRBool searchInFrames, PRBool showDialog, 
-                       PRBool *aReturn);
-
   nsresult ConvertCharset(const nsAString& aStr, char** aDest);
 
   PRBool   GetBlurSuppression();
@@ -845,8 +839,7 @@ class nsIURI;
 
 
 
-class nsLocation : public nsIDOMLocation,
-                   public nsIDOMNSLocation
+class nsLocation : public nsIDOMLocation
 {
 public:
   nsLocation(nsIDocShell *aDocShell);
@@ -859,9 +852,6 @@ public:
 
   
   NS_DECL_NSIDOMLOCATION
-
-  
-  NS_DECL_NSIDOMNSLOCATION
 
 protected:
   

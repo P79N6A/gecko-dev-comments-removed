@@ -4083,6 +4083,12 @@ nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
   
   SetDOMStringToNull(aReturn);
 
+  
+  
+  
+
+  PR_STATIC_ASSERT(nsIAuthPrompt::SAVE_PASSWORD_NEVER == 0);
+
   nsresult rv;
   nsCOMPtr<nsIWindowWatcher> wwatch =
     do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
@@ -4123,57 +4129,6 @@ nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
   }
 
   return rv;
-}
-
-NS_IMETHODIMP
-nsGlobalWindow::Prompt(nsAString& aReturn)
-{
-  FORWARD_TO_OUTER(Prompt, (aReturn), NS_ERROR_NOT_INITIALIZED);
-
-  NS_ENSURE_STATE(mDocShell);
-
-  nsresult rv = NS_OK;
-  nsAXPCNativeCallContext *ncc = nsnull;
-
-  rv = nsContentUtils::XPConnect()->
-    GetCurrentNativeCallContext(&ncc);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!ncc)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  JSContext *cx = nsnull;
-
-  rv = ncc->GetJSContext(&cx);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsAutoString message, initial, title;
-
-  PRUint32 argc;
-  jsval *argv = nsnull;
-
-  ncc->GetArgc(&argc);
-  ncc->GetArgvPtr(&argv);
-
-  PRUint32 savePassword = nsIAuthPrompt::SAVE_PASSWORD_NEVER;
-
-  if (argc > 0) {
-    JSAutoRequest ar(cx);
-    switch (argc) {
-      default:
-      case 4:
-        nsJSUtils::ConvertJSValToUint32(&savePassword, cx, argv[3]);
-      case 3:
-        nsJSUtils::ConvertJSValToString(title, cx, argv[2]);
-      case 2:
-        nsJSUtils::ConvertJSValToString(initial, cx, argv[1]);
-      case 1:
-        nsJSUtils::ConvertJSValToString(message, cx, argv[0]);
-        break;
-    }
-  }
-
-  return Prompt(message, initial, title, savePassword, aReturn);
 }
 
 NS_IMETHODIMP
@@ -6173,114 +6128,16 @@ nsGlobalWindow::GetSelection(nsISelection** aSelection)
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
 nsGlobalWindow::Find(const nsAString& aStr, PRBool aCaseSensitive,
                      PRBool aBackwards, PRBool aWrapAround, PRBool aWholeWord,
                      PRBool aSearchInFrames, PRBool aShowDialog,
                      PRBool *aDidFind)
 {
-  return FindInternal(aStr, aCaseSensitive, aBackwards, aWrapAround,
-                      aWholeWord, aSearchInFrames, aShowDialog, aDidFind);
-}
+  FORWARD_TO_OUTER(Find, (aStr, aCaseSensitive, aBackwards, aWrapAround,
+                          aWholeWord, aSearchInFrames, aShowDialog, aDidFind),
+                   NS_ERROR_NOT_INITIALIZED);
 
-
-
-NS_IMETHODIMP
-nsGlobalWindow::Find(PRBool *aDidFind)
-{
-  nsresult rv = NS_OK;
-
-  
-  
-  nsAXPCNativeCallContext *ncc = nsnull;
-
-  rv = nsContentUtils::XPConnect()->
-    GetCurrentNativeCallContext(&ncc);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  NS_ASSERTION(ncc, "No Native Call Context."
-                    "Please don't call this method from C++.");
-  if (!ncc) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  JSContext *cx = nsnull;
-
-  rv = ncc->GetJSContext(&cx);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRUint32 argc;
-  jsval *argv = nsnull;
-
-  ncc->GetArgc(&argc);
-  ncc->GetArgvPtr(&argv);
-
-  
-  nsAutoString searchStr;
-  PRBool caseSensitive  = PR_FALSE;
-  PRBool backwards      = PR_FALSE;
-  PRBool wrapAround     = PR_FALSE;
-  PRBool showDialog     = PR_FALSE;
-  PRBool wholeWord      = PR_FALSE;
-  PRBool searchInFrames = PR_FALSE;
-
-  if (argc > 0) {
-    JSAutoRequest ar(cx);
-    switch (argc) {
-      default:
-      case 7:
-        if (!JS_ValueToBoolean(cx, argv[6], &showDialog)) {
-          
-          showDialog = PR_FALSE;
-        }
-      case 6:
-        if (!JS_ValueToBoolean(cx, argv[5], &searchInFrames)) {
-          
-          searchInFrames = PR_FALSE;
-        }
-      case 5:
-        if (!JS_ValueToBoolean(cx, argv[4], &wholeWord)) {
-          
-          wholeWord = PR_FALSE;
-        }
-      case 4:
-        if (!JS_ValueToBoolean(cx, argv[3], &wrapAround)) {
-          
-          wrapAround = PR_FALSE;
-        }
-      case 3:
-        if (!JS_ValueToBoolean(cx, argv[2], &backwards)) {
-          
-          backwards = PR_FALSE;
-        }
-      case 2:
-        if (!JS_ValueToBoolean(cx, argv[1], &caseSensitive)) {
-          
-          caseSensitive = PR_FALSE;
-        }
-      case 1:
-        
-        nsJSUtils::ConvertJSValToString(searchStr, cx, argv[0]);
-        break;
-    }
-  }
-
-  return FindInternal(searchStr, caseSensitive, backwards, wrapAround,
-                      wholeWord, searchInFrames, showDialog, aDidFind);
-}
-
-nsresult
-nsGlobalWindow::FindInternal(const nsAString& aStr, PRBool caseSensitive,
-                             PRBool backwards, PRBool wrapAround,
-                             PRBool wholeWord, PRBool searchInFrames,
-                             PRBool showDialog, PRBool *aDidFind)
-{
-  FORWARD_TO_OUTER(FindInternal, (aStr, caseSensitive, backwards, wrapAround,
-                                  wholeWord, searchInFrames, showDialog,
-                                  aDidFind), NS_ERROR_NOT_INITIALIZED);
-
-  NS_ENSURE_ARG_POINTER(aDidFind);
   nsresult rv = NS_OK;
   *aDidFind = PR_FALSE;
 
@@ -6289,11 +6146,11 @@ nsGlobalWindow::FindInternal(const nsAString& aStr, PRBool caseSensitive,
   
   rv = finder->SetSearchString(PromiseFlatString(aStr).get());
   NS_ENSURE_SUCCESS(rv, rv);
-  finder->SetMatchCase(caseSensitive);
-  finder->SetFindBackwards(backwards);
-  finder->SetWrapFind(wrapAround);
-  finder->SetEntireWord(wholeWord);
-  finder->SetSearchFrames(searchInFrames);
+  finder->SetMatchCase(aCaseSensitive);
+  finder->SetFindBackwards(aBackwards);
+  finder->SetWrapFind(aWrapAround);
+  finder->SetEntireWord(aWholeWord);
+  finder->SetSearchFrames(aSearchInFrames);
 
   
   
@@ -6306,7 +6163,7 @@ nsGlobalWindow::FindInternal(const nsAString& aStr, PRBool caseSensitive,
   }
   
   
-  if (aStr.IsEmpty() || showDialog) {
+  if (aStr.IsEmpty() || aShowDialog) {
     
     nsCOMPtr<nsIWindowMediator> windowMediator =
       do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
@@ -8149,6 +8006,7 @@ nsGlobalWindow::ClearTimeoutOrInterval()
 
   JSAutoRequest ar(cx);
 
+  
   if (argv[0] == JSVAL_VOID || !::JS_ValueToInt32(cx, argv[0], &timer_id) ||
       timer_id <= 0) {
     
@@ -9405,6 +9263,8 @@ nsNavigator::sPrefInternal_id = JSVAL_VOID;
 NS_IMETHODIMP
 nsNavigator::Preference()
 {
+  
+  
   nsAXPCNativeCallContext *ncc = nsnull;
   nsresult rv = nsContentUtils::XPConnect()->
     GetCurrentNativeCallContext(&ncc);
