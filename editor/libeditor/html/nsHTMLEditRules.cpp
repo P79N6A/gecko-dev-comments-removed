@@ -5609,6 +5609,21 @@ nsHTMLEditRules::PromoteRange(nsIDOMRange *inRange,
   return res;
 } 
 
+class nsUniqueFunctor : public nsBoolDomIterFunctor
+{
+public:
+  nsUniqueFunctor(nsCOMArray<nsIDOMNode> &aArray) : mArray(aArray)
+  {
+  }
+  virtual PRBool operator()(nsIDOMNode* aNode)  
+  {
+    return mArray.IndexOf(aNode) < 0;
+  }
+
+private:
+  nsCOMArray<nsIDOMNode> &mArray;
+};
+
 
 
 
@@ -5673,12 +5688,25 @@ nsHTMLEditRules::GetNodesForOperation(nsCOMArray<nsIDOMRange>& inArrayOfRanges,
   {
     opRange = inArrayOfRanges[i];
     
-    nsTrivialFunctor functor;
     nsDOMSubtreeIterator iter;
     res = iter.Init(opRange);
     if (NS_FAILED(res)) return res;
-    res = iter.AppendList(functor, outArrayOfNodes);
-    if (NS_FAILED(res)) return res;    
+    if (outArrayOfNodes.Count() == 0) {
+      nsTrivialFunctor functor;
+      res = iter.AppendList(functor, outArrayOfNodes);
+      if (NS_FAILED(res)) return res;    
+    }
+    else {
+      
+      
+      
+      nsCOMArray<nsIDOMNode> nodes;
+      nsUniqueFunctor functor(outArrayOfNodes);
+      res = iter.AppendList(functor, nodes);
+      if (NS_FAILED(res)) return res;
+      if (!outArrayOfNodes.AppendObjects(nodes))
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
   }    
 
   
