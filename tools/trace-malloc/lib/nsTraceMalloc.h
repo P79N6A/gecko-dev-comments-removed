@@ -229,6 +229,22 @@ NS_TraceMallocFlushLogfiles(void);
 PR_EXTERN(void)
 NS_TrackAllocation(void* ptr, FILE *ofp);
 
+
+typedef struct nsTMStackTraceIDStruct *nsTMStackTraceID;
+
+
+
+
+
+PR_EXTERN(nsTMStackTraceID)
+NS_TraceMallocGetStackTrace(void);
+
+
+
+
+PR_EXTERN(void)
+NS_TraceMallocPrintStackTrace(FILE *ofp, nsTMStackTraceID id);
+
 PR_END_EXTERN_C
 
 #endif 
