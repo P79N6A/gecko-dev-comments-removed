@@ -104,9 +104,9 @@ nsAccelerometer::nsAccelerometer()
   mLastY(10),
   mLastZ(10),
   mStarted(PR_FALSE),
-  mEnabled(PR_TRUE),
   mNewListener(PR_FALSE),
-  mUpdateInterval(50) 
+  mUpdateInterval(50), 
+  mEnabled(PR_TRUE)
 {
   nsCOMPtr<nsIPrefBranch> prefSrv = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefSrv) {
