@@ -774,8 +774,6 @@ function BrowserStartup()
 {
   gBrowser = document.getElementById("content");
 
-  window.tryToClose = WindowIsClosing;
-
   var uriToLoad = null;
   
   if ("arguments" in window && window.arguments[0])
@@ -1214,6 +1212,14 @@ function BrowserShutdown()
     gSanitizeListener.shutdown();
 
   BrowserOffline.uninit();
+
+  
+  
+  var win = document.documentElement;
+  win.setAttribute("x", window.screenX);
+  win.setAttribute("y", window.screenY);
+  win.setAttribute("height", window.outerHeight);
+  win.setAttribute("width", window.outerWidth);
 
   var windowManager = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService();
   var windowManagerInterface = windowManager.QueryInterface(Components.interfaces.nsIWindowMediator);
@@ -1926,38 +1932,13 @@ function BrowserCloseTabOrWindow()
   }
 #endif
 
-  BrowserCloseWindow();
+  closeWindow(true);
 }
 
 function BrowserTryToCloseWindow()
 {
-  
-  if (typeof(window.tryToClose) != "function" || window.tryToClose())
-    BrowserCloseWindow();
-}
-
-function BrowserCloseWindow()
-{
-  
-  
-  
-  
-  
-
-  
-  var x = window.screenX;
-  var y = window.screenY;
-  var h = window.outerHeight;
-  var w = window.outerWidth;
-
-  
-  var win = document.getElementById( "main-window" );
-  win.setAttribute( "x", x );
-  win.setAttribute( "y", y );
-  win.setAttribute( "height", h );
-  win.setAttribute( "width", w );
-
-  closeWindow(true);
+  if (WindowIsClosing())
+    window.close();     
 }
 
 function loadURI(uri, referrer, postData, allowThirdPartyFixup)
@@ -5100,7 +5081,7 @@ function WindowIsClosing()
   var browser = getBrowser();
   var cn = browser.tabContainer.childNodes;
   var numtabs = cn.length;
-  var reallyClose = browser.warnAboutClosingTabs(true);
+  var reallyClose = true;
 
   for (var i = 0; reallyClose && i < numtabs; ++i) {
     var ds = browser.getBrowserForTab(cn[i]).docShell;
@@ -5109,10 +5090,16 @@ function WindowIsClosing()
       reallyClose = false;
   }
 
-  if (reallyClose)
-    return closeWindow(false);
+  if (!reallyClose)
+    return false;
 
-  return reallyClose;
+  
+  
+  
+  return closeWindow(false,
+    function () {
+      return browser.warnAboutClosingTabs(true);
+    });
 }
 
 var MailIntegration = {
