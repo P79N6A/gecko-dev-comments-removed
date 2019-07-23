@@ -9335,7 +9335,9 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
   nsIFrame* childFrame =
     mPresShell->FrameManager()->GetPrimaryFrameFor(aChild, aIndexInContainer);
 
-  if (! childFrame) {
+  if (!childFrame || childFrame->GetContent() != aChild) {
+    
+    
     frameManager->ClearUndisplayedContentIn(aChild, aContainer);
   }
 
@@ -9420,7 +9422,9 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
 
       
       childFrame = mPresShell->GetPrimaryFrameFor(aChild);
-      if (!childFrame) {
+      if (!childFrame || childFrame->GetContent() != aChild) {
+        
+        
         frameManager->ClearUndisplayedContentIn(aChild, aContainer);
         return NS_OK;
       }
@@ -9841,6 +9845,14 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     nsIContent* content;
     nsChangeHint hint;
     aChangeList.ChangeAt(index, frame, content, hint);
+    if (frame && frame->GetContent() != content) {
+      
+      
+      frame = nsnull;
+      if (!(hint & nsChangeHint_ReconstructFrame)) {
+        continue;
+      }
+    }
 
     
     if (frame) {
@@ -9913,6 +9925,11 @@ nsCSSFrameConstructor::RestyleElement(nsIContent     *aContent,
 {
   NS_ASSERTION(aPrimaryFrame == mPresShell->GetPrimaryFrameFor(aContent),
                "frame/content mismatch");
+  if (aPrimaryFrame && aPrimaryFrame->GetContent() != aContent) {
+    
+    
+    aPrimaryFrame = nsnull;
+  }
   NS_ASSERTION(!aPrimaryFrame || aPrimaryFrame->GetContent() == aContent,
                "frame/content mismatch");
 
