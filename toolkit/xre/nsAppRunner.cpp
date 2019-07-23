@@ -51,6 +51,11 @@
 #include "nsAppRunner.h"
 #include "nsUpdateDriver.h"
 
+#if defined(MOZ_WIDGET_QT)
+#include <qwidget.h>
+#include <qapplication.h>
+#endif
+
 #ifdef XP_MACOSX
 #include "MacLaunchHelper.h"
 #include "MacApplicationDelegate.h"
@@ -269,9 +274,7 @@ static char **gRestartArgv;
 
 #if defined(MOZ_WIDGET_GTK2)
 #include <gtk/gtk.h>
-#ifdef MOZ_X11
 #include <gdk/gdkx.h>
-#endif 
 #include "nsGTKToolkit.h"
 #endif
 
@@ -531,9 +534,8 @@ CheckArgShell(const char* aArg)
 
 
 
-
 static void
-ProcessDDE(nsINativeAppSupport* aNative, PRBool aWait)
+ProcessDDE(nsINativeAppSupport* aNative)
 {
   
   
@@ -547,15 +549,13 @@ ProcessDDE(nsINativeAppSupport* aNative, PRBool aWait)
   ar = CheckArgShell("requestpending");
   if (ar == ARG_FOUND) {
     aNative->Enable(); 
-    if (aWait) {
-      nsIThread *thread = NS_GetCurrentThread();
-      
-      
-      PRInt32 count = 20;
-      while(--count >= 0) {
-        NS_ProcessNextEvent(thread);
-        PR_Sleep(PR_MillisecondsToInterval(1));
-      }
+    nsIThread *thread = NS_GetCurrentThread();
+    
+    
+    PRInt32 count = 20;
+    while(--count >= 0) {
+      NS_ProcessNextEvent(thread);
+      PR_Sleep(PR_MillisecondsToInterval(1));
     }
   }
 }
@@ -836,12 +836,6 @@ nsXULAppInfo::AnnotateCrashReport(const nsACString& key,
                                   const nsACString& data)
 {
   return CrashReporter::AnnotateCrashReport(key, data);
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::AppendAppNotesToCrashReport(const nsACString& data)
-{
-  return CrashReporter::AppendAppNotesToCrashReport(data);
 }
 
 NS_IMETHODIMP
@@ -1552,7 +1546,8 @@ int OS2LaunchChild(const char *aExePath, int aArgc, char **aArgv)
 
 
 static nsresult LaunchChild(nsINativeAppSupport* aNative,
-                            PRBool aBlankCommandLine = PR_FALSE)
+                            PRBool aBlankCommandLine = PR_FALSE,
+                            int needElevation = 0)
 {
   aNative->Quit(); 
 
@@ -1580,7 +1575,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   if (NS_FAILED(rv))
     return rv;
 
-  if (!WinLaunchChild(exePath.get(), gRestartArgc, gRestartArgv, 0))
+  if (!WinLaunchChild(exePath.get(), gRestartArgc, gRestartArgv, needElevation))
     return NS_ERROR_FAILURE;
 
 #else
@@ -1727,9 +1722,7 @@ ShowProfileManager(nsIToolkitProfileService* aProfileSvc,
 #endif
 
 #ifdef XP_WIN
-    
-    
-    ProcessDDE(aNative, PR_FALSE);
+    ProcessDDE(aNative);
 #endif
 
     { 
@@ -2388,7 +2381,6 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
   
   
   if (gtk_check_version(2,10,0) != NULL) {
-#ifdef MOZ_X11
     
     
     
@@ -2396,9 +2388,6 @@ static void MOZ_gdk_display_close(GdkDisplay *display)
     Display* dpy = GDK_DISPLAY_XDISPLAY(display);
     if (!theme_is_qt)
       XCloseDisplay(dpy);
-#else
-    gdk_display_close(display);
-#endif 
   }
   else {
     if (!theme_is_qt)
@@ -2699,22 +2688,14 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   PR_SetEnv("MOZ_LAUNCHED_CHILD=");
 
   gRestartArgc = gArgc;
-  gRestartArgv = (char**) malloc(sizeof(char*) * (gArgc + 1 + (override ? 2 : 0)));
+  gRestartArgv = (char**) malloc(sizeof(char*) * (gArgc + 1));
   if (!gRestartArgv) return 1;
 
   int i;
   for (i = 0; i < gArgc; ++i) {
     gRestartArgv[i] = gArgv[i];
   }
-  
-  
-  if (override) {
-    gRestartArgv[gRestartArgc++] = const_cast<char*>("-override");
-    gRestartArgv[gRestartArgc++] = const_cast<char*>(override);
-  }
-
-  gRestartArgv[gRestartArgc] = nsnull;
-  
+  gRestartArgv[gArgc] = nsnull;
 
 #if defined(XP_OS2)
   PRBool StartOS2App(int aArgc, char **aArgv);
@@ -2798,13 +2779,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     }
 #endif
 
-#if defined(MOZ_WIDGET_GTK2)
-#ifdef MOZ_MEMORY
-    
-    
-    
-    g_slice_set_config(G_SLICE_CONFIG_ALWAYS_MALLOC, 1);
+#if defined(MOZ_WIDGET_QT)
+    QApplication app(gArgc, gArgv);
 #endif
+#if defined(MOZ_WIDGET_GTK2)
     g_thread_init(NULL);
     
     
@@ -2821,48 +2799,22 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     if (!gtk_parse_args(&gArgc, &gArgv))
       return 1;
 
-    
-    const char *display_name = gdk_get_display_arg_name();
-    if (!display_name) {
-      display_name = PR_GetEnv("DISPLAY");
+    GdkDisplay* display = nsnull;
+    {
+      
+      const char *display_name = gdk_get_display_arg_name();
       if (!display_name) {
-        PR_fprintf(PR_STDERR, "Error: no display specified\n");
+        display_name = PR_GetEnv("DISPLAY");
+        if (!display_name) {
+          PR_fprintf(PR_STDERR, "Error: no display specified\n");
+          return 1;
+        }
+      }
+      display = gdk_display_open(display_name);
+      if (!display) {
+        PR_fprintf(PR_STDERR, "Error: cannot open display: %s\n", display_name);
         return 1;
       }
-    }
-#endif 
-
-#ifdef MOZ_ENABLE_XREMOTE
-    
-
-    const char* xremotearg;
-    ar = CheckArg("remote", PR_TRUE, &xremotearg);
-    if (ar == ARG_BAD) {
-      PR_fprintf(PR_STDERR, "Error: -remote requires an argument\n");
-      return 1;
-    }
-    const char* desktopStartupIDPtr =
-      desktopStartupID.IsEmpty() ? nsnull : desktopStartupID.get();
-    if (ar) {
-      return HandleRemoteArgument(xremotearg, desktopStartupIDPtr);
-    }
-
-    if (!PR_GetEnv("MOZ_NO_REMOTE")) {
-      
-      RemoteResult rr = RemoteCommandLine(desktopStartupIDPtr);
-      if (rr == REMOTE_FOUND)
-        return 0;
-      else if (rr == REMOTE_ARG_BAD)
-        return 1;
-    }
-#endif
-
-#if defined(MOZ_WIDGET_GTK2)
-    GdkDisplay* display = nsnull;
-    display = gdk_display_open(display_name);
-    if (!display) {
-      PR_fprintf(PR_STDERR, "Error: cannot open display: %s\n", display_name);
-      return 1;
     }
     gdk_display_manager_set_default_display (gdk_display_manager_get(),
                                              display);
@@ -2899,6 +2851,31 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     if (NS_FAILED(rv) || !canRun) {
       return 1;
     }
+
+#ifdef MOZ_ENABLE_XREMOTE
+    
+
+    const char* xremotearg;
+    ar = CheckArg("remote", PR_TRUE, &xremotearg);
+    if (ar == ARG_BAD) {
+      PR_fprintf(PR_STDERR, "Error: -remote requires an argument\n");
+      return 1;
+    }
+    const char* desktopStartupIDPtr =
+      desktopStartupID.IsEmpty() ? nsnull : desktopStartupID.get();
+    if (ar) {
+      return HandleRemoteArgument(xremotearg, desktopStartupIDPtr);
+    }
+
+    if (!PR_GetEnv("MOZ_NO_REMOTE")) {
+      
+      RemoteResult rr = RemoteCommandLine(desktopStartupIDPtr);
+      if (rr == REMOTE_FOUND)
+        return 0;
+      else if (rr == REMOTE_ARG_BAD)
+        return 1;
+    }
+#endif
 
 #if defined(MOZ_UPDATER)
   
@@ -3232,7 +3209,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           needsRestart = PR_TRUE;
 
 #ifdef XP_WIN
-          ProcessDDE(nativeApp, PR_TRUE);
+          ProcessDDE(nativeApp);
 #endif
 
 #ifdef XP_MACOSX
@@ -3295,7 +3272,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       MOZ_gdk_display_close(display);
 #endif
 
-      rv = LaunchChild(nativeApp, appInitiatedRestart);
+      rv = LaunchChild(nativeApp, appInitiatedRestart, upgraded ? -1 : 0);
 
 #ifdef MOZ_CRASHREPORTER
       if (appData.flags & NS_XRE_ENABLE_CRASH_REPORTER)

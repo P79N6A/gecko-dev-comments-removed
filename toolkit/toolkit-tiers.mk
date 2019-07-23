@@ -78,15 +78,17 @@ endif
 # tier "gecko" - core components
 #
 
+ifdef NS_TRACE_MALLOC
+tier_gecko_dirs += tools/trace-malloc/lib
+endif
+
 tier_gecko_dirs += \
 		js/src/xpconnect \
 		intl/chardet \
 		$(NULL)
 
 ifdef MOZ_ENABLE_GTK2
-ifdef MOZ_X11
 tier_gecko_dirs     += widget/src/gtkxtbin
-endif
 endif
 
 ifdef MOZ_IPCD
@@ -116,18 +118,6 @@ endif
 
 ifdef MOZ_JSDEBUGGER
 tier_gecko_dirs += js/jsd
-endif
-
-ifdef MOZ_OGG
-tier_gecko_dirs += \
-		media/libfishsound \
-		media/libogg \
-		media/liboggplay \
-		media/liboggplay_audio \
-		media/liboggz \
-		media/libtheora \
-		media/libvorbis \
-		$(NULL)
 endif
 
 tier_gecko_dirs	+= \
@@ -255,6 +245,11 @@ ifdef MOZ_XUL_APP
 ifneq (,$(MOZ_ENABLE_GTK2))
 tier_toolkit_dirs += embedding/browser/gtk
 endif
+ifdef MOZ_ENABLE_LIBXUL
+ifneq (,$(MOZ_ENABLE_QT))
+tier_toolkit_dirs += embedding/browser/qt
+endif
+endif
 endif
 endif
 
@@ -264,8 +259,25 @@ tier_toolkit_dirs += toolkit/library
 endif
 endif
 
+ifndef BUILD_STATIC_LIBS
+ifdef MOZ_XUL_APP
+ifndef MOZ_ENABLE_LIBXUL
+#ifneq (,$(MOZ_ENABLE_GTK2))
+#tier_toolkit_dirs += embedding/browser/gtk
+#endif
+ifneq (,$(MOZ_ENABLE_QT))
+tier_toolkit_dirs += embedding/browser/qt
+endif
+endif
+endif
+endif
+
 ifdef MOZ_ENABLE_LIBXUL
 tier_toolkit_dirs += xpcom/stub
+endif
+
+ifneq (,$(MOZ_ENABLE_QT))
+tier_toolkit_dirs += embedding/browser/qt/tests
 endif
 
 ifdef NS_TRACE_MALLOC
