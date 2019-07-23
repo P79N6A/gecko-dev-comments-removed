@@ -806,10 +806,14 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
     
     const nsHTMLReflowState* aLastRS = &aReflowState;
     const nsHTMLReflowState* lastButOneRS = &aReflowState;
+    PRBool isCanvasBlock = PR_FALSE;
     while (aLastRS->parentReflowState &&
            aLastRS->parentReflowState->frame->GetContent() == frame->GetContent()) {
       lastButOneRS = aLastRS;
       aLastRS = aLastRS->parentReflowState;
+      if (aLastRS->frame->GetType() == nsGkAtoms::canvasFrame) {
+        isCanvasBlock = PR_TRUE;
+      }
     }
     if (aLastRS != &aReflowState) {
       
@@ -830,11 +834,23 @@ CalculateContainingBlockSizeForAbsolutes(const nsHTMLReflowState& aReflowState,
       }
       
       
-      if (aLastRS->ComputedWidth() != NS_UNCONSTRAINEDSIZE) {
+      
+      
+      
+      
+      
+      
+      
+      
+      if (aLastRS->ComputedWidth() != NS_UNCONSTRAINEDSIZE && !isCanvasBlock) {
         cbSize.width = PR_MAX(0,
           aLastRS->ComputedWidth() + aLastRS->mComputedPadding.LeftRight() - scrollbars.LeftRight());
       }
       if (aLastRS->ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
+        
+        
+        
+        
         cbSize.height = PR_MAX(0,
           aLastRS->ComputedHeight() + aLastRS->mComputedPadding.TopBottom() - scrollbars.TopBottom());
       }
