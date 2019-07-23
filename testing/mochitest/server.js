@@ -240,7 +240,7 @@ function list(requestPath, directory, recurse)
   
   
   var files = [file for (file in dirIter(dir))
-               if (file.path.indexOf("SimpleTest") == -1)];
+               if (file.exists() && file.path.indexOf("SimpleTest") == -1)];
   
   
   
