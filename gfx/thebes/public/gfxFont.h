@@ -1469,7 +1469,7 @@ public:
     
     
     gfxFloat GetUnderlineOffset() {
-        if (mUnderlineOffset == 0)
+        if (mStyle.size != 0 && mUnderlineOffset == 0)
             mUnderlineOffset = GetFontAt(0)->GetMetrics().underlineOffset;
         return mUnderlineOffset;
     }

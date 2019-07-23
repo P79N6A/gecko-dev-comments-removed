@@ -551,6 +551,13 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
 {
     
     
+    if (mStyle.size == 0) {
+        memset(aMetrics, 0, sizeof(gfxFont::Metrics));
+        return;
+    }
+
+    
+    
     
     if (aMetrics->superscriptOffset == 0 ||
         aMetrics->superscriptOffset >= aMetrics->maxAscent) {
@@ -578,10 +585,6 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
         
         aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -2.0);
 
-        
-        
-        
-        
         
         if (aMetrics->internalLeading + aMetrics->externalLeading > aMetrics->underlineSize) {
             aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -aMetrics->emDescent);

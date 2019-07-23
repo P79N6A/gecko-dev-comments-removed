@@ -143,9 +143,12 @@
 
 #define TEXT_TRIMMED_TRAILING_WHITESPACE 0x01000000
 
+#define TEXT_SELECTION_UNDERLINE_OVERFLOWED 0x04000000
+
 #define TEXT_REFLOW_FLAGS    \
   (TEXT_FIRST_LETTER|TEXT_START_OF_LINE|TEXT_END_OF_LINE|TEXT_HYPHEN_BREAK| \
-   TEXT_TRIMMED_TRAILING_WHITESPACE|TEXT_HAS_NONCOLLAPSED_CHARACTERS)
+   TEXT_TRIMMED_TRAILING_WHITESPACE|TEXT_HAS_NONCOLLAPSED_CHARACTERS| \
+   TEXT_SELECTION_UNDERLINE_OVERFLOWED)
 
 
 
@@ -1260,8 +1263,12 @@ GetSpacingFlags(const nsStyleCoord& aStyleCoord)
 }
 
 static gfxFontGroup*
-GetFontGroupForFrame(nsIFrame* aFrame)
+GetFontGroupForFrame(nsIFrame* aFrame,
+                     nsIFontMetrics** aOutFontMetrics = nsnull)
 {
+  if (aOutFontMetrics)
+    *aOutFontMetrics = nsnull;
+
   nsCOMPtr<nsIFontMetrics> metrics;
   nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(metrics));
 
@@ -1269,6 +1276,10 @@ GetFontGroupForFrame(nsIFrame* aFrame)
     return nsnull;
 
   nsIFontMetrics* metricsRaw = metrics;
+  if (aOutFontMetrics) {
+    *aOutFontMetrics = metricsRaw;
+    NS_ADDREF(*aOutFontMetrics);
+  }
   nsIThebesFontMetrics* fm = static_cast<nsIThebesFontMetrics*>(metricsRaw);
   
   
@@ -1326,7 +1337,7 @@ GetHyphenTextRun(gfxTextRun* aTextRun, gfxContext* aContext, nsTextFrame* aTextF
 }
 
 static gfxFont::Metrics
-GetFontMetrics(gfxFontGroup* aFontGroup)
+GetFirstFontMetrics(gfxFontGroup* aFontGroup)
 {
   if (!aFontGroup)
     return gfxFont::Metrics();
@@ -1980,7 +1991,8 @@ public:
                    const gfxSkipCharsIterator& aStart, PRInt32 aLength,
                    nsIFrame* aLineContainer,
                    nscoord aOffsetFromBlockOriginForTabs)
-    : mTextRun(aTextRun), mFontGroup(nsnull), mTextStyle(aTextStyle), mFrag(aFrag),
+    : mTextRun(aTextRun), mFontGroup(nsnull),
+      mTextStyle(aTextStyle), mFrag(aFrag),
       mLineContainer(aLineContainer),
       mFrame(aFrame), mStart(aStart), mTempIterator(aStart),
       mTabWidths(nsnull), mLength(aLength),
@@ -2054,10 +2066,15 @@ public:
   const nsTextFragment* GetFragment() { return mFrag; }
 
   gfxFontGroup* GetFontGroup() {
-    if (!mFontGroup) {
-      mFontGroup = GetFontGroupForFrame(mFrame);
-    }
+    if (!mFontGroup)
+      InitFontGroupAndFontMetrics();
     return mFontGroup;
+  }
+
+  nsIFontMetrics* GetFontMetrics() {
+    if (!mFontMetrics)
+      InitFontGroupAndFontMetrics();
+    return mFontMetrics;
   }
 
   gfxFloat* GetTabWidths(PRUint32 aTransformedStart, PRUint32 aTransformedLength);
@@ -2066,9 +2083,14 @@ public:
 
 protected:
   void SetupJustificationSpacing();
-  
+
+  void InitFontGroupAndFontMetrics() {
+    mFontGroup = GetFontGroupForFrame(mFrame, getter_AddRefs(mFontMetrics));
+  }
+
   gfxTextRun*           mTextRun;
   gfxFontGroup*         mFontGroup;
+  nsCOMPtr<nsIFontMetrics> mFontMetrics;
   const nsStyleText*    mTextStyle;
   const nsTextFragment* mFrag;
   nsIFrame*             mLineContainer;
@@ -2299,7 +2321,8 @@ PropertyProvider::GetTabWidths(PRUint32 aStart, PRUint32 aLength)
     
     
     gfxFloat spaceWidthAppUnits =
-      NS_roundf(GetFontMetrics(GetFontGroupForFrame(mLineContainer)).spaceWidth*
+      NS_roundf(GetFirstFontMetrics(
+                  GetFontGroupForFrame(mLineContainer)).spaceWidth *
                 mTextRun->GetAppUnitsPerDevUnit());
     gfxFloat tabWidth = 8*spaceWidthAppUnits;
     for (PRUint32 i = tabsEnd; i < aStart + aLength; ++i) {
@@ -3645,26 +3668,19 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
 }
 
 void
-nsTextFrame::UnionTextDecorationOverflow(
-               nsPresContext* aPresContext,
-               const gfxTextRun::Metrics& aTextMetrics,
-               nsRect* aOverflowRect)
+nsTextFrame::UnionTextDecorationOverflow(nsPresContext* aPresContext,
+                                         nsRect* aOverflowRect)
 {
-  NS_ASSERTION(mTextRun, "mTextRun is null");
-  nsRect rect;
-  TextDecorations decorations = GetTextDecorations(aPresContext);
-  float ratio = 1.0f;
   
   
-  if (mState & NS_FRAME_SELECTED_CONTENT) {
-    nsILookAndFeel* look = aPresContext->LookAndFeel();
-    look->GetMetric(nsILookAndFeel::eMetricFloat_IMEUnderlineRelativeSize,
-                    ratio);
-    decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_UNDERLINE;
-  }
-  nsLineLayout::CombineTextDecorations(aPresContext, decorations.mDecorations,
-                  this, *aOverflowRect, NSToCoordRound(aTextMetrics.mAscent),
-                  ratio);
+  float ratio;
+  if (!HasSelectionOverflowingDecorations(aPresContext, &ratio))
+    return;
+
+  nsLineLayout::CombineTextDecorations(aPresContext,
+                  NS_STYLE_TEXT_DECORATION_UNDERLINE,
+                  this, *aOverflowRect, mAscent, ratio);
+  AddStateBits(TEXT_SELECTION_UNDERLINE_OVERFLOWED);
 }
 
 void 
@@ -4318,6 +4334,26 @@ nsTextFrame::CalcContentOffsetsFromFramePoint(nsPoint aPoint) {
   return offsets;
 }
 
+PRBool
+nsTextFrame::HasSelectionOverflowingDecorations(nsPresContext* aPresContext,
+                                                float* aRatio)
+{
+  float ratio;
+  nsILookAndFeel* look = aPresContext->LookAndFeel();
+  look->GetMetric(nsILookAndFeel::eMetricFloat_IMEUnderlineRelativeSize, ratio);
+  if (aRatio)
+    *aRatio = ratio;
+  if (ratio <= 1.0f)
+    return PR_FALSE;
+
+  for (SelectionDetails *sd = GetSelectionDetails(); sd; sd = sd->mNext) {
+    if (sd->mStart != sd->mEnd &&
+        sd->mType & SelectionTypesWithDecorations)
+      return PR_TRUE;
+  }
+  return PR_FALSE;
+}
+
 
 NS_IMETHODIMP
 nsTextFrame::SetSelected(nsPresContext* aPresContext,
@@ -4387,7 +4423,6 @@ nsTextFrame::SetSelected(nsPresContext* aPresContext,
     found = PR_TRUE;
   }
 
-  nsFrameState oldState = mState;
   if ( aSelected )
     AddStateBits(NS_FRAME_SELECTED_CONTENT);
   else
@@ -4403,13 +4438,11 @@ nsTextFrame::SetSelected(nsPresContext* aPresContext,
     
     
     
-    
-    nsILookAndFeel* look = aPresContext->LookAndFeel();
-    float ratio;
-    look->GetMetric(nsILookAndFeel::eMetricFloat_IMEUnderlineRelativeSize,
-                    ratio);
-    if (oldState != mState &&
-        (ratio > 1.0 || !GetTextDecorations(aPresContext).HasUnderline())) {
+    PRBool didHaveSelectionUnderline =
+             !!(mState & TEXT_SELECTION_UNDERLINE_OVERFLOWED);
+    PRBool willHaveSelectionUnderline =
+             aSelected && HasSelectionOverflowingDecorations(PresContext());
+    if (didHaveSelectionUnderline != willHaveSelectionUnderline) {
       PresContext()->PresShell()->FrameNeedsReflow(this,
                                                    nsIPresShell::eStyleChange,
                                                    NS_FRAME_IS_DIRTY);
@@ -5533,12 +5566,21 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     textMetrics.mAscent = PR_MAX(0, -textMetrics.mBoundingBox.Y());
     textMetrics.mDescent = PR_MAX(0, textMetrics.mBoundingBox.YMost());
   }
-  
+
   
   
   aMetrics.width = NSToCoordCeil(PR_MAX(0, textMetrics.mAdvanceWidth));
-  aMetrics.ascent = NSToCoordCeil(textMetrics.mAscent);
-  aMetrics.height = aMetrics.ascent + NSToCoordCeil(textMetrics.mDescent);
+
+  
+  
+  nscoord minAscent, minDescent;
+  nsIFontMetrics* fm = provider.GetFontMetrics();
+  fm->GetMaxAscent(minAscent);
+  fm->GetMaxDescent(minDescent);
+  aMetrics.ascent = PR_MAX(NSToCoordCeil(textMetrics.mAscent), minAscent);
+  nscoord descent = PR_MAX(NSToCoordCeil(textMetrics.mDescent), minDescent);
+
+  aMetrics.height = aMetrics.ascent + descent;
   NS_ASSERTION(aMetrics.ascent >= 0, "Negative ascent???");
   NS_ASSERTION(aMetrics.height - aMetrics.ascent >= 0, "Negative descent???");
 
@@ -5546,12 +5588,11 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
 
   
   nsRect boundingBox =
-    ConvertGfxRectOutward(textMetrics.mBoundingBox + gfxPoint(0, textMetrics.mAscent));
+    ConvertGfxRectOutward(textMetrics.mBoundingBox + gfxPoint(0, mAscent));
   aMetrics.mOverflowArea.UnionRect(boundingBox,
                                    nsRect(0, 0, aMetrics.width, aMetrics.height));
 
-  UnionTextDecorationOverflow(aPresContext, textMetrics,
-                              &aMetrics.mOverflowArea);
+  UnionTextDecorationOverflow(aPresContext, &aMetrics.mOverflowArea);
 
   
   
@@ -5772,11 +5813,11 @@ nsTextFrame::RecomputeOverflowRect()
                           &provider);
 
   nsRect boundingBox =
-    ConvertGfxRectOutward(textMetrics.mBoundingBox + gfxPoint(0, textMetrics.mAscent));
+    ConvertGfxRectOutward(textMetrics.mBoundingBox + gfxPoint(0, mAscent));
   boundingBox.UnionRect(boundingBox,
                         nsRect(nsPoint(0,0), GetSize()));
 
-  UnionTextDecorationOverflow(PresContext(), textMetrics, &boundingBox);
+  UnionTextDecorationOverflow(PresContext(), &boundingBox);
 
   return boundingBox;
 }
