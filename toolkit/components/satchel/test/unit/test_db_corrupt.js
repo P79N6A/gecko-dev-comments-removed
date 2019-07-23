@@ -50,11 +50,21 @@ function run_test()
   if (destFile.exists())
     destFile.remove(false);
 
+  var bakFile = profileDir.clone();
+  bakFile.append("formhistory.sqlite.corrupt");
+  if (bakFile.exists())
+    bakFile.remove(false);
+
   testfile.copyTo(profileDir, "formhistory.sqlite");
 
+  
+  testnum++;
+  
+  do_check_false(bakFile.exists());
   var fh = Cc["@mozilla.org/satchel/form-history;1"].
            getService(Ci.nsIFormHistory2);
-
+  do_check_true(bakFile.exists());
+  bakFile.remove(false);
 
   
   testnum++;

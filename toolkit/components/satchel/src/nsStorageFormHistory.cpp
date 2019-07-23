@@ -81,7 +81,7 @@
 #define DB_FILENAME         NS_LITERAL_STRING("formhistory.sqlite")
 #define DB_CORRUPT_FILENAME NS_LITERAL_STRING("formhistory.sqlite.corrupt")
 
-#define PR_HOURS (60 * 60 * 1000000)
+#define PR_HOURS ((PRInt64)60 * 60 * 1000000)
 
 
 
@@ -187,9 +187,16 @@ nsFormHistory::~nsFormHistory()
 nsresult
 nsFormHistory::Init()
 {
-  PRBool doImport = PR_FALSE;
+  PRBool doImport;
 
   nsresult rv = OpenDatabase(&doImport);
+  if (rv == NS_ERROR_FILE_CORRUPTED) {
+    
+    rv = dbCleanup();
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = OpenDatabase(&doImport);
+    doImport = PR_FALSE;
+  }
   NS_ENSURE_SUCCESS(rv, rv);
 
 #ifdef MOZ_MORKREADER
@@ -516,11 +523,12 @@ nsresult
 nsFormHistory::CreateTable()
 {
   nsresult rv;
+  
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
          "CREATE TABLE moz_formhistory ("
            "id INTEGER PRIMARY KEY, fieldname TEXT NOT NULL, "
-           "value TEXT NOT NULL, timesUsed INTEGER NOT NULL, "
-           "firstUsed INTEGER NOT NULL, lastUsed INTEGER NOT NULL)"));
+           "value TEXT NOT NULL, timesUsed INTEGER, "
+           "firstUsed INTEGER, lastUsed INTEGER)"));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("CREATE INDEX moz_formhistory_index ON moz_formhistory (fieldname)"));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -582,15 +590,11 @@ nsFormHistory::OpenDatabase(PRBool *aDoImport)
   nsCOMPtr<nsIFile> formHistoryFile;
   rv = GetDatabaseFile(getter_AddRefs(formHistoryFile));
   NS_ENSURE_SUCCESS(rv, rv);
+
   rv = mStorageService->OpenDatabase(formHistoryFile, getter_AddRefs(mDBConn));
-  if (rv == NS_ERROR_FILE_CORRUPTED) {
-    
-    rv = formHistoryFile->Remove(PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mStorageService->OpenDatabase(formHistoryFile, getter_AddRefs(mDBConn));
-  }
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
   
   
   
@@ -604,97 +608,13 @@ nsFormHistory::OpenDatabase(PRBool *aDoImport)
     *aDoImport = PR_TRUE;
     rv = CreateTable();
     NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    *aDoImport = PR_FALSE;
   }
 
-  PRInt32 schemaVersion;
-  rv = mDBConn->GetSchemaVersion(&schemaVersion);
+  
+  rv = dbMigrate();
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-
-  switch (schemaVersion) {
-  case 0:
-    {
-      mozStorageTransaction stepTransaction(mDBConn, PR_FALSE);
-
-      
-      NS_WARNING("Could not get formhistory database's schema version!");
-
-      
-      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_formhistory ADD COLUMN timesUsed INTEGER"));
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_formhistory ADD COLUMN firstUsed INTEGER"));
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_formhistory ADD COLUMN lastUsed INTEGER"));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      
-      
-      
-      
-      
-      nsCOMPtr<mozIStorageStatement> addDefaultValues;
-      rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "UPDATE moz_formhistory "
-        "SET timesUsed=1, firstUsed=?1, lastUsed=?1"),
-        getter_AddRefs(addDefaultValues));
-      rv = addDefaultValues->BindInt64Parameter(0, PR_Now() - 24 * PR_HOURS);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = addDefaultValues->Execute();
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = mDBConn->SetSchemaVersion(DB_SCHEMA_VERSION);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = stepTransaction.Commit();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    
-
-  
-#ifndef DEBUG
-  case DB_SCHEMA_VERSION:
-#endif
-    break;
-
-  
-  
-  default:
-    {
-      
-      nsCOMPtr<mozIStorageStatement> stmt;
-      rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "SELECT fieldname, value, timesUsed, firstUsed, lastUsed "
-        "FROM moz_formhistory"), getter_AddRefs(stmt));
-      if (NS_SUCCEEDED(rv))
-        break;
-
-      
-      nsCOMPtr<mozIStorageService> storage =
-        do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
-      NS_ENSURE_TRUE(storage, NS_ERROR_NOT_AVAILABLE);
-
-      nsCOMPtr<nsIFile> backupFile;
-      rv = storage->BackupDatabaseFile(formHistoryFile, DB_CORRUPT_FILENAME,
-                                       nsnull, getter_AddRefs(backupFile));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP TABLE moz_formhistory"));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = CreateTable();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-    break;
-  }
   
   
   transaction.Commit();
@@ -707,6 +627,102 @@ nsFormHistory::OpenDatabase(PRBool *aDoImport)
 
   return NS_OK;
 }
+  
+
+
+
+nsresult
+nsFormHistory::dbMigrate()
+{
+  PRInt32 schemaVersion;
+  nsresult rv = mDBConn->GetSchemaVersion(&schemaVersion);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  switch (schemaVersion) {
+    case 0:
+      rv = MigrateToVersion1();
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+
+    case DB_SCHEMA_VERSION:
+      
+      break;
+
+    
+    
+    default:
+      
+      
+      if(!dbAreExpectedColumnsPresent())
+        return NS_ERROR_FILE_CORRUPTED;
+
+      
+      
+      rv = mDBConn->SetSchemaVersion(DB_SCHEMA_VERSION);
+      NS_ENSURE_SUCCESS(rv, rv);
+      break;
+  }
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+
+nsresult
+nsFormHistory::MigrateToVersion1()
+{
+  
+  
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+                  "SELECT timesUsed, firstUsed, lastUsed FROM moz_formhistory"),
+                  getter_AddRefs(stmt));
+
+  PRBool columnsExist = !!NS_SUCCEEDED(rv);
+
+  if (!columnsExist) {
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_formhistory ADD COLUMN timesUsed INTEGER"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_formhistory ADD COLUMN firstUsed INTEGER"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_formhistory ADD COLUMN lastUsed INTEGER"));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<mozIStorageStatement> addDefaultValues;
+  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+         "UPDATE moz_formhistory "
+         "SET timesUsed=1, firstUsed=?1, lastUsed=?1 "
+         "WHERE timesUsed isnull OR firstUsed isnull OR lastUsed isnull"),
+         getter_AddRefs(addDefaultValues));
+  rv = addDefaultValues->BindInt64Parameter(0, PR_Now() - 24 * PR_HOURS);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = addDefaultValues->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = mDBConn->SetSchemaVersion(1);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
 
 
 nsresult
@@ -715,6 +731,49 @@ nsFormHistory::GetDatabaseFile(nsIFile** aFile)
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, aFile);
   NS_ENSURE_SUCCESS(rv, rv);
   return (*aFile)->Append(DB_FILENAME);
+}
+
+
+
+
+
+
+
+
+nsresult
+nsFormHistory::dbCleanup()
+{
+  nsCOMPtr<nsIFile> dbFile;
+  nsresult rv = GetDatabaseFile(getter_AddRefs(dbFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIFile> backupFile;
+  NS_ENSURE_TRUE(mStorageService, NS_ERROR_NOT_AVAILABLE);
+  rv = mStorageService->BackupDatabaseFile(dbFile, DB_CORRUPT_FILENAME,
+                                           nsnull, getter_AddRefs(backupFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (mDBConn)
+    mDBConn->Close();
+
+  rv = dbFile->Remove(PR_FALSE);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+
+
+
+PRBool
+nsFormHistory::dbAreExpectedColumnsPresent()
+{
+  
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+                  "SELECT fieldname, value, timesUsed, firstUsed, lastUsed "
+                  "FROM moz_formhistory"), getter_AddRefs(stmt));
+  return NS_SUCCEEDED(rv) ? PR_TRUE : PR_FALSE;
 }
 
 

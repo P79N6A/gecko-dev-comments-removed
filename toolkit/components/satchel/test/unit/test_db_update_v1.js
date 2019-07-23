@@ -61,6 +61,7 @@ function run_test()
     destFile.remove(false);
 
   testfile.copyTo(profileDir, "formhistory.sqlite");
+  do_check_eq(0, getDBVersion(testfile));
 
   fh = Cc["@mozilla.org/satchel/form-history;1"].
        getService(Ci.nsIFormHistory2);
@@ -73,6 +74,27 @@ function run_test()
   do_check_true(fh.entryExists("name-B", "value-B"));
   do_check_true(fh.entryExists("name-C", "value-C1"));
   do_check_true(fh.entryExists("name-C", "value-C2"));
+  
+  do_check_eq(CURRENT_SCHEMA, fh.DBConnection.schemaVersion);
+
+
+  
+  testnum++;
+  
+
+  var query = "SELECT timesUsed, firstUsed, lastUsed " +
+              "FROM moz_formhistory WHERE fieldname = 'name-A'";
+  var stmt = fh.DBConnection.createStatement(query);
+  stmt.executeStep();
+
+  timesUsed = stmt.getInt32(0);
+  firstUsed = stmt.getInt64(1);
+  lastUsed  = stmt.getInt64(2);
+
+  do_check_eq(1, timesUsed);
+  do_check_true(firstUsed == lastUsed);
+  
+  do_check_true(is_about_now(firstUsed + 24 * PR_HOURS));
 
 
   
@@ -92,9 +114,9 @@ function run_test()
   fh.addEntry("name-E", "value-E");
   do_check_true(fh.entryExists("name-E", "value-E"));
 
-  var query = "SELECT timesUsed, firstUsed, lastUsed " +
-              "FROM moz_formhistory WHERE fieldname = 'name-E'";
-  var stmt = fh.DBConnection.createStatement(query);
+  query = "SELECT timesUsed, firstUsed, lastUsed " +
+          "FROM moz_formhistory WHERE fieldname = 'name-E'";
+  stmt = fh.DBConnection.createStatement(query);
   stmt.executeStep();
 
   timesUsed = stmt.getInt32(0);
