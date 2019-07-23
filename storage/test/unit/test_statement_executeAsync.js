@@ -956,6 +956,32 @@ function test_not_right_owning_statement()
   run_next_test();
 }
 
+function test_bind_empty_array()
+{
+  let stmt = getOpenedDatabase().createStatement(
+    "INSERT INTO test (id) " +
+    "VALUES (:int)"
+  );
+
+  let paramsArray = stmt.newBindingParamsArray();
+
+  
+  
+  let exceptionCaught = false;
+  try {
+    stmt.bindParameters(paramsArray);
+    do_throw("we should have an exception!");
+  }
+  catch(e) {
+    do_check_eq(e.result, Cr.NS_ERROR_UNEXPECTED);
+    exceptionCaught = true;
+  }
+  do_check_true(exceptionCaught);
+
+  
+  run_next_test();
+}
+
 function test_multiple_results()
 {
   
@@ -1027,6 +1053,7 @@ var tests =
   test_bind_bogus_type_by_name,
   test_bind_params_already_locked,
   test_bind_params_array_already_locked,
+  test_bind_empty_array,
   test_no_binding_params_from_locked_array,
   test_not_right_owning_array,
   test_not_right_owning_statement,
@@ -1039,7 +1066,14 @@ function run_next_test()
   if (index < tests.length) {
     do_test_pending();
     print("Running the next test: " + tests[index].name);
-    tests[index++]();
+
+    
+    try {
+      tests[index++]();
+    }
+    catch (e) {
+      do_throw(e);
+    }
   }
 
   do_test_finished();
