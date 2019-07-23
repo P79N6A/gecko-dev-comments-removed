@@ -571,8 +571,36 @@ nsScriptSecurityManager::CheckPropertyAccess(JSContext* cx,
                                              PRUint32 aAction)
 {
     return CheckPropertyAccessImpl(aAction, nsnull, cx, aJSObject,
-                                   nsnull, nsnull,
+                                   nsnull, nsnull, nsnull,
                                    aClassName, aProperty, nsnull);
+}
+
+NS_IMETHODIMP
+nsScriptSecurityManager::CheckConnect(JSContext* cx,
+                                      nsIURI* aTargetURI,
+                                      const char* aClassName,
+                                      const char* aPropertyName)
+{
+    
+    if (!cx)
+    {
+        cx = GetCurrentJSContext();
+        if (!cx)
+            return NS_OK; 
+    }
+
+    nsresult rv = CheckLoadURIFromScript(cx, aTargetURI);
+    if (NS_FAILED(rv)) return rv;
+
+    JSAutoRequest ar(cx);
+
+    JSString* propertyName = ::JS_InternString(cx, aPropertyName);
+    if (!propertyName)
+        return NS_ERROR_OUT_OF_MEMORY;
+
+    return CheckPropertyAccessImpl(nsIXPCSecurityManager::ACCESS_CALL_METHOD, nsnull,
+                                   cx, nsnull, nsnull, aTargetURI,
+                                   nsnull, aClassName, STRING_TO_JSVAL(propertyName), nsnull);
 }
 
 NS_IMETHODIMP
@@ -645,7 +673,7 @@ nsresult
 nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
                                                  nsAXPCNativeCallContext* aCallContext,
                                                  JSContext* cx, JSObject* aJSObject,
-                                                 nsISupports* aObj,
+                                                 nsISupports* aObj, nsIURI* aTargetURI,
                                                  nsIClassInfo* aClassInfo,
                                                  const char* aClassName, jsval aProperty,
                                                  void** aCachedClassPolicy)
@@ -720,14 +748,22 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
                     if (!objectPrincipal)
                         rv = NS_ERROR_DOM_SECURITY_ERR;
                 }
+                else if(aTargetURI)
+                {
+                    if (NS_FAILED(GetCodebasePrincipal(
+                          aTargetURI, getter_AddRefs(principalHolder))))
+                        return NS_ERROR_FAILURE;
+
+                    objectPrincipal = principalHolder;
+                }
                 else
                 {
-                    NS_ERROR("CheckPropertyAccessImpl called without a target object");
+                    NS_ERROR("CheckPropertyAccessImpl called without a target object or URL");
                     return NS_ERROR_FAILURE;
                 }
                 if(NS_SUCCEEDED(rv))
                     rv = CheckSameOriginDOMProp(subjectPrincipal, objectPrincipal,
-                                                aAction);
+                                                aAction, aTargetURI != nsnull);
                 break;
             }
         default:
@@ -862,7 +898,8 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
 
 nsresult
 nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSubject,
-                                                  nsIPrincipal* aObject)
+                                                  nsIPrincipal* aObject,
+                                                  PRBool aIsCheckConnect)
 {
     
 
@@ -870,24 +907,36 @@ nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSubject,
     if (aSubject == aObject)
         return NS_OK;
 
+    
+    
     PRBool subjectSetDomain = PR_FALSE;
     PRBool objectSetDomain = PR_FALSE;
     
     nsCOMPtr<nsIURI> subjectURI;
     nsCOMPtr<nsIURI> objectURI;
 
-    aSubject->GetDomain(getter_AddRefs(subjectURI));
-    if (!subjectURI) {
+    if (aIsCheckConnect)
+    {
+        
+        
         aSubject->GetURI(getter_AddRefs(subjectURI));
-    } else {
-        subjectSetDomain = PR_TRUE;
-    }
-
-    aObject->GetDomain(getter_AddRefs(objectURI));
-    if (!objectURI) {
         aObject->GetURI(getter_AddRefs(objectURI));
-    } else {
-        objectSetDomain = PR_TRUE;
+    }
+    else
+    {
+        aSubject->GetDomain(getter_AddRefs(subjectURI));
+        if (!subjectURI) {
+            aSubject->GetURI(getter_AddRefs(subjectURI));
+        } else {
+            subjectSetDomain = PR_TRUE;
+        }
+
+        aObject->GetDomain(getter_AddRefs(objectURI));
+        if (!objectURI) {
+            aObject->GetURI(getter_AddRefs(objectURI));
+        } else {
+            objectSetDomain = PR_TRUE;
+        }
     }
 
     if (SecurityCompareURIs(subjectURI, objectURI))
@@ -895,6 +944,12 @@ nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSubject,
         
         
         
+
+        
+        
+        
+        if (aIsCheckConnect)
+            return NS_OK;
 
         
         if (subjectSetDomain == objectSetDomain)
@@ -911,13 +966,21 @@ nsScriptSecurityManager::CheckSameOriginPrincipal(nsIPrincipal* aSubject,
 nsresult
 nsScriptSecurityManager::CheckSameOriginDOMProp(nsIPrincipal* aSubject,
                                                 nsIPrincipal* aObject,
-                                                PRUint32 aAction)
+                                                PRUint32 aAction,
+                                                PRBool aIsCheckConnect)
 {
     nsresult rv;
-    PRBool subsumes;
-    rv = aSubject->Subsumes(aObject, &subsumes);
-    if (NS_SUCCEEDED(rv) && !subsumes) {
-        rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    if (aIsCheckConnect) {
+        
+        
+        
+        rv = CheckSameOriginPrincipal(aSubject, aObject, aIsCheckConnect);
+    } else {
+        PRBool subsumes;
+        rv = aSubject->Subsumes(aObject, &subsumes);
+        if (NS_SUCCEEDED(rv) && !subsumes) {
+            rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+        }
     }
     
     if (NS_SUCCEEDED(rv))
@@ -3062,7 +3125,7 @@ nsScriptSecurityManager::CanAccess(PRUint32 aAction,
                                    void** aPolicy)
 {
     return CheckPropertyAccessImpl(aAction, aCallContext, cx,
-                                   aJSObject, aObj, aClassInfo,
+                                   aJSObject, aObj, nsnull, aClassInfo,
                                    nsnull, aPropertyName, aPolicy);
 }
 
