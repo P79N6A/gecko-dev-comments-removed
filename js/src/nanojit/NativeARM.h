@@ -612,13 +612,6 @@ ShiftOperator;
 	asm_output2("b(cond) 0x%08x (%tX)",(_t), tt);
 
 
-
-
-
-
-
-
-
 #define JA(t)	do {B_cond(HI,t); asm_output1("ja 0x%08x",t); } while(0)
 #define JNA(t)	do {B_cond(LS,t); asm_output1("jna 0x%08x",t); } while(0)
 #define JB(t)	do {B_cond(CC,t); asm_output1("jb 0x%08x",t); } while(0)

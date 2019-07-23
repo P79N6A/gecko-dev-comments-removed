@@ -41,8 +41,6 @@
 #define __nanojit_Assembler__
 
 
-namespace avmplus { class InterpState; }
-
 namespace nanojit
 {
 	
@@ -66,25 +64,6 @@ namespace nanojit
 
 
 
-
-	
-
-
-
-	struct GuardRecord
-	{
-		GuardRecord* next;			
-        Fragment *   from;
-        Fragment *   target;
-		NIns*		 jmp;
-		NIns*        origTarget;
-		int32_t		 calldepth;
-		LInsp		 guard;
-		GuardRecord* outgoing;			
-		void*        vmprivate;
-		verbose_only( uint32_t sid; )
-		verbose_only( uint32_t compileNbr; )
-	};
 
 	
 
@@ -250,6 +229,7 @@ namespace nanojit
 			bool		ignoreInstruction(LInsp ins);
 
 			GuardRecord* placeGuardRecord(LInsp guard);
+			void		initGuardRecord(LInsp guard, GuardRecord*);
 
 			uint32_t	arReserve(LIns* l);
 			uint32_t	arFree(uint32_t idx);
@@ -331,6 +311,7 @@ namespace nanojit
 			void		asm_u2f(LInsp ins);
 			Register	asm_prep_fcall(Reservation *rR, LInsp ins);
 			void		asm_nongp_copy(Register r, Register s);
+			void		asm_bailout(LInsp guard, Register state);
 
 			
 			void		nInit(uint32_t flags);
@@ -342,7 +323,7 @@ namespace nanojit
 			void		nArgEmitted(const CallInfo* call, uint32_t stackSlotCount, uint32_t iargs, uint32_t fargs);
 			void		nFrameRestore(RegisterMask rmask);
 			static void	nPatchBranch(NIns* branch, NIns* location);
-			GuardRecord *nFragExit(LInsp guard);
+			void		nFragExit(LIns* guard);
 
 			
         public:
