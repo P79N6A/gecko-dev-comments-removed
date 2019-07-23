@@ -901,7 +901,7 @@ js_Array_dense_setelem(JSContext* cx, JSObject* obj, jsint i, jsval v)
 
 
     JS_ASSERT((MAX_DSLOTS_LENGTH > JSVAL_INT_MAX) == (sizeof(jsval) != sizeof(uint32)));
-    if (MAX_DSLOTS_SIZE > JSVAL_INT_MAX) {
+    if (MAX_DSLOTS_LENGTH > JSVAL_INT_MAX) {
         
 
 

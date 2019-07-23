@@ -8477,7 +8477,7 @@ TraceRecorder::elem(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_ins, LIns*& a
     if (!within) {
         
         LIns* br1 = NULL;
-        if (MAX_DSLOTS_SIZE > JS_BITMASK(30) && !idx_ins->isconst()) {
+        if (MAX_DSLOTS_LENGTH > JS_BITMASK(30) && !idx_ins->isconst()) {
             JS_ASSERT(sizeof(jsval) == 8); 
             br1 = lir->insBranch(LIR_jt,
                                  lir->ins2i(LIR_lt, idx_ins, 0),
@@ -8520,7 +8520,7 @@ TraceRecorder::elem(jsval& oval, jsval& ival, jsval*& vp, LIns*& v_ins, LIns*& a
     }
 
     
-    if (MAX_DSLOTS_SIZE > JS_BITMASK(30) && !idx_ins->isconst()) {
+    if (MAX_DSLOTS_LENGTH > JS_BITMASK(30) && !idx_ins->isconst()) {
         JS_ASSERT(sizeof(jsval) == 8); 
         guard(false,
               lir->ins2i(LIR_lt, idx_ins, 0),
