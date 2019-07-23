@@ -220,14 +220,23 @@ nsSHistory::Startup()
 {
   nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs) {
+    nsCOMPtr<nsIPrefBranch> sesHBranch;
+    prefs->GetBranch(nsnull, getter_AddRefs(sesHBranch));
+    if (sesHBranch) {
+      sesHBranch->GetIntPref(PREF_SHISTORY_SIZE, &gHistoryMaxSize);
+    }
+
     
     
-    
-    
+    PRInt32  defaultHistoryMaxSize = 50;
     nsCOMPtr<nsIPrefBranch> defaultBranch;
     prefs->GetDefaultBranch(nsnull, getter_AddRefs(defaultBranch));
     if (defaultBranch) {
-      defaultBranch->GetIntPref(PREF_SHISTORY_SIZE, &gHistoryMaxSize);
+      defaultBranch->GetIntPref(PREF_SHISTORY_SIZE, &defaultHistoryMaxSize);
+    }
+
+    if (gHistoryMaxSize < defaultHistoryMaxSize) {
+      gHistoryMaxSize = defaultHistoryMaxSize;
     }
     
     
