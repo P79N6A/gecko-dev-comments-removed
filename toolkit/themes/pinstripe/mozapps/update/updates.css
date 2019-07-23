@@ -57,7 +57,7 @@ wizardpage {
   -moz-box-shadow: @toolbarbuttonPressedInnerShadow@, @loweredShadow@;
 }
 
-:root:not([active]) .wizard-buttons button {
+.wizard-buttons button:-moz-window-inactive {
   color: @toolbarbuttonInactiveFontColor@ !important; 
   border-color: @toolbarbuttonInactiveBorderColor@;
   background-image: @toolbarbuttonInactiveBackgroundImage@;
