@@ -79,7 +79,6 @@ void nsAccessibleTreeWalker::GetKids(nsIDOMNode *aParentNode)
     mState.frame = nsnull;  
   }
 
-  PushState();
   UpdateFrame(PR_TRUE);
 
   
@@ -213,6 +212,8 @@ NS_IMETHODIMP nsAccessibleTreeWalker::GetFirstChild()
   }
 
   nsCOMPtr<nsIDOMNode> parent(mState.domNode);
+
+  PushState();
   GetKids(parent); 
 
   

@@ -74,20 +74,61 @@ public:
     PRBool mWalkAnonymousContent);
   virtual ~nsAccessibleTreeWalker();
 
+  
+
+
   NS_IMETHOD GetNextSibling();
+
+  
+
+
   NS_IMETHOD GetFirstChild();
+
+  
+
+
 
   WalkState mState;
 
 protected:
+
+  
+
+
   PRBool GetAccessible();
+
+  
+
+
   void GetKids(nsIDOMNode *aParent);
 
+  
+
+
   void ClearState();
+
+  
+
+
+
   NS_IMETHOD PushState();
+
+  
+
+
   NS_IMETHOD PopState();
 
+  
+
+
+
+
+
   void UpdateFrame(PRBool aTryFirstChild);
+
+  
+
+
   void GetNextDOMNode();
 
   nsCOMPtr<nsIWeakReference> mWeakShell;
