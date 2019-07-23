@@ -448,8 +448,21 @@ public:
     nsCOMPtr<nsIURI> mReferrer;
     nsCOMPtr<nsIPrincipal> mOriginPrincipal;
 
-    void AddRef() { ++mRefCnt; }
-    void Release() { if (--mRefCnt == 0) delete this; }
+    void AddRef() {
+      if (mRefCnt == PR_UINT32_MAX) {
+        NS_WARNING("refcount overflow, leaking nsCSSValue::URL");
+        return;
+      }
+      ++mRefCnt;
+    }
+    void Release() {
+      if (mRefCnt == PR_UINT32_MAX) {
+        NS_WARNING("refcount overflow, leaking nsCSSValue::URL");
+        return;
+      }
+      if (--mRefCnt == 0)
+        delete this;
+    }
   protected:
     nsrefcnt mRefCnt;
   };
@@ -468,8 +481,14 @@ public:
     nsCOMPtr<imgIRequest> mRequest; 
 
     
-    void AddRef() { ++mRefCnt; }
-    void Release() { if (--mRefCnt == 0) delete this; }
+    void Release() {
+      if (mRefCnt == PR_UINT32_MAX) {
+        NS_WARNING("refcount overflow, leaking nsCSSValue::Image");
+        return;
+      }
+      if (--mRefCnt == 0)
+        delete this;
+    }
   };
 
 private:
