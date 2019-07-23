@@ -1912,12 +1912,8 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
     
 
     unsigned calldepth = lr->calldepth;
-    unsigned spbase = 0;
-    for (unsigned n = 0; n < calldepth; ++n) {
+    for (unsigned n = 0; n < calldepth; ++n) 
         js_SynthesizeFrame(cx, callstack[n]);
-        JSStackFrame* down = cx->fp->down;
-        spbase += (down->regs->sp - StackBase(down));
-    }
     
     
 
@@ -1926,8 +1922,11 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount)
     JSStackFrame* fp = cx->fp;
     
 
-    fp->regs->sp = StackBase(fp) + (e->sp_adj/sizeof(double) - spbase);
     fp->regs->pc = (jsbytecode*)lr->from->root->ip + e->ip_adj;
+    fp->regs->sp = StackBase(fp) + 
+        ((calldepth == 0) 
+         ? (e->sp_adj/sizeof(double))
+         : js_ReconstructStackDepth(cx, fp->script, fp->regs->pc));
 
 #if defined(DEBUG) && defined(NANOJIT_IA32)
     printf("leaving trace at %s:%u@%u, exitType=%d, sp=%d, ip=%p, cycles=%llu\n",
