@@ -22,6 +22,7 @@
   var doneWorkers = 0;
   function onmessage(event) {
     if (++doneWorkers == WORKER_COUNT) {
+      ok(true, "All messages received from workers");
       SimpleTest.finish();
     }
   }
