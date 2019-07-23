@@ -52,53 +52,6 @@
 
 namespace nanojit
 {
-#ifdef NJ_VERBOSE
-    
-
-
-
-
-    class ReverseLister : public LirFilter
-    {
-        Allocator&   _alloc;
-        LirNameMap*  _names;
-        const char*  _title;
-        StringList   _strs;
-        LogControl*  _logc;
-    public:
-        ReverseLister(LirFilter* in, Allocator& alloc,
-                      LirNameMap* names, LogControl* logc, const char* title)
-            : LirFilter(in)
-            , _alloc(alloc)
-            , _names(names)
-            , _title(title)
-            , _strs(alloc)
-            , _logc(logc)
-        { }
-
-        void finish()
-        {
-            _logc->printf("\n");
-            _logc->printf("=== BEGIN %s ===\n", _title);
-            int j = 0;
-            for (Seq<char*>* p = _strs.get(); p != NULL; p = p->tail)
-                _logc->printf("  %02d: %s\n", j++, p->head);
-            _logc->printf("=== END %s ===\n", _title);
-            _logc->printf("\n");
-        }
-
-        LInsp read()
-        {
-            LInsp i = in->read();
-            const char* str = _names->formatIns(i);
-            char* cpy = new (_alloc) char[strlen(str)+1];
-            VMPI_strcpy(cpy, str);
-            _strs.insert(cpy);
-            return i;
-        }
-    };
-#endif
-
     
 
 
@@ -698,7 +651,7 @@ namespace nanojit
         nBeginAssembly();
     }
 
-    void Assembler::assemble(Fragment* frag)
+    void Assembler::assemble(Fragment* frag, LirFilter* reader)
     {
         if (error()) return;
         _thisfrag = frag;
@@ -713,41 +666,9 @@ namespace nanojit
                       else
                           NanoAssert(frag->profFragID == 0); )
 
-        
-        verbose_only(
-        ReverseLister *pp_init = NULL;
-        ReverseLister *pp_after_sf = NULL;
-        )
-
-        
-        LirReader bufreader(frag->lastIns);
-
-        
-        LirFilter* prev = &bufreader;
-
-        
-        
-
-        
-        verbose_only( if (_logc->lcbits & LC_ReadLIR) {
-        pp_init = new (alloc) ReverseLister(prev, alloc, frag->lirbuf->names, _logc,
-                                    "Initial LIR");
-        prev = pp_init;
-        })
-
-        
-        StackFilter stackfilter(prev, alloc, frag->lirbuf, frag->lirbuf->sp, frag->lirbuf->rp);
-        prev = &stackfilter;
-
-        verbose_only( if (_logc->lcbits & LC_AfterSF) {
-        pp_after_sf = new (alloc) ReverseLister(prev, alloc, frag->lirbuf->names, _logc,
-                                                "After StackFilter");
-        prev = pp_after_sf;
-        })
-
         _inExit = false;
 
-        gen(prev);
+        gen(reader);
 
         if (!error()) {
             
@@ -766,13 +687,6 @@ namespace nanojit
                 }
             }
         }
-
-        
-        
-        verbose_only(
-        if (pp_init)        pp_init->finish();
-        if (pp_after_sf)    pp_after_sf->finish();
-        )
     }
 
     void Assembler::endAssembly(Fragment* frag)
