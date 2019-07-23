@@ -436,45 +436,6 @@ XRE_RunIPDLTest(int aArgc, char** aArgv)
 }
 #endif  
 
-
-nsresult
-XRE_InitCommandLine(int aArgc, char* aArgv[])
-{
-    nsresult rv = NS_OK;
-
-#if defined(MOZ_IPC) && !defined(OS_WIN)
-  
-  char** canonArgs = new char*[aArgc];
-
-  
-  nsCOMPtr<nsILocalFile> binFile;
-  rv = XRE_GetBinaryPath(aArgv[0], getter_AddRefs(binFile));
-  if (NS_FAILED(rv))
-    return NS_ERROR_FAILURE;
-
-  nsCAutoString canonBinPath;
-  rv = binFile->GetNativePath(canonBinPath);
-  if (NS_FAILED(rv))
-    return NS_ERROR_FAILURE;
-
-  canonArgs[0] = strdup(canonBinPath.get());
-
-  for (int i = 1; i < aArgc; ++i) {
-    if (aArgv[i]) {
-      canonArgs[i] = strdup(aArgv[i]);
-    }
-  }
- 
-  NS_ASSERTION(!CommandLine::IsInitialized(), "Bad news!");
-  CommandLine::Init(aArgc, canonArgs);
-
-  delete[] canonArgs;
-#endif
-
-  return rv;
-}
-
-
 nsresult
 XRE_RunAppShell()
 {
@@ -539,6 +500,45 @@ XRE_SendTestShellCommand(JSContext* aCx,
 }
 
 #endif 
+
+
+nsresult
+XRE_InitCommandLine(int aArgc, char* aArgv[])
+{
+    nsresult rv = NS_OK;
+
+#if defined(MOZ_IPC) && !defined(OS_WIN)
+  
+  char** canonArgs = new char*[aArgc];
+
+  
+  nsCOMPtr<nsILocalFile> binFile;
+  rv = XRE_GetBinaryPath(aArgv[0], getter_AddRefs(binFile));
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  nsCAutoString canonBinPath;
+  rv = binFile->GetNativePath(canonBinPath);
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
+
+  canonArgs[0] = strdup(canonBinPath.get());
+
+  for (int i = 1; i < aArgc; ++i) {
+    if (aArgv[i]) {
+      canonArgs[i] = strdup(aArgv[i]);
+    }
+  }
+ 
+  NS_ASSERTION(!CommandLine::IsInitialized(), "Bad news!");
+  CommandLine::Init(aArgc, canonArgs);
+
+  delete[] canonArgs;
+#endif
+
+  return rv;
+}
+
 
 GeckoProcessType
 XRE_GetProcessType()
