@@ -154,6 +154,20 @@ private:
   WINDOWPOS windowPos;
 };
 
+
+class DeferredCopyDataMessage : public DeferredSendMessage
+{
+public:
+  DeferredCopyDataMessage(HWND aHWnd,
+                          UINT aMessage,
+                          WPARAM aWParam,
+                          LPARAM aLParam);
+
+  ~DeferredCopyDataMessage();
+private:
+  COPYDATASTRUCT copyData;
+};
+
 } 
 } 
 } 
