@@ -91,7 +91,7 @@ class nsHashKey;
 #define NS_POPUP_EVENT                    23
 #define NS_COMMAND_EVENT                  24
 #define NS_SCROLLAREA_EVENT               25
-
+#define NS_TRANSITION_EVENT               26
 
 #define NS_UI_EVENT                       27
 #ifdef MOZ_SVG
@@ -448,6 +448,8 @@ class nsHashKey;
 #define NS_SCROLLAREA_EVENT_START    4100
 #define NS_SCROLLEDAREACHANGED       (NS_SCROLLAREA_EVENT_START)
 
+#define NS_TRANSITION_EVENT_START    4200
+#define NS_TRANSITION_END            (NS_TRANSITION_EVENT_START)
 
 
 
@@ -1328,6 +1330,21 @@ public:
   PRUint32 direction;   
   PRFloat64 delta;      
 };
+
+class nsTransitionEvent : public nsEvent
+{
+public:
+  nsTransitionEvent(PRBool isTrusted, PRUint32 msg,
+                    const nsString &propertyNameArg, float elapsedTimeArg)
+    : nsEvent(isTrusted, msg, NS_TRANSITION_EVENT),
+      propertyName(propertyNameArg), elapsedTime(elapsedTimeArg)
+  {
+  }
+
+  nsString propertyName;
+  float elapsedTime;
+};
+
 
 
 
