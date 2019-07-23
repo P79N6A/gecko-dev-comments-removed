@@ -65,6 +65,9 @@ NPBool NS_NPAPI_ConvertPointCocoa(void* inView,
                                   double *destX, double *destY, NPCoordinateSpace destSpace);
 
 
+CGColorSpaceRef CreateSystemColorSpace();
+
+
 struct _CGLPBufferObject;
 struct _CGLContextObject;
 class nsCARenderer {
