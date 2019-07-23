@@ -3038,62 +3038,79 @@ TraceRecorder::cmp(LOpcode op, int flags)
             return false;
         }
     } else if (isNumber(l) || isNumber(r)) {
-        jsval tmp[2] = {l, r};
-        JSAutoTempValueRooter tvr(cx, 2, tmp);
-
         
-        jsdouble lnum;
-        jsdouble rnum;
-        LIns* args[] = { l_ins, cx_ins };
-        if (JSVAL_IS_STRING(l)) {
-            l_ins = lir->insCall(F_StringToNumber, args);
-        } else if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
+        
+        
+        
+        if ((flags & CMP_STRICT) && isNumber(l) != isNumber(r)) {
+            x = INS_CONST(negate);
+            cond = negate;
+        } else {
+            jsval tmp[2] = {l, r};
+            JSAutoTempValueRooter tvr(cx, 2, tmp);
+
             
+            jsdouble lnum;
+            jsdouble rnum;
+            LIns* args[] = { l_ins, cx_ins };
+            if (l == JSVAL_NULL) {
+                jsdpun u;
+                u.d = js_NaN;
+                l_ins = lir->insImmq(u.u64);
+            } else if (JSVAL_IS_STRING(l)) {
+                l_ins = lir->insCall(F_StringToNumber, args);
+            } else if (JSVAL_TAG(l) == JSVAL_BOOLEAN) {
+                
 
 
 
 
 
 
-            l_ins = lir->insCall(F_BooleanToNumber, args);
-        } else if (!isNumber(l)) {
-            ABORT_TRACE("unsupported LHS type for cmp vs number");
-        }
-        lnum = js_ValueToNumber(cx, &tmp[0]);
+                l_ins = lir->insCall(F_BooleanToNumber, args);
+            } else if (!isNumber(l)) {
+                ABORT_TRACE("unsupported LHS type for cmp vs number");
+            }
+            lnum = js_ValueToNumber(cx, &tmp[0]);
 
-        args[0] = r_ins;
-        args[1] = cx_ins;
-        if (JSVAL_IS_STRING(r)) {
-            r_ins = lir->insCall(F_StringToNumber, args);
-        } else if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
-            
-            r_ins = lir->insCall(F_BooleanToNumber, args);
-        } else if (!isNumber(r)) {
-            ABORT_TRACE("unsupported RHS type for cmp vs number");
-        }
-        rnum = js_ValueToNumber(cx, &tmp[1]);
+            args[0] = r_ins;
+            args[1] = cx_ins;
+            if (r == JSVAL_NULL) {
+                jsdpun u;
+                u.d = js_NaN;
+                r_ins = lir->insImmq(u.u64);
+            } else if (JSVAL_IS_STRING(r)) {
+                r_ins = lir->insCall(F_StringToNumber, args);
+            } else if (JSVAL_TAG(r) == JSVAL_BOOLEAN) {
+                
+                r_ins = lir->insCall(F_BooleanToNumber, args);
+            } else if (!isNumber(r)) {
+                ABORT_TRACE("unsupported RHS type for cmp vs number");
+            }
+            rnum = js_ValueToNumber(cx, &tmp[1]);
 
-        x = lir->ins2(op, l_ins, r_ins);
+            x = lir->ins2(op, l_ins, r_ins);
 
-        if (negate)
-            x = lir->ins_eq0(x);
-        switch (op) {
-          case LIR_flt:
-            cond = lnum < rnum;
-            break;
-          case LIR_fgt:
-            cond = lnum > rnum;
-            break;
-          case LIR_fle:
-            cond = lnum <= rnum;
-            break;
-          case LIR_fge:
-            cond = lnum >= rnum;
-            break;
-          default:
-            JS_ASSERT(op == LIR_feq);
-            cond = (lnum == rnum) ^ negate;
-            break;
+            if (negate)
+                x = lir->ins_eq0(x);
+            switch (op) {
+            case LIR_flt:
+                cond = lnum < rnum;
+                break;
+            case LIR_fgt:
+                cond = lnum > rnum;
+                break;
+            case LIR_fle:
+                cond = lnum <= rnum;
+                break;
+            case LIR_fge:
+                cond = lnum >= rnum;
+                break;
+            default:
+                JS_ASSERT(op == LIR_feq);
+                cond = (lnum == rnum) ^ negate;
+                break;
+            }
         }
     } else if (JSVAL_IS_BOOLEAN(l) && JSVAL_IS_BOOLEAN(r)) {
         x = lir->ins2(op, lir->ins1(LIR_i2f, get(&l)), lir->ins1(LIR_i2f, get(&r)));
@@ -3126,7 +3143,7 @@ TraceRecorder::cmp(LOpcode op, int flags)
     }
 
     
-    if (!(isAnyConst(r_ins) && isAnyConst(l_ins))) {
+    if (!isAnyConst(x)) {
         if (flags & CMP_CASE) {
             guard(cond, x, BRANCH_EXIT);
             return true;
@@ -3171,7 +3188,7 @@ TraceRecorder::equal(int flags)
             x = lir->ins_eq0(x);
 
         
-        if (!(isAnyConst(r_ins) && isAnyConst(l_ins))) {
+        if (!isAnyConst(x)) {
             if (flags & CMP_CASE) {
                 guard(cond, x, BRANCH_EXIT);
                 return true;
@@ -3201,7 +3218,7 @@ TraceRecorder::equal(int flags)
             x = lir->ins_eq0(x);
 
         
-        if (!(isAnyConst(r_ins) && isAnyConst(l_ins))) {
+        if (!isAnyConst(x)) {
             if (flags & CMP_CASE) {
                 guard(cond, x, BRANCH_EXIT);
                 return true;
@@ -5274,13 +5291,13 @@ TraceRecorder::record_JSOP_LOOKUPSWITCH()
 bool
 TraceRecorder::record_JSOP_STRICTEQ()
 {
-    return equal();
+    return equal(CMP_STRICT);
 }
 
 bool
 TraceRecorder::record_JSOP_STRICTNE()
 {
-    return equal(CMP_NEGATE);
+    return equal(CMP_STRICT | CMP_NEGATE);
 }
 
 bool
