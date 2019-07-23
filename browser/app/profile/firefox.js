@@ -648,10 +648,16 @@ pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.goog
 #endif
 
 
-pref("browser.EULA.2.accepted", true);
+#ifdef XP_MACOSX
+pref("browser.EULA.3.accepted", true);
+#elifdef XP_WIN
+pref("browser.EULA.3.accepted", true);
+#else
+pref("browser.EULA.3.accepted", false);
+#endif
 
 
-pref("browser.EULA.version", 2);
+pref("browser.EULA.version", 3);
 
 pref("browser.sessionstore.enabled", true);
 pref("browser.sessionstore.resume_from_crash", true);
