@@ -4737,6 +4737,48 @@ js_DefaultValue(JSContext *cx, JSObject *obj, JSType hint, jsval *vp)
 
 
 
+
+        if (OBJ_GET_CLASS(cx, obj) == &js_StringClass) {
+            jsid toStringId = ATOM_TO_JSID(cx->runtime->atomState.toStringAtom);
+
+            JS_LOCK_OBJ(cx, obj);
+            JSScope *scope = OBJ_SCOPE(obj);
+            JSScopeProperty *sprop = scope->lookup(toStringId);
+
+            if (!sprop && scope->object == obj) {
+                JSObject *proto = LOCKED_OBJ_GET_PROTO(obj);
+
+                if (proto && OBJ_GET_CLASS(cx, proto) == &js_StringClass) {
+                    JS_UNLOCK_SCOPE(cx, scope);
+                    JS_LOCK_OBJ(cx, proto);
+                    scope = OBJ_SCOPE(proto);
+                    sprop = scope->lookup(toStringId);
+                }
+            }
+
+            if (sprop &&
+                SPROP_HAS_STUB_GETTER(sprop) &&
+                SPROP_HAS_VALID_SLOT(sprop, scope)) {
+                jsval fval = LOCKED_OBJ_GET_SLOT(scope->object, sprop->slot);
+
+                if (VALUE_IS_FUNCTION(cx, fval)) {
+                    JSObject *funobj = JSVAL_TO_OBJECT(fval);
+                    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+
+                    if (FUN_FAST_NATIVE(fun) == js_str_toString) {
+                        JS_UNLOCK_SCOPE(cx, scope);
+                        *vp = obj->fslots[JSSLOT_PRIVATE];
+                        return JS_TRUE;
+                    }
+                }
+            }
+            JS_UNLOCK_SCOPE(cx, scope);
+        }
+
+        
+
+
+
         if (!js_TryMethod(cx, obj, cx->runtime->atomState.toStringAtom, 0, NULL,
                           &v)) {
             return JS_FALSE;
