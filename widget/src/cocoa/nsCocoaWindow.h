@@ -190,8 +190,6 @@ public:
     NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus) ;
     NS_IMETHOD CaptureRollupEvents(nsIRollupListener * aListener, PRBool aDoCapture, PRBool aConsumeRollupEvent);
     NS_IMETHOD GetAttention(PRInt32 aCycleCount);
-    NS_IMETHOD SetAnimatedResize(PRUint16 aAnimation);
-    NS_IMETHOD GetAnimatedResize(PRUint16* aAnimation);
 
     virtual gfxASurface* GetThebesSurface();
 
@@ -213,8 +211,7 @@ protected:
   WindowDelegate*      mDelegate;       
   nsCOMPtr<nsIMenuBar> mMenuBar;
   NSWindow*            mSheetWindowParent; 
-  nsChildView*         mPopupContentView;  
-  PRUint16             mAnimation;         
+  nsChildView*         mPopupContentView; 
 
   PRPackedBool         mIsResizing;     
   PRPackedBool         mWindowMadeHere; 

@@ -96,10 +96,10 @@ typedef nsEventStatus (*PR_CALLBACK EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 
-#define NS_IWIDGET_IID \
-{ 0xB3F10C8D, 0x4C07, 0x4B1E, \
-  { 0xA1, 0xCD, 0xB3, 0x86, 0x96, 0x42, 0x62, 0x05 } }
 
+#define NS_IWIDGET_IID \
+{ 0xf60fa720, 0xa9bc, 0x4fd3, \
+  { 0xb8, 0x63, 0x81, 0x24, 0x96, 0xfa, 0x85, 0xe6 } }
 
 
 
@@ -1015,24 +1015,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual gfxASurface *GetThebesSurface() = 0;
-
-    
-
-
-
-
-
-
-    NS_IMETHOD SetAnimatedResize(PRUint16 aAnimation) = 0;
-
-    
-
-
-
-
-
-
-    NS_IMETHOD GetAnimatedResize(PRUint16* aAnimation) = 0;
 
 protected:
     
