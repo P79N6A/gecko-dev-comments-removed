@@ -1259,6 +1259,8 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
 	if (aCursor != mCursor) 
 	{
 		BCursor const *newCursor = B_CURSOR_SYSTEM_DEFAULT;
+		if (be_app->IsCursorHidden())
+			be_app->ShowCursor();
 		
 		
 		if (gCursorArray.Count() == 0) 
@@ -1421,7 +1423,7 @@ NS_METHOD nsWindow::SetCursor(nsCursor aCursor)
 				break;
 
 			case eCursor_none:
-				
+				be_app->HideCursor();
 				break;
 
 			default:
