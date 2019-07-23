@@ -585,7 +585,7 @@ pref("accessibility.blockautorefresh", false);
 pref("browser.places.importBookmarksHTML", true);
 
 
-pref("browser.places.createdDefaultQueries", false);
+pref("browser.places.createdSmartBookmarks", false);
 
 
 

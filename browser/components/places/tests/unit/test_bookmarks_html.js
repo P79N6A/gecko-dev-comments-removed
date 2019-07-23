@@ -91,7 +91,7 @@ function run_test() {
 
   
   Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch).
-  setBoolPref("browser.places.createdDefaultQueries", true);
+  setBoolPref("browser.places.createdSmartBookmarks", true);
 
   
   var bookmarksFileOld = do_get_file("browser/components/places/tests/unit/bookmarks.preplaces.html");
