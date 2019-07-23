@@ -192,6 +192,13 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     else
         mMetrics.aveCharWidth = xWidth;
 
+    if (gfxQuartzFontCache::SharedFontCache()->IsFixedPitch(aFontID)) {
+        
+        
+        
+        mMetrics.maxAdvance = mMetrics.aveCharWidth;
+    }
+
     mMetrics.underlineOffset = atsMetrics.underlinePosition * size;
     
     mMetrics.underlineSize = PR_MAX(1.0f, atsMetrics.underlineThickness * size);
@@ -207,7 +214,7 @@ gfxAtsuiFont::InitMetrics(ATSUFontID aFontID, ATSFontRef aFontRef)
     mSpaceGlyph = glyphID;
 
 #if 0
-    fprintf (stderr, "Font: %p size: %f", this, size);
+    fprintf (stderr, "Font: %p size: %f (fixed: %d)", this, size, gfxQuartzFontCache::SharedFontCache()->IsFixedPitch(aFontID));
     fprintf (stderr, "    emHeight: %f emAscent: %f emDescent: %f\n", mMetrics.emHeight, mMetrics.emAscent, mMetrics.emDescent);
     fprintf (stderr, "    maxAscent: %f maxDescent: %f maxAdvance: %f\n", mMetrics.maxAscent, mMetrics.maxDescent, mMetrics.maxAdvance);
     fprintf (stderr, "    internalLeading: %f externalLeading: %f\n", mMetrics.externalLeading, mMetrics.internalLeading);
