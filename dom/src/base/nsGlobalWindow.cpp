@@ -1796,10 +1796,18 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         PRBool termFuncSet = PR_FALSE;
 
         if (oldDoc == aDocument) {
-          JSContext *cx = nsContentUtils::GetCurrentJSContext();
+          
+          
+          JSAutoSuspendRequest asr(cx);
+
+          
+          
+          cxPusher.Pop();
+
+          JSContext *oldCx = nsContentUtils::GetCurrentJSContext();
 
           nsIScriptContext *callerScx;
-          if (cx && (callerScx = GetScriptContextFromJSContext(cx))) {
+          if (oldCx && (callerScx = GetScriptContextFromJSContext(oldCx))) {
             
             
             
@@ -1807,7 +1815,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
             NS_ASSERTION(!currentInner->IsFrozen(),
                 "How does this opened window get into session history");
 
-            JSAutoRequest ar(cx);
+            JSAutoRequest ar(oldCx);
 
             callerScx->SetTerminationFunction(ClearWindowScope,
                                               static_cast<nsIDOMWindow *>
@@ -1815,6 +1823,9 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
             termFuncSet = PR_TRUE;
           }
+
+          
+          cxPusher.Push(cx);
         }
 
         
