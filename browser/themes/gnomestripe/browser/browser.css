@@ -1090,7 +1090,7 @@ toolbar[iconsize="small"] #paste-button[disabled="true"] {
 
 
 #editBMPanel_folderTree {
-  min-width: 300px;
+  min-width: 27em;
 }
 
 
