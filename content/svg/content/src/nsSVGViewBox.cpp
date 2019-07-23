@@ -284,12 +284,8 @@ nsSVGViewBox::SMILViewBox
     return res;
   }
   nsSMILValue val(&SVGViewBoxSMILType::sSingleton);
-  
-  if (val.IsNull()) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
   *static_cast<nsSVGViewBoxRect*>(val.mU.mPtr) = viewBox;
-  aValue = val;
+  aValue.Swap(val);
   aCanCache = PR_TRUE;
   
   return NS_OK;
@@ -299,10 +295,7 @@ nsSMILValue
 nsSVGViewBox::SMILViewBox::GetBaseValue() const
 {
   nsSMILValue val(&SVGViewBoxSMILType::sSingleton);
-  
-  if (!val.IsNull()) {
-    *static_cast<nsSVGViewBoxRect*>(val.mU.mPtr) = mVal->mBaseVal;
-  }
+  *static_cast<nsSVGViewBoxRect*>(val.mU.mPtr) = mVal->mBaseVal;
   return val;
 }
 
