@@ -99,7 +99,6 @@ js_PurgeGSNCache(JSGSNCache *cache);
 #define JS_PURGE_GSN_CACHE(cx)      js_PurgeGSNCache(&JS_GSN_CACHE(cx))
 #define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
 
-#ifdef JS_TRACER
 
 namespace nanojit {
 
@@ -111,11 +110,9 @@ template<typename K, typename V, typename H> class HashMap;
 template<typename T> class Seq;
 
 }  
-#endif
 
 namespace js {
 
-#ifdef JS_TRACER
 
 static const size_t MONITOR_N_GLOBAL_STATES = 4;
 static const size_t FRAGMENT_TABLE_SIZE = 512;
@@ -220,7 +217,6 @@ struct TraceNativeStorage
     double *global() { return stack_global_buf + MAX_NATIVE_STACK_SLOTS; }
     FrameInfo **callstack() { return callstack_buf; }
 };
-#endif
 
 
 struct GlobalState {
@@ -330,14 +326,11 @@ class CallStack
     }
 };
 
-#ifdef JS_TRACER
 
 typedef HashMap<jsbytecode*,
                 size_t,
                 DefaultHasher<jsbytecode*>,
                 SystemAllocPolicy> RecordAttemptMap;
-
-class Oracle;
 
 
 
@@ -400,7 +393,6 @@ struct TraceMonitor {
     nanojit::Assembler*     assembler;
     FrameInfoCache*         frameCache;
 
-    Oracle*                 oracle;
     TraceRecorder*          recorder;
 
     GlobalState             globalStates[MONITOR_N_GLOBAL_STATES];
@@ -459,7 +451,6 @@ struct TraceMonitor {
 };
 
 } 
-#endif
 
 
 

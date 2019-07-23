@@ -3057,6 +3057,10 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
   }
 #endif
 
+#ifdef JS_TRACER
+    PurgeJITOracle();
+#endif
+
     
 
 
