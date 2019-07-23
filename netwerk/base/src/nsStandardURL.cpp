@@ -1894,7 +1894,7 @@ nsStandardURL::GetCommonBaseSpec(nsIURI *uri2, nsACString &aResult)
     
     
     
-    while ((*(thisIndex-1) != '/') && (thisIndex != startCharPos))
+    while ((thisIndex != startCharPos) && (*(thisIndex-1) != '/'))
         thisIndex--;
 
     
