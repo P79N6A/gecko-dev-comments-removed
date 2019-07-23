@@ -187,6 +187,24 @@ public:
   static PRBool ShouldExecuteScript(nsIDocument* aDocument,
                                     nsIChannel* aChannel);
 
+  
+
+
+
+  void BeginDeferringScripts()
+  {
+    mDeferEnabled = PR_TRUE;
+  }
+
+  
+
+
+
+
+
+
+  void EndDeferringScripts();
+
 protected:
   
 
@@ -229,14 +247,18 @@ protected:
                                 PRUint32 aStringLen,
                                 const PRUint8* aString);
 
+  
+  nsScriptLoadRequest* GetFirstPendingRequest();
+
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
-  nsCOMArray<nsScriptLoadRequest> mPendingRequests;
+  nsCOMArray<nsScriptLoadRequest> mRequests;
   nsCOMPtr<nsIScriptElement> mCurrentScript;
   
   nsTArray< nsRefPtr<nsScriptLoader> > mPendingChildLoaders;
   PRUint32 mBlockerCount;
   PRPackedBool mEnabled;
+  PRPackedBool mDeferEnabled;
 };
 
 #endif 
