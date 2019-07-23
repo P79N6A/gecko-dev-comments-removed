@@ -1988,9 +1988,6 @@ pref("browser.urlbar.clickSelectsAll", false);
 
 
 
-pref("layout.word_select.stop_at_punctuation", false);
-
-
 pref("autocomplete.grab_during_popup", true);
 pref("autocomplete.ungrab_during_mode_switch", true);
 
