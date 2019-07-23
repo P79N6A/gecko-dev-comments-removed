@@ -41,14 +41,13 @@
 
 #include "nsIDOMMouseEvent.h"
 #include "nsDOMUIEvent.h"
-#include "nsIDOMNSMouseEvent.h"
 
 class nsIContent;
 class nsIScrollableView;
 class nsEvent;
 
-class nsDOMMouseEvent : public nsDOMUIEvent,
-                        public nsIDOMNSMouseEvent
+class nsDOMMouseEvent : public nsIDOMMouseEvent,
+                        public nsDOMUIEvent
 {
 public:
   nsDOMMouseEvent(nsPresContext* aPresContext, nsInputEvent* aEvent);
@@ -58,10 +57,7 @@ public:
 
   
   NS_DECL_NSIDOMMOUSEEVENT
-
   
-  NS_DECL_NSIDOMNSMOUSEEVENT
-
   
   NS_FORWARD_TO_NSDOMUIEVENT
 

@@ -679,16 +679,12 @@ class nsMouseEvent_base : public nsInputEvent
 {
 public:
   nsMouseEvent_base(PRBool isTrusted, PRUint32 msg, nsIWidget *w, PRUint8 type)
-  : nsInputEvent(isTrusted, msg, w, type), button(0), pressure(0) {}
+  : nsInputEvent(isTrusted, msg, w, type), button(0) {}
 
   
   nsCOMPtr<nsISupports> relatedTarget;
 
   PRInt16               button;
-
-  
-  
-  float                 pressure;
 };
 
 class nsMouseEvent : public nsMouseEvent_base
