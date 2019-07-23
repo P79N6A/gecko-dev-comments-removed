@@ -788,7 +788,8 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
                           JSPrincipals *principals, uint32 tcflags,
                           const jschar *chars, size_t length,
                           FILE *file, const char *filename, uintN lineno,
-                          JSString *source )
+                          JSString *source ,
+                          unsigned staticLevel )
 {
     JSCompiler jsc(cx, principals, callerFrame);
     JSArenaPool codePool, notePool;
@@ -800,15 +801,14 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
     void *sbrk(ptrdiff_t), *before = sbrk(0);
 #endif
 
-    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL |
-                            TCF_STATIC_LEVEL_MASK)));
+    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL)));
 
     
 
 
 
     JS_ASSERT_IF(callerFrame, tcflags & TCF_COMPILE_N_GO);
-    JS_ASSERT_IF(TCF_GET_STATIC_LEVEL(tcflags) != 0, callerFrame);
+    JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
     if (!jsc.init(chars, length, file, filename, lineno))
         return NULL;
@@ -827,7 +827,7 @@ JSCompiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *cal
 
     cg.flags |= uint16(tcflags);
     cg.scopeChain = scopeChain;
-    if (!SetStaticLevel(&cg, TCF_GET_STATIC_LEVEL(tcflags)))
+    if (!SetStaticLevel(&cg, staticLevel))
         goto out;
 
     

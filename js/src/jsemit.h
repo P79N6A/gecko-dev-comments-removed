@@ -281,14 +281,6 @@ struct JSTreeContext {
 
 
 
-#define TCF_STATIC_LEVEL_MASK   0xffff0000
-#define TCF_GET_STATIC_LEVEL(f) ((uint32)(f) >> 16)
-#define TCF_PUT_STATIC_LEVEL(d) ((uint16)(d) << 16)
-
-
-
-
-
 typedef struct JSSpanDep    JSSpanDep;
 typedef struct JSJumpTarget JSJumpTarget;
 
