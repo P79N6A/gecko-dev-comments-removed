@@ -2212,28 +2212,18 @@ CheckSideEffects(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
                 if (!CheckSideEffects(cx, tc, pn->pn_right, answer))
                     return JS_FALSE;
                 if (!*answer &&
-                    (pn2->pn_slot < 0 || !(pn2->pn_attrs & JSPROP_READONLY))) {
+                    (pn->pn_op != JSOP_NOP ||
+                     pn2->pn_slot < 0 ||
+                     !(pn2->pn_attrs & JSPROP_READONLY))) {
                     *answer = JS_TRUE;
                 }
             }
         } else {
-            if (pn->pn_type == TOK_LB) {
-                pn2 = pn->pn_left;
-                if (pn2->pn_type == TOK_NAME &&
-                    !BindNameToSlot(cx, tc, pn2, 0)) {
-                    return JS_FALSE;
-                }
-                if (pn2->pn_op != JSOP_ARGUMENTS) {
-                    
+            
 
 
 
-
-                    *answer = JS_TRUE;
-                }
-            }
-            ok = CheckSideEffects(cx, tc, pn->pn_left, answer) &&
-                 CheckSideEffects(cx, tc, pn->pn_right, answer);
+            *answer = JS_TRUE;
         }
         break;
 
@@ -2266,7 +2256,11 @@ CheckSideEffects(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
                 break;
             }
         } else {
-            ok = CheckSideEffects(cx, tc, pn->pn_kid, answer);
+            
+
+
+
+            *answer = JS_TRUE;
         }
         break;
 
