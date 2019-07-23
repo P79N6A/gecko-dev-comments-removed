@@ -75,6 +75,10 @@
 #define SRCNOTE_SIZE(n)         ((n) * sizeof(jssrcnote))
 #define TRYNOTE_SIZE(n)         ((n) * sizeof(JSTryNote))
 
+static JSBool
+NewTryNote(JSContext *cx, JSCodeGenerator *cg, JSTryNoteKind kind,
+           uintN stackDepth, size_t start, size_t end);
+
 JS_FRIEND_API(JSBool)
 js_InitCodeGenerator(JSContext *cx, JSCodeGenerator *cg,
                      JSArenaPool *codePool, JSArenaPool *notePool,
@@ -756,7 +760,7 @@ OptimizeSpanDeps(JSContext *cx, JSCodeGenerator *cg)
     jssrcnote *sn, *snlimit;
     JSSrcNoteSpec *spec;
     uintN i, n, noteIndex;
-    JSTryNote *tn, *tnlimit;
+    JSTryNode *tryNode;
 #ifdef DEBUG_brendan
     int passes = 0;
 #endif
@@ -1064,25 +1068,27 @@ OptimizeSpanDeps(JSContext *cx, JSCodeGenerator *cg)
 
 
 
-        for (tn = cg->tryBase, tnlimit = cg->tryNext; tn < tnlimit; tn++) {
+        for (tryNode = cg->lastTryNode; tryNode; tryNode = tryNode->prev) {
             
 
 
 
 
-            offset = tn->start;
+            offset = tryNode->note.start;
             sd = FindNearestSpanDep(cg, offset, 0, &guard);
             delta = sd->offset - sd->before;
-            tn->start = offset + delta;
+            tryNode->note.start = offset + delta;
 
             
 
 
 
-            length = tn->length;
+            length = tryNode->note.length;
             sd2 = FindNearestSpanDep(cg, offset + length, sd - sdbase, &guard);
-            if (sd2 != sd)
-                tn->length = length + sd2->offset - sd2->before - delta;
+            if (sd2 != sd) {
+                tryNode->note.length =
+                    length + sd2->offset - sd2->before - delta;
+            }
         }
     }
 
@@ -1344,13 +1350,16 @@ EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
 
 
 
+
+
     if (returnop) {
         JS_ASSERT(*returnop == JSOP_RETURN);
         for (stmt = cg->treeContext.topStmt; stmt != toStmt;
              stmt = stmt->down) {
             if (stmt->type == STMT_FINALLY ||
                 ((cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT) &&
-                 STMT_MAYBE_SCOPE(stmt))) {
+                 STMT_MAYBE_SCOPE(stmt)) ||
+                stmt->type == STMT_FOR_IN_LOOP) {
                 if (js_Emit1(cx, cg, JSOP_SETRVAL) < 0)
                     return JS_FALSE;
                 *returnop = JSOP_RETRVAL;
@@ -3225,9 +3234,6 @@ bad:
 JSBool
 js_EmitFunctionBytecode(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body)
 {
-    if (!js_AllocTryNotes(cx, cg))
-        return JS_FALSE;
-
     if (cg->treeContext.flags & TCF_FUN_IS_GENERATOR) {
         if (js_Emit1(cx, cg, JSOP_GENERATOR) < 0)
             return JS_FALSE;
@@ -4063,7 +4069,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             return JS_FALSE;
         }
         cg2->treeContext.flags = (uint16) (pn->pn_flags | TCF_IN_FUNCTION);
-        cg2->treeContext.tryCount = pn->pn_tryCount;
         cg2->parent = cg;
         fun = (JSFunction *) JS_GetPrivate(cx, ATOM_TO_OBJECT(pn->pn_funAtom));
         if (!js_EmitFunctionBody(cx, cg2, pn->pn_body, fun))
@@ -4734,8 +4739,16 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             return JS_FALSE;
 
         if (pn2->pn_type == TOK_IN) {
-            if (js_Emit1(cx, cg, JSOP_ENDITER) < 0)
+            
+
+
+
+            JS_ASSERT(js_CodeSpec[JSOP_ENDITER].format & JOF_TMPSLOT);
+            if (!NewTryNote(cx, cg, JSTN_ITER, cg->stackDepth, top,
+                            CG_OFFSET(cg)) ||
+                js_Emit1(cx, cg, JSOP_ENDITER) < 0) {
                 return JS_FALSE;
+            }
         }
         break;
 
@@ -5057,7 +5070,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
         if (pn->pn_kid2 &&
-            !js_NewTryNote(cx, cg, JSTN_CATCH, depth, tryStart, tryEnd)) {
+            !NewTryNote(cx, cg, JSTN_CATCH, depth, tryStart, tryEnd)) {
             return JS_FALSE;
         }
 
@@ -5067,8 +5080,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
         if (pn->pn_kid3 &&
-            !js_NewTryNote(cx, cg, JSTN_FINALLY, depth, tryStart,
-                           finallyStart)) {
+            !NewTryNote(cx, cg, JSTN_FINALLY, depth, tryStart, finallyStart)) {
             return JS_FALSE;
         }
         break;
@@ -6834,69 +6846,43 @@ js_FinishTakingSrcNotes(JSContext *cx, JSCodeGenerator *cg, jssrcnote *notes)
     return JS_TRUE;
 }
 
-JSBool
-js_AllocTryNotes(JSContext *cx, JSCodeGenerator *cg)
-{
-    size_t size, incr;
-    ptrdiff_t delta;
-
-    size = TRYNOTE_SIZE(cg->treeContext.tryCount);
-    if (size <= cg->tryNoteSpace)
-        return JS_TRUE;
-
-    
-
-
-
-
-
-
-
-    if (!cg->tryBase) {
-        size = JS_ROUNDUP(size, TRYNOTE_SIZE(TRYNOTE_CHUNK));
-        JS_ARENA_ALLOCATE_CAST(cg->tryBase, JSTryNote *, &cx->tempPool, size);
-        if (!cg->tryBase)
-            return JS_FALSE;
-        cg->tryNoteSpace = size;
-        cg->tryNext = cg->tryBase;
-    } else {
-        delta = PTRDIFF((char *)cg->tryNext, (char *)cg->tryBase, char);
-        incr = size - cg->tryNoteSpace;
-        incr = JS_ROUNDUP(incr, TRYNOTE_SIZE(TRYNOTE_CHUNK));
-        size = cg->tryNoteSpace;
-        JS_ARENA_GROW_CAST(cg->tryBase, JSTryNote *, &cx->tempPool, size, incr);
-        if (!cg->tryBase)
-            return JS_FALSE;
-        cg->tryNoteSpace = size + incr;
-        cg->tryNext = (JSTryNote *)((char *)cg->tryBase + delta);
-    }
-    return JS_TRUE;
-}
-
-JSTryNote *
-js_NewTryNote(JSContext *cx, JSCodeGenerator *cg, JSTryNoteKind kind,
+static JSBool
+NewTryNote(JSContext *cx, JSCodeGenerator *cg, JSTryNoteKind kind,
               uintN stackDepth, size_t start, size_t end)
 {
-    JSTryNote *tn;
+    JSTryNode *tryNode;
 
-    JS_ASSERT(cg->tryBase <= cg->tryNext);
-    JS_ASSERT(kind == JSTN_FINALLY || kind == JSTN_CATCH);
     JS_ASSERT((uintN)(uint16)stackDepth == stackDepth);
     JS_ASSERT(start <= end);
     JS_ASSERT((size_t)(uint32)start == start);
     JS_ASSERT((size_t)(uint32)end == end);
-    tn = cg->tryNext++;
-    tn->kind = kind;
-    tn->stackDepth = (uint16)stackDepth;
-    tn->start = (uint32)start;
-    tn->length = (uint32)(end - start);
-    return tn;
+
+    JS_ARENA_ALLOCATE_TYPE(tryNode, JSTryNode, &cx->tempPool);
+    if (!tryNode)
+        return JS_FALSE;
+
+    tryNode->note.kind = kind;
+    tryNode->note.stackDepth = (uint16)stackDepth;
+    tryNode->note.start = (uint32)start;
+    tryNode->note.length = (uint32)(end - start);
+    tryNode->prev = cg->lastTryNode;
+    cg->lastTryNode = tryNode;
+    cg->ntrynotes++;
+    return JS_TRUE;
 }
 
 void
 js_FinishTakingTryNotes(JSContext *cx, JSCodeGenerator *cg,
                         JSTryNoteArray *array)
 {
-    JS_ASSERT(cg->tryNext - cg->tryBase == (ptrdiff_t) array->length);
-    memcpy(array->notes, cg->tryBase, TRYNOTE_SIZE(array->length));
+    JSTryNode *tryNode;
+    JSTryNote *tn;
+
+    JS_ASSERT(array->length > 0 && array->length == cg->ntrynotes);
+    tn = array->notes + array->length;
+    tryNode = cg->lastTryNode;
+    do {
+        *--tn = tryNode->note;
+    } while ((tryNode = tryNode->prev) != NULL);
+    JS_ASSERT(tn == array->notes);
 }

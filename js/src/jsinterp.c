@@ -5829,18 +5829,15 @@ interrupt:
 #undef FAST_LOCAL_INCREMENT_OP
 
           BEGIN_CASE(JSOP_ENDITER)
-            JS_ASSERT(!JSVAL_IS_PRIMITIVE(sp[-1]));
-            iterobj = JSVAL_TO_OBJECT(sp[-1]);
-
             
 
 
 
-
-
             SAVE_SP_AND_PC(fp);
-            js_CloseNativeIterator(cx, iterobj);
-            *--sp = JSVAL_NULL;
+            ok = js_CloseIterator(cx, sp[-1]);
+            --sp;
+            if (!ok)
+                goto out;
           END_CASE(JSOP_ENDITER)
 
 #if JS_HAS_GENERATORS
@@ -5970,7 +5967,7 @@ interrupt:
 
 out:
     JS_ASSERT((size_t)(pc - script->code) < script->length);
-    if (!ok) {
+    if (!ok && cx->throwing && !(fp->flags & JSFRAME_FILTERING)) {
         
 
 
@@ -5995,132 +5992,183 @@ out:
 
 
 
-        if (cx->throwing && !(fp->flags & JSFRAME_FILTERING)) {
-            JSTrapHandler handler;
-            JSTryNote *tn, *tnlimit;
-            uint32 offset;
+         JSTrapHandler handler;
+         JSTryNote *tn, *tnlimit;
+         uint32 offset;
 
-            
-
-
-            handler = cx->debugHooks->throwHook;
-            if (handler) {
-                SAVE_SP_AND_PC(fp);
-                switch (handler(cx, script, pc, &rval,
-                                cx->debugHooks->throwHookData)) {
-                  case JSTRAP_ERROR:
-                    cx->throwing = JS_FALSE;
-                    goto no_catch;
-                  case JSTRAP_RETURN:
-                    ok = JS_TRUE;
-                    cx->throwing = JS_FALSE;
-                    fp->rval = rval;
-                    goto no_catch;
-                  case JSTRAP_THROW:
-                    cx->exception = rval;
-                  case JSTRAP_CONTINUE:
-                  default:;
-                }
-                LOAD_INTERRUPT_HANDLER(cx);
-            }
-
-            
+         
 
 
-            if (!script->trynotes)
-                goto no_catch;
+         handler = cx->debugHooks->throwHook;
+         if (handler) {
+             SAVE_SP_AND_PC(fp);
+             switch (handler(cx, script, pc, &rval,
+                             cx->debugHooks->throwHookData)) {
+               case JSTRAP_ERROR:
+                 cx->throwing = JS_FALSE;
+                 goto no_catch;
+               case JSTRAP_RETURN:
+                 ok = JS_TRUE;
+                 cx->throwing = JS_FALSE;
+                 fp->rval = rval;
+                 goto no_catch;
+               case JSTRAP_THROW:
+                 cx->exception = rval;
+               case JSTRAP_CONTINUE:
+               default:;
+             }
+             LOAD_INTERRUPT_HANDLER(cx);
+         }
 
-            offset = (uint32)(pc - script->main);
-            tn = script->trynotes->notes;
-            tnlimit = tn + script->trynotes->length;
-            for (;;) {
-                if (offset - tn->start < tn->length) {
-                    if (tn->kind == JSTN_FINALLY)
-                        break;
-                    JS_ASSERT(tn->kind == JSTN_CATCH);
+         
+
+
+         if (!script->trynotes)
+             goto no_catch;
+
+         offset = (uint32)(pc - script->main);
+         tn = script->trynotes->notes;
+         tnlimit = tn + script->trynotes->length;
+         do {
+             if (offset - tn->start >= tn->length)
+                 continue;
+
+             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+             if (tn->stackDepth > sp - fp->spbase)
+                 continue;
+
+             
+
+
+
+
+
+             ok = JS_TRUE;
+             i = tn->stackDepth;
+             for (obj = fp->blockChain; obj; obj = OBJ_GET_PARENT(cx, obj)) {
+                 JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_BlockClass);
+                 if (OBJ_BLOCK_DEPTH(cx, obj) < i)
+                     break;
+             }
+             fp->blockChain = obj;
+
+             JS_ASSERT(ok);
+             for (obj = fp->scopeChain; ; obj = OBJ_GET_PARENT(cx, obj)) {
+                 clasp = OBJ_GET_CLASS(cx, obj);
+                 if (clasp != &js_WithClass && clasp != &js_BlockClass)
+                     break;
+                 if (JS_GetPrivate(cx, obj) != fp ||
+                     OBJ_BLOCK_DEPTH(cx, obj) < i) {
+                     break;
+                 }
+                 if (clasp == &js_BlockClass) {
+                     
+                     ok &= js_PutBlockObject(cx, obj);
+                 } else {
+                     JS_SetPrivate(cx, obj, NULL);
+                 }
+             }
+
+             fp->scopeChain = obj;
+             sp = fp->spbase + i;
+
+             
+
+
+
+
+
+
+
+
+             offset = tn->start + tn->length;
+             pc = (script)->main + offset;
+             if (!ok)
+                 goto out;
+
+             switch (tn->kind) {
+               case JSTN_CATCH:
+                 JS_ASSERT(*pc == JSOP_ENTERBLOCK);
+
 #if JS_HAS_GENERATORS
-                    
-                    if (JS_LIKELY(cx->exception != JSVAL_ARETURN))
-                        break;
-#else
-                    break;
+                 
+                 if (JS_UNLIKELY(cx->exception == JSVAL_ARETURN))
+                     break;
 #endif
-                }
-                if (++tn == tnlimit)
-                    goto no_catch;
-            }
 
-            ok = JS_TRUE;
-
-            
-
-
-
-            i = tn->stackDepth;
-            for (obj = fp->blockChain; obj; obj = OBJ_GET_PARENT(cx, obj)) {
-                JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_BlockClass);
-                if (OBJ_BLOCK_DEPTH(cx, obj) < i)
-                    break;
-            }
-            fp->blockChain = obj;
-
-            JS_ASSERT(ok);
-            for (obj = fp->scopeChain;
-                 (clasp = OBJ_GET_CLASS(cx, obj)) == &js_WithClass ||
-                 clasp == &js_BlockClass;
-                 obj = OBJ_GET_PARENT(cx, obj)) {
-                if (JS_GetPrivate(cx, obj) != fp ||
-                    OBJ_BLOCK_DEPTH(cx, obj) < i) {
-                    break;
-                }
-                if (clasp == &js_BlockClass) {
-                    
-                    ok &= js_PutBlockObject(cx, obj);
-                } else {
-                    JS_SetPrivate(cx, obj, NULL);
-                }
-            }
-
-            fp->scopeChain = obj;
-
-            
-            sp = fp->spbase + i;
-
-            
-            pc = (script)->main + tn->start + tn->length;
-
-            
-
-
-
-            if (!ok)
-                goto out;
-
-            JS_ASSERT(cx->exception != JSVAL_HOLE);
-            if (tn->kind == JSTN_FINALLY) {
-                
-
-
-
-                PUSH(JSVAL_TRUE);
-                PUSH(cx->exception);
-                cx->throwing = JS_FALSE;
-            } else {
-                
+                 
 
 
 
 
-            }
+                 len = 0;
+                 DO_NEXT_OP(len);
 
-            len = 0;
-            ok = JS_TRUE;
-            DO_NEXT_OP(len);
-        }
+               case JSTN_FINALLY:
+                 
 
-      no_catch:;
+
+
+                 PUSH(JSVAL_TRUE);
+                 PUSH(cx->exception);
+                 cx->throwing = JS_FALSE;
+                 len = 0;
+                 DO_NEXT_OP(len);
+
+               case JSTN_ITER:
+                 
+
+
+
+
+                 JS_ASSERT(*pc == JSOP_ENDITER);
+                 PUSH(cx->exception);
+                 cx->throwing = JS_FALSE;
+                 SAVE_SP_AND_PC(fp);
+                 ok = js_CloseIterator(cx, sp[-2]);
+                 sp -= 2;
+                 if (!ok) {
+                     
+
+
+
+
+                     goto out;
+                 }
+                 cx->throwing = JS_TRUE;
+                 cx->exception = sp[1];
+
+                 
+
+
+
+
+                 ok = JS_FALSE;
+                 break;
+             }
+         } while (++tn != tnlimit);
+
+       no_catch:;
 #if JS_HAS_GENERATORS
-        if (JS_UNLIKELY(cx->exception == JSVAL_ARETURN)) {
+         if (JS_UNLIKELY(cx->throwing && cx->exception == JSVAL_ARETURN)) {
             cx->throwing = JS_FALSE;
             ok = JS_TRUE;
             fp->rval = JSVAL_VOID;

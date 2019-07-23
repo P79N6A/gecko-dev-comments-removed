@@ -259,7 +259,6 @@ JS_BEGIN_EXTERN_C
 
 
 
-
 typedef enum JSParseNodeArity {
     PN_FUNC     = -3,
     PN_LIST     = -2,
@@ -281,7 +280,6 @@ struct JSParseNode {
             JSAtom      *funAtom;       
             JSParseNode *body;          
             uint32      flags;          
-            uint32      tryCount;       
         } func;
         struct {                        
             JSParseNode *head;          
@@ -323,7 +321,6 @@ struct JSParseNode {
 #define pn_funAtom      pn_u.func.funAtom
 #define pn_body         pn_u.func.body
 #define pn_flags        pn_u.func.flags
-#define pn_tryCount     pn_u.func.tryCount
 #define pn_head         pn_u.list.head
 #define pn_tail         pn_u.list.tail
 #define pn_count        pn_u.list.count

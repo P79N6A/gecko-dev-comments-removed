@@ -52,9 +52,11 @@ JS_BEGIN_EXTERN_C
 
 
 
+
 typedef enum JSTryNoteKind {
     JSTN_CATCH,
-    JSTN_FINALLY
+    JSTN_FINALLY,
+    JSTN_ITER
 } JSTryNoteKind;
 
 
