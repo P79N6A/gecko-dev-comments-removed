@@ -5186,9 +5186,9 @@ js_InitRegExpStatics(JSContext *cx)
 
 
 
-    JS_INIT_ARENA_POOL(&cx->regexpPool, "regexp",
-                       12 * 1024 - 40,  
-                       sizeof(void *), &cx->scriptStackQuota);
+    JS_InitArenaPool(&cx->regexpPool, "regexp",
+                     12 * 1024 - 40,  
+                     sizeof(void *), &cx->scriptStackQuota);
 
     JS_ClearRegExpStatics(cx);
 }

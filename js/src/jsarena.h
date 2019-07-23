@@ -95,34 +95,7 @@ struct JSArenaPool {
 #endif
 };
 
-#ifdef JS_ARENAMETER
-#define JS_INIT_NAMED_ARENA_POOL(pool, name, size, align, quotap)             \
-    JS_InitArenaPool(pool, name, size, align, quotap)
-#else
-#define JS_INIT_NAMED_ARENA_POOL(pool, name, size, align, quotap)             \
-    JS_InitArenaPool(pool, size, align, quotap)
-#endif
-
-
-
-
-
-
-#ifdef JS_ARENA_CONST_ALIGN_MASK
-#define JS_ARENA_ALIGN(pool, n) (((jsuword)(n) + JS_ARENA_CONST_ALIGN_MASK)   \
-                                 & ~(jsuword)JS_ARENA_CONST_ALIGN_MASK)
-
-#define JS_INIT_ARENA_POOL(pool, name, size, quotap)                          \
-    JS_INIT_NAMED_ARENA_POOL(pool, name, size, JS_ARENA_CONST_ALIGN_MASK + 1, \
-                             quotap)
-
-#else
 #define JS_ARENA_ALIGN(pool, n) (((jsuword)(n) + (pool)->mask) & ~(pool)->mask)
-
-#define JS_INIT_ARENA_POOL(pool, name, size, align, quotap)                   \
-    JS_INIT_NAMED_ARENA_POOL(pool, name, size, align, quotap)
-
-#endif
 
 #define JS_ARENA_ALLOCATE(p, pool, nb)                                        \
     JS_ARENA_ALLOCATE_CAST(p, void *, pool, nb)
@@ -234,11 +207,9 @@ struct JSArenaPool {
 
 
 
-
-
 extern JS_PUBLIC_API(void)
-JS_INIT_NAMED_ARENA_POOL(JSArenaPool *pool, const char *name, size_t size,
-                         size_t align, size_t *quotap);
+JS_InitArenaPool(JSArenaPool *pool, const char *name, size_t size,
+                 size_t align, size_t *quotap);
 
 
 
