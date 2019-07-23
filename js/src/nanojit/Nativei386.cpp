@@ -154,7 +154,7 @@ namespace nanojit
         MR(SP,FP);
 
         
-        LDi(EAX, int(lr));
+        asm_int(EAX, int(lr), true);
     }
 
     NIns *Assembler::genEpilogue()
@@ -407,7 +407,7 @@ namespace nanojit
             if (!i->getArIndex()) {
                 i->markAsClear();
             }
-            LDi(r, i->imm32());
+            asm_int(r, i->imm32(), false);
         }
         else if (i->isop(LIR_param) && i->paramKind() == 0 &&
             (arg = i->paramArg()) >= (abi_regcount = max_abi_regs[_thisfrag->lirbuf->abi])) {
@@ -1150,11 +1150,15 @@ namespace nanojit
     void Assembler::asm_int(LInsp ins)
     {
         Register rr = prepResultReg(ins, GpRegs);
-        int32_t val = ins->imm32();
-        if (val == 0)
-            XOR(rr,rr);
+        asm_int(rr, ins->imm32(), true);
+    }
+
+    void Assembler::asm_int(Register r, int32_t val, bool canClobberCCs)
+    {
+        if (val == 0 && canClobberCCs)
+            XOR(r, r);
         else
-            LDi(rr, val);
+            LDi(r, val);
     }
 
     void Assembler::asm_quad(LInsp ins)
@@ -1182,7 +1186,7 @@ namespace nanojit
                     Register gr = registerAllocTmp(GpRegs);
                     SSE_CVTSI2SD(rr, gr);
                     SSE_XORPDr(rr,rr);  
-                    LDi(gr, (int)d);
+                    asm_int(gr, (int)d, true);
                 } else {
                     findMemFor(ins);
                     const int d = disp(ins);
@@ -1329,7 +1333,7 @@ namespace nanojit
             if (isKnownReg(r)) {
                 
                 if (p->isconst()) {
-                    LDi(r, p->imm32());
+                    asm_int(r, p->imm32(), true);
                 } else {
                     if (p->isUsed()) {
                         if (!p->hasKnownReg()) {
