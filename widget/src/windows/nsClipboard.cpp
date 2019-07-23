@@ -68,7 +68,6 @@
 #include "nsNetUtil.h"
 
 #include "nsIImage.h"
-#include "nsIObserverService.h"
 
 
 
@@ -84,13 +83,6 @@ nsClipboard::nsClipboard() : nsBaseClipboard()
 {
   mIgnoreEmptyNotification = PR_FALSE;
   mWindow         = nsnull;
-
-  
-  
-  nsCOMPtr<nsIObserverService> observerService =
-    do_GetService("@mozilla.org/observer-service;1");
-  if (observerService)
-    observerService->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, PR_FALSE);
 }
 
 
@@ -100,8 +92,6 @@ nsClipboard::~nsClipboard()
 {
 
 }
-
-NS_IMPL_ISUPPORTS_INHERITED1(nsClipboard, nsBaseClipboard, nsIObserver)
 
 
 UINT nsClipboard::GetFormat(const char* aMimeStr)
@@ -857,18 +847,6 @@ nsClipboard::GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32 a
 
 }
 
-
-
-NS_IMETHODIMP
-nsClipboard::Observe(nsISupports *aSubject, const char *aTopic,
-                     const PRUnichar *aData)
-{
-  
-  ::OleFlushClipboard();
-  ::CloseClipboard();
-
-  return NS_OK;
-}
 
 
 NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(nsISupportsArray *aFlavorList, PRInt32 aWhichClipboard,
