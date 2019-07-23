@@ -2933,9 +2933,18 @@ js_SynthesizeFrame(JSContext* cx, const FrameInfo& fi)
 
 
 
+
+
+
         newifp->hookData = NULL;
-        if (!js_GetCallObject(cx, &newifp->frame, newifp->frame.scopeChain))
-            return -1;
+        JS_ASSERT(!JS_TRACE_MONITOR(cx).useReservedObjects);
+        JS_TRACE_MONITOR(cx).useReservedObjects = JS_TRUE;
+#ifdef DEBUG
+        JSObject *obj =
+#endif
+            js_GetCallObject(cx, &newifp->frame, newifp->frame.scopeChain);
+        JS_ASSERT(obj);
+        JS_TRACE_MONITOR(cx).useReservedObjects = JS_FALSE;
     }
 
     
@@ -3528,9 +3537,11 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount,
     
     void *reserve;
     void *stackMark = JS_ARENA_MARK(&cx->stackPool);
+    if (!js_ReserveObjects(cx, MAX_CALL_STACK_ENTRIES))
+        return NULL;
     JS_ARENA_ALLOCATE(reserve, &cx->stackPool, MAX_INTERP_STACK_BYTES);
     if (!reserve)
-        return NULL;  
+        return NULL;
 
 #ifdef DEBUG
     memset(stack_buffer, 0xCD, sizeof(stack_buffer));

@@ -134,6 +134,13 @@ typedef struct JSTraceMonitor {
     
 
 
+
+    JSObject                *reservedObjects;
+    JSBool                  useReservedObjects;
+
+    
+
+
     CLS(nanojit::LirBuffer) reLirBuf;
     CLS(nanojit::Fragmento) reFragmento;
 
