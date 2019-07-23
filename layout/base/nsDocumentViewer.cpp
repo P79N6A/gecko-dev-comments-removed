@@ -365,8 +365,6 @@ private:
   nsresult GetPopupLinkNode(nsIDOMNode** aNode);
   nsresult GetPopupImageNode(nsIImageLoadingContent** aNode);
 
-  void HideViewIfPopup(nsIView* aView);
-
   void DumpContentToPPM(const char* aFileName);
 
   void PrepareToStartLoad(void);
@@ -1261,40 +1259,10 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
     nsEventDispatcher::Dispatch(window, mPresContext, &event, nsnull, &status);
   }
 
-  if (mPresShell) {
-    
-    
-    nsIViewManager *vm = mPresShell->GetViewManager();
-    if (vm) {
-      nsIView *rootView = nsnull;
-      vm->GetRootView(rootView);
-      if (rootView)
-        HideViewIfPopup(rootView);
-    }
-  }
-
-  return NS_OK;
-}
-
-void
-DocumentViewerImpl::HideViewIfPopup(nsIView* aView)
-{
-  nsIFrame* frame = NS_STATIC_CAST(nsIFrame*, aView->GetClientData());
-  if (frame) {
-    nsIMenuParent* parent;
-    CallQueryInterface(frame, &parent);
-    if (parent) {
-      parent->HideChain();
-      
-      mViewManager->SetViewVisibility(aView, nsViewVisibility_kHide);
-    }
-  }
-
-  nsIView* child = aView->GetFirstChild();
-  while (child) {
-    HideViewIfPopup(child);
-    child = child->GetNextSibling();
-  }
+  
+  
+  if (mPresShell)
+    mPresShell->HidePopups();
 }
 
 static void

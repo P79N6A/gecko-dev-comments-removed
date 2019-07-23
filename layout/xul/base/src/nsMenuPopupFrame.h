@@ -257,6 +257,7 @@ protected:
   PRPackedBool mShouldAutoPosition; 
   PRPackedBool mShouldRollup; 
   PRPackedBool mConsumeRollupEvent; 
+  PRPackedBool mInContentShell; 
 
   nsString     mIncrementalString;  
 

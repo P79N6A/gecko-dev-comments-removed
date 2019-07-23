@@ -3027,6 +3027,14 @@ nsGlobalWindow::SetScreenY(PRInt32 aScreenY)
 nsresult
 nsGlobalWindow::CheckSecurityWidthAndHeight(PRInt32* aWidth, PRInt32* aHeight)
 {
+  if (!nsContentUtils::IsCallerTrustedForWrite()) {
+    
+    nsCOMPtr<nsIPresShell> presShell;
+    mDocShell->GetPresShell(getter_AddRefs(presShell));
+    if (presShell)
+      presShell->HidePopups();
+  }
+
   
   if ((aWidth && *aWidth < 100) || (aHeight && *aHeight < 100)) {
     
@@ -3053,6 +3061,12 @@ nsGlobalWindow::CheckSecurityLeftAndTop(PRInt32* aLeft, PRInt32* aTop)
   
 
   if (!nsContentUtils::IsCallerTrustedForWrite()) {
+    
+    nsCOMPtr<nsIPresShell> presShell;
+    mDocShell->GetPresShell(getter_AddRefs(presShell));
+    if (presShell)
+      presShell->HidePopups();
+
     PRInt32 screenLeft, screenTop, screenWidth, screenHeight;
     PRInt32 winLeft, winTop, winWidth, winHeight;
 
