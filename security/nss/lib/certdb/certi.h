@@ -258,6 +258,10 @@ SECStatus AcquireDPCache(CERTCertificate* issuer, SECItem* subject,
                          CRLDPCache** dpcache, PRBool* writeLocked);
 
 
+SECStatus DPCache_Lookup(CRLDPCache* cache, SECItem* sn,
+                         CERTCrlEntry** returned);
+
+
 void ReleaseDPCache(CRLDPCache* dpcache, PRBool writeLocked);
 
 

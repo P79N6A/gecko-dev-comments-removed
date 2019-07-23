@@ -39,8 +39,13 @@
 
 
 
+#ifdef FREEBL_NO_DEPEND
+extern int FREEBL_InitStubs(void);
+#endif
+
 #include "loader.h"
 #include "alghmac.h"
+
 
 static const struct FREEBLVectorStr vector = 
 {
@@ -234,9 +239,19 @@ static const struct FREEBLVectorStr vector =
     Camellia_Encrypt,
     Camellia_Decrypt,
 
-    
     PQG_DestroyParams,
     PQG_DestroyVerify,
+
+    
+
+    SEED_InitContext,
+    SEED_AllocateContext,
+    SEED_CreateContext,
+    SEED_DestroyContext,
+    SEED_Encrypt,
+    SEED_Decrypt
+
+    
 
 };
 
@@ -250,6 +265,9 @@ FREEBL_GetVector(void)
     volatile char c;
 
     c = __nss_freebl_rcsid[0] + __nss_freebl_sccsid[0]; 
+#ifdef FREEBL_NO_DEPEND
+    FREEBL_InitStubs();
+#endif
     return &vector;
 }
 

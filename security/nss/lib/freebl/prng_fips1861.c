@@ -37,6 +37,10 @@
 
 
 
+#ifdef FREEBL_NO_DEPEND
+#include "stubs.h"
+#endif
+
 #include "prerr.h"
 #include "secerr.h"
 

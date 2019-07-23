@@ -264,18 +264,106 @@ extern PRBool sftk_fatalError;
 
 
 
-#if defined(XP_UNIX) && !defined(NO_PTHREADS)
+#if defined(XP_UNIX) && !defined(NO_CHECK_FORK)
 
-extern PRBool forked;
+#ifdef DEBUG
 
-extern void ForkedChild(void);
-
-#define CHECK_FORK() \
-    do { if (forked) return CKR_DEVICE_ERROR; } while (0)
+#define FORK_ASSERT() \
+    { \
+        char* forkAssert = getenv("NSS_STRICT_NOFORK"); \
+        if ( (!forkAssert) || (0 == strcmp(forkAssert, "1")) ) { \
+            PORT_Assert(0); \
+        } \
+    }
 
 #else
 
+#define FORK_ASSERT()
+
+#endif
+
+
+
+
+
+
+
+#if !defined (CHECK_FORK_MIXED) && !defined(CHECK_FORK_PTHREAD) && \
+    !defined (CHECK_FORK_GETPID)
+
+
+
+
+
+
+#ifdef SOLARIS
+
+
+
+#define CHECK_FORK_MIXED
+
+#elif defined(LINUX)
+
+#define CHECK_FORK_PTHREAD
+
+#else
+
+
+
+
+
+#define CHECK_FORK_GETPID
+
+#endif
+
+#endif
+
+#if defined(CHECK_FORK_MIXED)
+
+extern PRBool usePthread_atfork;
+#include <unistd.h>
+extern pid_t myPid;
+extern PRBool forked;
+
+#define CHECK_FORK() \
+    do { \
+        if (usePthread_atfork ? forked : (myPid && myPid != getpid()) ) { \
+            FORK_ASSERT(); \
+            return CKR_DEVICE_ERROR; \
+        } \
+    } while (0)
+
+#elif defined(CHECK_FORK_PTHREAD)
+
+extern PRBool forked;
+
+#define CHECK_FORK() \
+    do { if (forked) { FORK_ASSERT(); return CKR_DEVICE_ERROR; } } while (0)
+
+#else
+
+#include <unistd.h>
+extern pid_t myPid;
+
+#define CHECK_FORK() \
+    do { \
+        if (myPid && myPid != getpid()) { \
+            FORK_ASSERT(); \
+            return CKR_DEVICE_ERROR; \
+        } \
+    } while (0)
+    
+#endif
+
+#else
+
+
+
 #define CHECK_FORK()
+
+#ifndef NO_FORK_CHECK
+#define NO_FORK_CHECK
+#endif
 
 #endif
 

@@ -41,10 +41,6 @@
 #ifndef __nss_h_
 #define __nss_h_
 
-#include "seccomon.h"
-
-SEC_BEGIN_PROTOS
-
 
 #ifdef NSS_ENABLE_ECC
 #ifdef NSS_ECC_MORE_THAN_SUITE_B
@@ -70,11 +66,17 @@ SEC_BEGIN_PROTOS
 
 
 
-#define NSS_VERSION  "3.12.2.0" _NSS_ECC_STRING _NSS_CUSTOMIZED
+#define NSS_VERSION  "3.12.3" _NSS_ECC_STRING " Beta" _NSS_CUSTOMIZED
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   12
-#define NSS_VPATCH   2
-#define NSS_BETA     PR_FALSE
+#define NSS_VPATCH   3
+#define NSS_BETA     PR_TRUE
+
+#ifndef RC_INVOKED
+
+#include "seccomon.h"
+
+SEC_BEGIN_PROTOS
 
 
 
@@ -262,4 +264,5 @@ void nss_DumpCertificateCacheInfo(void);
 
 SEC_END_PROTOS
 
+#endif 
 #endif 

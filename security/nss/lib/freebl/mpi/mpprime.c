@@ -333,6 +333,10 @@ mp_err  mpp_pprime(mp_int *a, int nt)
     s_mp_pad(&x, USED(a));
     mpp_random(&x);
     MP_CHECKOK( mp_mod(&x, a, &x) );
+    if(mp_cmp_d(&x, 1) <= 0) {
+      iter--;    
+      continue;  
+    }
 
     
     MP_CHECKOK( mp_exptmod(&x, &m, a, &z) );

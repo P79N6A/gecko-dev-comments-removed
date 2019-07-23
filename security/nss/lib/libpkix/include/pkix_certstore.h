@@ -39,7 +39,6 @@
 
 
 
-
 #ifndef _PKIX_CERTSTORE_H
 #define _PKIX_CERTSTORE_H
 
@@ -300,6 +299,82 @@ typedef PKIX_Error *
 
 
 
+typedef PKIX_Error *
+(*PKIX_CertStore_ImportCrlCallback)(
+        PKIX_CertStore *store,
+        PKIX_List *crlList,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef PKIX_Error *
+(*PKIX_CertStore_CheckRevokationByCrlCallback)(
+        PKIX_CertStore *store,
+        PKIX_PL_Cert *cert,
+        PKIX_PL_Cert *issuer,
+        PKIX_PL_Date *date,
+        PKIX_UInt32 *reasonCode,
+        PKIX_RevocationStatus *revStatus,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -427,6 +502,8 @@ PKIX_CertStore_Create(
         PKIX_CertStore_CertContinueFunction certContinue,
         PKIX_CertStore_CrlContinueFunction crlContinue,
         PKIX_CertStore_CheckTrustCallback trustCallback,
+        PKIX_CertStore_ImportCrlCallback importCrlCallback,
+        PKIX_CertStore_CheckRevokationByCrlCallback checkRevByCrlCallback,
         PKIX_PL_Object *certStoreContext,
         PKIX_Boolean cachedFlag,
         PKIX_Boolean localFlag,
@@ -485,6 +562,60 @@ PKIX_Error *
 PKIX_CertStore_GetCRLCallback(
         PKIX_CertStore *store,
         PKIX_CertStore_CRLCallback *pCallback,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_CertStore_GetImportCrlCallback(
+        PKIX_CertStore *store,
+        PKIX_CertStore_ImportCrlCallback *pCallback,
+        void *plContext);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PKIX_Error *
+PKIX_CertStore_GetCrlCheckerFn(
+        PKIX_CertStore *store,
+        PKIX_CertStore_CheckRevokationByCrlCallback *pCallback,
         void *plContext);
 
 

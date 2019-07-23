@@ -703,6 +703,20 @@ sftkdb_getAttributeFromTemplate(CK_ATTRIBUTE_TYPE attribute,
     return NULL;
 }
 
+static const CK_ATTRIBUTE *
+sftkdb_getAttributeFromConstTemplate(CK_ATTRIBUTE_TYPE attribute, 
+				const CK_ATTRIBUTE *ptemplate, CK_ULONG len)
+{
+    CK_ULONG i;
+
+    for (i=0; i < len; i++) {
+	if (attribute == ptemplate[i].type) {
+	    return &ptemplate[i];
+	}
+    }
+    return NULL;
+}
+
 
 
 
@@ -826,6 +840,227 @@ sftkdb_lookupObject(SDB *db, CK_OBJECT_CLASS objectType,
 
 
 
+
+static CK_RV
+sftkdb_checkConflicts(SDB *db, CK_OBJECT_CLASS objectType, 
+			const CK_ATTRIBUTE *ptemplate, CK_ULONG len, 
+			CK_OBJECT_HANDLE sourceID)
+{
+    CK_ATTRIBUTE findTemplate[2];
+    unsigned char objTypeData[SDB_ULONG_SIZE];
+    
+
+    unsigned char *temp1 = NULL; 
+    unsigned char *temp2 = NULL;
+    CK_ULONG objCount = 0;
+    SDBFind *find = NULL;
+    CK_OBJECT_HANDLE id;
+    const CK_ATTRIBUTE *attr, *attr2;
+    CK_RV crv;
+    CK_ATTRIBUTE subject;
+
+    
+
+    
+    if (objectType != CKO_CERTIFICATE) {
+	return CKR_OK;
+    }
+    
+    attr = sftkdb_getAttributeFromConstTemplate(CKA_LABEL, ptemplate, len);
+    if ((attr == NULL) || (attr->ulValueLen == 0)) {
+	return CKR_OK;
+    }
+    
+
+    attr2 = sftkdb_getAttributeFromConstTemplate(CKA_SUBJECT, ptemplate, len);
+    if ((attr2 == NULL) || (attr2->ulValueLen == 0)) {
+	if (sourceID == CK_INVALID_HANDLE) {
+	    crv = CKR_TEMPLATE_INCOMPLETE; 
+	    goto done;
+	}
+
+	
+
+
+    	subject.type = CKA_SUBJECT;
+    	subject.pValue = NULL;
+    	subject.ulValueLen = 0;
+    	crv = (*db->sdb_GetAttributeValue)(db, sourceID, &subject, 1);
+	if (crv != CKR_OK) {
+	    goto done;
+	}
+	if (subject.ulValueLen <= 0) {
+	    crv = CKR_DEVICE_ERROR; 
+	    goto done;
+	}
+	temp1 = subject.pValue = PORT_Alloc(subject.ulValueLen);
+	if (temp1 == NULL) {
+	    crv = CKR_HOST_MEMORY;
+	    goto done;
+	}
+    	crv = (*db->sdb_GetAttributeValue)(db, sourceID, &subject, 1);
+	if (crv != CKR_OK) {
+	    goto done;
+	}
+	attr2 = &subject;
+    }
+    
+    
+    sftk_ULong2SDBULong(objTypeData, objectType);
+    findTemplate[0].type = CKA_CLASS;
+    findTemplate[0].pValue = objTypeData;
+    findTemplate[0].ulValueLen = SDB_ULONG_SIZE;
+    findTemplate[1] = *attr;
+
+    crv = (*db->sdb_FindObjectsInit)(db, findTemplate, 2, &find);
+    if (crv != CKR_OK) {
+	goto done;
+    }
+    (*db->sdb_FindObjects)(db, find, &id, 1, &objCount);
+    (*db->sdb_FindObjectsFinal)(db, find);
+
+    
+
+    if (objCount == 0) {
+	crv = CKR_OK;
+	goto done;
+    }
+
+    
+
+    findTemplate[0] = *attr2;
+    
+
+
+
+
+    temp2 = findTemplate[0].pValue = PORT_Alloc(attr2->ulValueLen);
+    if (temp2 == NULL) {
+	crv = CKR_HOST_MEMORY;
+	goto done;
+    }
+    crv = (*db->sdb_GetAttributeValue)(db, id, findTemplate, 1);
+    if (crv != CKR_OK) {
+	if (crv == CKR_BUFFER_TOO_SMALL) {
+	    
+
+	    crv = CKR_ATTRIBUTE_VALUE_INVALID;
+	    goto loser;
+	}
+	
+	goto done;
+    }
+	
+    
+
+    if ((findTemplate[0].ulValueLen != attr2->ulValueLen) || 
+	(PORT_Memcmp(findTemplate[0].pValue,attr2->pValue,attr2->ulValueLen) != 0)) {
+    	crv = CKR_ATTRIBUTE_VALUE_INVALID; 
+	goto loser;
+    }
+    crv = CKR_OK;
+    
+done:
+    
+
+
+
+
+    if (crv == CKR_ATTRIBUTE_VALUE_INVALID) {
+	crv = CKR_GENERAL_ERROR; 
+    }
+
+    
+loser:
+    PORT_Free(temp1);
+    PORT_Free(temp2);
+    return crv;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static CK_RV
+sftkdb_resolveConflicts(PRArenaPool *arena, CK_OBJECT_CLASS objectType, 
+			CK_ATTRIBUTE *ptemplate, CK_ULONG *plen)
+{
+    CK_ATTRIBUTE *attr;
+    char *nickname, *newNickname;
+    int end, digit;
+
+    
+    if (objectType != CKO_CERTIFICATE) {
+	return CKR_GENERAL_ERROR; 
+    }
+    attr = sftkdb_getAttributeFromTemplate(CKA_LABEL, ptemplate, *plen);
+    if ((attr == NULL) || (attr->ulValueLen == 0)) {
+	return CKR_GENERAL_ERROR; 
+    }
+
+    
+    
+
+    nickname = (char *)attr->pValue;
+
+    
+    for (end = attr->ulValueLen - 1; 
+         end >= 2 && (digit = nickname[end]) <= '9' &&  digit >= '0'; 
+	 end--)   ;
+    if (attr->ulValueLen >= 3 &&
+        end < (attr->ulValueLen - 1)  &&
+	nickname[end]     == '#'  && 
+	nickname[end - 1] == ' ') {
+    	
+    } else {
+	
+	static const char num2[] = " #2";
+	newNickname = PORT_ArenaAlloc(arena, attr->ulValueLen + sizeof(num2));
+	if (!newNickname) {
+	    return CKR_HOST_MEMORY;
+	}
+	PORT_Memcpy(newNickname, nickname, attr->ulValueLen);
+	PORT_Memcpy(&newNickname[attr->ulValueLen], num2, sizeof(num2));
+	attr->pValue = newNickname; 
+	attr->ulValueLen += 3;      
+	return CKR_OK;
+    }
+
+    for (end = attr->ulValueLen - 1; 
+	 end >= 0 && (digit = nickname[end]) <= '9' &&  digit >= '0'; 
+	 end--) {
+	if (digit < '9') {
+	    nickname[end]++;
+	    return CKR_OK;
+	}
+	nickname[end] = '0';
+    }
+
+    
+    newNickname = PORT_ArenaAlloc(arena, attr->ulValueLen + 1);
+    if (!newNickname) {
+	return CKR_HOST_MEMORY;
+    }
+    
+    PORT_Memcpy(newNickname, nickname, ++end);
+    newNickname[end] = '1';
+    PORT_Memset(&newNickname[end+1],'0',attr->ulValueLen - end);
+    attr->pValue = newNickname;
+    attr->ulValueLen++;
+    return CKR_OK;
+}
+
+
+
+
 static CK_RV
 sftkdb_setAttributeValue(PRArenaPool *arena, SFTKDBHandle *handle, 
 	SDB *db, CK_OBJECT_HANDLE objectID, const CK_ATTRIBUTE *template, 
@@ -879,6 +1114,28 @@ sftkdb_write(SFTKDBHandle *handle, SFTKObject *object,
     }
     inTransaction = PR_TRUE;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    crv = sftkdb_checkConflicts(db, object->objclass, template, count,
+				 CK_INVALID_HANDLE);
+    if (crv != CKR_OK) {
+	goto loser;
+    }
+    
     crv = sftkdb_lookupObject(db, object->objclass, &id, template, count);
     if (crv != CKR_OK) {
 	goto loser;
@@ -1047,13 +1304,14 @@ sftkdb_GetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE objectID,
 }
 
 CK_RV
-sftkdb_SetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE objectID,
+sftkdb_SetAttributeValue(SFTKDBHandle *handle, SFTKObject *object,
                                 const CK_ATTRIBUTE *template, CK_ULONG count)
 {
     CK_RV crv = CKR_OK;
     CK_ATTRIBUTE *ntemplate;
     unsigned char *data = NULL;
     PLArenaPool *arena = NULL;
+    CK_OBJECT_HANDLE objectID = (object->handle & SFTK_OBJ_ID_MASK);
     SDB *db;
 
     if (handle == NULL) {
@@ -1071,12 +1329,17 @@ sftkdb_SetAttributeValue(SFTKDBHandle *handle, CK_OBJECT_HANDLE objectID,
 	return CKR_HOST_MEMORY;
     }
 
+    
+    crv = sftkdb_checkConflicts(db, object->objclass, template, count, objectID);
+    if (crv != CKR_OK) {
+	return crv;
+    }
+
     arena = PORT_NewArena(256);
     if (arena ==  NULL) {
 	return CKR_HOST_MEMORY;
     }
 
-    objectID &= SFTK_OBJ_ID_MASK;
     crv = (*db->sdb_Begin)(db);
     if (crv != CKR_OK) {
 	goto loser;
@@ -1761,31 +2024,32 @@ sftkdb_updateObjectTemplate(PRArenaPool *arena, SDB *db,
 		    CK_ATTRIBUTE *ptemplate, CK_ULONG *plen,
 		    CK_OBJECT_HANDLE *targetID)
 {
-    CK_ATTRIBUTE findTemplate[3];
-    CK_ULONG count = 1;
-    CK_ULONG objCount = 0;
+    PRBool done; 
     CK_OBJECT_HANDLE id;
-    SDBFind *find = NULL;
-    unsigned char objTypeData[SDB_ULONG_SIZE];
-    CK_RV crv;
+    CK_RV crv = CKR_OK;
 
-    crv = sftkdb_getFindTemplate(objectType, objTypeData,
-			findTemplate, &count, ptemplate, *plen);
+    do {
+ 	crv = sftkdb_checkConflicts(db, objectType, ptemplate, 
+						*plen, CK_INVALID_HANDLE);
+	if (crv != CKR_ATTRIBUTE_VALUE_INVALID) {
+	    break;
+	}
+	crv = sftkdb_resolveConflicts(arena, objectType, ptemplate, plen);
+    } while (crv == CKR_OK);
+
     if (crv != CKR_OK) {
 	return SFTKDB_DO_NOTHING;
     }
 
     do {
-	
-	crv = (*db->sdb_FindObjectsInit)(db, findTemplate, count, &find);
+	done = PR_TRUE;
+	crv = sftkdb_lookupObject(db, objectType, &id, ptemplate, *plen);
 	if (crv != CKR_OK) {
 	    return SFTKDB_DO_NOTHING;
 	}
-	(*db->sdb_FindObjects)(db, find, &id, 1, &objCount);
-	(*db->sdb_FindObjectsFinal)(db, find);
 
 	
-	if (objCount == 1) {
+	if (id != CK_INVALID_HANDLE) {
     	    CK_ATTRIBUTE *attr = NULL;
 	    
 	    switch (objectType) {
@@ -1815,8 +2079,7 @@ sftkdb_updateObjectTemplate(PRArenaPool *arena, SDB *db,
 		if (crv != CKR_OK) {
 		    return SFTKDB_DO_NOTHING;
 		}
-		findTemplate[1] = *attr;
-		objCount = 0; 
+		done = PR_FALSE; 
 		break;
 	    default:
 		
@@ -1824,7 +2087,7 @@ sftkdb_updateObjectTemplate(PRArenaPool *arena, SDB *db,
 	        return SFTKDB_DO_NOTHING;
 	    }
 	}
-    } while (objCount == 1);
+    } while (!done);
 
     
     return SFTKDB_ADD_OBJECT;
@@ -2148,7 +2411,7 @@ sftk_NewDBHandle(SDB *sdb, int type)
    handle->passwordKey.len = 0;
    handle->passwordLock = NULL;
    if (type == SFTK_KEYDB_TYPE) {
-	handle->passwordLock = PZ_NewLock();
+	handle->passwordLock = PZ_NewLock(nssILockAttribute);
    }
    sdb->app_private = handle;
    return handle;

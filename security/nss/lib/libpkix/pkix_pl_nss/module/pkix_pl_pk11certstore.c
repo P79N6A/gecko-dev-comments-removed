@@ -497,6 +497,179 @@ cleanup:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static PKIX_Error *
+pkix_pl_Pk11CertStore_ImportCrl(
+        PKIX_CertStore *store,
+        PKIX_List *crlList,
+        void *plContext)
+{
+    int crlIndex = 0;
+    PKIX_PL_CRL *crl = NULL;
+    CERTCertDBHandle *certHandle = CERT_GetDefaultCertDB();
+    PKIX_UInt32 listLength;
+
+    PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_ImportCrl");
+    PKIX_NULLCHECK_ONE(store);
+    
+    if (!crlList) {
+        goto cleanup;
+    }
+    PKIX_CHECK(
+        PKIX_List_GetLength(crlList, &listLength, plContext),
+        PKIX_LISTGETLENGTHFAILED);
+    for (;crlIndex < listLength;crlIndex++) {
+        PKIX_CHECK(
+            PKIX_List_GetItem(crlList, crlIndex, (PKIX_PL_Object**)&crl,
+                              plContext),
+            PKIX_LISTGETITEMFAILED);
+        if (!crl->nssSignedCrl || !crl->nssSignedCrl->derCrl) {
+            PKIX_ERROR(PKIX_NULLARGUMENT);
+        }
+        CERT_CacheCRL(certHandle, crl->nssSignedCrl->derCrl);
+        PKIX_DECREF(crl);
+    }
+
+cleanup:
+    PKIX_DECREF(crl);
+
+    PKIX_RETURN(CERTSTORE);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static PKIX_Error *
+pkix_pl_Pk11CertStore_CheckRevByCrl(
+        PKIX_CertStore *store,
+        PKIX_PL_Cert *pkixCert,
+        PKIX_PL_Cert *pkixIssuer,
+        PKIX_PL_Date *date,
+        PKIX_UInt32  *pReasonCode,
+        PKIX_RevocationStatus *pStatus,
+        void *plContext)
+{
+    CERTCRLEntryReasonCode revReason = crlEntryReasonUnspecified;
+    PRTime time = 0;
+    void *wincx = NULL;
+    PRBool lockedwrite = PR_FALSE;
+    SECStatus rv = SECSuccess;
+    CRLDPCache* dpcache = NULL;
+    CERTCertificate *cert, *issuer;
+    CERTCrlEntry* entry = NULL;
+
+    PKIX_ENTER(CERTSTORE, "pkix_pl_Pk11CertStore_CheckRevByCrl");
+    PKIX_NULLCHECK_FOUR(store, pkixCert, pkixIssuer, date);
+
+    PKIX_CHECK(
+        pkix_pl_Date_GetPRTime(date, &time, plContext),
+        PKIX_DATEGETPRTIMEFAILED);
+
+    PKIX_CHECK(
+        pkix_pl_NssContext_GetWincx((PKIX_PL_NssContext*)plContext,
+                                    &wincx),
+        PKIX_NSSCONTEXTGETWINCXFAILED);
+
+    cert = pkixCert->nssCert;
+    issuer = pkixIssuer->nssCert;
+
+    if (SECSuccess != CERT_CheckCertValidTimes(issuer, time, PR_FALSE))
+    {
+        
+
+
+        PORT_SetError(SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE);
+        PKIX_ERROR(PKIX_CRLISSUECERTEXPIRED);
+    }
+
+    rv = AcquireDPCache(issuer, &issuer->derSubject, NULL, time,
+                        wincx, &dpcache, &lockedwrite);
+    
+    if (rv == SECFailure) {
+        PKIX_ERROR(PKIX_CERTCHECKCRLFAILED);
+    }
+    if (!dpcache->ncrls) {
+        *pStatus = PKIX_RevStatus_NoInfo;
+        goto cleanup;
+    }
+    
+    rv = DPCache_Lookup(dpcache, &cert->serialNumber, &entry);
+    if (SECSuccess == rv && entry) {
+        
+        if (entry->revocationDate.data && entry->revocationDate.len) {
+            PRTime revocationDate = 0;
+
+            if (SECSuccess == DER_DecodeTimeChoice(&revocationDate,
+                                                   &entry->revocationDate)) {
+                
+
+
+                if (time >= revocationDate) {
+                    rv = SECFailure;
+                }
+            } else {
+                
+
+                rv = SECFailure;
+            }
+        } else {
+            
+            rv = SECFailure;
+        }
+        if (SECFailure == rv) {
+            CERTCRLEntryReasonCode reasonCode = crlEntryReasonUnspecified;
+            
+            
+            CERT_FindCRLEntryReasonExten(entry, &reasonCode);
+            *pReasonCode = (PKIX_UInt32)reasonCode;
+            *pStatus = PKIX_RevStatus_Revoked;
+            PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
+        }
+    } else {
+        *pReasonCode = revReason;
+        *pStatus = PKIX_RevStatus_Success;
+    }
+
+cleanup:
+    if (dpcache) {
+        ReleaseDPCache(dpcache, lockedwrite);
+    }
+    PKIX_RETURN(CERTSTORE);    
+}
+
+
+
+
+
+
 PKIX_Error *
 pkix_pl_Pk11CertStore_GetCert(
         PKIX_CertStore *store,
@@ -720,6 +893,8 @@ PKIX_PL_Pk11CertStore_Create(
                 NULL, 
                 NULL, 
                 pkix_pl_Pk11CertStore_CheckTrust,
+                pkix_pl_Pk11CertStore_ImportCrl,
+                pkix_pl_Pk11CertStore_CheckRevByCrl,
                 NULL,
                 PKIX_TRUE, 
                 PKIX_TRUE, 
