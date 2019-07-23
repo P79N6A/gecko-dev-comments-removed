@@ -194,6 +194,121 @@ MOZCE_SHUNT_API char SetEnvironmentVariableW( const unsigned short * name, const
 }
 
 
+typedef struct MOZCE_SHUNT_SPECIAL_FOLDER_INFO
+{
+  int   nFolder;
+  char *folderEnvName;
+} MozceShuntSpecialFolderInfo;
+
+
+
+#define CSIDL_DESKTOP            0x0000
+#define CSIDL_PROGRAMS           0x0002      // \Windows\Start Menu\Programs
+#define CSIDL_PERSONAL           0x0005
+#define CSIDL_WINDOWS            0x0024      // \Windows
+#define CSIDL_PROGRAM_FILES      0x0026      // \Program Files
+
+#define CSIDL_APPDATA            0x001A      // NOT IN SHELLAPI.H header file
+#define CSIDL_PROFILE            0x0028      // NOT IN SHELLAPI.H header file
+
+MozceShuntSpecialFolderInfo mozceSpecialFoldersToEnvVars[] = {
+  { CSIDL_APPDATA,  "APPDATA" },
+  { CSIDL_PROGRAM_FILES, "ProgramFiles" },
+  { CSIDL_WINDOWS,  "windir" },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  { NULL, NULL }
+};
+
+
+static void InitializeSpecialFolderEnvVars()
+{
+  MozceShuntSpecialFolderInfo *p = mozceSpecialFoldersToEnvVars;
+  while ( p && p->nFolder && p->folderEnvName ) {
+    WCHAR wPath[MAX_PATH];
+    char  cPath[MAX_PATH];
+    if ( SHGetSpecialFolderPath(NULL, wPath, p->nFolder, FALSE) )
+      if ( 0 != WideCharToMultiByte(CP_ACP, 0, wPath, -1, cPath, MAX_PATH, 0, 0) )
+        map_put(p->folderEnvName, cPath);
+    p++;
+  }
+}
+
+
+
+MOZCE_SHUNT_API unsigned int ExpandEnvironmentStringsW(const unsigned short* lpSrc,
+                                                       unsigned short* lpDst,
+                                                       unsigned int nSize)
+{
+  if ( NULL == lpDst )
+    return 0;
+  
+  unsigned int size = 0;
+  unsigned int index = 0;
+  unsigned int origLen = wcslen(lpSrc);
+
+  const unsigned short *pIn = lpSrc;
+  unsigned short *pOut = lpDst;
+  
+  while ( index < origLen ) {
+	
+    if (*pIn != L'%') {  
+      if ( size < nSize ) *pOut = *pIn, pOut++;
+      index++, size++, pIn++;
+      continue;
+    }
+	
+    
+    int envlen = 0;
+    const unsigned short *pTmp = ++pIn;                    
+    while ( L'%' != *pTmp ) {
+      envlen++, pTmp++;
+      if ( origLen < index + envlen ) {    
+        SetLastError(ERROR_INVALID_PARAMETER); 
+        return -1;
+      }
+    }
+	
+    if ( 0 == envlen ) {  
+      size++;
+      if ( size < nSize ) *pOut = *pIn, pOut++;
+      pIn++;
+      index += 2;
+    } else {
+      
+      char key[250];
+      WideCharToMultiByte( CP_ACP, 0, pIn, envlen, key, 250, NULL, NULL );
+      key[envlen] = 0;
+      char *pC = map_get(key);
+      if ( NULL != pC ) {
+        int n = MultiByteToWideChar( CP_ACP, 0, pC, -1, pOut, nSize - size );
+        if ( n > 0 ) {
+          size += n - 1;  
+          pOut += n - 1;
+        }
+      }
+      index += envlen + 2;
+      pIn = ++pTmp;
+    }
+  }
+  
+  if ( size < nSize ) lpDst[size] = 0;
+  return size;
+}
+
+
+
+
+
 
 
 
@@ -459,6 +574,35 @@ MOZCE_SHUNT_API struct lconv * localeconv(void)
   return &s_locale_conv;
 }
  
+
+
+BOOL WINAPI DllMain(HANDLE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
+{
+  
+  switch( fdwReason ) 
+  { 
+    case DLL_PROCESS_ATTACH:
+      
+      
+      InitializeSpecialFolderEnvVars();
+      break;
+
+    case DLL_THREAD_ATTACH:
+      
+      break;
+
+    case DLL_THREAD_DETACH:
+      
+      break;
+
+    case DLL_PROCESS_DETACH:
+      
+      break;
+  }
+  return TRUE;  
+}
+
+
  #if 0
  {
  #endif
