@@ -65,7 +65,7 @@ namespace nanojit
 
 #define NJ_VFP_MAX_REGISTERS            8
 #define NJ_MAX_REGISTERS                (11 + NJ_VFP_MAX_REGISTERS)
-#define NJ_MAX_STACK_ENTRY              256
+#define NJ_MAX_STACK_ENTRY              4096
 #define NJ_MAX_PARAMETERS               16
 #define NJ_ALIGN_STACK                  8
 
