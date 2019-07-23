@@ -3834,97 +3834,60 @@ monitor_loop:
     }
 }
 
-JS_REQUIRES_STACK JSMonitorRecordingStatus
-TraceRecorder::monitorRecording(JSOp op)
+JS_REQUIRES_STACK bool
+js_MonitorRecording(TraceRecorder* tr)
 {
-    if (lirbuf->outOMem()) {
+    JSContext* cx = tr->cx;
+
+    if (tr->lirbuf->outOMem()) {
         js_AbortRecording(cx, "no more LIR memory");
         js_FlushJITCache(cx);
-        return JSMRS_STOP;
+        return false;
     }
 
     
-    if (wasDeepAborted()) {
+    if (tr->wasDeepAborted()) {
         js_AbortRecording(cx, "deep abort requested");
-        return JSMRS_STOP;
+        return false;
     }
 
-    if (walkedOutOfLoop()) {
-        if (!js_CloseLoop(cx))
-            return JSMRS_STOP;
-    } else {
-        
-        
-        pendingTraceableNative = NULL;
+    if (tr->walkedOutOfLoop())
+        return js_CloseLoop(cx);
 
-        
-        if (global_dslots != globalObj->dslots) {
-            js_AbortRecording(cx, "globalObj->dslots reallocated");
-            return JSMRS_STOP;
-        }
+    
+    
+    tr->pendingTraceableNative = NULL;
 
-        jsbytecode* pc = cx->fp->regs->pc;
+    
+    if (tr->global_dslots != tr->globalObj->dslots) {
+        js_AbortRecording(cx, "globalObj->dslots reallocated");
+        return false;
+    }
 
-        
+    jsbytecode* pc = cx->fp->regs->pc;
 
-        if (*pc == JSOP_GOTO || *pc == JSOP_GOTOX) {
-            jssrcnote* sn = js_GetSrcNote(cx->fp->script, pc);
-            if (sn && SN_TYPE(sn) == SRC_BREAK) {
-                AUDIT(breakLoopExits);
-                endLoop(JS_TRACE_MONITOR(cx).fragmento);
-                js_DeleteRecorder(cx);
-                return JSMRS_STOP; 
-            }
-        }
+    
 
-        
-        if (*pc == JSOP_RETURN && callDepth == 0) {
-            AUDIT(returnLoopExits);
-            endLoop(JS_TRACE_MONITOR(cx).fragmento);
+    if (*pc == JSOP_GOTO || *pc == JSOP_GOTOX) {
+        jssrcnote* sn = js_GetSrcNote(cx->fp->script, pc);
+        if (sn && SN_TYPE(sn) == SRC_BREAK) {
+            AUDIT(breakLoopExits);
+            tr->endLoop(JS_TRACE_MONITOR(cx).fragmento);
             js_DeleteRecorder(cx);
-            return JSMRS_STOP; 
+            return false; 
         }
     }
 
     
-
-    
-
-    bool flag;
-    switch (op) {
-      default: goto abort_recording;
-# define OPDEF(x,val,name,token,length,nuses,ndefs,prec,format)               \
-        case x:                                                               \
-          flag = record_##x();                                                \
-          if (x == JSOP_ITER || x == JSOP_NEXTITER || x == JSOP_APPLY ||      \
-              JSOP_IS_BINARY(x) || JSOP_IS_UNARY(op)) {                       \
-              goto imacro;                                                    \
-          }                                                                   \
-        break;
-# include "jsopcode.tbl"
-# undef OPDEF
+    if (*pc == JSOP_RETURN && tr->callDepth == 0) {
+        AUDIT(returnLoopExits);
+        tr->endLoop(JS_TRACE_MONITOR(cx).fragmento);
+        js_DeleteRecorder(cx);
+        return false; 
     }
 
-    if (flag)
-        return JSMRS_CONTINUE;
-    goto abort_recording;
-
-  imacro:
     
-
-
-
-
-    if (flag)
-        return JSMRS_CONTINUE;
-    if (cx->fp->flags & JSFRAME_IMACRO_START) {
-        cx->fp->flags &= ~JSFRAME_IMACRO_START;
-        return JSMRS_IMACRO;
-    }
-
-  abort_recording:
-    js_AbortRecording(cx, js_CodeName[op]);
-    return JSMRS_STOP;
+    return true;
 }
 
 
@@ -5538,6 +5501,12 @@ TraceRecorder::record_LeaveFrame()
     atoms = cx->fp->script->atomMap.vector;
     set(&stackval(-1), rval_ins, true);
     return true;
+}
+
+JS_REQUIRES_STACK bool
+TraceRecorder::record_JSOP_INTERRUPT()
+{
+    return false;
 }
 
 JS_REQUIRES_STACK bool
@@ -8655,7 +8624,6 @@ InitIMacroCode()
         return false;                                                         \
     }
 
-UNUSED(135)
 UNUSED(203)
 UNUSED(204)
 UNUSED(205)
