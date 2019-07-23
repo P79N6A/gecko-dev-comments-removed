@@ -482,6 +482,8 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_PaintRequest_id,
   eDOMClassInfo_PaintRequestList_id,
 
+  eDOMClassInfo_ScrollAreaEvent_id,
+
   
   eDOMClassInfoIDCount
 };
