@@ -558,9 +558,13 @@ nsHTMLInputElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         (mForm || !(GET_BOOLBIT(mBitField, BF_PARSER_CREATING)))) {
       WillRemoveFromRadioGroup();
     } else if (aNotify && aName == nsGkAtoms::src &&
-               aValue && mType == NS_FORM_INPUT_IMAGE) {
-      
-      LoadImage(*aValue, PR_TRUE, aNotify);
+               mType == NS_FORM_INPUT_IMAGE) {
+      if (aValue) {
+        LoadImage(*aValue, PR_TRUE, aNotify);
+      } else {
+        
+        CancelImageRequests(aNotify);
+      }
     } else if (aNotify && aName == nsGkAtoms::disabled) {
       SET_BOOLBIT(mBitField, BF_DISABLED_CHANGED, PR_TRUE);
     }

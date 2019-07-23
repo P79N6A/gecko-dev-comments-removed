@@ -499,6 +499,8 @@ nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
     
     
     
+    
+    CancelImageRequests(aNotify);
     return NS_OK;
   }
 
@@ -683,10 +685,9 @@ void
 nsImageLoadingContent::CancelImageRequests(PRBool aNotify)
 {
   
+  AutoStateChanger changer(this, aNotify);
   mCurrentURI = nsnull;
   CancelImageRequests(NS_BINDING_ABORTED, PR_TRUE, nsIContentPolicy::ACCEPT);
-  NS_ASSERTION(!mStartingLoad, "Whence a state changer here?");
-  UpdateImageState(aNotify);
 }
 
 void
@@ -738,6 +739,8 @@ nsresult
 nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
                                            PRBool aNotify)
 {
+  
+  
   
   
   NS_PRECONDITION(aRequest, "Must have a request here!");
