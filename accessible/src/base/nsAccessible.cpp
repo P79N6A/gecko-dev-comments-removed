@@ -3312,7 +3312,9 @@ nsAccessible::ComputeGroupAttributes(PRUint32 aRole,
       aRole != nsIAccessibleRole::ROLE_RADIOBUTTON &&
       aRole != nsIAccessibleRole::ROLE_PAGETAB &&
       aRole != nsIAccessibleRole::ROLE_OPTION &&
-      aRole != nsIAccessibleRole::ROLE_OUTLINEITEM)
+      aRole != nsIAccessibleRole::ROLE_OUTLINEITEM &&
+      aRole != nsIAccessibleRole::ROLE_ROW &&
+      aRole != nsIAccessibleRole::ROLE_GRID_CELL)
     return NS_OK;
 
   PRUint32 baseRole = aRole;
@@ -3424,6 +3426,12 @@ nsAccessible::ComputeGroupAttributes(PRUint32 aRole,
       }
     } else
       groupLevel++; 
+
+  } else if (aRole == nsIAccessibleRole::ROLE_ROW &&
+             nsAccUtils::Role(GetParent()) == nsIAccessibleRole::ROLE_TREE_TABLE) {
+    
+    
+    groupLevel = 1;
   }
 
   nsAccUtils::SetAccGroupAttrs(aAttributes, groupLevel, positionInGroup,
