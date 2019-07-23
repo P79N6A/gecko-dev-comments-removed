@@ -806,6 +806,10 @@ public:
 
 
 
+  
+
+
+
 
 
 
@@ -818,6 +822,13 @@ public:
 
   static nsresult DrawImage(nsIRenderingContext* aRenderingContext,
                             imgIContainer*       aImage,
+                            const nsRect&        aDest,
+                            const nsRect&        aFill,
+                            const nsPoint&       aAnchor,
+                            const nsRect&        aDirty);
+
+  static nsresult DrawImage(nsIRenderingContext* aRenderingContext,
+                            nsIImage*            aImage,
                             const nsRect&        aDest,
                             const nsRect&        aFill,
                             const nsPoint&       aAnchor,
@@ -859,6 +870,12 @@ public:
 
   static nsresult DrawSingleImage(nsIRenderingContext* aRenderingContext,
                                   imgIContainer*       aImage,
+                                  const nsRect&        aDest,
+                                  const nsRect&        aDirty,
+                                  const nsRect*        aSourceArea = nsnull);
+
+  static nsresult DrawSingleImage(nsIRenderingContext* aRenderingContext,
+                                  nsIImage*            aImage,
                                   const nsRect&        aDest,
                                   const nsRect&        aDirty,
                                   const nsRect*        aSourceArea = nsnull);
