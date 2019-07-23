@@ -1909,6 +1909,12 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
 {
     if (slot != uint16(slot)) 
         return false;
+    
+
+
+
+    if (globalObj->dslots[-1] > 4096)
+        return false;
     jsval* vp = &STOBJ_GET_SLOT(globalObj, slot);
     if (known(vp))
         return true; 
