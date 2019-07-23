@@ -781,16 +781,6 @@ nsFormFillController::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsFormFillController::HandleQueryComposition(nsIDOMEvent* aCompositionEvent)
-{
-  
-  if (!IsEventTrusted(aCompositionEvent))
-    return NS_OK;
-
-  return NS_OK;
-}
-
 
 
 

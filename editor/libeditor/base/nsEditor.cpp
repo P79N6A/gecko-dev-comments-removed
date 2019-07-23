@@ -1982,7 +1982,7 @@ nsEditor::StopPreservingSelection()
 
 
 
-NS_IMETHODIMP
+nsresult
 nsEditor::QueryComposition(nsTextEventReply* aReply)
 {
   nsresult result;

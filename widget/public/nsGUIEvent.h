@@ -307,7 +307,6 @@ class nsHashKey;
 #define NS_COMPOSITION_EVENT_START    2200
 #define NS_COMPOSITION_START          (NS_COMPOSITION_EVENT_START)
 #define NS_COMPOSITION_END            (NS_COMPOSITION_EVENT_START + 1)
-#define NS_COMPOSITION_QUERY          (NS_COMPOSITION_EVENT_START + 2)
 
 
 #define NS_TEXT_START                 2400
@@ -988,6 +987,8 @@ struct nsTextRange
 
 typedef nsTextRange* nsTextRangeArray;
 
+
+
 struct nsTextEventReply
 {
   nsTextEventReply()
@@ -1012,7 +1013,7 @@ public:
   }
 
   nsString          theText;
-  nsTextEventReply  theReply;
+  nsTextEventReply  theReply; 
   PRUint32          rangeCount;
   
   
@@ -1029,7 +1030,7 @@ public:
   {
   }
 
-  nsTextEventReply theReply;
+  nsTextEventReply theReply; 
 };
 
 
@@ -1382,8 +1383,7 @@ enum nsDragDropEventStatus {
 #define NS_IS_IME_EVENT(evnt) \
        (((evnt)->message == NS_TEXT_TEXT) ||  \
         ((evnt)->message == NS_COMPOSITION_START) ||  \
-        ((evnt)->message == NS_COMPOSITION_END) || \
-        ((evnt)->message == NS_COMPOSITION_QUERY))
+        ((evnt)->message == NS_COMPOSITION_END))
 
 #define NS_IS_ACTIVATION_EVENT(evnt) \
        (((evnt)->message == NS_ACTIVATE) || \
