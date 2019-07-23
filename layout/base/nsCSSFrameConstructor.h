@@ -730,7 +730,9 @@ private:
 
 
 
+public:
   nsIFrame* GetAbsoluteContainingBlock(nsIFrame* aFrame);
+private:
   nsIFrame* GetFloatContainingBlock(nsIFrame* aFrame);
 
   nsIContent* PropagateScrollToViewport();

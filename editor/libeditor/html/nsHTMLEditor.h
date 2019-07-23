@@ -815,6 +815,8 @@ protected:
   void     DeleteRefToAnonymousNode(nsIDOMElement* aElement,
                                     nsIContent * aParentContent,
                                     nsIPresShell* aShell);
+
+  
   nsresult GetElementOrigin(nsIDOMElement * aElement, PRInt32 & aX, PRInt32 & aY);
   nsresult GetPositionAndDimensions(nsIDOMElement * aElement,
                                     PRInt32 & aX, PRInt32 & aY,
