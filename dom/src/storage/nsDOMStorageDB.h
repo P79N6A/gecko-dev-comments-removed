@@ -109,6 +109,12 @@ public:
 
 
   nsresult
+  RemoveOwner(const nsAString& aOwner);
+
+  
+
+
+  nsresult
   RemoveAll();
 
   nsresult GetUsage(const nsAString &aOwner, PRInt32 *aUsage);
@@ -123,6 +129,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mUpdateKeyStatement;
   nsCOMPtr<mozIStorageStatement> mSetSecureStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveKeyStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveOwnerStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveAllStatement;
   nsCOMPtr<mozIStorageStatement> mGetUsageStatement;
 

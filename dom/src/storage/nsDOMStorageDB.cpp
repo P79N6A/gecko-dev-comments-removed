@@ -171,6 +171,13 @@ nsDOMStorageDB::Init()
 
   
   rv = mConnection->CreateStatement(
+         NS_LITERAL_CSTRING("DELETE FROM webappsstore "
+                            "WHERE owner = ?1"),
+         getter_AddRefs(mRemoveOwnerStatement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mConnection->CreateStatement(
          NS_LITERAL_CSTRING("DELETE FROM webappsstore"),
          getter_AddRefs(mRemoveAllStatement));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -410,6 +417,22 @@ nsDOMStorageDB::RemoveKey(const nsAString& aDomain,
   NS_ENSURE_SUCCESS(rv, rv);
 
   return mRemoveKeyStatement->Execute();
+}
+
+nsresult
+nsDOMStorageDB::RemoveOwner(const nsAString& aOwner)
+{
+  mozStorageStatementScoper scope(mRemoveOwnerStatement);
+
+  if (aOwner == mCachedOwner) {
+    mCachedUsage = 0;
+    mCachedOwner.Truncate();
+  }
+
+  nsresult rv = mRemoveOwnerStatement->BindStringParameter(0, aOwner);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return mRemoveOwnerStatement->Execute();
 }
 
 nsresult
