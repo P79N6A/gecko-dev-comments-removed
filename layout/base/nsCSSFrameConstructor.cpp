@@ -1918,7 +1918,7 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
   }
 
   AddFrameConstructionItemsInternal(aState, container, aParentFrame, elemName,
-                                    kNameSpaceID_None, -1, pseudoStyleContext,
+                                    kNameSpaceID_None, pseudoStyleContext,
                                     ITEM_IS_GENERATED_CONTENT, aItems);
 }
     
@@ -2630,7 +2630,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(nsIContent*              aDocEle
       nsRefPtr<nsStyleContext> extraRef(styleContext);
       FrameConstructionItem item(&rootTableData, aDocElement,
                                  aDocElement->Tag(), kNameSpaceID_None,
-                                 -1, extraRef.forget());
+                                 extraRef.forget());
 
       nsFrameItems frameItems;
       
@@ -3722,8 +3722,7 @@ nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
     SIMPLE_TAG_CHAIN(mozgeneratedcontentimage,
                      nsCSSFrameConstructor::FindImgData),
     { &nsGkAtoms::br,
-      FCDATA_DECL(FCDATA_SKIP_FRAMEMAP | FCDATA_IS_LINE_PARTICIPANT |
-                  FCDATA_IS_LINE_BREAK,
+      FCDATA_DECL(FCDATA_SKIP_FRAMEMAP | FCDATA_IS_LINE_PARTICIPANT,
                   NS_NewBRFrame) },
     SIMPLE_TAG_CREATE(wbr, NS_NewWBRFrame),
     SIMPLE_TAG_CHAIN(input, nsCSSFrameConstructor::FindInputData),
@@ -5147,7 +5146,7 @@ nsCSSFrameConstructor::AddPageBreakItem(nsIContent* aContent,
   
   
   aItems.AppendItem(&sPageBreakData, aContent, nsCSSAnonBoxes::pageBreak,
-                    kNameSpaceID_None, -1, pseudoStyle.forget());
+                    kNameSpaceID_None, pseudoStyle.forget());
 }
 
 nsresult
@@ -5159,7 +5158,7 @@ nsCSSFrameConstructor::ConstructFrame(nsFrameConstructorState& aState,
 {
   NS_PRECONDITION(nsnull != aParentFrame, "no parent frame");
   FrameConstructionItemList items;
-  AddFrameConstructionItems(aState, aContent, -1, aParentFrame, items);
+  AddFrameConstructionItems(aState, aContent, aParentFrame, items);
 
   for (FCItemIterator iter(items); !iter.IsDone(); iter.Next()) {
     NS_ASSERTION(iter.item().DesiredParentType() == GetParentType(aParentFrame),
@@ -5175,7 +5174,6 @@ nsCSSFrameConstructor::ConstructFrame(nsFrameConstructorState& aState,
 void
 nsCSSFrameConstructor::AddFrameConstructionItems(nsFrameConstructorState& aState,
                                                  nsIContent* aContent,
-                                                 PRInt32 aContentIndex,
                                                  nsIFrame* aParentFrame,
                                                  FrameConstructionItemList& aItems)
 {
@@ -5194,7 +5192,7 @@ nsCSSFrameConstructor::AddFrameConstructionItems(nsFrameConstructorState& aState
 
   AddFrameConstructionItemsInternal(aState, aContent, aParentFrame,
                                     aContent->Tag(), aContent->GetNameSpaceID(),
-                                    aContentIndex, styleContext,
+                                    styleContext,
                                     ITEM_ALLOW_XBL_BASE | ITEM_ALLOW_PAGE_BREAK,
                                     aItems);
 }
@@ -5227,15 +5225,10 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
                                                          nsIFrame* aParentFrame,
                                                          nsIAtom* aTag,
                                                          PRInt32 aNameSpaceID,
-                                                         PRInt32 aContentIndex,
                                                          nsStyleContext* aStyleContext,
                                                          PRUint32 aFlags,
                                                          FrameConstructionItemList& aItems)
 {
-  NS_ASSERTION(aContentIndex == -1 ||
-               aContent->GetParent()->GetChildAt(aContentIndex) == aContent,
-               "aContentIndex isn't the right content index");
-
   
   
   
@@ -5379,7 +5372,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   }
 
   FrameConstructionItem* item =
-    aItems.AppendItem(data, aContent, aTag, aNameSpaceID, aContentIndex,
+    aItems.AppendItem(data, aContent, aTag, aNameSpaceID,
                       styleContext.forget());
   if (!item) {
     if (isGeneratedContent) {
@@ -5462,86 +5455,18 @@ static void DestroyContent(void *aObject,
   NS_RELEASE(content);
 }
 
-
-
-
-
-
-
-
-
-PRBool
-nsCSSFrameConstructor::AtLineBoundary(FCItemIterator& aIter)
-{
-  PRInt32 contentIndex = aIter.item().mContentIndex;
-  if (contentIndex < 0) {
-    
-    
-    return PR_FALSE;
-  }
-
-  if (aIter.AtStart()) {
-    if (aIter.List()->HasLineBoundaryAtStart() &&
-        contentIndex == 0)
-      return PR_TRUE;
-  } else {
-    FCItemIterator prev = aIter;
-    prev.Prev();
-    PRInt32 prevIndex = prev.item().mContentIndex;
-    if (prev.item().IsLineBoundary() &&
-        prevIndex >= 0 && prevIndex + 1 == contentIndex)
-      return PR_TRUE;
-  }
-
-  FCItemIterator next = aIter;
-  next.Next();
-  if (next.IsDone()) {
-    if (aIter.List()->HasLineBoundaryAtEnd() &&
-        contentIndex == PRInt32(aIter.item().mContent->GetParent()->GetChildCount()) - 1)
-      return PR_TRUE;
-  } else {
-    if (next.item().IsLineBoundary() &&
-        contentIndex + 1 == next.item().mContentIndex)
-      return PR_TRUE;
-  }
-
-  return PR_FALSE;
-}
-
 nsresult
 nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
-                                               FCItemIterator& aIter,
+                                               FrameConstructionItem& aItem,
                                                nsIFrame* aParentFrame,
                                                nsFrameItems& aFrameItems)
 {
   nsIFrame* adjParentFrame = aParentFrame;
-  FrameConstructionItem& item = aIter.item();
-  nsStyleContext* styleContext = item.mStyleContext;
-  AdjustParentFrame(adjParentFrame, item.mFCData, styleContext);
+  nsStyleContext* styleContext = aItem.mStyleContext;
+  AdjustParentFrame(adjParentFrame, aItem.mFCData, styleContext);
 
-  if (item.mIsText) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (AtLineBoundary(aIter) &&
-        !styleContext->GetStyleText()->NewlineIsSignificant() &&
-        aIter.List()->ParentHasNoXBLChildren() &&
-        !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
-        item.IsWhitespace())
-      return NS_OK;
-
-    
-    
-    
-    return ConstructTextFrame(item.mFCData, aState, item.mContent,
+  if (aItem.mIsText) {
+    return ConstructTextFrame(aItem.mFCData, aState, aItem.mContent,
                               adjParentFrame, styleContext,
                               aFrameItems);
   }
@@ -5553,7 +5478,7 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
   }
 
   nsFrameState savedStateBits = aState.mAdditionalStateBits;
-  if (item.mIsGeneratedContent) {
+  if (aItem.mIsGeneratedContent) {
     
     
     aState.mAdditionalStateBits |= NS_FRAME_GENERATED_CONTENT;
@@ -5564,15 +5489,15 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     aParentFrame->SetProperty(styleContext->GetPseudoType(),
-                              item.mContent, DestroyContent);
+                              aItem.mContent, DestroyContent);
 
     
     
-    item.mIsGeneratedContent = PR_FALSE;
+    aItem.mIsGeneratedContent = PR_FALSE;
   }
 
   
-  nsresult rv = ConstructFrameFromItemInternal(item, aState, adjParentFrame,
+  nsresult rv = ConstructFrameFromItemInternal(aItem, aState, adjParentFrame,
                                                aFrameItems);
 
   aState.mAdditionalStateBits = savedStateBits;
@@ -6136,61 +6061,6 @@ MaybeGetListBoxBodyFrame(nsIContent* aContainer, nsIContent* aChild)
 }
 #endif
 
-void
-nsCSSFrameConstructor::AddTextItemIfNeeded(nsIFrame* aParentFrame,
-                                           nsIContent* aParentContent,
-                                           PRInt32 aContentIndex,
-                                           FrameConstructionItemList& aItems)
-{
-  NS_ASSERTION(aContentIndex >= 0 &&
-               aContentIndex < aParentContent->GetChildCount(),
-               "child index out of range");
-  nsIContent* content = aParentContent->GetChildAt(aContentIndex);
-  if (!content->IsNodeOfType(nsINode::eTEXT) ||
-      !content->HasFlag(FRAMETREE_DEPENDS_ON_CHARS)) {
-    
-    
-    
-    return;
-  }
-  if (mPresShell->GetPrimaryFrameFor(content)) {
-    
-    return;
-  }
-  
-  const FrameConstructionData* data = FindTextData(aParentFrame);
-  if (!data)
-    return;
-  nsRefPtr<nsStyleContext> sc =
-    ResolveStyleContext(aParentFrame, content);
-  if (!sc)
-    return;
-  aItems.AppendItem(data, content, content->Tag(), content->GetNameSpaceID(),
-                    aContentIndex, sc.forget());
-}
-
-void
-nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
-                                           PRInt32 aContentIndex)
-{
-  NS_ASSERTION(aContentIndex >= 0 &&
-               aContentIndex < aParentContent->GetChildCount(),
-               "child index out of range");
-  nsIContent* content = aParentContent->GetChildAt(aContentIndex);
-  if (!content->IsNodeOfType(nsINode::eTEXT) ||
-      !content->HasFlag(FRAMETREE_DEPENDS_ON_CHARS)) {
-    
-    
-    
-    return;
-  }
-  if (mPresShell->GetPrimaryFrameFor(content)) {
-    
-    return;
-  }
-  ContentInserted(aParentContent, content, aContentIndex, nsnull);
-}
-
 nsresult
 nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                                        PRInt32         aNewIndexInContainer)
@@ -6329,8 +6199,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   
   
   
-  PRBool parentSpecial = IsFrameSpecial(parentFrame);
-  if (parentSpecial) {
+  if (IsFrameSpecial(parentFrame)) {
 #ifdef DEBUG
     if (gNoisyContentUpdates) {
       printf("nsCSSFrameConstructor::ContentAppended: parentFrame=");
@@ -6349,9 +6218,10 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   
   parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
 
+  nsIAtom* frameType = parentFrame->GetType();
   
   
-  NS_ASSERTION(parentFrame->GetType() != nsGkAtoms::fieldSetFrame,
+  NS_ASSERTION(frameType != nsGkAtoms::fieldSetFrame,
                "Unexpected parent");
 
   
@@ -6382,26 +6252,11 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
                        state.mFrameManager, containingBlock);
   }
 
-  nsIAtom* frameType = parentFrame->GetType();
-
   FrameConstructionItemList items;
-  if (aNewIndexInContainer > 0) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    AddTextItemIfNeeded(parentFrame, aContainer,
-                        aNewIndexInContainer - 1, items);
-  }
   for (PRUint32 i = aNewIndexInContainer, count = aContainer->GetChildCount();
        i < count;
        ++i) {
-    AddFrameConstructionItems(state, aContainer->GetChildAt(i), i, parentFrame,
+    AddFrameConstructionItems(state, aContainer->GetChildAt(i), parentFrame,
                               items);
   }
 
@@ -6418,24 +6273,6 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
     return NS_OK;
   }
   LAYOUT_PHASE_TEMP_REENTER();
-
-  
-  
-  
-  if (nsLayoutUtils::GetAsBlock(parentFrame) && !haveFirstLetterStyle &&
-      !haveFirstLineStyle && !parentSpecial) {
-    items.SetLineBoundaryAtStart(!prevSibling ||
-        !prevSibling->GetStyleDisplay()->IsInlineOutside() ||
-        prevSibling->GetType() == nsGkAtoms::brFrame);
-    
-    items.SetLineBoundaryAtEnd(!parentAfterFrame ||
-        !parentAfterFrame->GetStyleDisplay()->IsInlineOutside());
-  }
-  
-  
-  
-  items.SetParentHasNoXBLChildren(
-      !mDocument->BindingManager()->GetXBLChildNodesFor(aContainer));
 
   nsFrameItems frameItems;
   ConstructFramesFromItemList(state, items, parentFrame, frameItems);
@@ -6748,23 +6585,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   }
 
   FrameConstructionItemList items;
-  if (aIndexInContainer > 0) {
-    
-    
-    
-    AddTextItemIfNeeded(parentFrame, aContainer, aIndexInContainer - 1,
-                        items);
-  }
-
-  AddFrameConstructionItems(state, aChild, aIndexInContainer, parentFrame, items);
-
-  if (aIndexInContainer + 1 < PRInt32(aContainer->GetChildCount())) {
-    
-    
-    
-    AddTextItemIfNeeded(parentFrame, aContainer, aIndexInContainer + 1,
-                        items);
-  }
+  AddFrameConstructionItems(state, aChild, parentFrame, items);
 
   
   
@@ -6778,8 +6599,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   }
   LAYOUT_PHASE_TEMP_REENTER();
 
-  
-  
   
   
   nsFrameItems frameItems, captionItems;
@@ -7132,7 +6951,6 @@ nsresult
 nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
                                       nsIContent* aChild,
                                       PRInt32     aIndexInContainer,
-                                      RemoveFlags aFlags,
                                       PRBool*     aDidReconstruct)
 {
   AUTO_LAYOUT_PHASE_ENTRY_POINT(mPresShell->GetPresContext(), FrameC);
@@ -7356,23 +7174,6 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
                                     GetAbsoluteContainingBlock(parentFrame),
                                     containingBlock);
       RecoverLetterFrames(containingBlock);
-    }
-
-    
-    
-    
-    if (aContainer && aIndexInContainer >= 0 &&
-        aFlags != REMOVE_FOR_RECONSTRUCTION) {
-      
-      
-      
-      if (aIndexInContainer > 0) {
-        ReframeTextIfNeeded(aContainer, aIndexInContainer - 1);
-      }
-      PRInt32 childCount = aContainer->GetChildCount();
-      if (aIndexInContainer < childCount) {
-        ReframeTextIfNeeded(aContainer, aIndexInContainer);
-      }
     }
 
 #ifdef DEBUG
@@ -9050,9 +8851,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
   nsINode* containerNode = aContent->GetNodeParent();
   if (containerNode) {
     
-    
     PRInt32 indexInContainer = containerNode->IndexOf(aContent);
-
     
     
     CaptureStateForFramesOf(aContent, mTempFrameTreeState);
@@ -9064,8 +8863,7 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent)
     
     
     PRBool didReconstruct;
-    rv = ContentRemoved(container, aContent, indexInContainer,
-                        REMOVE_FOR_RECONSTRUCTION, &didReconstruct);
+    rv = ContentRemoved(container, aContent, indexInContainer, &didReconstruct);
 
     if (NS_SUCCEEDED(rv) && !didReconstruct) {
       
@@ -9395,7 +9193,6 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(FrameConstructionItemList& aItem
                                 
                                 
                                 iter.item().mNameSpaceID,
-                                -1,
                                 wrapperStyle.forget());
 
     if (!newItem) {
@@ -9409,15 +9206,6 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(FrameConstructionItemList& aItem
     
     newItem->mIsAllInline = newItem->mHasInlineEnds =
       newItem->mStyleContext->GetStyleDisplay()->IsInlineOutside();
-
-    
-    
-    newItem->mChildItems.SetLineBoundaryAtStart(PR_TRUE);
-    newItem->mChildItems.SetLineBoundaryAtEnd(PR_TRUE);
-    
-    
-    newItem->mChildItems.SetParentHasNoXBLChildren(
-      aItems.ParentHasNoXBLChildren());
 
     
     
@@ -9505,13 +9293,6 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
 
   
   
-  if (aAllowBlockStyles && !haveFirstLetterStyle && !haveFirstLineStyle) {
-    itemsToConstruct.SetLineBoundaryAtStart(PR_TRUE);
-    itemsToConstruct.SetLineBoundaryAtEnd(PR_TRUE);
-  }
-
-  
-  
   
   nsAutoTArray<nsIContent*, 4> anonymousItems;
   GetAnonymousContent(aContent, aFrame, anonymousItems);
@@ -9523,7 +9304,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                  "CreateAnonymousFrames manually and not follow the standard "
                  "ProcessChildren() codepath for this frame");
 #endif
-    AddFrameConstructionItems(aState, anonymousItems[i], -1, aFrame,
+    AddFrameConstructionItems(aState, anonymousItems[i], aFrame,
                               itemsToConstruct);
   }
 
@@ -9549,10 +9330,8 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     for (ChildIterator::Init(aContent, &iter, &last);
          iter != last;
          ++iter) {
-      PRInt32 i = iter.XBLInvolved() ? -1 : iter.position();
-      AddFrameConstructionItems(aState, *iter, i, aFrame, itemsToConstruct);
+      AddFrameConstructionItems(aState, *iter, aFrame, itemsToConstruct);
     }
-    itemsToConstruct.SetParentHasNoXBLChildren(!iter.XBLInvolved());
 
     if (aCanHaveGeneratedContent) {
       
@@ -10589,7 +10368,7 @@ nsCSSFrameConstructor::CreateListBoxContent(nsPresContext* aPresContext,
     FrameConstructionItemList items;
     AddFrameConstructionItemsInternal(state, aChild, aParentFrame,
                                       aChild->Tag(), aChild->GetNameSpaceID(),
-                                      -1, styleContext, ITEM_ALLOW_XBL_BASE,
+                                      styleContext, ITEM_ALLOW_XBL_BASE,
                                       items);
     ConstructFramesFromItemList(state, items, aParentFrame, frameItems);
 
@@ -10959,9 +10738,8 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
     nsRefPtr<nsStyleContext> childContext =
       ResolveStyleContext(parentStyleContext, content);
 
-    PRInt32 i = iter.XBLInvolved() ? -1 : iter.position();
     AddFrameConstructionItemsInternal(aState, content, nsnull, content->Tag(),
-                                      content->GetNameSpaceID(), i, childContext,
+                                      content->GetNameSpaceID(), childContext,
                                       ITEM_ALLOW_XBL_BASE | ITEM_ALLOW_PAGE_BREAK,
                                       aParentItem.mChildItems);
   }

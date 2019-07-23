@@ -116,11 +116,9 @@ public:
                            PRInt32                aIndexInContainer,
                            nsILayoutHistoryState* aFrameState);
 
-  enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
   nsresult ContentRemoved(nsIContent* aContainer,
                           nsIContent* aChild,
                           PRInt32     aIndexInContainer,
-                          RemoveFlags aFlags,
                           PRBool*     aDidReconstruct);
 
   nsresult CharacterDataChanged(nsIContent*     aContent,
@@ -322,14 +320,8 @@ private:
 
   
   
-  
-  
-  
-  
-  
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
-                                 PRInt32                  aContentIndex,
                                  nsIFrame*                aParentFrame,
                                  FrameConstructionItemList& aItems);
 
@@ -587,15 +579,12 @@ private:
 #define FCDATA_IS_LINE_PARTICIPANT 0x4000
   
 
-#define FCDATA_IS_LINE_BREAK 0x8000
-  
-
-#define FCDATA_ALLOW_BLOCK_STYLES 0x10000
+#define FCDATA_ALLOW_BLOCK_STYLES 0x8000
   
 
 
 
-#define FCDATA_USE_CHILD_ITEMS 0x20000
+#define FCDATA_USE_CHILD_ITEMS 0x10000
 
   
 
@@ -673,10 +662,7 @@ private:
     FrameConstructionItemList() :
       mInlineCount(0),
       mLineParticipantCount(0),
-      mItemCount(0),
-      mLineBoundaryAtStart(PR_FALSE),
-      mLineBoundaryAtEnd(PR_FALSE),
-      mParentHasNoXBLChildren(PR_FALSE)
+      mItemCount(0)
     {
       PR_INIT_CLIST(&mItems);
       memset(mDesiredParentCounts, 0, sizeof(mDesiredParentCounts));
@@ -694,14 +680,6 @@ private:
       
     }
 
-    void SetLineBoundaryAtStart(PRBool aBoundary) { mLineBoundaryAtStart = aBoundary; }
-    void SetLineBoundaryAtEnd(PRBool aBoundary) { mLineBoundaryAtEnd = aBoundary; }
-    void SetParentHasNoXBLChildren(PRBool aHasNoXBLChildren) {
-      mParentHasNoXBLChildren = aHasNoXBLChildren;
-    }
-    PRBool HasLineBoundaryAtStart() { return mLineBoundaryAtStart; }
-    PRBool HasLineBoundaryAtEnd() { return mLineBoundaryAtEnd; }
-    PRBool ParentHasNoXBLChildren() { return mParentHasNoXBLChildren; }
     PRBool IsEmpty() const { return PR_CLIST_IS_EMPTY(&mItems); }
     PRBool AnyItemsNeedBlockParent() const { return mLineParticipantCount != 0; }
     PRBool AreAllItemsInline() const { return mInlineCount == mItemCount; }
@@ -717,19 +695,15 @@ private:
       return mDesiredParentCounts[aDesiredParentType] == mItemCount;
     }
 
-    
-    
-    
     FrameConstructionItem* AppendItem(const FrameConstructionData* aFCData,
                                       nsIContent* aContent,
                                       nsIAtom* aTag,
                                       PRInt32 aNameSpaceID,
-                                      PRInt32 aContentIndex,
                                       already_AddRefed<nsStyleContext> aStyleContext)
     {
       FrameConstructionItem* item =
         new FrameConstructionItem(aFCData, aContent, aTag, aNameSpaceID,
-                                  aContentIndex, aStyleContext);
+                                  aStyleContext);
       if (item) {
         PR_APPEND_LINK(item, &mItems);
         ++mItemCount;
@@ -773,10 +747,6 @@ private:
         return *this;
       }
 
-      FrameConstructionItemList* List() {
-        return &mList;
-      }
-
       operator FrameConstructionItem& () {
         return item();
       }
@@ -789,10 +759,6 @@ private:
       void Next() {
         NS_ASSERTION(!IsDone(), "Should have checked IsDone()!");
         mCurrent = PR_NEXT_LINK(mCurrent);
-      }
-      void Prev() {
-        NS_ASSERTION(!AtStart(), "Should have checked AtStart()!");
-        mCurrent = PR_PREV_LINK(mCurrent);
       }
       void SetToEnd() { mCurrent = mEnd; }
 
@@ -855,14 +821,6 @@ private:
     PRUint32 mLineParticipantCount;
     PRUint32 mItemCount;
     PRUint32 mDesiredParentCounts[eParentTypeCount];
-    
-    
-    PRPackedBool mLineBoundaryAtStart;
-    
-    
-    PRPackedBool mLineBoundaryAtEnd;
-    
-    PRPackedBool mParentHasNoXBLChildren;
   };
 
   typedef FrameConstructionItemList::Iterator FCItemIterator;
@@ -878,11 +836,9 @@ private:
                           nsIContent* aContent,
                           nsIAtom* aTag,
                           PRInt32 aNameSpaceID,
-                          PRInt32 aContentIndex,
                           already_AddRefed<nsStyleContext> aStyleContext) :
       mFCData(aFCData), mContent(aContent), mTag(aTag),
-      mNameSpaceID(aNameSpaceID), mContentIndex(aContentIndex),
-      mStyleContext(aStyleContext),
+      mNameSpaceID(aNameSpaceID), mStyleContext(aStyleContext),
       mIsText(PR_FALSE), mIsGeneratedContent(PR_FALSE),
       mIsRootPopupgroup(PR_FALSE), mIsAllInline(PR_FALSE),
       mHasInlineEnds(PR_FALSE), mIsPopup(PR_FALSE),
@@ -904,10 +860,6 @@ private:
     
     PRBool IsWhitespace() const;
 
-    PRBool IsLineBoundary() const {
-      return !mHasInlineEnds || (mFCData->mBits & FCDATA_IS_LINE_BREAK);
-    }
-
     
     const FrameConstructionData* mFCData;
     
@@ -916,9 +868,6 @@ private:
     nsIAtom* mTag;
     
     PRInt32 mNameSpaceID;
-    
-    
-    PRInt32 mContentIndex;
     
     nsRefPtr<nsStyleContext> mStyleContext;
     
@@ -1023,18 +972,6 @@ private:
                               nsStyleContext*          aStyleContext,
                               nsFrameItems&            aFrameItems);
 
-  
-  
-  void AddTextItemIfNeeded(nsIFrame* aParentFrame,
-                           nsIContent* aParentContent,
-                           PRInt32 aContentIndex,
-                           FrameConstructionItemList& aItems);
-
-  
-  
-  void ReframeTextIfNeeded(nsIContent* aParentContent,
-                           PRInt32 aContentIndex);
-
   void AddPageBreakItem(nsIContent* aContent,
                         nsStyleContext* aMainStyleContext,
                         FrameConstructionItemList& aItems);
@@ -1090,24 +1027,15 @@ private:
                                          nsIFrame*                aParentFrame,
                                          nsIAtom*                 aTag,
                                          PRInt32                  aNameSpaceID,
-                                         PRInt32                  aContentIndex,
                                          nsStyleContext*          aStyleContext,
                                          PRUint32                 aFlags,
                                          FrameConstructionItemList& aItems);
 
   
-
-
-
-  nsresult ConstructFramesFromItemList(nsFrameConstructorState& aState,
-                                       FrameConstructionItemList& aItems,
-                                       nsIFrame* aParentFrame,
-                                       nsFrameItems& aFrameItems);
   nsresult ConstructFramesFromItem(nsFrameConstructorState& aState,
-                                   FCItemIterator& aItem,
+                                   FrameConstructionItem& aItem,
                                    nsIFrame* aParentFrame,
                                    nsFrameItems& aFrameItems);
-  static PRBool AtLineBoundary(FCItemIterator& aIter);
 
   nsresult CreateAnonymousFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aParent,
@@ -1421,6 +1349,15 @@ private:
 
   void BuildInlineChildItems(nsFrameConstructorState& aState,
                              FrameConstructionItem& aParentItem);
+
+  
+
+
+
+  nsresult ConstructFramesFromItemList(nsFrameConstructorState& aState,
+                                       FrameConstructionItemList& aItems,
+                                       nsIFrame* aParentFrame,
+                                       nsFrameItems& aFrameItems);
 
   
   

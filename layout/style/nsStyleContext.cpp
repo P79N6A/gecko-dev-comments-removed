@@ -425,7 +425,6 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(TableBorder);
   DO_STRUCT_DIFFERENCE(Table);
   DO_STRUCT_DIFFERENCE(UIReset);
-  DO_STRUCT_DIFFERENCE(Text);
   DO_STRUCT_DIFFERENCE(List);
   
   
@@ -449,6 +448,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(Padding);
   DO_STRUCT_DIFFERENCE(Border);
   DO_STRUCT_DIFFERENCE(Position);
+  DO_STRUCT_DIFFERENCE(Text);
   DO_STRUCT_DIFFERENCE(TextReset);
 
   
