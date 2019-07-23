@@ -731,14 +731,14 @@ nsJPEGDecoder::OutputScanlines()
       PRUint32 idx = mInfo.output_width;
 
       
-      while (idx > 4) {          
-        PRUint32 p0, p1, p2, p3; 
-        p0 = GFX_0XFF_PPIXEL_FROM_BPTR(sampleRow+0);
-        p1 = GFX_0XFF_PPIXEL_FROM_BPTR(sampleRow+3);
-        p2 = GFX_0XFF_PPIXEL_FROM_BPTR(sampleRow+6);
-        p3 = GFX_0XFF_PPIXEL_FROM_BPTR(sampleRow+9);
-        imageRow[0] = p0; imageRow[1] = p1;
-        imageRow[2] = p2; imageRow[3] = p3;
+      while ((NS_PTR_TO_UINT32(sampleRow) & 0x3) && idx--) {
+        *imageRow++ = GFX_PACKED_PIXEL(0xFF, sampleRow[0], sampleRow[1], sampleRow[2]);
+        sampleRow += 3;
+      }
+
+      
+      while (idx >= 4) {
+        GFX_BLOCK_RGB_TO_FRGB(sampleRow, imageRow);
         idx       -=  4;
         sampleRow += 12;
         imageRow  +=  4;

@@ -736,14 +736,14 @@ row_callback(png_structp png_ptr, png_bytep new_row,
         PRUint32 idx = iwidth;
 
         
-        while (idx > 4) {          
-          PRUint32 p0, p1, p2, p3; 
-          p0 = GFX_0XFF_PPIXEL_FROM_BPTR(line+0);
-          p1 = GFX_0XFF_PPIXEL_FROM_BPTR(line+3);
-          p2 = GFX_0XFF_PPIXEL_FROM_BPTR(line+6);
-          p3 = GFX_0XFF_PPIXEL_FROM_BPTR(line+9);
-          cptr32[0] = p0; cptr32[1] = p1;
-          cptr32[2] = p2; cptr32[3] = p3;
+        while ((NS_PTR_TO_UINT32(line) & 0x3) && idx--) {
+          *cptr32++ = GFX_PACKED_PIXEL(0xFF, line[0], line[1], line[2]);
+          line += 3; 
+        }
+
+        
+        while (idx >= 4) {
+          GFX_BLOCK_RGB_TO_FRGB(line, cptr32);
           idx    -=  4;
           line   += 12;
           cptr32 +=  4;

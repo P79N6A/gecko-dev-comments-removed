@@ -44,35 +44,74 @@
 
 #include "gfxTypes.h"
 
+#define GFX_UINT32_FROM_BPTR(pbptr,i) (((PRUint32*)(pbptr))[i])
 
-
-
-
-
-
-
-
-#if defined(_WIN32)
-  #if defined(IS_BIG_ENDIAN)
-    #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-         ( (*((PRUint32 *)(pbptr)) >> 8) | (0xFF << 24) )
-  #elif (_MSC_VER >= 1300) 
+#if defined(IS_BIG_ENDIAN)
+  #define GFX_NTOHL(x) (x)
+  #define GFX_HAVE_CHEAP_NTOHL
+#elif defined(_WIN32)
+  #if (_MSC_VER >= 1300) 
     #include <stdlib.h>
     #pragma intrinsic(_byteswap_ulong)
-    #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-         ( (_byteswap_ulong(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24) )
+    #define GFX_NTOHL(x) _byteswap_ulong(x)
+    #define GFX_HAVE_CHEAP_NTOHL
   #else
     
-    #define GFX_BYTESWAP24FF(x) \
-         ( ((((x) << 16) | ((x) >> 16)) | 0xFF00FF00) & ((x) | 0xFFFF00FF) )
-    #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-         ( GFX_BYTESWAP24FF(*((PRUint32 *)(pbptr))) )
-    #endif
+    #define GFX_NTOHL(x) \
+         ( (PR_ROTATE_RIGHT32((x),8) & 0xFF00FF00) | \
+           (PR_ROTATE_LEFT32((x),8)  & 0x00FF00FF) )
+  #endif
 #else
   #include "prio.h" 
-  #define GFX_0XFF_PPIXEL_FROM_BPTR(pbptr) \
-       ( (ntohl(*((PRUint32 *)(pbptr))) >> 8) | (0xFF << 24) )
+  #define GFX_NTOHL(x) ntohl(x)
+  #define GFX_HAVE_CHEAP_NTOHL
 #endif
+
+
+
+
+
+
+
+
+
+
+
+#if defined(GFX_HAVE_CHEAP_NTOHL)
+  #define GFX_0XFF_PPIXEL_FROM_UINT32(x) \
+       ( (GFX_NTOHL(x) >> 8) | (0xFF << 24) )
+#else
+  
+  #define GFX_0XFF_PPIXEL_FROM_UINT32(x) \
+       ( (PR_ROTATE_LEFT32((x),16) | 0xFF00FF00) & ((x) | 0xFFFF00FF) )
+#endif
+
+#define GFX_0XFF_PPIXEL_FROM_BPTR(x) \
+     ( GFX_0XFF_PPIXEL_FROM_UINT32(GFX_UINT32_FROM_BPTR((x),0)) )
+
+
+
+
+
+
+
+
+
+#define GFX_BLOCK_RGB_TO_FRGB(from,to) \
+  PR_BEGIN_MACRO \
+    PRUint32 m0 = GFX_UINT32_FROM_BPTR(from,0), \
+             m1 = GFX_UINT32_FROM_BPTR(from,1), \
+             m2 = GFX_UINT32_FROM_BPTR(from,2), \
+             rgbr = GFX_NTOHL(m0), \
+             gbrg = GFX_NTOHL(m1), \
+             brgb = GFX_NTOHL(m2), \
+             p0, p1, p2, p3; \
+    p0 = 0xFF000000 | ((rgbr) >>  8); \
+    p1 = 0xFF000000 | ((rgbr) << 16) | ((gbrg) >> 16); \
+    p2 = 0xFF000000 | ((gbrg) <<  8) | ((brgb) >> 24); \
+    p3 = 0xFF000000 | (brgb); \
+    to[0] = p0; to[1] = p1; to[2] = p2; to[3] = p3; \
+  PR_END_MACRO
 
 
 
