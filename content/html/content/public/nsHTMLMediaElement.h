@@ -209,10 +209,8 @@ public:
   
   
   
-  
   static PRBool CanHandleMediaType(const char* aMIMEType,
-                                   const char*** aSupportedCodecs,
-                                   const char*** aMaybeSupportedCodecs);
+                                   const char*** aSupportedCodecs);
 
   
   
