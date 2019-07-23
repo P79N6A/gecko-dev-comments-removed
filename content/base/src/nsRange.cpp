@@ -256,6 +256,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsRange)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mStartParent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mEndParent)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mRoot)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
@@ -337,17 +338,6 @@ nsRange::ContentRemoved(nsIDocument* aDocument,
     mEndParent = container;
     mEndOffset = aIndexInContainer;
   }
-}
-
-void
-nsRange::NodeWillBeDestroyed(const nsINode* aNode)
-{
-  NS_ASSERTION(mIsPositioned, "shouldn't be notified if not positioned");
-
-  
-  
-  
-  DoSetRange(nsnull, 0, nsnull, 0, nsnull);
 }
 
 void
