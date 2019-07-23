@@ -104,6 +104,9 @@ function setLabelForNode(aNode, aLabel, aIsLabelFlag)
 function commonDialogOnLoad()
 {
   
+  document.getElementById("filler").maxWidth = screen.availWidth;
+
+  
 #ifdef XP_MACOSX
   setElementText("info.title", gCommonDialogParam.GetString(12), true);
 #else
