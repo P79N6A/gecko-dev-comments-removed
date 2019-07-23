@@ -1054,8 +1054,19 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   
   
   
-  if (mDocument)
-    mDocument->OnPageShow(restoring, nsnull);
+  if (mDocument) {
+    
+    window = mDocument->GetWindow();
+    if (window) {
+      nsIDocShell *docShell = window->GetDocShell();
+      PRBool beingDestroyed;
+      if (docShell &&
+          NS_SUCCEEDED(docShell->IsBeingDestroyed(&beingDestroyed)) &&
+          !beingDestroyed) {
+        mDocument->OnPageShow(restoring, nsnull);
+      }
+    }
+  }
 
   
   
@@ -4002,7 +4013,7 @@ NS_IMETHODIMP
 DocumentViewerImpl::ExitPrintPreview()
 {
   printf("TEST-INFO ExitPrintPreview: mPrintEngine=%p, GetIsPrinting()=%d\n",
-         mPrintEngine.get(), GetIsPrinting());
+         static_cast<void*>(mPrintEngine.get()), GetIsPrinting());
   if (GetIsPrinting())
     return NS_ERROR_FAILURE;
   NS_ENSURE_TRUE(mPrintEngine, NS_ERROR_FAILURE);
