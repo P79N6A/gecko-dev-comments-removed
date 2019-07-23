@@ -226,11 +226,7 @@ public:
 
 
   nsIFrame* GetCaretFrame() {
-    if (mBuildCaret) {
-      NS_ASSERTION(mCaretStates.Length() > 0, "Not enough presshells");
-      return mCaretStates[mCaretStates.Length() - 1];
-    }
-    return nsnull;
+    return CurrentPresShellState()->mCaretFrame;
   }
   
 
@@ -290,18 +286,29 @@ private:
   
   void* operator new(size_t sz) CPP_THROW_NEW;
   
-  nsIFrame*              mReferenceFrame;
-  nsIFrame*              mMovingFrame;
-  nsIFrame*              mIgnoreScrollFrame;
-  PLArenaPool            mPool;
-  nsCOMPtr<nsISelection> mBoundingSelection;
-  nsTArray<nsIFrame*>    mCaretStates;
-  nsTArray<nsIFrame*>    mFramesMarkedForDisplay;
-  PRPackedBool           mBuildCaret;
-  PRPackedBool           mEventDelivery;
-  PRPackedBool           mIsBackgroundOnly;
-  PRPackedBool           mIsAtRootOfPseudoStackingContext;
-  PRPackedBool           mPaintAllFrames;
+  struct PresShellState {
+    nsIPresShell* mPresShell;
+    nsIFrame*     mCaretFrame;
+    PRUint32      mFirstFrameMarkedForDisplay;
+  };
+  PresShellState* CurrentPresShellState() {
+    NS_ASSERTION(mPresShellStates.Length() > 0,
+                 "Someone forgot to enter a presshell");
+    return &mPresShellStates[mPresShellStates.Length() - 1];
+  }
+  
+  nsIFrame*                      mReferenceFrame;
+  nsIFrame*                      mMovingFrame;
+  nsIFrame*                      mIgnoreScrollFrame;
+  PLArenaPool                    mPool;
+  nsCOMPtr<nsISelection>         mBoundingSelection;
+  nsAutoTArray<PresShellState,8> mPresShellStates;
+  nsAutoTArray<nsIFrame*,100>    mFramesMarkedForDisplay;
+  PRPackedBool                   mBuildCaret;
+  PRPackedBool                   mEventDelivery;
+  PRPackedBool                   mIsBackgroundOnly;
+  PRPackedBool                   mIsAtRootOfPseudoStackingContext;
+  PRPackedBool                   mPaintAllFrames;
 };
 
 class nsDisplayItem;
