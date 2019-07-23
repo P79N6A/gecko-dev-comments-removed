@@ -1195,15 +1195,16 @@ SessionStoreService.prototype = {
       tabData.entries[0] = { url: browser.currentURI.spec };
       tabData.index = 1;
     }
-    else if (browser.currentURI.spec == "about:blank" &&
-             browser.userTypedValue) {
-      
-      
-      
-      tabData.entries[0] = { url: browser.userTypedValue };
-      tabData.index = 1;
-    }
+
     
+    
+    
+    
+    if (browser.userTypedValue) {
+      tabData.userTypedValue = browser.userTypedValue;
+      tabData.userTypedClear = browser.userTypedClear;
+    }
+
     var disallow = [];
     for (var i = 0; i < CAPABILITIES.length; i++)
       if (!browser.docShell["allow" + CAPABILITIES[i]])
@@ -2126,7 +2127,15 @@ SessionStoreService.prototype = {
       browser.__SS_restore = this.restoreDocument_proxy;
       browser.addEventListener("load", browser.__SS_restore, true);
     }
+
     
+    
+    if (tabData.userTypedValue) {
+      browser.userTypedValue = tabData.userTypedValue;
+      if (tabData.userTypedClear)
+        browser.loadURI(tabData.userTypedValue, null, null, true);
+    }
+
     aWindow.setTimeout(function(){ _this.restoreHistory(aWindow, aTabs, aTabData, aIdMap); }, 0);
   },
 
