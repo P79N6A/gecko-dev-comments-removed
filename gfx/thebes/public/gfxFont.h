@@ -1419,6 +1419,9 @@ public:
     
     PRUint32 mCachedWords;
     
+    
+    PRUint32 mCacheGeneration;
+    
     void Dump(FILE* aOutput);
 #endif
 

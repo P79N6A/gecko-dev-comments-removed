@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef NSTEXTFRAMEUTILS_H_
 #define NSTEXTFRAMEUTILS_H_
 
@@ -78,7 +79,17 @@ public:
     
     
     
-    TEXT_HAS_TRAILING_BREAK  = 0x4000000
+    TEXT_HAS_TRAILING_BREAK  = 0x4000000,
+    TEXT_TRAILING_ARABICCHAR = 0x8000000,
+    TEXT_INCOMING_ARABICCHAR = 0x10000000
+  };
+
+  
+  
+  enum {
+    INCOMING_NONE       = 0,
+    INCOMING_WHITESPACE = 1,
+    INCOMING_ARABICCHAR = 2
   };
 
   
@@ -114,14 +125,14 @@ public:
   static PRUnichar* TransformText(const PRUnichar* aText, PRUint32 aLength,
                                   PRUnichar* aOutput,
                                   CompressionMode aCompression,
-                                  PRPackedBool* aIncomingWhitespace,
+                                  PRUint8 * aIncomingFlags,
                                   gfxSkipCharsBuilder* aSkipChars,
                                   PRUint32* aAnalysisFlags);
 
   static PRUint8* TransformText(const PRUint8* aText, PRUint32 aLength,
                                 PRUint8* aOutput,
                                 CompressionMode aCompression,
-                                PRPackedBool* aIncomingWhitespace,
+                                PRUint8 * aIncomingFlags,
                                 gfxSkipCharsBuilder* aSkipChars,
                                 PRUint32* aAnalysisFlags);
 

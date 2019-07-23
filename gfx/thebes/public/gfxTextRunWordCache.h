@@ -46,7 +46,15 @@
 
 class THEBES_API gfxTextRunWordCache {
 public:
-    enum { TEXT_IN_CACHE = 0x10000000 };
+    enum {
+      TEXT_IN_CACHE = 0x10000000,
+      
+
+
+
+
+      TEXT_INCOMING_ARABICCHAR = 0x10000000
+    };
 
     
 

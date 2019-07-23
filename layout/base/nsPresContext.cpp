@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
@@ -765,6 +766,13 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
     
     
     mPrefChangePendingNeedsReflow = PR_TRUE;
+  }
+  if (StringBeginsWith(prefName, NS_LITERAL_CSTRING("bidi."))) {
+    
+    mPrefChangePendingNeedsReflow = PR_TRUE;
+
+    
+    
   }
   
   if (!mPrefChangedTimer)

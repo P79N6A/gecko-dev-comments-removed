@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsBidiUtils_h__
 #define nsBidiUtils_h__
 
@@ -154,6 +155,19 @@ typedef enum nsCharType nsCharType;
 
 
   nsresult Conv_06_FE_WithReverse(const nsString& aSrc, nsString& aDst, PRUint32 aDir);
+
+  
+
+
+
+
+
+
+
+
+
+
+  PRUnichar HandleNumberInChar(PRUnichar aChar, PRBool aPrevCharArabic, PRUint32 aNumFlag);
 
   
 
