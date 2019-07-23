@@ -216,8 +216,9 @@ nsFormFillController::SetPopupOpen(PRBool aPopupOpen)
       presShell->ScrollContentIntoView(content,
                                        NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
                                        NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
-
-      mFocusedPopup->OpenAutocompletePopup(this, mFocusedInput);
+      
+      if (mFocusedPopup)
+        mFocusedPopup->OpenAutocompletePopup(this, mFocusedInput);
     } else
       mFocusedPopup->ClosePopup();
   }
