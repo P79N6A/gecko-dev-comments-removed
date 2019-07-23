@@ -44,13 +44,6 @@
 #include "nsRect.h"
 #include "nsEvent.h"
 #include "nsStringGlue.h"
-
-
-
-
-#ifdef WIN32
-#undef ERROR
-#endif
 #include "nsCOMPtr.h"
 #include "nsIAtom.h"
 #include "nsIDOMKeyEvent.h"
