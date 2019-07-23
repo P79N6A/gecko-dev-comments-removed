@@ -577,6 +577,11 @@ public:
 
 
 
+        TEXT_ABSOLUTE_SPACING        = 0x0020,
+        
+
+
+
         TEXT_ENABLE_HYPHEN_BREAKS    = 0x0040,
         
 
@@ -680,9 +685,9 @@ public:
         NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].IsClusterStart();
     }
-    PRBool IsLigatureGroupStart(PRUint32 aPos) {
+    PRBool IsLigatureContinuation(PRUint32 aPos) {
         NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
-        return mCharacterGlyphs[aPos].IsLigatureGroupStart();
+        return mCharacterGlyphs[aPos].IsLigatureContinuation();
     }
     PRBool CanBreakLineBefore(PRUint32 aPos) {
         NS_ASSERTION(0 <= aPos && aPos < mCharacterCount, "aPos out of range");
@@ -968,21 +973,12 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
     class CompressedGlyph {
     public:
         CompressedGlyph() { mValue = 0; }
 
         enum {
+            
             
             
             
@@ -1000,20 +996,31 @@ public:
 
             
             
-            
-
-            
+            TAG_MASK                  = 0x000000FFU,
             
             
             
+            TAG_MISSING               = 0x00U,
             
-            FLAG_NOT_MISSING              = 0x01,
-            FLAG_NOT_CLUSTER_START        = 0x02,
-            FLAG_NOT_LIGATURE_GROUP_START = 0x04,
-            FLAG_LOW_SURROGATE            = 0x08,
             
-            GLYPH_COUNT_MASK = 0x00FFFF00U,
-            GLYPH_COUNT_SHIFT = 8
+            
+            TAG_COMPLEX_CLUSTER       = 0x01U,
+            
+            
+            
+            
+            TAG_LIGATURE_CONTINUATION = 0x21U,
+            
+            
+            
+            
+            
+            
+            TAG_LOW_SURROGATE         = 0x80U,
+            
+            
+            
+            TAG_CLUSTER_CONTINUATION  = 0x81U
         };
 
         
@@ -1032,19 +1039,21 @@ public:
         }
 
         PRBool IsSimpleGlyph() const { return (mValue & FLAG_IS_SIMPLE_GLYPH) != 0; }
+        PRBool IsComplex(PRUint32 aTag) const { return (mValue & (FLAG_IS_SIMPLE_GLYPH|TAG_MASK))  == aTag; }
+        PRBool IsMissing() const { return IsComplex(TAG_MISSING); }
+        PRBool IsComplexCluster() const { return IsComplex(TAG_COMPLEX_CLUSTER); }
+        PRBool IsComplexOrMissing() const {
+            return IsComplex(TAG_COMPLEX_CLUSTER) || IsComplex(TAG_MISSING);
+        }
+        PRBool IsLigatureContinuation() const { return IsComplex(TAG_LIGATURE_CONTINUATION); }
+        PRBool IsClusterContinuation() const { return IsComplex(TAG_CLUSTER_CONTINUATION); }
+        PRBool IsLowSurrogate() const { return IsComplex(TAG_LOW_SURROGATE); }
+        PRBool IsClusterStart() const { return (mValue & (FLAG_IS_SIMPLE_GLYPH|0x80U)) != 0x80U; }
+
         PRUint32 GetSimpleAdvance() const { return (mValue & ADVANCE_MASK) >> ADVANCE_SHIFT; }
         PRUint32 GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
 
-        PRBool IsMissing() const { return (mValue & (FLAG_NOT_MISSING|FLAG_IS_SIMPLE_GLYPH)) == 0; }
-        PRBool IsLowSurrogate() const {
-            return (mValue & (FLAG_LOW_SURROGATE|FLAG_IS_SIMPLE_GLYPH)) == FLAG_LOW_SURROGATE;
-        }
-        PRBool IsClusterStart() const {
-            return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_CLUSTER_START);
-        }
-        PRBool IsLigatureGroupStart() const {
-            return (mValue & FLAG_IS_SIMPLE_GLYPH) || !(mValue & FLAG_NOT_LIGATURE_GROUP_START);
-        }
+        PRUint32 GetComplexTag() const { return mValue & TAG_MASK; }
 
         PRBool CanBreakBefore() const { return (mValue & FLAG_CAN_BREAK_BEFORE) != 0; }
         
@@ -1064,36 +1073,15 @@ public:
                 (aAdvanceAppUnits << ADVANCE_SHIFT) | aGlyph;
             return *this;
         }
-        CompressedGlyph& SetComplex(PRBool aClusterStart, PRBool aLigatureStart,
-                PRUint32 aGlyphCount) {
-            mValue = (mValue & FLAG_CAN_BREAK_BEFORE) | FLAG_NOT_MISSING |
-                (aClusterStart ? 0 : FLAG_NOT_CLUSTER_START) |
-                (aLigatureStart ? 0 : FLAG_NOT_LIGATURE_GROUP_START) |
-                (aGlyphCount << GLYPH_COUNT_SHIFT);
+        CompressedGlyph& SetComplex(PRUint32 aTag) {
+            mValue = (mValue & FLAG_CAN_BREAK_BEFORE) | aTag;
             return *this;
         }
-        
-
-
-        CompressedGlyph& SetMissing(PRUint32 aGlyphCount) {
-            mValue = (mValue & FLAG_CAN_BREAK_BEFORE) |
-                (aGlyphCount << GLYPH_COUNT_SHIFT);
-            return *this;
-        }
-        
-
-
-
-        CompressedGlyph& SetLowSurrogate() {
-            mValue = (mValue & FLAG_CAN_BREAK_BEFORE) | FLAG_NOT_MISSING |
-                FLAG_LOW_SURROGATE;
-            return *this;
-        }
-        PRUint32 GetGlyphCount() const {
-            NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
-            return (mValue & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT;
-        }
-
+        CompressedGlyph& SetMissing() { return SetComplex(TAG_MISSING); }
+        CompressedGlyph& SetComplexCluster() { return SetComplex(TAG_COMPLEX_CLUSTER); }
+        CompressedGlyph& SetLowSurrogate() { return SetComplex(TAG_LOW_SURROGATE); }
+        CompressedGlyph& SetLigatureContinuation() { return SetComplex(TAG_LIGATURE_CONTINUATION); }
+        CompressedGlyph& SetClusterContinuation() { return SetComplex(TAG_CLUSTER_CONTINUATION); }
     private:
         PRUint32 mValue;
     };
@@ -1105,7 +1093,10 @@ public:
     struct DetailedGlyph {
         
 
-        PRUint32 mGlyphID;
+        PRUint32 mIsLastGlyph:1;
+        
+
+        PRUint32 mGlyphID:31;
         
 
 
@@ -1120,7 +1111,7 @@ public:
         PRUint32          mCharacterOffset; 
     };
 
-    class THEBES_API GlyphRunIterator {
+    class GlyphRunIterator {
     public:
         GlyphRunIterator(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aLength)
           : mTextRun(aTextRun), mStartOffset(aStart), mEndOffset(aStart + aLength) {
@@ -1188,9 +1179,10 @@ public:
 
 
 
-
-    void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
-        NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
+    void SetCharacterGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
+        NS_ASSERTION(aCharIndex > 0 ||
+                     (aGlyph.IsClusterStart() && !aGlyph.IsLigatureContinuation()),
+                     "First character must be the start of a cluster and can't be a ligature continuation!");
         if (mCharacterGlyphs) {
             mCharacterGlyphs[aCharIndex] = aGlyph;
         }
@@ -1198,9 +1190,13 @@ public:
             mDetailedGlyphs[aCharIndex] = nsnull;
         }
     }
-    void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
-                   const DetailedGlyph *aGlyphs);
-    void SetMissingGlyph(PRUint32 aCharIndex, PRUint32 aUnicodeChar);
+    
+
+
+
+    void SetDetailedGlyphs(PRUint32 aCharIndex, const DetailedGlyph *aGlyphs,
+                           PRUint32 aNumGlyphs);
+    void SetMissingGlyph(PRUint32 aCharIndex, PRUint32 aChar);
     void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, PRUint32 aCharIndex);
     
     void FetchGlyphExtents(gfxContext *aRefContext);
@@ -1209,6 +1205,8 @@ public:
     
     const CompressedGlyph *GetCharacterGlyphs() { return mCharacterGlyphs; }
     const DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) {
+        
+        
         return mDetailedGlyphs ? mDetailedGlyphs[aCharIndex].get() : nsnull;
     }
     PRBool HasDetailedGlyphs() { return mDetailedGlyphs.get() != nsnull; }
@@ -1256,7 +1254,12 @@ private:
 
     
     DetailedGlyph *AllocateDetailedGlyphs(PRUint32 aCharIndex, PRUint32 aCount);
+    
+    
+    PRInt32 ComputeClusterAdvance(PRUint32 aClusterOffset);
 
+    void GetAdjustedSpacing(PRUint32 aStart, PRUint32 aEnd,
+                            PropertyProvider *aProvider, PropertyProvider::Spacing *aSpacing);
     
     
     
