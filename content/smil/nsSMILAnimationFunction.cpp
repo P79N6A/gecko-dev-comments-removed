@@ -474,7 +474,7 @@ nsSMILAnimationFunction::AccumulateResult(const nsSMILValueArray& aValues,
 {
   if (!IsToAnimation() && GetAccumulate() && mRepeatIteration)
   {
-    nsSMILValue lastValue = aValues[aValues.Length() - 1];
+    const nsSMILValue& lastValue = aValues[aValues.Length() - 1];
 
     
     
