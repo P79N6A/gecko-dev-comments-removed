@@ -5147,11 +5147,11 @@ js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc)
 }
 
 static intN
-ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
+ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
                    jsbytecode **pcstack)
 {
     intN pcdepth, nuses, ndefs;
-    jsbytecode *begin;
+    jsbytecode *pc;
     JSOp op;
     const JSCodeSpec *cs;
     ptrdiff_t oplen;
@@ -5167,10 +5167,9 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 
 
-    LOCAL_ASSERT(script->main <= pc && pc < script->code + script->length);
+    LOCAL_ASSERT(script->main <= target && target < script->code + script->length);
     pcdepth = 0;
-    begin = pc;
-    for (pc = script->main; pc < begin; pc += oplen) {
+    for (pc = script->main; pc < target; pc += oplen) {
         op = (JSOp) *pc;
         if (op == JSOP_TRAP)
             op = JS_GetTrapOpcode(cx, script, pc);
@@ -5205,7 +5204,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
             ptrdiff_t jmpoff, jmplen;
 
             jmpoff = js_GetSrcNoteOffset(sn, 0);
-            if (pc + jmpoff < begin) {
+            if (pc + jmpoff < target) {
                 pc += jmpoff;
                 op = (JSOp) *pc;
                 JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
@@ -5213,7 +5212,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
                 oplen = cs->length;
                 JS_ASSERT(oplen > 0);
                 jmplen = GetJumpOffset(pc, pc);
-                if (pc + jmplen < begin) {
+                if (pc + jmplen < target) {
                     oplen = (uintN) jmplen;
                     continue;
                 }
@@ -5315,7 +5314,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
         }
         pcdepth += ndefs;
     }
-    LOCAL_ASSERT(pc == begin);
+    LOCAL_ASSERT(pc == target);
     return pcdepth;
 
 #undef LOCAL_ASSERT

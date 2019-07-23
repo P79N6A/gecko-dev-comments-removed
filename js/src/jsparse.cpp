@@ -647,7 +647,7 @@ js_CompileScript(JSContext *cx, JSObject *obj, JSPrincipals *principals,
             JS_ASSERT(code < end);
             op = (JSOp) *code;
             cs = &js_CodeSpec[op];
-            len = cs->length > 0
+            len = (cs->length > 0)
                   ? (uintN) cs->length
                   : js_GetVariableBytecodeLength(code);
             if (JOF_TYPE(cs->format) == JOF_LOCAL ||
