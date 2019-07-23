@@ -4601,17 +4601,18 @@ nsWindowSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_FAILED(rv) ? rv : NS_SUCCESS_I_DID_SOMETHING;
   }
 
-  
-  
-  if (IsEventName(id)) {
-    return nsEventReceiverSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
-  }
-
-  if (win->IsInnerWindow()) {
+  if (JSVAL_IS_STRING(id)) {
     
     
+    
+    if (IsEventName(id)) {
+      return nsEventReceiverSH::SetProperty(wrapper, cx, obj, id, vp, _retval);
+    }
 
-    if (JSVAL_IS_STRING(id)) {
+    if (win->IsInnerWindow()) {
+      
+      
+
       JSString *str = JSVAL_TO_STRING(id);
 
       ::JS_DefineUCProperty(cx, obj, ::JS_GetStringChars(str),
