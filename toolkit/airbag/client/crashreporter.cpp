@@ -434,6 +434,21 @@ int main(int argc, char** argv)
     
     queryParameters.erase("ServerURL");
 
+    
+    const char *appfile = getenv("MOZ_CRASHREPORTER_RESTART_XUL_APP_FILE");
+    if (appfile && *appfile) {
+      const char prefix[] = "XUL_APP_FILE=";
+      char *env = (char*) malloc(strlen(appfile)+strlen(prefix));
+      if (!env) {
+        UIError("Out of memory");
+        return 0;
+      }
+      strcpy(env, prefix);
+      strcat(env, appfile);
+      putenv(env);
+      free(env);
+    }
+
     vector<string> restartArgs;
 
     ostringstream paramName;
