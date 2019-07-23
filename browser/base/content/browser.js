@@ -115,8 +115,9 @@ var gEditUIVisible = true;
 
 __defineGetter__("gPrefService", function() {
   delete this.gPrefService;
-  return this.gPrefService = Cc["@mozilla.org/preferences-service;1"].
-                             getService(Ci.nsIPrefBranch2);
+  return this.gPrefService = Cc["@mozilla.org/preferences-service;1"]
+                               .getService(Ci.nsIPrefBranch2)
+                               .QueryInterface(Ci.nsIPrefService);
 });
 
 __defineGetter__("PluralForm", function() {
@@ -1526,7 +1527,7 @@ function initializeSanitizer()
     gPrefService.clearUserPref(kDidSanitizeDomain);
     
     
-    gPrefService.QueryInterface(Ci.nsIPrefService).savePrefFile(null);
+    gPrefService.savePrefFile(null);
   }
 
   
