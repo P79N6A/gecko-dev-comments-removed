@@ -299,17 +299,31 @@ protected:
   void InitPositionFromAnchorAlign(const nsAString& aAnchor,
                                    const nsAString& aAlign);
 
-  void AdjustPositionForAnchorAlign ( PRInt32* ioXPos, PRInt32* ioYPos, const nsSize & inParentRect,
-                                      PRBool* outFlushWithTopBottom ) ;
+  
+  
+  
+  nsPoint AdjustPositionForAnchorAlign(const nsRect& anchorRect, PRBool& aHFlip, PRBool& aVFlip);
 
-  PRBool IsMoreRoomOnOtherSideOfParent ( PRBool inFlushAboveBelow, PRInt32 inScreenViewLocX, PRInt32 inScreenViewLocY,
-                                           const nsRect & inScreenParentFrameRect, PRInt32 inScreenTopTwips, PRInt32 inScreenLeftTwips,
-                                           PRInt32 inScreenBottomTwips, PRInt32 inScreenRightTwips ) ;
 
-  void MovePopupToOtherSideOfParent ( PRBool inFlushAboveBelow, PRInt32* ioXPos, PRInt32* ioYPos, 
-                                           PRInt32* ioScreenViewLocX, PRInt32* ioScreenViewLocY,
-                                           const nsRect & inScreenParentFrameRect, PRInt32 inScreenTopTwips, PRInt32 inScreenLeftTwips,
-                                           PRInt32 inScreenBottomTwips, PRInt32 inScreenRightTwips ) ;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nscoord FlipOrResize(nscoord& aScreenPoint, nscoord aSize, 
+                       nscoord aScreenBegin, nscoord aScreenEnd,
+                       nscoord aAnchorBegin, nscoord aAnchorEnd,
+                       nscoord aMarginBegin, nscoord aMarginEnd,
+                       nscoord aOffsetForContextMenu, PRBool aFlip);
 
   
   void MoveToAttributePosition();

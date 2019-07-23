@@ -151,6 +151,46 @@ var popupTests = [
 },
 {
   
+  testname: "open popup anchored with margin",
+  events: [ "popupshowing thepopup", "popupshown thepopup" ],
+  autohide: "thepopup",
+  steps: ["before_start", "before_end", "after_start", "after_end",
+          "start_before", "start_after", "end_before", "end_after", "overlap"],
+  test: function(testname, step) {
+    gMenuPopup.setAttribute("style", "margin: 10px;");
+    gMenuPopup.openPopup(gTrigger, step, 0, 0, false, false);
+  },
+  result: function(testname, step) {
+    var rightmod = step == "before_end" || step == "after_end" ||
+                   step == "start_before" || step == "start_after";
+    var bottommod = step == "before_start" || step == "before_end" ||
+                    step == "start_after" || step == "end_after";
+    compareEdge(gTrigger, gMenuPopup, step, rightmod ? -10 : 10, bottommod ? -10 : 10, testname);
+    gMenuPopup.removeAttribute("style");
+  }
+},
+{
+  
+  testname: "open popup anchored with negative margin",
+  events: [ "popupshowing thepopup", "popupshown thepopup" ],
+  autohide: "thepopup",
+  steps: ["before_start", "before_end", "after_start", "after_end",
+          "start_before", "start_after", "end_before", "end_after", "overlap"],
+  test: function(testname, step) {
+    gMenuPopup.setAttribute("style", "margin: -8px;");
+    gMenuPopup.openPopup(gTrigger, step, 0, 0, false, false);
+  },
+  result: function(testname, step) {
+    var rightmod = step == "before_end" || step == "after_end" ||
+                   step == "start_before" || step == "start_after";
+    var bottommod = step == "before_start" || step == "before_end" ||
+                    step == "start_after" || step == "end_after";
+    compareEdge(gTrigger, gMenuPopup, step, rightmod ? 8 : -8, bottommod ? 8 : -8, testname);
+    gMenuPopup.removeAttribute("style");
+  }
+},
+{
+  
   
   testname: "open popup anchored with attribute",
   events: [ "popupshowing thepopup", "popupshown thepopup" ],
