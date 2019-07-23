@@ -1544,6 +1544,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (aBody && httpChannel && !method.EqualsLiteral("GET")) {
     nsXPIDLString serial;
     nsCOMPtr<nsIInputStream> postDataStream;
+    nsCAutoString charset(NS_LITERAL_CSTRING("UTF-8"));
 
     PRUint16 dataType;
     rv = aBody->GetDataType(&dataType);
@@ -1567,6 +1568,11 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
         if (doc) {
           nsCOMPtr<nsIDOMSerializer> serializer(do_CreateInstance(NS_XMLSERIALIZER_CONTRACTID, &rv));
           if (NS_FAILED(rv)) return rv;
+
+          nsCOMPtr<nsIDocument> baseDoc(do_QueryInterface(doc));
+          if (baseDoc) {
+            charset = baseDoc->GetDocumentCharacterSet();
+          }
 
           
           
@@ -1641,7 +1647,10 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
           contentType.IsEmpty()) {
         contentType = NS_LITERAL_CSTRING("application/xml");
       }
-      
+
+      contentType.AppendLiteral(";charset=");
+      contentType.Append(charset);
+
       rv = uploadChannel->SetUploadStream(postDataStream, contentType, -1);
       
       if (httpChannel) {
