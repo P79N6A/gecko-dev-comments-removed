@@ -10626,7 +10626,8 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
     return NS_OK;
   }
   nsIFrame* docRootFrame = aParentFrame->GetFirstChild(nsnull);
-  if (!docRootFrame) {
+  nsIFrame* prevDocRootFrame = prevPageContentFrame->GetFirstChild(nsnull);
+  if (!docRootFrame || !prevDocRootFrame) {
     
     return NS_ERROR_UNEXPECTED;
   }
@@ -10641,12 +10642,20 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
   nsFrameConstructorState state(mPresShell, aParentFrame,
                                 mInitialContainingBlock,
                                 mInitialContainingBlock);
+
+  
+  
   
   
   for (nsIFrame* fixed = firstFixed; fixed; fixed = fixed->GetNextSibling()) {
-    nsresult rv = ConstructFrame(state, fixed->GetContent(),
-                                 docRootFrame, fixedPlaceholders);
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsIFrame* prevPlaceholder = nsnull;
+    mPresShell->GetPlaceholderFrameFor(fixed, &prevPlaceholder);
+    if (prevPlaceholder &&
+        nsLayoutUtils::IsProperAncestorFrame(prevDocRootFrame, prevPlaceholder)) {
+      nsresult rv = ConstructFrame(state, fixed->GetContent(),
+                                   docRootFrame, fixedPlaceholders);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
 
   
