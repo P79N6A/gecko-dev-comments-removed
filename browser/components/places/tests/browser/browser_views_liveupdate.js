@@ -297,7 +297,7 @@ function searchItemInView(aItemId, aView) {
 
 
 function getNodeForToolbarItem(aItemId) {
-  var toolbar = document.getElementById("bookmarksBarContent");
+  var toolbar = document.getElementById("PlacesToolbarItems");
 
   function findNode(aContainer) {
     var children = aContainer.childNodes;
@@ -305,17 +305,17 @@ function getNodeForToolbarItem(aItemId) {
       var child = children[i];
 
       
-      if (!child.node) {
+      if (!child._placesNode) {
         staticNodes++;
         continue;
       }
 
-      if (child.node.itemId == aItemId)
-        return [child.node, i - staticNodes];
+      if (child._placesNode.itemId == aItemId)
+        return [child._placesNode, i - staticNodes];
 
       
       
-      if (PlacesUtils.nodeIsFolder(child.node)) {
+      if (PlacesUtils.nodeIsFolder(child._placesNode)) {
         var popup = child.lastChild;
         popup.showPopup(popup);
         var foundNode = findNode(popup);
@@ -346,17 +346,17 @@ function getNodeForMenuItem(aItemId) {
       var child = children[i];
 
       
-      if (!child.node) {
+      if (!child._placesNode) {
         staticNodes++;
         continue;
       }
 
-      if (child.node.itemId == aItemId)
-        return [child.node, i - staticNodes];
+      if (child._placesNode.itemId == aItemId)
+        return [child._placesNode, i - staticNodes];
 
       
       
-      if (PlacesUtils.nodeIsFolder(child.node)) {
+      if (PlacesUtils.nodeIsFolder(child._placesNode)) {
         var popup = child.lastChild;
         fakeOpenPopup(popup);
         var foundNode = findNode(popup);

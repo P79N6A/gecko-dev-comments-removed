@@ -1789,7 +1789,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 }
 
 
-.toolbar-drop-indicator {
+#PlacesToolbarDropIndicator {
   list-style-image: url(chrome://browser/skin/places/toolbarDropMarker.png);
 }
 

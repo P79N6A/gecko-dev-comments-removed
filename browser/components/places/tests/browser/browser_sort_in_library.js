@@ -103,9 +103,9 @@ let prevSortKey = null;
 function checkSort(aTree, aSortingMode, aSortingAnno) {
   
   
-  let res = aTree.getResult();
+  let res = aTree.result;
   isnot(res, null,
-        "sanity check: placeContent.getResult() should not return null");
+        "sanity check: placeContent.result should not return null");
 
   
   is(res.sortingMode, aSortingMode,

@@ -569,14 +569,18 @@ var PlacesCommandHook = {
 };
 
 
-var HistoryMenu = {
-  get _ss() {
-    delete this._ss;
-    return this._ss = Cc["@mozilla.org/browser/sessionstore;1"].
-                      getService(Ci.nsISessionStore);
-  },
+function HistoryMenu(aPopupShowingEvent) {
+  XPCOMUtils.defineLazyServiceGetter(this, "_ss",
+                                     "@mozilla.org/browser/sessionstore;1",
+                                     "nsISessionStore");
+  PlacesMenu.call(this, aPopupShowingEvent,
+                  "place:redirectsMode=2&sort=4&maxResults=10");
+}
 
-  toggleRecentlyClosedTabs: function PHM_toggleRecentlyClosedTabs() {
+HistoryMenu.prototype = {
+  __proto__: PlacesMenu.prototype,
+
+  toggleRecentlyClosedTabs: function HM_toggleRecentlyClosedTabs() {
     
     var undoPopup = document.getElementById("historyUndoPopup");
 
@@ -738,18 +742,14 @@ var HistoryMenu = {
       "for (var i = 0; i < " + undoItems.length + "; i++) undoCloseWindow();");
   },
 
-  
+  _onPopupShowing: function HM__onPopupShowing(aEvent) {
+    PlacesMenu.prototype._onPopupShowing.apply(this, arguments);
 
-
-
-
-  onPopupShowing: function PHM_onPopupShowing(aEvent) {
     
     if (aEvent.target != aEvent.currentTarget)
       return;
 
-    var menuPopup = aEvent.target;
-    var resultNode = menuPopup.getResultNode();
+    let resultNode = this.result.root;
     resultNode.containerOpen = true;
     document.getElementById("endHistorySeparator").hidden =
       resultNode.childCount == 0;
@@ -758,20 +758,12 @@ var HistoryMenu = {
     this.toggleRecentlyClosedWindows();
   },
 
-  
-
-
-
-
-  onPopupHidden: function PHM_onPopupHidden(aEvent) {
-    
-    if (aEvent.target != aEvent.currentTarget)
-      return;
-
-    var menuPopup = aEvent.target;
-    var resultNode = menuPopup.getResultNode();
-    if (resultNode.containerOpen)
-      resultNode.containerOpen = false;
+  _onCommand: function HM__onCommand(aEvent) {
+    let placesNode = aEvent.target._placesNode;
+    if (placesNode) {
+      PlacesUIUtils.markPageAsTyped(placesNode.uri);
+      openUILink(placesNode.uri, aEvent, false, true);
+    }
   }
 };
 
@@ -810,12 +802,12 @@ var BookmarksEventHandler = {
       }
     }
 
-    if (target.node && PlacesUtils.nodeIsContainer(target.node)) {
+    if (target._placesNode && PlacesUtils.nodeIsContainer(target._placesNode)) {
       
       
       
       if (target.localName == "menu" || target.localName == "toolbarbutton")
-        PlacesUIUtils.openContainerNodeInTabs(target.node, aEvent);
+        PlacesUIUtils.openContainerNodeInTabs(target._placesNode, aEvent);
     }
     else if (aEvent.button == 1) {
       
@@ -832,104 +824,8 @@ var BookmarksEventHandler = {
 
   onCommand: function BM_onCommand(aEvent) {
     var target = aEvent.originalTarget;
-    if (target.node)
-      PlacesUIUtils.openNodeWithEvent(target.node, aEvent);
-  },
-
-  
-
-
-
-
-
-
-  onPopupShowing: function BM_onPopupShowing(event) {
-    var target = event.originalTarget;
-    if (!target.hasAttribute("placespopup"))
-      return;
-
-    
-    var numNodes = 0;
-    var hasMultipleURIs = false;
-    var currentChild = target.firstChild;
-    while (currentChild) {
-      if (currentChild.localName == "menuitem" && currentChild.node) {
-        if (++numNodes == 2) {
-          hasMultipleURIs = true;
-          break;
-        }
-      }
-      currentChild = currentChild.nextSibling;
-    }
-
-    var itemId = target._resultNode.itemId;
-    var siteURIString = "";
-    if (itemId != -1 && PlacesUtils.itemIsLivemark(itemId)) {
-      var siteURI = PlacesUtils.livemarks.getSiteURI(itemId);
-      if (siteURI)
-        siteURIString = siteURI.spec;
-    }
-
-    if (!siteURIString && target._endOptOpenSiteURI) {
-        target.removeChild(target._endOptOpenSiteURI);
-        target._endOptOpenSiteURI = null;
-    }
-
-    if (!hasMultipleURIs && target._endOptOpenAllInTabs) {
-      target.removeChild(target._endOptOpenAllInTabs);
-      target._endOptOpenAllInTabs = null;
-    }
-
-    if (!(hasMultipleURIs || siteURIString)) {
-      
-      if (target._endOptSeparator) {
-        target.removeChild(target._endOptSeparator);
-        target._endOptSeparator = null;
-        target._endMarker = -1;
-      }
-      return;
-    }
-
-    if (!target._endOptSeparator) {
-      
-      target._endOptSeparator = document.createElement("menuseparator");
-      target._endOptSeparator.className = "bookmarks-actions-menuseparator";
-      target._endMarker = target.childNodes.length;
-      target.appendChild(target._endOptSeparator);
-    }
-
-    if (siteURIString && !target._endOptOpenSiteURI) {
-      
-      target._endOptOpenSiteURI = document.createElement("menuitem");
-      target._endOptOpenSiteURI.className = "openlivemarksite-menuitem";
-      target._endOptOpenSiteURI.setAttribute("targetURI", siteURIString);
-      target._endOptOpenSiteURI.setAttribute("oncommand",
-          "openUILink(this.getAttribute('targetURI'), event);");
-      
-      
-      
-      
-      target._endOptOpenSiteURI.setAttribute("onclick",
-          "checkForMiddleClick(this, event); event.stopPropagation();");
-      target._endOptOpenSiteURI.setAttribute("label",
-          PlacesUIUtils.getFormattedString("menuOpenLivemarkOrigin.label",
-          [target.parentNode.getAttribute("label")]));
-      target.appendChild(target._endOptOpenSiteURI);
-    }
-
-    if (hasMultipleURIs && !target._endOptOpenAllInTabs) {
-        
-        
-        target._endOptOpenAllInTabs = document.createElement("menuitem");
-        target._endOptOpenAllInTabs.className = "openintabs-menuitem";
-        target._endOptOpenAllInTabs.setAttribute("oncommand",
-            "PlacesUIUtils.openContainerNodeInTabs(this.parentNode._resultNode, event);");
-        target._endOptOpenAllInTabs.setAttribute("onclick",
-            "checkForMiddleClick(this, event); event.stopPropagation();");
-        target._endOptOpenAllInTabs.setAttribute("label",
-            gNavigatorBundle.getString("menuOpenAllInTabs.label"));
-        target.appendChild(target._endOptOpenAllInTabs);
-    }
+    if (target._placesNode)
+      PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
   },
 
   fillInBHTooltip: function(aDocument, aEvent) {
@@ -951,8 +847,8 @@ var BookmarksEventHandler = {
       
       
       var tooltipNode = aDocument.tooltipNode;
-      if (tooltipNode.node)
-        node = tooltipNode.node;
+      if (tooltipNode._placesNode)
+        node = tooltipNode._placesNode;
       else {
         
         targetURI = tooltipNode.getAttribute("targetURI");
@@ -1197,4 +1093,36 @@ var PlacesStarButton = {
 
   onItemVisited: function() { },
   onItemMoved: function() { }
+};
+
+
+
+
+let PlacesToolbarHelper = {
+  _place: "place:folder=TOOLBAR",
+  _cachedElt: null,
+
+  onBrowserWindowClose: function PTH_onBrowserWindowClose() {
+    if (this._cachedElt)
+      this._cachedElt._placesView.uninit();
+  },
+
+  updateState: function PTH_updateState() {
+    let currentElt = document.getElementById("PlacesToolbar");
+
+    
+    if (currentElt == this._cachedElt)
+      return;
+
+    if (!this._cachedElt) {
+      
+      new PlacesToolbar(this._place);
+      this._cachedElt = currentElt;
+    }
+    else {
+      
+      this._cachedElt._placesView.uninit();
+      this._cachedElt = null;
+    }
+  }
 };

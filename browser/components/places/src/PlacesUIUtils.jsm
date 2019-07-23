@@ -674,17 +674,19 @@ var PlacesUIUtils = {
 
 
   getViewForNode: function PUIU_getViewForNode(aNode) {
-    var node = aNode;
+    let node = aNode;
 
     
     
-    if (node.localName == "menu" && !node.node &&
-        node.firstChild.getAttribute("type") == "places")
-      return node.firstChild;
+    if (node.localName == "menu" && !node._placesNode &&
+        node.firstChild._placesView)
+      return node.firstChild._placesView;
 
-    while (node) {
-      
-      if (node.getAttribute("type") == "places")
+    
+    while (node instanceof Ci.nsIDOMElement) {
+      if (node._placesView)
+        return node._placesView;
+      if (node.localName == "tree" && node.getAttribute("type") == "places")
         return node;
 
       node = node.parentNode;
@@ -938,124 +940,6 @@ var PlacesUIUtils = {
 
   guessUrlSchemeForUI: function PUU_guessUrlSchemeForUI(aUrlString) {
     return aUrlString.substr(0, aUrlString.indexOf(":"));
-  },
-
-  
-
-
-
-
-
-
-
-
-  createMenuItemForNode:
-  function PUU_createMenuItemForNode(aNode, aDocument) {
-    var element;
-    
-    
-    var document = aDocument || this._getTopBrowserWin().document;
-    var type = aNode.type;
-    if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
-      element = document.createElement("menuseparator");
-    }
-    else {
-      if (PlacesUtils.uriTypes.indexOf(type) != -1) {
-        element = document.createElement("menuitem");
-        element.className = "menuitem-iconic bookmark-item menuitem-with-favicon";
-        element.setAttribute("scheme", this.guessUrlSchemeForUI(aNode.uri));
-      }
-      else if (PlacesUtils.containerTypes.indexOf(type) != -1) {
-        element = document.createElement("menu");
-        element.setAttribute("container", "true");
-
-        if (aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY) {
-          element.setAttribute("query", "true");
-          if (PlacesUtils.nodeIsTagQuery(aNode))
-            element.setAttribute("tagContainer", "true");
-          else if (PlacesUtils.nodeIsDay(aNode))
-            element.setAttribute("dayContainer", "true");
-          else if (PlacesUtils.nodeIsHost(aNode))
-            element.setAttribute("hostContainer", "true");
-        }
-        else if (aNode.itemId != -1) {
-          if (PlacesUtils.nodeIsLivemarkContainer(aNode))
-            element.setAttribute("livemark", "true");
-        }
-
-        var popup = document.createElement("menupopup");
-        popup.setAttribute("placespopup", "true");
-        popup._resultNode = PlacesUtils.asContainer(aNode);
-#ifdef XP_MACOSX
-        
-        
-        
-        
-        popup._startMarker = -1;
-        popup._endMarker = -1;
-#else
-        
-        popup.setAttribute("context", "placesContext");
-#endif
-        element.appendChild(popup);
-        element.className = "menu-iconic bookmark-item";
-      }
-      else
-        throw "Unexpected node";
-
-      element.setAttribute("label", this.getBestTitle(aNode));
-
-      var icon = aNode.icon;
-      if (icon)
-        element.setAttribute("image", icon);
-    }
-    element.node = aNode;
-    element.node._DOMElement = element;
-
-    return element;
-  },
-
-  cleanPlacesPopup: function PUIU_cleanPlacesPopup(aPopup) {
-    
-    
-    var start = aPopup._startMarker != -1 ? aPopup._startMarker + 1 : 0;
-    var end = aPopup._endMarker != -1 ? aPopup._endMarker :
-                                        aPopup.childNodes.length;
-    var items = [];
-    var placesNodeFound = false;
-    for (var i = start; i < end; ++i) {
-      var item = aPopup.childNodes[i];
-      if (item.getAttribute("builder") == "end") {
-        
-        
-        
-        aPopup._endMarker = i;
-        break;
-      }
-      if (item.node) {
-        items.push(item);
-        placesNodeFound = true;
-      }
-      else {
-        
-        if (!placesNodeFound) {
-          
-          
-          aPopup._startMarker++;
-        }
-        else {
-          
-          aPopup._endMarker = i;
-          break;
-        }
-      }
-    }
-
-    for (var i = 0; i < items.length; ++i) {
-      aPopup.removeChild(items[i]);
-      if (aPopup._endMarker != -1)
-        aPopup._endMarker--;
-    }
   },
 
   getBestTitle: function PUIU_getBestTitle(aNode) {

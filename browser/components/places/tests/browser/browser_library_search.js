@@ -204,7 +204,7 @@ function search(aFolderId, aSearchStr, aExpectedScopeButtonId) {
     if (aFolderId !== PlacesUIUtils.leftPaneQueries["History"]) {
       
       
-      var query = queryStringToQuery(contentTree.getResult().root.uri);
+      var query = queryStringToQuery(contentTree.result.root.uri);
       is(query.getFolders()[0], aFolderId,
          "Content tree's folder should be what was selected in the left pane");
     }
@@ -215,7 +215,7 @@ function search(aFolderId, aSearchStr, aExpectedScopeButtonId) {
   var searchBox = doc.getElementById("searchFilter");
   searchBox.value = aSearchStr;
   libraryWin.PlacesSearchBox.search(searchBox.value);
-  query = queryStringToQuery(contentTree.getResult().root.uri);
+  query = queryStringToQuery(contentTree.result.root.uri);
   if (aSearchStr) {
     is(query.searchTerms, aSearchStr,
        "Content tree's searchTerms should be text in search box");
