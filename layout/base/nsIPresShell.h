@@ -676,12 +676,12 @@ public:
 
 
 
-  NS_IMETHOD IsPaintingSuppressed(PRBool* aResult)=0;
+  virtual NS_HIDDEN_(PRBool) IsPaintingSuppressed() const = 0;
 
   
 
 
-  NS_IMETHOD UnsuppressPainting() = 0;
+  virtual NS_HIDDEN_(void) UnsuppressPainting() = 0;
 
   
 
