@@ -181,7 +181,7 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
         
         
         tracker.Insert(nextFrame, kidStatus);
-        reflowStatus = NS_FRAME_MERGE_INCOMPLETE(reflowStatus, kidStatus);
+        NS_MergeReflowStatusInto(&reflowStatus, kidStatus);
       }
       else {
         
@@ -205,7 +205,7 @@ nsAbsoluteContainingBlock::Reflow(nsContainerFrame*        aDelegatingFrame,
   if (NS_FRAME_IS_NOT_COMPLETE(reflowStatus))
     NS_FRAME_SET_OVERFLOW_INCOMPLETE(reflowStatus);
 
-  aReflowStatus = NS_FRAME_MERGE_INCOMPLETE(reflowStatus, aReflowStatus);
+  NS_MergeReflowStatusInto(&aReflowStatus, reflowStatus);
   return NS_OK;
 }
 

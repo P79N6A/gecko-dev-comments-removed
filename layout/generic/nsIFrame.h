@@ -359,15 +359,6 @@ typedef PRUint32 nsReflowStatus;
   status = status & ~NS_FRAME_NOT_COMPLETE | NS_FRAME_OVERFLOW_INCOMPLETE
 
 
-#define NS_FRAME_MERGE_INCOMPLETE(status1, status2)        \
-  ( (NS_FRAME_REFLOW_NEXTINFLOW & (status1 | status2))     \
-  | ( (NS_FRAME_NOT_COMPLETE & (status1 | status2))        \
-    ? NS_FRAME_NOT_COMPLETE                                \
-    : NS_FRAME_OVERFLOW_INCOMPLETE & (status1 | status2)   \
-    )                                                      \
-  )
-
-
 
 #define NS_IS_REFLOW_ERROR(_status) (PRInt32(_status) < 0)
 
@@ -428,6 +419,11 @@ typedef PRUint32 nsReflowStatus;
   (0 != ((status) & NS_FRAME_TRUNCATED))
 #define NS_FRAME_SET_TRUNCATION(status, aReflowState, aMetrics) \
   aReflowState.SetTruncated(aMetrics, &status);
+
+
+
+void NS_MergeReflowStatusInto(nsReflowStatus* aPrimary,
+                              nsReflowStatus aSecondary);
 
 
 

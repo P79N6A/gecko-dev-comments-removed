@@ -1010,7 +1010,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
 
         tracker.Insert(nif, frameStatus);
       }
-      aStatus = NS_FRAME_MERGE_INCOMPLETE(aStatus, frameStatus);
+      NS_MergeReflowStatusInto(&aStatus, frameStatus);
       
       
       
