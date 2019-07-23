@@ -300,6 +300,46 @@ nsMediaDocument::StartLayout()
   return NS_OK;
 }
 
+void
+nsMediaDocument::GetFileName(nsAString& aResult)
+{
+  aResult.Truncate();
+
+  nsCOMPtr<nsIURL> url = do_QueryInterface(mDocumentURI);
+  if (!url)
+    return;
+
+  nsCAutoString fileName;
+  url->GetFileName(fileName);
+  if (fileName.IsEmpty())
+    return;
+
+  nsCAutoString docCharset;
+  
+  
+  
+  
+  
+  
+  if (mCharacterSetSource != kCharsetUninitialized) {  
+    docCharset = mCharacterSet;
+  } else {  
+    
+    url->GetOriginCharset(docCharset);
+    SetDocumentCharacterSet(docCharset);
+  }
+
+  nsresult rv;
+  nsCOMPtr<nsITextToSubURI> textToSubURI = 
+    do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
+  if (NS_SUCCEEDED(rv)) {
+    
+    textToSubURI->UnEscapeURIForUI(docCharset, fileName, aResult);
+  } else {
+    CopyUTF8toUTF16(fileName, aResult);
+  }
+}
+
 void 
 nsMediaDocument::UpdateTitleAndCharset(const nsACString& aTypeStr,
                                        const char* const* aFormatNames,
@@ -307,40 +347,7 @@ nsMediaDocument::UpdateTitleAndCharset(const nsACString& aTypeStr,
                                        const nsAString& aStatus)
 {
   nsXPIDLString fileStr;
-  if (mDocumentURI) {
-    nsCAutoString fileName;
-    nsCOMPtr<nsIURL> url = do_QueryInterface(mDocumentURI);
-    if (url)
-      url->GetFileName(fileName);
-
-    nsCAutoString docCharset;
-
-    
-    
-    
-    
-    
-    
-    if (mCharacterSetSource != kCharsetUninitialized) {  
-      docCharset = mCharacterSet;
-    }
-    else {  
-      
-      mDocumentURI->GetOriginCharset(docCharset);
-      SetDocumentCharacterSet(docCharset);
-    }
-    if (!fileName.IsEmpty()) {
-      nsresult rv;
-      nsCOMPtr<nsITextToSubURI> textToSubURI = 
-        do_GetService(NS_ITEXTTOSUBURI_CONTRACTID, &rv);
-      if (NS_SUCCEEDED(rv))
-        
-        textToSubURI->UnEscapeURIForUI(docCharset, fileName, fileStr);
-      else 
-        CopyUTF8toUTF16(fileName, fileStr);
-    }
-  }
-
+  GetFileName(fileStr);
 
   NS_ConvertASCIItoUTF16 typeStr(aTypeStr);
   nsXPIDLString title;

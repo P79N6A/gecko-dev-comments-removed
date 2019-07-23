@@ -67,6 +67,8 @@ protected:
   friend class nsMediaDocumentStreamListener;
   nsresult StartLayout();
 
+  void GetFileName(nsAString& aResult);
+
   
   
   
