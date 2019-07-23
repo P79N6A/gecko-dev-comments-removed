@@ -4904,26 +4904,29 @@ js_Interpret(JSContext *cx)
                             sp++;
                         }
                         
-                        goto do_call_with_specified_vp_and_argc;
+                        TRACE_1(ApplyComplete, argc);
+                        goto do_call_with_argc;
                     }
-                } else
+                } else {
                     argc = 0;
+                }
             }
                  
             vp[0] = rval;
             vp[1] = OBJECT_TO_JSVAL(obj);
             regs.sp = vp + 2 + argc;
 
-            goto do_call_with_specified_vp_and_argc;
+            TRACE_1(ApplyComplete, argc);
+            goto do_call_with_argc;
           }
           
           BEGIN_CASE(JSOP_CALL)
           BEGIN_CASE(JSOP_EVAL)
           do_call:
             argc = GET_ARGC(regs.pc);
+
+          do_call_with_argc:
             vp = regs.sp - (argc + 2);
-            
-          do_call_with_specified_vp_and_argc:
             lval = *vp;
             if (VALUE_IS_FUNCTION(cx, lval)) {
                 obj = JSVAL_TO_OBJECT(lval);
