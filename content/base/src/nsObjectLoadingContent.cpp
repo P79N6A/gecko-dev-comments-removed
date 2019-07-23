@@ -1668,12 +1668,26 @@ nsObjectLoadingContent::TryInstantiate(const nsACString& aMIMEType,
     LOG(("OBJLC [%p]: No frame yet\n", this));
     return NS_OK; 
   }
-  nsIFrame* iframe;
-  CallQueryInterface(frame, &iframe);
-  if (iframe->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
-    LOG(("OBJLC [%p]: Frame hasn't been reflown yet\n", this));
-    return NS_OK; 
+
+  nsCOMPtr<nsIPluginInstance> instance;
+  nsresult rv = frame->GetPluginInstance(*getter_AddRefs(instance));
+
+  if (!instance) {
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* iframe;
+    CallQueryInterface(frame, &iframe);
+    if (iframe->GetStateBits() & NS_FRAME_FIRST_REFLOW) {
+      LOG(("OBJLC [%p]: Frame hasn't been reflown yet\n", this));
+      return NS_OK; 
+    }
   }
+
   return Instantiate(frame, aMIMEType, aURI);
 }
 
