@@ -110,7 +110,8 @@ body[dir="rtl"] #brand {
 }
 
 #securityOverrideContent {
-  background-color: #FFF090; 
+  background-color: InfoBackground;
+  color: InfoText;
   padding: 10px;
   -moz-border-radius: 10px;
 }
