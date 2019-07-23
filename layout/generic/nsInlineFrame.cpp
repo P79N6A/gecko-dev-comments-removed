@@ -548,51 +548,42 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   nsSize size;
   lineLayout->EndSpan(this, size);
-  if ((0 == size.height) && (0 == size.width) &&
-      ((nsnull != GetPrevInFlow()) || (nsnull != GetNextInFlow()))) {
-    
-    
-    aMetrics.width = 0;
-    aMetrics.height = 0;
-    aMetrics.ascent = 0;
-  }
-  else {
-    
-    aMetrics.width = size.width;
-    if (nsnull == GetPrevContinuation()) {
-      aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
-                            : aReflowState.mComputedBorderPadding.right;
-    }
-    if (NS_FRAME_IS_COMPLETE(aStatus) && (!GetNextContinuation() || GetNextInFlow())) {
-      aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
-                            : aReflowState.mComputedBorderPadding.left;
-    }
 
-    nsLayoutUtils::SetFontFromStyle(aReflowState.rendContext, mStyleContext);
-    nsCOMPtr<nsIFontMetrics> fm;
-    aReflowState.rendContext->GetFontMetrics(*getter_AddRefs(fm));
-
-    if (fm) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      fm->GetMaxAscent(aMetrics.ascent);
-      fm->GetHeight(aMetrics.height);
-    } else {
-      NS_WARNING("Cannot get font metrics - defaulting sizes to 0");
-      aMetrics.ascent = aMetrics.height = 0;
-    }
-    aMetrics.ascent += aReflowState.mComputedBorderPadding.top;
-    aMetrics.height += aReflowState.mComputedBorderPadding.top +
-      aReflowState.mComputedBorderPadding.bottom;
+  
+  aMetrics.width = size.width;
+  if (nsnull == GetPrevContinuation()) {
+    aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
+                          : aReflowState.mComputedBorderPadding.right;
   }
+  if (NS_FRAME_IS_COMPLETE(aStatus) && (!GetNextContinuation() || GetNextInFlow())) {
+    aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
+                          : aReflowState.mComputedBorderPadding.left;
+  }
+
+  nsLayoutUtils::SetFontFromStyle(aReflowState.rendContext, mStyleContext);
+  nsCOMPtr<nsIFontMetrics> fm;
+  aReflowState.rendContext->GetFontMetrics(*getter_AddRefs(fm));
+
+  if (fm) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    fm->GetMaxAscent(aMetrics.ascent);
+    fm->GetHeight(aMetrics.height);
+  } else {
+    NS_WARNING("Cannot get font metrics - defaulting sizes to 0");
+    aMetrics.ascent = aMetrics.height = 0;
+  }
+  aMetrics.ascent += aReflowState.mComputedBorderPadding.top;
+  aMetrics.height += aReflowState.mComputedBorderPadding.top +
+    aReflowState.mComputedBorderPadding.bottom;
 
   
   
