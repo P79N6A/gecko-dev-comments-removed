@@ -37,8 +37,8 @@
 
 
 
-#ifndef nsHTMLFrame_h___
-#define nsHTMLFrame_h___
+#ifndef nsCanvasFrame_h___
+#define nsCanvasFrame_h___
 
 
 #include "nsHTMLContainerFrame.h"
@@ -55,7 +55,6 @@
 
 
 #include "nsIScrollableView.h"
-#include "nsICanvasFrame.h"
 
 
 
@@ -64,15 +63,15 @@
 
 
 
-class CanvasFrame : public nsHTMLContainerFrame, 
-                    public nsIScrollPositionListener, 
-                    public nsICanvasFrame {
+class nsCanvasFrame : public nsHTMLContainerFrame, 
+                      public nsIScrollPositionListener
+{
 public:
-  CanvasFrame(nsStyleContext* aContext)
+  nsCanvasFrame(nsStyleContext* aContext)
   : nsHTMLContainerFrame(aContext), mDoPaintFocus(PR_FALSE),
     mAbsoluteContainer(nsGkAtoms::absoluteList) {}
 
-  NS_DECL_QUERYFRAME_TARGET(CanvasFrame)
+  NS_DECL_QUERYFRAME_TARGET(nsCanvasFrame)
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
@@ -110,6 +109,11 @@ public:
              ~(nsIFrame::eCanContainOverflowContainers));
   }
 
+  
+
+
+  NS_IMETHOD SetHasFocus(PRBool aHasFocus);
+
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
@@ -121,9 +125,6 @@ public:
   virtual void ViewPositionDidChange(nsIScrollableView* aScrollable,
                                      nsTArray<nsIWidget::Configuration>* aConfigurations) {}
   NS_IMETHOD ScrollPositionDidChange(nsIScrollableView* aScrollable, nscoord aX, nscoord aY);
-
-  
-  NS_IMETHOD SetHasFocus(PRBool aHasFocus);
 
   
 
