@@ -64,9 +64,6 @@ public:
 
   virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix);
 
-  
-  virtual nsresult AppendTransform(nsIDOMSVGMatrix *aCTM,
-                                   nsIDOMSVGMatrix **_retval);
 protected:
   
   virtual PRBool IsEventName(nsIAtom* aName);

@@ -74,9 +74,6 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
-  
-  nsresult AppendTransform(nsIDOMSVGMatrix *aCTM,
-                           nsIDOMSVGMatrix **_retval);
 protected:
 
   virtual LengthAttributesInfo GetLengthInfo();
