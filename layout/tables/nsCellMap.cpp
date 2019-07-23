@@ -903,7 +903,7 @@ nsTableCellMap::GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn) const
   nsCellMap* cellMap = mFirstMap;
   while (cellMap) {
     PRInt32 rowCount = cellMap->GetRowCount();
-    if (rowCount < rowIndex) {
+    if (rowIndex >= rowCount) {
       
       
       
@@ -911,7 +911,7 @@ nsTableCellMap::GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn) const
                                                            rowCount - 1,
                                                            colCount - 1);
       if (cellMapIdx != -1) {
-        index += cellMapIdx;
+        index += cellMapIdx  + 1;
         rowIndex -= rowCount;
       }
     } else {
@@ -955,7 +955,7 @@ nsTableCellMap::GetRowAndColumnByIndex(PRInt32 aIndex,
       if (index > cellMapIdx) {
         
         
-        index -= cellMapIdx;
+        index -= cellMapIdx + 1;
         previousRows += rowCount;
       } else {
         cellMap->GetRowAndColumnByIndex(colCount, index, aRow, aColumn);
