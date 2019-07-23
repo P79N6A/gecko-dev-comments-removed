@@ -269,6 +269,12 @@ nsGeolocationRequest::SendLocation(nsIDOMGeoPosition* aPosition)
     return;
 
   
+  if (!aPosition) {
+    NotifyError(nsIDOMGeoPositionError::POSITION_UNAVAILABLE);
+    return;
+  }
+
+  
   nsCOMPtr<nsIJSContextStack> stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1"));
   if (!stack || NS_FAILED(stack->Push(nsnull)))
     return; 
