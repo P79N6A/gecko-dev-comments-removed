@@ -49,6 +49,8 @@
 #include "nsStyleConsts.h"
 #include "nsCOMPtr.h"
 #include "nsLayoutUtils.h"
+#include "nsDisplayList.h"
+#include "nsCSSRendering.h"
 
 class nsColumnSetFrame : public nsHTMLContainerFrame {
 public:
@@ -95,6 +97,10 @@ public:
                               const nsDisplayListSet& aLists);
 
   virtual nsIAtom* GetType() const;
+
+  virtual void PaintColumnRule(nsIRenderingContext* aCtx,
+                               const nsRect&        aDirtyRect,
+                               const nsPoint&       aPt);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const {
@@ -190,6 +196,85 @@ nsIAtom*
 nsColumnSetFrame::GetType() const
 {
   return nsGkAtoms::columnSetFrame;
+}
+
+static void
+PaintColumnRule(nsIFrame* aFrame, nsIRenderingContext* aCtx,
+                const nsRect& aDirtyRect, nsPoint aPt)
+{
+  static_cast<nsColumnSetFrame*>(aFrame)->PaintColumnRule(aCtx, aDirtyRect, aPt);
+}
+
+void
+nsColumnSetFrame::PaintColumnRule(nsIRenderingContext* aCtx,
+                                  const nsRect& aDirtyRect,
+                                  const nsPoint& aPt)
+{
+  nsIFrame* child = mFrames.FirstChild();
+  if (!child)
+    return;  
+
+  nsIFrame* nextSibling = child->GetNextSibling();
+  if (!nextSibling)
+    return;  
+
+  PRBool isRTL = GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+  const nsStyleColumn* colStyle = GetStyleColumn();
+
+  PRUint8 ruleStyle;
+  
+  if (colStyle->mColumnRuleStyle == NS_STYLE_BORDER_STYLE_INSET)
+    ruleStyle = NS_STYLE_BORDER_STYLE_RIDGE;
+  else if (colStyle->mColumnRuleStyle == NS_STYLE_BORDER_STYLE_OUTSET)
+    ruleStyle = NS_STYLE_BORDER_STYLE_GROOVE;
+  else
+    ruleStyle = colStyle->mColumnRuleStyle;
+
+  nsPresContext* presContext = PresContext();
+  nscoord ruleWidth = colStyle->GetComputedColumnRuleWidth();
+  if (!ruleWidth)
+    return;
+
+  nscolor ruleColor;
+  if (colStyle->mColumnRuleColorIsForeground)
+    ruleColor = GetStyleColor()->mColor;
+  else
+    ruleColor = colStyle->mColumnRuleColor;
+
+  
+  
+  
+  
+  
+  nsStyleBorder border(presContext);
+  border.SetBorderWidth(NS_SIDE_LEFT, ruleWidth);
+  border.SetBorderStyle(NS_SIDE_LEFT, ruleStyle);
+  border.SetBorderColor(NS_SIDE_LEFT, ruleColor);
+
+  while (nextSibling) {
+    
+    nsIFrame* leftSibling = isRTL ? nextSibling : child;
+    nsIFrame* rightSibling = isRTL ? child : nextSibling;
+
+    
+    
+    nsPoint edgeOfLeftSibling = leftSibling->GetRect().TopRight() + aPt;
+    nsPoint edgeOfRightSibling = rightSibling->GetRect().TopLeft() + aPt;
+    nsPoint linePt((edgeOfLeftSibling.x + edgeOfRightSibling.x - ruleWidth) / 2,
+                   edgeOfLeftSibling.y);
+
+    nscoord minimumHeight = PR_MIN(nsLayoutUtils::CalculateContentBottom(child),
+                                   nsLayoutUtils::CalculateContentBottom(nextSibling));
+    nsRect lineRect(linePt, nsSize(ruleWidth, minimumHeight));
+
+    nsCSSRendering::PaintBorder(presContext, *aCtx, this, aDirtyRect,
+                                lineRect, border, GetStyleContext(),
+                                
+                                (1 << NS_SIDE_TOP | 1 << NS_SIDE_RIGHT | 1 << NS_SIDE_BOTTOM));
+
+    child = nextSibling;
+    nextSibling = nextSibling->GetNextSibling();
+  }
 }
 
 NS_IMETHODIMP
@@ -925,6 +1010,9 @@ nsColumnSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                    const nsDisplayListSet& aLists) {
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+      nsDisplayGeneric(this, ::PaintColumnRule, "ColumnRule"));
   
   nsIFrame* kid = mFrames.FirstChild();
   

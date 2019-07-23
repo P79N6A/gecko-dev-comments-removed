@@ -398,6 +398,13 @@ class nsCSSShadowArray {
     ((l) > 0) ? PR_MAX( (tpp), ((l) + ((tpp) / 2)) / (tpp) * (tpp)) : \
                 PR_MIN(-(tpp), ((l) - ((tpp) / 2)) / (tpp) * (tpp)))
 
+
+static PRBool IsVisibleBorderStyle(PRUint8 aStyle)
+{
+  return (aStyle != NS_STYLE_BORDER_STYLE_NONE &&
+          aStyle != NS_STYLE_BORDER_STYLE_HIDDEN);
+}
+
 struct nsStyleBorder {
   nsStyleBorder(nsPresContext* aContext);
   nsStyleBorder(const nsStyleBorder& aBorder);
@@ -445,9 +452,7 @@ struct nsStyleBorder {
   
   PRBool HasVisibleStyle(PRUint8 aSide)
   {
-    PRUint8 style = GetBorderStyle(aSide);
-    return (style != NS_STYLE_BORDER_STYLE_NONE &&
-            style != NS_STYLE_BORDER_STYLE_HIDDEN);
+    return IsVisibleBorderStyle(GetBorderStyle(aSide));
   }
 
   
@@ -1304,7 +1309,7 @@ struct nsStyleXUL {
 };
 
 struct nsStyleColumn {
-  nsStyleColumn();
+  nsStyleColumn(nsPresContext* aPresContext);
   nsStyleColumn(const nsStyleColumn& aSource);
   ~nsStyleColumn();
 
@@ -1324,6 +1329,22 @@ struct nsStyleColumn {
   PRUint32     mColumnCount; 
   nsStyleCoord mColumnWidth; 
   nsStyleCoord mColumnGap;   
+
+  nscolor      mColumnRuleColor;  
+  PRUint8      mColumnRuleStyle;  
+  PRPackedBool mColumnRuleColorIsForeground;
+
+  void SetColumnRuleWidth(nscoord aWidth) {
+    mColumnRuleWidth = NS_ROUND_BORDER_TO_PIXELS(aWidth, mTwipsPerPixel);
+  }
+
+  nscoord GetComputedColumnRuleWidth() const {
+    return (IsVisibleBorderStyle(mColumnRuleStyle) ? mColumnRuleWidth : 0);
+  }
+
+protected:
+  nscoord mColumnRuleWidth;  
+  nscoord mTwipsPerPixel;
 };
 
 #ifdef MOZ_SVG
