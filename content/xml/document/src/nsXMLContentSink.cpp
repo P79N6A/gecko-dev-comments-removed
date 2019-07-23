@@ -827,22 +827,56 @@ nsXMLContentSink::GetTarget()
 }
 
 nsresult
-nsXMLContentSink::FlushText()
+nsXMLContentSink::FlushText(PRBool aReleaseTextNode)
 {
-  if (mTextLength == 0) {
-    return NS_OK;
+  nsresult rv = NS_OK;
+
+  if (mTextLength != 0) {
+    if (mLastTextNode) {
+      if ((mLastTextNodeSize + mTextLength) > mTextSize && !mXSLTProcessor) {
+        mLastTextNodeSize = 0;
+        mLastTextNode = nsnull;
+        FlushText(aReleaseTextNode);
+      } else {
+        PRBool notify = HaveNotifiedForCurrentContent();
+        
+        
+        
+        if (notify) {
+          ++mInNotification;
+        }
+        rv = mLastTextNode->AppendText(mText, mTextLength, notify);
+        if (notify) {
+          --mInNotification;
+        }
+
+        mLastTextNodeSize += mTextLength;
+        mTextLength = 0;
+      }
+    } else {
+      nsCOMPtr<nsIContent> textContent;
+      rv = NS_NewTextNode(getter_AddRefs(textContent),
+                          mNodeInfoManager);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      mLastTextNode = textContent;
+      
+      
+      textContent->SetText(mText, mTextLength, PR_FALSE);
+      mLastTextNodeSize += mTextLength;
+      mTextLength = 0;
+
+      
+      rv = AddContentAsLeaf(textContent);
+    }
   }
 
-  nsCOMPtr<nsIContent> textContent;
-  nsresult rv = NS_NewTextNode(getter_AddRefs(textContent), mNodeInfoManager);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  if (aReleaseTextNode) {
+    mLastTextNodeSize = 0;
+    mLastTextNode = nsnull;
+  }
   
-  textContent->SetText(mText, mTextLength, PR_FALSE);
-  mTextLength = 0;
-
-  
-  return AddContentAsLeaf(textContent);
+  return rv;
 }
 
 nsIContent*
@@ -1581,7 +1615,7 @@ nsXMLContentSink::FlushPendingNotifications(mozFlushType aType)
       FlushTags();
     }
     else {
-      FlushText();
+      FlushText(PR_FALSE);
     }
     if (aType >= Flush_Layout) {
       
@@ -1615,7 +1649,7 @@ nsXMLContentSink::FlushTags()
     mBeganUpdate = PR_TRUE;
 
     
-    FlushText();
+    FlushText(PR_FALSE);
 
     
     

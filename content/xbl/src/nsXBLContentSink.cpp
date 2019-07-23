@@ -118,83 +118,82 @@ nsXBLContentSink::MaybeStartLayout(PRBool aIgnorePendingSheets)
 }
 
 nsresult
-nsXBLContentSink::FlushText()
+nsXBLContentSink::FlushText(PRBool aReleaseTextNode)
 {
-  if (mTextLength == 0) {
-    return NS_OK;
-  }
-
-  const nsASingleFragmentString& text = Substring(mText, mText+mTextLength);
-  if (mState == eXBL_InHandlers) {
-    NS_ASSERTION(mBinding, "Must have binding here");
-    
-    if (mSecondaryState == eXBL_InHandler)
-      mHandler->AppendHandlerText(text);
-    mTextLength = 0;
-    return NS_OK;
-  }
-  else if (mState == eXBL_InImplementation) {
-    NS_ASSERTION(mBinding, "Must have binding here");
-    if (mSecondaryState == eXBL_InConstructor ||
-        mSecondaryState == eXBL_InDestructor) {
+  if (mTextLength != 0) {
+    const nsASingleFragmentString& text = Substring(mText, mText+mTextLength);
+    if (mState == eXBL_InHandlers) {
+      NS_ASSERTION(mBinding, "Must have binding here");
       
-      nsXBLProtoImplMethod* method;
-      if (mSecondaryState == eXBL_InConstructor)
-        method = mBinding->GetConstructor();
-      else
-        method = mBinding->GetDestructor();
-
-      
-      method->AppendBodyText(text);
-    }
-    else if (mSecondaryState == eXBL_InGetter ||
-             mSecondaryState == eXBL_InSetter) {
-      
-      if (mSecondaryState == eXBL_InGetter)
-        mProperty->AppendGetterText(text);
-      else
-        mProperty->AppendSetterText(text);
-    }
-    else if (mSecondaryState == eXBL_InBody) {
-      
-      if (mMethod)
-        mMethod->AppendBodyText(text);
-    }
-    else if (mSecondaryState == eXBL_InField) {
-      
-      mField->AppendFieldText(text);
-    }
-    mTextLength = 0;
-    return NS_OK;
-  }
-
-  nsIContent* content = GetCurrentContent();
-  if (content &&
-      (content->NodeInfo()->NamespaceEquals(kNameSpaceID_XBL) ||
-       (content->NodeInfo()->NamespaceEquals(kNameSpaceID_XUL) &&
-        content->Tag() != nsGkAtoms::label &&
-        content->Tag() != nsGkAtoms::description))) {
-
-    PRBool isWS = PR_TRUE;
-    if (mTextLength > 0) {
-      const PRUnichar* cp = mText;
-      const PRUnichar* end = mText + mTextLength;
-      while (cp < end) {
-        PRUnichar ch = *cp++;
-        if (!XP_IS_SPACE(ch)) {
-          isWS = PR_FALSE;
-          break;
-        }
-      }
-    }
-
-    if (isWS && mTextLength > 0) {
+      if (mSecondaryState == eXBL_InHandler)
+        mHandler->AppendHandlerText(text);
       mTextLength = 0;
       return NS_OK;
     }
+    else if (mState == eXBL_InImplementation) {
+      NS_ASSERTION(mBinding, "Must have binding here");
+      if (mSecondaryState == eXBL_InConstructor ||
+          mSecondaryState == eXBL_InDestructor) {
+        
+        nsXBLProtoImplMethod* method;
+        if (mSecondaryState == eXBL_InConstructor)
+          method = mBinding->GetConstructor();
+        else
+          method = mBinding->GetDestructor();
+
+        
+        method->AppendBodyText(text);
+      }
+      else if (mSecondaryState == eXBL_InGetter ||
+               mSecondaryState == eXBL_InSetter) {
+        
+        if (mSecondaryState == eXBL_InGetter)
+          mProperty->AppendGetterText(text);
+        else
+          mProperty->AppendSetterText(text);
+      }
+      else if (mSecondaryState == eXBL_InBody) {
+        
+        if (mMethod)
+          mMethod->AppendBodyText(text);
+      }
+      else if (mSecondaryState == eXBL_InField) {
+        
+        mField->AppendFieldText(text);
+      }
+      mTextLength = 0;
+      return NS_OK;
+    }
+
+    nsIContent* content = GetCurrentContent();
+    if (content &&
+        (content->NodeInfo()->NamespaceEquals(kNameSpaceID_XBL) ||
+         (content->NodeInfo()->NamespaceEquals(kNameSpaceID_XUL) &&
+          content->Tag() != nsGkAtoms::label &&
+          content->Tag() != nsGkAtoms::description))) {
+
+      PRBool isWS = PR_TRUE;
+      if (mTextLength > 0) {
+        const PRUnichar* cp = mText;
+        const PRUnichar* end = mText + mTextLength;
+        while (cp < end) {
+          PRUnichar ch = *cp++;
+          if (!XP_IS_SPACE(ch)) {
+            isWS = PR_FALSE;
+            break;
+          }
+        }
+      }
+
+      if (isWS && mTextLength > 0) {
+        mTextLength = 0;
+        
+        return nsXMLContentSink::FlushText(aReleaseTextNode);
+      }
+    }
   }
 
-  return nsXMLContentSink::FlushText();
+  return nsXMLContentSink::FlushText(aReleaseTextNode);
 }
 
 NS_IMETHODIMP
