@@ -167,16 +167,21 @@ function Startup()
       gColorObj.LastBackgroundColor = gDialog.LastPickedColor.getAttribute("LastBackgroundColor");
     LastPickedColor = gColorObj.LastBackgroundColor;
   }
-  gDialog.LastPickedColor.setAttribute("style","background-color: "+LastPickedColor);
 
   
   
   gDialog.Ok.setAttribute("onclick", "SetDefaultToOk()");
 
-  
-  
-  gDialog.Ok.removeAttribute("default");
-  gDialog.LastPickedButton.setAttribute("default","true");
+  if (!LastPickedColor) {
+    
+    gDialog.LastPickedButton.hidden = true;
+  } else {
+    gDialog.LastPickedColor.setAttribute("style", "background-color: " + LastPickedColor);
+
+    
+    gDialog.Ok.removeAttribute("default");
+    gDialog.LastPickedButton.setAttribute("default", "true");
+  }
 
   
   NoDefault = gColorObj.NoDefault;
