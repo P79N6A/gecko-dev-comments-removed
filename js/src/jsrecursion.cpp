@@ -40,15 +40,83 @@
 
 class RecursiveSlotMap : public SlotMap
 {
+  protected:
+    unsigned downPostSlots;
+    LIns *rval_ins;
+
   public:
-    RecursiveSlotMap(TraceRecorder& rec)
-      : SlotMap(rec)
+    RecursiveSlotMap(TraceRecorder& rec, unsigned downPostSlots, LIns* rval_ins)
+      : SlotMap(rec), downPostSlots(downPostSlots), rval_ins(rval_ins)
     {
     }
 
     JS_REQUIRES_STACK void
     adjustTypes()
     {
+        
+        if (slots[downPostSlots].lastCheck == TypeCheck_Demote)
+            rval_ins = mRecorder.lir->ins1(LIR_i2f, rval_ins);
+        
+        for (unsigned i = downPostSlots + 1; i < slots.length(); i++)
+            adjustType(slots[i]);
+    }
+
+    JS_REQUIRES_STACK void
+    adjustTail(TypeConsensus consensus)
+    {
+        
+
+
+
+
+        ptrdiff_t retOffset = downPostSlots * sizeof(double) -
+                              mRecorder.treeInfo->nativeStackBase;
+        mRecorder.lir->insStorei(mRecorder.addName(rval_ins, "rval_ins"),
+                                 mRecorder.lirbuf->sp, retOffset);
+    }
+};
+
+class UpRecursiveSlotMap : public RecursiveSlotMap
+{
+  public:
+    UpRecursiveSlotMap(TraceRecorder& rec, unsigned downPostSlots, LIns* rval_ins)
+      : RecursiveSlotMap(rec, downPostSlots, rval_ins)
+    {
+    }
+
+    JS_REQUIRES_STACK void
+    adjustTail(TypeConsensus consensus)
+    {
+        LirBuffer* lirbuf = mRecorder.lirbuf;
+        LirWriter* lir = mRecorder.lir;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        lir->insStorei(rval_ins, lirbuf->sp, -mRecorder.treeInfo->nativeStackBase);
+
+        lirbuf->sp = lir->ins2(LIR_piadd, lirbuf->sp,
+                               lir->insImmWord(-int(downPostSlots) * sizeof(double)));
+        lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
+        lirbuf->rp = lir->ins2(LIR_piadd, lirbuf->rp,
+                               lir->insImmWord(-int(sizeof(FrameInfo*))));
+        lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
     }
 };
 
@@ -228,40 +296,18 @@ TraceRecorder::upRecursion()
 
     exit = downSnapshot(fi);
 
-    
-    rval_ins = get(&stackval(-1));
-    if (isPromoteInt(rval_ins))
-        rval_ins = demoteIns(rval_ins);
+    LIns* rval_ins = (!anchor || anchor->exitType != RECURSIVE_SLURP_FAIL_EXIT) ?
+                     get(&stackval(-1)) :
+                     NULL;
+    JS_ASSERT(rval_ins != NULL);
+    JSTraceType returnType = exit->stackTypeMap()[downPostSlots];
+    if (returnType == TT_INT32) {
+        JS_ASSERT(determineSlotType(&stackval(-1)) == TT_INT32);
+        JS_ASSERT(isPromoteInt(rval_ins));
+        rval_ins = ::demote(lir, rval_ins);
+    }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    lir->insStorei(rval_ins, lirbuf->sp, -treeInfo->nativeStackBase);
-
-    
-    lirbuf->sp = lir->ins2(LIR_piadd, lirbuf->sp,
-                           lir->insImmWord(-int(downPostSlots) * sizeof(double)));
-    lir->insStorei(lirbuf->sp, lirbuf->state, offsetof(InterpState, sp));
-    lirbuf->rp = lir->ins2(LIR_piadd, lirbuf->rp,
-                           lir->insImmWord(-int(sizeof(FrameInfo*))));
-    lir->insStorei(lirbuf->rp, lirbuf->state, offsetof(InterpState, rp));
-
-    RecursiveSlotMap slotMap(*this);
+    UpRecursiveSlotMap slotMap(*this, downPostSlots, rval_ins);
     for (unsigned i = 0; i < downPostSlots; i++)
         slotMap.addSlot(exit->stackType(i));
     slotMap.addSlot(&stackval(-1));
@@ -402,10 +448,6 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
     js_CaptureStackTypes(cx, frameDepth, typeMap);
     cx->fp->regs->pc = oldpc;
     typeMap[downPostSlots] = determineSlotType(&stackval(-1));
-    if (typeMap[downPostSlots] == TT_INT32 &&
-        oracle.isStackSlotUndemotable(cx, downPostSlots, recursive_pc)) {
-        typeMap[downPostSlots] = TT_DOUBLE;
-    }
     determineGlobalTypes(&typeMap[exit->numStackSlots]);
 #if defined JS_JIT_SPEW
     TreevisLogExit(cx, exit);
@@ -415,13 +457,44 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
 
 
 
+
+
+
+
+
+    LIns* rval_ins;
+    JSTraceType returnType = exit->stackTypeMap()[downPostSlots];
     if (!anchor || anchor->exitType != RECURSIVE_SLURP_FAIL_EXIT) {
-        JS_ASSERT(exit->sp_adj >= int(sizeof(double)));
-        ptrdiff_t actRetOffset = exit->sp_adj - sizeof(double);
-        LIns* rval = get(&stackval(-1));
-        if (typeMap[downPostSlots] == TT_INT32)
-            rval = demoteIns(rval);
-        lir->insStorei(addName(rval, "rval"), lirbuf->sp, actRetOffset);
+        rval_ins = get(&stackval(-1));
+        if (returnType == TT_INT32) {
+            JS_ASSERT(determineSlotType(&stackval(-1)) == TT_INT32);
+            JS_ASSERT(isPromoteInt(rval_ins));
+            rval_ins = ::demote(lir, rval_ins);
+        }
+        
+
+
+
+        lir->insStorei(rval_ins, lirbuf->sp, exit->sp_adj - sizeof(double));
+    } else {
+        switch (returnType)
+        {
+          case TT_PSEUDOBOOLEAN:
+          case TT_INT32:
+            rval_ins = lir->insLoad(LIR_ld, lirbuf->sp, exit->sp_adj - sizeof(double));
+            break;
+          case TT_DOUBLE:
+            rval_ins = lir->insLoad(LIR_ldq, lirbuf->sp, exit->sp_adj - sizeof(double));
+            break;
+          case TT_FUNCTION:
+          case TT_OBJECT:
+          case TT_STRING:
+          case TT_NULL:
+            rval_ins = lir->insLoad(LIR_ldp, lirbuf->sp, exit->sp_adj - sizeof(double));
+            break;
+          default:
+            JS_NOT_REACHED("unknown type");
+        }
     }
 
     
@@ -476,8 +549,7 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
     TreevisLogExit(cx, exit);
 #endif
 
-    
-    RecursiveSlotMap slotMap(*this);
+    RecursiveSlotMap slotMap(*this, downPostSlots, rval_ins);
     for (unsigned i = 0; i < downPostSlots; i++)
         slotMap.addSlot(typeMap[i]);
     slotMap.addSlot(&stackval(-1));
