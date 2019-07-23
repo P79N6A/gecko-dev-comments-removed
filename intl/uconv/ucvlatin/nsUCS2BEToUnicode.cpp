@@ -38,6 +38,7 @@
 #include "nsUCConstructors.h"
 #include "nsUCS2BEToUnicode.h"
 #include "nsUCvLatinDll.h"
+#include "nsCharTraits.h"
 #include <string.h>
 #include "prtypes.h"
 
@@ -46,11 +47,12 @@
 #define STATE_FIRST_CALL      2
 #define STATE_FOUND_BOM       3
 
-
 static nsresult
-UTF16ConvertToUnicode(PRUint8& aState, PRUint8& aData, const char * aSrc,
+UTF16ConvertToUnicode(PRUint8& aState, PRUint8& aOddByte,
+                      PRUnichar& aOddHighSurrogate, const char * aSrc,
                       PRInt32 * aSrcLength, PRUnichar * aDest,
-                      PRInt32 * aDestLength)
+                      PRInt32 * aDestLength,
+                      PRBool aSwapBytes)
 {
   const char* src = aSrc;
   const char* srcEnd = aSrc + *aSrcLength;
@@ -81,41 +83,80 @@ UTF16ConvertToUnicode(PRUint8& aState, PRUint8& aData, const char * aSrc,
     aState = STATE_NORMAL;
   }
 
-  PRInt32 copybytes;
+  if (src == srcEnd) {
+    *aDestLength = 0;
+    return NS_OK;
+  }
 
-  if((STATE_HALF_CODE_POINT == aState) && (src < srcEnd))
-  {
-    if(dest >= destEnd)
+  PRUnichar oddHighSurrogate = aOddHighSurrogate;
+
+  const char* srcEvenEnd;
+
+  PRUnichar u;
+  if (aState == STATE_HALF_CODE_POINT) {
+    
+    
+    aState = STATE_NORMAL;
+#ifdef IS_BIG_ENDIAN
+    u = (aOddByte << 8) | *src++; 
+#else
+    u = (*src++ << 8) | aOddByte; 
+#endif
+    srcEvenEnd = src + ((srcEnd - src) & ~1); 
+    goto have_codepoint;
+  } else {
+    srcEvenEnd = src + ((srcEnd - src) & ~1); 
+  }
+
+  while (src != srcEvenEnd) {
+    if (dest == destEnd)
       goto error;
 
-    char tmpbuf[2];
+    u = *(const PRUnichar*)src;
+    src += 2;
 
-    
-    
-    
-    
-    PRUnichar * up = (PRUnichar*) &tmpbuf[0];
-    tmpbuf[0]= aData;
-    tmpbuf[1]= *src++;
-    *dest++ = *up;
+have_codepoint:
+    if (aSwapBytes)
+      u = u << 8 | u >> 8;
+
+    if (!IS_SURROGATE(u)) {
+      if (oddHighSurrogate) {
+        *dest++ = UCS2_REPLACEMENT_CHAR;
+        if (dest == destEnd)
+          goto error;
+        oddHighSurrogate = 0;
+      }
+      *dest++ = u;
+    } else if (NS_IS_HIGH_SURROGATE(u)) {
+      if (oddHighSurrogate) {
+        *dest++ = UCS2_REPLACEMENT_CHAR;
+        if (dest == destEnd)
+          goto error;
+      }
+      oddHighSurrogate = u;
+    }
+    else  {
+      if (oddHighSurrogate) {
+        if (dest == destEnd - 1) {
+          *dest++ = UCS2_REPLACEMENT_CHAR;
+          goto error;
+        }
+        *dest++ = oddHighSurrogate;
+        *dest++ = u;
+        oddHighSurrogate = 0;
+      } else {
+        *dest++ = UCS2_REPLACEMENT_CHAR;
+      }
+    }
   }
-  
-  copybytes = (destEnd-dest)*2;
-  
-  if(copybytes > (~1 & (srcEnd - src)))
-      copybytes = ~1 & (srcEnd - src);
-  memcpy(dest,src,copybytes);
-  src +=copybytes;
-  dest +=(copybytes/2);
-  if(srcEnd == src)  { 
-     aState = STATE_NORMAL;
-  } else if(1 == (srcEnd - src) ) { 
-     aState = STATE_HALF_CODE_POINT;
-     aData  = *src++;  
-  } else  {
-     goto error;
+  if (src != srcEnd) {
+    
+    aOddByte = *src++;
+    aState = STATE_HALF_CODE_POINT;
   }
-  
+
+  aOddHighSurrogate = oddHighSurrogate;
+
   *aDestLength = dest - aDest;
   *aSrcLength =  src  - aSrc; 
   return NS_OK;
@@ -126,18 +167,12 @@ error:
   return  NS_OK_UDEC_MOREOUTPUT;
 }
 
-static void
-SwapBytes(PRUnichar *aDest, PRInt32 aLen)
-{
-  for (PRUnichar *p = aDest; aLen > 0; ++p, --aLen)
-     *p = ((*p & 0xff) << 8) | ((*p >> 8) & 0xff);
-}
-
 NS_IMETHODIMP
 nsUTF16ToUnicodeBase::Reset()
 {
   mState = STATE_FIRST_CALL;
-  mData = 0;
+  mOddByte = 0;
+  mOddHighSurrogate = 0;
   return NS_OK;
 }
 
@@ -146,7 +181,9 @@ nsUTF16ToUnicodeBase::GetMaxLength(const char * aSrc, PRInt32 aSrcLength,
                                    PRInt32 * aDestLength)
 {
   
-  *aDestLength = (aSrcLength + ((STATE_HALF_CODE_POINT == mState) ? 1 : 0)) / 2;
+  *aDestLength = (aSrcLength +
+                    ((STATE_HALF_CODE_POINT == mState) ? 1 : 0)) / 2 +
+                 ((mOddHighSurrogate != 0) ? 1 : 0);
   return NS_OK;
 }
 
@@ -174,12 +211,14 @@ nsUTF16BEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
     }
 #endif
 
-  nsresult rv = UTF16ConvertToUnicode(mState, mData, aSrc, aSrcLength,
-                                      aDest, aDestLength);
-
+  nsresult rv = UTF16ConvertToUnicode(mState, mOddByte, mOddHighSurrogate,
+                                      aSrc, aSrcLength, aDest, aDestLength,
 #ifdef IS_LITTLE_ENDIAN
-  SwapBytes(aDest, *aDestLength);
+                                      PR_TRUE
+#else
+                                      PR_FALSE
 #endif
+                                      );
   return rv;
 }
 
@@ -206,12 +245,14 @@ nsUTF16LEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
     }
 #endif
     
-  nsresult rv = UTF16ConvertToUnicode(mState, mData, aSrc, aSrcLength, aDest,
-                                      aDestLength);
-
+  nsresult rv = UTF16ConvertToUnicode(mState, mOddByte, mOddHighSurrogate,
+                                      aSrc, aSrcLength, aDest, aDestLength,
 #ifdef IS_BIG_ENDIAN
-  SwapBytes(aDest, *aDestLength);
+                                      PR_TRUE
+#else
+                                      PR_FALSE
 #endif
+                                      );
   return rv;
 }
 
@@ -262,17 +303,16 @@ nsUTF16ToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
       }
     }
     
-    nsresult rv = UTF16ConvertToUnicode(mState, mData, aSrc, aSrcLength, aDest,
-                                        aDestLength);
-
+    nsresult rv = UTF16ConvertToUnicode(mState, mOddByte, mOddHighSurrogate,
+                                        aSrc, aSrcLength, aDest, aDestLength,
 #ifdef IS_BIG_ENDIAN
-    if (mEndian == kLittleEndian)
+                                        (mEndian == kLittleEndian)
 #elif defined(IS_LITTLE_ENDIAN)
-    if (mEndian == kBigEndian)
+                                        (mEndian == kBigEndian)
 #else
     #error "Unknown endianness"
 #endif
-      SwapBytes(aDest, *aDestLength);
+                                        );
 
     
     

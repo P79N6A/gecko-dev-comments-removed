@@ -58,7 +58,10 @@ public:
 
 protected:
   PRUint8 mState;
-  PRUint8 mData;
+  
+  PRUint8 mOddByte;
+  
+  PRUnichar mOddHighSurrogate;
 };
 
 
