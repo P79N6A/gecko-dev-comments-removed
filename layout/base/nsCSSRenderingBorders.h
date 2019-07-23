@@ -88,6 +88,13 @@
 
 
 
+typedef enum {
+  BorderColorStyleNone,
+  BorderColorStyleSolid,
+  BorderColorStyleLight,
+  BorderColorStyleDark
+} BorderColorStyle;
+
 struct nsCSSBorderRenderer {
   nsCSSBorderRenderer(PRInt32 aAppUnitsPerPixel,
                       gfxContext* aDestContext,
@@ -127,6 +134,9 @@ struct nsCSSBorderRenderer {
   const gfxRect* mGapRect;
 
   
+  PRPackedBool mOneUnitBorder;
+  PRPackedBool mNoBorderRadius;
+
   gfxCornerSizes mBorderCornerDimensions;
 
   
@@ -134,11 +144,17 @@ struct nsCSSBorderRenderer {
   PRBool AreBorderSideFinalStylesSame(PRUint8 aSides);
 
   
+  PRBool IsSolidCornerStyle(PRUint8 aStyle, gfxCorner::Corner aCorner);
+
+  
+  BorderColorStyle BorderColorStyleForSolidCorner(PRUint8 aStyle, gfxCorner::Corner aCorner);
+
+  
   
   
 
   
-  void DoCornerClipSubPath(PRUint8 aCorner);
+  void DoCornerSubPath(PRUint8 aCorner);
   
   void DoSideClipWithoutCornersSubPath(PRUint8 aSide);
 
