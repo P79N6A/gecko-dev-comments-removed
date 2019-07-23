@@ -50,10 +50,10 @@ function test() {
     is(gPageB.uri.spec, "chrome://mochikit/content/browser/browser/fuel/test/ContentB.html", "Checking 'BrowserTab.uri' after opening");
 
     
+    is(gTabOpenCount, 2, "Checking event handler for tab open");
+    
     is(gPageA.uri.spec, gTabOpenPageA.uri.spec, "Checking first browser tab open is equal to page A");
     is(gPageB.uri.spec, gTabOpenPageB.uri.spec, "Checking second browser tab open is equal to page B");
-    
-    is(gTabOpenCount, 2, "Checking event handler for tab open");
 
     
     var test1 = gPageA.document.getElementById("test1");

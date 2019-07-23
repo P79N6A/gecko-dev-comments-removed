@@ -7,17 +7,17 @@ var menu;
 
 function test() {
   waitForExplicitFinish();
-  
+
   gBrowser.selectedTab = gBrowser.addTab();
 
   
-  gBrowser.addEventListener("load", testNormal, false);
+  gBrowser.addEventListener("DOMContentLoaded", testNormal, false);
   content.location = "http://example.com/";
 }
 
 function testNormal() {
-  gBrowser.removeEventListener("load", testNormal, false);
-  
+  gBrowser.removeEventListener("DOMContentLoaded", testNormal, false);
+
   
   menu = document.getElementById("menu_HelpPopup");
   ok(menu, "Help menu should exist!");
@@ -38,7 +38,7 @@ function testNormal_PopupListener() {
   
   
   content.location = "http://www.mozilla.com/firefox/its-a-trap.html";
-  window.setTimeout(testPhishing, 2000);
+  setTimeout(testPhishing, 2000);
 }
 
 function testPhishing() {
