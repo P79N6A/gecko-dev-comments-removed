@@ -205,6 +205,8 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*          aPresContext,
     
     
     
+    aDesiredSize.width = mRect.width;
+    aDesiredSize.height = mRect.height;
     aStatus = NS_FRAME_COMPLETE;
     return NS_OK;
   }
