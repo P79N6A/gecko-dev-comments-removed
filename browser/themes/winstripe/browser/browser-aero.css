@@ -63,8 +63,7 @@
   z-index: 10;
 }
 
-
-
+#allTabs-panel:-moz-system-metric(windows-compositor),
 #ctrlTab-panel:-moz-system-metric(windows-compositor) {
   background: transparent;
   -moz-appearance: -moz-win-glass;
