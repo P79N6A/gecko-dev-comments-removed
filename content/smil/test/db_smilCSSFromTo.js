@@ -77,6 +77,8 @@ var _fromToTestLists = {
                            midComp: "rgb(230, 230, 230)" }),
   ],
   paintServer: [
+    new AnimTestcaseFromTo("none", "blue", { toComp : "rgb(0, 0, 255)" }),
+    new AnimTestcaseFromTo("rgb(50, 50, 50)", "none"),
     new AnimTestcaseFromTo("url(#gradA)", "url(#gradB) currentColor",
                            { fromComp: "url(\"" + document.URL +
                                        "#gradA\") rgb(0, 0, 0)",
@@ -349,8 +351,7 @@ var gFromToBundles = [
                                _fromToTestLists.paintServer, [
      
      new AnimTestcaseFromTo("inherit", "rgb(200, 200, 200)",
-                            { fromComp: "none"})]),
-                     "need support for 'none' value"),
+                            { fromComp: "none"})])),
   new TestcaseBundle(gPropList.stroke_dasharray,
                      [].concat(_fromToTestLists.lengthPx,
                                _fromToTestLists.lengthPxPctSVG,
