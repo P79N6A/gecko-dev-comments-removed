@@ -51,11 +51,27 @@ typedef PRUint16 nsMediaReadyState;
 
 
 
-
 class nsMediaLoad : public nsISupports
 {
 public:
   NS_DECL_ISUPPORTS
+  nsMediaLoad() : mPosition(0) {}
+  ~nsMediaLoad() {}
+
+  
+  
+  void AddCandidate(nsIURI *aURI);
+
+  
+  already_AddRefed<nsIURI> GetNextCandidate();
+
+  PRBool HasMoreCandidates() { return mPosition < mCandidates.Count(); }
+private:
+  
+  nsCOMArray<nsIURI> mCandidates;
+
+  
+  PRInt32 mPosition;
 };
 
 class nsHTMLMediaElement : public nsGenericHTMLElement
@@ -215,20 +231,15 @@ public:
   
 
 
-  void QueueLoadTask();
-
-  
-
-
-
-
 
 
 
   nsMediaLoad* GetCurrentMediaLoad() { return mCurrentLoad; }
 
+
 protected:
-  class nsMediaLoadListener;
+  class MediaLoadListener;
+  class LoadNextCandidateEvent;
 
   
 
@@ -251,7 +262,9 @@ protected:
 
 
 
+
   PRBool AbortExistingLoads();
+
   
 
 
@@ -263,6 +276,25 @@ protected:
 
   void NoSupportedMediaError();
 
+  
+  
+  
+  
+  
+  void LoadNextCandidate();
+
+  
+  void GenerateCandidates();
+
+  
+  
+  
+  void QueueLoadTask();
+
+  
+  
+  void QueueLoadNextCandidateTask();
+
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   nsCOMPtr<nsIChannel> mChannel;
@@ -270,6 +302,7 @@ protected:
   
   nsCOMPtr<nsIDOMHTMLMediaError> mError;
 
+  
   
   nsRefPtr<nsMediaLoad> mCurrentLoad;
 
