@@ -645,16 +645,6 @@ public:
 
 
 
-  virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
-
-  
-
-
-
-
-
-
-
 
 
 

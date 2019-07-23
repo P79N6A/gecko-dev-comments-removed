@@ -357,7 +357,7 @@ nsIsIndexFrame::OnSubmit(nsPresContext* aPresContext)
   if (!document) return NS_OK; 
 
   
-  nsIURI *baseURI = document->GetBaseURI();
+  nsIURI *baseURI = document->GetDocBaseURI();
   if (!baseURI) {
     NS_ERROR("No Base URL found in Form Submit!\n");
     return NS_OK; 

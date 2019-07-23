@@ -339,7 +339,7 @@ nsPreloadURIs::PreloadURIs(const nsAutoTArray<nsSpeculativeScriptThread::Prefetc
   
   
   
-  nsIURI *base = doc->GetBaseURI();
+  nsIURI *base = doc->GetDocBaseURI();
   const nsCString &charset = doc->GetDocumentCharacterSet();
   nsSpeculativeScriptThread::PreloadedType &alreadyPreloaded =
     aScriptThread->GetPreloadedURIs();

@@ -955,6 +955,19 @@ public:
     NS_NOTREACHED("SetScriptTypeID not implemented");
     return NS_ERROR_NOT_IMPLEMENTED;
   }
+
+  
+
+
+
+
+
+
+
+  virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
+
+  void GetBaseURI(nsAString &aURI) const;
+
 protected:
 
   

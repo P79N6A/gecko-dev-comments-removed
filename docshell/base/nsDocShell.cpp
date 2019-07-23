@@ -9254,7 +9254,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     else {
         
 
-        nsIURI* docBaseURI = document->GetBaseURI();
+        nsIURI* docBaseURI = document->GetDocBaseURI();
         if (!docBaseURI)
             return NS_ERROR_FAILURE;
 

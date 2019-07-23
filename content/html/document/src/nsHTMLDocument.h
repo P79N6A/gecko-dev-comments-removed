@@ -139,9 +139,6 @@ public:
   NS_FORWARD_NSIDOMNODE(nsDocument::)
 
   
-  NS_IMETHOD GetBaseURI(nsAString& aBaseURI);
-
-  
   NS_IMETHOD GetTitle(nsAString & aTitle);
   NS_IMETHOD SetTitle(const nsAString & aTitle);
   NS_IMETHOD GetReferrer(nsAString & aReferrer);
