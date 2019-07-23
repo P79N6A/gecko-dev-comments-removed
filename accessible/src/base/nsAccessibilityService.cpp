@@ -1925,7 +1925,20 @@ nsAccessibilityService::GetAccessibleForDeckChildren(nsIDOMNode *aNode, nsIAcces
                 frame->GetType() == nsAccessibilityAtoms::scrollFrame)) { 
     parentFrame = frame->GetParent();
     if (parentFrame && parentFrame->GetType() == nsAccessibilityAtoms::deckFrame) {
-      *aAccessible = new nsEnumRoleAccessible(aNode, weakShell, nsIAccessibleRole::ROLE_PROPERTYPAGE);
+      
+      
+      nsCOMPtr<nsIContent> parentContent = parentFrame->GetContent();
+      if (parentContent->NodeInfo()->Equals(nsAccessibilityAtoms::tabpanels,
+                                            kNameSpaceID_XUL)) {
+        *aAccessible = new nsXULTabpanelAccessible(aNode, weakShell);
+      } else {
+        *aAccessible =
+          new nsEnumRoleAccessible(aNode, weakShell,
+                                   nsIAccessibleRole::ROLE_PROPERTYPAGE);
+      }
+
+      NS_ENSURE_TRUE(*aAccessible, NS_ERROR_OUT_OF_MEMORY);
+
       NS_ADDREF(*aAccessible);
     }
   }
