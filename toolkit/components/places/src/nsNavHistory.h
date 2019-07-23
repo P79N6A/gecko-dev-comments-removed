@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef nsNavHistory_h_
 #define nsNavHistory_h_
 
@@ -89,6 +90,9 @@
 
 #include "nsICharsetResolver.h"
 
+#include "nsIPrivateBrowsingService.h"
+#include "nsNetCID.h"
+
 
 #define IN_MEMORY_SQLITE_TEMP_STORE
 
@@ -107,6 +111,10 @@
 #define SQL_STR_FRAGMENT_MAX_VISIT_DATE( place_relation ) \
   "(SELECT visit_date FROM moz_historyvisits WHERE place_id = " place_relation \
   " AND visit_type NOT IN (0,4,7) ORDER BY visit_date DESC LIMIT 1)"
+
+
+
+#define PRIVATEBROWSING_NOTINITED (PRBool(0xffffffff))
 
 struct AutoCompleteIntermediateResult;
 class AutoCompleteResultComparator;
@@ -245,7 +253,7 @@ public:
   void GetStringFromName(const PRUnichar* aName, nsACString& aResult);
 
   
-  PRBool IsHistoryDisabled() { return mExpireDaysMax == 0; }
+  PRBool IsHistoryDisabled() { return mExpireDaysMax == 0 || InPrivateBrowsingMode(); }
 
   
   mozIStorageStatement* DBGetURLPageInfo() { return mDBGetURLPageInfo; }
@@ -368,6 +376,21 @@ public:
 
   
   nsresult UpdateSchemaVersion();
+
+  
+  PRBool InPrivateBrowsingMode()
+  {
+    if (mInPrivateBrowsing == PRIVATEBROWSING_NOTINITED) {
+      mInPrivateBrowsing = PR_FALSE;
+      nsCOMPtr<nsIPrivateBrowsingService> pbs =
+        do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
+      if (pbs) {
+        pbs->GetPrivateBrowsingEnabled(&mInPrivateBrowsing);
+      }
+    }
+
+    return mInPrivateBrowsing;
+  }
 
   typedef nsDataHashtable<nsCStringHashKey, nsCString> StringHash;
 
@@ -789,6 +812,8 @@ protected:
 
   PRInt64 mTagsFolder;
   PRInt64 GetTagsFolder();
+
+  PRBool mInPrivateBrowsing;
 };
 
 

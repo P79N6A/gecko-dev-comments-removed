@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsAnnotationService.h"
 #include "mozStorageCID.h"
 #include "nsNavHistory.h"
@@ -469,6 +470,9 @@ nsAnnotationService::SetPageAnnotationString(nsIURI* aURI,
                                              PRInt32 aFlags,
                                              PRUint16 aExpiration)
 {
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   PRInt64 placeId;
   nsresult rv = GetPlaceIdForURI(aURI, &placeId);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -546,6 +550,9 @@ nsAnnotationService::SetPageAnnotationInt32(nsIURI* aURI,
                                             PRInt32 aFlags,
                                             PRUint16 aExpiration)
 {
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   PRInt64 placeId;
   nsresult rv = GetPlaceIdForURI(aURI, &placeId);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -622,6 +629,9 @@ nsAnnotationService::SetPageAnnotationInt64(nsIURI* aURI,
                                             PRInt32 aFlags,
                                             PRUint16 aExpiration)
 {
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   PRInt64 placeId;
   nsresult rv = GetPlaceIdForURI(aURI, &placeId);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -698,6 +708,9 @@ nsAnnotationService::SetPageAnnotationDouble(nsIURI* aURI,
                                              PRInt32 aFlags,
                                              PRUint16 aExpiration)
 {
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   PRInt64 placeId;
   nsresult rv = GetPlaceIdForURI(aURI, &placeId);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -781,6 +794,9 @@ nsAnnotationService::SetPageAnnotationBinary(nsIURI* aURI,
                                              PRInt32 aFlags,
                                              PRUint16 aExpiration)
 {
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   PRInt64 placeId;
   nsresult rv = GetPlaceIdForURI(aURI, &placeId);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1575,6 +1591,9 @@ nsAnnotationService::CopyPageAnnotations(nsIURI* aSourceURI,
                                          nsIURI* aDestURI,
                                          PRBool aOverwriteDest)
 {
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
@@ -1816,6 +1835,14 @@ nsAnnotationService::StartGetAnnotationFromItemId(PRInt64 aItemId,
   
   statementResetter.Abandon();
   return NS_OK;
+}
+
+
+PRBool
+nsAnnotationService::InPrivateBrowsingMode() const
+{
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  return history && history->InPrivateBrowsingMode();
 }
 
 

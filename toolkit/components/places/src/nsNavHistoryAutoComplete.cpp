@@ -59,6 +59,7 @@
 
 
 
+
 #include "nsNavHistory.h"
 #include "nsNetUtil.h"
 #include "nsEscape.h"
@@ -1009,6 +1010,10 @@ nsresult
 nsNavHistory::AutoCompleteFeedback(PRInt32 aIndex,
                                    nsIAutoCompleteController *aController)
 {
+  
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   mozStorageStatementScoper scope(mDBFeedbackIncrease);
 
   nsAutoString input;
