@@ -172,11 +172,13 @@ public:
   static void ShutdownMediaTypes();
 
 protected:
+  class nsMediaLoadListener;
+
   
 
 
 
-  nsresult PickMediaElement();
+  nsresult PickMediaElement(nsIURI** aURI);
   
 
 
@@ -185,15 +187,23 @@ protected:
   
 
 
-  nsresult InitializeDecoder(const nsAString& aURISpec);
+
+  nsresult InitializeDecoderForChannel(nsIChannel *aChannel,
+                                       nsIStreamListener **aListener);
   
 
 
 
-  nsresult InitializeDecoderForChannel(nsIChannel *aChannel,
-                                       nsIStreamListener **aListener);
+
+  PRBool AbortExistingLoads();
+  
+
+
+  nsresult NewURIFromString(const nsAutoString& aURISpec, nsIURI** aURI);
 
   nsRefPtr<nsMediaDecoder> mDecoder;
+
+  nsCOMPtr<nsIChannel> mChannel;
 
   
   nsCOMPtr<nsIDOMHTMLMediaError> mError;
@@ -250,4 +260,8 @@ protected:
   
   
   PRPackedBool mPausedBeforeFreeze;
+
+  
+  
+  PRPackedBool mPlayRequested;
 };
