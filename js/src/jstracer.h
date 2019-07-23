@@ -42,6 +42,38 @@
 #include "jsstddef.h"
 #include "jslock.h"
 
+namespace nanojit {
+    class LIns;
+    class Fragmento;
+    class Fragment;
+    class LirWriter;
+}
+
+
+
+
+
+class Tracker 
+{
+    struct Page {
+        struct Page* next;
+        long base;
+        nanojit::LIns* map[0];
+    };
+    struct Page* pagelist;
+    
+    long         getPageBase(const void* v) const;
+    struct Page* findPage(const void* v) const;
+    struct Page* addPage(const void* v);
+public:    
+    Tracker();
+    ~Tracker();
+    
+    nanojit::LIns*  get(const void* v) const;
+    void            set(const void* v, nanojit::LIns* ins);
+    void            clear();
+};
+
 
 
 
@@ -53,45 +85,23 @@
 
 
 struct JSTraceMonitor {
-    int         freq;
-    JSObject*   recorder;
+    int                 freq;
+    Tracker             tracker;
+    nanojit::Fragment*  fragment;
+    nanojit::Fragmento* fragmento;
+    nanojit::LirWriter* lir;
 };
 
-#define ENABLE_TRACER      false
+#define ENABLE_TRACER      true
 #define TRACE_TRIGGER_MASK 0x3f
 
-void 
-js_CallRecorder(JSContext* cx, const char* name, uintN argc, jsval* argv);
+extern void
+js_StartRecorder(JSContext* cx, JSFrameRegs& regs);
 
-void 
-js_CallRecorder(JSContext* cx, const char* name, jsval a);
+extern void
+js_StopRecorder(JSContext* cx, JSFrameRegs& regs);
 
-void 
-js_CallRecorder(JSContext* cx, const char* name, jsval a, jsval b);
-
-void 
-js_CallRecorder(JSContext* cx, const char* name, jsval a, jsval b, jsval c);
-
-void 
-js_CallRecorder(JSContext* cx, const char* name, jsval a, jsval b, jsval c, jsval d);
-
-void
-js_TriggerRecorderError(JSContext* cx);
-
-bool 
+extern bool
 js_GetRecorderError(JSContext* cx);
-
-
-
-
-
-
-
-
-static inline jsval
-native_pointer_to_jsval(void* p)
-{
-    return INT_TO_JSVAL(JS_PTR_TO_UINT32(p));
-}
 
 #endif 
