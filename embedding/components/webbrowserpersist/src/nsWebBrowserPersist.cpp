@@ -37,6 +37,7 @@
 
 
 
+
 #include "nspr.h"
 
 #include "nsIFileStreams.h"       
@@ -116,6 +117,7 @@
 #include "nsITransport.h"
 #include "nsISocketTransport.h"
 #include "nsIStringBundle.h"
+#include "nsIProtocolHandler.h"
 
 #include "nsWebBrowserPersist.h"
 
@@ -210,25 +212,6 @@ const PRUint32 kDefaultMaxFilenameLength = 31;
 #else
 const PRUint32 kDefaultMaxFilenameLength = 64;
 #endif
-
-
-
-static const char kNonpersistableSchemes[][13] = {
-    "about:",
-    "news:", 
-    "snews:",
-    "ldap:",
-    "ldaps:",
-    "mailto:", 
-    "finger:",
-    "telnet:", 
-    "gopher:", 
-    "javascript:",
-    "view-source:",
-    "irc:",
-    "mailbox:",
-    "data:"
-};
 
 
 const PRUint32 kDefaultPersistFlags = 
@@ -3281,27 +3264,38 @@ nsWebBrowserPersist::StoreURI(
 {
     NS_ENSURE_ARG_POINTER(aURI);
     if (aData)
+    {
         *aData = nsnull;
-    
-    
-    PRBool shouldPersistURI = PR_TRUE;
-    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kNonpersistableSchemes); i++)
-    {
-        PRUint32 schemeLen = strlen(kNonpersistableSchemes[i]);
-        if (nsCRT::strncasecmp(aURI, kNonpersistableSchemes[i], schemeLen) == 0)
-        {
-            shouldPersistURI = PR_FALSE;
-            break;
-        }
     }
-    if (shouldPersistURI)
+
+    
+    
+    nsCOMPtr<nsIURI> uri;
+    nsresult rv = NS_NewURI(getter_AddRefs(uri),
+                            nsDependentCString(aURI),
+                            mCurrentCharset.get(),
+                            mCurrentBaseURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    PRBool doNotPersistURI;
+    rv = NS_URIChainHasFlags(uri,
+                             nsIProtocolHandler::URI_NON_PERSISTABLE,
+                             &doNotPersistURI);
+    if (NS_FAILED(rv))
     {
-        URIData *data = nsnull;
-        MakeAndStoreLocalFilenameInURIMap(aURI, aNeedsPersisting, &data);
-        if (aData)
-        {
-            *aData = data;
-        }
+        doNotPersistURI = PR_FALSE;
+    }
+
+    if (doNotPersistURI)
+    {
+        return NS_OK;
+    }
+
+    URIData *data = nsnull;
+    MakeAndStoreLocalFilenameInURIMap(uri, aNeedsPersisting, &data);
+    if (aData)
+    {
+        *aData = data;
     }
 
     return NS_OK;
@@ -3678,19 +3672,12 @@ nsWebBrowserPersist::SaveDocumentWithFixup(
 
 nsresult
 nsWebBrowserPersist::MakeAndStoreLocalFilenameInURIMap(
-    const char *aURI, PRBool aNeedsPersisting, URIData **aData)
+    nsIURI *aURI, PRBool aNeedsPersisting, URIData **aData)
 {
     NS_ENSURE_ARG_POINTER(aURI);
 
-    nsresult rv;
-
-    
-    nsCOMPtr<nsIURI> uri;
-    rv = NS_NewURI(getter_AddRefs(uri), nsDependentCString(aURI), 
-                   mCurrentCharset.get(), mCurrentBaseURI);
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
     nsCAutoString spec;
-    rv = uri->GetSpec(spec);
+    nsresult rv = aURI->GetSpec(spec);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
     
@@ -3706,7 +3693,7 @@ nsWebBrowserPersist::MakeAndStoreLocalFilenameInURIMap(
 
     
     nsString filename;
-    rv = MakeFilenameFromURI(uri, filename);
+    rv = MakeFilenameFromURI(aURI, filename);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
 
     
