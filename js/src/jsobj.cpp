@@ -1122,24 +1122,6 @@ Object_p_valueOf(JSContext* cx, JSObject* obj, JSString *hint)
 
 
 
-JSBool
-js_CheckContentSecurityPolicy(JSContext *cx)
-{
-    JSSecurityCallbacks *callbacks;
-    callbacks = JS_GetSecurityCallbacks(cx);
-
-    
-    
-    if (callbacks && callbacks->contentSecurityPolicyAllows)
-        return callbacks->contentSecurityPolicyAllows(cx);
-
-    return JS_TRUE;
-}
-
-
-
-
-
 
 JSBool
 js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
@@ -1411,13 +1393,6 @@ obj_eval(JSContext *cx, uintN argc, jsval *vp)
     JS_ASSERT_IF(result, result == scopeobj);
     if (!result)
         return JS_FALSE;
-
-    
-    
-    if (!js_CheckContentSecurityPolicy(cx)) {
-        JS_ReportError(cx, "call to eval() blocked by CSP");
-        return  JS_FALSE;
-    }
 
     JSObject *callee = JSVAL_TO_OBJECT(vp[0]);
     JSPrincipals *principals = js_EvalFramePrincipals(cx, callee, caller);
@@ -2529,8 +2504,8 @@ DefinePropertyObject(JSContext *cx, JSObject *obj, const PropertyDescriptor &des
             changed |= JSPROP_ENUMERATE;
 
         attrs = (sprop->attrs & ~changed) | (desc.attrs & changed);
-        getter = sprop->getter;
-        setter = sprop->setter;
+        getter = sprop->getter();
+        setter = sprop->setter();
     } else if (desc.isDataDescriptor()) {
         uintN unchanged = 0;
         if (!desc.hasConfigurable)
@@ -2573,11 +2548,11 @@ DefinePropertyObject(JSContext *cx, JSObject *obj, const PropertyDescriptor &des
         if (desc.hasGet)
             getter = desc.getterObject() ? desc.getter() : JS_PropertyStub;
         else
-            getter = sprop->getter;
+            getter = sprop->getter();
         if (desc.hasSet)
             setter = desc.setterObject() ? desc.setter() : JS_PropertyStub;
         else
-            setter = sprop->setter;
+            setter = sprop->setter();
     }
 
     *rval = true;
@@ -3657,7 +3632,7 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
                 sprop = sprop ? sprop->parent : OBJ_SCOPE(obj)->lastProperty();
             } while (!sprop->hasShortID());
 
-            JS_ASSERT(sprop->getter == block_getProperty);
+            JS_ASSERT(sprop->getter() == block_getProperty);
             propid = sprop->id;
             JS_ASSERT(JSID_IS_ATOM(propid));
             atom = JSID_TO_ATOM(propid);
@@ -4499,10 +4474,10 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                                                    JSPROP_GETTER | JSPROP_SETTER,
                                                    (attrs & JSPROP_GETTER)
                                                    ? getter
-                                                   : sprop->getter,
+                                                   : sprop->getter(),
                                                    (attrs & JSPROP_SETTER)
                                                    ? setter
-                                                   : sprop->setter);
+                                                   : sprop->setter());
 
             
             if (!sprop)
@@ -5382,8 +5357,8 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             if (sprop->hasShortID()) {
                 flags = JSScopeProperty::HAS_SHORTID;
                 shortid = sprop->shortid;
-                getter = sprop->getter;
-                setter = sprop->setter;
+                getter = sprop->getter();
+                setter = sprop->setter();
             }
 
             
@@ -5531,7 +5506,7 @@ js_SetAttributes(JSContext *cx, JSObject *obj, jsid id, JSProperty *prop,
     }
     sprop = (JSScopeProperty *)prop;
     sprop = js_ChangeNativePropertyAttrs(cx, obj, sprop, *attrsp, 0,
-                                         sprop->getter, sprop->setter);
+                                         sprop->getter(), sprop->setter());
     if (noprop)
         obj->dropProperty(cx, prop);
     return (sprop != NULL);
@@ -6071,13 +6046,11 @@ js_TypeOf(JSContext *cx, JSObject *obj)
 
 #ifdef NARCISSUS
     JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED);
-    jsval v;
 
     if (!obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.__call__Atom), &v)) {
         JS_ClearPendingException(cx);
-    } else {
-        if (VALUE_IS_FUNCTION(cx, v))
-            return JSTYPE_FUNCTION;
+    } else if (VALUE_IS_FUNCTION(cx, v)) {
+        return JSTYPE_FUNCTION;
     }
 #endif
 

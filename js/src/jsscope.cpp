@@ -922,13 +922,8 @@ locked_not_found:
     if (!sprop)
         goto out_of_memory;
 
-    sprop->id = child.id;
-    sprop->getter = child.getter;
-    sprop->setter = child.setter;
-    sprop->slot = child.slot;
-    sprop->attrs = child.attrs;
-    sprop->flags = child.flags;
-    sprop->shortid = child.shortid;
+    new(sprop) JSScopeProperty(child.id, child.rawGetter, child.rawSetter, child.slot,
+                               child.attrs, child.flags, child.shortid);
     sprop->parent = sprop->kids = NULL;
     sprop->shape = js_GenerateShape(cx, true);
 
@@ -1097,21 +1092,15 @@ JSScopeProperty *
 JSScope::newDictionaryProperty(JSContext *cx, const JSScopeProperty &child,
                                JSScopeProperty **childp)
 {
-    JS_LOCK_GC(cx->runtime);
     JSScopeProperty *dprop = NewScopeProperty(cx->runtime);
-    JS_UNLOCK_GC(cx->runtime);
     if (!dprop) {
         JS_ReportOutOfMemory(cx);
         return NULL;
     }
 
-    dprop->id = child.id;
-    dprop->getter = child.getter;
-    dprop->setter = child.setter;
-    dprop->slot = child.slot;
-    dprop->attrs = child.attrs;
-    dprop->flags = child.flags | JSScopeProperty::IN_DICTIONARY;
-    dprop->shortid = child.shortid;
+    new (dprop) JSScopeProperty(child.id, child.rawGetter, child.rawSetter, child.slot,
+                                child.attrs, child.flags | JSScopeProperty::IN_DICTIONARY,
+                                child.shortid);
     dprop->shape = js_GenerateShape(cx, false);
 
     dprop->childp = NULL;
@@ -1291,15 +1280,7 @@ JSScope::addPropertyHelper(JSContext *cx, jsid id,
     
     JSScopeProperty *sprop;
     {
-        JSScopeProperty child;
-
-        child.id = id;
-        child.getter = getter;
-        child.setter = setter;
-        child.slot = slot;
-        child.attrs = attrs;
-        child.flags = flags;
-        child.shortid = shortid;
+        JSScopeProperty child(id, getter, setter, slot, attrs, flags, shortid);
         sprop = getChildProperty(cx, lastProp, child);
     }
 
@@ -1415,16 +1396,8 @@ JSScope::putProperty(JSContext *cx, jsid id,
     CHECK_ANCESTOR_LINE(this, true);
 
     {
-        JSScopeProperty child;
-
         
-        child.id = id;
-        child.getter = getter;
-        child.setter = setter;
-        child.slot = slot;
-        child.attrs = attrs;
-        child.flags = flags;
-        child.shortid = shortid;
+        JSScopeProperty child(id, getter, setter, slot, attrs, flags, shortid);
         sprop = getChildProperty(cx, lastProp, child);
     }
 
@@ -1456,7 +1429,7 @@ JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
                         uintN attrs, uintN mask,
                         JSPropertyOp getter, JSPropertyOp setter)
 {
-    JSScopeProperty child, *newsprop;
+    JSScopeProperty *newsprop;
 
     JS_ASSERT(JS_IS_SCOPE_LOCKED(cx, this));
     CHECK_ANCESTOR_LINE(this, true);
@@ -1471,26 +1444,17 @@ JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
               !(attrs & JSPROP_SHARED));
 
     
-    JS_ASSERT_IF(getter != sprop->getter, !sprop->isMethod());
+    JS_ASSERT_IF(getter != sprop->rawGetter, !sprop->isMethod());
 
     if (getter == JS_PropertyStub)
         getter = NULL;
     if (setter == JS_PropertyStub)
         setter = NULL;
-    if (sprop->attrs == attrs &&
-        sprop->getter == getter &&
-        sprop->setter == setter) {
+    if (sprop->attrs == attrs && sprop->getter() == getter && sprop->setter() == setter)
         return sprop;
-    }
 
-    child.id = sprop->id;
-    child.getter = getter;
-    child.setter = setter;
-    child.slot = sprop->slot;
-    child.attrs = attrs;
-    child.flags = sprop->flags;
-    child.shortid = sprop->shortid;
-
+    JSScopeProperty child(sprop->id, getter, setter, sprop->slot, attrs, sprop->flags,
+                          sprop->shortid);
     if (inDictionaryMode()) {
         removeDictionaryProperty(sprop);
         newsprop = newDictionaryProperty(cx, child, &lastProp);
@@ -1518,7 +1482,7 @@ JSScope::changeProperty(JSContext *cx, JSScopeProperty *sprop,
 
 
 
-        newsprop = putProperty(cx, child.id, child.getter, child.setter, child.slot,
+        newsprop = putProperty(cx, child.id, child.rawGetter, child.rawSetter, child.slot,
                                child.attrs, child.flags, child.shortid);
     }
 
@@ -1669,7 +1633,7 @@ JSScope::methodShapeChange(JSContext *cx, JSScopeProperty *sprop, jsval toval)
         JS_ASSERT(sprop->methodValue() == prev);
         JS_ASSERT(hasMethodBarrier());
         JS_ASSERT(object->getClass() == &js_ObjectClass);
-        JS_ASSERT(!sprop->setter || sprop->setter == js_watch_set);
+        JS_ASSERT(!sprop->rawSetter || sprop->rawSetter == js_watch_set);
 #endif
 
         
@@ -1678,7 +1642,7 @@ JSScope::methodShapeChange(JSContext *cx, JSScopeProperty *sprop, jsval toval)
 
 
 
-        sprop = putProperty(cx, sprop->id, NULL, sprop->setter, sprop->slot,
+        sprop = putProperty(cx, sprop->id, NULL, sprop->rawSetter, sprop->slot,
                             sprop->attrs,
                             sprop->getFlags() & ~JSScopeProperty::METHOD,
                             sprop->shortid);
@@ -1788,11 +1752,11 @@ JSScopeProperty::trace(JSTracer *trc)
 
 #if JS_HAS_GETTER_SETTER
     if (attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
-        if ((attrs & JSPROP_GETTER) && getter) {
+        if ((attrs & JSPROP_GETTER) && rawGetter) {
             JS_SET_TRACING_DETAILS(trc, PrintPropertyGetterOrSetter, this, 0);
             js_CallGCMarker(trc, getterObject(), JSTRACE_OBJECT);
         }
-        if ((attrs & JSPROP_SETTER) && setter) {
+        if ((attrs & JSPROP_SETTER) && rawSetter) {
             JS_SET_TRACING_DETAILS(trc, PrintPropertyGetterOrSetter, this, 1);
             js_CallGCMarker(trc, setterObject(), JSTRACE_OBJECT);
         }
@@ -1878,8 +1842,8 @@ JSScopeProperty::dump(JSContext *cx, FILE *fp)
     }
 
     fprintf(fp, " g/s %p/%p slot %u attrs %x ",
-            JS_FUNC_TO_DATA_PTR(void *, getter),
-            JS_FUNC_TO_DATA_PTR(void *, setter),
+            JS_FUNC_TO_DATA_PTR(void *, rawGetter),
+            JS_FUNC_TO_DATA_PTR(void *, rawSetter),
             slot, attrs);
     if (attrs) {
         int first = 1;
