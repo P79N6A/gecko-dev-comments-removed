@@ -80,6 +80,7 @@
 #include "nsMutationEvent.h"
 #include "nsNodeUtils.h"
 #include "nsDocument.h"
+#include "nsXULElement.h"
 
 #include "nsBindingManager.h"
 #include "nsXBLBinding.h"
@@ -1699,14 +1700,7 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   NS_PRECONDITION(aParent || aDocument, "Must have document if no parent!");
   NS_PRECONDITION(HasSameOwnerDoc(NODE_FROM(aParent, aDocument)),
                   "Must have the same owner document");
-  
-  
-  
-  
-  
-  NS_PRECONDITION(!aParent ||
-                  (aParent->IsNodeOfType(eXUL) && aDocument == nsnull) ||
-                  aDocument == aParent->GetCurrentDoc(),
+  NS_PRECONDITION(!aParent || aDocument == aParent->GetCurrentDoc(),
                   "aDocument must be current doc of aParent");
   NS_PRECONDITION(!GetCurrentDoc(), "Already have a document.  Unbind first!");
   
@@ -1718,7 +1712,10 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                   (!aBindingParent && aParent &&
                    aParent->GetBindingParent() == GetBindingParent()),
                   "Already have a binding parent.  Unbind first!");
-  NS_PRECONDITION(aBindingParent != this || IsNativeAnonymous(),
+  
+  
+  NS_PRECONDITION(IsNodeOfType(eXUL) ||
+                  aBindingParent != this || IsNativeAnonymous(),
                   "Only native anonymous content should have itself as its "
                   "own binding parent");
   
@@ -1727,19 +1724,29 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   }
 
   
-  if (aBindingParent) {
-    nsDOMSlots *slots = GetDOMSlots();
+  nsXULElement* xulElem = nsXULElement::FromContent(this);
+  if (xulElem) {
+    xulElem->SetXULBindingParent(aBindingParent);
+  }
+  else {
+    if (aBindingParent) {
+      nsDOMSlots *slots = GetDOMSlots();
 
-    if (!slots) {
-      return NS_ERROR_OUT_OF_MEMORY;
+      if (!slots) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+
+      slots->mBindingParent = aBindingParent; 
     }
-
-    slots->mBindingParent = aBindingParent; 
   }
 
   
   if (aParent) {
     mParentPtrBits = NS_REINTERPRET_CAST(PtrBits, aParent) | PARENT_BIT_PARENT_IS_CONTENT;
+
+    if (aParent->HasFlag(NODE_FORCE_XBL_BINDINGS)) {
+      SetFlags(NODE_FORCE_XBL_BINDINGS);
+    }
   }
   else {
     mParentPtrBits = NS_REINTERPRET_CAST(PtrBits, aDocument);
@@ -1760,12 +1767,18 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
     
     mParentPtrBits |= PARENT_BIT_INDOCUMENT;
+
+    
+    UnsetFlags(NODE_FORCE_XBL_BINDINGS);
   }
 
   
   nsresult rv;
   PRUint32 i;
-  for (i = 0; i < GetChildCount(); ++i) {
+  
+  
+  
+  for (i = 0; i < mAttrsAndChildren.ChildCount(); ++i) {
     
     nsCOMPtr<nsIContent> child = mAttrsAndChildren.ChildAt(i);
     rv = child->BindToTree(aDocument, this, aBindingParent,
@@ -1808,15 +1821,26 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
   
   mParentPtrBits = aNullParent ? 0 : mParentPtrBits & ~PARENT_BIT_INDOCUMENT;
+
   
-  nsDOMSlots *slots = GetExistingDOMSlots();
-  if (slots) {
-    slots->mBindingParent = nsnull;
+  UnsetFlags(NODE_FORCE_XBL_BINDINGS);
+  
+  nsXULElement* xulElem = nsXULElement::FromContent(this);
+  if (xulElem) {
+    xulElem->SetXULBindingParent(nsnull);
+  }
+  else {
+    nsDOMSlots *slots = GetExistingDOMSlots();
+    if (slots) {
+      slots->mBindingParent = nsnull;
+    }
   }
 
   if (aDeep) {
     
-    PRUint32 i, n = GetChildCount();
+    
+    
+    PRUint32 i, n = mAttrsAndChildren.ChildCount();
 
     for (i = 0; i < n; ++i) {
       
@@ -2902,7 +2926,6 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
   }
   else {
     
-    PRBool newContentIsXUL = newContent->IsNodeOfType(eXUL);
 
     
     nsINode* oldParent = newContent->GetNodeParent();
@@ -2946,7 +2969,7 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
       }
     }
 
-    if (!newContentIsXUL) {
+    if (!newContent->IsNodeOfType(eXUL)) {
       nsContentUtils::ReparentContentWrapper(newContent, aParent,
                                              container->GetOwnerDoc(),
                                              container->GetOwnerDoc());
@@ -3022,9 +3045,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGenericElement)
   nsIDocument* currentDoc = tmp->GetCurrentDoc();
-  if (currentDoc && !tmp->HasFlag(NODE_HAS_FAKED_INDOC) &&
-      nsCCUncollectableMarker::InGeneration(
-        currentDoc->GetMarkedCCGeneration())) {
+  if (currentDoc && nsCCUncollectableMarker::InGeneration(
+                      currentDoc->GetMarkedCCGeneration())) {
     return NS_OK;
   }
 

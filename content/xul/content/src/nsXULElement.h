@@ -486,11 +486,6 @@ public:
                                    PRBool aNotify);
 
     
-    virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                                nsIContent* aBindingParent,
-                                PRBool aCompileEventHandlers);
-    virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
-                                PRBool aNullParent = PR_TRUE);
     virtual void SetNativeAnonymous(PRBool aAnonymous);
     virtual nsresult RemoveChildAt(PRUint32 aIndex, PRBool aNotify);
     virtual nsIAtom *GetIDAttributeName() const;
@@ -563,13 +558,20 @@ public:
 
     virtual void RecompileScriptEventListeners();
 
+    
+    
+    
+    void SetXULBindingParent(nsIContent* aBindingParent)
+    {
+      mBindingParent = aBindingParent;
+    }
+
 protected:
     
     
     friend class nsNodeUtils;
 
     nsXULElement(nsINodeInfo* aNodeInfo);
-    virtual ~nsXULElement(void);
 
     
     nsresult EnsureContentsGenerated(void) const;

@@ -84,8 +84,7 @@ class nsNodeSupportsWeakRefTearoff;
 
 
 
-
-#define NODE_HAS_FAKED_INDOC         0x00000040U
+#define NODE_FORCE_XBL_BINDINGS      0x00000040U
 
 
 #define NODE_MAY_BE_IN_BINDING_MNGR  0x00000080U
