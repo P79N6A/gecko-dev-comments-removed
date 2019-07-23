@@ -579,8 +579,6 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
                                           nscoord aContainingBlockWidth,
                                           nscoord aContainingBlockHeight)
 {
-  nsStyleCoord  coord;
-
   
   
   
@@ -616,7 +614,7 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
     } else {
       
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 mStylePosition->mOffset.GetRight(coord),
+                                 mStylePosition->mOffset.GetRight(),
                                  mComputedOffsets.right);
       
       
@@ -628,7 +626,7 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
     
     
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               mStylePosition->mOffset.GetLeft(coord),
+                               mStylePosition->mOffset.GetLeft(),
                                mComputedOffsets.left);
 
     
@@ -664,7 +662,7 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
     } else {
       
       ComputeHeightDependentValue(aContainingBlockHeight,
-                                  mStylePosition->mOffset.GetBottom(coord),
+                                  mStylePosition->mOffset.GetBottom(),
                                   mComputedOffsets.bottom);
       
       
@@ -676,7 +674,7 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
     
     
     ComputeHeightDependentValue(aContainingBlockHeight,
-                                mStylePosition->mOffset.GetTop(coord),
+                                mStylePosition->mOffset.GetTop(),
                                 mComputedOffsets.top);
 
     
@@ -779,28 +777,24 @@ nsHTMLReflowState::CalculateHorizBorderPaddingMargin(
 
   
   if (!mStylePadding->GetPadding(padding)) {
-    nsStyleCoord left, right;
-
     
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               mStylePadding->mPadding.GetLeft(left),
+                               mStylePadding->mPadding.GetLeft(),
                                padding.left);
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               mStylePadding->mPadding.GetRight(right),
+                               mStylePadding->mPadding.GetRight(),
                                padding.right);
   }
 
   
   if (!mStyleMargin->GetMargin(margin)) {
-    nsStyleCoord left, right;
-
     
     if (eStyleUnit_Auto == mStyleMargin->mMargin.GetLeftUnit()) {
       
       margin.left = 0;  
     } else {
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 mStyleMargin->mMargin.GetLeft(left),
+                                 mStyleMargin->mMargin.GetLeft(),
                                  margin.left);
     }
     if (eStyleUnit_Auto == mStyleMargin->mMargin.GetRightUnit()) {
@@ -808,7 +802,7 @@ nsHTMLReflowState::CalculateHorizBorderPaddingMargin(
       margin.right = 0;  
     } else {
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 mStyleMargin->mMargin.GetRight(right),
+                                 mStyleMargin->mMargin.GetRight(),
                                  margin.right);
     }
   }
@@ -1108,13 +1102,12 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
   
   
   PRBool        leftIsAuto = PR_FALSE, rightIsAuto = PR_FALSE;
-  nsStyleCoord  coord;
   if (eStyleUnit_Auto == mStylePosition->mOffset.GetLeftUnit()) {
     mComputedOffsets.left = 0;
     leftIsAuto = PR_TRUE;
   } else {
     ComputeWidthDependentValue(containingBlockWidth,
-                               mStylePosition->mOffset.GetLeft(coord),
+                               mStylePosition->mOffset.GetLeft(),
                                mComputedOffsets.left);
   }
   if (eStyleUnit_Auto == mStylePosition->mOffset.GetRightUnit()) {
@@ -1122,7 +1115,7 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     rightIsAuto = PR_TRUE;
   } else {
     ComputeWidthDependentValue(containingBlockWidth,
-                               mStylePosition->mOffset.GetRight(coord),
+                               mStylePosition->mOffset.GetRight(),
                                mComputedOffsets.right);
   }
 
@@ -1160,18 +1153,16 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     mComputedOffsets.top = 0;
     topIsAuto = PR_TRUE;
   } else {
-    nsStyleCoord c;
     ComputeHeightDependentValue(containingBlockHeight,
-                                mStylePosition->mOffset.GetTop(c),
+                                mStylePosition->mOffset.GetTop(),
                                 mComputedOffsets.top);
   }
   if (eStyleUnit_Auto == mStylePosition->mOffset.GetBottomUnit()) {
     mComputedOffsets.bottom = 0;        
     bottomIsAuto = PR_TRUE;
   } else {
-    nsStyleCoord c;
     ComputeHeightDependentValue(containingBlockHeight,
-                                mStylePosition->mOffset.GetBottom(c),
+                                mStylePosition->mOffset.GetBottom(),
                                 mComputedOffsets.bottom);
   }
 
@@ -2084,39 +2075,30 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
       mComputedMargin.right = 0;
 
       if (eStyleUnit_Coord == styleMargin->mMargin.GetLeftUnit()) {
-        nsStyleCoord left;
-        
-        styleMargin->mMargin.GetLeft(left),
-        mComputedMargin.left = left.GetCoordValue();
+        mComputedMargin.left = styleMargin->mMargin.GetLeft().GetCoordValue();
       }
       if (eStyleUnit_Coord == styleMargin->mMargin.GetRightUnit()) {
-        nsStyleCoord right;
-        
-        styleMargin->mMargin.GetRight(right),
-        mComputedMargin.right = right.GetCoordValue();
+        mComputedMargin.right = styleMargin->mMargin.GetRight().GetCoordValue();
       }
 
     } else {
-      nsStyleCoord left, right;
-
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 styleMargin->mMargin.GetLeft(left),
+                                 styleMargin->mMargin.GetLeft(),
                                  mComputedMargin.left);
       ComputeWidthDependentValue(aContainingBlockWidth,
-                                 styleMargin->mMargin.GetRight(right),
+                                 styleMargin->mMargin.GetRight(),
                                  mComputedMargin.right);
     }
 
-    nsStyleCoord top, bottom;
     
     
     
     
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               styleMargin->mMargin.GetTop(top),
+                               styleMargin->mMargin.GetTop(),
                                mComputedMargin.top);
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               styleMargin->mMargin.GetBottom(bottom),
+                               styleMargin->mMargin.GetBottom(),
                                mComputedMargin.bottom);
 
     
@@ -2136,22 +2118,20 @@ nsCSSOffsetState::ComputePadding(nscoord aContainingBlockWidth)
   const nsStylePadding *stylePadding = frame->GetStylePadding();
   if (!stylePadding->GetPadding(mComputedPadding)) {
     
-    nsStyleCoord left, right, top, bottom;
-
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               stylePadding->mPadding.GetLeft(left),
+                               stylePadding->mPadding.GetLeft(),
                                mComputedPadding.left);
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               stylePadding->mPadding.GetRight(right),
+                               stylePadding->mPadding.GetRight(),
                                mComputedPadding.right);
 
     
     
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               stylePadding->mPadding.GetTop(top),
+                               stylePadding->mPadding.GetTop(),
                                mComputedPadding.top);
     ComputeWidthDependentValue(aContainingBlockWidth,
-                               stylePadding->mPadding.GetBottom(bottom),
+                               stylePadding->mPadding.GetBottom(),
                                mComputedPadding.bottom);
 
     frame->SetProperty(nsGkAtoms::usedPaddingProperty,
