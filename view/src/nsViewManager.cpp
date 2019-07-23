@@ -576,7 +576,7 @@ void nsViewManager::ProcessPendingUpdates(nsView* aView, PRBool aDoInvalidate)
       nsRegion r = *dirtyRegion;
       r.MoveBy(aView->GetOffsetTo(nearestViewWithWidget));
       UpdateWidgetArea(nearestViewWithWidget,
-                       nearestViewWithWidget->GetNearestWidget(nsnull), r, nsnull);
+                       nearestViewWithWidget->GetWidget(), r, nsnull);
       dirtyRegion->SetEmpty();
     }
   }
@@ -683,14 +683,14 @@ nsViewManager::UpdateViewAfterScroll(nsView *aView, const nsRegion& aUpdateRegio
   nsPoint offset = aView->GetOffsetTo(displayRoot);
   damageRect.MoveBy(offset);
 
-  UpdateWidgetArea(displayRoot, displayRoot->GetNearestWidget(nsnull),
+  UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
                    nsRegion(damageRect), aView);
   if (!aUpdateRegion.IsEmpty()) {
     
     
     nsRegion update(aUpdateRegion);
     update.MoveBy(offset);
-    UpdateWidgetArea(displayRoot, displayRoot->GetNearestWidget(nsnull),
+    UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
                      update, nsnull);
     
   }
@@ -851,7 +851,7 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, const nsRect &aRect, PRU
   
   
   damagedRect.MoveBy(view->GetOffsetTo(displayRoot));
-  UpdateWidgetArea(displayRoot, displayRoot->GetNearestWidget(nsnull),
+  UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
                    nsRegion(damagedRect), nsnull);
 
   RootViewManager()->IncrementUpdateCount();
