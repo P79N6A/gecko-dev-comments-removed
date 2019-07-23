@@ -1930,15 +1930,11 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
 
 
 
-
-
-
-
-
 static PRBool
 IsTableRelated(nsIAtom* aParentType)
 {
   return
+    nsGkAtoms::tableOuterFrame    == aParentType ||
     nsGkAtoms::tableFrame         == aParentType ||
     nsGkAtoms::tableRowGroupFrame == aParentType ||
     nsGkAtoms::tableRowFrame      == aParentType ||
