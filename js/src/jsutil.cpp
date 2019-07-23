@@ -250,7 +250,7 @@ CallTree(void **bp)
 
         csp = &parent->kids;
         while ((site = *csp) != NULL) {
-            if (site->pc == pc) {
+            if (site->pc == (uint32)pc) {
                 
                 *csp = site->siblings;
                 site->siblings = parent->kids;
@@ -264,7 +264,7 @@ CallTree(void **bp)
 
         
         for (site = parent; site; site = site->parent) {
-            if (site->pc == pc)
+            if (site->pc == (uint32)pc)
                 goto upward;
         }
 
@@ -296,7 +296,7 @@ CallTree(void **bp)
             return NULL;
 
         
-        site->pc = pc;
+        site->pc = (uint32)pc;
         site->name = method;
         site->library = info.dli_fname;
         site->offset = offset;
