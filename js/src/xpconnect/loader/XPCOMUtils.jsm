@@ -69,18 +69,19 @@ var XPCOMUtils = {
 
 
 
+
   generateFactory: function(ctor, interfaces) {
     return {
       createInstance: function(outer, iid) {
         if (outer) throw Components.results.NS_ERROR_NO_AGGREGATION;
         if (!interfaces)
-          return ctor().QueryInterface(iid);
+          return (new ctor()).QueryInterface(iid);
         for (var i=interfaces.length; i>=0; --i) {
           if (iid.equals(interfaces[i])) break;
         }
         if (i < 0 && !iid.equals(Components.interfaces.nsISupports))
           throw Components.results.NS_ERROR_NO_INTERFACE;
-        return ctor();
+        return (new ctor());
       }
     }
   },

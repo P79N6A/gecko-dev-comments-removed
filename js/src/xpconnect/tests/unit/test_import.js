@@ -35,6 +35,7 @@
 
 
 
+
  
 function run_test() {   
   var scope = {};
@@ -66,5 +67,19 @@ function run_test() {
   }
   do_check_true(didThrow);
  
-}
+  
+  do_load_module("/js/src/xpconnect/tests/unit/component_import.js");
+  const contractID = "@mozilla.org/tests/module-importer;";
+  do_check_true((contractID + "1") in Components.classes);
+  var foo = Components.classes[contractID + "1"]
+                      .createInstance(Components.interfaces.nsIClassInfo);
+  do_check_true(Boolean(foo));
+  do_check_true(foo.contractID == contractID + "1");
 
+  
+  do_check_true((contractID + "2") in Components.classes);
+  var bar = Components.classes[contractID + "2"]
+                      .createInstance(Components.interfaces.nsIClassInfo);
+  do_check_true(Boolean(bar));
+  do_check_true(bar.contractID == contractID + "2");
+}
