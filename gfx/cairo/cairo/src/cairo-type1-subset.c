@@ -33,11 +33,6 @@
 
 
 
-
-
-
-
-
 #define _BSD_SOURCE
 #include "cairoint.h"
 #include "cairo-type1-private.h"

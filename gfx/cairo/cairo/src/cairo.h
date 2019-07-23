@@ -386,8 +386,6 @@ cairo_pop_group_to_source (cairo_t *cr);
 
 
 
-
-
 typedef enum _cairo_operator {
     CAIRO_OPERATOR_CLEAR,
 
@@ -477,8 +475,6 @@ cairo_set_antialias (cairo_t *cr, cairo_antialias_t antialias);
 
 
 
-
-
 typedef enum _cairo_fill_rule {
     CAIRO_FILL_RULE_WINDING,
     CAIRO_FILL_RULE_EVEN_ODD
@@ -498,8 +494,6 @@ cairo_set_line_width (cairo_t *cr, double width);
 
 
 
-
-
 typedef enum _cairo_line_cap {
     CAIRO_LINE_CAP_BUTT,
     CAIRO_LINE_CAP_ROUND,
@@ -508,8 +502,6 @@ typedef enum _cairo_line_cap {
 
 cairo_public void
 cairo_set_line_cap (cairo_t *cr, cairo_line_cap_t line_cap);
-
-
 
 
 
@@ -1191,7 +1183,7 @@ typedef enum _cairo_font_type {
     CAIRO_FONT_TYPE_TOY,
     CAIRO_FONT_TYPE_FT,
     CAIRO_FONT_TYPE_WIN32,
-    CAIRO_FONT_TYPE_QUARTZ
+    CAIRO_FONT_TYPE_ATSUI
 } cairo_font_type_t;
 
 cairo_public cairo_font_type_t
@@ -1790,11 +1782,6 @@ cairo_pattern_set_matrix (cairo_pattern_t      *pattern,
 cairo_public void
 cairo_pattern_get_matrix (cairo_pattern_t *pattern,
 			  cairo_matrix_t  *matrix);
-
-
-
-
-
 
 
 

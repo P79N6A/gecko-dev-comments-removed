@@ -339,7 +339,6 @@ _cairo_sub_font_map_glyph (cairo_sub_font_t	*sub_font,
                                              scaled_font_glyph_index,
                                              CAIRO_SCALED_GLYPH_INFO_METRICS,
                                              &scaled_glyph);
-	assert (status != CAIRO_INT_STATUS_UNSUPPORTED);
 	if (status)
 	    return status;
 
@@ -546,20 +545,10 @@ _cairo_scaled_font_subsets_map_glyph (cairo_scaled_font_subsets_t	*subsets,
 
     
 
-
-
-
-
-
-
-    if (scaled_font_glyph_index == 0) {
-	status = CAIRO_STATUS_SUCCESS;
-    } else {
-	status = _cairo_scaled_glyph_lookup (scaled_font,
-					     scaled_font_glyph_index,
-					     CAIRO_SCALED_GLYPH_INFO_PATH,
-					     &scaled_glyph);
-    }
+    status = _cairo_scaled_glyph_lookup (scaled_font,
+                                         scaled_font_glyph_index,
+					 CAIRO_SCALED_GLYPH_INFO_PATH,
+                                         &scaled_glyph);
     if (status && status != CAIRO_INT_STATUS_UNSUPPORTED)
         return status;
 

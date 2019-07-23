@@ -48,6 +48,7 @@
 #define FloatToFixed(a)     ((Fixed)((float)(a) * fixed1))
 #endif
 
+#include <Carbon/Carbon.h>
 #include <limits.h>
 
 #undef QUARTZ_DEBUG
@@ -102,21 +103,18 @@ CG_EXTERN CGImageRef CGBitmapContextCreateImage (CGContextRef);
 #endif
 
 
-
-
-
 static void (*CGContextClipToMaskPtr) (CGContextRef, CGRect, CGImageRef) = NULL;
+
 static void (*CGContextDrawTiledImagePtr) (CGContextRef, CGRect, CGImageRef) = NULL;
 static unsigned int (*CGContextGetTypePtr) (CGContextRef) = NULL;
 static void (*CGContextSetShouldAntialiasFontsPtr) (CGContextRef, bool) = NULL;
+static void (*CGContextSetShouldSmoothFontsPtr) (CGContextRef, bool) = NULL;
 static bool (*CGContextGetShouldAntialiasFontsPtr) (CGContextRef) = NULL;
 static bool (*CGContextGetShouldSmoothFontsPtr) (CGContextRef) = NULL;
 static void (*CGContextSetAllowsFontSmoothingPtr) (CGContextRef, bool) = NULL;
 static bool (*CGContextGetAllowsFontSmoothingPtr) (CGContextRef) = NULL;
 static CGPathRef (*CGContextCopyPathPtr) (CGContextRef) = NULL;
 static void (*CGContextReplacePathWithClipPathPtr) (CGContextRef) = NULL;
-
-static SInt32 _cairo_quartz_osx_version = 0x0;
 
 static cairo_bool_t _cairo_quartz_symbol_lookup_done = FALSE;
 
@@ -145,17 +143,13 @@ static void quartz_ensure_symbols(void)
     CGContextDrawTiledImagePtr = dlsym(RTLD_DEFAULT, "CGContextDrawTiledImage");
     CGContextGetTypePtr = dlsym(RTLD_DEFAULT, "CGContextGetType");
     CGContextSetShouldAntialiasFontsPtr = dlsym(RTLD_DEFAULT, "CGContextSetShouldAntialiasFonts");
+    CGContextSetShouldSmoothFontsPtr = dlsym(RTLD_DEFAULT, "CGContextSetShouldSmoothFonts");
     CGContextGetShouldAntialiasFontsPtr = dlsym(RTLD_DEFAULT, "CGContextGetShouldAntialiasFonts");
     CGContextGetShouldSmoothFontsPtr = dlsym(RTLD_DEFAULT, "CGContextGetShouldSmoothFonts");
     CGContextCopyPathPtr = dlsym(RTLD_DEFAULT, "CGContextCopyPath");
     CGContextReplacePathWithClipPathPtr = dlsym(RTLD_DEFAULT, "CGContextReplacePathWithClipPath");
     CGContextGetAllowsFontSmoothingPtr = dlsym(RTLD_DEFAULT, "CGContextGetAllowsFontSmoothing");
     CGContextSetAllowsFontSmoothingPtr = dlsym(RTLD_DEFAULT, "CGContextSetAllowsFontSmoothing");
-
-    if (Gestalt(gestaltSystemVersion, &_cairo_quartz_osx_version) != noErr) {
-	
-	_cairo_quartz_osx_version = 0x1040;
-    }
 
     _cairo_quartz_symbol_lookup_done = TRUE;
 }
@@ -485,10 +479,6 @@ _cairo_quartz_fixup_unbounded_operation (cairo_quartz_surface_t *surface,
 	CGContextTranslateCTM (cgc, op->u.show_glyphs.origin.x, op->u.show_glyphs.origin.y);
 
 	if (op->u.show_glyphs.isClipping) {
-	    
-
-
-
 	    CGContextSetTextDrawingMode (cgc, kCGTextClip);
 	    CGContextSaveGState (cgc);
 	}
@@ -550,6 +540,7 @@ static void
 ComputeGradientValue (void *info, const float *in, float *out)
 {
     double fdist = *in;
+    cairo_fixed_t fdist_fix;
     cairo_gradient_pattern_t *grad = (cairo_gradient_pattern_t*) info;
     unsigned int i;
 
@@ -565,8 +556,10 @@ ComputeGradientValue (void *info, const float *in, float *out)
 	}
     }
 
+    fdist_fix = _cairo_fixed_from_double(fdist);
+
     for (i = 0; i < grad->n_stops; i++) {
-	if (grad->stops[i].offset > fdist)
+	if (grad->stops[i].x > fdist_fix)
 	    break;
     }
 
@@ -578,8 +571,8 @@ ComputeGradientValue (void *info, const float *in, float *out)
 	out[2] = grad->stops[i].color.blue;
 	out[3] = grad->stops[i].color.alpha;
     } else {
-	float ax = grad->stops[i-1].offset;
-	float bx = grad->stops[i].offset - ax;
+	float ax = _cairo_fixed_to_double(grad->stops[i-1].x);
+	float bx = _cairo_fixed_to_double(grad->stops[i].x) - ax;
 	float bp = (fdist - ax)/bx;
 	float ap = 1.0 - bp;
 
@@ -1738,7 +1731,7 @@ _cairo_quartz_surface_stroke (void *abstract_surface,
     cairo_int_status_t rv = CAIRO_STATUS_SUCCESS;
     cairo_quartz_action_t action;
     quartz_stroke_t stroke;
-    CGAffineTransform origCTM, strokeTransform;
+    CGAffineTransform strokeTransform;
     CGPathRef path_for_unbounded = NULL;
 
     ND((stderr, "%p _cairo_quartz_surface_stroke op %d source->type %d\n", surface, op, source->type));
@@ -1759,9 +1752,6 @@ _cairo_quartz_surface_stroke (void *abstract_surface,
     CGContextSetLineCap (surface->cgContext, _cairo_quartz_cairo_line_cap_to_quartz (style->line_cap));
     CGContextSetLineJoin (surface->cgContext, _cairo_quartz_cairo_line_join_to_quartz (style->line_join));
     CGContextSetMiterLimit (surface->cgContext, style->miter_limit);
-
-    origCTM = CGContextGetCTM (surface->cgContext);
-
     _cairo_quartz_cairo_matrix_to_quartz (ctm, &strokeTransform);
     CGContextConcatCTM (surface->cgContext, strokeTransform);
 
@@ -1808,8 +1798,6 @@ _cairo_quartz_surface_stroke (void *abstract_surface,
 	CGContextReplacePathWithStrokedPath (surface->cgContext);
 	CGContextClip (surface->cgContext);
 
-	CGContextSetCTM (surface->cgContext, origCTM);
-
 	CGContextConcatCTM (surface->cgContext, surface->sourceTransform);
 	CGContextTranslateCTM (surface->cgContext, 0, surface->sourceImageRect.size.height);
 	CGContextScaleCTM (surface->cgContext, 1, -1);
@@ -1821,8 +1809,6 @@ _cairo_quartz_surface_stroke (void *abstract_surface,
     } else if (action == DO_SHADING) {
 	CGContextReplacePathWithStrokedPath (surface->cgContext);
 	CGContextClip (surface->cgContext);
-
-	CGContextSetCTM (surface->cgContext, origCTM);
 
 	CGContextConcatCTM (surface->cgContext, surface->sourceTransform);
 	CGContextDrawShading (surface->cgContext, surface->sourceShading);
@@ -1868,7 +1854,7 @@ _cairo_quartz_surface_stroke (void *abstract_surface,
     return rv;
 }
 
-#if CAIRO_HAS_QUARTZ_FONT
+#if CAIRO_HAS_ATSUI_FONT
 static cairo_int_status_t
 _cairo_quartz_surface_show_glyphs (void *abstract_surface,
 				   cairo_operator_t op,
@@ -1903,7 +1889,7 @@ _cairo_quartz_surface_show_glyphs (void *abstract_surface,
     if (op == CAIRO_OPERATOR_DEST)
 	return CAIRO_STATUS_SUCCESS;
 
-    if (cairo_scaled_font_get_type (scaled_font) != CAIRO_FONT_TYPE_QUARTZ)
+    if (cairo_scaled_font_get_type (scaled_font) != CAIRO_FONT_TYPE_ATSUI)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
 
     CGContextSaveGState (surface->cgContext);
@@ -1923,31 +1909,33 @@ _cairo_quartz_surface_show_glyphs (void *abstract_surface,
     CGContextSetCompositeOperation (surface->cgContext, _cairo_quartz_cairo_operator_to_quartz (op));
 
     
-    cgfref = _cairo_quartz_scaled_font_get_cg_font_ref (scaled_font);
+    cgfref = _cairo_atsui_scaled_font_get_cg_font_ref (scaled_font);
     CGContextSetFont (surface->cgContext, cgfref);
     CGContextSetFontSize (surface->cgContext, 1.0);
 
-    switch (scaled_font->options.antialias) {
-	case CAIRO_ANTIALIAS_SUBPIXEL:
-	    CGContextSetShouldAntialias (surface->cgContext, TRUE);
-	    CGContextSetShouldSmoothFonts (surface->cgContext, TRUE);
-	    if (CGContextSetAllowsFontSmoothingPtr &&
-		!CGContextGetAllowsFontSmoothingPtr (surface->cgContext))
-	    {
-		didForceFontSmoothing = TRUE;
-		CGContextSetAllowsFontSmoothingPtr (surface->cgContext, TRUE);
-	    }
-	    break;
-	case CAIRO_ANTIALIAS_NONE:
-	    CGContextSetShouldAntialias (surface->cgContext, FALSE);
-	    break;
-	case CAIRO_ANTIALIAS_GRAY:
-	    CGContextSetShouldAntialias (surface->cgContext, TRUE);
-	    CGContextSetShouldSmoothFonts (surface->cgContext, FALSE);
-	    break;
-	case CAIRO_ANTIALIAS_DEFAULT:
-	    
-	    break;
+    if (CGContextSetShouldAntialiasFontsPtr) {
+	switch (scaled_font->options.antialias) {
+	    case CAIRO_ANTIALIAS_SUBPIXEL:
+		CGContextSetShouldAntialiasFontsPtr (surface->cgContext, TRUE);
+		CGContextSetShouldSmoothFontsPtr (surface->cgContext, TRUE);
+		if (CGContextSetAllowsFontSmoothingPtr &&
+		    !CGContextGetAllowsFontSmoothingPtr (surface->cgContext))
+		{
+		    didForceFontSmoothing = TRUE;
+		    CGContextSetAllowsFontSmoothingPtr (surface->cgContext, TRUE);
+		}
+		break;
+	    case CAIRO_ANTIALIAS_NONE:
+		CGContextSetShouldAntialiasFontsPtr (surface->cgContext, FALSE);
+		break;
+	    case CAIRO_ANTIALIAS_GRAY:
+		CGContextSetShouldAntialiasFontsPtr (surface->cgContext, TRUE);
+		CGContextSetShouldSmoothFontsPtr (surface->cgContext, FALSE);
+		break;
+	    case CAIRO_ANTIALIAS_DEFAULT:
+		
+		break;
+	}
     }
 
     if (num_glyphs > STATIC_BUF_SIZE) {
@@ -1996,11 +1984,8 @@ _cairo_quartz_surface_show_glyphs (void *abstract_surface,
 	yprev = yf;
     }
 
-    if (_cairo_quartz_osx_version >= 0x1050 && isClipping) {
+    if (isClipping) {
 	
-
-
-
 
 
 	for (i = 0; i < num_glyphs - 1; i++)
@@ -2308,11 +2293,11 @@ static const struct _cairo_surface_backend cairo_quartz_surface_backend = {
     _cairo_quartz_surface_mask,
     _cairo_quartz_surface_stroke,
     _cairo_quartz_surface_fill,
-#if CAIRO_HAS_QUARTZ_FONT
+#if CAIRO_HAS_ATSUI_FONT
     _cairo_quartz_surface_show_glyphs,
 #else
     NULL, 
-#endif
+#endif 
 
     NULL, 
     NULL, 
@@ -2365,6 +2350,8 @@ _cairo_quartz_surface_create_internal (CGContextRef cgContext,
 
     return surface;
 }
+
+
 
 
 

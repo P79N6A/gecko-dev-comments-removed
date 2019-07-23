@@ -34,11 +34,6 @@
 
 
 
-
-
-
-
-
 #define _BSD_SOURCE
 #include "cairoint.h"
 #include "cairo-scaled-font-subsets-private.h"
