@@ -42,7 +42,6 @@
 #include "nsObserverList.h"
 #include "nsTHashtable.h"
 
-#define NS_OBSERVERSERVICE_CONTRACTID "@mozilla.org/observer-service;1"
 #define NS_OBSERVERSERVICE_CLASSNAME "Observer Service"
 
 
