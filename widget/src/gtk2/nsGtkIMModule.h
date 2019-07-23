@@ -187,6 +187,12 @@ protected:
 
     
     
+    static gboolean OnRetrieveSurroundingCallback(GtkIMContext  *aContext,
+                                                  nsGtkIMModule *aModule);
+    static gboolean OnDeleteSurroundingCallback(GtkIMContext  *aContext,
+                                                gint           aOffset,
+                                                gint           aNChars,
+                                                nsGtkIMModule *aModule);
     static void OnCommitCompositionCallback(GtkIMContext *aContext,
                                             const gchar *aString,
                                             nsGtkIMModule* aModule);
@@ -198,6 +204,10 @@ protected:
                                          nsGtkIMModule* aModule);
 
     
+    gboolean OnRetrieveSurroundingNative(GtkIMContext  *aContext);
+    gboolean OnDeleteSurroundingNative(GtkIMContext  *aContext,
+                                       gint           aOffset,
+                                       gint           aNChars);
     void OnCommitCompositionNative(GtkIMContext *aContext,
                                    const gchar *aString);
     void OnChangeCompositionNative(GtkIMContext *aContext);
@@ -246,6 +256,12 @@ protected:
 
     
     PRUint32 GetSelectionOffset(nsWindow* aWindow);
+
+    
+    nsresult GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos);
+
+    
+    nsresult DeleteText(const PRInt32 aOffset, const PRUint32 aNChars);
 
     
     void InitEvent(nsGUIEvent& aEvent);

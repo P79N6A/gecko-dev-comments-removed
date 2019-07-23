@@ -1216,13 +1216,14 @@ class nsSelectionEvent : public nsGUIEvent
 public:
   nsSelectionEvent(PRBool aIsTrusted, PRUint32 aMsg, nsIWidget *aWidget) :
     nsGUIEvent(aIsTrusted, aMsg, aWidget, NS_SELECTION_EVENT),
-    mSucceeded(PR_FALSE)
+    mExpandToClusterBoundary(PR_TRUE), mSucceeded(PR_FALSE)
   {
   }
 
   PRUint32 mOffset; 
   PRUint32 mLength; 
   PRPackedBool mReversed; 
+  PRPackedBool mExpandToClusterBoundary; 
   PRPackedBool mSucceeded;
 };
 
