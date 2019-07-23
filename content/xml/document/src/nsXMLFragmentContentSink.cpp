@@ -627,7 +627,7 @@ nsXHTMLParanoidFragmentSink::AddAttributes(const PRUnichar** aAtts,
     nsContentUtils::SplitExpatName(aAtts[0], getter_AddRefs(prefix),
                                    getter_AddRefs(localName), &nameSpaceID);
     nodeInfo = mNodeInfoManager->GetNodeInfo(localName, prefix, nameSpaceID);
-    NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
     
     if (IsAttrURI(nodeInfo->NameAtom())) {
       if (!aAtts[1])
@@ -675,7 +675,7 @@ nsXHTMLParanoidFragmentSink::HandleStartElement(const PRUnichar *aName,
   
   nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = mNodeInfoManager->GetNodeInfo(localName, prefix, nameSpaceID);
-  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
   
   
   
@@ -696,7 +696,7 @@ nsXHTMLParanoidFragmentSink::HandleStartElement(const PRUnichar *aName,
     nsContentUtils::SplitExpatName(aAtts[i], getter_AddRefs(prefix),
                                    getter_AddRefs(localName), &nameSpaceID);
     nodeInfo = mNodeInfoManager->GetNodeInfo(localName, prefix, nameSpaceID);
-    NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
     
     name = nodeInfo->NameAtom();
     
@@ -731,7 +731,7 @@ nsXHTMLParanoidFragmentSink::HandleEndElement(const PRUnichar *aName)
   
   nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = mNodeInfoManager->GetNodeInfo(localName, prefix, nameSpaceID);
-  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
   
   nsCOMPtr<nsIAtom> name = nodeInfo->NameAtom();
   if (mSkipLevel != 0) {
