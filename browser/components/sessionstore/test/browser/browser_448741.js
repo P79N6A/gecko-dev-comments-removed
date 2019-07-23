@@ -45,6 +45,7 @@ function test() {
   
   let uniqueName = "bug 448741";
   let uniqueValue = "as good as unique: " + Date.now();
+  let interval = gPrefService.getIntPref("browser.sessionstore.interval");
   
   
   var tab = tabbrowser.addTab();
@@ -86,6 +87,7 @@ function test() {
       
       tabbrowser.removeTab(tab);
       os.removeObserver(this, aTopic, false);
+      gPrefService.setIntPref("browser.sessionstore.interval", interval);
       finish();
     }
   };
@@ -93,4 +95,7 @@ function test() {
   
   os.addObserver(checkingObserver, "sessionstore-state-write", false);
   os.addObserver(cleaningObserver, "sessionstore-state-write", false);
+  
+  
+  gPrefService.setIntPref("browser.sessionstore.interval", 0);
 }
