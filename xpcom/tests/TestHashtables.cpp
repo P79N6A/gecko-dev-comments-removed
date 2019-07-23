@@ -228,7 +228,6 @@ class IFoo : public nsISupports
     public:
       NS_DECLARE_STATIC_IID_ACCESSOR(NS_IFOO_IID)
 
-    public:
       IFoo();
 
       NS_IMETHOD_(nsrefcnt) AddRef();
