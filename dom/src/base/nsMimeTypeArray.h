@@ -42,7 +42,6 @@
 #include "nsIDOMMimeType.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
-#include "nsCOMArray.h"
 
 class nsIDOMNavigator;
 
@@ -58,7 +57,6 @@ public:
   nsresult Refresh();
 
   nsIDOMMimeType* GetItemAt(PRUint32 aIndex, nsresult* aResult);
-  nsIDOMMimeType* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   static nsMimeTypeArray* FromSupports(nsISupports* aSupports)
   {
@@ -83,14 +81,8 @@ private:
 
 protected:
   nsIDOMNavigator* mNavigator;
-  
-  PRUint32 mPluginMimeTypeCount;
-  
-  
-  
-  
-  nsCOMArray<nsIDOMMimeType> mMimeTypeArray;
-  PRBool mInited;
+  PRUint32 mMimeTypeCount;
+  nsIDOMMimeType** mMimeTypeArray;
 };
 
 class nsMimeType : public nsIDOMMimeType
