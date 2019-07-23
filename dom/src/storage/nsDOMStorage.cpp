@@ -577,20 +577,40 @@ nsDOMStorage::~nsDOMStorage()
     nsDOMStorageManager::gStorageManager->RemoveFromStoragesHash(this);
 }
 
+static
+nsresult
+GetDomainURI(nsIPrincipal *aPrincipal, nsIURI **_domain)
+{
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = aPrincipal->GetURI(getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  if (!uri)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(uri);
+  if (!innerURI)
+    return NS_ERROR_UNEXPECTED;
+  innerURI.forget(_domain);
+
+  return NS_OK;
+}
+
 nsresult
 nsDOMStorage::InitAsSessionStorage(nsIPrincipal *aPrincipal)
 {
-  nsresult rv;
-
-  nsCOMPtr<nsIURI> uri;
-  rv = aPrincipal->GetURI(getter_AddRefs(uri));
+  nsCOMPtr<nsIURI> domainURI;
+  nsresult rv = GetDomainURI(aPrincipal, getter_AddRefs(domainURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIURI> innerUri = NS_GetInnermostURI(uri);
-  if (!innerUri)
-    return NS_ERROR_UNEXPECTED;
-
-  innerUri->GetAsciiHost(mDomain);
+  
+  
+  
+  
+  
+  domainURI->GetAsciiHost(mDomain);
 
 #ifdef MOZ_STORAGE
   mUseDB = PR_FALSE;
@@ -603,31 +623,20 @@ nsDOMStorage::InitAsSessionStorage(nsIPrincipal *aPrincipal)
 nsresult
 nsDOMStorage::InitAsLocalStorage(nsIPrincipal *aPrincipal)
 {
-  nsresult rv;
-
-  nsCOMPtr<nsIURI> uri;
-  rv = aPrincipal->GetURI(getter_AddRefs(uri));
+  nsCOMPtr<nsIURI> domainURI;
+  nsresult rv = GetDomainURI(aPrincipal, getter_AddRefs(domainURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  if (!uri)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  nsCOMPtr<nsIURI> innerUri = NS_GetInnermostURI(uri);
-  if (!innerUri)
-    return NS_ERROR_UNEXPECTED;
-
   
   
   
   
-  
-  
-  innerUri->GetAsciiHost(mDomain);
+  domainURI->GetAsciiHost(mDomain);
 
 #ifdef MOZ_STORAGE
-  nsDOMStorageDBWrapper::CreateOriginScopeDBKey(innerUri, mScopeDBKey);
+  nsDOMStorageDBWrapper::CreateOriginScopeDBKey(domainURI, mScopeDBKey);
 
   
   
