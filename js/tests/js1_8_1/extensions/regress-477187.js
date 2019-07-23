@@ -59,15 +59,15 @@ function test()
   }
   else
   {
-    timeout(3); 
+    expectExitCode(6);
+    timeout(0.01);
     
     
     
     reportCompare(expect, actual, summary);
 
-    while(1); 
+    while(1);
   }
-
 
   exitFunc ('test');
 }
