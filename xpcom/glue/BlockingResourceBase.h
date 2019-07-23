@@ -37,13 +37,25 @@
 
 
 
+
 #ifndef mozilla_BlockingResourceBase_h
 #define mozilla_BlockingResourceBase_h
 
-#include "nscore.h"
+#include "prinit.h"
+#include "prlock.h"
 #include "prlog.h"
-#include "nsError.h"
+#include "prthread.h"
+
+#include "nscore.h"
 #include "nsDebug.h"
+#include "nsError.h"
+#define MOZILLA_INTERNAL_API
+#include "nsString.h"
+#undef MOZILLA_INTERNAL_API
+
+#ifdef DEBUG
+#include "mozilla/DeadlockDetector.h" 
+#endif
 
 
 
@@ -56,15 +68,105 @@ namespace mozilla {
 
 
 
+
 class NS_COM_GLUE BlockingResourceBase
 {
-protected:
-    BlockingResourceBase() {
-    }
+public:
     
     enum BlockingResourceType { eMutex, eMonitor, eCondVar };
 
+    
+
+
+
+    static const char* const kResourceTypeName[];
+
+
 #ifdef DEBUG
+
+private:
+    
+    struct DeadlockDetectorEntry;
+
+    
+    typedef DeadlockDetector<DeadlockDetectorEntry> DDT;
+
+    
+
+
+
+
+
+
+
+
+    struct DeadlockDetectorEntry
+    {
+        DeadlockDetectorEntry(const char* aName,
+                              BlockingResourceType aType) :
+            mName(aName),
+            mType(aType),
+            mAcquisitionContext(CallStack::kNone)
+        {
+        }
+        
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        bool Print(const DDT::ResourceAcquisition& aFirstSeen,
+                   nsACString& out,
+                   bool aPrintFirstSeenCx=false) const;
+
+        
+
+
+
+
+        const char* mName;
+        
+
+
+
+
+        BlockingResourceType mType;
+        
+
+
+
+
+        CallStack mAcquisitionContext;
+    };
+
+protected:
+    
+
+
+
+
+
+
+
+
+
+
+    BlockingResourceBase(const char* aName, BlockingResourceType aType);
+
     ~BlockingResourceBase();
 
     
@@ -75,9 +177,28 @@ protected:
 
 
 
-    void Init(void* aResource, 
-              const char* aName,
-              BlockingResourceType aType);
+    void CheckAcquire(const CallStack& aCallContext);
+
+    
+
+
+
+
+
+
+
+    void Acquire(const CallStack& aCallContext); 
+
+    
+
+
+
+
+
+
+
+
+    void Release();             
 
     
 
@@ -93,53 +214,83 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    static bool PrintCycle(const DDT::ResourceAcquisitionArray* cycle,
+                           nsACString& out);
 
     
 
 
 
 
-    void* mResource;
+
+
+
+    static BlockingResourceBase* ResourceChainFront()
+    {
+        return (BlockingResourceBase*)
+            PR_GetThreadPrivate(sResourceAcqnChainFrontTPI);
+    }
 
     
 
 
 
 
-    BlockingResourceType mType;
+    static BlockingResourceBase*
+    ResourceChainPrev(const BlockingResourceBase* aResource)
+    {
+        return aResource->mChainPrev;
+    } 
+
+    
+
+
+
+
+
+
+    void ResourceChainAppend(BlockingResourceBase* aPrev)
+    {
+        mChainPrev = aPrev;
+        PR_SetThreadPrivate(sResourceAcqnChainFrontTPI, this);
+    } 
+
+    
+
+
+
+
+
+    void ResourceChainRemove()
+    {
+        NS_ASSERTION(this == ResourceChainFront(), "not at chain front");
+        PR_SetThreadPrivate(sResourceAcqnChainFrontTPI, mChainPrev);
+    } 
+
+    
+
+
+
+
+
+
+    CallStack
+    GetAcquisitionContext()
+    {
+        return mDDEntry->mAcquisitionContext;
+    }
+
+    
+
+
+
+
+
+    void
+    SetAcquisitionContext(CallStack aAcquisitionContext)
+    {
+        mDDEntry->mAcquisitionContext = aAcquisitionContext;
+    }
 
     
 
@@ -149,13 +300,33 @@ protected:
 
     BlockingResourceBase* mChainPrev;
 
+private:
+    
+
+
+
+    DeadlockDetectorEntry* mDDEntry;
+
     
 
 
 
 
-    void Acquire();
+    static PRCallOnceType sCallOnce;
+
     
+
+
+
+
+    static PRUintn sResourceAcqnChainFrontTPI;
+
+    
+
+
+
+    static DDT sDeadlockDetector;
+
     
 
 
@@ -163,18 +334,22 @@ protected:
 
 
 
-    void Release();
 
-#else
-    ~BlockingResourceBase() {
+    static PRStatus InitStatics() {
+        PR_NewThreadPrivateIndex(&sResourceAcqnChainFrontTPI, 0);
+        return PR_SUCCESS;
     }
 
-    void Init(void* aResource, 
-              const char* aName,
-              BlockingResourceType aType) { }
 
-    void            Acquire() { }
-    void            Release() { }
+#else  
+
+    BlockingResourceBase(const char* aName, BlockingResourceType aType)
+    {
+    }
+
+    ~BlockingResourceBase()
+    {
+    }
 
 #endif
 };
@@ -183,4 +358,4 @@ protected:
 } 
 
 
-#endif 
+#endif

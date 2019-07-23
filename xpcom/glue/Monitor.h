@@ -72,21 +72,22 @@ public:
 
 
 
-    Monitor(const char* name)
+    Monitor(const char* aName) :
+        BlockingResourceBase(aName, eMonitor)
 #ifdef DEBUG
-        : mEntryCount(0)
+        , mEntryCount(0)
 #endif
     {
         mMonitor = PR_NewMonitor();
         if (!mMonitor)
             NS_RUNTIMEABORT("Can't allocate mozilla::Monitor");
-        Init(mMonitor, name, eMonitor);
     }
 
     
 
 
-    ~Monitor() {
+    ~Monitor()
+    {
         NS_ASSERTION(mMonitor,
                      "improperly constructed Monitor or double free");
         PR_DestroyMonitor(mMonitor);
@@ -98,8 +99,8 @@ public:
 
 
 
-    void Enter() {
-        
+    void Enter()
+    {
         PR_EnterMonitor(mMonitor);
     }
 
@@ -107,13 +108,25 @@ public:
 
 
 
-    void Exit() {
+    void Exit()
+    {
         PR_ExitMonitor(mMonitor);
+    }
+
+    
+
+
+      
+    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT)
+    {
+        return PR_Wait(mMonitor, interval) == PR_SUCCESS ?
+            NS_OK : NS_ERROR_FAILURE;
     }
 
 #else
     void Enter();
     void Exit();
+    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT);
 
 #endif  
 
@@ -121,16 +134,8 @@ public:
 
 
       
-    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT) {
-        return PR_Wait(mMonitor, interval) == PR_SUCCESS
-            ? NS_OK : NS_ERROR_FAILURE;
-    }
-
-    
-
-
-      
-    nsresult Notify() {
+    nsresult Notify()
+    {
         return PR_Notify(mMonitor) == PR_SUCCESS
             ? NS_OK : NS_ERROR_FAILURE;
     }
@@ -139,7 +144,8 @@ public:
 
 
       
-    nsresult NotifyAll() {
+    nsresult NotifyAll()
+    {
         return PR_NotifyAll(mMonitor) == PR_SUCCESS
             ? NS_OK : NS_ERROR_FAILURE;
     }
@@ -149,7 +155,8 @@ public:
 
 
 
-    void AssertCurrentThreadIn () {
+    void AssertCurrentThreadIn()
+    {
         PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mMonitor);
     }
 
@@ -157,13 +164,18 @@ public:
 
 
 
-    void AssertNotCurrentThreadIn () {
+    void AssertNotCurrentThreadIn()
+    {
         
     }
 
 #else
-    void AssertCurrentThreadIn () { }
-    void AssertNotCurrentThreadIn () { }
+    void AssertCurrentThreadIn()
+    {
+    }
+    void AssertNotCurrentThreadIn()
+    {
+    }
 
 #endif  
 
@@ -197,25 +209,30 @@ public:
 
 
 
-    MonitorAutoEnter(mozilla::Monitor &aMonitor)
-        : mMonitor(&aMonitor) {
+    MonitorAutoEnter(mozilla::Monitor &aMonitor) :
+        mMonitor(&aMonitor)
+    {
         NS_ASSERTION(mMonitor, "null monitor");
         mMonitor->Enter();
     }
     
-    ~MonitorAutoEnter(void) {
+    ~MonitorAutoEnter(void)
+    {
         mMonitor->Exit();
     }
  
-    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT) {
+    nsresult Wait(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT)
+    {
        return mMonitor->Wait(interval);
     }
 
-    nsresult Notify() {
+    nsresult Notify()
+    {
         return mMonitor->Notify();
     }
 
-    nsresult NotifyAll() {
+    nsresult NotifyAll()
+    {
         return mMonitor->Notify();
     }
 
