@@ -1102,6 +1102,13 @@ public:
   void GetPluginGeometryUpdates(nsIFrame* aChangedRoot,
                                 nsTArray<nsIWidget::Configuration>* aConfigurations);
 
+  
+
+
+
+
+  void DidApplyPluginGeometryUpdates();
+
 private:
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
 };
