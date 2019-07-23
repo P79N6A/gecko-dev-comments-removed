@@ -342,6 +342,8 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
         
         PRBool wordStartsInsideCluster =
             !source->IsClusterStart(word->mSourceOffset);
+        PRBool wordStartsInsideLigature =
+            !source->IsLigatureGroupStart(word->mSourceOffset);
         if (source == aNewRun) {
             
             
@@ -349,7 +351,8 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
             
             PRBool rekeyWithFontGroup =
                 GetWordFontOrGroup(aNewRun, word->mSourceOffset, word->mLength) != font;
-            if (!aSuccessful || wordStartsInsideCluster || rekeyWithFontGroup) {
+            if (!aSuccessful || rekeyWithFontGroup ||
+                wordStartsInsideCluster || wordStartsInsideLigature) {
                 
                 CacheHashKey key(aTextRun, font, word->mDestOffset, word->mLength,
                                  word->mHash);
@@ -361,7 +364,7 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
 #endif
                 PR_LOG(gWordCacheLog, PR_LOG_DEBUG, ("%p(%d-%d,%d): removed using font", aTextRun, word->mDestOffset, word->mLength, word->mHash));
                 
-                if (aSuccessful && !wordStartsInsideCluster) {
+                if (aSuccessful && !wordStartsInsideCluster && !wordStartsInsideLigature) {
                     key.mFontOrGroup = fontGroup;
                     CacheHashEntry *groupEntry = mCache.PutEntry(key);
                     if (groupEntry) {
@@ -387,9 +390,12 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
             PRUint32 length = word->mLength;
             nsAutoPtr<gfxTextRun> tmpTextRun;
             PRBool stealData = source == aNewRun;
-            if (wordStartsInsideCluster) {
+            if (wordStartsInsideCluster || wordStartsInsideLigature) {
                 NS_ASSERTION(sourceOffset > 0, "How can the first character be inside a cluster?");
-                if (destOffset > 0 && IsBoundarySpace(aTextRun->GetChar(destOffset - 1))) {
+                if (wordStartsInsideCluster && destOffset > 0 &&
+                    IsBoundarySpace(aTextRun->GetChar(destOffset - 1))) {
+                    
+                    
                     
                     
                     
