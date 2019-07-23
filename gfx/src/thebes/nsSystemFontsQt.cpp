@@ -58,6 +58,7 @@ nsSystemFontsQt::nsSystemFontsQt()
   , mFieldFontName(NS_LITERAL_STRING("sans-serif"))
   , mMenuFontName(NS_LITERAL_STRING("sans-serif"))
 {
+   
    QLabel *label = new QLabel();
    if (label) {
        GetSystemFontInfo(label->font(), &mDefaultFontName, &mDefaultFontStyle);
