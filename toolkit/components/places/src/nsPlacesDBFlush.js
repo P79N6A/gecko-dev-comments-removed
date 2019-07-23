@@ -257,7 +257,28 @@ nsPlacesDBFlush.prototype = {
     
     
     
-    return this._db.createStatement("DELETE FROM moz_" + aTableName + "_temp");
+    let condition = "";
+    switch(aTableName) {
+      case "historyvisits":
+        
+        
+        condition = "WHERE visit_type <> " + Ci.nsINavHistoryService.TRANSITION_EMBED;
+        break;
+      case "places":
+        
+        
+        
+        condition = "WHERE id IN (SELECT id FROM moz_places_temp h " +
+                                  "WHERE h.hidden <> 1 OR NOT EXISTS ( " +
+                                    "SELECT id FROM moz_historyvisits_temp " +
+                                    "WHERE place_id = h.id AND visit_type = " +
+                                    Ci.nsINavHistoryService.TRANSITION_EMBED +
+                                    " LIMIT 1) " +
+                                  ")";
+        break;
+    }
+
+    return this._db.createStatement("DELETE FROM moz_" + aTableName + "_temp " + condition);
   },
 
   

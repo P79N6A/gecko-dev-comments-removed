@@ -84,7 +84,6 @@ protected:
   nsresult DoPartialExpiration();
 
   nsresult ExpireAnnotations(mozIStorageConnection* aConnection);
-  nsresult ExpireEmbeddedLinks(mozIStorageConnection* aConnection);
 
   
   nsresult FindVisits(PRTime aExpireThreshold, PRUint32 aNumToExpire,

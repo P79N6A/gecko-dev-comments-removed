@@ -98,12 +98,6 @@ const PRTime EXPIRATION_POLICY_WEEKS = ((PRTime)30 * 86400 * PR_USEC_PER_SEC);
 const PRTime EXPIRATION_POLICY_MONTHS = ((PRTime)180 * 86400 * PR_USEC_PER_SEC);
 
 
-const PRTime EMBEDDED_LINK_LIFETIME = ((PRTime)1 * 86400 * PR_USEC_PER_SEC);
-
-
-#define EXPIRATION_CAP_EMBEDDED 500
-
-
 #define EXPIRATION_CAP_PLACES 500
 
 
@@ -200,13 +194,6 @@ nsNavHistoryExpire::OnQuit()
   nsresult rv = ExpireForDegenerateRuns();
   if (NS_FAILED(rv))
     NS_WARNING("ExpireForDegenerateRuns failed.");
-
-  
-  
-  
-  rv = ExpireEmbeddedLinks(connection);
-  if (NS_FAILED(rv))
-    NS_WARNING("ExpireEmbeddedLinks failed.");
 
   
   
@@ -895,48 +882,6 @@ nsNavHistoryExpire::ExpireAnnotations(mozIStorageConnection* aConnection)
 
   return NS_OK;
 }
-
-
-
-
-nsresult
-nsNavHistoryExpire::ExpireEmbeddedLinks(mozIStorageConnection* aConnection)
-{
-  PRTime maxEmbeddedAge = PR_Now() - EMBEDDED_LINK_LIFETIME;
-  nsCOMPtr<mozIStorageStatement> expireEmbeddedLinksStatement;
-  
-  nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_historyvisits_view WHERE id IN ("
-        "SELECT * FROM ( "
-          "SELECT id FROM moz_historyvisits_temp "
-          "WHERE visit_date < ?1 "
-          "AND visit_type IN (") +
-            nsPrintfCString("%d", nsINavHistoryService::TRANSITION_EMBED) +
-            NS_LITERAL_CSTRING(", 0) "
-          "LIMIT ?2 "
-        ") "
-        "UNION ALL "
-        "SELECT * FROM ( "
-          "SELECT id FROM moz_historyvisits "
-          "WHERE visit_date < ?1 "
-          "AND visit_type IN (") +
-            nsPrintfCString("%d", nsINavHistoryService::TRANSITION_EMBED) +
-            NS_LITERAL_CSTRING(", 0) "
-          "LIMIT ?2 "
-        ") "
-        "LIMIT ?2 "
-      ")"),
-    getter_AddRefs(expireEmbeddedLinksStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = expireEmbeddedLinksStatement->BindInt64Parameter(0, maxEmbeddedAge);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = expireEmbeddedLinksStatement->BindInt32Parameter(1, EXPIRATION_CAP_EMBEDDED);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = expireEmbeddedLinksStatement->Execute();
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
-}
-
 
 
 
