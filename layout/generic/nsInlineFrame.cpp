@@ -815,6 +815,17 @@ nsInlineFrame::PullOneFrame(nsPresContext* aPresContext,
   nsInlineFrame* nextInFlow = irs.mNextInFlow;
   while (nsnull != nextInFlow) {
     frame = nextInFlow->mFrames.FirstChild();
+
+    if (!frame) {
+      
+      
+      nsAutoPtr<nsFrameList> overflowFrames(nextInFlow->StealOverflowFrames());
+      if (overflowFrames) {
+        nextInFlow->mFrames.SetFrames(*overflowFrames);
+        frame = nextInFlow->mFrames.FirstChild();
+      }
+    }
+
     if (nsnull != frame) {
       
       
