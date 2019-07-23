@@ -60,7 +60,6 @@ class nsIDocShellTreeNode;
 class nsIDocShellTreeItem;
 class nsIFocusController;
 class imgIContainer;
-class nsDOMDataTransfer;
 
 
 #ifdef XP_MACOSX
@@ -319,38 +318,6 @@ protected:
                                   nsIFrame* inDownFrame ) ;
   void StopTrackingDragGesture ( ) ;
   void GenerateDragGesture ( nsPresContext* aPresContext, nsMouseEvent *aEvent ) ;
-
-  
-
-
-
-
-
-
-
-
-
-  void DetermineDragTarget(nsPresContext* aPresContext,
-                           nsIContent* aSelectionTarget,
-                           nsDOMDataTransfer* aDataTransfer,
-                           PRBool* aIsSelection,
-                           nsIContent** aTargetNode);
-
-  
-
-
-
-
-
-
-
-
-  void DoDefaultDragStart(nsPresContext* aPresContext,
-                          nsDragEvent* aDragEvent,
-                          nsDOMDataTransfer* aDataTransfer,
-                          nsIContent* aDragTarget,
-                          PRBool aIsSelection);
-
   PRBool IsTrackingDragGesture ( ) const { return mGestureDownContent != nsnull; }
   
 

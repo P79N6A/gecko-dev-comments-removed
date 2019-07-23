@@ -103,9 +103,6 @@ public:
   NS_IMETHOD LinkAdded() { return NS_OK; }
   NS_IMETHOD LinkRemoved() { return NS_OK; }
 
-  
-  NS_IMETHOD GetDraggable(PRBool* aDraggable);
-
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               PRBool aCompileEventHandlers);
@@ -181,20 +178,6 @@ NS_IMPL_INT_ATTR_DEFAULT_VALUE(nsHTMLAnchorElement, TabIndex, tabindex, 0)
 NS_IMPL_STRING_ATTR(nsHTMLAnchorElement, Type, type)
 NS_IMPL_STRING_ATTR(nsHTMLAnchorElement, AccessKey, accesskey)
 
-NS_IMETHODIMP
-nsHTMLAnchorElement::GetDraggable(PRBool* aDraggable)
-{
-  
-  
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
-    *aDraggable = !AttrValueIs(kNameSpaceID_None, nsGkAtoms::draggable,
-                               nsGkAtoms::_false, eIgnoreCase);
-    return NS_OK;
-  }
-
-  
-  return nsGenericHTMLElement::GetDraggable(aDraggable);
-}
 
 nsresult
 nsHTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,

@@ -45,13 +45,10 @@
 
 
 
-
-
-
 #define NS_IDOMDRAGLISTENER_IID \
-{ /* 1A107271-1E26-419A-BCF1-0A4CF7A66B45 */ \
-0x1a107271, 0x1e26, 0x419a, \
-{0xbc, 0xf1, 0x0a, 0x4c, 0xf7, 0xa6, 0x6b, 0x45} }
+{ /* CD5186C4-228F-4413-AFD9-B65DAA105714 */ \
+0xcd5186c4, 0x228f, 0x4413, \
+{0xaf, 0xd9, 0xb6, 0x5d, 0xaa, 0x10, 0x57, 0x14} }
 
 
 
@@ -132,11 +129,6 @@ public:
 
 
   NS_IMETHOD Drag(nsIDOMEvent* aMouseEvent) = 0;
-
-  
-  NS_IMETHOD DragStart(nsIDOMEvent* aMouseEvent) { return NS_OK; }
-  NS_IMETHOD DragLeave(nsIDOMEvent* aMouseEvent) { return NS_OK; }
-  NS_IMETHOD Drop(nsIDOMEvent* aMouseEvent) { return NS_OK; }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDOMDragListener, NS_IDOMDRAGLISTENER_IID)

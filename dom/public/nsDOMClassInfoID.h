@@ -84,7 +84,6 @@ enum nsDOMClassInfoID {
   eDOMClassInfo_UIEvent_id,
   eDOMClassInfo_MouseEvent_id,
   eDOMClassInfo_MouseScrollEvent_id,
-  eDOMClassInfo_DragEvent_id,
   eDOMClassInfo_KeyboardEvent_id,
   eDOMClassInfo_PopupBlockedEvent_id,
 
@@ -448,8 +447,6 @@ enum nsDOMClassInfoID {
 
   
   eDOMClassInfo_NodeIterator_id,
-
-  eDOMClassInfo_DataTransfer_id,
 
   
   eDOMClassInfoIDCount
