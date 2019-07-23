@@ -86,7 +86,6 @@
 
 
 
-
 #ifdef XML_METERING
 static struct {
     jsrefcount  qname;
