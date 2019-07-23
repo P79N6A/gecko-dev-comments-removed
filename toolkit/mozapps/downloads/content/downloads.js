@@ -987,7 +987,7 @@ function updateTime(aItem)
   } else {
     
     let month = end.toLocaleFormat("%B");
-    let date = end.toLocaleFormat("%d");
+    let date = end.toLocaleFormat("%e").replace(/\s+/g, "");
     dateTime = replaceInsert(gStr.monthDate, 1, month);
     dateTime = replaceInsert(dateTime, 2, date);
   }
