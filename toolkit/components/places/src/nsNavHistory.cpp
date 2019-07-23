@@ -2782,9 +2782,10 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   PRUint32 added = 0;
   if (!hidden && aTransitionType != TRANSITION_EMBED &&
                  aTransitionType != TRANSITION_DOWNLOAD) {
-    ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavHistoryObserver,
-                        OnVisit(aURI, *aVisitID, aTime, aSessionID,
-                                referringVisitID, aTransitionType, &added));
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavHistoryObserver,
+                     OnVisit(aURI, *aVisitID, aTime, aSessionID,
+                             referringVisitID, aTransitionType, &added));
   }
 
   
@@ -4219,8 +4220,8 @@ nsNavHistory::BeginUpdateBatch()
     if (mBatchHasTransaction)
       mDBConn->BeginTransaction();
 
-    ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavHistoryObserver,
-                        OnBeginUpdateBatch());
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavHistoryObserver, OnBeginUpdateBatch());
   }
   return NS_OK;
 }
@@ -4233,8 +4234,8 @@ nsNavHistory::EndUpdateBatch()
     if (mBatchHasTransaction)
       mDBConn->CommitTransaction();
     mBatchHasTransaction = PR_FALSE;
-    ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavHistoryObserver,
-                        OnEndUpdateBatch());
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavHistoryObserver, OnEndUpdateBatch());
   }
   return NS_OK;
 }
@@ -4547,16 +4548,16 @@ nsNavHistory::RemovePage(nsIURI *aURI)
   NS_ENSURE_ARG(aURI);
 
   
-  ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                      nsINavHistoryObserver, OnBeforeDeleteURI(aURI));
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavHistoryObserver, OnBeforeDeleteURI(aURI));
 
   nsIURI** URIs = &aURI;
   nsresult rv = RemovePages(URIs, 1, PR_FALSE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                      nsINavHistoryObserver, OnDeleteURI(aURI));
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavHistoryObserver, OnDeleteURI(aURI));
   return NS_OK;
 }
 
@@ -4879,8 +4880,8 @@ nsNavHistory::RemoveAllPages()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                      nsINavHistoryObserver, OnClearHistory());
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavHistoryObserver, OnClearHistory());
 
   
   nsCOMPtr<nsIFile> oldHistoryFile;
@@ -5500,14 +5501,13 @@ nsNavHistory::NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
 {
   if (aWholeEntry) {
     
-    ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                        nsINavHistoryObserver, OnDeleteURI(aURI));
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavHistoryObserver, OnDeleteURI(aURI));
   }
   else {
     
-    ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                        nsINavHistoryObserver,
-                        OnDeleteVisits(aURI, aVisitTime));
+    NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                     nsINavHistoryObserver, OnDeleteVisits(aURI, aVisitTime));
   }
 
   return NS_OK;
@@ -6939,8 +6939,8 @@ void
 nsNavHistory::SendPageChangedNotification(nsIURI* aURI, PRUint32 aWhat,
                                           const nsAString& aValue)
 {
-  ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavHistoryObserver,
-                      OnPageChanged(aURI, aWhat, aValue));
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavHistoryObserver, OnPageChanged(aURI, aWhat, aValue));
 }
 
 
@@ -7072,8 +7072,8 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  ENUMERATE_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavHistoryObserver,
-                      OnTitleChanged(aURI, aTitle));
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavHistoryObserver, OnTitleChanged(aURI, aTitle));
 
   return NS_OK;
 }
