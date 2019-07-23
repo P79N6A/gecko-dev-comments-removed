@@ -154,6 +154,8 @@ public:
   NS_IMETHOD SetTabIndex(PRInt32 aTabIndex);
   NS_IMETHOD GetSpellcheck(PRBool* aSpellcheck);
   NS_IMETHOD SetSpellcheck(PRBool aSpellcheck);
+  NS_IMETHOD GetDraggable(PRBool* aDraggable);
+  NS_IMETHOD SetDraggable(PRBool aDraggable);
   nsresult GetContentEditable(nsAString &aContentEditable);
   nsresult SetContentEditable(const nsAString &aContentEditable);
 

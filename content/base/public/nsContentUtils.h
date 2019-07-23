@@ -101,6 +101,7 @@ struct JSRuntime;
 class nsICaseConversion;
 class nsIUGenCategory;
 class nsIWidget;
+class nsIDragSession;
 class nsPIDOMWindow;
 #ifdef MOZ_XTF
 class nsIXTFService;
@@ -1217,6 +1218,11 @@ public:
 
 
   static void HidePopupsInDocument(nsIDocument* aDocument);
+
+  
+
+
+  static already_AddRefed<nsIDragSession> GetDragSession();
 
   
 

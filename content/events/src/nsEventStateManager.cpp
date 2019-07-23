@@ -60,6 +60,7 @@
 #include "nsIEditorDocShell.h"
 #include "nsIFormControl.h"
 #include "nsIComboboxControlFrame.h"
+#include "nsIDOMNSHTMLElement.h"
 #include "nsIDOMHTMLAnchorElement.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMNSHTMLInputElement.h"
@@ -113,10 +114,11 @@
 #include "nsIDOMDocumentRange.h"
 #include "nsIDOMDocumentEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIDOMDragEvent.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMDocumentView.h"
-#include "nsIDOMAbstractView.h"
 #include "nsIDOMNSUIEvent.h"
+#include "nsDOMDragEvent.h"
 
 #include "nsIDOMRange.h"
 #include "nsCaret.h"
@@ -139,6 +141,14 @@
 
 #include "nsServiceManagerUtils.h"
 #include "nsITimer.h"
+
+#include "nsIDragService.h"
+#include "nsIDragSession.h"
+#include "nsDOMDataTransfer.h"
+#include "nsContentAreaDragDrop.h"
+#ifdef MOZ_XUL
+#include "nsITreeBoxObject.h"
+#endif
 
 #ifdef XP_MACOSX
 #include <Events.h>
@@ -853,7 +863,10 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     KillClickHoldTimer();
     break;
 #endif
+  case NS_DRAGDROP_DROP:
   case NS_DRAGDROP_OVER:
+    
+    
     GenerateDragDropEnterExit(aPresContext, (nsGUIEvent*)aEvent);
     break;
   case NS_GOTFOCUS:
@@ -1971,17 +1984,35 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       KillClickHoldTimer();
 #endif
 
-      nsCOMPtr<nsIContent> targetContent = mGestureDownContent;
+      nsRefPtr<nsDOMDataTransfer> dataTransfer = new nsDOMDataTransfer();
+      if (!dataTransfer)
+        return;
+
+      PRBool isSelection = PR_FALSE;
+      nsCOMPtr<nsIContent> eventContent, targetContent;
+      mCurrentTarget->GetContentForEvent(aPresContext, aEvent,
+                                         getter_AddRefs(eventContent));
+      if (eventContent)
+        DetermineDragTarget(aPresContext, eventContent, dataTransfer,
+                            &isSelection, getter_AddRefs(targetContent));
+
       
       
       StopTrackingDragGesture();
 
+      if (!targetContent)
+        return;
+
       nsCOMPtr<nsIWidget> widget = mCurrentTarget->GetWindow();
 
       
-      nsMouseEvent gestureEvent(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_GESTURE,
-                                widget, nsMouseEvent::eReal);
+      nsDragEvent startEvent(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_START, widget);
+      FillInEventFromGestureDown(&startEvent);
+
+      nsDragEvent gestureEvent(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_GESTURE, widget);
       FillInEventFromGestureDown(&gestureEvent);
+
+      startEvent.dataTransfer = gestureEvent.dataTransfer = dataTransfer;
 
       
       
@@ -2000,8 +2031,25 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
 
       
       nsEventStatus status = nsEventStatus_eIgnore;
-      nsEventDispatcher::Dispatch(targetContent, aPresContext, &gestureEvent, nsnull,
+      nsEventDispatcher::Dispatch(targetContent, aPresContext, &startEvent, nsnull,
                                   &status);
+
+      nsDragEvent* event = &startEvent;
+      if (status != nsEventStatus_eConsumeNoDefault) {
+        status = nsEventStatus_eIgnore;
+        nsEventDispatcher::Dispatch(targetContent, aPresContext, &gestureEvent, nsnull,
+                                    &status);
+        event = &gestureEvent;
+      }
+
+      
+      
+      
+      dataTransfer->SetReadOnly();
+
+      if (status != nsEventStatus_eConsumeNoDefault)
+        DoDefaultDragStart(aPresContext, event, dataTransfer,
+                           targetContent, isSelection);
 
       
       
@@ -2016,6 +2064,230 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
     FlushPendingEvents(aPresContext);
   }
 } 
+
+void
+nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
+                                         nsIContent* aSelectionTarget,
+                                         nsDOMDataTransfer* aDataTransfer,
+                                         PRBool* aIsSelection,
+                                         nsIContent** aTargetNode)
+{
+  *aTargetNode = nsnull;
+
+  nsCOMPtr<nsISupports> container = aPresContext->GetContainer();
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(container);
+
+  
+  
+  
+  PRBool canDrag;
+  nsCOMPtr<nsIContent> dragDataNode;
+  nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(container);
+  if (dsti) {
+    PRInt32 type = -1;
+    if (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
+        type != nsIDocShellTreeItem::typeChrome) {
+      
+      
+      nsresult rv =
+        nsContentAreaDragDrop::GetDragData(window, mGestureDownContent,
+                                           aSelectionTarget, mGestureDownAlt,
+                                           aDataTransfer, &canDrag, aIsSelection,
+                                           getter_AddRefs(dragDataNode));
+      if (NS_FAILED(rv) || !canDrag)
+        return;
+    }
+  }
+
+  
+  
+  
+  nsIContent* dragContent = mGestureDownContent;
+  if (dragDataNode)
+    dragContent = dragDataNode;
+  else if (*aIsSelection)
+    dragContent = aSelectionTarget;
+
+  nsIContent* originalDragContent = dragContent;
+
+  
+  
+  
+  
+  if (!*aIsSelection) {
+    while (dragContent) {
+      nsCOMPtr<nsIDOMNSHTMLElement> htmlElement = do_QueryInterface(dragContent);
+      if (htmlElement) {
+        PRBool draggable = PR_FALSE;
+        htmlElement->GetDraggable(&draggable);
+        if (draggable)
+          break;
+      }
+      else {
+        nsCOMPtr<nsIDOMXULElement> xulElement = do_QueryInterface(dragContent);
+        if (xulElement) {
+          
+          
+          
+          
+          
+          
+          
+          dragContent = mGestureDownContent;
+          break;
+        }
+        
+      }
+      dragContent = dragContent->GetParent();
+    }
+  }
+
+  
+  
+  
+  if (!dragContent) {
+    if (dragDataNode)
+      dragContent = originalDragContent;
+    else
+      dragContent = mGestureDownContent;
+  }
+
+  if (dragContent) {
+    
+    
+    if (dragContent != originalDragContent)
+      aDataTransfer->ClearAll();
+    *aTargetNode = dragContent;
+    NS_ADDREF(*aTargetNode);
+  }
+}
+
+void
+nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
+                                        nsDragEvent* aDragEvent,
+                                        nsDOMDataTransfer* aDataTransfer,
+                                        nsIContent* aDragTarget,
+                                        PRBool aIsSelection)
+{
+  nsCOMPtr<nsIDragService> dragService =
+    do_GetService("@mozilla.org/widget/dragservice;1");
+  if (!dragService)
+    return;
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDragSession> dragSession;
+  dragService->GetCurrentSession(getter_AddRefs(dragSession));
+  if (dragSession)
+    return; 
+
+  
+  
+  PRUint32 count = 0;
+  if (aDataTransfer)
+    aDataTransfer->GetMozItemCount(&count);
+  if (!count)
+    return;
+
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMNode> dragTarget;
+  nsCOMPtr<nsIDOMElement> dragTargetElement;
+  aDataTransfer->GetDragTarget(getter_AddRefs(dragTargetElement));
+  dragTarget = do_QueryInterface(dragTargetElement);
+  if (!dragTarget) {
+    dragTarget = do_QueryInterface(aDragTarget);
+    if (!dragTarget)
+      return;
+  }
+
+  
+  PRUint32 effectAllowed;
+  aDataTransfer->GetEffectAllowedInt(&effectAllowed);
+
+  PRInt32 action = 0;
+  if (effectAllowed != nsIDragService::DRAGDROP_ACTION_UNINITIALIZED)
+    action = effectAllowed;
+
+  
+  PRInt32 imageX, imageY;
+  nsIDOMElement* dragImage = aDataTransfer->GetDragImage(&imageX, &imageY);
+
+  
+  
+  
+  
+  nsISelection* selection = nsnull;
+  if (aIsSelection && !dragImage) {
+    nsIDocument* doc = aDragTarget->GetCurrentDoc();
+    if (doc) {
+      nsIPresShell* presShell = doc->GetPrimaryShell();
+      if (presShell) {
+        selection = presShell->GetCurrentSelection(
+                      nsISelectionController::SELECTION_NORMAL);
+      }
+    }
+  }
+
+  nsCOMPtr<nsISupportsArray> transArray;
+  aDataTransfer->GetTransferables(getter_AddRefs(transArray));
+  if (!transArray)
+    return;
+
+  
+  
+  
+  nsCOMPtr<nsIDOMEvent> domEvent;
+  NS_NewDOMDragEvent(getter_AddRefs(domEvent), aPresContext, aDragEvent);
+
+  nsCOMPtr<nsIDOMDragEvent> domDragEvent = do_QueryInterface(domEvent);
+  
+  
+  if (selection) {
+    dragService->InvokeDragSessionWithSelection(selection, transArray,
+                                                action, domDragEvent,
+                                                aDataTransfer);
+  }
+  else {
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIScriptableRegion> region;
+#ifdef MOZ_XUL
+    if (dragTarget && !dragImage) {
+      nsCOMPtr<nsIContent> content = do_QueryInterface(dragTarget);
+      if (content->NodeInfo()->Equals(nsGkAtoms::treechildren,
+                                      kNameSpaceID_XUL)) {
+        nsIDocument* doc = content->GetCurrentDoc();
+        if (doc) {
+          nsIPresShell* presShell = doc->GetPrimaryShell();
+          if (presShell) {
+            nsIFrame* frame = presShell->GetPrimaryFrameFor(content);
+            if (frame) {
+              nsITreeBoxObject* treeBoxObject;
+              CallQueryInterface(frame, &treeBoxObject);
+              treeBoxObject->GetSelectionRegion(getter_AddRefs(region));
+            }
+          }
+        }
+      }
+    }
+#endif
+
+    dragService->InvokeDragSessionWithImage(dragTarget, transArray,
+                                            region, action, dragImage,
+                                            imageX, imageY, domDragEvent,
+                                            aDataTransfer);
+  }
+}
 
 nsresult
 nsEventStateManager::GetMarkupDocumentViewer(nsIMarkupDocumentViewer** aMv)
@@ -2539,10 +2811,124 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
     break;
 
+  case NS_DRAGDROP_ENTER:
+  case NS_DRAGDROP_OVER:
+    {
+      NS_ASSERTION(aEvent->eventStructType == NS_DRAG_EVENT, "Expected a drag event");
+
+      nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
+      if (!dragSession)
+        break;
+
+      
+      
+      nsCOMPtr<nsIDOMNSDataTransfer> dataTransfer;
+      nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
+      dragSession->GetDataTransfer(getter_AddRefs(initialDataTransfer));
+
+      nsCOMPtr<nsIDOMNSDataTransfer> initialDataTransferNS = 
+        do_QueryInterface(initialDataTransfer);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      PRUint32 dropEffect = nsIDragService::DRAGDROP_ACTION_NONE;
+      if (nsEventStatus_eConsumeNoDefault == *aStatus) {
+        
+        nsDragEvent *dragEvent = (nsDragEvent*)aEvent;
+        if (dragEvent->dataTransfer) {
+          
+          dataTransfer = do_QueryInterface(dragEvent->dataTransfer);
+          dataTransfer->GetDropEffectInt(&dropEffect);
+        }
+        else {
+          
+          
+          
+          
+          
+          
+          
+          dataTransfer = initialDataTransferNS;
+
+          PRUint32 action;
+          dragSession->GetDragAction(&action);
+
+          
+          
+          dropEffect = nsDOMDragEvent::FilterDropEffect(action,
+                         nsIDragService::DRAGDROP_ACTION_UNINITIALIZED);
+        }
+
+        
+        
+        
+        PRUint32 effectAllowed = nsIDragService::DRAGDROP_ACTION_UNINITIALIZED;
+        if (dataTransfer)
+          dataTransfer->GetEffectAllowedInt(&effectAllowed);
+
+        
+        
+        
+        
+        
+        
+        PRUint32 action = nsIDragService::DRAGDROP_ACTION_NONE;
+        if (effectAllowed == nsIDragService::DRAGDROP_ACTION_UNINITIALIZED ||
+            dropEffect & effectAllowed)
+          action = dropEffect;
+
+        if (action == nsIDragService::DRAGDROP_ACTION_NONE)
+          dropEffect = nsIDragService::DRAGDROP_ACTION_NONE;
+
+        
+        dragSession->SetDragAction(action);
+        dragSession->SetCanDrop(action != nsIDragService::DRAGDROP_ACTION_NONE);
+      }
+
+      
+      
+      if (initialDataTransferNS)
+        initialDataTransferNS->SetDropEffectInt(dropEffect);
+    }
+    break;
+
   case NS_DRAGDROP_DROP:
+    {
+      
+      if (mCurrentTarget && nsEventStatus_eConsumeNoDefault != *aStatus) {
+        nsCOMPtr<nsIContent> targetContent;
+        mCurrentTarget->GetContentForEvent(presContext, aEvent,
+                                           getter_AddRefs(targetContent));
+
+        nsCOMPtr<nsIWidget> widget = mCurrentTarget->GetWindow();
+        nsDragEvent event(NS_IS_TRUSTED_EVENT(aEvent), NS_DRAGDROP_DRAGDROP, widget);
+
+        nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
+        event.refPoint = mouseEvent->refPoint;
+        event.isShift = mouseEvent->isShift;
+        event.isControl = mouseEvent->isControl;
+        event.isAlt = mouseEvent->isAlt;
+        event.isMeta = mouseEvent->isMeta;
+
+        nsEventStatus status = nsEventStatus_eIgnore;
+        nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
+        if (presShell) {
+          presShell->HandleEventWithTarget(&event, mCurrentTarget,
+                                           targetContent, &status);
+        }
+      }
+      break;
+    }
   case NS_DRAGDROP_EXIT:
-    
-    
+     
+     
     GenerateDragDropEnterExit(presContext, (nsGUIEvent*)aEvent);
     break;
 
@@ -3176,6 +3562,8 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
           
           mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
+          FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
+                              targetContent, lastContent, mLastDragOverFrame);
           FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_EXIT_SYNTH,
                               targetContent, lastContent, mLastDragOverFrame);
         }
@@ -3196,6 +3584,8 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
         nsCOMPtr<nsIContent> lastContent;
         mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
+        FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_LEAVE_SYNTH,
+                            nsnull, lastContent, mLastDragOverFrame);
         FireDragEnterOrExit(aPresContext, aEvent, NS_DRAGDROP_EXIT_SYNTH,
                             nsnull, lastContent, mLastDragOverFrame);
 
@@ -3221,8 +3611,7 @@ nsEventStateManager::FireDragEnterOrExit(nsPresContext* aPresContext,
                                          nsWeakFrame& aTargetFrame)
 {
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsMouseEvent event(NS_IS_TRUSTED_EVENT(aEvent), aMsg,
-                     aEvent->widget, nsMouseEvent::eReal);
+  nsDragEvent event(NS_IS_TRUSTED_EVENT(aEvent), aMsg, aEvent->widget);
   event.refPoint = aEvent->refPoint;
   event.isShift = ((nsMouseEvent*)aEvent)->isShift;
   event.isControl = ((nsMouseEvent*)aEvent)->isControl;
