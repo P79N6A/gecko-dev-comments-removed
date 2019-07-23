@@ -3044,15 +3044,8 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
 
-
-    if (!js_DefineNativeProperty(cx, blockObj, ATOM_TO_JSID(atom), JSVAL_VOID,
-                                 NULL, NULL,
-                                 JSPROP_ENUMERATE |
-                                 JSPROP_PERMANENT |
-                                 JSPROP_SHARED,
-                                 SPROP_HAS_SHORTID, (int16) n, NULL)) {
+    if (!js_DefineBlockVariable(cx, blockObj, ATOM_TO_JSID(atom), n))
         return JS_FALSE;
-    }
 
     
 
