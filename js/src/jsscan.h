@@ -344,18 +344,16 @@ js_IsIdentifier(JSString *str);
 
 
 
-extern JSBool
-js_ReportCompileErrorNumber(JSContext *cx, void *handle, uintN flags,
-                            uintN errorNumber, ...);
 
-extern JSBool
-js_ReportCompileErrorNumberUC(JSContext *cx, void *handle, uintN flags,
-                              uintN errorNumber, ...);
+JSBool
+js_ReportCompileErrorNumber(JSContext *cx, JSTokenStream *ts, JSParseNode *pn,
+                            uintN flags, uintN errorNumber, ...);
 
 
-#define JSREPORT_HANDLE 0x100
-#define JSREPORT_TS     0x000
-#define JSREPORT_PN     0x100
+
+
+
+#define JSREPORT_UC 0x100
 
 
 

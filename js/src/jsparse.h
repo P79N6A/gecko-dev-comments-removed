@@ -323,7 +323,6 @@ struct JSParseNode {
         jsdouble        dval;           
     } pn_u;
     JSParseNode         *pn_next;       
-    JSTokenStream       *pn_ts;         
 };
 
 #define pn_funpob       pn_u.func.funpob
