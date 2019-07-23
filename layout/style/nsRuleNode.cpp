@@ -3909,10 +3909,16 @@ nsRuleNode::ComputeOutlineData(void* aStartStruct,
   }
 
   
-  SetCoord(marginData.mOutlineOffset, outline->mOutlineOffset, parentOutline->mOutlineOffset,
-           SETCOORD_LH | SETCOORD_INITIAL_ZERO, aContext, mPresContext,
-           inherited);
-  
+  nsStyleCoord tempCoord;
+  if (SetCoord(marginData.mOutlineOffset, tempCoord,
+               parentOutline->mOutlineOffset,
+               SETCOORD_LH | SETCOORD_INITIAL_ZERO, aContext, mPresContext,
+               inherited)) {
+    outline->mOutlineOffset = tempCoord.GetCoordValue();
+  } else {
+    NS_ASSERTION(marginData.mOutlineOffset.GetUnit() == eCSSUnit_Null,
+                 "unexpected unit");
+  }
 
   
   nscolor outlineColor;

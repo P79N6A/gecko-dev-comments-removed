@@ -593,9 +593,7 @@ nsDisplayOutline::OptimizeVisibility(nsDisplayListBuilder* aBuilder,
   nsPoint origin = aBuilder->ToReferenceFrame(mFrame);
   if (nsRect(origin, mFrame->GetSize()).Contains(aVisibleRegion->GetBounds()) &&
       !nsLayoutUtils::HasNonZeroSide(outline->mOutlineRadius)) {
-    nscoord outlineOffset;
-    outline->GetOutlineOffset(outlineOffset);
-    if (outlineOffset >= 0) {
+    if (outline->mOutlineOffset >= 0) {
       
       
       return PR_FALSE;

@@ -711,8 +711,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   }
 
   innerRect += aBorderArea.TopLeft();
-  nscoord offset;
-  aOutlineStyle.GetOutlineOffset(offset);
+  nscoord offset = aOutlineStyle.mOutlineOffset;
   innerRect.Inflate(offset, offset);
   
   

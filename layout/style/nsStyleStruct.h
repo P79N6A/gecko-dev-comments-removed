@@ -619,22 +619,8 @@ struct nsStyleOutline {
 
   
   
-  
-  nsStyleCoord  mOutlineOffset;   
   nsStyleCoord  mOutlineWidth;    
-
-  PRBool GetOutlineOffset(nscoord& aOffset) const
-  {
-    if (mOutlineOffset.GetUnit() == eStyleUnit_Coord) {
-      nscoord offset = mOutlineOffset.GetCoordValue();
-      aOffset = NS_ROUND_OFFSET_TO_PIXELS(offset, mTwipsPerPixel);
-      return PR_TRUE;
-    } else {
-      NS_ERROR("GetOutlineOffset: bad unit type");
-      aOffset = 0;
-      return PR_FALSE;
-    }
-  }
+  nscoord       mOutlineOffset;   
 
   PRBool GetOutlineWidth(nscoord& aWidth) const
   {
