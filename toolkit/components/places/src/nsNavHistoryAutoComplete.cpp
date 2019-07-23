@@ -706,8 +706,10 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
       rv = aQuery->GetString(kAutoCompleteIndex_Tags, entryTags);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      PRBool useBookmark = PR_FALSE;
-      PRBool showTags = PR_FALSE;
+      
+      nsAutoString title =
+        entryBookmarkTitle.IsEmpty() ? entryTitle : entryBookmarkTitle;
+
       nsString style;
       switch (aType) {
         case QUERY_FULL: {
@@ -722,20 +724,14 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
             const nsString *token = mCurrentSearchTokens.StringAt(i);
 
             
-            PRBool bookmarkMatch = parentId &&
-              (*tokenMatchesTarget)(*token, entryBookmarkTitle);
+            PRBool matchTags = (*tokenMatchesTarget)(*token, entryTags);
             
+            PRBool matchTitle = (*tokenMatchesTarget)(*token, title);
             
-            useBookmark |= bookmarkMatch;
+            PRBool matchUrl = (*tokenMatchesTarget)(*token, entryURL);
 
             
-            PRBool tagsMatch = (*tokenMatchesTarget)(*token, entryTags);
-            showTags |= tagsMatch;
-
-            
-            matchAll = bookmarkMatch || tagsMatch ||
-              (*tokenMatchesTarget)(*token, entryTitle) ||
-              (*tokenMatchesTarget)(*token, entryURL);
+            matchAll = matchTags || matchTitle || matchUrl;
           }
 
           
@@ -744,27 +740,16 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
           break;
         }
-        default: {
-          
-          
-          if (!entryTags.IsEmpty())
-            showTags = PR_TRUE;
-          else
-            useBookmark = !entryBookmarkTitle.IsEmpty();
-
-          break;
-        }
       }
 
       
-      if (showTags) {
-        
-        useBookmark = !entryBookmarkTitle.IsEmpty();
-        
+      PRBool showTags = !entryTags.IsEmpty();
+
+      
+      
 
 
 
-      }
 
       
       
@@ -772,9 +757,6 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
         !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
         mLivemarkFeedURIs.Get(escapedEntryURL, &dummy) ?
         NS_LITERAL_STRING("bookmark") : NS_LITERAL_STRING("favicon");
-
-      
-      const nsAString &title = useBookmark ? entryBookmarkTitle : entryTitle;
 
       
       nsCAutoString faviconSpec;
