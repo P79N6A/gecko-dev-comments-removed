@@ -127,6 +127,9 @@ function test() {
         copyHistNode: function (){
           
           PO.selectLeftPaneQuery("History");
+          var histContainer = PO._places.selectedNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
+          histContainer.containerOpen = true;
+          PO._places.selectNode(histContainer.getChild(0));
           this.histNode = PO._content.view.nodeForTreeIndex(0);
           PO._content.selectNode(this.histNode);
           is(this.histNode.uri, MOZURISPEC,
@@ -159,6 +162,9 @@ function test() {
         historyNode: function (){
           
           PO.selectLeftPaneQuery("History");
+          var histContainer = PO._places.selectedNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
+          histContainer.containerOpen = true;
+          PO._places.selectNode(histContainer.getChild(0));
           var histNode = PO._content.view.nodeForTreeIndex(0);
           ok(histNode, "histNode exists: " + histNode.title);
           
