@@ -913,8 +913,8 @@ public:
 
         const PRUnichar *str = mAlternativeString ? mAlternativeString : mRangeString;
 
+        mScriptItem->a.fLogicalOrder = PR_TRUE; 
         SCRIPT_ANALYSIS sa = mScriptItem->a;
-        sa.fLogicalOrder = PR_TRUE;
         
 
 
