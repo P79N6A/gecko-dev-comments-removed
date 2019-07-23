@@ -198,15 +198,6 @@ protected:
 
 
 
-  
-  inline void ComputeWidthDependentValue(nscoord aContainingBlockWidth,
-                                         const nsStyleCoord& aCoord,
-                                         nscoord& aResult);
-
-  
-
-
-
 
   inline nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
                                    nscoord aContentEdgeToBoxSizing,
@@ -217,15 +208,6 @@ protected:
   nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
                             PRUint8 aBoxSizing,
                             const nsStyleCoord& aCoord);
-
-  
-
-
-
-  
-  inline void ComputeHeightDependentValue(nscoord aContainingBlockHeight,
-                                          const nsStyleCoord& aCoord,
-                                          nscoord& aResult);
 };
 
 
@@ -422,17 +404,15 @@ public:
 
 
 
-  static nscoord CalcLineHeight(nsIRenderingContext* aRenderingContext,
-                                nsIFrame* aFrame)
+  static nscoord CalcLineHeight(nsIFrame* aFrame)
   {
-    return CalcLineHeight(aRenderingContext, aFrame->GetStyleContext());
+    return CalcLineHeight(aFrame->GetStyleContext());
   }
   
   
 
 
-  static nscoord CalcLineHeight(nsIRenderingContext* aRenderingContext,
-                                nsStyleContext* aStyleContext);
+  static nscoord CalcLineHeight(nsStyleContext* aStyleContext);
 
 
   void ComputeContainingBlockRectangle(nsPresContext*          aPresContext,

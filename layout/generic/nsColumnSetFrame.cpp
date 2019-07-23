@@ -229,15 +229,12 @@ GetAvailableContentHeight(const nsHTMLReflowState& aReflowState)
 
 static nscoord
 GetColumnGap(nsColumnSetFrame*    aFrame,
-             const nsStyleColumn* aColStyle,
-             nsIRenderingContext* aRenderingContext)
+             const nsStyleColumn* aColStyle)
 {
-  nscoord colGap;
   if (eStyleUnit_Normal == aColStyle->mColumnGap.GetUnit())
     return aFrame->GetStyleFont()->mFont.size;
-  else if (nsLayoutUtils::GetAbsoluteCoord(aColStyle->mColumnGap,
-                                           aRenderingContext,
-                                           aFrame, colGap)) {
+  if (eStyleUnit_Coord == aColStyle->mColumnGap.GetUnit()) {
+    nscoord colGap = aColStyle->mColumnGap.GetCoordValue();
     NS_ASSERTION(colGap >= 0, "negative column gap");
     return colGap;
   }
@@ -259,13 +256,12 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
     colHeight = aReflowState.ComputedHeight();
   }
 
-  nscoord colGap = GetColumnGap(this, colStyle, aReflowState.rendContext);
+  nscoord colGap = GetColumnGap(this, colStyle);
   PRInt32 numColumns = colStyle->mColumnCount;
 
   nscoord colWidth;
-  if (nsLayoutUtils::GetAbsoluteCoord(colStyle->mColumnWidth,
-                                      aReflowState.rendContext,
-                                      this, colWidth)) {
+  if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
+    colWidth = colStyle->mColumnWidth.GetCoordValue();
     NS_ASSERTION(colWidth >= 0, "negative column width");
     
     
@@ -371,14 +367,15 @@ nsColumnSetFrame::GetMinWidth(nsIRenderingContext *aRenderingContext) {
   }
   const nsStyleColumn* colStyle = GetStyleColumn();
   nscoord colWidth;
-  if (nsLayoutUtils::GetAbsoluteCoord(colStyle->mColumnWidth,
-                                      aRenderingContext, this, colWidth)) {
+  if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
+    colWidth = colStyle->mColumnWidth.GetCoordValue();
     
     
     
     width = PR_MIN(width, colWidth);
   } else {
-    NS_ASSERTION(colStyle->mColumnCount > 0, "column-count and column-width can't both be auto");
+    NS_ASSERTION(colStyle->mColumnCount > 0,
+                 "column-count and column-width can't both be auto");
     
     
     colWidth = width;
@@ -399,16 +396,15 @@ nsColumnSetFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext) {
   
   
   const nsStyleColumn* colStyle = GetStyleColumn();
-  nscoord colGap = GetColumnGap(this, colStyle, aRenderingContext);
+  nscoord colGap = GetColumnGap(this, colStyle);
 
   nscoord colWidth;
-  if (!nsLayoutUtils::GetAbsoluteCoord(colStyle->mColumnWidth,
-                                       aRenderingContext, this, colWidth)) {
-    if (mFrames.FirstChild()) {
-      colWidth = mFrames.FirstChild()->GetPrefWidth(aRenderingContext);
-    } else {
-      colWidth = 0;
-    }
+  if (colStyle->mColumnWidth.GetUnit() == eStyleUnit_Coord) {
+    colWidth = colStyle->mColumnWidth.GetCoordValue();
+  } else if (mFrames.FirstChild()) {
+    colWidth = mFrames.FirstChild()->GetPrefWidth(aRenderingContext);
+  } else {
+    colWidth = 0;
   }
 
   PRInt32 numColumns = colStyle->mColumnCount;

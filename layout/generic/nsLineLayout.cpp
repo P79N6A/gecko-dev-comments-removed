@@ -1666,7 +1666,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
-    nscoord logicalHeight = nsHTMLReflowState::CalcLineHeight(rc, spanFrame);
+    nscoord logicalHeight = nsHTMLReflowState::CalcLineHeight(spanFrame);
     nscoord contentHeight = spanFramePFD->mBounds.height -
       spanFramePFD->mBorderPadding.top - spanFramePFD->mBorderPadding.bottom;
 
@@ -1912,7 +1912,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       case eStyleUnit_Percent:
         
         
-        elementLineHeight = nsHTMLReflowState::CalcLineHeight(rc, frame);
+        elementLineHeight = nsHTMLReflowState::CalcLineHeight(frame);
         percentOffset = nscoord(
           textStyle->mVerticalAlign.GetPercentValue() * elementLineHeight
           );

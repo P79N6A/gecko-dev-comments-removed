@@ -664,20 +664,20 @@ nsIFrame::Redraw(nsBoxLayoutState& aState,
 PRBool 
 nsIBox::AddCSSPrefSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 {
-    PRBool heightSet = PR_FALSE;
+    PRBool widthSet = PR_FALSE, heightSet = PR_FALSE;
 
     
     const nsStylePosition* position = aBox->GetStylePosition();
 
     
-    PRBool widthSet = 
-      nsLayoutUtils::GetAbsoluteCoord(position->mWidth,
-                                      aState.GetRenderingContext(),
-                                      aBox, aSize.width);
     
     
     
     
+    if (position->mWidth.GetUnit() == eStyleUnit_Coord) {
+        aSize.width = position->mWidth.GetCoordValue();
+        widthSet = PR_TRUE;
+    }
 
     if (position->mHeight.GetUnit() == eStyleUnit_Coord) {
         aSize.height = position->mHeight.GetCoordValue();     
@@ -750,10 +750,8 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 
     
     
-    nscoord min;
-    if (nsLayoutUtils::GetAbsoluteCoord(position->mMinWidth,
-                                        aState.GetRenderingContext(),
-                                        aBox, min)) {
+    if (position->mMinWidth.GetUnit() == eStyleUnit_Coord) {
+        nscoord min = position->mMinWidth.GetCoordValue();
         if (min && (!widthSet || (min > aSize.width && canOverride))) {
            aSize.width = min;
            widthSet = PR_TRUE;
@@ -819,24 +817,24 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 PRBool 
 nsIBox::AddCSSMaxSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize)
 {  
-    PRBool heightSet = PR_FALSE;
+    PRBool widthSet = PR_FALSE, heightSet = PR_FALSE;
 
     
     const nsStylePosition* position = aBox->GetStylePosition();
 
     
-    PRBool widthSet = 
-      nsLayoutUtils::GetAbsoluteCoord(position->mMaxWidth,
-                                      aState.GetRenderingContext(),
-                                      aBox, aSize.width);
     
     
     
     
+    
+    if (position->mMaxWidth.GetUnit() == eStyleUnit_Coord) {
+        aSize.width = position->mMaxWidth.GetCoordValue();
+        widthSet = PR_TRUE;
+    }
 
     if (position->mMaxHeight.GetUnit() == eStyleUnit_Coord) {
-        nscoord max = position->mMaxHeight.GetCoordValue();
-        aSize.height = max;
+        aSize.height = position->mMaxHeight.GetCoordValue();
         heightSet = PR_TRUE;
     }
 

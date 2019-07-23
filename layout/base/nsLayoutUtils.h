@@ -588,40 +588,6 @@ public:
 
 
 
-
-
-
-  static PRBool GetAbsoluteCoord(const nsStyleCoord& aStyle,
-                                 nsIRenderingContext* aRenderingContext,
-                                 nsIFrame* aFrame,
-                                 nscoord& aResult)
-  {
-    return GetAbsoluteCoord(aStyle, aRenderingContext,
-                            aFrame->GetStyleContext(), aResult);
-  }
-
-  
-
-
-  static PRBool GetAbsoluteCoord(const nsStyleCoord& aStyle,
-                                 nsIRenderingContext* aRenderingContext,
-                                 nsStyleContext* aStyleContext,
-                                 nscoord& aResult)
-  {
-    nsStyleUnit unit = aStyle.GetUnit();
-    if (eStyleUnit_Coord == unit) {
-      aResult = aStyle.GetCoordValue();
-      return PR_TRUE;
-    }
-    return PR_FALSE;
-  }
-
-  
-
-
-
-
-
   enum IntrinsicWidthType { MIN_WIDTH, PREF_WIDTH };
   static nscoord IntrinsicForContainer(nsIRenderingContext* aRenderingContext,
                                        nsIFrame* aFrame,
@@ -632,8 +598,6 @@ public:
 
 
   static nscoord ComputeWidthDependentValue(
-                   nsIRenderingContext* aRenderingContext,
-                   nsIFrame*            aFrame,
                    nscoord              aContainingBlockWidth,
                    const nsStyleCoord&  aCoord);
 
@@ -667,8 +631,6 @@ public:
 
 
   static nscoord ComputeHeightDependentValue(
-                   nsIRenderingContext* aRenderingContext,
-                   nsIFrame*            aFrame,
                    nscoord              aContainingBlockHeight,
                    const nsStyleCoord&  aCoord);
 
