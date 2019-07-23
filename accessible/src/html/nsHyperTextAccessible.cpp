@@ -198,7 +198,6 @@ void nsHyperTextAccessible::CacheChildren()
 
   
   if (mAccChildCount == eChildCountUninitialized) {
-    mAccChildCount = 0;  
     PRUint32 role;
     GetRole(&role);
     if (role != nsIAccessibleRole::ROLE_ENTRY && role != nsIAccessibleRole::ROLE_PASSWORD_TEXT) {
@@ -211,6 +210,7 @@ void nsHyperTextAccessible::CacheChildren()
       nsAccessible::CacheChildren();
       return;
     }
+    mAccChildCount = 0;  
     nsCOMPtr<nsIDOMElement> editorRoot;
     editor->GetRootElement(getter_AddRefs(editorRoot));
     nsCOMPtr<nsIDOMNode> editorRootDOMNode = do_QueryInterface(editorRoot);
