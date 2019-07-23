@@ -97,32 +97,6 @@ nsSMILSetAnimationFunction::UnsetAttr(nsIAtom* aAttribute)
   return nsSMILAnimationFunction::UnsetAttr(aAttribute);
 }
 
-nsresult
-nsSMILSetAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
-                                              nsSMILValue& aResult,
-                                              nsSMILValue& aBaseValue)
-{
-  
-  const nsSMILTime& dur = mSimpleDuration.GetMillis();
-  NS_ABORT_IF_FALSE(mSampleTime >= 0.0f, "Sample time should not be negative");
-  NS_ABORT_IF_FALSE(dur >= 0.0f, "Simple duration should not be negative");
-  NS_ABORT_IF_FALSE(IsToAnimation(), "Set element only supports to-animation");
-
-  if (mSampleTime >= dur || mSampleTime < 0) {
-    NS_ERROR("Animation sampled outside interval");
-    return NS_ERROR_FAILURE;
-  }
-  if (aValues.Length() != 1) {
-    NS_ERROR("Unexpected number of values");
-    return NS_ERROR_FAILURE;
-  }
-  
-
-  
-  aResult = aValues[0];
-  return NS_OK;
-}
-
 PRBool
 nsSMILSetAnimationFunction::HasAttr(nsIAtom* aAttName) const
 {

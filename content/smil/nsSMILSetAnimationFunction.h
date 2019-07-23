@@ -71,17 +71,19 @@ public:
 
 
 
-  virtual PRBool UnsetAttr(nsIAtom* aAttribute);
+  NS_OVERRIDE virtual PRBool UnsetAttr(nsIAtom* aAttribute);
 
 protected:
-  NS_OVERRIDE virtual nsresult
-    InterpolateResult(const nsSMILValueArray& aValues,
-                      nsSMILValue& aResult, nsSMILValue& aBaseValue);
-
-  virtual PRBool             HasAttr(nsIAtom* aAttName) const;
-  virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const;
-  virtual PRBool             GetAttr(nsIAtom* aAttName,
-                                     nsAString& aResult) const;
+  
+  
+  
+  NS_OVERRIDE virtual PRBool TreatSingleValueAsStatic() const {
+    return PR_TRUE;
+  }
+  NS_OVERRIDE virtual PRBool             HasAttr(nsIAtom* aAttName) const;
+  NS_OVERRIDE virtual const nsAttrValue* GetAttr(nsIAtom* aAttName) const;
+  NS_OVERRIDE virtual PRBool             GetAttr(nsIAtom* aAttName,
+                                                 nsAString& aResult) const;
 
   PRBool IsDisallowedAttribute(const nsIAtom* aAttribute) const;
 };

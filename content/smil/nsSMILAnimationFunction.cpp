@@ -248,8 +248,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
   nsSMILValue result(aResult.mType);
 
   if (mSimpleDuration.IsIndefinite() ||
-      (HasAttr(nsGkAtoms::values) && values.Length() == 1)) {
-
+      (values.Length() == 1 && TreatSingleValueAsStatic())) {
     
     result = values[0];
 
