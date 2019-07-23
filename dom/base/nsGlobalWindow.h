@@ -561,6 +561,7 @@ protected:
 
   
   void RunTimeout(nsTimeout *aTimeout);
+  void RunTimeout() { RunTimeout(nsnull); }
 
   void ClearAllTimeouts();
   
