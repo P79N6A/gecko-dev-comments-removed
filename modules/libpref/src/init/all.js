@@ -59,7 +59,11 @@ pref("general.warnOnAboutConfig", true);
 pref("browser.bookmarks.max_backups",       5);
 
 pref("browser.cache.disk.enable",           true);
+#ifndef WINCE
 pref("browser.cache.disk.capacity",         51200);
+#else
+pref("browser.cache.disk.capacity",         20000);
+#endif
 pref("browser.cache.memory.enable",         true);
 
 
@@ -68,6 +72,7 @@ pref("browser.cache.disk_cache_ssl",        false);
 pref("browser.cache.check_doc_frequency",   3);
 
 pref("browser.cache.offline.enable",           true);
+#ifndef WINCE
 
 pref("browser.cache.offline.capacity",         512000);
 
@@ -78,6 +83,12 @@ pref("offline-apps.quota.max",        204800);
 
 
 pref("offline-apps.quota.warn",        51200);
+#else
+
+pref("browser.cache.offline.capacity", 15000);
+pref("offline-apps.quota.max",          7000);
+pref("offline-apps.quota.warn",         4000);
+#endif
 
 
 

@@ -316,6 +316,18 @@ BrowserGlue.prototype = {
   
   _onProfileShutdown: function() 
   {
+#ifdef WINCE
+    
+    try {
+      let um = Cc["@mozilla.org/updates/update-manager;1"].
+               getService(Ci.nsIUpdateManager);
+      if (um.activeUpdate && um.activeUpdate.state == "pending") {
+        let cacheService = Cc["@mozilla.org/network/cache-service;1"].
+                           getService(Ci.nsICacheService);
+        cacheService.evictEntries(Ci.nsICache.STORE_ANYWHERE);
+      }
+    } catch (e) { }
+#endif
     this._shutdownPlaces();
     this._idleService.removeIdleObserver(this, BOOKMARKS_BACKUP_IDLE_TIME);
     this._isIdleObserver = false;
