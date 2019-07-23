@@ -41,7 +41,7 @@
 
 
 
-function run_test() {
+function run_test_on_service() {
   
   var os = Cc["@mozilla.org/observer-service;1"].
            getService(Ci.nsIObserverService);
@@ -50,14 +50,14 @@ function run_test() {
   prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
   
-  do_check_true("@mozilla.org/privatebrowsing;1" in Cc);
+  do_check_true(PRIVATEBROWSING_CONTRACT_ID in Cc);
 
   
   do_check_true("nsIPrivateBrowsingService" in Ci);
 
   
   try {
-    var pb = Cc["@mozilla.org/privatebrowsing;1"].
+    var pb = Cc[PRIVATEBROWSING_CONTRACT_ID].
              getService(Ci.nsIPrivateBrowsingService);
   } catch (ex) {
     LOG("exception thrown when trying to get the service: " + ex);
@@ -221,4 +221,9 @@ function run_test() {
   do_check_eq(observer.notifications.join(","), reference_order.join(","));
 
   prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
+}
+
+
+function run_test() {
+  run_test_on_all_services();
 }
