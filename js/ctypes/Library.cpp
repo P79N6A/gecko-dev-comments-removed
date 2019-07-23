@@ -74,6 +74,14 @@ Library::Create(JSContext* cx, jsval aPath)
     return NULL;
 
   
+  if (!JS_SetReservedSlot(cx, libraryObj, 0, PRIVATE_TO_JSVAL(NULL)))
+    return NULL;
+
+  
+  if (!JS_SetReservedSlot(cx, libraryObj, 1, PRIVATE_TO_JSVAL(NULL)))
+    return NULL;
+
+  
   if (!JS_DefineFunctions(cx, libraryObj, sLibraryFunctions))
     return NULL;
 
@@ -115,10 +123,6 @@ Library::Create(JSContext* cx, jsval aPath)
 
   
   if (!JS_SetReservedSlot(cx, libraryObj, 0, PRIVATE_TO_JSVAL(library)))
-    return NULL;
-
-  
-  if (!JS_SetReservedSlot(cx, libraryObj, 1, PRIVATE_TO_JSVAL(NULL)))
     return NULL;
 
   return libraryObj;
