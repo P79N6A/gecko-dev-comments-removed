@@ -133,6 +133,9 @@ static const char tagChar[]  = "OIDISIBI";
      MAX_CALL_STACK_ENTRIES * sizeof(JSInlineFrame))
 
 
+#define MAX_MEM_IN_MAIN_FRAGMENTO (1 << 24)
+
+
 #define MAX_BRANCHES 32
 
 #ifdef JS_JIT_SPEW
@@ -3009,7 +3012,8 @@ js_DeleteRecorder(JSContext* cx)
     
 
 
-    if (JS_TRACE_MONITOR(cx).fragmento->assm()->error() == OutOMem) {
+    if (JS_TRACE_MONITOR(cx).fragmento->assm()->error() == OutOMem
+        || js_OverfullFragmento(tm->fragmento, MAX_MEM_IN_MAIN_FRAGMENTO)) {
         js_FlushJITCache(cx);
         return false;
     }
@@ -3331,7 +3335,8 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f, jsbytecode* outer,
     f->root = f;
     f->lirbuf = tm->lirbuf;
 
-    if (f->lirbuf->outOMem()) {
+    if (f->lirbuf->outOMem() ||
+        js_OverfullFragmento(tm->fragmento, MAX_MEM_IN_MAIN_FRAGMENTO)) {
         js_FlushJITCache(cx);
         debug_only_v(printf("Out of memory recording new tree, flushing cache.\n");)
         return false;
@@ -4356,7 +4361,9 @@ TraceRecorder::monitorRecording(JSContext* cx, TraceRecorder* tr, JSOp op)
         return JSMRS_STOP;
     }
 
-    if (tr->lirbuf->outOMem()) {
+    if (tr->lirbuf->outOMem() || 
+        js_OverfullFragmento(JS_TRACE_MONITOR(cx).fragmento, 
+                             MAX_MEM_IN_MAIN_FRAGMENTO)) {
         js_AbortRecording(cx, "no more LIR memory");
         js_FlushJITCache(cx);
         return JSMRS_STOP;
@@ -4608,7 +4615,7 @@ js_InitJIT(JSTraceMonitor *tm)
 
     if (!tm->fragmento) {
         JS_ASSERT(!tm->reservedDoublePool);
-        Fragmento* fragmento = new (&gc) Fragmento(core, 24);
+        Fragmento* fragmento = new (&gc) Fragmento(core, 32);
         verbose_only(fragmento->labels = new (&gc) LabelMap(core, NULL);)
         tm->fragmento = fragmento;
         tm->lirbuf = new (&gc) LirBuffer(fragmento, NULL);
@@ -4624,7 +4631,7 @@ js_InitJIT(JSTraceMonitor *tm)
         memset(tm->vmfragments, 0, sizeof(tm->vmfragments));
     }
     if (!tm->reFragmento) {
-        Fragmento* fragmento = new (&gc) Fragmento(core, 20);
+        Fragmento* fragmento = new (&gc) Fragmento(core, 32);
         verbose_only(fragmento->labels = new (&gc) LabelMap(core, NULL);)
         tm->reFragmento = fragmento;
         tm->reLirBuf = new (&gc) LirBuffer(fragmento, NULL);
@@ -4737,6 +4744,46 @@ js_PurgeScriptFragments(JSContext* cx, JSScript* script)
             }
         }
     }
+}
+
+bool
+js_OverfullFragmento(Fragmento *frago, size_t maxsz)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    return (frago->_stats.pages > (maxsz >> NJ_LOG2_PAGE_SIZE));
 }
 
 JS_REQUIRES_STACK void
@@ -6695,7 +6742,7 @@ TraceRecorder::newArray(JSObject *ctor, uint32 argc, jsval *argv, jsval *rval)
 
         
         LIns *dslots_ins = NULL;
-        for (uint32 i = 0; i < argc; i++) {
+        for (uint32 i = 0; i < argc && !lirbuf->outOMem(); i++) {
             LIns *elt_ins = get(argv + i);
             box_jsval(argv[i], elt_ins);
             stobj_set_dslot(arr_ins, i, dslots_ins, elt_ins, "set_array_elt");

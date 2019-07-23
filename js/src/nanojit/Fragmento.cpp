@@ -50,7 +50,7 @@ namespace nanojit
 	static uint32_t calcSaneCacheSize(uint32_t in)
 	{
 		if (in < uint32_t(NJ_LOG2_PAGE_SIZE)) return NJ_LOG2_PAGE_SIZE;	
-		if (in > 30) return 30;	
+		if (in > 32) return 32;	
 		return in;
 	}
 
