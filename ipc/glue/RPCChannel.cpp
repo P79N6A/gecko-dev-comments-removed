@@ -86,14 +86,6 @@ RPCChannel::Call(Message* msg, Message* reply)
         mPending.pop();
 
         
-        if (!recvd.is_sync() && !recvd.is_rpc()) {
-            MutexAutoUnlock unlock(mMutex);
-
-            AsyncChannel::OnDispatchMessage(recvd);
-            continue;
-        }
-
-        
         
         
         if (recvd.is_sync()) {
@@ -255,6 +247,14 @@ RPCChannel::OnMessageReceived(const Message& msg)
         
         
         
+        if (!msg.is_sync() && !msg.is_rpc()) {
+            
+            return AsyncChannel::OnMessageReceived(msg);
+        }
+
+        
+        
+        
         
         if (AwaitingSyncReply()
             && msg.is_sync()) {
@@ -263,14 +263,6 @@ RPCChannel::OnMessageReceived(const Message& msg)
             mRecvd = msg;
             mCvar.Notify();
             return;
-        }
-
-        
-        
-        if (AwaitingSyncReply()
-            && !msg.is_sync() && !msg.is_rpc()) {
-            
-            return AsyncChannel::OnMessageReceived(msg);
         }
 
         

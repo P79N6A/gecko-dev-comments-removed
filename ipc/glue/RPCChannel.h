@@ -111,7 +111,6 @@ private:
     
     
     
-    
     std::stack<Message> mPending;
 
     
