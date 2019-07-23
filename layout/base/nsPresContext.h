@@ -916,10 +916,8 @@ struct nsAutoLayoutPhase {
       case eLayoutPhase_FrameC:
         NS_ASSERTION(mPresContext->mLayoutPhaseCount[eLayoutPhase_Paint] == 0,
                      "constructing frames in the middle of a paint");
-        
-        
-        NS_WARN_IF_FALSE(mPresContext->mLayoutPhaseCount[eLayoutPhase_Reflow] == 0,
-                         "constructing frames in the middle of reflow");
+        NS_ASSERTION(mPresContext->mLayoutPhaseCount[eLayoutPhase_Reflow] == 0,
+                     "constructing frames in the middle of reflow");
         
         
         
