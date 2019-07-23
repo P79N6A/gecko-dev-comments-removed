@@ -43,7 +43,8 @@
 
 
 
-#include "mozIStorageStatementCallback.h"
+#include "mozilla/storage.h"
+#include "nsIURI.h"
 
 namespace mozilla {
 namespace places {
@@ -91,6 +92,50 @@ public:
 #define DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(_localStmt, _globalStmt)           \
   DECLARE_AND_ASSIGN_LAZY_STMT(_localStmt, _globalStmt);                       \
   mozStorageStatementScoper scoper(_localStmt)
+
+
+
+
+
+
+
+class URIBinder 
+{
+public:
+  
+  static nsresult Bind(mozIStorageStatement* statement,
+                       PRInt32 index,
+                       nsIURI* aURI);
+  
+  static nsresult Bind(mozIStorageStatement* statement,
+                       PRInt32 index,
+                       const nsACString& aURLString);
+  
+  static nsresult Bind(mozIStorageStatement* statement,
+                       const nsACString& aName,
+                       nsIURI* aURI);
+  
+  static nsresult Bind(mozIStorageStatement* statement,
+                       const nsACString& aName,
+                       const nsACString& aURLString);
+  
+  static nsresult Bind(mozIStorageBindingParams* aParams,
+                       PRInt32 index,
+                       nsIURI* aURI);
+  
+  static nsresult Bind(mozIStorageBindingParams* aParams,
+                       PRInt32 index,
+                       const nsACString& aURLString);
+  
+  static nsresult Bind(mozIStorageBindingParams* aParams,
+                       const nsACString& aName,
+                       nsIURI* aURI);
+  
+  static nsresult Bind(mozIStorageBindingParams* aParams,
+                       const nsACString& aName,
+                       const nsACString& aURLString);
+};
+
 
 } 
 } 
