@@ -786,4 +786,9 @@ typedef struct
                                     
 } SHDRAGIMAGE, *LPSHDRAGIMAGE;
 
+#ifndef max
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
+#define SHGetSpecialFolderPathW SHGetSpecialFolderPath
 #endif 
