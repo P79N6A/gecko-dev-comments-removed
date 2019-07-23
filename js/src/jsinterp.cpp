@@ -259,7 +259,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
 
 
 
-    if (!(cs->format & (JOF_SET | JOF_INCDEC)))
+    if (!(cs->format & (JOF_SET | JOF_INCDEC)) && obj == pobj)
         kshape = scope->shape;
 
     khash = PROPERTY_CACHE_HASH_PC(pc, kshape);
