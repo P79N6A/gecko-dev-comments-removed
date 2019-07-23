@@ -421,7 +421,6 @@ js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp)
 
 
 
-
                 if (!(iterobj = NewObject(cx, &js_IteratorClass, NULL, NULL)))
                     return false;
             }
