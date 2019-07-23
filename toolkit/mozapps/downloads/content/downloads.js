@@ -525,31 +525,79 @@ let gDownloadObserver = {
 
 var gContextMenus = [
   
-  ["menuitem_pause", "menuitem_cancel", "menuseparator_copy_location",
-   "menuitem_copyLocation"],
+  [
+    "menuitem_pause"
+    , "menuitem_cancel"
+    , "menuseparator"
+    , "menuitem_show"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+  ],
   
-  ["menuitem_open", "menuitem_show", "menuitem_removeFromList", "menuitem_clearList",
-   "menuseparator_copy_location", "menuitem_copyLocation"],
+  [
+    "menuitem_open"
+    , "menuitem_show"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
+  ],
   
-  ["menuitem_retry", "menuitem_removeFromList", "menuitem_clearList",
-   "menuseparator_copy_location", "menuitem_copyLocation"],
+  [
+    "menuitem_retry"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
+  ],
   
-  ["menuitem_retry", "menuitem_removeFromList", "menuitem_clearList",
-   "menuseparator_copy_location", "menuitem_copyLocation"],
+  [
+    "menuitem_retry"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
+  ],
   
-  ["menuitem_resume", "menuitem_cancel", "menuseparator_copy_location",
-   "menuitem_copyLocation"],
+  [
+    "menuitem_resume"
+    , "menuitem_cancel"
+    , "menuseparator"
+    , "menuitem_show"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+  ],
   
-  ["menuitem_cancel", "menuseparator_copy_location",
-   "menuitem_copyLocation"],
+  [
+    "menuitem_cancel"
+    , "menuseparator"
+    , "menuitem_show"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+  ],
   
-  ["menuitem_retry", "menuitem_removeFromList", "menuitem_clearList",
-   "menuseparator_copy_location", "menuitem_copyLocation"],
+  [
+    "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
+  ],
   
-  ["menuitem_copyLocation"],
+  [
+    "menuitem_show"
+    , "menuseparator"
+    , "menuitem_copyLocation"
+  ],
   
-  ["menuitem_retry", "menuitem_removeFromList", "menuitem_clearList",
-   "menuseparator_copy_location", "menuitem_copyLocation"]
+  [
+    "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
+  ]
 ];
 
 function buildContextMenu(aEvent)
