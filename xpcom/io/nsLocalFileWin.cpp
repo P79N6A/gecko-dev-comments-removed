@@ -313,16 +313,6 @@ static nsresult ConvertWinError(DWORD winErr)
 }
 
 
-
-#ifndef INVALID_SET_FILE_POINTER
-# define INVALID_SET_FILE_POINTER ((DWORD)-1)
-#endif
-
-#ifndef INVALID_FILE_ATTRIBUTES
-# define INVALID_FILE_ATTRIBUTES ((DWORD)-1)
-#endif
-
-
 static __int64 
 MyFileSeek64(HANDLE aHandle, __int64 aDistance, DWORD aMoveMethod)
 {
