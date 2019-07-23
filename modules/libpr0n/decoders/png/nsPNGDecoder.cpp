@@ -134,7 +134,8 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
 
 void nsPNGDecoder::SetAnimFrameInfo()
 {
-  png_uint_16 delay_num, delay_den; 
+  png_uint_16 delay_num, delay_den;
+  
   png_byte dispose_op;
   png_byte blend_op;
   PRInt32 timeout; 
@@ -352,6 +353,7 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
   cmsHPROFILE profile = nsnull;
   *intent = INTENT_PERCEPTUAL;   
 
+#ifndef PNG_NO_READ_iCCP
   
   if (png_get_valid(png_ptr, info_ptr, PNG_INFO_iCCP)) {
     png_uint_32 profileLen;
@@ -386,7 +388,9 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
       *intent = cmsTakeRenderingIntent(profile);
     }
   }
+#endif
 
+#ifndef PNG_NO_READ_sRGB
   
   if (!profile && png_get_valid(png_ptr, info_ptr, PNG_INFO_sRGB)) {
     profile = cmsCreate_sRGBProfile();
@@ -399,6 +403,7 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
       *intent = map[fileIntent];
     }
   }
+#endif
 
   
   if (!profile && png_get_valid(png_ptr, info_ptr, PNG_INFO_gAMA)) {
@@ -409,6 +414,7 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
       {0.1500, 0.0600, 1.0}
     };
 
+#ifndef PNG_NO_READ_cHRM
     if (png_get_valid(png_ptr, info_ptr, PNG_INFO_cHRM)) {
       png_get_cHRM(png_ptr, info_ptr,
                    &whitePoint.x, &whitePoint.y,
@@ -419,6 +425,7 @@ PNGGetColorProfile(png_structp png_ptr, png_infop info_ptr,
       whitePoint.Y =
         primaries.Red.Y = primaries.Green.Y = primaries.Blue.Y = 1.0;
     }
+#endif
 
     double gammaOfFile;
     LPGAMMATABLE gammaTable[3];

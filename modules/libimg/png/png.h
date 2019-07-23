@@ -362,6 +362,9 @@
 
 
 
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -372,9 +375,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.2.22"
+#define PNG_LIBPNG_VER_STRING "1.2.23"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.2.22 - October 13, 2007\n"
+   " libpng version 1.2.23 - November 6, 2007\n"
 
 #define PNG_LIBPNG_VER_SONUM   0
 #define PNG_LIBPNG_VER_DLLNUM  13
@@ -382,7 +385,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   2
-#define PNG_LIBPNG_VER_RELEASE 22
+#define PNG_LIBPNG_VER_RELEASE 23
 
 
 
@@ -410,7 +413,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10222 /* 1.2.22 */
+#define PNG_LIBPNG_VER 10223 /* 1.2.23 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -651,9 +654,10 @@ typedef png_time FAR * FAR * png_timepp;
 
 
 
+#define PNG_CHUNK_NAME_LENGTH 5
 typedef struct png_unknown_chunk_t
 {
-    png_byte name[5];
+    png_byte name[PNG_CHUNK_NAME_LENGTH];
     png_byte *data;
     png_size_t size;
 
@@ -1473,7 +1477,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_2_22;
+typedef png_structp version_1_2_23;
 
 typedef png_struct FAR * FAR * png_structpp;
 
