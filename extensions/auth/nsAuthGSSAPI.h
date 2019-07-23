@@ -52,6 +52,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class nsAuthGSSAPI : public nsIAuthModule
 {
 public:

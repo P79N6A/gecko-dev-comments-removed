@@ -357,7 +357,8 @@ nsAuthGSSAPI::Shutdown()
     }
 }
 
-NS_IMPL_ISUPPORTS1(nsAuthGSSAPI, nsIAuthModule)
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsAuthGSSAPI, nsIAuthModule)
 
 NS_IMETHODIMP
 nsAuthGSSAPI::Init(const char *serviceName,
@@ -446,7 +447,10 @@ nsAuthGSSAPI::GetNextToken(const void *inToken,
     
     
     KLBoolean found;    
-    PRBool doingMailTask = mServiceName.Find("imap@") || mServiceName.Find("pop@") || mServiceName.Find("smtp@");
+    PRBool doingMailTask = mServiceName.Find("imap@") ||
+                           mServiceName.Find("pop@") ||
+                           mServiceName.Find("smtp@") ||
+                           mServiceName.Find("ldap@");
     
     if (!doingMailTask && (gssNativeImp &&
          (KLCacheHasValidTickets_ptr(NULL, kerberosVersion_V5, &found, NULL, NULL) != klNoErr || !found)))
