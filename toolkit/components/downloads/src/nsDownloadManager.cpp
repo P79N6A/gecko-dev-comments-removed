@@ -1640,8 +1640,14 @@ nsDownloadManager::Observe(nsISupports *aSubject,
                            const char *aTopic,
                            const PRUnichar *aData)
 {
-  
   PRInt32 currDownloadCount = mCurrentDownloads.Count();
+
+  
+  
+  if (GetQuitBehavior() != QUIT_AND_CANCEL)
+    for (PRInt32 i = currDownloadCount - 1; i >= 0; --i)
+      if (mCurrentDownloads[i]->IsResumable())
+        currDownloadCount--;
 
   nsresult rv;
   if (strcmp(aTopic, "oncancel") == 0) {
