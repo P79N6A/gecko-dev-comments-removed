@@ -34,7 +34,6 @@ main(int argc, char **argv)
   args[i++] = "/Zc:wchar_t-";          
   args[i++] = "/GS-";                  
   args[i++] = "/GR-";                  
-  args[i++] = "/fp:fast";
 
   startOfArgvs = i;
 
