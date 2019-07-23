@@ -1447,9 +1447,6 @@ public:
                               void *closure);
     PRBool ForEachFont(FontCreationCallback fc, void *closure);
 
-    
-    void FindGenericFontFromStyle(FontCreationCallback fc, void *closure);
-
     const nsString& GetFamilies() { return mFamilies; }
 
 protected:
@@ -1457,11 +1454,24 @@ protected:
     gfxFontStyle mStyle;
     nsTArray< nsRefPtr<gfxFont> > mFonts;
 
+    
+
+
+
+
+
+
+
     static PRBool ForEachFontInternal(const nsAString& aFamilies,
                                       const nsACString& aLangGroup,
                                       PRBool aResolveGeneric,
+                                      PRBool aResolveFontName,
                                       FontCreationCallback fc,
                                       void *closure);
+
+    
+    void FindGenericFontFromStyle(PRBool aResolveFontName,
+                                  FontCreationCallback fc, void *closure);
 
     static PRBool FontResolverProc(const nsAString& aName, void *aClosure);
 };
