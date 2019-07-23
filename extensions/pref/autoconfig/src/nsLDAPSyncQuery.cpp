@@ -382,31 +382,6 @@ nsresult nsLDAPSyncQuery::InitConnection()
 
     
     
-    nsCAutoString host;
-    rv = mServerURL->GetAsciiHost(host);
-    if (NS_FAILED(rv)) {
-        FinishLDAPQuery();
-        return NS_ERROR_FAILURE;
-    }
-
-    
-    
-    PRInt32 port;
-    rv = mServerURL->GetPort(&port);
-    if (NS_FAILED(rv)) {
-        FinishLDAPQuery();
-        return NS_ERROR_FAILURE;
-    }
-        
-    PRUint32 options;
-    rv = mServerURL->GetOptions(&options);
-    if (NS_FAILED(rv)) {
-        FinishLDAPQuery();
-        return NS_ERROR_FAILURE;
-    }
-
-    
-    
     rv = NS_GetProxyForObject(NS_PROXY_TO_CURRENT_THREAD,
                               NS_GET_IID(nsILDAPMessageListener), 
                               static_cast<nsILDAPMessageListener *>(this), 
@@ -419,9 +394,7 @@ nsresult nsLDAPSyncQuery::InitConnection()
         return NS_ERROR_FAILURE;
     }
 
-    rv = mConnection->Init(host.get(), port, 
-                           (options & nsILDAPURL::OPT_SECURE) 
-                           ? PR_TRUE : PR_FALSE, EmptyCString(), selfProxy,
+    rv = mConnection->Init(mServerURL, EmptyCString(), selfProxy,
                            nsnull, mProtocolVersion);
     if (NS_FAILED(rv)) {
         FinishLDAPQuery();
