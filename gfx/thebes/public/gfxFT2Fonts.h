@@ -132,14 +132,6 @@ public:
     virtual ~gfxFT2FontGroup ();
 
     inline gfxFT2Font *GetFontAt (PRInt32 i) {
-        
-        
-        
-        
-        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
-                     "Whoever was caching this font group should have "
-                     "called UpdateFontList on it");
-
         return static_cast <gfxFT2Font *>(static_cast <gfxFont *>(mFonts[i]));
     }
 

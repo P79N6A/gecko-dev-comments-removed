@@ -1523,14 +1523,6 @@ public:
     virtual ~gfxFontGroup();
 
     virtual gfxFont *GetFontAt(PRInt32 i) {
-        
-        
-        
-        
-        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
-                     "Whoever was caching this font group should have "
-                     "called UpdateFontList on it");
-
         return static_cast<gfxFont*>(mFonts[i]);
     }
     virtual PRUint32 FontListLength() const {

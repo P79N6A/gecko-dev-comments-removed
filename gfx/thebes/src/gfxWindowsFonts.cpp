@@ -889,14 +889,6 @@ gfxWindowsFontGroup::~gfxWindowsFontGroup()
 gfxWindowsFont *
 gfxWindowsFontGroup::GetFontAt(PRInt32 i)
 {
-    
-    
-    
-    
-    NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
-                 "Whoever was caching this font group should have "
-                 "called UpdateFontList on it");
-
     if (!mFonts[i]) {
         nsRefPtr<gfxWindowsFont> font =
             gfxWindowsFont::GetOrMakeFont(mFontEntries[i], &mStyle);

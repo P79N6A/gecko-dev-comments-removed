@@ -107,14 +107,6 @@ public:
                                     const Parameters* aParams, PRUint32 aFlags);
 
     gfxOS2Font *GetFontAt(PRInt32 i) {
-        
-        
-        
-        
-        NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
-                     "Whoever was caching this font group should have "
-                     "called UpdateFontList on it");
-
 #ifdef DEBUG_thebes_2
         printf("gfxOS2FontGroup[%#x]::GetFontAt(%d), %#x, %#x\n",
                (unsigned)this, i, (unsigned)&mFonts, (unsigned)&mFonts[i]);
