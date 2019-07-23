@@ -75,8 +75,29 @@ class nsSVGMaskFrame : public nsSVGMaskFrameBase
 #endif
 
  private:
+  
+  
+  
+  
+  class AutoMaskReferencer
+  {
+  public:
+    AutoMaskReferencer(nsSVGMaskFrame *aFrame)
+       : mFrame(aFrame) {
+      NS_ASSERTION(mFrame->mInUse == PR_FALSE, "reference loop!");
+      mFrame->mInUse = PR_TRUE;
+    }
+    ~AutoMaskReferencer() {
+      mFrame->mInUse = PR_FALSE;
+    }
+  private:
+    nsSVGMaskFrame *mFrame;
+  };
+
   nsISVGChildFrame *mMaskParent;
   nsCOMPtr<nsIDOMSVGMatrix> mMaskParentMatrix;
+  
+  PRPackedBool mInUse;
 
   
   virtual already_AddRefed<nsIDOMSVGMatrix> GetCanvasTM();
