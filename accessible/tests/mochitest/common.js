@@ -158,7 +158,9 @@ function getNode(aNodeOrID)
 
 
 
-function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj)
+
+
+function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj, aDoNotFailIfNoAcc)
 {
   var elm = null;
 
@@ -188,7 +190,9 @@ function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj)
     }
 
     if (!acc) {
-      ok(false, "Can't get accessible for " + aAccOrElmOrID);
+      if (!aDoNotFailIfNoAcc)
+        ok(false, "Can't get accessible for " + aAccOrElmOrID);
+
       return null;
     }
   }
@@ -216,6 +220,14 @@ function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj)
   }
   
   return acc;
+}
+
+
+
+
+function isAccessible(aAccOrElmOrID)
+{
+  return getAccessible(aAccOrElmOrID, null, null, true) ? true : false;
 }
 
 
