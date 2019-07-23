@@ -303,9 +303,6 @@ struct ClosureInfo
   JSObject* thisObj;     
   JSObject* jsfnObj;     
   ffi_closure* closure;  
-#ifdef DEBUG
-  PRThread* thread;      
-#endif
 };
 
 JSBool InitTypeClasses(JSContext* cx, JSObject* parent);
