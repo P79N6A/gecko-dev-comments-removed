@@ -45,6 +45,8 @@
 #include "pldhash.h"
 #include "prenv.h"
 #include "nsThreadUtils.h"
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
 
 #define PL_ARENA_CONST_ALIGN_MASK 3
 #include "plarena.h"
@@ -65,6 +67,17 @@ static PLDHashTable gAtomTable;
 
 
 static PLArenaPool* gStaticAtomArena = 0;
+
+
+
+
+
+static nsDataHashtable<nsStringHashKey, nsIAtom*>* gStaticAtomTable = 0;
+
+
+
+
+static PRBool gStaticAtomTableSealed = PR_FALSE;
 
 class nsStaticAtomWrapper : public nsIAtom
 {
@@ -401,6 +414,8 @@ void PromoteToPermanent(AtomImpl* aAtom)
 void
 NS_PurgeAtomTable()
 {
+  delete gStaticAtomTable;
+
   if (gAtomTable.ops) {
 #ifdef DEBUG
     const char *dumpAtomLeaks = PR_GetEnv("MOZ_DUMP_ATOM_LEAKS");
@@ -549,6 +564,12 @@ AtomImpl::Equals(const nsAString& aString, PRBool* aResult)
   return NS_OK;
 }
 
+NS_IMETHODIMP_(PRBool)
+AtomImpl::IsStaticAtom()
+{
+  return PR_FALSE;
+}
+
 
 
 
@@ -609,6 +630,13 @@ nsStaticAtomWrapper::Equals(const nsAString& aString, PRBool* aResult)
                                 aString) == 0;
   return NS_OK;
 }
+
+NS_IMETHODIMP_(PRBool)
+nsStaticAtomWrapper::IsStaticAtom()
+{
+  return PR_TRUE;
+}
+
 
 
 static nsStaticAtomWrapper*
@@ -672,6 +700,16 @@ NS_RegisterStaticAtoms(const nsStaticAtom* aAtoms, PRUint32 aAtomCount)
   
   
   
+  
+  if (!gStaticAtomTable && !gStaticAtomTableSealed) {
+    gStaticAtomTable = new nsDataHashtable<nsStringHashKey, nsIAtom*>();
+    if (!gStaticAtomTable || !gStaticAtomTable->Init()) {
+      delete gStaticAtomTable;
+      gStaticAtomTable = nsnull;
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+  }
+  
   for (PRUint32 i=0; i<aAtomCount; i++) {
     NS_ASSERTION(nsCRT::IsAscii(aAtoms[i].mString),
                  "Static atoms must be ASCII!");
@@ -704,6 +742,12 @@ NS_RegisterStaticAtoms(const nsStaticAtom* aAtoms, PRUint32 aAtomCount)
       he->SetStaticAtomWrapper(atom);
       if (aAtoms[i].mAtom)
         *aAtoms[i].mAtom = atom;
+        
+      if (!gStaticAtomTableSealed) {
+        nsAutoString key;
+        atom->ToString(key);
+        gStaticAtomTable->Put(key, atom);
+      }
     }
   }
   return NS_OK;
@@ -827,3 +871,20 @@ NS_GetNumberOfAtoms(void)
   return gAtomTable.entryCount;
 }
 
+NS_COM nsIAtom*
+NS_GetStaticAtom(const nsAString& aUTF16String)
+{
+  NS_PRECONDITION(gStaticAtomTable, "Static atom table not created yet.");
+  NS_PRECONDITION(gStaticAtomTableSealed, "Static atom table not sealed yet.");
+  nsIAtom* atom;
+  if (!gStaticAtomTable->Get(aUTF16String, &atom)) {
+    atom = nsnull;
+  }
+  return atom;
+}
+
+NS_COM void
+NS_SealStaticAtomTable()
+{
+  gStaticAtomTableSealed = PR_TRUE;
+}
