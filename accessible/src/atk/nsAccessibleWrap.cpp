@@ -1170,11 +1170,11 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
         PRInt32 caretOffset = -1;
         caretMoveEvent->GetCaretOffset(&caretOffset);
 
-        MAI_LOG_DEBUG(("\n\nCaret postion: %d", *(gint *)caretOffset));
+        MAI_LOG_DEBUG(("\n\nCaret postion: %d", caretOffset));
         g_signal_emit_by_name(atkObj,
                               "text_caret_moved",
                               
-                              *(gint *)caretOffset);
+                              caretOffset);
       } break;
 
     case nsIAccessibleEvent::EVENT_TABLE_MODEL_CHANGED:
