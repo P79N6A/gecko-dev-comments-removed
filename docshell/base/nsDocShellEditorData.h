@@ -66,7 +66,7 @@ public:
               ~nsDocShellEditorData();
               
 
-              
+  
   nsresult    MakeEditable(PRBool inWaitForUriLoad);
   
   PRBool      GetEditable();
@@ -83,6 +83,9 @@ public:
   
               
   nsresult    SetEditor(nsIEditor *inEditor);
+
+  
+  void        TearDownEditor();
 
 protected:              
 

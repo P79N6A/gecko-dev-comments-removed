@@ -1004,6 +1004,12 @@ nsDocShell::FirePageHideNotification(PRBool aIsUnload)
         }
     }
 
+    
+    
+    if (mEditorData) {
+        mEditorData->TearDownEditor();
+    }
+
     return NS_OK;
 }
 
