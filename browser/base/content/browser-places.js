@@ -187,7 +187,7 @@ var HistoryMenu = {
 
 
 
-  onPoupShowing: function PHM_onPopupShowing(aMenuPopup) {
+  onPopupShowing: function PHM_onPopupShowing(aMenuPopup) {
     var resultNode = aMenuPopup.getResultNode();
     var wasOpen = resultNode.containerOpen;
     resultNode.containerOpen = true;
