@@ -42,6 +42,7 @@
 
 #include "cairo-types-private.h"
 #include "cairo-reference-count-private.h"
+#include "cairo-clip-private.h"
 
 typedef void (*cairo_surface_func_t) (cairo_surface_t *);
 
@@ -57,8 +58,11 @@ struct _cairo_surface {
 
     cairo_reference_count_t ref_count;
     cairo_status_t status;
-    cairo_bool_t finished;
     unsigned int unique_id;
+
+    unsigned finished : 1;
+    unsigned is_clear : 1;
+    unsigned has_font_options : 1;
 
     cairo_user_data_array_t user_data;
     cairo_user_data_array_t mime_data;
@@ -77,24 +81,6 @@ struct _cairo_surface {
     double x_fallback_resolution;
     double y_fallback_resolution;
 
-    cairo_clip_t *clip;
-
-    
-
-
-
-
-    unsigned int next_clip_serial;
-    
-
-
-
-
-
-
-
-    unsigned int current_clip_serial;
-
     
     cairo_surface_t *snapshot_of;
     cairo_surface_func_t snapshot_detach;
@@ -106,7 +92,6 @@ struct _cairo_surface {
 
 
 
-    cairo_bool_t has_font_options;
     cairo_font_options_t font_options;
 };
 

@@ -44,6 +44,10 @@
 
 #define CAIRO_TOLERANCE_MINIMUM	_cairo_fixed_to_double(1)
 
+#if !defined(INFINITY)
+#define INFINITY HUGE_VAL
+#endif
+
 static const cairo_t _cairo_nil = {
   CAIRO_REFERENCE_COUNT_INVALID,	
   CAIRO_STATUS_NO_MEMORY,	
@@ -58,6 +62,7 @@ static const cairo_t _cairo_nil = {
     FALSE,			
     FALSE,			
     FALSE,			
+    TRUE,			
     {{{NULL,NULL}}}		
   }}
 };
@@ -114,7 +119,22 @@ _cairo_set_error (cairo_t *cr, cairo_status_t status)
     _cairo_status_set_error (&cr->status, _cairo_error (status));
 }
 
-#if HAS_ATOMIC_OPS
+#if defined(_MSC_VER)
+#pragma intrinsic(_BitScanForward)
+static __forceinline int
+ffs(int x)
+{
+    unsigned long i;
+
+    if (_BitScanForward(&i, x) != 0)
+	return i + 1;
+
+    return 0;
+}
+#endif
+
+
+#if CAIRO_NO_MUTEX
 
 #define CAIRO_STASH_SIZE 4
 static struct {
@@ -127,14 +147,13 @@ _context_get (void)
 {
     int avail, old, new;
 
-    do {
-	old = _context_stash.occupied;
-	avail = ffs (~old) - 1;
-	if (avail >= CAIRO_STASH_SIZE)
-	    return malloc (sizeof (cairo_t));
+    old = _context_stash.occupied;
+    avail = ffs (~old) - 1;
+    if (avail >= CAIRO_STASH_SIZE)
+	return malloc (sizeof (cairo_t));
 
-	new = old | (1 << avail);
-    } while (_cairo_atomic_int_cmpxchg (&_context_stash.occupied, old, new) != old);
+    new = old | (1 << avail);
+    _context_stash.occupied = new;
 
     return &_context_stash.pool[avail];
 }
@@ -152,8 +171,50 @@ _context_put (cairo_t *cr)
     }
 
     avail = ~(1 << (cr - &_context_stash.pool[0]));
+    old = _context_stash.occupied;
+    new = old & avail;
+    _context_stash.occupied = new;
+}
+#elif HAS_ATOMIC_OPS
+
+#define CAIRO_STASH_SIZE 4
+static struct {
+    cairo_t pool[CAIRO_STASH_SIZE];
+    cairo_atomic_int_t occupied;
+} _context_stash;
+
+static cairo_t *
+_context_get (void)
+{
+    cairo_atomic_int_t avail, old, new;
+
     do {
-	old = _context_stash.occupied;
+	old = _cairo_atomic_int_get (&_context_stash.occupied);
+	avail = ffs (~old) - 1;
+	if (avail >= CAIRO_STASH_SIZE)
+	    return malloc (sizeof (cairo_t));
+
+	new = old | (1 << avail);
+    } while (_cairo_atomic_int_cmpxchg (&_context_stash.occupied, old, new) != old);
+
+    return &_context_stash.pool[avail];
+}
+
+static void
+_context_put (cairo_t *cr)
+{
+    cairo_atomic_int_t old, new, avail;
+
+    if (cr < &_context_stash.pool[0] ||
+	cr >= &_context_stash.pool[CAIRO_STASH_SIZE])
+    {
+	free (cr);
+	return;
+    }
+
+    avail = ~(1 << (cr - &_context_stash.pool[0]));
+    do {
+	old = _cairo_atomic_int_get (&_context_stash.occupied);
 	new = old & avail;
     } while (_cairo_atomic_int_cmpxchg (&_context_stash.occupied, old, new) != old);
 }
@@ -496,25 +557,28 @@ cairo_push_group_with_content (cairo_t *cr, cairo_content_t content)
 {
     cairo_status_t status;
     cairo_rectangle_int_t extents;
+    const cairo_rectangle_int_t *clip_extents;
     cairo_surface_t *parent_surface, *group_surface = NULL;
+    cairo_bool_t is_empty;
 
     if (unlikely (cr->status))
 	return;
 
     parent_surface = _cairo_gstate_get_target (cr->gstate);
-    
-    status = _cairo_surface_get_extents (parent_surface, &extents);
-    if (unlikely (status))
-	goto bail;
-    status = _cairo_clip_intersect_to_rectangle (_cairo_gstate_get_clip (cr->gstate), &extents);
-    if (unlikely (status))
-	goto bail;
 
-    group_surface = cairo_surface_create_similar (parent_surface,
-						  content,
-						  extents.width,
-						  extents.height);
-    status = cairo_surface_status (group_surface);
+    
+    is_empty = _cairo_surface_get_extents (parent_surface, &extents);
+    clip_extents = _cairo_clip_get_extents (_cairo_gstate_get_clip (cr->gstate));
+    if (clip_extents != NULL)
+	is_empty = _cairo_rectangle_intersect (&extents, clip_extents);
+
+    group_surface = _cairo_surface_create_similar_solid (parent_surface,
+							 content,
+							 extents.width,
+							 extents.height,
+							 CAIRO_COLOR_TRANSPARENT,
+							 TRUE);
+    status = group_surface->status;
     if (unlikely (status))
 	goto bail;
 
@@ -1670,8 +1734,10 @@ cairo_arc (cairo_t *cr,
 	return;
 
     
-    if (radius <= 0.0)
+    if (radius <= 0.0) {
+	cairo_line_to (cr, xc, yc);
 	return;
+    }
 
     while (angle2 < angle1)
 	angle2 += 2 * M_PI;
@@ -2340,7 +2406,7 @@ cairo_in_stroke (cairo_t *cr, double x, double y)
     cairo_bool_t inside = FALSE;
 
     if (unlikely (cr->status))
-	return 0;
+	return FALSE;
 
     status = _cairo_gstate_in_stroke (cr->gstate,
 				      cr->path,
@@ -2370,16 +2436,10 @@ cairo_in_stroke (cairo_t *cr, double x, double y)
 cairo_bool_t
 cairo_in_fill (cairo_t *cr, double x, double y)
 {
-    cairo_bool_t inside;
-
     if (unlikely (cr->status))
-	return 0;
+	return FALSE;
 
-    _cairo_gstate_in_fill (cr->gstate,
-			   cr->path,
-			   x, y, &inside);
-
-    return inside;
+    return _cairo_gstate_in_fill (cr->gstate, cr->path, x, y);
 }
 
 
@@ -2600,8 +2660,6 @@ cairo_clip_extents (cairo_t *cr,
 		    double *x1, double *y1,
 		    double *x2, double *y2)
 {
-    cairo_status_t status;
-
     if (unlikely (cr->status)) {
 	if (x1)
 	    *x1 = 0.0;
@@ -2615,9 +2673,38 @@ cairo_clip_extents (cairo_t *cr,
 	return;
     }
 
-    status = _cairo_gstate_clip_extents (cr->gstate, x1, y1, x2, y2);
-    if (unlikely (status))
-	_cairo_set_error (cr, status);
+    if (! _cairo_gstate_clip_extents (cr->gstate, x1, y1, x2, y2)) {
+	*x1 = -INFINITY;
+	*y1 = -INFINITY;
+	*x2 = +INFINITY;
+	*y2 = +INFINITY;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_bool_t
+cairo_in_clip (cairo_t *cr, double x, double y)
+{
+    if (unlikely (cr->status))
+	return FALSE;
+
+    return _cairo_gstate_in_clip (cr->gstate, x, y);
 }
 
 static cairo_rectangle_list_t *
@@ -3354,6 +3441,7 @@ cairo_show_text_glyphs (cairo_t			   *cr,
 			cairo_text_cluster_flags_t  cluster_flags)
 {
     cairo_status_t status;
+
 
     if (unlikely (cr->status))
 	return;
