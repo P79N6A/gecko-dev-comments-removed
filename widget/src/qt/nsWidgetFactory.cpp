@@ -59,8 +59,8 @@
 
 
 
-
-
+#include "nsClipboard.h"
+#include "nsClipboardHelper.h"
 
 
 
@@ -92,8 +92,8 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsScreenManagerQt)
 
 
 
-
-
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboard)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardHelper)
 
 
 
@@ -139,19 +139,21 @@ static const nsModuleComponentInfo components[] =
     { "Qt Screen Manager",
       NS_SCREENMANAGER_CID,
       "@mozilla.org/gfx/screenmanager;1",
-      nsScreenManagerQtConstructor }
+      nsScreenManagerQtConstructor },
 
 
 
 
 
 
-
-
-
-
-
-
+    { "Qt Clipboard",
+      NS_CLIPBOARD_CID,
+      "@mozilla.org/widget/clipboard;1",
+      nsClipboardConstructor },
+    { "Clipboard Helper",
+      NS_CLIPBOARDHELPER_CID,
+      "@mozilla.org/widget/clipboardhelper;1",
+      nsClipboardHelperConstructor }
 
 
 
