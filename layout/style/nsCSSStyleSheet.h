@@ -171,8 +171,17 @@ public:
   
   NS_IMETHOD StyleSheetLoaded(nsICSSStyleSheet* aSheet, PRBool aWasAlternate,
                               nsresult aStatus);
-  
-  nsresult EnsureUniqueInner();
+
+  enum EnsureUniqueInnerResult {
+    
+    eUniqueInner_AlreadyUnique,
+    
+    
+    eUniqueInner_ClonedInner,
+    
+    eUniqueInner_CloneFailed
+  };
+  EnsureUniqueInnerResult EnsureUniqueInner();
 
   PRBool UseForPresentation(nsPresContext* aPresContext,
                             nsMediaQueryResultCacheKey& aKey) const;
