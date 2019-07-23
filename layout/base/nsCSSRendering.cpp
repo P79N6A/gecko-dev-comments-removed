@@ -986,10 +986,56 @@ nsCSSRendering::FindRootFrame(nsIFrame *aForFrame)
 
 
 
+
+
+
+
+
+PRBool
+nsCSSRendering::IsCanvasFrame(nsIFrame *aFrame)
+{
+  nsIAtom* frameType = aFrame->GetType();
+  return frameType == nsGkAtoms::canvasFrame ||
+         frameType == nsGkAtoms::rootFrame ||
+         frameType == nsGkAtoms::pageFrame ||
+         frameType == nsGkAtoms::pageContentFrame ||
+         frameType == nsGkAtoms::viewportFrame;
+}
+
 const nsStyleBackground*
 nsCSSRendering::FindRootFrameBackground(nsIFrame* aForFrame)
 {
-  return FindRootFrame(aForFrame)->GetStyleBackground();
+  const nsStyleBackground* result = aForFrame->GetStyleBackground();
+
+  
+  if (result->IsTransparent()) {
+    nsIContent* content = aForFrame->GetContent();
+    
+    
+    
+    nsIDocument* document = content->GetOwnerDoc();
+    nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
+    if (htmlDoc) {
+      nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (bodyContent) {
+        nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
+          GetPrimaryFrameFor(bodyContent);
+        if (bodyFrame)
+          result = bodyFrame->GetStyleBackground();
+      }
+    }
+  }
+
+  return result;
 }
 
 inline void
