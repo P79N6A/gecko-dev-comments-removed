@@ -114,13 +114,15 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
 void nsPNGDecoder::SetAnimFrameInfo()
 {
   png_uint_16 delay_num, delay_den; 
-  png_byte render_op;
+  png_byte dispose_op;
   PRInt32 timeout; 
   
   delay_num = png_get_next_frame_delay_num(mPNG, mInfo);
   delay_den = png_get_next_frame_delay_den(mPNG, mInfo);
-  render_op = png_get_next_frame_render_op(mPNG, mInfo);
+  dispose_op = png_get_next_frame_dispose_op(mPNG, mInfo);
+
   
+
   if (delay_num == 0) {
     timeout = 0; 
   } else {
@@ -134,9 +136,9 @@ void nsPNGDecoder::SetAnimFrameInfo()
   }
   mFrame->SetTimeout(timeout);
   
-  if (render_op & PNG_RENDER_OP_DISPOSE_PREVIOUS)
+  if (dispose_op == PNG_DISPOSE_OP_PREVIOUS)
       mFrame->SetFrameDisposalMethod(imgIContainer::kDisposeRestorePrevious);
-  else if (render_op & PNG_RENDER_OP_DISPOSE_BACKGROUND)
+  else if (dispose_op == PNG_DISPOSE_OP_BACKGROUND)
       mFrame->SetFrameDisposalMethod(imgIContainer::kDisposeClear);
   else
       mFrame->SetFrameDisposalMethod(imgIContainer::kDisposeKeep);
