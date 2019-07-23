@@ -219,7 +219,7 @@ function securityOnLoad() {
       
       
       
-      owner = pageInfoBundle.getString("securityNoIdentity");
+      owner = pageInfoBundle.getString("securityNoOwner");
       verifier = security.mapIssuerOrganization(info.cAName ||
                                                 info.cert.issuerCommonName ||
                                                 info.cert.issuerName);
@@ -228,7 +228,7 @@ function securityOnLoad() {
   }
   else {
     
-    owner = pageInfoBundle.getString("securityNoIdentity");
+    owner = pageInfoBundle.getString("securityNoOwner");
     verifier = pageInfoBundle.getString("notset");
     generalPageIdentityString = owner;
   }
@@ -240,8 +240,6 @@ function securityOnLoad() {
   
   var viewCert = document.getElementById("security-view-cert");
   if (info.cert) {
-    var viewText = pageInfoBundle.getString("securityCertText");
-    setText("security-view-text", viewText);
     security._cert = info.cert;
     viewCert.collapsed = false;
   }
