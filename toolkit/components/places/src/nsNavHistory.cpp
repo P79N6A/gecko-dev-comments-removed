@@ -36,6 +36,8 @@
 
 
 
+
+
 #include <stdio.h>
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
@@ -180,7 +182,8 @@ static PRBool IsNumericHostName(const nsCString& aHost);
 static PRInt64 GetSimpleBookmarksQueryFolder(
     const nsCOMArray<nsNavHistoryQuery>& aQueries,
     nsNavHistoryQueryOptions* aOptions);
-static void ParseSearchQuery(const nsString& aQuery, nsStringArray* aTerms);
+static void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
+                                        nsTArray<nsStringArray*>* aTerms);
 
 inline void ReverseString(const nsString& aInput, nsAString& aReversed)
 {
@@ -1552,8 +1555,10 @@ nsNavHistory::EvaluateQueryForNode(const nsCOMArray<nsNavHistoryQuery>& aQueries
       
       nsCOMArray<nsNavHistoryResultNode> inputSet;
       inputSet.AppendObject(aNode);
+      nsCOMArray<nsNavHistoryQuery> queries;
+      queries.AppendObject(query);
       nsCOMArray<nsNavHistoryResultNode> filteredSet;
-      nsresult rv = FilterResultSet(nsnull, inputSet, &filteredSet, query->SearchTerms());
+      nsresult rv = FilterResultSet(nsnull, inputSet, &filteredSet, queries);
       if (NS_FAILED(rv))
         continue;
       if (! filteredSet.Count())
@@ -2384,6 +2389,17 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
 
   
   PRInt32 numParameters = 0;
+
+  
+  
+  PRBool resultAsList = PR_TRUE;
+  PRUint32 groupCount;
+  const PRUint16 *groupings = aOptions->GroupingMode(&groupCount);
+
+  if (groupCount != 0 || aOptions->ExcludeQueries()) {
+    resultAsList = PR_FALSE;
+  }
+
   PRInt32 i;
   for (i = 0; i < aQueries.Count(); i ++) {
     PRInt32 clauseParameters = 0;
@@ -2391,18 +2407,20 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
                                    aQueries[i], aOptions, &clauseParameters);
     NS_ENSURE_SUCCESS(rv, rv);
     numParameters += clauseParameters;
+    if (resultAsList) {
+      if (aQueries[i]->Folders().Length() != 0) {
+        resultAsList = PR_FALSE;
+      } else {
+        PRBool hasSearchTerms;
+        rv = aQueries[i]->GetHasSearchTerms(&hasSearchTerms);
+        if (hasSearchTerms)
+          resultAsList = PR_FALSE;
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
   }
 
-  PRUint32 groupCount;
-  const PRUint16 *groupings = aOptions->GroupingMode(&groupCount);
-
-  PRBool hasSearchTerms;
-  rv = aQueries[0]->GetHasSearchTerms(&hasSearchTerms);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (groupCount == 0 && ! hasSearchTerms) {
-    
-    
+  if (resultAsList) {
     rv = ResultsAsList(statement, aOptions, aResults);
     NS_ENSURE_SUCCESS(rv, rv);
   } else {
@@ -2411,22 +2429,13 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
     rv = ResultsAsList(statement, aOptions, &toplevel);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (hasSearchTerms) {
-      
-      if (groupCount == 0) {
-        
-        FilterResultSet(aResultNode, toplevel, aResults, aQueries[0]->SearchTerms());
-      } else {
-        
-        nsCOMArray<nsNavHistoryResultNode> filteredResults;
-        FilterResultSet(aResultNode, toplevel, &filteredResults, aQueries[0]->SearchTerms());
-        rv = RecursiveGroup(aResultNode, filteredResults, groupings, groupCount,
-                            aResults);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
+    if (groupCount == 0) {
+      FilterResultSet(aResultNode, toplevel, aResults, aQueries);
     } else {
-      
-      rv = RecursiveGroup(aResultNode, toplevel, groupings, groupCount, aResults);
+      nsCOMArray<nsNavHistoryResultNode> filteredResults;
+      FilterResultSet(aResultNode, toplevel, &filteredResults, aQueries);
+      rv = RecursiveGroup(aResultNode, filteredResults, groupings, groupCount,
+                          aResults);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -3603,19 +3612,8 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
   }
 
   
-  if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS) {
-    
-    
-    if (aQuery->Folders().Length() == 1) {
-      if (!aClause->IsEmpty())
-        *aClause += NS_LITERAL_CSTRING(" AND ");
-
-      nsCAutoString paramString;
-      parameterString(aStartParameter + *aParamCount, paramString);
-      (*aParamCount) ++;
-      *aClause += NS_LITERAL_CSTRING(" b.parent = ") + paramString;
-    }
-  } else if (aQuery->OnlyBookmarked()) {
+  if (aOptions->QueryType() != nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS &&
+      aQuery->OnlyBookmarked()) {
     
     if (!aClause->IsEmpty())
       *aClause += NS_LITERAL_CSTRING(" AND ");
@@ -3753,18 +3751,6 @@ nsNavHistory::BindQueryClauseParameters(mozIStorageStatement* statement,
     NS_ENSURE_SUCCESS(rv, rv);
     (*aParamCount) ++;
   }
-
-  
-  if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS) {
-    
-    if (aQuery->Folders().Length() == 1) {
-      rv = statement->BindInt64Parameter(aStartParameter + *aParamCount,
-                                         aQuery->Folders()[0]);
-      NS_ENSURE_SUCCESS(rv, rv);
-      (*aParamCount) ++;
-    }
-  }
-  
 
   
   if (NS_SUCCEEDED(aQuery->GetHasDomain(&hasIt)) && hasIt) {
@@ -4145,102 +4131,138 @@ nsNavHistory::URIHasTag(nsIURI* aURI, const nsAString& aTag)
 
 
 
+
 nsresult
-nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aParentNode,
+nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
                               const nsCOMArray<nsNavHistoryResultNode>& aSet,
                               nsCOMArray<nsNavHistoryResultNode>* aFiltered,
-                              const nsString& aSearch)
+                              const nsCOMArray<nsNavHistoryQuery>& aQueries)
 {
   nsresult rv;
-  nsStringArray terms;
-  ParseSearchQuery(aSearch, &terms);
+
+  
+  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+  NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  nsTArray<nsStringArray*> terms;
+  ParseSearchTermsFromQueries(aQueries, &terms);
+
+  PRUint32 queryIndex;
+
+  
+  
+  nsTArray< nsTArray<PRInt64>* > includeFolders;
+  nsTArray< nsTArray<PRInt64>* > excludeFolders;
+  for (queryIndex = 0;
+       queryIndex < aQueries.Count(); queryIndex++) {
+    includeFolders.AppendElement(new nsTArray<PRInt64>(aQueries[queryIndex]->Folders()));
+    excludeFolders.AppendElement(new nsTArray<PRInt64>());
+  }
 
   
   
   PRBool excludeQueries = PR_FALSE;
-  if (aParentNode) {
-    rv = aParentNode->mOptions->GetExcludeQueries(&excludeQueries);
+  if (aQueryNode) {
+    rv = aQueryNode->mOptions->GetExcludeQueries(&excludeQueries);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCStringArray searchAnnotations;
-  
-
-
-
-
-
-
-
-
   for (PRInt32 nodeIndex = 0; nodeIndex < aSet.Count(); nodeIndex ++) {
-    if (aParentNode && aParentNode->mItemId != -1) {
-      if (aParentNode->mItemId == aSet[nodeIndex]->mItemId) {
-        continue; 
-      }
-    }
-
     if (excludeQueries && IsQueryURI(aSet[nodeIndex]->mURI))
       continue;
 
-    PRBool allTermsFound = PR_TRUE;
+    PRInt64 parentId = -1;
+    if (aSet[nodeIndex]->mItemId != -1) {
+      if (aQueryNode->mItemId == aSet[nodeIndex]->mItemId)
+        continue;
+      rv = bookmarks->GetFolderIdForItem(aSet[nodeIndex]->mItemId, &parentId);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
-    nsStringArray curAnnotations;
     
+    PRBool appendNode = PR_FALSE;
+    for (queryIndex = 0;
+         queryIndex < aQueries.Count() && !appendNode; queryIndex++) {
+      
+      if (includeFolders[queryIndex]->Length() != 0) {
+        
+        if (aSet[nodeIndex]->mItemId == -1)
+          continue;
 
+        
+        
+        if (excludeFolders[queryIndex]->IndexOf(parentId) != -1)
+          continue;
 
+        if (includeFolders[queryIndex]->IndexOf(parentId) == -1) {
+          
+          PRInt64 ancestor = parentId, lastAncestor;
+          PRBool belongs = PR_FALSE;
 
+          while (!belongs) {
+            
+            lastAncestor = ancestor;
 
+            
+            if (NS_FAILED(bookmarks->GetFolderIdForItem(ancestor,&ancestor))) {
+              break;
+            } else if (includeFolders[queryIndex]->IndexOf(ancestor) != -1) {
+              belongs = PR_TRUE;
+            }
+          }
+          if (belongs) {
+            includeFolders[queryIndex]->AppendElement(lastAncestor);
+          } else {
+            excludeFolders[queryIndex]->AppendElement(lastAncestor);
+            continue;
+          }
+        }
+      }
 
-
-
-
-
-
-
-
-
-    if (terms.Count() == 0) {
-        allTermsFound = PR_TRUE;
-    } else {
-
-      for (PRInt32 termIndex = 0; termIndex < terms.Count(); termIndex ++) {
+      
+      
+      
+      PRBool allTermsFound = PR_TRUE;
+      for (PRInt32 termIndex = 0; termIndex < terms[queryIndex]->Count() &&
+           allTermsFound; termIndex ++) {
+        
         PRBool termFound = PR_FALSE;
         
-        if (CaseInsensitiveFindInReadable(*terms[termIndex],
+        if (CaseInsensitiveFindInReadable(*terms[queryIndex]->StringAt(termIndex),
                                           NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mTitle)) ||
             (aSet[nodeIndex]->IsURI() &&
-             CaseInsensitiveFindInReadable(*terms[termIndex],
-                                    NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mURI))))
+              CaseInsensitiveFindInReadable(*terms[queryIndex]->StringAt(termIndex),
+                                            NS_ConvertUTF8toUTF16(aSet[nodeIndex]->mURI))))
           termFound = PR_TRUE;
-
-        
-        
-
-
-
-
-
-
 
         
         if (!termFound) {
           nsCOMPtr<nsIURI> itemURI;
           rv = NS_NewURI(getter_AddRefs(itemURI), aSet[nodeIndex]->mURI);
           NS_ENSURE_SUCCESS(rv, rv);
-          termFound = URIHasTag(itemURI, *terms[termIndex]);
+          termFound = URIHasTag(itemURI, *terms[queryIndex]->StringAt(termIndex));
         }
 
-        if (!termFound) {
+        if (!termFound)
           allTermsFound = PR_FALSE;
-          break;
-        }
       }
-    }
+      if (!allTermsFound)
+        continue;
 
-    if (allTermsFound)
+      appendNode = PR_TRUE;
+    }
+    if (appendNode)
       aFiltered->AppendObject(aSet[nodeIndex]);
   }
+
+  
+  for (PRUint32 i=0; i < aQueries.Count(); i++) {
+    delete terms[i];
+    delete includeFolders[i];
+    delete excludeFolders[i];
+  }
+
   return NS_OK;
 }
 
@@ -4927,31 +4949,47 @@ GetSimpleBookmarksQueryFolder(const nsCOMArray<nsNavHistoryQuery>& aQueries,
 
 
 
+
+
+
+
 inline PRBool isQueryWhitespace(PRUnichar ch)
 {
   return ch == ' ';
 }
 
-void ParseSearchQuery(const nsString& aQuery, nsStringArray* aTerms)
+void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
+                                 nsTArray<nsStringArray*>* aTerms)
 {
   PRInt32 lastBegin = -1;
-  for (PRUint32 i = 0; i < aQuery.Length(); i ++) {
-    if (isQueryWhitespace(aQuery[i]) || aQuery[i] == '"') {
-      if (lastBegin >= 0) {
-        
-        aTerms->AppendString(Substring(aQuery, lastBegin, i - lastBegin));
-        lastBegin = -1;
+  for (PRUint32 i=0; i < aQueries.Count(); i++) {
+    nsStringArray *queryTerms = new nsStringArray();
+    PRBool hasSearchTerms;
+    if (NS_SUCCEEDED(aQueries[i]->GetHasSearchTerms(&hasSearchTerms)) &&
+        hasSearchTerms) {
+      const nsString& searchTerms = aQueries[i]->SearchTerms();
+      for (PRUint32 j = 0; j < searchTerms.Length(); j++) {
+        if (isQueryWhitespace(searchTerms[j]) ||
+            searchTerms[j] == '"') {
+          if (lastBegin >= 0) {
+            
+            queryTerms->AppendString(Substring(searchTerms, lastBegin,
+                                               j - lastBegin));
+            lastBegin = -1;
+          }
+        } else {
+          if (lastBegin < 0) {
+            
+            lastBegin = j;
+          }
+        }
       }
-    } else {
-      if (lastBegin < 0) {
-        
-        lastBegin = i;
-      }
+      
+      if (lastBegin >= 0)
+        queryTerms->AppendString(Substring(searchTerms, lastBegin));
     }
+    aTerms->AppendElement(queryTerms);
   }
-  
-  if (lastBegin >= 0)
-    aTerms->AppendString(Substring(aQuery, lastBegin));
 }
 
 
