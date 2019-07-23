@@ -192,7 +192,7 @@ nsWindow::nsWindow()
     mPreferredWidth   = 0;
     mPreferredHeight  = 0;
 
-    mDrawingarea         = nsnull;
+    mDrawingArea         = nsnull;
     mIsVisible           = PR_FALSE;
     mActivatePending     = PR_FALSE;
     mWindowType          = eWindowType_child;
@@ -230,9 +230,9 @@ nsWindow::Initialize(QWidget *widget)
 {
     Q_ASSERT(widget);
 
-    mDrawingarea = widget;
-    mDrawingarea->setMouseTracking(PR_TRUE);
-    mDrawingarea->setFocusPolicy(Qt::WheelFocus);
+    mDrawingArea = widget;
+    mDrawingArea->setMouseTracking(PR_TRUE);
+    mDrawingArea->setFocusPolicy(Qt::WheelFocus);
 }
 
  void
@@ -304,7 +304,7 @@ nsWindow::Destroy(void)
         mMozQWidget->deleteLater();
     }
 
-    mDrawingarea = nsnull;
+    mDrawingArea = nsnull;
 
     OnDestroy();
 
@@ -320,7 +320,7 @@ nsWindow::SetParent(nsIWidget *aNewParent)
         static_cast<QWidget*>(aNewParent->GetNativeData(NS_NATIVE_WINDOW));
     NS_ASSERTION(newParentWindow, "Parent widget has a null native window handle");
 
-    if (mDrawingarea) {
+    if (mDrawingArea) {
         qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
         
     } else {
@@ -332,9 +332,9 @@ nsWindow::SetParent(nsIWidget *aNewParent)
 NS_IMETHODIMP
 nsWindow::SetModal(PRBool aModal)
 {
-    LOG(("nsWindow::SetModal [%p] %d, widget[%p]\n", (void *)this, aModal, mDrawingarea));
+    LOG(("nsWindow::SetModal [%p] %d, widget[%p]\n", (void *)this, aModal, mDrawingArea));
 
-    MozQWidget *mozWidget = static_cast<MozQWidget*>(mDrawingarea);
+    MozQWidget *mozWidget = static_cast<MozQWidget*>(mDrawingArea);
     if (mozWidget)
         mozWidget->setModal(aModal);
 
@@ -344,14 +344,14 @@ nsWindow::SetModal(PRBool aModal)
 NS_IMETHODIMP
 nsWindow::IsVisible(PRBool & aState)
 {
-    aState = mDrawingarea?mDrawingarea->isVisible():PR_FALSE;
+    aState = mDrawingArea?mDrawingArea->isVisible():PR_FALSE;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsWindow::ConstrainPosition(PRBool aAllowSlop, PRInt32 *aX, PRInt32 *aY)
 {
-    if (mDrawingarea) {
+    if (mDrawingArea) {
         PRInt32 screenWidth  = QApplication::desktop()->width();
         PRInt32 screenHeight = QApplication::desktop()->height();
         if (aAllowSlop) {
@@ -397,12 +397,12 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
     
 
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
     QPoint pos(aX, aY);
-    if (mDrawingarea) {
-        if (mParent && mDrawingarea->windowType() == Qt::Popup) {
+    if (mDrawingArea) {
+        if (mParent && mDrawingArea->windowType() == Qt::Popup) {
             nsRect oldrect, newrect;
             oldrect.x = aX;
             oldrect.y = aY;
@@ -414,7 +414,7 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
             qDebug("pos is [%d,%d]", pos.x(), pos.y());
 #endif
         } else {
-            qDebug("Widget within another? (%p)", (void*)mDrawingarea);
+            qDebug("Widget within another? (%p)", (void*)mDrawingArea);
         }
     }
 
@@ -425,10 +425,10 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
         return NS_OK;
 
     if (mIsTopLevel) {
-        mDrawingarea->move(pos);
+        mDrawingArea->move(pos);
     }
-    else if (mDrawingarea) {
-        mDrawingarea->move(pos);
+    else if (mDrawingArea) {
+        mDrawingArea->move(pos);
     }
 
     return NS_OK;
@@ -453,14 +453,14 @@ nsWindow::SetZIndex(PRInt32 aZIndex)
         return NS_OK;
     }
 
-    NS_ASSERTION(!mDrawingarea, "Expected Mozilla child widget");
+    NS_ASSERTION(!mDrawingArea, "Expected Mozilla child widget");
 
     
     
 
     if (!GetNextSibling()) {
         
-        if (mDrawingarea) {
+        if (mDrawingArea) {
             qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
             
         }
@@ -468,7 +468,7 @@ nsWindow::SetZIndex(PRInt32 aZIndex)
         
         for (nsWindow* w = this; w;
              w = static_cast<nsWindow*>(w->GetPrevSibling())) {
-            if (w->mDrawingarea) {
+            if (w->mDrawingArea) {
                 qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
                 
             }
@@ -489,20 +489,20 @@ nsWindow::SetSizeMode(PRInt32 aMode)
 
     
     
-    if (!mDrawingarea || mSizeState == mSizeMode) {
+    if (!mDrawingArea || mSizeState == mSizeMode) {
         return rv;
     }
 
     switch (aMode) {
     case nsSizeMode_Maximized:
-        mDrawingarea->showMaximized();
+        mDrawingArea->showMaximized();
         break;
     case nsSizeMode_Minimized:
-        mDrawingarea->showMinimized();
+        mDrawingArea->showMinimized();
         break;
     default:
         
-        mDrawingarea->showNormal ();
+        mDrawingArea->showNormal ();
         
         
         
@@ -559,12 +559,12 @@ nsWindow::SetFocus(PRBool aRaise)
 
     LOGFOCUS(("  SetFocus [%p]\n", (void *)this));
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_ERROR_FAILURE;
 
     if (aRaise)
-        mDrawingarea->raise();
-    mDrawingarea->setFocus();
+        mDrawingArea->raise();
+    mDrawingArea->setFocus();
 
     
     
@@ -678,7 +678,7 @@ nsWindow::Validate()
 {
     
     
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
     qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
@@ -691,13 +691,13 @@ nsWindow::Invalidate(PRBool aIsSynchronous)
 {
     LOGDRAW(("Invalidate (all) [%p]: \n", (void *)this));
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
-    if (aIsSynchronous && !mDrawingarea->paintingActive())
-        mDrawingarea->repaint();
+    if (aIsSynchronous && !mDrawingArea->paintingActive())
+        mDrawingArea->repaint();
     else
-        mDrawingarea->update();
+        mDrawingArea->update();
 
     return NS_OK;
 }
@@ -707,17 +707,17 @@ nsWindow::Invalidate(const nsRect &aRect,
                      PRBool        aIsSynchronous)
 {
     LOGDRAW(("Invalidate (rect) [%p,%p]: %d %d %d %d (sync: %d)\n", (void *)this,
-             (void*)mDrawingarea,aRect.x, aRect.y, aRect.width, aRect.height, aIsSynchronous));
+             (void*)mDrawingArea,aRect.x, aRect.y, aRect.width, aRect.height, aIsSynchronous));
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
     if (aIsSynchronous)
-        mDrawingarea->repaint(aRect.x, aRect.y, aRect.width, aRect.height);
+        mDrawingArea->repaint(aRect.x, aRect.y, aRect.width, aRect.height);
     else {
-        if (!mDrawingarea->isVisible()) fprintf (stderr, "not visible!!\n");
-        if (!mDrawingarea->updatesEnabled()) fprintf (stderr, "updates not enabled!!\n");
-        mDrawingarea->update(aRect.x, aRect.y, aRect.width, aRect.height);
+        if (!mDrawingArea->isVisible()) fprintf (stderr, "not visible!!\n");
+        if (!mDrawingArea->updatesEnabled()) fprintf (stderr, "updates not enabled!!\n");
+        mDrawingArea->update(aRect.x, aRect.y, aRect.width, aRect.height);
     }
 
     return NS_OK;
@@ -731,17 +731,17 @@ nsWindow::InvalidateRegion(const nsIRegion* aRegion,
     QRegion *region = nsnull;
     aRegion->GetNativeRegion((void *&)region);
 
-    if (region && mDrawingarea) {
+    if (region && mDrawingArea) {
         QRect rect = region->boundingRect();
 
 
 
 
 
-        if (aIsSynchronous && !mDrawingarea->paintingActive())
-            mDrawingarea->repaint(*region);
+        if (aIsSynchronous && !mDrawingArea->paintingActive())
+            mDrawingArea->repaint(*region);
         else
-            mDrawingarea->update(*region);
+            mDrawingArea->update(*region);
     }
     else {
         qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
@@ -755,10 +755,10 @@ nsWindow::InvalidateRegion(const nsIRegion* aRegion,
 NS_IMETHODIMP
 nsWindow::Update()
 {
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
-    mDrawingarea->update();
+    mDrawingArea->update();
     return NS_OK;
 }
 
@@ -773,10 +773,10 @@ nsWindow::Scroll(PRInt32  aDx,
                  PRInt32  aDy,
                  nsRect  *aClipRect)
 {
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
-    mDrawingarea->scroll(aDx, aDy);
+    mDrawingArea->scroll(aDx, aDy);
 
     
     for (nsIWidget* kid = mFirstChild; kid; kid = kid->GetNextSibling()) {
@@ -794,10 +794,10 @@ NS_IMETHODIMP
 nsWindow::ScrollWidgets(PRInt32 aDx,
                         PRInt32 aDy)
 {
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
-    mDrawingarea->scroll(aDx, aDy);
+    mDrawingArea->scroll(aDx, aDy);
 
     return NS_OK;
 }
@@ -816,10 +816,10 @@ nsWindow::GetNativeData(PRUint32 aDataType)
     switch (aDataType) {
     case NS_NATIVE_WINDOW:
     case NS_NATIVE_WIDGET: {
-        if (!mDrawingarea)
+        if (!mDrawingArea)
             return nsnull;
 
-        return mDrawingarea;
+        return mDrawingArea;
         break;
     }
 
@@ -829,7 +829,7 @@ nsWindow::GetNativeData(PRUint32 aDataType)
 
 #ifdef Q_WS_X11
     case NS_NATIVE_DISPLAY:
-        return mDrawingarea->x11Info().display();
+        return mDrawingArea->x11Info().display();
         break;
 #endif
 
@@ -840,7 +840,7 @@ nsWindow::GetNativeData(PRUint32 aDataType)
     }
 
     case NS_NATIVE_SHELLWIDGET:
-        return (void *) mDrawingarea;
+        return (void *) mDrawingArea;
 
     default:
         NS_WARNING("nsWindow::GetNativeData called with bad value");
@@ -857,9 +857,9 @@ nsWindow::SetBorderStyle(nsBorderStyle aBorderStyle)
 NS_IMETHODIMP
 nsWindow::SetTitle(const nsAString& aTitle)
 {
-    if (mDrawingarea) {
+    if (mDrawingArea) {
         QString qStr(NS_ConvertUTF16toUTF8(aTitle).get());
-        mDrawingarea->setWindowTitle(qStr);
+        mDrawingArea->setWindowTitle(qStr);
     }
 
     return NS_OK;
@@ -868,7 +868,7 @@ nsWindow::SetTitle(const nsAString& aTitle)
 NS_IMETHODIMP
 nsWindow::SetIcon(const nsAString& aIconSpec)
 {
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
     nsCOMPtr<nsILocalFile> iconFile;
@@ -919,10 +919,10 @@ nsWindow::ShowMenuBar(PRBool aShow)
 NS_IMETHODIMP
 nsWindow::WidgetToScreen(const nsRect& aOldRect, nsRect& aNewRect)
 {
-    NS_ENSURE_TRUE(mDrawingarea, NS_OK);
+    NS_ENSURE_TRUE(mDrawingArea, NS_OK);
 
     QPoint origin(aOldRect.x, aOldRect.y);
-    origin = mDrawingarea->mapToGlobal(origin);
+    origin = mDrawingArea->mapToGlobal(origin);
 
     aNewRect.x = origin.x();
     aNewRect.y = origin.y();
@@ -935,10 +935,10 @@ nsWindow::WidgetToScreen(const nsRect& aOldRect, nsRect& aNewRect)
 NS_IMETHODIMP
 nsWindow::ScreenToWidget(const nsRect& aOldRect, nsRect& aNewRect)
 {
-    NS_ENSURE_TRUE(mDrawingarea, NS_OK);
+    NS_ENSURE_TRUE(mDrawingArea, NS_OK);
 
     QPoint origin(aOldRect.x, aOldRect.y);
-    origin = mDrawingarea->mapFromGlobal(origin);
+    origin = mDrawingArea->mapFromGlobal(origin);
 
     aNewRect.x = origin.x();
     aNewRect.y = origin.y();
@@ -963,7 +963,7 @@ nsWindow::EndResizingChildren(void)
 NS_IMETHODIMP
 nsWindow::EnableDragDrop(PRBool aEnable)
 {
-    mDrawingarea->setAcceptDrops(aEnable);
+    mDrawingArea->setAcceptDrops(aEnable);
     return NS_OK;
 }
 
@@ -989,13 +989,13 @@ nsWindow::CaptureMouse(PRBool aCapture)
 {
     LOG(("CaptureMouse %p\n", (void *)this));
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
     if (aCapture)
-        mDrawingarea->grabMouse();
+        mDrawingArea->grabMouse();
     else
-        mDrawingarea->releaseMouse();
+        mDrawingArea->releaseMouse();
 
     return NS_OK;
 }
@@ -1005,7 +1005,7 @@ nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
                               PRBool             aDoCapture,
                               PRBool             aConsumeRollupEvent)
 {
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return NS_OK;
 
     LOG(("CaptureRollupEvents %p\n", (void *)this));
@@ -1027,7 +1027,7 @@ nsWindow::GetAttention(PRInt32 aCycleCount)
 {
     LOG(("nsWindow::GetAttention [%p]\n", (void *)this));
 
-    SetUrgencyHint(mDrawingarea, PR_TRUE);
+    SetUrgencyHint(mDrawingArea, PR_TRUE);
 
     return NS_OK;
 }
@@ -1054,11 +1054,11 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
 
     if (mIsDestroyed) {
         LOG(("Expose event on destroyed window [%p] window %p\n",
-             (void *)this, mDrawingarea));
+             (void *)this, mDrawingArea));
         return nsEventStatus_eIgnore;
     }
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return nsEventStatus_eIgnore;
 
     static NS_DEFINE_CID(kRegionCID, NS_REGION_CID);
@@ -1083,7 +1083,7 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
 #ifndef QT_XLIB_SURFACE
     QPainter painter;
 
-    if (!painter.begin(mDrawingarea)) {
+    if (!painter.begin(mDrawingArea)) {
         fprintf (stderr, "*********** Failed to begin painting!\n");
         return nsEventStatus_eConsumeNoDefault;
     }
@@ -1176,7 +1176,7 @@ nsWindow::OnExposeEvent(QPaintEvent *aEvent)
     nsPaintEvent event(PR_TRUE, NS_PAINT, this);
     QRect r = aEvent->rect();
     if (!r.isValid())
-        r = mDrawingarea->rect();
+        r = mDrawingArea->rect();
     nsRect rect(r.x(), r.y(), r.width(), r.height());
     event.refPoint.x = aEvent->rect().x();
     event.refPoint.y = aEvent->rect().y();
@@ -1245,7 +1245,7 @@ nsWindow::OnConfigureEvent(QMoveEvent *aEvent)
         aEvent->pos().x(),  aEvent->pos().y()));
 
     
-    if (!mDrawingarea
+    if (!mDrawingArea
         || (mBounds.x == aEvent->pos().x()
         && mBounds.y == aEvent->pos().y()))
     {
@@ -1293,12 +1293,12 @@ nsWindow::OnSizeAllocate(QResizeEvent *e)
     mBounds.height = rect.height;
 
 #ifdef DEBUG_WIDGETS
-    qDebug("resizeEvent: mDrawingarea=%p, aWidth=%d, aHeight=%d, aX = %d, aY = %d", (void*)mDrawingarea,
+    qDebug("resizeEvent: mDrawingArea=%p, aWidth=%d, aHeight=%d, aX = %d, aY = %d", (void*)mDrawingArea,
            rect.width, rect.height, rect.x, rect.y);
 #endif
 
-    if (mDrawingarea)
-        mDrawingarea->resize(rect.width, rect.height);
+    if (mDrawingArea)
+        mDrawingArea->resize(rect.width, rect.height);
 
     nsEventStatus status;
     DispatchResizeEvent(rect, status);
@@ -1488,7 +1488,7 @@ nsWindow::OnContainerFocusInEvent(QFocusEvent *aEvent)
     
     
 
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return nsEventStatus_eIgnore;
 
     
@@ -1512,7 +1512,7 @@ nsWindow::OnContainerFocusOutEvent(QFocusEvent *aEvent)
     LOGFOCUS(("OnContainerFocusOutEvent [%p]\n", (void *)this));
 
     DispatchLostFocusEvent();
-    if (mDrawingarea)
+    if (mDrawingArea)
         DispatchDeactivateEvent();
 
     LOGFOCUS(("Done with container focus out [%p]\n", (void *)this));
@@ -1705,7 +1705,7 @@ nsWindow::ThemeChanged()
 
     DispatchEvent(&event);
 
-    if (!mDrawingarea || NS_UNLIKELY(mIsDestroyed))
+    if (!mDrawingArea || NS_UNLIKELY(mIsDestroyed))
         return;
     qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
     return;
@@ -1848,13 +1848,13 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
         parent = (QWidget*)aNativeParent;
 
     
-    mDrawingarea = createQWidget(parent, aInitData);
+    mDrawingArea = createQWidget(parent, aInitData);
 
-    Initialize(mDrawingarea);
+    Initialize(mDrawingArea);
 
     LOG(("nsWindow [%p]\n", (void *)this));
-    if (mDrawingarea) {
-        LOG(("\tmDrawingarea %p %p %p %lx %lx\n", (void *)mDrawingarea));
+    if (mDrawingArea) {
+        LOG(("\tmDrawingArea %p %p %p %lx %lx\n", (void *)mDrawingArea));
     }
 
     
@@ -1867,7 +1867,7 @@ nsWindow::NativeCreate(nsIWidget        *aParent,
 NS_IMETHODIMP
 nsWindow::SetWindowClass(const nsAString &xulWinType)
 {
-  if (!mDrawingarea)
+  if (!mDrawingArea)
     return NS_ERROR_FAILURE;
 
   nsXPIDLString brandName;
@@ -1909,8 +1909,8 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
   qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
   
   
-  XSetClassHint(mDrawingarea->x11Info().display(),
-                mDrawingarea->handle(),
+  XSetClassHint(mDrawingArea->x11Info().display(),
+                mDrawingArea->handle(),
                 class_hint);
   nsMemory::Free(class_hint->res_class);
   nsMemory::Free(class_hint->res_name);
@@ -1929,10 +1929,10 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, PRBool  aRepaint)
     
     mNeedsResize = PR_FALSE;
 
-    mDrawingarea->resize( aWidth, aHeight);
+    mDrawingArea->resize( aWidth, aHeight);
 
     if (aRepaint)
-        mDrawingarea->update();
+        mDrawingArea->update();
 }
 
 void
@@ -1947,9 +1947,9 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
          aX, aY, aWidth, aHeight));
 
     QPoint pos(aX, aY);
-    if (mDrawingarea)
+    if (mDrawingArea)
     {
-        if (mParent && mDrawingarea->windowType() == Qt::Popup) {
+        if (mParent && mDrawingArea->windowType() == Qt::Popup) {
             nsRect oldrect, newrect;
             oldrect.x = aX;
             oldrect.y = aY;
@@ -1962,15 +1962,15 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
 #endif
         } else {
 #ifdef DEBUG_WIDGETS
-            qDebug("Widget with original position? (%p)", mDrawingarea);
+            qDebug("Widget with original position? (%p)", mDrawingArea);
 #endif
         }
     }
 
-    mDrawingarea->setGeometry(pos.x(), pos.y(), aWidth, aHeight);
+    mDrawingArea->setGeometry(pos.x(), pos.y(), aWidth, aHeight);
 
     if (aRepaint)
-        mDrawingarea->update();
+        mDrawingArea->update();
 }
 
 void
@@ -1980,13 +1980,13 @@ nsWindow::NativeShow (PRBool  aAction)
         
         mNeedsShow = PR_FALSE;
     }
-    if (!mDrawingarea) {
+    if (!mDrawingArea) {
         
         
         qDebug("nsCommon::Show : widget empty");
         return;
     }
-    mDrawingarea->setShown(aAction);
+    mDrawingArea->setShown(aAction);
 }
 
 NS_IMETHODIMP
@@ -2007,8 +2007,8 @@ nsWindow::GetToplevelWidget(QWidget **aWidget)
 {
     *aWidget = nsnull;
 
-    if (mDrawingarea) {
-        *aWidget = mDrawingarea;
+    if (mDrawingArea) {
+        *aWidget = mDrawingArea;
         return;
     }
 }
@@ -2039,7 +2039,7 @@ nsWindow::SetUrgencyHint(QWidget *top_window, PRBool state)
 void *
 nsWindow::SetupPluginPort(void)
 {
-    if (!mDrawingarea)
+    if (!mDrawingArea)
         return nsnull;
 
     qDebug("FIXME:>>>>>>Func:%s::%d\n", __PRETTY_FUNCTION__, __LINE__);
@@ -2154,7 +2154,7 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
 NS_IMETHODIMP
 nsWindow::HideWindowChrome(PRBool aShouldHide)
 {
-    if (!mDrawingarea) {
+    if (!mDrawingArea) {
         
         QWidget *topWidget = nsnull;
         GetToplevelWidget(&topWidget);
@@ -2166,8 +2166,8 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
     
     
     PRBool wasVisible = PR_FALSE;
-    if (mDrawingarea->isVisible()) {
-        mDrawingarea->hide();
+    if (mDrawingArea->isVisible()) {
+        mDrawingArea->hide();
         wasVisible = PR_TRUE;
     }
 
@@ -2180,7 +2180,7 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
 
 
     if (wasVisible) {
-        mDrawingarea->show();
+        mDrawingArea->show();
     }
 
     
@@ -2189,7 +2189,7 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
     
     
 #ifdef Q_WS_X11
-    XSync(mDrawingarea->x11Info().display(), False);
+    XSync(mDrawingArea->x11Info().display(), False);
 #endif
 
     return NS_OK;
@@ -2424,7 +2424,7 @@ nsWindow::createQWidget(QWidget *parent, nsWidgetInitData *aInitData)
     }
 
     mMozQWidget = new MozQWidget(this, parent, windowName, flags);
-    mDrawingarea = mMozQWidget;
+    mDrawingArea = mMozQWidget;
  
     if (mWindowType == eWindowType_popup) {
         mMozQWidget->setFocusPolicy(Qt::WheelFocus);
@@ -2444,7 +2444,7 @@ nsWindow::createQWidget(QWidget *parent, nsWidgetInitData *aInitData)
     if (!gDoubleBuffering)
         mMozQWidget->setAttribute(Qt::WA_PaintOnScreen);
 
-    return mDrawingarea;
+    return mDrawingArea;
 }
 
 
@@ -2460,16 +2460,16 @@ nsWindow::GetThebesSurface()
     if (!mThebesSurface) {
 #ifdef QT_XLIB_SURFACE
         qint32 x_offset = 0, y_offset = 0;
-        qint32 width = mDrawingarea->width(), height = mDrawingarea->height();
+        qint32 width = mDrawingArea->width(), height = mDrawingArea->height();
 
         
         width = PR_MIN(32767, width);
         height = PR_MIN(32767, height);
 
         mThebesSurface = new gfxXlibSurface
-            (mDrawingarea->x11Info().display(),
-             (Drawable)mDrawingarea->handle(),
-             static_cast<Visual*>(mDrawingarea->x11Info().visual()),
+            (mDrawingArea->x11Info().display(),
+             (Drawable)mDrawingArea->handle(),
+             static_cast<Visual*>(mDrawingArea->x11Info().visual()),
              gfxIntSize(width, height));
         
         
