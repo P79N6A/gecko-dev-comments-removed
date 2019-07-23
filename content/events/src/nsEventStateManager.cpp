@@ -2208,12 +2208,13 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   }
 
   
-  PRUint32 effectAllowed;
-  aDataTransfer->GetEffectAllowedInt(&effectAllowed);
-
-  PRInt32 action = 0;
-  if (effectAllowed != nsIDragService::DRAGDROP_ACTION_UNINITIALIZED)
-    action = effectAllowed;
+  
+  PRUint32 action;
+  aDataTransfer->GetEffectAllowedInt(&action);
+  if (action == nsIDragService::DRAGDROP_ACTION_UNINITIALIZED)
+    action = nsIDragService::DRAGDROP_ACTION_COPY |
+             nsIDragService::DRAGDROP_ACTION_MOVE |
+             nsIDragService::DRAGDROP_ACTION_LINK;
 
   
   PRInt32 imageX, imageY;
