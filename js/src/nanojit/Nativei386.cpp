@@ -1149,9 +1149,23 @@ namespace nanojit
         return prefer;
     }
 
+    
+    
+    
+    bool canRematLEA(LIns* ins)
+    {
+        if (ins->isop(LIR_addi))
+            return ins->oprnd1()->isInReg() && ins->oprnd2()->isImmI();
+        
+        
+        
+        
+        return false;
+    }
+
     bool Assembler::canRemat(LIns* ins)
     {
-        return ins->isImmAny() || ins->isop(LIR_alloc);
+        return ins->isImmAny() || ins->isop(LIR_alloc) || canRematLEA(ins);
     }
 
     
@@ -1195,6 +1209,9 @@ namespace nanojit
             
             int d = (arg - abi_regcount) * sizeof(intptr_t) + 8;
             LD(r, d, FP);
+
+        } else if (canRematLEA(ins)) {
+            LEA(r, ins->oprnd2()->immI(), ins->oprnd1()->getReg());
 
         } else {
             int d = findMemFor(ins);

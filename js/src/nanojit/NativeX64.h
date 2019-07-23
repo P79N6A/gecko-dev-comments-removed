@@ -237,7 +237,7 @@ namespace nanojit
         X64_jnp8    = 0x007B000000000002LL, 
         X64_jneg8   = 0x0001000000000000LL, 
         X64_leaqrm  = 0x00000000808D4807LL, 
-        X64_learm   = 0x00000000808D4007LL, 
+        X64_lealrm  = 0x00000000808D4007LL, 
         X64_learip  = 0x00000000058D4807LL, 
         X64_movlr   = 0xC08B400000000003LL, 
         X64_movbmr  = 0x0000000080884007LL, 
@@ -521,6 +521,7 @@ namespace nanojit
         void IMULI(Register l, Register r, int32_t i32);\
         void MOVQI(Register r, uint64_t u64);\
         void LEARIP(Register r, int32_t d);\
+        void LEALRM(Register r, int d, Register b);\
         void LEAQRM(Register r, int d, Register b);\
         void MOVLRM(Register r, int d, Register b);\
         void MOVQRM(Register r, int d, Register b);\
