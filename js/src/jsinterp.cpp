@@ -298,6 +298,12 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj, jsuword kshape,
 
 
 
+
+
+
+
+
+
             OBJ_SET_DELEGATE(cx, obj);
         }
     }
