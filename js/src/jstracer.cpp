@@ -6015,6 +6015,9 @@ TraceRecorder::guardDenseArrayIndex(JSObject* obj, jsint idx, LIns* obj_ins,
 JS_REQUIRES_STACK bool
 TraceRecorder::guardElemOp(JSObject* obj, LIns* obj_ins, jsid id, size_t op_offset, jsval* vp)
 {
+    JS_ASSERT(op_offset == offsetof(JSObjectOps, getProperty) ||
+              op_offset == offsetof(JSObjectOps, setProperty));
+
     LIns* map_ins = lir->insLoad(LIR_ldp, obj_ins, (int)offsetof(JSObject, map));
     LIns* ops_ins;
     if (!map_is_native(obj->map, map_ins, ops_ins, op_offset))
@@ -7018,6 +7021,30 @@ TraceRecorder::record_SetPropHit(JSPropCacheEntry* entry, JSScopeProperty* sprop
             ABORT_TRACE("lazy import of global slot failed");
 
         LIns* r_ins = get(&r);
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (VALUE_IS_FUNCTION(cx, r)) {
+            guard(true,
+                  lir->ins2(LIR_eq, r_ins, INS_CONSTPTR(JSVAL_TO_OBJECT(r))),
+                  MISMATCH_EXIT);
+        }
+
         set(&STOBJ_GET_SLOT(obj, slot), r_ins);
 
         JS_ASSERT(*pc != JSOP_INITPROP);
