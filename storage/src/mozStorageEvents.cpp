@@ -69,74 +69,43 @@ enum ExecutionState {
 
 
 
-class iCancelable : public nsISupports
+class iEventStatus : public nsISupports
 {
 public:
-  
-
-
-  virtual void cancel() = 0;
-};
-
-
-
-
-class iCompletionNotifier : public nsISupports
-{
-public:
-  
-
-
-
-
-
-  virtual void completed(iCancelable *aEvent) = 0;
+  virtual PRBool runEvent() = 0;
 };
 
 
 
 
 class CallbackResultNotifier : public nsIRunnable
-                             , public iCancelable
 {
 public:
   NS_DECL_ISUPPORTS
 
   CallbackResultNotifier(mozIStorageStatementCallback *aCallback,
                          mozIStorageResultSet *aResults,
-                         iCompletionNotifier *aNotifier) :
+                         iEventStatus *aEventStatus) :
       mCallback(aCallback)
     , mResults(aResults)
-    , mCompletionNotifier(aNotifier)
-    , mCanceled(PR_FALSE)
+    , mEventStatus(aEventStatus)
   {
   }
 
   NS_IMETHOD Run()
   {
-    if (!mCanceled)
+    if (mEventStatus->runEvent())
       (void)mCallback->HandleResult(mResults);
 
-    
-    mCompletionNotifier->completed(this);
-    
-    
-    mCompletionNotifier = nsnull;
     return NS_OK;
   }
 
-  virtual void cancel()
-  {
-    
-    PR_AtomicSet(&mCanceled, PR_TRUE);
-  }
 private:
   CallbackResultNotifier() { }
 
   mozIStorageStatementCallback *mCallback;
   nsCOMPtr<mozIStorageResultSet> mResults;
-  nsRefPtr<iCompletionNotifier> mCompletionNotifier;
-  PRInt32 mCanceled;
+  nsRefPtr<iEventStatus> mEventStatus;
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(
   CallbackResultNotifier,
@@ -147,61 +116,33 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 
 class ErrorNotifier : public nsIRunnable
-                    , public iCancelable
 {
 public:
   NS_DECL_ISUPPORTS
 
   ErrorNotifier(mozIStorageStatementCallback *aCallback,
                 mozIStorageError *aErrorObj,
-                iCompletionNotifier *aCompletionNotifier) :
+                iEventStatus *aEventStatus) :
       mCallback(aCallback)
     , mErrorObj(aErrorObj)
-    , mCanceled(PR_FALSE)
-    , mCompletionNotifier(aCompletionNotifier)
+    , mEventStatus(aEventStatus)
   {
   }
 
   NS_IMETHOD Run()
   {
-    if (!mCanceled && mCallback)
+    if (mEventStatus->runEvent() && mCallback)
       (void)mCallback->HandleError(mErrorObj);
 
-    mCompletionNotifier->completed(this);
-    
-    
-    mCompletionNotifier = nsnull;
     return NS_OK;
   }
 
-  virtual void cancel()
-  {
-    
-    PR_AtomicSet(&mCanceled, PR_TRUE);
-  }
-
-  static inline iCancelable *Dispatch(nsIThread *aCallingThread,
-                                      mozIStorageStatementCallback *aCallback,
-                                      iCompletionNotifier *aCompletionNotifier,
-                                      int aResult,
-                                      const char *aMessage)
-  {
-    nsCOMPtr<mozIStorageError> errorObj(new mozStorageError(aResult, aMessage));
-    if (!errorObj)
-      return nsnull;
-
-    ErrorNotifier *notifier =
-      new ErrorNotifier(aCallback, errorObj, aCompletionNotifier);
-    (void)aCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
-    return notifier;
-  }
 private:
   ErrorNotifier() { }
 
   mozIStorageStatementCallback *mCallback;
   nsCOMPtr<mozIStorageError> mErrorObj;
-  PRInt32 mCanceled;
-  nsRefPtr<iCompletionNotifier> mCompletionNotifier;
+  nsRefPtr<iEventStatus> mEventStatus;
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(
   ErrorNotifier,
@@ -212,7 +153,6 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 
 class CompletionNotifier : public nsIRunnable
-                         , public iCancelable
 {
 public:
   NS_DECL_ISUPPORTS
@@ -222,11 +162,9 @@ public:
 
 
   CompletionNotifier(mozIStorageStatementCallback *aCallback,
-                     ExecutionState aReason,
-                     iCompletionNotifier *aCompletionNotifier) :
+                     ExecutionState aReason) :
       mCallback(aCallback)
     , mReason(aReason)
-    , mCompletionNotifier(aCompletionNotifier)
   {
   }
 
@@ -235,10 +173,6 @@ public:
     (void)mCallback->HandleCompletion(mReason);
     NS_RELEASE(mCallback);
 
-    mCompletionNotifier->completed(this);
-    
-    
-    mCompletionNotifier = nsnull;
     return NS_OK;
   }
 
@@ -253,7 +187,6 @@ private:
 
   mozIStorageStatementCallback *mCallback;
   ExecutionState mReason;
-  nsRefPtr<iCompletionNotifier> mCompletionNotifier;
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(
   CompletionNotifier,
@@ -265,7 +198,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 class AsyncExecute : public nsIRunnable
                    , public mozIStoragePendingStatement
-                   , public iCompletionNotifier
+                   , public iEventStatus
 {
 public:
   NS_DECL_ISUPPORTS
@@ -281,8 +214,8 @@ public:
     , mCallback(aCallback)
     , mCallingThread(do_GetCurrentThread())
     , mState(PENDING)
-    , mStateMutex(nsAutoLock::NewLock("AsyncExecute::mStateMutex"))
-    , mPendingEventsMutex(nsAutoLock::NewLock("AsyncExecute::mPendingEventsMutex"))
+    , mCancelRequested(PR_FALSE)
+    , mLock(nsAutoLock::NewLock("AsyncExecute::mLock"))
   {
     (void)mStatements.SwapElements(aStatements);
     NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
@@ -290,8 +223,7 @@ public:
 
   nsresult initialize()
   {
-    NS_ENSURE_TRUE(mStateMutex, NS_ERROR_OUT_OF_MEMORY);
-    NS_ENSURE_TRUE(mPendingEventsMutex, NS_ERROR_OUT_OF_MEMORY);
+    NS_ENSURE_TRUE(mLock, NS_ERROR_OUT_OF_MEMORY);
     NS_IF_ADDREF(mCallback);
     return NS_OK;
   }
@@ -300,9 +232,12 @@ public:
   {
     
     {
-      nsAutoLock mutex(mStateMutex);
-      if (mState == CANCELED)
-        return Complete();
+      nsAutoLock mutex(mLock);
+      if (mCancelRequested) {
+        mState = CANCELED;
+        mutex.unlock();
+        return NotifyComplete();
+      }
     }
 
     
@@ -317,6 +252,11 @@ public:
     
     nsresult rv = NS_OK;
     for (PRUint32 i = 0; i < mStatements.Length(); i++) {
+      
+      
+      
+      nsAutoLock mutex(mLock);
+
       while (PR_TRUE) {
         int rc = sqlite3_step(mStatements[i]);
         
@@ -327,41 +267,44 @@ public:
         if (rc != SQLITE_OK && rc != SQLITE_ROW) {
           if (rc == SQLITE_BUSY) {
             
+            nsAutoUnlock cancelationScope(mLock);
+
+            
             PR_Sleep(PR_INTERVAL_NO_WAIT);
             continue;
           }
 
           
-          {
-            nsAutoLock mutex(mStateMutex);
-            mState = ERROR;
-          }
+          mState = ERROR;
+
+          
+          mutex.unlock();
 
           
           sqlite3 *db = sqlite3_db_handle(mStatements[i]);
-          iCancelable *cancelable = ErrorNotifier::Dispatch(
-            mCallingThread, mCallback, this, rc, sqlite3_errmsg(db)
-          );
-          if (cancelable) {
-            nsAutoLock mutex(mPendingEventsMutex);
-            (void)mPendingEvents.AppendObject(cancelable);
-          }
+          (void)NotifyError(rc, sqlite3_errmsg(db));
 
           
-          return Complete();
-        }
-
-        
-        {
-          nsAutoLock mutex(mStateMutex);
-          if (mState == CANCELED)
-            return Complete();
+          return NotifyComplete();
         }
 
         
         
         if (!mCallback)
           break;
+
+        
+        if (mCancelRequested) {
+          mState = CANCELED;
+          mutex.unlock();
+          return NotifyComplete();
+        }
+
+        
+        
+        
+        
+        nsAutoUnlock cancelationScope(mLock);
 
         
         
@@ -378,98 +321,86 @@ public:
         }
 
         rv = row->initialize(mStatements[i]);
-        if (NS_FAILED(rv)) {
-          rv = NS_ERROR_OUT_OF_MEMORY;
+        if (NS_FAILED(rv))
           break;
-        }
 
         rv = results->add(row);
         if (NS_FAILED(rv))
           break;
 
         
-        nsRefPtr<CallbackResultNotifier> notifier =
-          new CallbackResultNotifier(mCallback, results, this);
-        if (!notifier) {
-          rv = NS_ERROR_OUT_OF_MEMORY;
-          break;
-        }
-
-        nsresult status = mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
-        if (NS_SUCCEEDED(status)) {
-          nsAutoLock mutex(mPendingEventsMutex);
-          (void)mPendingEvents.AppendObject(notifier);
-        }
+        (void)NotifyResults(results);
       }
 
       
-      if (NS_FAILED(rv))
-        break;
-    }
-
-    
-    
-    if (NS_FAILED(rv)) {
       
-
-      
-      {
-        nsAutoLock mutex(mStateMutex);
+      if (NS_FAILED(rv)) {
         mState = ERROR;
+
+        
+        mutex.unlock();
+        (void)NotifyError(mozIStorageError::ERROR, "");
+        break;
       }
 
       
-      iCancelable *cancelable = ErrorNotifier::Dispatch(
-        mCallingThread, mCallback, this, mozIStorageError::ERROR, ""
-      );
-      if (cancelable) {
-        nsAutoLock mutex(mPendingEventsMutex);
-        (void)mPendingEvents.AppendObject(cancelable);
-      }
-    }
-
-    
-    {
-      nsAutoLock mutex(mStateMutex);
-      if (mState == PENDING)
+      
+      
+      if (i == (mStatements.Length() - 1))
         mState = COMPLETED;
+    }
+
+    
+    return NotifyComplete();
+  }
+
+  NS_IMETHOD Cancel(PRBool *_successful)
+  {
+#ifdef DEBUG
+    PRBool onCallingThread = PR_FALSE;
+    (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
+    NS_ASSERTION(onCallingThread, "Not canceling from the calling thread!");
+#endif
+
+    
+    
+    NS_ENSURE_FALSE(mCancelRequested, NS_ERROR_UNEXPECTED);
+
+    {
+      nsAutoLock mutex(mLock);
 
       
-      return Complete();
-    }
-  }
+      mCancelRequested = PR_TRUE;
 
-  static PRBool cancelEnumerator(iCancelable *aCancelable, void *)
-  {
-    (void)aCancelable->cancel();
-    return PR_TRUE;
-  }
-
-  NS_IMETHOD Cancel()
-  {
-    
-    {
-      nsAutoLock mutex(mStateMutex);
-      NS_ENSURE_TRUE(mState == PENDING || mState == COMPLETED,
-                     NS_ERROR_UNEXPECTED);
-      mState = CANCELED;
+      
+      *_successful = (mState == PENDING);
     }
 
     
-    {
-      nsAutoLock mutex(mPendingEventsMutex);
-      (void)mPendingEvents.EnumerateForwards(&AsyncExecute::cancelEnumerator,
-                                             nsnull);
-      mPendingEvents.Clear();
-    }
+    
+    
+    
+    
 
     return NS_OK;
   }
 
-  virtual void completed(iCancelable *aCancelable)
+  
+
+
+
+  PRBool runEvent()
   {
-    nsAutoLock mutex(mPendingEventsMutex);
-    (void)mPendingEvents.RemoveObject(aCancelable);
+#ifdef DEBUG
+    PRBool onCallingThread = PR_FALSE;
+    (void)mCallingThread->IsOnCurrentThread(&onCallingThread);
+    NS_ASSERTION(onCallingThread, "runEvent not running on the calling thread!");
+#endif
+
+    
+    
+    
+    return !mCancelRequested;
   }
 
 private:
@@ -477,16 +408,13 @@ private:
 
   ~AsyncExecute()
   {
-    NS_ASSERTION(mPendingEvents.Count() == 0, "Still pending events!");
-    nsAutoLock::DestroyLock(mStateMutex);
-    nsAutoLock::DestroyLock(mPendingEventsMutex);
+    nsAutoLock::DestroyLock(mLock);
   }
 
   
 
 
-
-  nsresult Complete()
+  nsresult NotifyComplete()
   {
     NS_ASSERTION(mState != PENDING,
                  "Still in a pending state when calling Complete!");
@@ -496,14 +424,9 @@ private:
       if (mState == COMPLETED) {
         nsresult rv = mTransactionManager->Commit();
         if (NS_FAILED(rv)) {
-          iCancelable *cancelable = ErrorNotifier::Dispatch(
-            mCallingThread, mCallback, this, mozIStorageError::ERROR,
-            "Transaction failed to commit"
-          );
-          if (cancelable) {
-            nsAutoLock mutex(mPendingEventsMutex);
-            (void)mPendingEvents.AppendObject(cancelable);
-          }
+          mState = ERROR;
+          (void)NotifyError(mozIStorageError::ERROR,
+                            "Transaction failed to commit");
         }
       }
       else {
@@ -522,19 +445,58 @@ private:
     
     if (mCallback) {
       nsRefPtr<CompletionNotifier> completionEvent =
-        new CompletionNotifier(mCallback, mState, this);
-      nsresult rv = mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
-      if (NS_SUCCEEDED(rv)) {
-        nsAutoLock mutex(mPendingEventsMutex);
-        (void)mPendingEvents.AppendObject(completionEvent);
-      }
+        new CompletionNotifier(mCallback, mState);
+      NS_ENSURE_TRUE(completionEvent, NS_ERROR_OUT_OF_MEMORY);
 
       
       mCallback = nsnull;
+
+      (void)mCallingThread->Dispatch(completionEvent, NS_DISPATCH_NORMAL);
     }
 
     return NS_OK;
   }
+
+  
+
+
+
+
+
+
+
+  nsresult NotifyError(PRInt32 aErrorCode, const char *aMessage)
+  {
+    if (!mCallback)
+      return NS_OK;
+
+    nsCOMPtr<mozIStorageError> errorObj =
+      new mozStorageError(aErrorCode, aMessage);
+    NS_ENSURE_TRUE(errorObj, NS_ERROR_OUT_OF_MEMORY);
+
+    nsRefPtr<ErrorNotifier> notifier =
+      new ErrorNotifier(mCallback, errorObj, this);
+    NS_ENSURE_TRUE(notifier, NS_ERROR_OUT_OF_MEMORY);
+
+    return mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
+  }
+
+  
+
+
+
+
+
+  nsresult NotifyResults(mozStorageResultSet *aResultSet)
+  {
+    NS_ASSERTION(mCallback, "NotifyResults called without a callback!");
+
+    nsRefPtr<CallbackResultNotifier> notifier =
+      new CallbackResultNotifier(mCallback, aResultSet, this);
+    NS_ENSURE_TRUE(notifier, NS_ERROR_OUT_OF_MEMORY);
+
+    return mCallingThread->Dispatch(notifier, NS_DISPATCH_NORMAL);
+  };
 
   nsTArray<sqlite3_stmt *> mStatements;
   mozIStorageConnection *mConnection;
@@ -550,18 +512,17 @@ private:
   
 
 
-  PRLock *mStateMutex;
+  PRBool mCancelRequested;
 
   
 
 
 
-  nsCOMArray<iCancelable> mPendingEvents;
-
-  
 
 
-  PRLock *mPendingEventsMutex;
+
+
+  PRLock *mLock;
 };
 NS_IMPL_THREADSAFE_ISUPPORTS2(
   AsyncExecute,
