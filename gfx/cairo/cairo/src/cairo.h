@@ -1911,6 +1911,7 @@ cairo_surface_status (cairo_surface_t *surface);
 
 
 
+
 typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_IMAGE,
     CAIRO_SURFACE_TYPE_PDF,
@@ -1927,7 +1928,8 @@ typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_WIN32_PRINTING,
     CAIRO_SURFACE_TYPE_QUARTZ_IMAGE,
     CAIRO_SURFACE_TYPE_SCRIPT,
-    CAIRO_SURFACE_TYPE_QPAINTER
+    CAIRO_SURFACE_TYPE_QPAINTER,
+    CAIRO_SURFACE_TYPE_DDRAW
 } cairo_surface_type_t;
 
 cairo_public cairo_surface_type_t

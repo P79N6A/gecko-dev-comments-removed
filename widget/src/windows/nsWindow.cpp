@@ -82,6 +82,7 @@
 #include "aygshell.h"
 #include "imm.h"
 
+
 #define PAINT_USE_IMAGE_SURFACE
 
 
@@ -168,6 +169,25 @@
 #ifdef NS_ENABLE_TSF
 #include "nsTextStore.h"
 #endif 
+
+#ifdef PAINT_USE_DDRAW_SURFACE
+#include "gfxDDrawSurface.h"
+#include <ddraw.h>
+#include "cairo-ddraw.h"
+
+
+static LPDIRECTDRAW glpDD = NULL;
+static LPDIRECTDRAWSURFACE glpDDPrimary = NULL;
+static LPDIRECTDRAWCLIPPER glpDDClipper = NULL;
+static nsAutoPtr<gfxDDrawSurface> gpDDSurf;
+
+static void DDError(const char *msg, HRESULT hr)
+{
+  
+  fprintf(stderr, "direct draw error %s: 0x%08x\n", msg, hr);
+}
+
+#endif
 
 
 
@@ -5977,7 +5997,7 @@ PRBool nsWindow::OnPaint(HDC aDC)
                            (PRInt32) mWnd);
 #endif 
 
-#if defined(MOZ_XUL) && !defined(PAINT_USE_IMAGE_SURFACE)
+#if defined(MOZ_XUL) && !defined(PAINT_USE_IMAGE_SURFACE) && !defined(PAINT_USE_DDRAW_SURFACE)
       nsRefPtr<gfxASurface> targetSurface;
       if (eTransparencyTransparent == mTransparencyMode) {
         if (mTransparentSurface == nsnull)
@@ -5986,7 +6006,46 @@ PRBool nsWindow::OnPaint(HDC aDC)
       } else {
         targetSurface = new gfxWindowsSurface(hDC);
       }
+#elif defined(PAINT_USE_DDRAW_SURFACE)
+
+      HRESULT hr;
+
+      if (!glpDD) {
+        
+        if (FAILED(hr = DirectDrawCreate(NULL, &glpDD, NULL)))
+          DDError("DirectDrawCreate", hr);
+        if (FAILED(hr = glpDD->SetCooperativeLevel(NULL, DDSCL_NORMAL)))
+          DDError("SetCooperativeLevel", hr);
+        DDSURFACEDESC ddsd;
+        memset(&ddsd, 0, sizeof(ddsd));
+        ddsd.dwSize = sizeof(ddsd);
+        ddsd.dwFlags = DDSD_CAPS;
+        ddsd.ddpfPixelFormat.dwSize = sizeof(ddsd.ddpfPixelFormat);
+        ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+        if (FAILED(hr = glpDD->CreateSurface(&ddsd, &glpDDPrimary, NULL)))
+          DDError("CreateSurface", hr);
+        if (FAILED(hr = glpDD->CreateClipper(0, &glpDDClipper, NULL)))
+          DDError("CreateClipper", hr);
+        if (FAILED(hr = glpDDPrimary->SetClipper(glpDDClipper)))
+          DDError("SetClipper", hr);
+        gfxIntSize screen_size(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+        gpDDSurf = new gfxDDrawSurface(glpDD, screen_size, gfxASurface::ImageFormatRGB24);
+        if (!gpDDSurf) {
+          
+          fprintf(stderr, "couldn't create ddsurf\n");
+        }
+      }
+
+      
+      RECT winrect;
+      GetClientRect(mWnd, &winrect);
+      MapWindowPoints(mWnd, NULL, (LPPOINT)&winrect, 2);
+
+      
+      nsRefPtr<gfxDDrawSurface> targetSurface = new gfxDDrawSurface(gpDDSurf.get(), winrect);
+
 #elif defined(PAINT_USE_IMAGE_SURFACE)
+
       if (!gSharedSurfaceData) {
         gSharedSurfaceSize.height = GetSystemMetrics(SM_CYSCREEN);
         gSharedSurfaceSize.width = GetSystemMetrics(SM_CXSCREEN);
@@ -6030,7 +6089,7 @@ PRBool nsWindow::OnPaint(HDC aDC)
 
       
       
-#if !defined(PAINT_USE_IMAGE_SURFACE)
+#if !defined(PAINT_USE_IMAGE_SURFACE) && !defined(PAINT_USE_DDRAW_SURFACE)
 # if defined(MOZ_XUL)
       if (eTransparencyGlass == mTransparencyMode && nsUXThemeData::sHaveCompositor) {
         thebesContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
@@ -6076,13 +6135,35 @@ PRBool nsWindow::OnPaint(HDC aDC)
       } else
 #endif
       if (result) {
-#ifndef PAINT_USE_IMAGE_SURFACE
+#if !defined(PAINT_USE_IMAGE_SURFACE) && !defined(PAINT_USE_DDRAW_SURFACE)
         
         
         thebesContext->PopGroupToSource();
         thebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
         thebesContext->Paint();
-#else
+
+#elif defined(PAINT_USE_DDRAW_SURFACE)
+
+        
+
+        if (FAILED(hr = glpDDClipper->SetHWnd(0, mWnd)))
+          DDError("SetHWnd", hr);
+
+        
+        
+        RECT dst_rect = ps.rcPaint;
+        MapWindowPoints(mWnd, NULL, (LPPOINT)&dst_rect, 2);
+
+        if (FAILED(hr = glpDDPrimary->Blt(&dst_rect,
+                                          targetSurface->GetDDSurface(),
+                                          &dst_rect,
+                                          DDBLT_WAITNOTBUSY,
+                                          NULL)))
+          DDError("Blt", hr);
+        
+
+#else 
+
         
         BITMAPINFOHEADER bi;
         memset(&bi, 0, sizeof(BITMAPINFOHEADER));
