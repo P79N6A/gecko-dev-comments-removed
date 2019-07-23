@@ -44,9 +44,11 @@
 
 
 
+
 var _quit = false;
-var _fail = false;
+var _passed = true;
 var _tests_pending = 0;
+var _passedChecks = 0, _falsePassedChecks = 0;
 
 
 
@@ -88,7 +90,8 @@ function _do_main() {
   if (_quit)
     return;
 
-  dump("*** running event loop\n");
+  dump("TEST-INFO | (xpcshell/head.js) | running event loop\n");
+
   var thr = Components.classes["@mozilla.org/thread-manager;1"]
                       .getService().currentThread;
 
@@ -100,7 +103,7 @@ function _do_main() {
 }
 
 function _do_quit() {
-  dump("*** exiting\n");
+  dump("TEST-INFO | (xpcshell/head.js) | exiting test\n");
 
   _quit = true;
 }
@@ -112,14 +115,23 @@ function _execute_test() {
     do_test_finished();
     _do_main();
   } catch (e) {
-    _fail = true;
-    dump(e + "\n");
+    _passed = false;
+    
+    
+    if (!_quit || e != Components.results.NS_ERROR_ABORT)
+      dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e + "\n");
   }
 
-  if (_fail)
-    dump("*** FAIL ***\n");
+  if (!_passed)
+    return;
+
+  var truePassedChecks = _passedChecks - _falsePassedChecks;
+  if (truePassedChecks > 0)
+    dump("TEST-PASS | (xpcshell/head.js) | " + truePassedChecks + " (+ " +
+            _falsePassedChecks + ") check(s) passed\n");
   else
-    dump("*** PASS ***\n");
+    
+    dump("TEST-INFO | (xpcshell/head.js) | No (+ " + _falsePassedChecks + ") checks actually run\n");
 }
 
 
@@ -135,50 +147,73 @@ function do_timeout(delay, expr) {
 function do_throw(text, stack) {
   if (!stack)
     stack = Components.stack.caller;
-  _fail = true;
-  _do_quit();
-  dump("*** TEST-UNEXPECTED-FAIL | " + stack.filename + " | " + text + "\n");
+
+  _passed = false;
+  dump("TEST-UNEXPECTED-FAIL | " + stack.filename + " | " + text +
+         " - See following stack:\n");
   var frame = Components.stack;
   while (frame != null) {
     dump(frame + "\n");
     frame = frame.caller;
   }
+
+  _do_quit();
   throw Components.results.NS_ERROR_ABORT;
 }
 
 function do_check_neq(left, right, stack) {
   if (!stack)
     stack = Components.stack.caller;
+
+  var text = left + " != " + right;
   if (left == right)
-    do_throw(left + " != " + right, stack);
+    do_throw(text, stack);
+  else {
+    ++_passedChecks;
+    dump("TEST-PASS | " + stack.filename + " | [" + stack.name + " : " +
+         stack.lineNumber + "] " + text + "\n");
+  }
 }
 
 function do_check_eq(left, right, stack) {
   if (!stack)
     stack = Components.stack.caller;
+
+  var text = left + " == " + right;
   if (left != right)
-    do_throw(left + " == " + right, stack);
+    do_throw(text, stack);
+  else {
+    ++_passedChecks;
+    dump("TEST-PASS | " + stack.filename + " | [" + stack.name + " : " +
+         stack.lineNumber + "] " + text + "\n");
+  }
 }
 
 function do_check_true(condition, stack) {
   if (!stack)
     stack = Components.stack.caller;
+
   do_check_eq(condition, true, stack);
 }
 
 function do_check_false(condition, stack) {
   if (!stack)
     stack = Components.stack.caller;
+
   do_check_eq(condition, false, stack);
 }
 
 function do_test_pending() {
-  dump("*** test pending\n");
-  _tests_pending++;
+  ++_tests_pending;
+
+  dump("TEST-INFO | (xpcshell/head.js) | test " + _tests_pending +
+         " pending\n");
 }
 
 function do_test_finished() {
-  dump("*** test finished\n");
+  dump("TEST-INFO | (xpcshell/head.js) | test " + _tests_pending +
+         " finished\n");
+
   if (--_tests_pending == 0)
     _do_quit();
 }
@@ -199,18 +234,21 @@ function do_get_file(path, allowNonexistent) {
       }
     }
 
-    if (!allowNonexistent) {
-      if (!lf.exists()) {
-        print(lf.path + " doesn't exist\n");
-      }
-      do_check_true(lf.exists());
+    if (!allowNonexistent && !lf.exists()) {
+      
+      _passed = false;
+      var stack = Components.stack.caller;
+      dump("TEST-UNEXPECTED-FAIL | " + stack.filename + " | [" +
+             stack.name + " : " + stack.lineNumber + "] " + lf.path +
+             " does not exist\n");
     }
 
     return lf;
   }
-  catch(ex) {
+  catch (ex) {
     do_throw(ex.toString(), Components.stack.caller);
   }
+
   return null;
 }
 
@@ -223,6 +261,8 @@ function do_load_module(path) {
   var lf = do_get_file(path);
   const nsIComponentRegistrar = Components.interfaces.nsIComponentRegistrar;
   do_check_true(Components.manager instanceof nsIComponentRegistrar);
+  
+  ++_falsePassedChecks;
   Components.manager.autoRegister(lf);
 }
 
@@ -242,8 +282,9 @@ function do_parse_document(aPath, aType) {
       break;
 
     default:
-      throw new Error("do_parse_document requires content-type of " +
-                      "application/xhtml+xml, application/xml, or text/xml.");
+      do_throw("type: expected application/xhtml+xml, application/xml or text/xml," +
+                 " got '" + aType + "'",
+               Components.stack.caller);
   }
 
   var lf = do_get_file(aPath);

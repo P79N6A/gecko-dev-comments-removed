@@ -36,7 +36,8 @@
 
 
 
-import sys, os, os.path, logging
+
+import re, sys, os, os.path, logging
 import tempfile
 from glob import glob
 from optparse import OptionParser
@@ -214,7 +215,7 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testPath=None,
         
         return True
 
-      if proc.returncode != 0 or (stdout is not None and stdout.find("*** PASS") == -1):
+      if proc.returncode != 0 or (stdout is not None and re.search("^TEST-UNEXPECTED-FAIL", stdout, re.MULTILINE)):
         print """TEST-UNEXPECTED-FAIL | %s | test failed (with xpcshell return code: %d), see following log:
   >>>>>>>
   %s
@@ -222,7 +223,7 @@ def runTests(xpcshell, testdirs=[], xrePath=None, testPath=None,
         checkForCrashes(testdir, symbolsPath, testName=test)
         success = False
       else:
-        print "TEST-PASS | %s | all tests passed" % test
+        print "TEST-PASS | %s | test passed" % test
 
       leakReport = processLeakLog(leakLogFile)
 
