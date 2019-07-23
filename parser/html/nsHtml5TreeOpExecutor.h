@@ -368,6 +368,10 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       mOwnedElements.AppendObject(aContent);
     }
 
+    void DropHeldElements() {
+      mOwnedElements.Clear();
+    }
+
     
 
 
