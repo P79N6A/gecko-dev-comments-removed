@@ -415,7 +415,7 @@ function run_test_pt3() {
 
   
   try {
-    gEM.addDownloads(addonsArray, addonsArray.length, true);
+    gEM.addDownloads(addonsArray, addonsArray.length, null);
     do_throw("Shouldn't reach here!");
   } catch (e if (e instanceof Components.interfaces.nsIException &&
                  e.result == Components.results.NS_ERROR_ILLEGAL_VALUE)) {
@@ -429,7 +429,7 @@ function run_test_pt3() {
   }
 
   do_check_true(addonsArray.length > 0);
-  gEM.addDownloads(addonsArray, addonsArray.length, true);
+  gEM.addDownloads(addonsArray, addonsArray.length, null);
 }
 
 
