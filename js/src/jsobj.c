@@ -2493,6 +2493,13 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
 
 
 
+    if (!parent && proto)
+        STOBJ_SET_PARENT(obj, OBJ_GET_PARENT(cx, proto));
+
+    
+
+
+
 
 
 
@@ -2506,16 +2513,8 @@ js_NewObjectWithGivenProto(JSContext *cx, JSClass *clasp, JSObject *proto,
           protoclasp->reserveSlots == clasp->reserveSlots)))
     {
         
-
-
-
-        if (!parent)
-            STOBJ_SET_PARENT(obj, OBJ_GET_PARENT(cx, proto));
-
-        
         obj->map = js_HoldObjectMap(cx, map);
     } else {
-        
         map = ops->newObjectMap(cx, 1, ops, clasp, obj);
         if (!map)
             goto bad;
