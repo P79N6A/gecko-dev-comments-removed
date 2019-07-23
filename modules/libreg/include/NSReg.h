@@ -453,7 +453,7 @@ VR_INTERFACE(REGERR) NR_RegGetEntryInfo(
 VR_INTERFACE(REGERR) NR_RegGetEntryString(
          HREG   hReg,      
          RKEY   key,       
-         char   *name,     
+         const char *name, 
          char   *buffer,   
          uint32 bufsize    
        );
