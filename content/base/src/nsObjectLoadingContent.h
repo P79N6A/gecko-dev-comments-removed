@@ -288,8 +288,14 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+    nsresult TryInstantiate(const nsACString& aMIMEType, nsIURI* aURI);
 
-    nsresult Instantiate(const nsACString& aMIMEType, nsIURI* aURI);
+    
+
+
+
+
+    nsresult Instantiate(nsIObjectFrame* aFrame, const nsACString& aMIMEType, nsIURI* aURI);
 
     
 
