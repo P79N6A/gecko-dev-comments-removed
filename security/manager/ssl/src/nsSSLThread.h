@@ -79,7 +79,7 @@ private:
   
   
   
-  nsIRequest* mPendingHTTPRequest;
+  nsCOMPtr<nsIRequest> mPendingHTTPRequest;
 
   virtual void Run(void);
 
