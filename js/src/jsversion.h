@@ -41,7 +41,7 @@
 
 
 #ifndef JS_VERSION
-#define JS_VERSION 180
+#define JS_VERSION 185
 #endif
 
 
@@ -196,7 +196,7 @@
 #define JS_HAS_GENERATOR_EXPRS  0       /* has (expr for (lhs in iterable)) */
 #define JS_HAS_EXPR_CLOSURES    0       /* has function (formals) listexpr */
 
-#elif JS_VERSION == 180
+#elif 180 <= JS_VERSION && JS_VERSION <= 185
 
 #define JS_HAS_STR_HTML_HELPERS 1       /* has str.anchor, str.bold, etc. */
 #define JS_HAS_PERL_SUBSTR      1       /* has str.substr */
