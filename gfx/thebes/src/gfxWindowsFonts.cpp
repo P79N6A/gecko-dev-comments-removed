@@ -549,6 +549,11 @@ gfxWindowsFont::ComputeMetrics()
     mMetrics->maxDescent = metrics.tmDescent;
     mMetrics->maxAdvance = metrics.tmMaxCharWidth;
     mMetrics->aveCharWidth = PR_MAX(1, metrics.tmAveCharWidth);
+    
+    
+    if (!(metrics.tmPitchAndFamily & TMPF_FIXED_PITCH)) {
+      mMetrics->maxAdvance = mMetrics->aveCharWidth;
+    }
 
     
     SIZE size;

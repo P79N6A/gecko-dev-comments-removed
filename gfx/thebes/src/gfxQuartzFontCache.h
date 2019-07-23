@@ -269,6 +269,9 @@ private:
     
     void EliminateDuplicateFaces(const nsAString& aFamilyName);
                                                              
+    
+    void SetFixedPitch(const nsAString& aFamilyName);
+                                                             
     static PLDHashOperator PR_CALLBACK InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
                                                              nsRefPtr<MacOSFamilyEntry>& aFamilyEntry,
                                                              void* userArg);
