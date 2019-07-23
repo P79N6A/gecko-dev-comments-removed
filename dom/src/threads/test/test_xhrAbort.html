@@ -24,7 +24,7 @@
     var worker = new Worker("xhrAbort_worker.js");
 
     worker.onmessage = function(event) {
-      is (data, event.data, "Got different results!");
+      is (data.toString(), event.data.toString(), "Got different results!");
       SimpleTest.finish();
     };
 

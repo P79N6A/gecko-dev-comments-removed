@@ -127,6 +127,10 @@ public:
          : NULL;
   }
 
+  jsval* ToJSValPtr() {
+    return &mVal;
+  }
+
   
 
 
