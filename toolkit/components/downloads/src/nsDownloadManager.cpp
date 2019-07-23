@@ -1167,6 +1167,19 @@ nsDownloadManager::GetDefaultDownloadsDirectory(nsILocalFile **aResult)
     rv = downloadDir->Append(folderName);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+#elif defined(XP_UNIX)
+  rv = dirService->Get(NS_UNIX_DEFAULT_DOWNLOAD_DIR,
+                       NS_GET_IID(nsILocalFile),
+                       getter_AddRefs(downloadDir));
+  
+  if (NS_FAILED(rv)) {
+    rv = dirService->Get(NS_UNIX_HOME_DIR,
+                         NS_GET_IID(nsILocalFile),
+                         getter_AddRefs(downloadDir));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = downloadDir->Append(folderName);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 #else
   rv = dirService->Get(NS_OS_HOME_DIR,
                        NS_GET_IID(nsILocalFile),
