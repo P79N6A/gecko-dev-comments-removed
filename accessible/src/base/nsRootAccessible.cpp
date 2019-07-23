@@ -650,7 +650,13 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
 
   if (eventType.EqualsLiteral("RadioStateChange")) {
     PRUint32 state = State(accessible);
-    PRBool isEnabled = state & nsIAccessibleStates::STATE_CHECKED;
+
+    
+    
+    
+    
+    PRBool isEnabled = (state & (nsIAccessibleStates::STATE_CHECKED |
+                        nsIAccessibleStates::STATE_SELECTED)) != 0;
 
     nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
       new nsAccStateChangeEvent(accessible, nsIAccessibleStates::STATE_CHECKED,
@@ -666,10 +672,7 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   if (eventType.EqualsLiteral("CheckboxStateChange")) {
     PRUint32 state = State(accessible);
 
-    
-    
-    PRBool isEnabled = (state & (nsIAccessibleStates::STATE_CHECKED |
-                        nsIAccessibleStates::STATE_SELECTED)) != 0;
+    PRBool isEnabled = state & nsIAccessibleStates::STATE_CHECKED;
 
     nsCOMPtr<nsIAccessibleStateChangeEvent> accEvent =
       new nsAccStateChangeEvent(accessible,
