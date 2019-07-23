@@ -790,6 +790,10 @@ typedef enum
 NS_IMETHODIMP
 nsXULAppInfo::GetUserCanElevate(PRBool *aUserCanElevate)
 {
+#ifdef WINCE
+  *aUserCanElevate = PR_FALSE;
+  return NS_OK;
+#else
   HANDLE hToken;
 
   VISTA_TOKEN_ELEVATION_TYPE elevationType;
@@ -817,6 +821,7 @@ nsXULAppInfo::GetUserCanElevate(PRBool *aUserCanElevate)
     CloseHandle(hToken);
 
   return NS_OK;
+#endif 
 }
 #endif
 
@@ -2400,7 +2405,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     NS_BREAK();
 #endif
 
-#ifdef XP_WIN32
+#if defined (XP_WIN32) && !defined (WINCE)
   
   
   

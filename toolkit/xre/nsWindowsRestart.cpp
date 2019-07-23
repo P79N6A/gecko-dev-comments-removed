@@ -145,6 +145,9 @@ MakeCommandLine(int argc, PRUnichar **argv)
 static BOOL
 LaunchAsNormalUser(const PRUnichar *exePath, PRUnichar *cl)
 {
+#ifdef WINCE
+  return PR_FALSE;
+#else
   if (!pCreateProcessWithTokenW) {
     
     *(FARPROC *)&pIsUserAnAdmin =
@@ -218,8 +221,8 @@ LaunchAsNormalUser(const PRUnichar *exePath, PRUnichar *cl)
   CloseHandle(pi.hThread);
 
   return TRUE;
+#endif
 }
-
 
 
 
