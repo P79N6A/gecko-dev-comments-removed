@@ -309,9 +309,6 @@ public:
   
   NS_DECL_ISUPPORTS
 
-  
-  virtual void ShutDown();
-
   virtual PRUint32 GetScriptTypeID() {
             return nsIProgrammingLanguage::JAVASCRIPT;
   }
@@ -323,9 +320,8 @@ public:
   virtual nsresult DropScriptObject(void *object);
   virtual nsresult HoldScriptObject(void *object);
   
-  
-  
   static void Startup();
+  static void Shutdown();
   
   static nsresult Init();
   

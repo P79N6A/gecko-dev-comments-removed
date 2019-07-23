@@ -287,14 +287,6 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
     nsGlobalWindow::ShutDown();
     nsDOMClassInfo::ShutDown();
 
-    PRUint32 i;
-    NS_STID_FOR_INDEX(i) {
-      if (mLanguageArray[i] != nsnull) {
-        mLanguageArray[i]->ShutDown();
-        mLanguageArray[i] = nsnull;
-      }
-    }
-
     nsCOMPtr<nsIExceptionService> xs =
       do_GetService(NS_EXCEPTIONSERVICE_CONTRACTID);
 
@@ -376,16 +368,6 @@ nsDOMScriptObjectFactory::RegisterDOMClassInfo(const char *aName,
                                              aScriptableFlags,
                                              aHasClassInterface,
                                              aConstructorCID);
-}
-
- nsresult
-nsDOMScriptObjectFactory::Startup()
-{
-  nsJSRuntime::Startup();
-  
-  
-  
-  return NS_OK;
 }
 
 

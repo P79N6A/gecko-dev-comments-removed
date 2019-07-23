@@ -61,11 +61,6 @@ public:
   
 
 
-  virtual void ShutDown() = 0;
-
-  
-
-
 
 
   virtual nsresult ParseVersion(const nsString &aVersionStr, PRUint32 *verFlags) = 0;
