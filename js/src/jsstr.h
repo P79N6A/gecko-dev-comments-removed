@@ -574,6 +574,14 @@ extern const char js_encodeURIComponent_str[];
 extern JSString *
 js_NewString(JSContext *cx, jschar *chars, size_t length);
 
+
+
+
+
+
+extern JSString *
+js_NewStringFromCharBuffer(JSContext *cx, JSCharVector &cb);
+
 extern JSString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start,
                       size_t length);
@@ -613,7 +621,7 @@ js_ValueToString(JSContext *cx, jsval v);
 
 
 extern JS_FRIEND_API(JSBool)
-js_ValueToStringBuffer(JSContext *, jsval, JSTempVector<jschar> &);
+js_ValueToCharBuffer(JSContext *cx, jsval v, JSCharVector &cb);
 
 
 

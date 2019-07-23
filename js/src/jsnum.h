@@ -194,7 +194,7 @@ js_NumberToString(JSContext *cx, jsdouble d);
 
 
 extern JSBool JS_FASTCALL
-js_NumberValueToStringBuffer(JSContext *, jsval, JSTempVector<jschar> &);
+js_NumberValueToCharBuffer(JSContext *cx, jsval v, JSCharVector &cb);
 
 
 
