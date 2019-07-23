@@ -451,11 +451,6 @@ protected:
   virtual void RemoveEventListeners();
 
   
-  
-  
-  void UpdateCSSAwareForFlags(PRUint32 aFlags);
-
-  
 
 
 
