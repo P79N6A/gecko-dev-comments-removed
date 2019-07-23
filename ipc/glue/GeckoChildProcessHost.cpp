@@ -53,7 +53,7 @@ struct RunnableMethodTraits<GeckoChildProcessHost>
     static void ReleaseCallee(GeckoChildProcessHost* obj) { }
 };
 
-GeckoChildProcessHost::GeckoChildProcessHost(GeckoChildProcessType aProcessType)
+GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType)
   : ChildProcessHost(RENDER_PROCESS), 
     mProcessType(aProcessType),
     mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),

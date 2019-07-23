@@ -753,6 +753,29 @@ nsXULAppInfo::GetWidgetToolkit(nsACString& aResult)
   return NS_OK;
 }
 
+
+
+
+#define SYNC_ENUMS(a,b) \
+  PR_STATIC_ASSERT(nsIXULRuntime::PROCESS_TYPE_ ## a == \
+                   static_cast<int>(GeckoProcessType_ ## b));
+
+SYNC_ENUMS(DEFAULT, Default)
+SYNC_ENUMS(PLUGIN, Plugin)
+SYNC_ENUMS(CONTENT, Content)
+SYNC_ENUMS(TESTHARNESS, TestHarness)
+
+
+PR_STATIC_ASSERT(GeckoProcessType_TestHarness + 1 == GeckoProcessType_End);
+
+NS_IMETHODIMP
+nsXULAppInfo::GetProcessType(PRUint32* aResult)
+{
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = XRE_GetProcessType();
+  return NS_OK;
+}
+
 #ifdef XP_WIN
 
 

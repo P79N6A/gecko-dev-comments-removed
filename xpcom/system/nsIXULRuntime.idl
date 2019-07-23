@@ -44,7 +44,7 @@
  *                    stable/frozen, please contact Benjamin Smedberg.
  */
 
-[scriptable, uuid(C61D0C09-05AD-4E72-BAC5-203F3F380352)]
+[scriptable, uuid(17311145-97da-49eb-b984-965bdee8879c)]
 interface nsIXULRuntime : nsISupports
 {
   /**
@@ -88,9 +88,15 @@ interface nsIXULRuntime : nsISupports
   readonly attribute AUTF8String widgetToolkit;
 
   /**
-   * Signal the apprunner to invalidate caches on the next restart.
-   * This will cause components to be autoregistered and all
-   * fastload data to be re-created.
+   * The legal values of processType.
    */
-  void invalidateCachesOnRestart();
+  const unsigned long PROCESS_TYPE_DEFAULT = 0;
+  const unsigned long PROCESS_TYPE_PLUGIN = 1;
+  const unsigned long PROCESS_TYPE_CONTENT = 2;
+  const unsigned long PROCESS_TYPE_TESTHARNESS = 3;
+
+  /**
+   * The type of the caller's process.  Returns one of the values above.
+   */
+  readonly attribute unsigned long processType;
 };
