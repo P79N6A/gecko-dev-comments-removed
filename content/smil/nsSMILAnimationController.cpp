@@ -52,15 +52,13 @@
 
 
 
+static nsPresContext*
+GetPresContextForDoc(nsIDocument* aDoc)
+{
+  nsIPresShell* shell = aDoc->GetPrimaryShell();
+  return shell ? shell->GetPresContext() : nsnull;
+}
 
-
-
-
-
-
-
-
-const PRUint32 nsSMILAnimationController::kTimerInterval = 22;
 
 
 
@@ -75,11 +73,7 @@ nsSMILAnimationController::nsSMILAnimationController()
 
 nsSMILAnimationController::~nsSMILAnimationController()
 {
-  if (mTimer) {
-    mTimer->Cancel();
-    mTimer = nsnull;
-  }
-
+  StopTimer();
   NS_ASSERTION(mAnimationElementTable.Count() == 0,
                "Animation controller shouldn't be tracking any animation"
                " elements when it dies");
@@ -104,9 +98,6 @@ nsresult
 nsSMILAnimationController::Init(nsIDocument* aDoc)
 {
   NS_ENSURE_ARG_POINTER(aDoc);
-
-  mTimer = do_CreateInstance("@mozilla.org/timer;1");
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_OUT_OF_MEMORY);
 
   
   mDocument = aDoc;
@@ -146,6 +137,20 @@ nsSMILAnimationController::GetParentTime() const
 {
   
   return PR_Now() / PR_USEC_PER_MSEC;
+}
+
+
+
+NS_IMPL_ADDREF(nsSMILAnimationController)
+NS_IMPL_RELEASE(nsSMILAnimationController)
+
+void
+nsSMILAnimationController::WillRefresh(mozilla::TimeStamp aTime)
+{
+  
+  
+  
+  Sample();
 }
 
 
@@ -214,42 +219,38 @@ nsSMILAnimationController::Unlink()
 
 
 
- void
-nsSMILAnimationController::Notify(nsITimer* timer, void* aClosure)
-{
-  nsSMILAnimationController* controller = (nsSMILAnimationController*)aClosure;
-
-  NS_ASSERTION(controller->mTimer == timer,
-               "nsSMILAnimationController::Notify called with incorrect timer");
-
-  controller->Sample();
-}
-
 nsresult
 nsSMILAnimationController::StartTimer()
 {
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
   NS_ASSERTION(mPauseState == 0, "Starting timer but controller is paused");
 
   
   Sample();
 
   
-  
-  
-  
-  return mTimer->InitWithFuncCallback(nsSMILAnimationController::Notify,
-                                      this,
-                                      kTimerInterval,
-                                      nsITimer::TYPE_REPEATING_SLACK);
+  nsPresContext* presContext = GetPresContextForDoc(mDocument);
+  if (!presContext) {
+    NS_WARNING("Starting timer but have no pres context");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefreshDriver* rd = presContext->RefreshDriver();
+  return rd->AddRefreshObserver(this, Flush_Style) ?
+    NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 nsresult
 nsSMILAnimationController::StopTimer()
 {
-  NS_ENSURE_TRUE(mTimer, NS_ERROR_FAILURE);
+  nsPresContext* presContext = GetPresContextForDoc(mDocument);
+  if (!presContext) {
+    NS_WARNING("Stopping timer but have no pres context");
+    return NS_ERROR_FAILURE;
+  }
+  nsRefreshDriver* rd = presContext->RefreshDriver();
+  rd->RemoveRefreshObserver(this, Flush_Style); 
 
-  return mTimer->Cancel();
+  return NS_OK;
 }
 
 
