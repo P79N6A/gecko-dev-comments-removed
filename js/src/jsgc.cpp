@@ -3446,6 +3446,53 @@ FireGCEnd(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
+static bool
+ProcessAllSetSlotRequests(JSContext *cx, JSGCInvocationKind *gckindp)
+{
+    JSRuntime *rt = cx->runtime;
+
+    while (JSSetSlotRequest *ssr = rt->setSlotRequests) {
+        rt->setSlotRequests = ssr->next;
+        AutoUnlockGC unlock(rt);
+        ssr->next = NULL;
+        ProcessSetSlotRequest(cx, ssr);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if (rt->gcLevel > 1 || rt->gcPoke || rt->gcIsNeeded) {
+        rt->gcLevel = 0;
+        rt->gcPoke = JS_FALSE;
+        rt->gcRunning = JS_FALSE;
+#ifdef JS_THREADSAFE
+        rt->gcThread = NULL;
+#endif
+        *gckindp = GC_LOCK_HELD;
+        if (!FireGCBegin(cx, *gckindp)) {  
+            JS_NOTIFY_GC_DONE(rt);
+            return false;
+        }
+        if (!BeginGCSession(cx, *gckindp))  
+            return false;
+    }
+    return true;
+}
+
+
+
+
+
 void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
@@ -3488,41 +3535,8 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
         return;
     }
 
-    if (gckind == GC_SET_SLOT_REQUEST) {
-        while (JSSetSlotRequest *ssr = rt->setSlotRequests) {
-            rt->setSlotRequests = ssr->next;
-            AutoUnlockGC unlock(rt);
-            ssr->next = NULL;
-            ProcessSetSlotRequest(cx, ssr);
-        }
-
-        
-
-
-
-
-
-
-
-
-
-
-        if (rt->gcLevel > 1 || rt->gcPoke || rt->gcIsNeeded) {
-            rt->gcLevel = 0;
-            rt->gcPoke = JS_FALSE;
-            rt->gcRunning = JS_FALSE;
-#ifdef JS_THREADSAFE
-            rt->gcThread = NULL;
-#endif
-            gckind = GC_LOCK_HELD;
-            if (!FireGCBegin(cx, gckind)) {  
-                JS_NOTIFY_GC_DONE(rt);
-                return;
-            }
-            if (!BeginGCSession(cx, gckind))  
-                return;
-        }
-    }
+    if (gckind == GC_SET_SLOT_REQUEST && !ProcessAllSetSlotRequests(cx, &gckind))
+        return;
 
     if (gckind != GC_SET_SLOT_REQUEST) {
         if (!JS_ON_TRACE(cx))
