@@ -83,4 +83,60 @@ DOMCI_CASTABLE_INTERFACES(unused)
 
 #undef DOMCI_CASTABLE_INTERFACE
 
+
+
+
+
+
+inline JSBool
+castToElement(nsIContent *content, jsval val, nsGenericElement **ppInterface,
+              jsval *pVal)
+{
+    if(!content->IsElement())
+        return JS_FALSE;
+    *ppInterface = static_cast<nsGenericElement*>(content->AsElement());
+    *pVal = val;
+    return JS_TRUE;
+}
+
+NS_SPECIALIZE_TEMPLATE
+inline JSBool
+xpc_qsUnwrapThis<nsGenericElement>(JSContext *cx,
+                                   JSObject *obj,
+                                   JSObject *callee,
+                                   nsGenericElement **ppThis,
+                                   nsISupports **pThisRef,
+                                   jsval *pThisVal,
+                                   XPCLazyCallContext *lccx)
+{
+    nsIContent *content;
+    jsval val;
+    JSBool ok = xpc_qsUnwrapThis<nsIContent>(cx, obj, callee, &content,
+                                             pThisRef, &val, lccx);
+    if(ok)
+    {
+        ok = castToElement(content, val, ppThis, pThisVal);
+        if(!ok)
+            xpc_qsThrow(cx, NS_ERROR_XPC_BAD_OP_ON_WN_PROTO);
+    }
+
+    return ok;
+}
+
+NS_SPECIALIZE_TEMPLATE
+inline nsresult
+xpc_qsUnwrapArg<nsGenericElement>(JSContext *cx,
+                                  jsval v,
+                                  nsGenericElement **ppArg,
+                                  nsISupports **ppArgRef,
+                                  jsval *vp)
+{
+    nsIContent *content;
+    jsval val;
+    nsresult rv = xpc_qsUnwrapArg<nsIContent>(cx, v, &content, ppArgRef, &val);
+    if(NS_SUCCEEDED(rv) && !castToElement(content, val, ppArg, vp))
+        rv = NS_ERROR_XPC_BAD_CONVERT_JS;
+    return rv;
+}
+
 #endif 
