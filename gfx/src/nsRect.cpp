@@ -174,6 +174,17 @@ void nsRect::Deflate(const nsMargin &aMargin)
 }
 
 
+nsMargin nsRect::operator-(const nsRect& aRect) const
+{
+  nsMargin margin;
+  margin.left = aRect.x - x;
+  margin.right = XMost() - aRect.XMost();
+  margin.top = aRect.y - y;
+  margin.bottom = YMost() - aRect.YMost();
+  return margin;
+}
+
+
 nsRect& nsRect::ScaleRoundOut(float aScale) 
 {
   nscoord right = NSToCoordCeil(float(XMost()) * aScale);

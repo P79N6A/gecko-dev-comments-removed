@@ -1642,6 +1642,7 @@ GK_ATOM(boxMetricsProperty, "BoxMetricsProperty")
 GK_ATOM(changeListProperty, "ChangeListProperty") 
 GK_ATOM(collapseOffsetProperty, "CollapseOffsetProperty")  
 GK_ATOM(computedOffsetProperty, "ComputedOffsetProperty")  
+GK_ATOM(floatRegionProperty, "FloatRegionProperty") 
 GK_ATOM(generatedContent, "GeneratedContentProperty")  
 #ifdef MOZ_MATHML
 GK_ATOM(HTMLReflowMetricsProperty, "HTMLReflowMetricsProperty") 

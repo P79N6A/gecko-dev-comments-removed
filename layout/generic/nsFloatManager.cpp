@@ -44,6 +44,7 @@
 #include "nsHTMLReflowState.h"
 #include "nsHashSets.h"
 #include "nsBlockDebugFlags.h"
+#include "nsContentErrors.h"
 
 PRInt32 nsFloatManager::sCachedFloatManagerCount = 0;
 void* nsFloatManager::sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
@@ -283,6 +284,85 @@ nsFloatManager::AddFloat(nsIFrame* aFloatFrame, const nsRect& aMarginRect)
     return NS_ERROR_OUT_OF_MEMORY;
 
   return NS_OK;
+}
+
+nsRect
+nsFloatManager::CalculateRegionFor(nsIFrame*       aFloat,
+                                   const nsMargin& aMargin)
+{
+  nsRect region = aFloat->GetRect();
+
+  
+  region.Inflate(aMargin);
+
+  
+  
+  
+  const nsStyleDisplay* display = aFloat->GetStyleDisplay();
+  region -= aFloat->GetRelativeOffset(display);
+
+  
+  
+  if (region.width < 0) {
+    
+    
+    if (NS_STYLE_FLOAT_LEFT == display->mFloats) {
+      region.x = region.XMost();
+    }
+    region.width = 0;
+  }
+  if (region.height < 0) {
+    region.height = 0;
+  }
+  return region;
+}
+
+nsRect
+nsFloatManager::GetRegionFor(nsIFrame* aFloat)
+{
+  nsRect region = aFloat->GetRect();
+  void* storedRegion = aFloat->GetProperty(nsGkAtoms::floatRegionProperty);
+  if (storedRegion) {
+    nsMargin margin = *static_cast<nsMargin*>(storedRegion);
+    region.Inflate(margin);
+  }
+  return region;
+}
+
+static void
+DestroyMarginFunc(void*    aFrame,
+                  nsIAtom* aPropertyName,
+                  void*    aPropertyValue,
+                  void*    aDtorData)
+{
+  delete static_cast<nsMargin*>(aPropertyValue);
+}
+
+nsresult
+nsFloatManager::StoreRegionFor(nsIFrame* aFloat,
+                               nsRect&   aRegion)
+{
+  nsresult rv = NS_OK;
+  nsRect rect = aFloat->GetRect();
+  if (aRegion == rect) {
+    rv = aFloat->DeleteProperty(nsGkAtoms::floatRegionProperty);
+    if (rv == NS_PROPTABLE_PROP_NOT_THERE) rv = NS_OK;
+  }
+  else {
+    nsMargin* storedMargin = static_cast<nsMargin*>(aFloat
+                               ->GetProperty(nsGkAtoms::floatRegionProperty));
+    if (!storedMargin) {
+      storedMargin = new nsMargin();
+      rv = aFloat->SetProperty(nsGkAtoms::floatRegionProperty, storedMargin,
+                               DestroyMarginFunc);
+      if (NS_FAILED(rv)) {
+        delete storedMargin;
+        return rv;
+      }
+    }
+    *storedMargin = aRegion - rect;
+  }
+  return rv;
 }
 
 nsresult

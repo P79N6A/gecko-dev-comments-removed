@@ -160,6 +160,7 @@ struct NS_GFX nsRect {
     return x == aRect.x && y == aRect.y &&
            width == aRect.width && height == aRect.height;
   }
+
   
   nsRect  operator+(const nsPoint& aPoint) const {
     return nsRect(x + aPoint.x, y + aPoint.y, width, height);
@@ -169,6 +170,12 @@ struct NS_GFX nsRect {
   }
   nsRect& operator+=(const nsPoint& aPoint) {x += aPoint.x; y += aPoint.y; return *this;}
   nsRect& operator-=(const nsPoint& aPoint) {x -= aPoint.x; y -= aPoint.y; return *this;}
+
+  
+  
+
+
+  nsMargin operator-(const nsRect& aRect) const;
 
   
   

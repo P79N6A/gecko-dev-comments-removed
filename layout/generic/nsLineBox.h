@@ -66,12 +66,6 @@ public:
 
   nsPlaceholderFrame* mPlaceholder;     
 
-  
-  
-  
-  
-  nsRect mRegion;
-
 protected:
   nsFloatCache* mNext;
 

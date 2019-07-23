@@ -457,7 +457,6 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
     while (fc) {
       nsIFrame* floatFrame = fc->mPlaceholder->GetOutOfFlowFrame();
       if (aDeltaY != 0) {
-        fc->mRegion.y += aDeltaY;
         nsPoint p = floatFrame->GetPosition();
         floatFrame->SetPosition(nsPoint(p.x, p.y + aDeltaY));
         nsContainerFrame::PositionFrameView(floatFrame);
@@ -471,12 +470,13 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
         printf("RecoverFloats: txy=%d,%d (%d,%d) ",
                tx, ty, mFloatManagerX, mFloatManagerY);
         nsFrame::ListTag(stdout, floatFrame);
+        nsRect region = nsFloatManager::GetRegionFor(floatFrame);
         printf(" aDeltaY=%d region={%d,%d,%d,%d}\n",
-               aDeltaY, fc->mRegion.x, fc->mRegion.y,
-               fc->mRegion.width, fc->mRegion.height);
+               aDeltaY, region.x, region.y, region.width, region.height);
       }
 #endif
-      mFloatManager->AddFloat(floatFrame, fc->mRegion);
+      mFloatManager->AddFloat(floatFrame,
+                              nsFloatManager::GetRegionFor(floatFrame));
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
@@ -787,7 +787,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   const nsStyleDisplay* floatDisplay = floatFrame->GetStyleDisplay();
 
   
-  nsRect oldRegion = aFloatCache->mRegion;
+  nsRect oldRegion = nsFloatManager::GetRegionFor(floatFrame);
 
   
   
@@ -807,9 +807,13 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
                "Float frame has wrong parent");
 
   
-  nsMargin floatMargin;
+  nsMargin floatMargin; 
   mBlock->ReflowFloat(*this, floatAvailableSpace.mRect, placeholder,
                       floatMargin, aReflowStatus);
+  if (placeholder->GetPrevInFlow())
+    floatMargin.top = 0;
+  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus))
+    floatMargin.bottom = 0;
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
@@ -936,66 +940,6 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
 
   
   
-  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus) && 
-      (NS_UNCONSTRAINEDSIZE != mContentArea.height)) {
-    floatSize.height = PR_MAX(floatSize.height, mContentArea.height - floatY);
-  }
-
-  nsRect region(floatX, floatY, floatSize.width, floatSize.height);
-  
-  
-  
-  if (region.width < 0) {
-    
-    
-    if (NS_STYLE_FLOAT_LEFT == floatDisplay->mFloats) {
-      region.x = region.XMost();
-    }
-    region.width = 0;
-  }
-  if (region.height < 0) {
-    region.height = 0;
-  }
-#ifdef DEBUG
-  nsresult rv =
-#endif
-  mFloatManager->AddFloat(floatFrame, region);
-  NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "bad float placement");
-
-  
-  
-  
-  
-  
-  
-  
-  aFloatCache->mRegion = region +
-                         nsPoint(borderPadding.left, borderPadding.top);
-
-  
-  
-  if (aFloatCache->mRegion != oldRegion) {
-    
-    
-    
-    
-    nscoord top = NS_MIN(region.y, oldRegion.y);
-    nscoord bottom = NS_MAX(region.YMost(), oldRegion.YMost());
-    mFloatManager->IncludeInDamage(top, bottom);
-  }
-
-#ifdef NOISY_FLOATMANAGER
-  nscoord tx, ty;
-  mFloatManager->GetTranslation(tx, ty);
-  nsFrame::ListTag(stdout, mBlock);
-  printf(": FlowAndPlaceFloat: AddFloat: txy=%d,%d (%d,%d) {%d,%d,%d,%d}\n",
-         tx, ty, mFloatManagerX, mFloatManagerY,
-         aFloatCache->mRegion.x, aFloatCache->mRegion.y,
-         aFloatCache->mRegion.width, aFloatCache->mRegion.height);
-#endif
-
-  
-  
   
   
   nsPoint origin(borderPadding.left + floatMargin.left + floatX,
@@ -1016,6 +960,46 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
 
   
   mFloatCombinedArea.UnionRect(combinedArea, mFloatCombinedArea);
+
+  
+  
+  nsRect region = nsFloatManager::CalculateRegionFor(floatFrame, floatMargin);
+  
+  if (NS_FRAME_IS_NOT_COMPLETE(aReflowStatus) &&
+      (NS_UNCONSTRAINEDSIZE != mContentArea.height)) {
+    region.height = PR_MAX(region.height, mContentArea.height - floatY);
+  }
+#ifdef DEBUG
+  nsresult rv =
+#endif
+  
+  mFloatManager->AddFloat(floatFrame,
+                          region - nsPoint(borderPadding.left, borderPadding.top));
+  NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "bad float placement");
+  
+  rv = nsFloatManager::StoreRegionFor(floatFrame, region);
+  NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "float region storage failed");
+
+  
+  
+  if (region != oldRegion) {
+    
+    
+    
+    
+    nscoord top = NS_MIN(region.y, oldRegion.y) - borderPadding.top;
+    nscoord bottom = NS_MAX(region.YMost(), oldRegion.YMost()) - borderPadding.left;
+    mFloatManager->IncludeInDamage(top, bottom);
+  }
+
+#ifdef NOISY_FLOATMANAGER
+  nscoord tx, ty;
+  mFloatManager->GetTranslation(tx, ty);
+  nsFrame::ListTag(stdout, mBlock);
+  printf(": FlowAndPlaceFloat: AddFloat: txy=%d,%d (%d,%d) {%d,%d,%d,%d}\n",
+         tx, ty, mFloatManagerX, mFloatManagerY,
+         region.x, region.y, region.width, region.height);
+#endif
 
   
   mY = saveY;

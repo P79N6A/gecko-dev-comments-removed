@@ -81,6 +81,29 @@ public:
   static void Shutdown();
 
   
+
+
+
+
+  static nsRect GetRegionFor(nsIFrame* aFloatFrame);
+  
+
+
+
+
+
+
+  static nsRect CalculateRegionFor(nsIFrame* aFloatFrame,
+                                   const nsMargin& aMargin);
+  
+
+
+
+
+  static nsresult StoreRegionFor(nsIFrame* aFloat,
+                                 nsRect&   aRegion);
+
+  
   
   struct SavedState;
   friend struct SavedState;

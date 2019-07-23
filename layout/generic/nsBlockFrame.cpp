@@ -5862,15 +5862,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
   }
 
   
-  const nsMargin& m = floatRS.mComputedMargin;
-  aFloatMargin.top = brc.GetTopMargin();
-  aFloatMargin.right = m.right;
-  
-  if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
-    brc.GetCarriedOutBottomMargin().Include(m.bottom);
-  }
-  aFloatMargin.bottom = brc.GetCarriedOutBottomMargin().get();
-  aFloatMargin.left = m.left;
+  aFloatMargin = floatRS.mComputedMargin; 
 
   const nsHTMLReflowMetrics& metrics = brc.GetMetrics();
 
