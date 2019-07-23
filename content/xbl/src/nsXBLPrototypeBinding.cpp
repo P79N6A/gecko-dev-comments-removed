@@ -1349,8 +1349,8 @@ nsXBLPrototypeBinding::ConstructInterfaceTable(const nsAString& aImpls)
 
       if (iinfo) {
         
-        const nsIID* iid = nsnull;
-        iinfo->GetIIDShared(&iid);
+        nsIID* iid = nsnull;
+        iinfo->GetInterfaceIID(&iid);
 
         if (iid) {
           
@@ -1363,7 +1363,10 @@ nsXBLPrototypeBinding::ConstructInterfaceTable(const nsAString& aImpls)
           
           while (NS_SUCCEEDED(iinfo->GetParent(getter_AddRefs(parentInfo))) && parentInfo) {
             
-            parentInfo->GetIIDShared(&iid);
+            nsMemory::Free(iid);
+
+            
+            parentInfo->GetInterfaceIID(&iid);
 
             
             if (!iid || iid->Equals(NS_GET_IID(nsISupports)))
@@ -1377,6 +1380,10 @@ nsXBLPrototypeBinding::ConstructInterfaceTable(const nsAString& aImpls)
             iinfo = parentInfo;
           }
         }
+
+        
+        if (iid)
+          nsMemory::Free(iid);
       }
 
       token = nsCRT::strtok( newStr, ", ", &newStr );

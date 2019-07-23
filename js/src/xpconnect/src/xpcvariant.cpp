@@ -320,9 +320,14 @@ JSBool XPCVariant::InitializeData(XPCCallContext& ccx)
 
     
 
-    const nsID* id = xpc_JSObjectToID(ccx, jsobj);
+    
+    nsID* id = xpc_JSObjectToID(ccx, jsobj);
     if(id)
-        return NS_SUCCEEDED(nsVariant::SetFromID(&mData, *id));
+    {
+        JSBool success = NS_SUCCEEDED(nsVariant::SetFromID(&mData, *id));
+        nsMemory::Free((char*)id);
+        return success;
+    }
     
     
 
