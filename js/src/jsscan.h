@@ -384,30 +384,9 @@ js_IsIdentifier(JSString *str);
 
 
 
-bool
+JSBool
 js_ReportCompileErrorNumber(JSContext *cx, JSTokenStream *ts, JSParseNode *pn,
                             uintN flags, uintN errorNumber, ...);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-js_ReportStrictModeError(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
-                         JSParseNode *pn, uintN errorNumber, ...);
 
 
 

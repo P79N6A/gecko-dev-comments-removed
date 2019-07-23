@@ -2691,20 +2691,9 @@ struct JSErrorReport {
 
 
 
-#define JSREPORT_STRICT_MODE_ERROR 0x8
-
-
-
-
-
-
-
-
 #define JSREPORT_IS_WARNING(flags)      (((flags) & JSREPORT_WARNING) != 0)
 #define JSREPORT_IS_EXCEPTION(flags)    (((flags) & JSREPORT_EXCEPTION) != 0)
 #define JSREPORT_IS_STRICT(flags)       (((flags) & JSREPORT_STRICT) != 0)
-#define JSREPORT_IS_STRICT_MODE_ERROR(flags) (((flags) &                      \
-                                              JSREPORT_STRICT_MODE_ERROR) != 0)
 
 extern JS_PUBLIC_API(JSErrorReporter)
 JS_SetErrorReporter(JSContext *cx, JSErrorReporter er);
