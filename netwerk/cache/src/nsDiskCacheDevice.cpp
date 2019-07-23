@@ -409,7 +409,8 @@ nsDiskCacheDevice::FindEntry(nsCString * key, PRBool *collision)
 
 #if DEBUG  
     binding = mBindery.FindActiveBinding(hashNumber);
-    NS_ASSERTION(!binding, "FindEntry() called for a bound entry.");
+    NS_ASSERTION(!binding || strcmp(binding->mCacheEntry->Key()->get(), key->get()) != 0,
+                 "FindEntry() called for a bound entry.");
     binding = nsnull;
 #endif
     
