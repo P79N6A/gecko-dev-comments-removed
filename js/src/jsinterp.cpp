@@ -350,12 +350,6 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
-
-
-
-
-
-
             obj->setDelegate();
         }
     }
