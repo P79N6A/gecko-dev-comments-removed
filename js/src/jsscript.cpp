@@ -597,15 +597,31 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic)
 
 
     for (i = 0; i != nobjects; ++i) {
-        if (!js_XDRObject(xdr, &JS_SCRIPT_OBJECTS(script)->vector[i]))
+        JSObject **objp = &JS_SCRIPT_OBJECTS(script)->vector[i];
+        uint32 isBlock;
+        if (xdr->mode == JSXDR_ENCODE) {
+            JSClass *clasp = STOBJ_GET_CLASS(*objp);
+            JS_ASSERT(clasp == &js_FunctionClass ||
+                      clasp == &js_BlockClass);
+            isBlock = (clasp == &js_BlockClass) ? 1 : 0;
+         }
+        if (!JS_XDRUint32(xdr, &isBlock))
             goto error;
+        if (isBlock == 0) {
+            if (!js_XDRFunctionObject(xdr, objp))
+                goto error;
+        } else {
+            JS_ASSERT(isBlock == 1);
+            if (!js_XDRBlockObject(xdr, objp))
+                goto error;
+        }
     }
     for (i = 0; i != nupvars; ++i) {
         if (!JS_XDRUint32(xdr, &JS_SCRIPT_UPVARS(script)->vector[i]))
             goto error;
     }
     for (i = 0; i != nregexps; ++i) {
-        if (!js_XDRObject(xdr, &JS_SCRIPT_REGEXPS(script)->vector[i]))
+        if (!js_XDRRegExpObject(xdr, &JS_SCRIPT_REGEXPS(script)->vector[i]))
             goto error;
     }
 
