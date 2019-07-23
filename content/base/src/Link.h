@@ -93,8 +93,6 @@ protected:
 
   virtual void ResetLinkState();
 
-  virtual ~Link();
-
 private:
   
 
