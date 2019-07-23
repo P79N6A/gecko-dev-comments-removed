@@ -1588,7 +1588,6 @@ ElementArray::Clear()
 
 
 nsBookmarksService::nsBookmarksService() :
-    mInner(nsnull),
     mUpdateBatchNest(0),
     mDirty(PR_FALSE)
 
@@ -1615,7 +1614,6 @@ nsBookmarksService::~nsBookmarksService()
     
     
     bm_ReleaseGlobals();
-    NS_IF_RELEASE(mInner);
 }
 
 nsresult
@@ -2505,44 +2503,52 @@ NS_IMETHODIMP nsBookmarksService::Observe(nsISupports *aSubject, const char *aTo
 
 
 
-NS_IMPL_ADDREF(nsBookmarksService)
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsBookmarksService)
 
-NS_IMETHODIMP_(nsrefcnt)
-nsBookmarksService::Release()
-{
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsBookmarksService)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mInner)
     
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mObservers)
     
-    NS_PRECONDITION(PRInt32(mRefCnt) > 0, "duplicate release");
-    --mRefCnt;
-    NS_LOG_RELEASE(this, mRefCnt, "nsBookmarksService");
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTimer)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mNetService)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCacheService)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCacheSession)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTransactionManager)
+    NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mBookmarksFile)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-    if (mInner && mRefCnt == 1) {
-        nsIRDFDataSource* tmp = mInner;
-        mInner = nsnull;
-        NS_IF_RELEASE(tmp);
-        return 0;
-    }
-    else if (mRefCnt == 0) {
-        delete this;
-        return 0;
-    }
-    else {
-        return mRefCnt;
-    }
-}
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsBookmarksService)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mInner)
+    
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mObservers)
+    
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTimer)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mNetService)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCacheService)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCacheSession)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTransactionManager)
+    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mBookmarksFile)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_IMPL_QUERY_INTERFACE10(nsBookmarksService,
-             nsIBookmarksService,
-             nsIRDFDataSource,
-             nsIRDFRemoteDataSource,
-             nsIRDFPropagatableDataSource,
-             nsIRDFObserver,
-             nsIStreamListener,
-             nsIRequestObserver,
-             nsICharsetResolver,
-             nsIObserver,
-             nsISupportsWeakReference)
-
+NS_IMPL_CYCLE_COLLECTING_ADDREF_AMBIGUOUS(nsBookmarksService,
+                                          nsIBookmarksService)
+NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsBookmarksService,
+                                           nsIBookmarksService)
+NS_INTERFACE_MAP_BEGIN(nsBookmarksService)
+    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIBookmarksService)
+    NS_INTERFACE_MAP_ENTRY(nsIBookmarksService)
+    NS_INTERFACE_MAP_ENTRY(nsIRDFDataSource)
+    NS_INTERFACE_MAP_ENTRY(nsIRDFRemoteDataSource)
+    NS_INTERFACE_MAP_ENTRY(nsIRDFPropagatableDataSource)
+    NS_INTERFACE_MAP_ENTRY(nsIRDFObserver)
+    NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
+    NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
+    NS_INTERFACE_MAP_ENTRY(nsICharsetResolver)
+    NS_INTERFACE_MAP_ENTRY(nsIObserver)
+    NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+    NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsBookmarksService)
+NS_INTERFACE_MAP_END
 
 
 
@@ -5103,10 +5109,9 @@ nsBookmarksService::initDatasource()
 {
     
     
-    NS_IF_RELEASE(mInner);
-
     
-    nsresult rv = CallCreateInstance(kRDFInMemoryDataSourceCID, &mInner);
+    nsresult rv;
+    mInner = do_CreateInstance(kRDFInMemoryDataSourceCID, &rv);
     if (NS_FAILED(rv)) return rv;
 
     rv = mInner->AddObserver(this);
