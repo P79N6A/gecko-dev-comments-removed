@@ -1897,7 +1897,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     
     static GtkWidget *gtkXtBinHolder = 0;
     if (!gtkXtBinHolder) {
-      gtkXtBinHolder = gtk_xtbin_new(GDK_ROOT_PARENT(),0);
+      gtkXtBinHolder = gtk_xtbin_new((GdkWindow*)GDK_ROOT_WINDOW(),0);
       
       
     }
