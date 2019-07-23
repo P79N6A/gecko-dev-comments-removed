@@ -648,6 +648,12 @@ TraceRecorder::guard_eqi(bool expected, void* a, int i)
 }
 
 void
+TraceRecorder::load(void* a, int32_t i, void* v)
+{
+    set(v, lir->insLoadi(get(a), i));
+}
+
+void
 TraceRecorder::closeLoop(Fragmento* fragmento)
 {
     if (!verifyTypeStability(entryFrame, entryFrame, entryRegs, entryTypeMap)) {
@@ -661,16 +667,36 @@ TraceRecorder::closeLoop(Fragmento* fragmento)
     compile(fragmento->assm(), fragment);
 }
 
-void
-TraceRecorder::load(void* a, int32_t i, void* v)
+bool
+TraceRecorder::loopEdge(JSContext* cx, jsbytecode* pc)
 {
-    set(v, lir->insLoadi(get(a), i));
+    if (pc == entryRegs.pc) {
+        closeLoop(JS_TRACE_MONITOR(cx).fragmento);
+        return false; 
+    }
+    return false; 
 }
 
-Fragment*
-js_LookupFragment(JSContext* cx, jsbytecode* pc)
+void 
+js_DeleteRecorder(JSContext* cx)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    delete tm->recorder;
+    tm->recorder = NULL;
+}
+
+bool
+js_LoopEdge(JSContext* cx, jsbytecode* pc)
+{
+    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    
+    
+    if (tm->recorder) {
+        if (tm->recorder->loopEdge(cx, pc)) 
+            return true; 
+        js_DeleteRecorder(cx);
+        return false; 
+    }
     
     if (!tm->fragmento) {
         Fragmento* fragmento = new (&gc) Fragmento(core);
@@ -686,8 +712,11 @@ js_LookupFragment(JSContext* cx, jsbytecode* pc)
     
     Fragment* f = tm->fragmento->getLoop(state);
     
-    if (!f->code())
-        return f;
+    if (!f->code()) {
+        tm->recorder = new (&gc) TraceRecorder(cx, tm->fragmento, f);
+        return true; 
+    }
+
     
     VMFragmentInfo* fi = (VMFragmentInfo*)f->vmprivate;
     double native[fi->maxNativeFrameSlots+1];
@@ -707,23 +736,8 @@ js_LookupFragment(JSContext* cx, jsbytecode* pc)
 #ifdef DEBUG
     JS_ASSERT(*(uint64*)&native[fi->maxNativeFrameSlots] == 0xdeadbeefdeadbeefLL);
 #endif    
-    return f;
-}
-
-bool
-js_StartRecording(JSContext* cx, Fragment* fragment)
-{
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-    tm->recorder = new (&gc) TraceRecorder(cx, tm->fragmento, fragment);
-    return true;
-}
-
-void 
-js_DeleteRecorder(JSContext* cx)
-{
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-    delete tm->recorder;
-    tm->recorder = NULL;
+    
+    return false; 
 }
 
 void
@@ -731,15 +745,6 @@ js_AbortRecording(JSContext* cx)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
     JS_ASSERT(tm->recorder != NULL);
-    js_DeleteRecorder(cx);
-}
-
-void
-js_EndRecording(JSContext* cx)
-{
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-    JS_ASSERT(tm->recorder != NULL);
-    tm->recorder->closeLoop(tm->fragmento);
     js_DeleteRecorder(cx);
 }
 
