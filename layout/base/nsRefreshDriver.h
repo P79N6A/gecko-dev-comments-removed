@@ -121,6 +121,18 @@ public:
     mPresContext = nsnull;
   }
 
+  
+
+
+
+  void Freeze();
+
+  
+
+
+
+  void Thaw();
+
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
 
@@ -129,12 +141,16 @@ private:
   PRUint32 ObserverCount() const;
   void UpdateMostRecentRefresh();
   ObserverArray& ArrayFor(mozFlushType aFlushType);
+  
+  void DoRefresh();
 
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
 
   nsPresContext *mPresContext; 
                                
+
+  PRBool mFrozen;
 
   
   ObserverArray mObservers[3];

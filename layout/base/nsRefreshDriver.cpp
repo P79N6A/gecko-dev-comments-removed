@@ -40,6 +40,7 @@
 
 
 
+
 #include "nsRefreshDriver.h"
 #include "nsPresContext.h"
 #include "nsComponentManagerUtils.h"
@@ -58,7 +59,8 @@
 using mozilla::TimeStamp;
 
 nsRefreshDriver::nsRefreshDriver(nsPresContext *aPresContext)
-  : mPresContext(aPresContext)
+  : mPresContext(aPresContext),
+    mFrozen(PR_FALSE)
 {
 }
 
@@ -100,7 +102,8 @@ nsRefreshDriver::RemoveRefreshObserver(nsARefreshObserver *aObserver,
 void
 nsRefreshDriver::EnsureTimerStarted()
 {
-  if (mTimer) {
+  if (mTimer || mFrozen || !mPresContext) {
+    
     
     return;
   }
@@ -173,15 +176,13 @@ NS_IMPL_ISUPPORTS1(nsRefreshDriver, nsITimerCallback)
 
 
 NS_IMETHODIMP
-nsRefreshDriver::Notify(nsITimer *aTimer)
+nsRefreshDriver::Notify(nsITimer * )
 {
+  NS_PRECONDITION(!mFrozen, "Why are we notified while frozen?");
+  NS_PRECONDITION(mPresContext, "Why are we notified after disconnection?");
+
   UpdateMostRecentRefresh();
 
-  if (!mPresContext) {
-    
-    NS_ABORT_IF_FALSE(!mTimer, "timer should have been stopped");
-    return NS_OK;
-  }
   nsCOMPtr<nsIPresShell> presShell = mPresContext->GetPresShell();
   if (!presShell || ObserverCount() == 0) {
     
@@ -226,4 +227,33 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
   }
 
   return NS_OK;
+}
+
+void
+nsRefreshDriver::Freeze()
+{
+  NS_ASSERTION(!mFrozen, "Freeze called on already-frozen refresh driver");
+  StopTimer();
+  mFrozen = PR_TRUE;
+}
+
+void
+nsRefreshDriver::Thaw()
+{
+  NS_ASSERTION(mFrozen, "Thaw called on an unfrozen refresh driver");
+  mFrozen = PR_FALSE;
+  if (ObserverCount()) {
+    NS_DispatchToCurrentThread(NS_NEW_RUNNABLE_METHOD(nsRefreshDriver, this,
+                                                      DoRefresh));
+    EnsureTimerStarted();
+  }
+}
+
+void
+nsRefreshDriver::DoRefresh()
+{
+  
+  if (!mFrozen && mPresContext && mTimer) {
+    Notify(nsnull);
+  }
 }
