@@ -2880,18 +2880,10 @@ pref("html5.flushtimer.startdelay", 200);
 pref("html5.flushtimer.continuedelay", 150);
 
 
-pref("html5.flushtimer.interval", 100);
+pref("html5.flushtimer.interval", 120);
 
 
 pref("browser.history.allowPushState", true);
 pref("browser.history.allowReplaceState", true);
 pref("browser.history.allowPopState", true);
 pref("browser.history.maxStateObjectSize", 655360);
-
-pref("html5.opqueue.initiallengthlimit", 200);
-
-pref("html5.opqueue.maxtime", 100);
-
-pref("html5.opqueue.minlength", 100);
-
-pref("html5.opqueue.maxlength", 4500); 

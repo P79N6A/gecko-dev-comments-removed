@@ -145,8 +145,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-
-    NS_IMETHOD        ContinueInterruptedParsing();
+    NS_IMETHOD ContinueInterruptedParsing();
 
     
 
@@ -312,18 +311,16 @@ class nsHtml5Parser : public nsIParser,
     
     void ContinueAfterFailedCharsetSwitch();
 
-#ifdef DEBUG
-    PRBool HasStreamParser() {
-      return !!mStreamParser;
+    nsHtml5StreamParser* GetStreamParser() {
+      return mStreamParser;
     }
-#endif
-
-  private:
 
     
 
 
     void ParseUntilBlocked();
+
+  private:
 
     
 

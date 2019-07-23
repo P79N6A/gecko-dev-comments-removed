@@ -1728,10 +1728,12 @@ nsContentSink::WillBuildModelImpl()
 void
 nsContentSink::ContinueInterruptedParsingIfEnabled()
 {
+  
   if (mParser && mParser->IsParserEnabled()) {
     mParser->ContinueInterruptedParsing();
   }
 }
+
 
 void
 nsContentSink::ContinueInterruptedParsingAsync()

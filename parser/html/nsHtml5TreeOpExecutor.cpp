@@ -77,43 +77,24 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsHtml5TreeOpExecutor, nsContent
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mOwnedElements)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-PRInt32 nsHtml5TreeOpExecutor::sTreeOpQueueLengthLimit = 200;
-PRInt32 nsHtml5TreeOpExecutor::sTreeOpQueueMaxTime = 100; 
-PRInt32 nsHtml5TreeOpExecutor::sTreeOpQueueMinLength = 100;
-PRInt32 nsHtml5TreeOpExecutor::sTreeOpQueueMaxLength = 4500;
-
-
-void
-nsHtml5TreeOpExecutor::InitializeStatics()
+class nsHtml5ExecutorReflusher : public nsRunnable
 {
-  
-  
-  nsContentUtils::AddIntPrefVarCache("html5.opqueue.initiallengthlimit", 
-                                     &sTreeOpQueueLengthLimit);
-  nsContentUtils::AddIntPrefVarCache("html5.opqueue.maxtime", 
-                                     &sTreeOpQueueMaxTime);
-  nsContentUtils::AddIntPrefVarCache("html5.opqueue.minlength",
-                                     &sTreeOpQueueMinLength);
-  nsContentUtils::AddIntPrefVarCache("html5.opqueue.maxlength",
-                                     &sTreeOpQueueMaxLength);
-  
-  
-  if (sTreeOpQueueMinLength <= 0) {
-    sTreeOpQueueMinLength = 200;
-  }
-  if (sTreeOpQueueLengthLimit < sTreeOpQueueMinLength) {
-    sTreeOpQueueLengthLimit = sTreeOpQueueMinLength;
-  }
-  if (sTreeOpQueueMaxLength < sTreeOpQueueMinLength) {
-    sTreeOpQueueMaxLength = sTreeOpQueueMinLength;
-  }
-  if (sTreeOpQueueMaxTime <= 0) {
-    sTreeOpQueueMaxTime = 200;
-  }
-}
+  private:
+    nsRefPtr<nsHtml5TreeOpExecutor> mExecutor;
+  public:
+    nsHtml5ExecutorReflusher(nsHtml5TreeOpExecutor* aExecutor)
+      : mExecutor(aExecutor)
+    {}
+    NS_IMETHODIMP Run()
+    {
+      mExecutor->RunFlushLoop();
+      return NS_OK;
+    }
+};
 
 nsHtml5TreeOpExecutor::nsHtml5TreeOpExecutor()
 {
+  mPreloadedURLs.Init(23); 
   
 }
 
@@ -198,14 +179,15 @@ nsHtml5TreeOpExecutor::DidBuildModel(PRBool aTerminated)
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::WillInterrupt()
 {
-  return WillInterruptImpl();
+  NS_NOTREACHED("Don't call. For interface compat only.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::WillResume()
 {
-  WillResumeImpl();
-  return WillParseImpl();
+  NS_NOTREACHED("Don't call. For interface compat only.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
@@ -293,6 +275,15 @@ nsHtml5TreeOpExecutor::PostEvaluateScript(nsIScriptElement *aElement)
 }
 
 void
+nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync()
+{
+  nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);  
+  if (NS_FAILED(NS_DispatchToMainThread(flusher))) {
+    NS_WARNING("failed to dispatch executor flush event");
+  }          
+}
+
+void
 nsHtml5TreeOpExecutor::UpdateStyleSheet(nsIContent* aElement)
 {
   
@@ -347,129 +338,267 @@ nsHtml5TreeOpExecutor::UpdateStyleSheet(nsIContent* aElement)
   BeginDocUpdate();
 }
 
-class nsHtml5ExecutorReflusher : public nsRunnable
+void
+nsHtml5TreeOpExecutor::FlushSpeculativeLoads()
+{
+  if (NS_UNLIKELY(!mParser)) {
+    return;
+  }
+  nsTArray<nsHtml5SpeculativeLoad> speculativeLoadQueue;
+  mStage.MoveSpeculativeLoadsTo(speculativeLoadQueue);
+  const nsHtml5SpeculativeLoad* start = speculativeLoadQueue.Elements();
+  const nsHtml5SpeculativeLoad* end = start + speculativeLoadQueue.Length();
+  for (nsHtml5SpeculativeLoad* iter = (nsHtml5SpeculativeLoad*)start;
+       iter < end; 
+       ++iter) {
+    iter->Perform(this);
+  }
+}
+
+class nsHtml5FlushLoopGuard
 {
   private:
     nsRefPtr<nsHtml5TreeOpExecutor> mExecutor;
+    #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
+    PRUint32 mStartTime;
+    #endif
   public:
-    nsHtml5ExecutorReflusher(nsHtml5TreeOpExecutor* aExecutor)
+    nsHtml5FlushLoopGuard(nsHtml5TreeOpExecutor* aExecutor)
       : mExecutor(aExecutor)
-    {}
-    NS_IMETHODIMP Run()
+    #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
+      , mStartTime(PR_IntervalToMilliseconds(PR_IntervalNow()))
+    #endif
     {
-      mExecutor->Flush(PR_FALSE);
-      return NS_OK;
+      mExecutor->mRunFlushLoopOnStack = PR_TRUE;
+    }
+    ~nsHtml5FlushLoopGuard()
+    {
+      #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
+        PRUint32 timeOffTheEventLoop = 
+          PR_IntervalToMilliseconds(PR_IntervalNow()) - mStartTime;
+        if (timeOffTheEventLoop > 
+            nsHtml5TreeOpExecutor::sLongestTimeOffTheEventLoop) {
+          nsHtml5TreeOpExecutor::sLongestTimeOffTheEventLoop = 
+            timeOffTheEventLoop;
+        }
+        printf("Longest time off the event loop: %d\n", 
+          nsHtml5TreeOpExecutor::sLongestTimeOffTheEventLoop);
+      #endif
+
+      mExecutor->mRunFlushLoopOnStack = PR_FALSE;
     }
 };
 
+
+
+
 void
-nsHtml5TreeOpExecutor::Flush(PRBool aForceWholeQueue)
+nsHtml5TreeOpExecutor::RunFlushLoop()
 {
-  if (!mParser) {
-    mOpQueue.Clear(); 
-    return;
-  }
-  if (mFlushState != eNotFlushing) {
+  if (mRunFlushLoopOnStack) {
+    
     return;
   }
   
-  mFlushState = eInFlush;
-
-  nsRefPtr<nsHtml5TreeOpExecutor> kungFuDeathGrip(this); 
+  nsHtml5FlushLoopGuard guard(this); 
+  
   nsCOMPtr<nsIParser> parserKungFuDeathGrip(mParser);
 
-  if (mReadingFromStage) {
-    mStage.MoveOpsTo(mOpQueue);
+  
+  (void) nsContentSink::WillParseImpl();
+
+  for (;;) {
+    if (!mParser) {
+      
+      mOpQueue.Clear(); 
+      return;
+    }
+
+    if (!mParser->IsParserEnabled()) {
+      
+      return;
+    }
+  
+    if (mFlushState != eNotFlushing) {
+      
+      return;
+    }
+    
+    
+    
+    
+    if (IsScriptExecuting()) {
+      return;
+    }
+
+    if (mReadingFromStage) {
+      nsTArray<nsHtml5SpeculativeLoad> speculativeLoadQueue;
+      mStage.MoveOpsAndSpeculativeLoadsTo(mOpQueue, speculativeLoadQueue);
+      
+      
+      const nsHtml5SpeculativeLoad* start = speculativeLoadQueue.Elements();
+      const nsHtml5SpeculativeLoad* end = start + speculativeLoadQueue.Length();
+      for (nsHtml5SpeculativeLoad* iter = (nsHtml5SpeculativeLoad*)start;
+           iter < end;
+           ++iter) {
+        iter->Perform(this);
+      }
+    } else {
+      FlushSpeculativeLoads(); 
+                               
+                               
+      
+      
+      nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip = 
+        static_cast<nsHtml5Parser*> (mParser.get())->GetStreamParser();
+      
+      
+      static_cast<nsHtml5Parser*> (mParser.get())->ParseUntilBlocked();
+    }
+
+    if (mOpQueue.IsEmpty()) {
+      
+      
+      return;
+    }
+
+    mFlushState = eInFlush;
+
+    nsIContent* scriptElement = nsnull;
+    
+    BeginDocUpdate();
+
+    PRUint32 numberOfOpsToFlush = mOpQueue.Length();
+
+    mElementsSeenInThisAppendBatch.SetCapacity(numberOfOpsToFlush * 2);
+
+    const nsHtml5TreeOperation* first = mOpQueue.Elements();
+    const nsHtml5TreeOperation* last = first + numberOfOpsToFlush - 1;
+    for (nsHtml5TreeOperation* iter = (nsHtml5TreeOperation*)first;;) {
+      if (NS_UNLIKELY(!mParser)) {
+        
+        break;
+      }
+      NS_ASSERTION(mFlushState == eInDocUpdate, 
+        "Tried to perform tree op outside update batch.");
+      iter->Perform(this, &scriptElement);
+
+      
+      if (NS_UNLIKELY(iter == last)) {
+        break;
+      } else if (NS_UNLIKELY(nsContentSink::DidProcessATokenImpl() == 
+                             NS_ERROR_HTMLPARSER_INTERRUPTED)) {
+        mOpQueue.RemoveElementsAt(0, (iter - first) + 1);
+        
+        EndDocUpdate();
+
+        mFlushState = eNotFlushing;
+
+        #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
+          printf("REFLUSH SCHEDULED (executing ops): %d\n", 
+            ++sTimesFlushLoopInterrupted);
+        #endif
+        nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync();
+        return;
+      }
+      ++iter;
+    }
+    
+    mOpQueue.Clear();
+    
+    EndDocUpdate();
+
+    mFlushState = eNotFlushing;
+
+    if (NS_UNLIKELY(!mParser)) {
+      
+      return;
+    }
+
+    if (scriptElement) {
+      
+      RunScript(scriptElement);
+      
+      
+      if (nsContentSink::DidProcessATokenImpl() == 
+          NS_ERROR_HTMLPARSER_INTERRUPTED) {
+        #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
+          printf("REFLUSH SCHEDULED (after script): %d\n", 
+            ++sTimesFlushLoopInterrupted);
+        #endif
+        nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync();
+        return;      
+      }
+    }
   }
+}
+
+void
+nsHtml5TreeOpExecutor::FlushDocumentWrite()
+{
+  if (!mParser) {
+    
+    mOpQueue.Clear(); 
+    return;
+  }
+  
+  FlushSpeculativeLoads(); 
+                
+
+  if (mFlushState != eNotFlushing) {
+    
+    return;
+  }
+
+  mFlushState = eInFlush;
+
+  
+  nsRefPtr<nsHtml5TreeOpExecutor> kungFuDeathGrip(this);
+  nsCOMPtr<nsIParser> parserKungFuDeathGrip(mParser);
+
+  NS_ASSERTION(!mReadingFromStage,
+    "Got doc write flush when reading from stage");
+
+#ifdef DEBUG
+  mStage.AssertEmpty();
+#endif
   
   nsIContent* scriptElement = nsnull;
   
   BeginDocUpdate();
 
-  PRIntervalTime flushStart = 0;
   PRUint32 numberOfOpsToFlush = mOpQueue.Length();
-  PRBool reflushNeeded = PR_FALSE;
-
-#ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
-  if (numberOfOpsToFlush > sOpQueueMaxLength) {
-    sOpQueueMaxLength = numberOfOpsToFlush;
-  }
-  printf("QUEUE LENGTH: %d\n", numberOfOpsToFlush);
-  printf("MAX QUEUE LENGTH: %d\n", sOpQueueMaxLength);
-#endif
-
-  if (aForceWholeQueue) {
-    if (numberOfOpsToFlush > (PRUint32)sTreeOpQueueMinLength) {
-      flushStart = PR_IntervalNow(); 
-    }    
-  } else {
-    if (numberOfOpsToFlush > (PRUint32)sTreeOpQueueMinLength) {
-      flushStart = PR_IntervalNow(); 
-      if (numberOfOpsToFlush > (PRUint32)sTreeOpQueueLengthLimit) {
-        numberOfOpsToFlush = (PRUint32)sTreeOpQueueLengthLimit;
-        reflushNeeded = PR_TRUE;
-      }
-    }
-  }
 
   mElementsSeenInThisAppendBatch.SetCapacity(numberOfOpsToFlush * 2);
 
   const nsHtml5TreeOperation* start = mOpQueue.Elements();
   const nsHtml5TreeOperation* end = start + numberOfOpsToFlush;
-  for (nsHtml5TreeOperation* iter = (nsHtml5TreeOperation*)start; iter < end; ++iter) {
+  for (nsHtml5TreeOperation* iter = (nsHtml5TreeOperation*)start;
+       iter < end; 
+       ++iter) {
     if (NS_UNLIKELY(!mParser)) {
       
       break;
     }
-    NS_ASSERTION(mFlushState == eInDocUpdate, "Tried to perform tree op outside update batch.");
+    NS_ASSERTION(mFlushState == eInDocUpdate, 
+      "Tried to perform tree op outside update batch.");
     iter->Perform(this, &scriptElement);
   }
 
-  if (NS_LIKELY(mParser)) {
-    mOpQueue.RemoveElementsAt(0, numberOfOpsToFlush);  
-  } else {
-    mOpQueue.Clear(); 
-  }
+  mOpQueue.Clear();
   
-  if (flushStart) {
-    PRUint32 delta = PR_IntervalToMilliseconds(PR_IntervalNow() - flushStart);
-    sTreeOpQueueLengthLimit = delta ?
-      (PRUint32)(((PRUint64)sTreeOpQueueMaxTime * (PRUint64)numberOfOpsToFlush)
-                 / delta) :
-      sTreeOpQueueMaxLength; 
-    if (sTreeOpQueueLengthLimit < sTreeOpQueueMinLength) {
-      
-      
-      sTreeOpQueueLengthLimit = sTreeOpQueueMinLength;
-    }
-    if (sTreeOpQueueLengthLimit > sTreeOpQueueMaxLength) {
-      sTreeOpQueueLengthLimit = sTreeOpQueueMaxLength;
-    }
-#ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
-    printf("FLUSH DURATION (millis): %d\n", delta);
-    printf("QUEUE NEW MAX LENGTH: %d\n", sTreeOpQueueLengthLimit);      
-#endif
-  }
-
   EndDocUpdate();
 
   mFlushState = eNotFlushing;
 
   if (NS_UNLIKELY(!mParser)) {
+    
     return;
   }
 
   if (scriptElement) {
-    NS_ASSERTION(!reflushNeeded, "Got scriptElement when queue not fully flushed.");
-    RunScript(scriptElement); 
-  } else if (reflushNeeded) {
-#ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
-    printf("REFLUSH SCHEDULED.\n");
-#endif
-    nsCOMPtr<nsIRunnable> flusher = new nsHtml5ExecutorReflusher(this);  
-    if (NS_FAILED(NS_DispatchToMainThread(flusher))) {
-      NS_WARNING("failed to dispatch executor flush event");
-    }
+    
+    RunScript(scriptElement);
   }
 }
 
@@ -632,7 +761,11 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
     
     htmlDocument->ScriptExecuted(sele);
     
-    ContinueInterruptedParsingAsync();
+    
+
+    
+    
+    nsHtml5TreeOpExecutor::ContinueInterruptedParsingAsync();
   }
 }
 
@@ -642,11 +775,7 @@ nsHtml5TreeOpExecutor::Init(nsIDocument* aDoc,
                             nsISupports* aContainer,
                             nsIChannel* aChannel)
 {
-  nsresult rv = nsContentSink::Init(aDoc, aURI, aContainer, aChannel);
-  NS_ENSURE_SUCCESS(rv, rv);
-  mCanInterruptParser = PR_FALSE; 
-                                  
-  return rv;
+  return nsContentSink::Init(aDoc, aURI, aContainer, aChannel);
 }
 
 void
@@ -701,6 +830,7 @@ nsHtml5TreeOpExecutor::Reset() {
   mOpQueue.Clear();
   mStarted = PR_FALSE;
   mFlushState = eNotFlushing;
+  mRunFlushLoopOnStack = PR_FALSE;
   mFragmentMode = PR_FALSE;
 }
 
@@ -721,9 +851,67 @@ nsHtml5TreeOpExecutor::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* a
   static_cast<nsHtml5Parser*> (mParser.get())->InitializeDocWriteParserState(aState, aLine);
 }
 
+
+
+already_AddRefed<nsIURI>
+nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
+{
+  nsIURI* base = mDocument->GetBaseURI();
+  const nsCString& charset = mDocument->GetDocumentCharacterSet();
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, charset.get(), base);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to create a URI");
+    return nsnull;
+  }
+  nsCAutoString spec;
+  uri->GetSpec(spec);
+  if (mPreloadedURLs.Contains(spec)) {
+    return nsnull;
+  }
+  mPreloadedURLs.Put(spec);
+  nsIURI* retURI = uri;
+  NS_ADDREF(retURI);
+  return retURI;
+}
+
+void
+nsHtml5TreeOpExecutor::PreloadScript(const nsAString& aURL,
+                                     const nsAString& aCharset,
+                                     const nsAString& aType)
+{
+  nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
+  if (!uri) {
+    return;
+  }
+  mDocument->ScriptLoader()->PreloadURI(uri, aCharset, aType);
+}
+
+void
+nsHtml5TreeOpExecutor::PreloadStyle(const nsAString& aURL,
+                                    const nsAString& aCharset)
+{
+  nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
+  if (!uri) {
+    return;
+  }
+  mDocument->PreloadStyle(uri, aCharset);
+}
+
+void
+nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL)
+{
+  nsCOMPtr<nsIURI> uri = ConvertIfNotPreloadedYet(aURL);
+  if (!uri) {
+    return;
+  }
+  mDocument->MaybePreLoadImage(uri);
+}
+
 #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH
-PRUint32 nsHtml5TreeOpExecutor::sOpQueueMaxLength = 0;
 PRUint32 nsHtml5TreeOpExecutor::sAppendBatchMaxSize = 0;
 PRUint32 nsHtml5TreeOpExecutor::sAppendBatchSlotsExamined = 0;
 PRUint32 nsHtml5TreeOpExecutor::sAppendBatchExaminations = 0;
+PRUint32 nsHtml5TreeOpExecutor::sLongestTimeOffTheEventLoop = 0;
+PRUint32 nsHtml5TreeOpExecutor::sTimesFlushLoopInterrupted = 0;
 #endif

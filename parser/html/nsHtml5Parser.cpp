@@ -179,28 +179,8 @@ nsHtml5Parser::GetStreamListener(nsIStreamListener** aListener)
 NS_IMETHODIMP
 nsHtml5Parser::ContinueInterruptedParsing()
 {
-  
-  
-  
-  if (mExecutor->IsScriptExecuting()) {
-    return NS_OK;
-  }
-  if (mExecutor->IsFlushing()) {
-    
-    
-    
-    
-    return NS_OK;
-  }
-  
-  
-  
-  
-  nsCOMPtr<nsIParser> kungFuDeathGrip(this);
-  nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip(mStreamParser);
-  nsRefPtr<nsHtml5TreeOpExecutor> treeOpKungFuDeathGrip(mExecutor);
-  ParseUntilBlocked();
-  return NS_OK;
+  NS_NOTREACHED("Don't call. For interface compat only.");
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP_(void)
@@ -360,7 +340,6 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   }
 
   if (!mBlocked) {
-    
     while (buffer->hasMore()) {
       buffer->adjust(mLastWasCR);
       mLastWasCR = PR_FALSE;
@@ -387,10 +366,9 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
         if (mTreeBuilder->HasScript()) {
           
           mTreeBuilder->Flush(); 
-          mExecutor->Flush(PR_TRUE); 
+          mExecutor->FlushDocumentWrite(); 
         }
         if (mBlocked) {
-          
           break;
         }
         
@@ -403,7 +381,7 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     
     mTreeBuilder->flushCharacters(); 
     mTreeBuilder->Flush(); 
-    mExecutor->Flush(PR_TRUE); 
+    mExecutor->FlushDocumentWrite(); 
   }
 
   return NS_OK;
@@ -498,7 +476,7 @@ nsHtml5Parser::ParseFragment(const nsAString& aSourceBuffer,
   mTokenizer->eof();
   mTreeBuilder->StreamEnded();
   mTreeBuilder->Flush();
-  mExecutor->Flush(PR_TRUE);
+  mExecutor->FlushDocumentWrite();
   mTokenizer->end();
   mExecutor->DropParserAndPerfHint();
   mAtomTable.Clear();
@@ -592,7 +570,6 @@ nsHtml5Parser::ParseUntilBlocked()
   }
   NS_ASSERTION(mExecutor->HasStarted(), "Bad life cycle.");
 
-  mExecutor->WillResume();
   for (;;) {
     if (!mFirstBuffer->hasMore()) {
       if (mFirstBuffer == mLastBuffer) {
@@ -606,7 +583,7 @@ nsHtml5Parser::ParseUntilBlocked()
           mTokenizer->eof();
           mTreeBuilder->StreamEnded();
           mTreeBuilder->Flush();
-          mExecutor->Flush(PR_TRUE);
+          mExecutor->FlushDocumentWrite();
           mTokenizer->end();
           return;            
         } else {
@@ -651,10 +628,9 @@ nsHtml5Parser::ParseUntilBlocked()
       }
       if (mTreeBuilder->HasScript()) {
         mTreeBuilder->Flush();
-        mExecutor->Flush(PR_TRUE);
+        mExecutor->FlushDocumentWrite();
       }
       if (mBlocked) {
-        
         return;
       }
     }
