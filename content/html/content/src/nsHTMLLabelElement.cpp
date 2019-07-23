@@ -296,8 +296,9 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             
             
             
+            
             nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(content);
-            fm->SetFocus(elem, nsIFocusManager::FLAG_BYKEY);
+            fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOVEFOCUS);
           }
 
           

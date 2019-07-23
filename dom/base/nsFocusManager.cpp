@@ -434,6 +434,14 @@ nsFocusManager::MoveFocus(nsIDOMWindow* aWindow, nsIDOMElement* aStartElement,
   PRINTTAGF(">> $[[%s]]\n", mFocusedContent);
 #endif
 
+  
+  
+  
+  if (aType != MOVEFOCUS_ROOT && aType != MOVEFOCUS_CARET &&
+      (aFlags & FOCUSMETHOD_MASK) == 0) {
+    aFlags |= FLAG_BYMOVEFOCUS;
+  }
+
   nsCOMPtr<nsPIDOMWindow> window;
   nsCOMPtr<nsIContent> startContent;
   if (aStartElement) {
