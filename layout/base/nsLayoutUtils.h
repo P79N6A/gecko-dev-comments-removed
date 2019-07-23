@@ -127,6 +127,14 @@ public:
 
 
 
+  static nsIFrame* GetStyleFrame(nsIFrame* aPrimaryFrame);
+
+  
+
+
+
+
+
 
 
 

@@ -140,7 +140,11 @@ struct nsCSSRendering {
   
 
 
-  static nsIFrame* FindRootFrame(nsIFrame* aForFrame);
+
+
+
+
+  static nsIFrame* FindBackgroundStyleFrame(nsIFrame* aForFrame);
 
   
 

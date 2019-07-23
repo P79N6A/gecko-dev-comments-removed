@@ -317,22 +317,6 @@ nsComputedDOMStyle::GetPropertyValue(const nsAString& aPropertyName,
   return rv;
 }
 
-static nsStyleContext*
-GetStyleContextForFrame(nsIFrame* aFrame)
-{
-  nsStyleContext* styleContext = aFrame->GetStyleContext();
-
-  
-
-
-
-
-  if (aFrame->GetType() == nsGkAtoms::tableOuterFrame)
-    return styleContext->GetParent();
-
-  return styleContext;
-}    
-
 
 already_AddRefed<nsStyleContext>
 nsComputedDOMStyle::GetStyleContextForContent(nsIContent* aContent,
@@ -373,7 +357,8 @@ nsComputedDOMStyle::GetStyleContextForContentNoFlush(nsIContent* aContent,
   if (!aPseudo) {
     nsIFrame* frame = aPresShell->GetPrimaryFrameFor(aContent);
     if (frame) {
-      nsStyleContext* result = GetStyleContextForFrame(frame);
+      nsStyleContext* result =
+        nsLayoutUtils::GetStyleFrame(frame)->GetStyleContext();
       
       
       
