@@ -289,14 +289,8 @@ LoginManagerStorage_mozStorage.prototype = {
         
         this._checkLoginValues(login);
 
-        let userCanceled, encUsername, encPassword;
         
-        [encUsername, userCanceled] = this._encrypt(login.username);
-        if (userCanceled)
-            throw "User canceled master password entry, login not added.";
-
-        [encPassword, userCanceled] = this._encrypt(login.password);
-        
+        let [encUsername, encPassword, userCanceled] = this._encryptLogin(login);
         if (userCanceled)
             throw "User canceled master password entry, login not added.";
 
@@ -337,29 +331,7 @@ LoginManagerStorage_mozStorage.prototype = {
     removeLogin : function (login) {
         this._checkInitializationState();
 
-        let [logins, ids] =
-            this._queryLogins(login.hostname, login.formSubmitURL, login.httpRealm);
-        let idToDelete;
-
-        
-        
-        
-        
-        for (let i = 0; i < logins.length; i++) {
-            let [[decryptedLogin], userCanceled] =
-                        this._decryptLogins([logins[i]]);
-
-            if (userCanceled)
-                throw "User canceled master password entry, login not removed.";
-
-            if (!decryptedLogin || !decryptedLogin.equals(login))
-                continue;
-
-            
-            idToDelete = ids[i];
-            break;
-        }
-
+        let idToDelete = this._getIdForLogin(login);
         if (!idToDelete)
             throw "No matching logins";
 
@@ -389,21 +361,47 @@ LoginManagerStorage_mozStorage.prototype = {
         
         this._checkLoginValues(newLogin);
 
-        
-        
-        this._dbConnection.beginTransaction();
+        let idToModify = this._getIdForLogin(oldLogin);
+        if (!idToModify)
+            throw "No matching logins";
 
         
+        let [encUsername, encPassword, userCanceled] = this._encryptLogin(newLogin);
+        if (userCanceled)
+            throw "User canceled master password entry, login not modified.";
+
+        let query =
+            "UPDATE moz_logins " +
+            "SET hostname = :hostname, " +
+                "httpRealm = :httpRealm, " +
+                "formSubmitURL = :formSubmitURL, " +
+                "usernameField = :usernameField, " +
+                "passwordField = :passwordField, " +
+                "encryptedUsername = :encryptedUsername, " +
+                "encryptedPassword = :encryptedPassword " +
+            "WHERE id = :id";
+
+        let params = {
+            hostname:          newLogin.hostname,
+            httpRealm:         newLogin.httpRealm,
+            formSubmitURL:     newLogin.formSubmitURL,
+            usernameField:     newLogin.usernameField,
+            passwordField:     newLogin.passwordField,
+            encryptedUsername: encUsername,
+            encryptedPassword: encPassword,
+            id:                idToModify
+        };
+
+        let stmt;
         try {
-            this.removeLogin(oldLogin);
-            this.addLogin(newLogin);
+            stmt = this._dbCreateStatement(query, params);
+            stmt.execute();
         } catch (e) {
-            this._dbConnection.rollbackTransaction();
-            throw e;
+            this.log("modifyLogin failed: " + e.name + " : " + e.message);
+            throw "Couldn't write to database, login not modified.";
+        } finally {
+            stmt.reset();
         }
-
-        
-        this._dbConnection.commitTransaction();
     },
 
 
@@ -582,6 +580,40 @@ LoginManagerStorage_mozStorage.prototype = {
 
         this.log("_countLogins: counted logins: " + numLogins);
         return numLogins;
+    },
+
+
+    
+
+
+
+
+
+    _getIdForLogin : function (login) {
+        let [logins, ids] =
+            this._queryLogins(login.hostname, login.formSubmitURL, login.httpRealm);
+        let id = null;
+
+        
+        
+        
+        
+        for (let i = 0; i < logins.length; i++) {
+            let [[decryptedLogin], userCanceled] =
+                        this._decryptLogins([logins[i]]);
+
+            if (userCanceled)
+                throw "User canceled master password entry.";
+
+            if (!decryptedLogin || !decryptedLogin.equals(login))
+                continue;
+
+            
+            id = ids[i];
+            break;
+        }
+
+        return id;
     },
 
 
@@ -818,6 +850,28 @@ LoginManagerStorage_mozStorage.prototype = {
                 }
             }
         }
+    },
+
+
+    
+
+
+
+
+
+
+    _encryptLogin : function (login) {
+        let encUsername, encPassword, userCanceled;
+        [encUsername, userCanceled] = this._encrypt(login.username);
+        if (userCanceled)
+            return [null, null, true];
+
+        [encPassword, userCanceled] = this._encrypt(login.password);
+        
+        if (userCanceled)
+            return [null, null, true];
+
+        return [encUsername, encPassword, false];
     },
 
 
