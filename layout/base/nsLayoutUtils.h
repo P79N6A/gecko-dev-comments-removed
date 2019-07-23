@@ -335,12 +335,6 @@ public:
 
 
 
-  static PRBool IsRootElementFrame(nsIFrame* aFrame);
-
-  
-
-
-
 
 
 
