@@ -935,8 +935,7 @@ js_CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
             pn = NULL;
         } else {
             if (!js_FoldConstants(cx, pn, &funcg.treeContext) ||
-                !js_EmitFunctionBytecode(cx, &funcg, pn) ||
-                !js_NewScriptFromCG(cx, &funcg)) {
+                !js_EmitFunctionScript(cx, &funcg, pn)) {
                 pn = NULL;
             }
         }

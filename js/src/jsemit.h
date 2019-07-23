@@ -512,7 +512,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn);
 
 
 extern JSBool
-js_EmitFunctionBytecode(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body);
+js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body);
 
 
 
