@@ -2813,7 +2813,9 @@ nsTreeBodyFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsresult rv = nsLeafBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!mView)
+  
+  
+  if (!mView || !GetContent()->GetCurrentDoc()->GetScriptGlobalObject())
     return NS_OK;
 
   return aLists.Content()->AppendNewToTop(new (aBuilder)
