@@ -3484,11 +3484,6 @@ js_FindIdentifierBase(JSContext *cx, jsid id, JSPropCacheEntry *entry)
         return NULL;
     if (prop) {
         OBJ_DROP_PROPERTY(cx, pobj, prop);
-
-        JS_ASSERT_IF(entry,
-                     entry->kpc == ((PCVCAP_TAG(entry->vcap) > 1)
-                                    ? (jsbytecode *) JSID_TO_ATOM(id)
-                                    : cx->fp->regs->pc));
         return obj;
     }
 
@@ -3810,20 +3805,24 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
             JS_UNLOCK_SCOPE(cx, scope);
 
             
+
+
+
+
+
+
+
             if (attrs & JSPROP_SHARED) {
+                if (entryp) {
+                    PCMETER(JS_PROPERTY_CACHE(cx).nofills++);
+                    *entryp = NULL;
+                }
+
                 if (SPROP_HAS_STUB_SETTER(sprop) &&
                     !(sprop->attrs & JSPROP_GETTER)) {
-                    if (entryp) {
-                        PCMETER(JS_PROPERTY_CACHE(cx).nofills++);
-                        *entryp = NULL;
-                    }
                     return JS_TRUE;
                 }
 
-                if (entryp) {
-                    js_FillPropertyCache(cx, obj, type, 0, protoIndex,
-                                         pobj, sprop, entryp);
-                }
                 return SPROP_SET(cx, sprop, obj, pobj, vp);
             }
 
@@ -3902,8 +3901,12 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
     if (!js_NativeSet(cx, obj, sprop, vp))
         return JS_FALSE;
 
-    if (entryp)
-        js_FillPropertyCache(cx, obj, type, 0, 0, obj, sprop, entryp);
+    if (entryp) {
+        if (!(attrs & JSPROP_SHARED))
+            js_FillPropertyCache(cx, obj, type, 0, 0, obj, sprop, entryp);
+        else
+            PCMETER(JS_PROPERTY_CACHE(cx).nofills++);
+    }
     JS_UNLOCK_SCOPE(cx, scope);
     return JS_TRUE;
 
