@@ -1224,6 +1224,7 @@ void nsWindow::SetThemeRegion()
 
 
 
+
 NS_METHOD nsWindow::Move(PRInt32 aX, PRInt32 aY)
 {
   
@@ -1337,6 +1338,63 @@ NS_METHOD nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeig
 
   if (aRepaint)
     Invalidate(PR_FALSE);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical)
+{
+  NS_ENSURE_ARG_POINTER(aEvent);
+
+  if (aEvent->eventStructType != NS_MOUSE_EVENT) {
+    
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
+  if (mouseEvent->button != nsMouseEvent::eLeftButton) {
+    
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  
+  WPARAM syscommand;
+  if (aVertical < 0) {
+    if (aHorizontal < 0) {
+      syscommand = SC_SIZE | WMSZ_TOPLEFT;
+    } else if (aHorizontal == 0) {
+      syscommand = SC_SIZE | WMSZ_TOP;
+    } else {
+      syscommand = SC_SIZE | WMSZ_TOPRIGHT;
+    }
+  } else if (aVertical == 0) {
+    if (aHorizontal < 0) {
+      syscommand = SC_SIZE | WMSZ_LEFT;
+    } else if (aHorizontal == 0) {
+      return NS_ERROR_INVALID_ARG;
+    } else {
+      syscommand = SC_SIZE | WMSZ_RIGHT;
+    }
+  } else {
+    if (aHorizontal < 0) {
+      syscommand = SC_SIZE | WMSZ_BOTTOMLEFT;
+    } else if (aHorizontal == 0) {
+      syscommand = SC_SIZE | WMSZ_BOTTOM;
+    } else {
+      syscommand = SC_SIZE | WMSZ_BOTTOMRIGHT;
+    }
+  }
+
+  
+  CaptureMouse(PR_FALSE);
+
+  
+  HWND toplevelWnd = GetTopLevelHWND(mWnd, PR_TRUE);
+
+  
+  ::PostMessage(toplevelWnd, WM_SYSCOMMAND, syscommand,
+                POINTTOPOINTS(aEvent->refPoint));
 
   return NS_OK;
 }
