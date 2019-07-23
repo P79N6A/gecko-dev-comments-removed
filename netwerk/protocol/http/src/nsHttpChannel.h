@@ -149,6 +149,9 @@ private:
     PRBool   RequestIsConditional();
     nsresult Connect(PRBool firstTime = PR_TRUE);
     nsresult AsyncAbort(nsresult status);
+    
+    void     HandleAsyncNotifyListener();
+    void     DoNotifyListener();
     nsresult SetupTransaction();
     void     AddCookiesToRequest();
     nsresult ApplyContentConversions();
@@ -168,7 +171,8 @@ private:
 
     
     nsresult ProxyFailover();
-    nsresult ReplaceWithProxy(nsIProxyInfo *);
+    nsresult DoReplaceWithProxy(nsIProxyInfo *);
+    void HandleAsyncReplaceWithProxy();
     nsresult ResolveProxy();
 
     
@@ -267,6 +271,18 @@ private:
     
     nsCString                         mEntityID;
     PRUint64                          mStartPos;
+
+    
+    
+    
+    nsAsyncCallback                   mPendingAsyncCallOnResume;
+
+    
+    nsCOMPtr<nsIProxyInfo>            mTargetProxyInfo;
+
+    
+    
+    PRUint32                          mSuspendCount;
 
     
     PRUint8                           mRedirectionLimit;

@@ -104,6 +104,8 @@ nsHttpChannel::nsHttpChannel()
     , mProxyAuthContinuationState(nsnull)
     , mAuthContinuationState(nsnull)
     , mStartPos(LL_MAXUINT)
+    , mPendingAsyncCallOnResume(nsnull)
+    , mSuspendCount(0)
     , mRedirectionLimit(gHttpHandler->RedirectionLimit())
     , mIsPending(PR_FALSE)
     , mWasOpened(PR_FALSE)
@@ -354,31 +356,53 @@ nsHttpChannel::AsyncAbort(nsresult status)
     mStatus = status;
     mIsPending = PR_FALSE;
 
+    nsresult rv = AsyncCall(&nsHttpChannel::HandleAsyncNotifyListener);
     
-    nsCOMPtr<nsIRequestObserver> observer;
-    NS_NewRequestObserverProxy(getter_AddRefs(observer), mListener,
-                               NS_GetCurrentThread());
-    if (observer) {
-        observer->OnStartRequest(this, mListenerContext);
-        observer->OnStopRequest(this, mListenerContext, mStatus);
-    }
-    else {
-        NS_ERROR("unable to create request observer proxy");
-        
-    }
-    mListener = 0;
-    mListenerContext = 0;
-
+    
     
     if (mLoadGroup)
         mLoadGroup->RemoveRequest(this, nsnull, status);
 
-    return NS_OK;
+    return rv;
+}
+
+void
+nsHttpChannel::HandleAsyncNotifyListener()
+{
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
+    
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async notification [this=%p]\n",
+             this));
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncNotifyListener;
+        return;
+    }
+
+    DoNotifyListener();
+}
+
+void
+nsHttpChannel::DoNotifyListener()
+{
+    if (mListener) {
+        mListener->OnStartRequest(this, mListenerContext);
+        mListener->OnStopRequest(this, mListenerContext, mStatus);
+        mListener = 0;
+        mListenerContext = 0;
+    }
 }
 
 void
 nsHttpChannel::HandleAsyncRedirect()
 {
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
+    
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async redirect [this=%p]\n", this));
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncRedirect;
+        return;
+    }
+
     nsresult rv = NS_OK;
 
     LOG(("nsHttpChannel::HandleAsyncRedirect [this=%p]\n", this));
@@ -393,12 +417,7 @@ nsHttpChannel::HandleAsyncRedirect()
             
             LOG(("ProcessRedirection failed [rv=%x]\n", rv));
             mStatus = rv;
-            if (mListener) {
-                mListener->OnStartRequest(this, mListenerContext);
-                mListener->OnStopRequest(this, mListenerContext, mStatus);
-                mListener = 0;
-                mListenerContext = 0;
-            }
+            DoNotifyListener();
         }
     }
 
@@ -419,14 +438,18 @@ nsHttpChannel::HandleAsyncRedirect()
 void
 nsHttpChannel::HandleAsyncNotModified()
 {
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
+    
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async not-modified [this=%p]\n",
+             this));
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncNotModified;
+        return;
+    }
+    
     LOG(("nsHttpChannel::HandleAsyncNotModified [this=%p]\n", this));
 
-    if (mListener) {
-        mListener->OnStartRequest(this, mListenerContext);
-        mListener->OnStopRequest(this, mListenerContext, mStatus);
-        mListener = 0;
-        mListenerContext = 0;
-    }
+    DoNotifyListener();
 
     CloseCacheEntry();
 
@@ -986,11 +1009,42 @@ nsHttpChannel::ProxyFailover()
     if (NS_FAILED(rv))
         return rv;
 
-    return ReplaceWithProxy(pi);
+    
+    
+    return DoReplaceWithProxy(pi);
+}
+
+void
+nsHttpChannel::HandleAsyncReplaceWithProxy()
+{
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
+
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async proxy replacement [this=%p]\n",
+             this));
+        mPendingAsyncCallOnResume =
+            &nsHttpChannel::HandleAsyncReplaceWithProxy;
+        return;
+    }
+
+    nsresult status = mStatus;
+    
+    nsCOMPtr<nsIProxyInfo> pi;
+    pi.swap(mTargetProxyInfo);
+    if (!mCanceled) {
+        status = DoReplaceWithProxy(pi);
+        if (mLoadGroup && NS_SUCCEEDED(status)) {
+            mLoadGroup->RemoveRequest(this, nsnull, mStatus);
+        }
+    }
+
+    if (NS_FAILED(status)) {
+        AsyncAbort(status);
+    }
 }
 
 nsresult
-nsHttpChannel::ReplaceWithProxy(nsIProxyInfo *pi)
+nsHttpChannel::DoReplaceWithProxy(nsIProxyInfo* pi)
 {
     nsresult rv;
 
@@ -3335,25 +3389,39 @@ nsHttpChannel::Cancel(nsresult status)
 NS_IMETHODIMP
 nsHttpChannel::Suspend()
 {
+    NS_ENSURE_TRUE(mIsPending, NS_ERROR_NOT_AVAILABLE);
+    
     LOG(("nsHttpChannel::Suspend [this=%x]\n", this));
+
+    ++mSuspendCount;
+
     if (mTransactionPump)
         return mTransactionPump->Suspend();
     if (mCachePump)
         return mCachePump->Suspend();
 
-    return NS_ERROR_UNEXPECTED;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
 nsHttpChannel::Resume()
 {
+    NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
+    
     LOG(("nsHttpChannel::Resume [this=%x]\n", this));
+        
+    if (--mSuspendCount == 0 && mPendingAsyncCallOnResume) {
+        nsresult rv = AsyncCall(mPendingAsyncCallOnResume);
+        mPendingAsyncCallOnResume = nsnull;
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
     if (mTransactionPump)
         return mTransactionPump->Resume();
     if (mCachePump)
         return mCachePump->Resume();
 
-    return NS_ERROR_UNEXPECTED;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -4170,17 +4238,8 @@ nsHttpChannel::OnProxyAvailable(nsICancelable *request, nsIURI *uri,
     
     
     
-    if (!mCanceled) {
-        status = ReplaceWithProxy(pi);
-
-        
-        
-        if (mLoadGroup && NS_SUCCEEDED(status))
-            mLoadGroup->RemoveRequest(this, nsnull, mStatus);
-    }
-
-    if (NS_FAILED(status))
-        AsyncAbort(status);
+    mTargetProxyInfo = pi;
+    HandleAsyncReplaceWithProxy();
     return NS_OK;
 }
 
