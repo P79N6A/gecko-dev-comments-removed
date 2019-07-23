@@ -162,7 +162,7 @@ nsMacShellService::SetDefaultBrowser(PRBool aClaimAllTypes, PRBool aForAllUsers)
 
     FSRef firefoxFSRef;
     
-    if (::CFURLGetFSRef(firefoxURL, &firefoxFSRef)); {
+    if (::CFURLGetFSRef(firefoxURL, &firefoxFSRef)) {
       
       ::_LSSetWeakBindingForType(0, 0, CFSTR("html"), kLSRolesAll, &firefoxFSRef);
       ::_LSSetWeakBindingForType(0, 0, CFSTR("htm"), kLSRolesAll, &firefoxFSRef);
