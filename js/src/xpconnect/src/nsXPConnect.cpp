@@ -542,8 +542,6 @@ void XPCMarkNotification(void *thing, uint8 flags, void *closure)
     JSObjectRefcounts* jsr = NS_STATIC_CAST(JSObjectRefcounts*, closure);
     
     
-    
-    
     if(jsr->mMarkEnded)
         jsr->MarkStart();
     jsr->Ref(thing);
@@ -1656,7 +1654,7 @@ nsXPConnect::CreateSandbox(JSContext *cx, nsIPrincipal *principal,
                  "Bad return value from xpc_CreateSandboxObject()!");
 
     if (NS_SUCCEEDED(rv) && !JSVAL_IS_PRIMITIVE(rval)) {
-        *_retval = XPCJSObjectHolder::newHolder(cx, JSVAL_TO_OBJECT(rval));
+        *_retval = XPCJSObjectHolder::newHolder(ccx, JSVAL_TO_OBJECT(rval));
         NS_ENSURE_TRUE(*_retval, NS_ERROR_OUT_OF_MEMORY);
 
         NS_ADDREF(*_retval);

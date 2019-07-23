@@ -55,32 +55,39 @@ NS_IMPL_CI_INTERFACE_GETTER2(XPCVariant, XPCVariant, nsIVariant)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(XPCVariant)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(XPCVariant)
 
-XPCVariant::XPCVariant(JSRuntime* aJSRuntime)
-    : mJSVal(JSVAL_VOID),
-      mJSRuntime(aJSRuntime)
+XPCVariant::XPCVariant(jsval aJSVal)
+    : mJSVal(aJSVal)
 {
     nsVariant::Initialize(&mData);
 }
 
-XPCVariant::~XPCVariant()
+XPCTraceableVariant::~XPCTraceableVariant()
 {
+    NS_ASSERTION(JSVAL_IS_TRACEABLE(mJSVal), "Must be tracaeble");
+
     
     
     if(!JSVAL_IS_STRING(mJSVal))
         nsVariant::Cleanup(&mData);
-    
-    if(JSVAL_IS_GCTHING(mJSVal))
-    {
-        NS_ASSERTION(mJSRuntime, "Must have a runtime!");
-#ifdef GC_MARK_DEBUG
-        JS_RemoveRootRT(mJSRuntime, &mJSVal);
-        JS_smprintf_free(mGCRootName);
-        mGCRootName = nsnull;
-#else
-        JS_UnlockGCThingRT(mJSRuntime, JSVAL_TO_GCTHING(mJSVal));
-#endif
-    }
+
+    RemoveFromRootSet(nsXPConnect::GetRuntime()->GetJSRuntime());
 }
+
+void XPCTraceableVariant::TraceJS(JSTracer* trc)
+{
+    NS_ASSERTION(JSVAL_IS_TRACEABLE(mJSVal), "Must be tracaeble");
+    JS_SET_TRACING_DETAILS(trc, PrintTraceName, this, 0);
+    JS_CallTracer(trc, JSVAL_TO_TRACEABLE(mJSVal), JSVAL_TRACE_KIND(mJSVal));
+}
+
+#ifdef DEBUG
+
+void
+XPCTraceableVariant::PrintTraceName(JSTracer* trc, char *buf, size_t bufsize)
+{
+    JS_snprintf(buf, bufsize, "XPCVariant[0x%p].mJSVal", trc->debugPrintArg);
+}
+#endif
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(XPCVariant)
     if(JSVAL_IS_OBJECT(tmp->mJSVal))
@@ -99,37 +106,22 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_0(XPCVariant)
 
 XPCVariant* XPCVariant::newVariant(XPCCallContext& ccx, jsval aJSVal)
 {
-    XPCVariant* variant = new XPCVariant(JS_GetRuntime(ccx));
+    XPCVariant* variant;
+
+    if(!JSVAL_IS_TRACEABLE(aJSVal))
+        variant = new XPCVariant(aJSVal);
+    else
+        variant = new XPCTraceableVariant(ccx.GetRuntime(), aJSVal);
+
     if(!variant)
         return nsnull;
-    
     NS_ADDREF(variant);
 
-    variant->mJSVal = aJSVal;
-
-    if(JSVAL_IS_GCTHING(variant->mJSVal))
-    {
-        PRBool ok;
-#ifdef GC_MARK_DEBUG
-        variant->mGCRootName = JS_smprintf("XPCVariant::mJSVal[0x%p]", variant);
-        ok = JS_AddNamedRoot(ccx, &variant->mJSVal, variant->mGCRootName);
-#else
-        
-        
-        ok = JS_LockGCThing(ccx, JSVAL_TO_GCTHING(variant->mJSVal));
-#endif
-        if(!ok)
-        {
-            NS_RELEASE(variant); 
-        }
-    }
-
-    if(variant && !variant->InitializeData(ccx))
+    if(!variant->InitializeData(ccx))
         NS_RELEASE(variant);     
 
     return variant;
 }
-
 
 
 class XPCArrayHomogenizer
