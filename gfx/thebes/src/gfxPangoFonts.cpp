@@ -654,7 +654,7 @@ gfxPangoFont::GetMetrics()
         mMetrics.subscriptOffset = mMetrics.xHeight;
     }
 
-    SanitizeMetrics(&mMetrics);
+    SanitizeMetrics(&mMetrics, PR_FALSE);
 
 #if 0
     

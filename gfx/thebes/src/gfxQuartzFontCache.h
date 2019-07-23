@@ -72,9 +72,11 @@ class MacOSFontEntry
 public:
     THEBES_INLINE_DECL_REFCOUNTING(MacOSFontEntry)
 
+    friend class gfxQuartzFontCache;
+
     
     MacOSFontEntry(const nsAString& aPostscriptName, PRInt32 aAppleWeight, PRUint32 aTraits, 
-                    MacOSFamilyEntry *aFamily);  
+                    MacOSFamilyEntry *aFamily);
 
     const nsString& Name() { return mPostscriptName; }
     const nsString& FamilyName();
@@ -85,13 +87,14 @@ public:
     PRBool IsItalicStyle();
     PRBool IsBold();
 
-    ATSUFontID GetFontID();                   
+    ATSUFontID GetFontID();
     nsresult ReadCMAP();
     inline PRBool TestCharacterMap(PRUint32 aCh) {
         if ( !mCmapInitialized ) ReadCMAP();
         return mCharacterMap.test(aCh);
     }
-        
+
+    MacOSFamilyEntry* FamilyEntry() { return mFamily; }
 protected:
     nsString mPostscriptName;
     PRInt32 mWeight; 
@@ -115,8 +118,11 @@ class MacOSFamilyEntry
 public:
     THEBES_INLINE_DECL_REFCOUNTING(MacOSFamilyEntry)
 
+    friend class gfxQuartzFontCache;
+
     MacOSFamilyEntry(nsString &aName) :
-        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE)
+        mName(aName), mOtherFamilyNamesInitialized(PR_FALSE), mHasOtherFamilyNames(PR_FALSE),
+        mIsBadUnderlineFontFamily(PR_FALSE)
     {}
   
     virtual ~MacOSFamilyEntry() {}
@@ -144,7 +150,10 @@ public:
     
     
     MacOSFontEntry* FindFont(const nsString& aPostscriptName);
+
     
+    PRBool IsBadUnderlineFontFamily() { return mIsBadUnderlineFontFamily != 0; }
+
 protected:
     
     
@@ -160,6 +169,7 @@ protected:
     nsTArray<nsRefPtr<MacOSFontEntry> >  mAvailableFonts;
     PRPackedBool mOtherFamilyNamesInitialized;
     PRPackedBool mHasOtherFamilyNames;
+    PRPackedBool mIsBadUnderlineFontFamily;
 };
 
 
@@ -242,7 +252,10 @@ private:
     
     
     void PreloadNamesList();
+
     
+    void InitBadUnderlineList();
+
     
     void EliminateDuplicateFaces(const nsAString& aFamilyName);
                                                              

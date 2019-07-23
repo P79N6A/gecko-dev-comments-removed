@@ -550,7 +550,8 @@ protected:
     nsAutoTArray<gfxGlyphExtents*,1> mGlyphExtentsArray;
 
     
-    void SanitizeMetrics(gfxFont::Metrics *aMetrics);
+    
+    void SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont);
 };
 
 class THEBES_API gfxTextRunFactory {
@@ -1453,10 +1454,27 @@ public:
 
     const nsString& GetFamilies() { return mFamilies; }
 
+    
+    
+    
+    
+    
+    gfxFloat GetUnderlineOffset() {
+        if (mUnderlineOffset == 0)
+            mUnderlineOffset = GetFontAt(0)->GetMetrics().underlineOffset;
+        return mUnderlineOffset;
+    }
+
 protected:
     nsString mFamilies;
     gfxFontStyle mStyle;
     nsTArray< nsRefPtr<gfxFont> > mFonts;
+    gfxFloat mUnderlineOffset;
+
+    
+    
+    
+    void InitMetricsForBadFont(gfxFont* aBadFont);
 
     
 

@@ -335,12 +335,12 @@ protected:
 
 
   virtual void PaintTextDecorationLine(nsIRenderingContext& aRenderingContext,
-                                       nsPoint aPt,
+                                       const nsPoint& aPt,
                                        nsLineBox* aLine,
                                        nscolor aColor,
-                                       nscoord aOffset,
-                                       nscoord aAscent,
-                                       nscoord aSize,
+                                       gfxFloat aOffset,
+                                       gfxFloat aAscent,
+                                       gfxFloat aSize,
                                        const PRUint8 aDecoration);
 
   void TryAllLines(nsLineList::iterator* aIterator,

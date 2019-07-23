@@ -527,7 +527,7 @@ gfxFont::SetupGlyphExtents(gfxContext *aContext, PRUint32 aGlyphID, PRBool aNeed
 }
 
 void
-gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics)
+gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont)
 {
     
     
@@ -549,10 +549,33 @@ gfxFont::SanitizeMetrics(gfxFont::Metrics *aMetrics)
 
     
 
+
+
+
+
+    if (!mStyle.systemFont && aIsBadUnderlineFont) {
+        
+        
+        aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -2.0);
+
+        
+        
+        
+        
+        
+        if (aMetrics->internalLeading + aMetrics->externalLeading > aMetrics->underlineSize) {
+            aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -aMetrics->emDescent);
+        } else {
+            aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset,
+                                               aMetrics->underlineSize - aMetrics->emDescent);
+        }
+    }
     
     
-    if (aMetrics->underlineSize - aMetrics->underlineOffset > aMetrics->maxDescent)
+    else if (aMetrics->underlineSize - aMetrics->underlineOffset > aMetrics->maxDescent) {
         aMetrics->underlineOffset = aMetrics->underlineSize - aMetrics->maxDescent;
+        aMetrics->underlineOffset = PR_MIN(aMetrics->underlineOffset, -1.0);
+    }
 }
 
 gfxGlyphExtents::~gfxGlyphExtents()
@@ -669,7 +692,7 @@ gfxGlyphExtents::SetTightGlyphExtents(PRUint32 aGlyphID, const gfxRect& aExtents
 }
 
 gfxFontGroup::gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle)
-    : mFamilies(aFamilies), mStyle(*aStyle)
+    : mFamilies(aFamilies), mStyle(*aStyle), mUnderlineOffset(0)
 {
 
 }

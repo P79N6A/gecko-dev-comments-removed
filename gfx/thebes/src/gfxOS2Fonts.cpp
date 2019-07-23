@@ -182,7 +182,7 @@ const gfxFont::Metrics& gfxOS2Font::GetMetrics()
         }
         mMetrics->externalLeading = 0; 
 
-        SanitizeMetrics(mMetrics);
+        SanitizeMetrics(mMetrics, PR_FALSE);
 
 #ifdef DEBUG_thebes_1
         printf("gfxOS2Font[%#x]::GetMetrics():\n"

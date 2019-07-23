@@ -64,7 +64,7 @@ public:
 
     FontEntry(const nsAString& aName, PRUint16 aFontType) : 
         mName(aName), mFontType(aFontType), mDefaultWeight(0),
-        mUnicodeFont(PR_FALSE), mSymbolFont(PR_FALSE),
+        mUnicodeFont(PR_FALSE), mSymbolFont(PR_FALSE), mIsBadUnderlineFont(PR_FALSE),
         mCharset(0), mUnicodeRanges(0)
     {
     }
@@ -180,6 +180,9 @@ public:
     };
 
     
+    PRBool IsBadUnderlineFont() { return mIsBadUnderlineFont != 0; }
+
+    
     nsString mName;
 
     PRUint16 mFontType;
@@ -189,6 +192,7 @@ public:
     PRUint8 mPitch;
     PRPackedBool mUnicodeFont;
     PRPackedBool mSymbolFont;
+    PRPackedBool mIsBadUnderlineFont;
 
     std::bitset<256> mCharset;
     std::bitset<128> mUnicodeRanges;
