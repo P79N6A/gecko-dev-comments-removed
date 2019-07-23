@@ -416,7 +416,6 @@ OutparamCheck.prototype.processCall = function(dest, expr, blame, state) {
     let ct = TREE_TYPE(callable);
     if (TREE_CODE(ct) == POINTER_TYPE) ct = TREE_TYPE(ct);
     if (args.length < psem.length || !stdarg_p(ct)) {
-      
       let name = function_decl_name(callable);
       
       if (name != 'operator new' && name != 'operator delete' &&
@@ -683,15 +682,18 @@ OutparamCheck.prototype.func_param_semantics = function(callable) {
       
       sem = ps.OUTNOFAIL;
     } else {
-      if (params) sem = param_semantics(params[i]);
+      if (params) sem = decode_attr(DECL_ATTRIBUTES(params[i]));
       if (TRACE_CALL_SEM >= 2) print("param " + i + ": annotated " + sem);
       if (sem == undefined) {
-        if (guess) {
-          sem = param_semantics_by_type(types[i]);
-          
-          if (i < types.length - 1 && sem == ps.OUT) sem = ps.MAYBE;
-        } else {
-          sem = ps.CONST;
+        sem = decode_attr(TYPE_ATTRIBUTES(types[i]));
+        if (TRACE_CALL_SEM >= 2) print("type " + i + ": annotated " + sem);
+        if (sem == undefined) {
+          if (guess && type_is_outparam(types[i])) {
+            
+            sem = i < types.length - 1 ? ps.MAYBE : ps.OUT;
+          } else {
+            sem = ps.CONST;
+          }
         }
       }
       if (sem == ps.OUT && nofail) sem = ps.OUTNOFAIL;
@@ -704,8 +706,13 @@ OutparamCheck.prototype.func_param_semantics = function(callable) {
 
 
 
-function param_semantics(decl) {
-  for each (let attr in rectify_attributes(DECL_ATTRIBUTES(decl))) {
+
+
+
+function decode_attr(attrs) {
+  
+  
+  for each (let attr in rectify_attributes(attrs)) {
     if (attr.name == 'user') {
       for each (let arg in attr.args) {
         if (arg == 'NS_outparam') {
@@ -722,57 +729,57 @@ function param_semantics(decl) {
 }
 
 
-function param_semantics_by_type(type) {
+
+
+function type_is_outparam(type) {
   switch (TREE_CODE(type)) {
   case POINTER_TYPE:
-    let pt = TREE_TYPE(type);
-    if (TYPE_READONLY(pt)) return ps.CONST;
-    switch (TREE_CODE(pt)) {
-    case RECORD_TYPE:
-      
-      return ps.CONST;
-    case POINTER_TYPE:
-    case ARRAY_TYPE:
-      
-      let ppt = TREE_TYPE(pt);
-      let tname = TYPE_NAME(ppt);
-      if (tname == undefined) return ps.CONST;
-      let name = decl_name_string(tname);
-      return name == 'void' || name == 'char' || name == 'PRUnichar' ||
-        name.substr(0, 3) == 'nsI' ?
-        ps.OUT : ps.CONST;
-    case INTEGER_TYPE: {
-      let name = decl_name_string(TYPE_NAME(pt));
-      return name != 'char' && name != 'PRUnichar' ? ps.OUT : ps.CONST;
-    }
-    case ENUMERAL_TYPE:
-    case REAL_TYPE:
-    case UNION_TYPE:
-      return TYPE_READONLY(pt) ? ps.CONST : ps.OUT;
-    case FUNCTION_TYPE:
-    case VOID_TYPE:
-      return ps.CONST;
-    default:
-      print("Y " + TREE_CODE(pt));
-      print('Y ' + type_string(pt));
-      throw new Error("ni");
-    }
-    break;
+    return pointer_type_is_outparam(TREE_TYPE(type));
   case REFERENCE_TYPE:
     let rt = TREE_TYPE(type);
-    return !TYPE_READONLY(rt) && is_string_type(rt) ? ps.OUT : ps.CONST;
-  case BOOLEAN_TYPE:
-  case INTEGER_TYPE:
-  case REAL_TYPE:
-  case ENUMERAL_TYPE:
-  case RECORD_TYPE:
-  case UNION_TYPE:    
-  case ARRAY_TYPE:
-    return ps.CONST;
+    return !TYPE_READONLY(rt) && is_string_type(rt);
   default:
-    print("Z " + TREE_CODE(type));
-    print('Z ' + type_string(type));
-    throw new Error("ni");
+    
+    
+    return false;
+  }
+}
+
+
+
+function pointer_type_is_outparam(pt) {
+  if (TYPE_READONLY(pt)) return false;
+
+  switch (TREE_CODE(pt)) {
+  case POINTER_TYPE:
+  case ARRAY_TYPE: {
+    
+    let ppt = TREE_TYPE(pt);
+    let tname = TYPE_NAME(ppt);
+    if (tname == undefined) return false;
+    let name = decl_name_string(tname);
+    return name == 'void' || name == 'char' || name == 'PRUnichar' ||
+      name.substr(0, 3) == 'nsI';
+  }
+  case INTEGER_TYPE: {
+    
+    
+    let name = decl_name_string(TYPE_NAME(pt));
+    return name != 'char' && name != 'PRUnichar';
+  }
+  case ENUMERAL_TYPE:
+  case REAL_TYPE:
+  case UNION_TYPE:
+    return true;
+  case RECORD_TYPE:
+    
+    return false;
+  case FUNCTION_TYPE:
+  case VOID_TYPE:
+    return false;
+  default:
+    throw new Error("can't guess if a pointer to this type is an outparam: " +
+                    TREE_CODE(pt) + ': ' + type_string(pt));
   }
 }
 
