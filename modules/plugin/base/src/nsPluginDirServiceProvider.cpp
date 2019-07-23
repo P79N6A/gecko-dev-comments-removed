@@ -223,13 +223,12 @@ CompareVersion(verBlock vbVersionOld, verBlock vbVersionNew)
 
 
 static PRBool
-PreferNPRuntimeJavaPlugIn(const char* javaVersion)
+PreferNPRuntimeJavaPlugIn(const TCHAR* javaVersion)
 {
   HKEY javaKey = NULL;
-  char keyName[_MAX_PATH];
-  keyName[0] = 0;
-  PL_strcat(keyName, "Software\\JavaSoft\\Java Plug-in\\");
-  PL_strcat(keyName, javaVersion);
+  TCHAR keyName[_MAX_PATH];
+  _tcscpy(keyName, TEXT("Software\\JavaSoft\\Java Plug-in\\"));
+  _tcscat(keyName, javaVersion);
   DWORD val;
   DWORD valSize = sizeof(DWORD);
 
@@ -239,7 +238,7 @@ PreferNPRuntimeJavaPlugIn(const char* javaVersion)
   }
 
   
-  if (ERROR_SUCCESS != ::RegQueryValueEx(javaKey, "UseNewJavaPlugin",
+  if (ERROR_SUCCESS != ::RegQueryValueEx(javaKey, TEXT("UseNewJavaPlugin"),
                                          NULL, NULL,
                                          (LPBYTE) &val,
                                          &valSize)) {
