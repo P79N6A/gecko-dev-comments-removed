@@ -350,9 +350,12 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
           nsAutoString title;
           aPreviousResult->GetCommentAt(i, title);
 
-          PRBool isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, url);
+          
+          
+          
+          PRBool isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, title);
           if (!isMatch)
-            isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, title);
+            isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, url);
 
           if (isMatch) {
             nsAutoString image;
