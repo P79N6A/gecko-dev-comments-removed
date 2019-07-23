@@ -208,21 +208,6 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class THEBES_API PlanarYCbCrImage : public Image {
 public:
   struct Data {
@@ -235,11 +220,15 @@ public:
     PRUint8* mCrChannel;
     PRInt32 mCbCrStride;
     gfxIntSize mCbCrSize;
-    
-    PRUint32 mPicX;
-    PRUint32 mPicY;
-    gfxIntSize mPicSize;
   };
+
+  typedef void (* ToARGBHook)(const Data& aData, PRUint8* aOutput);
+  
+
+
+
+
+  virtual void SetRGBConverter(ToARGBHook aHook) {}
 
   
 
