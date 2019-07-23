@@ -193,9 +193,17 @@ NS_IMETHODIMP
 nsMemoryImpl::IsLowMemory(PRBool *result)
 {
 #if defined(WINCE)
+    *result = PR_FALSE;
+    
+    
+    
+    
+    
+#if 0
     MEMORYSTATUS stat;
     GlobalMemoryStatus(&stat);
     *result = ((float)stat.dwAvailPhys / stat.dwTotalPhys) < 0.1;
+#endif
 #elif defined(XP_WIN)
     MEMORYSTATUSEX stat;
     stat.dwLength = sizeof stat;
