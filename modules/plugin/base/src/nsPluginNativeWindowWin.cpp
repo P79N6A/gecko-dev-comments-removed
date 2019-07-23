@@ -318,6 +318,9 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     case WM_SETFOCUS:
     case WM_KILLFOCUS: {
       
+      if (win->mPluginType == nsPluginType_Real && msg == sLastMsg)
+        return TRUE;
+      
       
       WNDPROC prevWndProc = win->GetPrevWindowProc();
       if (prevWndProc)
