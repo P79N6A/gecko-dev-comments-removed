@@ -1,0 +1,58 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef nsPrintDialog_h__
+#define nsPrintDialog_h__
+
+#include "nsIPrintDialogService.h"
+
+class nsIPrintSettings;
+
+class nsPrintDialogServiceGTK : public nsIPrintDialogService
+{
+public:
+  nsPrintDialogServiceGTK();
+  virtual ~nsPrintDialogServiceGTK();
+
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHODIMP Init();
+  NS_IMETHODIMP Show(nsIPrintSettings *aSettings);
+  NS_IMETHODIMP ShowPageSetup(nsIPrintSettings *aSettings);
+};
+
+#endif

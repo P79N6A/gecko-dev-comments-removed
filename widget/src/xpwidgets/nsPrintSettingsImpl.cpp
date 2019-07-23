@@ -974,6 +974,15 @@ nsPrintSettings::GetEdgeInTwips(nsMargin& aEdge)
 
 
 
+NS_IMETHODIMP
+nsPrintSettings::SetupSilentPrinting()
+{
+  return NS_OK;
+}
+
+
+
+
 NS_IMETHODIMP 
 nsPrintSettings::GetEffectivePageSize(double *aWidth, double *aHeight)
 {
