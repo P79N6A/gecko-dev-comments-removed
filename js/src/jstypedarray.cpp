@@ -520,9 +520,18 @@ class TypedArrayTemplate
         jsuint index;
         
         if (!tarray->isArrayIndex(cx, id, &index)) {
+#if 0
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_TYPED_ARRAY_BAD_INDEX);
             return false;
+#endif
+            
+            
+            
+            
+            
+            *vp = JSVAL_VOID;
+            return true;
         }
 
         if (JSVAL_IS_INT(*vp)) {
