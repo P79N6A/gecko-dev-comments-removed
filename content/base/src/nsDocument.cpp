@@ -7618,6 +7618,44 @@ nsDocument::MaybePreLoadImage(nsIURI* uri)
   }
 }
 
+namespace {
+
+
+
+
+
+class StubCSSLoaderObserver : public nsICSSLoaderObserver {
+public:
+  NS_IMETHOD
+  StyleSheetLoaded(nsICSSStyleSheet*, PRBool, nsresult)
+  {
+    return NS_OK;
+  }
+  NS_DECL_ISUPPORTS
+};
+NS_IMPL_ISUPPORTS1(StubCSSLoaderObserver, nsICSSLoaderObserver)
+
+}
+
+void
+nsDocument::PreloadStyle(nsIURI* uri, const nsAString& charset)
+{
+  
+  nsCOMPtr<nsICSSLoaderObserver> obs = new StubCSSLoaderObserver();
+
+  
+  CSSLoader()->LoadSheet(uri, NodePrincipal(),
+                         NS_LossyConvertUTF16toASCII(charset),
+                         obs);
+}
+
+nsresult
+nsDocument::LoadChromeSheetSync(nsIURI* uri, PRBool isAgentSheet,
+                                nsICSSStyleSheet** sheet)
+{
+  return CSSLoader()->LoadSheetSync(uri, isAgentSheet, isAgentSheet, sheet);
+}
+
 class nsDelayedEventDispatcher : public nsRunnable
 {
 public:

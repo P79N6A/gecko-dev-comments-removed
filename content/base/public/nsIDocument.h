@@ -69,6 +69,7 @@ class nsIDocShell;
 class nsStyleSet;
 class nsIStyleSheet;
 class nsIStyleRule;
+class nsICSSStyleSheet;
 class nsIViewManager;
 class nsIScriptGlobalObject;
 class nsPIDOMWindow;
@@ -112,8 +113,8 @@ class Link;
 
 
 #define NS_IDOCUMENT_IID      \
-  { 0xd7978655, 0x9b7d, 0x41e6, \
-    { 0xad, 0x48, 0xdf, 0x32, 0x0b, 0x06, 0xb4, 0xda } }
+{ 0x0bce8f8b, 0x8e27, 0x44e6, \
+  { 0x92, 0xbc, 0x65, 0xd0, 0x80, 0x5b, 0x7f, 0xb4 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1207,6 +1208,23 @@ public:
 
 
   virtual void MaybePreLoadImage(nsIURI* uri) = 0;
+
+  
+
+
+
+  virtual void PreloadStyle(nsIURI* aURI, const nsAString& aCharset) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual nsresult LoadChromeSheetSync(nsIURI* aURI, PRBool aIsAgentSheet,
+                                       nsICSSStyleSheet** aSheet) = 0;
 
   
 

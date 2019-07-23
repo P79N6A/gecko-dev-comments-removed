@@ -76,7 +76,6 @@
 
 #include "nsIAtom.h"
 #include "nsICommandLine.h"
-#include "nsICSSLoader.h"
 #include "nsICSSStyleSheet.h"
 #include "nsIConsoleService.h"
 #include "nsIDirectoryService.h"
@@ -865,10 +864,6 @@ static void FlushSkinBindingsForWindow(nsIDOMWindowInternal* aWindow)
 
 NS_IMETHODIMP nsChromeRegistry::RefreshSkins()
 {
-  nsCOMPtr<nsICSSLoader> cssLoader(do_CreateInstance(kCSSLoaderCID));
-  if (!cssLoader)
-    return NS_OK;
-
   nsCOMPtr<nsIWindowMediator> windowMediator
     (do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
   if (!windowMediator)
@@ -890,7 +885,7 @@ NS_IMETHODIMP nsChromeRegistry::RefreshSkins()
   }
 
   FlushSkinCaches();
-  
+
   windowMediator->GetEnumerator(nsnull, getter_AddRefs(windowEnumerator));
   windowEnumerator->HasMoreElements(&more);
   while (more) {
@@ -899,7 +894,7 @@ NS_IMETHODIMP nsChromeRegistry::RefreshSkins()
     if (protoWindow) {
       nsCOMPtr<nsIDOMWindowInternal> domWindow = do_QueryInterface(protoWindow);
       if (domWindow)
-        RefreshWindow(domWindow, cssLoader);
+        RefreshWindow(domWindow);
     }
     windowEnumerator->HasMoreElements(&more);
   }
@@ -927,8 +922,7 @@ static PRBool IsChromeURI(nsIURI* aURI)
 }
 
 
-nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow,
-                                         nsICSSLoader* aCSSLoader)
+nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow)
 {
   
   nsCOMPtr<nsIDOMWindowCollection> frames;
@@ -940,7 +934,7 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow,
     nsCOMPtr<nsIDOMWindow> childWin;
     frames->Item(j, getter_AddRefs(childWin));
     nsCOMPtr<nsIDOMWindowInternal> childInt(do_QueryInterface(childWin));
-    RefreshWindow(childInt, aCSSLoader);
+    RefreshWindow(childInt);
   }
 
   nsresult rv;
@@ -973,8 +967,8 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow,
       if (IsChromeURI(uri)) {
         
         nsCOMPtr<nsICSSStyleSheet> newSheet;
-        rv = aCSSLoader->LoadSheetSync(uri, PR_TRUE, PR_TRUE,
-                                       getter_AddRefs(newSheet));
+        rv = document->LoadChromeSheetSync(uri, PR_TRUE,
+                                           getter_AddRefs(newSheet));
         if (NS_FAILED(rv)) return rv;
         if (newSheet) {
           rv = newAgentSheets.AppendObject(newSheet) ? NS_OK : NS_ERROR_FAILURE;
@@ -1002,7 +996,7 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow,
   for (i = 0; i < count; i++) {
     
     nsIStyleSheet *styleSheet = document->GetStyleSheetAt(i);
-    
+
     if (!oldSheets.AppendObject(styleSheet)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -1019,8 +1013,7 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow,
       nsCOMPtr<nsICSSStyleSheet> newSheet;
       
       
-      
-      aCSSLoader->LoadSheetSync(uri, getter_AddRefs(newSheet));
+      document->LoadChromeSheetSync(uri, PR_FALSE, getter_AddRefs(newSheet));
       
       newSheets.AppendObject(newSheet);
     }

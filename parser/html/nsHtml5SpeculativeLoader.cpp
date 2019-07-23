@@ -39,28 +39,12 @@
 
 
 #include "nsHtml5SpeculativeLoader.h"
-#include "nsICSSLoader.h"
 #include "nsNetUtil.h"
 #include "nsScriptLoader.h"
-#include "nsICSSLoaderObserver.h"
 #include "nsIDocument.h"
 
-
-
-
-
-class nsHtml5DummyCSSLoaderObserver : public nsICSSLoaderObserver {
-public:
-  NS_IMETHOD
-  StyleSheetLoaded(nsICSSStyleSheet* aSheet, PRBool aWasAlternate, nsresult aStatus) {
-      return NS_OK;
-  }
-  NS_DECL_ISUPPORTS
-};
-
-NS_IMPL_ISUPPORTS1(nsHtml5DummyCSSLoaderObserver, nsICSSLoaderObserver)
-
-nsHtml5SpeculativeLoader::nsHtml5SpeculativeLoader(nsHtml5TreeOpExecutor* aExecutor)
+nsHtml5SpeculativeLoader::
+nsHtml5SpeculativeLoader(nsHtml5TreeOpExecutor* aExecutor)
   : mExecutor(aExecutor)
 {
   MOZ_COUNT_CTOR(nsHtml5SpeculativeLoader);
@@ -125,13 +109,9 @@ nsHtml5SpeculativeLoader::PreloadStyle(const nsAString& aURL,
   if (!uri) {
     return;
   }
-  nsCOMPtr<nsICSSLoaderObserver> obs = new nsHtml5DummyCSSLoaderObserver();
   nsIDocument* doc = mExecutor->GetDocument();
   if (doc) {
-    doc->CSSLoader()->LoadSheet(uri, 
-                                doc->NodePrincipal(),
-                                NS_LossyConvertUTF16toASCII(aCharset),
-                                obs);
+    doc->PreloadStyle(uri, aCharset);
   }
 }
 
