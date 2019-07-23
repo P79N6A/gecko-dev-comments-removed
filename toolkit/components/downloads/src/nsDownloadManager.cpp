@@ -90,6 +90,10 @@ static const PRInt64 gUpdateInterval = 400 * PR_USEC_PER_MSEC;
 
 static PRInt32 gRefCnt = 0;
 
+#define DM_SCHEMA_VERSION      1
+#define DM_DB_NAME             NS_LITERAL_STRING("downloads.sqlite")
+#define DM_DB_CORRUPT_FILENAME NS_LITERAL_STRING("downloads.sqlite.corrupt")
+
 
 
 
@@ -166,7 +170,7 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
   rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
                               getter_AddRefs(dbFile));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = dbFile->Append(NS_LITERAL_STRING("downloads.sqlite"));
+  rv = dbFile->Append(DM_DB_NAME);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = storage->OpenDatabase(dbFile, getter_AddRefs(mDBConn));
@@ -185,6 +189,69 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
     *aDoImport = PR_TRUE;
     rv = CreateTable();
     NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    
+    PRInt32 schemaVersion;
+    rv = mDBConn->GetSchemaVersion(&schemaVersion);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (0 == schemaVersion) {
+      NS_WARNING("Could not get downlaod's database schema version!");
+
+      
+      
+      
+      
+      rv = mDBConn->SetSchemaVersion(DM_SCHEMA_VERSION);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      
+      
+      schemaVersion = DM_SCHEMA_VERSION + 1;
+    }
+
+    if (schemaVersion != DM_SCHEMA_VERSION) {
+      
+      
+      
+
+      if (schemaVersion > DM_SCHEMA_VERSION) {
+        
+        
+        
+        
+        
+        
+
+        nsCOMPtr<mozIStorageStatement> stmt;
+        rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+          "SELECT id, name, source, target, iconURL, startTime, endTime, state "
+          "FROM moz_downloads"), getter_AddRefs(stmt));
+        if (NS_FAILED(rv)) {
+          
+          
+          nsCOMPtr<nsIFile> backup;
+          rv = mDBConn->BackupDB(DM_DB_CORRUPT_FILENAME, nsnull,
+                                 getter_AddRefs(backup));
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          
+          rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+            "DROP TABLE moz_downloads"));
+          NS_ENSURE_SUCCESS(rv, rv);
+
+          rv = CreateTable();
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+      } else {
+        
+        
+        
+        
+      }
+    }
   }
 
   return NS_OK;
@@ -193,6 +260,9 @@ nsDownloadManager::InitDB(PRBool *aDoImport)
 nsresult
 nsDownloadManager::CreateTable()
 {
+  nsresult rv = mDBConn->SetSchemaVersion(DM_SCHEMA_VERSION);
+  if (NS_FAILED(rv)) return rv;
+
   return mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
     "CREATE TABLE moz_downloads ("
     "id INTEGER PRIMARY KEY, name TEXT, source TEXT, target TEXT,"
