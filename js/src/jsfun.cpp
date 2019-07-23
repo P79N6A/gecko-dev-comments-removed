@@ -555,17 +555,21 @@ ArgGetter(JSContext *cx, JSObject *obj, jsval idval, jsval *vp)
 static JSBool
 ArgSetter(JSContext *cx, JSObject *obj, jsval idval, jsval *vp)
 {
+    
+    
+    
+    
+    if (JS_ON_TRACE(cx)) {
+        js_DeepBail(cx);
+        return false;
+    }
+
     if (!JS_InstanceOf(cx, obj, &js_ArgumentsClass, NULL))
         return true;
 
     if (JSVAL_IS_INT(idval)) {
         uintN arg = uintN(JSVAL_TO_INT(idval));
         if (arg < GetArgsLength(obj)) {
-            if (js_GetArgsPrivateNative(obj)) {
-                js_LeaveTrace(cx);
-                return false;
-            }
-
             JSStackFrame *fp = (JSStackFrame *) obj->getPrivate();
             if (fp) {
                 fp->argv[arg] = *vp;
