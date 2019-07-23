@@ -203,8 +203,53 @@ public:
 private:
 #ifdef NS_OSSO
   osso_context_t *m_osso_context;    
+  
+
+
+
+  
+  osso_hw_state_t m_hw_state;
 #endif
 };
+
+#ifdef NS_OSSO
+static void OssoHardwareCallback(osso_hw_state_t *state, gpointer data)
+{
+  NS_ASSERTION(state, "osso_hw_state_t must not be null.");
+  NS_ASSERTION(data, "data must not be null.");
+
+  osso_hw_state_t* ourState = (osso_hw_state_t*) data;
+
+  if (state->shutdown_ind) {
+    nsCOMPtr<nsIAppStartup> appService =  do_GetService("@mozilla.org/toolkit/app-startup;1");
+    if (appService)
+      appService->Quit(nsIAppStartup::eForceQuit);
+    return;
+  }
+    
+  if (state->memory_low_ind) {
+    if (ourState->memory_low_ind) {
+      nsCOMPtr<nsIObserverService> os = do_GetService("@mozilla.org/observer-service;1");
+      if (os)
+        os->NotifyObservers(nsnull, "memory-pressure", NS_LITERAL_STRING("low-memory").get());
+    }
+  }
+  
+  if (state->system_inactivity_ind != ourState->system_inactivity_ind) {
+      nsCOMPtr<nsIObserverService> os = do_GetService("@mozilla.org/observer-service;1");
+      if (!os)
+        return;
+ 
+      if (state->system_inactivity_ind)
+          os->NotifyObservers(nsnull, "system-idle", nsnull);
+      else
+          os->NotifyObservers(nsnull, "system-active", nsnull);
+  }
+
+  memcpy(ourState, state, sizeof(osso_hw_state_t));
+}
+
+#endif
 
 NS_IMETHODIMP
 nsNativeAppSupportUnix::Start(PRBool *aRetVal)
@@ -230,6 +275,9 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
 
 #ifdef NS_OSSO
   
+  memset(&m_hw_state, 0, sizeof(osso_hw_state_t));
+
+  
   m_osso_context = osso_initialize(gAppData->name, 
                                    gAppData->version ? gAppData->version : "1.0",
                                    PR_TRUE,
@@ -239,6 +287,12 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
   if (m_osso_context == nsnull) {
       return NS_ERROR_FAILURE;
   }
+
+  osso_hw_set_event_cb(m_osso_context,
+                       nsnull,
+                       OssoHardwareCallback,
+                       &m_hw_state);
+
 #endif
 
   *aRetVal = PR_TRUE;
@@ -311,6 +365,7 @@ nsNativeAppSupportUnix::Stop( PRBool *aResult )
 #ifdef NS_OSSO
   if (m_osso_context)
   {
+    osso_hw_unset_event_cb(m_osso_context, nsnull);
     osso_deinitialize(m_osso_context);
     m_osso_context = nsnull;
   }
