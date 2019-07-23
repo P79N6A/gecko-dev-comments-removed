@@ -157,9 +157,9 @@ protected:
   {
     NS_PRECONDITION(aFrame, "Need a frame");
 
-    nsIFrame *prevInFlow = aFrame->GetPrevInFlow();
+    nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
 
-    if (!prevInFlow || mFrame != prevInFlow) {
+    if (!prevContinuation || mFrame != prevContinuation) {
       
       Reset();
       Init(aFrame);
@@ -177,14 +177,14 @@ protected:
   {    
     
     
-    nsIFrame* inlineFrame = aFrame->GetPrevInFlow();
+    nsIFrame* inlineFrame = aFrame->GetPrevContinuation();
 
     while (inlineFrame) {
       nsRect rect = inlineFrame->GetRect();
       mContinuationPoint += rect.width;
       mUnbrokenWidth += rect.width;
       mBoundingBox.UnionRect(mBoundingBox, rect);
-      inlineFrame = inlineFrame->GetPrevInFlow();
+      inlineFrame = inlineFrame->GetPrevContinuation();
     }
 
     
@@ -194,7 +194,7 @@ protected:
       nsRect rect = inlineFrame->GetRect();
       mUnbrokenWidth += rect.width;
       mBoundingBox.UnionRect(mBoundingBox, rect);
-      inlineFrame = inlineFrame->GetNextInFlow();
+      inlineFrame = inlineFrame->GetNextContinuation();
     }
 
     mFrame = aFrame;
