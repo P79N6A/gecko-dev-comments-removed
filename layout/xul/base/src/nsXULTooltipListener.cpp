@@ -224,10 +224,10 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
   mMouseScreenY = newMouseY;
   mCachedMouseEvent = aMouseEvent;
 
-  nsCOMPtr<nsIDOMEventTarget> eventTarget;
-  aMouseEvent->GetCurrentTarget(getter_AddRefs(eventTarget));
+  nsCOMPtr<nsIDOMEventTarget> currentTarget;
+  aMouseEvent->GetCurrentTarget(getter_AddRefs(currentTarget));
 
-  nsCOMPtr<nsIContent> sourceContent = do_QueryInterface(eventTarget);
+  nsCOMPtr<nsIContent> sourceContent = do_QueryInterface(currentTarget);
   mSourceNode = do_GetWeakReference(sourceContent);
 #ifdef MOZ_XUL
   mIsSourceTree = sourceContent->Tag() == nsGkAtoms::treechildren;
@@ -244,22 +244,28 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
   
   
   if (!currentTooltip && !mTooltipShownOnce) {
-    
-    
     nsCOMPtr<nsIDOMEventTarget> eventTarget;
     aMouseEvent->GetTarget(getter_AddRefs(eventTarget));
-    nsCOMPtr<nsIContent> targetContent = do_QueryInterface(eventTarget);
-    while (targetContent && targetContent != sourceContent) {
-      nsIAtom* tag = targetContent->Tag();
-      if (targetContent->GetNameSpaceID() == kNameSpaceID_XUL &&
-          (tag == nsGkAtoms::menupopup ||
-           tag == nsGkAtoms::panel ||
-           tag == nsGkAtoms::tooltip)) {
-        mSourceNode = nsnull;
-        return NS_OK;
-      }
 
-      targetContent = targetContent->GetParent();
+    
+    
+    
+    
+    if (!sourceContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::popupsinherittooltip,
+                                    nsGkAtoms::_true, eCaseMatters)) {
+      nsCOMPtr<nsIContent> targetContent = do_QueryInterface(eventTarget);
+      while (targetContent && targetContent != sourceContent) {
+        nsIAtom* tag = targetContent->Tag();
+        if (targetContent->GetNameSpaceID() == kNameSpaceID_XUL &&
+            (tag == nsGkAtoms::menupopup ||
+             tag == nsGkAtoms::panel ||
+             tag == nsGkAtoms::tooltip)) {
+          mSourceNode = nsnull;
+          return NS_OK;
+        }
+
+        targetContent = targetContent->GetParent();
+      }
     }
 
     mTooltipTimer = do_CreateInstance("@mozilla.org/timer;1");
