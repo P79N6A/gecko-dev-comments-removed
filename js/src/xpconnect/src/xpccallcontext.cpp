@@ -345,7 +345,7 @@ XPCCallContext::~XPCCallContext()
             
             
             
-            if(!mJSContext->fp)
+            if(!JS_IsRunning(mJSContext))
                 JS_ClearNewbornRoots(mJSContext);
         }
     }

@@ -889,13 +889,32 @@ ReportError(JSContext *cx, const char *message, JSErrorReport *reportp)
 
 
 
-    if (!cx->fp || !js_ErrorToException(cx, message, reportp)) {
+    if (!JS_IsRunning(cx) || !js_ErrorToException(cx, message, reportp)) {
         js_ReportErrorAgain(cx, message, reportp);
     } else if (cx->debugHooks->debugErrorHook && cx->errorReporter) {
         JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
         
         if (hook)
             hook(cx, message, reportp, cx->debugHooks->debugErrorHookData);
+    }
+}
+
+
+static void
+PopulateReportBlame(JSContext *cx, JSErrorReport *report)
+{
+    JSStackFrame *fp;
+
+    
+
+
+
+    for (fp = js_GetTopStackFrame(cx); fp; fp = fp->down) {
+        if (fp->regs) {
+            report->filename = fp->script->filename;
+            report->lineno = js_FramePCToLineNumber(cx, fp);
+            break;
+        }
     }
 }
 
@@ -909,7 +928,6 @@ ReportError(JSContext *cx, const char *message, JSErrorReport *reportp)
 void
 js_ReportOutOfMemory(JSContext *cx)
 {
-    JSStackFrame *fp;
     JSErrorReport report;
     JSErrorReporter onError = cx->errorReporter;
 
@@ -922,18 +940,7 @@ js_ReportOutOfMemory(JSContext *cx)
     memset(&report, 0, sizeof (struct JSErrorReport));
     report.flags = JSREPORT_ERROR;
     report.errorNumber = JSMSG_OUT_OF_MEMORY;
-
-    
-
-
-
-    for (fp = cx->fp; fp; fp = fp->down) {
-        if (fp->regs) {
-            report.filename = fp->script->filename;
-            report.lineno = js_FramePCToLineNumber(cx, fp);
-            break;
-        }
-    }
+    PopulateReportBlame(cx, &report);
 
     
 
@@ -979,7 +986,6 @@ js_ReportErrorVA(JSContext *cx, uintN flags, const char *format, va_list ap)
     char *message;
     jschar *ucmessage;
     size_t messagelen;
-    JSStackFrame *fp;
     JSErrorReport report;
     JSBool warning;
 
@@ -995,15 +1001,7 @@ js_ReportErrorVA(JSContext *cx, uintN flags, const char *format, va_list ap)
     report.flags = flags;
     report.errorNumber = JSMSG_USER_DEFINED_ERROR;
     report.ucmessage = ucmessage = js_InflateString(cx, message, &messagelen);
-
-    
-    for (fp = cx->fp; fp; fp = fp->down) {
-        if (fp->regs) {
-            report.filename = fp->script->filename;
-            report.lineno = js_FramePCToLineNumber(cx, fp);
-            break;
-        }
-    }
+    PopulateReportBlame(cx, &report);
 
     warning = JSREPORT_IS_WARNING(report.flags);
     if (warning && JS_HAS_WERROR_OPTION(cx)) {
@@ -1193,7 +1191,6 @@ js_ReportErrorNumberVA(JSContext *cx, uintN flags, JSErrorCallback callback,
                        void *userRef, const uintN errorNumber,
                        JSBool charArgs, va_list ap)
 {
-    JSStackFrame *fp;
     JSErrorReport report;
     char *message;
     JSBool warning;
@@ -1204,18 +1201,7 @@ js_ReportErrorNumberVA(JSContext *cx, uintN flags, JSErrorCallback callback,
     memset(&report, 0, sizeof (struct JSErrorReport));
     report.flags = flags;
     report.errorNumber = errorNumber;
-
-    
-
-
-
-    for (fp = cx->fp; fp; fp = fp->down) {
-        if (fp->regs) {
-            report.filename = fp->script->filename;
-            report.lineno = js_FramePCToLineNumber(cx, fp);
-            break;
-        }
-    }
+    PopulateReportBlame(cx, &report);
 
     if (!js_ExpandErrorArguments(cx, callback, userRef, errorNumber,
                                  &message, &report, &warning, charArgs, ap)) {
@@ -1382,6 +1368,7 @@ JSBool
 js_ResetOperationCount(JSContext *cx)
 {
     JSScript *script;
+    JSStackFrame *fp;
 
     JS_ASSERT(cx->operationCount <= 0);
     JS_ASSERT(cx->operationLimit > 0);
@@ -1396,9 +1383,32 @@ js_ResetOperationCount(JSContext *cx)
 
 
 
-        script = cx->fp ? cx->fp->script : NULL;
+        fp = js_GetTopStackFrame(cx);
+        script = fp ? fp->script : NULL;
         if (script || JS_HAS_OPTION(cx, JSOPTION_NATIVE_BRANCH_CALLBACK))
             return ((JSBranchCallback) cx->operationCallback)(cx, script);
     }
     return JS_TRUE;
+}
+
+#ifndef JS_TRACER
+
+extern JS_FORCES_STACK JSStackFrame *
+js_GetTopStackFrame(JSContext *cx)
+{
+    return cx->fp;
+}
+#endif
+
+JSStackFrame *
+js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp)
+{
+    if (!fp)
+        fp = js_GetTopStackFrame(cx);
+    while (fp) {
+        if (fp->script)
+            return fp;
+        fp = fp->down;
+    }
+    return NULL;
 }

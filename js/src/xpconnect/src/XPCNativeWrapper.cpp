@@ -144,12 +144,8 @@ ShouldBypassNativeWrapper(JSContext *cx, JSObject *obj)
     return JS_FALSE;
 
   
-  JSScript *script = nsnull;
-  JSStackFrame *fp = cx->fp;
-  while(!script && fp) {
-    script = fp->script;
-    fp = fp->down;
-  }
+  JSStackFrame *fp = JS_GetScriptedCaller(cx, NULL);
+  JSScript *script = fp ? fp->script : NULL;
 
   
   

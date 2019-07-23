@@ -4791,7 +4791,7 @@ static JSFunctionSpec regexp_methods[] = {
 static JSBool
 RegExp(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-    if (!(cx->fp->flags & JSFRAME_CONSTRUCTING)) {
+    if (!JS_IsConstructing(cx)) {
         
 
 
