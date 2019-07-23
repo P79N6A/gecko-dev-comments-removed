@@ -63,10 +63,8 @@ function runTestOnPrivacyPrefPane(testFunc) {
                           "chrome,titlebar,toolbar,centerscreen,dialog=no", "panePrivacy");
 }
 
-function controlChanged(doc, element) {
-  let event = doc.createEvent("Events");
-  event.initEvent("command", true, true);
-  element.dispatchEvent(event);
+function controlChanged(element) {
+  element.doCommand();
 }
 
 function test_locbar_emptyText(win) {
@@ -77,7 +75,7 @@ function test_locbar_emptyText(win) {
 
   for (let level = -1; level <= 2; ++level) {
     locbarlist.value = level;
-    controlChanged(win.document, locbarlist);
+    controlChanged(locbarlist);
     is(gURLBar.emptyText, gURLBar.getAttribute(texts[level + 1] + "emptytext"),
       "location bar empty text for for level " + level + " is correctly set");
   }
@@ -97,7 +95,7 @@ function test_pane_visibility(win) {
 
   for (let mode in modes) {
     historymode.value = mode;
-    controlChanged(win.document, historymode);
+    controlChanged(historymode);
     is(historypane.selectedPanel, win.document.getElementById(modes[mode]),
       "The correct pane should be selected for the " + mode + " mode");
   }
@@ -174,37 +172,37 @@ function test_dependent_elements(win) {
 
   
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   expect_disabled(false);
   check_independents(false);
 
   
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   expect_disabled(false);
   check_independents(false);
 
   
   historymode.value = "dontremember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   expect_disabled(false);
   check_independents(false);
 
   
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   expect_disabled(true);
   check_independents(false);
 
   
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(false);
   check_independents(false);
 
   
   pbautostart.checked = true;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(true);
   check_independents(false);
 }
@@ -233,46 +231,46 @@ function test_dependent_cookie_elements(win) {
   }
 
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(false);
 
   acceptcookies.checked = false;
-  controlChanged(win.document, acceptcookies);
+  controlChanged(acceptcookies);
   expect_disabled(true);
 
   
   pbautostart.checked = true;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(true);
 
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(true);
 
   acceptcookies.checked = true;
-  controlChanged(win.document, acceptcookies);
+  controlChanged(acceptcookies);
   expect_disabled(false);
 
   let accessthirdparty = controls.shift();
   pbautostart.checked = true;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(true);
   ok(!accessthirdparty.disabled, "access third party button should be enabled");
 
   acceptcookies.checked = false;
-  controlChanged(win.document, acceptcookies);
+  controlChanged(acceptcookies);
   expect_disabled(true);
   ok(accessthirdparty.disabled, "access third party button should be disabled");
 
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(true);
   ok(accessthirdparty.disabled, "access third party button should be disabled");
 
   acceptcookies.checked = true;
-  controlChanged(win.document, acceptcookies);
+  controlChanged(acceptcookies);
   expect_disabled(false);
   ok(!accessthirdparty.disabled, "access third party button should be enabled");
 }
@@ -293,27 +291,27 @@ function test_dependent_clearonclose_elements(win) {
   }
 
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   alwaysclear.checked = false;
-  controlChanged(win.document, alwaysclear);
+  controlChanged(alwaysclear);
   expect_disabled(true);
 
   alwaysclear.checked = true;
-  controlChanged(win.document, alwaysclear);
+  controlChanged(alwaysclear);
   expect_disabled(false);
 
   pbautostart.checked = true;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(true);
 
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   expect_disabled(false);
 
   alwaysclear.checked = false;
-  controlChanged(win.document, alwaysclear);
+  controlChanged(alwaysclear);
   expect_disabled(true);
 }
 
@@ -340,19 +338,19 @@ function test_dependent_prefs(win) {
 
   
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   expect_checked(true);
 
   
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   controls.forEach(function(control) {
     control.checked = false;
-    controlChanged(win.document, control);
+    controlChanged(control);
   });
   expect_checked(false);
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   expect_checked(true);
 }
 
@@ -367,7 +365,7 @@ function test_historymode_retention(mode, expect) {
     }
 
     historymode.value = mode;
-    controlChanged(win.document, historymode);
+    controlChanged(historymode);
   };
 }
 
@@ -382,7 +380,7 @@ function test_custom_retention(controlToChange, expect, valueIncrement) {
     }
 
     historymode.value = "custom";
-    controlChanged(win.document, historymode);
+    controlChanged(historymode);
 
     controlToChange = win.document.getElementById(controlToChange);
     ok(controlToChange, "the control to change should exist");
@@ -397,7 +395,7 @@ function test_custom_retention(controlToChange, expect, valueIncrement) {
       controlToChange.value = valueIncrement;
       break;
     }
-    controlChanged(win.document, controlToChange);
+    controlChanged(controlToChange);
   };
 }
 
@@ -412,7 +410,7 @@ function test_locbar_suggestion_retention(mode, expect) {
     }
 
     locbarsuggest.value = mode;
-    controlChanged(win.document, locbarsuggest);
+    controlChanged(locbarsuggest);
   };
 }
 
@@ -427,31 +425,31 @@ function test_privatebrowsing_toggle(win) {
 
   
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
 
   
   historymode.value = "dontremember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(pbService.privateBrowsingEnabled, "private browsing should be activated");
 
   
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(!pbService.privateBrowsingEnabled, "private browsing should be deactivated");
 
   
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(!pbService.privateBrowsingEnabled, "private browsing should remain deactivated");
 
   
   pbautostart.checked = true;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   ok(pbService.privateBrowsingEnabled, "private browsing should be activated");
 
   
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   ok(!pbService.privateBrowsingEnabled, "private browsing should be deactivated");
 }
 
@@ -468,7 +466,7 @@ function test_privatebrowsing_ui(win) {
 
   
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(!pbmenuitem.hasAttribute("disabled"),
     "private browsing menu item should not be initially disabled");
   ok(!pbcommand.hasAttribute("disabled"),
@@ -476,7 +474,7 @@ function test_privatebrowsing_ui(win) {
 
   
   historymode.value = "dontremember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(pbmenuitem.hasAttribute("disabled"),
     "private browsing menu item should be disabled");
   ok(pbcommand.hasAttribute("disabled"),
@@ -484,7 +482,7 @@ function test_privatebrowsing_ui(win) {
 
   
   historymode.value = "remember";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(!pbmenuitem.hasAttribute("disabled"),
     "private browsing menu item should be enabled");
   ok(!pbcommand.hasAttribute("disabled"),
@@ -492,7 +490,7 @@ function test_privatebrowsing_ui(win) {
 
   
   historymode.value = "custom";
-  controlChanged(win.document, historymode);
+  controlChanged(historymode);
   ok(!pbmenuitem.hasAttribute("disabled"),
     "private browsing menu item should remain enabled");
   ok(!pbcommand.hasAttribute("disabled"),
@@ -500,7 +498,7 @@ function test_privatebrowsing_ui(win) {
 
   
   pbautostart.checked = true;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   ok(pbmenuitem.hasAttribute("disabled"),
     "private browsing menu item should be disabled");
   ok(pbcommand.hasAttribute("disabled"),
@@ -508,7 +506,7 @@ function test_privatebrowsing_ui(win) {
 
   
   pbautostart.checked = false;
-  controlChanged(win.document, pbautostart);
+  controlChanged(pbautostart);
   ok(!pbmenuitem.hasAttribute("disabled"),
     "private browsing menu item should be enabled");
   ok(!pbcommand.hasAttribute("disabled"),

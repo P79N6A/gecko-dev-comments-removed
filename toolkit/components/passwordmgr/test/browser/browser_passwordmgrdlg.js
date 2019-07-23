@@ -174,10 +174,7 @@ function test() {
 
             function setFilter(string) {
                 filter.value = string;
-                
-                let event = doc.createEvent("Events");
-                event.initEvent("command", true, true);
-                filter.dispatchEvent(event);
+                filter.doCommand();
             }
 
             function runOneTest(test) {
