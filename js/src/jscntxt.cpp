@@ -116,7 +116,6 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
 
 # ifdef JS_TRACER
     JSTraceMonitor *tm = &data->traceMonitor;
-    tm->reservedDoublePoolPtr = tm->reservedDoublePool;
 
     
 
@@ -130,8 +129,10 @@ PurgeThreadData(JSContext *cx, JSThreadData *data)
 
 
 
-    if (cx->runtime->state == JSRTS_LANDING)
+    if (cx->runtime->state == JSRTS_LANDING) {
+        tm->reservedDoublePoolPtr = tm->reservedDoublePool;
         tm->reservedObjects = NULL;
+    }
 # endif
 
     

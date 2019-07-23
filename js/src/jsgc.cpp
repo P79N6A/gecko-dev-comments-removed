@@ -3048,8 +3048,22 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
 #ifdef JS_TRACER
 
 static void
-MarkReservedObjects(JSTraceMonitor *tm)
+MarkReservedGCThings(JSTraceMonitor *tm)
 {
+    
+    for (jsval *ptr = tm->reservedDoublePool; ptr < tm->reservedDoublePoolPtr; ++ptr) {
+        jsdouble* dp = JSVAL_TO_DOUBLE(*ptr);
+        JS_ASSERT(js_GetGCThingTraceKind(dp) == JSTRACE_DOUBLE);
+
+        JSGCArenaInfo *a = THING_TO_ARENA(dp);
+        JS_ASSERT(!a->list);
+        if (!a->u.hasMarkedDoubles) {
+            ClearDoubleArenaFlags(a);
+            a->u.hasMarkedDoubles = JS_TRUE;
+        }
+        jsuint index = DOUBLE_THING_TO_INDEX(dp);
+        JS_SET_BIT(DOUBLE_ARENA_BITMAP(a), index);
+    }
     
     for (JSObject *obj = tm->reservedObjects; obj; obj = JSVAL_TO_OBJECT(obj->fslots[0])) {
         JS_ASSERT(js_GetGCThingTraceKind(obj) == JSTRACE_OBJECT);
@@ -3062,12 +3076,12 @@ MarkReservedObjects(JSTraceMonitor *tm)
 
 #ifdef JS_THREADSAFE
 static JSDHashOperator
-reserved_objects_marker(JSDHashTable *table, JSDHashEntryHdr *hdr,
-                        uint32, void *)
+reserved_gcthings_marker(JSDHashTable *table, JSDHashEntryHdr *hdr,
+                         uint32, void *)
 {
     JSThread *thread = ((JSThreadsHashEntry *) hdr)->thread;
 
-    MarkReservedObjects(&thread->data.traceMonitor);
+    MarkReservedGCThings(&thread->data.traceMonitor);
     return JS_DHASH_NEXT;
 }
 #endif
@@ -3104,9 +3118,9 @@ js_TraceRuntime(JSTracer *trc, JSBool allAtoms)
     
     if (IS_GC_MARKING_TRACER(trc) && rt->state != JSRTS_LANDING) {
 #ifdef JS_THREADSAFE
-        JS_DHashTableEnumerate(&rt->threads, reserved_objects_marker, NULL);
+        JS_DHashTableEnumerate(&rt->threads, reserved_gcthings_marker, NULL);
 #else
-        MarkReservedObjects(&rt->threadData.traceMonitor);
+        MarkReservedGCThings(&rt->threadData.traceMonitor);
 #endif
     }
 
