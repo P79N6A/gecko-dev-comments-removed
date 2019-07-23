@@ -142,8 +142,18 @@ NS_IMETHODIMP nsGIFDecoder2::Init(imgILoad *aLoad)
 {
   mObserver = do_QueryInterface(aLoad);
 
-  mImageContainer = do_CreateInstance("@mozilla.org/image/container;1");
-  aLoad->SetImage(mImageContainer);
+  
+
+  aLoad->GetImage(getter_AddRefs(mImageContainer));
+  if (!mImageContainer) {
+    mImageContainer = do_CreateInstance("@mozilla.org/image/container;1");
+    if (!mImageContainer)
+      return NS_ERROR_OUT_OF_MEMORY;
+      
+    aLoad->SetImage(mImageContainer);
+    nsresult rv = mImageContainer->SetDiscardable("image/gif");
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+  }
   
   
   mGIFStruct.state = gif_type;
@@ -174,7 +184,7 @@ NS_IMETHODIMP nsGIFDecoder2::Close()
 
 NS_IMETHODIMP nsGIFDecoder2::Flush()
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_OK;
 }
 
 
@@ -187,7 +197,7 @@ static NS_METHOD ReadDataOut(nsIInputStream* in,
                              PRUint32 *writeCount)
 {
   nsGIFDecoder2 *decoder = static_cast<nsGIFDecoder2*>(closure);
-  nsresult rv = decoder->ProcessData((unsigned char*)fromRawSegment, count, writeCount);
+  nsresult rv = decoder->ProcessData(fromRawSegment, count, writeCount);
   if (NS_FAILED(rv)) {
     *writeCount = 0;
     return rv;
@@ -236,11 +246,11 @@ nsGIFDecoder2::FlushImageData()
 }
 
 
-nsresult nsGIFDecoder2::ProcessData(unsigned char *data, PRUint32 count, PRUint32 *_retval)
+nsresult nsGIFDecoder2::ProcessData(const char *data, PRUint32 count, PRUint32 *_retval)
 {
   
   
-  nsresult rv = GifWrite(data, count);
+  nsresult rv = GifWrite((const PRUint8*)data, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -250,6 +260,13 @@ nsresult nsGIFDecoder2::ProcessData(unsigned char *data, PRUint32 count, PRUint3
     mLastFlushedPass = mCurrentPass;
   }
 
+  
+  rv = mImageContainer->AddRestoreData(data, count);
+  if (NS_FAILED(rv)) { 
+    mGIFStruct.state = gif_oom;
+    return rv;
+  }
+    
   *_retval = count;
 
   return NS_OK;
@@ -310,6 +327,7 @@ void nsGIFDecoder2::EndGIF()
   
   mImageContainer->SetLoopCount(mGIFStruct.loop_count);
   mImageContainer->DecodingComplete();
+  (void)mImageContainer->RestoreDataDone(); 
 
   mGIFOpen = PR_FALSE;
 }
