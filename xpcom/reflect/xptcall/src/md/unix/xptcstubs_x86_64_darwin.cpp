@@ -161,8 +161,8 @@ PrepareAndDispatch(nsXPTCStubBase * self, PRUint32 methodIndex,
 
 #if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 1002
 #define STUB_ENTRY(n) \
-asm(".section	\".text\",regular\n\t" \
-    ".align	2\n\t" \
+asm(".section	__TEXT,__text\n\t" \
+    ".align	3\n\t" \
     ".if	" #n " < 10\n\t" \
     ".globl	__ZN14nsXPTCStubBase5Stub" #n "Ev\n\t" \
     "__ZN14nsXPTCStubBase5Stub" #n "Ev:\n\t" \
@@ -179,8 +179,8 @@ asm(".section	\".text\",regular\n\t" \
     "jmp	SharedStub\n\t");
 
 
-asm(".section   \".text\",regular\n\t"
-    ".align     2\n\t"
+asm(".section   __TEXT,__text\n\t"
+    ".align     3\n\t"
     "SharedStub:\n\t"
     
     "pushq      %rbp\n\t"
