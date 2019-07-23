@@ -103,7 +103,7 @@ public:
 
     virtual ~AsyncChannel()
     {
-        if (mTransport)
+        if (!mChild && mTransport)
             Close();
         
         

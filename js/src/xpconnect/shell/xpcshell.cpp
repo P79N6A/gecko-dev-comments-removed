@@ -1947,6 +1947,11 @@ main(int argc, char **argv)
         JS_DestroyContext(cx);
     } 
 
+#ifdef MOZ_IPC
+    if (!XRE_ShutdownTestShell())
+        NS_ERROR("problem shutting down testshell");
+#endif
+
 #ifdef MOZ_CRASHREPORTER
     
     

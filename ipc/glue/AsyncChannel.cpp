@@ -106,21 +106,17 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
 void
 AsyncChannel::Close()
 {
-    
-    
-    
-    if (mChild)
-        return OnClose();
-
-    AssertWorkerThread();
-
     MutexAutoLock lock(mMutex);
 
-    mIOLoop->PostTask(
-        FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnClose));
+    if (!mChild && ChannelConnected == mChannelState) {
+        AssertWorkerThread();
 
-    while (ChannelConnected == mChannelState)
-        mCvar.Wait();
+        mIOLoop->PostTask(
+            FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnClose));
+
+        while (ChannelConnected == mChannelState)
+            mCvar.Wait();
+    }
 
     mTransport = NULL;
 }
