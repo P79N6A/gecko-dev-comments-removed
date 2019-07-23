@@ -2085,12 +2085,15 @@ PresShell::SetPrefNoScriptRule()
 
   
   
-  PRBool scriptEnabled = mDocument->IsScriptEnabled() ||
-    ((mPresContext->Type() == nsPresContext::eContext_PrintPreview || 
-      mPresContext->Type() == nsPresContext::eContext_Print) &&
-     NS_PTR_TO_INT32(mDocument->GetProperty(
-                       nsGkAtoms::scriptEnabledBeforePrintOrPreview)));
+  nsIDocument* doc = mDocument;
+  if (mPresContext->Type() == nsPresContext::eContext_PrintPreview ||
+      mPresContext->Type() == nsPresContext::eContext_Print) {
+    while (doc->GetOriginalDocument()) {
+      doc = doc->GetOriginalDocument();
+    }
+  }
 
+  PRBool scriptEnabled = doc->IsScriptEnabled();
   if (scriptEnabled) {
     if (!mPrefStyleSheet) {
       rv = CreatePreferenceStyleSheet();
