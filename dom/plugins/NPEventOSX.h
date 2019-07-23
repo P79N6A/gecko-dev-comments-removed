@@ -63,10 +63,35 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
 
     static void Write(Message* aMsg, const paramType& aParam)
     {
+        
+        
+        paramType paramCopy;
+
+        paramCopy.event = aParam.event;
+
+        switch (paramCopy.event.type) {
+            case NPCocoaEventDrawRect:
+                
+                paramCopy.event.data.draw.context = NULL;
+                break;
+
+            default:
+                
+                return; 
+        }
+
+        aMsg->WriteBytes(&paramCopy, sizeof(paramType));
     }
 
     static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
     {
+        const char* bytes = 0;
+
+        if (!aMsg->ReadBytes(aIter, &bytes, sizeof(paramType))) {
+            return false;
+        }
+        memcpy(aResult, bytes, sizeof(paramType));
+
         return true;
     }
 

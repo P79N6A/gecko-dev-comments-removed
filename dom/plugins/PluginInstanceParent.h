@@ -126,6 +126,12 @@ public:
     virtual bool
     AnswerNPN_SetValue_NPPVpluginTransparent(const bool& transparent,
                                              NPError* result);
+    virtual bool
+    AnswerNPN_SetValue_NPPVpluginDrawingModel(const int& drawingModel,
+                                             NPError* result);
+    virtual bool
+    AnswerNPN_SetValue_NPPVpluginEventModel(const int& eventModel,
+                                             NPError* result);
 
     virtual bool
     AnswerNPN_GetURL(const nsCString& url, const nsCString& target,
@@ -262,6 +268,12 @@ private:
     HWND               mPluginHWND;
     WNDPROC            mPluginWndProc;
     bool               mNestedEventState;
+#endif 
+#if defined(OS_MACOSX)
+private:
+    Shmem mShSurface; 
+    size_t mShWidth;
+    size_t mShHeight;
 #endif 
 };
 
