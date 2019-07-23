@@ -102,9 +102,6 @@
 #define MAXINDEX 4294967295u
 #define MAXSTR   "4294967295"
 
-#define ARRAY_SET_DENSE_LENGTH(obj, max)                                       \
-    (JS_ASSERT((obj)->dslots), (obj)->dslots[-1] = (jsval)(max))
-
 
 #define MIN_SPARSE_INDEX 32
 
@@ -344,8 +341,6 @@ ResizeSlots(JSContext *cx, JSObject *obj, uint32 oldlen, uint32 len)
     return JS_TRUE;
 }
 
-#define ARRAY_GROWBY 8
-
 static JSBool
 EnsureLength(JSContext *cx, JSObject *obj, uint32 len)
 {
@@ -413,11 +408,8 @@ SetArrayElement(JSContext *cx, JSObject *obj, jsuint index, jsval v)
     jsid id;
 
     if (OBJ_IS_DENSE_ARRAY(cx, obj)) {
-        if (INDEX_TOO_SPARSE(obj, index)) {
-            if (!js_MakeArraySlow(cx, obj))
-                return JS_FALSE;
-        } else {
-
+        
+        if (!INDEX_TOO_SPARSE(obj, index)) {
             if (!EnsureLength(cx, obj, index + 1))
                 return JS_FALSE;
             if (index >= (uint32)obj->fslots[JSSLOT_ARRAY_LENGTH])
@@ -427,6 +419,9 @@ SetArrayElement(JSContext *cx, JSObject *obj, jsuint index, jsval v)
             obj->dslots[index] = v;
             return JS_TRUE;
         }
+
+        if (!js_MakeArraySlow(cx, obj))
+            return JS_FALSE;
     }
 
     if (index <= JSVAL_INT_MAX) {
@@ -1165,7 +1160,15 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
     }
 
     
-    obj->fslots[JSSLOT_ARRAY_COUNT] = JSVAL_VOID;
+
+
+
+
+
+    length = obj->fslots[JSSLOT_ARRAY_LENGTH];
+    obj->fslots[JSSLOT_ARRAY_COUNT] = INT_FITS_IN_JSVAL(length)
+                                      ? INT_TO_JSVAL(length)
+                                      : JSVAL_VOID;
 
     
     obj->fslots[JSSLOT_CLASS] ^= (jsval) &js_ArrayClass;
