@@ -1916,7 +1916,8 @@ nsCSSFrameConstructor::CreateAttributeContent(nsIContent* aParentContent,
   content->SetNativeAnonymous();
 
   
-  rv = content->BindToTree(mDocument, aParentContent, content, PR_TRUE);
+  
+  rv = content->BindToTree(mDocument, aParentContent, aParentContent, PR_TRUE);
   if (NS_FAILED(rv)) {
     content->UnbindFromTree();
     return rv;
@@ -1986,10 +1987,7 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
   
     
     
-    
-    
-    
-    rv = content->BindToTree(mDocument, aContent, content, PR_TRUE);
+    rv = content->BindToTree(mDocument, aContent, aContent, PR_TRUE);
     if (NS_FAILED(rv)) {
       content->UnbindFromTree();
       return rv;
@@ -2169,7 +2167,7 @@ nsCSSFrameConstructor::CreateGeneratedFrameFor(nsIFrame*             aParentFram
         textContent->SetNativeAnonymous();
 
         
-        nsresult rv = textContent->BindToTree(mDocument, aContent, textContent,
+        nsresult rv = textContent->BindToTree(mDocument, aContent, aContent,
                                               PR_TRUE);
         if (NS_FAILED(rv)) {
           textContent->UnbindFromTree();
@@ -3406,7 +3404,8 @@ IsSpecialContent(nsIContent*     aContent,
       aTag == nsGkAtoms::menuitem ||
       aTag == nsGkAtoms::menubutton ||
       aTag == nsGkAtoms::menubar ||
-      (aTag == nsGkAtoms::popupgroup && aContent->IsNativeAnonymous()) ||
+      (aTag == nsGkAtoms::popupgroup &&
+       aContent->IsRootOfNativeAnonymousSubtree()) ||
       aTag == nsGkAtoms::iframe ||
       aTag == nsGkAtoms::editor ||
       aTag == nsGkAtoms::browser ||
@@ -5699,20 +5698,17 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
     nsIContent* content = newAnonymousItems[i];
     NS_ASSERTION(content, "null anonymous content?");
 
-    nsIContent* bindingParent = content;
 #ifdef MOZ_SVG
     
     
-    if (aParent &&
-        aParent->NodeInfo()->Equals(nsGkAtoms::use, kNameSpaceID_SVG)) {
-      bindingParent = aParent;
-    } else
+    if (!aParent ||
+        !aParent->NodeInfo()->Equals(nsGkAtoms::use, kNameSpaceID_SVG))
 #endif
     {
       content->SetNativeAnonymous();
     }
 
-    rv = content->BindToTree(aDocument, aParent, bindingParent, PR_TRUE);
+    rv = content->BindToTree(aDocument, aParent, aParent, PR_TRUE);
     if (NS_FAILED(rv)) {
       content->UnbindFromTree();
       return rv;
@@ -5912,7 +5908,8 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 
         newFrame = NS_NewMenuBarFrame(mPresShell, aStyleContext);
       }
-      else if (aTag == nsGkAtoms::popupgroup && aContent->IsNativeAnonymous()) {
+      else if (aTag == nsGkAtoms::popupgroup &&
+               aContent->IsRootOfNativeAnonymousSubtree()) {
         
         newFrame = NS_NewPopupSetFrame(mPresShell, aStyleContext);
       }
@@ -6174,7 +6171,8 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
     }
 
 #ifdef MOZ_XUL
-    if (aTag == nsGkAtoms::popupgroup && aContent->IsNativeAnonymous()) {
+    if (aTag == nsGkAtoms::popupgroup &&
+        aContent->IsRootOfNativeAnonymousSubtree()) {
       nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
       if (rootBox) {
         NS_ASSERTION(rootBox->GetPopupSetFrame() == newFrame,
@@ -10569,13 +10567,15 @@ static PRBool
 IsBindingAncestor(nsIContent* aContent, nsIContent* aBindingRoot)
 {
   while (PR_TRUE) {
+    
+    
+    if (aContent->IsRootOfNativeAnonymousSubtree())
+      return PR_FALSE;
     nsIContent* bindingParent = aContent->GetBindingParent();
     if (!bindingParent)
       return PR_FALSE;
     if (bindingParent == aBindingRoot)
       return PR_TRUE;
-    if (bindingParent == aContent)
-      return PR_FALSE;
     aContent = bindingParent;
   }
 }
@@ -10668,6 +10668,8 @@ nsCSSFrameConstructor::FindFrameWithContent(nsFrameManager*  aFrameManager,
 
         
         if (kidContent) {
+          
+          
           
           
           
@@ -11652,7 +11654,7 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   
   
   nsIContent* letterContent = aTextContent->GetParent();
-  NS_ASSERTION(letterContent->GetBindingParent() != letterContent,
+  NS_ASSERTION(!letterContent->IsRootOfNativeAnonymousSubtree(),
                "Reframes of this letter frame will mess with the root of a "
                "native anonymous content subtree!");
   InitAndRestoreFrame(aState, letterContent,
@@ -11777,7 +11779,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsFrameConstructorState& aState,
         
         
         nsIContent* letterContent = aTextContent->GetParent();
-        NS_ASSERTION(letterContent->GetBindingParent() != letterContent,
+        NS_ASSERTION(!letterContent->IsRootOfNativeAnonymousSubtree(),
                      "Reframes of this letter frame will mess with the root "
                      "of a native anonymous content subtree!");
         letterFrame->Init(letterContent, aParentFrame, nsnull);
@@ -12947,7 +12949,7 @@ nsCSSFrameConstructor::RestyleForAppend(nsIContent* aContainer,
         NS_ASSERTION(index != aNewIndexInContainer, "yikes, nothing appended");
         break;
       }
-      NS_ASSERTION(!content->IsNativeAnonymous(),
+      NS_ASSERTION(!content->IsRootOfNativeAnonymousSubtree(),
                    "native anonymous nodes should not be in child lists");
     }
   }
@@ -13006,7 +13008,7 @@ void
 nsCSSFrameConstructor::RestyleForInsertOrChange(nsIContent* aContainer,
                                                 nsIContent* aChild)
 {
-  NS_ASSERTION(!aChild->IsNativeAnonymous(),
+  NS_ASSERTION(!aChild->IsRootOfNativeAnonymousSubtree(),
                "native anonymous nodes should not be in child lists");
   PRUint32 selectorFlags =
     aContainer ? (aContainer->GetFlags() & NODE_ALL_SELECTOR_FLAGS) : 0;
@@ -13087,7 +13089,7 @@ nsCSSFrameConstructor::RestyleForRemove(nsIContent* aContainer,
                                         nsIContent* aOldChild,
                                         PRInt32 aIndexInContainer)
 {
-  NS_ASSERTION(!aOldChild->IsNativeAnonymous(),
+  NS_ASSERTION(!aOldChild->IsRootOfNativeAnonymousSubtree(),
                "native anonymous nodes should not be in child lists");
   PRUint32 selectorFlags =
     aContainer ? (aContainer->GetFlags() & NODE_ALL_SELECTOR_FLAGS) : 0;

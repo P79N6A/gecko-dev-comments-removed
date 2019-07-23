@@ -191,8 +191,7 @@ NS_IMETHODIMP nsAccessNode::Init()
   
   
   nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
-  if (content && (content->IsNativeAnonymous() ||
-                  content->GetBindingParent())) {
+  if (content && content->IsInAnonymousSubtree()) {
     
     nsCOMPtr<nsIAccessible> parentAccessible;
     docAccessible->GetAccessibleInParentChain(mDOMNode, PR_TRUE, getter_AddRefs(parentAccessible));

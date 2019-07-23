@@ -5717,7 +5717,7 @@ nsFrame::GetLastLeaf(nsPresContext* aPresContext, nsIFrame **aFrame)
     
     while ((siblingFrame = child->GetNextSibling()) &&
            (content = siblingFrame->GetContent()) &&
-           !content->IsNativeAnonymous())
+           !content->IsRootOfNativeAnonymousSubtree())
       child = siblingFrame;
     *aFrame = child;
   }
@@ -5849,7 +5849,8 @@ nsIFrame::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
       if (!isFocusable && !aWithMouse &&
           GetType() == nsGkAtoms::scrollFrame &&
           mContent->IsNodeOfType(nsINode::eHTML) &&
-          !mContent->IsNativeAnonymous() && mContent->GetParent() &&
+          !mContent->IsRootOfNativeAnonymousSubtree() &&
+          mContent->GetParent() &&
           !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
         
         

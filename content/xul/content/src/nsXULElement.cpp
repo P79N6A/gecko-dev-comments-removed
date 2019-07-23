@@ -1086,6 +1086,7 @@ nsXULElement::UnregisterAccessKey(const nsAString& aOldValue)
             if (mNodeInfo->Equals(nsGkAtoms::label)) {
                 
                 
+                
                 content = GetBindingParent();
             }
 

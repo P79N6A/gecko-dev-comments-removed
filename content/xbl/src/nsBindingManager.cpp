@@ -1263,15 +1263,11 @@ nsBindingManager::WalkRules(nsStyleSet* aStyleSet,
       }
     }
 
-    nsIContent* parent = content->GetBindingParent();
-    if (parent == content) {
-      NS_ASSERTION(content->IsNativeAnonymous(), "Unexpected binding parent");
-                             
+    if (content->IsRootOfNativeAnonymousSubtree()) {
       break; 
-             
     }
 
-    content = parent;
+    content = content->GetBindingParent();
   } while (content);
 
   

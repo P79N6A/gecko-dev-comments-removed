@@ -640,7 +640,9 @@ nsresult nsHyperTextAccessible::DOMPointToHypertextOffset(nsIDOMNode* aNode, PRI
     if (findContent->IsNodeOfType(nsINode::eHTML) && 
         findContent->NodeInfo()->Equals(nsAccessibilityAtoms::br)) {
       nsIContent *parent = findContent->GetParent();
-      if (parent && parent->IsNativeAnonymous() && parent->GetChildCount() == 1) {
+      if (parent &&
+          parent->IsRootOfNativeAnonymousSubtree() &&
+          parent->GetChildCount() == 1) {
         
         
         *aHyperTextOffset = 0;
