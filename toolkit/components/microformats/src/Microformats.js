@@ -494,8 +494,8 @@ var Microformats = {
       
       
       function mfHTML(value) {
-        this.valueOf = function() {return value.valueOf();}
-        this.toString = function() {return value.toString();}
+        this.valueOf = function() {return value ? value.valueOf() : "";}
+        this.toString = function() {return value ? value.toString() : "";}
       }
       mfHTML.prototype = new String;
       mfHTML.prototype.toHTML = function() {
