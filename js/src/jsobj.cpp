@@ -2792,9 +2792,6 @@ js_FinalizeObject(JSContext *cx, JSObject *obj)
     }
 
     
-    JS_ClearWatchPointsForObject(cx, obj);
-
-    
     GC_AWARE_GET_CLASS(cx, obj)->finalize(cx, obj);
 
     
@@ -4847,6 +4844,9 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
             continue;
         TRACE_SCOPE_PROPERTY(trc, sprop);
     }
+
+    if (!JS_CLIST_IS_EMPTY(&cx->runtime->watchPointList))
+        js_TraceWatchPoints(trc, obj);
 
     
     clasp = LOCKED_OBJ_GET_CLASS(obj);
