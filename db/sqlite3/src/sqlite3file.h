@@ -200,7 +200,11 @@ struct sqlite3OsVtbl {
   
 
 
+#ifdef XP_WIN
+  extern __declspec(dllimport) struct sqlite3OsVtbl sqlite3Os;
+#else
   extern struct sqlite3OsVtbl sqlite3Os;
+#endif 
 #endif 
 
 } 
