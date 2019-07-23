@@ -6126,7 +6126,7 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
   
   PRInt32 newLineOffset = -1; 
   
-  NewlineProperty* cachedNewlineOffset;
+  NewlineProperty* cachedNewlineOffset = nsnull;
   if (textStyle->NewlineIsSignificant()) {
     cachedNewlineOffset =
       static_cast<NewlineProperty*>(mContent->GetProperty(nsGkAtoms::newline));
