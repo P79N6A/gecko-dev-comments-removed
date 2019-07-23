@@ -41,14 +41,42 @@
 
 
 
+const NS_PLACES_INIT_COMPLETE_TOPIC = "places-init-complete";
+
+
+var os = Cc["@mozilla.org/observer-service;1"].
+         getService(Ci.nsIObserverService);
+var observer = {
+  observe: function thn_observe(aSubject, aTopic, aData) {
+    if (aTopic == NS_PLACES_INIT_COMPLETE_TOPIC) {
+        os.removeObserver(this, NS_PLACES_INIT_COMPLETE_TOPIC);
+        var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+                 getService(Ci.nsINavHistoryService);
+      
+      
+      do_check_eq(hs.databaseStatus, hs.DATABASE_STATUS_CORRUPT);
+
+      
+      var tm = Cc["@mozilla.org/thread-manager;1"].
+               getService(Ci.nsIThreadManager);
+      tm.mainThread.dispatch({
+        run: function() {
+          continue_test();
+        }
+      }, Ci.nsIThread.DISPATCH_NORMAL);
+    }
+  }
+};
+os.addObserver(observer, NS_PLACES_INIT_COMPLETE_TOPIC, false);
+
 function run_test() {
   
-  create_bookmarks_html();
+  create_bookmarks_html("bookmarks.glue.html");
   
   remove_all_JSON_backups();
 
   
-  let db = gProfD.clone();
+  var db = gProfD.clone();
   db.append("places.sqlite");
   if (db.exists()) {
     db.remove(false);
@@ -64,30 +92,19 @@ function run_test() {
   Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIBrowserGlue);
 
   
-  let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+  var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
            getService(Ci.nsINavHistoryService);
-  
-  
-  do_check_eq(hs.databaseStatus, hs.DATABASE_STATUS_CORRUPT);
 
   
-  
   do_test_pending();
-  do_timeout(1000, "continue_test();");
 }
 
 function continue_test() {
-  let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+  var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
            getService(Ci.nsINavBookmarksService);
-do_test_finished();
-  if (bs.getIdForItemAt(bs.toolbarFolder, 0) == -1) {
-    
-    do_timeout(1000, "continue_test();");
-    return;
-  }
 
-  
-  let itemId = bs.getIdForItemAt(bs.toolbarFolder, SMART_BOOKMARKS_ON_TOOLBAR);
+  var itemId = bs.getIdForItemAt(bs.toolbarFolder, SMART_BOOKMARKS_ON_TOOLBAR);
+  do_check_neq(itemId, -1);
   do_check_eq(bs.getItemTitle(itemId), "example");
 
   do_test_finished();
