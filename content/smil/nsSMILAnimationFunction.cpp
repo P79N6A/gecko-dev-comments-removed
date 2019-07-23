@@ -407,9 +407,13 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
 
   
   if (GetCalcMode() == CALC_DISCRETE) {
-    PRUint32 index = IsToAnimation() ? 0 :
-      (PRUint32) floor(simpleProgress * (aValues.Length()));
-    aResult = aValues[index];
+    if (IsToAnimation()) {
+      
+      aResult = (simpleProgress < 0.5f) ? aBaseValue : aValues[0];
+    } else {
+      PRUint32 index = (PRUint32) floor(simpleProgress * (aValues.Length()));
+      aResult = aValues[index];
+    }
     return NS_OK;
   }
 
