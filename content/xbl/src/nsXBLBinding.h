@@ -120,15 +120,13 @@ public:
 
   void GenerateAnonymousContent();
   void InstallAnonymousContent(nsIContent* aAnonParent, nsIContent* aElement);
-  void InstallEventHandlers();
-  nsresult InstallImplementation();
+  nsresult EnsureScriptAPI();
 
   void ExecuteAttachedHandler();
   void ExecuteDetachedHandler();
   void UnhookEventHandlers();
 
   nsIAtom* GetBaseTag(PRInt32* aNameSpaceID);
-  nsXBLBinding* GetFirstBindingWithConstructor();
   nsXBLBinding* RootBinding();
   nsXBLBinding* GetFirstStyleBinding();
 
@@ -169,6 +167,12 @@ public:
 
 
 protected:
+  
+  
+  
+  void InstallEventHandlers();
+  nsresult InstallImplementation();
+
   nsAutoRefCnt mRefCnt;
   nsXBLPrototypeBinding* mPrototypeBinding; 
   nsCOMPtr<nsIContent> mContent; 
@@ -181,6 +185,7 @@ protected:
 
   PRPackedBool mIsStyleBinding;
   PRPackedBool mMarkedForDeath;
+  PRPackedBool mInstalledAPI;
 };
 
 #endif 
