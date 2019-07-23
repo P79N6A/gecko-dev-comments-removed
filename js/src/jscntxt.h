@@ -739,7 +739,11 @@ struct JSContext {
 
 
 
+#if !JS_HAS_OPERATION_COUNT
+    volatile int32      operationCount;
+#else
     int32               operationCount;
+#endif
 
 #if JS_HAS_XML_SUPPORT
     
@@ -848,8 +852,10 @@ struct JSContext {
 
 
 
+#if JS_HAS_OPERATION_COUNT
     uint32              operationCallbackIsSet :    1;
     uint32              operationLimit         :    31;
+#endif
     JSOperationCallback operationCallback;
 
     
@@ -873,6 +879,10 @@ struct JSContext {
 
 #define CX_FROM_THREAD_LINKS(tl) \
     ((JSContext *)((char *)(tl) - offsetof(JSContext, threadLinks)))
+#endif
+
+#if !JS_HAS_OPERATION_COUNT
+    PRIntervalTime      startTime;          
 #endif
 
     
@@ -1038,7 +1048,7 @@ js_ValidContextPointer(JSRuntime *rt, JSContext *cx);
 
 
 
-extern JSContext *
+extern JS_FRIEND_API(JSContext *)
 js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
 
 
@@ -1200,9 +1210,11 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-#define JS_CHECK_OPERATION_LIMIT(cx, weight)                                  \
+#if JS_HAS_OPERATION_COUNT
+
+# define JS_CHECK_OPERATION_LIMIT(cx, weight)                                 \
     (JS_CHECK_OPERATION_WEIGHT(weight),                                       \
-     (((cx)->operationCount -= (weight)) > 0 || js_ResetOperationCount(cx)))
+    (((cx)->operationCount -= (weight)) > 0 || js_ResetOperationCount(cx)))
 
 
 
@@ -1210,31 +1222,35 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-#define JS_COUNT_OPERATION(cx, weight)                                        \
+# define JS_COUNT_OPERATION(cx, weight)                                       \
     ((void)(JS_CHECK_OPERATION_WEIGHT(weight),                                \
-            (cx)->operationCount = ((cx)->operationCount > 0)                 \
-                                   ? (cx)->operationCount - (weight)          \
-                                   : 0))
+     (cx)->operationCount = ((cx)->operationCount > 0)                        \
+                            ? (cx)->operationCount - (weight)                 \
+                            : 0))
 
 
 
 
 
-#define JS_CHECK_OPERATION_WEIGHT(weight)                                     \
+# define JS_CHECK_OPERATION_WEIGHT(weight)                                    \
     (JS_ASSERT((uint32) (weight) > 0),                                        \
      JS_ASSERT((uint32) (weight) < JS_BIT(30)))
 
 
-#define JSOW_JUMP                   1
-#define JSOW_ALLOCATION             100
-#define JSOW_LOOKUP_PROPERTY        5
-#define JSOW_GET_PROPERTY           10
-#define JSOW_SET_PROPERTY           20
-#define JSOW_NEW_PROPERTY           200
-#define JSOW_DELETE_PROPERTY        30
-#define JSOW_ENTER_SHARP            JS_OPERATION_WEIGHT_BASE
-#define JSOW_SCRIPT_JUMP            JS_OPERATION_WEIGHT_BASE
-
+# define JSOW_JUMP                 1
+# define JSOW_ALLOCATION           100
+# define JSOW_LOOKUP_PROPERTY      5
+# define JSOW_GET_PROPERTY         10
+# define JSOW_SET_PROPERTY         20
+# define JSOW_NEW_PROPERTY         200
+# define JSOW_DELETE_PROPERTY      30
+# define JSOW_ENTER_SHARP          JS_OPERATION_WEIGHT_BASE
+# define JSOW_SCRIPT_JUMP          JS_OPERATION_WEIGHT_BASE
+#else
+# define JS_CHECK_OPERATION_LIMIT(cx, weight)                                 \
+     (((cx)->operationCount) > 0 || js_ResetOperationCount(cx))
+# define JS_COUNT_OPERATION(cx, weight) ((void) 0)
+#endif
 
 
 
