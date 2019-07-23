@@ -1330,7 +1330,7 @@ nsContainerFrame::PushChildren(nsPresContext* aPresContext,
   }
   else {
     
-    SetOverflowFrames(aPresContext, aFromChild);
+    SetOverflowFrames(aPresContext, tail);
   }
 }
 

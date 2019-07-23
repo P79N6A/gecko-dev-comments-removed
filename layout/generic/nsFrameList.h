@@ -56,9 +56,6 @@ public:
     MOZ_COUNT_CTOR(nsFrameList);
   }
 
-  
-  nsFrameList(nsIFrame* aFirstFrame);
-
   nsFrameList(nsIFrame* aFirstFrame, nsIFrame* aLastFrame) :
     mFirstChild(aFirstFrame), mLastChild(aLastFrame)
   {
@@ -109,10 +106,7 @@ public:
 
 
 
-  void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList) {
-    nsFrameList temp(aFrameList);
-    AppendFrames(aParent, temp);
-  }
+  void AppendFrames(nsIFrame* aParent, nsIFrame* aFrameList);
 
   
 
@@ -197,10 +191,7 @@ public:
 
   void InsertFrames(nsIFrame* aParent,
                     nsIFrame* aPrevSibling,
-                    nsIFrame* aFrameList) {
-    nsFrameList temp(aFrameList);
-    InsertFrames(aParent, aPrevSibling, temp);
-  }
+                    nsIFrame* aFrameList);
 
   
 

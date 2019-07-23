@@ -676,7 +676,7 @@ CanvasFrame::Reflow(nsPresContext*           aPresContext,
         nsresult rv = aPresContext->PresShell()->FrameConstructor()->
           CreateContinuingFrame(aPresContext, kidFrame, this, &nextFrame);
         NS_ENSURE_SUCCESS(rv, rv);
-        SetOverflowFrames(aPresContext, nextFrame);
+        SetOverflowFrames(aPresContext, nsFrameList(nextFrame, nextFrame));
         
         
         

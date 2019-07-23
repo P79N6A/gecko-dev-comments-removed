@@ -353,7 +353,7 @@ nsMathMLmoFrame::ProcessOperatorData()
 
     
     
-    nsFrameList frameList(parentAncestor->GetFirstChild(nsnull));
+    const nsFrameList& frameList(parentAncestor->GetChildList(nsnull));
 
     nsIFrame* nextSibling = embellishAncestor->GetNextSibling();
     nsIFrame* prevSibling = frameList.GetPrevSiblingFor(embellishAncestor);
