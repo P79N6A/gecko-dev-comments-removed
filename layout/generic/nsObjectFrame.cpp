@@ -3386,11 +3386,6 @@ nsresult nsPluginInstanceOwner::ScrollPositionDidChange(nsIScrollableView* aScro
         }
         pluginWidget->EndDrawPlugin();
       }
-
-      
-      
-      if (mWidget)
-        mWidget->Invalidate(PR_FALSE);
     }
 #endif
 
