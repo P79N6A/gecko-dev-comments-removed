@@ -627,25 +627,21 @@ bool
 js::ReportStrictModeError(JSContext *cx, TokenStream *ts, JSTreeContext *tc, JSParseNode *pn,
                           uintN errorNumber, ...)
 {
-    bool result;
-    va_list ap;
-    uintN flags;
-
     JS_ASSERT(ts || tc);
     JS_ASSERT(cx == ts->getContext());
 
     
-    if ((tc && tc->flags & TCF_STRICT_MODE_CODE) ||
-        (ts && ts->flags & TSF_STRICT_MODE_CODE)) {
+    uintN flags;
+    if ((tc && tc->flags & TCF_STRICT_MODE_CODE) || (ts && ts->isStrictMode()))
         flags = JSREPORT_ERROR;
-    } else if (JS_HAS_STRICT_OPTION(cx)) {
+    else if (JS_HAS_STRICT_OPTION(cx))
         flags = JSREPORT_WARNING;
-    } else {
+    else
         return true;
-    }
-    
+
+    va_list ap;
     va_start(ap, errorNumber);
-    result = ts->reportCompileErrorNumberVA(pn, flags, errorNumber, ap);
+    bool result = ts->reportCompileErrorNumberVA(pn, flags, errorNumber, ap);
     va_end(ap);
 
     return result;
@@ -821,7 +817,7 @@ Token *
 TokenStream::newToken(ptrdiff_t adjust)
 {
     cursor = (cursor + 1) & ntokensMask;
-    Token *tp = mutableCurrentToken();
+    Token *tp = &tokens[cursor];
     tp->ptr = linebuf.ptr + adjust;
     tp->pos.begin.index = linepos + (tp->ptr - linebuf.base) - ungetpos;
     tp->pos.begin.lineno = tp->pos.end.lineno = lineno;
