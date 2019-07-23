@@ -1071,6 +1071,9 @@ function delayedStartup()
 
 #ifndef XP_MACOSX
   updateEditUIVisibility();
+  let placesContext = document.getElementById("placesContext");
+  placesContext.addEventListener("popupshowing", updateEditUIVisibility, false);
+  placesContext.addEventListener("popuphiding", updateEditUIVisibility, false);
 #endif
 }
 
@@ -3157,11 +3160,14 @@ function BrowserToolboxCustomizeDone(aToolboxChanged)
 
 
 
+
+
 function updateEditUIVisibility()
 {
 #ifndef XP_MACOSX
   let editMenuPopupState = document.getElementById("menu_EditPopup").state;
   let contextMenuPopupState = document.getElementById("contentAreaContextMenu").state;
+  let placesContextMenuPopupState = document.getElementById("placesContext").state;
 
   
   
@@ -3170,6 +3176,8 @@ function updateEditUIVisibility()
                    editMenuPopupState == "open" ||
                    contextMenuPopupState == "showing" ||
                    contextMenuPopupState == "open" ||
+                   placesContextMenuPopupState == "showing" ||
+                   placesContextMenuPopupState == "open" ||
                    document.getElementById("cut-button") ||
                    document.getElementById("copy-button") ||
                    document.getElementById("paste-button") ? true : false;
@@ -3183,14 +3191,14 @@ function updateEditUIVisibility()
   
   
   else {
-    goSetCommandEnabled("cmd_undo");
-    goSetCommandEnabled("cmd_redo");
-    goSetCommandEnabled("cmd_cut");
-    goSetCommandEnabled("cmd_copy");
-    goSetCommandEnabled("cmd_paste");
-    goSetCommandEnabled("cmd_selectAll");
-    goSetCommandEnabled("cmd_delete");
-    goSetCommandEnabled("cmd_switchTextDirection");
+    goSetCommandEnabled("cmd_undo", true);
+    goSetCommandEnabled("cmd_redo", true);
+    goSetCommandEnabled("cmd_cut", true);
+    goSetCommandEnabled("cmd_copy", true);
+    goSetCommandEnabled("cmd_paste", true);
+    goSetCommandEnabled("cmd_selectAll", true);
+    goSetCommandEnabled("cmd_delete", true);
+    goSetCommandEnabled("cmd_switchTextDirection", true);
   }
 #endif
 }
