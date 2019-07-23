@@ -49,6 +49,7 @@
 #include "nsIMathMLFrame.h"
 #include "nsFrame.h"
 #include "nsCSSValue.h"
+#include "nsMathMLElement.h"
 
 class nsMathMLChar;
 
@@ -149,22 +150,14 @@ public:
   }
 
   NS_IMETHOD
-  UpdatePresentationData(PRInt32         aScriptLevelIncrement,
-                         PRUint32        aFlagsValues,
+  UpdatePresentationData(PRUint32        aFlagsValues,
                          PRUint32        aFlagsToUpdate);
 
   NS_IMETHOD
   UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                     PRInt32         aLastIndex,
-                                    PRInt32         aScriptLevelIncrement,
                                     PRUint32        aFlagsValues,
                                     PRUint32        aFlagsToUpdate)
-  {
-    return NS_OK;
-  }
-
-  NS_IMETHOD
-  ReResolveScriptStyle(PRInt32 aParentScriptLevel)
   {
     return NS_OK;
   }
@@ -223,8 +216,10 @@ public:
   
   
   static PRBool
-  ParseNumericValue(nsString&   aString,
-                    nsCSSValue& aCSSValue);
+  ParseNumericValue(const nsString& aString,
+                    nsCSSValue&     aCSSValue) {
+    return nsMathMLElement::ParseNumericValue(aString, aCSSValue, PR_FALSE);
+  }
 
   static nscoord 
   CalcLength(nsPresContext*   aPresContext,
@@ -432,24 +427,6 @@ public:
   GetAxisHeight(nsIRenderingContext& aRenderingContext, 
                 nsIFontMetrics*      aFontMetrics,
                 nscoord&             aAxisHeight);
-
-  
-  
-  
-  static PRInt32
-  MapCommonAttributesIntoCSS(nsPresContext* aPresContext,
-                             nsIContent*    aContent);
-  static PRInt32
-  MapCommonAttributesIntoCSS(nsPresContext* aPresContext,
-                             nsIFrame*      aFrame);
- 
-  
-  
-  
-  static PRBool
-  CommonAttributeChangedFor(nsPresContext* aPresContext,
-                            nsIContent*    aContent,
-                            nsIAtom*       aAttribute);
 
 protected:
 #if defined(NS_DEBUG) && defined(SHOW_BOUNDING_BOX)

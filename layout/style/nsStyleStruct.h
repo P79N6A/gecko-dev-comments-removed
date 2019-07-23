@@ -89,8 +89,7 @@ struct nsStyleStruct {
 
 
 struct nsStyleFont : public nsStyleStruct {
-  nsStyleFont(void);
-  nsStyleFont(const nsFont& aFont);
+  nsStyleFont(const nsFont& aFont, nsPresContext *aPresContext);
   nsStyleFont(const nsStyleFont& aStyleFont);
   nsStyleFont(nsPresContext *aPresContext);
   ~nsStyleFont(void) {}
@@ -103,16 +102,25 @@ struct nsStyleFont : public nsStyleStruct {
 
   static nscoord ZoomText(nsPresContext* aPresContext, nscoord aSize);
   static nscoord UnZoomText(nsPresContext* aPresContext, nscoord aSize);
-  
+
   void* operator new(size_t sz, nsPresContext* aContext) CPP_THROW_NEW;
   void Destroy(nsPresContext* aContext);
 
-  PRUint8 mFlags;       
   nsFont  mFont;        
   nscoord mSize;        
                         
                         
                         
+  PRUint8 mFlags;       
+
+#ifdef MOZ_MATHML
+  
+  PRInt8  mScriptLevel;          
+  
+  nscoord mScriptUnconstrainedSize;
+  nscoord mScriptMinSize;        
+  float   mScriptSizeMultiplier; 
+#endif
 };
 
 struct nsStyleColor : public nsStyleStruct {

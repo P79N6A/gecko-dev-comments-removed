@@ -64,6 +64,7 @@
 #include "nsStyleSet.h"
 #include "nsDisplayList.h"
 #include "nsCSSFrameConstructor.h"
+#include "nsIReflowCallback.h"
 
 NS_DEFINE_CID(kInlineFrameCID, NS_INLINE_FRAME_CID);
 
@@ -569,29 +570,28 @@ nsMathMLContainerFrame::FinalizeReflow(nsIRenderingContext& aRenderingContext,
 
  void
 nsMathMLContainerFrame::PropagatePresentationDataFor(nsIFrame*       aFrame,
-                                                     PRInt32         aScriptLevelIncrement,
                                                      PRUint32        aFlagsValues,
                                                      PRUint32        aFlagsToUpdate)
 {
-  if (!aFrame || (!aFlagsToUpdate && !aScriptLevelIncrement))
+  if (!aFrame || !aFlagsToUpdate)
     return;
   nsIMathMLFrame* mathMLFrame;
   aFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
   if (mathMLFrame) {
     
-    mathMLFrame->UpdatePresentationData(aScriptLevelIncrement, aFlagsValues,
+    mathMLFrame->UpdatePresentationData(aFlagsValues,
                                         aFlagsToUpdate);
     
     
     mathMLFrame->UpdatePresentationDataFromChildAt(0, -1,
-      aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+      aFlagsValues, aFlagsToUpdate);
   }
   else {
     
     nsIFrame* childFrame = aFrame->GetFirstChild(nsnull);
     while (childFrame) {
       PropagatePresentationDataFor(childFrame,
-        aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+        aFlagsValues, aFlagsToUpdate);
       childFrame = childFrame->GetNextSibling();
     }
   }
@@ -601,11 +601,10 @@ nsMathMLContainerFrame::PropagatePresentationDataFor(nsIFrame*       aFrame,
 nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(nsIFrame*       aParentFrame,
                                                              PRInt32         aFirstChildIndex,
                                                              PRInt32         aLastChildIndex,
-                                                             PRInt32         aScriptLevelIncrement,
                                                              PRUint32        aFlagsValues,
                                                              PRUint32        aFlagsToUpdate)
 {
-  if (!aParentFrame || (!aFlagsToUpdate && !aScriptLevelIncrement))
+  if (!aParentFrame || !aFlagsToUpdate)
     return;
   PRInt32 index = 0;
   nsIFrame* childFrame = aParentFrame->GetFirstChild(nsnull);
@@ -614,130 +613,12 @@ nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(nsIFrame*       aPa
         ((aLastChildIndex <= 0) || ((aLastChildIndex > 0) &&
          (index <= aLastChildIndex)))) {
       PropagatePresentationDataFor(childFrame,
-        aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+        aFlagsValues, aFlagsToUpdate);
     }
     index++;
     childFrame = childFrame->GetNextSibling();
   }
 }
-
-
-
-
-
-
- void
-nsMathMLContainerFrame::PropagateScriptStyleFor(nsIFrame*       aFrame,
-                                                PRInt32         aParentScriptLevel)
-{
-  if (!aFrame)
-    return;
-  nsIMathMLFrame* mathMLFrame;
-  aFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
-  if (mathMLFrame) {
-    
-    nsPresentationData presentationData;
-    mathMLFrame->GetPresentationData(presentationData);
-    PRInt32 gap = presentationData.scriptLevel - aParentScriptLevel;
-
-    
-    
-    aParentScriptLevel = presentationData.scriptLevel;
-
-    nsStyleContext* oldStyleContext = aFrame->GetStyleContext();
-    nsStyleContext* parentContext = oldStyleContext->GetParent();
-
-    nsIContent* content = aFrame->GetContent();
-    if (!gap) {
-      
-      
-      if (!aFrame->GetParent() || aFrame->GetParent()->GetContent() != content)
-        content->UnsetAttr(kNameSpaceID_None, nsGkAtoms::MOZfontsize, PR_FALSE);
-    }
-    else {
-      
-      nscoord scriptminsize = aFrame->PresContext()->PointsToAppUnits(NS_MATHML_SCRIPTMINSIZE);
-      float scriptsizemultiplier = NS_MATHML_SCRIPTSIZEMULTIPLIER;
-#if 0
-       
-       
-       
-       
-
-       
-       GetAttribute(nsnull, presentationData.mstyle,
-                        nsGkAtoms::scriptminsize_, fontsize);
-       if (!fontsize.IsEmpty()) {
-         nsCSSValue cssValue;
-         if (ParseNumericValue(fontsize, cssValue)) {
-           nsCSSUnit unit = cssValue.GetUnit();
-           if (eCSSUnit_Number == unit)
-             scriptminsize = nscoord(float(scriptminsize) * cssValue.GetFloatValue());
-           else if (eCSSUnit_Percent == unit)
-             scriptminsize = nscoord(float(scriptminsize) * cssValue.GetPercentValue());
-           else if (eCSSUnit_Null != unit)
-             scriptminsize = CalcLength(mStyleContext, cssValue);
-         }
-       }
-#endif
-
-      
-      nsAutoString fontsize;
-      if (0 > gap) { 
-        if (gap < NS_MATHML_CSS_NEGATIVE_SCRIPTLEVEL_LIMIT)
-          gap = NS_MATHML_CSS_NEGATIVE_SCRIPTLEVEL_LIMIT;
-        gap = -gap;
-        scriptsizemultiplier = 1.0f / scriptsizemultiplier;
-        fontsize.AssignLiteral("-");
-      }
-      else { 
-        if (gap > NS_MATHML_CSS_POSITIVE_SCRIPTLEVEL_LIMIT)
-          gap = NS_MATHML_CSS_POSITIVE_SCRIPTLEVEL_LIMIT;
-        fontsize.AssignLiteral("+");
-      }
-      fontsize.AppendInt(gap, 10);
-      
-      const nsStyleFont* font = parentContext->GetStyleFont();
-      nscoord newFontSize = font->mFont.size;
-      while (0 < gap--) {
-        newFontSize = (nscoord)((float)(newFontSize) * scriptsizemultiplier);
-      }
-      if (newFontSize <= scriptminsize) {
-        fontsize.AssignLiteral("scriptminsize");
-      }
-
-      
-      content->SetAttr(kNameSpaceID_None, nsGkAtoms::MOZfontsize,
-                       fontsize, PR_FALSE);
-    }
-
-    
-    nsFrameManager *fm = aFrame->PresContext()->FrameManager();
-    nsStyleChangeList changeList;
-    fm->ComputeStyleChangeFor(aFrame, &changeList, NS_STYLE_HINT_NONE);
-#ifdef DEBUG
-    
-    nsIFrame* parentFrame = aFrame->GetParent();
-    fm->DebugVerifyStyleTree(parentFrame ? parentFrame : aFrame);
-#endif
-  }
-
-  
-  nsIFrame* childFrame = aFrame->GetFirstChild(nsnull);
-  while (childFrame) {
-    childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
-    if (mathMLFrame) {
-      
-      
-      mathMLFrame->ReResolveScriptStyle(aParentScriptLevel);
-    }
-    else {
-      PropagateScriptStyleFor(childFrame, aParentScriptLevel);
-    }
-    childFrame = childFrame->GetNextSibling();
-  }
-}
-
 
 
 
@@ -778,22 +659,6 @@ nsMathMLContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 
 
-NS_IMETHODIMP
-nsMathMLContainerFrame::Init(nsIContent*      aContent,
-                             nsIFrame*        aParent,
-                             nsIFrame*        aPrevInFlow)
-{
-  MapCommonAttributesIntoCSS(PresContext(), aContent);
-
-  
-  return nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
-
-  
-  
-}
-
-
-
 
  void
 nsMathMLContainerFrame::RebuildAutomaticDataForChildren(nsIFrame* aParentFrame)
@@ -827,7 +692,6 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
     return NS_OK;
 
   
-  PRInt32 parentScriptLevel = 0;
   nsIFrame* frame = aParentFrame;
   while (1) {
      nsIFrame* parent = frame->GetParent();
@@ -837,12 +701,8 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
     
     nsIMathMLFrame* mathMLFrame;
     frame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
-    if (mathMLFrame) {
-      nsPresentationData parentData;
-      mathMLFrame->GetPresentationData(parentData);
-      parentScriptLevel = parentData.scriptLevel;
+    if (mathMLFrame)
       break;
-    }
 
     
     nsIContent* content = frame->GetContent();
@@ -862,22 +722,6 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame,
 
   
   RebuildAutomaticDataForChildren(frame);
-
-  
-  nsIFrame* childFrame = aParentFrame->GetFirstChild(nsnull);
-  while (childFrame) {
-    nsIMathMLFrame* mathMLFrame;
-    childFrame->QueryInterface(NS_GET_IID(nsIMathMLFrame), (void**)&mathMLFrame);
-    if (mathMLFrame) {
-      
-      
-      mathMLFrame->ReResolveScriptStyle(parentScriptLevel);
-    }
-    else {
-      PropagateScriptStyleFor(childFrame, parentScriptLevel);
-    }
-    childFrame = childFrame->GetNextSibling();
-  }
 
   
   nsIFrame* parent = frame->GetParent();
@@ -963,10 +807,6 @@ nsMathMLContainerFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                          nsIAtom*        aAttribute,
                                          PRInt32         aModType)
 {
-  
-  if (CommonAttributeChangedFor(PresContext(), mContent, aAttribute))
-    return NS_OK;
-
   
   
   
@@ -1303,11 +1143,12 @@ public:
     InitMetricsForChild();
 
     
+    const nsStyleFont* font = mParentFrame->GetStyleFont();
     nscoord space =
-      GetInterFrameSpacing(mParentFrame->mPresentationData.scriptLevel,
+      GetInterFrameSpacing(font->mScriptLevel,
                            prevFrameType, mChildFrameType,
                            &mFromFrameType, &mCarrySpace);
-    mX += space * GetThinSpace(mParentFrame->GetStyleFont());
+    mX += space * GetThinSpace(font);
     return *this;
   }
 
@@ -1402,6 +1243,38 @@ nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,
   }
 }
 
+class ForceReflow : public nsIReflowCallback {
+public:
+  virtual PRBool ReflowFinished() {
+    return PR_TRUE;
+  }
+  virtual void ReflowCallbackCanceled() {}
+};
+
+
+
+static ForceReflow gForceReflow;
+
+void
+nsMathMLContainerFrame::SetIncrementScriptLevel(PRInt32 aChildIndex, PRBool aIncrement)
+{
+  nsIFrame* child = nsFrameList(GetFirstChild(nsnull)).FrameAt(aChildIndex);
+  if (!child)
+    return;
+  nsIContent* content = child->GetContent();
+  if (!content->IsNodeOfType(nsINode::eMATHML))
+    return;
+  nsMathMLElement* element = static_cast<nsMathMLElement*>(content);
+
+  if (element->GetIncrementScriptLevel() == aIncrement)
+    return;
+
+  
+  
+  element->SetIncrementScriptLevel(aIncrement, PR_TRUE);
+  PresContext()->PresShell()->PostReflowCallback(&gForceReflow);
+}
+
 
 
 
@@ -1450,7 +1323,7 @@ nsMathMLContainerFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
   nsIAtom *parentTag = parentContent->Tag();
   if (parentTag == nsGkAtoms::math ||
       parentTag == nsGkAtoms::mtd_) {
-    gap = GetInterFrameSpacingFor(mPresentationData.scriptLevel, mParent, this);
+    gap = GetInterFrameSpacingFor(GetStyleFont()->mScriptLevel, mParent, this);
     
     nscoord leftCorrection = 0, italicCorrection = 0;
     GetItalicCorrection(mBoundingMetrics, leftCorrection, italicCorrection);

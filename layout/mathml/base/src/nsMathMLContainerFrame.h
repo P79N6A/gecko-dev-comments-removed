@@ -62,16 +62,6 @@
 
 
 
-
-
-
-
-#define NS_MATHML_CSS_POSITIVE_SCRIPTLEVEL_LIMIT  +5
-#define NS_MATHML_CSS_NEGATIVE_SCRIPTLEVEL_LIMIT  -5
-#define NS_MATHML_SCRIPTSIZEMULTIPLIER             0.71f
-#define NS_MATHML_SCRIPTMINSIZE                    8
-
-
 #define STRETCH_CONSIDER_ACTUAL_SIZE    0x00000001 // just use our current size
 #define STRETCH_CONSIDER_EMBELLISHMENTS 0x00000002 // size calculations include embellishments
 
@@ -100,21 +90,25 @@ public:
   NS_IMETHOD
   UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                     PRInt32         aLastIndex,
-                                    PRInt32         aScriptLevelIncrement,
                                     PRUint32        aFlagsValues,
                                     PRUint32        aFlagsToUpdate)
   {
     PropagatePresentationDataFromChildAt(this, aFirstIndex, aLastIndex,
-      aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+      aFlagsValues, aFlagsToUpdate);
     return NS_OK;
   }
-
-  NS_IMETHOD
-  ReResolveScriptStyle(PRInt32 aParentScriptLevel)
-  {
-    PropagateScriptStyleFor(this, aParentScriptLevel);
-    return NS_OK;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  void
+  SetIncrementScriptLevel(PRInt32 aChildIndex, PRBool aIncrement);
 
   
   
@@ -124,11 +118,6 @@ public:
     return !(aFlags & nsIFrame::eLineParticipant) &&
       nsHTMLContainerFrame::IsFrameOfType(aFlags & ~(nsIFrame::eMathML));
   }
-
-  NS_IMETHOD
-  Init(nsIContent*      aContent,
-       nsIFrame*        aParent,
-       nsIFrame*        aPrevInFlow);
 
   NS_IMETHOD
   AppendFrames(nsIAtom*        aListName,
@@ -255,14 +244,7 @@ public:
   
   
   static void
-  PropagateScriptStyleFor(nsIFrame*       aFrame,
-                          PRInt32         aParentScriptLevel);
-
-  
-  
-  static void
   PropagatePresentationDataFor(nsIFrame*       aFrame,
-                               PRInt32         aScriptLevelIncrement,
                                PRUint32        aFlagsValues,
                                PRUint32        aFlagsToUpdate);
 
@@ -270,7 +252,6 @@ public:
   PropagatePresentationDataFromChildAt(nsIFrame*       aParentFrame,
                                        PRInt32         aFirstChildIndex,
                                        PRInt32         aLastChildIndex,
-                                       PRInt32         aScriptLevelIncrement,
                                        PRUint32        aFlagsValues,
                                        PRUint32        aFlagsToUpdate);
 
@@ -352,22 +333,8 @@ public:
     NS_ASSERTION(!aListName, "unexpected frame list");
     nsresult rv = nsBlockFrame::SetInitialChildList(aListName, aChildList);
     
-    nsMathMLContainerFrame::MapCommonAttributesIntoCSS(PresContext(), this);
     nsMathMLContainerFrame::RebuildAutomaticDataForChildren(this);
     return rv;
-  }
-
-  NS_IMETHOD
-  Reflow(nsPresContext*           aPresContext,
-         nsHTMLReflowMetrics&     aDesiredSize,
-         const nsHTMLReflowState& aReflowState,
-         nsReflowStatus&          aStatus)
-  {
-    if (mScriptStyleChanged) {
-      mScriptStyleChanged = PR_FALSE;
-      nsMathMLContainerFrame::PropagateScriptStyleFor(this, 0);
-    }
-    return nsBlockFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
   }
 
   NS_IMETHOD
@@ -421,15 +388,6 @@ protected:
     AddStateBits(NS_BLOCK_SPACE_MGR);
   }
   virtual ~nsMathMLmathBlockFrame() {}
-
-  NS_IMETHOD
-  DidSetStyleContext()
-  {
-    mScriptStyleChanged = PR_TRUE;
-    return nsBlockFrame::DidSetStyleContext();
-  }
-
-  PRBool mScriptStyleChanged;
 };
 
 
@@ -445,22 +403,8 @@ public:
     NS_ASSERTION(!aListName, "unexpected frame list");
     nsresult rv = nsInlineFrame::SetInitialChildList(aListName, aChildList);
     
-    nsMathMLContainerFrame::MapCommonAttributesIntoCSS(PresContext(), this);
     nsMathMLContainerFrame::RebuildAutomaticDataForChildren(this);
     return rv;
-  }
-
-  NS_IMETHOD
-  Reflow(nsPresContext*           aPresContext,
-         nsHTMLReflowMetrics&     aDesiredSize,
-         const nsHTMLReflowState& aReflowState,
-         nsReflowStatus&          aStatus)
-  {
-    if (mScriptStyleChanged) {
-      mScriptStyleChanged = PR_FALSE;
-      nsMathMLContainerFrame::PropagateScriptStyleFor(this, 0);
-    }
-    return nsInlineFrame::Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
   }
 
   NS_IMETHOD
@@ -510,15 +454,6 @@ public:
 protected:
   nsMathMLmathInlineFrame(nsStyleContext* aContext) : nsInlineFrame(aContext) {}
   virtual ~nsMathMLmathInlineFrame() {}
-
-  NS_IMETHOD
-  DidSetStyleContext()
-  {
-    mScriptStyleChanged = PR_TRUE;
-    return nsInlineFrame::DidSetStyleContext();
-  }
-
-  PRBool mScriptStyleChanged;
 };
 
 #endif 

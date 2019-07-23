@@ -82,12 +82,10 @@ nsMathMLmunderFrame::AttributeChanged(PRInt32         aNameSpaceID,
 }
 
 NS_IMETHODIMP
-nsMathMLmunderFrame::UpdatePresentationData(PRInt32         aScriptLevelIncrement,
-                                            PRUint32        aFlagsValues,
+nsMathMLmunderFrame::UpdatePresentationData(PRUint32        aFlagsValues,
                                             PRUint32        aFlagsToUpdate)
 {
-  nsMathMLContainerFrame::UpdatePresentationData(
-    aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+  nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aFlagsToUpdate);
   
   if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
       !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
@@ -102,7 +100,6 @@ nsMathMLmunderFrame::UpdatePresentationData(PRInt32         aScriptLevelIncremen
 NS_IMETHODIMP
 nsMathMLmunderFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstIndex,
                                                        PRInt32         aLastIndex,
-                                                       PRInt32         aScriptLevelIncrement,
                                                        PRUint32        aFlagsValues,
                                                        PRUint32        aFlagsToUpdate)
 {
@@ -126,8 +123,7 @@ nsMathMLmunderFrame::UpdatePresentationDataFromChildAt(PRInt32         aFirstInd
         aFlagsToUpdate &= ~NS_MATHML_DISPLAYSTYLE;
         aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
       }
-      PropagatePresentationDataFor(childFrame,
-        aScriptLevelIncrement, aFlagsValues, aFlagsToUpdate);
+      PropagatePresentationDataFor(childFrame, aFlagsValues, aFlagsToUpdate);
     }
     index++;
     childFrame = childFrame->GetNextSibling();
@@ -217,9 +213,8 @@ nsMathMLmunderFrame::TransmitAutomaticData()
 
 
 
-  PRInt32 increment = NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags)
-    ? 0 : 1;
-  PropagatePresentationDataFor(underscriptFrame, increment,
+  SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags));
+  PropagatePresentationDataFor(underscriptFrame,
     ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
      NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
 

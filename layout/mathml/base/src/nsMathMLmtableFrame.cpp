@@ -351,16 +351,6 @@ nsMathMLmtableOuterFrame::~nsMathMLmtableOuterFrame()
 }
 
 NS_IMETHODIMP
-nsMathMLmtableOuterFrame::Init(nsIContent*      aContent,
-                               nsIFrame*        aParent,
-                               nsIFrame*        aPrevInFlow)
-{
-  nsresult rv = nsTableOuterFrame::Init(aContent, aParent, aPrevInFlow);
-  nsMathMLFrame::MapCommonAttributesIntoCSS(PresContext(), aContent);
-  return rv;
-}
-
-NS_IMETHODIMP
 nsMathMLmtableOuterFrame::InheritAutomaticData(nsIFrame* aParent)
 {
   
@@ -379,8 +369,7 @@ nsMathMLmtableOuterFrame::InheritAutomaticData(nsIFrame* aParent)
 
 
 NS_IMETHODIMP
-nsMathMLmtableOuterFrame::UpdatePresentationData(PRInt32  aScriptLevelIncrement,
-                                                 PRUint32 aFlagsValues,
+nsMathMLmtableOuterFrame::UpdatePresentationData(PRUint32 aFlagsValues,
                                                  PRUint32 aWhichFlags)
 {
   if (NS_MATHML_HAS_EXPLICIT_DISPLAYSTYLE(mPresentationData.flags)) {
@@ -389,14 +378,12 @@ nsMathMLmtableOuterFrame::UpdatePresentationData(PRInt32  aScriptLevelIncrement,
     aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
   }
 
-  return nsMathMLFrame::UpdatePresentationData(
-    aScriptLevelIncrement, aFlagsValues, aWhichFlags);
+  return nsMathMLFrame::UpdatePresentationData(aFlagsValues, aWhichFlags);
 }
 
 NS_IMETHODIMP
 nsMathMLmtableOuterFrame::UpdatePresentationDataFromChildAt(PRInt32  aFirstIndex,
                                                             PRInt32  aLastIndex,
-                                                            PRInt32  aScriptLevelIncrement,
                                                             PRUint32 aFlagsValues,
                                                             PRUint32 aWhichFlags)
 {
@@ -407,7 +394,7 @@ nsMathMLmtableOuterFrame::UpdatePresentationDataFromChildAt(PRInt32  aFirstIndex
   }
 
   nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(this,
-    aFirstIndex, aLastIndex, aScriptLevelIncrement, aFlagsValues, aWhichFlags);
+    aFirstIndex, aLastIndex, aFlagsValues, aWhichFlags);
 
   return NS_OK; 
 }
@@ -417,10 +404,6 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                            nsIAtom* aAttribute,
                                            PRInt32  aModType)
 {
-  
-  if (nsMathMLFrame::CommonAttributeChangedFor(PresContext(), mContent, aAttribute))
-    return NS_OK;
-
   
   
   
@@ -456,7 +439,6 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
   
   if (aAttribute == nsGkAtoms::displaystyle_) {
     nsMathMLContainerFrame::RebuildAutomaticDataForChildren(mParent);
-    nsMathMLContainerFrame::PropagateScriptStyleFor(tableFrame, mPresentationData.scriptLevel);
     
     
     PresContext()->PresShell()->
@@ -707,24 +689,10 @@ nsMathMLmtrFrame::~nsMathMLmtrFrame()
 }
 
 NS_IMETHODIMP
-nsMathMLmtrFrame::Init(nsIContent* aContent,
-                       nsIFrame*   aParent,
-                       nsIFrame*   aPrevInFlow)
-{
-  nsresult rv = nsTableRowFrame::Init(aContent, aParent, aPrevInFlow);
-  nsMathMLFrame::MapCommonAttributesIntoCSS(PresContext(), aContent);
-  return rv;
-}
-
-NS_IMETHODIMP
 nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                    nsIAtom* aAttribute,
                                    PRInt32  aModType)
 {
-  
-  if (nsMathMLFrame::CommonAttributeChangedFor(PresContext(), mContent, aAttribute))
-    return NS_OK;
-
   
   
   
@@ -781,16 +749,6 @@ nsMathMLmtdFrame::~nsMathMLmtdFrame()
 {
 }
 
-NS_IMETHODIMP
-nsMathMLmtdFrame::Init(nsIContent* aContent,
-                       nsIFrame*   aParent,
-                       nsIFrame*   aPrevInFlow)
-{
-  nsresult rv = nsTableCellFrame::Init(aContent, aParent, aPrevInFlow);
-  nsMathMLFrame::MapCommonAttributesIntoCSS(PresContext(), aContent);
-  return rv;
-}
-
 PRInt32
 nsMathMLmtdFrame::GetRowSpan()
 {
@@ -834,10 +792,6 @@ nsMathMLmtdFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                    nsIAtom* aAttribute,
                                    PRInt32  aModType)
 {
-  
-  if (nsMathMLFrame::CommonAttributeChangedFor(PresContext(), mContent, aAttribute))
-    return NS_OK;
-
   
   
   

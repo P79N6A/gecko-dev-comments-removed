@@ -1,0 +1,84 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NS_MAPPEDATTRIBUTEELEMENT_H_
+#define NS_MAPPEDATTRIBUTEELEMENT_H_
+
+#include "nsStyledElement.h"
+
+class nsMappedAttributes;
+class nsRuleData;
+
+typedef void (*nsMapRuleToAttributesFunc)(const nsMappedAttributes* aAttributes, 
+                                          nsRuleData* aData);
+
+typedef nsStyledElement nsMappedAttributeElementBase;
+
+class nsMappedAttributeElement : public nsMappedAttributeElementBase
+{
+
+protected:
+
+  nsMappedAttributeElement(nsINodeInfo *aNodeInfo)
+    : nsMappedAttributeElementBase(aNodeInfo)
+  {}
+
+public:
+  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
+                              nsIContent* aBindingParent,
+                              PRBool aCompileEventHandlers);
+
+  virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const;
+
+  static void MapNoAttributesInto(const nsMappedAttributes* aAttributes, 
+                                  nsRuleData* aRuleData);
+
+  NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker);
+  virtual PRBool SetMappedAttribute(nsIDocument* aDocument,
+                                    nsIAtom* aName,
+                                    nsAttrValue& aValue,
+                                    nsresult* aRetval);
+};
+
+#endif 

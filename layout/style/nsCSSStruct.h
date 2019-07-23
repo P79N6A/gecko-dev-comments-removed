@@ -210,6 +210,12 @@ struct nsCSSFont : public nsCSSStruct {
   nsCSSValue mSizeAdjust; 
   nsCSSValue mStretch; 
 
+#ifdef MOZ_MATHML
+  nsCSSValue mScriptLevel; 
+  nsCSSValue mScriptSizeMultiplier;
+  nsCSSValue mScriptMinSize;
+#endif
+
 private:
   nsCSSFont(const nsCSSFont& aOther); 
 };
