@@ -39,7 +39,6 @@
 
 
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
 
 
@@ -361,10 +360,9 @@ var gUpdates = {
     this._cacheButtonStrings("extra2");
 
     
-    this.getStartPageID(function(startPageID) {
-      LOG("gUpdates", "onLoad - setting current page to startpage " + startPageID);
-      gUpdates.wiz.currentPage = document.getElementById(startPageID);
-    });
+    var startPage = this.startPage;
+    LOG("gUpdates", "onLoad - setting current page to startpage " + startPage.id);
+    this.wiz.currentPage = startPage;
   },
 
   
@@ -398,11 +396,7 @@ var gUpdates = {
 
 
 
-
-
-
-
-  getStartPageID: function(aCallback) {
+  get startPage() {
     if ("arguments" in window && window.arguments[0]) {
       var arg0 = window.arguments[0];
       if (arg0 instanceof CoI.nsIUpdate) {
@@ -440,40 +434,28 @@ var gUpdates = {
           switch (state) {
           case STATE_PENDING:
             this.sourceEvent = SRCEVT_BACKGROUND;
-            aCallback("finishedBackground");
-            return;
+            return document.getElementById("finishedBackground");
           case STATE_DOWNLOADING:
-            aCallback("downloading");
-            return;
+            return document.getElementById("downloading");
           case STATE_FAILED:
             window.getAttention();
-            aCallback("errorpatching");
-            return;
+            return document.getElementById("errorpatching");
           case STATE_DOWNLOAD_FAILED:
           case STATE_APPLYING:
-            aCallback("errors");
-            return;
+            return document.getElementById("errors");
           }
         }
         if (this.update.licenseURL)
           this.wiz.getPageById(this.updatesFoundPageId).setAttribute("next", "license");
-
-        var self = this;
-        this.getShouldCheckAddonCompatibility(function(shouldCheck) {
-          if (shouldCheck) {
-            var incompatCheckPage = document.getElementById("incompatibleCheck");
-            incompatCheckPage.setAttribute("next", self.updatesFoundPageId);
-            aCallback(incompatCheckPage.id);
-          }
-          else {
-            aCallback(self.updatesFoundPageId);
-          }
-        });
-        return;
+        if (this.shouldCheckAddonCompatibility) {
+          var incompatCheckPage = document.getElementById("incompatibleCheck");
+          incompatCheckPage.setAttribute("next", this.updatesFoundPageId);
+          return incompatCheckPage;
+        }
+        return document.getElementById(this.updatesFoundPageId);
       }
       else if (arg0 == "installed") {
-        aCallback("installed");
-        return;
+        return document.getElementById("installed");
       }
     }
     else {
@@ -481,8 +463,7 @@ var gUpdates = {
                getService(CoI.nsIUpdateManager);
       if (um.activeUpdate) {
         this.setUpdate(um.activeUpdate);
-        aCallback("downloading");
-        return;
+        return document.getElementById("downloading");
       }
     }
 
@@ -499,48 +480,45 @@ var gUpdates = {
                       displayVersion      : "Billboard Test 1.0",
                       showNeverForVersion : true,
                       type                : "major" };
-      aCallback(updatesFoundBillboardPage.id);
+      return updatesFoundBillboardPage;
     }
-    else {
-      aCallback("checking");
-    }
+
+    return document.getElementById("checking");
   },
 
-  getShouldCheckAddonCompatibility: function(aCallback) {
+  get shouldCheckAddonCompatibility() {
     
-    if (!this.update) {
-      aCallback(false);
-      return;
-    }
+    if (!this.update)
+      return false;
 
+    delete this.shouldCheckAddonCompatibility;
     var ai = CoC["@mozilla.org/xre/app-info;1"].getService(CoI.nsIXULAppInfo);
     var vc = CoC["@mozilla.org/xpcom/version-comparator;1"].
              getService(CoI.nsIVersionComparator);
     if (!this.update.appVersion ||
-        vc.compare(this.update.appVersion, ai.version) == 0) {
-      aCallback(false);
-      return;
+        vc.compare(this.update.appVersion, ai.version) == 0)
+      return this.shouldCheckAddonCompatibility = false;
+
+    var em = CoC["@mozilla.org/extensions/manager;1"].
+             getService(CoI.nsIExtensionManager);
+    this.addons = em.getIncompatibleItemList(this.update.appVersion,
+                                             this.update.platformVersion,
+                                             CoI.nsIUpdateItem.TYPE_ANY, false);
+    if (this.addons.length > 0) {
+      
+      
+      var addons = em.getIncompatibleItemList(null, null,
+                                              CoI.nsIUpdateItem.TYPE_ANY, false);
+      for (var i = 0; i < addons.length; ++i) {
+        for (var j = 0; j < this.addons.length; ++j) {
+          if (addons[i].id == this.addons[j].id) {
+            this.addons.splice(j, 1);
+            break;
+          }
+        }
+      }
     }
-
-    var self = this;
-    AddonManager.getAllAddons(function(addons) {
-      self.addons = [];
-      addons.forEach(function(addon) {
-        
-        
-        
-        
-        
-        
-        if (!addon.appDisabled && !addon.userDisabled &&
-            addon.scope != AddonManager.SCOPE_APPLICATION &&
-            !addon.isCompatibleWith(self.update.appVersion,
-                                    self.update.platformVersion))
-          self.addons.push(addon);
-      });
-
-      aCallback(self.addons.length != 0);
-    });
+    return this.shouldCheckAddonCompatibility = (this.addons.length != 0);
   },
 
   
@@ -633,16 +611,14 @@ var gCheckingPage = {
           gUpdates.wiz.getPageById(gUpdates.updatesFoundPageId).setAttribute("next", "license");
         }
 
-        gUpdates.getShouldCheckAddonCompatibility(function(shouldCheck) {
-          if (shouldCheck) {
-            var incompatCheckPage = document.getElementById("incompatibleCheck");
-            incompatCheckPage.setAttribute("next", gUpdates.updatesFoundPageId);
-            gUpdates.wiz.goTo("incompatibleCheck");
-          }
-          else {
-            gUpdates.wiz.goTo(gUpdates.updatesFoundPageId);
-          }
-        });
+        if (gUpdates.shouldCheckAddonCompatibility) {
+          var incompatCheckPage = document.getElementById("incompatibleCheck");
+          incompatCheckPage.setAttribute("next", gUpdates.updatesFoundPageId);
+          gUpdates.wiz.goTo("incompatibleCheck");
+        }
+        else {
+          gUpdates.wiz.goTo(gUpdates.updatesFoundPageId);
+        }
         return;
       }
 
@@ -780,50 +756,25 @@ var gIncompatibleCheckPage = {
     this._pBar = document.getElementById("incompatibleCheckProgress");
     this._totalCount = gUpdates.addons.length;
 
-    this._pBar.mode = "normal";
-    gUpdates.addons.forEach(function(addon) {
-      addon.findUpdates(this, AddonManager.UPDATE_WHEN_NEW_APP_DETECTED,
-                        gUpdates.update.appVersion,
-                        gUpdates.update.platformVersion);
-    }, this);
+    var em = CoC["@mozilla.org/extensions/manager;1"].
+             getService(CoI.nsIExtensionManager);
+    em.update(gUpdates.addons, gUpdates.addons.length,
+              CoI.nsIExtensionManager.UPDATE_NOTIFY_NEWVERSION, this,
+              CoI.nsIExtensionManager.UPDATE_WHEN_NEW_APP_DETECTED,
+              gUpdates.update.appVersion, gUpdates.update.platformVersion);
   },
 
   
-  onCompatibilityUpdateAvailable: function(addon) {
-    
-    
-    for (var i = 0; i < gUpdates.addons.length; ++i) {
-      if (gUpdates.addons[i].id == addon.id) {
-        LOG("gIncompatibleCheckPage", "onAddonUpdateEnded - found update " +
-            "for add-on ID: " + addon.id);
-        gUpdates.addons.splice(i, 1);
-        break;
-      }
-    }
+
+
+  onUpdateStarted: function() {
+    this._pBar.mode = "normal";
   },
 
-  onUpdateAvailable: function(addon, install) {
-    
-    
-    
-    let bs = Cc["@mozilla.org/extensions/blocklist;1"].
-             getService(Ci.nsIBlocklistService);
-    if (bs.isAddonBlocklisted(addon.id, install.version,
-                              gUpdates.update.appVersion,
-                              gUpdates.update.platformVersion))
-      return;
+  
 
-    
-    this.onCompatibilityUpdateAvailable(addon);
-  },
 
-  onUpdateFinished: function(addon) {
-    ++this._completedCount;
-    this._pBar.value = Math.ceil((this._completedCount / this._totalCount) * 100);
-
-    if (this._completedCount < this._totalCount)
-      return;
-
+  onUpdateEnded: function() {
     if (gUpdates.addons.length == 0) {
       LOG("gIncompatibleCheckPage", "onUpdateEnded - updates were found " +
           "for all incompatible add-ons");
@@ -841,6 +792,40 @@ var gIncompatibleCheckPage = {
       }
     }
     gUpdates.wiz.goTo(gUpdates.updatesFoundPageId);
+  },
+
+  
+
+
+  onAddonUpdateStarted: function(addon) {
+  },
+
+  
+
+
+  onAddonUpdateEnded: function(addon, status) {
+    ++this._completedCount;
+    this._pBar.value = Math.ceil((this._completedCount / this._totalCount) * 100);
+
+    if (status != CoI.nsIAddonUpdateCheckListener.STATUS_UPDATE &&
+        status != CoI.nsIAddonUpdateCheckListener.STATUS_VERSIONINFO)
+      return;
+
+    for (var i = 0; i < gUpdates.addons.length; ++i) {
+      if (gUpdates.addons[i].id == addon.id) {
+        LOG("gIncompatibleCheckPage", "onAddonUpdateEnded - found update " +
+            "for add-on ID: " + addon.id);
+        gUpdates.addons.splice(i, 1);
+        break;
+      }
+    }
+  },
+
+  QueryInterface: function(iid) {
+    if (!iid.equals(CoI.nsIAddonUpdateCheckListener) &&
+        !iid.equals(CoI.nsISupports))
+      throw CoR.NS_ERROR_NO_INTERFACE;
+    return this;
   }
 };
 
