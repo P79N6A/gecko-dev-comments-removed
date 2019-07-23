@@ -158,7 +158,7 @@ void nsProtectedAuthThread::Run(void)
     
     mLoginResult = PK11_CheckUserPassword(mSlot, 0);
 
-    nsIObserver *observer = nsnull;
+    nsCOMPtr<nsIObserver> observer;
     
     PR_Lock(mMutex);
     
