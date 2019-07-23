@@ -401,6 +401,13 @@ protected:
   
   PRBool InInitialReflow() const;
   
+  
+
+
+
+
+  virtual PRBool ShouldPropagateComputedHeightToScrolledContent() const { return PR_TRUE; }
+
 private:
   friend class nsGfxScrollFrameInner;
   nsGfxScrollFrameInner mInner;
