@@ -990,7 +990,8 @@ PlacesController.prototype = {
     if (URIs.length > REMOVE_PAGES_MAX_SINGLEREMOVES) {
       
       for (var i = 0; i < URIs.length; i += REMOVE_PAGES_CHUNKLEN) {
-        var URIslice = URIs.slice(i, Math.max(i + REMOVE_PAGES_CHUNKLEN, URIs.length));
+        var URIslice = URIs.slice(i, i + REMOVE_PAGES_CHUNKLEN);
+        
         
         bhist.removePages(URIslice, URIslice.length,
                           (i + REMOVE_PAGES_CHUNKLEN) >= URIs.length);
