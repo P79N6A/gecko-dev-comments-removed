@@ -2846,15 +2846,14 @@ nsSVGFETileElement::Filter(nsSVGFilterInstance *instance,
   
   
 
-  const gfxRect& tileGfx = aSources[0]->mFilterPrimitiveSubregion;
-  
-  
-  nsIntRect tile(PRInt32(tileGfx.X()), PRInt32(tileGfx.Y()),
-                 PRInt32(tileGfx.Width()), PRInt32(tileGfx.Height()));
+  nsIntRect tile;
+  nsresult res = nsSVGUtils::GfxRectToIntRect(aSources[0]->mFilterPrimitiveSubregion, &tile);
+
+  NS_ENSURE_SUCCESS(res, res); 
   if (tile.IsEmpty())
     return NS_OK;
-  NS_ASSERTION(instance->GetSurfaceRect().Contains(tile),
-               "Tile overflows surface rect, this code can't handle it");
+  NS_ENSURE_TRUE(instance->GetSurfaceRect().Contains(tile), NS_ERROR_UNEXPECTED);
+
   
   tile -= instance->GetSurfaceRect().TopLeft();
 
