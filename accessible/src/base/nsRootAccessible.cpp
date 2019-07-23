@@ -992,7 +992,14 @@ nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
   if (itemType == nsIDocShellTreeItem::typeContent) {
     nsCOMPtr<nsIAccessibleDocument> accDoc =
       GetDocAccessibleFor(aStart, PR_TRUE);
+
+    
+    
+    if (!accDoc)
+      return nsnull;
+
     nsCOMPtr<nsIAccessible> accessible = do_QueryInterface(accDoc);
+
     
     
     
