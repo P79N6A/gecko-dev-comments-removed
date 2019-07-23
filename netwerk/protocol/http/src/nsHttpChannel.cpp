@@ -222,7 +222,14 @@ nsHttpChannel::Init(nsIURI *uri,
     if (strchr(host.get(), ':')) {
         
         hostLine.Assign('[');
-        hostLine.Append(host);
+        
+        int scopeIdPos = host.FindChar('%');
+        if (scopeIdPos == kNotFound)
+            hostLine.Append(host);
+        else if (scopeIdPos > 0)
+            hostLine.Append(Substring(host, 0, scopeIdPos));
+        else
+          return NS_ERROR_MALFORMED_URI;
         hostLine.Append(']');
     }
     else
