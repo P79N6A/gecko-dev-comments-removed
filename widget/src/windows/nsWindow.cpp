@@ -106,8 +106,6 @@
 
 #ifdef MOZ_IPC
 #include "mozilla/ipc/SyncChannel.h"
-#include "mozilla/plugins/PluginInstanceParent.h"
-using mozilla::plugins::PluginInstanceParent;
 #endif
 
 #include "nsWindow.h"
@@ -2108,7 +2106,7 @@ NS_METHOD nsWindow::Invalidate(PRBool aIsSynchronous)
     VERIFY(::InvalidateRect(mWnd, NULL, FALSE));
 
     if (aIsSynchronous) {
-      UpdateWindowInternal(mWnd);
+      VERIFY(::UpdateWindow(mWnd));
     }
   }
   return NS_OK;
@@ -2142,7 +2140,7 @@ NS_METHOD nsWindow::Invalidate(const nsIntRect & aRect, PRBool aIsSynchronous)
     VERIFY(::InvalidateRect(mWnd, &rect, FALSE));
 
     if (aIsSynchronous) {
-      UpdateWindowInternal(mWnd);
+      VERIFY(::UpdateWindow(mWnd));
     }
   }
   return NS_OK;
@@ -2186,7 +2184,7 @@ NS_IMETHODIMP nsWindow::Update()
   
   
   if (mWnd)
-    UpdateWindowInternal(mWnd);
+    VERIFY(::UpdateWindow(mWnd));
 
   return rv;
 }
@@ -3146,14 +3144,8 @@ BOOL CALLBACK nsWindow::DispatchStarvedPaints(HWND aWnd, LPARAM aMsg)
     
     
     
-    if (GetUpdateRect(aWnd, NULL, FALSE)) {
-      nsWindow* win = GetNSWindowPtr(aWnd);
-      if (win)
-        win->UpdateWindowInternal(aWnd);
-      else
-        
-        VERIFY(::UpdateWindow(aWnd));
-    }
+    if (GetUpdateRect(aWnd, NULL, FALSE))
+      VERIFY(::UpdateWindow(aWnd));
   }
   return TRUE;
 }
@@ -7116,30 +7108,6 @@ LPARAM nsWindow::lParamToClient(LPARAM lParam)
   pt.y = GET_Y_LPARAM(lParam);
   ::ScreenToClient(mWnd, &pt);
   return MAKELPARAM(pt.x, pt.y);
-}
-
-
-
-
-
-
-
-void nsWindow::UpdateWindowInternal(HWND aWnd)
-{
-  if (aWnd) {
-#ifdef MOZ_IPC
-    if (mWindowType == eWindowType_plugin) {
-      PluginInstanceParent* instance = reinterpret_cast<PluginInstanceParent*>(
-        ::GetPropW(aWnd, L"PluginInstanceParentProperty"));
-      if (instance) {
-        if (!instance->CallUpdateWindow())
-          NS_ERROR("Failed to send message!");
-        return;
-      }
-    }
-#endif
-    VERIFY(::UpdateWindow(aWnd));
-  }
 }
 
 
