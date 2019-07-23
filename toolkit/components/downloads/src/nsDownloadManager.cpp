@@ -133,6 +133,12 @@ nsresult
 nsDownloadManager::FinishDownload(nsDownload *aDownload, DownloadState aState,
                                   const char *aTopic) {
   
+  nsRefPtr<nsDownload> kungFuDeathGrip = aDownload;
+
+  
+  aDownload->mCancelable = nsnull;
+
+  
   
   
   
@@ -1464,6 +1470,9 @@ nsDownload::OnStatusChange(nsIWebProgress *aWebProgress,
                            const PRUnichar *aMessage)
 {   
   if (NS_FAILED(aStatus)) {
+    
+    nsRefPtr<nsDownload> kungFuDeathGrip = this;
+
     (void)mDownloadManager->FinishDownload(this,
                                            nsIDownloadManager::DOWNLOAD_FAILED,
                                            "dl-failed");
@@ -1601,9 +1610,6 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
       }
     }
 #endif
-
-    
-    mCancelable = nsnull;
 
     
     if (mDownloadManager->GetRetentionBehavior() == 0)

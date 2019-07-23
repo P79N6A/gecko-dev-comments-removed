@@ -135,6 +135,9 @@ protected:
 
 
 
+
+
+
   nsresult FinishDownload(nsDownload *aDownload, DownloadState aState,
                           const char *aTopic);
 
