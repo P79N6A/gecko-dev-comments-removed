@@ -2112,8 +2112,8 @@ nsDocShell::HistoryPurged(PRInt32 aNumEntries)
     
     
     
-    mPreviousTransIndex = PR_MAX(-1, mPreviousTransIndex - aNumEntries);
-    mLoadedTransIndex = PR_MAX(0, mLoadedTransIndex - aNumEntries);
+    mPreviousTransIndex = NS_MAX(-1, mPreviousTransIndex - aNumEntries);
+    mLoadedTransIndex = NS_MAX(0, mLoadedTransIndex - aNumEntries);
 
     PRInt32 count = mChildList.Count();
     for (PRInt32 i = 0; i < count; ++i) {
