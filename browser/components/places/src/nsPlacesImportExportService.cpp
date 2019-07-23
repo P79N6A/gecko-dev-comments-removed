@@ -1642,14 +1642,11 @@ WriteDateAttribute(const char aAttributeStart[], PRInt32 aLength, PRTime aAttrib
 
 
 nsresult
-nsPlacesImportExportService::WriteContainer(PRInt64 aFolder, const nsACString& aIndent,
+nsPlacesImportExportService::WriteContainer(nsINavHistoryResultNode* aFolder, const nsACString& aIndent,
                                nsIOutputStream* aOutput)
 {
   nsresult rv = WriteContainerHeader(aFolder, aIndent, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  
-
   rv = WriteContainerPrologue(aIndent, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = WriteContainerContents(aFolder, aIndent, aOutput);
@@ -1666,7 +1663,7 @@ nsPlacesImportExportService::WriteContainer(PRInt64 aFolder, const nsACString& a
 
 
 nsresult
-nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACString& aIndent,
+nsPlacesImportExportService::WriteContainerHeader(nsINavHistoryResultNode* aFolder, const nsACString& aIndent,
                                      nsIOutputStream* aOutput)
 {
   PRUint32 dummy;
@@ -1683,8 +1680,13 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  PRInt64 folderId;
+  rv = aFolder->GetItemId(&folderId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   PRTime dateAdded = 0;
-  rv = mBookmarksService->GetItemDateAdded(aFolder, &dateAdded);
+  rv = aFolder->GetDateAdded(&dateAdded);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (dateAdded) {
@@ -1694,7 +1696,7 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
 
   
   PRTime lastModified = 0;
-  rv = mBookmarksService->GetItemLastModified(aFolder, &lastModified);
+  rv = aFolder->GetLastModified(&lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (lastModified) {
@@ -1715,13 +1717,13 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   NS_ENSURE_SUCCESS(rv,rv);
 
   
-  if (aFolder == placesRoot) {
+  if (folderId == placesRoot) {
     rv = aOutput->Write(kPlacesRootAttribute, sizeof(kPlacesRootAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
-  } else if (aFolder == bookmarksRoot) {
+  } else if (folderId == bookmarksRoot) {
     rv = aOutput->Write(kBookmarksRootAttribute, sizeof(kBookmarksRootAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
-  } else if (aFolder == toolbarFolder) {
+  } else if (folderId == toolbarFolder) {
     rv = aOutput->Write(kToolbarFolderAttribute, sizeof(kToolbarFolderAttribute)-1, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1730,7 +1732,7 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCAutoString itemIdAttr;
-  itemIdAttr.AppendInt(aFolder); 
+  itemIdAttr.AppendInt(folderId); 
   rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
@@ -1738,7 +1740,7 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
 
   
   nsCOMPtr<nsIURI> folderURI;
-  rv = mBookmarksService->GetFolderURI(aFolder, getter_AddRefs(folderURI));
+  rv = mBookmarksService->GetFolderURI(folderId, getter_AddRefs(folderURI));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCAutoString folderSpec;
   rv = folderURI->GetSpec(folderSpec);
@@ -1751,7 +1753,7 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = WriteContainerTitle(aFolder, aOutput);
+  rv = WriteTitle(aFolder, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1759,7 +1761,7 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = WriteDescription(aFolder, nsINavBookmarksService::TYPE_FOLDER, aOutput);
+  rv = WriteDescription(folderId, nsINavBookmarksService::TYPE_FOLDER, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return rv;
@@ -1771,15 +1773,20 @@ nsPlacesImportExportService::WriteContainerHeader(PRInt64 aFolder, const nsACStr
 
 
 nsresult
-nsPlacesImportExportService::WriteContainerTitle(PRInt64 aFolder, nsIOutputStream* aOutput)
+nsPlacesImportExportService::WriteTitle(nsINavHistoryResultNode* aItem, nsIOutputStream* aOutput)
 {
-  nsAutoString title;
-  nsresult rv;
   
-  rv = mBookmarksService->GetItemTitle(aFolder, title);
+  PRUint32 type = 0;
+  nsresult rv = aItem->GetType(&type);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (type == nsINavHistoryResultNode::RESULT_TYPE_SEPARATOR)
+    return NS_ERROR_INVALID_ARG;
+
+  nsCAutoString title;
+  rv = aItem->GetTitle(title);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  char* escapedTitle = nsEscapeHTML(NS_ConvertUTF16toUTF8(title).get());
+  char* escapedTitle = nsEscapeHTML(title.get());
   if (escapedTitle) {
     PRUint32 dummy;
     rv = aOutput->Write(escapedTitle, strlen(escapedTitle), &dummy);
@@ -1788,6 +1795,9 @@ nsPlacesImportExportService::WriteContainerTitle(PRInt64 aFolder, nsIOutputStrea
   }
   return NS_OK;
 }
+
+
+
 
 
 nsresult
@@ -2003,7 +2013,7 @@ nsPlacesImportExportService::WriteItem(nsINavHistoryResultNode* aItem,
 
 
 nsresult
-nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& aIndent,
+nsPlacesImportExportService::WriteLivemark(nsINavHistoryResultNode* aFolder, const nsACString& aIndent,
                               nsIOutputStream* aOutput)
 {
   PRUint32 dummy;
@@ -2020,8 +2030,13 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  PRInt64 folderId;
+  rv = aFolder->GetItemId(&folderId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
   nsCOMPtr<nsIURI> feedURI;
-  rv = mLivemarkService->GetFeedURI(aFolderId, getter_AddRefs(feedURI));
+  rv = mLivemarkService->GetFeedURI(folderId, getter_AddRefs(feedURI));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCString feedSpec;
   rv = feedURI->GetSpec(feedSpec);
@@ -2037,7 +2052,7 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
 
   
   nsCOMPtr<nsIURI> siteURI;
-  rv = mLivemarkService->GetSiteURI(aFolderId, getter_AddRefs(siteURI));
+  rv = mLivemarkService->GetSiteURI(folderId, getter_AddRefs(siteURI));
   NS_ENSURE_SUCCESS(rv, rv);
   if (siteURI) {
     nsCString siteSpec;
@@ -2057,7 +2072,7 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
   rv = aOutput->Write(kItemIdAttribute, sizeof(kItemIdAttribute)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCAutoString itemIdAttr;
-  itemIdAttr.AppendInt(aFolderId); 
+  itemIdAttr.AppendInt(folderId); 
   rv = aOutput->Write(itemIdAttr.get(), itemIdAttr.Length(), &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = aOutput->Write(kQuoteStr, sizeof(kQuoteStr)-1, &dummy);
@@ -2068,7 +2083,7 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = WriteContainerTitle(aFolderId, aOutput);
+  rv = WriteTitle(aFolder, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2076,7 +2091,7 @@ nsPlacesImportExportService::WriteLivemark(PRInt64 aFolderId, const nsACString& 
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = WriteDescription(aFolderId, nsINavBookmarksService::TYPE_BOOKMARK, aOutput);
+  rv = WriteDescription(folderId, nsINavBookmarksService::TYPE_BOOKMARK, aOutput);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -2169,47 +2184,20 @@ WriteEscapedUrl(const nsCString& aString, nsIOutputStream* aOutput)
 
 
 nsresult
-nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACString& aIndent,
+nsPlacesImportExportService::WriteContainerContents(nsINavHistoryResultNode* aFolder, const nsACString& aIndent,
                                        nsIOutputStream* aOutput)
 {
   nsCAutoString myIndent(aIndent);
   myIndent.Append(kIndent);
 
-  
-  nsresult rv;
-  nsCOMPtr<nsINavHistoryQueryOptions> optionsInterface;
-  rv = mHistoryService->GetNewQueryOptions(getter_AddRefs(optionsInterface));
+  PRInt64 folderId;
+  nsresult rv = aFolder->GetItemId(&folderId);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  nsCOMPtr<nsINavHistoryQueryOptions> options = do_QueryInterface(optionsInterface);
-  NS_ENSURE_TRUE(options, NS_ERROR_UNEXPECTED);
-
-  
-  nsCOMPtr<nsINavHistoryQuery> query;
-  rv = mHistoryService->GetNewQuery(getter_AddRefs(query));
+  nsCOMPtr<nsINavHistoryContainerResultNode> folderNode = do_QueryInterface(aFolder, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = query->SetFolders(&aFolder, 1);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  const PRUint16 groupMode = nsINavHistoryQueryOptions::GROUP_BY_FOLDER;
-  rv = options->SetGroupingMode(&groupMode, 1);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<nsINavHistoryResult> result;
-  rv = mHistoryService->ExecuteQuery(query, options, getter_AddRefs(result));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<nsINavHistoryQueryResultNode> rootNode;
-  rv = result->GetRoot(getter_AddRefs(rootNode));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = rootNode->SetContainerOpen(PR_TRUE);
+  rv = folderNode->SetContainerOpen(PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt64 placesRoot;
@@ -2225,21 +2213,21 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
   NS_ENSURE_SUCCESS(rv,rv);
 
   PRUint32 childCount = 0;
-  rootNode->GetChildCount(&childCount);
+  folderNode->GetChildCount(&childCount);
   for (PRUint32 i = 0; i < childCount; ++i) {
     nsCOMPtr<nsINavHistoryResultNode> child;
-    rv = rootNode->GetChild(i, getter_AddRefs(child));
+    rv = folderNode->GetChild(i, getter_AddRefs(child));
     NS_ENSURE_SUCCESS(rv, rv);
     PRUint32 type = 0;
     rv = child->GetType(&type);
     NS_ENSURE_SUCCESS(rv, rv);
     if (type == nsINavHistoryResultNode::RESULT_TYPE_FOLDER) {
       
-      PRInt64 folderId;
-      rv = child->GetItemId(&folderId);
+      PRInt64 childFolderId;
+      rv = child->GetItemId(&childFolderId);
       NS_ENSURE_SUCCESS(rv, rv);
-      if (aFolder == placesRoot && (folderId == toolbarFolder ||
-                                    folderId == bookmarksRoot)) {
+      if (folderId == placesRoot && (childFolderId == toolbarFolder ||
+                                    childFolderId == bookmarksRoot)) {
         
         
         
@@ -2249,13 +2237,13 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
 
       
       PRBool isLivemark;
-      rv = mLivemarkService->IsLivemark(folderId, &isLivemark);
+      rv = mLivemarkService->IsLivemark(childFolderId, &isLivemark);
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (isLivemark)
-        rv = WriteLivemark(folderId, myIndent, aOutput);
+        rv = WriteLivemark(child, myIndent, aOutput);
       else
-        rv = WriteContainer(folderId, myIndent, aOutput);
+        rv = WriteContainer(child, myIndent, aOutput);
     } else if (type == nsINavHistoryResultNode::RESULT_TYPE_SEPARATOR) {
       rv = WriteSeparator(child, myIndent, aOutput);
     } else {
@@ -2265,6 +2253,7 @@ nsPlacesImportExportService::WriteContainerContents(PRInt64 aFolder, const nsACS
   }
   return NS_OK;
 }
+
 
 
 
@@ -2399,6 +2388,9 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   nsAutoString path;
   aBookmarksFile->GetPath(path);
   printf("\nExporting %s\n", NS_ConvertUTF16toUTF8(path).get());
+
+  PRTime startTime = PR_Now();
+  printf("\nStart time: %lld\n", startTime);
 #endif
 
   nsresult rv = EnsureServiceState();
@@ -2421,17 +2413,42 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  PRInt64 bookmarksRoot;
+  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
+  NS_ENSURE_SUCCESS(rv,rv);
+
+  
   PRUint32 dummy;
   rv = strm->Write(kFileIntro, sizeof(kFileIntro)-1, &dummy);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = strm->Write(kRootIntro, sizeof(kRootIntro)-1, &dummy); 
+  nsCOMPtr<nsINavHistoryQueryOptions> options;
+  rv = mHistoryService->GetNewQueryOptions(getter_AddRefs(options));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt64 bookmarksRoot;
-  rv = mBookmarksService->GetBookmarksRoot(&bookmarksRoot);
-  NS_ENSURE_SUCCESS(rv,rv);
+  
+  nsCOMPtr<nsINavHistoryQuery> query;
+  rv = mHistoryService->GetNewQuery(getter_AddRefs(query));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = query->SetFolders(&bookmarksRoot, 1);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsINavHistoryResult> result;
+  rv = mHistoryService->ExecuteQuery(query, options, getter_AddRefs(result));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsINavHistoryQueryResultNode> rootNode;
+  rv = result->GetRoot(getter_AddRefs(rootNode));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = strm->Write(kRootIntro, sizeof(kRootIntro)-1, &dummy); 
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<nsIURI> folderURI;
@@ -2446,7 +2463,7 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   
   rv = strm->Write(kCloseAngle, sizeof(kCloseAngle)-1, &dummy); 
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = WriteContainerTitle(bookmarksRoot, strm);
+  rv = WriteTitle(rootNode, strm);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = strm->Write(kCloseRootH1, sizeof(kCloseRootH1)-1, &dummy); 
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2460,7 +2477,7 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   indent.Assign(kIndent);
 
   
-  rv = WriteContainerContents(bookmarksRoot, EmptyCString(), strm);
+  rv = WriteContainerContents(rootNode, EmptyCString(), strm);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2470,7 +2487,11 @@ nsPlacesImportExportService::ExportHTMLToFile(nsILocalFile* aBookmarksFile)
   
   nsCOMPtr<nsISafeOutputStream> safeStream = do_QueryInterface(strm, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
-  return safeStream->Finish();
+  rv = safeStream->Finish();
+#ifdef DEBUG_EXPORT
+  printf("\nTotal time in seconds: %lld\n", (PR_Now() - startTime)/1000000);
+#endif
+  return rv;
 }
 
 NS_IMETHODIMP
