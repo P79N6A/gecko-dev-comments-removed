@@ -280,7 +280,9 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
       NS_COM PRInt32 ToInteger( PRInt32* aErrorCode, PRUint32 aRadix=kRadix10 ) const;
-      
+      PRInt32 ToInteger( nsresult* aErrorCode, PRUint32 aRadix=kRadix10 ) const {
+        return ToInteger(reinterpret_cast<PRInt32*>(aErrorCode), aRadix);
+      }
 
         
 
