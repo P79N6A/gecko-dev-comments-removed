@@ -2007,9 +2007,10 @@ JSCompiler::setFunctionKinds(JSFunctionBox *funbox, uint16& tcflags)
 
 
 
-                        JSFunctionBox *parentbox = afunbox->parent ? afunbox->parent : afunbox;
-                        if (parentbox->tcflags & TCF_FUN_HEAVYWEIGHT)
+                        if ((afunbox->parent ? afunbox->parent->tcflags : tcflags)
+                            & TCF_FUN_HEAVYWEIGHT) {
                             break;
+                        }
 
                         
 
