@@ -38,6 +38,8 @@
 
 
 
+
+
 #include "necko-config.h"
 
 #include "nsCache.h"
@@ -66,6 +68,8 @@
 #include "nsProxyRelease.h"
 #include "nsVoidArray.h"
 #include "nsDeleteDir.h"
+#include "nsIPrivateBrowsingService.h"
+#include "nsNetCID.h"
 #include <math.h>  
 
 
@@ -94,7 +98,8 @@
 static const char * observerList[] = { 
     "profile-before-change",
     "profile-after-change",
-    NS_XPCOM_SHUTDOWN_OBSERVER_ID
+    NS_XPCOM_SHUTDOWN_OBSERVER_ID,
+    NS_PRIVATE_BROWSING_SWITCH_TOPIC
 };
 static const char * prefList[] = { 
 #ifdef NECKO_DISK_CACHE
@@ -125,6 +130,7 @@ public:
         , mOfflineCacheCapacity(0)
         , mMemoryCacheEnabled(PR_TRUE)
         , mMemoryCacheCapacity(-1)
+        , mInPrivateBrowsing(PR_FALSE)
     {
     }
 
@@ -158,6 +164,8 @@ private:
     
     PRBool                  mMemoryCacheEnabled;
     PRInt32                 mMemoryCacheCapacity;
+
+    PRBool                  mInPrivateBrowsing;
 };
 
 NS_IMPL_ISUPPORTS1(nsCacheProfilePrefObserver, nsIObserver)
@@ -180,7 +188,6 @@ nsCacheProfilePrefObserver::Install()
     }
     
     
-    
     nsCOMPtr<nsIPrefBranch2> branch = do_GetService(NS_PREFSERVICE_CONTRACTID);
     if (!branch) return NS_ERROR_FAILURE;
 
@@ -189,6 +196,12 @@ nsCacheProfilePrefObserver::Install()
         if (NS_FAILED(rv))
             rv2 = rv;
     }
+
+    
+    nsCOMPtr<nsIPrivateBrowsingService> pbs =
+      do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
+    if (pbs)
+      pbs->GetPrivateBrowsingEnabled(&mInPrivateBrowsing);
 
     
     
@@ -276,10 +289,12 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
         
         if (!strcmp(DISK_CACHE_ENABLE_PREF, data.get())) {
 
-            rv = branch->GetBoolPref(DISK_CACHE_ENABLE_PREF,
-                                     &mDiskCacheEnabled);
-            if (NS_FAILED(rv))  return rv;
-            nsCacheService::SetDiskCacheEnabled(DiskCacheEnabled());
+            if (!mInPrivateBrowsing) {
+                rv = branch->GetBoolPref(DISK_CACHE_ENABLE_PREF,
+                                         &mDiskCacheEnabled);
+                if (NS_FAILED(rv))  return rv;
+                nsCacheService::SetDiskCacheEnabled(DiskCacheEnabled());
+            }
 
         } else if (!strcmp(DISK_CACHE_CAPACITY_PREF, data.get())) {
 
@@ -302,10 +317,12 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
         
         if (!strcmp(OFFLINE_CACHE_ENABLE_PREF, data.get())) {
 
-            rv = branch->GetBoolPref(OFFLINE_CACHE_ENABLE_PREF,
-                                     &mOfflineCacheEnabled);
-            if (NS_FAILED(rv))  return rv;
-            nsCacheService::SetOfflineCacheEnabled(OfflineCacheEnabled());
+            if (!mInPrivateBrowsing) {
+                rv = branch->GetBoolPref(OFFLINE_CACHE_ENABLE_PREF,
+                                         &mOfflineCacheEnabled);
+                if (NS_FAILED(rv))  return rv;
+                nsCacheService::SetOfflineCacheEnabled(OfflineCacheEnabled());
+            }
 
         } else if (!strcmp(OFFLINE_CACHE_CAPACITY_PREF, data.get())) {
 
@@ -338,6 +355,45 @@ nsCacheProfilePrefObserver::Observe(nsISupports *     subject,
                                       &mMemoryCacheCapacity);
             nsCacheService::SetMemoryCache();
         }
+    } else if (!strcmp(NS_PRIVATE_BROWSING_SWITCH_TOPIC, topic)) {
+        if (!strcmp(NS_PRIVATE_BROWSING_ENTER, data.get())) {
+            mInPrivateBrowsing = PR_TRUE;
+
+            nsCacheService::OnEnterExitPrivateBrowsing();
+
+#ifdef NECKO_DISK_CACHE
+            mDiskCacheEnabled = PR_FALSE;
+            nsCacheService::SetDiskCacheEnabled(DiskCacheEnabled());
+#endif 
+
+#ifdef NECKO_OFFLINE_CACHE
+            mOfflineCacheEnabled = PR_FALSE;
+            nsCacheService::SetOfflineCacheEnabled(OfflineCacheEnabled());
+#endif 
+        } else if (!strcmp(NS_PRIVATE_BROWSING_LEAVE, data.get())) {
+            mInPrivateBrowsing = PR_FALSE;
+
+            nsCacheService::OnEnterExitPrivateBrowsing();
+
+#if defined(NECKO_DISK_CACHE) || defined(NECKO_OFFLINE_CACHE)
+            nsCOMPtr<nsIPrefBranch> branch = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+            if (NS_FAILED(rv))  return rv;
+#endif 
+
+#ifdef NECKO_DISK_CACHE
+            mDiskCacheEnabled = PR_TRUE; 
+            (void) branch->GetBoolPref(DISK_CACHE_ENABLE_PREF,
+                                       &mDiskCacheEnabled);
+            nsCacheService::SetDiskCacheEnabled(DiskCacheEnabled());
+#endif 
+
+#ifdef NECKO_OFFLINE_CACHE
+            mOfflineCacheEnabled = PR_TRUE; 
+            (void) branch->GetBoolPref(OFFLINE_CACHE_ENABLE_PREF,
+                                       &mOfflineCacheEnabled);
+            nsCacheService::SetOfflineCacheEnabled(OfflineCacheEnabled());
+#endif 
+        }
     }
     
     return NS_OK;
@@ -351,8 +407,10 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
 
 #ifdef NECKO_DISK_CACHE
     
-    mDiskCacheEnabled = PR_TRUE;  
-    (void) branch->GetBoolPref(DISK_CACHE_ENABLE_PREF, &mDiskCacheEnabled);
+    if (!mInPrivateBrowsing) {
+        mDiskCacheEnabled = PR_TRUE;  
+        (void) branch->GetBoolPref(DISK_CACHE_ENABLE_PREF, &mDiskCacheEnabled);
+    }
 
     mDiskCacheCapacity = DISK_CACHE_CAPACITY;
     (void)branch->GetIntPref(DISK_CACHE_CAPACITY_PREF, &mDiskCacheCapacity);
@@ -405,9 +463,11 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
 
 #ifdef NECKO_OFFLINE_CACHE
     
-    mOfflineCacheEnabled = PR_TRUE;  
-    (void) branch->GetBoolPref(OFFLINE_CACHE_ENABLE_PREF,
-                               &mOfflineCacheEnabled);
+    if (!mInPrivateBrowsing) {
+        mOfflineCacheEnabled = PR_TRUE;  
+        (void) branch->GetBoolPref(OFFLINE_CACHE_ENABLE_PREF,
+                                   &mOfflineCacheEnabled);
+    }
 
     mOfflineCacheCapacity = OFFLINE_CACHE_CAPACITY;
     (void)branch->GetIntPref(OFFLINE_CACHE_CAPACITY_PREF,
@@ -2013,3 +2073,18 @@ nsCacheService::LogCacheStatistics()
                       mDeactivatedUnboundEntries));
 }
 #endif
+
+
+void
+nsCacheService::OnEnterExitPrivateBrowsing()
+{
+    if (!gService)  return;
+    nsCacheServiceAutoLock lock;
+
+    gService->DoomActiveEntries();
+
+    if (gService->mMemoryDevice) {
+        
+        gService->mMemoryDevice->EvictEntries(nsnull);
+    }
+}

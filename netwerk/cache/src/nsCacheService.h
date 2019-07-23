@@ -41,6 +41,7 @@
 
 
 
+
 #ifndef _nsCacheService_h_
 #define _nsCacheService_h_
 
@@ -155,6 +156,8 @@ public:
     static void      SetOfflineCacheCapacity(PRInt32  capacity);
 
     static void      SetMemoryCache();
+
+    static void      OnEnterExitPrivateBrowsing();
 
     nsresult         Init();
     void             Shutdown();
