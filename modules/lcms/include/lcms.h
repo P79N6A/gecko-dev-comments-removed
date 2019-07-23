@@ -1571,6 +1571,7 @@ void      cdecl MAT3eval(LPVEC3 r, LPMAT3 a, LPVEC3 v);
 void      cdecl MAT3evalF(LPFVEC3 r, LPFMAT3 a, LPFVEC3 v);
 void      cdecl MAT3toFix(LPWMAT3 r, LPMAT3 v);
 void      cdecl MAT3toFloat(LPFMAT3 r, LPMAT3 v);
+void      cdecl MAT3toFloatTranspose(LPFMAT3 r, LPMAT3 v);
 void      cdecl MAT3fromFix(LPMAT3 r, LPWMAT3 v);
 void      cdecl MAT3evalW(LPWVEC3 r, LPWMAT3 a, LPWVEC3 v);
 LCMSBOOL  cdecl MAT3isIdentity(LPWMAT3 a, double Tolerance);
@@ -1862,7 +1863,15 @@ typedef struct {
                union {
                   WMAT3 W;
                   FMAT3A FA; 
+                             
+                             
                } Matrix;
+
+               FLOAT clampMax; 
+                               
+                               
+                               
+                               
 
                L16PARAMS p16;       
                LPWORD L[3];
@@ -1880,7 +1889,6 @@ LPMATSHAPER cdecl cmsAllocMatShaper2(LPMAT3 matrix, LPGAMMATABLE In[], LPLCMSPRE
 
 void        cdecl cmsFreeMatShaper(LPMATSHAPER MatShaper);
 void        cdecl cmsEvalMatShaper(LPMATSHAPER MatShaper, WORD In[], WORD Out[]);
-void        cdecl cmsEvalMatShaperFloat(LPMATSHAPER MatShaper, BYTE In[], BYTE Out[]);
 
 LCMSBOOL    cdecl cmsReadICCMatrixRGB2XYZ(LPMAT3 r, cmsHPROFILE hProfile);
 

@@ -61,6 +61,60 @@ LCMSBOOL     LCMSEXPORT cmsIsIntentSupported(cmsHPROFILE hProfile,
 
 
 
+#if defined(_M_IX86) && !defined(__GNUC__)
+
+
+
+
+
+LCMS_INLINE void LCMSCPUID(DWORD fxn, LPDWORD a, LPDWORD b, LPDWORD c, LPDWORD d) {
+       DWORD a_, b_, c_, d_;
+  
+       ASM {
+              xchg   ebx, esi
+              mov    eax, fxn
+              cpuid
+              mov    a_, eax
+              mov    b_, ebx
+              mov    c_, ecx
+              mov    d_, edx
+              xchg   ebx, esi
+       }
+       *a = a_;
+       *b = b_;
+       *c = c_;
+       *d = d_;
+}
+
+#define HAVE_MMX_INTEL_MNEMONICS 
+
+
+#define HAVE_SSE2_INTEL_MNEMONICS
+#define HAVE_SSE2_INTRINSICS
+#endif
+
+#if defined(__GNUC__) && defined(__i386__)
+
+
+
+LCMS_INLINE void LCMSCPUID(DWORD fxn, LPDWORD a, LPDWORD b, LPDWORD c, LPDWORD d) {
+	
+	   DWORD a_, b_, c_, d_;
+       __asm__ __volatile__ ("xchgl %%ebx, %%esi; cpuid; xchgl %%ebx, %%esi;" 
+                             : "=a" (a_), "=S" (b_), "=c" (c_), "=d" (d_) : "a" (fxn));
+	   *a = a_;
+	   *b = b_;
+	   *c = c_;
+	   *d = d_;
+ }
+
+#define HAVE_SSE2_INTRINSICS
+
+#define HAVE_SSE2_INTEL_MNEMONICS
+#endif 
+
+
+
 
 
 static WORD AlarmR = 0x8fff, AlarmG = 0x8fff, AlarmB = 0x8fff;
@@ -88,6 +142,33 @@ static icTagSignature Preview[]    = {icSigPreview0Tag,
 
 
 static volatile double GlobalAdaptationState = 0;
+
+
+
+#define SSE2_EDX_MASK (1UL << 26)
+static LCMSBOOL SSE2Available() {
+       
+       static int isAvailable = -1;
+       DWORD a, b, c, d;
+       DWORD function = 0x00000001;
+
+       if (isAvailable == -1) {
+
+
+#ifndef HAVE_SSE2_INTEL_MNEMONICS
+              isAvailable = 0;
+#else
+       
+              LCMSCPUID(function, &a, &b, &c, &d);
+              if (d & SSE2_EDX_MASK)
+                     isAvailable = 1;
+              else
+                     isAvailable = 0;
+#endif
+       }
+
+       return (isAvailable) ? TRUE : FALSE;
+}
 
 
 
@@ -501,8 +582,8 @@ void CachedXFORMGamutCheck(_LPcmsTRANSFORM p,
 
 static
 void MatrixShaperXFORM(_LPcmsTRANSFORM p,
-                     LPVOID in,
-                     LPVOID out, unsigned int Size)
+                       LPVOID in,
+                       LPVOID out, unsigned int Size)
 {
        register LPBYTE accum;
        register LPBYTE output;
@@ -522,25 +603,166 @@ void MatrixShaperXFORM(_LPcmsTRANSFORM p,
        }
 }
 
+static const FLOAT floatScale = 65536.0f;
+static const FLOAT * const floatScaleAddr = &floatScale; 
+
+#ifdef HAVE_SSE2_INTEL_MNEMONICS
 static
 void MatrixShaperXFORMFloat(_LPcmsTRANSFORM p,
                             LPVOID in,
                             LPVOID out, unsigned int Size)
 {
-       register LPBYTE input, output;
+       register LPBYTE In, Out;
        register unsigned int i;
+       LPMATSHAPER MatShaper;
 
 
-       input  = (LPBYTE) in;
-       output = (LPBYTE) out;
+       In  = (LPBYTE) in;
+       Out = (LPBYTE) out;
+       MatShaper = p -> SmeltMatShaper;
 
        for (i=0; i < Size; i++)
        {
-       cmsEvalMatShaperFloat(p -> SmeltMatShaper, input, output);
-       input += 3;
-       output += 3;
+
+              LPFVEC3 FloatVals = &MatShaper -> Matrix.FA.F->v[3]; 
+              LPFVEC3 MatPtr = MatShaper ->  Matrix.FA.F->v; 
+              LPFLOAT clampMax = &MatShaper -> clampMax;
+              LPDWORD tmp = (LPDWORD) FloatVals;
+
+              if (MatShaper -> dwFlags & MATSHAPER_HASINPSHAPER)
+              {
+                     if (MatShaper->L2_Precache != NULL) 
+                     {
+                     FloatVals->n[VX] = MatShaper->L2_Precache->Impl.LI16F_FORWARD.Cache[0][In[0]];
+                     FloatVals->n[VY] = MatShaper->L2_Precache->Impl.LI16F_FORWARD.Cache[1][In[1]];
+                     FloatVals->n[VZ] = MatShaper->L2_Precache->Impl.LI16F_FORWARD.Cache[2][In[2]];
+                     }
+                     else
+                     {
+                     FloatVals->n[VX] = ToFloatDomain(cmsLinearInterpLUT16(RGB_8_TO_16(In[0]), MatShaper -> L2[0], &MatShaper -> p2_16));
+                     FloatVals->n[VY] = ToFloatDomain(cmsLinearInterpLUT16(RGB_8_TO_16(In[1]), MatShaper -> L2[1], &MatShaper -> p2_16));
+                     FloatVals->n[VZ] = ToFloatDomain(cmsLinearInterpLUT16(RGB_8_TO_16(In[2]), MatShaper -> L2[2], &MatShaper -> p2_16));
+                     }
+              }
+              else
+              {
+              FloatVals->n[VX] = ToFloatDomain(In[0]);
+              FloatVals->n[VY] = ToFloatDomain(In[1]);
+              FloatVals->n[VZ] = ToFloatDomain(In[2]);
+              }
+
+              if (MatShaper -> dwFlags & MATSHAPER_HASMATRIX)
+              {       
+#ifdef __GNUC__
+                __asm(
+                      "movaps (%0), %%xmm1;\n\t"          
+                      "movaps 16(%0), %%xmm2;\n\t"        
+                      "movaps 32(%0), %%xmm3;\n\t"        
+                      "movaps 48(%0), %%xmm0;\n\t"        
+
+                                                          
+                                                          
+                                                          
+                      "movaps %%xmm0, %%xmm4;\n\t"        
+                      "shufps $0, %%xmm4, %%xmm4;\n\t"    
+                      "mulps %%xmm4, %%xmm1;\n\t"         
+                      "movaps %%xmm0, %%xmm5; \n\t"       
+                      "shufps $0x55, %%xmm5, %%xmm5;\n\t" 
+                      "mulps %%xmm5, %%xmm2;\n\t"         
+                      "movaps %%xmm0, %%xmm6;\n\t"        
+                      "shufps $0xAA, %%xmm6, %%xmm6;\n\t" 
+                      "mulps %%xmm6, %%xmm3;\n\t"         
+
+                      "addps %%xmm3, %%xmm2;\n\t"         
+                      "addps %%xmm2, %%xmm1;\n\t"         
+
+                      "movss (%1), %%xmm7;\n\t"        
+                      "shufps $0, %%xmm7, %%xmm7;\n\t" 
+                      "minps %%xmm7, %%xmm1;\n\t"      
+                      "xorps %%xmm6, %%xmm6;\n\t"       
+                      "maxps %%xmm6, %%xmm1;\n\t"      
+                      "movss (%2), %%xmm5;\n\t"        
+                      "shufps $0, %%xmm5, %%xmm5;\n\t" 
+                      "mulps %%xmm5, %%xmm1;\n\t"      
+                      "cvtps2dq %%xmm1, %%xmm1;\n\t"   
+                      "movdqa %%xmm1, 48(%0);\n\t"       
+
+                      : 
+                      : "r" (MatPtr), "r" (clampMax), "r" (&floatScale)
+                      : "memory"
+                      );
+#else
+                ASM {
+                      mov      eax, MatPtr
+                      mov      ecx, clampMax
+                      mov      edx, floatScaleAddr
+
+                      movaps   xmm1, [eax]
+                      movaps   xmm2, [eax + 16]
+                      movaps   xmm3, [eax + 32]
+                      movaps   xmm0, [eax + 48]
+
+                      movaps   xmm4, xmm0
+                      shufps   xmm4, xmm4, 0
+                      mulps    xmm1, xmm4
+                      movaps   xmm5, xmm0
+                      shufps   xmm5, xmm5, 0x55
+                      mulps    xmm2, xmm5
+                      movaps   xmm6, xmm0
+                      shufps   xmm6, xmm6, 0xAA
+                      mulps    xmm3, xmm6
+
+                      addps    xmm2, xmm3
+                      addps    xmm1, xmm2
+
+                      movss    xmm7, [ecx]
+                      shufps   xmm7, xmm7, 0
+                      minps    xmm1, xmm7
+                      xorps    xmm6, xmm6
+                      maxps    xmm1, xmm6
+                      movss    xmm5, [edx]
+                      shufps   xmm5, xmm5, 0
+                      mulps    xmm1, xmm5
+                      cvtps2dq xmm1, xmm1
+                      movdqa   [eax + 48], xmm1
+                }
+#endif
+
+              }
+              else 
+              {
+              tmp[0] = _cmsClampWord(FromFloatDomain(FloatVals->n[VX]));
+              tmp[1] = _cmsClampWord(FromFloatDomain(FloatVals->n[VY]));
+              tmp[2] = _cmsClampWord(FromFloatDomain(FloatVals->n[VZ]));
+              }
+                  
+              if (MatShaper -> dwFlags & MATSHAPER_HASSHAPER)
+              {
+                     if (MatShaper->L_Precache != NULL) 
+                     {
+                     Out[0] = MatShaper->L_Precache->Impl.LI168_REVERSE.Cache[0][tmp[0]];
+                     Out[1] = MatShaper->L_Precache->Impl.LI168_REVERSE.Cache[1][tmp[1]];
+                     Out[2] = MatShaper->L_Precache->Impl.LI168_REVERSE.Cache[2][tmp[2]];
+                     }
+                     else 
+                     {
+                     Out[0] = RGB_16_TO_8(cmsLinearInterpLUT16((WORD)tmp[0], MatShaper -> L[0], &MatShaper -> p16));
+                     Out[1] = RGB_16_TO_8(cmsLinearInterpLUT16((WORD)tmp[1], MatShaper -> L[1], &MatShaper -> p16));
+                     Out[2] = RGB_16_TO_8(cmsLinearInterpLUT16((WORD)tmp[2], MatShaper -> L[2], &MatShaper -> p16));
+                     }
+              }
+              else
+              {
+              Out[0] = RGB_16_TO_8((WORD)tmp[0]);
+              Out[1] = RGB_16_TO_8((WORD)tmp[1]);
+              Out[2] = RGB_16_TO_8((WORD)tmp[2]);
+              }
+
+              In += 3;
+              Out += 3;
        }
 }
+#endif
 
 
 
@@ -1296,8 +1518,29 @@ _LPcmsTRANSFORM PickTransformRoutine(_LPcmsTRANSFORM p,
                        (p -> ExitColorSpace == icSigRgbData)  &&
                        !(p -> dwOriginalFlags & cmsFLAGS_BLACKPOINTCOMPENSATION)) {
 
+
                           
+                          if (p -> dwOriginalFlags & cmsFLAGS_FLOATSHAPER)
+                          {
+
+#ifndef HAVE_SSE2_INTEL_MNEMONICS 
+                                 
+                                 p -> dwOriginalFlags &= ~cmsFLAGS_FLOATSHAPER;
+#else
+                                 
+                                 if (!SSE2Available())
+                                        p -> dwOriginalFlags &= ~cmsFLAGS_FLOATSHAPER;
+#endif
+                          }
+
+                          
+
+#ifndef HAVE_SSE2_INTEL_MNEMONICS
+                          p -> xform = MatrixShaperXFORM;
+#else
                           p -> xform = (p -> dwOriginalFlags & cmsFLAGS_FLOATSHAPER) ? MatrixShaperXFORMFloat : MatrixShaperXFORM;
+#endif
+
                           p -> dwOriginalFlags |= cmsFLAGS_NOTPRECALC;
 
                           if (!cmsBuildSmeltMatShaper(p))
