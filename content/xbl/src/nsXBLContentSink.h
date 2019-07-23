@@ -157,6 +157,7 @@ protected:
   nsresult ReportUnexpectedElement(nsIAtom* aElementName, PRUint32 aLineNumber);
 
   void AddMember(nsXBLProtoImplMember* aMember);
+  void AddField(nsXBLProtoImplField* aField);
   
   XBLPrimaryState mState;
   XBLSecondaryState mSecondaryState;
@@ -168,6 +169,7 @@ protected:
   nsXBLPrototypeHandler* mHandler; 
   nsXBLProtoImpl* mImplementation;
   nsXBLProtoImplMember* mImplMember;
+  nsXBLProtoImplField* mImplField;
   nsXBLProtoImplProperty* mProperty;
   nsXBLProtoImplMethod* mMethod;
   nsXBLProtoImplField* mField;

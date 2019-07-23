@@ -104,15 +104,117 @@
 
 
 
+#include "nsDOMClassInfo.h"
+#include "nsJSUtils.h"
 
 
 
 
-PR_STATIC_CALLBACK(void)
+
+
+
+JS_STATIC_DLL_CALLBACK(void)
 XBLFinalize(JSContext *cx, JSObject *obj)
 {
+  nsIXBLDocumentInfo* docInfo =
+    static_cast<nsIXBLDocumentInfo*>(::JS_GetPrivate(cx, obj));
+  NS_RELEASE(docInfo);
+  
   nsXBLJSClass* c = static_cast<nsXBLJSClass*>(::JS_GetClass(cx, obj));
   c->Drop();
+}
+
+JS_STATIC_DLL_CALLBACK(JSBool)
+XBLResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
+           JSObject **objp)
+{
+  
+  
+  
+  
+  
+  NS_ASSERTION(*objp, "Must have starting object");
+
+  JSObject* origObj = *objp;
+  *objp = NULL;
+
+  if (!JSVAL_IS_STRING(id)) {
+    return JS_TRUE;
+  }
+
+  nsDependentJSString fieldName(id);
+
+  jsval slotVal;
+  ::JS_GetReservedSlot(cx, obj, 0, &slotVal);
+  NS_ASSERTION(!JSVAL_IS_VOID(slotVal), "How did that happen?");
+    
+  nsXBLPrototypeBinding* protoBinding =
+    static_cast<nsXBLPrototypeBinding*>(JSVAL_TO_PRIVATE(slotVal));
+  NS_ASSERTION(protoBinding, "Must have prototype binding!");
+
+  nsXBLProtoImplField* field = protoBinding->FindField(fieldName);
+  if (!field) {
+    return JS_TRUE;
+  }
+
+  
+  JSClass* nodeClass = ::JS_GetClass(cx, origObj);
+  if (!nodeClass) {
+    return JS_FALSE;
+  }
+  
+  if (~nodeClass->flags &
+      (JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS)) {
+    
+    
+    
+    
+    return JS_TRUE;
+  }
+
+  nsCOMPtr<nsIXPConnectWrappedNative> xpcWrapper =
+    do_QueryInterface(static_cast<nsISupports*>(::JS_GetPrivate(cx, origObj)));
+  if (!xpcWrapper) {
+    nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_UNEXPECTED);
+    return JS_FALSE;
+  }
+
+  nsCOMPtr<nsIContent> content = do_QueryWrappedNative(xpcWrapper);
+  if (!content) {
+    nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_UNEXPECTED);
+    return JS_FALSE;
+  }
+
+  
+  nsIDocument* doc = content->GetOwnerDoc();
+  if (!doc) {
+    return JS_TRUE;
+  }
+
+  nsIScriptGlobalObject* global = doc->GetScriptGlobalObject();
+  if (!global) {
+    return JS_TRUE;
+  }
+
+  nsCOMPtr<nsIScriptContext> context = global->GetContext();
+  if (!context) {
+    return JS_TRUE;
+  }
+
+
+  
+  *objp = origObj;
+  nsresult rv = field->InstallField(context, origObj,
+                                    protoBinding->DocURI());
+  if (NS_FAILED(rv)) {
+    if (!::JS_IsExceptionPending(cx)) {
+      nsDOMClassInfo::ThrowJSException(cx, rv);
+    }
+
+    return JS_FALSE;
+  }
+
+  return JS_TRUE;
 }
 
 nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
@@ -120,9 +222,14 @@ nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
   memset(this, 0, sizeof(nsXBLJSClass));
   next = prev = static_cast<JSCList*>(this);
   name = ToNewCString(aClassName);
+  flags =
+    JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS |
+    JSCLASS_NEW_RESOLVE | JSCLASS_NEW_RESOLVE_GETS_START |
+    
+    JSCLASS_HAS_RESERVED_SLOTS(1);
   addProperty = delProperty = setProperty = getProperty = ::JS_PropertyStub;
   enumerate = ::JS_EnumerateStub;
-  resolve = ::JS_ResolveStub;
+  resolve = (JSResolveOp)XBLResolve;
   convert = ::JS_ConvertStub;
   finalize = XBLFinalize;
 }
@@ -1034,6 +1141,7 @@ nsXBLBinding::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc, void* aData)
 nsresult
 nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
                             const nsAFlatCString& aClassName,
+                            nsXBLPrototypeBinding* aProtoBinding,
                             void **aClassObject)
 {
   
@@ -1139,6 +1247,20 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
+    
+    
+    nsIXBLDocumentInfo* docInfo = aProtoBinding->XBLDocumentInfo();
+    ::JS_SetPrivate(cx, proto, docInfo);
+    NS_ADDREF(docInfo);
+
+    if (!::JS_SetReservedSlot(cx, proto, 0, PRIVATE_TO_JSVAL(aProtoBinding))) {
+      (nsXBLService::gClassTable)->Remove(&key);
+
+      
+
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
     *aClassObject = (void*)proto;
   }
   else {
@@ -1149,63 +1271,6 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
     
     if (!::JS_SetPrototype(cx, obj, proto)) {
       return NS_ERROR_FAILURE;
-    }
-  }
-
-  return NS_OK;
-}
-
-
-nsresult
-nsXBLBinding::InitClass(const nsCString& aClassName,
-                        nsIScriptContext* aContext, 
-                        nsIDocument* aDocument, void** aScriptObject,
-                        void** aClassObject)
-{
-  *aClassObject = nsnull;
-  *aScriptObject = nsnull;
-
-  nsresult rv;
-
-  
-  JSContext* cx = (JSContext*)aContext->GetNativeContext();
-
-  nsIDocument *ownerDoc = mBoundElement->GetOwnerDoc();
-  nsIScriptGlobalObject *sgo;
-
-  if (!ownerDoc || !(sgo = ownerDoc->GetScriptGlobalObject())) {
-    NS_ERROR("Can't find global object for bound content!");
-
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
-  rv = nsContentUtils::XPConnect()->WrapNative(cx, sgo->GetGlobalJSObject(),
-                                               mBoundElement,
-                                               NS_GET_IID(nsISupports),
-                                               getter_AddRefs(wrapper));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  JSObject* object = nsnull;
-  rv = wrapper->GetJSObject(&object);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aScriptObject = object;
-
-  
-
-  rv = DoInitJSClass(cx, sgo->GetGlobalJSObject(), object, aClassName,
-                     aClassObject);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsIDocument* doc = mBoundElement->GetOwnerDoc();
-
-  if (doc) {
-    nsCOMPtr<nsIXPConnectWrappedNative> native_wrapper =
-      do_QueryInterface(wrapper);
-    if (native_wrapper) {
-      doc->AddReference(mBoundElement, native_wrapper);
     }
   }
 
@@ -1342,6 +1407,20 @@ nsXBLBinding::GetFirstStyleBinding()
     return this;
 
   return mNextBinding ? mNextBinding->GetFirstStyleBinding() : nsnull;
+}
+
+PRBool
+nsXBLBinding::ResolveAllFields(JSContext *cx, JSObject *obj) const
+{
+  if (!mPrototypeBinding->ResolveAllFields(cx, obj)) {
+    return PR_FALSE;
+  }
+
+  if (mNextBinding) {
+    return mNextBinding->ResolveAllFields(cx, obj);
+  }
+
+  return PR_TRUE;
 }
 
 void
