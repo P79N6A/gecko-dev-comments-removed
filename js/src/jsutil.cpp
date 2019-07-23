@@ -65,9 +65,14 @@ JS_PUBLIC_API(void) JS_Assert(const char *s, const char *file, JSIntn ln)
 #if defined(WIN32)
     DebugBreak();
     exit(3);
-#else
+#elif defined(__APPLE__)
     
-    raise(SIGABRT);
+
+
+
+    *((int *) NULL) = 0;  
+#else
+    raise(SIGABRT);  
 #endif
 }
 
