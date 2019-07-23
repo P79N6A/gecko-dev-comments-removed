@@ -1687,8 +1687,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f, uintN& inlineCallCount)
     JSObject* globalObj = JS_GetGlobalForObject(cx, cx->fp->scopeChain);
     if (OBJ_SCOPE(globalObj)->shape != ti->globalShape) {
         AUDIT(globalShapeMismatchAtEntry);
-        debug_only(printf("global shape mismatch, flushing cache.\n"));
-        js_FlushJITCache(cx);
+        debug_only(printf("global shape mismatch, flushing tree.\n"));
+        js_TrashTree(cx, f);
         return NULL;
     }
 
@@ -4128,7 +4128,6 @@ TraceRecorder::forInLoop(LIns*& id_ins)
 
     
     
-    
     int flag = 0;
     id_ins = NULL;
 
@@ -4152,11 +4151,6 @@ TraceRecorder::forInLoop(LIns*& id_ins)
 
     JSNativeEnumerator* ne;
 
-    
-    
-    
-    
-    flag = 1;
     ne = (JSNativeEnumerator*) (stateval & ~jsval(3));
     if (ne->cursor == 0)
         goto done;
@@ -4173,6 +4167,8 @@ TraceRecorder::forInLoop(LIns*& id_ins)
                             lir->ins2i(LIR_lsh, cursor_ins, (sizeof(jsid) == 4) ? 2 : 3));
 
 
+    
+    flag = 1;
     id_ins = lir->insLoadi(id_addr_ins, 0);
 done:
     stack(0, lir->insImm(flag));
