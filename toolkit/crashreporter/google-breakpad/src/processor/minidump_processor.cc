@@ -27,10 +27,10 @@
 
 
 
-#include "google/minidump_processor.h"
-#include "google/call_stack.h"
-#include "google/process_state.h"
-#include "processor/minidump.h"
+#include "google_airbag/processor/minidump_processor.h"
+#include "google_airbag/processor/call_stack.h"
+#include "google_airbag/processor/minidump.h"
+#include "google_airbag/processor/process_state.h"
 #include "processor/scoped_ptr.h"
 #include "processor/stackwalker_x86.h"
 
@@ -54,11 +54,22 @@ ProcessState* MinidumpProcessor::Process(const string &minidump_file) {
   process_state->cpu_ = GetCPUInfo(&dump, &process_state->cpu_info_);
   process_state->os_ = GetOSInfo(&dump, &process_state->os_version_);
 
-  u_int32_t exception_thread_id = 0;
+  u_int32_t dump_thread_id = 0;
+  bool has_dump_thread = false;
+  u_int32_t requesting_thread_id = 0;
+  bool has_requesting_thread = false;
+
+  MinidumpAirbagInfo *airbag_info = dump.GetAirbagInfo();
+  if (airbag_info) {
+    has_dump_thread = airbag_info->GetDumpThreadID(&dump_thread_id);
+    has_requesting_thread =
+        airbag_info->GetRequestingThreadID(&requesting_thread_id);
+  }
+
   MinidumpException *exception = dump.GetException();
   if (exception) {
     process_state->crashed_ = true;
-    exception_thread_id = exception->GetThreadID();
+    has_requesting_thread = exception->GetThreadID(&requesting_thread_id);
 
     process_state->crash_reason_ = GetCrashReason(
         &dump, &process_state->crash_address_);
@@ -69,7 +80,7 @@ ProcessState* MinidumpProcessor::Process(const string &minidump_file) {
     return NULL;
   }
 
-  bool found_crash_thread = false;
+  bool found_requesting_thread = false;
   unsigned int thread_count = threads->thread_count();
   for (unsigned int thread_index = 0;
        thread_index < thread_count;
@@ -79,15 +90,46 @@ ProcessState* MinidumpProcessor::Process(const string &minidump_file) {
       return NULL;
     }
 
-    if (process_state->crashed_ &&
-        thread->GetThreadID() == exception_thread_id) {
-      if (found_crash_thread) {
+    u_int32_t thread_id;
+    if (!thread->GetThreadID(&thread_id)) {
+      return NULL;
+    }
+
+    
+    
+    
+    
+    if (has_dump_thread && thread_id == dump_thread_id) {
+      continue;
+    }
+
+    MinidumpContext *context = thread->GetContext();
+
+    if (has_requesting_thread && thread_id == requesting_thread_id) {
+      if (found_requesting_thread) {
         
         return NULL;
       }
 
-      process_state->crash_thread_ = thread_index;
-      found_crash_thread = true;
+      
+      
+      
+      
+      
+      
+      
+      process_state->requesting_thread_ = process_state->threads_.size();
+
+      found_requesting_thread = true;
+
+      if (process_state->crashed_) {
+        
+        
+        
+        
+        
+        context = exception->GetContext();
+      }
     }
 
     MinidumpMemoryRegion *thread_memory = thread->GetMemory();
@@ -96,7 +138,7 @@ ProcessState* MinidumpProcessor::Process(const string &minidump_file) {
     }
 
     scoped_ptr<Stackwalker> stackwalker(
-        Stackwalker::StackwalkerForCPU(exception->GetContext(),
+        Stackwalker::StackwalkerForCPU(context,
                                        thread_memory,
                                        dump.GetModuleList(),
                                        supplier_));
@@ -113,7 +155,7 @@ ProcessState* MinidumpProcessor::Process(const string &minidump_file) {
   }
 
   
-  if (process_state->crashed_ && !found_crash_thread) {
+  if (has_requesting_thread && !found_requesting_thread) {
     return NULL;
   }
 

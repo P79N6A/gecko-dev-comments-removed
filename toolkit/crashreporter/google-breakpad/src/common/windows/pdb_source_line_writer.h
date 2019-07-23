@@ -50,6 +50,7 @@ class PDBSourceLineWriter {
   enum FileFormat {
     PDB_FILE,  
     EXE_FILE,  
+    ANY_FILE   
   };
 
   explicit PDBSourceLineWriter();
@@ -75,7 +76,9 @@ class PDBSourceLineWriter {
 
   
   
-  wstring GetModuleGUID();
+  
+  
+  bool GetModuleInfo(wstring *guid, int *age, wstring *filename);
 
  private:
   
@@ -101,6 +104,13 @@ class PDBSourceLineWriter {
   
   
   bool PrintCodePublicSymbol(IDiaSymbol *symbol);
+
+  
+  
+  bool PrintPDBInfo();
+
+  
+  static wstring GetBaseName(const wstring &filename);
 
   
   

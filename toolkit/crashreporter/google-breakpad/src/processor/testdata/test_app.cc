@@ -31,44 +31,29 @@
 
 
 
-#include <windows.h>
-#include <dbghelp.h>
 
-static LONG HandleException(EXCEPTION_POINTERS *exinfo) {
-  HANDLE dump_file = CreateFile("dump.dmp",
-                                GENERIC_WRITE,
-                                FILE_SHARE_WRITE,
-                                NULL,
-                                CREATE_ALWAYS,
-                                FILE_ATTRIBUTE_NORMAL,
-                                NULL);
 
-  MINIDUMP_EXCEPTION_INFORMATION except_info;
-  except_info.ThreadId = GetCurrentThreadId();
-  except_info.ExceptionPointers = exinfo;
-  except_info.ClientPointers = false;
-  
-  MiniDumpWriteDump(GetCurrentProcess(),
-                    GetCurrentProcessId(),
-                    dump_file,
-                    MiniDumpNormal,
-                    &except_info,
-                    NULL,
-                    NULL);
+#include <cstdio>
 
-  CloseHandle(dump_file);
-  return EXCEPTION_EXECUTE_HANDLER;
+#include "client/windows/handler/exception_handler.h"
+
+void callback(const std::wstring &id, void *context, bool succeeded) {
+  if (succeeded) {
+    printf("dump guid is %ws\n", id.c_str());
+  } else {
+    printf("dump failed\n");
+  }
+  exit(1);
 }
 
 void CrashFunction() {
-  int *i = NULL;
+  int *i = reinterpret_cast<int*>(0x45);
   *i = 5;  
 }
 
-int main(int argc, char *argv[]) {
-  __try {
-    CrashFunction();
-  } __except(HandleException(GetExceptionInformation())) {
-  }
+int main(int argc, char **argv) {
+  google_airbag::ExceptionHandler eh(L".", callback, NULL, true);
+  CrashFunction();
+  printf("did not crash?\n");
   return 0;
 }

@@ -65,6 +65,7 @@
 #pragma warning( push )
 
 #pragma warning( disable : 4530 ) 
+
 #include <string>
 
 namespace google_airbag {
@@ -116,10 +117,28 @@ class ExceptionHandler {
       CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
   
-  bool WriteMinidumpWithException(EXCEPTION_POINTERS *exinfo);
+  static DWORD WINAPI ExceptionHandlerThreadMain(void *lpParameter);
 
   
+  
   static LONG WINAPI HandleException(EXCEPTION_POINTERS *exinfo);
+
+  
+  
+  
+  
+  
+  
+  
+  bool WriteMinidumpOnHandlerThread(EXCEPTION_POINTERS *exinfo);
+
+  
+  
+  
+  
+  
+  bool WriteMinidumpWithException(DWORD requesting_thread_id,
+                                  EXCEPTION_POINTERS *exinfo);
 
   
   void UpdateNextID();
@@ -140,6 +159,41 @@ class ExceptionHandler {
   static ExceptionHandler *current_handler_;
 
   
+  static HANDLE handler_thread_;
+
+  
+  
+  static CRITICAL_SECTION handler_critical_section_;
+
+  
+  
+  
+  
+  
+  static HANDLE handler_start_semaphore_;
+  static HANDLE handler_finish_semaphore_;
+
+  
+  
+
+  
+  
+  
+  static ExceptionHandler *requesting_handler_;
+
+  
+  
+  static DWORD requesting_thread_id_;
+
+  
+  
+  static EXCEPTION_POINTERS *exception_info_;
+
+  
+  
+  static bool handler_return_value_;
+
+  
   explicit ExceptionHandler(const ExceptionHandler &);
   void operator=(const ExceptionHandler &);
 };
@@ -147,4 +201,5 @@ class ExceptionHandler {
 }  
 
 #pragma warning( pop )
+
 #endif  

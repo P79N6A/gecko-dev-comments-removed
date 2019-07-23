@@ -74,4 +74,5 @@ class CrashReportSender {
 }  
 
 #pragma warning( pop )
+
 #endif  

@@ -27,7 +27,9 @@
 
 
 
+
 #pragma warning( disable : 4530 )
+
 #include "client/windows/sender/crash_report_sender.h"
 #include "common/windows/http_upload.h"
 

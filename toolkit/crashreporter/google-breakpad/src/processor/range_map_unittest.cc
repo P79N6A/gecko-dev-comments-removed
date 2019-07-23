@@ -41,6 +41,9 @@
 #include "processor/scoped_ptr.h"
 
 
+namespace {
+
+
 using google_airbag::linked_ptr;
 using google_airbag::scoped_ptr;
 using google_airbag::RangeMap;
@@ -99,7 +102,7 @@ struct RangeTestSet {
 
 
 
-bool StoreTest(TestMap *range_map, const RangeTest *range_test) {
+static bool StoreTest(TestMap *range_map, const RangeTest *range_test) {
   linked_ptr<CountedObject> object(new CountedObject(range_test->id));
   bool stored = range_map->StoreRange(range_test->address,
                                       range_test->size,
@@ -123,7 +126,7 @@ bool StoreTest(TestMap *range_map, const RangeTest *range_test) {
 
 
 
-bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
+static bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
   for (unsigned int side = 0; side <= 1; ++side) {
     
     
@@ -241,7 +244,7 @@ bool RetrieveTest(TestMap *range_map, const RangeTest *range_test) {
 
 
 
-bool RunTests() {
+static bool RunTests() {
   
   
   const RangeTest range_tests_0[] = {
@@ -401,6 +404,10 @@ bool RunTests() {
 
   return true;
 }
+
+
+}  
+
 
 int main(int argc, char **argv) {
   return RunTests() ? 0 : 1;

@@ -31,8 +31,12 @@
 #include <Windows.h>
 #include <WinInet.h>
 
+
 #pragma warning( disable : 4530 ) 
+
 #include <fstream>
+
+#include "common/windows/string_utils-inl.h"
 
 #include "common/windows/http_upload.h"
 
@@ -164,7 +168,8 @@ wstring HTTPUpload::GenerateMultipartBoundary() {
   int r1 = rand();
 
   wchar_t temp[kBoundaryLength];
-  swprintf_s(temp, kBoundaryLength, L"%s%08X%08X", kBoundaryPrefix, r0, r1);
+  WindowsStringUtils::safe_swprintf(temp, kBoundaryLength, L"%s%08X%08X",
+                                    kBoundaryPrefix, r0, r1);
   return wstring(temp);
 }
 
@@ -230,8 +235,16 @@ bool HTTPUpload::GenerateRequestBody(const map<wstring, wstring> &parameters,
 
 void HTTPUpload::GetFileContents(const wstring &filename,
                                  vector<char> *contents) {
+  
+  
+  
+  
+#if _MSC_VER >= 1400  
   ifstream file;
   file.open(filename.c_str(), ios::binary);
+#else  
+  ifstream file(_wfopen(filename.c_str(), L"rb"));
+#endif  
   if (file.is_open()) {
     file.seekg(0, ios::end);
     int length = file.tellg();
