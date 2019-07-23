@@ -51,6 +51,18 @@
 namespace mozilla {
 namespace ctypes {
 
+
+enum ErrorNum {
+#define MSG_DEF(name, number, count, exception, format) \
+  name = number,
+#include "ctypes.msg"
+#undef MSG_DEF
+  CTYPESERR_LIMIT
+};
+
+const JSErrorFormatString*
+GetErrorMessage(void* userRef, const char* locale, const uintN errorNumber);
+
 struct Type
 {
   ffi_type mFFIType;
