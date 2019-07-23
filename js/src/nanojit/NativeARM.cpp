@@ -1310,13 +1310,16 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
 void
 Assembler::asm_load64(LInsp ins)
 {
+    NanoAssert(!ins->isop(LIR_ldq) && !ins->isop(LIR_ldqc));
+
     
 
     switch (ins->opcode()) {
-        case LIR_ldq:
-        case LIR_ldqc:
+        case LIR_ldf:
+        case LIR_ldfc:
             
             break;
+
         case LIR_ld32f:
         case LIR_ldc32f:
             NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
@@ -1370,15 +1373,19 @@ Assembler::asm_load64(LInsp ins)
 void
 Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
 {
+    NanoAssert(op != LIR_stqi);
+
     
 
     switch (op) {
-        case LIR_stqi:
+        case LIR_stfi:
             
             break;
+
         case LIR_st32f:
             NanoAssertMsg(0, "NJ_EXPANDED_LOADSTORE_SUPPORTED not yet supported for this architecture");
             return;
+
         default:
             NanoAssertMsg(0, "asm_store64 should never receive this LIR opcode");
             return;

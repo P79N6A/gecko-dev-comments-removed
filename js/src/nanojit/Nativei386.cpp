@@ -93,13 +93,13 @@ namespace nanojit
             : "%eax", "%esi", "%ecx", "%edx"
            );
     #elif defined __SUNPRO_C || defined __SUNPRO_CC
-        asm("xchg %%esi, %%ebx\n"
+        asm("push %%ebx\n"
             "mov $0x01, %%eax\n"
             "cpuid\n"
-            "xchg %%esi, %%ebx\n"
+            "pop %%ebx\n"
             : "=d" (features)
             : 
-            : "%eax", "%ecx", "esi"
+            : "%eax", "%ecx"
            );
     #endif
         return (features & (1<<26)) != 0;
@@ -320,12 +320,6 @@ namespace nanojit
             btr RegAlloc::free[ecx], eax    
             mov r, eax
         }
-    #elif defined __SUNPRO_C || defined __SUNPRO_CC
-        asm(
-            "bsf    %1, %%edi\n\t"
-            "btr    %%edi, (%2)\n\t"
-            "movl   %%edi, %0\n\t"
-            : "=a"(r) : "d"(set), "c"(&regs.free) : "%edi", "memory" );
     #else
         asm(
             "bsf    %1, %%eax\n\t"
@@ -561,6 +555,8 @@ namespace nanojit
 
     void Assembler::asm_load64(LInsp ins)
     {
+        NanoAssert(!ins->isop(LIR_ldq) && !ins->isop(LIR_ldqc));
+
         LIns* base = ins->oprnd1();
         int db = ins->disp();
         Register rr = ins->getReg();
@@ -570,8 +566,8 @@ namespace nanojit
             freeRsrcOf(ins, false);
             Register rb = getBaseReg(base, db, GpRegs);
             switch (ins->opcode()) {
-                case LIR_ldq:
-                case LIR_ldqc:
+                case LIR_ldf:
+                case LIR_ldfc:
                     SSE_LDQ(rr, db, rb);
                     break;
                 case LIR_ld32f:
@@ -599,8 +595,8 @@ namespace nanojit
             ins->setReg(UnknownReg);
 
             switch (ins->opcode()) {
-                case LIR_ldq:
-                case LIR_ldqc:
+                case LIR_ldf:
+                case LIR_ldfc:
                     
                     if (dr)
                         asm_mmq(FP, dr, rb, db);
@@ -643,6 +639,8 @@ namespace nanojit
 
     void Assembler::asm_store64(LOpcode op, LInsp value, int dr, LInsp base)
     {
+        NanoAssert(op != LIR_stqi);
+
         Register rb = getBaseReg(base, dr, GpRegs);
 
         if (op == LIR_st32f) {
@@ -668,7 +666,7 @@ namespace nanojit
             STi(rb, dr+4, value->imm64_1());
             STi(rb, dr,   value->imm64_0());
 
-        } else if (value->isop(LIR_ldq) || value->isop(LIR_ldqc) || value->isop(LIR_qjoin)) {
+        } else if (value->isop(LIR_ldf) || value->isop(LIR_ldfc) || value->isop(LIR_qjoin)) {
             
             
             
@@ -687,6 +685,7 @@ namespace nanojit
             }
 
         } else {
+            NanoAssert(!value->isop(LIR_ldq) && !value->isop(LIR_ldqc));
             bool pop = value->isUnusedOrHasUnknownReg();
             Register rv = ( pop
                           ? findRegFor(value, config.sse2 ? XmmRegs : FpRegs)
@@ -906,7 +905,7 @@ namespace nanojit
         default:        NanoAssert(0);  break;
         }
 
-        freeResourcesOf(ins);   
+        freeResourcesOf(ins);
 
         asm_cmp(ins);
     }

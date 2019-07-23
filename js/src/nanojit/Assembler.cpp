@@ -1205,6 +1205,8 @@ namespace nanojit
                 case LIR_ldc32f:
                 case LIR_ldq:
                 case LIR_ldqc:
+                case LIR_ldf:
+                case LIR_ldfc:
                 {
                     countlir_ldq();
                     asm_load64(ins);
@@ -1300,12 +1302,13 @@ namespace nanojit
                 }
                 case LIR_st32f:
                 case LIR_stqi:
+                case LIR_stfi:
                 {
                     countlir_stq();
                     LIns* value = ins->oprnd1();
                     LIns* base = ins->oprnd2();
                     int dr = ins->disp();
-                    if (value->isop(LIR_qjoin) && op != LIR_st32f)
+                    if (value->isop(LIR_qjoin) && op == LIR_stfi)
                     {
                         
                         asm_store32(LIR_sti, value->oprnd1(), dr, base);

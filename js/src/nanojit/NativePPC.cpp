@@ -221,6 +221,8 @@ namespace nanojit
     void Assembler::asm_load64(LIns *ins) {
 
         switch (ins->opcode()) {
+            case LIR_ldf:
+            case LIR_ldfc:
             case LIR_ldq:
             case LIR_ldqc:
                 
@@ -314,6 +316,7 @@ namespace nanojit
         NanoAssert(value->isQuad());
 
         switch (op) {
+            case LIR_stfi:
             case LIR_stqi:
                 
                 break;
