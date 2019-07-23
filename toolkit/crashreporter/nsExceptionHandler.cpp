@@ -298,6 +298,9 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   if (pid == -1)
     return false;
   else if (pid == 0) {
+    
+    
+    unsetenv("LD_LIBRARY_PATH");
     (void) execl(crashReporterPath,
                  crashReporterPath, minidumpPath, (char*)0);
     _exit(1);
