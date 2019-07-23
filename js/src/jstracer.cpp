@@ -1017,24 +1017,17 @@ nanojit::Assembler::asm_bailout(LIns *guard, Register state)
 #elif defined(NANOJIT_ARM)
     NanoAssert(offsetof(avmplus::InterpState,ip) == 0);
     NanoAssert(offsetof(avmplus::InterpState,sp) == 4);
-    
-    
-    
-    RegisterMask ptrs = 0x1e; 
+    RegisterMask ptrs = 0x6; 
 
-    SUBi(state,16);
+    SUBi(state,8);
     STMIA(state,ptrs);
 
     if (exit->sp_adj)       ADDi(R2, exit->sp_adj);
     if (exit->ip_adj)       ADDi(R1, exit->ip_adj);
-    
-    
 
-    SUBi(state,16);
+    SUBi(state,8);
     LDMIA(state,ptrs);
 #endif
-
-
 }
 
 void
