@@ -2802,7 +2802,9 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
     }
   }
 
-  nsCOMPtr<nsIContent> parent = aContent->GetParent();
+  nsIContent* parent = aContent->GetParent();
+  
+  
   if (isAnonForEvents) {
     
     
@@ -2810,7 +2812,7 @@ nsGenericElement::doPreHandleEvent(nsIContent* aContent,
                  aVisitor.mDOMEvent,
                  "Mutation event dispatched in native anonymous content!?!");
     aVisitor.mEventTargetAtParent = parent;
-  } else if (parent) {
+  } else if (parent && aVisitor.mOriginalTargetIsInAnon) {
     nsCOMPtr<nsIContent> content(do_QueryInterface(aVisitor.mEvent->target));
     if (content && content->GetBindingParent() == parent) {
       aVisitor.mEventTargetAtParent = parent;
