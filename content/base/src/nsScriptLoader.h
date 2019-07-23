@@ -300,6 +300,7 @@ protected:
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
   nsCOMArray<nsScriptLoadRequest> mRequests;
+  nsCOMArray<nsScriptLoadRequest> mAsyncRequests;
 
   
   struct PreloadInfo {

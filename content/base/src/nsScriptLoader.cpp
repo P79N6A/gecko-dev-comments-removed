@@ -139,6 +139,10 @@ nsScriptLoader::~nsScriptLoader()
     mRequests[i]->FireScriptAvailable(NS_ERROR_ABORT);
   }
 
+  for (PRInt32 i = 0; i < mAsyncRequests.Count(); i++) {
+    mAsyncRequests[i]->FireScriptAvailable(NS_ERROR_ABORT);
+  }
+
   
   
   for (PRUint32 j = 0; j < mPendingChildLoaders.Length(); ++j) {
@@ -501,7 +505,8 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       request = mPreloads[i].mRequest;
       request->mElement = aElement;
       request->mJSVersion = version;
-      request->mDefer = mDeferEnabled && aElement->GetScriptDeferred();
+      request->mDefer = mDeferEnabled && aElement->GetScriptDeferred() &&
+        !aElement->GetScriptAsync();
       mPreloads.RemoveElementAt(i);
 
       rv = CheckContentPolicy(mDocument, aElement, request->mURI, type);
@@ -510,21 +515,34 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
         return rv;
       }
 
-      if (!request->mLoading && !request->mDefer && !hadPendingRequests &&
-            ReadyToExecuteScripts() && nsContentUtils::IsSafeToRunScript()) {
+      
+      
+      
+      
+      PRBool readyToRun =
+        !request->mLoading && !request->mDefer &&
+        ((!hadPendingRequests && ReadyToExecuteScripts()) ||
+         aElement->GetScriptAsync());
+
+      if (readyToRun && nsContentUtils::IsSafeToRunScript()) {
         return ProcessRequest(request);
       }
 
       
-      mRequests.AppendObject(request);
+      if (aElement->GetScriptAsync()) {
+        mAsyncRequests.AppendObject(request);
+      }
+      else {
+        mRequests.AppendObject(request);
+      }
 
-      if (!request->mLoading && !hadPendingRequests && ReadyToExecuteScripts() &&
-          !request->mDefer) {
+      if (readyToRun) {
         nsContentUtils::AddScriptRunner(new nsRunnableMethod<nsScriptLoader>(this,
           &nsScriptLoader::ProcessPendingRequests));
       }
 
-      return request->mDefer ? NS_OK : NS_ERROR_HTMLPARSER_BLOCK;
+      return request->mDefer || aElement->GetScriptAsync() ?
+        NS_OK : NS_ERROR_HTMLPARSER_BLOCK;
     }
   }
 
@@ -532,10 +550,10 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   request = new nsScriptLoadRequest(aElement, version);
   NS_ENSURE_TRUE(request, NS_ERROR_OUT_OF_MEMORY);
 
-  request->mDefer = mDeferEnabled && aElement->GetScriptDeferred();
-
   
   if (scriptURI) {
+    request->mDefer = mDeferEnabled && aElement->GetScriptDeferred() &&
+      !aElement->GetScriptAsync();
     request->mURI = scriptURI;
     request->mIsInline = PR_FALSE;
     request->mLoading = PR_TRUE;
@@ -545,6 +563,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       return rv;
     }
   } else {
+    request->mDefer = PR_FALSE;
     request->mLoading = PR_FALSE;
     request->mIsInline = PR_TRUE;
     request->mURI = mDocument->GetDocumentURI();
@@ -553,17 +572,19 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
     
     
-    if (!request->mDefer && !hadPendingRequests &&
-        ReadyToExecuteScripts() && nsContentUtils::IsSafeToRunScript()) {
+    if (!hadPendingRequests && ReadyToExecuteScripts() &&
+        nsContentUtils::IsSafeToRunScript()) {
       return ProcessRequest(request);
     }
   }
 
   
-  NS_ENSURE_TRUE(mRequests.AppendObject(request),
+  NS_ENSURE_TRUE(aElement->GetScriptAsync() ?
+                 mAsyncRequests.AppendObject(request) :
+                 mRequests.AppendObject(request),
                  NS_ERROR_OUT_OF_MEMORY);
 
-  if (request->mDefer) {
+  if (request->mDefer || aElement->GetScriptAsync()) {
     return NS_OK;
   }
 
@@ -744,6 +765,16 @@ nsScriptLoader::ProcessPendingRequests()
     ProcessRequest(request);
   }
 
+  
+  for (PRInt32 i = 0; mEnabled && i < mAsyncRequests.Count(); ++i) {
+    if (!mAsyncRequests[i]->mLoading) {
+      request = mAsyncRequests[i];
+      mAsyncRequests.RemoveObjectAt(i);
+      ProcessRequest(request);
+      i = 0;
+    }
+  }
+
   while (!mPendingChildLoaders.IsEmpty() && ReadyToExecuteScripts()) {
     nsRefPtr<nsScriptLoader> child = mPendingChildLoaders[0];
     mPendingChildLoaders.RemoveElementAt(0);
@@ -751,7 +782,7 @@ nsScriptLoader::ProcessPendingRequests()
   }
 
   if (mUnblockOnloadWhenDoneProcessing && mDocument &&
-      !GetFirstPendingRequest()) {
+      !GetFirstPendingRequest() && !mAsyncRequests.Count()) {
     
     
     
@@ -920,10 +951,11 @@ nsScriptLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   nsresult rv = PrepareLoadedRequest(request, aLoader, aStatus, aStringLen,
                                      aString);
   if (NS_FAILED(rv)) {
-    if (!mRequests.RemoveObject(request)) {
-      mPreloads.RemoveElement(request, PreloadRequestComparator());
-    } else {
+    if (mRequests.RemoveObject(request) ||
+        mAsyncRequests.RemoveObject(request)) {
       FireScriptAvailable(rv, request);
+    } else {
+      mPreloads.RemoveElement(request, PreloadRequestComparator());
     }
   }
 
@@ -993,6 +1025,7 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
   
   
   NS_ASSERTION(mRequests.IndexOf(aRequest) >= 0 ||
+               mAsyncRequests.IndexOf(aRequest) >= 0 ||
                mPreloads.Contains(aRequest, PreloadRequestComparator()),
                "aRequest should be pending!");
 
