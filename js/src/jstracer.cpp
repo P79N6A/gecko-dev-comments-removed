@@ -4927,8 +4927,10 @@ TraceRecorder::record_JSOP_CALL()
             if (!FUN_INTERPRETED(tfun))
                 ABORT_TRACE("can't trace Function.prototype.apply(native_function, arguments)");
 
+            
+            
             argc = fp->argc;
-            if (tfun->nargs != argc)
+            if (tfun->nargs != argc || fp->fun->nargs != argc)
                 ABORT_TRACE("can't trace Function.prototype.apply(scripted_function, arguments)");
 
             jsval* sp = fp->regs->sp - 4;
