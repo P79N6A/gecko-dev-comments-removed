@@ -1224,8 +1224,7 @@ nsListBoxBodyFrame::GetNextItemBox(nsIBox* aBox, PRInt32 aOffset,
         return GetNextItemBox(aBox, ++aOffset, aCreated);
 
       nsPresContext* presContext = PresContext();
-      nsIFrame* existingFrame =
-        presContext->GetPresShell()->GetPrimaryFrameFor(nextContent);
+      nsIFrame* existingFrame = nextContent->GetPrimaryFrame();
 
       if (existingFrame && existingFrame->GetParent() != this)
         return GetNextItemBox(aBox, ++aOffset, aCreated);
@@ -1348,13 +1347,12 @@ nsListBoxBodyFrame::OnContentInserted(nsPresContext* aPresContext, nsIContent* a
   if (mRowCount >= 0)
     ++mRowCount;
 
-  nsIPresShell *shell = aPresContext->PresShell();
   
   
   
   
   
-  nsIFrame* childFrame = shell->GetPrimaryFrameFor(aChildContent);
+  nsIFrame* childFrame = aChildContent->GetPrimaryFrame();
   if (childFrame)
     return;
 
@@ -1369,7 +1367,7 @@ nsListBoxBodyFrame::OnContentInserted(nsPresContext* aPresContext, nsIContent* a
     mRowsToPrepend = 1;
   } else if (nextSiblingContent) {
     
-    nsIFrame* nextSiblingFrame = shell->GetPrimaryFrameFor(nextSiblingContent);
+    nsIFrame* nextSiblingFrame = nextSiblingContent->GetPrimaryFrame();
     mLinkupFrame = nextSiblingFrame;
   }
   
@@ -1427,8 +1425,7 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
       if (last.position() > 0) {
         iter.seek(last.position() - 1);
         nsIContent *lastChild = *iter;
-        nsIFrame* lastChildFrame = 
-          aPresContext->PresShell()->GetPrimaryFrameFor(lastChild);
+        nsIFrame* lastChildFrame = lastChild->GetPrimaryFrame();
       
         if (lastChildFrame) {
           mTopFrame = nsnull;

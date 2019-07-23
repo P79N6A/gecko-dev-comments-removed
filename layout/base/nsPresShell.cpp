@@ -3078,7 +3078,7 @@ PresShell::CheckVisibility(nsIDOMNode *node, PRInt16 startOffset, PRInt16 EndOff
   nsCOMPtr<nsIContent> content(do_QueryInterface(node));
   if (!content)
     return NS_ERROR_FAILURE;
-  nsIFrame *frame = GetPrimaryFrameFor(content);
+  nsIFrame *frame = content->GetPrimaryFrame();
   if (!frame) 
     return NS_OK;  
   
@@ -3446,7 +3446,7 @@ PresShell::GetViewToScroll(nsLayoutUtils::Direction aDirection)
     }
   }
   if (focusedContent) {
-    nsIFrame* startFrame = GetPrimaryFrameFor(focusedContent);
+    nsIFrame* startFrame = focusedContent->GetPrimaryFrame();
     if (startFrame) {
       nsIScrollableViewProvider* svp = do_QueryFrame(startFrame);
       
@@ -4127,7 +4127,7 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
                                    PRIntn      aVPercent,
                                    PRIntn      aHPercent)
 {
-  nsIFrame* frame = GetPrimaryFrameFor(aContent);
+  nsIFrame* frame = aContent->GetPrimaryFrame();
   if (!frame) {
     mContentToScrollTo = nsnull;
     return;
@@ -4281,7 +4281,7 @@ PresShell::GetSelectionForCopy(nsISelection** outSelection)
     nsCOMPtr<nsIDOMNSHTMLTextAreaElement> htmlTextAreaElement(do_QueryInterface(content));
     if (htmlInputElement || htmlTextAreaElement)
     {
-      nsIFrame *htmlInputFrame = GetPrimaryFrameFor(content);
+      nsIFrame *htmlInputFrame = content->GetPrimaryFrame();
       if (!htmlInputFrame) return NS_ERROR_FAILURE;
 
       nsCOMPtr<nsISelectionController> selCon;
@@ -4386,7 +4386,7 @@ PresShell::ClearMouseCapture(nsIView* aView)
           if (shell->FrameManager()->IsDestroyingFrames())
             return;
 
-          frame = shell->GetPrimaryFrameFor(gCaptureInfo.mContent);
+          frame = gCaptureInfo.mContent->GetPrimaryFrame();
         }
       }
 
@@ -5152,7 +5152,10 @@ PresShell::GetPrimaryFrameFor(nsIContent* aContent) const
 nsIFrame*
 PresShell::GetRealPrimaryFrameFor(nsIContent* aContent) const
 {
-  nsIFrame *primaryFrame = FrameManager()->GetPrimaryFrameFor(aContent, -1);
+  if (aContent->GetDocument() != GetDocument()) {
+    return nsnull;
+  }
+  nsIFrame *primaryFrame = aContent->GetPrimaryFrame();
   if (!primaryFrame)
     return nsnull;
   return nsPlaceholderFrame::GetRealFrameFor(primaryFrame);
@@ -5458,7 +5461,7 @@ PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
       return nsnull;
 
     nsIContent* ancestorContent = static_cast<nsIContent*>(ancestor);
-    ancestorFrame = GetPrimaryFrameFor(ancestorContent);
+    ancestorFrame = ancestorContent->GetPrimaryFrame();
 
     
     
@@ -5833,7 +5836,7 @@ PresShell::GetCurrentEventFrame()
     
     
     if (mCurrentEventContent->GetDocument()) {
-      mCurrentEventFrame = GetPrimaryFrameFor(mCurrentEventContent);
+      mCurrentEventFrame = mCurrentEventContent->GetPrimaryFrame();
     }
   }
 
@@ -6152,7 +6155,11 @@ PresShell::HandleEvent(nsIView         *aView,
     if (capturingContent) {
       captureRetarget = gCaptureInfo.mRetargetToElement;
       if (!captureRetarget) {
-        nsIFrame* captureFrame = GetPrimaryFrameFor(capturingContent);
+        
+        
+        NS_ASSERTION(capturingContent->GetCurrentDoc() == GetDocument(),
+                     "Unexpected document");
+        nsIFrame* captureFrame = capturingContent->GetPrimaryFrame();
         if (captureFrame) {
           if (capturingContent->Tag() == nsGkAtoms::select &&
               capturingContent->IsHTML()) {
@@ -6203,7 +6210,9 @@ PresShell::HandleEvent(nsIView         *aView,
                                                         capturingContent))) {
       
       
-      nsIFrame* capturingFrame = GetPrimaryFrameFor(capturingContent);
+      NS_ASSERTION(capturingContent->GetCurrentDoc() == GetDocument(),
+                   "Unexpected document");
+      nsIFrame* capturingFrame = capturingContent->GetPrimaryFrame();
       if (capturingFrame) {
         targetFrame = capturingFrame;
         aView = targetFrame->GetClosestView();
@@ -6733,7 +6742,7 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
     rv = ScrollContentIntoView(content, NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
                                         NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
     NS_ENSURE_SUCCESS(rv, PR_FALSE);
-    frame = GetPrimaryFrameFor(content);
+    frame = content->GetPrimaryFrame();
     NS_WARN_IF_FALSE(frame, "No frame for focused content?");
   }
 
@@ -6836,7 +6845,7 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
               col->GetElement(getter_AddRefs(colElement));
               nsCOMPtr<nsIContent> colContent(do_QueryInterface(colElement));
               if (colContent) {
-                nsIFrame* frame = GetPrimaryFrameFor(colContent);
+                nsIFrame* frame = colContent->GetPrimaryFrame();
                 if (frame) {
                   extraTreeY = frame->GetSize().height;
                 }
@@ -6866,7 +6875,7 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
     focusedContent = do_QueryInterface(item);
 #endif
 
-  nsIFrame *frame = GetPrimaryFrameFor(focusedContent);
+  nsIFrame *frame = focusedContent->GetPrimaryFrame();
   if (frame) {
     nsPoint frameOrigin(0, 0);
 
@@ -6978,10 +6987,9 @@ PresShell::RemoveOverrideStyleSheet(nsIStyleSheet *aSheet)
 }
 
 static void
-FreezeElement(nsIContent *aContent, void *aShell)
+FreezeElement(nsIContent *aContent, void * )
 {
-  nsIPresShell* shell = static_cast<nsIPresShell*>(aShell);
-  nsIFrame *frame = shell->FrameManager()->GetPrimaryFrameFor(aContent, -1);
+  nsIFrame *frame = aContent->GetPrimaryFrame();
   nsIObjectFrame *objectFrame = do_QueryFrame(frame);
   if (objectFrame) {
     objectFrame->StopPlugin();
@@ -7003,7 +7011,7 @@ PresShell::Freeze()
 {
   MaybeReleaseCapturingContent();
 
-  mDocument->EnumerateFreezableElements(FreezeElement, this);
+  mDocument->EnumerateFreezableElements(FreezeElement, nsnull);
 
   if (mCaret)
     mCaret->SetCaretVisible(PR_FALSE);

@@ -987,8 +987,7 @@ nsCSSRendering::FindBackgroundStyleFrame(nsIFrame* aForFrame)
         
         
         if (bodyContent) {
-          nsIFrame *bodyFrame = aForFrame->PresContext()->GetPresShell()->
-            GetPrimaryFrameFor(bodyContent);
+          nsIFrame *bodyFrame = bodyContent->GetPrimaryFrame();
           if (bodyFrame) {
             return nsLayoutUtils::GetStyleFrame(bodyFrame);
           }
