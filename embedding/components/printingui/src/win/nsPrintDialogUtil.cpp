@@ -194,7 +194,7 @@ CheckForExtendedDialog()
 
 
 static void 
-MapPaperSizeToNativeEnum(LPDEVMODE aDevMode,
+MapPaperSizeToNativeEnum(LPDEVMODEW aDevMode,
                          PRInt16   aType, 
                          double    aW, 
                          double    aH)
@@ -249,7 +249,7 @@ MapPaperSizeToNativeEnum(LPDEVMODE aDevMode,
 
 
 static void 
-SetupDevModeFromSettings(LPDEVMODE aDevMode, nsIPrintSettings* aPrintSettings)
+SetupDevModeFromSettings(LPDEVMODEW aDevMode, nsIPrintSettings* aPrintSettings)
 {
   
   if (aPrintSettings) {
@@ -753,28 +753,28 @@ static UINT CALLBACK PrintHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM 
 
 
 
-static HGLOBAL CreateGlobalDevModeAndInit(LPCTSTR aPrintName, nsIPrintSettings* aPS)
+static HGLOBAL CreateGlobalDevModeAndInit(LPCWSTR aPrintName, nsIPrintSettings* aPS)
 {
   HGLOBAL hGlobalDevMode = NULL;
 
   nsresult rv = NS_ERROR_FAILURE;
   HANDLE hPrinter = NULL;
   
-  LPTSTR printName = const_cast<char*>(aPrintName);
-  BOOL status = ::OpenPrinter(printName, &hPrinter, NULL);
+  LPWSTR printName = const_cast<wchar_t*>(aPrintName);
+  BOOL status = ::OpenPrinterW(printName, &hPrinter, NULL);
   if (status) {
 
-    LPDEVMODE   pNewDevMode;
+    LPDEVMODEW  pNewDevMode;
     DWORD       dwNeeded, dwRet;
 
     
-    dwNeeded = ::DocumentProperties(gParentWnd, hPrinter, printName, NULL, NULL, 0);
+    dwNeeded = ::DocumentPropertiesW(gParentWnd, hPrinter, printName, NULL, NULL, 0);
     if (dwNeeded == 0) {
       return NULL;
     }
 
     
-    pNewDevMode = (LPDEVMODE)::HeapAlloc (::GetProcessHeap(), HEAP_ZERO_MEMORY, dwNeeded);
+    pNewDevMode = (LPDEVMODEW)::HeapAlloc (::GetProcessHeap(), HEAP_ZERO_MEMORY, dwNeeded);
     if (!pNewDevMode) return NULL;
 
     hGlobalDevMode = (HGLOBAL)::GlobalAlloc(GHND, dwNeeded);
@@ -783,7 +783,7 @@ static HGLOBAL CreateGlobalDevModeAndInit(LPCTSTR aPrintName, nsIPrintSettings* 
       return NULL;
     }
 
-    dwRet = ::DocumentProperties(gParentWnd, hPrinter, printName, pNewDevMode, NULL, DM_OUT_BUFFER);
+    dwRet = ::DocumentPropertiesW(gParentWnd, hPrinter, printName, pNewDevMode, NULL, DM_OUT_BUFFER);
 
     if (dwRet != IDOK) {
       ::HeapFree(::GetProcessHeap(), 0, pNewDevMode);
@@ -794,14 +794,14 @@ static HGLOBAL CreateGlobalDevModeAndInit(LPCTSTR aPrintName, nsIPrintSettings* 
 
     
     
-    LPDEVMODE devMode = (DEVMODE *)::GlobalLock(hGlobalDevMode);
+    LPDEVMODEW devMode = (DEVMODEW *)::GlobalLock(hGlobalDevMode);
     if (devMode) {
       memcpy(devMode, pNewDevMode, dwNeeded);
       
       SetupDevModeFromSettings(devMode, aPS);
 
       
-      dwRet = ::DocumentProperties(gParentWnd, hPrinter, printName, devMode, devMode, DM_IN_BUFFER | DM_OUT_BUFFER);
+      dwRet = ::DocumentPropertiesW(gParentWnd, hPrinter, printName, devMode, devMode, DM_IN_BUFFER | DM_OUT_BUFFER);
       if (dwRet != IDOK) {
         ::GlobalUnlock(hGlobalDevMode);
         ::GlobalFree(hGlobalDevMode);
@@ -882,10 +882,7 @@ ShowNativePrintDialog(HWND              aHWnd,
     printerName = GetDefaultPrinterNameFromGlobalPrinters();
   } else {
     HANDLE hPrinter = NULL;
-    nsCAutoString printerNameNative;
-    NS_CopyUnicodeToNative(nsDependentString(printerName), printerNameNative);
-    LPTSTR tempPrinterName = const_cast<char*>(printerNameNative.get());
-    if(!::OpenPrinter(tempPrinterName, &hPrinter, NULL)) {
+    if(!::OpenPrinterW(const_cast<wchar_t*>(printerName), &hPrinter, NULL)) {
       
       printerName = GetDefaultPrinterNameFromGlobalPrinters();
     } else {
@@ -897,20 +894,18 @@ ShowNativePrintDialog(HWND              aHWnd,
   if (!printerName) return NS_ERROR_FAILURE;
 
   
-  nsCAutoString tempPrinterName;
-  rv = NS_CopyUnicodeToNative(nsDependentString(printerName), tempPrinterName);
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUint32 len = tempPrinterName.Length();
-  hDevNames = (HGLOBAL)::GlobalAlloc(GHND, len+sizeof(DEVNAMES)+1);
+  PRUint32 len = wcslen(printerName);
+  hDevNames = (HGLOBAL)::GlobalAlloc(GHND, sizeof(wchar_t) * (len + 1) + 
+                                     sizeof(DEVNAMES));
   DEVNAMES* pDevNames = (DEVNAMES*)::GlobalLock(hDevNames);
   pDevNames->wDriverOffset = sizeof(DEVNAMES);
   pDevNames->wDeviceOffset = sizeof(DEVNAMES);
   pDevNames->wOutputOffset = sizeof(DEVNAMES)+len+1;
   pDevNames->wDefault      = 0;
 
-  char* device = &(((char*)pDevNames)[pDevNames->wDeviceOffset]);
-  strcpy(device, tempPrinterName.get());
+  wchar_t* device = &(((wchar_t*)pDevNames)[pDevNames->wDeviceOffset]);
+  wcscpy(device, printerName);
   ::GlobalUnlock(hDevNames);
 
   
@@ -919,11 +914,11 @@ ShowNativePrintDialog(HWND              aHWnd,
   
   
   
-  hGlobalDevMode = CreateGlobalDevModeAndInit(tempPrinterName.get(), aPrintSettings);
+  hGlobalDevMode = CreateGlobalDevModeAndInit(printerName, aPrintSettings);
 
   
-  PRINTDLG  prntdlg;
-  memset(&prntdlg, 0, sizeof(PRINTDLG));
+  PRINTDLGW  prntdlg;
+  memset(&prntdlg, 0, sizeof(PRINTDLGW));
 
   prntdlg.lStructSize = sizeof(prntdlg);
   prntdlg.hwndOwner   = aHWnd;
@@ -969,7 +964,7 @@ ShowNativePrintDialog(HWND              aHWnd,
     prntdlg.Flags            |= PD_ENABLEPRINTHOOK;
   }
 
-  BOOL result = ::PrintDlg(&prntdlg);
+  BOOL result = ::PrintDlgW(&prntdlg);
 
   if (TRUE == result) {
     
@@ -986,8 +981,8 @@ ShowNativePrintDialog(HWND              aHWnd,
       return NS_ERROR_FAILURE;
     }
 
-    char* device = &(((char *)devnames)[devnames->wDeviceOffset]);
-    char* driver = &(((char *)devnames)[devnames->wDriverOffset]);
+    wchar_t* device = &(((wchar_t *)devnames)[devnames->wDeviceOffset]);
+    wchar_t* driver = &(((wchar_t *)devnames)[devnames->wDriverOffset]);
 
     
     
@@ -998,9 +993,9 @@ ShowNativePrintDialog(HWND              aHWnd,
     
     
     if (prntdlg.Flags & PD_PRINTTOFILE) {
-      char* fileName = &(((char *)devnames)[devnames->wOutputOffset]);
-      NS_ASSERTION(strcmp(fileName, "FILE:") == 0, "FileName must be `FILE:`");
-      aPrintSettings->SetToFileName(NS_ConvertASCIItoUTF16(fileName).get());
+      wchar_t* fileName = &(((wchar_t *)devnames)[devnames->wOutputOffset]);
+      NS_ASSERTION(wcscmp(fileName, L"FILE:") == 0, "FileName must be `FILE:`");
+      aPrintSettings->SetToFileName(fileName);
       aPrintSettings->SetPrintToFile(PR_TRUE);
     } else {
       
@@ -1015,18 +1010,15 @@ ShowNativePrintDialog(HWND              aHWnd,
     }
 
     
-    psWin->SetDeviceName(NS_ConvertUTF8toUTF16(device).get());
-    psWin->SetDriverName(NS_ConvertUTF8toUTF16(driver).get());
+    psWin->SetDeviceName(device);
+    psWin->SetDriverName(driver);
 
 #if defined(DEBUG_rods) || defined(DEBUG_dcone)
-    printf("printer: driver %s, device %s  flags: %d\n", driver, device, prntdlg.Flags);
+    wprintf(L"printer: driver %s, device %s  flags: %d\n", driver, device, prntdlg.Flags);
 #endif
     
-    nsDependentCString printerNameNative(device);
-    nsAutoString printerName;
-    NS_CopyNativeToUnicode(printerNameNative, printerName);
 
-    aPrintSettings->SetPrinterName(printerName.get());
+    aPrintSettings->SetPrinterName(device);
 
     if (prntdlg.Flags & PD_SELECTION) {
       aPrintSettings->SetPrintRange(nsIPrintSettings::kRangeSelection);
@@ -1247,10 +1239,8 @@ ShowNativePrintDialogEx(HWND              aHWnd,
   aPrintSettings->GetPrinterName(&printerName);
   HGLOBAL hGlobalDevMode = NULL;
   if (printerName) {
-    nsCAutoString tempPrinterName;
-    rv = NS_CopyUnicodeToNative(nsDependentString(printerName), tempPrinterName));
     NS_ENSURE_SUCCESS(rv, rv);
-    hGlobalDevMode = CreateGlobalDevModeAndInit(tempPrinterName.get(), aPrintSettings);
+    hGlobalDevMode = CreateGlobalDevModeAndInit(printerName, aPrintSettings);
   }
 
   
@@ -1407,7 +1397,7 @@ ShowNativePrintDialogEx(HWND              aHWnd,
     ::GlobalUnlock(prntdlg.hDevNames);
 
     
-    LPDEVMODE devMode = (LPDEVMODE)::GlobalLock(prntdlg.hDevMode);
+    LPDEVMODEW devMode = (LPDEVMODEW)::GlobalLock(prntdlg.hDevMode);
     if (devMode == NULL) {
       ::GlobalFree(hGlobalDevMode);
       return NS_ERROR_FAILURE;
