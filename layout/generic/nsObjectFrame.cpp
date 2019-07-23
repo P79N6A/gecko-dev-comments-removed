@@ -210,7 +210,7 @@ static PRLogModuleInfo *nsObjectFrameLM = PR_NewLogModule("nsObjectFrame");
 
 #define NORMAL_PLUGIN_DELAY 20
 
-#define HIDDEN_PLUGIN_DELAY 250
+#define HIDDEN_PLUGIN_DELAY 125
 
 
 
