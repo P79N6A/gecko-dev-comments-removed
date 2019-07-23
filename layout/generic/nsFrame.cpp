@@ -1034,13 +1034,13 @@ public:
     
     
     
-    return new (aBuilder) nsDisplayClip(nsnull, aList, mRect);
+    return new (aBuilder) nsDisplayClip(nsnull, mContainer, aList, mRect);
   }
   virtual nsDisplayItem* WrapItem(nsDisplayListBuilder* aBuilder,
                                   nsDisplayItem* aItem) {
     nsIFrame* f = aItem->GetUnderlyingFrame();
     if (mClipAll || nsLayoutUtils::IsProperAncestorFrame(mContainer, f, nsnull))
-      return new (aBuilder) nsDisplayClip(f, aItem, mRect);
+      return new (aBuilder) nsDisplayClip(f, mContainer, aItem, mRect);
     return aItem;
   }
 protected:
@@ -1053,20 +1053,22 @@ protected:
 class nsAbsPosClipWrapper : public nsDisplayWrapper
 {
 public:
-  nsAbsPosClipWrapper(const nsRect& aRect)
-    : mRect(aRect) {}
+  nsAbsPosClipWrapper(nsIFrame* aContainer, const nsRect& aRect)
+    : mContainer(aContainer), mRect(aRect) {}
   virtual nsDisplayItem* WrapList(nsDisplayListBuilder* aBuilder,
                                   nsIFrame* aFrame, nsDisplayList* aList) {
     
     
-    return new (aBuilder) nsDisplayClip(nsnull, aList, mRect);
+    return new (aBuilder) nsDisplayClip(nsnull, mContainer, aList, mRect);
   }
   virtual nsDisplayItem* WrapItem(nsDisplayListBuilder* aBuilder,
                                   nsDisplayItem* aItem) {
-    return new (aBuilder) nsDisplayClip(aItem->GetUnderlyingFrame(), aItem, mRect);
+    return new (aBuilder) nsDisplayClip(aItem->GetUnderlyingFrame(),
+            mContainer, aItem, mRect);
   }
 protected:
-  nsRect mRect;
+  nsIFrame* mContainer;
+  nsRect    mRect;
 };
 
 nsresult
@@ -1087,7 +1089,7 @@ nsIFrame::Clip(nsDisplayListBuilder*   aBuilder,
                const nsDisplayListSet& aToSet,
                const nsRect&           aClipRect)
 {
-  nsAbsPosClipWrapper wrapper(aClipRect);
+  nsAbsPosClipWrapper wrapper(this, aClipRect);
   return wrapper.WrapLists(aBuilder, this, aFromSet, aToSet);
 }
 
@@ -1236,7 +1238,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   resultList.AppendToTop(set.PositionedDescendants());
 
   if (applyAbsPosClipping) {
-    nsAbsPosClipWrapper wrapper(absPosClip);
+    nsAbsPosClipWrapper wrapper(this, absPosClip);
     nsDisplayItem* item = wrapper.WrapList(aBuilder, this, &resultList);
     if (!item)
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1251,6 +1253,34 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   }
   
   return rv;
+}
+
+class nsDisplaySummary : public nsDisplayItem
+{
+public:
+  nsDisplaySummary(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
+    MOZ_COUNT_CTOR(nsDisplaySummary);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplaySummary() {
+    MOZ_COUNT_DTOR(nsDisplaySummary);
+  }
+#endif
+
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
+  NS_DISPLAY_DECL_NAME("Summary")
+};
+
+nsRect
+nsDisplaySummary::GetBounds(nsDisplayListBuilder* aBuilder) {
+  return mFrame->GetOverflowRect() + aBuilder->ToReferenceFrame(mFrame);
+}
+
+static void
+AddSummaryFrameToList(nsDisplayListBuilder* aBuilder,
+                      nsIFrame* aFrame, nsDisplayList* aList)
+{
+  aList->AppendNewToTop(new (aBuilder) nsDisplaySummary(aFrame));
 }
 
 nsresult
@@ -1337,6 +1367,16 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       
       
       
+      
+      
+      
+      
+      AddSummaryFrameToList(aBuilder, aChild, aLists.BlockBorderBackgrounds());
+      AddSummaryFrameToList(aBuilder, aChild, aLists.BorderBackground());
+      AddSummaryFrameToList(aBuilder, aChild, aLists.Content());
+      AddSummaryFrameToList(aBuilder, aChild, aLists.Floats());
+      AddSummaryFrameToList(aBuilder, aChild, aLists.PositionedDescendants());      
+      AddSummaryFrameToList(aBuilder, aChild, aLists.Outlines());
       return NS_OK;
     }
   }
@@ -1427,7 +1467,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
     if (NS_SUCCEEDED(rv)) {
       if (isPositioned && applyAbsPosClipping) {
-        nsAbsPosClipWrapper wrapper(clipRect);
+        nsAbsPosClipWrapper wrapper(aChild, clipRect);
         rv = wrapper.WrapListsInPlace(aBuilder, aChild, pseudoStack);
       }
     }

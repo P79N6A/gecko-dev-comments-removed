@@ -1190,8 +1190,15 @@ private:
 
 class nsDisplayClip : public nsDisplayWrapList {
 public:
-  nsDisplayClip(nsIFrame* aFrame, nsDisplayItem* aItem, const nsRect& aRect);
-  nsDisplayClip(nsIFrame* aFrame, nsDisplayList* aList, const nsRect& aRect);
+  
+
+
+
+
+  nsDisplayClip(nsIFrame* aFrame, nsIFrame* aClippingFrame, 
+                nsDisplayItem* aItem, const nsRect& aRect);
+  nsDisplayClip(nsIFrame* aFrame, nsIFrame* aClippingFrame,
+                nsDisplayList* aList, const nsRect& aRect);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayClip();
 #endif
@@ -1207,12 +1214,18 @@ public:
   
   nsRect GetClipRect() { return mClip; }
   void SetClipRect(const nsRect& aRect) { mClip = aRect; }
+  nsIFrame* GetClippingFrame() { return mClippingFrame; }
 
   virtual nsDisplayWrapList* WrapWithClone(nsDisplayListBuilder* aBuilder,
                                            nsDisplayItem* aItem);
 
 private:
-  nsRect mClip;
+  
+  
+  
+  
+  nsIFrame* mClippingFrame;
+  nsRect    mClip;
 };
 
 #endif

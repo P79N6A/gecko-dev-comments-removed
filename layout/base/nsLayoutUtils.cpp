@@ -1017,8 +1017,25 @@ AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
     nsDisplayList* sublist = item->GetList();
     if (sublist) {
       if (item->GetType() == nsDisplayItem::TYPE_CLIP) {
-        nsRect clip;
-        clip.IntersectRect(aClipRect, static_cast<nsDisplayClip*>(item)->GetClipRect());
+        nsDisplayClip* clipItem = static_cast<nsDisplayClip*>(item);
+        nsRect clip = aClipRect;
+        
+        
+        
+        if (!aBuilder->IsMovingFrame(clipItem->GetClippingFrame())) {
+          clip.IntersectRect(clip, clipItem->GetClipRect());
+
+          
+          nsRegion clippedOutSource;
+          clippedOutSource.Sub(aRect, clip);
+          clippedOutSource.MoveBy(aDelta);
+          aRegion->Or(*aRegion, clippedOutSource);
+
+          
+          nsRegion clippedOutDestination;
+          clippedOutDestination.Sub(aRect + aDelta, clip);
+          aRegion->Or(*aRegion, clippedOutDestination);
+        }
         AddItemsToRegion(aBuilder, sublist, aRect, clip, aDelta, aRegion);
       } else {
         
