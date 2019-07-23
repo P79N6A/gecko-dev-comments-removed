@@ -384,6 +384,13 @@ BrowserGlue.prototype = {
 
 
 
+
+
+
+
+
+
+
   _initPlaces: function bg__initPlaces() {
     
     
@@ -401,14 +408,6 @@ BrowserGlue.prototype = {
     } catch(ex) {}
 
     if (!importBookmarks) {
-+     
-
-
-
-
-
-
-
       
       
       this.ensurePlacesDefaultQueriesInitialized();
