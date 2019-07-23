@@ -109,11 +109,13 @@ function viewSource(url)
   
   
   
+  
   if ("arguments" in window) {
     var arg;
     
     
     
+    var charset;
     if (window.arguments.length >= 2) {
       arg = window.arguments[1];
 
@@ -122,10 +124,23 @@ function viewSource(url)
           var arrayArgComponents = arg.split('=');
           if (arrayArgComponents) {
             
-            var docCharset = getBrowser().docShell.QueryInterface
-                               (Components.interfaces.nsIDocCharset);
-            docCharset.charset = arrayArgComponents[1];
-          } 
+            charset = arrayArgComponents[1];
+            gBrowser.markupDocumentViewer.defaultCharacterSet = charset;
+          }
+        }
+      } catch (ex) {
+        
+      }
+    }
+    
+    if (window.arguments.length >= 3) {
+      arg = window.arguments[2];
+
+      try {
+        if (arg === true) {
+          var docCharset = getBrowser().docShell.QueryInterface
+                             (Components.interfaces.nsIDocCharset);
+          docCharset.charset = charset;
         }
       } catch (ex) {
         
@@ -134,16 +149,16 @@ function viewSource(url)
     
     
     
-    if (window.arguments.length >= 4) {
-      arg = window.arguments[3];
+    if (window.arguments.length >= 5) {
+      arg = window.arguments[4];
       gGoToLine = parseInt(arg);
     }
     
     
     
     
-    if (window.arguments.length >= 3) {
-      arg = window.arguments[2];
+    if (window.arguments.length >= 4) {
+      arg = window.arguments[3];
 
       try {
         if (typeof(arg) == "object" && arg != null) {
