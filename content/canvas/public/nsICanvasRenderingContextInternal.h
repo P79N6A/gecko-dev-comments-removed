@@ -87,9 +87,6 @@ public:
   
   
   NS_IMETHOD SetIsOpaque(PRBool isOpaque) = 0;
-
-  
-  NS_IMETHOD Redraw(const gfxRect &dirty) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,
