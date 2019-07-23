@@ -5522,8 +5522,11 @@ RecordTree(JSContext* cx, JSTraceMonitor* tm, VMFragment* f, jsbytecode* outer,
     JS_ASSERT(f->root == f);
 
     
+    const void* localRootIP = f->root->ip;
+
+    
     if (!CheckGlobalObjectShape(cx, tm, globalObj)) {
-        Backoff(cx, (jsbytecode*) f->root->ip);
+        Backoff(cx, (jsbytecode*) localRootIP);
         return false;
     }
 
