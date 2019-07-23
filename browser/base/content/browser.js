@@ -3803,11 +3803,16 @@ nsBrowserAccess.prototype =
         newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url);
         break;
       case Ci.nsIBrowserDOMWindow.OPEN_NEWTAB :
+        var win = this._getMostRecentBrowserWindow();
+        if (!win) {
+          
+          return null;
+        }
         var loadInBackground = gPrefService.getBoolPref("browser.tabs.loadDivertedInBackground");
-        var newTab = gBrowser.loadOneTab("about:blank", null, null, null, loadInBackground, false);
-        newWindow = gBrowser.getBrowserForTab(newTab).docShell
-                            .QueryInterface(Ci.nsIInterfaceRequestor)
-                            .getInterface(Ci.nsIDOMWindow);
+        var newTab = win.gBrowser.loadOneTab("about:blank", null, null, null, loadInBackground, false);
+        newWindow = win.gBrowser.getBrowserForTab(newTab).docShell
+                                .QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindow);
         try {
           if (aURI) {
             if (aOpener) {
@@ -3856,6 +3861,55 @@ nsBrowserAccess.prototype =
         }
     }
     return newWindow;
+  },
+
+#ifdef XP_UNIX
+#ifndef XP_MACOSX
+#define BROKEN_WM_Z_ORDER
+#endif
+#endif
+#ifdef XP_OS2
+#define BROKEN_WM_Z_ORDER
+#endif
+
+  
+  _getMostRecentBrowserWindow : function ()
+  {
+    if (!window.document.documentElement.getAttribute("chromehidden"))
+      return window;
+ 
+    var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                       .getService(Components.interfaces.nsIWindowMediator);
+ 
+#ifdef BROKEN_WM_Z_ORDER
+    var win = wm.getMostRecentWindow("navigator:browser", true);
+ 
+    
+    if (win && win.document.documentElement.getAttribute("chromehidden")) {
+      win = null;
+      var windowList = wm.getEnumerator("navigator:browser", true);
+      
+      while (windowList.hasMoreElements()) {
+        var nextWin = windowList.getNext();
+        if (!nextWin.document.documentElement.getAttribute("chromehidden"))
+          win = nextWin;
+      }
+    }
+#else
+    var windowList = wm.getZOrderDOMWindowEnumerator("navigator:browser", true);
+    if (!windowList.hasMoreElements())
+      return null;
+ 
+    var win = windowList.getNext();
+    while (win.document.documentElement.getAttribute("chromehidden")) {
+      if (!windowList.hasMoreElements()) 
+        return null;
+ 
+      win = windowList.getNext();
+    }
+#endif
+
+    return win;
   },
 
   isTabContentWindow : function(aWindow)
