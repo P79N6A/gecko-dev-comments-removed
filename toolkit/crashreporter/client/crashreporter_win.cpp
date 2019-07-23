@@ -973,25 +973,20 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
     GetRelativeRect(hwndRestart, hwndDlg, &restartRect);
 
     
-    ResizeControl(hwndClose, closeRect, Str(ST_QUIT), true, 0);
+    
+    int sizeDiff = ResizeControl(hwndClose, closeRect, Str(ST_QUIT),
+                                 true, 0);
+    restartRect.left -= sizeDiff;
+    restartRect.right -= sizeDiff;
     SetDlgItemText(hwndDlg, IDC_CLOSEBUTTON, Str(ST_QUIT).c_str());
 
     if (gRestartArgs.size() > 0) {
       
-      
-      int sizeDiff = ResizeControl(hwndRestart, restartRect, Str(ST_RESTART),
-                                   true, 0);
-      closeRect.left -= sizeDiff;
-      closeRect.right -= sizeDiff;
+      ResizeControl(hwndRestart, restartRect, Str(ST_RESTART), true, 0);
       SetDlgItemText(hwndDlg, IDC_RESTARTBUTTON, Str(ST_RESTART).c_str());
     } else {
       
-      
       SetDlgItemVisible(hwndDlg, IDC_RESTARTBUTTON, false);
-
-      int size = closeRect.right - closeRect.left;
-      closeRect.right = restartRect.right;
-      closeRect.left = closeRect.right - size;
     }
     
     
@@ -1008,22 +1003,22 @@ static BOOL CALLBACK CrashReporterDialogProc(HWND hwndDlg, UINT message,
       MoveWindow(hwndDlg, r.left, r.top,
                  r.right - r.left, r.bottom - r.top, TRUE);
       
-      if (closeRect.left + maxdiff < 6)
+      if (restartRect.left + maxdiff < 6)
         maxdiff += 6;
       closeRect.left += maxdiff;
       closeRect.right += maxdiff;
       restartRect.left += maxdiff;
       restartRect.right += maxdiff;
-      MoveWindow(hwndRestart, restartRect.left, restartRect.top,
-                 restartRect.right - restartRect.left,
-                 restartRect.bottom - restartRect.top,
+      MoveWindow(hwndClose, closeRect.left, closeRect.top,
+                 closeRect.right - closeRect.left,
+                 closeRect.bottom - closeRect.top,
                  TRUE);
       StretchControlsToFit(hwndDlg);
     }
     
-    MoveWindow(hwndClose, closeRect.left, closeRect.top,
-               closeRect.right - closeRect.left,
-               closeRect.bottom - closeRect.top,
+    MoveWindow(hwndRestart, restartRect.left, restartRect.top,
+               restartRect.right - restartRect.left,
+               restartRect.bottom - restartRect.top,
                TRUE);
 
     
