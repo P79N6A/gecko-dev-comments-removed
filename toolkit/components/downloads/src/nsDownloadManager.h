@@ -61,9 +61,11 @@
 #include "nsIMIMEInfo.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
+#include "mozStorageHelper.h"
 #include "nsCOMArray.h"
 #include "nsArrayEnumerator.h"
 #include "nsAutoPtr.h"
+#include "nsINavHistoryService.h"
 #include "nsIObserverService.h"
 #include "nsITimer.h"
 
@@ -77,11 +79,13 @@ class nsDownloadScanner;
 #endif
 
 class nsDownloadManager : public nsIDownloadManager,
+                          public nsINavHistoryObserver,
                           public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOWNLOADMANAGER
+  NS_DECL_NSINAVHISTORYOBSERVER
   NS_DECL_NSIOBSERVER
 
   nsresult Init();
@@ -195,6 +199,14 @@ protected:
 
 
 
+  nsresult RemoveDownloadsForURI(nsIURI *aURI);
+
+  
+
+
+
+
+
 
 
   static void ResumeOnWakeCallback(nsITimer *aTimer, void *aClosure);
@@ -237,6 +249,8 @@ private:
   nsCOMArray<nsDownload> mCurrentDownloads;
   nsCOMPtr<nsIObserverService> mObserverService;
   nsCOMPtr<mozIStorageStatement> mUpdateDownloadStatement;
+  nsCOMPtr<mozIStorageStatement> mGetIdsForURIStatement;
+  mozStorageTransaction *mHistoryTransaction;
 
   static nsDownloadManager *gDownloadManagerService;
 
