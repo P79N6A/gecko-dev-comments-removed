@@ -175,6 +175,9 @@ UpdateDepth(JSContext *cx, JSCodeGenerator *cg, ptrdiff_t target)
           case JSOP_EVAL:
             nuses = 2 + GET_ARGC(pc);   
             break;
+          case JSOP_NEWARRAY:
+            nuses = GET_UINT24(pc);
+            break;
           default:
             JS_ASSERT(0);
         }
@@ -253,7 +256,13 @@ js_EmitN(JSContext *cx, JSCodeGenerator *cg, JSOp op, size_t extra)
         *next = (jsbytecode)op;
         memset(next + 1, 0, BYTECODE_SIZE(extra));
         CG_NEXT(cg) = next + length;
-        UpdateDepth(cx, cg, offset);
+
+        
+
+
+
+        if (js_CodeSpec[op].nuses >= 0)
+            UpdateDepth(cx, cg, offset);
     }
     return offset;
 }
@@ -6053,10 +6062,28 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-        if (js_Emit2(cx, cg, JSOP_NEWINIT, (jsbytecode) JSProto_Array) < 0)
-            return JS_FALSE;
+
+
+
+
 
         pn2 = pn->pn_head;
+        op = JSOP_NEWARRAY;
+
+#if JS_HAS_SHARP_VARS
+        if (pn2 && pn2->pn_type == TOK_DEFSHARP)
+            op = JSOP_NEWINIT;
+#endif
+#if JS_HAS_GENERATORS
+        if (pn->pn_type == TOK_ARRAYCOMP)
+            op = JSOP_NEWINIT;
+#endif
+
+        if (op == JSOP_NEWINIT &&
+            js_Emit2(cx, cg, op, (jsbytecode) JSProto_Array) < 0) {
+            return JS_FALSE;
+        }
+
 #if JS_HAS_SHARP_VARS
         if (pn2 && pn2->pn_type == TOK_DEFSHARP) {
             EMIT_UINT16_IMM_OP(JSOP_DEFSHARP, (jsatomid)pn2->pn_num);
@@ -6088,19 +6115,18 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 #endif 
 
         for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
-            if (!EmitNumberOp(cx, atomIndex, cg))
+            if (op == JSOP_NEWINIT && !EmitNumberOp(cx, atomIndex, cg))
                 return JS_FALSE;
 
-            
             if (pn2->pn_type == TOK_COMMA) {
-                if (js_Emit1(cx, cg, JSOP_PUSH) < 0)
+                if (js_Emit1(cx, cg, JSOP_HOLE) < 0)
                     return JS_FALSE;
             } else {
                 if (!js_EmitTree(cx, cg, pn2))
                     return JS_FALSE;
             }
 
-            if (js_Emit1(cx, cg, JSOP_INITELEM) < 0)
+            if (op == JSOP_NEWINIT && js_Emit1(cx, cg, JSOP_INITELEM) < 0)
                 return JS_FALSE;
         }
 
@@ -6110,9 +6136,19 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
         }
 
-        
-        if (js_Emit1(cx, cg, JSOP_ENDINIT) < 0)
-            return JS_FALSE;
+        if (op == JSOP_NEWARRAY) {
+            JS_ASSERT(atomIndex == pn->pn_count);
+            off = js_EmitN(cx, cg, op, 3);
+            if (off < 0)
+                return JS_FALSE;
+            pc = CG_CODE(cg, off);
+            SET_UINT24(pc, atomIndex);
+            UpdateDepth(cx, cg, off);
+        } else {
+            
+            if (js_Emit1(cx, cg, JSOP_ENDINIT) < 0)
+                return JS_FALSE;
+        }
         break;
 
       case TOK_RC:
@@ -6124,6 +6160,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 #endif
         
+
+
 
 
 

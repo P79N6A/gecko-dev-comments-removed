@@ -5936,6 +5936,20 @@ interrupt:
             DO_NEXT_OP(len);
 #endif 
 
+          BEGIN_CASE(JSOP_HOLE)
+            PUSH_OPND(JSVAL_HOLE);
+          END_CASE(JSOP_HOLE)
+
+          BEGIN_CASE(JSOP_NEWARRAY)
+            len = GET_UINT24(regs.pc);
+            JS_ASSERT(len <= regs.sp - fp->spbase);
+            obj = js_NewArrayObject(cx, len, regs.sp - len);
+            if (!obj)
+                goto error;
+            regs.sp -= len - 1;
+            STORE_OPND(-1, OBJECT_TO_JSVAL(obj));
+          END_CASE(JSOP_NEWARRAY)
+
           BEGIN_CASE(JSOP_NEWINIT)
             i = GET_INT8(regs.pc);
             JS_ASSERT(i == JSProto_Array || i == JSProto_Object);
@@ -6096,7 +6110,6 @@ interrupt:
             
             JS_ASSERT(regs.sp - fp->spbase >= 3);
             rval = FETCH_OPND(-1);
-            FETCH_ELEMENT_ID(obj, -2, id);
 
             
             lval = FETCH_OPND(-3);
@@ -6104,12 +6117,35 @@ interrupt:
             obj = JSVAL_TO_OBJECT(lval);
 
             
+            FETCH_ELEMENT_ID(obj, -2, id);
+
+            
+
+
+
             if (!js_CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL,
                                        NULL)) {
                 goto error;
             }
-            if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
-                goto error;
+
+            
+
+
+
+
+            if (rval == JSVAL_HOLE) {
+                JS_ASSERT(OBJ_IS_ARRAY(cx, obj));
+                JS_ASSERT(JSID_IS_INT(id));
+                JS_ASSERT((jsuint) JSID_TO_INT(id) < ARRAY_INIT_LIMIT);
+                if ((JSOp) regs.pc[JSOP_INITELEM_LENGTH] == JSOP_ENDINIT &&
+                    !js_SetLengthProperty(cx, obj,
+                                          (jsuint) (JSID_TO_INT(id) + 1))) {
+                    goto error;
+                }
+            } else {
+                if (!OBJ_SET_PROPERTY(cx, obj, id, &rval))
+                    goto error;
+            }
             regs.sp -= 2;
           END_CASE(JSOP_INITELEM);
 
@@ -6707,8 +6743,6 @@ interrupt:
           L_JSOP_ANYNAME:
           L_JSOP_DEFXMLNS:
 # endif
-
-          L_JSOP_UNUSED117:
 
 #else 
           default:
