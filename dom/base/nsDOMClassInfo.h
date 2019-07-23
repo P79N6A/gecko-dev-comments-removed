@@ -354,6 +354,30 @@ public:
 
 typedef nsDOMClassInfo nsDOMGenericSH;
 
+class nsDocumentFragmentSH : public nsDOMGenericSH
+{
+protected:
+  nsDocumentFragmentSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
+  {
+  }
+
+  virtual ~nsDocumentFragmentSH()
+  {
+  }
+
+public:
+  NS_IMETHOD PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                        JSObject *obj);
+  NS_IMETHOD Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                      JSObject *obj);
+
+  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
+  {
+    return new nsDocumentFragmentSH(aData);
+  }
+};
+
+
 
 
 
