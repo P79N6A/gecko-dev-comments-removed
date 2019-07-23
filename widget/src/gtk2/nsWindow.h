@@ -442,8 +442,8 @@ private:
     
     
     static nsWindow    *mLastDragMotionWindow;
-    void   InitDragEvent         (nsMouseEvent &aEvent);
-    void   UpdateDragStatus      (nsMouseEvent &aEvent,
+    void   InitDragEvent         (nsDragEvent &aEvent);
+    void   UpdateDragStatus      (nsDragEvent &aEvent,
                                   GdkDragContext *aDragContext,
                                   nsIDragService *aDragService);
 
