@@ -6285,6 +6285,7 @@ Boolish(JSParseNode *pn)
         return JSSTRING_LENGTH(ATOM_TO_STRING(pn->pn_atom)) != 0;
 
       case JSOP_CALL:
+      {
         
 
 
@@ -6298,6 +6299,7 @@ Boolish(JSParseNode *pn)
         if (!(pn2->pn_flags & TCF_GENEXP_LAMBDA))
             break;
         
+      }
 
       case JSOP_DEFFUN:
       case JSOP_NAMEDFUNOBJ:
