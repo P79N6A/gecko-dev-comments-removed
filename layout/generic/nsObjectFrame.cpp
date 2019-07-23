@@ -1522,8 +1522,14 @@ nsresult nsObjectFrame::GetPluginInstance(nsIPluginInstance*& aPluginInstance)
 nsresult
 nsObjectFrame::PrepareInstanceOwner()
 {
+  nsWeakFrame weakFrame(this);
+
   
   StopPluginInternal(PR_FALSE);
+
+  if (!weakFrame.IsAlive()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   NS_ASSERTION(!mInstanceOwner, "Must not have an instance owner here");
 
@@ -1715,11 +1721,44 @@ nsObjectFrame::StopPlugin()
 void
 nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
 {
-  if (mInstanceOwner == nsnull) {
+  if (!mInstanceOwner) {
     return;
   }
 
-  mInstanceOwner->PrepareToStop(aDelayedStop);
+  
+  
+  
+  
+  
+
+  nsRefPtr<nsPluginInstanceOwner> owner;
+  owner.swap(mInstanceOwner);
+
+  
+  
+  mWindowlessRect.Empty();
+
+  
+
+  nsIView *view = GetView();
+
+#ifdef XP_WIN
+  if (aDelayedStop) {
+    
+    
+    
+    
+
+    nsIView *view = GetView();
+    if (view) {
+      view->DisownWidget();
+    }
+  }
+#endif
+
+  
+  
+  owner->PrepareToStop(aDelayedStop);
 
 #ifdef XP_WIN
   
@@ -1728,31 +1767,17 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
   if (aDelayedStop) {
     
     
-    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(mInstanceOwner);
+    
+    nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(owner);
     NS_DispatchToCurrentThread(evt);
-
-    
-    
-    
-    
-    nsIView *view = GetView();
-    if (view) {
-      view->DisownWidget();
-    }
   } else
 #endif
   {
-    DoStopPlugin(mInstanceOwner);
+    DoStopPlugin(owner);
   }
 
   
-  mInstanceOwner->SetOwner(nsnull);
-
-  mInstanceOwner = nsnull;
-
-  
-  
-  mWindowlessRect.Empty();
+  owner->SetOwner(nsnull);
 }
 
 void
