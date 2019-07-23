@@ -102,12 +102,12 @@ js_ThreadDestructorCB(void *ptr)
 
     if (!thread)
         return;
-    while (!JS_CLIST_IS_EMPTY(&thread->contextList)) {
-        
-        JSCList *link = thread->contextList.next;
 
-        JS_REMOVE_AND_INIT_LINK(link);
-    }
+    
+
+
+
+    JS_ASSERT(JS_CLIST_IS_EMPTY(&thread->contextList));
     GSN_CACHE_CLEAR(&thread->gsnCache);
     free(thread);
 }
@@ -173,9 +173,11 @@ js_SetContextThread(JSContext *cx)
     if (JS_CLIST_IS_EMPTY(&thread->contextList))
         memset(thread->gcFreeLists, 0, sizeof(thread->gcFreeLists));
 
+    
+    JS_ASSERT(!cx->thread || cx->thread == thread);
+    if (!cx->thread)
+        JS_APPEND_LINK(&cx->threadLinks, &thread->contextList);
     cx->thread = thread;
-    JS_REMOVE_LINK(&cx->threadLinks);
-    JS_APPEND_LINK(&cx->threadLinks, &thread->contextList);
     return JS_TRUE;
 }
 
@@ -183,6 +185,11 @@ js_SetContextThread(JSContext *cx)
 void
 js_ClearContextThread(JSContext *cx)
 {
+    
+
+
+
+    JS_ASSERT(cx->thread == js_GetCurrentThread(cx->runtime) || !cx->thread);
     JS_REMOVE_AND_INIT_LINK(&cx->threadLinks);
 #ifdef DEBUG
     if (JS_CLIST_IS_EMPTY(&cx->thread->contextList)) {
