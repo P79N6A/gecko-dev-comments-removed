@@ -57,8 +57,7 @@ typedef nsSVGPaintServerFrame nsSVGGradientFrameBase;
 class nsSVGGradientFrame : public nsSVGGradientFrameBase
 {
 protected:
-  nsSVGGradientFrame(nsStyleContext* aContext,
-                     nsIDOMSVGURIReference *aRef);
+  nsSVGGradientFrame(nsStyleContext* aContext);
 
 public:
   
@@ -138,10 +137,6 @@ protected:
 private:
   
   
-  nsCOMPtr<nsIDOMSVGAnimatedString>      mHref;
-
-  
-  
   
   PRPackedBool                           mLoopFlag;
   
@@ -162,9 +157,8 @@ class nsSVGLinearGradientFrame : public nsSVGLinearGradientFrameBase
                                                 nsIContent*   aContent,
                                                 nsStyleContext* aContext);
 protected:
-  nsSVGLinearGradientFrame(nsStyleContext* aContext,
-                           nsIDOMSVGURIReference *aRef) :
-    nsSVGLinearGradientFrameBase(aContext, aRef) {}
+  nsSVGLinearGradientFrame(nsStyleContext* aContext) :
+    nsSVGLinearGradientFrameBase(aContext) {}
 
 public:
   
@@ -199,9 +193,8 @@ class nsSVGRadialGradientFrame : public nsSVGRadialGradientFrameBase
                                                 nsIContent*   aContent,
                                                 nsStyleContext* aContext);
 protected:
-  nsSVGRadialGradientFrame(nsStyleContext* aContext,
-                           nsIDOMSVGURIReference *aRef) :
-    nsSVGRadialGradientFrameBase(aContext, aRef) {}
+  nsSVGRadialGradientFrame(nsStyleContext* aContext) :
+    nsSVGRadialGradientFrameBase(aContext) {}
 
 public:
   

@@ -66,16 +66,11 @@ static void printRect(char *msg, nsIDOMSVGRect *aRect);
 
 
 
-nsSVGPatternFrame::nsSVGPatternFrame(nsStyleContext* aContext,
-                                     nsIDOMSVGURIReference *aRef) :
+nsSVGPatternFrame::nsSVGPatternFrame(nsStyleContext* aContext) :
   nsSVGPatternFrameBase(aContext),
   mLoopFlag(PR_FALSE), mPaintLoopFlag(PR_FALSE),
   mNoHRefURI(PR_FALSE)
 {
-  if (aRef) {
-    
-    aRef->GetHref(getter_AddRefs(mHref));
-  }
 }
 
 
@@ -437,8 +432,8 @@ nsSVGPatternFrame::GetReferencedPattern()
 
   if (!property) {
     
-    nsAutoString href;
-    mHref->GetAnimVal(href);
+    nsSVGPatternElement *pattern = static_cast<nsSVGPatternElement *>(mContent);
+    const nsString &href = pattern->mStringAttributes[nsSVGPatternElement::HREF].GetAnimValue();
     if (href.IsEmpty()) {
       mNoHRefURI = PR_TRUE;
       return nsnull; 
@@ -761,14 +756,7 @@ nsIFrame* NS_NewSVGPatternFrame(nsIPresShell*   aPresShell,
     return nsnull;
   }
 
-  nsCOMPtr<nsIDOMSVGURIReference> ref = do_QueryInterface(aContent);
-  NS_ASSERTION(ref,
-               "NS_NewSVGPatternFrame -- Content doesn't support nsIDOMSVGURIReference");
-
-#ifdef DEBUG_scooter
-  printf("NS_NewSVGPatternFrame\n");
-#endif
-  return new (aPresShell) nsSVGPatternFrame(aContext, ref);
+  return new (aPresShell) nsSVGPatternFrame(aContext);
 }
 
 #ifdef DEBUG_scooter

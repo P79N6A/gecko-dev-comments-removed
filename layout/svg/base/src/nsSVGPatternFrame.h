@@ -64,7 +64,7 @@ public:
                                          nsIContent*   aContent,
                                          nsStyleContext* aContext);
 
-  nsSVGPatternFrame(nsStyleContext* aContext) : nsSVGPatternFrameBase(aContext) {}
+  nsSVGPatternFrame(nsStyleContext* aContext);
 
   nsresult PaintPattern(gfxASurface **surface,
                         gfxMatrix *patternMatrix,
@@ -103,9 +103,6 @@ public:
 #endif 
 
 protected:
-  nsSVGPatternFrame(nsStyleContext* aContext,
-                    nsIDOMSVGURIReference *aRef);
-
   
   nsSVGPatternFrame* GetReferencedPattern();
   
@@ -150,7 +147,6 @@ private:
   nsCOMPtr<nsIDOMSVGMatrix>         mCTM;
 
 protected:
-  nsCOMPtr<nsIDOMSVGAnimatedString> mHref;
   
   PRPackedBool                      mLoopFlag;
   

@@ -159,6 +159,15 @@ protected:
   virtual void DoUpdate();
 };
 
+class nsSVGTextPathProperty : public nsSVGRenderingObserver {
+public:
+  nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame)
+    : nsSVGRenderingObserver(aURI, aFrame) {}
+
+protected:
+  virtual void DoUpdate();
+};
+ 
 class nsSVGPaintingProperty : public nsSVGRenderingObserver {
 public:
   nsSVGPaintingProperty(nsIURI *aURI, nsIFrame *aFrame)
@@ -278,6 +287,11 @@ public:
 
   static nsSVGMarkerProperty *
   GetMarkerProperty(nsIURI *aURI, nsIFrame *aFrame, nsIAtom *aProp);
+  
+
+
+  static nsSVGTextPathProperty *
+  GetTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, nsIAtom *aProp);
   
 
 
