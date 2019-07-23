@@ -90,9 +90,8 @@ public:
   NS_IMETHOD TakeFocus(void);
 
   
-  NS_IMETHOD ScrollPositionWillChange(nscoord aX, nscoord aY);
-  virtual void ViewPositionDidChange(nsTArray<nsIWidget::Configuration>* aConfigurations) {}
-  NS_IMETHOD ScrollPositionDidChange(nscoord aX, nscoord aY);
+  virtual void ScrollPositionWillChange(nscoord aX, nscoord aY) {}
+  virtual void ScrollPositionDidChange(nscoord aX, nscoord aY);
 
   
   NS_DECL_NSIDOCUMENTOBSERVER

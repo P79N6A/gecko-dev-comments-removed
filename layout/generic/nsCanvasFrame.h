@@ -70,8 +70,6 @@ public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
 
-  
-  NS_IMETHOD QueryInterface(const nsIID& aIID, void** aInstancePtr);
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -116,12 +114,8 @@ public:
   void PaintFocus(nsIRenderingContext& aRenderingContext, nsPoint aPt);
 
   
-  NS_IMETHOD ScrollPositionWillChange(nscoord aX, nscoord aY);
-  
-  
-  
-  virtual void ViewPositionDidChange(nsTArray<nsIWidget::Configuration>* aConfigurations) {}
-  NS_IMETHOD ScrollPositionDidChange(nscoord aX, nscoord aY);
+  virtual void ScrollPositionWillChange(nscoord aX, nscoord aY);
+  virtual void ScrollPositionDidChange(nscoord aX, nscoord aY) {}
 
   
 
@@ -160,10 +154,6 @@ protected:
   
   PRPackedBool              mDoPaintFocus;
   nsAbsoluteContainingBlock mAbsoluteContainer;
-
-private:
-  NS_IMETHOD_(nsrefcnt) AddRef() { return NS_OK; }
-  NS_IMETHOD_(nsrefcnt) Release() { return NS_OK; }
 };
 
 #endif 
