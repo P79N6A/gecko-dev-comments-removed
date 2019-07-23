@@ -1183,11 +1183,13 @@ private:
   nsresult GetHostKeys(const nsACString &spec,
                        nsTArray<nsCString> &hostKeys);
 
+
+  nsresult CacheEntries(const nsCSubstring& spec);
+
   
   
-  nsresult CheckKey(const nsCSubstring& spec,
-                    const nsACString& key,
-                    nsTArray<nsUrlClassifierLookupResult>& results);
+  nsresult Check(const nsCSubstring& spec,
+                 nsTArray<nsUrlClassifierLookupResult>& results);
 
   
   nsresult DoLookup(const nsACString& spec, nsIUrlClassifierLookupCallback* c);
@@ -1534,41 +1536,76 @@ nsUrlClassifierDBServiceWorker::GetLookupFragments(const nsACString& spec,
 }
 
 nsresult
-nsUrlClassifierDBServiceWorker::CheckKey(const nsACString& spec,
-                                         const nsACString& hostKey,
-                                         nsTArray<nsUrlClassifierLookupResult>& results)
+nsUrlClassifierDBServiceWorker::CacheEntries(const nsACString& spec)
+{
+  nsAutoTArray<nsCString, 2> lookupHosts;
+  nsresult rv = GetHostKeys(spec, lookupHosts);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCAutoString hostKey;
+  for (PRUint32 i = 0; i < lookupHosts.Length(); i++) {
+    hostKey.Append(lookupHosts[i]);
+    hostKey.Append("|");
+  }
+
+  if (hostKey == mCachedHostKey) {
+    
+    return NS_OK;
+  }
+
+  mCachedEntries.Clear();
+  mCachedHostKey.Truncate();
+
+  PRUint32 prevLength = 0;
+  for (PRUint32 i = 0; i < lookupHosts.Length(); i++) {
+    
+    
+    
+    
+    
+    {
+      nsAutoLock lock(mCleanHostKeysLock);
+      if (mCleanHostKeys.Has(lookupHosts[i]))
+        continue;
+    }
+
+    
+    nsUrlClassifierDomainHash hostKeyHash;
+    hostKeyHash.FromPlaintext(lookupHosts[i], mCryptoHash);
+    mMainStore.ReadAddEntries(hostKeyHash, mCachedEntries);
+
+    if (mCachedEntries.Length() == prevLength) {
+      
+      
+      
+      nsAutoLock lock(mCleanHostKeysLock);
+      mCleanHostKeys.Put(lookupHosts[i]);
+    } else {
+      prevLength = mCachedEntries.Length();
+    }
+  }
+
+  mCachedHostKey = hostKey;
+
+  return NS_OK;
+}
+
+nsresult
+nsUrlClassifierDBServiceWorker::Check(const nsACString& spec,
+                                      nsTArray<nsUrlClassifierLookupResult>& results)
 {
   
-  
-  
-  
-  {
-    nsAutoLock lock(mCleanHostKeysLock);
-    if (mCleanHostKeys.Has(hostKey))
-      return NS_OK;
-  }
-
-  
-  if (hostKey != mCachedHostKey) {
-    mCachedEntries.Clear();
-    nsUrlClassifierDomainHash hostKeyHash;
-    hostKeyHash.FromPlaintext(hostKey, mCryptoHash);
-    mMainStore.ReadAddEntries(hostKeyHash, mCachedEntries);
-    mCachedHostKey = hostKey;
-  }
+  nsresult  rv = CacheEntries(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (mCachedEntries.Length() == 0) {
-    
-    
-    
-    nsAutoLock lock(mCleanHostKeysLock);
-    mCleanHostKeys.Put(hostKey);
     return NS_OK;
   }
 
   
   nsTArray<nsCString> fragments;
-  nsresult rv = GetLookupFragments(spec, fragments);
+  rv = GetLookupFragments(spec, fragments);
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRInt64 now = (PR_Now() / PR_USEC_PER_SEC);
@@ -1671,14 +1708,9 @@ nsUrlClassifierDBServiceWorker::DoLookup(const nsACString& spec,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsAutoTArray<nsCString, 2> lookupHosts;
-  rv = GetHostKeys(spec, lookupHosts);
-
-  for (PRUint32 i = 0; i < lookupHosts.Length(); i++) {
-    
-    
-    CheckKey(spec, lookupHosts[i], *results);
-  }
+  
+  
+  Check(spec, *results);
 
 #if defined(PR_LOGGING)
   if (LOG_ENABLED()) {
