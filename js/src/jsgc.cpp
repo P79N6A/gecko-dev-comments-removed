@@ -157,7 +157,6 @@ JS_STATIC_ASSERT(sizeof(JSTempValueUnion) == sizeof(void *));
 
 
 
-
 JS_STATIC_ASSERT(JSTRACE_OBJECT == 0);
 JS_STATIC_ASSERT(JSTRACE_DOUBLE == 1);
 JS_STATIC_ASSERT(JSTRACE_STRING == 2);
@@ -2744,7 +2743,9 @@ gc_root_traversal(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 num,
     jsval v = *rp;
 
     
-    if (!JSVAL_IS_NULL(v) && JSVAL_IS_GCTHING(v)) {
+    if (!JSVAL_IS_NULL(v) &&
+        JSVAL_IS_GCTHING(v) &&
+        !JSString::isStatic((JSString *) JSVAL_TO_GCTHING(v))) {
 #ifdef DEBUG
         JSBool root_points_to_gcArenaList = JS_FALSE;
         jsuword thing = (jsuword) JSVAL_TO_GCTHING(v);

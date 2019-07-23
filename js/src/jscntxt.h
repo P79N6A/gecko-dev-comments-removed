@@ -845,13 +845,17 @@ typedef struct JSLocalRootStack {
 
 
 #define JSTVU_SINGLE        (-1)    /* u.value or u.<gcthing> is single jsval
-                                       or GC-thing */
+                                       or non-JSString GC-thing pointer */
 #define JSTVU_TRACE         (-2)    
 
 #define JSTVU_SPROP         (-3)    /* u.sprop roots property tree node */
 #define JSTVU_WEAK_ROOTS    (-4)    /* u.weakRoots points to saved weak roots */
 #define JSTVU_COMPILER      (-5)    /* u.compiler roots JSCompiler* */
 #define JSTVU_SCRIPT        (-6)    /* u.script roots JSScript* */
+
+
+
+
 
 
 
@@ -891,7 +895,7 @@ typedef struct JSLocalRootStack {
     JS_PUSH_TEMP_ROOT_COMMON(cx, obj, tvr, JSTVU_SINGLE, object)
 
 #define JS_PUSH_TEMP_ROOT_STRING(cx,str,tvr)                                  \
-    JS_PUSH_TEMP_ROOT_COMMON(cx, str, tvr, JSTVU_SINGLE, string)
+    JS_PUSH_SINGLE_TEMP_ROOT(cx, STRING_TO_JSVAL(str), tvr)
 
 #define JS_PUSH_TEMP_ROOT_XML(cx,xml_,tvr)                                    \
     JS_PUSH_TEMP_ROOT_COMMON(cx, xml_, tvr, JSTVU_SINGLE, xml)
