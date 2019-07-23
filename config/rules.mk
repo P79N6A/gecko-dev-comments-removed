@@ -119,6 +119,7 @@ endif
 
 ifdef GQI_SRCS
 CPPSRCS += $(GQI_SRCS:.gqi=QI.cpp)
+GARBAGE += $(GQI_SRCS:.gqi=QI.cpp)
 endif
 
 #
@@ -371,6 +372,10 @@ endif
 LOOP_OVER_DIRS = \
     @$(EXIT_ON_ERROR) \
     $(foreach dir,$(DIRS),$(UPDATE_TITLE) $(MAKE) -C $(dir) $@; ) true
+
+LOOP_OVER_STATIC_DIRS = \
+    @$(EXIT_ON_ERROR) \
+    $(foreach dir,$(STATIC_DIRS),$(UPDATE_TITLE) $(MAKE) -C $(dir) $@; ) true
 
 LOOP_OVER_TOOL_DIRS = \
     @$(EXIT_ON_ERROR) \
@@ -791,12 +796,13 @@ run_viewer: $(FINAL_TARGET)/viewer
 clean clobber realclean clobber_all:: $(SUBMAKEFILES)
 	-rm -f $(ALL_TRASH)
 	-rm -rf $(ALL_TRASH_DIRS)
-	+-$(foreach dir,$(STATIC_DIRS),$(MAKE) -C $(dir) $@; )
 	+-$(LOOP_OVER_DIRS)
+	+-$(LOOP_OVER_STATIC_DIRS)
 	+-$(LOOP_OVER_TOOL_DIRS)
 
 distclean:: $(SUBMAKEFILES)
 	+-$(LOOP_OVER_DIRS)
+	+-$(LOOP_OVER_STATIC_DIRS)
 	+-$(LOOP_OVER_TOOL_DIRS)
 	-rm -rf $(ALL_TRASH_DIRS) 
 	-rm -f $(ALL_TRASH)  \
@@ -934,7 +940,7 @@ else
 ifeq (WINNT_,$(HOST_OS_ARCH)_$(GNU_CC))
 	$(HOST_LD) -NOLOGO -OUT:$@ -PDB:$(PDBFILE) $< $(WIN32_EXE_LDFLAGS) $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
-ifneq (,$(HOST_CPPSRCS)$(USE_HOST_CXX))
+ifdef HOST_CPPSRCS
 	$(HOST_CXX) $(HOST_OUTOPTION)$@ $(HOST_CXXFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
 else
 	$(HOST_CC) $(HOST_OUTOPTION)$@ $(HOST_CFLAGS) $(INCLUDES) $< $(HOST_LIBS) $(HOST_EXTRA_LIBS)
