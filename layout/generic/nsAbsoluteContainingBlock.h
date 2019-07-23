@@ -147,7 +147,7 @@ protected:
   nsFrameList mAbsoluteFrames;  
 
 #ifdef DEBUG
-   nsIAtom* const mChildListName; 
+  nsIAtom* const mChildListName; 
 
   
   void PrettyUC(nscoord aSize,
