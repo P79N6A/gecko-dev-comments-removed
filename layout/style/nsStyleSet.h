@@ -101,15 +101,16 @@ class nsStyleSet
 
   
   
+  already_AddRefed<nsStyleContext>
+  ResolveStyleForRules(nsStyleContext* aParentContext,
+                       const nsCOMArray<nsIStyleRule> &aRules);
+
   
   
   
   already_AddRefed<nsStyleContext>
-  ResolveStyleForRules(nsStyleContext* aParentContext,
-                       nsIAtom* aPseudoTag,
-                       nsCSSPseudoElements::Type aPseudoType,
-                       nsRuleNode *aRuleNode,
-                       const nsCOMArray<nsIStyleRule> &aRules);
+  ResolveStyleByAddingRules(nsStyleContext* aBaseContext,
+                            const nsCOMArray<nsIStyleRule> &aRules);
 
   
   
