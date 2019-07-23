@@ -530,7 +530,7 @@ namespace nanojit
         bool isop(LOpcode o) const {
             return opcode() == o;
         }
-        bool LIns::isQuad() const {
+        bool isQuad() const {
             LOpcode op = opcode();
 #ifdef NANOJIT_64BIT
             
@@ -584,7 +584,7 @@ namespace nanojit
             return opcode() == LIR_quad || opcode() == LIR_float;
         }
         
-        bool LIns::isconstp() const
+        bool isconstp() const
         {
 #ifdef NANOJIT_64BIT
             return isconstq();
