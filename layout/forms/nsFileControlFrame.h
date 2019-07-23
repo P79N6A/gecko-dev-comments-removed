@@ -184,6 +184,28 @@ private:
 
   void SyncAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                 PRInt32 aWhichControls);
+
+  
+
+
+
+
+
+
+
+
+  static nsresult FetchLastUsedDirectory(nsIURI* aURI,
+                                         nsILocalFile* aFile);
+
+  
+
+
+
+
+
+
+  static void StoreLastUsedDirectory(nsIURI* aURI,
+                                     nsIFile* aFile);
 };
 
 #endif
