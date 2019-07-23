@@ -6021,6 +6021,89 @@ GetAdjustedParentFrame(nsIFrame*       aParentFrame,
   return (newParent) ? newParent : aParentFrame;
 }
 
+nsIFrame*
+nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
+                                               nsIContent* aContainer,
+                                               nsIContent* aChild,
+                                               PRInt32 aIndexInContainer,
+                                               PRBool* aIsAppend)
+{
+  *aIsAppend = PR_FALSE;
+
+  
+  
+  
+  
+
+  NS_PRECONDITION(aParentFrame, "Must have parent frame to start with");
+  nsIContent* container = aParentFrame->GetContent();
+
+  ChildIterator first, last;
+  ChildIterator::Init(container, &first, &last);
+  ChildIterator iter(first);
+  if (iter.XBLInvolved() || container != aContainer) {
+    iter.seek(aChild);
+    
+    
+    
+    
+  } else if (aIndexInContainer != -1) {
+    
+    
+    
+    iter.seek(aIndexInContainer);
+    NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
+  }
+#ifdef DEBUG
+  else {
+    NS_WARNING("Someone passed native anonymous content directly into frame "
+               "construction.  Stop doing that!");
+  }
+#endif
+
+  nsIFrame* prevSibling = FindPreviousSibling(first, iter);
+
+  
+  
+  
+  if (prevSibling) {
+    aParentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
+  }
+  else {
+    
+    nsIFrame* nextSibling = FindNextSibling(iter, last);
+
+    if (nextSibling) {
+      aParentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
+    }
+    else {
+      
+      *aIsAppend = PR_TRUE;
+      if (IsFrameSpecial(aParentFrame)) {
+        
+        
+        
+        aParentFrame = GetLastSpecialSibling(aParentFrame, PR_TRUE);
+      }
+      
+      
+      aParentFrame = nsLayoutUtils::GetLastContinuationWithChild(aParentFrame);
+      
+      aParentFrame = ::GetAdjustedParentFrame(aParentFrame,
+                                              aParentFrame->GetType(),
+                                              aChild);
+      nsIFrame* appendAfterFrame;
+      aParentFrame =
+        ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
+                                            container, aParentFrame,
+                                            &appendAfterFrame);
+      prevSibling = ::FindAppendPrevSibling(aParentFrame, appendAfterFrame);
+    }
+  }
+
+  return prevSibling;
+}
+
 static PRBool
 IsSpecialFramesetChild(nsIContent* aContent)
 {
@@ -6472,76 +6555,12 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
   parentFrame = insertionPoint;
 
-  
-  
-  
-  
+  PRBool isAppend;
+  nsIFrame* prevSibling =
+    GetInsertionPrevSibling(parentFrame, aContainer, aChild, aIndexInContainer,
+                            &isAppend);
+
   nsIContent* container = parentFrame->GetContent();
-
-  ChildIterator first, last;
-  ChildIterator::Init(container, &first, &last);
-  ChildIterator iter(first);
-  if (iter.XBLInvolved() || container != aContainer) {
-    iter.seek(aChild);
-    
-    
-    
-    
-  } else if (aIndexInContainer != -1) {
-    
-    
-    
-    iter.seek(aIndexInContainer);
-    NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
-  }
-#ifdef DEBUG
-  else {
-    NS_WARNING("Someone passed native anonymous content directly into frame "
-               "construction.  Stop doing that!");
-  }
-#endif
-  
-  nsIFrame* prevSibling = FindPreviousSibling(first, iter);
-
-  PRBool    isAppend = PR_FALSE;
-
-  
-  
-  
-  if (prevSibling) {
-    parentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
-  }
-  else {
-    
-    nsIFrame* nextSibling = FindNextSibling(iter, last);
-
-    if (nextSibling) {
-      parentFrame = nextSibling->GetParent()->GetContentInsertionFrame();
-    }
-    else {
-      
-      isAppend = PR_TRUE;
-      if (IsFrameSpecial(parentFrame)) {
-        
-        
-        
-        parentFrame = GetLastSpecialSibling(parentFrame, PR_TRUE);
-      }
-      
-      
-      parentFrame = nsLayoutUtils::GetLastContinuationWithChild(parentFrame);
-      
-      parentFrame = ::GetAdjustedParentFrame(parentFrame,
-                                             parentFrame->GetType(),
-                                             aChild);
-      nsIFrame* appendAfterFrame;
-      parentFrame =
-        ::AdjustAppendParentForAfterContent(mPresShell->GetPresContext(),
-                                            container, parentFrame,
-                                            &appendAfterFrame);
-      prevSibling = ::FindAppendPrevSibling(parentFrame, appendAfterFrame);
-    }
-  }
 
   if (parentFrame->GetType() == nsGkAtoms::frameSetFrame &&
       IsSpecialFramesetChild(aChild)) {
@@ -6600,7 +6619,6 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
       
       if (parentFrame->GetType() == nsGkAtoms::letterFrame) {
         parentFrame = parentFrame->GetParent();
-        container = parentFrame->GetContent();
       }
 
       
@@ -6610,15 +6628,11 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
       
       
-      ChildIterator::Init(container, &first, &last);
-      if (last.XBLInvolved() || container != aContainer) {
-        last.seek(aChild);
-      } else if (aIndexInContainer != -1) {
-        last.seek(aIndexInContainer);
-        NS_ASSERTION(*iter == aChild, "Someone screwed up the indexing");
-      }
-
-      prevSibling = FindPreviousSibling(first, last);
+      
+      prevSibling =
+        GetInsertionPrevSibling(parentFrame, aContainer, aChild,
+                                aIndexInContainer, &isAppend);
+      container = parentFrame->GetContent();
     }
   }
 
@@ -6632,7 +6646,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
                                              nsCSSPseudoElements::before)) {
       
       prevSibling = firstChild->GetTailContinuation();
-      parentFrame = prevSibling->GetParent();
+      parentFrame = prevSibling->GetParent()->GetContentInsertionFrame();
       
       
     }

@@ -1513,6 +1513,17 @@ private:
   
   
   
+  
+  nsIFrame* GetInsertionPrevSibling(nsIFrame*& aParentFrame, 
+                                    nsIContent* aContainer,
+                                    nsIContent* aChild,
+                                    PRInt32 aIndexInContainer,
+                                    PRBool* aIsAppend);
+
+  
+  
+  
+  
   PRBool IsValidSibling(nsIFrame*              aSibling,
                         nsIContent*            aContent,
                         PRUint8&               aDisplay);
