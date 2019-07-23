@@ -499,28 +499,6 @@ protected:
 
 
 
-  static PRUint8* Data8BitTo1Bit(PRUint8* aAlphaData, PRUint32 aAlphaBytesPerRow,
-                                 PRUint32 aWidth, PRUint32 aHeight);
-
-  
-
-
-
-
-
-  static PRUint8* DataToAData(PRUint8* aImageData, PRUint32 aImageBytesPerRow,
-                              PRUint8* aAlphaData, PRUint32 aAlphaBytesPerRow,
-                              PRUint32 aWidth, PRUint32 aHeight);
-  
-
-
-
-
-
-
-
-
-
 
 
 
@@ -530,16 +508,6 @@ protected:
                               PRUint32 aWidth,
                               PRUint32 aHeight,
                               PRUint32 aDepth);
-
-  
-
-
-
-
-
-
-  static HBITMAP CreateOpaqueAlphaChannel(PRUint32 aWidth, PRUint32 aHeight);
-
 
 #ifdef ACCESSIBILITY
   static BOOL gIsAccessibilityOn;
