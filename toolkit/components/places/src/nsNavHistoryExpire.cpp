@@ -510,7 +510,7 @@ nsNavHistoryExpire::EraseVisits(mozIStorageConnection* aConnection,
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
     
     if (! deletedVisitIds.IsEmpty())
-      deletedVisitIds.AppendLiteral(", ");
+      deletedVisitIds.AppendLiteral(",");  
     deletedVisitIds.AppendInt(aRecords[i].visitID);
   }
 
@@ -539,15 +539,20 @@ nsNavHistoryExpire::EraseHistory(mozIStorageConnection* aConnection,
 {
   
   nsCString deletedPlaceIds;
+  nsTArray<PRInt64> deletedPlaceIdsArray;
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
     
     if (aRecords[i].bookmarked ||
         StringBeginsWith(aRecords[i].uri, NS_LITERAL_CSTRING("place:")))
       continue;
     
-    if (! deletedPlaceIds.IsEmpty())
-      deletedPlaceIds.AppendLiteral(", ");
-    deletedPlaceIds.AppendInt(aRecords[i].placeID);
+    if (deletedPlaceIdsArray.IndexOf(aRecords[i].placeID) == -1) {
+      
+      if (! deletedPlaceIds.IsEmpty())
+        deletedPlaceIds.AppendLiteral(",");
+      deletedPlaceIdsArray.AppendElement(aRecords[i].placeID);
+      deletedPlaceIds.AppendInt(aRecords[i].placeID);
+    }
     aRecords[i].erased = PR_TRUE;
   }
 
@@ -575,14 +580,19 @@ nsNavHistoryExpire::EraseFavicons(mozIStorageConnection* aConnection,
 {
   
   nsCString deletedFaviconIds;
+  nsTArray<PRInt64> deletedFaviconIdsArray;  
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
     
     if (! aRecords[i].erased || aRecords[i].faviconID == 0)
       continue;
     
-    if (! deletedFaviconIds.IsEmpty())
-      deletedFaviconIds.AppendLiteral(", ");
-    deletedFaviconIds.AppendInt(aRecords[i].faviconID);
+    if (deletedFaviconIdsArray.IndexOf(aRecords[i].faviconID) == -1) {
+      
+      if (! deletedFaviconIds.IsEmpty())
+        deletedFaviconIds.AppendLiteral(",");
+      deletedFaviconIdsArray.AppendElement(aRecords[i].faviconID);
+      deletedFaviconIds.AppendInt(aRecords[i].faviconID);
+    }
   }
 
   if (deletedFaviconIds.IsEmpty())
@@ -606,10 +616,16 @@ nsNavHistoryExpire::EraseAnnotations(mozIStorageConnection* aConnection,
 {
   
   nsCString placeIds;
+  nsTArray<PRInt64> deletedPlaceIdsArray;
   for (PRUint32 i = 0; i < aRecords.Length(); i ++) {
-    if (!placeIds.IsEmpty())
-      placeIds.AppendLiteral(", ");
-    placeIds.AppendInt(aRecords[i].placeID);
+    
+    if (deletedPlaceIdsArray.IndexOf(aRecords[i].placeID) == -1) {
+      
+      if (!placeIds.IsEmpty())
+        placeIds.AppendLiteral(",");
+      deletedPlaceIdsArray.AppendElement(aRecords[i].placeID);
+      placeIds.AppendInt(aRecords[i].placeID);
+    }
   }
   
   if (placeIds.IsEmpty())
