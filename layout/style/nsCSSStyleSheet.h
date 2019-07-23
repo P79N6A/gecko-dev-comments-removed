@@ -75,6 +75,9 @@ public:
 
   virtual void RebuildNameSpaces();
 
+  
+  nsresult CreateNamespaceMap();
+
   nsAutoVoidArray        mSheets;
   nsCOMPtr<nsIURI>       mSheetURI; 
   nsCOMPtr<nsIURI>       mOriginalSheetURI;  
@@ -204,6 +207,9 @@ protected:
   
   
   nsresult SubjectSubsumesInnerPrincipal() const;
+
+  
+  nsresult RegisterNamespaceRule(nsICSSRule* aRule);
 
 protected:
   nsString              mTitle;

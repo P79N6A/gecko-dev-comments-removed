@@ -7740,8 +7740,6 @@ CSSParserImpl::GetNamespaceIdForPrefix(const nsString& aPrefix,
   }
   
 
-  NS_ASSERTION(nameSpaceID != kNameSpaceID_None, "Shouldn't happen!");
-
   if (kNameSpaceID_Unknown == nameSpaceID) {   
     const PRUnichar *params[] = {
       aPrefix.get()
@@ -7759,12 +7757,10 @@ CSSParserImpl::GetNamespaceIdForPrefix(const nsString& aPrefix,
 void
 CSSParserImpl::SetDefaultNamespaceOnSelector(nsCSSSelector& aSelector)
 {
-  aSelector.SetNameSpace(kNameSpaceID_Unknown); 
-  if (mNameSpaceMap) { 
-    PRInt32 defaultID = mNameSpaceMap->FindNameSpaceID(nsnull);
-    if (defaultID != kNameSpaceID_None) {
-      aSelector.SetNameSpace(defaultID);
-    }
+  if (mNameSpaceMap) {
+    aSelector.SetNameSpace(mNameSpaceMap->FindNameSpaceID(nsnull));
+  } else {
+    aSelector.SetNameSpace(kNameSpaceID_Unknown); 
   }
 }
 
