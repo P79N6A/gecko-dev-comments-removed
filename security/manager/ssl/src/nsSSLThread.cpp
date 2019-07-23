@@ -42,6 +42,10 @@
 
 #include "ssl.h"
 
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* gPIPNSSLog;
+#endif
+
 nsSSLThread::nsSSLThread()
 : mBusySocket(nsnull),
   mSocketScheduledToBeDestroyed(nsnull),
@@ -303,6 +307,17 @@ PRInt16 nsSSLThread::requestPoll(nsNSSSocketInfo *si, PRInt16 in_flags, PRInt16 
         
         case nsSSLSocketThreadData::ssl_idle:
         {
+          if (si->mThreadData->mOneBytePendingFromEarlierWrite)
+          {
+            if (in_flags & PR_POLL_WRITE)
+            {
+              
+              
+              *out_flags |= PR_POLL_WRITE;
+              return in_flags;
+            }
+          }
+
           handshake_timeout = si->HandshakeTimeout();
 
           if (si != ssl_thread_singleton->mBusySocket)
@@ -843,14 +858,23 @@ PRInt32 nsSSLThread::requestWrite(nsNSSSocketInfo *si, const void *buf, PRInt32 
   
   
 
-  if (!si->mThreadData->ensure_buffer_size(amount))
+  
+  
+  
+  
+
+  if (!si->mThreadData->mOneBytePendingFromEarlierWrite)
   {
-    PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
-    return -1;
+    if (!si->mThreadData->ensure_buffer_size(amount))
+    {
+      PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
+      return -1;
+    }
+  
+    memcpy(si->mThreadData->mSSLDataBuffer, buf, amount);
+    si->mThreadData->mSSLRequestedTransferAmount = amount;
   }
 
-  memcpy(si->mThreadData->mSSLDataBuffer, buf, amount);
-  si->mThreadData->mSSLRequestedTransferAmount = amount;
   si->mThreadData->mSSLState = nsSSLSocketThreadData::ssl_pending_write;
 
   {
@@ -959,10 +983,12 @@ void nsSSLThread::Run(void)
     {
       
       
-    
       nsNSSShutDownPreventionLock locker;
 
-      PRFileDesc *realFileDesc = mBusySocket->mThreadData->mReplacedSSLFileDesc;
+      
+      nsSSLSocketThreadData &bstd = *mBusySocket->mThreadData;
+
+      PRFileDesc *realFileDesc = bstd.mReplacedSSLFileDesc;
       if (!realFileDesc)
       {
         realFileDesc = mBusySocket->mFd->lower;
@@ -970,44 +996,83 @@ void nsSSLThread::Run(void)
 
       if (nsSSLSocketThreadData::ssl_pending_write == busy_socket_ssl_state)
       {
-        PRInt32 bytesWritten = realFileDesc->methods
-          ->write(realFileDesc, 
-                  mBusySocket->mThreadData->mSSLDataBuffer, 
-                  mBusySocket->mThreadData->mSSLRequestedTransferAmount);
+        PRInt32 bytesWritten = 0;
 
-#ifdef DEBUG_SSL_VERBOSE
-        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] wrote %d bytes\n", (void*)fd, bytesWritten));
-#endif
-        
-        bytesWritten = checkHandshake(bytesWritten, PR_FALSE, realFileDesc, mBusySocket);
-        if (bytesWritten < 0) {
+        if (bstd.mOneBytePendingFromEarlierWrite)
+        {
           
-          mBusySocket->mThreadData->mPRErrorCode = PR_GetError();
+          
+          bytesWritten = realFileDesc->methods
+            ->write(realFileDesc, &bstd.mThePendingByte, 1);
+  
+#ifdef DEBUG_SSL_VERBOSE
+          PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] wrote %d bytes\n", (void*)realFileDesc, bytesWritten));
+#endif
+          
+          bytesWritten = checkHandshake(bytesWritten, PR_FALSE, realFileDesc, mBusySocket);
+          if (bytesWritten < 0) {
+            
+            bstd.mPRErrorCode = PR_GetError();
+          }
+          else if (bytesWritten == 1) {
+            
+            
+            bytesWritten = bstd.mOriginalRequestedTransferAmount;
+            bstd.mOriginalRequestedTransferAmount = 0;
+            bstd.mOneBytePendingFromEarlierWrite = PR_FALSE;
+          }
+        }
+        else
+        {
+          
+          bytesWritten = realFileDesc->methods
+            ->write(realFileDesc, 
+                    bstd.mSSLDataBuffer, 
+                    bstd.mSSLRequestedTransferAmount);
+  
+#ifdef DEBUG_SSL_VERBOSE
+          PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] wrote %d bytes (out of %d)\n", 
+              (void*)realFileDesc, bytesWritten, bstd.mSSLRequestedTransferAmount));
+#endif
+          
+          bytesWritten = checkHandshake(bytesWritten, PR_FALSE, realFileDesc, mBusySocket);
+          if (bytesWritten < 0) {
+            
+            bstd.mPRErrorCode = PR_GetError();
+          }
+          else if (bstd.mSSLRequestedTransferAmount > 1 && 
+                   bytesWritten == (bstd.mSSLRequestedTransferAmount - 1)) {
+            
+            
+            bstd.mThePendingByte = *(bstd.mSSLDataBuffer + (bstd.mSSLRequestedTransferAmount-1));
+            bytesWritten = -1;
+            bstd.mPRErrorCode = PR_WOULD_BLOCK_ERROR;
+            bstd.mOneBytePendingFromEarlierWrite = PR_TRUE;
+            bstd.mOriginalRequestedTransferAmount = bstd.mSSLRequestedTransferAmount;
+          }
         }
 
-        mBusySocket->mThreadData->mSSLResultRemainingBytes = bytesWritten;
+        bstd.mSSLResultRemainingBytes = bytesWritten;
         busy_socket_ssl_state = nsSSLSocketThreadData::ssl_writing_done;
       }
       else if (nsSSLSocketThreadData::ssl_pending_read == busy_socket_ssl_state)
       {
         PRInt32 bytesRead = realFileDesc->methods
            ->read(realFileDesc, 
-                  mBusySocket->mThreadData->mSSLDataBuffer, 
-                  mBusySocket->mThreadData->mSSLRequestedTransferAmount);
+                  bstd.mSSLDataBuffer, 
+                  bstd.mSSLRequestedTransferAmount);
 
 #ifdef DEBUG_SSL_VERBOSE
-        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] read %d bytes\n", (void*)fd, bytesRead));
-        DEBUG_DUMP_BUFFER((unsigned char*)buf, bytesRead);
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] read %d bytes\n", (void*)realFileDesc, bytesRead));
 #endif
         bytesRead = checkHandshake(bytesRead, PR_TRUE, realFileDesc, mBusySocket);
         if (bytesRead < 0) {
           
-          mBusySocket->mThreadData->mPRErrorCode = PR_GetError();
+          bstd.mPRErrorCode = PR_GetError();
         }
 
-        mBusySocket->mThreadData->mSSLResultRemainingBytes = bytesRead;
-        mBusySocket->mThreadData->mSSLRemainingReadResultData = 
-          mBusySocket->mThreadData->mSSLDataBuffer;
+        bstd.mSSLResultRemainingBytes = bytesRead;
+        bstd.mSSLRemainingReadResultData = bstd.mSSLDataBuffer;
         busy_socket_ssl_state = nsSSLSocketThreadData::ssl_reading_done;
       }
     }
