@@ -567,12 +567,6 @@ struct JSThreadData {
 
     jsuword             nativeEnumCache[NATIVE_ENUM_CACHE_SIZE];
 
-    
-
-
-
-    JSObject           *cachedIteratorObject;
-
     bool init();
     void finish();
     void mark(JSTracer *trc);
