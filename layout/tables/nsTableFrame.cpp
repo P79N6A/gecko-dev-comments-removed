@@ -4702,7 +4702,7 @@ struct BCCornerInfo
   PRUint16  ownerWidth;     
   PRUint16  subWidth;       
                             
-  mozilla::css::Side ownerSide:2; 
+  PRUint32  ownerSide:2;    
                             
   PRUint32  ownerElem:3;    
   PRUint32  ownerStyle:8;   
@@ -4755,7 +4755,7 @@ BCCornerInfo::Update(mozilla::css::Side aSide,
     oldBorder.width =  ownerWidth;
     oldBorder.color =  ownerColor;
 
-    mozilla::css::Side oldSide  = ownerSide;
+    mozilla::css::Side oldSide  = mozilla::css::Side(ownerSide);
 
     tempBorder = CompareBorders(CELL_CORNER, oldBorder, aBorder, horizontal, &existingWins);
 
@@ -4764,7 +4764,7 @@ BCCornerInfo::Update(mozilla::css::Side aSide,
     ownerWidth = tempBorder.width;
     ownerColor = tempBorder.color;
     if (existingWins) { 
-      if (::Perpendicular(ownerSide, aSide)) {
+      if (::Perpendicular(mozilla::css::Side(ownerSide), aSide)) {
         
         BCCellBorder subBorder;
         subBorder.owner = (BCBorderOwner) subElem;
@@ -4785,7 +4785,7 @@ BCCornerInfo::Update(mozilla::css::Side aSide,
     }
     else { 
       ownerSide = aSide;
-      if (::Perpendicular(oldSide, ownerSide)) {
+      if (::Perpendicular(oldSide, mozilla::css::Side(ownerSide))) {
         subElem  = oldBorder.owner;
         subStyle = oldBorder.style;
         subWidth = oldBorder.width;
@@ -5506,7 +5506,8 @@ nsTableFrame::CalcBCBorders()
         else {
           tlCorner.Update(NS_SIDE_RIGHT, currentBorder);
           tableCellMap->SetBCBorderCorner(eTopLeft, *iter.mCellMap, 0, 0, colX,
-                                          tlCorner.ownerSide, tlCorner.subWidth,
+                                          mozilla::css::Side(tlCorner.ownerSide),
+                                          tlCorner.subWidth,
                                           tlCorner.bevel);
         }
         topCorners[colX + 1].Set(NS_SIDE_LEFT, currentBorder); 
@@ -5556,7 +5557,8 @@ nsTableFrame::CalcBCBorders()
         tlCorner.Update(NS_SIDE_BOTTOM, currentBorder);
         tableCellMap->SetBCBorderCorner(eTopLeft, *iter.mCellMap,
                                         iter.mRowGroupStart, rowY, 0,
-                                        tlCorner.ownerSide, tlCorner.subWidth,
+                                        mozilla::css::Side(tlCorner.ownerSide),
+                                        tlCorner.subWidth,
                                         tlCorner.bevel);
         bottomCorners[0].Set(NS_SIDE_TOP, currentBorder); 
 
@@ -5595,14 +5597,16 @@ nsTableFrame::CalcBCBorders()
         tableCellMap->SetBCBorderCorner(eTopRight, *iter.mCellMap,
                                         iter.mRowGroupStart, rowY,
                                         info.GetCellEndColIndex(),
-                                        trCorner.ownerSide, trCorner.subWidth,
+                                        mozilla::css::Side(trCorner.ownerSide),
+                                        trCorner.subWidth,
                                         trCorner.bevel);
         BCCornerInfo& brCorner = bottomCorners[info.GetCellEndColIndex() + 1];
         brCorner.Set(NS_SIDE_TOP, currentBorder); 
         tableCellMap->SetBCBorderCorner(eBottomRight, *iter.mCellMap,
                                         iter.mRowGroupStart, rowY,
                                         info.GetCellEndColIndex(),
-                                        brCorner.ownerSide, brCorner.subWidth,
+                                        mozilla::css::Side(brCorner.ownerSide),
+                                        brCorner.subWidth,
                                         brCorner.bevel);
         
         startSeg = SetBorder(currentBorder,
@@ -5670,7 +5674,7 @@ nsTableFrame::CalcBCBorders()
             tableCellMap->SetBCBorderCorner(eTopRight, *iter.mCellMap,
                                             iter.mRowGroupStart, rowY,
                                             info.GetCellEndColIndex(),
-                                            trCorner->ownerSide,
+                                            mozilla::css::Side(trCorner->ownerSide),
                                             trCorner->subWidth,
                                             trCorner->bevel);
           }
@@ -5679,7 +5683,7 @@ nsTableFrame::CalcBCBorders()
             tableCellMap->SetBCBorderCorner(eBottomRight, *iter.mCellMap,
                                             iter.mRowGroupStart, rX,
                                             info.GetCellEndColIndex(),
-                                            trCorner->ownerSide,
+                                            mozilla::css::Side(trCorner->ownerSide),
                                             trCorner->subWidth, PR_FALSE);
           }
         }
@@ -5716,7 +5720,8 @@ nsTableFrame::CalcBCBorders()
         tableCellMap->SetBCBorderCorner(eBottomLeft, *iter.mCellMap,
                                         iter.mRowGroupStart,
                                         info.GetCellEndRowIndex(),
-                                        colX, blCorner.ownerSide,
+                                        colX,
+                                        mozilla::css::Side(blCorner.ownerSide),
                                         blCorner.subWidth, blCorner.bevel);
         BCCornerInfo& brCorner = bottomCorners[colX + 1]; 
         brCorner.Update(NS_SIDE_LEFT, currentBorder);
@@ -5724,7 +5729,8 @@ nsTableFrame::CalcBCBorders()
           tableCellMap->SetBCBorderCorner(eBottomRight, *iter.mCellMap,
                                           iter.mRowGroupStart,
                                           info.GetCellEndRowIndex(),colX,
-                                          brCorner.ownerSide, brCorner.subWidth,
+                                          mozilla::css::Side(brCorner.ownerSide),
+                                          brCorner.subWidth,
                                           brCorner.bevel, PR_TRUE);
         }
         
@@ -5795,7 +5801,7 @@ nsTableFrame::CalcBCBorders()
             tableCellMap->SetBCBorderCorner(eBottomLeft, *iter.mCellMap,
                                             iter.mRowGroupStart,
                                             info.GetCellEndRowIndex(), colX,
-                                            blCorner.ownerSide,
+                                            mozilla::css::Side(blCorner.ownerSide),
                                             blCorner.subWidth, blCorner.bevel);
           }
           
@@ -5805,7 +5811,8 @@ nsTableFrame::CalcBCBorders()
             tableCellMap->SetBCBorderCorner(eBottomLeft, *iter.mCellMap,
                                             iter.mRowGroupStart,
                                             info.GetCellEndRowIndex(), cX,
-                                            corner.ownerSide, corner.subWidth,
+                                            mozilla::css::Side(corner.ownerSide),
+                                            corner.subWidth,
                                             PR_FALSE);
           }
         }

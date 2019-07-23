@@ -256,7 +256,7 @@ protected:
   unsigned mTopOwner:      4; 
   unsigned mLeftStart:     1; 
   unsigned mTopStart:      1; 
-  mozilla::css::Side mCornerSide: 2; 
+  unsigned mCornerSide:    2; 
   unsigned mCornerBevel:   1; 
 };
 
@@ -462,10 +462,10 @@ inline void BCData::SetTopEdge(BCBorderOwner  aOwner,
   mTopStart = aStart;
 }
 
-inline BCPixelSize BCData::GetCorner(mozilla::css::Side&       aOwnerSide,
-                                     PRPackedBool&  aBevel) const
+inline BCPixelSize BCData::GetCorner(mozilla::css::Side& aOwnerSide,
+                                     PRPackedBool&       aBevel) const
 {
-  aOwnerSide = mCornerSide;
+  aOwnerSide = mozilla::css::Side(mCornerSide);
   aBevel     = (PRBool)mCornerBevel;
   return mCornerSubSize;
 }
