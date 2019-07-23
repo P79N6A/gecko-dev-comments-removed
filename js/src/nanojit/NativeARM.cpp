@@ -243,20 +243,21 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
             
             
             if (arg->isop(LIR_quad)) {
-                const int32_t* p = (const int32_t*) (arg-2);
 
                 
+                int32_t v = arg->imm64_0();     
                 for (int k = 0; k < 2; k++) {
                     if (r != UnknownReg) {
-                        asm_ld_imm(r, *p++);
+                        asm_ld_imm(r, v);
                         r = nextreg(r);
                         if (r == R4)
                             r = UnknownReg;
                     } else {
                         STR_preindex(IP, SP, -4);
-                        asm_ld_imm(IP, *p++);
+                        asm_ld_imm(IP, v);
                         stkd += 4;
                     }
+                    v = arg->imm64_1();         
                 }
             } else {
                 int d = findMemFor(arg);
@@ -303,7 +304,7 @@ Assembler::asm_arg(ArgSize sz, LInsp arg, Register& r, int& stkd)
     } else if (sz == ARGSIZE_LO) {
         if (r != UnknownReg) {
             if (arg->isconst()) {
-                asm_ld_imm(r, arg->constval());
+                asm_ld_imm(r, arg->imm32());
             } else {
                 Reservation* argRes = getresv(arg);
                 if (argRes) {
@@ -586,10 +587,10 @@ Assembler::asm_restore(LInsp i, Reservation *resv, Register r)
 
 
 
-    else if (i->isconst() && (isS8(i->constval()) || isU8(i->constval()))) {
+    else if (i->isconst() && (isS8(i->imm32()) || isU8(i->imm32()))) {
         if (!resv->arIndex)
             reserveFree(i);
-        asm_ld_imm(r, i->constval());
+        asm_ld_imm(r, i->imm32());
     }
 #endif
     else {
@@ -637,7 +638,7 @@ Assembler::asm_load64(LInsp ins)
     
 
     LIns* base = ins->oprnd1();
-    int offset = ins->oprnd2()->constval();
+    int offset = ins->oprnd2()->imm32();
 
     Reservation *resv = getresv(ins);
     Register rr = resv->reg;
@@ -682,15 +683,13 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
         Register rb = findRegFor(base, GpRegs);
 
         if (value->isconstq()) {
-            const int32_t* p = (const int32_t*) (value-2);
-
             underrunProtect(LD32_size*2 + 8);
 
             
             STR(IP, rb, dr);
-            LD32_nochk(IP, p[0]);
+            LD32_nochk(IP, value->imm64_0());
             STR(IP, rb, dr+4);
-            LD32_nochk(IP, p[1]);
+            LD32_nochk(IP, value->imm64_1());
 
             return;
         }
@@ -717,10 +716,8 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
         
         
         if (value->isconstq()) {
-            const int32_t* p = (const int32_t*) (value-2);
-
             underrunProtect(4*4);
-            asm_quad_nochk(rv, p);
+            asm_quad_nochk(rv, value->imm64_0(), value->imm64_1());
         }
     } else {
         int da = findMemFor(value);
@@ -734,7 +731,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
 
 
 void
-Assembler::asm_quad_nochk(Register rr, const int32_t* p)
+Assembler::asm_quad_nochk(Register rr, int32_t imm64_0, int32_t imm64_1)
 {
     
     
@@ -749,8 +746,8 @@ Assembler::asm_quad_nochk(Register rr, const int32_t* p)
 
     FLDD(rr, PC, -16);
 
-    *(--_nIns) = (NIns) p[1];
-    *(--_nIns) = (NIns) p[0];
+    *(--_nIns) = (NIns) imm64_1;
+    *(--_nIns) = (NIns) imm64_0;
 
     JMP_nochk(_nIns+2);
 }
@@ -766,8 +763,6 @@ Assembler::asm_quad(LInsp ins)
 
     NanoAssert(d || rr != UnknownReg);
 
-    const int32_t* p = (const int32_t*) (ins-2);
-
     freeRsrcOf(ins, false);
 
     if (AvmCore::config.vfp &&
@@ -777,12 +772,12 @@ Assembler::asm_quad(LInsp ins)
             FSTD(rr, FP, d);
 
         underrunProtect(4*4);
-        asm_quad_nochk(rr, p);
+        asm_quad_nochk(rr, ins->imm64_0(), ins->imm64_1());
     } else {
         STR(IP, FP, d+4);
-        asm_ld_imm(IP, p[1]);
+        asm_ld_imm(IP, ins->imm64_1());
         STR(IP, FP, d);
-        asm_ld_imm(IP, p[0]);
+        asm_ld_imm(IP, ins->imm64_0());
     }
 
     
@@ -1368,7 +1363,7 @@ Assembler::asm_cmp(LIns *cond)
 
     
     if (rhs->isconst()) {
-        int c = rhs->constval();
+        int c = rhs->imm32();
         if (c == 0 && cond->isop(LIR_eq)) {
             Register r = findRegFor(lhs, GpRegs);
             TEST(r,r);
@@ -1487,7 +1482,7 @@ Assembler::asm_arith(LInsp ins)
     
     
     if (!forceReg) {
-        if (rhs->isconst() && !isU8(rhs->constval()))
+        if (rhs->isconst() && !isU8(rhs->imm32()))
             forceReg = true;
     }
 
@@ -1499,7 +1494,7 @@ Assembler::asm_arith(LInsp ins)
     } else if ((op == LIR_add||op == LIR_addp) && lhs->isop(LIR_alloc) && rhs->isconst()) {
         
         Register rr = prepResultReg(ins, allow);
-        int d = findMemFor(lhs) + rhs->constval();
+        int d = findMemFor(lhs) + rhs->imm32();
         asm_add_imm(rr, FP, d);
     }
 
@@ -1537,7 +1532,7 @@ Assembler::asm_arith(LInsp ins)
         else
             NanoAssertMsg(0, "Unsupported");
     } else {
-        int c = rhs->constval();
+        int c = rhs->imm32();
         if (op == LIR_add || op == LIR_addp)
             ADDi(rr, ra, c);
         else if (op == LIR_sub)
@@ -1587,7 +1582,7 @@ Assembler::asm_ld(LInsp ins)
     LIns* base = ins->oprnd1();
     LIns* disp = ins->oprnd2();
     Register rr = prepResultReg(ins, GpRegs);
-    int d = disp->constval();
+    int d = disp->imm32();
     Register ra = getBaseReg(base, d, GpRegs);
 
     
@@ -1709,17 +1704,6 @@ Assembler::asm_param(LInsp ins)
         
         prepResultReg(ins, rmask(savedRegs[a]));
     }
-}
-
-void
-Assembler::asm_short(LInsp ins)
-{
-    Register rr = prepResultReg(ins, GpRegs);
-    int32_t val = ins->imm16();
-    if (val == 0)
-        EOR(rr,rr,rr);
-    else
-        LDi(rr, val);
 }
 
 void
