@@ -537,6 +537,7 @@ var PlacesUIUtils = {
       info.keyword = aKeyword;
       
       info.hiddenRows.push("tags");
+      
       if (typeof(aPostData) == "string")
         info.postData = aPostData;
       if (typeof(aCharSet) == "string")
