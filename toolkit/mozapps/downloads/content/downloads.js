@@ -26,6 +26,7 @@
 #   Fredrik Holmqvist <thesuckiestemail@yahoo.se>
 #   Josh Aas <josh@mozilla.com>
 #   Shawn Wilsher <me@shawnwilsher.com> (v3.0)
+#   Edward Lee <edward.lee@engineering.uiuc.edu>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -73,6 +74,32 @@ var gUserInteracted = false;
 
 
 
+let gStr = {
+  paused: "paused",
+  statusFormat: "statusFormat2",
+  transferSameUnits: "transferSameUnits",
+  transferDiffUnits: "transferDiffUnits",
+  transferNoTotal: "transferNoTotal",
+  timeMinutesLeft: "timeMinutesLeft",
+  timeSecondsLeft: "timeSecondsLeft",
+  timeFewSeconds: "timeFewSeconds",
+  timeUnknown: "timeUnknown",
+  units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
+
+  fileExecutableSecurityWarningTitle: "fileExecutableSecurityWarningTitle",
+  fileExecutableSecurityWarningDontAsk: "fileExecutableSecurityWarningDontAsk"
+};
+
+
+let gBaseQuery = "SELECT id, target, name, source, state, startTime, " +
+                        "referrer, currBytes, maxBytes " +
+                 "FROM moz_downloads " +
+                 "WHERE #1 " +
+                 "ORDER BY endTime ASC";
+
+
+
+
 function fireEventForElement(aElement, aEventType)
 {
   var e = document.createEvent("Events");
@@ -81,8 +108,8 @@ function fireEventForElement(aElement, aEventType)
   aElement.dispatchEvent(e);
 }
 
-function createDownloadItem(aID, aFile, aTarget, aURI, aState,
-                            aStatus, aProgress, aStartTime, aReferrer)
+function createDownloadItem(aID, aFile, aTarget, aURI, aState, aProgress,
+                            aStartTime, aReferrer, aCurrBytes, aMaxBytes)
 {
   var dl = document.createElement("richlistitem");
   dl.setAttribute("type", "download");
@@ -93,11 +120,15 @@ function createDownloadItem(aID, aFile, aTarget, aURI, aState,
   dl.setAttribute("target", aTarget);
   dl.setAttribute("uri", aURI);
   dl.setAttribute("state", aState);
-  dl.setAttribute("status", aStatus);
   dl.setAttribute("progress", aProgress);
   dl.setAttribute("startTime", aStartTime);
   if (aReferrer)
     dl.setAttribute("referrer", aReferrer);
+  dl.setAttribute("currBytes", aCurrBytes);
+  dl.setAttribute("maxBytes", aMaxBytes);
+  dl.setAttribute("lastSeconds", Infinity);
+
+  updateStatus(dl);
 
   try {
     var file = getLocalFileFromNativePathOrUrl(aFile);
@@ -115,6 +146,7 @@ function getDownload(aID)
 {
   return document.getElementById("dl" + aID);
 }
+
 
 
 
@@ -293,8 +325,8 @@ function openDownload(aDownload)
       var name = aDownload.getAttribute("target");
       var message = strings.getFormattedString("fileExecutableSecurityWarning", [name, name]);
 
-      var title = strings.getString("fileExecutableSecurityWarningTitle");
-      var dontAsk = strings.getString("fileExecutableSecurityWarningDontAsk");
+      let title = gStr.fileExecutableSecurityWarningTitle;
+      let dontAsk = gStr.fileExecutableSecurityWarningDontAsk;
 
       var promptSvc = Cc["@mozilla.org/embedcomp/prompt-service;1"].
                       getService(Ci.nsIPromptService);
@@ -431,6 +463,13 @@ function Startup()
   gDownloadsOtherLabel  = document.getElementById("other-downloads");
   gDownloadsOtherTitle  = document.getElementById("other-downloads-title");
   gDownloadInfoPopup    = document.getElementById("information");
+
+  
+  let (sb = document.getElementById("downloadStrings")) {
+    let getStr = function(string) sb.getString(string);
+    for (let [name, value] in Iterator(gStr))
+      gStr[name] = typeof value == "string" ? getStr(value) : value.map(getStr);
+  }
 
   buildDefaultView();
 
@@ -677,6 +716,131 @@ function openExternal(aFile)
 
 
 
+
+
+
+
+
+
+
+
+
+function updateStatus(aItem, aDownload) {
+  let status = "";
+
+  let state = Number(aItem.getAttribute("state"));
+  switch (state) {
+    case Ci.nsIDownloadManager.DOWNLOAD_PAUSED:
+    case Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING:
+      let currBytes = Number(aItem.getAttribute("currBytes"));
+      let maxBytes = Number(aItem.getAttribute("maxBytes"));
+
+      
+      let ([progress, progressUnits] = convertByteUnits(currBytes),
+           [total, totalUnits] = convertByteUnits(maxBytes),
+           transfer) {
+        if (total < 0)
+          transfer = gStr.transferNoTotal;
+        else if (progressUnits == totalUnits)
+          transfer = gStr.transferSameUnits;
+        else
+          transfer = gStr.transferDiffUnits;
+
+        transfer = replaceInsert(transfer, 1, progress);
+        transfer = replaceInsert(transfer, 2, progressUnits);
+        transfer = replaceInsert(transfer, 3, total);
+        transfer = replaceInsert(transfer, 4, totalUnits);
+
+        if (state == Ci.nsIDownloadManager.DOWNLOAD_PAUSED) {
+          status = replaceInsert(gStr.paused, 1, transfer);
+
+          
+          break;
+        }
+
+        
+        status = replaceInsert(gStr.statusFormat, 1, transfer);
+      }
+
+      
+      let speed = aDownload ? aDownload.speed : 0;
+
+      
+      let ([rate, unit] = convertByteUnits(speed)) {
+        
+        status = replaceInsert(status, 2, rate);
+        
+        status = replaceInsert(status, 3, unit);
+      }
+
+      
+      let (remain) {
+        if ((speed > 0) && (maxBytes > 0)) {
+          let seconds = Math.ceil((maxBytes - currBytes) / speed);
+          let lastSec = Number(aItem.getAttribute("lastSeconds"));
+
+          
+          
+          
+          let (diff = seconds - lastSec) {
+            if (diff > 0 && diff <= 10)
+              seconds = lastSec;
+            else
+              aItem.setAttribute("lastSeconds", seconds);
+          }
+
+          
+          if (seconds <= 3)
+            remain = gStr.timeFewSeconds;
+          
+          else if (seconds <= 60)
+            remain = replaceInsert(gStr.timeSecondsLeft, 1, seconds);
+          else
+            remain = replaceInsert(gStr.timeMinutesLeft, 1,
+                                   Math.ceil(seconds / 60));
+        } else {
+          remain = gStr.timeUnknown;
+        }
+
+        
+        status = replaceInsert(status, 4, remain);
+      }
+
+      break;
+  }
+
+  aItem.setAttribute("status", status);
+}
+
+
+
+
+
+
+
+function convertByteUnits(aBytes)
+{
+  let unitIndex = 0;
+
+  
+  
+  while ((aBytes >= 999.5) && (unitIndex < gStr.units.length - 1)) {
+    aBytes /= 1024;
+    unitIndex++;
+  }
+
+  
+  
+  aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
+
+  return [aBytes, gStr.units[unitIndex]];
+}
+
+function replaceInsert(aText, aIndex, aValue)
+{
+  return aText.replace("#" + aIndex, aValue);
+}
+
 function removeFromView(aDownload)
 {
   let index = gDownloadsView.selectedIndex;
@@ -715,6 +879,7 @@ function buildDefaultView()
 
 
 
+
 function buildDownloadList(aStmt, aRef)
 {
   while (aRef.nextSibling && aRef.nextSibling.tagName == "richlistitem")
@@ -733,11 +898,16 @@ function buildDownloadList(aStmt, aRef)
       let dl = gDownloadManager.getDownload(id);
       percentComplete = dl.percentComplete;
     }
-    let dl = createDownloadItem(id, aStmt.getString(1),
-                                aStmt.getString(2), aStmt.getString(3),
-                                state, "", percentComplete,
+    let dl = createDownloadItem(id,
+                                aStmt.getString(1),
+                                aStmt.getString(2),
+                                aStmt.getString(3),
+                                state,
+                                percentComplete,
                                 Math.round(aStmt.getInt64(5) / 1000),
-                                aStmt.getString(6));
+                                aStmt.getString(6),
+                                aStmt.getInt64(7),
+                                aStmt.getInt64(8));
     if (dl)
       gDownloadsView.insertBefore(dl, aRef.nextSibling);
   }
@@ -757,14 +927,9 @@ function buildActiveDownloadsList()
   var db = gDownloadManager.DBConnection;
   var stmt = gActiveDownloadsQuery;
   if (!stmt) {
-    stmt = gActiveDownloadsQuery =
-      db.createStatement("SELECT id, target, name, source, state, startTime, " +
-                         "referrer " +
-                         "FROM moz_downloads " +
-                         "WHERE state = ?1 " +
-                         "OR state = ?2 " +
-                         "OR state = ?3 " +
-                         "ORDER BY endTime ASC");
+    stmt = db.createStatement(replaceInsert(gBaseQuery, 1,
+      "state = ?1 OR state = ?2 OR state = ?3"));
+    gActiveDownloadsQuery = stmt;
   }
 
   try {
@@ -790,16 +955,9 @@ function buildDownloadListWithTime(aTime)
   var db = gDownloadManager.DBConnection;
   var stmt = gDownloadListWithTimeQuery;
   if (!stmt) {
-    stmt = gDownloadListWithTimeQuery =
-      db.createStatement("SELECT id, target, name, source, state, startTime, " +
-                         "referrer " +
-                         "FROM moz_downloads " +
-                         "WHERE startTime >= ?1 " +
-                         "AND (state = ?2 " +
-                         "OR state = ?3 " +
-                         "OR state = ?4 " +
-                         "OR state = ?5) " +
-                         "ORDER BY endTime ASC");
+    stmt = db.createStatement(replaceInsert(gBaseQuery, 1, "startTime >= ?1 " +
+      "AND (state = ?2 OR state = ?3 OR state = ?4 OR state = ?5)"));
+    gDownloadListWithTimeQuery = stmt;
   }
 
   try {
@@ -838,12 +996,9 @@ function buildDownloadListWithSearch(aTerms)
     return;
   }
 
-  var sql = "SELECT id, target, name, source, state, startTime, referrer " +
-            "FROM moz_downloads WHERE name LIKE ?1 ESCAPE '/' " +
-            "AND state != ?2 AND state != ?3 ORDER BY endTime ASC";
-
   var db = gDownloadManager.DBConnection;
-  var stmt = db.createStatement(sql);
+  let stmt = db.createStatement(replaceInsert(gBaseQuery, 1,
+    "name LIKE ?1 ESCAPE '/' AND state != ?2 AND state != ?3"));
 
   try {
     var paramForLike = stmt.escapeStringForLIKE(aTerms, '/');

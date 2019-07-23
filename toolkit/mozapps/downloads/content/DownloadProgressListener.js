@@ -49,25 +49,7 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
-function DownloadProgressListener()
-{
-  var sb = document.getElementById("downloadStrings");
-  this._paused = sb.getString("paused");
-  this._statusFormat = sb.getString("statusFormat2");
-  this._transferSameUnits = sb.getString("transferSameUnits");
-  this._transferDiffUnits = sb.getString("transferDiffUnits");
-  this._transferNoTotal = sb.getString("transferNoTotal");
-  this._timeMinutesLeft = sb.getString("timeMinutesLeft");
-  this._timeSecondsLeft = sb.getString("timeSecondsLeft");
-  this._timeFewSeconds = sb.getString("timeFewSeconds");
-  this._timeUnknown = sb.getString("timeUnknown");
-  this._units = [sb.getString("bytes"),
-                 sb.getString("kilobyte"),
-                 sb.getString("megabyte"),
-                 sb.getString("gigabyte")];
-
-  this.lastSeconds = Infinity;
-}
+function DownloadProgressListener() {}
 
 DownloadProgressListener.prototype = {
   
@@ -101,16 +83,12 @@ DownloadProgressListener.prototype = {
         downloadCompleted(aDownload);
         autoRemoveAndClose(aDownload);
         break;
-      case Ci.nsIDownloadManager.DOWNLOAD_PAUSED:
-        let transfer = dl.getAttribute("status-internal");
-        let status = this._replaceInsert(this._paused, 1, transfer);
-        dl.setAttribute("status", status);
-        break;
     }
 
     
     try {
       dl.setAttribute("state", aDownload.state);
+      updateStatus(dl);
       gDownloadViewController.onCommandUpdate();
     } catch (e) { }
   },
@@ -144,73 +122,12 @@ DownloadProgressListener.prototype = {
             .dispatchEvent(event);
 
     
-    
-    let status = this._statusFormat;
+    download.setAttribute("currBytes", aDownload.amountTransferred);
+    download.setAttribute("maxBytes", aDownload.size);
 
     
-    let ([progress, progressUnits] = this._convertByteUnits(aCurTotalProgress),
-         [total, totalUnits] = this._convertByteUnits(aMaxTotalProgress),
-         transfer) {
-      if (total <= 0)
-        transfer = this._transferNoTotal;
-      else if (progressUnits == totalUnits)
-        transfer = this._transferSameUnits;
-      else
-        transfer = this._transferDiffUnits;
-
-      transfer = this._replaceInsert(transfer, 1, progress);
-      transfer = this._replaceInsert(transfer, 2, progressUnits);
-      transfer = this._replaceInsert(transfer, 3, total);
-      transfer = this._replaceInsert(transfer, 4, totalUnits);
-
-      
-      status = this._replaceInsert(status, 1, transfer);
-
-      download.setAttribute("status-internal", transfer);
-    }
-
     
-    let ([rate, unit] = this._convertByteUnits(aDownload.speed)) {
-      
-      status = this._replaceInsert(status, 2, rate);
-      
-      status = this._replaceInsert(status, 3, unit);
-    }
-
-    
-    let (remain) {
-      if ((aDownload.speed > 0) && (aMaxTotalProgress > 0)) {
-        let seconds = Math.ceil((aMaxTotalProgress - aCurTotalProgress) /
-                                aDownload.speed);
-
-        
-        
-        
-        let (diff = seconds - this.lastSeconds) {
-          if (diff > 0 && diff <= 10)
-            seconds = this.lastSeconds;
-          else
-            this.lastSeconds = seconds;
-        }
-
-        
-        if (seconds <= 3)
-          remain = this._timeFewSeconds;
-        
-        else if (seconds <= 60)
-          remain = this._replaceInsert(this._timeSecondsLeft, 1, seconds);
-        else
-          remain = this._replaceInsert(this._timeMinutesLeft, 1,
-                                       Math.ceil(seconds / 60));
-      } else {
-        remain = this._timeUnknown;
-      }
-
-      
-      status = this._replaceInsert(status, 4, remain);
-    }
-
-    download.setAttribute("status", status);
+    updateStatus(download, aDownload);
 
     
     onUpdateProgress();
@@ -235,27 +152,6 @@ DownloadProgressListener.prototype = {
   
   
 
-  
-  
-  
-  _convertByteUnits: function(aBytes)
-  {
-    let unitIndex = 0;
-
-    
-    
-    while ((aBytes >= 999.5) && (unitIndex < this._units.length - 1)) {
-      aBytes /= 1024;
-      unitIndex++;
-    }
-
-    
-    
-    aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
-
-    return [aBytes, this._units[unitIndex]];
-  },
-
   _createDownloadItem: function(aDownload)
   {
     let uri = Cc["@mozilla.org/network/util;1"].
@@ -266,14 +162,10 @@ DownloadProgressListener.prototype = {
                               aDownload.displayName,
                               aDownload.source.spec,
                               aDownload.state,
-                              "",
                               aDownload.percentComplete,
                               Math.round(aDownload.startTime / 1000),
-                              referrer ? referrer.spec : null);
-  },
-
-  _replaceInsert: function(aText, aIndex, aValue)
-  {
-    return aText.replace("#" + aIndex, aValue);
+                              referrer ? referrer.spec : null,
+                              aDownload.amountTransferred,
+                              aDownload.size);
   }
 };
