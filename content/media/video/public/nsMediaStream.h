@@ -89,11 +89,12 @@ public:
   virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
   virtual PRInt64  Tell() = 0;
   virtual PRUint32 Available() = 0;
-  virtual float    DownloadRate() = 0;
   virtual void     Cancel() { }
   virtual nsIPrincipal* GetCurrentPrincipal() = 0;
   virtual void     Suspend() = 0;
   virtual void     Resume() = 0;
+
+  nsMediaDecoder* Decoder() { return mDecoder; }
 
 protected:
   
@@ -177,15 +178,6 @@ class nsMediaStream
 
   
   
-  
-  float DownloadRate();
-
-  
-  
-  float PlaybackRate();
-
-  
-  
   void Cancel();
 
   
@@ -205,17 +197,6 @@ class nsMediaStream
   
   
   nsAutoPtr<nsStreamStrategy> mStreamStrategy;
-
-  
-  
-  
-  PRIntervalTime mPlaybackRateStart;
-
-  
-  
-  
-  
-  PRUint32 mPlaybackRateCount;
 };
 
 #endif
