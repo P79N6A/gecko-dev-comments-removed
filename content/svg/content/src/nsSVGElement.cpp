@@ -1766,7 +1766,7 @@ nsSVGElement::RecompileScriptEventListeners()
 
 #ifdef MOZ_SMIL
 nsISMILAttr*
-nsSVGElement::GetAnimatedAttr(const nsIAtom* aName)
+nsSVGElement::GetAnimatedAttr(nsIAtom* aName)
 {
   
   if (aName == nsGkAtoms::transform) {
