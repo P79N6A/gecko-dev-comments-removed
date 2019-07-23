@@ -577,11 +577,8 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
 
 
-
-
-
   if (NS_FRAME_IS_COMPLETE(aStatus) &&
-      (!GetNextContinuation() || GetNextInFlow()) &&
+      !GetLastInFlow()->GetNextContinuation() &&
       !nsLayoutUtils::FrameIsInFirstPartOfIBSplit(this)) {
     aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
                           : aReflowState.mComputedBorderPadding.left;

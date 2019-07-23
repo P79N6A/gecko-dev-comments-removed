@@ -1175,7 +1175,7 @@ nsLineLayout::CanPlaceFrame(PerFrameData* pfd,
 
 
     if ((NS_FRAME_IS_NOT_COMPLETE(aStatus) ||
-         (pfd->mFrame->GetNextContinuation() && !pfd->mFrame->GetNextInFlow()) ||
+         pfd->mFrame->GetLastInFlow()->GetNextContinuation() ||
          nsLayoutUtils::FrameIsInFirstPartOfIBSplit(pfd->mFrame))
         && !pfd->GetFlag(PFD_ISLETTERFRAME)) {
       if (ltr)
