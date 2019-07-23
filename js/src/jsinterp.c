@@ -4054,15 +4054,15 @@ interrupt:
                 }
 
                 if (fun->flags & JSFUN_FAST_NATIVE) {
-                    uintN nargs = JS_MAX(argc, fun->u.n.minargs);
+                    JS_ASSERT(fun->u.n.extra == 0);
+                    if (argc < fun->u.n.minargs) {
+                        uintN nargs;
 
-                    nargs += fun->u.n.extra;
-                    if (argc < nargs) {
                         
 
 
 
-                        nargs -= argc;
+                        nargs = fun->u.n.minargs - argc;
                         if (sp + nargs > fp->spbase + depth)
                             goto do_invoke;
                         do {
