@@ -1060,6 +1060,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   
+  
+  
+  tmp->DestroyLinkMap();
+
+  
   for (PRInt32 indx = PRInt32(tmp->mChildren.ChildCount()) - 1; 
        indx >= 0; --indx) {
     tmp->mChildren.ChildAt(indx)->UnbindFromTree();
@@ -2057,7 +2062,10 @@ SubDocClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
   SubDocMapEntry *e = static_cast<SubDocMapEntry *>(entry);
 
   NS_RELEASE(e->mKey);
-  NS_IF_RELEASE(e->mSubDocument);
+  if (e->mSubDocument) {
+    e->mSubDocument->SetParentDocument(nsnull);
+    NS_RELEASE(e->mSubDocument);
+  }
 }
 
 PR_STATIC_CALLBACK(PRBool)
@@ -2090,8 +2098,6 @@ nsDocument::SetSubDocumentFor(nsIContent *aContent, nsIDocument* aSubDoc)
                                             PL_DHASH_LOOKUP));
 
       if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-        entry->mSubDocument->SetParentDocument(nsnull);
-
         PL_DHashTableRawRemove(mSubDocuments, entry);
       }
     }
@@ -5580,26 +5586,16 @@ nsDocument::Destroy()
   if (mIsGoingAway)
     return;
 
-  PRInt32 count = mChildren.ChildCount();
-
   mIsGoingAway = PR_TRUE;
-  DestroyLinkMap();
-  for (PRInt32 indx = 0; indx < count; ++indx) {
-    
-    
-    
-    
-    
-    
-    
-    
-    mChildren.ChildAt(indx)->UnbindFromTree();
+
+  PRUint32 i, count = mChildren.ChildCount();
+  for (i = 0; i < count; ++i) {
+    mChildren.ChildAt(i)->DestroyContent();
   }
+
   mLayoutHistoryState = nsnull;
 
   nsContentList::OnDocumentDestroy(this);
-  delete mContentWrapperHash;
-  mContentWrapperHash = nsnull;
 }
 
 already_AddRefed<nsILayoutHistoryState>
