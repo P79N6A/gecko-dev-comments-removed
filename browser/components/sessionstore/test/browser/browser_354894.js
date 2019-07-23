@@ -443,6 +443,8 @@ function test() {
         newWin.BrowserTryToCloseWindow();
         newWin2.BrowserTryToCloseWindow();
 
+        browserWindowsCount([0, 1], "browser windows while running testOpenCloseRestoreFromPopup");
+
         newWin = undoCloseWindow(0);
         newWin.addEventListener("load", function () {
           info(["testOpenCloseRestoreFromPopup: newWin loaded", newWin.closed, newWin.document]);
@@ -451,6 +453,18 @@ function test() {
             info(["testOpenCloseRestoreFromPopup: newWin delayedStartup", newWin.closed, newWin.document]);
             ds.apply(newWin, arguments);
           };
+        }, false);
+        newWin.addEventListener("unload", function () {
+          info("testOpenCloseRestoreFromPopup: newWin unloaded");
+
+
+
+
+
+
+
+
+
         }, false);
 
         newWin2 = openDialog(location, "_blank", CHROME_FEATURES);
