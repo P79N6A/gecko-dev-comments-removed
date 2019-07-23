@@ -313,7 +313,7 @@ NS_IMETHODIMP nsHTMLMediaElement::GetDuration(float *aDuration)
 }
 
 
-NS_IMETHODIMP nsHTMLMediaElement::GetPaused(PRUint16 *aPaused)
+NS_IMETHODIMP nsHTMLMediaElement::GetPaused(PRBool *aPaused)
 {
   *aPaused = mPaused;
 
