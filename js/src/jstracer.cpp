@@ -4917,9 +4917,8 @@ TraceRecorder::endLoop(VMSideExit* exit)
 
 
 JS_REQUIRES_STACK void
-TraceRecorder::prepareTreeCall(TreeFragment* inner, LIns*& inner_sp_ins)
+TraceRecorder::prepareTreeCall(TreeFragment* inner)
 {
-    inner_sp_ins = lirbuf->sp;
     VMSideExit* exit = snapshot(OOM_EXIT);
 
     
@@ -4966,7 +4965,7 @@ TraceRecorder::prepareTreeCall(TreeFragment* inner, LIns*& inner_sp_ins)
                 + sp_adj 
                 + inner->nativeStackBase; 
         
-        lir->insStorei(inner_sp_ins = lir->ins2(LIR_piadd, lirbuf->sp, INS_CONSTWORD(sp_offset)),
+        lir->insStorei(lir->ins2(LIR_piadd, lirbuf->sp, INS_CONSTWORD(sp_offset)),
                 lirbuf->state, offsetof(InterpState, sp));
         lir->insStorei(lir->ins2(LIR_piadd, lirbuf->rp, INS_CONSTWORD(rp_adj)),
                 lirbuf->state, offsetof(InterpState, rp));
@@ -5004,7 +5003,7 @@ BuildGlobalTypeMapFromInnerTree(Queue<TraceType>& typeMap, VMSideExit* inner)
 
 
 JS_REQUIRES_STACK void
-TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit, LIns* inner_sp_ins)
+TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit)
 {
     
     LIns* args[] = { lirbuf->state }; 
@@ -5986,8 +5985,7 @@ TraceRecorder::attemptTreeCall(TreeFragment* f, uintN& inlineCallCount)
     }
 
     adjustCallerTypes(f);
-    LIns* inner_sp_ins;
-    prepareTreeCall(f, inner_sp_ins);
+    prepareTreeCall(f);
 
 #ifdef DEBUG
     unsigned oldInlineCallCount = inlineCallCount;
@@ -6036,7 +6034,7 @@ TraceRecorder::attemptTreeCall(TreeFragment* f, uintN& inlineCallCount)
         JS_ASSERT(oldInlineCallCount == inlineCallCount);
 
         
-        emitTreeCall(f, lr, inner_sp_ins);
+        emitTreeCall(f, lr);
         return ARECORD_CONTINUE;
 
       case UNSTABLE_LOOP_EXIT:
