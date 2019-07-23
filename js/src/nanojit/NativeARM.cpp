@@ -116,11 +116,7 @@ Assembler::CountLeadingZeroes(uint32_t data)
     
     
     
-    
-    
-    
-    
-    NanoAssert(AvmCore::config.arch >= 5);
+    NanoAssert(ARM_ARCH >= 5);
 
 #if defined(__ARMCC__)
     
@@ -545,7 +541,7 @@ Assembler::genEpilogue()
 {
     
     
-    NanoAssert(AvmCore::config.arch >= 5);
+    NanoAssert(ARM_ARCH >= 5);
 
     RegisterMask savingMask = rmask(FP) | rmask(PC);
 
@@ -612,11 +608,11 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
     NanoAssert((stkd & 3) == 0);
     
     
-    NanoAssert(AvmCore::config.vfp || arg->isop(LIR_qjoin));
+    NanoAssert(ARM_VFP || arg->isop(LIR_qjoin));
 
     Register    fp_reg = UnknownReg;
 
-    if (AvmCore::config.vfp) {
+    if (ARM_VFP) {
         fp_reg = findRegFor(arg, FpRegs);
         NanoAssert(fp_reg != UnknownReg);
     }
@@ -646,7 +642,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
         
         
         
-        if (AvmCore::config.vfp) {
+        if (ARM_VFP) {
             FMRRD(ra, rb, fp_reg);
         } else {
             asm_regarg(ARGSIZE_LO, arg->oprnd1(), ra);
@@ -669,7 +665,7 @@ Assembler::asm_arg_64(LInsp arg, Register& r, int& stkd)
         
         NanoAssert(stkd == 0);
 
-        if (AvmCore::config.vfp) {
+        if (ARM_VFP) {
             
             
             
@@ -768,7 +764,7 @@ Assembler::asm_stkarg(LInsp arg, int stkd)
             
             
             
-            NanoAssert(AvmCore::config.vfp);
+            NanoAssert(ARM_VFP);
             NanoAssert(IsFpReg(argRes->reg));
 
 #ifdef NJ_ARM_EABI
@@ -829,13 +825,13 @@ Assembler::asm_call(LInsp ins)
 
     
     
-    NanoAssert(AvmCore::config.vfp || ins->isop(LIR_icall));
+    NanoAssert(ARM_VFP || ins->isop(LIR_icall));
 
     
     
     
     
-    if(AvmCore::config.vfp) {
+    if(ARM_VFP) {
         
         ArgSize         rsize = (ArgSize)(call->_argtypes & ARGSIZE_MASK_ANY);
 
@@ -929,7 +925,7 @@ Assembler::nRegisterResetAll(RegAlloc& a)
         rmask(R0) | rmask(R1) | rmask(R2) | rmask(R3) | rmask(R4) |
         rmask(R5) | rmask(R6) | rmask(R7) | rmask(R8) | rmask(R9) |
         rmask(R10);
-    if (AvmCore::config.vfp)
+    if (ARM_VFP)
         a.free |= FpRegs;
 
     debug_only(a.managed = a.free);
@@ -1075,7 +1071,7 @@ Assembler::asm_restore(LInsp i, Reservation *resv, Register r)
     if (i->isop(LIR_alloc)) {
         asm_add_imm(r, FP, disp(resv));
     } else if (IsFpReg(r)) {
-        NanoAssert(AvmCore::config.vfp);
+        NanoAssert(ARM_VFP);
 
         
         
@@ -1151,7 +1147,7 @@ Assembler::asm_load64(LInsp ins)
 
     
 
-    if (AvmCore::config.vfp && rr != UnknownReg) {
+    if (ARM_VFP && rr != UnknownReg) {
         
         NanoAssert(IsFpReg(rr));
 
@@ -1183,7 +1179,7 @@ Assembler::asm_store64(LInsp value, int dr, LInsp base)
 {
     
 
-    if (AvmCore::config.vfp) {
+    if (ARM_VFP) {
         
         Register rb = findRegFor(base, GpRegs);
 
@@ -1267,8 +1263,7 @@ Assembler::asm_quad(LInsp ins)
 
     freeRsrcOf(ins, false);
 
-    if (AvmCore::config.vfp &&
-        rr != UnknownReg)
+    if (ARM_VFP && rr != UnknownReg)
     {
         if (d)
             FSTD(rr, FP, d);
@@ -1512,7 +1507,7 @@ Assembler::BranchWithLink(NIns* addr)
             
             
             
-            NanoAssert(AvmCore::config.arch >= 5);
+            NanoAssert(ARM_ARCH >= 5);
 
             
             uint32_t    H = (offs & 0x2) << 23;
@@ -1539,7 +1534,7 @@ Assembler::BLX(Register addr, bool chk )
     
     
     
-    NanoAssert(AvmCore::config.arch >= 5);
+    NanoAssert(ARM_ARCH >= 5);
 
     NanoAssert(IsGpReg(addr));
     
@@ -1638,7 +1633,7 @@ Assembler::asm_ld_imm(Register d, int32_t imm, bool chk )
     
     
     
-    if (AvmCore::config.thumb2 && (d != PC)) {
+    if (ARM_THUMB2 && (d != PC)) {
         
         uint32_t    high_h = (uint32_t)imm >> 16;
         uint32_t    low_h = imm & 0xffff;
@@ -1945,7 +1940,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     NanoAssert((cc != AL) && (cc != NV));
 
     
-    NanoAssert(AvmCore::config.vfp || !fp_cond);
+    NanoAssert(ARM_VFP || !fp_cond);
 
     
     B_cond(cc, targ);
@@ -2158,7 +2153,7 @@ Assembler::asm_arith(LInsp ins)
             
             
             
-            if ((AvmCore::config.arch > 5) || (rr != rb)) {
+            if ((ARM_ARCH > 5) || (rr != rb)) {
                 
                 
                 MUL(rr, rb, ra);
