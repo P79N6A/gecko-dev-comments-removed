@@ -359,6 +359,7 @@ typedef long PRInt32;
 
 
 
+
 #if PR_BYTES_PER_LONG == 8 && !defined(__APPLE__)
 typedef long PRInt64;
 typedef unsigned long PRUint64;
