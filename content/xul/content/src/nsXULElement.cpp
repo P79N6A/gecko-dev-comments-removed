@@ -423,7 +423,7 @@ nsXULElement::QueryInterface(REFNSIID aIID, void** aInstancePtr)
     }
 
     NS_ADDREF(inst);
-
+ 
     *aInstancePtr = inst;
     return NS_OK;
 }
@@ -482,7 +482,7 @@ nsXULElement::GetElementsByAttribute(const nsAString& aAttribute,
     NS_ENSURE_TRUE(attrAtom, NS_ERROR_OUT_OF_MEMORY);
     void* attrValue = new nsString(aValue);
     NS_ENSURE_TRUE(attrValue, NS_ERROR_OUT_OF_MEMORY);
-    nsContentList *list =
+    nsContentList *list = 
         new nsContentList(this,
                           nsXULDocument::MatchAttribute,
                           nsContentUtils::DestroyMatchString,
@@ -515,8 +515,8 @@ nsXULElement::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
 
     void* attrValue = new nsString(aValue);
     NS_ENSURE_TRUE(attrValue, NS_ERROR_OUT_OF_MEMORY);
-
-    nsContentList *list =
+    
+    nsContentList *list = 
         new nsContentList(this,
                           nsXULDocument::MatchAttribute,
                           nsContentUtils::DestroyMatchString,
@@ -598,7 +598,7 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex)
   
   PRBool shouldFocus = PR_FALSE;
 
-  nsCOMPtr<nsIDOMXULControlElement> xulControl =
+  nsCOMPtr<nsIDOMXULControlElement> xulControl = 
     do_QueryInterface(static_cast<nsIContent*>(this));
   if (xulControl) {
     
@@ -1037,7 +1037,7 @@ nsXULElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
     }
 
     rv = nsGenericElement::RemoveChildAt(aIndex, aNotify);
-
+    
     if (newCurrentIndex == -2)
         controlElement->SetCurrentItem(nsnull);
     else if (newCurrentIndex > -1) {
@@ -1108,7 +1108,7 @@ nsXULElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
             attrVal->ToString(oldValue);
             UnregisterAccessKey(oldValue);
         }
-    }
+    } 
     else if (aNamespaceID == kNameSpaceID_None && (aName ==
              nsGkAtoms::command || aName == nsGkAtoms::observes) && IsInDoc()) {
 
@@ -1313,7 +1313,7 @@ nsXULElement::FindAttrValueIn(PRInt32 aNameSpaceID,
   NS_ASSERTION(aName, "Must have attr name");
   NS_ASSERTION(aNameSpaceID != kNameSpaceID_Unknown, "Must have namespace");
   NS_ASSERTION(aValues, "Null value array");
-
+  
   const nsAttrValue* val = FindLocalOrProtoAttr(aNameSpaceID, aName);
   if (val) {
     for (PRInt32 i = 0; aValues[i]; ++i) {
@@ -1330,7 +1330,7 @@ nsresult
 nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
 {
     
-
+    
     NS_ASSERTION(nsnull != aName, "must have attribute name");
     nsresult rv;
 
@@ -2292,9 +2292,9 @@ nsXULElement::SetFocus(nsPresContext* aPresContext)
 void
 nsXULElement::RemoveFocus(nsPresContext* aPresContext)
 {
-  if (!aPresContext)
+  if (!aPresContext) 
     return;
-
+  
   if (IsInDoc()) {
     aPresContext->EventStateManager()->SetContentState(nsnull,
                                                        NS_EVENT_STATE_FOCUS);
@@ -2461,7 +2461,7 @@ nsresult nsXULElement::MakeHeavyweight()
 
         
         nsAttrValue attrValue(protoattr->mValue);
-
+        
         
         if (attrValue.Type() == nsAttrValue::eCSSStyleRule) {
             nsCOMPtr<nsICSSRule> ruleClone;
@@ -2926,7 +2926,7 @@ nsXULPrototypeElement::SetAttrAt(PRUint32 aPos, const nsAString& aValue,
         mHasClassAttribute = PR_TRUE;
         
         mAttributes[aPos].mValue.ParseAtomArray(aValue);
-
+        
         return NS_OK;
     }
     else if (mAttributes[aPos].mName.Equals(nsGkAtoms::style)) {
