@@ -61,7 +61,7 @@ const int NJ_LOG2_PAGE_SIZE = 12;
 
 
 
-
+#define NJ_ARM_VFP
 
 #ifdef NJ_ARM_VFP
 
@@ -206,7 +206,6 @@ verbose_only( extern const char* regNames[]; )
     void nativePageSetup();                                             \
     void asm_quad_nochk(Register, const int32_t*);                      \
     void asm_add_imm(Register, Register, int32_t);                      \
-    void asm_fcmp(LInsp);                                               \
     int* _nSlot;                                                        \
     int* _nExitSlot;
 
