@@ -224,6 +224,23 @@ public:
 
 
 
+  void ClearHasChanged()
+  {
+    NS_ABORT_IF_FALSE(HasChanged(),
+                      "clearing mHasChanged flag, when it's already PR_FALSE");
+    NS_ABORT_IF_FALSE(!IsActiveOrFrozen(),
+                      "clearing mHasChanged flag for active animation");
+    mHasChanged = PR_FALSE;
+  }
+
+  
+
+
+
+
+
+
+
 
 
 

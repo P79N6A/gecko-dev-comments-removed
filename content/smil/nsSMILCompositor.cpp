@@ -107,6 +107,12 @@ nsSMILCompositor::ComposeAttribute()
     
     return;
   }
+  if (mAnimationFunctions.IsEmpty()) {
+    
+    
+    smilAttr->ClearAnimValue();
+    return;
+  }
 
   
   nsSMILAnimationFunction::Comparator comparator;
@@ -114,7 +120,7 @@ nsSMILCompositor::ComposeAttribute()
 
   
   
-  PRBool changed = PR_FALSE;
+  PRBool changed = mForceCompositing;
   PRUint32 length = mAnimationFunctions.Length();
   PRUint32 i;
   for (i = length; i > 0; --i) {

@@ -569,11 +569,24 @@ nsSMILAnimationController::AddAnimationToCompositorTable(
   
   
   if (func.IsActiveOrFrozen()) {
+    
+    
     nsSMILCompositor* result = aCompositorTable->PutEntry(key);
+    result->AddAnimationFunction(&func);
+
+  } else if (func.HasChanged()) {
+    
+    
+    
+    
+    
+    nsSMILCompositor* result = aCompositorTable->PutEntry(key);
+    result->ToggleForceCompositing();
 
     
     
-    result->AddAnimationFunction(&func);
+    
+    func.ClearHasChanged();
   }
 }
 

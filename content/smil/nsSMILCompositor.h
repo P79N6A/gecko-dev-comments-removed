@@ -59,10 +59,14 @@ public:
   typedef const KeyType& KeyTypeRef;
   typedef const KeyType* KeyTypePointer;
 
-  explicit nsSMILCompositor(KeyTypePointer aKey) : mKey(*aKey) { }
+  explicit nsSMILCompositor(KeyTypePointer aKey)
+   : mKey(*aKey),
+     mForceCompositing(PR_FALSE)
+  { }
   nsSMILCompositor(const nsSMILCompositor& toCopy)
     : mKey(toCopy.mKey),
-      mAnimationFunctions(toCopy.mAnimationFunctions)
+      mAnimationFunctions(toCopy.mAnimationFunctions),
+      mForceCompositing(PR_FALSE)
   { }
   ~nsSMILCompositor() { }
 
@@ -87,6 +91,10 @@ public:
   
   void Traverse(nsCycleCollectionTraversalCallback* aCallback);
 
+  
+  
+  void ToggleForceCompositing() { mForceCompositing = PR_TRUE; }
+
  private:
   
   
@@ -103,6 +111,7 @@ public:
   
   
   nsTArray<nsSMILAnimationFunction*> mAnimationFunctions;
+  PRPackedBool mForceCompositing;
 };
 
 #endif 
