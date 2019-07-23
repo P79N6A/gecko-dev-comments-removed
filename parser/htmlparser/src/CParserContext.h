@@ -60,17 +60,20 @@
 
 
 class CParserContext {
+
 public:
-   enum eContextType {eCTNone,eCTURL,eCTString,eCTStream};
 
-   CParserContext(nsScanner* aScanner,
-                  void* aKey = 0,
-                  eParserCommands aCommand = eViewNormal,
-                  nsIRequestObserver* aListener = 0,
-                  nsIDTD* aDTD = 0,
-                  eAutoDetectResult aStatus = eUnknownDetect,
-                  PRBool aCopyUnused = PR_FALSE);
+    enum {eTransferBufferSize=4096};
+    enum eContextType {eCTNone,eCTURL,eCTString,eCTStream};
 
+   CParserContext(  nsScanner* aScanner,
+                    void* aKey=0, 
+                    eParserCommands aCommand=eViewNormal,
+                    nsIRequestObserver* aListener=0, 
+                    nsIDTD *aDTD=0, 
+                    eAutoDetectResult aStatus=eUnknownDetect, 
+                    PRBool aCopyUnused=PR_FALSE); 
+    
     ~CParserContext();
 
     nsresult GetTokenizer(PRInt32 aType,
@@ -80,26 +83,26 @@ public:
 
     nsCOMPtr<nsIRequest> mRequest; 
                                    
-    nsCOMPtr<nsIDTD>     mDTD;
+    nsCOMPtr<nsIDTD>	 mDTD;
     nsCOMPtr<nsIRequestObserver> mListener;
+    nsAutoArrayPtr<char> mTransferBuffer;
     void*                mKey;
     nsCOMPtr<nsITokenizer> mTokenizer;
     CParserContext*      mPrevContext;
     nsAutoPtr<nsScanner> mScanner;
-
+    
     nsCString            mMimeType;
     nsDTDMode            mDTDMode;
-
+    
     eParserDocType       mDocType;
-    eStreamState         mStreamListenerState;
+    eStreamState         mStreamListenerState; 
     eContextType         mContextType;
     eAutoDetectResult    mAutoDetectStatus;
-    eParserCommands      mParserCommand;
+    eParserCommands      mParserCommand;   
 
     PRPackedBool         mMultipart;
     PRPackedBool         mCopyUnused;
-
-    PRUint32             mNumConsumed;
+    PRUint32             mTransferBufferSize;
 };
 
 #endif
