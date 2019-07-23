@@ -51,4 +51,6 @@ function run_test()
   do_check_false(cr.enabled);
   
   cr.enabled = false;
+  
+  cr.enabled = true;
 }
