@@ -43,6 +43,7 @@
 
 
 #include "nsAEGenericClass.h"
+#include "nsDebug.h"
 
 
 class AEWindowIterator : public AEClassIterator
@@ -188,6 +189,87 @@ protected:
 	
 };
 
+
+
+
+
+
+
+
+inline PRBool ValidateDrawingState()
+{
+	CGrafPtr    curPort;
+	GDHandle    curDevice;
+
+	GetGWorld(&curPort, &curDevice);
+
+	
+	
+	
+	{
+		GDHandle    thisDevice = GetDeviceList();
+		while (thisDevice)
+		{
+			if (thisDevice == curDevice)
+				break;
+
+			thisDevice = GetNextDevice(thisDevice);
+		}
+
+		if ((thisDevice == nil) && !IsPortOffscreen(curPort))    
+			return false;
+	}
+
+	return true;
+}
+
+
+
+
+
+
+
+
+
+class StPortSetter
+{
+public:
+	StPortSetter(CGrafPtr newPort)
+	{
+		InitSetter(newPort);
+	}
+
+	StPortSetter(WindowPtr window)
+	{
+		InitSetter(GetWindowPort(window));
+	}
+	
+	~StPortSetter()
+	{
+		if (mPortChanged)
+			::SetGWorld(mOldPort, mOldDevice);
+		NS_ASSERTION(ValidateDrawingState(), "Bad drawing state");
+	}
+
+protected:
+	void InitSetter(CGrafPtr newPort)
+	{
+		NS_ASSERTION(ValidateDrawingState(), "Bad drawing state");
+		
+		
+		mPortChanged = (newPort != CGrafPtr(GetQDGlobalsThePort()));
+		if (mPortChanged)
+		{
+			::GetGWorld(&mOldPort, &mOldDevice);
+			::SetGWorld(newPort, ::IsPortOffscreen(newPort) ? nsnull : ::GetMainDevice());
+		}
+	}
+
+protected:
+	Boolean			mPortChanged;
+	CGrafPtr		mOldPort;
+	GDHandle		mOldDevice;
+};
 
 #endif 
 
