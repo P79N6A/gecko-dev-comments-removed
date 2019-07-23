@@ -39,11 +39,12 @@
   NSString *sourcePath_;              
   NSString *architecture_;            
   NSMutableDictionary *addresses_;    
+  NSMutableSet *functionAddresses_;   
   NSMutableDictionary *sources_;      
   NSMutableArray *cppAddresses_;      
   NSMutableDictionary *headers_;      
-  NSMutableDictionary *lastFunctionStartDict_; 
   NSMutableDictionary *sectionNumbers_; 
+  uint32_t   lastStartAddress_;
 }
 
 - (id)initWithContentsOfFile:(NSString *)machoFile;

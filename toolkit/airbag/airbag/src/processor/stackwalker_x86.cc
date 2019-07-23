@@ -38,6 +38,7 @@
 
 #include "processor/stackwalker_x86.h"
 #include "google_breakpad/processor/call_stack.h"
+#include "google_breakpad/processor/code_modules.h"
 #include "google_breakpad/processor/memory_region.h"
 #include "google_breakpad/processor/stack_frame_cpu.h"
 #include "processor/linked_ptr.h"
@@ -164,16 +165,33 @@ StackFrame* StackwalkerX86::GetCallerFrame(
   
   
   
+  
+  
+  
+  
   string program_string;
+  bool traditional_frame = true;
+  bool recover_ebp = true;
   if (last_frame_info && last_frame_info->valid == StackFrameInfo::VALID_ALL) {
     
+    traditional_frame = false;
     if (!last_frame_info->program_string.empty()) {
+      
       
       
       
       
       program_string = last_frame_info->program_string;
     } else if (last_frame_info->allocates_base_pointer) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
       
       
       
@@ -220,11 +238,21 @@ StackFrame* StackwalkerX86::GetCallerFrame(
       
       
       
+      
+      
+      
+      
+      
       program_string = "$eip .raSearchStart ^ = "
                        "$esp .raSearchStart 4 + = "
                        "$ebp $ebp =";
+      recover_ebp = false;
     }
   } else {
+    
+    
+    
+    
     
     
     
@@ -262,6 +290,91 @@ StackFrame* StackwalkerX86::GetCallerFrame(
       dictionary_validity.find("$esp") == dictionary_validity.end() ||
       dictionary_validity.find("$ebp") == dictionary_validity.end()) {
     return NULL;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  if (!traditional_frame &&
+      (dictionary["$eip"] != 0 || dictionary["$ebp"] != 0)) {
+    int offset = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    u_int32_t eip = dictionary["$eip"];
+    if (modules_ && !modules_->GetModuleForAddress(eip)) {
+      const int kRASearchWords = 15;
+
+      
+      
+      u_int32_t location_start = dictionary[".raSearchStart"] + 4;
+
+      for (u_int32_t location = location_start;
+           location <= location_start + kRASearchWords * 4;
+           location += 4) {
+        if (!memory_->GetMemoryAtAddress(location, &eip))
+          break;
+
+        if (modules_->GetModuleForAddress(eip)) {
+          
+          
+          
+          
+          
+          
+          
+          
+
+          dictionary["$eip"] = eip;
+          dictionary["$esp"] = location + 4;
+          offset = location - location_start;
+          break;
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    u_int32_t ebp = dictionary["$ebp"];
+    u_int32_t value;  
+    if (recover_ebp && !memory_->GetMemoryAtAddress(ebp, &value)) {
+      int fp_search_bytes = last_frame_info->saved_register_size + offset;
+      u_int32_t location_end = last_frame->context.esp +
+                               last_frame_callee_parameter_size;
+
+      for (u_int32_t location = location_end + fp_search_bytes;
+           location >= location_end;
+           location -= 4) {
+        if (!memory_->GetMemoryAtAddress(location, &ebp))
+          break;
+
+        if (memory_->GetMemoryAtAddress(ebp, &value)) {
+          
+          
+          dictionary["$ebp"] = ebp;
+          break;
+        }
+      }
+    }
   }
 
   
