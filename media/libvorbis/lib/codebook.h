@@ -71,15 +71,15 @@ typedef struct encode_aux_nearestmatch{
   long   *p;         
   long   *q;         
   long   aux;        
-  long   alloc;       
+  long   alloc;
 } encode_aux_nearestmatch;
 
 
 typedef struct encode_aux_threshmatch{
   float *quantthresh;
   long   *quantmap;
-  int     quantvals; 
-  int     threshvals; 
+  int     quantvals;
+  int     threshvals;
 } encode_aux_threshmatch;
 
 typedef struct encode_aux_pigeonhole{
@@ -105,7 +105,7 @@ typedef struct codebook{
   
   
 
-  float        *valuelist;    
+  float        *valuelist;  
   ogg_uint32_t *codelist;   
 
   int          *dec_index;  
@@ -141,18 +141,18 @@ extern int vorbis_staticbook_unpack(oggpack_buffer *b,static_codebook *c);
 
 extern int vorbis_book_encode(codebook *book, int a, oggpack_buffer *b);
 extern int vorbis_book_errorv(codebook *book, float *a);
-extern int vorbis_book_encodev(codebook *book, int best,float *a, 
+extern int vorbis_book_encodev(codebook *book, int best,float *a,
                                oggpack_buffer *b);
 
 extern long vorbis_book_decode(codebook *book, oggpack_buffer *b);
-extern long vorbis_book_decodevs_add(codebook *book, float *a, 
+extern long vorbis_book_decodevs_add(codebook *book, float *a,
                                      oggpack_buffer *b,int n);
-extern long vorbis_book_decodev_set(codebook *book, float *a, 
+extern long vorbis_book_decodev_set(codebook *book, float *a,
                                     oggpack_buffer *b,int n);
-extern long vorbis_book_decodev_add(codebook *book, float *a, 
+extern long vorbis_book_decodev_add(codebook *book, float *a,
                                     oggpack_buffer *b,int n);
 extern long vorbis_book_decodevv_add(codebook *book, float **a,
-                                     long off,int ch, 
+                                     long off,int ch,
                                     oggpack_buffer *b,int n);
 
 

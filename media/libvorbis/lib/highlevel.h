@@ -21,7 +21,7 @@ typedef struct highlevel_byblocktype {
   double noise_bias_setting;
   double noise_compand_setting;
 } highlevel_byblocktype;
-  
+
 typedef struct highlevel_encode_setup {
   const void *setup;
   int   set_in_stone;
@@ -38,7 +38,7 @@ typedef struct highlevel_encode_setup {
   long   bitrate_max;
   long   bitrate_reservoir;
   double bitrate_reservoir_bias;
-  
+
   int impulse_block_p;
   int noise_normalize_p;
 
@@ -50,8 +50,7 @@ typedef struct highlevel_encode_setup {
 
   double amplitude_track_dBpersec;
   double trigger_setting;
-  
+
   highlevel_byblocktype block[4]; 
 
 } highlevel_encode_setup;
-

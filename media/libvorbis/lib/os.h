@@ -51,7 +51,7 @@
 
 #if defined(_WIN32) && !defined(__SYMBIAN32__)
 #  include <malloc.h>
-#  define rint(x)   (floor((x)+0.5f)) 
+#  define rint(x)   (floor((x)+0.5f))
 #  define NO_FLOAT_MATH_LIB
 #  define FAST_HYPOT(a, b) sqrt((a)*(a) + (b)*(b))
 #endif
@@ -101,7 +101,7 @@ static inline void vorbis_fpu_setround(vorbis_fpu_control *fpu){
   ogg_int16_t temp;
   __asm__ __volatile__("fnstcw %0\n\t"
           "movw %0,%%dx\n\t"
-          "orw $62463,%%dx\n\t"
+          "andw $62463,%%dx\n\t"
           "movw %%dx,%1\n\t"
           "fldcw %1\n\t":"=m"(ret):"m"(temp): "dx");
   *fpu=ret;

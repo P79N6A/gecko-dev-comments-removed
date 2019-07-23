@@ -23,13 +23,13 @@
 
 #define BLOCKTYPE_IMPULSE    0
 #define BLOCKTYPE_PADDING    1
-#define BLOCKTYPE_TRANSITION 0 
+#define BLOCKTYPE_TRANSITION 0
 #define BLOCKTYPE_LONG       1
 
 #define PACKETBLOBS 15
 
 typedef struct vorbis_block_internal{
-  float  **pcmdelay;   
+  float  **pcmdelay;  
   float  ampmax;
   int    blocktype;
 
@@ -60,7 +60,7 @@ typedef void vorbis_info_mapping;
 
 typedef struct private_state {
   
-  envelope_lookup        *ve;     
+  envelope_lookup        *ve; 
   int                     window[2];
   vorbis_look_transform **transform[2];    
   drft_lookup             fft_look[2];
@@ -127,7 +127,7 @@ typedef struct codec_setup_info {
   highlevel_encode_setup hi; 
 
 
-  int         halfrate_flag;   
+  int         halfrate_flag; 
 } codec_setup_info;
 
 extern vorbis_look_psy_global *_vp_global_look(vorbis_info *vi);
@@ -139,7 +139,7 @@ typedef struct {
   int sorted_index[VIF_POSIT+2];
   int forward_index[VIF_POSIT+2];
   int reverse_index[VIF_POSIT+2];
-  
+
   int hineighbor[VIF_POSIT];
   int loneighbor[VIF_POSIT];
   int posts;
@@ -165,4 +165,3 @@ extern int floor1_encode(oggpack_buffer *opb,vorbis_block *vb,
                   vorbis_look_floor1 *look,
                   int *post,int *ilogmask);
 #endif
-

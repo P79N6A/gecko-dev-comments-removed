@@ -56,7 +56,7 @@
 typedef struct {
   int n;
   int log2n;
-  
+
   DATA_TYPE *trig;
   int       *bitrev;
 
@@ -69,15 +69,3 @@ extern void mdct_forward(mdct_lookup *init, DATA_TYPE *in, DATA_TYPE *out);
 extern void mdct_backward(mdct_lookup *init, DATA_TYPE *in, DATA_TYPE *out);
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-

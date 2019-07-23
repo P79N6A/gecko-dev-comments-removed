@@ -72,7 +72,7 @@ float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
     for(i=j;i<n;i++)d+=(double)data[i]*data[i-j];
     aut[j]=d;
   }
-  
+
   
 
   
@@ -93,10 +93,10 @@ float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
 
 
     for(j=0;j<i;j++)r-=lpc[j]*aut[i-j];
-    r/=error; 
+    r/=error;
 
     
-    
+
     lpc[i]=r;
     for(j=0;j<i/2;j++){
       double tmp=lpc[j];
@@ -111,8 +111,8 @@ float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
   }
 
  done:
-   
-   
+
+  
   {
     double g = .99;
     double damp = g;
@@ -126,7 +126,7 @@ float vorbis_lpc_from_data(float *data,float *lpci,int n,int m){
 
   
 
-  
+
   return error;
 }
 
@@ -154,12 +154,7 @@ void vorbis_lpc_predict(float *coeff,float *prime,int m,
     p=m;
     for(j=0;j<m;j++)
       y-=work[o++]*coeff[--p];
-    
+
     data[i]=work[o]=y;
   }
 }
-
-
-
-
-

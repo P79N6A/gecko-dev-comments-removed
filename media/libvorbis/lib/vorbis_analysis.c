@@ -26,8 +26,6 @@
 #include "os.h"
 #include "misc.h"
 
-int analysis_noisy=1;
-
 
 int vorbis_analysis(vorbis_block *vb, ogg_packet *op){
   int ret,i;
@@ -41,7 +39,7 @@ int vorbis_analysis(vorbis_block *vb, ogg_packet *op){
   
   for(i=0;i<PACKETBLOBS;i++)
     oggpack_reset(vbi->packetblob[i]);
-  
+
   
 
 
@@ -54,7 +52,7 @@ int vorbis_analysis(vorbis_block *vb, ogg_packet *op){
       
 
       return(OV_EINVAL);
-    
+
     op->packet=oggpack_get_buffer(&vb->opb);
     op->bytes=oggpack_bytes(&vb->opb);
     op->b_o_s=0;
@@ -65,43 +63,42 @@ int vorbis_analysis(vorbis_block *vb, ogg_packet *op){
   return(0);
 }
 
+#ifdef ANALYSIS
+int analysis_noisy=1;
+
 
 void _analysis_output_always(char *base,int i,float *v,int n,int bark,int dB,ogg_int64_t off){
-#if 0
   int j;
   FILE *of;
   char buffer[80];
 
-  
-    sprintf(buffer,"%s_%d.m",base,i);
-    of=fopen(buffer,"w");
-    
-    if(!of)perror("failed to open data dump file");
-    
-    for(j=0;j<n;j++){
-      if(bark){
-        float b=toBARK((4000.f*j/n)+.25);
-        fprintf(of,"%f ",b);
-      }else
-        if(off!=0)
-          fprintf(of,"%f ",(double)(j+off)/8000.);
-        else
-          fprintf(of,"%f ",(double)j);
-      
-      if(dB){
-        float val;
-        if(v[j]==0.)
-          val=-140.;
-        else
-          val=todB(v+j);
-        fprintf(of,"%f\n",val);
-      }else{
-        fprintf(of,"%f\n",v[j]);
-      }
+  sprintf(buffer,"%s_%d.m",base,i);
+  of=fopen(buffer,"w");
+
+  if(!of)perror("failed to open data dump file");
+
+  for(j=0;j<n;j++){
+    if(bark){
+      float b=toBARK((4000.f*j/n)+.25);
+      fprintf(of,"%f ",b);
+    }else
+      if(off!=0)
+        fprintf(of,"%f ",(double)(j+off)/8000.);
+      else
+        fprintf(of,"%f ",(double)j);
+
+    if(dB){
+      float val;
+      if(v[j]==0.)
+        val=-140.;
+      else
+        val=todB(v+j);
+      fprintf(of,"%f\n",val);
+    }else{
+      fprintf(of,"%f\n",v[j]);
     }
-    fclose(of);
-    
-#endif
+  }
+  fclose(of);
 }
 
 void _analysis_output(char *base,int i,float *v,int n,int bark,int dB,
@@ -109,7 +106,7 @@ void _analysis_output(char *base,int i,float *v,int n,int bark,int dB,
   if(analysis_noisy)_analysis_output_always(base,i,v,n,bark,dB,off);
 }
 
-
+#endif
 
 
 

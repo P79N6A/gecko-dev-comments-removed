@@ -43,4 +43,3 @@ const vorbis_func_residue   *const _residue_P[]={
 const vorbis_func_mapping   *const _mapping_P[]={
   &mapping0_exportbundle,
 };
-

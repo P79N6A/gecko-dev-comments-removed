@@ -63,9 +63,9 @@ static float unitnorm(float x){
 #define todB(x)   (*(x)==0?-400.f:log(*(x)**(x))*4.34294480f)
 #define todB_nn(x)   (*(x)==0.f?-400.f:log(*(x))*8.6858896f)
 
-#endif 
+#endif
 
-#define fromdB(x) (exp((x)*.11512925f))  
+#define fromdB(x) (exp((x)*.11512925f))
 
 
 
@@ -88,4 +88,3 @@ static float unitnorm(float x){
 #define fromOC(o)   (exp(((o)+5.965784f)*.693147f))
 
 #endif
-

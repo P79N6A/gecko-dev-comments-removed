@@ -82,12 +82,12 @@ static vorbis_info_floor *floor0_unpack (vorbis_info *vi,oggpack_buffer *opb){
   info->ampbits=oggpack_read(opb,6);
   info->ampdB=oggpack_read(opb,8);
   info->numbooks=oggpack_read(opb,4)+1;
-  
+
   if(info->order<1)goto err_out;
   if(info->rate<1)goto err_out;
   if(info->barkmap<1)goto err_out;
   if(info->numbooks<1)goto err_out;
-    
+
   for(j=0;j<info->numbooks;j++){
     info->books[j]=oggpack_read(opb,8);
     if(info->books[j]<0 || info->books[j]>=ci->books)goto err_out;
@@ -122,7 +122,7 @@ static void floor0_map_lazy_init(vorbis_block      *vb,
 
 
     float scale=look->ln/toBARK(info->rate/2.f);
-    
+
     
 
 
@@ -131,7 +131,7 @@ static void floor0_map_lazy_init(vorbis_block      *vb,
 
     look->linearmap[W]=_ogg_malloc((n+1)*sizeof(**look->linearmap));
     for(j=0;j<n;j++){
-      int val=floor( toBARK((info->rate/2.f)/n*j) 
+      int val=floor( toBARK((info->rate/2.f)/n*j)
                      *scale); 
       if(val>=look->ln)val=look->ln-1; 
       look->linearmap[W][j]=val;
@@ -164,7 +164,7 @@ static void *floor0_inverse1(vorbis_block *vb,vorbis_look_floor *i){
     long maxval=(1<<info->ampbits)-1;
     float amp=(float)ampraw/maxval*info->ampdB;
     int booknum=oggpack_read(&vb->opb,_ilog(info->numbooks));
-    
+
     if(booknum!=-1 && booknum<info->numbooks){ 
       codec_setup_info  *ci=vb->vd->vi->codec_setup;
       codebook *b=ci->fullbooks+info->books[booknum];
@@ -174,14 +174,14 @@ static void *floor0_inverse1(vorbis_block *vb,vorbis_look_floor *i){
 
 
       float *lsp=_vorbis_block_alloc(vb,sizeof(*lsp)*(look->m+b->dim+1));
-            
+
       for(j=0;j<look->m;j+=b->dim)
         if(vorbis_book_decodev_set(b,lsp+j,&vb->opb,b->dim)==-1)goto eop;
       for(j=0;j<look->m;){
         for(k=0;k<b->dim;k++,j++)lsp[j]+=last;
         last=lsp[j-1];
       }
-      
+
       lsp[look->m]=amp;
       return(lsp);
     }
@@ -194,7 +194,7 @@ static int floor0_inverse2(vorbis_block *vb,vorbis_look_floor *i,
                            void *memo,float *out){
   vorbis_look_floor0 *look=(vorbis_look_floor0 *)i;
   vorbis_info_floor0 *info=look->vi;
-  
+
   floor0_map_lazy_init(vb,info,look);
 
   if(memo){
@@ -218,6 +218,3 @@ const vorbis_func_floor floor0_exportbundle={
   NULL,&floor0_unpack,&floor0_look,&floor0_free_info,
   &floor0_free_look,&floor0_inverse1,&floor0_inverse2
 };
-
-
-

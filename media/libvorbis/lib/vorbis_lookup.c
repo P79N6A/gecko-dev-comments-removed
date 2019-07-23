@@ -60,12 +60,12 @@ float vorbis_fromdBlook(float a){
 
 
 long vorbis_invsqlook_i(long a,long e){
-  long i=(a&0x7fff)>>(INVSQ_LOOKUP_I_SHIFT-1); 
+  long i=(a&0x7fff)>>(INVSQ_LOOKUP_I_SHIFT-1);
   long d=(a&INVSQ_LOOKUP_I_MASK)<<(16-INVSQ_LOOKUP_I_SHIFT); 
   long val=INVSQ_LOOKUP_I[i]-                                
     (((INVSQ_LOOKUP_I[i]-INVSQ_LOOKUP_I[i+1])*               
       d)>>16);                                               
-  
+
   e+=32;
   if(e&1)val=(val*5792)>>13; 
   e=(e>>1)-8;

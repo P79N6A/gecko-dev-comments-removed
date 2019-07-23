@@ -76,11 +76,11 @@ typedef struct{
   float ampmax_att_per_sec;
 
   
-  int   coupling_pkHz[PACKETBLOBS];  
-  int   coupling_pointlimit[2][PACKETBLOBS];  
-  int   coupling_prepointamp[PACKETBLOBS];  
-  int   coupling_postpointamp[PACKETBLOBS];  
-  int   sliding_lowpass[2][PACKETBLOBS];  
+  int   coupling_pkHz[PACKETBLOBS];
+  int   coupling_pointlimit[2][PACKETBLOBS];
+  int   coupling_prepointamp[PACKETBLOBS];
+  int   coupling_postpointamp[PACKETBLOBS];
+  int   sliding_lowpass[2][PACKETBLOBS];
 
 } vorbis_info_psy_global;
 
@@ -89,7 +89,7 @@ typedef struct {
   int   channels;
 
   vorbis_info_psy_global *gi;
-  int   coupling_pointlimit[2][P_NOISECURVES];  
+  int   coupling_pointlimit[2][P_NOISECURVES];
 } vorbis_look_psy_global;
 
 
@@ -107,7 +107,7 @@ typedef struct {
   long  firstoc;
   long  shiftoc;
   int   eighth_octave_lines; 
-  int   total_octave_lines;  
+  int   total_octave_lines;
   long  rate; 
 
   float m_val; 
@@ -129,7 +129,7 @@ extern void _vp_remove_floor(vorbis_look_psy *p,
                              int sliding_lowpass);
 
 extern void _vp_noisemask(vorbis_look_psy *p,
-                          float *logmdct, 
+                          float *logmdct,
                           float *logmask);
 
 extern void _vp_tonemask(vorbis_look_psy *p,
@@ -183,4 +183,3 @@ extern void hf_reduction(vorbis_info_psy_global *g,
 
 
 #endif
-

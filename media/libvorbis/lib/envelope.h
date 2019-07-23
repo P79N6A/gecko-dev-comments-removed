@@ -78,4 +78,3 @@ extern int  _ve_envelope_mark(vorbis_dsp_state *v);
 
 
 #endif
-

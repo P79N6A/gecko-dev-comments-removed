@@ -34,7 +34,7 @@ int vorbis_synthesis(vorbis_block *vb,ogg_packet *op){
   if (!vd || !b || !vi || !ci || !opb) {
     return OV_EBADPACKET;
   }
- 
+
   
   _vorbis_block_ripcord(vb);
   oggpack_readinit(opb,op->packet,op->bytes);
@@ -50,7 +50,7 @@ int vorbis_synthesis(vorbis_block *vb,ogg_packet *op){
   if(mode==-1) {
     return(OV_EBADPACKET);
   }
-  
+
   vb->mode=mode;
   if(!ci->mode_param[mode]) {
     return(OV_EBADPACKET); 
@@ -67,7 +67,7 @@ int vorbis_synthesis(vorbis_block *vb,ogg_packet *op){
     vb->lW=0;
     vb->nW=0;
   }
-  
+
   
   vb->granulepos=op->granulepos;
   vb->sequence=op->packetno;
@@ -95,7 +95,7 @@ int vorbis_synthesis_trackonly(vorbis_block *vb,ogg_packet *op){
   codec_setup_info     *ci=vi->codec_setup;
   oggpack_buffer       *opb=&vb->opb;
   int                   mode;
- 
+
   
   _vorbis_block_ripcord(vb);
   oggpack_readinit(opb,op->packet,op->bytes);
@@ -109,7 +109,7 @@ int vorbis_synthesis_trackonly(vorbis_block *vb,ogg_packet *op){
   
   mode=oggpack_read(opb,b->modebits);
   if(mode==-1)return(OV_EBADPACKET);
-  
+
   vb->mode=mode;
   vb->W=ci->mode_param[mode]->blockflag;
   if(vb->W){
@@ -120,7 +120,7 @@ int vorbis_synthesis_trackonly(vorbis_block *vb,ogg_packet *op){
     vb->lW=0;
     vb->nW=0;
   }
-  
+
   
   vb->granulepos=op->granulepos;
   vb->sequence=op->packetno;
@@ -137,7 +137,7 @@ long vorbis_packet_blocksize(vorbis_info *vi,ogg_packet *op){
   codec_setup_info     *ci=vi->codec_setup;
   oggpack_buffer       opb;
   int                  mode;
- 
+
   oggpack_readinit(&opb,op->packet,op->bytes);
 
   
@@ -164,7 +164,7 @@ long vorbis_packet_blocksize(vorbis_info *vi,ogg_packet *op){
 int vorbis_synthesis_halfrate(vorbis_info *vi,int flag){
   
   codec_setup_info     *ci=vi->codec_setup;
-  
+
   
   if(ci->blocksizes[0]<=64 && flag)return -1;
   ci->halfrate_flag=(flag?1:0);
@@ -175,5 +175,3 @@ int vorbis_synthesis_halfrate_p(vorbis_info *vi){
   codec_setup_info     *ci=vi->codec_setup;
   return ci->halfrate_flag;
 }
-
-

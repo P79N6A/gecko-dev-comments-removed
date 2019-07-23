@@ -68,16 +68,16 @@ typedef struct{
   int   class_subbook[VIF_CLASS][8]; 
 
 
-  int   mult;                       
-  int   postlist[VIF_POSIT+2];     
+  int   mult;                      
+  int   postlist[VIF_POSIT+2];    
 
 
   
-  float maxover;     
-  float maxunder;  
-  float maxerr;    
+  float maxover;
+  float maxunder;
+  float maxerr;
 
-  float twofitweight;  
+  float twofitweight;
   float twofitatten;
 
   int   n;
@@ -111,10 +111,10 @@ typedef struct vorbis_info_residue0{
   int    partitions;       
   int    groupbook;        
   int    secondstages[64]; 
-  int    booklist[256];    
+  int    booklist[512];    
 
-  const float classmetric1[64];  
-  const float classmetric2[64];  
+  const float classmetric1[64];
+  const float classmetric2[64];
 } vorbis_info_residue0;
 
 
@@ -130,7 +130,7 @@ typedef struct{
 typedef struct vorbis_info_mapping0{
   int   submaps;  
   int   chmuxlist[256];   
-  
+
   int   floorsubmap[16];   
   int   residuesubmap[16]; 
 
@@ -141,5 +141,3 @@ typedef struct vorbis_info_mapping0{
 } vorbis_info_mapping0;
 
 #endif
-
-

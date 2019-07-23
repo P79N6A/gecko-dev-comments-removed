@@ -31,7 +31,7 @@ void vorbis_bitrate_init(vorbis_info *vi,bitrate_manager_state *bm){
   bitrate_manager_info *bi=&ci->bi;
 
   memset(bm,0,sizeof(*bm));
-  
+
   if(bi && (bi->reservoir_bits>0)){
     long ratesamples=vi->rate;
     int  halfsamples=ci->blocksizes[0]>>1;
@@ -42,8 +42,8 @@ void vorbis_bitrate_init(vorbis_info *vi,bitrate_manager_state *bm){
     bm->avg_bitsper= rint(1.*bi->avg_rate*halfsamples/ratesamples);
     bm->min_bitsper= rint(1.*bi->min_rate*halfsamples/ratesamples);
     bm->max_bitsper= rint(1.*bi->max_rate*halfsamples/ratesamples);
-    
-    bm->avgfloat=PACKETBLOBS/2;    
+
+    bm->avgfloat=PACKETBLOBS/2;
 
     
 
@@ -53,7 +53,7 @@ void vorbis_bitrate_init(vorbis_info *vi,bitrate_manager_state *bm){
       bm->avg_reservoir=desired_fill;
     }
 
-  }    
+  }
 }
 
 void vorbis_bitrate_clear(bitrate_manager_state *bm){
@@ -63,7 +63,7 @@ void vorbis_bitrate_clear(bitrate_manager_state *bm){
 
 int vorbis_bitrate_managed(vorbis_block *vb){
   vorbis_dsp_state      *vd=vb->vd;
-  private_state         *b=vd->backend_state; 
+  private_state         *b=vd->backend_state;
   bitrate_manager_state *bm=&b->bms;
 
   if(bm && bm->managed)return(1);
@@ -74,7 +74,7 @@ int vorbis_bitrate_managed(vorbis_block *vb){
 int vorbis_bitrate_addblock(vorbis_block *vb){
   vorbis_block_internal *vbi=vb->internal;
   vorbis_dsp_state      *vd=vb->vd;
-  private_state         *b=vd->backend_state; 
+  private_state         *b=vd->backend_state;
   bitrate_manager_state *bm=&b->bms;
   vorbis_info           *vi=vd->vi;
   codec_setup_info      *ci=vi->codec_setup;
@@ -89,7 +89,7 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
   if(!bm->managed){
     
 
-    
+
     if(bm->vb)return(-1); 
 
     bm->vb=vb;
@@ -97,7 +97,7 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
   }
 
   bm->vb=vb;
-  
+
   
   if(bm->avg_bitsper>0){
     double slew=0.;
@@ -149,7 +149,7 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
       }
     }
   }
-  
+
   
   if(bm->max_bitsper>0){
     
@@ -170,9 +170,9 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
 
     long maxsize=(max_target_bits+(bi->reservoir_bits-bm->minmax_reservoir))/8;
     bm->choice=choice=0;
-    
+
     if(oggpack_bytes(vbi->packetblob[choice])>maxsize){
-      
+
       oggpack_writetrunc(vbi->packetblob[choice],maxsize*8);
       this_bits=oggpack_bytes(vbi->packetblob[choice])*8;
     }
@@ -220,7 +220,7 @@ int vorbis_bitrate_addblock(vorbis_block *vb){
 
   
   if(bm->avg_bitsper>0){
-    long avg_target_bits=(vb->W?bm->avg_bitsper*bm->short_per_long:bm->avg_bitsper);    
+    long avg_target_bits=(vb->W?bm->avg_bitsper*bm->short_per_long:bm->avg_bitsper);
     bm->avg_reservoir+=this_bits-avg_target_bits;
   }
 
@@ -236,7 +236,7 @@ int vorbis_bitrate_flushpacket(vorbis_dsp_state *vd,ogg_packet *op){
 
   if(op){
     vorbis_block_internal *vbi=vb->internal;
-    
+
     if(vorbis_bitrate_managed(vb))
       choice=bm->choice;
 
@@ -247,7 +247,7 @@ int vorbis_bitrate_flushpacket(vorbis_dsp_state *vd,ogg_packet *op){
     op->granulepos=vb->granulepos;
     op->packetno=vb->sequence; 
   }
-  
+
   bm->vb=0;
   return(1);
 }
