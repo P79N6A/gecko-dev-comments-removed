@@ -162,6 +162,7 @@ nsSecureBrowserUIImpl::nsSecureBrowserUIImpl()
   mMonitor = PR_NewMonitor();
   mOnStateLocationChangeReentranceDetection = 0;
   mTransferringRequests.ops = nsnull;
+  mInconsistency = PR_FALSE;
   mNewToplevelSecurityState = STATE_IS_INSECURE;
   mNewToplevelIsEV = PR_FALSE;
   mNewToplevelSecurityStateKnown = PR_TRUE;
@@ -596,10 +597,6 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
                                      PRUint32 aProgressStateFlags,
                                      nsresult aStatus)
 {
-  nsAutoAtomic atomic(mOnStateLocationChangeReentranceDetection);
-  NS_ASSERTION(mOnStateLocationChangeReentranceDetection == 1,
-               "unexpected parallel nsIWebProgress OnStateChange and/or OnLocationChange notification");
-
   
 
 
@@ -690,19 +687,43 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
 
 
 
-  nsCOMPtr<nsIDOMWindow> windowForProgress;
-  aWebProgress->GetDOMWindow(getter_AddRefs(windowForProgress));
+  nsAutoAtomic atomic(mOnStateLocationChangeReentranceDetection);
+  if (mOnStateLocationChangeReentranceDetection > 1)
+  {
+    nsAutoMonitor lock(mMonitor);
+    mInconsistency = PR_TRUE;
+    
+    return NS_ERROR_FAILURE;
+  }
 
+  PRBool mustResetAfterInconsistency = PR_FALSE;
+
+  nsCOMPtr<nsIDOMWindow> windowForProgress;
   nsCOMPtr<nsIDOMWindow> window;
   PRBool isViewSource;
 
   {
     nsAutoMonitor lock(mMonitor);
+
+    if (mInconsistency) {
+      mInconsistency = PR_FALSE;
+      mustResetAfterInconsistency = PR_TRUE;
+    }
+
     window = do_QueryReferent(mWindow);
     NS_ASSERTION(window, "Window has gone away?!");
     isViewSource = mIsViewSource;
   }
 
+  if (mustResetAfterInconsistency) {
+    mNewToplevelSecurityState = STATE_IS_INSECURE;
+    mNewToplevelIsEV = PR_FALSE;
+    mNewToplevelSecurityStateKnown = PR_TRUE;
+    mSSLStatus = nsnull;
+    ResetStateTracking();
+  }
+
+  aWebProgress->GetDOMWindow(getter_AddRefs(windowForProgress));
   const PRBool isToplevelProgress = (windowForProgress.get() == window.get());
   
 #ifdef PR_LOGGING
@@ -1251,8 +1272,8 @@ void nsSecureBrowserUIImpl::UpdateMyFlags(PRBool &showWarning, lockIconState &wa
   mNotifiedToplevelIsEV = mNewToplevelIsEV;
 }
 
-nsresult nsSecureBrowserUIImpl::TellTheWorld(PRBool &showWarning, 
-                                             lockIconState &warnSecurityState, 
+nsresult nsSecureBrowserUIImpl::TellTheWorld(PRBool showWarning, 
+                                             lockIconState warnSecurityState, 
                                              nsIRequest* aRequest)
 {
   nsCOMPtr<nsISecurityEventSink> temp_ToplevelEventSink;
@@ -1319,8 +1340,20 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
                                         nsIURI* aLocation)
 {
   nsAutoAtomic atomic(mOnStateLocationChangeReentranceDetection);
-  NS_ASSERTION(mOnStateLocationChangeReentranceDetection == 1,
-               "unexpected parallel nsIWebProgress OnStateChange and/or OnLocationChange notification");
+  if (mOnStateLocationChangeReentranceDetection > 1)
+  {
+    nsAutoMonitor lock(mMonitor);
+    mInconsistency = PR_TRUE;
+    
+    
+    return NS_ERROR_FAILURE;
+  }
+  
+  
+  
+  
+  
+  
 
   PRBool updateIsViewSource = PR_FALSE;
   PRBool temp_IsViewSource = PR_FALSE;
@@ -1344,6 +1377,9 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
 
   {
     nsAutoMonitor lock(mMonitor);
+    if (mInconsistency) {
+      return NS_ERROR_FAILURE;
+    }
     if (updateIsViewSource) {
       mIsViewSource = temp_IsViewSource;
     }

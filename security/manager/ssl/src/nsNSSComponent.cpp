@@ -1722,6 +1722,19 @@ nsNSSComponent::Init()
     return rv;
   }      
 
+  
+  
+  
+  
+  {
+    NS_NAMED_LITERAL_STRING(dummy_name, "dummy");
+    nsXPIDLString result;
+    mPIPNSSBundle->GetStringFromName(dummy_name.get(),
+                                     getter_Copies(result));
+    mNSSErrorsBundle->GetStringFromName(dummy_name.get(),
+                                        getter_Copies(result));
+  }
+
   if (!mPrefBranch) {
     mPrefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
     NS_ASSERTION(mPrefBranch, "Unable to get pref service");

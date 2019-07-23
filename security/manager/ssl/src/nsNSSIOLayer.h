@@ -198,14 +198,15 @@ protected:
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   PRFileDesc* mFd;
   nsCOMPtr<nsIX509Cert> mCert;
-  nsCOMPtr<nsIX509Cert> mPreviousCert;
+  nsCOMPtr<nsIX509Cert> mPreviousCert; 
   enum { 
     blocking_state_unknown, is_nonblocking_socket, is_blocking_socket 
   } mBlockingState;
   PRUint32 mSecurityState;
   nsString mShortDesc;
   nsString mErrorMessage;
-  PRPackedBool mExternalErrorReporting;
+  PRPackedBool mDocShellDependentStuffKnown;
+  PRPackedBool mExternalErrorReporting; 
   PRPackedBool mForSTARTTLS;
   PRPackedBool mHandshakePending;
   PRPackedBool mCanceled;
@@ -222,6 +223,8 @@ protected:
   nsresult ActivateSSL();
 
   nsSSLSocketThreadData *mThreadData;
+
+  nsresult EnsureDocShellDependentStuffKnown();
 
 private:
   virtual void virtualDestroyNSSReference();
