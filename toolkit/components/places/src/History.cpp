@@ -53,6 +53,13 @@ namespace places {
 
 
 
+#define URI_VISITED "visited"
+#define URI_NOT_VISITED "not visited"
+#define URI_VISITED_RESOLUTION_TOPIC "visited-status-resolution"
+
+
+
+
 namespace {
 
 class VisitedQuery : public mozIStorageStatementCallback
@@ -105,6 +112,24 @@ public:
     if (mIsVisited) {
       History::GetService()->NotifyVisited(mURI);
     }
+
+    
+    
+    nsCOMPtr<nsIObserverService> observerService =
+      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+    if (observerService) {
+      nsAutoString status;
+      if (mIsVisited) {
+        status.AssignLiteral(URI_VISITED);
+      }
+      else {
+        status.AssignLiteral(URI_NOT_VISITED);
+      }
+      (void)observerService->NotifyObservers(mURI,
+                                             URI_VISITED_RESOLUTION_TOPIC,
+                                             status.get());
+    }
+
     return NS_OK;
   }
 private:
