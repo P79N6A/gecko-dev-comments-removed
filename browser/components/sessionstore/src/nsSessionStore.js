@@ -1581,33 +1581,68 @@ SessionStoreService.prototype = {
     let node = formNodes.iterateNext();
     if (!node)
       return null;
-    
+
     const MAX_GENERATED_XPATHS = 100;
     let generatedCount = 0;
-    
+
     let data = {};
     do {
+      let nId = node.id;
+      let hasDefaultValue = true;
+      let value;
+
       
-      if (!node.id && ++generatedCount > MAX_GENERATED_XPATHS)
+      if (!nId && generatedCount > MAX_GENERATED_XPATHS)
         continue;
-      
-      let id = node.id ? "#" + node.id : XPathHelper.generate(node);
-      if (node instanceof Ci.nsIDOMHTMLInputElement) {
-        if (node.type != "file")
-          data[id] = node.type == "checkbox" || node.type == "radio" ? node.checked : node.value;
-        else
-          data[id] = { type: "file", fileList: node.mozGetFileNameArray() };
+
+      if (node instanceof Ci.nsIDOMHTMLInputElement ||
+          node instanceof Ci.nsIDOMHTMLTextAreaElement) {
+        switch (node.type) {
+          case "checkbox":
+          case "radio":
+            value = node.checked;
+            hasDefaultValue = value == node.defaultChecked;
+            break;
+          case "file":
+            value = { type: "file", fileList: node.mozGetFileNameArray() };
+            hasDefaultValue = !value.fileList.length;
+            break;
+          default: 
+            value = node.value;
+            hasDefaultValue = value == node.defaultValue;
+            break;
+        }
       }
-      else if (node instanceof Ci.nsIDOMHTMLTextAreaElement)
-        data[id] = node.value;
-      else if (!node.multiple)
-        data[id] = node.selectedIndex;
+      else if (!node.multiple) {
+        
+        
+        hasDefaultValue = false;
+        value = node.selectedIndex;
+      }
       else {
-        let options = Array.map(node.options, function(aOpt, aIx) aOpt.selected ? aIx : -1);
-        data[id] = options.filter(function(aIx) aIx >= 0);
+        
+        
+        let options = Array.map(node.options, function(aOpt, aIx) {
+          let oSelected = aOpt.selected;
+          hasDefaultValue = hasDefaultValue && (oSelected == aOpt.defaultSelected);
+          return oSelected ? aIx : -1;
+        });
+        value = options.filter(function(aIx) aIx >= 0);
       }
+      
+      
+      if (!hasDefaultValue) {
+        if (nId) {
+          data["#" + nId] = value;
+        }
+        else {
+          generatedCount++;
+          data[XPathHelper.generate(node)] = value;
+        }
+      }
+
     } while ((node = formNodes.iterateNext()));
-    
+
     return data;
   },
 
