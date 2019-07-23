@@ -611,13 +611,20 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex)
   }
 
   if (aTabIndex) {
-    if (xulControl && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
-      
-      
-      PRInt32 tabIndex = 0;
-      xulControl->GetTabIndex(&tabIndex);
-      shouldFocus = *aTabIndex >= 0 || tabIndex >= 0;
-      *aTabIndex = tabIndex;
+    if (xulControl) {
+      if (HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
+        
+        
+        PRInt32 tabIndex = 0;
+        xulControl->GetTabIndex(&tabIndex);
+        shouldFocus = *aTabIndex >= 0 || tabIndex >= 0;
+        *aTabIndex = tabIndex;
+      }
+      else {
+        
+        
+        shouldFocus = *aTabIndex >= 0;
+      }
 
       if (shouldFocus && sTabFocusModelAppliesToXUL &&
           !(sTabFocusModel & eTabFocus_formElementsMask)) {
