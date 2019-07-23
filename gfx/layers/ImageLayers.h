@@ -167,6 +167,11 @@ public:
     return mManager;
   }
 
+  
+
+
+  virtual gfxIntSize GetCurrentSize() = 0;
+
 protected:
   LayerManager* mManager;
 
