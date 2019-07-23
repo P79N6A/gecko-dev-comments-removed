@@ -2697,8 +2697,10 @@ const BrowserSearch = {
     }
 
     
+    
+    
     var iconURL = null;
-    if (gBrowser.shouldLoadFavIcon(browser.currentURI))
+    if (gBrowser.shouldLoadFavIcon(browser.contentDocument.documentURIObject))
       iconURL = browser.currentURI.prePath + "/favicon.ico";
 
     var hidden = false;

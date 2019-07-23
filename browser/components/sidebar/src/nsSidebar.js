@@ -205,7 +205,11 @@ function (aDescriptionURL)
   var win = WINMEDSVC.getMostRecentWindow("navigator:browser");
   var browser = win.document.getElementById("content");
   var iconURL = "";
-  if (browser.shouldLoadFavIcon(browser.selectedBrowser.currentURI))
+  
+  
+  if (browser.shouldLoadFavIcon(browser.selectedBrowser
+                                       .contentDocument
+                                       .documentURIObject))
     iconURL = win.gProxyFavIcon.getAttribute("src");
   
   if (!this.validateSearchEngine(aDescriptionURL, iconURL))
