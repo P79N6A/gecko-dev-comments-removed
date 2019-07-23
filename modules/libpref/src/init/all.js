@@ -944,6 +944,9 @@ pref("ui.key.menuAccessKeyFocuses", false);
 pref("ui.key.saveLink.shift", true); 
 
 
+pref("ui.use_activity_cursor", false);
+
+
 pref("middlemouse.paste", false);
 pref("middlemouse.openNewWindow", true);
 pref("middlemouse.contentLoadURL", false);

@@ -3254,6 +3254,24 @@ nsEventStateManager::UpdateCursor(nsPresContext* aPresContext,
       hotspotY = framecursor.mHotspotY;
   }
 
+  if (nsContentUtils::GetBoolPref("ui.use_activity_cursor", PR_FALSE)) {
+    
+    nsCOMPtr<nsISupports> pcContainer = aPresContext->GetContainer();
+    nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(pcContainer));
+    if (!docShell) return;
+    PRUint32 busyFlags = nsIDocShell::BUSY_FLAGS_NONE;
+    docShell->GetBusyFlags(&busyFlags);
+
+    
+    
+    if (busyFlags & nsIDocShell::BUSY_FLAGS_BUSY &&
+          (cursor == NS_STYLE_CURSOR_AUTO || cursor == NS_STYLE_CURSOR_DEFAULT))
+    {
+      cursor = NS_STYLE_CURSOR_SPINNING;
+      container = nsnull;
+    }
+  }
+
   if (aTargetFrame) {
     SetCursor(cursor, container, haveHotspot, hotspotX, hotspotY,
               aTargetFrame->GetWindow(), PR_FALSE);
