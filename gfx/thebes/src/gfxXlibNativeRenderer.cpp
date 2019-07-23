@@ -154,7 +154,7 @@ gfxXlibNativeRenderer::Draw(Display* dpy, gfxContext* ctx, int width, int height
     
     
     result.surface = NULL;
-  
+
     if (output) {
         output->mSurface = NULL;
         output->mUniformAlpha = PR_FALSE;
