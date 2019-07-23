@@ -339,7 +339,7 @@ pref("browser.tabs.closeButtons", 1);
 
 pref("browser.tabs.selectOwnerOnClose", true);
 
-pref("browser.ctrlTab.previews", true);
+pref("browser.ctrlTab.mostRecentlyUsed", true);
 pref("browser.ctrlTab.recentlyUsedLimit", 7);
 
 
