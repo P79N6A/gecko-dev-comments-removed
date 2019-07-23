@@ -119,6 +119,33 @@ my_ErrorReporter(JSContext *cx, const char *message, JSErrorReport *report)
     int i, j, k, n;
     char *prefix = NULL, *tmp;
     const char *ctmp;
+    JSStackFrame * fp = nsnull;
+    nsCOMPtr<nsIXPConnect> xpc;
+
+    
+    
+    while ((fp = JS_FrameIterator(cx, &fp))) {
+        if (!JS_IsNativeFrame(cx, fp)) {
+            return;
+        }
+    }
+
+    
+    
+    if ((xpc = do_GetService(nsIXPConnect::GetCID()))) {
+        nsAXPCNativeCallContext *cc = nsnull;
+        xpc->GetCurrentNativeCallContext(&cc);
+        if (cc) {
+            nsAXPCNativeCallContext *prev = cc;
+            while (NS_SUCCEEDED(prev->GetPreviousCallContext(&prev)) && prev) {
+                PRUint16 lang;
+                if (NS_SUCCEEDED(prev->GetLanguage(&lang)) &&
+                    lang == nsAXPCNativeCallContext::LANG_JS) {
+                    return;
+                }
+            }
+        }
+    }
 
     if (!report) {
         fprintf(gErrFile, "%s\n", message);
