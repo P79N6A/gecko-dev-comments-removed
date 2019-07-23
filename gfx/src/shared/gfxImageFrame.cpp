@@ -45,9 +45,7 @@ NS_IMPL_ISUPPORTS2(gfxImageFrame, gfxIImageFrame, nsIInterfaceRequestor)
 gfxImageFrame::gfxImageFrame() :
   mInitialized(PR_FALSE),
   mMutable(PR_TRUE),
-  mHasBackgroundColor(PR_FALSE),
   mTimeout(100),
-  mBackgroundColor(0),
   mDisposalMethod(0)
 {
   
@@ -104,7 +102,6 @@ NS_IMETHODIMP gfxImageFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt3
   NS_ASSERTION(mImage, "creation of image failed");
   if (NS_FAILED(rv)) return rv;
 
-  gfx_depth depth = aDepth;
   nsMaskRequirements maskReq;
 
   switch (aFormat) {
@@ -135,10 +132,8 @@ NS_IMETHODIMP gfxImageFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt3
     break;
   }
 
-  rv = mImage->Init(aWidth, aHeight, depth, maskReq);
+  rv = mImage->Init(aWidth, aHeight, aDepth, maskReq);
   if (NS_FAILED(rv)) return rv;
-
-  mTopToBottom = mImage->GetIsRowOrderTopToBottom();
 
   mInitialized = PR_TRUE;
   return NS_OK;
@@ -277,98 +272,6 @@ NS_IMETHODIMP gfxImageFrame::GetImageData(PRUint8 **aData, PRUint32 *length)
 }
 
 
-NS_IMETHODIMP gfxImageFrame::SetImageData(const PRUint8 *aData, PRUint32 aLength, PRInt32 aOffset)
-{
-  return SetData(aData, aLength, aOffset, PR_FALSE);
-}
-
-nsresult gfxImageFrame::SetData(const PRUint8 *aData, PRUint32 aLength, 
-                                PRInt32 aOffset, PRBool aSetAlpha)
-{
-  if (!mInitialized)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  NS_ASSERTION(mMutable, "trying to set data on an immutable frame");
-  NS_ASSERTION(!(aOffset<0), "can't have a negative offset");
-  if (!mMutable || aOffset < 0)
-    return NS_ERROR_FAILURE;
-
-  if (aSetAlpha && !mImage->GetHasAlphaMask())
-    return NS_ERROR_NOT_INITIALIZED;
-
-  if (aLength == 0)
-    return NS_OK;
-
-  mImage->LockImagePixels(aSetAlpha);
-  PRUint8 *imgData = aSetAlpha ? mImage->GetAlphaBits() : mImage->GetBits();
-  const PRUint32 rowStride = aSetAlpha ? mImage->GetAlphaLineStride() : mImage->GetLineStride();
-  const PRUint32 dataLength = rowStride * mSize.height;
-  const PRUint32 numRowsToSet = 1 + ((aLength-1) / rowStride);
-  const PRUint32 firstRowToSet = (aOffset / rowStride);
-
-  
-  
-  if ((((PRUint32)aOffset + aLength) > dataLength) || !imgData) {
-    mImage->UnlockImagePixels(aSetAlpha);
-    return NS_ERROR_FAILURE;
-  }
-
-  if (mTopToBottom) {
-    
-    if (aData)
-      memcpy(imgData + aOffset, aData, aLength);
-    else
-      memset(imgData + aOffset, 0, aLength);
-  } else {
-    
-    
-    PRUint32 xOffset = aOffset % rowStride;
-    PRUint32 yOffset = (mSize.height - firstRowToSet - 1) * rowStride;
-    if (aData) {
-      
-      for (PRUint32 i=0; i<numRowsToSet; i++) {
-        PRUint32 lengthOfRowToSet = rowStride - xOffset;
-        lengthOfRowToSet = PR_MIN(lengthOfRowToSet, aLength);
-        memcpy(imgData + yOffset + xOffset, aData, lengthOfRowToSet);
-        aData += lengthOfRowToSet;
-        aLength -= lengthOfRowToSet;
-        yOffset -= rowStride;
-        xOffset = 0;
-      }
-    } else {
-      
-      if (xOffset) {
-        
-        PRUint32 lengthOfRowToSet = rowStride - xOffset;
-        lengthOfRowToSet = PR_MIN(lengthOfRowToSet, aLength);
-        memset(imgData + yOffset + xOffset, 0, lengthOfRowToSet);
-        aLength -= lengthOfRowToSet;
-        yOffset -= rowStride;
-      }
-      if (aLength > rowStride) {
-        
-        const PRUint32 wholeRows = rowStride * (PRUint32)(aLength / rowStride);
-        memset(imgData + yOffset - (wholeRows - rowStride), 0, wholeRows);
-        aLength -= wholeRows;
-        yOffset -= wholeRows;
-      }
-      if (aLength) {
-        
-        memset(imgData + yOffset, 0, aLength);
-      }
-    }
-  }
-  mImage->UnlockImagePixels(aSetAlpha);
-
-  if (!aSetAlpha) {
-    
-    nsIntRect r(0, firstRowToSet, mSize.width, numRowsToSet);
-    mImage->ImageUpdated(nsnull, nsImageUpdateFlags_kBitsChanged, &r);
-  }
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP gfxImageFrame::LockImageData()
 {
   if (!mInitialized)
@@ -384,64 +287,6 @@ NS_IMETHODIMP gfxImageFrame::UnlockImageData()
     return NS_ERROR_NOT_INITIALIZED;
 
   return mImage->UnlockImagePixels(PR_FALSE);
-}
-
-
-NS_IMETHODIMP gfxImageFrame::GetAlphaBytesPerRow(PRUint32 *aBytesPerRow)
-{
-  if (!mInitialized || !mImage->GetHasAlphaMask())
-    return NS_ERROR_NOT_INITIALIZED;
-
-  *aBytesPerRow = mImage->GetAlphaLineStride();
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP gfxImageFrame::GetAlphaDataLength(PRUint32 *aBitsLength)
-{
-  if (!mInitialized || !mImage->GetHasAlphaMask())
-    return NS_ERROR_NOT_INITIALIZED;
-
-  *aBitsLength = mImage->GetAlphaLineStride() * mSize.height;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP gfxImageFrame::GetAlphaData(PRUint8 **aData, PRUint32 *length)
-{
-  if (!mInitialized || !mImage->GetHasAlphaMask())
-    return NS_ERROR_NOT_INITIALIZED;
-
-  NS_ASSERTION(mMutable, "trying to get data on an immutable frame");
-
-  *aData = mImage->GetAlphaBits();
-  *length = mImage->GetAlphaLineStride() * mSize.height;
-
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP gfxImageFrame::SetAlphaData(const PRUint8 *aData, PRUint32 aLength, PRInt32 aOffset)
-{
-  return SetData(aData, aLength, aOffset, PR_TRUE);
-}
-
-
-NS_IMETHODIMP gfxImageFrame::LockAlphaData()
-{
-  if (!mInitialized || !mImage->GetHasAlphaMask())
-    return NS_ERROR_NOT_INITIALIZED;
-
-  return mImage->LockImagePixels(PR_TRUE);
-}
-
-
-NS_IMETHODIMP gfxImageFrame::UnlockAlphaData()
-{
-  if (!mInitialized || !mImage->GetHasAlphaMask())
-    return NS_ERROR_NOT_INITIALIZED;
-
-  return mImage->UnlockImagePixels(PR_TRUE);
 }
 
 
@@ -495,25 +340,6 @@ NS_IMETHODIMP gfxImageFrame::SetFrameDisposalMethod(PRInt32 aFrameDisposalMethod
     return NS_ERROR_NOT_INITIALIZED;
 
   mDisposalMethod = aFrameDisposalMethod;
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP gfxImageFrame::GetBackgroundColor(gfx_color *aBackgroundColor)
-{
-  if (!mInitialized || !mHasBackgroundColor)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  *aBackgroundColor = mBackgroundColor;
-  return NS_OK;
-}
-NS_IMETHODIMP gfxImageFrame::SetBackgroundColor(gfx_color aBackgroundColor)
-{
-  if (!mInitialized)
-    return NS_ERROR_NOT_INITIALIZED;
-
-  mBackgroundColor = aBackgroundColor;
-  mHasBackgroundColor = PR_TRUE;
   return NS_OK;
 }
 
