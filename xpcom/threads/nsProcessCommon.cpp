@@ -250,6 +250,12 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count,
     ZeroMemory(&startupInfo, sizeof(startupInfo));
     startupInfo.cb = sizeof(startupInfo);
 
+    
+
+
+
+
+
     retVal = CreateProcess(NULL,
                            
                            cmdLine,
@@ -258,7 +264,7 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count,
                            NULL,  
 
                            FALSE,  
-                           0,     
+                           CREATE_NO_WINDOW, 
                            NULL,  
                            NULL,  
                            &startupInfo,
