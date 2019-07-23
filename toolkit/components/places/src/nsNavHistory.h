@@ -369,6 +369,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBGetPageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBUpdatePageVisitStats; 
   nsCOMPtr<mozIStorageStatement> mDBAddNewPage; 
+  nsCOMPtr<mozIStorageStatement> mDBURIHasTag; 
 
   
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
