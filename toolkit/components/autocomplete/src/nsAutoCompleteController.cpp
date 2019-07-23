@@ -339,6 +339,13 @@ nsAutoCompleteController::HandleStartComposition()
   
   StopSearch();
 
+  if (!mInput) {
+    
+    
+    
+    return NS_OK;
+  }
+
   PRBool isOpen;
   mInput->GetPopupOpen(&isOpen);
   if (isOpen)
