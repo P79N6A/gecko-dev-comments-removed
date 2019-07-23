@@ -138,6 +138,7 @@ nsHttpChannel::nsHttpChannel()
     , mLoadedFromApplicationCache(PR_FALSE)
     , mTracingEnabled(PR_TRUE)
     , mForceAllowThirdPartyCookie(PR_FALSE)
+    , mCustomConditionalRequest(PR_FALSE)
 {
     LOG(("Creating nsHttpChannel @%x\n", this));
 
@@ -271,17 +272,6 @@ nsHttpChannel::AsyncCall(nsAsyncCallback funcPtr,
     }
 
     return rv;
-}
-
-PRBool
-nsHttpChannel::RequestIsConditional()
-{
-    
-    return mRequestHead.PeekHeader(nsHttp::If_Modified_Since) ||
-           mRequestHead.PeekHeader(nsHttp::If_None_Match) ||
-           mRequestHead.PeekHeader(nsHttp::If_Unmodified_Since) ||
-           mRequestHead.PeekHeader(nsHttp::If_Match) ||
-           mRequestHead.PeekHeader(nsHttp::If_Range);
 }
 
 nsresult
@@ -1501,6 +1491,9 @@ nsHttpChannel::ProcessNotModified()
 
     LOG(("nsHttpChannel::ProcessNotModified [this=%x]\n", this)); 
 
+    if (mCustomConditionalRequest)
+        return NS_ERROR_FAILURE;
+
     NS_ENSURE_TRUE(mCachedResponseHead, NS_ERROR_NOT_INITIALIZED);
     NS_ENSURE_TRUE(mCacheEntry, NS_ERROR_NOT_INITIALIZED);
 
@@ -1681,12 +1674,6 @@ nsHttpChannel::OpenCacheEntry(PRBool offline, PRBool *delayed)
     
     if (IsSubRangeRequest(mRequestHead))
         return NS_OK;
-
-    if (RequestIsConditional()) {
-        
-        
-        return NS_OK;
-    }
 
     GenerateCacheKey(mPostID, cacheKey);
 
@@ -1881,12 +1868,6 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
     
     if (IsSubRangeRequest(mRequestHead))
         return NS_OK;
-
-    if (RequestIsConditional()) {
-        
-        
-        return NS_OK;
-    }
 
     nsCAutoString cacheKey;
     GenerateCacheKey(mPostID, cacheKey);
@@ -2108,9 +2089,12 @@ nsHttpChannel::CheckCache()
     PRBool doValidation = PR_FALSE;
     PRBool canAddImsHeader = PR_TRUE;
 
-    
-    mRequestHead.ClearHeader(nsHttp::If_Modified_Since);
-    mRequestHead.ClearHeader(nsHttp::If_None_Match);
+    mCustomConditionalRequest = 
+        mRequestHead.PeekHeader(nsHttp::If_Modified_Since) ||
+        mRequestHead.PeekHeader(nsHttp::If_None_Match) ||
+        mRequestHead.PeekHeader(nsHttp::If_Unmodified_Since) ||
+        mRequestHead.PeekHeader(nsHttp::If_Match) ||
+        mRequestHead.PeekHeader(nsHttp::If_Range);
 
     
     if (mLoadFlags & LOAD_FROM_CACHE) {
@@ -2187,6 +2171,20 @@ nsHttpChannel::CheckCache()
         LOG(("%salidating based on expiration time\n", doValidation ? "V" : "Not v"));
     }
 
+    if (!doValidation && mRequestHead.PeekHeader(nsHttp::If_Match) &&
+        (method == nsHttp::Get || method == nsHttp::Head)) {
+        const char *requestedETag, *cachedETag;
+        cachedETag = mCachedResponseHead->PeekHeader(nsHttp::ETag);
+        requestedETag = mRequestHead.PeekHeader(nsHttp::If_Match);
+        if (cachedETag && (!strncmp(cachedETag, "W/", 2) ||
+            strcmp(requestedETag, cachedETag))) {
+            
+            
+            
+            doValidation = PR_TRUE;
+        }
+    }
+
     if (!doValidation) {
         
         
@@ -2226,9 +2224,11 @@ nsHttpChannel::CheckCache()
         
         
         
+        
         if (!mCachedResponseHead->NoStore() &&
             (mRequestHead.Method() == nsHttp::Get ||
-             mRequestHead.Method() == nsHttp::Head)) {
+             mRequestHead.Method() == nsHttp::Head) &&
+             !mCustomConditionalRequest) {
             const char *val;
             
             
