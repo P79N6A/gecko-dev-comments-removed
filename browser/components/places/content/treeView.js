@@ -942,8 +942,9 @@ PlacesTreeView.prototype = {
       
       if (PlacesUtils.nodeIsQuery(node)) {
         var parent = node.parent;
-        if(PlacesUtils.nodeIsQuery(parent) ||
-           PlacesUtils.nodeIsFolder(parent))
+        if((PlacesUtils.nodeIsQuery(parent) ||
+            PlacesUtils.nodeIsFolder(parent)) &&
+           !node.hasChildren)
           return asQuery(parent).queryOptions.expandQueries;
       }
       return true;
