@@ -10,15 +10,11 @@ NSS_DIRS  = ('dbm',
              'security/dbm')
 
 
-
-
-DEFAULT_TAMARIN_REPO = 'tamarin-central'
+DEFAULT_TAMARIN_REPO = 'http://hg.mozilla.org/tamarin-central/'
 
 import os
 import sys
 from optparse import OptionParser
-from ConfigParser import SafeConfigParser
-import urlparse
 
 topsrcdir = os.path.dirname(__file__)
 if topsrcdir == '':
@@ -99,27 +95,7 @@ def fixup_repo_options(options):
     
     if (options.tamarin_repo is None
             and not os.path.exists(os.path.join(topsrcdir, 'js', 'tamarin'))):
-        
-
-        
-        
-        moz_repo = options.mozilla_repo
-        if moz_repo is None:
-            cp = SafeConfigParser()
-            cp.read([os.path.join(topsrcdir, '.hg', 'hgrc')])
-            try:
-                moz_repo = cp.get("paths", "default")
-            except:
-                print ("*** Internal error: Expected to find a 'default' "
-                       "setting in the [paths] section of .hg/hgrc; "
-                       "but it's not there.")
-                raise
-
-        
-        if moz_repo.endswith('/'):
-            moz_repo = moz_repo[:-1]
-        options.tamarin_repo = urlparse.urljoin(moz_repo, DEFAULT_TAMARIN_REPO)
-
+        options.tamarin_repo = DEFAULT_TAMARIN_REPO
 
 try:
     (options, (action,)) = o.parse_args()

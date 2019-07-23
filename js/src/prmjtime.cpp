@@ -50,6 +50,7 @@
 #include "jsutil.h"
 
 #include "jsprf.h"
+#include "jslock.h"
 #include "prmjtime.h"
 
 #define PRMJ_DO_MILLISECONDS 1
@@ -60,6 +61,13 @@
 #ifdef XP_WIN
 #include <windef.h>
 #include <winbase.h>
+#include <math.h>     
+#include <mmsystem.h> 
+
+#ifdef JS_THREADSAFE
+#include <prinit.h>
+#endif
+
 #endif
 
 #if defined(XP_UNIX) || defined(XP_BEOS)
@@ -143,6 +151,181 @@ PRMJ_ToExtendedTime(JSInt32 base_time)
     return exttime;
 }
 
+#ifdef XP_WIN
+typedef struct CalibrationData
+{
+    long double freq;         
+    long double offset;       
+    long double timer_offset; 
+
+    
+    JSInt64 last;
+
+    JSBool calibrated;
+
+#ifdef JS_THREADSAFE
+    CRITICAL_SECTION data_lock;
+    CRITICAL_SECTION calibration_lock;
+#endif
+} CalibrationData;
+
+static const JSInt64 win2un = JSLL_INIT(0x19DB1DE, 0xD53E8000);
+
+static CalibrationData calibration = { 0 };
+
+#define FILETIME2INT64(ft) (((JSInt64)ft.dwHighDateTime) << 32LL | (JSInt64)ft.dwLowDateTime)
+
+static void
+NowCalibrate()
+{
+    FILETIME ft, ftStart;
+    LARGE_INTEGER liFreq, now;
+
+    if (calibration.freq == 0.0) {
+        if(!QueryPerformanceFrequency(&liFreq)) {
+            
+            calibration.freq = -1.0;
+        } else {
+            calibration.freq = (long double) liFreq.QuadPart;
+        }
+    } 
+    if (calibration.freq > 0.0) {
+        JSInt64 calibrationDelta = 0;
+
+        
+
+        timeBeginPeriod(1);
+        GetSystemTimeAsFileTime(&ftStart);
+        do {
+            GetSystemTimeAsFileTime(&ft);
+        } while (memcmp(&ftStart,&ft, sizeof(ft)) == 0);
+        timeEndPeriod(1);
+
+        
+
+
+
+
+        QueryPerformanceCounter(&now);
+
+        calibration.offset = (long double) FILETIME2INT64(ft);
+        calibration.timer_offset = (long double) now.QuadPart;
+
+        
+
+
+        calibration.offset -= win2un;
+        calibration.offset *= 0.1;
+        calibration.last = 0;
+
+        calibration.calibrated = JS_TRUE;
+    }
+}
+
+#define CALIBRATIONLOCK_SPINCOUNT 0
+#define DATALOCK_SPINCOUNT 4096
+#define LASTLOCK_SPINCOUNT 4096
+
+#ifdef JS_THREADSAFE
+static PRStatus PR_CALLBACK
+NowInit(void)
+{
+    memset(&calibration, 0, sizeof(calibration));
+    NowCalibrate();
+    InitializeCriticalSectionAndSpinCount(&calibration.calibration_lock, CALIBRATIONLOCK_SPINCOUNT);
+    InitializeCriticalSectionAndSpinCount(&calibration.data_lock, DATALOCK_SPINCOUNT);
+    return PR_SUCCESS;
+}
+
+void
+PRMJ_NowShutdown()
+{
+    DeleteCriticalSection(&calibration.calibration_lock);
+    DeleteCriticalSection(&calibration.data_lock);
+}
+
+#define MUTEX_LOCK(m) EnterCriticalSection(m)
+#define MUTEX_TRYLOCK(m) TryEnterCriticalSection(m)
+#define MUTEX_UNLOCK(m) LeaveCriticalSection(m)
+#define MUTEX_SETSPINCOUNT(m, c) SetCriticalSectionSpinCount((m),(c))
+
+static PRCallOnceType calibrationOnce = { 0 };
+
+#else
+
+#define MUTEX_LOCK(m)
+#define MUTEX_TRYLOCK(m) 1
+#define MUTEX_UNLOCK(m)
+#define MUTEX_SETSPINCOUNT(m, c)
+
+#endif
+
+
+#endif 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 JSInt64
 PRMJ_Now(void)
 {
@@ -151,10 +334,14 @@ PRMJ_Now(void)
     struct timeb b;
 #endif
 #ifdef XP_WIN
-    JSInt64 s, us,
-    win2un = JSLL_INIT(0x19DB1DE, 0xD53E8000),
-    ten = JSLL_INIT(0, 10);
-    FILETIME time, midnight;
+    static int nCalls = 0;
+    long double lowresTime, highresTimerValue;
+    FILETIME ft;
+    LARGE_INTEGER now;
+    JSBool calibrated = JS_FALSE;
+    JSBool needsCalibration = JS_FALSE;
+    JSInt64 returnedTime;
+    long double cachedOffset = 0.0;
 #endif
 #if defined(XP_UNIX) || defined(XP_BEOS)
     struct timeval tv;
@@ -173,25 +360,132 @@ PRMJ_Now(void)
     return s;
 #endif
 #ifdef XP_WIN
+
     
 
 
-    GetSystemTimeAsFileTime(&time);
+
+    int thiscall = JS_ATOMIC_INCREMENT(&nCalls);
     
-
-
-
-    if (!time.dwLowDateTime) {
-        GetSystemTimeAsFileTime(&midnight);
-        time.dwHighDateTime = midnight.dwHighDateTime;
+    if (thiscall <= 10) {
+        GetSystemTimeAsFileTime(&ft);
+        return (FILETIME2INT64(ft)-win2un)/10L;
     }
-    JSLL_UI2L(s, time.dwHighDateTime);
-    JSLL_UI2L(us, time.dwLowDateTime);
-    JSLL_SHL(s, s, 32);
-    JSLL_ADD(s, s, us);
-    JSLL_SUB(s, s, win2un);
-    JSLL_DIV(s, s, ten);
-    return s;
+
+    
+#ifdef JS_THREADSAFE
+    PR_CallOnce(&calibrationOnce, NowInit);
+#endif
+    do {
+        if (!calibration.calibrated || needsCalibration) {
+            MUTEX_LOCK(&calibration.calibration_lock);
+            MUTEX_LOCK(&calibration.data_lock);
+
+            
+            if(calibration.offset == cachedOffset) {
+                
+
+                MUTEX_SETSPINCOUNT(&calibration.data_lock, 0);
+
+                NowCalibrate();
+
+                calibrated = JS_TRUE;
+
+                
+                MUTEX_SETSPINCOUNT(&calibration.data_lock, DATALOCK_SPINCOUNT);
+            }
+            MUTEX_UNLOCK(&calibration.data_lock);
+            MUTEX_UNLOCK(&calibration.calibration_lock);
+        }
+
+
+        
+        GetSystemTimeAsFileTime(&ft);
+        lowresTime = 0.1*(long double)(FILETIME2INT64(ft) - win2un);
+
+        if (calibration.freq > 0.0) {
+            long double highresTime, diff;
+
+            DWORD timeAdjustment, timeIncrement;
+            BOOL timeAdjustmentDisabled;
+
+            
+            long double skewThreshold = 15625.25;
+            
+            QueryPerformanceCounter(&now);
+            highresTimerValue = (long double)now.QuadPart;
+
+            MUTEX_LOCK(&calibration.data_lock);
+            highresTime = calibration.offset + PRMJ_USEC_PER_SEC*
+                 (highresTimerValue-calibration.timer_offset)/calibration.freq;
+            cachedOffset = calibration.offset;
+
+            
+
+            calibration.last = max(calibration.last,(JSInt64)highresTime);
+            returnedTime = calibration.last;
+            MUTEX_UNLOCK(&calibration.data_lock);
+
+            
+            if (GetSystemTimeAdjustment(&timeAdjustment,
+                                        &timeIncrement,
+                                        &timeAdjustmentDisabled)) {
+                if (timeAdjustmentDisabled) {
+                    
+                    skewThreshold = timeAdjustment/10.0;
+                } else {
+                    
+                    skewThreshold = timeIncrement/10.0;
+                }
+            }
+
+            
+            diff = lowresTime - highresTime;
+
+            
+
+
+
+
+            if (fabs(diff) > 2*skewThreshold) {
+                
+
+                if (calibrated) {
+                    
+
+
+
+
+
+
+
+
+                    returnedTime = (JSInt64)lowresTime;
+                    needsCalibration = JS_FALSE;
+                } else { 
+                    
+
+
+
+
+
+
+
+
+                    needsCalibration = JS_TRUE;
+                }
+            } else {
+                
+                returnedTime = (JSInt64)highresTime;
+                needsCalibration = JS_FALSE;
+            }
+        } else {
+            
+            returnedTime = (JSInt64)lowresTime;
+        }
+    } while (needsCalibration);
+
+    return returnedTime;
 #endif
 
 #if defined(XP_UNIX) || defined(XP_BEOS)
