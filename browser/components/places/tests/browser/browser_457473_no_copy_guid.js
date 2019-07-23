@@ -97,7 +97,7 @@ function test() {
   ok(checkGUIDs(folderBNode, folderAGUIDs, false), "confirm folder A GUIDs don't match folder B GUIDs");
   var folderBGUIDs = getGUIDs(folderBNode);
   ok(checkGUIDs(folderBNode, folderBGUIDs, true), "confirm test of new GUIDs");
-  
+
   
   PlacesUIUtils.ptm.undoTransaction();
   is(testRootNode.childCount, 1, "confirm undo removed the copied folder");
@@ -108,12 +108,7 @@ function test() {
   is(testRootNode.childCount, 2, "confirm redo re-copied the folder");
   folderBNode = testRootNode.getChild(1);
   ok(checkGUIDs(folderBNode, folderAGUIDs, false), "folder B GUIDs after undo/redo don't match folder A GUIDs"); 
-
-  
-  
-  
-  
-  
+  ok(checkGUIDs(folderBNode, folderBGUIDs, true), "folder B GUIDs after under/redo should match pre-undo/redo folder B GUIDs");
 
   
   testRootNode.containerOpen = false;
