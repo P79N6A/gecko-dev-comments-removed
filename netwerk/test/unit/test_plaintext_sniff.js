@@ -170,6 +170,9 @@ function makeHandler(headerIdx, bodyIdx) {
 var httpserv;
 function run_test() {
   
+  return;
+
+  
   
   
   if ("@mozilla.org/windows-registry-key;1" in Cc) {
