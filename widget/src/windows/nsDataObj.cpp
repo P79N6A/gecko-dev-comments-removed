@@ -492,7 +492,8 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM)
   
   LPDATAENTRY pde;
   if (LookupArbitraryFormat(aFormat, &pde, FALSE)) {
-    return CopyMediumData(pSTM, &pde->stgm, aFormat, FALSE);
+    return CopyMediumData(pSTM, &pde->stgm, aFormat, FALSE)
+           ? S_OK : E_UNEXPECTED;
   }
 
   
