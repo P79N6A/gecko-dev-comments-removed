@@ -189,7 +189,7 @@ nsAccTextChangeEvent::
   nsAccTextChangeEvent(nsIAccessible *aAccessible,
                        PRInt32 aStart, PRUint32 aLength, PRBool aIsInserted):
   nsAccEvent(::nsIAccessibleEvent::EVENT_TEXT_CHANGED, aAccessible, nsnull),
-  mStart(aStart), mLength(aLength), mIsInserted(mIsInserted)
+  mStart(aStart), mLength(aLength), mIsInserted(aIsInserted)
 {
 }
 
