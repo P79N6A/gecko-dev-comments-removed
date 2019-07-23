@@ -56,7 +56,9 @@
 #endif
 #include "nsBindingManager.h"
 #include "nsGenericHTMLElement.h"
+#ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
+#endif 
 
 
 
