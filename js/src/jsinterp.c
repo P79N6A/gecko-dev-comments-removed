@@ -1265,6 +1265,7 @@ have_fun:
 
 
 
+
         if (native && fun && !(fun->flags & JSFUN_FAST_NATIVE) &&
             !js_ComputeThis(cx, JS_FALSE, vp + 2)) {
             ok = JS_FALSE;
@@ -4157,6 +4158,7 @@ interrupt:
 
           BEGIN_CASE(JSOP_CALLPROP)
           {
+            JSObject *aobj;
             JSPropCacheEntry *entry;
 
             lval = FETCH_OPND(-1);
@@ -4183,10 +4185,11 @@ interrupt:
                     goto out;
             }
 
-            if (JS_LIKELY(obj->map->ops->getProperty == js_GetProperty)) {
-                PROPERTY_CACHE_TEST(cx, pc, obj, obj2, entry, atom);
+            aobj = OBJ_IS_DENSE_ARRAY(cx, obj) ? OBJ_GET_PROTO(cx, obj) : obj;
+            if (JS_LIKELY(aobj->map->ops->getProperty == js_GetProperty)) {
+                PROPERTY_CACHE_TEST(cx, pc, aobj, obj2, entry, atom);
                 if (!atom) {
-                    ASSERT_VALID_PROPERTY_CACHE_HIT(0, obj, obj2, entry);
+                    ASSERT_VALID_PROPERTY_CACHE_HIT(0, aobj, obj2, entry);
                     if (PCVAL_IS_OBJECT(entry->vword)) {
                         rval = PCVAL_OBJECT_TO_JSVAL(entry->vword);
                     } else if (PCVAL_IS_SLOT(entry->vword)) {
@@ -4227,8 +4230,8 @@ interrupt:
                         ok = JS_FALSE;
                 } else
 #endif
-                if (JS_LIKELY(obj->map->ops->getProperty == js_GetProperty)) {
-                    ok = js_GetPropertyHelper(cx, obj, id, &rval, &entry);
+                if (JS_LIKELY(aobj->map->ops->getProperty == js_GetProperty)) {
+                    ok = js_GetPropertyHelper(cx, aobj, id, &rval, &entry);
                 } else {
                     ok = OBJ_GET_PROPERTY(cx, obj, id, &rval);
                 }
