@@ -1162,35 +1162,30 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
 
   gfxRect frameGfxRect = RectToGfxRect(aFrameArea, twipsPerPixel);
   frameGfxRect.Round();
-  gfxRect dirtyGfxRect = RectToGfxRect(aDirtyRect, twipsPerPixel);
 
   for (PRUint32 i = shadows->Length(); i > 0; --i) {
     nsCSSShadowItem* shadowItem = shadows->ShadowAt(i - 1);
     if (shadowItem->mInset)
       continue;
 
-    gfxRect shadowRect(aFrameArea.x, aFrameArea.y, aFrameArea.width, aFrameArea.height);
-    shadowRect.MoveBy(gfxPoint(shadowItem->mXOffset, shadowItem->mYOffset));
-    shadowRect.Outset(shadowItem->mSpread);
-
-    gfxRect shadowRectPlusBlur = shadowRect;
-    shadowRect.ScaleInverse(twipsPerPixel);
-    shadowRect.Round();
+    nsRect shadowRect = aFrameArea;
+    shadowRect.MoveBy(shadowItem->mXOffset, shadowItem->mYOffset);
+    shadowRect.Inflate(shadowItem->mSpread, shadowItem->mSpread);
 
     
     
+    nsRect shadowRectPlusBlur = shadowRect;
     nscoord blurRadius = shadowItem->mRadius;
-    shadowRectPlusBlur.Outset(blurRadius);
-    shadowRectPlusBlur.ScaleInverse(twipsPerPixel);
-    shadowRectPlusBlur.RoundOut();
+    shadowRectPlusBlur.Inflate(blurRadius, blurRadius);
+
+    gfxRect shadowGfxRect = RectToGfxRect(shadowRect, twipsPerPixel);
+    gfxRect shadowGfxRectPlusBlur = RectToGfxRect(shadowRectPlusBlur, twipsPerPixel);
 
     gfxContext* renderContext = aRenderingContext.ThebesContext();
     nsRefPtr<gfxContext> shadowContext;
     nsContextBoxBlur blurringArea;
 
-    
-    blurRadius /= twipsPerPixel;
-    shadowContext = blurringArea.Init(shadowRect, blurRadius, 1, renderContext, dirtyGfxRect);
+    shadowContext = blurringArea.Init(shadowRect, blurRadius, twipsPerPixel, renderContext, aDirtyRect);
     if (!shadowContext)
       continue;
 
@@ -1207,7 +1202,7 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     
     
     renderContext->NewPath();
-    renderContext->Rectangle(shadowRectPlusBlur);
+    renderContext->Rectangle(shadowGfxRectPlusBlur);
     if (hasBorderRadius)
       renderContext->RoundedRectangle(frameGfxRect, borderRadii);
     else
@@ -1230,9 +1225,9 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
       };
       nsCSSBorderRenderer::ComputeInnerRadii(borderRadii, borderSizes,
                                              &clipRectRadii);
-      shadowContext->RoundedRectangle(shadowRect, clipRectRadii);
+      shadowContext->RoundedRectangle(shadowGfxRect, clipRectRadii);
     } else {
-      shadowContext->Rectangle(shadowRect);
+      shadowContext->Rectangle(shadowGfxRect);
     }
     shadowContext->Fill();
 
@@ -1279,7 +1274,6 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
                                            &innerRadii);
   }
 
-  gfxRect dirtyGfxRect = RectToGfxRect(aDirtyRect, twipsPerPixel);
   for (PRUint32 i = shadows->Length(); i > 0; --i) {
     nsCSSShadowItem* shadowItem = shadows->ShadowAt(i - 1);
     if (!shadowItem->mInset)
@@ -1293,28 +1287,18 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
 
 
     nscoord blurRadius = shadowItem->mRadius;
-    gfxRect shadowRect(paddingRect.x, paddingRect.y, paddingRect.width, paddingRect.height);
-    gfxRect shadowPaintRect = shadowRect;
-    shadowPaintRect.Outset(blurRadius);
+    nsRect shadowPaintRect = paddingRect;
+    shadowPaintRect.Inflate(blurRadius, blurRadius);
 
-    gfxRect shadowClipRect = shadowRect;
-    shadowClipRect.MoveBy(gfxPoint(shadowItem->mXOffset, shadowItem->mYOffset));
-    shadowClipRect.Inset(shadowItem->mSpread);
-
-    shadowRect.ScaleInverse(twipsPerPixel);
-    shadowRect.Round();
-    shadowPaintRect.ScaleInverse(twipsPerPixel);
-    shadowPaintRect.RoundOut();
-    shadowClipRect.ScaleInverse(twipsPerPixel);
-    shadowClipRect.Round();
+    nsRect shadowClipRect = paddingRect;
+    shadowClipRect.MoveBy(shadowItem->mXOffset, shadowItem->mYOffset);
+    shadowClipRect.Deflate(shadowItem->mSpread, shadowItem->mSpread);
 
     gfxContext* renderContext = aRenderingContext.ThebesContext();
     nsRefPtr<gfxContext> shadowContext;
     nsContextBoxBlur blurringArea;
 
-    
-    blurRadius /= twipsPerPixel;
-    shadowContext = blurringArea.Init(shadowPaintRect, blurRadius, 1, renderContext, dirtyGfxRect);
+    shadowContext = blurringArea.Init(shadowPaintRect, blurRadius, twipsPerPixel, renderContext, aDirtyRect);
     if (!shadowContext)
       continue;
 
@@ -1330,17 +1314,20 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
 
     
     
+    gfxRect shadowGfxRect = RectToGfxRect(paddingRect, twipsPerPixel);
     renderContext->NewPath();
     if (hasBorderRadius)
-      renderContext->RoundedRectangle(shadowRect, innerRadii, PR_FALSE);
+      renderContext->RoundedRectangle(shadowGfxRect, innerRadii, PR_FALSE);
     else
-      renderContext->Rectangle(shadowRect);
+      renderContext->Rectangle(shadowGfxRect);
     renderContext->Clip();
 
     
     
+    gfxRect shadowPaintGfxRect = RectToGfxRect(shadowPaintRect, twipsPerPixel);
+    gfxRect shadowClipGfxRect = RectToGfxRect(shadowClipRect, twipsPerPixel);
     shadowContext->NewPath();
-    shadowContext->Rectangle(shadowPaintRect);
+    shadowContext->Rectangle(shadowPaintGfxRect);
     if (hasBorderRadius) {
       
       gfxCornerSizes clipRectRadii;
@@ -1351,9 +1338,9 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
       };
       nsCSSBorderRenderer::ComputeInnerRadii(innerRadii, borderSizes,
                                              &clipRectRadii);
-      shadowContext->RoundedRectangle(shadowClipRect, clipRectRadii, PR_FALSE);
+      shadowContext->RoundedRectangle(shadowClipGfxRect, clipRectRadii, PR_FALSE);
     } else {
-      shadowContext->Rectangle(shadowClipRect);
+      shadowContext->Rectangle(shadowClipGfxRect);
     }
     shadowContext->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
     shadowContext->Fill();
@@ -3206,14 +3193,13 @@ ImageRenderer::Draw(nsPresContext*       aPresContext,
 
 
 gfxContext*
-nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
+nsContextBoxBlur::Init(const nsRect& aRect, nscoord aBlurRadius,
                        PRInt32 aAppUnitsPerDevPixel,
                        gfxContext* aDestinationCtx,
-                       const gfxRect& aDirtyRect)
+                       const nsRect& aDirtyRect)
 {
-  mDestinationCtx = aDestinationCtx;
-
   PRInt32 blurRadius = static_cast<PRInt32>(aBlurRadius / aAppUnitsPerDevPixel);
+  mDestinationCtx = aDestinationCtx;
 
   
   if (blurRadius <= 0) {
@@ -3222,18 +3208,14 @@ nsContextBoxBlur::Init(const gfxRect& aRect, nscoord aBlurRadius,
   }
 
   
-  gfxRect rect = aRect;
-  rect.ScaleInverse(aAppUnitsPerDevPixel);
+  gfxRect rect = RectToGfxRect(aRect, aAppUnitsPerDevPixel);
 
   if (rect.IsEmpty()) {
     mContext = aDestinationCtx;
     return mContext;
   }
 
-  gfxRect dirtyRect = aDirtyRect;
-  dirtyRect.ScaleInverse(aAppUnitsPerDevPixel);
-
-  mDestinationCtx = aDestinationCtx;
+  gfxRect dirtyRect = RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
 
   
   mContext = blur.Init(rect, gfxIntSize(blurRadius, blurRadius), &dirtyRect);
