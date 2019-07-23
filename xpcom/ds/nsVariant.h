@@ -43,6 +43,8 @@
 #include "nsStringFwd.h"
 #include "xpt_struct.h"
 
+struct nsCycleCollectionTraversalCallback;
+
 
 
 

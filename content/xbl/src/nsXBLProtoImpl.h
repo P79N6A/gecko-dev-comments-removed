@@ -76,6 +76,8 @@ public:
 
   void SetMemberList(nsXBLProtoImplMember* aMemberList) { delete mMembers; mMembers = aMemberList; }
 
+  void Traverse(nsCycleCollectionTraversalCallback &cb) const;
+
 protected:
   
   
