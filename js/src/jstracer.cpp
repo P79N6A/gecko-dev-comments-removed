@@ -696,7 +696,7 @@ TraceRecorder::trackNativeStackUse(unsigned slots)
 
 
 static bool
-unbox_jsval(jsval v, uint8 type, double* slot)
+ValueToNative(jsval v, uint8 type, double* slot)
 {
     if (type == TYPEMAP_TYPE_ANY) {
         debug_only(printf("any ");)
@@ -757,7 +757,7 @@ unbox_jsval(jsval v, uint8 type, double* slot)
 
 
 static bool
-box_jsval(JSContext* cx, jsval& v, uint8 type, double* slot)
+NativeToValue(JSContext* cx, jsval& v, uint8 type, double* slot)
 {
     if (type == TYPEMAP_TYPE_ANY) {
         debug_only(printf("any ");)
@@ -808,20 +808,10 @@ box_jsval(JSContext* cx, jsval& v, uint8 type, double* slot)
 
 
 static bool
-unbox(JSContext* cx, unsigned ngslots, uint16* gslots, unsigned callDepth,
-      uint8* map, double* global, double* stack)
+BuildNativeGlobalFrame(JSContext* cx, unsigned ngslots, uint16* gslots, uint8* mp, double* np)
 {
-    debug_only(printf("unbox native@%p ", stack);)
-    uint8* mp = map;
-    double* np = global;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
-        if (!unbox_jsval(*vp, *mp, np))
-            return false;
-        ++mp; ++np;
-    );
-    np = stack;
-    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if (!unbox_jsval(*vp, *mp, np))
+        if (!ValueToNative(*vp, *mp, np))
             return false;
         ++mp; ++np;
     );
@@ -832,37 +822,64 @@ unbox(JSContext* cx, unsigned ngslots, uint16* gslots, unsigned callDepth,
 
 
 static bool
-box(JSContext* cx, unsigned ngslots, uint16* gslots, unsigned callDepth,
-    uint8* map, double* global, double* stack)
+BuildNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
 {
-    debug_only(printf("box native@%p ", stack);)
-    
-    double* np = global;
-    uint8* mp = map;
-    FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
-        if ((*mp == JSVAL_STRING || *mp == JSVAL_OBJECT) && !box_jsval(cx, *vp, *mp, np))
-            return false;
-        ++mp; ++np
-    );
-    np = stack;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if ((*mp == JSVAL_STRING || *mp == JSVAL_OBJECT) && !box_jsval(cx, *vp, *mp, np))
+        if (!ValueToNative(*vp, *mp, np))
+            return false;
+        ++mp; ++np;
+    );
+    debug_only(printf("\n");)
+    return true;
+}
+
+
+
+static bool
+FlushNativeGlobalFrame(JSContext* cx, unsigned ngslots, uint16* gslots, uint8* mp, double* np)
+{
+    uint8* mp_base = mp;
+    double* np_base = np;
+    
+    FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
+        if ((*mp == JSVAL_STRING || *mp == JSVAL_OBJECT) && !NativeToValue(cx, *vp, *mp, np))
             return false;
         ++mp; ++np
     );
     
 
 
-    np = global;
-    mp = map;
+    mp = mp_base;
+    np = np_base;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
-        if (!box_jsval(cx, *vp, *mp, np))
+        if (!NativeToValue(cx, *vp, *mp, np))
             return false;
         ++mp; ++np
     );
-    np = stack;
+    debug_only(printf("\n");)
+    return true;
+}
+
+
+
+static bool
+FlushNativeStackFrame(JSContext* cx, unsigned callDepth, uint8* mp, double* np)
+{
+    uint8* mp_base = mp;
+    double* np_base = np;
+    
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if (!box_jsval(cx, *vp, *mp, np))
+        if ((*mp == JSVAL_STRING || *mp == JSVAL_OBJECT) && !NativeToValue(cx, *vp, *mp, np))
+            return false;
+        ++mp; ++np
+    );
+    
+
+
+    mp = mp_base;
+    np = np_base;
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
+        if (!NativeToValue(cx, *vp, *mp, np))
             return false;
         ++mp; ++np
     );
@@ -1238,8 +1255,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f)
     debug_only(*(uint64*)&global[ti->ngslots] = 0xdeadbeefdeadbeefLL;)
     double* stack = (double *)alloca((ti->maxNativeStackSlots+1) * sizeof(double));
     debug_only(*(uint64*)&stack[ti->maxNativeStackSlots] = 0xdeadbeefdeadbeefLL;)
-    if (!unbox(cx, ti->ngslots, ti->gslots, 0 ,
-            ti->typeMap, global, stack)) {
+    if (!BuildNativeGlobalFrame(cx, ti->ngslots, ti->gslots, ti->typeMap, global) ||
+        !BuildNativeStackFrame(cx, 0, ti->typeMap + ti->ngslots, stack)) {
         AUDIT(typeMapMismatchAtEntry);
         debug_only(printf("type-map mismatch, skipping trace.\n");)
         return NULL;
@@ -1273,8 +1290,8 @@ js_ExecuteTree(JSContext* cx, Fragment* f)
            state.sp, lr->jmp,
            (rdtsc() - start));
 #endif
-    box(cx, ti->ngslots, ti->gslots, lr->calldepth,
-            lr->exit->typeMap, global, stack);
+    FlushNativeGlobalFrame(cx, ti->ngslots, ti->gslots, ti->typeMap, global);
+    FlushNativeStackFrame(cx, lr->calldepth, lr->exit->typeMap + ti->ngslots, stack);
     JS_ASSERT(*(uint64*)&stack[ti->maxNativeStackSlots] == 0xdeadbeefdeadbeefLL);
     JS_ASSERT(*(uint64*)&global[ti->ngslots] == 0xdeadbeefdeadbeefLL);
 
