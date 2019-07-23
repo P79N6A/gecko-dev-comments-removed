@@ -5289,7 +5289,12 @@ nsPluginInstanceOwner::Renderer::NativeDraw(QWidget * drawable,
 
 #ifdef MOZ_X11
   
-  nsIntRect dirtyRect = mDirtyRect + nsIntPoint(offsetX, offsetY);
+  
+  
+  
+  
+  nsIntRect dirtyRect(offsetX, offsetY,
+                      mDirtyRect.XMost(), mDirtyRect.YMost());
   
   
   if (!dirtyRect.IntersectRect(dirtyRect, clipRect))
@@ -5309,10 +5314,10 @@ nsPluginInstanceOwner::Renderer::NativeDraw(QWidget * drawable,
 #elif defined(MOZ_WIDGET_QT)
       drawable->x11PictureHandle();
 #endif
-    exposeEvent.x = mDirtyRect.x + offsetX;
-    exposeEvent.y = mDirtyRect.y + offsetY;
-    exposeEvent.width  = mDirtyRect.width;
-    exposeEvent.height = mDirtyRect.height;
+    exposeEvent.x = dirtyRect.x;
+    exposeEvent.y = dirtyRect.y;
+    exposeEvent.width  = dirtyRect.width;
+    exposeEvent.height = dirtyRect.height;
     exposeEvent.count = 0;
     
     exposeEvent.serial = 0;
