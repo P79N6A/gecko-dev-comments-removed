@@ -160,6 +160,31 @@ function getLocalHandlerApp(aFile) {
 
 
 
+function ArrayEnumerator(aItems) {
+  this._index = 0;
+  this._contents = aItems;
+}
+
+ArrayEnumerator.prototype = {
+  _index: 0,
+  _contents: [],
+
+  hasMoreElements: function() {
+    return this._index < this._contents.length;
+  },
+
+  getNext: function() {
+    return this._contents[this._index++];
+  }
+};
+
+
+
+
+
+
+
+
 
 
 
@@ -236,8 +261,7 @@ HandlerInfoWrapper.prototype = {
     
     if (aNewValue) {
       var found = false;
-      var possibleApps = this.possibleApplicationHandlers.
-                         QueryInterface(Ci.nsIArray).enumerate();
+      var possibleApps = this.possibleApplicationHandlers.enumerate();
       while (possibleApps.hasMoreElements() && !found)
         found = possibleApps.getNext().equals(aNewValue);
       if (!found)
@@ -520,28 +544,55 @@ var feedHandlerInfo = {
     }
   },
 
-  get possibleApplicationHandlers() {
-    var handlerApps = Cc["@mozilla.org/array;1"].
-                      createInstance(Ci.nsIMutableArray);
+  _possibleApplicationHandlers: null,
 
+  get possibleApplicationHandlers() {
+    if (this._possibleApplicationHandlers)
+      return this._possibleApplicationHandlers;
+
+    
+    
+    this._possibleApplicationHandlers = {
+      _inner: [],
+
+      QueryInterface: function(aIID) {
+        if (aIID.equals(Ci.nsIMutableArray) ||
+            aIID.equals(Ci.nsIArray) ||
+            aIID.equals(Ci.nsISupports))
+          return this;
+
+        throw Cr.NS_ERROR_NO_INTERFACE;
+      },
+
+      enumerate: function() {
+        return new ArrayEnumerator(this._inner);
+      },
+
+      appendElement: function(aHandlerApp, aWeak) {
+        this._inner.push(aHandlerApp);
+      }
+    };
+
+    
+    
     
     
     
     
     var preferredAppFile = this.element(PREF_FEED_SELECTED_APP).value;
-    if (preferredAppFile && preferredAppFile.exists()) {
+    if (preferredAppFile) {
       let preferredApp = getLocalHandlerApp(preferredAppFile);
       let defaultApp = this._defaultApplicationHandler;
       if (!defaultApp || !defaultApp.equals(preferredApp))
-        handlerApps.appendElement(preferredApp, false);
+        this._possibleApplicationHandlers.appendElement(preferredApp, false);
     }
 
     
     var webHandlers = this._converterSvc.getContentHandlers(this.type, {});
     for each (let webHandler in webHandlers)
-      handlerApps.appendElement(webHandler, false);
+      this._possibleApplicationHandlers.appendElement(webHandler, false);
 
-    return handlerApps;
+    return this._possibleApplicationHandlers;
   },
 
   __defaultApplicationHandler: undefined,
@@ -1115,9 +1166,7 @@ var gApplicationsPane = {
       return false;
 
     if (aHandlerApp instanceof Ci.nsILocalHandlerApp)
-      return aHandlerApp.executable &&
-             aHandlerApp.executable.exists() &&
-             aHandlerApp.executable.isExecutable();
+      return this._isValidHandlerExecutable(aHandlerApp.executable);
 
     if (aHandlerApp instanceof Ci.nsIWebHandlerApp)
       return aHandlerApp.uriTemplate;
@@ -1126,6 +1175,24 @@ var gApplicationsPane = {
       return aHandlerApp.uri;
 
     return false;
+  },
+
+  _isValidHandlerExecutable: function(aExecutable) {
+    return aExecutable &&
+           aExecutable.exists() &&
+           aExecutable.isExecutable() &&
+
+
+
+#ifdef XP_WIN
+#expand    aExecutable.leafName != "__MOZ_APP_NAME__.exe";
+#else
+#ifdef XP_MACOSX
+#expand    aExecutable.leafName != "__MOZ_APP_DISPLAYNAME__.app";
+#else
+#expand    aExecutable.leafName != "__MOZ_APP_NAME__-bin";
+#endif
+#endif
   },
 
   
@@ -1137,7 +1204,7 @@ var gApplicationsPane = {
     var handlerInfo = this._handledTypes[typeItem.type];
     var menu =
       document.getAnonymousElementByAttribute(typeItem, "class", "actionsMenu");
-    var menuPopup = menu.firstChild;
+    var menuPopup = menu.menupopup;
 
     
     while (menuPopup.hasChildNodes())
@@ -1185,8 +1252,7 @@ var gApplicationsPane = {
 
     
     let preferredApp = handlerInfo.preferredApplicationHandler;
-    let possibleApps = handlerInfo.possibleApplicationHandlers.
-                       QueryInterface(Ci.nsIArray).enumerate();
+    let possibleApps = handlerInfo.possibleApplicationHandlers.enumerate();
     var possibleAppMenuItems = [];
     while (possibleApps.hasMoreElements()) {
       let possibleApp = possibleApps.getNext();
@@ -1375,16 +1441,15 @@ var gApplicationsPane = {
   
   
 
-  onSelectAction: function(event) {
-    var actionItem = event.originalTarget;
+  onSelectAction: function(aActionItem) {
     var typeItem = this._list.selectedItem;
     var handlerInfo = this._handledTypes[typeItem.type];
 
-    if (actionItem.hasAttribute("alwaysAsk")) {
+    if (aActionItem.hasAttribute("alwaysAsk")) {
       handlerInfo.alwaysAskBeforeHandling = true;
     }
-    else if (actionItem.hasAttribute("action")) {
-      let action = parseInt(actionItem.getAttribute("action"));
+    else if (aActionItem.hasAttribute("action")) {
+      let action = parseInt(aActionItem.getAttribute("action"));
 
       
       if (action == kActionUsePlugin)
@@ -1399,7 +1464,7 @@ var gApplicationsPane = {
       
       
       if (action == Ci.nsIHandlerInfo.useHelperApp)
-        handlerInfo.preferredApplicationHandler = actionItem.handlerApp;
+        handlerInfo.preferredApplicationHandler = aActionItem.handlerApp;
 
       
       handlerInfo.alwaysAskBeforeHandling = false;
@@ -1427,39 +1492,42 @@ var gApplicationsPane = {
     fp.init(window, winTitle, Ci.nsIFilePicker.modeOpen);
     fp.appendFilters(Ci.nsIFilePicker.filterApps);
 
-    if (fp.show() == Ci.nsIFilePicker.returnOK && fp.file) {
-      
-      
-      
-#ifdef XP_WIN
-#expand      if (fp.file.leafName == "__MOZ_APP_NAME__.exe")
-#else
-#ifdef XP_MACOSX
-#expand      if (fp.file.leafName == "__MOZ_APP_DISPLAYNAME__.app")
-#else
-#expand      if (fp.file.leafName == "__MOZ_APP_NAME__-bin")
-#endif
-#endif
-        { this.rebuildActionsMenu(); return; }
+    var handlerApp;
 
-      let handlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"].
-                       createInstance(Ci.nsIHandlerApp);
+    
+    
+    if (fp.show() == Ci.nsIFilePicker.returnOK && fp.file &&
+        this._isValidHandlerExecutable(fp.file)) {
+      handlerApp = Cc["@mozilla.org/uriloader/local-handler-app;1"].
+                   createInstance(Ci.nsILocalHandlerApp);
       handlerApp.name = getDisplayNameForFile(fp.file);
-      handlerApp.QueryInterface(Ci.nsILocalHandlerApp);
       handlerApp.executable = fp.file;
 
-      var handlerInfo = this._handledTypes[this._list.selectedItem.type];
-
-      handlerInfo.preferredApplicationHandler = handlerApp;
-      handlerInfo.preferredAction = Ci.nsIHandlerInfo.useHelperApp;
-
-      handlerInfo.store();
+      
+      let handlerInfo = this._handledTypes[this._list.selectedItem.type];
+      handlerInfo.possibleApplicationHandlers.appendElement(handlerApp, false);
     }
 
     
     
     
     this.rebuildActionsMenu();
+
+    
+    if (handlerApp) {
+      let typeItem = this._list.selectedItem;
+      let actionsMenu =
+        document.getAnonymousElementByAttribute(typeItem, "class", "actionsMenu");
+      let menuItems = actionsMenu.menupopup.childNodes;
+      for (let i = 0; i < menuItems.length; i++) {
+        let menuItem = menuItems[i];
+        if (menuItem.handlerApp && menuItem.handlerApp.equals(handlerApp)) {
+          actionsMenu.selectedIndex = i;
+          this.onSelectAction(menuItem);
+          break;
+        }
+      }
+    }
   },
 
   
