@@ -55,7 +55,7 @@
 #include "MaemoLocationProvider.h"
 #endif
 
-#ifdef WINCE
+#ifdef WINCE_WINDOWS_MOBILE
 #include "WinMobileLocationProvider.h"
 #endif
 
@@ -370,7 +370,7 @@ nsGeolocationService::nsGeolocationService()
 #endif
 
   
-#ifdef WINCE
+#ifdef WINCE_WINDOWS_MOBILE
   if (!mProvider){
     mProvider = new WinMobileLocationProvider();
   }
