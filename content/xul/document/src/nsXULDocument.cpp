@@ -659,13 +659,10 @@ static PRBool
 CanBroadcast(PRInt32 aNameSpaceID, nsIAtom* aAttribute)
 {
     
-    
     if (aNameSpaceID == kNameSpaceID_None) {
         if ((aAttribute == nsGkAtoms::id) ||
             (aAttribute == nsGkAtoms::ref) ||
-            (aAttribute == nsGkAtoms::persist) ||
-            (aAttribute == nsGkAtoms::command) ||
-            (aAttribute == nsGkAtoms::observes)) {
+            (aAttribute == nsGkAtoms::persist)) {
             return PR_FALSE;
         }
     }
@@ -3832,20 +3829,7 @@ nsXULDocument::OverlayForwardReference::Merge(nsIContent* aTargetNode,
     const nsAttrName* name;
     for (i = 0; (name = aOverlayNode->GetAttrNameAt(i)); ++i) {
         
-        
-        
-        
-        if (name->Equals(nsGkAtoms::id) ||
-            name->Equals(nsGkAtoms::observes) ||
-            aTargetNode->NodeInfo()->Equals(nsGkAtoms::observes,
-                                            kNameSpaceID_XUL))
-            continue;
-
-        if (name->Equals(nsGkAtoms::command) &&
-            !aTargetNode->NodeInfo()->Equals(nsGkAtoms::key,
-                                             kNameSpaceID_XUL) &&
-            !aTargetNode->NodeInfo()->Equals(nsGkAtoms::menuitem,
-                                             kNameSpaceID_XUL))
+        if (name->Equals(nsGkAtoms::id))
             continue;
 
         PRInt32 nameSpaceID = name->NamespaceID();
