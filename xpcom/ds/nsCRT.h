@@ -242,7 +242,8 @@ public:
   
   
   
-  static PRUint32 HashCodeAsUTF16(const char* start, PRUint32 length);
+  static PRUint32 HashCodeAsUTF16(const char* start, PRUint32 length,
+                                  PRBool* err);
 
   
   static PRInt64 atoll(const char *str);
