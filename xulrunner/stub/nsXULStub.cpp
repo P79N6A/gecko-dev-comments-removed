@@ -454,8 +454,15 @@ main(int argc, char **argv)
 
   { 
     nsCOMPtr<nsILocalFile> iniFile;
+#ifdef XP_WIN
+    
+    
+    rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(iniPath), PR_FALSE,
+                         getter_AddRefs(iniFile));
+#else
     rv = NS_NewNativeLocalFile(nsDependentCString(iniPath), PR_FALSE,
                                getter_AddRefs(iniFile));
+#endif
     if (NS_FAILED(rv)) {
       Output(PR_TRUE, "Couldn't find application.ini file.\n");
       return 1;
@@ -475,8 +482,14 @@ main(int argc, char **argv)
       if (lastSlash) {
         *lastSlash = '\0';
       }
+#ifdef XP_WIN
+      
+      NS_NewLocalFile(NS_ConvertUTF8toUTF16(greDir), PR_FALSE,
+                      &appData->xreDirectory);
+#else
       NS_NewNativeLocalFile(nsDependentCString(greDir), PR_FALSE,
                             &appData->xreDirectory);
+#endif
     }
 
     retval = XRE_main(argc, argv, appData);
