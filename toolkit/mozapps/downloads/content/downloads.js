@@ -497,6 +497,8 @@ var gContextMenus = [
     , "menuseparator"
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_clearList"
   ],
   
   [
@@ -538,6 +540,8 @@ var gContextMenus = [
     , "menuseparator"
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_clearList"
   ],
   
   [
@@ -547,6 +551,8 @@ var gContextMenus = [
     , "menuseparator"
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_clearList"
   ],
   
   [
@@ -562,6 +568,8 @@ var gContextMenus = [
     , "menuseparator"
     , "menuitem_openReferrer"
     , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_clearList"
   ],
   
   [
