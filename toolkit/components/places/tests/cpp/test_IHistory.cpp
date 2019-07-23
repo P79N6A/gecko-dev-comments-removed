@@ -83,7 +83,7 @@ new_test_uri()
 
 namespace test_unvisited_does_not_notify {
   nsCOMPtr<nsIURI> testURI;
-  nsCOMPtr<Link> link;
+  nsCOMPtr<Link> testLink;
 }
 void
 test_unvisted_does_not_notify_part1()
@@ -100,11 +100,11 @@ test_unvisted_does_not_notify_part1()
   testURI = new_test_uri();
 
   
-  link = new mock_Link(expect_no_visit);
+  testLink = new mock_Link(expect_no_visit);
 
   
   nsCOMPtr<IHistory> history(do_get_IHistory());
-  nsresult rv = history->RegisterVisitedCallback(testURI, link);
+  nsresult rv = history->RegisterVisitedCallback(testURI, testLink);
   do_check_success(rv);
 
   
@@ -138,12 +138,12 @@ test_unvisted_does_not_notify_part2()
   
   
   nsCOMPtr<IHistory> history(do_get_IHistory());
-  nsresult rv = history->UnregisterVisitedCallback(testURI, link);
+  nsresult rv = history->UnregisterVisitedCallback(testURI, testLink);
   do_check_success(rv);
 
   
   testURI = nsnull;
-  link = nsnull;
+  testLink = nsnull;
 
   
   run_next_test();
