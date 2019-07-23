@@ -111,7 +111,8 @@ protected:
   already_AddRefed<nsIContent> GetFirstFormControl(nsIContent *current);
 
   
-  PRBool mHandlingEvent;
+  PRPackedBool mHandlingEvent;
+  PRPackedBool mInSetFocus;
 };
 
 
@@ -121,8 +122,9 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Label)
 
 
 nsHTMLLabelElement::nsHTMLLabelElement(nsINodeInfo *aNodeInfo)
-  : nsGenericHTMLFormElement(aNodeInfo),
-    mHandlingEvent(PR_FALSE)
+  : nsGenericHTMLFormElement(aNodeInfo)
+  , mHandlingEvent(PR_FALSE)
+  , mInSetFocus(PR_FALSE)
 {
 }
 
@@ -269,11 +271,13 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 void
 nsHTMLLabelElement::SetFocus(nsPresContext* aContext)
 {
-  
-  
+  if (mInSetFocus)
+    return;
+  mInSetFocus = PR_TRUE;
   nsCOMPtr<nsIContent> content = GetForContent();
   if (content)
     content->SetFocus(aContext);
+  mInSetFocus = PR_FALSE;
 }
 
 nsresult
