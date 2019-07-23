@@ -341,7 +341,7 @@ nsLineLayout::UpdateBand(const nsRect& aNewAvailSpace,
   for (PerSpanData* psd = mCurrentSpan; psd; psd = psd->mParent) {
     psd->mRightEdge += deltaWidth;
     psd->mContainsFloat = PR_TRUE;
-    NS_ASSERTION(psd->mX <= psd->mRightEdge,
+    NS_ASSERTION(psd->mX - mTrimmableWidth <= psd->mRightEdge,
                  "We placed a float where there was no room!");
 #ifdef NOISY_REFLOW
     printf("  span %p: oldRightEdge=%d newRightEdge=%d\n",
@@ -873,7 +873,22 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       nsIFrame* outOfFlowFrame = nsLayoutUtils::GetFloatFromPlaceholder(aFrame);
       if (outOfFlowFrame) {
         nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(aFrame);
-        nscoord availableWidth = psd->mRightEdge - psd->mX;
+        
+        
+        
+        nscoord availableWidth = psd->mRightEdge - (psd->mX - mTrimmableWidth);
+        if (psd->mNoWrap) {
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          availableWidth = 0;
+        }
         
         if (!NS_SUBTREE_DIRTY(aFrame)) {
           
