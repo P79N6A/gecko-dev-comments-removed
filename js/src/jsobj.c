@@ -1276,23 +1276,20 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSPrincipals *principals;
     JSScript *script;
     JSBool ok;
-#if JS_HAS_EVAL_THIS_SCOPE
-    JSObject *callerScopeChain = NULL, *callerVarObj = NULL;
-    JSObject *setCallerScopeChain = NULL;
-    JSBool setCallerVarObj = JS_FALSE;
-#endif
 
     fp = cx->fp;
     caller = JS_GetScriptedCaller(cx, fp);
     JS_ASSERT(!caller || caller->pc);
     indirectCall = (caller && *caller->pc != JSOP_EVAL);
 
-    if (indirectCall &&
-        !JS_ReportErrorFlagsAndNumber(cx,
-                                      JSREPORT_WARNING | JSREPORT_STRICT,
-                                      js_GetErrorMessage, NULL,
-                                      JSMSG_BAD_INDIRECT_CALL,
-                                      js_eval_str)) {
+    
+
+
+
+
+    if (indirectCall || OBJ_GET_PARENT(c, obj)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                             JSMSG_BAD_INDIRECT_CALL, js_eval_str);
         return JS_FALSE;
     }
 
@@ -1321,51 +1318,16 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     }
 
     if (!scopeobj) {
-#if JS_HAS_EVAL_THIS_SCOPE
         
-        if (indirectCall) {
-            callerScopeChain = js_GetScopeChain(cx, caller);
-            if (!callerScopeChain)
-                return JS_FALSE;
-            OBJ_TO_INNER_OBJECT(cx, obj);
-            if (!obj)
-                return JS_FALSE;
-            if (obj != callerScopeChain) {
-                if (!js_CheckPrincipalsAccess(cx, obj,
-                                              caller->script->principals,
-                                              cx->runtime->atomState.evalAtom))
-                {
-                    return JS_FALSE;
-                }
 
-                scopeobj = js_NewWithObject(cx, obj, callerScopeChain, -1);
-                if (!scopeobj)
-                    return JS_FALSE;
 
-                
-                caller->scopeChain = fp->scopeChain = scopeobj;
 
-                
-                setCallerScopeChain = scopeobj;
-            }
 
-            callerVarObj = caller->varobj;
-            if (obj != callerVarObj) {
-                
-                caller->varobj = fp->varobj = obj;
-                setCallerVarObj = JS_TRUE;
-            }
-        }
-        
-#endif
 
-        
         if (caller) {
             scopeobj = js_GetScopeChain(cx, caller);
-            if (!scopeobj) {
-                ok = JS_FALSE;
-                goto out;
-            }
+            if (!scopeobj)
+                return JS_FALSE;
         }
     }
 
@@ -1401,10 +1363,8 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                                              JSSTRING_CHARS(str),
                                              JSSTRING_LENGTH(str),
                                              file, line);
-    if (!script) {
-        ok = JS_FALSE;
-        goto out;
-    }
+    if (!script)
+        return JS_FALSE;
 
     if (argc < 2) {
         
@@ -1422,18 +1382,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         ok = js_Execute(cx, scopeobj, script, caller, JSFRAME_EVAL, rval);
 
     JS_DestroyScript(cx, script);
-
-out:
-#if JS_HAS_EVAL_THIS_SCOPE
-    
-    if (setCallerScopeChain) {
-        caller->scopeChain = callerScopeChain;
-        JS_ASSERT(OBJ_GET_CLASS(cx, setCallerScopeChain) == &js_WithClass);
-        JS_SetPrivate(cx, setCallerScopeChain, NULL);
-    }
-    if (setCallerVarObj)
-        caller->varobj = callerVarObj;
-#endif
     return ok;
 }
 
@@ -1788,7 +1736,6 @@ static JSFunctionSpec object_methods[] = {
     {js_toString_str,             js_obj_toString,    0, 0, OBJ_TOSTRING_EXTRA},
     {js_toLocaleString_str,       js_obj_toLocaleString, 0, 0, OBJ_TOSTRING_EXTRA},
     {js_valueOf_str,              obj_valueOf,        0,0,0},
-    {js_eval_str,                 obj_eval,           1,0,0},
 #if JS_HAS_OBJ_WATCHPOINT
     {js_watch_str,                obj_watch,          2,0,0},
     {js_unwatch_str,              obj_unwatch,        1,0,0},
@@ -2237,7 +2184,6 @@ JSObject *
 js_InitObjectClass(JSContext *cx, JSObject *obj)
 {
     JSObject *proto;
-    jsval eval;
 
     proto = JS_InitClass(cx, obj, NULL, &js_ObjectClass, Object, 1,
                          object_props, object_methods, NULL, NULL);
@@ -2245,14 +2191,8 @@ js_InitObjectClass(JSContext *cx, JSObject *obj)
         return NULL;
 
     
-    if (!OBJ_GET_PROPERTY(cx, proto,
-                          ATOM_TO_JSID(cx->runtime->atomState.evalAtom),
-                          &eval)) {
-        return NULL;
-    }
-    if (!OBJ_DEFINE_PROPERTY(cx, obj,
-                             ATOM_TO_JSID(cx->runtime->atomState.evalAtom),
-                             eval, NULL, NULL, 0, NULL)) {
+    if (!js_DefineFunction(cx, obj, cx->runtime->atomState.evalAtom,
+                           obj_eval, 1, 0)) {
         return NULL;
     }
 
