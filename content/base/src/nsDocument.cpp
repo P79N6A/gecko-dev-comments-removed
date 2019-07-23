@@ -1126,7 +1126,7 @@ nsDocument::Init()
   
   
   
-  NS_ENSURE_TRUE(slots->mMutationObservers.PrependElementUnlessExists(this),
+  NS_ENSURE_TRUE(slots->mMutationObservers.PrependElementUnlessExists(static_cast<nsIMutationObserver*>(this)),
                  NS_ERROR_OUT_OF_MEMORY);
 
 
@@ -2585,6 +2585,11 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     mLayoutHistoryState = nsnull;
     mScopeObject = do_GetWeakReference(aScriptGlobalObject);
   }
+
+  
+  
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobalObject);
+  mWindow = window;
 }
 
 nsIScriptGlobalObject*
@@ -2625,6 +2630,10 @@ nsDocument::SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject)
 nsPIDOMWindow *
 nsDocument::GetWindow()
 {
+  if (mWindow) {
+    return mWindow->GetOuterWindow();
+  }
+
   nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(GetScriptGlobalObject()));
 
   if (!win) {

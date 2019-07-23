@@ -3399,7 +3399,7 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
   IdAndNameMapEntry *entry =
     static_cast<IdAndNameMapEntry *>
                (PL_DHashTableOperate(&mIdAndNameHashTable, name,
-                                        PL_DHASH_ADD));
+                                     PL_DHASH_ADD));
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   if (entry->mNameContentList == NAME_NOT_VALID) {
@@ -3419,7 +3419,7 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
   
   
   FlushPendingNotifications(entry->mNameContentList ?
-                              Flush_ContentAndNotify : Flush_Content);
+                            Flush_ContentAndNotify : Flush_Content);
 
   if (generation != mIdAndNameHashTable.generation) {
     
@@ -3428,7 +3428,7 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
     entry =
       static_cast<IdAndNameMapEntry *>
                  (PL_DHashTableOperate(&mIdAndNameHashTable, name,
-                                          PL_DHASH_ADD));
+                                       PL_DHASH_ADD));
     NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
   }
     

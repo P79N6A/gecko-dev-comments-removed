@@ -747,6 +747,9 @@ protected:
   
   
   nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
+  
+  
+  nsPIDOMWindow *mWindow;
 
   
   
