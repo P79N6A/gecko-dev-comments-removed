@@ -1224,9 +1224,9 @@ imgContainer::sDiscardTimerCallback(nsITimer *aTimer, void *aClosure)
 
   int old_frame_count = self->mFrames.Count();
 
-  
   if (self->mAnim) {
-    return;
+    delete self->mAnim;
+    self->mAnim = nsnull;
   }
 
   self->mFrames.Clear();
