@@ -554,20 +554,64 @@ PRBool
 nsXULElement::IsFocusable(PRInt32 *aTabIndex)
 {
   
-  PRInt32 tabIndex = aTabIndex? *aTabIndex : -1;
-  PRBool disabled = tabIndex < 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  PRBool shouldFocus = PR_FALSE;
+
   nsCOMPtr<nsIDOMXULControlElement> xulControl = 
     do_QueryInterface(static_cast<nsIContent*>(this));
   if (xulControl) {
+    
+    PRBool disabled;
     xulControl->GetDisabled(&disabled);
     if (disabled) {
-      tabIndex = -1;  
+      if (aTabIndex)
+        *aTabIndex = -1;
+      return PR_FALSE;
     }
-    else if (HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
+    shouldFocus = PR_TRUE;
+  }
+
+  if (aTabIndex) {
+    if (xulControl && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
       
+      
+      PRInt32 tabIndex = 0;
       xulControl->GetTabIndex(&tabIndex);
+      shouldFocus = *aTabIndex >= 0 || tabIndex >= 0;
+      *aTabIndex = tabIndex;
     }
-    if (tabIndex != -1 && sTabFocusModelAppliesToXUL &&
+    else {
+      shouldFocus = *aTabIndex >= 0;
+    }
+
+    if (shouldFocus && sTabFocusModelAppliesToXUL &&
         !(sTabFocusModel & eTabFocus_formElementsMask)) {
       
       
@@ -575,15 +619,11 @@ nsXULElement::IsFocusable(PRInt32 *aTabIndex)
       
       
       if (!mNodeInfo->Equals(nsGkAtoms::tree) && !mNodeInfo->Equals(nsGkAtoms::listbox))
-        tabIndex = -1; 
+        *aTabIndex = -1; 
     }
   }
 
-  if (aTabIndex) {
-    *aTabIndex = tabIndex;
-  }
-
-  return tabIndex >= 0 || (!disabled && HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex));
+  return shouldFocus;
 }
 
 void
