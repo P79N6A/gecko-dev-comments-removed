@@ -1362,8 +1362,7 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   PRBool disabled;
   nsresult rv = GetDisabled(&disabled);
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  if (disabled || !aVisitor.mPresContext) {
+  if (disabled) {
     return NS_OK;
   }
   
@@ -1381,6 +1380,10 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
 
+  
+  if (!aVisitor.mPresContext) {
+    return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+  }
   
   
   
