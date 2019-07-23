@@ -308,7 +308,7 @@ GetChar(JSTokenStream *ts)
                     ts->flags |= TSF_EOF;
                     return EOF;
                 }
-        
+
                 
                 crflag = (ts->flags & TSF_CRFLAG) != 0;
                 len = js_fgets(cbuf, JS_LINE_LIMIT - crflag, ts->file);
@@ -336,7 +336,7 @@ GetChar(JSTokenStream *ts)
                 ts->listener(ts->filename, ts->lineno, ts->userbuf.ptr, len,
                              &ts->listenerTSData, ts->listenerData);
             }
-        
+
             nl = ts->saveEOL;
             if (!nl) {
                 
@@ -362,7 +362,7 @@ GetChar(JSTokenStream *ts)
                     }
                 }
             }
-        
+
             
 
 
@@ -378,7 +378,7 @@ GetChar(JSTokenStream *ts)
             js_strncpy(ts->linebuf.base, ts->userbuf.ptr, len);
             ts->userbuf.ptr += len;
             olen = len;
-        
+
             
 
 
@@ -420,11 +420,11 @@ GetChar(JSTokenStream *ts)
                     ts->linebuf.base[len-1] = '\n';
                 }
             }
-        
+
             
             ts->linebuf.limit = ts->linebuf.base + len;
             ts->linebuf.ptr = ts->linebuf.base;
-        
+
             
             if (!(ts->flags & TSF_NLFLAG))
                 ts->linepos += ts->linelen;
@@ -434,7 +434,7 @@ GetChar(JSTokenStream *ts)
                 ts->flags |= TSF_NLFLAG;
             else
                 ts->flags &= ~TSF_NLFLAG;
-        
+
             
             ts->linelen = olen;
         }

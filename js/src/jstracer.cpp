@@ -2249,7 +2249,7 @@ js_GetUpvarStackOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 cal
 
 template<typename T>
 uint32 JS_INLINE
-js_GetFromClosure(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
+js_GetFromClosure(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth,
                   double* result)
 {
     JS_ASSERT(scopeIndex >= 1);
@@ -2305,7 +2305,7 @@ private:
 };
 
 uint32 JS_FASTCALL
-js_GetClosureArg(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
+js_GetClosureArg(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth,
                  double* result)
 {
     return js_GetFromClosure<ArgClosureTraits>(cx, callee, scopeIndex, slot, callDepth, result);
@@ -2320,7 +2320,7 @@ private:
 };
 
 uint32 JS_FASTCALL
-js_GetClosureVar(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth, 
+js_GetClosureVar(JSContext* cx, JSObject* callee, uint32 scopeIndex, uint32 slot, uint32 callDepth,
                  double* result)
 {
     return js_GetFromClosure<VarClosureTraits>(cx, callee, scopeIndex, slot, callDepth, result);
@@ -6523,9 +6523,9 @@ TraceRecorder::frameIfInRange(JSObject* obj, unsigned* depthp) const
     return NULL;
 }
 
-JS_DEFINE_CALLINFO_6(extern, UINT32, js_GetClosureVar, CONTEXT, OBJECT, UINT32, 
+JS_DEFINE_CALLINFO_6(extern, UINT32, js_GetClosureVar, CONTEXT, OBJECT, UINT32,
                      UINT32, UINT32, DOUBLEPTR, 0, 0)
-JS_DEFINE_CALLINFO_6(extern, UINT32, js_GetClosureArg, CONTEXT, OBJECT, UINT32, 
+JS_DEFINE_CALLINFO_6(extern, UINT32, js_GetClosureArg, CONTEXT, OBJECT, UINT32,
                      UINT32, UINT32, DOUBLEPTR, 0, 0)
 
 
@@ -6622,13 +6622,13 @@ TraceRecorder::scopeChainProp(JSObject* obj, jsval*& vp, LIns*& ins, bool& track
 
                 LIns* callee_ins = get(&cx->fp->argv[-2]);
                 LIns* outp = lir->insAlloc(sizeof(double));
-                LIns* args[] = { 
+                LIns* args[] = {
                     outp,
                     INS_CONST(callDepth),
                     INS_CONST(slot),
-                    INS_CONST(scopeIndex), 
+                    INS_CONST(scopeIndex),
                     callee_ins,
-                    cx_ins 
+                    cx_ins
                 };
                 const CallInfo* ci;
                 if (sprop->getter == js_GetCallArg)
@@ -9700,7 +9700,7 @@ TraceRecorder::record_JSOP_GETELEM()
                         typemap_ins = lir->ins2(LIR_add, fip_ins, INS_CONST(sizeof(FrameInfo) + 2 * sizeof(JSTraceType)));
                     }
 
-                    LIns* typep_ins = lir->ins2(LIR_add, typemap_ins, 
+                    LIns* typep_ins = lir->ins2(LIR_add, typemap_ins,
                                                 lir->ins2(LIR_mul, idx_ins, INS_CONST(sizeof(JSTraceType))));
                     LIns* type_ins = lir->insLoad(LIR_ldcb, typep_ins, 0);
                     guard(true,
@@ -9709,7 +9709,7 @@ TraceRecorder::record_JSOP_GETELEM()
                           BRANCH_EXIT);
 
                     
-                    guard(true, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)), 
+                    guard(true, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)),
                           snapshot(BRANCH_EXIT));
                     size_t stackOffset = -treeInfo->nativeStackBase + nativeStackOffset(&afp->argv[0]);
                     LIns* args_addr_ins = lir->ins2(LIR_add, lirbuf->sp, INS_CONST(stackOffset));
@@ -9717,7 +9717,7 @@ TraceRecorder::record_JSOP_GETELEM()
                                                     lir->ins2(LIR_mul, idx_ins, INS_CONST(sizeof(double))));
                     v_ins = stackLoad(argi_addr_ins, type);
                 } else {
-                    guard(false, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)), 
+                    guard(false, lir->ins2(LIR_ult, idx_ins, INS_CONST(afp->argc)),
                           snapshot(BRANCH_EXIT));
                     v_ins = INS_VOID();
                 }

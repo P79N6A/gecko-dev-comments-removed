@@ -2095,7 +2095,7 @@ js_GetUpvar(JSContext *cx, uintN level, uintN cookie)
     } else if (slot == CALLEE_UPVAR_SLOT) {
         vp = &fp->argv[-2];
         slot = 0;
-    } else { 
+    } else {
         slot -= fp->fun->nargs;
         JS_ASSERT(slot < fp->script->nslots);
         vp = fp->slots;

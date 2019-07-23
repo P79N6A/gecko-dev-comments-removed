@@ -170,8 +170,8 @@ static const JSInt64 win2un = JSLL_INIT(0x19DB1DE, 0xD53E8000);
 #if defined(HAVE_GETSYSTEMTIMEASFILETIME)
 inline void
 LowResTime(LPFILETIME lpft)
-{ 
-    GetSystemTimeAsFileTime(lpft); 
+{
+    GetSystemTimeAsFileTime(lpft);
 }
 #elif defined(HAVE_SYSTEMTIMETOFILETIME)
 inline void
@@ -229,9 +229,9 @@ NowCalibrate()
             LowResTime(&ft);
         } while (memcmp(&ftStart,&ft, sizeof(ft)) == 0);
         timeEndPeriod(1);
-        
+
 #ifdef WINCE
-        calibration.granularity = (FILETIME2INT64(ft) - 
+        calibration.granularity = (FILETIME2INT64(ft) -
                                    FILETIME2INT64(ftStart))/10;
 #endif
         

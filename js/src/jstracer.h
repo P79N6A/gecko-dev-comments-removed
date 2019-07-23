@@ -332,7 +332,7 @@ public:
     _(TIMEOUT)                                                                  \
     _(DEEP_BAIL)                                                                \
     _(STATUS)
-        
+
 
 enum ExitType {
     #define MAKE_EXIT_CODE(x) x##_EXIT,
@@ -995,13 +995,13 @@ js_LogTraceVisState(TraceVisState s, TraceVisExitReason r)
     }
 }
 
-static inline void 
+static inline void
 js_EnterTraceVisState(TraceVisState s, TraceVisExitReason r)
 {
     js_LogTraceVisState(s, r);
 }
 
-static inline void 
+static inline void
 js_ExitTraceVisState(TraceVisExitReason r)
 {
     js_LogTraceVisState(S_EXITLAST, r);

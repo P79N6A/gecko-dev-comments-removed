@@ -158,7 +158,7 @@ static JS_INLINE uintN
 GlobalVarCount(JSStackFrame *fp)
 {
     uintN n;
-    
+
     JS_ASSERT(!fp->fun);
     n = fp->script->nfixed;
     if (fp->script->regexpsOffset != 0)
