@@ -1014,7 +1014,14 @@ var PlacesUIUtils = {
         var popup = document.createElement("menupopup");
         popup.setAttribute("placespopup", "true");
         popup._resultNode = asContainer(aNode);
-#ifndef XP_MACOSX
+#ifdef XP_MACOSX
+        
+        
+        
+        
+        popup._startMarker = -1;
+        popup._endMarker = -1;
+#else
         
         popup.setAttribute("context", "placesContext");
 #endif
