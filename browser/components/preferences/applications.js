@@ -671,12 +671,6 @@ var feedHandlerInfo = {
   
   
 
-  handledOnlyByPlugin: false,
-
-
-  
-  
-
   
   
   
@@ -706,6 +700,21 @@ var gApplicationsPane = {
   
   
   _handledTypes: {},
+  
+  
+  
+  
+  
+  
+  
+  
+  _visibleTypes: [],
+
+  
+  
+  
+  
+  _visibleTypeDescriptionCount: {},
 
 
   
@@ -776,7 +785,9 @@ var gApplicationsPane = {
     
     var _delayedPaneLoad = function(self) {
       self._loadData();
-      self.rebuildView();
+      self._rebuildVisibleTypes();
+      self._sortVisibleTypes();
+      self._rebuildView();
     }
     setTimeout(_delayedPaneLoad, 0, this);
   },
@@ -811,8 +822,19 @@ var gApplicationsPane = {
   observe: function (aSubject, aTopic, aData) {
     
     
-    if (aTopic == "nsPref:changed")
-      this.rebuildView();
+    if (aTopic == "nsPref:changed") {
+      
+      
+      if (aData == PREF_SHOW_PLUGINS_IN_LIST ||
+          aData == PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS) {
+        this._rebuildVisibleTypes();
+        this._sortVisibleTypes();
+      }
+
+      
+      
+      this._rebuildView();
+    }
   },
 
 
@@ -837,6 +859,7 @@ var gApplicationsPane = {
 
   _loadFeedHandler: function() {
     this._handledTypes[TYPE_MAYBE_FEED] = feedHandlerInfo;
+    feedHandlerInfo.handledOnlyByPlugin = false;
   },
 
   
@@ -864,19 +887,19 @@ var gApplicationsPane = {
       let plugin = navigator.plugins[i];
       for (let j = 0; j < plugin.length; ++j) {
         let type = plugin[j].type;
-        let handlerInfoWrapper;
 
-        if (typeof this._handledTypes[type] == "undefined") {
+        let handlerInfoWrapper;
+        if (type in this._handledTypes)
+          handlerInfoWrapper = this._handledTypes[type];
+        else {
           let wrappedHandlerInfo =
             this._mimeSvc.getFromTypeAndExtension(type, null);
           handlerInfoWrapper = new HandlerInfoWrapper(type, wrappedHandlerInfo);
+          handlerInfoWrapper.handledOnlyByPlugin = true;
           this._handledTypes[type] = handlerInfoWrapper;
         }
-        else
-          handlerInfoWrapper = this._handledTypes[type];
 
         handlerInfoWrapper.plugin = plugin;
-        handlerInfoWrapper.handledOnlyByPlugin = true;
       }
     }
   },
@@ -887,17 +910,17 @@ var gApplicationsPane = {
   _loadApplicationHandlers: function() {
     var wrappedHandlerInfos = this._handlerSvc.enumerate();
     while (wrappedHandlerInfos.hasMoreElements()) {
-      let wrappedHandlerInfo = wrappedHandlerInfos.getNext().
-                               QueryInterface(Ci.nsIHandlerInfo);
+      let wrappedHandlerInfo =
+        wrappedHandlerInfos.getNext().QueryInterface(Ci.nsIHandlerInfo);
       let type = wrappedHandlerInfo.type;
-      let handlerInfoWrapper;
 
-      if (typeof this._handledTypes[type] == "undefined") {
+      let handlerInfoWrapper;
+      if (type in this._handledTypes)
+        handlerInfoWrapper = this._handledTypes[type];
+      else {
         handlerInfoWrapper = new HandlerInfoWrapper(type, wrappedHandlerInfo);
         this._handledTypes[type] = handlerInfoWrapper;
       }
-      else
-        handlerInfoWrapper = this._handledTypes[type];
 
       handlerInfoWrapper.handledOnlyByPlugin = false;
     }
@@ -907,35 +930,12 @@ var gApplicationsPane = {
   
   
 
-  rebuildView: function() {
+  _rebuildVisibleTypes: function() {
     
-    while (this._list.childNodes.length > 1)
-      this._list.removeChild(this._list.lastChild);
+    this._visibleTypes = [];
+    this._visibleTypeDescriptionCount = {};
 
-    var visibleTypes = this._getVisibleTypes();
-
-    if (this._sortColumn)
-      this._sortTypes(visibleTypes);
-
-    for each (let visibleType in visibleTypes) {
-      let item = document.createElement("richlistitem");
-      item.setAttribute("type", visibleType.type);
-      item.setAttribute("typeDescription", visibleType.description);
-      if (visibleType.smallIcon)
-        item.setAttribute("typeIcon", visibleType.smallIcon);
-      item.setAttribute("actionDescription",
-                        this._describePreferredAction(visibleType));
-      item.setAttribute("actionIcon",
-                        this._getIconURLForPreferredAction(visibleType));
-      this._list.appendChild(item);
-    }
-
-    this._selectLastSelectedType();
-  },
-
-  _getVisibleTypes: function() {
-    var visibleTypes = [];
-
+    
     var showPlugins = this._prefSvc.getBoolPref(PREF_SHOW_PLUGINS_IN_LIST);
     var hideTypesWithoutExtensions =
       this._prefSvc.getBoolPref(PREF_HIDE_PLUGINS_WITHOUT_EXTENSIONS);
@@ -959,23 +959,69 @@ var gApplicationsPane = {
         continue;
 
       
-      if (this._filter.value && !this._matchesFilter(handlerInfo))
-        continue;
+      this._visibleTypes.push(handlerInfo);
 
-      
-      visibleTypes.push(handlerInfo);
+      if (handlerInfo.description in this._visibleTypeDescriptionCount)
+        this._visibleTypeDescriptionCount[handlerInfo.description]++;
+      else
+        this._visibleTypeDescriptionCount[handlerInfo.description] = 1;
+    }
+  },
+
+  _rebuildView: function() {
+    
+    while (this._list.childNodes.length > 1)
+      this._list.removeChild(this._list.lastChild);
+
+    var visibleTypes = this._visibleTypes;
+
+    
+    if (this._filter.value)
+      visibleTypes = visibleTypes.filter(this._matchesFilter, this);
+
+    for each (let visibleType in visibleTypes) {
+      let item = document.createElement("richlistitem");
+      item.setAttribute("type", visibleType.type);
+      item.setAttribute("typeDescription", this._describeType(visibleType));
+      if (visibleType.smallIcon)
+        item.setAttribute("typeIcon", visibleType.smallIcon);
+      item.setAttribute("actionDescription",
+                        this._describePreferredAction(visibleType));
+      item.setAttribute("actionIcon",
+                        this._getIconURLForPreferredAction(visibleType));
+      this._list.appendChild(item);
     }
 
-    return visibleTypes;
+    this._selectLastSelectedType();
   },
 
   _matchesFilter: function(aType) {
     var filterValue = this._filter.value.toLowerCase();
-    return aType.description.toLowerCase().indexOf(filterValue) != -1 ||
+    return this._describeType(aType).toLowerCase().indexOf(filterValue) != -1 ||
            this._describePreferredAction(aType).toLowerCase().indexOf(filterValue) != -1;
   },
 
   
+
+
+
+
+
+
+
+
+
+  _describeType: function(aHandlerInfo) {
+    if (this._visibleTypeDescriptionCount[aHandlerInfo.description] > 1)
+      return this._prefsBundle.getFormattedString("typeDescriptionWithType",
+                                                  [aHandlerInfo.description,
+                                                   aHandlerInfo.type]);
+
+    return aHandlerInfo.description;
+  },
+
+  
+
 
 
 
@@ -1248,23 +1294,24 @@ var gApplicationsPane = {
     else
       column.setAttribute("sortDirection", "ascending");
 
-    this.rebuildView();
+    this._sortVisibleTypes();
+    this._rebuildView();
   },
 
   
 
 
-
-
-  _sortTypes: function(aTypes) {
+  _sortVisibleTypes: function() {
     if (!this._sortColumn)
       return;
 
+    var t = this;
+
     function sortByType(a, b) {
-      return a.description.toLowerCase().localeCompare(b.description.toLowerCase());
+      return t._describeType(a).toLowerCase().
+             localeCompare(t._describeType(b).toLowerCase());
     }
 
-    var t = this;
     function sortByAction(a, b) {
       return t._describePreferredAction(a).toLowerCase().
              localeCompare(t._describePreferredAction(b).toLowerCase());
@@ -1272,15 +1319,15 @@ var gApplicationsPane = {
 
     switch (this._sortColumn.getAttribute("value")) {
       case "type":
-        aTypes.sort(sortByType);
+        this._visibleTypes.sort(sortByType);
         break;
       case "action":
-        aTypes.sort(sortByAction);
+        this._visibleTypes.sort(sortByAction);
         break;
     }
 
     if (this._sortColumn.getAttribute("sortDirection") == "descending")
-      aTypes.reverse();
+      this._visibleTypes.reverse();
   },
 
   
@@ -1292,7 +1339,7 @@ var gApplicationsPane = {
       return;
     }
 
-    this.rebuildView();
+    this._rebuildView();
 
     document.getElementById("clearFilter").disabled = false;
   },
@@ -1313,7 +1360,7 @@ var gApplicationsPane = {
   
   clearFilter: function() {
     this._filter.value = "";
-    this.rebuildView();
+    this._rebuildView();
 
     this._filter.focus();
     document.getElementById("clearFilter").disabled = true;
