@@ -1206,7 +1206,14 @@ class nsIWidget : public nsISupports {
 
 
 
-      IME_STATUS_PASSWORD = 2
+      IME_STATUS_PASSWORD = 2,
+      
+
+
+
+
+
+      IME_STATUS_PLUGIN = 3
     };
 
     

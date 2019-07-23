@@ -458,6 +458,20 @@ public:
     return "";
   }
 
+  PRBool SendNativeEvents()
+  {
+#ifdef XP_WIN
+    return MatchPluginName("Shockwave Flash");
+#else
+    return PR_FALSE;
+#endif
+  }
+
+  PRBool MatchPluginName(const char *aPluginName)
+  {
+    return strncmp(GetPluginName(), aPluginName, strlen(aPluginName)) == 0;
+  }
+
 private:
   void FixUpURLS(const nsString &name, nsAString &value);
 
@@ -1680,6 +1694,11 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
     }
   }
 
+  if (mInstanceOwner->SendNativeEvents() && NS_IS_PLUGIN_EVENT(anEvent)) {
+    *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
+    return rv;
+  }
+
 #ifdef XP_WIN
   rv = nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
   return rv;
@@ -1888,27 +1907,19 @@ GetMIMEType(nsIPluginInstance *aPluginInstance)
 #endif
 
 static PRBool
-MatchPluginName(nsPluginInstanceOwner *aInstanceOwner, const char *aPluginName)
-{
-  return strncmp(aInstanceOwner->GetPluginName(),
-                 aPluginName,
-                 strlen(aPluginName)) == 0;
-}
-
-static PRBool
 DoDelayedStop(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
 {
   
   
   if (aDelayedStop
 #ifndef XP_WIN
-      && !::MatchPluginName(aInstanceOwner, "QuickTime")
-      && !::MatchPluginName(aInstanceOwner, "Flip4Mac")
-      && !::MatchPluginName(aInstanceOwner, "XStandard plugin")
-      && !::MatchPluginName(aInstanceOwner, "CMISS Zinc Plugin")
+      && !aInstanceOwner->MatchPluginName("QuickTime")
+      && !aInstanceOwner->MatchPluginName("Flip4Mac")
+      && !aInstanceOwner->MatchPluginName("XStandard plugin")
+      && !aInstanceOwner->MatchPluginName("CMISS Zinc Plugin")
 #endif
 #if defined(XP_UNIX) && defined(__arm__)
-      && !::MatchPluginName(aInstanceOwner, "Shockwave Flash")
+      && !aInstanceOwner->MatchPluginName("Shockwave Flash")
 #endif
       ) {
     nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
@@ -3480,6 +3491,10 @@ nsresult nsPluginInstanceOwner::KeyPress(nsIDOMEvent* aKeyEvent)
   sInKeyDispatch = PR_FALSE;
   return rv;
 #else
+
+  if (SendNativeEvents())
+    return DispatchKeyToPlugin(aKeyEvent);
+
   if (mInstance) {
     
     

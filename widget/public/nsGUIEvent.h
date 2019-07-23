@@ -394,6 +394,11 @@ class nsHashKey;
 
 
 
+#define NS_PLUGIN_EVENT_START   3600
+#define NS_PLUGIN_EVENT         (NS_PLUGIN_EVENT_START)
+
+
+
 
 
 
@@ -1227,6 +1232,9 @@ enum nsDragDropEventStatus {
         ((evnt)->message == NS_QUERY_CHARACTER_RECT) || \
         ((evnt)->message == NS_QUERY_CARET_RECT))
 
+#define NS_IS_PLUGIN_EVENT(evnt) \
+       (((evnt)->message == NS_PLUGIN_EVENT))
+
 #define NS_IS_TRUSTED_EVENT(event) \
   (((event)->flags & NS_EVENT_FLAG_TRUSTED) != 0)
 
@@ -1407,7 +1415,8 @@ inline PRBool NS_TargetUnfocusedEventToLastFocusedContent(nsEvent* aEvent)
   
   
 
-  return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_EVENT(aEvent);
+  return NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_EVENT(aEvent) ||
+         NS_IS_PLUGIN_EVENT(aEvent);
 #else
   return PR_FALSE;
 #endif
