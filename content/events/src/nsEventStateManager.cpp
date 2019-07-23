@@ -42,6 +42,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsEventStateManager.h"
 #include "nsEventListenerManager.h"
@@ -1461,6 +1462,17 @@ IsAccessKeyTarget(nsIContent* aContent, nsIFrame* aFrame, nsAString& aKey)
   nsCOMPtr<nsIDOMXULControlElement> control(do_QueryInterface(aContent));
   if (control)
     return PR_TRUE;
+
+  if (aContent->IsNodeOfType(nsINode::eHTML)) {
+    nsIAtom* tag = aContent->Tag();
+
+    
+    
+    if (tag == nsGkAtoms::area ||
+        tag == nsGkAtoms::label ||
+        tag == nsGkAtoms::legend)
+      return PR_TRUE;
+  }
 
   return PR_FALSE;
 }
