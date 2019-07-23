@@ -1302,6 +1302,14 @@ public:
 
   virtual nsISupports* GetCurrentContentSink() = 0;
 
+  
+
+
+
+
+
+  virtual void RegisterFileDataUri(nsACString& aUri) = 0;
+
 protected:
   ~nsIDocument()
   {

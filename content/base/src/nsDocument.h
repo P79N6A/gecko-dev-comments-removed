@@ -890,6 +890,8 @@ public:
   virtual NS_HIDDEN_(void)
     EnumerateExternalResources(nsSubDocEnumFunc aCallback, void* aData);
 
+  nsTArray<nsCString> mFileDataUris;
+
 #ifdef MOZ_SMIL
   
   
@@ -936,6 +938,8 @@ public:
                                        nsICSSStyleSheet** sheet);
 
   virtual nsISupports* GetCurrentContentSink();
+
+  virtual void RegisterFileDataUri(nsACString& aUri);
 
 protected:
   friend class nsNodeUtils;
