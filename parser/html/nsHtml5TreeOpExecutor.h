@@ -118,6 +118,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
 
     PRBool                        mCallDidBuildModel;
+    
+    nsCString                     mCharsetSwitch;
 
   public:
   
@@ -302,6 +304,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     void Start();
 
     void NeedsCharsetSwitchTo(const char* aEncoding);
+    
+    void PerformCharsetSwitch();
     
 #ifdef DEBUG
     PRBool HasScriptElement() {
