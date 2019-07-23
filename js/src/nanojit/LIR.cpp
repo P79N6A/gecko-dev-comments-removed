@@ -2034,6 +2034,7 @@ namespace nanojit
 			
 			root = triggerFrag->root;
 			root->fragEntry = 0;
+			root->loopEntry = 0;
 			root->releaseCode(frago);
 			
 			
@@ -2074,6 +2075,7 @@ namespace nanojit
 
 		if (assm->error()) {
 			root->fragEntry = 0;
+			root->loopEntry = 0;
 		}
     }
 

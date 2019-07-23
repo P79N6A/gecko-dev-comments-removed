@@ -128,8 +128,8 @@ namespace nanojit
 		}
 
 		verbose_only( verbose_outputf("        %p:",_nIns); )
-		verbose_only( verbose_output("        patch entry:"); )
-        NIns *patchEntry = _nIns;
+		verbose_only( verbose_output("        frag entry:"); )
+        NIns *fragEntry = _nIns;
 		MR(FP, SP); 
         PUSHr(FP); 
 
@@ -140,7 +140,7 @@ namespace nanojit
         
         asm_align_code();
 
-		return patchEntry;
+		return fragEntry;
 	}
 
     void Assembler::asm_align_code() {
@@ -173,7 +173,7 @@ namespace nanojit
         Fragment *frag = exit->target;
         GuardRecord *lr = 0;
 		bool destKnown = (frag && frag->fragEntry);
-		if (destKnown && !trees)
+		if (destKnown && !trees && exit->exitType != TIMEOUT_EXIT)
 		{
 			
 			JMP(frag->fragEntry);
@@ -188,11 +188,11 @@ namespace nanojit
             underrunProtect(14);
             _nIns -= 8;
             *(intptr_t *)_nIns = intptr_t(_epilogue);
-            lr->jmp = _nIns;
+            lr->jmpToTarget = _nIns;
             JMPm_nochk(0);
 #else
             JMP_long(_epilogue);
-			lr->jmp = _nIns;
+            lr->jmpToTarget = _nIns;
 #endif
 		}
 		
@@ -948,14 +948,22 @@ namespace nanojit
 
 	void Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
 	{
+		GuardRecord* guard = ins->record();
+		SideExit* exit = guard->exit;
+
+		
+		exit->exitType = TIMEOUT_EXIT;
+		asm_exit(ins);
+
+		
 		JMP_long(0);
 
         loopJumps.add(_nIns);
+		guard->jmpToStub = _nIns;
 
 		
 		
-		Fragment* target = ins->record()->exit->target;
-		if (target != _thisfrag)
+		if (exit->target != _thisfrag)
 	        MR(SP,FP);
 	}	
 
