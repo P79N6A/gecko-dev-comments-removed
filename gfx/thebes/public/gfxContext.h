@@ -557,7 +557,7 @@ public:
 
 
 
-        FLAG_SIMPLIFY_OPERATORS = (1 << 0),
+        FLAG_SIMPLIFY_OPERATORS = (1 << 0)
     };
 
     void SetFlag(PRInt32 aFlag) { mFlags |= aFlag; }
