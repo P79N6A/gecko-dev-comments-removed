@@ -264,7 +264,7 @@ nsPrintJobPipeGTK::Submit()
     NS_ENSURE_SUCCESS(rv, rv);
     
     
-    FILE *destPipe;
+    FILE *destPipe = NULL;
     rv = popenPrintCommand(&destPipe, mPrinterName, mCommand);
     if (NS_SUCCEEDED(rv)) {
         rv = CopySpoolToCommand(spoolStream, destPipe);
