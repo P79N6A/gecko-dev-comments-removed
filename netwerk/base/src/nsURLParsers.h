@@ -83,6 +83,12 @@ public:
                              PRUint32 *, PRInt32 *);
 #endif
 
+    NS_IMETHOD ParseAuthority(const char *auth, PRInt32 authLen,
+                              PRUint32 *usernamePos, PRInt32 *usernameLen,
+                              PRUint32 *passwordPos, PRInt32 *passwordLen,
+                              PRUint32 *hostnamePos, PRInt32 *hostnameLen,
+                              PRInt32 *port);
+
     void ParseAfterScheme(const char *spec, PRInt32 specLen,
                           PRUint32 *authPos, PRInt32 *authLen,
                           PRUint32 *pathPos, PRInt32 *pathLen);
