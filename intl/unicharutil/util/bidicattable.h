@@ -21,6 +21,26 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h" 
 
 static PRUint8 gBidiCatIdx1[256] = {
