@@ -1597,8 +1597,10 @@ nsNativeThemeWin::GetWidgetPadding(nsIDeviceContext* aContext,
     case NS_THEME_MENUITEMTEXT:
         
         
-        SIZE size(GetGutterSize(theme, NULL));
-        left = size.cx + 2;
+        {
+          SIZE size(GetGutterSize(theme, NULL));
+          left = size.cx + 2;
+        }
         break;
     case NS_THEME_MENUSEPARATOR:
         {
