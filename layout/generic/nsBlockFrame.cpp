@@ -1081,18 +1081,17 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     ReflowBullet(state, metrics);
 
     nscoord baseline;
-    if (nsLayoutUtils::GetFirstLineBaseline(this, &baseline)) {
-      
-
-      
-      
-    
-      
-      nsRect bbox = mBullet->GetRect();
-      bbox.y = baseline - metrics.ascent;
-      mBullet->SetRect(bbox);
+    if (!nsLayoutUtils::GetFirstLineBaseline(this, &baseline)) {
+      baseline = 0;
     }
     
+    
+    
+    
+    
+    nsRect bbox = mBullet->GetRect();
+    bbox.y = baseline - metrics.ascent;
+    mBullet->SetRect(bbox);
   }
 
   
