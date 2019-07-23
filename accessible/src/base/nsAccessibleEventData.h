@@ -91,6 +91,23 @@ private:
   PRBool mIsEnabled;
 };
 
+class nsAccTextChangeEvent: public nsAccEvent,
+                            public nsIAccessibleTextChangeEvent
+{
+public:
+  nsAccTextChangeEvent(nsIAccessible *aAccessible,
+                       PRInt32 aStart, PRUint32 aLength, PRBool aIsInserted);
+
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_FORWARD_NSIACCESSIBLEEVENT(nsAccEvent::)
+  NS_DECL_NSIACCESSIBLETEXTCHANGEEVENT
+
+private:
+  PRInt32 mStart;
+  PRUint32 mLength;
+  PRBool mIsInserted;
+};
+
 
 
 
@@ -121,12 +138,6 @@ struct AtkChildrenChange {
   PRInt32      index;  
   nsIAccessible *child;   
   PRBool        add;    
-};
-
-struct AtkTextChange {
-  PRInt32  start;
-  PRUint32 length;
-  PRBool   add;     
 };
 
 struct AtkTableChange {

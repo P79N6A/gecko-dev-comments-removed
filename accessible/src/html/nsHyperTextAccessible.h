@@ -145,8 +145,6 @@ protected:
   
   nsresult GetSelections(nsISelectionController **aSelCon, nsISelection **aDomSel);
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
-
-  
-  nsresult FireTextChangeEvent(AtkTextChange *aTextData);
 };
+
 #endif  
