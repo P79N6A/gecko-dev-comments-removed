@@ -662,5 +662,4 @@ struct ParamTraits<NPNURLVariable>
 #  error Unsupported platform
 #endif
 
-
 #endif 
