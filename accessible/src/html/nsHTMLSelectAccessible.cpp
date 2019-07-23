@@ -335,7 +335,7 @@ nsHTMLSelectListAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 
   nsCOMPtr<nsIDOMHTMLSelectElement> select (do_QueryInterface(mDOMNode));
   if (select) {
-    if (*aState | nsIAccessibleStates::STATE_FOCUSED) {
+    if (*aState & nsIAccessibleStates::STATE_FOCUSED) {
       
       
       nsCOMPtr<nsIDOMNode> focusedOption;
