@@ -2171,7 +2171,10 @@ nsTableFrame::AdjustForCollapsingRowsCols(nsHTMLReflowMetrics& aDesiredSize,
   nscoord yTotalOffset = 0; 
 
   
+  
   SetNeedToCollapse(PR_FALSE);
+  
+  CheckCollapsedColumns();
   
   
   
@@ -2196,6 +2199,36 @@ nsTableFrame::AdjustForCollapsingRowsCols(nsHTMLReflowMetrics& aDesiredSize,
                          nsSize(aDesiredSize.width, aDesiredSize.height));
 }
 
+void
+nsTableFrame::CheckCollapsedColumns()
+{
+  nsTableFrame* tableFrame = static_cast<nsTableFrame*>(GetFirstInFlow());
+  if (!tableFrame)
+    return;
+  
+  for (nsIFrame* groupFrame = mColGroups.FirstChild(); groupFrame;
+         groupFrame = groupFrame->GetNextSibling()) {
+    const nsStyleVisibility* groupVis = groupFrame->GetStyleVisibility();
+    PRBool collapseGroup = (NS_STYLE_VISIBILITY_COLLAPSE == groupVis->mVisible);
+    if (collapseGroup) {
+      tableFrame->SetNeedToCollapse(PR_TRUE);
+      return;
+    }
+  }
+  
+  
+  PRInt32 numCols = mColFrames.Length();
+  for (int colX = 0; colX < numCols; colX++) {
+    nsTableColFrame* colFrame = tableFrame->GetColFrame(colX);
+    const nsStyleVisibility* colVis = colFrame->GetStyleVisibility();
+    PRBool collapseCol = (NS_STYLE_VISIBILITY_COLLAPSE ==
+                                colVis->mVisible);
+    if (collapseCol) {
+      tableFrame->SetNeedToCollapse(PR_TRUE);
+      return;
+    }
+  }
+}
 nscoord
 nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
 {
