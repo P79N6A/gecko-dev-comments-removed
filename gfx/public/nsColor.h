@@ -100,7 +100,6 @@ NS_GFX_(PRBool) NS_LooseHexToRGB(const nsString& aBuf, nscolor* aResult);
 
 
 
-NS_GFX_(void) NS_RGBToHex(nscolor aColor, nsAString& aResult);
 
 
 
