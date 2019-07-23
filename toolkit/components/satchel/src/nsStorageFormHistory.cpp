@@ -73,6 +73,10 @@
 #define PR_HOURS ((PRInt64)60 * 60 * 1000000)
 
 
+#define MAX_HISTORY_NAME_LEN    200
+#define MAX_HISTORY_VALUE_LEN   200
+
+
 
 class nsFormHistoryResult : public nsIAutoCompleteSimpleResult
 {
@@ -514,8 +518,13 @@ nsFormHistory::Notify(nsIDOMHTMLFormElement* formElt, nsIDOMWindowInternal* aWin
           inputElt->GetName(name);
           if (name.IsEmpty())
             inputElt->GetId(name);
-          if (!name.IsEmpty())
-            AddEntry(name, value);
+
+          if (name.IsEmpty())
+            continue;
+          if (name.Length() > MAX_HISTORY_NAME_LEN ||
+              value.Length() > MAX_HISTORY_VALUE_LEN)
+            continue;
+          AddEntry(name, value);
         }
       }
     }
