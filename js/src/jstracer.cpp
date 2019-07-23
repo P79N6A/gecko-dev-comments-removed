@@ -814,6 +814,8 @@ public:
 
 
 
+
+
 #ifdef JS_JIT_SPEW
 #define DEF_VPNAME          const char* vpname; unsigned vpnum
 #define SET_VPNAME(name)    do { vpname = name; vpnum = 0; } while(0)
@@ -821,7 +823,7 @@ public:
 #else
 #define DEF_VPNAME          do {} while (0)
 #define vpname ""
-#define vpnum 0
+#define vpnum 0x40000000
 #define SET_VPNAME(name)    ((void)0)
 #define INC_VPNUM()         ((void)0)
 #endif
