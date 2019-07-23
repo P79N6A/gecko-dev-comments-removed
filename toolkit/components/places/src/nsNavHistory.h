@@ -278,9 +278,6 @@ public:
   PRInt32 GetDaysOfHistory();
 
   
-  PRTime GetNow();
-
-  
   static PRUint32 GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                                         nsNavHistoryQueryOptions* aOptions,
                                         PRBool* aHasSearchTerms);
@@ -510,9 +507,17 @@ protected:
   nsresult LoadPrefs(PRBool aInitializing);
 
   
-  PRTime mLastNow;
-  PRBool mNowValid;
+
+
+
+
+
+  PRTime GetNow();
+  PRTime mCachedNow;
   nsCOMPtr<nsITimer> mExpireNowTimer;
+  
+
+
   static void expireNowTimerCallback(nsITimer* aTimer, void* aClosure);
 
   

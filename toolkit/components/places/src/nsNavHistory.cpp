@@ -145,7 +145,11 @@ using namespace mozilla::places;
 #define DEFAULT_DB_PAGE_SIZE 4096
 
 
-#define HISTORY_EXPIRE_NOW_TIMEOUT (3 * PR_MSEC_PER_SEC)
+
+#define RENEW_CACHED_NOW_TIMEOUT ((PRInt32)3 * PR_MSEC_PER_SEC)
+
+
+static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 
 
 
@@ -372,29 +376,23 @@ static const char* gAutoCompleteFeedback = "autocomplete-will-enter-text";
 static const char* gIdleDaily = "idle-daily";
 
 
-
-
-
-
-static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
-
 PLACES_FACTORY_SINGLETON_IMPLEMENTATION(nsNavHistory, gHistoryService)
 
 
-
-nsNavHistory::nsNavHistory() : mBatchLevel(0),
-                               mBatchHasTransaction(PR_FALSE),
-                               mNowValid(PR_FALSE),
-                               mExpireNowTimer(nsnull),
-                               mExpireDaysMin(0),
-                               mExpireDaysMax(0),
-                               mExpireSites(0),
-                               mNumVisitsForFrecency(10),
-                               mTagsFolder(-1),
-                               mInPrivateBrowsing(PRIVATEBROWSING_NOTINITED),
-                               mDatabaseStatus(DATABASE_STATUS_OK),
-                               mCanNotify(true),
-                               mCacheObservers("history-observers")
+nsNavHistory::nsNavHistory()
+: mBatchLevel(0)
+, mBatchHasTransaction(PR_FALSE)
+, mCachedNow(0)
+, mExpireNowTimer(nsnull)
+, mExpireDaysMin(0)
+, mExpireDaysMax(0)
+, mExpireSites(0)
+, mNumVisitsForFrecency(10)
+, mTagsFolder(-1)
+, mInPrivateBrowsing(PRIVATEBROWSING_NOTINITED)
+, mDatabaseStatus(DATABASE_STATUS_OK)
+, mCanNotify(true)
+, mCacheObservers("history-observers")
 {
 #ifdef LAZY_ADD
   mLazyTimerSet = PR_TRUE;
@@ -2140,38 +2138,36 @@ nsNavHistory::GetDaysOfHistory() {
 }
 
 
-
-
-
-
-
 PRTime
 nsNavHistory::GetNow()
 {
-  if (!mNowValid) {
-    mLastNow = PR_Now();
-    mNowValid = PR_TRUE;
+  if (!mCachedNow) {
+    mCachedNow = PR_Now();
     if (!mExpireNowTimer)
       mExpireNowTimer = do_CreateInstance("@mozilla.org/timer;1");
-
     if (mExpireNowTimer)
       mExpireNowTimer->InitWithFuncCallback(expireNowTimerCallback, this,
-                                            HISTORY_EXPIRE_NOW_TIMEOUT,
+                                            RENEW_CACHED_NOW_TIMEOUT,
                                             nsITimer::TYPE_ONE_SHOT);
   }
-
-  return mLastNow;
+  return mCachedNow;
 }
-
-
 
 
 void nsNavHistory::expireNowTimerCallback(nsITimer* aTimer, void* aClosure)
 {
   nsNavHistory *history = static_cast<nsNavHistory *>(aClosure);
-  history->mNowValid = PR_FALSE;
-  history->mExpireNowTimer = nsnull;
+  if (history) {
+    history->mCachedNow = 0;
+    history->mExpireNowTimer = 0;
+  }
 }
+
+
+
+
+
+
 
 static PRTime
 NormalizeTimeRelativeToday(PRTime aTime)
