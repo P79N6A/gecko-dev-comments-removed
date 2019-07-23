@@ -4064,6 +4064,10 @@ nsXULDocument::FindBroadcaster(nsIContent* aElement,
         
         
         nsIContent* parent = aElement->GetParent();
+        if (!parent) {
+             
+            return NS_FINDBROADCASTER_NOT_FOUND;
+        }
 
         
         
