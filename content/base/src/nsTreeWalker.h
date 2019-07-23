@@ -47,7 +47,7 @@
 #include "nsIDOMTreeWalker.h"
 #include "nsTraversal.h"
 #include "nsCOMPtr.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsCycleCollectionParticipant.h"
 
 class nsINode;
@@ -75,8 +75,7 @@ private:
 
 
 
-
-    nsAutoVoidArray mPossibleIndexes;
+    nsAutoTArray<PRInt32, 8> mPossibleIndexes;
     
     
 
@@ -168,9 +167,10 @@ private:
 
     void SetChildIndex(PRInt32 aIndexPos, PRInt32 aChildIndex)
     {
-        if (aIndexPos != -1)
-            mPossibleIndexes.ReplaceElementAt(NS_INT32_TO_PTR(aChildIndex),
-                                              aIndexPos);
+        if (aIndexPos > 0) {
+            mPossibleIndexes.EnsureLengthAtLeast(aIndexPos+1);
+            mPossibleIndexes.ElementAt(aIndexPos) = aChildIndex;
+        }
     }
 };
 

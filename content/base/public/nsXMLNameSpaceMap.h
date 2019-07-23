@@ -39,9 +39,11 @@
 #ifndef nsXMLNameSpaceMap_h_
 #define nsXMLNameSpaceMap_h_
 
-#include "nsVoidArray.h"
+#include "nsString.h"
+#include "nsTArray.h"
 
 class nsIAtom;
+class nsNameSpaceEntry;
 
 
 
@@ -94,7 +96,7 @@ public:
 private:
   nsXMLNameSpaceMap() NS_HIDDEN;  
 
-  nsVoidArray mNameSpaces;
+  nsTArray<nsNameSpaceEntry*> mNameSpaces;
 };
 
 #endif

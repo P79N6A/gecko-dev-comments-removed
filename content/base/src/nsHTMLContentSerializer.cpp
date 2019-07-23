@@ -101,12 +101,10 @@ nsHTMLContentSerializer::nsHTMLContentSerializer()
 
 nsHTMLContentSerializer::~nsHTMLContentSerializer()
 {
-  NS_ASSERTION(mOLStateStack.Count() == 0, "Expected OL State stack to be empty");
-  if (mOLStateStack.Count() > 0){
-    for (PRInt32 i = 0; i < mOLStateStack.Count(); i++){
-      olState* state = (olState*)mOLStateStack[i];
-      delete state;
-      mOLStateStack.RemoveElementAt(i);
+  NS_ASSERTION(mOLStateStack.IsEmpty(), "Expected OL State stack to be empty");
+  if (!mOLStateStack.IsEmpty()){
+    for (PRUint32 i = 0; i < mOLStateStack.Length(); i++){
+      delete mOLStateStack[i];
     }
   }
 }
@@ -788,12 +786,12 @@ nsHTMLContentSerializer::AppendElementEnd(nsIDOMElement *aElement,
   }
 
   if (mIsCopying && (name == nsGkAtoms::ol)){
-    NS_ASSERTION((mOLStateStack.Count() > 0), "Cannot have an empty OL Stack");
+    NS_ASSERTION(!mOLStateStack.IsEmpty(), "Cannot have an empty OL Stack");
     
 
-    if (mOLStateStack.Count() > 0) {
-      olState* state = (olState*)mOLStateStack.ElementAt(mOLStateStack.Count() -1);
-      mOLStateStack.RemoveElementAt(mOLStateStack.Count() -1);
+    if (!mOLStateStack.IsEmpty()) {
+      olState* state = mOLStateStack.ElementAt(mOLStateStack.Length() -1);
+      mOLStateStack.RemoveElementAt(mOLStateStack.Length() -1);
       delete state;
     }
   }
@@ -1243,12 +1241,12 @@ nsHTMLContentSerializer::SerializeLIValueAttribute(nsIDOMElement* aElement,
   PRInt32 offset = 0;
   olState defaultOLState(0, PR_FALSE);
   olState* state = nsnull;
-  if (mOLStateStack.Count() > 0) 
-    state = (olState*)mOLStateStack.ElementAt(mOLStateStack.Count()-1);
+  if (!mOLStateStack.IsEmpty())
+    state = mOLStateStack.ElementAt(mOLStateStack.Length()-1);
   
 
 
-  if (!state || mOLStateStack.Count() == 0)
+  if (!state || mOLStateStack.IsEmpty())
     state = &defaultOLState;
   PRInt32 startVal = state->startVal;
   state->isFirstListItem = PR_FALSE;
@@ -1315,8 +1313,8 @@ nsHTMLContentSerializer::IsFirstChildOfOL(nsIDOMElement* aElement){
   if (parentName.LowerCaseEqualsLiteral("ol")) {
     olState defaultOLState(0, PR_FALSE);
     olState* state = nsnull;
-    if (mOLStateStack.Count() > 0) 
-      state = (olState*)mOLStateStack.ElementAt(mOLStateStack.Count()-1);
+    if (!mOLStateStack.IsEmpty())
+      state = mOLStateStack.ElementAt(mOLStateStack.Length()-1);
     
 
 

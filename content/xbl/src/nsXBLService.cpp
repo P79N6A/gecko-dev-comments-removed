@@ -74,6 +74,7 @@
 #include "nsSyncLoadService.h"
 #include "nsIDOM3Node.h"
 #include "nsContentPolicyUtils.h"
+#include "nsTArray.h"
 
 #include "nsIPresShell.h"
 #include "nsIDocumentObserver.h"
@@ -332,7 +333,7 @@ private:
   nsXBLService* mXBLService; 
 
   nsCOMPtr<nsIStreamListener> mInner;
-  nsAutoVoidArray mBindingRequests;
+  nsAutoTArray<nsXBLBindingRequest*, 8> mBindingRequests;
   
   nsCOMPtr<nsIWeakReference> mBoundDocument;
   nsCOMPtr<nsIXMLContentSink> mSink; 
@@ -355,8 +356,8 @@ nsXBLStreamListener::nsXBLStreamListener(nsXBLService* aXBLService,
 
 nsXBLStreamListener::~nsXBLStreamListener()
 {
-  for (PRInt32 i = 0; i < mBindingRequests.Count(); i++) {
-    nsXBLBindingRequest* req = (nsXBLBindingRequest*)mBindingRequests.ElementAt(i);
+  for (PRInt32 i = 0; i < mBindingRequests.Length(); i++) {
+    nsXBLBindingRequest* req = mBindingRequests.ElementAt(i);
     nsXBLBindingRequest::Destroy(mXBLService->mPool, req);
   }
 }
@@ -421,9 +422,9 @@ PRBool
 nsXBLStreamListener::HasRequest(nsIURI* aURI, nsIContent* aElt)
 {
   
-  PRUint32 count = mBindingRequests.Count();
+  PRUint32 count = mBindingRequests.Length();
   for (PRUint32 i = 0; i < count; i++) {
-    nsXBLBindingRequest* req = (nsXBLBindingRequest*)mBindingRequests.ElementAt(i);
+    nsXBLBindingRequest* req = mBindingRequests.ElementAt(i);
     PRBool eq;
     if (req->mBoundElement == aElt &&
         NS_SUCCEEDED(req->mBindingURI->Equals(aURI, &eq)) && eq)
@@ -438,7 +439,7 @@ nsXBLStreamListener::Load(nsIDOMEvent* aEvent)
 {
   nsresult rv = NS_OK;
   PRUint32 i;
-  PRUint32 count = mBindingRequests.Count();
+  PRUint32 count = mBindingRequests.Length();
 
   
   
@@ -460,7 +461,7 @@ nsXBLStreamListener::Load(nsIDOMEvent* aEvent)
     
     
     if (count > 0) {
-      nsXBLBindingRequest* req = (nsXBLBindingRequest*)mBindingRequests.ElementAt(0);
+      nsXBLBindingRequest* req = mBindingRequests.ElementAt(0);
       nsIDocument* document = req->mBoundElement->GetCurrentDoc();
       if (document)
         document->FlushPendingNotifications(Flush_ContentAndNotify);
@@ -500,7 +501,7 @@ nsXBLStreamListener::Load(nsIDOMEvent* aEvent)
     
     
     for (i = 0; i < count; i++) {
-      nsXBLBindingRequest* req = (nsXBLBindingRequest*)mBindingRequests.ElementAt(i);
+      nsXBLBindingRequest* req = mBindingRequests.ElementAt(i);
       req->DocumentLoaded(bindingDocument);
     }
   }

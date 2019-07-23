@@ -99,7 +99,6 @@ class nsIRunnable;
 class nsIInterfaceRequestor;
 template<class E> class nsCOMArray;
 class nsIPref;
-class nsVoidArray;
 struct JSRuntime;
 class nsICaseConversion;
 class nsIUGenCategory;
@@ -213,11 +212,8 @@ public:
 
 
 
-
-
-
   static nsresult GetAncestors(nsIDOMNode* aNode,
-                               nsVoidArray* aArray);
+                               nsTArray<nsIDOMNode*>* aArray);
 
   
 
@@ -227,14 +223,10 @@ public:
 
 
 
-
-
-
-
   static nsresult GetAncestorsAndOffsets(nsIDOMNode* aNode,
                                          PRInt32 aOffset,
-                                         nsVoidArray* aAncestorNodes,
-                                         nsVoidArray* aAncestorOffsets);
+                                         nsTArray<nsIContent*>* aAncestorNodes,
+                                         nsTArray<PRInt32>* aAncestorOffsets);
 
   
 
@@ -837,7 +829,7 @@ public:
   static nsresult ReleasePtrOnShutdown(nsISupports** aSupportsPtr) {
     NS_ASSERTION(aSupportsPtr, "Expect to crash!");
     NS_ASSERTION(*aSupportsPtr, "Expect to crash!");
-    return sPtrsToPtrsToRelease->AppendElement(aSupportsPtr) ? NS_OK :
+    return sPtrsToPtrsToRelease->AppendElement(aSupportsPtr) != nsnull ? NS_OK :
       NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -1463,7 +1455,7 @@ private:
   static nsIUGenCategory* sGenCat;
 
   
-  static nsVoidArray* sPtrsToPtrsToRelease;
+  static nsTArray<nsISupports**>* sPtrsToPtrsToRelease;
 
   static nsIScriptRuntime* sScriptRuntimes[NS_STID_ARRAY_UBOUND];
   static PRInt32 sScriptRootCount[NS_STID_ARRAY_UBOUND];

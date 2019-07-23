@@ -47,7 +47,7 @@
 #include "nsIComponentManager.h"
 #include "nsContentCID.h"
 #include "nsLayoutCID.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsContentUtils.h"
 #include "nsINode.h"
 
@@ -155,19 +155,19 @@ public:
 
 protected:
 
-  nsINode* GetDeepFirstChild(nsINode *aRoot, nsVoidArray *aIndexes);
-  nsINode* GetDeepLastChild(nsINode *aRoot, nsVoidArray *aIndexes);
+  nsINode* GetDeepFirstChild(nsINode *aRoot, nsTArray<PRInt32> *aIndexes);
+  nsINode* GetDeepLastChild(nsINode *aRoot, nsTArray<PRInt32> *aIndexes);
 
   
   
-  nsINode* GetNextSibling(nsINode *aNode, nsVoidArray *aIndexes);
+  nsINode* GetNextSibling(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
 
   
   
-  nsINode* GetPrevSibling(nsINode *aNode, nsVoidArray *aIndexes);
+  nsINode* GetPrevSibling(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
 
-  nsINode* NextNode(nsINode *aNode, nsVoidArray *aIndexes);
-  nsINode* PrevNode(nsINode *aNode, nsVoidArray *aIndexes);
+  nsINode* NextNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
+  nsINode* PrevNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes);
 
   
   nsresult RebuildIndexStack();
@@ -180,7 +180,7 @@ protected:
   nsCOMPtr<nsINode> mCommonParent;
 
   
-  nsAutoVoidArray mIndexes;
+  nsAutoTArray<PRInt32, 8> mIndexes;
 
   
   
@@ -539,7 +539,7 @@ nsresult nsContentIterator::RebuildIndexStack()
     if (!parent)
       return NS_ERROR_FAILURE;
   
-    mIndexes.InsertElementAt(NS_INT32_TO_PTR(parent->IndexOf(current)), 0);
+    mIndexes.InsertElementAt(0, parent->IndexOf(current));
 
     current = parent;
   }
@@ -558,7 +558,8 @@ nsContentIterator::MakeEmpty()
 }
 
 nsINode*
-nsContentIterator::GetDeepFirstChild(nsINode *aRoot, nsVoidArray *aIndexes)
+nsContentIterator::GetDeepFirstChild(nsINode *aRoot,
+                                     nsTArray<PRInt32> *aIndexes)
 {
   if (!aRoot) {
     return nsnull;
@@ -572,7 +573,7 @@ nsContentIterator::GetDeepFirstChild(nsINode *aRoot, nsVoidArray *aIndexes)
     if (aIndexes)
     {
       
-      aIndexes->AppendElement(NS_INT32_TO_PTR(0));
+      aIndexes->AppendElement(0);
     }
     n = nChild;
     nChild = n->GetChildAt(0);
@@ -582,7 +583,7 @@ nsContentIterator::GetDeepFirstChild(nsINode *aRoot, nsVoidArray *aIndexes)
 }
 
 nsINode*
-nsContentIterator::GetDeepLastChild(nsINode *aRoot, nsVoidArray *aIndexes)
+nsContentIterator::GetDeepLastChild(nsINode *aRoot, nsTArray<PRInt32> *aIndexes)
 {
   if (!aRoot) {
     return nsnull;
@@ -600,7 +601,7 @@ nsContentIterator::GetDeepLastChild(nsINode *aRoot, nsVoidArray *aIndexes)
     if (aIndexes)
     {
       
-      aIndexes->AppendElement(NS_INT32_TO_PTR(numChildren));
+      aIndexes->AppendElement(numChildren);
     }
     numChildren = nChild->GetChildCount();
     n = nChild;
@@ -614,7 +615,7 @@ nsContentIterator::GetDeepLastChild(nsINode *aRoot, nsVoidArray *aIndexes)
 
 nsINode *
 nsContentIterator::GetNextSibling(nsINode *aNode, 
-                                  nsVoidArray *aIndexes)
+                                  nsTArray<PRInt32> *aIndexes)
 {
   if (!aNode) 
     return nsnull;
@@ -623,13 +624,14 @@ nsContentIterator::GetNextSibling(nsINode *aNode,
   if (!parent)
     return nsnull;
 
-  PRInt32 indx;
+  PRInt32 indx = 0;
 
-  if (aIndexes)
+  NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
+               "ContentIterator stack underflow");
+  if (aIndexes && !aIndexes->IsEmpty())
   {
-    NS_ASSERTION(aIndexes->Count() > 0, "ContentIterator stack underflow");
     
-    indx = NS_PTR_TO_INT32((*aIndexes)[aIndexes->Count()-1]);
+    indx = (*aIndexes)[aIndexes->Length()-1];
   }
   else
     indx = mCachedIndex;
@@ -648,9 +650,9 @@ nsContentIterator::GetNextSibling(nsINode *aNode,
   if ((sib = parent->GetChildAt(++indx)))
   {
     
-    if (aIndexes)
+    if (aIndexes && !aIndexes->IsEmpty())
     {
-      aIndexes->ReplaceElementAt(NS_INT32_TO_PTR(indx),aIndexes->Count()-1);
+      aIndexes->ElementAt(aIndexes->Length()-1) = indx;
     }
     else mCachedIndex = indx;
   }
@@ -663,8 +665,8 @@ nsContentIterator::GetNextSibling(nsINode *aNode,
         
         
         
-        if (aIndexes->Count() > 1)
-          aIndexes->RemoveElementAt(aIndexes->Count()-1);
+        if (aIndexes->Length() > 1)
+          aIndexes->RemoveElementAt(aIndexes->Length()-1);
       }
     }
 
@@ -678,7 +680,7 @@ nsContentIterator::GetNextSibling(nsINode *aNode,
 
 nsINode*
 nsContentIterator::GetPrevSibling(nsINode *aNode, 
-                                  nsVoidArray *aIndexes)
+                                  nsTArray<PRInt32> *aIndexes)
 {
   if (!aNode)
     return nsnull;
@@ -687,13 +689,14 @@ nsContentIterator::GetPrevSibling(nsINode *aNode,
   if (!parent)
     return nsnull;
 
-  PRInt32 indx;
+  PRInt32 indx = 0;
 
-  if (aIndexes)
+  NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
+               "ContentIterator stack underflow");
+  if (aIndexes && !aIndexes->IsEmpty())
   {
-    NS_ASSERTION(aIndexes->Count() > 0, "ContentIterator stack underflow");
     
-    indx = NS_PTR_TO_INT32((*aIndexes)[aIndexes->Count()-1]);
+    indx = (*aIndexes)[aIndexes->Length()-1];
   }
   else
     indx = mCachedIndex;
@@ -711,18 +714,18 @@ nsContentIterator::GetPrevSibling(nsINode *aNode,
   if (indx > 0 && (sib = parent->GetChildAt(--indx)))
   {
     
-    if (aIndexes)
+    if (aIndexes && !aIndexes->IsEmpty())
     {
-      aIndexes->ReplaceElementAt(NS_INT32_TO_PTR(indx),aIndexes->Count()-1);
+      aIndexes->ElementAt(aIndexes->Length()-1) = indx;
     }
     else mCachedIndex = indx;
   }
   else if (parent != mCommonParent)
   {
-    if (aIndexes)
+    if (aIndexes && !aIndexes->IsEmpty())
     {
       
-      aIndexes->RemoveElementAt(aIndexes->Count()-1);
+      aIndexes->RemoveElementAt(aIndexes->Length()-1);
     }
     return GetPrevSibling(parent, aIndexes);
   }
@@ -731,7 +734,7 @@ nsContentIterator::GetPrevSibling(nsINode *aNode,
 }
 
 nsINode*
-nsContentIterator::NextNode(nsINode *aNode, nsVoidArray *aIndexes)
+nsContentIterator::NextNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
 {
   nsINode *n = aNode;
   nsINode *nextNode = nsnull;
@@ -747,7 +750,7 @@ nsContentIterator::NextNode(nsINode *aNode, nsVoidArray *aIndexes)
       if (aIndexes)
       {
         
-        aIndexes->AppendElement(NS_INT32_TO_PTR(0));
+        aIndexes->AppendElement(0);
       }
       else mCachedIndex = 0;
       
@@ -761,14 +764,15 @@ nsContentIterator::NextNode(nsINode *aNode, nsVoidArray *aIndexes)
   {
     nsINode *parent = n->GetNodeParent();
     nsINode *nSibling = nsnull;
-    PRInt32 indx;
+    PRInt32 indx = 0;
 
     
-    if (aIndexes)
+    NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
+                 "ContentIterator stack underflow");
+    if (aIndexes && !aIndexes->IsEmpty())
     {
-      NS_ASSERTION(aIndexes->Count() > 0, "ContentIterator stack underflow");
       
-      indx = NS_PTR_TO_INT32((*aIndexes)[aIndexes->Count()-1]);
+      indx = (*aIndexes)[aIndexes->Length()-1];
     }
     else indx = mCachedIndex;
 
@@ -788,10 +792,10 @@ nsContentIterator::NextNode(nsINode *aNode, nsVoidArray *aIndexes)
     if (nSibling)
     {
       
-      if (aIndexes)
+      if (aIndexes && !aIndexes->IsEmpty())
       {
         
-        aIndexes->ReplaceElementAt(NS_INT32_TO_PTR(indx),aIndexes->Count()-1);
+        aIndexes->ElementAt(aIndexes->Length()-1) = indx;
       }
       else mCachedIndex = indx;
       
@@ -806,8 +810,8 @@ nsContentIterator::NextNode(nsINode *aNode, nsVoidArray *aIndexes)
       
       
       
-      if (aIndexes->Count() > 1)
-        aIndexes->RemoveElementAt(aIndexes->Count()-1);
+      if (aIndexes->Length() > 1)
+        aIndexes->RemoveElementAt(aIndexes->Length()-1);
     }
     else mCachedIndex = 0;   
     nextNode = parent;
@@ -817,7 +821,7 @@ nsContentIterator::NextNode(nsINode *aNode, nsVoidArray *aIndexes)
 }
 
 nsINode*
-nsContentIterator::PrevNode(nsINode *aNode, nsVoidArray *aIndexes)
+nsContentIterator::PrevNode(nsINode *aNode, nsTArray<PRInt32> *aIndexes)
 {
   nsINode *prevNode = nsnull;
   nsINode *n = aNode;
@@ -826,14 +830,15 @@ nsContentIterator::PrevNode(nsINode *aNode, nsVoidArray *aIndexes)
   {
     nsINode *parent = n->GetNodeParent();
     nsINode *nSibling = nsnull;
-    PRInt32 indx;
+    PRInt32 indx = 0;
 
     
-    if (aIndexes)
+    NS_ASSERTION(!aIndexes || !aIndexes->IsEmpty(),
+                 "ContentIterator stack underflow");
+    if (aIndexes && !aIndexes->IsEmpty())
     {
-      NS_ASSERTION(aIndexes->Count() > 0, "ContentIterator stack underflow");
       
-      indx = NS_PTR_TO_INT32((*aIndexes)[aIndexes->Count()-1]);
+      indx = (*aIndexes)[aIndexes->Length()-1];
     }
     else indx = mCachedIndex;
 
@@ -853,10 +858,10 @@ nsContentIterator::PrevNode(nsINode *aNode, nsVoidArray *aIndexes)
     if (indx && (nSibling = parent->GetChildAt(--indx)))
     {
       
-      if (aIndexes)
+      if (aIndexes && !aIndexes->IsEmpty())
       {
         
-        aIndexes->ReplaceElementAt(NS_INT32_TO_PTR(indx),aIndexes->Count()-1);
+        aIndexes->ElementAt(aIndexes->Length()-1) = indx;
       }
       else mCachedIndex = indx;
       
@@ -866,10 +871,10 @@ nsContentIterator::PrevNode(nsINode *aNode, nsVoidArray *aIndexes)
   
     
     
-    if (aIndexes)
+    if (aIndexes && !aIndexes->IsEmpty())
     {
       
-      aIndexes->RemoveElementAt(aIndexes->Count()-1);
+      aIndexes->RemoveElementAt(aIndexes->Length()-1);
     }
     else mCachedIndex = 0;   
     prevNode = parent;
@@ -887,7 +892,7 @@ nsContentIterator::PrevNode(nsINode *aNode, nsVoidArray *aIndexes)
       if (aIndexes)
       {
         
-        aIndexes->AppendElement(NS_INT32_TO_PTR(numChildren));
+        aIndexes->AppendElement(numChildren);
       }
       else mCachedIndex = numChildren;
       
@@ -1043,8 +1048,8 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
 
   
   
-  nsAutoVoidArray      oldParentStack;
-  nsAutoVoidArray      newIndexes;
+  nsAutoTArray<nsINode*, 8>     oldParentStack;
+  nsAutoTArray<PRInt32, 8>      newIndexes;
 
   
   
@@ -1055,17 +1060,17 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
 
   
   
-  if (!oldParentStack.SizeTo(mIndexes.Count()+1))
+  if (!oldParentStack.SetCapacity(mIndexes.Length()+1))
     return NS_ERROR_FAILURE;
 
   
   
   
   
-  for (PRInt32 i = mIndexes.Count()+1; i > 0 && tempNode; i--)
+  for (PRInt32 i = mIndexes.Length()+1; i > 0 && tempNode; i--)
   {
     
-    oldParentStack.InsertElementAt(tempNode,0);
+    oldParentStack.InsertElementAt(0, tempNode);
 
     nsINode *parent = tempNode->GetNodeParent();
 
@@ -1076,8 +1081,8 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
     {
       
       
-      mIndexes.RemoveElementsAt(mIndexes.Count() - oldParentStack.Count(),
-                                oldParentStack.Count());
+      mIndexes.RemoveElementsAt(mIndexes.Length() - oldParentStack.Length(),
+                                oldParentStack.Length());
       mIsDone = PR_FALSE;
       return NS_OK;
     }
@@ -1095,7 +1100,7 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
     PRInt32 indx = parent->IndexOf(newCurNode);
 
     
-    newIndexes.InsertElementAt(NS_INT32_TO_PTR(indx),0);
+    newIndexes.InsertElementAt(0, indx);
 
     
     indx = oldParentStack.IndexOf(parent);
@@ -1106,9 +1111,9 @@ nsContentIterator::PositionAt(nsINode* aCurNode)
       
       
       
-      PRInt32 numToDrop = oldParentStack.Count()-(1+indx);
+      PRInt32 numToDrop = oldParentStack.Length()-(1+indx);
       if (numToDrop > 0)
-        mIndexes.RemoveElementsAt(mIndexes.Count() - numToDrop,numToDrop);
+        mIndexes.RemoveElementsAt(mIndexes.Length() - numToDrop, numToDrop);
       mIndexes.AppendElements(newIndexes);
 
       break;
@@ -1190,12 +1195,12 @@ protected:
   nsCOMPtr<nsIDOMRange> mRange;
   
 #if 0
-  nsAutoVoidArray mStartNodes;
-  nsAutoVoidArray mStartOffsets;
+  nsAutoTArray<nsIContent*, 8> mStartNodes;
+  nsAutoTArray<PRInt32, 8>     mStartOffsets;
 #endif
 
-  nsAutoVoidArray mEndNodes;
-  nsAutoVoidArray mEndOffsets;
+  nsAutoTArray<nsIContent*, 8> mEndNodes;
+  nsAutoTArray<PRInt32, 8>     mEndOffsets;
 };
 
 nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult);

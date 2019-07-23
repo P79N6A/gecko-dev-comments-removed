@@ -42,7 +42,7 @@
 #include "nscore.h"
 #include "nsISVGValue.h"
 #include "nsAutoPtr.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 #include "nsISVGValueObserver.h"
 
 class nsSVGValue : public nsISVGValue
@@ -80,7 +80,7 @@ protected:
 private:
   virtual void OnDidModify(){} 
   
-  nsSmallVoidArray mObservers;
+  nsAutoTArray<nsIWeakReference*, 1> mObservers;
   PRInt32 mModifyNestCount;
 };
 

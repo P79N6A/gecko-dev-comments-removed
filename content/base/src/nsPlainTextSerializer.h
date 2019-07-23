@@ -54,7 +54,7 @@
 #include "nsIAtom.h"
 #include "nsIHTMLToTextSink.h"
 #include "nsIDocumentEncoder.h"
-#include "nsVoidArray.h"
+#include "nsTArray.h"
 
 
 class nsPlainTextSerializer : public nsIContentSerializer,
@@ -164,10 +164,10 @@ protected:
   }
 
   
-  PRBool GetLastBool(const nsVoidArray& aStack);
-  void SetLastBool(nsVoidArray& aStack, PRBool aValue);
-  void PushBool(nsVoidArray& aStack, PRBool aValue);
-  PRBool PopBool(nsVoidArray& aStack);
+  PRBool GetLastBool(const nsTArray<PRPackedBool>& aStack);
+  void SetLastBool(nsTArray<PRPackedBool>& aStack, PRBool aValue);
+  void PushBool(nsTArray<PRPackedBool>& aStack, PRBool aValue);
+  PRBool PopBool(nsTArray<PRPackedBool>& aStack);
   
 protected:
   nsString         mCurrentLine;
@@ -241,11 +241,11 @@ protected:
   nsCOMPtr<nsIContent> mContent;
 
   
-  nsAutoVoidArray mHasWrittenCellsForRow; 
+  nsAutoTArray<PRPackedBool, 8> mHasWrittenCellsForRow;
   
   
-  nsAutoVoidArray     mCurrentNodeIsConverted; 
-  nsAutoVoidArray     mIsInCiteBlockquote; 
+  nsAutoTArray<PRPackedBool, 8> mCurrentNodeIsConverted;
+  nsAutoTArray<PRPackedBool, 8> mIsInCiteBlockquote;
 
   
   nsAString*            mOutputString;

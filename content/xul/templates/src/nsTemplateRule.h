@@ -45,7 +45,6 @@
 #include "nsIRDFResource.h"
 #include "nsIContent.h"
 #include "nsIDOMNode.h"
-#include "nsVoidArray.h"
 #include "nsTArray.h"
 #include "nsString.h"
 #include "nsIXULTemplateRuleFilter.h"
@@ -277,7 +276,7 @@ protected:
 class nsTemplateQuerySet
 {
 protected:
-    nsVoidArray mRules; 
+    nsTArray<nsTemplateRule*> mRules; 
 
     
     
@@ -321,28 +320,28 @@ public:
     {
         
         
-        if (mRules.Count() == PR_INT16_MAX)
+        if (mRules.Length() == PR_INT16_MAX)
             return NS_ERROR_FAILURE;
 
-        if (!mRules.AppendElement(aChild))
+        if (mRules.AppendElement(aChild) == nsnull)
             return NS_ERROR_OUT_OF_MEMORY;
         return NS_OK;
     }
 
     PRInt16 RuleCount() const
     {
-        return mRules.Count();
+        return mRules.Length();
     }
 
     nsTemplateRule* GetRuleAt(PRInt16 aIndex)
     {
-        return static_cast<nsTemplateRule*>(mRules[aIndex]);
+        return mRules[aIndex];
     }
 
     void Clear()
     {
-        for (PRInt32 r = mRules.Count() - 1; r >= 0; r--) {
-            nsTemplateRule* rule = static_cast<nsTemplateRule*>(mRules[r]);
+        for (PRInt32 r = mRules.Length() - 1; r >= 0; r--) {
+            nsTemplateRule* rule = mRules[r];
             delete rule;
         }
         mRules.Clear();
