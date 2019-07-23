@@ -387,6 +387,11 @@ XPCPerThreadData::Cleanup()
 
 XPCPerThreadData::~XPCPerThreadData()
 {
+    
+
+
+    PRBool doDestroyLock = PR_FALSE;
+
     MOZ_COUNT_DTOR(xpcPerThreadData);
 
     Cleanup();
@@ -410,9 +415,11 @@ XPCPerThreadData::~XPCPerThreadData()
                 cur = cur->mNextThread;
             }
         }
+        if (!gThreads)
+            doDestroyLock = PR_TRUE;
     }
 
-    if(gLock && !gThreads)
+    if(gLock && doDestroyLock)
     {
         PR_DestroyLock(gLock);
         gLock = nsnull;
