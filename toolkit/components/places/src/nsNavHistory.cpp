@@ -1353,12 +1353,6 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
       break;
   }
 
-  
-  
-  
-  if (aOptions->MaxResults() > 0)
-    return QUERYUPDATE_COMPLEX;
-
   PRBool nonTimeBasedItems = PR_FALSE;
   for (i = 0; i < aQueries.Count(); i ++) {
     nsNavHistoryQuery* query = aQueries[i];
@@ -1373,6 +1367,13 @@ nsNavHistory::GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQuerie
         query->Uri() != nsnull)
       nonTimeBasedItems = PR_TRUE;
   }
+
+  
+  
+  
+  
+  if (aOptions->MaxResults() > 0)
+    return QUERYUPDATE_COMPLEX;
 
   if (aQueries.Count() == 1 && ! nonTimeBasedItems)
     return QUERYUPDATE_TIME;
@@ -2122,6 +2123,22 @@ nsNavHistory::GetQueryResults(nsNavHistoryQueryResultNode *aResultNode,
       break;
     case nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING:
       queryString += NS_LITERAL_CSTRING(" ORDER BY 5 DESC"); 
+      break;
+    case nsINavHistoryQueryOptions::SORT_BY_DATEADDED_ASCENDING:
+      if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS)
+        queryString += NS_LITERAL_CSTRING(" ORDER BY 10 ASC"); 
+      break;
+    case nsINavHistoryQueryOptions::SORT_BY_DATEADDED_DESCENDING:
+      if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS)
+        queryString += NS_LITERAL_CSTRING(" ORDER BY 10 DESC"); 
+      break;
+    case nsINavHistoryQueryOptions::SORT_BY_LASTMODIFIED_ASCENDING:
+      if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS)
+        queryString += NS_LITERAL_CSTRING(" ORDER BY 11 ASC"); 
+      break;
+    case nsINavHistoryQueryOptions::SORT_BY_LASTMODIFIED_DESCENDING:
+      if (aOptions->QueryType() == nsINavHistoryQueryOptions::QUERY_TYPE_BOOKMARKS)
+        queryString += NS_LITERAL_CSTRING(" ORDER BY 11 DESC"); 
       break;
     default:
       NS_NOTREACHED("Invalid sorting mode");
