@@ -360,6 +360,9 @@ nsContentSink::ScriptAvailable(nsresult aResult,
     return NS_OK;
   }
 
+  NS_ASSERTION(!aElement->GetScriptDeferred(), "defer script was in mScriptElements");
+  NS_ASSERTION(!aElement->GetScriptAsync(), "async script was in mScriptElements");
+
   if (mParser && !mParser->IsParserEnabled()) {
     
     
@@ -401,6 +404,9 @@ nsContentSink::ScriptEvaluated(nsresult aResult,
   if (count == 0 || aElement != mScriptElements[count - 1]) {
     return NS_OK;
   }
+
+  NS_ASSERTION(!aElement->GetScriptDeferred(), "defer script was in mScriptElements");
+  NS_ASSERTION(!aElement->GetScriptAsync(), "async script was in mScriptElements");
 
   
   mScriptElements.RemoveObjectAt(count - 1); 

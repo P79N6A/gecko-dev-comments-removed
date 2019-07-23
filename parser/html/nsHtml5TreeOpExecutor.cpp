@@ -419,12 +419,9 @@ nsHtml5TreeOpExecutor::DocumentMode(nsHtml5DocumentMode m)
 void
 nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
 {
-  mReadingFromStage = PR_FALSE;
   NS_ASSERTION(aScriptElement, "No script to run");
-  NS_ASSERTION(mFlushState == eNotFlushing, "Tried to run script when flushing.");
-
   nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aScriptElement);
-
+  
   if (!mParser) {
     NS_ASSERTION(sele->IsMalformed(), "Script wasn't marked as malformed.");
     
@@ -440,16 +437,33 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
     return;
   }
 
+  if (sele->GetScriptDeferred() || sele->GetScriptAsync()) {
+    #ifdef DEBUG
+    nsresult rv = 
+    #endif
+    aScriptElement->DoneAddingChildren(PR_TRUE); 
+    NS_ASSERTION(rv != NS_ERROR_HTMLPARSER_BLOCK, 
+                 "Defer or async script tried to block.");
+    return;
+  }
+  
+  NS_ASSERTION(mFlushState == eNotFlushing, "Tried to run script when flushing.");
+
+  mReadingFromStage = PR_FALSE;
+  
   sele->SetCreatorParser(mParser);
+
   
   nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(mDocument);
   NS_ASSERTION(htmlDocument, "Document didn't QI into HTML document.");
   htmlDocument->ScriptLoading(sele);
+
   
   
   
   
   nsresult rv = aScriptElement->DoneAddingChildren(PR_TRUE);
+
   
   
   if (rv == NS_ERROR_HTMLPARSER_BLOCK) {

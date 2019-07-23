@@ -66,6 +66,7 @@ enum eHtml5TreeOperation {
   eTreeOpAppendDoctypeToDocument,
   
   eTreeOpRunScript,
+  eTreeOpRunScriptAsyncDefer,
   eTreeOpDoneAddingChildren,
   eTreeOpDoneCreatingElement,
   eTreeOpFlushPendingAppendNotifications,
