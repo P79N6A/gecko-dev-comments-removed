@@ -267,8 +267,14 @@ nsTableColGroupFrame::InsertFrames(nsIAtom*        aListName,
     
     
     
-    NS_ASSERTION(col != aPrevFrame, "Bad aPrevFrame");
     nextCol = col->GetNextCol();
+    if (col == aPrevFrame) {
+      
+      NS_ASSERTION(!nextCol || nextCol->GetColType() != eColAnonymousColGroup,
+                   "Inserting in the middle of our anonymous cols?");
+      
+      aPrevFrame = nsnull;
+    }
     RemoveFrame(nsnull, col);
     col = nextCol;
   }
