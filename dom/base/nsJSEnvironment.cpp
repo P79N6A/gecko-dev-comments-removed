@@ -2695,7 +2695,7 @@ nsJSContext::ConvertSupportsTojsvals(nsISupports *aArgs,
 {
   nsresult rv = NS_OK;
 
-  js_LeaveTrace(mContext);
+  js::LeaveTrace(mContext);
 
   
   nsCOMPtr<nsIJSArgArray> fastArray = do_QueryInterface(aArgs);

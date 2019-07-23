@@ -107,6 +107,8 @@
 # define MAP_ANONYMOUS 0
 #endif
 
+using namespace js;
+
 
 
 
@@ -3058,7 +3060,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 #endif
 
 #ifdef JS_TRACER
-    js_PurgeJITOracle();
+    PurgeJITOracle();
 #endif
 
   restart:
