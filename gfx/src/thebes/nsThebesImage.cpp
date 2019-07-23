@@ -533,9 +533,8 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
 
     pat->SetMatrix(mat);
 
-    
-#ifndef XP_MACOSX
-    if (xscale > 1.0 || yscale > 1.0) {
+    if (xscale != 1.0 || yscale != 1.0) {
+#if !defined(XP_MACOSX) && !defined(XP_WIN)
         
         
         
@@ -545,8 +544,14 @@ nsThebesImage::Draw(nsIRenderingContext &aContext,
         
         
         pat->SetFilter(0);
-    }
 #endif
+
+#if defined(XP_WIN)
+        
+        
+        pat->SetExtend(gfxPattern::EXTEND_PAD);
+#endif
+    }
 
     ctx->NewPath();
     ctx->SetPattern(pat);
