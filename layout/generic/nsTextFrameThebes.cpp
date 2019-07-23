@@ -4428,7 +4428,7 @@ AddHyphenToMetrics(nsTextFrame* aTextFrame, gfxTextRun* aBaseTextRun,
 void
 nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
                             nsCSSShadowItem* aShadowDetails,
-                            PropertyProvider* aProvider, const gfxRect& aDirtyRect,
+                            PropertyProvider* aProvider, const nsRect& aDirtyRect,
                             const gfxPoint& aFramePt, const gfxPoint& aTextBaselinePt,
                             gfxContext* aCtx, const nscolor& aForegroundColor)
 {
@@ -4445,8 +4445,10 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
   
   
   
-  gfxRect shadowRect = shadowMetrics.mBoundingBox +
-    gfxPoint(aFramePt.x, aTextBaselinePt.y) + shadowOffset;
+  gfxRect shadowGfxRect = shadowMetrics.mBoundingBox +
+     gfxPoint(aFramePt.x, aTextBaselinePt.y) + shadowOffset;
+  nsRect shadowRect(shadowGfxRect.X(), shadowGfxRect.Y(),
+                    shadowGfxRect.Width(), shadowGfxRect.Height());;
 
   nsContextBoxBlur contextBoxBlur;
   gfxContext* shadowContext = contextBoxBlur.Init(shadowRect, blurRadius,
@@ -4468,17 +4470,18 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
   
   
   
+  gfxRect dirtyGfxRect(aDirtyRect.x, aDirtyRect.y, aDirtyRect.width, aDirtyRect.height);
   gfxFloat advanceWidth;
   DrawText(shadowContext,
            aTextBaselinePt + shadowOffset,
-           aOffset, aLength, &aDirtyRect, aProvider, advanceWidth,
+           aOffset, aLength, &dirtyGfxRect, aProvider, advanceWidth,
            (GetStateBits() & TEXT_HYPHEN_BREAK) != 0);
 
   
   
   
   nsTextPaintStyle textPaintStyle(this);
-  PaintTextDecorations(shadowContext, aDirtyRect, aFramePt + shadowOffset,
+  PaintTextDecorations(shadowContext, dirtyGfxRect, aFramePt + shadowOffset,
                        aTextBaselinePt + shadowOffset,
                        textPaintStyle, *aProvider, &shadowColor);
 
@@ -4744,7 +4747,7 @@ nsTextFrame::PaintText(nsIRenderingContext* aRenderingContext, nsPoint aPt,
       PaintOneShadow(provider.GetStart().GetSkippedOffset(),
                      ComputeTransformedLength(provider),
                      textStyle->mTextShadow->ShadowAt(i - 1), &provider,
-                     dirtyRect, framePt, textBaselinePt, ctx,
+                     aDirtyRect, framePt, textBaselinePt, ctx,
                      textPaintStyle.GetTextColor());
     }
   }

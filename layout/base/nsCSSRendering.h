@@ -403,9 +403,9 @@ public:
 
 
 
-  gfxContext* Init(const gfxRect& aRect, nscoord aBlurRadius,
+  gfxContext* Init(const nsRect& aRect, nscoord aBlurRadius,
                    PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
-                   const gfxRect& aDirtyRect);
+                   const nsRect& aDirtyRect);
 
   
 

@@ -5860,6 +5860,25 @@ nsBlockFrame::PaintTextDecorationLine(gfxContext* aCtx,
   nscoord start = aLine->mBounds.x;
   nscoord width = aLine->mBounds.width;
 
+  AdjustForTextIndent(aLine, start, width);
+      
+  
+  if (width > 0) {
+    gfxPoint pt(PresContext()->AppUnitsToGfxUnits(start + aPt.x),
+                PresContext()->AppUnitsToGfxUnits(aLine->mBounds.y + aPt.y));
+    gfxSize size(PresContext()->AppUnitsToGfxUnits(width), aSize);
+    nsCSSRendering::PaintDecorationLine(
+      aCtx, aColor, pt, size,
+      PresContext()->AppUnitsToGfxUnits(aLine->GetAscent()),
+      aOffset, aDecoration, nsCSSRendering::DECORATION_STYLE_SOLID);
+  }
+}
+
+ void
+nsBlockFrame::AdjustForTextIndent(const nsLineBox* aLine,
+                                  nscoord& start,
+                                  nscoord& width)
+{
   if (!GetPrevContinuation() && aLine == begin_lines().get()) {
     
     
@@ -5883,17 +5902,6 @@ nsBlockFrame::PaintTextDecorationLine(gfxContext* aCtx,
     
     start += indent;
     width -= indent;
-  }
-      
-  
-  if (width > 0) {
-    gfxPoint pt(PresContext()->AppUnitsToGfxUnits(start + aPt.x),
-                PresContext()->AppUnitsToGfxUnits(aLine->mBounds.y + aPt.y));
-    gfxSize size(PresContext()->AppUnitsToGfxUnits(width), aSize);
-    nsCSSRendering::PaintDecorationLine(
-      aCtx, aColor, pt, size,
-      PresContext()->AppUnitsToGfxUnits(aLine->GetAscent()),
-      aOffset, aDecoration, nsCSSRendering::DECORATION_STYLE_SOLID);
   }
 }
 
