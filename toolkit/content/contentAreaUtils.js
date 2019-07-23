@@ -454,76 +454,32 @@ function getTargetFile(aFpP, aSkipPrompt)
   
   
   
-  
-  
-  
-  
-  
-  
-  var dir = null;
   var useDownloadDir = prefs.getBoolPref("useDownloadDir");
+  var dir = null;
   
-  function getSpecialFolderKey(aFolderType) 
-  {
-    if (aFolderType == "Desktop")
-      return "Desk";
-    
-    if (aFolderType != "Downloads")
-      throw "ASSERTION FAILED: folder type should be 'Desktop' or 'Downloads'";
-    
-#ifdef XP_WIN
-    return "Pers";
-#else
-#ifdef XP_MACOSX
-    return "UsrDocs";
-#else
-    return "Home";
-#endif
-#endif
-  }
-  
-  function getDownloadsFolder(aFolder)
-  {
-    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
-                                .getService(Components.interfaces.nsIProperties);
-    
-    var dir = fileLocator.get(getSpecialFolderKey(aFolder), Components.interfaces.nsILocalFile);
-    
-    var bundle = Components.classes["@mozilla.org/intl/stringbundle;1"]
-                           .getService(Components.interfaces.nsIStringBundleService);
-    bundle = bundle.createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
-    
-    var description = bundle.GetStringFromName("myDownloads");
-    if (aFolder != "Desktop")
-      dir.append(description);
-    
-    return dir;
-  }
-  
-  switch (prefs.getIntPref("folderList")) {
-  case 0:
-    dir = getDownloadsFolder("Desktop")
-    break;
-  case 1:
-    dir = getDownloadsFolder("Downloads");
-    break;
-  case 2:
-    dir = prefs.getComplexValue("dir", nsILocalFile);
-    break;
-  }
-  
-  if (!aSkipPrompt || !useDownloadDir || !dir) {
+  try {
     
     
-    try {
-      dir = prefs.getComplexValue("lastDir", nsILocalFile);
+    
+    var lastDir = prefs.getComplexValue("lastDir", nsILocalFile);
+    var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
+                            .getService(Components.interfaces.nsIDownloadManager);
+    if (!aSkipPrompt) {
+      dir = lastDir;
+    } else {
+      dir = dnldMgr.userDownloadsDirectory;
     }
-    catch (e) {
+  } catch (ex) {
+  }
+
+  if (!aSkipPrompt || !useDownloadDir || !dir || (dir && !dir.exists())) {
+    
+    
+    if (!dir || (dir && !dir.exists())) {
       
       var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
                                   .getService(Components.interfaces.nsIProperties);
-      
-      dir = fileLocator.get(getSpecialFolderKey("Desktop"), nsILocalFile);
+      dir = fileLocator.get("Desk", nsILocalFile);
     }
 
     var fp = makeFilePicker();
@@ -548,7 +504,7 @@ function getTargetFile(aFpP, aSkipPrompt)
       catch (e) {
       }
     }
-  
+
     if (fp.show() == Components.interfaces.nsIFilePicker.returnCancel || !fp.file)
       return false;
     

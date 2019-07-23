@@ -193,6 +193,15 @@ var gMainPane = {
 
 
 
+
+
+
+
+
+
+
+
+
   
 
 
@@ -232,7 +241,7 @@ var gMainPane = {
     
     return undefined;
   },
-
+  
   
 
 
@@ -241,23 +250,40 @@ var gMainPane = {
   chooseFolder: function ()
   {
     const nsIFilePicker = Components.interfaces.nsIFilePicker;
+    const nsILocalFile = Components.interfaces.nsILocalFile;
+
     var fp = Components.classes["@mozilla.org/filepicker;1"]
                        .createInstance(nsIFilePicker);
     var bundlePreferences = document.getElementById("bundlePreferences");
     var title = bundlePreferences.getString("chooseDownloadFolderTitle");
     fp.init(window, title, nsIFilePicker.modeGetFolder);
-
-    const nsILocalFile = Components.interfaces.nsILocalFile;
-    var customDirPref = document.getElementById("browser.download.dir");
-    if (customDirPref.value)
-      fp.displayDirectory = customDirPref.value;
     fp.appendFilters(nsIFilePicker.filterAll);
+
+    var folderListPref = document.getElementById("browser.download.folderList");
+    var currentDirPref = this._indexToFolder(folderListPref.value); 
+    var defDownloads = this._indexToFolder(1); 
+
+    
+    if (currentDirPref && currentDirPref.exists()) {
+      fp.displayDirectory = currentDirPref;
+    } 
+    else if (defDownloads && defDownloads.exists()) {
+      fp.displayDirectory = defDownloads;
+    } 
+    else {
+      fp.displayDirectory = this._indexToFolder(0);
+    }
+
     if (fp.show() == nsIFilePicker.returnOK) {
       var file = fp.file.QueryInterface(nsILocalFile);
-      var currentDirPref = document.getElementById("browser.download.downloadDir");
-      customDirPref.value = currentDirPref.value = file;
+      var currentDirPref = document.getElementById("browser.download.dir");
+      currentDirPref.value = file;
       var folderListPref = document.getElementById("browser.download.folderList");
       folderListPref.value = this._folderToIndex(file);
+      
+      
+      
+      
     }
   },
 
@@ -265,32 +291,96 @@ var gMainPane = {
 
 
 
-  readDownloadDirPref: function ()
+  displayDownloadDirPref: function ()
   {
     var folderListPref = document.getElementById("browser.download.folderList");
     var bundlePreferences = document.getElementById("bundlePreferences");
     var downloadFolder = document.getElementById("downloadFolder");
+    var currentDirPref = document.getElementById("browser.download.dir");
 
-    var customDirPref = document.getElementById("browser.download.dir");
-    var customIndex = customDirPref.value ? this._folderToIndex(customDirPref.value) : 0;
-    if (folderListPref.value == 0 || customIndex == 0)
-      downloadFolder.label = bundlePreferences.getString("desktopFolderName");
-    else if (folderListPref.value == 1 || customIndex == 1)
-      downloadFolder.label = bundlePreferences.getString("myDownloadsFolderName");
-    else
-      downloadFolder.label = this._getDisplayNameOfFile(customDirPref.value);
+    
+    
+    
+    
+    
+    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
+                                .getService(Components.interfaces.nsIProperties);
+    var desk = fileLocator.get("Desk", Components.interfaces.nsILocalFile);
+    var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
+                            .getService(Components.interfaces.nsIDownloadManager);
+    var supportDownloadLabel = !dnldMgr.defaultDownloadsDirectory.equals(desk);
 
+    
     var ios = Components.classes["@mozilla.org/network/io-service;1"]
                         .getService(Components.interfaces.nsIIOService);
     var fph = ios.getProtocolHandler("file")
                  .QueryInterface(Components.interfaces.nsIFileProtocolHandler);
-    var currentDirPref = document.getElementById("browser.download.downloadDir");
-    var downloadDir = currentDirPref.value || this._indexToFolder(folderListPref.value);
-    var urlspec = fph.getURLSpecFromFile(downloadDir);
-    downloadFolder.image = "moz-icon://" + urlspec + "?size=16";
-
+    var iconUrlSpec;
+      
+    
+    if (folderListPref.value == 2) {
+      
+      downloadFolder.label = this._getDisplayNameOfFile(currentDirPref.value);
+      iconUrlSpec = fph.getURLSpecFromFile(currentDirPref.value);
+    } else if (folderListPref.value == 1 && supportDownloadLabel) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      downloadFolder.label = bundlePreferences.getString("downloadsFolderName");
+      iconUrlSpec = fph.getURLSpecFromFile(this._indexToFolder(1));
+    } else {
+      
+      downloadFolder.label = bundlePreferences.getString("desktopFolderName");
+      iconUrlSpec = fph.getURLSpecFromFile(desk);
+    }
+    downloadFolder.image = "moz-icon://" + iconUrlSpec + "?size=16";
+    
     
     return undefined;
+  },
+
+  
+
+
+  _getDisplayNameOfFile: function (aFolder)
+  {
+    
+    
+    return aFolder ? aFolder.path : "";
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getDownloadsFolder: function (aFolder)
+  {
+    switch(aFolder)
+    {
+      case "Desktop":
+        var fileLoc = Components.classes["@mozilla.org/file/directory_service;1"]
+                                    .getService(Components.interfaces.nsIProperties);
+        return fileLoc.get("Desk", Components.interfaces.nsILocalFile);
+      break;
+      case "Downloads":
+        var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
+                                .getService(Components.interfaces.nsIDownloadManager);
+        return dnldMgr.defaultDownloadsDirectory;
+      break;
+    }
+    throw "ASSERTION FAILED: folder type should be 'Desktop' or 'Downloads'";
   },
 
   
@@ -320,64 +410,6 @@ var gMainPane = {
 
 
 
-  _getDownloadsFolder: function (aFolder)
-  {
-    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
-                                .getService(Components.interfaces.nsIProperties);
-    var dir = fileLocator.get(this._getSpecialFolderKey(aFolder),
-                              Components.interfaces.nsILocalFile);
-    if (aFolder != "Desktop")
-      dir.append("My Downloads"); 
-
-    return dir;
-  },
-
-  
-
-
-
-
-
-
-
-
-  _getSpecialFolderKey: function (aFolderType)
-  {
-    if (aFolderType == "Desktop")
-      return "Desk";
-
-    if (aFolderType == "Downloads")
-#ifdef XP_WIN
-      return "Pers";
-#else
-#ifdef XP_MACOSX
-      return "UsrDocs";
-#else
-      return "Home";
-#endif
-#endif
-
-      throw "ASSERTION FAILED: folder type should be 'Desktop' or 'Downloads'";
-  },
-
-  
-
-
-  _getDisplayNameOfFile: function (aFolder)
-  {
-    
-    
-    return aFolder ? aFolder.path : "";
-  },
-
-  
-
-
-
-
-
-
-
 
   _indexToFolder: function (aIndex)
   {
@@ -387,19 +419,31 @@ var gMainPane = {
       case 1:
         return this._getDownloadsFolder("Downloads");
     }
-
-    var customDirPref = document.getElementById("browser.download.dir");
-    return customDirPref.value;
+    var currentDirPref = document.getElementById("browser.download.dir");
+    return currentDirPref.value;
   },
 
   
 
 
-
-  writeFolderList: function ()
+  getFolderListPref: function ()
   {
-    var currentDirPref = document.getElementById("browser.download.downloadDir");
-    return this._folderToIndex(currentDirPref.value);
+    var folderListPref = document.getElementById("browser.download.folderList");
+    switch(folderListPref.value) {
+      case 0: 
+      case 1: 
+        return folderListPref.value;
+      break;
+      case 2: 
+        var currentDirPref = document.getElementById("browser.download.dir");
+        if (currentDirPref.value) {
+          
+          
+          return this._folderToIndex(currentDirPref.value);
+        }
+        return 0;
+      break;
+    }
   }
 
 #ifdef HAVE_SHELL_SERVICE
