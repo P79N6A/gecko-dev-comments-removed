@@ -154,23 +154,24 @@ void nsMediaDecoder::Progress(PRBool aTimer)
     return;
 
   PRIntervalTime now = PR_IntervalNow();
-  if (mProgressTime == 0 ||
-      PR_IntervalToMilliseconds(PR_IntervalNow() - mProgressTime) >= PROGRESS_MS) {
+
+  if (!aTimer) {
+    mDataTime = now;
+  }
+
+  PRUint32 progressDelta = PR_IntervalToMilliseconds(now - mProgressTime);
+  PRUint32 networkDelta = PR_IntervalToMilliseconds(now - mDataTime);
+
+  
+  
+  if (progressDelta >= PROGRESS_MS && networkDelta <= PROGRESS_MS) {
     mElement->DispatchAsyncProgressEvent(NS_LITERAL_STRING("progress"));
     mProgressTime = now;
   }
 
-  
-  
-  if (aTimer &&
-      mDataTime != 0 &&
-      PR_IntervalToMilliseconds(now - mDataTime) >= STALL_MS) {
+  if (mDataTime != 0 && networkDelta >= STALL_MS) {
     mElement->DispatchAsyncProgressEvent(NS_LITERAL_STRING("stalled"));
     mDataTime = 0;
-  }
-
-  if (!aTimer) {
-    mDataTime = now;
   }
 }
 
