@@ -55,20 +55,6 @@ public:
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
   NS_IMETHOD GetRole(PRUint32 *aRole);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-  NS_IMETHOD Shutdown() { mFrame = nsnull; return nsTextAccessibleWrap::Shutdown(); }
-  
-  
-  NS_IMETHOD_(nsIFrame *) GetFrame(void);
-
-  
-  NS_IMETHOD FireToolkitEvent(PRUint32 aEvent, nsIAccessible *aTarget,
-                              void *aData);
-
-private:
-  
-  
-  
-  nsIFrame *mFrame; 
 };
 
 class nsHTMLHRAccessible : public nsLeafAccessible
@@ -111,7 +97,6 @@ public:
 
   
   NS_IMETHOD Shutdown();
-  NS_IMETHOD_(nsIFrame *) GetFrame(void);
 
   
   NS_IMETHOD GetName(nsAString& aName);
@@ -125,8 +110,6 @@ public:
   NS_IMETHOD GetParent(nsIAccessible **aParentAccessible);
 
   
-  NS_IMETHOD FireToolkitEvent(PRUint32 aEvent, nsIAccessible *aTarget,
-                              void *aData);
   NS_IMETHOD GetContentText(nsAString& aText);
 
 protected:
@@ -137,7 +120,6 @@ protected:
   
   
   nsIAccessible *mWeakParent;
-  nsIFrame *mFrame;
   nsString mBulletText;
 };
 
