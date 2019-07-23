@@ -7101,8 +7101,6 @@ nsDocument::Destroy()
 
   mLayoutHistoryState = nsnull;
 
-  nsContentList::OnDocumentDestroy(this);
-
   
   
   

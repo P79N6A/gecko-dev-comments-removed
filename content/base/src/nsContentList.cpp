@@ -67,9 +67,6 @@ NS_NewPreContentIterator(nsIContentIterator** aInstancePtrResult);
 #define ASSERT_IN_SYNC PR_BEGIN_MACRO PR_END_MACRO
 #endif
 
-
-static nsContentList *gCachedContentList;
-
 nsBaseContentList::~nsBaseContentList()
 {
 }
@@ -157,11 +154,6 @@ void nsBaseContentList::InsertElementAt(nsIContent* aContent, PRInt32 aIndex)
 {
   NS_ASSERTION(aContent, "Element to insert must not be null");
   mElements.InsertObjectAt(aContent, aIndex);
-}
-
-
-void nsBaseContentList::Shutdown() {
-  NS_IF_RELEASE(gCachedContentList);
 }
 
 
@@ -280,18 +272,6 @@ NS_GetContentList(nsINode* aRootNode, nsIAtom* aMatchAtom,
   }
 
   NS_ADDREF(list);
-
-  
-  
-  
-  
-
-  if (gCachedContentList != list) {
-    NS_IF_RELEASE(gCachedContentList);
-
-    gCachedContentList = list;
-    NS_ADDREF(gCachedContentList);
-  }
 
   return list;
 }
@@ -559,21 +539,6 @@ nsContentList::NodeWillBeDestroyed(const nsINode* aNode)
   
   
   SetDirty();
-}
-
-
-void
-nsContentList::OnDocumentDestroy(nsIDocument *aDocument)
-{
-  
-  
-  
-  
-
-  if (gCachedContentList && gCachedContentList->mRootNode &&
-      gCachedContentList->mRootNode->GetOwnerDoc() == aDocument) {
-    NS_RELEASE(gCachedContentList);
-  }
 }
 
 NS_IMETHODIMP
