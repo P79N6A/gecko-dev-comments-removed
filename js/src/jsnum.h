@@ -186,20 +186,6 @@ js_NumberToString(JSContext *cx, jsdouble d);
 
 
 
-char *
-js_IntToCString(jsint i, jsint base, char *buf, size_t bufSize);
-
-
-
-
-
-char *
-js_NumberToCString(JSContext *cx, jsdouble d, jsint base, char *buf, size_t bufSize);
-
-
-
-
-
 
 
 
