@@ -245,15 +245,66 @@ NS_IMETHODIMP nsDiskCacheDeviceInfo::GetMaximumSize(PRUint32 *aMaximumSize)
 
 
 
-PLDHashNumber
-nsDiskCache::Hash(const char * key)
+
+
+
+
+static inline void hashmix(PRUint32& a, PRUint32& b, PRUint32& c)
 {
-    PLDHashNumber h = 0;
-    for (const PRUint8* s = (PRUint8*) key; *s != '\0'; ++s)
-        h = PR_ROTATE_LEFT32(h, 4) ^ *s;
-    return (h == 0 ? ULONG_MAX : h);
+  a -= b; a -= c; a ^= (c>>13);
+  b -= c; b -= a; b ^= (a<<8);
+  c -= a; c -= b; c ^= (b>>13);
+  a -= b; a -= c; a ^= (c>>12); 
+  b -= c; b -= a; b ^= (a<<16);
+  c -= a; c -= b; c ^= (b>>5);
+  a -= b; a -= c; a ^= (c>>3);
+  b -= c; b -= a; b ^= (a<<10);
+  c -= a; c -= b; c ^= (b>>15);
 }
 
+PLDHashNumber
+nsDiskCache::Hash(const char * key, PLDHashNumber initval)
+{
+  const PRUint8 *k = reinterpret_cast<const PRUint8*>(key);
+  PRUint32 a, b, c, len, length;
+
+  length = PL_strlen(key);
+  
+  len = length;
+  a = b = 0x9e3779b9;  
+  c = initval;         
+
+  
+  while (len >= 12)
+  {
+    a += k[0] + (PRUint32(k[1])<<8) + (PRUint32(k[2])<<16) + (PRUint32(k[3])<<24);
+    b += k[4] + (PRUint32(k[5])<<8) + (PRUint32(k[6])<<16) + (PRUint32(k[7])<<24);
+    c += k[8] + (PRUint32(k[9])<<8) + (PRUint32(k[10])<<16) + (PRUint32(k[11])<<24);
+    hashmix(a, b, c);
+    k += 12; len -= 12;
+  }
+
+  
+  c += length;
+  switch(len) {              
+    case 11: c += (PRUint32(k[10])<<24);
+    case 10: c += (PRUint32(k[9])<<16);
+    case 9 : c += (PRUint32(k[8])<<8);
+    
+    case 8 : b += (PRUint32(k[7])<<24);
+    case 7 : b += (PRUint32(k[6])<<16);
+    case 6 : b += (PRUint32(k[5])<<8);
+    case 5 : b += k[4];
+    case 4 : a += (PRUint32(k[3])<<24);
+    case 3 : a += (PRUint32(k[2])<<16);
+    case 2 : a += (PRUint32(k[1])<<8);
+    case 1 : a += k[0];
+    
+  }
+  hashmix(a, b, c);
+
+  return c;
+}
 
 nsresult
 nsDiskCache::Truncate(PRFileDesc *  fd, PRUint32  newEOF)

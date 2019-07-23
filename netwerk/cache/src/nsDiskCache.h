@@ -53,12 +53,22 @@
 class nsDiskCache {
 public:
     enum {
-            kCurrentVersion = 0x0001000B      
+            kCurrentVersion = 0x0001000C      
     };
 
     enum { kData, kMetaData };
 
-    static PLDHashNumber    Hash(const char* key);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static PLDHashNumber    Hash(const char* key, PLDHashNumber initval=0);
     static nsresult         Truncate(PRFileDesc *  fd, PRUint32  newEOF);
 };
 
