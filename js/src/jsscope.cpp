@@ -55,8 +55,10 @@
 #include "jsatom.h"
 #include "jscntxt.h"
 #include "jsdbgapi.h"
+#include "jsfun.h"      
 #include "jslock.h"
 #include "jsnum.h"
+#include "jsobj.h"
 #include "jsscope.h"
 #include "jsstr.h"
 #include "jstracer.h"
@@ -279,11 +281,43 @@ JSScope::destroy(JSContext *cx)
 bool
 JSScope::initRuntimeState(JSContext *cx)
 {
-    cx->runtime->emptyBlockScope = cx->create<JSEmptyScope>(cx, &js_ObjectOps,
-                                                            &js_BlockClass);
-    JS_ASSERT(cx->runtime->emptyBlockScope->nrefs == 2);
-    cx->runtime->emptyBlockScope->nrefs = 1;
-    return !!cx->runtime->emptyBlockScope;
+    JSRuntime *rt = cx->runtime;
+
+    rt->emptyArgumentsScope = cx->create<JSEmptyScope>(cx, &js_ObjectOps, &js_ArgumentsClass);
+    if (!rt->emptyArgumentsScope)
+        return false;
+    JS_ASSERT(rt->emptyArgumentsScope->nrefs == 2);
+    rt->emptyArgumentsScope->nrefs = 1;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    rt->emptyArgumentsScope->freeslot = JS_INITIAL_NSLOTS + JS_ARGS_LENGTH_MAX;
+
+    rt->emptyBlockScope = cx->create<JSEmptyScope>(cx, &js_ObjectOps, &js_BlockClass);
+    if (!rt->emptyBlockScope) {
+        rt->emptyArgumentsScope->drop(cx);
+        rt->emptyArgumentsScope = NULL;
+        return false;
+    }
+    JS_ASSERT(rt->emptyBlockScope->nrefs == 2);
+    rt->emptyBlockScope->nrefs = 1;
+    return true;
 }
 
 
@@ -291,6 +325,10 @@ void
 JSScope::finishRuntimeState(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
+    if (rt->emptyArgumentsScope) {
+        rt->emptyArgumentsScope->drop(cx);
+        rt->emptyArgumentsScope = NULL;
+    }
     if (rt->emptyBlockScope) {
         rt->emptyBlockScope->drop(cx);
         rt->emptyBlockScope = NULL;
