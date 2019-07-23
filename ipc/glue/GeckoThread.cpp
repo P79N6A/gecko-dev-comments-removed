@@ -75,11 +75,6 @@ GeckoThread::CleanUp()
 {
   mXREEmbed.Stop();
   NS_LogTerm();
-
-  
-
-  
-  ChildThread::CleanUp();
 }
 
 
