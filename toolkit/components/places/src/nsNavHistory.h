@@ -740,7 +740,7 @@ protected:
   nsString mOrigSearchString;
   
   nsString mCurrentSearchString;
-  nsTArray<nsString> mCurrentSearchTokens;
+  nsStringArray mCurrentSearchTokens;
   void GenerateSearchTokens();
   void AddSearchToken(nsAutoString &aToken);
   void ProcessTokensForSpecialSearch();

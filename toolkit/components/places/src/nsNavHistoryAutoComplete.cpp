@@ -249,7 +249,7 @@ PLDHashOperator
 HashedURLsToArray(const nsAString &aKey, PRBool aData, void *aArg)
 {
   
-  static_cast<nsTArray<nsString> *>(aArg)->AppendElement(aKey);
+  static_cast<nsStringArray *>(aArg)->AppendString(aKey);
   return PL_DHASH_NEXT;
 }
 
@@ -570,7 +570,7 @@ nsNavHistory::PerformAutoComplete()
   
   if (!mCurrentChunkOffset) {
     
-    if (mCurrentSearchTokens.Length()) {
+    if (mCurrentSearchTokens.Count()) {
       rv = AutoCompleteKeywordSearch();
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -757,12 +757,12 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
       NS_ENSURE_SUCCESS(rv, rv);
 
       
-      nsTArray<nsString> urls;
+      nsStringArray urls;
       (void)mCurrentResultURLs.EnumerateRead(HashedURLsToArray, &urls);
 
       
       for (PRUint32 i = 0; i < prevMatchCount; i++) {
-        rv = mDBPreviousQuery->BindStringParameter(i + 1, urls[i]);
+        rv = mDBPreviousQuery->BindStringParameter(i + 1, *urls[i]);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -862,7 +862,7 @@ nsNavHistory::AddSearchToken(nsAutoString &aToken)
 {
   aToken.Trim("\r\n\t\b");
   if (!aToken.IsEmpty())
-    mCurrentSearchTokens.AppendElement(aToken);
+    mCurrentSearchTokens.AppendString(aToken);
 }
 
 void
@@ -879,28 +879,28 @@ nsNavHistory::ProcessTokensForSpecialSearch()
   
 
   
-  for (PRInt32 i = PRInt32(mCurrentSearchTokens.Length()); --i >= 0;) {
+  for (PRInt32 i = mCurrentSearchTokens.Count(); --i >= 0; ) {
     PRBool needToRemove = PR_TRUE;
-    const nsString& token = mCurrentSearchTokens[i];
+    const nsString *token = mCurrentSearchTokens.StringAt(i);
 
-    if (token.Equals(mAutoCompleteRestrictHistory))
+    if (token->Equals(mAutoCompleteRestrictHistory))
       SET_BEHAVIOR(History);
-    else if (token.Equals(mAutoCompleteRestrictBookmark))
+    else if (token->Equals(mAutoCompleteRestrictBookmark))
       SET_BEHAVIOR(Bookmark);
-    else if (token.Equals(mAutoCompleteRestrictTag))
+    else if (token->Equals(mAutoCompleteRestrictTag))
       SET_BEHAVIOR(Tag);
-    else if (token.Equals(mAutoCompleteMatchTitle))
+    else if (token->Equals(mAutoCompleteMatchTitle))
       SET_BEHAVIOR(Title);
-    else if (token.Equals(mAutoCompleteMatchUrl))
+    else if (token->Equals(mAutoCompleteMatchUrl))
       SET_BEHAVIOR(Url);
-    else if (token.Equals(mAutoCompleteRestrictTyped))
+    else if (token->Equals(mAutoCompleteRestrictTyped))
       SET_BEHAVIOR(Typed);
     else
       needToRemove = PR_FALSE;
 
     
     if (needToRemove)
-      mCurrentSearchTokens.RemoveElementAt(i);
+      (void)mCurrentSearchTokens.RemoveStringAt(i);
   }
 
   
@@ -1119,13 +1119,13 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
 
           
           
-          for (PRUint32 i = 0; i < mCurrentSearchTokens.Length() && matchAll; i++) {
-            const nsString& token = mCurrentSearchTokens[i];
+          for (PRInt32 i = 0; i < mCurrentSearchTokens.Count() && matchAll; i++) {
+            const nsString *token = mCurrentSearchTokens.StringAt(i);
 
             
-            PRBool matchTags = (*tokenMatchesTarget)(token, entryTags);
+            PRBool matchTags = (*tokenMatchesTarget)(*token, entryTags);
             
-            PRBool matchTitle = (*tokenMatchesTarget)(token, title);
+            PRBool matchTitle = (*tokenMatchesTarget)(*token, title);
 
             
             matchAll = matchTags || matchTitle;
@@ -1133,7 +1133,7 @@ nsNavHistory::AutoCompleteProcessSearch(mozIStorageStatement* aQuery,
               break;
 
             
-            PRBool matchUrl = (*tokenMatchesTarget)(token, entryURL);
+            PRBool matchUrl = (*tokenMatchesTarget)(*token, entryURL);
             
             
             if (GET_BEHAVIOR(Url) && !matchUrl)

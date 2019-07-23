@@ -49,7 +49,6 @@
 #include "nsPlacesTables.h"
 
 #include "nsIArray.h"
-#include "nsTArray.h"
 #include "nsArrayEnumerator.h"
 #include "nsCollationCID.h"
 #include "nsCOMPtr.h"
@@ -249,7 +248,7 @@ static PRInt64 GetSimpleBookmarksQueryFolder(
     const nsCOMArray<nsNavHistoryQuery>& aQueries,
     nsNavHistoryQueryOptions* aOptions);
 static void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
-                                        nsTArray<nsTArray<nsString>*>* aTerms);
+                                        nsTArray<nsStringArray*>* aTerms);
 
 inline void ReverseString(const nsString& aInput, nsAString& aReversed)
 {
@@ -5924,7 +5923,7 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
   NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
 
   
-  nsTArray<nsTArray<nsString>*> terms;
+  nsTArray<nsStringArray*> terms;
   ParseSearchTermsFromQueries(aQueries, &terms);
 
   PRInt32 queryIndex;
@@ -5990,7 +5989,7 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
 
     
     
-    if (!parentAnnotationToExclude.IsEmpty() && parentFoldersToExclude.Contains(parentId))
+    if (!parentAnnotationToExclude.IsEmpty() && (parentFoldersToExclude.IndexOf(parentId) != -1))
       continue;
 
     
@@ -6008,10 +6007,10 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
 
         
         
-        if (excludeFolders[queryIndex]->Contains(parentId))
+        if (excludeFolders[queryIndex]->IndexOf(parentId) != -1)
           continue;
 
-        if (!includeFolders[queryIndex]->Contains(parentId)) {
+        if (includeFolders[queryIndex]->IndexOf(parentId) == -1) {
           
           PRInt64 ancestor = parentId, lastAncestor;
           PRBool belongs = PR_FALSE;
@@ -6025,9 +6024,9 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
             
             if (NS_FAILED(bookmarks->GetFolderIdForItem(ancestor,&ancestor))) {
               break;
-            } else if (excludeFolders[queryIndex]->Contains(ancestor)) {
+            } else if (excludeFolders[queryIndex]->IndexOf(ancestor) != -1) {
               break;
-            } else if (includeFolders[queryIndex]->Contains(ancestor)) {
+            } else if (includeFolders[queryIndex]->IndexOf(ancestor) != -1) {
               belongs = PR_TRUE;
             }
           }
@@ -6066,14 +6065,14 @@ nsNavHistory::FilterResultSet(nsNavHistoryQueryResultNode* aQueryNode,
 
       
       PRBool matchAll = PR_TRUE;
-      for (PRInt32 termIndex = terms[queryIndex]->Length(); --termIndex >= 0 &&
+      for (PRInt32 termIndex = terms[queryIndex]->Count(); --termIndex >= 0 &&
            matchAll; ) {
-        const nsString& term = terms[queryIndex]->ElementAt(termIndex);
+        const nsString *term = terms[queryIndex]->StringAt(termIndex);
 
         
-        matchAll = CaseInsensitiveFindInReadable(term, nodeTitle) ||
-                   CaseInsensitiveFindInReadable(term, nodeURL) ||
-                   CaseInsensitiveFindInReadable(term, nodeTags);
+        matchAll = CaseInsensitiveFindInReadable(*term, nodeTitle) ||
+                   CaseInsensitiveFindInReadable(*term, nodeURL) ||
+                   CaseInsensitiveFindInReadable(*term, nodeTags);
       }
 
       
@@ -6893,11 +6892,11 @@ inline PRBool isQueryWhitespace(PRUnichar ch)
 }
 
 void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
-                                 nsTArray<nsTArray<nsString>*>* aTerms)
+                                 nsTArray<nsStringArray*>* aTerms)
 {
   PRInt32 lastBegin = -1;
   for (PRUint32 i=0; i < aQueries.Count(); i++) {
-    nsTArray<nsString> *queryTerms = new nsTArray<nsString>();
+    nsStringArray *queryTerms = new nsStringArray();
     PRBool hasSearchTerms;
     if (NS_SUCCEEDED(aQueries[i]->GetHasSearchTerms(&hasSearchTerms)) &&
         hasSearchTerms) {
@@ -6907,7 +6906,7 @@ void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
             searchTerms[j] == '"') {
           if (lastBegin >= 0) {
             
-            queryTerms->AppendElement(Substring(searchTerms, lastBegin,
+            queryTerms->AppendString(Substring(searchTerms, lastBegin,
                                                j - lastBegin));
             lastBegin = -1;
           }
@@ -6920,7 +6919,7 @@ void ParseSearchTermsFromQueries(const nsCOMArray<nsNavHistoryQuery>& aQueries,
       }
       
       if (lastBegin >= 0)
-        queryTerms->AppendElement(Substring(searchTerms, lastBegin));
+        queryTerms->AppendString(Substring(searchTerms, lastBegin));
     }
     aTerms->AppendElement(queryTerms);
   }

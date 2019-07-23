@@ -39,7 +39,6 @@
 #define nsISpellChecker_h__
 
 #include "nsISupports.h"
-#include "nsTArray.h"
 
 #define NS_SPELLCHECKER_CONTRACTID "@mozilla.org/spellchecker;1"
 
@@ -50,6 +49,7 @@
 
 class nsITextServicesDocument;
 class nsString;
+class nsStringArray;
 
 
 
@@ -73,7 +73,7 @@ public:
 
 
 
-  NS_IMETHOD NextMisspelledWord(nsAString &aWord, nsTArray<nsString> *aSuggestions) = 0;
+  NS_IMETHOD NextMisspelledWord(nsAString &aWord, nsStringArray *aSuggestions) = 0;
 
   
 
@@ -83,7 +83,7 @@ public:
 
 
 
-  NS_IMETHOD CheckWord(const nsAString &aWord, PRBool *aIsMisspelled, nsTArray<nsString> *aSuggestions) = 0;
+  NS_IMETHOD CheckWord(const nsAString &aWord, PRBool *aIsMisspelled, nsStringArray *aSuggestions) = 0;
 
   
 
@@ -118,7 +118,7 @@ public:
 
 
 
-  NS_IMETHOD GetPersonalDictionary(nsTArray<nsString> *aWordList) = 0;
+  NS_IMETHOD GetPersonalDictionary(nsStringArray *aWordList) = 0;
 
   
 
@@ -129,7 +129,7 @@ public:
 
 
 
-  NS_IMETHOD GetDictionaryList(nsTArray<nsString> *aDictionaryList) = 0;
+  NS_IMETHOD GetDictionaryList(nsStringArray *aDictionaryList) = 0;
 
   
 

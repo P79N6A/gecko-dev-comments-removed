@@ -117,7 +117,7 @@ public:
 
 
   nsresult
-  RemoveOwners(const nsTArray<nsString>& aOwners, PRBool aMatch);
+  RemoveOwners(const nsStringArray& aOwners, PRBool aMatch);
 
   
 

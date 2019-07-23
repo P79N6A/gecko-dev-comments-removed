@@ -81,7 +81,7 @@ public:
 
     nsresult GetFontList(const nsACString& aLangGroup,
                          const nsACString& aGenericFamily,
-                         nsTArray<nsString>& aListOfFonts);
+                         nsStringArray& aListOfFonts);
     nsresult UpdateFontList();
 
     
